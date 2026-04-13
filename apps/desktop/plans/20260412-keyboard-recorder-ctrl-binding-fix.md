@@ -343,20 +343,21 @@ QUICK_OPEN: {
 Adding `mod` would duplicate that capability without simplifying existing
 definitions. Skipped.
 
-### Allowing meta (Win/Super) recording on non-Mac
+### Meta (Win/Super) recording on non-Mac — now allowed with a warning
 
-The recorder rejects `event.metaKey` on Windows/Linux. We kept this and added
-an explanatory comment. Reasoning:
+Originally we blanket-rejected `event.metaKey` on Windows/Linux because
+Windows intercepts most `Win+*` chords (Win+R, Win+E, Win+L, Win+Tab) and the
+Super key is WM-owned on Linux (GNOME overview, KDE menu, tiling prefixes).
 
-- **Windows** intercepts most `Win+*` chords at the OS level (`Win+R`,
-  `Win+E`, `Win+L`, `Win+Tab`, `Win+<digit>`) before Electron's renderer sees
-  them. Allowing binding would create silently-dead shortcuts.
-- **Linux**'s Super key is WM-owned and behavior depends on distro/compositor
-  (GNOME overview, KDE app menu, tiling WM prefix, etc.). Same outcome.
+**Flipped that decision**: the blanket reject is paternalistic — users on
+tiling WMs or with custom Windows configs often deliberately free up Super
+for app use. We can't know their environment, and if a chord doesn't fire
+they'll rebind. Instead:
 
-Users on those platforms should record ctrl-based chords instead. If we ever
-want to loosen this on Linux specifically, replace the blanket reject with a
-per-chord check against `OS_RESERVED` and a user-visible warning.
+- Recording meta-based chords is allowed on all platforms.
+- `OS_RESERVED` was extended on Windows with the most common shell intercepts
+  (`meta+d/e/l/r/tab`). These surface a `"Reserved by OS"` warning at record
+  time instead of silently accepting a dead binding.
 
 ---
 

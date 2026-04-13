@@ -28,14 +28,6 @@ export function captureHotkeyFromEvent(event: KeyboardEvent): string | null {
 	const isFKey = /^f([1-9]|1[0-2])$/.test(key);
 	if (!isFKey && !event.ctrlKey && !event.metaKey) return null;
 
-	// Reject meta (Win/Super) on non-Mac.
-	// Why: Windows intercepts most `Win+*` chords at the OS level (Win+R,
-	// Win+E, Win+L, Win+Tab, Win+<digit>) before Electron sees them, and the
-	// Super key on Linux is WM-owned (GNOME overview, KDE app menu, etc.).
-	// Allowing recording would silently create dead bindings that the app
-	// never receives. Users on those platforms should use ctrl-based chords.
-	if (PLATFORM !== "mac" && event.metaKey) return null;
-
 	const modifiers = new Set<string>();
 	if (event.metaKey) modifiers.add("meta");
 	if (event.ctrlKey) modifiers.add("ctrl");
@@ -57,9 +49,22 @@ const TERMINAL_RESERVED = new Set([
 	"ctrl+backslash",
 ]);
 
+// Chords that the OS / shell is likely to intercept before the renderer sees
+// them. Binding is allowed (different Linux WM configs free many of these up),
+// but the recorder emits a "Reserved by OS" warning so the user knows why a
+// chord they just bound might not fire.
 const OS_RESERVED: Record<Platform, string[]> = {
 	mac: ["meta+q", "meta+space", "meta+tab"],
-	windows: ["alt+f4", "alt+tab", "ctrl+alt+delete"],
+	windows: [
+		"alt+f4",
+		"alt+tab",
+		"ctrl+alt+delete",
+		"meta+d", // Show desktop
+		"meta+e", // Explorer
+		"meta+l", // Lock
+		"meta+r", // Run
+		"meta+tab", // Task view
+	],
 	linux: ["alt+f4", "alt+tab"],
 };
 
