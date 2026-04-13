@@ -10,10 +10,16 @@ const HEADER_HEIGHT_PX = 44;
 const COLLAPSED_HEIGHT_PX = 48;
 const MIN_HEIGHT_PX = 60;
 const LARGE_DIFF_THRESHOLD_LINES = 250;
-const PLACEHOLDER_HEIGHT_PX = 260;
+const LARGE_PLACEHOLDER_HEIGHT_PX = 260;
+const DELETED_PLACEHOLDER_HEIGHT_PX = 160;
 
-function isLargeDiff(file: ChangesetFile): boolean {
-	return file.additions + file.deletions > LARGE_DIFF_THRESHOLD_LINES;
+type DeferReason = "large" | "deleted";
+
+function deferReason(file: ChangesetFile): DeferReason | null {
+	if (file.status === "deleted") return "deleted";
+	if (file.additions + file.deletions > LARGE_DIFF_THRESHOLD_LINES)
+		return "large";
+	return null;
 }
 
 function expandedHeight(file: ChangesetFile): number {
@@ -47,9 +53,9 @@ export const DiffFileEntry = memo(function DiffFileEntry({
 	const hasBeenNearRef = useRef(false);
 	if (isNear) hasBeenNearRef.current = true;
 
-	const [showLargeDiff, setShowLargeDiff] = useState(false);
+	const [showFullDiff, setShowFullDiff] = useState(false);
 	const [expandUnchanged, setExpandUnchanged] = useState(false);
-	const large = isLargeDiff(file);
+	const reason = deferReason(file);
 
 	const handleToggleCollapsed = useCallback(
 		() => onSetCollapsed(file.path, !collapsed),
@@ -69,24 +75,29 @@ export const DiffFileEntry = memo(function DiffFileEntry({
 		}
 		onOpenFile(file.path);
 	}, [file.status, file.path, onOpenFile]);
-	const handleShowLargeDiff = useCallback(() => setShowLargeDiff(true), []);
+	const handleShowFullDiff = useCallback(() => setShowFullDiff(true), []);
 	const handleToggleExpandUnchanged = useCallback(
 		() => setExpandUnchanged((prev) => !prev),
 		[],
 	);
 
-	if (large && !showLargeDiff) {
+	if (reason && !showFullDiff) {
+		const placeholderHeight =
+			reason === "deleted"
+				? DELETED_PLACEHOLDER_HEIGHT_PX
+				: LARGE_PLACEHOLDER_HEIGHT_PX;
 		return (
 			<div
 				ref={wrapperRef}
 				data-diff-path={file.path}
 				style={{
-					minHeight: collapsed ? COLLAPSED_HEIGHT_PX : PLACEHOLDER_HEIGHT_PX,
+					minHeight: collapsed ? COLLAPSED_HEIGHT_PX : placeholderHeight,
 				}}
 			>
-				<LargeDiffPlaceholder
+				<DeferredDiffPlaceholder
 					file={file}
-					onShow={handleShowLargeDiff}
+					reason={reason}
+					onShow={handleShowFullDiff}
 					collapsed={collapsed}
 					onToggleCollapsed={handleToggleCollapsed}
 					viewed={viewed}
@@ -97,7 +108,7 @@ export const DiffFileEntry = memo(function DiffFileEntry({
 		);
 	}
 
-	const shouldMount = large ? showLargeDiff : hasBeenNearRef.current;
+	const shouldMount = reason ? showFullDiff : hasBeenNearRef.current;
 
 	return (
 		<div
@@ -129,8 +140,9 @@ export const DiffFileEntry = memo(function DiffFileEntry({
 	);
 });
 
-interface LargeDiffPlaceholderProps {
+interface DeferredDiffPlaceholderProps {
 	file: ChangesetFile;
+	reason: DeferReason;
 	onShow: () => void;
 	collapsed: boolean;
 	onToggleCollapsed: () => void;
@@ -139,16 +151,27 @@ interface LargeDiffPlaceholderProps {
 	onOpenFile?: () => void;
 }
 
-function LargeDiffPlaceholder({
+function DeferredDiffPlaceholder({
 	file,
+	reason,
 	onShow,
 	collapsed,
 	onToggleCollapsed,
 	viewed,
 	onToggleViewed,
 	onOpenFile,
-}: LargeDiffPlaceholderProps) {
-	const total = file.additions + file.deletions;
+}: DeferredDiffPlaceholderProps) {
+	const isDeleted = reason === "deleted";
+	const fullHeight = isDeleted
+		? DELETED_PLACEHOLDER_HEIGHT_PX
+		: LARGE_PLACEHOLDER_HEIGHT_PX;
+	const title = isDeleted
+		? "This file was deleted"
+		: "Large diffs are not rendered by default";
+	const subtitle = isDeleted
+		? null
+		: `${(file.additions + file.deletions).toLocaleString()} changed lines`;
+
 	return (
 		<div className="flex flex-col overflow-hidden rounded-md border border-border">
 			<DiffFileHeader
@@ -165,15 +188,13 @@ function LargeDiffPlaceholder({
 			/>
 			{!collapsed && (
 				<div
-					className="flex flex-col items-center justify-center gap-3 px-6 text-center"
-					style={{ height: PLACEHOLDER_HEIGHT_PX - HEADER_HEIGHT_PX }}
+					className="flex flex-col items-center justify-center gap-2 px-6 text-center"
+					style={{ height: fullHeight - HEADER_HEIGHT_PX }}
 				>
-					<div className="text-sm font-medium text-foreground">
-						Large diffs are not rendered by default
-					</div>
-					<div className="text-xs text-muted-foreground">
-						{total.toLocaleString()} changed lines
-					</div>
+					<div className="text-sm font-medium text-foreground">{title}</div>
+					{subtitle && (
+						<div className="text-xs text-muted-foreground">{subtitle}</div>
+					)}
 					<button
 						type="button"
 						onClick={onShow}
