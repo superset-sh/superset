@@ -4,6 +4,7 @@ import {
 	ContextMenuSeparator,
 } from "@superset/ui/context-menu";
 import { toast } from "@superset/ui/sonner";
+import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 
 interface FileContextMenuProps {
@@ -19,6 +20,8 @@ export function FileContextMenu({
 	onRename,
 	onDelete,
 }: FileContextMenuProps) {
+	const { copyToClipboard } = useCopyToClipboard();
+
 	return (
 		<ContextMenuContent className="w-56">
 			<ContextMenuItem>Open to the Side</ContextMenuItem>
@@ -32,8 +35,8 @@ export function FileContextMenu({
 			</ContextMenuItem>
 			<ContextMenuSeparator />
 			<ContextMenuItem
-				onSelect={() => {
-					navigator.clipboard.writeText(absolutePath);
+				onSelect={async () => {
+					await copyToClipboard(absolutePath);
 					toast.success("Path copied");
 				}}
 			>
@@ -41,8 +44,8 @@ export function FileContextMenu({
 			</ContextMenuItem>
 			{relativePath && (
 				<ContextMenuItem
-					onSelect={() => {
-						navigator.clipboard.writeText(relativePath);
+					onSelect={async () => {
+						await copyToClipboard(relativePath);
 						toast.success("Relative path copied");
 					}}
 				>
