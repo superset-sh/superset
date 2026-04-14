@@ -9,8 +9,21 @@ import {
 const t = initTRPC.context<HostServiceContext>().create({
 	transformer: superjson,
 	errorFormatter({ shape, error }) {
+		// tRPC wraps non-Error `cause` values via getCauseFromUnknown() into a
+		// synthetic UnknownCauseError that carries the original fields as own
+		// properties. Superjson then serializes it as an Error (message/stack
+		// only) and drops our fields. Re-build a plain object so the wire
+		// format keeps `kind`, `exitCode`, `outputTail`, etc.
 		const teardownFailure: TeardownFailureCause | undefined =
-			isTeardownFailureCause(error.cause) ? error.cause : undefined;
+			isTeardownFailureCause(error.cause)
+				? {
+						kind: "TEARDOWN_FAILED",
+						exitCode: error.cause.exitCode,
+						signal: error.cause.signal,
+						timedOut: error.cause.timedOut,
+						outputTail: error.cause.outputTail,
+					}
+				: undefined;
 		return {
 			...shape,
 			data: {

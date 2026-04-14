@@ -28,7 +28,9 @@ export function TeardownFailedPane({
 }: TeardownFailedPaneProps) {
 	const reason = formatTeardownReason(cause);
 	// Raw PTY bytes include ANSI sequences; sanitize for the <pre> block.
-	const cleanTail = stripAnsi(cause.outputTail);
+	// outputTail may be missing if the server returned no captured output or
+	// the field didn't round-trip; coalesce so the pane never crashes.
+	const cleanTail = stripAnsi(cause.outputTail ?? "");
 
 	return (
 		<AlertDialog open={open} onOpenChange={onOpenChange}>
