@@ -10,6 +10,7 @@ import { projectRouter } from "./project";
 import { pullRequestsRouter } from "./pull-requests";
 import { terminalRouter } from "./terminal";
 import { workspaceRouter } from "./workspace";
+import { workspaceCleanupRouter } from "./workspace-cleanup";
 import { workspaceCreationRouter } from "./workspace-creation";
 
 export const appRouter = router({
@@ -24,6 +25,7 @@ export const appRouter = router({
 	project: projectRouter,
 	terminal: terminalRouter,
 	workspace: workspaceRouter,
+	workspaceCleanup: workspaceCleanupRouter,
 	workspaceCreation: workspaceCreationRouter,
 });
 

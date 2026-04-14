@@ -6,7 +6,7 @@ import {
 	type ShellReadyScanState,
 	scanForShellReady,
 } from "@superset/shared/shell-ready-scanner";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import type { Hono } from "hono";
 import { type IPty, spawn } from "node-pty";
 import type { HostDb } from "../db";
@@ -166,6 +166,38 @@ function disposeSession(terminalId: string, db: HostDb) {
 		.set({ status: "disposed", endedAt: Date.now() })
 		.where(eq(terminalSessions.id, terminalId))
 		.run();
+}
+
+/**
+ * Dispose every active session belonging to the given workspace.
+ * Returns counts so callers (e.g. workspaceCleanup.destroy) can surface warnings.
+ */
+export function disposeSessionsByWorkspaceId(
+	workspaceId: string,
+	db: HostDb,
+): { terminated: number; failed: number } {
+	const rows = db
+		.select({ id: terminalSessions.id })
+		.from(terminalSessions)
+		.where(
+			and(
+				eq(terminalSessions.originWorkspaceId, workspaceId),
+				eq(terminalSessions.status, "active"),
+			),
+		)
+		.all();
+
+	let terminated = 0;
+	let failed = 0;
+	for (const row of rows) {
+		try {
+			disposeSession(row.id, db);
+			terminated += 1;
+		} catch {
+			failed += 1;
+		}
+	}
+	return { terminated, failed };
 }
 
 interface CreateTerminalSessionOptions {
