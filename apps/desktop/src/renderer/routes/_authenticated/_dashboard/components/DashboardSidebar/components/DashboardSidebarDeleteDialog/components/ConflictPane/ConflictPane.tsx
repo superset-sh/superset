@@ -15,7 +15,7 @@ interface ConflictPaneProps {
 	onForceDelete: () => void;
 }
 
-/** Shown when `git worktree remove` refused (dirty tree, locked worktree). */
+/** Shown when the preflight dirty-worktree check blocks destroy. */
 export function ConflictPane({
 	open,
 	onOpenChange,
@@ -29,8 +29,8 @@ export function ConflictPane({
 						Uncommitted changes in worktree
 					</AlertDialogTitle>
 					<AlertDialogDescription>
-						The worktree has uncommitted or unlocked work. Force delete will
-						discard it.
+						The worktree has uncommitted changes. Delete anyway will discard
+						them.
 					</AlertDialogDescription>
 				</AlertDialogHeader>
 				<AlertDialogFooter className="px-4 pb-4 pt-2 flex-row justify-end gap-2">

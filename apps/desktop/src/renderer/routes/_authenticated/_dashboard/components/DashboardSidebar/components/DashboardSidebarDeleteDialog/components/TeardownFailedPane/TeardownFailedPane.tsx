@@ -27,9 +27,7 @@ export function TeardownFailedPane({
 	onForceDelete,
 }: TeardownFailedPaneProps) {
 	const reason = formatTeardownReason(cause);
-	// Raw PTY bytes include ANSI sequences; sanitize for the <pre> block.
-	// outputTail may be missing if the server returned no captured output or
-	// the field didn't round-trip; coalesce so the pane never crashes.
+	// Strip ANSI so raw PTY bytes render readably in the <pre>.
 	const cleanTail = stripAnsi(cause.outputTail ?? "");
 
 	return (

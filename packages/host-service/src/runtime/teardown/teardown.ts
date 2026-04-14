@@ -114,7 +114,7 @@ export async function runTeardown({
 		const timer = setTimeout(() => {
 			if (settled) return;
 			timedOut = true;
-			appendTail(`\n[teardown timed out after ${timeoutMs}ms; SIGKILL]\n`);
+			appendTail(`\n[teardown timed out after ${timeoutMs}ms]\n`);
 			try {
 				session.pty.kill();
 			} catch {
