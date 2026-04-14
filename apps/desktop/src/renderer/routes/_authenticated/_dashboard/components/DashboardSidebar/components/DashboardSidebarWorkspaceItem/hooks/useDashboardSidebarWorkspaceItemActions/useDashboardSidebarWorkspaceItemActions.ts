@@ -69,7 +69,12 @@ export function useDashboardSidebarWorkspaceItemActions({
 		}
 	};
 
-	const handleDelete = () => {
+	/**
+	 * Runs after `workspaceCleanup.destroy` succeeds. Removes the row from
+	 * the sidebar and, if we were viewing the deleted workspace, navigates
+	 * to the next sibling or home.
+	 */
+	const handleDeleted = () => {
 		const focusTargetId = isActive
 			? getDeleteFocusTargetWorkspaceId(
 					getFlattenedV2WorkspaceIds(collections),
@@ -77,28 +82,14 @@ export function useDashboardSidebarWorkspaceItemActions({
 				)
 			: null;
 
-		setIsDeleteDialogOpen(false);
+		removeWorkspaceFromSidebar(workspaceId);
 
-		const deletePromise = (async () => {
-			await apiTrpcClient.v2Workspace.delete.mutate({ id: workspaceId });
-			removeWorkspaceFromSidebar(workspaceId);
-		})();
-
-		toast.promise(deletePromise, {
-			loading: "Deleting workspace...",
-			success: "Workspace deleted",
-			error: (error) =>
-				`Failed to delete: ${error instanceof Error ? error.message : "Unknown error"}`,
-		});
-
-		void deletePromise.then(() => {
-			if (!isActive) return;
-			if (focusTargetId) {
-				void navigateToV2Workspace(focusTargetId, navigate);
-			} else {
-				void navigate({ to: "/" });
-			}
-		});
+		if (!isActive) return;
+		if (focusTargetId) {
+			void navigateToV2Workspace(focusTargetId, navigate);
+		} else {
+			void navigate({ to: "/" });
+		}
 	};
 
 	const handleCreateSection = () => {
@@ -119,7 +110,7 @@ export function useDashboardSidebarWorkspaceItemActions({
 		handleClick,
 		handleCopyPath,
 		handleCreateSection,
-		handleDelete,
+		handleDeleted,
 		handleOpenInFinder,
 		isActive,
 		isDeleteDialogOpen,
