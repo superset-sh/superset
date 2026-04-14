@@ -241,16 +241,45 @@ export class HostServiceCoordinator extends EventEmitter {
 		let debounce: ReturnType<typeof setTimeout> | null = null;
 		let reloading = false;
 
+		const waitForStableBundle = async (): Promise<boolean> => {
+			const deadline = Date.now() + 5_000;
+			let lastSize = -1;
+			let stableSince = 0;
+			while (Date.now() < deadline) {
+				try {
+					const stat = fs.statSync(this.scriptPath);
+					if (stat.size > 0 && stat.size === lastSize) {
+						if (Date.now() - stableSince >= 150) return true;
+					} else {
+						lastSize = stat.size;
+						stableSince = Date.now();
+					}
+				} catch {
+					lastSize = -1;
+					stableSince = 0;
+				}
+				await new Promise((r) => setTimeout(r, 50));
+			}
+			return false;
+		};
+
 		const trigger = () => {
 			if (debounce) clearTimeout(debounce);
 			debounce = setTimeout(() => {
 				void (async () => {
 					if (reloading) return;
 					if (this.getActiveOrganizationIds().length === 0) return;
-					const config = await configProvider();
-					if (!config) return;
 					reloading = true;
 					try {
+						const ready = await waitForStableBundle();
+						if (!ready) {
+							console.warn(
+								"[host-service] bundle did not stabilize, skipping reload",
+							);
+							return;
+						}
+						const config = await configProvider();
+						if (!config) return;
 						console.log(
 							"[host-service] bundle changed, restarting running instances",
 						);
