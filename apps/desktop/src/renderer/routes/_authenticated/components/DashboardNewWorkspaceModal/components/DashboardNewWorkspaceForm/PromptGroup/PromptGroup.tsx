@@ -141,7 +141,7 @@ function PromptGroupInner({
 
 	// ── Per-row actions (Open / Check out / Adopt) ─────────────────────
 	// Mutations live on the pending page now; this component only inserts
-	// pending rows and navigates. See ../../../DESIGN.md §3.
+	// pending rows and navigates. See V2_WORKSPACE_CREATION.md §3.
 	const navigate = useNavigate();
 	const collections = useCollections();
 
@@ -201,7 +201,7 @@ function PromptGroupInner({
 
 	// All three intents (fork, checkout, adopt) follow the same shape now:
 	// insert a pending row + close modal + navigate. The pending page owns
-	// the actual host-service mutation. See ../../../DESIGN.md §3.
+	// the actual host-service mutation. See V2_WORKSPACE_CREATION.md §3.
 	const insertPendingAndNavigate = useCallback(
 		(row: {
 			pendingId: string;

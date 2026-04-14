@@ -328,4 +328,4 @@ See `packages/host-service/GIT_REFS.md` for the pattern. Key rules:
 
 ## Cross-reference
 
-For the foundational git-ref handling pattern that underpins `create` / `checkout` / `resolveStartPoint`, see [`packages/host-service/GIT_REFS.md`](../../../../../../../../packages/host-service/GIT_REFS.md).
+For the foundational git-ref handling pattern that underpins `create` / `checkout` / `resolveStartPoint`, see [`packages/host-service/GIT_REFS.md`](../../packages/host-service/GIT_REFS.md).
