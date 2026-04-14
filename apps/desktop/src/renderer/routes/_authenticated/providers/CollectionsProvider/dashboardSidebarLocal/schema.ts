@@ -75,11 +75,41 @@ export const v2TerminalPresetSchema = z.object({
 	createdAt: persistedDateSchema,
 });
 
+// Structured shapes for pending-row payload fields. Previously these were
+// `z.unknown()` which forced `as`-casts at every read site and hid malformed
+// rows until they crashed a later consumer. Typing them here gives the
+// collection real validation and lets consumers read fields directly.
+const pendingHostTargetSchema = z.discriminatedUnion("kind", [
+	z.object({ kind: z.literal("local") }),
+	z.object({ kind: z.literal("host"), hostId: z.string() }),
+]);
+
+const pendingLinkedIssueSchema = z.object({
+	slug: z.string(),
+	title: z.string(),
+	source: z.enum(["github", "internal"]).optional(),
+	url: z.string().optional(),
+	taskId: z.string().optional(),
+	number: z.number().optional(),
+	state: z.enum(["open", "closed"]).optional(),
+});
+
+const pendingLinkedPRSchema = z.object({
+	prNumber: z.number(),
+	title: z.string(),
+	url: z.string(),
+	state: z.string(),
+});
+
+export type PendingHostTarget = z.infer<typeof pendingHostTargetSchema>;
+export type PendingLinkedIssue = z.infer<typeof pendingLinkedIssueSchema>;
+export type PendingLinkedPR = z.infer<typeof pendingLinkedPRSchema>;
+
 export const pendingWorkspaceSchema = z.object({
 	// Shared
 	id: z.string().uuid(),
 	projectId: z.string().uuid(),
-	hostTarget: z.unknown(),
+	hostTarget: pendingHostTargetSchema,
 	// Which mutation the pending page should run. See PENDING_FLOW.md.
 	// Defaults to "fork" for any rows that predate this field.
 	intent: z.enum(["fork", "checkout", "adopt"]).default("fork"),
@@ -107,8 +137,8 @@ export const pendingWorkspaceSchema = z.object({
 		.enum(["local", "remote-tracking"])
 		.nullable()
 		.default(null),
-	linkedIssues: z.array(z.unknown()).default([]),
-	linkedPR: z.unknown().nullable().default(null),
+	linkedIssues: z.array(pendingLinkedIssueSchema).default([]),
+	linkedPR: pendingLinkedPRSchema.nullable().default(null),
 	attachmentCount: z.number().int().default(0),
 
 	// fork + checkout (irrelevant for adopt — worktree already exists).

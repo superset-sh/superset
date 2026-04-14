@@ -54,7 +54,7 @@ export function useSubmitWorkspace(projectId: string | null) {
 			baseBranch: draft.baseBranch ?? null,
 			baseBranchSource: draft.baseBranchSource ?? null,
 			runSetupScript: draft.runSetupScript,
-			linkedIssues: draft.linkedIssues as unknown[],
+			linkedIssues: draft.linkedIssues,
 			linkedPR: draft.linkedPR,
 			hostTarget: draft.hostTarget,
 			attachmentCount: detachedFiles.length,

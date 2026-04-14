@@ -19,6 +19,11 @@ import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/u
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import type { PendingWorkspaceRow } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal/schema";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
+import {
+	buildAdoptPayload,
+	buildCheckoutPayload,
+	buildForkPayload,
+} from "./buildIntentPayload";
 import { buildSetupPaneLayout } from "./buildSetupPaneLayout";
 
 /**
@@ -41,8 +46,6 @@ export const Route = createFileRoute(
 	component: PendingWorkspacePage,
 });
 
-type HostTarget = { kind: "local" } | { kind: "host"; hostId: string };
-
 function useFireIntent(pendingId: string, pending: PendingWorkspaceRow | null) {
 	const collections = useCollections();
 	const createWorkspace = useCreateDashboardWorkspace();
@@ -57,8 +60,6 @@ function useFireIntent(pendingId: string, pending: PendingWorkspaceRow | null) {
 			draft.error = null;
 		});
 
-		const hostTarget = pending.hostTarget as HostTarget;
-
 		try {
 			let result: {
 				workspace?: { id?: string } | null;
@@ -68,77 +69,29 @@ function useFireIntent(pendingId: string, pending: PendingWorkspaceRow | null) {
 
 			switch (pending.intent) {
 				case "fork": {
-					const internalIssueIds = (
-						pending.linkedIssues as Array<{
-							source?: string;
-							taskId?: string;
-						}>
-					)
-						.filter((i) => i.source === "internal" && i.taskId)
-						.map((i) => i.taskId as string);
-					const githubIssueUrls = (
-						pending.linkedIssues as Array<{ source?: string; url?: string }>
-					)
-						.filter((i) => i.source === "github" && i.url)
-						.map((i) => i.url as string);
-					const linkedPR = pending.linkedPR as { url?: string } | null;
-
-					let attachmentPayload:
+					let attachments:
 						| Array<{ data: string; mediaType: string; filename: string }>
 						| undefined;
 					if (pending.attachmentCount > 0) {
 						try {
-							attachmentPayload = await loadAttachments(pendingId);
+							attachments = await loadAttachments(pendingId);
 						} catch {
 							// proceed without
 						}
 					}
-
-					result = await createWorkspace({
-						pendingId,
-						projectId: pending.projectId,
-						hostTarget,
-						names: {
-							workspaceName: pending.name,
-							branchName: pending.branchName,
-						},
-						composer: {
-							prompt: pending.prompt || undefined,
-							baseBranch: pending.baseBranch || undefined,
-							baseBranchSource: pending.baseBranchSource ?? undefined,
-							runSetupScript: pending.runSetupScript,
-						},
-						linkedContext: {
-							internalIssueIds:
-								internalIssueIds.length > 0 ? internalIssueIds : undefined,
-							githubIssueUrls:
-								githubIssueUrls.length > 0 ? githubIssueUrls : undefined,
-							linkedPrUrl: linkedPR?.url,
-							attachments: attachmentPayload,
-						},
-					});
+					result = await createWorkspace(
+						buildForkPayload(pendingId, pending, attachments),
+					);
 					break;
 				}
-
 				case "checkout": {
-					result = await checkoutWorkspace({
-						pendingId,
-						projectId: pending.projectId,
-						hostTarget,
-						workspaceName: pending.name,
-						branch: pending.branchName,
-						composer: { runSetupScript: pending.runSetupScript },
-					});
+					result = await checkoutWorkspace(
+						buildCheckoutPayload(pendingId, pending),
+					);
 					break;
 				}
-
 				case "adopt": {
-					result = await adoptWorktree({
-						projectId: pending.projectId,
-						hostTarget,
-						workspaceName: pending.name,
-						branch: pending.branchName,
-					});
+					result = await adoptWorktree(buildAdoptPayload(pending));
 					break;
 				}
 			}
@@ -225,15 +178,11 @@ function PendingWorkspacePage() {
 	// adopt is fast and doesn't instrument progress).
 	const intentHasProgress =
 		pending?.intent === "fork" || pending?.intent === "checkout";
-	const hostUrl =
-		pending?.hostTarget &&
-		typeof pending.hostTarget === "object" &&
-		"kind" in (pending.hostTarget as Record<string, unknown>)
-			? (pending.hostTarget as { kind: string; hostId?: string }).kind ===
-				"local"
-				? activeHostUrl
-				: `${env.RELAY_URL}/hosts/${(pending.hostTarget as { hostId: string }).hostId}`
-			: activeHostUrl;
+	const hostUrl = !pending
+		? activeHostUrl
+		: pending.hostTarget.kind === "local"
+			? activeHostUrl
+			: `${env.RELAY_URL}/hosts/${pending.hostTarget.hostId}`;
 
 	const { data: progress } = useQuery({
 		queryKey: ["workspaceCreation", "getProgress", pendingId, hostUrl],
