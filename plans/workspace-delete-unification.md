@@ -146,7 +146,7 @@ Fast path: one click for a clean worktree, no branch delete. Confirm only on dir
 
 ## UX decisions
 
-- **Delete branch by default?** No. v1 defaults to delete; v2 branches are intentionally ephemeral-or-reusable (may back a PR). Checkbox, off by default.
+- **Delete branch by default?** No. Checkbox in the confirm dialog, off by default. User opts in per delete; no persisted preference.
 - **Always confirm?** Only when dirty or `deleteBranch: true`.
 - **Split `force` into worktree-force and branch-force?** No. One "I acknowledge this might destroy work" signal covers both.
 
@@ -179,9 +179,13 @@ runTeardown({ worktreePath, workspaceId })
 - **Missing script**: fast-return `{ status: "skipped" }`.
 - **`force` in destroy**: skips this step entirely. Don't re-run a known-broken script.
 
+## Host ownership
+
+`v2Workspaces.hostId` (`packages/db/src/schema/schema.ts:523-525`) ties each workspace to exactly one host. `workspaceCleanup.destroy` verifies `local.hostId === currentHostId` and throws `FORBIDDEN` otherwise. The UI does not surface delete for workspaces on other hosts. Cross-device delete is not a supported operation.
+
 ## Out of scope
 
-- **Remote-host cleanup**: workspace on remote host deleted from this device. Remote host learns via cloud-sync event subscription later. Same pattern; separate PR.
+- **Abandoned-host cleanup**: retired/lost machines leave zombie hosts + workspaces in the cloud. That's a separate "Remove this device" operation (settings → devices), not this flow.
 - **Visible-pane teardown**: rejected. v2 setup is visible because users need to see it succeed; teardown has nothing actionable once it starts and the pane evaporates with the workspace.
 - **Bulk delete / trash bin**: future flow composing `destroy` calls.
 
