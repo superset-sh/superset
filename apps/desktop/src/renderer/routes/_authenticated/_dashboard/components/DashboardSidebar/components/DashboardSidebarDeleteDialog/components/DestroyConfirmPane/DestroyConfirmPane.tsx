@@ -16,13 +16,13 @@ interface DestroyConfirmPaneProps {
 	workspaceName: string;
 	deleteBranch: boolean;
 	onDeleteBranchChange: (next: boolean) => void;
-	isPending: boolean;
 	onConfirm: () => void;
 }
 
 /**
  * Default pane: the first click on "Delete". Offers the branch opt-in.
- * Non-destructive-looking title; destruction happens on confirm.
+ * Confirm hands off to the parent which closes the dialog and runs the
+ * destroy under a toast — no in-dialog pending state.
  */
 export function DestroyConfirmPane({
 	open,
@@ -30,7 +30,6 @@ export function DestroyConfirmPane({
 	workspaceName,
 	deleteBranch,
 	onDeleteBranchChange,
-	isPending,
 	onConfirm,
 }: DestroyConfirmPaneProps) {
 	return (
@@ -53,7 +52,6 @@ export function DestroyConfirmPane({
 							onCheckedChange={(checked) =>
 								onDeleteBranchChange(checked === true)
 							}
-							disabled={isPending}
 						/>
 						<Label
 							htmlFor="delete-local-branch"
@@ -69,7 +67,6 @@ export function DestroyConfirmPane({
 						size="sm"
 						className="h-7 px-3 text-xs"
 						onClick={() => onOpenChange(false)}
-						disabled={isPending}
 					>
 						Cancel
 					</Button>
@@ -78,9 +75,8 @@ export function DestroyConfirmPane({
 						size="sm"
 						className="h-7 px-3 text-xs"
 						onClick={onConfirm}
-						disabled={isPending}
 					>
-						{isPending ? "Deleting..." : "Delete"}
+						Delete
 					</Button>
 				</AlertDialogFooter>
 			</AlertDialogContent>

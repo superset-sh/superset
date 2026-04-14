@@ -15,7 +15,6 @@ interface TeardownFailedPaneProps {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 	cause: TeardownFailureCause;
-	isPending: boolean;
 	/** Re-runs destroy with `force: true` — skips teardown entirely. */
 	onForceDelete: () => void;
 }
@@ -25,7 +24,6 @@ export function TeardownFailedPane({
 	open,
 	onOpenChange,
 	cause,
-	isPending,
 	onForceDelete,
 }: TeardownFailedPaneProps) {
 	const reason = formatTeardownReason(cause);
@@ -52,7 +50,6 @@ export function TeardownFailedPane({
 						size="sm"
 						className="h-7 px-3 text-xs"
 						onClick={() => onOpenChange(false)}
-						disabled={isPending}
 					>
 						Cancel
 					</Button>
@@ -61,9 +58,8 @@ export function TeardownFailedPane({
 						size="sm"
 						className="h-7 px-3 text-xs"
 						onClick={onForceDelete}
-						disabled={isPending}
 					>
-						{isPending ? "Deleting..." : "Delete anyway"}
+						Delete anyway
 					</Button>
 				</AlertDialogFooter>
 			</AlertDialogContent>

@@ -13,10 +13,15 @@ interface UseDestroyDialogStateOptions {
 }
 
 /**
- * Orchestrates the delete flow for `DashboardSidebarDeleteDialog`:
- * owns the branch checkbox, pending flag, error state, and a `run(force)`
- * entry point that calls `workspaceCleanup.destroy` and closes the dialog
- * on success or surfaces a typed error for the pane switch to pick up.
+ * Drives the delete flow for `DashboardSidebarDeleteDialog`.
+ *
+ * UX pattern (mirrors v1's deleteWithToast):
+ *   - On confirm, close the dialog immediately and run the destroy
+ *     in the background under a toast.loading → success/error.
+ *   - For decision-required errors (CONFLICT, TEARDOWN_FAILED) we
+ *     reopen the dialog in the matching error pane so the user can
+ *     force-retry with full context. The branch opt-in is preserved.
+ *   - For unknown errors we just toast.error — no reopen.
  */
 export function useDestroyDialogState({
 	workspaceId,
@@ -27,48 +32,53 @@ export function useDestroyDialogState({
 	const { destroy } = useDestroyWorkspace(workspaceId);
 
 	const [deleteBranch, setDeleteBranch] = useState(false);
-	const [isPending, setIsPending] = useState(false);
 	const [error, setError] = useState<DestroyWorkspaceError | null>(null);
-
-	const reset = useCallback(() => {
-		setDeleteBranch(false);
-		setIsPending(false);
-		setError(null);
-	}, []);
 
 	const handleOpenChange = useCallback(
 		(next: boolean) => {
-			if (isPending) return;
-			if (!next) reset();
+			if (!next) {
+				setDeleteBranch(false);
+				setError(null);
+			}
 			onOpenChange(next);
 		},
-		[isPending, reset, onOpenChange],
+		[onOpenChange],
 	);
 
 	const clearError = useCallback(() => setError(null), []);
 
 	const run = useCallback(
 		async (force: boolean) => {
-			setIsPending(true);
+			// Optimistic close. State (deleteBranch) preserved in case we re-open
+			// on a decision-required error.
+			setError(null);
+			onOpenChange(false);
+
+			const loadingId = toast.loading(`Deleting ${workspaceName}...`);
+
 			try {
 				const result = await destroy({ deleteBranch, force });
+				toast.success(`Deleted ${workspaceName}`, { id: loadingId });
 				for (const warning of result.warnings) toast.warning(warning);
-				toast.success(`Deleted ${workspaceName}`);
-				reset();
-				onOpenChange(false);
+				setDeleteBranch(false);
 				onDeleted?.();
 			} catch (err) {
-				setIsPending(false);
-				setError(err as DestroyWorkspaceError);
+				const e = err as DestroyWorkspaceError;
+				if (e.kind === "conflict" || e.kind === "teardown-failed") {
+					toast.dismiss(loadingId);
+					setError(e);
+					onOpenChange(true);
+				} else {
+					toast.error(`Failed to delete: ${e.message}`, { id: loadingId });
+				}
 			}
 		},
-		[destroy, deleteBranch, workspaceName, reset, onOpenChange, onDeleted],
+		[destroy, deleteBranch, workspaceName, onOpenChange, onDeleted],
 	);
 
 	return {
 		deleteBranch,
 		setDeleteBranch,
-		isPending,
 		error,
 		clearError,
 		handleOpenChange,

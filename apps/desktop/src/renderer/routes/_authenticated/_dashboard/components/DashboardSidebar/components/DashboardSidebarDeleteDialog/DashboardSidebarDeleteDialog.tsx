@@ -16,7 +16,8 @@ interface DashboardSidebarDeleteDialogProps {
 /**
  * Dispatches between confirm / conflict / teardown-failed / unknown-error
  * panes based on the error returned by `workspaceCleanup.destroy`. The
- * state hook owns the mutation; panes are dumb presentation components.
+ * destroy itself runs in the background under a toast — this dialog is
+ * only on screen when the user has a decision to make.
  */
 export function DashboardSidebarDeleteDialog({
 	workspaceId,
@@ -28,7 +29,6 @@ export function DashboardSidebarDeleteDialog({
 	const {
 		deleteBranch,
 		setDeleteBranch,
-		isPending,
 		error,
 		clearError,
 		handleOpenChange,
@@ -45,7 +45,6 @@ export function DashboardSidebarDeleteDialog({
 			<ConflictPane
 				open={open}
 				onOpenChange={handleOpenChange}
-				isPending={isPending}
 				onForceDelete={() => run(true)}
 			/>
 		);
@@ -57,7 +56,6 @@ export function DashboardSidebarDeleteDialog({
 				open={open}
 				onOpenChange={handleOpenChange}
 				cause={error.cause}
-				isPending={isPending}
 				onForceDelete={() => run(true)}
 			/>
 		);
@@ -81,7 +79,6 @@ export function DashboardSidebarDeleteDialog({
 			workspaceName={workspaceName}
 			deleteBranch={deleteBranch}
 			onDeleteBranchChange={setDeleteBranch}
-			isPending={isPending}
 			onConfirm={() => run(false)}
 		/>
 	);

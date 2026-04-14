@@ -11,7 +11,6 @@ import { Button } from "@superset/ui/button";
 interface ConflictPaneProps {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
-	isPending: boolean;
 	/** Re-runs destroy with `force: true`. */
 	onForceDelete: () => void;
 }
@@ -20,7 +19,6 @@ interface ConflictPaneProps {
 export function ConflictPane({
 	open,
 	onOpenChange,
-	isPending,
 	onForceDelete,
 }: ConflictPaneProps) {
 	return (
@@ -41,7 +39,6 @@ export function ConflictPane({
 						size="sm"
 						className="h-7 px-3 text-xs"
 						onClick={() => onOpenChange(false)}
-						disabled={isPending}
 					>
 						Cancel
 					</Button>
@@ -50,9 +47,8 @@ export function ConflictPane({
 						size="sm"
 						className="h-7 px-3 text-xs"
 						onClick={onForceDelete}
-						disabled={isPending}
 					>
-						{isPending ? "Deleting..." : "Delete anyway"}
+						Delete anyway
 					</Button>
 				</AlertDialogFooter>
 			</AlertDialogContent>
