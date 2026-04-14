@@ -54,6 +54,7 @@ export function DashboardSidebarWorkspaceItem({
 		workspaceId: id,
 		projectId,
 		workspaceName: name,
+		hostType,
 	});
 
 	const navigate = useNavigate();

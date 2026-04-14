@@ -1,27 +1,35 @@
 import { toast } from "@superset/ui/sonner";
 import { useMatchRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
+import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
+import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { getDeleteFocusTargetWorkspaceId } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/utils/getDeleteFocusTargetWorkspaceId";
 import { getFlattenedV2WorkspaceIds } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/utils/getFlattenedV2WorkspaceIds";
 import { navigateToV2Workspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
+import type { DashboardSidebarWorkspaceHostType } from "../../../../types";
 
 interface UseDashboardSidebarWorkspaceItemActionsOptions {
 	workspaceId: string;
 	projectId: string;
 	workspaceName: string;
+	hostType: DashboardSidebarWorkspaceHostType;
 }
 
 export function useDashboardSidebarWorkspaceItemActions({
 	workspaceId,
 	projectId,
 	workspaceName,
+	hostType,
 }: UseDashboardSidebarWorkspaceItemActionsOptions) {
 	const navigate = useNavigate();
 	const matchRoute = useMatchRoute();
 	const collections = useCollections();
+	const { activeHostUrl } = useLocalHostService();
+	const { copyToClipboard } = useCopyToClipboard();
 	const { createSection, moveWorkspaceToSection, removeWorkspaceFromSidebar } =
 		useDashboardSidebarState();
 
@@ -110,8 +118,30 @@ export function useDashboardSidebarWorkspaceItemActions({
 		toast.info("Open in Finder is coming soon");
 	};
 
-	const handleCopyPath = () => {
-		toast.info("Copy Path is coming soon");
+	const handleCopyPath = async () => {
+		if (hostType !== "local-device") {
+			toast.error("Copy Path is only available for local workspaces");
+			return;
+		}
+		if (!activeHostUrl) {
+			toast.error("Host service is not available");
+			return;
+		}
+		try {
+			const workspace = await getHostServiceClientByUrl(
+				activeHostUrl,
+			).workspace.get.query({ id: workspaceId });
+			if (!workspace?.worktreePath) {
+				toast.error("Workspace path is not available");
+				return;
+			}
+			await copyToClipboard(workspace.worktreePath);
+			toast.success("Path copied");
+		} catch (error) {
+			toast.error(
+				`Failed to copy path: ${error instanceof Error ? error.message : "Unknown error"}`,
+			);
+		}
 	};
 
 	return {
