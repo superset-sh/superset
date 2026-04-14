@@ -29,36 +29,32 @@ export const workspaceCleanupRouter = router({
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			if (!ctx.api) {
-				throw new TRPCError({
-					code: "PRECONDITION_FAILED",
-					message: "Cloud API not configured",
-				});
-			}
+			const warnings: string[] = [];
 
 			const local = ctx.db.query.workspaces
 				.findFirst({ where: eq(workspaces.id, input.workspaceId) })
 				.sync();
+			const project = local
+				? ctx.db.query.projects
+						.findFirst({ where: eq(projects.id, local.projectId) })
+						.sync()
+				: undefined;
+
 			if (!local) {
-				// Not on this host. Either already cleaned locally, or belongs to
-				// another machine. Either way we don't touch cloud from here.
-				throw new TRPCError({
-					code: "NOT_FOUND",
-					message: "Workspace is not on this host",
-				});
+				// No host-sqlite row. This happens when the workspace was created
+				// by a flow that didn't register it locally, or the host DB was
+				// reset. We still want cloud cleanup to succeed — skip the
+				// disk/PTY steps and flag what was skipped.
+				warnings.push(
+					"Workspace not tracked on this host; skipping terminal, teardown, worktree, and branch cleanup",
+				);
+			} else if (!project) {
+				// Row exists but project is missing: can't resolve repoPath for
+				// git ops. Skip disk steps but let terminals + cloud proceed.
+				warnings.push(
+					"Project record missing for workspace; skipping teardown and worktree removal",
+				);
 			}
-
-			const project = ctx.db.query.projects
-				.findFirst({ where: eq(projects.id, local.projectId) })
-				.sync();
-			if (!project) {
-				throw new TRPCError({
-					code: "PRECONDITION_FAILED",
-					message: "Project record missing for workspace",
-				});
-			}
-
-			const warnings: string[] = [];
 
 			// 1. Terminals. Kill before touching disk so user shells release
 			//    locks the teardown script or git worktree remove may need.
@@ -67,8 +63,9 @@ export const workspaceCleanupRouter = router({
 				warnings.push(`${killed.failed} terminal(s) may still be running`);
 			}
 
-			// 2. Teardown script (skipped when forced — don't re-run a broken script).
-			if (!input.force) {
+			// 2. Teardown script (skipped when forced — don't re-run a broken
+			//    script. Also skipped when we don't have a worktree path).
+			if (!input.force && local && project) {
 				const teardown: TeardownResult = await runTeardown({
 					db: ctx.db,
 					workspaceId: input.workspaceId,
@@ -92,66 +89,77 @@ export const workspaceCleanupRouter = router({
 
 			// 3. Worktree. Let git be the source of truth on "dirty" — if it
 			//    refuses, surface CONFLICT so the client can prompt force: true.
-			const git = await ctx.git(project.repoPath);
 			let worktreeRemoved = false;
-			try {
-				await git.raw([
-					"worktree",
-					"remove",
-					...(input.force ? ["--force"] : []),
-					local.worktreePath,
-				]);
-				worktreeRemoved = true;
-			} catch (err) {
-				const message = err instanceof Error ? err.message : String(err);
-				// Idempotent: "not a working tree" / ENOENT → already gone.
-				if (
-					message.includes("is not a working tree") ||
-					message.includes("No such file or directory") ||
-					message.includes("ENOENT")
-				) {
-					warnings.push("Worktree was already missing on disk");
-					worktreeRemoved = true;
-				} else {
-					throw new TRPCError({
-						code: "CONFLICT",
-						message: "Worktree has uncommitted work or is locked",
-						cause: err,
-					});
-				}
-			}
-
-			// 4. Branch. Optional; best-effort — failure is a warning, not an abort.
-			let branchDeleted = false;
-			if (input.deleteBranch && local.branch) {
+			if (local && project) {
+				const git = await ctx.git(project.repoPath);
 				try {
-					await git.raw(["branch", input.force ? "-D" : "-d", local.branch]);
-					branchDeleted = true;
+					await git.raw([
+						"worktree",
+						"remove",
+						...(input.force ? ["--force"] : []),
+						local.worktreePath,
+					]);
+					worktreeRemoved = true;
 				} catch (err) {
 					const message = err instanceof Error ? err.message : String(err);
-					warnings.push(`Failed to delete branch ${local.branch}: ${message}`);
+					// Idempotent: "not a working tree" / ENOENT → already gone.
+					if (
+						message.includes("is not a working tree") ||
+						message.includes("No such file or directory") ||
+						message.includes("ENOENT")
+					) {
+						warnings.push("Worktree was already missing on disk");
+						worktreeRemoved = true;
+					} else {
+						throw new TRPCError({
+							code: "CONFLICT",
+							message: "Worktree has uncommitted work or is locked",
+							cause: err,
+						});
+					}
+				}
+
+				// 4. Branch. Optional; best-effort — failure is a warning.
+				if (input.deleteBranch && local.branch) {
+					try {
+						await git.raw(["branch", input.force ? "-D" : "-d", local.branch]);
+					} catch (err) {
+						const message = err instanceof Error ? err.message : String(err);
+						warnings.push(
+							`Failed to delete branch ${local.branch}: ${message}`,
+						);
+					}
 				}
 			}
+			const branchDeleted = Boolean(
+				input.deleteBranch && local && project && worktreeRemoved,
+			);
 
 			// 5. Cloud. Swallow failures — disk is already clean. Cloud self-heals
 			//    via the user's next sync; worst case they re-run destroy.
 			let cloudDeleted = false;
-			try {
-				await ctx.api.v2Workspace.delete.mutate({ id: input.workspaceId });
-				cloudDeleted = true;
-			} catch (err) {
-				console.warn("[workspaceCleanup.destroy] cloud delete failed", {
-					workspaceId: input.workspaceId,
-					err,
-				});
-				warnings.push("Cloud delete pending; will retry on next sync");
+			if (ctx.api) {
+				try {
+					await ctx.api.v2Workspace.delete.mutate({ id: input.workspaceId });
+					cloudDeleted = true;
+				} catch (err) {
+					console.warn("[workspaceCleanup.destroy] cloud delete failed", {
+						workspaceId: input.workspaceId,
+						err,
+					});
+					warnings.push("Cloud delete pending; will retry on next sync");
+				}
+			} else {
+				warnings.push("Cloud API unavailable; skipped cloud delete");
 			}
 
-			// 6. Host sqlite.
-			ctx.db
-				.delete(workspaces)
-				.where(eq(workspaces.id, input.workspaceId))
-				.run();
+			// 6. Host sqlite (no-op when the row was already missing).
+			if (local) {
+				ctx.db
+					.delete(workspaces)
+					.where(eq(workspaces.id, input.workspaceId))
+					.run();
+			}
 
 			return {
 				success: true,
