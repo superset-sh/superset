@@ -68,8 +68,9 @@ export function useDestroyWorkspace(workspaceId: string): UseDestroyWorkspace {
 function normalizeError(err: unknown): DestroyWorkspaceError {
 	if (err instanceof TRPCClientError) {
 		const code = err.data?.code as string | undefined;
-		const teardownFailure = (err.data as { teardownFailure?: TeardownFailureCause })
-			?.teardownFailure;
+		const teardownFailure = (
+			err.data as { teardownFailure?: TeardownFailureCause }
+		)?.teardownFailure;
 
 		if (teardownFailure) {
 			return { kind: "teardown-failed", cause: teardownFailure };

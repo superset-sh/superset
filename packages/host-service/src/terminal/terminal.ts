@@ -144,23 +144,29 @@ function resolveShellReady(
 	}
 }
 
-function disposeSession(terminalId: string, db: HostDb) {
+/**
+ * Kills the PTY (if live) and marks the DB row disposed. Safe to call even
+ * when there's no in-memory session — e.g. for zombie `active` rows left
+ * over from a prior crash. Exported so workspaceCleanup can dispose the
+ * transient teardown session.
+ */
+export function disposeSession(terminalId: string, db: HostDb) {
 	const session = sessions.get(terminalId);
-	if (!session) return;
 
-	if (session.shellReadyTimeoutId) {
-		clearTimeout(session.shellReadyTimeoutId);
-		session.shellReadyTimeoutId = null;
-	}
-
-	if (!session.exited) {
-		try {
-			session.pty.kill();
-		} catch {
-			// PTY may already be dead
+	if (session) {
+		if (session.shellReadyTimeoutId) {
+			clearTimeout(session.shellReadyTimeoutId);
+			session.shellReadyTimeoutId = null;
 		}
+		if (!session.exited) {
+			try {
+				session.pty.kill();
+			} catch {
+				// PTY may already be dead
+			}
+		}
+		sessions.delete(terminalId);
 	}
-	sessions.delete(terminalId);
 
 	db.update(terminalSessions)
 		.set({ status: "disposed", endedAt: Date.now() })

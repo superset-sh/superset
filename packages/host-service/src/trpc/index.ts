@@ -1,7 +1,10 @@
 import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 import type { HostServiceContext } from "../types";
-import { isTeardownFailureCause, type TeardownFailureCause } from "./error-types";
+import {
+	isTeardownFailureCause,
+	type TeardownFailureCause,
+} from "./error-types";
 
 const t = initTRPC.context<HostServiceContext>().create({
 	transformer: superjson,
@@ -31,5 +34,5 @@ export const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
 	return next({ ctx });
 });
 
-export type { AppRouter } from "./router";
 export type { TeardownFailureCause } from "./error-types";
+export type { AppRouter } from "./router";

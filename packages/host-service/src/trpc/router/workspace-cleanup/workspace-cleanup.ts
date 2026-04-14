@@ -16,9 +16,9 @@ export const workspaceCleanupRouter = router({
 	 * best-effort (warning instead of error).
 	 *
 	 * Typed errors for the renderer:
-	 *   - CONFLICT       → git worktree refused (dirty tree); prompt `force: true`
-	 *   - INTERNAL_ERROR { cause.kind === "TEARDOWN_FAILED" } → prompt `force: true`
-	 *                                                          (force skips teardown)
+	 *   - CONFLICT             → git worktree refused (dirty tree); prompt `force: true`
+	 *   - INTERNAL_SERVER_ERROR with `data.teardownFailure` → prompt `force: true`
+	 *                            (force skips teardown)
 	 */
 	destroy: protectedProcedure
 		.input(
@@ -64,17 +64,15 @@ export const workspaceCleanupRouter = router({
 			//    locks the teardown script or git worktree remove may need.
 			const killed = disposeSessionsByWorkspaceId(input.workspaceId, ctx.db);
 			if (killed.failed > 0) {
-				warnings.push(
-					`${killed.failed} terminal(s) may still be running`,
-				);
+				warnings.push(`${killed.failed} terminal(s) may still be running`);
 			}
 
 			// 2. Teardown script (skipped when forced — don't re-run a broken script).
 			if (!input.force) {
 				const teardown: TeardownResult = await runTeardown({
+					db: ctx.db,
+					workspaceId: input.workspaceId,
 					worktreePath: local.worktreePath,
-					workspaceName: local.branch,
-					rootPath: project.repoPath,
 				});
 				if (teardown.status === "failed") {
 					const cause: TeardownFailureCause = {
@@ -127,11 +125,7 @@ export const workspaceCleanupRouter = router({
 			let branchDeleted = false;
 			if (input.deleteBranch && local.branch) {
 				try {
-					await git.raw([
-						"branch",
-						input.force ? "-D" : "-d",
-						local.branch,
-					]);
+					await git.raw(["branch", input.force ? "-D" : "-d", local.branch]);
 					branchDeleted = true;
 				} catch (err) {
 					const message = err instanceof Error ? err.message : String(err);

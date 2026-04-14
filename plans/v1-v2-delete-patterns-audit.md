@@ -42,7 +42,7 @@ Audit of user-triggered delete/remove actions across workspace v1 (`apps/desktop
 
 There are **three parallel delete backends** in this repo, and they do not share a code path:
 
-```
+```text
 ┌──────────────────────────────────────────────────────────────────────────┐
 │ PATH A — LOCAL WORKTREE (v1 chrome; also reachable from v2 via hotkey)  │
 │                                                                          │

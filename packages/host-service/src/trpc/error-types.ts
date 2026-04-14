@@ -6,7 +6,8 @@
 export interface TeardownFailureCause {
 	kind: "TEARDOWN_FAILED";
 	exitCode: number | null;
-	signal: NodeJS.Signals | null;
+	/** Signal number (Unix). null when the process exited normally. */
+	signal: number | null;
 	timedOut: boolean;
 	outputTail: string;
 }

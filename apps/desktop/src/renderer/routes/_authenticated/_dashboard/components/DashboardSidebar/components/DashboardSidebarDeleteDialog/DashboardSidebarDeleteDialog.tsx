@@ -1,3 +1,4 @@
+import { TEARDOWN_TIMEOUT_MS } from "@superset/host-service";
 import {
 	AlertDialog,
 	AlertDialogContent,
@@ -15,6 +16,7 @@ import {
 	type DestroyWorkspaceError,
 	useDestroyWorkspace,
 } from "renderer/hooks/host-service/useDestroyWorkspace";
+import stripAnsi from "strip-ansi";
 
 interface DashboardSidebarDeleteDialogProps {
 	workspaceId: string;
@@ -106,10 +108,11 @@ export function DashboardSidebarDeleteDialog({
 	if (error?.kind === "teardown-failed") {
 		const cause = error.cause;
 		const reason = cause.timedOut
-			? `Teardown timed out after ${60}s`
+			? `Teardown timed out after ${Math.round(TEARDOWN_TIMEOUT_MS / 1000)}s`
 			: cause.exitCode != null
 				? `Teardown exited with code ${cause.exitCode}`
 				: "Teardown failed to start";
+		const cleanTail = stripAnsi(cause.outputTail);
 		return (
 			<AlertDialog open={open} onOpenChange={handleOpenChange}>
 				<AlertDialogContent className="max-w-[500px] gap-0 p-0">
@@ -121,9 +124,9 @@ export function DashboardSidebarDeleteDialog({
 							Delete anyway will skip the teardown script entirely.
 						</AlertDialogDescription>
 					</AlertDialogHeader>
-					{cause.outputTail && (
+					{cleanTail && (
 						<pre className="mx-4 mb-2 max-h-48 overflow-auto rounded border bg-muted px-2 py-1.5 text-[11px] leading-relaxed whitespace-pre-wrap font-mono">
-							{cause.outputTail}
+							{cleanTail}
 						</pre>
 					)}
 					<AlertDialogFooter className="px-4 pb-4 pt-2 flex-row justify-end gap-2">

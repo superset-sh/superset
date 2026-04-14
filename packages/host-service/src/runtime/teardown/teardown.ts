@@ -1,6 +1,11 @@
-import { spawn } from "node:child_process";
+import { randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
+import type { HostDb } from "../../db";
+import {
+	createTerminalSessionInternal,
+	disposeSession,
+} from "../../terminal/terminal";
 
 export const TEARDOWN_SCRIPT_REL_PATH = ".superset/teardown.sh";
 export const TEARDOWN_TIMEOUT_MS = 60_000;
@@ -12,100 +17,113 @@ export type TeardownResult =
 	| {
 			status: "failed";
 			exitCode: number | null;
-			signal: NodeJS.Signals | null;
+			/** Unix signal number, or null on normal exit. */
+			signal: number | null;
 			timedOut: boolean;
+			/** Raw PTY bytes — shell output including ANSI. Renderer strips for display. */
 			outputTail: string;
 	  };
 
 interface RunTeardownOptions {
+	db: HostDb;
+	workspaceId: string;
 	worktreePath: string;
-	/** Used for SUPERSET_WORKSPACE_NAME env var. Usually workspace.branch. */
-	workspaceName: string;
-	/** Used for SUPERSET_ROOT_PATH env var. Usually project.repoPath. */
-	rootPath: string;
 	timeoutMs?: number;
 }
 
+/**
+ * Runs `.superset/teardown.sh` inside the workspace, reusing the same
+ * terminal primitive v2 uses for interactive sessions. This gives the
+ * script full environment parity with the user's terminals (login shell
+ * rcfiles, PATH, nvm/rbenv, etc.), matching how setup.sh runs.
+ *
+ * Silent by design — the PTY session is transient and not surfaced as a
+ * visible pane. The renderer only sees the output tail on failure.
+ */
 export async function runTeardown({
+	db,
+	workspaceId,
 	worktreePath,
-	workspaceName,
-	rootPath,
 	timeoutMs = TEARDOWN_TIMEOUT_MS,
 }: RunTeardownOptions): Promise<TeardownResult> {
 	const scriptPath = join(worktreePath, TEARDOWN_SCRIPT_REL_PATH);
-	if (!existsSync(scriptPath)) {
-		return { status: "skipped" };
+	if (!existsSync(scriptPath)) return { status: "skipped" };
+
+	const terminalId = randomUUID();
+	// Single-quoted so no shell interpolation is possible on the path.
+	const initialCommand = `bash ${singleQuote(scriptPath)} ; exit $?`;
+
+	const session = createTerminalSessionInternal({
+		terminalId,
+		workspaceId,
+		db,
+		initialCommand,
+	});
+	if ("error" in session) {
+		return {
+			status: "failed",
+			exitCode: null,
+			signal: null,
+			timedOut: false,
+			outputTail: `Failed to start teardown session: ${session.error}`,
+		};
 	}
 
+	let tail = "";
+	const appendTail = (chunk: string) => {
+		tail += chunk;
+		if (tail.length > OUTPUT_TAIL_BYTES) {
+			tail = tail.slice(-OUTPUT_TAIL_BYTES);
+		}
+	};
+	const dataDisposer = session.pty.onData(appendTail);
+
 	return new Promise<TeardownResult>((resolve) => {
-		const shell = process.env.SHELL || "/bin/bash";
-		const child = spawn(shell, ["-c", `bash "${scriptPath}"`], {
-			cwd: worktreePath,
-			detached: true,
-			stdio: ["ignore", "pipe", "pipe"],
-			env: {
-				...process.env,
-				SUPERSET_WORKSPACE_NAME: workspaceName,
-				SUPERSET_ROOT_PATH: rootPath,
-			},
-		});
-
-		let tail = "";
-		const appendTail = (chunk: Buffer) => {
-			tail += chunk.toString();
-			if (tail.length > OUTPUT_TAIL_BYTES) {
-				tail = tail.slice(-OUTPUT_TAIL_BYTES);
-			}
-		};
-		child.stdout?.on("data", appendTail);
-		child.stderr?.on("data", appendTail);
-
 		let settled = false;
 		let timedOut = false;
+
 		const settle = (result: TeardownResult) => {
 			if (settled) return;
 			settled = true;
 			clearTimeout(timer);
+			try {
+				dataDisposer.dispose();
+			} catch {
+				// already disposed
+			}
+			disposeSession(terminalId, db);
 			resolve(result);
 		};
 
-		// "exit" — not "close". Background children can hold stdio open past exit.
-		child.on("exit", (code, signal) => {
-			if (code === 0 && !timedOut) {
+		session.pty.onExit(({ exitCode, signal }) => {
+			if (exitCode === 0 && !timedOut) {
 				settle({ status: "ok", output: tail || undefined });
 				return;
 			}
 			settle({
 				status: "failed",
-				exitCode: code,
-				signal,
+				exitCode: exitCode ?? null,
+				signal: signal ?? null,
 				timedOut,
 				outputTail: tail,
 			});
 		});
 
-		child.on("error", (err) => {
-			appendTail(Buffer.from(`\n[spawn error] ${err.message}\n`));
-			settle({
-				status: "failed",
-				exitCode: null,
-				signal: null,
-				timedOut: false,
-				outputTail: tail,
-			});
-		});
-
 		const timer = setTimeout(() => {
+			if (settled) return;
 			timedOut = true;
-			appendTail(
-				Buffer.from(`\n[teardown timed out after ${timeoutMs}ms; SIGKILL]\n`),
-			);
+			appendTail(`\n[teardown timed out after ${timeoutMs}ms; SIGKILL]\n`);
 			try {
-				if (child.pid) process.kill(-child.pid, "SIGKILL");
+				session.pty.kill();
 			} catch {
-				// Process group may already be gone
+				// PTY may already be dead
 			}
 		}, timeoutMs);
 		timer.unref();
 	});
+}
+
+/** POSIX single-quote escape: safe for any byte sequence in a path. */
+function singleQuote(s: string): string {
+	return `'${s.replaceAll("'", "'\\''")}'`;
 }
