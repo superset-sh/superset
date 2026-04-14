@@ -9,10 +9,7 @@ import {
 	useProviderAttachments,
 } from "@superset/ui/ai-elements/prompt-input";
 import { Input } from "@superset/ui/input";
-import { toast } from "@superset/ui/sonner";
 import { cn } from "@superset/ui/utils";
-import { useLiveQuery } from "@tanstack/react-db";
-import { useNavigate } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowUpIcon } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -23,15 +20,11 @@ import { IssueLinkCommand } from "renderer/components/Chat/ChatInterface/compone
 import { useAgentLaunchPreferences } from "renderer/hooks/useAgentLaunchPreferences";
 import { PLATFORM } from "renderer/hotkeys";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
-import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { useNewWorkspaceModalOpen } from "renderer/stores/new-workspace-modal";
 import { getEnabledAgentConfigs } from "shared/utils/agent-settings";
 import { sanitizeUserBranchName, slugifyForBranch } from "shared/utils/branch";
-import type { LinkedPR } from "../../../DashboardNewWorkspaceDraftContext";
 import { useDashboardNewWorkspaceDraft } from "../../../DashboardNewWorkspaceDraftContext";
 import { DevicePicker } from "../components/DevicePicker";
-import { type BranchFilter, useBranchContext } from "../hooks/useBranchContext";
 import { AttachmentButtons } from "./components/AttachmentButtons";
 import { CompareBaseBranchPicker } from "./components/CompareBaseBranchPicker";
 import { GitHubIssueLinkCommand } from "./components/GitHubIssueLinkCommand";
@@ -39,6 +32,8 @@ import { LinkedGitHubIssuePill } from "./components/LinkedGitHubIssuePill";
 import { LinkedPRPill } from "./components/LinkedPRPill";
 import { PRLinkCommand } from "./components/PRLinkCommand";
 import { ProjectPickerPill } from "./components/ProjectPickerPill";
+import { useBranchPickerController } from "./hooks/useBranchPickerController";
+import { useLinkedContext } from "./hooks/useLinkedContext";
 import { useSubmitWorkspace } from "./hooks/useSubmitWorkspace";
 import {
 	AGENT_STORAGE_KEY,
@@ -54,11 +49,7 @@ interface PromptGroupProps {
 	onSelectProject: (projectId: string) => void;
 }
 
-export function PromptGroup(props: PromptGroupProps) {
-	return <PromptGroupInner {...props} />;
-}
-
-function PromptGroupInner({
+export function PromptGroup({
 	projectId,
 	selectedProject,
 	recentProjects,
@@ -104,27 +95,11 @@ function PromptGroupInner({
 	const [prLinkOpen, setPRLinkOpen] = useState(false);
 	const plusMenuRef = useRef<HTMLDivElement>(null);
 	const trimmedPrompt = prompt.trim();
-
-	// ── Branch data ──────────────────────────────────────────────────
-	const [branchSearch, setBranchSearch] = useState("");
-	const [branchFilter, setBranchFilter] = useState<BranchFilter>("branch");
-	const {
-		branches,
-		defaultBranch,
-		isLoading: isBranchesLoading,
-		isError: isBranchesError,
-		isFetchingNextPage,
-		hasNextPage,
-		fetchNextPage,
-	} = useBranchContext(projectId, hostTarget, branchSearch, branchFilter);
-
-	const effectiveCompareBaseBranch = baseBranch || defaultBranch || null;
-
 	const branchPreview = branchNameEdited
 		? sanitizeUserBranchName(branchName)
 		: slugifyForBranch(trimmedPrompt);
 
-	// Reset baseBranch on project or host change
+	// Reset baseBranch on project or host change.
 	const previousProjectIdRef = useRef(projectId);
 	const previousHostRef = useRef(JSON.stringify(hostTarget));
 	useEffect(() => {
@@ -139,140 +114,20 @@ function PromptGroupInner({
 		}
 	}, [projectId, hostTarget, updateDraft]);
 
-	// ── Per-row actions (Open / Check out / Adopt) ─────────────────────
-	// Mutations live on the pending page now; this component only inserts
-	// pending rows and navigates. See V2_WORKSPACE_CREATION.md §3.
-	const navigate = useNavigate();
-	const collections = useCollections();
+	// ── Branch picker controller ─────────────────────────────────────
+	const { pickerProps } = useBranchPickerController({
+		projectId,
+		hostTarget,
+		baseBranch,
+		runSetupScript: draft.runSetupScript,
+		typedWorkspaceName: workspaceName,
+		onBaseBranchChange: (branch, source) =>
+			updateDraft({ baseBranch: branch, baseBranchSource: source }),
+		closeModal,
+	});
 
-	const { data: projectWorkspaces } = useLiveQuery(
-		(q) => q.from({ workspaces: collections.v2Workspaces }),
-		[collections],
-	);
-	const { data: allHosts } = useLiveQuery(
-		(q) => q.from({ hosts: collections.v2Hosts }),
-		[collections],
-	);
-	const { machineId } = useLocalHostService();
-
-	// Resolve the host id matching the current `hostTarget`. Rows in
-	// `v2Workspaces` are keyed by host id, so collapsing only by branch name
-	// would collide across hosts that happen to share a branch.
-	const targetHostId = useMemo<string | null>(() => {
-		if (hostTarget.kind === "host") return hostTarget.hostId;
-		if (!machineId || !allHosts) return null;
-		return allHosts.find((h) => h.machineId === machineId)?.id ?? null;
-	}, [hostTarget, allHosts, machineId]);
-
-	const workspaceByBranch = useMemo(() => {
-		const map = new Map<string, string>();
-		if (!projectId || !projectWorkspaces || !targetHostId) return map;
-		for (const w of projectWorkspaces) {
-			if (w.projectId === projectId && w.hostId === targetHostId && w.branch) {
-				map.set(w.branch, w.id);
-			}
-		}
-		return map;
-	}, [projectId, projectWorkspaces, targetHostId]);
-
-	const handleOpenExisting = useCallback(
-		(branchName: string) => {
-			const workspaceId = workspaceByBranch.get(branchName);
-			if (!workspaceId) {
-				toast.error("Could not find existing workspace for this branch");
-				return;
-			}
-			closeModal();
-			void navigate({
-				to: "/v2-workspace/$workspaceId",
-				params: { workspaceId },
-			});
-		},
-		[workspaceByBranch, closeModal, navigate],
-	);
-
-	// Respect the user's typed workspace name when set. The picker actions
-	// (Create / Check out) bypass the modal submit, so they don't get the
-	// resolveNames pass — fall back to the branch name explicitly.
-	const resolveActionWorkspaceName = useCallback(
-		(branchName: string) => workspaceName.trim() || branchName,
-		[workspaceName],
-	);
-
-	// All three intents (fork, checkout, adopt) follow the same shape now:
-	// insert a pending row + close modal + navigate. The pending page owns
-	// the actual host-service mutation. See V2_WORKSPACE_CREATION.md §3.
-	const insertPendingAndNavigate = useCallback(
-		(row: {
-			pendingId: string;
-			intent: "checkout" | "adopt";
-			workspaceName: string;
-			branchName: string;
-		}) => {
-			if (!projectId) {
-				toast.error("Select a project first");
-				return;
-			}
-			collections.pendingWorkspaces.insert({
-				id: row.pendingId,
-				projectId,
-				intent: row.intent,
-				name: row.workspaceName,
-				branchName: row.branchName,
-				prompt: "",
-				baseBranch: null,
-				baseBranchSource: null,
-				runSetupScript: draft.runSetupScript,
-				linkedIssues: [],
-				linkedPR: null,
-				hostTarget,
-				attachmentCount: 0,
-				status: "creating",
-				error: null,
-				workspaceId: null,
-				warnings: [],
-				createdAt: new Date(),
-			});
-			closeModal();
-			void navigate({ to: `/pending/${row.pendingId}` as string });
-		},
-		[
-			projectId,
-			collections,
-			draft.runSetupScript,
-			hostTarget,
-			closeModal,
-			navigate,
-		],
-	);
-
-	const handleAdoptWorktree = useCallback(
-		(branchName: string) => {
-			insertPendingAndNavigate({
-				pendingId: crypto.randomUUID(),
-				intent: "adopt",
-				workspaceName: resolveActionWorkspaceName(branchName),
-				branchName,
-			});
-		},
-		[insertPendingAndNavigate, resolveActionWorkspaceName],
-	);
-
-	const handleCheckout = useCallback(
-		(branchName: string) => {
-			insertPendingAndNavigate({
-				pendingId: crypto.randomUUID(),
-				intent: "checkout",
-				workspaceName: resolveActionWorkspaceName(branchName),
-				branchName,
-			});
-		},
-		[insertPendingAndNavigate, resolveActionWorkspaceName],
-	);
-
-	// ── Create ───────────────────────────────────────────────────────
+	// ── Submit (fork) ────────────────────────────────────────────────
 	const handleCreate = useSubmitWorkspace(projectId);
-
 	const handlePromptSubmit = useCallback(() => {
 		void handleCreate();
 	}, [handleCreate]);
@@ -289,51 +144,14 @@ function PromptGroupInner({
 		return () => window.removeEventListener("keydown", handler);
 	}, [isNewWorkspaceModalOpen, handleCreate]);
 
-	// ── Issue / PR linking ───────────────────────────────────────────
-	const addLinkedIssue = (
-		slug: string,
-		title: string,
-		taskId: string | undefined,
-		url?: string,
-	) => {
-		if (linkedIssues.some((issue) => issue.slug === slug)) return;
-		updateDraft({
-			linkedIssues: [
-				...linkedIssues,
-				{ slug, title, source: "internal", taskId, url },
-			],
-		});
-	};
-
-	const addLinkedGitHubIssue = (
-		issueNumber: number,
-		title: string,
-		url: string,
-		state: string,
-	) => {
-		if (linkedIssues.some((i) => i.url === url)) return;
-		updateDraft({
-			linkedIssues: [
-				...linkedIssues,
-				{
-					slug: `#${issueNumber}`,
-					title,
-					source: "github" as const,
-					url,
-					number: issueNumber,
-					state: state.toLowerCase() === "closed" ? "closed" : "open",
-				},
-			],
-		});
-	};
-
-	const removeLinkedIssue = (slug: string) =>
-		updateDraft({
-			linkedIssues: linkedIssues.filter((i) => i.slug !== slug),
-		});
-
-	const setLinkedPR = (pr: LinkedPR) => updateDraft({ linkedPR: pr });
-	const removeLinkedPR = () => updateDraft({ linkedPR: null });
+	// ── Linked issues / PR ───────────────────────────────────────────
+	const {
+		addLinkedIssue,
+		addLinkedGitHubIssue,
+		removeLinkedIssue,
+		setLinkedPR,
+		removeLinkedPR,
+	} = useLinkedContext(linkedIssues, updateDraft);
 
 	// ── Render ────────────────────────────────────────────────────────
 	return (
@@ -547,32 +365,7 @@ function PromptGroupInner({
 								exit={{ opacity: 0, x: 8, filter: "blur(4px)" }}
 								transition={{ duration: 0.2, ease: "easeOut" }}
 							>
-								<CompareBaseBranchPicker
-									effectiveCompareBaseBranch={effectiveCompareBaseBranch}
-									defaultBranch={defaultBranch}
-									isBranchesLoading={isBranchesLoading}
-									isBranchesError={isBranchesError}
-									branches={branches}
-									branchSearch={branchSearch}
-									onBranchSearchChange={setBranchSearch}
-									branchFilter={branchFilter}
-									onBranchFilterChange={setBranchFilter}
-									isFetchingNextPage={isFetchingNextPage}
-									hasNextPage={hasNextPage ?? false}
-									onLoadMore={() => {
-										void fetchNextPage();
-									}}
-									onSelectCompareBaseBranch={(branch, source) =>
-										updateDraft({
-											baseBranch: branch,
-											baseBranchSource: source,
-										})
-									}
-									onCheckoutBranch={handleCheckout}
-									onOpenExisting={handleOpenExisting}
-									onAdoptWorktree={handleAdoptWorktree}
-									hasWorkspaceForBranch={(name) => workspaceByBranch.has(name)}
-								/>
+								<CompareBaseBranchPicker {...pickerProps} />
 							</motion.div>
 						)}
 					</AnimatePresence>
