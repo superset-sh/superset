@@ -314,7 +314,9 @@ function PendingWorkspacePage() {
 					<div className="space-y-4">
 						<div className="flex items-start gap-2 text-sm text-destructive">
 							<HiExclamationTriangle className="size-4 mt-0.5 shrink-0" />
-							<span>{pending.error ?? "Failed to create workspace"}</span>
+							<span className="select-text cursor-text break-words">
+								{pending.error ?? "Failed to create workspace"}
+							</span>
 						</div>
 						<div className="flex gap-2">
 							<button
