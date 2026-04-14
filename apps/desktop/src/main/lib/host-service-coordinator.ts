@@ -1,6 +1,7 @@
 import * as childProcess from "node:child_process";
 import { randomBytes } from "node:crypto";
 import { EventEmitter } from "node:events";
+import * as fs from "node:fs";
 import { createServer } from "node:net";
 import path from "node:path";
 import { settings } from "@superset/local-db";
@@ -103,6 +104,7 @@ export class HostServiceCoordinator extends EventEmitter {
 	>();
 	private scriptPath = path.join(__dirname, "host-service.js");
 	private machineId = getHashedDeviceId();
+	private devReloadWatcher: fs.FSWatcher | null = null;
 
 	async start(
 		organizationId: string,
@@ -220,6 +222,63 @@ export class HostServiceCoordinator extends EventEmitter {
 				this.restart(orgId, config),
 			),
 		);
+	}
+
+	/**
+	 * Dev-only: watch the built host-service bundle and restart running
+	 * instances when it changes. Gives a fast edit→reload loop for code
+	 * under packages/host-service and src/main/host-service without
+	 * restarting Electron. In-memory host-service state (PTYs, watchers,
+	 * chat streams) is torn down on each reload — this is not true HMR.
+	 */
+	enableDevReload(
+		configProvider: () => Promise<SpawnConfig | null>,
+	): () => void {
+		if (this.devReloadWatcher) return () => {};
+
+		const scriptDir = path.dirname(this.scriptPath);
+		const scriptFile = path.basename(this.scriptPath);
+		let debounce: ReturnType<typeof setTimeout> | null = null;
+		let reloading = false;
+
+		const trigger = () => {
+			if (debounce) clearTimeout(debounce);
+			debounce = setTimeout(() => {
+				void (async () => {
+					if (reloading) return;
+					if (this.getActiveOrganizationIds().length === 0) return;
+					const config = await configProvider();
+					if (!config) return;
+					reloading = true;
+					try {
+						console.log(
+							"[host-service] bundle changed, restarting running instances",
+						);
+						await this.restartAll(config);
+					} catch (error) {
+						console.error("[host-service] dev reload failed:", error);
+					} finally {
+						reloading = false;
+					}
+				})();
+			}, 250);
+		};
+
+		try {
+			this.devReloadWatcher = fs.watch(scriptDir, (_event, filename) => {
+				if (filename && filename !== scriptFile) return;
+				trigger();
+			});
+		} catch (error) {
+			console.error("[host-service] failed to enable dev reload:", error);
+			return () => {};
+		}
+
+		return () => {
+			if (debounce) clearTimeout(debounce);
+			this.devReloadWatcher?.close();
+			this.devReloadWatcher = null;
+		};
 	}
 
 	// ── Adoption ──────────────────────────────────────────────────────
