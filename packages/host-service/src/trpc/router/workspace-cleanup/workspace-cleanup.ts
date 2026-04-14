@@ -9,16 +9,29 @@ import { protectedProcedure, router } from "../../index";
 
 export const workspaceCleanupRouter = router({
 	/**
-	 * Destroy a workspace: terminals → teardown → worktree → branch → cloud → host row.
+	 * Destroy a workspace in three phases:
 	 *
-	 * Ordering matters. Each step is reversible (or a no-op) if the next fails
-	 * until step 3 — past that, disk is gone and cloud cleanup becomes
-	 * best-effort (warning instead of error).
+	 *   0. Preflight     — dirty-worktree check (skip if force)
+	 *   1. Teardown      — run .superset/teardown.sh (skip if force)
+	 *   2. Cloud delete  ← COMMIT POINT — throws if it fails
+	 *   3. Local cleanup — PTYs, worktree, branch, host sqlite (best-effort)
+	 *
+	 * Any failure in phases 0–2 leaves the workspace fully intact. Failures
+	 * in phase 3 become warnings — local orphans are cheap, and the user
+	 * has a toast telling them what was left behind.
+	 *
+	 * Force semantics:
+	 *   - skips preflight (step 0)
+	 *   - skips teardown  (step 1)
+	 *   - upgrades `git branch -d` to `-D` in step 3c
+	 *   - step 3b always uses `--force` (we're past the commit point)
 	 *
 	 * Typed errors for the renderer:
-	 *   - CONFLICT             → git worktree refused (dirty tree); prompt `force: true`
-	 *   - INTERNAL_SERVER_ERROR with `data.teardownFailure` → prompt `force: true`
-	 *                            (force skips teardown)
+	 *   - CONFLICT             → dirty worktree; prompt force-retry
+	 *   - INTERNAL_SERVER_ERROR with `data.teardownFailure` → teardown
+	 *                            script failed; prompt force-retry
+	 *   - PRECONDITION_FAILED  → no cloud API configured
+	 *   - pass-through         → cloud auth / network failure
 	 */
 	destroy: protectedProcedure
 		.input(
@@ -40,31 +53,30 @@ export const workspaceCleanupRouter = router({
 						.sync()
 				: undefined;
 
-			if (!local) {
-				// No host-sqlite row. This happens when the workspace was created
-				// by a flow that didn't register it locally, or the host DB was
-				// reset. We still want cloud cleanup to succeed — skip the
-				// disk/PTY steps and flag what was skipped.
-				warnings.push(
-					"Workspace not tracked on this host; skipping terminal, teardown, worktree, and branch cleanup",
-				);
-			} else if (!project) {
-				// Row exists but project is missing: can't resolve repoPath for
-				// git ops. Skip disk steps but let terminals + cloud proceed.
-				warnings.push(
-					"Project record missing for workspace; skipping teardown and worktree removal",
-				);
+			// ─── Step 0: Preflight ─────────────────────────────────────────
+			// Block only on dirty worktree (the common "I forgot to commit"
+			// case). Anything else the local-cleanup phase handles as warning.
+			if (!input.force && local && project) {
+				try {
+					const git = await ctx.git(local.worktreePath);
+					const status = await git.status();
+					if (!status.isClean()) {
+						throw new TRPCError({
+							code: "CONFLICT",
+							message: "Worktree has uncommitted changes",
+						});
+					}
+				} catch (err) {
+					if (err instanceof TRPCError) throw err;
+					// Can't read status (missing worktree dir, etc.) — not a
+					// conflict. Continue; step 3b will skip idempotently.
+				}
 			}
 
-			// 1. Terminals. Kill before touching disk so user shells release
-			//    locks the teardown script or git worktree remove may need.
-			const killed = disposeSessionsByWorkspaceId(input.workspaceId, ctx.db);
-			if (killed.failed > 0) {
-				warnings.push(`${killed.failed} terminal(s) may still be running`);
-			}
-
-			// 2. Teardown script (skipped when forced — don't re-run a broken
-			//    script. Also skipped when we don't have a worktree path).
+			// ─── Step 1: Teardown ──────────────────────────────────────────
+			// Script is the user's last chance to stop services / flush state
+			// before the workspace goes away. Failure here is recoverable
+			// via force-retry, which skips this step.
 			if (!input.force && local && project) {
 				const teardown: TeardownResult = await runTeardown({
 					db: ctx.db,
@@ -87,39 +99,51 @@ export const workspaceCleanupRouter = router({
 				}
 			}
 
-			// 3. Worktree. Let git be the source of truth on "dirty" — if it
-			//    refuses, surface CONFLICT so the client can prompt force: true.
+			// ─── Step 2: Cloud delete (commit point) ───────────────────────
+			// Past this line, the workspace is gone from the user's perspective
+			// (sidebar will reflect the cloud state). Local artifacts become
+			// cleanup debris — never a source of truth.
+			if (!ctx.api) {
+				throw new TRPCError({
+					code: "PRECONDITION_FAILED",
+					message: "Cloud API not configured",
+				});
+			}
+			await ctx.api.v2Workspace.delete.mutate({ id: input.workspaceId });
+
+			// ─── Step 3: Local cleanup (best-effort) ───────────────────────
+			// Every failure in this phase is captured as a warning; the
+			// caller always sees success.
+
+			// 3a. PTYs
+			const killed = disposeSessionsByWorkspaceId(input.workspaceId, ctx.db);
+			if (killed.failed > 0) {
+				warnings.push(`${killed.failed} terminal(s) may still be running`);
+			}
+
+			// 3b. Worktree (always --force: we're past the commit point)
+			// 3c. Optional branch delete
 			let worktreeRemoved = false;
 			if (local && project) {
 				const git = await ctx.git(project.repoPath);
 				try {
-					await git.raw([
-						"worktree",
-						"remove",
-						...(input.force ? ["--force"] : []),
-						local.worktreePath,
-					]);
+					await git.raw(["worktree", "remove", "--force", local.worktreePath]);
 					worktreeRemoved = true;
 				} catch (err) {
 					const message = err instanceof Error ? err.message : String(err);
-					// Idempotent: "not a working tree" / ENOENT → already gone.
 					if (
 						message.includes("is not a working tree") ||
 						message.includes("No such file or directory") ||
 						message.includes("ENOENT")
 					) {
-						warnings.push("Worktree was already missing on disk");
 						worktreeRemoved = true;
 					} else {
-						throw new TRPCError({
-							code: "CONFLICT",
-							message: "Worktree has uncommitted work or is locked",
-							cause: err,
-						});
+						warnings.push(
+							`Failed to remove worktree at ${local.worktreePath}: ${message}`,
+						);
 					}
 				}
 
-				// 4. Branch. Optional; best-effort — failure is a warning.
 				if (input.deleteBranch && local.branch) {
 					try {
 						await git.raw(["branch", input.force ? "-D" : "-d", local.branch]);
@@ -131,29 +155,8 @@ export const workspaceCleanupRouter = router({
 					}
 				}
 			}
-			const branchDeleted = Boolean(
-				input.deleteBranch && local && project && worktreeRemoved,
-			);
 
-			// 5. Cloud. Swallow failures — disk is already clean. Cloud self-heals
-			//    via the user's next sync; worst case they re-run destroy.
-			let cloudDeleted = false;
-			if (ctx.api) {
-				try {
-					await ctx.api.v2Workspace.delete.mutate({ id: input.workspaceId });
-					cloudDeleted = true;
-				} catch (err) {
-					console.warn("[workspaceCleanup.destroy] cloud delete failed", {
-						workspaceId: input.workspaceId,
-						err,
-					});
-					warnings.push("Cloud delete pending; will retry on next sync");
-				}
-			} else {
-				warnings.push("Cloud API unavailable; skipped cloud delete");
-			}
-
-			// 6. Host sqlite (no-op when the row was already missing).
+			// 3d. Host sqlite row
 			if (local) {
 				ctx.db
 					.delete(workspaces)
@@ -163,9 +166,9 @@ export const workspaceCleanupRouter = router({
 
 			return {
 				success: true,
+				cloudDeleted: true,
 				worktreeRemoved,
-				branchDeleted,
-				cloudDeleted,
+				branchDeleted: Boolean(input.deleteBranch && local && worktreeRemoved),
 				warnings,
 			};
 		}),
