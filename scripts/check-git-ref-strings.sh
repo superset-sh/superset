@@ -19,13 +19,31 @@ report_violation() {
 	local pattern="$2"
 	shift 2
 
+	# Don't swallow ripgrep errors — distinguish:
+	#   exit 0: matches found → report as violations
+	#   exit 1: no matches → silent pass
+	#   exit 2: actual rg error (unreadable file, bad regex, etc.) → fail loudly
 	local output
-	if output=$(rg -n -U --pcre2 "$pattern" "$@" 2>/dev/null); then
-		echo "$message"
-		echo "$output"
-		echo
-		failures=1
-	fi
+	local rg_err
+	output=$(rg -n -U --pcre2 "$pattern" "$@" 2>/tmp/rg_stderr.$$) && rc=0 || rc=$?
+	rg_err=$(cat /tmp/rg_stderr.$$ 2>/dev/null || true)
+	rm -f /tmp/rg_stderr.$$
+	case "$rc" in
+		0)
+			echo "$message"
+			echo "$output"
+			echo
+			failures=1
+			;;
+		1)
+			: # no matches, pass
+			;;
+		*)
+			echo "[git-refs] ripgrep scan failed (exit $rc)" >&2
+			[[ -n "$rg_err" ]] && echo "$rg_err" >&2
+			failures=1
+			;;
+	esac
 }
 
 # V1 desktop tRPC routers (apps/desktop/src/lib/trpc/routers/**) are out of

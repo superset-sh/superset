@@ -834,16 +834,20 @@ export const workspaceCreationRouter = router({
 
 			const branch = input.branch.trim();
 			if (!branch) {
+				clearProgress(input.pendingId);
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message: "Branch name is empty",
 				});
 			}
 
-			const worktreePath = safeResolveWorktreePath(
-				localProject.repoPath,
-				branch,
-			);
+			let worktreePath: string;
+			try {
+				worktreePath = safeResolveWorktreePath(localProject.repoPath, branch);
+			} catch (err) {
+				clearProgress(input.pendingId);
+				throw err;
+			}
 			const git = await ctx.git(localProject.repoPath);
 
 			// Resolve via the discriminated-ref helper so we don't infer kind

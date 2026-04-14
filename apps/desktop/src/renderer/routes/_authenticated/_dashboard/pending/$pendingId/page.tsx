@@ -176,6 +176,17 @@ function PendingWorkspacePage() {
 	const navigatedRef = useRef(false);
 	const firedRef = useRef(false);
 
+	// Route params can change under a mounted component (user navigates from
+	// one pending page to another). Reset the fire/nav guards so the new
+	// pendingId actually dispatches — otherwise the second page sticks in
+	// "creating" forever.
+	const prevPendingIdRef = useRef(pendingId);
+	if (prevPendingIdRef.current !== pendingId) {
+		prevPendingIdRef.current = pendingId;
+		firedRef.current = false;
+		navigatedRef.current = false;
+	}
+
 	const { data: pendingRows } = useLiveQuery(
 		(q) =>
 			q
