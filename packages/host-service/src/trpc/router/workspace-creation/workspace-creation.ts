@@ -1052,21 +1052,13 @@ export const workspaceCreationRouter = router({
 				});
 			}
 
-			// Already adopted? Return the existing row rather than duplicating.
-			const existingLocal = ctx.db
-				.select()
-				.from(workspaces)
-				.where(eq(workspaces.projectId, input.projectId))
-				.all()
-				.find((w) => w.branch === branch);
-			if (existingLocal) {
-				return {
-					workspace: { id: existingLocal.id },
-					terminals: [],
-					warnings: [],
-				};
-			}
-
+			// We used to short-circuit on an existing local `workspaces` row
+			// (returning its id without calling cloud). That returned a
+			// phantom id when the cloud row had been hard-deleted — the
+			// picker would navigate to a workspace that no longer exists.
+			// Always create a fresh cloud row; if a stale local row leftover
+			// from a prior delete exists, replace it below. Proper host-side
+			// cleanup on delete is owned by the follow-up delete PR.
 			const host = await ctx.api.device.ensureV2Host.mutate({
 				organizationId: ctx.organizationId,
 				machineId: deviceClientId,
@@ -1086,6 +1078,19 @@ export const workspaceCreationRouter = router({
 					code: "INTERNAL_SERVER_ERROR",
 					message: "Cloud workspace create returned no row",
 				});
+			}
+
+			// Replace any stale local row for this (project, branch) — its
+			// id likely points at a deleted cloud row. The new cloudRow.id
+			// is the authoritative mapping.
+			const stale = ctx.db
+				.select()
+				.from(workspaces)
+				.where(eq(workspaces.projectId, input.projectId))
+				.all()
+				.find((w) => w.branch === branch);
+			if (stale && stale.id !== cloudRow.id) {
+				ctx.db.delete(workspaces).where(eq(workspaces.id, stale.id)).run();
 			}
 
 			ctx.db

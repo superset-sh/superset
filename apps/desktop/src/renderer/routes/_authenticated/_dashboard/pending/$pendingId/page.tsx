@@ -187,6 +187,20 @@ function PendingWorkspacePage() {
 	const pending = pendingRows?.[0] ?? null;
 	const fireIntent = useFireIntent(pendingId, pending);
 
+	// Wait for the cloud row to appear in the local collection before
+	// navigating. Fast-path intents (adopt) can beat Electric sync to the
+	// punch, landing us on the workspace route before the row is visible —
+	// which shows "workspace not found". Fork's slow path hides this race.
+	const { data: workspaceRowMatch } = useLiveQuery(
+		(q) =>
+			q
+				.from({ w: collections.v2Workspaces })
+				.where(({ w }) => eq(w.id, pending?.workspaceId ?? ""))
+				.select(({ w }) => ({ id: w.id })),
+		[collections, pending?.workspaceId],
+	);
+	const workspaceSynced = (workspaceRowMatch?.length ?? 0) > 0;
+
 	// Fire the mutation once on first mount. The modal stores draft state in
 	// the pending row and navigates here — page owns the actual call so all
 	// three intents share one dispatch + retry path.
@@ -241,14 +255,31 @@ function PendingWorkspacePage() {
 	const isStale =
 		pending?.status === "creating" && elapsedMs > STALE_THRESHOLD_MS;
 
+	// Fallback: if the collection never syncs (offline, slow Electric),
+	// navigate anyway after a bounded wait. Target page will show its own
+	// loading state.
+	const [syncTimedOut, setSyncTimedOut] = useState(false);
+	useEffect(() => {
+		if (
+			pending?.status !== "succeeded" ||
+			!pending.workspaceId ||
+			workspaceSynced ||
+			navigatedRef.current
+		) {
+			return;
+		}
+		const timer = setTimeout(() => setSyncTimedOut(true), 3000);
+		return () => clearTimeout(timer);
+	}, [pending?.status, pending?.workspaceId, workspaceSynced]);
+
 	useEffect(() => {
 		if (
 			pending?.status === "succeeded" &&
 			pending.workspaceId &&
+			(workspaceSynced || syncTimedOut) &&
 			!navigatedRef.current
 		) {
 			navigatedRef.current = true;
-
 			ensureWorkspaceInSidebar(pending.workspaceId, pending.projectId);
 
 			if (pending.terminals.length > 0) {
@@ -269,7 +300,15 @@ function PendingWorkspacePage() {
 				collections.pendingWorkspaces.delete(pendingId);
 			}, 1000);
 		}
-	}, [collections, ensureWorkspaceInSidebar, navigate, pending, pendingId]);
+	}, [
+		collections,
+		ensureWorkspaceInSidebar,
+		navigate,
+		pending,
+		pendingId,
+		workspaceSynced,
+		syncTimedOut,
+	]);
 
 	if (!pending) {
 		return (

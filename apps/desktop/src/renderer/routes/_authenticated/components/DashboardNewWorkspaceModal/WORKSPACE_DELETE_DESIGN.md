@@ -1,32 +1,66 @@
-# Workspace delete — design
+# Workspace Delete Unification — Design
 
-Scope: the `workspaceCleanup.destroy` flow that tears down a v2 workspace. Today `v2Workspace.delete` is cloud-only, so the host-side state leaks (orphan `.worktrees/<branch>/` dir, orphan host-service `workspaces` row). This spec covers full resource cleanup.
+v2 deletes go through host-service only. v2 is unlaunched, so we cut over directly.
 
 ## Principle
 
-**The side that owns the harder-to-reverse state orchestrates.** Host-service owns the git worktree and local DB; the cloud row is bookkeeping *about* that workspace. If host-service commits to the delete, the cloud follows. If the cloud-delete fails after the disk is gone, the user still has a consistent view (nothing to open) and the cloud row can be cleaned up on any subsequent sync.
+**The side that owns harder-to-reverse state orchestrates.** Host-service owns the git worktree, PTYs, and its local sqlite. The cloud row is bookkeeping *about* the workspace. If host-service commits to the delete, the cloud follows. If cloud delete fails after disk is gone, the user still has a consistent view (nothing to open) and the cloud row reconciles on next sync.
 
-This mirrors create: host does `git worktree add`, then calls cloud `v2Workspace.create`, then inserts the local row. Delete inverts the same order.
+This mirrors create: host does `git worktree add` → calls `v2Workspace.create` → inserts host row. Delete inverts the same order.
+
+## Problem
+
+- **Path A** `electronTrpc.workspaces.delete` — v1 only. Leave alone; dies with v1.
+- **Path B** `apiTrpcClient.v2Workspace.delete` — cloud-only, called from renderer. Orphans worktree, PTYs, host row. **Remove.**
+- **Path C** `host-service workspace.delete` — already composes cloud + worktree + host sqlite but has no terminal/branch/force handling and is unreachable from UI. **Rewrite and wire up.**
 
 ## New procedure
+
+Name it `workspaceCleanup.destroy` (clearer than `workspace.delete`, which today only deletes):
 
 ```ts
 workspaceCleanup.destroy: protectedProcedure
   .input(z.object({
     workspaceId: z.string(),
-    deleteBranch: z.boolean().default(false),  // user opt-in
-    force: z.boolean().default(false),         // user opt-in after dirty check
+    deleteBranch: z.boolean().default(false),
+    force: z.boolean().default(false),
   }))
   .mutation(async ({ ctx, input }) => {
-    // 1. Look up local workspace row → worktreePath + branch
     const local = ctx.db.query.workspaces
       .findFirst({ where: eq(workspaces.id, input.workspaceId) }).sync();
-    if (!local) throw TRPCError("NOT_FOUND");
+    if (!local) throw new TRPCError({ code: "NOT_FOUND" });
 
-    const git = await ctx.git(/* main repo path */);
+    const warnings: string[] = [];
 
-    // 2. Remove the worktree on disk. Without --force, git refuses if
-    //    dirty — surface that to the renderer so it can prompt.
+    // 1. Kill PTYs. User terminals may hold file locks or open handles
+    //    that would block git worktree remove or the teardown script.
+    const killed = await ctx.terminal.killByWorkspaceId(input.workspaceId);
+    if (killed.failed > 0) {
+      warnings.push(`${killed.failed} terminal(s) may still be running`);
+    }
+
+    // 2. Run teardown (if .superset/teardown.sh exists and not forced).
+    //    Silent spawn with 60s timeout, SIGKILL on timeout, capture output.
+    //    On failure, throw TEARDOWN_FAILED with output tail so renderer
+    //    can prompt "delete anyway" → re-call with force: true (skips teardown).
+    if (!input.force) {
+      const teardown = await runTeardown({
+        worktreePath: local.worktreePath,
+        workspaceId: input.workspaceId,
+      });
+      if (teardown.status === "failed") {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "TEARDOWN_FAILED",
+          cause: { exitCode: teardown.exitCode, outputTail: teardown.outputTail },
+        });
+      }
+      // status: "ok" | "skipped" — continue
+    }
+
+    // 3. Remove the worktree. Let git be the source of truth on "dirty".
+    //    Without --force it refuses if dirty; surface typed so renderer prompts.
+    const git = await ctx.git(local.mainRepoPath);
     try {
       await git.raw([
         "worktree", "remove",
@@ -34,35 +68,28 @@ workspaceCleanup.destroy: protectedProcedure
         local.worktreePath,
       ]);
     } catch (err) {
-      throw TRPCError("CONFLICT", { cause: err });  // typed so client can prompt
+      throw new TRPCError({ code: "CONFLICT", cause: err });
     }
 
-    // 3. Optionally delete the branch. `--delete` fails if not merged;
-    //    `--delete --force` doesn't care. Gate on `force`.
+    // 4. Optional branch delete. -D if force, else -d (fails if unmerged).
     if (input.deleteBranch && local.branch) {
       try {
-        await git.raw([
-          "branch",
-          input.force ? "-D" : "-d",
-          local.branch,
-        ]);
+        await git.raw(["branch", input.force ? "-D" : "-d", local.branch]);
       } catch (err) {
-        // Non-fatal: worktree is gone, cloud is still there, user can
-        // clean up the branch manually later. Return as a warning.
-        warnings.push(`Failed to delete branch: ${err.message}`);
+        warnings.push(`Failed to delete branch: ${(err as Error).message}`);
       }
     }
 
-    // 4. Cloud soft-delete. If this fails, disk is already clean —
-    //    renderer retries or the cloud eventually reconciles.
+    // 5. Cloud soft-delete. Swallow failures — disk is already clean;
+    //    cloud self-heals on next sync or subsequent destroy call.
     try {
       await ctx.api.v2Workspace.delete.mutate({ id: input.workspaceId });
     } catch (err) {
-      // Log + swallow. The local cleanup is what matters for UX.
       console.warn("[workspaceCleanup.destroy] cloud delete failed", err);
+      warnings.push("Cloud delete pending; will retry on next sync");
     }
 
-    // 5. Local bookkeeping.
+    // 6. Host-sqlite cleanup.
     ctx.db.delete(workspaces)
       .where(eq(workspaces.id, input.workspaceId)).run();
 
@@ -70,35 +97,43 @@ workspaceCleanup.destroy: protectedProcedure
   });
 ```
 
+No preflight `canDelete`, no `deletingAt` tombstone, no reconciliation loop. Git errors drive the UX; cloud-row orphans self-heal via the existing sync / next destroy attempt.
+
 ## Failure modes
 
-| Step fails | What the user sees | Recovery |
-|------------|--------------------|----------|
-| 2 (worktree dirty, no `--force`) | Typed `CONFLICT` error | Renderer prompts "Worktree has uncommitted changes — delete anyway?" → re-call with `force: true` |
-| 2 (other git error) | Error surfaces | User investigates; nothing was deleted |
-| 3 (`git branch -d` — branch not merged) | Warning surfaced | User can delete manually or re-delete with `force: true` |
-| 4 (cloud delete) | Success (warning) | Next `searchBranches` on any device shows the orphan cloud row; periodic sweep cleans it up, or a manual `v2Workspace.delete` call does |
-| 5 (local DB) | Success (warning) | Self-heals on next searchBranches probe |
+| Step fails | User sees | Recovery |
+| --- | --- | --- |
+| 1 (terminal kill) | Warning; proceeds | — |
+| 2 (teardown script, no `force`) | Typed `TEARDOWN_FAILED` with exit code + output tail | Dialog: "Teardown script failed. Delete anyway?" → re-call with `force: true` (skips teardown entirely) |
+| 2 (teardown timeout, 60s) | Same as above; process group SIGKILLed | Same |
+| 3 (worktree dirty, no `--force`) | Typed `CONFLICT` | Dialog: "Uncommitted changes — delete anyway?" → re-call with `force: true` |
+| 3 (other git error) | Error; nothing else deleted | User investigates |
+| 4 (`git branch -d` unmerged) | Warning | User deletes manually or re-runs with `force: true` |
+| 5 (cloud) | Success + warning | Cloud row reconciles on next sync |
+| 6 (host sqlite) | Success (unlikely fail) | Next sync probe heals |
 
-Partial failure never leaves dirty disk + silent disappearance. Worst case: cloud row lingers, renderer re-cleans on next delete attempt.
+Partial failure never leaves dirty disk + silent disappearance. Worst case: lingering cloud row, which is already soft-delete and self-healing.
 
 ## Renderer flow
 
 ```ts
-const destroy = useDestroyWorkspace();
+const destroy = useDestroyWorkspace();  // wraps hostService.workspaceCleanup.destroy
 
 async function onDeleteClick(workspaceId: string) {
   try {
     await destroy({ workspaceId, deleteBranch: false, force: false });
   } catch (err) {
     if (err.code === "CONFLICT") {
-      // Worktree dirty — confirm dialog.
-      const { deleteAnyway, deleteBranch } = await showDeleteConfirm({
+      const confirmed = await showDeleteConfirm({
         title: "Uncommitted changes in worktree",
         options: { deleteBranch: { default: false } },
       });
-      if (deleteAnyway) {
-        await destroy({ workspaceId, deleteBranch, force: true });
+      if (confirmed.deleteAnyway) {
+        await destroy({
+          workspaceId,
+          deleteBranch: confirmed.deleteBranch,
+          force: true,
+        });
       }
     } else {
       toast.error(err.message);
@@ -107,27 +142,61 @@ async function onDeleteClick(workspaceId: string) {
 }
 ```
 
+Fast path: one click for a clean worktree, no branch delete. Confirm only on dirty or `deleteBranch: true`.
+
 ## UX decisions
 
-- **Delete the branch by default?** No. `deleteBranch` opts in. V1 defaults to deleting; v2 diverges here because workspace branches in our flow are intentionally ephemeral-or-reusable — users sometimes want the branch to live on for a PR. The confirm dialog exposes it as a checkbox, off by default.
-- **Confirm dialog always, or only when dirty?** Only when dirty or `deleteBranch: true`. Fast path stays one click for clean, branch-keeping deletes.
-- **Force as a single param covering both worktree and branch?** Yes. They're both "I acknowledge this might destroy work" signals and splitting them is UX noise. If the user ticked "delete anyway" for a dirty worktree, `-D` instead of `-d` for the branch is the same acknowledgment.
+- **Delete branch by default?** Surfaced as a checkbox in the confirm dialog. Default TBD — align with v1's "remember last choice" (`settings.getDeleteLocalBranch` / `settings.setDeleteLocalBranch`, `DeleteWorkspaceDialog.tsx:44-50`) unless product says otherwise.
+- **Always confirm?** Only when dirty or `deleteBranch: true`.
+- **Split** `force` **into worktree-force and branch-force?** No. One "I acknowledge this might destroy work" signal covers both.
 
-## What this replaces
+## UI
 
-- Direct calls to `v2Workspace.delete` from the renderer → replace with `workspaceCleanup.destroy`.
-- The picker's "stale hasWorkspace" symptom (just fixed defensively via client-collection lookup) — becomes unnecessary once this exists, but the defensive fix stays as belt-and-suspenders.
+- **One dialog path** backing all v2 entry points: v2 sidebar context menu, EmptyTabView, `DELETE_WORKSPACE` hotkey (renamed from `CLOSE_WORKSPACE`), and a new delete affordance on `V2WorkspaceRow.tsx:125-147`.
+- **Replace direct cloud call** at `useDashboardSidebarWorkspaceItemActions.ts:72-102` with `useDestroyWorkspace`.
+- v1 keeps `DeleteWorkspaceDialog` + `useDeleteWorkspace` unchanged.
 
-## What this does *not* cover
+## Cloud lock-down
 
-- Cross-host cleanup (workspace on remote host, deleted from this device). The remote host has to hear about it — either via the cloud row sync or via a fan-out RPC. For now: remote-host deletes still orphan disk on that host. Separate problem; same pattern.
-- Soft-delete vs. hard-delete of the cloud row. Today `v2Workspace.delete` soft-deletes; keep that so soft-delete remains the cloud-side model.
-- Bulk delete. Current scope is one workspace at a time; a future "trash bin" flow would compose `destroy` calls.
+`v2Workspace.delete` in `packages/trpc/src/router/v2-workspace/v2-workspace.ts:190-200` requires a host-service service token in addition to org membership. Renderer callers fail. Cloud row stays soft-delete.
 
-## Implementation order
+## Teardown contract (step 2 detail)
 
-1. Host-service: `workspaceCleanup` router with `destroy` procedure.
-2. Renderer: `useDestroyWorkspace` hook (mirrors `useCheckoutDashboardWorkspace`).
-3. Renderer: confirm dialog component for dirty-worktree + delete-branch opt-in.
-4. Swap delete call sites (workspace list context menu, workspace settings) from `v2Workspace.delete.mutate` to `useDestroyWorkspace`.
-5. Delete the defensive host-side `workspaces` row leak — self-heals via this flow.
+Mirrors v1's `runTeardown` (`apps/desktop/src/lib/trpc/routers/workspaces/utils/teardown.ts:21-140`) re-homed into host-service. **Silent** — not a visible terminal pane like v2 setup, because the workspace is about to vanish and users only care about the output if it fails.
+
+```ts
+runTeardown({ worktreePath, workspaceId })
+  → { status: "ok", output?: string }
+  | { status: "skipped" }   // .superset/teardown.sh missing
+  | { status: "failed", exitCode: number | null, outputTail: string }
+```
+
+- **Script location**: `<worktreePath>/.superset/teardown.sh` (mirrors v2 setup's `.superset/setup.sh` convention; v1's `.superset/config.json`-with-`teardown:[]` stays v1-only).
+- **Execution**: `spawn(shell, ["-c", "bash .superset/teardown.sh"], { cwd: worktreePath, detached: true, env: { SUPERSET_WORKSPACE_NAME, SUPERSET_ROOT_PATH, ...baseEnv } })`. Detached so we can SIGKILL the whole process group on timeout.
+- **Capture**: combined stdout/stderr into a ring buffer; return last ~4KB as `outputTail` on failure.
+- **Exit handling**: listen to `"exit"` (not `"close"`) — same pattern as v1; background children can hold stdio open past exit.
+- **Timeout**: 60s → `process.kill(-pid, "SIGKILL")` → `status: "failed"` with `exitCode: null` and outputTail including a timeout marker.
+- **Missing script**: fast-return `{ status: "skipped" }`.
+- `force` **in destroy**: skips this step entirely. Don't re-run a known-broken script.
+
+## Out of scope
+
+- **Remote-host cleanup**: workspace on remote host deleted from this device. Remote host learns via cloud-sync event subscription later. Same pattern; separate PR.
+- **Visible-pane teardown**: rejected. v2 setup is visible because users need to see it succeed; teardown has nothing actionable once it starts and the pane evaporates with the workspace.
+- **Bulk delete / trash bin**: future flow composing `destroy` calls.
+
+## Work order
+
+1. Host-service: new `workspaceCleanup` router with `destroy`.
+2. Renderer: `useDestroyWorkspace` hook + confirm dialog (dirty + branch opt-in).
+3. Swap v2 delete call sites: sidebar context, EmptyTabView, hotkey, v2-workspaces list row.
+4. Lock `v2Workspace.delete` to host-service service tokens.
+5. Delete Path B call path.
+
+## Acceptance
+
+- v2 renderer has one delete target: `hostServiceClient.workspaceCleanup.destroy`.
+- `v2Workspace.delete` is reachable only from host-service.
+- Clean worktree + no branch delete = one click.
+- Dirty worktree surfaces a typed CONFLICT and a confirm → `force: true` retry.
+- Cloud failure produces a warning, not an orphan visible to the user.
