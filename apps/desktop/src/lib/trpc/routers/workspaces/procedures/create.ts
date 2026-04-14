@@ -379,6 +379,26 @@ export const createCreateProcedures = () => {
 					});
 				}
 
+				// If the requested new branch name already exists in git, route to the
+				// existing-branch path instead of letting `git worktree add -b` fail.
+				let effectiveUseExistingBranch = input.useExistingBranch ?? false;
+				if (
+					!existingBranchName &&
+					input.branchName?.trim() &&
+					existingBranches.includes(branch)
+				) {
+					const existingWorktreePath = await getBranchWorktreePath({
+						mainRepoPath: project.mainRepoPath,
+						branch,
+					});
+					if (existingWorktreePath) {
+						throw new Error(
+							`Branch "${branch}" is already checked out in another worktree at: ${existingWorktreePath}. Open that workspace instead.`,
+						);
+					}
+					effectiveUseExistingBranch = true;
+				}
+
 				if (input.branchName?.trim()) {
 					const existing = findWorktreeWorkspaceByBranch({
 						projectId: input.projectId,
@@ -501,7 +521,7 @@ export const createCreateProcedures = () => {
 					project_id: project.id,
 					branch: branch,
 					base_branch: compareBaseBranch,
-					use_existing_branch: input.useExistingBranch ?? false,
+					use_existing_branch: effectiveUseExistingBranch,
 				});
 
 				await setBranchBaseConfig({
@@ -521,7 +541,7 @@ export const createCreateProcedures = () => {
 					mainRepoPath: project.mainRepoPath,
 					startPointBranch: sourceWorkspace?.branch,
 					namingPrompt: input.prompt,
-					useExistingBranch: input.useExistingBranch,
+					useExistingBranch: effectiveUseExistingBranch,
 				});
 
 				const setupConfig = loadSetupConfig({
