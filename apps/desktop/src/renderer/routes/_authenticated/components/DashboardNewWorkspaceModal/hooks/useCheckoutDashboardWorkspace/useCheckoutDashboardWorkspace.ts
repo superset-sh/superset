@@ -4,18 +4,14 @@ import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import type { WorkspaceHostTarget } from "../../components/DashboardNewWorkspaceForm/components/DevicePicker";
 
-export interface CreateWorkspaceInput {
+export interface CheckoutWorkspaceInput {
 	pendingId: string;
 	projectId: string;
 	hostTarget: WorkspaceHostTarget;
-	names: {
-		workspaceName: string;
-		branchName: string;
-	};
+	workspaceName: string;
+	branch: string;
 	composer: {
 		prompt?: string;
-		baseBranch?: string;
-		baseBranchSource?: "local" | "remote-tracking";
 		runSetupScript?: boolean;
 	};
 	linkedContext?: {
@@ -31,14 +27,14 @@ export interface CreateWorkspaceInput {
 }
 
 /**
- * Thin wrapper around the host-service `workspaceCreation.create` mutation.
- * The caller is responsible for pending state, toasts, and draft management.
+ * Thin wrapper around the host-service `workspaceCreation.checkout` mutation.
+ * Creates a new workspace that reuses an existing branch (no new branch).
  */
-export function useCreateDashboardWorkspace() {
+export function useCheckoutDashboardWorkspace() {
 	const { activeHostUrl } = useLocalHostService();
 
 	return useCallback(
-		async (input: CreateWorkspaceInput) => {
+		async (input: CheckoutWorkspaceInput) => {
 			const hostUrl =
 				input.hostTarget.kind === "local"
 					? activeHostUrl
@@ -50,10 +46,11 @@ export function useCreateDashboardWorkspace() {
 
 			const client = getHostServiceClientByUrl(hostUrl);
 
-			return client.workspaceCreation.create.mutate({
+			return client.workspaceCreation.checkout.mutate({
 				pendingId: input.pendingId,
 				projectId: input.projectId,
-				names: input.names,
+				workspaceName: input.workspaceName,
+				branch: input.branch,
 				composer: input.composer,
 				linkedContext: input.linkedContext,
 			});

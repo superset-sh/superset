@@ -6,6 +6,13 @@ import { eq } from "drizzle-orm";
 import simpleGit from "simple-git";
 import { z } from "zod";
 import { projects, workspaces } from "../../../db/schema";
+import {
+	asLocalRef,
+	asRemoteRef,
+	type ResolvedRef,
+	resolveDefaultBranchName,
+	resolveRef,
+} from "../../../runtime/git/refs";
 import { createTerminalSessionInternal } from "../../../terminal/terminal";
 import type { HostServiceContext } from "../../../types";
 import { protectedProcedure, router } from "../../index";
@@ -96,6 +103,131 @@ async function resolveGithubRepo(
 
 import { normalizeGitHubQuery } from "./normalize-github-query";
 
+// ── searchBranches helpers ──────────────────────────────────────────
+
+type BranchRow = {
+	name: string;
+	lastCommitDate: number;
+	isLocal: boolean;
+	isRemote: boolean;
+	recency: number | null;
+	worktreePath: string | null;
+	// True when a workspaces row exists for this (project, branch) on this
+	// host. A worktree can exist on disk without one (orphan); the Worktree
+	// tab distinguishes Open (hasWorkspace) from Create (orphan adopt).
+	hasWorkspace: boolean;
+	isCheckedOut: boolean;
+};
+
+function encodeCursor(offset: number): string {
+	return Buffer.from(JSON.stringify({ offset })).toString("base64url");
+}
+
+function decodeCursor(cursor: string | undefined): number {
+	if (!cursor) return 0;
+	try {
+		const parsed = JSON.parse(
+			Buffer.from(cursor, "base64url").toString("utf8"),
+		);
+		const offset = typeof parsed.offset === "number" ? parsed.offset : 0;
+		return Math.max(0, offset);
+	} catch {
+		return 0;
+	}
+}
+
+// 30s TTL on `git fetch` per project — keeps rapid searches from thrashing.
+const REMOTE_REFETCH_TTL_MS = 30_000;
+const lastRemoteRefetch = new Map<string, number>();
+
+function shouldRefetchRemote(projectId: string): boolean {
+	const last = lastRemoteRefetch.get(projectId) ?? 0;
+	return Date.now() - last >= REMOTE_REFETCH_TTL_MS;
+}
+
+function markRefetchRemote(projectId: string): void {
+	lastRemoteRefetch.set(projectId, Date.now());
+}
+
+type GitClient = Awaited<ReturnType<HostServiceContext["git"]>>;
+
+async function listWorktreeBranches(
+	git: GitClient,
+	repoPath: string,
+): Promise<{
+	// Superset-managed worktrees only (under <repoPath>/.worktrees/).
+	// These count as "has a workspace" for the picker.
+	worktreeMap: Map<string, string>;
+	// Every branch checked out in any git worktree, including the primary
+	// working tree. Used to disable the Checkout action when a branch is
+	// already in use elsewhere — `git worktree add <path> <branch>` would fail.
+	checkedOutBranches: Set<string>;
+}> {
+	const worktreesRoot = resolve(repoPath, ".worktrees");
+	const worktreeMap = new Map<string, string>();
+	const checkedOutBranches = new Set<string>();
+	try {
+		const raw = await git.raw(["worktree", "list", "--porcelain"]);
+		let currentPath: string | null = null;
+		for (const line of raw.split("\n")) {
+			if (line.startsWith("worktree ")) {
+				currentPath = line.slice("worktree ".length).trim();
+			} else if (line.startsWith("branch refs/heads/") && currentPath) {
+				const branch = line.slice("branch refs/heads/".length).trim();
+				if (!branch) continue;
+				checkedOutBranches.add(branch);
+				// Superset-managed worktrees live under <repoPath>/.worktrees/<name>;
+				// the primary working tree is at repoPath itself and skipped here.
+				if (currentPath.startsWith(worktreesRoot + sep)) {
+					worktreeMap.set(branch, currentPath);
+				}
+			} else if (line === "") {
+				currentPath = null;
+			}
+		}
+	} catch (err) {
+		console.warn(
+			"[workspace-creation] git worktree list failed; treating no branches as checked out:",
+			err,
+		);
+	}
+	return { worktreeMap, checkedOutBranches };
+}
+
+// Parses `git log -g` to return {branchName: ordinal} where 0 = most recent.
+async function getRecentBranchOrder(
+	git: GitClient,
+	limit: number,
+): Promise<Map<string, number>> {
+	const order = new Map<string, number>();
+	try {
+		const raw = await git.raw([
+			"log",
+			"-g",
+			"--pretty=%gs",
+			"--grep-reflog=checkout:",
+			"-n",
+			"500",
+			"HEAD",
+			"--",
+		]);
+		const re = /^checkout: moving from .+ to (.+)$/;
+		for (const line of raw.split("\n")) {
+			const m = re.exec(line);
+			if (!m?.[1]) continue;
+			const name = m[1].trim();
+			if (!name || /^[0-9a-f]{7,40}$/.test(name)) continue; // skip detached SHAs
+			if (!order.has(name)) {
+				order.set(name, order.size);
+				if (order.size >= limit) break;
+			}
+		}
+	} catch {
+		// ignore (e.g. unborn branch)
+	}
+	return order;
+}
+
 async function listBranchNames(
 	ctx: HostServiceContext,
 	repoPath: string,
@@ -105,20 +237,56 @@ async function listBranchNames(
 		const raw = await git.raw([
 			"for-each-ref",
 			"--sort=-committerdate",
-			"--format=%(refname:short)",
+			"--format=%(refname)",
 			"refs/heads/",
 			"refs/remotes/origin/",
 		]);
 		const names = new Set<string>();
-		for (const line of raw.trim().split("\n").filter(Boolean)) {
-			let name = line;
-			if (name.startsWith("origin/")) name = name.slice("origin/".length);
-			if (name !== "HEAD") names.add(name);
+		for (const refname of raw.trim().split("\n").filter(Boolean)) {
+			// Use the full refname's structural prefix to classify (safe — a
+			// branch name can't contain `refs/heads/`). Stripping `origin/`
+			// from the SHORT name would misclassify a local branch named
+			// `origin/foo`. See GIT_REFS.md.
+			let name: string;
+			if (refname.startsWith("refs/heads/")) {
+				name = refname.slice("refs/heads/".length);
+			} else if (refname.startsWith("refs/remotes/origin/")) {
+				name = refname.slice("refs/remotes/origin/".length);
+			} else {
+				continue;
+			}
+			if (name && name !== "HEAD") names.add(name);
 		}
 		return Array.from(names);
 	} catch {
 		return [];
 	}
+}
+
+/**
+ * Build a `ResolvedRef` directly from the picker-supplied hint without
+ * probing git. Used when the caller already knows whether the row was
+ * local or remote-only — the picker has this info per row.
+ */
+function buildStartPointFromHint(
+	branch: string,
+	source: "local" | "remote-tracking",
+): ResolvedRef {
+	if (source === "local") {
+		return {
+			kind: "local",
+			fullRef: asLocalRef(branch),
+			shortName: branch,
+		};
+	}
+	const remote = "origin";
+	return {
+		kind: "remote-tracking",
+		fullRef: asRemoteRef(remote, branch),
+		shortName: branch,
+		remote,
+		remoteShortName: `${remote}/${branch}`,
+	};
 }
 
 // ── Router ───────────────────────────────────────────────────────────
@@ -140,17 +308,7 @@ export const workspaceCreationRouter = router({
 			}
 
 			const git = await ctx.git(localProject.repoPath);
-			let defaultBranch: string | null = null;
-			try {
-				const originHead = await git.raw([
-					"symbolic-ref",
-					"refs/remotes/origin/HEAD",
-					"--short",
-				]);
-				defaultBranch = originHead.trim().replace("origin/", "");
-			} catch {
-				defaultBranch = "main";
-			}
+			const defaultBranch: string | null = await resolveDefaultBranchName(git);
 
 			return {
 				projectId: input.projectId,
@@ -164,10 +322,16 @@ export const workspaceCreationRouter = router({
 			z.object({
 				projectId: z.string(),
 				query: z.string().optional(),
-				limit: z.number().min(1).max(500).optional(),
+				cursor: z.string().optional(),
+				limit: z.number().min(1).max(200).optional(),
+				refresh: z.boolean().optional(),
+				filter: z.enum(["branch", "worktree"]).optional(),
 			}),
 		)
 		.query(async ({ ctx, input }) => {
+			const limit = input.limit ?? 50;
+			const offset = decodeCursor(input.cursor);
+
 			const localProject = ctx.db.query.projects
 				.findFirst({ where: eq(projects.id, input.projectId) })
 				.sync();
@@ -175,68 +339,91 @@ export const workspaceCreationRouter = router({
 			if (!localProject) {
 				return {
 					defaultBranch: null as string | null,
-					branches: [] as Array<{
-						name: string;
-						lastCommitDate: number;
-						isLocal: boolean;
-						hasWorkspace: boolean;
-					}>,
+					items: [] as BranchRow[],
+					nextCursor: null as string | null,
 				};
 			}
 
 			const git = await ctx.git(localProject.repoPath);
 
-			let defaultBranch: string | null = null;
-			try {
-				const originHead = await git.raw([
-					"symbolic-ref",
-					"refs/remotes/origin/HEAD",
-					"--short",
-				]);
-				defaultBranch = originHead.trim().replace("origin/", "");
-			} catch {
-				defaultBranch = "main";
-			}
-
-			const localBranchNames = new Set<string>();
-			try {
-				const raw = await git.raw([
-					"branch",
-					"--list",
-					"--format=%(refname:short)",
-				]);
-				for (const name of raw.trim().split("\n").filter(Boolean)) {
-					localBranchNames.add(name);
+			// Honor `refresh` only if TTL elapsed — prevents thrashing `git fetch`
+			// on every keystroke when the client tags first-page requests.
+			if (input.refresh && shouldRefetchRemote(input.projectId)) {
+				markRefetchRemote(input.projectId);
+				try {
+					await git.fetch(["--prune", "--quiet", "--no-tags"]);
+				} catch {
+					// offline — proceed with cached refs
 				}
-			} catch {
-				// ignore
 			}
 
-			type BranchInfo = {
+			const defaultBranch: string | null = await resolveDefaultBranchName(git);
+
+			const { worktreeMap, checkedOutBranches } = await listWorktreeBranches(
+				git,
+				localProject.repoPath,
+			);
+			const recencyMap = await getRecentBranchOrder(git, 30);
+
+			// Branches that already have a workspace row on this host. The
+			// Worktree tab uses this to distinguish Open (has row) from
+			// Create (orphan worktree — worktree on disk, no workspace row).
+			const workspaceBranches = new Set<string>(
+				ctx.db
+					.select()
+					.from(workspaces)
+					.where(eq(workspaces.projectId, input.projectId))
+					.all()
+					.map((w) => w.branch)
+					.filter((b): b is string => !!b),
+			);
+
+			type BranchAccum = {
 				name: string;
 				lastCommitDate: number;
 				isLocal: boolean;
+				isRemote: boolean;
 			};
-			const branchMap = new Map<string, BranchInfo>();
+			const branchMap = new Map<string, BranchAccum>();
 			try {
 				const raw = await git.raw([
 					"for-each-ref",
 					"--sort=-committerdate",
-					"--format=%(refname:short)\t%(committerdate:unix)",
+					"--format=%(refname)\t%(refname:short)\t%(committerdate:unix)",
 					"refs/heads/",
 					"refs/remotes/origin/",
 				]);
 				for (const line of raw.trim().split("\n").filter(Boolean)) {
-					const [rawRef, ts] = line.split("\t");
-					if (!rawRef) continue;
-					let name = rawRef;
-					if (name.startsWith("origin/")) name = name.slice("origin/".length);
-					if (name === "HEAD") continue;
-					if (!branchMap.has(name)) {
+					const [refname, _short, ts] = line.split("\t");
+					if (!refname) continue;
+
+					// Derive isLocal/isRemote and the user-facing name from
+					// the FULL refname's structural prefix — never from the
+					// short form. See GIT_REFS.md.
+					let name: string;
+					let isLocal = false;
+					let isRemote = false;
+					if (refname.startsWith("refs/heads/")) {
+						name = refname.slice("refs/heads/".length);
+						isLocal = true;
+					} else if (refname.startsWith("refs/remotes/origin/")) {
+						name = refname.slice("refs/remotes/origin/".length);
+						isRemote = true;
+					} else {
+						continue;
+					}
+					if (!name || name === "HEAD") continue;
+
+					const existing = branchMap.get(name);
+					if (existing) {
+						existing.isLocal = existing.isLocal || isLocal;
+						existing.isRemote = existing.isRemote || isRemote;
+					} else {
 						branchMap.set(name, {
 							name,
 							lastCommitDate: Number.parseInt(ts ?? "0", 10),
-							isLocal: localBranchNames.has(name),
+							isLocal,
+							isRemote,
 						});
 					}
 				}
@@ -246,29 +433,53 @@ export const workspaceCreationRouter = router({
 
 			let branches = Array.from(branchMap.values());
 
+			if (input.filter === "worktree") {
+				branches = branches.filter((b) => worktreeMap.has(b.name));
+			} else {
+				// default "branch": any branch (local or remote) without a worktree
+				branches = branches.filter((b) => !worktreeMap.has(b.name));
+			}
+
 			if (input.query) {
 				const q = input.query.toLowerCase();
 				branches = branches.filter((b) => b.name.toLowerCase().includes(q));
 			}
 
-			branches = branches.slice(0, input.limit ?? 200);
+			// Sort: default → reflog-recent → everything else by committerdate desc.
+			// for-each-ref already emits in committerdate-desc order, so the tail
+			// of this sort is a stable no-op for branches outside default/recency.
+			branches.sort((a, b) => {
+				const aDefault = a.name === defaultBranch ? 0 : 1;
+				const bDefault = b.name === defaultBranch ? 0 : 1;
+				if (aDefault !== bDefault) return aDefault - bDefault;
 
-			const localWorkspaceBranches = new Set(
-				ctx.db
-					.select()
-					.from(workspaces)
-					.where(eq(workspaces.projectId, input.projectId))
-					.all()
-					.map((w) => w.branch),
-			);
+				const aRecency = recencyMap.get(a.name);
+				const bRecency = recencyMap.get(b.name);
+				if (aRecency !== undefined && bRecency !== undefined) {
+					return aRecency - bRecency;
+				}
+				if (aRecency !== undefined) return -1;
+				if (bRecency !== undefined) return 1;
 
-			return {
-				defaultBranch,
-				branches: branches.map((b) => ({
-					...b,
-					hasWorkspace: localWorkspaceBranches.has(b.name),
-				})),
-			};
+				return b.lastCommitDate - a.lastCommitDate;
+			});
+
+			const page = branches.slice(offset, offset + limit);
+			const hasMore = offset + limit < branches.length;
+			const nextCursor = hasMore ? encodeCursor(offset + limit) : null;
+
+			const items: BranchRow[] = page.map((b) => ({
+				name: b.name,
+				lastCommitDate: b.lastCommitDate,
+				isLocal: b.isLocal,
+				isRemote: b.isRemote,
+				recency: recencyMap.get(b.name) ?? null,
+				worktreePath: worktreeMap.get(b.name) ?? null,
+				hasWorkspace: workspaceBranches.has(b.name),
+				isCheckedOut: checkedOutBranches.has(b.name),
+			}));
+
+			return { defaultBranch, items, nextCursor };
 		}),
 
 	/**
@@ -295,6 +506,12 @@ export const workspaceCreationRouter = router({
 				composer: z.object({
 					prompt: z.string().optional(),
 					baseBranch: z.string().optional(),
+					// Hint from the picker about which form of the base branch
+					// was selected. When provided, the server uses it directly
+					// instead of probing — avoids racing against stale cached
+					// remote refs that could win in a re-resolve. See
+					// `resolve-start-point.ts` for the fallback semantics.
+					baseBranchSource: z.enum(["local", "remote-tracking"]).optional(),
 					runSetupScript: z.boolean().optional(),
 				}),
 				linkedContext: z
@@ -383,34 +600,49 @@ export const workspaceCreationRouter = router({
 
 			const git = await ctx.git(localProject.repoPath);
 
-			// Resolve the best start point: prefer origin/<branch> for freshest code,
-			// fall back to local branch, then HEAD.
-			const { ref: startPoint, resolvedFrom } = await resolveStartPoint(
-				git,
-				input.composer.baseBranch,
-			);
+			// Trust the picker's hint when provided: it knows whether the row
+			// the user clicked was local or remote-only. Re-resolving here
+			// races against stale cached refs (a workspace branch with an
+			// incidental `refs/remotes/origin/<name>` cache would silently win).
+			// Falls back to probing for callers that don't pass the hint.
+			const startPoint =
+				input.composer.baseBranch && input.composer.baseBranchSource
+					? buildStartPointFromHint(
+							input.composer.baseBranch,
+							input.composer.baseBranchSource,
+						)
+					: await resolveStartPoint(git, input.composer.baseBranch);
 			console.log(
-				`[workspaceCreation.create] start point resolved: ${startPoint} (${resolvedFrom})`,
+				`[workspaceCreation.create] start point: ${startPoint.kind} (${
+					input.composer.baseBranchSource ? "from hint" : "resolved"
+				})`,
 			);
 
 			// If we resolved to a remote-tracking ref, fetch just that branch
 			// to ensure we're branching from the latest remote state.
-			if (startPoint.startsWith("origin/")) {
-				const remoteBranch = startPoint.replace(/^origin\//, "");
+			if (startPoint.kind === "remote-tracking") {
 				try {
-					await git.fetch(["origin", remoteBranch, "--quiet", "--no-tags"]);
+					await git.fetch([
+						startPoint.remote,
+						startPoint.shortName,
+						"--quiet",
+						"--no-tags",
+					]);
 				} catch (err) {
 					console.warn(
-						`[workspaceCreation.create] fetch origin ${remoteBranch} failed, proceeding with local ref:`,
+						`[workspaceCreation.create] fetch ${startPoint.remoteShortName} failed, proceeding with local ref:`,
 						err,
 					);
 				}
 			}
 
 			// Always create a new branch — never check out an existing one.
-			// Checking out existing branches is a separate intent (e.g. createFromPr).
+			// Checking out existing branches is a separate intent (createFromPr,
+			// or the picker's Check out action via the `checkout` procedure).
 			// --no-track prevents the new branch from tracking the remote ref
 			// (e.g. origin/main); push.autoSetupRemote handles first-push tracking.
+			const startPointArg =
+				startPoint.kind === "head" ? "HEAD" : startPoint.shortName;
 			await git.raw([
 				"worktree",
 				"add",
@@ -418,7 +650,9 @@ export const workspaceCreationRouter = router({
 				"-b",
 				branchName,
 				worktreePath,
-				startPoint,
+				startPoint.kind === "remote-tracking"
+					? startPoint.remoteShortName
+					: startPointArg,
 			]);
 
 			setProgress(input.pendingId, "registering");
@@ -525,6 +759,358 @@ export const workspaceCreationRouter = router({
 				workspace: cloudRow,
 				terminals,
 				warnings,
+			};
+		}),
+
+	/**
+	 * Check out an existing branch into a new workspace. Unlike `create`, this
+	 * reuses the branch name as-is (no new branch) — `git worktree add` without
+	 * `-b`. Fails if the branch is already checked out elsewhere.
+	 */
+	checkout: protectedProcedure
+		.input(
+			z.object({
+				pendingId: z.string(),
+				projectId: z.string(),
+				workspaceName: z.string(),
+				branch: z.string(),
+				composer: z.object({
+					prompt: z.string().optional(),
+					runSetupScript: z.boolean().optional(),
+				}),
+				linkedContext: z
+					.object({
+						internalIssueIds: z.array(z.string()).optional(),
+						githubIssueUrls: z.array(z.string()).optional(),
+						linkedPrUrl: z.string().optional(),
+						attachments: z
+							.array(
+								z.object({
+									data: z.string(),
+									mediaType: z.string(),
+									filename: z.string().optional(),
+								}),
+							)
+							.optional(),
+					})
+					.optional(),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			const deviceClientId = getHashedDeviceId();
+			const deviceName = getDeviceName();
+			setProgress(input.pendingId, "ensuring_repo");
+
+			// 1. Ensure project locally (clone if missing) — same as create
+			let localProject = ctx.db.query.projects
+				.findFirst({ where: eq(projects.id, input.projectId) })
+				.sync();
+
+			if (!localProject) {
+				const cloudProject = await ctx.api.v2Project.get.query({
+					organizationId: ctx.organizationId,
+					id: input.projectId,
+				});
+				if (!cloudProject.repoCloneUrl) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: "Project has no linked GitHub repository — cannot clone",
+					});
+				}
+				const homeDir = process.env.HOME || process.env.USERPROFILE || "/tmp";
+				const repoPath = join(homeDir, ".superset", "repos", input.projectId);
+				if (!existsSync(repoPath)) {
+					mkdirSync(dirname(repoPath), { recursive: true });
+					await simpleGit().clone(cloudProject.repoCloneUrl, repoPath);
+				}
+				localProject = ctx.db
+					.insert(projects)
+					.values({ id: input.projectId, repoPath })
+					.returning()
+					.get();
+			}
+
+			setProgress(input.pendingId, "creating_worktree");
+
+			const branch = input.branch.trim();
+			if (!branch) {
+				clearProgress(input.pendingId);
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Branch name is empty",
+				});
+			}
+
+			let worktreePath: string;
+			try {
+				worktreePath = safeResolveWorktreePath(localProject.repoPath, branch);
+			} catch (err) {
+				clearProgress(input.pendingId);
+				throw err;
+			}
+			const git = await ctx.git(localProject.repoPath);
+
+			// Resolve via the discriminated-ref helper so we don't infer kind
+			// from a refname string (a local branch named `origin/foo` would
+			// otherwise be misclassified). See GIT_REFS.md.
+			const resolved = await resolveRef(git, branch);
+			if (!resolved || resolved.kind === "head" || resolved.kind === "tag") {
+				clearProgress(input.pendingId);
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message:
+						resolved?.kind === "tag"
+							? `"${branch}" is a tag, not a branch — cannot check out into a workspace`
+							: `Branch "${branch}" does not exist locally or on origin`,
+				});
+			}
+
+			if (resolved.kind === "remote-tracking") {
+				try {
+					await git.fetch([
+						resolved.remote,
+						resolved.shortName,
+						"--quiet",
+						"--no-tags",
+					]);
+				} catch (err) {
+					console.warn(
+						`[workspaceCreation.checkout] fetch ${resolved.remoteShortName} failed:`,
+						err,
+					);
+				}
+			}
+
+			try {
+				// For a remote-only branch, create a local tracking branch
+				// explicitly. `git worktree add <path> origin/<branch>` without
+				// --track/-b produces a detached HEAD because the fully-qualified
+				// ref is treated as a commit-ish, not a branch shorthand.
+				await git.raw(
+					resolved.kind === "remote-tracking"
+						? [
+								"worktree",
+								"add",
+								"--track",
+								"-b",
+								branch,
+								worktreePath,
+								resolved.remoteShortName,
+							]
+						: ["worktree", "add", worktreePath, resolved.shortName],
+				);
+			} catch (err) {
+				clearProgress(input.pendingId);
+				const message =
+					err instanceof Error ? err.message : "Failed to add worktree";
+				// Most common cause here is "branch already checked out elsewhere".
+				// Client disables the button for known cases via isCheckedOut, but
+				// we still get here for races.
+				throw new TRPCError({ code: "CONFLICT", message });
+			}
+
+			setProgress(input.pendingId, "registering");
+
+			const rollbackWorktree = async () => {
+				try {
+					await git.raw(["worktree", "remove", worktreePath]);
+				} catch (err) {
+					console.warn(
+						"[workspaceCreation.checkout] failed to rollback worktree",
+						{ worktreePath, err },
+					);
+				}
+			};
+
+			let host: { id: string };
+			try {
+				host = await ctx.api.device.ensureV2Host.mutate({
+					organizationId: ctx.organizationId,
+					machineId: deviceClientId,
+					name: deviceName,
+				});
+			} catch (err) {
+				console.error("[workspaceCreation.checkout] ensureV2Host failed", err);
+				clearProgress(input.pendingId);
+				await rollbackWorktree();
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: `Failed to register host: ${err instanceof Error ? err.message : String(err)}`,
+				});
+			}
+
+			const cloudRow = await ctx.api.v2Workspace.create
+				.mutate({
+					organizationId: ctx.organizationId,
+					projectId: input.projectId,
+					name: input.workspaceName,
+					branch,
+					hostId: host.id,
+				})
+				.catch(async (err) => {
+					console.error(
+						"[workspaceCreation.checkout] v2Workspace.create failed",
+						err,
+					);
+					clearProgress(input.pendingId);
+					await rollbackWorktree();
+					throw err;
+				});
+
+			if (!cloudRow) {
+				clearProgress(input.pendingId);
+				await rollbackWorktree();
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: "Cloud workspace create returned no row",
+				});
+			}
+
+			ctx.db
+				.insert(workspaces)
+				.values({
+					id: cloudRow.id,
+					projectId: input.projectId,
+					worktreePath,
+					branch,
+				})
+				.run();
+
+			const terminals: Array<{ id: string; role: string; label: string }> = [];
+			const warnings: string[] = [];
+
+			if (input.composer.runSetupScript) {
+				const setupScriptPath = join(worktreePath, ".superset", "setup.sh");
+				if (existsSync(setupScriptPath)) {
+					const terminalId = crypto.randomUUID();
+					const result = createTerminalSessionInternal({
+						terminalId,
+						workspaceId: cloudRow.id,
+						db: ctx.db,
+						initialCommand: `bash "${setupScriptPath}"`,
+					});
+					if ("error" in result) {
+						warnings.push(`Failed to start setup terminal: ${result.error}`);
+					} else {
+						terminals.push({
+							id: terminalId,
+							role: "setup",
+							label: "Workspace Setup",
+						});
+					}
+				}
+			}
+
+			clearProgress(input.pendingId);
+
+			return { workspace: cloudRow, terminals, warnings };
+		}),
+
+	/**
+	 * Adopt an existing git worktree as a workspace. Used when the Worktree
+	 * tab surfaces a branch whose `.worktrees/<branch>` directory exists on
+	 * disk but has no corresponding workspaces row (e.g. created by an older
+	 * flow, or partial create rollback). No git ops — just registers the
+	 * cloud + local workspace row over the existing worktree path.
+	 */
+	adopt: protectedProcedure
+		.input(
+			z.object({
+				projectId: z.string(),
+				workspaceName: z.string(),
+				branch: z.string(),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			const deviceClientId = getHashedDeviceId();
+			const deviceName = getDeviceName();
+
+			const localProject = ctx.db.query.projects
+				.findFirst({ where: eq(projects.id, input.projectId) })
+				.sync();
+			if (!localProject) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Project is not set up locally",
+				});
+			}
+
+			const branch = input.branch.trim();
+			if (!branch) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Branch name is empty",
+				});
+			}
+
+			const git = await ctx.git(localProject.repoPath);
+			const { worktreeMap } = await listWorktreeBranches(
+				git,
+				localProject.repoPath,
+			);
+			const worktreePath = worktreeMap.get(branch);
+			if (!worktreePath) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: `No existing worktree for branch "${branch}"`,
+				});
+			}
+
+			// We used to short-circuit on an existing local `workspaces` row
+			// (returning its id without calling cloud). That returned a
+			// phantom id when the cloud row had been hard-deleted — the
+			// picker would navigate to a workspace that no longer exists.
+			// Always create a fresh cloud row; if a stale local row leftover
+			// from a prior delete exists, replace it below. Proper host-side
+			// cleanup on delete is owned by the follow-up delete PR.
+			const host = await ctx.api.device.ensureV2Host.mutate({
+				organizationId: ctx.organizationId,
+				machineId: deviceClientId,
+				name: deviceName,
+			});
+
+			const cloudRow = await ctx.api.v2Workspace.create.mutate({
+				organizationId: ctx.organizationId,
+				projectId: input.projectId,
+				name: input.workspaceName,
+				branch,
+				hostId: host.id,
+			});
+
+			if (!cloudRow) {
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: "Cloud workspace create returned no row",
+				});
+			}
+
+			// Replace any stale local row for this (project, branch) — its
+			// id likely points at a deleted cloud row. The new cloudRow.id
+			// is the authoritative mapping.
+			const stale = ctx.db
+				.select()
+				.from(workspaces)
+				.where(eq(workspaces.projectId, input.projectId))
+				.all()
+				.find((w) => w.branch === branch);
+			if (stale && stale.id !== cloudRow.id) {
+				ctx.db.delete(workspaces).where(eq(workspaces.id, stale.id)).run();
+			}
+
+			ctx.db
+				.insert(workspaces)
+				.values({
+					id: cloudRow.id,
+					projectId: input.projectId,
+					worktreePath,
+					branch,
+				})
+				.run();
+
+			return {
+				workspace: cloudRow,
+				terminals: [] as Array<{ id: string; role: string; label: string }>,
+				warnings: [] as string[],
 			};
 		}),
 

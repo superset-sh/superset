@@ -2,25 +2,20 @@ import { useProviderAttachments } from "@superset/ui/ai-elements/prompt-input";
 import { toast } from "@superset/ui/sonner";
 import { useNavigate } from "@tanstack/react-router";
 import { useCallback } from "react";
-import {
-	clearAttachments,
-	storeAttachments,
-} from "renderer/lib/pending-attachment-store";
+import { storeAttachments } from "renderer/lib/pending-attachment-store";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useDashboardNewWorkspaceDraft } from "../../../../../DashboardNewWorkspaceDraftContext";
-import { mapLinkedContext } from "./mapLinkedContext";
 import { resolveNames } from "./resolveNames";
 
 /**
- * Returns a callback that submits a new workspace:
+ * Returns a callback that submits a fork (new branch from base):
  * resolve names → store attachments → insert pending row → close modal →
- * navigate to pending page → fire-and-forget host-service call →
- * update collection on resolve/reject.
+ * navigate to pending page. The page owns the host-service mutation —
+ * see V2_WORKSPACE_CREATION.md §3.
  */
 export function useSubmitWorkspace(projectId: string | null) {
 	const navigate = useNavigate();
-	const { closeAndResetDraft, createWorkspace, draft } =
-		useDashboardNewWorkspaceDraft();
+	const { closeAndResetDraft, draft } = useDashboardNewWorkspaceDraft();
 	const attachments = useProviderAttachments();
 	const collections = useCollections();
 
@@ -30,10 +25,8 @@ export function useSubmitWorkspace(projectId: string | null) {
 			return;
 		}
 
-		// 1. Resolve names
 		const { branchName, workspaceName } = resolveNames(draft);
 
-		// 2. Store attachments in IndexedDB before closing modal
 		const pendingId = crypto.randomUUID();
 		const detachedFiles = attachments.takeFiles();
 		if (detachedFiles.length > 0) {
@@ -51,81 +44,33 @@ export function useSubmitWorkspace(projectId: string | null) {
 			}
 		}
 
-		// 3. Insert pending workspace (full draft for retry)
 		collections.pendingWorkspaces.insert({
 			id: pendingId,
 			projectId,
+			intent: "fork",
 			name: workspaceName,
 			branchName,
 			prompt: draft.prompt,
 			baseBranch: draft.baseBranch ?? null,
+			baseBranchSource: draft.baseBranchSource ?? null,
 			runSetupScript: draft.runSetupScript,
-			linkedIssues: draft.linkedIssues as unknown[],
+			linkedIssues: draft.linkedIssues,
 			linkedPR: draft.linkedPR,
 			hostTarget: draft.hostTarget,
 			attachmentCount: detachedFiles.length,
 			status: "creating",
 			error: null,
 			workspaceId: null,
+			warnings: [],
 			createdAt: new Date(),
 		});
 
-		// 4. Close modal, navigate to pending page
 		closeAndResetDraft();
 		void navigate({ to: `/pending/${pendingId}` as string });
-
-		// 5. Fire create (fire-and-forget — closure survives modal unmount)
-		const linked = mapLinkedContext(draft);
-
-		let attachmentPayload:
-			| Array<{ data: string; mediaType: string; filename: string }>
-			| undefined;
-		if (detachedFiles.length > 0) {
-			try {
-				const { loadAttachments } = await import(
-					"renderer/lib/pending-attachment-store"
-				);
-				attachmentPayload = await loadAttachments(pendingId);
-			} catch {
-				// Non-fatal — create proceeds without attachments
-			}
-		}
-
-		try {
-			const result = await createWorkspace({
-				pendingId,
-				projectId,
-				hostTarget: draft.hostTarget,
-				names: { workspaceName, branchName },
-				composer: {
-					prompt: draft.prompt.trim() || undefined,
-					baseBranch: draft.baseBranch || undefined,
-					runSetupScript: draft.runSetupScript,
-				},
-				linkedContext: {
-					...linked,
-					attachments: attachmentPayload,
-				},
-			});
-
-			collections.pendingWorkspaces.update(pendingId, (row) => {
-				row.status = "succeeded";
-				row.workspaceId = result.workspace?.id ?? null;
-				row.terminals = result.terminals ?? [];
-			});
-			void clearAttachments(pendingId);
-		} catch (err) {
-			collections.pendingWorkspaces.update(pendingId, (row) => {
-				row.status = "failed";
-				row.error =
-					err instanceof Error ? err.message : "Failed to create workspace";
-			});
-		}
 	}, [
 		attachments,
 		closeAndResetDraft,
 		collections,
-		createWorkspace,
 		draft,
 		navigate,
 		projectId,
