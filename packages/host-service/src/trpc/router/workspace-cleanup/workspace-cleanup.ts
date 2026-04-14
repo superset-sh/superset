@@ -109,12 +109,6 @@ export const workspaceCleanupRouter = router({
 					message: "Cloud API not configured",
 				});
 			}
-			// Dev-only: set SUPERSET_DEBUG_FAIL_CLOUD_DELETE=1 to force a cloud
-			// failure without needing to stop apps/api. Used to test Phase 2
-			// passthrough behavior end-to-end.
-			if (process.env.SUPERSET_DEBUG_FAIL_CLOUD_DELETE) {
-				throw new Error("[debug] simulated cloud delete failure");
-			}
 			await ctx.api.v2Workspace.delete.mutate({ id: input.workspaceId });
 
 			// ─── Step 3: Local cleanup (best-effort) ───────────────────────
