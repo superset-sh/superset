@@ -329,3 +329,107 @@ See `packages/host-service/GIT_REFS.md` for the pattern. Key rules:
 ## Cross-reference
 
 For the foundational git-ref handling pattern that underpins `create` / `checkout` / `resolveStartPoint`, see [`packages/host-service/GIT_REFS.md`](../../packages/host-service/GIT_REFS.md).
+
+---
+
+# Appendix: prior art for `resolveStartPoint`
+
+Background research that informed the start-point resolution + targeted-fetch approach in §3's `create` mutation. Useful when revisiting whether to keep the current strategy, switch to a background-fetcher model, or add multi-remote support.
+
+## How other apps solve "where do I branch off from?"
+
+### VS Code (Copilot worktree creation)
+
+`chatSessionWorktreeServiceImpl.ts:79-92` — resolves the branch's **upstream tracking ref** via `getBranch()`:
+
+```ts
+if (isAgentSessionsWorkspace && baseBranch) {
+  const branchDetails = await gitService.getBranch(repo, baseBranch);
+  if (branchDetails?.upstream?.remote && branchDetails.upstream?.name) {
+    baseBranch = `${branchDetails.upstream.remote}/${branchDetails.upstream.name}`;
+  }
+}
+// Then: git worktree add -b <newBranch> --no-track <path> <baseBranch>
+```
+
+Properties: works with non-`origin` remotes via tracking config. No-op when tracking isn't configured (freshly cloned repos). No fetch before creation — relies on last background fetch. Always passes `--no-track`.
+
+### T3Code (worktree creation)
+
+`GitCore.ts:1896-1917` — passes `baseBranch` straight through `createWorktree`. The chain lives in `resolveBaseBranchForNoUpstream` (line 1068):
+
+```
+1. git config: branch.<name>.gh-merge-base
+2. git symbolic-ref refs/remotes/<remote>/HEAD  (remote default branch)
+3. Candidates ["main", "master"] — check local refs/heads/ then remote refs/remotes/
+```
+
+Has a **15-second cache-based upstream refresh** (`git fetch --quiet --no-tags`) for status checks, separate from worktree creation. Resolves primary remote dynamically (`origin` → first remote → error).
+
+### GitHub Desktop (branch creation)
+
+Multi-layered resolution with a `StartPoint` enum:
+
+`findDefaultBranch` (`find-default-branch.ts:21-68`):
+```
+1. git symbolic-ref refs/remotes/<remote>/HEAD    (what remote considers default)
+2. git config init.defaultBranch                   (local git config)
+3. Hardcoded "main"
+```
+
+Then finds the best local representation in priority order:
+```
+1. Local branch that TRACKS the remote default  (e.g., local main tracking origin/main)
+2. Local branch with same NAME as remote default (e.g., local main)
+3. Remote-tracking branch itself                 (e.g., origin/main)
+```
+
+Branch creation (`create-branch.ts:1-49`):
+- `StartPoint.UpstreamDefaultBranch` → `upstream/main`, `--no-track`
+- `StartPoint.DefaultBranch` → `main` (local)
+- `StartPoint.CurrentBranch` / `Head` → current HEAD
+- Fallback chain: Upstream → Default → Current → Head
+
+Freshness: background fetcher every ~1 hour (min 5 min). After each fetch, `git remote set-head -a <remote>` to refresh the remote HEAD symref. No fetch at branch creation time.
+
+### Superset v1
+
+`workspace-init.ts:217-273` — `resolveLocalStartPoint`:
+```
+1. origin/<branch>        (git rev-parse --verify --quiet)
+2. <branch> locally
+3. Scan common branches: main, master, develop, trunk (both origin/ and local)
+```
+
+Fast: `rev-parse` is local I/O only (<5ms). No network calls.
+
+## Comparison
+
+| | VS Code | T3Code | GitHub Desktop | Superset v1 | **Superset v2** |
+|--|---------|--------|----------------|-------------|-----------------|
+| **Strategy** | Upstream tracking lookup | Config → symbolic-ref → candidates | Symbolic-ref → config → "main" + local/remote search | `origin/<branch>` prefix → local → scan | **Local-first** + symbolic-ref default + `origin/<branch>` fallback → HEAD |
+| **Prefers remote ref?** | Yes (via upstream) | Yes (when only remote exists) | Prefers local that tracks remote | Yes (`origin/` first) | **No — local-first** (avoids stale remote refs) |
+| **Handles non-origin remotes?** | Yes | Yes | Yes | No | No (origin hardcoded today) |
+| **Default branch detection** | N/A | `symbolic-ref refs/remotes/<remote>/HEAD` | symbolic-ref + `init.defaultBranch` + `"main"` | Hardcoded `"main"` | `symbolic-ref refs/remotes/origin/HEAD` → `"main"` |
+| **Fetches before creation?** | No | No (15s cache for status) | No (background hourly) | No | **Yes — targeted single-ref fetch** when remote-tracking |
+| **`--no-track`?** | Yes always | No | Only for upstream default | No (`^{commit}` instead) | Yes always |
+| **Complexity** | Low | High (Effect services, caches) | Medium (enum + multi-layer) | Low | Low |
+
+## What we picked and why
+
+**Local-first with `symbolic-ref` default detection + targeted single-ref fetch on remote-tracking.**
+
+- **Over VS Code's upstream-tracking lookup**: silently no-ops when tracking isn't configured (freshly cloned repos, branches set up with `--no-track`). Direct probe is more reliable.
+- **Over T3Code's `gh-merge-base` config + GitHub CLI calls**: too heavy for a request-driven hot path; T3Code can amortize via long-lived services, host-service can't.
+- **Over GitHub Desktop's pre-resolved state + background fetcher**: great for a long-running GUI app; host-service is request-driven and shouldn't carry that infrastructure.
+- **Over v1's common-branch scan**: unnecessary when `symbolic-ref` is authoritative for the actual default branch name. Scanning `master`/`develop`/`trunk` is a guess.
+- **Over remote-first** (which earlier versions of this PR used): a stale cached `refs/remotes/origin/<branch>` (one-off push, missed prune) silently won and produced `git worktree add` failures like `fatal: invalid reference: origin/<branch>`. Local-first matches user intent — the user picks branches from a list they see locally.
+
+## Future: periodic background fetch
+
+Host-service is long-running, so a T3Code/GitHub Desktop-style background fetch would keep `origin/*` refs fresh without per-request cost:
+
+- **Periodic fetch**: `git fetch --quiet --no-tags origin` every N minutes per repo (T3Code uses 15s for status, GitHub Desktop uses ~1hr).
+- **Cache with TTL**: track last-fetch time per repo, only fetch if stale.
+
+The picker's `refresh: true` on modal-open already does a TTL-gated full fetch (30s) — covers the most common freshness need. Move to background-fetch infrastructure only if branch listings start showing visibly stale state in practice.
