@@ -169,6 +169,9 @@ export function createTerminalInWrapper(options: CreateTerminalOptions = {}): {
 			}
 		},
 		onFileLinkClick: (event, link) => {
+			if (!event.metaKey && !event.ctrlKey) {
+				return;
+			}
 			if (onFileLinkClick) {
 				onFileLinkClick(event, link);
 				return;

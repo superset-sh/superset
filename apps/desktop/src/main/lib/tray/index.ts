@@ -16,8 +16,6 @@ import {
 } from "main/lib/host-service-coordinator";
 import { menuEmitter } from "main/lib/menu-events";
 
-const POLL_INTERVAL_MS = 5000;
-
 /** Must have "Template" suffix for macOS dark/light mode support */
 const TRAY_ICON_FILENAME = "iconTemplate.png";
 
@@ -51,7 +49,6 @@ function getTrayIconPath(): string | null {
 }
 
 let tray: Tray | null = null;
-let pollIntervalId: ReturnType<typeof setInterval> | null = null;
 
 function createTrayIcon(): Electron.NativeImage | null {
 	const iconPath = getTrayIconPath();
@@ -86,117 +83,127 @@ function openSettings(): void {
 	menuEmitter.emit("open-settings");
 }
 
-// Background cache of host.info data per org
-const hostInfoCache = new Map<
-	string,
-	{ organizationName: string; version: string; uptime: number }
->();
+interface HostInfo {
+	organizationName: string;
+	version: string;
+}
 
-function refreshHostInfo(): void {
-	const coordinator = getHostServiceCoordinator();
-	for (const orgId of coordinator.getActiveOrganizationIds()) {
-		const connection = coordinator.getConnection(orgId);
-		if (!connection) continue;
+async function fetchHostInfo(organizationId: string): Promise<HostInfo | null> {
+	const connection = getHostServiceCoordinator().getConnection(organizationId);
+	if (!connection) return null;
 
-		void fetch(`http://127.0.0.1:${connection.port}/trpc/host.info`, {
-			headers: { Authorization: `Bearer ${connection.secret}` },
-		})
-			.then((res) => (res.ok ? res.json() : null))
-			.then((data) => {
-				if (!data?.result?.data) return;
-				const info = data.result.data;
-				hostInfoCache.set(orgId, {
-					organizationName: info.organization?.name ?? orgId.slice(0, 8),
-					version: info.version ?? "",
-					uptime: info.uptime ?? 0,
-				});
-			})
-			.catch(() => {});
+	const controller = new AbortController();
+	const timeout = setTimeout(() => controller.abort(), 2000);
+	try {
+		const res = await fetch(
+			`http://127.0.0.1:${connection.port}/trpc/host.info`,
+			{
+				headers: { Authorization: `Bearer ${connection.secret}` },
+				signal: controller.signal,
+			},
+		);
+		if (!res.ok) return null;
+		const data = await res.json();
+		const info = data?.result?.data?.json;
+		if (!info?.organization?.name) return null;
+		return {
+			organizationName: info.organization.name,
+			version: info.version ?? "",
+		};
+	} catch {
+		return null;
+	} finally {
+		clearTimeout(timeout);
 	}
 }
 
-function buildHostServiceSubmenu(): MenuItemConstructorOptions[] {
+function buildHostServiceSubmenu(
+	orgIds: string[],
+	infos: Map<string, HostInfo>,
+): MenuItemConstructorOptions[] {
 	const coordinator = getHostServiceCoordinator();
-	const orgIds = coordinator.getActiveOrganizationIds();
 	const menuItems: MenuItemConstructorOptions[] = [];
 
 	if (orgIds.length === 0) {
 		menuItems.push({ label: "No active services", enabled: false });
-	} else {
-		let isFirst = true;
-		for (const orgId of orgIds) {
-			if (!isFirst) {
-				menuItems.push({ type: "separator" });
-			}
-			isFirst = false;
+		return menuItems;
+	}
 
-			const status = coordinator.getProcessStatus(orgId);
-			const cached = hostInfoCache.get(orgId);
-			const isRunning = status === "running";
-			const label = cached?.organizationName ?? orgId.slice(0, 8);
-			const versionSuffix = cached?.version ? ` (v${cached.version})` : "";
-
-			menuItems.push({
-				label,
-				enabled: false,
-			});
-
-			menuItems.push({
-				label: `  ${status}${versionSuffix}`,
-				enabled: false,
-			});
-
-			menuItems.push({
-				label: "  Restart",
-				enabled: isRunning,
-				click: () => {
-					void (async () => {
-						try {
-							const { token } = await loadToken();
-							if (!token) return;
-							await coordinator.restart(orgId, {
-								authToken: token,
-								cloudApiUrl: env.NEXT_PUBLIC_API_URL,
-							});
-						} catch (error) {
-							console.error(
-								`[Tray] Failed to restart host-service for ${orgId}:`,
-								error,
-							);
-						}
-						updateTrayMenu();
-					})();
-				},
-			});
-
-			menuItems.push({
-				label: "  Stop",
-				enabled: isRunning,
-				click: () => {
-					coordinator.stop(orgId);
-					updateTrayMenu();
-				},
-			});
+	let isFirst = true;
+	for (const orgId of orgIds) {
+		if (!isFirst) {
+			menuItems.push({ type: "separator" });
 		}
+		isFirst = false;
+
+		const status = coordinator.getProcessStatus(orgId);
+		const info = infos.get(orgId);
+		const isRunning = status === "running";
+		const label = info?.organizationName ?? "Loading…";
+		const versionSuffix = info?.version ? ` (v${info.version})` : "";
+
+		menuItems.push({ label, enabled: false });
+		menuItems.push({
+			label: `  ${status}${versionSuffix}`,
+			enabled: false,
+		});
+		menuItems.push({
+			label: "  Restart",
+			enabled: isRunning,
+			click: () => {
+				void (async () => {
+					try {
+						const { token } = await loadToken();
+						if (!token) return;
+						await coordinator.restart(orgId, {
+							authToken: token,
+							cloudApiUrl: env.NEXT_PUBLIC_API_URL,
+						});
+					} catch (error) {
+						console.error(
+							`[Tray] Failed to restart host-service for ${orgId}:`,
+							error,
+						);
+					}
+					void updateTrayMenu();
+				})();
+			},
+		});
+		menuItems.push({
+			label: "  Stop",
+			enabled: isRunning,
+			click: () => {
+				coordinator.stop(orgId);
+				void updateTrayMenu();
+			},
+		});
 	}
 
 	return menuItems;
 }
 
-function updateTrayMenu(): void {
+async function updateTrayMenu(): Promise<void> {
 	if (!tray) return;
-
-	refreshHostInfo();
 
 	const coordinator = getHostServiceCoordinator();
 	const orgIds = coordinator.getActiveOrganizationIds();
+
+	const infoEntries = await Promise.all(
+		orgIds.map(async (orgId) => [orgId, await fetchHostInfo(orgId)] as const),
+	);
+	const infos = new Map<string, HostInfo>();
+	for (const [orgId, info] of infoEntries) {
+		if (info) infos.set(orgId, info);
+	}
+
+	if (!tray) return;
 
 	const hasActive = orgIds.length > 0;
 	const hostServiceLabel = hasActive
 		? `Host Service (${orgIds.length})`
 		: "Host Service";
 
-	const hostServiceSubmenu = buildHostServiceSubmenu();
+	const hostServiceSubmenu = buildHostServiceSubmenu(orgIds, infos);
 
 	const menu = Menu.buildFromTemplate([
 		{
@@ -251,19 +258,16 @@ export function initTray(): void {
 		tray = new Tray(icon);
 		tray.setToolTip("Superset");
 
-		updateTrayMenu();
+		void updateTrayMenu();
 
 		const manager = getHostServiceCoordinator();
 		manager.on("status-changed", (_event: HostServiceStatusEvent) => {
-			updateTrayMenu();
+			void updateTrayMenu();
 		});
 
-		// Periodic refresh as a fallback
-		pollIntervalId = setInterval(() => {
-			updateTrayMenu();
-		}, POLL_INTERVAL_MS);
-		// Don't keep Electron alive just for tray updates
-		pollIntervalId.unref();
+		tray.on("mouse-enter", () => {
+			void updateTrayMenu();
+		});
 
 		console.log("[Tray] Initialized successfully");
 	} catch (error) {
@@ -273,11 +277,6 @@ export function initTray(): void {
 
 /** Call on app quit */
 export function disposeTray(): void {
-	if (pollIntervalId) {
-		clearInterval(pollIntervalId);
-		pollIntervalId = null;
-	}
-
 	if (tray) {
 		tray.destroy();
 		tray = null;
