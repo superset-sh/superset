@@ -1,5 +1,5 @@
 import type { TeardownFailureCause } from "@superset/host-service";
-import { TEARDOWN_TIMEOUT_MS } from "@superset/host-service";
+import { TEARDOWN_TIMEOUT_MS } from "@superset/shared/constants";
 
 /** Human-readable one-liner for the dialog title when teardown fails. */
 export function formatTeardownReason(cause: TeardownFailureCause): string {

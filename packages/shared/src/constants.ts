@@ -45,6 +45,9 @@ export const TOKEN_CONFIG = {
 	REFRESH_THRESHOLD: 5 * 60,
 } as const;
 
+// Workspace teardown
+export const TEARDOWN_TIMEOUT_MS = 60_000;
+
 // PostHog
 export const POSTHOG_COOKIE_NAME = "superset";
 

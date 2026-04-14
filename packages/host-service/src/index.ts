@@ -19,7 +19,6 @@ export {
 	LocalModelProvider,
 } from "./providers/model-providers";
 export type { GitCredentialProvider, GitFactory } from "./runtime/git";
-export { TEARDOWN_TIMEOUT_MS } from "./runtime/teardown";
 export type { TeardownFailureCause } from "./trpc/error-types";
 export type { AppRouter } from "./trpc/router";
 export type { ApiClient, HostServiceContext } from "./types";

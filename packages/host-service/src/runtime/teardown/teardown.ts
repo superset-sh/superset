@@ -1,14 +1,16 @@
 import { randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
+import { TEARDOWN_TIMEOUT_MS } from "@superset/shared/constants";
 import type { HostDb } from "../../db";
 import {
 	createTerminalSessionInternal,
 	disposeSession,
 } from "../../terminal/terminal";
 
+export { TEARDOWN_TIMEOUT_MS };
+
 export const TEARDOWN_SCRIPT_REL_PATH = ".superset/teardown.sh";
-export const TEARDOWN_TIMEOUT_MS = 60_000;
 const OUTPUT_TAIL_BYTES = 4096;
 
 export type TeardownResult =
