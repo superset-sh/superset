@@ -39,6 +39,11 @@ interface CompareBaseBranchPickerProps {
 	onCheckoutBranch: (branchName: string) => void;
 	onOpenExisting: (branchName: string) => void;
 	onAdoptWorktree: (branchName: string) => void;
+	// Authoritative (cloud-synced) answer to "does a workspace row exist for
+	// this branch on this host?". Computed from the v2Workspaces collection
+	// so it stays in sync with soft-deletes. Trumps any server-side
+	// `hasWorkspace` snapshot, which can be stale after deletion.
+	hasWorkspaceForBranch: (branchName: string) => boolean;
 }
 
 export function CompareBaseBranchPicker({
@@ -58,6 +63,7 @@ export function CompareBaseBranchPicker({
 	onCheckoutBranch,
 	onOpenExisting,
 	onAdoptWorktree,
+	hasWorkspaceForBranch,
 }: CompareBaseBranchPickerProps) {
 	const [open, setOpen] = useState(false);
 	const sentinelRef = useRef<HTMLDivElement | null>(null);
@@ -189,20 +195,30 @@ export function CompareBaseBranchPicker({
 												</span>
 											)}
 											{branchFilter === "worktree" ? (
-												<button
-													type="button"
-													className="hidden group-hover:inline-flex group-focus-within:inline-flex items-center rounded-sm bg-primary/10 hover:bg-primary/20 px-2 py-0.5 text-[11px] text-primary font-medium"
-													onClick={(e) => {
-														e.stopPropagation();
-														if (branch.hasWorkspace) {
-															onOpenExisting(branch.name);
-														} else {
-															onAdoptWorktree(branch.name);
-														}
-													}}
-												>
-													{branch.hasWorkspace ? "Open" : "Create"}
-												</button>
+												(() => {
+													// Authoritative check against the cloud-synced
+													// collection — a `server hasWorkspace:true` row
+													// may be stale after a delete.
+													const hasWorkspace = hasWorkspaceForBranch(
+														branch.name,
+													);
+													return (
+														<button
+															type="button"
+															className="hidden group-hover:inline-flex group-focus-within:inline-flex items-center rounded-sm bg-primary/10 hover:bg-primary/20 px-2 py-0.5 text-[11px] text-primary font-medium"
+															onClick={(e) => {
+																e.stopPropagation();
+																if (hasWorkspace) {
+																	onOpenExisting(branch.name);
+																} else {
+																	onAdoptWorktree(branch.name);
+																}
+															}}
+														>
+															{hasWorkspace ? "Open" : "Create"}
+														</button>
+													);
+												})()
 											) : branch.isCheckedOut ? (
 												<Tooltip>
 													<TooltipTrigger asChild>

@@ -571,6 +571,7 @@ function PromptGroupInner({
 									onCheckoutBranch={handleCheckout}
 									onOpenExisting={handleOpenExisting}
 									onAdoptWorktree={handleAdoptWorktree}
+									hasWorkspaceForBranch={(name) => workspaceByBranch.has(name)}
 								/>
 							</motion.div>
 						)}
