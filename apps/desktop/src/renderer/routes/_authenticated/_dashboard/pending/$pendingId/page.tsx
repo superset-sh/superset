@@ -38,7 +38,7 @@ import { buildSetupPaneLayout } from "./buildSetupPaneLayout";
  * The page is the single point of dispatch for all three workspace-creation
  * intents (fork / checkout / adopt). The modal inserts a row tagged with
  * `intent` and navigates here; this page calls the right host-service mutation
- * on first mount and on retry. See `PENDING_FLOW.md`.
+ * on first mount and on retry. See `DashboardNewWorkspaceModal/DESIGN.md` §3.
  */
 export const Route = createFileRoute(
 	"/_authenticated/_dashboard/pending/$pendingId/",

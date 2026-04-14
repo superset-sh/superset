@@ -11,7 +11,7 @@ import { resolveNames } from "./resolveNames";
  * Returns a callback that submits a fork (new branch from base):
  * resolve names → store attachments → insert pending row → close modal →
  * navigate to pending page. The page owns the host-service mutation —
- * see PENDING_FLOW.md.
+ * see DashboardNewWorkspaceModal/DESIGN.md §3.
  */
 export function useSubmitWorkspace(projectId: string | null) {
 	const navigate = useNavigate();

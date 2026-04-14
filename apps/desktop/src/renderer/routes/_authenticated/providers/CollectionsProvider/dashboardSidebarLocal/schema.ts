@@ -110,7 +110,7 @@ export const pendingWorkspaceSchema = z.object({
 	id: z.string().uuid(),
 	projectId: z.string().uuid(),
 	hostTarget: pendingHostTargetSchema,
-	// Which mutation the pending page should run. See PENDING_FLOW.md.
+	// Which mutation the pending page should run. See DashboardNewWorkspaceModal/DESIGN.md §3.
 	// Defaults to "fork" for any rows that predate this field.
 	intent: z.enum(["fork", "checkout", "adopt"]).default("fork"),
 	name: z.string(),
