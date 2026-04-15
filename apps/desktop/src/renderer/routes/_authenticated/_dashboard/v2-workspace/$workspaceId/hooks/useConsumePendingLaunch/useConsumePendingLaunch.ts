@@ -1,4 +1,5 @@
 import type { WorkspaceStore } from "@superset/panes";
+import { toast } from "@superset/ui/sonner";
 import { workspaceTrpc } from "@superset/workspace-client";
 import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
@@ -129,6 +130,11 @@ async function consumeTerminalLaunch({
 			hasLaunch: !!launch,
 			hasWorkspaceId: !!pending.workspaceId,
 		});
+		// Defensive — shouldn't happen if the caller checked terminalLaunch
+		// already. Worth a toast so we see it in practice.
+		toast.error("Couldn't open agent pane", {
+			description: "Missing launch data — please retry from the workspace menu.",
+		});
 		return;
 	}
 
@@ -146,7 +152,9 @@ async function consumeTerminalLaunch({
 			initialCommand: launch.command,
 		});
 	} catch (err) {
+		const msg = err instanceof Error ? err.message : String(err);
 		console.warn("[v2-launch] consumeTerminalLaunch: ensureSession failed:", err);
+		toast.error("Couldn't start agent terminal", { description: msg });
 		return;
 	}
 

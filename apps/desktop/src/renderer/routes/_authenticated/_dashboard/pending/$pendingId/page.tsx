@@ -1,3 +1,4 @@
+import { toast } from "@superset/ui/sonner";
 import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useQuery } from "@tanstack/react-query";
@@ -79,8 +80,12 @@ function useFireIntent(pendingId: string, pending: PendingWorkspaceRow | null) {
 					if (pending.attachmentCount > 0) {
 						try {
 							loadedAttachments = await loadAttachments(pendingId);
-						} catch {
-							// proceed without
+						} catch (err) {
+							const msg = err instanceof Error ? err.message : String(err);
+							console.warn("[v2-launch] loadAttachments failed:", err);
+							toast.warning("Couldn't load saved attachments", {
+								description: `Workspace will be created without files. ${msg}`,
+							});
 						}
 					}
 					result = await createWorkspace(

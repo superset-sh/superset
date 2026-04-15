@@ -1,3 +1,4 @@
+import { toast } from "@superset/ui/sonner";
 import { env } from "renderer/env.renderer";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import type {
@@ -59,7 +60,9 @@ export async function dispatchForkLaunch({
 			agentConfigs,
 		});
 	} catch (err) {
+		const msg = err instanceof Error ? err.message : String(err);
 		console.warn("[v2-launch] buildForkAgentLaunch failed:", err);
+		toast.error("Couldn't prepare agent launch", { description: msg });
 		return;
 	}
 
@@ -78,7 +81,23 @@ export async function dispatchForkLaunch({
 	});
 
 	if (!build) {
-		console.warn("[v2-launch] dispatchForkLaunch: buildForkAgentLaunch returned null — no launch");
+		console.warn(
+			"[v2-launch] dispatchForkLaunch: buildForkAgentLaunch returned null — no launch",
+		);
+		// Only warn if the user gave input worth launching on (prompt text,
+		// linked context, or attachments). An empty workspace-create with no
+		// agent enabled is a valid case and shouldn't surface a toast.
+		const userGaveInput =
+			(pending.prompt?.trim().length ?? 0) > 0 ||
+			pending.linkedIssues.length > 0 ||
+			!!pending.linkedPR ||
+			(loadedAttachments?.length ?? 0) > 0;
+		if (userGaveInput) {
+			toast.warning("Workspace created but no agent launched", {
+				description:
+					"Enable an agent in Settings → Agents to auto-launch on new workspaces.",
+			});
+		}
 		return;
 	}
 
@@ -91,6 +110,9 @@ export async function dispatchForkLaunch({
 	const hostUrl = resolveHostUrl(pending.hostTarget, activeHostUrl);
 	if (!hostUrl) {
 		console.warn("[v2-launch] host-service URL not resolved; skip launch");
+		toast.error("Couldn't reach host service", {
+			description: "Agent didn't launch. Check your host connection.",
+		});
 		return;
 	}
 
@@ -103,7 +125,11 @@ export async function dispatchForkLaunch({
 			});
 		}
 	} catch (err) {
+		const msg = err instanceof Error ? err.message : String(err);
 		console.warn("[v2-launch] failed to write attachments:", err);
+		toast.warning("Attachments didn't save to the workspace", {
+			description: `Agent will launch without files. ${msg}`,
+		});
 		// keep going — terminal launch still useful even without files
 	}
 
@@ -143,7 +169,7 @@ async function writeAttachmentsToWorktree({
 		console.warn(
 			"[v2-launch] workspace has no worktreePath; skipping attachments",
 		);
-		return;
+		throw new Error("Workspace has no worktreePath");
 	}
 
 	const dir = joinPath(worktreePath, ".superset/attachments");
