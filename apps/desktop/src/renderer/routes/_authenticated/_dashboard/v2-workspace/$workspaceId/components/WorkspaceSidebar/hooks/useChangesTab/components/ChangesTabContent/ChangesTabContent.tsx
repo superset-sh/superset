@@ -16,6 +16,7 @@ interface ChangesTabContentProps {
 	commits: { data: RouterOutputs["git"]["listCommits"] | undefined };
 	branches: { data: RouterOutputs["git"]["listBranches"] | undefined };
 	filter: ChangesFilter;
+	baseBranch: string | null;
 	files: ChangesetFile[];
 	isLoading: boolean;
 	totalChanges: number;
@@ -35,6 +36,7 @@ export const ChangesTabContent = memo(function ChangesTabContent({
 	commits,
 	branches,
 	filter,
+	baseBranch,
 	files,
 	isLoading,
 	totalChanges,
@@ -69,6 +71,7 @@ export const ChangesTabContent = memo(function ChangesTabContent({
 			<ChangesHeader
 				currentBranch={status.data.currentBranch}
 				defaultBranchName={status.data.defaultBranch.name}
+				baseBranch={baseBranch}
 				commitCount={commits.data?.commits.length ?? 0}
 				totalFiles={totalChanges}
 				totalAdditions={totalAdditions}

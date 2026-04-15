@@ -101,6 +101,7 @@ export function useChangesTab({
 			commits={commits}
 			branches={branches}
 			filter={filter}
+			baseBranch={baseBranch}
 			files={files}
 			isLoading={isLoading}
 			totalChanges={totalChanges}

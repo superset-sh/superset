@@ -240,7 +240,11 @@ function PendingWorkspacePage() {
 			!navigatedRef.current
 		) {
 			navigatedRef.current = true;
-			ensureWorkspaceInSidebar(pending.workspaceId, pending.projectId);
+			ensureWorkspaceInSidebar(
+				pending.workspaceId,
+				pending.projectId,
+				pending.baseBranch,
+			);
 
 			if (pending.terminals.length > 0) {
 				const paneLayout = buildSetupPaneLayout(pending.terminals);
