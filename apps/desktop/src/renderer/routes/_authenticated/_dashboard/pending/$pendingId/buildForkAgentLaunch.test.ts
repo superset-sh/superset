@@ -8,9 +8,7 @@ import {
 const PROJECT_ID = "proj-1";
 
 function pendingBase(
-	overrides: Partial<
-		Parameters<typeof buildLaunchSourcesFromPending>[0]
-	> = {},
+	overrides: Partial<Parameters<typeof buildLaunchSourcesFromPending>[0]> = {},
 ): Parameters<typeof buildLaunchSourcesFromPending>[0] {
 	return {
 		projectId: PROJECT_ID,
@@ -23,9 +21,7 @@ function pendingBase(
 
 describe("buildLaunchSourcesFromPending", () => {
 	test("returns [] when everything is empty", () => {
-		expect(buildLaunchSourcesFromPending(pendingBase(), undefined)).toEqual(
-			[],
-		);
+		expect(buildLaunchSourcesFromPending(pendingBase(), undefined)).toEqual([]);
 	});
 
 	test("produces user-prompt source when prompt is non-empty", () => {

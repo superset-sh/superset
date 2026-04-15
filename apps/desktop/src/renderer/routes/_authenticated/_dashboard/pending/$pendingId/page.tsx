@@ -6,17 +6,17 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { GoGitBranch } from "react-icons/go";
 import { HiCheck, HiExclamationTriangle } from "react-icons/hi2";
 import { env } from "renderer/env.renderer";
+import { useEnqueueAgentLaunch } from "renderer/hooks/useEnqueueAgentLaunch";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { formatRelativeTime } from "renderer/lib/formatRelativeTime";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import {
 	clearAttachments,
 	loadAttachments,
 } from "renderer/lib/pending-attachment-store";
-import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useAdoptWorktree } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/hooks/useAdoptWorktree";
 import { useCheckoutDashboardWorkspace } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/hooks/useCheckoutDashboardWorkspace";
 import { useCreateDashboardWorkspace } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/hooks/useCreateDashboardWorkspace";
-import { useEnqueueAgentLaunch } from "renderer/hooks/useEnqueueAgentLaunch";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import type { PendingWorkspaceRow } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal/schema";
