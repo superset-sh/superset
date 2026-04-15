@@ -32,6 +32,7 @@ interface DashboardSidebarWorkspaceContextMenuProps {
 	hoverCardContent?: React.ReactNode;
 	projectId: string;
 	isInSection?: boolean;
+	isLocalWorkspace: boolean;
 	onHoverCardOpen?: () => void;
 	onCreateSection: () => void;
 	onMoveToSection: (sectionId: string | null) => void;
@@ -46,6 +47,7 @@ interface DashboardSidebarWorkspaceContextMenuProps {
 export function DashboardSidebarWorkspaceContextMenu({
 	projectId,
 	isInSection,
+	isLocalWorkspace,
 	onHoverCardOpen,
 	hoverCardContent,
 	onCreateSection,
@@ -81,15 +83,19 @@ export function DashboardSidebarWorkspaceContextMenu({
 				<LuPencil className="size-4 mr-2" />
 				Rename
 			</ContextMenuItem>
-			<ContextMenuSeparator />
-			<ContextMenuItem onSelect={onOpenInFinder}>
-				<LuFolderOpen className="size-4 mr-2" />
-				Open in Finder
-			</ContextMenuItem>
-			<ContextMenuItem onSelect={onCopyPath}>
-				<LuCopy className="size-4 mr-2" />
-				Copy Path
-			</ContextMenuItem>
+			{isLocalWorkspace && (
+				<>
+					<ContextMenuSeparator />
+					<ContextMenuItem onSelect={onOpenInFinder}>
+						<LuFolderOpen className="size-4 mr-2" />
+						Open in Finder
+					</ContextMenuItem>
+					<ContextMenuItem onSelect={onCopyPath}>
+						<LuCopy className="size-4 mr-2" />
+						Copy Path
+					</ContextMenuItem>
+				</>
+			)}
 			<ContextMenuSeparator />
 			<ContextMenuSub>
 				<ContextMenuSubTrigger>

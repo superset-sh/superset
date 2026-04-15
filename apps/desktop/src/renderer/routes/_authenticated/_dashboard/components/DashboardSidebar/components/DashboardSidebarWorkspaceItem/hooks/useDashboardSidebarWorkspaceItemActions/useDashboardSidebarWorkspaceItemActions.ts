@@ -11,20 +11,17 @@ import { navigateToV2Workspace } from "renderer/routes/_authenticated/_dashboard
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
-import type { DashboardSidebarWorkspaceHostType } from "../../../../types";
 
 interface UseDashboardSidebarWorkspaceItemActionsOptions {
 	workspaceId: string;
 	projectId: string;
 	workspaceName: string;
-	hostType: DashboardSidebarWorkspaceHostType;
 }
 
 export function useDashboardSidebarWorkspaceItemActions({
 	workspaceId,
 	projectId,
 	workspaceName,
-	hostType,
 }: UseDashboardSidebarWorkspaceItemActionsOptions) {
 	const navigate = useNavigate();
 	const matchRoute = useMatchRoute();
@@ -116,10 +113,6 @@ export function useDashboardSidebarWorkspaceItemActions({
 	};
 
 	const resolveWorktreePath = async (): Promise<string | null> => {
-		if (hostType !== "local-device") {
-			toast.error("Only available for local workspaces");
-			return null;
-		}
 		if (!activeHostUrl) {
 			toast.error("Host service is not available");
 			return null;

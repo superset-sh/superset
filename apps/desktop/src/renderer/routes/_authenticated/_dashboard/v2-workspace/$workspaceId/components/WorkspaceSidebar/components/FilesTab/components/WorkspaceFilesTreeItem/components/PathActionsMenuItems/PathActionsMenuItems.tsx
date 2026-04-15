@@ -28,13 +28,19 @@ export function PathActionsMenuItems({
 		}
 	};
 
+	const handleRevealInFinder = async () => {
+		try {
+			await electronTrpcClient.external.openInFinder.mutate(absolutePath);
+		} catch (error) {
+			toast.error(
+				`Failed to reveal in Finder: ${error instanceof Error ? error.message : "Unknown error"}`,
+			);
+		}
+	};
+
 	return (
 		<>
-			<ContextMenuItem
-				onSelect={() =>
-					electronTrpcClient.external.openInFinder.mutate(absolutePath)
-				}
-			>
+			<ContextMenuItem onSelect={handleRevealInFinder}>
 				Reveal in Finder
 			</ContextMenuItem>
 			<ContextMenuSeparator />
