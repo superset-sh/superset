@@ -1,7 +1,9 @@
 import type { AttachmentFile } from "../types";
 
 export const attachmentLogsTxt: AttachmentFile = {
-	data: new TextEncoder().encode("2026-04-14 ERROR auth.ts:42 token decrypt failed\n"),
+	data: new TextEncoder().encode(
+		"2026-04-14 ERROR auth.ts:42 token decrypt failed\n",
+	),
 	mediaType: "text/plain",
 	filename: "logs.txt",
 };

@@ -104,9 +104,7 @@ export interface InternalTaskContent {
  * Metadata (displayName/description/requiresQuery) is lifted from
  * Continue.dev's context provider interface for future UI rendering.
  */
-export interface ContextContributor<
-	S extends LaunchSource = LaunchSource,
-> {
+export interface ContextContributor<S extends LaunchSource = LaunchSource> {
 	kind: S["kind"];
 	displayName: string;
 	description: string;

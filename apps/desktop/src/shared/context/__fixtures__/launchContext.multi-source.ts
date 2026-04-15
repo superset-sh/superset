@@ -3,7 +3,10 @@ import {
 	attachmentLogsTxt,
 	attachmentScreenshotPng,
 } from "./attachment.logs-txt";
-import { githubIssueAuthMiddleware, githubIssueTokenRotation } from "./githubIssue.auth-middleware";
+import {
+	githubIssueAuthMiddleware,
+	githubIssueTokenRotation,
+} from "./githubIssue.auth-middleware";
 import { githubPrAuthRewrite } from "./githubPr.auth-rewrite";
 import { internalTaskRefactorAuth } from "./internalTask.refactor-auth";
 
@@ -37,8 +40,7 @@ export const launchContextMultiSource: LaunchContext = {
 			content: [
 				{
 					type: "text",
-					text:
-						"Split session-token storage from request handling so we can encrypt at rest.",
+					text: "Split session-token storage from request handling so we can encrypt at rest.",
 				},
 			],
 			meta: { taskSlug: internalTaskRefactorAuth.slug },
@@ -51,8 +53,7 @@ export const launchContextMultiSource: LaunchContext = {
 			content: [
 				{
 					type: "text",
-					text:
-						"Legal flagged this. Sessions written to disk without encryption.",
+					text: "Legal flagged this. Sessions written to disk without encryption.",
 				},
 			],
 			meta: {

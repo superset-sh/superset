@@ -297,9 +297,7 @@ describe("contextPromptTemplate resolution", () => {
 	});
 
 	test("superset-chat ships the Claude XML defaults", () => {
-		const chat = resolveAgentConfigs({}).find(
-			(p) => p.id === "superset-chat",
-		);
+		const chat = resolveAgentConfigs({}).find((p) => p.id === "superset-chat");
 		expect(chat?.contextPromptTemplateSystem).toBe(
 			DEFAULT_CLAUDE_CONTEXT_PROMPT_TEMPLATE_SYSTEM,
 		);

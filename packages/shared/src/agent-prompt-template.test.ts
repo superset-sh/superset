@@ -52,9 +52,9 @@ describe("renderPromptTemplate (generic)", () => {
 	});
 
 	test("tolerates whitespace inside braces", () => {
-		expect(renderPromptTemplate("{{ foo }} {{  bar  }}", { foo: "a", bar: "b" })).toBe(
-			"a b",
-		);
+		expect(
+			renderPromptTemplate("{{ foo }} {{  bar  }}", { foo: "a", bar: "b" }),
+		).toBe("a b");
 	});
 
 	test("leaves unknown placeholders intact", () => {
@@ -105,10 +105,12 @@ describe("validateContextPromptTemplate", () => {
 	});
 
 	test("flags unknown variables", () => {
-		expect(validateContextPromptTemplate("{{slackThread}} {{issues}}")).toEqual({
-			valid: false,
-			unknownVariables: ["slackThread"],
-		});
+		expect(validateContextPromptTemplate("{{slackThread}} {{issues}}")).toEqual(
+			{
+				valid: false,
+				unknownVariables: ["slackThread"],
+			},
+		);
 	});
 });
 
@@ -118,15 +120,15 @@ describe("default context templates", () => {
 			validateContextPromptTemplate(DEFAULT_CONTEXT_PROMPT_TEMPLATE_USER).valid,
 		).toBe(true);
 		expect(
-			validateContextPromptTemplate(DEFAULT_CONTEXT_PROMPT_TEMPLATE_SYSTEM).valid,
+			validateContextPromptTemplate(DEFAULT_CONTEXT_PROMPT_TEMPLATE_SYSTEM)
+				.valid,
 		).toBe(true);
 	});
 
 	test("claude defaults only reference known variables", () => {
 		expect(
-			validateContextPromptTemplate(
-				DEFAULT_CLAUDE_CONTEXT_PROMPT_TEMPLATE_USER,
-			).valid,
+			validateContextPromptTemplate(DEFAULT_CLAUDE_CONTEXT_PROMPT_TEMPLATE_USER)
+				.valid,
 		).toBe(true);
 		expect(
 			validateContextPromptTemplate(
@@ -136,14 +138,17 @@ describe("default context templates", () => {
 	});
 
 	test("rendering the markdown user template collapses empty sections cleanly", () => {
-		const rendered = renderPromptTemplate(DEFAULT_CONTEXT_PROMPT_TEMPLATE_USER, {
-			userPrompt: "refactor auth",
-			tasks: "",
-			issues: "",
-			prs: "",
-			attachments: "",
-			agentInstructions: "",
-		});
+		const rendered = renderPromptTemplate(
+			DEFAULT_CONTEXT_PROMPT_TEMPLATE_USER,
+			{
+				userPrompt: "refactor auth",
+				tasks: "",
+				issues: "",
+				prs: "",
+				attachments: "",
+				agentInstructions: "",
+			},
+		);
 		expect(rendered).toBe("refactor auth");
 	});
 

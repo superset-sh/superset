@@ -1,7 +1,4 @@
 import { describe, expect, test } from "bun:test";
-import { buildLaunchContext } from "./composer";
-import { defaultContributorRegistry } from "./contributors";
-import type { ResolveCtx } from "./types";
 import {
 	attachmentLogsTxt,
 	githubIssueAuthMiddleware,
@@ -9,6 +6,9 @@ import {
 	githubPrAuthRewrite,
 	internalTaskRefactorAuth,
 } from "./__fixtures__";
+import { buildLaunchContext } from "./composer";
+import { defaultContributorRegistry } from "./contributors";
+import type { ResolveCtx } from "./types";
 
 const resolveCtx: ResolveCtx = {
 	projectId: "project-1",
@@ -59,9 +59,9 @@ describe("composer + default registry (integration)", () => {
 			"agent-instructions",
 		]);
 		expect(ctx.taskSlug).toBe(internalTaskRefactorAuth.slug);
-		expect(ctx.sections.find((s) => s.kind === "agent-instructions")?.scope).toBe(
-			"system",
-		);
+		expect(
+			ctx.sections.find((s) => s.kind === "agent-instructions")?.scope,
+		).toBe("system");
 	});
 
 	test("missing issue is a non-fatal null (not a failure)", async () => {

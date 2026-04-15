@@ -66,7 +66,8 @@ export function createTerminalAgentDefinition(
 		promptCommand: input.promptCommand ?? input.command,
 		promptTransport: input.promptTransport ?? "argv",
 		contextPromptTemplateSystem:
-			input.contextPromptTemplateSystem ?? DEFAULT_CONTEXT_PROMPT_TEMPLATE_SYSTEM,
+			input.contextPromptTemplateSystem ??
+			DEFAULT_CONTEXT_PROMPT_TEMPLATE_SYSTEM,
 		contextPromptTemplateUser:
 			input.contextPromptTemplateUser ?? DEFAULT_CONTEXT_PROMPT_TEMPLATE_USER,
 	};

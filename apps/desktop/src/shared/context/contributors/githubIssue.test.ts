@@ -81,6 +81,8 @@ describe("githubIssueContributor", () => {
 			{ kind: "github-issue", url: ISSUE.url },
 			makeCtx(async () => ({ ...ISSUE, body: "" })),
 		);
-		expect(section?.content).toEqual([{ type: "text", text: `# ${ISSUE.title}` }]);
+		expect(section?.content).toEqual([
+			{ type: "text", text: `# ${ISSUE.title}` },
+		]);
 	});
 });
