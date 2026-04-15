@@ -1,3 +1,4 @@
+import { isTerminalAgentDefinition } from "@superset/shared/agent-catalog";
 import type {
 	PendingChatLaunch,
 	PendingTerminalLaunch,
@@ -13,7 +14,6 @@ import type {
 	LaunchSource,
 	ResolveCtx,
 } from "shared/context/types";
-import { isTerminalAgentDefinition } from "@superset/shared/agent-catalog";
 import {
 	buildPromptCommandFromAgentConfig,
 	getCommandFromAgentConfig,
@@ -195,13 +195,13 @@ function buildChatLaunch(
 
 function extractTextParts(parts: ContentPart[]): string[] {
 	return parts
-		.filter((p): p is Extract<ContentPart, { type: "text" }> => p.type === "text")
+		.filter(
+			(p): p is Extract<ContentPart, { type: "text" }> => p.type === "text",
+		)
 		.map((p) => p.text);
 }
 
-function toBase64DataUrl(
-	part: Exclude<ContentPart, { type: "text" }>,
-): string {
+function toBase64DataUrl(part: Exclude<ContentPart, { type: "text" }>): string {
 	const base64 = Buffer.from(part.data).toString("base64");
 	return `data:${part.mediaType};base64,${base64}`;
 }

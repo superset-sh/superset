@@ -179,7 +179,9 @@ describe("buildForkAgentLaunch", () => {
 
 	test("chat agent → chat launch with initialPrompt + files", async () => {
 		const chatOnlyConfigs = agentConfigs.map((c) =>
-			c.id === "superset-chat" ? { ...c, enabled: true } : { ...c, enabled: false },
+			c.id === "superset-chat"
+				? { ...c, enabled: true }
+				: { ...c, enabled: false },
 		);
 		const build = await buildForkAgentLaunch({
 			pending: pendingBase({ prompt: "help me refactor" }),

@@ -20,7 +20,7 @@ function makeContributor<K extends LaunchSource["kind"]>(
 		description: kind,
 		requiresQuery: false,
 		resolve: (source) => resolver(source),
-	};
+	} as ContextContributor<Extract<LaunchSource, { kind: K }>>;
 }
 
 function registry(
@@ -36,7 +36,7 @@ function registry(
 			kind: "user-prompt",
 			scope: "user",
 			label: "Prompt",
-			content: [{ type: "text", text: s.text }],
+			content: s.content,
 		})),
 		"github-issue": makeContributor("github-issue", async (s) => ({
 			id: `issue:${s.url}`,

@@ -108,8 +108,9 @@ async function writeAttachmentsToWorktree({
 }): Promise<void> {
 	const client = getHostServiceClientByUrl(hostUrl);
 	const workspace = await client.workspace.get.query({ id: workspaceId });
-	const worktreePath: string | undefined = (workspace as { worktreePath?: string })
-		.worktreePath;
+	const worktreePath: string | undefined = (
+		workspace as { worktreePath?: string }
+	).worktreePath;
 	if (!worktreePath) {
 		console.warn(
 			"[v2-launch] workspace has no worktreePath; skipping attachments",

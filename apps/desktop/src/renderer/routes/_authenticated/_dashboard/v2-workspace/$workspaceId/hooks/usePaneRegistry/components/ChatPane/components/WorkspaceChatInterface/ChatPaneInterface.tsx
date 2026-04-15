@@ -752,6 +752,7 @@ export function ChatPaneInterface({
 		setRuntimeErrorMessage,
 		onUserMessageSubmitted,
 		thinkingLevel,
+		onConsumeLaunchConfig,
 	]);
 
 	const handleStop = useCallback(

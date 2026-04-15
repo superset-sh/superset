@@ -30,6 +30,8 @@ function makePending(
 		linkedPR: null,
 		attachmentCount: 0,
 		runSetupScript: true,
+		terminalLaunch: null,
+		chatLaunch: null,
 		...overrides,
 	};
 }

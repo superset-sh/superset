@@ -29,10 +29,46 @@ export function useSubmitWorkspace(projectId: string | null) {
 
 		const pendingId = crypto.randomUUID();
 		const detachedFiles = attachments.takeFiles();
+		console.log("[v2-launch] submit: detachedFiles", {
+			count: detachedFiles.length,
+			entries: detachedFiles.map((f) => ({
+				id: f.id,
+				mediaType: f.mediaType,
+				filename: f.filename,
+				urlPrefix: f.url?.slice(0, 30),
+				urlKind: f.url?.startsWith("blob:")
+					? "blob"
+					: f.url?.startsWith("data:")
+						? "data"
+						: "other",
+			})),
+		});
 		if (detachedFiles.length > 0) {
+			// Probe each URL before handing to storeAttachments so we know if
+			// they're alive at submit-time (they should be — the provider
+			// cleanup-on-unmount effect hasn't fired yet).
+			for (const file of detachedFiles) {
+				try {
+					const probe = await fetch(file.url, { method: "GET" });
+					console.log("[v2-launch] submit: url probe", {
+						id: file.id,
+						ok: probe.ok,
+						status: probe.status,
+						size: probe.headers.get("content-length"),
+					});
+				} catch (err) {
+					console.warn("[v2-launch] submit: url probe FAILED", {
+						id: file.id,
+						url: file.url,
+						error: err instanceof Error ? err.message : String(err),
+					});
+				}
+			}
 			try {
 				await storeAttachments(pendingId, detachedFiles);
+				console.log("[v2-launch] submit: storeAttachments OK", { pendingId });
 			} catch (err) {
+				console.error("[v2-launch] submit: storeAttachments FAILED", err);
 				toast.error(
 					err instanceof Error ? err.message : "Failed to store attachments",
 				);
