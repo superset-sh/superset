@@ -3,13 +3,13 @@
 Status as of PR #3467 (branch `v2-modal-agent-launch`). See
 `plans/v2-workspace-context-composition.md` for the full design.
 
-## What shipped (phase 1)
+## What's implemented (phase 1)
 
-V2 "fork" workspaces now launch an agent with the user's prompt, linked
-issue/PR/task metadata, and attached files. Gaps 4 and 5 from
-`V2_WORKSPACE_MODAL_GAPS.md` are closed; Gaps 3 and 6 remain open.
+V2 "fork" workspaces now compose a full agent launch from prompt + linked
+issue/PR/task metadata + attachments. Closes Gaps 4 and 5 in
+`V2_WORKSPACE_MODAL_GAPS.md`; Gaps 3 and 6 remain open.
 
-### Pipeline
+### Pipeline (composition)
 
 ```
 draft (modal)
@@ -18,23 +18,113 @@ draft (modal)
       ├─ buildLaunchSourcesFromPending      → LaunchSource[]
       ├─ buildLaunchContext                 → LaunchContext
       ├─ buildLaunchSpec                    → AgentLaunchSpec
-      └─ buildAgentLaunchRequest            → AgentLaunchRequest (V1 shape)
-  → host-service.workspaceCreation.create   (workspace exists)
-  → useEnqueueAgentLaunch                   (pending setup stashed)
-  → V1 terminal-adapter / chat-adapter      (picks up on workspace mount)
-  → Agent runs in the worktree
+      └─ consumer picks chat vs terminal based on the selected agent's kind
 ```
 
-### Files
+## Dispatch architecture (pending-row-as-bus)
+
+Launch dispatch uses the **pending row as the transport** between the
+pending page (producer) and the V2 workspace page (consumer). **Zero V1
+primitives.** Same pattern V2 preset execution uses
+(`useV2PresetExecution`): live-query a record, open a pane in the V2
+`@superset/panes` store, call `workspaceTrpc.terminal.ensureSession` to
+attach PTY.
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  Pending page                                               │
+│                                                             │
+│  1. host.workspaceCreation.create → workspace exists        │
+│                                                             │
+│  2. buildForkAgentLaunch(pending, attachments, configs)     │
+│     uses the real workspaceId now that create resolved.     │
+│                                                             │
+│  3. Dispatch per agent kind:                                │
+│                                                             │
+│     kind == "terminal":                                     │
+│       • for each attachment: workspaceTrpc.filesystem       │
+│         .writeFile → <worktree>/.superset/attachments/…     │
+│       • pendingRow.terminalLaunch = { command, name }       │
+│                                                             │
+│     kind == "chat":                                         │
+│       • pendingRow.chatLaunch = {                           │
+│           initialPrompt, initialFiles, model, taskSlug,     │
+│         }                                                   │
+│                                                             │
+│  4. Navigate to /v2-workspace/<workspaceId>                 │
+└─────────────────────────────────────────────────────────────┘
+                           │
+                           ▼
+┌─────────────────────────────────────────────────────────────┐
+│  V2 workspace page mount: useConsumePendingLaunch()         │
+│                                                             │
+│  live-query pendingRow by workspaceId                       │
+│                                                             │
+│  if row.terminalLaunch:                                     │
+│    store.addTab({ panes: [{ kind:"terminal", … }] })        │
+│    TerminalPane mounts → ensureSession → write command      │
+│    update(row, { terminalLaunch: null })                    │
+│                                                             │
+│  if row.chatLaunch:                                         │
+│    store.addChatTab({ initialPrompt, initialFiles, model }) │
+│    ChatPane auto-sends on mount (existing V2 chat runtime)  │
+│    update(row, { chatLaunch: null })                        │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Why pending-row-as-bus
+
+- **Durable**: pending row lives in the `pendingWorkspaces` collection.
+  Intent survives renderer restarts; the user can close and reopen the
+  app and the dispatch still fires the next time the workspace is
+  visited.
+- **Already tied to the workspace**: `pendingRow.workspaceId` is the
+  natural key. No new zustand slice.
+- **Producer/consumer decoupled**: pending page never touches the V2
+  workspace store directly; workspace page never does the spec-build.
+  Each side owns its own concern.
+- **Consistent with V2 preset execution** — same "stash a record, live-
+  query from the workspace page, open a pane" pattern is how
+  `useV2PresetExecution` ships preset commands.
+- **Path to host-owned dispatch** (phase 5): pending page stops
+  populating `row.terminalLaunch`; instead passes the spec into
+  `host.workspaceCreation.create`. Host returns the already-running
+  terminal in `terminals[]`. Workspace page consumer stays — it now
+  reads the host-returned terminal via live query instead of the
+  pending row. Migration is local to the producer side; consumer never
+  changes. Chat stays client-driven (chat runtime is in the renderer).
+
+### Why not the V1 `WorkspaceInitEffects` bus
+
+V1's dispatcher (`WorkspaceInitEffects` → `launchAgentSession` →
+`terminal-adapter`) is hard-coded to V1's `useTabsStore` in the
+orchestrator's default tabs adapter. V2 workspaces render panes from a
+separate `@superset/panes` store, so launches dispatched through V1
+land in a store V2 never reads — the command runs but no pane appears.
+**V2 must own its launch dispatch.**
+
+### Files (composition, stable)
 
 - `shared/context/types.ts` — `LaunchSource`, `ContentPart`, `ContextSection`, `LaunchContext`, `AgentLaunchSpec`.
 - `shared/context/composer.ts` — `buildLaunchContext` (parallel resolve, dedup, failure-tolerant).
 - `shared/context/contributors/*` — one per source kind: `userPrompt`, `githubIssue`, `githubPr`, `internalTask`, `attachment`.
 - `shared/context/buildLaunchSpec.ts` — agent-aware template rendering, inline-multimodal preservation.
-- `shared/context/buildAgentLaunchRequest.ts` — V2 spec → V1 request bridge (base64 encoding, collision-safe filenames).
-- `renderer/hooks/useEnqueueAgentLaunch/*` — wrap V1's `useWorkspaceInitStore.addPendingTerminalSetup`.
-- `routes/.../pending/$pendingId/buildForkAgentLaunch.ts` — pure helper that runs the pipeline for the pending page.
-- `routes/.../pending/$pendingId/page.tsx` — wires the enqueue after `createWorkspace` resolves.
+- `routes/.../pending/$pendingId/buildForkAgentLaunch.ts` — pure helper that runs the composer + buildLaunchSpec from a `PendingWorkspaceRow`.
+
+### Files (dispatch, to be reworked per the "pending-row-as-bus" plan)
+
+The first wire-up attempt shipped through V1's `useWorkspaceInitStore` +
+`WorkspaceInitEffects`. That path is being ripped out because V1's
+orchestrator uses V1's `useTabsStore`, which V2 doesn't render from.
+
+- `shared/context/buildAgentLaunchRequest.ts` — **deprecated once dispatch migrates.** Still useful as a reference for the V1 shape if we ever need it; otherwise removable after the pending-row-as-bus rewrite.
+- `renderer/hooks/useEnqueueAgentLaunch/*` — **to be removed.** V1-bus primitive.
+- `routes/.../pending/$pendingId/page.tsx` (the `enqueueAgentLaunch` call) — **to be replaced** by the kind-split described under "Dispatch architecture" above.
+
+### Files (dispatch, to be added)
+
+- `pendingWorkspaceSchema` in `providers/.../schema.ts` — gain `terminalLaunch?` and `chatLaunch?` optional fields.
+- `routes/.../v2-workspace/$workspaceId/hooks/useConsumePendingLaunch/*` — mount-effect hook that live-queries the pending row, opens a pane via V2 `@superset/panes` store, writes the command via `workspaceTrpc`, clears the field.
 
 ### Agent templates
 
@@ -101,6 +191,17 @@ bun run scripts/demo-launch-spec.ts claude       # just claude
 
 ## Follow-ups (roughly in priority order)
 
+0. **Rewrite dispatch to pending-row-as-bus** (blocking phase-1 ship —
+   current V1-bus dispatch is broken for V2). See "Dispatch architecture"
+   above. Mirrors `useV2PresetExecution`. Estimated 3-4 hours:
+   - Schema: `terminalLaunch?` + `chatLaunch?` on `pendingWorkspaceSchema`.
+   - Producer: pending page populates one of those fields after `create`
+     resolves, writes attachments via `workspaceTrpc.filesystem`.
+   - Consumer: new `useConsumePendingLaunch(workspaceId, store)` mount
+     effect on the V2 workspace page. Opens pane in V2 store, writes
+     command via `workspaceTrpc.terminal`, clears the field.
+   - Rip out: `useEnqueueAgentLaunch` + its call. `buildAgentLaunchRequest`
+     stays for now as a reference but is no longer imported.
 1. **Host-service body endpoints** (`getIssueContent` /
    `getPullRequestContent` / `getInternalTaskContent`). Swap the
    resolver stubs in `buildForkAgentLaunch.ts` → contributors emit real
