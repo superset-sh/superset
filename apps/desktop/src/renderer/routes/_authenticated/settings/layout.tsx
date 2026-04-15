@@ -5,10 +5,12 @@ import {
 	useNavigate,
 } from "@tanstack/react-router";
 import { useEffect } from "react";
+import { useHotkeys } from "react-hotkeys-hook";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
 	type SettingsSection,
 	useSetSettingsSearchQuery,
+	useSettingsOriginRoute,
 	useSettingsSearchQuery,
 } from "renderer/stores/settings-state";
 import { SearchResultsBanner } from "./components/SearchResultsBanner";
@@ -88,6 +90,7 @@ function SettingsLayout() {
 	const isMac = platform === undefined || platform === "darwin";
 	const searchQuery = useSettingsSearchQuery();
 	const setSearchQuery = useSetSettingsSearchQuery();
+	const originRoute = useSettingsOriginRoute();
 	const location = useLocation();
 	const navigate = useNavigate();
 	const normalizedSearchQuery = searchQuery.trim();
@@ -116,6 +119,17 @@ function SettingsLayout() {
 			}
 		}
 	}, [isSearchActive, location.pathname, navigate, normalizedSearchQuery]);
+
+	useHotkeys(
+		"escape",
+		(event) => {
+			if (document.querySelector('[data-state="open"]')) return;
+			event.preventDefault();
+			navigate({ to: originRoute });
+		},
+		{ enableOnFormTags: false, enableOnContentEditable: false },
+		[navigate, originRoute],
+	);
 
 	return (
 		<div className="flex flex-col h-screen w-screen bg-tertiary">
