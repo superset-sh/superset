@@ -139,11 +139,15 @@ V2 ships `Uint8Array` natively:
   transformer (SuperJSON handles typed arrays).
 - **Disk write**: add `filesystem.writeFile({kind:"bytes", data: Uint8Array})`;
   terminal adapter's `writeAttachmentFiles` skips the base64 round-trip.
-- **Provider API boundary** (chat → Anthropic/AI SDK): encode base64
-  **once** right before the API call. Nowhere else in V2 code.
-- **Phase 6+**: migrate chat to Anthropic Files API — upload once,
-  reference by file ID across launches. Aligns with cacheable system
-  blocks.
+- **Chat provider boundary** (Anthropic/AI SDK HTTP): encode base64
+  **once** right before the API call. Nowhere else in V2.
+- **CLI / terminal agents**: never base64. Files land on disk via
+  `writeAttachmentFiles`; prompt text references `.superset/attachments/
+  <filename>`. CLIs read the filesystem — that's the right interface
+  for them.
+- **Phase 6 (chat only)**: Anthropic Files API — upload once, reference
+  by file ID across chat launches. Smaller payloads, server-side cache.
+  Does not apply to CLI agents.
 
 `writeAttachmentFiles` collision-safe naming (sanitize → `attachment_N`
 fallback → dedup `foo_1.png`) stays. Size/count limits stay.
@@ -213,7 +217,7 @@ Pure functions throughout. Red → green each step.
 3. Step 11. Closes Gap 6.
 4. Task popover migration (`RunInWorkspacePopover`, `OpenInWorkspace`) → `{kind: "internal-task", id}` sources.
 5. Remote-host launch over tRPC (host-service-side `executeAgentLaunch`).
-6. Anthropic Files API for chat attachments — upload once, reference by ID across launches.
+6. Anthropic Files API for **chat** attachments — upload once, reference by ID. CLI agents unaffected (stay on filesystem + path-ref pattern).
 7. Phase-2 vendor adoptions if needed: streaming partial context, agent-declared supported kinds, token budgeting.
 
 ## Risks
