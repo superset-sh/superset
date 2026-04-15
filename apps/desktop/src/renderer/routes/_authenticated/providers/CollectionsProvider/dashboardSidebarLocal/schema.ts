@@ -36,7 +36,6 @@ export const workspaceLocalStateSchema = z.object({
 		tabOrder: z.number().int().default(0),
 		sectionId: z.string().uuid().nullable().default(null),
 		changesFilter: changesFilterSchema.default({ kind: "all" }),
-		baseBranch: z.string().nullable().default(null),
 	}),
 	paneLayout: paneWorkspaceStateSchema,
 	rightSidebarOpen: z.boolean().default(false),

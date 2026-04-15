@@ -24,12 +24,17 @@ export function useChangesTab({
 	onSelectFile,
 }: UseChangesTabParams): SidebarTabDefinition {
 	const collections = useCollections();
+	const utils = workspaceTrpc.useUtils();
 	const localState = collections.v2WorkspaceLocalState.get(workspaceId);
 	const filter: ChangesFilter = localState?.sidebarState?.changesFilter ?? {
 		kind: "all",
 	};
-	const baseBranch: string | null =
-		localState?.sidebarState?.baseBranch ?? null;
+
+	const baseBranchQuery = workspaceTrpc.git.getBaseBranch.useQuery(
+		{ workspaceId },
+		{ staleTime: Number.POSITIVE_INFINITY },
+	);
+	const baseBranch = baseBranchQuery.data?.baseBranch ?? null;
 
 	const { viewedSet, setViewed } = useViewedFiles(workspaceId);
 
@@ -46,14 +51,20 @@ export function useChangesTab({
 		[collections, workspaceId],
 	);
 
+	const setBaseBranchMutation = workspaceTrpc.git.setBaseBranch.useMutation({
+		onSuccess: () => {
+			void utils.git.getBaseBranch.invalidate({ workspaceId });
+			void utils.git.getStatus.invalidate({ workspaceId });
+			void utils.git.listCommits.invalidate({ workspaceId });
+			void utils.git.getDiff.invalidate({ workspaceId });
+		},
+	});
+
 	const setBaseBranch = useCallback(
 		(branchName: string) => {
-			if (!collections.v2WorkspaceLocalState.get(workspaceId)) return;
-			collections.v2WorkspaceLocalState.update(workspaceId, (draft) => {
-				draft.sidebarState.baseBranch = branchName;
-			});
+			setBaseBranchMutation.mutate({ workspaceId, baseBranch: branchName });
 		},
-		[collections, workspaceId],
+		[setBaseBranchMutation, workspaceId],
 	);
 
 	const commits = workspaceTrpc.git.listCommits.useQuery(

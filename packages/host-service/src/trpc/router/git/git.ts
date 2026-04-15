@@ -231,6 +231,58 @@ export const gitRouter = router({
 			return { files };
 		}),
 
+	getBaseBranch: protectedProcedure
+		.input(z.object({ workspaceId: z.string() }))
+		.query(async ({ ctx, input }) => {
+			const worktreePath = resolveWorktreePath(ctx, input.workspaceId);
+			const git = await ctx.git(worktreePath);
+			const currentBranch = (
+				await git.revparse(["--abbrev-ref", "HEAD"]).catch(() => "")
+			).trim();
+			if (!currentBranch || currentBranch === "HEAD") {
+				return { baseBranch: null as string | null };
+			}
+			const configured = (
+				await git
+					.raw(["config", `branch.${currentBranch}.base`])
+					.catch(() => "")
+			).trim();
+			return { baseBranch: (configured || null) as string | null };
+		}),
+
+	setBaseBranch: protectedProcedure
+		.input(
+			z.object({
+				workspaceId: z.string(),
+				baseBranch: z.string().nullable(),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			const worktreePath = resolveWorktreePath(ctx, input.workspaceId);
+			const git = await ctx.git(worktreePath);
+			const currentBranch = (
+				await git.revparse(["--abbrev-ref", "HEAD"]).catch(() => "")
+			).trim();
+			if (!currentBranch || currentBranch === "HEAD") {
+				throw new TRPCError({
+					code: "PRECONDITION_FAILED",
+					message: "Cannot set base branch on detached HEAD",
+				});
+			}
+			if (input.baseBranch) {
+				await git.raw([
+					"config",
+					`branch.${currentBranch}.base`,
+					input.baseBranch,
+				]);
+			} else {
+				await git
+					.raw(["config", "--unset", `branch.${currentBranch}.base`])
+					.catch(() => {});
+			}
+			return { baseBranch: input.baseBranch };
+		}),
+
 	renameBranch: protectedProcedure
 		.input(
 			z.object({

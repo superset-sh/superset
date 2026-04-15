@@ -37,7 +37,6 @@ function ensureSidebarWorkspaceRecord(
 	>,
 	workspaceId: string,
 	projectId: string,
-	baseBranch: string | null = null,
 ): void {
 	if (collections.v2WorkspaceLocalState.get(workspaceId)) {
 		return;
@@ -63,7 +62,6 @@ function ensureSidebarWorkspaceRecord(
 			projectId,
 			tabOrder: getNextTabOrder(topLevelOrders),
 			sectionId: null,
-			baseBranch,
 		},
 		paneLayout: {
 			version: 1,
@@ -84,18 +82,9 @@ export function useDashboardSidebarState() {
 	);
 
 	const ensureWorkspaceInSidebar = useCallback(
-		(
-			workspaceId: string,
-			projectId: string,
-			baseBranch: string | null = null,
-		) => {
+		(workspaceId: string, projectId: string) => {
 			ensureSidebarProjectRecord(collections, projectId);
-			ensureSidebarWorkspaceRecord(
-				collections,
-				workspaceId,
-				projectId,
-				baseBranch,
-			);
+			ensureSidebarWorkspaceRecord(collections, workspaceId, projectId);
 		},
 		[collections],
 	);
