@@ -75,15 +75,14 @@ function sectionsOfKind(
 
 function textPartsOf(section: ContextSection): string[] {
 	return section.content
-		.filter((p): p is Extract<ContentPart, { type: "text" }> => p.type === "text")
+		.filter(
+			(p): p is Extract<ContentPart, { type: "text" }> => p.type === "text",
+		)
 		.map((p) => p.text);
 }
 
 function renderUserPromptText(sections: ContextSection[]): string {
-	return sections
-		.flatMap(textPartsOf)
-		.join("\n\n")
-		.trim();
+	return sections.flatMap(textPartsOf).join("\n\n").trim();
 }
 
 function renderKindBlock(sections: ContextSection[]): string {

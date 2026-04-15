@@ -221,7 +221,9 @@ describe("buildLaunchContext", () => {
 		const ctx = await buildLaunchContext(
 			{
 				projectId: "p",
-				sources: [{ kind: "user-prompt", content: [{ type: "text", text: "hi" }] }],
+				sources: [
+					{ kind: "user-prompt", content: [{ type: "text", text: "hi" }] },
+				],
 				agent: { id: "none" },
 			},
 			{ contributors: registry({}), resolveCtx },

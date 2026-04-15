@@ -1,11 +1,11 @@
 import { describe, expect, test } from "bun:test";
 import {
 	indexResolvedAgentConfigs,
-	resolveAgentConfigs,
 	type ResolvedAgentConfig,
+	resolveAgentConfigs,
 } from "shared/utils/agent-settings";
-import { buildLaunchSpec } from "./buildLaunchSpec";
 import { launchContextMultiSource } from "./__fixtures__";
+import { buildLaunchSpec } from "./buildLaunchSpec";
 import type { AttachmentFile, LaunchContext } from "./types";
 
 function getConfig(id: string): ResolvedAgentConfig {
@@ -35,10 +35,7 @@ const TXT_ATTACHMENT: AttachmentFile = {
 
 describe("buildLaunchSpec", () => {
 	test("returns null when agent.id is 'none'", () => {
-		const spec = buildLaunchSpec(
-			baseCtx({ agent: { id: "none" } }),
-			undefined,
-		);
+		const spec = buildLaunchSpec(baseCtx({ agent: { id: "none" } }), undefined);
 		expect(spec).toBeNull();
 	});
 

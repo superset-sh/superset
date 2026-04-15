@@ -35,9 +35,9 @@ describe("composer + default registry (integration)", () => {
 				projectId: "project-1",
 				sources: [
 					{
-					kind: "user-prompt",
-					content: [{ type: "text", text: "refactor the auth middleware" }],
-				},
+						kind: "user-prompt",
+						content: [{ type: "text", text: "refactor the auth middleware" }],
+					},
 					{ kind: "internal-task", id: internalTaskRefactorAuth.id },
 					{ kind: "github-issue", url: githubIssueAuthMiddleware.url },
 					{ kind: "github-issue", url: githubIssueTokenRotation.url },
