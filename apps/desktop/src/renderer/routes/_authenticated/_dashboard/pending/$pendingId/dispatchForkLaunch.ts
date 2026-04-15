@@ -162,10 +162,18 @@ async function writeAttachmentsToWorktree({
 			absolutePath: joinPath(dir, attachment.filename),
 			content: {
 				kind: "base64",
-				data: Buffer.from(attachment.data).toString("base64"),
+				data: bytesToBase64(attachment.data),
 			},
 		});
 	}
+}
+
+function bytesToBase64(bytes: Uint8Array): string {
+	let binary = "";
+	for (let i = 0; i < bytes.length; i++) {
+		binary += String.fromCharCode(bytes[i] ?? 0);
+	}
+	return btoa(binary);
 }
 
 function joinPath(a: string, b: string): string {

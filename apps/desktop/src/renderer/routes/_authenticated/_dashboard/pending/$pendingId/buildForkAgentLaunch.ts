@@ -202,8 +202,22 @@ function extractTextParts(parts: ContentPart[]): string[] {
 }
 
 function toBase64DataUrl(part: Exclude<ContentPart, { type: "text" }>): string {
-	const base64 = Buffer.from(part.data).toString("base64");
-	return `data:${part.mediaType};base64,${base64}`;
+	return `data:${part.mediaType};base64,${bytesToBase64(part.data)}`;
+}
+
+function bytesToBase64(bytes: Uint8Array): string {
+	let binary = "";
+	for (let i = 0; i < bytes.length; i++) {
+		binary += String.fromCharCode(bytes[i] ?? 0);
+	}
+	return btoa(binary);
+}
+
+function base64ToBytes(b64: string): Uint8Array {
+	const binary = atob(b64);
+	const bytes = new Uint8Array(binary.length);
+	for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+	return bytes;
 }
 
 // ---------------------------------------------------------------------------
@@ -321,7 +335,7 @@ function dataUrlAttachmentToBytes(loaded: LoadedAttachment): AttachmentFile {
 	const match = loaded.data.match(/^data:[^;]+;base64,(.+)$/);
 	const base64 = match?.[1] ?? "";
 	return {
-		data: Uint8Array.from(Buffer.from(base64, "base64")),
+		data: base64ToBytes(base64),
 		mediaType: loaded.mediaType,
 		filename: loaded.filename,
 	};
