@@ -26,8 +26,6 @@ interface ChangesTabContentProps {
 	onBaseBranchChange: (branchName: string) => void;
 	onRenameBranch: (newName: string) => void;
 	canRenameBranch: boolean;
-	viewedSet: Set<string>;
-	onSetViewed: (path: string, next: boolean) => void;
 }
 
 export const ChangesTabContent = memo(function ChangesTabContent({
@@ -45,8 +43,6 @@ export const ChangesTabContent = memo(function ChangesTabContent({
 	onBaseBranchChange,
 	onRenameBranch,
 	canRenameBranch,
-	viewedSet,
-	onSetViewed,
 }: ChangesTabContentProps) {
 	if (status.isLoading) {
 		return (
@@ -89,8 +85,6 @@ export const ChangesTabContent = memo(function ChangesTabContent({
 					files={files}
 					isLoading={isLoading}
 					onSelectFile={onSelectFile}
-					viewedSet={viewedSet}
-					onSetViewed={onSetViewed}
 				/>
 			</div>
 		</div>
