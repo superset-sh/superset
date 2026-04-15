@@ -9,6 +9,7 @@ import {
 	useProviderAttachments,
 } from "@superset/ui/ai-elements/prompt-input";
 import { Input } from "@superset/ui/input";
+import { isEnterSubmit } from "@superset/ui/lib/keyboard";
 import { cn } from "@superset/ui/utils";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowUpIcon } from "lucide-react";
@@ -135,10 +136,9 @@ export function PromptGroup({
 	useEffect(() => {
 		if (!isNewWorkspaceModalOpen) return;
 		const handler = (e: KeyboardEvent) => {
-			if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-				e.preventDefault();
-				void handleCreate();
-			}
+			if (!isEnterSubmit(e, { requireMod: true })) return;
+			e.preventDefault();
+			void handleCreate();
 		};
 		window.addEventListener("keydown", handler);
 		return () => window.removeEventListener("keydown", handler);
