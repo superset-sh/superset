@@ -29,10 +29,21 @@ export interface DiffPaneData {
 	collapsedFiles: string[];
 }
 
+export interface CommentPaneData {
+	commentId: string;
+	authorLogin: string;
+	avatarUrl?: string;
+	body: string;
+	url?: string;
+	path?: string;
+	line?: number;
+}
+
 export type PaneViewerData =
 	| FilePaneData
 	| TerminalPaneData
 	| ChatPaneData
 	| BrowserPaneData
 	| DevtoolsPaneData
-	| DiffPaneData;
+	| DiffPaneData
+	| CommentPaneData;

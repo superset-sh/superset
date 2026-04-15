@@ -15,8 +15,10 @@ import {
 	TerminalSquare,
 } from "lucide-react";
 import { useMemo } from "react";
+import { FaGithub } from "react-icons/fa";
 import {
 	LuArrowDownToLine,
+	LuArrowUpRight,
 	LuClipboard,
 	LuClipboardCopy,
 	LuEraser,
@@ -29,6 +31,7 @@ import { useSettings } from "renderer/stores/settings";
 import type {
 	BrowserPaneData,
 	ChatPaneData,
+	CommentPaneData,
 	DevtoolsPaneData,
 	FilePaneData,
 	PaneViewerData,
@@ -40,6 +43,7 @@ import {
 	browserRuntimeRegistry,
 } from "./components/BrowserPane";
 import { ChatPane } from "./components/ChatPane";
+import { CommentPane } from "./components/CommentPane";
 import { DiffPane } from "./components/DiffPane";
 import { FilePane } from "./components/FilePane";
 import { TerminalPane } from "./components/TerminalPane";
@@ -305,6 +309,44 @@ export function usePaneRegistry(
 				contextMenuActions: (_ctx, defaults) =>
 					defaults.map((d) =>
 						d.key === "close-pane" ? { ...d, label: "Close Chat" } : d,
+					),
+			},
+			comment: {
+				getIcon: (ctx: RendererContext<PaneViewerData>) => {
+					const data = ctx.pane.data as CommentPaneData;
+					if (!data.avatarUrl) {
+						return <MessageSquare className="size-4" />;
+					}
+					return (
+						<img src={data.avatarUrl} alt="" className="size-4 rounded-full" />
+					);
+				},
+				getTitle: (pane) => {
+					const data = pane.data as CommentPaneData;
+					return data.authorLogin;
+				},
+				renderPane: (ctx: RendererContext<PaneViewerData>) => (
+					<CommentPane context={ctx} />
+				),
+				renderHeaderExtras: (ctx: RendererContext<PaneViewerData>) => {
+					const data = ctx.pane.data as CommentPaneData;
+					if (!data.url) return null;
+					return (
+						<a
+							href={data.url}
+							target="_blank"
+							rel="noopener noreferrer"
+							className="flex items-center gap-0.5 text-muted-foreground hover:text-foreground"
+							aria-label="View on GitHub"
+						>
+							<FaGithub className="size-4" />
+							<LuArrowUpRight className="size-3" />
+						</a>
+					);
+				},
+				contextMenuActions: (_ctx, defaults) =>
+					defaults.map((d) =>
+						d.key === "close-pane" ? { ...d, label: "Close Comment" } : d,
 					),
 			},
 			devtools: {

@@ -29,6 +29,7 @@ import { useWorkspaceHotkeys } from "./hooks/useWorkspaceHotkeys";
 import type {
 	BrowserPaneData,
 	ChatPaneData,
+	CommentPaneData,
 	DiffPaneData,
 	FilePaneData,
 	PaneViewerData,
@@ -211,6 +212,33 @@ function WorkspaceContent({
 		});
 	}, [store]);
 
+	const openCommentPane = useCallback(
+		(comment: CommentPaneData) => {
+			const state = store.getState();
+			for (const tab of state.tabs) {
+				for (const pane of Object.values(tab.panes)) {
+					if (pane.kind !== "comment") continue;
+					state.setPaneData({
+						paneId: pane.id,
+						data: comment as PaneViewerData,
+					});
+					state.setActiveTab(tab.id);
+					state.setActivePane({ tabId: tab.id, paneId: pane.id });
+					return;
+				}
+			}
+			state.addTab({
+				panes: [
+					{
+						kind: "comment",
+						data: comment as PaneViewerData,
+					},
+				],
+			});
+		},
+		[store],
+	);
+
 	const [quickOpenOpen, setQuickOpenOpen] = useState(false);
 	const handleQuickOpen = useCallback(() => setQuickOpenOpen(true), []);
 
@@ -339,6 +367,7 @@ function WorkspaceContent({
 								workspaceName={workspaceName}
 								onSelectFile={openFilePane}
 								onSelectDiffFile={openDiffPane}
+								onOpenComment={openCommentPane}
 								onSearch={handleQuickOpen}
 								selectedFilePath={selectedFilePath}
 							/>

@@ -30,7 +30,7 @@ export function SidebarHeader({
 						)}
 					>
 						{tab.label}
-						{tab.badge != null && tab.badge > 0 && (
+						{tab.badge != null && (
 							<span className="text-xs tabular-nums">{tab.badge}</span>
 						)}
 					</button>

@@ -3,14 +3,17 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { Search } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useGitStatus } from "renderer/hooks/host-service/useGitStatus";
+import type { CommentPaneData } from "../../types";
 import { FilesTab } from "./components/FilesTab";
 import { SidebarHeader } from "./components/SidebarHeader";
 import { useChangesTab } from "./hooks/useChangesTab";
+import { useReviewTab } from "./hooks/useReviewTab";
 import type { SidebarTabDefinition } from "./types";
 
 interface WorkspaceSidebarProps {
 	onSelectFile: (absolutePath: string, openInNewTab?: boolean) => void;
 	onSelectDiffFile?: (path: string) => void;
+	onOpenComment?: (comment: CommentPaneData) => void;
 	onSearch?: () => void;
 	selectedFilePath?: string;
 	workspaceId: string;
@@ -46,6 +49,7 @@ function IconButton({
 export function WorkspaceSidebar({
 	onSelectFile,
 	onSelectDiffFile,
+	onOpenComment,
 	onSearch,
 	selectedFilePath,
 	workspaceId,
@@ -60,6 +64,8 @@ export function WorkspaceSidebar({
 		gitStatus,
 		onSelectFile: onSelectDiffFile,
 	});
+
+	const reviewTab = useReviewTab({ workspaceId, onOpenComment });
 
 	const filesTab: SidebarTabDefinition = useMemo(
 		() => ({
@@ -86,20 +92,7 @@ export function WorkspaceSidebar({
 		],
 	);
 
-	const checksTab: SidebarTabDefinition = useMemo(
-		() => ({
-			id: "checks",
-			label: "Checks",
-			content: (
-				<div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-					Coming soon
-				</div>
-			),
-		}),
-		[],
-	);
-
-	const tabs = [filesTab, changesTab, checksTab];
+	const tabs = [filesTab, changesTab, reviewTab];
 	const activeTabDef = tabs.find((t) => t.id === activeTab);
 
 	return (

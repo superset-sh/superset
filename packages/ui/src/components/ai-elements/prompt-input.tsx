@@ -34,6 +34,7 @@ import {
 	useRef,
 	useState,
 } from "react";
+import { isEnterSubmit } from "../../lib/keyboard";
 import { cn } from "../../lib/utils";
 import { Button } from "../ui/button";
 import {
@@ -973,12 +974,8 @@ export const PromptInputTextarea = ({
 		}
 
 		if (e.key === "Enter") {
-			if (isComposing || e.nativeEvent.isComposing) {
-				return;
-			}
-			if (e.shiftKey) {
-				return;
-			}
+			if (isComposing) return;
+			if (!isEnterSubmit(e)) return;
 			e.preventDefault();
 
 			// Check if the submit button is disabled before submitting
