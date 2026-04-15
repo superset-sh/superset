@@ -1,5 +1,36 @@
 import type { TaskInput } from "./agent-command";
 
+// ---------------------------------------------------------------------------
+// Generic template rendering
+// ---------------------------------------------------------------------------
+
+/**
+ * Render a Mustache-lite template with `{{var}}` placeholders.
+ *
+ * - Unknown variables are left intact (task templates rely on this so
+ *   typos surface at validate-time instead of silently dropping).
+ * - Empty-string values substitute in (so `{{tasks}}` with no tasks
+ *   collapses cleanly instead of leaving the placeholder visible).
+ * - Runs of 3+ newlines collapse to 2, and the result is trimmed, so
+ *   templates with empty variables don't produce huge gaps.
+ */
+export function renderPromptTemplate(
+	template: string,
+	variables: Record<string, string>,
+): string {
+	return template
+		.replace(/\{\{\s*([^}]+?)\s*\}\}/g, (match, rawKey: string) => {
+			const key = rawKey.trim();
+			return variables[key] ?? match;
+		})
+		.replace(/\n{3,}/g, "\n\n")
+		.trim();
+}
+
+// ---------------------------------------------------------------------------
+// Task prompt variables (unchanged from v1 — used by the task-run flow)
+// ---------------------------------------------------------------------------
+
 export const AGENT_TASK_PROMPT_VARIABLES = [
 	"id",
 	"slug",
@@ -45,18 +76,15 @@ function getTaskPromptVariables(task: TaskInput): TaskPromptVariables {
 	};
 }
 
+/**
+ * Shim preserved so the existing task-run flow keeps working unchanged.
+ * New callers should prefer `renderPromptTemplate` directly.
+ */
 export function renderTaskPromptTemplate(
 	template: string,
 	task: TaskInput,
 ): string {
-	const variables = getTaskPromptVariables(task);
-
-	return template
-		.replace(/\{\{\s*([^}]+?)\s*\}\}/g, (match, rawKey: string) => {
-			const key = rawKey.trim() as AgentTaskPromptVariable;
-			return variables[key] ?? match;
-		})
-		.trim();
+	return renderPromptTemplate(template, getTaskPromptVariables(task));
 }
 
 export function getSupportedTaskPromptVariables(): AgentTaskPromptVariable[] {
@@ -67,14 +95,86 @@ export function validateTaskPromptTemplate(template: string): {
 	valid: boolean;
 	unknownVariables: string[];
 } {
+	return validateTemplate(template, AGENT_TASK_PROMPT_VARIABLES);
+}
+
+// ---------------------------------------------------------------------------
+// Context prompt variables (new — used by V2 launch composition)
+// ---------------------------------------------------------------------------
+
+export const AGENT_CONTEXT_PROMPT_VARIABLES = [
+	"userPrompt",
+	"tasks",
+	"issues",
+	"prs",
+	"attachments",
+	"agentInstructions",
+] as const;
+
+export type AgentContextPromptVariable =
+	(typeof AGENT_CONTEXT_PROMPT_VARIABLES)[number];
+
+export function getSupportedContextPromptVariables(): AgentContextPromptVariable[] {
+	return [...AGENT_CONTEXT_PROMPT_VARIABLES];
+}
+
+export function validateContextPromptTemplate(template: string): {
+	valid: boolean;
+	unknownVariables: string[];
+} {
+	return validateTemplate(template, AGENT_CONTEXT_PROMPT_VARIABLES);
+}
+
+/**
+ * Default context templates for non-Claude agents (codex, cursor, user
+ * custom). Markdown with the pre-rendered kind-blocks dropped in order.
+ */
+export const DEFAULT_CONTEXT_PROMPT_TEMPLATE_SYSTEM = `{{agentInstructions}}`;
+
+export const DEFAULT_CONTEXT_PROMPT_TEMPLATE_USER = `{{userPrompt}}
+
+{{tasks}}
+
+{{issues}}
+
+{{prs}}
+
+{{attachments}}`;
+
+/**
+ * Default context templates for Claude agents. The user-request is
+ * wrapped in XML to stabilize Claude's parsing. Per-kind blocks stay as
+ * pre-rendered markdown (users can tighten further in settings).
+ */
+export const DEFAULT_CLAUDE_CONTEXT_PROMPT_TEMPLATE_SYSTEM = `{{agentInstructions}}`;
+
+export const DEFAULT_CLAUDE_CONTEXT_PROMPT_TEMPLATE_USER = `<user-request>
+{{userPrompt}}
+</user-request>
+
+{{tasks}}
+
+{{issues}}
+
+{{prs}}
+
+{{attachments}}`;
+
+// ---------------------------------------------------------------------------
+// Shared validator
+// ---------------------------------------------------------------------------
+
+function validateTemplate(
+	template: string,
+	known: readonly string[],
+): { valid: boolean; unknownVariables: string[] } {
 	const unknownVariables = Array.from(
 		new Set(
 			Array.from(template.matchAll(/\{\{([^}]+)\}\}/g))
 				.map((match) => match[1]?.trim())
 				.filter(
 					(value): value is string =>
-						!!value &&
-						!(AGENT_TASK_PROMPT_VARIABLES as readonly string[]).includes(value),
+						!!value && !(known as readonly string[]).includes(value),
 				),
 		),
 	);
