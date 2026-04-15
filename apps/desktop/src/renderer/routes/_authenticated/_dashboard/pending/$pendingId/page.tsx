@@ -134,10 +134,14 @@ function PendingWorkspacePage() {
 	// pendingId actually dispatches — otherwise the second page sticks in
 	// "creating" forever.
 	const prevPendingIdRef = useRef(pendingId);
+	const [syncTimedOut, setSyncTimedOut] = useState(false);
 	if (prevPendingIdRef.current !== pendingId) {
 		prevPendingIdRef.current = pendingId;
 		firedRef.current = false;
 		navigatedRef.current = false;
+		// Reset render-state too so the new pending doesn't inherit the prior
+		// one's stall UI.
+		setSyncTimedOut(false);
 	}
 
 	const { data: pendingRows } = useLiveQuery(
@@ -221,19 +225,23 @@ function PendingWorkspacePage() {
 	// SYNC_TIMEOUT_MS, surface a recoverable error instead of silently
 	// navigating into a broken page.
 	const SYNC_TIMEOUT_MS = 10_000;
-	const [syncTimedOut, setSyncTimedOut] = useState(false);
+	// `syncTimedOut` is in the dep array so clicking "Keep waiting"
+	// (which flips it false) re-arms a fresh timer. Without this the user would
+	// land on the success branch with no action buttons and no escape if sync
+	// still doesn't arrive.
 	useEffect(() => {
 		if (
 			pending?.status !== "succeeded" ||
 			!pending.workspaceId ||
 			workspaceSynced ||
+			syncTimedOut ||
 			navigatedRef.current
 		) {
 			return;
 		}
 		const timer = setTimeout(() => setSyncTimedOut(true), SYNC_TIMEOUT_MS);
 		return () => clearTimeout(timer);
-	}, [pending?.status, pending?.workspaceId, workspaceSynced]);
+	}, [pending?.status, pending?.workspaceId, workspaceSynced, syncTimedOut]);
 
 	const doNavigate = useCallback(() => {
 		if (!pending?.workspaceId || navigatedRef.current) return;
