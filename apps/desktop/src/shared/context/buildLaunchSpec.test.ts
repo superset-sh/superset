@@ -223,7 +223,7 @@ describe("buildLaunchSpec", () => {
 		expect(spec?.attachments[1]?.type).toBe("image");
 	});
 
-	test("inline non-text parts from user-prompt go to attachments (phase 1)", () => {
+	test("inline non-text parts from user-prompt stay inline in spec.user", () => {
 		const spec = buildLaunchSpec(
 			baseCtx({
 				sections: [
@@ -242,14 +242,55 @@ describe("buildLaunchSpec", () => {
 			}),
 			getConfig("codex"),
 		);
-		const userText = (spec?.user[0] as { type: "text"; text: string }).text;
-		expect(userText).toContain("see this:");
-		expect(userText).toContain("and fix");
-		// Image from user prompt lands in attachments so chat agents can access
-		// it structurally; terminal executeAgentLaunch will write it to disk.
-		expect(spec?.attachments).toEqual([
-			{ type: "image", data: PNG_BYTES, mediaType: "image/png" },
-		]);
+
+		// Inline order preserved: text, image, text reach the agent in sequence
+		// so chat agents render the image between the two text chunks.
+		expect(spec?.user).toHaveLength(3);
+		expect(spec?.user[0]).toEqual({ type: "text", text: "see this:" });
+		expect(spec?.user[1]).toEqual({
+			type: "image",
+			data: PNG_BYTES,
+			mediaType: "image/png",
+		});
+		expect(spec?.user[2]?.type).toBe("text");
+		expect((spec?.user[2] as { type: "text"; text: string }).text).toContain(
+			"and fix",
+		);
+
+		// Explicit attachment-kind sections land in spec.attachments; inline
+		// user-prompt parts do not.
+		expect(spec?.attachments).toEqual([]);
+	});
+
+	test("inline non-text parts still appear in the {{attachments}} list for CLIs", () => {
+		const spec = buildLaunchSpec(
+			baseCtx({
+				sections: [
+					{
+						id: "user-prompt",
+						kind: "user-prompt",
+						scope: "user",
+						label: "Prompt",
+						content: [
+							{ type: "text", text: "check this log:" },
+							{
+								type: "file",
+								data: new Uint8Array([1, 2]),
+								mediaType: "text/plain",
+								filename: "trace.log",
+							},
+						],
+					},
+				],
+			}),
+			getConfig("codex"),
+		);
+		const lastText = (
+			spec?.user[spec.user.length - 1] as { type: "text"; text: string }
+		)?.text;
+		// Attachments list renders after the inline parts so a CLI agent
+		// reading just the flattened text still has the file path reference.
+		expect(lastText).toContain(".superset/attachments/trace.log");
 	});
 
 	test("empty userPrompt still renders system = [] and drops empty user template cleanly", () => {

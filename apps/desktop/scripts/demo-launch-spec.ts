@@ -84,6 +84,41 @@ const SCENARIOS: Scenario[] = [
 		],
 	},
 	{
+		name: "inline text + image + text (rich editor)",
+		sources: [
+			{
+				kind: "user-prompt",
+				content: [
+					{ type: "text", text: "look at this:" },
+					{
+						type: "image",
+						data: new Uint8Array([137, 80, 78, 71]),
+						mediaType: "image/png",
+					},
+					{ type: "text", text: "<- heres more text" },
+				],
+			},
+		],
+	},
+	{
+		name: "inline + issue (editor image between text with linked issue)",
+		sources: [
+			{
+				kind: "user-prompt",
+				content: [
+					{ type: "text", text: "look at this:" },
+					{
+						type: "image",
+						data: new Uint8Array([137, 80, 78, 71]),
+						mediaType: "image/png",
+					},
+					{ type: "text", text: "<- heres more text" },
+				],
+			},
+			{ kind: "github-issue", url: "https://github.com/acme/repo/issues/123" },
+		],
+	},
+	{
 		name: "prompt + task + issue + PR + attachment",
 		sources: [
 			{
@@ -188,7 +223,17 @@ for (const scenario of SCENARIOS) {
 		if (spec.user.length > 0) {
 			console.log("\n[USER]");
 			for (const part of spec.user) {
-				if (part.type === "text") console.log(indent(part.text));
+				if (part.type === "text") {
+					console.log(indent(part.text));
+				} else if (part.type === "image") {
+					console.log(indent(`<image: ${part.mediaType}, ${part.data.length} bytes>`));
+				} else if (part.type === "file") {
+					console.log(
+						indent(
+							`<file: ${part.filename ?? "(unnamed)"}, ${part.mediaType}, ${part.data.length} bytes>`,
+						),
+					);
+				}
 			}
 		}
 	}
