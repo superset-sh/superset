@@ -1,6 +1,12 @@
 import { describe, expect, test } from "bun:test";
 import { getBuiltinAgentDefinition } from "@superset/shared/agent-catalog";
 import {
+	DEFAULT_CLAUDE_CONTEXT_PROMPT_TEMPLATE_SYSTEM,
+	DEFAULT_CLAUDE_CONTEXT_PROMPT_TEMPLATE_USER,
+	DEFAULT_CONTEXT_PROMPT_TEMPLATE_SYSTEM,
+	DEFAULT_CONTEXT_PROMPT_TEMPLATE_USER,
+} from "@superset/shared/agent-prompt-template";
+import {
 	applyCustomAgentDefinitionPatch,
 	createOverrideEnvelopeWithPatch,
 	deleteCustomAgentDefinition,
@@ -266,5 +272,97 @@ describe("custom agent definition helpers", () => {
 				id: "custom:keep",
 			}),
 		]);
+	});
+});
+
+describe("contextPromptTemplate resolution", () => {
+	test("claude terminal ships the Claude XML defaults", () => {
+		const claude = resolveAgentConfigs({}).find((p) => p.id === "claude");
+		expect(claude?.contextPromptTemplateSystem).toBe(
+			DEFAULT_CLAUDE_CONTEXT_PROMPT_TEMPLATE_SYSTEM,
+		);
+		expect(claude?.contextPromptTemplateUser).toBe(
+			DEFAULT_CLAUDE_CONTEXT_PROMPT_TEMPLATE_USER,
+		);
+	});
+
+	test("codex terminal ships the markdown defaults", () => {
+		const codex = resolveAgentConfigs({}).find((p) => p.id === "codex");
+		expect(codex?.contextPromptTemplateSystem).toBe(
+			DEFAULT_CONTEXT_PROMPT_TEMPLATE_SYSTEM,
+		);
+		expect(codex?.contextPromptTemplateUser).toBe(
+			DEFAULT_CONTEXT_PROMPT_TEMPLATE_USER,
+		);
+	});
+
+	test("superset-chat ships the Claude XML defaults", () => {
+		const chat = resolveAgentConfigs({}).find(
+			(p) => p.id === "superset-chat",
+		);
+		expect(chat?.contextPromptTemplateSystem).toBe(
+			DEFAULT_CLAUDE_CONTEXT_PROMPT_TEMPLATE_SYSTEM,
+		);
+		expect(chat?.contextPromptTemplateUser).toBe(
+			DEFAULT_CLAUDE_CONTEXT_PROMPT_TEMPLATE_USER,
+		);
+	});
+
+	test("override replaces user template for terminal agents", () => {
+		const override = {
+			version: 1 as const,
+			presets: [
+				{
+					id: "claude",
+					contextPromptTemplateUser: "custom user template {{userPrompt}}",
+				},
+			],
+		};
+		const claude = resolveAgentConfigs({ overrideEnvelope: override }).find(
+			(p) => p.id === "claude",
+		);
+		expect(claude?.contextPromptTemplateUser).toBe(
+			"custom user template {{userPrompt}}",
+		);
+		expect(claude?.contextPromptTemplateSystem).toBe(
+			DEFAULT_CLAUDE_CONTEXT_PROMPT_TEMPLATE_SYSTEM,
+		);
+		expect(claude?.overriddenFields).toContain("contextPromptTemplateUser");
+	});
+
+	test("override works for chat agents too", () => {
+		const override = {
+			version: 1 as const,
+			presets: [
+				{
+					id: "superset-chat",
+					contextPromptTemplateSystem: "custom sys",
+				},
+			],
+		};
+		const chat = resolveAgentConfigs({ overrideEnvelope: override }).find(
+			(p) => p.id === "superset-chat",
+		);
+		expect(chat?.contextPromptTemplateSystem).toBe("custom sys");
+	});
+
+	test("custom terminal agents without templates fall back to markdown defaults", () => {
+		const custom = resolveAgentConfigs({
+			customDefinitions: [
+				{
+					id: "custom:x",
+					kind: "terminal",
+					label: "X",
+					command: "x",
+					taskPromptTemplate: "t",
+				},
+			],
+		}).find((p) => p.id === "custom:x");
+		expect(custom?.contextPromptTemplateSystem).toBe(
+			DEFAULT_CONTEXT_PROMPT_TEMPLATE_SYSTEM,
+		);
+		expect(custom?.contextPromptTemplateUser).toBe(
+			DEFAULT_CONTEXT_PROMPT_TEMPLATE_USER,
+		);
 	});
 });

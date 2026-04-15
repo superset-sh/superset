@@ -4,7 +4,11 @@ import {
 	type TerminalAgentDefinitionInput,
 } from "./agent-definition";
 import type { PromptTransport } from "./agent-prompt-launch";
-import { DEFAULT_TERMINAL_TASK_PROMPT_TEMPLATE } from "./agent-prompt-template";
+import {
+	DEFAULT_CLAUDE_CONTEXT_PROMPT_TEMPLATE_SYSTEM,
+	DEFAULT_CLAUDE_CONTEXT_PROMPT_TEMPLATE_USER,
+	DEFAULT_TERMINAL_TASK_PROMPT_TEMPLATE,
+} from "./agent-prompt-template";
 
 interface BuiltinTerminalAgentManifest
 	extends Omit<
@@ -64,6 +68,8 @@ export const BUILTIN_TERMINAL_AGENTS = [
 			"Anthropic's coding agent for reading code, editing files, and running terminal workflows.",
 		command: "claude --dangerously-skip-permissions",
 		includeInDefaultTerminalPresets: true,
+		contextPromptTemplateSystem: DEFAULT_CLAUDE_CONTEXT_PROMPT_TEMPLATE_SYSTEM,
+		contextPromptTemplateUser: DEFAULT_CLAUDE_CONTEXT_PROMPT_TEMPLATE_USER,
 	}),
 	createBuiltinTerminalAgent({
 		id: "amp",
