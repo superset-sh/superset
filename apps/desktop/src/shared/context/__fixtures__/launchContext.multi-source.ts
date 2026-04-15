@@ -38,11 +38,11 @@ export const launchContextMultiSource: LaunchContext = {
 			id: `task:${internalTaskRefactorAuth.id}`,
 			kind: "internal-task",
 			scope: "user",
-			label: "Task TASK-42 — Refactor auth middleware",
+			label: `Task ${internalTaskRefactorAuth.id} — ${internalTaskRefactorAuth.title}`,
 			content: [
 				{
 					type: "text",
-					text: "Split session-token storage from request handling so we can encrypt at rest.",
+					text: `# ${internalTaskRefactorAuth.title}\n\n${internalTaskRefactorAuth.description}`,
 				},
 			],
 			meta: { taskSlug: internalTaskRefactorAuth.slug },
@@ -51,11 +51,11 @@ export const launchContextMultiSource: LaunchContext = {
 			id: `issue:${githubIssueAuthMiddleware.number}`,
 			kind: "github-issue",
 			scope: "user",
-			label: "Issue #123 — Auth middleware stores tokens in plaintext",
+			label: `Issue #${githubIssueAuthMiddleware.number} — ${githubIssueAuthMiddleware.title}`,
 			content: [
 				{
 					type: "text",
-					text: "Legal flagged this. Sessions written to disk without encryption.",
+					text: `# ${githubIssueAuthMiddleware.title}\n\n${githubIssueAuthMiddleware.body}`,
 				},
 			],
 			meta: {
@@ -67,8 +67,13 @@ export const launchContextMultiSource: LaunchContext = {
 			id: `issue:${githubIssueTokenRotation.number}`,
 			kind: "github-issue",
 			scope: "user",
-			label: "Issue #124 — Rotate session tokens on password change",
-			content: [{ type: "text", text: "Follow-up for #123." }],
+			label: `Issue #${githubIssueTokenRotation.number} — ${githubIssueTokenRotation.title}`,
+			content: [
+				{
+					type: "text",
+					text: `# ${githubIssueTokenRotation.title}\n\n${githubIssueTokenRotation.body}`,
+				},
+			],
 			meta: {
 				url: githubIssueTokenRotation.url,
 				taskSlug: githubIssueTokenRotation.slug,
@@ -78,11 +83,11 @@ export const launchContextMultiSource: LaunchContext = {
 			id: `pr:${githubPrAuthRewrite.number}`,
 			kind: "github-pr",
 			scope: "user",
-			label: "PR #200 — Rewrite auth middleware",
+			label: `PR #${githubPrAuthRewrite.number} — ${githubPrAuthRewrite.title}`,
 			content: [
 				{
 					type: "text",
-					text: "Replaces plaintext token storage with encrypted KV.",
+					text: `# ${githubPrAuthRewrite.title}\n\nBranch: \`${githubPrAuthRewrite.branch}\`\n\n${githubPrAuthRewrite.body}`,
 				},
 			],
 			meta: { url: githubPrAuthRewrite.url },
