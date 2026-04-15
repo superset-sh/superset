@@ -77,12 +77,6 @@ export function WorkspaceInitEffects() {
 			let request: AgentLaunchRequest;
 			try {
 				const resolved = resolveSetupLaunchRequest(setup);
-				console.log("[v2-launch] launchAgentViaOrchestrator called", {
-					workspaceId: setup.workspaceId,
-					targetPaneId,
-					resolvedKind: resolved?.kind ?? null,
-					agentType: resolved?.agentType ?? null,
-				});
 				if (!resolved) return false;
 				request =
 					targetPaneId &&
@@ -150,24 +144,6 @@ export function WorkspaceInitEffects() {
 			);
 			const hasPresets = shouldApplyPreset && presets.length > 0;
 			const { agentCommand, agentLaunchRequest } = setup;
-			console.log("[v2-launch] handleTerminalSetup", {
-				workspaceId: setup.workspaceId,
-				hasSetupScript,
-				hasPresets,
-				presetCount: presets.length,
-				hasAgentLaunchRequest: !!agentLaunchRequest,
-				hasAgentCommand: !!agentCommand,
-				agentLaunchKind: agentLaunchRequest?.kind ?? null,
-				branch: hasSetupScript && hasPresets
-					? "setupScript+presets (agent writes to setup pane)"
-					: hasSetupScript
-						? "setupScript only (agent writes to setup pane)"
-						: hasPresets
-							? "presets only (agent new pane)"
-							: agentLaunchRequest || agentCommand
-								? "agent only (new pane)"
-								: "no-op",
-			});
 
 			if (hasSetupScript && hasPresets) {
 				const { tabId: setupTabId, paneId: setupPaneId } = addTab(

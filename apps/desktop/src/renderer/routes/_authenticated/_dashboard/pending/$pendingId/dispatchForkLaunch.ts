@@ -1,0 +1,145 @@
+import { env } from "renderer/env.renderer";
+import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
+import type {
+	PendingChatLaunch,
+	PendingTerminalLaunch,
+	PendingWorkspaceRow,
+} from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal/schema";
+import type { ResolvedAgentConfig } from "shared/utils/agent-settings";
+import {
+	buildForkAgentLaunch,
+	type LoadedAttachment,
+} from "./buildForkAgentLaunch";
+
+export interface DispatchForkLaunchInputs {
+	workspaceId: string;
+	pending: Pick<
+		PendingWorkspaceRow,
+		"projectId" | "prompt" | "linkedIssues" | "linkedPR" | "hostTarget"
+	>;
+	loadedAttachments: LoadedAttachment[] | undefined;
+	agentConfigs: ResolvedAgentConfig[];
+	activeHostUrl: string | null;
+	onApplyToRow: (patch: {
+		terminalLaunch?: PendingTerminalLaunch | null;
+		chatLaunch?: PendingChatLaunch | null;
+	}) => void;
+}
+
+/**
+ * After host-service.create resolves, run the composer pipeline and
+ * stash the launch intent on the pending row. The V2 workspace page's
+ * useConsumePendingLaunch mount effect picks it up.
+ *
+ * For terminal launches we also write attachment bytes to
+ * `<worktree>/.superset/attachments/` now — the worktree exists and
+ * workspaceTrpc.filesystem is available. Chat launches carry their
+ * binaries as base64 data URLs inline (existing ChatLaunchConfig shape).
+ */
+export async function dispatchForkLaunch({
+	workspaceId,
+	pending,
+	loadedAttachments,
+	agentConfigs,
+	activeHostUrl,
+	onApplyToRow,
+}: DispatchForkLaunchInputs): Promise<void> {
+	let build: Awaited<ReturnType<typeof buildForkAgentLaunch>>;
+	try {
+		build = await buildForkAgentLaunch({
+			pending,
+			attachments: loadedAttachments,
+			agentConfigs,
+		});
+	} catch (err) {
+		console.warn("[v2-launch] buildForkAgentLaunch failed:", err);
+		return;
+	}
+
+	if (!build) return;
+
+	if (build.kind === "chat") {
+		onApplyToRow({ chatLaunch: build.launch });
+		return;
+	}
+
+	const hostUrl = resolveHostUrl(pending.hostTarget, activeHostUrl);
+	if (!hostUrl) {
+		console.warn("[v2-launch] host-service URL not resolved; skip launch");
+		return;
+	}
+
+	try {
+		if (build.attachmentsToWrite.length > 0) {
+			await writeAttachmentsToWorktree({
+				hostUrl,
+				workspaceId,
+				attachments: build.attachmentsToWrite,
+			});
+		}
+	} catch (err) {
+		console.warn("[v2-launch] failed to write attachments:", err);
+		// keep going — terminal launch still useful even without files
+	}
+
+	onApplyToRow({ terminalLaunch: build.launch });
+}
+
+function resolveHostUrl(
+	hostTarget: PendingWorkspaceRow["hostTarget"],
+	activeHostUrl: string | null,
+): string | null {
+	if (hostTarget.kind === "local") return activeHostUrl;
+	return `${env.RELAY_URL}/hosts/${hostTarget.hostId}`;
+}
+
+async function writeAttachmentsToWorktree({
+	hostUrl,
+	workspaceId,
+	attachments,
+}: {
+	hostUrl: string;
+	workspaceId: string;
+	attachments: Array<{
+		filename: string;
+		mediaType: string;
+		data: Uint8Array;
+	}>;
+}): Promise<void> {
+	const client = getHostServiceClientByUrl(hostUrl);
+	const workspace = await client.workspace.get.query({ id: workspaceId });
+	const worktreePath: string | undefined = (workspace as { worktreePath?: string })
+		.worktreePath;
+	if (!worktreePath) {
+		console.warn(
+			"[v2-launch] workspace has no worktreePath; skipping attachments",
+		);
+		return;
+	}
+
+	const dir = joinPath(worktreePath, ".superset/attachments");
+	try {
+		await client.filesystem.createDirectory.mutate({
+			workspaceId,
+			absolutePath: dir,
+		});
+	} catch {
+		// directory may already exist; writeFile will fail loudly if it doesn't
+	}
+
+	for (const attachment of attachments) {
+		await client.filesystem.writeFile.mutate({
+			workspaceId,
+			absolutePath: joinPath(dir, attachment.filename),
+			content: {
+				kind: "base64",
+				data: Buffer.from(attachment.data).toString("base64"),
+			},
+		});
+	}
+}
+
+function joinPath(a: string, b: string): string {
+	if (a.endsWith("/")) return `${a}${b}`;
+	return `${a}/${b}`;
+}

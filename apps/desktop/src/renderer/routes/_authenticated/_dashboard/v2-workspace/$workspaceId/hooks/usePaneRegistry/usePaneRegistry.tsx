@@ -299,10 +299,18 @@ export function usePaneRegistry(
 							onSessionIdChange={(sessionId) =>
 								ctx.actions.updateData({
 									sessionId,
+									launchConfig: data.launchConfig ?? null,
 								} as PaneViewerData)
 							}
 							sessionId={data.sessionId}
 							workspaceId={workspaceId}
+							initialLaunchConfig={data.launchConfig ?? null}
+							onConsumeLaunchConfig={() =>
+								ctx.actions.updateData({
+									sessionId: data.sessionId,
+									launchConfig: null,
+								} as PaneViewerData)
+							}
 						/>
 					);
 				},

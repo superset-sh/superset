@@ -102,9 +102,40 @@ const pendingLinkedPRSchema = z.object({
 	state: z.string(),
 });
 
+/**
+ * Transient dispatch intents written by the pending page after
+ * host-service.create resolves. Consumed by the V2 workspace page's
+ * useConsumePendingLaunch mount effect, then cleared. See
+ * apps/desktop/docs/V2_LAUNCH_CONTEXT.md "Dispatch architecture".
+ */
+const pendingTerminalLaunchSchema = z.object({
+	command: z.string(),
+	name: z.string().optional(),
+	// Attachment filenames, already written to .superset/attachments/
+	// by the pending page via workspaceTrpc.filesystem.writeFile.
+	attachmentNames: z.array(z.string()).default([]),
+});
+
+const pendingChatLaunchSchema = z.object({
+	initialPrompt: z.string().optional(),
+	initialFiles: z
+		.array(
+			z.object({
+				data: z.string(),
+				mediaType: z.string(),
+				filename: z.string().optional(),
+			}),
+		)
+		.optional(),
+	model: z.string().optional(),
+	taskSlug: z.string().optional(),
+});
+
 export type PendingHostTarget = z.infer<typeof pendingHostTargetSchema>;
 export type PendingLinkedIssue = z.infer<typeof pendingLinkedIssueSchema>;
 export type PendingLinkedPR = z.infer<typeof pendingLinkedPRSchema>;
+export type PendingTerminalLaunch = z.infer<typeof pendingTerminalLaunchSchema>;
+export type PendingChatLaunch = z.infer<typeof pendingChatLaunchSchema>;
 
 export const pendingWorkspaceSchema = z.object({
 	// Shared
@@ -144,6 +175,11 @@ export const pendingWorkspaceSchema = z.object({
 
 	// fork + checkout (irrelevant for adopt — worktree already exists).
 	runSetupScript: z.boolean().default(true),
+
+	// Transient dispatch intents written after host-service.create resolves;
+	// consumed by the V2 workspace page on mount, then cleared to null.
+	terminalLaunch: pendingTerminalLaunchSchema.nullable().default(null),
+	chatLaunch: pendingChatLaunchSchema.nullable().default(null),
 });
 
 export type PendingWorkspaceRow = z.infer<typeof pendingWorkspaceSchema>;

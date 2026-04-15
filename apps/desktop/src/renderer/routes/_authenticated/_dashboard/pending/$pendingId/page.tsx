@@ -6,7 +6,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { GoGitBranch } from "react-icons/go";
 import { HiCheck, HiExclamationTriangle } from "react-icons/hi2";
 import { env } from "renderer/env.renderer";
-import { useEnqueueAgentLaunch } from "renderer/hooks/useEnqueueAgentLaunch";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { formatRelativeTime } from "renderer/lib/formatRelativeTime";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
@@ -21,7 +20,7 @@ import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/u
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import type { PendingWorkspaceRow } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal/schema";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
-import { buildForkAgentLaunch } from "./buildForkAgentLaunch";
+import { dispatchForkLaunch } from "./dispatchForkLaunch";
 import {
 	buildAdoptPayload,
 	buildCheckoutPayload,
@@ -54,8 +53,8 @@ function useFireIntent(pendingId: string, pending: PendingWorkspaceRow | null) {
 	const createWorkspace = useCreateDashboardWorkspace();
 	const checkoutWorkspace = useCheckoutDashboardWorkspace();
 	const adoptWorktree = useAdoptWorktree();
-	const enqueueAgentLaunch = useEnqueueAgentLaunch();
 	const agentPresetsQuery = electronTrpc.settings.getAgentPresets.useQuery();
+	const { activeHostUrl } = useLocalHostService();
 
 	return useCallback(async () => {
 		if (!pending) return;
@@ -101,66 +100,32 @@ function useFireIntent(pendingId: string, pending: PendingWorkspaceRow | null) {
 				}
 			}
 
-			// Enqueue the V2 agent launch for fork intent. The workspace's
-			// terminal-adapter / chat-adapter picks up this pending setup when
-			// the workspace mounts.
-			if (pending.intent === "fork") {
-				if (!result.workspace?.id) {
-					console.warn(
-						"[v2-launch] skip enqueue: createWorkspace returned no workspace.id",
-					);
-				} else if (!agentPresetsQuery.data) {
-					console.warn(
-						"[v2-launch] skip enqueue: agentPresetsQuery.data not loaded yet",
-						{ status: agentPresetsQuery.status },
-					);
-				} else {
-					try {
-						console.log("[v2-launch] building fork launch…", {
-							workspaceId: result.workspace.id,
-							projectId: pending.projectId,
-							promptLength: pending.prompt?.length ?? 0,
-							linkedIssueCount: pending.linkedIssues.length,
-							linkedPR: pending.linkedPR?.url ?? null,
-							attachmentCount: loadedAttachments?.length ?? 0,
-							agentPresetCount: agentPresetsQuery.data.length,
+			// V2 dispatch: after host-service.create resolves, build the launch
+			// plan and stash it on the pending row. The V2 workspace page's
+			// useConsumePendingLaunch mount-effect picks it up and opens the
+			// pane. See apps/desktop/docs/V2_LAUNCH_CONTEXT.md.
+			if (
+				pending.intent === "fork" &&
+				result.workspace?.id &&
+				agentPresetsQuery.data
+			) {
+				await dispatchForkLaunch({
+					workspaceId: result.workspace.id,
+					pending,
+					loadedAttachments,
+					agentConfigs: agentPresetsQuery.data,
+					activeHostUrl,
+					onApplyToRow: (patch) => {
+						collections.pendingWorkspaces.update(pendingId, (draft) => {
+							if (patch.terminalLaunch !== undefined) {
+								draft.terminalLaunch = patch.terminalLaunch;
+							}
+							if (patch.chatLaunch !== undefined) {
+								draft.chatLaunch = patch.chatLaunch;
+							}
 						});
-						const launchRequest = await buildForkAgentLaunch({
-							pending,
-							attachments: loadedAttachments,
-							agentConfigs: agentPresetsQuery.data,
-						});
-						console.log("[v2-launch] buildForkAgentLaunch returned:", {
-							kind: launchRequest?.kind ?? null,
-							agentType: launchRequest?.agentType ?? null,
-							command:
-								launchRequest?.kind === "terminal"
-									? launchRequest.terminal.command.slice(0, 200)
-									: undefined,
-							initialPrompt:
-								launchRequest?.kind === "chat"
-									? launchRequest.chat.initialPrompt?.slice(0, 200)
-									: undefined,
-							initialFiles:
-								launchRequest?.kind === "terminal"
-									? launchRequest.terminal.initialFiles?.length ?? 0
-									: launchRequest?.kind === "chat"
-										? launchRequest.chat.initialFiles?.length ?? 0
-										: 0,
-						});
-						enqueueAgentLaunch({
-							workspaceId: result.workspace.id,
-							projectId: pending.projectId,
-							launchRequest,
-						});
-						console.log("[v2-launch] enqueueAgentLaunch called", {
-							workspaceId: result.workspace.id,
-							didEnqueue: launchRequest !== null,
-						});
-					} catch (err) {
-						console.warn("[v2-launch] enqueue failed:", err);
-					}
-				}
+					},
+				});
 			}
 
 			collections.pendingWorkspaces.update(pendingId, (draft) => {
@@ -184,8 +149,8 @@ function useFireIntent(pendingId: string, pending: PendingWorkspaceRow | null) {
 		adoptWorktree,
 		pending,
 		pendingId,
-		enqueueAgentLaunch,
 		agentPresetsQuery.data,
+		activeHostUrl,
 	]);
 }
 

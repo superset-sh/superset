@@ -1,0 +1,165 @@
+import type { WorkspaceStore } from "@superset/panes";
+import { workspaceTrpc } from "@superset/workspace-client";
+import { eq } from "@tanstack/db";
+import { useLiveQuery } from "@tanstack/react-db";
+import { useCallback, useEffect, useRef } from "react";
+import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import type { PendingWorkspaceRow } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal/schema";
+import type { StoreApi } from "zustand/vanilla";
+import type {
+	ChatPaneData,
+	PaneViewerData,
+	TerminalPaneData,
+} from "../../types";
+
+interface UseConsumePendingLaunchArgs {
+	workspaceId: string;
+	store: StoreApi<WorkspaceStore<PaneViewerData>>;
+}
+
+/**
+ * Consumes a pending row's `terminalLaunch` / `chatLaunch` stashed by
+ * the pending page after host-service.create resolved. Opens the
+ * corresponding pane in the V2 `@superset/panes` store, clears the
+ * field so subsequent mounts don't re-dispatch.
+ *
+ * Pattern mirrors useV2PresetExecution: live-query a record, open a
+ * pane with the store, call workspaceTrpc for any PTY side effects.
+ * See apps/desktop/docs/V2_LAUNCH_CONTEXT.md "Dispatch architecture".
+ */
+export function useConsumePendingLaunch({
+	workspaceId,
+	store,
+}: UseConsumePendingLaunchArgs): void {
+	const collections = useCollections();
+	const ensureSession = workspaceTrpc.terminal.ensureSession.useMutation();
+	const ensureSessionRef = useRef(ensureSession);
+	ensureSessionRef.current = ensureSession;
+	const consumedRef = useRef<Set<string>>(new Set());
+
+	const { data: matches } = useLiveQuery(
+		(q) =>
+			q
+				.from({ pw: collections.pendingWorkspaces })
+				.where(({ pw }) => eq(pw.workspaceId, workspaceId))
+				.select(({ pw }) => ({ ...pw })),
+		[collections, workspaceId],
+	);
+
+	const pending = matches?.[0] ?? null;
+
+	const updateRow = useCallback(
+		(patch: Partial<PendingWorkspaceRow>) => {
+			if (!pending) return;
+			collections.pendingWorkspaces.update(pending.id, (draft) => {
+				Object.assign(draft, patch);
+			});
+		},
+		[collections, pending],
+	);
+
+	useEffect(() => {
+		if (!pending) return;
+
+		const terminalKey = pending.terminalLaunch
+			? `${pending.id}:terminal`
+			: null;
+		const chatKey = pending.chatLaunch ? `${pending.id}:chat` : null;
+
+		if (terminalKey && !consumedRef.current.has(terminalKey)) {
+			consumedRef.current.add(terminalKey);
+			void consumeTerminalLaunch({
+				pending,
+				store,
+				ensureSession: ensureSessionRef.current.mutateAsync,
+				clear: () => updateRow({ terminalLaunch: null }),
+			});
+		}
+
+		if (chatKey && !consumedRef.current.has(chatKey)) {
+			consumedRef.current.add(chatKey);
+			consumeChatLaunch({
+				pending,
+				store,
+				clear: () => updateRow({ chatLaunch: null }),
+			});
+		}
+	}, [pending, store, updateRow]);
+}
+
+async function consumeTerminalLaunch({
+	pending,
+	store,
+	ensureSession,
+	clear,
+}: {
+	pending: PendingWorkspaceRow;
+	store: StoreApi<WorkspaceStore<PaneViewerData>>;
+	ensureSession: (input: {
+		terminalId: string;
+		workspaceId: string;
+		initialCommand?: string;
+	}) => Promise<unknown>;
+	clear: () => void;
+}): Promise<void> {
+	const launch = pending.terminalLaunch;
+	if (!launch || !pending.workspaceId) return;
+
+	const terminalId = crypto.randomUUID();
+
+	try {
+		await ensureSession({
+			terminalId,
+			workspaceId: pending.workspaceId,
+			initialCommand: launch.command,
+		});
+	} catch (err) {
+		console.warn("[v2-launch] terminal ensureSession failed:", err);
+		return;
+	}
+
+	const data: TerminalPaneData = { terminalId };
+	store.getState().addTab({
+		panes: [
+			{
+				kind: "terminal",
+				titleOverride: launch.name,
+				data: data as PaneViewerData,
+			},
+		],
+	});
+	clear();
+}
+
+function consumeChatLaunch({
+	pending,
+	store,
+	clear,
+}: {
+	pending: PendingWorkspaceRow;
+	store: StoreApi<WorkspaceStore<PaneViewerData>>;
+	clear: () => void;
+}): void {
+	const launch = pending.chatLaunch;
+	if (!launch) return;
+
+	const data: ChatPaneData = {
+		sessionId: null,
+		launchConfig: {
+			initialPrompt: launch.initialPrompt,
+			initialFiles: launch.initialFiles,
+			model: launch.model,
+			taskSlug: launch.taskSlug,
+		},
+	};
+
+	store.getState().addTab({
+		panes: [
+			{
+				kind: "chat",
+				data: data as PaneViewerData,
+			},
+		],
+	});
+	clear();
+}

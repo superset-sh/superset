@@ -20,6 +20,7 @@ import { V2PresetsBar } from "./components/V2PresetsBar";
 import { WorkspaceEmptyState } from "./components/WorkspaceEmptyState";
 import { WorkspaceNotFoundState } from "./components/WorkspaceNotFoundState";
 import { WorkspaceSidebar } from "./components/WorkspaceSidebar";
+import { useConsumePendingLaunch } from "./hooks/useConsumePendingLaunch";
 import { useDefaultContextMenuActions } from "./hooks/useDefaultContextMenuActions";
 import { usePaneRegistry } from "./hooks/usePaneRegistry";
 import { renderBrowserTabIcon } from "./hooks/usePaneRegistry/components/BrowserPane";
@@ -90,6 +91,7 @@ function WorkspaceContent({
 		workspaceId,
 		projectId,
 	});
+	useConsumePendingLaunch({ workspaceId, store });
 	const paneRegistry = usePaneRegistry(workspaceId);
 	const defaultContextMenuActions = useDefaultContextMenuActions(paneRegistry);
 

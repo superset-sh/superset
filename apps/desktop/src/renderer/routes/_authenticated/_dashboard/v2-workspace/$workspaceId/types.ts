@@ -11,6 +11,21 @@ export interface TerminalPaneData {
 
 export interface ChatPaneData {
 	sessionId: string | null;
+	/**
+	 * Transient initial launch config for a freshly-opened chat pane.
+	 * Cleared by the chat pane on first consume. Set by the V2 workspace
+	 * page's useConsumePendingLaunch when a pending chat launch exists.
+	 */
+	launchConfig?: {
+		initialPrompt?: string;
+		initialFiles?: Array<{
+			data: string;
+			mediaType: string;
+			filename?: string;
+		}>;
+		model?: string;
+		taskSlug?: string;
+	} | null;
 }
 
 export interface BrowserPaneData {
