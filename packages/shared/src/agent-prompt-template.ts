@@ -108,7 +108,6 @@ export const AGENT_CONTEXT_PROMPT_VARIABLES = [
 	"issues",
 	"prs",
 	"attachments",
-	"agentInstructions",
 ] as const;
 
 export type AgentContextPromptVariable =
@@ -128,8 +127,11 @@ export function validateContextPromptTemplate(template: string): {
 /**
  * Default context templates for non-Claude agents (codex, cursor, user
  * custom). Markdown with the pre-rendered kind-blocks dropped in order.
+ *
+ * System is empty by default — agent harnesses (Claude CLI, Codex, etc.)
+ * discover their own instructions files from the worktree.
  */
-export const DEFAULT_CONTEXT_PROMPT_TEMPLATE_SYSTEM = `{{agentInstructions}}`;
+export const DEFAULT_CONTEXT_PROMPT_TEMPLATE_SYSTEM = "";
 
 export const DEFAULT_CONTEXT_PROMPT_TEMPLATE_USER = `{{userPrompt}}
 
@@ -146,7 +148,7 @@ export const DEFAULT_CONTEXT_PROMPT_TEMPLATE_USER = `{{userPrompt}}
  * wrapped in XML to stabilize Claude's parsing. Per-kind blocks stay as
  * pre-rendered markdown (users can tighten further in settings).
  */
-export const DEFAULT_CLAUDE_CONTEXT_PROMPT_TEMPLATE_SYSTEM = `{{agentInstructions}}`;
+export const DEFAULT_CLAUDE_CONTEXT_PROMPT_TEMPLATE_SYSTEM = "";
 
 export const DEFAULT_CLAUDE_CONTEXT_PROMPT_TEMPLATE_USER = `<user-request>
 {{userPrompt}}

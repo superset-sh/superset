@@ -76,14 +76,6 @@ function registry(
 				},
 			],
 		})),
-		"agent-instructions": makeContributor("agent-instructions", async (s) => ({
-			id: `agent-instructions:${s.path}`,
-			kind: "agent-instructions",
-			scope: "system",
-			label: s.path,
-			content: [{ type: "text", text: s.path }],
-			cacheControl: "ephemeral",
-		})),
 	};
 
 	return { ...defaults, ...overrides };
@@ -99,9 +91,6 @@ const resolveCtx: ResolveCtx = {
 		throw new Error("not used in tests");
 	},
 	fetchInternalTask: async () => {
-		throw new Error("not used in tests");
-	},
-	readAgentInstructions: async () => {
 		throw new Error("not used in tests");
 	},
 };
@@ -171,7 +160,6 @@ describe("buildLaunchContext", () => {
 			{
 				projectId: "p",
 				sources: [
-					{ kind: "agent-instructions", path: "AGENTS.md" },
 					{ kind: "github-pr", url: "https://x/pull/1" },
 					{
 						kind: "attachment",
@@ -195,7 +183,6 @@ describe("buildLaunchContext", () => {
 			"github-issue",
 			"github-pr",
 			"attachment",
-			"agent-instructions",
 		]);
 	});
 

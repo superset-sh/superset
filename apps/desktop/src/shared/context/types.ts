@@ -12,8 +12,7 @@ export type LaunchSource =
 	| { kind: "github-issue"; url: string }
 	| { kind: "github-pr"; url: string }
 	| { kind: "internal-task"; id: string }
-	| { kind: "attachment"; file: AttachmentFile }
-	| { kind: "agent-instructions"; path: string };
+	| { kind: "attachment"; file: AttachmentFile };
 
 export type LaunchSourceKind = LaunchSource["kind"];
 
@@ -73,7 +72,6 @@ export interface ResolveCtx {
 	fetchIssue: (url: string) => Promise<GitHubIssueContent>;
 	fetchPullRequest: (url: string) => Promise<GitHubPullRequestContent>;
 	fetchInternalTask: (id: string) => Promise<InternalTaskContent>;
-	readAgentInstructions: (path: string) => Promise<string>;
 }
 
 export interface GitHubIssueContent {

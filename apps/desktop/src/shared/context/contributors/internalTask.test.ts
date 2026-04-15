@@ -15,9 +15,6 @@ function makeCtx(
 			throw new Error("unused");
 		},
 		fetchInternalTask,
-		readAgentInstructions: async () => {
-			throw new Error("unused");
-		},
 	};
 }
 

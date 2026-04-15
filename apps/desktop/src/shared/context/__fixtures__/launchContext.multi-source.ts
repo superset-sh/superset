@@ -21,7 +21,6 @@ const sources: LaunchSource[] = [
 	{ kind: "github-pr", url: githubPrAuthRewrite.url },
 	{ kind: "attachment", file: attachmentLogsTxt },
 	{ kind: "attachment", file: attachmentScreenshotPng },
-	{ kind: "agent-instructions", path: "/worktree/AGENTS.md" },
 ];
 
 export const launchContextMultiSource: LaunchContext = {
@@ -114,16 +113,6 @@ export const launchContextMultiSource: LaunchContext = {
 					mediaType: attachmentScreenshotPng.mediaType,
 				},
 			],
-		},
-		{
-			id: "agent-instructions:/worktree/AGENTS.md",
-			kind: "agent-instructions",
-			scope: "system",
-			label: "AGENTS.md",
-			content: [
-				{ type: "text", text: "# Repo conventions\n- Prefer `gh` CLI." },
-			],
-			cacheControl: "ephemeral",
 		},
 	],
 	failures: [],

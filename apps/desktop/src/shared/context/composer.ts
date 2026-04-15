@@ -20,7 +20,6 @@ const KIND_ORDER: readonly LaunchSourceKind[] = [
 	"github-issue",
 	"github-pr",
 	"attachment",
-	"agent-instructions",
 ] as const;
 
 export interface BuildLaunchContextDeps {
@@ -130,8 +129,6 @@ function sourceIdentity(source: LaunchSource): string | null {
 			return `github-pr:${source.url}`;
 		case "internal-task":
 			return `internal-task:${source.id}`;
-		case "agent-instructions":
-			return `agent-instructions:${source.path}`;
 		case "attachment":
 			return null; // never dedup
 	}

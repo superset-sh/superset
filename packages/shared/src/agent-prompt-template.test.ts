@@ -84,7 +84,6 @@ describe("context prompt variables", () => {
 			"issues",
 			"prs",
 			"attachments",
-			"agentInstructions",
 		]);
 	});
 
@@ -92,7 +91,7 @@ describe("context prompt variables", () => {
 		const vars = getSupportedContextPromptVariables();
 		expect(vars).toEqual([...AGENT_CONTEXT_PROMPT_VARIABLES]);
 		vars.push("mutated" as never);
-		expect(AGENT_CONTEXT_PROMPT_VARIABLES).toHaveLength(6);
+		expect(AGENT_CONTEXT_PROMPT_VARIABLES).toHaveLength(5);
 	});
 });
 
@@ -146,7 +145,6 @@ describe("default context templates", () => {
 				issues: "",
 				prs: "",
 				attachments: "",
-				agentInstructions: "",
 			},
 		);
 		expect(rendered).toBe("refactor auth");
@@ -161,7 +159,6 @@ describe("default context templates", () => {
 				issues: "",
 				prs: "",
 				attachments: "",
-				agentInstructions: "",
 			},
 		);
 		expect(rendered).toContain("<user-request>");

@@ -26,7 +26,6 @@ const resolveCtx: ResolveCtx = {
 		if (id === internalTaskRefactorAuth.id) return internalTaskRefactorAuth;
 		throw Object.assign(new Error("not found"), { status: 404 });
 	},
-	readAgentInstructions: async () => "# Repo conventions\n- Use bun",
 };
 
 describe("composer + default registry (integration)", () => {
@@ -44,7 +43,6 @@ describe("composer + default registry (integration)", () => {
 					{ kind: "github-issue", url: githubIssueTokenRotation.url },
 					{ kind: "github-pr", url: githubPrAuthRewrite.url },
 					{ kind: "attachment", file: attachmentLogsTxt },
-					{ kind: "agent-instructions", path: "/worktree/AGENTS.md" },
 				],
 				agent: { id: "claude" },
 			},
@@ -59,12 +57,8 @@ describe("composer + default registry (integration)", () => {
 			"github-issue",
 			"github-pr",
 			"attachment",
-			"agent-instructions",
 		]);
 		expect(ctx.taskSlug).toBe(internalTaskRefactorAuth.slug);
-		expect(
-			ctx.sections.find((s) => s.kind === "agent-instructions")?.scope,
-		).toBe("system");
 	});
 
 	test("missing issue is a non-fatal null (not a failure)", async () => {
