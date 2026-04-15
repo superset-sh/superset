@@ -1,5 +1,5 @@
 import { toast } from "@superset/ui/sonner";
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import {
 	type DestroyWorkspaceError,
 	useDestroyWorkspace,
@@ -33,6 +33,7 @@ export function useDestroyDialogState({
 
 	const [deleteBranch, setDeleteBranch] = useState(false);
 	const [error, setError] = useState<DestroyWorkspaceError | null>(null);
+	const inFlight = useRef(false);
 
 	const handleOpenChange = useCallback(
 		(next: boolean) => {
@@ -49,6 +50,12 @@ export function useDestroyDialogState({
 
 	const run = useCallback(
 		async (force: boolean) => {
+			// Guard against double-submit: optimistic close + async mutate means
+			// a rapid second click (from the same pane or a re-opened error pane)
+			// could fire destroy twice before the first resolves.
+			if (inFlight.current) return;
+			inFlight.current = true;
+
 			// Optimistic close. State (deleteBranch) preserved in case we re-open
 			// on a decision-required error.
 			setError(null);
@@ -71,6 +78,8 @@ export function useDestroyDialogState({
 				} else {
 					toast.error(`Failed to delete: ${e.message}`, { id: loadingId });
 				}
+			} finally {
+				inFlight.current = false;
 			}
 		},
 		[destroy, deleteBranch, workspaceName, onOpenChange, onDeleted],

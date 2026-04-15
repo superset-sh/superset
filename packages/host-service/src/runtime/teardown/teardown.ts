@@ -12,6 +12,7 @@ export { TEARDOWN_TIMEOUT_MS };
 
 export const TEARDOWN_SCRIPT_REL_PATH = ".superset/teardown.sh";
 const OUTPUT_TAIL_BYTES = 4096;
+const KILL_GRACE_MS = 2_000;
 
 export type TeardownResult =
 	| { status: "ok"; output?: string }
@@ -120,6 +121,17 @@ export async function runTeardown({
 			} catch {
 				// PTY may already be dead
 			}
+			// Hard-stop: if onExit doesn't fire shortly after kill (zombie PTY),
+			// settle the promise directly so workspaceCleanup.destroy never hangs.
+			setTimeout(() => {
+				settle({
+					status: "failed",
+					exitCode: null,
+					signal: null,
+					timedOut: true,
+					outputTail: tail,
+				});
+			}, KILL_GRACE_MS).unref();
 		}, timeoutMs);
 		timer.unref();
 	});

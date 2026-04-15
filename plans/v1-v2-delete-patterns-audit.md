@@ -1,5 +1,10 @@
 # Workspace v1 vs v2 — Delete Patterns Audit
 
+> **Status: pre-unification snapshot.** Describes the state of the three
+> disjoint delete implementations before the `workspaceCleanup.destroy`
+> redesign landed. Kept for historical context. For the current design
+> see [`workspace-delete-unification.md`](./workspace-delete-unification.md).
+
 Audit of user-triggered delete/remove actions across workspace v1 (`apps/desktop/src/renderer/routes/_authenticated/_dashboard/workspace/`) and v2 (`.../v2-workspace/`) in the desktop app.
 
 ## Architecture

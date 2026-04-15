@@ -9,5 +9,8 @@ export function formatTeardownReason(cause: TeardownFailureCause): string {
 	if (cause.exitCode != null) {
 		return `Teardown exited with code ${cause.exitCode}`;
 	}
+	if (cause.signal != null) {
+		return `Teardown terminated by signal ${cause.signal}`;
+	}
 	return "Teardown failed to start";
 }

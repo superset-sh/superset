@@ -9,6 +9,7 @@ import {
 import { Button } from "@superset/ui/button";
 import { Checkbox } from "@superset/ui/checkbox";
 import { Label } from "@superset/ui/label";
+import { useId } from "react";
 
 interface DestroyConfirmPaneProps {
 	open: boolean;
@@ -32,6 +33,7 @@ export function DestroyConfirmPane({
 	onDeleteBranchChange,
 	onConfirm,
 }: DestroyConfirmPaneProps) {
+	const checkboxId = useId();
 	return (
 		<AlertDialog open={open} onOpenChange={onOpenChange}>
 			<AlertDialogContent className="max-w-[340px] gap-0 p-0">
@@ -47,14 +49,14 @@ export function DestroyConfirmPane({
 				<div className="px-4 pb-2">
 					<div className="flex items-center gap-2">
 						<Checkbox
-							id="delete-local-branch"
+							id={checkboxId}
 							checked={deleteBranch}
 							onCheckedChange={(checked) =>
 								onDeleteBranchChange(checked === true)
 							}
 						/>
 						<Label
-							htmlFor="delete-local-branch"
+							htmlFor={checkboxId}
 							className="text-xs text-muted-foreground cursor-pointer select-none"
 						>
 							Also delete local branch

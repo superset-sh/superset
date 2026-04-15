@@ -124,6 +124,7 @@ export const workspaceCleanupRouter = router({
 			// 3b. Worktree (always --force: we're past the commit point)
 			// 3c. Optional branch delete
 			let worktreeRemoved = false;
+			let branchDeleted = false;
 			if (local && project) {
 				const git = await ctx.git(project.repoPath);
 				try {
@@ -147,6 +148,7 @@ export const workspaceCleanupRouter = router({
 				if (input.deleteBranch && local.branch) {
 					try {
 						await git.raw(["branch", input.force ? "-D" : "-d", local.branch]);
+						branchDeleted = true;
 					} catch (err) {
 						const message = err instanceof Error ? err.message : String(err);
 						warnings.push(
@@ -168,7 +170,7 @@ export const workspaceCleanupRouter = router({
 				success: true,
 				cloudDeleted: true,
 				worktreeRemoved,
-				branchDeleted: Boolean(input.deleteBranch && local && worktreeRemoved),
+				branchDeleted,
 				warnings,
 			};
 		}),

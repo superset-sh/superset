@@ -204,9 +204,15 @@ Fast path: one click for a clean worktree, no branch delete. Confirm dialog only
 
 ## UI
 
-- **One dialog path** backing all v2 entry points: v2 sidebar context menu; later EmptyTabView, `DELETE_WORKSPACE` hotkey (renamed from `CLOSE_WORKSPACE`), and a new delete affordance on `V2WorkspaceRow.tsx`.
-- **Replace direct cloud call** at `useDashboardSidebarWorkspaceItemActions.ts` with `useDestroyWorkspace`.
-- v1 keeps `DeleteWorkspaceDialog` + `useDeleteWorkspace` unchanged.
+**Delivered in this PR:**
+- v2 sidebar context menu uses the shared `DashboardSidebarDeleteDialog` backed by `useDestroyWorkspace` → `workspaceCleanup.destroy`.
+- Direct `apiTrpcClient.v2Workspace.delete.mutate` call at `useDashboardSidebarWorkspaceItemActions.ts` removed.
+- v1 `DeleteWorkspaceDialog` + `useDeleteWorkspace` left unchanged.
+
+**Follow-up (out of this PR):**
+- Wire the `DELETE_WORKSPACE` hotkey (currently `CLOSE_WORKSPACE`) to the same flow.
+- Wire `EmptyTabView` to the same flow.
+- Add a delete affordance on `V2WorkspaceRow.tsx`.
 
 ## Host ownership
 
@@ -258,8 +264,10 @@ If we later want transient-error auto-retry, the seam is clean: step 2's `catch`
 1. Host-service: new `workspaceCleanup` router with `destroy` (linear sequence above). ✅
 2. Renderer: `useDestroyWorkspace` hook + confirm dialog (dirty + branch opt-in). ✅
 3. Switch `v2Workspace.delete` cloud procedure to `jwtProcedure` so host-service can call it. ✅
-4. Reorder the destroy saga to the linear preflight → teardown → cloud → local-cleanup shape. *(this doc revision)*
-5. Swap v2 delete call sites: sidebar context (done), EmptyTabView, hotkey, v2-workspaces list row.
+4. Reorder the destroy saga to the linear preflight → teardown → cloud → local-cleanup shape. ✅
+5. Swap v2 delete call sites:
+   - Sidebar context menu. ✅
+   - EmptyTabView, `CLOSE_WORKSPACE` hotkey, `V2WorkspaceRow` list affordance — **follow-up**.
 6. Delete Path B call path. ✅
 
 ## Acceptance
