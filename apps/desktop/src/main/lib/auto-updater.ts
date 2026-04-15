@@ -7,6 +7,31 @@ import { prerelease } from "semver";
 import { AUTO_UPDATE_STATUS, type AutoUpdateStatus } from "shared/auto-update";
 import { PLATFORM } from "shared/constants";
 
+// electron-updater exposes DownloadedUpdateHelper as a protected property.
+// We access it to recover from corrupt cached updates (the "users must
+// reinstall to get updates working again" failure mode) — internal auto-
+// invalidation only triggers when the remote sha512 differs from the cached
+// metadata, so a silently broken cache can wedge the updater indefinitely.
+interface DownloadedUpdateHelper {
+	clear(): Promise<void>;
+	readonly downloadedFileInfo: { fileName: string; sha512: string } | null;
+}
+interface AppUpdaterInternals {
+	downloadedUpdateHelper: DownloadedUpdateHelper | null;
+}
+
+async function clearCachedUpdate(reason: string): Promise<void> {
+	const helper = (autoUpdater as unknown as AppUpdaterInternals)
+		.downloadedUpdateHelper;
+	if (!helper) return;
+	try {
+		await helper.clear();
+		console.info(`[auto-updater] Cleared cached update (${reason})`);
+	} catch (error) {
+		console.error("[auto-updater] Failed to clear cached update:", error);
+	}
+}
+
 const UPDATE_CHECK_INTERVAL_MS = 1000 * 60 * 60 * 4; // 4 hours
 
 /**
@@ -231,6 +256,10 @@ export function setupAutoUpdater(): void {
 			`[auto-updater] Error during update (currentVersion=${app.getVersion()}):`,
 			error?.message || error,
 		);
+		// Non-network errors (signature failure, install failure, Squirrel
+		// ShipIt errors, hash mismatch on read) can leave a corrupt update in
+		// the cache. Clear it so the next check re-downloads from scratch.
+		void clearCachedUpdate(`error: ${error?.message ?? "unknown"}`);
 		emitStatus(AUTO_UPDATE_STATUS.ERROR, undefined, error.message);
 	});
 
