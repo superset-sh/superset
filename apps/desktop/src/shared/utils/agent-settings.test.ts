@@ -1,8 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { getBuiltinAgentDefinition } from "@superset/shared/agent-catalog";
 import {
-	DEFAULT_CLAUDE_CONTEXT_PROMPT_TEMPLATE_SYSTEM,
-	DEFAULT_CLAUDE_CONTEXT_PROMPT_TEMPLATE_USER,
 	DEFAULT_CONTEXT_PROMPT_TEMPLATE_SYSTEM,
 	DEFAULT_CONTEXT_PROMPT_TEMPLATE_USER,
 } from "@superset/shared/agent-prompt-template";
@@ -276,34 +274,16 @@ describe("custom agent definition helpers", () => {
 });
 
 describe("contextPromptTemplate resolution", () => {
-	test("claude terminal ships the Claude XML defaults", () => {
-		const claude = resolveAgentConfigs({}).find((p) => p.id === "claude");
-		expect(claude?.contextPromptTemplateSystem).toBe(
-			DEFAULT_CLAUDE_CONTEXT_PROMPT_TEMPLATE_SYSTEM,
-		);
-		expect(claude?.contextPromptTemplateUser).toBe(
-			DEFAULT_CLAUDE_CONTEXT_PROMPT_TEMPLATE_USER,
-		);
-	});
-
-	test("codex terminal ships the markdown defaults", () => {
-		const codex = resolveAgentConfigs({}).find((p) => p.id === "codex");
-		expect(codex?.contextPromptTemplateSystem).toBe(
-			DEFAULT_CONTEXT_PROMPT_TEMPLATE_SYSTEM,
-		);
-		expect(codex?.contextPromptTemplateUser).toBe(
-			DEFAULT_CONTEXT_PROMPT_TEMPLATE_USER,
-		);
-	});
-
-	test("superset-chat ships the Claude XML defaults", () => {
-		const chat = resolveAgentConfigs({}).find((p) => p.id === "superset-chat");
-		expect(chat?.contextPromptTemplateSystem).toBe(
-			DEFAULT_CLAUDE_CONTEXT_PROMPT_TEMPLATE_SYSTEM,
-		);
-		expect(chat?.contextPromptTemplateUser).toBe(
-			DEFAULT_CLAUDE_CONTEXT_PROMPT_TEMPLATE_USER,
-		);
+	test("every built-in agent ships the default markdown templates", () => {
+		const configs = resolveAgentConfigs({});
+		for (const config of configs) {
+			expect(config.contextPromptTemplateSystem).toBe(
+				DEFAULT_CONTEXT_PROMPT_TEMPLATE_SYSTEM,
+			);
+			expect(config.contextPromptTemplateUser).toBe(
+				DEFAULT_CONTEXT_PROMPT_TEMPLATE_USER,
+			);
+		}
 	});
 
 	test("override replaces user template for terminal agents", () => {
@@ -323,7 +303,7 @@ describe("contextPromptTemplate resolution", () => {
 			"custom user template {{userPrompt}}",
 		);
 		expect(claude?.contextPromptTemplateSystem).toBe(
-			DEFAULT_CLAUDE_CONTEXT_PROMPT_TEMPLATE_SYSTEM,
+			DEFAULT_CONTEXT_PROMPT_TEMPLATE_SYSTEM,
 		);
 		expect(claude?.overriddenFields).toContain("contextPromptTemplateUser");
 	});

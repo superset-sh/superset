@@ -1,8 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import {
 	AGENT_CONTEXT_PROMPT_VARIABLES,
-	DEFAULT_CLAUDE_CONTEXT_PROMPT_TEMPLATE_SYSTEM,
-	DEFAULT_CLAUDE_CONTEXT_PROMPT_TEMPLATE_USER,
 	DEFAULT_CONTEXT_PROMPT_TEMPLATE_SYSTEM,
 	DEFAULT_CONTEXT_PROMPT_TEMPLATE_USER,
 	getSupportedContextPromptVariables,
@@ -124,19 +122,7 @@ describe("default context templates", () => {
 		).toBe(true);
 	});
 
-	test("claude defaults only reference known variables", () => {
-		expect(
-			validateContextPromptTemplate(DEFAULT_CLAUDE_CONTEXT_PROMPT_TEMPLATE_USER)
-				.valid,
-		).toBe(true);
-		expect(
-			validateContextPromptTemplate(
-				DEFAULT_CLAUDE_CONTEXT_PROMPT_TEMPLATE_SYSTEM,
-			).valid,
-		).toBe(true);
-	});
-
-	test("rendering the markdown user template collapses empty sections cleanly", () => {
+	test("rendering the user template collapses empty sections cleanly", () => {
 		const rendered = renderPromptTemplate(
 			DEFAULT_CONTEXT_PROMPT_TEMPLATE_USER,
 			{
@@ -148,21 +134,5 @@ describe("default context templates", () => {
 			},
 		);
 		expect(rendered).toBe("refactor auth");
-	});
-
-	test("rendering the claude user template wraps user-request in XML", () => {
-		const rendered = renderPromptTemplate(
-			DEFAULT_CLAUDE_CONTEXT_PROMPT_TEMPLATE_USER,
-			{
-				userPrompt: "refactor auth",
-				tasks: "",
-				issues: "",
-				prs: "",
-				attachments: "",
-			},
-		);
-		expect(rendered).toContain("<user-request>");
-		expect(rendered).toContain("refactor auth");
-		expect(rendered).toContain("</user-request>");
 	});
 });

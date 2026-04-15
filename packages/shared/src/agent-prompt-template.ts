@@ -125,8 +125,9 @@ export function validateContextPromptTemplate(template: string): {
 }
 
 /**
- * Default context templates for non-Claude agents (codex, cursor, user
- * custom). Markdown with the pre-rendered kind-blocks dropped in order.
+ * Default context templates. Plain markdown — works for every agent
+ * (Claude, Codex, Cursor, custom). Users can override per-agent in
+ * settings if they want XML or other wrapping.
  *
  * System is empty by default — agent harnesses (Claude CLI, Codex, etc.)
  * discover their own instructions files from the worktree.
@@ -134,25 +135,6 @@ export function validateContextPromptTemplate(template: string): {
 export const DEFAULT_CONTEXT_PROMPT_TEMPLATE_SYSTEM = "";
 
 export const DEFAULT_CONTEXT_PROMPT_TEMPLATE_USER = `{{userPrompt}}
-
-{{tasks}}
-
-{{issues}}
-
-{{prs}}
-
-{{attachments}}`;
-
-/**
- * Default context templates for Claude agents. The user-request is
- * wrapped in XML to stabilize Claude's parsing. Per-kind blocks stay as
- * pre-rendered markdown (users can tighten further in settings).
- */
-export const DEFAULT_CLAUDE_CONTEXT_PROMPT_TEMPLATE_SYSTEM = "";
-
-export const DEFAULT_CLAUDE_CONTEXT_PROMPT_TEMPLATE_USER = `<user-request>
-{{userPrompt}}
-</user-request>
 
 {{tasks}}
 

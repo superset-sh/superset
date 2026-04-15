@@ -64,46 +64,31 @@ describe("buildLaunchSpec", () => {
 		expect(spec?.taskSlug).toBe("refactor-auth");
 	});
 
-	test("claude XML template wraps the user prompt in <user-request>", () => {
-		const spec = buildLaunchSpec(
-			baseCtx({
-				sections: [
-					{
-						id: "user-prompt",
-						kind: "user-prompt",
-						scope: "user",
-						label: "Prompt",
-						content: [{ type: "text", text: "refactor the auth middleware" }],
-					},
-				],
-			}),
+	test("all builtin agents share the default markdown template (no XML)", () => {
+		const section = {
+			id: "user-prompt",
+			kind: "user-prompt" as const,
+			scope: "user" as const,
+			label: "Prompt",
+			content: [
+				{ type: "text" as const, text: "refactor the auth middleware" },
+			],
+		};
+		const claudeSpec = buildLaunchSpec(
+			baseCtx({ sections: [section] }),
 			getConfig("claude"),
 		);
-		expect(spec?.user).toHaveLength(1);
-		const userText = (spec?.user[0] as { type: "text"; text: string }).text;
-		expect(userText).toContain("<user-request>");
-		expect(userText).toContain("refactor the auth middleware");
-		expect(userText).toContain("</user-request>");
-	});
-
-	test("codex markdown template emits plain user prompt", () => {
-		const spec = buildLaunchSpec(
-			baseCtx({
-				sections: [
-					{
-						id: "user-prompt",
-						kind: "user-prompt",
-						scope: "user",
-						label: "Prompt",
-						content: [{ type: "text", text: "refactor the auth middleware" }],
-					},
-				],
-			}),
+		const codexSpec = buildLaunchSpec(
+			baseCtx({ sections: [section], agent: { id: "codex" } }),
 			getConfig("codex"),
 		);
-		const userText = (spec?.user[0] as { type: "text"; text: string }).text;
-		expect(userText).toBe("refactor the auth middleware");
-		expect(userText).not.toContain("<user-request>");
+		const claudeText = (claudeSpec?.user[0] as { type: "text"; text: string })
+			.text;
+		const codexText = (codexSpec?.user[0] as { type: "text"; text: string })
+			.text;
+		expect(claudeText).toBe("refactor the auth middleware");
+		expect(claudeText).toBe(codexText);
+		expect(claudeText).not.toContain("<user-request>");
 	});
 
 	test("empty system template produces empty system content array", () => {
@@ -313,9 +298,7 @@ describe("buildLaunchSpec", () => {
   "system": [],
   "taskSlug": "refactor-auth",
   "userText": 
-"<user-request>
-refactor the auth middleware
-</user-request>
+"refactor the auth middleware
 
 # Refactor auth middleware
 
