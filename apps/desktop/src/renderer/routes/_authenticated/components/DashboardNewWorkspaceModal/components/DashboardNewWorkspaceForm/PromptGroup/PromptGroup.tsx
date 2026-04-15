@@ -136,7 +136,7 @@ export function PromptGroup({
 	useEffect(() => {
 		if (!isNewWorkspaceModalOpen) return;
 		const handler = (e: KeyboardEvent) => {
-			if (!isEnterSubmit(e, { requireMod: true, allowShift: true })) return;
+			if (!isEnterSubmit(e, { requireMod: true })) return;
 			e.preventDefault();
 			void handleCreate();
 		};
