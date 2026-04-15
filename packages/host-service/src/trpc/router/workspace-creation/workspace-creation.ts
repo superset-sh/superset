@@ -655,6 +655,25 @@ export const workspaceCreationRouter = router({
 					: startPointArg,
 			]);
 
+			// Record the base branch in git config so the Changes tab knows what
+			// to compare against on first open. startPoint.shortName is the ref
+			// we actually forked from (user selection, resolved against local /
+			// remote). Skipped for "head" start point — no meaningful base.
+			if (startPoint.kind !== "head") {
+				await git
+					.raw([
+						"config",
+						`branch.${branchName}.base`,
+						startPoint.shortName,
+					])
+					.catch((err) => {
+						console.warn(
+							`[workspaceCreation.create] failed to record base branch ${startPoint.shortName}:`,
+							err,
+						);
+					});
+			}
+
 			setProgress(input.pendingId, "registering");
 
 			// 4. Register cloud workspace row
