@@ -11,6 +11,7 @@ import {
 import { Input } from "@superset/ui/input";
 import { isEnterSubmit } from "@superset/ui/lib/keyboard";
 import { cn } from "@superset/ui/utils";
+import type { FileUIPart } from "ai";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowUpIcon } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -129,15 +130,32 @@ export function PromptGroup({
 
 	// ── Submit (fork) ────────────────────────────────────────────────
 	const handleCreate = useSubmitWorkspace(projectId);
-	const handlePromptSubmit = useCallback(() => {
-		void handleCreate();
-	}, [handleCreate]);
+	const handlePromptSubmit = useCallback(
+		(message: { text?: string; files?: FileUIPart[] }) => {
+			// Library converts blob: → data: URLs before calling us; pass them
+			// through. We intentionally do not read attachments from the
+			// provider here — the library clears + revokes before onSubmit, so
+			// the provider's state is stale by this point.
+			const files = (message.files ?? [])
+				.filter((f) => typeof f.url === "string" && f.url.length > 0)
+				.map((f) => ({
+					url: f.url,
+					mediaType: f.mediaType,
+					filename: f.filename,
+				}));
+			void handleCreate(files);
+		},
+		[handleCreate],
+	);
 
 	useEffect(() => {
 		if (!isNewWorkspaceModalOpen) return;
 		const handler = (e: KeyboardEvent) => {
 			if (!isEnterSubmit(e, { requireMod: true })) return;
 			e.preventDefault();
+			// Keyboard fallback: submit without attachments. Inside the
+			// modal's form focus, PromptInput's own Enter handler fires
+			// instead and routes through handlePromptSubmit with files.
 			void handleCreate();
 		};
 		window.addEventListener("keydown", handler);
