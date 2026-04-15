@@ -178,7 +178,11 @@ for (const scenario of SCENARIOS) {
 	console.log(divider("="));
 
 	const ctx = await buildLaunchContext(
-		{ projectId: "demo-project", sources: scenario.sources, agent: { id: "claude" } },
+		{
+			projectId: "demo-project",
+			sources: scenario.sources,
+			agent: { id: "claude" },
+		},
 		{ contributors: defaultContributorRegistry, resolveCtx },
 	);
 
@@ -208,9 +212,9 @@ for (const scenario of SCENARIOS) {
 		console.log(`system parts: ${spec.system.length}`);
 		console.log(`user parts:   ${spec.user.length}`);
 		console.log(
-			`attachments:  ${spec.attachments.length} (${spec.attachments
-				.map((p) => p.type)
-				.join(", ") || "none"})`,
+			`attachments:  ${spec.attachments.length} (${
+				spec.attachments.map((p) => p.type).join(", ") || "none"
+			})`,
 		);
 
 		if (spec.system.length > 0) {
@@ -226,7 +230,9 @@ for (const scenario of SCENARIOS) {
 				if (part.type === "text") {
 					console.log(indent(part.text));
 				} else if (part.type === "image") {
-					console.log(indent(`<image: ${part.mediaType}, ${part.data.length} bytes>`));
+					console.log(
+						indent(`<image: ${part.mediaType}, ${part.data.length} bytes>`),
+					);
 				} else if (part.type === "file") {
 					console.log(
 						indent(

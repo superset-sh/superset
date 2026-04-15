@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import {
 	indexResolvedAgentConfigs,
-	resolveAgentConfigs,
 	type ResolvedAgentConfig,
+	resolveAgentConfigs,
 } from "shared/utils/agent-settings";
 import { buildAgentLaunchRequest } from "./buildAgentLaunchRequest";
 import type { AgentLaunchSpec } from "./types";
@@ -41,9 +41,7 @@ describe("buildAgentLaunchRequest", () => {
 		const req = buildAgentLaunchRequest(
 			baseSpec({
 				agentId: "codex",
-				user: [
-					{ type: "text", text: "refactor the auth middleware" },
-				],
+				user: [{ type: "text", text: "refactor the auth middleware" }],
 			}),
 			getConfig("codex"),
 			{ workspaceId: "ws-1", source: "new-workspace" },

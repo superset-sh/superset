@@ -12,13 +12,16 @@ import {
 	clearAttachments,
 	loadAttachments,
 } from "renderer/lib/pending-attachment-store";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useAdoptWorktree } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/hooks/useAdoptWorktree";
 import { useCheckoutDashboardWorkspace } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/hooks/useCheckoutDashboardWorkspace";
 import { useCreateDashboardWorkspace } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/hooks/useCreateDashboardWorkspace";
+import { useEnqueueAgentLaunch } from "renderer/hooks/useEnqueueAgentLaunch";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import type { PendingWorkspaceRow } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal/schema";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
+import { buildForkAgentLaunch } from "./buildForkAgentLaunch";
 import {
 	buildAdoptPayload,
 	buildCheckoutPayload,
@@ -51,6 +54,8 @@ function useFireIntent(pendingId: string, pending: PendingWorkspaceRow | null) {
 	const createWorkspace = useCreateDashboardWorkspace();
 	const checkoutWorkspace = useCheckoutDashboardWorkspace();
 	const adoptWorktree = useAdoptWorktree();
+	const enqueueAgentLaunch = useEnqueueAgentLaunch();
+	const agentPresetsQuery = electronTrpc.settings.getAgentPresets.useQuery();
 
 	return useCallback(async () => {
 		if (!pending) return;
@@ -66,21 +71,21 @@ function useFireIntent(pendingId: string, pending: PendingWorkspaceRow | null) {
 				terminals?: Array<{ id: string; role: string; label: string }>;
 				warnings?: string[];
 			};
+			let loadedAttachments:
+				| Array<{ data: string; mediaType: string; filename: string }>
+				| undefined;
 
 			switch (pending.intent) {
 				case "fork": {
-					let attachments:
-						| Array<{ data: string; mediaType: string; filename: string }>
-						| undefined;
 					if (pending.attachmentCount > 0) {
 						try {
-							attachments = await loadAttachments(pendingId);
+							loadedAttachments = await loadAttachments(pendingId);
 						} catch {
 							// proceed without
 						}
 					}
 					result = await createWorkspace(
-						buildForkPayload(pendingId, pending, attachments),
+						buildForkPayload(pendingId, pending, loadedAttachments),
 					);
 					break;
 				}
@@ -93,6 +98,30 @@ function useFireIntent(pendingId: string, pending: PendingWorkspaceRow | null) {
 				case "adopt": {
 					result = await adoptWorktree(buildAdoptPayload(pending));
 					break;
+				}
+			}
+
+			// Enqueue the V2 agent launch for fork intent. The workspace's
+			// terminal-adapter / chat-adapter picks up this pending setup when
+			// the workspace mounts.
+			if (
+				pending.intent === "fork" &&
+				result.workspace?.id &&
+				agentPresetsQuery.data
+			) {
+				try {
+					const launchRequest = await buildForkAgentLaunch({
+						pending,
+						attachments: loadedAttachments,
+						agentConfigs: agentPresetsQuery.data,
+					});
+					enqueueAgentLaunch({
+						workspaceId: result.workspace.id,
+						projectId: pending.projectId,
+						launchRequest,
+					});
+				} catch (err) {
+					console.warn("[pending-page] agent launch enqueue failed:", err);
 				}
 			}
 
@@ -117,6 +146,8 @@ function useFireIntent(pendingId: string, pending: PendingWorkspaceRow | null) {
 		adoptWorktree,
 		pending,
 		pendingId,
+		enqueueAgentLaunch,
+		agentPresetsQuery.data,
 	]);
 }
 
