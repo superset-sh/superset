@@ -215,9 +215,12 @@ function PendingWorkspacePage() {
 	const isStale =
 		pending?.status === "creating" && elapsedMs > STALE_THRESHOLD_MS;
 
-	// Fallback: if the collection never syncs (offline, slow Electric),
-	// navigate anyway after a bounded wait. Target page will show its own
-	// loading state.
+	// Hard-gate navigation on the cloud row appearing in the local collection.
+	// Navigating before sync lands us on /v2-workspace/$id where the live query
+	// resolves empty and flashes "Workspace not found". If sync stalls past
+	// SYNC_TIMEOUT_MS, surface a recoverable error instead of silently
+	// navigating into a broken page.
+	const SYNC_TIMEOUT_MS = 10_000;
 	const [syncTimedOut, setSyncTimedOut] = useState(false);
 	useEffect(() => {
 		if (
@@ -228,47 +231,40 @@ function PendingWorkspacePage() {
 		) {
 			return;
 		}
-		const timer = setTimeout(() => setSyncTimedOut(true), 3000);
+		const timer = setTimeout(() => setSyncTimedOut(true), SYNC_TIMEOUT_MS);
 		return () => clearTimeout(timer);
 	}, [pending?.status, pending?.workspaceId, workspaceSynced]);
+
+	const doNavigate = useCallback(() => {
+		if (!pending?.workspaceId || navigatedRef.current) return;
+		navigatedRef.current = true;
+		ensureWorkspaceInSidebar(pending.workspaceId, pending.projectId);
+
+		if (pending.terminals.length > 0) {
+			const paneLayout = buildSetupPaneLayout(pending.terminals);
+			collections.v2WorkspaceLocalState.update(pending.workspaceId, (draft) => {
+				draft.paneLayout = paneLayout;
+			});
+		}
+
+		void navigate({
+			to: "/v2-workspace/$workspaceId",
+			params: { workspaceId: pending.workspaceId },
+		});
+		setTimeout(() => {
+			collections.pendingWorkspaces.delete(pendingId);
+		}, 1000);
+	}, [collections, ensureWorkspaceInSidebar, navigate, pending, pendingId]);
 
 	useEffect(() => {
 		if (
 			pending?.status === "succeeded" &&
 			pending.workspaceId &&
-			(workspaceSynced || syncTimedOut) &&
-			!navigatedRef.current
+			workspaceSynced
 		) {
-			navigatedRef.current = true;
-			ensureWorkspaceInSidebar(pending.workspaceId, pending.projectId);
-
-			if (pending.terminals.length > 0) {
-				const paneLayout = buildSetupPaneLayout(pending.terminals);
-				collections.v2WorkspaceLocalState.update(
-					pending.workspaceId,
-					(draft) => {
-						draft.paneLayout = paneLayout;
-					},
-				);
-			}
-
-			void navigate({
-				to: "/v2-workspace/$workspaceId",
-				params: { workspaceId: pending.workspaceId },
-			});
-			setTimeout(() => {
-				collections.pendingWorkspaces.delete(pendingId);
-			}, 1000);
+			doNavigate();
 		}
-	}, [
-		collections,
-		ensureWorkspaceInSidebar,
-		navigate,
-		pending,
-		pendingId,
-		workspaceSynced,
-		syncTimedOut,
-	]);
+	}, [pending?.status, pending?.workspaceId, workspaceSynced, doNavigate]);
 
 	if (!pending) {
 		return (
@@ -364,24 +360,62 @@ function PendingWorkspacePage() {
 					</div>
 				)}
 
-				{pending.status === "succeeded" && (
-					<div className="space-y-2">
-						<div className="flex items-center gap-2 text-sm text-emerald-500">
-							<HiCheck className="size-4" />
-							<span>Workspace ready — opening...</span>
+				{pending.status === "succeeded" &&
+					(syncTimedOut && !workspaceSynced ? (
+						<div className="space-y-4">
+							<div className="flex items-start gap-2 text-sm text-amber-500">
+								<HiExclamationTriangle className="size-4 mt-0.5 shrink-0" />
+								<span>
+									Workspace was created but hasn't synced to this device yet.
+									Check your connection.
+								</span>
+							</div>
+							<div className="flex gap-2">
+								<button
+									type="button"
+									className="rounded-md bg-primary px-3 py-1.5 text-sm text-primary-foreground hover:bg-primary/90"
+									onClick={() => setSyncTimedOut(false)}
+								>
+									Keep waiting
+								</button>
+								<button
+									type="button"
+									className="rounded-md border px-3 py-1.5 text-sm hover:bg-accent"
+									onClick={doNavigate}
+								>
+									Open anyway
+								</button>
+								<button
+									type="button"
+									className="rounded-md border px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-accent"
+									onClick={() => {
+										collections.pendingWorkspaces.delete(pendingId);
+										void clearAttachments(pendingId);
+										void navigate({ to: "/" });
+									}}
+								>
+									Dismiss
+								</button>
+							</div>
 						</div>
-						{pending.warnings.length > 0 && (
-							<ul className="space-y-1 text-xs text-amber-500">
-								{pending.warnings.map((w) => (
-									<li key={w} className="flex items-start gap-1.5">
-										<HiExclamationTriangle className="size-3.5 mt-0.5 shrink-0" />
-										<span>{w}</span>
-									</li>
-								))}
-							</ul>
-						)}
-					</div>
-				)}
+					) : (
+						<div className="space-y-2">
+							<div className="flex items-center gap-2 text-sm text-emerald-500">
+								<HiCheck className="size-4" />
+								<span>Workspace ready — opening...</span>
+							</div>
+							{pending.warnings.length > 0 && (
+								<ul className="space-y-1 text-xs text-amber-500">
+									{pending.warnings.map((w) => (
+										<li key={w} className="flex items-start gap-1.5">
+											<HiExclamationTriangle className="size-3.5 mt-0.5 shrink-0" />
+											<span>{w}</span>
+										</li>
+									))}
+								</ul>
+							)}
+						</div>
+					))}
 
 				{pending.status === "failed" && (
 					<div className="space-y-4">
