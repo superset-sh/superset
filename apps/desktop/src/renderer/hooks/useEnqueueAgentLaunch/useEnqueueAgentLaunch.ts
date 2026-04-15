@@ -53,7 +53,19 @@ export function useEnqueueAgentLaunch(): (
 	return useCallback(
 		(args) => {
 			const setup = buildPendingSetup(args);
-			if (setup) addPendingTerminalSetup(setup);
+			if (setup) {
+				console.log("[v2-launch] useEnqueueAgentLaunch: stashing pending setup", {
+					workspaceId: setup.workspaceId,
+					projectId: setup.projectId,
+					agentLaunchKind: setup.agentLaunchRequest?.kind ?? null,
+				});
+				addPendingTerminalSetup(setup);
+			} else {
+				console.warn(
+					"[v2-launch] useEnqueueAgentLaunch: null launchRequest — nothing to enqueue",
+					{ workspaceId: args.workspaceId },
+				);
+			}
 		},
 		[addPendingTerminalSetup],
 	);

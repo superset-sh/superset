@@ -104,24 +104,62 @@ function useFireIntent(pendingId: string, pending: PendingWorkspaceRow | null) {
 			// Enqueue the V2 agent launch for fork intent. The workspace's
 			// terminal-adapter / chat-adapter picks up this pending setup when
 			// the workspace mounts.
-			if (
-				pending.intent === "fork" &&
-				result.workspace?.id &&
-				agentPresetsQuery.data
-			) {
-				try {
-					const launchRequest = await buildForkAgentLaunch({
-						pending,
-						attachments: loadedAttachments,
-						agentConfigs: agentPresetsQuery.data,
-					});
-					enqueueAgentLaunch({
-						workspaceId: result.workspace.id,
-						projectId: pending.projectId,
-						launchRequest,
-					});
-				} catch (err) {
-					console.warn("[pending-page] agent launch enqueue failed:", err);
+			if (pending.intent === "fork") {
+				if (!result.workspace?.id) {
+					console.warn(
+						"[v2-launch] skip enqueue: createWorkspace returned no workspace.id",
+					);
+				} else if (!agentPresetsQuery.data) {
+					console.warn(
+						"[v2-launch] skip enqueue: agentPresetsQuery.data not loaded yet",
+						{ status: agentPresetsQuery.status },
+					);
+				} else {
+					try {
+						console.log("[v2-launch] building fork launch…", {
+							workspaceId: result.workspace.id,
+							projectId: pending.projectId,
+							promptLength: pending.prompt?.length ?? 0,
+							linkedIssueCount: pending.linkedIssues.length,
+							linkedPR: pending.linkedPR?.url ?? null,
+							attachmentCount: loadedAttachments?.length ?? 0,
+							agentPresetCount: agentPresetsQuery.data.length,
+						});
+						const launchRequest = await buildForkAgentLaunch({
+							pending,
+							attachments: loadedAttachments,
+							agentConfigs: agentPresetsQuery.data,
+						});
+						console.log("[v2-launch] buildForkAgentLaunch returned:", {
+							kind: launchRequest?.kind ?? null,
+							agentType: launchRequest?.agentType ?? null,
+							command:
+								launchRequest?.kind === "terminal"
+									? launchRequest.terminal.command.slice(0, 200)
+									: undefined,
+							initialPrompt:
+								launchRequest?.kind === "chat"
+									? launchRequest.chat.initialPrompt?.slice(0, 200)
+									: undefined,
+							initialFiles:
+								launchRequest?.kind === "terminal"
+									? launchRequest.terminal.initialFiles?.length ?? 0
+									: launchRequest?.kind === "chat"
+										? launchRequest.chat.initialFiles?.length ?? 0
+										: 0,
+						});
+						enqueueAgentLaunch({
+							workspaceId: result.workspace.id,
+							projectId: pending.projectId,
+							launchRequest,
+						});
+						console.log("[v2-launch] enqueueAgentLaunch called", {
+							workspaceId: result.workspace.id,
+							didEnqueue: launchRequest !== null,
+						});
+					} catch (err) {
+						console.warn("[v2-launch] enqueue failed:", err);
+					}
 				}
 			}
 
