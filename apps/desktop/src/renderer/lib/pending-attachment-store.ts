@@ -1,34 +1,36 @@
+import Dexie, { type Table } from "dexie";
+
 /**
- * IndexedDB store for pending workspace attachment blobs.
- * Blobs are keyed by `${pendingId}/${index}` and stored raw (no compression).
+ * IndexedDB store for pending workspace attachment blobs. Keyed by
+ * `${pendingId}/${uuid}` so we can prefix-query all blobs belonging
+ * to a single pending row on retry or cleanup.
+ *
+ * Dexie handles transaction lifecycle — no manual tx.complete waits,
+ * no "transaction has finished" footguns.
  */
 
-const DB_NAME = "superset-pending-attachments";
-const STORE_NAME = "blobs";
-const DB_VERSION = 1;
-
 interface StoredAttachment {
+	key: string; // pendingId/uuid
 	blob: Blob;
 	mediaType: string;
 	filename: string;
 }
 
-function openDb(): Promise<IDBDatabase> {
-	return new Promise((resolve, reject) => {
-		const request = indexedDB.open(DB_NAME, DB_VERSION);
-		request.onupgradeneeded = () => {
-			const db = request.result;
-			if (!db.objectStoreNames.contains(STORE_NAME)) {
-				db.createObjectStore(STORE_NAME);
-			}
-		};
-		request.onsuccess = () => resolve(request.result);
-		request.onerror = () => reject(request.error);
-	});
+class PendingAttachmentsDb extends Dexie {
+	attachments!: Table<StoredAttachment, string>;
+
+	constructor() {
+		super("superset-pending-attachments");
+		this.version(1).stores({
+			attachments: "&key", // primary key only
+		});
+	}
 }
 
+const db = new PendingAttachmentsDb();
+
 /**
- * Store attachment blobs from the PromptInput into IndexedDB.
+ * Store attachment blobs from the PromptInput.
  * Call before closing the modal so blobs survive for retry.
  */
 export async function storeAttachments(
@@ -37,28 +39,25 @@ export async function storeAttachments(
 ): Promise<void> {
 	if (files.length === 0) return;
 
-	const db = await openDb();
-	const store = db.transaction(STORE_NAME, "readwrite").objectStore(STORE_NAME);
-
-	await Promise.all(
+	const resolved = await Promise.all(
 		files.map(async (file) => {
-			const blobId = crypto.randomUUID();
 			const response = await fetch(file.url);
+			if (!response.ok) {
+				throw new Error(
+					`Failed to fetch attachment: ${response.status} ${response.statusText}`,
+				);
+			}
 			const blob = await response.blob();
-			const value: StoredAttachment = {
+			return {
+				key: `${pendingId}/${crypto.randomUUID()}`,
 				blob,
 				mediaType: file.mediaType,
 				filename: file.filename ?? "attachment",
-			};
-			return new Promise<void>((resolve, reject) => {
-				const request = store.put(value, `${pendingId}/${blobId}`);
-				request.onsuccess = () => resolve();
-				request.onerror = () => reject(request.error);
-			});
+			} satisfies StoredAttachment;
 		}),
 	);
 
-	db.close();
+	await db.attachments.bulkPut(resolved);
 }
 
 /**
@@ -68,28 +67,11 @@ export async function storeAttachments(
 export async function loadAttachments(
 	pendingId: string,
 ): Promise<Array<{ data: string; mediaType: string; filename: string }>> {
-	const db = await openDb();
-	const store = db.transaction(STORE_NAME, "readonly").objectStore(STORE_NAME);
-
-	const entries: StoredAttachment[] = await new Promise((resolve, reject) => {
-		const prefix = `${pendingId}/`;
-		const range = IDBKeyRange.bound(prefix, `${prefix}\uffff`);
-		const request = store.openCursor(range);
-		const results: StoredAttachment[] = [];
-
-		request.onsuccess = () => {
-			const cursor = request.result;
-			if (!cursor) {
-				resolve(results);
-				return;
-			}
-			results.push(cursor.value as StoredAttachment);
-			cursor.continue();
-		};
-		request.onerror = () => reject(request.error);
-	});
-
-	db.close();
+	const prefix = `${pendingId}/`;
+	const entries = await db.attachments
+		.where("key")
+		.startsWith(prefix)
+		.toArray();
 
 	return Promise.all(
 		entries.map(async (entry) => ({
@@ -105,34 +87,15 @@ export async function loadAttachments(
  * Call on create success or dismiss.
  */
 export async function clearAttachments(pendingId: string): Promise<void> {
-	const db = await openDb();
-	const store = db.transaction(STORE_NAME, "readwrite").objectStore(STORE_NAME);
-
-	await new Promise<void>((resolve, reject) => {
-		const prefix = `${pendingId}/`;
-		const range = IDBKeyRange.bound(prefix, `${prefix}\uffff`);
-		const request = store.openCursor(range);
-
-		request.onsuccess = () => {
-			const cursor = request.result;
-			if (!cursor) {
-				resolve();
-				return;
-			}
-			cursor.delete();
-			cursor.continue();
-		};
-		request.onerror = () => reject(request.error);
-	});
-
-	db.close();
+	const prefix = `${pendingId}/`;
+	await db.attachments.where("key").startsWith(prefix).delete();
 }
 
 function blobToDataUrl(blob: Blob): Promise<string> {
 	return new Promise((resolve, reject) => {
 		const reader = new FileReader();
 		reader.onloadend = () => resolve(reader.result as string);
-		reader.onerror = () => reject(new Error("Failed to read blob"));
+		reader.onerror = () => reject(reader.error);
 		reader.readAsDataURL(blob);
 	});
 }
