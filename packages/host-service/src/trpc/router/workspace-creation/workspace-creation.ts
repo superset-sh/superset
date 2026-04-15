@@ -661,11 +661,7 @@ export const workspaceCreationRouter = router({
 			// remote). Skipped for "head" start point — no meaningful base.
 			if (startPoint.kind !== "head") {
 				await git
-					.raw([
-						"config",
-						`branch.${branchName}.base`,
-						startPoint.shortName,
-					])
+					.raw(["config", `branch.${branchName}.base`, startPoint.shortName])
 					.catch((err) => {
 						console.warn(
 							`[workspaceCreation.create] failed to record base branch ${startPoint.shortName}:`,
