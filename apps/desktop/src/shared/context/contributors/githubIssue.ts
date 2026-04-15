@@ -1,4 +1,4 @@
-import type { ContextContributor } from "../types";
+import type { ContextContributor, GitHubIssueContent } from "../types";
 
 function isNotFound(err: unknown): boolean {
 	return (
@@ -18,7 +18,7 @@ export const githubIssueContributor: ContextContributor<{
 	description: "Full issue body fetched and inlined as context.",
 	requiresQuery: true,
 	async resolve(source, ctx) {
-		let issue;
+		let issue: GitHubIssueContent;
 		try {
 			issue = await ctx.fetchIssue(source.url);
 		} catch (err) {

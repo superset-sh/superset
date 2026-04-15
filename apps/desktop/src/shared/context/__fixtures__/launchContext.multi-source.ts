@@ -11,7 +11,10 @@ import { githubPrAuthRewrite } from "./githubPr.auth-rewrite";
 import { internalTaskRefactorAuth } from "./internalTask.refactor-auth";
 
 const sources: LaunchSource[] = [
-	{ kind: "user-prompt", text: "refactor the auth middleware" },
+	{
+		kind: "user-prompt",
+		content: [{ type: "text", text: "refactor the auth middleware" }],
+	},
 	{ kind: "internal-task", id: internalTaskRefactorAuth.id },
 	{ kind: "github-issue", url: githubIssueAuthMiddleware.url },
 	{ kind: "github-issue", url: githubIssueTokenRotation.url },

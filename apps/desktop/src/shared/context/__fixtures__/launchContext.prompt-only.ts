@@ -1,7 +1,10 @@
 import type { LaunchContext, LaunchSource } from "../types";
 
 const sources: LaunchSource[] = [
-	{ kind: "user-prompt", text: "refactor the auth middleware" },
+	{
+		kind: "user-prompt",
+		content: [{ type: "text", text: "refactor the auth middleware" }],
+	},
 ];
 
 export const launchContextPromptOnly: LaunchContext = {

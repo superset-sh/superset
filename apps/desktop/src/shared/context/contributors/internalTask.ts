@@ -1,4 +1,4 @@
-import type { ContextContributor } from "../types";
+import type { ContextContributor, InternalTaskContent } from "../types";
 
 function isNotFound(err: unknown): boolean {
 	return (
@@ -18,7 +18,7 @@ export const internalTaskContributor: ContextContributor<{
 	description: "Internal task spec inlined as context.",
 	requiresQuery: true,
 	async resolve(source, ctx) {
-		let task;
+		let task: InternalTaskContent;
 		try {
 			task = await ctx.fetchInternalTask(source.id);
 		} catch (err) {

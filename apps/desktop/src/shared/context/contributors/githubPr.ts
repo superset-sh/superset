@@ -1,4 +1,4 @@
-import type { ContextContributor } from "../types";
+import type { ContextContributor, GitHubPullRequestContent } from "../types";
 
 function isNotFound(err: unknown): boolean {
 	return (
@@ -18,7 +18,7 @@ export const githubPrContributor: ContextContributor<{
 	description: "Full PR metadata fetched and inlined as context.",
 	requiresQuery: true,
 	async resolve(source, ctx) {
-		let pr;
+		let pr: GitHubPullRequestContent;
 		try {
 			pr = await ctx.fetchPullRequest(source.url);
 		} catch (err) {

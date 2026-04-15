@@ -35,7 +35,10 @@ describe("composer + default registry (integration)", () => {
 			{
 				projectId: "project-1",
 				sources: [
-					{ kind: "user-prompt", text: "refactor the auth middleware" },
+					{
+					kind: "user-prompt",
+					content: [{ type: "text", text: "refactor the auth middleware" }],
+				},
 					{ kind: "internal-task", id: internalTaskRefactorAuth.id },
 					{ kind: "github-issue", url: githubIssueAuthMiddleware.url },
 					{ kind: "github-issue", url: githubIssueTokenRotation.url },
@@ -69,7 +72,7 @@ describe("composer + default registry (integration)", () => {
 			{
 				projectId: "project-1",
 				sources: [
-					{ kind: "user-prompt", text: "hi" },
+					{ kind: "user-prompt", content: [{ type: "text", text: "hi" }] },
 					{
 						kind: "github-issue",
 						url: "https://github.com/acme/repo/issues/99999",

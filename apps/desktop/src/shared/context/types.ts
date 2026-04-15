@@ -8,7 +8,7 @@ import type { ResolvedAgentConfig } from "shared/utils/agent-settings";
  * contributor, register it.
  */
 export type LaunchSource =
-	| { kind: "user-prompt"; text: string }
+	| { kind: "user-prompt"; content: ContentPart[] }
 	| { kind: "github-issue"; url: string }
 	| { kind: "github-pr"; url: string }
 	| { kind: "internal-task"; id: string }

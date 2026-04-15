@@ -183,7 +183,7 @@ describe("buildLaunchContext", () => {
 					},
 					{ kind: "github-issue", url: "https://x/issues/1" },
 					{ kind: "internal-task", id: "T-1" },
-					{ kind: "user-prompt", text: "hi" },
+					{ kind: "user-prompt", content: [{ type: "text", text: "hi" }] },
 				],
 				agent: { id: "none" },
 			},
@@ -234,7 +234,7 @@ describe("buildLaunchContext", () => {
 		const ctx = await buildLaunchContext(
 			{
 				projectId: "p",
-				sources: [{ kind: "user-prompt", text: "hi" }],
+				sources: [{ kind: "user-prompt", content: [{ type: "text", text: "hi" }] }],
 				agent: { id: "none" },
 			},
 			{ contributors: registry({}), resolveCtx },
@@ -249,7 +249,7 @@ describe("buildLaunchContext", () => {
 				sources: [
 					{ kind: "github-issue", url: "https://x/issues/1" },
 					{ kind: "github-issue", url: "https://x/issues/2" },
-					{ kind: "user-prompt", text: "hi" },
+					{ kind: "user-prompt", content: [{ type: "text", text: "hi" }] },
 				],
 				agent: { id: "none" },
 			},
