@@ -3,9 +3,7 @@ import {
 	ContextMenuItem,
 	ContextMenuSeparator,
 } from "@superset/ui/context-menu";
-import { toast } from "@superset/ui/sonner";
-import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
-import { electronTrpcClient } from "renderer/lib/trpc-client";
+import { PathActionsMenuItems } from "../PathActionsMenuItems";
 
 interface FolderContextMenuProps {
 	absolutePath: string;
@@ -24,8 +22,6 @@ export function FolderContextMenu({
 	onRename,
 	onDelete,
 }: FolderContextMenuProps) {
-	const { copyToClipboard } = useCopyToClipboard();
-
 	return (
 		<ContextMenuContent className="w-56">
 			<ContextMenuItem onSelect={() => setTimeout(onNewFile, 0)}>
@@ -35,32 +31,10 @@ export function FolderContextMenu({
 				New Folder...
 			</ContextMenuItem>
 			<ContextMenuSeparator />
-			<ContextMenuItem
-				onSelect={() =>
-					electronTrpcClient.external.openInFinder.mutate(absolutePath)
-				}
-			>
-				Reveal in Finder
-			</ContextMenuItem>
-			<ContextMenuSeparator />
-			<ContextMenuItem
-				onSelect={async () => {
-					await copyToClipboard(absolutePath);
-					toast.success("Path copied");
-				}}
-			>
-				Copy Path
-			</ContextMenuItem>
-			{relativePath && (
-				<ContextMenuItem
-					onSelect={async () => {
-						await copyToClipboard(relativePath);
-						toast.success("Relative path copied");
-					}}
-				>
-					Copy Relative Path
-				</ContextMenuItem>
-			)}
+			<PathActionsMenuItems
+				absolutePath={absolutePath}
+				relativePath={relativePath}
+			/>
 			<ContextMenuSeparator />
 			<ContextMenuItem onSelect={() => setTimeout(onRename, 0)}>
 				Rename...
