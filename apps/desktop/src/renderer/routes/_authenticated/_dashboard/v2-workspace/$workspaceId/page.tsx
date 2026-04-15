@@ -18,7 +18,7 @@ import { useStore } from "zustand";
 import { AddTabMenu } from "./components/AddTabMenu";
 import { V2PresetsBar } from "./components/V2PresetsBar";
 import { WorkspaceEmptyState } from "./components/WorkspaceEmptyState";
-import { WorkspaceNotFoundState } from "./components/WorkspaceNotFoundState";
+import { WorkspaceNotFoundState } from "../components/WorkspaceNotFoundState";
 import { WorkspaceSidebar } from "./components/WorkspaceSidebar";
 import { useDefaultContextMenuActions } from "./hooks/useDefaultContextMenuActions";
 import { usePaneRegistry } from "./hooks/usePaneRegistry";

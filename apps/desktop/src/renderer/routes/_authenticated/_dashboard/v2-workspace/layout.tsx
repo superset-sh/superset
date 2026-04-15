@@ -10,6 +10,7 @@ import {
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
+import { WorkspaceNotFoundState } from "./components/WorkspaceNotFoundState";
 import { WorkspaceTrpcProvider } from "./providers/WorkspaceTrpcProvider";
 
 export const Route = createFileRoute("/_authenticated/_dashboard/v2-workspace")(
@@ -69,11 +70,7 @@ function V2WorkspaceLayout() {
 	}
 
 	if (!workspace || !hostUrl) {
-		return (
-			<div className="flex h-full w-full items-center justify-center text-muted-foreground">
-				Workspace not found
-			</div>
-		);
+		return <WorkspaceNotFoundState workspaceId={workspaceId} />;
 	}
 
 	return (
