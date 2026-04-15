@@ -1,6 +1,7 @@
 import { toast } from "@superset/ui/sonner";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { AUTO_UPDATE_STATUS } from "shared/auto-update";
+import { isTransientNetworkErrorMessage } from "shared/network-errors";
 import { UpdateToast } from "./UpdateToast";
 
 const UPDATE_TOAST_ID = "auto-update";
@@ -13,6 +14,14 @@ export function useUpdateListener() {
 			if (
 				status === AUTO_UPDATE_STATUS.IDLE ||
 				status === AUTO_UPDATE_STATUS.CHECKING
+			) {
+				toast.dismiss(UPDATE_TOAST_ID);
+				return;
+			}
+
+			if (
+				status === AUTO_UPDATE_STATUS.ERROR &&
+				isTransientNetworkErrorMessage(error)
 			) {
 				toast.dismiss(UPDATE_TOAST_ID);
 				return;
