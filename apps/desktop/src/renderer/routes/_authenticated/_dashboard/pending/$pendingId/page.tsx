@@ -139,8 +139,6 @@ function PendingWorkspacePage() {
 		prevPendingIdRef.current = pendingId;
 		firedRef.current = false;
 		navigatedRef.current = false;
-		// Reset render-state too so the new pending doesn't inherit the prior
-		// one's stall UI.
 		setSyncTimedOut(false);
 	}
 
@@ -219,16 +217,11 @@ function PendingWorkspacePage() {
 	const isStale =
 		pending?.status === "creating" && elapsedMs > STALE_THRESHOLD_MS;
 
-	// Hard-gate navigation on the cloud row appearing in the local collection.
-	// Navigating before sync lands us on /v2-workspace/$id where the live query
-	// resolves empty and flashes "Workspace not found". If sync stalls past
-	// SYNC_TIMEOUT_MS, surface a recoverable error instead of silently
-	// navigating into a broken page.
+	// If sync stalls past this, swap the spinner for a recoverable stall UI
+	// rather than silently navigating into "Workspace not found". syncTimedOut
+	// must stay in the deps + guard below so "Keep waiting" (which flips it
+	// false) re-arms a fresh timer instead of leaving the user stranded.
 	const SYNC_TIMEOUT_MS = 10_000;
-	// `syncTimedOut` is in the dep array so clicking "Keep waiting"
-	// (which flips it false) re-arms a fresh timer. Without this the user would
-	// land on the success branch with no action buttons and no escape if sync
-	// still doesn't arrive.
 	useEffect(() => {
 		if (
 			pending?.status !== "succeeded" ||
