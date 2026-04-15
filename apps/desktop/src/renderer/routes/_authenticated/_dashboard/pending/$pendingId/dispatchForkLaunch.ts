@@ -44,6 +44,13 @@ export async function dispatchForkLaunch({
 	activeHostUrl,
 	onApplyToRow,
 }: DispatchForkLaunchInputs): Promise<void> {
+	console.log("[v2-launch] dispatchForkLaunch: start", {
+		workspaceId,
+		projectId: pending.projectId,
+		attachmentCount: loadedAttachments?.length ?? 0,
+		agentConfigCount: agentConfigs.length,
+	});
+
 	let build: Awaited<ReturnType<typeof buildForkAgentLaunch>>;
 	try {
 		build = await buildForkAgentLaunch({
@@ -56,10 +63,28 @@ export async function dispatchForkLaunch({
 		return;
 	}
 
-	if (!build) return;
+	console.log("[v2-launch] dispatchForkLaunch: built", {
+		kind: build?.kind ?? null,
+		terminalCommand:
+			build?.kind === "terminal"
+				? build.launch.command.slice(0, 120)
+				: undefined,
+		chatPrompt:
+			build?.kind === "chat"
+				? build.launch.initialPrompt?.slice(0, 120)
+				: undefined,
+		attachmentsToWrite:
+			build?.kind === "terminal" ? build.attachmentsToWrite.length : 0,
+	});
+
+	if (!build) {
+		console.warn("[v2-launch] dispatchForkLaunch: buildForkAgentLaunch returned null — no launch");
+		return;
+	}
 
 	if (build.kind === "chat") {
 		onApplyToRow({ chatLaunch: build.launch });
+		console.log("[v2-launch] dispatchForkLaunch: chatLaunch applied to row");
 		return;
 	}
 
@@ -83,6 +108,9 @@ export async function dispatchForkLaunch({
 	}
 
 	onApplyToRow({ terminalLaunch: build.launch });
+	console.log("[v2-launch] dispatchForkLaunch: terminalLaunch applied to row", {
+		workspaceId,
+	});
 }
 
 function resolveHostUrl(

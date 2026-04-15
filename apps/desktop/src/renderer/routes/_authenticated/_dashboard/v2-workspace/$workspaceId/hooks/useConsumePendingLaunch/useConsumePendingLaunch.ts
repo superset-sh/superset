@@ -59,15 +59,35 @@ export function useConsumePendingLaunch({
 	);
 
 	useEffect(() => {
-		if (!pending) return;
+		if (!pending) {
+			console.log("[v2-launch] useConsumePendingLaunch: no pending row yet", {
+				workspaceId,
+			});
+			return;
+		}
 
 		const terminalKey = pending.terminalLaunch
 			? `${pending.id}:terminal`
 			: null;
 		const chatKey = pending.chatLaunch ? `${pending.id}:chat` : null;
 
+		console.log("[v2-launch] useConsumePendingLaunch: tick", {
+			workspaceId,
+			pendingId: pending.id,
+			status: pending.status,
+			hasTerminalLaunch: !!pending.terminalLaunch,
+			hasChatLaunch: !!pending.chatLaunch,
+			terminalConsumed: terminalKey
+				? consumedRef.current.has(terminalKey)
+				: null,
+			chatConsumed: chatKey ? consumedRef.current.has(chatKey) : null,
+		});
+
 		if (terminalKey && !consumedRef.current.has(terminalKey)) {
 			consumedRef.current.add(terminalKey);
+			console.log("[v2-launch] useConsumePendingLaunch: consuming terminal", {
+				command: pending.terminalLaunch?.command.slice(0, 120),
+			});
 			void consumeTerminalLaunch({
 				pending,
 				store,
@@ -78,13 +98,14 @@ export function useConsumePendingLaunch({
 
 		if (chatKey && !consumedRef.current.has(chatKey)) {
 			consumedRef.current.add(chatKey);
+			console.log("[v2-launch] useConsumePendingLaunch: consuming chat");
 			consumeChatLaunch({
 				pending,
 				store,
 				clear: () => updateRow({ chatLaunch: null }),
 			});
 		}
-	}, [pending, store, updateRow]);
+	}, [pending, store, updateRow, workspaceId]);
 }
 
 async function consumeTerminalLaunch({
@@ -103,9 +124,20 @@ async function consumeTerminalLaunch({
 	clear: () => void;
 }): Promise<void> {
 	const launch = pending.terminalLaunch;
-	if (!launch || !pending.workspaceId) return;
+	if (!launch || !pending.workspaceId) {
+		console.warn("[v2-launch] consumeTerminalLaunch: bailing", {
+			hasLaunch: !!launch,
+			hasWorkspaceId: !!pending.workspaceId,
+		});
+		return;
+	}
 
 	const terminalId = crypto.randomUUID();
+	console.log("[v2-launch] consumeTerminalLaunch: ensureSession", {
+		terminalId,
+		workspaceId: pending.workspaceId,
+		commandPreview: launch.command.slice(0, 120),
+	});
 
 	try {
 		await ensureSession({
@@ -114,11 +146,12 @@ async function consumeTerminalLaunch({
 			initialCommand: launch.command,
 		});
 	} catch (err) {
-		console.warn("[v2-launch] terminal ensureSession failed:", err);
+		console.warn("[v2-launch] consumeTerminalLaunch: ensureSession failed:", err);
 		return;
 	}
 
 	const data: TerminalPaneData = { terminalId };
+	console.log("[v2-launch] consumeTerminalLaunch: addTab", { terminalId });
 	store.getState().addTab({
 		panes: [
 			{
@@ -129,6 +162,7 @@ async function consumeTerminalLaunch({
 		],
 	});
 	clear();
+	console.log("[v2-launch] consumeTerminalLaunch: done + cleared");
 }
 
 function consumeChatLaunch({
@@ -153,6 +187,10 @@ function consumeChatLaunch({
 		},
 	};
 
+	console.log("[v2-launch] consumeChatLaunch: addTab", {
+		hasPrompt: !!launch.initialPrompt,
+		fileCount: launch.initialFiles?.length ?? 0,
+	});
 	store.getState().addTab({
 		panes: [
 			{
@@ -162,4 +200,5 @@ function consumeChatLaunch({
 		],
 	});
 	clear();
+	console.log("[v2-launch] consumeChatLaunch: done + cleared");
 }
