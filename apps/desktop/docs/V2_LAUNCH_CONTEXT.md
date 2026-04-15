@@ -189,6 +189,60 @@ bun run scripts/demo-launch-spec.ts claude       # just claude
   adapters. For remote host support, host-service needs its own
   `executeAgentLaunch` mirror.
 
+## Known footguns to revisit (post-testing cleanup)
+
+Caught during manual testing, not currently biting us, but worth
+fixing before the dispatch rewrite is considered done:
+
+1. **Deep solve for binary transport.** Current fix for the
+   `PromptInput` blob-URL revoke race (commit 33730ff01) honors the
+   library's contract — uses the `message.files` passed into
+   `onSubmit` (already converted to data URLs) instead of re-reading
+   provider state. Works correctly but still transports bytes as
+   base64 strings across layers. The deep solve is to flow `File` /
+   `Blob` objects end-to-end; URLs stay pure UI preview concerns.
+   Library-level change to `@superset/ui/ai-elements/prompt-input`
+   (`FileUIPart & { file: File }` through the provider) + downstream
+   `ChatLaunchConfig.initialFiles: { file: Blob, ... }[]` + bytes
+   branch for `workspaceTrpc.filesystem.writeFile`. Touches V1, V2,
+   chat, and every consumer — deliberate staged PR, not a quick fix.
+
+2. **Reload-mid-launch spawns a second PTY.** `consumeTerminalLaunch`
+   calls `crypto.randomUUID()` for `terminalId` each time it fires. If
+   the user reloads the app between `terminalLaunch` being applied to
+   the pending row and the consume clearing it, the fresh consume
+   generates a new terminalId and calls `ensureSession` again — first
+   PTY orphaned, second one created. Fix: store the `terminalId` on
+   `PendingTerminalLaunch` itself (generate once in `dispatchForkLaunch`);
+   `ensureSession` becomes idempotent on repeat consumes.
+
+3. **Silent failure in the consume hook.** `ensureSession` /
+   `addTab` failures `console.warn` and return — user sees no pane
+   open and no error UI. Wrap in try/toast with the error message.
+   Low urgency while `[v2-launch]` debug logs are present; becomes
+   visible when those are removed.
+
+4. **`joinPath` assumes POSIX separators.** Fine on Mac/Linux hosts
+   where the worktree paths come from. When remote-host launch lands
+   (phase 5) and we get Windows hosts, this breaks. Swap for a
+   proper cross-platform join (or just use `path-browserify`).
+
+5. **Schema coupling between old and new IDB stores.** Dexie opened
+   the hand-rolled store's existing DB (`superset-pending-attachments`,
+   version 1) transparently. Any future schema change (indices,
+   migration) requires bumping the Dexie version and writing a
+   migration step.
+
+6. **`PendingTerminalLaunch.attachmentNames` is populated but never
+   read by the consume hook.** Currently informational. Either drop
+   the field, or use it for a UI "files attached" hint in the
+   workspace-creation success toast.
+
+7. **Remove the `[v2-launch]` debug logs** from `dispatchForkLaunch`,
+   `useConsumePendingLaunch`, and `useSubmitWorkspace` once the
+   end-to-end flow is stable. Replace with a single structured
+   `captureEvent` call at the pane-opened milestone.
+
 ## Follow-ups (roughly in priority order)
 
 0. **Rewrite dispatch to pending-row-as-bus** (blocking phase-1 ship —
