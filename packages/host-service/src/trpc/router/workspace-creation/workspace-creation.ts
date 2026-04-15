@@ -656,11 +656,14 @@ export const workspaceCreationRouter = router({
 					: startPointArg,
 			]);
 
-			// Enable autoSetupRemote per-worktree so the first terminal
-			// `git push` creates origin/<branchName> and sets it as upstream
-			// without requiring `-u`. Safe because --no-track above guarantees
-			// no upstream exists yet, so auto-create always wins and always
-			// uses the branch's own name (never the base branch).
+			// Enable autoSetupRemote so the first terminal `git push` creates
+			// origin/<branchName> and sets it as upstream without requiring
+			// `-u`. Note: `--local` in a linked worktree writes to the shared
+			// repo config, so this applies repo-wide — intentional, every
+			// workspace worktree wants the same ergonomics. Safe against
+			// wrong-upstream targeting because --no-track above guarantees no
+			// upstream exists at first push, so auto-create always wins and
+			// always uses the branch's own name (never the base branch).
 			await git
 				.raw([
 					"-C",
@@ -950,6 +953,8 @@ export const workspaceCreationRouter = router({
 			// local-only branch creates origin/<branch> without requiring -u.
 			// Branches checked out from a remote already have upstream set
 			// via --track above, so this config is a no-op for them.
+			// `--local` in a linked worktree writes to the shared repo config,
+			// so this applies repo-wide — intentional.
 			await git
 				.raw([
 					"-C",

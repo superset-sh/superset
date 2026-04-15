@@ -29,6 +29,10 @@ export function useGitStatus(workspaceId: string) {
 
 	const invalidate = useCallback(() => {
 		void utils.git.getStatus.invalidate({ workspaceId });
+		// Current branch may have changed (external checkout), and
+		// branch.<name>.base is per-branch — drop the cache so the next read
+		// picks up the new branch's base.
+		void utils.git.getBaseBranch.invalidate({ workspaceId });
 	}, [utils, workspaceId]);
 
 	useWorkspaceEvent("git:changed", workspaceId, invalidate);
