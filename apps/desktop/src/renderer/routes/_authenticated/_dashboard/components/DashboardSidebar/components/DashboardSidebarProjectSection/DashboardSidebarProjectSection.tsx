@@ -2,7 +2,6 @@ import type {
 	DraggableAttributes,
 	DraggableSyntheticListeners,
 } from "@dnd-kit/core";
-import { cn } from "@superset/ui/utils";
 import { AnimatePresence, motion } from "framer-motion";
 import { useMemo } from "react";
 import type { DashboardSidebarProject } from "../../types";
@@ -69,7 +68,7 @@ export function DashboardSidebarProjectSection({
 				onRemoveFromSidebar={confirmRemoveFromSidebar}
 				onRename={startRename}
 			>
-				<div className={cn("border-b border-border last:border-b-0")}>
+				<div>
 					<DashboardSidebarCollapsedProjectContent
 						projectName={project.name}
 						githubOwner={project.githubOwner}
@@ -86,7 +85,7 @@ export function DashboardSidebarProjectSection({
 	}
 
 	return (
-		<div className={cn("border-b border-border last:border-b-0")}>
+		<div>
 			<DashboardSidebarProjectContextMenu
 				onCreateSection={handleNewSection}
 				onOpenInFinder={handleOpenInFinder}
@@ -97,6 +96,7 @@ export function DashboardSidebarProjectSection({
 				<DashboardSidebarProjectRow
 					projectName={project.name}
 					githubOwner={project.githubOwner}
+					githubRepoName={project.githubRepoName}
 					totalWorkspaceCount={totalWorkspaceCount}
 					isCollapsed={project.isCollapsed}
 					isRenaming={isRenaming}

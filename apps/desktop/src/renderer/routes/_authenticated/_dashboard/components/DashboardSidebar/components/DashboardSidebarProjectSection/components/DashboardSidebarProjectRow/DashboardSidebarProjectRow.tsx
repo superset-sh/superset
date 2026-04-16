@@ -2,13 +2,13 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { type ComponentPropsWithoutRef, forwardRef } from "react";
 import { HiChevronRight, HiMiniPlus } from "react-icons/hi2";
-import { ProjectThumbnail } from "renderer/routes/_authenticated/components/ProjectThumbnail";
 import { RenameInput } from "renderer/screens/main/components/WorkspaceSidebar/RenameInput";
 
 interface DashboardSidebarProjectRowProps
 	extends ComponentPropsWithoutRef<"div"> {
 	projectName: string;
 	githubOwner: string | null;
+	githubRepoName?: string | null;
 	totalWorkspaceCount: number;
 	isCollapsed: boolean;
 	isRenaming: boolean;
@@ -29,6 +29,7 @@ export const DashboardSidebarProjectRow = forwardRef<
 		{
 			projectName,
 			githubOwner,
+			githubRepoName,
 			totalWorkspaceCount,
 			isCollapsed,
 			isRenaming,
@@ -63,42 +64,45 @@ export const DashboardSidebarProjectRow = forwardRef<
 							}
 				}
 				className={cn(
-					"group flex min-h-10 w-full items-center pl-3 pr-2 py-1.5 text-sm font-medium",
-					"hover:bg-muted/50 transition-colors",
+					"group relative flex h-7 w-full items-center pl-4 pr-2 transition-colors",
 					className,
 				)}
 				{...props}
 			>
-				<div className="flex min-w-0 flex-1 items-center gap-2 py-0.5">
-					<div className="relative shrink-0 size-5 flex items-center justify-center">
-						<span className="group-hover:opacity-0 transition-opacity duration-150">
-							<ProjectThumbnail
-								projectName={projectName}
-								githubOwner={githubOwner}
-								className="size-4"
-							/>
-						</span>
-						<HiChevronRight
-							className={cn(
-								"absolute inset-0 m-auto size-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-all duration-150",
-								!isCollapsed && "rotate-90",
-							)}
-						/>
-					</div>
+				<HiChevronRight
+					className={cn(
+						"absolute left-0.5 top-1/2 size-3 -translate-y-1/2 text-muted-foreground/60 opacity-0 transition-all duration-150 group-hover:opacity-100",
+						!isCollapsed && "rotate-90",
+					)}
+				/>
+				<div className="flex min-w-0 flex-1 items-center gap-2">
 					{isRenaming ? (
 						<RenameInput
 							value={renameValue}
 							onChange={onRenameValueChange}
 							onSubmit={onSubmitRename}
 							onCancel={onCancelRename}
-							className="-ml-1 h-6 min-w-0 flex-1 bg-transparent border-none px-1 py-0 text-sm font-medium outline-none"
+							className="h-5 min-w-0 flex-1 bg-transparent border-none px-0 py-0 text-[14px] font-normal tracking-normal outline-none"
 						/>
 					) : (
-						<span className="truncate">{projectName}</span>
+						<span className="truncate text-[14px] font-normal lowercase tracking-normal">
+							{githubOwner ? (
+								<>
+									<span className="text-muted-foreground/60">
+										{githubOwner}/
+									</span>
+									<span className="text-foreground/80">
+										{githubRepoName ?? projectName.toLowerCase()}
+									</span>
+								</>
+							) : (
+								<span className="text-foreground/80">{projectName}</span>
+							)}
+						</span>
 					)}
 					{!isRenaming && (
-						<span className="shrink-0 text-xs font-normal tabular-nums text-muted-foreground">
-							({totalWorkspaceCount})
+						<span className="shrink-0 text-[10px] font-normal tabular-nums text-muted-foreground/40 transition-opacity group-hover:opacity-0">
+							{totalWorkspaceCount}
 						</span>
 					)}
 				</div>
@@ -112,9 +116,9 @@ export const DashboardSidebarProjectRow = forwardRef<
 								onNewWorkspace();
 							}}
 							onContextMenu={(event) => event.stopPropagation()}
-							className="p-1 rounded hover:bg-muted transition-colors shrink-0 ml-1"
+							className="ml-1 shrink-0 rounded p-0.5 text-muted-foreground/60 opacity-0 transition hover:bg-muted hover:text-foreground group-hover:opacity-100"
 						>
-							<HiMiniPlus className="size-4 text-muted-foreground" />
+							<HiMiniPlus className="size-3.5" />
 						</button>
 					</TooltipTrigger>
 					<TooltipContent side="bottom" sideOffset={4}>

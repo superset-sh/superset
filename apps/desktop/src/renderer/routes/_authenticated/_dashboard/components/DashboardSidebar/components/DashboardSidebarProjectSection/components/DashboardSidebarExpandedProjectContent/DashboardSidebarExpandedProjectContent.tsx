@@ -60,7 +60,7 @@ export function DashboardSidebarExpandedProjectContent({
 					transition={{ duration: 0.15, ease: "easeOut" }}
 					className="overflow-hidden"
 				>
-					<div className="pb-1">
+					<div>
 						<DndContext
 							sensors={sensors}
 							collisionDetection={collisionDetection}

@@ -134,7 +134,7 @@ export function DashboardSidebar({
 		<div className="flex h-full flex-col border-r border-border bg-muted/45 dark:bg-muted/35">
 			<DashboardSidebarHeader isCollapsed={isCollapsed} />
 
-			<div className="flex-1 overflow-y-auto hide-scrollbar">
+			<div className="flex flex-1 flex-col gap-3 overflow-y-auto hide-scrollbar pt-3">
 				<DndContext
 					sensors={sensors}
 					collisionDetection={closestCenter}
