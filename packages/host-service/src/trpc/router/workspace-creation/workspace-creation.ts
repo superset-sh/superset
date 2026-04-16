@@ -9,6 +9,7 @@ import { projects, workspaces } from "../../../db/schema";
 import { createTerminalSessionInternal } from "../../../terminal/terminal";
 import type { HostServiceContext } from "../../../types";
 import { protectedProcedure, router } from "../../index";
+import { generateBranchNameFromPrompt } from "./utils/ai-branch-name";
 import { resolveStartPoint } from "./utils/resolve-start-point";
 import { deduplicateBranchName } from "./utils/sanitize-branch";
 
@@ -269,6 +270,48 @@ export const workspaceCreationRouter = router({
 					hasWorkspace: localWorkspaceBranches.has(b.name),
 				})),
 			};
+		}),
+
+	generateBranchName: protectedProcedure
+		.input(z.object({ projectId: z.string(), prompt: z.string() }))
+		.mutation(async ({ ctx, input }) => {
+			const trimmed = input.prompt.trim();
+			if (!trimmed) return { branchName: null };
+
+			const localProject = ctx.db.query.projects
+				.findFirst({ where: eq(projects.id, input.projectId) })
+				.sync();
+			if (!localProject) return { branchName: null };
+
+			const git = await ctx.git(localProject.repoPath);
+			let existingBranches: string[] = [];
+			try {
+				const raw = await git.raw([
+					"for-each-ref",
+					"--format=%(refname:short)",
+					"refs/heads/",
+					"refs/remotes/origin/",
+				]);
+				const names = new Set<string>();
+				for (const line of raw.trim().split("\n").filter(Boolean)) {
+					let name = line;
+					if (name.startsWith("origin/")) name = name.slice("origin/".length);
+					if (name === "HEAD") continue;
+					names.add(name);
+				}
+				existingBranches = Array.from(names);
+			} catch (error) {
+				console.warn(
+					"[generateBranchName] failed to list branches, proceeding without conflict checking:",
+					error,
+				);
+			}
+
+			const branchName = await generateBranchNameFromPrompt(
+				trimmed,
+				existingBranches,
+			);
+			return { branchName };
 		}),
 
 	/**
