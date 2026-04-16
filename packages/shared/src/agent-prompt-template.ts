@@ -32,10 +32,13 @@ function substituteOwnProperties(
 	template: string,
 	variables: Record<string, string>,
 ): string {
-	return template.replace(/\{\{\s*([^}]+?)\s*\}\}/g, (match, rawKey: string) => {
-		const key = rawKey.trim();
-		return Object.hasOwn(variables, key) ? variables[key] : match;
-	});
+	return template.replace(
+		/\{\{\s*([^}]+?)\s*\}\}/g,
+		(match, rawKey: string) => {
+			const key = rawKey.trim();
+			return Object.hasOwn(variables, key) ? variables[key] : match;
+		},
+	);
 }
 
 // ---------------------------------------------------------------------------

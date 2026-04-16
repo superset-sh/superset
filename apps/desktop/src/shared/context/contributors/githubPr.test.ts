@@ -61,8 +61,9 @@ describe("githubPrContributor", () => {
 			{ kind: "github-pr", url: PR.url },
 			makeCtx(async () => ({ ...PR, body: "" })),
 		);
-		expect(section?.content).toEqual([
-			{ type: "text", text: `# ${PR.title}\n\nBranch: \`${PR.branch}\`` },
-		]);
+		const text = (section?.content[0] as { type: "text"; text: string }).text;
+		expect(text).toContain(`# PR #${PR.number} — ${PR.title}`);
+		expect(text).toContain("checked out");
+		expect(text).not.toContain("Replaces"); // body not present
 	});
 });
