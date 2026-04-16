@@ -30,7 +30,7 @@ export async function generateBranchNameFromPrompt(
 	prompt: string,
 	existingBranches: string[],
 ): Promise<string | null> {
-	const model = await getSmallModel();
+	const model = getSmallModel();
 	if (!model) return null;
 
 	let generated: string | null;

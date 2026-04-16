@@ -34,7 +34,7 @@ export async function generateWorkspaceNameFromPrompt(prompt: string): Promise<{
 	usedPromptFallback: boolean;
 	warning?: string;
 }> {
-	const model = await getSmallModel();
+	const model = getSmallModel();
 	if (model) {
 		try {
 			const generated = await generateTitleFromMessage({

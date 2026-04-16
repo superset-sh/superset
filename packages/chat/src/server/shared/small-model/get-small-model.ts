@@ -1,56 +1,88 @@
-import type { LanguageModel } from "@mastra/core/llm";
-import { createAuthStorage, createMastraCode } from "mastracode";
+import { createAnthropic } from "@ai-sdk/anthropic";
+import { createOpenAI } from "@ai-sdk/openai";
+import { createAuthStorage } from "mastracode";
 
-const ANTHROPIC_SMALL_MODEL_ID = "anthropic/claude-haiku-4-5-20251001";
-const OPENAI_SMALL_MODEL_ID = "openai/gpt-4o-mini";
+const ANTHROPIC_SMALL_MODEL_ID = "claude-haiku-4-5-20251001";
+const OPENAI_SMALL_MODEL_ID = "gpt-4o-mini";
 
 const ANTHROPIC_AUTH_PROVIDER_ID = "anthropic";
 const OPENAI_AUTH_PROVIDER_ID = "openai";
 
-type MastraCodeRuntime = Awaited<ReturnType<typeof createMastraCode>>;
-type ResolveModel = MastraCodeRuntime["resolveModel"];
+type AuthStorageLike = {
+	reload: () => void;
+	getStoredApiKey: (providerId: string) => string | undefined;
+};
 
-let resolverPromise: Promise<ResolveModel> | null = null;
-
-function getResolver(): Promise<ResolveModel> {
-	if (!resolverPromise) {
-		resolverPromise = createMastraCode({
-			disableMcp: true,
-			disableHooks: true,
-		}).then((runtime) => runtime.resolveModel);
+function safeAuthStorage(): AuthStorageLike | null {
+	try {
+		const storage = createAuthStorage() as AuthStorageLike;
+		storage.reload();
+		return storage;
+	} catch (error) {
+		console.warn("[getSmallModel] failed to load auth storage:", error);
+		return null;
 	}
-	return resolverPromise;
 }
 
-function pickSmallModelId(): string | null {
-	const authStorage = createAuthStorage();
-	authStorage.reload();
-	const hasAnthropicApiKey = !!(
-		process.env.ANTHROPIC_API_KEY ||
-		authStorage.hasStoredApiKey(ANTHROPIC_AUTH_PROVIDER_ID)
+function resolveApiKey(
+	envVar: string | undefined,
+	storage: AuthStorageLike | null,
+	providerId: string,
+): string | null {
+	const env = envVar?.trim();
+	if (env) return env;
+	const stored = storage?.getStoredApiKey(providerId)?.trim();
+	return stored && stored.length > 0 ? stored : null;
+}
+
+/**
+ * Returns an AI-SDK `LanguageModel` for small-model tasks (branch naming,
+ * title generation). Tries Anthropic first, falls back to OpenAI. Returns
+ * `null` if no credentials are available.
+ *
+ * Currently supports API keys only (env or stored). OAuth-only users (Claude
+ * Max, OpenAI Codex) fall back to `null`; callers should degrade gracefully
+ * (e.g. skip AI naming and use a prompt-derived title).
+ *
+ * Returned as `unknown` so callers can pass it to Mastra Agent without
+ * coupling this shared module to @mastra/core typing.
+ */
+export function getSmallModel(): unknown | null {
+	const storage = safeAuthStorage();
+
+	const anthropicKey = resolveApiKey(
+		process.env.ANTHROPIC_API_KEY,
+		storage,
+		ANTHROPIC_AUTH_PROVIDER_ID,
 	);
-	const hasAnthropicOAuth = authStorage.isLoggedIn(ANTHROPIC_AUTH_PROVIDER_ID);
-	if (hasAnthropicApiKey || hasAnthropicOAuth) {
-		return ANTHROPIC_SMALL_MODEL_ID;
+	if (anthropicKey) {
+		return createAnthropic({ apiKey: anthropicKey })(ANTHROPIC_SMALL_MODEL_ID);
 	}
-	const hasOpenAIApiKey = !!(
-		process.env.OPENAI_API_KEY ||
-		authStorage.hasStoredApiKey(OPENAI_AUTH_PROVIDER_ID)
+
+	const openaiKey = resolveApiKey(
+		process.env.OPENAI_API_KEY,
+		storage,
+		OPENAI_AUTH_PROVIDER_ID,
 	);
-	const hasOpenAIOAuth = authStorage.isLoggedIn(OPENAI_AUTH_PROVIDER_ID);
-	if (hasOpenAIApiKey || hasOpenAIOAuth) {
-		return OPENAI_SMALL_MODEL_ID;
+	if (openaiKey) {
+		return createOpenAI({ apiKey: openaiKey }).chat(OPENAI_SMALL_MODEL_ID);
 	}
+
 	return null;
 }
 
-export async function getSmallModel(): Promise<LanguageModel | null> {
-	const modelId = pickSmallModelId();
-	if (!modelId) return null;
-	const resolveModel = await getResolver();
-	return resolveModel(modelId) as LanguageModel;
-}
-
 export function hasSmallModelCredentials(): boolean {
-	return pickSmallModelId() !== null;
+	const storage = safeAuthStorage();
+	return (
+		resolveApiKey(
+			process.env.ANTHROPIC_API_KEY,
+			storage,
+			ANTHROPIC_AUTH_PROVIDER_ID,
+		) !== null ||
+		resolveApiKey(
+			process.env.OPENAI_API_KEY,
+			storage,
+			OPENAI_AUTH_PROVIDER_ID,
+		) !== null
+	);
 }
