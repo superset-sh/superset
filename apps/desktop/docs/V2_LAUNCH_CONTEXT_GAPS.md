@@ -1,196 +1,202 @@
 # V2 Launch Context — Body-Fetching Gaps
 
-Companion to `V2_LAUNCH_CONTEXT.md`. Tracks the remaining work to make
-linked issues / PRs / tasks actually useful to the agent.
+Companion to `V2_LAUNCH_CONTEXT.md`. Tracks remaining work to make
+linked issues / PRs / tasks useful to the agent.
 
-## Current state (manual-test observation 2026-04-15)
+## Current state (2026-04-15)
 
-Claude receives titles only — no issue bodies, no PR descriptions, no
-task specs. The prompt looks like:
+Claude receives titles only — no bodies:
 
 ```
 <user prompt>
+
 # <task title>
+
 # <issue title>
-# <PR title>
-Branch: ``
+
+# PR #<n> — <pr title>
+Branch `<branch>` is checked out in this workspace — commits you make continue this PR.
+
+# Attached files
+...
 - .superset/attachments/<file>
 ```
 
-Per section:
+Bodies are empty because `buildResolveCtxFromPending` stubs return
+empty strings. The pipeline otherwise works end-to-end.
 
-- **User prompt** — ✓ works.
-- **Attachment files** — ✓ bytes written to worktree, path refs inline.
-- **Linked issues** — ✗ title only, body empty.
-- **Linked PRs** — ✗ title only, body empty, branch empty.
-- **Linked internal tasks** — ✗ title only, description empty.
+## Design decisions (locked)
 
-## Why — the resolver stubs
+1. **Inline in prompt.** Bodies go directly into the prompt via
+   `{{issues}}` / `{{prs}}` / `{{tasks}}` template variables. No file
+   writes for linked context. Only user-uploaded attachments write to
+   `.superset/attachments/`.
+2. **PR checkout is true.** The fork-from-PR flow checks out the PR's
+   head branch. Prompt says so.
+3. **No body truncation** (or very high cap, e.g. 200 KB/source). Modern
+   context windows are large. Don't cap aggressively.
+4. **No sanitization.** Prompt goes into a heredoc with a random
+   delimiter (no shell injection). Agent reads raw text, no HTML parser
+   downstream. V1's entity escaping was unnecessary.
+5. **Attachments framing.** The `{{attachments}}` block includes a short
+   header cueing the agent to read the files. Just paths; agent handles
+   the rest.
+6. **Issue/PR comments.** Defer. Note in the follow-ups.
+7. **Per-agent framing.** Don't over-engineer. Give the path; agent
+   figures it out.
 
-`buildForkAgentLaunch.ts` → `buildResolveCtxFromPending` fakes the
-three fetchers by reading **only** what the pending row already carries
-(`title`, `url`, `number`, `slug`). The pending row is populated at
-modal-submit time from linked-issue picker results, which also only
-carry metadata. No network fetch happens anywhere in the V2 path.
+## Work plan
 
-## How V1 did it (issues only)
+### 1. Host-service `getIssueContent`
 
-`apps/desktop/src/renderer/components/NewWorkspaceModal/components/PromptGroup/PromptGroup.tsx:834-944`.
+Add to `workspaceCreation` router (same GitHub auth path as
+`searchGitHubIssues`):
 
-1. Electron-IPC call `utils.client.projects.getIssueContent.query({ projectId, issueNumber })`.
-2. Returns full `{ number, title, body, url, state, author, createdAt, updatedAt }`.
-3. HTML-entity sanitize + URL protocol validation.
-4. 50 KB body truncation.
-5. Formatted as markdown; encoded as base64 data URL.
-6. Attached as a **file** named `github-issue-<n>.md` (not inlined in
-   the prompt text).
+```ts
+getIssueContent: protectedProcedure
+  .input(z.object({ projectId: z.string(), issueNumber: z.number() }))
+  .query(async ({ ctx, input }) => {
+    const repo = await resolveGithubRepo(ctx, input.projectId);
+    const octokit = await ctx.github();
+    const { data } = await octokit.issues.get({
+      owner: repo.owner, repo: repo.name, issue_number: input.issueNumber,
+    });
+    return {
+      number: data.number,
+      title: data.title,
+      body: data.body ?? "",
+      url: data.html_url,
+      state: data.state,
+      author: data.user?.login ?? null,
+    };
+  }),
+```
 
-V1 did **not** fetch PR bodies or task descriptions — same gap as V2
-for those kinds.
+### 2. Host-service `getPullRequestContent`
 
-## Constraints for V2
+Same router, wraps `octokit.pulls.get`:
 
-- **No Electron IPC.** `electronTrpc.projects.getIssueContent` is off-
-  limits. We talk to host-service over HTTP via
-  `getHostServiceClientByUrl(hostUrl)` in the pending page /
-  dispatchForkLaunch.
-- **Same sanitization rules apply.** HTML entities, URL protocols,
-  50 KB truncation, sanitize author strings.
-- **Same output shape options.** Either attach as a
-  `github-issue-<n>.md` file (V1 parity) or inline the body into the
-  prompt via the existing `{{issues}}` / `{{prs}}` / `{{tasks}}`
-  template variables.
+```ts
+getPullRequestContent: protectedProcedure
+  .input(z.object({ projectId: z.string(), prNumber: z.number() }))
+  .query(async ({ ctx, input }) => {
+    const repo = await resolveGithubRepo(ctx, input.projectId);
+    const octokit = await ctx.github();
+    const { data } = await octokit.pulls.get({
+      owner: repo.owner, repo: repo.name, pull_number: input.prNumber,
+    });
+    return {
+      number: data.number,
+      title: data.title,
+      body: data.body ?? "",
+      url: data.html_url,
+      state: data.state,
+      branch: data.head.ref,
+      baseBranch: data.base.ref,
+      author: data.user?.login ?? null,
+    };
+  }),
+```
 
-## Proposed fixes
+### 3. Internal-task body source
 
-### 1. Add host-service body-fetch procedures
+Find the API for task details. V1 uses Electron IPC; V2 has
+collections in the task view (live-query from cloud). Options:
 
-Host-service already has `searchGitHubIssues` + `searchPullRequests`
-returning metadata only. Extend to include body endpoints:
+- `apiTrpcClient.tasks.get.query({ id })` if such a procedure exists.
+- Read from the existing `collections.tasks` live-query data (already
+  in renderer memory from the task view).
+- Host-service proxies the Superset API.
 
-- `workspaceCreation.getIssueContent({ projectId, issueNumber })`
-  → `{ number, title, body, url, state, author, createdAt, updatedAt }`.
-  Thin wrapper over `octokit.issues.get(...)`. Mirror V1's response shape.
-- `workspaceCreation.getPullRequestContent({ projectId, prNumber })`
-  → `{ number, title, body, url, state, author, createdAt, updatedAt, branch, headSha, baseBranch, isDraft }`.
-  Wraps `octokit.pulls.get(...)`. Includes `branch` which V2 doesn't
-  currently have.
-- `workspaceCreation.getInternalTaskContent({ projectId, taskId })`
-  → `{ id, slug, title, description, acceptanceCriteria?, status, labels }`.
-  Uses whatever internal task API the app already talks to (likely via
-  `apiTrpcClient`, not host-service). If the task source lives on the
-  Superset API server rather than host-service, wire it through there
-  instead — host-service shouldn't need to re-proxy.
+Need to inspect the task view's data source to find the right shape.
+The pending row already has `{ id, slug, title }` from the picker;
+the missing field is `description` (and potentially
+`acceptanceCriteria`, `comments`, `labels`).
 
-### 2. Replace the stubs in `buildForkAgentLaunch.ts`
+### 4. Swap stubs in `buildResolveCtxFromPending`
 
-`buildResolveCtxFromPending` currently returns empty bodies. Swap
-its three fetchers for real calls:
+`apps/desktop/src/renderer/routes/_authenticated/_dashboard/pending/$pendingId/buildForkAgentLaunch.ts`
+
+Replace the three fake fetchers in `buildResolveCtxFromPending` with
+real calls to host-service via `getHostServiceClientByUrl(hostUrl)`:
 
 ```ts
 fetchIssue: async (url) => {
-  // parse number out of the url (we have the pending row's number too)
-  const { data } = await client.workspaceCreation.getIssueContent.query({
-    projectId,
-    issueNumber,
+  const match = pending.linkedIssues.find(i => i.url === url);
+  if (!match?.number) throw notFound(url);
+  const data = await client.workspaceCreation.getIssueContent.query({
+    projectId: pending.projectId,
+    issueNumber: match.number,
   });
   return {
     number: data.number,
     url: data.url,
     title: data.title,
-    body: sanitizeAndTruncate(data.body, 50_000),
-    slug: data.slug ?? slugify(data.title),
+    body: data.body,
+    slug: match.slug,
   };
 },
 ```
 
-Same shape for PR and task. Errors → return current pending-row fallback
-so the launch degrades to title-only instead of failing outright.
+Same pattern for PR (using `match.prNumber`) and task (using task API).
 
-### 3. Decide — attach as file vs inline in prompt
+### 5. Pass `hostUrl` to `buildForkAgentLaunch`
 
-V1 attaches as `github-issue-<n>.md`; our V2 pipeline currently inlines
-via the `{{issues}}` / `{{prs}}` / `{{tasks}}` template variables.
+Currently the function doesn't have the host-service client. Thread
+`hostUrl` (or the client itself) through `BuildForkAgentLaunchInputs`
+so the resolvers can make real calls.
 
-| | Inline (current V2) | Attach as file (V1) |
-|---|---|---|
-| Prompt length | Grows with bodies | Stays small |
-| Agent discovery | Automatic (in prompt) | Agent must read file |
-| Token caching | Harder to hit | Better: file path is stable |
-| File list on disk | Only real attachments | Every linked thing |
-| User clarity | See content in prompt | Just a file ref |
-
-Recommendation: **inline for phase 1, add attach-as-file for phase 2**
-(as a user setting or agent-config flag). Inline is simpler, matches
-the current template structure, and makes body-fetching immediately
-useful.
-
-### 4. Fix the pending-row schema for PR branch
-
-`PendingLinkedPR` schema in the dashboard-sidebar schema has no
-`branch` field. Host-service's `searchPullRequests` doesn't return it
-either — current consumers don't need it. Either:
-- Add `branch` to the pending-row schema + populate at link-add time
-  from a second PR-detail API call.
-- Or derive it at dispatch time by calling
-  `getPullRequestContent` (now we'd fetch for a different reason too).
-
-The second option is less work — we already need the body fetch.
-
-### 5. Sanitization helpers
-
-Port V1's `sanitizeText` / `sanitizeUrl` / 50-KB-truncate into a shared
-util and use from the dispatch path. Don't reinvent per-contributor.
-
-Probably lives at `packages/shared/src/text-sanitize.ts` (used by host-
-service + renderer).
-
-## Order of work
-
-1. **Host-service `getIssueContent` procedure** — smallest,
-   most-visible win. Drop-in for existing `searchGitHubIssues` auth
-   path. Ship that, wire the stub replacement, and body content starts
-   flowing.
-2. **Host-service `getPullRequestContent`** — same pattern. Unblocks
-   the empty `Branch:` line.
-3. **Internal-task body source** — depends on where tasks live
-   (Superset API? separate service?). Scope out before committing to a
-   shape.
-4. **Sanitization shared util** — required for #1 and #2 but can land
-   with whichever ships first.
-5. **Attach-as-file mode** — optional, user/agent-config setting.
-   Deferred to phase 2.
-
-## Acceptance criteria
-
-After this work, a multi-source launch (prompt + task + 2 issues +
-PR + attachment) should render a prompt like:
+## Target prompt (after fixes)
 
 ```
 <user prompt>
 
-# Task <id> — <title>
-<description>
+# Task TASK-42 — Refactor auth middleware
 
-# Issue #<n> — <title>
-**URL:** ...  **State:** open  **Author:** ...
-<body, up to 50 KB>
+Split session-token storage from request handling so we can encrypt
+at rest. Keep the public API shape stable.
 
-# Issue #<m> — <title>
-...
+Acceptance criteria:
+- Sessions encrypted at rest
+- No public-API shape change
+- Migration for existing sessions
 
-# PR #<p> — <title>
-**Branch:** `feature/xyz`  **Base:** main
-<body>
+# Issue #123 — Auth middleware stores tokens in plaintext
 
-- .superset/attachments/<file>
+Legal flagged this. Sessions written to disk without encryption. We
+need to move to an encrypted KV before the compliance deadline.
+
+The token-issuance path sets kid=k_primary but the active signing
+key rotated to k_2026q1 last quarter. Decrypt falls back to
+legacy plaintext which is the compliance violation...
+
+# PR #200 — Rewrite auth middleware
+
+Branch `fix/auth-encryption` is checked out in this workspace —
+commits you make continue this PR.
+
+Replaces plaintext token storage with encrypted KV. Migrates
+existing sessions on first request...
+
+# Attached files
+
+The user attached these files alongside the prompt. They've been
+written into the worktree at `.superset/attachments/`. Read them
+to understand the request.
+
+- .superset/attachments/trace.log
+- .superset/attachments/notes.md
 ```
 
-No placeholder empty `Branch: ` lines. No naked titles without bodies.
+## Sequence
 
-## Out of scope
+1. `getIssueContent` host-service procedure + stub swap → issue bodies flow.
+2. `getPullRequestContent` procedure + stub swap → PR bodies + branch.
+3. Task body source (scope the API first).
+4. Thread `hostUrl` into `buildForkAgentLaunch` inputs.
 
-- Comments on issues/PRs (V1 didn't fetch them either).
-- Diff content for linked PRs (agent can `gh pr diff` itself).
-- Cross-repo linked PRs (already handled by
-  `normalizeGitHubQuery.repoMismatch` at search time).
+## Deferred
+
+- Issue/PR comments (phase 2).
+- Body truncation (revisit if agents hit context limits in practice).
+- Attach-as-file mode (not needed; inline works).
