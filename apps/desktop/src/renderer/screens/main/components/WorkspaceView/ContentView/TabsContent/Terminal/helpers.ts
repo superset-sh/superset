@@ -23,6 +23,7 @@ import {
 	DEFAULT_THEME_ID,
 	getTerminalColors,
 } from "shared/themes";
+import { refreshTerminalRenderer } from "renderer/lib/terminal/terminal-renderer";
 import {
 	shouldBubbleClipboardShortcut,
 	shouldSelectAllShortcut,
@@ -99,6 +100,7 @@ export function createTerminalInWrapper(options: CreateTerminalOptions = {}): {
 	searchAddon: SearchAddon;
 	wrapper: HTMLDivElement;
 	linkManager: TerminalLinkManager;
+	refreshRenderer: () => void;
 	cleanup: () => void;
 } {
 	const {
@@ -120,6 +122,7 @@ export function createTerminalInWrapper(options: CreateTerminalOptions = {}): {
 
 	let disposed = false;
 	let webglAddon: WebglAddon | null = null;
+	const refreshRenderer = () => refreshTerminalRenderer(xterm, webglAddon);
 
 	// Open into a detached wrapper div — not the live container.
 	const wrapper = document.createElement("div");
@@ -148,7 +151,7 @@ export function createTerminalInWrapper(options: CreateTerminalOptions = {}): {
 			webglAddon.onContextLoss(() => {
 				webglAddon?.dispose();
 				webglAddon = null;
-				xterm.refresh(0, xterm.rows - 1);
+				refreshRenderer();
 			});
 			xterm.loadAddon(webglAddon);
 		} catch {
@@ -216,6 +219,7 @@ export function createTerminalInWrapper(options: CreateTerminalOptions = {}): {
 		searchAddon,
 		wrapper,
 		linkManager,
+		refreshRenderer,
 		cleanup: () => {
 			disposed = true;
 			cancelAnimationFrame(rafId);

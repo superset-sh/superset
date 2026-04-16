@@ -21,6 +21,7 @@ export interface CachedTerminal {
 	fitAddon: FitAddon;
 	searchAddon: SearchAddon;
 	wrapper: HTMLDivElement;
+	refreshRenderer: () => void;
 	/** Disposes renderer RAF, query suppression, GPU renderer, etc. */
 	cleanupCreation: () => void;
 	/** Last known dimensions — used to skip no-op resize events. */
@@ -75,7 +76,7 @@ export function getOrCreate(
 		console.log(`[v1-terminal-cache] Creating new terminal: ${paneId}`);
 	}
 
-	const { xterm, fitAddon, searchAddon, wrapper, cleanup } =
+	const { xterm, fitAddon, searchAddon, wrapper, refreshRenderer, cleanup } =
 		createTerminalInWrapper(options);
 
 	const entry: CachedTerminal = {
@@ -83,6 +84,7 @@ export function getOrCreate(
 		fitAddon,
 		searchAddon,
 		wrapper,
+		refreshRenderer,
 		cleanupCreation: cleanup,
 		subscription: null,
 		streamReady: false,
@@ -117,8 +119,8 @@ export function attachToContainer(
 		entry.lastRows = entry.xterm.rows;
 	}
 
-	// Renderer may have skipped frames while the wrapper was detached.
-	entry.xterm.refresh(0, Math.max(0, entry.xterm.rows - 1));
+	// Renderer may have skipped frames while the wrapper was detached or occluded.
+	entry.refreshRenderer();
 
 	// Manage ResizeObserver lifecycle in the cache, not in React.
 	entry.resizeObserver?.disconnect();
@@ -129,6 +131,7 @@ export function attachToContainer(
 		entry.fitAddon.fit();
 		entry.lastCols = entry.xterm.cols;
 		entry.lastRows = entry.xterm.rows;
+		entry.refreshRenderer();
 		if (entry.lastCols !== prevCols || entry.lastRows !== prevRows) {
 			onResize?.();
 		}
@@ -178,6 +181,7 @@ export function updateAppearance(
 	fitAddon.fit();
 	entry.lastCols = xterm.cols;
 	entry.lastRows = xterm.rows;
+	entry.refreshRenderer();
 
 	return {
 		cols: xterm.cols,

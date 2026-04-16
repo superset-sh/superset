@@ -6,10 +6,12 @@ import { SearchAddon } from "@xterm/addon-search";
 import { Unicode11Addon } from "@xterm/addon-unicode11";
 import { WebglAddon } from "@xterm/addon-webgl";
 import type { Terminal as XTerm } from "@xterm/xterm";
+import { refreshTerminalRenderer } from "./terminal-renderer";
 
 export interface LoadAddonsResult {
 	searchAddon: SearchAddon;
 	progressAddon: ProgressAddon;
+	refreshRenderer: () => void;
 	dispose: () => void;
 }
 
@@ -24,6 +26,7 @@ let suggestedRendererType: "webgl" | "dom" | undefined;
 export function loadAddons(terminal: XTerm): LoadAddonsResult {
 	let disposed = false;
 	let webglAddon: WebglAddon | null = null;
+	const refreshRenderer = () => refreshTerminalRenderer(terminal, webglAddon);
 
 	terminal.loadAddon(new ClipboardAddon());
 
@@ -51,7 +54,7 @@ export function loadAddons(terminal: XTerm): LoadAddonsResult {
 			webglAddon.onContextLoss(() => {
 				webglAddon?.dispose();
 				webglAddon = null;
-				terminal.refresh(0, terminal.rows - 1);
+				refreshRenderer();
 			});
 			terminal.loadAddon(webglAddon);
 		} catch {
@@ -63,6 +66,7 @@ export function loadAddons(terminal: XTerm): LoadAddonsResult {
 	return {
 		searchAddon,
 		progressAddon,
+		refreshRenderer,
 		dispose: () => {
 			disposed = true;
 			cancelAnimationFrame(rafId);

@@ -34,6 +34,7 @@ export interface TerminalRuntime {
 	resizeObserver: ResizeObserver | null;
 	lastCols: number;
 	lastRows: number;
+	_refreshRenderer: (() => void) | null;
 	_disposeAddons: (() => void) | null;
 }
 
@@ -167,6 +168,7 @@ export function createRuntime(
 		resizeObserver: null,
 		lastCols: cols,
 		lastRows: rows,
+		_refreshRenderer: addonsResult.refreshRenderer,
 		_disposeAddons: addonsResult.dispose,
 	};
 }
@@ -180,12 +182,13 @@ export function attachToContainer(
 	container.appendChild(runtime.wrapper);
 	measureAndResize(runtime);
 
-	// Renderer may have skipped frames while the wrapper was detached.
-	runtime.terminal.refresh(0, runtime.terminal.rows - 1);
+	// Renderer may have skipped frames while the wrapper was detached or occluded.
+	runtime._refreshRenderer?.();
 
 	runtime.resizeObserver?.disconnect();
 	const observer = new ResizeObserver(() => {
 		measureAndResize(runtime);
+		runtime._refreshRenderer?.();
 		onResize?.();
 	});
 	observer.observe(container);
@@ -221,6 +224,7 @@ export function updateRuntimeAppearance(
 			fitAddon.fit();
 			runtime.lastCols = terminal.cols;
 			runtime.lastRows = terminal.rows;
+			runtime._refreshRenderer?.();
 		}
 	}
 }
@@ -228,6 +232,7 @@ export function updateRuntimeAppearance(
 export function disposeRuntime(runtime: TerminalRuntime) {
 	runtime._disposeAddons?.();
 	runtime._disposeAddons = null;
+	runtime._refreshRenderer = null;
 	runtime.resizeObserver?.disconnect();
 	runtime.resizeObserver = null;
 	runtime.wrapper.remove();
