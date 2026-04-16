@@ -18,13 +18,24 @@ export function renderPromptTemplate(
 	template: string,
 	variables: Record<string, string>,
 ): string {
-	return template
-		.replace(/\{\{\s*([^}]+?)\s*\}\}/g, (match, rawKey: string) => {
-			const key = rawKey.trim();
-			return variables[key] ?? match;
-		})
+	return substituteOwnProperties(template, variables)
 		.replace(/\n{3,}/g, "\n\n")
 		.trim();
+}
+
+/**
+ * Placeholder substitution that only reads OWN properties of the
+ * variables object. Prevents `{{toString}}` and other inherited
+ * property names from resolving through the prototype chain.
+ */
+function substituteOwnProperties(
+	template: string,
+	variables: Record<string, string>,
+): string {
+	return template.replace(/\{\{\s*([^}]+?)\s*\}\}/g, (match, rawKey: string) => {
+		const key = rawKey.trim();
+		return Object.hasOwn(variables, key) ? variables[key] : match;
+	});
 }
 
 // ---------------------------------------------------------------------------
@@ -79,12 +90,16 @@ function getTaskPromptVariables(task: TaskInput): TaskPromptVariables {
 /**
  * Shim preserved so the existing task-run flow keeps working unchanged.
  * New callers should prefer `renderPromptTemplate` directly.
+ *
+ * Matches V1 semantics exactly: own-property substitution + trim.
+ * Does NOT apply the generic's 3+-newline collapse pass — task
+ * templates may rely on intentional blank lines.
  */
 export function renderTaskPromptTemplate(
 	template: string,
 	task: TaskInput,
 ): string {
-	return renderPromptTemplate(template, getTaskPromptVariables(task));
+	return substituteOwnProperties(template, getTaskPromptVariables(task)).trim();
 }
 
 export function getSupportedTaskPromptVariables(): AgentTaskPromptVariable[] {

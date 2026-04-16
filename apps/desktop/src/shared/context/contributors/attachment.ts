@@ -22,7 +22,6 @@ export const attachmentContributor: ContextContributor<{
 		return {
 			id: `attachment:${file.filename ?? "unnamed"}`,
 			kind: "attachment",
-			scope: "user",
 			label: file.filename ?? "attachment",
 			content: [part],
 		};

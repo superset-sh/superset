@@ -8,7 +8,7 @@ import type {
 	LaunchSourceKind,
 } from "./types";
 
-const USER_PROMPT_PLACEHOLDER = "{{userPrompt}}";
+const USER_PROMPT_PLACEHOLDER_RE = /\{\{\s*userPrompt\s*\}\}/;
 const PLACEHOLDER_RE = /\{\{\s*([^}]+?)\s*\}\}/g;
 
 /**
@@ -77,13 +77,15 @@ function renderUserTemplate(
 	userPromptParts: ContentPart[],
 	nonUserVariables: Record<string, string>,
 ): ContentPart[] {
-	const splitIndex = template.indexOf(USER_PROMPT_PLACEHOLDER);
+	// Whitespace-tolerant split on {{userPrompt}} / {{ userPrompt }} / etc.
+	const match = template.match(USER_PROMPT_PLACEHOLDER_RE);
+	const splitIndex = match?.index ?? -1;
 	const [beforeRaw, afterRaw] =
-		splitIndex === -1
+		splitIndex === -1 || !match
 			? ["", template]
 			: [
 					template.slice(0, splitIndex),
-					template.slice(splitIndex + USER_PROMPT_PLACEHOLDER.length),
+					template.slice(splitIndex + match[0].length),
 				];
 
 	const beforeText = substituteVariables(beforeRaw, nonUserVariables);
@@ -114,7 +116,7 @@ function substituteVariables(
 ): string {
 	return template.replace(PLACEHOLDER_RE, (match, rawKey: string) => {
 		const key = rawKey.trim();
-		return variables[key] ?? match;
+		return Object.hasOwn(variables, key) ? variables[key] : match;
 	});
 }
 

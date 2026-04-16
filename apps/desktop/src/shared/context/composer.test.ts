@@ -34,14 +34,12 @@ function registry(
 		"user-prompt": makeContributor("user-prompt", async (s) => ({
 			id: "user-prompt",
 			kind: "user-prompt",
-			scope: "user",
 			label: "Prompt",
 			content: s.content,
 		})),
 		"github-issue": makeContributor("github-issue", async (s) => ({
 			id: `issue:${s.url}`,
 			kind: "github-issue",
-			scope: "user",
 			label: s.url,
 			content: [{ type: "text", text: s.url }],
 			meta: { url: s.url, taskSlug: `slug-${s.url}` },
@@ -49,7 +47,6 @@ function registry(
 		"github-pr": makeContributor("github-pr", async (s) => ({
 			id: `pr:${s.url}`,
 			kind: "github-pr",
-			scope: "user",
 			label: s.url,
 			content: [{ type: "text", text: s.url }],
 			meta: { url: s.url },
@@ -57,7 +54,6 @@ function registry(
 		"internal-task": makeContributor("internal-task", async (s) => ({
 			id: `task:${s.id}`,
 			kind: "internal-task",
-			scope: "user",
 			label: s.id,
 			content: [{ type: "text", text: s.id }],
 			meta: { taskSlug: `task-slug-${s.id}` },
@@ -65,7 +61,6 @@ function registry(
 		attachment: makeContributor("attachment", async (s) => ({
 			id: `attachment:${s.file.filename ?? "unnamed"}`,
 			kind: "attachment",
-			scope: "user",
 			label: s.file.filename ?? "attachment",
 			content: [
 				{
@@ -124,7 +119,6 @@ describe("buildLaunchContext", () => {
 						return {
 							id: `issue:${s.url}`,
 							kind: "github-issue",
-							scope: "user",
 							label: s.url,
 							content: [{ type: "text", text: s.url }],
 						};
@@ -249,7 +243,6 @@ describe("buildLaunchContext", () => {
 						return {
 							id: `issue:${s.url}`,
 							kind: "github-issue",
-							scope: "user",
 							label: s.url,
 							content: [{ type: "text", text: s.url }],
 						};

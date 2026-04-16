@@ -23,7 +23,6 @@ describe("attachmentContributor", () => {
 			resolveCtx,
 		);
 		expect(section?.kind).toBe("attachment");
-		expect(section?.scope).toBe("user");
 		expect(section?.label).toBe("notes.txt");
 		expect(section?.content).toEqual([
 			{

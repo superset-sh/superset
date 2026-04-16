@@ -40,7 +40,6 @@ describe("githubPrContributor", () => {
 		expect(section).toEqual({
 			id: `pr:${PR.number}`,
 			kind: "github-pr",
-			scope: "user",
 			label: `PR #${PR.number} — ${PR.title}`,
 			content: [
 				{

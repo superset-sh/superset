@@ -45,17 +45,12 @@ export type ContentPart =
 /**
  * A resolved contribution from a single source. Every contributor
  * produces one of these (or null on non-fatal failure).
- *
- * `scope` decides whether this lands in the cacheable system portion of
- * the final launch spec or in the per-launch user portion.
  */
 export interface ContextSection {
 	id: string; // stable, e.g. "issue:123"
 	kind: LaunchSourceKind;
-	scope: "system" | "user";
 	label: string;
 	content: ContentPart[];
-	cacheControl?: "ephemeral";
 	meta?: {
 		taskSlug?: string;
 		url?: string;

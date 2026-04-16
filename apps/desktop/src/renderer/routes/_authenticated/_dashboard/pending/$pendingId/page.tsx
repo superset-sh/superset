@@ -54,7 +54,7 @@ function useFireIntent(pendingId: string, pending: PendingWorkspaceRow | null) {
 	const createWorkspace = useCreateDashboardWorkspace();
 	const checkoutWorkspace = useCheckoutDashboardWorkspace();
 	const adoptWorktree = useAdoptWorktree();
-	const agentPresetsQuery = electronTrpc.settings.getAgentPresets.useQuery();
+	const trpcUtils = electronTrpc.useUtils();
 	const { activeHostUrl } = useLocalHostService();
 
 	return useCallback(async () => {
@@ -109,16 +109,18 @@ function useFireIntent(pendingId: string, pending: PendingWorkspaceRow | null) {
 			// plan and stash it on the pending row. The V2 workspace page's
 			// useConsumePendingLaunch mount-effect picks it up and opens the
 			// pane. See apps/desktop/docs/V2_LAUNCH_CONTEXT.md.
-			if (
-				pending.intent === "fork" &&
-				result.workspace?.id &&
-				agentPresetsQuery.data
-			) {
+			//
+			// Fetch agent configs imperatively here rather than reading from
+			// a useQuery hook — a not-yet-resolved query would silently skip
+			// the dispatch, permanently losing the launch for a successful
+			// workspace create.
+			if (pending.intent === "fork" && result.workspace?.id) {
+				const agentConfigs = await trpcUtils.settings.getAgentPresets.fetch();
 				await dispatchForkLaunch({
 					workspaceId: result.workspace.id,
 					pending,
 					loadedAttachments,
-					agentConfigs: agentPresetsQuery.data,
+					agentConfigs,
 					activeHostUrl,
 					onApplyToRow: (patch) => {
 						collections.pendingWorkspaces.update(pendingId, (draft) => {
@@ -154,7 +156,7 @@ function useFireIntent(pendingId: string, pending: PendingWorkspaceRow | null) {
 		adoptWorktree,
 		pending,
 		pendingId,
-		agentPresetsQuery.data,
+		trpcUtils,
 		activeHostUrl,
 	]);
 }

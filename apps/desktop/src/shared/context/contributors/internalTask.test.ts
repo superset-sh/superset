@@ -39,7 +39,6 @@ describe("internalTaskContributor", () => {
 		expect(section).toEqual({
 			id: `task:${TASK.id}`,
 			kind: "internal-task",
-			scope: "user",
 			label: `Task ${TASK.id} — ${TASK.title}`,
 			content: [
 				{

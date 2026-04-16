@@ -31,7 +31,6 @@ export const githubIssueContributor: ContextContributor<{
 		return {
 			id: `issue:${issue.number}`,
 			kind: "github-issue",
-			scope: "user",
 			label: `Issue #${issue.number} — ${issue.title}`,
 			content: [{ type: "text", text }],
 			meta: { url: issue.url, taskSlug: issue.slug },

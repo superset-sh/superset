@@ -57,7 +57,6 @@ export const userPromptContributor: ContextContributor<{
 		return {
 			id: "user-prompt",
 			kind: "user-prompt",
-			scope: "user",
 			label: "Prompt",
 			content,
 		};

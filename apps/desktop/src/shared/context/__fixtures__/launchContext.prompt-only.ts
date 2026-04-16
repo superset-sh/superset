@@ -14,7 +14,6 @@ export const launchContextPromptOnly: LaunchContext = {
 		{
 			id: "user-prompt",
 			kind: "user-prompt",
-			scope: "user",
 			label: "Prompt",
 			content: [{ type: "text", text: "refactor the auth middleware" }],
 		},

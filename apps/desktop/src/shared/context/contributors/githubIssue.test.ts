@@ -40,7 +40,6 @@ describe("githubIssueContributor", () => {
 		expect(section).toEqual({
 			id: `issue:${ISSUE.number}`,
 			kind: "github-issue",
-			scope: "user",
 			label: `Issue #${ISSUE.number} — ${ISSUE.title}`,
 			content: [
 				{

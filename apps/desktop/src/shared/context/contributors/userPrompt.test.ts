@@ -23,7 +23,6 @@ describe("userPromptContributor", () => {
 		expect(section).toEqual({
 			id: "user-prompt",
 			kind: "user-prompt",
-			scope: "user",
 			label: "Prompt",
 			content: [{ type: "text", text: "refactor the auth middleware" }],
 		});

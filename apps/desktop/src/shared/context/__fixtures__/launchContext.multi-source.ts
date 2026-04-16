@@ -30,14 +30,12 @@ export const launchContextMultiSource: LaunchContext = {
 		{
 			id: "user-prompt",
 			kind: "user-prompt",
-			scope: "user",
 			label: "Prompt",
 			content: [{ type: "text", text: "refactor the auth middleware" }],
 		},
 		{
 			id: `task:${internalTaskRefactorAuth.id}`,
 			kind: "internal-task",
-			scope: "user",
 			label: `Task ${internalTaskRefactorAuth.id} — ${internalTaskRefactorAuth.title}`,
 			content: [
 				{
@@ -50,7 +48,6 @@ export const launchContextMultiSource: LaunchContext = {
 		{
 			id: `issue:${githubIssueAuthMiddleware.number}`,
 			kind: "github-issue",
-			scope: "user",
 			label: `Issue #${githubIssueAuthMiddleware.number} — ${githubIssueAuthMiddleware.title}`,
 			content: [
 				{
@@ -66,7 +63,6 @@ export const launchContextMultiSource: LaunchContext = {
 		{
 			id: `issue:${githubIssueTokenRotation.number}`,
 			kind: "github-issue",
-			scope: "user",
 			label: `Issue #${githubIssueTokenRotation.number} — ${githubIssueTokenRotation.title}`,
 			content: [
 				{
@@ -82,7 +78,6 @@ export const launchContextMultiSource: LaunchContext = {
 		{
 			id: `pr:${githubPrAuthRewrite.number}`,
 			kind: "github-pr",
-			scope: "user",
 			label: `PR #${githubPrAuthRewrite.number} — ${githubPrAuthRewrite.title}`,
 			content: [
 				{
@@ -95,7 +90,6 @@ export const launchContextMultiSource: LaunchContext = {
 		{
 			id: "attachment:logs.txt",
 			kind: "attachment",
-			scope: "user",
 			label: "logs.txt",
 			content: [
 				{
@@ -109,7 +103,6 @@ export const launchContextMultiSource: LaunchContext = {
 		{
 			id: "attachment:screenshot.png",
 			kind: "attachment",
-			scope: "user",
 			label: "screenshot.png",
 			content: [
 				{

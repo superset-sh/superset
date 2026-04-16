@@ -52,7 +52,6 @@ describe("buildLaunchSpec", () => {
 					{
 						id: "user-prompt",
 						kind: "user-prompt",
-						scope: "user",
 						label: "Prompt",
 						content: [{ type: "text", text: "hello" }],
 					},
@@ -68,7 +67,6 @@ describe("buildLaunchSpec", () => {
 		const section = {
 			id: "user-prompt",
 			kind: "user-prompt" as const,
-			scope: "user" as const,
 			label: "Prompt",
 			content: [
 				{ type: "text" as const, text: "refactor the auth middleware" },
@@ -98,7 +96,6 @@ describe("buildLaunchSpec", () => {
 					{
 						id: "user-prompt",
 						kind: "user-prompt",
-						scope: "user",
 						label: "Prompt",
 						content: [{ type: "text", text: "hi" }],
 					},
@@ -116,14 +113,12 @@ describe("buildLaunchSpec", () => {
 					{
 						id: "user-prompt",
 						kind: "user-prompt",
-						scope: "user",
 						label: "Prompt",
 						content: [{ type: "text", text: "refactor" }],
 					},
 					{
 						id: "issue:123",
 						kind: "github-issue",
-						scope: "user",
 						label: "Issue #123 — Auth",
 						content: [
 							{
@@ -149,21 +144,18 @@ describe("buildLaunchSpec", () => {
 					{
 						id: "user-prompt",
 						kind: "user-prompt",
-						scope: "user",
 						label: "Prompt",
 						content: [{ type: "text", text: "plan" }],
 					},
 					{
 						id: "task:T-1",
 						kind: "internal-task",
-						scope: "user",
 						label: "Task T-1",
 						content: [{ type: "text", text: "# T-1\n\nOne." }],
 					},
 					{
 						id: "task:T-2",
 						kind: "internal-task",
-						scope: "user",
 						label: "Task T-2",
 						content: [{ type: "text", text: "# T-2\n\nTwo." }],
 					},
@@ -184,14 +176,12 @@ describe("buildLaunchSpec", () => {
 					{
 						id: "user-prompt",
 						kind: "user-prompt",
-						scope: "user",
 						label: "Prompt",
 						content: [{ type: "text", text: "fix the bug" }],
 					},
 					{
 						id: "attachment:logs.txt",
 						kind: "attachment",
-						scope: "user",
 						label: "logs.txt",
 						content: [
 							{
@@ -205,7 +195,6 @@ describe("buildLaunchSpec", () => {
 					{
 						id: "attachment:screen.png",
 						kind: "attachment",
-						scope: "user",
 						label: "screen.png",
 						content: [
 							{ type: "image", data: PNG_BYTES, mediaType: "image/png" },
@@ -230,7 +219,6 @@ describe("buildLaunchSpec", () => {
 					{
 						id: "user-prompt",
 						kind: "user-prompt",
-						scope: "user",
 						label: "Prompt",
 						content: [
 							{ type: "text", text: "see this:" },
@@ -269,7 +257,6 @@ describe("buildLaunchSpec", () => {
 					{
 						id: "user-prompt",
 						kind: "user-prompt",
-						scope: "user",
 						label: "Prompt",
 						content: [
 							{ type: "text", text: "check this log:" },
@@ -300,7 +287,6 @@ describe("buildLaunchSpec", () => {
 					{
 						id: "issue:1",
 						kind: "github-issue",
-						scope: "user",
 						label: "Issue #1",
 						content: [{ type: "text", text: "# Issue\n\nbody" }],
 					},
@@ -429,7 +415,6 @@ Replaces plaintext token storage with encrypted KV.
 					{
 						id: "user-prompt",
 						kind: "user-prompt",
-						scope: "user",
 						label: "Prompt",
 						content: [{ type: "text", text: "hi" }],
 					},
