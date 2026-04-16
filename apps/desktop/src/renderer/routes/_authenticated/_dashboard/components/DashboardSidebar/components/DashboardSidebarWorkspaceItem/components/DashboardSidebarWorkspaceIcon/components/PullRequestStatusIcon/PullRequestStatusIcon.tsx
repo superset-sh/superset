@@ -5,7 +5,7 @@ import {
 	GitPullRequestClosed,
 	GitPullRequestDraft,
 } from "lucide-react";
-import type { DashboardSidebarWorkspacePullRequest } from "../../../../../../types";
+import type { DashboardSidebarWorkspacePullRequest } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/types";
 
 interface PullRequestStatusIconProps {
 	pr: DashboardSidebarWorkspacePullRequest;

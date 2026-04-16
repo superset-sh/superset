@@ -2,13 +2,13 @@ import { cn } from "@superset/ui/utils";
 import { CircleDot } from "lucide-react";
 import { HiExclamationTriangle } from "react-icons/hi2";
 import { LuCloud, LuLaptop } from "react-icons/lu";
-import { AsciiSpinner } from "renderer/screens/main/components/AsciiSpinner";
-import { StatusIndicator } from "renderer/screens/main/components/StatusIndicator";
-import type { ActivePaneStatus } from "shared/tabs-types";
 import type {
 	DashboardSidebarWorkspaceHostType,
 	DashboardSidebarWorkspacePullRequest,
-} from "../../../../types";
+} from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/types";
+import { AsciiSpinner } from "renderer/screens/main/components/AsciiSpinner";
+import { StatusIndicator } from "renderer/screens/main/components/StatusIndicator";
+import type { ActivePaneStatus } from "shared/tabs-types";
 import { PullRequestStatusIcon } from "./components/PullRequestStatusIcon";
 
 interface DashboardSidebarWorkspaceIconProps {
