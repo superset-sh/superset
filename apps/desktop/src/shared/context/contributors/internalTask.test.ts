@@ -40,7 +40,7 @@ describe("internalTaskContributor", () => {
 		expect(section?.label).toBe(`Task ${TASK.id} — ${TASK.title}`);
 		const text = (section?.content[0] as { type: "text"; text: string }).text;
 		expect(text).toContain(`# Task ${TASK.id} — ${TASK.title}`);
-		expect(text).toContain(TASK.description!);
+		if (TASK.description) expect(text).toContain(TASK.description);
 		expect(section?.meta).toEqual({ taskSlug: TASK.slug });
 	});
 

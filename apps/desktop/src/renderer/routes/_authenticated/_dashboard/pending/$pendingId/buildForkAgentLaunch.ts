@@ -44,10 +44,7 @@ export interface BuildForkAgentLaunchInputs {
 	hostServiceClient?: {
 		workspaceCreation: {
 			getGitHubIssueContent: {
-				query: (input: {
-					projectId: string;
-					issueNumber: number;
-				}) => Promise<{
+				query: (input: { projectId: string; issueNumber: number }) => Promise<{
 					number: number;
 					title: string;
 					body: string;
@@ -57,10 +54,7 @@ export interface BuildForkAgentLaunchInputs {
 				}>;
 			};
 			getGitHubPullRequestContent: {
-				query: (input: {
-					projectId: string;
-					prNumber: number;
-				}) => Promise<{
+				query: (input: { projectId: string; prNumber: number }) => Promise<{
 					number: number;
 					title: string;
 					body: string;
@@ -105,11 +99,10 @@ export type PendingLaunchBuild =
  * to disk). Returns null for no-op launches (e.g. no sources, no agent
  * enabled).
  *
- * Phase 1 note: issue / PR / task bodies are not fetched over HTTP yet
- * (host-service lacks a body endpoint). The resolver returns empty
- * bodies — the agent sees title/URL/task-slug metadata only. When
- * host-service grows getIssueContent / getPullRequestContent /
- * getInternalTaskContent, swap the resolver stubs here.
+ * When `hostServiceClient` is passed in, issues and PRs get full bodies
+ * fetched via host-service. Internal tasks get descriptions fetched via
+ * the cloud API (apiTrpcClient.task.byId). Either fetch failing
+ * degrades to title-only from the pending row — non-fatal.
  */
 export async function buildForkAgentLaunch(
 	inputs: BuildForkAgentLaunchInputs,
