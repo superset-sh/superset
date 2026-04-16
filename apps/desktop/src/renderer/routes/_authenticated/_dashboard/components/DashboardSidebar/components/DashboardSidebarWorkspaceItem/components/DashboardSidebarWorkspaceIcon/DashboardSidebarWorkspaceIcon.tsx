@@ -35,7 +35,7 @@ function PullRequestStatusIcon({
 }: {
 	pr: DashboardSidebarWorkspacePullRequest;
 }) {
-	const className = "size-3.5";
+	const className = "size-4";
 	const strokeWidth = 1.75;
 	if (pr.state === "merged") {
 		return (

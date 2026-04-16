@@ -92,7 +92,7 @@ export const DashboardSidebarProjectRow = forwardRef<
 										{githubOwner}/
 									</span>
 									<span className="text-foreground/80">
-										{githubRepoName ?? projectName.toLowerCase()}
+										{githubRepoName ?? projectName}
 									</span>
 								</>
 							) : (
