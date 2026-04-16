@@ -57,7 +57,7 @@ export async function buildLaunchContext(
 
 	return {
 		projectId: inputs.projectId,
-		sources: inputs.sources,
+		sources: deduped,
 		sections,
 		failures,
 		taskSlug: deriveTaskSlug(sections),
