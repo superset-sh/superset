@@ -43,12 +43,19 @@ export function PullRequestStatusIcon({
 			/>
 		);
 	}
+	// Open PR color by review decision:
+	// - approved          → bright emerald (good to go)
+	// - changes_requested → amber (needs author attention)
+	// - pending           → sky blue (waiting on reviewers)
+	// - null (no review)  → soft emerald (open, fresh)
 	const openColor =
 		pr.reviewDecision === "approved"
 			? "text-emerald-400/80"
 			: pr.reviewDecision === "changes_requested"
 				? "text-amber-400/80"
-				: "text-emerald-400/70";
+				: pr.reviewDecision === "pending"
+					? "text-sky-400/70"
+					: "text-emerald-400/70";
 	return (
 		<GitPullRequest
 			className={cn(baseClass, openColor)}
