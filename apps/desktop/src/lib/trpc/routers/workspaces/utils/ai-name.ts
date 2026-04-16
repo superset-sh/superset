@@ -45,17 +45,12 @@ export async function generateWorkspaceNameFromPrompt(prompt: string): Promise<{
 				instructions: "You generate concise workspace titles.",
 				tracingContext: { surface: "workspace-auto-name" },
 			});
-			console.info("[workspace-ai-name] model returned", { raw: generated });
 			if (generated !== null && generated !== undefined) {
 				return { name: generated, usedPromptFallback: false };
 			}
 		} catch (error) {
 			console.error("[workspace-ai-name] title generation failed", error);
 		}
-	} else {
-		console.info(
-			"[workspace-ai-name] no model available, falling back to prompt-derived title",
-		);
 	}
 
 	const fallbackTitle = deriveWorkspaceTitleFromPrompt(prompt);

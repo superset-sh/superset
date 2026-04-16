@@ -119,22 +119,8 @@ export function getStatusBadge(
 export function resolveProviderStatus(params: {
 	providerId: ProviderId;
 	authStatus?: AuthStatusLike;
-	diagnosticStatus?: ModelProviderStatus;
 }): ModelProviderStatus | undefined {
-	const { providerId, authStatus, diagnosticStatus } = params;
-	if (!authStatus) {
-		return diagnosticStatus;
-	}
-
-	return deriveModelProviderStatus({
-		providerId,
-		authStatus,
-		diagnostic: {
-			providerId,
-			issue: authStatus.authenticated
-				? (diagnosticStatus?.issue ?? null)
-				: null,
-			updatedAt: null,
-		},
-	});
+	const { providerId, authStatus } = params;
+	if (!authStatus) return undefined;
+	return deriveModelProviderStatus({ providerId, authStatus });
 }

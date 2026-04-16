@@ -14,7 +14,6 @@ import { AnthropicOAuthDialog } from "renderer/components/Chat/ChatInterface/com
 import { OpenAIOAuthDialog } from "renderer/components/Chat/ChatInterface/components/ModelPicker/components/OpenAIOAuthDialog";
 import { useAnthropicOAuth } from "renderer/components/Chat/ChatInterface/components/ModelPicker/hooks/useAnthropicOAuth";
 import { useOpenAIOAuth } from "renderer/components/Chat/ChatInterface/components/ModelPicker/hooks/useOpenAIOAuth";
-import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
 	isItemVisible,
 	SETTING_ITEM_ID,
@@ -53,14 +52,6 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 	const [anthropicApiKeyInput, setAnthropicApiKeyInput] = useState("");
 	const [anthropicForm, setAnthropicForm] = useState(EMPTY_ANTHROPIC_FORM);
 
-	const { data: providerStatuses, refetch: refetchProviderStatuses } =
-		electronTrpc.modelProviders.getStatuses.useQuery();
-	const anthropicDiagnosticStatus = providerStatuses?.find(
-		(status) => status.providerId === "anthropic",
-	);
-	const openAIDiagnosticStatus = providerStatuses?.find(
-		(status) => status.providerId === "openai",
-	);
 	const { data: anthropicAuthStatus, refetch: refetchAnthropicAuthStatus } =
 		chatServiceTrpc.auth.getAnthropicStatus.useQuery();
 	const { data: openAIAuthStatus, refetch: refetchOpenAIAuthStatus } =
@@ -79,8 +70,6 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 		chatServiceTrpc.auth.setOpenAIApiKey.useMutation();
 	const clearOpenAIApiKeyMutation =
 		chatServiceTrpc.auth.clearOpenAIApiKey.useMutation();
-	const clearProviderIssueMutation =
-		electronTrpc.modelProviders.clearIssue.useMutation();
 
 	const {
 		isStartingOAuth: isStartingAnthropicOAuth,
@@ -89,10 +78,7 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 	} = useAnthropicOAuth({
 		...DIALOG_CONTEXT,
 		onAuthStateChange: async () => {
-			await Promise.all([
-				refetchAnthropicAuthStatus(),
-				refetchProviderStatuses(),
-			]);
+			await refetchAnthropicAuthStatus();
 		},
 	});
 	const {
@@ -121,9 +107,8 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 			resolveProviderStatus({
 				providerId: "anthropic",
 				authStatus: anthropicAuthStatus,
-				diagnosticStatus: anthropicDiagnosticStatus,
 			}),
-		[anthropicAuthStatus, anthropicDiagnosticStatus],
+		[anthropicAuthStatus],
 	);
 
 	const openAIStatus = useMemo(
@@ -131,9 +116,8 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 			resolveProviderStatus({
 				providerId: "openai",
 				authStatus: openAIAuthStatus,
-				diagnosticStatus: openAIDiagnosticStatus,
 			}),
-		[openAIAuthStatus, openAIDiagnosticStatus],
+		[openAIAuthStatus],
 	);
 
 	const anthropicSubtitle = useMemo(
@@ -153,9 +137,6 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 		[openAIStatus],
 	);
 
-	const clearProviderIssue = (providerId: "anthropic" | "openai") =>
-		clearProviderIssueMutation.mutateAsync({ providerId });
-
 	const saveAnthropicForm = async (nextForm = anthropicForm) => {
 		const envText = buildAnthropicEnvText(nextForm);
 		try {
@@ -167,8 +148,6 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 			await Promise.all([
 				refetchAnthropicEnvConfig(),
 				refetchAnthropicAuthStatus(),
-				clearProviderIssue("anthropic"),
-				refetchProviderStatuses(),
 			]);
 			toast.success("Anthropic settings updated");
 			return true;
@@ -184,11 +163,7 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 		try {
 			await setAnthropicApiKeyMutation.mutateAsync({ apiKey });
 			setAnthropicApiKeyInput("");
-			await Promise.all([
-				refetchAnthropicAuthStatus(),
-				clearProviderIssue("anthropic"),
-				refetchProviderStatuses(),
-			]);
+			await refetchAnthropicAuthStatus();
 			toast.success("Anthropic API key updated");
 		} catch (error) {
 			toast.error(error instanceof Error ? error.message : "Failed to save");
@@ -201,11 +176,7 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 		try {
 			await setOpenAIApiKeyMutation.mutateAsync({ apiKey });
 			setOpenAIApiKeyInput("");
-			await Promise.all([
-				refetchOpenAIAuthStatus(),
-				clearProviderIssue("openai"),
-				refetchProviderStatuses(),
-			]);
+			await refetchOpenAIAuthStatus();
 			toast.success("OpenAI API key updated");
 		} catch (error) {
 			toast.error(error instanceof Error ? error.message : "Failed to save");
@@ -369,11 +340,7 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 													await clearAnthropicApiKeyMutation.mutateAsync();
 													setAnthropicApiKeyInput("");
 													setAnthropicForm(nextForm);
-													await Promise.all([
-														refetchAnthropicAuthStatus(),
-														clearProviderIssue("anthropic"),
-														refetchProviderStatuses(),
-													]);
+													await refetchAnthropicAuthStatus();
 													toast.success("Anthropic API key cleared");
 												} catch (error) {
 													toast.error(
@@ -421,11 +388,7 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 												try {
 													await clearOpenAIApiKeyMutation.mutateAsync();
 													setOpenAIApiKeyInput("");
-													await Promise.all([
-														refetchOpenAIAuthStatus(),
-														clearProviderIssue("openai"),
-														refetchProviderStatuses(),
-													]);
+													await refetchOpenAIAuthStatus();
 													toast.success("OpenAI API key cleared");
 												} catch (error) {
 													toast.error(
