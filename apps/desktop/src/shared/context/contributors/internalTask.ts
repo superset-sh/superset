@@ -27,9 +27,8 @@ export const internalTaskContributor: ContextContributor<{
 		}
 
 		const description = task.description?.trim() ?? "";
-		const text = description
-			? `# ${task.title}\n\n${description}`
-			: `# ${task.title}`;
+		const heading = `# Task ${task.id} — ${task.title}`;
+		const text = description ? `${heading}\n\n${description}` : heading;
 		return {
 			id: `task:${task.id}`,
 			kind: "internal-task",

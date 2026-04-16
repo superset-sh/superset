@@ -32,23 +32,17 @@ describe("githubIssueContributor", () => {
 		expect(githubIssueContributor.requiresQuery).toBe(true);
 	});
 
-	test("resolves to a user-scoped section with title + body + meta", async () => {
+	test("resolves to a section with explicit kind + number in header", async () => {
 		const section = await githubIssueContributor.resolve(
 			{ kind: "github-issue", url: ISSUE.url },
 			makeCtx(async () => ISSUE),
 		);
-		expect(section).toEqual({
-			id: `issue:${ISSUE.number}`,
-			kind: "github-issue",
-			label: `Issue #${ISSUE.number} — ${ISSUE.title}`,
-			content: [
-				{
-					type: "text",
-					text: `# ${ISSUE.title}\n\n${ISSUE.body}`,
-				},
-			],
-			meta: { url: ISSUE.url, taskSlug: ISSUE.slug },
-		});
+		expect(section?.id).toBe(`issue:${ISSUE.number}`);
+		expect(section?.label).toBe(`Issue #${ISSUE.number} — ${ISSUE.title}`);
+		const text = (section?.content[0] as { type: "text"; text: string }).text;
+		expect(text).toContain(`# GitHub Issue #${ISSUE.number} — ${ISSUE.title}`);
+		expect(text).toContain(ISSUE.body);
+		expect(section?.meta).toEqual({ url: ISSUE.url, taskSlug: ISSUE.slug });
 	});
 
 	test("returns null on fetch 404 (non-fatal)", async () => {
@@ -77,8 +71,7 @@ describe("githubIssueContributor", () => {
 			{ kind: "github-issue", url: ISSUE.url },
 			makeCtx(async () => ({ ...ISSUE, body: "" })),
 		);
-		expect(section?.content).toEqual([
-			{ type: "text", text: `# ${ISSUE.title}` },
-		]);
+		const text = (section?.content[0] as { type: "text"; text: string }).text;
+		expect(text).toBe(`# GitHub Issue #${ISSUE.number} — ${ISSUE.title}`);
 	});
 });

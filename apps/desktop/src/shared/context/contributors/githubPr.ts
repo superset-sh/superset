@@ -32,7 +32,7 @@ export const githubPrContributor: ContextContributor<{
 		// it doesn't start a new branch or open another PR — commits
 		// here continue this PR's history.
 		const branchLine = pr.branch
-			? `Branch \`${pr.branch}\` is checked out in this workspace — commits you make continue this PR.`
+			? `This PR is checked out in this workspace on branch \`${pr.branch}\`. Commits you make here will be added to this PR.`
 			: "";
 		const headerParts = [`# PR #${pr.number} — ${pr.title}`, branchLine].filter(
 			Boolean,

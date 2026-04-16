@@ -42,7 +42,7 @@ describe("githubPrContributor", () => {
 		expect(section?.meta).toEqual({ url: PR.url });
 		const text = (section?.content[0] as { type: "text"; text: string }).text;
 		expect(text).toContain(`# PR #${PR.number} — ${PR.title}`);
-		expect(text).toContain(`Branch \`${PR.branch}\` is checked out`);
+		expect(text).toContain(`This PR is checked out`);
 		expect(text).toContain(PR.body);
 	});
 

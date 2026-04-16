@@ -31,23 +31,17 @@ describe("internalTaskContributor", () => {
 		expect(internalTaskContributor.requiresQuery).toBe(true);
 	});
 
-	test("resolves to a user section with title + description + slug meta", async () => {
+	test("resolves to a section with explicit kind + id in header", async () => {
 		const section = await internalTaskContributor.resolve(
 			{ kind: "internal-task", id: TASK.id },
 			makeCtx(async () => TASK),
 		);
-		expect(section).toEqual({
-			id: `task:${TASK.id}`,
-			kind: "internal-task",
-			label: `Task ${TASK.id} — ${TASK.title}`,
-			content: [
-				{
-					type: "text",
-					text: `# ${TASK.title}\n\n${TASK.description}`,
-				},
-			],
-			meta: { taskSlug: TASK.slug },
-		});
+		expect(section?.id).toBe(`task:${TASK.id}`);
+		expect(section?.label).toBe(`Task ${TASK.id} — ${TASK.title}`);
+		const text = (section?.content[0] as { type: "text"; text: string }).text;
+		expect(text).toContain(`# Task ${TASK.id} — ${TASK.title}`);
+		expect(text).toContain(TASK.description!);
+		expect(section?.meta).toEqual({ taskSlug: TASK.slug });
 	});
 
 	test("omits description when null", async () => {
@@ -55,9 +49,8 @@ describe("internalTaskContributor", () => {
 			{ kind: "internal-task", id: TASK.id },
 			makeCtx(async () => ({ ...TASK, description: null })),
 		);
-		expect(section?.content).toEqual([
-			{ type: "text", text: `# ${TASK.title}` },
-		]);
+		const text = (section?.content[0] as { type: "text"; text: string }).text;
+		expect(text).toBe(`# Task ${TASK.id} — ${TASK.title}`);
 	});
 
 	test("returns null on 404", async () => {

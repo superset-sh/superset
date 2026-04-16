@@ -27,7 +27,8 @@ export const githubIssueContributor: ContextContributor<{
 		}
 
 		const body = issue.body.trim();
-		const text = body ? `# ${issue.title}\n\n${body}` : `# ${issue.title}`;
+		const heading = `# GitHub Issue #${issue.number} — ${issue.title}`;
+		const text = body ? `${heading}\n\n${body}` : heading;
 		return {
 			id: `issue:${issue.number}`,
 			kind: "github-issue",
