@@ -369,6 +369,9 @@ export const Terminal = memo(function Terminal({
 	useEffect(() => {
 		if (!xtermInstance) return;
 
+		// Reset grace period on fresh subscription
+		subscriptionStartRef.current = Date.now();
+
 		const queuedEvents = v1TerminalCache.registerHandlers(paneId, {
 			onEvent: (event) => {
 				if (connectionErrorRef.current && event.type === "data") {
@@ -376,6 +379,20 @@ export const Terminal = memo(function Terminal({
 					retryCountRef.current = 0;
 				}
 				handleStreamData(event);
+
+				// Track terminal activity for sidebar sort-by-recent
+				if (event.type === "data") {
+					const now = Date.now();
+					const sinceStart = now - subscriptionStartRef.current;
+					const sinceLast = now - lastActivityUpdateRef.current;
+					if (
+						sinceStart > ACTIVITY_GRACE_PERIOD_MS &&
+						sinceLast > ACTIVITY_DEBOUNCE_MS
+					) {
+						lastActivityUpdateRef.current = now;
+						updateLastActivityAt(workspaceId);
+					}
+				}
 			},
 			onError: (error) => {
 				console.error("[Terminal] Stream subscription error:", {
@@ -399,7 +416,14 @@ export const Terminal = memo(function Terminal({
 		return () => {
 			v1TerminalCache.unregisterHandlers(paneId);
 		};
-	}, [paneId, xtermInstance, handleStreamData, setConnectionError]);
+	}, [
+		paneId,
+		xtermInstance,
+		handleStreamData,
+		setConnectionError,
+		updateLastActivityAt,
+		workspaceId,
+	]);
 
 	useEffect(() => {
 		const xterm = xtermRef.current;

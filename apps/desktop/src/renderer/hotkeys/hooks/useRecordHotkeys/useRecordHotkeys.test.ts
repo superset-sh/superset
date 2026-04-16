@@ -113,6 +113,18 @@ describe("captureHotkeyFromEvent — codeChord uses event.code, not event.key", 
 		).toBe("f12");
 	});
 
+	it("requires ctrl or meta for non-F-keys (shift-only is rejected)", () => {
+		expect(
+			captureHotkeyFromEvent(ev({ code: "KeyA", key: "a", shiftKey: true })),
+		).toBeNull();
+	});
+
+	it("allows alt as a modifier on mac (test env defaults to mac)", () => {
+		expect(
+			captureHotkeyFromEvent(ev({ code: "KeyA", key: "a", altKey: true })),
+		).toBe("alt+a");
+	});
+
 	it("returns null when event.code is undefined", () => {
 		expect(
 			captureHotkeyFromEvent(ev({ code: undefined, ctrlKey: true })),

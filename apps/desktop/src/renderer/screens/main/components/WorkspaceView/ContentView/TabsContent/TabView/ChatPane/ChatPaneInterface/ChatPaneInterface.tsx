@@ -683,6 +683,8 @@ export function ChatPaneInterface({
 			onUserMessageSubmitted,
 			thinkingLevel,
 			clearDraftInStore,
+			updateLastActivityAt,
+			workspaceId,
 		],
 	);
 
@@ -815,6 +817,8 @@ export function ChatPaneInterface({
 		setRuntimeErrorMessage,
 		onUserMessageSubmitted,
 		thinkingLevel,
+		updateLastActivityAt,
+		workspaceId,
 	]);
 
 	const handleStop = useCallback(

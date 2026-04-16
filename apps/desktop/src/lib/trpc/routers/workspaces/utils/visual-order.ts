@@ -110,8 +110,7 @@ export function computeActivityOrder(
 		const aMax = projectMaxActivity.get(a.id) ?? null;
 		const bMax = projectMaxActivity.get(b.id) ?? null;
 		return (
-			compareActivityDesc(aMax, bMax) ||
-			(a.tabOrder ?? 0) - (b.tabOrder ?? 0)
+			compareActivityDesc(aMax, bMax) || (a.tabOrder ?? 0) - (b.tabOrder ?? 0)
 		);
 	});
 
