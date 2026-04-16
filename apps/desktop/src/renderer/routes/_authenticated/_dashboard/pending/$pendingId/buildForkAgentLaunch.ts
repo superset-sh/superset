@@ -1,4 +1,5 @@
 import { isTerminalAgentDefinition } from "@superset/shared/agent-catalog";
+import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import type {
 	PendingChatLaunch,
 	PendingTerminalLaunch,
@@ -35,6 +36,43 @@ export interface BuildForkAgentLaunchInputs {
 	>;
 	attachments: LoadedAttachment[] | undefined;
 	agentConfigs: ResolvedAgentConfig[];
+	/**
+	 * Host-service client for fetching issue/PR bodies. When provided,
+	 * the resolvers call `getGitHubIssueContent` / `getGitHubPullRequestContent`
+	 * for full bodies. When null, falls back to title-only from the pending row.
+	 */
+	hostServiceClient?: {
+		workspaceCreation: {
+			getGitHubIssueContent: {
+				query: (input: {
+					projectId: string;
+					issueNumber: number;
+				}) => Promise<{
+					number: number;
+					title: string;
+					body: string;
+					url: string;
+					state: string;
+					author: string | null;
+				}>;
+			};
+			getGitHubPullRequestContent: {
+				query: (input: {
+					projectId: string;
+					prNumber: number;
+				}) => Promise<{
+					number: number;
+					title: string;
+					body: string;
+					url: string;
+					state: string;
+					branch: string;
+					baseBranch: string;
+					author: string | null;
+				}>;
+			};
+		};
+	};
 }
 
 /**
@@ -98,7 +136,10 @@ export async function buildForkAgentLaunch(
 		},
 		{
 			contributors: defaultContributorRegistry,
-			resolveCtx: buildResolveCtxFromPending(inputs.pending),
+			resolveCtx: buildResolveCtxFromPending(
+				inputs.pending,
+				inputs.hostServiceClient,
+			),
 		},
 	);
 	const spec = buildLaunchSpec(ctx, agentConfig);
@@ -341,12 +382,22 @@ function dataUrlAttachmentToBytes(loaded: LoadedAttachment): AttachmentFile {
 	};
 }
 
+function slugifyTitle(title: string): string {
+	return title
+		.toLowerCase()
+		.replace(/[^a-z0-9]+/g, "-")
+		.replace(/^-|-$/g, "")
+		.slice(0, 80);
+}
+
 function buildResolveCtxFromPending(
 	pending: BuildForkAgentLaunchInputs["pending"],
+	client?: BuildForkAgentLaunchInputs["hostServiceClient"],
 ): ResolveCtx {
 	return {
 		projectId: pending.projectId,
 		signal: new AbortController().signal,
+
 		fetchIssue: async (url) => {
 			const match = pending.linkedIssues.find(
 				(i) => i.source === "github" && i.url === url,
@@ -356,6 +407,30 @@ function buildResolveCtxFromPending(
 					status: 404,
 				});
 			}
+
+			// Try host-service for full body; fall back to pending-row metadata.
+			if (client && match.number) {
+				try {
+					const data =
+						await client.workspaceCreation.getGitHubIssueContent.query({
+							projectId: pending.projectId,
+							issueNumber: match.number,
+						});
+					return {
+						number: data.number,
+						url: data.url,
+						title: data.title,
+						body: data.body,
+						slug: match.slug || slugifyTitle(data.title),
+					};
+				} catch (err) {
+					console.warn(
+						`[v2-launch] getGitHubIssueContent failed for #${match.number}, using title-only`,
+						err,
+					);
+				}
+			}
+
 			return {
 				number: match.number ?? 0,
 				url: match.url ?? url,
@@ -364,12 +439,37 @@ function buildResolveCtxFromPending(
 				slug: match.slug,
 			};
 		},
+
 		fetchPullRequest: async (url) => {
 			if (!pending.linkedPR || pending.linkedPR.url !== url) {
 				throw Object.assign(new Error(`PR not found: ${url}`), {
 					status: 404,
 				});
 			}
+
+			// Try host-service for full body + branch; fall back to pending-row.
+			if (client) {
+				try {
+					const data =
+						await client.workspaceCreation.getGitHubPullRequestContent.query({
+							projectId: pending.projectId,
+							prNumber: pending.linkedPR.prNumber,
+						});
+					return {
+						number: data.number,
+						url: data.url,
+						title: data.title,
+						body: data.body,
+						branch: data.branch,
+					};
+				} catch (err) {
+					console.warn(
+						`[v2-launch] getGitHubPullRequestContent failed for #${pending.linkedPR.prNumber}, using title-only`,
+						err,
+					);
+				}
+			}
+
 			return {
 				number: pending.linkedPR.prNumber,
 				url: pending.linkedPR.url,
@@ -378,6 +478,7 @@ function buildResolveCtxFromPending(
 				branch: "",
 			};
 		},
+
 		fetchInternalTask: async (id) => {
 			const match = pending.linkedIssues.find(
 				(i) => i.source === "internal" && i.taskId === id,
@@ -387,6 +488,23 @@ function buildResolveCtxFromPending(
 					status: 404,
 				});
 			}
+
+			// Fetch full task from Superset cloud API (same source as task view).
+			try {
+				const task = await apiTrpcClient.task.byId.query(id);
+				return {
+					id: task.id,
+					slug: match.slug || slugifyTitle(task.title),
+					title: task.title,
+					description: task.description ?? null,
+				};
+			} catch (err) {
+				console.warn(
+					`[v2-launch] task.byId failed for ${id}, using title-only`,
+					err,
+				);
+			}
+
 			return {
 				id,
 				slug: match.slug,

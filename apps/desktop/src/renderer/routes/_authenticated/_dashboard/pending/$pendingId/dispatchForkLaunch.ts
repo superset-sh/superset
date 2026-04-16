@@ -52,12 +52,16 @@ export async function dispatchForkLaunch({
 		agentConfigCount: agentConfigs.length,
 	});
 
+	const hostUrl = resolveHostUrl(pending.hostTarget, activeHostUrl);
+	const hostClient = hostUrl ? getHostServiceClientByUrl(hostUrl) : undefined;
+
 	let build: Awaited<ReturnType<typeof buildForkAgentLaunch>>;
 	try {
 		build = await buildForkAgentLaunch({
 			pending,
 			attachments: loadedAttachments,
 			agentConfigs,
+			hostServiceClient: hostClient,
 		});
 	} catch (err) {
 		const msg = err instanceof Error ? err.message : String(err);
@@ -107,7 +111,6 @@ export async function dispatchForkLaunch({
 		return;
 	}
 
-	const hostUrl = resolveHostUrl(pending.hostTarget, activeHostUrl);
 	if (!hostUrl) {
 		console.warn("[v2-launch] host-service URL not resolved; skip launch");
 		toast.error("Couldn't reach host service", {

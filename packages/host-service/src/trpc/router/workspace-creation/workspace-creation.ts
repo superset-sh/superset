@@ -1301,4 +1301,41 @@ export const workspaceCreationRouter = router({
 				});
 			}
 		}),
+
+	getGitHubPullRequestContent: protectedProcedure
+		.input(
+			z.object({
+				projectId: z.string(),
+				prNumber: z.number().int().positive(),
+			}),
+		)
+		.query(async ({ ctx, input }) => {
+			const repo = await resolveGithubRepo(ctx, input.projectId);
+			const octokit = await ctx.github();
+			try {
+				const { data } = await octokit.pulls.get({
+					owner: repo.owner,
+					repo: repo.name,
+					pull_number: input.prNumber,
+				});
+				return {
+					number: data.number,
+					title: data.title,
+					body: data.body ?? "",
+					url: data.html_url,
+					state: data.state,
+					branch: data.head.ref,
+					baseBranch: data.base.ref,
+					author: data.user?.login ?? null,
+					isDraft: data.draft ?? false,
+					createdAt: data.created_at,
+					updatedAt: data.updated_at,
+				};
+			} catch (err) {
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: `Failed to fetch PR #${input.prNumber}: ${err instanceof Error ? err.message : String(err)}`,
+				});
+			}
+		}),
 });
