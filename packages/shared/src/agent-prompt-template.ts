@@ -36,7 +36,8 @@ function substituteOwnProperties(
 		/\{\{\s*([^}]+?)\s*\}\}/g,
 		(match, rawKey: string) => {
 			const key = rawKey.trim();
-			return Object.hasOwn(variables, key) ? variables[key] : match;
+			if (!Object.hasOwn(variables, key)) return match;
+			return variables[key] ?? match;
 		},
 	);
 }

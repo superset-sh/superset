@@ -485,12 +485,14 @@ function buildResolveCtxFromPending(
 			// Fetch full task from Superset cloud API (same source as task view).
 			try {
 				const task = await apiTrpcClient.task.byId.query(id);
-				return {
-					id: task.id,
-					slug: match.slug || slugifyTitle(task.title),
-					title: task.title,
-					description: task.description ?? null,
-				};
+				if (task) {
+					return {
+						id: task.id,
+						slug: match.slug || slugifyTitle(task.title),
+						title: task.title,
+						description: task.description ?? null,
+					};
+				}
 			} catch (err) {
 				console.warn(
 					`[v2-launch] task.byId failed for ${id}, using title-only`,
