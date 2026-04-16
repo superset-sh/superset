@@ -5,6 +5,7 @@ import {
 	ResizablePanel,
 	ResizablePanelGroup,
 } from "@superset/ui/resizable";
+import { workspaceTrpc } from "@superset/workspace-client";
 import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { createFileRoute } from "@tanstack/react-router";
@@ -14,21 +15,28 @@ import { TbLayoutColumns, TbLayoutRows } from "react-icons/tb";
 import { HotkeyLabel, useHotkey } from "renderer/hotkeys";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { CommandPalette } from "renderer/screens/main/components/CommandPalette";
+import {
+	toAbsoluteWorkspacePath,
+	toRelativeWorkspacePath,
+} from "shared/absolute-paths";
 import { useStore } from "zustand";
+import { WorkspaceNotFoundState } from "../components/WorkspaceNotFoundState";
 import { AddTabMenu } from "./components/AddTabMenu";
 import { V2PresetsBar } from "./components/V2PresetsBar";
 import { WorkspaceEmptyState } from "./components/WorkspaceEmptyState";
-import { WorkspaceNotFoundState } from "./components/WorkspaceNotFoundState";
 import { WorkspaceSidebar } from "./components/WorkspaceSidebar";
+import { useConsumePendingLaunch } from "./hooks/useConsumePendingLaunch";
 import { useDefaultContextMenuActions } from "./hooks/useDefaultContextMenuActions";
 import { usePaneRegistry } from "./hooks/usePaneRegistry";
 import { renderBrowserTabIcon } from "./hooks/usePaneRegistry/components/BrowserPane";
+import { useRecentlyViewedFiles } from "./hooks/useRecentlyViewedFiles";
 import { useV2PresetExecution } from "./hooks/useV2PresetExecution";
 import { useV2WorkspacePaneLayout } from "./hooks/useV2WorkspacePaneLayout";
 import { useWorkspaceHotkeys } from "./hooks/useWorkspaceHotkeys";
 import type {
 	BrowserPaneData,
 	ChatPaneData,
+	CommentPaneData,
 	DiffPaneData,
 	FilePaneData,
 	PaneViewerData,
@@ -89,8 +97,16 @@ function WorkspaceContent({
 		workspaceId,
 		projectId,
 	});
+	useConsumePendingLaunch({ workspaceId, store });
 	const paneRegistry = usePaneRegistry(workspaceId);
 	const defaultContextMenuActions = useDefaultContextMenuActions(paneRegistry);
+
+	const workspaceQuery = workspaceTrpc.workspace.get.useQuery({
+		id: workspaceId,
+	});
+	const worktreePath = workspaceQuery.data?.worktreePath ?? "";
+
+	const { recentFiles, recordView } = useRecentlyViewedFiles(workspaceId);
 
 	const selectedFilePath = useStore(store, (s) => {
 		const tab = s.tabs.find((t) => t.id === s.activeTabId);
@@ -100,8 +116,29 @@ function WorkspaceContent({
 		return undefined;
 	});
 
+	const openFilePathsKey = useStore(store, (s) =>
+		s.tabs
+			.flatMap((t) =>
+				Object.values(t.panes)
+					.filter((p) => p.kind === "file")
+					.map((p) => (p.data as FilePaneData).filePath),
+			)
+			.join("\u0000"),
+	);
+	const openFilePaths = useMemo(
+		() => new Set(openFilePathsKey ? openFilePathsKey.split("\u0000") : []),
+		[openFilePathsKey],
+	);
+
 	const openFilePane = useCallback(
 		(filePath: string, openInNewTab?: boolean) => {
+			if (worktreePath) {
+				const absolutePath = toAbsoluteWorkspacePath(worktreePath, filePath);
+				const relativePath = toRelativeWorkspacePath(worktreePath, filePath);
+				if (relativePath && relativePath !== ".") {
+					recordView({ relativePath, absolutePath });
+				}
+			}
 			const state = store.getState();
 			if (openInNewTab) {
 				state.addTab({
@@ -137,7 +174,7 @@ function WorkspaceContent({
 				},
 			});
 		},
-		[store],
+		[store, worktreePath, recordView],
 	);
 
 	const openDiffPane = useCallback(
@@ -210,6 +247,33 @@ function WorkspaceContent({
 			],
 		});
 	}, [store]);
+
+	const openCommentPane = useCallback(
+		(comment: CommentPaneData) => {
+			const state = store.getState();
+			for (const tab of state.tabs) {
+				for (const pane of Object.values(tab.panes)) {
+					if (pane.kind !== "comment") continue;
+					state.setPaneData({
+						paneId: pane.id,
+						data: comment as PaneViewerData,
+					});
+					state.setActiveTab(tab.id);
+					state.setActivePane({ tabId: tab.id, paneId: pane.id });
+					return;
+				}
+			}
+			state.addTab({
+				panes: [
+					{
+						kind: "comment",
+						data: comment as PaneViewerData,
+					},
+				],
+			});
+		},
+		[store],
+	);
 
 	const [quickOpenOpen, setQuickOpenOpen] = useState(false);
 	const handleQuickOpen = useCallback(() => setQuickOpenOpen(true), []);
@@ -339,6 +403,7 @@ function WorkspaceContent({
 								workspaceName={workspaceName}
 								onSelectFile={openFilePane}
 								onSelectDiffFile={openDiffPane}
+								onOpenComment={openCommentPane}
 								onSearch={handleQuickOpen}
 								selectedFilePath={selectedFilePath}
 							/>
@@ -352,6 +417,8 @@ function WorkspaceContent({
 				onOpenChange={setQuickOpenOpen}
 				onSelectFile={openFilePane}
 				variant="v2"
+				recentlyViewedFiles={recentFiles}
+				openFilePaths={openFilePaths}
 			/>
 		</>
 	);

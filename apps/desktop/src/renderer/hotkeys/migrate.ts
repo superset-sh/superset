@@ -8,6 +8,7 @@
 
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import { PLATFORM } from "./registry";
+import { isUSCompatibleLayout } from "./utils/detectUSLayout";
 import { sanitizeOverride } from "./utils/sanitizeOverride";
 
 const MIGRATION_MARKER_KEY = "hotkey-overrides-migrated-v2";
@@ -31,10 +32,13 @@ export async function migrateHotkeyOverrides(): Promise<void> {
 			return;
 		}
 
+		const assumeUSMacLayout =
+			PLATFORM === "mac" ? await isUSCompatibleLayout() : true;
+
 		const cleaned: Record<string, string | null> = {};
 		let dropped = 0;
 		for (const [id, raw] of Object.entries(oldOverrides)) {
-			const sanitized = sanitizeOverride(raw);
+			const sanitized = sanitizeOverride(raw, { assumeUSMacLayout });
 			if (sanitized === undefined) {
 				dropped++;
 				continue;

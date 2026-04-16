@@ -7,6 +7,26 @@ import { prerelease } from "semver";
 import { AUTO_UPDATE_STATUS, type AutoUpdateStatus } from "shared/auto-update";
 import { PLATFORM } from "shared/constants";
 
+// electron-updater's internal cache only self-invalidates when the remote
+// sha512 differs from cached metadata, so a corrupt cached download (e.g.
+// failed Squirrel install) gets retried indefinitely until the user
+// manually reinstalls. Reach into the protected helper to clear it.
+interface AppUpdaterInternals {
+	downloadedUpdateHelper: { clear(): Promise<void> } | null;
+}
+
+async function clearCachedUpdate(reason: string): Promise<void> {
+	const helper = (autoUpdater as unknown as AppUpdaterInternals)
+		.downloadedUpdateHelper;
+	if (!helper) return;
+	try {
+		await helper.clear();
+		console.info(`[auto-updater] Cleared cached update (${reason})`);
+	} catch (error) {
+		console.error("[auto-updater] Failed to clear cached update:", error);
+	}
+}
+
 const UPDATE_CHECK_INTERVAL_MS = 1000 * 60 * 60 * 4; // 4 hours
 
 /**
@@ -231,6 +251,7 @@ export function setupAutoUpdater(): void {
 			`[auto-updater] Error during update (currentVersion=${app.getVersion()}):`,
 			error?.message || error,
 		);
+		void clearCachedUpdate(`error: ${error?.message ?? "unknown"}`);
 		emitStatus(AUTO_UPDATE_STATUS.ERROR, undefined, error.message);
 	});
 

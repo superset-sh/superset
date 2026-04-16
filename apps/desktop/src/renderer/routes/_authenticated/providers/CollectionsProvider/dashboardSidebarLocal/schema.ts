@@ -36,11 +36,21 @@ export const workspaceLocalStateSchema = z.object({
 		tabOrder: z.number().int().default(0),
 		sectionId: z.string().uuid().nullable().default(null),
 		changesFilter: changesFilterSchema.default({ kind: "all" }),
-		baseBranch: z.string().nullable().default(null),
+		activeTab: z.enum(["changes", "files"]).default("changes"),
+		changesSubtab: z.enum(["diffs", "review"]).default("diffs"),
 	}),
 	paneLayout: paneWorkspaceStateSchema,
 	rightSidebarOpen: z.boolean().default(false),
 	viewedFiles: z.array(z.string()).default([]),
+	recentlyViewedFiles: z
+		.array(
+			z.object({
+				relativePath: z.string(),
+				absolutePath: z.string(),
+				lastAccessedAt: z.number(),
+			}),
+		)
+		.default([]),
 });
 
 export const dashboardSidebarSectionSchema = z.object({
@@ -76,25 +86,110 @@ export const v2TerminalPresetSchema = z.object({
 	createdAt: persistedDateSchema,
 });
 
+// Structured shapes for pending-row payload fields. Previously these were
+// `z.unknown()` which forced `as`-casts at every read site and hid malformed
+// rows until they crashed a later consumer. Typing them here gives the
+// collection real validation and lets consumers read fields directly.
+const pendingHostTargetSchema = z.discriminatedUnion("kind", [
+	z.object({ kind: z.literal("local") }),
+	z.object({ kind: z.literal("host"), hostId: z.string() }),
+]);
+
+const pendingLinkedIssueSchema = z.object({
+	slug: z.string(),
+	title: z.string(),
+	source: z.enum(["github", "internal"]).optional(),
+	url: z.string().optional(),
+	taskId: z.string().optional(),
+	number: z.number().optional(),
+	state: z.enum(["open", "closed"]).optional(),
+});
+
+const pendingLinkedPRSchema = z.object({
+	prNumber: z.number(),
+	title: z.string(),
+	url: z.string(),
+	state: z.string(),
+});
+
+/**
+ * Transient dispatch intents written by the pending page after
+ * host-service.create resolves. Consumed by the V2 workspace page's
+ * useConsumePendingLaunch mount effect, then cleared. See
+ * apps/desktop/docs/V2_LAUNCH_CONTEXT.md "Dispatch architecture".
+ */
+const pendingTerminalLaunchSchema = z.object({
+	command: z.string(),
+	name: z.string().optional(),
+	// Attachment filenames, already written to .superset/attachments/
+	// by the pending page via workspaceTrpc.filesystem.writeFile.
+	attachmentNames: z.array(z.string()).default([]),
+});
+
+const pendingChatLaunchSchema = z.object({
+	initialPrompt: z.string().optional(),
+	initialFiles: z
+		.array(
+			z.object({
+				data: z.string(),
+				mediaType: z.string(),
+				filename: z.string().optional(),
+			}),
+		)
+		.optional(),
+	model: z.string().optional(),
+	taskSlug: z.string().optional(),
+});
+
+export type PendingHostTarget = z.infer<typeof pendingHostTargetSchema>;
+export type PendingLinkedIssue = z.infer<typeof pendingLinkedIssueSchema>;
+export type PendingLinkedPR = z.infer<typeof pendingLinkedPRSchema>;
+export type PendingTerminalLaunch = z.infer<typeof pendingTerminalLaunchSchema>;
+export type PendingChatLaunch = z.infer<typeof pendingChatLaunchSchema>;
+
 export const pendingWorkspaceSchema = z.object({
+	// Shared
 	id: z.string().uuid(),
 	projectId: z.string().uuid(),
+	hostTarget: pendingHostTargetSchema,
+	// Which mutation the pending page should run. See V2_WORKSPACE_CREATION.md §3.
+	// Defaults to "fork" for any rows that predate this field.
+	intent: z.enum(["fork", "checkout", "adopt"]).default("fork"),
 	name: z.string(),
+	// fork: derived branch name from prompt; checkout/adopt: existing branch.
 	branchName: z.string(),
-	prompt: z.string(),
-	baseBranch: z.string().nullable().default(null),
-	runSetupScript: z.boolean().default(true),
-	linkedIssues: z.array(z.unknown()).default([]),
-	linkedPR: z.unknown().nullable().default(null),
-	hostTarget: z.unknown(),
-	attachmentCount: z.number().int().default(0),
 	status: z.enum(["creating", "failed", "succeeded"]).default("creating"),
 	error: z.string().nullable().default(null),
 	workspaceId: z.string().nullable().default(null),
+	// Non-fatal messages from the procedure (e.g. "setup terminal failed").
+	// Pending page renders these on success.
+	warnings: z.array(z.string()).default([]),
 	terminals: z
 		.array(z.object({ id: z.string(), role: z.string(), label: z.string() }))
 		.default([]),
 	createdAt: persistedDateSchema,
+
+	// Fork-only (left at defaults for checkout/adopt).
+	prompt: z.string().default(""),
+	baseBranch: z.string().nullable().default(null),
+	// Picker hint: which form of `baseBranch` was selected. Lets the host-
+	// service skip re-resolution at create time so it can't be misled by a
+	// stale cached remote ref. Null when the caller didn't specify.
+	baseBranchSource: z
+		.enum(["local", "remote-tracking"])
+		.nullable()
+		.default(null),
+	linkedIssues: z.array(pendingLinkedIssueSchema).default([]),
+	linkedPR: pendingLinkedPRSchema.nullable().default(null),
+	attachmentCount: z.number().int().default(0),
+
+	// fork + checkout (irrelevant for adopt — worktree already exists).
+	runSetupScript: z.boolean().default(true),
+
+	// Transient dispatch intents written after host-service.create resolves;
+	// consumed by the V2 workspace page on mount, then cleared to null.
+	terminalLaunch: pendingTerminalLaunchSchema.nullable().default(null),
+	chatLaunch: pendingChatLaunchSchema.nullable().default(null),
 });
 
 export type PendingWorkspaceRow = z.infer<typeof pendingWorkspaceSchema>;

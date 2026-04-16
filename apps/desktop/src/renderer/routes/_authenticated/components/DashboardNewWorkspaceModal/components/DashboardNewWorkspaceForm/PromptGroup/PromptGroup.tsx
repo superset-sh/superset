@@ -9,7 +9,9 @@ import {
 	useProviderAttachments,
 } from "@superset/ui/ai-elements/prompt-input";
 import { Input } from "@superset/ui/input";
+import { isEnterSubmit } from "@superset/ui/lib/keyboard";
 import { cn } from "@superset/ui/utils";
+import type { FileUIPart } from "ai";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowUpIcon } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -23,10 +25,8 @@ import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useNewWorkspaceModalOpen } from "renderer/stores/new-workspace-modal";
 import { getEnabledAgentConfigs } from "shared/utils/agent-settings";
 import { sanitizeUserBranchName, slugifyForBranch } from "shared/utils/branch";
-import type { LinkedPR } from "../../../DashboardNewWorkspaceDraftContext";
 import { useDashboardNewWorkspaceDraft } from "../../../DashboardNewWorkspaceDraftContext";
 import { DevicePicker } from "../components/DevicePicker";
-import { useBranchContext } from "../hooks/useBranchContext";
 import { AttachmentButtons } from "./components/AttachmentButtons";
 import { CompareBaseBranchPicker } from "./components/CompareBaseBranchPicker";
 import { GitHubIssueLinkCommand } from "./components/GitHubIssueLinkCommand";
@@ -34,6 +34,8 @@ import { LinkedGitHubIssuePill } from "./components/LinkedGitHubIssuePill";
 import { LinkedPRPill } from "./components/LinkedPRPill";
 import { PRLinkCommand } from "./components/PRLinkCommand";
 import { ProjectPickerPill } from "./components/ProjectPickerPill";
+import { useBranchPickerController } from "./hooks/useBranchPickerController";
+import { useLinkedContext } from "./hooks/useLinkedContext";
 import { useSubmitWorkspace } from "./hooks/useSubmitWorkspace";
 import {
 	AGENT_STORAGE_KEY,
@@ -49,11 +51,7 @@ interface PromptGroupProps {
 	onSelectProject: (projectId: string) => void;
 }
 
-export function PromptGroup(props: PromptGroupProps) {
-	return <PromptGroupInner {...props} />;
-}
-
-function PromptGroupInner({
+export function PromptGroup({
 	projectId,
 	selectedProject,
 	recentProjects,
@@ -99,22 +97,11 @@ function PromptGroupInner({
 	const [prLinkOpen, setPRLinkOpen] = useState(false);
 	const plusMenuRef = useRef<HTMLDivElement>(null);
 	const trimmedPrompt = prompt.trim();
-
-	// ── Branch data ──────────────────────────────────────────────────
-	const {
-		data: branchData,
-		isLoading: isBranchesLoading,
-		isError: isBranchesError,
-	} = useBranchContext(projectId, hostTarget);
-
-	const effectiveCompareBaseBranch =
-		baseBranch || branchData?.defaultBranch || null;
-
 	const branchPreview = branchNameEdited
 		? sanitizeUserBranchName(branchName)
 		: slugifyForBranch(trimmedPrompt);
 
-	// Reset baseBranch on project or host change
+	// Reset baseBranch on project or host change.
 	const previousProjectIdRef = useRef(projectId);
 	const previousHostRef = useRef(JSON.stringify(hostTarget));
 	useEffect(() => {
@@ -125,74 +112,64 @@ function PromptGroupInner({
 		) {
 			previousProjectIdRef.current = projectId;
 			previousHostRef.current = nextHost;
-			updateDraft({ baseBranch: null });
+			updateDraft({ baseBranch: null, baseBranchSource: null });
 		}
 	}, [projectId, hostTarget, updateDraft]);
 
-	// ── Create ───────────────────────────────────────────────────────
-	const handleCreate = useSubmitWorkspace(projectId);
+	// ── Branch picker controller ─────────────────────────────────────
+	const { pickerProps } = useBranchPickerController({
+		projectId,
+		hostTarget,
+		baseBranch,
+		runSetupScript: draft.runSetupScript,
+		typedWorkspaceName: workspaceName,
+		onBaseBranchChange: (branch, source) =>
+			updateDraft({ baseBranch: branch, baseBranchSource: source }),
+		closeModal,
+	});
 
-	const handlePromptSubmit = useCallback(() => {
-		void handleCreate();
-	}, [handleCreate]);
+	// ── Submit (fork) ────────────────────────────────────────────────
+	const handleCreate = useSubmitWorkspace(projectId);
+	const handlePromptSubmit = useCallback(
+		(message: { text?: string; files?: FileUIPart[] }) => {
+			// Library converts blob: → data: URLs before calling us; pass them
+			// through. We intentionally do not read attachments from the
+			// provider here — the library clears + revokes before onSubmit, so
+			// the provider's state is stale by this point.
+			const files = (message.files ?? [])
+				.filter((f) => typeof f.url === "string" && f.url.length > 0)
+				.map((f) => ({
+					url: f.url,
+					mediaType: f.mediaType,
+					filename: f.filename,
+				}));
+			void handleCreate(files);
+		},
+		[handleCreate],
+	);
 
 	useEffect(() => {
 		if (!isNewWorkspaceModalOpen) return;
 		const handler = (e: KeyboardEvent) => {
-			if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-				e.preventDefault();
-				void handleCreate();
-			}
+			if (!isEnterSubmit(e, { requireMod: true })) return;
+			e.preventDefault();
+			// Keyboard fallback: submit without attachments. Inside the
+			// modal's form focus, PromptInput's own Enter handler fires
+			// instead and routes through handlePromptSubmit with files.
+			void handleCreate();
 		};
 		window.addEventListener("keydown", handler);
 		return () => window.removeEventListener("keydown", handler);
 	}, [isNewWorkspaceModalOpen, handleCreate]);
 
-	// ── Issue / PR linking ───────────────────────────────────────────
-	const addLinkedIssue = (
-		slug: string,
-		title: string,
-		taskId: string | undefined,
-		url?: string,
-	) => {
-		if (linkedIssues.some((issue) => issue.slug === slug)) return;
-		updateDraft({
-			linkedIssues: [
-				...linkedIssues,
-				{ slug, title, source: "internal", taskId, url },
-			],
-		});
-	};
-
-	const addLinkedGitHubIssue = (
-		issueNumber: number,
-		title: string,
-		url: string,
-		state: string,
-	) => {
-		if (linkedIssues.some((i) => i.url === url)) return;
-		updateDraft({
-			linkedIssues: [
-				...linkedIssues,
-				{
-					slug: `#${issueNumber}`,
-					title,
-					source: "github" as const,
-					url,
-					number: issueNumber,
-					state: state.toLowerCase() === "closed" ? "closed" : "open",
-				},
-			],
-		});
-	};
-
-	const removeLinkedIssue = (slug: string) =>
-		updateDraft({
-			linkedIssues: linkedIssues.filter((i) => i.slug !== slug),
-		});
-
-	const setLinkedPR = (pr: LinkedPR) => updateDraft({ linkedPR: pr });
-	const removeLinkedPR = () => updateDraft({ linkedPR: null });
+	// ── Linked issues / PR ───────────────────────────────────────────
+	const {
+		addLinkedIssue,
+		addLinkedGitHubIssue,
+		removeLinkedIssue,
+		setLinkedPR,
+		removeLinkedPR,
+	} = useLinkedContext(linkedIssues, updateDraft);
 
 	// ── Render ────────────────────────────────────────────────────────
 	return (
@@ -406,16 +383,7 @@ function PromptGroupInner({
 								exit={{ opacity: 0, x: 8, filter: "blur(4px)" }}
 								transition={{ duration: 0.2, ease: "easeOut" }}
 							>
-								<CompareBaseBranchPicker
-									effectiveCompareBaseBranch={effectiveCompareBaseBranch}
-									defaultBranch={branchData?.defaultBranch}
-									isBranchesLoading={isBranchesLoading}
-									isBranchesError={isBranchesError}
-									branches={branchData?.branches ?? []}
-									onSelectCompareBaseBranch={(branch) =>
-										updateDraft({ baseBranch: branch })
-									}
-								/>
+								<CompareBaseBranchPicker {...pickerProps} />
 							</motion.div>
 						)}
 					</AnimatePresence>

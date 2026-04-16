@@ -22,6 +22,7 @@ import {
 	CommandSeparator,
 } from "@superset/ui/command";
 import { Input } from "@superset/ui/input";
+import { isEnterSubmit } from "@superset/ui/lib/keyboard";
 import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
 import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
@@ -1072,10 +1073,9 @@ ${sanitizeText(truncatedBody)}`;
 	useEffect(() => {
 		if (!isNewWorkspaceModalOpen) return;
 		const handler = (e: KeyboardEvent) => {
-			if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-				e.preventDefault();
-				void handleCreate();
-			}
+			if (!isEnterSubmit(e, { requireMod: true })) return;
+			e.preventDefault();
+			void handleCreate();
 		};
 		window.addEventListener("keydown", handler);
 		return () => window.removeEventListener("keydown", handler);

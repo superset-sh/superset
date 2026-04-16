@@ -221,7 +221,7 @@ export async function verifyToken(
 					jwksUrl: `${apiUrl}/api/auth/jwks`,
 					verifyOptions: {
 						issuer: apiUrl,
-						audience: [apiUrl, `${apiUrl}/`],
+						audience: [apiUrl, `${apiUrl}/`, `${apiUrl}/api/agent/mcp`],
 					},
 				})) as Record<string, unknown>;
 

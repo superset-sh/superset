@@ -5,10 +5,7 @@ import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { jwtProcedure, protectedProcedure } from "../../trpc";
-import {
-	requireActiveOrgId,
-	requireActiveOrgMembership,
-} from "../utils/active-org";
+import { requireActiveOrgId } from "../utils/active-org";
 import {
 	requireOrgResourceAccess,
 	requireOrgScopedResource,
@@ -50,7 +47,10 @@ async function getScopedHost(organizationId: string, hostId: string) {
 	);
 }
 
-async function getScopedWorkspace(organizationId: string, workspaceId: string) {
+async function _getScopedWorkspace(
+	organizationId: string,
+	workspaceId: string,
+) {
 	return requireOrgScopedResource(
 		() =>
 			dbWs.query.v2Workspaces.findFirst({
@@ -187,15 +187,28 @@ export const v2WorkspaceRouter = {
 			return updated;
 		}),
 
-	delete: protectedProcedure
+	// JWT-authed so host-service can orchestrate the full delete saga
+	// (terminals → teardown → worktree → branch → cloud → host sqlite) via
+	// its own JWT auth provider. The session-backed protectedProcedure
+	// would reject host-service callers with 401.
+	delete: jwtProcedure
 		.input(z.object({ id: z.string().uuid() }))
 		.mutation(async ({ ctx, input }) => {
-			const organizationId = await requireActiveOrgMembership(
-				ctx.session,
-				"No active organization",
-			);
-			const workspace = await getScopedWorkspace(organizationId, input.id);
+			const workspace = await dbWs.query.v2Workspaces.findFirst({
+				columns: { id: true, organizationId: true },
+				where: eq(v2Workspaces.id, input.id),
+			});
+			if (!workspace) {
+				// Already gone in the cloud; idempotent success.
+				return { success: true, alreadyGone: true as const };
+			}
+			if (!ctx.organizationIds.includes(workspace.organizationId)) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "Not a member of this organization",
+				});
+			}
 			await dbWs.delete(v2Workspaces).where(eq(v2Workspaces.id, workspace.id));
-			return { success: true };
+			return { success: true, alreadyGone: false as const };
 		}),
 } satisfies TRPCRouterRecord;

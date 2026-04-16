@@ -1,133 +1,79 @@
-import { useProviderAttachments } from "@superset/ui/ai-elements/prompt-input";
 import { toast } from "@superset/ui/sonner";
 import { useNavigate } from "@tanstack/react-router";
 import { useCallback } from "react";
-import {
-	clearAttachments,
-	storeAttachments,
-} from "renderer/lib/pending-attachment-store";
+import { storeAttachments } from "renderer/lib/pending-attachment-store";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useDashboardNewWorkspaceDraft } from "../../../../../DashboardNewWorkspaceDraftContext";
-import { mapLinkedContext } from "./mapLinkedContext";
 import { resolveNames } from "./resolveNames";
 
+export interface SubmitAttachment {
+	url: string; // data: URL already (library converts blob→data before onSubmit)
+	mediaType: string;
+	filename?: string;
+}
+
 /**
- * Returns a callback that submits a new workspace:
+ * Returns a callback that submits a fork (new branch from base):
  * resolve names → store attachments → insert pending row → close modal →
- * navigate to pending page → fire-and-forget host-service call →
- * update collection on resolve/reject.
+ * navigate to pending page. The page owns the host-service mutation —
+ * see V2_WORKSPACE_CREATION.md §3.
+ *
+ * Files come via the PromptInput's `onSubmit({ text, files })` payload
+ * (already converted from blob: → data: by the library before it calls
+ * us). We do not read from `useProviderAttachments().takeFiles()` here:
+ * the library clears provider state + revokes blob URLs *before*
+ * invoking onSubmit, so the ref is stale by the time we'd see it.
  */
 export function useSubmitWorkspace(projectId: string | null) {
 	const navigate = useNavigate();
-	const { closeAndResetDraft, createWorkspace, draft } =
-		useDashboardNewWorkspaceDraft();
-	const attachments = useProviderAttachments();
+	const { closeAndResetDraft, draft } = useDashboardNewWorkspaceDraft();
 	const collections = useCollections();
 
-	return useCallback(async () => {
-		if (!projectId) {
-			toast.error("Select a project first");
-			return;
-		}
-
-		// 1. Resolve names
-		const { branchName, workspaceName } = resolveNames(draft);
-
-		// 2. Store attachments in IndexedDB before closing modal
-		const pendingId = crypto.randomUUID();
-		const detachedFiles = attachments.takeFiles();
-		if (detachedFiles.length > 0) {
-			try {
-				await storeAttachments(pendingId, detachedFiles);
-			} catch (err) {
-				toast.error(
-					err instanceof Error ? err.message : "Failed to store attachments",
-				);
+	return useCallback(
+		async (files: SubmitAttachment[] = []) => {
+			if (!projectId) {
+				toast.error("Select a project first");
 				return;
-			} finally {
-				for (const file of detachedFiles) {
-					if (file.url?.startsWith("blob:")) URL.revokeObjectURL(file.url);
+			}
+
+			const { branchName, workspaceName } = resolveNames(draft);
+			const pendingId = crypto.randomUUID();
+
+			if (files.length > 0) {
+				try {
+					await storeAttachments(pendingId, files);
+				} catch (err) {
+					toast.error(
+						err instanceof Error ? err.message : "Failed to store attachments",
+					);
+					return;
 				}
 			}
-		}
 
-		// 3. Insert pending workspace (full draft for retry)
-		collections.pendingWorkspaces.insert({
-			id: pendingId,
-			projectId,
-			name: workspaceName,
-			branchName,
-			prompt: draft.prompt,
-			baseBranch: draft.baseBranch ?? null,
-			runSetupScript: draft.runSetupScript,
-			linkedIssues: draft.linkedIssues as unknown[],
-			linkedPR: draft.linkedPR,
-			hostTarget: draft.hostTarget,
-			attachmentCount: detachedFiles.length,
-			status: "creating",
-			error: null,
-			workspaceId: null,
-			createdAt: new Date(),
-		});
-
-		// 4. Close modal, navigate to pending page
-		closeAndResetDraft();
-		void navigate({ to: `/pending/${pendingId}` as string });
-
-		// 5. Fire create (fire-and-forget — closure survives modal unmount)
-		const linked = mapLinkedContext(draft);
-
-		let attachmentPayload:
-			| Array<{ data: string; mediaType: string; filename: string }>
-			| undefined;
-		if (detachedFiles.length > 0) {
-			try {
-				const { loadAttachments } = await import(
-					"renderer/lib/pending-attachment-store"
-				);
-				attachmentPayload = await loadAttachments(pendingId);
-			} catch {
-				// Non-fatal — create proceeds without attachments
-			}
-		}
-
-		try {
-			const result = await createWorkspace({
-				pendingId,
+			collections.pendingWorkspaces.insert({
+				id: pendingId,
 				projectId,
+				intent: "fork",
+				name: workspaceName,
+				branchName,
+				prompt: draft.prompt,
+				baseBranch: draft.baseBranch ?? null,
+				baseBranchSource: draft.baseBranchSource ?? null,
+				runSetupScript: draft.runSetupScript,
+				linkedIssues: draft.linkedIssues,
+				linkedPR: draft.linkedPR,
 				hostTarget: draft.hostTarget,
-				names: { workspaceName, branchName },
-				composer: {
-					prompt: draft.prompt.trim() || undefined,
-					baseBranch: draft.baseBranch || undefined,
-					runSetupScript: draft.runSetupScript,
-				},
-				linkedContext: {
-					...linked,
-					attachments: attachmentPayload,
-				},
+				attachmentCount: files.length,
+				status: "creating",
+				error: null,
+				workspaceId: null,
+				warnings: [],
+				createdAt: new Date(),
 			});
 
-			collections.pendingWorkspaces.update(pendingId, (row) => {
-				row.status = "succeeded";
-				row.workspaceId = result.workspace?.id ?? null;
-				row.terminals = result.terminals ?? [];
-			});
-			void clearAttachments(pendingId);
-		} catch (err) {
-			collections.pendingWorkspaces.update(pendingId, (row) => {
-				row.status = "failed";
-				row.error =
-					err instanceof Error ? err.message : "Failed to create workspace";
-			});
-		}
-	}, [
-		attachments,
-		closeAndResetDraft,
-		collections,
-		createWorkspace,
-		draft,
-		navigate,
-		projectId,
-	]);
+			closeAndResetDraft();
+			void navigate({ to: `/pending/${pendingId}` as string });
+		},
+		[closeAndResetDraft, collections, draft, navigate, projectId],
+	);
 }

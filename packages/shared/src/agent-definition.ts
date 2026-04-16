@@ -1,4 +1,8 @@
 import type { PromptTransport } from "./agent-prompt-launch";
+import {
+	DEFAULT_CONTEXT_PROMPT_TEMPLATE_SYSTEM,
+	DEFAULT_CONTEXT_PROMPT_TEMPLATE_USER,
+} from "./agent-prompt-template";
 
 export type AgentDefinitionSource = "builtin" | "user";
 export type AgentKind = "terminal" | "chat";
@@ -11,6 +15,18 @@ interface BaseAgentDefinition {
 	description?: string;
 	enabled: boolean;
 	taskPromptTemplate: string;
+	/**
+	 * Mustache template with AGENT_CONTEXT_PROMPT_VARIABLES. Rendered into
+	 * the system portion of the V2 AgentLaunchSpec (cacheable, stable
+	 * content like AGENTS.md).
+	 */
+	contextPromptTemplateSystem: string;
+	/**
+	 * Mustache template with AGENT_CONTEXT_PROMPT_VARIABLES. Rendered into
+	 * the user portion of the V2 AgentLaunchSpec (per-launch content:
+	 * user prompt, linked issues/PRs/tasks, attachments).
+	 */
+	contextPromptTemplateUser: string;
 }
 
 export interface TerminalAgentDefinition extends BaseAgentDefinition {
@@ -22,9 +38,17 @@ export interface TerminalAgentDefinition extends BaseAgentDefinition {
 }
 
 export interface TerminalAgentDefinitionInput
-	extends Omit<TerminalAgentDefinition, "promptCommand" | "promptTransport"> {
+	extends Omit<
+		TerminalAgentDefinition,
+		| "promptCommand"
+		| "promptTransport"
+		| "contextPromptTemplateSystem"
+		| "contextPromptTemplateUser"
+	> {
 	promptCommand?: string;
 	promptTransport?: PromptTransport;
+	contextPromptTemplateSystem?: string;
+	contextPromptTemplateUser?: string;
 }
 
 export interface ChatAgentDefinition extends BaseAgentDefinition {
@@ -41,6 +65,11 @@ export function createTerminalAgentDefinition(
 		...input,
 		promptCommand: input.promptCommand ?? input.command,
 		promptTransport: input.promptTransport ?? "argv",
+		contextPromptTemplateSystem:
+			input.contextPromptTemplateSystem ??
+			DEFAULT_CONTEXT_PROMPT_TEMPLATE_SYSTEM,
+		contextPromptTemplateUser:
+			input.contextPromptTemplateUser ?? DEFAULT_CONTEXT_PROMPT_TEMPLATE_USER,
 	};
 }
 

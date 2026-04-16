@@ -22,7 +22,13 @@ export function captureHotkeyFromEvent(event: KeyboardEvent): string | null {
 	if (isIgnorableKey(key)) return null;
 
 	const isFKey = /^f([1-9]|1[0-2])$/.test(key);
-	if (!isFKey && !event.ctrlKey && !event.metaKey) return null;
+	// On Mac, Option is a legitimate shortcut modifier (e.g. ⌥⌫ for delete-word).
+	// Elsewhere, Alt is the menu key and AltGr masquerades as ctrl+alt, so we
+	// still require ctrl/meta.
+	const altIsAppModifier = PLATFORM === "mac" && event.altKey;
+	if (!isFKey && !event.ctrlKey && !event.metaKey && !altIsAppModifier) {
+		return null;
+	}
 
 	const modifiers = new Set<string>();
 	if (event.metaKey) modifiers.add("meta");
@@ -55,6 +61,11 @@ const OS_RESERVED: Record<Platform, Set<string>> = {
 	linux: new Set(["alt+f4", "alt+tab"].map(canonicalizeChord)),
 };
 
+function isMacAltOnlyChord(canonical: string): boolean {
+	const mods = new Set(canonical.split("+").slice(0, -1));
+	return mods.has("alt") && !mods.has("meta") && !mods.has("ctrl");
+}
+
 function checkReserved(
 	keys: string,
 ): { reason: string; severity: "error" | "warning" } | null {
@@ -63,6 +74,11 @@ function checkReserved(
 		return { reason: "Reserved by terminal", severity: "error" };
 	if (OS_RESERVED[PLATFORM].has(canonical))
 		return { reason: "Reserved by OS", severity: "warning" };
+	if (PLATFORM === "mac" && isMacAltOnlyChord(canonical))
+		return {
+			reason: "Option shortcuts may prevent typing special characters",
+			severity: "warning",
+		};
 	return null;
 }
 

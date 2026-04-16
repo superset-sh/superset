@@ -8,6 +8,7 @@ import { CommitFilterDropdown } from "../CommitFilterDropdown";
 interface ChangesHeaderProps {
 	currentBranch: { name: string; aheadCount: number; behindCount: number };
 	defaultBranchName: string;
+	baseBranch: string | null;
 	commitCount: number;
 	totalFiles: number;
 	totalAdditions: number;
@@ -25,6 +26,7 @@ interface ChangesHeaderProps {
 export function ChangesHeader({
 	currentBranch,
 	defaultBranchName,
+	baseBranch,
 	commitCount,
 	totalFiles,
 	totalAdditions,
@@ -103,7 +105,7 @@ export function ChangesHeader({
 				{commitCount} {commitCount === 1 ? "commit" : "commits"} from{" "}
 				<BaseBranchSelector
 					branches={branches}
-					currentValue={defaultBranchName}
+					currentValue={baseBranch ?? defaultBranchName}
 					onChange={onBaseBranchChange}
 				/>
 			</div>

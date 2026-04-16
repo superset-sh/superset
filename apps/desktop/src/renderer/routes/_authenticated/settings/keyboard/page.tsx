@@ -25,6 +25,7 @@ import {
 } from "renderer/hotkeys";
 
 const CATEGORY_ORDER: HotkeyCategory[] = [
+	"Navigation",
 	"Workspace",
 	"Terminal",
 	"Layout",

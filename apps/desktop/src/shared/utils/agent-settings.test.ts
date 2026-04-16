@@ -1,6 +1,10 @@
 import { describe, expect, test } from "bun:test";
 import { getBuiltinAgentDefinition } from "@superset/shared/agent-catalog";
 import {
+	DEFAULT_CONTEXT_PROMPT_TEMPLATE_SYSTEM,
+	DEFAULT_CONTEXT_PROMPT_TEMPLATE_USER,
+} from "@superset/shared/agent-prompt-template";
+import {
 	applyCustomAgentDefinitionPatch,
 	createOverrideEnvelopeWithPatch,
 	deleteCustomAgentDefinition,
@@ -266,5 +270,77 @@ describe("custom agent definition helpers", () => {
 				id: "custom:keep",
 			}),
 		]);
+	});
+});
+
+describe("contextPromptTemplate resolution", () => {
+	test("every built-in agent ships the default markdown templates", () => {
+		const configs = resolveAgentConfigs({});
+		for (const config of configs) {
+			expect(config.contextPromptTemplateSystem).toBe(
+				DEFAULT_CONTEXT_PROMPT_TEMPLATE_SYSTEM,
+			);
+			expect(config.contextPromptTemplateUser).toBe(
+				DEFAULT_CONTEXT_PROMPT_TEMPLATE_USER,
+			);
+		}
+	});
+
+	test("override replaces user template for terminal agents", () => {
+		const override = {
+			version: 1 as const,
+			presets: [
+				{
+					id: "claude",
+					contextPromptTemplateUser: "custom user template {{userPrompt}}",
+				},
+			],
+		};
+		const claude = resolveAgentConfigs({ overrideEnvelope: override }).find(
+			(p) => p.id === "claude",
+		);
+		expect(claude?.contextPromptTemplateUser).toBe(
+			"custom user template {{userPrompt}}",
+		);
+		expect(claude?.contextPromptTemplateSystem).toBe(
+			DEFAULT_CONTEXT_PROMPT_TEMPLATE_SYSTEM,
+		);
+		expect(claude?.overriddenFields).toContain("contextPromptTemplateUser");
+	});
+
+	test("override works for chat agents too", () => {
+		const override = {
+			version: 1 as const,
+			presets: [
+				{
+					id: "superset-chat",
+					contextPromptTemplateSystem: "custom sys",
+				},
+			],
+		};
+		const chat = resolveAgentConfigs({ overrideEnvelope: override }).find(
+			(p) => p.id === "superset-chat",
+		);
+		expect(chat?.contextPromptTemplateSystem).toBe("custom sys");
+	});
+
+	test("custom terminal agents without templates fall back to markdown defaults", () => {
+		const custom = resolveAgentConfigs({
+			customDefinitions: [
+				{
+					id: "custom:x",
+					kind: "terminal",
+					label: "X",
+					command: "x",
+					taskPromptTemplate: "t",
+				},
+			],
+		}).find((p) => p.id === "custom:x");
+		expect(custom?.contextPromptTemplateSystem).toBe(
+			DEFAULT_CONTEXT_PROMPT_TEMPLATE_SYSTEM,
+		);
+		expect(custom?.contextPromptTemplateUser).toBe(
+			DEFAULT_CONTEXT_PROMPT_TEMPLATE_USER,
+		);
 	});
 });

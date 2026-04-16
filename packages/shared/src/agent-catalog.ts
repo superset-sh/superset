@@ -5,7 +5,11 @@ import type {
 	ChatAgentDefinition,
 	TerminalAgentDefinition,
 } from "./agent-definition";
-import { DEFAULT_CHAT_TASK_PROMPT_TEMPLATE } from "./agent-prompt-template";
+import {
+	DEFAULT_CHAT_TASK_PROMPT_TEMPLATE,
+	DEFAULT_CONTEXT_PROMPT_TEMPLATE_SYSTEM,
+	DEFAULT_CONTEXT_PROMPT_TEMPLATE_USER,
+} from "./agent-prompt-template";
 import {
 	BUILTIN_TERMINAL_AGENT_TYPES,
 	BUILTIN_TERMINAL_AGENTS,
@@ -43,6 +47,8 @@ const BUILTIN_CHAT_AGENT: ChatAgentDefinition = {
 		"Superset's built-in workspace chat for project-aware help and task launches.",
 	enabled: true,
 	taskPromptTemplate: DEFAULT_CHAT_TASK_PROMPT_TEMPLATE,
+	contextPromptTemplateSystem: DEFAULT_CONTEXT_PROMPT_TEMPLATE_SYSTEM,
+	contextPromptTemplateUser: DEFAULT_CONTEXT_PROMPT_TEMPLATE_USER,
 };
 
 export const BUILTIN_AGENT_DEFINITIONS: AgentDefinition[] = [

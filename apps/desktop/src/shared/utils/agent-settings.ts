@@ -37,6 +37,8 @@ const TERMINAL_OVERRIDE_FIELDS = [
 	"promptCommand",
 	"promptCommandSuffix",
 	"taskPromptTemplate",
+	"contextPromptTemplateSystem",
+	"contextPromptTemplateUser",
 ] as const satisfies readonly AgentPresetField[];
 
 const CHAT_OVERRIDE_FIELDS = [
@@ -44,6 +46,8 @@ const CHAT_OVERRIDE_FIELDS = [
 	"label",
 	"description",
 	"taskPromptTemplate",
+	"contextPromptTemplateSystem",
+	"contextPromptTemplateUser",
 	"model",
 ] as const satisfies readonly AgentPresetField[];
 
@@ -77,6 +81,8 @@ export type AgentPresetPatch = Partial<{
 	promptCommand: string;
 	promptCommandSuffix: string | null;
 	taskPromptTemplate: string;
+	contextPromptTemplateSystem: string;
+	contextPromptTemplateUser: string;
 	model: string | null;
 }>;
 
@@ -89,6 +95,8 @@ export type CustomAgentDefinitionPatch = Partial<{
 	promptCommandSuffix: string | null;
 	promptTransport: PromptTransport | null;
 	taskPromptTemplate: string;
+	contextPromptTemplateSystem: string | null;
+	contextPromptTemplateUser: string | null;
 }>;
 
 function toUserTerminalAgentDefinition(
@@ -105,6 +113,8 @@ function toUserTerminalAgentDefinition(
 		promptCommandSuffix: customDefinition.promptCommandSuffix,
 		promptTransport: customDefinition.promptTransport,
 		taskPromptTemplate: customDefinition.taskPromptTemplate,
+		contextPromptTemplateSystem: customDefinition.contextPromptTemplateSystem,
+		contextPromptTemplateUser: customDefinition.contextPromptTemplateUser,
 		enabled: customDefinition.enabled ?? true,
 	});
 }
@@ -231,6 +241,14 @@ export function applyCustomAgentDefinitionPatch({
 	) {
 		nextDefinition.taskPromptTemplate = patch.taskPromptTemplate;
 	}
+	if (Object.hasOwn(patch, "contextPromptTemplateSystem")) {
+		nextDefinition.contextPromptTemplateSystem =
+			patch.contextPromptTemplateSystem ?? undefined;
+	}
+	if (Object.hasOwn(patch, "contextPromptTemplateUser")) {
+		nextDefinition.contextPromptTemplateUser =
+			patch.contextPromptTemplateUser ?? undefined;
+	}
 
 	return agentCustomDefinitionSchema.parse(nextDefinition);
 }
@@ -313,6 +331,12 @@ function resolveAgentConfig(
 			),
 			taskPromptTemplate:
 				override?.taskPromptTemplate ?? definition.taskPromptTemplate,
+			contextPromptTemplateSystem:
+				override?.contextPromptTemplateSystem ??
+				definition.contextPromptTemplateSystem,
+			contextPromptTemplateUser:
+				override?.contextPromptTemplateUser ??
+				definition.contextPromptTemplateUser,
 			overriddenFields: getOverriddenFields(override, definition),
 		};
 	}
@@ -325,6 +349,12 @@ function resolveAgentConfig(
 		enabled: override?.enabled ?? definition.enabled,
 		taskPromptTemplate:
 			override?.taskPromptTemplate ?? definition.taskPromptTemplate,
+		contextPromptTemplateSystem:
+			override?.contextPromptTemplateSystem ??
+			definition.contextPromptTemplateSystem,
+		contextPromptTemplateUser:
+			override?.contextPromptTemplateUser ??
+			definition.contextPromptTemplateUser,
 		model: resolveModel(definition.model, override),
 		overriddenFields: getOverriddenFields(override, definition),
 	};
@@ -506,6 +536,21 @@ export function createOverrideEnvelopeWithPatch({
 			"taskPromptTemplate",
 			patch.taskPromptTemplate,
 			patch.taskPromptTemplate !== definition.taskPromptTemplate,
+		);
+	}
+	if (hasField("contextPromptTemplateSystem")) {
+		setOrDelete(
+			"contextPromptTemplateSystem",
+			patch.contextPromptTemplateSystem,
+			patch.contextPromptTemplateSystem !==
+				definition.contextPromptTemplateSystem,
+		);
+	}
+	if (hasField("contextPromptTemplateUser")) {
+		setOrDelete(
+			"contextPromptTemplateUser",
+			patch.contextPromptTemplateUser,
+			patch.contextPromptTemplateUser !== definition.contextPromptTemplateUser,
 		);
 	}
 

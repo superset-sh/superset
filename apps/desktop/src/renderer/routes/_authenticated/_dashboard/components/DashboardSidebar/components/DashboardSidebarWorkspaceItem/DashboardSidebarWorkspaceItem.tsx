@@ -38,7 +38,7 @@ export function DashboardSidebarWorkspaceItem({
 		handleClick,
 		handleCopyPath,
 		handleCreateSection,
-		handleDelete,
+		handleDeleted,
 		handleOpenInFinder,
 		isActive,
 		isDeleteDialogOpen,
@@ -107,6 +107,7 @@ export function DashboardSidebarWorkspaceItem({
 								diffStats={diffStats}
 							/>
 						}
+						isLocalWorkspace={hostType === "local-device"}
 						onCreateSection={handleCreateSection}
 						onMoveToSection={(targetSectionId) =>
 							moveWorkspaceToSection(id, projectId, targetSectionId)
@@ -123,11 +124,11 @@ export function DashboardSidebarWorkspaceItem({
 
 				{!isPending && (
 					<DashboardSidebarDeleteDialog
+						workspaceId={id}
+						workspaceName={name || branch}
 						open={isDeleteDialogOpen}
 						onOpenChange={setIsDeleteDialogOpen}
-						onConfirm={handleDelete}
-						title={`Delete "${name || branch}"?`}
-						description="This will permanently delete the workspace."
+						onDeleted={handleDeleted}
 					/>
 				)}
 			</>
@@ -172,6 +173,7 @@ export function DashboardSidebarWorkspaceItem({
 					onMoveToSection={(targetSectionId) =>
 						moveWorkspaceToSection(id, projectId, targetSectionId)
 					}
+					isLocalWorkspace={hostType === "local-device"}
 					onOpenInFinder={handleOpenInFinder}
 					onCopyPath={handleCopyPath}
 					onRemoveFromSidebar={() => removeWorkspaceFromSidebar(id)}
@@ -184,11 +186,11 @@ export function DashboardSidebarWorkspaceItem({
 
 			{!isPending && (
 				<DashboardSidebarDeleteDialog
+					workspaceId={id}
+					workspaceName={name || branch}
 					open={isDeleteDialogOpen}
 					onOpenChange={setIsDeleteDialogOpen}
-					onConfirm={handleDelete}
-					title={`Delete "${name || branch}"?`}
-					description="This will permanently delete the workspace."
+					onDeleted={handleDeleted}
 				/>
 			)}
 		</>

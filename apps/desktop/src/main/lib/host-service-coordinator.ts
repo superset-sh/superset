@@ -1,6 +1,7 @@
 import * as childProcess from "node:child_process";
 import { randomBytes } from "node:crypto";
 import { EventEmitter } from "node:events";
+import * as fs from "node:fs";
 import { createServer } from "node:net";
 import path from "node:path";
 import { settings } from "@superset/local-db";
@@ -103,6 +104,7 @@ export class HostServiceCoordinator extends EventEmitter {
 	>();
 	private scriptPath = path.join(__dirname, "host-service.js");
 	private machineId = getHashedDeviceId();
+	private devReloadWatcher: fs.FSWatcher | null = null;
 
 	async start(
 		organizationId: string,
@@ -220,6 +222,92 @@ export class HostServiceCoordinator extends EventEmitter {
 				this.restart(orgId, config),
 			),
 		);
+	}
+
+	/**
+	 * Dev-only: watch the built host-service bundle and restart running
+	 * instances when it changes. Gives a fast edit→reload loop for code
+	 * under packages/host-service and src/main/host-service without
+	 * restarting Electron. In-memory host-service state (PTYs, watchers,
+	 * chat streams) is torn down on each reload — this is not true HMR.
+	 */
+	enableDevReload(
+		configProvider: () => Promise<SpawnConfig | null>,
+	): () => void {
+		if (this.devReloadWatcher) return () => {};
+
+		const scriptDir = path.dirname(this.scriptPath);
+		const scriptFile = path.basename(this.scriptPath);
+		let debounce: ReturnType<typeof setTimeout> | null = null;
+		let reloading = false;
+
+		const waitForStableBundle = async (): Promise<boolean> => {
+			const deadline = Date.now() + 5_000;
+			let lastSize = -1;
+			let stableSince = 0;
+			while (Date.now() < deadline) {
+				try {
+					const stat = fs.statSync(this.scriptPath);
+					if (stat.size > 0 && stat.size === lastSize) {
+						if (Date.now() - stableSince >= 150) return true;
+					} else {
+						lastSize = stat.size;
+						stableSince = Date.now();
+					}
+				} catch {
+					lastSize = -1;
+					stableSince = 0;
+				}
+				await new Promise((r) => setTimeout(r, 50));
+			}
+			return false;
+		};
+
+		const trigger = () => {
+			if (debounce) clearTimeout(debounce);
+			debounce = setTimeout(() => {
+				void (async () => {
+					if (reloading) return;
+					if (this.getActiveOrganizationIds().length === 0) return;
+					reloading = true;
+					try {
+						const ready = await waitForStableBundle();
+						if (!ready) {
+							console.warn(
+								"[host-service] bundle did not stabilize, skipping reload",
+							);
+							return;
+						}
+						const config = await configProvider();
+						if (!config) return;
+						console.log(
+							"[host-service] bundle changed, restarting running instances",
+						);
+						await this.restartAll(config);
+					} catch (error) {
+						console.error("[host-service] dev reload failed:", error);
+					} finally {
+						reloading = false;
+					}
+				})();
+			}, 250);
+		};
+
+		try {
+			this.devReloadWatcher = fs.watch(scriptDir, (_event, filename) => {
+				if (filename && filename !== scriptFile) return;
+				trigger();
+			});
+		} catch (error) {
+			console.error("[host-service] failed to enable dev reload:", error);
+			return () => {};
+		}
+
+		return () => {
+			if (debounce) clearTimeout(debounce);
+			this.devReloadWatcher?.close();
+			this.devReloadWatcher = null;
+		};
 	}
 
 	// ── Adoption ──────────────────────────────────────────────────────

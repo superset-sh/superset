@@ -10,7 +10,11 @@ const OPENAI_AUTH_PROVIDER_ID = "openai";
 
 type AuthStorageLike = {
 	reload: () => void;
-	getStoredApiKey: (providerId: string) => string | undefined;
+	has?: (providerId: string) => boolean;
+	hasStoredApiKey?: (providerId: string) => boolean;
+	isLoggedIn?: (providerId: string) => boolean;
+	getStoredApiKey?: (providerId: string) => string | undefined;
+	list?: () => string[];
 };
 
 function safeAuthStorage(): AuthStorageLike | null {
@@ -24,15 +28,21 @@ function safeAuthStorage(): AuthStorageLike | null {
 	}
 }
 
+interface KeySource {
+	key: string;
+	source: "env" | "stored";
+}
+
 function resolveApiKey(
 	envVar: string | undefined,
 	storage: AuthStorageLike | null,
 	providerId: string,
-): string | null {
+): KeySource | null {
 	const env = envVar?.trim();
-	if (env) return env;
-	const stored = storage?.getStoredApiKey(providerId)?.trim();
-	return stored && stored.length > 0 ? stored : null;
+	if (env) return { key: env, source: "env" };
+	const stored = storage?.getStoredApiKey?.(providerId)?.trim();
+	if (stored && stored.length > 0) return { key: stored, source: "stored" };
+	return null;
 }
 
 /**
@@ -41,8 +51,7 @@ function resolveApiKey(
  * `null` if no credentials are available.
  *
  * Currently supports API keys only (env or stored). OAuth-only users (Claude
- * Max, OpenAI Codex) fall back to `null`; callers should degrade gracefully
- * (e.g. skip AI naming and use a prompt-derived title).
+ * Max, OpenAI Codex) fall back to `null`; callers should degrade gracefully.
  *
  * Returned as `unknown` so callers can pass it to Mastra Agent without
  * coupling this shared module to @mastra/core typing.
@@ -50,24 +59,51 @@ function resolveApiKey(
 export function getSmallModel(): unknown | null {
 	const storage = safeAuthStorage();
 
-	const anthropicKey = resolveApiKey(
+	const storedProviders = storage?.list?.() ?? [];
+	const anthropicLoggedIn = storage?.isLoggedIn?.(ANTHROPIC_AUTH_PROVIDER_ID);
+	const openaiLoggedIn = storage?.isLoggedIn?.(OPENAI_AUTH_PROVIDER_ID);
+
+	console.info("[getSmallModel] resolving credentials", {
+		envAnthropic: !!process.env.ANTHROPIC_API_KEY,
+		envOpenAI: !!process.env.OPENAI_API_KEY,
+		storedProviders,
+		anthropicLoggedIn: anthropicLoggedIn ?? null,
+		openaiLoggedIn: openaiLoggedIn ?? null,
+	});
+
+	const anthropic = resolveApiKey(
 		process.env.ANTHROPIC_API_KEY,
 		storage,
 		ANTHROPIC_AUTH_PROVIDER_ID,
 	);
-	if (anthropicKey) {
-		return createAnthropic({ apiKey: anthropicKey })(ANTHROPIC_SMALL_MODEL_ID);
+	if (anthropic) {
+		console.info("[getSmallModel] using Anthropic", {
+			source: anthropic.source,
+			modelId: ANTHROPIC_SMALL_MODEL_ID,
+		});
+		return createAnthropic({ apiKey: anthropic.key })(ANTHROPIC_SMALL_MODEL_ID);
 	}
 
-	const openaiKey = resolveApiKey(
+	const openai = resolveApiKey(
 		process.env.OPENAI_API_KEY,
 		storage,
 		OPENAI_AUTH_PROVIDER_ID,
 	);
-	if (openaiKey) {
-		return createOpenAI({ apiKey: openaiKey }).chat(OPENAI_SMALL_MODEL_ID);
+	if (openai) {
+		console.info("[getSmallModel] using OpenAI", {
+			source: openai.source,
+			modelId: OPENAI_SMALL_MODEL_ID,
+		});
+		return createOpenAI({ apiKey: openai.key }).chat(OPENAI_SMALL_MODEL_ID);
 	}
 
+	console.warn(
+		"[getSmallModel] no API-key credentials found (env or stored). OAuth-only sessions are not yet supported for small-model tasks.",
+		{
+			anthropicOAuthPresent: anthropicLoggedIn ?? null,
+			openaiOAuthPresent: openaiLoggedIn ?? null,
+		},
+	);
 	return null;
 }
 

@@ -202,7 +202,11 @@ export const auth = betterAuth({
 			consentPage: `${env.NEXT_PUBLIC_WEB_URL}/oauth/consent`,
 			allowDynamicClientRegistration: true,
 			allowUnauthenticatedClientRegistration: true,
-			validAudiences: [env.NEXT_PUBLIC_API_URL, `${env.NEXT_PUBLIC_API_URL}/`],
+			validAudiences: [
+				env.NEXT_PUBLIC_API_URL,
+				`${env.NEXT_PUBLIC_API_URL}/`,
+				`${env.NEXT_PUBLIC_API_URL}/api/agent/mcp`,
+			],
 			silenceWarnings: {
 				oauthAuthServerConfig: true,
 				openidConfig: true,

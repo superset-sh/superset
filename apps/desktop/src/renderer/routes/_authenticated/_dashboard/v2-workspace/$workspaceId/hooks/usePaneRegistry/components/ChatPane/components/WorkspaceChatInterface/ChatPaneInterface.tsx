@@ -190,6 +190,7 @@ function getLaunchConfigKey(
 export function ChatPaneInterface({
 	sessionId,
 	initialLaunchConfig,
+	onConsumeLaunchConfig,
 	workspaceId,
 	organizationId,
 	cwd,
@@ -701,6 +702,7 @@ export function ChatPaneInterface({
 				consumedLaunchConfigRef.current = launchConfigKey;
 				delete autoLaunchAttemptsRef.current[launchConfigKey];
 				delete autoLaunchSessionLockRef.current[launchConfigKey];
+				onConsumeLaunchConfig?.();
 
 				captureChatEvent("chat_message_sent", {
 					session_id: targetSessionId,
@@ -750,6 +752,7 @@ export function ChatPaneInterface({
 		setRuntimeErrorMessage,
 		onUserMessageSubmitted,
 		thinkingLevel,
+		onConsumeLaunchConfig,
 	]);
 
 	const handleStop = useCallback(

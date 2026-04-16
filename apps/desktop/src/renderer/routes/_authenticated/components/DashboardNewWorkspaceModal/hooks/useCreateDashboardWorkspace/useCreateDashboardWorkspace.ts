@@ -15,6 +15,7 @@ export interface CreateWorkspaceInput {
 	composer: {
 		prompt?: string;
 		baseBranch?: string;
+		baseBranchSource?: "local" | "remote-tracking";
 		runSetupScript?: boolean;
 	};
 	linkedContext?: {

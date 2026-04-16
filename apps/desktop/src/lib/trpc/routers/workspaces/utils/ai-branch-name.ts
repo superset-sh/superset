@@ -59,7 +59,12 @@ export async function generateBranchNameFromPrompt(
 	branchPrefix?: string,
 ): Promise<string | null> {
 	const model = getSmallModel();
-	if (!model) return null;
+	if (!model) {
+		console.info(
+			"[generateBranchNameFromPrompt] no model available, skipping AI naming",
+		);
+		return null;
+	}
 
 	let generated: string | null;
 	try {
@@ -76,8 +81,23 @@ export async function generateBranchNameFromPrompt(
 		return null;
 	}
 
+	console.info("[generateBranchNameFromPrompt] model returned", {
+		raw: generated,
+	});
+
 	if (!generated) return null;
 	const sanitized = sanitizeBranchNameWithMaxLength(generated);
-	if (!sanitized) return null;
-	return resolveConflict(sanitized, existingBranches, branchPrefix);
+	if (!sanitized) {
+		console.warn(
+			"[generateBranchNameFromPrompt] sanitization produced empty string",
+			{ raw: generated },
+		);
+		return null;
+	}
+	const resolved = resolveConflict(sanitized, existingBranches, branchPrefix);
+	console.info("[generateBranchNameFromPrompt] final branch name", {
+		sanitized,
+		resolved,
+	});
+	return resolved;
 }

@@ -27,11 +27,15 @@ export type LinkedPR = {
 	state: string;
 };
 
+export type BaseBranchSource = "local" | "remote-tracking";
+
 export interface DashboardNewWorkspaceDraft {
 	selectedProjectId: string | null;
 	hostTarget: WorkspaceHostTarget;
 	prompt: string;
 	baseBranch: string | null;
+	/** Picker hint: which form of `baseBranch` the user selected. */
+	baseBranchSource: BaseBranchSource | null;
 	runSetupScript: boolean;
 	workspaceName: string;
 	workspaceNameEdited: boolean;
@@ -51,6 +55,7 @@ const initialDraft: DashboardNewWorkspaceDraft = {
 	hostTarget: { kind: "local" },
 	prompt: "",
 	baseBranch: null,
+	baseBranchSource: null,
 	runSetupScript: true,
 	workspaceName: "",
 	workspaceNameEdited: false,
@@ -157,6 +162,7 @@ export function DashboardNewWorkspaceDraftProvider({
 				hostTarget: state.hostTarget,
 				prompt: state.prompt,
 				baseBranch: state.baseBranch,
+				baseBranchSource: state.baseBranchSource,
 				runSetupScript: state.runSetupScript,
 				workspaceName: state.workspaceName,
 				workspaceNameEdited: state.workspaceNameEdited,

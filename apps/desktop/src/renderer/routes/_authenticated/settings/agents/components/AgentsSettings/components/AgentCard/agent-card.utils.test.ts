@@ -11,6 +11,8 @@ const BUILTIN_TERMINAL_PRESET: ResolvedAgentConfig = {
 	promptCommand: "claude --print",
 	promptTransport: "argv",
 	taskPromptTemplate: "Task {{slug}}",
+	contextPromptTemplateSystem: "",
+	contextPromptTemplateUser: "",
 	enabled: true,
 	overriddenFields: [],
 };
@@ -24,6 +26,8 @@ const CUSTOM_TERMINAL_PRESET: ResolvedAgentConfig = {
 	promptCommand: "team-agent --prompt",
 	promptTransport: "argv",
 	taskPromptTemplate: "Task {{slug}}",
+	contextPromptTemplateSystem: "",
+	contextPromptTemplateUser: "",
 	enabled: true,
 	overriddenFields: [],
 };

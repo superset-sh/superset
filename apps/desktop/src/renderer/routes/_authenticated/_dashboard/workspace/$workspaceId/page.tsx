@@ -33,8 +33,10 @@ import { useTabsStore } from "renderer/stores/tabs/store";
 import type { Tab } from "renderer/stores/tabs/types";
 import { useTabsWithPresets } from "renderer/stores/tabs/useTabsWithPresets";
 import {
+	type FocusDirection,
 	findPanePath,
 	getFirstPaneId,
+	getSpatialNeighborMosaicPaneId,
 	resolveActiveTabIdForWorkspace,
 } from "renderer/stores/tabs/utils";
 import {
@@ -408,6 +410,23 @@ function WorkspacePage() {
 			equalizePaneSplits(activeTabId);
 		}
 	});
+
+	const moveFocusDirectional = useCallback(
+		(dir: FocusDirection) => {
+			if (!activeTabId || !activeTab?.layout || !focusedPaneId) return;
+			const neighbor = getSpatialNeighborMosaicPaneId(
+				activeTab.layout,
+				focusedPaneId,
+				dir,
+			);
+			if (neighbor) setFocusedPane(activeTabId, neighbor);
+		},
+		[activeTabId, activeTab?.layout, focusedPaneId, setFocusedPane],
+	);
+	useHotkey("FOCUS_PANE_LEFT", () => moveFocusDirectional("left"));
+	useHotkey("FOCUS_PANE_RIGHT", () => moveFocusDirectional("right"));
+	useHotkey("FOCUS_PANE_UP", () => moveFocusDirectional("up"));
+	useHotkey("FOCUS_PANE_DOWN", () => moveFocusDirectional("down"));
 
 	const getPreviousWorkspace =
 		electronTrpc.workspaces.getPreviousWorkspace.useQuery(

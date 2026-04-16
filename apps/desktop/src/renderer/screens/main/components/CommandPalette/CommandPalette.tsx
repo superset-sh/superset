@@ -1,10 +1,12 @@
 import * as DialogPrimitive from "@radix-ui/react-dialog";
-import { CommandPrimitive } from "@superset/ui/command";
+import { CommandPrimitive, CommandSeparator } from "@superset/ui/command";
 import { SearchIcon } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { LuChevronDown, LuChevronRight } from "react-icons/lu";
+import type { RecentFile } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/useRecentlyViewedFiles";
+import { RECENT_DISPLAY_LIMIT } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/useRecentlyViewedFiles";
 import { useFileSearch } from "renderer/screens/main/components/WorkspaceView/RightSidebar/FilesView/hooks/useFileSearch/useFileSearch";
-import { FileIcon } from "renderer/screens/main/components/WorkspaceView/RightSidebar/FilesView/utils";
+import { FileResultItem } from "./components/FileResultItem";
 import { useV2FileSearch } from "./hooks/useV2FileSearch";
 
 // 48px input + 10 * 40px items
@@ -17,6 +19,13 @@ export interface CommandPaletteProps {
 	onOpenChange: (open: boolean) => void;
 	onSelectFile: (filePath: string) => void;
 	variant?: "v1" | "v2";
+	recentlyViewedFiles?: RecentFile[];
+	openFilePaths?: Set<string>;
+}
+
+function getFileName(relativePath: string): string {
+	const segments = relativePath.split("/");
+	return segments[segments.length - 1] ?? relativePath;
 }
 
 export function CommandPalette({
@@ -25,6 +34,8 @@ export function CommandPalette({
 	onOpenChange,
 	onSelectFile,
 	variant = "v1",
+	recentlyViewedFiles,
+	openFilePaths,
 }: CommandPaletteProps) {
 	const [query, setQuery] = useState("");
 	const [filtersOpen, setFiltersOpen] = useState(false);
@@ -45,7 +56,45 @@ export function CommandPalette({
 		variant === "v2" ? query : "",
 	);
 
-	const results = variant === "v2" ? v2Search.results : v1Search.searchResults;
+	const rawResults =
+		variant === "v2" ? v2Search.results : v1Search.searchResults;
+	const trimmedQuery = query.trim();
+	const hasQuery = trimmedQuery.length > 0;
+	const showRecentSection = variant === "v2" && Boolean(recentlyViewedFiles);
+
+	const orderedRecent = useMemo<RecentFile[]>(() => {
+		if (!showRecentSection || !recentlyViewedFiles) return [];
+		const openSet = openFilePaths ?? new Set<string>();
+		const openFiles: RecentFile[] = [];
+		const rest: RecentFile[] = [];
+		for (const file of recentlyViewedFiles) {
+			if (openSet.has(file.absolutePath)) {
+				openFiles.push(file);
+			} else {
+				rest.push(file);
+			}
+		}
+		return [...openFiles, ...rest].slice(0, RECENT_DISPLAY_LIMIT);
+	}, [showRecentSection, recentlyViewedFiles, openFilePaths]);
+
+	const filteredRecent = useMemo<RecentFile[]>(() => {
+		if (!showRecentSection) return [];
+		if (!hasQuery) return orderedRecent;
+		const needle = trimmedQuery.toLowerCase();
+		return orderedRecent.filter((file) =>
+			file.relativePath.toLowerCase().includes(needle),
+		);
+	}, [showRecentSection, hasQuery, trimmedQuery, orderedRecent]);
+
+	const recentAbsSet = useMemo(
+		() => new Set(filteredRecent.map((f) => f.absolutePath)),
+		[filteredRecent],
+	);
+
+	const dedupedResults = useMemo(() => {
+		if (!showRecentSection) return rawResults;
+		return rawResults.filter((r) => !recentAbsSet.has(r.path));
+	}, [showRecentSection, rawResults, recentAbsSet]);
 
 	const handleOpenChange = useCallback(
 		(nextOpen: boolean) => {
@@ -66,6 +115,12 @@ export function CommandPalette({
 	useEffect(() => {
 		if (open) requestAnimationFrame(() => inputRef.current?.focus());
 	}, [open]);
+
+	const showHeading = showRecentSection && filteredRecent.length > 0;
+	const showSeparator =
+		showRecentSection && filteredRecent.length > 0 && dedupedResults.length > 0;
+	const showEmptyState =
+		filteredRecent.length === 0 && dedupedResults.length === 0;
 
 	return (
 		<DialogPrimitive.Root open={open} onOpenChange={handleOpenChange} modal>
@@ -129,32 +184,40 @@ export function CommandPalette({
 						)}
 
 						<CommandPrimitive.List className="max-h-[400px] overflow-x-hidden overflow-y-auto scroll-py-1 p-1">
-							{results.length === 0 && (
+							{showEmptyState && (
 								<CommandPrimitive.Empty className="py-6 text-center text-sm text-muted-foreground">
 									No files found.
 								</CommandPrimitive.Empty>
 							)}
-							{results.map((file) => (
-								<CommandPrimitive.Item
+
+							{showHeading && (
+								<div className="px-2 pt-2 pb-1 text-muted-foreground text-xs">
+									Recently Viewed
+								</div>
+							)}
+
+							{filteredRecent.map((file) => (
+								<FileResultItem
+									key={`recent:${file.absolutePath}`}
+									value={`recent:${file.absolutePath}`}
+									fileName={getFileName(file.relativePath)}
+									relativePath={file.relativePath}
+									onSelect={() => handleSelectFile(file.absolutePath)}
+								/>
+							))}
+
+							{showSeparator && (
+								<CommandSeparator alwaysRender className="my-1" />
+							)}
+
+							{dedupedResults.map((file) => (
+								<FileResultItem
 									key={file.id}
 									value={file.path}
+									fileName={file.name}
+									relativePath={file.relativePath}
 									onSelect={() => handleSelectFile(file.path)}
-									className="group data-[selected=true]:bg-accent data-[selected=true]:text-accent-foreground [&_svg:not([class*='text-'])]:text-muted-foreground relative flex cursor-default items-center gap-2 rounded-sm px-2 py-2 text-sm outline-hidden select-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4"
-								>
-									<FileIcon
-										fileName={file.name}
-										className="size-3.5 shrink-0"
-									/>
-									<span className="max-w-[252px] truncate font-medium">
-										{file.name}
-									</span>
-									<span className="truncate text-muted-foreground text-xs">
-										{file.relativePath}
-									</span>
-									<kbd className="ml-auto hidden shrink-0 text-xs text-muted-foreground group-data-[selected=true]:block">
-										↵
-									</kbd>
-								</CommandPrimitive.Item>
+								/>
 							))}
 						</CommandPrimitive.List>
 					</CommandPrimitive>

@@ -1,3 +1,4 @@
+import { workspaceTrpc } from "@superset/workspace-client";
 import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useMemo } from "react";
@@ -15,7 +16,12 @@ export function useSidebarDiffRef(workspaceId: string): DiffRef {
 	);
 	const sidebarState = rows[0]?.sidebarState;
 	const filter = sidebarState?.changesFilter ?? { kind: "all" };
-	const baseBranch = sidebarState?.baseBranch ?? null;
+
+	const baseBranchQuery = workspaceTrpc.git.getBaseBranch.useQuery(
+		{ workspaceId },
+		{ staleTime: Number.POSITIVE_INFINITY },
+	);
+	const baseBranch = baseBranchQuery.data?.baseBranch ?? null;
 
 	const filterKind = filter.kind;
 	const commitHash =
