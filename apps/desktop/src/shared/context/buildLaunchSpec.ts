@@ -182,9 +182,11 @@ function renderKindBlock(sections: ContextSection[]): string {
 }
 
 /**
- * Attachments list covers (a) explicit attachment-kind sections and (b)
- * inline non-text parts from the user prompt — so CLI agents reading
- * just the prompt text still see a reference to every file/image.
+ * Attachments block covers (a) explicit attachment-kind sections and
+ * (b) inline non-text parts from the user prompt — so CLI agents
+ * reading just the prompt text still see a reference to every
+ * file/image, with a framing header cueing the agent to actually read
+ * them rather than treating them as passive metadata.
  */
 function renderAttachmentsList(sections: ContextSection[]): string {
 	const refs: string[] = [];
@@ -198,7 +200,17 @@ function renderAttachmentsList(sections: ContextSection[]): string {
 			refs.push(`- .superset/attachments/${label ?? "inline-attachment"}`);
 		}
 	}
-	return refs.length === 0 ? "" : refs.join("\n");
+	if (refs.length === 0) return "";
+	return [
+		"# Attached files",
+		"",
+		"The user attached these files alongside the prompt. They've been",
+		"written into the worktree at `.superset/attachments/`. Read them",
+		"to understand the request — they're part of the task, not",
+		"optional reference.",
+		"",
+		refs.join("\n"),
+	].join("\n");
 }
 
 function collectExplicitAttachments(sections: ContextSection[]): ContentPart[] {

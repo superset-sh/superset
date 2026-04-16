@@ -27,7 +27,17 @@ export const githubPrContributor: ContextContributor<{
 		}
 
 		const body = pr.body.trim();
-		const header = `# ${pr.title}\n\nBranch: \`${pr.branch}\``;
+		// When a workspace is created from a linked PR, the PR's head
+		// branch is checked out into the worktree. Tell the agent so
+		// it doesn't start a new branch or open another PR — commits
+		// here continue this PR's history.
+		const branchLine = pr.branch
+			? `Branch \`${pr.branch}\` is checked out in this workspace — commits you make continue this PR.`
+			: "";
+		const headerParts = [`# PR #${pr.number} — ${pr.title}`, branchLine].filter(
+			Boolean,
+		);
+		const header = headerParts.join("\n\n");
 		const text = body ? `${header}\n\n${body}` : header;
 		return {
 			id: `pr:${pr.number}`,

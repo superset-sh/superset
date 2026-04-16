@@ -345,6 +345,13 @@ Branch: \`fix/auth-encryption\`
 
 Replaces plaintext token storage with encrypted KV.
 
+# Attached files
+
+The user attached these files alongside the prompt. They've been
+written into the worktree at \`.superset/attachments/\`. Read them
+to understand the request — they're part of the task, not
+optional reference.
+
 - .superset/attachments/logs.txt
 - .superset/attachments/screenshot.png"
 ,
@@ -387,6 +394,13 @@ Follow-up for #123.
 Branch: \`fix/auth-encryption\`
 
 Replaces plaintext token storage with encrypted KV.
+
+# Attached files
+
+The user attached these files alongside the prompt. They've been
+written into the worktree at \`.superset/attachments/\`. Read them
+to understand the request — they're part of the task, not
+optional reference.
 
 - .superset/attachments/logs.txt
 - .superset/attachments/screenshot.png"

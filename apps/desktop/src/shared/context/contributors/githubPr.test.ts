@@ -37,18 +37,13 @@ describe("githubPrContributor", () => {
 			{ kind: "github-pr", url: PR.url },
 			makeCtx(async () => PR),
 		);
-		expect(section).toEqual({
-			id: `pr:${PR.number}`,
-			kind: "github-pr",
-			label: `PR #${PR.number} — ${PR.title}`,
-			content: [
-				{
-					type: "text",
-					text: `# ${PR.title}\n\nBranch: \`${PR.branch}\`\n\n${PR.body}`,
-				},
-			],
-			meta: { url: PR.url },
-		});
+		expect(section?.id).toBe(`pr:${PR.number}`);
+		expect(section?.label).toBe(`PR #${PR.number} — ${PR.title}`);
+		expect(section?.meta).toEqual({ url: PR.url });
+		const text = (section?.content[0] as { type: "text"; text: string }).text;
+		expect(text).toContain(`# PR #${PR.number} — ${PR.title}`);
+		expect(text).toContain(`Branch \`${PR.branch}\` is checked out`);
+		expect(text).toContain(PR.body);
 	});
 
 	test("returns null on 404", async () => {
