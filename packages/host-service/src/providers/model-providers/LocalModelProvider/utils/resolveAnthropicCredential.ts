@@ -82,7 +82,7 @@ function getAnthropicCredentialFromKeychain(): LocalResolvedCredential | null {
 	return null;
 }
 
-function getAnthropicCredentialFromAuthStorage(): LocalResolvedCredential | null {
+async function getAnthropicCredentialFromAuthStorage(): Promise<LocalResolvedCredential | null> {
 	try {
 		const authStorage = createAuthStorage();
 		authStorage.reload();
@@ -97,18 +97,39 @@ function getAnthropicCredentialFromAuthStorage(): LocalResolvedCredential | null
 			return { kind: "api_key" };
 		}
 
-		if (
-			credential.type === "oauth" &&
-			typeof credential.access === "string" &&
-			credential.access.trim().length > 0
-		) {
-			return {
-				kind: "oauth",
-				expiresAt:
-					typeof credential.expires === "number"
-						? credential.expires
-						: undefined,
-			};
+		if (credential.type === "oauth") {
+			const expiresAt =
+				typeof credential.expires === "number" ? credential.expires : undefined;
+			if (typeof expiresAt === "number" && Date.now() >= expiresAt) {
+				try {
+					await authStorage.getApiKey(ANTHROPIC_PROVIDER_ID);
+					authStorage.reload();
+					const refreshed = authStorage.get(ANTHROPIC_PROVIDER_ID);
+					if (
+						isObjectRecord(refreshed) &&
+						refreshed.type === "oauth" &&
+						typeof refreshed.access === "string" &&
+						refreshed.access.trim().length > 0
+					) {
+						return {
+							kind: "oauth",
+							expiresAt:
+								typeof refreshed.expires === "number"
+									? refreshed.expires
+									: undefined,
+						};
+					}
+					return { kind: "oauth", expiresAt };
+				} catch {
+					return { kind: "oauth", expiresAt };
+				}
+			}
+			if (
+				typeof credential.access === "string" &&
+				credential.access.trim().length > 0
+			) {
+				return { kind: "oauth", expiresAt };
+			}
 		}
 	} catch {
 		// Ignore auth storage read failures for now.
@@ -117,10 +138,10 @@ function getAnthropicCredentialFromAuthStorage(): LocalResolvedCredential | null
 	return null;
 }
 
-export function resolveAnthropicCredential(): LocalResolvedCredential | null {
+export async function resolveAnthropicCredential(): Promise<LocalResolvedCredential | null> {
 	return (
 		getAnthropicCredentialFromConfig() ??
 		getAnthropicCredentialFromKeychain() ??
-		getAnthropicCredentialFromAuthStorage()
+		(await getAnthropicCredentialFromAuthStorage())
 	);
 }
