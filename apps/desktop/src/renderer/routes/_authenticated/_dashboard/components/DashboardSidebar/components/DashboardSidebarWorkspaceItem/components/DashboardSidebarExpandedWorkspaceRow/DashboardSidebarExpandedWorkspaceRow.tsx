@@ -118,22 +118,55 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 
 				<Tooltip delayDuration={500}>
 					<TooltipTrigger asChild>
-						<div className="relative mr-2.5 flex size-5 shrink-0 items-center justify-center">
-							<DashboardSidebarWorkspaceIcon
-								hostType={hostType}
-								isActive={isActive}
-								variant="expanded"
-								workspaceStatus={null}
-								creationStatus={creationStatus}
-								pullRequest={pullRequest}
-							/>
-						</div>
+						{pullRequest ? (
+							<a
+								href={pullRequest.url}
+								target="_blank"
+								rel="noopener noreferrer"
+								onClick={(event) => event.stopPropagation()}
+								aria-label={`Open pull request #${pullRequest.number}`}
+								className="relative mr-2.5 flex size-5 shrink-0 items-center justify-center rounded transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+							>
+								<DashboardSidebarWorkspaceIcon
+									hostType={hostType}
+									isActive={isActive}
+									variant="expanded"
+									workspaceStatus={null}
+									creationStatus={creationStatus}
+									pullRequest={pullRequest}
+								/>
+							</a>
+						) : (
+							<div className="relative mr-2.5 flex size-5 shrink-0 items-center justify-center">
+								<DashboardSidebarWorkspaceIcon
+									hostType={hostType}
+									isActive={isActive}
+									variant="expanded"
+									workspaceStatus={null}
+									creationStatus={creationStatus}
+									pullRequest={pullRequest}
+								/>
+							</div>
+						)}
 					</TooltipTrigger>
 					<TooltipContent side="right" sideOffset={8}>
-						<p className="text-xs font-medium">Worktree workspace</p>
-						<p className="text-xs text-muted-foreground">
-							Isolated copy for parallel development
-						</p>
+						{pullRequest ? (
+							<>
+								<p className="text-xs font-medium">
+									#{pullRequest.number} · {pullRequest.state}
+								</p>
+								<p className="text-xs text-muted-foreground">
+									{pullRequest.title}
+								</p>
+							</>
+						) : (
+							<>
+								<p className="text-xs font-medium">Worktree workspace</p>
+								<p className="text-xs text-muted-foreground">
+									Isolated copy for parallel development
+								</p>
+							</>
+						)}
 					</TooltipContent>
 				</Tooltip>
 

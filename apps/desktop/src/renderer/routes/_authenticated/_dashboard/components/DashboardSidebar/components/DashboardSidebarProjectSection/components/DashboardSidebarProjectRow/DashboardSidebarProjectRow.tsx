@@ -116,7 +116,8 @@ export const DashboardSidebarProjectRow = forwardRef<
 								onNewWorkspace();
 							}}
 							onContextMenu={(event) => event.stopPropagation()}
-							className="ml-1 shrink-0 rounded p-0.5 text-muted-foreground/60 opacity-0 transition hover:bg-muted hover:text-foreground group-hover:opacity-100"
+							aria-label="New workspace"
+							className="ml-1 shrink-0 rounded p-0.5 text-muted-foreground/60 opacity-0 transition hover:bg-muted hover:text-foreground group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
 						>
 							<HiMiniPlus className="size-3.5" />
 						</button>

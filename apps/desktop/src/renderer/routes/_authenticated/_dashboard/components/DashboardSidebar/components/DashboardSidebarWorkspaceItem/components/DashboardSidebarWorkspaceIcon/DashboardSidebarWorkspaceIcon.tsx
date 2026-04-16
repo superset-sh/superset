@@ -1,11 +1,5 @@
 import { cn } from "@superset/ui/utils";
-import {
-	CircleDot,
-	GitMerge,
-	GitPullRequest,
-	GitPullRequestClosed,
-	GitPullRequestDraft,
-} from "lucide-react";
+import { CircleDot } from "lucide-react";
 import { HiExclamationTriangle } from "react-icons/hi2";
 import { LuCloud, LuLaptop } from "react-icons/lu";
 import { AsciiSpinner } from "renderer/screens/main/components/AsciiSpinner";
@@ -15,6 +9,7 @@ import type {
 	DashboardSidebarWorkspaceHostType,
 	DashboardSidebarWorkspacePullRequest,
 } from "../../../../types";
+import { PullRequestStatusIcon } from "./components/PullRequestStatusIcon";
 
 interface DashboardSidebarWorkspaceIconProps {
 	hostType: DashboardSidebarWorkspaceHostType;
@@ -29,51 +24,6 @@ const OVERLAY_POSITION = {
 	collapsed: "top-1 right-1",
 	expanded: "-top-0.5 -right-0.5",
 } as const;
-
-function PullRequestStatusIcon({
-	pr,
-}: {
-	pr: DashboardSidebarWorkspacePullRequest;
-}) {
-	const className = "size-4";
-	const strokeWidth = 1.75;
-	if (pr.state === "merged") {
-		return (
-			<GitMerge
-				className={cn(className, "text-violet-400/80")}
-				strokeWidth={strokeWidth}
-			/>
-		);
-	}
-	if (pr.state === "closed") {
-		return (
-			<GitPullRequestClosed
-				className={cn(className, "text-rose-400/70")}
-				strokeWidth={strokeWidth}
-			/>
-		);
-	}
-	if (pr.state === "draft") {
-		return (
-			<GitPullRequestDraft
-				className={cn(className, "text-muted-foreground/70")}
-				strokeWidth={strokeWidth}
-			/>
-		);
-	}
-	const openColor =
-		pr.reviewDecision === "approved"
-			? "text-emerald-400/80"
-			: pr.reviewDecision === "changes_requested"
-				? "text-amber-400/80"
-				: "text-emerald-400/70";
-	return (
-		<GitPullRequest
-			className={cn(className, openColor)}
-			strokeWidth={strokeWidth}
-		/>
-	);
-}
 
 export function DashboardSidebarWorkspaceIcon({
 	hostType,
