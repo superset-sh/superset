@@ -140,6 +140,10 @@ function createTrpcStorageAdapter(config: TrpcStorageConfig): StateStorage {
 	return {
 		getItem: async (name: string): Promise<string | null> => {
 			try {
+				// In non-Electron environments (e.g. tests), the electronTRPC
+				// global won't exist, so skip the tRPC query entirely.
+				if (!(globalThis as Record<string, unknown>).electronTRPC) return null;
+
 				const state = await config.get();
 				const version = Number.parseInt(
 					localStorage.getItem(`${name}:version`) ?? "0",

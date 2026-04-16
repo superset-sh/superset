@@ -1,5 +1,4 @@
 import { useNavigate } from "@tanstack/react-router";
-import { useRef } from "react";
 import { useUpdateLastActivityAt } from "renderer/hooks/useUpdateLastActivityAt";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";

@@ -19,8 +19,8 @@ import { getWorkspace } from "../utils/db-helpers";
 import { getProjectChildItems } from "../utils/project-children-order";
 import { loadSetupConfig } from "../utils/setup";
 import {
-	compareByActivity,
 	compareActivityDesc,
+	compareByActivity,
 	computeActivityOrder,
 	computeVisualOrder,
 } from "../utils/visual-order";
