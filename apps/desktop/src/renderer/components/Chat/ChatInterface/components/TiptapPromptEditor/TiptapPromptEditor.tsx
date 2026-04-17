@@ -26,6 +26,7 @@ import Suggestion from "@tiptap/suggestion";
 
 const slashSuggestionKey = new PluginKey("slashCommandSuggestion");
 const mentionSuggestionKey = new PluginKey("fileMentionSuggestion");
+
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useDebouncedValue } from "renderer/hooks/useDebouncedValue";
 import { FileIcon } from "renderer/screens/main/components/WorkspaceView/RightSidebar/FilesView/utils";
@@ -37,9 +38,9 @@ import {
 } from "../../hooks/useSlashCommands";
 import { SlashCommandMenu } from "../SlashCommandMenu";
 import { FileMentionNode } from "./FileMentionNode";
+import { parseTextToEditorContent } from "./parseTextToEditorContent";
 import { SlashCommandNode } from "./SlashCommandNode";
 import { SlashCommandPreviewPopover } from "./SlashCommandPreviewPopover";
-import { parseTextToEditorContent } from "./parseTextToEditorContent";
 import { serializeEditorToText } from "./serializeEditorToText";
 
 type FileResult = { id: string; name: string; relativePath: string };
@@ -472,9 +473,11 @@ export function TiptapPromptEditor({
 									}
 									if (event.key === "Enter" || event.key === "Tab") {
 										const file = files[mention.selectedIndex];
-										if (file)
+										if (file) {
 											mention.tiptapCommand({ path: file.relativePath });
-										return true;
+											return true;
+										}
+										return false;
 									}
 									return false;
 								},

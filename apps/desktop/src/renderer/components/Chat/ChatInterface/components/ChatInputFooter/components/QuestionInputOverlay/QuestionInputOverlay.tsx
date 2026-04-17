@@ -28,10 +28,11 @@ export function QuestionInputOverlay({
 	const [submittedLabel, setSubmittedLabel] = useState<string | null>(null);
 	const inputRef = useRef<HTMLInputElement>(null);
 
+	// biome-ignore lint/correctness/useExhaustiveDependencies: question.questionId is an intentional re-run trigger
 	useEffect(() => {
 		setSubmittedLabel(null);
 		setCustomText("");
-	}, []);
+	}, [question.questionId]);
 
 	const options = question.options ?? [];
 	const submitted = submittedLabel !== null;

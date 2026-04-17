@@ -78,7 +78,9 @@ export function ToolCallRow({
 	const [isHovered, setIsHovered] = useState(false);
 	const hasDetails = children != null && children !== false;
 
-	const defaultStatus = null;
+	const defaultStatus = isError ? (
+		<XCircleIcon className="h-3 w-3 text-red-500" />
+	) : null;
 
 	const resolvedDescription =
 		description ??
