@@ -2,10 +2,11 @@ import type { JSONContent } from "@tiptap/core";
 
 /**
  * Matches file-mention tokens produced by serializeEditorToText.
+ * Handles both @path/without/spaces and @"path with spaces".
  * Requires @ to appear at the start of the string or after whitespace so that
  * strings like "foo@bar.com" or "@decorator" mid-word are not rewritten.
  */
-const MENTION_RE = /(?:^|(?<=\s))@(\S+)/g;
+const MENTION_RE = /(?:^|(?<=\s))@(?:"([^"]+)"|(\S+))/g;
 
 /**
  * Converts a plain-text string (as produced by serializeEditorToText) back
@@ -31,8 +32,11 @@ export function parseTextToEditorContent(text: string): JSONContent {
 					text: line.slice(lastIndex, match.index),
 				});
 			}
-			// The file-mention node
-			inlineNodes.push({ type: "file-mention", attrs: { path: match[1] } });
+			// The file-mention node — group 1 = quoted path, group 2 = unquoted path
+			inlineNodes.push({
+				type: "file-mention",
+				attrs: { path: match[1] ?? match[2] },
+			});
 			lastIndex = match.index + match[0].length;
 			match = MENTION_RE.exec(line);
 		}

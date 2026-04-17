@@ -1,14 +1,14 @@
+import { cn } from "@superset/ui/utils";
 import { mergeAttributes, Node } from "@tiptap/core";
 import {
 	type NodeViewProps,
 	NodeViewWrapper,
 	ReactNodeViewRenderer,
 } from "@tiptap/react";
-import { cn } from "@superset/ui/utils";
 
 function FileMentionChip({ node, selected }: NodeViewProps) {
-	const path = node.attrs.path as string;
-	const name = path.split("/").pop() ?? path;
+	const path = (node.attrs.path as string | null | undefined) ?? "";
+	const name = path.split("/").pop() || path || "@";
 
 	return (
 		<NodeViewWrapper as="span" className="inline-block align-middle">

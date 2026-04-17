@@ -13,7 +13,8 @@ export function serializeEditorToText(editor: Editor): string {
 
 		blockNode.forEach((child) => {
 			if (child.type.name === "file-mention") {
-				parts.push(`@${child.attrs.path as string}`);
+				const p = child.attrs.path as string;
+				parts.push(p.includes(" ") ? `@"${p}"` : `@${p}`);
 			} else if (child.type.name === "slash-command") {
 				const cmdName = child.attrs.name as string;
 				const cmdArgs = (child.attrs.args as string) ?? "";
