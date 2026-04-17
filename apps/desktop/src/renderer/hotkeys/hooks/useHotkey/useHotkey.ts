@@ -17,7 +17,9 @@ export function useHotkey(
 	useHotkeys(
 		keys ?? "",
 		(e, _h) => {
-			e.preventDefault();
+			if (options?.preventDefault !== false) {
+				e.preventDefault();
+			}
 			callbackRef.current(e);
 		},
 		{ enableOnFormTags: true, enableOnContentEditable: true, ...options },
