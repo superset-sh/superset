@@ -16,7 +16,10 @@ export function useHotkey(
 	callbackRef.current = callback;
 	useHotkeys(
 		keys ?? "",
-		(e, _h) => callbackRef.current(e),
+		(e, _h) => {
+			e.preventDefault();
+			callbackRef.current(e);
+		},
 		{ enableOnFormTags: true, enableOnContentEditable: true, ...options },
 		[keys],
 	);
