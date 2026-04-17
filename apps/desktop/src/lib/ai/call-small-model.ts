@@ -73,7 +73,7 @@ export async function callSmallModel<TResult>({
 	const attempts: SmallModelAttempt[] = [];
 
 	for (const provider of orderProviders(providers, providerOrder)) {
-		const credentials = provider.resolveCredentials();
+		const credentials = await provider.resolveCredentials();
 		if (!credentials) {
 			attempts.push({
 				providerId: provider.id,

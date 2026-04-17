@@ -102,8 +102,8 @@ mock.module("mastracode", () => ({
 mock.module("../auth/anthropic", () => ({
 	getCredentialsFromConfig: () => anthropicConfigCredential,
 	getCredentialsFromKeychain: () => anthropicKeychainCredential,
-	getCredentialsFromAnySource: () => null,
-	getCredentialsFromAuthStorage: () => null,
+	getCredentialsFromAnySource: async () => null,
+	getCredentialsFromAuthStorage: async () => null,
 	getAnthropicProviderOptions: () => ({}),
 	isClaudeCredentialExpired: (credential: {
 		kind: "apiKey" | "oauth";
@@ -243,7 +243,7 @@ describe("ChatService OpenAI auth storage", () => {
 			}),
 		);
 		expect(result.expiresAt).toBe(oauthExpiresAt);
-		expect(chatService.getAnthropicAuthStatus().method).toBe("oauth");
+		expect((await chatService.getAnthropicAuthStatus()).method).toBe("oauth");
 	});
 
 	it("switches Anthropic status from oauth to api key when api key is saved", async () => {
@@ -264,10 +264,10 @@ describe("ChatService OpenAI auth storage", () => {
 
 		await chatService.startAnthropicOAuth();
 		await chatService.completeAnthropicOAuth({ code: "auth-code#state" });
-		expect(chatService.getAnthropicAuthStatus().method).toBe("oauth");
+		expect((await chatService.getAnthropicAuthStatus()).method).toBe("oauth");
 
 		await chatService.setAnthropicApiKey({ apiKey: " api-key " });
-		expect(chatService.getAnthropicAuthStatus().method).toBe("api_key");
+		expect((await chatService.getAnthropicAuthStatus()).method).toBe("api_key");
 	});
 
 	it("prefers a managed Anthropic API key over env-config credentials", async () => {
@@ -284,7 +284,7 @@ describe("ChatService OpenAI auth storage", () => {
 		);
 		expect(process.env.ANTHROPIC_API_KEY).toBeUndefined();
 		expect(process.env.ANTHROPIC_AUTH_TOKEN).toBeUndefined();
-		expect(chatService.getAnthropicAuthStatus()).toEqual({
+		expect(await chatService.getAnthropicAuthStatus()).toEqual({
 			authenticated: true,
 			method: "api_key",
 			source: "managed",
@@ -292,12 +292,12 @@ describe("ChatService OpenAI auth storage", () => {
 		});
 	});
 
-	it("ignores Anthropic runtime env credentials without managed auth", () => {
+	it("ignores Anthropic runtime env credentials without managed auth", async () => {
 		const chatService = new ChatService();
 
 		process.env.ANTHROPIC_AUTH_TOKEN = "external-oauth-token";
 
-		expect(chatService.getAnthropicAuthStatus()).toEqual({
+		expect(await chatService.getAnthropicAuthStatus()).toEqual({
 			authenticated: false,
 			method: null,
 			source: null,
@@ -305,7 +305,7 @@ describe("ChatService OpenAI auth storage", () => {
 		});
 	});
 
-	it("prefers external Anthropic credentials over managed auth", () => {
+	it("prefers external Anthropic credentials over managed auth", async () => {
 		const chatService = new ChatService();
 
 		anthropicConfigCredential = {
@@ -318,7 +318,7 @@ describe("ChatService OpenAI auth storage", () => {
 			key: "managed-api-key",
 		});
 
-		expect(chatService.getAnthropicAuthStatus()).toEqual({
+		expect(await chatService.getAnthropicAuthStatus()).toEqual({
 			authenticated: true,
 			method: "oauth",
 			source: "external",
@@ -326,7 +326,7 @@ describe("ChatService OpenAI auth storage", () => {
 		});
 	});
 
-	it("surfaces hidden managed Anthropic OAuth when external Claude auth wins", () => {
+	it("surfaces hidden managed Anthropic OAuth when external Claude auth wins", async () => {
 		const chatService = new ChatService();
 
 		anthropicConfigCredential = {
@@ -340,7 +340,7 @@ describe("ChatService OpenAI auth storage", () => {
 			expires: Date.now() + 60 * 60 * 1000,
 		});
 
-		expect(chatService.getAnthropicAuthStatus()).toEqual({
+		expect(await chatService.getAnthropicAuthStatus()).toEqual({
 			authenticated: true,
 			method: "oauth",
 			source: "external",
@@ -349,7 +349,7 @@ describe("ChatService OpenAI auth storage", () => {
 		});
 	});
 
-	it("prefers managed Anthropic auth over runtime env credentials", () => {
+	it("prefers managed Anthropic auth over runtime env credentials", async () => {
 		const chatService = new ChatService();
 
 		process.env.ANTHROPIC_AUTH_TOKEN = "external-oauth-token";
@@ -358,7 +358,7 @@ describe("ChatService OpenAI auth storage", () => {
 			key: "managed-api-key",
 		});
 
-		expect(chatService.getAnthropicAuthStatus()).toEqual({
+		expect(await chatService.getAnthropicAuthStatus()).toEqual({
 			authenticated: true,
 			method: "api_key",
 			source: "managed",
@@ -366,7 +366,7 @@ describe("ChatService OpenAI auth storage", () => {
 		});
 	});
 
-	it("marks expired external Anthropic OAuth as expired", () => {
+	it("marks expired external Anthropic OAuth as expired", async () => {
 		const chatService = new ChatService();
 
 		anthropicConfigCredential = {
@@ -376,7 +376,7 @@ describe("ChatService OpenAI auth storage", () => {
 			expiresAt: Date.now() - 1_000,
 		};
 
-		expect(chatService.getAnthropicAuthStatus()).toEqual({
+		expect(await chatService.getAnthropicAuthStatus()).toEqual({
 			authenticated: false,
 			method: "oauth",
 			source: "external",
@@ -384,7 +384,7 @@ describe("ChatService OpenAI auth storage", () => {
 		});
 	});
 
-	it("falls back to managed Anthropic auth when external OAuth is expired", () => {
+	it("falls back to managed Anthropic auth when external OAuth is expired", async () => {
 		const chatService = new ChatService();
 
 		anthropicConfigCredential = {
@@ -398,7 +398,7 @@ describe("ChatService OpenAI auth storage", () => {
 			key: "managed-api-key",
 		});
 
-		expect(chatService.getAnthropicAuthStatus()).toEqual({
+		expect(await chatService.getAnthropicAuthStatus()).toEqual({
 			authenticated: true,
 			method: "api_key",
 			source: "managed",
@@ -415,7 +415,7 @@ describe("ChatService OpenAI auth storage", () => {
 			expires: Date.now() + 60 * 60 * 1000,
 		});
 
-		expect(chatService.getAnthropicAuthStatus()).toEqual({
+		expect(await chatService.getAnthropicAuthStatus()).toEqual({
 			authenticated: true,
 			method: "oauth",
 			source: "managed",
@@ -426,7 +426,7 @@ describe("ChatService OpenAI auth storage", () => {
 		await chatService.disconnectAnthropicOAuth();
 
 		expect(fakeAuthStorage.remove).toHaveBeenCalledWith("anthropic");
-		expect(chatService.getAnthropicAuthStatus()).toEqual({
+		expect(await chatService.getAnthropicAuthStatus()).toEqual({
 			authenticated: false,
 			method: null,
 			source: null,
@@ -459,7 +459,7 @@ describe("ChatService OpenAI auth storage", () => {
 				ANTHROPIC_AUTH_TOKEN: "gateway-token",
 			},
 		});
-		expect(chatService.getAnthropicAuthStatus()).toEqual({
+		expect(await chatService.getAnthropicAuthStatus()).toEqual({
 			authenticated: true,
 			method: "api_key",
 			source: "managed",
@@ -474,7 +474,7 @@ describe("ChatService OpenAI auth storage", () => {
 			access: "oauth-access-token",
 			expires: Date.now() + 60 * 60 * 1000,
 		});
-		expect(chatService.getAnthropicAuthStatus().method).toBe("oauth");
+		expect((await chatService.getAnthropicAuthStatus()).method).toBe("oauth");
 
 		await chatService.setAnthropicEnvConfig({
 			envText:
@@ -482,7 +482,7 @@ describe("ChatService OpenAI auth storage", () => {
 		});
 
 		expect(fakeAuthStorage.remove).toHaveBeenCalledWith("anthropic");
-		expect(chatService.getAnthropicAuthStatus().method).toBe("api_key");
+		expect((await chatService.getAnthropicAuthStatus()).method).toBe("api_key");
 	});
 
 	it("persists Anthropic env config without API key/token", async () => {
@@ -498,7 +498,7 @@ describe("ChatService OpenAI auth storage", () => {
 				ANTHROPIC_BASE_URL: "https://ai-gateway.vercel.sh",
 			},
 		});
-		expect(chatService.getAnthropicAuthStatus()).toEqual({
+		expect(await chatService.getAnthropicAuthStatus()).toEqual({
 			authenticated: false,
 			method: null,
 			source: null,
@@ -526,7 +526,7 @@ describe("ChatService OpenAI auth storage", () => {
 			type: "api_key",
 			key: "gateway-token",
 		});
-		expect(chatService.getAnthropicAuthStatus()).toEqual({
+		expect(await chatService.getAnthropicAuthStatus()).toEqual({
 			authenticated: true,
 			method: "api_key",
 			source: "managed",
@@ -577,7 +577,7 @@ describe("ChatService OpenAI auth storage", () => {
 			envText: "",
 			variables: {},
 		});
-		expect(chatService.getAnthropicAuthStatus().method).toBeNull();
+		expect((await chatService.getAnthropicAuthStatus()).method).toBeNull();
 	});
 
 	it("deletes previously applied pass-through env keys when settings change", async () => {

@@ -78,11 +78,28 @@ export class ChatService {
 		);
 	}
 
-	getAnthropicAuthStatus(): AuthStatus {
+	async getAnthropicAuthStatus(): Promise<AuthStatus> {
 		const authStorage = this.getAuthStorage();
 		authStorage.reload();
-		const storedCredential = authStorage.get(ANTHROPIC_AUTH_PROVIDER_ID);
+		let storedCredential = authStorage.get(ANTHROPIC_AUTH_PROVIDER_ID);
 		const hasManagedOAuth = storedCredential?.type === "oauth";
+
+		// If managed OAuth is past its expiry, give mastracode a chance to
+		// refresh it before downgrading status to "expired". Mastracode's
+		// getApiKey uses the stored refresh token via the anthropic provider.
+		if (
+			storedCredential?.type === "oauth" &&
+			typeof storedCredential.expires === "number" &&
+			storedCredential.expires <= Date.now()
+		) {
+			try {
+				await authStorage.getApiKey(ANTHROPIC_AUTH_PROVIDER_ID);
+				authStorage.reload();
+				storedCredential = authStorage.get(ANTHROPIC_AUTH_PROVIDER_ID);
+			} catch {
+				// Refresh failed; fall through to expired-state handling below.
+			}
+		}
 		const configCredential = getAnthropicCredentialsFromConfig();
 		const keychainCredential = getAnthropicCredentialsFromKeychain();
 		const externalCandidates = [configCredential, keychainCredential].filter(

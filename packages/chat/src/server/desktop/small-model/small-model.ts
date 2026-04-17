@@ -26,7 +26,10 @@ export interface SmallModelCredential {
 export interface SmallModelProvider {
 	id: SmallModelProviderId;
 	name: string;
-	resolveCredentials: () => SmallModelCredential | null;
+	resolveCredentials: () =>
+		| SmallModelCredential
+		| null
+		| Promise<SmallModelCredential | null>;
 	isSupported: (credentials: SmallModelCredential) => {
 		supported: boolean;
 		reason?: string;
