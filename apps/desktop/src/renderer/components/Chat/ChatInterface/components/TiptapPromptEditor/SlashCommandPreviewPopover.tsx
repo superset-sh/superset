@@ -34,6 +34,7 @@ export function SlashCommandPreviewPopover({
 	const anchorRef = useRef<HTMLDivElement>(null);
 
 	// Position the virtual anchor over the slash-command chip in the editor.
+	// biome-ignore lint/correctness/useExhaustiveDependencies: inputValue re-measures anchor when typing shifts the chip's position
 	useLayoutEffect(() => {
 		const el = anchorRef.current;
 		if (!el) return;
@@ -52,7 +53,7 @@ export function SlashCommandPreviewPopover({
 		el.style.top = `${rect.top}px`;
 		el.style.width = `${rect.width}px`;
 		el.style.height = `${rect.height}px`;
-	}, [editor]);
+	}, [editor, inputValue]);
 
 	const slashPreviewInput = normalizeSlashPreviewInput(inputValue);
 	const parsedInput = useMemo(() => parseSlashInput(inputValue), [inputValue]);

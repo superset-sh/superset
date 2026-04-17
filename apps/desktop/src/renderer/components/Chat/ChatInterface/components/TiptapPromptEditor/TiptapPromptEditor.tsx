@@ -297,6 +297,10 @@ export function TiptapPromptEditor({
 													...prev,
 													commands: props.items,
 													tiptapCommand: props.command,
+													selectedIndex: Math.min(
+														prev.selectedIndex,
+														Math.max(0, props.items.length - 1),
+													),
 												}
 											: null,
 									);
@@ -477,9 +481,9 @@ export function TiptapPromptEditor({
 											mention.tiptapCommand({ path: file.relativePath });
 											return true;
 										}
-										// No results — close the popup then let Enter fall through to submit
+										// No results — close the popup and consume the event
 										setMentionState(null);
-										return false;
+										return true;
 									}
 									return false;
 								},

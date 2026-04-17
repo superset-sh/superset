@@ -24,7 +24,7 @@ export function ClickableFilePath({
 	className,
 }: ClickableFilePathProps) {
 	const label =
-		display ?? (path.includes("/") ? (path.split("/").pop() ?? path) : path);
+		display ?? (path.includes("/") ? path.split("/").pop() || path : path);
 
 	if (!onOpen) {
 		return <span className={className}>{label}</span>;

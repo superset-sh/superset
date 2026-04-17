@@ -3,12 +3,13 @@ import {
 	PromptInputAttachment,
 	PromptInputAttachments,
 	type PromptInputMessage,
+	usePromptInputController,
 } from "@superset/ui/ai-elements/prompt-input";
 import type { ThinkingLevel } from "@superset/ui/ai-elements/thinking-toggle";
 import type { ChatStatus, FileUIPart } from "ai";
 import type React from "react";
 import type { ReactNode } from "react";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { QuestionInputOverlay } from "renderer/components/Chat/ChatInterface/components/ChatInputFooter/components/QuestionInputOverlay";
 import { IssueLinkCommand } from "renderer/components/Chat/ChatInterface/components/IssueLinkCommand";
 import { TiptapPromptEditor } from "renderer/components/Chat/ChatInterface/components/TiptapPromptEditor";
@@ -94,6 +95,19 @@ export function ChatInputFooter({
 	onQuestionCancel,
 }: ChatInputFooterProps) {
 	useFocusPromptOnPane(isFocused);
+
+	// Re-focus the editor when the question overlay dismisses.
+	const { textInput } = usePromptInputController();
+	const prevPendingQuestionRef = useRef(pendingQuestion);
+	useEffect(() => {
+		const prev = prevPendingQuestionRef.current;
+		prevPendingQuestionRef.current = pendingQuestion;
+		if (prev != null && pendingQuestion == null) {
+			const id = requestAnimationFrame(() => textInput.focus());
+			return () => cancelAnimationFrame(id);
+		}
+	}, [pendingQuestion, textInput]);
+
 	const [issueLinkOpen, setIssueLinkOpen] = useState(false);
 	const [linkedIssues, setLinkedIssues] = useState<LinkedIssue[]>([]);
 	const inputRootRef = useRef<HTMLDivElement>(null);
