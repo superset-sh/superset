@@ -23,6 +23,10 @@ import {
 	PLATFORM,
 	PROTOCOL_SCHEME,
 } from "shared/constants";
+import {
+	startFreshSpawnServer,
+	stopFreshSpawnServer,
+} from "./fresh-spawn/lifecycle";
 import { setupAgentHooks } from "./lib/agent-setup";
 import { initAppState } from "./lib/app-state";
 import { requestAppleEventsAccess } from "./lib/apple-events-permission";
@@ -211,6 +215,9 @@ app.on("before-quit", async (event) => {
 	} catch (error) {
 		console.error("[main] Cleanup during quit failed:", error);
 	}
+	// Fire-and-forget: process is exiting, we just want to unlink the socket
+	// if possible. Awaiting would delay app.exit() with no user-visible benefit.
+	void stopFreshSpawnServer();
 	app.exit(0);
 });
 
@@ -295,6 +302,11 @@ if (!gotTheLock) {
 		registerWithMacOSNotificationCenter();
 		requestAppleEventsAccess();
 		requestLocalNetworkAccess();
+
+		// Must start before terminal-host sessions try to use the socket.
+		// macOS-only: mitigates the stale Mach bootstrap context that the
+		// daemon process inherits after its parent Electron main dies.
+		await startFreshSpawnServer();
 
 		// Must register on both default session and the app's custom partition
 		const iconProtocolHandler = (request: Request) => {
