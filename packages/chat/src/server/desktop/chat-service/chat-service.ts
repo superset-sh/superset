@@ -572,10 +572,7 @@ export class ChatService {
 
 		const authStorage = this.getAuthStorage();
 		authStorage.reload();
-		authStorage.set(ANTHROPIC_AUTH_PROVIDER_ID, {
-			type: "api_key",
-			key: apiKey,
-		});
+		authStorage.setStoredApiKey(ANTHROPIC_AUTH_PROVIDER_ID, apiKey);
 	}
 
 	private applyAnthropicRuntimeEnv(variables: AnthropicEnvVariables): void {

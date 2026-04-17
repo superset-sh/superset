@@ -16,10 +16,7 @@ export function setApiKeyForProvider(
 	}
 
 	authStorage.reload();
-	authStorage.set(providerId, {
-		type: "api_key",
-		key: trimmedApiKey,
-	});
+	authStorage.setStoredApiKey(providerId, trimmedApiKey);
 }
 
 export function clearApiKeyForProvider(
@@ -27,12 +24,18 @@ export function clearApiKeyForProvider(
 	providerId: string,
 ): void {
 	authStorage.reload();
-	const credential = authStorage.get(providerId);
-	if (credential?.type !== "api_key") {
-		return;
+
+	// Clear the dedicated API-key slot (apikey:<providerId>)
+	if (authStorage.hasStoredApiKey(providerId)) {
+		authStorage.remove(`apikey:${providerId}`);
 	}
 
-	authStorage.remove(providerId);
+	// Also clear the legacy main slot if it holds an api_key credential,
+	// for backwards compatibility with keys stored before this fix.
+	const credential = authStorage.get(providerId);
+	if (credential?.type === "api_key") {
+		authStorage.remove(providerId);
+	}
 }
 
 export function clearCredentialForProvider(
@@ -58,6 +61,11 @@ export function resolveAuthMethodForProvider(
 		return "oauth";
 	}
 	if (credential?.type === "api_key" && credential.key.trim().length > 0) {
+		return "api_key";
+	}
+	// Check the dedicated API-key slot (apikey:<providerId>), which persists
+	// independently of OAuth connect/disconnect cycles.
+	if (authStorage.hasStoredApiKey(providerId)) {
 		return "api_key";
 	}
 	return null;
