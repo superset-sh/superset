@@ -8,6 +8,7 @@ import {
 } from "@superset/ui/dialog";
 import { InputGroup, InputGroupInput } from "@superset/ui/input-group";
 import { Label } from "@superset/ui/label";
+import { useCallback, useState } from "react";
 
 export interface OAuthDialogProps {
 	provider: {
@@ -59,6 +60,12 @@ export function OAuthDialog({
 		!isPreparing &&
 		!isPending &&
 		(!requireCodeForSubmit || code.trim().length > 0);
+	const [copied, setCopied] = useState(false);
+	const handleCopy = useCallback(() => {
+		onCopyAuthUrl();
+		setCopied(true);
+		setTimeout(() => setCopied(false), 2000);
+	}, [onCopyAuthUrl]);
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
@@ -89,10 +96,10 @@ export function OAuthDialog({
 								<Button
 									type="button"
 									variant="ghost"
-									onClick={onCopyAuthUrl}
+									onClick={handleCopy}
 									disabled={!authUrl || isPending}
 								>
-									Copy URL
+									{copied ? "Copied!" : "Copy URL"}
 								</Button>
 							</div>
 
