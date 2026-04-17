@@ -111,6 +111,59 @@ export function deduplicateBranchName(
 		: `${baseSegment}-${Date.now()}`;
 }
 
+const MAX_BRANCH_LENGTH = 100;
+
+/**
+ * Turns arbitrary text (a prompt, a title) into a branch-name-shaped slug.
+ * Lowercases, replaces spaces with dashes, strips special chars.
+ * Use this when the input is NOT a branch name — it's a sentence.
+ */
+export function slugifyForBranch(
+	text: string,
+	maxLength = MAX_BRANCH_LENGTH,
+): string {
+	const slug = text
+		.toLowerCase()
+		.trim()
+		.replace(/\s+/g, "-")
+		.replace(/[^a-z0-9._/-]/g, "")
+		.replace(/\.{2,}/g, ".")
+		.replace(/-+/g, "-")
+		.replace(/^[-.]|[-.]+$/g, "")
+		.replace(/\.lock$/g, "")
+		.slice(0, maxLength)
+		.replace(/[-.]+$/g, "");
+	return slug;
+}
+
+/**
+ * Strips only what git forbids from a user-typed branch name.
+ * Preserves case, slashes, underscores — respects user intent.
+ * Use this when the input IS a branch name the user explicitly typed.
+ *
+ * Git ref rules: no `..`, no ASCII control chars, no `~^:?*[\`,
+ * no trailing `.` or `.lock`, no leading `-`.
+ */
+export function sanitizeUserBranchName(
+	name: string,
+	maxLength = MAX_BRANCH_LENGTH,
+): string {
+	const cleaned = name
+		.trim()
+		.replace(/\.\./g, ".") // no ..
+		.replace(/[~^:?*[\]\\]/g, "") // no ~^:?*[\]
+		// biome-ignore lint/suspicious/noControlCharactersInRegex: stripping control chars intentionally
+		.replace(/[\x00-\x1f\x7f]/g, "") // no control chars
+		.replace(/@\{/g, "@") // no @{
+		.replace(/\.lock$/g, "") // no trailing .lock
+		.replace(/^-/, "") // no leading -
+		.replace(/\/+/g, "/") // collapse slashes
+		.replace(/^\/|\/$/g, "") // no leading/trailing slash
+		.slice(0, maxLength)
+		.replace(/[-./]+$/g, ""); // strip trailing .- / after truncation
+	return cleaned;
+}
+
 export function resolveBranchPrefix({
 	mode,
 	customPrefix,

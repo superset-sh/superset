@@ -1,3 +1,4 @@
+export { createAmpWrapper } from "./agent-wrappers-amp";
 export {
 	buildCodexWrapperExecLine,
 	cleanupGlobalOpenCodePlugin,

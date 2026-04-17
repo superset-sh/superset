@@ -24,6 +24,14 @@
 			"types": "./src/agent-command.ts",
 			"default": "./src/agent-command.ts"
 		},
+		"./agent-prompt-launch": {
+			"types": "./src/agent-prompt-launch.ts",
+			"default": "./src/agent-prompt-launch.ts"
+		},
+		"./agent-definition": {
+			"types": "./src/agent-definition.ts",
+			"default": "./src/agent-definition.ts"
+		},
 		"./agent-catalog": {
 			"types": "./src/agent-catalog.ts",
 			"default": "./src/agent-catalog.ts"
@@ -43,6 +51,22 @@
 		"./claude-command": {
 			"types": "./src/claude-command.ts",
 			"default": "./src/claude-command.ts"
+		},
+		"./vercel-preview-origins": {
+			"types": "./src/vercel-preview-origins.ts",
+			"default": "./src/vercel-preview-origins.ts"
+		},
+		"./tunnel-protocol": {
+			"types": "./src/tunnel-protocol.ts",
+			"default": "./src/tunnel-protocol.ts"
+		},
+		"./device-info": {
+			"types": "./src/device-info.ts",
+			"default": "./src/device-info.ts"
+		},
+		"./shell-ready-scanner": {
+			"types": "./src/shell-ready-scanner.ts",
+			"default": "./src/shell-ready-scanner.ts"
 		}
 	},
 	"scripts": {

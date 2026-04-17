@@ -1,6 +1,7 @@
 import type { AppRouter } from "@superset/host-service";
 import { createTRPCClient, httpBatchLink } from "@trpc/client";
 import superjson from "superjson";
+import { getHostServiceHeaders } from "./host-service-auth";
 
 const clientCache = new Map<
 	string,
@@ -22,6 +23,7 @@ export function getHostServiceClientByUrl(hostUrl: string): HostServiceClient {
 			httpBatchLink({
 				url: `${hostUrl}/trpc`,
 				transformer: superjson,
+				headers: () => getHostServiceHeaders(hostUrl),
 			}),
 		],
 	});

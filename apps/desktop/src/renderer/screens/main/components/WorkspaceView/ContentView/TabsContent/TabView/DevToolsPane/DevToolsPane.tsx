@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import type { MosaicBranch } from "react-mosaic-component";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { BasePaneWindow, PaneToolbarActions } from "../components";
@@ -26,16 +27,12 @@ export function DevToolsPane({
 	removePane,
 	setFocusedPane,
 }: DevToolsPaneProps) {
-	// Query the CDP debug server for the DevTools frontend URL.
-	// Poll every 1s until a URL is obtained (the browser webview may still be loading).
-	const { data } = electronTrpc.browser.getDevToolsUrl.useQuery(
-		{ browserPaneId: targetPaneId },
-		{
-			refetchOnWindowFocus: false,
-			refetchInterval: (query) => (query.state.data?.url ? false : 1000),
-		},
-	);
-	const devToolsUrl = data?.url;
+	const { mutate: openDevTools } =
+		electronTrpc.browser.openDevTools.useMutation();
+
+	useEffect(() => {
+		openDevTools({ paneId: targetPaneId });
+	}, [openDevTools, targetPaneId]);
 
 	return (
 		<BasePaneWindow
@@ -59,17 +56,16 @@ export function DevToolsPane({
 				</div>
 			)}
 		>
-			{devToolsUrl ? (
-				<webview
-					src={devToolsUrl}
-					className="w-full h-full"
-					style={{ display: "flex", flex: 1 }}
-				/>
-			) : (
-				<div className="flex h-full w-full items-center justify-center text-muted-foreground text-xs">
-					Connecting to DevTools...
-				</div>
-			)}
+			<div className="flex h-full w-full flex-col items-center justify-center gap-3 text-muted-foreground text-xs">
+				<div>DevTools open in a separate window.</div>
+				<button
+					type="button"
+					onClick={() => openDevTools({ paneId: targetPaneId })}
+					className="rounded border border-border px-3 py-1.5 text-foreground transition-colors hover:bg-accent"
+				>
+					Reopen DevTools
+				</button>
+			</div>
 		</BasePaneWindow>
 	);
 }

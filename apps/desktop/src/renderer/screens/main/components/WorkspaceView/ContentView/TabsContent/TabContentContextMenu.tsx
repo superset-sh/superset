@@ -16,7 +16,7 @@ import {
 	LuEyeOff,
 } from "react-icons/lu";
 import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
-import { useHotkeyText } from "renderer/stores/hotkeys";
+import { useHotkeyDisplay } from "renderer/hotkeys";
 import {
 	type PaneContextMenuActions,
 	PaneContextMenuItems,
@@ -66,9 +66,9 @@ export function TabContentContextMenu({
 	onMoveToNewTab,
 	closeLabel = "Close Pane",
 }: TabContentContextMenuProps) {
-	const clearShortcut = useHotkeyText("CLEAR_TERMINAL");
+	const clearShortcut = useHotkeyDisplay("CLEAR_TERMINAL").text;
 	const showClearShortcut = clearShortcut !== "Unassigned";
-	const scrollToBottomShortcut = useHotkeyText("SCROLL_TO_BOTTOM");
+	const scrollToBottomShortcut = useHotkeyDisplay("SCROLL_TO_BOTTOM").text;
 	const showScrollToBottomShortcut = scrollToBottomShortcut !== "Unassigned";
 	const modKey = getModifierKeyLabel();
 	const hasTerminalActions = !!onClearTerminal || !!onScrollToBottom;

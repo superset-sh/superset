@@ -37,14 +37,14 @@ interface PromptGroupAdvancedOptionsProps {
 	hideSetupScript?: boolean;
 	isBranchesError?: boolean;
 	isBranchesLoading?: boolean;
-	baseBranchOpen?: boolean;
-	onBaseBranchOpenChange?: (open: boolean) => void;
-	effectiveBaseBranch?: string | null;
+	compareBaseBranchOpen?: boolean;
+	onCompareBaseBranchOpenChange?: (open: boolean) => void;
+	effectiveCompareBaseBranch?: string | null;
 	defaultBranch?: string;
 	branchSearch?: string;
 	onBranchSearchChange?: (search: string) => void;
 	filteredBranches?: Array<{ name: string; lastCommitDate: number }>;
-	onSelectBaseBranch?: (branchName: string) => void;
+	onSelectCompareBaseBranch?: (branchName: string) => void;
 }
 
 export function PromptGroupAdvancedOptions({
@@ -60,16 +60,16 @@ export function PromptGroupAdvancedOptions({
 	hideSetupScript,
 	isBranchesError,
 	isBranchesLoading,
-	baseBranchOpen,
-	onBaseBranchOpenChange,
-	effectiveBaseBranch,
+	compareBaseBranchOpen,
+	onCompareBaseBranchOpenChange,
+	effectiveCompareBaseBranch,
 	defaultBranch,
 	branchSearch,
 	onBranchSearchChange,
 	filteredBranches,
-	onSelectBaseBranch,
+	onSelectCompareBaseBranch,
 }: PromptGroupAdvancedOptionsProps) {
-	const showBaseBranch = onBaseBranchOpenChange != null;
+	const showCompareBaseBranch = onCompareBaseBranchOpenChange != null;
 
 	return (
 		<Collapsible open={showAdvanced} onOpenChange={onShowAdvancedChange}>
@@ -111,7 +111,7 @@ export function PromptGroupAdvancedOptions({
 					/>
 				</div>
 
-				{showBaseBranch && (
+				{showCompareBaseBranch && (
 					<div className="space-y-1.5">
 						<span className="text-xs text-muted-foreground">Base branch</span>
 						{isBranchesError ? (
@@ -120,8 +120,8 @@ export function PromptGroupAdvancedOptions({
 							</div>
 						) : (
 							<Popover
-								open={baseBranchOpen}
-								onOpenChange={onBaseBranchOpenChange}
+								open={compareBaseBranchOpen}
+								onOpenChange={onCompareBaseBranchOpenChange}
 								modal={false}
 							>
 								<PopoverTrigger asChild>
@@ -134,9 +134,9 @@ export function PromptGroupAdvancedOptions({
 										<span className="flex items-center gap-2 truncate">
 											<GoGitBranch className="size-3.5 shrink-0 text-muted-foreground" />
 											<span className="truncate font-mono text-sm">
-												{effectiveBaseBranch || "Select branch..."}
+												{effectiveCompareBaseBranch || "Select branch..."}
 											</span>
-											{effectiveBaseBranch === defaultBranch && (
+											{effectiveCompareBaseBranch === defaultBranch && (
 												<span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
 													default
 												</span>
@@ -162,7 +162,9 @@ export function PromptGroupAdvancedOptions({
 												<CommandItem
 													key={branch.name}
 													value={branch.name}
-													onSelect={() => onSelectBaseBranch?.(branch.name)}
+													onSelect={() =>
+														onSelectCompareBaseBranch?.(branch.name)
+													}
 													className="flex items-center justify-between"
 												>
 													<span className="flex items-center gap-2 truncate">
@@ -180,7 +182,7 @@ export function PromptGroupAdvancedOptions({
 																{formatRelativeTime(branch.lastCommitDate)}
 															</span>
 														)}
-														{effectiveBaseBranch === branch.name && (
+														{effectiveCompareBaseBranch === branch.name && (
 															<HiCheck className="size-4 text-primary" />
 														)}
 													</span>

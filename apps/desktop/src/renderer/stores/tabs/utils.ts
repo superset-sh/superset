@@ -507,42 +507,6 @@ export const getFirstPaneId = (layout: MosaicNode<string>): string => {
 };
 
 /**
- * Gets the next pane ID in visual order (left-to-right, top-to-bottom),
- * wrapping around to the first if at the end.
- */
-export const getNextPaneId = (
-	layout: MosaicNode<string>,
-	currentPaneId: string,
-): string | null => {
-	const paneIds = getPaneIdsInVisualOrder(layout);
-	if (paneIds.length <= 1) return null;
-
-	const currentIndex = paneIds.indexOf(currentPaneId);
-	if (currentIndex === -1) return paneIds[0];
-
-	const nextIndex = (currentIndex + 1) % paneIds.length;
-	return paneIds[nextIndex];
-};
-
-/**
- * Gets the previous pane ID in visual order (right-to-left, bottom-to-top),
- * wrapping around to the last if at the beginning.
- */
-export const getPreviousPaneId = (
-	layout: MosaicNode<string>,
-	currentPaneId: string,
-): string | null => {
-	const paneIds = getPaneIdsInVisualOrder(layout);
-	if (paneIds.length <= 1) return null;
-
-	const currentIndex = paneIds.indexOf(currentPaneId);
-	if (currentIndex === -1) return paneIds[paneIds.length - 1];
-
-	const prevIndex = (currentIndex - 1 + paneIds.length) % paneIds.length;
-	return paneIds[prevIndex];
-};
-
-/**
  * Gets the adjacent pane ID for focus fallback when a pane is closed.
  * Prefers the next pane in visual order, falls back to previous if at the end.
  * Returns null only if the pane is the only one in the layout.
@@ -588,6 +552,70 @@ export const findPanePath = (
 	]);
 	if (secondPath) return secondPath;
 
+	return null;
+};
+
+export type FocusDirection = "left" | "right" | "up" | "down";
+
+const findEdgeMosaicPaneId = (
+	node: MosaicNode<string>,
+	dir: FocusDirection,
+	alignmentPath: MosaicBranch[] = [],
+): string => {
+	if (typeof node === "string") return node;
+	const axis: "row" | "column" =
+		dir === "left" || dir === "right" ? "row" : "column";
+	if (node.direction === axis) {
+		const nearEdge: MosaicBranch =
+			dir === "right" || dir === "down" ? "first" : "second";
+		return findEdgeMosaicPaneId(node[nearEdge], dir, alignmentPath);
+	}
+	const [alignedBranch = "first", ...rest] = alignmentPath;
+	return findEdgeMosaicPaneId(node[alignedBranch], dir, rest);
+};
+
+const getMosaicNodeAtPath = (
+	node: MosaicNode<string>,
+	path: MosaicBranch[],
+): MosaicNode<string> | null => {
+	let current: MosaicNode<string> = node;
+	for (const branch of path) {
+		if (typeof current === "string") return null;
+		current = current[branch];
+	}
+	return current;
+};
+
+/**
+ * Visually adjacent pane in `dir`, or null at the outer edge of the grid.
+ * Preserves cross-axis alignment when descending through perpendicular splits.
+ */
+export const getSpatialNeighborMosaicPaneId = (
+	root: MosaicNode<string>,
+	paneId: string,
+	dir: FocusDirection,
+): string | null => {
+	const path = findPanePath(root, paneId);
+	if (!path) return null;
+
+	const axis: "row" | "column" =
+		dir === "left" || dir === "right" ? "row" : "column";
+	const wantSecond = dir === "right" || dir === "down";
+
+	for (let i = path.length - 1; i >= 0; i--) {
+		const ancestor = getMosaicNodeAtPath(root, path.slice(0, i));
+		if (!ancestor || typeof ancestor === "string") continue;
+		if (ancestor.direction !== axis) continue;
+		const cameFrom = path[i];
+		if (wantSecond && cameFrom !== "first") continue;
+		if (!wantSecond && cameFrom !== "second") continue;
+		const siblingBranch: MosaicBranch = wantSecond ? "second" : "first";
+		return findEdgeMosaicPaneId(
+			ancestor[siblingBranch],
+			dir,
+			path.slice(i + 1),
+		);
+	}
 	return null;
 };
 

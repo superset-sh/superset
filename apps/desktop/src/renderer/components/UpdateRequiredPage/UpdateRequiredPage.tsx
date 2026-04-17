@@ -80,7 +80,7 @@ export function UpdateRequiredPage({
 					</p>
 
 					{isError && (
-						<p className="text-sm text-destructive">
+						<p className="text-sm text-destructive select-text cursor-text break-words">
 							{updateStatus.error || "Update check failed. Please try again."}
 						</p>
 					)}

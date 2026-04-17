@@ -6,8 +6,8 @@ import {
 	HiOutlineCommandLine,
 	HiOutlineCpuChip,
 	HiOutlineCreditCard,
-	HiOutlineDevicePhoneMobile,
 	HiOutlineKey,
+	HiOutlineLockClosed,
 	HiOutlinePaintBrush,
 	HiOutlinePuzzlePiece,
 	HiOutlineShieldCheck,
@@ -35,8 +35,8 @@ type SettingsRoute =
 	| "/settings/models"
 	| "/settings/integrations"
 	| "/settings/billing"
-	| "/settings/devices"
 	| "/settings/api-keys"
+	| "/settings/security"
 	| "/settings/permissions";
 
 interface SectionItem {
@@ -139,12 +139,6 @@ const SECTION_GROUPS: SectionGroup[] = [
 				icon: <HiOutlineCreditCard className="h-4 w-4" />,
 			},
 			{
-				id: "/settings/devices",
-				section: "devices",
-				label: "Devices",
-				icon: <HiOutlineDevicePhoneMobile className="h-4 w-4" />,
-			},
-			{
 				id: "/settings/api-keys",
 				section: "apikeys",
 				label: "API Keys",
@@ -155,6 +149,12 @@ const SECTION_GROUPS: SectionGroup[] = [
 	{
 		label: "System",
 		items: [
+			{
+				id: "/settings/security",
+				section: "security",
+				label: "Security",
+				icon: <HiOutlineLockClosed className="h-4 w-4" />,
+			},
 			{
 				id: "/settings/permissions",
 				section: "permissions",

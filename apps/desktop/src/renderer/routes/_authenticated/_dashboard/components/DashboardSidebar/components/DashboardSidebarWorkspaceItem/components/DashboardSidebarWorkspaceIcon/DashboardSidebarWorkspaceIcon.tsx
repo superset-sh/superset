@@ -1,4 +1,5 @@
 import { cn } from "@superset/ui/utils";
+import { HiExclamationTriangle } from "react-icons/hi2";
 import { LuCloud, LuFolderGit2, LuLaptop } from "react-icons/lu";
 import { AsciiSpinner } from "renderer/screens/main/components/AsciiSpinner";
 import { StatusIndicator } from "renderer/screens/main/components/StatusIndicator";
@@ -10,6 +11,7 @@ interface DashboardSidebarWorkspaceIconProps {
 	isActive: boolean;
 	variant: "collapsed" | "expanded";
 	workspaceStatus?: ActivePaneStatus | null;
+	creationStatus?: "preparing" | "generating-branch" | "creating" | "failed";
 }
 
 const OVERLAY_POSITION = {
@@ -22,12 +24,15 @@ export function DashboardSidebarWorkspaceIcon({
 	isActive,
 	variant,
 	workspaceStatus = null,
+	creationStatus,
 }: DashboardSidebarWorkspaceIconProps) {
 	const overlayPosition = OVERLAY_POSITION[variant];
 
 	return (
 		<>
-			{workspaceStatus === "working" ? (
+			{creationStatus === "failed" ? (
+				<HiExclamationTriangle className="size-4 text-destructive" />
+			) : creationStatus || workspaceStatus === "working" ? (
 				<AsciiSpinner className="text-base" />
 			) : hostType === "cloud" ? (
 				<LuCloud

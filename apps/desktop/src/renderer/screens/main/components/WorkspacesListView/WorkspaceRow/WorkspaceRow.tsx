@@ -4,24 +4,24 @@ import {
 	ContextMenuItem,
 	ContextMenuTrigger,
 } from "@superset/ui/context-menu";
+import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
-import { useState } from "react";
 import {
 	LuArrowRight,
+	LuExternalLink,
 	LuFolder,
 	LuFolderGit2,
 	LuRotateCw,
 } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { useHoverGitHubStatus } from "renderer/lib/githubQueryPolicy";
 import { useWorkspaceDeleteHandler } from "renderer/react-query/workspaces/useWorkspaceDeleteHandler";
 import { STROKE_WIDTH } from "../../WorkspaceSidebar/constants";
 import { DeleteWorkspaceDialog } from "../../WorkspaceSidebar/WorkspaceListItem/components/DeleteWorkspaceDialog/DeleteWorkspaceDialog";
 import type { WorkspaceItem } from "../types";
 import { getRelativeTime } from "../utils";
 import { DeleteWorktreeDialog } from "./DeleteWorktreeDialog";
-
-const GITHUB_STATUS_STALE_TIME = 5 * 60 * 1000; // 5 minutes
 
 interface WorkspaceRowProps {
 	workspace: WorkspaceItem;
@@ -37,22 +37,27 @@ export function WorkspaceRow({
 	isOpening,
 }: WorkspaceRowProps) {
 	const isBranch = workspace.type === "branch";
-	const [hasHovered, setHasHovered] = useState(false);
+	const { githubStatus, onMouseEnter: onGithubMouseEnter } =
+		useHoverGitHubStatus({
+			workspaceId: workspace.workspaceId,
+			surface: "workspace-row",
+			isWorktree: workspace.type === "worktree",
+		});
 	const { showDeleteDialog, setShowDeleteDialog, handleDeleteClick } =
 		useWorkspaceDeleteHandler();
+	const openFileInEditor = electronTrpc.external.openFileInEditor.useMutation({
+		onError: (error) =>
+			toast.error(`Failed to open in editor: ${error.message}`),
+	});
 
-	// Lazy-load GitHub status on hover to avoid N+1 queries
-	const { data: githubStatus } =
-		electronTrpc.workspaces.getGitHubStatus.useQuery(
-			{ workspaceId: workspace.workspaceId ?? "" },
-			{
-				enabled:
-					hasHovered &&
-					workspace.type === "worktree" &&
-					!!workspace.workspaceId,
-				staleTime: GITHUB_STATUS_STALE_TIME,
-			},
-		);
+	const handleOpenInEditor = () => {
+		if (workspace.worktreePath) {
+			openFileInEditor.mutate({
+				path: workspace.worktreePath,
+				projectId: workspace.projectId,
+			});
+		}
+	};
 
 	const pr = githubStatus?.pr;
 	const showDiffStats = pr && (pr.additions > 0 || pr.deletions > 0);
@@ -74,7 +79,7 @@ export function WorkspaceRow({
 			type="button"
 			onClick={handleClick}
 			disabled={isOpening}
-			onMouseEnter={() => !hasHovered && setHasHovered(true)}
+			onMouseEnter={onGithubMouseEnter}
 			className={cn(
 				"flex items-center gap-3 w-full px-4 py-2 group text-left",
 				"hover:bg-background/50 transition-colors",
@@ -195,6 +200,13 @@ export function WorkspaceRow({
 			<ContextMenu>
 				<ContextMenuTrigger asChild>{button}</ContextMenuTrigger>
 				<ContextMenuContent>
+					<ContextMenuItem onSelect={handleOpenInEditor}>
+						<LuExternalLink
+							className="size-4 mr-2"
+							strokeWidth={STROKE_WIDTH}
+						/>
+						Open in Editor
+					</ContextMenuItem>
 					<ContextMenuItem
 						onSelect={() => handleDeleteClick()}
 						className="text-destructive focus:text-destructive"

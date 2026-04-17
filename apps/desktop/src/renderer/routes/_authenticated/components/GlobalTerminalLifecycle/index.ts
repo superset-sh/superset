@@ -1,0 +1,1 @@
+export { GlobalTerminalLifecycle } from "./GlobalTerminalLifecycle";

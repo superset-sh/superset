@@ -1,0 +1,1 @@
+export { createPierreWorker } from "./pierreWorker";

@@ -1,7 +1,7 @@
 import type { Terminal as XTerm } from "@xterm/xterm";
 import type { Dispatch, MutableRefObject, SetStateAction } from "react";
 import { useEffect, useState } from "react";
-import { useAppHotkey } from "renderer/stores/hotkeys";
+import { useHotkey } from "renderer/hotkeys";
 import { scrollToBottom } from "../utils";
 
 export interface UseTerminalHotkeysOptions {
@@ -34,14 +34,12 @@ export function useTerminalHotkeys({
 		}
 	}, [isFocused, xtermRef]);
 
-	useAppHotkey(
-		"FIND_IN_TERMINAL",
-		() => setIsSearchOpen((prev) => !prev),
-		{ enabled: isFocused, preventDefault: true },
-		[isFocused],
-	);
+	useHotkey("FIND_IN_TERMINAL", () => setIsSearchOpen((prev) => !prev), {
+		enabled: isFocused,
+		preventDefault: true,
+	});
 
-	useAppHotkey(
+	useHotkey(
 		"SCROLL_TO_BOTTOM",
 		() => {
 			if (xtermRef.current) {
@@ -49,7 +47,6 @@ export function useTerminalHotkeys({
 			}
 		},
 		{ enabled: isFocused, preventDefault: true },
-		[isFocused],
 	);
 
 	return { isSearchOpen, setIsSearchOpen };

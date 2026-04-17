@@ -1,5 +1,6 @@
 import { useMatchRoute, useParams } from "@tanstack/react-router";
 import { HiOutlineWifi } from "react-icons/hi2";
+import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import { useOnlineStatus } from "renderer/hooks/useOnlineStatus";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { getWorkspaceDisplayName } from "renderer/lib/getWorkspaceDisplayName";
@@ -7,10 +8,12 @@ import { NavigationControls } from "./components/NavigationControls";
 import { OpenInMenuButton } from "./components/OpenInMenuButton";
 import { OrganizationDropdown } from "./components/OrganizationDropdown";
 import { ResourceConsumption } from "./components/ResourceConsumption";
+import { RightSidebarToggle } from "./components/RightSidebarToggle";
 import { SearchBarTrigger } from "./components/SearchBarTrigger";
 import { SidebarToggle } from "./components/SidebarToggle";
 import { V2WorkspaceOpenInButton } from "./components/V2WorkspaceOpenInButton";
 import { V2WorkspaceSearchBarTrigger } from "./components/V2WorkspaceSearchBarTrigger";
+import { VersionToggle } from "./components/VersionToggle";
 import { WindowControls } from "./components/WindowControls";
 
 export function TopBar() {
@@ -28,6 +31,7 @@ export function TopBar() {
 		{ enabled: !!workspaceId && !isV2WorkspaceRoute },
 	);
 	const isOnline = useOnlineStatus();
+	const { isV2CloudEnabled, isRemoteV2Enabled } = useIsV2CloudEnabled();
 	// Default to Mac layout while loading to avoid overlap with traffic lights
 	const isMac = platform === undefined || platform === "darwin";
 
@@ -42,6 +46,7 @@ export function TopBar() {
 				<SidebarToggle />
 				<NavigationControls />
 				<ResourceConsumption />
+				{isRemoteV2Enabled && <VersionToggle />}
 			</div>
 
 			{isV2WorkspaceRoute ? (
@@ -82,7 +87,10 @@ export function TopBar() {
 						projectId={workspace.project?.id}
 					/>
 				) : null}
-				<OrganizationDropdown />
+				{!isV2CloudEnabled && <OrganizationDropdown />}
+				{isV2WorkspaceRoute && (
+					<RightSidebarToggle workspaceId={v2WorkspaceId} />
+				)}
 				{!isMac && <WindowControls />}
 			</div>
 		</div>

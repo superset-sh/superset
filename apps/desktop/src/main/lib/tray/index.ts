@@ -1,26 +1,20 @@
 import { existsSync } from "node:fs";
 import { join } from "node:path";
-import { workspaces } from "@superset/local-db";
-import { eq } from "drizzle-orm";
 import {
 	app,
-	BrowserWindow,
-	dialog,
 	Menu,
 	type MenuItemConstructorOptions,
 	nativeImage,
 	Tray,
 } from "electron";
-import { localDb } from "main/lib/local-db";
-import { menuEmitter } from "main/lib/menu-events";
+import { loadToken } from "lib/trpc/routers/auth/utils/auth-functions";
+import { env } from "main/env.main";
+import { focusMainWindow, quitApp } from "main/index";
 import {
-	restartDaemon as restartDaemonShared,
-	tryListExistingDaemonSessions,
-} from "main/lib/terminal";
-import { getTerminalHostClient } from "main/lib/terminal-host/client";
-import type { ListSessionsResponse } from "main/lib/terminal-host/types";
-
-const POLL_INTERVAL_MS = 5000;
+	getHostServiceCoordinator,
+	type HostServiceStatusEvent,
+} from "main/lib/host-service-coordinator";
+import { menuEmitter } from "main/lib/menu-events";
 
 /** Must have "Template" suffix for macOS dark/light mode support */
 const TRAY_ICON_FILENAME = "iconTemplate.png";
@@ -55,7 +49,6 @@ function getTrayIconPath(): string | null {
 }
 
 let tray: Tray | null = null;
-let pollIntervalId: ReturnType<typeof setInterval> | null = null;
 
 function createTrayIcon(): Electron.NativeImage | null {
 	const iconPath = getTrayIconPath();
@@ -85,214 +78,159 @@ function createTrayIcon(): Electron.NativeImage | null {
 	}
 }
 
-function showWindow(): void {
-	const windows = BrowserWindow.getAllWindows();
-
-	if (windows.length > 0) {
-		const mainWindow = windows[0];
-		if (mainWindow.isMinimized()) {
-			mainWindow.restore();
-		}
-		mainWindow.show();
-		mainWindow.focus();
-	} else {
-		// Triggers window creation via makeAppSetup's activate handler
-		app.emit("activate");
-	}
-}
-
 function openSettings(): void {
-	showWindow();
+	focusMainWindow();
 	menuEmitter.emit("open-settings");
 }
 
-function openTerminalSettings(): void {
-	showWindow();
-	menuEmitter.emit("open-settings", "terminal");
+interface HostInfo {
+	organizationName: string;
+	version: string;
 }
 
-function openSessionInSuperset(workspaceId: string): void {
-	showWindow();
-	menuEmitter.emit("open-workspace", workspaceId);
-}
+async function fetchHostInfo(organizationId: string): Promise<HostInfo | null> {
+	const connection = getHostServiceCoordinator().getConnection(organizationId);
+	if (!connection) return null;
 
-async function killSession(paneId: string): Promise<void> {
+	const controller = new AbortController();
+	const timeout = setTimeout(() => controller.abort(), 2000);
 	try {
-		const client = getTerminalHostClient();
-		const connected = await client.tryConnectAndAuthenticate();
-		if (connected) {
-			await client.kill({ sessionId: paneId });
-			console.log(`[Tray] Killed session: ${paneId}`);
-		}
-	} catch (error) {
-		console.error(`[Tray] Failed to kill session ${paneId}:`, error);
-	}
-
-	await updateTrayMenu();
-}
-
-function getWorkspaceName(workspaceId: string): string {
-	try {
-		const workspace = localDb
-			.select({ name: workspaces.name })
-			.from(workspaces)
-			.where(eq(workspaces.id, workspaceId))
-			.get();
-		return workspace?.name || workspaceId.slice(0, 8);
+		const res = await fetch(
+			`http://127.0.0.1:${connection.port}/trpc/host.info`,
+			{
+				headers: { Authorization: `Bearer ${connection.secret}` },
+				signal: controller.signal,
+			},
+		);
+		if (!res.ok) return null;
+		const data = await res.json();
+		const info = data?.result?.data?.json;
+		if (!info?.organization?.name) return null;
+		return {
+			organizationName: info.organization.name,
+			version: info.version ?? "",
+		};
 	} catch {
-		return workspaceId.slice(0, 8);
+		return null;
+	} finally {
+		clearTimeout(timeout);
 	}
 }
 
-function formatSessionLabel(
-	session: ListSessionsResponse["sessions"][0],
-): string {
-	const attached = session.attachedClients > 0 ? " (attached)" : "";
-	const shellName = session.shell?.split("/").pop() || "shell";
-	return `${shellName}${attached}`;
-}
-
-function buildSessionsSubmenu(
-	sessions: ListSessionsResponse["sessions"],
+function buildHostServiceSubmenu(
+	orgIds: string[],
+	infos: Map<string, HostInfo>,
 ): MenuItemConstructorOptions[] {
-	const aliveSessions = sessions.filter((s) => s.isAlive);
+	const coordinator = getHostServiceCoordinator();
 	const menuItems: MenuItemConstructorOptions[] = [];
 
-	if (aliveSessions.length === 0) {
-		menuItems.push({ label: "No active sessions", enabled: false });
-	} else {
-		const byWorkspace = new Map<string, ListSessionsResponse["sessions"]>();
-		for (const session of aliveSessions) {
-			const existing = byWorkspace.get(session.workspaceId) || [];
-			existing.push(session);
-			byWorkspace.set(session.workspaceId, existing);
-		}
-
-		let isFirst = true;
-		for (const [workspaceId, workspaceSessions] of byWorkspace) {
-			const workspaceName = getWorkspaceName(workspaceId);
-
-			if (!isFirst) {
-				menuItems.push({ type: "separator" });
-			}
-			menuItems.push({
-				label: workspaceName,
-				enabled: false,
-			});
-
-			for (const session of workspaceSessions) {
-				menuItems.push({
-					label: formatSessionLabel(session),
-					submenu: [
-						{
-							label: "Open in Superset",
-							click: () => openSessionInSuperset(session.workspaceId),
-						},
-						{
-							label: "Kill",
-							click: () => killSession(session.paneId),
-						},
-					],
-				});
-			}
-
-			isFirst = false;
-		}
+	if (orgIds.length === 0) {
+		menuItems.push({ label: "No active services", enabled: false });
+		return menuItems;
 	}
 
-	menuItems.push({ type: "separator" });
-	menuItems.push({
-		label: "Terminal Settings",
-		click: openTerminalSettings,
-	});
+	let isFirst = true;
+	for (const orgId of orgIds) {
+		if (!isFirst) {
+			menuItems.push({ type: "separator" });
+		}
+		isFirst = false;
+
+		const status = coordinator.getProcessStatus(orgId);
+		const info = infos.get(orgId);
+		const isRunning = status === "running";
+		const label = info?.organizationName ?? "Loading…";
+		const versionSuffix = info?.version ? ` (v${info.version})` : "";
+
+		menuItems.push({ label, enabled: false });
+		menuItems.push({
+			label: `  ${status}${versionSuffix}`,
+			enabled: false,
+		});
+		menuItems.push({
+			label: "  Restart",
+			enabled: isRunning,
+			click: () => {
+				void (async () => {
+					try {
+						const { token } = await loadToken();
+						if (!token) return;
+						await coordinator.restart(orgId, {
+							authToken: token,
+							cloudApiUrl: env.NEXT_PUBLIC_API_URL,
+						});
+					} catch (error) {
+						console.error(
+							`[Tray] Failed to restart host-service for ${orgId}:`,
+							error,
+						);
+					}
+					void updateTrayMenu();
+				})();
+			},
+		});
+		menuItems.push({
+			label: "  Stop",
+			enabled: isRunning,
+			click: () => {
+				coordinator.stop(orgId);
+				void updateTrayMenu();
+			},
+		});
+	}
 
 	return menuItems;
-}
-
-async function quitApp(): Promise<void> {
-	const { sessions } = await tryListExistingDaemonSessions();
-	const hasActiveSessions = sessions.some((s) => s.isAlive);
-
-	if (!hasActiveSessions) {
-		app.quit();
-		return;
-	}
-
-	const { response } = await dialog.showMessageBox({
-		type: "question",
-		buttons: ["Cancel", "Keep Sessions", "Kill Sessions"],
-		defaultId: 1,
-		cancelId: 0,
-		title: "Quit Superset?",
-		message: "Quit Superset?",
-		detail:
-			"Keep sessions running in the background, or kill all sessions and shut down the daemon?",
-	});
-
-	if (response === 0) {
-		return;
-	}
-
-	if (response === 2) {
-		try {
-			await restartDaemonShared();
-		} catch (error) {
-			console.warn(
-				"[Tray] Failed to restart terminal daemon during quit:",
-				error,
-			);
-			await dialog
-				.showMessageBox({
-					type: "error",
-					buttons: ["OK"],
-					defaultId: 0,
-					title: "Failed to kill sessions",
-					message: "Superset could not kill terminal sessions.",
-					detail:
-						"The app will stay open so you can retry or quit while keeping sessions running in the background.",
-				})
-				.catch((dialogError) => {
-					console.warn(
-						"[Tray] Failed to show terminal quit error dialog:",
-						dialogError,
-					);
-				});
-			return;
-		}
-	}
-
-	app.quit();
 }
 
 async function updateTrayMenu(): Promise<void> {
 	if (!tray) return;
 
-	const { sessions } = await tryListExistingDaemonSessions();
-	const sessionCount = sessions.filter((s) => s.isAlive).length;
+	const coordinator = getHostServiceCoordinator();
+	const orgIds = coordinator.getActiveOrganizationIds();
 
-	const sessionsSubmenu = buildSessionsSubmenu(sessions);
-	const sessionsLabel =
-		sessionCount > 0
-			? `Background Sessions (${sessionCount})`
-			: "Background Sessions";
+	const infoEntries = await Promise.all(
+		orgIds.map(async (orgId) => [orgId, await fetchHostInfo(orgId)] as const),
+	);
+	const infos = new Map<string, HostInfo>();
+	for (const [orgId, info] of infoEntries) {
+		if (info) infos.set(orgId, info);
+	}
+
+	if (!tray) return;
+
+	const hasActive = orgIds.length > 0;
+	const hostServiceLabel = hasActive
+		? `Host Service (${orgIds.length})`
+		: "Host Service";
+
+	const hostServiceSubmenu = buildHostServiceSubmenu(orgIds, infos);
 
 	const menu = Menu.buildFromTemplate([
 		{
-			label: sessionsLabel,
-			submenu: sessionsSubmenu,
+			label: hostServiceLabel,
+			submenu: hostServiceSubmenu,
 		},
 		{ type: "separator" },
 		{
 			label: "Open Superset",
-			click: showWindow,
+			click: focusMainWindow,
 		},
 		{
 			label: "Settings",
 			click: openSettings,
 		},
 		{
-			label: "Quit",
-			click: quitApp,
+			label: "Check for Updates",
+			click: () => {
+				// Imported lazily to avoid circular dependency
+				const { checkForUpdatesInteractive } = require("../auto-updater");
+				checkForUpdatesInteractive();
+			},
+		},
+		{ type: "separator" },
+		{
+			label: "Quit Superset",
+			click: () => quitApp(),
 		},
 	]);
 
@@ -320,17 +258,16 @@ export function initTray(): void {
 		tray = new Tray(icon);
 		tray.setToolTip("Superset");
 
-		updateTrayMenu().catch((error) => {
-			console.error("[Tray] Failed to build initial menu:", error);
+		void updateTrayMenu();
+
+		const manager = getHostServiceCoordinator();
+		manager.on("status-changed", (_event: HostServiceStatusEvent) => {
+			void updateTrayMenu();
 		});
 
-		pollIntervalId = setInterval(() => {
-			updateTrayMenu().catch((error) => {
-				console.error("[Tray] Failed to update menu:", error);
-			});
-		}, POLL_INTERVAL_MS);
-		// Don't keep Electron alive just for tray updates
-		pollIntervalId.unref();
+		tray.on("mouse-enter", () => {
+			void updateTrayMenu();
+		});
 
 		console.log("[Tray] Initialized successfully");
 	} catch (error) {
@@ -340,11 +277,6 @@ export function initTray(): void {
 
 /** Call on app quit */
 export function disposeTray(): void {
-	if (pollIntervalId) {
-		clearInterval(pollIntervalId);
-		pollIntervalId = null;
-	}
-
 	if (tray) {
 		tray.destroy();
 		tray = null;

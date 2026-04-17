@@ -207,6 +207,7 @@ export const settings = sqliteTable("settings", {
 	notificationSoundsMuted: integer("notification_sounds_muted", {
 		mode: "boolean",
 	}),
+	notificationVolume: integer("notification_volume"),
 	deleteLocalBranch: integer("delete_local_branch", { mode: "boolean" }),
 	fileOpenMode: text("file_open_mode").$type<FileOpenMode>(),
 	showPresetsBar: integer("show_presets_bar", { mode: "boolean" }),
@@ -222,6 +223,9 @@ export const settings = sqliteTable("settings", {
 	projectsBaseDir: text("projects_base_dir"),
 	openLinksInApp: integer("open_links_in_app", { mode: "boolean" }),
 	defaultEditor: text("default_editor").$type<ExternalApp>(),
+	exposeHostServiceViaRelay: integer("expose_host_service_via_relay", {
+		mode: "boolean",
+	}),
 	onedevUrl: text("onedev_url"),
 	onedevAccessToken: text("onedev_access_token"),
 });

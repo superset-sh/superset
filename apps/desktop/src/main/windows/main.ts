@@ -16,7 +16,7 @@ import { createIPCHandler } from "trpc-electron/main";
 import { productName } from "~/package.json";
 import { appState } from "../lib/app-state";
 import { browserManager } from "../lib/browser/browser-manager";
-import { createApplicationMenu, registerMenuHotkeyUpdates } from "../lib/menu";
+import { createApplicationMenu } from "../lib/menu";
 import { playNotificationSound } from "../lib/notification-sound";
 import { NotificationManager } from "../lib/notifications/notification-manager";
 import {
@@ -90,6 +90,7 @@ app.on("child-process-gone", (_event, details) => {
 export async function MainWindow() {
 	const savedWindowState = loadWindowState();
 	const initialBounds = getInitialWindowBounds(savedWindowState);
+	let persistedZoomLevel = savedWindowState?.zoomLevel;
 
 	const isDev = env.NODE_ENV === "development";
 	const workspaceName = isDev ? getEnvWorkspaceName() : undefined;
@@ -126,7 +127,6 @@ export async function MainWindow() {
 	});
 
 	createApplicationMenu();
-	registerMenuHotkeyUpdates();
 
 	currentWindow = window;
 
@@ -225,6 +225,7 @@ export async function MainWindow() {
 	// Gated by `initialized` so the initial maximize() doesn't immediately
 	// write isMaximized: true back to disk before the user touches the window.
 	let initialized = false;
+	let hasCompletedFirstLoad = false;
 	let saveTimeout: ReturnType<typeof setTimeout> | null = null;
 	const debouncedSave = () => {
 		if (!initialized || window.isDestroyed()) return;
@@ -235,29 +236,43 @@ export async function MainWindow() {
 			const bounds = isMaximized
 				? window.getNormalBounds()
 				: window.getBounds();
+			const zoomLevel = window.webContents.getZoomLevel();
 			saveWindowState({
 				x: bounds.x,
 				y: bounds.y,
 				width: bounds.width,
 				height: bounds.height,
 				isMaximized,
-				zoomLevel: window.webContents.getZoomLevel(),
+				zoomLevel,
 			});
+			persistedZoomLevel = zoomLevel;
 		}, 500);
 	};
 	window.on("move", debouncedSave);
 	window.on("resize", debouncedSave);
+	window.webContents.on("zoom-changed", () => {
+		setTimeout(() => {
+			if (window.isDestroyed()) return;
+			persistedZoomLevel = window.webContents.getZoomLevel();
+			debouncedSave();
+		}, 0);
+	});
 
-	window.webContents.once("did-finish-load", async () => {
+	window.webContents.on("did-finish-load", () => {
 		console.log("[main-window] Renderer loaded successfully");
-		if (initialBounds.isMaximized) {
-			window.maximize();
+
+		if (persistedZoomLevel !== undefined) {
+			window.webContents.setZoomLevel(persistedZoomLevel);
 		}
-		if (savedWindowState?.zoomLevel !== undefined) {
-			window.webContents.setZoomLevel(savedWindowState.zoomLevel);
+
+		if (!hasCompletedFirstLoad) {
+			if (initialBounds.isMaximized) {
+				window.maximize();
+			}
+			window.show();
+			initialized = true;
+			hasCompletedFirstLoad = true;
 		}
-		window.show();
-		initialized = true;
 	});
 
 	window.webContents.on(
@@ -295,14 +310,13 @@ export async function MainWindow() {
 			isMaximized,
 			zoomLevel,
 		});
+		persistedZoomLevel = zoomLevel;
 
 		browserManager.unregisterAll();
 		server.close();
 		notificationManager.dispose();
 		notificationsEmitter.removeAllListeners();
-		// Remove terminal listeners to prevent duplicates when window reopens on macOS
 		getWorkspaceRuntimeRegistry().getDefault().terminal.detachAllListeners();
-		// Detach window from IPC handler (handler stays alive for window reopen)
 		ipcHandler?.detachWindow(window);
 		currentWindow = null;
 	});

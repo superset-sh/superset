@@ -103,8 +103,8 @@ export function ConsentForm({
 				throw new Error(consentError.message ?? "Failed to process consent");
 			}
 
-			if (data?.uri) {
-				window.location.href = data.uri;
+			if (data?.url) {
+				window.location.href = data.url;
 			}
 		} catch (err) {
 			console.error("[oauth/consent] Error:", err);

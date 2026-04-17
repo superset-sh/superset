@@ -1,12 +1,13 @@
-import { settings } from "@superset/local-db";
-import { localDb } from "main/lib/local-db";
-import { execGitWithShellPath, getSimpleGitWithShellPath } from "../../workspaces/utils/git-client";
+import {
+	getCurrentBranch,
+	isUnbornHeadError,
+} from "../../workspaces/utils/git";
+import { execGitWithShellPath } from "../../workspaces/utils/git-client";
 import {
 	getPRForBranch,
 	getPullRequestRepoArgs,
 	getRepoContext,
 } from "../../workspaces/utils/github";
-import { detectGitProvider, extractOnedevProjectPath } from "./git-provider";
 import { execWithShellEnv } from "../../workspaces/utils/shell-env";
 import { isNoPullRequestFoundMessage } from "../git-utils";
 import { clearWorktreeStatusCaches } from "./worktree-status-caches";
@@ -23,58 +24,6 @@ export async function mergePullRequest({
 	worktreePath,
 	strategy,
 }: MergePullRequestInput): Promise<{ success: boolean; mergedAt: string }> {
-	// Check if this is a OneDev repo — use OneDev API instead of gh CLI
-	const settingsRow = localDb.select().from(settings).get();
-	const onedevUrl = settingsRow?.onedevUrl ?? null;
-	const onedevToken = settingsRow?.onedevAccessToken ?? null;
-	if (onedevUrl && onedevToken) {
-		try {
-			const git = await getSimpleGitWithShellPath(worktreePath);
-			const remoteUrl = (await git.remote(["get-url", "origin"])).trim();
-			const provider = detectGitProvider(remoteUrl, onedevUrl);
-			if (provider === "onedev") {
-				const projectPath = extractOnedevProjectPath(remoteUrl);
-				if (!projectPath) throw new Error("Could not extract OneDev project path");
-				const { createOnedevClient } = await import("./onedev-api");
-				const client = createOnedevClient({ url: onedevUrl, accessToken: onedevToken });
-				const projectInfo = await client.getProjectByPath(projectPath);
-				if (!projectInfo) throw new Error(`OneDev project not found: ${projectPath}`);
-				const branch = (await git.revparse(["--abbrev-ref", "HEAD"])).trim();
-				const existingPR = await client.findOpenPRWithUrl(projectInfo.id, branch, projectPath);
-				if (!existingPR) {
-					// Check if there's a merged/closed PR for better error message
-					const allPRs = await client.findAllPRsForBranch(branch);
-					if (allPRs.length > 0) {
-						const latest = allPRs[0];
-						throw new Error(`PR for branch "${branch}" is already ${latest.status.toLowerCase()}. Nothing to merge.`);
-					}
-					throw new Error(`No PR found for branch "${branch}". Create a PR first using "Create Pull Request".`);
-				}
-				await client.mergePR(existingPR.id);
-
-				// Auto-transition referenced issues to Closed
-				try {
-					const referencedIssues = await client.findReferencedOpenIssues(
-						`${existingPR.title} ${branch}`,
-						projectInfo.id,
-					);
-					for (const issue of referencedIssues) {
-						await client.transitionIssueState(issue.id, "Closed");
-						console.log(`[merge] Closed issue #${issue.number} after PR merge`);
-					}
-				} catch (err) {
-					console.warn("[merge] Failed to auto-close issues:", err);
-				}
-
-				clearWorktreeStatusCaches(worktreePath);
-				return { success: true, mergedAt: new Date().toISOString() };
-			}
-		} catch (error) {
-			// If we identified it as OneDev, always throw — never fall through to gh
-			throw error;
-		}
-	}
-
 	const legacyMergeArgs = ["pr", "merge", `--${strategy}`];
 	const runMerge = async (
 		args: string[],
@@ -91,15 +40,20 @@ export async function mergePullRequest({
 
 	let pr: Awaited<ReturnType<typeof getPRForBranch>> = null;
 	try {
-		const [{ stdout: branchOutput }, { stdout: headOutput }] =
-			await Promise.all([
-				execGitWithShellPath(["rev-parse", "--abbrev-ref", "HEAD"], {
-					cwd: worktreePath,
-				}),
-				execGitWithShellPath(["rev-parse", "HEAD"], { cwd: worktreePath }),
-			]);
-		const localBranch = branchOutput.trim();
-		const headSha = headOutput.trim();
+		const localBranch = await getCurrentBranch(worktreePath);
+		if (!localBranch) {
+			return runMerge(legacyMergeArgs);
+		}
+		const { stdout: headOutput } = await execGitWithShellPath(
+			["rev-parse", "HEAD"],
+			{ cwd: worktreePath },
+		).catch((error) => {
+			if (isUnbornHeadError(error)) {
+				return { stdout: "", stderr: "" };
+			}
+			throw error;
+		});
+		const headSha = headOutput.trim() || undefined;
 
 		pr = await getPRForBranch(worktreePath, localBranch, repoContext, headSha);
 	} catch (error) {

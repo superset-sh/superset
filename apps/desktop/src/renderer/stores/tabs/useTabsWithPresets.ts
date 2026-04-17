@@ -103,13 +103,17 @@ export function useTabsWithPresets(projectId?: string | null) {
 	}, []);
 
 	const launchPresetCommand = useCallback(
-		({ paneId, tabId, workspaceId, command, cwd }: PresetPaneLaunch) => {
+		(
+			{ paneId, tabId, workspaceId, command, cwd }: PresetPaneLaunch,
+			options?: { waitForMountedSession?: boolean },
+		) => {
 			void launchCommandInPane({
 				paneId,
 				tabId,
 				workspaceId,
 				command,
 				cwd,
+				waitForMountedSession: options?.waitForMountedSession,
 				createOrAttach: (input) => createOrAttach.mutateAsync(input),
 				write: (input) => writeToTerminal.mutateAsync(input),
 			}).catch((error) => {
@@ -125,9 +129,12 @@ export function useTabsWithPresets(projectId?: string | null) {
 	);
 
 	const launchPresetCommands = useCallback(
-		(launches: PresetPaneLaunch[]) => {
+		(
+			launches: PresetPaneLaunch[],
+			options?: { waitForMountedSession?: boolean },
+		) => {
 			for (const launch of launches) {
-				launchPresetCommand(launch);
+				launchPresetCommand(launch, options);
 			}
 		},
 		[launchPresetCommand],
@@ -145,13 +152,16 @@ export function useTabsWithPresets(projectId?: string | null) {
 			if (firstPresetCommand === null) return;
 			const workspaceId = resolveWorkspaceIdForTab(tabId);
 			if (!workspaceId) return;
-			launchPresetCommand({
-				paneId,
-				tabId,
-				workspaceId,
-				command: firstPresetCommand,
-				cwd: firstPreset?.cwd || undefined,
-			});
+			launchPresetCommand(
+				{
+					paneId,
+					tabId,
+					workspaceId,
+					command: firstPresetCommand,
+					cwd: firstPreset?.cwd || undefined,
+				},
+				{ waitForMountedSession: true },
+			);
 		},
 		[
 			firstPreset,
@@ -162,20 +172,27 @@ export function useTabsWithPresets(projectId?: string | null) {
 	);
 
 	const launchFirstPresetInFocusedPane = useCallback(
-		(tabId: string, previousFocusedPaneId: string | undefined) => {
+		(
+			tabId: string,
+			previousFocusedPaneId: string | undefined,
+			options?: { waitForMountedSession?: boolean },
+		) => {
 			if (firstPresetCommand === null) return;
 			const state = useTabsStore.getState();
 			const paneId = state.focusedPaneIds[tabId];
 			if (!paneId || paneId === previousFocusedPaneId) return;
 			const tab = state.tabs.find((tabItem) => tabItem.id === tabId);
 			if (!tab) return;
-			launchPresetCommand({
-				paneId,
-				tabId,
-				workspaceId: tab.workspaceId,
-				command: firstPresetCommand,
-				cwd: firstPreset?.cwd || undefined,
-			});
+			launchPresetCommand(
+				{
+					paneId,
+					tabId,
+					workspaceId: tab.workspaceId,
+					command: firstPresetCommand,
+					cwd: firstPreset?.cwd || undefined,
+				},
+				options,
+			);
 		},
 		[firstPreset, firstPresetCommand, launchPresetCommand],
 	);
@@ -302,7 +319,7 @@ export function useTabsWithPresets(projectId?: string | null) {
 							];
 						},
 					);
-					launchPresetCommands(launches);
+					launchPresetCommands(launches, { waitForMountedSession: true });
 					return { tabId: activeTabId, paneId: paneIds[0] };
 				}
 				return executePresetInNewTab(workspaceId, preset);
@@ -315,13 +332,16 @@ export function useTabsWithPresets(projectId?: string | null) {
 				});
 				if (paneId) {
 					if (command !== null) {
-						launchPresetCommand({
-							paneId,
-							tabId: activeTabId,
-							workspaceId,
-							command,
-							cwd: preset.initialCwd,
-						});
+						launchPresetCommand(
+							{
+								paneId,
+								tabId: activeTabId,
+								workspaceId,
+								command,
+								cwd: preset.initialCwd,
+							},
+							{ waitForMountedSession: true },
+						);
 					}
 					return { tabId: activeTabId, paneId };
 				}
@@ -436,7 +456,9 @@ export function useTabsWithPresets(projectId?: string | null) {
 			const previousFocusedPaneId =
 				useTabsStore.getState().focusedPaneIds[tabId];
 			storeSplitPaneVertical(tabId, sourcePaneId, path, firstPresetOptions);
-			launchFirstPresetInFocusedPane(tabId, previousFocusedPaneId);
+			launchFirstPresetInFocusedPane(tabId, previousFocusedPaneId, {
+				waitForMountedSession: true,
+			});
 		},
 		[
 			storeSplitPaneVertical,
@@ -458,7 +480,9 @@ export function useTabsWithPresets(projectId?: string | null) {
 			const previousFocusedPaneId =
 				useTabsStore.getState().focusedPaneIds[tabId];
 			storeSplitPaneHorizontal(tabId, sourcePaneId, path, firstPresetOptions);
-			launchFirstPresetInFocusedPane(tabId, previousFocusedPaneId);
+			launchFirstPresetInFocusedPane(tabId, previousFocusedPaneId, {
+				waitForMountedSession: true,
+			});
 		},
 		[
 			storeSplitPaneHorizontal,
@@ -493,7 +517,9 @@ export function useTabsWithPresets(projectId?: string | null) {
 				path,
 				firstPresetOptions,
 			);
-			launchFirstPresetInFocusedPane(tabId, previousFocusedPaneId);
+			launchFirstPresetInFocusedPane(tabId, previousFocusedPaneId, {
+				waitForMountedSession: true,
+			});
 		},
 		[storeSplitPaneAuto, firstPresetOptions, launchFirstPresetInFocusedPane],
 	);

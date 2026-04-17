@@ -14,9 +14,9 @@ export type SettingsSection =
 	| "models"
 	| "integrations"
 	| "billing"
-	| "devices"
 	| "apikeys"
 	| "permissions"
+	| "security"
 	| "project";
 
 interface SettingsState {

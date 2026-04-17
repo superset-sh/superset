@@ -259,6 +259,7 @@ step_start_electric() {
 
   if ! docker run -d \
       --name "$ELECTRIC_CONTAINER" \
+      --restart unless-stopped \
       $port_flag \
       -e DATABASE_URL="$DIRECT_URL" \
       -e ELECTRIC_SECRET="$ELECTRIC_SECRET" \
@@ -440,6 +441,7 @@ step_write_env() {
     local CODE_INSPECTOR_PORT=$((BASE + 11))
     local DESKTOP_AUTOMATION_PORT=$((BASE + 12))
     local WRANGLER_PORT=$((BASE + 13))
+    local RELAY_PORT=$((BASE + 14))
 
     echo ""
     echo "# Workspace Ports (allocated from SUPERSET_PORT_BASE=$BASE, range=20)"
@@ -458,6 +460,7 @@ step_write_env() {
     write_env_var "CODE_INSPECTOR_PORT" "$CODE_INSPECTOR_PORT"
     write_env_var "DESKTOP_AUTOMATION_PORT" "$DESKTOP_AUTOMATION_PORT"
     write_env_var "WRANGLER_PORT" "$WRANGLER_PORT"
+    write_env_var "RELAY_PORT" "$RELAY_PORT"
     echo ""
     echo "# Cross-app URLs (overrides from root .env)"
     write_env_var "NEXT_PUBLIC_API_URL" "http://localhost:$API_PORT"
@@ -468,6 +471,7 @@ step_write_env() {
     write_env_var "NEXT_PUBLIC_DESKTOP_URL" "http://localhost:$DESKTOP_VITE_PORT"
     write_env_var "EXPO_PUBLIC_WEB_URL" "http://localhost:$WEB_PORT"
     write_env_var "EXPO_PUBLIC_API_URL" "http://localhost:$API_PORT"
+    write_env_var "RELAY_URL" "http://localhost:$RELAY_PORT"
     echo ""
     echo "# Streams URLs (overrides from root .env)"
     write_env_var "PORT" "$STREAMS_PORT"
@@ -478,18 +482,18 @@ step_write_env() {
     echo ""
     echo "# Electric URLs (overrides from root .env)"
     write_env_var "ELECTRIC_URL" "http://localhost:$ELECTRIC_PORT/v1/shape"
-    echo "# Caddy HTTPS proxy for HTTP/2 (avoids browser 6-connection limit with 10+ SSE streams)"
-    write_env_var "NEXT_PUBLIC_ELECTRIC_URL" "https://localhost:$CADDY_ELECTRIC_PORT/api/electric"
-    write_env_var "NEXT_PUBLIC_ELECTRIC_PROXY_URL" "https://localhost:$CADDY_ELECTRIC_PORT/api/electric"
+    echo "# Caddy HTTPS proxy for HTTP/2 (avoids browser 6-connection limit with Electric SSE streams)"
+    write_env_var "NEXT_PUBLIC_ELECTRIC_URL" "https://localhost:$CADDY_ELECTRIC_PORT"
+    write_env_var "NEXT_PUBLIC_ELECTRIC_PROXY_URL" "https://localhost:$CADDY_ELECTRIC_PORT"
   } >> .env
 
   success "Workspace .env written"
 
   # Generate Caddyfile for HTTP/2 reverse proxy (avoids browser 6-connection limit with Electric SSE streams)
-  # Caddy proxies to the API server which handles auth and forwards to Electric Docker
+  # Caddy proxies to the local Wrangler worker, which handles auth and forwards upstream appropriately.
   cat > Caddyfile <<-CADDYEOF
 	https://localhost:{\$CADDY_ELECTRIC_PORT} {
-		reverse_proxy localhost:{\$API_PORT} {
+		reverse_proxy localhost:{\$WRANGLER_PORT} {
 			flush_interval -1
 		}
 	}
@@ -522,7 +526,8 @@ PORTSJSON
 
   cat > apps/electric-proxy/.dev.vars <<DEVVARS
 AUTH_URL=http://localhost:$API_PORT
-ELECTRIC_CLOUD_URL=${ELECTRIC_CLOUD_URL:-https://api.electric-sql.cloud}
+ELECTRIC_SHAPE_URL=http://localhost:$ELECTRIC_PORT/v1/shape
+ELECTRIC_SECRET=${ELECTRIC_SECRET:-local_electric_dev_secret}
 ELECTRIC_SOURCE_ID=${ELECTRIC_SOURCE_ID:-}
 ELECTRIC_SOURCE_SECRET=${ELECTRIC_SOURCE_SECRET:-}
 DEVVARS

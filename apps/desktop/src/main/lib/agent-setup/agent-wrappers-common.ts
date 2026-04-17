@@ -1,17 +1,10 @@
 import fs from "node:fs";
 import path from "node:path";
+import { SUPERSET_MANAGED_BINARIES } from "./desktop-agent-capabilities";
 import { BIN_DIR } from "./paths";
 
 export const WRAPPER_MARKER = "# Superset agent-wrapper v1";
-export const SUPERSET_MANAGED_BINARIES = [
-	"claude",
-	"codex",
-	"droid",
-	"opencode",
-	"gemini",
-	"copilot",
-	"mastracode",
-] as const;
+export { SUPERSET_MANAGED_BINARIES };
 
 const SUPERSET_MANAGED_HOOK_PATH_PATTERN = /\/\.superset(?:-[^/'"\s\\]+)?\//;
 

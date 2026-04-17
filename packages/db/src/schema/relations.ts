@@ -26,10 +26,10 @@ import {
 	taskStatuses,
 	tasks,
 	usersSlackUsers,
-	v2DevicePresence,
-	v2Devices,
+	v2Clients,
+	v2Hosts,
 	v2Projects,
-	v2UsersDevices,
+	v2UsersHosts,
 	v2Workspaces,
 	workspaces,
 } from "./schema";
@@ -44,8 +44,9 @@ export const usersRelations = relations(users, ({ many }) => ({
 	connectedIntegrations: many(integrationConnections),
 	githubInstallations: many(githubInstallations),
 	devicePresence: many(devicePresence),
-	v2Devices: many(v2Devices),
-	v2UsersDevices: many(v2UsersDevices),
+	v2Hosts: many(v2Hosts),
+	v2Clients: many(v2Clients),
+	v2UsersHosts: many(v2UsersHosts),
 	v2Workspaces: many(v2Workspaces),
 	agentCommands: many(agentCommands),
 	chatSessions: many(chatSessions),
@@ -70,10 +71,10 @@ export const organizationsRelations = relations(organizations, ({ many }) => ({
 	invitations: many(invitations),
 	subscriptions: many(subscriptions),
 	projects: many(projects),
-	v2Devices: many(v2Devices),
-	v2DevicePresence: many(v2DevicePresence),
+	v2Hosts: many(v2Hosts),
+	v2Clients: many(v2Clients),
+	v2UsersHosts: many(v2UsersHosts),
 	v2Projects: many(v2Projects),
-	v2UsersDevices: many(v2UsersDevices),
 	v2Workspaces: many(v2Workspaces),
 	secrets: many(secrets),
 	sandboxImages: many(sandboxImages),
@@ -279,70 +280,67 @@ export const v2ProjectsRelations = relations(v2Projects, ({ one, many }) => ({
 	workspaces: many(v2Workspaces),
 }));
 
-export const v2DevicesRelations = relations(v2Devices, ({ one, many }) => ({
+export const v2HostsRelations = relations(v2Hosts, ({ one, many }) => ({
 	organization: one(organizations, {
-		fields: [v2Devices.organizationId],
+		fields: [v2Hosts.organizationId],
 		references: [organizations.id],
 	}),
 	createdBy: one(users, {
-		fields: [v2Devices.createdByUserId],
+		fields: [v2Hosts.createdByUserId],
 		references: [users.id],
 	}),
-	presence: one(v2DevicePresence, {
-		fields: [v2Devices.id],
-		references: [v2DevicePresence.deviceId],
-	}),
-	usersDevices: many(v2UsersDevices),
+	usersHosts: many(v2UsersHosts),
 	workspaces: many(v2Workspaces),
 }));
 
-export const v2UsersDevicesRelations = relations(v2UsersDevices, ({ one }) => ({
+export const v2ClientsRelations = relations(v2Clients, ({ one }) => ({
 	organization: one(organizations, {
-		fields: [v2UsersDevices.organizationId],
+		fields: [v2Clients.organizationId],
 		references: [organizations.id],
 	}),
 	user: one(users, {
-		fields: [v2UsersDevices.userId],
+		fields: [v2Clients.userId],
 		references: [users.id],
-	}),
-	device: one(v2Devices, {
-		fields: [v2UsersDevices.deviceId],
-		references: [v2Devices.id],
 	}),
 }));
 
-export const v2DevicePresenceRelations = relations(
-	v2DevicePresence,
-	({ one }) => ({
-		organization: one(organizations, {
-			fields: [v2DevicePresence.organizationId],
-			references: [organizations.id],
-		}),
-		device: one(v2Devices, {
-			fields: [v2DevicePresence.deviceId],
-			references: [v2Devices.id],
-		}),
-	}),
-);
-
-export const v2WorkspacesRelations = relations(v2Workspaces, ({ one }) => ({
+export const v2UsersHostsRelations = relations(v2UsersHosts, ({ one }) => ({
 	organization: one(organizations, {
-		fields: [v2Workspaces.organizationId],
+		fields: [v2UsersHosts.organizationId],
 		references: [organizations.id],
 	}),
-	project: one(v2Projects, {
-		fields: [v2Workspaces.projectId],
-		references: [v2Projects.id],
-	}),
-	device: one(v2Devices, {
-		fields: [v2Workspaces.deviceId],
-		references: [v2Devices.id],
-	}),
-	createdBy: one(users, {
-		fields: [v2Workspaces.createdByUserId],
+	user: one(users, {
+		fields: [v2UsersHosts.userId],
 		references: [users.id],
 	}),
+	host: one(v2Hosts, {
+		fields: [v2UsersHosts.hostId],
+		references: [v2Hosts.id],
+	}),
 }));
+
+export const v2WorkspacesRelations = relations(
+	v2Workspaces,
+	({ one, many }) => ({
+		organization: one(organizations, {
+			fields: [v2Workspaces.organizationId],
+			references: [organizations.id],
+		}),
+		project: one(v2Projects, {
+			fields: [v2Workspaces.projectId],
+			references: [v2Projects.id],
+		}),
+		host: one(v2Hosts, {
+			fields: [v2Workspaces.hostId],
+			references: [v2Hosts.id],
+		}),
+		createdBy: one(users, {
+			fields: [v2Workspaces.createdByUserId],
+			references: [users.id],
+		}),
+		chatSessions: many(chatSessions),
+	}),
+);
 
 export const secretsRelations = relations(secrets, ({ one }) => ({
 	organization: one(organizations, {
@@ -400,6 +398,10 @@ export const chatSessionsRelations = relations(
 		workspace: one(workspaces, {
 			fields: [chatSessions.workspaceId],
 			references: [workspaces.id],
+		}),
+		v2Workspace: one(v2Workspaces, {
+			fields: [chatSessions.v2WorkspaceId],
+			references: [v2Workspaces.id],
 		}),
 		sessionHosts: many(sessionHosts),
 	}),

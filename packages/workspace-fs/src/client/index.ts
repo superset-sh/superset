@@ -3,6 +3,7 @@ export type {
 	FsService,
 	FsSubscriptionMap,
 } from "../core/service";
+export type { FsEntry, FsEntryKind, FsWatchEvent } from "../types";
 
 import type {
 	FsRequestMap,

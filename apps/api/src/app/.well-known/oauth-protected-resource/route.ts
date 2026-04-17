@@ -1,19 +1,22 @@
-import { env } from "@/env";
+import { auth } from "@superset/auth/server";
+import { buildProtectedResourceMetadata } from "@/lib/oauth-metadata";
 
-function getPublicOrigin(req: Request): string {
-	const host = req.headers.get("x-forwarded-host") ?? new URL(req.url).host;
-	const proto =
-		req.headers.get("x-forwarded-proto") ??
-		new URL(req.url).protocol.replace(":", "");
-	return `${proto}://${host}`;
-}
+export async function GET(request: Request): Promise<Response> {
+	const authServerMetadata = await auth.api.getOAuthServerConfig({
+		headers: request.headers,
+	});
 
-export function GET(req: Request) {
 	return Response.json(
-		{
-			resource: getPublicOrigin(req),
-			authorization_servers: [env.NEXT_PUBLIC_API_URL],
-		},
+		buildProtectedResourceMetadata(request, "/", {
+			authorizationServerUrl:
+				typeof authServerMetadata.issuer === "string"
+					? authServerMetadata.issuer
+					: undefined,
+			resourceName: "Superset MCP Server",
+			scopesSupported: Array.isArray(authServerMetadata.scopes_supported)
+				? authServerMetadata.scopes_supported
+				: undefined,
+		}),
 		{
 			headers: {
 				"Access-Control-Allow-Origin": "*",

@@ -33,6 +33,8 @@ const mockHead = {
 
 // biome-ignore lint/suspicious/noExplicitAny: Test setup requires extending globalThis
 (globalThis as any).document = {
+	addEventListener: mock(() => {}),
+	removeEventListener: mock(() => {}),
 	documentElement: {
 		style: {
 			setProperty: (key: string, value: string) => mockStyleMap.set(key, value),
@@ -64,6 +66,19 @@ const mockHead = {
 		textContent: text,
 	})),
 };
+
+// Ensure window has addEventListener/removeEventListener for react-hotkeys-hook's IIFE
+if (typeof globalThis.window !== "undefined") {
+	const win = globalThis.window as Record<string, unknown>;
+	if (!win.addEventListener) win.addEventListener = mock(() => {});
+	if (!win.removeEventListener) win.removeEventListener = mock(() => {});
+} else {
+	// biome-ignore lint/suspicious/noExplicitAny: Test setup requires extending globalThis
+	(globalThis as any).window = {
+		addEventListener: mock(() => {}),
+		removeEventListener: mock(() => {}),
+	};
+}
 
 // =============================================================================
 // Electron Preload Mocks (exposed via contextBridge in real app)
@@ -161,6 +176,8 @@ const agentPresetOverrideSchema = z.object({
 	promptCommand: z.string().optional(),
 	promptCommandSuffix: z.string().nullable().optional(),
 	taskPromptTemplate: z.string().optional(),
+	contextPromptTemplateSystem: z.string().optional(),
+	contextPromptTemplateUser: z.string().optional(),
 	model: z.string().optional(),
 });
 
@@ -175,9 +192,12 @@ const agentCustomDefinitionSchema = z.object({
 	label: z.string(),
 	description: z.string().optional(),
 	command: z.string(),
-	promptCommand: z.string(),
+	promptCommand: z.string().optional(),
 	promptCommandSuffix: z.string().optional(),
+	promptTransport: z.enum(["argv", "stdin"]).optional(),
 	taskPromptTemplate: z.string(),
+	contextPromptTemplateSystem: z.string().optional(),
+	contextPromptTemplateUser: z.string().optional(),
 	enabled: z.boolean().optional(),
 });
 
@@ -194,6 +214,7 @@ const localDbMock = () => ({
 	agentPresetOverrideSchema,
 	agentPresetOverrideEnvelopeSchema,
 	agentCustomDefinitionSchema,
+	PROMPT_TRANSPORTS: ["argv", "stdin"],
 	EXTERNAL_APPS: [],
 	EXECUTION_MODES: ["sequential", "parallel"],
 	BRANCH_PREFIX_MODES: ["none", "github", "author", "custom"],

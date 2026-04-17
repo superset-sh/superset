@@ -2,7 +2,7 @@ import { Button } from "@superset/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useNavigate } from "@tanstack/react-router";
 import { CiSettings } from "react-icons/ci";
-import { HotkeyTooltipContent } from "renderer/components/HotkeyTooltipContent";
+import { HotkeyLabel } from "renderer/hotkeys";
 
 export function SettingsButton() {
 	const navigate = useNavigate();
@@ -21,7 +21,7 @@ export function SettingsButton() {
 				</Button>
 			</TooltipTrigger>
 			<TooltipContent side="bottom" sideOffset={8}>
-				<HotkeyTooltipContent label="Open settings" hotkeyId="OPEN_SETTINGS" />
+				<HotkeyLabel label="Open settings" id="OPEN_SETTINGS" />
 			</TooltipContent>
 		</Tooltip>
 	);

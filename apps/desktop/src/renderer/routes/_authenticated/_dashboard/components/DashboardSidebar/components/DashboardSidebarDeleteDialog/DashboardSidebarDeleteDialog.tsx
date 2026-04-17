@@ -1,61 +1,85 @@
-import {
-	AlertDialog,
-	AlertDialogContent,
-	AlertDialogDescription,
-	AlertDialogFooter,
-	AlertDialogHeader,
-	AlertDialogTitle,
-} from "@superset/ui/alert-dialog";
-import { Button } from "@superset/ui/button";
+import { ConflictPane } from "./components/ConflictPane";
+import { DestroyConfirmPane } from "./components/DestroyConfirmPane";
+import { TeardownFailedPane } from "./components/TeardownFailedPane";
+import { UnknownErrorPane } from "./components/UnknownErrorPane";
+import { useDestroyDialogState } from "./hooks/useDestroyDialogState";
 
 interface DashboardSidebarDeleteDialogProps {
+	workspaceId: string;
+	workspaceName: string;
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
-	onConfirm: () => void;
-	title: string;
-	description: string;
-	isPending?: boolean;
+	/** Fires after a successful destroy (any warnings reported via toast). */
+	onDeleted?: () => void;
 }
 
+/**
+ * Dispatches between confirm / conflict / teardown-failed / unknown-error
+ * panes based on the error returned by `workspaceCleanup.destroy`. The
+ * destroy itself runs in the background under a toast — this dialog is
+ * only on screen when the user has a decision to make.
+ */
 export function DashboardSidebarDeleteDialog({
+	workspaceId,
+	workspaceName,
 	open,
 	onOpenChange,
-	onConfirm,
-	title,
-	description,
-	isPending = false,
+	onDeleted,
 }: DashboardSidebarDeleteDialogProps) {
+	const {
+		deleteBranch,
+		setDeleteBranch,
+		error,
+		clearError,
+		handleOpenChange,
+		run,
+	} = useDestroyDialogState({
+		workspaceId,
+		workspaceName,
+		onOpenChange,
+		onDeleted,
+	});
+
+	if (error?.kind === "conflict") {
+		return (
+			<ConflictPane
+				open={open}
+				onOpenChange={handleOpenChange}
+				onForceDelete={() => run(true)}
+			/>
+		);
+	}
+
+	if (error?.kind === "teardown-failed") {
+		return (
+			<TeardownFailedPane
+				open={open}
+				onOpenChange={handleOpenChange}
+				cause={error.cause}
+				onForceDelete={() => run(true)}
+			/>
+		);
+	}
+
+	if (error?.kind === "unknown") {
+		return (
+			<UnknownErrorPane
+				open={open}
+				onOpenChange={handleOpenChange}
+				message={error.message}
+				onRetry={clearError}
+			/>
+		);
+	}
+
 	return (
-		<AlertDialog
+		<DestroyConfirmPane
 			open={open}
-			onOpenChange={isPending ? undefined : onOpenChange}
-		>
-			<AlertDialogContent className="max-w-[340px] gap-0 p-0">
-				<AlertDialogHeader className="px-4 pt-4 pb-2">
-					<AlertDialogTitle className="font-medium">{title}</AlertDialogTitle>
-					<AlertDialogDescription>{description}</AlertDialogDescription>
-				</AlertDialogHeader>
-				<AlertDialogFooter className="px-4 pb-4 pt-2 flex-row justify-end gap-2">
-					<Button
-						variant="ghost"
-						size="sm"
-						className="h-7 px-3 text-xs"
-						onClick={() => onOpenChange(false)}
-						disabled={isPending}
-					>
-						Cancel
-					</Button>
-					<Button
-						variant="destructive"
-						size="sm"
-						className="h-7 px-3 text-xs"
-						onClick={onConfirm}
-						disabled={isPending}
-					>
-						{isPending ? "Deleting..." : "Delete"}
-					</Button>
-				</AlertDialogFooter>
-			</AlertDialogContent>
-		</AlertDialog>
+			onOpenChange={handleOpenChange}
+			workspaceName={workspaceName}
+			deleteBranch={deleteBranch}
+			onDeleteBranchChange={setDeleteBranch}
+			onConfirm={() => run(false)}
+		/>
 	);
 }

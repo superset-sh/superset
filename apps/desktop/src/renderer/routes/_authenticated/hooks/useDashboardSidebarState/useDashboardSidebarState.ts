@@ -1,6 +1,8 @@
+import type { WorkspaceState } from "@superset/panes";
 import { useCallback } from "react";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import type { AppCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider/collections";
+import { PROJECT_CUSTOM_COLORS } from "shared/constants/project-colors";
 
 function getNextTabOrder(items: Array<{ tabOrder: number }>): number {
 	const maxTabOrder = items.reduce(
@@ -31,30 +33,41 @@ function ensureSidebarProjectRecord(
 function ensureSidebarWorkspaceRecord(
 	collections: Pick<
 		AppCollections,
-		"v2SidebarSections" | "v2SidebarWorkspaces"
+		"v2SidebarSections" | "v2WorkspaceLocalState"
 	>,
 	workspaceId: string,
 	projectId: string,
 ): void {
-	if (collections.v2SidebarWorkspaces.get(workspaceId)) {
+	if (collections.v2WorkspaceLocalState.get(workspaceId)) {
 		return;
 	}
 
 	const topLevelOrders = [
-		...Array.from(collections.v2SidebarWorkspaces.state.values()).filter(
-			(item) => item.projectId === projectId && item.sectionId === null,
-		),
+		...Array.from(collections.v2WorkspaceLocalState.state.values())
+			.filter(
+				(item) =>
+					item.sidebarState.projectId === projectId &&
+					item.sidebarState.sectionId === null,
+			)
+			.map((item) => ({ tabOrder: item.sidebarState.tabOrder })),
 		...Array.from(collections.v2SidebarSections.state.values()).filter(
 			(item) => item.projectId === projectId,
 		),
 	];
 
-	collections.v2SidebarWorkspaces.insert({
+	collections.v2WorkspaceLocalState.insert({
 		workspaceId,
-		projectId,
 		createdAt: new Date(),
-		tabOrder: getNextTabOrder(topLevelOrders),
-		sectionId: null,
+		sidebarState: {
+			projectId,
+			tabOrder: getNextTabOrder(topLevelOrders),
+			sectionId: null,
+		},
+		paneLayout: {
+			version: 1,
+			tabs: [],
+			activeTabId: null,
+		} satisfies WorkspaceState<unknown>,
 	});
 }
 
@@ -102,9 +115,66 @@ export function useDashboardSidebarState() {
 	const reorderWorkspaces = useCallback(
 		(workspaceIds: string[]) => {
 			workspaceIds.forEach((workspaceId, index) => {
-				if (!collections.v2SidebarWorkspaces.get(workspaceId)) return;
-				collections.v2SidebarWorkspaces.update(workspaceId, (draft) => {
-					draft.tabOrder = index + 1;
+				if (!collections.v2WorkspaceLocalState.get(workspaceId)) return;
+				collections.v2WorkspaceLocalState.update(workspaceId, (draft) => {
+					draft.sidebarState.tabOrder = index + 1;
+				});
+			});
+		},
+		[collections],
+	);
+
+	const reorderProjectChildren = useCallback(
+		(
+			projectId: string,
+			orderedItems: Array<{ type: "workspace" | "section"; id: string }>,
+		) => {
+			orderedItems.forEach((item, index) => {
+				const tabOrder = index + 1;
+				if (item.type === "workspace") {
+					if (!collections.v2WorkspaceLocalState.get(item.id)) return;
+					collections.v2WorkspaceLocalState.update(item.id, (draft) => {
+						draft.sidebarState.tabOrder = tabOrder;
+						draft.sidebarState.sectionId = null;
+						draft.sidebarState.projectId = projectId;
+					});
+				} else {
+					if (!collections.v2SidebarSections.get(item.id)) return;
+					collections.v2SidebarSections.update(item.id, (draft) => {
+						draft.tabOrder = tabOrder;
+					});
+				}
+			});
+		},
+		[collections],
+	);
+
+	const moveWorkspaceToSectionAtIndex = useCallback(
+		(
+			workspaceId: string,
+			projectId: string,
+			sectionId: string,
+			index: number,
+		) => {
+			const existing = collections.v2WorkspaceLocalState.get(workspaceId);
+			if (!existing) return;
+			const siblings = Array.from(
+				collections.v2WorkspaceLocalState.state.values(),
+			)
+				.filter(
+					(item) =>
+						item.sidebarState.projectId === projectId &&
+						item.workspaceId !== workspaceId &&
+						item.sidebarState.sectionId === sectionId,
+				)
+				.sort((a, b) => a.sidebarState.tabOrder - b.sidebarState.tabOrder);
+			const reordered = [...siblings];
+			reordered.splice(index, 0, existing);
+			reordered.forEach((item, i) => {
+				collections.v2WorkspaceLocalState.update(item.workspaceId, (draft) => {
+					draft.sidebarState.tabOrder = i + 1;
+					draft.sidebarState.sectionId = sectionId;
+					draft.sidebarState.projectId = projectId;
 				});
 			});
 		},
@@ -120,6 +190,11 @@ export function useDashboardSidebarState() {
 				collections.v2SidebarSections.state.values(),
 			).filter((item) => item.projectId === projectId);
 
+			const randomColor =
+				PROJECT_CUSTOM_COLORS[
+					Math.floor(Math.random() * PROJECT_CUSTOM_COLORS.length)
+				].value;
+
 			collections.v2SidebarSections.insert({
 				sectionId,
 				projectId,
@@ -127,7 +202,7 @@ export function useDashboardSidebarState() {
 				createdAt: new Date(),
 				tabOrder: getNextTabOrder(sectionOrders),
 				isCollapsed: false,
-				color: null,
+				color: randomColor,
 			});
 
 			return sectionId;
@@ -167,21 +242,72 @@ export function useDashboardSidebarState() {
 
 	const moveWorkspaceToSection = useCallback(
 		(workspaceId: string, projectId: string, sectionId: string | null) => {
-			const existing = collections.v2SidebarWorkspaces.get(workspaceId);
+			const existing = collections.v2WorkspaceLocalState.get(workspaceId);
 			if (!existing) return;
 
-			const siblingRows = Array.from(
-				collections.v2SidebarWorkspaces.state.values(),
-			).filter(
-				(item) =>
-					item.projectId === projectId &&
-					item.workspaceId !== workspaceId &&
-					item.sectionId === sectionId,
-			);
+			if (sectionId === null) {
+				// "Remove from group" — place right above the first section.
+				// Find the lowest section tabOrder, then use tabOrder - 1.
+				// If no sections exist, append to end of ungrouped workspaces.
+				const sectionOrders = Array.from(
+					collections.v2SidebarSections.state.values(),
+				)
+					.filter((s) => s.projectId === projectId)
+					.map((s) => s.tabOrder);
 
-			collections.v2SidebarWorkspaces.update(workspaceId, (draft) => {
-				draft.sectionId = sectionId;
-				draft.tabOrder = getNextTabOrder(siblingRows);
+				const firstSectionOrder =
+					sectionOrders.length > 0 ? Math.min(...sectionOrders) : null;
+
+				let newTabOrder: number;
+				if (firstSectionOrder != null) {
+					// Place right before the first section, after existing ungrouped
+					const ungroupedOrders = Array.from(
+						collections.v2WorkspaceLocalState.state.values(),
+					)
+						.filter(
+							(item) =>
+								item.sidebarState.projectId === projectId &&
+								item.workspaceId !== workspaceId &&
+								item.sidebarState.sectionId === null,
+						)
+						.map((item) => ({ tabOrder: item.sidebarState.tabOrder }));
+					newTabOrder = getNextTabOrder(ungroupedOrders);
+				} else {
+					// No sections — append to end
+					const ungroupedOrders = Array.from(
+						collections.v2WorkspaceLocalState.state.values(),
+					)
+						.filter(
+							(item) =>
+								item.sidebarState.projectId === projectId &&
+								item.workspaceId !== workspaceId &&
+								item.sidebarState.sectionId === null,
+						)
+						.map((item) => ({ tabOrder: item.sidebarState.tabOrder }));
+					newTabOrder = getNextTabOrder(ungroupedOrders);
+				}
+
+				collections.v2WorkspaceLocalState.update(workspaceId, (draft) => {
+					draft.sidebarState.sectionId = null;
+					draft.sidebarState.tabOrder = newTabOrder;
+				});
+				return;
+			}
+
+			const siblingRows = Array.from(
+				collections.v2WorkspaceLocalState.state.values(),
+			)
+				.filter(
+					(item) =>
+						item.sidebarState.projectId === projectId &&
+						item.workspaceId !== workspaceId &&
+						item.sidebarState.sectionId === sectionId,
+				)
+				.map((item) => ({ tabOrder: item.sidebarState.tabOrder }));
+
+			collections.v2WorkspaceLocalState.update(workspaceId, (draft) => {
+				draft.sidebarState.sectionId = sectionId;
+				draft.sidebarState.tabOrder = getNextTabOrder(siblingRows);
 			});
 		},
 		[collections],
@@ -193,20 +319,23 @@ export function useDashboardSidebarState() {
 			if (!section) return;
 
 			const siblingTopLevelRows = Array.from(
-				collections.v2SidebarWorkspaces.state.values(),
-			).filter(
-				(item) =>
-					item.projectId === section.projectId && item.sectionId === null,
-			);
+				collections.v2WorkspaceLocalState.state.values(),
+			)
+				.filter(
+					(item) =>
+						item.sidebarState.projectId === section.projectId &&
+						item.sidebarState.sectionId === null,
+				)
+				.map((item) => ({ tabOrder: item.sidebarState.tabOrder }));
 
 			let nextOrder = getNextTabOrder(siblingTopLevelRows);
-			for (const workspace of collections.v2SidebarWorkspaces.state.values()) {
-				if (workspace.sectionId !== sectionId) continue;
-				collections.v2SidebarWorkspaces.update(
+			for (const workspace of collections.v2WorkspaceLocalState.state.values()) {
+				if (workspace.sidebarState.sectionId !== sectionId) continue;
+				collections.v2WorkspaceLocalState.update(
 					workspace.workspaceId,
 					(draft) => {
-						draft.sectionId = null;
-						draft.tabOrder = nextOrder;
+						draft.sidebarState.sectionId = null;
+						draft.sidebarState.tabOrder = nextOrder;
 					},
 				);
 				nextOrder += 1;
@@ -219,8 +348,8 @@ export function useDashboardSidebarState() {
 
 	const removeWorkspaceFromSidebar = useCallback(
 		(workspaceId: string) => {
-			if (!collections.v2SidebarWorkspaces.get(workspaceId)) return;
-			collections.v2SidebarWorkspaces.delete(workspaceId);
+			if (!collections.v2WorkspaceLocalState.get(workspaceId)) return;
+			collections.v2WorkspaceLocalState.delete(workspaceId);
 		},
 		[collections],
 	);
@@ -228,9 +357,9 @@ export function useDashboardSidebarState() {
 	const removeProjectFromSidebar = useCallback(
 		(projectId: string) => {
 			const workspaceIds = Array.from(
-				collections.v2SidebarWorkspaces.state.values(),
+				collections.v2WorkspaceLocalState.state.values(),
 			)
-				.filter((item) => item.projectId === projectId)
+				.filter((item) => item.sidebarState.projectId === projectId)
 				.map((item) => item.workspaceId);
 			const sectionIds = Array.from(
 				collections.v2SidebarSections.state.values(),
@@ -239,7 +368,7 @@ export function useDashboardSidebarState() {
 				.map((item) => item.sectionId);
 
 			if (workspaceIds.length > 0) {
-				collections.v2SidebarWorkspaces.delete(workspaceIds);
+				collections.v2WorkspaceLocalState.delete(workspaceIds);
 			}
 			if (sectionIds.length > 0) {
 				collections.v2SidebarSections.delete(sectionIds);
@@ -257,7 +386,9 @@ export function useDashboardSidebarState() {
 		ensureProjectInSidebar,
 		ensureWorkspaceInSidebar,
 		moveWorkspaceToSection,
+		moveWorkspaceToSectionAtIndex,
 		removeProjectFromSidebar,
+		reorderProjectChildren,
 		removeWorkspaceFromSidebar,
 		reorderProjects,
 		reorderWorkspaces,

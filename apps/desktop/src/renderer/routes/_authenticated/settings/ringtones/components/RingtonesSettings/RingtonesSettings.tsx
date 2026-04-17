@@ -18,6 +18,7 @@ import {
 	SETTING_ITEM_ID,
 	type SettingItemId,
 } from "../../../utils/settings-search";
+import { VolumeDropdown } from "./components/VolumeDropdown";
 
 function formatDuration(seconds: number): string {
 	return `${seconds}s`;
@@ -135,7 +136,10 @@ export function RingtonesSettings({ visibleItems }: RingtonesSettingsProps) {
 		electronTrpc.ringtone.getCustom.useQuery();
 	const { data: isMutedData, isLoading: isMutedLoading } =
 		electronTrpc.settings.getNotificationSoundsMuted.useQuery();
+	const { data: volumeData } =
+		electronTrpc.settings.getNotificationVolume.useQuery();
 	const isMuted = isMutedData ?? false;
+	const volume = volumeData ?? 100;
 	const customRingtone: Ringtone | null = customRingtoneData
 		? {
 				...customRingtoneData,
@@ -231,6 +235,7 @@ export function RingtonesSettings({ visibleItems }: RingtonesSettingsProps) {
 			try {
 				await electronTrpcClient.ringtone.preview.mutate({
 					ringtoneId: ringtone.id,
+					volume,
 				});
 			} catch (error) {
 				console.error("Failed to play ringtone:", error);
@@ -244,7 +249,7 @@ export function RingtonesSettings({ visibleItems }: RingtonesSettingsProps) {
 				previewTimerRef.current = null;
 			}, durationMs);
 		},
-		[playingId],
+		[playingId, volume],
 	);
 
 	const handleSelect = useCallback(
@@ -286,6 +291,9 @@ export function RingtonesSettings({ visibleItems }: RingtonesSettingsProps) {
 						/>
 					</div>
 				)}
+
+				{/* Volume Dropdown */}
+				{showNotification && !isMuted && <VolumeDropdown />}
 
 				{/* Ringtone Section */}
 				{showNotification && !isMuted && (

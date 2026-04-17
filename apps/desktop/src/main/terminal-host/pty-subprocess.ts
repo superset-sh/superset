@@ -57,6 +57,7 @@ const INPUT_QUEUE_HARD_LIMIT_BYTES = 64 * 1024 * 1024; // 64MB
 let outputChunks: string[] = [];
 let outputBytesQueued = 0;
 let outputFlushScheduled = false;
+const OUTPUT_FLUSH_INTERVAL_MS = 16; // Match terminal-style frame batching (~60fps)
 const MAX_OUTPUT_BATCH_SIZE_BYTES = 128 * 1024; // 128KB max per flush
 
 // Backpressure - track if stdout is draining
@@ -91,10 +92,6 @@ function sendError(message: string): void {
 	send(PtySubprocessIpcType.Error, Buffer.from(message, "utf8"));
 }
 
-/**
- * Queue PTY output for batched sending.
- * Flushes immediately if batch exceeds MAX_OUTPUT_BATCH_SIZE_BYTES.
- */
 function queueOutput(data: string): void {
 	outputChunks.push(data);
 	outputBytesQueued += Buffer.byteLength(data, "utf8");
@@ -107,9 +104,9 @@ function queueOutput(data: string): void {
 
 	if (!outputFlushScheduled) {
 		outputFlushScheduled = true;
-		// Flush on the next event-loop turn so interactive echo feels immediate,
-		// while still coalescing bursts that arrive in the same PTY callback cycle.
-		setImmediate(flushOutput);
+		// Timed batching keeps TUI redraws coherent and avoids flooding the renderer
+		// with tiny per-turn frames while still staying under a single display frame.
+		setTimeout(flushOutput, OUTPUT_FLUSH_INTERVAL_MS);
 	}
 }
 
@@ -281,7 +278,6 @@ function handleSpawn(payload: Buffer): void {
 	}
 
 	if (DEBUG_OUTPUT_BATCHING) {
-		// Debug: Log spawn parameters
 		console.error("[pty-subprocess] Spawning PTY:", {
 			shell: msg.shell,
 			args: msg.args,
@@ -336,6 +332,8 @@ function handleSpawn(payload: Buffer): void {
 		sendError(
 			`Spawn failed: ${error instanceof Error ? error.message : String(error)}`,
 		);
+		// Exit so the daemon does not keep a live subprocess with no PTY.
+		setTimeout(() => process.exit(1), 100);
 	}
 }
 

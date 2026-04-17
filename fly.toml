@@ -5,9 +5,9 @@ primary_region = "iad"
 image = "electricsql/electric:1.4.13"
 
 [[vm]]
-memory = "8192mb"
-cpu_kind = "performance"
-cpus = 4
+memory = "512mb"
+cpu_kind = "shared"
+cpus = 2
 
 [env]
 ELECTRIC_DATABASE_USE_IPV6 = "true"

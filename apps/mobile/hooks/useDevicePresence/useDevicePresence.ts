@@ -1,12 +1,11 @@
 import Constants from "expo-constants";
 import { randomUUID } from "expo-crypto";
 import * as SecureStore from "expo-secure-store";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Platform } from "react-native";
 import { useSession } from "@/lib/auth/client";
 import { apiClient } from "@/lib/trpc/client";
 
-const HEARTBEAT_INTERVAL_MS = 30_000;
 const DEVICE_ID_KEY = "superset-device-id";
 
 async function getOrCreateDeviceId(): Promise<string> {
@@ -20,47 +19,38 @@ async function getOrCreateDeviceId(): Promise<string> {
 	return newId;
 }
 
+/**
+ * Registers this device once on startup so MCP can verify ownership.
+ * No polling — just a single upsert into device_presence.
+ */
 export function useDevicePresence() {
 	const { data: session } = useSession();
 	const [deviceId, setDeviceId] = useState<string | null>(null);
-	const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+	const registeredScopeRef = useRef<string | null>(null);
 	const activeOrganizationId = session?.session?.activeOrganizationId;
 
 	useEffect(() => {
 		getOrCreateDeviceId().then(setDeviceId);
 	}, []);
 
-	const sendHeartbeat = useCallback(async () => {
-		if (!deviceId || !activeOrganizationId) {
-			return;
-		}
+	useEffect(() => {
+		if (!deviceId || !activeOrganizationId) return;
+		if (registeredScopeRef.current === activeOrganizationId) return;
+		registeredScopeRef.current = activeOrganizationId;
 
-		try {
-			await apiClient.device.heartbeat.mutate({
+		apiClient.device.registerDevice
+			.mutate({
 				deviceId,
 				deviceName:
 					Constants.deviceName ??
 					(Platform.OS === "ios" ? "iPhone" : "Android"),
 				deviceType: "mobile",
+			})
+			.catch(() => {
+				// Registration can fail when offline — will retry on next app launch
+				registeredScopeRef.current = null;
 			});
-		} catch {
-			// Heartbeat can fail when offline - ignore
-		}
 	}, [deviceId, activeOrganizationId]);
-
-	useEffect(() => {
-		if (!deviceId || !activeOrganizationId) return;
-
-		sendHeartbeat();
-		intervalRef.current = setInterval(sendHeartbeat, HEARTBEAT_INTERVAL_MS);
-
-		return () => {
-			if (intervalRef.current) {
-				clearInterval(intervalRef.current);
-				intervalRef.current = null;
-			}
-		};
-	}, [deviceId, activeOrganizationId, sendHeartbeat]);
 
 	return {
 		deviceId,

@@ -2,7 +2,7 @@
 .tufte-markdown {
 	font-family: Georgia, "Times New Roman", serif;
 	font-size: 1.1rem;
-	line-height: 1.8;
+	line-height: 1.6;
 	color: var(--foreground);
 }
 
@@ -84,7 +84,7 @@
 /* Body text */
 .tufte-markdown p {
 	margin-top: 0;
-	margin-bottom: 1.4rem;
+	margin-bottom: 1.1rem;
 	text-align: justify;
 	-webkit-hyphens: auto;
 	hyphens: auto;
@@ -101,7 +101,7 @@
 /* Lists */
 .tufte-markdown ul,
 .tufte-markdown ol {
-	margin: 1.4rem 0;
+	margin: 1.1rem 0;
 	padding-left: 1.5rem;
 	list-style-position: outside;
 }
@@ -115,7 +115,8 @@
 }
 
 .tufte-markdown li {
-	margin-bottom: 0.5rem;
+	margin-bottom: 0.35rem;
+	line-height: 1.5;
 }
 
 /* Links */

@@ -72,7 +72,7 @@ if [ -n "$SUPERSET_TAB_ID" ] && [ -f "{{NOTIFY_PATH}}" ]; then
   SUPERSET_CODEX_START_WATCHER_PID=$!
 fi
 
-"$REAL_BIN" -c 'notify=["bash","{{NOTIFY_PATH}}"]' "$@"
+"$REAL_BIN" --enable codex_hooks -c 'notify=["bash","{{NOTIFY_PATH}}"]' "$@"
 SUPERSET_CODEX_STATUS=$?
 
 if [ -n "$SUPERSET_CODEX_START_WATCHER_PID" ]; then

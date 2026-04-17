@@ -1,67 +1,132 @@
 import { dbWs } from "@superset/db/client";
-import { v2Devices, v2Projects, v2Workspaces } from "@superset/db/schema";
+import { v2Hosts, v2Projects, v2Workspaces } from "@superset/db/schema";
 import type { TRPCRouterRecord } from "@trpc/server";
 import { TRPCError } from "@trpc/server";
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { z } from "zod";
-import { protectedProcedure } from "../../trpc";
-import { verifyOrgAdmin, verifyOrgMembership } from "../integration/utils";
+import { jwtProcedure, protectedProcedure } from "../../trpc";
+import { requireActiveOrgId } from "../utils/active-org";
+import {
+	requireOrgResourceAccess,
+	requireOrgScopedResource,
+} from "../utils/org-resource-access";
+
+async function getScopedProject(organizationId: string, projectId: string) {
+	return requireOrgScopedResource(
+		() =>
+			dbWs.query.v2Projects.findFirst({
+				columns: {
+					id: true,
+					organizationId: true,
+				},
+				where: eq(v2Projects.id, projectId),
+			}),
+		{
+			code: "BAD_REQUEST",
+			message: "Project not found in this organization",
+			organizationId,
+		},
+	);
+}
+
+async function getScopedHost(organizationId: string, hostId: string) {
+	return requireOrgScopedResource(
+		() =>
+			dbWs.query.v2Hosts.findFirst({
+				columns: {
+					id: true,
+					organizationId: true,
+				},
+				where: eq(v2Hosts.id, hostId),
+			}),
+		{
+			code: "BAD_REQUEST",
+			message: "Host not found in this organization",
+			organizationId,
+		},
+	);
+}
+
+async function _getScopedWorkspace(
+	organizationId: string,
+	workspaceId: string,
+) {
+	return requireOrgScopedResource(
+		() =>
+			dbWs.query.v2Workspaces.findFirst({
+				columns: {
+					id: true,
+					organizationId: true,
+				},
+				where: eq(v2Workspaces.id, workspaceId),
+			}),
+		{
+			message: "Workspace not found in this organization",
+			organizationId,
+		},
+	);
+}
+
+async function getWorkspaceAccess(
+	userId: string,
+	workspaceId: string,
+	options?: {
+		access?: "admin" | "member";
+		organizationId?: string;
+	},
+) {
+	return requireOrgResourceAccess(
+		userId,
+		() =>
+			dbWs.query.v2Workspaces.findFirst({
+				columns: {
+					id: true,
+					organizationId: true,
+				},
+				where: eq(v2Workspaces.id, workspaceId),
+			}),
+		{
+			access: options?.access,
+			message: "Workspace not found",
+			organizationId: options?.organizationId,
+		},
+	);
+}
 
 export const v2WorkspaceRouter = {
-	create: protectedProcedure
+	create: jwtProcedure
 		.input(
 			z.object({
+				organizationId: z.string().uuid(),
 				projectId: z.string().uuid(),
 				name: z.string().min(1),
 				branch: z.string().min(1),
-				deviceId: z.string().uuid(),
+				hostId: z.string().uuid(),
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			const organizationId = ctx.session.session.activeOrganizationId;
-			if (!organizationId) {
+			if (!ctx.organizationIds.includes(input.organizationId)) {
 				throw new TRPCError({
-					code: "BAD_REQUEST",
-					message: "No active organization",
-				});
-			}
-			await verifyOrgMembership(ctx.session.user.id, organizationId);
-
-			const project = await dbWs.query.v2Projects.findFirst({
-				where: and(
-					eq(v2Projects.id, input.projectId),
-					eq(v2Projects.organizationId, organizationId),
-				),
-			});
-			if (!project) {
-				throw new TRPCError({
-					code: "BAD_REQUEST",
-					message: "Project not found in this organization",
+					code: "FORBIDDEN",
+					message: "Not a member of this organization",
 				});
 			}
 
-			const device = await dbWs.query.v2Devices.findFirst({
-				where: and(
-					eq(v2Devices.id, input.deviceId),
-					eq(v2Devices.organizationId, organizationId),
-				),
-			});
-			if (!device) {
-				throw new TRPCError({
-					code: "BAD_REQUEST",
-					message: "Device not found in this organization",
-				});
-			}
+			const project = await getScopedProject(
+				input.organizationId,
+				input.projectId,
+			);
+			const host = await getScopedHost(input.organizationId, input.hostId);
 
 			const [workspace] = await dbWs
 				.insert(v2Workspaces)
 				.values({
-					organizationId,
-					projectId: input.projectId,
+					organizationId: project.organizationId,
+					projectId: project.id,
 					name: input.name,
 					branch: input.branch,
-					deviceId: input.deviceId,
-					createdByUserId: ctx.session.user.id,
+					hostId: host.id,
+					createdByUserId: ctx.userId,
 				})
 				.returning();
 			return workspace;
@@ -73,35 +138,31 @@ export const v2WorkspaceRouter = {
 				id: z.string().uuid(),
 				name: z.string().min(1).optional(),
 				branch: z.string().min(1).optional(),
-				deviceId: z.string().uuid().optional(),
+				hostId: z.string().uuid().optional(),
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			const organizationId = ctx.session.session.activeOrganizationId;
-			if (!organizationId) {
-				throw new TRPCError({
-					code: "BAD_REQUEST",
-					message: "No active organization",
-				});
-			}
-			await verifyOrgMembership(ctx.session.user.id, organizationId);
+			const organizationId = requireActiveOrgId(
+				ctx.session,
+				"No active organization",
+			);
+			const workspace = await getWorkspaceAccess(
+				ctx.session.user.id,
+				input.id,
+				{
+					organizationId,
+				},
+			);
 
-			if (input.deviceId !== undefined) {
-				const device = await dbWs.query.v2Devices.findFirst({
-					where: and(
-						eq(v2Devices.id, input.deviceId),
-						eq(v2Devices.organizationId, organizationId),
-					),
-				});
-				if (!device) {
-					throw new TRPCError({
-						code: "BAD_REQUEST",
-						message: "Device not found in this organization",
-					});
-				}
+			if (input.hostId !== undefined) {
+				await getScopedHost(workspace.organizationId, input.hostId);
 			}
 
-			const { id, ...data } = input;
+			const data = {
+				branch: input.branch,
+				hostId: input.hostId,
+				name: input.name,
+			};
 			if (
 				Object.keys(data).every(
 					(k) => data[k as keyof typeof data] === undefined,
@@ -115,12 +176,7 @@ export const v2WorkspaceRouter = {
 			const [updated] = await dbWs
 				.update(v2Workspaces)
 				.set(data)
-				.where(
-					and(
-						eq(v2Workspaces.id, id),
-						eq(v2Workspaces.organizationId, organizationId),
-					),
-				)
+				.where(eq(v2Workspaces.id, workspace.id))
 				.returning();
 			if (!updated) {
 				throw new TRPCError({
@@ -131,25 +187,28 @@ export const v2WorkspaceRouter = {
 			return updated;
 		}),
 
-	delete: protectedProcedure
+	// JWT-authed so host-service can orchestrate the full delete saga
+	// (terminals → teardown → worktree → branch → cloud → host sqlite) via
+	// its own JWT auth provider. The session-backed protectedProcedure
+	// would reject host-service callers with 401.
+	delete: jwtProcedure
 		.input(z.object({ id: z.string().uuid() }))
 		.mutation(async ({ ctx, input }) => {
-			const organizationId = ctx.session.session.activeOrganizationId;
-			if (!organizationId) {
+			const workspace = await dbWs.query.v2Workspaces.findFirst({
+				columns: { id: true, organizationId: true },
+				where: eq(v2Workspaces.id, input.id),
+			});
+			if (!workspace) {
+				// Already gone in the cloud; idempotent success.
+				return { success: true, alreadyGone: true as const };
+			}
+			if (!ctx.organizationIds.includes(workspace.organizationId)) {
 				throw new TRPCError({
-					code: "BAD_REQUEST",
-					message: "No active organization",
+					code: "FORBIDDEN",
+					message: "Not a member of this organization",
 				});
 			}
-			await verifyOrgAdmin(ctx.session.user.id, organizationId);
-			await dbWs
-				.delete(v2Workspaces)
-				.where(
-					and(
-						eq(v2Workspaces.id, input.id),
-						eq(v2Workspaces.organizationId, organizationId),
-					),
-				);
-			return { success: true };
+			await dbWs.delete(v2Workspaces).where(eq(v2Workspaces.id, workspace.id));
+			return { success: true, alreadyGone: false as const };
 		}),
 } satisfies TRPCRouterRecord;

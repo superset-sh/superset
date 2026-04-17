@@ -14,9 +14,9 @@ import {
 	OpenInExternalDropdownItems,
 } from "renderer/components/OpenInExternalDropdown";
 import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
+import { useHotkeyDisplay } from "renderer/hotkeys";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useThemeStore } from "renderer/stores";
-import { useHotkeyText } from "renderer/stores/hotkeys";
 
 export interface OpenInButtonProps {
 	path: string | undefined;
@@ -37,8 +37,8 @@ export function OpenInButton({
 	const activeTheme = useThemeStore((state) => state.activeTheme);
 	const [isOpen, setIsOpen] = useState(false);
 	const utils = electronTrpc.useUtils();
-	const openInShortcut = useHotkeyText("OPEN_IN_APP");
-	const copyPathShortcut = useHotkeyText("COPY_PATH");
+	const openInShortcut = useHotkeyDisplay("OPEN_IN_APP").text;
+	const copyPathShortcut = useHotkeyDisplay("COPY_PATH").text;
 
 	const showOpenInShortcut = showShortcuts && openInShortcut !== "Unassigned";
 	const showCopyPathShortcut =

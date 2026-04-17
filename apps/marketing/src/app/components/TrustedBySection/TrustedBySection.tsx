@@ -22,10 +22,10 @@ const CLIENT_LOGOS = [
 		height: 20,
 	},
 	{
-		name: "doordash",
-		label: "DoorDash",
-		logo: "/logos/doordash-wordmark.svg",
-		height: 14,
+		name: "perplexity",
+		label: "Perplexity",
+		logo: "/logos/perplexity-wordmark.svg",
+		height: 28,
 	},
 	{
 		name: "salesforce",

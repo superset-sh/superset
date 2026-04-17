@@ -204,6 +204,41 @@
       "when": 1773379684617,
       "tag": "0028_v2_workspace_changes",
       "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1774280966321,
+      "tag": "0029_use_v2_workspace_id",
+      "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1775419931545,
+      "tag": "0030_better_auth_1_5_upgrade",
+      "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1775535603220,
+      "tag": "0031_v2_hosts_and_clients",
+      "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1775707832252,
+      "tag": "0032_add_is_online_hosts",
+      "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1775788950626,
+      "tag": "0033_add_oauth_refresh_token_auth_time",
+      "breakpoints": true
     }
   ]
 }

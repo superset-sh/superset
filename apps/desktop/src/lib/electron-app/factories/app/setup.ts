@@ -33,8 +33,10 @@ export async function makeAppSetup(
 		if (!windows.length) {
 			window = await createWindow();
 		} else {
+			// Show hidden windows (macOS hide-to-tray) or restore minimized ones
 			for (window of windows.reverse()) {
-				window.restore();
+				window.show();
+				window.focus();
 			}
 		}
 	});
@@ -50,8 +52,10 @@ export async function makeAppSetup(
 		});
 	});
 
+	// macOS: keep the app alive (standard behavior) — tray/dock provide re-entry.
+	// Windows/Linux: quit the app UI. Host-services survive via releaseAll()
+	// and will be re-adopted on next launch.
 	app.on("window-all-closed", () => !PLATFORM.IS_MAC && app.quit());
-	app.on("before-quit", () => {});
 
 	return window;
 }
@@ -70,7 +74,12 @@ PLATFORM.IS_WINDOWS &&
 
 app.commandLine.appendSwitch("force-color-profile", "srgb");
 
-// Enable CDP for browser DevTools and desktop automation MCP
-const cdpPort = String(process.env.DESKTOP_AUTOMATION_PORT || 41729);
-app.commandLine.appendSwitch("remote-debugging-port", cdpPort);
-app.commandLine.appendSwitch("remote-allow-origins", "*");
+// Only expose CDP in development when a port is explicitly configured.
+const cdpPort =
+	env.NODE_ENV === "development"
+		? process.env.DESKTOP_AUTOMATION_PORT
+		: undefined;
+if (cdpPort) {
+	app.commandLine.appendSwitch("remote-debugging-port", cdpPort);
+	app.commandLine.appendSwitch("remote-allow-origins", "*");
+}

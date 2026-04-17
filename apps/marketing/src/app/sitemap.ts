@@ -16,6 +16,24 @@ export default function sitemap(): MetadataRoute.Sitemap {
 			priority: 1.0,
 		},
 		{
+			url: `${baseUrl}/marketplace`,
+			lastModified: new Date(),
+			changeFrequency: "weekly",
+			priority: 0.8,
+		},
+		{
+			url: `${baseUrl}/marketplace/themes`,
+			lastModified: new Date(),
+			changeFrequency: "weekly",
+			priority: 0.8,
+		},
+		{
+			url: `${baseUrl}/marketplace/agents`,
+			lastModified: new Date(),
+			changeFrequency: "weekly",
+			priority: 0.7,
+		},
+		{
 			url: `${baseUrl}/blog`,
 			lastModified: new Date(),
 			changeFrequency: "daily",

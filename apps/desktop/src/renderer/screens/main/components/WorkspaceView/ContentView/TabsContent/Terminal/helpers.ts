@@ -3,29 +3,32 @@ import { ClipboardAddon } from "@xterm/addon-clipboard";
 import { FitAddon } from "@xterm/addon-fit";
 import { ImageAddon } from "@xterm/addon-image";
 import { LigaturesAddon } from "@xterm/addon-ligatures";
+import { SearchAddon } from "@xterm/addon-search";
 import { Unicode11Addon } from "@xterm/addon-unicode11";
 import { WebglAddon } from "@xterm/addon-webgl";
 import type { ITheme } from "@xterm/xterm";
 import { Terminal as XTerm } from "@xterm/xterm";
-import { debounce } from "lodash";
-import { electronTrpcClient as trpcClient } from "renderer/lib/trpc-client";
-import { getHotkeyKeys, isAppHotkeyEvent } from "renderer/stores/hotkeys";
-import { toXtermTheme } from "renderer/stores/theme/utils";
 import {
-	getCurrentPlatform,
-	hotkeyFromKeyboardEvent,
+	getBinding,
 	isTerminalReservedEvent,
-	matchesHotkeyEvent,
-} from "shared/hotkeys";
+	matchesChord,
+	resolveHotkeyFromEvent,
+} from "renderer/hotkeys";
+import type { DetectedLink } from "renderer/lib/terminal/links";
+import { TerminalLinkManager } from "renderer/lib/terminal/terminal-link-manager";
+import { electronTrpcClient as trpcClient } from "renderer/lib/trpc-client";
+import { toXtermTheme } from "renderer/stores/theme/utils";
 import {
 	builtInThemes,
 	DEFAULT_THEME_ID,
 	getTerminalColors,
 } from "shared/themes";
-import { RESIZE_DEBOUNCE_MS, TERMINAL_OPTIONS } from "./config";
-import { FilePathLinkProvider, UrlLinkProvider } from "./link-providers";
+import {
+	shouldBubbleClipboardShortcut,
+	shouldSelectAllShortcut,
+} from "./clipboardShortcuts";
+import { TERMINAL_OPTIONS } from "./config";
 import { suppressQueryResponses } from "./suppressQueryResponses";
-import { scrollToBottom } from "./utils";
 
 /**
  * Get the default terminal theme from localStorage cache.
@@ -68,239 +71,160 @@ export function getDefaultTerminalBg(): string {
  * Tries WebGL first, falls back to DOM if WebGL fails.
  * This follows VS Code's approach: WebGL → DOM (canvas addon removed in xterm.js 6.0).
  */
-export type TerminalRenderer = {
-	kind: "webgl" | "dom";
-	dispose: () => void;
-	clearTextureAtlas?: () => void;
-};
-
-type PreferredRenderer = TerminalRenderer["kind"] | "auto";
-
-// Track WebGL failures globally to avoid repeated initialization attempts (VS Code pattern)
-let suggestedRendererType: TerminalRenderer["kind"] | undefined;
-
-function getPreferredRenderer(): PreferredRenderer {
-	// If WebGL previously failed, don't try again
-	if (suggestedRendererType === "dom") {
-		return "dom";
-	}
-
-	try {
-		const stored = localStorage.getItem("terminal-renderer");
-		if (stored === "webgl" || stored === "dom") {
-			return stored;
-		}
-		if (stored === "canvas") {
-			// Canvas renderer was removed in xterm.js 6.0; fall back to DOM.
-			try {
-				localStorage.setItem("terminal-renderer", "dom");
-			} catch {
-				// ignore storage errors
-			}
-			return "dom";
-		}
-	} catch {
-		// ignore
-	}
-
-	return "auto";
-}
-
-function loadRenderer(xterm: XTerm): TerminalRenderer {
-	let webglAddon: WebglAddon | null = null;
-	let kind: TerminalRenderer["kind"] = "dom";
-
-	const preferred = getPreferredRenderer();
-
-	if (preferred === "dom") {
-		return { kind: "dom", dispose: () => {}, clearTextureAtlas: undefined };
-	}
-
-	try {
-		webglAddon = new WebglAddon();
-
-		webglAddon.onContextLoss(() => {
-			console.warn(
-				"[Terminal] WebGL context lost, falling back to DOM renderer",
-			);
-			webglAddon?.dispose();
-			webglAddon = null;
-			kind = "dom";
-			// Force refresh after context loss
-			xterm.refresh(0, xterm.rows - 1);
-		});
-
-		xterm.loadAddon(webglAddon);
-		kind = "webgl";
-	} catch (e) {
-		console.warn(
-			"[Terminal] WebGL could not be loaded, falling back to DOM renderer",
-			e,
-		);
-		suggestedRendererType = "dom";
-		webglAddon = null;
-		kind = "dom";
-	}
-
-	return {
-		kind,
-		dispose: () => webglAddon?.dispose(),
-		clearTextureAtlas: webglAddon
-			? () => {
-					try {
-						webglAddon?.clearTextureAtlas();
-					} catch (error) {
-						console.warn("[Terminal] WebGL clearTextureAtlas() failed:", error);
-					}
-				}
-			: undefined,
-	};
-}
+// Once WebGL fails, skip it for all subsequent terminals (VS Code pattern).
+let suggestedRendererType: "webgl" | "dom" | undefined;
 
 export interface CreateTerminalOptions {
-	cwd?: string;
+	/**
+	 * Workspace id used for worktree lookup during path stat/resolution.
+	 * The main process looks up the worktree root, so relative paths always
+	 * anchor to the correct worktree regardless of renderer load state.
+	 */
+	workspaceId?: string;
 	initialTheme?: ITheme | null;
-	onFileLinkClick?: (path: string, line?: number, column?: number) => void;
+	onFileLinkClick?: (event: MouseEvent, link: DetectedLink) => void;
 	onUrlClickRef?: { current: ((url: string) => void) | undefined };
 }
 
 /**
- * Mutable reference to the terminal renderer.
- * Used because the GPU renderer is loaded asynchronously after the terminal is created.
+ * Create an xterm instance opened into a detached wrapper div (not a live container).
+ * The wrapper can be moved between DOM containers via appendChild without
+ * disposing the terminal — this is the "hide attach" pattern from v2.
+ *
+ * Used by v1-terminal-cache.ts to keep xterm alive across React mount/unmount.
  */
-export interface TerminalRendererRef {
-	current: TerminalRenderer;
-}
-
-export function createTerminalInstance(
-	container: HTMLDivElement,
-	options: CreateTerminalOptions = {},
-): {
+export function createTerminalInWrapper(options: CreateTerminalOptions = {}): {
 	xterm: XTerm;
 	fitAddon: FitAddon;
-	renderer: TerminalRendererRef;
+	searchAddon: SearchAddon;
+	wrapper: HTMLDivElement;
+	linkManager: TerminalLinkManager;
 	cleanup: () => void;
 } {
 	const {
-		cwd,
+		workspaceId,
 		initialTheme,
 		onFileLinkClick,
 		onUrlClickRef: urlClickRef,
 	} = options;
 
-	// Use provided theme, or fall back to localStorage-based default to prevent flash
 	const theme = initialTheme ?? getDefaultTerminalTheme();
 	const terminalOptions = { ...TERMINAL_OPTIONS, theme };
 	const xterm = new XTerm(terminalOptions);
 	const fitAddon = new FitAddon();
+	const searchAddon = new SearchAddon();
 
 	const clipboardAddon = new ClipboardAddon();
 	const unicode11Addon = new Unicode11Addon();
 	const imageAddon = new ImageAddon();
 
-	// Track cleanup state to prevent operations on disposed terminal
-	let isDisposed = false;
-	let rafId: number | null = null;
+	let disposed = false;
+	let webglAddon: WebglAddon | null = null;
 
-	// Use a ref pattern so the renderer can be updated after rAF.
-	// Start with a no-op DOM renderer - the actual GPU renderer is loaded async.
-	const rendererRef: TerminalRendererRef = {
-		current: {
-			kind: "dom",
-			dispose: () => {},
-			clearTextureAtlas: undefined,
-		},
-	};
+	// Open into a detached wrapper div — not the live container.
+	const wrapper = document.createElement("div");
+	wrapper.style.width = "100%";
+	wrapper.style.height = "100%";
+	xterm.open(wrapper);
 
-	xterm.open(container);
-
-	// Load non-renderer addons synchronously - these are safe and needed immediately
 	xterm.loadAddon(fitAddon);
+	xterm.loadAddon(searchAddon);
 	xterm.loadAddon(clipboardAddon);
 	xterm.loadAddon(unicode11Addon);
 	xterm.loadAddon(imageAddon);
 
-	// Defer GPU renderer loading to next animation frame.
-	// xterm.open() schedules a setTimeout for Viewport.syncScrollArea which expects
-	// the renderer to be ready. Loading WebGL immediately after open() can cause a
-	// race condition where the setTimeout fires during addon initialization, when
-	// _renderer is temporarily undefined (old renderer disposed, new not yet set).
-	// Deferring to rAF ensures xterm's internal setTimeout completes first with the
-	// default DOM renderer, then we safely swap to WebGL.
-	rafId = requestAnimationFrame(() => {
-		rafId = null;
-		if (isDisposed) return;
-		rendererRef.current = loadRenderer(xterm);
-	});
-
 	try {
-		if (!isDisposed) {
-			xterm.loadAddon(new LigaturesAddon());
-		}
+		xterm.loadAddon(new LigaturesAddon());
 	} catch {
 		// Ligatures not supported by current font
 	}
 
+	// Defer WebGL to rAF — same pattern as v2 terminal-addons.ts.
+	const rafId = requestAnimationFrame(() => {
+		if (disposed || suggestedRendererType === "dom") return;
+
+		try {
+			webglAddon = new WebglAddon();
+			webglAddon.onContextLoss(() => {
+				webglAddon?.dispose();
+				webglAddon = null;
+				xterm.refresh(0, xterm.rows - 1);
+			});
+			xterm.loadAddon(webglAddon);
+		} catch {
+			suggestedRendererType = "dom";
+			webglAddon = null;
+		}
+	});
+
 	const cleanupQuerySuppression = suppressQueryResponses(xterm);
 
-	const urlLinkProvider = new UrlLinkProvider(xterm, (_event, uri) => {
-		const handler = urlClickRef?.current;
-		if (handler) {
-			handler(uri);
-			return;
-		}
-		trpcClient.external.openUrl.mutate(uri).catch((error) => {
-			console.error("[Terminal] Failed to open URL:", uri, error);
-			toast.error("Failed to open URL", {
-				description:
-					error instanceof Error
-						? error.message
-						: "Could not open URL in browser",
-			});
-		});
-	});
-	xterm.registerLinkProvider(urlLinkProvider);
-
-	const filePathLinkProvider = new FilePathLinkProvider(
-		xterm,
-		(_event, path, line, column) => {
-			if (onFileLinkClick) {
-				onFileLinkClick(path, line, column);
-			} else {
-				// Fallback to default behavior (external editor)
-				trpcClient.external.openFileInEditor
-					.mutate({
-						path,
-						line,
-						column,
-						cwd,
-					})
-					.catch((error) => {
-						console.error(
-							"[Terminal] Failed to open file in editor:",
-							path,
-							error,
-						);
-					});
+	const linkManager = new TerminalLinkManager(xterm);
+	linkManager.setHandlers({
+		stat: async (path) => {
+			try {
+				return await trpcClient.external.statPath.mutate({ path, workspaceId });
+			} catch {
+				return null;
 			}
 		},
-	);
-	xterm.registerLinkProvider(filePathLinkProvider);
+		onFileLinkClick: (event, link) => {
+			if (!event.metaKey && !event.ctrlKey) {
+				return;
+			}
+			if (onFileLinkClick) {
+				onFileLinkClick(event, link);
+				return;
+			}
+			trpcClient.external.openFileInEditor
+				.mutate({
+					path: link.resolvedPath,
+					line: link.row,
+					column: link.col,
+				})
+				.catch((error) => {
+					console.error(
+						"[Terminal] Failed to open file in editor:",
+						link.resolvedPath,
+						error,
+					);
+				});
+		},
+		onUrlClick: (uri) => {
+			const handler = urlClickRef?.current;
+			if (handler) {
+				handler(uri);
+				return;
+			}
+			trpcClient.external.openUrl.mutate(uri).catch((error) => {
+				console.error("[Terminal] Failed to open URL:", uri, error);
+				toast.error("Failed to open URL", {
+					description:
+						error instanceof Error
+							? error.message
+							: "Could not open URL in browser",
+				});
+			});
+		},
+	});
 
 	xterm.unicode.activeVersion = "11";
-	fitAddon.fit();
 
 	return {
 		xterm,
 		fitAddon,
-		renderer: rendererRef,
+		searchAddon,
+		wrapper,
+		linkManager,
 		cleanup: () => {
-			isDisposed = true;
-			if (rafId !== null) {
-				cancelAnimationFrame(rafId);
-			}
+			disposed = true;
+			cancelAnimationFrame(rafId);
 			cleanupQuerySuppression();
-			rendererRef.current.dispose();
+			linkManager.dispose();
+			try {
+				webglAddon?.dispose();
+			} catch {}
+			webglAddon = null;
 		},
 	};
 }
@@ -657,31 +581,41 @@ export function setupKeyboardHandler(
 			return false;
 		}
 
+		if (shouldSelectAllShortcut(event, isMac)) {
+			if (event.type === "keydown") {
+				event.preventDefault();
+				xterm.selectAll();
+			}
+			return false;
+		}
+
+		// Mirror VS Code terminal clipboard bindings so host copy/paste happens
+		// before kitty CSI-u handling in xterm consumes the command chord.
+		if (
+			shouldBubbleClipboardShortcut(event, {
+				isMac,
+				isWindows,
+				hasSelection: xterm.hasSelection(),
+			})
+		) {
+			return false;
+		}
+
+		// Terminal-reserved chords (ctrl+c/d/z/s/q) always go to xterm
 		if (isTerminalReservedEvent(event)) return true;
 
-		const clearKeys = getHotkeyKeys("CLEAR_TERMINAL");
-		const isClearShortcut =
-			clearKeys !== null && matchesHotkeyEvent(event, clearKeys);
-
-		if (isClearShortcut) {
+		// CLEAR_TERMINAL is handled here (xterm needs to call onClear)
+		const clearKeys = getBinding("CLEAR_TERMINAL");
+		if (clearKeys && matchesChord(event, clearKeys)) {
 			if (event.type === "keydown" && options.onClear) {
 				options.onClear();
 			}
 			return false;
 		}
 
-		if (event.type !== "keydown") return true;
-		const potentialHotkey = hotkeyFromKeyboardEvent(
-			event,
-			getCurrentPlatform(),
-		);
-		if (!potentialHotkey) return true;
-
-		if (isAppHotkeyEvent(event)) {
-			// Return false to prevent xterm from processing the key.
-			// The original event bubbles to document where useAppHotkey handles it.
-			return false;
-		}
+		// Only bubble chords registered as app hotkeys; everything else reaches the PTY.
+		// Mirrors v2 terminal-runtime.ts:21 (VSCode terminalInstance pattern).
+		if (resolveHotkeyFromEvent(event) !== null) return false;
 
 		return true;
 	};
@@ -704,33 +638,6 @@ export function setupFocusListener(
 
 	return () => {
 		textarea.removeEventListener("focus", onFocus);
-	};
-}
-
-export function setupResizeHandlers(
-	container: HTMLDivElement,
-	xterm: XTerm,
-	fitAddon: FitAddon,
-	onResize: (cols: number, rows: number) => void,
-): () => void {
-	const debouncedHandleResize = debounce(() => {
-		const buffer = xterm.buffer.active;
-		const wasAtBottom = buffer.viewportY >= buffer.baseY;
-		fitAddon.fit();
-		onResize(xterm.cols, xterm.rows);
-		if (wasAtBottom) {
-			requestAnimationFrame(() => scrollToBottom(xterm));
-		}
-	}, RESIZE_DEBOUNCE_MS);
-
-	const resizeObserver = new ResizeObserver(debouncedHandleResize);
-	resizeObserver.observe(container);
-	window.addEventListener("resize", debouncedHandleResize);
-
-	return () => {
-		window.removeEventListener("resize", debouncedHandleResize);
-		resizeObserver.disconnect();
-		debouncedHandleResize.cancel();
 	};
 }
 

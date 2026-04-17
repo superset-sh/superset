@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "aed19250-08d4-4333-ae36-08f409998602",
+  "id": "1cf43ce9-9e0f-44c4-b4cf-5cafe80bf78d",
   "prevId": "c4874a39-c07e-4a7f-9f98-44e3c578dee0",
   "tables": {
     "browser_history": {
@@ -523,6 +523,13 @@
           "notNull": false,
           "autoincrement": false
         },
+        "notification_volume": {
+          "name": "notification_volume",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
         "delete_local_branch": {
           "name": "delete_local_branch",
           "type": "integer",
@@ -602,20 +609,6 @@
         },
         "default_editor": {
           "name": "default_editor",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "onedev_url": {
-          "name": "onedev_url",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "onedev_access_token": {
-          "name": "onedev_access_token",
           "type": "text",
           "primaryKey": false,
           "notNull": false,

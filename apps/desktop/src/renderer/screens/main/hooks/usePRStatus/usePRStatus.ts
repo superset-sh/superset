@@ -1,12 +1,17 @@
 import type { GitHubStatus } from "@superset/local-db";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-
-const GITHUB_STATUS_STALE_TIME_MS = 5 * 60 * 1000;
+import {
+	type GitHubStatusQuerySurface,
+	getGitHubStatusQueryPolicy,
+} from "renderer/lib/githubQueryPolicy";
 
 interface UsePRStatusOptions {
 	workspaceId: string | undefined;
 	enabled?: boolean;
-	refetchInterval?: number;
+	surface?: Extract<
+		GitHubStatusQuerySurface,
+		"workspace-hover-card" | "workspace-page"
+	>;
 }
 
 interface UsePRStatusResult {
@@ -25,20 +30,19 @@ interface UsePRStatusResult {
 export function usePRStatus({
 	workspaceId,
 	enabled = true,
-	refetchInterval,
+	surface = "workspace-page",
 }: UsePRStatusOptions): UsePRStatusResult {
+	const queryPolicy = getGitHubStatusQueryPolicy(surface, {
+		hasWorkspaceId: !!workspaceId,
+		isActive: enabled,
+	});
 	const {
 		data: githubStatus,
 		isLoading,
 		refetch,
 	} = electronTrpc.workspaces.getGitHubStatus.useQuery(
 		{ workspaceId: workspaceId ?? "" },
-		{
-			enabled: enabled && !!workspaceId,
-			refetchInterval,
-			staleTime: GITHUB_STATUS_STALE_TIME_MS,
-			refetchOnWindowFocus: false,
-		},
+		queryPolicy,
 	);
 
 	return {

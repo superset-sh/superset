@@ -30,6 +30,19 @@
 	},
 	"overrides": [
 		{
+			"includes": ["packages/cli-framework/**", "packages/cli/**"],
+			"linter": {
+				"rules": {
+					"suspicious": {
+						"noExplicitAny": "off"
+					},
+					"style": {
+						"noNonNullAssertion": "off"
+					}
+				}
+			}
+		},
+		{
 			"includes": ["apps/desktop/src/renderer/**"],
 			"linter": {
 				"rules": {

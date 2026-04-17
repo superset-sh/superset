@@ -151,6 +151,11 @@ export interface Pane {
 
 export type WorkspaceRunState = NonNullable<Pane["workspaceRun"]>["state"];
 
+// TODO: `initialFiles` stores base64 data URLs inline. This bloats
+// the pane layout state in localStorage (v2WorkspaceLocalState
+// collection). Migrate to IndexedDB blob storage — store file
+// references here, actual blobs in IndexedDB keyed by session/pane ID.
+// See renderer/lib/pending-attachment-store.ts for the IndexedDB pattern.
 export interface ChatLaunchConfig {
 	initialPrompt?: string;
 	draftInput?: string;

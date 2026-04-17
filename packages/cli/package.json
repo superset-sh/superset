@@ -1,0 +1,27 @@
+{
+	"name": "@superset/cli",
+	"version": "0.1.0",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"dev": "dotenv -e ../../.env -- sh -c 'SUPERSET_API_URL=$NEXT_PUBLIC_API_URL cli-framework dev \"$@\"' --",
+		"build": "cli-framework build",
+		"build:darwin-arm64": "cli-framework build --target=bun-darwin-arm64 --outfile=./dist/superset-darwin-arm64",
+		"build:linux-x64": "cli-framework build --target=bun-linux-x64 --outfile=./dist/superset-linux-x64",
+		"build:all": "bun run build:darwin-arm64 && bun run build:linux-x64",
+		"build:dist": "bun run scripts/build-dist.ts",
+		"typecheck": "tsc --noEmit"
+	},
+	"dependencies": {
+		"@clack/prompts": "^0.10.0",
+		"@superset/cli-framework": "workspace:*",
+		"@superset/trpc": "workspace:*",
+		"@trpc/client": "^11.7.1",
+		"superjson": "^2.2.5"
+	},
+	"devDependencies": {
+		"@superset/typescript": "workspace:*",
+		"bun-types": "^1.3.1",
+		"typescript": "^5.9.3"
+	}
+}

@@ -5,13 +5,20 @@ import {
 	useNavigate,
 } from "@tanstack/react-router";
 import { useEffect } from "react";
+import { useHotkeys } from "react-hotkeys-hook";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
 	type SettingsSection,
+	useSetSettingsSearchQuery,
+	useSettingsOriginRoute,
 	useSettingsSearchQuery,
 } from "renderer/stores/settings-state";
+import { SearchResultsBanner } from "./components/SearchResultsBanner";
 import { SettingsSidebar } from "./components/SettingsSidebar";
-import { getMatchCountBySection } from "./utils/settings-search";
+import {
+	getMatchCountBySection,
+	searchSettings,
+} from "./utils/settings-search";
 
 export const Route = createFileRoute("/_authenticated/settings")({
 	component: SettingsLayout,
@@ -29,7 +36,6 @@ const SECTION_ORDER: SettingsSection[] = [
 	"organization",
 	"integrations",
 	"billing",
-	"devices",
 	"apikeys",
 	"permissions",
 ];
@@ -83,18 +89,25 @@ function SettingsLayout() {
 	const { data: platform } = electronTrpc.window.getPlatform.useQuery();
 	const isMac = platform === undefined || platform === "darwin";
 	const searchQuery = useSettingsSearchQuery();
+	const setSearchQuery = useSetSettingsSearchQuery();
+	const originRoute = useSettingsOriginRoute();
 	const location = useLocation();
 	const navigate = useNavigate();
+	const normalizedSearchQuery = searchQuery.trim();
+	const isSearchActive = normalizedSearchQuery.length > 0;
+	const totalMatches = isSearchActive
+		? searchSettings(normalizedSearchQuery).length
+		: 0;
 
 	useEffect(() => {
-		if (!searchQuery) return;
+		if (!isSearchActive) return;
 
 		const currentSection = getSectionFromPath(location.pathname);
 		if (!currentSection) return;
 
 		if (currentSection === "project") return;
 
-		const matchCounts = getMatchCountBySection(searchQuery);
+		const matchCounts = getMatchCountBySection(normalizedSearchQuery);
 		const currentHasMatches = (matchCounts[currentSection] ?? 0) > 0;
 
 		if (!currentHasMatches) {
@@ -105,7 +118,18 @@ function SettingsLayout() {
 				navigate({ to: getPathFromSection(firstMatch), replace: true });
 			}
 		}
-	}, [searchQuery, location.pathname, navigate]);
+	}, [isSearchActive, location.pathname, navigate, normalizedSearchQuery]);
+
+	useHotkeys(
+		"escape",
+		(event) => {
+			if (document.querySelector('[data-state="open"]')) return;
+			event.preventDefault();
+			navigate({ to: originRoute });
+		},
+		{ enableOnFormTags: false, enableOnContentEditable: false },
+		[navigate, originRoute],
+	);
 
 	return (
 		<div className="flex flex-col h-screen w-screen bg-tertiary">
@@ -119,6 +143,13 @@ function SettingsLayout() {
 			<div className="flex flex-1 overflow-hidden">
 				<SettingsSidebar />
 				<div className="flex-1 m-3 bg-background rounded overflow-auto">
+					{isSearchActive && (
+						<SearchResultsBanner
+							query={normalizedSearchQuery}
+							matchCount={totalMatches}
+							onClear={() => setSearchQuery("")}
+						/>
+					)}
 					<Outlet />
 				</div>
 			</div>

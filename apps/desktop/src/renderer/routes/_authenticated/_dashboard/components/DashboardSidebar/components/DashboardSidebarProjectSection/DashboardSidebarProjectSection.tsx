@@ -1,10 +1,12 @@
+import type {
+	DraggableAttributes,
+	DraggableSyntheticListeners,
+} from "@dnd-kit/core";
 import { cn } from "@superset/ui/utils";
+import { AnimatePresence, motion } from "framer-motion";
 import { useMemo } from "react";
 import type { DashboardSidebarProject } from "../../types";
-import {
-	getProjectChildrenSections,
-	getProjectChildrenWorkspaces,
-} from "../../utils/projectChildren";
+import { getProjectChildrenWorkspaces } from "../../utils/projectChildren";
 import { DashboardSidebarCollapsedProjectContent } from "./components/DashboardSidebarCollapsedProjectContent";
 import { DashboardSidebarExpandedProjectContent } from "./components/DashboardSidebarExpandedProjectContent";
 import { DashboardSidebarProjectContextMenu } from "./components/DashboardSidebarProjectContextMenu";
@@ -14,23 +16,24 @@ import { useDashboardSidebarProjectSectionActions } from "./hooks/useDashboardSi
 interface DashboardSidebarProjectSectionProps {
 	project: DashboardSidebarProject;
 	isSidebarCollapsed?: boolean;
+	isDraggingProject?: boolean;
 	workspaceShortcutLabels: Map<string, string>;
 	onWorkspaceHover: (workspaceId: string) => void | Promise<void>;
 	onToggleCollapse: (projectId: string) => void;
+	dragHandleListeners?: DraggableSyntheticListeners;
+	dragHandleAttributes?: DraggableAttributes;
 }
 
 export function DashboardSidebarProjectSection({
 	project,
 	isSidebarCollapsed = false,
+	isDraggingProject = false,
 	workspaceShortcutLabels,
 	onWorkspaceHover,
 	onToggleCollapse,
+	dragHandleListeners,
+	dragHandleAttributes,
 }: DashboardSidebarProjectSectionProps) {
-	const allSections = useMemo(
-		() => getProjectChildrenSections(project.children),
-		[project.children],
-	);
-
 	const flattenedCollapsedWorkspaces = useMemo(
 		() => getProjectChildrenWorkspaces(project.children),
 		[project.children],
@@ -104,19 +107,33 @@ export function DashboardSidebarProjectSection({
 					onStartRename={startRename}
 					onToggleCollapse={() => onToggleCollapse(project.id)}
 					onNewWorkspace={handleNewWorkspace}
+					{...(dragHandleAttributes ?? {})}
+					{...(dragHandleListeners ?? {})}
 				/>
 			</DashboardSidebarProjectContextMenu>
 
-			<DashboardSidebarExpandedProjectContent
-				isCollapsed={project.isCollapsed}
-				projectChildren={project.children}
-				allSections={allSections}
-				workspaceShortcutLabels={workspaceShortcutLabels}
-				onWorkspaceHover={onWorkspaceHover}
-				onDeleteSection={deleteSection}
-				onRenameSection={renameSection}
-				onToggleSectionCollapse={toggleSectionCollapsed}
-			/>
+			<AnimatePresence initial={false}>
+				{!isDraggingProject && (
+					<motion.div
+						initial={{ height: 0, opacity: 0 }}
+						animate={{ height: "auto", opacity: 1 }}
+						exit={{ height: 0, opacity: 0 }}
+						transition={{ duration: 0.15, ease: "easeOut" }}
+						className="overflow-hidden"
+					>
+						<DashboardSidebarExpandedProjectContent
+							projectId={project.id}
+							isCollapsed={project.isCollapsed}
+							projectChildren={project.children}
+							workspaceShortcutLabels={workspaceShortcutLabels}
+							onWorkspaceHover={onWorkspaceHover}
+							onDeleteSection={deleteSection}
+							onRenameSection={renameSection}
+							onToggleSectionCollapse={toggleSectionCollapsed}
+						/>
+					</motion.div>
+				)}
+			</AnimatePresence>
 		</div>
 	);
 }

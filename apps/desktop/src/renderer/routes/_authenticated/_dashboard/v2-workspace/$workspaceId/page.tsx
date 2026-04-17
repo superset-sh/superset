@@ -1,20 +1,47 @@
-import type { ExternalApp } from "@superset/local-db";
-import { Tabs, TabsList, TabsTrigger } from "@superset/ui/tabs";
+import { type PaneActionConfig, Workspace } from "@superset/panes";
+import { alert } from "@superset/ui/atoms/Alert";
+import {
+	ResizableHandle,
+	ResizablePanel,
+	ResizablePanelGroup,
+} from "@superset/ui/resizable";
 import { workspaceTrpc } from "@superset/workspace-client";
-import { and, eq } from "@tanstack/db";
+import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { createFileRoute } from "@tanstack/react-router";
-import { useCallback, useState } from "react";
-import { electronTrpc } from "renderer/lib/electron-trpc";
+import { useCallback, useMemo, useState } from "react";
+import { HiMiniXMark } from "react-icons/hi2";
+import { TbLayoutColumns, TbLayoutRows } from "react-icons/tb";
+import { HotkeyLabel, useHotkey } from "renderer/hotkeys";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { CommandPalette } from "renderer/screens/main/components/CommandPalette";
 import {
-	CommandPalette,
-	useCommandPalette,
-} from "renderer/screens/main/components/CommandPalette";
-import { useAppHotkey } from "renderer/stores/hotkeys";
-import { WorkspaceChat } from "./components/WorkspaceChat";
-import { WorkspaceFiles } from "./components/WorkspaceFiles";
-import { WorkspaceTerminal } from "./components/WorkspaceTerminal";
+	toAbsoluteWorkspacePath,
+	toRelativeWorkspacePath,
+} from "shared/absolute-paths";
+import { useStore } from "zustand";
+import { WorkspaceNotFoundState } from "../components/WorkspaceNotFoundState";
+import { AddTabMenu } from "./components/AddTabMenu";
+import { V2PresetsBar } from "./components/V2PresetsBar";
+import { WorkspaceEmptyState } from "./components/WorkspaceEmptyState";
+import { WorkspaceSidebar } from "./components/WorkspaceSidebar";
+import { useConsumePendingLaunch } from "./hooks/useConsumePendingLaunch";
+import { useDefaultContextMenuActions } from "./hooks/useDefaultContextMenuActions";
+import { usePaneRegistry } from "./hooks/usePaneRegistry";
+import { renderBrowserTabIcon } from "./hooks/usePaneRegistry/components/BrowserPane";
+import { useRecentlyViewedFiles } from "./hooks/useRecentlyViewedFiles";
+import { useV2PresetExecution } from "./hooks/useV2PresetExecution";
+import { useV2WorkspacePaneLayout } from "./hooks/useV2WorkspacePaneLayout";
+import { useWorkspaceHotkeys } from "./hooks/useWorkspaceHotkeys";
+import type {
+	BrowserPaneData,
+	ChatPaneData,
+	CommentPaneData,
+	DiffPaneData,
+	FilePaneData,
+	PaneViewerData,
+	TerminalPaneData,
+} from "./types";
 
 export const Route = createFileRoute(
 	"/_authenticated/_dashboard/v2-workspace/$workspaceId/",
@@ -26,248 +53,373 @@ function V2WorkspacePage() {
 	const { workspaceId } = Route.useParams();
 	const collections = useCollections();
 
-	const { data: workspaces = [] } = useLiveQuery(
+	const { data: workspaces } = useLiveQuery(
 		(q) =>
 			q
 				.from({ v2Workspaces: collections.v2Workspaces })
 				.where(({ v2Workspaces }) => eq(v2Workspaces.id, workspaceId)),
 		[collections, workspaceId],
 	);
-	const workspace = workspaces[0] ?? null;
-	const { data: deviceInfo } = electronTrpc.auth.getDeviceInfo.useQuery();
-	const { data: currentDevices = [] } = useLiveQuery(
-		(q) =>
-			q
-				.from({ v2Devices: collections.v2Devices })
-				.where(({ v2Devices }) =>
-					and(
-						eq(v2Devices.clientId, deviceInfo?.deviceId ?? ""),
-						eq(v2Devices.organizationId, workspace?.organizationId ?? ""),
-					),
-				),
-		[collections, deviceInfo?.deviceId, workspace?.organizationId],
-	);
-	const currentDevice = currentDevices[0] ?? null;
+	const workspace = workspaces?.[0] ?? null;
 
-	const { data: projects = [] } = useLiveQuery(
-		(q) =>
-			q
-				.from({ v2Projects: collections.v2Projects })
-				.where(({ v2Projects }) =>
-					eq(v2Projects.id, workspace?.projectId ?? ""),
-				),
-		[collections, workspace?.projectId],
-	);
-	const project = projects[0] ?? null;
+	if (!workspaces) {
+		return <div className="flex h-full w-full" />;
+	}
 
 	if (!workspace) {
-		return (
-			<div className="flex h-full items-center justify-center text-muted-foreground">
-				Workspace not found
-			</div>
-		);
+		return <WorkspaceNotFoundState workspaceId={workspaceId} />;
 	}
 
 	return (
-		<V2WorkspaceContent
-			canOpenInApp={workspace.deviceId === currentDevice?.id}
-			key={workspace.id}
+		<WorkspaceContent
 			projectId={workspace.projectId}
 			workspaceId={workspace.id}
-			workspaceBranch={workspace.branch}
 			workspaceName={workspace.name}
-			projectName={project?.name ?? "Unknown project"}
 		/>
 	);
 }
 
-function V2WorkspaceContent({
-	canOpenInApp,
+function WorkspaceContent({
 	projectId,
-	workspaceName,
-	workspaceBranch,
-	projectName,
 	workspaceId,
+	workspaceName,
 }: {
-	canOpenInApp: boolean;
 	projectId: string;
-	workspaceName: string;
-	workspaceBranch: string;
-	projectName: string;
 	workspaceId: string;
+	workspaceName: string;
 }) {
-	const navigate = Route.useNavigate();
-	const [activeView, setActiveView] = useState<"overview" | "chat" | "files">(
-		"overview",
-	);
-	const [selectedFilePath, setSelectedFilePath] = useState<string>();
-	const healthQuery = workspaceTrpc.health.info.useQuery();
-	const githubUserQuery = workspaceTrpc.github.getUser.useQuery();
-	const gitStatusQuery = workspaceTrpc.workspace.gitStatus.useQuery({
-		id: workspaceId,
+	const { localWorkspaceState, store } = useV2WorkspacePaneLayout({
+		projectId,
+		workspaceId,
 	});
+	const { matchedPresets, executePreset } = useV2PresetExecution({
+		store,
+		workspaceId,
+		projectId,
+	});
+	useConsumePendingLaunch({ workspaceId, store });
+	const paneRegistry = usePaneRegistry(workspaceId);
+	const defaultContextMenuActions = useDefaultContextMenuActions(paneRegistry);
+
 	const workspaceQuery = workspaceTrpc.workspace.get.useQuery({
 		id: workspaceId,
 	});
-	const worktreePath = workspaceQuery.data?.worktreePath;
-	const utils = electronTrpc.useUtils();
-	const { data: defaultApp } = electronTrpc.projects.getDefaultApp.useQuery(
-		{ projectId },
-		{ enabled: !!projectId, staleTime: 30000 },
+	const worktreePath = workspaceQuery.data?.worktreePath ?? "";
+
+	const { recentFiles, recordView } = useRecentlyViewedFiles(workspaceId);
+
+	const selectedFilePath = useStore(store, (s) => {
+		const tab = s.tabs.find((t) => t.id === s.activeTabId);
+		if (!tab?.activePaneId) return undefined;
+		const pane = tab.panes[tab.activePaneId];
+		if (pane?.kind === "file") return (pane.data as FilePaneData).filePath;
+		return undefined;
+	});
+
+	const openFilePathsKey = useStore(store, (s) =>
+		s.tabs
+			.flatMap((t) =>
+				Object.values(t.panes)
+					.filter((p) => p.kind === "file")
+					.map((p) => (p.data as FilePaneData).filePath),
+			)
+			.join("\u0000"),
 	);
-	const resolvedDefaultApp: ExternalApp = defaultApp ?? "finder";
-	const { mutate: mutateOpenInApp } =
-		electronTrpc.external.openInApp.useMutation({
-			onSuccess: () => {
-				utils.projects.getDefaultApp.invalidate({ projectId });
-			},
-		});
-	const commandPalette = useCommandPalette({
-		workspaceId,
-		navigate,
-		onSelectFile: ({
-			close,
-			filePath,
-			targetWorkspaceId,
-			navigate: _routerNavigate,
-		}) => {
-			close();
-			if (targetWorkspaceId !== workspaceId) {
-				void navigate({
-					to: "/v2-workspace/$workspaceId",
-					params: { workspaceId: targetWorkspaceId },
+	const openFilePaths = useMemo(
+		() => new Set(openFilePathsKey ? openFilePathsKey.split("\u0000") : []),
+		[openFilePathsKey],
+	);
+
+	const openFilePane = useCallback(
+		(filePath: string, openInNewTab?: boolean) => {
+			if (worktreePath) {
+				const absolutePath = toAbsoluteWorkspacePath(worktreePath, filePath);
+				const relativePath = toRelativeWorkspacePath(worktreePath, filePath);
+				if (relativePath && relativePath !== ".") {
+					recordView({ relativePath, absolutePath });
+				}
+			}
+			const state = store.getState();
+			if (openInNewTab) {
+				state.addTab({
+					panes: [
+						{
+							kind: "file",
+							data: {
+								filePath,
+								mode: "editor",
+								hasChanges: false,
+							} as FilePaneData,
+						},
+					],
 				});
 				return;
 			}
-			setSelectedFilePath(filePath);
-			setActiveView("files");
+			const active = state.getActivePane();
+			if (
+				active?.pane.kind === "file" &&
+				(active.pane.data as FilePaneData).filePath === filePath
+			) {
+				state.setPanePinned({ paneId: active.pane.id, pinned: true });
+				return;
+			}
+			state.openPane({
+				pane: {
+					kind: "file",
+					data: {
+						filePath,
+						mode: "editor",
+						hasChanges: false,
+					} as FilePaneData,
+				},
+			});
 		},
-	});
+		[store, worktreePath, recordView],
+	);
 
-	const handleSelectFile = (absolutePath: string) => {
-		setSelectedFilePath(absolutePath);
-		setActiveView("files");
-	};
+	const openDiffPane = useCallback(
+		(filePath: string) => {
+			const state = store.getState();
+			for (const tab of state.tabs) {
+				for (const pane of Object.values(tab.panes)) {
+					if (pane.kind !== "diff") continue;
+					const prev = pane.data as DiffPaneData;
+					state.setPaneData({
+						paneId: pane.id,
+						data: {
+							...prev,
+							path: filePath,
+						} as PaneViewerData,
+					});
+					state.setActiveTab(tab.id);
+					state.setActivePane({ tabId: tab.id, paneId: pane.id });
+					return;
+				}
+			}
+			state.addTab({
+				panes: [
+					{
+						kind: "diff",
+						data: {
+							path: filePath,
+							collapsedFiles: [],
+						} as DiffPaneData,
+					},
+				],
+			});
+		},
+		[store],
+	);
 
-	const handleQuickOpen = () => {
-		commandPalette.toggle();
-	};
-
-	const handleOpenInApp = useCallback(() => {
-		if (!canOpenInApp || !worktreePath) return;
-		mutateOpenInApp({
-			path: worktreePath,
-			app: resolvedDefaultApp,
-			projectId,
+	const addTerminalTab = useCallback(() => {
+		store.getState().addTab({
+			panes: [
+				{
+					kind: "terminal",
+					data: {
+						terminalId: crypto.randomUUID(),
+					} as TerminalPaneData,
+				},
+			],
 		});
-	}, [
-		canOpenInApp,
-		mutateOpenInApp,
-		projectId,
-		resolvedDefaultApp,
-		worktreePath,
-	]);
+	}, [store]);
 
-	useAppHotkey("QUICK_OPEN", handleQuickOpen, undefined, [handleQuickOpen]);
-	useAppHotkey("OPEN_IN_APP", handleOpenInApp, { enabled: canOpenInApp }, [
-		canOpenInApp,
-		handleOpenInApp,
-	]);
+	const addChatTab = useCallback(() => {
+		store.getState().addTab({
+			panes: [
+				{
+					kind: "chat",
+					data: { sessionId: null } as ChatPaneData,
+				},
+			],
+		});
+	}, [store]);
+
+	const addBrowserTab = useCallback(() => {
+		store.getState().addTab({
+			panes: [
+				{
+					kind: "browser",
+					data: {
+						url: "about:blank",
+					} as BrowserPaneData,
+				},
+			],
+		});
+	}, [store]);
+
+	const openCommentPane = useCallback(
+		(comment: CommentPaneData) => {
+			const state = store.getState();
+			for (const tab of state.tabs) {
+				for (const pane of Object.values(tab.panes)) {
+					if (pane.kind !== "comment") continue;
+					state.setPaneData({
+						paneId: pane.id,
+						data: comment as PaneViewerData,
+					});
+					state.setActiveTab(tab.id);
+					state.setActivePane({ tabId: tab.id, paneId: pane.id });
+					return;
+				}
+			}
+			state.addTab({
+				panes: [
+					{
+						kind: "comment",
+						data: comment as PaneViewerData,
+					},
+				],
+			});
+		},
+		[store],
+	);
+
+	const [quickOpenOpen, setQuickOpenOpen] = useState(false);
+	const handleQuickOpen = useCallback(() => setQuickOpenOpen(true), []);
+
+	const defaultPaneActions = useMemo<PaneActionConfig<PaneViewerData>[]>(
+		() => [
+			{
+				key: "split",
+				icon: (ctx) =>
+					ctx.pane.parentDirection === "horizontal" ? (
+						<TbLayoutRows className="size-3.5" />
+					) : (
+						<TbLayoutColumns className="size-3.5" />
+					),
+				tooltip: <HotkeyLabel label="Split pane" id="SPLIT_AUTO" />,
+				onClick: (ctx) => {
+					const position =
+						ctx.pane.parentDirection === "horizontal" ? "down" : "right";
+					ctx.actions.split(position, {
+						kind: "terminal",
+						data: {
+							terminalId: crypto.randomUUID(),
+						} as TerminalPaneData,
+					});
+				},
+			},
+			{
+				key: "close",
+				icon: <HiMiniXMark className="size-3.5" />,
+				tooltip: <HotkeyLabel label="Close pane" id="CLOSE_TERMINAL" />,
+				onClick: (ctx) => ctx.actions.close(),
+			},
+		],
+		[],
+	);
+
+	const sidebarOpen = localWorkspaceState?.rightSidebarOpen ?? false;
+
+	useWorkspaceHotkeys({ store, workspaceId, matchedPresets, executePreset });
+	useHotkey("QUICK_OPEN", handleQuickOpen);
 
 	return (
 		<>
-			<div className="flex h-full w-full min-h-0 flex-col overflow-hidden">
-				<div className="border-b border-border px-6 py-4">
-					<div className="mb-3">
-						<h1 className="text-xl font-semibold">{workspaceName}</h1>
-						<p className="text-sm text-muted-foreground">
-							{projectName} &middot; {workspaceBranch}
-						</p>
-					</div>
-					<Tabs
-						onValueChange={(value) =>
-							setActiveView(value as "overview" | "chat" | "files")
-						}
-						value={activeView}
+			<ResizablePanelGroup direction="horizontal" className="flex-1">
+				<ResizablePanel defaultSize={80} minSize={30}>
+					<div
+						className="flex min-h-0 min-w-0 h-full flex-col overflow-hidden"
+						data-workspace-id={workspaceId}
 					>
-						<TabsList className="grid w-fit grid-cols-3">
-							<TabsTrigger value="overview">Overview</TabsTrigger>
-							<TabsTrigger value="files">Files</TabsTrigger>
-							<TabsTrigger value="chat">Chat</TabsTrigger>
-						</TabsList>
-					</Tabs>
-				</div>
-
-				{activeView === "chat" ? (
-					<WorkspaceChat
-						workspaceId={workspaceId}
-						workspaceName={workspaceName}
-					/>
-				) : activeView === "files" ? (
-					<WorkspaceFiles
-						onSelectFile={handleSelectFile}
-						selectedFilePath={selectedFilePath}
-						workspaceId={workspaceId}
-					/>
-				) : (
-					<div className="flex h-full w-full flex-col gap-6 overflow-y-auto p-6">
-						<WorkspaceTerminal workspaceId={workspaceId} />
-
-						<div className="space-y-4">
-							<Section title="health.info" query={healthQuery} />
-							<Section title="github.getUser" query={githubUserQuery} />
-							<Section title="workspace.gitStatus" query={gitStatusQuery} />
-						</div>
+						<Workspace<PaneViewerData>
+							registry={paneRegistry}
+							paneActions={defaultPaneActions}
+							contextMenuActions={defaultContextMenuActions}
+							renderTabIcon={renderBrowserTabIcon}
+							renderBelowTabBar={() => (
+								<V2PresetsBar
+									matchedPresets={matchedPresets}
+									executePreset={executePreset}
+								/>
+							)}
+							renderAddTabMenu={() => (
+								<AddTabMenu
+									onAddTerminal={addTerminalTab}
+									onAddChat={addChatTab}
+									onAddBrowser={addBrowserTab}
+								/>
+							)}
+							renderEmptyState={() => (
+								<WorkspaceEmptyState
+									onOpenBrowser={addBrowserTab}
+									onOpenChat={addChatTab}
+									onOpenQuickOpen={handleQuickOpen}
+									onOpenTerminal={addTerminalTab}
+								/>
+							)}
+							onBeforeCloseTab={(tab) => {
+								const dirtyFiles = Object.values(tab.panes)
+									.filter(
+										(p) =>
+											p.kind === "file" && (p.data as FilePaneData).hasChanges,
+									)
+									.map((p) =>
+										(p.data as FilePaneData).filePath.split("/").pop(),
+									);
+								if (dirtyFiles.length === 0) return true;
+								const title =
+									dirtyFiles.length === 1
+										? `Do you want to save the changes you made to ${dirtyFiles[0]}?`
+										: `Do you want to save changes to ${dirtyFiles.length} files?`;
+								return new Promise<boolean>((resolve) => {
+									alert({
+										title,
+										description:
+											"Your changes will be lost if you don't save them.",
+										actions: [
+											{
+												label: "Save All",
+												onClick: () => {
+													// TODO: wire up save via editor refs
+													resolve(true);
+												},
+											},
+											{
+												label: "Don't Save",
+												variant: "secondary",
+												onClick: () => resolve(true),
+											},
+											{
+												label: "Cancel",
+												variant: "ghost",
+												onClick: () => resolve(false),
+											},
+										],
+									});
+								});
+							}}
+							store={store}
+						/>
 					</div>
+				</ResizablePanel>
+				{sidebarOpen && (
+					<>
+						<ResizableHandle />
+						<ResizablePanel defaultSize={20} minSize={15} maxSize={40}>
+							<WorkspaceSidebar
+								workspaceId={workspaceId}
+								workspaceName={workspaceName}
+								onSelectFile={openFilePane}
+								onSelectDiffFile={openDiffPane}
+								onOpenComment={openCommentPane}
+								onSearch={handleQuickOpen}
+								selectedFilePath={selectedFilePath}
+							/>
+						</ResizablePanel>
+					</>
 				)}
-			</div>
+			</ResizablePanelGroup>
 			<CommandPalette
-				open={commandPalette.open}
-				onOpenChange={commandPalette.handleOpenChange}
-				query={commandPalette.query}
-				onQueryChange={commandPalette.setQuery}
-				filtersOpen={commandPalette.filtersOpen}
-				onFiltersOpenChange={commandPalette.setFiltersOpen}
-				includePattern={commandPalette.includePattern}
-				onIncludePatternChange={commandPalette.setIncludePattern}
-				excludePattern={commandPalette.excludePattern}
-				onExcludePatternChange={commandPalette.setExcludePattern}
-				isLoading={commandPalette.isFetching}
-				searchResults={commandPalette.searchResults}
-				onSelectFile={commandPalette.selectFile}
-				scope={commandPalette.scope}
-				onScopeChange={commandPalette.setScope}
-				workspaceName={workspaceName}
+				workspaceId={workspaceId}
+				open={quickOpenOpen}
+				onOpenChange={setQuickOpenOpen}
+				onSelectFile={openFilePane}
+				variant="v2"
+				recentlyViewedFiles={recentFiles}
+				openFilePaths={openFilePaths}
 			/>
 		</>
-	);
-}
-
-function Section({
-	title,
-	query,
-}: {
-	title: string;
-	query: {
-		data: unknown;
-		error: { message: string } | null;
-		isPending: boolean;
-	};
-}) {
-	return (
-		<div className="w-full rounded-lg border border-border p-4">
-			<h2 className="mb-2 text-sm font-medium">{title}</h2>
-			{query.isPending ? (
-				<p className="text-xs text-muted-foreground">Loading...</p>
-			) : query.error ? (
-				<pre className="whitespace-pre-wrap text-xs text-destructive">
-					{query.error.message}
-				</pre>
-			) : (
-				<pre className="whitespace-pre-wrap text-xs text-muted-foreground">
-					{JSON.stringify(query.data, null, 2)}
-				</pre>
-			)}
-		</div>
 	);
 }

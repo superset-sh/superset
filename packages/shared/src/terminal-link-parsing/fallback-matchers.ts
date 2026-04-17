@@ -30,7 +30,7 @@ const fallbackMatchers: RegExp[] = [
 
 	// Unknown tool format: FILE  <path>:<line>:<col>
 	// Example:  FILE  /path/to/file.ts:10:5
-	/^ +FILE +(?<link>(?<path>.+?)(?::(?<line>\d+)(?::(?<col>\d+))?)?)\s*$/,
+	/^ +FILE +(?<link>(?<path>.+)(?::(?<line>\d+)(?::(?<col>\d+))?)?)/,
 
 	// C++ compile error formats (Visual Studio CL/NVIDIA CUDA compiler):
 	// Example: C:\foo\bar baz(339) : error C2065

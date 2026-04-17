@@ -7,17 +7,15 @@ import {
 	CommandList,
 } from "@superset/ui/command";
 import { Popover, PopoverAnchor, PopoverContent } from "@superset/ui/popover";
-import Fuse from "fuse.js";
 import type React from "react";
 import type { RefObject } from "react";
 import { useMemo, useState } from "react";
+import { useDebouncedValue } from "renderer/hooks/useDebouncedValue";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
 	PRIcon,
 	type PRState,
 } from "renderer/screens/main/components/PRIcon/PRIcon";
-
-const MAX_RESULTS = 20;
 
 export interface SelectedPR {
 	prNumber: number;
@@ -31,7 +29,27 @@ interface PRLinkCommandProps {
 	onOpenChange: (open: boolean) => void;
 	onSelect: (pr: SelectedPR) => void;
 	projectId: string | null;
+	githubOwner: string | null;
+	repoName: string | null;
 	anchorRef: RefObject<HTMLElement | null>;
+}
+
+function parseGitHubPullRequestUrl(query: string): {
+	owner: string;
+	repo: string;
+	prNumber: string;
+} | null {
+	const match = query.match(
+		/^https?:\/\/(?:www\.)?github\.com\/([\w.-]+)\/([\w.-]+)\/pull\/(\d+)(?:[/?#].*)?$/i,
+	);
+
+	if (!match) return null;
+
+	return {
+		owner: match[1],
+		repo: match[2],
+		prNumber: match[3],
+	};
 }
 
 export function PRLinkCommand({
@@ -39,56 +57,86 @@ export function PRLinkCommand({
 	onOpenChange,
 	onSelect,
 	projectId,
+	githubOwner,
+	repoName,
 	anchorRef,
 }: PRLinkCommandProps) {
 	const [searchQuery, setSearchQuery] = useState("");
+	const debouncedQuery = useDebouncedValue(searchQuery, 300);
+	const trimmedQuery = searchQuery.trim(); // Immediate trim for UI decisions
+	const debouncedTrimmed = debouncedQuery.trim(); // Debounced trim for RPC calls
 
-	const { data: pullRequests, isLoading } =
+	// Detect if we're in the pending debounce state
+	const isPendingDebounce = trimmedQuery !== debouncedTrimmed;
+
+	const parsedPullRequestUrl = useMemo(() => {
+		return parseGitHubPullRequestUrl(debouncedTrimmed);
+	}, [debouncedTrimmed]);
+
+	const selectedRepositoryLabel = useMemo(() => {
+		if (!githubOwner || !repoName) return null;
+		return `${githubOwner}/${repoName}`;
+	}, [githubOwner, repoName]);
+
+	const pastedRepository = useMemo(() => {
+		if (!parsedPullRequestUrl) return null;
+		return `${parsedPullRequestUrl.owner}/${parsedPullRequestUrl.repo}`.toLowerCase();
+	}, [parsedPullRequestUrl]);
+
+	const isCrossRepositoryUrl = Boolean(
+		selectedRepositoryLabel &&
+			pastedRepository &&
+			pastedRepository !== selectedRepositoryLabel.toLowerCase(),
+	);
+
+	// Search by PR number when the pasted URL matches the selected repository.
+	const effectiveQuery = parsedPullRequestUrl
+		? isCrossRepositoryUrl
+			? ""
+			: parsedPullRequestUrl.prNumber
+		: debouncedTrimmed;
+
+	// Fetch recent PRs for browsing (only when no search query)
+	const { data: recentPRs, isLoading: isLoadingRecent } =
 		electronTrpc.projects.listPullRequests.useQuery(
 			{ projectId: projectId ?? "" },
-			{ enabled: !!projectId && open },
+			{ enabled: !!projectId && open && !debouncedTrimmed },
 		);
 
-	const prsWithSearchField = useMemo(
-		() =>
-			(pullRequests ?? []).map((pr) => ({
-				...pr,
-				prNumberStr: String(pr.prNumber),
-			})),
-		[pullRequests],
-	);
+	// Server-side search when user types (use debounced for RPC)
+	const { data: searchResults, isLoading: isSearching } =
+		electronTrpc.projects.searchPullRequests.useQuery(
+			{ projectId: projectId ?? "", query: effectiveQuery },
+			{
+				enabled:
+					!!projectId && open && !!effectiveQuery && !isCrossRepositoryUrl,
+			},
+		);
 
-	const prFuse = useMemo(
-		() =>
-			new Fuse(prsWithSearchField, {
-				keys: [
-					{ name: "prNumberStr", weight: 3 },
-					{ name: "title", weight: 2 },
-				],
-				threshold: 0.4,
-				ignoreLocation: true,
-			}),
-		[prsWithSearchField],
-	);
-
-	const searchResults = useMemo(() => {
-		if (!prsWithSearchField.length) return [];
-		if (!searchQuery) {
-			return prsWithSearchField.slice(0, MAX_RESULTS);
+	const pullRequests = useMemo(() => {
+		if (isCrossRepositoryUrl) {
+			return [];
 		}
-		const urlMatch = prsWithSearchField.find((pr) => pr.url === searchQuery);
-		if (urlMatch) return [urlMatch];
-		return prFuse
-			.search(searchQuery, { limit: MAX_RESULTS })
-			.map((r) => r.item);
-	}, [prsWithSearchField, searchQuery, prFuse]);
+
+		// Use debounced value for mode decision to avoid empty gap
+		if (debouncedTrimmed) {
+			return searchResults ?? [];
+		}
+		return recentPRs ?? [];
+	}, [debouncedTrimmed, isCrossRepositoryUrl, searchResults, recentPRs]);
+
+	const isLoading = isCrossRepositoryUrl
+		? false
+		: debouncedTrimmed
+			? isSearching || isPendingDebounce
+			: isLoadingRecent;
 
 	const handleClose = () => {
 		setSearchQuery("");
 		onOpenChange(false);
 	};
 
-	const handleSelect = (pr: (typeof searchResults)[number]) => {
+	const handleSelect = (pr: (typeof pullRequests)[number]) => {
 		onSelect({
 			prNumber: pr.prNumber,
 			title: pr.title,
@@ -103,8 +151,8 @@ export function PRLinkCommand({
 			<PopoverAnchor virtualRef={anchorRef as React.RefObject<Element>} />
 			<PopoverContent
 				className="w-80 p-0"
-				align="end"
-				side="top"
+				align="start"
+				side="bottom"
 				onWheel={(event) => event.stopPropagation()}
 				onPointerDownOutside={handleClose}
 				onEscapeKeyDown={handleClose}
@@ -117,18 +165,28 @@ export function PRLinkCommand({
 						onValueChange={setSearchQuery}
 					/>
 					<CommandList className="max-h-[280px]">
-						{searchResults.length === 0 && (
+						{pullRequests.length === 0 && (
 							<CommandEmpty>
 								{isLoading
-									? "Loading pull requests..."
-									: "No open pull requests found."}
+									? debouncedTrimmed
+										? "Searching..."
+										: "Loading pull requests..."
+									: isCrossRepositoryUrl
+										? `PR URL must match ${selectedRepositoryLabel}.`
+										: debouncedTrimmed
+											? "No pull requests found."
+											: "No open pull requests."}
 							</CommandEmpty>
 						)}
-						{searchResults.length > 0 && (
+						{pullRequests.length > 0 && (
 							<CommandGroup
-								heading={searchQuery ? "Results" : "Open pull requests"}
+								heading={
+									debouncedTrimmed
+										? `${pullRequests.length} result${pullRequests.length === 1 ? "" : "s"}`
+										: "Recent pull requests"
+								}
 							>
-								{searchResults.map((pr) => (
+								{pullRequests.map((pr) => (
 									<CommandItem
 										key={pr.prNumber}
 										value={`${pr.prNumber}-${pr.title}`}

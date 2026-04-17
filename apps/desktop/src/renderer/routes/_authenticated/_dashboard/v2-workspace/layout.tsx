@@ -1,12 +1,16 @@
-import { and, eq } from "@tanstack/db";
+import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { createFileRoute, Outlet, useMatchRoute } from "@tanstack/react-router";
 import { useEffect, useRef } from "react";
-import { electronTrpc } from "renderer/lib/electron-trpc";
-import { getWorkspaceHostUrlForWorkspace } from "renderer/lib/v2-workspace-host";
+import { env } from "renderer/env.renderer";
+import {
+	getHostServiceHeaders,
+	getHostServiceWsToken,
+} from "renderer/lib/host-service-auth";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
-import { useHostService } from "renderer/routes/_authenticated/providers/HostServiceProvider";
+import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
+import { WorkspaceNotFoundState } from "./components/WorkspaceNotFoundState";
 import { WorkspaceTrpcProvider } from "./providers/WorkspaceTrpcProvider";
 
 export const Route = createFileRoute("/_authenticated/_dashboard/v2-workspace")(
@@ -23,42 +27,35 @@ function V2WorkspaceLayout() {
 	const workspaceId =
 		workspaceMatch !== false ? workspaceMatch.workspaceId : null;
 	const collections = useCollections();
-	const { services } = useHostService();
+	const { machineId, activeHostUrl } = useLocalHostService();
 	const { ensureWorkspaceInSidebar } = useDashboardSidebarState();
-	const { data: deviceInfo, isPending: isDeviceInfoPending } =
-		electronTrpc.auth.getDeviceInfo.useQuery();
 
-	const { data: workspaces = [] } = useLiveQuery(
+	const { data: workspacesWithHost = [], isReady } = useLiveQuery(
 		(q) =>
 			q
 				.from({ v2Workspaces: collections.v2Workspaces })
-				.where(({ v2Workspaces }) => eq(v2Workspaces.id, workspaceId ?? "")),
+				.leftJoin({ hosts: collections.v2Hosts }, ({ v2Workspaces, hosts }) =>
+					eq(v2Workspaces.hostId, hosts.id),
+				)
+				.where(({ v2Workspaces }) => eq(v2Workspaces.id, workspaceId ?? ""))
+				.select(({ v2Workspaces, hosts }) => ({
+					id: v2Workspaces.id,
+					hostId: v2Workspaces.hostId,
+					hostMachineId: hosts?.machineId ?? null,
+					projectId: v2Workspaces.projectId,
+					branch: v2Workspaces.branch,
+				})),
 		[collections, workspaceId],
 	);
-	const workspace = workspaces[0] ?? null;
-	const { data: currentDevices = [] } = useLiveQuery(
-		(q) =>
-			q
-				.from({ v2Devices: collections.v2Devices })
-				.where(({ v2Devices }) =>
-					and(
-						eq(v2Devices.clientId, deviceInfo?.deviceId ?? ""),
-						eq(v2Devices.organizationId, workspace?.organizationId ?? ""),
-					),
-				),
-		[collections, deviceInfo?.deviceId, workspace?.organizationId],
-	);
-	const currentDevice = currentDevices[0] ?? null;
-	const localHostUrl = workspace
-		? (services.get(workspace.organizationId)?.url ?? null)
-		: null;
-	const shouldWaitForDeviceInfo = workspace !== null && isDeviceInfoPending;
-	const hostUrl =
-		!workspace || shouldWaitForDeviceInfo
-			? null
-			: workspace.deviceId === currentDevice?.id
-				? localHostUrl
-				: getWorkspaceHostUrlForWorkspace(workspace.id);
+	const workspace = workspacesWithHost[0] ?? null;
+
+	const isLocal = workspace?.hostMachineId === machineId;
+	const hostUrl = !workspace
+		? null
+		: isLocal
+			? activeHostUrl
+			: `${env.RELAY_URL}/hosts/${workspace.hostId}`;
+
 	const lastEnsuredWorkspaceIdRef = useRef<string | null>(null);
 
 	useEffect(() => {
@@ -68,24 +65,12 @@ function V2WorkspaceLayout() {
 		ensureWorkspaceInSidebar(workspace.id, workspace.projectId);
 	}, [ensureWorkspaceInSidebar, workspace]);
 
-	if (!workspaceId || !workspace) {
-		return <Outlet />;
+	if (!workspaceId || !isReady) {
+		return null;
 	}
 
-	if (shouldWaitForDeviceInfo) {
-		return (
-			<div className="flex h-full items-center justify-center text-muted-foreground">
-				Resolving workspace host...
-			</div>
-		);
-	}
-
-	if (!hostUrl) {
-		return (
-			<div className="flex h-full items-center justify-center text-muted-foreground">
-				Workspace host service not available
-			</div>
-		);
+	if (!workspace || !hostUrl) {
+		return <WorkspaceNotFoundState workspaceId={workspaceId} />;
 	}
 
 	return (
@@ -93,6 +78,8 @@ function V2WorkspaceLayout() {
 			cacheKey={workspace.id}
 			key={`${workspace.id}:${hostUrl}`}
 			hostUrl={hostUrl}
+			headers={() => getHostServiceHeaders(hostUrl)}
+			wsToken={() => getHostServiceWsToken(hostUrl)}
 		>
 			<Outlet />
 		</WorkspaceTrpcProvider>

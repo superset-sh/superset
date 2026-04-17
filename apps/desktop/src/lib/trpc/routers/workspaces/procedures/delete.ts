@@ -1,7 +1,10 @@
 import { existsSync, realpathSync } from "node:fs";
 import { resolve } from "node:path";
 import type { SelectWorktree } from "@superset/local-db";
+import { worktrees } from "@superset/local-db";
+import { eq } from "drizzle-orm";
 import { track } from "main/lib/analytics";
+import { localDb } from "main/lib/local-db";
 import { workspaceInitManager } from "main/lib/workspace-init-manager";
 import { getWorkspaceRuntimeRegistry } from "main/lib/workspace-runtime";
 import { z } from "zod";
@@ -26,11 +29,6 @@ import {
 } from "../utils/git";
 import { removeWorktreeFromDisk, runTeardown } from "../utils/teardown";
 
-/**
- * Normalize a filesystem path for comparison.
- * Uses realpathSync to resolve symlinks and get canonical path.
- * Falls back to resolve if realpathSync fails (e.g., path doesn't exist).
- */
 const normalizePath = (p: string): string => {
 	try {
 		return realpathSync(p);
@@ -267,43 +265,46 @@ export const createDeleteProcedures = () => {
 					await workspaceInitManager.acquireProjectLock(project.id);
 
 					try {
-						// Only delete from disk if this worktree was created by Superset
-						// External worktrees should only have their DB records removed
-						if (worktree.createdBySuperset) {
-							// Safety: Double-check it's not actually external (catches race conditions)
-							const externalWorktrees = await listExternalWorktrees(
-								project.mainRepoPath,
-							);
-							const worktreePathNorm = normalizePath(worktree.path);
-							const isActuallyExternal = externalWorktrees.some(
-								(wt) => normalizePath(wt.path) === worktreePathNorm,
-							);
+						// Safety: prevent deletion of worktrees not tracked in our DB
+						const allGitWorktrees = await listExternalWorktrees(
+							project.mainRepoPath,
+						);
 
-							if (isActuallyExternal) {
-								console.warn(
-									`[workspace/delete] Worktree at ${worktree.path} marked as created by Superset but found in external list - preserving as safety measure`,
-								);
-								track("worktree_delete_safety_trigger", {
-									workspace_id: input.id,
-									worktree_id: worktree.id,
-									worktree_path: worktree.path,
-									reason: "external_detection_mismatch",
-								});
-							} else {
-								// Confirmed safe to delete
-								const removeResult = await removeWorktreeFromDisk({
-									mainRepoPath: project.mainRepoPath,
-									worktreePath: worktree.path,
-								});
-								if (!removeResult.success) {
-									clearWorkspaceDeletingStatus(input.id);
-									return removeResult;
-								}
-							}
-						} else {
-							console.log(
-								`[workspace/delete] Skipping disk deletion for external worktree at ${worktree.path}`,
+						const trackedWorktrees = localDb
+							.select({ path: worktrees.path })
+							.from(worktrees)
+							.where(eq(worktrees.projectId, project.id))
+							.all();
+						const trackedPaths = new Set(
+							trackedWorktrees.map((wt) => normalizePath(wt.path)),
+						);
+
+						const worktreePathNorm = normalizePath(worktree.path);
+						const existsInGit = allGitWorktrees.some(
+							(wt) => normalizePath(wt.path) === worktreePathNorm,
+						);
+						const isActuallyExternal =
+							existsInGit && !trackedPaths.has(worktreePathNorm);
+
+						if (isActuallyExternal) {
+							console.warn(
+								`[workspace/delete] Worktree at ${worktree.path} exists in git but not tracked in database - preserving as safety measure`,
 							);
+							track("worktree_delete_safety_trigger", {
+								workspace_id: input.id,
+								worktree_id: worktree.id,
+								worktree_path: worktree.path,
+								reason: "untracked_worktree_detected",
+							});
+						} else {
+							const removeResult = await removeWorktreeFromDisk({
+								mainRepoPath: project.mainRepoPath,
+								worktreePath: worktree.path,
+							});
+							if (!removeResult.success) {
+								clearWorkspaceDeletingStatus(input.id);
+								return removeResult;
+							}
 						}
 					} finally {
 						workspaceInitManager.releaseProjectLock(project.id);
@@ -486,68 +487,73 @@ export const createDeleteProcedures = () => {
 						worktree.path,
 					);
 
-					// Only delete from disk if this worktree was created by Superset
-					if (worktree.createdBySuperset) {
-						// Safety: Double-check it's not actually external (catches race conditions)
-						const externalWorktrees = await listExternalWorktrees(
-							project.mainRepoPath,
-						);
-						const isActuallyExternal = externalWorktrees.some(
-							(wt) => wt.path === worktree.path,
-						);
+					// Safety: prevent deletion of worktrees not tracked in our DB
+					const allGitWorktrees = await listExternalWorktrees(
+						project.mainRepoPath,
+					);
 
-						if (isActuallyExternal) {
-							console.warn(
-								`[worktree/delete] Worktree at ${worktree.path} marked as created by Superset but found in external list - preserving as safety measure`,
-							);
-							track("worktree_delete_safety_trigger", {
-								worktree_id: input.worktreeId,
-								worktree_path: worktree.path,
-								reason: "external_detection_mismatch",
+					const trackedWorktrees = localDb
+						.select({ path: worktrees.path })
+						.from(worktrees)
+						.where(eq(worktrees.projectId, project.id))
+						.all();
+					const trackedPaths = new Set(
+						trackedWorktrees.map((wt) => normalizePath(wt.path)),
+					);
+
+					const worktreePathNorm = normalizePath(worktree.path);
+					const existsInGit = allGitWorktrees.some(
+						(wt) => normalizePath(wt.path) === worktreePathNorm,
+					);
+					const isActuallyExternal =
+						existsInGit && !trackedPaths.has(worktreePathNorm);
+
+					if (isActuallyExternal) {
+						console.warn(
+							`[worktree/delete] Worktree at ${worktree.path} exists in git but not tracked in database - preserving as safety measure`,
+						);
+						track("worktree_delete_safety_trigger", {
+							worktree_id: input.worktreeId,
+							worktree_path: worktree.path,
+							reason: "untracked_worktree_detected",
+						});
+					} else {
+						if (exists) {
+							const teardownResult = await runTeardown({
+								mainRepoPath: project.mainRepoPath,
+								worktreePath: worktree.path,
+								workspaceName: worktree.branch,
+								projectId: project.id,
 							});
-						} else {
-							// Confirmed safe to delete
-							if (exists) {
-								const teardownResult = await runTeardown({
-									mainRepoPath: project.mainRepoPath,
-									worktreePath: worktree.path,
-									workspaceName: worktree.branch,
-									projectId: project.id,
-								});
-								if (!teardownResult.success) {
-									if (input.force) {
-										console.warn(
-											`[worktree/delete] Teardown failed but force=true, continuing deletion:`,
-											teardownResult.error,
-										);
-									} else {
-										return {
-											success: false,
-											error: `Teardown failed: ${teardownResult.error}`,
-											output: teardownResult.output,
-										};
-									}
+							if (!teardownResult.success) {
+								if (input.force) {
+									console.warn(
+										`[worktree/delete] Teardown failed but force=true, continuing deletion:`,
+										teardownResult.error,
+									);
+								} else {
+									return {
+										success: false,
+										error: `Teardown failed: ${teardownResult.error}`,
+										output: teardownResult.output,
+									};
 								}
-							}
-
-							if (exists) {
-								const removeResult = await removeWorktreeFromDisk({
-									mainRepoPath: project.mainRepoPath,
-									worktreePath: worktree.path,
-								});
-								if (!removeResult.success) {
-									return removeResult;
-								}
-							} else {
-								console.warn(
-									`Worktree ${worktree.path} not found in git, skipping removal`,
-								);
 							}
 						}
-					} else {
-						console.log(
-							`[worktree/delete] Skipping disk deletion for external worktree at ${worktree.path}`,
-						);
+
+						if (exists) {
+							const removeResult = await removeWorktreeFromDisk({
+								mainRepoPath: project.mainRepoPath,
+								worktreePath: worktree.path,
+							});
+							if (!removeResult.success) {
+								return removeResult;
+							}
+						} else {
+							console.warn(
+								`Worktree ${worktree.path} not found in git, skipping removal`,
+							);
+						}
 					}
 				} finally {
 					workspaceInitManager.releaseProjectLock(project.id);

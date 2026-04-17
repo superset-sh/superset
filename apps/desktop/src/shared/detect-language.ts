@@ -13,6 +13,7 @@ export function detectLanguage(filePath: string): string {
 		// Web
 		html: "html",
 		htm: "html",
+		astro: "html",
 		css: "css",
 		scss: "scss",
 		less: "less",

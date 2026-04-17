@@ -1,3 +1,4 @@
+import ampIcon from "./amp.svg";
 import claudeIcon from "./claude.svg";
 import codexIcon from "./codex.svg";
 import codexWhiteIcon from "./codex-white.svg";
@@ -5,6 +6,8 @@ import copilotIcon from "./copilot.svg";
 import copilotWhiteIcon from "./copilot-white.svg";
 import cursorAgentIcon from "./cursor.svg";
 import geminiIcon from "./gemini.svg";
+import mastracodeIcon from "./mastracode.svg";
+import mastracodeWhiteIcon from "./mastracode-white.svg";
 import opencodeIcon from "./opencode.svg";
 import opencodeWhiteIcon from "./opencode-white.svg";
 import piIcon from "./pi.svg";
@@ -17,6 +20,7 @@ export interface PresetIconSet {
 }
 
 export const PRESET_ICONS: Record<string, PresetIconSet> = {
+	amp: { light: ampIcon, dark: ampIcon },
 	claude: { light: claudeIcon, dark: claudeIcon },
 	codex: { light: codexIcon, dark: codexWhiteIcon },
 	copilot: { light: copilotIcon, dark: copilotWhiteIcon },
@@ -25,6 +29,7 @@ export const PRESET_ICONS: Record<string, PresetIconSet> = {
 	superset: { light: supersetIcon, dark: supersetIcon },
 	"superset-chat": { light: supersetIcon, dark: supersetIcon },
 	"cursor-agent": { light: cursorAgentIcon, dark: cursorAgentIcon },
+	mastracode: { light: mastracodeIcon, dark: mastracodeWhiteIcon },
 	opencode: { light: opencodeIcon, dark: opencodeWhiteIcon },
 };
 
@@ -39,6 +44,7 @@ export function getPresetIcon(
 }
 
 export {
+	ampIcon,
 	claudeIcon,
 	codexIcon,
 	codexWhiteIcon,
@@ -46,6 +52,8 @@ export {
 	copilotWhiteIcon,
 	cursorAgentIcon,
 	geminiIcon,
+	mastracodeIcon,
+	mastracodeWhiteIcon,
 	opencodeIcon,
 	opencodeWhiteIcon,
 	piIcon,

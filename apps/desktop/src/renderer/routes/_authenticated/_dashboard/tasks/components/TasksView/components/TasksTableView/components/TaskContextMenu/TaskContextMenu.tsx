@@ -1,3 +1,4 @@
+import type { SelectTaskStatus } from "@superset/db/schema";
 import {
 	ContextMenu,
 	ContextMenuContent,
@@ -55,7 +56,7 @@ export function TaskContextMenu({
 
 	const users = useMemo(() => allUsers || [], [allUsers]);
 
-	const handleStatusChange = (status: (typeof allStatuses)[0]) => {
+	const handleStatusChange = (status: SelectTaskStatus) => {
 		try {
 			collections.tasks.update(task.id, (draft) => {
 				draft.statusId = status.id;

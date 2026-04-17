@@ -1,8 +1,8 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "bf300860-3630-4e65-b484-cb6b4eb962f8",
-  "prevId": "aed19250-08d4-4333-ae36-08f409998602",
+  "id": "5a8d1776-f90b-4bf8-b6a0-c6142deecfc2",
+  "prevId": "1cf43ce9-9e0f-44c4-b4cf-5cafe80bf78d",
   "tables": {
     "browser_history": {
       "name": "browser_history",
@@ -523,6 +523,13 @@
           "notNull": false,
           "autoincrement": false
         },
+        "notification_volume": {
+          "name": "notification_volume",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
         "delete_local_branch": {
           "name": "delete_local_branch",
           "type": "integer",
@@ -593,13 +600,6 @@
           "notNull": false,
           "autoincrement": false
         },
-        "projects_base_dir": {
-          "name": "projects_base_dir",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
         "open_links_in_app": {
           "name": "open_links_in_app",
           "type": "integer",
@@ -614,16 +614,9 @@
           "notNull": false,
           "autoincrement": false
         },
-        "onedev_url": {
-          "name": "onedev_url",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "onedev_access_token": {
-          "name": "onedev_access_token",
-          "type": "text",
+        "expose_host_service_via_relay": {
+          "name": "expose_host_service_via_relay",
+          "type": "integer",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false

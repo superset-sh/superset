@@ -10,7 +10,8 @@ import type { ChatStatus, FileUIPart } from "ai";
 import type React from "react";
 import type { ReactNode } from "react";
 import { useCallback, useRef, useState } from "react";
-import { useHotkeyText } from "renderer/stores/hotkeys";
+import { useFocusPromptOnPane } from "renderer/components/Chat/ChatInterface/hooks/useFocusPromptOnPane";
+import { useHotkeyDisplay } from "renderer/hotkeys";
 import type { SlashCommand } from "../../hooks/useSlashCommands";
 import type { ModelOption, PermissionMode } from "../../types";
 import { IssueLinkCommand } from "../IssueLinkCommand";
@@ -74,11 +75,12 @@ export function ChatInputFooter({
 	onStop,
 	onSlashCommandSend,
 }: ChatInputFooterProps) {
+	useFocusPromptOnPane(isFocused);
 	const [issueLinkOpen, setIssueLinkOpen] = useState(false);
 	const [linkedIssues, setLinkedIssues] = useState<LinkedIssue[]>([]);
 	const inputRootRef = useRef<HTMLDivElement>(null);
 	const errorMessage = getErrorMessage(error);
-	const focusShortcutText = useHotkeyText("FOCUS_CHAT_INPUT");
+	const focusShortcutText = useHotkeyDisplay("FOCUS_CHAT_INPUT").text;
 	const showFocusHint = focusShortcutText !== "Unassigned";
 
 	const addLinkedIssue = useCallback(

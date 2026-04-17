@@ -3,97 +3,74 @@ import { useLiveQuery } from "@tanstack/react-db";
 import { useMemo } from "react";
 import { env } from "renderer/env.renderer";
 import { authClient } from "renderer/lib/auth-client";
-import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
-import {
-	type OrgService,
-	useHostService,
-} from "renderer/routes/_authenticated/providers/HostServiceProvider";
+import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { MOCK_ORG_ID } from "shared/constants";
 
-const ONLINE_THRESHOLD_MS = 30_000;
-
-export interface WorkspaceHostDeviceOption {
+export interface WorkspaceHostOption {
 	id: string;
 	name: string;
-	type: "host" | "cloud" | "viewer";
-	isOnline: boolean;
+	isCloud: boolean;
 }
 
 interface UseWorkspaceHostOptionsResult {
 	currentDeviceName: string | null;
-	localHostService: OrgService | null;
-	otherDevices: WorkspaceHostDeviceOption[];
-}
-
-function isDeviceOnline(lastSeenAt: Date | null): boolean {
-	return (
-		lastSeenAt !== null &&
-		Date.now() - new Date(lastSeenAt).getTime() < ONLINE_THRESHOLD_MS
-	);
+	activeHostUrl: string | null;
+	otherHosts: WorkspaceHostOption[];
 }
 
 export function useWorkspaceHostOptions(): UseWorkspaceHostOptionsResult {
 	const { data: session } = authClient.useSession();
 	const collections = useCollections();
-	const { services } = useHostService();
-	const { data: deviceInfo } = electronTrpc.auth.getDeviceInfo.useQuery();
+	const { machineId, activeHostUrl } = useLocalHostService();
 
 	const activeOrganizationId = env.SKIP_ENV_VALIDATION
 		? MOCK_ORG_ID
 		: (session?.session?.activeOrganizationId ?? null);
 	const currentUserId = session?.user?.id ?? null;
 
-	const localHostService =
-		activeOrganizationId !== null
-			? (services.get(activeOrganizationId) ?? null)
-			: null;
-
-	const { data: accessibleDevices = [] } = useLiveQuery(
+	const { data: accessibleHosts = [] } = useLiveQuery(
 		(q) =>
 			q
-				.from({ userDevices: collections.v2UsersDevices })
-				.innerJoin(
-					{ devices: collections.v2Devices },
-					({ userDevices, devices }) => eq(userDevices.deviceId, devices.id),
+				.from({ userHosts: collections.v2UsersHosts })
+				.innerJoin({ hosts: collections.v2Hosts }, ({ userHosts, hosts }) =>
+					eq(userHosts.hostId, hosts.id),
 				)
-				.leftJoin(
-					{ presence: collections.v2DevicePresence },
-					({ devices, presence }) => eq(devices.id, presence.deviceId),
-				)
-				.where(({ userDevices, devices }) =>
+				.where(({ userHosts, hosts }) =>
 					and(
-						eq(userDevices.userId, currentUserId ?? ""),
-						eq(devices.organizationId, activeOrganizationId ?? ""),
+						eq(userHosts.userId, currentUserId ?? ""),
+						eq(hosts.organizationId, activeOrganizationId ?? ""),
 					),
 				)
-				.select(({ devices, presence }) => ({
-					id: devices.id,
-					clientId: devices.clientId,
-					name: devices.name,
-					type: devices.type,
-					lastSeenAt: presence?.lastSeenAt ?? null,
+				.select(({ hosts }) => ({
+					id: hosts.id,
+					machineId: hosts.machineId,
+					name: hosts.name,
 				})),
 		[activeOrganizationId, collections, currentUserId],
 	);
 
-	const otherDevices = useMemo(
+	const localHost = useMemo(
+		() => accessibleHosts.find((host) => host.machineId === machineId) ?? null,
+		[accessibleHosts, machineId],
+	);
+
+	const otherHosts = useMemo(
 		() =>
-			accessibleDevices
-				.filter((device) => device.clientId !== deviceInfo?.deviceId)
-				.map((device) => ({
-					id: device.id,
-					name: device.name,
-					type: device.type,
-					isOnline: isDeviceOnline(device.lastSeenAt),
+			accessibleHosts
+				.filter((host) => host.machineId !== machineId)
+				.map((host) => ({
+					id: host.id,
+					name: host.name,
+					isCloud: host.machineId == null,
 				}))
 				.sort((a, b) => a.name.localeCompare(b.name)),
-		[accessibleDevices, deviceInfo?.deviceId],
+		[accessibleHosts, machineId],
 	);
 
 	return {
-		currentDeviceName: deviceInfo?.deviceName ?? null,
-		localHostService,
-		otherDevices,
+		currentDeviceName: localHost?.name ?? null,
+		activeHostUrl,
+		otherHosts,
 	};
 }

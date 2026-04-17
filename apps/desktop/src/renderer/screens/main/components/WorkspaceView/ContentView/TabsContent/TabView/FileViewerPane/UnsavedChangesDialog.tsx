@@ -2,11 +2,11 @@ import {
 	AlertDialog,
 	AlertDialogAction,
 	AlertDialogCancel,
-	AlertDialogContent,
 	AlertDialogDescription,
 	AlertDialogFooter,
 	AlertDialogHeader,
 	AlertDialogTitle,
+	EnterEnabledAlertDialogContent,
 } from "@superset/ui/alert-dialog";
 import { Button } from "@superset/ui/button";
 import { LuLoader } from "react-icons/lu";
@@ -34,36 +34,32 @@ export function UnsavedChangesDialog({
 	discardLabel = "Discard & Continue",
 	saveLabel = "Save & Continue",
 }: UnsavedChangesDialogProps) {
-	const handleSaveAndSwitch = (e: React.MouseEvent) => {
-		e.preventDefault();
+	const handleSaveAndSwitch = () => {
 		onSave();
-		// Don't close dialog - parent will close on success
 	};
 
-	const handleDiscardAndSwitch = (e: React.MouseEvent) => {
-		e.preventDefault();
+	const handleDiscardAndSwitch = () => {
 		onDiscard();
-		onOpenChange(false);
 	};
 
 	return (
 		<AlertDialog open={open} onOpenChange={isSaving ? undefined : onOpenChange}>
-			<AlertDialogContent>
+			<EnterEnabledAlertDialogContent>
 				<AlertDialogHeader>
 					<AlertDialogTitle>{title}</AlertDialogTitle>
 					<AlertDialogDescription>{description}</AlertDialogDescription>
 				</AlertDialogHeader>
 				<AlertDialogFooter>
 					<AlertDialogCancel disabled={isSaving}>Cancel</AlertDialogCancel>
-					<Button
+					<AlertDialogAction
 						variant="outline"
 						onClick={handleDiscardAndSwitch}
 						disabled={isSaving}
 						className="border-destructive/50 text-destructive hover:bg-destructive/10"
 					>
 						{discardLabel}
-					</Button>
-					<AlertDialogAction onClick={handleSaveAndSwitch} disabled={isSaving}>
+					</AlertDialogAction>
+					<Button onClick={handleSaveAndSwitch} disabled={isSaving}>
 						{isSaving ? (
 							<>
 								<LuLoader className="mr-2 h-4 w-4 animate-spin" />
@@ -72,9 +68,9 @@ export function UnsavedChangesDialog({
 						) : (
 							saveLabel
 						)}
-					</AlertDialogAction>
+					</Button>
 				</AlertDialogFooter>
-			</AlertDialogContent>
+			</EnterEnabledAlertDialogContent>
 		</AlertDialog>
 	);
 }

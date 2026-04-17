@@ -2,7 +2,6 @@
 export const PROJECT_COLOR_DEFAULT = "default";
 
 export const PROJECT_COLORS = [
-	{ name: "Default", value: PROJECT_COLOR_DEFAULT },
 	{ name: "Red", value: "#ef4444" },
 	{ name: "Orange", value: "#f97316" },
 	{ name: "Yellow", value: "#eab308" },
@@ -17,9 +16,7 @@ export const PROJECT_COLORS = [
 	{ name: "Slate", value: "#64748b" },
 ] as const;
 
-export const PROJECT_CUSTOM_COLORS = PROJECT_COLORS.filter(
-	(color) => color.value !== PROJECT_COLOR_DEFAULT,
-);
+export const PROJECT_CUSTOM_COLORS = PROJECT_COLORS;
 
 export const PROJECT_COLOR_VALUES: string[] = PROJECT_COLORS.map(
 	(color) => color.value,

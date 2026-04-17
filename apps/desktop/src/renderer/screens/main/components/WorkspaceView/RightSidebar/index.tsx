@@ -9,7 +9,7 @@ import {
 	LuShrink,
 	LuX,
 } from "react-icons/lu";
-import { HotkeyTooltipContent } from "renderer/components/HotkeyTooltipContent";
+import { HotkeyLabel } from "renderer/hotkeys";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
 	RightSidebarTab,
@@ -196,9 +196,9 @@ export function RightSidebar() {
 							</Button>
 						</TooltipTrigger>
 						<TooltipContent side="bottom" showArrow={false}>
-							<HotkeyTooltipContent
+							<HotkeyLabel
 								label={isExpanded ? "Collapse sidebar" : "Expand sidebar"}
-								hotkeyId="TOGGLE_EXPAND_SIDEBAR"
+								id="TOGGLE_EXPAND_SIDEBAR"
 							/>
 						</TooltipContent>
 					</Tooltip>
@@ -214,10 +214,7 @@ export function RightSidebar() {
 							</Button>
 						</TooltipTrigger>
 						<TooltipContent side="bottom" showArrow={false}>
-							<HotkeyTooltipContent
-								label="Close sidebar"
-								hotkeyId="TOGGLE_SIDEBAR"
-							/>
+							<HotkeyLabel label="Close sidebar" id="TOGGLE_SIDEBAR" />
 						</TooltipContent>
 					</Tooltip>
 				</div>

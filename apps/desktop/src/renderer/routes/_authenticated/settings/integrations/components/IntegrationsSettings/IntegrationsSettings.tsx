@@ -1,4 +1,4 @@
-import { COMPANY, FEATURE_FLAGS } from "@superset/shared/constants";
+import { FEATURE_FLAGS } from "@superset/shared/constants";
 import { Badge } from "@superset/ui/badge";
 import { Button } from "@superset/ui/button";
 import {
@@ -60,9 +60,6 @@ export function IntegrationsSettings({
 		useState<GithubInstallation | null>(null);
 	const [isLoadingGithub, setIsLoadingGithub] = useState(true);
 
-	const hasGithubAccess = useFeatureFlagEnabled(
-		FEATURE_FLAGS.GITHUB_INTEGRATION_ACCESS,
-	);
 	const hasSlackAccess = useFeatureFlagEnabled(
 		FEATURE_FLAGS.SLACK_INTEGRATION_ACCESS,
 	);
@@ -71,9 +68,10 @@ export function IntegrationsSettings({
 		SETTING_ITEM_ID.INTEGRATIONS_LINEAR,
 		visibleItems,
 	);
-	const showGithub =
-		hasGithubAccess &&
-		isItemVisible(SETTING_ITEM_ID.INTEGRATIONS_GITHUB, visibleItems);
+	const showGithub = isItemVisible(
+		SETTING_ITEM_ID.INTEGRATIONS_GITHUB,
+		visibleItems,
+	);
 
 	const fetchGithubInstallation = useCallback(async () => {
 		if (!activeOrganizationId) {
@@ -161,11 +159,7 @@ export function IntegrationsSettings({
 						isConnected={isGithubConnected}
 						connectedOrgName={githubInstallation?.accountLogin}
 						isLoading={isLoadingGithub}
-						onManage={() =>
-							gateFeature(GATED_FEATURES.INTEGRATIONS, () =>
-								handleOpenWeb("/integrations/github"),
-							)
-						}
+						onManage={() => handleOpenWeb("/integrations/github")}
 					/>
 				)}
 
@@ -186,16 +180,7 @@ export function IntegrationsSettings({
 			</div>
 
 			<p className="mt-6 text-xs text-muted-foreground">
-				Manage integrations in the web app to connect and configure services.{" "}
-				<a
-					href={`${COMPANY.DOCS_URL}/integrations`}
-					target="_blank"
-					rel="noopener noreferrer"
-					className="inline-flex items-center gap-1 text-primary hover:underline"
-				>
-					Learn more
-					<HiOutlineArrowTopRightOnSquare className="h-3 w-3" />
-				</a>
+				Manage integrations in the web app to connect and configure services.
 			</p>
 		</div>
 	);

@@ -191,8 +191,8 @@ export function IssueLinkCommand(props: IssueLinkCommandProps) {
 				/>
 				<PopoverContent
 					className="w-80 p-0"
-					align="end"
-					side="top"
+					align="start"
+					side="bottom"
 					onWheel={(event) => event.stopPropagation()}
 					onPointerDownOutside={handleClose}
 					onEscapeKeyDown={handleClose}

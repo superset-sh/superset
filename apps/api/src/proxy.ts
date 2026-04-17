@@ -1,3 +1,4 @@
+import { getTrustedVercelPreviewOrigins } from "@superset/shared/vercel-preview-origins";
 import { type NextRequest, NextResponse } from "next/server";
 
 import { env } from "./env";
@@ -11,14 +12,18 @@ const desktopDevOrigins =
 			]
 		: [];
 
-const allowedOrigins = [
-	env.NEXT_PUBLIC_WEB_URL,
-	env.NEXT_PUBLIC_ADMIN_URL,
-	env.NEXT_PUBLIC_DESKTOP_URL,
-	...desktopDevOrigins,
-].filter(Boolean);
+function getAllowedOrigins(deploymentOrigin: string) {
+	return [
+		env.NEXT_PUBLIC_WEB_URL,
+		env.NEXT_PUBLIC_ADMIN_URL,
+		env.NEXT_PUBLIC_DESKTOP_URL,
+		...getTrustedVercelPreviewOrigins(deploymentOrigin),
+		...desktopDevOrigins,
+	].filter(Boolean);
+}
 
-function getCorsHeaders(origin: string | null) {
+function getCorsHeaders(origin: string | null, deploymentOrigin: string) {
+	const allowedOrigins = getAllowedOrigins(deploymentOrigin);
 	const isAllowed = origin && allowedOrigins.includes(origin);
 	return {
 		"Access-Control-Allow-Origin": isAllowed ? origin : "",
@@ -51,7 +56,7 @@ function getCorsHeaders(origin: string | null) {
 
 export default function proxy(req: NextRequest) {
 	const origin = req.headers.get("origin");
-	const corsHeaders = getCorsHeaders(origin);
+	const corsHeaders = getCorsHeaders(origin, req.nextUrl.origin);
 
 	// Handle preflight
 	if (req.method === "OPTIONS") {

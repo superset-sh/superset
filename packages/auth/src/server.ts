@@ -1,3 +1,4 @@
+import { apiKey } from "@better-auth/api-key";
 import { expo } from "@better-auth/expo";
 import { oauthProvider } from "@better-auth/oauth-provider";
 import { stripe } from "@better-auth/stripe";
@@ -15,15 +16,11 @@ import { PaymentFailedEmail } from "@superset/email/emails/payment-failed";
 import { SubscriptionCancelledEmail } from "@superset/email/emails/subscription-cancelled";
 import { SubscriptionStartedEmail } from "@superset/email/emails/subscription-started";
 import { canInvite, type OrganizationRole } from "@superset/shared/auth";
+import { getTrustedVercelPreviewOrigins } from "@superset/shared/vercel-preview-origins";
 import { Client } from "@upstash/qstash";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import {
-	apiKey,
-	bearer,
-	customSession,
-	organization,
-} from "better-auth/plugins";
+import { bearer, customSession, organization } from "better-auth/plugins";
 import { jwt } from "better-auth/plugins/jwt";
 import { and, count, desc, eq, sql } from "drizzle-orm";
 import type Stripe from "stripe";
@@ -60,12 +57,13 @@ export const auth = betterAuth({
 		usePlural: true,
 		schema: { ...authSchema, subscriptions },
 	}),
-	trustedOrigins: [
+	trustedOrigins: async (request) => [
 		env.NEXT_PUBLIC_WEB_URL,
 		env.NEXT_PUBLIC_API_URL,
 		env.NEXT_PUBLIC_MARKETING_URL,
 		env.NEXT_PUBLIC_ADMIN_URL,
 		...(env.NEXT_PUBLIC_DESKTOP_URL ? [env.NEXT_PUBLIC_DESKTOP_URL] : []),
+		...getTrustedVercelPreviewOrigins(request?.url ?? env.NEXT_PUBLIC_API_URL),
 		...desktopDevOrigins,
 		"superset://app",
 		"superset://",
@@ -170,6 +168,9 @@ export const auth = betterAuth({
 			enableMetadata: true,
 			enableSessionForAPIKeys: true,
 			defaultPrefix: "sk_live_",
+			rateLimit: {
+				enabled: false,
+			},
 		}),
 		jwt({
 			jwks: {
@@ -201,7 +202,11 @@ export const auth = betterAuth({
 			consentPage: `${env.NEXT_PUBLIC_WEB_URL}/oauth/consent`,
 			allowDynamicClientRegistration: true,
 			allowUnauthenticatedClientRegistration: true,
-			validAudiences: [env.NEXT_PUBLIC_API_URL, `${env.NEXT_PUBLIC_API_URL}/`],
+			validAudiences: [
+				env.NEXT_PUBLIC_API_URL,
+				`${env.NEXT_PUBLIC_API_URL}/`,
+				`${env.NEXT_PUBLIC_API_URL}/api/agent/mcp`,
+			],
 			silenceWarnings: {
 				oauthAuthServerConfig: true,
 				openidConfig: true,
@@ -229,7 +234,7 @@ export const auth = betterAuth({
 			invitationExpiresIn: 60 * 60 * 24 * 7,
 			sendInvitationEmail: async (data) => {
 				const token = await generateMagicTokenForInvite({
-					email: data.email,
+					invitationId: data.id,
 				});
 
 				const inviteLink = `${env.NEXT_PUBLIC_WEB_URL}/accept-invitation/${data.id}?token=${token}`;
@@ -323,7 +328,23 @@ export const auth = betterAuth({
 					});
 				},
 
-				beforeAddMember: async ({ organization }) => {
+				beforeAddMember: async ({ organization, user }) => {
+					// Domain-allowlisted users bypass the free-plan member limit.
+					// If an admin put the user's domain in allowedDomains, they've
+					// already explicitly opted in to letting those users join.
+					// (allowedDomains isn't on the hook's organization arg because
+					// it isn't declared as a better-auth additionalField — fetch it.)
+					const userDomain = user.email.split("@")[1]?.toLowerCase();
+					if (userDomain) {
+						const orgRow = await db.query.organizations.findFirst({
+							where: eq(authSchema.organizations.id, organization.id),
+							columns: { allowedDomains: true },
+						});
+						if (orgRow?.allowedDomains?.includes(userDomain)) {
+							return;
+						}
+					}
+
 					const subscription = await db.query.subscriptions.findFirst({
 						where: and(
 							eq(subscriptions.referenceId, organization.id),

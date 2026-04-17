@@ -1,4 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useEffect } from "react";
+import { V2WorkspacesHeader } from "./components/V2WorkspacesHeader";
+import { V2WorkspacesList } from "./components/V2WorkspacesList";
+import { useAccessibleV2Workspaces } from "./hooks/useAccessibleV2Workspaces";
+import { useV2WorkspacesFilterStore } from "./stores/v2WorkspacesFilterStore";
 
 export const Route = createFileRoute(
 	"/_authenticated/_dashboard/v2-workspaces/",
@@ -7,26 +12,27 @@ export const Route = createFileRoute(
 });
 
 function V2WorkspacesPage() {
-	return (
-		<div className="flex h-full flex-col overflow-y-auto p-6">
-			<div className="mx-auto flex w-full max-w-4xl flex-col gap-6">
-				<div className="space-y-2">
-					<h1 className="text-2xl font-semibold tracking-tight">Workspaces</h1>
-					<p className="max-w-2xl text-sm text-muted-foreground">
-						This page will become the browse surface for all accessible V2
-						workspaces, with sidebar workspaces prioritized first.
-					</p>
-				</div>
+	const searchQuery = useV2WorkspacesFilterStore((state) => state.searchQuery);
+	const resetFilters = useV2WorkspacesFilterStore((state) => state.reset);
 
-				<div className="rounded-xl border border-border bg-card p-5">
-					<h2 className="text-sm font-medium">WIP</h2>
-					<p className="mt-2 text-sm text-muted-foreground">
-						Next up is splitting local sidebar workspaces from the full set of
-						accessible shared workspaces and giving this page proper search,
-						filtering, and recents.
-					</p>
-				</div>
-			</div>
+	// Start with a fresh view every time the discovery page mounts — otherwise
+	// the zustand singleton would carry over a stale search/device filter from a
+	// previous visit with no visible indication that a filter is active.
+	useEffect(() => {
+		resetFilters();
+	}, [resetFilters]);
+
+	const { pinned, others, counts } = useAccessibleV2Workspaces({ searchQuery });
+	const hasAnyAccessible = pinned.length > 0 || others.length > 0;
+
+	return (
+		<div className="flex h-full w-full flex-1 flex-col overflow-hidden">
+			<V2WorkspacesHeader counts={counts} />
+			<V2WorkspacesList
+				pinned={pinned}
+				others={others}
+				hasAnyAccessible={hasAnyAccessible}
+			/>
 		</div>
 	);
 }

@@ -58,6 +58,44 @@ type OpenNewResult =
 	| { canceled: false; needsGitInit: true; selectedPath: string }
 	| OpenNewError;
 
+/**
+ * Parses and transforms raw GitHub PR data from CLI output.
+ * Filters valid PR objects and maps them to our internal format.
+ */
+function isRawPullRequest(item: unknown): item is {
+	number: number;
+	title: string;
+	url: string;
+	state: string;
+	isDraft: boolean;
+} {
+	if (typeof item !== "object" || item === null) return false;
+
+	const value = item as Record<string, unknown>;
+	return (
+		typeof value.number === "number" &&
+		typeof value.title === "string" &&
+		typeof value.url === "string" &&
+		typeof value.state === "string" &&
+		typeof value.isDraft === "boolean"
+	);
+}
+
+function parsePullRequests(raw: unknown) {
+	if (!Array.isArray(raw)) return [];
+
+	return raw.filter(isRawPullRequest).map((pr) => ({
+		prNumber: pr.number,
+		title: pr.title,
+		url: pr.url,
+		state: pr.isDraft
+			? "draft"
+			: pr.state === "OPEN"
+				? "open"
+				: pr.state.toLowerCase(),
+	}));
+}
+
 type FolderOutcome =
 	| { status: "success"; project: Project }
 	| { status: "needsGitInit"; selectedPath: string }
@@ -326,36 +364,49 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 						{ cwd: project.mainRepoPath },
 					);
 					const raw: unknown = JSON.parse(stdout.trim() || "[]");
-					if (!Array.isArray(raw)) return [];
-					return raw
-						.filter(
-							(
-								item: unknown,
-							): item is {
-								number: number;
-								title: string;
-								url: string;
-								state: string;
-								isDraft: boolean;
-							} =>
-								typeof item === "object" &&
-								item !== null &&
-								"number" in item &&
-								"title" in item &&
-								"url" in item,
-						)
-						.map((pr) => ({
-							prNumber: pr.number,
-							title: pr.title,
-							url: pr.url,
-							state: pr.isDraft
-								? "draft"
-								: pr.state === "OPEN"
-									? "open"
-									: pr.state.toLowerCase(),
-						}));
+					return parsePullRequests(raw);
 				} catch (err) {
 					console.warn("[listPullRequests] Failed to list PRs:", err);
+					return [];
+				}
+			}),
+
+		searchPullRequests: publicProcedure
+			.input(
+				z.object({
+					projectId: z.string(),
+					query: z.string(),
+				}),
+			)
+			.query(async ({ input }) => {
+				const project = localDb
+					.select()
+					.from(projects)
+					.where(eq(projects.id, input.projectId))
+					.get();
+				if (!project) return [];
+
+				try {
+					const { stdout } = await execWithShellEnv(
+						"gh",
+						[
+							"pr",
+							"list",
+							"--state",
+							"all",
+							"--search",
+							input.query,
+							"--limit",
+							"100",
+							"--json",
+							"number,title,url,state,isDraft",
+						],
+						{ cwd: project.mainRepoPath, timeout: 10_000 },
+					);
+					const raw: unknown = JSON.parse(stdout.trim() || "[]");
+					return parsePullRequests(raw);
+				} catch (err) {
+					console.warn("[searchPullRequests] Failed to search PRs:", err);
 					return [];
 				}
 			}),

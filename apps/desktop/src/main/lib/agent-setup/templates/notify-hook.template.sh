@@ -26,11 +26,19 @@ SESSION_ID=${RESOURCE_ID:-$HOOK_SESSION_ID}
 # Use flexible pattern to handle optional whitespace: "key": "value" or "key":"value"
 EVENT_TYPE=$(echo "$INPUT" | grep -oE '"hook_event_name"[[:space:]]*:[[:space:]]*"[^"]*"' | grep -oE '"[^"]*"$' | tr -d '"')
 if [ -z "$EVENT_TYPE" ]; then
-  # Check for Codex "type" field (e.g., "agent-turn-complete")
+  # Check for Codex "type" field when no native hook_event_name is present.
   CODEX_TYPE=$(echo "$INPUT" | grep -oE '"type"[[:space:]]*:[[:space:]]*"[^"]*"' | grep -oE '"[^"]*"$' | tr -d '"')
-  if [ "$CODEX_TYPE" = "agent-turn-complete" ]; then
-    EVENT_TYPE="Stop"
-  fi
+  case "$CODEX_TYPE" in
+    agent-turn-complete|task_complete)
+      EVENT_TYPE="Stop"
+      ;;
+    task_started)
+      EVENT_TYPE="Start"
+      ;;
+    exec_approval_request|apply_patch_approval_request|request_user_input)
+      EVENT_TYPE="PermissionRequest"
+      ;;
+  esac
 fi
 
 # NOTE: We intentionally do NOT default to "Stop" if EVENT_TYPE is empty.

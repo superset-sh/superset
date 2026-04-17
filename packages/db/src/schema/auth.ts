@@ -207,6 +207,7 @@ export const oauthRefreshTokens = authSchema.table("oauth_refresh_tokens", {
 	expiresAt: timestamp("expires_at"),
 	createdAt: timestamp("created_at"),
 	revoked: timestamp("revoked"),
+	authTime: timestamp("auth_time"),
 	scopes: text("scopes").array().notNull(),
 });
 
@@ -245,13 +246,12 @@ export const apikeys = authSchema.table(
 	"apikeys",
 	{
 		id: uuid("id").primaryKey().defaultRandom(),
+		configId: text("config_id").default("default").notNull(),
 		name: text("name"),
 		start: text("start"),
+		referenceId: text("reference_id").notNull(),
 		prefix: text("prefix"),
 		key: text("key").notNull(),
-		userId: uuid("user_id")
-			.notNull()
-			.references(() => users.id, { onDelete: "cascade" }),
 		refillInterval: integer("refill_interval"),
 		refillAmount: integer("refill_amount"),
 		lastRefillAt: timestamp("last_refill_at"),
@@ -272,13 +272,27 @@ export const apikeys = authSchema.table(
 		metadata: text("metadata"),
 	},
 	(table) => [
+		index("apikeys_configId_idx").on(table.configId),
+		index("apikeys_referenceId_idx").on(table.referenceId),
 		index("apikeys_key_idx").on(table.key),
-		index("apikeys_user_id_idx").on(table.userId),
 	],
 );
 
 export type SelectApikey = typeof apikeys.$inferSelect;
 export type InsertApikey = typeof apikeys.$inferInsert;
+
+export const deviceCodes = authSchema.table("device_codes", {
+	id: uuid("id").primaryKey().defaultRandom(),
+	deviceCode: text("device_code").notNull(),
+	userCode: text("user_code").notNull(),
+	userId: text("user_id"),
+	expiresAt: timestamp("expires_at").notNull(),
+	status: text("status").notNull(),
+	lastPolledAt: timestamp("last_polled_at"),
+	pollingInterval: integer("polling_interval"),
+	clientId: text("client_id"),
+	scope: text("scope"),
+});
 
 export const jwkss = authSchema.table("jwkss", {
 	id: uuid("id").primaryKey().defaultRandom(),

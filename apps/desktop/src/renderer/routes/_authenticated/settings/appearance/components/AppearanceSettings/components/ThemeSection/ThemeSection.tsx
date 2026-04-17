@@ -9,12 +9,17 @@ import {
 } from "react-icons/hi2";
 import {
 	SYSTEM_THEME_ID,
+	useSetSystemThemePreference,
 	useSetTheme,
+	useSystemDarkThemeId,
+	useSystemLightThemeId,
 	useThemeId,
 	useThemeStore,
 } from "renderer/stores";
 import {
 	builtInThemes,
+	darkTheme as defaultDarkTheme,
+	lightTheme as defaultLightTheme,
 	getTerminalColors,
 	parseThemeConfigFile,
 } from "shared/themes";
@@ -31,8 +36,22 @@ export function ThemeSection() {
 	const activeTheme = useThemeStore((state) => state.activeTheme);
 	const customThemes = useThemeStore((state) => state.customThemes);
 	const upsertCustomThemes = useThemeStore((state) => state.upsertCustomThemes);
+	const systemLightThemeId = useSystemLightThemeId();
+	const systemDarkThemeId = useSystemDarkThemeId();
+	const setSystemThemePreference = useSetSystemThemePreference();
 
 	const allThemes = [...builtInThemes, ...customThemes];
+
+	// Resolve system theme preference IDs to actual theme objects.
+	// Fallback chain ensures we always get a theme with terminal colors.
+	const systemLightTheme =
+		allThemes.find((t) => t.id === systemLightThemeId) ??
+		builtInThemes.find((t) => t.id === "light") ??
+		defaultLightTheme;
+	const systemDarkTheme =
+		allThemes.find((t) => t.id === systemDarkThemeId) ??
+		builtInThemes.find((t) => t.id === "dark") ??
+		defaultDarkTheme;
 
 	const handleImport = async (event: ChangeEvent<HTMLInputElement>) => {
 		const file = event.target.files?.[0];
@@ -124,8 +143,30 @@ export function ThemeSection() {
 
 	return (
 		<div>
-			<div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-				<h3 className="text-sm font-medium">Theme</h3>
+			<div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+				<div>
+					<h3 className="text-sm font-medium">Theme</h3>
+					<div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+						<a
+							href={`${COMPANY.MARKETING_URL}/marketplace/themes`}
+							target="_blank"
+							rel="noopener noreferrer"
+							className="inline-flex items-center gap-1 hover:text-foreground hover:underline"
+						>
+							Marketplace
+							<HiOutlineArrowTopRightOnSquare className="h-3 w-3" />
+						</a>
+						<a
+							href={`${COMPANY.DOCS_URL}/custom-themes`}
+							target="_blank"
+							rel="noopener noreferrer"
+							className="inline-flex items-center gap-1 hover:text-foreground hover:underline"
+						>
+							Docs
+							<HiOutlineArrowTopRightOnSquare className="h-3 w-3" />
+						</a>
+					</div>
+				</div>
 				<div className="flex flex-wrap items-center gap-2 justify-end">
 					<input
 						ref={fileInputRef}
@@ -153,21 +194,16 @@ export function ThemeSection() {
 						<HiOutlineArrowDownTray className="mr-1.5 h-4 w-4" />
 						Download Base File
 					</Button>
-					<a
-						href={`${COMPANY.DOCS_URL}/custom-themes`}
-						target="_blank"
-						rel="noopener noreferrer"
-						className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground hover:underline"
-					>
-						Theme docs
-						<HiOutlineArrowTopRightOnSquare className="h-3 w-3" />
-					</a>
 				</div>
 			</div>
-			<div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+			<div className="grid grid-cols-2 lg:grid-cols-3 gap-4 items-start">
 				<SystemThemeCard
 					isSelected={activeThemeId === SYSTEM_THEME_ID}
 					onSelect={() => setTheme(SYSTEM_THEME_ID)}
+					darkTheme={systemDarkTheme}
+					lightTheme={systemLightTheme}
+					allThemes={allThemes}
+					onSystemThemePreferenceChange={setSystemThemePreference}
 				/>
 				{allThemes.map((theme) => (
 					<ThemeCard

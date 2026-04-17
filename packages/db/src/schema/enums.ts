@@ -31,13 +31,13 @@ export const deviceTypeValues = ["desktop", "mobile", "web"] as const;
 export const deviceTypeEnum = z.enum(deviceTypeValues);
 export type DeviceType = z.infer<typeof deviceTypeEnum>;
 
-export const v2DeviceTypeValues = ["host", "cloud", "viewer"] as const;
-export const v2DeviceTypeEnum = z.enum(v2DeviceTypeValues);
-export type V2DeviceType = z.infer<typeof v2DeviceTypeEnum>;
+export const v2ClientTypeValues = ["desktop", "mobile", "web"] as const;
+export const v2ClientTypeEnum = z.enum(v2ClientTypeValues);
+export type V2ClientType = z.infer<typeof v2ClientTypeEnum>;
 
-export const v2UsersDeviceRoleValues = ["owner", "member", "viewer"] as const;
-export const v2UsersDeviceRoleEnum = z.enum(v2UsersDeviceRoleValues);
-export type V2UsersDeviceRole = z.infer<typeof v2UsersDeviceRoleEnum>;
+export const v2UsersHostRoleValues = ["owner", "member"] as const;
+export const v2UsersHostRoleEnum = z.enum(v2UsersHostRoleValues);
+export type V2UsersHostRole = z.infer<typeof v2UsersHostRoleEnum>;
 
 export const commandStatusValues = [
 	"pending",

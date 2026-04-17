@@ -139,7 +139,7 @@ export function CollapsedWorkspaceItem({
 							}}
 						>
 							<LuX className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
-							Close Worktree
+							Close Workspace
 						</ContextMenuItem>
 					</ContextMenuContent>
 				</ContextMenu>

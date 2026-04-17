@@ -199,7 +199,12 @@ export const createStatusProcedures = () => {
 			.mutation(({ input }) => {
 				const { workspaceId, branch } = input;
 
-				if (!branch || branch === "HEAD") {
+				if (
+					!branch ||
+					branch === "HEAD" ||
+					branch.startsWith("[") ||
+					branch.includes(" ")
+				) {
 					return { success: false as const, reason: "invalid-branch" as const };
 				}
 

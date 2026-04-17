@@ -12,7 +12,20 @@ import "./xterm-env-polyfill";
 
 const { Session } = await import("./session");
 
-class FakeStdout extends EventEmitter {}
+class FakeStdout extends EventEmitter {
+	pauseCalls = 0;
+	resumeCalls = 0;
+
+	pause(): this {
+		this.pauseCalls++;
+		return this;
+	}
+
+	resume(): this {
+		this.resumeCalls++;
+		return this;
+	}
+}
 
 class FakeStdin extends EventEmitter {
 	readonly writes: Buffer[] = [];
@@ -37,6 +50,26 @@ class FakeChildProcess extends EventEmitter {
 let fakeChildProcess: FakeChildProcess;
 let spawnCalls: Array<{ command: string; args: string[] }> = [];
 
+function sendFrame(
+	proc: FakeChildProcess,
+	type: PtySubprocessIpcType,
+	payload?: Buffer,
+): void {
+	const buf = payload ?? Buffer.alloc(0);
+	const header = createFrameHeader(type, buf.length);
+	proc.stdout.emit("data", Buffer.concat([header, buf]));
+}
+
+function sendReady(proc: FakeChildProcess): void {
+	sendFrame(proc, PtySubprocessIpcType.Ready);
+}
+
+function sendSpawned(proc: FakeChildProcess, pid = 1234): void {
+	const buf = Buffer.allocUnsafe(4);
+	buf.writeUInt32LE(pid, 0);
+	sendFrame(proc, PtySubprocessIpcType.Spawned, buf);
+}
+
 function getSpawnPayload(fakeChild: FakeChildProcess) {
 	fakeChild.stdout.emit(
 		"data",
@@ -52,6 +85,17 @@ function getSpawnPayload(fakeChild: FakeChildProcess) {
 	return JSON.parse(spawnFrame?.payload.toString("utf8") ?? "{}") as {
 		args?: string[];
 	};
+}
+
+function spawnAndReadySession(session: InstanceType<typeof Session>): void {
+	session.spawn({
+		cwd: "/tmp",
+		cols: 80,
+		rows: 24,
+		env: { PATH: "/usr/bin" },
+	});
+	sendReady(fakeChildProcess);
+	sendSpawned(fakeChildProcess);
 }
 
 describe("Terminal Host Session shell args", () => {
@@ -217,5 +261,231 @@ describe("Terminal Host Session shell args", () => {
 		).broadcastEvent("data", { type: "data", data: "hello" });
 
 		expect(writes.some((message) => message.includes('"hello"'))).toBe(true);
+	});
+});
+
+describe("Terminal Host Session emulator backlog backpressure", () => {
+	beforeEach(() => {
+		fakeChildProcess = new FakeChildProcess();
+		spawnCalls = [];
+	});
+
+	it("pauses subprocess stdout when emulator backlog exceeds the watermark without attached clients", () => {
+		const session = new Session({
+			sessionId: "session-emulator-backpressure",
+			workspaceId: "workspace-1",
+			paneId: "pane-1",
+			tabId: "tab-1",
+			cols: 80,
+			rows: 24,
+			cwd: "/tmp",
+			shell: "/bin/zsh",
+			spawnProcess: () => fakeChildProcess as unknown as ChildProcess,
+		});
+
+		spawnAndReadySession(session);
+
+		(
+			session as unknown as {
+				enqueueEmulatorWrite: (data: string) => void;
+			}
+		).enqueueEmulatorWrite("x".repeat(1_100_000));
+
+		expect(fakeChildProcess.stdout.pauseCalls).toBe(1);
+		expect(fakeChildProcess.stdout.resumeCalls).toBe(0);
+	});
+
+	it("resumes subprocess stdout once emulator backlog drains below the low watermark", () => {
+		const session = new Session({
+			sessionId: "session-emulator-resume",
+			workspaceId: "workspace-1",
+			paneId: "pane-1",
+			tabId: "tab-1",
+			cols: 80,
+			rows: 24,
+			cwd: "/tmp",
+			shell: "/bin/zsh",
+			spawnProcess: () => fakeChildProcess as unknown as ChildProcess,
+		});
+
+		spawnAndReadySession(session);
+
+		const internals = session as unknown as {
+			enqueueEmulatorWrite: (data: string) => void;
+			emulatorWriteQueuedBytes: number;
+			maybeResumeSubprocessStdoutForEmulatorBackpressure: () => void;
+		};
+
+		internals.enqueueEmulatorWrite("x".repeat(1_100_000));
+		expect(fakeChildProcess.stdout.pauseCalls).toBe(1);
+
+		internals.emulatorWriteQueuedBytes = 0;
+		internals.maybeResumeSubprocessStdoutForEmulatorBackpressure();
+
+		expect(fakeChildProcess.stdout.resumeCalls).toBe(1);
+	});
+
+	it("keeps queued byte accounting exact when chunking across a surrogate pair boundary", () => {
+		const session = new Session({
+			sessionId: "session-surrogate-pair-backpressure",
+			workspaceId: "workspace-1",
+			paneId: "pane-1",
+			tabId: "tab-1",
+			cols: 80,
+			rows: 24,
+			cwd: "/tmp",
+			shell: "/bin/zsh",
+			spawnProcess: () => fakeChildProcess as unknown as ChildProcess,
+		});
+
+		spawnAndReadySession(session);
+
+		const internals = session as unknown as {
+			enqueueEmulatorWrite: (data: string) => void;
+			processEmulatorWriteQueue: () => void;
+			emulatorWriteQueue: string[];
+			emulatorWriteQueuedBytes: number;
+		};
+
+		internals.enqueueEmulatorWrite(`${"x".repeat(8191)}😀`);
+		internals.processEmulatorWriteQueue();
+
+		expect(internals.emulatorWriteQueue).toEqual([]);
+		expect(internals.emulatorWriteQueuedBytes).toBe(0);
+	});
+
+	it("keeps subprocess stdout paused until client drain clears too", () => {
+		const session = new Session({
+			sessionId: "session-combined-backpressure",
+			workspaceId: "workspace-1",
+			paneId: "pane-1",
+			tabId: "tab-1",
+			cols: 80,
+			rows: 24,
+			cwd: "/tmp",
+			shell: "/bin/zsh",
+			spawnProcess: () => fakeChildProcess as unknown as ChildProcess,
+		});
+
+		spawnAndReadySession(session);
+
+		const socket = new EventEmitter() as import("node:net").Socket;
+		const internals = session as unknown as {
+			enqueueEmulatorWrite: (data: string) => void;
+			emulatorWriteQueuedBytes: number;
+			handleClientBackpressure: (socket: import("node:net").Socket) => void;
+			maybeResumeSubprocessStdoutForEmulatorBackpressure: () => void;
+		};
+
+		internals.enqueueEmulatorWrite("x".repeat(1_100_000));
+		expect(fakeChildProcess.stdout.pauseCalls).toBe(1);
+
+		internals.handleClientBackpressure(socket);
+		internals.emulatorWriteQueuedBytes = 0;
+		internals.maybeResumeSubprocessStdoutForEmulatorBackpressure();
+
+		expect(fakeChildProcess.stdout.resumeCalls).toBe(0);
+
+		socket.emit("drain");
+		expect(fakeChildProcess.stdout.resumeCalls).toBe(1);
+	});
+
+	it("resumes subprocess stdout when a backpressured client disconnects before drain", () => {
+		for (const eventName of ["close", "error"] as const) {
+			fakeChildProcess = new FakeChildProcess();
+			spawnCalls = [];
+
+			const session = new Session({
+				sessionId: `session-${eventName}-backpressure`,
+				workspaceId: "workspace-1",
+				paneId: "pane-1",
+				tabId: "tab-1",
+				cols: 80,
+				rows: 24,
+				cwd: "/tmp",
+				shell: "/bin/zsh",
+				spawnProcess: () => fakeChildProcess as unknown as ChildProcess,
+			});
+
+			spawnAndReadySession(session);
+
+			const socket = new EventEmitter() as import("node:net").Socket;
+			const internals = session as unknown as {
+				enqueueEmulatorWrite: (data: string) => void;
+				emulatorWriteQueuedBytes: number;
+				handleClientBackpressure: (socket: import("node:net").Socket) => void;
+				maybeResumeSubprocessStdoutForEmulatorBackpressure: () => void;
+			};
+
+			internals.enqueueEmulatorWrite("x".repeat(1_100_000));
+			expect(fakeChildProcess.stdout.pauseCalls).toBe(1);
+
+			internals.handleClientBackpressure(socket);
+			internals.emulatorWriteQueuedBytes = 0;
+			internals.maybeResumeSubprocessStdoutForEmulatorBackpressure();
+			expect(fakeChildProcess.stdout.resumeCalls).toBe(0);
+
+			if (eventName === "error") {
+				socket.emit("error", new Error("socket closed"));
+			} else {
+				socket.emit("close");
+			}
+
+			socket.emit("drain");
+			socket.emit("close");
+
+			expect(fakeChildProcess.stdout.resumeCalls).toBe(1);
+		}
+	});
+
+	it("resumes subprocess stdout when the last backpressured client throws during broadcast", () => {
+		const session = new Session({
+			sessionId: "session-dead-socket-backpressure",
+			workspaceId: "workspace-1",
+			paneId: "pane-1",
+			tabId: "tab-1",
+			cols: 80,
+			rows: 24,
+			cwd: "/tmp",
+			shell: "/bin/zsh",
+			spawnProcess: () => fakeChildProcess as unknown as ChildProcess,
+		});
+
+		spawnAndReadySession(session);
+
+		const badSocket = new EventEmitter() as import("node:net").Socket & {
+			write: (_message: string) => boolean;
+		};
+		badSocket.write = () => {
+			throw new Error("socket closed");
+		};
+
+		const internals = session as unknown as {
+			attachedClients: Map<
+				import("node:net").Socket,
+				{
+					socket: import("node:net").Socket;
+					attachedAt: number;
+					attachToken: symbol;
+				}
+			>;
+			handleClientBackpressure: (socket: import("node:net").Socket) => void;
+			broadcastEvent: (
+				eventType: string,
+				payload: { type: "data"; data: string },
+			) => void;
+		};
+
+		internals.attachedClients.set(badSocket, {
+			socket: badSocket,
+			attachedAt: Date.now(),
+			attachToken: Symbol("attach"),
+		});
+		internals.handleClientBackpressure(badSocket);
+		expect(fakeChildProcess.stdout.pauseCalls).toBe(1);
+
+		internals.broadcastEvent("data", { type: "data", data: "hello" });
+
+		expect(fakeChildProcess.stdout.resumeCalls).toBe(1);
 	});
 });

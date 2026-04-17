@@ -34,6 +34,7 @@ import {
 	useRef,
 	useState,
 } from "react";
+import { isEnterSubmit } from "../../lib/keyboard";
 import { cn } from "../../lib/utils";
 import { Button } from "../ui/button";
 import {
@@ -155,7 +156,11 @@ export function PromptInputProvider({
 	const clearInput = useCallback(() => setTextInput(""), []);
 	const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 	const focus = useCallback(() => {
-		textareaRef.current?.focus();
+		const el = textareaRef.current;
+		if (!el) return;
+		el.focus();
+		const len = el.value.length;
+		el.setSelectionRange(len, len);
 	}, []);
 	const __registerTextarea = useCallback(
 		(ref: RefObject<HTMLTextAreaElement | null>) => {
@@ -960,13 +965,17 @@ export const PromptInputTextarea = ({
 	}, [controller]);
 
 	const handleKeyDown: KeyboardEventHandler<HTMLTextAreaElement> = (e) => {
+		// Prevent modifier+arrow combos from bubbling to pane-navigation hotkeys
+		if (
+			(e.key === "ArrowLeft" || e.key === "ArrowRight") &&
+			(e.metaKey || e.ctrlKey)
+		) {
+			e.stopPropagation();
+		}
+
 		if (e.key === "Enter") {
-			if (isComposing || e.nativeEvent.isComposing) {
-				return;
-			}
-			if (e.shiftKey) {
-				return;
-			}
+			if (isComposing) return;
+			if (!isEnterSubmit(e)) return;
 			e.preventDefault();
 
 			// Check if the submit button is disabled before submitting

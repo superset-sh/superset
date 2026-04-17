@@ -11,6 +11,10 @@ import { authClient } from "renderer/lib/auth-client";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import {
+	getImageExtensionFromMimeType,
+	parseBase64DataUrl,
+} from "shared/file-types";
+import {
 	isItemVisible,
 	SETTING_ITEM_ID,
 	type SettingItemId,
@@ -64,9 +68,8 @@ export function AccountSettings({ visibleItems }: AccountSettingsProps) {
 			const result = await selectImageMutation.mutateAsync();
 			if (result.canceled || !result.dataUrl) return;
 
-			const mimeMatch = result.dataUrl.match(/^data:([^;]+);/);
-			const mimeType = mimeMatch?.[1] || "image/png";
-			const ext = mimeType.split("/")[1] || "png";
+			const { mimeType } = parseBase64DataUrl(result.dataUrl);
+			const ext = getImageExtensionFromMimeType(mimeType) ?? "png";
 
 			const uploadResult = await apiTrpcClient.user.uploadAvatar.mutate({
 				fileData: result.dataUrl,

@@ -1,7 +1,7 @@
 import type { RefObject } from "react";
 import { useEffect } from "react";
+import { useHotkey } from "renderer/hotkeys";
 import { useTextSearch } from "renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/TabView/hooks";
-import { useAppHotkey } from "renderer/stores/hotkeys";
 
 interface UseMarkdownSearchOptions {
 	containerRef: RefObject<HTMLDivElement | null>;
@@ -56,7 +56,7 @@ export function useMarkdownSearch({
 		}
 	}, [filePath]);
 
-	useAppHotkey(
+	useHotkey(
 		"FIND_IN_FILE_VIEWER",
 		() => {
 			if (textSearch.isSearchOpen) {

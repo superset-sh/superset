@@ -1,16 +1,5 @@
-import type { HotkeysState } from "shared/hotkeys";
 import { createJSONStorage, type StateStorage } from "zustand/middleware";
 import { electronTrpcClient } from "./trpc-client";
-
-/**
- * Flag to skip the next hotkeys persist operation.
- * Used when syncing from remote to avoid echo writes.
- */
-let skipNextHotkeysPersist = false;
-
-export function setSkipNextHotkeysPersist(skip: boolean): void {
-	skipNextHotkeysPersist = skip;
-}
 
 /**
  * Creates a Zustand storage adapter that uses tRPC for persistence.
@@ -253,27 +242,6 @@ export const trpcThemeStorage = createJSONStorage(() =>
 		get: () => electronTrpcClient.uiState.theme.get.query(),
 		// biome-ignore lint/suspicious/noExplicitAny: Zustand persist passes unknown, tRPC expects typed input
 		set: (input) => electronTrpcClient.uiState.theme.set.mutate(input as any),
-	}),
-);
-
-/**
- * Zustand storage adapter for hotkeys state using tRPC
- */
-export const trpcHotkeysStorage = createJSONStorage(() =>
-	createTrpcStorageAdapter({
-		get: async () => {
-			const hotkeysState = await electronTrpcClient.uiState.hotkeys.get.query();
-			return { hotkeysState };
-		},
-		set: (input) => {
-			// Skip persistence when syncing from remote to avoid echo writes
-			if (skipNextHotkeysPersist) {
-				skipNextHotkeysPersist = false;
-				return Promise.resolve();
-			}
-			const state = input as { hotkeysState: HotkeysState };
-			return electronTrpcClient.uiState.hotkeys.set.mutate(state.hotkeysState);
-		},
 	}),
 );
 

@@ -1,1 +1,0 @@
-ALTER TABLE `settings` ADD `projects_base_dir` text;

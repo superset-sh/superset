@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import {
 	isItemVisible,
 	SETTING_ITEM_ID,
@@ -7,6 +8,7 @@ import {
 import { LinkBehaviorSetting } from "./components/LinkBehaviorSetting";
 import { PresetsSection } from "./components/PresetsSection";
 import { SessionsSection } from "./components/SessionsSection";
+import { V2PresetsSection } from "./components/V2PresetsSection";
 
 interface TerminalSettingsProps {
 	visibleItems?: SettingItemId[] | null;
@@ -44,6 +46,7 @@ export function TerminalSettings({
 	pendingCreateProjectId,
 	onPendingCreateProjectIdChange,
 }: TerminalSettingsProps) {
+	const { isV2CloudEnabled } = useIsV2CloudEnabled();
 	const showPresets = isItemVisible(
 		SETTING_ITEM_ID.TERMINAL_PRESETS,
 		visibleItems,
@@ -71,17 +74,28 @@ export function TerminalSettings({
 			</div>
 
 			<SectionList>
-				{(showPresets || showQuickAdd) && (
-					<PresetsSection
-						key="presets"
-						showPresets={showPresets}
-						showQuickAdd={showQuickAdd}
-						editingPresetId={editingPresetId}
-						onEditingPresetIdChange={onEditingPresetIdChange}
-						pendingCreateProjectId={pendingCreateProjectId}
-						onPendingCreateProjectIdChange={onPendingCreateProjectIdChange}
-					/>
-				)}
+				{(showPresets || showQuickAdd) &&
+					(isV2CloudEnabled ? (
+						<V2PresetsSection
+							key="presets"
+							showPresets={showPresets}
+							showQuickAdd={showQuickAdd}
+							editingPresetId={editingPresetId}
+							onEditingPresetIdChange={onEditingPresetIdChange}
+							pendingCreateProjectId={pendingCreateProjectId}
+							onPendingCreateProjectIdChange={onPendingCreateProjectIdChange}
+						/>
+					) : (
+						<PresetsSection
+							key="presets"
+							showPresets={showPresets}
+							showQuickAdd={showQuickAdd}
+							editingPresetId={editingPresetId}
+							onEditingPresetIdChange={onEditingPresetIdChange}
+							pendingCreateProjectId={pendingCreateProjectId}
+							onPendingCreateProjectIdChange={onPendingCreateProjectIdChange}
+						/>
+					))}
 				{showLinkBehavior && <LinkBehaviorSetting key="link-behavior" />}
 				{showSessions && <SessionsSection key="sessions" />}
 			</SectionList>
