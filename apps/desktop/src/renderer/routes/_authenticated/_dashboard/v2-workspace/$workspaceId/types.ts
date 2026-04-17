@@ -1,8 +1,9 @@
 export interface FilePaneData {
 	filePath: string;
 	mode: "editor" | "diff" | "preview";
-	hasChanges: boolean;
 	language?: string;
+	viewId?: string;
+	forceViewId?: string;
 }
 
 export interface TerminalPaneData {

@@ -26,3 +26,4 @@ export {
 	getDefaultTerminalColors,
 	getTerminalColors,
 } from "./types";
+export { withAlpha } from "./utils";

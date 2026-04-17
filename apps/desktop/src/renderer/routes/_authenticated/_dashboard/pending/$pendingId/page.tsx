@@ -21,10 +21,12 @@ import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/u
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import type { PendingWorkspaceRow } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal/schema";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
+import type { ResolvedPrContent } from "./buildForkAgentLaunch";
 import {
 	buildAdoptPayload,
 	buildCheckoutPayload,
 	buildForkPayload,
+	buildPrCheckoutPayload,
 } from "./buildIntentPayload";
 import { buildSetupPaneLayout } from "./buildSetupPaneLayout";
 import { dispatchForkLaunch } from "./dispatchForkLaunch";
@@ -74,6 +76,9 @@ function useFireIntent(pendingId: string, pending: PendingWorkspaceRow | null) {
 			let loadedAttachments:
 				| Array<{ data: string; mediaType: string; filename: string }>
 				| undefined;
+			// Populated in the pr-checkout path; threaded into dispatchForkLaunch
+			// so the agent-launch resolver reuses the data instead of re-fetching.
+			let resolvedPr: ResolvedPrContent | undefined;
 
 			switch (pending.intent) {
 				case "fork": {
@@ -103,6 +108,40 @@ function useFireIntent(pendingId: string, pending: PendingWorkspaceRow | null) {
 					result = await adoptWorktree(buildAdoptPayload(pending));
 					break;
 				}
+				case "pr-checkout": {
+					if (!pending.linkedPR) {
+						throw new Error("pr-checkout intent requires a linkedPR");
+					}
+					const hostUrl =
+						pending.hostTarget.kind === "local"
+							? activeHostUrl
+							: `${env.RELAY_URL}/hosts/${pending.hostTarget.hostId}`;
+					if (!hostUrl) {
+						throw new Error("Host service not available");
+					}
+					const hostClient = getHostServiceClientByUrl(hostUrl);
+					// Single fetch — reused by both the mutation payload and the
+					// agent-launch resolver (via resolvedPr). Zero net new fetches
+					// vs fork-with-PR, which fetches the same data at launch build.
+					const prContent =
+						await hostClient.workspaceCreation.getGitHubPullRequestContent.query(
+							{
+								projectId: pending.projectId,
+								prNumber: pending.linkedPR.prNumber,
+							},
+						);
+					resolvedPr = {
+						number: prContent.number,
+						url: prContent.url,
+						title: prContent.title,
+						body: prContent.body,
+						branch: prContent.branch,
+					};
+					result = await checkoutWorkspace(
+						buildPrCheckoutPayload(pendingId, pending, prContent),
+					);
+					break;
+				}
 			}
 
 			// V2 dispatch: after host-service.create resolves, build the launch
@@ -114,7 +153,10 @@ function useFireIntent(pendingId: string, pending: PendingWorkspaceRow | null) {
 			// a useQuery hook — a not-yet-resolved query would silently skip
 			// the dispatch, permanently losing the launch for a successful
 			// workspace create.
-			if (pending.intent === "fork" && result.workspace?.id) {
+			const needsLaunchDispatch =
+				(pending.intent === "fork" || pending.intent === "pr-checkout") &&
+				!!result.workspace?.id;
+			if (needsLaunchDispatch && result.workspace?.id) {
 				const agentConfigs = await trpcUtils.settings.getAgentPresets.fetch();
 				await dispatchForkLaunch({
 					workspaceId: result.workspace.id,
@@ -122,6 +164,7 @@ function useFireIntent(pendingId: string, pending: PendingWorkspaceRow | null) {
 					loadedAttachments,
 					agentConfigs,
 					activeHostUrl,
+					resolvedPr,
 					onApplyToRow: (patch) => {
 						collections.pendingWorkspaces.update(pendingId, (draft) => {
 							if (patch.terminalLaunch !== undefined) {
@@ -191,7 +234,8 @@ function PendingWorkspacePage() {
 				.select(({ pw }) => ({ ...pw })),
 		[collections, pendingId],
 	);
-	const pending = pendingRows?.[0] ?? null;
+	const pending: PendingWorkspaceRow | null =
+		(pendingRows?.[0] as PendingWorkspaceRow | undefined) ?? null;
 	const fireIntent = useFireIntent(pendingId, pending);
 
 	// Wait for the cloud row to appear in the local collection before

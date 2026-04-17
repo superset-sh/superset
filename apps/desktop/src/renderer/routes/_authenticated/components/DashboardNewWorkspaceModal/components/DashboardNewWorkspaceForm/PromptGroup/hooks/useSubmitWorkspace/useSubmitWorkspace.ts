@@ -39,6 +39,19 @@ export function useSubmitWorkspace(projectId: string | null) {
 			const { branchName, workspaceName } = resolveNames(draft);
 			const pendingId = crypto.randomUUID();
 
+			// PR mode: route to pr-checkout intent. Pending page fetches full
+			// PR details (getGitHubPullRequestContent) before firing the
+			// mutation, and derives the real branch name server-side from the
+			// resolved PR data. The `branchName` field here is a display
+			// placeholder; workspaceName similarly falls back to the PR title.
+			const isPrCheckout = draft.linkedPR !== null;
+			const prPlaceholderBranch = isPrCheckout
+				? `pr-${draft.linkedPR?.prNumber}`
+				: null;
+			const prPlaceholderName = isPrCheckout
+				? draft.linkedPR?.title || `PR #${draft.linkedPR?.prNumber}`
+				: null;
+
 			if (files.length > 0) {
 				try {
 					await storeAttachments(pendingId, files);
@@ -53,9 +66,9 @@ export function useSubmitWorkspace(projectId: string | null) {
 			collections.pendingWorkspaces.insert({
 				id: pendingId,
 				projectId,
-				intent: "fork",
-				name: workspaceName,
-				branchName,
+				intent: isPrCheckout ? "pr-checkout" : "fork",
+				name: prPlaceholderName ?? workspaceName,
+				branchName: prPlaceholderBranch ?? branchName,
 				prompt: draft.prompt,
 				baseBranch: draft.baseBranch ?? null,
 				baseBranchSource: draft.baseBranchSource ?? null,

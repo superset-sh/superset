@@ -17,15 +17,12 @@ export function PathActionsMenuItems({
 }: PathActionsMenuItemsProps) {
 	const { copyToClipboard } = useCopyToClipboard();
 
-	const handleCopy = async (path: string, successMessage: string) => {
-		try {
-			await copyToClipboard(path);
-			toast.success(successMessage);
-		} catch (error) {
-			toast.error(
-				`Failed to copy path: ${error instanceof Error ? error.message : "Unknown error"}`,
-			);
-		}
+	const handleCopy = (path: string, successMessage: string) => {
+		toast.promise(copyToClipboard(path), {
+			success: successMessage,
+			error: (err: unknown) =>
+				`Failed to copy path: ${err instanceof Error ? err.message : "Unknown error"}`,
+		});
 	};
 
 	const handleRevealInFinder = async () => {

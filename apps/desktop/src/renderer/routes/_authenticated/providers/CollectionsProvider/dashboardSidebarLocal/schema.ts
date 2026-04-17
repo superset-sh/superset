@@ -154,7 +154,7 @@ export const pendingWorkspaceSchema = z.object({
 	hostTarget: pendingHostTargetSchema,
 	// Which mutation the pending page should run. See V2_WORKSPACE_CREATION.md §3.
 	// Defaults to "fork" for any rows that predate this field.
-	intent: z.enum(["fork", "checkout", "adopt"]).default("fork"),
+	intent: z.enum(["fork", "checkout", "adopt", "pr-checkout"]).default("fork"),
 	name: z.string(),
 	// fork: derived branch name from prompt; checkout/adopt: existing branch.
 	branchName: z.string(),

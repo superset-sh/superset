@@ -1,26 +1,55 @@
 import { useCallback, useState } from "react";
-import { electronTrpc } from "renderer/lib/electron-trpc";
 
-/**
- * Copy text to clipboard via Electron's native clipboard API (IPC).
- *
- * Unlike `navigator.clipboard.writeText`, this works regardless of
- * document focus — no DOMException when a terminal or webview has focus.
- *
- * Returns `{ copyToClipboard, copied }` where `copied` is true for
- * `timeout` ms after a successful write.
- */
+async function writeTextToClipboard(text: string): Promise<void> {
+	try {
+		await navigator.clipboard.writeText(text);
+		return;
+	} catch {}
+
+	const textarea = window.document.createElement("textarea");
+	textarea.value = text;
+	textarea.setAttribute("readonly", "");
+	textarea.style.position = "fixed";
+	textarea.style.top = "0";
+	textarea.style.left = "0";
+	textarea.style.width = "1px";
+	textarea.style.height = "1px";
+	textarea.style.opacity = "0";
+	textarea.style.pointerEvents = "none";
+
+	const body = window.document.body;
+	body.appendChild(textarea);
+
+	const previousSelection = window.document.getSelection();
+	const previousRange =
+		previousSelection && previousSelection.rangeCount > 0
+			? previousSelection.getRangeAt(0)
+			: null;
+
+	try {
+		textarea.select();
+		textarea.setSelectionRange(0, text.length);
+		const ok = window.document.execCommand("copy");
+		if (!ok) throw new Error("Copy to clipboard failed");
+	} finally {
+		body.removeChild(textarea);
+		if (previousRange && previousSelection) {
+			previousSelection.removeAllRanges();
+			previousSelection.addRange(previousRange);
+		}
+	}
+}
+
 export function useCopyToClipboard(timeout = 2000) {
-	const { mutateAsync } = electronTrpc.external.copyPath.useMutation();
 	const [copied, setCopied] = useState(false);
 
 	const copyToClipboard = useCallback(
 		async (text: string) => {
-			await mutateAsync(text);
+			await writeTextToClipboard(text);
 			setCopied(true);
 			setTimeout(() => setCopied(false), timeout);
 		},
-		[mutateAsync, timeout],
+		[timeout],
 	);
 
 	return { copyToClipboard, copied };

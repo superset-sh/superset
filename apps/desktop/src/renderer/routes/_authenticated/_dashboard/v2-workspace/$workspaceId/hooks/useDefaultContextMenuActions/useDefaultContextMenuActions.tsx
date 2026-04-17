@@ -33,7 +33,7 @@ export function useDefaultContextMenuActions(
 	const equalizePaneSplitsShortcut = useHotkeyDisplay(
 		"EQUALIZE_PANE_SPLITS",
 	).text;
-	const closePaneShortcut = useHotkeyDisplay("CLOSE_TERMINAL").text;
+	const closePaneShortcut = useHotkeyDisplay("CLOSE_PANE").text;
 
 	return useMemo<ContextMenuActionConfig<PaneViewerData>[]>(
 		() => [

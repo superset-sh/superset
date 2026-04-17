@@ -1,9 +1,10 @@
 import {
 	type FocusDirection,
 	getSpatialNeighborPaneId,
+	type PaneRegistry,
 	type WorkspaceStore,
 } from "@superset/panes";
-import { useCallback } from "react";
+import { useCallback, useRef } from "react";
 import { useHotkey } from "renderer/hotkeys";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import type { V2TerminalPresetRow } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
@@ -20,11 +21,13 @@ export function useWorkspaceHotkeys({
 	workspaceId,
 	matchedPresets,
 	executePreset,
+	paneRegistry,
 }: {
 	store: StoreApi<WorkspaceStore<PaneViewerData>>;
 	workspaceId: string;
 	matchedPresets: V2TerminalPresetRow[];
 	executePreset: (preset: V2TerminalPresetRow) => void;
+	paneRegistry: PaneRegistry<PaneViewerData>;
 }) {
 	const collections = useCollections();
 
@@ -69,11 +72,22 @@ export function useWorkspaceHotkeys({
 
 	// --- Tab management ---
 
-	useHotkey("CLOSE_TERMINAL", () => {
-		const state = store.getState();
-		const active = state.getActivePane();
-		if (active) {
+	const isClosingPaneRef = useRef(false);
+	useHotkey("CLOSE_PANE", async () => {
+		if (isClosingPaneRef.current) return;
+		isClosingPaneRef.current = true;
+		try {
+			const state = store.getState();
+			const active = state.getActivePane();
+			if (!active) return;
+			const definition = paneRegistry[active.pane.kind];
+			if (definition?.onBeforeClose) {
+				const allowed = await definition.onBeforeClose(active.pane);
+				if (!allowed) return;
+			}
 			state.closePane({ tabId: active.tabId, paneId: active.pane.id });
+		} finally {
+			isClosingPaneRef.current = false;
 		}
 	});
 

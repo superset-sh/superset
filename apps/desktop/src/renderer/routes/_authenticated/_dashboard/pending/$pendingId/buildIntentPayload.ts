@@ -72,7 +72,81 @@ export function buildCheckoutPayload(
 		hostTarget: pending.hostTarget,
 		workspaceName: pending.name,
 		branch: pending.branchName,
-		composer: { runSetupScript: pending.runSetupScript },
+		composer: {
+			baseBranch: pending.baseBranch || undefined,
+			runSetupScript: pending.runSetupScript,
+		},
+	};
+}
+
+/**
+ * Builds the `workspaceCreation.checkout` payload for PR mode. Requires the
+ * resolved PR content fetched at pending-page time (not persisted in the
+ * pending row itself — kept narrow on purpose).
+ *
+ * The server derives the real local branch name from `pr.headRefName` +
+ * `pr.isCrossRepository`; the pending row's `branchName` is only a display
+ * placeholder in PR mode.
+ */
+export function buildPrCheckoutPayload(
+	pendingId: string,
+	pending: PendingWorkspaceRow,
+	prContent: {
+		number: number;
+		url: string;
+		title: string;
+		branch: string; // headRefName
+		baseBranch: string; // baseRefName
+		headRepositoryOwner: string | null;
+		isCrossRepository: boolean;
+		state: string;
+	},
+): CheckoutWorkspaceInput {
+	// Null owner on a cross-repo PR means the head fork repo has been
+	// deleted. We can't derive `<owner>/<headRefName>` without it, and
+	// `gh pr checkout` wouldn't have a fork to configure push against.
+	// Fail early with a clear error rather than a cryptic server-side
+	// "headRepositoryOwner is required".
+	if (prContent.isCrossRepository && !prContent.headRepositoryOwner) {
+		throw new Error(
+			`Cannot check out PR #${prContent.number}: the head fork repository has been deleted.`,
+		);
+	}
+	const linked = mapLinkedContextFromPending(pending);
+	const normalizedState: "open" | "closed" | "merged" =
+		prContent.state === "closed"
+			? "closed"
+			: prContent.state === "merged"
+				? "merged"
+				: "open";
+	return {
+		pendingId,
+		projectId: pending.projectId,
+		hostTarget: pending.hostTarget,
+		workspaceName: pending.name,
+		pr: {
+			number: prContent.number,
+			url: prContent.url,
+			title: prContent.title,
+			headRefName: prContent.branch,
+			baseRefName: prContent.baseBranch,
+			// Same-repo PRs don't need an owner for branch derivation; pass an
+			// empty string rather than leaking null into the server input.
+			headRepositoryOwner: prContent.headRepositoryOwner ?? "",
+			isCrossRepository: prContent.isCrossRepository,
+			state: normalizedState,
+		},
+		composer: {
+			prompt: pending.prompt || undefined,
+			// PR's base is authoritative for the Changes tab — see plan §3.
+			baseBranch: prContent.baseBranch,
+			runSetupScript: pending.runSetupScript,
+		},
+		linkedContext: {
+			internalIssueIds: linked.internalIssueIds,
+			githubIssueUrls: linked.githubIssueUrls,
+			linkedPrUrl: linked.linkedPrUrl ?? prContent.url,
+		},
 	};
 }
 

@@ -301,7 +301,6 @@ function WorkspacePage() {
 			});
 		}
 	}, [workspace?.worktreePath, resolvedDefaultApp, mutateOpenInApp, projectId]);
-	useHotkey("OPEN_IN_APP", handleOpenInApp);
 
 	// Copy path shortcut
 	const { copyToClipboard } = useCopyToClipboard();

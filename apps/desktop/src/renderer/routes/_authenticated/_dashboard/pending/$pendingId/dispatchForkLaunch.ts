@@ -10,6 +10,7 @@ import type { ResolvedAgentConfig } from "shared/utils/agent-settings";
 import {
 	buildForkAgentLaunch,
 	type LoadedAttachment,
+	type ResolvedPrContent,
 } from "./buildForkAgentLaunch";
 
 export interface DispatchForkLaunchInputs {
@@ -21,6 +22,12 @@ export interface DispatchForkLaunchInputs {
 	loadedAttachments: LoadedAttachment[] | undefined;
 	agentConfigs: ResolvedAgentConfig[];
 	activeHostUrl: string | null;
+	/**
+	 * Pre-resolved PR content from the pr-checkout flow. Threaded into
+	 * `buildForkAgentLaunch` so the `fetchPullRequest` resolver skips a
+	 * redundant `getGitHubPullRequestContent` call.
+	 */
+	resolvedPr?: ResolvedPrContent;
 	onApplyToRow: (patch: {
 		terminalLaunch?: PendingTerminalLaunch | null;
 		chatLaunch?: PendingChatLaunch | null;
@@ -43,6 +50,7 @@ export async function dispatchForkLaunch({
 	loadedAttachments,
 	agentConfigs,
 	activeHostUrl,
+	resolvedPr,
 	onApplyToRow,
 }: DispatchForkLaunchInputs): Promise<void> {
 	console.log("[v2-launch] dispatchForkLaunch: start", {
@@ -62,6 +70,7 @@ export async function dispatchForkLaunch({
 			attachments: loadedAttachments,
 			agentConfigs,
 			hostServiceClient: hostClient,
+			resolvedPr,
 		});
 	} catch (err) {
 		const msg = err instanceof Error ? err.message : String(err);

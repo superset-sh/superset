@@ -47,7 +47,8 @@ export function useConsumePendingLaunch({
 		[collections, workspaceId],
 	);
 
-	const pending = matches?.[0] ?? null;
+	const pending: PendingWorkspaceRow | null =
+		(matches?.[0] as PendingWorkspaceRow | undefined) ?? null;
 
 	const updateRow = useCallback(
 		(patch: Partial<PendingWorkspaceRow>) => {

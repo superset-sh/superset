@@ -4,6 +4,7 @@ import {
 	buildAdoptPayload,
 	buildCheckoutPayload,
 	buildForkPayload,
+	buildPrCheckoutPayload,
 	mapLinkedContextFromPending,
 } from "./buildIntentPayload";
 
@@ -173,6 +174,127 @@ describe("buildCheckoutPayload", () => {
 		expect(payload.branch).toBe("feature-foo");
 		expect(payload.workspaceName).toBe("my-workspace");
 		expect(payload.composer).toEqual({ runSetupScript: false });
+	});
+});
+
+describe("buildPrCheckoutPayload", () => {
+	const prContent = {
+		number: 42,
+		url: "https://github.com/o/r/pull/42",
+		title: "Fix typo",
+		branch: "fix/typo",
+		baseBranch: "main",
+		headRepositoryOwner: "kietho",
+		isCrossRepository: true,
+		state: "open",
+		body: "body text",
+	};
+
+	test("maps PR content into the pr input with normalized state", () => {
+		const pending = makePending({
+			intent: "pr-checkout",
+			prompt: "review this PR",
+			linkedPR: {
+				prNumber: 42,
+				title: "Fix typo",
+				url: "https://github.com/o/r/pull/42",
+				state: "open",
+			},
+		});
+		const payload = buildPrCheckoutPayload("pid", pending, prContent);
+
+		expect(payload.pr).toEqual({
+			number: 42,
+			url: "https://github.com/o/r/pull/42",
+			title: "Fix typo",
+			headRefName: "fix/typo",
+			baseRefName: "main",
+			headRepositoryOwner: "kietho",
+			isCrossRepository: true,
+			state: "open",
+		});
+		expect(payload.branch).toBeUndefined();
+	});
+
+	test("composer.baseBranch = PR's baseRefName (Changes-tab authority)", () => {
+		const pending = makePending({ intent: "pr-checkout" });
+		const payload = buildPrCheckoutPayload("pid", pending, {
+			...prContent,
+			baseBranch: "develop",
+		});
+		expect(payload.composer.baseBranch).toBe("develop");
+	});
+
+	test("preserves prompt and runSetupScript from pending row", () => {
+		const pending = makePending({
+			intent: "pr-checkout",
+			prompt: "hey",
+			runSetupScript: false,
+		});
+		const payload = buildPrCheckoutPayload("pid", pending, prContent);
+		expect(payload.composer.prompt).toBe("hey");
+		expect(payload.composer.runSetupScript).toBe(false);
+	});
+
+	test("linkedPrUrl falls back to PR content URL when linkedPR-level missing", () => {
+		// linkedPR exists but for some reason url isn't in the linkedIssues map
+		// (shouldn't happen normally, but be resilient).
+		const pending = makePending({
+			intent: "pr-checkout",
+			linkedPR: null,
+		});
+		const payload = buildPrCheckoutPayload("pid", pending, prContent);
+		expect(payload.linkedContext?.linkedPrUrl).toBe(
+			"https://github.com/o/r/pull/42",
+		);
+	});
+
+	test("closed state maps to closed", () => {
+		const pending = makePending({ intent: "pr-checkout" });
+		const payload = buildPrCheckoutPayload("pid", pending, {
+			...prContent,
+			state: "closed",
+		});
+		expect(payload.pr?.state).toBe("closed");
+	});
+
+	test("merged state maps to merged", () => {
+		const pending = makePending({ intent: "pr-checkout" });
+		const payload = buildPrCheckoutPayload("pid", pending, {
+			...prContent,
+			state: "merged",
+		});
+		expect(payload.pr?.state).toBe("merged");
+	});
+
+	test("unknown state falls back to open (safe default)", () => {
+		const pending = makePending({ intent: "pr-checkout" });
+		const payload = buildPrCheckoutPayload("pid", pending, {
+			...prContent,
+			state: "draft",
+		});
+		expect(payload.pr?.state).toBe("open");
+	});
+
+	test("throws clear error for cross-repo PR with deleted fork (null owner)", () => {
+		const pending = makePending({ intent: "pr-checkout" });
+		expect(() =>
+			buildPrCheckoutPayload("pid", pending, {
+				...prContent,
+				headRepositoryOwner: null,
+				isCrossRepository: true,
+			}),
+		).toThrow("head fork repository has been deleted");
+	});
+
+	test("same-repo PR with null owner is fine (owner not needed)", () => {
+		const pending = makePending({ intent: "pr-checkout" });
+		const payload = buildPrCheckoutPayload("pid", pending, {
+			...prContent,
+			headRepositoryOwner: null,
+			isCrossRepository: false,
+		});
+		expect(payload.pr?.headRepositoryOwner).toBe("");
 	});
 });
 

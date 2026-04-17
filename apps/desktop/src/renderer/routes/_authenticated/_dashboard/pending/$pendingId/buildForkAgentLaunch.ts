@@ -29,6 +29,14 @@ export interface LoadedAttachment {
 	filename: string;
 }
 
+export interface ResolvedPrContent {
+	number: number;
+	title: string;
+	body: string;
+	url: string;
+	branch: string;
+}
+
 export interface BuildForkAgentLaunchInputs {
 	pending: Pick<
 		PendingWorkspaceRow,
@@ -62,11 +70,20 @@ export interface BuildForkAgentLaunchInputs {
 					state: string;
 					branch: string;
 					baseBranch: string;
+					headRepositoryOwner: string | null;
+					isCrossRepository: boolean;
 					author: string | null;
 				}>;
 			};
 		};
 	};
+	/**
+	 * Pre-resolved PR content. Used by the pr-checkout flow to avoid a
+	 * redundant `getGitHubPullRequestContent` call — the pending page
+	 * already fetched this once to build the mutation payload, so we
+	 * thread it through rather than re-fetching inside `fetchPullRequest`.
+	 */
+	resolvedPr?: ResolvedPrContent;
 }
 
 /**
@@ -132,6 +149,7 @@ export async function buildForkAgentLaunch(
 			resolveCtx: buildResolveCtxFromPending(
 				inputs.pending,
 				inputs.hostServiceClient,
+				inputs.resolvedPr,
 			),
 		},
 	);
@@ -386,6 +404,7 @@ function slugifyTitle(title: string): string {
 function buildResolveCtxFromPending(
 	pending: BuildForkAgentLaunchInputs["pending"],
 	client?: BuildForkAgentLaunchInputs["hostServiceClient"],
+	resolvedPr?: ResolvedPrContent,
 ): ResolveCtx {
 	return {
 		projectId: pending.projectId,
@@ -438,6 +457,19 @@ function buildResolveCtxFromPending(
 				throw Object.assign(new Error(`PR not found: ${url}`), {
 					status: 404,
 				});
+			}
+
+			// Pre-resolved from the pending page (pr-checkout path) — skip
+			// the redundant host-service call. The mutation payload already
+			// used the same `getGitHubPullRequestContent` response.
+			if (resolvedPr && resolvedPr.url === url) {
+				return {
+					number: resolvedPr.number,
+					url: resolvedPr.url,
+					title: resolvedPr.title,
+					body: resolvedPr.body,
+					branch: resolvedPr.branch,
+				};
 			}
 
 			// Try host-service for full body + branch; fall back to pending-row.
