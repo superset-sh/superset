@@ -17,6 +17,14 @@ export interface OpenSpawnSessionOptions {
 }
 
 const DEFAULT_HANDSHAKE_TIMEOUT_MS = 5000;
+const MAX_LINE_BYTES = 1024 * 1024; // 1 MiB cap on in-flight line buffer
+
+function safeEmitError(emitter: EventEmitter, err: Error): void {
+	if (emitter.listenerCount("error") > 0) {
+		emitter.emit("error", err);
+	}
+	// else: silent drop, matches ChildProcess behavior when no handler
+}
 
 /**
  * Drop-in replacement for node:child_process ChildProcess that actually wraps
@@ -94,7 +102,18 @@ export async function openSpawnSession(
 		const onHandshakeData = (chunk: Buffer): void => {
 			buffer += chunk.toString("utf8");
 			const newlineIdx = buffer.indexOf("\n");
-			if (newlineIdx === -1) return;
+			if (newlineIdx === -1) {
+				if (buffer.length > MAX_LINE_BYTES) {
+					clearTimeout(timer);
+					client.destroy();
+					reject(
+						new Error(
+							`handshake buffer exceeded ${MAX_LINE_BYTES} bytes without newline`,
+						),
+					);
+				}
+				return;
+			}
 
 			const line = buffer.slice(0, newlineIdx);
 			const remainder = buffer.slice(newlineIdx + 1);
@@ -150,6 +169,13 @@ function createSession(
 ): SpawnSession {
 	const emitter = new EventEmitter() as SpawnSession;
 	Object.defineProperty(emitter, "pid", { value: pid, writable: false });
+
+	// Track whether an `exit` event has been emitted so we can synthesize one
+	// if the socket closes without a prior `exit` frame from the server.
+	let exitEmitted = false;
+	emitter.on("exit", () => {
+		exitEmitted = true;
+	});
 
 	// Readable streams for stdout and stderr — data is pushed manually as
 	// frames arrive from the server.
@@ -220,16 +246,36 @@ function createSession(
 
 	client.on("data", (chunk: Buffer) => {
 		buffer += chunk.toString("utf8");
+		if (buffer.length > MAX_LINE_BYTES) {
+			// Malformed stream — no newline in sight. Destroy the socket, notify
+			// listeners, and synthesize an exit so consumers don't hang.
+			const err = new Error(
+				`stream buffer exceeded ${MAX_LINE_BYTES} bytes without newline`,
+			);
+			buffer = "";
+			try {
+				client.destroy();
+			} catch {
+				// ignore
+			}
+			safeEmitError(emitter, err);
+			return;
+		}
 		processBuffer();
 	});
 
 	client.once("close", () => {
 		stdout.push(null);
 		stderr.push(null);
+		if (!exitEmitted) {
+			// Server closed without an `exit` frame — synthesize one so
+			// consumers awaiting `exit` don't hang.
+			emitter.emit("exit", null, null);
+		}
 	});
 
 	client.on("error", (err) => {
-		emitter.emit("error", err);
+		safeEmitError(emitter, err);
 	});
 
 	return emitter;
