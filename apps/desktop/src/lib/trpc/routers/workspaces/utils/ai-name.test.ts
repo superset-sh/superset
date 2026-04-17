@@ -25,7 +25,6 @@ type SelectedWorkspace =
 
 mock.module("@superset/chat/server/shared", () => ({
 	getSmallModel: getSmallModelMock,
-	hasSmallModelCredentials: mock(() => false),
 }));
 
 mock.module("@superset/chat/server/desktop", () => ({

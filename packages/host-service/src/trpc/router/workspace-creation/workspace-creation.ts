@@ -495,30 +495,10 @@ export const workspaceCreationRouter = router({
 				.sync();
 			if (!localProject) return { branchName: null };
 
-			const git = await ctx.git(localProject.repoPath);
-			let existingBranches: string[] = [];
-			try {
-				const raw = await git.raw([
-					"for-each-ref",
-					"--format=%(refname:short)",
-					"refs/heads/",
-					"refs/remotes/origin/",
-				]);
-				const names = new Set<string>();
-				for (const line of raw.trim().split("\n").filter(Boolean)) {
-					let name = line;
-					if (name.startsWith("origin/")) name = name.slice("origin/".length);
-					if (name === "HEAD") continue;
-					names.add(name);
-				}
-				existingBranches = Array.from(names);
-			} catch (error) {
-				console.warn(
-					"[generateBranchName] failed to list branches, proceeding without conflict checking:",
-					error,
-				);
-			}
-
+			const existingBranches = await listBranchNames(
+				ctx,
+				localProject.repoPath,
+			);
 			const branchName = await generateBranchNameFromPrompt(
 				trimmed,
 				existingBranches,

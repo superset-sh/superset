@@ -119,9 +119,15 @@ async function getAnthropicCredentialFromAuthStorage(): Promise<LocalResolvedCre
 									: undefined,
 						};
 					}
-					return { kind: "oauth", expiresAt };
-				} catch {
-					return { kind: "oauth", expiresAt };
+					// Refresh returned no usable access token — callers must
+					// fall back rather than proxying an expired credential.
+					return null;
+				} catch (error) {
+					console.warn(
+						"[LocalModelProvider] Anthropic OAuth refresh failed:",
+						error,
+					);
+					return null;
 				}
 			}
 			if (

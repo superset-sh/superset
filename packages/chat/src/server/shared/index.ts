@@ -1,1 +1,1 @@
-export { getSmallModel, hasSmallModelCredentials } from "./small-model";
+export { getSmallModel } from "./small-model";

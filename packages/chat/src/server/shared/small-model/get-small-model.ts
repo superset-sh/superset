@@ -69,19 +69,3 @@ export function getSmallModel(): unknown | null {
 
 	return null;
 }
-
-export function hasSmallModelCredentials(): boolean {
-	const storage = safeAuthStorage();
-	return (
-		resolveApiKey(
-			process.env.ANTHROPIC_API_KEY,
-			storage,
-			ANTHROPIC_AUTH_PROVIDER_ID,
-		) !== null ||
-		resolveApiKey(
-			process.env.OPENAI_API_KEY,
-			storage,
-			OPENAI_AUTH_PROVIDER_ID,
-		) !== null
-	);
-}

@@ -96,8 +96,12 @@ export class ChatService {
 				await authStorage.getApiKey(ANTHROPIC_AUTH_PROVIDER_ID);
 				authStorage.reload();
 				storedCredential = authStorage.get(ANTHROPIC_AUTH_PROVIDER_ID);
-			} catch {
+			} catch (error) {
 				// Refresh failed; fall through to expired-state handling below.
+				console.warn(
+					"[chat-service] Anthropic OAuth refresh failed, falling back to expired state:",
+					error,
+				);
 			}
 		}
 		const configCredential = getAnthropicCredentialsFromConfig();

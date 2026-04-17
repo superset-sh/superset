@@ -21,9 +21,9 @@ function sanitizeGeneratedBranchName(raw: string): string {
 		.replace(/[^a-z0-9._+@-]/g, "")
 		.replace(/\.{2,}/g, ".")
 		.replace(/-+/g, "-")
-		.replace(/^[-.]+|[-.]+$/g, "")
 		.replace(/\.lock$/g, "")
-		.slice(0, MAX_BRANCH_LENGTH);
+		.slice(0, MAX_BRANCH_LENGTH)
+		.replace(/^[-.]+|[-.]+$/g, "");
 }
 
 export async function generateBranchNameFromPrompt(
