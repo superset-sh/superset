@@ -1,3 +1,4 @@
+import { findSlashCommandByNameOrAlias } from "@superset/chat/shared";
 import {
 	PromptInputAttachment,
 	type PromptInputMessage,
@@ -9,7 +10,6 @@ import { useQuery } from "@tanstack/react-query";
 import type { ChatStatus } from "ai";
 import type React from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { findSlashCommandByNameOrAlias } from "@superset/chat/shared";
 import type { SlashCommand } from "renderer/components/Chat/ChatInterface/hooks/useSlashCommands";
 import type {
 	ModelOption,
@@ -503,9 +503,10 @@ export function ChatPaneInterface({
 	}, [isRunning]);
 
 	// Scroll chat to bottom whenever the footer question overlay appears, changes, or disappears
+	// biome-ignore lint/correctness/useExhaustiveDependencies: pendingQuestion is an intentional re-run trigger
 	useEffect(() => {
 		bumpFooterScroll();
-	}, [bumpFooterScroll]);
+	}, [bumpFooterScroll, pendingQuestion]);
 
 	useEffect(() => {
 		onRawSnapshotChange?.({

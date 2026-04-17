@@ -1,12 +1,11 @@
 import type { JSONContent } from "@tiptap/core";
 
 /**
- * Regex that matches @mention tokens.
- * Captures the path after the @. We treat any non-whitespace sequence
- * following @ as a file-mention (the editor only produces these via the
- * mention picker, so there are no false-positive @ strings in practice).
+ * Matches file-mention tokens produced by serializeEditorToText.
+ * Requires @ to appear at the start of the string or after whitespace so that
+ * strings like "foo@bar.com" or "@decorator" mid-word are not rewritten.
  */
-const MENTION_RE = /@(\S+)/g;
+const MENTION_RE = /(?:^|(?<=\s))@(\S+)/g;
 
 /**
  * Converts a plain-text string (as produced by serializeEditorToText) back
@@ -23,15 +22,19 @@ export function parseTextToEditorContent(text: string): JSONContent {
 		let lastIndex = 0;
 		MENTION_RE.lastIndex = 0;
 
-		let match: RegExpExecArray | null;
-		while ((match = MENTION_RE.exec(line)) !== null) {
+		let match: RegExpExecArray | null = MENTION_RE.exec(line);
+		while (match !== null) {
 			// Text before the mention
 			if (match.index > lastIndex) {
-				inlineNodes.push({ type: "text", text: line.slice(lastIndex, match.index) });
+				inlineNodes.push({
+					type: "text",
+					text: line.slice(lastIndex, match.index),
+				});
 			}
 			// The file-mention node
 			inlineNodes.push({ type: "file-mention", attrs: { path: match[1] } });
 			lastIndex = match.index + match[0].length;
+			match = MENTION_RE.exec(line);
 		}
 
 		// Remaining text after the last mention

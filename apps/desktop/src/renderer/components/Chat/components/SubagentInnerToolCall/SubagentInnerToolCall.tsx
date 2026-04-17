@@ -214,6 +214,19 @@ export function SubagentInnerToolCall({
 			? ("output-error" as const)
 			: ("output-available" as const);
 
+	const { label, icon } = getToolMeta(normalized);
+	const description = getDescription(normalized, args);
+	const hasResult = result !== null && result.trim().length > 0;
+
+	// Read file: parse and display using the shared ReadFileTool component
+	const parsedReadFile = useMemo(
+		() =>
+			normalized === "mastra_workspace_read_file" && hasResult
+				? parseReadFileResult(result!)
+				: null,
+		[normalized, hasResult, result],
+	);
+
 	if (normalized === "mastra_workspace_execute_command") {
 		const argsRecord = args ?? {};
 		const resultRecord = result !== null ? { content: result } : {};
@@ -231,19 +244,6 @@ export function SubagentInnerToolCall({
 			/>
 		);
 	}
-
-	const { label, icon } = getToolMeta(normalized);
-	const description = getDescription(normalized, args);
-	const hasResult = result !== null && result.trim().length > 0;
-
-	// Read file: parse and display using the shared ReadFileTool component
-	const parsedReadFile = useMemo(
-		() =>
-			normalized === "mastra_workspace_read_file" && hasResult
-				? parseReadFileResult(result!)
-				: null,
-		[normalized, hasResult, result],
-	);
 	if (
 		normalized === "mastra_workspace_read_file" &&
 		hasResult &&

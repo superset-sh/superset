@@ -227,15 +227,6 @@ export function AskUserQuestionToolCall({
 	const hasAnswers =
 		Object.keys(answers).length > 0 || answerFallbackText !== undefined;
 
-	// No args available (tool_result-only path with input: {}) — nothing useful to show
-	if (questions.length === 0 && !isCancelledByError && !isCancelledByStop)
-		return null;
-
-	const isAnswered =
-		!isPending && !isCancelledByError && !isCancelledByStop && hasAnswers;
-	const isCancelled =
-		!isPending && !isCancelledByError && !isCancelledByStop && !hasAnswers;
-
 	const answeredQAs = useMemo(
 		() =>
 			questions
@@ -249,6 +240,15 @@ export function AskUserQuestionToolCall({
 				),
 		[questions, answers],
 	);
+
+	// No args available (tool_result-only path with input: {}) — nothing useful to show
+	if (questions.length === 0 && !isCancelledByError && !isCancelledByStop)
+		return null;
+
+	const isAnswered =
+		!isPending && !isCancelledByError && !isCancelledByStop && hasAnswers;
+	const isCancelled =
+		!isPending && !isCancelledByError && !isCancelledByStop && !hasAnswers;
 
 	// Fallback for plain-string result when questions array has one entry
 	const fallbackQA =

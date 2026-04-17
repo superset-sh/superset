@@ -3,7 +3,12 @@ import { ReadFileTool } from "@superset/ui/ai-elements/read-file-tool";
 import { ToolInput, ToolOutput } from "@superset/ui/ai-elements/tool";
 import { ToolCallRow } from "@superset/ui/ai-elements/tool-call-row";
 import { getToolName } from "ai";
-import { FileIcon, FileSearchIcon, FolderTreeIcon, SearchIcon } from "lucide-react";
+import {
+	FileIcon,
+	FileSearchIcon,
+	FolderTreeIcon,
+	SearchIcon,
+} from "lucide-react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { detectLanguage } from "shared/detect-language";
 import type { BundledLanguage } from "shiki";
@@ -81,8 +86,9 @@ export function ReadOnlyToolCall({
 	);
 
 	const fileContent = fileQuery.data?.content as string | undefined;
+	const hasFileContent = fileContent !== undefined;
 
-	const lineRange = fileContent
+	const lineRange = hasFileContent
 		? (() => {
 				const startLine =
 					Number(
@@ -157,7 +163,7 @@ export function ReadOnlyToolCall({
 		isReadFileTool &&
 		!isError &&
 		!isPending &&
-		!fileContent &&
+		!hasFileContent &&
 		fileQuery.isLoading
 	) {
 		return (
@@ -170,7 +176,7 @@ export function ReadOnlyToolCall({
 		);
 	}
 
-	if (isReadFileTool && !isError && fileContent) {
+	if (isReadFileTool && !isError && hasFileContent) {
 		const displayPath = absoluteFilePath ?? rawFilePath;
 		const filename = displayPath.split("/").pop() ?? displayPath;
 		return (

@@ -995,6 +995,11 @@ export function ChatPaneInterface({
 						answer: trimmedAnswer,
 					},
 				});
+			} catch (error) {
+				// Roll back optimistic UI if the RPC fails
+				setAnsweredQuestionId(null);
+				useTabsStore.getState().setPaneStatus(paneId, "question");
+				throw error;
 			} finally {
 				setQuestionResponsePending(false);
 			}

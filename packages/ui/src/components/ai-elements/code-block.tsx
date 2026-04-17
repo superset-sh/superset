@@ -78,6 +78,9 @@ export async function highlightCode(
 			}),
 		]);
 	} catch {
+		if (language === ("text" as BundledLanguage)) {
+			return ["", ""];
+		}
 		// Unknown/unsupported language — fall back to plain text
 		return highlightCode(
 			code,

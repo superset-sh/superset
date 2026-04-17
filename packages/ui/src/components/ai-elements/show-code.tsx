@@ -128,6 +128,7 @@ export function ShowCode({
 							<Tooltip>
 								<TooltipTrigger asChild>
 									<Button
+										aria-label={isExpanded ? "Collapse" : "Expand"}
 										className="h-6 w-6"
 										onClick={() => setIsExpanded((prev) => !prev)}
 										size="icon"
@@ -151,6 +152,7 @@ export function ShowCode({
 							<Tooltip>
 								<TooltipTrigger asChild>
 									<Button
+										aria-label="Open"
 										className="h-6 w-6"
 										onClick={(e) => {
 											e.stopPropagation();
@@ -170,6 +172,7 @@ export function ShowCode({
 						<Tooltip>
 							<TooltipTrigger asChild>
 								<Button
+									aria-label={isCopied ? "Copied" : "Copy"}
 									className="h-6 w-6"
 									onClick={handleCopy}
 									size="icon"

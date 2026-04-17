@@ -36,11 +36,12 @@ function ScrollAnchor({ trigger }: { trigger: number }) {
 	const isAtBottomRef = useRef(isAtBottom);
 	isAtBottomRef.current = isAtBottom;
 
+	// biome-ignore lint/correctness/useExhaustiveDependencies: trigger is an intentional re-run signal
 	useEffect(() => {
 		if (isAtBottomRef.current) {
 			scrollToBottom("instant");
 		}
-	}, [scrollToBottom]);
+	}, [trigger, scrollToBottom]);
 
 	return null;
 }
