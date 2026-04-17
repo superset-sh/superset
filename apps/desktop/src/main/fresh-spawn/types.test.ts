@@ -1,5 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import {
+	ClientToServerStreamFrameSchema,
+	ServerToClientStreamFrameSchema,
 	type SpawnRequest,
 	SpawnRequestSchema,
 	type SpawnResponse,
@@ -84,6 +86,105 @@ describe("fresh-spawn protocol types", () => {
 			};
 
 			expect(() => SpawnResponseSchema.parse(response)).toThrow();
+		});
+	});
+
+	describe("streaming frames", () => {
+		describe("server→client", () => {
+			it("validates stdout frame with base64 data", () => {
+				expect(() =>
+					ServerToClientStreamFrameSchema.parse({
+						type: "stdout",
+						data: "aGVsbG8=",
+					}),
+				).not.toThrow();
+			});
+
+			it("validates stderr frame", () => {
+				expect(() =>
+					ServerToClientStreamFrameSchema.parse({
+						type: "stderr",
+						data: "",
+					}),
+				).not.toThrow();
+			});
+
+			it("validates exit frame with code and signal", () => {
+				expect(() =>
+					ServerToClientStreamFrameSchema.parse({
+						type: "exit",
+						code: 0,
+						signal: null,
+					}),
+				).not.toThrow();
+			});
+
+			it("validates exit frame with signal and null code", () => {
+				expect(() =>
+					ServerToClientStreamFrameSchema.parse({
+						type: "exit",
+						code: null,
+						signal: "SIGTERM",
+					}),
+				).not.toThrow();
+			});
+
+			it("rejects unknown type", () => {
+				expect(() =>
+					ServerToClientStreamFrameSchema.parse({
+						type: "unknown",
+					}),
+				).toThrow();
+			});
+		});
+
+		describe("client→server", () => {
+			it("validates stdin frame", () => {
+				expect(() =>
+					ClientToServerStreamFrameSchema.parse({
+						type: "stdin",
+						data: "cHdkCg==",
+					}),
+				).not.toThrow();
+			});
+
+			it("validates resize frame", () => {
+				expect(() =>
+					ClientToServerStreamFrameSchema.parse({
+						type: "resize",
+						cols: 120,
+						rows: 40,
+					}),
+				).not.toThrow();
+			});
+
+			it("rejects resize with zero dims", () => {
+				expect(() =>
+					ClientToServerStreamFrameSchema.parse({
+						type: "resize",
+						cols: 0,
+						rows: 40,
+					}),
+				).toThrow();
+			});
+
+			it("validates signal frame", () => {
+				expect(() =>
+					ClientToServerStreamFrameSchema.parse({
+						type: "signal",
+						name: "SIGINT",
+					}),
+				).not.toThrow();
+			});
+
+			it("rejects signal with empty name", () => {
+				expect(() =>
+					ClientToServerStreamFrameSchema.parse({
+						type: "signal",
+						name: "",
+					}),
+				).toThrow();
+			});
 		});
 	});
 });

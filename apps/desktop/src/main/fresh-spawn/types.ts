@@ -36,6 +36,60 @@ export const SpawnResponseSchema = z.discriminatedUnion("type", [
 
 export type SpawnResponse = z.infer<typeof SpawnResponseSchema>;
 
+// =========================================================================
+// Streaming frames (sent after successful spawn response)
+// =========================================================================
+
+/**
+ * Frames flowing from the fresh-spawn server to the client.
+ * Each frame is one NDJSON line on the same UDS connection.
+ */
+export const ServerToClientStreamFrameSchema = z.discriminatedUnion("type", [
+	z.object({
+		type: z.literal("stdout"),
+		/** Base64-encoded UTF-8 bytes. */
+		data: z.string(),
+	}),
+	z.object({
+		type: z.literal("stderr"),
+		data: z.string(),
+	}),
+	z.object({
+		type: z.literal("exit"),
+		code: z.number().int().nullable(),
+		signal: z.string().nullable(),
+	}),
+]);
+
+export type ServerToClientStreamFrame = z.infer<
+	typeof ServerToClientStreamFrameSchema
+>;
+
+/**
+ * Frames flowing from the client to the fresh-spawn server.
+ */
+export const ClientToServerStreamFrameSchema = z.discriminatedUnion("type", [
+	z.object({
+		type: z.literal("stdin"),
+		/** Base64-encoded UTF-8 bytes. */
+		data: z.string(),
+	}),
+	z.object({
+		type: z.literal("resize"),
+		cols: z.number().int().positive(),
+		rows: z.number().int().positive(),
+	}),
+	z.object({
+		type: z.literal("signal"),
+		/** Signal name (e.g. "SIGINT", "SIGTERM"). */
+		name: z.string().min(1),
+	}),
+]);
+
+export type ClientToServerStreamFrame = z.infer<
+	typeof ClientToServerStreamFrameSchema
+>;
+
 const FRESH_SPAWN_DIR = ".superset";
 
 export const DEFAULT_SOCKET_PATH = path.join(
