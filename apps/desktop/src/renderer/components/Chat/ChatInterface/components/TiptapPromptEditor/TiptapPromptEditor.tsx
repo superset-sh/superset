@@ -477,6 +477,8 @@ export function TiptapPromptEditor({
 											mention.tiptapCommand({ path: file.relativePath });
 											return true;
 										}
+										// No results — close the popup then let Enter fall through to submit
+										setMentionState(null);
 										return false;
 									}
 									return false;
