@@ -344,10 +344,10 @@ async function finishCheckout(
 		try {
 			await args.git.raw(["worktree", "remove", args.worktreePath]);
 		} catch (err) {
-			console.warn(
-				"[workspaceCreation.checkout] failed to rollback worktree",
-				{ worktreePath: args.worktreePath, err },
-			);
+			console.warn("[workspaceCreation.checkout] failed to rollback worktree", {
+				worktreePath: args.worktreePath,
+				err,
+			});
 		}
 	};
 

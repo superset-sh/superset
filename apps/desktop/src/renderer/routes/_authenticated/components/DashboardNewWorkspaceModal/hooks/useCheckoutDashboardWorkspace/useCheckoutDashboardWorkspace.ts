@@ -9,9 +9,25 @@ export interface CheckoutWorkspaceInput {
 	projectId: string;
 	hostTarget: WorkspaceHostTarget;
 	workspaceName: string;
-	branch: string;
+	// Exactly one of `branch` or `pr` must be set — enforced server-side
+	// via zod refine. Branch mode: materialize an existing local/remote
+	// branch. PR mode: materialize a PR's branch via `gh pr checkout`.
+	branch?: string;
+	pr?: {
+		number: number;
+		url: string;
+		title: string;
+		headRefName: string;
+		baseRefName: string;
+		headRepositoryOwner: string;
+		isCrossRepository: boolean;
+		state: "open" | "closed" | "merged";
+	};
 	composer: {
 		prompt?: string;
+		// Written to `branch.<name>.base` for the Changes tab. Filled from
+		// picker selection in branch mode, `pr.baseRefName` in PR mode.
+		baseBranch?: string;
 		runSetupScript?: boolean;
 	};
 	linkedContext?: {
@@ -28,7 +44,11 @@ export interface CheckoutWorkspaceInput {
 
 /**
  * Thin wrapper around the host-service `workspaceCreation.checkout` mutation.
- * Creates a new workspace that reuses an existing branch (no new branch).
+ * Two modes:
+ * - Branch mode (`branch` set): reuse an existing local/remote branch.
+ * - PR mode (`pr` set): materialize a PR's branch via `gh pr checkout`;
+ *   idempotent (returns `alreadyExists: true` if a workspace already exists
+ *   for the derived branch).
  */
 export function useCheckoutDashboardWorkspace() {
 	const { activeHostUrl } = useLocalHostService();
@@ -51,6 +71,7 @@ export function useCheckoutDashboardWorkspace() {
 				projectId: input.projectId,
 				workspaceName: input.workspaceName,
 				branch: input.branch,
+				pr: input.pr,
 				composer: input.composer,
 				linkedContext: input.linkedContext,
 			});
