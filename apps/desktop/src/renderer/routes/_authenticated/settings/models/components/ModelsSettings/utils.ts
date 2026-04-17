@@ -124,3 +124,27 @@ export function resolveProviderStatus(params: {
 	if (!authStatus) return undefined;
 	return deriveModelProviderStatus({ providerId, authStatus });
 }
+
+export type ProviderAction =
+	| { kind: "connect" }
+	| { kind: "reconnect" }
+	| { kind: "logout" }
+	| null;
+
+/**
+ * Single source of truth for the provider action button.
+ */
+export function getProviderAction(
+	status: ModelProviderStatus | undefined,
+): ProviderAction {
+	if (!status || status.connectionState === "disconnected") {
+		return { kind: "connect" };
+	}
+	if (status.issue?.remediation === "reconnect") {
+		return { kind: "reconnect" };
+	}
+	if (status.authMethod === "oauth") {
+		return { kind: "logout" };
+	}
+	return null;
+}

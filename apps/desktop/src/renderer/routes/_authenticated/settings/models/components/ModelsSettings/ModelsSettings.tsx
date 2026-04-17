@@ -25,6 +25,7 @@ import { SettingsSection } from "./components/SettingsSection";
 import {
 	buildAnthropicEnvText,
 	EMPTY_ANTHROPIC_FORM,
+	getProviderAction,
 	getProviderSubtitle,
 	getStatusBadge,
 	parseAnthropicForm,
@@ -187,63 +188,30 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 		status,
 		startOAuth,
 		isStartingOAuth,
-		canDisconnect,
 		onDisconnect,
 	}: {
 		status: typeof anthropicStatus | typeof openAIStatus;
 		startOAuth: () => Promise<void>;
 		isStartingOAuth: boolean;
-		canDisconnect: boolean;
 		onDisconnect: () => void;
 	}) => {
-		if (!status || status.connectionState === "disconnected") {
-			return (
-				<Button
-					variant="outline"
-					size="sm"
-					onClick={() => {
-						void startOAuth();
-					}}
-					disabled={isStartingOAuth}
-				>
-					Connect
-				</Button>
-			);
-		}
-
-		if (status.issue?.remediation === "reconnect") {
-			return (
-				<Button
-					variant="outline"
-					size="sm"
-					onClick={() => {
-						void startOAuth();
-					}}
-					disabled={isStartingOAuth}
-				>
-					Reconnect
-				</Button>
-			);
-		}
-
-		if (canDisconnect) {
+		const action = getProviderAction(status);
+		if (!action) return null;
+		if (action.kind === "logout") {
 			return (
 				<Button variant="ghost" size="sm" onClick={onDisconnect}>
 					Logout
 				</Button>
 			);
 		}
-
 		return (
 			<Button
 				variant="outline"
 				size="sm"
-				onClick={() => {
-					void startOAuth();
-				}}
+				onClick={() => void startOAuth()}
 				disabled={isStartingOAuth}
 			>
-				Connect
+				{action.kind === "reconnect" ? "Reconnect" : "Connect"}
 			</Button>
 		);
 	};
@@ -271,7 +239,6 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 									status: anthropicStatus,
 									startOAuth: startAnthropicOAuth,
 									isStartingOAuth: isStartingAnthropicOAuth,
-									canDisconnect: anthropicOAuthDialog.canDisconnect,
 									onDisconnect: anthropicOAuthDialog.onDisconnect,
 								})}
 							/>
@@ -290,7 +257,6 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 									status: openAIStatus,
 									startOAuth: startOpenAIOAuth,
 									isStartingOAuth: isStartingOpenAIOAuth,
-									canDisconnect: openAIOAuthDialog.canDisconnect,
 									onDisconnect: openAIOAuthDialog.onDisconnect,
 								})}
 							/>
