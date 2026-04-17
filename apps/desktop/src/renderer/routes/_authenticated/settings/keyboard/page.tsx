@@ -11,7 +11,8 @@ import { Input } from "@superset/ui/input";
 import { Kbd, KbdGroup } from "@superset/ui/kbd";
 import { toast } from "@superset/ui/sonner";
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
+import { useHotkeys } from "react-hotkeys-hook";
 import { HiMagnifyingGlass } from "react-icons/hi2";
 import {
 	formatHotkeyDisplay,
@@ -116,6 +117,7 @@ const hotkeysByCategory = getHotkeysByCategory();
 function KeyboardShortcutsPage() {
 	const [searchQuery, setSearchQuery] = useState("");
 	const [recordingId, setRecordingId] = useState<HotkeyId | null>(null);
+	const searchRef = useRef<HTMLInputElement>(null);
 	const [pendingConflict, setPendingConflict] = useState<{
 		targetId: HotkeyId;
 		keys: string;
@@ -125,6 +127,14 @@ function KeyboardShortcutsPage() {
 	const resetOverride = useHotkeyOverridesStore((s) => s.resetOverride);
 	const resetAll = useHotkeyOverridesStore((s) => s.resetAll);
 	const setOverride = useHotkeyOverridesStore((s) => s.setOverride);
+
+	useHotkeys(
+		"/",
+		() => {
+			searchRef.current?.focus();
+		},
+		{ enableOnFormTags: false, preventDefault: true },
+	);
 
 	useRecordHotkeys(recordingId, {
 		onSave: () => setRecordingId(null),
@@ -204,10 +214,18 @@ function KeyboardShortcutsPage() {
 			<div className="relative mb-6">
 				<HiMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
 				<Input
+					ref={searchRef}
 					type="text"
 					placeholder="Search"
 					value={searchQuery}
 					onChange={(e) => setSearchQuery(e.target.value)}
+					onKeyDown={(e) => {
+						if (e.key === "Escape") {
+							e.stopPropagation();
+							searchRef.current?.blur();
+						}
+					}}
+					autoFocus
 					className="pl-9 bg-accent/30 border-transparent focus:border-accent"
 				/>
 			</div>
