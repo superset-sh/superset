@@ -10,19 +10,28 @@ const execFileAsync = promisify(execFile);
  * credential-manager plumbing and matches V1's behavior for
  * getIssueContent.
  *
- * Returns parsed JSON output. Throws on non-zero exit or JSON parse
- * failure.
+ * Returns parsed JSON output if stdout is JSON (typical for `--json`
+ * queries). For commands that don't return JSON (e.g., `gh pr checkout`),
+ * returns the trimmed stdout string. Throws on non-zero exit.
  */
-export async function execGh(args: string[]): Promise<unknown> {
+export async function execGh(
+	args: string[],
+	options?: { cwd?: string; timeout?: number },
+): Promise<unknown> {
 	const env = await getStrictShellEnvironment().catch(
 		() => process.env as Record<string, string>,
 	);
 	const { stdout } = await execFileAsync("gh", args, {
 		encoding: "utf8",
-		timeout: 10_000,
+		timeout: options?.timeout ?? 10_000,
+		cwd: options?.cwd,
 		env,
 	});
 	const trimmed = stdout.trim();
 	if (!trimmed) return {};
-	return JSON.parse(trimmed);
+	try {
+		return JSON.parse(trimmed);
+	} catch {
+		return trimmed;
+	}
 }

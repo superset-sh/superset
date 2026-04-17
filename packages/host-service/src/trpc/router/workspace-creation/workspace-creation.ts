@@ -2,7 +2,7 @@ import { existsSync, mkdirSync } from "node:fs";
 import { dirname, join, resolve, sep } from "node:path";
 import { getDeviceName, getHashedDeviceId } from "@superset/shared/device-info";
 import { TRPCError } from "@trpc/server";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import simpleGit from "simple-git";
 import { z } from "zod";
 import { projects, workspaces } from "../../../db/schema";
@@ -17,6 +17,7 @@ import { createTerminalSessionInternal } from "../../../terminal/terminal";
 import type { HostServiceContext } from "../../../types";
 import { protectedProcedure, router } from "../../index";
 import { execGh } from "./utils/exec-gh";
+import { derivePrLocalBranchName } from "./utils/pr-branch-name";
 import { resolveStartPoint } from "./utils/resolve-start-point";
 import { deduplicateBranchName } from "./utils/sanitize-branch";
 
@@ -288,6 +289,153 @@ function buildStartPointFromHint(
 		remote,
 		remoteShortName: `${remote}/${branch}`,
 	};
+}
+
+/**
+ * Shared postlude for `checkout` (both branch and PR paths).
+ *
+ * - Writes `branch.<name>.base` from `composer.baseBranch` for the Changes tab.
+ * - `ensureV2Host` + `v2Workspace.create` with rollback on failure.
+ * - Inserts the local `workspaces` row.
+ * - Optionally spawns the setup terminal.
+ * - Clears progress.
+ */
+async function finishCheckout(
+	ctx: HostServiceContext,
+	args: {
+		pendingId: string;
+		projectId: string;
+		workspaceName: string;
+		branch: string;
+		worktreePath: string;
+		baseBranch: string | undefined;
+		runSetupScript: boolean;
+		git: GitClient;
+		extraWarnings: string[];
+	},
+): Promise<{
+	workspace: { id: string };
+	terminals: Array<{ id: string; role: string; label: string }>;
+	warnings: string[];
+	alreadyExists?: false;
+}> {
+	setProgress(args.pendingId, "registering");
+
+	// Record the base branch for the Changes tab (skipped if unset — matches
+	// `create`'s head-start-point behavior).
+	if (args.baseBranch) {
+		await args.git
+			.raw([
+				"-C",
+				args.worktreePath,
+				"config",
+				`branch.${args.branch}.base`,
+				args.baseBranch,
+			])
+			.catch((err) => {
+				console.warn(
+					`[workspaceCreation.checkout] failed to record base branch ${args.baseBranch}:`,
+					err,
+				);
+			});
+	}
+
+	const rollbackWorktree = async () => {
+		try {
+			await args.git.raw(["worktree", "remove", args.worktreePath]);
+		} catch (err) {
+			console.warn(
+				"[workspaceCreation.checkout] failed to rollback worktree",
+				{ worktreePath: args.worktreePath, err },
+			);
+		}
+	};
+
+	const deviceClientId = getHashedDeviceId();
+	const deviceName = getDeviceName();
+
+	let host: { id: string };
+	try {
+		host = await ctx.api.device.ensureV2Host.mutate({
+			organizationId: ctx.organizationId,
+			machineId: deviceClientId,
+			name: deviceName,
+		});
+	} catch (err) {
+		console.error("[workspaceCreation.checkout] ensureV2Host failed", err);
+		clearProgress(args.pendingId);
+		await rollbackWorktree();
+		throw new TRPCError({
+			code: "INTERNAL_SERVER_ERROR",
+			message: `Failed to register host: ${err instanceof Error ? err.message : String(err)}`,
+		});
+	}
+
+	const cloudRow = await ctx.api.v2Workspace.create
+		.mutate({
+			organizationId: ctx.organizationId,
+			projectId: args.projectId,
+			name: args.workspaceName,
+			branch: args.branch,
+			hostId: host.id,
+		})
+		.catch(async (err) => {
+			console.error(
+				"[workspaceCreation.checkout] v2Workspace.create failed",
+				err,
+			);
+			clearProgress(args.pendingId);
+			await rollbackWorktree();
+			throw err;
+		});
+
+	if (!cloudRow) {
+		clearProgress(args.pendingId);
+		await rollbackWorktree();
+		throw new TRPCError({
+			code: "INTERNAL_SERVER_ERROR",
+			message: "Cloud workspace create returned no row",
+		});
+	}
+
+	ctx.db
+		.insert(workspaces)
+		.values({
+			id: cloudRow.id,
+			projectId: args.projectId,
+			worktreePath: args.worktreePath,
+			branch: args.branch,
+		})
+		.run();
+
+	const terminals: Array<{ id: string; role: string; label: string }> = [];
+	const warnings: string[] = [...args.extraWarnings];
+
+	if (args.runSetupScript) {
+		const setupScriptPath = join(args.worktreePath, ".superset", "setup.sh");
+		if (existsSync(setupScriptPath)) {
+			const terminalId = crypto.randomUUID();
+			const result = createTerminalSessionInternal({
+				terminalId,
+				workspaceId: cloudRow.id,
+				db: ctx.db,
+				initialCommand: `bash "${setupScriptPath}"`,
+			});
+			if ("error" in result) {
+				warnings.push(`Failed to start setup terminal: ${result.error}`);
+			} else {
+				terminals.push({
+					id: terminalId,
+					role: "setup",
+					label: "Workspace Setup",
+				});
+			}
+		}
+	}
+
+	clearProgress(args.pendingId);
+
+	return { workspace: cloudRow, terminals, warnings };
 }
 
 // ── Router ───────────────────────────────────────────────────────────
@@ -810,39 +958,62 @@ export const workspaceCreationRouter = router({
 	 */
 	checkout: protectedProcedure
 		.input(
-			z.object({
-				pendingId: z.string(),
-				projectId: z.string(),
-				workspaceName: z.string(),
-				branch: z.string(),
-				composer: z.object({
-					prompt: z.string().optional(),
-					runSetupScript: z.boolean().optional(),
+			z
+				.object({
+					pendingId: z.string(),
+					projectId: z.string(),
+					workspaceName: z.string(),
+					// Exactly one of `branch` or `pr` must be set (refine below).
+					// Branch mode: caller supplies a branch name; server resolves it.
+					// PR mode: caller supplies PR metadata; server derives branch name
+					// + runs `gh pr checkout`.
+					branch: z.string().optional(),
+					pr: z
+						.object({
+							number: z.number().int().positive(),
+							url: z.string().url(),
+							title: z.string(),
+							headRefName: z.string(),
+							baseRefName: z.string(),
+							headRepositoryOwner: z.string(),
+							isCrossRepository: z.boolean(),
+							state: z.enum(["open", "closed", "merged"]),
+						})
+						.optional(),
+					composer: z.object({
+						prompt: z.string().optional(),
+						// Written to `branch.<name>.base` for the Changes tab. Client
+						// fills from picker in branch mode, or `pr.baseRefName` in PR
+						// mode. Server reads uniformly — no intent branching for this
+						// write.
+						baseBranch: z.string().optional(),
+						runSetupScript: z.boolean().optional(),
+					}),
+					linkedContext: z
+						.object({
+							internalIssueIds: z.array(z.string()).optional(),
+							githubIssueUrls: z.array(z.string()).optional(),
+							linkedPrUrl: z.string().optional(),
+							attachments: z
+								.array(
+									z.object({
+										data: z.string(),
+										mediaType: z.string(),
+										filename: z.string().optional(),
+									}),
+								)
+								.optional(),
+						})
+						.optional(),
+				})
+				.refine((v) => Boolean(v.branch) !== Boolean(v.pr), {
+					message: "exactly one of `branch` or `pr` must be set",
 				}),
-				linkedContext: z
-					.object({
-						internalIssueIds: z.array(z.string()).optional(),
-						githubIssueUrls: z.array(z.string()).optional(),
-						linkedPrUrl: z.string().optional(),
-						attachments: z
-							.array(
-								z.object({
-									data: z.string(),
-									mediaType: z.string(),
-									filename: z.string().optional(),
-								}),
-							)
-							.optional(),
-					})
-					.optional(),
-			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			const deviceClientId = getHashedDeviceId();
-			const deviceName = getDeviceName();
 			setProgress(input.pendingId, "ensuring_repo");
 
-			// 1. Ensure project locally (clone if missing) — same as create
+			// Ensure project locally (clone if missing) — shared across both paths.
 			let localProject = ctx.db.query.projects
 				.findFirst({ where: eq(projects.id, input.projectId) })
 				.sync();
@@ -873,7 +1044,125 @@ export const workspaceCreationRouter = router({
 
 			setProgress(input.pendingId, "creating_worktree");
 
-			const branch = input.branch.trim();
+			// ── PR path ────────────────────────────────────────────────────────
+			if (input.pr) {
+				const branch = derivePrLocalBranchName(input.pr);
+
+				// Idempotency: existing workspace for this PR's branch →
+				// return it. Renderer navigates to it via `alreadyExists: true`
+				// instead of treating as a new create.
+				const existing = ctx.db.query.workspaces
+					.findFirst({
+						where: and(
+							eq(workspaces.projectId, input.projectId),
+							eq(workspaces.branch, branch),
+						),
+					})
+					.sync();
+				if (existing) {
+					clearProgress(input.pendingId);
+					return {
+						workspace: { id: existing.id },
+						terminals: [],
+						warnings: [],
+						alreadyExists: true as const,
+					};
+				}
+
+				let worktreePath: string;
+				try {
+					worktreePath = safeResolveWorktreePath(localProject.repoPath, branch);
+				} catch (err) {
+					clearProgress(input.pendingId);
+					throw err;
+				}
+				const git = await ctx.git(localProject.repoPath);
+
+				// Detached worktree first — `gh pr checkout` inside it creates the
+				// branch with correct fork-remote + upstream config. Mirrors v1's
+				// `createWorktreeFromPr`. `--force` on `gh pr checkout` is safe
+				// because the idempotency check above guarantees no existing
+				// workspace for this branch; any stray same-named local branch
+				// is ours to reset (the workspace flow owns `.worktrees/<branch>/`).
+				try {
+					await git.raw(["worktree", "add", "--detach", worktreePath]);
+				} catch (err) {
+					clearProgress(input.pendingId);
+					throw new TRPCError({
+						code: "CONFLICT",
+						message:
+							err instanceof Error
+								? err.message
+								: "Failed to add detached worktree",
+					});
+				}
+
+				try {
+					await execGh(
+						[
+							"pr",
+							"checkout",
+							String(input.pr.number),
+							"--branch",
+							branch,
+							"--force",
+						],
+						{ cwd: worktreePath, timeout: 120_000 },
+					);
+				} catch (err) {
+					await git
+						.raw(["worktree", "remove", "--force", worktreePath])
+						.catch(() => {});
+					clearProgress(input.pendingId);
+					throw new TRPCError({
+						code: "INTERNAL_SERVER_ERROR",
+						message: `gh pr checkout failed: ${
+							err instanceof Error ? err.message : String(err)
+						}`,
+					});
+				}
+
+				// Push ergonomics. `gh pr checkout` sets per-branch push config
+				// to the fork URL for cross-repo PRs; this covers the same-repo
+				// case where upstream isn't auto-set.
+				await git
+					.raw([
+						"-C",
+						worktreePath,
+						"config",
+						"--local",
+						"push.autoSetupRemote",
+						"true",
+					])
+					.catch((err) => {
+						console.warn(
+							"[workspaceCreation.checkout] failed to set push.autoSetupRemote:",
+							err,
+						);
+					});
+
+				const extraWarnings =
+					input.pr.state !== "open"
+						? [
+								`PR is ${input.pr.state} — commits are included, but the PR may not merge.`,
+							]
+						: [];
+
+				return await finishCheckout(ctx, {
+					pendingId: input.pendingId,
+					projectId: input.projectId,
+					workspaceName: input.workspaceName,
+					branch,
+					worktreePath,
+					baseBranch: input.composer.baseBranch,
+					runSetupScript: input.composer.runSetupScript ?? false,
+					git,
+					extraWarnings,
+				});
+			}
+
+			// ── Branch path ────────────────────────────────────────────────────
+			const branch = (input.branch ?? "").trim();
 			if (!branch) {
 				clearProgress(input.pendingId);
 				throw new TRPCError({
@@ -972,101 +1261,17 @@ export const workspaceCreationRouter = router({
 					);
 				});
 
-			setProgress(input.pendingId, "registering");
-
-			const rollbackWorktree = async () => {
-				try {
-					await git.raw(["worktree", "remove", worktreePath]);
-				} catch (err) {
-					console.warn(
-						"[workspaceCreation.checkout] failed to rollback worktree",
-						{ worktreePath, err },
-					);
-				}
-			};
-
-			let host: { id: string };
-			try {
-				host = await ctx.api.device.ensureV2Host.mutate({
-					organizationId: ctx.organizationId,
-					machineId: deviceClientId,
-					name: deviceName,
-				});
-			} catch (err) {
-				console.error("[workspaceCreation.checkout] ensureV2Host failed", err);
-				clearProgress(input.pendingId);
-				await rollbackWorktree();
-				throw new TRPCError({
-					code: "INTERNAL_SERVER_ERROR",
-					message: `Failed to register host: ${err instanceof Error ? err.message : String(err)}`,
-				});
-			}
-
-			const cloudRow = await ctx.api.v2Workspace.create
-				.mutate({
-					organizationId: ctx.organizationId,
-					projectId: input.projectId,
-					name: input.workspaceName,
-					branch,
-					hostId: host.id,
-				})
-				.catch(async (err) => {
-					console.error(
-						"[workspaceCreation.checkout] v2Workspace.create failed",
-						err,
-					);
-					clearProgress(input.pendingId);
-					await rollbackWorktree();
-					throw err;
-				});
-
-			if (!cloudRow) {
-				clearProgress(input.pendingId);
-				await rollbackWorktree();
-				throw new TRPCError({
-					code: "INTERNAL_SERVER_ERROR",
-					message: "Cloud workspace create returned no row",
-				});
-			}
-
-			ctx.db
-				.insert(workspaces)
-				.values({
-					id: cloudRow.id,
-					projectId: input.projectId,
-					worktreePath,
-					branch,
-				})
-				.run();
-
-			const terminals: Array<{ id: string; role: string; label: string }> = [];
-			const warnings: string[] = [];
-
-			if (input.composer.runSetupScript) {
-				const setupScriptPath = join(worktreePath, ".superset", "setup.sh");
-				if (existsSync(setupScriptPath)) {
-					const terminalId = crypto.randomUUID();
-					const result = createTerminalSessionInternal({
-						terminalId,
-						workspaceId: cloudRow.id,
-						db: ctx.db,
-						initialCommand: `bash "${setupScriptPath}"`,
-					});
-					if ("error" in result) {
-						warnings.push(`Failed to start setup terminal: ${result.error}`);
-					} else {
-						terminals.push({
-							id: terminalId,
-							role: "setup",
-							label: "Workspace Setup",
-						});
-					}
-				}
-			}
-
-			clearProgress(input.pendingId);
-
-			return { workspace: cloudRow, terminals, warnings };
+			return await finishCheckout(ctx, {
+				pendingId: input.pendingId,
+				projectId: input.projectId,
+				workspaceName: input.workspaceName,
+				branch,
+				worktreePath,
+				baseBranch: input.composer.baseBranch,
+				runSetupScript: input.composer.runSetupScript ?? false,
+				git,
+				extraWarnings: [],
+			});
 		}),
 
 	/**
@@ -1391,7 +1596,7 @@ export const workspaceCreationRouter = router({
 					"--repo",
 					`${repo.owner}/${repo.name}`,
 					"--json",
-					"number,title,body,url,state,author,headRefName,baseRefName,isDraft,createdAt,updatedAt",
+					"number,title,body,url,state,author,headRefName,baseRefName,headRepositoryOwner,isCrossRepository,isDraft,createdAt,updatedAt",
 				]);
 				const data = PrSchema.parse(raw);
 				return {
@@ -1402,6 +1607,8 @@ export const workspaceCreationRouter = router({
 					state: data.state.toLowerCase(),
 					branch: data.headRefName,
 					baseBranch: data.baseRefName,
+					headRepositoryOwner: data.headRepositoryOwner.login,
+					isCrossRepository: data.isCrossRepository,
 					author: data.author?.login ?? null,
 					isDraft: data.isDraft,
 					createdAt: data.createdAt,
@@ -1435,6 +1642,8 @@ const PrSchema = z.object({
 	state: z.string(),
 	headRefName: z.string(),
 	baseRefName: z.string(),
+	headRepositoryOwner: z.object({ login: z.string() }),
+	isCrossRepository: z.boolean(),
 	isDraft: z.boolean(),
 	author: z.object({ login: z.string() }).optional(),
 	createdAt: z.string().optional(),
