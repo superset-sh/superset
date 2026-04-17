@@ -70,6 +70,8 @@ export interface BuildForkAgentLaunchInputs {
 					state: string;
 					branch: string;
 					baseBranch: string;
+					headRepositoryOwner: string | null;
+					isCrossRepository: boolean;
 					author: string | null;
 				}>;
 			};

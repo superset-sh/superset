@@ -275,6 +275,27 @@ describe("buildPrCheckoutPayload", () => {
 		});
 		expect(payload.pr?.state).toBe("open");
 	});
+
+	test("throws clear error for cross-repo PR with deleted fork (null owner)", () => {
+		const pending = makePending({ intent: "pr-checkout" });
+		expect(() =>
+			buildPrCheckoutPayload("pid", pending, {
+				...prContent,
+				headRepositoryOwner: null,
+				isCrossRepository: true,
+			}),
+		).toThrow("head fork repository has been deleted");
+	});
+
+	test("same-repo PR with null owner is fine (owner not needed)", () => {
+		const pending = makePending({ intent: "pr-checkout" });
+		const payload = buildPrCheckoutPayload("pid", pending, {
+			...prContent,
+			headRepositoryOwner: null,
+			isCrossRepository: false,
+		});
+		expect(payload.pr?.headRepositoryOwner).toBe("");
+	});
 });
 
 describe("buildAdoptPayload", () => {

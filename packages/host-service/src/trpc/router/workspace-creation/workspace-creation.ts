@@ -1630,7 +1630,7 @@ export const workspaceCreationRouter = router({
 					state: data.state.toLowerCase(),
 					branch: data.headRefName,
 					baseBranch: data.baseRefName,
-					headRepositoryOwner: data.headRepositoryOwner.login,
+					headRepositoryOwner: data.headRepositoryOwner?.login ?? null,
 					isCrossRepository: data.isCrossRepository,
 					author: data.author?.login ?? null,
 					isDraft: data.isDraft,
@@ -1665,7 +1665,11 @@ const PrSchema = z.object({
 	state: z.string(),
 	headRefName: z.string(),
 	baseRefName: z.string(),
-	headRepositoryOwner: z.object({ login: z.string() }),
+	// `gh pr view` returns null when the PR's head fork repository has been
+	// deleted. Nullable so the schema parse doesn't fail; consumers decide
+	// how to handle a missing owner (client surfaces a clear error for
+	// cross-repo PRs — same-repo PRs shouldn't see null in practice).
+	headRepositoryOwner: z.object({ login: z.string() }).nullable(),
 	isCrossRepository: z.boolean(),
 	isDraft: z.boolean(),
 	author: z.object({ login: z.string() }).optional(),

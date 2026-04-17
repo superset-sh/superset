@@ -72,6 +72,26 @@ describe("derivePrLocalBranchName", () => {
 		).toThrow("headRefName is required");
 	});
 
+	test("whitespace-only headRefName throws", () => {
+		expect(() =>
+			derivePrLocalBranchName({
+				headRefName: "   ",
+				headRepositoryOwner: "user",
+				isCrossRepository: true,
+			}),
+		).toThrow("headRefName is required");
+	});
+
+	test("trims surrounding whitespace on headRefName", () => {
+		expect(
+			derivePrLocalBranchName({
+				headRefName: "  fix/foo  ",
+				headRepositoryOwner: "user",
+				isCrossRepository: true,
+			}),
+		).toBe("user/fix/foo");
+	});
+
 	test("cross-repo with empty owner throws", () => {
 		expect(() =>
 			derivePrLocalBranchName({

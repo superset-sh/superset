@@ -12,7 +12,8 @@ export function derivePrLocalBranchName(pr: {
 	headRepositoryOwner: string;
 	isCrossRepository: boolean;
 }): string {
-	if (!pr.headRefName) {
+	const headRef = pr.headRefName.trim();
+	if (!headRef) {
 		throw new Error("derivePrLocalBranchName: headRefName is required");
 	}
 	if (pr.isCrossRepository) {
@@ -22,7 +23,7 @@ export function derivePrLocalBranchName(pr: {
 				"derivePrLocalBranchName: headRepositoryOwner is required for cross-repo PRs",
 			);
 		}
-		return `${owner}/${pr.headRefName}`;
+		return `${owner}/${headRef}`;
 	}
-	return pr.headRefName;
+	return headRef;
 }
