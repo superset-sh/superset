@@ -99,6 +99,15 @@ export function createTerminalInWrapper(options: CreateTerminalOptions = {}): {
 	searchAddon: SearchAddon;
 	wrapper: HTMLDivElement;
 	linkManager: TerminalLinkManager;
+	/**
+	 * Opens xterm into the wrapper. Must be called AFTER the wrapper is
+	 * appended to a live, sized DOM container — otherwise xterm measures
+	 * a detached node (getBoundingClientRect returns zero) and renderer
+	 * state is initialized at fallback dimensions, producing a terminal
+	 * stuck at a smaller size than the container until the next resize.
+	 * Idempotent.
+	 */
+	openOnce: () => void;
 	cleanup: () => void;
 } {
 	const {
@@ -119,13 +128,17 @@ export function createTerminalInWrapper(options: CreateTerminalOptions = {}): {
 	const imageAddon = new ImageAddon();
 
 	let disposed = false;
+	let opened = false;
 	let webglAddon: WebglAddon | null = null;
+	let webglRafId: number | null = null;
 
-	// Open into a detached wrapper div — not the live container.
+	// Create the wrapper but DO NOT call xterm.open() yet — the wrapper is
+	// detached from the live DOM here, so xterm would measure zero-sized
+	// and initialize renderers at fallback dimensions. The caller invokes
+	// openOnce() after appending the wrapper to its live container.
 	const wrapper = document.createElement("div");
 	wrapper.style.width = "100%";
 	wrapper.style.height = "100%";
-	xterm.open(wrapper);
 
 	xterm.loadAddon(fitAddon);
 	xterm.loadAddon(searchAddon);
@@ -139,23 +152,29 @@ export function createTerminalInWrapper(options: CreateTerminalOptions = {}): {
 		// Ligatures not supported by current font
 	}
 
-	// Defer WebGL to rAF — same pattern as v2 terminal-addons.ts.
-	const rafId = requestAnimationFrame(() => {
-		if (disposed || suggestedRendererType === "dom") return;
+	const openOnce = () => {
+		if (opened || disposed) return;
+		opened = true;
+		xterm.open(wrapper);
 
-		try {
-			webglAddon = new WebglAddon();
-			webglAddon.onContextLoss(() => {
-				webglAddon?.dispose();
+		// Defer WebGL to rAF — same pattern as v2 terminal-addons.ts.
+		webglRafId = requestAnimationFrame(() => {
+			if (disposed || suggestedRendererType === "dom") return;
+
+			try {
+				webglAddon = new WebglAddon();
+				webglAddon.onContextLoss(() => {
+					webglAddon?.dispose();
+					webglAddon = null;
+					xterm.refresh(0, xterm.rows - 1);
+				});
+				xterm.loadAddon(webglAddon);
+			} catch {
+				suggestedRendererType = "dom";
 				webglAddon = null;
-				xterm.refresh(0, xterm.rows - 1);
-			});
-			xterm.loadAddon(webglAddon);
-		} catch {
-			suggestedRendererType = "dom";
-			webglAddon = null;
-		}
-	});
+			}
+		});
+	};
 
 	const cleanupQuerySuppression = suppressQueryResponses(xterm);
 
@@ -216,9 +235,10 @@ export function createTerminalInWrapper(options: CreateTerminalOptions = {}): {
 		searchAddon,
 		wrapper,
 		linkManager,
+		openOnce,
 		cleanup: () => {
 			disposed = true;
-			cancelAnimationFrame(rafId);
+			if (webglRafId !== null) cancelAnimationFrame(webglRafId);
 			cleanupQuerySuppression();
 			linkManager.dispose();
 			try {

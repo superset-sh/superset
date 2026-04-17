@@ -21,6 +21,12 @@ export interface CachedTerminal {
 	fitAddon: FitAddon;
 	searchAddon: SearchAddon;
 	wrapper: HTMLDivElement;
+	/**
+	 * Opens xterm into the wrapper. Idempotent. Called on first attach,
+	 * after the wrapper is appended to a live container, so xterm's
+	 * initial DOM measurement sees the real container size.
+	 */
+	openOnce: () => void;
 	/** Disposes renderer RAF, query suppression, GPU renderer, etc. */
 	cleanupCreation: () => void;
 	/** Last known dimensions — used to skip no-op resize events. */
@@ -75,7 +81,7 @@ export function getOrCreate(
 		console.log(`[v1-terminal-cache] Creating new terminal: ${paneId}`);
 	}
 
-	const { xterm, fitAddon, searchAddon, wrapper, cleanup } =
+	const { xterm, fitAddon, searchAddon, wrapper, openOnce, cleanup } =
 		createTerminalInWrapper(options);
 
 	const entry: CachedTerminal = {
@@ -83,6 +89,7 @@ export function getOrCreate(
 		fitAddon,
 		searchAddon,
 		wrapper,
+		openOnce,
 		cleanupCreation: cleanup,
 		subscription: null,
 		streamReady: false,
@@ -110,6 +117,11 @@ export function attachToContainer(
 	if (!entry) return;
 
 	container.appendChild(entry.wrapper);
+
+	// Open xterm now that the wrapper is in a live, sized container.
+	// On first attach this performs xterm.open(); on subsequent attaches
+	// it's a no-op (idempotent) and we rely on the existing fit below.
+	entry.openOnce();
 
 	if (container.clientWidth > 0 && container.clientHeight > 0) {
 		entry.fitAddon.fit();
