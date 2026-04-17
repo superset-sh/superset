@@ -1,38 +1,71 @@
+import { existsSync, readFileSync } from "node:fs";
+import { homedir, platform } from "node:os";
+import { join } from "node:path";
 import { createAnthropic } from "@ai-sdk/anthropic";
 import { createOpenAI } from "@ai-sdk/openai";
-import { createAuthStorage } from "mastracode";
 
 const ANTHROPIC_SMALL_MODEL_ID = "claude-haiku-4-5-20251001";
 const OPENAI_SMALL_MODEL_ID = "gpt-4o-mini";
 
-const ANTHROPIC_AUTH_PROVIDER_ID = "anthropic";
-const OPENAI_AUTH_PROVIDER_ID = "openai";
+/**
+ * Resolves the mastracode auth.json path (same logic as mastracode's
+ * `getAppDataDir`). We read it directly to avoid importing mastracode,
+ * which eagerly loads @mastra/fastembed → onnxruntime-node (208 MB native
+ * binary) and breaks electron-vite bundling.
+ */
+function getAuthJsonPath(): string {
+	const p = platform();
+	let base: string;
+	if (p === "darwin") {
+		base = join(homedir(), "Library", "Application Support");
+	} else if (p === "win32") {
+		base = process.env.APPDATA ?? join(homedir(), "AppData", "Roaming");
+	} else {
+		base = process.env.XDG_DATA_HOME ?? join(homedir(), ".local", "share");
+	}
+	return join(base, "mastracode", "auth.json");
+}
 
-type AuthStorageLike = {
-	reload: () => void;
-	getStoredApiKey?: (providerId: string) => string | undefined;
-};
+type AuthData = Record<string, unknown>;
 
-function safeAuthStorage(): AuthStorageLike | null {
+function readAuthData(): AuthData | null {
+	const path = getAuthJsonPath();
+	if (!existsSync(path)) return null;
 	try {
-		const storage = createAuthStorage() as AuthStorageLike;
-		storage.reload();
-		return storage;
-	} catch (error) {
-		console.warn("[getSmallModel] failed to load auth storage:", error);
+		return JSON.parse(readFileSync(path, "utf-8")) as AuthData;
+	} catch {
 		return null;
 	}
 }
 
+function getStoredApiKey(
+	authData: AuthData | null,
+	providerId: string,
+): string | null {
+	if (!authData) return null;
+	const entry = authData[`apikey:${providerId}`];
+	if (
+		typeof entry === "object" &&
+		entry !== null &&
+		"type" in entry &&
+		entry.type === "api_key" &&
+		"key" in entry &&
+		typeof entry.key === "string" &&
+		entry.key.trim().length > 0
+	) {
+		return entry.key.trim();
+	}
+	return null;
+}
+
 function resolveApiKey(
 	envVar: string | undefined,
-	storage: AuthStorageLike | null,
+	authData: AuthData | null,
 	providerId: string,
 ): string | null {
 	const env = envVar?.trim();
 	if (env) return env;
-	const stored = storage?.getStoredApiKey?.(providerId)?.trim();
-	return stored && stored.length > 0 ? stored : null;
+	return getStoredApiKey(authData, providerId);
 }
 
 /**
@@ -40,19 +73,16 @@ function resolveApiKey(
  * title generation). Tries Anthropic first, falls back to OpenAI. Returns
  * `null` if no credentials are available.
  *
- * Supports API keys only (env or stored). OAuth-only users (Claude Max,
- * OpenAI Codex) fall back to `null`; callers should degrade gracefully.
- *
- * Returned as `unknown` so callers can pass it to Mastra Agent without
- * coupling this shared module to @mastra/core typing.
+ * Reads credentials from env vars and mastracode's auth.json directly
+ * (API keys only). OAuth-only users fall back to `null`.
  */
 export function getSmallModel(): unknown | null {
-	const storage = safeAuthStorage();
+	const authData = readAuthData();
 
 	const anthropicKey = resolveApiKey(
 		process.env.ANTHROPIC_API_KEY,
-		storage,
-		ANTHROPIC_AUTH_PROVIDER_ID,
+		authData,
+		"anthropic",
 	);
 	if (anthropicKey) {
 		return createAnthropic({ apiKey: anthropicKey })(ANTHROPIC_SMALL_MODEL_ID);
@@ -60,8 +90,8 @@ export function getSmallModel(): unknown | null {
 
 	const openaiKey = resolveApiKey(
 		process.env.OPENAI_API_KEY,
-		storage,
-		OPENAI_AUTH_PROVIDER_ID,
+		authData,
+		"openai",
 	);
 	if (openaiKey) {
 		return createOpenAI({ apiKey: openaiKey }).chat(OPENAI_SMALL_MODEL_ID);
