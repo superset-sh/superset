@@ -1,6 +1,7 @@
 import * as fs from "node:fs";
 import * as net from "node:net";
 import { generateTokenFile, verifyToken } from "./auth";
+import { handleFreshExec } from "./handlers/fresh-exec";
 import { handleSpawnPtySubprocess } from "./handlers/spawn-pty-subprocess";
 import { SpawnRequestSchema, type SpawnResponse } from "./types";
 
@@ -32,15 +33,16 @@ export interface SpawnServer {
  * Start the fresh-spawn UDS server.
  *
  * Protocol: each client connection sends a single NDJSON request. One-shot
- * handlers (validation errors, auth failures, fresh-exec) write a single
- * NDJSON response and close the connection. The `spawn-pty-subprocess`
- * handler takes ownership of the socket: it writes the initial
- * `{type:"ok",pid}` SpawnResponse line and then streams NDJSON StreamFrames
+ * error paths (validation, schema, auth) write a single NDJSON response and
+ * close the connection. The streaming handlers (`spawn-pty-subprocess` and
+ * `fresh-exec`) take ownership of the socket: they write the initial
+ * `{type:"ok",pid}` SpawnResponse line and then stream NDJSON StreamFrames
  * (stdout/stderr/exit server→client; stdin/resize/signal client→server) until
  * the child exits or the peer disconnects.
  *
- * `fresh-exec` is still unimplemented and returns `{type:"error", code:"E_TODO"}`
- * (Task 13).
+ * `spawn-pty-subprocess` uses child_process.spawn (no real tty); `fresh-exec`
+ * uses node-pty (pseudoterminal) so interactive commands like `gh auth login`
+ * work. For `fresh-exec` the command/args/env/cwd come from the request.
  */
 export async function startSpawnServer(
 	options: SpawnServerOptions,
@@ -111,16 +113,16 @@ export async function startSpawnServer(
 				return;
 			}
 
+			// Bytes that arrived in the same TCP chunk after the request line
+			// (e.g. pipelined stdin frames) — forward to the handler so they
+			// are parsed as its first incoming frames.
+			const residual = buffer.slice(newlineIdx + 1);
+
 			if (result.data.type === "spawn-pty-subprocess") {
 				// Handler takes ownership of the socket: it writes the initial
 				// {type:"ok",pid} line and then streams NDJSON frames until the
 				// child exits or the client disconnects. Do not write to or
 				// close the socket here after a successful dispatch.
-				//
-				// Forward any bytes that arrived in the same TCP chunk after
-				// the request line (e.g. pipelined stdin frames) so they are
-				// parsed as the handler's first incoming frames.
-				const residual = buffer.slice(newlineIdx + 1);
 				try {
 					handleSpawnPtySubprocess({ env: result.data.env }, client, {
 						subprocessScriptPath: options.subprocessScriptPath,
@@ -137,13 +139,32 @@ export async function startSpawnServer(
 				return;
 			}
 
-			// TODO(Task 13): wire `fresh-exec` handler
-			writeResponse(client, {
-				type: "error",
-				message: `handler not implemented for type: ${result.data.type}`,
-				code: "E_TODO",
-			});
-			client.end();
+			if (result.data.type === "fresh-exec") {
+				// Same ownership contract as spawn-pty-subprocess, but uses
+				// node-pty so interactive commands get a real tty.
+				try {
+					handleFreshExec(
+						{
+							command: result.data.command,
+							args: result.data.args,
+							cwd: result.data.cwd,
+							env: result.data.env,
+							ptyCols: result.data.ptyCols,
+							ptyRows: result.data.ptyRows,
+						},
+						client,
+						{ initialBuffer: residual },
+					);
+				} catch (err) {
+					writeResponse(client, {
+						type: "error",
+						message: err instanceof Error ? err.message : String(err),
+						code: "E_FRESH_EXEC",
+					});
+					client.end();
+				}
+				return;
+			}
 		});
 
 		client.on("error", () => {

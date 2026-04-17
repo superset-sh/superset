@@ -148,7 +148,7 @@ describe("SpawnServer", () => {
 		expect(parsed.pid).toBeGreaterThan(0);
 	});
 
-	it("responds with E_TODO on valid authenticated fresh-exec request", async () => {
+	it("responds with ok+pid on valid authenticated fresh-exec request", async () => {
 		const paths = mkdirs();
 		server = await startSpawnServer(paths);
 		const token = readTokenFile(paths.tokenPath);
@@ -158,17 +158,20 @@ describe("SpawnServer", () => {
 			JSON.stringify({
 				type: "fresh-exec",
 				token,
-				command: "gh",
-				args: ["status"],
+				// Use a command that's guaranteed to exist and exits quickly so
+				// the PTY shuts down on its own without leaking processes.
+				command: "/bin/echo",
+				args: ["fresh-exec-smoke"],
 				cwd: "/tmp",
-				env: {},
+				env: { PATH: "/usr/bin:/bin" },
 				ptyCols: 80,
 				ptyRows: 24,
 			}),
 		);
 		const parsed = JSON.parse(resp);
-		expect(parsed.type).toBe("error");
-		expect(parsed.code).toBe("E_TODO");
+		expect(parsed.type).toBe("ok");
+		expect(typeof parsed.pid).toBe("number");
+		expect(parsed.pid).toBeGreaterThan(0);
 	});
 
 	it("closes idle connections after timeout", async () => {

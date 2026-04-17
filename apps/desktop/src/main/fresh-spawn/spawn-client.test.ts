@@ -61,7 +61,7 @@ describe("sendSpawnRequest", () => {
 		}
 	});
 
-	it("sends fresh-exec, receives E_TODO from skeleton server", async () => {
+	it("sends fresh-exec, receives ok+pid from server", async () => {
 		const paths = mkdirs();
 		server = await startSpawnServer(paths);
 
@@ -70,18 +70,21 @@ describe("sendSpawnRequest", () => {
 			tokenPath: paths.tokenPath,
 			request: {
 				type: "fresh-exec",
-				command: "gh",
-				args: ["status"],
+				// A long-lived command that we immediately tear down by letting
+				// the test client disconnect at the end — avoids leaking a
+				// real PTY-rooted process tree past the test.
+				command: "/bin/sh",
+				args: ["-c", "sleep 5"],
 				cwd: "/tmp",
-				env: {},
+				env: { PATH: "/usr/bin:/bin" },
 				ptyCols: 80,
 				ptyRows: 24,
 			},
 		});
 
-		expect(resp.type).toBe("error");
-		if (resp.type === "error") {
-			expect(resp.code).toBe("E_TODO");
+		expect(resp.type).toBe("ok");
+		if (resp.type === "ok") {
+			expect(resp.pid).toBeGreaterThan(0);
 		}
 	});
 
