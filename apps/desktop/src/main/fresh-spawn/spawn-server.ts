@@ -1,6 +1,7 @@
 import * as fs from "node:fs";
 import * as net from "node:net";
 import { generateTokenFile, verifyToken } from "./auth";
+import { handleSpawnPtySubprocess } from "./handlers/spawn-pty-subprocess";
 import { SpawnRequestSchema, type SpawnResponse } from "./types";
 
 export interface SpawnServerOptions {
@@ -13,6 +14,12 @@ export interface SpawnServerOptions {
 	 * Defaults to 5000ms.
 	 */
 	idleTimeoutMs?: number;
+	/**
+	 * Path to the pty-subprocess.js script (or a test echo script). This is a
+	 * server-side config — NOT part of the RPC payload — so that authenticated
+	 * clients cannot spawn arbitrary scripts through this server.
+	 */
+	subprocessScriptPath: string;
 }
 
 const DEFAULT_IDLE_TIMEOUT_MS = 5000;
@@ -24,13 +31,16 @@ export interface SpawnServer {
 /**
  * Start the fresh-spawn UDS server.
  *
- * Protocol: each client connection sends a single NDJSON request and receives
- * a single NDJSON response, then the server closes the connection. Partial
- * chunks are buffered until the first newline is seen; any trailing bytes are
- * ignored (one request per connection).
+ * Protocol: each client connection sends a single NDJSON request. One-shot
+ * handlers (validation errors, auth failures, fresh-exec) write a single
+ * NDJSON response and close the connection. The `spawn-pty-subprocess`
+ * handler takes ownership of the socket: it writes the initial
+ * `{type:"ok",pid}` SpawnResponse line and then streams NDJSON StreamFrames
+ * (stdout/stderr/exit server→client; stdin/resize/signal client→server) until
+ * the child exits or the peer disconnects.
  *
- * Spawn handlers (`spawn-pty-subprocess`, `fresh-exec`) are not yet wired in
- * and return `{type:"error", code:"E_TODO"}`. Tasks 8 and 13 will fill them.
+ * `fresh-exec` is still unimplemented and returns `{type:"error", code:"E_TODO"}`
+ * (Task 13).
  */
 export async function startSpawnServer(
 	options: SpawnServerOptions,
@@ -101,7 +111,32 @@ export async function startSpawnServer(
 				return;
 			}
 
-			// TODO(Task 8): wire `spawn-pty-subprocess` handler
+			if (result.data.type === "spawn-pty-subprocess") {
+				// Handler takes ownership of the socket: it writes the initial
+				// {type:"ok",pid} line and then streams NDJSON frames until the
+				// child exits or the client disconnects. Do not write to or
+				// close the socket here after a successful dispatch.
+				//
+				// Forward any bytes that arrived in the same TCP chunk after
+				// the request line (e.g. pipelined stdin frames) so they are
+				// parsed as the handler's first incoming frames.
+				const residual = buffer.slice(newlineIdx + 1);
+				try {
+					handleSpawnPtySubprocess({ env: result.data.env }, client, {
+						subprocessScriptPath: options.subprocessScriptPath,
+						initialBuffer: residual,
+					});
+				} catch (err) {
+					writeResponse(client, {
+						type: "error",
+						message: err instanceof Error ? err.message : String(err),
+						code: "E_SPAWN",
+					});
+					client.end();
+				}
+				return;
+			}
+
 			// TODO(Task 13): wire `fresh-exec` handler
 			writeResponse(client, {
 				type: "error",

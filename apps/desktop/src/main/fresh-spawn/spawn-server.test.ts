@@ -21,11 +21,23 @@ describe("SpawnServer", () => {
 		tmpDir = "";
 	});
 
-	function mkdirs(): { socketPath: string; tokenPath: string } {
+	function mkdirs(): {
+		socketPath: string;
+		tokenPath: string;
+		subprocessScriptPath: string;
+	} {
 		tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "fs-server-"));
+		// A minimal echo script. These tests don't exercise the streaming
+		// handler; a valid path is enough to satisfy the required option.
+		const subprocessScriptPath = path.join(tmpDir, "noop.js");
+		fs.writeFileSync(
+			subprocessScriptPath,
+			`process.stdin.on("end", () => process.exit(0));\n`,
+		);
 		return {
 			socketPath: path.join(tmpDir, "s.sock"),
 			tokenPath: path.join(tmpDir, "s.token"),
+			subprocessScriptPath,
 		};
 	}
 
@@ -117,7 +129,7 @@ describe("SpawnServer", () => {
 		expect(parsed.code).toBe("E_AUTH");
 	});
 
-	it("responds with E_TODO on valid authenticated spawn-pty-subprocess request", async () => {
+	it("responds with ok+pid on valid authenticated spawn-pty-subprocess request", async () => {
 		const paths = mkdirs();
 		server = await startSpawnServer(paths);
 		const token = readTokenFile(paths.tokenPath);
@@ -128,6 +140,30 @@ describe("SpawnServer", () => {
 				type: "spawn-pty-subprocess",
 				token,
 				env: { HOME: "/Users/test" },
+			}),
+		);
+		const parsed = JSON.parse(resp);
+		expect(parsed.type).toBe("ok");
+		expect(typeof parsed.pid).toBe("number");
+		expect(parsed.pid).toBeGreaterThan(0);
+	});
+
+	it("responds with E_TODO on valid authenticated fresh-exec request", async () => {
+		const paths = mkdirs();
+		server = await startSpawnServer(paths);
+		const token = readTokenFile(paths.tokenPath);
+
+		const resp = await roundTrip(
+			paths.socketPath,
+			JSON.stringify({
+				type: "fresh-exec",
+				token,
+				command: "gh",
+				args: ["status"],
+				cwd: "/tmp",
+				env: {},
+				ptyCols: 80,
+				ptyRows: 24,
 			}),
 		);
 		const parsed = JSON.parse(resp);

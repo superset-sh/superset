@@ -20,15 +20,25 @@ describe("sendSpawnRequest", () => {
 		tmpDir = "";
 	});
 
-	function mkdirs(): { socketPath: string; tokenPath: string } {
+	function mkdirs(): {
+		socketPath: string;
+		tokenPath: string;
+		subprocessScriptPath: string;
+	} {
 		tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "fs-client-"));
+		const subprocessScriptPath = path.join(tmpDir, "noop.js");
+		fs.writeFileSync(
+			subprocessScriptPath,
+			`process.stdin.on("end", () => process.exit(0));\n`,
+		);
 		return {
 			socketPath: path.join(tmpDir, "s.sock"),
 			tokenPath: path.join(tmpDir, "s.token"),
+			subprocessScriptPath,
 		};
 	}
 
-	it("sends spawn-pty-subprocess, receives E_TODO from skeleton server", async () => {
+	it("sends spawn-pty-subprocess, receives ok+pid from streaming handler", async () => {
 		const paths = mkdirs();
 		server = await startSpawnServer(paths);
 
@@ -41,9 +51,13 @@ describe("sendSpawnRequest", () => {
 			},
 		});
 
-		expect(resp.type).toBe("error");
-		if (resp.type === "error") {
-			expect(resp.code).toBe("E_TODO");
+		// The first NDJSON line from the server is {type:"ok", pid}. sendSpawnRequest
+		// settles after that first line, so the client still sees a SpawnResponse
+		// even though the server-side connection remains open for streaming.
+		expect(resp.type).toBe("ok");
+		if (resp.type === "ok") {
+			expect(typeof resp.pid).toBe("number");
+			expect(resp.pid).toBeGreaterThan(0);
 		}
 	});
 
