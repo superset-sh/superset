@@ -239,7 +239,15 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 									status: anthropicStatus,
 									startOAuth: startAnthropicOAuth,
 									isStartingOAuth: isStartingAnthropicOAuth,
-									onDisconnect: anthropicOAuthDialog.onDisconnect,
+									onDisconnect: async () => {
+										if (anthropicStatus?.authMethod === "oauth") {
+											anthropicOAuthDialog.onDisconnect();
+										} else {
+											await clearAnthropicApiKeyMutation.mutateAsync();
+											setAnthropicApiKeyInput("");
+										}
+										await refetchAnthropicAuthStatus();
+									},
 								})}
 							/>
 						</SettingsSection>
@@ -257,7 +265,15 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 									status: openAIStatus,
 									startOAuth: startOpenAIOAuth,
 									isStartingOAuth: isStartingOpenAIOAuth,
-									onDisconnect: openAIOAuthDialog.onDisconnect,
+									onDisconnect: async () => {
+										if (openAIStatus?.authMethod === "oauth") {
+											openAIOAuthDialog.onDisconnect();
+										} else {
+											await clearOpenAIApiKeyMutation.mutateAsync();
+											setOpenAIApiKeyInput("");
+										}
+										await refetchOpenAIAuthStatus();
+									},
 								})}
 							/>
 						</SettingsSection>

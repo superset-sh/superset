@@ -143,8 +143,8 @@ export function getProviderAction(
 	if (status.issue?.remediation === "reconnect") {
 		return { kind: "reconnect" };
 	}
-	if (status.authMethod === "oauth") {
+	if (status.connectionState === "connected") {
 		return { kind: "logout" };
 	}
-	return null;
+	return { kind: "connect" };
 }
