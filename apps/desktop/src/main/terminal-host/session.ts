@@ -36,6 +36,7 @@ import type {
 	TerminalSnapshot,
 } from "../lib/terminal-host/types";
 import { treeKillAsync } from "../lib/tree-kill";
+import { trySpawnViaFreshServer } from "./fresh-spawn-integration";
 import {
 	createFrameHeader,
 	PtySubprocessFrameDecoder,
@@ -239,14 +240,19 @@ export class Session {
 	}
 
 	/**
-	 * Spawn the PTY process via subprocess
+	 * Spawn the PTY process via subprocess.
+	 *
+	 * Tries fresh-spawn first (macOS, when Electron main's spawn server is
+	 * reachable) to get a subprocess with a fresh Mach bootstrap context.
+	 * Falls back to direct child_process.spawn in all other cases
+	 * (non-macOS, daemon running standalone, server unreachable).
 	 */
-	spawn(options: {
+	async spawn(options: {
 		cwd: string;
 		cols: number;
 		rows: number;
 		env?: Record<string, string>;
-	}): void {
+	}): Promise<void> {
 		if (this.subprocess) {
 			throw new Error("PTY already spawned");
 		}
@@ -264,12 +270,25 @@ export class Session {
 			: getShellArgs(this.shell);
 		const subprocessPath = path.join(__dirname, "pty-subprocess.js");
 
-		// Spawn subprocess with filtered env to prevent leaking NODE_ENV etc.
-		const electronPath = process.execPath;
-		this.subprocess = this.spawnProcess(electronPath, [subprocessPath], {
-			stdio: ["pipe", "pipe", "inherit"],
-			env: { ...processEnv, ELECTRON_RUN_AS_NODE: "1" },
+		// Try fresh-spawn first (macOS + server running); fall back to direct spawn.
+		// SpawnSession implements a ChildProcess-compatible surface (stdin/stdout/
+		// stderr streams, pid, kill, "exit"/"error" events), so the downstream
+		// wiring below is identical for both paths.
+		const subprocessEnv = { ...processEnv, ELECTRON_RUN_AS_NODE: "1" };
+		const freshSession = await trySpawnViaFreshServer({
+			env: subprocessEnv,
 		});
+
+		if (freshSession) {
+			this.subprocess = freshSession as unknown as ChildProcess;
+		} else {
+			// Spawn subprocess with filtered env to prevent leaking NODE_ENV etc.
+			const electronPath = process.execPath;
+			this.subprocess = this.spawnProcess(electronPath, [subprocessPath], {
+				stdio: ["pipe", "pipe", "inherit"],
+				env: subprocessEnv,
+			});
+		}
 
 		// Read framed messages from subprocess stdout
 		if (this.subprocess.stdout) {

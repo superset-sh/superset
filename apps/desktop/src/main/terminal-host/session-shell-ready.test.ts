@@ -108,11 +108,16 @@ function createTestSession(shell: string): {
 }
 
 /** Spawn a session and make it ready for writes. */
-function spawnAndReady(
+async function spawnAndReady(
 	session: InstanceType<typeof Session>,
 	proc: FakeChildProcess,
-): void {
-	session.spawn({ cwd: "/tmp", cols: 80, rows: 24, env: { PATH: "/usr/bin" } });
+): Promise<void> {
+	await session.spawn({
+		cwd: "/tmp",
+		cols: 80,
+		rows: 24,
+		env: { PATH: "/usr/bin" },
+	});
 	sendReady(proc);
 	sendSpawned(proc);
 }
@@ -122,9 +127,9 @@ function spawnAndReady(
 // =============================================================================
 
 describe("Session shell-ready: write pass-through", () => {
-	it("passes writes through immediately while shell is pending (#3478)", () => {
+	it("passes writes through immediately while shell is pending (#3478)", async () => {
 		const { session, proc } = createTestSession("/bin/zsh");
-		spawnAndReady(session, proc);
+		await spawnAndReady(session, proc);
 
 		// User keystrokes answering a shell-init prompt (e.g. fnm's
 		// "install missing Node version?") must reach the PTY without
@@ -139,9 +144,9 @@ describe("Session shell-ready: write pass-through", () => {
 		expect(getWrittenData(proc)).toEqual(["y\n", "echo ready\n"]);
 	});
 
-	it("passes writes through immediately for unsupported shells (sh)", () => {
+	it("passes writes through immediately for unsupported shells (sh)", async () => {
 		const { session, proc } = createTestSession("/bin/sh");
-		spawnAndReady(session, proc);
+		await spawnAndReady(session, proc);
 
 		session.write("echo hello\n");
 
@@ -149,18 +154,18 @@ describe("Session shell-ready: write pass-through", () => {
 		expect(writes).toEqual(["echo hello\n"]);
 	});
 
-	it("passes writes through immediately for unsupported shells (ksh)", () => {
+	it("passes writes through immediately for unsupported shells (ksh)", async () => {
 		const { session, proc } = createTestSession("/bin/ksh");
-		spawnAndReady(session, proc);
+		await spawnAndReady(session, proc);
 
 		session.write("ls\n");
 
 		expect(getWrittenData(proc)).toEqual(["ls\n"]);
 	});
 
-	it("drops terminal protocol responses (DA) during pending state", () => {
+	it("drops terminal protocol responses (DA) during pending state", async () => {
 		const { session, proc } = createTestSession("/bin/zsh");
-		spawnAndReady(session, proc);
+		await spawnAndReady(session, proc);
 
 		// Simulate DA response from renderer xterm arriving during init
 		session.write("\x1b[?62;4;9;22c");
@@ -178,9 +183,9 @@ describe("Session shell-ready: write pass-through", () => {
 		expect(getWrittenData(proc)).toEqual(["claude\n"]);
 	});
 
-	it("forwards escape sequences once shell is ready", () => {
+	it("forwards escape sequences once shell is ready", async () => {
 		const { session, proc } = createTestSession("/bin/zsh");
-		spawnAndReady(session, proc);
+		await spawnAndReady(session, proc);
 
 		sendData(proc, SHELL_READY_MARKER);
 
@@ -192,9 +197,9 @@ describe("Session shell-ready: write pass-through", () => {
 });
 
 describe("Session shell-ready: marker detection", () => {
-	it("strips marker from single data frame", () => {
+	it("strips marker from single data frame", async () => {
 		const { session, proc } = createTestSession("/bin/zsh");
-		spawnAndReady(session, proc);
+		await spawnAndReady(session, proc);
 
 		// Send data with marker embedded
 		sendData(proc, `before${SHELL_READY_MARKER}after`);
@@ -204,9 +209,9 @@ describe("Session shell-ready: marker detection", () => {
 		expect(getWrittenData(proc)).toEqual(["test\n"]);
 	});
 
-	it("detects marker split across two PTY data frames", () => {
+	it("detects marker split across two PTY data frames", async () => {
 		const { session, proc } = createTestSession("/bin/zsh");
-		spawnAndReady(session, proc);
+		await spawnAndReady(session, proc);
 
 		// Split the marker roughly in half
 		const half = Math.floor(SHELL_READY_MARKER.length / 2);
@@ -228,9 +233,9 @@ describe("Session shell-ready: marker detection", () => {
 		expect(getWrittenData(proc)).toEqual(["first\n", "second\n"]);
 	});
 
-	it("handles marker at start of data frame", () => {
+	it("handles marker at start of data frame", async () => {
 		const { session, proc } = createTestSession("/bin/zsh");
-		spawnAndReady(session, proc);
+		await spawnAndReady(session, proc);
 
 		sendData(proc, `${SHELL_READY_MARKER}prompt$ `);
 
@@ -238,9 +243,9 @@ describe("Session shell-ready: marker detection", () => {
 		expect(getWrittenData(proc)).toEqual(["test\n"]);
 	});
 
-	it("handles marker at end of data frame", () => {
+	it("handles marker at end of data frame", async () => {
 		const { session, proc } = createTestSession("/bin/zsh");
-		spawnAndReady(session, proc);
+		await spawnAndReady(session, proc);
 
 		sendData(proc, `direnv: loading .envrc\n${SHELL_READY_MARKER}`);
 
@@ -248,9 +253,9 @@ describe("Session shell-ready: marker detection", () => {
 		expect(getWrittenData(proc)).toEqual(["test\n"]);
 	});
 
-	it("handles data that looks like marker start but isn't", () => {
+	it("handles data that looks like marker start but isn't", async () => {
 		const { session, proc } = createTestSession("/bin/zsh");
-		spawnAndReady(session, proc);
+		await spawnAndReady(session, proc);
 
 		// Send a partial marker prefix followed by different content
 		const partialMarker = SHELL_READY_MARKER.slice(0, 5);
@@ -272,9 +277,9 @@ describe("Session shell-ready: marker detection", () => {
 	// against a future wrapper regression that swaps the order (which would
 	// leave 133;A in the pre-777 slice and still work) or drops 133;A
 	// entirely (which would regress readiness on the current scanner).
-	it("resolves readiness when wrapper emits both 777 and 133;A markers together", () => {
+	it("resolves readiness when wrapper emits both 777 and 133;A markers together", async () => {
 		const { session, proc } = createTestSession("/bin/zsh");
-		spawnAndReady(session, proc);
+		await spawnAndReady(session, proc);
 
 		const COMBINED_MARKER = "\x1b]777;superset-shell-ready\x07\x1b]133;A\x07";
 		sendData(proc, `direnv output...${COMBINED_MARKER}prompt$ `);
@@ -287,9 +292,9 @@ describe("Session shell-ready: marker detection", () => {
 });
 
 describe("Session shell-ready: kill/exit before readiness", () => {
-	it("accepts writes when subprocess exits before marker", () => {
+	it("accepts writes when subprocess exits before marker", async () => {
 		const { session, proc } = createTestSession("/bin/bash");
-		spawnAndReady(session, proc);
+		await spawnAndReady(session, proc);
 
 		// Writes pass through even during pending.
 		session.write("echo pending\n");
@@ -303,9 +308,9 @@ describe("Session shell-ready: kill/exit before readiness", () => {
 		expect(getWrittenData(proc)).toEqual(["echo pending\n"]);
 	});
 
-	it("accepts writes when session is killed before marker", () => {
+	it("accepts writes when session is killed before marker", async () => {
 		const { session, proc } = createTestSession("/bin/zsh");
-		spawnAndReady(session, proc);
+		await spawnAndReady(session, proc);
 
 		session.write("echo pending\n");
 		expect(getWrittenData(proc)).toEqual(["echo pending\n"]);
@@ -327,9 +332,9 @@ describe("Session shell-ready: supported shells", () => {
 		"/bin/bash",
 		"/usr/local/bin/fish",
 	]) {
-		it(`passes writes through while pending for supported shell: ${shell}`, () => {
+		it(`passes writes through while pending for supported shell: ${shell}`, async () => {
 			const { session, proc } = createTestSession(shell);
-			spawnAndReady(session, proc);
+			await spawnAndReady(session, proc);
 
 			session.write("test\n");
 			expect(getWrittenData(proc)).toEqual(["test\n"]);
@@ -340,9 +345,9 @@ describe("Session shell-ready: supported shells", () => {
 	}
 
 	for (const shell of ["/bin/sh", "/bin/ksh", "/usr/bin/dash"]) {
-		it(`passes writes through for unsupported shell: ${shell}`, () => {
+		it(`passes writes through for unsupported shell: ${shell}`, async () => {
 			const { session, proc } = createTestSession(shell);
-			spawnAndReady(session, proc);
+			await spawnAndReady(session, proc);
 
 			session.write("test\n");
 			expect(getWrittenData(proc)).toEqual(["test\n"]);

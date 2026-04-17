@@ -87,8 +87,10 @@ function getSpawnPayload(fakeChild: FakeChildProcess) {
 	};
 }
 
-function spawnAndReadySession(session: InstanceType<typeof Session>): void {
-	session.spawn({
+async function spawnAndReadySession(
+	session: InstanceType<typeof Session>,
+): Promise<void> {
+	await session.spawn({
 		cwd: "/tmp",
 		cols: 80,
 		rows: 24,
@@ -104,7 +106,7 @@ describe("Terminal Host Session shell args", () => {
 		spawnCalls = [];
 	});
 
-	it("sends bash --rcfile args in spawn payload", () => {
+	it("sends bash --rcfile args in spawn payload", async () => {
 		const session = new Session({
 			sessionId: "session-bash-args",
 			workspaceId: "workspace-1",
@@ -120,7 +122,7 @@ describe("Terminal Host Session shell args", () => {
 			},
 		});
 
-		session.spawn({
+		await session.spawn({
 			cwd: "/tmp",
 			cols: 80,
 			rows: 24,
@@ -137,7 +139,7 @@ describe("Terminal Host Session shell args", () => {
 		);
 	});
 
-	it("uses -lc command args when command is provided", () => {
+	it("uses -lc command args when command is provided", async () => {
 		const session = new Session({
 			sessionId: "session-command-args",
 			workspaceId: "workspace-1",
@@ -154,7 +156,7 @@ describe("Terminal Host Session shell args", () => {
 			},
 		});
 
-		session.spawn({
+		await session.spawn({
 			cwd: "/tmp",
 			cols: 80,
 			rows: 24,
@@ -188,7 +190,7 @@ describe("Terminal Host Session shell args", () => {
 			},
 		});
 
-		session.spawn({
+		await session.spawn({
 			cwd: "/tmp",
 			cols: 80,
 			rows: 24,
@@ -270,7 +272,7 @@ describe("Terminal Host Session emulator backlog backpressure", () => {
 		spawnCalls = [];
 	});
 
-	it("pauses subprocess stdout when emulator backlog exceeds the watermark without attached clients", () => {
+	it("pauses subprocess stdout when emulator backlog exceeds the watermark without attached clients", async () => {
 		const session = new Session({
 			sessionId: "session-emulator-backpressure",
 			workspaceId: "workspace-1",
@@ -283,7 +285,7 @@ describe("Terminal Host Session emulator backlog backpressure", () => {
 			spawnProcess: () => fakeChildProcess as unknown as ChildProcess,
 		});
 
-		spawnAndReadySession(session);
+		await spawnAndReadySession(session);
 
 		(
 			session as unknown as {
@@ -295,7 +297,7 @@ describe("Terminal Host Session emulator backlog backpressure", () => {
 		expect(fakeChildProcess.stdout.resumeCalls).toBe(0);
 	});
 
-	it("resumes subprocess stdout once emulator backlog drains below the low watermark", () => {
+	it("resumes subprocess stdout once emulator backlog drains below the low watermark", async () => {
 		const session = new Session({
 			sessionId: "session-emulator-resume",
 			workspaceId: "workspace-1",
@@ -308,7 +310,7 @@ describe("Terminal Host Session emulator backlog backpressure", () => {
 			spawnProcess: () => fakeChildProcess as unknown as ChildProcess,
 		});
 
-		spawnAndReadySession(session);
+		await spawnAndReadySession(session);
 
 		const internals = session as unknown as {
 			enqueueEmulatorWrite: (data: string) => void;
@@ -325,7 +327,7 @@ describe("Terminal Host Session emulator backlog backpressure", () => {
 		expect(fakeChildProcess.stdout.resumeCalls).toBe(1);
 	});
 
-	it("keeps queued byte accounting exact when chunking across a surrogate pair boundary", () => {
+	it("keeps queued byte accounting exact when chunking across a surrogate pair boundary", async () => {
 		const session = new Session({
 			sessionId: "session-surrogate-pair-backpressure",
 			workspaceId: "workspace-1",
@@ -338,7 +340,7 @@ describe("Terminal Host Session emulator backlog backpressure", () => {
 			spawnProcess: () => fakeChildProcess as unknown as ChildProcess,
 		});
 
-		spawnAndReadySession(session);
+		await spawnAndReadySession(session);
 
 		const internals = session as unknown as {
 			enqueueEmulatorWrite: (data: string) => void;
@@ -354,7 +356,7 @@ describe("Terminal Host Session emulator backlog backpressure", () => {
 		expect(internals.emulatorWriteQueuedBytes).toBe(0);
 	});
 
-	it("keeps subprocess stdout paused until client drain clears too", () => {
+	it("keeps subprocess stdout paused until client drain clears too", async () => {
 		const session = new Session({
 			sessionId: "session-combined-backpressure",
 			workspaceId: "workspace-1",
@@ -367,7 +369,7 @@ describe("Terminal Host Session emulator backlog backpressure", () => {
 			spawnProcess: () => fakeChildProcess as unknown as ChildProcess,
 		});
 
-		spawnAndReadySession(session);
+		await spawnAndReadySession(session);
 
 		const socket = new EventEmitter() as import("node:net").Socket;
 		const internals = session as unknown as {
@@ -390,7 +392,7 @@ describe("Terminal Host Session emulator backlog backpressure", () => {
 		expect(fakeChildProcess.stdout.resumeCalls).toBe(1);
 	});
 
-	it("resumes subprocess stdout when a backpressured client disconnects before drain", () => {
+	it("resumes subprocess stdout when a backpressured client disconnects before drain", async () => {
 		for (const eventName of ["close", "error"] as const) {
 			fakeChildProcess = new FakeChildProcess();
 			spawnCalls = [];
@@ -407,7 +409,7 @@ describe("Terminal Host Session emulator backlog backpressure", () => {
 				spawnProcess: () => fakeChildProcess as unknown as ChildProcess,
 			});
 
-			spawnAndReadySession(session);
+			await spawnAndReadySession(session);
 
 			const socket = new EventEmitter() as import("node:net").Socket;
 			const internals = session as unknown as {
@@ -438,7 +440,7 @@ describe("Terminal Host Session emulator backlog backpressure", () => {
 		}
 	});
 
-	it("resumes subprocess stdout when the last backpressured client throws during broadcast", () => {
+	it("resumes subprocess stdout when the last backpressured client throws during broadcast", async () => {
 		const session = new Session({
 			sessionId: "session-dead-socket-backpressure",
 			workspaceId: "workspace-1",
@@ -451,7 +453,7 @@ describe("Terminal Host Session emulator backlog backpressure", () => {
 			spawnProcess: () => fakeChildProcess as unknown as ChildProcess,
 		});
 
-		spawnAndReadySession(session);
+		await spawnAndReadySession(session);
 
 		const badSocket = new EventEmitter() as import("node:net").Socket & {
 			write: (_message: string) => boolean;
