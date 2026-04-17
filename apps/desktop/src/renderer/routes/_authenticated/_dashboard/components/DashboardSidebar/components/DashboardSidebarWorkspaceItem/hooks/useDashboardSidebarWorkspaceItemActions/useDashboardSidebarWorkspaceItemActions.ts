@@ -99,8 +99,9 @@ export function useDashboardSidebarWorkspaceItemActions({
 	};
 
 	const handleCreateSection = () => {
-		const newSectionId = createSection(projectId);
-		moveWorkspaceToSection(workspaceId, projectId, newSectionId);
+		createSection(projectId, {
+			insertAfterWorkspaceId: workspaceId,
+		});
 	};
 
 	const resolveWorktreePath = async (): Promise<string | null> => {
