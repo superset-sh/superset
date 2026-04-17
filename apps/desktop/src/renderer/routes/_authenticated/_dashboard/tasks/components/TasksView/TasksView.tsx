@@ -17,7 +17,7 @@ import { type TabValue, TasksTopBar } from "./components/TasksTopBar";
 import type { TaskWithStatus } from "./hooks/useTasksData";
 
 interface TasksViewProps {
-	initialTab?: "all" | "active" | "backlog";
+	initialTab?: TabValue;
 	initialAssignee?: string;
 	initialSearch?: string;
 }
@@ -171,7 +171,11 @@ export function TasksView({
 					onNewTask={() => setIsCreateOnedevOpen(true)}
 					onNewProject={() => setIsCreateProjectOpen(true)}
 				/>
-				<OnedevTasksContent searchQuery={searchQuery} viewMode={viewMode} stateFilter={currentTab} />
+				<OnedevTasksContent
+					searchQuery={searchQuery}
+					viewMode={viewMode}
+					stateFilter={currentTab}
+				/>
 				<CreateOnedevIssueDialog
 					open={isCreateOnedevOpen}
 					onOpenChange={setIsCreateOnedevOpen}

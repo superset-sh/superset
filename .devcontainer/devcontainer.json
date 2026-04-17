@@ -3,69 +3,69 @@
 // Bun 1.3.6 + Node.js 22 + Turborepo Monorepo
 // =============================================================================
 {
-  "name": "Superset Fork",
-  "build": {
-    "dockerfile": "Dockerfile",
-    "context": ".."
-  },
+	"name": "Superset Fork",
+	"build": {
+		"dockerfile": "Dockerfile",
+		"context": ".."
+	},
 
-  // Non-root User
-  "remoteUser": "vscode",
-  "containerUser": "vscode",
+	// Non-root User
+	"remoteUser": "vscode",
+	"containerUser": "vscode",
 
-  // Ports: web, api, marketing, admin, docs
-  "forwardPorts": [3000, 3001, 3002, 3003, 3004],
-  "portsAttributes": {
-    "3000": { "label": "Web (Next.js)", "onAutoForward": "notify" },
-    "3001": { "label": "API", "onAutoForward": "notify" },
-    "3002": { "label": "Marketing", "onAutoForward": "notify" },
-    "3003": { "label": "Admin", "onAutoForward": "notify" },
-    "3004": { "label": "Docs", "onAutoForward": "notify" }
-  },
+	// Ports: web, api, marketing, admin, docs
+	"forwardPorts": [3000, 3001, 3002, 3003, 3004],
+	"portsAttributes": {
+		"3000": { "label": "Web (Next.js)", "onAutoForward": "notify" },
+		"3001": { "label": "API", "onAutoForward": "notify" },
+		"3002": { "label": "Marketing", "onAutoForward": "notify" },
+		"3003": { "label": "Admin", "onAutoForward": "notify" },
+		"3004": { "label": "Docs", "onAutoForward": "notify" }
+	},
 
-  // Secrets mount (read-only)
-  "mounts": [
-    "source=${localEnv:HOME}/.secrets/superset-fork,target=/workspace/.env-secrets,type=bind,readonly"
-  ],
+	// Secrets mount (read-only)
+	"mounts": [
+		"source=${localEnv:HOME}/.secrets/superset-fork,target=/workspace/.env-secrets,type=bind,readonly"
+	],
 
-  // Named Volumes fuer Performance
-  "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind",
-  "workspaceFolder": "/workspace",
+	// Named Volumes fuer Performance
+	"workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind",
+	"workspaceFolder": "/workspace",
 
-  // VS Code Extensions
-  "customizations": {
-    "vscode": {
-      "extensions": [
-        "biomejs.biome",
-        "ms-vscode.vscode-typescript-next",
-        "bradlc.vscode-tailwindcss",
-        "prisma.prisma",
-        "oven.bun-vscode",
-        "dbaeumer.vscode-eslint",
-        "esbenp.prettier-vscode",
-        "mikestead.dotenv",
-        "aaron-bond.better-comments",
-        "eamodio.gitlens"
-      ],
-      "settings": {
-        "terminal.integrated.defaultProfile.linux": "zsh",
-        "editor.defaultFormatter": "biomejs.biome",
-        "editor.formatOnSave": true,
-        "[typescript]": { "editor.defaultFormatter": "biomejs.biome" },
-        "[typescriptreact]": { "editor.defaultFormatter": "biomejs.biome" },
-        "[javascript]": { "editor.defaultFormatter": "biomejs.biome" },
-        "[json]": { "editor.defaultFormatter": "biomejs.biome" },
-        "[jsonc]": { "editor.defaultFormatter": "biomejs.biome" }
-      }
-    }
-  },
+	// VS Code Extensions
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"biomejs.biome",
+				"ms-vscode.vscode-typescript-next",
+				"bradlc.vscode-tailwindcss",
+				"prisma.prisma",
+				"oven.bun-vscode",
+				"dbaeumer.vscode-eslint",
+				"esbenp.prettier-vscode",
+				"mikestead.dotenv",
+				"aaron-bond.better-comments",
+				"eamodio.gitlens"
+			],
+			"settings": {
+				"terminal.integrated.defaultProfile.linux": "zsh",
+				"editor.defaultFormatter": "biomejs.biome",
+				"editor.formatOnSave": true,
+				"[typescript]": { "editor.defaultFormatter": "biomejs.biome" },
+				"[typescriptreact]": { "editor.defaultFormatter": "biomejs.biome" },
+				"[javascript]": { "editor.defaultFormatter": "biomejs.biome" },
+				"[json]": { "editor.defaultFormatter": "biomejs.biome" },
+				"[jsonc]": { "editor.defaultFormatter": "biomejs.biome" }
+			}
+		}
+	},
 
-  // Nach Container-Erstellung: .env verlinken + bun install
-  "postCreateCommand": "bash .devcontainer/post-create.sh",
+	// Nach Container-Erstellung: .env verlinken + bun install
+	"postCreateCommand": "bash .devcontainer/post-create.sh",
 
-  // Container-Env
-  "containerEnv": {
-    "TURBO_TELEMETRY_DISABLED": "1",
-    "DO_NOT_TRACK": "1"
-  }
+	// Container-Env
+	"containerEnv": {
+		"TURBO_TELEMETRY_DISABLED": "1",
+		"DO_NOT_TRACK": "1"
+	}
 }

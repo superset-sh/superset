@@ -218,17 +218,28 @@ export const createGitStatusProcedures = () => {
 					const onedevToken = settingsRow?.onedevAccessToken ?? null;
 					if (onedevUrl && onedevToken) {
 						const git = await getSimpleGitWithShellPath(worktree.path);
-						const remoteUrl = (await git.remote(["get-url", "origin"])).trim();
+						const remoteResult = await git.remote(["get-url", "origin"]);
+						if (typeof remoteResult !== "string") return freshStatus;
+						const remoteUrl = remoteResult.trim();
 						const provider = detectGitProvider(remoteUrl, onedevUrl);
 						if (provider === "onedev") {
 							const projectPath = extractOnedevProjectPath(remoteUrl);
 							if (projectPath) {
-								const { createOnedevClient } = await import("../../changes/utils/onedev-api");
-								const client = createOnedevClient({ url: onedevUrl, accessToken: onedevToken });
+								const { createOnedevClient } = await import(
+									"../../changes/utils/onedev-api"
+								);
+								const client = createOnedevClient({
+									url: onedevUrl,
+									accessToken: onedevToken,
+								});
 								const projectInfo = await client.getProjectByPath(projectPath);
 								if (projectInfo) {
 									const branch = worktree.branch;
-									const existingPR = await client.findOpenPRWithUrl(projectInfo.id, branch, projectPath);
+									const existingPR = await client.findOpenPRWithUrl(
+										projectInfo.id,
+										branch,
+										projectPath,
+									);
 									if (existingPR) {
 										return {
 											pr: {
@@ -275,7 +286,11 @@ export const createGitStatusProcedures = () => {
 
 				try {
 					const git = await getSimpleGitWithShellPath(worktree.path);
-					const remoteUrl = (await git.remote(["get-url", "origin"])).trim();
+					const remoteResult = await git.remote(["get-url", "origin"]);
+					if (typeof remoteResult !== "string") {
+						return { provider: "unknown" as const };
+					}
+					const remoteUrl = remoteResult.trim();
 
 					const settingsRow = localDb.select().from(settings).get();
 					const onedevUrl = settingsRow?.onedevUrl ?? null;
@@ -298,7 +313,11 @@ export const createGitStatusProcedures = () => {
 
 				try {
 					const git = await getSimpleGitWithShellPath(project.mainRepoPath);
-					const remoteUrl = (await git.remote(["get-url", "origin"])).trim();
+					const remoteResult = await git.remote(["get-url", "origin"]);
+					if (typeof remoteResult !== "string") {
+						return { provider: "unknown" as const, onedevProjectPath: null };
+					}
+					const remoteUrl = remoteResult.trim();
 
 					const settingsRow = localDb.select().from(settings).get();
 					const onedevUrl = settingsRow?.onedevUrl ?? null;
@@ -326,9 +345,7 @@ export const createGitStatusProcedures = () => {
 
 			for (const project of allProjects) {
 				try {
-					const git = await getSimpleGitWithShellPath(
-						project.mainRepoPath,
-					);
+					const git = await getSimpleGitWithShellPath(project.mainRepoPath);
 					const remotes = await git.getRemotes(true);
 					const origin = remotes.find((r) => r.name === "origin");
 					if (!origin?.refs?.fetch) {
@@ -338,15 +355,11 @@ export const createGitStatusProcedures = () => {
 						continue;
 					}
 					const remoteUrl = origin.refs.fetch.trim();
-					console.log(
-						`[onedev] Project ${project.name}: remote=${remoteUrl}`,
-					);
+					console.log(`[onedev] Project ${project.name}: remote=${remoteUrl}`);
 					const provider = detectGitProvider(remoteUrl, onedevUrl);
 					if (provider === "onedev") {
 						const path = extractOnedevProjectPath(remoteUrl);
-						console.log(
-							`[onedev] Found OneDev project: ${path}`,
-						);
+						console.log(`[onedev] Found OneDev project: ${path}`);
 						if (path) results.push(path);
 					}
 				} catch (error) {
@@ -364,7 +377,10 @@ export const createGitStatusProcedures = () => {
 		getOnedevPRStatus: publicProcedure
 			.input(z.object({ workspaceId: z.string() }))
 			.query(async ({ input }) => {
-				console.log("[getOnedevPRStatus] Called with workspaceId:", input.workspaceId);
+				console.log(
+					"[getOnedevPRStatus] Called with workspaceId:",
+					input.workspaceId,
+				);
 				const settingsRow = localDb.select().from(settings).get();
 				const onedevUrl = settingsRow?.onedevUrl ?? null;
 				const onedevToken = settingsRow?.onedevAccessToken ?? null;
@@ -402,9 +418,14 @@ export const createGitStatusProcedures = () => {
 
 					// Find open PR for this branch
 					const branch = workspace.branch;
-					const baseUrl = onedevUrl.replace(/\/+$/, "");
-					const { createOnedevClient } = await import("../../changes/utils/onedev-api");
-					const client = createOnedevClient({ url: onedevUrl, accessToken: onedevToken });
+					const _baseUrl = onedevUrl.replace(/\/+$/, "");
+					const { createOnedevClient } = await import(
+						"../../changes/utils/onedev-api"
+					);
+					const client = createOnedevClient({
+						url: onedevUrl,
+						accessToken: onedevToken,
+					});
 					const projectInfo = await client.getProjectByPath(projectPath);
 					if (!projectInfo) return null;
 
@@ -414,7 +435,10 @@ export const createGitStatusProcedures = () => {
 						projectPath,
 					);
 
-					console.log("[getOnedevPRStatus] existingPR:", existingPR ? `#${existingPR.number}` : "null");
+					console.log(
+						"[getOnedevPRStatus] existingPR:",
+						existingPR ? `#${existingPR.number}` : "null",
+					);
 					if (!existingPR) return null;
 
 					return {

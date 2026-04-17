@@ -33,8 +33,8 @@ import {
 	HiOutlineFolderOpen,
 	HiOutlinePaintBrush,
 } from "react-icons/hi2";
-import { VscGitMerge } from "react-icons/vsc";
 import { LuImagePlus, LuTrash2 } from "react-icons/lu";
+import { VscGitMerge } from "react-icons/vsc";
 import { ColorSelector } from "renderer/components/ColorSelector";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
@@ -665,11 +665,17 @@ export function ProjectSettings({
 }
 
 function OnedevSection({ projectId }: { projectId: string }) {
-	const { data: info } = electronTrpc.settings.getOnedevProjectInfo.useQuery({ projectId });
+	const { data: info } = electronTrpc.settings.getOnedevProjectInfo.useQuery({
+		projectId,
+	});
 
 	if (!info) {
 		return (
-			<SettingsSection icon={<VscGitMerge className="h-4 w-4" />} title="OneDev" description="Git server integration.">
+			<SettingsSection
+				icon={<VscGitMerge className="h-4 w-4" />}
+				title="OneDev"
+				description="Git server integration."
+			>
 				<div className="flex items-center gap-2">
 					<span className="inline-block w-2 h-2 rounded-full bg-muted-foreground/30" />
 					<span className="text-sm text-muted-foreground">Loading...</span>
@@ -681,13 +687,25 @@ function OnedevSection({ projectId }: { projectId: string }) {
 	const isOnedev = info.provider === "onedev";
 
 	return (
-		<SettingsSection icon={<VscGitMerge className="h-4 w-4" />} title="OneDev" description="Git server integration.">
+		<SettingsSection
+			icon={<VscGitMerge className="h-4 w-4" />}
+			title="OneDev"
+			description="Git server integration."
+		>
 			<div className="space-y-3">
 				<div className="flex items-center justify-between">
 					<Label className="text-sm font-medium">Provider</Label>
 					<div className="flex items-center gap-2">
-						<span className={`inline-block w-2 h-2 rounded-full ${isOnedev ? "bg-green-500" : "bg-muted-foreground/30"}`} />
-						<span className="text-sm">{isOnedev ? "OneDev" : info.provider === "github" ? "GitHub" : "Unknown"}</span>
+						<span
+							className={`inline-block w-2 h-2 rounded-full ${isOnedev ? "bg-green-500" : "bg-muted-foreground/30"}`}
+						/>
+						<span className="text-sm">
+							{isOnedev
+								? "OneDev"
+								: info.provider === "github"
+									? "GitHub"
+									: "Unknown"}
+						</span>
 					</div>
 				</div>
 				<div className="flex items-center justify-between">
@@ -705,7 +723,12 @@ function OnedevSection({ projectId }: { projectId: string }) {
 						{info.onedevUrl && (
 							<div className="flex items-center justify-between">
 								<Label className="text-sm font-medium">Web</Label>
-								<a href={info.onedevUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
+								<a
+									href={info.onedevUrl}
+									target="_blank"
+									rel="noopener noreferrer"
+									className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+								>
 									{info.onedevUrl.replace(/^https?:\/\//, "")}
 									<HiArrowTopRightOnSquare className="size-3" />
 								</a>

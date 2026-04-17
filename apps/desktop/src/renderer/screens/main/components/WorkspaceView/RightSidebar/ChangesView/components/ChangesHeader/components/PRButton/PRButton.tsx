@@ -4,14 +4,12 @@ import {
 	DropdownMenuContent,
 	DropdownMenuItem,
 	DropdownMenuLabel,
-	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
 import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import {
 	VscChevronDown,
-	VscClose,
 	VscGitMerge,
 	VscGitPullRequest,
 	VscLoading,
@@ -52,21 +50,6 @@ export function PRButton({
 			}),
 	});
 
-	const closePRMutation = electronTrpc.changes.closePR.useMutation({
-		onMutate: () => {
-			const toastId = toast.loading("Closing PR...");
-			return { toastId };
-		},
-		onSuccess: (_data, _variables, context) => {
-			toast.success("PR closed", { id: context?.toastId });
-			onRefresh();
-		},
-		onError: (error, _variables, context) =>
-			toast.error(`Close failed: ${error.message}`, {
-				id: context?.toastId,
-			}),
-	});
-
 	const { createOrOpenPR, isPending: isCreateOrOpenPRPending } =
 		useCreateOrOpenPR({
 			worktreePath,
@@ -74,14 +57,12 @@ export function PRButton({
 		});
 
 	const isCreatePending = isCreateOrOpenPRPending;
-	const isActioning = mergePRMutation.isPending || closePRMutation.isPending;
+	const isActioning = mergePRMutation.isPending;
 
 	const handleCreatePR = () => createOrOpenPR();
 
 	const handleMergePR = (strategy: "merge" | "squash" | "rebase") =>
 		mergePRMutation.mutate({ worktreePath, strategy });
-
-	const handleClosePR = () => closePRMutation.mutate({ worktreePath });
 
 	if (isLoading) {
 		return (
@@ -205,15 +186,6 @@ export function PRButton({
 					>
 						<VscGitMerge className="size-3.5" />
 						Rebase and merge
-					</DropdownMenuItem>
-					<DropdownMenuSeparator />
-					<DropdownMenuItem
-						onClick={handleClosePR}
-						className="text-xs text-destructive"
-						disabled={isActioning}
-					>
-						<VscClose className="size-3.5" />
-						Close pull request
 					</DropdownMenuItem>
 				</DropdownMenuContent>
 			</DropdownMenu>

@@ -6,9 +6,12 @@ import {
 	oneLight,
 } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { useTheme } from "renderer/stores";
+import type { PluginConfig } from "streamdown";
 import { Streamdown } from "streamdown";
 
-const mermaidPlugins = { mermaid };
+const mermaidPlugins: PluginConfig = {
+	mermaid: mermaid as unknown as PluginConfig["mermaid"],
+};
 
 interface CodeNode {
 	position?: {

@@ -43,15 +43,19 @@ function stateColor(state: string): string {
 				: "text-muted-foreground";
 }
 
-function filterByState(issues: OnedevIssue[], filter: StateFilter): OnedevIssue[] {
+function filterByState(
+	issues: OnedevIssue[],
+	filter: StateFilter,
+): OnedevIssue[] {
 	switch (filter) {
 		case "active":
-			return issues.filter((i) => i.state === "In Progress" || i.state === "In Review");
+			return issues.filter(
+				(i) => i.state === "In Progress" || i.state === "In Review",
+			);
 		case "backlog":
 			return issues.filter((i) => i.state === "Open");
 		case "closed":
 			return issues.filter((i) => i.state === "Closed");
-		case "all":
 		default:
 			return issues.filter((i) => i.state !== "Closed");
 	}
@@ -67,28 +71,43 @@ export function OnedevTasksContent({
 	stateFilter?: StateFilter;
 }) {
 	const navigate = useNavigate();
-	const { data: onedevConfig } = electronTrpc.settings.getOnedevConfig.useQuery();
-	const { data: onedevProjectPaths, isLoading } = electronTrpc.workspaces.getOnedevProjectPaths.useQuery();
+	const { data: onedevConfig } =
+		electronTrpc.settings.getOnedevConfig.useQuery();
+	const { data: onedevProjectPaths, isLoading } =
+		electronTrpc.workspaces.getOnedevProjectPaths.useQuery();
 	const isConfigured = !!onedevConfig?.url && !!onedevConfig?.accessToken;
-	const [selectedIssue, setSelectedIssue] = useState<{ projectPath: string; issueNumber: number } | null>(null);
+	const [selectedIssue, setSelectedIssue] = useState<{
+		projectPath: string;
+		issueNumber: number;
+	} | null>(null);
 	const [sidebarWidth, setSidebarWidth] = useState(320);
 
 	const emptySidebar = (
-		<div className="border-l border-border shrink-0 flex items-center justify-center text-muted-foreground text-xs p-4" style={{ width: sidebarWidth }}>
-			{!isConfigured ? "Configure OneDev in Settings > Git" : isLoading ? "Loading..." : "Select an issue to view details"}
+		<div
+			className="border-l border-border shrink-0 flex items-center justify-center text-muted-foreground text-xs p-4"
+			style={{ width: sidebarWidth }}
+		>
+			{!isConfigured
+				? "Configure OneDev in Settings > Git"
+				: isLoading
+					? "Loading..."
+					: "Select an issue to view details"}
 		</div>
 	);
 
-	const sidebar = selectedIssue !== null ? (
-		<IssueDetailSidebar
-			key={`${selectedIssue.projectPath}-${String(selectedIssue.issueNumber)}`}
-			projectPath={selectedIssue.projectPath}
-			issueNumber={selectedIssue.issueNumber}
-			onClose={() => setSelectedIssue(null)}
-			width={sidebarWidth}
-			onWidthChange={setSidebarWidth}
-		/>
-	) : emptySidebar;
+	const sidebar =
+		selectedIssue !== null ? (
+			<IssueDetailSidebar
+				key={`${selectedIssue.projectPath}-${String(selectedIssue.issueNumber)}`}
+				projectPath={selectedIssue.projectPath}
+				issueNumber={selectedIssue.issueNumber}
+				onClose={() => setSelectedIssue(null)}
+				width={sidebarWidth}
+				onWidthChange={setSidebarWidth}
+			/>
+		) : (
+			emptySidebar
+		);
 
 	if (!isConfigured) {
 		return (
@@ -101,10 +120,13 @@ export function OnedevTasksContent({
 						<div className="space-y-2">
 							<h3 className="text-lg font-semibold">Connect OneDev</h3>
 							<p className="text-sm text-muted-foreground">
-								Configure your OneDev server in Settings &gt; Git to view and manage issues.
+								Configure your OneDev server in Settings &gt; Git to view and
+								manage issues.
 							</p>
 						</div>
-						<Button onClick={() => navigate({ to: "/settings/git" })}>Configure OneDev</Button>
+						<Button onClick={() => navigate({ to: "/settings/git" })}>
+							Configure OneDev
+						</Button>
 					</div>
 				</div>
 				{emptySidebar}
@@ -200,7 +222,11 @@ function OnedevProjectView({
 		const key = projectKey.toLowerCase();
 		return stateFiltered.filter((issue) => {
 			const slug = `${key}-${issue.number}`;
-			return slug.includes(q) || issue.title.toLowerCase().includes(q) || issue.description?.toLowerCase().includes(q);
+			return (
+				slug.includes(q) ||
+				issue.title.toLowerCase().includes(q) ||
+				issue.description?.toLowerCase().includes(q)
+			);
 		});
 	}, [allIssues, searchQuery, projectKey, stateFilter]);
 
@@ -216,7 +242,9 @@ function OnedevProjectView({
 	const columns = showClosed ? KANBAN_COLUMNS_CLOSED : KANBAN_COLUMNS_ACTIVE;
 
 	return (
-		<div className={`flex flex-col border-b border-border ${isCollapsed ? "shrink-0" : "min-h-0 flex-1"}`}>
+		<div
+			className={`flex flex-col border-b border-border ${isCollapsed ? "shrink-0" : "min-h-0 flex-1"}`}
+		>
 			{/* Project header */}
 			<div className="flex items-center gap-2 px-4 py-2 border-b border-border/50 bg-muted/20">
 				<button
@@ -224,7 +252,9 @@ function OnedevProjectView({
 					onClick={() => setIsCollapsed(!isCollapsed)}
 					className="flex items-center gap-2 min-w-0 hover:text-foreground transition-colors"
 				>
-					<HiChevronRight className={`size-3.5 text-muted-foreground transition-transform ${isCollapsed ? "" : "rotate-90"}`} />
+					<HiChevronRight
+						className={`size-3.5 text-muted-foreground transition-transform ${isCollapsed ? "" : "rotate-90"}`}
+					/>
 					{projectKey !== projectPath && (
 						<span className="text-xs font-mono px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
 							{projectKey}
@@ -233,18 +263,28 @@ function OnedevProjectView({
 					<span className="text-sm font-semibold">{projectPath}</span>
 				</button>
 				<span className="text-xs text-muted-foreground">
-					{filteredIssues.length}{" "}issues
+					{filteredIssues.length} issues
 				</span>
 				{latestBuild && (
-					<span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${
-						latestBuild.status === "SUCCESSFUL" ? "bg-green-500/20 text-green-500" :
-						latestBuild.status === "FAILED" ? "bg-red-500/20 text-red-500" :
-						latestBuild.status === "RUNNING" ? "bg-blue-500/20 text-blue-500" :
-						"bg-yellow-500/20 text-yellow-500"
-					}`} title={`${latestBuild.jobName} #${latestBuild.number} — ${latestBuild.commitHash}`}>
-						{latestBuild.status === "SUCCESSFUL" ? "✓ Build" :
-						 latestBuild.status === "FAILED" ? "✗ Build" :
-						 latestBuild.status === "RUNNING" ? "⟳ Build" : "⏳ Build"}
+					<span
+						className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${
+							latestBuild.status === "SUCCESSFUL"
+								? "bg-green-500/20 text-green-500"
+								: latestBuild.status === "FAILED"
+									? "bg-red-500/20 text-red-500"
+									: latestBuild.status === "RUNNING"
+										? "bg-blue-500/20 text-blue-500"
+										: "bg-yellow-500/20 text-yellow-500"
+						}`}
+						title={`${latestBuild.jobName} #${latestBuild.number} — ${latestBuild.commitHash}`}
+					>
+						{latestBuild.status === "SUCCESSFUL"
+							? "✓ Build"
+							: latestBuild.status === "FAILED"
+								? "✗ Build"
+								: latestBuild.status === "RUNNING"
+									? "⟳ Build"
+									: "⏳ Build"}
 					</span>
 				)}
 				<button
@@ -257,20 +297,29 @@ function OnedevProjectView({
 				</button>
 			</div>
 
-			{!isCollapsed && (viewMode === "board" ? (
-				<KanbanBoard
-					issues={filteredIssues}
-					columns={columns}
-					showClosed={showClosed}
-					projectKey={projectKey}
-					projectPath={projectPath}
-					navigate={navigate}
-					onStateChange={(id, state) => updateState.mutate({ issueId: id, state })}
-					onIssueClick={onIssueClick}
-				/>
-			) : (
-				<ListView issues={filteredIssues} projectKey={projectKey} projectPath={projectPath} navigate={navigate} onIssueClick={onIssueClick} />
-			))}
+			{!isCollapsed &&
+				(viewMode === "board" ? (
+					<KanbanBoard
+						issues={filteredIssues}
+						columns={columns}
+						showClosed={showClosed}
+						projectKey={projectKey}
+						projectPath={projectPath}
+						navigate={navigate}
+						onStateChange={(id, state) =>
+							updateState.mutate({ issueId: id, state })
+						}
+						onIssueClick={onIssueClick}
+					/>
+				) : (
+					<ListView
+						issues={filteredIssues}
+						projectKey={projectKey}
+						projectPath={projectPath}
+						navigate={navigate}
+						onIssueClick={onIssueClick}
+					/>
+				))}
 			<CreateOnedevIssueDialog
 				open={isCreateOpen}
 				onOpenChange={setIsCreateOpen}
@@ -375,7 +424,12 @@ function KanbanColumn({
 		onDragLeave: (e: React.DragEvent) => {
 			const rect = e.currentTarget.getBoundingClientRect();
 			const { clientX, clientY } = e;
-			if (clientX < rect.left || clientX > rect.right || clientY < rect.top || clientY > rect.bottom) {
+			if (
+				clientX < rect.left ||
+				clientX > rect.right ||
+				clientY < rect.top ||
+				clientY > rect.bottom
+			) {
 				setIsDragOver(false);
 			}
 		},
@@ -397,10 +451,15 @@ function KanbanColumn({
 			<div className="flex items-center gap-2 px-2 py-2 mb-2">
 				<VscIssues className={`size-4 ${stateColor(state)}`} />
 				<span className="text-sm font-medium">{state}</span>
-				<span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded">{issues.length}</span>
+				<span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+					{issues.length}
+				</span>
 			</div>
 			{/* biome-ignore lint/a11y/noStaticElementInteractions: drop zone */}
-			<div className="flex flex-col gap-2 flex-1 overflow-y-auto px-1 min-h-[100px]" {...dropHandlers}>
+			<div
+				className="flex flex-col gap-2 flex-1 overflow-y-auto px-1 min-h-[100px]"
+				{...dropHandlers}
+			>
 				{issues.map((issue) => {
 					const slug = `${projectKey.toLowerCase()}-${issue.number}`;
 					return (
@@ -419,14 +478,18 @@ function KanbanColumn({
 							}`}
 						>
 							<div className="flex items-center gap-2 mb-1">
-								<span className="text-xs text-muted-foreground tabular-nums">{slug}</span>
+								<span className="text-xs text-muted-foreground tabular-nums">
+									{slug}
+								</span>
 							</div>
 							<p className="text-sm font-medium line-clamp-2">{issue.title}</p>
 						</div>
 					);
 				})}
 				{issues.length === 0 && (
-					<div className="text-xs text-muted-foreground text-center py-4">No issues</div>
+					<div className="text-xs text-muted-foreground text-center py-4">
+						No issues
+					</div>
 				)}
 			</div>
 		</div>
@@ -449,12 +512,17 @@ function ListView({
 	return (
 		<div className="flex-1 overflow-y-auto">
 			{issues.length === 0 ? (
-				<div className="px-4 py-6 text-center text-sm text-muted-foreground">No issues found</div>
+				<div className="px-4 py-6 text-center text-sm text-muted-foreground">
+					No issues found
+				</div>
 			) : (
 				<div className="divide-y divide-border">
 					{issues.map((issue) => {
 						const slug = `${projectKey.toLowerCase()}-${issue.number}`;
-						const dateStr = new Date(issue.submitDate).toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit" });
+						const dateStr = new Date(issue.submitDate).toLocaleDateString(
+							"de-DE",
+							{ day: "2-digit", month: "2-digit" },
+						);
 						return (
 							<button
 								key={issue.id}
@@ -462,11 +530,19 @@ function ListView({
 								className="group flex items-center gap-3 px-4 py-2.5 hover:bg-accent/50 transition-colors cursor-pointer w-full text-left"
 								onClick={() => onIssueClick(issue.number)}
 							>
-								<VscIssues className={`size-4 shrink-0 ${stateColor(issue.state)}`} />
-								<span className="text-xs text-muted-foreground tabular-nums shrink-0 w-20">{slug}</span>
+								<VscIssues
+									className={`size-4 shrink-0 ${stateColor(issue.state)}`}
+								/>
+								<span className="text-xs text-muted-foreground tabular-nums shrink-0 w-20">
+									{slug}
+								</span>
 								<span className="text-sm truncate flex-1">{issue.title}</span>
-								<span className="text-xs text-muted-foreground shrink-0 px-2 py-0.5 rounded bg-muted">{issue.state}</span>
-								<span className="text-xs text-muted-foreground shrink-0 tabular-nums">{dateStr}</span>
+								<span className="text-xs text-muted-foreground shrink-0 px-2 py-0.5 rounded bg-muted">
+									{issue.state}
+								</span>
+								<span className="text-xs text-muted-foreground shrink-0 tabular-nums">
+									{dateStr}
+								</span>
 							</button>
 						);
 					})}
@@ -491,7 +567,9 @@ export function CreateOnedevIssueDialog({
 	const [description, setDescription] = useState("");
 	const [type, setType] = useState("Task");
 	const [priority, setPriority] = useState("Normal");
-	const [selectedProject, setSelectedProject] = useState(initialProject ?? projectPaths[0] ?? "");
+	const [selectedProject, setSelectedProject] = useState(
+		initialProject ?? projectPaths[0] ?? "",
+	);
 
 	useEffect(() => {
 		if (open && initialProject) {
@@ -525,7 +603,9 @@ export function CreateOnedevIssueDialog({
 							className="h-8 rounded-md border bg-transparent px-2 text-sm"
 						>
 							{projectPaths.map((p) => (
-								<option key={p} value={p}>{p}</option>
+								<option key={p} value={p}>
+									{p}
+								</option>
 							))}
 						</select>
 					)}
@@ -536,15 +616,32 @@ export function CreateOnedevIssueDialog({
 						autoFocus
 						onKeyDown={(e) => {
 							if (e.key === "Enter" && title.trim()) {
-								createIssue.mutate({ projectPath: selectedProject, title: title.trim(), description: description.trim() || undefined, type, priority });
+								createIssue.mutate({
+									projectPath: selectedProject,
+									title: title.trim(),
+									description: description.trim() || undefined,
+									type,
+									priority,
+								});
 							}
 						}}
 					/>
-					<Textarea placeholder="Description (optional)" value={description} onChange={(e) => setDescription(e.target.value)} rows={4} />
+					<Textarea
+						placeholder="Description (optional)"
+						value={description}
+						onChange={(e) => setDescription(e.target.value)}
+						rows={4}
+					/>
 					<div className="flex gap-2">
 						<div className="flex-1">
-							<label className="text-xs text-muted-foreground mb-1 block">Type</label>
-							<select value={type} onChange={(e) => setType(e.target.value)} className="h-8 w-full rounded-md border bg-transparent px-2 text-sm">
+							<label className="text-xs text-muted-foreground mb-1 block">
+								Type
+							</label>
+							<select
+								value={type}
+								onChange={(e) => setType(e.target.value)}
+								className="h-8 w-full rounded-md border bg-transparent px-2 text-sm"
+							>
 								<option value="Task">Task</option>
 								<option value="Bug">Bug</option>
 								<option value="New Feature">New Feature</option>
@@ -552,8 +649,14 @@ export function CreateOnedevIssueDialog({
 							</select>
 						</div>
 						<div className="flex-1">
-							<label className="text-xs text-muted-foreground mb-1 block">Priority</label>
-							<select value={priority} onChange={(e) => setPriority(e.target.value)} className="h-8 w-full rounded-md border bg-transparent px-2 text-sm">
+							<label className="text-xs text-muted-foreground mb-1 block">
+								Priority
+							</label>
+							<select
+								value={priority}
+								onChange={(e) => setPriority(e.target.value)}
+								className="h-8 w-full rounded-md border bg-transparent px-2 text-sm"
+							>
 								<option value="Normal">Normal</option>
 								<option value="Low">Low</option>
 								<option value="High">High</option>
@@ -563,11 +666,25 @@ export function CreateOnedevIssueDialog({
 					</div>
 				</div>
 				<DialogFooter>
-					<Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>Cancel</Button>
+					<Button
+						variant="outline"
+						size="sm"
+						onClick={() => onOpenChange(false)}
+					>
+						Cancel
+					</Button>
 					<Button
 						size="sm"
 						disabled={!title.trim() || createIssue.isPending}
-						onClick={() => createIssue.mutate({ projectPath: selectedProject, title: title.trim(), description: description.trim() || undefined, type, priority })}
+						onClick={() =>
+							createIssue.mutate({
+								projectPath: selectedProject,
+								title: title.trim(),
+								description: description.trim() || undefined,
+								type,
+								priority,
+							})
+						}
 					>
 						{createIssue.isPending ? "Creating..." : "Create"}
 					</Button>
@@ -613,18 +730,37 @@ export function CreateOnedevProjectDialog({
 						autoFocus
 						onKeyDown={(e) => {
 							if (e.key === "Enter" && name.trim()) {
-								createProject.mutate({ name: name.trim(), description: description.trim() || undefined });
+								createProject.mutate({
+									name: name.trim(),
+									description: description.trim() || undefined,
+								});
 							}
 						}}
 					/>
-					<Textarea placeholder="Description (optional)" value={description} onChange={(e) => setDescription(e.target.value)} rows={3} />
+					<Textarea
+						placeholder="Description (optional)"
+						value={description}
+						onChange={(e) => setDescription(e.target.value)}
+						rows={3}
+					/>
 				</div>
 				<DialogFooter>
-					<Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>Cancel</Button>
+					<Button
+						variant="outline"
+						size="sm"
+						onClick={() => onOpenChange(false)}
+					>
+						Cancel
+					</Button>
 					<Button
 						size="sm"
 						disabled={!name.trim() || createProject.isPending}
-						onClick={() => createProject.mutate({ name: name.trim(), description: description.trim() || undefined })}
+						onClick={() =>
+							createProject.mutate({
+								name: name.trim(),
+								description: description.trim() || undefined,
+							})
+						}
 					>
 						{createProject.isPending ? "Creating..." : "Create Project"}
 					</Button>

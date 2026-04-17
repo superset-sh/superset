@@ -1,7 +1,10 @@
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { useMatchRoute, useNavigate } from "@tanstack/react-router";
-import { HiOutlineChartBarSquare, HiOutlineClipboardDocumentList } from "react-icons/hi2";
+import {
+	HiOutlineChartBarSquare,
+	HiOutlineClipboardDocumentList,
+} from "react-icons/hi2";
 import { LuLayers } from "react-icons/lu";
 import { useTasksFilterStore } from "renderer/routes/_authenticated/_dashboard/tasks/stores/tasks-filter-state";
 import { STROKE_WIDTH } from "../constants";
@@ -58,7 +61,10 @@ export function WorkspaceSidebarHeader({
 									: "text-muted-foreground hover:text-foreground hover:bg-accent/50",
 							)}
 						>
-							<HiOutlineChartBarSquare className="size-4" strokeWidth={STROKE_WIDTH} />
+							<HiOutlineChartBarSquare
+								className="size-4"
+								strokeWidth={STROKE_WIDTH}
+							/>
 						</button>
 					</TooltipTrigger>
 					<TooltipContent side="right">Dashboard</TooltipContent>
@@ -121,7 +127,10 @@ export function WorkspaceSidebarHeader({
 				)}
 			>
 				<div className="flex items-center justify-center size-5">
-					<HiOutlineChartBarSquare className="size-4" strokeWidth={STROKE_WIDTH} />
+					<HiOutlineChartBarSquare
+						className="size-4"
+						strokeWidth={STROKE_WIDTH}
+					/>
 				</div>
 				<span className="text-sm font-medium flex-1 text-left">Dashboard</span>
 			</button>

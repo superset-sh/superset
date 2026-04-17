@@ -110,10 +110,7 @@ function OnedevIssuePage() {
 				{/* Content */}
 				<ScrollArea className="flex-1 min-h-0">
 					<div className="px-6 py-6 max-w-4xl">
-						<EditableIssueTitle
-							issueId={issue.id}
-							value={issue.title}
-						/>
+						<EditableIssueTitle issueId={issue.id} value={issue.title} />
 						<EditableIssueDescription
 							issueId={issue.id}
 							value={issue.description ?? ""}
@@ -202,7 +199,10 @@ function OnedevIssuePage() {
 function EditableIssueTitle({
 	issueId,
 	value,
-}: { issueId: number; value: string }) {
+}: {
+	issueId: number;
+	value: string;
+}) {
 	const [isEditing, setIsEditing] = useState(false);
 	const [draft, setDraft] = useState(value);
 	const utils = electronTrpc.useUtils();
@@ -238,7 +238,6 @@ function EditableIssueTitle({
 					}
 				}}
 				className="text-2xl font-bold mb-4 w-full bg-transparent border-b border-primary outline-none"
-				autoFocus
 			/>
 		);
 	}
@@ -260,7 +259,10 @@ function EditableIssueTitle({
 function EditableIssueDescription({
 	issueId,
 	value,
-}: { issueId: number; value: string }) {
+}: {
+	issueId: number;
+	value: string;
+}) {
 	const [isEditing, setIsEditing] = useState(false);
 	const [draft, setDraft] = useState(value);
 	const utils = electronTrpc.useUtils();
@@ -562,7 +564,7 @@ When done: commit your changes. Do NOT push or create PRs.`;
 				slug,
 				title,
 				description: onedevContext,
-				priority: priority?.toLowerCase() ?? null,
+				priority: priority?.toLowerCase() ?? "",
 				statusName: state,
 				labels: [],
 			},

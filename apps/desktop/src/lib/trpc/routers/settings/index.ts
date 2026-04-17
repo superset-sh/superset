@@ -898,11 +898,10 @@ export const createSettingsRouter = () => {
 					"../changes/utils/onedev-api"
 				);
 				const client = createOnedevClient({ url, accessToken });
-				const { issues, projectKey } =
-					await client.getIssuesByProjectPath(input.projectPath);
-				const issue = issues.find(
-					(i) => i.number === input.issueNumber,
+				const { issues, projectKey } = await client.getIssuesByProjectPath(
+					input.projectPath,
 				);
+				const issue = issues.find((i) => i.number === input.issueNumber);
 				if (!issue) return null;
 				const fields = await client.getIssueFields(issue.id);
 				return {
@@ -941,9 +940,7 @@ export const createSettingsRouter = () => {
 					},
 				);
 				if (!response.ok) {
-					throw new Error(
-						`Failed to update issue state: ${response.status}`,
-					);
+					throw new Error(`Failed to update issue state: ${response.status}`);
 				}
 				return { success: true };
 			}),
@@ -975,9 +972,7 @@ export const createSettingsRouter = () => {
 					},
 				);
 				if (!response.ok) {
-					throw new Error(
-						`Failed to update issue fields: ${response.status}`,
-					);
+					throw new Error(`Failed to update issue fields: ${response.status}`);
 				}
 				return { success: true };
 			}),
@@ -1003,9 +998,7 @@ export const createSettingsRouter = () => {
 					"../changes/utils/onedev-api"
 				);
 				const client = createOnedevClient({ url, accessToken });
-				const project = await client.getProjectWithKey(
-					input.projectPath,
-				);
+				const project = await client.getProjectWithKey(input.projectPath);
 				if (!project) {
 					throw new Error(`Project ${input.projectPath} not found`);
 				}
@@ -1023,9 +1016,7 @@ export const createSettingsRouter = () => {
 					}),
 				});
 				if (!response.ok) {
-					throw new Error(
-						`Failed to create issue: ${response.status}`,
-					);
+					throw new Error(`Failed to create issue: ${response.status}`);
 				}
 				const issueId = await response.json();
 
@@ -1317,21 +1308,38 @@ export const createSettingsRouter = () => {
 				if (!url || !accessToken) return [];
 				try {
 					// First resolve projectPath to projectId
-					const { createOnedevClient } = await import("../changes/utils/onedev-api");
+					const { createOnedevClient } = await import(
+						"../changes/utils/onedev-api"
+					);
 					const client = createOnedevClient({ url, accessToken });
 					const project = await client.getProjectByPath(input.projectPath);
 					if (!project) return [];
 
-					const res = await fetch(`${url}/~api/builds?offset=0&count=50&query=${encodeURIComponent(`"Project" is "${input.projectPath}"`)}`, {
-						headers: { Authorization: `Bearer ${accessToken}` },
-					});
+					const res = await fetch(
+						`${url}/~api/builds?offset=0&count=50&query=${encodeURIComponent(`"Project" is "${input.projectPath}"`)}`,
+						{
+							headers: { Authorization: `Bearer ${accessToken}` },
+						},
+					);
 					if (!res.ok) {
 						// Fallback: load all builds and filter client-side
-						const allRes = await fetch(`${url}/~api/builds?offset=0&count=100`, {
-							headers: { Authorization: `Bearer ${accessToken}` },
-						});
+						const allRes = await fetch(
+							`${url}/~api/builds?offset=0&count=100`,
+							{
+								headers: { Authorization: `Bearer ${accessToken}` },
+							},
+						);
 						if (!allRes.ok) return [];
-						const allBuilds = (await allRes.json()) as { id: number; jobName: string; status: string; refName: string; submitDate: string; number: number; projectId: number; commitHash: string }[];
+						const allBuilds = (await allRes.json()) as {
+							id: number;
+							jobName: string;
+							status: string;
+							refName: string;
+							submitDate: string;
+							number: number;
+							projectId: number;
+							commitHash: string;
+						}[];
 						return allBuilds
 							.filter((b) => b.projectId === project.id)
 							.slice(0, 5)
@@ -1345,7 +1353,15 @@ export const createSettingsRouter = () => {
 								commitHash: b.commitHash?.slice(0, 7) ?? "",
 							}));
 					}
-					const builds = (await res.json()) as { id: number; jobName: string; status: string; refName: string; submitDate: string; number: number; commitHash: string }[];
+					const builds = (await res.json()) as {
+						id: number;
+						jobName: string;
+						status: string;
+						refName: string;
+						submitDate: string;
+						number: number;
+						commitHash: string;
+					}[];
 					return builds.slice(0, 5).map((b) => ({
 						id: b.id,
 						jobName: b.jobName,
@@ -1369,14 +1385,30 @@ export const createSettingsRouter = () => {
 				if (!onedevUrl || !onedevToken) return null;
 				try {
 					const { projects } = await import("@superset/local-db");
-					const project = localDb.select().from(projects).where(eq(projects.id, input.projectId)).get();
+					const project = localDb
+						.select()
+						.from(projects)
+						.where(eq(projects.id, input.projectId))
+						.get();
 					if (!project) return null;
-					const { getSimpleGitWithShellPath } = await import("../workspaces/utils/git-client");
+					const { getSimpleGitWithShellPath } = await import(
+						"../workspaces/utils/git-client"
+					);
 					const git = await getSimpleGitWithShellPath(project.mainRepoPath);
-					const remoteUrl = (await git.remote(["get-url", "origin"])).trim();
-					const { detectGitProvider, extractOnedevProjectPath } = await import("../changes/utils/git-provider");
+					const remoteResult = await git.remote(["get-url", "origin"]);
+					if (typeof remoteResult !== "string") return null;
+					const remoteUrl = remoteResult.trim();
+					const { detectGitProvider, extractOnedevProjectPath } = await import(
+						"../changes/utils/git-provider"
+					);
 					const provider = detectGitProvider(remoteUrl, onedevUrl);
-					if (provider !== "onedev") return { provider, remoteUrl, onedevProjectPath: null, onedevUrl: null };
+					if (provider !== "onedev")
+						return {
+							provider,
+							remoteUrl,
+							onedevProjectPath: null,
+							onedevUrl: null,
+						};
 					const projectPath = extractOnedevProjectPath(remoteUrl);
 					return {
 						provider: "onedev",
@@ -1396,7 +1428,9 @@ export const createSettingsRouter = () => {
 				const allProjects = localDb.select().from(projects).all();
 				for (const project of allProjects) {
 					try {
-						const { getSimpleGitWithShellPath } = await import("../workspaces/utils/git-client");
+						const { getSimpleGitWithShellPath } = await import(
+							"../workspaces/utils/git-client"
+						);
 						const git = await getSimpleGitWithShellPath(project.mainRepoPath);
 						const remotes = await git.getRemotes(true);
 						const origin = remotes.find((r) => r.name === "origin");
@@ -1406,9 +1440,7 @@ export const createSettingsRouter = () => {
 							const clean = name.replace("origin/", "");
 							return { name: clean };
 						});
-					} catch {
-						continue;
-					}
+					} catch {}
 				}
 				return [];
 			}),
@@ -1421,7 +1453,9 @@ export const createSettingsRouter = () => {
 				// Find matching project by checking git remote
 				for (const project of allProjects) {
 					try {
-						const { getSimpleGitWithShellPath } = await import("../workspaces/utils/git-client");
+						const { getSimpleGitWithShellPath } = await import(
+							"../workspaces/utils/git-client"
+						);
 						const git = await getSimpleGitWithShellPath(project.mainRepoPath);
 						const remotes = await git.getRemotes(true);
 						const origin = remotes.find((r) => r.name === "origin");
@@ -1431,7 +1465,9 @@ export const createSettingsRouter = () => {
 						const log = await git.log({ maxCount: 10 });
 						const allLog = await git.raw(["rev-list", "--count", "HEAD"]);
 						const totalCount = Number.parseInt(allLog.trim(), 10) || 0;
-						const contributors = [...new Set(log.all.map((c) => c.author_name).filter(Boolean))];
+						const contributors = [
+							...new Set(log.all.map((c) => c.author_name).filter(Boolean)),
+						];
 						return {
 							commits: log.all.map((c) => ({
 								hash: c.hash.slice(0, 7),
@@ -1442,9 +1478,7 @@ export const createSettingsRouter = () => {
 							totalCount,
 							contributors,
 						};
-					} catch {
-						continue;
-					}
+					} catch {}
 				}
 				return { commits: [], totalCount: 0, contributors: [] };
 			}),
@@ -1457,7 +1491,9 @@ export const createSettingsRouter = () => {
 				const accessToken = row.onedevAccessToken;
 				if (!url || !accessToken) return [];
 				try {
-					const { createOnedevClient } = await import("../changes/utils/onedev-api");
+					const { createOnedevClient } = await import(
+						"../changes/utils/onedev-api"
+					);
 					const client = createOnedevClient({ url, accessToken });
 					const project = await client.getProjectByPath(input.projectPath);
 					if (!project) return [];
@@ -1465,7 +1501,16 @@ export const createSettingsRouter = () => {
 						headers: { Authorization: `Bearer ${accessToken}` },
 					});
 					if (!res.ok) return [];
-					const pulls = (await res.json()) as { id: number; number: number; title: string; sourceBranch: string; targetBranch: string; status: string; submitDate: string; projectId: number }[];
+					const pulls = (await res.json()) as {
+						id: number;
+						number: number;
+						title: string;
+						sourceBranch: string;
+						targetBranch: string;
+						status: string;
+						submitDate: string;
+						projectId: number;
+					}[];
 					return pulls
 						.filter((p) => p.projectId === project.id)
 						.map((p) => ({
@@ -1483,24 +1528,31 @@ export const createSettingsRouter = () => {
 			}),
 
 		getOnedevUsers: publicProcedure.query(async () => {
-				const row = getSettings();
-				const url = row.onedevUrl;
-				const accessToken = row.onedevAccessToken;
-				if (!url || !accessToken) return [];
-				try {
-					const res = await fetch(`${url}/~api/users?offset=0&count=100`, {
-						headers: { Authorization: `Bearer ${accessToken}` },
-					});
-					if (!res.ok) return [];
-					const users = (await res.json()) as { name: string; fullName: string | null; disabled: boolean; serviceAccount: boolean }[];
-					return users.filter((u) => !u.disabled && !u.serviceAccount).map((u) => ({
+			const row = getSettings();
+			const url = row.onedevUrl;
+			const accessToken = row.onedevAccessToken;
+			if (!url || !accessToken) return [];
+			try {
+				const res = await fetch(`${url}/~api/users?offset=0&count=100`, {
+					headers: { Authorization: `Bearer ${accessToken}` },
+				});
+				if (!res.ok) return [];
+				const users = (await res.json()) as {
+					name: string;
+					fullName: string | null;
+					disabled: boolean;
+					serviceAccount: boolean;
+				}[];
+				return users
+					.filter((u) => !u.disabled && !u.serviceAccount)
+					.map((u) => ({
 						name: u.name,
 						fullName: u.fullName,
 					}));
-				} catch {
-					return [];
-				}
-			}),
+			} catch {
+				return [];
+			}
+		}),
 
 		updateOnedevIssueAssignee: publicProcedure
 			.input(z.object({ issueId: z.number(), assignee: z.string().nullable() }))
@@ -1511,20 +1563,26 @@ export const createSettingsRouter = () => {
 				if (!url || !accessToken) throw new Error("OneDev not configured");
 				const res = await fetch(`${url}/~api/issues/${input.issueId}/fields`, {
 					method: "POST",
-					headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+					headers: {
+						Authorization: `Bearer ${accessToken}`,
+						"Content-Type": "application/json",
+					},
 					body: JSON.stringify({ Assignees: input.assignee }),
 				});
-				if (!res.ok) throw new Error(`Failed to update assignee: ${res.status}`);
+				if (!res.ok)
+					throw new Error(`Failed to update assignee: ${res.status}`);
 				return { success: true };
 			}),
 
 		createOnedevProject: publicProcedure
-			.input(z.object({
-				name: z.string(),
-				description: z.string().optional(),
-				issueManagement: z.boolean().default(true),
-				codeManagement: z.boolean().default(true),
-			}))
+			.input(
+				z.object({
+					name: z.string(),
+					description: z.string().optional(),
+					issueManagement: z.boolean().default(true),
+					codeManagement: z.boolean().default(true),
+				}),
+			)
 			.mutation(async ({ input }) => {
 				const row = getSettings();
 				const url = row.onedevUrl;
@@ -1532,7 +1590,10 @@ export const createSettingsRouter = () => {
 				if (!url || !accessToken) throw new Error("OneDev not configured");
 				const res = await fetch(`${url}/~api/projects`, {
 					method: "POST",
-					headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+					headers: {
+						Authorization: `Bearer ${accessToken}`,
+						"Content-Type": "application/json",
+					},
 					body: JSON.stringify({
 						name: input.name,
 						description: input.description ?? "",
@@ -1560,11 +1621,19 @@ export const createSettingsRouter = () => {
 				const accessToken = row.onedevAccessToken;
 				if (!url || !accessToken) return [];
 				try {
-					const res = await fetch(`${url}/~api/issues/${input.issueId}/comments`, {
-						headers: { Authorization: `Bearer ${accessToken}` },
-					});
+					const res = await fetch(
+						`${url}/~api/issues/${input.issueId}/comments`,
+						{
+							headers: { Authorization: `Bearer ${accessToken}` },
+						},
+					);
 					if (!res.ok) return [];
-					return (await res.json()) as { id: number; content: string; date: string; userId: number }[];
+					return (await res.json()) as {
+						id: number;
+						content: string;
+						date: string;
+						userId: number;
+					}[];
 				} catch {
 					return [];
 				}

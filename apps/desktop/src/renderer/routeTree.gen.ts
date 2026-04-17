@@ -20,6 +20,7 @@ import { Route as AuthenticatedSettingsPageRouteImport } from './routes/_authent
 import { Route as AuthenticatedDashboardV2WorkspaceLayoutRouteImport } from './routes/_authenticated/_dashboard/v2-workspace/layout'
 import { Route as AuthenticatedDashboardTasksLayoutRouteImport } from './routes/_authenticated/_dashboard/tasks/layout'
 import { Route as AuthenticatedSettingsTerminalPageRouteImport } from './routes/_authenticated/settings/terminal/page'
+import { Route as AuthenticatedSettingsSecurityPageRouteImport } from './routes/_authenticated/settings/security/page'
 import { Route as AuthenticatedSettingsRingtonesPageRouteImport } from './routes/_authenticated/settings/ringtones/page'
 import { Route as AuthenticatedSettingsProjectsPageRouteImport } from './routes/_authenticated/settings/projects/page'
 import { Route as AuthenticatedSettingsPresetsPageRouteImport } from './routes/_authenticated/settings/presets/page'
@@ -29,7 +30,6 @@ import { Route as AuthenticatedSettingsModelsPageRouteImport } from './routes/_a
 import { Route as AuthenticatedSettingsKeyboardPageRouteImport } from './routes/_authenticated/settings/keyboard/page'
 import { Route as AuthenticatedSettingsIntegrationsPageRouteImport } from './routes/_authenticated/settings/integrations/page'
 import { Route as AuthenticatedSettingsGitPageRouteImport } from './routes/_authenticated/settings/git/page'
-import { Route as AuthenticatedSettingsDevicesPageRouteImport } from './routes/_authenticated/settings/devices/page'
 import { Route as AuthenticatedSettingsBillingPageRouteImport } from './routes/_authenticated/settings/billing/page'
 import { Route as AuthenticatedSettingsBehaviorPageRouteImport } from './routes/_authenticated/settings/behavior/page'
 import { Route as AuthenticatedSettingsAppearancePageRouteImport } from './routes/_authenticated/settings/appearance/page'
@@ -49,6 +49,7 @@ import { Route as AuthenticatedDashboardWorkspaceWorkspaceIdPageRouteImport } fr
 import { Route as AuthenticatedDashboardV2WorkspaceWorkspaceIdPageRouteImport } from './routes/_authenticated/_dashboard/v2-workspace/$workspaceId/page'
 import { Route as AuthenticatedDashboardTasksTaskIdPageRouteImport } from './routes/_authenticated/_dashboard/tasks/$taskId/page'
 import { Route as AuthenticatedDashboardProjectProjectIdPageRouteImport } from './routes/_authenticated/_dashboard/project/$projectId/page'
+import { Route as AuthenticatedDashboardPendingPendingIdPageRouteImport } from './routes/_authenticated/_dashboard/pending/$pendingId/page'
 import { Route as AuthenticatedSettingsProjectProjectIdGeneralPageRouteImport } from './routes/_authenticated/settings/project/$projectId/general/page'
 import { Route as AuthenticatedSettingsProjectProjectIdCloudPageRouteImport } from './routes/_authenticated/settings/project/$projectId/cloud/page'
 import { Route as AuthenticatedSettingsProjectProjectIdCloudSecretsPageRouteImport } from './routes/_authenticated/settings/project/$projectId/cloud/secrets/page'
@@ -113,6 +114,12 @@ const AuthenticatedSettingsTerminalPageRoute =
     path: '/terminal/',
     getParentRoute: () => AuthenticatedSettingsLayoutRoute,
   } as any)
+const AuthenticatedSettingsSecurityPageRoute =
+  AuthenticatedSettingsSecurityPageRouteImport.update({
+    id: '/security/',
+    path: '/security/',
+    getParentRoute: () => AuthenticatedSettingsLayoutRoute,
+  } as any)
 const AuthenticatedSettingsRingtonesPageRoute =
   AuthenticatedSettingsRingtonesPageRouteImport.update({
     id: '/ringtones/',
@@ -165,12 +172,6 @@ const AuthenticatedSettingsGitPageRoute =
   AuthenticatedSettingsGitPageRouteImport.update({
     id: '/git/',
     path: '/git/',
-    getParentRoute: () => AuthenticatedSettingsLayoutRoute,
-  } as any)
-const AuthenticatedSettingsDevicesPageRoute =
-  AuthenticatedSettingsDevicesPageRouteImport.update({
-    id: '/devices/',
-    path: '/devices/',
     getParentRoute: () => AuthenticatedSettingsLayoutRoute,
   } as any)
 const AuthenticatedSettingsBillingPageRoute =
@@ -287,6 +288,12 @@ const AuthenticatedDashboardProjectProjectIdPageRoute =
     path: '/project/$projectId/',
     getParentRoute: () => AuthenticatedDashboardLayoutRoute,
   } as any)
+const AuthenticatedDashboardPendingPendingIdPageRoute =
+  AuthenticatedDashboardPendingPendingIdPageRouteImport.update({
+    id: '/pending/$pendingId/',
+    path: '/pending/$pendingId/',
+    getParentRoute: () => AuthenticatedDashboardLayoutRoute,
+  } as any)
 const AuthenticatedSettingsProjectProjectIdGeneralPageRoute =
   AuthenticatedSettingsProjectProjectIdGeneralPageRouteImport.update({
     id: '/project/$projectId/general/',
@@ -335,7 +342,6 @@ export interface FileRoutesByFullPath {
   '/settings/appearance/': typeof AuthenticatedSettingsAppearancePageRoute
   '/settings/behavior/': typeof AuthenticatedSettingsBehaviorPageRoute
   '/settings/billing/': typeof AuthenticatedSettingsBillingPageRoute
-  '/settings/devices/': typeof AuthenticatedSettingsDevicesPageRoute
   '/settings/git/': typeof AuthenticatedSettingsGitPageRoute
   '/settings/integrations/': typeof AuthenticatedSettingsIntegrationsPageRoute
   '/settings/keyboard/': typeof AuthenticatedSettingsKeyboardPageRoute
@@ -345,7 +351,9 @@ export interface FileRoutesByFullPath {
   '/settings/presets/': typeof AuthenticatedSettingsPresetsPageRoute
   '/settings/projects/': typeof AuthenticatedSettingsProjectsPageRoute
   '/settings/ringtones/': typeof AuthenticatedSettingsRingtonesPageRoute
+  '/settings/security/': typeof AuthenticatedSettingsSecurityPageRoute
   '/settings/terminal/': typeof AuthenticatedSettingsTerminalPageRoute
+  '/pending/$pendingId/': typeof AuthenticatedDashboardPendingPendingIdPageRoute
   '/project/$projectId/': typeof AuthenticatedDashboardProjectProjectIdPageRoute
   '/tasks/$taskId/': typeof AuthenticatedDashboardTasksTaskIdPageRoute
   '/v2-workspace/$workspaceId/': typeof AuthenticatedDashboardV2WorkspaceWorkspaceIdPageRoute
@@ -376,7 +384,6 @@ export interface FileRoutesByTo {
   '/settings/appearance': typeof AuthenticatedSettingsAppearancePageRoute
   '/settings/behavior': typeof AuthenticatedSettingsBehaviorPageRoute
   '/settings/billing': typeof AuthenticatedSettingsBillingPageRoute
-  '/settings/devices': typeof AuthenticatedSettingsDevicesPageRoute
   '/settings/git': typeof AuthenticatedSettingsGitPageRoute
   '/settings/integrations': typeof AuthenticatedSettingsIntegrationsPageRoute
   '/settings/keyboard': typeof AuthenticatedSettingsKeyboardPageRoute
@@ -386,7 +393,9 @@ export interface FileRoutesByTo {
   '/settings/presets': typeof AuthenticatedSettingsPresetsPageRoute
   '/settings/projects': typeof AuthenticatedSettingsProjectsPageRoute
   '/settings/ringtones': typeof AuthenticatedSettingsRingtonesPageRoute
+  '/settings/security': typeof AuthenticatedSettingsSecurityPageRoute
   '/settings/terminal': typeof AuthenticatedSettingsTerminalPageRoute
+  '/pending/$pendingId': typeof AuthenticatedDashboardPendingPendingIdPageRoute
   '/project/$projectId': typeof AuthenticatedDashboardProjectProjectIdPageRoute
   '/tasks/$taskId': typeof AuthenticatedDashboardTasksTaskIdPageRoute
   '/v2-workspace/$workspaceId': typeof AuthenticatedDashboardV2WorkspaceWorkspaceIdPageRoute
@@ -423,7 +432,6 @@ export interface FileRoutesById {
   '/_authenticated/settings/appearance/': typeof AuthenticatedSettingsAppearancePageRoute
   '/_authenticated/settings/behavior/': typeof AuthenticatedSettingsBehaviorPageRoute
   '/_authenticated/settings/billing/': typeof AuthenticatedSettingsBillingPageRoute
-  '/_authenticated/settings/devices/': typeof AuthenticatedSettingsDevicesPageRoute
   '/_authenticated/settings/git/': typeof AuthenticatedSettingsGitPageRoute
   '/_authenticated/settings/integrations/': typeof AuthenticatedSettingsIntegrationsPageRoute
   '/_authenticated/settings/keyboard/': typeof AuthenticatedSettingsKeyboardPageRoute
@@ -433,7 +441,9 @@ export interface FileRoutesById {
   '/_authenticated/settings/presets/': typeof AuthenticatedSettingsPresetsPageRoute
   '/_authenticated/settings/projects/': typeof AuthenticatedSettingsProjectsPageRoute
   '/_authenticated/settings/ringtones/': typeof AuthenticatedSettingsRingtonesPageRoute
+  '/_authenticated/settings/security/': typeof AuthenticatedSettingsSecurityPageRoute
   '/_authenticated/settings/terminal/': typeof AuthenticatedSettingsTerminalPageRoute
+  '/_authenticated/_dashboard/pending/$pendingId/': typeof AuthenticatedDashboardPendingPendingIdPageRoute
   '/_authenticated/_dashboard/project/$projectId/': typeof AuthenticatedDashboardProjectProjectIdPageRoute
   '/_authenticated/_dashboard/tasks/$taskId/': typeof AuthenticatedDashboardTasksTaskIdPageRoute
   '/_authenticated/_dashboard/v2-workspace/$workspaceId/': typeof AuthenticatedDashboardV2WorkspaceWorkspaceIdPageRoute
@@ -468,7 +478,6 @@ export interface FileRouteTypes {
     | '/settings/appearance/'
     | '/settings/behavior/'
     | '/settings/billing/'
-    | '/settings/devices/'
     | '/settings/git/'
     | '/settings/integrations/'
     | '/settings/keyboard/'
@@ -478,7 +487,9 @@ export interface FileRouteTypes {
     | '/settings/presets/'
     | '/settings/projects/'
     | '/settings/ringtones/'
+    | '/settings/security/'
     | '/settings/terminal/'
+    | '/pending/$pendingId/'
     | '/project/$projectId/'
     | '/tasks/$taskId/'
     | '/v2-workspace/$workspaceId/'
@@ -509,7 +520,6 @@ export interface FileRouteTypes {
     | '/settings/appearance'
     | '/settings/behavior'
     | '/settings/billing'
-    | '/settings/devices'
     | '/settings/git'
     | '/settings/integrations'
     | '/settings/keyboard'
@@ -519,7 +529,9 @@ export interface FileRouteTypes {
     | '/settings/presets'
     | '/settings/projects'
     | '/settings/ringtones'
+    | '/settings/security'
     | '/settings/terminal'
+    | '/pending/$pendingId'
     | '/project/$projectId'
     | '/tasks/$taskId'
     | '/v2-workspace/$workspaceId'
@@ -555,7 +567,6 @@ export interface FileRouteTypes {
     | '/_authenticated/settings/appearance/'
     | '/_authenticated/settings/behavior/'
     | '/_authenticated/settings/billing/'
-    | '/_authenticated/settings/devices/'
     | '/_authenticated/settings/git/'
     | '/_authenticated/settings/integrations/'
     | '/_authenticated/settings/keyboard/'
@@ -565,7 +576,9 @@ export interface FileRouteTypes {
     | '/_authenticated/settings/presets/'
     | '/_authenticated/settings/projects/'
     | '/_authenticated/settings/ringtones/'
+    | '/_authenticated/settings/security/'
     | '/_authenticated/settings/terminal/'
+    | '/_authenticated/_dashboard/pending/$pendingId/'
     | '/_authenticated/_dashboard/project/$projectId/'
     | '/_authenticated/_dashboard/tasks/$taskId/'
     | '/_authenticated/_dashboard/v2-workspace/$workspaceId/'
@@ -664,6 +677,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSettingsTerminalPageRouteImport
       parentRoute: typeof AuthenticatedSettingsLayoutRoute
     }
+    '/_authenticated/settings/security/': {
+      id: '/_authenticated/settings/security/'
+      path: '/security'
+      fullPath: '/settings/security/'
+      preLoaderRoute: typeof AuthenticatedSettingsSecurityPageRouteImport
+      parentRoute: typeof AuthenticatedSettingsLayoutRoute
+    }
     '/_authenticated/settings/ringtones/': {
       id: '/_authenticated/settings/ringtones/'
       path: '/ringtones'
@@ -725,13 +745,6 @@ declare module '@tanstack/react-router' {
       path: '/git'
       fullPath: '/settings/git/'
       preLoaderRoute: typeof AuthenticatedSettingsGitPageRouteImport
-      parentRoute: typeof AuthenticatedSettingsLayoutRoute
-    }
-    '/_authenticated/settings/devices/': {
-      id: '/_authenticated/settings/devices/'
-      path: '/devices'
-      fullPath: '/settings/devices/'
-      preLoaderRoute: typeof AuthenticatedSettingsDevicesPageRouteImport
       parentRoute: typeof AuthenticatedSettingsLayoutRoute
     }
     '/_authenticated/settings/billing/': {
@@ -867,6 +880,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardProjectProjectIdPageRouteImport
       parentRoute: typeof AuthenticatedDashboardLayoutRoute
     }
+    '/_authenticated/_dashboard/pending/$pendingId/': {
+      id: '/_authenticated/_dashboard/pending/$pendingId/'
+      path: '/pending/$pendingId'
+      fullPath: '/pending/$pendingId/'
+      preLoaderRoute: typeof AuthenticatedDashboardPendingPendingIdPageRouteImport
+      parentRoute: typeof AuthenticatedDashboardLayoutRoute
+    }
     '/_authenticated/settings/project/$projectId/general/': {
       id: '/_authenticated/settings/project/$projectId/general/'
       path: '/project/$projectId/general'
@@ -940,6 +960,7 @@ interface AuthenticatedDashboardLayoutRouteChildren {
   AuthenticatedDashboardV2WorkspacesPageRoute: typeof AuthenticatedDashboardV2WorkspacesPageRoute
   AuthenticatedDashboardWorkspacePageRoute: typeof AuthenticatedDashboardWorkspacePageRoute
   AuthenticatedDashboardWorkspacesPageRoute: typeof AuthenticatedDashboardWorkspacesPageRoute
+  AuthenticatedDashboardPendingPendingIdPageRoute: typeof AuthenticatedDashboardPendingPendingIdPageRoute
   AuthenticatedDashboardProjectProjectIdPageRoute: typeof AuthenticatedDashboardProjectProjectIdPageRoute
   AuthenticatedDashboardWorkspaceWorkspaceIdPageRoute: typeof AuthenticatedDashboardWorkspaceWorkspaceIdPageRoute
 }
@@ -958,6 +979,8 @@ const AuthenticatedDashboardLayoutRouteChildren: AuthenticatedDashboardLayoutRou
       AuthenticatedDashboardWorkspacePageRoute,
     AuthenticatedDashboardWorkspacesPageRoute:
       AuthenticatedDashboardWorkspacesPageRoute,
+    AuthenticatedDashboardPendingPendingIdPageRoute:
+      AuthenticatedDashboardPendingPendingIdPageRoute,
     AuthenticatedDashboardProjectProjectIdPageRoute:
       AuthenticatedDashboardProjectProjectIdPageRoute,
     AuthenticatedDashboardWorkspaceWorkspaceIdPageRoute:
@@ -995,7 +1018,6 @@ interface AuthenticatedSettingsLayoutRouteChildren {
   AuthenticatedSettingsAppearancePageRoute: typeof AuthenticatedSettingsAppearancePageRoute
   AuthenticatedSettingsBehaviorPageRoute: typeof AuthenticatedSettingsBehaviorPageRoute
   AuthenticatedSettingsBillingPageRoute: typeof AuthenticatedSettingsBillingPageRoute
-  AuthenticatedSettingsDevicesPageRoute: typeof AuthenticatedSettingsDevicesPageRoute
   AuthenticatedSettingsGitPageRoute: typeof AuthenticatedSettingsGitPageRoute
   AuthenticatedSettingsIntegrationsPageRoute: typeof AuthenticatedSettingsIntegrationsPageRoute
   AuthenticatedSettingsKeyboardPageRoute: typeof AuthenticatedSettingsKeyboardPageRoute
@@ -1005,6 +1027,7 @@ interface AuthenticatedSettingsLayoutRouteChildren {
   AuthenticatedSettingsPresetsPageRoute: typeof AuthenticatedSettingsPresetsPageRoute
   AuthenticatedSettingsProjectsPageRoute: typeof AuthenticatedSettingsProjectsPageRoute
   AuthenticatedSettingsRingtonesPageRoute: typeof AuthenticatedSettingsRingtonesPageRoute
+  AuthenticatedSettingsSecurityPageRoute: typeof AuthenticatedSettingsSecurityPageRoute
   AuthenticatedSettingsTerminalPageRoute: typeof AuthenticatedSettingsTerminalPageRoute
   AuthenticatedSettingsBillingPlansPageRoute: typeof AuthenticatedSettingsBillingPlansPageRoute
   AuthenticatedSettingsProjectProjectIdPageRoute: typeof AuthenticatedSettingsProjectProjectIdPageRoute
@@ -1027,8 +1050,6 @@ const AuthenticatedSettingsLayoutRouteChildren: AuthenticatedSettingsLayoutRoute
       AuthenticatedSettingsBehaviorPageRoute,
     AuthenticatedSettingsBillingPageRoute:
       AuthenticatedSettingsBillingPageRoute,
-    AuthenticatedSettingsDevicesPageRoute:
-      AuthenticatedSettingsDevicesPageRoute,
     AuthenticatedSettingsGitPageRoute: AuthenticatedSettingsGitPageRoute,
     AuthenticatedSettingsIntegrationsPageRoute:
       AuthenticatedSettingsIntegrationsPageRoute,
@@ -1045,6 +1066,8 @@ const AuthenticatedSettingsLayoutRouteChildren: AuthenticatedSettingsLayoutRoute
       AuthenticatedSettingsProjectsPageRoute,
     AuthenticatedSettingsRingtonesPageRoute:
       AuthenticatedSettingsRingtonesPageRoute,
+    AuthenticatedSettingsSecurityPageRoute:
+      AuthenticatedSettingsSecurityPageRoute,
     AuthenticatedSettingsTerminalPageRoute:
       AuthenticatedSettingsTerminalPageRoute,
     AuthenticatedSettingsBillingPlansPageRoute:

@@ -20,6 +20,7 @@ import rehypeSanitize from "rehype-sanitize";
 import remarkGfm from "remark-gfm";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import { useTheme } from "renderer/stores";
+import type { PluginConfig } from "streamdown";
 import { Streamdown } from "streamdown";
 import type { CommentPaneData, PaneViewerData } from "../../../../types";
 import "./comment-pane.css";
@@ -112,7 +113,9 @@ export function CommentPane({ context }: CommentPaneProps) {
 	);
 }
 
-const mermaidPlugins = { mermaid };
+const mermaidPlugins: PluginConfig = {
+	mermaid: mermaid as unknown as PluginConfig["mermaid"],
+};
 
 const MERMAID_DARK_VARS = {
 	background: "#1e1e2e",

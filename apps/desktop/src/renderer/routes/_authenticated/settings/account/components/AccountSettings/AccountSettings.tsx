@@ -201,8 +201,10 @@ export function AccountSettings({ visibleItems }: AccountSettingsProps) {
 }
 
 function OnedevConnectionSection() {
-	const { data: onedevConfig } = electronTrpc.settings.getOnedevConfig.useQuery();
-	const { data: projectPaths } = electronTrpc.workspaces.getOnedevProjectPaths.useQuery();
+	const { data: onedevConfig } =
+		electronTrpc.settings.getOnedevConfig.useQuery();
+	const { data: projectPaths } =
+		electronTrpc.workspaces.getOnedevProjectPaths.useQuery();
 	const { data: users } = electronTrpc.settings.getOnedevUsers.useQuery();
 
 	const isConfigured = !!onedevConfig?.url && !!onedevConfig?.accessToken;
@@ -235,17 +237,26 @@ function OnedevConnectionSection() {
 							<>
 								<li className="flex items-center justify-between py-3">
 									<span className="text-sm font-medium">Server</span>
-									<a href={url} target="_blank" rel="noopener noreferrer" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+									<a
+										href={url}
+										target="_blank"
+										rel="noopener noreferrer"
+										className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+									>
 										{url.replace(/^https?:\/\//, "")}
 									</a>
 								</li>
 								<li className="flex items-center justify-between py-3">
 									<span className="text-sm font-medium">Projects</span>
-									<span className="text-sm text-muted-foreground">{projectPaths?.length ?? 0} connected</span>
+									<span className="text-sm text-muted-foreground">
+										{projectPaths?.length ?? 0} connected
+									</span>
 								</li>
 								<li className="flex items-center justify-between py-3">
 									<span className="text-sm font-medium">Users</span>
-									<span className="text-sm text-muted-foreground">{users?.length ?? 0} active</span>
+									<span className="text-sm text-muted-foreground">
+										{users?.length ?? 0} active
+									</span>
 								</li>
 							</>
 						)}

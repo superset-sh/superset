@@ -6,10 +6,10 @@ import { useRef, useState } from "react";
 import {
 	HiOutlineArchiveBox,
 	HiOutlineMagnifyingGlass,
-	HiPlus,
 	HiOutlinePencilSquare,
 	HiOutlineQueueList,
 	HiOutlineViewColumns,
+	HiPlus,
 	HiXMark,
 } from "react-icons/hi2";
 import { useHotkey } from "renderer/hotkeys";

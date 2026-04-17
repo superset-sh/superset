@@ -24,7 +24,7 @@ export function useCreateOrOpenPR({
 
 		void (async () => {
 			try {
-				const result = await mutateAsync({ worktreePath });
+				const _result = await mutateAsync({ worktreePath });
 				toast.success("Pull request created");
 				onSuccess?.();
 				return;
@@ -45,7 +45,7 @@ export function useCreateOrOpenPR({
 			}
 
 			try {
-				const result = await mutateAsync({
+				const _result = await mutateAsync({
 					worktreePath,
 					allowOutOfDate: true,
 				});

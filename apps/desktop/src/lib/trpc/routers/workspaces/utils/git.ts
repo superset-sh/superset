@@ -50,16 +50,20 @@ interface ExecFileException extends Error {
  * Ensures a pattern exists in the .gitignore of a repo/worktree.
  * Creates .gitignore if it doesn't exist.
  */
-async function ensureGitignoreEntry(repoPath: string, pattern: string): Promise<void> {
+async function ensureGitignoreEntry(
+	repoPath: string,
+	pattern: string,
+): Promise<void> {
 	const gitignorePath = join(repoPath, ".gitignore");
 	try {
 		const content = await readFile(gitignorePath, "utf-8").catch(() => "");
 		if (content.split("\n").some((line) => line.trim() === pattern)) {
 			return; // already present
 		}
-		const newContent = content.endsWith("\n") || content === ""
-			? `${content}# Superset workspace files\n${pattern}\n`
-			: `${content}\n\n# Superset workspace files\n${pattern}\n`;
+		const newContent =
+			content.endsWith("\n") || content === ""
+				? `${content}# Superset workspace files\n${pattern}\n`
+				: `${content}\n\n# Superset workspace files\n${pattern}\n`;
 		await writeFile(gitignorePath, newContent, "utf-8");
 		console.log(`[gitignore] Added "${pattern}" to ${gitignorePath}`);
 	} catch (error) {
@@ -607,7 +611,10 @@ export async function createWorktree(
 		// If branch or worktree already exists, reuse it instead of failing
 		if (lowerError.includes("already exists")) {
 			// Check if the worktree directory already exists and is valid
-			const worktreeAlreadySetUp = await isWorktreeRegistered({ mainRepoPath, worktreePath });
+			const worktreeAlreadySetUp = await isWorktreeRegistered({
+				mainRepoPath,
+				worktreePath,
+			});
 			if (worktreeAlreadySetUp) {
 				console.log(
 					`Worktree at ${worktreePath} already exists and is registered, reusing`,
@@ -618,12 +625,13 @@ export async function createWorktree(
 			// Worktree dir exists but is not registered — clean it up and retry
 			try {
 				const { rm } = await import("node:fs/promises");
-				await rm(worktreePath, { recursive: true, force: true }).catch(() => {});
+				await rm(worktreePath, { recursive: true, force: true }).catch(
+					() => {},
+				);
 				// Also prune stale worktree entries
-				await execGitWithShellPath(
-					["-C", mainRepoPath, "worktree", "prune"],
-					{ timeout: 10_000 },
-				).catch(() => {});
+				await execGitWithShellPath(["-C", mainRepoPath, "worktree", "prune"], {
+					timeout: 10_000,
+				}).catch(() => {});
 			} catch {
 				// ignore cleanup errors
 			}
@@ -1132,7 +1140,12 @@ export async function getAheadBehindCount({
 	}
 }
 
-const IGNORED_DIRTY_FILES = [".gitignore", "package-lock.json", "bun.lock", ".superset"];
+const IGNORED_DIRTY_FILES = [
+	".gitignore",
+	"package-lock.json",
+	"bun.lock",
+	".superset",
+];
 
 export async function hasUncommittedChanges(
 	worktreePath: string,
@@ -1147,7 +1160,10 @@ export async function hasUncommittedChanges(
 		...status.not_added,
 	];
 	const meaningful = allChanged.filter(
-		(f) => !IGNORED_DIRTY_FILES.some((p) => f === p || f.endsWith(`/${p}`) || f.startsWith(`${p}/`)),
+		(f) =>
+			!IGNORED_DIRTY_FILES.some(
+				(p) => f === p || f.endsWith(`/${p}`) || f.startsWith(`${p}/`),
+			),
 	);
 	return meaningful.length > 0;
 }
