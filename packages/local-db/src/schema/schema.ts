@@ -81,6 +81,10 @@ export const worktrees = sqliteTable(
 		createdBySuperset: integer("created_by_superset", { mode: "boolean" })
 			.notNull()
 			.default(true),
+		// OneDev issue linked to this worktree (set when created from an issue)
+		onedevIssueId: integer("onedev_issue_id"),
+		onedevIssueNumber: integer("onedev_issue_number"),
+		onedevProjectPath: text("onedev_project_path"),
 	},
 	(table) => [
 		index("worktrees_project_id_idx").on(table.projectId),

@@ -270,6 +270,9 @@ export const createCreateProcedures = () => {
 						sourceWorkspaceId: z.string().optional(),
 						useExistingBranch: z.boolean().optional(),
 						applyPrefix: z.boolean().optional().default(true),
+						onedevIssueId: z.number().optional(),
+						onedevIssueNumber: z.number().optional(),
+						onedevProjectPath: z.string().optional(),
 					})
 					.refine(
 						(data) => !(data.compareBaseBranch && data.sourceWorkspaceId),
@@ -473,6 +476,9 @@ export const createCreateProcedures = () => {
 						baseBranch: compareBaseBranch,
 						gitStatus: null,
 						createdBySuperset: true,
+						onedevIssueId: input.onedevIssueId,
+						onedevIssueNumber: input.onedevIssueNumber,
+						onedevProjectPath: input.onedevProjectPath,
 					})
 					.returning()
 					.get();

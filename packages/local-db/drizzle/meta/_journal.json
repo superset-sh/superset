@@ -288,6 +288,13 @@
       "when": 1776439553514,
       "tag": "0040_fork_onedev_settings_and_projects_base_dir",
       "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "6",
+      "when": 1775158691296,
+      "tag": "0041_add_onedev_issue_to_worktrees",
+      "breakpoints": true
     }
   ]
 }

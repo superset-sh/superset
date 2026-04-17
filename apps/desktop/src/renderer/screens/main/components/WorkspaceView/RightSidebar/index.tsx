@@ -7,6 +7,7 @@ import {
 	LuFile,
 	LuGitCompareArrows,
 	LuShrink,
+	LuTicketCheck,
 	LuX,
 } from "react-icons/lu";
 import { HotkeyLabel } from "renderer/hotkeys";
@@ -23,6 +24,7 @@ import { useScrollContext } from "../ChangesContent";
 import { ChangesView } from "./ChangesView";
 import { FilesView } from "./FilesView";
 import { getSidebarHeaderTabButtonClassName } from "./headerTabStyles";
+import { LinkedIssueView } from "./LinkedIssueView";
 
 function TabButton({
 	isActive,
@@ -87,6 +89,10 @@ export function RightSidebar() {
 	const isExpanded = currentMode === SidebarMode.Changes;
 	const compactTabs = sidebarWidth < 250;
 	const showChangesTab = !!worktreePath;
+	const showTaskTab =
+		!!workspace?.worktree?.onedevIssueId &&
+		!!workspace?.worktree?.onedevIssueNumber &&
+		!!workspace?.worktree?.onedevProjectPath;
 
 	const handleExpandToggle = () => {
 		setMode(isExpanded ? SidebarMode.Tabs : SidebarMode.Changes);
@@ -177,6 +183,15 @@ export function RightSidebar() {
 						label="Files"
 						compact={compactTabs}
 					/>
+					{showTaskTab && (
+						<TabButton
+							isActive={rightSidebarTab === RightSidebarTab.Task}
+							onClick={() => setRightSidebarTab(RightSidebarTab.Task)}
+							icon={<LuTicketCheck className="size-3.5" />}
+							label="Task"
+							compact={compactTabs}
+						/>
+					)}
 				</div>
 				<div className="flex-1" />
 				<div className="flex items-center h-10 pr-2 gap-0.5">
@@ -236,13 +251,29 @@ export function RightSidebar() {
 			)}
 			<div
 				className={
-					rightSidebarTab === RightSidebarTab.Changes && showChangesTab
-						? "hidden"
-						: "flex-1 min-h-0 flex flex-col overflow-hidden"
+					rightSidebarTab === RightSidebarTab.Files
+						? "flex-1 min-h-0 flex flex-col overflow-hidden"
+						: "hidden"
 				}
 			>
 				<FilesView />
 			</div>
+			{showTaskTab && (
+				<div
+					className={
+						rightSidebarTab === RightSidebarTab.Task
+							? "flex-1 min-h-0 flex flex-col overflow-hidden"
+							: "hidden"
+					}
+				>
+					{/* showTaskTab guards ensure these are non-null */}
+					<LinkedIssueView
+						onedevIssueId={workspace!.worktree!.onedevIssueId!}
+						onedevIssueNumber={workspace!.worktree!.onedevIssueNumber!}
+						onedevProjectPath={workspace!.worktree!.onedevProjectPath!}
+					/>
+				</div>
+			)}
 		</aside>
 	);
 }

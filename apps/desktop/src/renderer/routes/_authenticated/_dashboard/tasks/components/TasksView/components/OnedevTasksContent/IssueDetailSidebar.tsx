@@ -272,7 +272,14 @@ When done: commit your changes. Do NOT push or create PRs.`;
 
 		try {
 			const result = await createWorkspace.mutateAsyncWithPendingSetup(
-				{ projectId: effectiveProjectId, name: slug, branchName },
+				{
+					projectId: effectiveProjectId,
+					name: slug,
+					branchName,
+					onedevIssueId: issue.id,
+					onedevIssueNumber: issue.number,
+					onedevProjectPath: projectPath,
+				},
 				{ agentLaunchRequest: launchRequestTemplate ?? undefined },
 			);
 
