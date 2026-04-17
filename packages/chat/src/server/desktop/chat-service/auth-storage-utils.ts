@@ -16,6 +16,13 @@ export function setApiKeyForProvider(
 	}
 
 	authStorage.reload();
+	// Store in main slot (mastracode's resolveModel reads from here).
+	authStorage.set(providerId, {
+		type: "api_key",
+		key: trimmedApiKey,
+	});
+	// Also store in dedicated apikey: slot as a backup that survives
+	// OAuth connect/disconnect cycles.
 	authStorage.setStoredApiKey(providerId, trimmedApiKey);
 }
 
@@ -25,16 +32,52 @@ export function clearApiKeyForProvider(
 ): void {
 	authStorage.reload();
 
-	// Clear the dedicated API-key slot (apikey:<providerId>)
+	// Clear the dedicated backup slot.
 	if (authStorage.hasStoredApiKey(providerId)) {
 		authStorage.remove(`apikey:${providerId}`);
 	}
 
-	// Also clear the legacy main slot if it holds an api_key credential,
-	// for backwards compatibility with keys stored before this fix.
+	// Clear the main slot if it holds an api_key.
 	const credential = authStorage.get(providerId);
 	if (credential?.type === "api_key") {
 		authStorage.remove(providerId);
+	}
+}
+
+/**
+ * Save the current API key to the backup slot before OAuth overwrites
+ * the main slot. Call this BEFORE authStorage.login().
+ */
+export function backupApiKeyBeforeOAuth(
+	authStorage: AuthStorageLike,
+	providerId: string,
+): void {
+	authStorage.reload();
+	const credential = authStorage.get(providerId);
+	if (
+		credential?.type === "api_key" &&
+		credential.key.trim().length > 0 &&
+		!authStorage.hasStoredApiKey(providerId)
+	) {
+		authStorage.setStoredApiKey(providerId, credential.key.trim());
+	}
+}
+
+/**
+ * Restore the API key from the backup slot after OAuth is disconnected.
+ * Call this AFTER removing the OAuth credential from the main slot.
+ */
+export function restoreApiKeyAfterOAuthDisconnect(
+	authStorage: AuthStorageLike,
+	providerId: string,
+): void {
+	authStorage.reload();
+	const storedApiKey = authStorage.getStoredApiKey(providerId);
+	if (storedApiKey && storedApiKey.trim().length > 0) {
+		authStorage.set(providerId, {
+			type: "api_key",
+			key: storedApiKey.trim(),
+		});
 	}
 }
 
@@ -63,8 +106,7 @@ export function resolveAuthMethodForProvider(
 	if (credential?.type === "api_key" && credential.key.trim().length > 0) {
 		return "api_key";
 	}
-	// Check the dedicated API-key slot (apikey:<providerId>), which persists
-	// independently of OAuth connect/disconnect cycles.
+	// Check the backup slot — API key may have been displaced by OAuth.
 	if (authStorage.hasStoredApiKey(providerId)) {
 		return "api_key";
 	}
