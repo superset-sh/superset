@@ -52,24 +52,28 @@ export function SlashCommandPreviewPopover({
 		el.style.top = `${rect.top}px`;
 		el.style.width = `${rect.width}px`;
 		el.style.height = `${rect.height}px`;
-	}, [editor, inputValue]);
+	}, [editor]);
 
 	const slashPreviewInput = normalizeSlashPreviewInput(inputValue);
 	const parsedInput = useMemo(() => parseSlashInput(inputValue), [inputValue]);
 	const debouncedSlashPreviewInput = useDebouncedValue(slashPreviewInput, 120);
 
-	const { data: slashPreview } = chatServiceTrpc.workspace.previewSlashCommand.useQuery(
-		{ cwd, text: debouncedSlashPreviewInput },
-		{
-			enabled: debouncedSlashPreviewInput.length > 1 && !!cwd,
-			staleTime: 250,
-			placeholderData: (previous) => previous,
-		},
-	);
+	const { data: slashPreview } =
+		chatServiceTrpc.workspace.previewSlashCommand.useQuery(
+			{ cwd, text: debouncedSlashPreviewInput },
+			{
+				enabled: debouncedSlashPreviewInput.length > 1 && !!cwd,
+				staleTime: 250,
+				placeholderData: (previous) => previous,
+			},
+		);
 
 	const commandDefinition = useMemo(() => {
 		if (!parsedInput?.commandName) return null;
-		return resolveSlashCommandDefinition(slashCommands, parsedInput.commandName);
+		return resolveSlashCommandDefinition(
+			slashCommands,
+			parsedInput.commandName,
+		);
 	}, [parsedInput?.commandName, slashCommands]);
 
 	const commandDescription = commandDefinition?.description?.trim() ?? "";
@@ -80,17 +84,26 @@ export function SlashCommandPreviewPopover({
 			canonicalCommandName &&
 			previewCommandName === canonicalCommandName,
 	);
-	const previewPrompt = previewMatchesInputCommand ? (slashPreview?.prompt ?? "") : "";
+	const previewPrompt = previewMatchesInputCommand
+		? (slashPreview?.prompt ?? "")
+		: "";
 
 	// Show popover when there's an active command with a preview to display
 	const showPopover = Boolean(
-		parsedInput && commandDefinition && debouncedSlashPreviewInput && previewPrompt,
+		parsedInput &&
+			commandDefinition &&
+			debouncedSlashPreviewInput &&
+			previewPrompt,
 	);
 
 	return (
 		<Popover open={showPopover && isFocused}>
 			<PopoverAnchor asChild>
-				<div ref={anchorRef} className="pointer-events-none fixed" aria-hidden="true" />
+				<div
+					ref={anchorRef}
+					className="pointer-events-none fixed"
+					aria-hidden="true"
+				/>
 			</PopoverAnchor>
 			<PopoverContent
 				side="top"
@@ -105,9 +118,13 @@ export function SlashCommandPreviewPopover({
 					<span className="flex size-4.5 shrink-0 items-center justify-center rounded bg-muted font-mono text-[11px]">
 						/
 					</span>
-					<span className="font-mono text-foreground/90">{parsedInput?.commandName}</span>
+					<span className="font-mono text-foreground/90">
+						{parsedInput?.commandName}
+					</span>
 					{commandDescription && (
-						<span className="truncate text-muted-foreground/70">{commandDescription}</span>
+						<span className="truncate text-muted-foreground/70">
+							{commandDescription}
+						</span>
 					)}
 				</div>
 				<div className="space-y-1">

@@ -1,10 +1,10 @@
+import { cn } from "@superset/ui/utils";
 import { mergeAttributes, Node } from "@tiptap/core";
 import {
 	type NodeViewProps,
 	NodeViewWrapper,
 	ReactNodeViewRenderer,
 } from "@tiptap/react";
-import { cn } from "@superset/ui/utils";
 import { useCallback, useEffect, useRef } from "react";
 
 function SlashCommandChip({
@@ -47,7 +47,11 @@ function SlashCommandChip({
 				e.stopPropagation();
 				const pos = getPos();
 				if (pos !== undefined) {
-					editor.chain().focus().setTextSelection(pos + node.nodeSize).run();
+					editor
+						.chain()
+						.focus()
+						.setTextSelection(pos + node.nodeSize)
+						.run();
 				} else {
 					editor.commands.focus("end");
 				}
@@ -58,7 +62,8 @@ function SlashCommandChip({
 				e.stopPropagation();
 				const pos = getPos();
 				if (pos !== undefined) {
-					editor.chain()
+					editor
+						.chain()
 						.focus()
 						.deleteRange({ from: pos, to: pos + node.nodeSize })
 						.run();

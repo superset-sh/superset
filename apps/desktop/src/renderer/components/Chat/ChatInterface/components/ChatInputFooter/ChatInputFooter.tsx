@@ -200,7 +200,9 @@ export function ChatInputFooter({
 									cwd={cwd}
 									slashCommands={slashCommands}
 									placeholder="Ask to make changes, @mention files, run /commands"
-									focusShortcutText={showFocusHint ? focusShortcutText : undefined}
+									focusShortcutText={
+										showFocusHint ? focusShortcutText : undefined
+									}
 								/>
 								<ChatComposerControls
 									availableModels={availableModels}
