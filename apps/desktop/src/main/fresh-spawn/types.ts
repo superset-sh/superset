@@ -1,3 +1,5 @@
+import * as os from "node:os";
+import * as path from "node:path";
 import { z } from "zod";
 
 export const SpawnRequestSchema = z.discriminatedUnion("type", [
@@ -34,5 +36,15 @@ export const SpawnResponseSchema = z.discriminatedUnion("type", [
 
 export type SpawnResponse = z.infer<typeof SpawnResponseSchema>;
 
-export const DEFAULT_SOCKET_PATH = `${process.env.HOME}/.superset/fresh-spawn.sock`;
-export const DEFAULT_TOKEN_PATH = `${process.env.HOME}/.superset/fresh-spawn.token`;
+const FRESH_SPAWN_DIR = ".superset";
+
+export const DEFAULT_SOCKET_PATH = path.join(
+	os.homedir(),
+	FRESH_SPAWN_DIR,
+	"fresh-spawn.sock",
+);
+export const DEFAULT_TOKEN_PATH = path.join(
+	os.homedir(),
+	FRESH_SPAWN_DIR,
+	"fresh-spawn.token",
+);
