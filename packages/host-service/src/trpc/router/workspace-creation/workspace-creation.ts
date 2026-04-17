@@ -1078,12 +1078,30 @@ export const workspaceCreationRouter = router({
 				}
 				const git = await ctx.git(localProject.repoPath);
 
+				// Detect a pre-existing local branch with the same derived name
+				// BEFORE running `gh pr checkout --force`. The idempotency check
+				// above rules out Superset-managed worktrees, but a branch can
+				// exist outside any workspace — e.g., from a prior manual
+				// `gh pr checkout` in the primary working tree. `--force` would
+				// reset it to the PR HEAD, silently losing any unpushed commits.
+				// We surface a warning pointing at reflog for recovery rather
+				// than blocking, so the point-and-click flow stays smooth.
+				let preExistingLocalBranch = false;
+				try {
+					await git.raw([
+						"show-ref",
+						"--verify",
+						"--quiet",
+						`refs/heads/${branch}`,
+					]);
+					preExistingLocalBranch = true;
+				} catch {
+					// Non-zero exit = branch doesn't exist. Expected path.
+				}
+
 				// Detached worktree first — `gh pr checkout` inside it creates the
 				// branch with correct fork-remote + upstream config. Mirrors v1's
-				// `createWorktreeFromPr`. `--force` on `gh pr checkout` is safe
-				// because the idempotency check above guarantees no existing
-				// workspace for this branch; any stray same-named local branch
-				// is ours to reset (the workspace flow owns `.worktrees/<branch>/`).
+				// `createWorktreeFromPr`.
 				try {
 					await git.raw(["worktree", "add", "--detach", worktreePath]);
 				} catch (err) {
@@ -1141,12 +1159,17 @@ export const workspaceCreationRouter = router({
 						);
 					});
 
-				const extraWarnings =
-					input.pr.state !== "open"
-						? [
-								`PR is ${input.pr.state} — commits are included, but the PR may not merge.`,
-							]
-						: [];
+				const extraWarnings: string[] = [];
+				if (input.pr.state !== "open") {
+					extraWarnings.push(
+						`PR is ${input.pr.state} — commits are included, but the PR may not merge.`,
+					);
+				}
+				if (preExistingLocalBranch) {
+					extraWarnings.push(
+						`Reset existing local branch "${branch}" to PR HEAD. If you had unpushed commits there, recover them via \`git reflog show ${branch}\`.`,
+					);
+				}
 
 				return await finishCheckout(ctx, {
 					pendingId: input.pendingId,
