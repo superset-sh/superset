@@ -124,8 +124,8 @@ export const HOTKEYS_REGISTRY = {
 	PREV_ATTENTION_WORKSPACE: {
 		key: {
 			mac: "meta+shift+alt+up",
-			windows: "ctrl+alt+up",
-			linux: "ctrl+alt+up",
+			windows: "ctrl+shift+alt+pageup",
+			linux: "ctrl+shift+alt+pageup",
 		},
 		label: "Previous Workspace Needing Attention",
 		category: "Workspace",
@@ -135,8 +135,8 @@ export const HOTKEYS_REGISTRY = {
 	NEXT_ATTENTION_WORKSPACE: {
 		key: {
 			mac: "meta+shift+alt+down",
-			windows: "ctrl+alt+down",
-			linux: "ctrl+alt+down",
+			windows: "ctrl+shift+alt+pagedown",
+			linux: "ctrl+shift+alt+pagedown",
 		},
 		label: "Next Workspace Needing Attention",
 		category: "Workspace",

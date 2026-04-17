@@ -28,12 +28,13 @@ export function indexGrouped(grouped: GroupedWorkspaces | undefined): {
 	if (!grouped) return { orderedIds, unreadIds };
 
 	for (const group of grouped) {
+		const sectionMap = new Map(group.sections.map((s) => [s.id, s]));
 		for (const item of group.topLevelItems) {
 			if (item.kind === "workspace") {
 				orderedIds.push(item.id);
 				continue;
 			}
-			const section = group.sections.find((s) => s.id === item.id);
+			const section = sectionMap.get(item.id);
 			if (!section) continue;
 			for (const ws of section.workspaces) {
 				orderedIds.push(ws.id);
