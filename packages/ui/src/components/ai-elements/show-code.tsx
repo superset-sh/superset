@@ -80,7 +80,7 @@ export function ShowCode({
 	const [isCopied, setIsCopied] = useState(false);
 	const [isExpanded, setIsExpanded] = useState(false);
 
-	const lineCount = code.split("\n").length;
+	const lineCount = code.trimEnd().split("\n").length;
 	const isOverflowing = lineCount > maxLines;
 
 	const handleCopy = async () => {

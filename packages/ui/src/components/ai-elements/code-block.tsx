@@ -80,7 +80,12 @@ export async function highlightCode(
 		]);
 	} catch {
 		if (language === ("text" as BundledLanguage)) {
-			return ["", ""];
+			const escaped = code
+				.replace(/&/g, "&amp;")
+				.replace(/</g, "&lt;")
+				.replace(/>/g, "&gt;");
+			const html = `<pre><code>${escaped}</code></pre>`;
+			return [html, html];
 		}
 		// Unknown/unsupported language — fall back to plain text
 		return highlightCode(

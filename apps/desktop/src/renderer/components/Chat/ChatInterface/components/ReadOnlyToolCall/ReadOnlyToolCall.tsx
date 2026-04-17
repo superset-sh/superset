@@ -90,15 +90,9 @@ export function ReadOnlyToolCall({
 
 	const lineRange = hasFileContent
 		? (() => {
-				const startLine =
-					Number(
-						args.startLine ?? args.start_line ?? args.offset ?? args.from ?? 1,
-					) || 1;
-				const lineCount = fileContent.split("\n").length;
-				const endLine = startLine + lineCount - 1;
-				return startLine === 1 && endLine === lineCount
-					? `1–${lineCount}`
-					: `${startLine}–${endLine}`;
+				// The disk read always returns the whole file, so report 1–N
+				const lineCount = fileContent.trimEnd().split("\n").length;
+				return `1–${lineCount}`;
 			})()
 		: null;
 
