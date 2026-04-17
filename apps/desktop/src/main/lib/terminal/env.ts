@@ -1,8 +1,14 @@
 import { exec } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
+import path from "node:path";
 import defaultShell from "default-shell";
 import { env } from "shared/env.shared";
+import { FRESH_EXEC_WHITELIST } from "shared/fresh-spawn-whitelist";
+import {
+	resolveFreshExecBinaryPath,
+	resolveFreshExecHookPath,
+} from "../../fresh-spawn/paths";
 import { getShellEnv } from "../agent-setup/shell-wrappers";
 
 const MACOS_SYSTEM_CERT_FILE = "/etc/ssl/cert.pem";
@@ -169,11 +175,56 @@ function hasMacosSystemCertBundle(): boolean {
 	return cachedMacosSystemCertAvailable;
 }
 
+let cachedFreshExecPaths: {
+	bin: string | null;
+	hook: string | null;
+} | null = null;
+
 export function resetTerminalEnvCachesForTests(): void {
 	cachedProcessEnvSnapshot = null;
 	cachedMacosSystemCertAvailable = null;
 	cachedUtf8Locale = null;
 	localeProbeInFlight = false;
+	cachedFreshExecPaths = null;
+}
+
+/**
+ * Optional injection point for tests. In production code paths we resolve
+ * fresh-exec binary + hook from __dirname / process.resourcesPath; tests
+ * can stub the resolution to avoid depending on bundle layout.
+ */
+export interface FreshExecPaths {
+	bin: string | null;
+	hook: string | null;
+}
+
+export function setFreshExecPathsForTests(paths: FreshExecPaths | null): void {
+	cachedFreshExecPaths = paths;
+}
+
+function getFreshExecPaths(): FreshExecPaths {
+	if (cachedFreshExecPaths) return cachedFreshExecPaths;
+
+	// After bundling, __dirname resolves to dist/main. fresh-exec.js is
+	// emitted into the same directory by the main build.
+	const mainDir = __dirname;
+	const bin = resolveFreshExecBinaryPath(mainDir);
+
+	// Hook location candidates (first match wins):
+	// 1. Packaged app: process.resourcesPath/resources/shell-hooks/...
+	// 2. Preview/dev after bundle: ../resources relative to __dirname
+	// 3. Dev source tree: ../../src/resources/shell-hooks/... (fallback
+	//    for the rare case where dev mode does not mirror resources)
+	const searchDirs: string[] = [];
+	if (process.resourcesPath) {
+		searchDirs.push(path.join(process.resourcesPath, "resources"));
+	}
+	searchDirs.push(path.join(mainDir, "..", "resources"));
+	searchDirs.push(path.join(mainDir, "..", "..", "src", "resources"));
+
+	const hook = resolveFreshExecHookPath(searchDirs);
+	cachedFreshExecPaths = { bin, hook };
+	return cachedFreshExecPaths;
 }
 
 /**
@@ -492,6 +543,20 @@ export function buildTerminalEnv(params: {
 		hasMacosSystemCertBundle()
 	) {
 		terminalEnv.SSL_CERT_FILE = MACOS_SYSTEM_CERT_FILE;
+	}
+
+	// fresh-exec shell hook integration (macOS only). When both the
+	// helper binary and the zsh hook exist on disk, export the env vars
+	// the hook needs so our managed zsh sessions intercept whitelisted
+	// commands. On missing assets (e.g. dev mode before bundle mirroring
+	// runs), the hook stays inert because its env-gate returns 0.
+	if (os.platform() === "darwin") {
+		const freshExec = getFreshExecPaths();
+		if (freshExec.bin && freshExec.hook) {
+			terminalEnv.SUPERSET_FRESH_EXEC_BIN = freshExec.bin;
+			terminalEnv.SUPERSET_FRESH_EXEC_COMMANDS = FRESH_EXEC_WHITELIST.join(" ");
+			terminalEnv.SUPERSET_FRESH_EXEC_HOOK_PATH = freshExec.hook;
+		}
 	}
 
 	return terminalEnv;

@@ -37,6 +37,14 @@ const RESOURCES_TO_COPY = [
 		dest: resolve(__dirname, "..", devPath, "resources/browser-extension"),
 	},
 	{
+		// Shell hooks sourced by managed zsh/bash sessions (fresh-exec
+		// route). Copied into dist/resources so dev and preview modes
+		// resolve the hook via the same __dirname-relative path the
+		// packaged app uses.
+		src: resolve(__dirname, "..", resources, "shell-hooks"),
+		dest: resolve(__dirname, "..", devPath, "resources/shell-hooks"),
+	},
+	{
 		src: resolve(__dirname, "../../../packages/local-db/drizzle"),
 		dest: resolve(__dirname, "..", devPath, "resources/migrations"),
 	},

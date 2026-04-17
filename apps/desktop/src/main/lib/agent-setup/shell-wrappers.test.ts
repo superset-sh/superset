@@ -106,6 +106,14 @@ describe("shell-wrappers", () => {
 		);
 		expect(zshrc).toContain("_superset_ensure_path()");
 
+		// fresh-exec hook should be sourced (env-gated — inert unless
+		// SUPERSET_FRESH_EXEC_* env vars are all set by the main process).
+		expect(zshrc).toContain('-n "$SUPERSET_FRESH_EXEC_BIN"');
+		expect(zshrc).toContain('-n "$SUPERSET_FRESH_EXEC_COMMANDS"');
+		expect(zshrc).toContain('-n "$SUPERSET_FRESH_EXEC_HOOK_PATH"');
+		expect(zshrc).toContain('-r "$SUPERSET_FRESH_EXEC_HOOK_PATH"');
+		expect(zshrc).toContain('source "$SUPERSET_FRESH_EXEC_HOOK_PATH"');
+
 		expect(zlogin).toContain("if [[ -o interactive ]]; then");
 		expect(zlogin).toContain('export ZDOTDIR="$_superset_home"');
 		expect(zlogin).toContain('source "$_superset_home/.zlogin"');
@@ -815,6 +823,110 @@ export SUPERSET_WORKSPACE_PATH="/wrong/path"
 				.map((l) => l.trim())
 				.filter(Boolean);
 			expect(lines[lines.length - 1]).toBe("correct-name");
+		});
+	});
+
+	describe("fresh-exec hook sourcing", () => {
+		it("does not source the fresh-exec hook when env vars are unset", () => {
+			if (!isZshAvailable()) return;
+
+			const integrationRoot = path.join(TEST_ROOT, "fresh-exec-unset");
+			const integrationBinDir = path.join(integrationRoot, "superset-bin");
+			const integrationZshDir = path.join(integrationRoot, "zsh");
+			const integrationBashDir = path.join(integrationRoot, "bash");
+			const homeDir = path.join(integrationRoot, "home");
+
+			mkdirSync(integrationBinDir, { recursive: true });
+			mkdirSync(integrationZshDir, { recursive: true });
+			mkdirSync(integrationBashDir, { recursive: true });
+			mkdirSync(homeDir, { recursive: true });
+
+			// Hook file that sets a sentinel var; if we accidentally source
+			// it, the subsequent echo will reveal the sentinel.
+			const hookPath = path.join(integrationRoot, "zsh-fresh-exec.zsh");
+			writeFileSync(hookPath, "export _SUPERSET_FRESH_EXEC_SOURCED=1\n");
+
+			createZshWrapper({
+				BIN_DIR: integrationBinDir,
+				ZSH_DIR: integrationZshDir,
+				BASH_DIR: integrationBashDir,
+			});
+
+			const output = execFileSync(
+				"zsh",
+				// biome-ignore lint/suspicious/noTemplateCurlyInString: zsh parameter expansion, not a JS template literal
+				["-lic", 'echo "[${_SUPERSET_FRESH_EXEC_SOURCED:-unset}]"'],
+				{
+					encoding: "utf-8",
+					env: {
+						HOME: homeDir,
+						PATH: "/usr/bin:/bin",
+						SUPERSET_ORIG_ZDOTDIR: homeDir,
+						ZDOTDIR: integrationZshDir,
+						// Intentionally do NOT set SUPERSET_FRESH_EXEC_* env vars.
+					},
+				},
+			).trim();
+
+			const lines = output
+				.split("\n")
+				.map((l) => l.trim())
+				.filter(Boolean);
+			expect(lines[lines.length - 1]).toBe("[unset]");
+		});
+
+		it("sources the fresh-exec hook when all env vars are set and hook is readable", () => {
+			if (!isZshAvailable()) return;
+
+			const integrationRoot = path.join(TEST_ROOT, "fresh-exec-set");
+			const integrationBinDir = path.join(integrationRoot, "superset-bin");
+			const integrationZshDir = path.join(integrationRoot, "zsh");
+			const integrationBashDir = path.join(integrationRoot, "bash");
+			const homeDir = path.join(integrationRoot, "home");
+
+			mkdirSync(integrationBinDir, { recursive: true });
+			mkdirSync(integrationZshDir, { recursive: true });
+			mkdirSync(integrationBashDir, { recursive: true });
+			mkdirSync(homeDir, { recursive: true });
+
+			// A stub fresh-exec binary (just needs to exist + be executable).
+			const freshExecBin = path.join(integrationBinDir, "fresh-exec");
+			writeFileSync(freshExecBin, "#!/usr/bin/env bash\necho fresh-exec\n");
+			chmodSync(freshExecBin, 0o755);
+
+			// Hook file that sets a sentinel so we can verify it ran.
+			const hookPath = path.join(integrationRoot, "zsh-fresh-exec.zsh");
+			writeFileSync(hookPath, "export _SUPERSET_FRESH_EXEC_SOURCED=1\n");
+
+			createZshWrapper({
+				BIN_DIR: integrationBinDir,
+				ZSH_DIR: integrationZshDir,
+				BASH_DIR: integrationBashDir,
+			});
+
+			const output = execFileSync(
+				"zsh",
+				// biome-ignore lint/suspicious/noTemplateCurlyInString: zsh parameter expansion, not a JS template literal
+				["-lic", 'echo "[${_SUPERSET_FRESH_EXEC_SOURCED:-unset}]"'],
+				{
+					encoding: "utf-8",
+					env: {
+						HOME: homeDir,
+						PATH: "/usr/bin:/bin",
+						SUPERSET_ORIG_ZDOTDIR: homeDir,
+						ZDOTDIR: integrationZshDir,
+						SUPERSET_FRESH_EXEC_BIN: freshExecBin,
+						SUPERSET_FRESH_EXEC_COMMANDS: "gh kubectl",
+						SUPERSET_FRESH_EXEC_HOOK_PATH: hookPath,
+					},
+				},
+			).trim();
+
+			const lines = output
+				.split("\n")
+				.map((l) => l.trim())
+				.filter(Boolean);
+			expect(lines[lines.length - 1]).toBe("[1]");
 		});
 	});
 

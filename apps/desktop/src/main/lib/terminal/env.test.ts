@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { FRESH_EXEC_WHITELIST } from "shared/fresh-spawn-whitelist";
 import {
 	buildSafeEnv,
 	buildTerminalEnv,
@@ -9,6 +10,7 @@ import {
 	resetTerminalEnvCachesForTests,
 	SHELL_CRASH_THRESHOLD_MS,
 	sanitizeEnv,
+	setFreshExecPathsForTests,
 } from "./env";
 
 describe("env", () => {
@@ -740,6 +742,64 @@ describe("env", () => {
 				process.env.SSL_CERT_FILE = "/custom/certs/ca-bundle.crt";
 				const result = buildTerminalEnv(baseParams);
 				expect(result.SSL_CERT_FILE).toBe("/custom/certs/ca-bundle.crt");
+			});
+		});
+
+		describe("fresh-exec shell hook env vars", () => {
+			afterEach(() => {
+				setFreshExecPathsForTests(null);
+			});
+
+			it("exports SUPERSET_FRESH_EXEC_* when binary and hook both resolve (darwin)", () => {
+				if (process.platform !== "darwin") return;
+				setFreshExecPathsForTests({
+					bin: "/tmp/fresh-exec.js",
+					hook: "/tmp/zsh-fresh-exec.zsh",
+				});
+				const result = buildTerminalEnv(baseParams);
+				expect(result.SUPERSET_FRESH_EXEC_BIN).toBe("/tmp/fresh-exec.js");
+				expect(result.SUPERSET_FRESH_EXEC_HOOK_PATH).toBe(
+					"/tmp/zsh-fresh-exec.zsh",
+				);
+				expect(result.SUPERSET_FRESH_EXEC_COMMANDS).toBe(
+					FRESH_EXEC_WHITELIST.join(" "),
+				);
+			});
+
+			it("omits SUPERSET_FRESH_EXEC_* when binary is missing", () => {
+				if (process.platform !== "darwin") return;
+				setFreshExecPathsForTests({
+					bin: null,
+					hook: "/tmp/zsh-fresh-exec.zsh",
+				});
+				const result = buildTerminalEnv(baseParams);
+				expect(result.SUPERSET_FRESH_EXEC_BIN).toBeUndefined();
+				expect(result.SUPERSET_FRESH_EXEC_HOOK_PATH).toBeUndefined();
+				expect(result.SUPERSET_FRESH_EXEC_COMMANDS).toBeUndefined();
+			});
+
+			it("omits SUPERSET_FRESH_EXEC_* when hook is missing", () => {
+				if (process.platform !== "darwin") return;
+				setFreshExecPathsForTests({
+					bin: "/tmp/fresh-exec.js",
+					hook: null,
+				});
+				const result = buildTerminalEnv(baseParams);
+				expect(result.SUPERSET_FRESH_EXEC_BIN).toBeUndefined();
+				expect(result.SUPERSET_FRESH_EXEC_HOOK_PATH).toBeUndefined();
+				expect(result.SUPERSET_FRESH_EXEC_COMMANDS).toBeUndefined();
+			});
+
+			it("omits SUPERSET_FRESH_EXEC_* on non-darwin even when resolvers would return paths", () => {
+				if (process.platform === "darwin") return;
+				setFreshExecPathsForTests({
+					bin: "/tmp/fresh-exec.js",
+					hook: "/tmp/zsh-fresh-exec.zsh",
+				});
+				const result = buildTerminalEnv(baseParams);
+				expect(result.SUPERSET_FRESH_EXEC_BIN).toBeUndefined();
+				expect(result.SUPERSET_FRESH_EXEC_HOOK_PATH).toBeUndefined();
+				expect(result.SUPERSET_FRESH_EXEC_COMMANDS).toBeUndefined();
 			});
 		});
 
