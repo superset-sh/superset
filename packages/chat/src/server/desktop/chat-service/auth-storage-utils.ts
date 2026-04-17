@@ -1,3 +1,8 @@
+// WORKAROUND: backup/restore API keys across OAuth connect/disconnect.
+// mastracode's resolveModel only reads API keys from the main authStorage
+// slot, which OAuth login overwrites and disconnect clears. We back up to
+// the dedicated apikey: slot before OAuth and restore after disconnect.
+// Remove once mastra-ai/mastra#15483 lands and we bump mastracode.
 import type {
 	AuthMethod,
 	AuthStorageLike,

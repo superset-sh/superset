@@ -520,10 +520,7 @@ export class ChatService {
 		code?: string;
 	}): Promise<{ success: true; expiresAt: number }> {
 		// Save API key to backup slot before OAuth overwrites the main slot.
-		backupApiKeyBeforeOAuth(
-			this.getAuthStorage(),
-			ANTHROPIC_AUTH_PROVIDER_ID,
-		);
+		backupApiKeyBeforeOAuth(this.getAuthStorage(), ANTHROPIC_AUTH_PROVIDER_ID);
 		const credential = await this.oauthFlowController.complete(
 			this.getAnthropicOAuthFlowOptions(),
 			input.code,
