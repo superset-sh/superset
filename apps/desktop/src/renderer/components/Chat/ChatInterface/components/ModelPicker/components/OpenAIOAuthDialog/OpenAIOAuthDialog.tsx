@@ -9,8 +9,6 @@ import {
 import { InputGroup, InputGroupInput } from "@superset/ui/input-group";
 import { Label } from "@superset/ui/label";
 
-const OPENAI_OAUTH_CALLBACK_URL = "http://localhost:1455/auth/callback";
-
 interface OpenAIOAuthDialogProps {
 	open: boolean;
 	authUrl: string | null;
@@ -54,13 +52,6 @@ export function OpenAIOAuthDialog({
 				</DialogHeader>
 
 				<div className="min-w-0 space-y-4">
-					<div className="rounded-lg border border-border/70 bg-muted/15 px-4 py-3 text-sm text-muted-foreground">
-						<span className="font-semibold text-foreground">Tip:</span> OpenAI
-						OAuth usually completes automatically after browser approval. If you
-						land on <code>{`${OPENAI_OAUTH_CALLBACK_URL}?...`}</code>, copy that
-						full URL and paste it below.
-					</div>
-
 					<div className="flex flex-wrap gap-2">
 						<Button
 							type="button"
@@ -81,40 +72,36 @@ export function OpenAIOAuthDialog({
 					</div>
 
 					{hasAuthUrl ? (
-						<div className="rounded-lg border border-border/70 bg-muted/10 px-4 py-3">
-							<p className="text-xs font-medium text-foreground">OAuth URL</p>
-							<p className="text-muted-foreground mt-2 break-all font-mono text-xs leading-relaxed">
-								{authUrl}
+						<div className="min-w-0 space-y-2">
+							<Label htmlFor="openai-oauth-code">Callback URL (optional)</Label>
+							<InputGroup>
+								<InputGroupInput
+									id="openai-oauth-code"
+									placeholder="Paste callback URL"
+									value={code}
+									onChange={(event) => onCodeChange(event.target.value)}
+									onKeyDown={(event) => {
+										if (
+											event.key === "Enter" &&
+											!event.nativeEvent.isComposing
+										) {
+											onSubmit();
+										}
+									}}
+									disabled={isPending}
+									className="h-11 font-mono text-sm"
+									autoFocus
+								/>
+							</InputGroup>
+							<p className="text-muted-foreground text-xs">
+								Leave this empty if browser login finishes on its own.
 							</p>
 						</div>
 					) : (
 						<div className="rounded-lg border border-dashed border-border/70 bg-muted/10 px-4 py-3 text-sm text-muted-foreground">
-							OAuth URL not ready yet.
+							Preparing OpenAI browser login...
 						</div>
 					)}
-
-					<div className="min-w-0 space-y-2">
-						<Label htmlFor="openai-oauth-code">Callback URL (optional)</Label>
-						<InputGroup className="border-border/70 bg-muted/10">
-							<InputGroupInput
-								id="openai-oauth-code"
-								placeholder={`Paste full ${OPENAI_OAUTH_CALLBACK_URL}?... URL`}
-								value={code}
-								onChange={(event) => onCodeChange(event.target.value)}
-								onKeyDown={(event) => {
-									if (event.key === "Enter" && !event.nativeEvent.isComposing) {
-										onSubmit();
-									}
-								}}
-								disabled={isPending}
-								className="h-11 font-mono text-xs sm:text-sm"
-								autoFocus
-							/>
-						</InputGroup>
-						<p className="text-muted-foreground text-xs">
-							Leave this empty if browser login finishes on its own.
-						</p>
-					</div>
 
 					{errorMessage ? (
 						<p className="text-destructive text-sm">{errorMessage}</p>
@@ -131,7 +118,7 @@ export function OpenAIOAuthDialog({
 								onClick={() => onOpenChange(false)}
 								disabled={isPending}
 							>
-								Back
+								Cancel
 							</Button>
 							{canDisconnect ? (
 								<Button

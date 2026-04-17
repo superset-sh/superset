@@ -90,13 +90,14 @@ export function useOpenAIOAuth({
 			setOauthCode("");
 			setHasPendingOAuthSession(true);
 			setOauthDialogOpen(true);
+			await openExternalUrl(result.url);
 		} catch (error) {
 			setOauthDialogOpen(true);
 			setOauthError(
 				getErrorMessage(error, "Failed to start OpenAI OAuth flow"),
 			);
 		}
-	}, [startOpenAIOAuthMutation]);
+	}, [openExternalUrl, startOpenAIOAuthMutation]);
 
 	const { copyToClipboard } = useCopyToClipboard();
 	const copyOAuthUrl = useCallback(() => {
