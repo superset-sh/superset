@@ -23,7 +23,7 @@ export function findNeighborInSet(
 	const len = ordered.length;
 
 	for (let offset = 1; offset < len; offset++) {
-		const idx = (currentIndex + step * offset + len * len) % len;
+		const idx = (currentIndex + step * offset + len) % len;
 		const candidate = ordered[idx];
 		if (candidate && candidate !== currentId && filter.has(candidate)) {
 			return candidate;

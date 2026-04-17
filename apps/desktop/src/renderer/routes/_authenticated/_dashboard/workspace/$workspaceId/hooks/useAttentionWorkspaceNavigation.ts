@@ -19,7 +19,7 @@ type GroupedWorkspaces = ElectronRouterOutputs["workspaces"]["getAllGrouped"];
  *   - `orderedIds`: workspace IDs in the same visual order as the sidebar
  *   - `unreadIds`:  the subset whose `isUnread` flag is set
  */
-function indexGrouped(grouped: GroupedWorkspaces | undefined): {
+export function indexGrouped(grouped: GroupedWorkspaces | undefined): {
 	orderedIds: string[];
 	unreadIds: Set<string>;
 } {
