@@ -121,6 +121,28 @@ export const HOTKEYS_REGISTRY = {
 		category: "Workspace",
 		description: "Navigate to the next workspace in the sidebar",
 	},
+	PREV_ATTENTION_WORKSPACE: {
+		key: {
+			mac: "meta+shift+alt+up",
+			windows: "ctrl+alt+up",
+			linux: "ctrl+alt+up",
+		},
+		label: "Previous Workspace Needing Attention",
+		category: "Workspace",
+		description:
+			"Navigate to the previous workspace that is unread, awaiting review, or asking for permission",
+	},
+	NEXT_ATTENTION_WORKSPACE: {
+		key: {
+			mac: "meta+shift+alt+down",
+			windows: "ctrl+alt+down",
+			linux: "ctrl+alt+down",
+		},
+		label: "Next Workspace Needing Attention",
+		category: "Workspace",
+		description:
+			"Navigate to the next workspace that is unread, awaiting review, or asking for permission",
+	},
 	CLOSE_WORKSPACE: {
 		key: {
 			mac: "meta+shift+backspace",

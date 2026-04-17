@@ -9,6 +9,7 @@ import { electronTrpcClient as trpcClient } from "renderer/lib/trpc-client";
 import { usePresets } from "renderer/react-query/presets";
 import type { WorkspaceSearchParams } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
+import { useAttentionWorkspaceNavigation } from "renderer/routes/_authenticated/_dashboard/workspace/$workspaceId/hooks/useAttentionWorkspaceNavigation";
 import { usePresetHotkeys } from "renderer/routes/_authenticated/_dashboard/workspace/$workspaceId/hooks/usePresetHotkeys";
 import { useWorkspaceRunCommand } from "renderer/routes/_authenticated/_dashboard/workspace/$workspaceId/hooks/useWorkspaceRunCommand";
 import { NotFound } from "renderer/routes/not-found";
@@ -436,6 +437,7 @@ function WorkspacePage() {
 	useHotkey("PREV_WORKSPACE", () => {
 		const prevWorkspaceId = getPreviousWorkspace.data;
 		if (prevWorkspaceId) {
+			useTabsStore.getState().clearWorkspaceAttentionStatus(prevWorkspaceId);
 			navigateToWorkspace(prevWorkspaceId, navigate);
 		}
 	});
@@ -447,9 +449,12 @@ function WorkspacePage() {
 	useHotkey("NEXT_WORKSPACE", () => {
 		const nextWorkspaceId = getNextWorkspace.data;
 		if (nextWorkspaceId) {
+			useTabsStore.getState().clearWorkspaceAttentionStatus(nextWorkspaceId);
 			navigateToWorkspace(nextWorkspaceId, navigate);
 		}
 	});
+
+	useAttentionWorkspaceNavigation(workspaceId, navigate);
 
 	return (
 		<div className="flex-1 h-full flex flex-col overflow-hidden">
