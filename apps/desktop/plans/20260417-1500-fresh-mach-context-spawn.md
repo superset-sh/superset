@@ -6,7 +6,27 @@
 
 **Architecture:** Electron main process her app açılışında fresh Mach context ile doğar. Bu plan, terminal-host'un fork ettiği pty-subprocess'leri Electron main'e delegate eder (fresh inherit); ve eski terminallerdeki shell'lere preexec wrapper inject eder ki whitelisted komutlar (`gh`, `terraform`...) arka plandan fresh bir helper ile çalıştırılsın.
 
-**Tech Stack:** TypeScript, Electron, Node.js child_process, Unix Domain Sockets (SCM_RIGHTS file descriptor passing), node-pty, Bun runtime, Bun test
+**Tech Stack:** TypeScript, Electron, Node.js child_process, Unix Domain Sockets (NDJSON framing), node-pty, Bun runtime, Bun test
+
+---
+
+## Post-Spike Architecture Update (Task 3 findings)
+
+Task 3 spike showed `node-unix-socket` does not support SCM_RIGHTS FD passing and seqpacket is unavailable on macOS. Rather than write a native N-API addon (~300 lines C++), we pivoted to a simpler architecture:
+
+**Electron-hosted child processes with I/O forwarding:**
+- Electron main spawns the fresh child (pty-subprocess or fresh-exec target)
+- Electron main holds the stdin/stdout/stderr pipes itself
+- Electron main forwards I/O to daemon / fresh-exec over UDS as NDJSON frames
+- Daemon's existing `pty-subprocess-ipc.ts` frame protocol is reused
+
+**What this affects in the task list:**
+- Task 8 (`spawn-pty-subprocess` handler) now streams I/O over UDS instead of sending FDs
+- Task 9 (ChildProcess adapter) now wraps the UDS stream rather than received FDs
+- Task 13 (`fresh-exec` handler) similarly streams through the UDS
+- Task 14 (PTY bridging) now bridges the UDS stream to fresh-exec's local TTY
+
+**Trade-off accepted:** New PTYs cannot be spawned while Electron is closed. Since terminal creation requires Superset's UI, this is never observable in practice. Existing daemon-owned sessions are unaffected.
 
 ---
 
