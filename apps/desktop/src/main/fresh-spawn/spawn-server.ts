@@ -6,7 +6,16 @@ import { SpawnRequestSchema, type SpawnResponse } from "./types";
 export interface SpawnServerOptions {
 	socketPath: string;
 	tokenPath: string;
+	/**
+	 * Idle timeout in milliseconds. Connections that send no data within this
+	 * window are destroyed to prevent resource leaks from half-open clients.
+	 * The timer is reset by any incoming data activity (Node stdlib behavior).
+	 * Defaults to 5000ms.
+	 */
+	idleTimeoutMs?: number;
 }
+
+const DEFAULT_IDLE_TIMEOUT_MS = 5000;
 
 export interface SpawnServer {
 	close(): Promise<void>;
@@ -35,10 +44,19 @@ export async function startSpawnServer(
 	}
 
 	const token = generateTokenFile(options.tokenPath);
+	const idleTimeoutMs = options.idleTimeoutMs ?? DEFAULT_IDLE_TIMEOUT_MS;
 
 	const server = net.createServer((client) => {
 		let buffer = "";
 		let handled = false;
+
+		// Destroy clients that connect but never send a complete request.
+		// setTimeout fires when the socket is idle (no read activity) for the
+		// given duration; Node automatically resets the timer on each data event.
+		client.setTimeout(idleTimeoutMs);
+		client.once("timeout", () => {
+			client.destroy();
+		});
 
 		client.on("data", (chunk) => {
 			if (handled) return;

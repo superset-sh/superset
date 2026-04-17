@@ -135,6 +135,24 @@ describe("SpawnServer", () => {
 		expect(parsed.code).toBe("E_TODO");
 	});
 
+	it("closes idle connections after timeout", async () => {
+		const paths = mkdirs();
+		// Use a short timeout to keep the test fast and stable on CI.
+		server = await startSpawnServer({ ...paths, idleTimeoutMs: 200 });
+
+		const start = Date.now();
+		await new Promise<void>((resolve, reject) => {
+			const client = net.createConnection(paths.socketPath);
+			client.once("error", reject);
+			client.once("close", () => resolve());
+			// Intentionally never send anything — the server should time out
+			// and destroy the connection after idleTimeoutMs.
+		});
+		const elapsed = Date.now() - start;
+		expect(elapsed).toBeGreaterThanOrEqual(200);
+		expect(elapsed).toBeLessThan(2000);
+	});
+
 	it("close() removes the socket file", async () => {
 		const paths = mkdirs();
 		server = await startSpawnServer(paths);
