@@ -16,7 +16,10 @@ describe("fresh-spawn lifecycle", () => {
 	it("no-op on non-darwin platforms", async () => {
 		if (process.platform === "darwin") return; // skip on darwin
 
-		await startFreshSpawnServer();
+		// Path is required by the API but never consulted on non-darwin.
+		await startFreshSpawnServer({
+			subprocessScriptPath: "/nonexistent/pty-subprocess.js",
+		});
 		expect(getFreshSpawnServerInstance()).toBeNull();
 	});
 

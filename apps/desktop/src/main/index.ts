@@ -306,7 +306,14 @@ if (!gotTheLock) {
 		// Must start before terminal-host sessions try to use the socket.
 		// macOS-only: mitigates the stale Mach bootstrap context that the
 		// daemon process inherits after its parent Electron main dies.
-		await startFreshSpawnServer();
+		//
+		// The pty-subprocess.js bundle is emitted by electron-vite into the
+		// same `dist/main/` directory as this entry file, so we resolve it
+		// relative to `__dirname` here rather than inside the lifecycle
+		// module (where rollup chunking could place the bundle elsewhere).
+		await startFreshSpawnServer({
+			subprocessScriptPath: path.join(__dirname, "pty-subprocess.js"),
+		});
 
 		// Must register on both default session and the app's custom partition
 		const iconProtocolHandler = (request: Request) => {
