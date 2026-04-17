@@ -15,10 +15,7 @@ export function getEditorTheme(theme: Theme): EditorTheme {
 			cursor: terminal?.cursor ?? theme.ui.foreground,
 			gutterBackground: theme.ui.background,
 			gutterForeground: theme.ui.mutedForeground,
-			activeLine: withAlpha(
-				theme.ui.foreground,
-				theme.type === "dark" ? 0.04 : 0.06,
-			),
+			activeLine: withAlpha(theme.ui.accent, 0.5),
 			selection:
 				terminal?.selectionBackground ??
 				withAlpha(theme.ui.primary, theme.type === "dark" ? 0.28 : 0.18),

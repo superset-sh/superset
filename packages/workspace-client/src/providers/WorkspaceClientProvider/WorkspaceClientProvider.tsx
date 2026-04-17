@@ -10,6 +10,7 @@ const GC_TIME_MS = 30 * 60 * 1_000;
 export interface WorkspaceClientContextValue {
 	hostUrl: string;
 	queryClient: QueryClient;
+	trpcClient: ReturnType<typeof workspaceTrpc.createClient>;
 	getWsToken: () => string | null;
 }
 
@@ -87,6 +88,7 @@ export function WorkspaceClientProvider({
 	const contextValue: WorkspaceClientContextValue = {
 		hostUrl: clients.hostUrl,
 		queryClient: clients.queryClient,
+		trpcClient: clients.trpcClient,
 		getWsToken: clients.getWsToken,
 	};
 

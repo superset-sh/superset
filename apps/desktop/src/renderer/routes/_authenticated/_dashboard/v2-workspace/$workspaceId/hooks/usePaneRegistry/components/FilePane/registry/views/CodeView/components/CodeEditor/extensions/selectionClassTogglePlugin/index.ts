@@ -1,0 +1,1 @@
+export { selectionClassTogglePlugin } from "./selectionClassTogglePlugin";
