@@ -2,10 +2,14 @@
 
 Extend v2's `workspaceCreation.checkout` procedure to materialize a PR's branch
 (via `gh pr checkout`) when the modal carries a `linkedPR`. Not a new endpoint
-— `checkout` is already "materialize an externally-defined branch into a
+— `checkout` already means "materialize an externally-defined branch into a
 worktree"; a PR branch is just another form of that. The client's
 `pr-checkout` intent differentiates progress labels + payload construction,
 but routes to the same tRPC mutation.
+
+Reuses the `getGitHubPullRequestContent` fetch that already happens at launch
+time — moved earlier in the pending-page sequence and shared between the
+mutation payload and the agent-launch resolver. **Zero net new fetches.**
 
 Cross-refs:
 - `apps/desktop/V2_WORKSPACE_CREATION.md` — umbrella design this extends.
@@ -19,12 +23,12 @@ signals the intent switch — when a PR is attached, the branch picker is
 replaced with "based off PR #N" (`PromptGroup.tsx:365-376`). But submit
 currently routes through the `fork` intent, which creates a new branch off
 `baseBranch`. The PR is passed only as prompt context to the agent
-(`buildForkAgentLaunch.ts:354`). Result: the workspace has no PR commits, `git
-diff` shows nothing meaningful, and the user has to manually `gh pr checkout`
-after the fact.
+(`buildForkAgentLaunch.ts:354`). Result: the workspace has no PR commits,
+`git diff` shows nothing meaningful, and the user has to manually `gh pr
+checkout` after the fact.
 
 V2's existing `checkout` procedure almost covers this case but not quite:
-- It resolves branches via `origin/<branch>` — fork PRs live at
+- Resolves branches via `origin/<branch>` — fork PRs live at
   `refs/pull/N/head` and fail `resolveRef`.
 - No fork-owner-prefix branch naming (`<owner>/<headRefName>` to avoid
   collisions with local branches of the same name).
@@ -35,7 +39,7 @@ The fix is a narrow expansion of `checkout`, not a new endpoint.
 ## V1 pain points we're fixing
 
 1. **Server re-parses the PR URL** (`parsePrUrl` → `gh pr view`) even though
-   the picker (`PRLinkCommand`) already has structured data.
+   the picker already has structured data.
 2. **`gh pr view` runs twice** — once at attach time, once at checkout time.
 3. **`gh pr checkout --force` silently overwrites** any local branch with the
    same name. V1's "existing worktree" check fires after the git op, not
@@ -50,24 +54,44 @@ The fix is a narrow expansion of `checkout`, not a new endpoint.
 
 ## Scope
 
-In: `workspaceCreation.checkout` widened to accept optional `pr` metadata;
-client pending-intent + payload builder for `pr-checkout`; attach-time PR
-detail fetch; tests.
+In: `checkout` widening, `getGitHubPullRequestContent` response widening,
+pending-page fetch-before-mutate wiring, `buildForkAgentLaunch` resolved-PR
+pass-through, tests.
 
-Out: picker-initiated PR checkout (today only the link-a-PR flow triggers
-this), PR comments, re-adopt of a workspace after cloud delete (same logic as
-the existing `hasWorkspace` safety net).
+Out: picker-initiated PR checkout (no entry path today), PR comments, re-adopt
+after cloud delete (existing `hasWorkspace` safety net covers this).
 
 ---
 
-## 1. Server: widen `checkout`
+## 1. Server
 
-File: `packages/host-service/src/trpc/router/workspace-creation/workspace-creation.ts`
+### 1a. Widen `getGitHubPullRequestContent`
 
-Add an optional `pr` field to the existing input. When set, the middle
-section (git ops) uses `gh pr checkout` instead of `resolveRef` + `git
-worktree add`. Prelude (project ensure) and postlude (cloud registration +
-setup terminal) are unchanged.
+File: `packages/host-service/src/trpc/router/workspace-creation/workspace-creation.ts` (line 1377)
+
+Currently returns `{number, title, body, url, state, branch, baseBranch, author, isDraft, createdAt, updatedAt}`. Missing for our use: `headRepositoryOwner`, `isCrossRepository`.
+
+`gh pr view --json` already returns both natively (v1 pulls them at
+`git.ts:1704`). Three small edits:
+
+- Append `,headRepositoryOwner,isCrossRepository` to the `--json` flag
+  list (line 1394).
+- Extend `PrSchema` zod (line 1430) with those fields.
+- Expose them in the return mapping (line 1396-1409).
+
+Not a new fetch — same `gh pr view` call, two more fields surfaced.
+
+### 1b. Widen `checkout`
+
+File: same file, line 811. Two input changes:
+
+1. Add optional `pr` for the PR-path.
+2. Add `composer.baseBranch` — matches `create`'s composer shape. Used by
+   the shared postlude to write `branch.<name>.base` for the Changes tab.
+   Populated client-side per mode (picker selection for branch path,
+   `pr.baseRefName` for PR path).
+
+Exactly one of `branch` or `pr` must be set — enforced at the zod layer:
 
 ```ts
 checkout: protectedProcedure
@@ -76,10 +100,6 @@ checkout: protectedProcedure
     projectId: z.string(),
     workspaceName: z.string(),
 
-    // Regular path: caller supplies a branch name; server resolves it.
-    // PR path: caller supplies PR metadata; server derives branch name +
-    // runs `gh pr checkout`. The two are mutually exclusive — exactly one
-    // must be set. Enforced at the schema level (see `.refine` below).
     branch: z.string().optional(),
     pr: z.object({
       number: z.number().int().positive(),
@@ -92,22 +112,16 @@ checkout: protectedProcedure
       state: z.enum(["open", "closed", "merged", "draft"]),
     }).optional(),
 
-    composer: z.object({ /* unchanged */ }),
+    composer: z.object({
+      prompt: z.string().optional(),
+      baseBranch: z.string().optional(),      // ← new; shared across branch + PR paths
+      runSetupScript: z.boolean().optional(),
+    }),
     linkedContext: /* unchanged */,
   }).refine(
     (v) => (!!v.branch) !== (!!v.pr),
     "exactly one of `branch` or `pr` must be set",
   ))
-```
-
-### Flow
-
-```
-ensuring_repo      → ensureLocalProject (shared with create)
-creating_worktree  → { branch path: existing resolveRef + git worktree add }
-                     { pr path:     derive name + gh pr checkout         }
-registering        → registerWorkspace (shared with create)
-(done)             → maybeRunSetupTerminal (shared with create)
 ```
 
 ### PR-path middle section
@@ -117,7 +131,7 @@ if (input.pr) {
   const branch = derivePrLocalBranchName(input.pr);
 
   // Idempotency: existing workspace for this branch → "open existing".
-  // Not error — renderer navigates to it as if a create succeeded.
+  // Not an error — renderer navigates to it as if a create succeeded.
   const existing = ctx.db.query.workspaces.findFirst({
     where: and(eq(workspaces.projectId, input.projectId), eq(workspaces.branch, branch)),
   }).sync();
@@ -129,9 +143,8 @@ if (input.pr) {
   const worktreePath = safeResolveWorktreePath(localProject.repoPath, branch);
   const git = await ctx.git(localProject.repoPath);
 
-  // Detached worktree → `gh pr checkout` inside it creates the branch with
-  // correct fork-remote setup + upstream config. Matches v1's
-  // `createWorktreeFromPr` approach.
+  // Detached worktree → `gh pr checkout` inside creates the branch with
+  // correct fork-remote + upstream config. Matches v1's `createWorktreeFromPr`.
   await git.raw(["worktree", "add", "--detach", worktreePath]);
   try {
     await execGh(
@@ -148,10 +161,10 @@ if (input.pr) {
   }
 
   await git.raw(["-C", worktreePath, "config", "--local", "push.autoSetupRemote", "true"]).catch(warn);
-  // Changes-tab authority. Always PR's base — see §3.
-  await git.raw(["-C", worktreePath, "config", `branch.${branch}.base`, input.pr.baseRefName]).catch(warn);
+  // NOTE: `branch.<name>.base` write lives in `finishCheckout` and reads
+  // from `composer.baseBranch` — client passes `pr.baseRefName` for PR
+  // mode. No intent-specific config write here. See §3.
 
-  // Falls through to the shared registering + postlude below.
   return await finishCheckout(ctx, {
     pendingId: input.pendingId,
     projectId: input.projectId,
@@ -169,15 +182,25 @@ if (input.pr) {
 // ...existing branch-path body, refactored to also call finishCheckout()
 ```
 
-`finishCheckout` is a small helper in the same file that wraps
-`registerWorkspace` + `maybeRunSetupTerminal` + progress clear. Both branches
-of the procedure call it. Covers the "register + setup" postlude without a
-full pipeline extraction across three endpoints.
+`finishCheckout` is a local helper in the same file wrapping:
 
-### `derivePrLocalBranchName` — pure + tested
+- `branch.<name>.base` config write (if `composer.baseBranch` set)
+- `ensureV2Host` + `v2Workspace.create` (with rollback)
+- local `workspaces` insert
+- setup terminal
+- `clearProgress`
+
+Called from both branches. Skips a full pipeline-extraction — two callers in
+one file is a local helper, not a module. The existing branch-path in
+`checkout` (non-PR) also routes through `finishCheckout`, which means
+regular picker-driven checkouts start writing `branch.<name>.base` too —
+fixes a current gap where only `create` records the base.
+
+### 1c. `derivePrLocalBranchName`
+
+New file: `packages/host-service/src/trpc/router/workspace-creation/utils/pr-branch-name.ts`
 
 ```ts
-// packages/host-service/src/trpc/router/workspace-creation/utils/pr-branch-name.ts
 export function derivePrLocalBranchName(pr: {
   headRefName: string;
   headRepositoryOwner: string;
@@ -192,206 +215,182 @@ export function derivePrLocalBranchName(pr: {
 ```
 
 Unit tests: same-repo passthrough, cross-repo prefix, owner case-folding,
-cross-repo with already-slash-containing head ref, rejection of empty fields.
-Also importable from the renderer (pure) — see §2.
+cross-repo with slash-containing head refs, empty-field rejection. Pure
+function — importable from the renderer too.
 
-## 2. Client wiring
+## 2. Renderer
 
-### Pending row schema
+### 2a. Pending-row schema
 
 File: `apps/desktop/src/renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal/schema.ts`
 
-Add to `pendingWorkspaceSchema`:
-- `intent: z.enum(["fork", "checkout", "adopt", "pr-checkout"])`
-- `linkedPR` currently stores `{prNumber, title, url, state}`; widen to also
-  hold `headRefName`, `baseRefName`, `headRepositoryOwner`,
-  `isCrossRepository`. Discriminated on `null` vs object. Malformed legacy
-  rows fail zod at the collection boundary, route to `fork` as they do today.
+Only change: add `"pr-checkout"` to the `intent` enum. **`linkedPR` stays
+narrow** (`{prNumber, title, url, state}`) — the enriched fields don't need to
+persist in the pending row; they're fetched on-page via `useQuery`.
 
-### Attach-time PR fetch
-
-**The picker does not have enough data today.** Current state:
-- `searchPullRequests` returns `{prNumber, title, url, state, isDraft, authorLogin}` — `workspace-creation.ts:1296-1303`.
-- `LinkedPR` draft shape is `{prNumber, title, url, state}` — `DashboardNewWorkspaceDraftContext.tsx:23`.
-- Missing for the endpoint: `headRefName`, `baseRefName`, `headRepositoryOwner`, `isCrossRepository`.
-
-Widening `searchPullRequests` isn't viable — the GitHub search API doesn't
-return head/base refs. `getGitHubPullRequestContent` is the right hook: it
-shells out to `gh pr view --json ...` and already asks for `headRefName` and
-`baseRefName`. Two changes:
-
-1. **Widen `getGitHubPullRequestContent`** — add
-   `headRepositoryOwner,isCrossRepository` to the `--json` flag list (both
-   natively returned by `gh pr view`, same fields v1 pulls at
-   `git.ts:1704`). Update the `PrSchema` zod and the return-mapping block to
-   expose `headRepositoryOwner.login` and `isCrossRepository`.
-
-2. **Fetch at attach time** — `PRLinkCommand.onSelect` calls
-   `getGitHubPullRequestContent` for the just-picked PR, then updates the
-   draft with the full `LinkedPR` shape. One extra call per PR click;
-   loading state shows as a spinner on the pill until data lands. On fetch
-   failure: fall back to narrow `{prNumber, title, url, state}` LinkedPR
-   and gate `pr-checkout` intent on the full shape (submit disabled with a
-   tooltip until data arrives or re-linked).
-
-No fetch at submit time.
-
-### Submit dispatch
+### 2b. Submit dispatch
 
 File: `.../PromptGroup/hooks/useSubmitWorkspace/useSubmitWorkspace.ts`
 
 ```ts
-const isPrCheckout = draft.linkedPR?.headRefName !== undefined;
-
 collections.pendingWorkspaces.insert({
   id: pendingId,
   projectId,
-  intent: isPrCheckout ? "pr-checkout" : "fork",
-  name: workspaceName,
-  branchName: isPrCheckout
-    ? derivePrLocalBranchName(draft.linkedPR!)
-    : branchName,
-  prompt: draft.prompt,
-  baseBranch: isPrCheckout ? draft.linkedPR!.baseRefName : (draft.baseBranch ?? null),
-  baseBranchSource: null,
-  runSetupScript: draft.runSetupScript,
-  linkedIssues: draft.linkedIssues,
-  linkedPR: draft.linkedPR,
-  hostTarget: draft.hostTarget,
-  attachmentCount: files.length,
-  status: "creating",
-  error: null, workspaceId: null, warnings: [],
-  createdAt: new Date(),
+  intent: draft.linkedPR ? "pr-checkout" : "fork",
+  // ...rest unchanged
 });
 ```
 
-Expose `derivePrLocalBranchName` from host-service's public exports so the
-renderer can import it (pure function, no runtime dependency).
-
-### Pending-page dispatch
+### 2c. Pending-page dispatch
 
 File: `apps/desktop/src/renderer/routes/_authenticated/_dashboard/pending/$pendingId/page.tsx`
 
+New case in `useFireIntent`:
+
 ```ts
-switch (pending.intent) {
-  case "fork":        result = await createWorkspace(buildForkPayload(...));
-  case "checkout":    result = await checkoutWorkspace(buildCheckoutPayload(...));
-  case "adopt":       result = await adoptWorktree(buildAdoptPayload(...));
-  case "pr-checkout": result = await checkoutWorkspace(buildPrCheckoutPayload(pending));
-                      //                              ↑ same mutation, different payload
+case "pr-checkout": {
+  // Fetch PR content before firing. Stable query key — react-query dedupes.
+  const { data: prContent, error } = useQuery({
+    queryKey: ["workspaceCreation.getGitHubPullRequestContent", pending.projectId, pending.linkedPR.prNumber],
+    queryFn: () => hostServiceClient.workspaceCreation.getGitHubPullRequestContent.query({
+      projectId: pending.projectId,
+      prNumber: pending.linkedPR!.prNumber,
+    }),
+  });
+  if (error) { /* pending row error state, user can retry */ return; }
+  if (!prContent) { /* still loading — progress label: "Resolving PR..." */ return; }
+
+  const result = await checkoutWorkspace(buildPrCheckoutPayload(pending, prContent));
+  // ...agent-launch builder receives prContent via resolvedPr — no re-fetch
 }
 ```
 
-`buildPrCheckoutPayload` constructs `{ ..., pr: {...}, branch: undefined }`.
-`buildCheckoutPayload` constructs `{ ..., branch: "...", pr: undefined }`.
-Both go to `workspaceCreation.checkout.mutate(...)`.
+Progress labels at the UI layer differ per intent (`"Resolving PR..."`,
+`"Checking out PR #123..."`). Server progress step names stay generic.
 
-Progress labels differ per intent at the UI layer (`"Checking out PR #123..."` vs `"Checking out branch foo..."`) — client-side string choice, not a server concern.
+### 2d. `buildForkAgentLaunch` — accept resolved PR
 
-Handle `alreadyExists: true`: same navigation path as successful create, skip
-the creating-progress UI.
+File: `apps/desktop/src/renderer/routes/_authenticated/_dashboard/pending/$pendingId/buildForkAgentLaunch.ts`
 
-### Agent-launch context — no change
+Add optional `resolvedPr` to `BuildForkAgentLaunchInputs`. When provided,
+`fetchPullRequest` resolver (line 436) returns it directly instead of calling
+`client.workspaceCreation.getGitHubPullRequestContent.query`. For `fork`
+intent (no prefetch), the existing fetch-on-demand path is unchanged.
 
-`buildForkAgentLaunch.ts:354` already consumes `pending.linkedPR` as a
-`github-pr` launch source. `pr-checkout` pending rows carry the same
-`linkedPR` field, so the agent still gets the PR body in the prompt. PR now
-has two roles for this intent: branch source (new) + agent context
-(preserved).
+The shape `prContent` returns already has `branch` (= `headRefName`) and
+`body` — exactly what the resolver needs.
+
+### 2e. `buildPrCheckoutPayload`
+
+New file or addition alongside existing `buildForkPayload` etc. Pure function,
+unit-tested. Constructs:
+
+```ts
+{
+  pendingId, projectId, workspaceName,
+  pr: { number, url, title, headRefName, baseRefName, headRepositoryOwner, isCrossRepository, state },
+  composer: {
+    prompt: pending.prompt,
+    baseBranch: prContent.baseRefName,   // ← sourced from fetched PR
+    runSetupScript: pending.runSetupScript,
+  },
+  linkedContext: ...,
+}
+```
+
+The branch-path equivalent (`buildCheckoutPayload`) gains a matching
+`composer.baseBranch` field sourced from the picker's base selection.
+
+### What does NOT change
+
+- `DashboardNewWorkspaceDraftContext.tsx` — `LinkedPR` type stays narrow.
+- `PRLinkCommand.tsx` — no attach-time fetch, no spinner on the pill, no
+  loading state on the modal.
+- `searchPullRequests` endpoint — unchanged.
+- `create` and `adopt` procedures — untouched.
+- `checkout`'s existing branch-path body — the git ops stay as-is; only the
+  postlude is factored into `finishCheckout`, and `composer.baseBranch`
+  (new field) feeds into it.
 
 ## 3. Base branch — the Changes-tab decision
 
-**Always `pr.baseRefName`**, no override at creation time.
+**Always write `branch.<name>.base` in the `checkout` postlude**, sourced from
+`composer.baseBranch`. Client populates the field per mode:
 
-- The Changes tab compares the workspace's HEAD against `branch.<name>.base`.
-  For a PR, the semantically correct comparison is "my PR head vs the PR's
-  merge target on GitHub" — that's `baseRefName`.
-- Users don't have a mental model of "pick a base for a PR checkout" — the PR
-  dictates it.
-- For the rare retarget case (user rebases against a moved `main`), the
-  existing `setBranchBaseConfig` helper can update `branch.<name>.base`
-  after the fact. Per-workspace, not a creation-flow input.
+- Branch path: picker-selected base branch (same semantics as `create`
+  uses today).
+- PR path: `pr.baseRefName` — the PR's merge target on GitHub.
+- Absent: skip the write (matches `create`'s current `head`-start-point
+  behavior).
 
-### Edge case
+Server doesn't branch on intent for this config write — it reads
+`composer.baseBranch` uniformly and writes. Simpler server, simpler
+contract.
 
-If the PR's branch later surfaces as a picker row and the user routes it
-through the regular `checkout` (non-pr) path, `branch.<name>.base` would get
-set from the picker's base selection — typically `main`, not `baseRefName`.
-Divergence from the PR's merge target. Mitigation: code comment at the
-checkout branch-path `branch.<name>.base` write, warning future maintainers
-not to collapse `pr-checkout` into the branch-path by routing picker PR rows
-there.
+### Why PR path always uses `pr.baseRefName`
 
-## 4. Decisions made
+- Changes tab compares workspace HEAD against `branch.<name>.base`. For a PR,
+  the semantically correct comparison is "my PR head vs PR's merge target on
+  GitHub" — that's `baseRefName`.
+- Users don't have a mental model of "pick a base for a PR checkout."
+- Rare retarget case: existing `setBranchBaseConfig` helper covers it
+  post-create.
 
-- **`gh pr checkout` is the fetch mechanism.** Hard dep on `gh auth login`,
-  but handles fork-remote + upstream in one shot.
-- **Closed/merged PRs: allow with warning.** V1's silent allow, plus a
-  `warnings[]` entry surfaced by the pending page.
-- **Base branch: always `pr.baseRefName`.** See §3.
-- **Full PR object stored in pending row.** `getGitHubPullRequestContent` is
-  fast, but storing avoids a round-trip during creation and survives
-  `gh`/network transients between attach and submit.
-- **One endpoint, two modes.** Widen `checkout` instead of adding
-  `createFromPr`. The UI already differentiates the intent (picker hidden
-  when PR attached). Rationale in §5.
+### Side benefit: fixes a current gap
 
-## 5. Why widen `checkout` instead of a new endpoint
+Today's `checkout` procedure doesn't write `branch.<name>.base` at all — only
+`create` (fork) does. That means picker-driven "Check out" workspaces have no
+recorded base, and the Changes tab has to infer. With this change, all three
+intents (fork, checkout, pr-checkout) record a base via the same config key.
+Consistent Changes-tab behavior across creation paths.
 
-Counted honestly, the new-logic delta is ~40-60 lines: branch-name
-derivation, `gh pr checkout` wrapper, `pr.baseRefName` config, idempotency
-check, state warning. Everything else (project ensure, cloud registration,
-local insert, setup terminal, progress steps) is identical to existing
-procedures.
+## 4. Decisions locked
 
-A new endpoint would mean:
-- Three separate copies of prelude/postlude (forcing a `pipeline.ts`
-  extraction just to pay for the third caller — but two callers into one
-  helper is a cleaner extraction that only needs to happen when `create`
-  and `checkout` actually start drifting).
-- Four tRPC procedures where three suffice.
-- Client-side payload builder and pending-intent router still fork, which is
-  what differentiates the flows in the user's mental model.
+- **`gh pr checkout` as mechanism.** Hard dep on `gh auth login`; handles
+  fork-remote + upstream in one shot.
+- **Closed/merged PRs: allow with warning.** V1's silent-allow + `warnings[]`
+  entry.
+- **Base branch: shared postlude write, sourced from `composer.baseBranch`.**
+  PR path fills it with `pr.baseRefName`; branch path fills it with picker
+  selection. See §3.
+- **One endpoint, two modes.** Widen `checkout`; client keeps a distinct
+  `pr-checkout` pending intent.
+- **Zero net new fetches.** Pending page fetches once via `useQuery`, feeds
+  both mutation payload and agent-launch resolver. Moves the existing
+  `buildForkAgentLaunch` fetch earlier, not adds a new one.
 
-Widening `checkout` keeps the server surface narrow. The two modes are
-discriminated via `{ branch } | { pr }` in the input schema, and
-misuse is a zod error, not a runtime crash. Client still has
-`intent: "pr-checkout"` distinct from `intent: "checkout"` at the pending-row
-level — progress labels, payload shape, and post-create navigation all
-branch there. Server sees one procedure with a discriminated input.
+## 5. Fetch accounting
+
+| Scenario | Before (today) | After |
+|---|---|---|
+| Fork, no PR | 0 PR fetches | 0 PR fetches |
+| Fork with linkedPR (today's behavior, no longer reachable once `pr-checkout` intent branches) | 1 fetch at agent-launch | — |
+| PR-checkout | — | 1 fetch at pending-page, shared with agent-launch |
+
+Same total call count per submit. Timing moves from "after mutation" to
+"before mutation," which is required for the mutation payload.
 
 ## 6. Test plan
 
 ### Host-service
 
-1. `pr-branch-name.test.ts` — derivation pure function (~8 cases).
+1. `pr-branch-name.test.ts` — pure function, ~8 cases.
 2. `workspace-creation.checkout.integration.test.ts`:
    - Existing branch-path tests unchanged.
-   - New PR-path cases:
-     - Same-repo PR → `gh pr checkout` invoked with correct args, worktree
-       at expected path, `branch.<name>.base` = `baseRefName`.
-     - Fork PR → branch name is `owner/headRefName`, fork remote added.
-     - Existing workspace for same PR → `alreadyExists: true`, no git ops.
-     - Closed PR → warning surfaced, workspace created.
-     - `gh pr checkout` failure → worktree removed, error propagated.
-     - Cloud `v2Workspace.create` failure → worktree rolled back.
-     - Schema: both `branch` and `pr` set → zod error (refine guard).
-     - Schema: neither `branch` nor `pr` set → zod error.
+   - PR-path: same-repo, fork, idempotency (existing workspace → `alreadyExists: true`), closed-PR warning, `gh pr checkout` failure rolls back worktree, cloud-create failure rolls back worktree.
+   - Schema guards: both `branch` + `pr` → zod error; neither → zod error.
 
 ### Renderer
 
-3. `buildIntentPayload.test.ts` — new `buildPrCheckoutPayload` cases.
+3. `buildPrCheckoutPayload.test.ts` — pure builder, construction cases.
 4. Manual smoke:
-   - Same-repo PR: attach, submit, verify workspace has PR commits.
-   - Cross-repo PR: verify fork remote + branch naming.
+   - Same-repo PR: attach, submit, verify PR commits in workspace.
+   - Cross-repo PR: fork remote added, branch named `<owner>/<head>`.
    - Re-attach same PR: `alreadyExists` navigation.
-   - Closed PR: warning toast, still creates.
-   - `gh` not installed: clear error.
+   - Closed PR: warning toast, workspace still created.
+   - `gh` missing: clear error at pending page.
 
 ## 7. Rollout
 
-One PR covers: `checkout` input widening + PR-path implementation,
-`getGitHubPullRequestContent` field additions, `PRLinkCommand`
-attach-time fetch, pending-row schema widening,
-`buildPrCheckoutPayload`, pending-page dispatch case, tests. No feature flag
-— gated by "user links a PR in the modal," same as v1.
+One PR: server widenings (1a, 1b, 1c) + renderer wiring (2a-2e) + tests. No
+feature flag — gated by "user links a PR in the modal," same as v1.
