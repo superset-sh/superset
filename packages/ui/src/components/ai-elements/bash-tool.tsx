@@ -61,7 +61,7 @@ export const BashTool = ({
 
 	return (
 		<Collapsible
-			className={cn("overflow-hidden rounded-md", className)}
+			className={cn("overflow-hidden rounded-md select-text", className)}
 			onOpenChange={(open) => hasOutput && setIsOutputExpanded(open)}
 			open={hasOutput ? isOutputExpanded : false}
 		>
@@ -114,7 +114,7 @@ export const BashTool = ({
 						{command && (
 							<div className="font-mono text-xs">
 								<span className="text-amber-600 dark:text-amber-400">$ </span>
-								<span className="whitespace-pre-wrap break-all text-foreground">
+								<span className="select-text whitespace-pre-wrap break-all text-foreground">
 									{command}
 								</span>
 							</div>
@@ -122,7 +122,7 @@ export const BashTool = ({
 
 						{/* Stdout */}
 						{stdout && (
-							<div className="mt-1.5 whitespace-pre-wrap break-all font-mono text-xs text-muted-foreground">
+							<div className="mt-1.5 select-text whitespace-pre-wrap break-all font-mono text-xs text-muted-foreground">
 								{stdout}
 							</div>
 						)}
@@ -131,7 +131,7 @@ export const BashTool = ({
 						{stderr && (
 							<div
 								className={cn(
-									"mt-1.5 whitespace-pre-wrap break-all font-mono text-xs",
+									"mt-1.5 select-text whitespace-pre-wrap break-all font-mono text-xs",
 									exitCode === 0 || exitCode === undefined
 										? "text-amber-600 dark:text-amber-400"
 										: "text-rose-500 dark:text-rose-400",
