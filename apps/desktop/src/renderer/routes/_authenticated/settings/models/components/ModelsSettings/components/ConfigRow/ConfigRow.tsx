@@ -10,6 +10,8 @@ interface ConfigRowProps {
 	onClear?: () => void;
 	saveLabel?: string;
 	clearLabel?: string;
+	showSave?: boolean;
+	showClear?: boolean;
 	disableSave?: boolean;
 	disableClear?: boolean;
 	className?: string;
@@ -23,6 +25,8 @@ export function ConfigRow({
 	onClear,
 	saveLabel = "Save",
 	clearLabel = "Clear",
+	showSave = true,
+	showClear = true,
 	disableSave,
 	disableClear,
 	className,
@@ -39,7 +43,7 @@ export function ConfigRow({
 				<div className="flex min-w-0 flex-1 flex-col gap-3 lg:flex-row lg:items-center">
 					<div className="min-w-0 flex-1">{field}</div>
 					<div className="flex shrink-0 items-center gap-2 self-end lg:self-auto">
-						{onClear ? (
+						{onClear && showClear ? (
 							<Button
 								variant="outline"
 								size="sm"
@@ -49,7 +53,7 @@ export function ConfigRow({
 								{clearLabel}
 							</Button>
 						) : null}
-						{onSave ? (
+						{onSave && showSave ? (
 							<Button size="sm" onClick={onSave} disabled={disableSave}>
 								{saveLabel}
 							</Button>

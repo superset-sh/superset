@@ -205,7 +205,6 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 		}
 		return (
 			<Button
-				variant="outline"
 				size="sm"
 				onClick={() => void startOAuth()}
 				disabled={isStartingOAuth}
@@ -295,14 +294,10 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 											}
 										})();
 									}}
-									disableSave={
-										isSavingAnthropicApiKey ||
-										anthropicApiKeyInput.trim().length === 0
-									}
-									disableClear={
-										isSavingAnthropicApiKey ||
-										anthropicStatus?.authMethod !== "api_key"
-									}
+									showSave={anthropicApiKeyInput.trim().length > 0}
+									disableSave={isSavingAnthropicApiKey}
+									showClear={anthropicStatus?.authMethod === "api_key"}
+									disableClear={isSavingAnthropicApiKey}
 								/>
 							</div>
 						</SettingsSection>
@@ -375,14 +370,10 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 											}
 										})();
 									}}
-									disableSave={
-										isSavingOpenAIConfig ||
-										openAIApiKeyInput.trim().length === 0
-									}
-									disableClear={
-										isSavingOpenAIConfig ||
-										openAIStatus?.authMethod !== "api_key"
-									}
+									showSave={openAIApiKeyInput.trim().length > 0}
+									disableSave={isSavingOpenAIConfig}
+									showClear={openAIStatus?.authMethod === "api_key"}
+									disableClear={isSavingOpenAIConfig}
 								/>
 							</div>
 						</SettingsSection>
