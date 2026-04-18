@@ -3,6 +3,7 @@ import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { TRPCClientError } from "@trpc/client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { GoGitBranch } from "react-icons/go";
 import { HiCheck, HiExclamationTriangle } from "react-icons/hi2";
@@ -21,6 +22,7 @@ import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/u
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import type { PendingWorkspaceRow } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal/schema";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
+import { useOpenPinAndSetupModal } from "renderer/stores/add-repository-modal";
 import type { ResolvedPrContent } from "./buildForkAgentLaunch";
 import {
 	buildAdoptPayload,
@@ -58,8 +60,9 @@ function useFireIntent(pendingId: string, pending: PendingWorkspaceRow | null) {
 	const adoptWorktree = useAdoptWorktree();
 	const trpcUtils = electronTrpc.useUtils();
 	const { activeHostUrl } = useLocalHostService();
+	const openPinAndSetup = useOpenPinAndSetupModal();
 
-	return useCallback(async () => {
+	const fire = useCallback(async () => {
 		if (!pending) return;
 
 		collections.pendingWorkspaces.update(pendingId, (draft) => {
@@ -186,6 +189,39 @@ function useFireIntent(pendingId: string, pending: PendingWorkspaceRow | null) {
 			});
 			void clearAttachments(pendingId);
 		} catch (err) {
+			// Host-service signals "project isn't set up on this host" via a
+			// structured cause, surfaced in data.projectNotSetup by the error
+			// formatter. Intercept it here: open Pin & set up with the
+			// projectId pre-filled, and schedule a retry of the original
+			// intent once setup succeeds. Any other error falls through to the
+			// generic failed state below.
+			if (
+				err instanceof TRPCClientError &&
+				(err.data as { projectNotSetup?: { projectId?: string } } | undefined)
+					?.projectNotSetup?.projectId &&
+				pending
+			) {
+				const projectId = (
+					err.data as { projectNotSetup: { projectId: string } }
+				).projectNotSetup.projectId;
+				const cloudProject = collections.v2Projects.get(projectId);
+				const repo = cloudProject?.githubRepositoryId
+					? collections.githubRepositories.get(cloudProject.githubRepositoryId)
+					: null;
+				// Leave the pending row in "creating" — the user is mid-flow.
+				// When setup succeeds we retry immediately; if they cancel the
+				// modal, flip to failed so the UI isn't stuck on the spinner.
+				openPinAndSetup(
+					{
+						id: projectId,
+						name: cloudProject?.name ?? "this project",
+						githubOwner: repo?.owner ?? null,
+						githubRepoName: repo?.name ?? null,
+					},
+					{ onSuccess: () => void fire() },
+				);
+				return;
+			}
 			collections.pendingWorkspaces.update(pendingId, (draft) => {
 				draft.status = "failed";
 				draft.error =
@@ -197,11 +233,14 @@ function useFireIntent(pendingId: string, pending: PendingWorkspaceRow | null) {
 		createWorkspace,
 		checkoutWorkspace,
 		adoptWorktree,
+		openPinAndSetup,
 		pending,
 		pendingId,
 		trpcUtils,
 		activeHostUrl,
 	]);
+
+	return fire;
 }
 
 function PendingWorkspacePage() {
