@@ -27,7 +27,6 @@ import {
 	buildAnthropicEnvText,
 	EMPTY_ANTHROPIC_FORM,
 	getProviderAction,
-	getProviderSubtitle,
 	getStatusBadge,
 	parseAnthropicForm,
 	resolveProviderStatus,
@@ -121,14 +120,6 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 		[openAIAuthStatus],
 	);
 
-	const _anthropicSubtitle = useMemo(
-		() => getProviderSubtitle("anthropic", anthropicStatus),
-		[anthropicStatus],
-	);
-	const _openAISubtitle = useMemo(
-		() => getProviderSubtitle("openai", openAIStatus),
-		[openAIStatus],
-	);
 	const anthropicBadge = useMemo(
 		() => getStatusBadge(anthropicStatus),
 		[anthropicStatus],
