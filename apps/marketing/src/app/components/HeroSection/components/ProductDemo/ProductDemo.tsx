@@ -56,17 +56,32 @@ export function ProductDemo({ scrollYProgress }: ProductDemoProps) {
 		[containerWidth || 1, constrainedWidth || 1],
 	);
 
-	// Pills shift up to follow the shrinking mockup (minimal on mobile since scale is subtle)
+	// Pills start hidden behind the mockup, then peek up past its top edge as the user scrolls
 	const pillsY = useTransform(
 		scrollYProgress,
 		[0, 1],
-		[0, isMobile ? -6 : -40],
+		[0, isMobile ? -20 : -32],
 	);
 	return (
 		<div ref={containerRef} className="relative w-full max-w-full">
-			{/* Mockup with scroll-driven scale */}
+			{/* Selector pills - behind mockup, emerge from its top edge on scroll */}
 			<motion.div
-				className="relative mx-auto w-full"
+				className="absolute inset-x-0 top-0 z-0 flex items-center gap-2 px-4 sm:px-0 sm:justify-center overflow-x-auto scrollbar-hide"
+				style={{ y: pillsY, willChange: "transform" }}
+			>
+				{DEMO_OPTIONS.map((option) => (
+					<SelectorPill
+						key={option.label}
+						label={option.label}
+						active={activeOption === option.label}
+						onSelect={() => setActiveOption(option.label as ActiveDemo)}
+					/>
+				))}
+			</motion.div>
+
+			{/* Mockup with scroll-driven scale - stacks above pills */}
+			<motion.div
+				className="relative z-10 mx-auto w-full"
 				style={{
 					scale,
 					willChange: "transform",
@@ -80,21 +95,6 @@ export function ProductDemo({ scrollYProgress }: ProductDemoProps) {
 						<AppMockup activeDemo={activeOption} />
 					</div>
 				</div>
-			</motion.div>
-
-			{/* Selector pills - below mockup, shift up as mockup scales */}
-			<motion.div
-				className="flex items-center gap-2 -mt-2 sm:-mt-4 px-4 sm:px-0 sm:justify-center overflow-x-auto pb-1 scrollbar-hide"
-				style={{ y: pillsY, willChange: "transform" }}
-			>
-				{DEMO_OPTIONS.map((option) => (
-					<SelectorPill
-						key={option.label}
-						label={option.label}
-						active={activeOption === option.label}
-						onSelect={() => setActiveOption(option.label as ActiveDemo)}
-					/>
-				))}
 			</motion.div>
 		</div>
 	);
