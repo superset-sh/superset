@@ -120,7 +120,7 @@ export function TrustedBySection() {
 					{CLIENT_LOGOS.map((client) => (
 						<div
 							key={client.name}
-							className="flex items-center justify-center min-w-0 whitespace-nowrap h-16 sm:h-18 rounded-[2px] border border-foreground/[0.1] bg-foreground/[0.03] opacity-90 hover:opacity-100 transition-opacity"
+							className="flex items-center justify-center min-w-0 whitespace-nowrap h-16 sm:h-18 rounded-[2px] border border-foreground/[0.1] bg-foreground/[0.03] opacity-90 transition-all duration-200 hover:opacity-100 hover:border-foreground/[0.2] hover:bg-foreground/[0.06]"
 						>
 							<Image
 								src={client.logo}
@@ -150,7 +150,7 @@ export function TrustedBySection() {
 							{row.map((client) => (
 								<div
 									key={client.name}
-									className="flex items-center justify-center whitespace-nowrap h-24 w-[168px] rounded-[2px] border border-foreground/[0.1] bg-foreground/[0.03] opacity-90 hover:opacity-100 transition-opacity"
+									className="flex items-center justify-center whitespace-nowrap h-24 w-[168px] rounded-[2px] border border-foreground/[0.1] bg-foreground/[0.03] opacity-90 transition-all duration-200 hover:opacity-100 hover:border-foreground/[0.2] hover:bg-foreground/[0.06]"
 								>
 									<Image
 										src={client.logo}
