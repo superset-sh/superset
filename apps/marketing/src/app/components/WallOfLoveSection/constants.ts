@@ -118,7 +118,7 @@ export const TESTIMONIALS: Testimonial[] = [
 			"just started using remote desktop instead of ssh just to be able to use @superset_sh on my mac mini from my macbook pro\n\ngenerational product in the making, mark my words",
 		author: "Elias Ståvik",
 		handle: "@eliasstravik",
-		role: "Co-founder at GuineaPig",
+		role: "Founder at Cleanroom",
 		avatar: "https://unavatar.io/twitter/eliasstravik",
 		url: "https://x.com/eliasstravik/status/2020580091449708978",
 	},
