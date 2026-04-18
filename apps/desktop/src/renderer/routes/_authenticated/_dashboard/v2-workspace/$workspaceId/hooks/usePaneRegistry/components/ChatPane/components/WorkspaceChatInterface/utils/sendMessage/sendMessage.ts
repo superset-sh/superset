@@ -12,7 +12,6 @@ export type ChatSendMessageInput = {
 	metadata: {
 		model?: string;
 		thinkingLevel?: ThinkingLevel;
-		skills?: string[];
 	};
 };
 

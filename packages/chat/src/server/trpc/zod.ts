@@ -86,8 +86,6 @@ export const sendMessageInput = z.object({
 		.object({
 			model: z.string().optional(),
 			thinkingLevel: thinkingLevelSchema.optional(),
-			/** Skill names to preload before the LLM sees the message. */
-			skills: z.array(z.string()).optional(),
 		})
 		.optional(),
 });

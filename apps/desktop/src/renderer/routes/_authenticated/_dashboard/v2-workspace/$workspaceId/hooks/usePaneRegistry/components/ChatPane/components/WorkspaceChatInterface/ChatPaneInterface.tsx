@@ -1,4 +1,3 @@
-import { findSlashCommandByNameOrAlias } from "@superset/chat/shared";
 import {
 	PromptInputAttachment,
 	type PromptInputMessage,
@@ -532,27 +531,6 @@ export function ChatPaneInterface({
 		async (payload: { content: string; files?: HarnessFilePayload[] }) => {
 			let content = payload.content.trim();
 
-			// Extract custom skill chips (e.g. /redesign anywhere in message) before
-			// slash command resolution. Built-in commands at the start still go through
-			// the existing resolver; custom commands become preloadSkills metadata.
-			const skillNames: string[] = [];
-			const contentWithSkillsExtracted = content.replace(
-				/\/(\S+)/g,
-				(match, name: string) => {
-					const command = findSlashCommandByNameOrAlias(slashCommands, name);
-					if (command?.kind === "custom") {
-						if (!skillNames.includes(command.name)) {
-							skillNames.push(command.name);
-						}
-						return name; // strip the leading /
-					}
-					return match;
-				},
-			);
-			if (skillNames.length > 0) {
-				content = contentWithSkillsExtracted.trim();
-			}
-
 			const isSlashCommand = content.startsWith("/");
 			const slashCommandResult = await resolveSlashCommandInput(content);
 			if (slashCommandResult.handled) {
@@ -610,7 +588,6 @@ export function ChatPaneInterface({
 				metadata: {
 					model: activeModel?.id,
 					thinkingLevel,
-					...(skillNames.length > 0 ? { skills: skillNames } : {}),
 				},
 			};
 
@@ -658,7 +635,6 @@ export function ChatPaneInterface({
 			sendMessageToSession,
 			setRuntimeErrorMessage,
 			onUserMessageSubmitted,
-			slashCommands,
 			thinkingLevel,
 		],
 	);

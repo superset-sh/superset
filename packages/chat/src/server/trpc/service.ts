@@ -284,11 +284,7 @@ export class ChatRuntimeService {
 									? submittedUserMessage
 									: undefined,
 						});
-						const skills = input.metadata?.skills;
-						return runtime.harness.sendMessage({
-							...input.payload,
-							...(skills?.length ? { preloadSkills: skills } : {}),
-						});
+						return runtime.harness.sendMessage(input.payload);
 					}),
 
 				restartFromMessage: t.procedure
