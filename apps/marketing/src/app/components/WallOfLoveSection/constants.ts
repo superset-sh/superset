@@ -76,7 +76,7 @@ export const TESTIMONIALS: Testimonial[] = [
 			"@superset_sh is a sick product - love OS since I don't have to wait for someone else to fix bugs",
 		author: "Chase McDougall",
 		handle: "@ChaseMcDou",
-		role: "Software Engineer at Decoda Health",
+		role: "Founding Engineer at Decoda Health",
 		avatar: "https://unavatar.io/twitter/ChaseMcDou",
 		url: "https://x.com/ChaseMcDou/status/2013458004977373643",
 	},
