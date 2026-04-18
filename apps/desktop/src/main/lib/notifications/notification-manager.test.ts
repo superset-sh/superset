@@ -297,8 +297,8 @@ describe("NotificationManager", () => {
 
 			expect(createNotification).toHaveBeenCalledWith(
 				expect.objectContaining({
-					title: "Input Needed — Test Workspace",
-					body: '"Test Title" needs your attention',
+					title: "Awaiting Response — Test Workspace",
+					body: '"Test Title" is waiting for your reply',
 				}),
 			);
 		});

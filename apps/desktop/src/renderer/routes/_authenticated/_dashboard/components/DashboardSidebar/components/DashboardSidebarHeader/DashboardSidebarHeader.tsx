@@ -104,6 +104,7 @@ export function DashboardSidebarHeader({
 							<DropdownMenuTrigger asChild>
 								<button
 									type="button"
+									aria-label="Add repository"
 									className="flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
 								>
 									<LuFolderPlus className="size-4" />
@@ -154,6 +155,7 @@ export function DashboardSidebarHeader({
 							<DropdownMenuTrigger asChild>
 								<button
 									type="button"
+									aria-label="Add repository"
 									className="flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
 								>
 									<LuFolderPlus className="size-4" />

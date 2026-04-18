@@ -151,7 +151,7 @@ Native pickers (`dialog.showOpenDialog`) stay in the client — host-service has
 | --- | --- |
 | Cloud project row | `typeof v2Projects.$inferSelect` (`packages/db/src/schema/schema.ts:380`) |
 | Cloud project + clone URL | `v2Projects.get` output (`packages/trpc/src/router/v2-project/v2-project.ts`) |
-| Cloud project creation | `v2Projects.create` — takes `{ name, slug, githubRepositoryId }` |
+| Cloud project creation | `v2Projects.create` — takes `{ organizationId, name, slug, repoCloneUrl }` (jwt-scoped) |
 | Workspace (cloud) | `typeof v2Workspaces.$inferSelect` (has `projectId`, `hostId`) |
 | Host (cloud) | `typeof v2Hosts.$inferSelect` (has `machineId`, `isOnline`) |
 | Host-service project row | `typeof projects.$inferSelect` |
