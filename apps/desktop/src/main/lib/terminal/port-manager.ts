@@ -19,16 +19,16 @@ const IGNORED_PORTS = new Set([22, 80, 443, 5432, 3306, 6379, 27017]);
 
 /**
  * Check if terminal output contains hints that a port may have been opened.
- * Common patterns from dev servers, test frameworks, etc.
+ * Restricted to phrases that strongly imply a server just started listening;
+ * looser patterns like a bare "port 22" or trailing ":12345" are omitted
+ * because they match routine log output (ssh banners, timestamps, etc.) and
+ * triggered excessive lsof scans — see issue #3372.
  */
 function containsPortHint(data: string): boolean {
-	// Common patterns: "listening on port X", "server started on :X", etc.
 	const portPatterns = [
 		/listening\s+on\s+(?:port\s+)?(\d+)/i,
 		/server\s+(?:started|running)\s+(?:on|at)\s+(?:http:\/\/)?(?:localhost|127\.0\.0\.1|0\.0\.0\.0)?:?(\d+)/i,
 		/ready\s+on\s+(?:http:\/\/)?(?:localhost|127\.0\.0\.1|0\.0\.0\.0)?:?(\d+)/i,
-		/port\s+(\d+)/i,
-		/:(\d{4,5})\s*$/,
 	];
 	return portPatterns.some((pattern) => pattern.test(data));
 }
@@ -62,19 +62,19 @@ class PortManager extends EventEmitter {
 	/** Daemon-mode sessions: paneId → { workspaceId, pid } */
 	private daemonSessions = new Map<string, DaemonSession>();
 	private scanInterval: ReturnType<typeof setInterval> | null = null;
-	private pendingHintScans = new Map<string, ReturnType<typeof setTimeout>>();
+	private hintScanTimeout: ReturnType<typeof setTimeout> | null = null;
 	private isScanning = false;
-
-	constructor() {
-		super();
-		this.startPeriodicScan();
-	}
+	/** Set when a hint arrives during a scan; triggers one follow-up scan. */
+	private scanRequested = false;
+	/** Aborts any in-flight scan children (lsof/netstat) on teardown. */
+	private scanAbort: AbortController | null = null;
 
 	/**
 	 * Register a terminal session for port scanning
 	 */
 	registerSession(session: TerminalSession, workspaceId: string): void {
 		this.sessions.set(session.paneId, { session, workspaceId });
+		this.ensurePeriodicScanRunning();
 	}
 
 	/**
@@ -83,7 +83,7 @@ class PortManager extends EventEmitter {
 	unregisterSession(paneId: string): void {
 		this.sessions.delete(paneId);
 		this.removePortsForPane(paneId);
-		this.clearPendingHintScan(paneId);
+		this.stopPeriodicScanIfIdle();
 	}
 
 	/**
@@ -97,6 +97,7 @@ class PortManager extends EventEmitter {
 		pid: number | null,
 	): void {
 		this.daemonSessions.set(paneId, { workspaceId, pid });
+		this.ensurePeriodicScanRunning();
 	}
 
 	/**
@@ -105,17 +106,22 @@ class PortManager extends EventEmitter {
 	unregisterDaemonSession(paneId: string): void {
 		this.daemonSessions.delete(paneId);
 		this.removePortsForPane(paneId);
-		this.clearPendingHintScan(paneId);
+		this.stopPeriodicScanIfIdle();
 	}
 
-	checkOutputForHint(data: string, paneId: string): void {
+	checkOutputForHint(data: string): void {
 		if (!containsPortHint(data)) return;
-		this.scheduleHintScan(paneId);
+		this.scheduleHintScan();
 	}
 
-	private startPeriodicScan(): void {
+	private hasAnySessions(): boolean {
+		return this.sessions.size > 0 || this.daemonSessions.size > 0;
+	}
+
+	private ensurePeriodicScanRunning(): void {
 		if (this.scanInterval) return;
 
+		this.scanAbort = new AbortController();
 		this.scanInterval = setInterval(() => {
 			this.scanAllSessions().catch((error) => {
 				console.error("[PortManager] Scan error:", error);
@@ -126,89 +132,42 @@ class PortManager extends EventEmitter {
 		this.scanInterval.unref();
 	}
 
+	private stopPeriodicScanIfIdle(): void {
+		if (!this.hasAnySessions()) this.stopPeriodicScan();
+	}
+
 	stopPeriodicScan(): void {
 		if (this.scanInterval) {
 			clearInterval(this.scanInterval);
 			this.scanInterval = null;
 		}
 
-		for (const timeout of this.pendingHintScans.values()) {
-			clearTimeout(timeout);
+		if (this.hintScanTimeout) {
+			clearTimeout(this.hintScanTimeout);
+			this.hintScanTimeout = null;
 		}
-		this.pendingHintScans.clear();
+
+		// Kill any in-flight lsof/netstat so it can't outlive us.
+		if (this.scanAbort) {
+			this.scanAbort.abort();
+			this.scanAbort = null;
+		}
+
+		this.scanRequested = false;
 	}
 
-	private clearPendingHintScan(paneId: string): void {
-		const pendingTimeout = this.pendingHintScans.get(paneId);
-		if (pendingTimeout) {
-			clearTimeout(pendingTimeout);
-			this.pendingHintScans.delete(paneId);
-		}
-	}
+	/**
+	 * Debounce hint-triggered scans into a single follow-up bulk scan.
+	 * Hints arrive on every PTY data chunk; we only need one scan per burst.
+	 */
+	private scheduleHintScan(): void {
+		if (this.hintScanTimeout) return;
 
-	private scheduleHintScan(paneId: string): void {
-		this.clearPendingHintScan(paneId);
-
-		const timeout = setTimeout(() => {
-			this.pendingHintScans.delete(paneId);
-			this.scanPane(paneId).catch(() => {});
+		this.hintScanTimeout = setTimeout(() => {
+			this.hintScanTimeout = null;
+			this.scanAllSessions().catch(() => {});
 		}, HINT_SCAN_DELAY_MS);
-		// Don't keep Electron alive just for port scanning
-		timeout.unref();
-
-		this.pendingHintScans.set(paneId, timeout);
-	}
-
-	private async scanPidTreeAndUpdate({
-		paneId,
-		workspaceId,
-		pid,
-		errorContext,
-	}: {
-		paneId: string;
-		workspaceId: string;
-		pid: number;
-		errorContext: string;
-	}): Promise<void> {
-		try {
-			const pids = await getProcessTree(pid);
-			if (pids.length === 0) {
-				this.removePortsForPane(paneId);
-				return;
-			}
-
-			const portInfos = await getListeningPortsForPids(pids);
-			this.updatePortsForPane({ paneId, workspaceId, portInfos });
-		} catch (error) {
-			console.error(`[PortManager] Error scanning ${errorContext}:`, error);
-		}
-	}
-
-	private async scanPane(paneId: string): Promise<void> {
-		const registered = this.sessions.get(paneId);
-		if (registered) {
-			const { session, workspaceId } = registered;
-			if (!session.isAlive) return;
-			await this.scanPidTreeAndUpdate({
-				paneId,
-				workspaceId,
-				pid: session.pty.pid,
-				errorContext: `pane ${paneId}`,
-			});
-			return;
-		}
-
-		const daemonSession = this.daemonSessions.get(paneId);
-		if (daemonSession) {
-			const { workspaceId, pid } = daemonSession;
-			if (pid === null) return;
-			await this.scanPidTreeAndUpdate({
-				paneId,
-				workspaceId,
-				pid,
-				errorContext: `daemon pane ${paneId}`,
-			});
-		}
+		this.hintScanTimeout.unref();
 	}
 
 	private createScanState(): ScanState {
@@ -307,7 +266,10 @@ class PortManager extends EventEmitter {
 		const allPidList = Array.from(allPids);
 		if (allPidList.length === 0) return portsByPane;
 
-		const portInfos = await getListeningPortsForPids(allPidList);
+		const portInfos = await getListeningPortsForPids(
+			allPidList,
+			this.scanAbort?.signal,
+		);
 		for (const info of portInfos) {
 			const owner = pidOwnerMap.get(info.pid);
 			if (!owner) continue;
@@ -353,7 +315,12 @@ class PortManager extends EventEmitter {
 	}
 
 	private async scanAllSessions(): Promise<void> {
-		if (this.isScanning) return;
+		if (this.isScanning) {
+			// A hint or tick fired mid-scan; queue exactly one follow-up.
+			this.scanRequested = true;
+			return;
+		}
+		if (!this.hasAnySessions()) return;
 		this.isScanning = true;
 
 		try {
@@ -374,6 +341,11 @@ class PortManager extends EventEmitter {
 			this.cleanupUnregisteredPorts();
 		} finally {
 			this.isScanning = false;
+		}
+
+		if (this.scanRequested && this.hasAnySessions()) {
+			this.scanRequested = false;
+			await this.scanAllSessions();
 		}
 	}
 
