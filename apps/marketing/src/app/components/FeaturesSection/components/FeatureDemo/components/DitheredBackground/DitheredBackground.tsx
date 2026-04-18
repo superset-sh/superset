@@ -27,7 +27,7 @@ export function DitheredBackground({
 					colorFront={colors[0]}
 					shape="warp"
 					type="4x4"
-					speed={0.3}
+					speed={0.15}
 					className="size-full"
 					minPixelRatio={1}
 				/>
