@@ -12,6 +12,7 @@ import type { StoreApi } from "zustand";
 import type {
 	BrowserPaneData,
 	ChatPaneData,
+	DiffPaneData,
 	PaneViewerData,
 	TerminalPaneData,
 } from "../../types";
@@ -65,6 +66,33 @@ export function useWorkspaceHotkeys({
 					data: {
 						url: "about:blank",
 					} as BrowserPaneData,
+				},
+			],
+		});
+	});
+
+	useHotkey("OPEN_DIFF_VIEWER", () => {
+		if (collections.v2WorkspaceLocalState.get(workspaceId)) {
+			collections.v2WorkspaceLocalState.update(workspaceId, (draft) => {
+				draft.rightSidebarOpen = true;
+				draft.sidebarState.activeTab = "changes";
+			});
+		}
+
+		const state = store.getState();
+		for (const tab of state.tabs) {
+			for (const pane of Object.values(tab.panes)) {
+				if (pane.kind !== "diff") continue;
+				state.setActiveTab(tab.id);
+				state.setActivePane({ tabId: tab.id, paneId: pane.id });
+				return;
+			}
+		}
+		state.addTab({
+			panes: [
+				{
+					kind: "diff",
+					data: { path: "", collapsedFiles: [] } as DiffPaneData,
 				},
 			],
 		});

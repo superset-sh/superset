@@ -23,7 +23,7 @@
 		"typecheck": "tsc --noEmit --emitDeclarationOnly false"
 	},
 	"dependencies": {
-		"drizzle-orm": "0.45.1",
+		"drizzle-orm": "0.45.2",
 		"uuid": "^13.0.0",
 		"zod": "^4.3.5"
 	},

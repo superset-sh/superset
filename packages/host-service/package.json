@@ -53,7 +53,7 @@
 		"@trpc/client": "^11.7.1",
 		"@trpc/server": "^11.7.1",
 		"better-sqlite3": "12.6.2",
-		"drizzle-orm": "0.45.1",
+		"drizzle-orm": "0.45.2",
 		"hono": "^4.8.5",
 		"mastracode": "0.14.0",
 		"node-pty": "1.1.0",

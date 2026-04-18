@@ -56,6 +56,11 @@ export function FontFamilyCombobox({
 		return { nerdFonts: nerd, monoFonts: mono, otherFonts: other };
 	}, [fonts]);
 
+	// Terminal fonts must be monospace — arbitrary free-form names would let
+	// users pick proportional fonts (see issue #3513), so the custom-entry
+	// escape hatches below are gated off for the terminal variant.
+	const allowCustomEntry = variant !== "terminal";
+
 	const hasExactMatch = useMemo(() => {
 		if (!search.trim()) return true;
 		const lower = search.toLowerCase().trim();
@@ -120,7 +125,7 @@ export function FontFamilyCombobox({
 					/>
 					<CommandList>
 						<CommandEmpty>
-							{search.trim() ? (
+							{allowCustomEntry && search.trim() ? (
 								<button
 									type="button"
 									className="w-full text-center cursor-pointer hover:underline"
@@ -132,7 +137,7 @@ export function FontFamilyCombobox({
 								"No fonts found."
 							)}
 						</CommandEmpty>
-						{!hasExactMatch && search.trim() && (
+						{allowCustomEntry && !hasExactMatch && search.trim() && (
 							<CommandGroup heading="Custom">
 								<CommandItem
 									value={`__custom__${search.trim()}`}
@@ -144,9 +149,9 @@ export function FontFamilyCombobox({
 								</CommandItem>
 							</CommandGroup>
 						)}
-						{variant === "terminal" && renderGroup("Nerd Fonts", nerdFonts)}
+						{renderGroup("Nerd Fonts", nerdFonts)}
 						{renderGroup("Monospace", monoFonts)}
-						{renderGroup("Other", otherFonts)}
+						{variant !== "terminal" && renderGroup("Other", otherFonts)}
 					</CommandList>
 				</Command>
 			</PopoverContent>

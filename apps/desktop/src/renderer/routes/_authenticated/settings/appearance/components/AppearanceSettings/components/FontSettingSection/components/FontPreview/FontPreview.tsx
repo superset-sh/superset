@@ -28,21 +28,16 @@ export const webSearchTool = createTool({
   },
 });`;
 
-const TERMINAL_PREVIEW = `\u256D\u2500 mastra agent \u2500\u2500 feat/add-tool \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256E
-\u2502 \u2713 Created inputSchema with zod            \u2502
-\u2502 \u2713 Wired execute handler                   \u2502
-\u2502 \u2BFF Running tool integration tests...        \u2502
-\u2570\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256F
-\u256D\u2500 mastra agent \u2500\u2500 fix/workspace-sandbox \u2500\u2500\u256E
-\u2502 \u2713 Patched LocalSandbox timeout             \u2502
-\u2502 \u2713 Updated workspace config                 \u2502
-\u2502 \u2713 All 5 tests passing                      \u2502
-\u2570\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256F
-\u256D\u2500 mastra agent \u2500\u2500 chore/mcp-server \u2500\u2500\u2500\u2500\u2500\u2500\u256E
-\u2502 \u2BFF Registering tools with MCP server...     \u2502
-\u2570\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256F
+const TERMINAL_PREVIEW = `~/agent $ mastra dev
+\u2192 Loaded 3 tools \u00B7 1 agent \u00B7 0 workflows
+\u2192 Listening on http://localhost:4111
 
- 3 agents running \u00B7 2 workspaces \u00B7 8 files changed
+~/agent $ mastra test
+ \u2713 web-search.test.ts   (4)   47ms
+ \u2713 fetch-url.test.ts    (7)   62ms
+ \u2713 researcher.test.ts   (3)   91ms
+
+ Files  3 passed \u00B7 Tests 14 passed \u00B7 0.24s
 
  Friends don't let friends compact.`;
 

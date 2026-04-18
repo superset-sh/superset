@@ -198,7 +198,7 @@ export function RightSidebar() {
 						<TooltipContent side="bottom" showArrow={false}>
 							<HotkeyLabel
 								label={isExpanded ? "Collapse sidebar" : "Expand sidebar"}
-								id="TOGGLE_EXPAND_SIDEBAR"
+								id="OPEN_DIFF_VIEWER"
 							/>
 						</TooltipContent>
 					</Tooltip>

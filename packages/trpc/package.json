@@ -28,7 +28,7 @@
 		"@upstash/qstash": "^2.8.4",
 		"@vercel/blob": "^2.0.0",
 		"@vercel/kv": "^3.0.0",
-		"drizzle-orm": "0.45.1",
+		"drizzle-orm": "0.45.2",
 		"superjson": "^2.2.5",
 		"zod": "^4.3.5"
 	},

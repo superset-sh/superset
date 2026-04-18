@@ -186,14 +186,16 @@ export const HOTKEYS_REGISTRY = {
 		label: "Toggle Changes Tab",
 		category: "Layout",
 	},
-	TOGGLE_EXPAND_SIDEBAR: {
+	OPEN_DIFF_VIEWER: {
 		key: {
 			mac: "meta+shift+l",
 			windows: "ctrl+shift+alt+l",
 			linux: "ctrl+shift+alt+l",
 		},
-		label: "Toggle Expand Sidebar",
+		label: "Open Diff Viewer",
 		category: "Layout",
+		description:
+			"Open the diff viewer in a new tab, or focus the existing diff viewer",
 	},
 	TOGGLE_WORKSPACE_SIDEBAR: {
 		key: { mac: "meta+b", windows: "ctrl+shift+b", linux: "ctrl+shift+b" },
