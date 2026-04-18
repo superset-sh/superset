@@ -1,7 +1,7 @@
 import { COMPANY } from "@superset/shared/constants";
 import { Button } from "@superset/ui/button";
 import { toast } from "@superset/ui/sonner";
-import { HiMiniXMark } from "react-icons/hi2";
+import { HiArrowPath, HiMiniXMark } from "react-icons/hi2";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { AUTO_UPDATE_STATUS } from "shared/auto-update";
 
@@ -93,6 +93,9 @@ export function UpdateToast({
 						onClick={handleInstall}
 						disabled={installMutation.isPending}
 					>
+						{installMutation.isPending && (
+							<HiArrowPath className="size-3.5 animate-spin" />
+						)}
 						{installMutation.isPending ? "Installing..." : "Install"}
 					</Button>
 				</div>

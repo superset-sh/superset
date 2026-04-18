@@ -90,7 +90,11 @@ export function UpdateRequiredPage({
 							<Button
 								onClick={handleInstall}
 								disabled={installMutation.isPending}
+								className="gap-2"
 							>
+								{installMutation.isPending && (
+									<HiArrowPath className="h-4 w-4 animate-spin" />
+								)}
 								{installMutation.isPending
 									? "Installing..."
 									: "Install & Restart"}
