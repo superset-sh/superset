@@ -33,7 +33,7 @@ export const metadata: Metadata = {
 
 export default function Home() {
 	return (
-		<main className="flex flex-col bg-background">
+		<main className="flex flex-col bg-background mc-dirt-bg">
 			<FAQPageJsonLd items={FAQ_ITEMS} />
 			<HeroSection />
 			<TrustedBySection />

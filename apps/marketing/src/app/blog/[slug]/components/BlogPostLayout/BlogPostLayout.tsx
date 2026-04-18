@@ -118,7 +118,7 @@ export function BlogPostLayout({
 				<div className="max-w-3xl mx-auto px-6 py-4">
 					<Link
 						href="/blog"
-						className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+						className="mc-button inline-flex items-center gap-2 text-sm"
 					>
 						<ArrowLeft className="h-4 w-4" />
 						Back to Blog
@@ -156,7 +156,7 @@ export function BlogPostLayout({
 				<div className="max-w-3xl mx-auto px-6 py-10">
 					<Link
 						href="/blog"
-						className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+						className="mc-button inline-flex items-center gap-2 text-sm"
 					>
 						<ArrowLeft className="h-4 w-4" />
 						All posts

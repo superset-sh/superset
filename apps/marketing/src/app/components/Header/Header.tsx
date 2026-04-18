@@ -42,13 +42,13 @@ export function Header({ ctaButtons, starCounter }: HeaderProps) {
 	const [isMenuOpen, setIsMenuOpen] = useState(false);
 
 	return (
-		<header className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-sm">
+		<header className="sticky top-0 z-50 border-b-3 border-[#6B4D30] bg-[#3d2817]/95 backdrop-blur-sm mc-grass-border">
 			<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 				<div className="flex items-center justify-between h-14">
 					{/* Logo */}
 					<motion.a
 						href="/"
-						className="flex items-center text-foreground hover:text-foreground/80 transition-colors"
+						className="flex items-center text-foreground hover:text-[#FCDC5F]"
 						initial={{ opacity: 0 }}
 						animate={{ opacity: 1 }}
 						transition={{ duration: 0.3 }}
@@ -66,25 +66,29 @@ export function Header({ ctaButtons, starCounter }: HeaderProps) {
 						<nav className="flex items-center">
 							{NAV_LINKS.map((link, index) => (
 								<div key={link.href} className="flex items-center">
-									{index > 0 && <div className="h-4 w-px bg-border mx-1" />}
+									{index > 0 && (
+										<div className="h-4 w-[3px] bg-[#6B4D30] mx-1" />
+									)}
 									{link.external ? (
 										<a
 											href={link.href}
-											className="px-3 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+											className="px-3 py-2 text-sm text-muted-foreground hover:text-[#FCDC5F]"
+											style={{ fontFamily: "var(--font-geist-pixel-square)" }}
 										>
 											{link.label}
 										</a>
 									) : (
 										<Link
 											href={link.href}
-											className="px-3 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+											className="px-3 py-2 text-sm text-muted-foreground hover:text-[#FCDC5F]"
+											style={{ fontFamily: "var(--font-geist-pixel-square)" }}
 										>
 											{link.label}
 										</Link>
 									)}
 								</div>
 							))}
-							<div className="h-4 w-px bg-border mx-1" />
+							<div className="h-4 w-[3px] bg-[#6B4D30] mx-1" />
 							{starCounter}
 						</nav>
 						<div className="flex items-center gap-2 ml-4">{ctaButtons}</div>
@@ -93,7 +97,7 @@ export function Header({ ctaButtons, starCounter }: HeaderProps) {
 					{/* Mobile: Hamburger button */}
 					<motion.button
 						type="button"
-						className="md:hidden p-2 text-muted-foreground hover:text-foreground transition-colors"
+						className="md:hidden p-2 text-muted-foreground hover:text-[#FCDC5F]"
 						onClick={() => setIsMenuOpen(!isMenuOpen)}
 						aria-label={isMenuOpen ? "Close menu" : "Open menu"}
 						aria-expanded={isMenuOpen}
@@ -113,7 +117,7 @@ export function Header({ ctaButtons, starCounter }: HeaderProps) {
 				<AnimatePresence>
 					{isMenuOpen && (
 						<motion.div
-							className="md:hidden border-t border-border"
+							className="md:hidden border-t-3 border-[#6B4D30]"
 							initial={{ opacity: 0, height: 0 }}
 							animate={{ opacity: 1, height: "auto" }}
 							exit={{ opacity: 0, height: 0 }}
@@ -125,7 +129,10 @@ export function Header({ ctaButtons, starCounter }: HeaderProps) {
 										<a
 											key={link.href}
 											href={link.href}
-											className="px-2 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+											className="px-2 py-2 text-sm text-muted-foreground hover:text-[#FCDC5F]"
+											style={{
+												fontFamily: "var(--font-geist-pixel-square)",
+											}}
 										>
 											{link.label}
 										</a>
@@ -133,7 +140,10 @@ export function Header({ ctaButtons, starCounter }: HeaderProps) {
 										<Link
 											key={link.href}
 											href={link.href}
-											className="px-2 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+											className="px-2 py-2 text-sm text-muted-foreground hover:text-[#FCDC5F]"
+											style={{
+												fontFamily: "var(--font-geist-pixel-square)",
+											}}
 											onClick={() => setIsMenuOpen(false)}
 										>
 											{link.label}
@@ -141,7 +151,7 @@ export function Header({ ctaButtons, starCounter }: HeaderProps) {
 									),
 								)}
 								<div className="px-2 py-2">{starCounter}</div>
-								<div className="flex flex-col gap-2 mt-2 pt-2 border-t border-border">
+								<div className="flex flex-col gap-2 mt-2 pt-2 border-t-3 border-[#6B4D30]">
 									{ctaButtons}
 								</div>
 							</div>

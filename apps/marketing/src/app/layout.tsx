@@ -123,7 +123,7 @@ export default function RootLayout({
 				<SoftwareApplicationJsonLd />
 				<WebsiteJsonLd />
 			</head>
-			<body className="overscroll-none font-sans">
+			<body className="overscroll-none font-sans mc-dirt-bg">
 				<Providers>
 					<Header
 						ctaButtons={<CTAButtons />}

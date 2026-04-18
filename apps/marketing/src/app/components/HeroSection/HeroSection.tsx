@@ -26,7 +26,10 @@ export function HeroSection() {
 						<div className="space-y-4 sm:space-y-6">
 							<h1
 								className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-medium tracking-tight leading-[1.1] text-foreground relative"
-								style={{ fontFamily: "var(--font-ibm-plex-mono)" }}
+								style={{
+									fontFamily: "var(--font-geist-pixel-grid)",
+									textShadow: "2px 2px 0 rgba(0,0,0,0.5)",
+								}}
 							>
 								<span className="invisible" aria-hidden="true">
 									The Code Editor for AI Agents.
@@ -34,11 +37,17 @@ export function HeroSection() {
 								<span className="absolute inset-0">
 									<TypewriterText
 										segments={[
-											{ text: "The Code Editor for " },
+											{
+												text: "The Code Editor for ",
+												style: {
+													fontFamily: "var(--font-geist-pixel-grid)",
+												},
+											},
 											{
 												text: "AI Agents.",
 												style: {
 													fontFamily: "var(--font-geist-pixel-grid)",
+													color: "#FCDC5F",
 												},
 											},
 										]}
@@ -47,7 +56,10 @@ export function HeroSection() {
 									/>
 								</span>
 							</h1>
-							<p className="text-base sm:text-xl font-light text-muted-foreground max-w-4xl mx-auto">
+							<p
+								className="text-base sm:text-xl font-light text-muted-foreground max-w-4xl mx-auto"
+								style={{ fontFamily: "var(--font-geist-pixel-square)" }}
+							>
 								Orchestrate swarms of Claude Code, Codex, etc. in parallel.
 								Works for any agents. Built for the AI era.
 							</p>
@@ -57,7 +69,7 @@ export function HeroSection() {
 							<DownloadButton onJoinWaitlist={() => setIsWaitlistOpen(true)} />
 							<button
 								type="button"
-								className="px-4 py-2.5 sm:px-6 sm:py-3 text-sm sm:text-base font-normal bg-background border border-border text-foreground hover:bg-muted transition-colors flex items-center gap-2"
+								className="mc-button flex items-center gap-2 text-sm sm:text-base"
 								onClick={() => window.open(COMPANY.GITHUB_URL, "_blank")}
 								aria-label="View on GitHub"
 							>

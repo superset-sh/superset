@@ -19,13 +19,17 @@ export function SelectorPill({
 			onMouseEnter={onSelect}
 			onClick={onSelect}
 			className={`
-				inline-flex items-center justify-center py-2 text-xs sm:text-sm whitespace-nowrap cursor-pointer shrink-0 rounded-[2px]
+				inline-flex items-center justify-center py-2 text-xs sm:text-sm whitespace-nowrap cursor-pointer shrink-0
 				${
 					active
-						? "bg-foreground/90 border border-foreground text-background/80"
-						: "bg-foreground/[0.03] border border-foreground/10 text-foreground/50 hover:bg-foreground/[0.06] hover:border-foreground/20 hover:text-foreground/70"
+						? "mc-slot mc-slot-active text-[#FCDC5F]"
+						: "mc-slot text-foreground/50 hover:text-foreground/70"
 				}
 			`}
+			style={{
+				fontFamily: "var(--font-geist-pixel-square)",
+				textShadow: active ? "0 0 8px rgba(252, 220, 95, 0.4)" : "none",
+			}}
 			animate={{
 				paddingLeft: active ? 18 : 12,
 				paddingRight: active ? 18 : 12,

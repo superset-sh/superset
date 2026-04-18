@@ -73,9 +73,17 @@ export function ProductDemo({ scrollYProgress }: ProductDemoProps) {
 					...(containerWidth > 0 ? { maxWidth } : {}),
 				}}
 			>
-				<div className="relative">
-					{/* Large diffuse back-shadow */}
-					<div className="absolute inset-[10%] top-[20%] rounded-3xl bg-white/[0.07] blur-[60px] pointer-events-none" />
+				<div className="relative mc-torch-glow">
+					{/* Pixel-art item frame border — thick 3D bevel */}
+					<div
+						className="absolute inset-[-5px] border-[5px] pointer-events-none"
+						style={{ borderColor: "#8B6542 #2C1A0E #2C1A0E #8B6542" }}
+					/>
+					{/* Inner bevel highlight */}
+					<div
+						className="absolute inset-[-2px] border-2 pointer-events-none"
+						style={{ borderColor: "#6B4D30 #1A0E06 #1A0E06 #6B4D30" }}
+					/>
 					<div className="relative overflow-x-auto scrollbar-hide">
 						<AppMockup activeDemo={activeOption} />
 					</div>

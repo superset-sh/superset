@@ -6,6 +6,24 @@ import { track } from "@/lib/analytics";
 import { usePlatform } from "../../hooks/useOS";
 import { type DropdownSection, PlatformDropdown } from "../PlatformDropdown";
 
+function PixelCreature() {
+	return (
+		<div
+			className="pointer-events-none absolute -top-6 left-1/2 mc-creature-wander"
+			aria-hidden="true"
+		>
+			{/* eslint-disable-next-line @next/next/no-img-element */}
+			<img
+				alt=""
+				src="/sprites/creature.gif"
+				width={28}
+				height={28}
+				style={{ imageRendering: "pixelated" }}
+			/>
+		</div>
+	);
+}
+
 interface DownloadButtonProps {
 	size?: "sm" | "md";
 	className?: string;
@@ -24,7 +42,7 @@ export function DownloadButton({
 			? "px-2 sm:px-4 py-2 text-sm"
 			: "px-3 sm:px-6 py-2 sm:py-3 text-sm sm:text-base";
 
-	const buttonClasses = `bg-foreground text-background ${sizeClasses} font-normal hover:bg-foreground/80 transition-colors flex items-center gap-2 ${className}`;
+	const buttonClasses = `mc-button-primary mc-button flex items-center gap-2 ${sizeClasses} ${className}`;
 
 	if (isMobile) {
 		const appleIcon = (
@@ -101,38 +119,47 @@ export function DownloadButton({
 		);
 
 		return (
-			<PlatformDropdown trigger={trigger} sections={sections} align="end" />
+			<div className="relative">
+				<PixelCreature />
+				<PlatformDropdown trigger={trigger} sections={sections} align="end" />
+			</div>
 		);
 	}
 
 	if (os === "macos" || os === "unknown") {
 		return (
-			<button
-				type="button"
-				className={buttonClasses}
-				onClick={() => {
-					track("download_clicked");
-					window.open(DOWNLOAD_URL_MAC_ARM64, "_blank");
-				}}
-			>
-				<span className="hidden sm:inline">Download for macOS</span>
-				<span className="sm:hidden">Download</span>
-				<HiMiniArrowDownTray className="size-4" />
-			</button>
+			<div className="relative">
+				<PixelCreature />
+				<button
+					type="button"
+					className={buttonClasses}
+					onClick={() => {
+						track("download_clicked");
+						window.open(DOWNLOAD_URL_MAC_ARM64, "_blank");
+					}}
+				>
+					<span className="hidden sm:inline">Download for macOS</span>
+					<span className="sm:hidden">Download</span>
+					<HiMiniArrowDownTray className="size-4" />
+				</button>
+			</div>
 		);
 	}
 
 	return (
-		<button
-			type="button"
-			className={buttonClasses}
-			onClick={() => {
-				track("waitlist_clicked");
-				onJoinWaitlist?.();
-			}}
-		>
-			Join Waitlist
-			<HiMiniClock className="size-4" />
-		</button>
+		<div className="relative">
+			<PixelCreature />
+			<button
+				type="button"
+				className={buttonClasses}
+				onClick={() => {
+					track("waitlist_clicked");
+					onJoinWaitlist?.();
+				}}
+			>
+				Join Waitlist
+				<HiMiniClock className="size-4" />
+			</button>
+		</div>
 	);
 }

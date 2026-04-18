@@ -29,7 +29,8 @@ export function HeaderCTA({ isLoggedIn, dashboardUrl }: HeaderCTAProps) {
 	const dashboardLink = isLoggedIn && (
 		<a
 			href={dashboardUrl}
-			className="px-4 py-2 text-sm font-normal text-muted-foreground hover:text-foreground transition-colors text-center"
+			className="px-4 py-2 text-sm font-normal text-muted-foreground hover:text-[#5D8A3C] text-center"
+			style={{ fontFamily: "var(--font-geist-pixel-square)" }}
 		>
 			Dashboard
 		</a>
@@ -64,7 +65,7 @@ export function HeaderCTA({ isLoggedIn, dashboardUrl }: HeaderCTAProps) {
 			{showDownload ? (
 				<a
 					href={DOWNLOAD_URL_MAC_ARM64}
-					className="px-4 py-2 text-sm font-normal bg-foreground text-background hover:bg-foreground/90 transition-colors flex items-center justify-center gap-2"
+					className="mc-button mc-button-primary flex items-center justify-center gap-2 px-4 py-2 text-sm"
 					onClick={() => track("download_clicked")}
 				>
 					Download for macOS
@@ -73,7 +74,7 @@ export function HeaderCTA({ isLoggedIn, dashboardUrl }: HeaderCTAProps) {
 			) : (
 				<button
 					type="button"
-					className="px-4 py-2 text-sm font-normal bg-foreground text-background hover:bg-foreground/90 transition-colors flex items-center justify-center gap-2"
+					className="mc-button mc-button-primary flex items-center justify-center gap-2 px-4 py-2 text-sm"
 					onClick={() => {
 						track("waitlist_clicked");
 						setIsWaitlistOpen(true);

@@ -107,20 +107,26 @@ export function TrustedBySection() {
 	];
 
 	return (
-		<section className="py-6 sm:py-12 md:py-18 bg-background overflow-hidden">
+		<section className="py-6 sm:py-12 md:py-18 overflow-hidden mc-stone-bg">
 			<div className="max-w-7xl mx-auto">
 				<div>
-					<h2 className="text-base sm:text-xl font-mono font-normal text-center mb-4 sm:mb-8 text-foreground px-4">
+					<h2
+						className="text-base sm:text-xl font-normal text-center mb-4 sm:mb-8 text-foreground px-4"
+						style={{
+							fontFamily: "var(--font-geist-pixel-square)",
+							textShadow: "1px 1px 0 rgba(0,0,0,0.3)",
+						}}
+					>
 						Trusted by builders from
 					</h2>
 				</div>
 
-				{/* Mobile/tablet: responsive grid to avoid horizontal overflow */}
+				{/* Mobile/tablet: responsive grid */}
 				<div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 sm:gap-3.5 px-4 md:hidden">
 					{CLIENT_LOGOS.map((client) => (
 						<div
 							key={client.name}
-							className="flex items-center justify-center min-w-0 whitespace-nowrap h-16 sm:h-18 rounded-[2px] border border-foreground/[0.1] bg-foreground/[0.03] opacity-90 hover:opacity-100 transition-opacity"
+							className="mc-slot flex items-center justify-center min-w-0 whitespace-nowrap h-16 sm:h-18"
 						>
 							<Image
 								src={client.logo}
@@ -150,7 +156,7 @@ export function TrustedBySection() {
 							{row.map((client) => (
 								<div
 									key={client.name}
-									className="flex items-center justify-center whitespace-nowrap h-24 w-[168px] rounded-[2px] border border-foreground/[0.1] bg-foreground/[0.03] opacity-90 hover:opacity-100 transition-opacity"
+									className="mc-slot flex items-center justify-center whitespace-nowrap h-24 w-[168px]"
 								>
 									<Image
 										src={client.logo}

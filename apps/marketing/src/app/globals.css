@@ -2,8 +2,445 @@
 @import "@superset/ui/globals.css";
 
 @theme {
-	--font-family-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+	--font-family-sans:
+		var(--font-geist-pixel-square), var(--font-inter), ui-sans-serif, system-ui,
+		sans-serif;
 	--font-family-mono: var(--font-ibm-plex-mono), ui-monospace, monospace;
+}
+
+/* ── Minecraft Earth-Tone Theme Overrides ── */
+.dark {
+	--background: #2c1a0e;
+	--foreground: #f5e6d0;
+	--card: #3d2817;
+	--card-foreground: #f5e6d0;
+	--border: #6b4d30;
+	--muted: #4a3525;
+	--muted-foreground: #b89b7a;
+	--primary: #5db65d;
+	--primary-foreground: #1a0e06;
+	--accent: #5d8a3c;
+	--destructive: #c13b3b;
+	--ring: #fcdc5f;
+
+	/* Minecraft accent palette */
+	--mc-grass: #5d8a3c;
+	--mc-grass-light: #7dce7d;
+	--mc-stone: #8b8b8b;
+	--mc-stone-dark: #5a5a5a;
+	--mc-gold: #fcdc5f;
+	--mc-diamond: #4aedd9;
+	--mc-redstone: #c13b3b;
+	--mc-lapis: #345ec3;
+	--mc-emerald: #17dd62;
+	--mc-obsidian: #1b1033;
+	--mc-netherite: #443a3a;
+	--mc-dirt-light: #8b6542;
+	--mc-dirt: #6b4d30;
+	--mc-wood-dark: #3d2817;
+	--mc-bedrock: #121012;
+	--mc-enchant-purple: #a855f7;
+	--mc-nether-red: #8b2020;
+	--mc-ender: #0d7377;
+	--mc-xp-green: #7efc20;
+
+	--radius: 0px;
+}
+
+/* ── Pixel Textures ── */
+.mc-dirt-bg {
+	background-color: var(--background);
+	background-image:
+		repeating-linear-gradient(
+			0deg,
+			transparent,
+			transparent 7px,
+			rgba(139, 101, 66, 0.06) 7px,
+			rgba(139, 101, 66, 0.06) 8px
+		),
+		repeating-linear-gradient(
+			90deg,
+			transparent,
+			transparent 7px,
+			rgba(139, 101, 66, 0.06) 7px,
+			rgba(139, 101, 66, 0.06) 8px
+		);
+}
+
+.mc-stone-bg {
+	background-color: #4a3525;
+	background-image:
+		repeating-linear-gradient(
+			0deg,
+			transparent,
+			transparent 15px,
+			rgba(139, 139, 139, 0.05) 15px,
+			rgba(139, 139, 139, 0.05) 16px
+		),
+		repeating-linear-gradient(
+			90deg,
+			transparent,
+			transparent 15px,
+			rgba(139, 139, 139, 0.05) 15px,
+			rgba(139, 139, 139, 0.05) 16px
+		);
+}
+
+.mc-obsidian-bg {
+	background-color: #1b1033;
+	background-image:
+		repeating-linear-gradient(
+			0deg,
+			transparent,
+			transparent 11px,
+			rgba(80, 45, 128, 0.08) 11px,
+			rgba(80, 45, 128, 0.08) 12px
+		),
+		repeating-linear-gradient(
+			90deg,
+			transparent,
+			transparent 11px,
+			rgba(80, 45, 128, 0.08) 11px,
+			rgba(80, 45, 128, 0.08) 12px
+		);
+}
+
+.mc-bedrock-bg {
+	background-color: #121012;
+	background-image:
+		repeating-linear-gradient(
+			45deg,
+			transparent,
+			transparent 5px,
+			rgba(50, 45, 50, 0.15) 5px,
+			rgba(50, 45, 50, 0.15) 6px
+		),
+		repeating-linear-gradient(
+			-45deg,
+			transparent,
+			transparent 5px,
+			rgba(50, 45, 50, 0.1) 5px,
+			rgba(50, 45, 50, 0.1) 6px
+		);
+}
+
+/* ── Border Styles ── */
+.mc-grass-border {
+	border-top: 4px solid var(--mc-grass);
+}
+
+.mc-xp-bar {
+	border-top: 3px solid var(--mc-xp-green);
+	box-shadow: 0 -1px 6px rgba(126, 252, 32, 0.3);
+}
+
+/* ── Minecraft Buttons ── */
+.mc-button {
+	background-color: var(--mc-stone);
+	color: #f5e6d0;
+	border: 3px solid;
+	border-color: #b0b0b0 #5a5a5a #5a5a5a #b0b0b0;
+	padding: 8px 20px;
+	font-family: var(--font-geist-pixel-square), monospace;
+	cursor: pointer;
+	image-rendering: pixelated;
+	transition: none;
+	text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.4);
+}
+
+.mc-button:hover {
+	border-color: #5a5a5a #b0b0b0 #b0b0b0 #5a5a5a;
+	background-color: #7a7a7a;
+}
+
+.mc-button:active {
+	border-color: #5a5a5a #b0b0b0 #b0b0b0 #5a5a5a;
+	background-color: #6a6a6a;
+	padding-top: 9px;
+	padding-bottom: 7px;
+}
+
+.mc-button-primary {
+	background-color: var(--mc-grass);
+	border-color: #7dce7d #3a6b20 #3a6b20 #7dce7d;
+}
+
+.mc-button-primary:hover {
+	border-color: #3a6b20 #7dce7d #7dce7d #3a6b20;
+	background-color: #4a7a2e;
+}
+
+.mc-button-primary:active {
+	background-color: #3d6825;
+}
+
+.mc-button-gold {
+	background-color: #b8860b;
+	border-color: #fcdc5f #7a5a00 #7a5a00 #fcdc5f;
+	color: #1a0e06;
+	text-shadow: 1px 1px 0 rgba(252, 220, 95, 0.3);
+}
+
+.mc-button-gold:hover {
+	border-color: #7a5a00 #fcdc5f #fcdc5f #7a5a00;
+	background-color: #9a7209;
+}
+
+/* ── Pixel Border Utilities ── */
+.mc-border {
+	border: 3px solid var(--border);
+	border-color: #8b6542 #4a3525 #4a3525 #8b6542;
+}
+
+.mc-border-gold {
+	border: 3px solid;
+	border-color: #fcdc5f #7a5a00 #7a5a00 #fcdc5f;
+}
+
+.mc-border-diamond {
+	border: 3px solid;
+	border-color: #4aedd9 #1a7a6f #1a7a6f #4aedd9;
+}
+
+/* ── Inventory Slot ── */
+.mc-slot {
+	background-color: #3d2817;
+	border: 3px solid;
+	border-color: #8b6542 #2c1a0e #2c1a0e #8b6542;
+}
+
+.mc-slot:hover {
+	border-color: #fcdc5f #8b6542 #8b6542 #fcdc5f;
+	background-color: #4a3525;
+}
+
+.mc-slot-active {
+	border-color: #fcdc5f #7a5a00 #7a5a00 #fcdc5f;
+	background-color: #4a3525;
+	box-shadow: inset 0 0 8px rgba(252, 220, 95, 0.15);
+}
+
+/* ── Enchantment Shimmer ── */
+@keyframes mc-enchant {
+	0% {
+		background-position: 0% 0%;
+	}
+	100% {
+		background-position: 200% 200%;
+	}
+}
+
+.mc-enchant-glow {
+	position: relative;
+	overflow: hidden;
+}
+
+.mc-enchant-glow::after {
+	content: "";
+	position: absolute;
+	inset: 0;
+	background: linear-gradient(
+		135deg,
+		transparent 25%,
+		rgba(168, 85, 247, 0.08) 30%,
+		transparent 35%,
+		transparent 65%,
+		rgba(168, 85, 247, 0.08) 70%,
+		transparent 75%
+	);
+	background-size: 200% 200%;
+	animation: mc-enchant 4s linear infinite;
+	pointer-events: none;
+}
+
+/* ── Torch Glow (warm ambient light) ── */
+@keyframes mc-torch-flicker {
+	0%,
+	100% {
+		opacity: 0.6;
+	}
+	25% {
+		opacity: 0.55;
+	}
+	50% {
+		opacity: 0.65;
+	}
+	75% {
+		opacity: 0.58;
+	}
+}
+
+.mc-torch-glow {
+	box-shadow:
+		0 0 30px rgba(252, 220, 95, 0.08),
+		0 0 60px rgba(252, 220, 95, 0.04);
+}
+
+/* ── Nether Portal Shimmer ── */
+@keyframes mc-portal {
+	0% {
+		background-position: 0% 50%;
+	}
+	50% {
+		background-position: 100% 50%;
+	}
+	100% {
+		background-position: 0% 50%;
+	}
+}
+
+.mc-portal-glow {
+	background: linear-gradient(
+		90deg,
+		rgba(107, 63, 160, 0.3),
+		rgba(168, 85, 247, 0.5),
+		rgba(107, 63, 160, 0.3)
+	);
+	background-size: 200% 100%;
+	animation: mc-portal 3s ease-in-out infinite;
+}
+
+/* ── XP Bar ── */
+.mc-xp-bar-track {
+	background-color: #1a0e06;
+	border: 2px solid;
+	border-color: #2c1a0e #4a3525 #4a3525 #2c1a0e;
+	height: 6px;
+	overflow: hidden;
+}
+
+.mc-xp-bar-fill {
+	background-color: var(--mc-xp-green);
+	height: 100%;
+	box-shadow: 0 0 4px rgba(126, 252, 32, 0.5);
+}
+
+/* ── Heart Container ── */
+.mc-heart {
+	color: #c13b3b;
+	text-shadow: 1px 1px 0 #5a1515;
+	font-family: var(--font-geist-pixel-square), monospace;
+}
+
+/* ── Item Rarity Colors (for feature tags) ── */
+.mc-rarity-common {
+	color: #f5e6d0;
+}
+
+.mc-rarity-uncommon {
+	color: var(--mc-xp-green);
+}
+
+.mc-rarity-rare {
+	color: var(--mc-diamond);
+}
+
+.mc-rarity-epic {
+	color: var(--mc-enchant-purple);
+}
+
+.mc-rarity-legendary {
+	color: var(--mc-gold);
+}
+
+/* ── Pixel Stars Twinkle ── */
+@keyframes mc-twinkle {
+	0%,
+	100% {
+		opacity: 0.3;
+	}
+	50% {
+		opacity: 0.8;
+	}
+}
+
+.mc-twinkle {
+	animation: mc-twinkle 3s ease-in-out infinite;
+}
+
+.mc-twinkle-delay-1 {
+	animation-delay: 0.5s;
+}
+
+.mc-twinkle-delay-2 {
+	animation-delay: 1.2s;
+}
+
+.mc-twinkle-delay-3 {
+	animation-delay: 2s;
+}
+
+/* ── Crafting Grid Overlay ── */
+.mc-crafting-grid {
+	background-image:
+		repeating-linear-gradient(
+			0deg,
+			rgba(139, 101, 66, 0.15) 0px,
+			rgba(139, 101, 66, 0.15) 1px,
+			transparent 1px,
+			transparent 32px
+		),
+		repeating-linear-gradient(
+			90deg,
+			rgba(139, 101, 66, 0.15) 0px,
+			rgba(139, 101, 66, 0.15) 1px,
+			transparent 1px,
+			transparent 32px
+		);
+}
+
+/* ── Pixelated rendering for decorative elements ── */
+.mc-pixelated {
+	image-rendering: pixelated;
+}
+
+/* ── Tooltip (Minecraft-style) ── */
+.mc-tooltip {
+	background-color: #100010;
+	border: 2px solid;
+	border-color: #5000a0 #280050 #280050 #5000a0;
+	color: #f5e6d0;
+	padding: 4px 8px;
+	font-family: var(--font-geist-pixel-square), monospace;
+	font-size: 12px;
+	box-shadow: 0 0 0 1px #100010;
+}
+
+/* ── Ore Block Accent Dots ── */
+@keyframes mc-ore-sparkle {
+	0%,
+	100% {
+		opacity: 0;
+		transform: scale(0);
+	}
+	50% {
+		opacity: 1;
+		transform: scale(1);
+	}
+}
+
+.mc-ore-sparkle::before {
+	content: "";
+	position: absolute;
+	width: 4px;
+	height: 4px;
+	background: var(--mc-gold);
+	animation: mc-ore-sparkle 2s ease-in-out infinite;
+}
+
+/* ── Pixel Creature Wander ── */
+@keyframes mc-creature-wander {
+	0%,
+	100% {
+		transform: translateX(-10px);
+	}
+	50% {
+		transform: translateX(20px);
+	}
+}
+
+.mc-creature-wander {
+	animation: mc-creature-wander 5s ease-in-out infinite;
 }
 
 @utility scrollbar-hide {
