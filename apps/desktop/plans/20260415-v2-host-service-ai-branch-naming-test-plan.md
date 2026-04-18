@@ -42,22 +42,24 @@
 |---|---|
 | Sign in to Anthropic via OAuth in Settings > Models | "Active" badge appears |
 | Force-expire: edit `~/Library/Application Support/mastracode/auth.json`, set `anthropic.expires` to a past timestamp | — |
-| Send a chat message | Chat succeeds silently (token auto-refreshed via `authStorage.getApiKey`). No "Reconnect" banner. |
-| If refresh token is also invalid | Falls to expired state, "Reconnect" button appears (expected) |
-| Check terminal for `[chat-service] Anthropic OAuth refresh failed` | Logged if refresh fails (new in this PR) |
+| Send a chat message | Chat succeeds silently (token auto-refreshed via `authStorage.getApiKey`). No "Reconnect" prompt. |
+| If refresh token is also invalid | Falls to expired state, "Expired" badge + "Reconnect" button appears |
+| Check terminal for `[chat-service] Anthropic OAuth refresh failed` | Logged if refresh fails |
 
 ## 5. Settings > Models Page
 
 | Step | Expected |
 |---|---|
-| Navigate to Settings > Models | Page loads, shows Anthropic + OpenAI sections |
-| Anthropic shows connection status based on auth-status (not diagnostics) | "Active" / "No account connected" / "Expired" as appropriate |
-| Click Connect (Anthropic) → complete OAuth | Status updates to "Active" |
-| Click Logout → confirm | Status updates to "No account connected" |
-| Set API key → Save | "Anthropic API key updated" toast |
-| Clear API key → confirm | "Anthropic API key cleared" toast |
-| Same for OpenAI | Same behavior |
-| **No "Needs attention" banner from provider-diagnostics** | Diagnostics removed — status derived from auth only |
+| Navigate to Settings > Models | Page loads with Anthropic + OpenAI sections, each with provider icon in header |
+| Each provider shows a single card with OAuth row + API Key row | OAuth row: label + badge + action. API Key row: input + contextual buttons |
+| **Disconnected state** | "Not connected" badge, primary "Connect" button, no Save/Clear buttons |
+| **API key flow**: type key → Save appears → click Save | "API key updated" toast, "Active" badge, "Logout" button appears |
+| **API key flow**: click Clear | Key removed, badge reverts to "Not connected" |
+| **OAuth flow**: click Connect → complete in browser | "Active" badge, "Logout" button |
+| **OAuth flow**: click Logout | Badge reverts, Connect button returns |
+| **API key + OAuth**: set API key, then connect OAuth, then disconnect OAuth | API key should survive the OAuth cycle (backup/restore workaround) |
+| **OpenAI dialog** auto-opens browser on Connect | No manual "Open browser" step needed |
+| **Copy URL** button shows "Copied!" feedback for 2s | — |
 
 ## 6. Production Build
 
@@ -81,4 +83,4 @@ Not yet wired to UI. Verify via tRPC playground or direct call if available:
 ## Known Regressions (documented, accepted)
 
 - **OAuth-only users** (Claude Max / OpenAI Codex without stored API key) get random branch names and prompt-derived workspace titles for small-model tasks. Main chat retains full OAuth.
-- **Provider-diagnostics banners removed** from Settings > Models. "Needs attention" for capability-specific issues (missing scope, quota exceeded) no longer surfaces. Auth-level issues (expired, disconnected) still show.
+- **Upstream dependency**: API key storage slot collision with OAuth is worked around via backup/restore. Proper fix tracked at mastra-ai/mastra#15483.
