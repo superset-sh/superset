@@ -72,7 +72,7 @@ describe("sanitizeTerminalFontFamily", () => {
 		expect(sanitizeTerminalFontFamily("ui-monospace")).toBe("ui-monospace");
 	});
 
-	test("falls back for proportional generic families", () => {
+	test("falls back when the primary family is a proportional generic", () => {
 		expect(sanitizeTerminalFontFamily("sans-serif")).toBe(
 			DEFAULT_TERMINAL_FONT_FAMILY,
 		);
@@ -82,7 +82,25 @@ describe("sanitizeTerminalFontFamily", () => {
 		expect(sanitizeTerminalFontFamily("cursive")).toBe(
 			DEFAULT_TERMINAL_FONT_FAMILY,
 		);
+		// CSS resolves the first generic, so a later monospace entry never wins.
+		expect(sanitizeTerminalFontFamily("cursive, monospace")).toBe(
+			DEFAULT_TERMINAL_FONT_FAMILY,
+		);
+	});
+
+	test("passes through a stack whose primary generic is monospace", () => {
+		// The browser resolves the first generic, so "monospace, sans-serif"
+		// actually renders as monospace — safe.
 		expect(sanitizeTerminalFontFamily("monospace, sans-serif")).toBe(
+			"monospace, sans-serif",
+		);
+	});
+
+	test("falls back when a concrete mono follows a proportional generic", () => {
+		// Regression: earlier logic picked the first non-generic as the primary,
+		// letting `sans-serif, "JetBrains Mono"` slip through even though CSS
+		// renders sans-serif. Validate the actual CSS primary instead.
+		expect(sanitizeTerminalFontFamily('sans-serif, "JetBrains Mono"')).toBe(
 			DEFAULT_TERMINAL_FONT_FAMILY,
 		);
 	});

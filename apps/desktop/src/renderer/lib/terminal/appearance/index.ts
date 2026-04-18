@@ -138,19 +138,17 @@ export function sanitizeTerminalFontFamily(
 	const families = parseFontFamilyList(cssValue);
 	if (families.length === 0) return DEFAULT_TERMINAL_FONT_FAMILY;
 
-	const primary = families.find(
-		(f) => !GENERIC_FONT_FAMILIES.has(f.toLowerCase()),
-	);
-	if (!primary) {
-		// All-generic stack (e.g. "monospace", "cursive, fantasy"). Only trust it
-		// when every entry is a monospace generic — otherwise a value like
-		// "sans-serif" would still blank the terminal.
-		const allMono = families.every((f) =>
-			MONOSPACE_GENERIC_FAMILIES.has(f.toLowerCase()),
-		);
-		if (allMono) return cssValue;
+	// Validate the actual CSS primary (first entry), not the first non-generic.
+	// A value like `sans-serif, "JetBrains Mono"` resolves to sans-serif in the
+	// browser regardless of what follows, so inspecting the later entry would
+	// let proportional stacks slip through.
+	const primary = families[0];
+	const primaryKey = primary.toLowerCase();
+
+	if (GENERIC_FONT_FAMILIES.has(primaryKey)) {
+		if (MONOSPACE_GENERIC_FAMILIES.has(primaryKey)) return cssValue;
 		console.warn(
-			`[terminal] Font stack "${cssValue}" has no monospace family; falling back to default terminal font.`,
+			`[terminal] Font stack "${cssValue}" has no monospace primary family; falling back to default terminal font.`,
 		);
 		return DEFAULT_TERMINAL_FONT_FAMILY;
 	}
