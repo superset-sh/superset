@@ -64,7 +64,7 @@ export function HeaderCTA({ isLoggedIn, dashboardUrl }: HeaderCTAProps) {
 			{showDownload ? (
 				<a
 					href={DOWNLOAD_URL_MAC_ARM64}
-					className="px-4 py-2 text-sm font-normal bg-brand text-white border border-brand-light hover:bg-brand/90 transition-colors flex items-center justify-center gap-2"
+					className="px-4 py-2 text-sm font-normal bg-brand/10 text-brand-light border border-brand/20 hover:bg-brand/15 hover:border-brand/35 transition-colors flex items-center justify-center gap-2"
 					onClick={() => track("download_clicked")}
 				>
 					Download for macOS
@@ -73,7 +73,7 @@ export function HeaderCTA({ isLoggedIn, dashboardUrl }: HeaderCTAProps) {
 			) : (
 				<button
 					type="button"
-					className="px-4 py-2 text-sm font-normal bg-foreground text-background hover:bg-foreground/90 transition-colors flex items-center justify-center gap-2"
+					className="px-4 py-2 text-sm font-normal bg-brand/10 text-brand-light border border-brand/20 hover:bg-brand/15 hover:border-brand/35 transition-colors flex items-center justify-center gap-2"
 					onClick={() => {
 						track("waitlist_clicked");
 						setIsWaitlistOpen(true);
