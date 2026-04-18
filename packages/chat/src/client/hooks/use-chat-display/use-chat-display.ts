@@ -126,7 +126,7 @@ function getLegacyImagePayload(
 }
 
 export function useChatDisplay(options: UseChatDisplayOptions) {
-	const { sessionId, cwd, enabled = true, fps = 60 } = options;
+	const { sessionId, cwd, enabled = true, fps = 4 } = options;
 	const utils = chatRuntimeServiceTrpc.useUtils();
 	const [commandError, setCommandError] = useState<unknown>(null);
 	const sessionCommandInput =
@@ -139,8 +139,6 @@ export function useChatDisplay(options: UseChatDisplayOptions) {
 		refetchInterval: refetchIntervalMs,
 		refetchIntervalInBackground: true,
 		refetchOnWindowFocus: false,
-		staleTime: 0,
-		gcTime: 0,
 	} as const;
 
 	const displayQuery = chatRuntimeServiceTrpc.session.getDisplayState.useQuery(

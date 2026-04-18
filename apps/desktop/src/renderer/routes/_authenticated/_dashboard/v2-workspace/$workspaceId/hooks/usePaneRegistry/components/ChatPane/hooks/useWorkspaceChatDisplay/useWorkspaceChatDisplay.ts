@@ -111,8 +111,7 @@ function getLegacyImagePayload(
 }
 
 export function useChatDisplay(options: UseChatDisplayOptions) {
-	const { sessionId, workspaceId, enabled = true, fps = 60 } = options;
-	const utils = workspaceTrpc.useUtils();
+	const { sessionId, workspaceId, enabled = true, fps = 4 } = options;
 	const [commandError, setCommandError] = useState<unknown>(null);
 	const queryInput =
 		sessionId === null ? undefined : { sessionId, workspaceId };
@@ -123,8 +122,6 @@ export function useChatDisplay(options: UseChatDisplayOptions) {
 		refetchInterval: refetchIntervalMs,
 		refetchIntervalInBackground: true,
 		refetchOnWindowFocus: false,
-		staleTime: 0,
-		gcTime: 0,
 	} as const;
 
 	const displayQuery = workspaceTrpc.chat.getDisplayState.useQuery(
@@ -354,20 +351,6 @@ export function useChatDisplay(options: UseChatDisplayOptions) {
 			workspaceId,
 		],
 	);
-
-	useEffect(() => {
-		if (!queryInput) return;
-		if (!isRunning) return;
-		void Promise.all([
-			utils.chat.getDisplayState.invalidate(queryInput),
-			utils.chat.listMessages.invalidate(queryInput),
-		]);
-	}, [
-		isRunning,
-		queryInput,
-		utils.chat.getDisplayState,
-		utils.chat.listMessages,
-	]);
 
 	return {
 		...displayState,
