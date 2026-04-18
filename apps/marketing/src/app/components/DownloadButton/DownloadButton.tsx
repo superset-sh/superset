@@ -106,7 +106,7 @@ export function DownloadButton({
 	}
 
 	if (os === "macos" || os === "unknown") {
-		const brandClasses = `bg-brand text-white border border-brand-dark ${sizeClasses} font-normal hover:bg-brand/80 transition-colors flex items-center gap-2 ${className}`;
+		const brandClasses = `bg-brand text-white border border-brand-light ${sizeClasses} font-normal hover:bg-brand/80 transition-colors flex items-center gap-2 ${className}`;
 		return (
 			<button
 				type="button"
