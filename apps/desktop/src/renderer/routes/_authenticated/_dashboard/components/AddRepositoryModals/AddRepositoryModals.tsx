@@ -1,5 +1,5 @@
 import { toast } from "@superset/ui/sonner";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import {
 	useAddRepositoryModalActive,
 	useCloseAddRepositoryModal,
@@ -37,14 +37,17 @@ export function AddRepositoryModals() {
 	// Run the folder-first picker when the store's trigger counter bumps.
 	// Using a counter (vs a boolean) lets successive clicks re-invoke the
 	// flow after the previous one resolves.
+	//
+	// Depend ONLY on the counter: folderImport.start's identity changes every
+	// render (transitively via the inline options object and the useMutation
+	// returned by selectDirectory), so including it here would cause the
+	// effect to refire mid-flow and open the picker repeatedly.
+	const startRef = useRef(folderImport.start);
+	startRef.current = folderImport.start;
 	useEffect(() => {
 		if (folderImportTrigger === 0) return;
-		void folderImport.start();
-		// We intentionally depend only on the counter — folderImport.start's
-		// identity changes every render (new hook instance per render) and
-		// we don't want to restart the flow on those changes.
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [folderImportTrigger, folderImport.start]);
+		void startRef.current();
+	}, [folderImportTrigger]);
 
 	return (
 		<>
