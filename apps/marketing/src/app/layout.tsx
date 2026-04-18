@@ -45,10 +45,6 @@ const pixelifySans = Pixelify_Sans({
 	display: "swap",
 });
 
-// LoRes 22 OT ships via Adobe Fonts — replace `YOUR_KIT_ID` with the Typekit kit
-// ID (the slug in https://use.typekit.net/<kit>.css) once the project is created.
-const ADOBE_FONTS_KIT_ID = "YOUR_KIT_ID";
-
 const siteDescription =
 	"Run 10+ parallel coding agents on your machine. Spin up new coding tasks while waiting for your current agent to finish. Quickly switch between tasks as they need your attention.";
 
@@ -130,12 +126,6 @@ export default function RootLayout({
 			suppressHydrationWarning
 		>
 			<head>
-				{ADOBE_FONTS_KIT_ID !== "YOUR_KIT_ID" && (
-					<link
-						rel="stylesheet"
-						href={`https://use.typekit.net/${ADOBE_FONTS_KIT_ID}.css`}
-					/>
-				)}
 				<OrganizationJsonLd />
 				<SoftwareApplicationJsonLd />
 				<WebsiteJsonLd />

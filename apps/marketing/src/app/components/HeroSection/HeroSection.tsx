@@ -27,8 +27,7 @@ export function HeroSection() {
 							<h1
 								className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-medium tracking-tight leading-[1.1] text-foreground relative"
 								style={{
-									fontFamily:
-										'"lo-res-22", var(--font-ibm-plex-mono), monospace',
+									fontFamily: "var(--font-ibm-plex-mono), monospace",
 								}}
 							>
 								<span className="invisible" aria-hidden="true">
