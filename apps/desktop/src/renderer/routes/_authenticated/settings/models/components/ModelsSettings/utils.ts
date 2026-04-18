@@ -84,7 +84,7 @@ export function getProviderSubtitle(
 		return status.issue.message;
 	}
 	if (!status || status.connectionState === "disconnected") {
-		return "No account connected";
+		return "Connect via OAuth or API key";
 	}
 	if (status.source === "external" && status.authMethod === "oauth") {
 		return EXTERNAL_OAUTH_LABELS[providerId];
@@ -101,8 +101,8 @@ export function getProviderSubtitle(
 export function getStatusBadge(
 	status: ModelProviderStatus | undefined,
 ): { label: string; variant: "secondary" | "outline" | "destructive" } | null {
-	if (!status) {
-		return null;
+	if (!status || status.connectionState === "disconnected") {
+		return { label: "Not connected", variant: "outline" };
 	}
 	if (status.issue?.code === "expired") {
 		return { label: "Expired", variant: "destructive" };
