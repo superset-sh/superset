@@ -1,5 +1,3 @@
-import { type LanguageModel, streamText } from "ai";
-
 type TitleModel = unknown;
 type TitleAgent = {
 	generateTitleFromUserMessage: (args: {
@@ -70,30 +68,4 @@ export async function generateTitleFromMessage(
 	});
 
 	return title?.trim() || null;
-}
-
-export async function generateTitleFromMessageWithStreamingModel(params: {
-	message: string;
-	model: LanguageModel;
-	instructions?: string;
-}): Promise<string | null> {
-	const cleanedMessage = params.message.trim();
-	if (!cleanedMessage) {
-		return null;
-	}
-
-	const instructions = params.instructions ?? "You generate concise titles.";
-	const result = streamText({
-		model: params.model,
-		system: instructions,
-		prompt: `Return only a short title for this user message:\n${cleanedMessage}`,
-		providerOptions: {
-			openai: {
-				instructions,
-				store: false,
-			},
-		},
-	});
-
-	return (await result.text).trim() || null;
 }

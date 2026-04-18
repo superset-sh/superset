@@ -485,7 +485,6 @@ export function useFileTree({
 		async (absolutePath: string): Promise<void> => {
 			if (!rootPath || !absolutePath.startsWith(rootPath)) return;
 
-			// Collect ancestor directories from rootPath down to the parent of the target
 			const ancestors: string[] = [];
 			let current = getParentPath(absolutePath);
 			while (current.length >= rootPath.length && current !== absolutePath) {
@@ -494,9 +493,13 @@ export function useFileTree({
 				current = getParentPath(current);
 			}
 
-			// Expand all ancestors and load their contents
 			for (const dir of ancestors) {
 				await expand(dir);
+			}
+
+			const entry = stateRef.current.entriesByPath.get(absolutePath);
+			if (entry?.kind === "directory") {
+				await expand(absolutePath);
 			}
 		},
 		[expand, rootPath],

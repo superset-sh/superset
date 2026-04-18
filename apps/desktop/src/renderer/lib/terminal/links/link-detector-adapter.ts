@@ -45,6 +45,8 @@ export class LinkDetectorAdapter implements ILinkProvider {
 			event: MouseEvent,
 			link: DetectedLink,
 		) => void,
+		private readonly _onHover?: (event: MouseEvent, link: DetectedLink) => void,
+		private readonly _onLeave?: () => void,
 	) {}
 
 	provideLinks(
@@ -192,6 +194,12 @@ export class LinkDetectorAdapter implements ILinkProvider {
 					activate: (event: MouseEvent) => {
 						this._onActivate?.(event, detected);
 					},
+					hover: (event: MouseEvent) => {
+						this._onHover?.(event, detected);
+					},
+					leave: () => {
+						this._onLeave?.();
+					},
 				});
 			}
 		}
@@ -232,6 +240,12 @@ export class LinkDetectorAdapter implements ILinkProvider {
 				text: detected.text,
 				activate: (event: MouseEvent) => {
 					this._onActivate?.(event, detected);
+				},
+				hover: (event: MouseEvent) => {
+					this._onHover?.(event, detected);
+				},
+				leave: () => {
+					this._onLeave?.();
 				},
 			});
 		}

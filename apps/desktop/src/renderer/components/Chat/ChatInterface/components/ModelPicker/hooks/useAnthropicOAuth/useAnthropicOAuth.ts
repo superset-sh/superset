@@ -1,7 +1,6 @@
 import { chatServiceTrpc } from "@superset/chat/client";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
-import { electronTrpc } from "renderer/lib/electron-trpc";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 
 function getErrorMessage(error: unknown, fallback: string): string {
@@ -75,7 +74,6 @@ export function useAnthropicOAuth({
 	const autoSubmitTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
 		null,
 	);
-	const electronUtils = electronTrpc.useUtils();
 
 	const { data: anthropicStatus, refetch: refetchAnthropicStatus } =
 		chatServiceTrpc.auth.getAnthropicStatus.useQuery();
@@ -177,10 +175,6 @@ export function useAnthropicOAuth({
 			onModelSelectorOpenChange(true);
 
 			try {
-				await electronTrpcClient.modelProviders.clearIssue.mutate({
-					providerId: "anthropic",
-				});
-				await electronUtils.modelProviders.getStatuses.invalidate();
 				await refetchAnthropicStatus();
 				await onAuthStateChange?.();
 			} catch (error) {
@@ -193,7 +187,6 @@ export function useAnthropicOAuth({
 		[
 			clearAutoSubmitTimeout,
 			completeAnthropicOAuthMutation,
-			electronUtils.modelProviders.getStatuses.invalidate,
 			onAuthStateChange,
 			onModelSelectorOpenChange,
 			refetchAnthropicStatus,
@@ -223,10 +216,6 @@ export function useAnthropicOAuth({
 		onModelSelectorOpenChange(true);
 
 		try {
-			await electronTrpcClient.modelProviders.clearIssue.mutate({
-				providerId: "anthropic",
-			});
-			await electronUtils.modelProviders.getStatuses.invalidate();
 			await refetchAnthropicStatus();
 			await onAuthStateChange?.();
 		} catch (error) {
@@ -237,7 +226,6 @@ export function useAnthropicOAuth({
 		}
 	}, [
 		disconnectAnthropicOAuthMutation,
-		electronUtils.modelProviders.getStatuses.invalidate,
 		onAuthStateChange,
 		onModelSelectorOpenChange,
 		refetchAnthropicStatus,

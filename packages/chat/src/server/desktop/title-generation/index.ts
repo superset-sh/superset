@@ -1,4 +1,1 @@
-export {
-	generateTitleFromMessage,
-	generateTitleFromMessageWithStreamingModel,
-} from "./title-generation";
+export { generateTitleFromMessage } from "./title-generation";

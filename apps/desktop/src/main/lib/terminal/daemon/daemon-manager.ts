@@ -191,7 +191,7 @@ export class DaemonTerminalManager extends EventEmitter {
 				session.lastActive = Date.now();
 			}
 
-			portManager.checkOutputForHint(data, paneId);
+			portManager.checkOutputForHint(data);
 			this.historyManager.writeToHistory(paneId, data, () =>
 				this.sessions.get(paneId),
 			);

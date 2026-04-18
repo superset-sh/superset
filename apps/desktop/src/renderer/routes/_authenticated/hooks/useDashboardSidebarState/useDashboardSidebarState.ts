@@ -182,25 +182,71 @@ export function useDashboardSidebarState() {
 	);
 
 	const createSection = useCallback(
-		(projectId: string, name = "New Section") => {
+		(
+			projectId: string,
+			options: { name?: string; insertAfterWorkspaceId?: string } = {},
+		) => {
+			const { name = "New Section", insertAfterWorkspaceId } = options;
 			ensureSidebarProjectRecord(collections, projectId);
 
 			const sectionId = crypto.randomUUID();
-			const sectionOrders = Array.from(
-				collections.v2SidebarSections.state.values(),
-			).filter((item) => item.projectId === projectId);
-
 			const randomColor =
 				PROJECT_CUSTOM_COLORS[
 					Math.floor(Math.random() * PROJECT_CUSTOM_COLORS.length)
 				].value;
+
+			let tabOrder: number;
+			if (insertAfterWorkspaceId) {
+				const anchorWorkspace = collections.v2WorkspaceLocalState.get(
+					insertAfterWorkspaceId,
+				);
+				const anchorTabOrder = anchorWorkspace?.sidebarState.sectionId
+					? (collections.v2SidebarSections.get(
+							anchorWorkspace.sidebarState.sectionId,
+						)?.tabOrder ?? 0)
+					: (anchorWorkspace?.sidebarState.tabOrder ?? 0);
+
+				for (const workspace of collections.v2WorkspaceLocalState.state.values()) {
+					if (
+						workspace.sidebarState.projectId === projectId &&
+						workspace.sidebarState.sectionId === null &&
+						workspace.sidebarState.tabOrder > anchorTabOrder
+					) {
+						const nextOrder = workspace.sidebarState.tabOrder + 1;
+						collections.v2WorkspaceLocalState.update(
+							workspace.workspaceId,
+							(draft) => {
+								draft.sidebarState.tabOrder = nextOrder;
+							},
+						);
+					}
+				}
+				for (const section of collections.v2SidebarSections.state.values()) {
+					if (
+						section.projectId === projectId &&
+						section.tabOrder > anchorTabOrder
+					) {
+						const nextOrder = section.tabOrder + 1;
+						collections.v2SidebarSections.update(section.sectionId, (draft) => {
+							draft.tabOrder = nextOrder;
+						});
+					}
+				}
+
+				tabOrder = anchorTabOrder + 1;
+			} else {
+				const sectionOrders = Array.from(
+					collections.v2SidebarSections.state.values(),
+				).filter((item) => item.projectId === projectId);
+				tabOrder = getNextTabOrder(sectionOrders);
+			}
 
 			collections.v2SidebarSections.insert({
 				sectionId,
 				projectId,
 				name,
 				createdAt: new Date(),
-				tabOrder: getNextTabOrder(sectionOrders),
+				tabOrder,
 				isCollapsed: false,
 				color: randomColor,
 			});

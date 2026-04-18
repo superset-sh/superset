@@ -97,33 +97,35 @@ export function DashboardSidebarWorkspaceContextMenu({
 				</>
 			)}
 			<ContextMenuSeparator />
-			<ContextMenuSub>
-				<ContextMenuSubTrigger>
-					<LuArrowRightLeft className="size-4 mr-2" />
-					Move to Section
-				</ContextMenuSubTrigger>
-				<ContextMenuSubContent>
-					<ContextMenuItem onSelect={onCreateSection}>
-						<LuFolderPlus className="size-4 mr-2" />
-						New Section
-					</ContextMenuItem>
-					{sections.length > 0 && <ContextMenuSeparator />}
-					{sections.map((section) => (
-						<ContextMenuItem
-							key={section.id}
-							onSelect={() => onMoveToSection(section.id)}
-						>
-							{section.color && (
-								<span
-									className="size-2 shrink-0 rounded-full mr-2"
-									style={{ backgroundColor: section.color }}
-								/>
-							)}
-							{section.name}
-						</ContextMenuItem>
-					))}
-				</ContextMenuSubContent>
-			</ContextMenuSub>
+			<ContextMenuItem onSelect={onCreateSection}>
+				<LuFolderPlus className="size-4 mr-2" />
+				Create Section Below
+			</ContextMenuItem>
+			{(sections.length > 0 || isInSection) && <ContextMenuSeparator />}
+			{sections.length > 0 && (
+				<ContextMenuSub>
+					<ContextMenuSubTrigger>
+						<LuArrowRightLeft className="size-4 mr-2" />
+						Move to Section
+					</ContextMenuSubTrigger>
+					<ContextMenuSubContent>
+						{sections.map((section) => (
+							<ContextMenuItem
+								key={section.id}
+								onSelect={() => onMoveToSection(section.id)}
+							>
+								{section.color && (
+									<span
+										className="size-2 shrink-0 rounded-full mr-2"
+										style={{ backgroundColor: section.color }}
+									/>
+								)}
+								{section.name}
+							</ContextMenuItem>
+						))}
+					</ContextMenuSubContent>
+				</ContextMenuSub>
+			)}
 			{isInSection && (
 				<ContextMenuItem onSelect={() => onMoveToSection(null)}>
 					<LuArrowUp className="size-4 mr-2" />

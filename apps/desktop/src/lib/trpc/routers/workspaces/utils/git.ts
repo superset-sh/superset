@@ -555,13 +555,13 @@ export async function createWorktree(
 				mainRepoPath,
 				"worktree",
 				"add",
-				worktreePath,
+				// --no-track prevents the new branch from tracking the remote ref
+				// (e.g. origin/main); push.autoSetupRemote handles first-push tracking.
+				"--no-track",
 				"-b",
 				branch,
-				// Append ^{commit} to force Git to treat the startPoint as a commit,
-				// not a branch ref. This prevents implicit upstream tracking when
-				// creating a new branch from a remote branch like origin/main.
-				`${startPoint}^{commit}`,
+				worktreePath,
+				startPoint,
 			],
 			worktreePath,
 		});

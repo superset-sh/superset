@@ -190,7 +190,7 @@ export function createTerminalInWrapper(options: CreateTerminalOptions = {}): {
 					);
 				});
 		},
-		onUrlClick: (uri) => {
+		onUrlClick: (_event, uri) => {
 			const handler = urlClickRef?.current;
 			if (handler) {
 				handler(uri);

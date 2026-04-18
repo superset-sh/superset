@@ -9,7 +9,7 @@ import { workspaceTrpc } from "@superset/workspace-client";
 import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { createFileRoute } from "@tanstack/react-router";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { HiMiniXMark } from "react-icons/hi2";
 import { TbLayoutColumns, TbLayoutRows } from "react-icons/tb";
 import { HotkeyLabel, useHotkey } from "renderer/hotkeys";
@@ -92,6 +92,7 @@ function WorkspaceContent({
 	workspaceId: string;
 	workspaceName: string;
 }) {
+	const collections = useCollections();
 	const { localWorkspaceState, store } = useV2WorkspacePaneLayout({
 		projectId,
 		workspaceId,
@@ -102,8 +103,6 @@ function WorkspaceContent({
 		projectId,
 	});
 	useConsumePendingLaunch({ workspaceId, store });
-	const paneRegistry = usePaneRegistry(workspaceId);
-	const defaultContextMenuActions = useDefaultContextMenuActions(paneRegistry);
 
 	const workspaceQuery = workspaceTrpc.workspace.get.useQuery({
 		id: workspaceId,
@@ -112,13 +111,23 @@ function WorkspaceContent({
 
 	const { recentFiles, recordView } = useRecentlyViewedFiles(workspaceId);
 
-	const selectedFilePath = useStore(store, (s) => {
+	const activeFilePanePath = useStore(store, (s) => {
 		const tab = s.tabs.find((t) => t.id === s.activeTabId);
 		if (!tab?.activePaneId) return undefined;
 		const pane = tab.panes[tab.activePaneId];
 		if (pane?.kind === "file") return (pane.data as FilePaneData).filePath;
 		return undefined;
 	});
+
+	const [selectedFilePath, setSelectedFilePath] = useState<string | undefined>(
+		activeFilePanePath,
+	);
+
+	useEffect(() => {
+		if (activeFilePanePath !== undefined) {
+			setSelectedFilePath(activeFilePanePath);
+		}
+	}, [activeFilePanePath]);
 
 	const openFilePathsKey = useStore(store, (s) =>
 		s.tabs
@@ -178,6 +187,23 @@ function WorkspaceContent({
 		},
 		[store, worktreePath, recordView],
 	);
+
+	const revealPath = useCallback(
+		(path: string) => {
+			collections.v2WorkspaceLocalState.update(workspaceId, (draft) => {
+				draft.rightSidebarOpen = true;
+				draft.sidebarState.activeTab = "files";
+			});
+			setSelectedFilePath(path);
+		},
+		[collections, workspaceId],
+	);
+
+	const paneRegistry = usePaneRegistry(workspaceId, {
+		onOpenFile: openFilePane,
+		onRevealPath: revealPath,
+	});
+	const defaultContextMenuActions = useDefaultContextMenuActions(paneRegistry);
 
 	const openDiffPane = useCallback(
 		(filePath: string) => {

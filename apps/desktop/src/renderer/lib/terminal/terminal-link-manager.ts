@@ -18,6 +18,10 @@ import {
 	WordLinkDetector,
 } from "./links";
 
+export type LinkHoverInfo =
+	| { kind: "file"; isDirectory: boolean }
+	| { kind: "url" };
+
 /**
  * Link handler callbacks for the v2 terminal.
  */
@@ -25,7 +29,11 @@ export interface TerminalLinkHandlers {
 	/** Called when a file path link is activated (Cmd/Ctrl+click). */
 	onFileLinkClick?: (event: MouseEvent, link: DetectedLink) => void;
 	/** Called when a URL link is activated. */
-	onUrlClick?: (url: string) => void;
+	onUrlClick?: (event: MouseEvent, url: string) => void;
+	/** Called when the mouse enters a detected link (file path or URL). */
+	onLinkHover?: (event: MouseEvent, info: LinkHoverInfo) => void;
+	/** Called when the mouse leaves a previously hovered link. */
+	onLinkLeave?: () => void;
 	/**
 	 * Stat callback to validate file paths exist. Called via the host service
 	 * which handles all path resolution (relative, tilde, etc.) server-side.
@@ -93,21 +101,39 @@ export class TerminalLinkManager {
 			this._resolver = new TerminalLinkResolver(handlers.stat);
 		}
 
+		const onLinkHover = handlers.onLinkHover;
+		const onLinkLeave = handlers.onLinkLeave;
+
 		// 1. File path detector (highest priority)
 		const detector = new LocalLinkDetector(this._resolver);
 		const adapter = new LinkDetectorAdapter(
 			this._terminal,
 			detector,
 			handlers.onFileLinkClick,
+			onLinkHover
+				? (event, link) =>
+						onLinkHover(event, {
+							kind: "file",
+							isDirectory: link.isDirectory,
+						})
+				: undefined,
+			onLinkLeave,
 		);
 		this._disposables.push(this._terminal.registerLinkProvider(adapter));
 
 		// 2. URL link provider (handles hard-wrapped URLs)
 		if (handlers.onUrlClick) {
 			const onUrlClick = handlers.onUrlClick;
-			const urlProvider = new UrlLinkProvider(this._terminal, (_event, uri) => {
-				onUrlClick(uri);
-			});
+			const urlProvider = new UrlLinkProvider(
+				this._terminal,
+				(event, uri) => {
+					onUrlClick(event, uri);
+				},
+				onLinkHover
+					? (event) => onLinkHover(event, { kind: "url" })
+					: undefined,
+				onLinkLeave,
+			);
 			this._disposables.push(this._terminal.registerLinkProvider(urlProvider));
 		}
 
@@ -135,6 +161,10 @@ export class TerminalLinkManager {
 						colEnd: undefined,
 					});
 				},
+				onLinkHover
+					? (event) => onLinkHover(event, { kind: "file", isDirectory: false })
+					: undefined,
+				onLinkLeave,
 			);
 			this._disposables.push(this._terminal.registerLinkProvider(wordDetector));
 		}

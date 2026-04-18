@@ -140,8 +140,14 @@ function DiffViewModeToggle() {
 	);
 }
 
+interface UsePaneRegistryOptions {
+	onOpenFile: (path: string, openInNewTab?: boolean) => void;
+	onRevealPath: (path: string) => void;
+}
+
 export function usePaneRegistry(
 	workspaceId: string,
+	{ onOpenFile, onRevealPath }: UsePaneRegistryOptions,
 ): PaneRegistry<PaneViewerData> {
 	const clearShortcut = useHotkeyDisplay("CLEAR_TERMINAL").text;
 	const scrollToBottomShortcut = useHotkeyDisplay("SCROLL_TO_BOTTOM").text;
@@ -237,7 +243,12 @@ export function usePaneRegistry(
 				getIcon: () => <TerminalSquare className="size-4" />,
 				getTitle: () => "Terminal",
 				renderPane: (ctx: RendererContext<PaneViewerData>) => (
-					<TerminalPane ctx={ctx} workspaceId={workspaceId} />
+					<TerminalPane
+						ctx={ctx}
+						workspaceId={workspaceId}
+						onOpenFile={onOpenFile}
+						onRevealPath={onRevealPath}
+					/>
 				),
 				contextMenuActions: (_ctx, defaults) => {
 					const terminalActions: ContextMenuActionConfig<PaneViewerData>[] = [
@@ -411,6 +422,12 @@ export function usePaneRegistry(
 				},
 			},
 		}),
-		[workspaceId, clearShortcut, scrollToBottomShortcut],
+		[
+			workspaceId,
+			clearShortcut,
+			scrollToBottomShortcut,
+			onOpenFile,
+			onRevealPath,
+		],
 	);
 }

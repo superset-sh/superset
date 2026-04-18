@@ -1,9 +1,49 @@
-import { exec } from "node:child_process";
+import { execFile } from "node:child_process";
 import os from "node:os";
 import { promisify } from "node:util";
 import pidtree from "pidtree";
 
-const execAsync = promisify(exec);
+const execFileAsync = promisify(execFile);
+
+/**
+ * Run execFile and tolerate a plain non-zero exit by returning its stdout.
+ * lsof exits 1 when no PIDs match the filter — a legitimate "empty" result.
+ * Aborts, timeouts, and signal-kills are NOT tolerated: partial stdout from a
+ * killed child is not a trustworthy snapshot, so rethrow and let the caller's
+ * outer catch turn it into `[]`.
+ */
+async function runTolerant(
+	file: string,
+	args: string[],
+	options: { maxBuffer: number; timeout: number; signal?: AbortSignal },
+): Promise<string> {
+	try {
+		const { stdout } = await execFileAsync(file, args, options);
+		return stdout;
+	} catch (err) {
+		if (err && typeof err === "object") {
+			const execErr = err as {
+				stdout?: string | Buffer;
+				code?: unknown;
+				killed?: boolean;
+				signal?: unknown;
+				name?: string;
+			};
+			if (
+				execErr.name === "AbortError" ||
+				execErr.code === "ABORT_ERR" ||
+				execErr.killed ||
+				execErr.signal
+			) {
+				throw err;
+			}
+			if ("stdout" in execErr) {
+				return String(execErr.stdout ?? "");
+			}
+		}
+		throw err;
+	}
+}
 
 /** Timeout for shell commands to prevent hanging (ms) */
 const EXEC_TIMEOUT_MS = 5000;
@@ -33,16 +73,17 @@ export async function getProcessTree(pid: number): Promise<number[]> {
  */
 export async function getListeningPortsForPids(
 	pids: number[],
+	signal?: AbortSignal,
 ): Promise<PortInfo[]> {
 	if (pids.length === 0) return [];
 
 	const platform = os.platform();
 
 	if (platform === "darwin" || platform === "linux") {
-		return getListeningPortsLsof(pids);
+		return getListeningPortsLsof(pids, signal);
 	}
 	if (platform === "win32") {
-		return getListeningPortsWindows(pids);
+		return getListeningPortsWindows(pids, signal);
 	}
 
 	return [];
@@ -51,7 +92,10 @@ export async function getListeningPortsForPids(
 /**
  * macOS/Linux implementation using lsof
  */
-async function getListeningPortsLsof(pids: number[]): Promise<PortInfo[]> {
+async function getListeningPortsLsof(
+	pids: number[],
+	signal?: AbortSignal,
+): Promise<PortInfo[]> {
 	try {
 		const pidArg = pids.join(",");
 		const pidSet = new Set(pids);
@@ -62,9 +106,10 @@ async function getListeningPortsLsof(pids: number[]): Promise<PortInfo[]> {
 		// -n: don't resolve hostnames
 		// Note: lsof may ignore -p filter if PIDs don't exist or have no matches,
 		// so we must validate PIDs in the output against our requested set
-		const { stdout: output } = await execAsync(
-			`lsof -p ${pidArg} -iTCP -sTCP:LISTEN -P -n 2>/dev/null || true`,
-			{ maxBuffer: 10 * 1024 * 1024, timeout: EXEC_TIMEOUT_MS },
+		const output = await runTolerant(
+			"lsof",
+			["-p", pidArg, "-iTCP", "-sTCP:LISTEN", "-P", "-n"],
+			{ maxBuffer: 10 * 1024 * 1024, timeout: EXEC_TIMEOUT_MS, signal },
 		);
 
 		if (!output.trim()) return [];
@@ -116,11 +161,15 @@ async function getListeningPortsLsof(pids: number[]): Promise<PortInfo[]> {
 /**
  * Windows implementation using netstat
  */
-async function getListeningPortsWindows(pids: number[]): Promise<PortInfo[]> {
+async function getListeningPortsWindows(
+	pids: number[],
+	signal?: AbortSignal,
+): Promise<PortInfo[]> {
 	try {
-		const { stdout: output } = await execAsync("netstat -ano", {
+		const { stdout: output } = await execFileAsync("netstat", ["-ano"], {
 			maxBuffer: 10 * 1024 * 1024,
 			timeout: EXEC_TIMEOUT_MS,
+			signal,
 		});
 
 		const pidSet = new Set(pids);
@@ -149,7 +198,7 @@ async function getListeningPortsWindows(pids: number[]): Promise<PortInfo[]> {
 		const nameResults = await Promise.all(
 			pidsToLookup.map(async (pid) => ({
 				pid,
-				name: await getProcessNameWindows(pid),
+				name: await getProcessNameWindows(pid, signal),
 			})),
 		);
 		for (const { pid, name } of nameResults) {
@@ -195,11 +244,15 @@ async function getListeningPortsWindows(pids: number[]): Promise<PortInfo[]> {
 /**
  * Get process name for a PID on Windows
  */
-async function getProcessNameWindows(pid: number): Promise<string> {
+async function getProcessNameWindows(
+	pid: number,
+	signal?: AbortSignal,
+): Promise<string> {
 	try {
-		const { stdout: output } = await execAsync(
-			`wmic process where processid=${pid} get name 2>nul`,
-			{ timeout: EXEC_TIMEOUT_MS },
+		const { stdout: output } = await execFileAsync(
+			"wmic",
+			["process", "where", `processid=${pid}`, "get", "name"],
+			{ timeout: EXEC_TIMEOUT_MS, signal },
 		);
 		const lines = output.trim().split("\n");
 		if (lines.length >= 2) {
@@ -209,37 +262,13 @@ async function getProcessNameWindows(pid: number): Promise<string> {
 	} catch {
 		// wmic is deprecated, try PowerShell as fallback
 		try {
-			const { stdout: output } = await execAsync(
-				`powershell -Command "(Get-Process -Id ${pid}).ProcessName"`,
-				{ timeout: EXEC_TIMEOUT_MS },
+			const { stdout: output } = await execFileAsync(
+				"powershell",
+				["-Command", `(Get-Process -Id ${pid}).ProcessName`],
+				{ timeout: EXEC_TIMEOUT_MS, signal },
 			);
 			return output.trim() || "unknown";
 		} catch {}
 	}
 	return "unknown";
-}
-
-/**
- * Get process name for a PID (cross-platform)
- */
-export async function getProcessName(pid: number): Promise<string> {
-	const platform = os.platform();
-
-	if (platform === "win32") {
-		return getProcessNameWindows(pid);
-	}
-
-	// macOS/Linux
-	try {
-		const { stdout: output } = await execAsync(
-			`ps -p ${pid} -o comm= 2>/dev/null || true`,
-			{ timeout: EXEC_TIMEOUT_MS },
-		);
-		const name = output.trim();
-		// On macOS, comm may be truncated. The full path can be gotten with -o command=
-		// but comm is usually sufficient for display purposes
-		return name || "unknown";
-	} catch {
-		return "unknown";
-	}
 }

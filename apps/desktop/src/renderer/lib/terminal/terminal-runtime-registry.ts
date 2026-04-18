@@ -2,6 +2,7 @@ import type { ProgressAddon } from "@xterm/addon-progress";
 import type { SearchAddon } from "@xterm/addon-search";
 import type { TerminalAppearance } from "./appearance";
 import {
+	type LinkHoverInfo,
 	type TerminalLinkHandlers,
 	TerminalLinkManager,
 } from "./terminal-link-manager";
@@ -216,4 +217,4 @@ if (import.meta.hot) {
 	import.meta.hot.data.registry = terminalRuntimeRegistry;
 }
 
-export type { ConnectionState, TerminalLinkHandlers };
+export type { ConnectionState, LinkHoverInfo, TerminalLinkHandlers };

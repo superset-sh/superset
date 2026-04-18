@@ -82,6 +82,7 @@ function isNetworkError(error: Error | string): boolean {
 let currentStatus: AutoUpdateStatus = AUTO_UPDATE_STATUS.IDLE;
 let currentVersion: string | undefined;
 let isDismissed = false;
+let isInstalling = false;
 
 function emitStatus(
 	status: AutoUpdateStatus,
@@ -111,6 +112,24 @@ export function installUpdate(): void {
 		emitStatus(AUTO_UPDATE_STATUS.IDLE);
 		return;
 	}
+	// MacUpdater.quitAndInstall() registers a fresh native-updater
+	// `update-downloaded` listener each time it runs before Squirrel.Mac has
+	// finished staging. Without this guard, repeat clicks fan out into
+	// parallel quitAndInstall calls once Squirrel fires — racing to swap
+	// the binary and leaving the app on the old version.
+	if (isInstalling) {
+		console.info(
+			"[auto-updater] Install already in progress, ignoring duplicate request",
+		);
+		return;
+	}
+	if (currentStatus !== AUTO_UPDATE_STATUS.READY) {
+		console.warn(
+			`[auto-updater] Install ignored: update not ready (status=${currentStatus})`,
+		);
+		return;
+	}
+	isInstalling = true;
 	setSkipQuitConfirmation();
 	autoUpdater.quitAndInstall(false, true);
 }
@@ -242,6 +261,8 @@ export function setupAutoUpdater(): void {
 	);
 
 	autoUpdater.on("error", (error) => {
+		// Allow retry if Squirrel surfaces an error instead of actually quitting.
+		isInstalling = false;
 		if (isNetworkError(error)) {
 			console.info("[auto-updater] Network unavailable, will retry later");
 			emitStatus(AUTO_UPDATE_STATUS.IDLE);

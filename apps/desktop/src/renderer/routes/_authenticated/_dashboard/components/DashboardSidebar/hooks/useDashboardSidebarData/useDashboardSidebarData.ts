@@ -324,9 +324,31 @@ export function useDashboardSidebarData() {
 				sectionMap: _sectionMap,
 				...sidebarProject
 			} = resolvedProject;
-			sidebarProject.children = childEntries
+
+			const sortedChildren = childEntries
 				.sort((left, right) => left.tabOrder - right.tabOrder)
 				.map(({ child }) => child);
+
+			// Ungrouped workspaces rendered after a section header are visually
+			// grouped with that section (shared accent, collapse-together) and will
+			// be committed into it on next DnD. Reparent them here so section counts
+			// match what the user sees.
+			const children: DashboardSidebarProjectChild[] = [];
+			let currentSection: DashboardSidebarSection | null = null;
+			for (const child of sortedChildren) {
+				if (child.type === "section") {
+					currentSection = child.section;
+					children.push(child);
+				} else if (currentSection) {
+					currentSection.workspaces.push({
+						...child.workspace,
+						accentColor: currentSection.color,
+					});
+				} else {
+					children.push(child);
+				}
+			}
+			sidebarProject.children = children;
 			return [sidebarProject];
 		});
 	}, [

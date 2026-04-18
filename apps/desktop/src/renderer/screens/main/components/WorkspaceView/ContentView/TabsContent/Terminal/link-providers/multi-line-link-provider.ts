@@ -42,6 +42,10 @@ export abstract class MultiLineLinkProvider implements ILinkProvider {
 		regexMatch: RegExpMatchArray,
 	): void;
 
+	/** Optional hooks fired when the mouse enters/leaves a detected link. */
+	protected handleHover?(event: MouseEvent, text: string): void;
+	protected handleLeave?(): void;
+
 	/**
 	 * Optional hook to transform a match before creating the link.
 	 * Useful for stripping trailing characters. Return null to skip the match.
@@ -176,6 +180,12 @@ export abstract class MultiLineLinkProvider implements ILinkProvider {
 					text: linkMatch.text,
 					activate: (event: MouseEvent, text: string) => {
 						this.handleActivation(event, text, match);
+					},
+					hover: (event: MouseEvent, text: string) => {
+						this.handleHover?.(event, text);
+					},
+					leave: () => {
+						this.handleLeave?.();
 					},
 				});
 			}

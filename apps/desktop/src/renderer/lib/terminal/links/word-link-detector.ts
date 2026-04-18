@@ -52,6 +52,11 @@ export class WordLinkDetector implements ILinkProvider {
 			event: MouseEvent,
 			resolvedPath: string,
 		) => void,
+		private readonly _onHover?: (
+			event: MouseEvent,
+			resolvedPath: string,
+		) => void,
+		private readonly _onLeave?: () => void,
 	) {
 		this._separatorRegex = buildSeparatorRegex(DEFAULT_WORD_SEPARATORS);
 	}
@@ -107,6 +112,12 @@ export class WordLinkDetector implements ILinkProvider {
 				text: wordText,
 				activate: (event: MouseEvent) => {
 					this._onActivate?.(event, resolved.path);
+				},
+				hover: (event: MouseEvent) => {
+					this._onHover?.(event, resolved.path);
+				},
+				leave: () => {
+					this._onLeave?.();
 				},
 			});
 		}
