@@ -53,7 +53,7 @@ function TestimonialCard({ testimonial }: { testimonial: Testimonial }) {
 						</span>
 					</div>
 					<span className="text-muted-foreground text-sm">
-						{testimonial.handle}
+						{testimonial.role ?? testimonial.handle}
 					</span>
 				</div>
 			</div>

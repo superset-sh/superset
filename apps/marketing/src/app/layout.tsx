@@ -1,7 +1,12 @@
 import { COMPANY } from "@superset/shared/constants";
 import { GeistPixelGrid, GeistPixelSquare } from "geist/font/pixel";
 import type { Metadata } from "next";
-import { IBM_Plex_Mono, Inter, Micro_5 } from "next/font/google";
+import {
+	IBM_Plex_Mono,
+	Inter,
+	Micro_5,
+	Pixelify_Sans,
+} from "next/font/google";
 
 import { CookieConsent } from "@/components/CookieConsent";
 import {
@@ -37,6 +42,17 @@ const micro5 = Micro_5({
 	variable: "--font-micro5",
 	display: "swap",
 });
+
+const pixelifySans = Pixelify_Sans({
+	weight: ["400", "500", "600", "700"],
+	subsets: ["latin"],
+	variable: "--font-pixel",
+	display: "swap",
+});
+
+// LoRes 22 OT ships via Adobe Fonts — replace `YOUR_KIT_ID` with the Typekit kit
+// ID (the slug in https://use.typekit.net/<kit>.css) once the project is created.
+const ADOBE_FONTS_KIT_ID = "YOUR_KIT_ID";
 
 const siteDescription =
 	"Run 10+ parallel coding agents on your machine. Spin up new coding tasks while waiting for your current agent to finish. Quickly switch between tasks as they need your attention.";
@@ -115,10 +131,16 @@ export default function RootLayout({
 	return (
 		<html
 			lang="en"
-			className={`dark overscroll-none ${ibmPlexMono.variable} ${inter.variable} ${micro5.variable} ${GeistPixelSquare.variable} ${GeistPixelGrid.variable}`}
+			className={`dark overscroll-none ${ibmPlexMono.variable} ${inter.variable} ${micro5.variable} ${pixelifySans.variable} ${GeistPixelSquare.variable} ${GeistPixelGrid.variable}`}
 			suppressHydrationWarning
 		>
 			<head>
+				{ADOBE_FONTS_KIT_ID !== "YOUR_KIT_ID" && (
+					<link
+						rel="stylesheet"
+						href={`https://use.typekit.net/${ADOBE_FONTS_KIT_ID}.css`}
+					/>
+				)}
 				<OrganizationJsonLd />
 				<SoftwareApplicationJsonLd />
 				<WebsiteJsonLd />

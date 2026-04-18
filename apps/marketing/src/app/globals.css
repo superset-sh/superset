@@ -8,10 +8,14 @@
 
 @theme inline {
 	--color-brand: var(--brand);
+	--color-brand-light: var(--brand-light);
+	--color-brand-dark: var(--brand-dark);
 }
 
 :root {
-	--brand: #ff5500;
+	--brand: #d25611;
+	--brand-light: #e8804a;
+	--brand-dark: #9e400a;
 }
 
 @utility scrollbar-hide {
