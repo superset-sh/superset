@@ -180,7 +180,7 @@ async function getListeningPortsWindows(
 		const nameResults = await Promise.all(
 			pidsToLookup.map(async (pid) => ({
 				pid,
-				name: await getProcessNameWindows(pid),
+				name: await getProcessNameWindows(pid, signal),
 			})),
 		);
 		for (const { pid, name } of nameResults) {
@@ -226,12 +226,15 @@ async function getListeningPortsWindows(
 /**
  * Get process name for a PID on Windows
  */
-async function getProcessNameWindows(pid: number): Promise<string> {
+async function getProcessNameWindows(
+	pid: number,
+	signal?: AbortSignal,
+): Promise<string> {
 	try {
 		const { stdout: output } = await execFileAsync(
 			"wmic",
 			["process", "where", `processid=${pid}`, "get", "name"],
-			{ timeout: EXEC_TIMEOUT_MS },
+			{ timeout: EXEC_TIMEOUT_MS, signal },
 		);
 		const lines = output.trim().split("\n");
 		if (lines.length >= 2) {
@@ -244,7 +247,7 @@ async function getProcessNameWindows(pid: number): Promise<string> {
 			const { stdout: output } = await execFileAsync(
 				"powershell",
 				["-Command", `(Get-Process -Id ${pid}).ProcessName`],
-				{ timeout: EXEC_TIMEOUT_MS },
+				{ timeout: EXEC_TIMEOUT_MS, signal },
 			);
 			return output.trim() || "unknown";
 		} catch {}

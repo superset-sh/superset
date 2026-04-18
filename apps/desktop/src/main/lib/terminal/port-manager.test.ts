@@ -218,6 +218,12 @@ describe("PortManager — #3372 hint regex narrowing", () => {
 		await sleep(PAST_DEBOUNCE_MS);
 		expect(spy.getListeningPortsForPids).toBe(1);
 	});
+
+	it("DOES scan on 'ready on http://localhost:5173' (Vite-style)", async () => {
+		portManager.checkOutputForHint("ready on http://localhost:5173\n");
+		await sleep(PAST_DEBOUNCE_MS);
+		expect(spy.getListeningPortsForPids).toBe(1);
+	});
 });
 
 describe("PortManager — #3372 teardown (no orphan children)", () => {
