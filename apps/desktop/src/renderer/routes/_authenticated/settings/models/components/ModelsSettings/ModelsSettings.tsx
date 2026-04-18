@@ -121,11 +121,11 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 		[openAIAuthStatus],
 	);
 
-	const anthropicSubtitle = useMemo(
+	const _anthropicSubtitle = useMemo(
 		() => getProviderSubtitle("anthropic", anthropicStatus),
 		[anthropicStatus],
 	);
-	const openAISubtitle = useMemo(
+	const _openAISubtitle = useMemo(
 		() => getProviderSubtitle("openai", openAIStatus),
 		[openAIStatus],
 	);
@@ -235,9 +235,6 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 								<div className="flex items-center justify-between gap-4 px-4 py-3">
 									<div className="flex items-center gap-2">
 										<p className="text-sm font-semibold">OAuth</p>
-										<span className="text-xs text-muted-foreground">
-											{anthropicSubtitle}
-										</span>
 										{anthropicBadge ? (
 											<Badge variant={anthropicBadge.variant}>
 												{anthropicBadge.label}
@@ -322,9 +319,6 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 								<div className="flex items-center justify-between gap-4 px-4 py-3">
 									<div className="flex items-center gap-2">
 										<p className="text-sm font-semibold">OAuth</p>
-										<span className="text-xs text-muted-foreground">
-											{openAISubtitle}
-										</span>
 										{openAIBadge ? (
 											<Badge variant={openAIBadge.variant}>
 												{openAIBadge.label}
