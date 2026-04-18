@@ -9,6 +9,7 @@ interface AccountCardProps {
 	badgeVariant?: "secondary" | "outline" | "destructive";
 	actions?: ReactNode;
 	muted?: boolean;
+	className?: string;
 }
 
 export function AccountCard({
@@ -18,14 +19,10 @@ export function AccountCard({
 	badgeVariant = "secondary",
 	actions,
 	muted = false,
+	className,
 }: AccountCardProps) {
 	return (
-		<div
-			className={cn(
-				"rounded-xl border bg-card px-4 py-4",
-				muted && "border-dashed bg-muted/20",
-			)}
-		>
+		<div className={cn("px-4 py-4", muted && "opacity-60", className)}>
 			<div className="flex items-center justify-between gap-4">
 				<div className="min-w-0">
 					<p className="truncate text-sm font-semibold">{title}</p>

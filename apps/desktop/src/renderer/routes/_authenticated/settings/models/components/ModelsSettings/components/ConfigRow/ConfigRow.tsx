@@ -1,4 +1,5 @@
 import { Button } from "@superset/ui/button";
+import { cn } from "@superset/ui/utils";
 import type { ReactNode } from "react";
 
 interface ConfigRowProps {
@@ -11,6 +12,7 @@ interface ConfigRowProps {
 	clearLabel?: string;
 	disableSave?: boolean;
 	disableClear?: boolean;
+	className?: string;
 }
 
 export function ConfigRow({
@@ -23,9 +25,10 @@ export function ConfigRow({
 	clearLabel = "Clear",
 	disableSave,
 	disableClear,
+	className,
 }: ConfigRowProps) {
 	return (
-		<div className="rounded-xl border bg-card px-4 py-4">
+		<div className={cn("px-4 py-4", className)}>
 			<div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
 				<div className="min-w-0 lg:w-64">
 					<p className="text-sm font-semibold">{title}</p>

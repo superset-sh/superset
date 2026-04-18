@@ -47,7 +47,6 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 		visibleItems,
 	);
 	const showOpenAI = isItemVisible(SETTING_ITEM_ID.MODELS_OPENAI, visibleItems);
-	const [apiKeysOpen, setApiKeysOpen] = useState(true);
 	const [overrideOpen, setOverrideOpen] = useState(true);
 	const [openAIApiKeyInput, setOpenAIApiKeyInput] = useState("");
 	const [anthropicApiKeyInput, setAnthropicApiKeyInput] = useState("");
@@ -228,172 +227,154 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 
 				<div className="space-y-8">
 					{showAnthropic ? (
-						<SettingsSection title="Anthropic Account">
-							<AccountCard
-								title="Claude"
-								subtitle={anthropicSubtitle}
-								badge={anthropicBadge?.label}
-								badgeVariant={anthropicBadge?.variant}
-								muted={anthropicStatus?.connectionState !== "connected"}
-								actions={renderProviderAction({
-									status: anthropicStatus,
-									startOAuth: startAnthropicOAuth,
-									isStartingOAuth: isStartingAnthropicOAuth,
-									onDisconnect: async () => {
-										if (anthropicStatus?.authMethod === "oauth") {
-											anthropicOAuthDialog.onDisconnect();
-										} else {
-											await clearAnthropicApiKeyMutation.mutateAsync();
-											setAnthropicApiKeyInput("");
-										}
-										await refetchAnthropicAuthStatus();
-									},
-								})}
-							/>
+						<SettingsSection title="Anthropic">
+							<div className="divide-y divide-border rounded-xl border bg-card">
+								<AccountCard
+									title="Claude"
+									subtitle={anthropicSubtitle}
+									badge={anthropicBadge?.label}
+									badgeVariant={anthropicBadge?.variant}
+									muted={anthropicStatus?.connectionState !== "connected"}
+									actions={renderProviderAction({
+										status: anthropicStatus,
+										startOAuth: startAnthropicOAuth,
+										isStartingOAuth: isStartingAnthropicOAuth,
+										onDisconnect: async () => {
+											if (anthropicStatus?.authMethod === "oauth") {
+												anthropicOAuthDialog.onDisconnect();
+											} else {
+												await clearAnthropicApiKeyMutation.mutateAsync();
+												setAnthropicApiKeyInput("");
+											}
+											await refetchAnthropicAuthStatus();
+										},
+									})}
+								/>
+								<ConfigRow
+									title="API Key"
+									field={
+										<Input
+											type="password"
+											value={anthropicApiKeyInput}
+											onChange={(event) => {
+												setAnthropicApiKeyInput(event.target.value);
+											}}
+											placeholder={
+												anthropicStatus?.authMethod === "api_key"
+													? "Saved Anthropic API key"
+													: "sk-ant-..."
+											}
+											className="font-mono"
+											disabled={isSavingAnthropicApiKey}
+										/>
+									}
+									onSave={() => {
+										void saveAnthropicApiKey();
+									}}
+									onClear={() => {
+										const nextForm = { ...anthropicForm, apiKey: "" };
+										void (async () => {
+											try {
+												await clearAnthropicApiKeyMutation.mutateAsync();
+												setAnthropicApiKeyInput("");
+												setAnthropicForm(nextForm);
+												await refetchAnthropicAuthStatus();
+												toast.success("Anthropic API key cleared");
+											} catch (error) {
+												toast.error(
+													error instanceof Error
+														? error.message
+														: "Failed to clear",
+												);
+											}
+										})();
+									}}
+									disableSave={
+										isSavingAnthropicApiKey ||
+										anthropicApiKeyInput.trim().length === 0
+									}
+									disableClear={
+										isSavingAnthropicApiKey ||
+										anthropicStatus?.authMethod !== "api_key"
+									}
+								/>
+							</div>
 						</SettingsSection>
 					) : null}
 
 					{showOpenAI ? (
-						<SettingsSection title="Codex Account">
-							<AccountCard
-								title="ChatGPT"
-								subtitle={openAISubtitle}
-								badge={openAIBadge?.label}
-								badgeVariant={openAIBadge?.variant}
-								muted={openAIStatus?.connectionState !== "connected"}
-								actions={renderProviderAction({
-									status: openAIStatus,
-									startOAuth: startOpenAIOAuth,
-									isStartingOAuth: isStartingOpenAIOAuth,
-									onDisconnect: async () => {
-										if (openAIStatus?.authMethod === "oauth") {
-											openAIOAuthDialog.onDisconnect();
-										} else {
-											await clearOpenAIApiKeyMutation.mutateAsync();
-											setOpenAIApiKeyInput("");
-										}
-										await refetchOpenAIAuthStatus();
-									},
-								})}
-							/>
+						<SettingsSection title="OpenAI">
+							<div className="divide-y divide-border rounded-xl border bg-card">
+								<AccountCard
+									title="ChatGPT"
+									subtitle={openAISubtitle}
+									badge={openAIBadge?.label}
+									badgeVariant={openAIBadge?.variant}
+									muted={openAIStatus?.connectionState !== "connected"}
+									actions={renderProviderAction({
+										status: openAIStatus,
+										startOAuth: startOpenAIOAuth,
+										isStartingOAuth: isStartingOpenAIOAuth,
+										onDisconnect: async () => {
+											if (openAIStatus?.authMethod === "oauth") {
+												openAIOAuthDialog.onDisconnect();
+											} else {
+												await clearOpenAIApiKeyMutation.mutateAsync();
+												setOpenAIApiKeyInput("");
+											}
+											await refetchOpenAIAuthStatus();
+										},
+									})}
+								/>
+								<ConfigRow
+									title="API Key"
+									field={
+										<Input
+											type="password"
+											value={openAIApiKeyInput}
+											onChange={(event) => {
+												setOpenAIApiKeyInput(event.target.value);
+											}}
+											placeholder={
+												openAIStatus?.authMethod === "api_key"
+													? "Saved OpenAI API key"
+													: "sk-..."
+											}
+											className="font-mono"
+											disabled={isSavingOpenAIConfig}
+										/>
+									}
+									onSave={() => {
+										void saveOpenAIApiKey();
+									}}
+									onClear={() => {
+										void (async () => {
+											try {
+												await clearOpenAIApiKeyMutation.mutateAsync();
+												setOpenAIApiKeyInput("");
+												await refetchOpenAIAuthStatus();
+												toast.success("OpenAI API key cleared");
+											} catch (error) {
+												toast.error(
+													error instanceof Error
+														? error.message
+														: "Failed to clear",
+												);
+											}
+										})();
+									}}
+									disableSave={
+										isSavingOpenAIConfig ||
+										openAIApiKeyInput.trim().length === 0
+									}
+									disableClear={
+										isSavingOpenAIConfig ||
+										openAIStatus?.authMethod !== "api_key"
+									}
+								/>
+							</div>
 						</SettingsSection>
 					) : null}
-
-					<Collapsible open={apiKeysOpen} onOpenChange={setApiKeysOpen}>
-						<div className="space-y-3">
-							<CollapsibleTrigger asChild>
-								<button
-									type="button"
-									className="flex items-center gap-2 text-left text-sm font-semibold"
-								>
-									<HiChevronDown
-										className={`size-4 transition-transform ${apiKeysOpen ? "" : "-rotate-90"}`}
-									/>
-									API Keys
-								</button>
-							</CollapsibleTrigger>
-							<CollapsibleContent className="space-y-3">
-								{showAnthropic ? (
-									<ConfigRow
-										title="Anthropic API Key"
-										field={
-											<Input
-												type="password"
-												value={anthropicApiKeyInput}
-												onChange={(event) => {
-													setAnthropicApiKeyInput(event.target.value);
-												}}
-												placeholder={
-													anthropicStatus?.authMethod === "api_key"
-														? "Saved Anthropic API key"
-														: "sk-ant-..."
-												}
-												className="font-mono"
-												disabled={isSavingAnthropicApiKey}
-											/>
-										}
-										onSave={() => {
-											void saveAnthropicApiKey();
-										}}
-										onClear={() => {
-											const nextForm = { ...anthropicForm, apiKey: "" };
-											void (async () => {
-												try {
-													await clearAnthropicApiKeyMutation.mutateAsync();
-													setAnthropicApiKeyInput("");
-													setAnthropicForm(nextForm);
-													await refetchAnthropicAuthStatus();
-													toast.success("Anthropic API key cleared");
-												} catch (error) {
-													toast.error(
-														error instanceof Error
-															? error.message
-															: "Failed to clear",
-													);
-												}
-											})();
-										}}
-										disableSave={
-											isSavingAnthropicApiKey ||
-											anthropicApiKeyInput.trim().length === 0
-										}
-										disableClear={
-											isSavingAnthropicApiKey ||
-											anthropicStatus?.authMethod !== "api_key"
-										}
-									/>
-								) : null}
-								{showOpenAI ? (
-									<ConfigRow
-										title="OpenAI API Key"
-										field={
-											<Input
-												type="password"
-												value={openAIApiKeyInput}
-												onChange={(event) => {
-													setOpenAIApiKeyInput(event.target.value);
-												}}
-												placeholder={
-													openAIStatus?.authMethod === "api_key"
-														? "Saved OpenAI API key"
-														: "sk-..."
-												}
-												className="font-mono"
-												disabled={isSavingOpenAIConfig}
-											/>
-										}
-										onSave={() => {
-											void saveOpenAIApiKey();
-										}}
-										onClear={() => {
-											void (async () => {
-												try {
-													await clearOpenAIApiKeyMutation.mutateAsync();
-													setOpenAIApiKeyInput("");
-													await refetchOpenAIAuthStatus();
-													toast.success("OpenAI API key cleared");
-												} catch (error) {
-													toast.error(
-														error instanceof Error
-															? error.message
-															: "Failed to clear",
-													);
-												}
-											})();
-										}}
-										disableSave={
-											isSavingOpenAIConfig ||
-											openAIApiKeyInput.trim().length === 0
-										}
-										disableClear={
-											isSavingOpenAIConfig ||
-											openAIStatus?.authMethod !== "api_key"
-										}
-									/>
-								) : null}
-							</CollapsibleContent>
-						</div>
-					</Collapsible>
 
 					{showAnthropic ? (
 						<Collapsible open={overrideOpen} onOpenChange={setOverrideOpen}>
@@ -409,111 +390,113 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 										Override Provider
 									</button>
 								</CollapsibleTrigger>
-								<CollapsibleContent className="space-y-3">
-									<ConfigRow
-										title="API token"
-										description="Anthropic auth token"
-										field={
-											<Input
-												type="password"
-												value={anthropicForm.authToken}
-												onChange={(event) => {
-													setAnthropicForm((current) => ({
-														...current,
-														authToken: event.target.value,
-													}));
-												}}
-												placeholder="sk-ant-..."
-												className="font-mono"
-												disabled={isSavingAnthropicConfig}
-											/>
-										}
-										onSave={() => {
-											void saveAnthropicForm();
-										}}
-										onClear={() => {
-											const nextForm = { ...anthropicForm, authToken: "" };
-											setAnthropicForm(nextForm);
-											void saveAnthropicForm(nextForm);
-										}}
-										disableSave={isSavingAnthropicConfig}
-										disableClear={
-											isSavingAnthropicConfig ||
-											anthropicForm.authToken.length === 0
-										}
-									/>
-									<ConfigRow
-										title="Base URL"
-										description="Custom API base URL"
-										field={
-											<Input
-												value={anthropicForm.baseUrl}
-												onChange={(event) => {
-													setAnthropicForm((current) => ({
-														...current,
-														baseUrl: event.target.value,
-													}));
-												}}
-												placeholder="https://api.anthropic.com"
-												className="font-mono"
-												disabled={isSavingAnthropicConfig}
-											/>
-										}
-										onSave={() => {
-											void saveAnthropicForm();
-										}}
-										onClear={() => {
-											const nextForm = { ...anthropicForm, baseUrl: "" };
-											setAnthropicForm(nextForm);
-											void saveAnthropicForm(nextForm);
-										}}
-										disableSave={isSavingAnthropicConfig}
-										disableClear={
-											isSavingAnthropicConfig ||
-											anthropicForm.baseUrl.length === 0
-										}
-									/>
-									<ConfigRow
-										title="Additional env"
-										description="Extra variables to keep with Anthropic config"
-										field={
-											<Textarea
-												value={anthropicForm.extraEnv}
-												onChange={(event) => {
-													setAnthropicForm((current) => ({
-														...current,
-														extraEnv: event.target.value,
-													}));
-												}}
-												placeholder={
-													"CLAUDE_CODE_USE_BEDROCK=1\nAWS_REGION=us-east-1"
-												}
-												className="min-h-24 font-mono text-xs"
-												disabled={isSavingAnthropicConfig}
-											/>
-										}
-										onSave={() => {
-											void saveAnthropicForm();
-										}}
-										onClear={
-											hasAnthropicConfig
-												? () => {
-														const nextForm = {
-															...anthropicForm,
-															extraEnv: "",
-														};
-														setAnthropicForm(nextForm);
-														void saveAnthropicForm(nextForm);
+								<CollapsibleContent>
+									<div className="divide-y divide-border rounded-xl border bg-card">
+										<ConfigRow
+											title="API token"
+											description="Anthropic auth token"
+											field={
+												<Input
+													type="password"
+													value={anthropicForm.authToken}
+													onChange={(event) => {
+														setAnthropicForm((current) => ({
+															...current,
+															authToken: event.target.value,
+														}));
+													}}
+													placeholder="sk-ant-..."
+													className="font-mono"
+													disabled={isSavingAnthropicConfig}
+												/>
+											}
+											onSave={() => {
+												void saveAnthropicForm();
+											}}
+											onClear={() => {
+												const nextForm = { ...anthropicForm, authToken: "" };
+												setAnthropicForm(nextForm);
+												void saveAnthropicForm(nextForm);
+											}}
+											disableSave={isSavingAnthropicConfig}
+											disableClear={
+												isSavingAnthropicConfig ||
+												anthropicForm.authToken.length === 0
+											}
+										/>
+										<ConfigRow
+											title="Base URL"
+											description="Custom API base URL"
+											field={
+												<Input
+													value={anthropicForm.baseUrl}
+													onChange={(event) => {
+														setAnthropicForm((current) => ({
+															...current,
+															baseUrl: event.target.value,
+														}));
+													}}
+													placeholder="https://api.anthropic.com"
+													className="font-mono"
+													disabled={isSavingAnthropicConfig}
+												/>
+											}
+											onSave={() => {
+												void saveAnthropicForm();
+											}}
+											onClear={() => {
+												const nextForm = { ...anthropicForm, baseUrl: "" };
+												setAnthropicForm(nextForm);
+												void saveAnthropicForm(nextForm);
+											}}
+											disableSave={isSavingAnthropicConfig}
+											disableClear={
+												isSavingAnthropicConfig ||
+												anthropicForm.baseUrl.length === 0
+											}
+										/>
+										<ConfigRow
+											title="Additional env"
+											description="Extra variables to keep with Anthropic config"
+											field={
+												<Textarea
+													value={anthropicForm.extraEnv}
+													onChange={(event) => {
+														setAnthropicForm((current) => ({
+															...current,
+															extraEnv: event.target.value,
+														}));
+													}}
+													placeholder={
+														"CLAUDE_CODE_USE_BEDROCK=1\nAWS_REGION=us-east-1"
 													}
-												: undefined
-										}
-										clearLabel="Clear"
-										disableSave={isSavingAnthropicConfig}
-										disableClear={
-											isSavingAnthropicConfig ||
-											anthropicForm.extraEnv.length === 0
-										}
-									/>
+													className="min-h-24 font-mono text-xs"
+													disabled={isSavingAnthropicConfig}
+												/>
+											}
+											onSave={() => {
+												void saveAnthropicForm();
+											}}
+											onClear={
+												hasAnthropicConfig
+													? () => {
+															const nextForm = {
+																...anthropicForm,
+																extraEnv: "",
+															};
+															setAnthropicForm(nextForm);
+															void saveAnthropicForm(nextForm);
+														}
+													: undefined
+											}
+											clearLabel="Clear"
+											disableSave={isSavingAnthropicConfig}
+											disableClear={
+												isSavingAnthropicConfig ||
+												anthropicForm.extraEnv.length === 0
+											}
+										/>
+									</div>
 								</CollapsibleContent>
 							</div>
 						</Collapsible>
