@@ -10,6 +10,11 @@ interface UseChatDisplayOptions {
 	fps?: number;
 }
 
+const IDLE_POLL_MS = 1000;
+const IDLE_STALE_TIME_MS = 10_000;
+const DISPLAY_GC_TIME_MS = 30_000;
+const MESSAGES_GC_TIME_MS = 60_000;
+
 function toRefetchIntervalMs(fps: number): number {
 	if (!Number.isFinite(fps) || fps <= 0) return Math.floor(1000 / 60);
 	return Math.max(16, Math.floor(1000 / fps));
@@ -114,23 +119,35 @@ export function useChatDisplay(options: UseChatDisplayOptions) {
 		sessionId === null ? undefined : { sessionId, workspaceId };
 	const isQueryEnabled = enabled && Boolean(sessionId);
 	const refetchIntervalMs = toRefetchIntervalMs(fps);
-	const queryOptions = {
-		enabled: isQueryEnabled && queryInput !== undefined,
-		refetchInterval: refetchIntervalMs,
-		refetchIntervalInBackground: true,
-		refetchOnWindowFocus: false,
-		staleTime: 0,
-		gcTime: 0,
-	} as const;
 
 	const displayQuery = workspaceTrpc.chat.getDisplayState.useQuery(
 		queryInput as { sessionId: string; workspaceId: string },
-		queryOptions,
+		{
+			enabled: isQueryEnabled && queryInput !== undefined,
+			refetchInterval: (query) => {
+				const data = query.state.data;
+				if (data?.isRunning) return refetchIntervalMs;
+				return IDLE_POLL_MS;
+			},
+			refetchIntervalInBackground: false,
+			refetchOnWindowFocus: false,
+			staleTime: 100,
+			gcTime: DISPLAY_GC_TIME_MS,
+		},
 	);
+
+	const isRunningForPolling = displayQuery.data?.isRunning ?? false;
 
 	const messagesQuery = workspaceTrpc.chat.listMessages.useQuery(
 		queryInput as { sessionId: string; workspaceId: string },
-		queryOptions,
+		{
+			enabled: isQueryEnabled && queryInput !== undefined,
+			refetchInterval: isRunningForPolling ? refetchIntervalMs : IDLE_POLL_MS,
+			refetchIntervalInBackground: false,
+			refetchOnWindowFocus: false,
+			staleTime: isRunningForPolling ? 0 : IDLE_STALE_TIME_MS,
+			gcTime: MESSAGES_GC_TIME_MS,
+		},
 	);
 
 	const sendMessageMutation = workspaceTrpc.chat.sendMessage.useMutation();
@@ -351,13 +368,15 @@ export function useChatDisplay(options: UseChatDisplayOptions) {
 		],
 	);
 
+	const wasRunningRef = useRef(false);
 	useEffect(() => {
-		if (!queryInput) return;
-		if (!isRunning) return;
-		void Promise.all([
-			utils.chat.getDisplayState.invalidate(queryInput),
-			utils.chat.listMessages.invalidate(queryInput),
-		]);
+		if (wasRunningRef.current && !isRunning && queryInput) {
+			void Promise.all([
+				utils.chat.getDisplayState.invalidate(queryInput),
+				utils.chat.listMessages.invalidate(queryInput),
+			]);
+		}
+		wasRunningRef.current = isRunning;
 	}, [
 		isRunning,
 		queryInput,
