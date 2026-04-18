@@ -240,6 +240,32 @@ export const subscriptions = pgTable(
 export type InsertSubscription = typeof subscriptions.$inferInsert;
 export type SelectSubscription = typeof subscriptions.$inferSelect;
 
+export const referrals = pgTable(
+	"referrals",
+	{
+		id: uuid().primaryKey().defaultRandom(),
+		referrerOrganizationId: uuid("referrer_organization_id")
+			.notNull()
+			.references(() => organizations.id, { onDelete: "cascade" }),
+		refereeUserId: uuid("referee_user_id")
+			.notNull()
+			.unique()
+			.references(() => users.id, { onDelete: "cascade" }),
+		attributedAt: timestamp("attributed_at").notNull().defaultNow(),
+		rewardedAt: timestamp("rewarded_at"),
+		rewardedStripeCustomerId: text("rewarded_stripe_customer_id"),
+		rejectionReason: text("rejection_reason"),
+	},
+	(table) => [
+		index("referrals_referrer_organization_id_idx").on(
+			table.referrerOrganizationId,
+		),
+	],
+);
+
+export type InsertReferral = typeof referrals.$inferInsert;
+export type SelectReferral = typeof referrals.$inferSelect;
+
 // Device presence - tracks online devices for command routing
 export const devicePresence = pgTable(
 	"device_presence",

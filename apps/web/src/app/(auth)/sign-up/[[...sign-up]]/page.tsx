@@ -3,15 +3,32 @@
 import { authClient } from "@superset/auth/client";
 import { Button } from "@superset/ui/button";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { FaGithub } from "react-icons/fa";
 import { FcGoogle } from "react-icons/fc";
 import { env } from "@/env";
 
+function readReferralCookie() {
+	if (typeof document === "undefined") return null;
+	const match = document.cookie.match(/(?:^|; )superset_referral=([^;]+)/);
+	return match?.[1] ? decodeURIComponent(match[1]) : null;
+}
+
+function buildCallbackURL(ref: string | null) {
+	if (!ref) return env.NEXT_PUBLIC_WEB_URL;
+	const url = new URL(env.NEXT_PUBLIC_WEB_URL);
+	url.searchParams.set("ref", ref);
+	return url.toString();
+}
+
 export default function SignUpPage() {
 	const [isLoadingGoogle, setIsLoadingGoogle] = useState(false);
 	const [isLoadingGithub, setIsLoadingGithub] = useState(false);
 	const [error, setError] = useState<string | null>(null);
+	const searchParams = useSearchParams();
+	const referralCode = searchParams.get("ref") ?? readReferralCookie();
+	const callbackURL = buildCallbackURL(referralCode);
 
 	const signUpWithGoogle = async () => {
 		setIsLoadingGoogle(true);
@@ -20,7 +37,7 @@ export default function SignUpPage() {
 		try {
 			await authClient.signIn.social({
 				provider: "google",
-				callbackURL: env.NEXT_PUBLIC_WEB_URL,
+				callbackURL,
 			});
 		} catch (err) {
 			console.error("Sign up failed:", err);
@@ -36,7 +53,7 @@ export default function SignUpPage() {
 		try {
 			await authClient.signIn.social({
 				provider: "github",
-				callbackURL: env.NEXT_PUBLIC_WEB_URL,
+				callbackURL,
 			});
 		} catch (err) {
 			console.error("Sign up failed:", err);

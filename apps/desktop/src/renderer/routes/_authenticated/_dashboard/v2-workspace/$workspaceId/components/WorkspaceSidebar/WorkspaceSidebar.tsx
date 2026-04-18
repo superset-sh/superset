@@ -10,6 +10,7 @@ import { useCollections } from "renderer/routes/_authenticated/providers/Collect
 import { sidebarHeaderTabTriggerClassName } from "renderer/screens/main/components/WorkspaceView/RightSidebar/headerTabStyles";
 import type { CommentPaneData } from "../../types";
 import { FilesTab } from "./components/FilesTab";
+import { ReferralBanner } from "./components/ReferralBanner";
 import { SidebarHeader } from "./components/SidebarHeader";
 import { useChangesTab } from "./hooks/useChangesTab";
 import { useReviewTab } from "./hooks/useReviewTab";
@@ -195,6 +196,7 @@ export function WorkspaceSidebar({
 			<div className="flex min-h-0 flex-1 flex-col">
 				{activeTabDef?.content}
 			</div>
+			<ReferralBanner />
 		</div>
 	);
 }

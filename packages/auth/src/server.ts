@@ -3,7 +3,7 @@ import { expo } from "@better-auth/expo";
 import { oauthProvider } from "@better-auth/oauth-provider";
 import { stripe } from "@better-auth/stripe";
 import { db } from "@superset/db/client";
-import { members, subscriptions } from "@superset/db/schema";
+import { members, referrals, subscriptions } from "@superset/db/schema";
 import type { sessions } from "@superset/db/schema/auth";
 import * as authSchema from "@superset/db/schema/auth";
 import { seedDefaultStatuses } from "@superset/db/seed-default-statuses";
@@ -13,6 +13,8 @@ import { MemberRemovedEmail } from "@superset/email/emails/member-removed";
 import { MemberRemovedBillingEmail } from "@superset/email/emails/member-removed-billing";
 import { OrganizationInvitationEmail } from "@superset/email/emails/organization-invitation";
 import { PaymentFailedEmail } from "@superset/email/emails/payment-failed";
+import { ReferralRewardEmail } from "@superset/email/emails/referral-reward";
+import { ReferralWelcomeEmail } from "@superset/email/emails/referral-welcome";
 import { SubscriptionCancelledEmail } from "@superset/email/emails/subscription-cancelled";
 import { SubscriptionStartedEmail } from "@superset/email/emails/subscription-started";
 import { canInvite, type OrganizationRole } from "@superset/shared/auth";
@@ -22,12 +24,17 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { bearer, customSession, organization } from "better-auth/plugins";
 import { jwt } from "better-auth/plugins/jwt";
-import { and, count, desc, eq, sql } from "drizzle-orm";
+import { and, count, desc, eq, isNull, sql } from "drizzle-orm";
 import type Stripe from "stripe";
 import { env } from "./env";
 import { acceptInvitationEndpoint } from "./lib/accept-invitation-endpoint";
+import {
+	attributeReferral,
+	parseReferralCookie,
+} from "./lib/attribute-referral";
 import { generateMagicTokenForInvite } from "./lib/generate-magic-token";
 import { invitationRateLimit } from "./lib/rate-limit";
+import { captureReferralEvent } from "./lib/referral-analytics";
 import { resend } from "./lib/resend";
 import {
 	resolveSessionOrganizationState,
@@ -39,6 +46,8 @@ import { formatPrice, getOrganizationOwners } from "./utils";
 const qstash = new Client({ token: env.QSTASH_TOKEN });
 
 const NOTIFY_SLACK_URL = `${env.NEXT_PUBLIC_API_URL}/api/integrations/stripe/jobs/notify-slack`;
+
+const PRO_MONTHLY_PRICE_USD_CENTS = 2000;
 const desktopDevPort = process.env.DESKTOP_VITE_PORT || "5173";
 const desktopDevOrigins =
 	process.env.NODE_ENV === "development"
@@ -102,7 +111,7 @@ export const auth = betterAuth({
 	databaseHooks: {
 		user: {
 			create: {
-				after: async (user) => {
+				after: async (user, ctx) => {
 					const domain = user.email.split("@")[1]?.toLowerCase();
 					let enrolledOrgId: string | null = null;
 
@@ -158,6 +167,41 @@ export const auth = betterAuth({
 							.update(authSchema.sessions)
 							.set({ activeOrganizationId: enrolledOrgId })
 							.where(eq(authSchema.sessions.userId, user.id));
+					}
+
+					const cookieHeader =
+						ctx?.context?.request?.headers?.get?.("cookie") ?? null;
+					const referralCode = parseReferralCookie(cookieHeader);
+					if (referralCode) {
+						try {
+							const result = await attributeReferral({
+								refereeUser: { id: user.id, createdAt: user.createdAt },
+								code: referralCode,
+							});
+							if (result.status === "attributed") {
+								const referrerOrg = await db.query.organizations.findFirst({
+									where: eq(
+										authSchema.organizations.id,
+										result.referrerOrganizationId,
+									),
+									columns: { name: true },
+								});
+								await resend.emails.send({
+									from: "Superset <noreply@superset.sh>",
+									to: user.email,
+									subject: "Welcome to Superset — your first month's on us",
+									react: ReferralWelcomeEmail({
+										refereeName: user.name,
+										referrerOrganizationName: referrerOrg?.name ?? "a friend",
+									}),
+								});
+							}
+						} catch (error) {
+							console.error(
+								"[referral] Failed to attribute via user-create hook:",
+								error,
+							);
+						}
 					}
 				},
 			},
@@ -666,14 +710,45 @@ export const auth = betterAuth({
 						),
 					});
 
+					const pendingReferral = await db.query.referrals.findFirst({
+						where: and(
+							eq(referrals.refereeUserId, user.id),
+							isNull(referrals.rewardedAt),
+						),
+						columns: { id: true, referrerOrganizationId: true },
+					});
+
+					const hasUnusedReferralTrial =
+						pendingReferral != null &&
+						pendingReferral.referrerOrganizationId !== org?.id;
+
+					if (hasUnusedReferralTrial && pendingReferral) {
+						captureReferralEvent({
+							name: "referral_checkout_trialed",
+							distinctId: user.id,
+							properties: {
+								referee_user_id: user.id,
+								referral_id: pendingReferral.id,
+								referrer_organization_id:
+									pendingReferral.referrerOrganizationId,
+							},
+						});
+					}
+
 					return {
 						params: {
 							customer: org?.stripeCustomerId ?? undefined,
 							allow_promotion_codes: true,
 							billing_address_collection: "required",
+							...(hasUnusedReferralTrial && {
+								subscription_data: { trial_period_days: 30 },
+							}),
 							metadata: {
 								organizationId: org?.id ?? "",
 								initiatedByUserId: user.id,
+								...(hasUnusedReferralTrial && {
+									referralId: pendingReferral.id,
+								}),
 							},
 						},
 					};
@@ -884,6 +959,8 @@ export const auth = betterAuth({
 								);
 							}
 						}
+
+						await maybeIssueReferralReward(invoice);
 					}
 
 					if (event.type === "customer.subscription.updated") {
@@ -929,4 +1006,127 @@ export const auth = betterAuth({
 });
 
 export type Session = typeof auth.$Infer.Session;
+
+async function maybeIssueReferralReward(invoice: Stripe.Invoice) {
+	const billingReason = invoice.billing_reason;
+	if (
+		billingReason !== "subscription_cycle" &&
+		billingReason !== "subscription_create"
+	) {
+		return;
+	}
+	if (invoice.amount_paid <= 0) return;
+
+	const totalDiscount = (invoice.total_discount_amounts ?? []).reduce(
+		(sum, discount) => sum + discount.amount,
+		0,
+	);
+	if (totalDiscount >= invoice.total) return;
+
+	const payingCustomerId =
+		typeof invoice.customer === "string"
+			? invoice.customer
+			: invoice.customer?.id;
+	if (!payingCustomerId) return;
+
+	const payingOrganization = await db.query.organizations.findFirst({
+		where: eq(authSchema.organizations.stripeCustomerId, payingCustomerId),
+		columns: { id: true },
+	});
+	if (!payingOrganization) return;
+
+	const payingMemberIds = await db.query.members.findMany({
+		where: eq(authSchema.members.organizationId, payingOrganization.id),
+		columns: { userId: true },
+	});
+	if (payingMemberIds.length === 0) return;
+
+	const referral = await db.query.referrals.findFirst({
+		where: and(
+			isNull(referrals.rewardedAt),
+			sql`${referrals.refereeUserId} IN (${sql.join(
+				payingMemberIds.map((m) => sql`${m.userId}`),
+				sql`, `,
+			)})`,
+		),
+	});
+	if (!referral) return;
+
+	if (referral.referrerOrganizationId === payingOrganization.id) {
+		await db
+			.update(referrals)
+			.set({ rejectionReason: "same-org" })
+			.where(eq(referrals.id, referral.id));
+		return;
+	}
+
+	const referrerOrganization = await db.query.organizations.findFirst({
+		where: eq(authSchema.organizations.id, referral.referrerOrganizationId),
+		columns: { id: true, name: true, stripeCustomerId: true },
+	});
+	if (!referrerOrganization?.stripeCustomerId) return;
+
+	try {
+		await stripeClient.customers.createBalanceTransaction(
+			referrerOrganization.stripeCustomerId,
+			{
+				amount: -PRO_MONTHLY_PRICE_USD_CENTS,
+				currency: "usd",
+				description: `Referral reward — ${referral.id}`,
+				metadata: { referralId: referral.id },
+			},
+		);
+	} catch (error) {
+		console.error("[referral] Failed to issue Stripe balance credit:", error);
+		return;
+	}
+
+	await db
+		.update(referrals)
+		.set({
+			rewardedAt: new Date(),
+			rewardedStripeCustomerId: referrerOrganization.stripeCustomerId,
+		})
+		.where(eq(referrals.id, referral.id));
+
+	captureReferralEvent({
+		name: "referral_rewarded",
+		distinctId: referrerOrganization.id,
+		properties: {
+			referrer_organization_id: referrerOrganization.id,
+			referee_user_id: referral.refereeUserId,
+			amount_cents: PRO_MONTHLY_PRICE_USD_CENTS,
+			stripe_customer_id: referrerOrganization.stripeCustomerId,
+		},
+	});
+
+	try {
+		const refereeUser = await db.query.users.findFirst({
+			where: eq(authSchema.users.id, referral.refereeUserId),
+			columns: { name: true },
+		});
+		const owners = await getOrganizationOwners(referrerOrganization.id);
+		if (owners.length > 0) {
+			const rewardAmount = formatPrice(PRO_MONTHLY_PRICE_USD_CENTS, "usd");
+			await resend.batch.send(
+				owners.map((owner) => ({
+					from: "Superset <noreply@superset.sh>",
+					to: owner.email,
+					subject: "You earned a free month of Superset",
+					react: ReferralRewardEmail({
+						ownerName: owner.name,
+						organizationName: referrerOrganization.name,
+						rewardAmount,
+						refereeName: refereeUser?.name,
+					}),
+				})),
+			);
+		}
+	} catch (error) {
+		console.error(
+			"[referral] Failed to send reward email (credit already issued):",
+			error,
+		);
+	}
+}
 export type User = typeof auth.$Infer.Session.user;

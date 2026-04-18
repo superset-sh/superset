@@ -9,6 +9,7 @@ import {
 	uniqueIndex,
 	uuid,
 } from "drizzle-orm/pg-core";
+import { nanoid } from "nanoid";
 
 export const authSchema = pgSchema("auth");
 
@@ -100,6 +101,10 @@ export const organizations = authSchema.table(
 		metadata: text("metadata"),
 		stripeCustomerId: text("stripe_customer_id"),
 		allowedDomains: text("allowed_domains").array().default([]).notNull(),
+		referralCode: text("referral_code")
+			.notNull()
+			.unique()
+			.$defaultFn(() => nanoid(10)),
 	},
 	(table) => [
 		uniqueIndex("organizations_slug_idx").on(table.slug),
