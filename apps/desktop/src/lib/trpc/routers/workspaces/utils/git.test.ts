@@ -441,6 +441,89 @@ describe("createWorktree hook tolerance", () => {
 			createWorktree(repoPath, "feature/existing-path", worktreePath, "HEAD"),
 		).rejects.toThrow("already exists");
 	}, 10_000);
+
+	test("works with remote-tracking ref as start point (no-track prevents upstream)", async () => {
+		// Set up a "remote" repo with a commit, then clone it so we have origin/<branch> refs
+		const originPath = join(TEST_DIR, "worktree-notrack-origin");
+		mkdirSync(originPath, { recursive: true });
+		execSync("git init -b main", { cwd: originPath, stdio: "ignore" });
+		execSync("git config user.email 'test@test.com'", {
+			cwd: originPath,
+			stdio: "ignore",
+		});
+		execSync("git config user.name 'Test'", {
+			cwd: originPath,
+			stdio: "ignore",
+		});
+		writeFileSync(join(originPath, "README.md"), "# test\n");
+		execSync("git add . && git commit -m 'init'", {
+			cwd: originPath,
+			stdio: "ignore",
+		});
+
+		const clonePath = join(TEST_DIR, "worktree-notrack-clone");
+		execSync(`git clone "${originPath}" "${clonePath}"`, {
+			stdio: "ignore",
+		});
+		execSync("git config user.email 'test@test.com'", {
+			cwd: clonePath,
+			stdio: "ignore",
+		});
+		execSync("git config user.name 'Test'", {
+			cwd: clonePath,
+			stdio: "ignore",
+		});
+
+		const worktreePath = join(TEST_DIR, "worktree-notrack-wt");
+		await createWorktree(
+			clonePath,
+			"feature/no-track-test",
+			worktreePath,
+			"origin/main",
+		);
+
+		expect(existsSync(worktreePath)).toBe(true);
+
+		// Verify the new branch does NOT track origin/main
+		const trackingResult = execSync(
+			"git config --get branch.feature/no-track-test.remote 2>&1 || true",
+			{ cwd: worktreePath },
+		)
+			.toString()
+			.trim();
+		expect(trackingResult).toBe("");
+	}, 15_000);
+
+	test("works with a branch name containing slashes as start point", async () => {
+		// Reproduces #3448: createWorktree previously appended ^{commit} to the
+		// start point, which can fail with "fatal: invalid reference" when the ref
+		// is not locally resolvable with that suffix. Using --no-track avoids this.
+		const repoPath = createTestRepo("worktree-slash-branch");
+		seedCommit(repoPath);
+
+		// Create a branch with slashes (like feat/workstreams-view)
+		execSync("git checkout -b feat/workstreams-view", {
+			cwd: repoPath,
+			stdio: "ignore",
+		});
+		execSync("git checkout -", { cwd: repoPath, stdio: "ignore" });
+
+		const worktreePath = join(TEST_DIR, "worktree-slash-branch-wt");
+		await createWorktree(
+			repoPath,
+			"feature/new-workspace",
+			worktreePath,
+			"feat/workstreams-view",
+		);
+
+		expect(existsSync(worktreePath)).toBe(true);
+		const currentBranch = execSync("git rev-parse --abbrev-ref HEAD", {
+			cwd: worktreePath,
+		})
+			.toString()
+			.trim();
+		expect(currentBranch).toBe("feature/new-workspace");
+	}, 10_000);
 });
 
 describe("getCurrentBranch", () => {
