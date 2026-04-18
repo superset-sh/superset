@@ -56,32 +56,11 @@ export function ProductDemo({ scrollYProgress }: ProductDemoProps) {
 		[containerWidth || 1, constrainedWidth || 1],
 	);
 
-	// Pills start hidden behind the mockup, then peek up past its top edge as the user scrolls
-	const pillsY = useTransform(
-		scrollYProgress,
-		[0, 1],
-		[0, isMobile ? -20 : -32],
-	);
 	return (
 		<div ref={containerRef} className="relative w-full max-w-full">
-			{/* Selector pills - behind mockup, emerge from its top edge on scroll */}
+			{/* Mockup with scroll-driven scale */}
 			<motion.div
-				className="absolute inset-x-0 top-0 z-0 flex items-center gap-2 px-4 sm:px-0 sm:justify-center overflow-x-auto scrollbar-hide"
-				style={{ y: pillsY, willChange: "transform" }}
-			>
-				{DEMO_OPTIONS.map((option) => (
-					<SelectorPill
-						key={option.label}
-						label={option.label}
-						active={activeOption === option.label}
-						onSelect={() => setActiveOption(option.label as ActiveDemo)}
-					/>
-				))}
-			</motion.div>
-
-			{/* Mockup with scroll-driven scale - stacks above pills */}
-			<motion.div
-				className="relative z-10 mx-auto w-full"
+				className="relative mx-auto w-full"
 				style={{
 					scale,
 					willChange: "transform",
@@ -96,6 +75,18 @@ export function ProductDemo({ scrollYProgress }: ProductDemoProps) {
 					</div>
 				</div>
 			</motion.div>
+
+			{/* Selector pills - directly below mockup */}
+			<div className="mt-4 flex items-center gap-2 px-4 sm:px-0 sm:justify-center">
+				{DEMO_OPTIONS.map((option) => (
+					<SelectorPill
+						key={option.label}
+						label={option.label}
+						active={activeOption === option.label}
+						onSelect={() => setActiveOption(option.label as ActiveDemo)}
+					/>
+				))}
+			</div>
 		</div>
 	);
 }

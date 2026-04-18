@@ -98,6 +98,7 @@ export const TESTIMONIALS: Testimonial[] = [
 			"试了各种 GUI 的 git worktree + agent 工具，Conductor、Vibe Kanban、Agentastic、Crystal、FleetCode、Emdash、Sculptor，还是 Superset 最合我的胃口",
 		author: "Iven",
 		handle: "@ivenvd",
+		role: "Engineer at Paraflow",
 		avatar: "https://unavatar.io/twitter/ivenvd",
 		url: "https://x.com/ivenvd/status/2011738469610242559",
 	},

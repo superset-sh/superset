@@ -37,13 +37,16 @@ export function HeroSection() {
 								<span className="absolute inset-0">
 									<TypewriterText
 										segments={[
-											{ text: "The Code Editor for " },
+											{
+												text: "The Code Editor for ",
+												style: { fontWeight: 500 },
+											},
 											{
 												text: "AI Agents.",
 												style: {
-													fontFamily: "var(--font-geist-pixel-grid)",
-													fontSize: "1.15em",
-													color: "var(--brand-light)",
+													fontWeight: 500,
+													fontFamily:
+														'"lo-res-21-ot-serif", var(--font-pixel), monospace',
 												},
 											},
 										]}
@@ -53,8 +56,8 @@ export function HeroSection() {
 								</span>
 							</h1>
 							<p className="text-base sm:text-xl font-light text-muted-foreground max-w-4xl mx-auto">
-								Orchestrate swarms of Claude Code, Codex, etc. in parallel.
-								Works for any agents. Built for the AI era.
+								Orchestrate 100+ coding agents in parallel. Works for any
+								agents. Built for the AI era.
 							</p>
 						</div>
 
