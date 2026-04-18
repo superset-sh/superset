@@ -37,16 +37,11 @@ export function HeroSection() {
 								<span className="absolute inset-0">
 									<TypewriterText
 										segments={[
-											{
-												text: "The Code Editor for ",
-												style: { fontWeight: 500 },
-											},
+											{ text: "The Code Editor for " },
 											{
 												text: "AI Agents.",
 												style: {
-													fontWeight: 500,
-													fontFamily:
-														'"lo-res-21-ot-serif", var(--font-pixel), monospace',
+													fontFamily: "var(--font-geist-pixel-grid)",
 												},
 											},
 										]}
