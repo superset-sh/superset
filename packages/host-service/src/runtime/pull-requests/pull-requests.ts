@@ -4,8 +4,8 @@ import { and, eq, inArray } from "drizzle-orm";
 import type { HostDb } from "../../db";
 import { projects, pullRequests, workspaces } from "../../db/schema";
 import type { GitFactory } from "../git";
+import { parseGitHubRemote } from "@superset/shared/github-remote";
 import { fetchRepositoryPullRequests } from "./utils/github-query";
-import { parseGitHubRemote } from "./utils/parse-github-remote";
 import {
 	type ChecksStatus,
 	coerceChecksStatus,

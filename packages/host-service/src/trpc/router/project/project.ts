@@ -5,7 +5,7 @@ import { eq } from "drizzle-orm";
 import simpleGit from "simple-git";
 import { z } from "zod";
 import { projects, workspaces } from "../../../db/schema";
-import { parseGitHubRemote } from "../../../runtime/pull-requests/utils/parse-github-remote";
+import { parseGitHubRemote } from "@superset/shared/github-remote";
 import { protectedProcedure, router } from "../../index";
 import {
 	findMatchingRemote,
