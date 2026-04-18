@@ -16,7 +16,6 @@ import type React from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ChatInputFooter } from "renderer/components/Chat/ChatInterface/components/ChatInputFooter";
 import { useSlashCommandExecutor } from "renderer/components/Chat/ChatInterface/hooks/useSlashCommandExecutor";
-import type { SlashCommand } from "renderer/components/Chat/ChatInterface/hooks/useSlashCommands";
 import type {
 	ModelOption,
 	PermissionMode,
@@ -836,14 +835,6 @@ export function ChatPaneInterface({
 		[stopActiveResponse],
 	);
 
-	const handleSlashCommandSend = useCallback(
-		(command: SlashCommand) => {
-			void handleSend({ content: `/${command.name}` }).catch((error) => {
-				console.debug("[chat] handleSlashCommandSend error", error);
-			});
-		},
-		[handleSend],
-	);
 	const restartFromUserMessage = useCallback(
 		async (
 			request: UserMessageRestartRequest,
@@ -998,7 +989,7 @@ export function ChatPaneInterface({
 			} catch (error) {
 				// Roll back optimistic UI if the RPC fails
 				setAnsweredQuestionId(null);
-				useTabsStore.getState().setPaneStatus(paneId, "question");
+				useTabsStore.getState().setPaneStatus(paneId, "permission");
 				throw error;
 			} finally {
 				setQuestionResponsePending(false);
@@ -1069,7 +1060,6 @@ export function ChatPaneInterface({
 					onSend={handleSend}
 					onSubmitStart={() => setSubmitStatus("submitted")}
 					onStop={handleStop}
-					onSlashCommandSend={handleSlashCommandSend}
 					pendingQuestion={
 						pendingQuestion?.questionId === answeredQuestionId
 							? null

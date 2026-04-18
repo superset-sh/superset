@@ -219,13 +219,11 @@ export function SubagentInnerToolCall({
 	const hasResult = result !== null && result.trim().length > 0;
 
 	// Read file: parse and display using the shared ReadFileTool component
-	const parsedReadFile = useMemo(
-		() =>
-			normalized === "mastra_workspace_read_file" && hasResult
-				? parseReadFileResult(result!)
-				: null,
-		[normalized, hasResult, result],
-	);
+	const parsedReadFile = useMemo(() => {
+		if (normalized !== "mastra_workspace_read_file") return null;
+		if (result === null || result.trim().length === 0) return null;
+		return parseReadFileResult(result);
+	}, [normalized, result]);
 
 	if (normalized === "mastra_workspace_execute_command") {
 		const argsRecord = args ?? {};

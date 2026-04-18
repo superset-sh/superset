@@ -31,6 +31,7 @@ export function ClickableFilePath({
 	}
 
 	return (
+		// biome-ignore lint/a11y/useSemanticElements: must be a span so it can safely nest inside a <button> (CollapsibleTrigger) — see component doc comment
 		<span
 			role="button"
 			tabIndex={0}
