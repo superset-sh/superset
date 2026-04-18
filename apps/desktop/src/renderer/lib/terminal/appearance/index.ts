@@ -88,7 +88,6 @@ function parseFontFamilyList(cssValue: string): string[] {
 	return families;
 }
 
-// Cache monospace checks so we don't hit the canvas on every render.
 const monospaceCheckCache = new Map<string, boolean>();
 
 /**
@@ -156,11 +155,20 @@ export function sanitizeTerminalFontFamily(
 		return DEFAULT_TERMINAL_FONT_FAMILY;
 	}
 
-	if (isFontFamilyMonospace(primary)) return cssValue;
-	console.warn(
-		`[terminal] Font "${primary}" is not monospace; falling back to default terminal font.`,
+	if (!isFontFamilyMonospace(primary)) {
+		console.warn(
+			`[terminal] Font "${primary}" is not monospace; falling back to default terminal font.`,
+		);
+		return DEFAULT_TERMINAL_FONT_FAMILY;
+	}
+	// Ensure a generic monospace tail — if the configured primary isn't
+	// installed on this machine, the browser falls back to the OS monospace
+	// generic instead of a proportional default (mirrors VS Code's behavior
+	// in src/vs/workbench/contrib/terminal/browser/terminalConfigurationService.ts).
+	const hasMonoTail = families.some((f) =>
+		MONOSPACE_GENERIC_FAMILIES.has(f.toLowerCase()),
 	);
-	return DEFAULT_TERMINAL_FONT_FAMILY;
+	return hasMonoTail ? cssValue : `${cssValue}, monospace`;
 }
 
 /** Reads localStorage theme cache for flash-free first paint. */

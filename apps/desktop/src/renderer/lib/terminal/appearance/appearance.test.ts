@@ -73,8 +73,6 @@ describe("sanitizeTerminalFontFamily", () => {
 	});
 
 	test("falls back for proportional generic families", () => {
-		// No primary concrete family to measure, and the stack isn't all-mono —
-		// pre-regression these slipped through and could still blank the terminal.
 		expect(sanitizeTerminalFontFamily("sans-serif")).toBe(
 			DEFAULT_TERMINAL_FONT_FAMILY,
 		);
@@ -89,11 +87,21 @@ describe("sanitizeTerminalFontFamily", () => {
 		);
 	});
 
-	test("passes a monospace font through (canvas reports equal widths)", () => {
+	test("passes a monospace font through when the stack already ends with monospace", () => {
 		restore = stubCanvas(() => equalWidths);
 		expect(sanitizeTerminalFontFamily('"JetBrains Mono", monospace')).toBe(
 			'"JetBrains Mono", monospace',
 		);
+	});
+
+	test("appends a monospace fallback when the stack lacks one", () => {
+		// If the primary isn't installed, the browser otherwise falls back to a
+		// proportional default — appending "monospace" forces OS monospace.
+		restore = stubCanvas(() => equalWidths);
+		expect(sanitizeTerminalFontFamily('"JetBrains Mono"')).toBe(
+			'"JetBrains Mono", monospace',
+		);
+		expect(sanitizeTerminalFontFamily("Menlo")).toBe("Menlo, monospace");
 	});
 
 	test("falls back to default for a proportional primary family (quoted)", () => {
@@ -117,7 +125,7 @@ describe("sanitizeTerminalFontFamily", () => {
 		// Use a unique family so the module-level monospace cache doesn't mask
 		// the canvas error path.
 		expect(sanitizeTerminalFontFamily('"UnmeasurableFont-ABC-123"')).toBe(
-			'"UnmeasurableFont-ABC-123"',
+			'"UnmeasurableFont-ABC-123", monospace',
 		);
 	});
 });
