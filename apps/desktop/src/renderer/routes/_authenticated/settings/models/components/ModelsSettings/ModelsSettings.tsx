@@ -6,6 +6,7 @@ import {
 	CollapsibleContent,
 	CollapsibleTrigger,
 } from "@superset/ui/collapsible";
+import { claudeIcon } from "@superset/ui/icons/preset-icons";
 import { Input } from "@superset/ui/input";
 import { toast } from "@superset/ui/sonner";
 import { Textarea } from "@superset/ui/textarea";
@@ -226,7 +227,10 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 
 				<div className="space-y-8">
 					{showAnthropic ? (
-						<SettingsSection title="Anthropic">
+						<SettingsSection
+							title="Anthropic"
+							icon={<img alt="Claude" className="size-5" src={claudeIcon} />}
+						>
 							<div className="divide-y divide-border rounded-xl border bg-card">
 								<div className="flex items-center justify-between gap-4 px-4 py-3">
 									<div className="flex items-center gap-2">
@@ -304,7 +308,16 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 					) : null}
 
 					{showOpenAI ? (
-						<SettingsSection title="OpenAI">
+						<SettingsSection
+							title="OpenAI"
+							icon={
+								<img
+									alt="OpenAI"
+									className="size-5 dark:invert"
+									src="https://models.dev/logos/openai.svg"
+								/>
+							}
+						>
 							<div className="divide-y divide-border rounded-xl border bg-card">
 								<div className="flex items-center justify-between gap-4 px-4 py-3">
 									<div className="flex items-center gap-2">
