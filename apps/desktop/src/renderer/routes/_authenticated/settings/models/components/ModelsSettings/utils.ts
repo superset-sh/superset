@@ -84,7 +84,7 @@ export function getProviderSubtitle(
 		return status.issue.message;
 	}
 	if (!status || status.connectionState === "disconnected") {
-		return "Connect via OAuth or API key";
+		return "";
 	}
 	if (status.source === "external" && status.authMethod === "oauth") {
 		return EXTERNAL_OAUTH_LABELS[providerId];
