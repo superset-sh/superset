@@ -2,7 +2,9 @@ import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 import type { HostServiceContext } from "../types";
 import {
+	isProjectNotSetupCause,
 	isTeardownFailureCause,
+	type ProjectNotSetupCause,
 	type TeardownFailureCause,
 } from "./error-types";
 
@@ -24,11 +26,19 @@ const t = initTRPC.context<HostServiceContext>().create({
 						outputTail: error.cause.outputTail,
 					}
 				: undefined;
+		const projectNotSetup: ProjectNotSetupCause | undefined =
+			isProjectNotSetupCause(error.cause)
+				? {
+						kind: "PROJECT_NOT_SETUP",
+						projectId: error.cause.projectId,
+					}
+				: undefined;
 		return {
 			...shape,
 			data: {
 				...shape.data,
 				teardownFailure,
+				projectNotSetup,
 			},
 		};
 	},
@@ -47,5 +57,8 @@ export const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
 	return next({ ctx });
 });
 
-export type { TeardownFailureCause } from "./error-types";
+export type {
+	ProjectNotSetupCause,
+	TeardownFailureCause,
+} from "./error-types";
 export type { AppRouter } from "./router";
