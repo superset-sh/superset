@@ -66,7 +66,7 @@ export const TESTIMONIALS: Testimonial[] = [
 			"If you prefer a more GUI-oriented approach to multiple agents in parallel, it seems like @superset_sh is doing a tremendous job.",
 		author: "Felipe Coury",
 		handle: "@fcoury",
-		role: "Co-founder & CTO at Gistia",
+		role: "Codex at OpenAI",
 		avatar: "https://unavatar.io/twitter/fcoury",
 		url: "https://x.com/fcoury/status/2010477904472281220",
 	},
