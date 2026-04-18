@@ -214,6 +214,7 @@ export function ChatInputFooter({
 								<TiptapPromptEditor
 									cwd={cwd}
 									slashCommands={slashCommands}
+									availableModels={availableModels}
 									placeholder="Ask to make changes, @mention files, run /commands"
 								/>
 								<ChatComposerControls

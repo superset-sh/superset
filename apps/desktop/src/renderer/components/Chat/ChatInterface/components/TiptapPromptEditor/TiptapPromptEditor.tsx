@@ -36,6 +36,7 @@ import {
 	shouldSuppressSlashMenuForCommittedCommand,
 	sortSlashCommandMatches,
 } from "../../hooks/useSlashCommands";
+import type { ModelOption } from "../../types";
 import { SlashCommandMenu } from "../SlashCommandMenu";
 import { FileMentionNode } from "./FileMentionNode";
 import { parseTextToEditorContent } from "./parseTextToEditorContent";
@@ -61,6 +62,7 @@ type MentionState = {
 export interface TiptapPromptEditorProps {
 	cwd: string;
 	slashCommands: SlashCommand[];
+	availableModels?: ModelOption[];
 	placeholder?: string;
 	className?: string;
 	focusShortcutText?: string;
@@ -75,6 +77,7 @@ function getDirectoryPath(relativePath: string): string {
 export function TiptapPromptEditor({
 	cwd,
 	slashCommands,
+	availableModels,
 	placeholder = "Ask to make changes, @mention files, run /commands",
 	className,
 	focusShortcutText,
@@ -85,6 +88,8 @@ export function TiptapPromptEditor({
 	// Stable refs to avoid stale closures in Tiptap extension callbacks
 	const slashCommandsRef = useRef(slashCommands);
 	slashCommandsRef.current = slashCommands;
+	const availableModelsRef = useRef(availableModels);
+	availableModelsRef.current = availableModels;
 	const attachmentsRef = useRef(attachments);
 	attachmentsRef.current = attachments;
 	const controllerRef = useRef(controller);
@@ -98,6 +103,11 @@ export function TiptapPromptEditor({
 
 	// Track editor focus to show/hide the keyboard shortcut hint
 	const [isFocused, setIsFocused] = useState(false);
+
+	// ── Chip interaction state (drives SlashCommandPreviewPopover visibility) ──
+	const [chipHovered, setChipHovered] = useState(false);
+	const [_chipArgFocused, setChipArgFocused] = useState(false);
+	const [chipNodeSelected, setChipNodeSelected] = useState(false);
 
 	// ── Slash command suggestion state ──────────────────────────────────────
 	const [slashMenu, setSlashMenu] = useState<SlashMenuState | null>(null);
@@ -364,11 +374,20 @@ export function TiptapPromptEditor({
 							}) {
 								// Insert the chip; the chip's input auto-focuses so the
 								// user can type arguments directly inside it.
+								const cmd = props.cmd;
+								const argumentOptions =
+									cmd.action?.type === "set_model"
+										? (availableModelsRef.current?.map((m) => m.name) ?? [])
+										: [];
 								ed.chain()
 									.deleteRange(range)
 									.insertContentAt(range.from, {
 										type: "slash-command",
-										attrs: { name: props.cmd.name },
+										attrs: {
+											name: cmd.name,
+											argumentHint: cmd.argumentHint,
+											argumentOptions,
+										},
 									})
 									.run();
 							},
@@ -576,6 +595,20 @@ export function TiptapPromptEditor({
 		};
 	}, [controller, editor]);
 
+	// Track chip node selection via ProseMirror transactions
+	useEffect(() => {
+		if (!editor) return;
+		const update = () => {
+			const { selection } = editor.state;
+			const node = (selection as { node?: { type: { name: string } } }).node;
+			setChipNodeSelected(node?.type?.name === "slash-command");
+		};
+		editor.on("selectionUpdate", update);
+		return () => {
+			editor.off("selectionUpdate", update);
+		};
+	}, [editor]);
+
 	// Sync external controller.textInput.value changes → editor
 	// e.g. when SlashCommandPreview.handleFieldChange sets a param value
 	useEffect(() => {
@@ -607,20 +640,58 @@ export function TiptapPromptEditor({
 					cwd={cwd}
 					slashCommands={slashCommands}
 					editor={editor}
-					isFocused={isFocused}
+					isFocused={chipHovered || chipNodeSelected}
 				/>
 			)}
 
 			{/* Slash command menu popover — anchored to the full editor div */}
 			<Popover open={isSlashOpen && isFocused}>
 				<PopoverAnchor asChild>
+					{/* biome-ignore lint/a11y/noStaticElementInteractions: event delegation pattern for chip hover/focus detection */}
 					<div
+						role="presentation"
 						className={cn(
 							"relative w-full overflow-y-auto px-3 py-3 text-sm",
 							"min-h-10 max-h-48",
 							focusShortcutText && !isFocused && "pr-20",
 							className,
 						)}
+						onMouseOver={(e) => {
+							if (
+								(e.target as Element).closest(
+									"[data-node-type='slash-command']",
+								)
+							) {
+								setChipHovered(true);
+							}
+						}}
+						onMouseOut={(e) => {
+							if (
+								!(e.relatedTarget as Element | null)?.closest(
+									"[data-node-type='slash-command']",
+								)
+							) {
+								setChipHovered(false);
+							}
+						}}
+						onFocus={(e) => {
+							if (
+								(e.target as Element).closest(
+									"[data-node-type='slash-command']",
+								)
+							) {
+								setChipArgFocused(true);
+							}
+						}}
+						onBlur={(e) => {
+							if (
+								!(e.relatedTarget as Element | null)?.closest(
+									"[data-node-type='slash-command']",
+								)
+							) {
+								setChipArgFocused(false);
+							}
+						}}
 					>
 						{focusShortcutText && !isFocused && (
 							<span className="pointer-events-none absolute top-0 right-3 flex h-full items-center text-xs text-muted-foreground/50">
