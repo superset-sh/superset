@@ -1,4 +1,5 @@
 import { chatServiceTrpc } from "@superset/chat/client";
+import { Badge } from "@superset/ui/badge";
 import { Button } from "@superset/ui/button";
 import {
 	Collapsible,
@@ -19,7 +20,6 @@ import {
 	SETTING_ITEM_ID,
 	type SettingItemId,
 } from "../../../utils/settings-search";
-import { AccountCard } from "./components/AccountCard";
 import { ConfigRow } from "./components/ConfigRow";
 import { SettingsSection } from "./components/SettingsSection";
 import {
@@ -229,13 +229,19 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 					{showAnthropic ? (
 						<SettingsSection title="Anthropic">
 							<div className="divide-y divide-border rounded-xl border bg-card">
-								<AccountCard
-									title="Claude"
-									subtitle={anthropicSubtitle}
-									badge={anthropicBadge?.label}
-									badgeVariant={anthropicBadge?.variant}
-									muted={anthropicStatus?.connectionState !== "connected"}
-									actions={renderProviderAction({
+								<div className="flex items-center justify-between gap-4 px-4 py-3">
+									<div className="flex items-center gap-2">
+										<p className="text-sm font-semibold">OAuth</p>
+										<span className="text-xs text-muted-foreground">
+											{anthropicSubtitle}
+										</span>
+										{anthropicBadge ? (
+											<Badge variant={anthropicBadge.variant}>
+												{anthropicBadge.label}
+											</Badge>
+										) : null}
+									</div>
+									{renderProviderAction({
 										status: anthropicStatus,
 										startOAuth: startAnthropicOAuth,
 										isStartingOAuth: isStartingAnthropicOAuth,
@@ -249,7 +255,7 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 											await refetchAnthropicAuthStatus();
 										},
 									})}
-								/>
+								</div>
 								<ConfigRow
 									title="API Key"
 									field={
@@ -305,13 +311,19 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 					{showOpenAI ? (
 						<SettingsSection title="OpenAI">
 							<div className="divide-y divide-border rounded-xl border bg-card">
-								<AccountCard
-									title="ChatGPT"
-									subtitle={openAISubtitle}
-									badge={openAIBadge?.label}
-									badgeVariant={openAIBadge?.variant}
-									muted={openAIStatus?.connectionState !== "connected"}
-									actions={renderProviderAction({
+								<div className="flex items-center justify-between gap-4 px-4 py-3">
+									<div className="flex items-center gap-2">
+										<p className="text-sm font-semibold">OAuth</p>
+										<span className="text-xs text-muted-foreground">
+											{openAISubtitle}
+										</span>
+										{openAIBadge ? (
+											<Badge variant={openAIBadge.variant}>
+												{openAIBadge.label}
+											</Badge>
+										) : null}
+									</div>
+									{renderProviderAction({
 										status: openAIStatus,
 										startOAuth: startOpenAIOAuth,
 										isStartingOAuth: isStartingOpenAIOAuth,
@@ -325,7 +337,7 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 											await refetchOpenAIAuthStatus();
 										},
 									})}
-								/>
+								</div>
 								<ConfigRow
 									title="API Key"
 									field={
