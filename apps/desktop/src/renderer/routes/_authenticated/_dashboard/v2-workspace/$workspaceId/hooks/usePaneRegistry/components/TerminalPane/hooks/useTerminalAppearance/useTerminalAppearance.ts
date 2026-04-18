@@ -1,9 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 import {
-	DEFAULT_TERMINAL_FONT_FAMILY,
 	DEFAULT_TERMINAL_FONT_SIZE,
 	getDefaultTerminalAppearance,
+	sanitizeTerminalFontFamily,
 	type TerminalAppearance,
 } from "renderer/lib/terminal/appearance";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
@@ -21,8 +21,9 @@ export function useTerminalAppearance(): TerminalAppearance {
 
 	return useMemo(() => {
 		const theme = terminalTheme ?? fallbackTheme;
-		const fontFamily =
-			fontSettings?.terminalFontFamily || DEFAULT_TERMINAL_FONT_FAMILY;
+		const fontFamily = sanitizeTerminalFontFamily(
+			fontSettings?.terminalFontFamily,
+		);
 		const fontSize =
 			fontSettings?.terminalFontSize ?? DEFAULT_TERMINAL_FONT_SIZE;
 

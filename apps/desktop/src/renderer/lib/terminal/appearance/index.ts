@@ -61,6 +61,94 @@ export const DEFAULT_TERMINAL_FONT_FAMILY = serializeFontFamilyList([
 
 export const DEFAULT_TERMINAL_FONT_SIZE = 14;
 
+/**
+ * Extract the first concrete (non-generic) family from a CSS font-family list.
+ * Returns `null` when every entry is a generic family.
+ */
+function parsePrimaryFontFamily(cssValue: string): string | null {
+	const families: string[] = [];
+	let current = "";
+	let inQuote: string | null = null;
+
+	for (const ch of cssValue) {
+		if (inQuote) {
+			if (ch === inQuote) inQuote = null;
+			else current += ch;
+		} else if (ch === '"' || ch === "'") {
+			inQuote = ch;
+		} else if (ch === ",") {
+			const trimmed = current.trim();
+			if (trimmed) families.push(trimmed);
+			current = "";
+		} else {
+			current += ch;
+		}
+	}
+	const last = current.trim();
+	if (last) families.push(last);
+
+	return (
+		families.find((f) => !GENERIC_FONT_FAMILIES.has(f.toLowerCase())) ?? null
+	);
+}
+
+// Cache monospace checks so we don't hit the canvas on every render.
+const monospaceCheckCache = new Map<string, boolean>();
+
+/**
+ * Heuristically decide whether `family` is a monospace font using canvas
+ * measurement — monospace fonts render narrow ("iiiiii") and wide ("MMMMMM")
+ * runs at the same width. Returns `true` (permissive) when the canvas API
+ * is unavailable (tests/SSR) so we never block a legitimate font.
+ */
+function isFontFamilyMonospace(family: string): boolean {
+	const key = family.toLowerCase();
+	if (key === "monospace" || key === "ui-monospace") return true;
+
+	const cached = monospaceCheckCache.get(key);
+	if (cached !== undefined) return cached;
+
+	try {
+		if (typeof document === "undefined") return true;
+		const canvas = document.createElement("canvas");
+		const ctx = canvas.getContext?.("2d");
+		if (!ctx) return true;
+
+		ctx.font = `16px "${family}"`;
+		const narrow = ctx.measureText("iiiiii").width;
+		const wide = ctx.measureText("MMMMMM").width;
+		// Sub-pixel jitter tolerance.
+		const isMono = Math.abs(narrow - wide) < 1;
+		monospaceCheckCache.set(key, isMono);
+		return isMono;
+	} catch {
+		return true;
+	}
+}
+
+/**
+ * Guard against a persisted terminal font that would break xterm rendering
+ * (e.g. a proportional font like "Inter"). Returns the raw CSS value when
+ * the primary family is monospace; otherwise falls back to the bundled
+ * default so a poisoned setting can never blank the app on startup.
+ *
+ * See issue #3513. The settings UI already prevents new non-monospace
+ * selections for the terminal, but this recovers users whose DB was
+ * poisoned before the UI restriction was added.
+ */
+export function sanitizeTerminalFontFamily(
+	cssValue: string | null | undefined,
+): string {
+	if (!cssValue || !cssValue.trim()) return DEFAULT_TERMINAL_FONT_FAMILY;
+	const primary = parsePrimaryFontFamily(cssValue);
+	if (!primary) return cssValue;
+	if (isFontFamilyMonospace(primary)) return cssValue;
+	console.warn(
+		`[terminal] Font "${primary}" is not monospace; falling back to default terminal font.`,
+	);
+	return DEFAULT_TERMINAL_FONT_FAMILY;
+}
+
 /** Reads localStorage theme cache for flash-free first paint. */
 export function getDefaultTerminalAppearance(): TerminalAppearance {
 	const theme = readCachedTerminalTheme();
