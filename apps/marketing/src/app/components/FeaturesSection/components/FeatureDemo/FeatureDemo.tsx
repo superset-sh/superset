@@ -14,7 +14,7 @@ export function FeatureDemo({
 }: FeatureDemoProps) {
 	return (
 		<div
-			className={`relative w-full min-h-[300px] lg:aspect-4/3 rounded overflow-hidden ${className}`}
+			className={`relative w-full min-h-[300px] lg:aspect-4/3 overflow-hidden ${className}`}
 		>
 			{/* Background gradient */}
 			<DitheredBackground
