@@ -77,7 +77,7 @@ export function ProductDemo({ scrollYProgress }: ProductDemoProps) {
 			</motion.div>
 
 			{/* Selector pills - directly below mockup */}
-			<div className="mt-4 flex items-center gap-2 px-4 sm:px-0 sm:justify-center">
+			<div className="mt-4 flex items-center gap-2 px-4 sm:px-0 sm:justify-center overflow-x-auto scrollbar-hide">
 				{DEMO_OPTIONS.map((option) => (
 					<SelectorPill
 						key={option.label}
