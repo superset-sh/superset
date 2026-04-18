@@ -6,6 +6,14 @@
 	--font-family-mono: var(--font-ibm-plex-mono), ui-monospace, monospace;
 }
 
+@theme inline {
+	--color-brand: var(--brand);
+}
+
+:root {
+	--brand: #ff3d00;
+}
+
 @utility scrollbar-hide {
 	-ms-overflow-style: none;
 	scrollbar-width: none;

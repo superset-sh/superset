@@ -106,10 +106,11 @@ export function DownloadButton({
 	}
 
 	if (os === "macos" || os === "unknown") {
+		const brandClasses = `bg-brand text-white ${sizeClasses} font-normal hover:bg-brand/80 transition-colors flex items-center gap-2 ${className}`;
 		return (
 			<button
 				type="button"
-				className={buttonClasses}
+				className={brandClasses}
 				onClick={() => {
 					track("download_clicked");
 					window.open(DOWNLOAD_URL_MAC_ARM64, "_blank");
