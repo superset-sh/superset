@@ -24,7 +24,7 @@ export function DownloadButton({
 			? "px-2 sm:px-4 py-2 text-sm"
 			: "px-3 sm:px-6 py-2 sm:py-3 text-sm sm:text-base";
 
-	const buttonClasses = `bg-foreground text-background ${sizeClasses} font-normal hover:bg-foreground/80 transition-colors flex items-center gap-2 ${className}`;
+	const buttonClasses = `bg-foreground/10 text-foreground border border-foreground/15 ${sizeClasses} font-normal hover:bg-foreground/15 hover:border-foreground/25 transition-colors flex items-center gap-2 ${className}`;
 
 	if (isMobile) {
 		const appleIcon = (
