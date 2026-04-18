@@ -26,7 +26,7 @@ export const TESTIMONIALS: Testimonial[] = [
 			"Oh snap @superset_sh is soooooo damn good!\n\nNow THIS is the experience I've been wanting for CLI agents!",
 		author: "Chris Laupama",
 		handle: "@chrislaupama",
-		role: "Technical Support at Webflow",
+		role: "TS Lead at Webflow",
 		avatar: "https://unavatar.io/twitter/chrislaupama",
 		url: "https://x.com/chrislaupama/status/2011148329443607037",
 	},
