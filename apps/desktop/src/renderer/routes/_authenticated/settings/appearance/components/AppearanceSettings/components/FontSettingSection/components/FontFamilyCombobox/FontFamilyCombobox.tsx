@@ -149,7 +149,7 @@ export function FontFamilyCombobox({
 								</CommandItem>
 							</CommandGroup>
 						)}
-						{variant === "terminal" && renderGroup("Nerd Fonts", nerdFonts)}
+						{renderGroup("Nerd Fonts", nerdFonts)}
 						{renderGroup("Monospace", monoFonts)}
 						{variant !== "terminal" && renderGroup("Other", otherFonts)}
 					</CommandList>
