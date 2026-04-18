@@ -1,8 +1,17 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect } from "react";
+import { useCallback, useEffect } from "react";
+import {
+	useOpenNewProjectModal,
+	useOpenPinAndSetupModal,
+	useTriggerFolderImport,
+} from "renderer/stores/add-repository-modal";
 import { V2WorkspacesHeader } from "./components/V2WorkspacesHeader";
 import { V2WorkspacesList } from "./components/V2WorkspacesList";
 import { useAccessibleV2Workspaces } from "./hooks/useAccessibleV2Workspaces";
+import {
+	type AvailableV2Project,
+	useAvailableV2Projects,
+} from "./hooks/useAvailableV2Projects";
 import { useV2WorkspacesFilterStore } from "./stores/v2WorkspacesFilterStore";
 
 export const Route = createFileRoute(
@@ -23,7 +32,26 @@ function V2WorkspacesPage() {
 	}, [resetFilters]);
 
 	const { pinned, others, counts } = useAccessibleV2Workspaces({ searchQuery });
+	const { projects: availableProjects } = useAvailableV2Projects({
+		searchQuery,
+	});
 	const hasAnyAccessible = pinned.length > 0 || others.length > 0;
+
+	const openNewProject = useOpenNewProjectModal();
+	const openPinAndSetup = useOpenPinAndSetupModal();
+	const triggerFolderImport = useTriggerFolderImport();
+
+	const handlePinAndSetup = useCallback(
+		(project: AvailableV2Project) => {
+			openPinAndSetup({
+				id: project.id,
+				name: project.name,
+				githubOwner: project.githubOwner,
+				githubRepoName: project.githubRepoName,
+			});
+		},
+		[openPinAndSetup],
+	);
 
 	return (
 		<div className="flex h-full w-full flex-1 flex-col overflow-hidden">
@@ -31,7 +59,11 @@ function V2WorkspacesPage() {
 			<V2WorkspacesList
 				pinned={pinned}
 				others={others}
+				availableProjects={availableProjects}
 				hasAnyAccessible={hasAnyAccessible}
+				onCreateNewProject={openNewProject}
+				onImportExistingFolder={triggerFolderImport}
+				onPinAndSetup={handlePinAndSetup}
 			/>
 		</div>
 	);

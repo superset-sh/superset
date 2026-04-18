@@ -16,16 +16,22 @@ import type {
 	AccessibleV2Workspace,
 	V2WorkspaceHostType,
 } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/hooks/useAccessibleV2Workspaces";
+import type { AvailableV2Project } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/hooks/useAvailableV2Projects";
 import {
 	useV2WorkspacesFilterStore,
 	type V2WorkspacesDeviceFilter,
 } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/stores/v2WorkspacesFilterStore";
+import { V2AvailableProjectsSection } from "../V2AvailableProjectsSection";
 import { V2WorkspaceRow } from "./components/V2WorkspaceRow";
 
 interface V2WorkspacesListProps {
 	pinned: AccessibleV2Workspace[];
 	others: AccessibleV2Workspace[];
+	availableProjects: AvailableV2Project[];
 	hasAnyAccessible: boolean;
+	onCreateNewProject: () => void;
+	onImportExistingFolder: () => void;
+	onPinAndSetup: (project: AvailableV2Project) => void;
 }
 
 interface ProjectGroup {
@@ -78,7 +84,11 @@ function groupByProject(workspaces: AccessibleV2Workspace[]): ProjectGroup[] {
 export function V2WorkspacesList({
 	pinned,
 	others,
+	availableProjects,
 	hasAnyAccessible,
+	onCreateNewProject,
+	onImportExistingFolder,
+	onPinAndSetup,
 }: V2WorkspacesListProps) {
 	const matchRoute = useMatchRoute();
 	const currentWorkspaceMatch = matchRoute({
@@ -120,27 +130,40 @@ export function V2WorkspacesList({
 	const hasAnyMatches = pinnedCount > 0 || othersCount > 0;
 	const hasActiveFilters = searchQuery.trim() !== "" || deviceFilter !== "all";
 
-	if (!hasAnyAccessible) {
+	// If the user has neither workspaces nor any cloud projects available to
+	// pin, they genuinely have nothing — show the onboarding empty state
+	// (which includes the Available section's create/import CTAs above it).
+	if (!hasAnyAccessible && availableProjects.length === 0) {
 		return (
-			<Empty className="flex-1 border-0">
-				<EmptyHeader>
-					<EmptyMedia
-						variant="icon"
-						className="size-14 [&_svg:not([class*='size-'])]:size-7"
-					>
-						<LuLayers />
-					</EmptyMedia>
-					<EmptyTitle>No workspaces yet</EmptyTitle>
-					<EmptyDescription>
-						Create a workspace from the sidebar to get started. Workspaces you
-						have access to across all your devices will show up here.
-					</EmptyDescription>
-				</EmptyHeader>
-			</Empty>
+			<ScrollArea className="flex-1">
+				<div className="flex flex-col gap-8 px-6 py-6">
+					<V2AvailableProjectsSection
+						projects={availableProjects}
+						onCreateNewProject={onCreateNewProject}
+						onImportExistingFolder={onImportExistingFolder}
+						onPinAndSetup={onPinAndSetup}
+					/>
+					<Empty className="border-0">
+						<EmptyHeader>
+							<EmptyMedia
+								variant="icon"
+								className="size-14 [&_svg:not([class*='size-'])]:size-7"
+							>
+								<LuLayers />
+							</EmptyMedia>
+							<EmptyTitle>No workspaces yet</EmptyTitle>
+							<EmptyDescription>
+								Create a new project above to get started. Workspaces you have
+								access to across all your devices will show up here.
+							</EmptyDescription>
+						</EmptyHeader>
+					</Empty>
+				</div>
+			</ScrollArea>
 		);
 	}
 
-	if (!hasAnyMatches) {
+	if (!hasAnyMatches && availableProjects.length === 0) {
 		return (
 			<Empty className="flex-1 border-0">
 				<EmptyHeader>
@@ -196,6 +219,13 @@ export function V2WorkspacesList({
 	return (
 		<ScrollArea className="flex-1">
 			<div className="flex flex-col gap-8 px-6 py-6">
+				<V2AvailableProjectsSection
+					projects={availableProjects}
+					onCreateNewProject={onCreateNewProject}
+					onImportExistingFolder={onImportExistingFolder}
+					onPinAndSetup={onPinAndSetup}
+				/>
+
 				{pinnedCount > 0 ? (
 					<section className="flex flex-col gap-3">
 						<div className="flex items-baseline gap-2">

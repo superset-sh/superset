@@ -1,10 +1,21 @@
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuTrigger,
+} from "@superset/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { useMatchRoute, useNavigate } from "@tanstack/react-router";
-import { LuFolderPlus, LuLayers, LuPlus } from "react-icons/lu";
+import { HiMiniPlus } from "react-icons/hi2";
+import { LuFolderInput, LuFolderPlus, LuLayers, LuPlus } from "react-icons/lu";
 import { useHotkeyDisplay } from "renderer/hotkeys";
 import { OrganizationDropdown } from "renderer/routes/_authenticated/_dashboard/components/TopBar/components/OrganizationDropdown";
 import { STROKE_WIDTH_THICK } from "renderer/screens/main/components/WorkspaceSidebar/constants";
+import {
+	useOpenNewProjectModal,
+	useTriggerFolderImport,
+} from "renderer/stores/add-repository-modal";
 import { useOpenNewWorkspaceModal } from "renderer/stores/new-workspace-modal";
 
 interface DashboardSidebarHeaderProps {
@@ -15,6 +26,8 @@ export function DashboardSidebarHeader({
 	isCollapsed = false,
 }: DashboardSidebarHeaderProps) {
 	const openModal = useOpenNewWorkspaceModal();
+	const openNewProject = useOpenNewProjectModal();
+	const triggerFolderImport = useTriggerFolderImport();
 	const shortcutText = useHotkeyDisplay("NEW_WORKSPACE").text;
 	const navigate = useNavigate();
 	const matchRoute = useMatchRoute();
@@ -47,17 +60,31 @@ export function DashboardSidebarHeader({
 					<TooltipContent side="right">Workspaces</TooltipContent>
 				</Tooltip>
 
-				<Tooltip delayDuration={300}>
-					<TooltipTrigger asChild>
-						<button
-							type="button"
-							className="flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
-						>
-							<LuFolderPlus className="size-4" />
-						</button>
-					</TooltipTrigger>
-					<TooltipContent side="right">Add Repository</TooltipContent>
-				</Tooltip>
+				<DropdownMenu>
+					<Tooltip delayDuration={300}>
+						<TooltipTrigger asChild>
+							<DropdownMenuTrigger asChild>
+								<button
+									type="button"
+									className="flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
+								>
+									<LuFolderPlus className="size-4" />
+								</button>
+							</DropdownMenuTrigger>
+						</TooltipTrigger>
+						<TooltipContent side="right">Add repository</TooltipContent>
+					</Tooltip>
+					<DropdownMenuContent align="start">
+						<DropdownMenuItem onSelect={openNewProject}>
+							<HiMiniPlus className="size-4" />
+							New project
+						</DropdownMenuItem>
+						<DropdownMenuItem onSelect={triggerFolderImport}>
+							<LuFolderInput className="size-4" />
+							Import existing folder
+						</DropdownMenuItem>
+					</DropdownMenuContent>
+				</DropdownMenu>
 
 				<Tooltip delayDuration={300}>
 					<TooltipTrigger asChild>
@@ -83,17 +110,31 @@ export function DashboardSidebarHeader({
 				<div className="flex-1 min-w-0">
 					<OrganizationDropdown variant="expanded" />
 				</div>
-				<Tooltip delayDuration={300}>
-					<TooltipTrigger asChild>
-						<button
-							type="button"
-							className="flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
-						>
-							<LuFolderPlus className="size-4" />
-						</button>
-					</TooltipTrigger>
-					<TooltipContent side="right">Add Repository</TooltipContent>
-				</Tooltip>
+				<DropdownMenu>
+					<Tooltip delayDuration={300}>
+						<TooltipTrigger asChild>
+							<DropdownMenuTrigger asChild>
+								<button
+									type="button"
+									className="flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
+								>
+									<LuFolderPlus className="size-4" />
+								</button>
+							</DropdownMenuTrigger>
+						</TooltipTrigger>
+						<TooltipContent side="right">Add repository</TooltipContent>
+					</Tooltip>
+					<DropdownMenuContent align="end">
+						<DropdownMenuItem onSelect={openNewProject}>
+							<HiMiniPlus className="size-4" />
+							New project
+						</DropdownMenuItem>
+						<DropdownMenuItem onSelect={triggerFolderImport}>
+							<LuFolderInput className="size-4" />
+							Import existing folder
+						</DropdownMenuItem>
+					</DropdownMenuContent>
+				</DropdownMenu>
 			</div>
 
 			<button

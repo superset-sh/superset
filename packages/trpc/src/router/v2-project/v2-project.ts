@@ -1,8 +1,13 @@
 import { dbWs } from "@superset/db/client";
-import { githubRepositories, v2Projects } from "@superset/db/schema";
+import {
+	githubRepositories,
+	organizations,
+	v2Projects,
+} from "@superset/db/schema";
+import { parseGitHubRemote } from "@superset/shared/github-remote";
 import type { TRPCRouterRecord } from "@trpc/server";
 import { TRPCError } from "@trpc/server";
-import { eq } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
 import { jwtProcedure, protectedProcedure } from "../../trpc";
 import {
@@ -110,29 +115,91 @@ export const v2ProjectRouter = {
 			return { ...row, repoCloneUrl };
 		}),
 
-	create: protectedProcedure
+	findByRemote: jwtProcedure
+		.input(z.object({ repoCloneUrl: z.string().min(1) }))
+		.query(async ({ ctx, input }) => {
+			const parsed = parseGitHubRemote(input.repoCloneUrl);
+			if (!parsed || ctx.organizationIds.length === 0) {
+				return { candidates: [] };
+			}
+			// GitHub slugs are case-insensitive (github.com/Foo/Bar and
+			// github.com/foo/bar point to the same repo). Local git remotes
+			// preserve whatever casing was typed at clone time. Compare in lower
+			// case so we still match.
+			const fullNameLower = `${parsed.owner}/${parsed.name}`.toLowerCase();
+
+			const rows = await dbWs
+				.select({
+					id: v2Projects.id,
+					name: v2Projects.name,
+					slug: v2Projects.slug,
+					organizationId: v2Projects.organizationId,
+					organizationName: organizations.name,
+				})
+				.from(v2Projects)
+				.innerJoin(
+					githubRepositories,
+					eq(v2Projects.githubRepositoryId, githubRepositories.id),
+				)
+				.innerJoin(
+					organizations,
+					eq(v2Projects.organizationId, organizations.id),
+				)
+				.where(
+					and(
+						eq(sql`lower(${githubRepositories.fullName})`, fullNameLower),
+						inArray(v2Projects.organizationId, ctx.organizationIds),
+					),
+				);
+
+			return { candidates: rows };
+		}),
+
+	create: jwtProcedure
 		.input(
 			z.object({
+				organizationId: z.string().uuid(),
 				name: z.string().min(1),
 				slug: z.string().min(1),
-				githubRepositoryId: z.string().uuid(),
+				repoCloneUrl: z.string().min(1),
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			const organizationId = await requireActiveOrgMembership(
-				ctx.session,
-				"No active organization",
-			);
+			if (!ctx.organizationIds.includes(input.organizationId)) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "Not a member of this organization",
+				});
+			}
+			const parsed = parseGitHubRemote(input.repoCloneUrl);
+			if (!parsed) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Could not parse GitHub remote URL",
+				});
+			}
+			const fullName = `${parsed.owner}/${parsed.name}`;
+			const fullNameLower = fullName.toLowerCase();
 
-			const repo = await getScopedGithubRepository(
-				organizationId,
-				input.githubRepositoryId,
-			);
+			// Case-insensitive match — see findByRemote note.
+			const repo = await dbWs.query.githubRepositories.findFirst({
+				columns: { id: true },
+				where: and(
+					eq(sql`lower(${githubRepositories.fullName})`, fullNameLower),
+					eq(githubRepositories.organizationId, input.organizationId),
+				),
+			});
+			if (!repo) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: `GitHub repository ${fullName} is not installed in this organization`,
+				});
+			}
 
 			const [project] = await dbWs
 				.insert(v2Projects)
 				.values({
-					organizationId,
+					organizationId: input.organizationId,
 					name: input.name,
 					slug: input.slug,
 					githubRepositoryId: repo.id,

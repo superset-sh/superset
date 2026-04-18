@@ -546,6 +546,41 @@ export const v2Workspaces = pgTable(
 export type InsertV2Workspace = typeof v2Workspaces.$inferInsert;
 export type SelectV2Workspace = typeof v2Workspaces.$inferSelect;
 
+export const v2HostProjects = pgTable(
+	"v2_host_projects",
+	{
+		id: uuid().primaryKey().defaultRandom(),
+		organizationId: uuid("organization_id")
+			.notNull()
+			.references(() => organizations.id, { onDelete: "cascade" }),
+		projectId: uuid("project_id")
+			.notNull()
+			.references(() => v2Projects.id, { onDelete: "cascade" }),
+		hostId: uuid("host_id")
+			.notNull()
+			.references(() => v2Hosts.id, { onDelete: "cascade" }),
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.notNull()
+			.defaultNow(),
+		updatedAt: timestamp("updated_at", { withTimezone: true })
+			.notNull()
+			.defaultNow()
+			.$onUpdate(() => new Date()),
+	},
+	(table) => [
+		index("v2_host_projects_organization_id_idx").on(table.organizationId),
+		index("v2_host_projects_project_id_idx").on(table.projectId),
+		index("v2_host_projects_host_id_idx").on(table.hostId),
+		unique("v2_host_projects_project_host_unique").on(
+			table.projectId,
+			table.hostId,
+		),
+	],
+);
+
+export type InsertV2HostProject = typeof v2HostProjects.$inferInsert;
+export type SelectV2HostProject = typeof v2HostProjects.$inferSelect;
+
 export const secrets = pgTable(
 	"secrets",
 	{

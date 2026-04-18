@@ -27,6 +27,7 @@ import {
 	tasks,
 	usersSlackUsers,
 	v2Clients,
+	v2HostProjects,
 	v2Hosts,
 	v2Projects,
 	v2UsersHosts,
@@ -76,6 +77,7 @@ export const organizationsRelations = relations(organizations, ({ many }) => ({
 	v2UsersHosts: many(v2UsersHosts),
 	v2Projects: many(v2Projects),
 	v2Workspaces: many(v2Workspaces),
+	v2HostProjects: many(v2HostProjects),
 	secrets: many(secrets),
 	sandboxImages: many(sandboxImages),
 	workspaces: many(workspaces),
@@ -278,6 +280,7 @@ export const v2ProjectsRelations = relations(v2Projects, ({ one, many }) => ({
 		references: [githubRepositories.id],
 	}),
 	workspaces: many(v2Workspaces),
+	hostProjects: many(v2HostProjects),
 }));
 
 export const v2HostsRelations = relations(v2Hosts, ({ one, many }) => ({
@@ -291,6 +294,22 @@ export const v2HostsRelations = relations(v2Hosts, ({ one, many }) => ({
 	}),
 	usersHosts: many(v2UsersHosts),
 	workspaces: many(v2Workspaces),
+	hostProjects: many(v2HostProjects),
+}));
+
+export const v2HostProjectsRelations = relations(v2HostProjects, ({ one }) => ({
+	organization: one(organizations, {
+		fields: [v2HostProjects.organizationId],
+		references: [organizations.id],
+	}),
+	project: one(v2Projects, {
+		fields: [v2HostProjects.projectId],
+		references: [v2Projects.id],
+	}),
+	host: one(v2Hosts, {
+		fields: [v2HostProjects.hostId],
+		references: [v2Hosts.id],
+	}),
 }));
 
 export const v2ClientsRelations = relations(v2Clients, ({ one }) => ({

@@ -3,19 +3,25 @@ import { cn } from "@superset/ui/utils";
 import { AnimatePresence, motion } from "framer-motion";
 import { type ComponentPropsWithoutRef, forwardRef } from "react";
 import { ProjectThumbnail } from "renderer/routes/_authenticated/components/ProjectThumbnail";
-import type { DashboardSidebarWorkspace } from "../../../../types";
+import type {
+	DashboardSidebarProjectBackingState,
+	DashboardSidebarWorkspace,
+} from "../../../../types";
 import { DashboardSidebarWorkspaceItem } from "../../../DashboardSidebarWorkspaceItem";
+import { ProjectBackingStateIndicator } from "../ProjectBackingStateIndicator";
 
 interface DashboardSidebarCollapsedProjectContentProps
 	extends ComponentPropsWithoutRef<"div"> {
 	projectName: string;
 	githubOwner: string | null;
+	backingState: DashboardSidebarProjectBackingState;
 	isCollapsed: boolean;
 	totalWorkspaceCount: number;
 	workspaces: DashboardSidebarWorkspace[];
 	workspaceShortcutLabels: Map<string, string>;
 	onWorkspaceHover: (workspaceId: string) => void | Promise<void>;
 	onToggleCollapse: () => void;
+	onSetUpHere: () => void;
 }
 
 export const DashboardSidebarCollapsedProjectContent = forwardRef<
@@ -26,12 +32,14 @@ export const DashboardSidebarCollapsedProjectContent = forwardRef<
 		{
 			projectName,
 			githubOwner,
+			backingState,
 			isCollapsed,
 			totalWorkspaceCount,
 			workspaces,
 			workspaceShortcutLabels,
 			onWorkspaceHover,
 			onToggleCollapse,
+			onSetUpHere,
 			className,
 			...props
 		},
@@ -50,9 +58,13 @@ export const DashboardSidebarCollapsedProjectContent = forwardRef<
 					<TooltipTrigger asChild>
 						<button
 							type="button"
-							onClick={onToggleCollapse}
+							onClick={
+								backingState === "not-set-up-here"
+									? onSetUpHere
+									: onToggleCollapse
+							}
 							className={cn(
-								"flex items-center justify-center size-8 rounded-md",
+								"relative flex items-center justify-center size-8 rounded-md",
 								"hover:bg-muted/50 transition-colors",
 							)}
 						>
@@ -60,14 +72,27 @@ export const DashboardSidebarCollapsedProjectContent = forwardRef<
 								projectName={projectName}
 								githubOwner={githubOwner}
 							/>
+							{backingState !== "normal" && (
+								<ProjectBackingStateIndicator
+									state={backingState}
+									variant="dot-only"
+									className="absolute -top-0.5 -right-0.5"
+								/>
+							)}
 						</button>
 					</TooltipTrigger>
 					<TooltipContent side="right" className="flex flex-col gap-0.5">
 						<span className="font-medium">{projectName}</span>
-						<span className="text-xs text-muted-foreground">
-							{totalWorkspaceCount} workspace
-							{totalWorkspaceCount !== 1 ? "s" : ""}
-						</span>
+						{backingState === "not-set-up-here" ? (
+							<span className="text-xs text-amber-500">
+								Not set up — click to set up here
+							</span>
+						) : (
+							<span className="text-xs text-muted-foreground">
+								{totalWorkspaceCount} workspace
+								{totalWorkspaceCount !== 1 ? "s" : ""}
+							</span>
+						)}
 					</TooltipContent>
 				</Tooltip>
 

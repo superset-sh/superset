@@ -4,11 +4,14 @@ import { type ComponentPropsWithoutRef, forwardRef } from "react";
 import { HiChevronRight, HiMiniPlus } from "react-icons/hi2";
 import { ProjectThumbnail } from "renderer/routes/_authenticated/components/ProjectThumbnail";
 import { RenameInput } from "renderer/screens/main/components/WorkspaceSidebar/RenameInput";
+import type { DashboardSidebarProjectBackingState } from "../../../../types";
+import { ProjectBackingStateIndicator } from "../ProjectBackingStateIndicator";
 
 interface DashboardSidebarProjectRowProps
 	extends ComponentPropsWithoutRef<"div"> {
 	projectName: string;
 	githubOwner: string | null;
+	backingState: DashboardSidebarProjectBackingState;
 	totalWorkspaceCount: number;
 	isCollapsed: boolean;
 	isRenaming: boolean;
@@ -19,6 +22,7 @@ interface DashboardSidebarProjectRowProps
 	onStartRename: () => void;
 	onToggleCollapse: () => void;
 	onNewWorkspace: () => void;
+	onSetUpHere: () => void;
 }
 
 export const DashboardSidebarProjectRow = forwardRef<
@@ -29,6 +33,7 @@ export const DashboardSidebarProjectRow = forwardRef<
 		{
 			projectName,
 			githubOwner,
+			backingState,
 			totalWorkspaceCount,
 			isCollapsed,
 			isRenaming,
@@ -39,6 +44,7 @@ export const DashboardSidebarProjectRow = forwardRef<
 			onStartRename,
 			onToggleCollapse,
 			onNewWorkspace,
+			onSetUpHere,
 			className,
 			...props
 		},
@@ -101,26 +107,46 @@ export const DashboardSidebarProjectRow = forwardRef<
 							({totalWorkspaceCount})
 						</span>
 					)}
+					{/* Only render the passive "Offline" marker here — the
+					    "Not set up here" state surfaces as the Set up button on
+					    the right instead, which is actionable. */}
+					{!isRenaming && backingState === "host-offline" && (
+						<ProjectBackingStateIndicator state={backingState} />
+					)}
 				</div>
 
-				<Tooltip delayDuration={500}>
-					<TooltipTrigger asChild>
-						<button
-							type="button"
-							onClick={(event) => {
-								event.stopPropagation();
-								onNewWorkspace();
-							}}
-							onContextMenu={(event) => event.stopPropagation()}
-							className="p-1 rounded hover:bg-muted transition-colors shrink-0 ml-1"
-						>
-							<HiMiniPlus className="size-4 text-muted-foreground" />
-						</button>
-					</TooltipTrigger>
-					<TooltipContent side="bottom" sideOffset={4}>
-						New workspace
-					</TooltipContent>
-				</Tooltip>
+				{!isRenaming && backingState === "not-set-up-here" ? (
+					<button
+						type="button"
+						onClick={(event) => {
+							event.stopPropagation();
+							onSetUpHere();
+						}}
+						onContextMenu={(event) => event.stopPropagation()}
+						className="shrink-0 ml-1 rounded px-2 py-0.5 text-xs font-medium text-amber-600 hover:bg-amber-500/10 dark:text-amber-400 transition-colors"
+					>
+						Set up
+					</button>
+				) : (
+					<Tooltip delayDuration={500}>
+						<TooltipTrigger asChild>
+							<button
+								type="button"
+								onClick={(event) => {
+									event.stopPropagation();
+									onNewWorkspace();
+								}}
+								onContextMenu={(event) => event.stopPropagation()}
+								className="p-1 rounded hover:bg-muted transition-colors shrink-0 ml-1"
+							>
+								<HiMiniPlus className="size-4 text-muted-foreground" />
+							</button>
+						</TooltipTrigger>
+						<TooltipContent side="bottom" sideOffset={4}>
+							New workspace
+						</TooltipContent>
+					</Tooltip>
+				)}
 			</div>
 		);
 	},

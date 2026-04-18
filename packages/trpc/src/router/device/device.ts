@@ -8,9 +8,10 @@ import {
 	v2UsersHosts,
 } from "@superset/db/schema";
 import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { jwtProcedure, protectedProcedure } from "../../trpc";
+import { hasHostAccess, requireHostAccess } from "../utils/host-access";
 
 export const deviceRouter = {
 	ensureV2Host: jwtProcedure
@@ -218,32 +219,14 @@ export const deviceRouter = {
 	checkHostAccess: jwtProcedure
 		.input(z.object({ hostId: z.string().uuid() }))
 		.query(async ({ ctx, input }) => {
-			const row = await db.query.v2UsersHosts.findFirst({
-				where: and(
-					eq(v2UsersHosts.userId, ctx.userId),
-					eq(v2UsersHosts.hostId, input.hostId),
-				),
-				columns: { id: true },
-			});
-			return { allowed: !!row };
+			const allowed = await hasHostAccess(ctx.userId, input.hostId);
+			return { allowed };
 		}),
 
 	setHostOnline: jwtProcedure
 		.input(z.object({ hostId: z.string().uuid(), isOnline: z.boolean() }))
 		.mutation(async ({ ctx, input }) => {
-			const access = await db.query.v2UsersHosts.findFirst({
-				where: and(
-					eq(v2UsersHosts.userId, ctx.userId),
-					eq(v2UsersHosts.hostId, input.hostId),
-				),
-				columns: { id: true },
-			});
-			if (!access) {
-				throw new TRPCError({
-					code: "FORBIDDEN",
-					message: "No access to this host",
-				});
-			}
+			await requireHostAccess(ctx.userId, input.hostId);
 			await db
 				.update(v2Hosts)
 				.set({ isOnline: input.isOnline })

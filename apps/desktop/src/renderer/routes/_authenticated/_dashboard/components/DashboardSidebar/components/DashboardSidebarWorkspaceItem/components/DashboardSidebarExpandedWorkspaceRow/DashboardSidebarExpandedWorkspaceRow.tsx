@@ -11,7 +11,10 @@ import { HiMiniXMark } from "react-icons/hi2";
 import type { DiffStats } from "renderer/hooks/host-service/useDiffStats";
 import { HotkeyLabel } from "renderer/hotkeys";
 import { RenameInput } from "renderer/screens/main/components/WorkspaceSidebar/RenameInput";
-import type { DashboardSidebarWorkspace } from "../../../../types";
+import type {
+	DashboardSidebarWorkspace,
+	DashboardSidebarWorkspaceHostType,
+} from "../../../../types";
 import { getCreationStatusText } from "../../utils/getCreationStatusText";
 import { DashboardSidebarWorkspaceDiffStats } from "../DashboardSidebarWorkspaceDiffStats";
 import { DashboardSidebarWorkspaceIcon } from "../DashboardSidebarWorkspaceIcon";
@@ -214,9 +217,14 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 							)}
 						</div>
 
-						<span className="col-start-1 row-start-2 truncate font-mono text-[11px] leading-tight text-muted-foreground/60">
-							{branch}
-						</span>
+						<div className="col-start-1 row-start-2 flex min-w-0 items-center gap-1.5">
+							{hostType !== "local-device" && (
+								<HostTypeChip hostType={hostType} />
+							)}
+							<span className="truncate font-mono text-[11px] leading-tight text-muted-foreground/60">
+								{branch}
+							</span>
+						</div>
 
 						{pullRequest && (
 							<DashboardSidebarWorkspaceStatusBadge
@@ -232,3 +240,21 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 		);
 	},
 );
+
+/**
+ * Small inline pill shown on the workspace row's secondary line — only for
+ * remote-device and cloud workspaces. local-device is the common case and
+ * stays unlabelled to keep the sidebar visually quiet.
+ */
+function HostTypeChip({
+	hostType,
+}: {
+	hostType: Exclude<DashboardSidebarWorkspaceHostType, "local-device">;
+}) {
+	const label = hostType === "cloud" ? "Cloud" : "Other device";
+	return (
+		<span className="shrink-0 rounded bg-muted/60 px-1 text-[10px] font-medium leading-tight text-muted-foreground">
+			{label}
+		</span>
+	);
+}

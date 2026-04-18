@@ -60,6 +60,17 @@ export type DashboardSidebarProjectChild =
 			section: DashboardSidebarSection;
 	  };
 
+export type DashboardSidebarProjectBackingState =
+	// Project is backed on the current host, or at least one remote host
+	// backing it is online — user can do everything.
+	| "normal"
+	// No local backing, no online remote backing, but at least one offline
+	// remote host backs it — passive state, resolves when that host reconnects.
+	| "host-offline"
+	// No local backing, no remote backing anywhere — user needs to set up
+	// on this host (or wait for a teammate to).
+	| "not-set-up-here";
+
 export interface DashboardSidebarProject {
 	id: string;
 	name: string;
@@ -70,5 +81,6 @@ export interface DashboardSidebarProject {
 	createdAt: Date;
 	updatedAt: Date;
 	isCollapsed: boolean;
+	backingState: DashboardSidebarProjectBackingState;
 	children: DashboardSidebarProjectChild[];
 }

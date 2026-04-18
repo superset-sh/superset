@@ -1,7 +1,7 @@
 import { toast } from "@superset/ui/sonner";
 import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { GoGitBranch } from "react-icons/go";
@@ -58,6 +58,7 @@ function useFireIntent(pendingId: string, pending: PendingWorkspaceRow | null) {
 	const adoptWorktree = useAdoptWorktree();
 	const trpcUtils = electronTrpc.useUtils();
 	const { activeHostUrl } = useLocalHostService();
+	const queryClient = useQueryClient();
 
 	return useCallback(async () => {
 		if (!pending) return;
@@ -191,6 +192,13 @@ function useFireIntent(pendingId: string, pending: PendingWorkspaceRow | null) {
 				draft.error =
 					err instanceof Error ? err.message : "Failed to create workspace";
 			});
+			// A workspace-create failure is often a signal that the project's
+			// local backing has drifted (vanished path, stale repoPath). Refetch
+			// project.list so the sidebar can flip the project row to its true
+			// state instead of lying about it being Normal.
+			queryClient.invalidateQueries({
+				queryKey: ["project", "list", activeHostUrl],
+			});
 		}
 	}, [
 		collections,
@@ -201,6 +209,7 @@ function useFireIntent(pendingId: string, pending: PendingWorkspaceRow | null) {
 		pendingId,
 		trpcUtils,
 		activeHostUrl,
+		queryClient,
 	]);
 }
 

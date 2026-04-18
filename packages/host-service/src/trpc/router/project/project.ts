@@ -1,38 +1,118 @@
-import { existsSync, rmSync, statSync } from "node:fs";
-import { basename, join, resolve } from "node:path";
+import { rmSync } from "node:fs";
+import { parseGitHubRemote } from "@superset/shared/github-remote";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
-import simpleGit from "simple-git";
 import { z } from "zod";
 import { projects, workspaces } from "../../../db/schema";
-import { parseGitHubRemote } from "../../../runtime/pull-requests/utils/parse-github-remote";
 import { protectedProcedure, router } from "../../index";
 import {
-	findMatchingRemote,
-	getGitHubRemotes,
-	type ParsedGitHubRemote,
-} from "./utils/git-remote";
-
-interface ResolvedRepo {
-	repoPath: string;
-	matchingRemote: string;
-	parsed: ParsedGitHubRemote;
-}
+	createFromClone,
+	createFromImportLocal,
+	setupFromClone,
+	setupFromImport,
+} from "./handlers";
+import { deleteHostBacking } from "./utils/persist-project";
+import { resolveWithPrimaryRemote } from "./utils/resolve-repo";
 
 export const projectRouter = router({
-	setup: protectedProcedure
+	list: protectedProcedure.query(({ ctx }) => {
+		return ctx.db
+			.select({ id: projects.id, repoPath: projects.repoPath })
+			.from(projects)
+			.all();
+	}),
+
+	findByPath: protectedProcedure
+		.input(z.object({ repoPath: z.string().min(1) }))
+		.query(async ({ ctx, input }) => {
+			const { parsed } = await resolveWithPrimaryRemote(input.repoPath);
+			const { candidates } = await ctx.api.v2Project.findByRemote.query({
+				repoCloneUrl: parsed.url,
+			});
+			return { candidates };
+		}),
+
+	create: protectedProcedure
 		.input(
 			z.object({
-				projectId: z.string(),
-				mode: z.enum(["import", "clone"]),
-				localPath: z.string().min(1),
+				name: z.string().min(1),
+				visibility: z.enum(["private", "public"]),
+				mode: z.discriminatedUnion("kind", [
+					z.object({
+						kind: z.literal("empty"),
+						parentDir: z.string().min(1),
+					}),
+					z.object({
+						kind: z.literal("clone"),
+						parentDir: z.string().min(1),
+						url: z.string().min(1),
+					}),
+					z.object({
+						kind: z.literal("importLocal"),
+						repoPath: z.string().min(1),
+					}),
+					z.object({
+						kind: z.literal("template"),
+						parentDir: z.string().min(1),
+						templateId: z.string().min(1),
+					}),
+				]),
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			if (!ctx.api) {
+			switch (input.mode.kind) {
+				case "empty":
+				case "template":
+					throw new TRPCError({
+						code: "NOT_IMPLEMENTED",
+						message: `project.create mode="${input.mode.kind}" is not implemented yet`,
+					});
+				case "clone":
+					return createFromClone(ctx, {
+						name: input.name,
+						parentDir: input.mode.parentDir,
+						url: input.mode.url,
+					});
+				case "importLocal":
+					return createFromImportLocal(ctx, {
+						name: input.name,
+						repoPath: input.mode.repoPath,
+					});
+			}
+		}),
+
+	setup: protectedProcedure
+		.input(
+			z.object({
+				projectId: z.string().uuid(),
+				// Required when a host-service.projects row already exists for this
+				// projectId and we'd be re-pointing `repoPath`. Re-pointing can
+				// invalidate existing workspace rows under the project; the client
+				// confirms it has explained that to the user.
+				acknowledgeWorkspaceInvalidation: z.boolean().optional(),
+				mode: z.discriminatedUnion("kind", [
+					z.object({
+						kind: z.literal("clone"),
+						parentDir: z.string().min(1),
+					}),
+					z.object({
+						kind: z.literal("import"),
+						repoPath: z.string().min(1),
+					}),
+				]),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			const existing = ctx.db
+				.select({ id: projects.id })
+				.from(projects)
+				.where(eq(projects.id, input.projectId))
+				.get();
+			if (existing && !input.acknowledgeWorkspaceInvalidation) {
 				throw new TRPCError({
-					code: "PRECONDITION_FAILED",
-					message: "Cloud API not configured",
+					code: "CONFLICT",
+					message:
+						"Project is already set up on this host. Re-pointing the path can invalidate existing workspaces — call again with acknowledgeWorkspaceInvalidation: true to proceed.",
 				});
 			}
 
@@ -40,14 +120,12 @@ export const projectRouter = router({
 				organizationId: ctx.organizationId,
 				id: input.projectId,
 			});
-
 			if (!cloudProject.repoCloneUrl) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message: "Project has no linked GitHub repository — cannot set up",
 				});
 			}
-
 			const expectedParsed = parseGitHubRemote(cloudProject.repoCloneUrl);
 			if (!expectedParsed) {
 				throw new TRPCError({
@@ -56,45 +134,18 @@ export const projectRouter = router({
 				});
 			}
 
-			const expectedSlug = `${expectedParsed.owner}/${expectedParsed.name}`;
-
-			let resolved: ResolvedRepo;
-
-			if (input.mode === "import") {
-				resolved = await importExistingRepo(input.localPath, expectedSlug);
-			} else {
-				resolved = await cloneRepo(
-					cloudProject.repoCloneUrl,
-					input.localPath,
-					expectedSlug,
-				);
+			const setup = {
+				ctx,
+				projectId: input.projectId,
+				cloudRepoCloneUrl: cloudProject.repoCloneUrl,
+				expectedSlug: `${expectedParsed.owner}/${expectedParsed.name}`,
+			};
+			switch (input.mode.kind) {
+				case "clone":
+					return setupFromClone(setup, { parentDir: input.mode.parentDir });
+				case "import":
+					return setupFromImport(setup, { repoPath: input.mode.repoPath });
 			}
-
-			ctx.db
-				.insert(projects)
-				.values({
-					id: input.projectId,
-					repoPath: resolved.repoPath,
-					repoProvider: "github",
-					repoOwner: resolved.parsed.owner,
-					repoName: resolved.parsed.name,
-					repoUrl: resolved.parsed.url,
-					remoteName: resolved.matchingRemote,
-				})
-				.onConflictDoUpdate({
-					target: projects.id,
-					set: {
-						repoPath: resolved.repoPath,
-						repoProvider: "github",
-						repoOwner: resolved.parsed.owner,
-						repoName: resolved.parsed.name,
-						repoUrl: resolved.parsed.url,
-						remoteName: resolved.matchingRemote,
-					},
-				})
-				.run();
-
-			return { repoPath: resolved.repoPath };
 		}),
 
 	// TODO: remove
@@ -104,10 +155,7 @@ export const projectRouter = router({
 			const localProject = ctx.db.query.projects
 				.findFirst({ where: eq(projects.id, input.projectId) })
 				.sync();
-
-			if (!localProject) {
-				return { success: true };
-			}
+			if (!localProject) return { success: true };
 
 			const localWorkspaces = ctx.db
 				.select()
@@ -139,133 +187,8 @@ export const projectRouter = router({
 			}
 
 			ctx.db.delete(projects).where(eq(projects.id, input.projectId)).run();
+			await deleteHostBacking(ctx, input.projectId);
 
 			return { success: true };
 		}),
 });
-
-async function importExistingRepo(
-	localPath: string,
-	expectedSlug: string,
-): Promise<ResolvedRepo> {
-	if (!existsSync(localPath)) {
-		throw new TRPCError({
-			code: "BAD_REQUEST",
-			message: `Path does not exist: ${localPath}`,
-		});
-	}
-
-	if (!statSync(localPath).isDirectory()) {
-		throw new TRPCError({
-			code: "BAD_REQUEST",
-			message: `Path is not a directory: ${localPath}`,
-		});
-	}
-
-	const git = simpleGit(localPath);
-
-	let gitRoot: string;
-	try {
-		gitRoot = (await git.revparse(["--show-toplevel"])).trim();
-	} catch {
-		throw new TRPCError({
-			code: "BAD_REQUEST",
-			message: `Not a git repository: ${localPath}`,
-		});
-	}
-
-	const remotes = await getGitHubRemotes(simpleGit(gitRoot));
-	const matchingRemote = findMatchingRemote(remotes, expectedSlug);
-
-	if (!matchingRemote) {
-		const found = [...remotes.entries()]
-			.map(([name, parsed]) => `${name}: ${parsed.owner}/${parsed.name}`)
-			.join(", ");
-		throw new TRPCError({
-			code: "BAD_REQUEST",
-			message: `No remote matches ${expectedSlug}. Found: ${found || "no remotes"}`,
-		});
-	}
-
-	const parsed = remotes.get(matchingRemote);
-	if (!parsed) {
-		throw new TRPCError({
-			code: "INTERNAL_SERVER_ERROR",
-			message: `Remote "${matchingRemote}" matched but has no parsed data`,
-		});
-	}
-
-	return { repoPath: gitRoot, matchingRemote, parsed };
-}
-
-async function cloneRepo(
-	repoCloneUrl: string,
-	parentDir: string,
-	expectedSlug: string,
-): Promise<ResolvedRepo> {
-	const resolvedParentDir = resolve(parentDir);
-
-	if (!existsSync(resolvedParentDir)) {
-		throw new TRPCError({
-			code: "BAD_REQUEST",
-			message: `Parent directory does not exist: ${resolvedParentDir}`,
-		});
-	}
-
-	if (!statSync(resolvedParentDir).isDirectory()) {
-		throw new TRPCError({
-			code: "BAD_REQUEST",
-			message: `Parent path is not a directory: ${resolvedParentDir}`,
-		});
-	}
-
-	const repoName = extractRepoNameFromUrl(repoCloneUrl);
-	const targetPath = join(resolvedParentDir, repoName);
-
-	if (existsSync(targetPath)) {
-		throw new TRPCError({
-			code: "BAD_REQUEST",
-			message: `Directory already exists: ${targetPath}`,
-		});
-	}
-
-	try {
-		await simpleGit().clone(repoCloneUrl, targetPath);
-	} catch (err) {
-		if (existsSync(targetPath)) {
-			rmSync(targetPath, { recursive: true, force: true });
-		}
-		throw new TRPCError({
-			code: "BAD_REQUEST",
-			message: `Failed to clone repository: ${err instanceof Error ? err.message : String(err)}`,
-		});
-	}
-
-	const remotes = await getGitHubRemotes(simpleGit(targetPath));
-	const matchingRemote = findMatchingRemote(remotes, expectedSlug);
-
-	if (!matchingRemote) {
-		rmSync(targetPath, { recursive: true, force: true });
-		throw new TRPCError({
-			code: "INTERNAL_SERVER_ERROR",
-			message: "Cloned repo does not match expected GitHub remote",
-		});
-	}
-
-	const parsed = remotes.get(matchingRemote);
-	if (!parsed) {
-		rmSync(targetPath, { recursive: true, force: true });
-		throw new TRPCError({
-			code: "INTERNAL_SERVER_ERROR",
-			message: `Remote "${matchingRemote}" matched but has no parsed data`,
-		});
-	}
-
-	return { repoPath: targetPath, matchingRemote, parsed };
-}
-
-function extractRepoNameFromUrl(url: string): string {
-	const parsed = parseGitHubRemote(url);
-	if (parsed) return parsed.name;
-	return basename(url, ".git");
-}

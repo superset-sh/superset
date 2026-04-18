@@ -15,6 +15,7 @@ import {
 	taskStatuses,
 	tasks,
 	v2Clients,
+	v2HostProjects,
 	v2Hosts,
 	v2Projects,
 	v2UsersHosts,
@@ -34,6 +35,7 @@ export type AllowedTable =
 	| "v2_projects"
 	| "v2_users_hosts"
 	| "v2_workspaces"
+	| "v2_host_projects"
 	| "auth.members"
 	| "auth.organizations"
 	| "auth.users"
@@ -95,6 +97,13 @@ export async function buildWhereClause(
 
 		case "v2_workspaces":
 			return build(v2Workspaces, v2Workspaces.organizationId, organizationId);
+
+		case "v2_host_projects":
+			return build(
+				v2HostProjects,
+				v2HostProjects.organizationId,
+				organizationId,
+			);
 
 		case "auth.members":
 			return build(members, members.organizationId, organizationId);

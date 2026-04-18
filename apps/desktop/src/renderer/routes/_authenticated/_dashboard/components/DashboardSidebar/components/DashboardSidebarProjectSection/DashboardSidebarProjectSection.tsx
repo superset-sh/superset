@@ -4,7 +4,8 @@ import type {
 } from "@dnd-kit/core";
 import { cn } from "@superset/ui/utils";
 import { AnimatePresence, motion } from "framer-motion";
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
+import { useOpenPinAndSetupModal } from "renderer/stores/add-repository-modal";
 import type { DashboardSidebarProject } from "../../types";
 import { getProjectChildrenWorkspaces } from "../../utils/projectChildren";
 import { DashboardSidebarCollapsedProjectContent } from "./components/DashboardSidebarCollapsedProjectContent";
@@ -60,6 +61,25 @@ export function DashboardSidebarProjectSection({
 
 	const totalWorkspaceCount = flattenedCollapsedWorkspaces.length;
 
+	// Phase 2: "Set up here" inline CTA for unbacked-on-this-host rows.
+	// Opens the same Pin & set up modal that the Available section uses,
+	// with the project pre-filled so the user only has to pick a folder.
+	const openPinAndSetup = useOpenPinAndSetupModal();
+	const handleSetUpHere = useCallback(() => {
+		openPinAndSetup({
+			id: project.id,
+			name: project.name,
+			githubOwner: project.githubOwner,
+			githubRepoName: project.githubRepoName,
+		});
+	}, [
+		openPinAndSetup,
+		project.githubOwner,
+		project.githubRepoName,
+		project.id,
+		project.name,
+	]);
+
 	if (isSidebarCollapsed) {
 		return (
 			<DashboardSidebarProjectContextMenu
@@ -73,12 +93,14 @@ export function DashboardSidebarProjectSection({
 					<DashboardSidebarCollapsedProjectContent
 						projectName={project.name}
 						githubOwner={project.githubOwner}
+						backingState={project.backingState}
 						isCollapsed={project.isCollapsed}
 						totalWorkspaceCount={totalWorkspaceCount}
 						workspaces={flattenedCollapsedWorkspaces}
 						workspaceShortcutLabels={workspaceShortcutLabels}
 						onWorkspaceHover={onWorkspaceHover}
 						onToggleCollapse={() => onToggleCollapse(project.id)}
+						onSetUpHere={handleSetUpHere}
 					/>
 				</div>
 			</DashboardSidebarProjectContextMenu>
@@ -97,6 +119,7 @@ export function DashboardSidebarProjectSection({
 				<DashboardSidebarProjectRow
 					projectName={project.name}
 					githubOwner={project.githubOwner}
+					backingState={project.backingState}
 					totalWorkspaceCount={totalWorkspaceCount}
 					isCollapsed={project.isCollapsed}
 					isRenaming={isRenaming}
@@ -107,6 +130,7 @@ export function DashboardSidebarProjectSection({
 					onStartRename={startRename}
 					onToggleCollapse={() => onToggleCollapse(project.id)}
 					onNewWorkspace={handleNewWorkspace}
+					onSetUpHere={handleSetUpHere}
 					{...(dragHandleAttributes ?? {})}
 					{...(dragHandleListeners ?? {})}
 				/>

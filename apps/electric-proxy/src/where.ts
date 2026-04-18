@@ -14,6 +14,7 @@ import {
 	taskStatuses,
 	tasks,
 	v2Clients,
+	v2HostProjects,
 	v2Hosts,
 	v2Projects,
 	v2UsersHosts,
@@ -66,6 +67,13 @@ export function buildWhereClause(
 
 		case "v2_workspaces":
 			return build(v2Workspaces, v2Workspaces.organizationId, organizationId);
+
+		case "v2_host_projects":
+			return build(
+				v2HostProjects,
+				v2HostProjects.organizationId,
+				organizationId,
+			);
 
 		case "auth.members":
 			return build(members, members.organizationId, organizationId);

@@ -1,8 +1,8 @@
-import type { SimpleGit } from "simple-git";
 import {
 	type ParsedGitHubRemote,
 	parseGitHubRemote,
-} from "../../../../runtime/pull-requests/utils/parse-github-remote";
+} from "@superset/shared/github-remote";
+import type { SimpleGit } from "simple-git";
 
 export type { ParsedGitHubRemote };
 

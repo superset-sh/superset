@@ -16,6 +16,7 @@ import type {
 	SelectUser,
 	SelectV2Client,
 	SelectV2Host,
+	SelectV2HostProject,
 	SelectV2Project,
 	SelectV2UsersHosts,
 	SelectV2Workspace,
@@ -77,6 +78,7 @@ export interface OrgCollections {
 	v2UsersHosts: Collection<SelectV2UsersHosts>;
 	v2Projects: Collection<SelectV2Project>;
 	v2Workspaces: Collection<SelectV2Workspace>;
+	v2HostProjects: Collection<SelectV2HostProject>;
 	workspaces: Collection<SelectWorkspace>;
 	members: Collection<SelectMember>;
 	users: Collection<SelectUser>;
@@ -305,6 +307,22 @@ function createOrgCollections(organizationId: string): OrgCollections {
 				url: electricUrl,
 				params: {
 					table: "v2_workspaces",
+					organizationId,
+				},
+				headers: electricHeaders,
+				columnMapper,
+			},
+			getKey: (item) => item.id,
+		}),
+	);
+
+	const v2HostProjects = createCollection(
+		electricCollectionOptions<SelectV2HostProject>({
+			id: `v2_host_projects-${organizationId}`,
+			shapeOptions: {
+				url: electricUrl,
+				params: {
+					table: "v2_host_projects",
 					organizationId,
 				},
 				headers: electricHeaders,
@@ -568,6 +586,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 		v2UsersHosts,
 		v2Projects,
 		v2Workspaces,
+		v2HostProjects,
 		workspaces,
 		members,
 		users,

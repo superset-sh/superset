@@ -19,6 +19,7 @@ import {
 	MAX_WORKSPACE_SIDEBAR_WIDTH,
 	useWorkspaceSidebarStore,
 } from "renderer/stores/workspace-sidebar-state";
+import { AddRepositoryModals } from "./components/AddRepositoryModals";
 import { TopBar } from "./components/TopBar";
 
 export const Route = createFileRoute("/_authenticated/_dashboard")({
@@ -120,6 +121,7 @@ function DashboardLayout() {
 				<div className="flex flex-1 min-h-0 min-w-0">
 					<Outlet />
 				</div>
+				<AddRepositoryModals />
 				{deleteTarget && (
 					<DeleteWorkspaceDialog
 						workspaceId={deleteTarget.workspaceId}
