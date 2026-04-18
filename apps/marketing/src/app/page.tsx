@@ -30,7 +30,16 @@ export const metadata: Metadata = {
 
 export default function Home() {
 	return (
-		<main className="flex flex-col bg-background">
+		<main className="relative flex flex-col bg-background">
+			{/* Vertical guide lines matching section padding */}
+			<div
+				aria-hidden="true"
+				className="absolute inset-y-0 left-4 sm:left-8 lg:left-[30px] w-px bg-white/[0.08] pointer-events-none"
+			/>
+			<div
+				aria-hidden="true"
+				className="absolute inset-y-0 right-4 sm:right-8 lg:right-[30px] w-px bg-white/[0.08] pointer-events-none"
+			/>
 			<FAQPageJsonLd items={FAQ_ITEMS} />
 			<HeroSection />
 			<TrustedBySection />
