@@ -121,24 +121,22 @@ function spawnAndReady(
 // Tests
 // =============================================================================
 
-describe("Session shell-ready: write buffering", () => {
-	it("buffers writes while shell is pending and flushes after marker", () => {
+describe("Session shell-ready: write pass-through", () => {
+	it("passes writes through immediately while shell is pending (#3478)", () => {
 		const { session, proc } = createTestSession("/bin/zsh");
 		spawnAndReady(session, proc);
 
-		// Write before shell is ready — should be buffered
-		session.write("echo hello\n");
-		session.write("echo world\n");
+		// User keystrokes answering a shell-init prompt (e.g. fnm's
+		// "install missing Node version?") must reach the PTY without
+		// waiting for OSC 133;A.
+		session.write("y\n");
+		session.write("echo ready\n");
 
-		// No write frames should have been sent yet
-		expect(getWrittenData(proc)).toEqual([]);
+		expect(getWrittenData(proc)).toEqual(["y\n", "echo ready\n"]);
 
-		// Shell emits the ready marker
+		// The ready marker arriving later must not re-emit anything.
 		sendData(proc, `direnv output...${SHELL_READY_MARKER}prompt$ `);
-
-		// Now the buffered writes should be flushed in order
-		const writes = getWrittenData(proc);
-		expect(writes).toEqual(["echo hello\n", "echo world\n"]);
+		expect(getWrittenData(proc)).toEqual(["y\n", "echo ready\n"]);
 	});
 
 	it("passes writes through immediately for unsupported shells (sh)", () => {
@@ -168,32 +166,28 @@ describe("Session shell-ready: write buffering", () => {
 		session.write("\x1b[?62;4;9;22c");
 		// Simulate cursor position report
 		session.write("\x1b[1;1R");
-		// Queue a real preset command
+		// Regular command also arriving during pending
 		session.write("claude\n");
 
-		// Only the preset command should be in the queue
-		expect(getWrittenData(proc)).toEqual([]);
+		// Escape sequences are dropped; the command passes through.
+		expect(getWrittenData(proc)).toEqual(["claude\n"]);
 
 		sendData(proc, SHELL_READY_MARKER);
 
-		// Only the command should flush — escape sequences dropped
+		// Nothing new to emit after the marker.
 		expect(getWrittenData(proc)).toEqual(["claude\n"]);
 	});
 
-	it("flushes buffered writes on subprocess exit", async () => {
+	it("forwards escape sequences once shell is ready", () => {
 		const { session, proc } = createTestSession("/bin/zsh");
 		spawnAndReady(session, proc);
 
-		session.write("echo delayed\n");
-		expect(getWrittenData(proc)).toEqual([]);
+		sendData(proc, SHELL_READY_MARKER);
 
-		// Simulate exit which resolves shell readiness as timed_out
-		sendExit(proc, 0);
-		proc.emit("exit", 0);
-
-		// Buffered write should now be flushed
-		const writes = getWrittenData(proc);
-		expect(writes).toEqual(["echo delayed\n"]);
+		// After the marker, escape sequences are no longer stale init noise,
+		// so they pass through (e.g. user pressing arrow keys).
+		session.write("\x1b[A");
+		expect(getWrittenData(proc)).toEqual(["\x1b[A"]);
 	});
 });
 
@@ -222,14 +216,16 @@ describe("Session shell-ready: marker detection", () => {
 		// Send first half — shell should still be pending
 		sendData(proc, `output${firstHalf}`);
 
-		session.write("buffered\n");
-		expect(getWrittenData(proc)).toEqual([]);
+		// Writes pass through even while pending
+		session.write("first\n");
+		expect(getWrittenData(proc)).toEqual(["first\n"]);
 
 		// Send second half — should complete the marker
 		sendData(proc, `${secondHalf}prompt`);
 
-		// Now writes should flush
-		expect(getWrittenData(proc)).toEqual(["buffered\n"]);
+		// Post-marker writes still pass through
+		session.write("second\n");
+		expect(getWrittenData(proc)).toEqual(["first\n", "second\n"]);
 	});
 
 	it("handles marker at start of data frame", () => {
@@ -260,13 +256,13 @@ describe("Session shell-ready: marker detection", () => {
 		const partialMarker = SHELL_READY_MARKER.slice(0, 5);
 		sendData(proc, `${partialMarker}not-a-marker`);
 
-		// Shell should still be pending
-		session.write("buffered\n");
-		expect(getWrittenData(proc)).toEqual([]);
+		// Writes pass through regardless of marker state.
+		session.write("first\n");
+		expect(getWrittenData(proc)).toEqual(["first\n"]);
 
-		// Now send the real marker
+		// Now send the real marker — no backlog to flush.
 		sendData(proc, SHELL_READY_MARKER);
-		expect(getWrittenData(proc)).toEqual(["buffered\n"]);
+		expect(getWrittenData(proc)).toEqual(["first\n"]);
 	});
 
 	// Wrappers now emit both the legacy OSC 777 and the current OSC 133;A in
@@ -280,45 +276,46 @@ describe("Session shell-ready: marker detection", () => {
 		const { session, proc } = createTestSession("/bin/zsh");
 		spawnAndReady(session, proc);
 
-		session.write("buffered\n");
-		expect(getWrittenData(proc)).toEqual([]);
-
 		const COMBINED_MARKER = "\x1b]777;superset-shell-ready\x07\x1b]133;A\x07";
 		sendData(proc, `direnv output...${COMBINED_MARKER}prompt$ `);
 
-		expect(getWrittenData(proc)).toEqual(["buffered\n"]);
+		// Writes after the combined marker pass through (marker detection
+		// guards future behaviors that may depend on the ready state).
+		session.write("test\n");
+		expect(getWrittenData(proc)).toEqual(["test\n"]);
 	});
 });
 
 describe("Session shell-ready: kill/exit before readiness", () => {
-	it("flushes queue when subprocess exits before marker", () => {
+	it("accepts writes when subprocess exits before marker", () => {
 		const { session, proc } = createTestSession("/bin/bash");
 		spawnAndReady(session, proc);
 
+		// Writes pass through even during pending.
 		session.write("echo pending\n");
-		expect(getWrittenData(proc)).toEqual([]);
+		expect(getWrittenData(proc)).toEqual(["echo pending\n"]);
 
-		// Subprocess exits without ever sending the marker
+		// Subprocess exits without ever sending the marker — no replay,
+		// no duplicate writes.
 		sendExit(proc, 1);
 		proc.emit("exit", 1);
 
-		// Queue should be flushed on exit
 		expect(getWrittenData(proc)).toEqual(["echo pending\n"]);
 	});
 
-	it("resolves readiness when session is killed", () => {
+	it("accepts writes when session is killed before marker", () => {
 		const { session, proc } = createTestSession("/bin/zsh");
 		spawnAndReady(session, proc);
 
 		session.write("echo pending\n");
-		expect(getWrittenData(proc)).toEqual([]);
+		expect(getWrittenData(proc)).toEqual(["echo pending\n"]);
 
-		// Kill triggers termination → subprocess exit → readiness resolved
+		// Kill triggers termination → subprocess exit → readiness resolved.
+		// No buffered replay on exit.
 		session.kill();
 		sendExit(proc, 0);
 		proc.emit("exit", 0);
 
-		// Writes should be flushed
 		expect(getWrittenData(proc)).toEqual(["echo pending\n"]);
 	});
 });
@@ -330,12 +327,12 @@ describe("Session shell-ready: supported shells", () => {
 		"/bin/bash",
 		"/usr/local/bin/fish",
 	]) {
-		it(`buffers writes for supported shell: ${shell}`, () => {
+		it(`passes writes through while pending for supported shell: ${shell}`, () => {
 			const { session, proc } = createTestSession(shell);
 			spawnAndReady(session, proc);
 
 			session.write("test\n");
-			expect(getWrittenData(proc)).toEqual([]);
+			expect(getWrittenData(proc)).toEqual(["test\n"]);
 
 			sendData(proc, SHELL_READY_MARKER);
 			expect(getWrittenData(proc)).toEqual(["test\n"]);
