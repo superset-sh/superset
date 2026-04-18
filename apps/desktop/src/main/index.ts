@@ -32,6 +32,7 @@ import { setWorkspaceDockIcon } from "./lib/dock-icon";
 import { loadWebviewBrowserExtension } from "./lib/extensions";
 import { getHostServiceCoordinator } from "./lib/host-service-coordinator";
 import { localDb } from "./lib/local-db";
+import { requestLocalNetworkAccess } from "./lib/local-network-permission";
 import { ensureProjectIconsDir, getProjectIconPath } from "./lib/project-icons";
 import { initSentry } from "./lib/sentry";
 import {
@@ -293,6 +294,7 @@ if (!gotTheLock) {
 		await app.whenReady();
 		registerWithMacOSNotificationCenter();
 		requestAppleEventsAccess();
+		requestLocalNetworkAccess();
 
 		// Must register on both default session and the app's custom partition
 		const iconProtocolHandler = (request: Request) => {
