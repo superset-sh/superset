@@ -6,10 +6,11 @@ import pidtree from "pidtree";
 const execFileAsync = promisify(execFile);
 
 /**
- * Run execFile and tolerate a non-zero exit code by returning its stdout.
- * lsof exits 1 when no PIDs match the filter — that is a legitimate "empty"
- * result, not an error. Using execFile (not exec) avoids a `/bin/sh -c` wrapper
- * that would strand the child on SIGTERM/timeout.
+ * Run execFile and tolerate a plain non-zero exit by returning its stdout.
+ * lsof exits 1 when no PIDs match the filter — a legitimate "empty" result.
+ * Aborts, timeouts, and signal-kills are NOT tolerated: partial stdout from a
+ * killed child is not a trustworthy snapshot, so rethrow and let the caller's
+ * outer catch turn it into `[]`.
  */
 async function runTolerant(
 	file: string,
@@ -20,8 +21,25 @@ async function runTolerant(
 		const { stdout } = await execFileAsync(file, args, options);
 		return stdout;
 	} catch (err) {
-		if (err && typeof err === "object" && "stdout" in err) {
-			return String((err as { stdout: string }).stdout ?? "");
+		if (err && typeof err === "object") {
+			const execErr = err as {
+				stdout?: string | Buffer;
+				code?: unknown;
+				killed?: boolean;
+				signal?: unknown;
+				name?: string;
+			};
+			if (
+				execErr.name === "AbortError" ||
+				execErr.code === "ABORT_ERR" ||
+				execErr.killed ||
+				execErr.signal
+			) {
+				throw err;
+			}
+			if ("stdout" in execErr) {
+				return String(execErr.stdout ?? "");
+			}
 		}
 		throw err;
 	}

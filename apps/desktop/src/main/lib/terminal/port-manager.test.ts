@@ -185,7 +185,8 @@ describe("PortManager — #3372 concurrency (at most one lsof in flight)", () =>
 		await sleep(PAST_DEBOUNCE_MS); // let the single debounced follow-up run
 
 		expect(spy.maxInFlight).toBe(1);
-		expect(spy.getListeningPortsForPids).toBeLessThanOrEqual(2);
+		// Exact — one initial scan + one coalesced follow-up, never more, never fewer.
+		expect(spy.getListeningPortsForPids).toBe(2);
 	});
 });
 
