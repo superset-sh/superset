@@ -69,6 +69,24 @@ describe("sanitizeTerminalFontFamily", () => {
 
 	test("trusts all-generic monospace values without canvas", () => {
 		expect(sanitizeTerminalFontFamily("monospace")).toBe("monospace");
+		expect(sanitizeTerminalFontFamily("ui-monospace")).toBe("ui-monospace");
+	});
+
+	test("falls back for proportional generic families", () => {
+		// No primary concrete family to measure, and the stack isn't all-mono —
+		// pre-regression these slipped through and could still blank the terminal.
+		expect(sanitizeTerminalFontFamily("sans-serif")).toBe(
+			DEFAULT_TERMINAL_FONT_FAMILY,
+		);
+		expect(sanitizeTerminalFontFamily("serif")).toBe(
+			DEFAULT_TERMINAL_FONT_FAMILY,
+		);
+		expect(sanitizeTerminalFontFamily("cursive")).toBe(
+			DEFAULT_TERMINAL_FONT_FAMILY,
+		);
+		expect(sanitizeTerminalFontFamily("monospace, sans-serif")).toBe(
+			DEFAULT_TERMINAL_FONT_FAMILY,
+		);
 	});
 
 	test("passes a monospace font through (canvas reports equal widths)", () => {

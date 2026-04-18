@@ -61,11 +61,10 @@ export const DEFAULT_TERMINAL_FONT_FAMILY = serializeFontFamilyList([
 
 export const DEFAULT_TERMINAL_FONT_SIZE = 14;
 
-/**
- * Extract the first concrete (non-generic) family from a CSS font-family list.
- * Returns `null` when every entry is a generic family.
- */
-function parsePrimaryFontFamily(cssValue: string): string | null {
+const MONOSPACE_GENERIC_FAMILIES = new Set(["monospace", "ui-monospace"]);
+
+/** Parse a CSS font-family list into trimmed entries, respecting quoted names. */
+function parseFontFamilyList(cssValue: string): string[] {
 	const families: string[] = [];
 	let current = "";
 	let inQuote: string | null = null;
@@ -86,10 +85,7 @@ function parsePrimaryFontFamily(cssValue: string): string | null {
 	}
 	const last = current.trim();
 	if (last) families.push(last);
-
-	return (
-		families.find((f) => !GENERIC_FONT_FAMILIES.has(f.toLowerCase())) ?? null
-	);
+	return families;
 }
 
 // Cache monospace checks so we don't hit the canvas on every render.
@@ -103,7 +99,7 @@ const monospaceCheckCache = new Map<string, boolean>();
  */
 function isFontFamilyMonospace(family: string): boolean {
 	const key = family.toLowerCase();
-	if (key === "monospace" || key === "ui-monospace") return true;
+	if (MONOSPACE_GENERIC_FAMILIES.has(key)) return true;
 
 	const cached = monospaceCheckCache.get(key);
 	if (cached !== undefined) return cached;
@@ -140,8 +136,26 @@ export function sanitizeTerminalFontFamily(
 	cssValue: string | null | undefined,
 ): string {
 	if (!cssValue || !cssValue.trim()) return DEFAULT_TERMINAL_FONT_FAMILY;
-	const primary = parsePrimaryFontFamily(cssValue);
-	if (!primary) return cssValue;
+	const families = parseFontFamilyList(cssValue);
+	if (families.length === 0) return DEFAULT_TERMINAL_FONT_FAMILY;
+
+	const primary = families.find(
+		(f) => !GENERIC_FONT_FAMILIES.has(f.toLowerCase()),
+	);
+	if (!primary) {
+		// All-generic stack (e.g. "monospace", "cursive, fantasy"). Only trust it
+		// when every entry is a monospace generic — otherwise a value like
+		// "sans-serif" would still blank the terminal.
+		const allMono = families.every((f) =>
+			MONOSPACE_GENERIC_FAMILIES.has(f.toLowerCase()),
+		);
+		if (allMono) return cssValue;
+		console.warn(
+			`[terminal] Font stack "${cssValue}" has no monospace family; falling back to default terminal font.`,
+		);
+		return DEFAULT_TERMINAL_FONT_FAMILY;
+	}
+
 	if (isFontFamilyMonospace(primary)) return cssValue;
 	console.warn(
 		`[terminal] Font "${primary}" is not monospace; falling back to default terminal font.`,
