@@ -19,6 +19,7 @@ export function PlusMenu() {
 		<Tooltip>
 			<TooltipTrigger asChild>
 				<PromptInputButton
+					aria-label="Add attachment"
 					className={`${PILL_BUTTON_CLASS} w-[23px]`}
 					onClick={() => attachments.openFileDialog()}
 				>

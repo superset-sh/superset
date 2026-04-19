@@ -40,9 +40,21 @@ interface IssueLinkCommandProps {
 export function IssueLinkCommand({
 	children,
 	onSelect,
-	open,
+	open: openProp,
 	onOpenChange,
 }: IssueLinkCommandProps) {
+	// Controllable-state pattern: if a caller passes `openProp` we defer to it,
+	// otherwise we manage our own. We read from `open` (below) and always write
+	// through `setOpen` so close-on-select works in both modes — the previous
+	// version only fired the optional controlled callback, leaving uncontrolled
+	// pickers open after a selection.
+	const [internalOpen, setInternalOpen] = useState(false);
+	const open = openProp ?? internalOpen;
+	const setOpen = (next: boolean) => {
+		setInternalOpen(next);
+		onOpenChange?.(next);
+	};
+
 	const [searchQuery, setSearchQuery] = useState("");
 	const collections = useCollections();
 
@@ -122,7 +134,7 @@ export function IssueLinkCommand({
 	) => {
 		onSelect(slug, title, taskId, url);
 		setSearchQuery("");
-		onOpenChange?.(false);
+		setOpen(false);
 	};
 
 	return (
@@ -130,7 +142,7 @@ export function IssueLinkCommand({
 			open={open}
 			onOpenChange={(next) => {
 				if (!next) setSearchQuery("");
-				onOpenChange?.(next);
+				setOpen(next);
 			}}
 		>
 			<PopoverTrigger asChild>{children}</PopoverTrigger>
