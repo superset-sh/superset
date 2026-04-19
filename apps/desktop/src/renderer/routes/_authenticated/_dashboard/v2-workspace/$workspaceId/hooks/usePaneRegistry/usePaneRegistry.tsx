@@ -345,28 +345,36 @@ export function usePaneRegistry(
 			chat: {
 				getIcon: () => <MessageSquare className="size-4" />,
 				getTitle: () => "Chat",
-				renderPane: (ctx: RendererContext<PaneViewerData>) => {
-					const data = ctx.pane.data as ChatPaneData;
-					return (
-						<ChatPane
-							onSessionIdChange={(sessionId) =>
-								ctx.actions.updateData({
-									sessionId,
-									launchConfig: data.launchConfig ?? null,
-								} as PaneViewerData)
-							}
-							sessionId={data.sessionId}
-							workspaceId={workspaceId}
-							initialLaunchConfig={data.launchConfig ?? null}
-							onConsumeLaunchConfig={() =>
-								ctx.actions.updateData({
-									sessionId: data.sessionId,
-									launchConfig: null,
-								} as PaneViewerData)
-							}
-						/>
-					);
-				},
+				// Temporarily disabled: v2 ChatPane is missing ChatServiceProvider
+				// (pre-existing, introduced in PR #3088) so tRPC context is null
+				// inside TiptapPromptEditor. Re-enable once the provider is wired.
+				renderPane: (_ctx: RendererContext<PaneViewerData>) => (
+					<div className="flex h-full items-center justify-center p-4 text-sm text-muted-foreground">
+						Chat pane is temporarily disabled.
+					</div>
+				),
+				// renderPane: (ctx: RendererContext<PaneViewerData>) => {
+				// 	const data = ctx.pane.data as ChatPaneData;
+				// 	return (
+				// 		<ChatPane
+				// 			onSessionIdChange={(sessionId) =>
+				// 				ctx.actions.updateData({
+				// 					sessionId,
+				// 					launchConfig: data.launchConfig ?? null,
+				// 				} as PaneViewerData)
+				// 			}
+				// 			sessionId={data.sessionId}
+				// 			workspaceId={workspaceId}
+				// 			initialLaunchConfig={data.launchConfig ?? null}
+				// 			onConsumeLaunchConfig={() =>
+				// 				ctx.actions.updateData({
+				// 					sessionId: data.sessionId,
+				// 					launchConfig: null,
+				// 				} as PaneViewerData)
+				// 			}
+				// 		/>
+				// 	);
+				// },
 				contextMenuActions: (_ctx, defaults) =>
 					defaults.map((d) =>
 						d.key === "close-pane" ? { ...d, label: "Close Chat" } : d,

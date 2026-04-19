@@ -1,4 +1,3 @@
-import { PromptInputButton } from "@superset/ui/ai-elements/prompt-input";
 import {
 	Command,
 	CommandEmpty,
@@ -11,7 +10,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
 import { useState } from "react";
 import { HiCheck, HiChevronUpDown } from "react-icons/hi2";
 import { ProjectThumbnail } from "renderer/routes/_authenticated/components/ProjectThumbnail";
-import { PILL_BUTTON_CLASS, type ProjectOption } from "../../types";
+import { FORM_PICKER_TRIGGER_CLASS, type ProjectOption } from "../../types";
 
 interface ProjectPickerPillProps {
 	selectedProject: ProjectOption | undefined;
@@ -29,21 +28,22 @@ export function ProjectPickerPill({
 	return (
 		<Popover open={open} onOpenChange={setOpen}>
 			<PopoverTrigger asChild>
-				<PromptInputButton
-					className={`${PILL_BUTTON_CLASS} px-1.5 gap-1 text-foreground w-auto max-w-[140px]`}
+				<button
+					type="button"
+					className={`${FORM_PICKER_TRIGGER_CLASS} max-w-[140px]`}
 				>
 					{selectedProject && (
 						<ProjectThumbnail
 							projectName={selectedProject.name}
 							githubOwner={selectedProject.githubOwner}
-							className="!size-3"
+							className="size-4"
 						/>
 					)}
 					<span className="truncate">
 						{selectedProject?.name ?? "Select project"}
 					</span>
-					<HiChevronUpDown className="size-3 shrink-0 text-muted-foreground" />
-				</PromptInputButton>
+					<HiChevronUpDown className="size-3 shrink-0" />
+				</button>
 			</PopoverTrigger>
 			<PopoverContent align="start" className="w-60 p-0">
 				<Command>

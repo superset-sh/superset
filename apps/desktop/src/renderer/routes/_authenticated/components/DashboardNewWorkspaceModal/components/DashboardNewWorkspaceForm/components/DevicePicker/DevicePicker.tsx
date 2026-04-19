@@ -1,4 +1,3 @@
-import { Button } from "@superset/ui/button";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -16,6 +15,7 @@ import {
 	HiOutlineComputerDesktop,
 	HiOutlineServer,
 } from "react-icons/hi2";
+import { FORM_PICKER_TRIGGER_CLASS } from "../../PromptGroup/types";
 import {
 	useWorkspaceHostOptions,
 	type WorkspaceHostOption,
@@ -51,15 +51,15 @@ function getSelectedIcon(
 	otherHosts: WorkspaceHostOption[],
 ) {
 	if (hostTarget.kind === "local") {
-		return <HiOutlineComputerDesktop className="size-4 shrink-0" />;
+		return <HiOutlineComputerDesktop className="size-3 shrink-0" />;
 	}
 
 	const host = otherHosts.find((h) => h.id === hostTarget.hostId);
 	if (host?.isCloud) {
-		return <HiOutlineCloud className="size-4 shrink-0" />;
+		return <HiOutlineCloud className="size-3 shrink-0" />;
 	}
 
-	return <HiOutlineServer className="size-4 shrink-0" />;
+	return <HiOutlineServer className="size-3 shrink-0" />;
 }
 
 export function DevicePicker({
@@ -76,15 +76,17 @@ export function DevicePicker({
 	return (
 		<DropdownMenu>
 			<DropdownMenuTrigger asChild>
-				<Button variant="ghost" size="sm" className="h-7 gap-1 px-2 text-xs">
-					<span className="flex min-w-0 items-center gap-1.5">
-						{getSelectedIcon(hostTarget, otherHosts)}
-						<span className="max-w-[140px] truncate">{selectedLabel}</span>
-					</span>
+				<button
+					type="button"
+					aria-label={`Device: ${selectedLabel}`}
+					title={selectedLabel}
+					className={FORM_PICKER_TRIGGER_CLASS}
+				>
+					{getSelectedIcon(hostTarget, otherHosts)}
 					<HiChevronUpDown className="size-3 shrink-0" />
-				</Button>
+				</button>
 			</DropdownMenuTrigger>
-			<DropdownMenuContent align="end" className="w-72">
+			<DropdownMenuContent align="start" className="w-72">
 				<DropdownMenuItem
 					onSelect={() => onSelectHostTarget({ kind: "local" })}
 				>

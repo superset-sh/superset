@@ -1,17 +1,19 @@
 import {
 	Command,
-	CommandDialog,
 	CommandEmpty,
 	CommandGroup,
 	CommandInput,
 	CommandItem,
 	CommandList,
 } from "@superset/ui/command";
-import { Popover, PopoverAnchor, PopoverContent } from "@superset/ui/popover";
+import {
+	Popover,
+	PopoverContent,
+	PopoverTrigger,
+} from "@superset/ui/popover";
 import { useLiveQuery } from "@tanstack/react-db";
 import Fuse from "fuse.js";
-import type React from "react";
-import type { RefObject } from "react";
+import type { ReactNode } from "react";
 import { useMemo, useState } from "react";
 import {
 	StatusIcon,
@@ -21,22 +23,30 @@ import { useCollections } from "renderer/routes/_authenticated/providers/Collect
 
 const MAX_RESULTS = 20;
 
-type IssueLinkCommandProps = {
-	open: boolean;
-	onOpenChange: (open: boolean) => void;
+interface IssueLinkCommandProps {
+	/** Button element used as the popover trigger. Radix wraps it in
+	 * PopoverTrigger so click + keyboard toggle behave natively. */
+	children: ReactNode;
 	onSelect: (
 		slug: string,
 		title: string,
 		taskId: string | undefined,
 		url?: string,
 	) => void;
-} & (
-	| { variant?: "dialog" }
-	| { variant: "popover"; anchorRef: RefObject<HTMLElement | null> }
-);
+	/** Optional controlled open state — callers that need to open the
+	 * popover programmatically (e.g. keyboard shortcut) pass these; others
+	 * let Radix manage internal state. Standard controlled/uncontrolled
+	 * passthrough — one codepath either way. */
+	open?: boolean;
+	onOpenChange?: (open: boolean) => void;
+}
 
-export function IssueLinkCommand(props: IssueLinkCommandProps) {
-	const { open, onOpenChange, onSelect } = props;
+export function IssueLinkCommand({
+	children,
+	onSelect,
+	open,
+	onOpenChange,
+}: IssueLinkCommandProps) {
 	const [searchQuery, setSearchQuery] = useState("");
 	const collections = useCollections();
 
@@ -108,11 +118,6 @@ export function IssueLinkCommand(props: IssueLinkCommandProps) {
 			.map((r) => r.item);
 	}, [allTasks, searchQuery, taskFuse]);
 
-	const handleClose = () => {
-		setSearchQuery("");
-		onOpenChange(false);
-	};
-
 	const handleSelect = (
 		slug: string,
 		title: string,
@@ -120,103 +125,81 @@ export function IssueLinkCommand(props: IssueLinkCommandProps) {
 		url?: string,
 	) => {
 		onSelect(slug, title, taskId, url);
-		handleClose();
+		setSearchQuery("");
+		onOpenChange?.(false);
 	};
 
-	const issueListContent = (
-		<>
-			<CommandInput
-				placeholder="Search issues..."
-				value={searchQuery}
-				onValueChange={setSearchQuery}
-			/>
-			<CommandList
-				className={props.variant === "popover" ? "max-h-[280px]" : undefined}
-			>
-				{filteredTasks.length === 0 && (
-					<CommandEmpty>No issues found.</CommandEmpty>
-				)}
-				{filteredTasks.length > 0 && (
-					<CommandGroup heading={searchQuery ? "Results" : "Recent issues"}>
-						{filteredTasks.map((task) => {
-							const status = task.statusId
-								? statusMap.get(task.statusId)
-								: undefined;
-							return (
-								<CommandItem
-									key={task.id}
-									value={task.slug}
-									onSelect={() =>
-										handleSelect(
-											task.slug,
-											task.title,
-											task.id,
-											task.externalUrl ?? undefined,
-										)
-									}
-									className="group"
-								>
-									{status ? (
-										<StatusIcon
-											type={status.type}
-											color={status.color}
-											progress={status.progressPercent ?? undefined}
-										/>
-									) : (
-										<span className="size-3.5 shrink-0 rounded-full border border-muted-foreground/40" />
-									)}
-									<span className="max-w-24 shrink-0 truncate font-mono text-xs text-muted-foreground">
-										{task.slug}
-									</span>
-									<span className="min-w-0 flex-1 truncate text-xs">
-										{task.title}
-									</span>
-									<span className="shrink-0 hidden text-xs text-muted-foreground group-data-[selected=true]:inline">
-										Link ↵
-									</span>
-								</CommandItem>
-							);
-						})}
-					</CommandGroup>
-				)}
-			</CommandList>
-		</>
-	);
-
-	if (props.variant === "popover") {
-		return (
-			<Popover open={open}>
-				<PopoverAnchor
-					virtualRef={props.anchorRef as React.RefObject<Element>}
-				/>
-				<PopoverContent
-					className="w-80 p-0"
-					align="start"
-					side="bottom"
-					onWheel={(event) => event.stopPropagation()}
-					onPointerDownOutside={handleClose}
-					onEscapeKeyDown={handleClose}
-					onFocusOutside={(e) => e.preventDefault()}
-				>
-					<Command shouldFilter={false}>{issueListContent}</Command>
-				</PopoverContent>
-			</Popover>
-		);
-	}
-
 	return (
-		<CommandDialog
+		<Popover
 			open={open}
-			onOpenChange={(nextOpen) => {
-				if (!nextOpen) setSearchQuery("");
-				onOpenChange(nextOpen);
+			onOpenChange={(next) => {
+				if (!next) setSearchQuery("");
+				onOpenChange?.(next);
 			}}
-			modal
-			title="Link issue"
-			description="Search for an issue to link"
-			showCloseButton={false}
 		>
-			{issueListContent}
-		</CommandDialog>
+			<PopoverTrigger asChild>{children}</PopoverTrigger>
+			<PopoverContent
+				className="w-80 p-0"
+				align="start"
+				side="bottom"
+				onWheel={(event) => event.stopPropagation()}
+			>
+				<Command shouldFilter={false}>
+					<CommandInput
+						placeholder="Search issues..."
+						value={searchQuery}
+						onValueChange={setSearchQuery}
+					/>
+					<CommandList className="max-h-[280px]">
+						{filteredTasks.length === 0 && (
+							<CommandEmpty>No issues found.</CommandEmpty>
+						)}
+						{filteredTasks.length > 0 && (
+							<CommandGroup heading={searchQuery ? "Results" : "Recent issues"}>
+								{filteredTasks.map((task) => {
+									const status = task.statusId
+										? statusMap.get(task.statusId)
+										: undefined;
+									return (
+										<CommandItem
+											key={task.id}
+											value={task.slug}
+											onSelect={() =>
+												handleSelect(
+													task.slug,
+													task.title,
+													task.id,
+													task.externalUrl ?? undefined,
+												)
+											}
+											className="group"
+										>
+											{status ? (
+												<StatusIcon
+													type={status.type}
+													color={status.color}
+													progress={status.progressPercent ?? undefined}
+												/>
+											) : (
+												<span className="size-3.5 shrink-0 rounded-full border border-muted-foreground/40" />
+											)}
+											<span className="max-w-24 shrink-0 truncate font-mono text-xs text-muted-foreground">
+												{task.slug}
+											</span>
+											<span className="min-w-0 flex-1 truncate text-xs">
+												{task.title}
+											</span>
+											<span className="shrink-0 hidden text-xs text-muted-foreground group-data-[selected=true]:inline">
+												Link ↵
+											</span>
+										</CommandItem>
+									);
+								})}
+							</CommandGroup>
+						)}
+					</CommandList>
+				</Command>
+			</PopoverContent>
+		</Popover>
 	);
 }

@@ -14,8 +14,10 @@ import { cn } from "@superset/ui/utils";
 import type { FileUIPart } from "ai";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowUpIcon } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
+import { GoIssueOpened } from "react-icons/go";
 import { LuGitPullRequest } from "react-icons/lu";
+import { SiLinear } from "react-icons/si";
 import { AgentSelect } from "renderer/components/AgentSelect";
 import { LinkedIssuePill } from "renderer/components/Chat/ChatInterface/components/ChatInputFooter/components/LinkedIssuePill";
 import { IssueLinkCommand } from "renderer/components/Chat/ChatInterface/components/IssueLinkCommand";
@@ -27,7 +29,7 @@ import { getEnabledAgentConfigs } from "shared/utils/agent-settings";
 import { sanitizeUserBranchName, slugifyForBranch } from "shared/utils/branch";
 import { useDashboardNewWorkspaceDraft } from "../../../DashboardNewWorkspaceDraftContext";
 import { DevicePicker } from "../components/DevicePicker";
-import { AttachmentButtons } from "./components/AttachmentButtons";
+import { AttachmentButtons, LinkTrigger } from "./components/AttachmentButtons";
 import { CompareBaseBranchPicker } from "./components/CompareBaseBranchPicker";
 import { GitHubIssueLinkCommand } from "./components/GitHubIssueLinkCommand";
 import { LinkedGitHubIssuePill } from "./components/LinkedGitHubIssuePill";
@@ -91,11 +93,6 @@ export function PromptGroup({
 			agentsReady: agentPresetsQuery.isFetched,
 		});
 
-	// ── Link commands ────────────────────────────────────────────────
-	const [issueLinkOpen, setIssueLinkOpen] = useState(false);
-	const [gitHubIssueLinkOpen, setGitHubIssueLinkOpen] = useState(false);
-	const [prLinkOpen, setPRLinkOpen] = useState(false);
-	const plusMenuRef = useRef<HTMLDivElement>(null);
 	const trimmedPrompt = prompt.trim();
 	const branchPreview = branchNameEdited
 		? sanitizeUserBranchName(branchName)
@@ -299,46 +296,45 @@ export function PromptGroup({
 					</PromptInputTools>
 					<div className="flex items-center gap-2">
 						<AttachmentButtons
-							anchorRef={plusMenuRef}
-							onOpenIssueLink={() =>
-								requestAnimationFrame(() => setIssueLinkOpen(true))
+							linearIssueTrigger={
+								<IssueLinkCommand onSelect={addLinkedIssue}>
+									<LinkTrigger
+										label="Link issue"
+										icon={<SiLinear className="size-3.5" />}
+									/>
+								</IssueLinkCommand>
 							}
-							onOpenGitHubIssue={() =>
-								requestAnimationFrame(() => setGitHubIssueLinkOpen(true))
+							githubIssueTrigger={
+								<GitHubIssueLinkCommand
+									onSelect={(issue) =>
+										addLinkedGitHubIssue(
+											issue.issueNumber,
+											issue.title,
+											issue.url,
+											issue.state,
+										)
+									}
+									projectId={projectId}
+									hostTarget={hostTarget}
+								>
+									<LinkTrigger
+										label="Link GitHub issue"
+										icon={<GoIssueOpened className="size-3.5" />}
+									/>
+								</GitHubIssueLinkCommand>
 							}
-							onOpenPRLink={() =>
-								requestAnimationFrame(() => setPRLinkOpen(true))
+							prTrigger={
+								<PRLinkCommand
+									onSelect={setLinkedPR}
+									projectId={projectId}
+									hostTarget={hostTarget}
+								>
+									<LinkTrigger
+										label="Link pull request"
+										icon={<LuGitPullRequest className="size-3.5" />}
+									/>
+								</PRLinkCommand>
 							}
-						/>
-						<IssueLinkCommand
-							variant="popover"
-							anchorRef={plusMenuRef}
-							open={issueLinkOpen}
-							onOpenChange={setIssueLinkOpen}
-							onSelect={addLinkedIssue}
-						/>
-						<GitHubIssueLinkCommand
-							open={gitHubIssueLinkOpen}
-							onOpenChange={setGitHubIssueLinkOpen}
-							onSelect={(issue) =>
-								addLinkedGitHubIssue(
-									issue.issueNumber,
-									issue.title,
-									issue.url,
-									issue.state,
-								)
-							}
-							projectId={projectId}
-							hostTarget={hostTarget}
-							anchorRef={plusMenuRef}
-						/>
-						<PRLinkCommand
-							open={prLinkOpen}
-							onOpenChange={setPRLinkOpen}
-							onSelect={setLinkedPR}
-							projectId={projectId}
-							hostTarget={hostTarget}
-							anchorRef={plusMenuRef}
 						/>
 						<PromptInputSubmit
 							className="size-[22px] rounded-full border border-transparent bg-foreground/10 shadow-none p-[5px] hover:bg-foreground/20"
@@ -355,7 +351,11 @@ export function PromptGroup({
 
 			{/* Bottom bar */}
 			<div className="flex items-center justify-between gap-2">
-				<div className="flex items-center gap-2 min-w-0 flex-1">
+        <div className="flex items-center gap-2 min-w-0 flex-1">
+          <DevicePicker
+						hostTarget={hostTarget}
+						onSelectHostTarget={(t) => updateDraft({ hostTarget: t })}
+					/>
 					<ProjectPickerPill
 						selectedProject={selectedProject}
 						recentProjects={recentProjects}
@@ -386,13 +386,9 @@ export function PromptGroup({
 								<CompareBaseBranchPicker {...pickerProps} />
 							</motion.div>
 						)}
-					</AnimatePresence>
+          </AnimatePresence>
 				</div>
 				<div className="flex items-center gap-1.5">
-					<DevicePicker
-						hostTarget={hostTarget}
-						onSelectHostTarget={(t) => updateDraft({ hostTarget: t })}
-					/>
 					<span className="text-[11px] text-muted-foreground/50">
 						{modKey}↵
 					</span>

@@ -18,6 +18,7 @@ import { GoGitBranch } from "react-icons/go";
 import { HiCheck, HiChevronUpDown } from "react-icons/hi2";
 import { formatRelativeTime } from "renderer/lib/formatRelativeTime";
 import type { BranchFilter, BranchRow } from "../../../hooks/useBranchContext";
+import { FORM_PICKER_TRIGGER_CLASS } from "../../types";
 
 interface CompareBaseBranchPickerProps {
 	effectiveCompareBaseBranch: string | null;
@@ -110,7 +111,7 @@ export function CompareBaseBranchPicker({
 				<button
 					type="button"
 					disabled={isBranchesLoading && branches.length === 0}
-					className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50 min-w-0 max-w-full"
+					className={`${FORM_PICKER_TRIGGER_CLASS} max-w-full`}
 				>
 					<GoGitBranch className="size-3 shrink-0" />
 					{isBranchesLoading && branches.length === 0 ? (

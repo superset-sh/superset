@@ -6,10 +6,13 @@ import {
 	CommandItem,
 	CommandList,
 } from "@superset/ui/command";
-import { Popover, PopoverAnchor, PopoverContent } from "@superset/ui/popover";
+import {
+	Popover,
+	PopoverContent,
+	PopoverTrigger,
+} from "@superset/ui/popover";
 import { useQuery } from "@tanstack/react-query";
-import type React from "react";
-import type { RefObject } from "react";
+import type { ReactNode } from "react";
 import { useState } from "react";
 import { env } from "renderer/env.renderer";
 import { useDebouncedValue } from "renderer/hooks/useDebouncedValue";
@@ -29,12 +32,11 @@ export interface SelectedPR {
 }
 
 interface PRLinkCommandProps {
-	open: boolean;
-	onOpenChange: (open: boolean) => void;
+	/** Button element wrapped in PopoverTrigger — Radix handles toggle. */
+	children: ReactNode;
 	onSelect: (pr: SelectedPR) => void;
 	projectId: string | null;
 	hostTarget: WorkspaceHostTarget;
-	anchorRef: RefObject<HTMLElement | null>;
 }
 
 function normalizeState(state: string, isDraft: boolean): string {
@@ -44,13 +46,12 @@ function normalizeState(state: string, isDraft: boolean): string {
 }
 
 export function PRLinkCommand({
-	open,
-	onOpenChange,
+	children,
 	onSelect,
 	projectId,
 	hostTarget,
-	anchorRef,
 }: PRLinkCommandProps) {
+	const [open, setOpen] = useState(false);
 	const [searchQuery, setSearchQuery] = useState("");
 	const debouncedQuery = useDebouncedValue(searchQuery, 300);
 	const { activeHostUrl } = useLocalHostService();
@@ -93,11 +94,6 @@ export function PRLinkCommand({
 			? isFetching || isPendingDebounce
 			: isFetching;
 
-	const handleClose = () => {
-		setSearchQuery("");
-		onOpenChange(false);
-	};
-
 	const handleSelect = (pr: (typeof pullRequests)[number]) => {
 		onSelect({
 			prNumber: pr.prNumber,
@@ -105,20 +101,24 @@ export function PRLinkCommand({
 			url: pr.url,
 			state: normalizeState(pr.state, pr.isDraft),
 		});
-		handleClose();
+		setSearchQuery("");
+		setOpen(false);
 	};
 
 	return (
-		<Popover open={open}>
-			<PopoverAnchor virtualRef={anchorRef as React.RefObject<Element>} />
+		<Popover
+			open={open}
+			onOpenChange={(next) => {
+				if (!next) setSearchQuery("");
+				setOpen(next);
+			}}
+		>
+			<PopoverTrigger asChild>{children}</PopoverTrigger>
 			<PopoverContent
 				className="w-80 p-0"
 				align="start"
 				side="bottom"
 				onWheel={(event) => event.stopPropagation()}
-				onPointerDownOutside={handleClose}
-				onEscapeKeyDown={handleClose}
-				onFocusOutside={(e) => e.preventDefault()}
 			>
 				<Command shouldFilter={false}>
 					<CommandInput

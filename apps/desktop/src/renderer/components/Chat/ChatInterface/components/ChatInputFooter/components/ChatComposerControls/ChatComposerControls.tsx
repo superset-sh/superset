@@ -30,7 +30,6 @@ interface ChatComposerControlsProps {
 	submitStatus?: ChatStatus;
 	submitDisabled?: boolean;
 	onStop: (event: React.MouseEvent) => void;
-	onLinkIssue: () => void;
 }
 
 export function ChatComposerControls({
@@ -47,7 +46,6 @@ export function ChatComposerControls({
 	submitStatus,
 	submitDisabled,
 	onStop,
-	onLinkIssue,
 }: ChatComposerControlsProps) {
 	return (
 		<PromptInputFooter>
@@ -70,7 +68,7 @@ export function ChatComposerControls({
 				/>
 			</PromptInputTools>
 			<div className="flex items-center gap-2">
-				<PlusMenu onLinkIssue={onLinkIssue} />
+				<PlusMenu />
 				<PromptInputSubmit
 					className="size-[23px] rounded-full border border-transparent bg-foreground/10 shadow-none p-[5px] hover:bg-foreground/20"
 					status={submitStatus}

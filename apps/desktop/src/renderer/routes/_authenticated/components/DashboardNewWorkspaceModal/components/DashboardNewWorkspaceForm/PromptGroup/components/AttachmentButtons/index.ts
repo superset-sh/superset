@@ -1,1 +1,1 @@
-export { AttachmentButtons } from "./AttachmentButtons";
+export { AttachmentButtons, LinkTrigger } from "./AttachmentButtons";

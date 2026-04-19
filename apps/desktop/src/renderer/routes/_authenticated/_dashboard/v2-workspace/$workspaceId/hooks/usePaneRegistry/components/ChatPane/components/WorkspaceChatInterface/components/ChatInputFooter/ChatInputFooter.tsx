@@ -192,11 +192,6 @@ export function ChatInputFooter({
 									isFocused={isFocused}
 									setIssueLinkOpen={setIssueLinkOpen}
 								/>
-								<IssueLinkCommand
-									open={issueLinkOpen}
-									onOpenChange={setIssueLinkOpen}
-									onSelect={addLinkedIssue}
-								/>
 								<FileDropOverlay visible={dragType === "files"} />
 								<PromptInputAttachments>
 									{renderAttachment ??
@@ -231,7 +226,6 @@ export function ChatInputFooter({
 									submitStatus={submitStatus}
 									submitDisabled={submitDisabled}
 									onStop={onStop}
-									onLinkIssue={() => setIssueLinkOpen(true)}
 								/>
 							</PromptInput>
 						</div>

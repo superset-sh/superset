@@ -1328,13 +1328,6 @@ ${sanitizeText(truncatedBody)}`;
 								requestAnimationFrame(() => setPRLinkOpen(true))
 							}
 						/>
-						<IssueLinkCommand
-							variant="popover"
-							anchorRef={plusMenuRef}
-							open={issueLinkOpen}
-							onOpenChange={setIssueLinkOpen}
-							onSelect={addLinkedIssue}
-						/>
 						<GitHubIssueLinkCommand
 							open={gitHubIssueLinkOpen}
 							onOpenChange={setGitHubIssueLinkOpen}
