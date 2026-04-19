@@ -112,27 +112,6 @@ export function V2WorkspacesList({ pinned, others }: V2WorkspacesListProps) {
 	);
 	const hasAnyMatches = pinnedCount > 0 || othersCount > 0;
 	const hasActiveFilters = searchQuery.trim() !== "" || deviceFilter !== "all";
-	const hasAnyWorkspaces = pinned.length > 0 || others.length > 0;
-
-	if (!hasAnyWorkspaces) {
-		return (
-			<Empty className="flex-1 border-0">
-				<EmptyHeader>
-					<EmptyMedia
-						variant="icon"
-						className="size-14 [&_svg:not([class*='size-'])]:size-7"
-					>
-						<LuLayers />
-					</EmptyMedia>
-					<EmptyTitle>No workspaces yet</EmptyTitle>
-					<EmptyDescription>
-						Workspaces you have access to across all your devices will show up
-						here.
-					</EmptyDescription>
-				</EmptyHeader>
-			</Empty>
-		);
-	}
 
 	if (!hasAnyMatches) {
 		return (
@@ -142,11 +121,17 @@ export function V2WorkspacesList({ pinned, others }: V2WorkspacesListProps) {
 						variant="icon"
 						className="size-14 [&_svg:not([class*='size-'])]:size-7"
 					>
-						<LuSearchX />
+						{hasActiveFilters ? <LuSearchX /> : <LuLayers />}
 					</EmptyMedia>
-					<EmptyTitle>No workspaces match your filters</EmptyTitle>
+					<EmptyTitle>
+						{hasActiveFilters
+							? "No workspaces match your filters"
+							: "No workspaces yet"}
+					</EmptyTitle>
 					<EmptyDescription>
-						Try a different search term or clear the device filter.
+						{hasActiveFilters
+							? "Try a different search term or clear the device filter."
+							: "Workspaces you have access to across all your devices will show up here."}
 					</EmptyDescription>
 				</EmptyHeader>
 				{hasActiveFilters ? (
