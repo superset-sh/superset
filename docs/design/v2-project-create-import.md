@@ -68,14 +68,15 @@ User-facing intent: **"clone a new project."** Cloud row + local clone.
 ```ts
 project.create({
   name: string,
-  visibility: "private" | "public",
   mode:
-    | { kind: "empty";       parentDir: string }
+    | { kind: "empty";       parentDir: string;                         visibility: "private" | "public" }
     | { kind: "clone";       parentDir: string; url: string }
-    | { kind: "importLocal"; repoPath: string }                      // git root of existing local repo
-    | { kind: "template";    parentDir: string; templateId: string }
+    | { kind: "importLocal"; repoPath: string }                         // git root of existing local repo
+    | { kind: "template";    parentDir: string; templateId: string;     visibility: "private" | "public" }
 }) → { projectId: string; repoPath: string }
 ```
+
+`visibility` lives on the GitHub-provisioning modes (`empty`, `template`) only — those need to tell the GitHub App whether to create a private or public repo. `clone` and `importLocal` reuse an existing remote, so visibility is already set on the remote.
 
 Path semantics are baked into each variant so there's no overloaded meaning: `parentDir` for modes that create a new directory; `repoPath` (git root) for `importLocal`.
 

@@ -68,7 +68,6 @@ export function NewProjectModal({
 			const client = getHostServiceClientByUrl(activeHostUrl);
 			const result = await client.project.create.mutate({
 				name: trimmedName,
-				visibility: "private",
 				mode: { kind: "clone", parentDir, url: trimmedUrl },
 			});
 			ensureProjectInSidebar(result.projectId);

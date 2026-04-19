@@ -208,7 +208,6 @@ export function useFolderFirstImport(options?: {
 			try {
 				const result = await client.project.create.mutate({
 					name,
-					visibility: "private",
 					mode: { kind: "importLocal", repoPath },
 				});
 				reportSuccess(result);
