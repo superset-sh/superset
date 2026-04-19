@@ -180,8 +180,12 @@ export function useTerminalColdRestore({
 			});
 		});
 
-		// Add visual separator
-		xterm.write("\r\n\x1b[90m─── Session Contents Restored ───\x1b[0m\r\n\r\n");
+		// Add visual separator. The previous session's process has terminated;
+		// only its on-disk scrollback is restored. We say so explicitly so the
+		// user does not assume the agent (Claude/Codex) is still running.
+		xterm.write(
+			"\r\n\x1b[90m─── Scrollback restored · previous session ended ─── New shell started\x1b[0m\r\n\r\n",
+		);
 
 		// Reset state for new session
 		isStreamReadyRef.current = false;
