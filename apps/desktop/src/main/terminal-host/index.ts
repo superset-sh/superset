@@ -826,6 +826,14 @@ async function main() {
 	log("info", `Environment: ${process.env.NODE_ENV || "production"}`);
 	log("info", `Home directory: ${SUPERSET_HOME_DIR}`);
 
+	// Belt-and-suspenders SIGHUP guard against the race window where the
+	// macOS login session tears down between process boot and
+	// setupSignalHandlers() registration. Without a registered listener,
+	// Node's default action for SIGHUP is to terminate the process — which
+	// would kill the daemon during Electron's exit before we can install our
+	// no-op handler in setupSignalHandlers().
+	process.on("SIGHUP", () => {});
+
 	setupSignalHandlers();
 
 	try {

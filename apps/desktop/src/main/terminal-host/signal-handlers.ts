@@ -127,13 +127,18 @@ export function setupTerminalHostSignalHandlers({
 			timeoutMessage: "Forced exit after SIGTERM shutdown timeout",
 		});
 	});
+	// SIGHUP: intentionally ignored (nohup semantics).
+	//
+	// The daemon is spawned with `detached: true` + `child.unref()` so it can
+	// outlive Electron's exit — see marketing blog terminal-daemon-deep-dive
+	// "Terminal survives app restart". On macOS, `setsid()` isolates the Unix
+	// SID but the daemon still shares the Mach bootstrap / login Security
+	// Session with its parent. When Electron calls `app.exit(0)` and tears
+	// down that login session, SIGHUP propagates to the daemon and kills it
+	// unless explicitly ignored. Registering a no-op listener prevents the
+	// default terminate action without triggering our shutdownOnce path.
 	process.on("SIGHUP", () => {
-		shutdownOnce({
-			exitCode: 0,
-			message: "Received SIGHUP, shutting down...",
-			stopServerErrorMessage: "Error during stopServer in SIGHUP shutdown",
-			timeoutMessage: "Forced exit after SIGHUP shutdown timeout",
-		});
+		log("info", "Received SIGHUP; ignoring (nohup semantics for daemon survival)");
 	});
 
 	process.on("uncaughtException", (error) => {
