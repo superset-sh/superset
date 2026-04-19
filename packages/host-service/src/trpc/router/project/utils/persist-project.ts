@@ -2,11 +2,7 @@ import { projects } from "../../../../db/schema";
 import type { HostServiceContext } from "../../../../types";
 import type { ResolvedRepo } from "./resolve-repo";
 
-/**
- * Inserts or updates the local `host-service.projects` row for `projectId`
- * using the resolved GitHub remote metadata. Safe to call on both fresh
- * create and setup re-point.
- */
+// Upsert — safe for both fresh create and setup re-point.
 export function persistLocalProject(
 	ctx: HostServiceContext,
 	projectId: string,

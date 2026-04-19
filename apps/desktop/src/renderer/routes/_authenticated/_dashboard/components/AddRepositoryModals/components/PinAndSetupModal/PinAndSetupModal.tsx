@@ -19,7 +19,7 @@ import { ParentDirectoryPicker } from "../ParentDirectoryPicker";
 
 interface PinAndSetupModalProps {
 	project: PinAndSetupTarget | null;
-	/** When true the modal opens in re-point mode. Used for stale-path repair. */
+	/** Open directly in re-point mode for stale-path repair. */
 	forceRepoint?: boolean;
 	onOpenChange: (open: boolean) => void;
 	onSuccess?: (result: { projectId: string; repoPath: string }) => void;
@@ -46,11 +46,8 @@ export function PinAndSetupModal({
 
 	const [parentDir, setParentDir] = useState<string | null>(null);
 	const [working, setWorking] = useState(false);
-	// When setup returns CONFLICT (project already set up at a different path),
-	// flip into re-point confirmation mode: same form, different copy + a
-	// destructive submit button that retries with the ack flag set.
-	// `forceRepoint` pre-sets this for the stale-path repair flow so the user
-	// doesn't have to submit once just to see the CONFLICT and re-submit.
+	// Flips true on CONFLICT to render re-point copy + destructive submit that
+	// retries with the ack flag. `forceRepoint` skips the first roundtrip.
 	const [conflict, setConflict] = useState(forceRepoint);
 
 	const canSubmit = project !== null && parentDir !== null && !working;

@@ -18,15 +18,11 @@ type ActiveModal =
 	| {
 			kind: "pin-and-setup";
 			target: PinAndSetupTarget;
-			// Optional one-shot callback invoked by the host component after the
-			// modal's setup mutation resolves successfully. Used by callers that
-			// want to retry the operation that originally surfaced
-			// PROJECT_NOT_SETUP (e.g. the pending workspace-create page).
+			// Invoked after setup resolves, so PROJECT_NOT_SETUP callers can retry
+			// the operation that surfaced the modal.
 			onSuccess?: () => void;
-			// When true, the modal opens directly in "re-point" mode and sends
-			// acknowledgeWorkspaceInvalidation on the first submit. Used for
-			// stale-path repair where the user explicitly chose Repair and we
-			// already know the project is set up here.
+			// Skip straight to "re-point" mode on first submit — used when we
+			// already know the project is set up and the user chose Repair.
 			forceRepoint?: boolean;
 	  };
 

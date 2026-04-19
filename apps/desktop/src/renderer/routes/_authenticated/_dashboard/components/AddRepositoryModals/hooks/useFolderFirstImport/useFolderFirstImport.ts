@@ -14,21 +14,12 @@ export interface FolderImportCandidate {
 	organizationName: string;
 }
 
-/**
- * State machine for the folder-first import flow.
- *
- * idle             — no modal.
- * no-match         — picked folder has no cloud project; user names it to
- *                    create.
- * pick             — multiple candidates; user picks which cloud project to
- *                    bind.
- * confirm-repoint  — the target project is already set up on this host at
- *                    some other path. Re-pointing would invalidate existing
- *                    workspaces; user must explicitly acknowledge.
- *
- * The 1-match case without a conflict has no state here — we run setup
- * immediately without a modal because there's nothing to disambiguate.
- */
+// idle             — no modal.
+// no-match         — picked folder has no cloud project; user names it.
+// pick             — multiple candidates; user picks which cloud project.
+// confirm-repoint  — project already set up on this host at another path;
+//                    re-pointing invalidates existing workspaces.
+// (1-match-no-conflict has no state — setup runs immediately.)
 export type FolderFirstImportState =
 	| { kind: "idle" }
 	| { kind: "no-match"; repoPath: string; working: boolean }
@@ -48,15 +39,11 @@ export type FolderFirstImportState =
 
 export interface UseFolderFirstImportResult {
 	state: FolderFirstImportState;
-	/** Open the native picker and branch on candidate count. */
 	start: () => Promise<void>;
-	/** Close the modal. No-op while a mutation is working. */
+	/** No-op while a mutation is working. */
 	cancel: () => void;
-	/** no-match branch: user confirmed a project name → create as new. */
 	confirmCreateAsNew: (input: { name: string }) => Promise<void>;
-	/** pick branch: user selected one of the candidates → run setup. */
 	confirmPickCandidate: (candidateId: string) => Promise<void>;
-	/** confirm-repoint branch: user accepts workspace invalidation → retry. */
 	confirmRepoint: () => Promise<void>;
 }
 

@@ -10,16 +10,8 @@ import { NewProjectModal } from "./components/NewProjectModal";
 import { PinAndSetupModal } from "./components/PinAndSetupModal";
 import { useFolderFirstImport } from "./hooks/useFolderFirstImport";
 
-/**
- * Layout-level host for the three add-repository flows (New project, Import
- * existing folder, Pin & set up). Any component in the dashboard can open
- * one via the `useAddRepositoryModalStore` actions — sidebar dropdown,
- * workspaces-tab Available rows, future empty-state CTAs, etc.
- *
- * Why centralize: modal state lives once per app, not once per trigger.
- * Also keeps the folder-first picker's internal state machine in one place
- * so nothing races if two triggers happen quickly.
- */
+// Mounted once at the dashboard layout so modal state lives in one place
+// and concurrent triggers can't race the folder-first state machine.
 export function AddRepositoryModals() {
 	const active = useAddRepositoryModalActive();
 	const close = useCloseAddRepositoryModal();
@@ -34,14 +26,9 @@ export function AddRepositoryModals() {
 		},
 	});
 
-	// Run the folder-first picker when the store's trigger counter bumps.
-	// Using a counter (vs a boolean) lets successive clicks re-invoke the
-	// flow after the previous one resolves.
-	//
-	// Depend ONLY on the counter: folderImport.start's identity changes every
-	// render (transitively via the inline options object and the useMutation
-	// returned by selectDirectory), so including it here would cause the
-	// effect to refire mid-flow and open the picker repeatedly.
+	// A counter (not boolean) so successive clicks re-invoke. Depend only on
+	// the counter — folderImport.start's identity changes every render, so
+	// including it would refire the effect mid-flow and re-open the picker.
 	const startRef = useRef(folderImport.start);
 	startRef.current = folderImport.start;
 	useEffect(() => {
@@ -69,8 +56,6 @@ export function AddRepositoryModals() {
 				}}
 				onSuccess={() => {
 					toast.success("Project pinned and set up.");
-					// Per-open one-shot callback (e.g. retry a pending workspace
-					// create that surfaced PROJECT_NOT_SETUP).
 					if (active.kind === "pin-and-setup") active.onSuccess?.();
 				}}
 				onError={(message) => toast.error(`Setup failed: ${message}`)}

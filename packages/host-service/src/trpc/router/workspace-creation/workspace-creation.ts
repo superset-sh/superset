@@ -723,10 +723,9 @@ export const workspaceCreationRouter = router({
 			const deviceName = getDeviceName();
 			setProgress(input.pendingId, "ensuring_repo");
 
-			// 1. Require the project be set up on this host. The renderer
+			// Require the project be set up on this host. The renderer
 			// catches PROJECT_NOT_SETUP and opens Pin & set up so the user
-			// picks where to clone explicitly (vs the old silent auto-clone
-			// into ~/.superset/repos/).
+			// picks where to clone explicitly.
 			const localProject = ctx.db.query.projects
 				.findFirst({ where: eq(projects.id, input.projectId) })
 				.sync();

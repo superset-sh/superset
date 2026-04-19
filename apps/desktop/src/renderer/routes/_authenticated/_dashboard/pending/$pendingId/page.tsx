@@ -189,12 +189,8 @@ function useFireIntent(pendingId: string, pending: PendingWorkspaceRow | null) {
 			});
 			void clearAttachments(pendingId);
 		} catch (err) {
-			// Host-service signals "project isn't set up on this host" via a
-			// structured cause, surfaced in data.projectNotSetup by the error
-			// formatter. Intercept it here: open Pin & set up with the
-			// projectId pre-filled, and schedule a retry of the original
-			// intent once setup succeeds. Any other error falls through to the
-			// generic failed state below.
+			// Intercept PROJECT_NOT_SETUP: open Pin & set up with the projectId
+			// pre-filled and retry the original intent once setup succeeds.
 			if (
 				err instanceof TRPCClientError &&
 				(err.data as { projectNotSetup?: { projectId?: string } } | undefined)
@@ -208,9 +204,8 @@ function useFireIntent(pendingId: string, pending: PendingWorkspaceRow | null) {
 				const repo = cloudProject?.githubRepositoryId
 					? collections.githubRepositories.get(cloudProject.githubRepositoryId)
 					: null;
-				// Leave the pending row in "creating" — the user is mid-flow.
-				// When setup succeeds we retry immediately; if they cancel the
-				// modal, flip to failed so the UI isn't stuck on the spinner.
+				// Stay in "creating" — retry on setup success, fall through to
+				// failed if the user cancels.
 				openPinAndSetup(
 					{
 						id: projectId,

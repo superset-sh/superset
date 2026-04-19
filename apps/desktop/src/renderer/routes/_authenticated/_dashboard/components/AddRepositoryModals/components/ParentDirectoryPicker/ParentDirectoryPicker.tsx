@@ -8,10 +8,6 @@ interface ParentDirectoryPickerProps {
 	dialogTitle?: string;
 }
 
-/**
- * Compact inline control: shows the current path as code + a Browse button.
- * Used in project create/setup modals to choose where to clone into.
- */
 export function ParentDirectoryPicker({
 	value,
 	onChange,

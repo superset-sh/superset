@@ -6,12 +6,6 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { HiMiniPaperClip } from "react-icons/hi2";
 import { PILL_BUTTON_CLASS } from "../../styles";
 
-/**
- * Attachment-only trigger. Previously this component wrapped a dropdown
- * with "Add attachment" + "Link issue" items — the link-issue flow has
- * been removed from chat, so this collapses to a single button that
- * opens the native file dialog directly.
- */
 export function PlusMenu() {
 	const attachments = usePromptInputAttachments();
 
