@@ -25,9 +25,8 @@ No new tables. No new Electric collections.
 
 - [x] `useDashboardSidebarData` — pin-driven only.
 - [x] Add-repository modals, mounted at the dashboard layout level:
-  - `NewProjectModal` — drives `project.create` (clone).
+  - `NewProjectModal` — v1 new-project UI (Location + Clone/Template tabs) as a modal; drives `project.create` (clone).
   - `FolderFirstImportModal` — drives the folder-first picker state machine.
-  - `ParentDirectoryPicker` — shared native-picker input.
   - `useFolderFirstImport` — orchestration hook.
 - [x] Sidebar `+` dropdown: "New project" and "Import existing folder". No "Pin existing project" action.
 - [x] Folder-first picker branching (0 / 1-new / 1-already / >1).
