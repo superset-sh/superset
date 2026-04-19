@@ -27,7 +27,6 @@ No new tables. No new Electric collections.
 - [x] `useDashboardSidebarData` — pin-driven only.
 - [x] Add-repository modals, mounted at the dashboard layout level:
   - `NewProjectModal` — drives `project.create` (clone).
-  - `PinAndSetupModal` — drives `project.setup`; accepts `forceRepoint` for repair.
   - `FolderFirstImportModal` — drives the folder-first picker state machine.
   - `ParentDirectoryPicker` — shared native-picker input.
   - `useFolderFirstImport` — orchestration hook.
@@ -35,7 +34,7 @@ No new tables. No new Electric collections.
 - [x] Folder-first picker branching (0 / 1-new / 1-already / >1).
 - [x] Workspaces tab: lists every workspace in the active org. No Available section, no CTAs.
 - [x] Remote-device workspace row click opens the normal workspace page — no gating. Local-fs operations degrade as they hit their limits.
-- [x] Error-path repair: git ops / `workspace.create` catch vanished-path errors (ENOENT on `repoPath`), invalidate `["project", "list"]`, open `PinAndSetupModal` with `forceRepoint: true`.
+- [x] Error-path for vanished `repoPath` surfaces as a toast; recovery UX deferred.
 - [x] React Query invalidation on `["project", "list"]` after `project.create` / `project.setup` / `project.remove`.
 
 ### Acceptance

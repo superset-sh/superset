@@ -199,7 +199,7 @@ New device, sidebar starts empty (pins are per-device). User re-pins via "New pr
 
 ### 4. `repoPath` deleted out of band
 
-Next git op or `workspace.create` fails with ENOENT. Handler invalidates `["project", "list"]` and opens `PinAndSetupModal` with `forceRepoint: true`.
+Next git op or `workspace.create` fails with ENOENT. Handler surfaces the failure; recovery UX is deferred (see "Out of scope for v1").
 
 ---
 

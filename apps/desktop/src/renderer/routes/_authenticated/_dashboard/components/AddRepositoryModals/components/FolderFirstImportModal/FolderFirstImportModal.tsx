@@ -49,6 +49,7 @@ export function FolderFirstImportModal({
 				)}
 				{state.kind === "pick" && (
 					<CandidatePickerContent
+						key={state.repoPath}
 						repoPath={state.repoPath}
 						candidates={state.candidates}
 						working={state.working}

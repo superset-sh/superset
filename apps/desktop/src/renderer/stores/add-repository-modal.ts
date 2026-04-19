@@ -1,30 +1,7 @@
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
 
-/**
- * Minimum shape needed to render the Pin & set up modal. Kept local so the
- * store doesn't depend on the v2-workspaces route types.
- */
-export interface PinAndSetupTarget {
-	id: string;
-	name: string;
-	githubOwner: string | null;
-	githubRepoName: string | null;
-}
-
-type ActiveModal =
-	| { kind: "none" }
-	| { kind: "new-project" }
-	| {
-			kind: "pin-and-setup";
-			target: PinAndSetupTarget;
-			// Invoked after setup resolves, so PROJECT_NOT_SETUP callers can retry
-			// the operation that surfaced the modal.
-			onSuccess?: () => void;
-			// Skip straight to "re-point" mode on first submit — used when we
-			// already know the project is set up and the user chose Repair.
-			forceRepoint?: boolean;
-	  };
+type ActiveModal = { kind: "none" } | { kind: "new-project" };
 
 interface AddRepositoryModalState {
 	active: ActiveModal;
@@ -35,10 +12,6 @@ interface AddRepositoryModalState {
 	folderImportTrigger: number;
 	openNewProject: () => void;
 	triggerFolderImport: () => void;
-	openPinAndSetup: (
-		target: PinAndSetupTarget,
-		opts?: { onSuccess?: () => void; forceRepoint?: boolean },
-	) => void;
 	close: () => void;
 }
 
@@ -52,15 +25,6 @@ export const useAddRepositoryModalStore = create<AddRepositoryModalState>()(
 				set((state) => ({
 					folderImportTrigger: state.folderImportTrigger + 1,
 				})),
-			openPinAndSetup: (target, opts) =>
-				set({
-					active: {
-						kind: "pin-and-setup",
-						target,
-						onSuccess: opts?.onSuccess,
-						forceRepoint: opts?.forceRepoint,
-					},
-				}),
 			close: () => set({ active: { kind: "none" } }),
 		}),
 		{ name: "add-repository-modal" },
@@ -75,7 +39,5 @@ export const useOpenNewProjectModal = () =>
 	useAddRepositoryModalStore((state) => state.openNewProject);
 export const useTriggerFolderImport = () =>
 	useAddRepositoryModalStore((state) => state.triggerFolderImport);
-export const useOpenPinAndSetupModal = () =>
-	useAddRepositoryModalStore((state) => state.openPinAndSetup);
 export const useCloseAddRepositoryModal = () =>
 	useAddRepositoryModalStore((state) => state.close);

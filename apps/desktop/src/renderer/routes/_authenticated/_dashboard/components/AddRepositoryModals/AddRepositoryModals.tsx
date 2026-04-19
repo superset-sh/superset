@@ -7,7 +7,6 @@ import {
 } from "renderer/stores/add-repository-modal";
 import { FolderFirstImportModal } from "./components/FolderFirstImportModal";
 import { NewProjectModal } from "./components/NewProjectModal";
-import { PinAndSetupModal } from "./components/PinAndSetupModal";
 import { useFolderFirstImport } from "./hooks/useFolderFirstImport";
 
 // Mounted once at the dashboard layout so modal state lives in one place
@@ -33,7 +32,11 @@ export function AddRepositoryModals() {
 	startRef.current = folderImport.start;
 	useEffect(() => {
 		if (folderImportTrigger === 0) return;
-		void startRef.current();
+		startRef.current().catch((err) => {
+			toast.error(
+				`Import failed: ${err instanceof Error ? err.message : String(err)}`,
+			);
+		});
 	}, [folderImportTrigger]);
 
 	return (
@@ -45,20 +48,6 @@ export function AddRepositoryModals() {
 				}}
 				onSuccess={() => toast.success("Project created.")}
 				onError={(message) => toast.error(`Create failed: ${message}`)}
-			/>
-			<PinAndSetupModal
-				project={active.kind === "pin-and-setup" ? active.target : null}
-				forceRepoint={
-					active.kind === "pin-and-setup" ? active.forceRepoint : false
-				}
-				onOpenChange={(open) => {
-					if (!open) close();
-				}}
-				onSuccess={() => {
-					toast.success("Project pinned and set up.");
-					if (active.kind === "pin-and-setup") active.onSuccess?.();
-				}}
-				onError={(message) => toast.error(`Setup failed: ${message}`)}
 			/>
 			<FolderFirstImportModal
 				state={folderImport.state}

@@ -1,1 +1,0 @@
-export { PinAndSetupModal } from "./PinAndSetupModal";

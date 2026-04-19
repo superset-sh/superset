@@ -129,11 +129,17 @@ export function useFolderFirstImport(options?: {
 			return;
 		}
 
-		const picked = await selectDirectory.mutateAsync({
-			title: "Import existing folder",
-		});
-		if (picked.canceled || !picked.path) return;
-		const repoPath = picked.path;
+		let repoPath: string;
+		try {
+			const picked = await selectDirectory.mutateAsync({
+				title: "Import existing folder",
+			});
+			if (picked.canceled || !picked.path) return;
+			repoPath = picked.path;
+		} catch (err) {
+			reportError(err instanceof Error ? err.message : String(err));
+			return;
+		}
 
 		const client = getHostServiceClientByUrl(activeHostUrl);
 		let candidates: FolderImportCandidate[];

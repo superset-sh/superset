@@ -1,4 +1,5 @@
 import { Button } from "@superset/ui/button";
+import { toast } from "@superset/ui/sonner";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 
 interface ParentDirectoryPickerProps {
@@ -17,12 +18,18 @@ export function ParentDirectoryPicker({
 	const selectDirectory = electronTrpc.window.selectDirectory.useMutation();
 
 	const handleBrowse = async () => {
-		const result = await selectDirectory.mutateAsync({
-			title: dialogTitle,
-			defaultPath: value ?? undefined,
-		});
-		if (!result.canceled && result.path) {
-			onChange(result.path);
+		try {
+			const result = await selectDirectory.mutateAsync({
+				title: dialogTitle,
+				defaultPath: value ?? undefined,
+			});
+			if (!result.canceled && result.path) {
+				onChange(result.path);
+			}
+		} catch (err) {
+			toast.error(
+				`Couldn't open folder picker: ${err instanceof Error ? err.message : String(err)}`,
+			);
 		}
 	};
 
