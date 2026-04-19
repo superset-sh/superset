@@ -137,6 +137,15 @@ export const BUILTIN_TERMINAL_AGENTS = [
 		command: "cursor-agent",
 		promptCommandSuffix: "--yolo",
 	}),
+	createBuiltinTerminalAgent({
+		id: "kiro",
+		label: "Kiro",
+		description:
+			"AWS Kiro CLI for agentic, spec-driven coding workflows in the terminal.",
+		command: "kiro-cli chat --trust-all-tools",
+		promptCommand: "kiro-cli chat --trust-all-tools --no-interactive",
+		includeInDefaultTerminalPresets: true,
+	}),
 ] as const;
 
 export type BuiltinTerminalAgentType =
