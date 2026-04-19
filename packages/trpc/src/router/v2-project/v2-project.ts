@@ -7,7 +7,7 @@ import {
 import { parseGitHubRemote } from "@superset/shared/github-remote";
 import type { TRPCRouterRecord } from "@trpc/server";
 import { TRPCError } from "@trpc/server";
-import { and, eq, inArray, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { jwtProcedure, protectedProcedure } from "../../trpc";
 import {
@@ -116,12 +116,21 @@ export const v2ProjectRouter = {
 		}),
 
 	findByGitHubRemote: jwtProcedure
-		.input(z.object({ repoCloneUrl: z.string().min(1) }))
+		.input(
+			z.object({
+				organizationId: z.string().uuid(),
+				repoCloneUrl: z.string().min(1),
+			}),
+		)
 		.query(async ({ ctx, input }) => {
-			const parsed = parseGitHubRemote(input.repoCloneUrl);
-			if (!parsed || ctx.organizationIds.length === 0) {
-				return { candidates: [] };
+			if (!ctx.organizationIds.includes(input.organizationId)) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "Not a member of this organization",
+				});
 			}
+			const parsed = parseGitHubRemote(input.repoCloneUrl);
+			if (!parsed) return { candidates: [] };
 			// GitHub slugs are case-insensitive (github.com/Foo/Bar and
 			// github.com/foo/bar point to the same repo). Local git remotes
 			// preserve whatever casing was typed at clone time. Compare in lower
@@ -148,7 +157,7 @@ export const v2ProjectRouter = {
 				.where(
 					and(
 						eq(sql`lower(${githubRepositories.fullName})`, fullNameLower),
-						inArray(v2Projects.organizationId, ctx.organizationIds),
+						eq(v2Projects.organizationId, input.organizationId),
 					),
 				);
 

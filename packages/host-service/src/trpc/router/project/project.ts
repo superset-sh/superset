@@ -26,6 +26,7 @@ export const projectRouter = router({
 		.query(async ({ ctx, input }) => {
 			const { parsed } = await resolveWithPrimaryRemote(input.repoPath);
 			const { candidates } = await ctx.api.v2Project.findByGitHubRemote.query({
+				organizationId: ctx.organizationId,
 				repoCloneUrl: parsed.url,
 			});
 			return { candidates };
