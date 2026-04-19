@@ -1,3 +1,4 @@
+import { rmSync } from "node:fs";
 import { TRPCError } from "@trpc/server";
 import type { HostServiceContext } from "../../../types";
 import { persistLocalProject } from "./utils/persist-project";
@@ -32,23 +33,36 @@ interface CreateResult {
 }
 
 /**
- * Create flow — clone mode. User provided a clone URL and a parent directory.
- * Cloud row is authoritative; local git is a materialization. Failures after
- * cloud create land the project in cell 1 (recoverable via project.setup).
+ * Create flow — clone mode. Clone first so that clone-time failures (bad URL,
+ * auth, network, dir collision) leave no cloud state behind; register the
+ * cloud row afterwards and rollback the local clone if that fails. Mirrors
+ * the local-first-then-cloud ordering used by workspace.create.
  */
 export async function createFromClone(
 	ctx: HostServiceContext,
 	args: { name: string; parentDir: string; url: string },
 ): Promise<CreateResult> {
-	const cloudProject = await ctx.api.v2Project.create.mutate({
-		organizationId: ctx.organizationId,
-		name: args.name,
-		slug: slugifyProjectName(args.name),
-		repoCloneUrl: args.url,
-	});
 	const resolved = await cloneRepoInto(args.url, args.parentDir);
-	persistLocalProject(ctx, cloudProject.id, resolved);
-	return { projectId: cloudProject.id, repoPath: resolved.repoPath };
+	try {
+		const cloudProject = await ctx.api.v2Project.create.mutate({
+			organizationId: ctx.organizationId,
+			name: args.name,
+			slug: slugifyProjectName(args.name),
+			repoCloneUrl: args.url,
+		});
+		persistLocalProject(ctx, cloudProject.id, resolved);
+		return { projectId: cloudProject.id, repoPath: resolved.repoPath };
+	} catch (err) {
+		try {
+			rmSync(resolved.repoPath, { recursive: true, force: true });
+		} catch (cleanupErr) {
+			console.warn(
+				"[project.createFromClone] failed to rollback clone after cloud error",
+				{ repoPath: resolved.repoPath, cleanupErr },
+			);
+		}
+		throw err;
+	}
 }
 
 /**
