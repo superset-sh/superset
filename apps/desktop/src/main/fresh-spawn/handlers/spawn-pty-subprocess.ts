@@ -86,6 +86,27 @@ export function handleSpawnPtySubprocess(
 		throw new Error("failed to spawn subprocess");
 	}
 
+	// ChildProcess can emit `error` asynchronously (e.g. ENOENT on the
+	// binary path, or EACCES on the subprocess script). Without a listener
+	// the event becomes unhandled and crashes the entire daemon. Translate
+	// it into a synthetic exit frame so the client unblocks cleanly.
+	child.on("error", (err) => {
+		console.error(
+			`[fresh-spawn] spawn-pty-subprocess child error (pid=${child.pid}):`,
+			err,
+		);
+		if (!childExited) {
+			childExited = true;
+			writeFrame(client, { type: "exit", code: null, signal: null });
+			try {
+				client.end();
+			} catch {
+				// socket may already be gone
+			}
+			tryFinalize();
+		}
+	});
+
 	const pid = child.pid;
 	const closedCallbacks: Array<() => void> = [];
 	let childExited = false;

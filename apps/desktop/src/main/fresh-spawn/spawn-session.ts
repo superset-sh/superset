@@ -246,9 +246,15 @@ function createSession(
 
 	client.on("data", (chunk: Buffer) => {
 		buffer += chunk.toString("utf8");
+		// Drain complete lines FIRST, then apply the cap to the residual tail.
+		// Otherwise a burst of many newline-terminated frames whose aggregate
+		// size exceeds MAX_LINE_BYTES would be incorrectly rejected, even
+		// though no single frame is oversized.
+		processBuffer();
 		if (buffer.length > MAX_LINE_BYTES) {
-			// Malformed stream — no newline in sight. Destroy the socket, notify
-			// listeners, and synthesize an exit so consumers don't hang.
+			// Malformed stream — no newline in sight after draining. Destroy
+			// the socket, notify listeners, and synthesize an exit so
+			// consumers don't hang.
 			const err = new Error(
 				`stream buffer exceeded ${MAX_LINE_BYTES} bytes without newline`,
 			);
@@ -259,9 +265,7 @@ function createSession(
 				// ignore
 			}
 			safeEmitError(emitter, err);
-			return;
 		}
-		processBuffer();
 	});
 
 	client.once("close", () => {

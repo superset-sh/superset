@@ -230,6 +230,7 @@ function bridgeSocketToStdio(
 		process.on("SIGWINCH", onWinch);
 
 		let lastExit: BridgeExitInfo = { code: null, signal: null };
+		let sawExitFrame = false;
 		let buffer = pendingBytes;
 
 		const processBuffer = (): void => {
@@ -262,6 +263,7 @@ function bridgeSocketToStdio(
 					process.stderr.write(Buffer.from(frame.data, "base64"));
 					return;
 				case "exit":
+					sawExitFrame = true;
 					lastExit = {
 						code: frame.code,
 						signal: frame.signal,
@@ -280,6 +282,18 @@ function bridgeSocketToStdio(
 
 		client.once("close", () => {
 			cleanup();
+			if (!sawExitFrame) {
+				// The server closed the connection without sending an `exit`
+				// frame (crash, abrupt disconnect, SIGKILL on the server
+				// process). Surface it to the caller — main() would otherwise
+				// report `exit.code ?? 0` = 0, masking the failure.
+				reject(
+					new Error(
+						"fresh-exec: server closed connection before sending exit frame",
+					),
+				);
+				return;
+			}
 			resolve(lastExit);
 		});
 		client.once("error", (err) => {

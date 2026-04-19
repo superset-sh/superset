@@ -24,6 +24,7 @@ export interface SpawnServerOptions {
 }
 
 const DEFAULT_IDLE_TIMEOUT_MS = 5000;
+const MAX_HANDSHAKE_LINE_BYTES = 1024 * 1024; // 1 MiB — same as spawn-session client cap
 
 export interface SpawnServer {
 	close(): Promise<void>;
@@ -73,6 +74,19 @@ export async function startSpawnServer(
 		client.on("data", (chunk) => {
 			if (handled) return;
 			buffer += chunk.toString("utf8");
+			if (buffer.length > MAX_HANDSHAKE_LINE_BYTES) {
+				// Peer is streaming bytes without ever sending a newline. Cap
+				// the accumulation to bound memory, matching the client-side
+				// guard in spawn-session.ts.
+				handled = true;
+				writeResponse(client, {
+					type: "error",
+					message: `handshake exceeded ${MAX_HANDSHAKE_LINE_BYTES} bytes without newline`,
+					code: "E_TOO_LARGE",
+				});
+				client.end();
+				return;
+			}
 			const newlineIdx = buffer.indexOf("\n");
 			if (newlineIdx === -1) return;
 
@@ -179,6 +193,13 @@ export async function startSpawnServer(
 		};
 		const onListening = () => {
 			server.off("error", onError);
+			// Keep a permanent error listener so post-startup server errors
+			// (e.g. EMFILE from a runaway connect loop, filesystem permission
+			// changes on the socket path) don't propagate as unhandled and
+			// kill the entire daemon.
+			server.on("error", (err) => {
+				console.error("[fresh-spawn] server error after startup:", err);
+			});
 			// Defense-in-depth: macOS may not enforce mode bits on AF_UNIX
 			// sockets, but set 0o700 anyway so any filesystem that does honor
 			// them keeps the socket owner-only.

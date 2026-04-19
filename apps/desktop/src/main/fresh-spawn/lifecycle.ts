@@ -2,6 +2,7 @@ import { type SpawnServer, startSpawnServer } from "./spawn-server";
 import { DEFAULT_SOCKET_PATH, DEFAULT_TOKEN_PATH } from "./types";
 
 let instance: SpawnServer | null = null;
+let starting: Promise<void> | null = null;
 
 /**
  * Start the fresh-spawn server. Should be called once from app.whenReady().
@@ -34,20 +35,32 @@ export async function startFreshSpawnServer(options: {
 		return;
 	}
 
-	try {
-		instance = await startSpawnServer({
-			socketPath: DEFAULT_SOCKET_PATH,
-			tokenPath: DEFAULT_TOKEN_PATH,
-			subprocessScriptPath: options.subprocessScriptPath,
-		});
-		console.info(
-			`[fresh-spawn] server listening on ${DEFAULT_SOCKET_PATH} (spawning ${options.subprocessScriptPath})`,
-		);
-	} catch (err) {
-		console.error(
-			`[fresh-spawn] failed to start server: ${err instanceof Error ? err.message : String(err)}`,
-		);
+	// If a start is already in flight, piggyback on that promise so two
+	// awaited calls don't each attempt to bind the socket (EADDRINUSE on
+	// the second) and clobber each other's token file.
+	if (starting) {
+		return starting;
 	}
+
+	starting = (async () => {
+		try {
+			instance = await startSpawnServer({
+				socketPath: DEFAULT_SOCKET_PATH,
+				tokenPath: DEFAULT_TOKEN_PATH,
+				subprocessScriptPath: options.subprocessScriptPath,
+			});
+			console.info(
+				`[fresh-spawn] server listening on ${DEFAULT_SOCKET_PATH} (spawning ${options.subprocessScriptPath})`,
+			);
+		} catch (err) {
+			console.error(
+				`[fresh-spawn] failed to start server: ${err instanceof Error ? err.message : String(err)}`,
+			);
+		} finally {
+			starting = null;
+		}
+	})();
+	return starting;
 }
 
 /**

@@ -34,6 +34,11 @@ if [[ -z "$SUPERSET_FRESH_EXEC_COMMANDS" ]] \
 fi
 
 for _superset_cmd in ${(z)SUPERSET_FRESH_EXEC_COMMANDS}; do
+	# Validate before `eval` — SUPERSET_FRESH_EXEC_COMMANDS is set by the
+	# Superset process, but the env is inherited by user shell init (.zshrc,
+	# direnv, asdf, etc.) that can rewrite arbitrary env vars. An entry like
+	# "a;rm -rf ~" would otherwise produce shell injection through eval.
+	[[ $_superset_cmd =~ ^[A-Za-z_][A-Za-z0-9_-]*$ ]] || continue
 	# Define a shell function with the same name, shadowing the binary.
 	eval "
 		function ${_superset_cmd}() {
