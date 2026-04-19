@@ -1,4 +1,3 @@
-import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useState } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
@@ -45,7 +44,6 @@ export function useFolderFirstImport(options?: {
 	onError?: (message: string) => void;
 }): UseFolderFirstImportResult {
 	const { activeHostUrl } = useLocalHostService();
-	const queryClient = useQueryClient();
 	const { ensureProjectInSidebar } = useDashboardSidebarState();
 	const selectDirectory = electronTrpc.window.selectDirectory.useMutation();
 
@@ -53,21 +51,13 @@ export function useFolderFirstImport(options?: {
 
 	const reset = useCallback(() => setState({ kind: "idle" }), []);
 
-	const invalidateProjectList = useCallback(() => {
-		// Keep in sync with useDashboardSidebarData.
-		queryClient.invalidateQueries({
-			queryKey: ["project", "list", activeHostUrl],
-		});
-	}, [queryClient, activeHostUrl]);
-
 	const reportSuccess = useCallback(
 		(result: { projectId: string; repoPath: string }) => {
 			ensureProjectInSidebar(result.projectId);
-			invalidateProjectList();
 			options?.onSuccess?.(result);
 			reset();
 		},
-		[ensureProjectInSidebar, invalidateProjectList, options, reset],
+		[ensureProjectInSidebar, options, reset],
 	);
 
 	const reportError = useCallback(

@@ -16,7 +16,6 @@ No new tables. No new Electric collections.
 
 ### Host-service (packages/host-service)
 
-- [x] `project.list` — `Array<{ id, repoPath }>`.
 - [x] `project.findByPath({ repoPath })` — validates git root, reads remote, forwards to cloud.
 - [x] `project.create` — discriminated-union mode; Phase 1 ships `clone` + `importLocal`, others throw `not_implemented`. Clone-then-cloud ordering with rollback on cloud failure.
 - [x] `project.setup` — discriminated-union mode (`clone` / `import`). Same-path is an idempotent no-op; different-path throws `CONFLICT` (v1 has no re-point escape hatch).
@@ -35,7 +34,7 @@ No new tables. No new Electric collections.
 - [x] Workspaces tab: lists every workspace in the active org. No Available section, no CTAs.
 - [x] Remote-device workspace row click opens the normal workspace page — no gating. Local-fs operations degrade as they hit their limits.
 - [x] Error-path for vanished `repoPath` surfaces as a toast; recovery UX deferred.
-- [x] React Query invalidation on `["project", "list"]` after `project.create` / `project.setup` / `project.remove`.
+- [x] Sidebar pin reactivity after `project.create` / `project.setup` rides on `ensureProjectInSidebar` → `v2SidebarProjects` Electric collection. No React Query invalidation needed.
 
 ### Acceptance
 

@@ -9,7 +9,6 @@ import {
 } from "@superset/ui/dialog";
 import { Input } from "@superset/ui/input";
 import { Label } from "@superset/ui/label";
-import { useQueryClient } from "@tanstack/react-query";
 import { type FormEvent, useState } from "react";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
@@ -30,7 +29,6 @@ export function NewProjectModal({
 	onError,
 }: NewProjectModalProps) {
 	const { activeHostUrl } = useLocalHostService();
-	const queryClient = useQueryClient();
 	const { ensureProjectInSidebar } = useDashboardSidebarState();
 
 	const [name, setName] = useState("");
@@ -71,9 +69,6 @@ export function NewProjectModal({
 				mode: { kind: "clone", parentDir, url: trimmedUrl },
 			});
 			ensureProjectInSidebar(result.projectId);
-			queryClient.invalidateQueries({
-				queryKey: ["project", "list", activeHostUrl],
-			});
 			onSuccess?.(result);
 			reset();
 			onOpenChange(false);

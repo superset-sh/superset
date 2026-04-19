@@ -102,10 +102,6 @@ project.setup({
 - Same resolved path → no-op success (idempotent).
 - Different path → `CONFLICT`. Caller must `project.remove` first to re-import elsewhere.
 
-### `project.list`
-
-Array of `{ id, repoPath }` on the calling machine. Pure DB read.
-
 ### `project.findByPath`
 
 ```ts
