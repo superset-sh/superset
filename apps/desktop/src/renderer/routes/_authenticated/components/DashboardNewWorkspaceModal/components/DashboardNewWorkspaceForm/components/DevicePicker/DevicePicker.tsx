@@ -15,7 +15,7 @@ import {
 	HiOutlineComputerDesktop,
 	HiOutlineServer,
 } from "react-icons/hi2";
-import { FORM_PICKER_TRIGGER_CLASS } from "../../PromptGroup/types";
+import { FormPickerTrigger } from "../../PromptGroup/components/FormPickerTrigger";
 import {
 	useWorkspaceHostOptions,
 	type WorkspaceHostOption,
@@ -76,15 +76,13 @@ export function DevicePicker({
 	return (
 		<DropdownMenu>
 			<DropdownMenuTrigger asChild>
-				<button
-					type="button"
+				<FormPickerTrigger
 					aria-label={`Device: ${selectedLabel}`}
 					title={selectedLabel}
-					className={FORM_PICKER_TRIGGER_CLASS}
 				>
 					{getSelectedIcon(hostTarget, otherHosts)}
 					<HiChevronUpDown className="size-3 shrink-0" />
-				</button>
+				</FormPickerTrigger>
 			</DropdownMenuTrigger>
 			<DropdownMenuContent align="start" className="w-72">
 				<DropdownMenuItem
