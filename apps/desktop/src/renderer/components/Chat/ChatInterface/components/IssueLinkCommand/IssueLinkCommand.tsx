@@ -29,32 +29,14 @@ interface IssueLinkCommandProps {
 		taskId: string | undefined,
 		url?: string,
 	) => void;
-	/** Optional controlled open state — callers that need to open the
-	 * popover programmatically (e.g. keyboard shortcut) pass these; others
-	 * let Radix manage internal state. Standard controlled/uncontrolled
-	 * passthrough — one codepath either way. */
-	open?: boolean;
-	onOpenChange?: (open: boolean) => void;
 }
 
-export function IssueLinkCommand({
-	children,
-	onSelect,
-	open: openProp,
-	onOpenChange,
-}: IssueLinkCommandProps) {
-	// Controllable-state pattern: if a caller passes `openProp` we defer to it,
-	// otherwise we manage our own. We read from `open` (below) and always write
-	// through `setOpen` so close-on-select works in both modes — the previous
-	// version only fired the optional controlled callback, leaving uncontrolled
-	// pickers open after a selection.
-	const [internalOpen, setInternalOpen] = useState(false);
-	const open = openProp ?? internalOpen;
-	const setOpen = (next: boolean) => {
-		setInternalOpen(next);
-		onOpenChange?.(next);
-	};
-
+export function IssueLinkCommand({ children, onSelect }: IssueLinkCommandProps) {
+	// Radix's Popover can't be closed imperatively from inside its content, so
+	// close-on-select needs explicit state ownership. Canonical shadcn/cmdk
+	// pattern — it's not scaffolding, the primitive just doesn't expose an
+	// alternative.
+	const [open, setOpen] = useState(false);
 	const [searchQuery, setSearchQuery] = useState("");
 	const collections = useCollections();
 

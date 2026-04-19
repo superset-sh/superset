@@ -27,6 +27,7 @@ export const LinkTrigger = forwardRef<HTMLButtonElement, LinkTriggerProps>(
 				<TooltipTrigger asChild>
 					<PromptInputButton
 						ref={ref}
+						aria-label={label}
 						className={`${PILL_BUTTON_CLASS} w-[22px]`}
 						{...rest}
 					>
@@ -62,6 +63,7 @@ export function AttachmentButtons({
 			<Tooltip>
 				<TooltipTrigger asChild>
 					<PromptInputButton
+						aria-label="Add attachment"
 						className={`${PILL_BUTTON_CLASS} w-[22px]`}
 						onClick={() => attachments.openFileDialog()}
 					>
