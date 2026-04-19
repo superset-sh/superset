@@ -31,7 +31,10 @@ interface IssueLinkCommandProps {
 	) => void;
 }
 
-export function IssueLinkCommand({ children, onSelect }: IssueLinkCommandProps) {
+export function IssueLinkCommand({
+	children,
+	onSelect,
+}: IssueLinkCommandProps) {
 	// Radix's Popover can't be closed imperatively from inside its content, so
 	// close-on-select needs explicit state ownership. Canonical shadcn/cmdk
 	// pattern — it's not scaffolding, the primitive just doesn't expose an
