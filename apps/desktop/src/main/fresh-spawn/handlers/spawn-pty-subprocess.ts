@@ -69,6 +69,28 @@ export function handleSpawnPtySubprocess(
 	const binaryPath = options.nodeBinaryPath ?? process.execPath;
 	const hardKillGraceMs = options.hardKillGraceMs ?? DEFAULT_HARD_KILL_GRACE_MS;
 
+	// Lifecycle state must be declared BEFORE the child is spawned, because
+	// `child.on("error")` is attached immediately after the spawn call and
+	// its handler reads/writes these flags. Node may emit ENOENT
+	// asynchronously via process.nextTick, so installing the listener after
+	// the synchronous validation below would miss those early errors.
+	const closedCallbacks: Array<() => void> = [];
+	let childExited = false;
+	let socketClosed = false;
+	let finalized = false;
+
+	const tryFinalize = (): void => {
+		if (!childExited || !socketClosed || finalized) return;
+		finalized = true;
+		for (const cb of closedCallbacks) {
+			try {
+				cb();
+			} catch {
+				// ignore callback errors — lifecycle must complete
+			}
+		}
+	};
+
 	const child: ChildProcess = spawn(
 		binaryPath,
 		[options.subprocessScriptPath],
@@ -81,15 +103,11 @@ export function handleSpawnPtySubprocess(
 		},
 	);
 
-	if (!child.stdin || !child.stdout || !child.stderr || child.pid == null) {
-		child.kill("SIGKILL");
-		throw new Error("failed to spawn subprocess");
-	}
-
-	// ChildProcess can emit `error` asynchronously (e.g. ENOENT on the
-	// binary path, or EACCES on the subprocess script). Without a listener
+	// Attached FIRST — before the synchronous child.pid/.stdin validation
+	// below — because Node emits `error` asynchronously (ENOENT on the
+	// binary path, EACCES on the subprocess script), and without a listener
 	// the event becomes unhandled and crashes the entire daemon. Translate
-	// it into a synthetic exit frame so the client unblocks cleanly.
+	// into a synthetic exit frame so the client unblocks cleanly.
 	child.on("error", (err) => {
 		console.error(
 			`[fresh-spawn] spawn-pty-subprocess child error (pid=${child.pid}):`,
@@ -107,23 +125,12 @@ export function handleSpawnPtySubprocess(
 		}
 	});
 
-	const pid = child.pid;
-	const closedCallbacks: Array<() => void> = [];
-	let childExited = false;
-	let socketClosed = false;
-	let finalized = false;
+	if (!child.stdin || !child.stdout || !child.stderr || child.pid == null) {
+		child.kill("SIGKILL");
+		throw new Error("failed to spawn subprocess");
+	}
 
-	const tryFinalize = (): void => {
-		if (!childExited || !socketClosed || finalized) return;
-		finalized = true;
-		for (const cb of closedCallbacks) {
-			try {
-				cb();
-			} catch {
-				// ignore callback errors — lifecycle must complete
-			}
-		}
-	};
+	const pid = child.pid;
 
 	// Write ok response as the first streamed line. Note: this frame is the
 	// SpawnResponse schema, NOT a StreamFrame. The client must parse the first
@@ -154,6 +161,13 @@ export function handleSpawnPtySubprocess(
 	});
 
 	child.once("exit", (code, signal) => {
+		// If the `error` handler already emitted a synthetic exit frame
+		// (e.g. ENOENT on the binary), skip — emitting again would send a
+		// duplicate {type:"exit"} frame downstream.
+		if (childExited) {
+			tryFinalize();
+			return;
+		}
 		childExited = true;
 		writeFrame(client, {
 			type: "exit",

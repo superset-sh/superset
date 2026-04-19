@@ -1,10 +1,10 @@
 # fresh-exec shell hook for Superset terminals
 # ----------------------------------------------
 # Shadows a whitelist of Go-based CLIs with zsh functions that re-invoke
-# them through the `fresh-exec` helper. Purpose: bypass stale Mach
-# bootstrap context in terminal-host's daemon by proxying each command
-# through the fresh-spawn server running in Superset's Electron main
-# process.
+# them through the `fresh-exec` helper. Purpose: run selected commands
+# through the daemon-owned fresh-spawn UDS server so they inherit the
+# terminal-host daemon's clean macOS security context (rather than the
+# stale bootstrap context of the shell they were typed in).
 #
 # Environment variables:
 #   SUPERSET_FRESH_EXEC_COMMANDS  Space-separated whitelist. Superset
@@ -21,9 +21,11 @@
 # Usage in plain zsh (not via Superset): don't source it; nothing
 # interesting happens without the env vars above set.
 #
-# Bypass: `command <name>` or `\<name>` bypasses the function override
-# and runs the real binary directly (stale context; TLS commands will
-# fail). Useful for debugging.
+# Bypass: `command <name>` bypasses the function override and runs the
+# real binary directly (stale context; TLS commands will fail). Useful
+# for debugging. Note that `\<name>` does NOT bypass — backslash
+# quoting suppresses alias expansion in zsh, but functions are still
+# resolved after quote removal.
 
 # Skip when essential env vars are absent
 if [[ -z "$SUPERSET_FRESH_EXEC_COMMANDS" ]] \
