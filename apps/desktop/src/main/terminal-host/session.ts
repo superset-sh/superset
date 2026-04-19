@@ -309,9 +309,9 @@ export class Session {
 		}
 
 		// Handle subprocess exit
-		this.subprocess.on("exit", (code) => {
+		this.subprocess.on("exit", (code, signal) => {
 			console.log(
-				`[Session ${this.sessionId}] Subprocess exited with code ${code}`,
+				`[Session ${this.sessionId}] Subprocess exited with code=${code} signal=${signal}`,
 			);
 			this.handleSubprocessExit(code ?? -1);
 		});
