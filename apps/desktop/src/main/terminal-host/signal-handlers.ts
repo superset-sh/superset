@@ -138,7 +138,19 @@ export function setupTerminalHostSignalHandlers({
 	// unless explicitly ignored. Registering a no-op listener prevents the
 	// default terminate action without triggering our shutdownOnce path.
 	process.on("SIGHUP", () => {
-		log("info", "Received SIGHUP; ignoring (nohup semantics for daemon survival)");
+		// Protect the nohup semantics even if logging fails. If the daemon's
+		// stdout/stderr pipe closes (e.g. Electron exits first and we were
+		// spawned with stdio:"pipe"/"inherit"), writing to it throws EPIPE
+		// — an uncaught exception would flow into shutdownOnce and defeat
+		// the entire purpose of this handler.
+		try {
+			log(
+				"info",
+				"Received SIGHUP; ignoring (nohup semantics for daemon survival)",
+			);
+		} catch {
+			// Preserve ignore semantics unconditionally.
+		}
 	});
 
 	process.on("uncaughtException", (error) => {
