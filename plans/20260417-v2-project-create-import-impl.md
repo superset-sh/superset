@@ -34,7 +34,7 @@ No new tables. No new Electric collections.
 - [x] Sidebar `+` dropdown: "New project" and "Import existing folder". No "Pin existing project" action.
 - [x] Folder-first picker branching (0 / 1-new / 1-already / >1).
 - [x] Workspaces tab: lists every workspace in the active org. No Available section, no CTAs.
-- [x] Remote-device workspace row click → `WorkspaceNotOnThisHostState` stub ("switch host or set up here"). Set-up-here triggers `PinAndSetupModal`.
+- [x] Remote-device workspace row click opens the normal workspace page — no gating. Local-fs operations degrade as they hit their limits.
 - [x] Error-path repair: git ops / `workspace.create` catch vanished-path errors (ENOENT on `repoPath`), invalidate `["project", "list"]`, open `PinAndSetupModal` with `forceRepoint: true`.
 - [x] React Query invalidation on `["project", "list"]` after `project.create` / `project.setup` / `project.remove`.
 

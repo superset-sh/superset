@@ -14,7 +14,6 @@ import { HiMiniXMark } from "react-icons/hi2";
 import { TbLayoutColumns, TbLayoutRows } from "react-icons/tb";
 import { HotkeyLabel, useHotkey } from "renderer/hotkeys";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
-import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { CommandPalette } from "renderer/screens/main/components/CommandPalette";
 import {
 	toAbsoluteWorkspacePath,
@@ -22,7 +21,6 @@ import {
 } from "shared/absolute-paths";
 import { useStore } from "zustand";
 import { WorkspaceNotFoundState } from "../components/WorkspaceNotFoundState";
-import { WorkspaceNotOnThisHostState } from "../components/WorkspaceNotOnThisHostState";
 import { AddTabMenu } from "./components/AddTabMenu";
 import { V2PresetsBar } from "./components/V2PresetsBar";
 import { WorkspaceEmptyState } from "./components/WorkspaceEmptyState";
@@ -58,34 +56,16 @@ export const Route = createFileRoute(
 function V2WorkspacePage() {
 	const { workspaceId } = Route.useParams();
 	const collections = useCollections();
-	const { machineId } = useLocalHostService();
 
 	const { data: rows } = useLiveQuery(
 		(q) =>
 			q
 				.from({ v2Workspaces: collections.v2Workspaces })
-				.leftJoin({ hosts: collections.v2Hosts }, ({ v2Workspaces, hosts }) =>
-					eq(v2Workspaces.hostId, hosts.id),
-				)
-				.leftJoin(
-					{ projects: collections.v2Projects },
-					({ v2Workspaces, projects }) =>
-						eq(v2Workspaces.projectId, projects.id),
-				)
-				.leftJoin(
-					{ repos: collections.githubRepositories },
-					({ projects, repos }) => eq(projects.githubRepositoryId, repos.id),
-				)
 				.where(({ v2Workspaces }) => eq(v2Workspaces.id, workspaceId))
-				.select(({ v2Workspaces, hosts, projects, repos }) => ({
+				.select(({ v2Workspaces }) => ({
 					id: v2Workspaces.id,
 					projectId: v2Workspaces.projectId,
 					name: v2Workspaces.name,
-					hostMachineId: hosts?.machineId ?? null,
-					hostName: hosts?.name ?? null,
-					projectName: projects?.name ?? null,
-					projectGithubOwner: repos?.owner ?? null,
-					projectGithubRepoName: repos?.name ?? null,
 				})),
 		[collections, workspaceId],
 	);
@@ -97,20 +77,6 @@ function V2WorkspacePage() {
 
 	if (!row) {
 		return <WorkspaceNotFoundState workspaceId={workspaceId} />;
-	}
-
-	// Remote-device workspace: render the stub and stop. Opening the real
-	// workspace tree would crash because the worktree lives on another host.
-	if (row.hostMachineId != null && row.hostMachineId !== machineId) {
-		return (
-			<WorkspaceNotOnThisHostState
-				hostName={row.hostName ?? null}
-				projectId={row.projectId}
-				projectName={row.projectName ?? "this project"}
-				projectGithubOwner={row.projectGithubOwner ?? null}
-				projectGithubRepoName={row.projectGithubRepoName ?? null}
-			/>
-		);
 	}
 
 	return (

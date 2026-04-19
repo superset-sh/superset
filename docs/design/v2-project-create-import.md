@@ -153,7 +153,7 @@ That's it. No "Pin existing project" action, no Available section, no inline set
 
 ### Remote-device workspace clicks
 
-Workspaces are bound to the host they were created on. Clicking a remote-device workspace row lands on a "switch host or set up here" stub (`WorkspaceNotOnThisHostState`) — not the workspace itself. "Set up here" triggers `PinAndSetupModal` for the project.
+No gating. A remote workspace opens the normal workspace page — you can see it the same way as a local one. Operations that assume local filesystem (terminal spawn, local git) will fail at the point they're triggered; we'll address those as they surface.
 
 ---
 
@@ -191,7 +191,7 @@ Sidebar `+` → "New project" → `project.create` → sidebar shows the project
 
 ### 2. Join an org with existing projects
 
-Workspaces tab shows every workspace in the org, including teammates' ones on remote hosts. To work on a remote workspace locally, click it → land on `WorkspaceNotOnThisHostState` stub → "Set up here" → `project.setup` → pinned + backed, can create own workspaces.
+Workspaces tab shows every workspace in the org, including teammates' ones on remote hosts. Click any of them to open — local-fs operations degrade as they hit their limits; the workspace itself renders.
 
 ### 3. Adding a second host
 
@@ -208,7 +208,7 @@ Next git op or `workspace.create` fails with ENOENT. Handler invalidates `["proj
 | Transition | RPC | Entry point |
 | --- | --- | --- |
 | cell 3 → cell 2 | `project.create` | Sidebar `+` → New project |
-| cell 1 → cell 2 | `project.setup` | Folder-first import (non-conflict); `WorkspaceNotOnThisHostState` set-up-here |
+| cell 1 → cell 2 | `project.setup` | Folder-first import (non-conflict) |
 | cell 2 → cell 2 (repair) | `project.setup` (`acknowledgeWorkspaceInvalidation: true`) | ENOENT error path; folder-first re-point |
 
 ---
