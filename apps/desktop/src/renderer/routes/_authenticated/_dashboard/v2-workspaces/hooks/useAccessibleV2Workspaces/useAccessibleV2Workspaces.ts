@@ -1,4 +1,4 @@
-import { eq } from "@tanstack/db";
+import { and, eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useMemo } from "react";
 import { env } from "renderer/env.renderer";
@@ -88,6 +88,10 @@ export function useAccessibleV2Workspaces(
 					eq(workspaces.hostId, hosts.id),
 				)
 				.innerJoin(
+					{ userHosts: collections.v2UsersHosts },
+					({ hosts, userHosts }) => eq(userHosts.hostId, hosts.id),
+				)
+				.innerJoin(
 					{ projects: collections.v2Projects },
 					({ workspaces, projects }) => eq(workspaces.projectId, projects.id),
 				)
@@ -99,8 +103,11 @@ export function useAccessibleV2Workspaces(
 				.leftJoin({ creators: collections.users }, ({ workspaces, creators }) =>
 					eq(workspaces.createdByUserId, creators.id),
 				)
-				.where(({ workspaces }) =>
-					eq(workspaces.organizationId, activeOrganizationId ?? ""),
+				.where(({ workspaces, userHosts }) =>
+					and(
+						eq(workspaces.organizationId, activeOrganizationId ?? ""),
+						eq(userHosts.userId, currentUserId ?? ""),
+					),
 				)
 				.select(({ workspaces, hosts, projects, sidebarState, creators }) => ({
 					id: workspaces.id,

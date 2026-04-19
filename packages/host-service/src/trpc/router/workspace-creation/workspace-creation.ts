@@ -72,9 +72,6 @@ function sweepStaleProgress(): void {
 // ── Helpers ──────────────────────────────────────────────────────────
 
 function projectNotSetupError(projectId: string): TRPCError {
-	// Surfaces the projectId via `cause` so the renderer can open the Pin &
-	// set up modal pre-filled with it. The code is PRECONDITION_FAILED so the
-	// renderer can still treat other errors (network, permissions) distinctly.
 	return new TRPCError({
 		code: "PRECONDITION_FAILED",
 		message: "Project is not set up on this host",
@@ -723,9 +720,6 @@ export const workspaceCreationRouter = router({
 			const deviceName = getDeviceName();
 			setProgress(input.pendingId, "ensuring_repo");
 
-			// Require the project be set up on this host. The renderer
-			// catches PROJECT_NOT_SETUP and opens Pin & set up so the user
-			// picks where to clone explicitly.
 			const localProject = ctx.db.query.projects
 				.findFirst({ where: eq(projects.id, input.projectId) })
 				.sync();
@@ -1027,7 +1021,6 @@ export const workspaceCreationRouter = router({
 		.mutation(async ({ ctx, input }) => {
 			setProgress(input.pendingId, "ensuring_repo");
 
-			// Require the project be set up on this host — same as create.
 			const localProject = ctx.db.query.projects
 				.findFirst({ where: eq(projects.id, input.projectId) })
 				.sync();

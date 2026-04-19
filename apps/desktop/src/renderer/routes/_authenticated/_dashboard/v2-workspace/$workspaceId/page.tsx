@@ -57,33 +57,28 @@ function V2WorkspacePage() {
 	const { workspaceId } = Route.useParams();
 	const collections = useCollections();
 
-	const { data: rows } = useLiveQuery(
+	const { data: workspaces } = useLiveQuery(
 		(q) =>
 			q
 				.from({ v2Workspaces: collections.v2Workspaces })
-				.where(({ v2Workspaces }) => eq(v2Workspaces.id, workspaceId))
-				.select(({ v2Workspaces }) => ({
-					id: v2Workspaces.id,
-					projectId: v2Workspaces.projectId,
-					name: v2Workspaces.name,
-				})),
+				.where(({ v2Workspaces }) => eq(v2Workspaces.id, workspaceId)),
 		[collections, workspaceId],
 	);
-	const row = rows?.[0] ?? null;
+	const workspace = workspaces?.[0] ?? null;
 
-	if (!rows) {
+	if (!workspaces) {
 		return <div className="flex h-full w-full" />;
 	}
 
-	if (!row) {
+	if (!workspace) {
 		return <WorkspaceNotFoundState workspaceId={workspaceId} />;
 	}
 
 	return (
 		<WorkspaceContent
-			projectId={row.projectId}
-			workspaceId={row.id}
-			workspaceName={row.name}
+			projectId={workspace.projectId}
+			workspaceId={workspace.id}
+			workspaceName={workspace.name}
 		/>
 	);
 }

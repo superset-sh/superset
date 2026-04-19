@@ -25,9 +25,7 @@ export function isTeardownFailureCause(
 
 /**
  * Thrown by host-service procedures that require the project to already
- * be set up on this host. The renderer catches this via TRPCClientError
- * and opens the Pin & set up modal with the projectId pre-filled, then
- * retries the original mutation.
+ * be set up on this host.
  */
 export interface ProjectNotSetupCause {
 	kind: "PROJECT_NOT_SETUP";

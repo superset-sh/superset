@@ -2,7 +2,6 @@ import { projects } from "../../../../db/schema";
 import type { HostServiceContext } from "../../../../types";
 import type { ResolvedRepo } from "./resolve-repo";
 
-// Upsert — safe for both fresh create and setup re-point.
 export function persistLocalProject(
 	ctx: HostServiceContext,
 	projectId: string,
