@@ -47,7 +47,6 @@ import { LuFolderGit, LuFolderOpen, LuGitPullRequest } from "react-icons/lu";
 import { SiLinear } from "react-icons/si";
 import { AgentSelect } from "renderer/components/AgentSelect";
 import { LinkedIssuePill } from "renderer/components/Chat/ChatInterface/components/ChatInputFooter/components/LinkedIssuePill";
-import { IssueLinkCommand } from "renderer/components/Chat/ChatInterface/components/IssueLinkCommand";
 import { useAgentLaunchPreferences } from "renderer/hooks/useAgentLaunchPreferences";
 import { PLATFORM } from "renderer/hotkeys";
 import { electronTrpc } from "renderer/lib/electron-trpc";
@@ -590,7 +589,7 @@ function PromptGroupInner({
 			validAgents: ["none", ...selectableAgentIds],
 			agentsReady: agentPresetsQuery.isFetched,
 		});
-	const [issueLinkOpen, setIssueLinkOpen] = useState(false);
+	const [_issueLinkOpen, setIssueLinkOpen] = useState(false);
 	const [gitHubIssueLinkOpen, setGitHubIssueLinkOpen] = useState(false);
 	const [prLinkOpen, setPRLinkOpen] = useState(false);
 	const plusMenuRef = useRef<HTMLDivElement>(null);
@@ -1133,7 +1132,7 @@ ${sanitizeText(truncatedBody)}`;
 		[closeModal, navigate],
 	);
 
-	const addLinkedIssue = (
+	const _addLinkedIssue = (
 		slug: string,
 		title: string,
 		taskId: string | undefined,

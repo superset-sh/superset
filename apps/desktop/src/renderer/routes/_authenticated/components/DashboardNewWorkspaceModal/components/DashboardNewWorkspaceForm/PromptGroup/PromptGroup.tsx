@@ -388,8 +388,8 @@ export function PromptGroup({
 
 			{/* Bottom bar */}
 			<div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2 min-w-0 flex-1">
-          <DevicePicker
+				<div className="flex items-center gap-2 min-w-0 flex-1">
+					<DevicePicker
 						hostTarget={hostTarget}
 						onSelectHostTarget={(t) => updateDraft({ hostTarget: t })}
 					/>
@@ -425,7 +425,7 @@ export function PromptGroup({
 								<CompareBaseBranchPicker {...pickerProps} />
 							</motion.div>
 						)}
-          </AnimatePresence>
+					</AnimatePresence>
 				</div>
 				<div className="flex items-center gap-1.5">
 					<span className="text-[11px] text-muted-foreground/50">

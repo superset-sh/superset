@@ -14,7 +14,6 @@ import { useFocusPromptOnPane } from "renderer/components/Chat/ChatInterface/hoo
 import { useHotkeyDisplay } from "renderer/hotkeys";
 import type { SlashCommand } from "../../hooks/useSlashCommands";
 import type { ModelOption, PermissionMode } from "../../types";
-import { IssueLinkCommand } from "../IssueLinkCommand";
 import { TiptapPromptEditor } from "../TiptapPromptEditor";
 import { ChatComposerControls } from "./components/ChatComposerControls";
 import { ChatInputDropZone } from "./components/ChatInputDropZone";
@@ -100,14 +99,14 @@ export function ChatInputFooter({
 		}
 	}, [pendingQuestion, textInput]);
 
-	const [issueLinkOpen, setIssueLinkOpen] = useState(false);
+	const [_issueLinkOpen, setIssueLinkOpen] = useState(false);
 	const [linkedIssues, setLinkedIssues] = useState<LinkedIssue[]>([]);
 	const inputRootRef = useRef<HTMLDivElement>(null);
 	const errorMessage = getErrorMessage(error);
 	const focusShortcutText = useHotkeyDisplay("FOCUS_CHAT_INPUT").text;
 	const showFocusHint = focusShortcutText !== "Unassigned";
 
-	const addLinkedIssue = useCallback(
+	const _addLinkedIssue = useCallback(
 		(slug: string, title: string, taskId: string | undefined, url?: string) => {
 			setLinkedIssues((prev) => {
 				if (prev.some((issue) => issue.slug === slug)) return prev;

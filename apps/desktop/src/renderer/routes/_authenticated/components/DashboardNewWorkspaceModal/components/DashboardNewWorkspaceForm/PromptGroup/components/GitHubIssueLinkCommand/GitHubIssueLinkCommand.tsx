@@ -6,11 +6,7 @@ import {
 	CommandItem,
 	CommandList,
 } from "@superset/ui/command";
-import {
-	Popover,
-	PopoverContent,
-	PopoverTrigger,
-} from "@superset/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
 import { useQuery } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { useState } from "react";
