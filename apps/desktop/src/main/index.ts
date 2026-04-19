@@ -23,10 +23,6 @@ import {
 	PLATFORM,
 	PROTOCOL_SCHEME,
 } from "shared/constants";
-import {
-	startFreshSpawnServer,
-	stopFreshSpawnServer,
-} from "./fresh-spawn/lifecycle";
 import { setupAgentHooks } from "./lib/agent-setup";
 import { initAppState } from "./lib/app-state";
 import { requestAppleEventsAccess } from "./lib/apple-events-permission";
@@ -215,9 +211,9 @@ app.on("before-quit", async (event) => {
 	} catch (error) {
 		console.error("[main] Cleanup during quit failed:", error);
 	}
-	// Fire-and-forget: process is exiting, we just want to unlink the socket
-	// if possible. Awaiting would delay app.exit() with no user-visible benefit.
-	void stopFreshSpawnServer();
+	// The fresh-spawn UDS server now lives inside the terminal-host daemon
+	// (which is detached + unref'd), so it survives Electron app quit along
+	// with the PTY subprocesses it hosts. Nothing to clean up here.
 	app.exit(0);
 });
 
@@ -303,17 +299,10 @@ if (!gotTheLock) {
 		requestAppleEventsAccess();
 		requestLocalNetworkAccess();
 
-		// Must start before terminal-host sessions try to use the socket.
-		// macOS-only: mitigates the stale Mach bootstrap context that the
-		// daemon process inherits after its parent Electron main dies.
-		//
-		// The pty-subprocess.js bundle is emitted by electron-vite into the
-		// same `dist/main/` directory as this entry file, so we resolve it
-		// relative to `__dirname` here rather than inside the lifecycle
-		// module (where rollup chunking could place the bundle elsewhere).
-		await startFreshSpawnServer({
-			subprocessScriptPath: path.join(__dirname, "pty-subprocess.js"),
-		});
+		// The fresh-spawn UDS server now runs inside the terminal-host
+		// daemon (see apps/desktop/src/main/terminal-host/index.ts). Hosting
+		// it there means PTYs spawned through it become daemon grandchildren
+		// and survive Electron app quit along with the daemon itself.
 
 		// Must register on both default session and the app's custom partition
 		const iconProtocolHandler = (request: Request) => {

@@ -14,9 +14,10 @@ export interface TrySpawnViaFreshServerOptions {
 }
 
 /**
- * Attempts to spawn a pty-subprocess via the fresh-spawn server running in
- * Electron main. Returns a SpawnSession (ChildProcess-compatible) on success,
- * or null if the server is unavailable (caller should fall back to direct spawn).
+ * Attempts to spawn a pty-subprocess via the fresh-spawn server hosted
+ * inside the terminal-host daemon. Returns a SpawnSession
+ * (ChildProcess-compatible) on success, or null if the server is
+ * unavailable (caller should fall back to direct spawn).
  *
  * Never throws; any failure (non-macOS, socket missing, connect error,
  * handshake timeout) returns null with a console warning so the caller can

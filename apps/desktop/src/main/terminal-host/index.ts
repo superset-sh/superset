@@ -26,6 +26,10 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { SUPERSET_DIR_NAME } from "shared/constants";
 import {
+	startFreshSpawnServer,
+	stopFreshSpawnServer,
+} from "../fresh-spawn/lifecycle";
+import {
 	type CancelCreateOrAttachRequest,
 	type ClearScrollbackRequest,
 	type CreateOrAttachRequest,
@@ -779,9 +783,34 @@ async function startServer(): Promise<void> {
 			resolve();
 		});
 	});
+
+	// Start the fresh-spawn UDS server inside the daemon.
+	//
+	// Hosting the server here (instead of in Electron main) means PTYs
+	// spawned through it live under the detached + unref'd daemon process,
+	// so they survive Electron app quit — satisfying the "terminal survives
+	// app restart" promise. Fresh Mach bootstrap context is still achieved:
+	// the daemon was itself spawned by Electron main at launch (fresh
+	// context at that moment), so its children inherit a clean context.
+	//
+	// The pty-subprocess.js bundle is emitted by electron-vite into the
+	// same `dist/main/` directory as this entry file, so resolving it
+	// relative to `__dirname` works in both dev and packaged builds.
+	//
+	// Errors are swallowed inside startFreshSpawnServer (it only logs); a
+	// failed start degrades cleanly because client code falls back to
+	// direct spawn when the socket is missing.
+	await startFreshSpawnServer({
+		subprocessScriptPath: join(__dirname, "pty-subprocess.js"),
+	});
 }
 
 async function stopServer(): Promise<void> {
+	// Stop the fresh-spawn UDS server first so no new PTY spawns are
+	// accepted while we're tearing down. `stopFreshSpawnServer` never
+	// throws — it logs and swallows errors internally.
+	await stopFreshSpawnServer();
+
 	if (terminalHost) {
 		await terminalHost.dispose();
 		log("info", "Terminal host disposed");
