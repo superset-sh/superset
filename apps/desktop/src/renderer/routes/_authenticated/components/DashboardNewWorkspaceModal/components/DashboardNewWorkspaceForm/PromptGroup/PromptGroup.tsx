@@ -25,7 +25,6 @@ import { IssueLinkCommand } from "renderer/components/Chat/ChatInterface/compone
 import { useAgentLaunchPreferences } from "renderer/hooks/useAgentLaunchPreferences";
 import { PLATFORM } from "renderer/hotkeys";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import { useOpenPinAndSetupModal } from "renderer/stores/add-repository-modal";
 import { useNewWorkspaceModalOpen } from "renderer/stores/new-workspace-modal";
 import { getEnabledAgentConfigs } from "shared/utils/agent-settings";
 import { sanitizeUserBranchName, slugifyForBranch } from "shared/utils/branch";
@@ -39,7 +38,6 @@ import { LinkedPRPill } from "./components/LinkedPRPill";
 import { PRLinkCommand } from "./components/PRLinkCommand";
 import { ProjectPickerPill } from "./components/ProjectPickerPill";
 import { useBranchPickerController } from "./hooks/useBranchPickerController";
-import { useHostProjectIds } from "./hooks/useHostProjectIds";
 import { useLinkedContext } from "./hooks/useLinkedContext";
 import { useSubmitWorkspace } from "./hooks/useSubmitWorkspace";
 import {
@@ -95,41 +93,6 @@ export function PromptGroup({
 			validAgents: ["none", ...selectableAgentIds],
 			agentsReady: agentPresetsQuery.isFetched,
 		});
-
-	// ── Host-scoped project availability ─────────────────────────────
-	// Split cloud projects into "Available on this host" vs "Needs setup"
-	// so the picker can surface the gap inline. While the host query is
-	// loading/errored we treat everything as Available (picker stays usable
-	// and the workspace-create path will surface any real failure).
-	const { projectIds: hostProjectIds } = useHostProjectIds(hostTarget);
-	const { availableProjects, needSetupProjects } = useMemo(() => {
-		if (!hostProjectIds) {
-			return {
-				availableProjects: recentProjects,
-				needSetupProjects: [] as ProjectOption[],
-			};
-		}
-		const available: ProjectOption[] = [];
-		const needSetup: ProjectOption[] = [];
-		for (const p of recentProjects) {
-			if (hostProjectIds.has(p.id)) available.push(p);
-			else needSetup.push(p);
-		}
-		return { availableProjects: available, needSetupProjects: needSetup };
-	}, [recentProjects, hostProjectIds]);
-
-	const openPinAndSetup = useOpenPinAndSetupModal();
-	const handleSetupProject = useCallback(
-		(project: ProjectOption) => {
-			openPinAndSetup({
-				id: project.id,
-				name: project.name,
-				githubOwner: project.githubOwner,
-				githubRepoName: project.githubRepoName,
-			});
-		},
-		[openPinAndSetup],
-	);
 
 	const trimmedPrompt = prompt.trim();
 	const branchPreview = branchNameEdited
@@ -407,10 +370,8 @@ export function PromptGroup({
 					/>
 					<ProjectPickerPill
 						selectedProject={selectedProject}
-						availableProjects={availableProjects}
-						needSetupProjects={needSetupProjects}
+						projects={recentProjects}
 						onSelectProject={onSelectProject}
-						onSetupProject={handleSetupProject}
 					/>
 					<AnimatePresence mode="wait" initial={false}>
 						{linkedPR ? (
