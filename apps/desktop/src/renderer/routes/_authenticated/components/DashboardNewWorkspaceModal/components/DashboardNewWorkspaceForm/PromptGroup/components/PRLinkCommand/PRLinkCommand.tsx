@@ -7,6 +7,7 @@ import {
 	CommandList,
 } from "@superset/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useQuery } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { useState } from "react";
@@ -28,8 +29,8 @@ export interface SelectedPR {
 }
 
 interface PRLinkCommandProps {
-	/** Button element wrapped in PopoverTrigger — Radix handles toggle. */
 	children: ReactNode;
+	tooltipLabel: string;
 	onSelect: (pr: SelectedPR) => void;
 	projectId: string | null;
 	hostTarget: WorkspaceHostTarget;
@@ -43,6 +44,7 @@ function normalizeState(state: string, isDraft: boolean): string {
 
 export function PRLinkCommand({
 	children,
+	tooltipLabel,
 	onSelect,
 	projectId,
 	hostTarget,
@@ -109,7 +111,12 @@ export function PRLinkCommand({
 				setOpen(next);
 			}}
 		>
-			<PopoverTrigger asChild>{children}</PopoverTrigger>
+			<Tooltip>
+				<PopoverTrigger asChild>
+					<TooltipTrigger asChild>{children}</TooltipTrigger>
+				</PopoverTrigger>
+				<TooltipContent side="bottom">{tooltipLabel}</TooltipContent>
+			</Tooltip>
 			<PopoverContent
 				className="w-80 p-0"
 				align="start"

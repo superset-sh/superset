@@ -534,11 +534,6 @@ export const HOTKEYS_REGISTRY = {
 		label: "Add Attachment",
 		category: "Terminal",
 	},
-	CHAT_LINK_ISSUE: {
-		key: { mac: "meta+i", windows: "ctrl+shift+i", linux: "ctrl+shift+i" },
-		label: "Link Issue",
-		category: "Terminal",
-	},
 
 	// Window
 	OPEN_IN_APP: {

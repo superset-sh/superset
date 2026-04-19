@@ -2,6 +2,7 @@ import {
 	PromptInput,
 	PromptInputAttachment,
 	PromptInputAttachments,
+	PromptInputButton,
 	PromptInputFooter,
 	PromptInputSubmit,
 	PromptInputTextarea,
@@ -30,7 +31,7 @@ import { getEnabledAgentConfigs } from "shared/utils/agent-settings";
 import { sanitizeUserBranchName, slugifyForBranch } from "shared/utils/branch";
 import { useDashboardNewWorkspaceDraft } from "../../../DashboardNewWorkspaceDraftContext";
 import { DevicePicker } from "../components/DevicePicker";
-import { AttachmentButtons, LinkTrigger } from "./components/AttachmentButtons";
+import { AttachmentButtons } from "./components/AttachmentButtons";
 import { CompareBaseBranchPicker } from "./components/CompareBaseBranchPicker";
 import { GitHubIssueLinkCommand } from "./components/GitHubIssueLinkCommand";
 import { LinkedGitHubIssuePill } from "./components/LinkedGitHubIssuePill";
@@ -334,11 +335,16 @@ export function PromptGroup({
 					<div className="flex items-center gap-2">
 						<AttachmentButtons
 							linearIssueTrigger={
-								<IssueLinkCommand onSelect={addLinkedIssue}>
-									<LinkTrigger
-										label="Link issue"
-										icon={<SiLinear className="size-3.5" />}
-									/>
+								<IssueLinkCommand
+									onSelect={addLinkedIssue}
+									tooltipLabel="Link issue"
+								>
+									<PromptInputButton
+										aria-label="Link issue"
+										className={`${PILL_BUTTON_CLASS} w-[22px]`}
+									>
+										<SiLinear className="size-3.5" />
+									</PromptInputButton>
 								</IssueLinkCommand>
 							}
 							githubIssueTrigger={
@@ -353,11 +359,14 @@ export function PromptGroup({
 									}
 									projectId={projectId}
 									hostTarget={hostTarget}
+									tooltipLabel="Link GitHub issue"
 								>
-									<LinkTrigger
-										label="Link GitHub issue"
-										icon={<GoIssueOpened className="size-3.5" />}
-									/>
+									<PromptInputButton
+										aria-label="Link GitHub issue"
+										className={`${PILL_BUTTON_CLASS} w-[22px]`}
+									>
+										<GoIssueOpened className="size-3.5" />
+									</PromptInputButton>
 								</GitHubIssueLinkCommand>
 							}
 							prTrigger={
@@ -365,11 +374,14 @@ export function PromptGroup({
 									onSelect={setLinkedPR}
 									projectId={projectId}
 									hostTarget={hostTarget}
+									tooltipLabel="Link pull request"
 								>
-									<LinkTrigger
-										label="Link pull request"
-										icon={<LuGitPullRequest className="size-3.5" />}
-									/>
+									<PromptInputButton
+										aria-label="Link pull request"
+										className={`${PILL_BUTTON_CLASS} w-[22px]`}
+									>
+										<LuGitPullRequest className="size-3.5" />
+									</PromptInputButton>
 								</PRLinkCommand>
 							}
 						/>

@@ -44,7 +44,6 @@ import {
 } from "react-icons/go";
 import { HiCheck, HiChevronUpDown } from "react-icons/hi2";
 import { LuFolderGit, LuFolderOpen, LuGitPullRequest } from "react-icons/lu";
-import { SiLinear } from "react-icons/si";
 import { AgentSelect } from "renderer/components/AgentSelect";
 import { LinkedIssuePill } from "renderer/components/Chat/ChatInterface/components/ChatInputFooter/components/LinkedIssuePill";
 import { useAgentLaunchPreferences } from "renderer/hooks/useAgentLaunchPreferences";
@@ -113,12 +112,10 @@ export function PromptGroup(props: PromptGroupProps) {
 
 function AttachmentButtons({
 	anchorRef,
-	onOpenIssueLink,
 	onOpenGitHubIssue,
 	onOpenPRLink,
 }: {
 	anchorRef: React.RefObject<HTMLDivElement | null>;
-	onOpenIssueLink: () => void;
 	onOpenGitHubIssue: () => void;
 	onOpenPRLink: () => void;
 }) {
@@ -136,17 +133,6 @@ function AttachmentButtons({
 					</PromptInputButton>
 				</TooltipTrigger>
 				<TooltipContent side="bottom">Add attachment</TooltipContent>
-			</Tooltip>
-			<Tooltip>
-				<TooltipTrigger asChild>
-					<PromptInputButton
-						className={`${PILL_BUTTON_CLASS} w-[22px]`}
-						onClick={onOpenIssueLink}
-					>
-						<SiLinear className="size-3.5" />
-					</PromptInputButton>
-				</TooltipTrigger>
-				<TooltipContent side="bottom">Link issue</TooltipContent>
 			</Tooltip>
 			<Tooltip>
 				<TooltipTrigger asChild>
@@ -589,7 +575,6 @@ function PromptGroupInner({
 			validAgents: ["none", ...selectableAgentIds],
 			agentsReady: agentPresetsQuery.isFetched,
 		});
-	const [_issueLinkOpen, setIssueLinkOpen] = useState(false);
 	const [gitHubIssueLinkOpen, setGitHubIssueLinkOpen] = useState(false);
 	const [prLinkOpen, setPRLinkOpen] = useState(false);
 	const plusMenuRef = useRef<HTMLDivElement>(null);
@@ -1132,21 +1117,6 @@ ${sanitizeText(truncatedBody)}`;
 		[closeModal, navigate],
 	);
 
-	const _addLinkedIssue = (
-		slug: string,
-		title: string,
-		taskId: string | undefined,
-		url?: string,
-	) => {
-		if (linkedIssues.some((issue) => issue.slug === slug)) return;
-		updateDraft({
-			linkedIssues: [
-				...linkedIssues,
-				{ slug, title, source: "internal", taskId, url },
-			],
-		});
-	};
-
 	const addLinkedGitHubIssue = (
 		issueNumber: number,
 		title: string,
@@ -1317,9 +1287,6 @@ ${sanitizeText(truncatedBody)}`;
 					<div className="flex items-center gap-2">
 						<AttachmentButtons
 							anchorRef={plusMenuRef}
-							onOpenIssueLink={() =>
-								requestAnimationFrame(() => setIssueLinkOpen(true))
-							}
 							onOpenGitHubIssue={() =>
 								requestAnimationFrame(() => setGitHubIssueLinkOpen(true))
 							}

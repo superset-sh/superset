@@ -7,6 +7,7 @@ import {
 	CommandList,
 } from "@superset/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useQuery } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { useState } from "react";
@@ -33,8 +34,8 @@ export interface SelectedIssue {
 }
 
 interface GitHubIssueLinkCommandProps {
-	/** Button element wrapped in PopoverTrigger — Radix handles toggle. */
 	children: ReactNode;
+	tooltipLabel: string;
 	onSelect: (issue: SelectedIssue) => void;
 	projectId: string | null;
 	hostTarget: WorkspaceHostTarget;
@@ -42,6 +43,7 @@ interface GitHubIssueLinkCommandProps {
 
 export function GitHubIssueLinkCommand({
 	children,
+	tooltipLabel,
 	onSelect,
 	projectId,
 	hostTarget,
@@ -108,7 +110,12 @@ export function GitHubIssueLinkCommand({
 				setOpen(next);
 			}}
 		>
-			<PopoverTrigger asChild>{children}</PopoverTrigger>
+			<Tooltip>
+				<PopoverTrigger asChild>
+					<TooltipTrigger asChild>{children}</TooltipTrigger>
+				</PopoverTrigger>
+				<TooltipContent side="bottom">{tooltipLabel}</TooltipContent>
+			</Tooltip>
 			<PopoverContent
 				className="w-80 p-0"
 				align="start"

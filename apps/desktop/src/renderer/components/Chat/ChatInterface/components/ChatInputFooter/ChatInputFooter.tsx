@@ -99,22 +99,11 @@ export function ChatInputFooter({
 		}
 	}, [pendingQuestion, textInput]);
 
-	const [_issueLinkOpen, setIssueLinkOpen] = useState(false);
 	const [linkedIssues, setLinkedIssues] = useState<LinkedIssue[]>([]);
 	const inputRootRef = useRef<HTMLDivElement>(null);
 	const errorMessage = getErrorMessage(error);
 	const focusShortcutText = useHotkeyDisplay("FOCUS_CHAT_INPUT").text;
 	const showFocusHint = focusShortcutText !== "Unassigned";
-
-	const _addLinkedIssue = useCallback(
-		(slug: string, title: string, taskId: string | undefined, url?: string) => {
-			setLinkedIssues((prev) => {
-				if (prev.some((issue) => issue.slug === slug)) return prev;
-				return [...prev, { slug, title, taskId, url }];
-			});
-		},
-		[],
-	);
 
 	const removeLinkedIssue = useCallback((slug: string) => {
 		setLinkedIssues((prev) => prev.filter((issue) => issue.slug !== slug));
@@ -175,10 +164,7 @@ export function ChatInputFooter({
 								maxFileSize={10 * 1024 * 1024}
 								globalDrop
 							>
-								<ChatShortcuts
-									isFocused={isFocused}
-									setIssueLinkOpen={setIssueLinkOpen}
-								/>
+								<ChatShortcuts isFocused={isFocused} />
 								<FileDropOverlay visible={dragType === "files"} />
 								<PromptInputAttachments>
 									{renderAttachment ??

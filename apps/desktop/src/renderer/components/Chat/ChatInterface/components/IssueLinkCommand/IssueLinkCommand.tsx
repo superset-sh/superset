@@ -7,6 +7,7 @@ import {
 	CommandList,
 } from "@superset/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useLiveQuery } from "@tanstack/react-db";
 import Fuse from "fuse.js";
 import type { ReactNode } from "react";
@@ -20,9 +21,8 @@ import { useCollections } from "renderer/routes/_authenticated/providers/Collect
 const MAX_RESULTS = 20;
 
 interface IssueLinkCommandProps {
-	/** Button element used as the popover trigger. Radix wraps it in
-	 * PopoverTrigger so click + keyboard toggle behave natively. */
 	children: ReactNode;
+	tooltipLabel: string;
 	onSelect: (
 		slug: string,
 		title: string,
@@ -33,12 +33,9 @@ interface IssueLinkCommandProps {
 
 export function IssueLinkCommand({
 	children,
+	tooltipLabel,
 	onSelect,
 }: IssueLinkCommandProps) {
-	// Radix's Popover can't be closed imperatively from inside its content, so
-	// close-on-select needs explicit state ownership. Canonical shadcn/cmdk
-	// pattern — it's not scaffolding, the primitive just doesn't expose an
-	// alternative.
 	const [open, setOpen] = useState(false);
 	const [searchQuery, setSearchQuery] = useState("");
 	const collections = useCollections();
@@ -130,7 +127,12 @@ export function IssueLinkCommand({
 				setOpen(next);
 			}}
 		>
-			<PopoverTrigger asChild>{children}</PopoverTrigger>
+			<Tooltip>
+				<PopoverTrigger asChild>
+					<TooltipTrigger asChild>{children}</TooltipTrigger>
+				</PopoverTrigger>
+				<TooltipContent side="bottom">{tooltipLabel}</TooltipContent>
+			</Tooltip>
 			<PopoverContent
 				className="w-80 p-0"
 				align="start"
