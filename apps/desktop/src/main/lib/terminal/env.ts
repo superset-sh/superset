@@ -215,12 +215,27 @@ function getFreshExecPaths(): FreshExecPaths {
 	// 2. Preview/dev after bundle: ../resources relative to __dirname
 	// 3. Dev source tree: ../../src/resources/shell-hooks/... (fallback
 	//    for the rare case where dev mode does not mirror resources)
-	const searchDirs: string[] = [];
+	// For each candidate directory, also probe the asar.unpacked twin —
+	// the hook is consumed by zsh as an external process, which sees the
+	// real filesystem only and cannot traverse Electron's asar-patched
+	// `fs`. Without this, `__dirname + '../resources'` resolves to the
+	// asar-interior path which `fs.existsSync` accepts inside main but
+	// which zsh then cannot `source` (production-only silent failure).
+	const expandAsarUnpacked = (dir: string): string[] => {
+		const asarInside = `${path.sep}app.asar${path.sep}`;
+		const asarUnpacked = `${path.sep}app.asar.unpacked${path.sep}`;
+		return dir.includes(asarInside)
+			? [dir.replace(asarInside, asarUnpacked), dir]
+			: [dir];
+	};
+	const rawSearchDirs: string[] = [];
 	if (process.resourcesPath) {
-		searchDirs.push(path.join(process.resourcesPath, "resources"));
+		rawSearchDirs.push(path.join(process.resourcesPath, "resources"));
 	}
-	searchDirs.push(path.join(mainDir, "..", "resources"));
-	searchDirs.push(path.join(mainDir, "..", "..", "src", "resources"));
+	rawSearchDirs.push(path.join(mainDir, "..", "resources"));
+	rawSearchDirs.push(path.join(mainDir, "..", "..", "src", "resources"));
+
+	const searchDirs = rawSearchDirs.flatMap(expandAsarUnpacked);
 
 	const hook = resolveFreshExecHookPath(searchDirs);
 	cachedFreshExecPaths = { bin, hook };

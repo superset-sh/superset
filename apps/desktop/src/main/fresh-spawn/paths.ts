@@ -19,11 +19,21 @@ import * as path from "node:path";
  * Resolve the fresh-exec.js binary path.
  *
  * Rollup emits fresh-exec.js into the same directory as index.js (which
- * is where __dirname of any main-process module points at runtime). When
- * the main bundle is packaged into app.asar, fresh-exec.js needs to be
- * asarUnpack'd so zsh can `source` / `exec` it — but the path resolution
- * stays the same because __dirname inside asar still points at the
- * unpacked copy for files listed in asarUnpack.
+ * is where __dirname of any main-process module points at runtime).
+ *
+ * Packaging wrinkle: when the main bundle is packaged into app.asar,
+ * fresh-exec.js is listed under `asarUnpack` so it physically lives at
+ * `.../app.asar.unpacked/dist/main/fresh-exec.js`. Electron patches
+ * `fs.existsSync` inside the main process to transparently read through
+ * app.asar, so the asar-interior path looks valid from here — but the
+ * zsh hook consumes this string via an **external** process (`[[ -x
+ * "$SUPERSET_FRESH_EXEC_BIN" ]]`), which sees the real filesystem only
+ * and fails on the asar-interior path. The feature would silently
+ * never activate in packaged builds.
+ *
+ * Probe order below: prefer the asar.unpacked twin if our candidate
+ * lives inside an app.asar path, then fall back to the candidate
+ * itself (dev mode + non-packaged test harnesses).
  *
  * @param mainDir - Directory containing fresh-exec.js, typically __dirname
  *   of the caller. Pass something like `path.join(__dirname, "fresh-spawn")`
@@ -31,11 +41,20 @@ import * as path from "node:path";
  */
 export function resolveFreshExecBinaryPath(mainDir: string): string | null {
 	const candidate = path.join(mainDir, "fresh-exec.js");
-	try {
-		return fs.existsSync(candidate) ? candidate : null;
-	} catch {
-		return null;
+	const asarInside = `${path.sep}app.asar${path.sep}`;
+	const asarUnpacked = `${path.sep}app.asar.unpacked${path.sep}`;
+	const probes = candidate.includes(asarInside)
+		? [candidate.replace(asarInside, asarUnpacked), candidate]
+		: [candidate];
+
+	for (const probe of probes) {
+		try {
+			if (fs.existsSync(probe)) return probe;
+		} catch {
+			// Probe failures are non-fatal; continue.
+		}
 	}
+	return null;
 }
 
 /**
