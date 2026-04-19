@@ -1,17 +1,18 @@
 import { rmSync } from "node:fs";
+import { resolve as resolvePath } from "node:path";
 import { parseGitHubRemote } from "@superset/shared/github-remote";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { projects, workspaces } from "../../../db/schema";
 import { protectedProcedure, router } from "../../index";
+import { createFromClone, createFromImportLocal } from "./handlers";
+import { persistLocalProject } from "./utils/persist-project";
 import {
-	createFromClone,
-	createFromImportLocal,
-	setupFromClone,
-	setupFromImport,
-} from "./handlers";
-import { resolveWithPrimaryRemote } from "./utils/resolve-repo";
+	cloneRepoInto,
+	resolveMatchingSlug,
+	resolveWithPrimaryRemote,
+} from "./utils/resolve-repo";
 
 export const projectRouter = router({
 	list: protectedProcedure.query(({ ctx }) => {
@@ -89,11 +90,6 @@ export const projectRouter = router({
 		.input(
 			z.object({
 				projectId: z.string().uuid(),
-				// Required when a host-service.projects row already exists for this
-				// projectId and we'd be re-pointing `repoPath`. Re-pointing can
-				// invalidate existing workspace rows under the project; the client
-				// confirms it has explained that to the user.
-				acknowledgeWorkspaceInvalidation: z.boolean().optional(),
 				mode: z.discriminatedUnion("kind", [
 					z.object({
 						kind: z.literal("clone"),
@@ -108,17 +104,10 @@ export const projectRouter = router({
 		)
 		.mutation(async ({ ctx, input }) => {
 			const existing = ctx.db
-				.select({ id: projects.id })
+				.select({ id: projects.id, repoPath: projects.repoPath })
 				.from(projects)
 				.where(eq(projects.id, input.projectId))
 				.get();
-			if (existing && !input.acknowledgeWorkspaceInvalidation) {
-				throw new TRPCError({
-					code: "CONFLICT",
-					message:
-						"Project is already set up on this host. Re-pointing the path can invalidate existing workspaces — call again with acknowledgeWorkspaceInvalidation: true to proceed.",
-				});
-			}
 
 			const cloudProject = await ctx.api.v2Project.get.query({
 				organizationId: ctx.organizationId,
@@ -137,18 +126,45 @@ export const projectRouter = router({
 					message: `Could not parse GitHub remote from ${cloudProject.repoCloneUrl}`,
 				});
 			}
+			const expectedSlug = `${expectedParsed.owner}/${expectedParsed.name}`;
 
-			const setup = {
-				ctx,
-				projectId: input.projectId,
-				cloudRepoCloneUrl: cloudProject.repoCloneUrl,
-				expectedSlug: `${expectedParsed.owner}/${expectedParsed.name}`,
+			// v1 never re-points an existing project. Same-path setup is a
+			// no-op; different-path throws and the user must `project.remove`
+			// first if they genuinely want to move.
+			const rejectIfRepoint = (targetPath: string) => {
+				if (!existing) return;
+				if (existing.repoPath === targetPath) return;
+				throw new TRPCError({
+					code: "CONFLICT",
+					message: `Project is already set up on this device at ${existing.repoPath}. Remove it first to re-import at a different location.`,
+				});
 			};
+
 			switch (input.mode.kind) {
-				case "clone":
-					return setupFromClone(setup, { parentDir: input.mode.parentDir });
-				case "import":
-					return setupFromImport(setup, { repoPath: input.mode.repoPath });
+				case "clone": {
+					const predictedPath = resolvePath(
+						input.mode.parentDir,
+						expectedParsed.name,
+					);
+					rejectIfRepoint(predictedPath);
+					if (existing) return { repoPath: existing.repoPath };
+					const resolved = await cloneRepoInto(
+						cloudProject.repoCloneUrl,
+						input.mode.parentDir,
+					);
+					persistLocalProject(ctx, input.projectId, resolved);
+					return { repoPath: resolved.repoPath };
+				}
+				case "import": {
+					const resolved = await resolveMatchingSlug(
+						input.mode.repoPath,
+						expectedSlug,
+					);
+					rejectIfRepoint(resolved.repoPath);
+					if (existing) return { repoPath: existing.repoPath };
+					persistLocalProject(ctx, input.projectId, resolved);
+					return { repoPath: resolved.repoPath };
+				}
 			}
 		}),
 

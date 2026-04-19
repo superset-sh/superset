@@ -44,7 +44,7 @@ Two axes, one per data source:
 | 2 | ✓ | ✓ | Backed here | — |
 | 3 | ✗ | — | Brand new | `project.create` |
 
-Stale `repoPath` on disk fails at action time; the failure opens `project.setup` with `acknowledgeWorkspaceInvalidation: true`.
+Stale `repoPath` fails at action time and surfaces as a toast. v1 has no automated recovery — user removes + re-imports if they want to fix it.
 
 ---
 
@@ -87,19 +87,20 @@ Phase 1 ships `clone` and `importLocal` only; `empty` and `template` throw `not_
 
 ### `project.setup`
 
-User-facing intent: **"import or fix."** Cell-1 → cell-2 (first-time setup) or cell-2 → cell-2 (repair).
+User-facing intent: **"import."** Cell-1 → cell-2 (first-time setup).
 
 ```ts
 project.setup({
   projectId: string,
-  acknowledgeWorkspaceInvalidation?: boolean,   // required when a projects row already exists
   mode:
     | { kind: "clone";  parentDir: string }
     | { kind: "import"; repoPath: string }
 }) → { repoPath: string }
 ```
 
-`acknowledgeWorkspaceInvalidation` discriminates first-time from re-point.
+**No re-pointing in v1.** If a `host-service.projects` row already exists for `projectId`:
+- Same resolved path → no-op success (idempotent).
+- Different path → `CONFLICT`. Caller must `project.remove` first to re-import elsewhere.
 
 ### `project.list`
 
@@ -176,7 +177,7 @@ No Available section. No "+ New project" or "Import folder" CTAs — those live 
 5. Client branches on `candidates.length`:
    - **0** → "No match — create as new project" (pivots to `project.create importLocal`).
    - **1, not yet set up here** → auto-advance to `project.setup({ projectId, mode: { kind: "import", repoPath } })`.
-   - **1, already set up here** → confirm re-point (destructive; `acknowledgeWorkspaceInvalidation`).
+   - **1, already set up here at a different path** → surface the `CONFLICT` error; user must `project.remove` first to re-import.
    - **>1** → picker; user picks; then `project.setup`.
 
 Candidate list is scoped to the user's accessible orgs — not global.
@@ -209,7 +210,7 @@ Next git op or `workspace.create` fails with ENOENT. Handler surfaces the failur
 | --- | --- | --- |
 | cell 3 → cell 2 | `project.create` | Sidebar `+` → New project |
 | cell 1 → cell 2 | `project.setup` | Folder-first import (non-conflict) |
-| cell 2 → cell 2 (repair) | `project.setup` (`acknowledgeWorkspaceInvalidation: true`) | ENOENT error path; folder-first re-point |
+| cell 2 → cell 2 (re-point) | _deferred_ | — (user removes + re-imports) |
 
 ---
 

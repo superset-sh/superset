@@ -2,11 +2,7 @@ import { rmSync } from "node:fs";
 import { TRPCError } from "@trpc/server";
 import type { HostServiceContext } from "../../../types";
 import { persistLocalProject } from "./utils/persist-project";
-import {
-	cloneRepoInto,
-	resolveMatchingSlug,
-	resolveWithPrimaryRemote,
-} from "./utils/resolve-repo";
+import { cloneRepoInto, resolveWithPrimaryRemote } from "./utils/resolve-repo";
 
 function slugifyProjectName(name: string): string {
 	const slug = name
@@ -83,45 +79,4 @@ export async function createFromImportLocal(
 	});
 	persistLocalProject(ctx, cloudProject.id, resolved);
 	return { projectId: cloudProject.id, repoPath: resolved.repoPath };
-}
-
-// ============================================================================
-// project.setup
-// ============================================================================
-
-interface SetupContext {
-	ctx: HostServiceContext;
-	projectId: string;
-	cloudRepoCloneUrl: string;
-	expectedSlug: string;
-}
-
-interface SetupResult {
-	repoPath: string;
-}
-
-/**
- * Setup flow — clone mode. Clone the cloud's authoritative URL into the
- * chosen parent directory.
- */
-export async function setupFromClone(
-	setup: SetupContext,
-	args: { parentDir: string },
-): Promise<SetupResult> {
-	const resolved = await cloneRepoInto(setup.cloudRepoCloneUrl, args.parentDir);
-	persistLocalProject(setup.ctx, setup.projectId, resolved);
-	return { repoPath: resolved.repoPath };
-}
-
-/**
- * Setup flow — import mode. Point at an existing on-disk repo and verify
- * one of its remotes matches the cloud's authoritative slug.
- */
-export async function setupFromImport(
-	setup: SetupContext,
-	args: { repoPath: string },
-): Promise<SetupResult> {
-	const resolved = await resolveMatchingSlug(args.repoPath, setup.expectedSlug);
-	persistLocalProject(setup.ctx, setup.projectId, resolved);
-	return { repoPath: resolved.repoPath };
 }

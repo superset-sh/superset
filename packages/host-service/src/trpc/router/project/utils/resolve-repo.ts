@@ -1,4 +1,4 @@
-import { existsSync, rmSync, statSync } from "node:fs";
+import { existsSync, mkdirSync, rmSync, statSync } from "node:fs";
 import { join, resolve as resolvePath } from "node:path";
 import { parseGitHubRemote } from "@superset/shared/github-remote";
 import { TRPCError } from "@trpc/server";
@@ -135,19 +135,33 @@ export async function cloneRepoInto(
 	validateDirectoryPath(resolvedParentDir, "Parent directory");
 
 	const targetPath = join(resolvedParentDir, parsedUrl.name);
-	if (existsSync(targetPath)) {
+
+	// Atomic claim: mkdirSync without `recursive` throws EEXIST when the
+	// path is already present, which avoids the TOCTOU window between an
+	// existsSync check and the clone call. If clone fails afterwards we
+	// know we created the dir and can rmSync it without risk of deleting
+	// someone else's directory.
+	try {
+		mkdirSync(targetPath);
+	} catch (err) {
+		if ((err as NodeJS.ErrnoException).code === "EEXIST") {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: `Directory already exists: ${targetPath}`,
+			});
+		}
 		throw new TRPCError({
 			code: "BAD_REQUEST",
-			message: `Directory already exists: ${targetPath}`,
+			message: `Could not create target directory: ${
+				err instanceof Error ? err.message : String(err)
+			}`,
 		});
 	}
 
 	try {
 		await simpleGit().clone(repoCloneUrl, targetPath);
 	} catch (err) {
-		if (existsSync(targetPath)) {
-			rmSync(targetPath, { recursive: true, force: true });
-		}
+		rmSync(targetPath, { recursive: true, force: true });
 		throw new TRPCError({
 			code: "BAD_REQUEST",
 			message: `Failed to clone repository: ${

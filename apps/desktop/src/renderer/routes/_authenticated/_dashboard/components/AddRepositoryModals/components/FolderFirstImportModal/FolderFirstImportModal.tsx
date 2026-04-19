@@ -20,7 +20,6 @@ interface FolderFirstImportModalProps {
 	onCancel: UseFolderFirstImportResult["cancel"];
 	onConfirmCreateAsNew: UseFolderFirstImportResult["confirmCreateAsNew"];
 	onConfirmPickCandidate: UseFolderFirstImportResult["confirmPickCandidate"];
-	onConfirmRepoint: UseFolderFirstImportResult["confirmRepoint"];
 }
 
 export function FolderFirstImportModal({
@@ -28,7 +27,6 @@ export function FolderFirstImportModal({
 	onCancel,
 	onConfirmCreateAsNew,
 	onConfirmPickCandidate,
-	onConfirmRepoint,
 }: FolderFirstImportModalProps) {
 	const open = state.kind !== "idle";
 	return (
@@ -57,70 +55,8 @@ export function FolderFirstImportModal({
 						onConfirm={onConfirmPickCandidate}
 					/>
 				)}
-				{state.kind === "confirm-repoint" && (
-					<ConfirmRepointContent
-						repoPath={state.repoPath}
-						projectName={state.projectName}
-						working={state.working}
-						onCancel={onCancel}
-						onConfirm={onConfirmRepoint}
-					/>
-				)}
 			</DialogContent>
 		</Dialog>
-	);
-}
-
-interface ConfirmRepointContentProps {
-	repoPath: string;
-	projectName: string;
-	working: boolean;
-	onCancel: () => void;
-	onConfirm: () => Promise<void>;
-}
-
-function ConfirmRepointContent({
-	repoPath,
-	projectName,
-	working,
-	onCancel,
-	onConfirm,
-}: ConfirmRepointContentProps) {
-	return (
-		<>
-			<DialogHeader>
-				<DialogTitle>Re-point {projectName} to this folder?</DialogTitle>
-				<DialogDescription>
-					This project is already set up on this device at a different path.
-					Re-pointing it here will invalidate existing workspaces under it —
-					their worktrees will no longer open until each workspace is
-					re-created. Continue?
-				</DialogDescription>
-			</DialogHeader>
-			<div className="space-y-1 py-4">
-				<code className="block truncate rounded bg-muted px-2 py-1 text-xs">
-					{repoPath}
-				</code>
-			</div>
-			<DialogFooter>
-				<Button
-					type="button"
-					variant="outline"
-					onClick={onCancel}
-					disabled={working}
-				>
-					Cancel
-				</Button>
-				<Button
-					type="button"
-					variant="destructive"
-					onClick={() => void onConfirm()}
-					disabled={working}
-				>
-					{working ? "Re-pointing…" : "Re-point anyway"}
-				</Button>
-			</DialogFooter>
-		</>
 	);
 }
 

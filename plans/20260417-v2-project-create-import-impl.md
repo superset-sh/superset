@@ -19,7 +19,7 @@ No new tables. No new Electric collections.
 - [x] `project.list` — `Array<{ id, repoPath }>`.
 - [x] `project.findByPath({ repoPath })` — validates git root, reads remote, forwards to cloud.
 - [x] `project.create` — discriminated-union mode; Phase 1 ships `clone` + `importLocal`, others throw `not_implemented`. Clone-then-cloud ordering with rollback on cloud failure.
-- [x] `project.setup` — discriminated-union mode (`clone` / `import`); `acknowledgeWorkspaceInvalidation` param gates re-point.
+- [x] `project.setup` — discriminated-union mode (`clone` / `import`). Same-path is an idempotent no-op; different-path throws `CONFLICT` (v1 has no re-point escape hatch).
 - [x] `project.remove` — deletes local worktrees + project row + repo directory.
 
 ### Desktop renderer (apps/desktop)
@@ -42,7 +42,7 @@ No new tables. No new Electric collections.
 - "New project" via sidebar dropdown creates the cloud row, clones locally, pins, and shows the project in the sidebar with no workspaces.
 - "Import existing folder" against a repo that matches a cloud project sets it up and pins it; a non-matching folder offers create-as-new.
 - A teammate's workspace on a remote device shows up in the workspaces tab; clicking it lands on the stub.
-- Deleting the repo directory out of band is caught on the next git/workspace op and surfaces the repair modal.
+- Deleting the repo directory out of band surfaces a toast on the next git/workspace op. Recovery UX deferred.
 
 ---
 

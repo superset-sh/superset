@@ -1,5 +1,4 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { TRPCClientError } from "@trpc/client";
 import { useCallback, useState } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
@@ -14,12 +13,10 @@ export interface FolderImportCandidate {
 	organizationName: string;
 }
 
-// idle             — no modal.
-// no-match         — picked folder has no cloud project; user names it.
-// pick             — multiple candidates; user picks which cloud project.
-// confirm-repoint  — project already set up on this host at another path;
-//                    re-pointing invalidates existing workspaces.
-// (1-match-no-conflict has no state — setup runs immediately.)
+// idle      — no modal.
+// no-match  — picked folder has no cloud project; user names it.
+// pick      — multiple candidates; user picks which cloud project.
+// (1-match has no state — setup runs immediately.)
 export type FolderFirstImportState =
 	| { kind: "idle" }
 	| { kind: "no-match"; repoPath: string; working: boolean }
@@ -27,13 +24,6 @@ export type FolderFirstImportState =
 			kind: "pick";
 			repoPath: string;
 			candidates: FolderImportCandidate[];
-			working: boolean;
-	  }
-	| {
-			kind: "confirm-repoint";
-			repoPath: string;
-			projectId: string;
-			projectName: string;
 			working: boolean;
 	  };
 
@@ -44,20 +34,11 @@ export interface UseFolderFirstImportResult {
 	cancel: () => void;
 	confirmCreateAsNew: (input: { name: string }) => Promise<void>;
 	confirmPickCandidate: (candidateId: string) => Promise<void>;
-	confirmRepoint: () => Promise<void>;
 }
 
 type SetupInvokeResult =
 	| { status: "ok"; projectId: string; repoPath: string }
-	| { status: "conflict" }
 	| { status: "error"; message: string };
-
-function isConflictError(err: unknown): boolean {
-	return (
-		err instanceof TRPCClientError &&
-		(err.data as { code?: string } | undefined)?.code === "CONFLICT"
-	);
-}
 
 export function useFolderFirstImport(options?: {
 	onSuccess?: (result: { projectId: string; repoPath: string }) => void;
@@ -97,11 +78,7 @@ export function useFolderFirstImport(options?: {
 	);
 
 	const runSetup = useCallback(
-		async (
-			projectId: string,
-			repoPath: string,
-			opts: { acknowledgeWorkspaceInvalidation?: boolean } = {},
-		): Promise<SetupInvokeResult> => {
+		async (projectId: string, repoPath: string): Promise<SetupInvokeResult> => {
 			if (!activeHostUrl) {
 				return { status: "error", message: "Host service not available" };
 			}
@@ -109,13 +86,10 @@ export function useFolderFirstImport(options?: {
 			try {
 				const result = await client.project.setup.mutate({
 					projectId,
-					acknowledgeWorkspaceInvalidation:
-						opts.acknowledgeWorkspaceInvalidation,
 					mode: { kind: "import", repoPath },
 				});
 				return { status: "ok", projectId, repoPath: result.repoPath };
 			} catch (err) {
-				if (isConflictError(err)) return { status: "conflict" };
 				const message = err instanceof Error ? err.message : String(err);
 				return { status: "error", message };
 			}
@@ -157,19 +131,9 @@ export function useFolderFirstImport(options?: {
 		}
 		const [only, ...rest] = candidates;
 		if (only && rest.length === 0) {
-			// Auto-advance: no ambiguity, no user input needed — unless the
-			// project is already set up on this host at a different path.
 			const result = await runSetup(only.id, repoPath);
 			if (result.status === "ok") {
 				reportSuccess(result);
-			} else if (result.status === "conflict") {
-				setState({
-					kind: "confirm-repoint",
-					repoPath,
-					projectId: only.id,
-					projectName: only.name,
-					working: false,
-				});
 			} else {
 				reportError(result.message);
 			}
@@ -216,19 +180,10 @@ export function useFolderFirstImport(options?: {
 		async (candidateId: string) => {
 			if (state.kind !== "pick") return;
 			const { repoPath, candidates } = state;
-			const candidate = candidates.find((c) => c.id === candidateId);
 			setState({ kind: "pick", repoPath, candidates, working: true });
 			const result = await runSetup(candidateId, repoPath);
 			if (result.status === "ok") {
 				reportSuccess(result);
-			} else if (result.status === "conflict") {
-				setState({
-					kind: "confirm-repoint",
-					repoPath,
-					projectId: candidateId,
-					projectName: candidate?.name ?? "this project",
-					working: false,
-				});
 			} else {
 				reportError(result.message);
 				setState({ kind: "pick", repoPath, candidates, working: false });
@@ -237,43 +192,11 @@ export function useFolderFirstImport(options?: {
 		[reportError, reportSuccess, runSetup, state],
 	);
 
-	const confirmRepoint = useCallback(async () => {
-		if (state.kind !== "confirm-repoint") return;
-		const { repoPath, projectId, projectName } = state;
-		setState({
-			kind: "confirm-repoint",
-			repoPath,
-			projectId,
-			projectName,
-			working: true,
-		});
-		const result = await runSetup(projectId, repoPath, {
-			acknowledgeWorkspaceInvalidation: true,
-		});
-		if (result.status === "ok") {
-			reportSuccess(result);
-		} else {
-			const message =
-				result.status === "conflict"
-					? "Unexpected conflict after acknowledging re-point"
-					: result.message;
-			reportError(message);
-			setState({
-				kind: "confirm-repoint",
-				repoPath,
-				projectId,
-				projectName,
-				working: false,
-			});
-		}
-	}, [reportError, reportSuccess, runSetup, state]);
-
 	return {
 		state,
 		start,
 		cancel,
 		confirmCreateAsNew,
 		confirmPickCandidate,
-		confirmRepoint,
 	};
 }
