@@ -7,8 +7,10 @@ import {
 	CommandList,
 } from "@superset/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useState } from "react";
 import { HiCheck, HiChevronUpDown } from "react-icons/hi2";
+import { LuTriangleAlert } from "react-icons/lu";
 import { ProjectThumbnail } from "renderer/routes/_authenticated/components/ProjectThumbnail";
 import type { ProjectOption } from "../../types";
 import { FormPickerTrigger } from "../FormPickerTrigger";
@@ -62,9 +64,17 @@ export function ProjectPickerPill({
 										projectName={project.name}
 										githubOwner={project.githubOwner}
 									/>
-									{project.name}
+									<span className="flex-1 truncate">{project.name}</span>
+									{project.needsSetup === true && (
+										<Tooltip>
+											<TooltipTrigger asChild>
+												<LuTriangleAlert className="size-3.5 shrink-0 text-amber-500" />
+											</TooltipTrigger>
+											<TooltipContent>Not set up on this host</TooltipContent>
+										</Tooltip>
+									)}
 									{project.id === selectedProject?.id && (
-										<HiCheck className="ml-auto size-4" />
+										<HiCheck className="size-4 shrink-0" />
 									)}
 								</CommandItem>
 							))}

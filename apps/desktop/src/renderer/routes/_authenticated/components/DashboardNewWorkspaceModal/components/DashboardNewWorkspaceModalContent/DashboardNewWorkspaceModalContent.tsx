@@ -7,6 +7,7 @@ import { useCollections } from "renderer/routes/_authenticated/providers/Collect
 import { MOCK_ORG_ID } from "shared/constants";
 import { useDashboardNewWorkspaceDraft } from "../../DashboardNewWorkspaceDraftContext";
 import { PromptGroup } from "../DashboardNewWorkspaceForm/PromptGroup";
+import { useSelectedHostProjectIds } from "./hooks/useSelectedHostProjectIds";
 
 interface DashboardNewWorkspaceModalContentProps {
 	isOpen: boolean;
@@ -52,6 +53,8 @@ export function DashboardNewWorkspaceModalContent({
 		[collections],
 	);
 
+	const setUpProjectIds = useSelectedHostProjectIds(draft.hostTarget);
+
 	const recentProjects = useMemo(() => {
 		const repoById = new Map(
 			(githubRepositories ?? []).map((repo) => [repo.id, repo]),
@@ -65,9 +68,11 @@ export function DashboardNewWorkspaceModalContent({
 				name: project.name,
 				githubOwner: repo?.owner ?? null,
 				githubRepoName: repo?.name ?? null,
+				needsSetup:
+					setUpProjectIds === null ? null : !setUpProjectIds.has(project.id),
 			};
 		});
-	}, [githubRepositories, v2Projects]);
+	}, [githubRepositories, setUpProjectIds, v2Projects]);
 
 	const areProjectsReady = v2Projects !== undefined;
 	const appliedPreSelectionRef = useRef<string | null>(null);

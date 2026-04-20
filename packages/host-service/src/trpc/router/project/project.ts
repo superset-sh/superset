@@ -15,6 +15,10 @@ import {
 } from "./utils/resolve-repo";
 
 export const projectRouter = router({
+	list: protectedProcedure.query(({ ctx }) => {
+		return ctx.db.select({ id: projects.id }).from(projects).all();
+	}),
+
 	findByPath: protectedProcedure
 		.input(z.object({ repoPath: z.string().min(1) }))
 		.query(async ({ ctx, input }) => {

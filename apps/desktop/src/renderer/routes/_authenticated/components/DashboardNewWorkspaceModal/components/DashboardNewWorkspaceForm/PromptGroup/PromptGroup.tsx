@@ -401,6 +401,11 @@ export function PromptGroup({
 					</AnimatePresence>
 				</div>
 				<div className="flex items-center gap-1.5">
+					{selectedProject?.needsSetup === true && (
+						<span className="text-[11px] text-amber-500">
+							Project needs to be set up
+						</span>
+					)}
 					<span className="text-[11px] text-muted-foreground/50">
 						{modKey}↵
 					</span>
