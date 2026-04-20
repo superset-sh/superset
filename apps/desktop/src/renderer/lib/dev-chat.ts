@@ -4,6 +4,11 @@ import { MOCK_ORG_ID } from "shared/constants";
 
 export const DEV_CHAT_MODELS: ModelOption[] = [
 	{
+		id: "anthropic/claude-opus-4-7",
+		name: "Opus 4.7",
+		provider: "Anthropic",
+	},
+	{
 		id: "anthropic/claude-opus-4-6",
 		name: "Opus 4.6",
 		provider: "Anthropic",
