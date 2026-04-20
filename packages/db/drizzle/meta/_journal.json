@@ -239,6 +239,13 @@
       "when": 1775788950626,
       "tag": "0033_add_oauth_refresh_token_auth_time",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1776647783826,
+      "tag": "0034_v2_projects_decouple_github_install_add_clone_url",
+      "breakpoints": true
     }
   ]
 }

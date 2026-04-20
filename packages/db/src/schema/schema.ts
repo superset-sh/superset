@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import {
 	boolean,
 	index,
@@ -386,9 +387,11 @@ export const v2Projects = pgTable(
 			.references(() => organizations.id, { onDelete: "cascade" }),
 		name: text().notNull(),
 		slug: text().notNull(),
-		githubRepositoryId: uuid("github_repository_id")
-			.notNull()
-			.references(() => githubRepositories.id, { onDelete: "restrict" }),
+		repoCloneUrl: text("repo_clone_url"),
+		githubRepositoryId: uuid("github_repository_id").references(
+			() => githubRepositories.id,
+			{ onDelete: "set null" },
+		),
 		createdAt: timestamp("created_at", { withTimezone: true })
 			.notNull()
 			.defaultNow(),
@@ -400,6 +403,12 @@ export const v2Projects = pgTable(
 	(table) => [
 		index("v2_projects_organization_id_idx").on(table.organizationId),
 		unique("v2_projects_org_slug_unique").on(table.organizationId, table.slug),
+		// One project per repo URL per org. NULLs don't collide (PG default)
+		// so empty-mode projects without a remote can still be created.
+		uniqueIndex("v2_projects_org_repo_clone_url_unique").on(
+			table.organizationId,
+			sql`lower(${table.repoCloneUrl})`,
+		),
 	],
 );
 

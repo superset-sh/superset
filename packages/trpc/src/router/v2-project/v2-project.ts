@@ -109,10 +109,7 @@ export const v2ProjectRouter = {
 					organizationId: input.organizationId,
 				},
 			);
-			const repoCloneUrl = row.githubRepository
-				? `https://github.com/${row.githubRepository.fullName}.git`
-				: null;
-			return { ...row, repoCloneUrl };
+			return row;
 		}),
 
 	findByGitHubRemote: jwtProcedure
@@ -131,11 +128,9 @@ export const v2ProjectRouter = {
 			}
 			const parsed = parseGitHubRemote(input.repoCloneUrl);
 			if (!parsed) return { candidates: [] };
-			// GitHub slugs are case-insensitive (github.com/Foo/Bar and
-			// github.com/foo/bar point to the same repo). Local git remotes
-			// preserve whatever casing was typed at clone time. Compare in lower
-			// case so we still match.
-			const fullNameLower = `${parsed.owner}/${parsed.name}`.toLowerCase();
+			// GitHub slugs are case-insensitive; parseGitHubRemote returns a
+			// canonical https URL. Compare lower-cased on both sides.
+			const canonicalUrl = parsed.url.toLowerCase();
 
 			const rows = await dbWs
 				.select({
@@ -147,16 +142,12 @@ export const v2ProjectRouter = {
 				})
 				.from(v2Projects)
 				.innerJoin(
-					githubRepositories,
-					eq(v2Projects.githubRepositoryId, githubRepositories.id),
-				)
-				.innerJoin(
 					organizations,
 					eq(v2Projects.organizationId, organizations.id),
 				)
 				.where(
 					and(
-						eq(sql`lower(${githubRepositories.fullName})`, fullNameLower),
+						eq(sql`lower(${v2Projects.repoCloneUrl})`, canonicalUrl),
 						eq(v2Projects.organizationId, input.organizationId),
 					),
 				);
@@ -170,7 +161,10 @@ export const v2ProjectRouter = {
 				organizationId: z.string().uuid(),
 				name: z.string().min(1),
 				slug: z.string().min(1),
-				repoCloneUrl: z.string().min(1),
+				// Optional — empty-mode and local-only imports have no
+				// remote yet. When provided we store the canonical https
+				// URL and try to link a matching github_repositories row.
+				repoCloneUrl: z.string().min(1).optional(),
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
@@ -180,40 +174,65 @@ export const v2ProjectRouter = {
 					message: "Not a member of this organization",
 				});
 			}
-			const parsed = parseGitHubRemote(input.repoCloneUrl);
-			if (!parsed) {
-				throw new TRPCError({
-					code: "BAD_REQUEST",
-					message: "Could not parse GitHub remote URL",
-				});
-			}
-			const fullName = `${parsed.owner}/${parsed.name}`;
-			const fullNameLower = fullName.toLowerCase();
 
-			// Case-insensitive match — see findByGitHubRemote note.
-			const repo = await dbWs.query.githubRepositories.findFirst({
-				columns: { id: true },
-				where: and(
-					eq(sql`lower(${githubRepositories.fullName})`, fullNameLower),
-					eq(githubRepositories.organizationId, input.organizationId),
-				),
-			});
-			if (!repo) {
-				throw new TRPCError({
-					code: "BAD_REQUEST",
-					message: `GitHub repository ${fullName} is not installed in this organization`,
+			let canonicalUrl: string | null = null;
+			let linkedRepoId: string | null = null;
+			if (input.repoCloneUrl) {
+				const parsed = parseGitHubRemote(input.repoCloneUrl);
+				if (!parsed) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: "Could not parse GitHub remote URL",
+					});
+				}
+				canonicalUrl = parsed.url;
+				const fullNameLower = `${parsed.owner}/${parsed.name}`.toLowerCase();
+				const repo = await dbWs.query.githubRepositories.findFirst({
+					columns: { id: true },
+					where: and(
+						eq(sql`lower(${githubRepositories.fullName})`, fullNameLower),
+						eq(githubRepositories.organizationId, input.organizationId),
+					),
 				});
+				linkedRepoId = repo?.id ?? null;
 			}
 
-			const [project] = await dbWs
-				.insert(v2Projects)
-				.values({
-					organizationId: input.organizationId,
-					name: input.name,
-					slug: input.slug,
-					githubRepositoryId: repo.id,
-				})
-				.returning();
+			let project: typeof v2Projects.$inferSelect | undefined;
+			try {
+				[project] = await dbWs
+					.insert(v2Projects)
+					.values({
+						organizationId: input.organizationId,
+						name: input.name,
+						slug: input.slug,
+						repoCloneUrl: canonicalUrl,
+						githubRepositoryId: linkedRepoId,
+					})
+					.returning();
+			} catch (err) {
+				// Unique violations surface as BAD_REQUEST with a hint about
+				// which constraint fired. The index on (organizationId,
+				// lower(repo_clone_url)) prevents duplicate repo imports per
+				// org; the (organizationId, slug) constraint catches name
+				// collisions.
+				if (
+					err instanceof Error &&
+					"code" in err &&
+					(err as { code?: string }).code === "23505"
+				) {
+					const constraint = (err as { constraint?: string }).constraint;
+					throw new TRPCError({
+						code: "CONFLICT",
+						message:
+							constraint === "v2_projects_org_repo_clone_url_unique"
+								? "A project with this repository URL already exists in this organization"
+								: constraint === "v2_projects_org_slug_unique"
+									? "A project with this slug already exists in this organization"
+									: "Project already exists",
+					});
+				}
+				throw err;
+			}
 			if (!project) {
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
