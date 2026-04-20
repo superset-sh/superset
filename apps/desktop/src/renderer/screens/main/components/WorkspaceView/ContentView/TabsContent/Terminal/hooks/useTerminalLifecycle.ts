@@ -22,6 +22,7 @@ import {
 	setupCopyHandler,
 	setupFocusListener,
 	setupKeyboardHandler,
+	setupPasteHandler,
 } from "../helpers";
 import { isPaneDestroyed } from "../pane-guards";
 import { coldRestoreState, pendingDetaches } from "../state";
@@ -788,6 +789,7 @@ export function useTerminalLifecycle({
 		const cleanupFocus = setupFocusListener(xterm, () =>
 			handleTerminalFocusRef.current(),
 		);
+		const cleanupPaste = setupPasteHandler(xterm);
 		const cleanupCopy = setupCopyHandler(xterm);
 
 		const isPaneDestroyedInStore = () =>
@@ -819,6 +821,7 @@ export function useTerminalLifecycle({
 			cleanupKeyboard();
 			cleanupClickToMove();
 			cleanupFocus?.();
+			cleanupPaste();
 			cleanupCopy();
 			unregisterClearCallbackRef.current(paneId);
 			unregisterScrollToBottomCallbackRef.current(paneId);
