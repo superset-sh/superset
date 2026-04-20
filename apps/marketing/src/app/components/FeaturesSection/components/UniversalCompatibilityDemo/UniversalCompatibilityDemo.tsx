@@ -15,6 +15,10 @@ const AGENTS = [
 	{ name: "Kiro", icon: "/app-icons/kiro.svg", size: 18 },
 ];
 
+/**
+ * Marketing demo that animates a mock Superset terminal sidebar listing the
+ * built-in coding agents to showcase universal CLI-agent compatibility.
+ */
 export function UniversalCompatibilityDemo() {
 	const ref = useRef<HTMLDivElement>(null);
 	const isInView = useInView(ref, { once: true, margin: "-100px" });

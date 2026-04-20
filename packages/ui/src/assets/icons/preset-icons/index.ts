@@ -35,6 +35,11 @@ export const PRESET_ICONS: Record<string, PresetIconSet> = {
 	kiro: { light: kiroIcon, dark: kiroIcon },
 };
 
+/**
+ * Resolve the icon URL registered for a preset name, picking the dark or light
+ * variant based on the current theme. Names are matched case-insensitively and
+ * trimmed; returns `undefined` when no matching preset is registered.
+ */
 export function getPresetIcon(
 	presetName: string,
 	isDark: boolean,

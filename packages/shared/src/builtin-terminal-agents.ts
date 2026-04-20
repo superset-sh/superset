@@ -25,12 +25,22 @@ type AgentIdTuple<T extends readonly { id: string }[]> = {
 	[K in keyof T]: T[K] extends { id: infer TId } ? TId : never;
 };
 
+/**
+ * Extract a readonly tuple of agent IDs from a const array of agents,
+ * preserving each literal `id` type so downstream consumers retain a
+ * discriminated union rather than a widened `string[]`.
+ */
 function mapAgentIds<const T extends readonly { id: string }[]>(
 	agents: T,
 ): AgentIdTuple<T> {
 	return agents.map((agent) => agent.id) as AgentIdTuple<T>;
 }
 
+/**
+ * Build a record keyed by each agent's literal `id`, where each value is
+ * derived from the corresponding agent via `getValue`. Useful for generating
+ * id-indexed lookup maps (labels, commands, descriptions, etc.).
+ */
 function createAgentRecord<const T extends readonly { id: string }[], TValue>(
 	agents: T,
 	getValue: (agent: T[number]) => TValue,
@@ -40,6 +50,12 @@ function createAgentRecord<const T extends readonly { id: string }[], TValue>(
 	) as Record<T[number]["id"], TValue>;
 }
 
+/**
+ * Construct a built-in terminal agent definition from a manifest, filling in
+ * the fixed `builtin` source, `terminal` kind, enabled state, and default task
+ * prompt template while preserving the manifest's literal `id` in the return
+ * type for type-safe lookups.
+ */
 function createBuiltinTerminalAgent<
 	const T extends BuiltinTerminalAgentManifest,
 >(manifest: T): BuiltinTerminalAgentDefinition & { id: T["id"] } {
