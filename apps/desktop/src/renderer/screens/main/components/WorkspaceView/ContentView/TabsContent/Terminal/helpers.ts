@@ -238,31 +238,6 @@ export interface KeyboardHandlerOptions {
 }
 
 /**
- * Forward paste events on xterm's textarea to `xterm.paste()`.
- *
- * xterm.js's built-in paste handling via the textarea should work, but in some
- * Electron environments the clipboard events may not propagate correctly, so
- * we intercept explicitly.
- */
-export function setupPasteHandler(xterm: XTerm): () => void {
-	const textarea = xterm.textarea;
-	if (!textarea) return () => {};
-
-	const handlePaste = (event: ClipboardEvent) => {
-		const text = event.clipboardData?.getData("text/plain") ?? "";
-		if (!text) return;
-		event.preventDefault();
-		event.stopImmediatePropagation();
-		xterm.paste(text);
-	};
-
-	textarea.addEventListener("paste", handlePaste, { capture: true });
-	return () => {
-		textarea.removeEventListener("paste", handlePaste, { capture: true });
-	};
-}
-
-/**
  * Setup copy handler for xterm to trim trailing whitespace from copied text.
  *
  * Terminal emulators fill lines with whitespace to pad to the terminal width.
