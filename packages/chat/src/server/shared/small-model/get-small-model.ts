@@ -1,55 +1,36 @@
 import { createAnthropic } from "@ai-sdk/anthropic";
 import { createOpenAI } from "@ai-sdk/openai";
+import { createAuthStorage } from "mastracode";
 import {
 	ANTHROPIC_AUTH_PROVIDER_ID,
 	OPENAI_AUTH_PROVIDER_IDS,
 } from "../auth-provider-ids";
-import {
-	ANTHROPIC_OAUTH_HEADERS,
-	getAnthropicOAuthCredential,
-} from "./anthropic-oauth";
-import { readAuthJson } from "./auth-storage-io";
 
 const ANTHROPIC_SMALL_MODEL_ID = "claude-haiku-4-5-20251001";
 const OPENAI_SMALL_MODEL_ID = "gpt-4o-mini";
 
 const MIN_API_KEY_LENGTH = 30;
 
-type AuthData = Record<string, unknown>;
+// OAuth tokens issued through the Claude Code flow are accepted by the
+// Anthropic API only when these companion headers are sent alongside the
+// `Authorization: Bearer` header. Mastracode hands us the token; we own
+// the wiring into createAnthropic and the request-time headers.
+const ANTHROPIC_OAUTH_HEADERS = {
+	"anthropic-beta": "claude-code-20250219,oauth-2025-04-20",
+	"user-agent": "claude-cli/2.1.2 (external, cli)",
+	"x-app": "cli",
+} as const;
 
-function getStoredApiKey(
-	authData: AuthData | null,
-	providerId: string,
-): string | null {
-	if (!authData) return null;
-	const entry = authData[`apikey:${providerId}`];
-	if (
-		typeof entry === "object" &&
-		entry !== null &&
-		"type" in entry &&
-		entry.type === "api_key" &&
-		"key" in entry &&
-		typeof entry.key === "string" &&
-		entry.key.trim().length > 0
-	) {
-		return entry.key.trim();
-	}
-	return null;
-}
+type AuthStorage = ReturnType<typeof createAuthStorage>;
 
-function resolveApiKeyForProvider(
-	envVar: string | undefined,
-	authData: AuthData | null,
-	providerIds: readonly string[],
-	validate: (key: string) => boolean,
-): string | null {
-	const env = envVar?.trim();
-	if (env && validate(env)) return env;
-	for (const providerId of providerIds) {
-		const stored = getStoredApiKey(authData, providerId);
-		if (stored && validate(stored)) return stored;
+let cachedAuthStorage: AuthStorage | null = null;
+
+function getAuthStorage(): AuthStorage {
+	if (!cachedAuthStorage) {
+		cachedAuthStorage = createAuthStorage();
 	}
-	return null;
+	cachedAuthStorage.reload();
+	return cachedAuthStorage;
 }
 
 /**
@@ -70,58 +51,110 @@ export function isOpenAIApiKey(key: string): boolean {
 	return key.startsWith("sk-") && key.length >= MIN_API_KEY_LENGTH;
 }
 
+function isObjectRecord(value: unknown): value is Record<string, unknown> {
+	return typeof value === "object" && value !== null;
+}
+
+type AnthropicResolved =
+	| { kind: "apiKey"; key: string }
+	| { kind: "oauth"; accessToken: string };
+
+async function resolveAnthropic(): Promise<AnthropicResolved | null> {
+	const env = process.env.ANTHROPIC_API_KEY?.trim();
+	if (env && isAnthropicApiKey(env)) {
+		return { kind: "apiKey", key: env };
+	}
+
+	try {
+		const authStorage = getAuthStorage();
+		const credential = authStorage.get(ANTHROPIC_AUTH_PROVIDER_ID);
+		if (!isObjectRecord(credential)) return null;
+
+		if (
+			credential.type === "api_key" &&
+			typeof credential.key === "string" &&
+			isAnthropicApiKey(credential.key.trim())
+		) {
+			return { kind: "apiKey", key: credential.key.trim() };
+		}
+
+		if (credential.type === "oauth") {
+			// Mastracode's getApiKey returns a fresh access token, refreshing
+			// via the Claude Code OAuth flow when expired and persisting the
+			// new credential back to auth.json. This replaces the custom
+			// refresh dance we used to maintain in this package.
+			const accessToken = await authStorage.getApiKey(
+				ANTHROPIC_AUTH_PROVIDER_ID,
+			);
+			if (typeof accessToken === "string" && accessToken.trim().length > 0) {
+				return { kind: "oauth", accessToken: accessToken.trim() };
+			}
+		}
+	} catch (error) {
+		console.warn("[get-small-model] anthropic auth resolution failed:", error);
+	}
+
+	return null;
+}
+
+async function resolveOpenAIApiKey(): Promise<string | null> {
+	const env = process.env.OPENAI_API_KEY?.trim();
+	if (env && isOpenAIApiKey(env)) return env;
+
+	try {
+		const authStorage = getAuthStorage();
+		for (const providerId of OPENAI_AUTH_PROVIDER_IDS) {
+			const credential = authStorage.get(providerId);
+			if (
+				isObjectRecord(credential) &&
+				credential.type === "api_key" &&
+				typeof credential.key === "string" &&
+				isOpenAIApiKey(credential.key.trim())
+			) {
+				return credential.key.trim();
+			}
+		}
+	} catch (error) {
+		console.warn("[get-small-model] openai auth resolution failed:", error);
+	}
+
+	return null;
+}
+
 /**
  * Returns an AI-SDK `LanguageModel` for small-model tasks (branch naming,
  * title generation). Returns `null` if no usable credentials are available.
  *
  * Resolution order:
- *   1. ANTHROPIC_API_KEY env var
- *   2. mastracode auth.json `apikey:anthropic` slot
- *   3. mastracode auth.json `anthropic` OAuth slot (refreshed if expired)
- *   4. OPENAI_API_KEY env var
- *   5. mastracode auth.json `apikey:openai-codex` / `apikey:openai` slots
+ *   1. ANTHROPIC_API_KEY env var (validated)
+ *   2. mastracode auth storage — Anthropic api key
+ *   3. mastracode auth storage — Anthropic OAuth (refreshed on the fly)
+ *   4. OPENAI_API_KEY env var (validated)
+ *   5. mastracode auth storage — OpenAI api key (`openai-codex` / `openai`)
  *
  * API keys are validated by prefix + minimum length so dev placeholders
  * (e.g. `ANTHROPIC_API_KEY=dummy` from a sample .env) fall through to the
  * next path instead of being sent to the API and failing 401.
  */
 export async function getSmallModel(): Promise<unknown> {
-	const authResult = readAuthJson();
-	const authData = authResult.kind === "ok" ? authResult.data : null;
-
-	const anthropicKey = resolveApiKeyForProvider(
-		process.env.ANTHROPIC_API_KEY,
-		authData,
-		[ANTHROPIC_AUTH_PROVIDER_ID],
-		isAnthropicApiKey,
-	);
-	if (anthropicKey) {
-		return createAnthropic({ apiKey: anthropicKey })(ANTHROPIC_SMALL_MODEL_ID);
+	const anthropic = await resolveAnthropic();
+	if (anthropic?.kind === "apiKey") {
+		return createAnthropic({ apiKey: anthropic.key })(ANTHROPIC_SMALL_MODEL_ID);
 	}
-
-	const anthropicOAuth = await getAnthropicOAuthCredential(authData);
-	if (anthropicOAuth) {
+	if (anthropic?.kind === "oauth") {
 		return createAnthropic({
-			authToken: anthropicOAuth.accessToken,
+			authToken: anthropic.accessToken,
 			headers: ANTHROPIC_OAUTH_HEADERS,
 		})(ANTHROPIC_SMALL_MODEL_ID);
 	}
 
-	const openaiKey = resolveApiKeyForProvider(
-		process.env.OPENAI_API_KEY,
-		authData,
-		OPENAI_AUTH_PROVIDER_IDS,
-		isOpenAIApiKey,
-	);
+	const openaiKey = await resolveOpenAIApiKey();
 	if (openaiKey) {
 		return createOpenAI({ apiKey: openaiKey }).chat(OPENAI_SMALL_MODEL_ID);
 	}
 
 	console.warn(
-		"[get-small-model] no credentials found — naming will fall back. " +
-			`authData=${authData ? "present" : "missing"}, ` +
-			`anthropicEnv=${process.env.ANTHROPIC_API_KEY ? "set" : "unset"}, ` +
-			`openaiEnv=${process.env.OPENAI_API_KEY ? "set" : "unset"}`,
+		"[get-small-model] no credentials found — naming will fall back",
 	);
 	return null;
 }
