@@ -2,8 +2,6 @@
 
 Design for the v2 "create project" and "import project" flows. V2 projects are cloud-driven; materialization is per-host but resolved lazily, not pre-computed.
 
-> **History note.** Earlier drafts layered a cloud `v2_host_projects` backing signal, a workspaces-tab Available section, and an inline `project.setup` step inside the New Workspace modal. All three were cut for v1 — we're shipping the least complex surface that still lets a user create and open a workspace, and we'll add discovery/recovery UX back when there's evidence users need it.
-
 ---
 
 ## Two rules for v1

@@ -1,8 +1,6 @@
 # V2 Project Create & Import — Implementation Plan
 
-Companion to [`docs/design/v2-project-create-import.md`](../docs/design/v2-project-create-import.md).
-
-> **Rewrite note.** Earlier drafts included a `v2_host_projects` cloud signal, a workspaces-tab Available section, and an inline setup step in the New Workspace modal. All three were cut for v1 in favor of the minimum surface that lets a user create and open a workspace. Discovery/recovery UX can be added in follow-up PRs if users report missing them.
+Companion to [`docs/design/v2-project-create-import.md`](../../docs/design/v2-project-create-import.md).
 
 ---
 
