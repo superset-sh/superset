@@ -11,7 +11,6 @@ import {
 	rejectTerminalSessionReady,
 } from "renderer/lib/terminal/session-readiness";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
-import { useMultiLinePasteDialogStore } from "renderer/stores/multi-line-paste-dialog";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { killTerminalForPane } from "renderer/stores/tabs/utils/terminal-cleanup";
 import { isTerminalAttachCanceledMessage } from "../attach-cancel";
@@ -793,27 +792,6 @@ export function useTerminalLifecycle({
 		const cleanupPaste = setupPasteHandler(xterm, {
 			onPaste: (text) => {
 				commandBufferRef.current += text;
-			},
-			onBeforePaste: async (text) => {
-				// Multi-line paste into a shell without bracketed-paste mode will
-				// execute each line as a separate command. Mirror VS Code's
-				// `shouldPasteTerminalText` and prompt the user in that case.
-				const hasNewline = /\r|\n/.test(text);
-				if (!hasNewline) return text;
-				if (isBracketedPasteRef.current) return text;
-
-				// Ignore pastes that are effectively single-line (trailing newline only).
-				const lines = text.split(/\r?\n/);
-				if (lines.length === 2 && lines[1].trim().length === 0) return text;
-
-				const decision = await useMultiLinePasteDialogStore
-					.getState()
-					.open(text);
-				if (decision.kind === "cancel") return null;
-				if (decision.kind === "pasteAsOneLine") {
-					return text.replace(/\r?\n/g, "");
-				}
-				return text;
 			},
 		});
 		const cleanupCopy = setupCopyHandler(xterm);

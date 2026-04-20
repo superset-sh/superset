@@ -240,13 +240,6 @@ export interface KeyboardHandlerOptions {
 export interface PasteHandlerOptions {
 	/** Callback when text is pasted, receives the pasted text */
 	onPaste?: (text: string) => void;
-	/**
-	 * Optional hook called before handing text to xterm.paste().
-	 * Return the (possibly modified) text to paste, or null to cancel the paste.
-	 * Used to prompt the user on multi-line pastes when bracketed paste is off,
-	 * mirroring VS Code's `shouldPasteTerminalText`.
-	 */
-	onBeforePaste?: (text: string) => Promise<string | null>;
 }
 
 /**
@@ -301,10 +294,6 @@ export function setupCopyHandler(xterm: XTerm): () => void {
  * we intercept `paste` explicitly and delegate to `xterm.paste()`, which
  * handles newline normalization and bracketed-paste wrapping internally.
  *
- * If `onBeforePaste` is provided, it is awaited before pasting and can modify
- * or cancel the paste (used for the multi-line-paste warning dialog, matching
- * VS Code's `shouldPasteTerminalText`).
- *
  * Returns a cleanup function to remove the handler.
  */
 export function setupPasteHandler(
@@ -314,8 +303,6 @@ export function setupPasteHandler(
 	const textarea = xterm.textarea;
 	if (!textarea) return () => {};
 
-	let isDisposed = false;
-
 	const handlePaste = (event: ClipboardEvent) => {
 		const text = event.clipboardData?.getData("text/plain") ?? "";
 		if (!text) return;
@@ -324,23 +311,12 @@ export function setupPasteHandler(
 		event.stopImmediatePropagation();
 
 		options.onPaste?.(text);
-
-		const beforePaste = options.onBeforePaste;
-		if (!beforePaste) {
-			xterm.paste(text);
-			return;
-		}
-
-		void beforePaste(text).then((resolved) => {
-			if (isDisposed || resolved === null) return;
-			xterm.paste(resolved);
-		});
+		xterm.paste(text);
 	};
 
 	textarea.addEventListener("paste", handlePaste, { capture: true });
 
 	return () => {
-		isDisposed = true;
 		textarea.removeEventListener("paste", handlePaste, { capture: true });
 	};
 }
