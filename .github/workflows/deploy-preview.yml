@@ -18,7 +18,6 @@ env:
   MARKETING_ALIAS: marketing-pr-${{ github.event.pull_request.number }}-superset.vercel.app
   ADMIN_ALIAS: admin-pr-${{ github.event.pull_request.number }}-superset.vercel.app
   DOCS_ALIAS: docs-pr-${{ github.event.pull_request.number }}-superset.vercel.app
-  ELECTRIC_URL: https://superset-electric-pr-${{ github.event.pull_request.number }}.fly.dev/v1/shape
 
 jobs:
   deploy-database:
@@ -77,51 +76,6 @@ jobs:
         with:
           name: database-status
           path: database-status.env
-
-  deploy-electric:
-    name: Deploy Electric (Fly.io)
-    runs-on: ubuntu-latest
-    needs: deploy-database
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
-
-      - name: Download database info
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
-        with:
-          name: database-status
-
-      - name: Load database URL
-        run: |
-          source database-status.env
-          echo "DATABASE_URL_UNPOOLED=$DATABASE_URL_UNPOOLED" >> $GITHUB_ENV
-
-      - name: Deploy Electric to Fly.io
-        uses: superfly/fly-pr-review-apps@f7152c133b1fe7767b6e549ca09598655c1f8ca4 # 1.3.0
-        with:
-          name: superset-electric-pr-${{ github.event.pull_request.number }}
-          region: iad
-          org: ${{ vars.FLY_ORG }}
-          config: fly.toml
-          secrets: |
-            DATABASE_URL=${{ env.DATABASE_URL_UNPOOLED }}
-            ELECTRIC_SECRET=${{ secrets.ELECTRIC_SECRET_PREVIEW }}
-        env:
-          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
-
-      - name: Save Electric status
-        run: |
-          cat > electric-status.env << EOF
-          ELECTRIC_STATUS="✅"
-          ELECTRIC_LINK="<a href=\"https://fly.io/apps/superset-electric-pr-${{ github.event.pull_request.number }}\">View App</a>"
-          EOF
-
-      - name: Upload Electric status
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        with:
-          name: electric-status
-          path: electric-status.env
 
   deploy-api:
     name: Deploy API
@@ -206,8 +160,8 @@ jobs:
           QSTASH_URL: ${{ secrets.QSTASH_URL }}
           QSTASH_CURRENT_SIGNING_KEY: ${{ secrets.QSTASH_CURRENT_SIGNING_KEY }}
           QSTASH_NEXT_SIGNING_KEY: ${{ secrets.QSTASH_NEXT_SIGNING_KEY }}
-          ELECTRIC_URL: ${{ env.ELECTRIC_URL }}
-          ELECTRIC_SECRET: ${{ secrets.ELECTRIC_SECRET_PREVIEW }}
+          ELECTRIC_URL: ${{ secrets.ELECTRIC_URL }}
+          ELECTRIC_SECRET: ${{ secrets.ELECTRIC_SECRET }}
           DURABLE_STREAMS_URL: ${{ secrets.DURABLE_STREAMS_URL }}
           DURABLE_STREAMS_SECRET: ${{ secrets.DURABLE_STREAMS_SECRET }}
           STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
@@ -727,7 +681,7 @@ jobs:
     name: Post Deployment Comment
     runs-on: ubuntu-latest
     if: always()
-    needs: [deploy-database, deploy-electric, deploy-api, deploy-web, deploy-marketing, deploy-admin, deploy-docs]
+    needs: [deploy-database, deploy-api, deploy-web, deploy-marketing, deploy-admin, deploy-docs]
     permissions:
       contents: read
       pull-requests: write
@@ -746,8 +700,6 @@ jobs:
         run: |
           DATABASE_STATUS="❌"
           DATABASE_LINK="Failed to create"
-          ELECTRIC_STATUS="❌"
-          ELECTRIC_LINK="Failed to deploy"
           API_STATUS="❌"
           API_LINK="Failed to deploy"
           WEB_STATUS="❌"
@@ -761,10 +713,6 @@ jobs:
 
           if [[ "${{ needs.deploy-database.result }}" == "success" ]]; then
             source database-status.env
-          fi
-
-          if [[ "${{ needs.deploy-electric.result }}" == "success" ]]; then
-            source electric-status.env
           fi
 
           if [[ "${{ needs.deploy-api.result }}" == "success" ]]; then
@@ -787,7 +735,7 @@ jobs:
             source docs-status.env
           fi
 
-          export DATABASE_STATUS DATABASE_LINK ELECTRIC_STATUS ELECTRIC_LINK API_STATUS API_LINK WEB_STATUS WEB_LINK MARKETING_STATUS MARKETING_LINK ADMIN_STATUS ADMIN_LINK DOCS_STATUS DOCS_LINK
+          export DATABASE_STATUS DATABASE_LINK API_STATUS API_LINK WEB_STATUS WEB_LINK MARKETING_STATUS MARKETING_LINK ADMIN_STATUS ADMIN_LINK DOCS_STATUS DOCS_LINK
           envsubst < .github/templates/preview-comment.md > final-comment.md
 
       - name: Post final deployment comment
