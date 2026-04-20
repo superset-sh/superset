@@ -11,11 +11,12 @@ import {
 import { cn } from "@superset/ui/utils";
 import {
 	HiCheck,
+	HiChevronUpDown,
 	HiOutlineCloud,
 	HiOutlineComputerDesktop,
 	HiOutlineServer,
 } from "react-icons/hi2";
-import { PickerTrigger } from "renderer/components/PickerTrigger";
+import { FormPickerTrigger } from "../../PromptGroup/components/FormPickerTrigger";
 import {
 	useWorkspaceHostOptions,
 	type WorkspaceHostOption,
@@ -65,7 +66,7 @@ function getSelectedIcon(
 	otherHosts: WorkspaceHostOption[],
 ) {
 	if (hostTarget.kind === "local") {
-		return <HiOutlineComputerDesktop className="size-3 shrink-0" />;
+		return <HiOutlineComputerDesktop className="size-4 shrink-0" />;
 	}
 
 	const host = otherHosts.find((h) => h.id === hostTarget.hostId);
@@ -98,16 +99,18 @@ export function DevicePicker({
 	return (
 		<DropdownMenu>
 			<DropdownMenuTrigger asChild>
-				<PickerTrigger
-					className={className}
-					icon={getSelectedIcon(hostTarget, otherHosts)}
-					label={selectedLabel}
-					endAdornment={
-						selectedRemoteOnline !== null ? (
-							<OnlineDot online={selectedRemoteOnline} />
-						) : null
-					}
-				/>
+				<FormPickerTrigger
+					className={cn("max-w-[140px]", className)}
+					aria-label={`Device: ${selectedLabel}`}
+					title={selectedLabel}
+				>
+					{getSelectedIcon(hostTarget, otherHosts)}
+					<span className="truncate">{selectedLabel}</span>
+					{selectedRemoteOnline !== null && (
+						<OnlineDot online={selectedRemoteOnline} />
+					)}
+					<HiChevronUpDown className="size-3 shrink-0" />
+				</FormPickerTrigger>
 			</DropdownMenuTrigger>
 			<DropdownMenuContent align="start" className="w-72">
 				<DropdownMenuItem

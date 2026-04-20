@@ -400,11 +400,6 @@ export function PromptGroup({
 					</AnimatePresence>
 				</div>
 				<div className="flex items-center gap-1.5">
-					<DevicePicker
-						className="w-[160px]"
-						hostTarget={hostTarget}
-						onSelectHostTarget={(t) => updateDraft({ hostTarget: t })}
-					/>
 					{selectedProject?.needsSetup === true && (
 						<span className="text-[11px] text-amber-500">
 							Project needs to be set up
