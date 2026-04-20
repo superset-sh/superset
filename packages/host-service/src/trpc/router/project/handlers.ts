@@ -19,20 +19,15 @@ function slugifyProjectName(name: string): string {
 	return slug;
 }
 
-// ============================================================================
-// project.create
-// ============================================================================
-
 interface CreateResult {
 	projectId: string;
 	repoPath: string;
 }
 
 /**
- * Create flow — clone mode. Clone first so that clone-time failures (bad URL,
- * auth, network, dir collision) leave no cloud state behind; register the
- * cloud row afterwards and rollback the local clone if that fails. Mirrors
- * the local-first-then-cloud ordering used by workspace.create.
+ * Clone first so clone-time failures (bad URL, auth, network, dir
+ * collision) leave no cloud state behind; rollback the local clone on
+ * cloud failure. Mirrors workspace.create's local-first-then-cloud order.
  */
 export async function createFromClone(
 	ctx: HostServiceContext,
@@ -61,11 +56,6 @@ export async function createFromClone(
 	}
 }
 
-/**
- * Create flow — importLocal mode. User picked an existing on-disk git repo.
- * We derive the remote URL from the repo, register it with the cloud, then
- * register the local row.
- */
 export async function createFromImportLocal(
 	ctx: HostServiceContext,
 	args: { name: string; repoPath: string },
