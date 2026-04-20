@@ -67,6 +67,18 @@ async function resolveAnthropic(): Promise<AnthropicResolved | null> {
 
 	try {
 		const authStorage = getAuthStorage();
+
+		// Settings-saved API keys are stored at `apikey:<provider>`. Prefer
+		// these over whatever sits in the main slot — otherwise an OAuth
+		// login (which writes to the main slot) would mask a stored API key
+		// the user explicitly added.
+		const storedApiKey = authStorage
+			.getStoredApiKey(ANTHROPIC_AUTH_PROVIDER_ID)
+			?.trim();
+		if (storedApiKey && isAnthropicApiKey(storedApiKey)) {
+			return { kind: "apiKey", key: storedApiKey };
+		}
+
 		const credential = authStorage.get(ANTHROPIC_AUTH_PROVIDER_ID);
 		if (!isObjectRecord(credential)) return null;
 
@@ -104,6 +116,11 @@ async function resolveOpenAIApiKey(): Promise<string | null> {
 	try {
 		const authStorage = getAuthStorage();
 		for (const providerId of OPENAI_AUTH_PROVIDER_IDS) {
+			// Same precedence reasoning as Anthropic: dedicated apikey: slot
+			// before the main slot.
+			const stored = authStorage.getStoredApiKey(providerId)?.trim();
+			if (stored && isOpenAIApiKey(stored)) return stored;
+
 			const credential = authStorage.get(providerId);
 			if (
 				isObjectRecord(credential) &&
