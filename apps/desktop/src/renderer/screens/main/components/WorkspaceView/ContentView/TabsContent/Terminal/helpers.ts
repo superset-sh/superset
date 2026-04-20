@@ -240,10 +240,13 @@ export interface KeyboardHandlerOptions {
 export interface PasteHandlerOptions {
 	/** Callback when text is pasted, receives the pasted text */
 	onPaste?: (text: string) => void;
-	/** Optional direct write callback to bypass xterm's paste burst */
-	onWrite?: (data: string) => void;
-	/** Whether bracketed paste mode is enabled for the current terminal */
-	isBracketedPasteEnabled?: () => boolean;
+	/**
+	 * Optional hook called before handing text to xterm.paste().
+	 * Return the (possibly modified) text to paste, or null to cancel the paste.
+	 * Used to prompt the user on multi-line pastes when bracketed paste is off,
+	 * mirroring VS Code's `shouldPasteTerminalText`.
+	 */
+	onBeforePaste?: (text: string) => Promise<string | null>;
 }
 
 /**
@@ -291,16 +294,16 @@ export function setupCopyHandler(xterm: XTerm): () => void {
 }
 
 /**
- * Setup paste handler for xterm to ensure bracketed paste mode works correctly.
+ * Setup paste handler for xterm.
  *
  * xterm.js's built-in paste handling via the textarea should work, but in some
- * Electron environments the clipboard events may not propagate correctly.
- * This handler explicitly intercepts paste events and uses xterm's paste() method,
- * which properly handles bracketed paste mode (wrapping pasted content with
- * \x1b[200~ and \x1b[201~ escape sequences when the shell has enabled it).
+ * Electron environments the clipboard events may not propagate correctly, so
+ * we intercept `paste` explicitly and delegate to `xterm.paste()`, which
+ * handles newline normalization and bracketed-paste wrapping internally.
  *
- * This is required for TUI applications like opencode, vim, etc. that expect
- * bracketed paste mode to distinguish between typed and pasted content.
+ * If `onBeforePaste` is provided, it is awaited before pasting and can modify
+ * or cancel the paste (used for the multi-line-paste warning dialog, matching
+ * VS Code's `shouldPasteTerminalText`).
  *
  * Returns a cleanup function to remove the handler.
  */
@@ -311,129 +314,33 @@ export function setupPasteHandler(
 	const textarea = xterm.textarea;
 	if (!textarea) return () => {};
 
-	let cancelActivePaste: (() => void) | null = null;
-
-	const shouldForwardCtrlVForNonTextPaste = (
-		event: ClipboardEvent,
-		text: string,
-	): boolean => {
-		if (text) return false;
-		const types = Array.from(event.clipboardData?.types ?? []);
-		if (types.length === 0) return false;
-		return types.some((type) => type !== "text/plain");
-	};
+	let isDisposed = false;
 
 	const handlePaste = (event: ClipboardEvent) => {
 		const text = event.clipboardData?.getData("text/plain") ?? "";
-		if (!text) {
-			// Match terminal behavior like iTerm's "Paste or send ^V":
-			// when clipboard has non-text payloads but no plain text, forward Ctrl+V.
-			if (options.onWrite && shouldForwardCtrlVForNonTextPaste(event, text)) {
-				event.preventDefault();
-				event.stopImmediatePropagation();
-				options.onWrite("\x16");
-			}
-			return;
-		}
+		if (!text) return;
 
 		event.preventDefault();
 		event.stopImmediatePropagation();
 
 		options.onPaste?.(text);
 
-		// Cancel any in-flight chunked paste to avoid overlapping writes.
-		cancelActivePaste?.();
-		cancelActivePaste = null;
-
-		// Chunk large pastes to avoid sending a single massive input burst that can
-		// overwhelm the PTY pipeline (especially when the app is repainting heavily).
-		const MAX_SYNC_PASTE_CHARS = 16_384;
-
-		// If no direct write callback is provided, fall back to xterm's paste()
-		// (it handles newline normalization and bracketed paste mode internally).
-		if (!options.onWrite) {
-			const CHUNK_CHARS = 4096;
-			const CHUNK_DELAY_MS = 5;
-
-			if (text.length <= MAX_SYNC_PASTE_CHARS) {
-				xterm.paste(text);
-				return;
-			}
-
-			let cancelled = false;
-			let offset = 0;
-
-			const pasteNext = () => {
-				if (cancelled) return;
-
-				const chunk = text.slice(offset, offset + CHUNK_CHARS);
-				offset += CHUNK_CHARS;
-				xterm.paste(chunk);
-
-				if (offset < text.length) {
-					setTimeout(pasteNext, CHUNK_DELAY_MS);
-				}
-			};
-
-			cancelActivePaste = () => {
-				cancelled = true;
-			};
-
-			pasteNext();
+		const beforePaste = options.onBeforePaste;
+		if (!beforePaste) {
+			xterm.paste(text);
 			return;
 		}
 
-		// Direct write path: replicate xterm's paste normalization, but stream in
-		// controlled chunks while preserving bracketed-paste semantics.
-		const preparedText = text.replace(/\r?\n/g, "\r");
-		const bracketedPasteEnabled = options.isBracketedPasteEnabled?.() ?? false;
-		const shouldBracket = bracketedPasteEnabled;
-
-		// For small/medium pastes, preserve the fast path and avoid timers.
-		if (preparedText.length <= MAX_SYNC_PASTE_CHARS) {
-			options.onWrite(
-				shouldBracket ? `\x1b[200~${preparedText}\x1b[201~` : preparedText,
-			);
-			return;
-		}
-
-		let cancelled = false;
-		let offset = 0;
-		const CHUNK_CHARS = 16_384;
-		const CHUNK_DELAY_MS = 0;
-
-		const pasteNext = () => {
-			if (cancelled) return;
-
-			const chunk = preparedText.slice(offset, offset + CHUNK_CHARS);
-			offset += CHUNK_CHARS;
-
-			if (shouldBracket) {
-				// Wrap each chunk to avoid long-running "open" bracketed paste blocks,
-				// which some TUIs may defer repainting until the closing sequence arrives.
-				options.onWrite?.(`\x1b[200~${chunk}\x1b[201~`);
-			} else {
-				options.onWrite?.(chunk);
-			}
-
-			if (offset < preparedText.length) {
-				setTimeout(pasteNext, CHUNK_DELAY_MS);
-				return;
-			}
-		};
-
-		cancelActivePaste = () => {
-			cancelled = true;
-		};
-
-		pasteNext();
+		void beforePaste(text).then((resolved) => {
+			if (isDisposed || resolved === null) return;
+			xterm.paste(resolved);
+		});
 	};
 
 	textarea.addEventListener("paste", handlePaste, { capture: true });
 
 	return () => {
-		cancelActivePaste?.();
-		cancelActivePaste = null;
+		isDisposed = true;
 		textarea.removeEventListener("paste", handlePaste, { capture: true });
 	};
 }

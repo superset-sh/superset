@@ -8,7 +8,7 @@ import { sanitizeTerminalFontFamily } from "renderer/lib/terminal/appearance";
 import { buildTerminalCommand } from "renderer/lib/terminal/launch-command";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { useTerminalTheme } from "renderer/stores/theme";
-import { SessionKilledOverlay } from "./components";
+import { MultiLinePasteDialog, SessionKilledOverlay } from "./components";
 import { DEFAULT_TERMINAL_FONT_SIZE } from "./config";
 import { getDefaultTerminalBg } from "./helpers";
 import {
@@ -460,6 +460,7 @@ export const Terminal = memo(function Terminal({
 			<div className="h-full w-full p-2">
 				<div ref={terminalRef} className="h-full w-full" />
 			</div>
+			<MultiLinePasteDialog />
 		</div>
 	);
 });
