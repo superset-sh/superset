@@ -41,15 +41,17 @@ Presets are parallel by default.
 
 ## Quick-Add Templates
 
-Pre-configured presets for popular AI agents:
+Pre-configured presets for popular AI agents. Defaults are safe-by-default — agents can read and edit files, but still prompt before running shell commands or touching files outside your workspace. Edit any preset to opt into a more permissive mode.
 
-- **amp** - `amp`
-- **claude** - `claude --dangerously-skip-permissions`
-- **codex** - Full danger mode with high reasoning effort
-- **gemini** - `gemini --yolo`
-- **pi** - `pi`
-- **cursor-agent** - Cursor AI agent
-- **opencode** - Open-source AI coding agent
+- **amp** - `amp` (built-in permission rules auto-deny destructive ops)
+- **claude** - `claude --permission-mode acceptEdits`
+- **codex** - `codex ... --full-auto` (workspace-sandboxed)
+- **gemini** - `gemini --approval-mode=auto_edit`
+- **copilot** - `copilot --allow-tool=write`
+- **cursor-agent** - `cursor-agent` (prompts for every action)
+- **mastracode** - Mastra's coding agent (opt-in: auto-approves all actions by default at the CLI; no startup flag to restrict)
+- **opencode** - Open-source AI coding agent (opt-in: full file and shell access by default at the CLI; no startup flag to restrict)
+- **pi** - Minimal terminal coding harness (opt-in: auto-approves all actions by default at the CLI; no startup flag to restrict)
 
 ## Preset Bar
 

@@ -1,0 +1,177 @@
+---
+title: Chat UX overhaul, v2 early access, brand refresh, and standalone CLI
+date: 2026-04-20
+image: /changelog/chat-ux.png
+---
+
+A big update covering the last three weeks. The chat interface got a top-to-bottom UX overhaul with a new rich-text prompt editor, slash-command and file-mention chips, and a redesigned tool-call system. The v2 workspace is now in early access, with panes, a diff viewer, a file editor, a review tab, and a browser pane. The Superset CLI shipped and then grew a self-contained tarball that can run the host-service anywhere. The desktop app got a full brand refresh, and GitHub integration is now free on every plan.
+
+## Chat UX overhaul <PRBadge url="https://github.com/superset-sh/superset/pull/3039" />
+
+### Tiptap prompt input
+
+The prompt is now a ProseMirror-based rich text editor with inline chips for commands and file references.
+
+- **Slash command chips** — type `/` to open a command menu; the command becomes an inline chip anywhere in the message instead of submitting immediately. Chips with an `argumentHint` expose an inline editable input with auto-sizing and keyboard nav; `/model` shows a dropdown of available models.
+- **File mention chips** — type `@` to open a file-search popover anchored to the cursor. Picking a file inserts a chip that serializes to `@path` on send.
+- **Skill preload** — `/command` chips are extracted before the LLM turn so the harness loads the right skill first. A `SkillToolCall` row shows in the message while the skill loads.
+- **Preview on hover** — hovering a chip shows a popover with its description (hidden while an arg input is focused).
+- IME composition guard prevents submit while CJK input is pending; Tab no longer auto-selects commands (Enter or click only).
+
+### Redesigned tool calls
+
+- Compact, monospaced `ToolInput` / `ToolOutput` / `ToolHeader` layout with a braille spinner and left-side icons
+- Subagent activity rendered inline as a collapsible tool wrapper, with full markdown for task prompt and response
+- Clickable file names on every file-related tool call row (read, write, LSP inspect) — clicking opens the file in the editor pane
+- Syntax-highlighted read-file output with filename header and line-range label; expand/collapse and copy on every code block
+
+### ask_user flow
+
+- Footer overlay with pinned header/footer and scrollable option buttons — no more inline question UI
+- Status chips (Awaiting Response / Answered / Cancelled) with a collapsible answer bubble; cancelled shows immediately when aborted
+- Optimistic dismiss on submit; prompt textarea auto-focuses after answering
+- `ask_user` is now required for all Superset questions — no plain-text fallbacks
+
+### Workspace status and notifications
+
+- A pending question puts an orange dot on the workspace nav and fires a native OS toast, driven server-side through the lifecycle event pipeline so it works when the tab is unfocused
+- Orange dot clears immediately on answer submit
+- Auto-scroll to bottom on message send, new question arrival, and answer submit
+
+## The v2 workspace is in early access
+
+![v2 workspace early access](/changelog/v2-early-access.png)
+
+v2 is a ground-up rebuild of the workspace aimed at cloud. We tore out v1's accumulated cruft, rewrote the terminal from scratch to fix the rendering glitches, and re-architected the app like a real IDE — Tab → Split → Pane, a proper file tree with git decorations, a full editor, and a diff viewer that handles large changesets. Opt-in for now; here's what's in the box:
+
+### Pane layout system <PRBadge url="https://github.com/superset-sh/superset/pull/3088" />
+
+A new flexible Tab → Split → Pane structure built on the `@superset/panes` package, with weighted resizable splits.
+
+- Drag and drop panes to rearrange them <PRBadge url="https://github.com/superset-sh/superset/pull/3090" />
+- Drag to reorder tabs within a tab group <PRBadge url="https://github.com/superset-sh/superset/pull/3094" />
+- Right-click pane headers for split / close / close others <PRBadge url="https://github.com/superset-sh/superset/pull/3196" />
+- Double-click a split separator to equalize pane sizes <PRBadge url="https://github.com/superset-sh/superset/pull/3101" />
+- Cmd+Alt+Arrow moves focus between panes <PRBadge url="https://github.com/superset-sh/superset/pull/3403" /> <PRBadge url="https://github.com/superset-sh/superset/pull/3460" />
+- Closing the active pane focuses the nearest sibling <PRBadge url="https://github.com/superset-sh/superset/pull/3198" />
+
+### Diff viewer <PRBadge url="https://github.com/superset-sh/superset/pull/3384" />
+
+![v2 diff viewer](/changelog/v2-diff.png)
+
+A GitHub-style multi-file diff pane with lazy loading, a persistent "Viewed" state synced to the sidebar Changes list, unified/split view toggles, and header actions for collapse, expand unchanged, copy, and revert. Open it in its own tab with ⌘⇧L <PRBadge url="https://github.com/superset-sh/superset/pull/3420" /> <PRBadge url="https://github.com/superset-sh/superset/pull/3556" />.
+
+### File editor <PRBadge url="https://github.com/superset-sh/superset/pull/3526" />
+
+![v2 file tree and editor](/changelog/v2-file-tree.png)
+
+A full editor pane — foundation, views, and a large stability pass. The file tree shows git decorations inline <PRBadge url="https://github.com/superset-sh/superset/pull/3320" />.
+
+### Review tab <PRBadge url="https://github.com/superset-sh/superset/pull/3463" />
+
+PR info, checks, and comments rendered inline in the v2 workspace, matching the v1 review experience.
+
+### PR checkout and launch context <PRBadge url="https://github.com/superset-sh/superset/pull/3525" /> <PRBadge url="https://github.com/superset-sh/superset/pull/3467" />
+
+Check out a PR directly from v2 via a widened checkout procedure, and compose a full launch context (selected files, instructions, branch state) before starting work.
+
+### Browser pane <PRBadge url="https://github.com/superset-sh/superset/pull/3346" />
+
+Pages stay loaded across tab switches and workspace navigations — no reloads, no lost scroll or form state. URL bar, back/forward/reload, history autocomplete, DevTools, screenshots, and hard reload from the overflow menu.
+
+### Git Changes sidebar <PRBadge url="https://github.com/superset-sh/superset/pull/3177" />
+
+A Changes tab in the right sidebar showing ahead/behind status, commit count, and a filterable file list. Filter by all changes, uncommitted only, a single commit, or a commit range. Searchable base-branch picker and inline rename for unpushed branches.
+
+## Superset CLI <PRBadge url="https://github.com/superset-sh/superset/pull/3194" />
+
+{/* TODO: Screenshot of the CLI in action */}
+
+The `superset` CLI lets you manage Superset from your terminal, and ships as a self-contained tarball <PRBadge url="https://github.com/superset-sh/superset/pull/3298" /> so you can run the host-service on a remote server, CI box, or cloud VM without the desktop app.
+
+```bash
+tar -xzf superset-darwin-arm64.tar.gz -C ~/superset
+export PATH="$HOME/superset/bin:$PATH"
+
+superset auth login              # OAuth PKCE + loopback
+superset host start --daemon     # connects to relay.superset.sh
+superset tasks list              # full task CRUD
+superset org switch              # manage organizations
+```
+
+Binaries for macOS (arm64, x64) and Linux x64. `--json` output mode for scripting and agent use.
+
+## Brand refresh <PRBadge url="https://github.com/superset-sh/superset/pull/3367" />
+
+![Brand refresh — new logo and icon treatment](/changelog/brand-refresh.png)
+
+New logo and icon treatment across the desktop app, DMG installer background, tray icon, and wordmark. In dev builds, each workspace gets a color-coded corner fold on the dock icon so open workspaces are distinguishable at a glance.
+
+## GitHub integration is free <PRBadge url="https://github.com/superset-sh/superset/pull/3152" />
+
+PR review, issue linking, and push-from-desktop are available on every plan — no Pro subscription required.
+
+## Improvements
+
+- **V2 file editor foundation** — editor views plus a large stability pass <PRBadge url="https://github.com/superset-sh/superset/pull/3526" />
+- **V2 review tab** — PR info, checks, and comments inline <PRBadge url="https://github.com/superset-sh/superset/pull/3463" />
+- **V2 PR checkout** — checkout a PR directly in a v2 workspace <PRBadge url="https://github.com/superset-sh/superset/pull/3525" />
+- **V2 launch context composition** — prep files, instructions, and branch state before launching <PRBadge url="https://github.com/superset-sh/superset/pull/3467" />
+- **Recently Viewed in Quick Open** — surfaces files you were just looking at <PRBadge url="https://github.com/superset-sh/superset/pull/3488" />
+- **Paginated branch picker** — scales to thousands of branches with inline checkout + open actions <PRBadge url="https://github.com/superset-sh/superset/pull/3397" />
+- **Modifier-keyed terminal file links** — ⌘/Ctrl+click opens in external editor or new tab <PRBadge url="https://github.com/superset-sh/superset/pull/3512" /> <PRBadge url="https://github.com/superset-sh/superset/pull/3398" />
+- **Drag-and-drop into v2 terminal panes** — drop files to insert their paths <PRBadge url="https://github.com/superset-sh/superset/pull/3542" />
+- **Tasks link restored in v2 dashboard sidebar** <PRBadge url="https://github.com/superset-sh/superset/pull/3553" />
+- **Escape closes settings** <PRBadge url="https://github.com/superset-sh/superset/pull/3466" />
+- **Hotkey defaults** — unbound defaults plus restored prev/next tab and workspace shortcuts <PRBadge url="https://github.com/superset-sh/superset/pull/3422" /> <PRBadge url="https://github.com/superset-sh/superset/pull/3472" />
+- **Allow hotkeys in editable content** <PRBadge url="https://github.com/superset-sh/superset/pull/3418" />
+- **Terminal search** — ⌘F / Ctrl+Shift+F in the v2 terminal <PRBadge url="https://github.com/superset-sh/superset/pull/3289" />
+- **Kitty keyboard protocol** — better modifier support in neovim, fish 4+, and others <PRBadge url="https://github.com/superset-sh/superset/pull/3289" />
+- **Terminal theme and font settings** in v2 (parity with v1) <PRBadge url="https://github.com/superset-sh/superset/pull/3155" />
+- **Fast file search** — VS Code's path-aware fuzzy scorer with pre-warmed index <PRBadge url="https://github.com/superset-sh/superset/pull/3136" />
+- **V2 top bar** — right sidebar toggle, org dropdown, unified "Open In" button <PRBadge url="https://github.com/superset-sh/superset/pull/3197" />
+- **Git decorations in v2 file tree** <PRBadge url="https://github.com/superset-sh/superset/pull/3320" />
+- **V2 preset parity + setup scripts** <PRBadge url="https://github.com/superset-sh/superset/pull/3354" /> <PRBadge url="https://github.com/superset-sh/superset/pull/3359" />
+- **V1/v2 toggle from the top bar**, preference persists <PRBadge url="https://github.com/superset-sh/superset/pull/3347" />
+- **Host service durability** — survives app quits, re-adopted on next launch <PRBadge url="https://github.com/superset-sh/superset/pull/3157" />
+- **Relay security setting** — Settings → Security controls whether this machine is exposed; defaults to off <PRBadge url="https://github.com/superset-sh/superset/pull/3304" />
+- **Unified workspace delete** — v2 delete goes through the host-service <PRBadge url="https://github.com/superset-sh/superset/pull/3443" />
+- **Focus neighbor on workspace delete** — drops you on an adjacent workspace, not `/` <PRBadge url="https://github.com/superset-sh/superset/pull/3401" />
+- **Create Section Below** promoted to top-level on the workspace menu <PRBadge url="https://github.com/superset-sh/superset/pull/3537" />
+- **Event-driven tray menu** showing the real org name <PRBadge url="https://github.com/superset-sh/superset/pull/3458" />
+- **Notification sound volume** dropdown in settings <PRBadge url="https://github.com/superset-sh/superset/pull/3073" />
+- **Resolve review comments** directly in the review tab <PRBadge url="https://github.com/superset-sh/superset/pull/3078" />
+- **Public roadmap** at superset.sh/roadmap <PRBadge url="https://github.com/superset-sh/superset/pull/3074" />
+
+---
+
+**Bug fixes**
+
+- Security — bumped drizzle-orm and better-auth to patch CVEs <PRBadge url="https://github.com/superset-sh/superset/pull/3560" />; pinned axios against a known supply-chain vector <PRBadge url="https://github.com/superset-sh/superset/pull/3043" />
+- Chat — cut display polling to 4fps and restored query cache defaults <PRBadge url="https://github.com/superset-sh/superset/pull/3562" />
+- Chat — prevent keyboard shortcuts from leaking characters into the chat input <PRBadge url="https://github.com/superset-sh/superset/pull/3520" />
+- Terminal — recover from non-monospace font crash <PRBadge url="https://github.com/superset-sh/superset/pull/3554" />
+- Terminal — unblock v1 input during shell init <PRBadge url="https://github.com/superset-sh/superset/pull/3550" />
+- Terminal — sync v1 dimensions to backend on connect <PRBadge url="https://github.com/superset-sh/superset/pull/3545" />
+- Terminal — match VS Code clipboard handling <PRBadge url="https://github.com/superset-sh/superset/pull/3415" />
+- Terminal — restore ⌘+click for v1 file links; refresh v2 link tooltip editor <PRBadge url="https://github.com/superset-sh/superset/pull/3457" /> <PRBadge url="https://github.com/superset-sh/superset/pull/3552" />
+- Terminal — correct dimensions sent after attach (fixes TUI apps) <PRBadge url="https://github.com/superset-sh/superset/pull/3154" />
+- Terminal — garbling fix via tRPC-first sessions <PRBadge url="https://github.com/superset-sh/superset/pull/3252" />
+- Auto-updater — restored on macOS; recover from corrupt update cache; spinner while pending; guard repeat clicks <PRBadge url="https://github.com/superset-sh/superset/pull/3291" /> <PRBadge url="https://github.com/superset-sh/superset/pull/3278" /> <PRBadge url="https://github.com/superset-sh/superset/pull/3495" /> <PRBadge url="https://github.com/superset-sh/superset/pull/3561" /> <PRBadge url="https://github.com/superset-sh/superset/pull/3549" />
+- macOS quit — ⌘Q and Dock Quit now fully exit instead of backgrounding to tray <PRBadge url="https://github.com/superset-sh/superset/pull/3205" />
+- macOS — trigger Local Network permission on startup <PRBadge url="https://github.com/superset-sh/superset/pull/3551" />
+- Port scanner — stop excessive `lsof` spawning <PRBadge url="https://github.com/superset-sh/superset/pull/3547" />
+- V2 workspace — prevent "workspace not found" flash after create; gate children on collection readiness; derive base branch from git config <PRBadge url="https://github.com/superset-sh/superset/pull/3494" /> <PRBadge url="https://github.com/superset-sh/superset/pull/3464" /> <PRBadge url="https://github.com/superset-sh/superset/pull/3492" />
+- V2 file tree — no longer blocks on `git.getStatus` in shared tRPC batch; file icons resolve on nested routes <PRBadge url="https://github.com/superset-sh/superset/pull/3400" /> <PRBadge url="https://github.com/superset-sh/superset/pull/3199" />
+- V2 sidebar — LOC badge hidden when no changes; section count matches visual grouping; native clipboard for copy path <PRBadge url="https://github.com/superset-sh/superset/pull/3399" /> <PRBadge url="https://github.com/superset-sh/superset/pull/3544" /> <PRBadge url="https://github.com/superset-sh/superset/pull/3462" />
+- V2 diff sidebar — removed viewed checkboxes; right sidebar toggle is reactive <PRBadge url="https://github.com/superset-sh/superset/pull/3480" /> <PRBadge url="https://github.com/superset-sh/superset/pull/3421" />
+- V2 — Open In editor is project-scoped, not workspace-scoped; duplicate panes on new-tab file opens; modal focus trap on workspace dialogs <PRBadge url="https://github.com/superset-sh/superset/pull/3393" /> <PRBadge url="https://github.com/superset-sh/superset/pull/3093" /> <PRBadge url="https://github.com/superset-sh/superset/pull/3392" />
+- V1 — fix Cmd+O firing open-in twice; fix split pane startup sizing; `--no-track` in createWorktree <PRBadge url="https://github.com/superset-sh/superset/pull/3511" /> <PRBadge url="https://github.com/superset-sh/superset/pull/3416" /> <PRBadge url="https://github.com/superset-sh/superset/pull/3548" />
+- Keyboard — Ctrl bindings, `event.code` unification, terminal override respect <PRBadge url="https://github.com/superset-sh/superset/pull/3391" />
+- IME composition in new-workspace Enter handlers <PRBadge url="https://github.com/superset-sh/superset/pull/3486" />
+- File attachments pass through the prompt input <PRBadge url="https://github.com/superset-sh/superset/pull/3334" />
+- Close-workspace shortcut no longer conflicts with tab close — now ⌘⇧⌫ <PRBadge url="https://github.com/superset-sh/superset/pull/3037" />
+- Pending failure error messages are selectable <PRBadge url="https://github.com/superset-sh/superset/pull/3432" />
+- Font-settings query no longer silently routed through host-service <PRBadge url="https://github.com/superset-sh/superset/pull/3394" />
+- MCP — accept resource URL as valid OAuth audience; fix devices incorrectly classified as offline <PRBadge url="https://github.com/superset-sh/superset/pull/3459" /> <PRBadge url="https://github.com/superset-sh/superset/pull/3299" />
+- CLI auth switched to OAuth PKCE + loopback <PRBadge url="https://github.com/superset-sh/superset/pull/3318" />

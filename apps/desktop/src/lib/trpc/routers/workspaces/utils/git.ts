@@ -1777,18 +1777,45 @@ export async function createWorktreeFromPr({
 			});
 		}
 
-		await execWithShellEnv(
-			"gh",
-			[
-				"pr",
-				"checkout",
-				String(prInfo.number),
-				"--branch",
-				localBranchName,
-				"--force",
-			],
-			{ cwd: worktreePath, timeout: 120_000 },
-		);
+		try {
+			await execWithShellEnv(
+				"gh",
+				[
+					"pr",
+					"checkout",
+					String(prInfo.number),
+					"--branch",
+					localBranchName,
+					"--force",
+				],
+				{ cwd: worktreePath, timeout: 120_000 },
+			);
+		} catch (ghError) {
+			const ghMsg = ghError instanceof Error ? ghError.message : String(ghError);
+			// `gh pr checkout` can fail with "is not a branch" when the branch name
+			// contains '/' (e.g. "user/feature-branch"). Git has trouble resolving
+			// "origin/user/feature-branch" as a tracking ref inside a worktree.
+			// gh already fetched the remote successfully, so FETCH_HEAD points to
+			// the right commit — fall back to creating the branch without tracking.
+			if (!ghMsg.includes("is not a branch")) {
+				throw ghError;
+			}
+			console.log(
+				`[git] gh pr checkout failed with tracking error for PR #${prInfo.number}, falling back to FETCH_HEAD checkout`,
+			);
+			await execGitWithShellPath(
+				[
+					"-C",
+					worktreePath,
+					"checkout",
+					"-B",
+					localBranchName,
+					"--no-track",
+					"FETCH_HEAD",
+				],
+				{ timeout: 30_000 },
+			);
+		}
 
 		// Enable autoSetupRemote so `git push` just works without -u flag.
 		await execGitWithShellPath(

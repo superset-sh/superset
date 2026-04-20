@@ -2,5 +2,12 @@
 	"name": "electric-proxy",
 	"main": "src/index.ts",
 	"compatibility_date": "2025-01-01",
-	"compatibility_flags": ["request_cf_overrides_cache_rules"]
+	"compatibility_flags": ["request_cf_overrides_cache_rules"],
+	"observability": {
+		"enabled": true,
+		"head_sampling_rate": 1,
+		"logs": {
+			"invocation_logs": true
+		}
+	}
 }

@@ -13,7 +13,7 @@ describe("buildAgentPromptCommand", () => {
 		});
 
 		expect(command).toContain(
-			"model_supports_reasoning_summaries=true -- \"$(cat <<'SUPERSET_PROMPT_12345678'",
+			"model_supports_reasoning_summaries=true --full-auto -- \"$(cat <<'SUPERSET_PROMPT_12345678'",
 		);
 		expect(command).toContain("- Only modified file: runtime.ts");
 	});
@@ -26,7 +26,7 @@ describe("buildAgentPromptCommand", () => {
 		});
 
 		expect(command).toStartWith(
-			"claude --dangerously-skip-permissions \"$(cat <<'SUPERSET_PROMPT_abcdefgh'",
+			"claude --permission-mode acceptEdits \"$(cat <<'SUPERSET_PROMPT_abcdefgh'",
 		);
 	});
 
