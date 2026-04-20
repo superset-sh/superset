@@ -9,7 +9,7 @@ Design for the v2 "create project" and "import project" flows. V2 projects are c
 ## Two rules for v1
 
 - **Sidebar** — pinned projects and their workspaces. Pin happens as a side-effect of `project.create` / `project.setup`; there's no standalone pin UI.
-- **Workspaces tab** — every workspace in the user's active org. No filtering by pin, host access, or online status.
+- **Workspaces tab** — workspaces in the user's active org scoped to hosts the user is linked to via `v2_users_hosts`. No filtering by pin or online status.
 
 Everything below serves one of those two rules.
 
@@ -156,7 +156,7 @@ No gating. A remote workspace opens the normal workspace page — you can see it
 
 ## Workspaces tab
 
-Lists every workspace in the user's active org (`workspaces.organizationId === activeOrganizationId`). No further filtering — not by pin, not by host access (`v2UsersHosts`), not by online status.
+Lists workspaces in the user's active org scoped to hosts the user is linked to via `v2_users_hosts` (`workspaces.organizationId === activeOrganizationId AND userHosts.userId === currentUserId`). Teammates' workspaces on hosts you aren't linked to are not surfaced here.
 
 Rows indicate their host via a `hostType` chip (`local-device` / `remote-device` / `cloud`). Remote-device clicks route to the same stub as the sidebar.
 
@@ -188,7 +188,7 @@ Sidebar `+` → "New project" → `project.create` → sidebar shows the project
 
 ### 2. Join an org with existing projects
 
-Workspaces tab shows every workspace in the org, including teammates' ones on remote hosts. Click any of them to open — local-fs operations degrade as they hit their limits; the workspace itself renders.
+Workspaces tab shows workspaces in the org on hosts the user is linked to (via `v2_users_hosts`), including teammates' workspaces on hosts you share. Click any of them to open — local-fs operations degrade as they hit their limits; the workspace itself renders.
 
 ### 3. Adding a second host
 
