@@ -125,7 +125,7 @@ export const BUILTIN_TERMINAL_AGENTS = [
 		description:
 			"GitHub's coding agent for planning, editing, and building in your repo.",
 		command: "copilot --allow-all",
-		promptCommand: "copilot -i --allow-all",
+		promptCommand: "copilot --allow-all -i",
 		promptCommandSuffix: "--yolo",
 		includeInDefaultTerminalPresets: true,
 	}),

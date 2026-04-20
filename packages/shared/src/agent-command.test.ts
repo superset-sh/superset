@@ -50,6 +50,18 @@ describe("buildAgentPromptCommand", () => {
 		expect(command).toBe("amp < '.superset/task-demo.md'");
 	});
 
+	it("places -i after --allow-all so prompt is the -i argument for copilot", () => {
+		const command = buildAgentPromptCommand({
+			prompt: "fix the bug",
+			randomId: "cop-1234",
+			agent: "copilot",
+		});
+
+		expect(command).toStartWith("copilot --allow-all -i ");
+		expect(command).toContain("fix the bug");
+		expect(command).toContain("--yolo");
+	});
+
 	it("uses pi interactive mode for prompt launches", () => {
 		const command = buildAgentPromptCommand({
 			prompt: "hello",
