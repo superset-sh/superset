@@ -152,10 +152,8 @@ export function createRuntime(
 
 	terminal.attachCustomKeyEventHandler((event) => !isAppHotkey(event));
 
-	// Load addons (which activates Unicode 11 width tables) before replaying the
-	// persisted buffer. Otherwise xterm parses CJK/emoji/ZWJ sequences using
-	// Unicode 6 widths and bakes wrong cell widths into the restored buffer,
-	// producing garbled glyphs on repaint.
+	// Activate Unicode 11 widths (inside loadAddons) before restoring the buffer,
+	// else CJK/emoji/ZWJ widths get baked wrong into the replay. (#3572)
 	const addonsResult = loadAddons(terminal);
 	restoreBuffer(terminalId, terminal);
 
