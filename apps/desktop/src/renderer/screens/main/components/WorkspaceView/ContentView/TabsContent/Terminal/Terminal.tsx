@@ -332,7 +332,6 @@ export const Terminal = memo(function Terminal({
 		flushPendingEvents,
 		resetModes,
 		isAlternateScreenRef,
-		isBracketedPasteRef,
 		setPaneNameRef,
 		renameUnnamedWorkspaceRef,
 		handleTerminalFocusRef,
