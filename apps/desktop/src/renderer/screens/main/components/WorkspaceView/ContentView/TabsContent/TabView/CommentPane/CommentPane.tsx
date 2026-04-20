@@ -7,7 +7,13 @@ import {
 	useRef,
 	useState,
 } from "react";
-import { LuCheck, LuCopy } from "react-icons/lu";
+import { FaGithub } from "react-icons/fa";
+import {
+	LuArrowUpRight,
+	LuCheck,
+	LuCopy,
+	LuMessageSquare,
+} from "react-icons/lu";
 import ReactMarkdown from "react-markdown";
 import type { MosaicBranch } from "react-mosaic-component";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
@@ -91,11 +97,32 @@ export function CommentPane({
 			renderToolbar={(handlers) => (
 				<div className="flex h-full w-full items-center justify-between px-3">
 					<div className="flex min-w-0 items-center gap-2">
+						{comment?.avatarUrl ? (
+							<img
+								src={comment.avatarUrl}
+								alt=""
+								className="size-4 shrink-0 rounded-full"
+							/>
+						) : (
+							<LuMessageSquare className="size-4 shrink-0 text-muted-foreground" />
+						)}
 						<PaneTitle
 							name={paneName ?? ""}
 							fallback="Comment"
 							onRename={(newName) => setPaneName(paneId, newName)}
 						/>
+						{comment?.url && (
+							<a
+								href={comment.url}
+								target="_blank"
+								rel="noopener noreferrer"
+								className="flex shrink-0 items-center gap-0.5 text-muted-foreground hover:text-foreground"
+								aria-label="View on GitHub"
+							>
+								<FaGithub className="size-3.5" />
+								<LuArrowUpRight className="size-3" />
+							</a>
+						)}
 					</div>
 					<PaneToolbarActions
 						splitOrientation={handlers.splitOrientation}
