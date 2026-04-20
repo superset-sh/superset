@@ -237,11 +237,6 @@ export interface KeyboardHandlerOptions {
 	onWrite?: (data: string) => void;
 }
 
-export interface PasteHandlerOptions {
-	/** Callback when text is pasted, receives the pasted text */
-	onPaste?: (text: string) => void;
-}
-
 /**
  * Setup copy handler for xterm to trim trailing whitespace from copied text.
  *
@@ -283,41 +278,6 @@ export function setupCopyHandler(xterm: XTerm): () => void {
 
 	return () => {
 		element.removeEventListener("copy", handleCopy);
-	};
-}
-
-/**
- * Setup paste handler for xterm.
- *
- * xterm.js's built-in paste handling via the textarea should work, but in some
- * Electron environments the clipboard events may not propagate correctly, so
- * we intercept `paste` explicitly and delegate to `xterm.paste()`, which
- * handles newline normalization and bracketed-paste wrapping internally.
- *
- * Returns a cleanup function to remove the handler.
- */
-export function setupPasteHandler(
-	xterm: XTerm,
-	options: PasteHandlerOptions = {},
-): () => void {
-	const textarea = xterm.textarea;
-	if (!textarea) return () => {};
-
-	const handlePaste = (event: ClipboardEvent) => {
-		const text = event.clipboardData?.getData("text/plain") ?? "";
-		if (!text) return;
-
-		event.preventDefault();
-		event.stopImmediatePropagation();
-
-		options.onPaste?.(text);
-		xterm.paste(text);
-	};
-
-	textarea.addEventListener("paste", handlePaste, { capture: true });
-
-	return () => {
-		textarea.removeEventListener("paste", handlePaste, { capture: true });
 	};
 }
 
