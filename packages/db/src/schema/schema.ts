@@ -716,11 +716,6 @@ export const automationSessionKind = pgEnum(
 	automationSessionKindValues,
 );
 
-/**
- * Scheduled automation definition. Each automation describes a prompt that
- * should fire on a cron-like recurrence against a target host + workspace
- * (or a freshly allocated workspace per run).
- */
 export const automations = pgTable(
 	"automations",
 	{
@@ -735,17 +730,8 @@ export const automations = pgTable(
 		name: text().notNull(),
 		prompt: text().notNull(),
 
-		/**
-		 * Full resolved agent config snapshotted at create time. Lets the cloud
-		 * dispatcher build the exact same AgentLaunchRequest the user saw —
-		 * including user customizations (overridden command, model, etc.) that
-		 * live only in the desktop's local settings. Treat as frozen at create
-		 * time; updating the user's preset later does not retroactively change
-		 * existing automations. The preset id is `agentConfig.id`.
-		 */
 		agentConfig: jsonb("agent_config").$type<ResolvedAgentConfig>().notNull(),
 
-		/** Target host (v2_hosts.id). Null = owner's most-recently-online host at dispatch. */
 		targetHostId: uuid("target_host_id").references(() => v2Hosts.id, {
 			onDelete: "set null",
 		}),
@@ -755,17 +741,14 @@ export const automations = pgTable(
 			.references(() => v2Projects.id, { onDelete: "cascade" }),
 		v2WorkspaceId: uuid("v2_workspace_id"),
 
-		/** RFC 5545 RRULE body (without DTSTART header — stored separately). */
 		rrule: text().notNull(),
 		dtstart: timestamp("dtstart", { withTimezone: true }).notNull(),
 		timezone: text().notNull(),
 
 		enabled: boolean().notNull().default(true),
 
-		/** MCP scope. v1: empty = Superset MCP only. */
 		mcpScope: jsonb("mcp_scope").$type<string[]>().notNull().default([]),
 
-		/** Materialized next occurrence. Dispatcher hot path never re-parses rrule. */
 		nextRunAt: timestamp("next_run_at", { withTimezone: true }).notNull(),
 
 		createdAt: timestamp("created_at", { withTimezone: true })
@@ -786,10 +769,6 @@ export const automations = pgTable(
 export type InsertAutomation = typeof automations.$inferInsert;
 export type SelectAutomation = typeof automations.$inferSelect;
 
-/**
- * One row per scheduled dispatch attempt. Idempotent on
- * (automation_id, scheduled_for) so Vercel Cron double-deliveries are absorbed.
- */
 export const automationRuns = pgTable(
 	"automation_runs",
 	{
@@ -801,11 +780,8 @@ export const automationRuns = pgTable(
 			.notNull()
 			.references(() => organizations.id, { onDelete: "cascade" }),
 
-		/** Snapshot of automations.name at dispatch time — preserves what the run
-		 *  was called even if the automation is renamed later. */
 		title: text().notNull(),
 
-		/** Minute-bucketed scheduled fire time. */
 		scheduledFor: timestamp("scheduled_for", { withTimezone: true }).notNull(),
 
 		hostId: uuid("host_id").references(() => v2Hosts.id, {
@@ -813,14 +789,13 @@ export const automationRuns = pgTable(
 		}),
 		v2WorkspaceId: uuid("v2_workspace_id"),
 
-		/** null until the run reaches "dispatched". */
 		sessionKind: automationSessionKind("session_kind"),
 		chatSessionId: uuid("chat_session_id").references(() => chatSessions.id, {
 			onDelete: "set null",
 		}),
 		terminalSessionId: text("terminal_session_id"),
 
-		status: automationRunStatus().notNull().default("pending"),
+		status: automationRunStatus().notNull(),
 		error: text(),
 		dispatchedAt: timestamp("dispatched_at", { withTimezone: true }),
 

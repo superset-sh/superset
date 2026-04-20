@@ -12,7 +12,6 @@ import { cn } from "@superset/ui/utils";
 import {
 	HiCheck,
 	HiChevronUpDown,
-	HiOutlineCloud,
 	HiOutlineComputerDesktop,
 	HiOutlineServer,
 } from "react-icons/hi2";
@@ -42,10 +41,6 @@ interface DevicePickerProps {
 	className?: string;
 }
 
-function getHostIcon(host: WorkspaceHostOption) {
-	return host.isCloud ? HiOutlineCloud : HiOutlineComputerDesktop;
-}
-
 function getSelectedLabel(
 	hostTarget: WorkspaceHostTarget,
 	currentDeviceName: string | null,
@@ -61,17 +56,9 @@ function getSelectedLabel(
 	);
 }
 
-function getSelectedIcon(
-	hostTarget: WorkspaceHostTarget,
-	otherHosts: WorkspaceHostOption[],
-) {
+function getSelectedIcon(hostTarget: WorkspaceHostTarget) {
 	if (hostTarget.kind === "local") {
 		return <HiOutlineComputerDesktop className="size-4 shrink-0" />;
-	}
-
-	const host = otherHosts.find((h) => h.id === hostTarget.hostId);
-	if (host?.isCloud) {
-		return <HiOutlineCloud className="size-4 shrink-0" />;
 	}
 
 	return <HiOutlineServer className="size-4 shrink-0" />;
@@ -104,7 +91,7 @@ export function DevicePicker({
 					aria-label={`Device: ${selectedLabel}`}
 					title={selectedLabel}
 				>
-					{getSelectedIcon(hostTarget, otherHosts)}
+					{getSelectedIcon(hostTarget)}
 					<span className="truncate">{selectedLabel}</span>
 					{selectedRemoteOnline !== null && (
 						<OnlineDot online={selectedRemoteOnline} />
@@ -130,7 +117,6 @@ export function DevicePicker({
 							</DropdownMenuSubTrigger>
 							<DropdownMenuSubContent className="w-72">
 								{otherHosts.map((host) => {
-									const HostIcon = getHostIcon(host);
 									const isSelected =
 										hostTarget.kind === "host" && hostTarget.hostId === host.id;
 
@@ -144,7 +130,7 @@ export function DevicePicker({
 												})
 											}
 										>
-											<HostIcon className="size-4" />
+											<HiOutlineServer className="size-4" />
 											<span className="min-w-0 truncate">{host.name}</span>
 											<OnlineDot online={host.isOnline} />
 											{isSelected && (

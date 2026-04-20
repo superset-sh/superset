@@ -253,6 +253,13 @@
       "when": 1776661088164,
       "tag": "0035_add_automations",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1776661543389,
+      "tag": "0036_drop_pending_automation_status",
+      "breakpoints": true
     }
   ]
 }
