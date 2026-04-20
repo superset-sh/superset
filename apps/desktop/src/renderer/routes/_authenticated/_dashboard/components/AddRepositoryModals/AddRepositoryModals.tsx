@@ -53,7 +53,6 @@ export function AddRepositoryModals() {
 				state={folderImport.state}
 				onCancel={folderImport.cancel}
 				onConfirmCreateAsNew={folderImport.confirmCreateAsNew}
-				onConfirmPickCandidate={folderImport.confirmPickCandidate}
 			/>
 		</>
 	);

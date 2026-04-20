@@ -19,14 +19,12 @@ interface FolderFirstImportModalProps {
 	state: FolderFirstImportState;
 	onCancel: UseFolderFirstImportResult["cancel"];
 	onConfirmCreateAsNew: UseFolderFirstImportResult["confirmCreateAsNew"];
-	onConfirmPickCandidate: UseFolderFirstImportResult["confirmPickCandidate"];
 }
 
 export function FolderFirstImportModal({
 	state,
 	onCancel,
 	onConfirmCreateAsNew,
-	onConfirmPickCandidate,
 }: FolderFirstImportModalProps) {
 	const open = state.kind !== "idle";
 	return (
@@ -43,16 +41,6 @@ export function FolderFirstImportModal({
 						working={state.working}
 						onCancel={onCancel}
 						onConfirm={onConfirmCreateAsNew}
-					/>
-				)}
-				{state.kind === "pick" && (
-					<CandidatePickerContent
-						key={state.repoPath}
-						repoPath={state.repoPath}
-						candidates={state.candidates}
-						working={state.working}
-						onCancel={onCancel}
-						onConfirm={onConfirmPickCandidate}
 					/>
 				)}
 			</DialogContent>
@@ -122,94 +110,6 @@ function NoMatchContent({
 				</Button>
 				<Button type="submit" disabled={!canSubmit}>
 					{working ? "Creating…" : "Create project"}
-				</Button>
-			</DialogFooter>
-		</form>
-	);
-}
-
-interface CandidatePickerContentProps {
-	repoPath: string;
-	candidates: Array<{
-		id: string;
-		name: string;
-		organizationName: string;
-	}>;
-	working: boolean;
-	onCancel: () => void;
-	onConfirm: (candidateId: string) => Promise<void>;
-}
-
-function CandidatePickerContent({
-	repoPath,
-	candidates,
-	working,
-	onCancel,
-	onConfirm,
-}: CandidatePickerContentProps) {
-	const [selectedId, setSelectedId] = useState<string | null>(
-		candidates[0]?.id ?? null,
-	);
-	const canSubmit = selectedId != null && !working;
-
-	const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
-		event.preventDefault();
-		if (!canSubmit || !selectedId) return;
-		void onConfirm(selectedId);
-	};
-
-	return (
-		<form onSubmit={handleSubmit}>
-			<DialogHeader>
-				<DialogTitle>Pick a project</DialogTitle>
-				<DialogDescription>
-					This folder's git remote matches multiple projects you have access to.
-					Which one is this folder for?
-				</DialogDescription>
-			</DialogHeader>
-			<div className="space-y-3 py-4">
-				<div className="space-y-1">
-					<Label className="text-xs text-muted-foreground">Folder</Label>
-					<code className="block truncate rounded bg-muted px-2 py-1 text-xs">
-						{repoPath}
-					</code>
-				</div>
-				<div className="flex flex-col gap-1.5">
-					{candidates.map((candidate) => {
-						const selected = candidate.id === selectedId;
-						return (
-							<button
-								key={candidate.id}
-								type="button"
-								onClick={() => setSelectedId(candidate.id)}
-								disabled={working}
-								className={[
-									"flex w-full items-center justify-between rounded-md border px-3 py-2 text-left text-sm transition-colors",
-									selected
-										? "border-primary bg-primary/5"
-										: "border-border hover:bg-muted/50",
-								].join(" ")}
-							>
-								<span className="font-medium">{candidate.name}</span>
-								<span className="text-xs text-muted-foreground">
-									{candidate.organizationName}
-								</span>
-							</button>
-						);
-					})}
-				</div>
-			</div>
-			<DialogFooter>
-				<Button
-					type="button"
-					variant="outline"
-					onClick={onCancel}
-					disabled={working}
-				>
-					Cancel
-				</Button>
-				<Button type="submit" disabled={!canSubmit}>
-					{working ? "Setting up…" : "Set up here"}
 				</Button>
 			</DialogFooter>
 		</form>

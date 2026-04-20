@@ -4,7 +4,7 @@ import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 
-export interface FolderImportCandidate {
+interface FolderImportCandidate {
 	id: string;
 	name: string;
 	slug: string;
@@ -12,19 +12,12 @@ export interface FolderImportCandidate {
 	organizationName: string;
 }
 
-// idle      — no modal.
-// no-match  — picked folder has no cloud project; user names it.
-// pick      — multiple candidates; user picks which cloud project.
+// idle     — no modal.
+// no-match — picked folder has no cloud project; user names it.
 // (1-match has no state — setup runs immediately.)
 export type FolderFirstImportState =
 	| { kind: "idle" }
-	| { kind: "no-match"; repoPath: string; working: boolean }
-	| {
-			kind: "pick";
-			repoPath: string;
-			candidates: FolderImportCandidate[];
-			working: boolean;
-	  };
+	| { kind: "no-match"; repoPath: string; working: boolean };
 
 export interface UseFolderFirstImportResult {
 	state: FolderFirstImportState;
@@ -32,7 +25,6 @@ export interface UseFolderFirstImportResult {
 	/** No-op while a mutation is working. */
 	cancel: () => void;
 	confirmCreateAsNew: (input: { name: string }) => Promise<void>;
-	confirmPickCandidate: (candidateId: string) => Promise<void>;
 }
 
 type SetupInvokeResult =
@@ -115,21 +107,26 @@ export function useFolderFirstImport(options?: {
 			return;
 		}
 
-		if (candidates.length === 0) {
+		const [only, ...rest] = candidates;
+		if (!only) {
 			setState({ kind: "no-match", repoPath, working: false });
 			return;
 		}
-		const [only, ...rest] = candidates;
-		if (only && rest.length === 0) {
-			const result = await runSetup(only.id, repoPath);
-			if (result.status === "ok") {
-				reportSuccess(result);
-			} else {
-				reportError(result.message);
-			}
+		if (rest.length > 0) {
+			// Unreachable given single-org findByGitHubRemote + the unique
+			// index on (organizationId, lower(repoCloneUrl)). Surface loudly
+			// if we ever hit it — means the invariants broke.
+			reportError(
+				`Multiple matching projects returned (${candidates.length}) — please report this`,
+			);
 			return;
 		}
-		setState({ kind: "pick", repoPath, candidates, working: false });
+		const result = await runSetup(only.id, repoPath);
+		if (result.status === "ok") {
+			reportSuccess(result);
+		} else {
+			reportError(result.message);
+		}
 	}, [activeHostUrl, reportError, reportSuccess, runSetup, selectDirectory]);
 
 	const cancel = useCallback(() => {
@@ -166,27 +163,10 @@ export function useFolderFirstImport(options?: {
 		[activeHostUrl, reportError, reportSuccess, state],
 	);
 
-	const confirmPickCandidate = useCallback(
-		async (candidateId: string) => {
-			if (state.kind !== "pick") return;
-			const { repoPath, candidates } = state;
-			setState({ kind: "pick", repoPath, candidates, working: true });
-			const result = await runSetup(candidateId, repoPath);
-			if (result.status === "ok") {
-				reportSuccess(result);
-			} else {
-				reportError(result.message);
-				setState({ kind: "pick", repoPath, candidates, working: false });
-			}
-		},
-		[reportError, reportSuccess, runSetup, state],
-	);
-
 	return {
 		state,
 		start,
 		cancel,
 		confirmCreateAsNew,
-		confirmPickCandidate,
 	};
 }
