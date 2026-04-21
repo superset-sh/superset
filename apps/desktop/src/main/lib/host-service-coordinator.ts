@@ -75,7 +75,15 @@ function openRotatingLogFd(logPath: string, maxBytes: number): number {
 				// Best-effort rotate
 			}
 		}
-		return fs.openSync(logPath, "a", 0o600);
+		const fd = fs.openSync(logPath, "a", 0o600);
+		// openSync's mode arg only applies on create — normalize an existing
+		// file's perms in case it was rotated out-of-band with laxer bits.
+		try {
+			fs.chmodSync(logPath, 0o600);
+		} catch {
+			// Best-effort
+		}
+		return fd;
 	} catch (error) {
 		console.warn(`[host-service] Failed to open log file ${logPath}: ${error}`);
 		return -1;
@@ -455,6 +463,8 @@ export class HostServiceCoordinator extends EventEmitter {
 				detached: !isDev,
 				stdio,
 				env: childEnv,
+				// Avoid a flashing CMD window on Windows for the detached child.
+				windowsHide: true,
 			});
 		} finally {
 			if (logFd >= 0) {
