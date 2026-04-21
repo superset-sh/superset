@@ -377,7 +377,7 @@ export class HostServiceCoordinator extends EventEmitter {
 		const logFd = isDev
 			? -1
 			: openRotatingLogFd(
-					path.join(manifestDir(organizationId), "host.log"),
+					path.join(manifestDir(organizationId), "host-service.log"),
 					MAX_HOST_LOG_BYTES,
 				);
 		const stdio: childProcess.StdioOptions = isDev

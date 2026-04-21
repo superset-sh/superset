@@ -2,7 +2,7 @@ import * as fs from "node:fs";
 import { createServer } from "node:net";
 import path from "node:path";
 
-/** Rotate per-org host.log once it exceeds this size. */
+/** Rotate per-org host-service.log once it exceeds this size. */
 export const MAX_HOST_LOG_BYTES = 5 * 1024 * 1024;
 
 export const HEALTH_POLL_TIMEOUT_MS = 10_000;
