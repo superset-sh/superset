@@ -25,6 +25,9 @@ import { HOOK_PROTOCOL_VERSION } from "./terminal/env";
 /** Minimum host-service version this app can work with. */
 const MIN_HOST_SERVICE_VERSION = "0.1.0";
 
+/** Rotate per-org host.log once it exceeds this size. */
+const MAX_HOST_LOG_BYTES = 5 * 1024 * 1024;
+
 export type HostServiceStatus = "starting" | "running" | "stopped";
 
 export interface Connection {
@@ -54,6 +57,30 @@ interface HostServiceProcess {
 const HEALTH_POLL_INTERVAL = 200;
 const HEALTH_POLL_TIMEOUT = 10_000;
 const ADOPTED_LIVENESS_INTERVAL = 5_000;
+
+/**
+ * Open an append-mode log fd, truncating first if it exceeds maxBytes.
+ * Returns -1 on failure so callers can fall back to ignoring child stdio.
+ */
+function openRotatingLogFd(logPath: string, maxBytes: number): number {
+	try {
+		fs.mkdirSync(path.dirname(logPath), { recursive: true, mode: 0o700 });
+		if (fs.existsSync(logPath)) {
+			try {
+				const { size } = fs.statSync(logPath);
+				if (size > maxBytes) {
+					fs.writeFileSync(logPath, "", { mode: 0o600 });
+				}
+			} catch {
+				// Best-effort rotate
+			}
+		}
+		return fs.openSync(logPath, "a", 0o600);
+	} catch (error) {
+		console.warn(`[host-service] Failed to open log file ${logPath}: ${error}`);
+		return -1;
+	}
+}
 
 async function findFreePort(): Promise<number> {
 	return new Promise((resolve, reject) => {
@@ -401,11 +428,43 @@ export class HostServiceCoordinator extends EventEmitter {
 		this.instances.set(organizationId, instance);
 		this.emitStatus(organizationId, "starting", null);
 
-		const env = await this.buildEnv(organizationId, port, secret, config);
-		const child = childProcess.spawn(process.execPath, [this.scriptPath], {
-			stdio: ["ignore", "pipe", "pipe"],
-			env,
-		});
+		const childEnv = await this.buildEnv(organizationId, port, secret, config);
+		const isDev = process.env.NODE_ENV === "development";
+
+		// In prod, detach so the child survives app relaunch: auto-updater's
+		// quitAndInstall would otherwise take the host-service (and its PTYs)
+		// down with the old app's process group. Stdio must point at real
+		// fds — piped stdio would EPIPE once the parent exits. In dev we
+		// keep pipes so logs flow to the Electron console; dev restarts via
+		// enableDevReload anyway, so survival isn't needed.
+		const logFd = isDev
+			? -1
+			: openRotatingLogFd(
+					path.join(manifestDir(organizationId), "host.log"),
+					MAX_HOST_LOG_BYTES,
+				);
+		const stdio: childProcess.StdioOptions = isDev
+			? ["ignore", "pipe", "pipe"]
+			: logFd >= 0
+				? ["ignore", logFd, logFd]
+				: ["ignore", "ignore", "ignore"];
+
+		let child: ReturnType<typeof childProcess.spawn>;
+		try {
+			child = childProcess.spawn(process.execPath, [this.scriptPath], {
+				detached: !isDev,
+				stdio,
+				env: childEnv,
+			});
+		} finally {
+			if (logFd >= 0) {
+				try {
+					fs.closeSync(logFd);
+				} catch {
+					// Best-effort — child has its own dup of the fd.
+				}
+			}
+		}
 
 		const childPid = child.pid;
 		if (!childPid) {
@@ -415,14 +474,18 @@ export class HostServiceCoordinator extends EventEmitter {
 
 		instance.pid = childPid;
 
-		child.stdout?.on("data", (data: Buffer) => {
-			console.log(`[host-service:${organizationId}] ${data.toString().trim()}`);
-		});
-		child.stderr?.on("data", (data: Buffer) => {
-			console.error(
-				`[host-service:${organizationId}] ${data.toString().trim()}`,
-			);
-		});
+		if (isDev) {
+			child.stdout?.on("data", (data: Buffer) => {
+				console.log(
+					`[host-service:${organizationId}] ${data.toString().trim()}`,
+				);
+			});
+			child.stderr?.on("data", (data: Buffer) => {
+				console.error(
+					`[host-service:${organizationId}] ${data.toString().trim()}`,
+				);
+			});
+		}
 		child.on("exit", (code) => {
 			console.log(`[host-service:${organizationId}] exited with code ${code}`);
 			const current = this.instances.get(organizationId);
