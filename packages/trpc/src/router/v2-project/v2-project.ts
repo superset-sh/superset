@@ -197,42 +197,16 @@ export const v2ProjectRouter = {
 				linkedRepoId = repo?.id ?? null;
 			}
 
-			let project: typeof v2Projects.$inferSelect | undefined;
-			try {
-				[project] = await dbWs
-					.insert(v2Projects)
-					.values({
-						organizationId: input.organizationId,
-						name: input.name,
-						slug: input.slug,
-						repoCloneUrl: canonicalUrl,
-						githubRepositoryId: linkedRepoId,
-					})
-					.returning();
-			} catch (err) {
-				// Unique violations surface as BAD_REQUEST with a hint about
-				// which constraint fired. The index on (organizationId,
-				// lower(repo_clone_url)) prevents duplicate repo imports per
-				// org; the (organizationId, slug) constraint catches name
-				// collisions.
-				if (
-					err instanceof Error &&
-					"code" in err &&
-					(err as { code?: string }).code === "23505"
-				) {
-					const constraint = (err as { constraint?: string }).constraint;
-					throw new TRPCError({
-						code: "CONFLICT",
-						message:
-							constraint === "v2_projects_org_repo_clone_url_unique"
-								? "A project with this repository URL already exists in this organization"
-								: constraint === "v2_projects_org_slug_unique"
-									? "A project with this slug already exists in this organization"
-									: "Project already exists",
-					});
-				}
-				throw err;
-			}
+			const [project] = await dbWs
+				.insert(v2Projects)
+				.values({
+					organizationId: input.organizationId,
+					name: input.name,
+					slug: input.slug,
+					repoCloneUrl: canonicalUrl,
+					githubRepositoryId: linkedRepoId,
+				})
+				.returning();
 			if (!project) {
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
@@ -293,36 +267,21 @@ export const v2ProjectRouter = {
 				),
 			});
 
-			try {
-				const [updated] = await dbWs
-					.update(v2Projects)
-					.set({
-						repoCloneUrl: canonicalUrl,
-						githubRepositoryId: repo?.id ?? null,
-					})
-					.where(eq(v2Projects.id, input.id))
-					.returning();
-				if (!updated) {
-					throw new TRPCError({
-						code: "NOT_FOUND",
-						message: "Project not found",
-					});
-				}
-				return updated;
-			} catch (err) {
-				if (
-					err instanceof Error &&
-					"code" in err &&
-					(err as { code?: string }).code === "23505"
-				) {
-					throw new TRPCError({
-						code: "CONFLICT",
-						message:
-							"Another project in this organization already uses this repository URL",
-					});
-				}
-				throw err;
+			const [updated] = await dbWs
+				.update(v2Projects)
+				.set({
+					repoCloneUrl: canonicalUrl,
+					githubRepositoryId: repo?.id ?? null,
+				})
+				.where(eq(v2Projects.id, input.id))
+				.returning();
+			if (!updated) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Project not found",
+				});
 			}
+			return updated;
 		}),
 
 	update: protectedProcedure

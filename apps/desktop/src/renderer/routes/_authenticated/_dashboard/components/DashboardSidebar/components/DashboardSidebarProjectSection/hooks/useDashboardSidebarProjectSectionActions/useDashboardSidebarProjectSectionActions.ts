@@ -43,7 +43,6 @@ export function useDashboardSidebarProjectSectionActions({
 			await apiTrpcClient.v2Project.update.mutate({
 				id: project.id,
 				name: trimmed,
-				slug: trimmed.toLowerCase().replace(/\s+/g, "-"),
 			});
 		} catch (error) {
 			toast.error(
