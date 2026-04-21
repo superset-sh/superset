@@ -1603,7 +1603,7 @@ export const useTabsStore = create<TabsStore>()(
 					set(withDerivedTabNames(result, [targetTabId]));
 				},
 
-				// Browser operations
+				// Comment operations
 				openCommentPane: (workspaceId: string, comment: CommentPaneData) => {
 					const state = get();
 
@@ -1626,10 +1626,14 @@ export const useTabsStore = create<TabsStore>()(
 								comment,
 							},
 						};
+						const tabName = deriveTabName(newPanes, existingPane.tabId);
+						const nextTabs = state.tabs.map((t) =>
+							t.id === existingPane.tabId ? { ...t, name: tabName } : t,
+						);
 						const activationState = activatePaneInWorkspace({
 							workspaceId,
 							paneId: existingPane.id,
-							tabs: state.tabs,
+							tabs: nextTabs,
 							panes: newPanes,
 							activeTabIds: state.activeTabIds,
 							focusedPaneIds: state.focusedPaneIds,
@@ -1637,11 +1641,11 @@ export const useTabsStore = create<TabsStore>()(
 						});
 
 						if (!activationState) {
-							set({ panes: newPanes });
+							set({ panes: newPanes, tabs: nextTabs });
 							return { tabId: existingPane.tabId, paneId: existingPane.id };
 						}
 
-						set(activationState);
+						set({ ...activationState, tabs: nextTabs });
 						return { tabId: existingPane.tabId, paneId: existingPane.id };
 					}
 
@@ -1682,6 +1686,7 @@ export const useTabsStore = create<TabsStore>()(
 					return { tabId: tab.id, paneId: pane.id };
 				},
 
+				// Browser operations
 				addBrowserTab: (workspaceId: string, url?: string) => {
 					const state = get();
 
