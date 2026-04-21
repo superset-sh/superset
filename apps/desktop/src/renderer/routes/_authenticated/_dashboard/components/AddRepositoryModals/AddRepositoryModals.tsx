@@ -5,7 +5,6 @@ import {
 	useCloseAddRepositoryModal,
 	useFolderImportTrigger,
 } from "renderer/stores/add-repository-modal";
-import { FolderFirstImportModal } from "./components/FolderFirstImportModal";
 import { NewProjectModal } from "./components/NewProjectModal";
 import { useFolderFirstImport } from "./hooks/useFolderFirstImport";
 
@@ -40,20 +39,13 @@ export function AddRepositoryModals() {
 	}, [folderImportTrigger]);
 
 	return (
-		<>
-			<NewProjectModal
-				open={active.kind === "new-project"}
-				onOpenChange={(open) => {
-					if (!open) close();
-				}}
-				onSuccess={() => toast.success("Project created.")}
-				onError={(message) => toast.error(`Create failed: ${message}`)}
-			/>
-			<FolderFirstImportModal
-				state={folderImport.state}
-				onCancel={folderImport.cancel}
-				onConfirmCreateAsNew={folderImport.confirmCreateAsNew}
-			/>
-		</>
+		<NewProjectModal
+			open={active.kind === "new-project"}
+			onOpenChange={(open) => {
+				if (!open) close();
+			}}
+			onSuccess={() => toast.success("Project created.")}
+			onError={(message) => toast.error(`Create failed: ${message}`)}
+		/>
 	);
 }
