@@ -186,7 +186,7 @@ export function ProjectLocationSection({
 								const target = conflict;
 								setConflict(null);
 								navigate({
-									to: "/settings/v2-project/$projectId/general",
+									to: "/settings/projects/$projectId",
 									params: { projectId: target.id },
 								});
 							}}

@@ -59,7 +59,7 @@ export function useDashboardSidebarProjectSectionActions({
 
 	const handleOpenSettings = () => {
 		navigate({
-			to: "/settings/project/$projectId",
+			to: "/settings/projects/$projectId",
 			params: { projectId: project.id },
 		});
 	};

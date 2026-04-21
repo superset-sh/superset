@@ -1,9 +1,7 @@
-import { FEATURE_FLAGS } from "@superset/shared/constants";
 import { cn } from "@superset/ui/utils";
 import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { Link, useMatchRoute } from "@tanstack/react-router";
-import { useFeatureFlagEnabled } from "posthog-js/react";
 import { HiOutlineFolder } from "react-icons/hi2";
 import { env } from "renderer/env.renderer";
 import { authClient } from "renderer/lib/auth-client";
@@ -24,7 +22,6 @@ export function ProjectsSettings({
 	const { data: groups = [] } =
 		electronTrpc.workspaces.getAllGrouped.useQuery();
 	const matchRoute = useMatchRoute();
-	const hasCloudAccess = useFeatureFlagEnabled(FEATURE_FLAGS.CLOUD_ACCESS);
 	const collections = useCollections();
 	const { data: session } = authClient.useSession();
 
@@ -53,27 +50,10 @@ export function ProjectsSettings({
 		return null;
 	}
 
-	const isProjectsListActive = matchRoute({ to: "/settings/projects" });
-	const isAnyV1ProjectActive = groups.some(
-		(group) =>
-			matchRoute({
-				to: "/settings/project/$projectId/general",
-				params: { projectId: group.project.id },
-			}) ||
-			(hasCloudAccess &&
-				matchRoute({
-					to: "/settings/project/$projectId/cloud/secrets",
-					params: { projectId: group.project.id },
-				})),
-	);
-	const isAnyV2ProjectActive = v2Projects.some((project) =>
-		matchRoute({
-			to: "/settings/v2-project/$projectId/general",
-			params: { projectId: project.id },
-		}),
-	);
-	const isActive =
-		!!isProjectsListActive || isAnyV1ProjectActive || isAnyV2ProjectActive;
+	const isActive = !!matchRoute({
+		to: "/settings/projects",
+		fuzzy: true,
+	});
 
 	const count = matchCounts?.project;
 
