@@ -1,18 +1,12 @@
 import { useCallback } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
+import { getBaseName } from "renderer/lib/pathBasename";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 
 export interface UseFolderFirstImportResult {
 	start: () => Promise<void>;
-}
-
-function inferProjectName(repoPath: string): string {
-	const trimmed = repoPath.replace(/[\\/]+$/, "");
-	const lastSep = Math.max(trimmed.lastIndexOf("/"), trimmed.lastIndexOf("\\"));
-	const name = lastSep < 0 ? trimmed : trimmed.slice(lastSep + 1);
-	return name || repoPath;
 }
 
 export function useFolderFirstImport(options?: {
@@ -86,7 +80,7 @@ export function useFolderFirstImport(options?: {
 				reportSuccess({ projectId: only.id, repoPath: result.repoPath });
 			} else {
 				const result = await client.project.create.mutate({
-					name: inferProjectName(repoPath),
+					name: getBaseName(repoPath),
 					mode: { kind: "importLocal", repoPath },
 				});
 				reportSuccess(result);
