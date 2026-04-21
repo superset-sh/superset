@@ -2,7 +2,6 @@ import * as childProcess from "node:child_process";
 import { randomBytes } from "node:crypto";
 import { EventEmitter } from "node:events";
 import * as fs from "node:fs";
-import { createServer } from "node:net";
 import path from "node:path";
 import { settings } from "@superset/local-db";
 import { getDeviceName, getHashedDeviceId } from "@superset/shared/device-info";
@@ -19,14 +18,18 @@ import {
 	readManifest,
 	removeManifest,
 } from "./host-service-manifest";
+import {
+	findFreePort,
+	HEALTH_POLL_TIMEOUT_MS,
+	MAX_HOST_LOG_BYTES,
+	openRotatingLogFd,
+	pollHealthCheck,
+} from "./host-service-utils";
 import { localDb } from "./local-db";
 import { HOOK_PROTOCOL_VERSION } from "./terminal/env";
 
 /** Minimum host-service version this app can work with. */
 const MIN_HOST_SERVICE_VERSION = "0.1.0";
-
-/** Rotate per-org host.log once it exceeds this size. */
-const MAX_HOST_LOG_BYTES = 5 * 1024 * 1024;
 
 export type HostServiceStatus = "starting" | "running" | "stopped";
 
@@ -54,81 +57,7 @@ interface HostServiceProcess {
 	status: HostServiceStatus;
 }
 
-const HEALTH_POLL_INTERVAL = 200;
-const HEALTH_POLL_TIMEOUT = 10_000;
 const ADOPTED_LIVENESS_INTERVAL = 5_000;
-
-/**
- * Open an append-mode log fd, truncating first if it exceeds maxBytes.
- * Returns -1 on failure so callers can fall back to ignoring child stdio.
- */
-function openRotatingLogFd(logPath: string, maxBytes: number): number {
-	try {
-		fs.mkdirSync(path.dirname(logPath), { recursive: true, mode: 0o700 });
-		if (fs.existsSync(logPath)) {
-			try {
-				const { size } = fs.statSync(logPath);
-				if (size > maxBytes) {
-					fs.writeFileSync(logPath, "", { mode: 0o600 });
-				}
-			} catch {
-				// Best-effort rotate
-			}
-		}
-		const fd = fs.openSync(logPath, "a", 0o600);
-		// openSync's mode arg only applies on create — normalize an existing
-		// file's perms in case it was rotated out-of-band with laxer bits.
-		try {
-			fs.chmodSync(logPath, 0o600);
-		} catch {
-			// Best-effort
-		}
-		return fd;
-	} catch (error) {
-		console.warn(`[host-service] Failed to open log file ${logPath}: ${error}`);
-		return -1;
-	}
-}
-
-async function findFreePort(): Promise<number> {
-	return new Promise((resolve, reject) => {
-		const server = createServer();
-		server.listen(0, "127.0.0.1", () => {
-			const addr = server.address();
-			if (addr && typeof addr === "object") {
-				const { port } = addr;
-				server.close(() => resolve(port));
-			} else {
-				server.close(() => reject(new Error("Could not get port")));
-			}
-		});
-		server.on("error", reject);
-	});
-}
-
-async function pollHealthCheck(
-	endpoint: string,
-	secret: string,
-	timeoutMs = HEALTH_POLL_TIMEOUT,
-): Promise<boolean> {
-	const deadline = Date.now() + timeoutMs;
-	while (Date.now() < deadline) {
-		try {
-			const controller = new AbortController();
-			const timeout = setTimeout(() => controller.abort(), 2_000);
-			const res = await fetch(`${endpoint}/trpc/health.check`, {
-				signal: controller.signal,
-				headers: { Authorization: `Bearer ${secret}` },
-			});
-			clearTimeout(timeout);
-			if (res.ok) return true;
-		} catch {
-			// Not ready yet
-		}
-		await new Promise((r) => setTimeout(r, HEALTH_POLL_INTERVAL));
-	}
-	return false;
-}
 
 export class HostServiceCoordinator extends EventEmitter {
 	private instances = new Map<string, HostServiceProcess>();
@@ -514,7 +443,7 @@ export class HostServiceCoordinator extends EventEmitter {
 			child.kill("SIGTERM");
 			this.instances.delete(organizationId);
 			throw new Error(
-				`Host service failed to start within ${HEALTH_POLL_TIMEOUT}ms`,
+				`Host service failed to start within ${HEALTH_POLL_TIMEOUT_MS}ms`,
 			);
 		}
 
