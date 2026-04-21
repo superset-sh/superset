@@ -76,7 +76,7 @@ export const WorkspaceRunButton = memo(function WorkspaceRunButton({
 		if (!projectId) return;
 		setSettingsSearchQuery("scripts");
 		void navigate({
-			to: "/settings/project/$projectId/general",
+			to: "/settings/projects/$projectId",
 			params: { projectId },
 		});
 	}, [navigate, projectId, setSettingsSearchQuery]);
