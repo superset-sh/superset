@@ -28,7 +28,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Bun
         id: setup-bun
@@ -37,7 +37,7 @@ jobs:
           bun-version-file: .bun-version
 
       - name: Cache dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.bun/install/cache
           key: ${{ runner.os }}-bun-${{ steps.setup-bun.outputs.bun-revision }}-${{ hashFiles('bun.lock') }}
@@ -73,7 +73,7 @@ jobs:
           EOF
 
       - name: Upload database status
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: database-status
           path: database-status.env
@@ -85,10 +85,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Download database info
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: database-status
 
@@ -118,7 +118,7 @@ jobs:
           EOF
 
       - name: Upload Electric status
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: electric-status
           path: electric-status.env
@@ -131,7 +131,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Bun
         id: setup-bun
@@ -140,7 +140,7 @@ jobs:
           bun-version-file: .bun-version
 
       - name: Download database info
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: database-status
 
@@ -151,7 +151,7 @@ jobs:
           echo "DATABASE_URL_UNPOOLED=$DATABASE_URL_UNPOOLED" >> $GITHUB_ENV
 
       - name: Cache dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.bun/install/cache
           key: ${{ runner.os }}-bun-${{ steps.setup-bun.outputs.bun-revision }}-${{ hashFiles('bun.lock') }}
@@ -285,7 +285,7 @@ jobs:
           EOF
 
       - name: Upload API status
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: api-status
           path: api-status.env
@@ -300,7 +300,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Bun
         id: setup-bun
@@ -309,13 +309,13 @@ jobs:
           bun-version-file: .bun-version
 
       - name: Cache dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.bun/install/cache
           key: ${{ runner.os }}-bun-${{ steps.setup-bun.outputs.bun-revision }}-${{ hashFiles('bun.lock') }}
 
       - name: Download database info
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: database-status
 
@@ -403,7 +403,7 @@ jobs:
           EOF
 
       - name: Upload web status
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: web-status
           path: web-status.env
@@ -416,7 +416,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Bun
         id: setup-bun
@@ -436,7 +436,7 @@ jobs:
           echo "DATABASE_URL_UNPOOLED=$DATABASE_URL_UNPOOLED" >> $GITHUB_ENV
 
       - name: Cache dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.bun/install/cache
           key: ${{ runner.os }}-bun-${{ steps.setup-bun.outputs.bun-revision }}-${{ hashFiles('bun.lock') }}
@@ -517,7 +517,7 @@ jobs:
           EOF
 
       - name: Upload marketing status
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: marketing-status
           path: marketing-status.env
@@ -530,7 +530,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Bun
         id: setup-bun
@@ -539,7 +539,7 @@ jobs:
           bun-version-file: .bun-version
 
       - name: Download database info
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: database-status
 
@@ -550,7 +550,7 @@ jobs:
           echo "DATABASE_URL_UNPOOLED=$DATABASE_URL_UNPOOLED" >> $GITHUB_ENV
 
       - name: Cache dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.bun/install/cache
           key: ${{ runner.os }}-bun-${{ steps.setup-bun.outputs.bun-revision }}-${{ hashFiles('bun.lock') }}
@@ -635,7 +635,7 @@ jobs:
           EOF
 
       - name: Upload admin status
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: admin-status
           path: admin-status.env
@@ -648,7 +648,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Bun
         id: setup-bun
@@ -668,7 +668,7 @@ jobs:
           echo "DATABASE_URL_UNPOOLED=$DATABASE_URL_UNPOOLED" >> $GITHUB_ENV
 
       - name: Cache dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.bun/install/cache
           key: ${{ runner.os }}-bun-${{ steps.setup-bun.outputs.bun-revision }}-${{ hashFiles('bun.lock') }}
@@ -718,7 +718,7 @@ jobs:
           EOF
 
       - name: Upload docs status
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: docs-status
           path: docs-status.env
@@ -734,10 +734,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Download all status artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           pattern: "*-status"
           merge-multiple: true

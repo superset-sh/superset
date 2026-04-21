@@ -41,7 +41,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Bun
         id: setup-bun
@@ -50,7 +50,7 @@ jobs:
           bun-version-file: .bun-version
 
       - name: Cache dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ~/.bun/install/cache
@@ -136,7 +136,7 @@ jobs:
           }
 
       - name: Upload DMG artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ inputs.artifact_prefix }}-mac-${{ matrix.arch }}-dmg
           path: apps/desktop/release/*.dmg
@@ -144,7 +144,7 @@ jobs:
           if-no-files-found: error
 
       - name: Upload ZIP artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ inputs.artifact_prefix }}-mac-${{ matrix.arch }}-zip
           path: apps/desktop/release/*.zip
@@ -152,7 +152,7 @@ jobs:
           if-no-files-found: error
 
       - name: Upload auto-update manifest
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ inputs.artifact_prefix }}-mac-${{ matrix.arch }}-update-manifest
           path: apps/desktop/release/*-mac.yml
@@ -166,7 +166,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Bun
         id: setup-bun
@@ -175,7 +175,7 @@ jobs:
           bun-version-file: .bun-version
 
       - name: Cache dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ~/.bun/install/cache
@@ -249,7 +249,7 @@ jobs:
           }
 
       - name: Upload AppImage artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ inputs.artifact_prefix }}-linux-appimage
           path: apps/desktop/release/*.AppImage
@@ -257,7 +257,7 @@ jobs:
           if-no-files-found: error
 
       - name: Upload Linux auto-update manifest
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ inputs.artifact_prefix }}-linux-update-manifest
           path: apps/desktop/release/*-linux.yml
