@@ -3,7 +3,7 @@ import { useMemo } from "react";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import { NotFound } from "renderer/routes/not-found";
 import { useSettingsSearchQuery } from "renderer/stores/settings-state";
-import { getMatchingItemsForSection } from "../../../utils/settings-search";
+import { getVisibleSettingIdsForSection } from "../../../utils/settings-search";
 import { ProjectSettings } from "../components/ProjectSettings";
 
 export const Route = createFileRoute(
@@ -50,12 +50,10 @@ function GeneralSettingsPage() {
 	const { projectId } = Route.useParams();
 	const searchQuery = useSettingsSearchQuery();
 
-	const visibleItems = useMemo(() => {
-		if (!searchQuery) return null;
-		return getMatchingItemsForSection(searchQuery, "project").map(
-			(item) => item.id,
-		);
-	}, [searchQuery]);
+	const visibleItems = useMemo(
+		() => getVisibleSettingIdsForSection(searchQuery, "project"),
+		[searchQuery],
+	);
 
 	return <ProjectSettings projectId={projectId} visibleItems={visibleItems} />;
 }

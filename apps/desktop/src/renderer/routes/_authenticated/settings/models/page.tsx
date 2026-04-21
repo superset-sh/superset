@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import { createChatServiceIpcClient } from "renderer/components/Chat/utils/chat-service-client";
 import { electronQueryClient } from "renderer/providers/ElectronTRPCProvider";
 import { useSettingsSearchQuery } from "renderer/stores/settings-state";
-import { getMatchingItemsForSection } from "../utils/settings-search";
+import { getVisibleSettingIdsForSection } from "../utils/settings-search";
 import { ModelsSettings } from "./components/ModelsSettings";
 
 export const Route = createFileRoute("/_authenticated/settings/models/")({
@@ -16,12 +16,10 @@ const chatServiceIpcClient = createChatServiceIpcClient();
 function ModelsSettingsPage() {
 	const searchQuery = useSettingsSearchQuery();
 
-	const visibleItems = useMemo(() => {
-		if (!searchQuery) return null;
-		return getMatchingItemsForSection(searchQuery, "models").map(
-			(item) => item.id,
-		);
-	}, [searchQuery]);
+	const visibleItems = useMemo(
+		() => getVisibleSettingIdsForSection(searchQuery, "models"),
+		[searchQuery],
+	);
 
 	return (
 		<ChatServiceProvider

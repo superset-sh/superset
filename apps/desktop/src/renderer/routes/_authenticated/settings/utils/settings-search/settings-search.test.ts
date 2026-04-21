@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import {
+	getVisibleSettingIdsForSection,
 	SETTING_ITEM_ID,
 	type SettingsItem,
 	searchSettings,
@@ -61,5 +62,21 @@ describe("settings search - font settings", () => {
 
 		expect(editorFont?.section).toBe("appearance");
 		expect(terminalFont?.section).toBe("appearance");
+	});
+});
+
+describe("getVisibleSettingIdsForSection", () => {
+	it('returns null for "scripts" on terminal (query applies to project only)', () => {
+		expect(getVisibleSettingIdsForSection("scripts", "terminal")).toBeNull();
+	});
+
+	it("returns project script ids for scripts on project section", () => {
+		const ids = getVisibleSettingIdsForSection("scripts", "project");
+		expect(ids).toContain(SETTING_ITEM_ID.PROJECT_SCRIPTS);
+	});
+
+	it("returns null for empty or whitespace query", () => {
+		expect(getVisibleSettingIdsForSection("", "terminal")).toBeNull();
+		expect(getVisibleSettingIdsForSection("   ", "terminal")).toBeNull();
 	});
 });

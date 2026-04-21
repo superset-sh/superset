@@ -12,6 +12,7 @@ import {
 	useSetSettingsSearchQuery,
 	useSettingsOriginRoute,
 	useSettingsSearchQuery,
+	useSettingsStore,
 } from "renderer/stores/settings-state";
 import { SearchResultsBanner } from "./components/SearchResultsBanner";
 import { SettingsSidebar } from "./components/SettingsSidebar";
@@ -116,6 +117,8 @@ function SettingsLayout() {
 			);
 			if (firstMatch) {
 				navigate({ to: getPathFromSection(firstMatch), replace: true });
+			} else {
+				useSettingsStore.getState().setSearchQuery("");
 			}
 		}
 	}, [isSearchActive, location.pathname, navigate, normalizedSearchQuery]);

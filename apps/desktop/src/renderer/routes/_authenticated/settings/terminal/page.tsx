@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { useSettingsSearchQuery } from "renderer/stores/settings-state";
-import { getMatchingItemsForSection } from "../utils/settings-search";
+import { getVisibleSettingIdsForSection } from "../utils/settings-search";
 import { TerminalSettings } from "./components/TerminalSettings";
 
 export type TerminalSettingsSearch = {
@@ -28,12 +28,10 @@ function TerminalSettingsPage() {
 	const { editPresetId, createProjectId } = Route.useSearch();
 	const searchQuery = useSettingsSearchQuery();
 
-	const visibleItems = useMemo(() => {
-		if (!searchQuery) return null;
-		return getMatchingItemsForSection(searchQuery, "terminal").map(
-			(item) => item.id,
-		);
-	}, [searchQuery]);
+	const visibleItems = useMemo(
+		() => getVisibleSettingIdsForSection(searchQuery, "terminal"),
+		[searchQuery],
+	);
 
 	return (
 		<TerminalSettings

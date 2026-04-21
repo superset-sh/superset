@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { useSettingsSearchQuery } from "renderer/stores/settings-state";
-import { getMatchingItemsForSection } from "../utils/settings-search";
+import { getVisibleSettingIdsForSection } from "../utils/settings-search";
 import { AppearanceSettings } from "./components/AppearanceSettings";
 
 export const Route = createFileRoute("/_authenticated/settings/appearance/")({
@@ -11,12 +11,10 @@ export const Route = createFileRoute("/_authenticated/settings/appearance/")({
 function AppearanceSettingsPage() {
 	const searchQuery = useSettingsSearchQuery();
 
-	const visibleItems = useMemo(() => {
-		if (!searchQuery) return null;
-		return getMatchingItemsForSection(searchQuery, "appearance").map(
-			(item) => item.id,
-		);
-	}, [searchQuery]);
+	const visibleItems = useMemo(
+		() => getVisibleSettingIdsForSection(searchQuery, "appearance"),
+		[searchQuery],
+	);
 
 	return <AppearanceSettings visibleItems={visibleItems} />;
 }
