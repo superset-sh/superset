@@ -72,6 +72,7 @@ export function ProjectsSettingsSidebar({
 	}, [groups, v2Projects]);
 
 	const isEmpty = v2Rows.length === 0 && v1Rows.length === 0;
+	const showHeaders = v2Rows.length > 0 && v1Rows.length > 0;
 
 	return (
 		<div className="w-64 shrink-0 border-r overflow-y-auto">
@@ -82,7 +83,7 @@ export function ProjectsSettingsSidebar({
 					</p>
 				)}
 				{v2Rows.length > 0 && (
-					<Section title="v2">
+					<Section title={showHeaders ? "v2" : null}>
 						{v2Rows.map((row) => (
 							<ProjectLink
 								key={`v2:${row.id}`}
@@ -93,7 +94,7 @@ export function ProjectsSettingsSidebar({
 					</Section>
 				)}
 				{v1Rows.length > 0 && (
-					<Section title="v1">
+					<Section title={showHeaders ? "v1" : null}>
 						{v1Rows.map((row) => (
 							<ProjectLink
 								key={`v1:${row.id}`}
@@ -112,14 +113,16 @@ function Section({
 	title,
 	children,
 }: {
-	title: string;
+	title: string | null;
 	children: React.ReactNode;
 }) {
 	return (
 		<div>
-			<h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-2 mb-2">
-				{title}
-			</h2>
+			{title && (
+				<h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-2 mb-2">
+					{title}
+				</h2>
+			)}
 			<nav className="flex flex-col gap-0.5">{children}</nav>
 		</div>
 	);
