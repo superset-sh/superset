@@ -50,7 +50,7 @@ export const WorkspaceRunButton = memo(function WorkspaceRunButton({
 			{ enabled: !!workspaceId },
 		);
 	const hasRunCommand = (runConfig?.commands ?? []).some(
-		(command) => command.trim().length > 0,
+		(command) => typeof command === "string" && command.trim().length > 0,
 	);
 
 	const handleRunClick = useCallback(() => {

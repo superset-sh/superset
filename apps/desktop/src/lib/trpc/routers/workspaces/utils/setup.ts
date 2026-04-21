@@ -32,6 +32,20 @@ export function copySupersetConfigToWorktree(
 	}
 }
 
+function assertStringArray(
+	value: unknown,
+	fieldPath: string,
+): asserts value is string[] {
+	if (!Array.isArray(value)) {
+		throw new Error(`'${fieldPath}' field must be an array of strings`);
+	}
+	for (const item of value) {
+		if (typeof item !== "string") {
+			throw new Error(`'${fieldPath}' field must be an array of strings`);
+		}
+	}
+}
+
 function readConfigFile(configPath: string): SetupConfig | null {
 	if (!existsSync(configPath)) {
 		return null;
@@ -41,17 +55,10 @@ function readConfigFile(configPath: string): SetupConfig | null {
 		const content = readFileSync(configPath, "utf-8");
 		const parsed = JSON.parse(content) as SetupConfig;
 
-		if (parsed.setup && !Array.isArray(parsed.setup)) {
-			throw new Error("'setup' field must be an array of strings");
-		}
-
-		if (parsed.teardown && !Array.isArray(parsed.teardown)) {
-			throw new Error("'teardown' field must be an array of strings");
-		}
-
-		if (parsed.run && !Array.isArray(parsed.run)) {
-			throw new Error("'run' field must be an array of strings");
-		}
+		if (parsed.setup !== undefined) assertStringArray(parsed.setup, "setup");
+		if (parsed.teardown !== undefined)
+			assertStringArray(parsed.teardown, "teardown");
+		if (parsed.run !== undefined) assertStringArray(parsed.run, "run");
 
 		return parsed;
 	} catch (error) {
@@ -81,14 +88,17 @@ function readLocalConfigFile(filePath: string): LocalSetupConfig | null {
 			const value = parsed[key];
 			if (value === undefined) continue;
 
-			if (Array.isArray(value)) continue;
+			if (Array.isArray(value)) {
+				assertStringArray(value, key);
+				continue;
+			}
 
 			if (typeof value === "object" && value !== null) {
-				if (value.before !== undefined && !Array.isArray(value.before)) {
-					throw new Error(`'${key}.before' must be an array of strings`);
+				if (value.before !== undefined) {
+					assertStringArray(value.before, `${key}.before`);
 				}
-				if (value.after !== undefined && !Array.isArray(value.after)) {
-					throw new Error(`'${key}.after' must be an array of strings`);
+				if (value.after !== undefined) {
+					assertStringArray(value.after, `${key}.after`);
 				}
 				continue;
 			}

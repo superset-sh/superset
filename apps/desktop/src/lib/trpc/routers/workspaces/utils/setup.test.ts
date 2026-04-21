@@ -655,6 +655,35 @@ describe("run config", () => {
 		expect(config).toBeNull();
 	});
 
+	test("rejects run array when items are objects (repro #3608)", () => {
+		// When an AI assistant writes `{ name, command }` objects instead of
+		// plain strings into `run`, the rest of the app calls `.trim()` on
+		// each item and crashes. The config loader should reject this shape
+		// rather than let invalid data reach the UI.
+		writeFileSync(
+			join(MAIN_REPO, ".superset", "config.json"),
+			JSON.stringify({
+				run: [
+					{ name: "Web App", command: "npm run web:dev" },
+					{ name: "CV Analyser", command: "npm run cv:dev" },
+				],
+			}),
+		);
+
+		const config = loadSetupConfig({ mainRepoPath: MAIN_REPO });
+		expect(config).toBeNull();
+	});
+
+	test("rejects setup array when items are not strings", () => {
+		writeFileSync(
+			join(MAIN_REPO, ".superset", "config.json"),
+			JSON.stringify({ setup: ["npm install", 42] }),
+		);
+
+		const config = loadSetupConfig({ mainRepoPath: MAIN_REPO });
+		expect(config).toBeNull();
+	});
+
 	test("local config can override run commands", () => {
 		writeFileSync(
 			join(MAIN_REPO, ".superset", "config.json"),
