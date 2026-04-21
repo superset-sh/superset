@@ -1,7 +1,7 @@
 import { Button } from "@superset/ui/button";
 import { Input } from "@superset/ui/input";
 import { toast } from "@superset/ui/sonner";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 
 interface RepositorySectionProps {
@@ -13,18 +13,32 @@ export function RepositorySection({
 	projectId,
 	currentRepoCloneUrl,
 }: RepositorySectionProps) {
+	const [isEditing, setIsEditing] = useState(false);
 	const [value, setValue] = useState(currentRepoCloneUrl ?? "");
 	const [isSaving, setIsSaving] = useState(false);
+	const inputRef = useRef<HTMLInputElement>(null);
 
 	useEffect(() => {
+		if (!isEditing) setValue(currentRepoCloneUrl ?? "");
+	}, [currentRepoCloneUrl, isEditing]);
+
+	const startEdit = () => {
+		setIsEditing(true);
+		setTimeout(() => inputRef.current?.focus(), 0);
+	};
+
+	const cancelEdit = () => {
 		setValue(currentRepoCloneUrl ?? "");
-	}, [currentRepoCloneUrl]);
+		setIsEditing(false);
+	};
 
-	const trimmed = value.trim();
-	const hasChanged = trimmed !== (currentRepoCloneUrl ?? "");
-
-	const handleSave = async () => {
-		if (!hasChanged || isSaving) return;
+	const save = async () => {
+		if (isSaving) return;
+		const trimmed = value.trim();
+		if (trimmed === (currentRepoCloneUrl ?? "")) {
+			setIsEditing(false);
+			return;
+		}
 		setIsSaving(true);
 		try {
 			await apiTrpcClient.v2Project.update.mutate({
@@ -32,6 +46,7 @@ export function RepositorySection({
 				repoCloneUrl: trimmed === "" ? null : trimmed,
 			});
 			toast.success("Repository updated");
+			setIsEditing(false);
 		} catch (err) {
 			toast.error(err instanceof Error ? err.message : "Failed to update");
 		} finally {
@@ -42,26 +57,43 @@ export function RepositorySection({
 	return (
 		<div className="flex items-center gap-2">
 			<Input
+				ref={inputRef}
 				value={value}
 				onChange={(e) => setValue(e.target.value)}
 				placeholder="https://github.com/owner/repo"
 				className="font-mono"
+				readOnly={!isEditing}
 				onKeyDown={(e) => {
+					if (!isEditing) return;
 					if (e.key === "Enter") {
 						e.preventDefault();
-						void handleSave();
+						void save();
+					} else if (e.key === "Escape") {
+						e.preventDefault();
+						cancelEdit();
 					}
 				}}
 			/>
-			<Button
-				type="button"
-				variant="outline"
-				size="sm"
-				onClick={handleSave}
-				disabled={!hasChanged || isSaving}
-			>
-				{isSaving ? "Saving…" : "Save"}
-			</Button>
+			{isEditing ? (
+				<>
+					<Button
+						type="button"
+						variant="outline"
+						size="sm"
+						onClick={cancelEdit}
+						disabled={isSaving}
+					>
+						Cancel
+					</Button>
+					<Button type="button" size="sm" onClick={save} disabled={isSaving}>
+						{isSaving ? "Saving…" : "Save"}
+					</Button>
+				</>
+			) : (
+				<Button type="button" variant="outline" size="sm" onClick={startEdit}>
+					Edit
+				</Button>
+			)}
 		</div>
 	);
 }

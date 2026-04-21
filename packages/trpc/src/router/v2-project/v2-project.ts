@@ -326,8 +326,7 @@ export const v2ProjectRouter = {
 				}
 				canonicalRepoCloneUrl = parsed.url;
 				if (input.githubRepositoryId === undefined) {
-					const fullNameLower =
-						`${parsed.owner}/${parsed.name}`.toLowerCase();
+					const fullNameLower = `${parsed.owner}/${parsed.name}`.toLowerCase();
 					const repo = await dbWs.query.githubRepositories.findFirst({
 						columns: { id: true },
 						where: and(

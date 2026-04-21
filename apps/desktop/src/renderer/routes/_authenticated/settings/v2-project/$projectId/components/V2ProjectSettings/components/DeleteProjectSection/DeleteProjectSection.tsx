@@ -58,8 +58,8 @@ export function DeleteProjectSection({
 					<AlertDialogHeader>
 						<AlertDialogTitle>Delete "{projectName}"?</AlertDialogTitle>
 						<AlertDialogDescription>
-							This removes the project from the organization. Anyone with
-							access will lose it. This cannot be undone.
+							This removes the project from the organization. Anyone with access
+							will lose it. This cannot be undone.
 						</AlertDialogDescription>
 					</AlertDialogHeader>
 					<AlertDialogFooter>
