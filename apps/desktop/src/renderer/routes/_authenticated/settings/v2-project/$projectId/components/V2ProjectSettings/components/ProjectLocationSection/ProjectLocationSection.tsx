@@ -12,7 +12,6 @@ import { Button } from "@superset/ui/button";
 import { toast } from "@superset/ui/sonner";
 import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { HiOutlineFolderOpen } from "react-icons/hi2";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
@@ -130,36 +129,23 @@ export function ProjectLocationSection({
 
 	return (
 		<>
-			<div className="pt-3 border-t space-y-3">
-				<div>
-					<h3 className="text-base font-semibold text-foreground flex items-center gap-2">
-						<HiOutlineFolderOpen className="h-4 w-4" />
-						Project Location
-					</h3>
-					<p className="text-xs text-muted-foreground mt-1">
-						{currentPath
-							? "Where this project lives on disk. Change it if the folder was moved or added at the wrong location."
-							: "Point this project at a local clone of the repository to set it up on this device."}
-					</p>
-				</div>
-				<div className="flex items-center justify-between gap-4">
-					{currentPath ? (
-						<ClickablePath path={currentPath} />
-					) : (
-						<span className="text-sm text-muted-foreground">
-							Not set up on this device
-						</span>
-					)}
-					<Button
-						type="button"
-						variant="outline"
-						size="sm"
-						onClick={currentPath ? handleChange : handleSetup}
-						disabled={selectDirectory.isPending || isSubmitting}
-					>
-						{currentPath ? "Change location…" : "Choose folder…"}
-					</Button>
-				</div>
+			<div className="flex items-center justify-between gap-4">
+				{currentPath ? (
+					<ClickablePath path={currentPath} />
+				) : (
+					<span className="text-sm text-muted-foreground">
+						Not set up on this device
+					</span>
+				)}
+				<Button
+					type="button"
+					variant="outline"
+					size="sm"
+					onClick={currentPath ? handleChange : handleSetup}
+					disabled={selectDirectory.isPending || isSubmitting}
+				>
+					{currentPath ? "Change location…" : "Choose folder…"}
+				</Button>
 			</div>
 
 			<AlertDialog

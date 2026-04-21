@@ -4,7 +4,9 @@ import { useQuery } from "@tanstack/react-query";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
-import { ProjectSettingsHeader } from "../../../../project/$projectId/components/ProjectSettingsHeader";
+import { SettingsSection } from "../../../project/$projectId/components/ProjectSettings";
+import { ProjectSettingsHeader } from "../../../project/$projectId/components/ProjectSettingsHeader";
+import { DeleteProjectSection } from "./components/DeleteProjectSection";
 import { ProjectLocationSection } from "./components/ProjectLocationSection";
 
 interface V2ProjectSettingsProps {
@@ -39,14 +41,36 @@ export function V2ProjectSettings({ projectId }: V2ProjectSettingsProps) {
 
 	return (
 		<div className="p-6 max-w-4xl w-full select-text">
-			<ProjectSettingsHeader title={project.name} />
+			<ProjectSettingsHeader title={project.name}>
+				{project.repoCloneUrl && (
+					<p className="text-xs text-muted-foreground font-mono">
+						{project.repoCloneUrl}
+					</p>
+				)}
+			</ProjectSettingsHeader>
 
-			<div className="space-y-4">
-				<ProjectLocationSection
-					projectId={projectId}
-					currentPath={hostProject?.repoPath ?? null}
-					onChanged={() => refetchHostProject()}
-				/>
+			<div className="space-y-8">
+				<SettingsSection
+					title="Project Location"
+					description={
+						hostProject
+							? "Where this project lives on disk. Change it if the folder was moved or added at the wrong location."
+							: "Point this project at a local clone of the repository to set it up on this device."
+					}
+				>
+					<ProjectLocationSection
+						projectId={projectId}
+						currentPath={hostProject?.repoPath ?? null}
+						onChanged={() => refetchHostProject()}
+					/>
+				</SettingsSection>
+
+				<SettingsSection title="Danger Zone">
+					<DeleteProjectSection
+						projectId={projectId}
+						projectName={project.name}
+					/>
+				</SettingsSection>
 			</div>
 		</div>
 	);
