@@ -14,7 +14,6 @@ interface ProjectRow {
 	kind: "v1" | "v2";
 	id: string;
 	name: string;
-	subtitle: string | null;
 	color: string | null;
 }
 
@@ -46,7 +45,7 @@ export function ProjectsSettingsSidebar({
 		[collections, activeOrganizationId],
 	);
 
-	const rows = useMemo<ProjectRow[]>(() => {
+	const { v2Rows, v1Rows } = useMemo(() => {
 		const linkedV2Ids = new Set(
 			groups
 				.map((g) => g.project.neonProjectId)
@@ -57,7 +56,6 @@ export function ProjectsSettingsSidebar({
 			kind: "v2",
 			id: p.id,
 			name: p.name,
-			subtitle: p.repoCloneUrl ?? null,
 			color: null,
 		}));
 
@@ -71,54 +69,93 @@ export function ProjectsSettingsSidebar({
 				kind: "v1",
 				id: g.project.id,
 				name: g.project.name,
-				subtitle: g.project.mainRepoPath,
 				color: g.project.color,
 			}));
 
-		return [...v2Rows, ...v1Rows];
+		return { v2Rows, v1Rows };
 	}, [groups, v2Projects]);
+
+	const isEmpty = v2Rows.length === 0 && v1Rows.length === 0;
 
 	return (
 		<div className="w-64 shrink-0 border-r overflow-y-auto">
-			<div className="p-3">
-				<h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-2 mb-2">
-					Projects
-				</h2>
-				{rows.length === 0 ? (
+			<div className="p-3 space-y-4">
+				{isEmpty && (
 					<p className="px-2 text-sm text-muted-foreground">
 						No projects yet.
 					</p>
-				) : (
-					<nav className="flex flex-col gap-0.5">
-						{rows.map((row) => {
-							const isActive = row.id === selectedProjectId;
-							return (
-								<Link
-									key={`${row.kind}:${row.id}`}
-									to="/settings/projects/$projectId"
-									params={{ projectId: row.id }}
-									className={cn(
-										"flex items-center gap-2 px-2 py-1.5 text-sm rounded-md transition-colors",
-										isActive
-											? "bg-accent text-accent-foreground"
-											: "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
-									)}
-								>
-									{row.color ? (
-										<div
-											className="w-2.5 h-2.5 rounded-full shrink-0"
-											style={{ backgroundColor: row.color }}
-										/>
-									) : (
-										<HiOutlineCloud className="w-3.5 h-3.5 shrink-0" />
-									)}
-									<span className="truncate">{row.name}</span>
-								</Link>
-							);
-						})}
-					</nav>
+				)}
+				{v2Rows.length > 0 && (
+					<Section title="Cloud">
+						{v2Rows.map((row) => (
+							<ProjectLink
+								key={`v2:${row.id}`}
+								row={row}
+								isActive={row.id === selectedProjectId}
+							/>
+						))}
+					</Section>
+				)}
+				{v1Rows.length > 0 && (
+					<Section title="Local">
+						{v1Rows.map((row) => (
+							<ProjectLink
+								key={`v1:${row.id}`}
+								row={row}
+								isActive={row.id === selectedProjectId}
+							/>
+						))}
+					</Section>
 				)}
 			</div>
 		</div>
+	);
+}
+
+function Section({
+	title,
+	children,
+}: {
+	title: string;
+	children: React.ReactNode;
+}) {
+	return (
+		<div>
+			<h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-2 mb-2">
+				{title}
+			</h2>
+			<nav className="flex flex-col gap-0.5">{children}</nav>
+		</div>
+	);
+}
+
+function ProjectLink({
+	row,
+	isActive,
+}: {
+	row: ProjectRow;
+	isActive: boolean;
+}) {
+	return (
+		<Link
+			to="/settings/projects/$projectId"
+			params={{ projectId: row.id }}
+			className={cn(
+				"flex items-center gap-2 px-2 py-1.5 text-sm rounded-md transition-colors",
+				isActive
+					? "bg-accent text-accent-foreground"
+					: "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
+			)}
+		>
+			{row.color ? (
+				<div
+					className="w-2.5 h-2.5 rounded-full shrink-0"
+					style={{ backgroundColor: row.color }}
+				/>
+			) : (
+				<HiOutlineCloud className="w-3.5 h-3.5 shrink-0" />
+			)}
+			<span className="truncate">{row.name}</span>
+		</Link>
 	);
 }
