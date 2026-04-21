@@ -56,26 +56,24 @@ export function RepositorySection({
 
 	return (
 		<div className="flex items-center gap-2">
-			<Input
-				ref={inputRef}
-				value={value}
-				onChange={(e) => setValue(e.target.value)}
-				placeholder="https://github.com/owner/repo"
-				className="font-mono"
-				readOnly={!isEditing}
-				onKeyDown={(e) => {
-					if (!isEditing) return;
-					if (e.key === "Enter") {
-						e.preventDefault();
-						void save();
-					} else if (e.key === "Escape") {
-						e.preventDefault();
-						cancelEdit();
-					}
-				}}
-			/>
 			{isEditing ? (
 				<>
+					<Input
+						ref={inputRef}
+						value={value}
+						onChange={(e) => setValue(e.target.value)}
+						placeholder="https://github.com/owner/repo"
+						className="font-mono"
+						onKeyDown={(e) => {
+							if (e.key === "Enter") {
+								e.preventDefault();
+								void save();
+							} else if (e.key === "Escape") {
+								e.preventDefault();
+								cancelEdit();
+							}
+						}}
+					/>
 					<Button
 						type="button"
 						variant="outline"
@@ -90,9 +88,16 @@ export function RepositorySection({
 					</Button>
 				</>
 			) : (
-				<Button type="button" variant="outline" size="sm" onClick={startEdit}>
-					Edit
-				</Button>
+				<>
+					<span className="flex-1 text-sm font-mono break-all text-muted-foreground">
+						{currentRepoCloneUrl ?? (
+							<span className="italic">No repository linked</span>
+						)}
+					</span>
+					<Button type="button" variant="outline" size="sm" onClick={startEdit}>
+						Edit
+					</Button>
+				</>
 			)}
 		</div>
 	);
