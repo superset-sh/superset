@@ -39,6 +39,43 @@ export interface ThemeListing {
 
 export const themeListings: ThemeListing[] = [
 	{
+		slug: "claudio",
+		name: "Claudio",
+		type: "light",
+		author: "Chris Anthony",
+		submittedBy: "mousedown",
+		description:
+			"A warm off-white theme mirroring Claude Desktop — cream background, terracotta accent, and muted earth tones for low-strain long sessions.",
+		addedOn: "April 21, 2026",
+		source: {
+			label: "Download",
+			href: "/marketplace/themes/claudio.json",
+		},
+		tags: ["Claude", "Light", "Warm"],
+		ui: {
+			background: "#faf9f5",
+			foreground: "#141413",
+			card: "#ffffff",
+			cardForeground: "#141413",
+			primary: "#c96442",
+			accent: "#e8e6dc",
+			border: "#e8e6dc",
+			sidebar: "#f5f4ee",
+			sidebarForeground: "#3d3929",
+		},
+		terminal: {
+			background: "#faf9f5",
+			foreground: "#141413",
+			cursor: "#c96442",
+			red: "#bf4631",
+			green: "#7d8471",
+			yellow: "#b59060",
+			blue: "#6b7fa0",
+			magenta: "#a85c5c",
+			cyan: "#7a9a93",
+		},
+	},
+	{
 		slug: "github-dark-colorblind",
 		name: "GitHub Dark Colorblind",
 		type: "dark",
