@@ -55,19 +55,7 @@ export function LinkTierMapper({
 		(tier: LinkTier, nextSlot: SlotValue) => {
 			const nextAction = fromSlot(nextSlot);
 			if (value[tier] === nextAction) return;
-
-			// If another tier already holds `nextAction`, demote it to null rather
-			// than swap. Keeps the three tiers distinct but doesn't silently inherit
-			// a meaning the user didn't choose.
-			const nextMap: LinkTierMap = { ...value, [tier]: nextAction };
-			if (nextAction !== null) {
-				for (const other of Object.keys(value) as LinkTier[]) {
-					if (other !== tier && value[other] === nextAction) {
-						nextMap[other] = null;
-					}
-				}
-			}
-			onChange(nextMap);
+			onChange({ ...value, [tier]: nextAction });
 		},
 		[value, onChange],
 	);

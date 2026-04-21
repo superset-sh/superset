@@ -318,9 +318,11 @@ export function FilesTab({
 		setHoveredPath(null);
 	}, []);
 
-	// Depends on pendingReveal.nonce so repeat reveals of the same path
+	// Depends only on pendingReveal.nonce so repeat reveals of the same path
 	// (e.g. user collapsed a folder and re-⌘-clicked it in terminal) still
-	// re-expand and re-scroll.
+	// re-expand and re-scroll. rootPath/fileTree are intentionally omitted —
+	// fileTree's identity changes every render and would cause an update loop;
+	// the closure captures the latest values via useFileTree's internal refs.
 	// biome-ignore lint/correctness/useExhaustiveDependencies: nonce-keyed trigger
 	useEffect(() => {
 		prevSelectedRef.current = selectedFilePath;
@@ -333,7 +335,7 @@ export function FilesTab({
 					?.scrollIntoView({ block: "center" });
 			});
 		});
-	}, [pendingReveal?.nonce, rootPath, fileTree]);
+	}, [pendingReveal?.nonce]);
 
 	const handleRefresh = useCallback(async () => {
 		setIsRefreshing(true);
