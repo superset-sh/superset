@@ -1,101 +1,177 @@
-import { existsSync, readFileSync } from "node:fs";
-import { homedir, platform } from "node:os";
-import { join } from "node:path";
 import { createAnthropic } from "@ai-sdk/anthropic";
 import { createOpenAI } from "@ai-sdk/openai";
+import { createAuthStorage } from "mastracode";
+import {
+	ANTHROPIC_AUTH_PROVIDER_ID,
+	OPENAI_AUTH_PROVIDER_IDS,
+} from "../auth-provider-ids";
 
 const ANTHROPIC_SMALL_MODEL_ID = "claude-haiku-4-5-20251001";
 const OPENAI_SMALL_MODEL_ID = "gpt-4o-mini";
 
+const MIN_API_KEY_LENGTH = 30;
+
+// OAuth tokens issued through the Claude Code flow are accepted by the
+// Anthropic API only when these companion headers are sent alongside the
+// `Authorization: Bearer` header. Mastracode hands us the token; we own
+// the wiring into createAnthropic and the request-time headers.
+const ANTHROPIC_OAUTH_HEADERS = {
+	"anthropic-beta": "claude-code-20250219,oauth-2025-04-20",
+	"user-agent": "claude-cli/2.1.2 (external, cli)",
+	"x-app": "cli",
+} as const;
+
+type AuthStorage = ReturnType<typeof createAuthStorage>;
+
+let cachedAuthStorage: AuthStorage | null = null;
+
+function getAuthStorage(): AuthStorage {
+	if (!cachedAuthStorage) {
+		cachedAuthStorage = createAuthStorage();
+	}
+	cachedAuthStorage.reload();
+	return cachedAuthStorage;
+}
+
 /**
- * Resolves the mastracode auth.json path (same logic as mastracode's
- * `getAppDataDir`). We read it directly to avoid importing mastracode,
- * which eagerly loads @mastra/fastembed → onnxruntime-node (208 MB native
- * binary) and breaks electron-vite bundling.
+ * Anthropic API keys are issued in the form `sk-ant-api…` (currently
+ * `sk-ant-api03-…`). Reject anything else — most importantly OAuth access
+ * tokens (`sk-ant-oat…`), which Anthropic rejects when sent as `x-api-key`,
+ * and dev placeholders like `dummy`.
  */
-function getAuthJsonPath(): string {
-	const p = platform();
-	let base: string;
-	if (p === "darwin") {
-		base = join(homedir(), "Library", "Application Support");
-	} else if (p === "win32") {
-		base = process.env.APPDATA ?? join(homedir(), "AppData", "Roaming");
-	} else {
-		base = process.env.XDG_DATA_HOME ?? join(homedir(), ".local", "share");
-	}
-	return join(base, "mastracode", "auth.json");
+export function isAnthropicApiKey(key: string): boolean {
+	return key.startsWith("sk-ant-api") && key.length >= MIN_API_KEY_LENGTH;
 }
 
-type AuthData = Record<string, unknown>;
+/**
+ * OpenAI keys all start with `sk-` (legacy `sk-…`, project `sk-proj-…`,
+ * service-account `sk-svcacct-…`). The length floor catches placeholders.
+ */
+export function isOpenAIApiKey(key: string): boolean {
+	return key.startsWith("sk-") && key.length >= MIN_API_KEY_LENGTH;
+}
 
-function readAuthData(): AuthData | null {
-	const path = getAuthJsonPath();
-	if (!existsSync(path)) return null;
+function isObjectRecord(value: unknown): value is Record<string, unknown> {
+	return typeof value === "object" && value !== null;
+}
+
+type AnthropicResolved =
+	| { kind: "apiKey"; key: string }
+	| { kind: "oauth"; accessToken: string };
+
+async function resolveAnthropic(): Promise<AnthropicResolved | null> {
+	const env = process.env.ANTHROPIC_API_KEY?.trim();
+	if (env && isAnthropicApiKey(env)) {
+		return { kind: "apiKey", key: env };
+	}
+
 	try {
-		return JSON.parse(readFileSync(path, "utf-8")) as AuthData;
-	} catch {
-		return null;
-	}
-}
+		const authStorage = getAuthStorage();
 
-function getStoredApiKey(
-	authData: AuthData | null,
-	providerId: string,
-): string | null {
-	if (!authData) return null;
-	const entry = authData[`apikey:${providerId}`];
-	if (
-		typeof entry === "object" &&
-		entry !== null &&
-		"type" in entry &&
-		entry.type === "api_key" &&
-		"key" in entry &&
-		typeof entry.key === "string" &&
-		entry.key.trim().length > 0
-	) {
-		return entry.key.trim();
+		// Settings-saved API keys are stored at `apikey:<provider>`. Prefer
+		// these over whatever sits in the main slot — otherwise an OAuth
+		// login (which writes to the main slot) would mask a stored API key
+		// the user explicitly added.
+		const storedApiKey = authStorage
+			.getStoredApiKey(ANTHROPIC_AUTH_PROVIDER_ID)
+			?.trim();
+		if (storedApiKey && isAnthropicApiKey(storedApiKey)) {
+			return { kind: "apiKey", key: storedApiKey };
+		}
+
+		const credential = authStorage.get(ANTHROPIC_AUTH_PROVIDER_ID);
+		if (!isObjectRecord(credential)) return null;
+
+		if (
+			credential.type === "api_key" &&
+			typeof credential.key === "string" &&
+			isAnthropicApiKey(credential.key.trim())
+		) {
+			return { kind: "apiKey", key: credential.key.trim() };
+		}
+
+		if (credential.type === "oauth") {
+			// Mastracode's getApiKey returns a fresh access token, refreshing
+			// via the Claude Code OAuth flow when expired and persisting the
+			// new credential back to auth.json. This replaces the custom
+			// refresh dance we used to maintain in this package.
+			const accessToken = await authStorage.getApiKey(
+				ANTHROPIC_AUTH_PROVIDER_ID,
+			);
+			if (typeof accessToken === "string" && accessToken.trim().length > 0) {
+				return { kind: "oauth", accessToken: accessToken.trim() };
+			}
+		}
+	} catch (error) {
+		console.warn("[get-small-model] anthropic auth resolution failed:", error);
 	}
+
 	return null;
 }
 
-function resolveApiKey(
-	envVar: string | undefined,
-	authData: AuthData | null,
-	providerId: string,
-): string | null {
-	const env = envVar?.trim();
-	if (env) return env;
-	return getStoredApiKey(authData, providerId);
+async function resolveOpenAIApiKey(): Promise<string | null> {
+	const env = process.env.OPENAI_API_KEY?.trim();
+	if (env && isOpenAIApiKey(env)) return env;
+
+	try {
+		const authStorage = getAuthStorage();
+		for (const providerId of OPENAI_AUTH_PROVIDER_IDS) {
+			// Same precedence reasoning as Anthropic: dedicated apikey: slot
+			// before the main slot.
+			const stored = authStorage.getStoredApiKey(providerId)?.trim();
+			if (stored && isOpenAIApiKey(stored)) return stored;
+
+			const credential = authStorage.get(providerId);
+			if (
+				isObjectRecord(credential) &&
+				credential.type === "api_key" &&
+				typeof credential.key === "string" &&
+				isOpenAIApiKey(credential.key.trim())
+			) {
+				return credential.key.trim();
+			}
+		}
+	} catch (error) {
+		console.warn("[get-small-model] openai auth resolution failed:", error);
+	}
+
+	return null;
 }
 
 /**
  * Returns an AI-SDK `LanguageModel` for small-model tasks (branch naming,
- * title generation). Tries Anthropic first, falls back to OpenAI. Returns
- * `null` if no credentials are available.
+ * title generation). Returns `null` if no usable credentials are available.
  *
- * Reads credentials from env vars and mastracode's auth.json directly
- * (API keys only). OAuth-only users fall back to `null`.
+ * Resolution order:
+ *   1. ANTHROPIC_API_KEY env var (validated)
+ *   2. mastracode auth storage — Anthropic api key
+ *   3. mastracode auth storage — Anthropic OAuth (refreshed on the fly)
+ *   4. OPENAI_API_KEY env var (validated)
+ *   5. mastracode auth storage — OpenAI api key (`openai-codex` / `openai`)
+ *
+ * API keys are validated by prefix + minimum length so dev placeholders
+ * (e.g. `ANTHROPIC_API_KEY=dummy` from a sample .env) fall through to the
+ * next path instead of being sent to the API and failing 401.
  */
-export function getSmallModel(): unknown | null {
-	const authData = readAuthData();
-
-	const anthropicKey = resolveApiKey(
-		process.env.ANTHROPIC_API_KEY,
-		authData,
-		"anthropic",
-	);
-	if (anthropicKey) {
-		return createAnthropic({ apiKey: anthropicKey })(ANTHROPIC_SMALL_MODEL_ID);
+export async function getSmallModel(): Promise<unknown> {
+	const anthropic = await resolveAnthropic();
+	if (anthropic?.kind === "apiKey") {
+		return createAnthropic({ apiKey: anthropic.key })(ANTHROPIC_SMALL_MODEL_ID);
+	}
+	if (anthropic?.kind === "oauth") {
+		return createAnthropic({
+			authToken: anthropic.accessToken,
+			headers: ANTHROPIC_OAUTH_HEADERS,
+		})(ANTHROPIC_SMALL_MODEL_ID);
 	}
 
-	const openaiKey = resolveApiKey(
-		process.env.OPENAI_API_KEY,
-		authData,
-		"openai",
-	);
+	const openaiKey = await resolveOpenAIApiKey();
 	if (openaiKey) {
 		return createOpenAI({ apiKey: openaiKey }).chat(OPENAI_SMALL_MODEL_ID);
 	}
 
+	console.warn(
+		"[get-small-model] no credentials found — naming will fall back",
+	);
 	return null;
 }

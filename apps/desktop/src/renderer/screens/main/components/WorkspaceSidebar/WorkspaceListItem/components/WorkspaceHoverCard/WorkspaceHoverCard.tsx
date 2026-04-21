@@ -71,7 +71,9 @@ export function WorkspaceHoverCardContent({
 		<div className="space-y-3">
 			<div className="space-y-1.5">
 				{hasCustomAlias && (
-					<div className="text-sm font-medium">{workspaceAlias}</div>
+					<div className="text-sm font-medium break-words line-clamp-2">
+						{workspaceAlias}
+					</div>
 				)}
 				{branchName && (
 					<div className="space-y-0.5">
