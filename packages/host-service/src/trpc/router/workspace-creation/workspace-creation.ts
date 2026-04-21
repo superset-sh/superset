@@ -11,6 +11,7 @@ import {
 	type ResolvedRef,
 	resolveDefaultBranchName,
 	resolveRef,
+	resolveUpstream,
 } from "../../../runtime/git/refs";
 import { createTerminalSessionInternal } from "../../../terminal/terminal";
 import type { HostServiceContext } from "../../../types";
@@ -762,13 +763,48 @@ export const workspaceCreationRouter = router({
 			// races against stale cached refs (a workspace branch with an
 			// incidental `refs/remotes/origin/<name>` cache would silently win).
 			// Falls back to probing for callers that don't pass the hint.
-			const startPoint =
+			let startPoint: ResolvedRef =
 				input.composer.baseBranch && input.composer.baseBranchSource
 					? buildStartPointFromHint(
 							input.composer.baseBranch,
 							input.composer.baseBranchSource,
 						)
 					: await resolveStartPoint(git, input.composer.baseBranch);
+
+			// Local default branches are rarely fast-forwarded; swap to the
+			// branch's configured upstream so we fork from the real tip, not a
+			// stale local ref. Non-default branches stay local-first by design.
+			if (startPoint.kind === "local") {
+				const defaultBranchName = await resolveDefaultBranchName(git);
+				if (startPoint.shortName === defaultBranchName) {
+					const upstream = await resolveUpstream(git, defaultBranchName);
+					if (upstream) {
+						const remoteRef = asRemoteRef(
+							upstream.remote,
+							upstream.remoteBranch,
+						);
+						const remoteExists = await git
+							.raw([
+								"rev-parse",
+								"--verify",
+								"--quiet",
+								`${remoteRef}^{commit}`,
+							])
+							.then(() => true)
+							.catch(() => false);
+						if (remoteExists) {
+							startPoint = {
+								kind: "remote-tracking",
+								fullRef: remoteRef,
+								shortName: upstream.remoteBranch,
+								remote: upstream.remote,
+								remoteShortName: `${upstream.remote}/${upstream.remoteBranch}`,
+							};
+						}
+					}
+				}
+			}
+
 			console.log(
 				`[workspaceCreation.create] start point: ${startPoint.kind} (${
 					input.composer.baseBranchSource ? "from hint" : "resolved"

@@ -5,5 +5,6 @@ export {
 	asRemoteRef,
 	resolveDefaultBranchName,
 	resolveRef,
+	resolveUpstream,
 } from "./refs";
 export type { GitCredentialProvider, GitFactory } from "./types";

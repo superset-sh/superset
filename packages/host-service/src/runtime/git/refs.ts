@@ -143,3 +143,25 @@ export async function resolveDefaultBranchName(
 		return "main";
 	}
 }
+
+/**
+ * Resolve a local branch's upstream tracking info (`branch.<name>.remote`
+ * / `branch.<name>.merge`). Returns `null` if no upstream is configured.
+ */
+export async function resolveUpstream(
+	git: SimpleGit,
+	branch: string,
+): Promise<{ remote: string; remoteBranch: string } | null> {
+	try {
+		const [remote, merge] = await Promise.all([
+			git.raw(["config", "--get", `branch.${branch}.remote`]),
+			git.raw(["config", "--get", `branch.${branch}.merge`]),
+		]);
+		const remoteBranch = merge.trim().replace(/^refs\/heads\//, "");
+		const remoteName = remote.trim();
+		if (!remoteName || !remoteBranch) return null;
+		return { remote: remoteName, remoteBranch };
+	} catch {
+		return null;
+	}
+}
