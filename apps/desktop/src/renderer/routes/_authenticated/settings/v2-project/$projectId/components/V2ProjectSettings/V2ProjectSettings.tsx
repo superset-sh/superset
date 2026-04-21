@@ -62,6 +62,7 @@ export function V2ProjectSettings({ projectId }: V2ProjectSettingsProps) {
 					<ProjectLocationSection
 						projectId={projectId}
 						currentPath={hostProject?.repoPath ?? null}
+						repoCloneUrl={project.repoCloneUrl}
 						onChanged={() => refetchHostProject()}
 					/>
 				</SettingsSection>

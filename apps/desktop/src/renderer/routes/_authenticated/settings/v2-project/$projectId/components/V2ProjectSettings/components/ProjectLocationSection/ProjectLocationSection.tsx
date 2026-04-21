@@ -28,12 +28,14 @@ interface BackfillConflict {
 interface ProjectLocationSectionProps {
 	projectId: string;
 	currentPath: string | null;
+	repoCloneUrl: string | null;
 	onChanged?: () => void;
 }
 
 export function ProjectLocationSection({
 	projectId,
 	currentPath,
+	repoCloneUrl,
 	onChanged,
 }: ProjectLocationSectionProps) {
 	const { activeHostUrl, machineId } = useLocalHostService();
@@ -82,6 +84,26 @@ export function ProjectLocationSection({
 		}
 	};
 
+	const runClone = async (parentDir: string) => {
+		if (!activeHostUrl) {
+			toast.error("Host service not available");
+			return false;
+		}
+		try {
+			const client = getHostServiceClientByUrl(activeHostUrl);
+			const result = await client.project.setup.mutate({
+				projectId,
+				mode: { kind: "clone", parentDir },
+			});
+			toast.success(`Cloned to ${result.repoPath}`);
+			onChanged?.();
+			return true;
+		} catch (err) {
+			toast.error(err instanceof Error ? err.message : String(err));
+			return false;
+		}
+	};
+
 	const pickPath = async (title: string) => {
 		if (!activeHostUrl) {
 			toast.error("Host service not available");
@@ -100,7 +122,7 @@ export function ProjectLocationSection({
 		}
 	};
 
-	const handleSetup = async () => {
+	const handleImport = async () => {
 		const path = await pickPath("Select project location");
 		if (!path) return;
 		if (!activeHostUrl) {
@@ -121,6 +143,17 @@ export function ProjectLocationSection({
 			await runSetup(path, false);
 		} catch (err) {
 			toast.error(err instanceof Error ? err.message : String(err));
+		} finally {
+			setIsSubmitting(false);
+		}
+	};
+
+	const handleClone = async () => {
+		const parentDir = await pickPath("Select parent directory to clone into");
+		if (!parentDir) return;
+		setIsSubmitting(true);
+		try {
+			await runClone(parentDir);
 		} finally {
 			setIsSubmitting(false);
 		}
@@ -159,15 +192,45 @@ export function ProjectLocationSection({
 						</span>
 					)}
 				</div>
-				<Button
-					type="button"
-					variant="outline"
-					size="sm"
-					onClick={currentPath ? handleChange : handleSetup}
-					disabled={selectDirectory.isPending || isSubmitting}
-				>
-					{currentPath ? "Change location…" : "Choose folder…"}
-				</Button>
+				{currentPath ? (
+					<Button
+						type="button"
+						variant="outline"
+						size="sm"
+						onClick={handleChange}
+						disabled={selectDirectory.isPending || isSubmitting}
+					>
+						Change location…
+					</Button>
+				) : (
+					<div className="flex items-center gap-2">
+						<Button
+							type="button"
+							variant="outline"
+							size="sm"
+							onClick={handleClone}
+							disabled={
+								!repoCloneUrl || selectDirectory.isPending || isSubmitting
+							}
+							title={
+								repoCloneUrl
+									? undefined
+									: "Link a GitHub repository first to enable cloning"
+							}
+						>
+							Clone here…
+						</Button>
+						<Button
+							type="button"
+							variant="outline"
+							size="sm"
+							onClick={handleImport}
+							disabled={selectDirectory.isPending || isSubmitting}
+						>
+							Import existing…
+						</Button>
+					</div>
+				)}
 			</div>
 
 			<AlertDialog
