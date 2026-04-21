@@ -126,7 +126,7 @@ export function useWorkspaceWsUrl(
 	params?: Record<string, string>,
 ): string {
 	const { hostUrl, getWsToken } = useWorkspaceClient();
-	const url = new URL(path, hostUrl);
+	const url = new URL(`${hostUrl}${path}`);
 	url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
 	if (params) {
 		for (const [key, value] of Object.entries(params)) {
