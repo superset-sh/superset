@@ -291,6 +291,7 @@ export const v2ProjectRouter = {
 				name: z.string().min(1).optional(),
 				slug: z.string().min(1).optional(),
 				githubRepositoryId: z.string().uuid().optional(),
+				repoCloneUrl: z.string().min(1).nullable().optional(),
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
@@ -309,10 +310,40 @@ export const v2ProjectRouter = {
 				);
 			}
 
+			let canonicalRepoCloneUrl: string | null | undefined;
+			let resolvedGithubRepositoryId: string | null | undefined =
+				input.githubRepositoryId;
+			if (input.repoCloneUrl === null) {
+				canonicalRepoCloneUrl = null;
+				resolvedGithubRepositoryId = null;
+			} else if (input.repoCloneUrl !== undefined) {
+				const parsed = parseGitHubRemote(input.repoCloneUrl);
+				if (!parsed) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: "Could not parse GitHub remote URL",
+					});
+				}
+				canonicalRepoCloneUrl = parsed.url;
+				if (input.githubRepositoryId === undefined) {
+					const fullNameLower =
+						`${parsed.owner}/${parsed.name}`.toLowerCase();
+					const repo = await dbWs.query.githubRepositories.findFirst({
+						columns: { id: true },
+						where: and(
+							eq(sql`lower(${githubRepositories.fullName})`, fullNameLower),
+							eq(githubRepositories.organizationId, project.organizationId),
+						),
+					});
+					resolvedGithubRepositoryId = repo?.id ?? null;
+				}
+			}
+
 			const data = {
-				githubRepositoryId: input.githubRepositoryId,
+				githubRepositoryId: resolvedGithubRepositoryId,
 				name: input.name,
 				slug: input.slug,
+				repoCloneUrl: canonicalRepoCloneUrl,
 			};
 			if (
 				Object.keys(data).every(

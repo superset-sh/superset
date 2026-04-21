@@ -8,6 +8,7 @@ import { SettingsSection } from "../../../../project/$projectId/components/Proje
 import { ProjectSettingsHeader } from "../../../../project/$projectId/components/ProjectSettingsHeader";
 import { DeleteProjectSection } from "./components/DeleteProjectSection";
 import { ProjectLocationSection } from "./components/ProjectLocationSection";
+import { RepositorySection } from "./components/RepositorySection";
 
 interface V2ProjectSettingsProps {
 	projectId: string;
@@ -41,15 +42,19 @@ export function V2ProjectSettings({ projectId }: V2ProjectSettingsProps) {
 
 	return (
 		<div className="p-6 max-w-4xl w-full select-text">
-			<ProjectSettingsHeader title={project.name}>
-				{project.repoCloneUrl && (
-					<p className="text-xs text-muted-foreground font-mono">
-						{project.repoCloneUrl}
-					</p>
-				)}
-			</ProjectSettingsHeader>
+			<ProjectSettingsHeader title={project.name} />
 
 			<div className="space-y-8">
+				<SettingsSection
+					title="Repository"
+					description="The GitHub repository this project tracks. Change it to re-link this project to a different repo."
+				>
+					<RepositorySection
+						projectId={projectId}
+						currentRepoCloneUrl={project.repoCloneUrl}
+					/>
+				</SettingsSection>
+
 				<SettingsSection
 					title="Project Location"
 					description={
