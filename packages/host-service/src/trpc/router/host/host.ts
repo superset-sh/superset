@@ -14,19 +14,23 @@ let cachedOrganization: {
 
 async function getOrganization(
 	api: ApiClient,
+	organizationId: string,
 ): Promise<{ id: string; name: string; slug: string }> {
 	if (
 		cachedOrganization &&
+		cachedOrganization.data.id === organizationId &&
 		Date.now() - cachedOrganization.cachedAt < ORGANIZATION_CACHE_TTL_MS
 	) {
 		return cachedOrganization.data;
 	}
 
-	const organization = await api.organization.getActiveFromJwt.query();
+	const organization = await api.organization.getByIdFromJwt.query({
+		id: organizationId,
+	});
 	if (!organization) {
 		throw new TRPCError({
 			code: "PRECONDITION_FAILED",
-			message: "No active organization",
+			message: "Organization not found or not accessible from JWT",
 		});
 	}
 
@@ -36,8 +40,7 @@ async function getOrganization(
 
 export const hostRouter = router({
 	info: protectedProcedure.query(async ({ ctx }) => {
-		const api = (ctx as { api: ApiClient }).api;
-		const organization = await getOrganization(api);
+		const organization = await getOrganization(ctx.api, ctx.organizationId);
 
 		return {
 			hostId: getHashedDeviceId(),
