@@ -46,7 +46,10 @@ export function ProjectLocationSection({
 			q
 				.from({ hosts: collections.v2Hosts })
 				.where(({ hosts }) => eq(hosts.machineId, machineId ?? ""))
-				.select(({ hosts }) => ({ name: hosts.name, isOnline: hosts.isOnline })),
+				.select(({ hosts }) => ({
+					name: hosts.name,
+					isOnline: hosts.isOnline,
+				})),
 		[collections, machineId],
 	);
 	const hostLabel = hostRows?.[0]?.name ?? "This device";
