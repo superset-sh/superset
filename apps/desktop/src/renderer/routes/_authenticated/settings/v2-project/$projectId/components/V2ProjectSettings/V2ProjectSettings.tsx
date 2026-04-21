@@ -4,8 +4,8 @@ import { useQuery } from "@tanstack/react-query";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
-import { SettingsSection } from "../../../project/$projectId/components/ProjectSettings";
-import { ProjectSettingsHeader } from "../../../project/$projectId/components/ProjectSettingsHeader";
+import { SettingsSection } from "../../../../project/$projectId/components/ProjectSettings";
+import { ProjectSettingsHeader } from "../../../../project/$projectId/components/ProjectSettingsHeader";
 import { DeleteProjectSection } from "./components/DeleteProjectSection";
 import { ProjectLocationSection } from "./components/ProjectLocationSection";
 
