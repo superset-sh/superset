@@ -22,6 +22,13 @@
       "when": 1775239013772,
       "tag": "0002_add_terminal_sessions",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1776814372609,
+      "tag": "0003_workspace_upstream_ref",
+      "breakpoints": true
     }
   ]
 }
