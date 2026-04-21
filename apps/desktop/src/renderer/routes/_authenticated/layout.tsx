@@ -36,6 +36,7 @@ import { GlobalTerminalLifecycle } from "./components/GlobalTerminalLifecycle";
 import { TeardownLogsDialog } from "./components/TeardownLogsDialog";
 import { createPierreWorker } from "./lib/pierreWorker";
 import { CollectionsProvider } from "./providers/CollectionsProvider";
+import { DeletingWorkspacesProvider } from "./providers/DeletingWorkspacesProvider";
 import { LocalHostServiceProvider } from "./providers/LocalHostServiceProvider";
 
 export const Route = createFileRoute("/_authenticated")({
@@ -183,22 +184,24 @@ function AuthenticatedLayout() {
 			<CollectionsProvider>
 				<GlobalTerminalLifecycle />
 				<LocalHostServiceProvider>
-					<WorkerPoolContextProvider
-						poolOptions={{ workerFactory: createPierreWorker, poolSize: 8 }}
-						highlighterOptions={{ preferredHighlighter: "shiki-wasm" }}
-					>
-						<AgentHooks />
-						<Outlet />
-						<WorkspaceInitEffects />
-						{isV2CloudEnabled ? (
-							<DashboardNewWorkspaceModal />
-						) : (
-							<NewWorkspaceModal />
-						)}
-						<InitGitDialog />
-						<TeardownLogsDialog />
-						<Paywall />
-					</WorkerPoolContextProvider>
+					<DeletingWorkspacesProvider>
+						<WorkerPoolContextProvider
+							poolOptions={{ workerFactory: createPierreWorker, poolSize: 8 }}
+							highlighterOptions={{ preferredHighlighter: "shiki-wasm" }}
+						>
+							<AgentHooks />
+							<Outlet />
+							<WorkspaceInitEffects />
+							{isV2CloudEnabled ? (
+								<DashboardNewWorkspaceModal />
+							) : (
+								<NewWorkspaceModal />
+							)}
+							<InitGitDialog />
+							<TeardownLogsDialog />
+							<Paywall />
+						</WorkerPoolContextProvider>
+					</DeletingWorkspacesProvider>
 				</LocalHostServiceProvider>
 			</CollectionsProvider>
 		</DndProvider>
