@@ -141,13 +141,23 @@ function WorkspaceContent({
 	const [selectedFilePath, setSelectedFilePath] = useState<string | undefined>(
 		activeFilePanePath,
 	);
-	const [pendingRevealDirectory, setPendingRevealDirectory] = useState<
-		string | null
-	>(null);
+	// Each reveal request bumps `nonce` so the FilesTab effect re-runs even
+	// when the path hasn't changed (e.g. user collapsed a folder and then
+	// ⌘-clicked the same path in terminal to re-reveal it).
+	const [pendingReveal, setPendingReveal] = useState<{
+		path: string;
+		isDirectory: boolean;
+		nonce: number;
+	} | null>(null);
 
 	useEffect(() => {
 		if (activeFilePanePath !== undefined) {
 			setSelectedFilePath(activeFilePanePath);
+			setPendingReveal((prev) => ({
+				path: activeFilePanePath,
+				isDirectory: false,
+				nonce: (prev?.nonce ?? 0) + 1,
+			}));
 		}
 	}, [activeFilePanePath]);
 
@@ -217,7 +227,11 @@ function WorkspaceContent({
 				draft.sidebarState.activeTab = "files";
 			});
 			setSelectedFilePath(path);
-			setPendingRevealDirectory(options?.isDirectory ? path : null);
+			setPendingReveal((prev) => ({
+				path,
+				isDirectory: options?.isDirectory === true,
+				nonce: (prev?.nonce ?? 0) + 1,
+			}));
 		},
 		[collections, workspaceId],
 	);
@@ -481,8 +495,7 @@ function WorkspaceContent({
 								onOpenComment={openCommentPane}
 								onSearch={handleQuickOpen}
 								selectedFilePath={selectedFilePath}
-								pendingRevealDirectory={pendingRevealDirectory}
-								onPendingRevealConsumed={() => setPendingRevealDirectory(null)}
+								pendingReveal={pendingReveal}
 							/>
 						</ResizablePanel>
 					</>

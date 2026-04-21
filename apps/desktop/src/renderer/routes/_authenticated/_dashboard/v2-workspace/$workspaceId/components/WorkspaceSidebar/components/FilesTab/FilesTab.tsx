@@ -39,8 +39,11 @@ type InlineEditState =
 interface FilesTabProps {
 	onSelectFile: (absolutePath: string, openInNewTab?: boolean) => void;
 	selectedFilePath?: string;
-	pendingRevealDirectory?: string | null;
-	onPendingRevealConsumed?: () => void;
+	pendingReveal?: {
+		path: string;
+		isDirectory: boolean;
+		nonce: number;
+	} | null;
 	workspaceId: string;
 	workspaceName?: string;
 	gitStatus: GitStatusData | undefined;
@@ -210,8 +213,7 @@ function TreeNode({
 export function FilesTab({
 	onSelectFile,
 	selectedFilePath,
-	pendingRevealDirectory,
-	onPendingRevealConsumed,
+	pendingReveal,
 	workspaceId,
 	workspaceName,
 	gitStatus,
@@ -316,30 +318,22 @@ export function FilesTab({
 		setHoveredPath(null);
 	}, []);
 
+	// Depends on pendingReveal.nonce so repeat reveals of the same path
+	// (e.g. user collapsed a folder and re-⌘-clicked it in terminal) still
+	// re-expand and re-scroll.
+	// biome-ignore lint/correctness/useExhaustiveDependencies: nonce-keyed trigger
 	useEffect(() => {
-		if (
-			selectedFilePath &&
-			selectedFilePath !== prevSelectedRef.current &&
-			rootPath
-		) {
-			const isDirectory = pendingRevealDirectory === selectedFilePath;
-			void fileTree.reveal(selectedFilePath, { isDirectory }).then(() => {
-				requestAnimationFrame(() => {
-					scrollContainerRef.current
-						?.querySelector(`[data-filepath="${CSS.escape(selectedFilePath)}"]`)
-						?.scrollIntoView({ block: "center" });
-				});
-				if (isDirectory) onPendingRevealConsumed?.();
-			});
-		}
 		prevSelectedRef.current = selectedFilePath;
-	}, [
-		selectedFilePath,
-		rootPath,
-		fileTree,
-		pendingRevealDirectory,
-		onPendingRevealConsumed,
-	]);
+		if (!pendingReveal || !rootPath) return;
+		const { path, isDirectory } = pendingReveal;
+		void fileTree.reveal(path, { isDirectory }).then(() => {
+			requestAnimationFrame(() => {
+				scrollContainerRef.current
+					?.querySelector(`[data-filepath="${CSS.escape(path)}"]`)
+					?.scrollIntoView({ block: "center" });
+			});
+		});
+	}, [pendingReveal?.nonce, rootPath, fileTree]);
 
 	const handleRefresh = useCallback(async () => {
 		setIsRefreshing(true);
