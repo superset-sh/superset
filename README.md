@@ -114,6 +114,10 @@ echo 'SKIP_ENV_VALIDATION=1' >> .env
 ```bash
 # Install caddy: brew install caddy (macOS) or see https://caddyserver.com/docs/install
 cp Caddyfile.example Caddyfile
+
+# Without this, Chromium rejects https://localhost:* with ERR_CERT_AUTHORITY_INVALID.
+# Prompts for sudo once.
+caddy trust
 ```
 
 **4. Install dependencies and run**

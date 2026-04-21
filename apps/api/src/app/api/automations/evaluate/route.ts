@@ -62,7 +62,7 @@ export async function POST(request: Request): Promise<Response> {
 					automationId: automation.id,
 					scheduledFor: scheduledFor.toISOString(),
 				},
-				deduplicationId: `${automation.id}:${scheduledFor.toISOString()}`,
+				deduplicationId: `${automation.id}_${scheduledFor.getTime()}`,
 				retries: 2,
 				failureCallback: `${env.NEXT_PUBLIC_API_URL}/api/automations/run-failed`,
 			};
