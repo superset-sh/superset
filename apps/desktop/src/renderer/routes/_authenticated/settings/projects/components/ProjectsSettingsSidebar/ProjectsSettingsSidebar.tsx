@@ -44,11 +44,7 @@ export function ProjectsSettingsSidebar({
 	);
 
 	const { v2Rows, v1Rows } = useMemo(() => {
-		const linkedV2Ids = new Set(
-			groups
-				.map((g) => g.project.neonProjectId)
-				.filter((id): id is string => !!id),
-		);
+		const loadedV2Ids = new Set(v2Projects.map((p) => p.id));
 
 		const v2Rows: ProjectRow[] = v2Projects.map((p) => ({
 			kind: "v2",
@@ -59,7 +55,7 @@ export function ProjectsSettingsSidebar({
 		const v1Rows: ProjectRow[] = groups
 			.filter(
 				(g) =>
-					!g.project.neonProjectId || !linkedV2Ids.has(g.project.neonProjectId),
+					!g.project.neonProjectId || !loadedV2Ids.has(g.project.neonProjectId),
 			)
 			.map((g) => ({
 				kind: "v1",

@@ -7,7 +7,7 @@ import {
 import { parseGitHubRemote } from "@superset/shared/github-remote";
 import type { TRPCRouterRecord } from "@trpc/server";
 import { TRPCError } from "@trpc/server";
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, isNull, sql } from "drizzle-orm";
 import { z } from "zod";
 import { jwtProcedure, protectedProcedure } from "../../trpc";
 import {
@@ -240,10 +240,10 @@ export const v2ProjectRouter = {
 			}
 			const canonicalUrl = parsed.url;
 
-			const existing = await requireOrgScopedResource(
+			await requireOrgScopedResource(
 				() =>
 					dbWs.query.v2Projects.findFirst({
-						columns: { id: true, organizationId: true, repoCloneUrl: true },
+						columns: { id: true, organizationId: true },
 						where: eq(v2Projects.id, input.id),
 					}),
 				{
@@ -251,12 +251,6 @@ export const v2ProjectRouter = {
 					organizationId: input.organizationId,
 				},
 			);
-			if (existing.repoCloneUrl) {
-				throw new TRPCError({
-					code: "CONFLICT",
-					message: "Project already has a linked repository",
-				});
-			}
 
 			const fullNameLower = `${parsed.owner}/${parsed.name}`.toLowerCase();
 			const repo = await dbWs.query.githubRepositories.findFirst({
@@ -273,12 +267,18 @@ export const v2ProjectRouter = {
 					repoCloneUrl: canonicalUrl,
 					githubRepositoryId: repo?.id ?? null,
 				})
-				.where(eq(v2Projects.id, input.id))
+				.where(
+					and(
+						eq(v2Projects.id, input.id),
+						eq(v2Projects.organizationId, input.organizationId),
+						isNull(v2Projects.repoCloneUrl),
+					),
+				)
 				.returning();
 			if (!updated) {
 				throw new TRPCError({
-					code: "NOT_FOUND",
-					message: "Project not found",
+					code: "CONFLICT",
+					message: "Project already has a linked repository",
 				});
 			}
 			return updated;

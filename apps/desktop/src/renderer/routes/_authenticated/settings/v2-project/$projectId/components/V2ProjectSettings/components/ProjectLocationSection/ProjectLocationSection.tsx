@@ -130,6 +130,7 @@ export function ProjectLocationSection({
 			return;
 		}
 		setIsSubmitting(true);
+		let keepSubmitting = false;
 		try {
 			const client = getHostServiceClientByUrl(activeHostUrl);
 			const precheck = await client.project.findBackfillConflict.query({
@@ -138,13 +139,14 @@ export function ProjectLocationSection({
 			});
 			if (precheck.conflict) {
 				setConflict(precheck.conflict);
+				keepSubmitting = true;
 				return;
 			}
 			await runSetup(path, false);
 		} catch (err) {
 			toast.error(err instanceof Error ? err.message : String(err));
 		} finally {
-			setIsSubmitting(false);
+			if (!keepSubmitting) setIsSubmitting(false);
 		}
 	};
 
@@ -164,6 +166,24 @@ export function ProjectLocationSection({
 		if (!path) return;
 		if (path === currentPath) {
 			toast.info("Project is already at that location");
+			return;
+		}
+		if (!activeHostUrl) {
+			toast.error("Host service not available");
+			return;
+		}
+		try {
+			const client = getHostServiceClientByUrl(activeHostUrl);
+			const precheck = await client.project.findBackfillConflict.query({
+				projectId,
+				repoPath: path,
+			});
+			if (precheck.conflict) {
+				setConflict(precheck.conflict);
+				return;
+			}
+		} catch (err) {
+			toast.error(err instanceof Error ? err.message : String(err));
 			return;
 		}
 		setPendingPath(path);
@@ -236,7 +256,10 @@ export function ProjectLocationSection({
 			<AlertDialog
 				open={conflict !== null}
 				onOpenChange={(open) => {
-					if (!open) setConflict(null);
+					if (!open) {
+						setConflict(null);
+						setIsSubmitting(false);
+					}
 				}}
 			>
 				<AlertDialogContent>
@@ -256,6 +279,7 @@ export function ProjectLocationSection({
 								if (!conflict) return;
 								const target = conflict;
 								setConflict(null);
+								setIsSubmitting(false);
 								navigate({
 									to: "/settings/projects/$projectId",
 									params: { projectId: target.id },

@@ -218,16 +218,19 @@ export const projectRouter = router({
 						);
 					} else {
 						resolved = await resolveWithPrimaryRemote(input.mode.repoPath);
-						await ctx.api.v2Project.linkRepoCloneUrl.mutate({
-							organizationId: ctx.organizationId,
-							id: input.projectId,
-							repoCloneUrl: resolved.parsed.url,
-						});
 					}
 
 					rejectIfRepoint(resolved.repoPath);
 					if (existing && existing.repoPath === resolved.repoPath) {
 						return { repoPath: existing.repoPath };
+					}
+
+					if (!cloudProject.repoCloneUrl) {
+						await ctx.api.v2Project.linkRepoCloneUrl.mutate({
+							organizationId: ctx.organizationId,
+							id: input.projectId,
+							repoCloneUrl: resolved.parsed.url,
+						});
 					}
 					persistLocalProject(ctx, input.projectId, resolved);
 					return { repoPath: resolved.repoPath };
