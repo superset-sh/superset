@@ -64,7 +64,7 @@ export function SettingsSection({
 	children: ReactNode;
 }) {
 	return (
-		<div className="pt-3 border-t space-y-3">
+		<div className="space-y-3">
 			<div>
 				<h3 className="text-base font-semibold text-foreground flex items-center gap-2">
 					{icon}
@@ -297,7 +297,7 @@ export function ProjectSettings({
 				/>
 			</ProjectSettingsHeader>
 
-			<div className="space-y-4">
+			<div className="space-y-8">
 				<SettingsSection
 					title="Branch Prefix"
 					description={
@@ -505,12 +505,10 @@ export function ProjectSettings({
 						)}
 				</SettingsSection>
 
-				<div className="pt-3 border-t">
-					<ScriptsEditor projectId={project.id} />
-				</div>
+				<ScriptsEditor projectId={project.id} />
 
 				<SettingsSection title="Appearance">
-					<div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+					<div className="flex items-center justify-between gap-4">
 						<ColorSelector
 							selectedColor={project.color}
 							onSelectColor={(color) =>
@@ -519,73 +517,64 @@ export function ProjectSettings({
 									patch: { color },
 								})
 							}
-							className="max-w-xl"
 						/>
-						<div className="flex items-center gap-2">
-							<Label className="text-sm text-muted-foreground">
-								Hide Image
-							</Label>
-							<Switch
-								checked={project.hideImage ?? false}
-								onCheckedChange={(checked) =>
-									updateProject.mutate({
-										id: projectId,
-										patch: { hideImage: checked },
-									})
-								}
-							/>
-						</div>
-					</div>
-
-					{/* Project Icon */}
-					<div className="flex items-center justify-between">
-						<div className="space-y-0.5">
-							<Label className="text-sm font-medium">Project Icon</Label>
-							<p className="text-xs text-muted-foreground">
-								Upload a custom icon for the sidebar.
-							</p>
-						</div>
-						<div className="flex items-center gap-2">
-							{project.iconUrl && (
-								<img
-									src={project.iconUrl}
-									alt="Project icon"
-									className="size-8 rounded object-cover border"
-								/>
-							)}
-							<input
-								ref={fileInputRef}
-								type="file"
-								accept="image/png,image/jpeg,image/svg+xml,image/x-icon,image/vnd.microsoft.icon,.ico"
-								className="hidden"
-								onChange={handleFileChange}
-							/>
-							<button
-								type="button"
-								onClick={handleIconUpload}
-								disabled={setProjectIcon.isPending}
-								className={cn(
-									"flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md border",
-									"hover:bg-muted transition-colors",
+						<div className="flex items-center gap-4">
+							<div className="flex items-center gap-2">
+								{project.iconUrl && (
+									<img
+										src={project.iconUrl}
+										alt="Project icon"
+										className="size-8 rounded object-cover border"
+									/>
 								)}
-							>
-								<LuImagePlus className="size-4" />
-								{project.iconUrl ? "Replace" : "Upload"}
-							</button>
-							{project.iconUrl && (
+								<input
+									ref={fileInputRef}
+									type="file"
+									accept="image/png,image/jpeg,image/svg+xml,image/x-icon,image/vnd.microsoft.icon,.ico"
+									className="hidden"
+									onChange={handleFileChange}
+								/>
 								<button
 									type="button"
-									onClick={handleRemoveIcon}
+									onClick={handleIconUpload}
 									disabled={setProjectIcon.isPending}
 									className={cn(
 										"flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md border",
-										"hover:bg-destructive/10 text-destructive transition-colors",
+										"hover:bg-muted transition-colors",
 									)}
 								>
-									<LuTrash2 className="size-4" />
-									Remove
+									<LuImagePlus className="size-4" />
+									{project.iconUrl ? "Replace icon" : "Upload icon"}
 								</button>
-							)}
+								{project.iconUrl && (
+									<button
+										type="button"
+										onClick={handleRemoveIcon}
+										disabled={setProjectIcon.isPending}
+										className={cn(
+											"flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md border",
+											"hover:bg-destructive/10 text-destructive transition-colors",
+										)}
+									>
+										<LuTrash2 className="size-4" />
+										Remove
+									</button>
+								)}
+							</div>
+							<div className="flex items-center gap-2">
+								<Label className="text-sm text-muted-foreground">
+									Hide image
+								</Label>
+								<Switch
+									checked={project.hideImage ?? false}
+									onCheckedChange={(checked) =>
+										updateProject.mutate({
+											id: projectId,
+											patch: { hideImage: checked },
+										})
+									}
+								/>
+							</div>
 						</div>
 					</div>
 				</SettingsSection>

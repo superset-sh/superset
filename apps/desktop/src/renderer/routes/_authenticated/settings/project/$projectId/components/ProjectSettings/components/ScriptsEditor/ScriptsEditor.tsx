@@ -380,7 +380,7 @@ export function ScriptsEditor({ projectId, className }: ScriptsEditorProps) {
 					<TabsTrigger value="teardown">Teardown</TabsTrigger>
 					<TabsTrigger value="run">Run</TabsTrigger>
 				</TabsList>
-				<TabsContent value="setup" className="mt-3">
+				<TabsContent value="setup">
 					<ScriptTextarea
 						description="Runs when a new workspace is created."
 						placeholder="e.g. bun install && bun run dev"
@@ -389,7 +389,7 @@ export function ScriptsEditor({ projectId, className }: ScriptsEditorProps) {
 						onBlur={handleBlurSave}
 					/>
 				</TabsContent>
-				<TabsContent value="teardown" className="mt-3">
+				<TabsContent value="teardown">
 					<ScriptTextarea
 						description="Runs when a workspace is deleted."
 						placeholder="e.g. docker compose down"
@@ -398,7 +398,7 @@ export function ScriptsEditor({ projectId, className }: ScriptsEditorProps) {
 						onBlur={handleBlurSave}
 					/>
 				</TabsContent>
-				<TabsContent value="run" className="mt-3">
+				<TabsContent value="run">
 					<ScriptTextarea
 						description="Command to start your dev server, triggered via keyboard shortcut."
 						placeholder="e.g. bun run dev"
