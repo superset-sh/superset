@@ -39,6 +39,8 @@ type InlineEditState =
 interface FilesTabProps {
 	onSelectFile: (absolutePath: string, openInNewTab?: boolean) => void;
 	selectedFilePath?: string;
+	pendingRevealDirectory?: string | null;
+	onPendingRevealConsumed?: () => void;
 	workspaceId: string;
 	workspaceName?: string;
 	gitStatus: GitStatusData | undefined;
@@ -208,6 +210,8 @@ function TreeNode({
 export function FilesTab({
 	onSelectFile,
 	selectedFilePath,
+	pendingRevealDirectory,
+	onPendingRevealConsumed,
 	workspaceId,
 	workspaceName,
 	gitStatus,
@@ -318,16 +322,24 @@ export function FilesTab({
 			selectedFilePath !== prevSelectedRef.current &&
 			rootPath
 		) {
-			void fileTree.reveal(selectedFilePath).then(() => {
+			const isDirectory = pendingRevealDirectory === selectedFilePath;
+			void fileTree.reveal(selectedFilePath, { isDirectory }).then(() => {
 				requestAnimationFrame(() => {
 					scrollContainerRef.current
 						?.querySelector(`[data-filepath="${CSS.escape(selectedFilePath)}"]`)
 						?.scrollIntoView({ block: "center" });
 				});
+				if (isDirectory) onPendingRevealConsumed?.();
 			});
 		}
 		prevSelectedRef.current = selectedFilePath;
-	}, [selectedFilePath, rootPath, fileTree]);
+	}, [
+		selectedFilePath,
+		rootPath,
+		fileTree,
+		pendingRevealDirectory,
+		onPendingRevealConsumed,
+	]);
 
 	const handleRefresh = useCallback(async () => {
 		setIsRefreshing(true);

@@ -202,3 +202,50 @@ export type DashboardSidebarSectionRow = z.infer<
 	typeof dashboardSidebarSectionSchema
 >;
 export type V2TerminalPresetRow = z.infer<typeof v2TerminalPresetSchema>;
+
+/**
+ * Singleton row of v2 user-scoped preferences. Today this carries link-click
+ * behavior only; add fields here as v2 grows additional preferences.
+ *
+ * fileLinks / urlLinks map click tiers (plain, ⌘, ⌘⇧) to an action:
+ *   - null        → tier is unbound (terminal shows a hint; chat/markdown no-op)
+ *   - "pane"      → open in an in-app pane (FilePane / BrowserPane)
+ *   - "external"  → open in the external app (editor / system browser)
+ *
+ * Terminal consumes all three tiers; 2-tier surfaces (chat, task markdown)
+ * read plain + meta and ignore metaShift.
+ */
+const linkActionSchema = z.enum(["pane", "external"]);
+
+export type LinkAction = z.infer<typeof linkActionSchema>;
+
+const linkTierMapSchema = z.object({
+	plain: linkActionSchema.nullable(),
+	meta: linkActionSchema.nullable(),
+	metaShift: linkActionSchema.nullable(),
+});
+
+export type LinkTierMap = z.infer<typeof linkTierMapSchema>;
+export type LinkTier = keyof LinkTierMap;
+
+const DEFAULT_LINK_TIER_MAP: LinkTierMap = {
+	plain: null,
+	meta: "pane",
+	metaShift: "external",
+};
+
+export const v2UserPreferencesSchema = z.object({
+	id: z.literal("preferences"),
+	fileLinks: linkTierMapSchema.default(DEFAULT_LINK_TIER_MAP),
+	urlLinks: linkTierMapSchema.default(DEFAULT_LINK_TIER_MAP),
+});
+
+export type V2UserPreferencesRow = z.infer<typeof v2UserPreferencesSchema>;
+
+export const V2_USER_PREFERENCES_ID = "preferences" as const;
+
+export const DEFAULT_V2_USER_PREFERENCES: V2UserPreferencesRow = {
+	id: V2_USER_PREFERENCES_ID,
+	fileLinks: DEFAULT_LINK_TIER_MAP,
+	urlLinks: DEFAULT_LINK_TIER_MAP,
+};

@@ -141,6 +141,9 @@ function WorkspaceContent({
 	const [selectedFilePath, setSelectedFilePath] = useState<string | undefined>(
 		activeFilePanePath,
 	);
+	const [pendingRevealDirectory, setPendingRevealDirectory] = useState<
+		string | null
+	>(null);
 
 	useEffect(() => {
 		if (activeFilePanePath !== undefined) {
@@ -208,12 +211,13 @@ function WorkspaceContent({
 	);
 
 	const revealPath = useCallback(
-		(path: string) => {
+		(path: string, options?: { isDirectory?: boolean }) => {
 			collections.v2WorkspaceLocalState.update(workspaceId, (draft) => {
 				draft.rightSidebarOpen = true;
 				draft.sidebarState.activeTab = "files";
 			});
 			setSelectedFilePath(path);
+			setPendingRevealDirectory(options?.isDirectory ? path : null);
 		},
 		[collections, workspaceId],
 	);
@@ -477,6 +481,8 @@ function WorkspaceContent({
 								onOpenComment={openCommentPane}
 								onSearch={handleQuickOpen}
 								selectedFilePath={selectedFilePath}
+								pendingRevealDirectory={pendingRevealDirectory}
+								onPendingRevealConsumed={() => setPendingRevealDirectory(null)}
 							/>
 						</ResizablePanel>
 					</>

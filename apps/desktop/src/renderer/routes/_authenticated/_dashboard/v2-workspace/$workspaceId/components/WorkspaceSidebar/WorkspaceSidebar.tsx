@@ -21,6 +21,8 @@ interface WorkspaceSidebarProps {
 	onOpenComment?: (comment: CommentPaneData) => void;
 	onSearch?: () => void;
 	selectedFilePath?: string;
+	pendingRevealDirectory?: string | null;
+	onPendingRevealConsumed?: () => void;
 	workspaceId: string;
 	workspaceName?: string;
 }
@@ -57,6 +59,8 @@ export function WorkspaceSidebar({
 	onOpenComment,
 	onSearch,
 	selectedFilePath,
+	pendingRevealDirectory,
+	onPendingRevealConsumed,
 	workspaceId,
 	workspaceName,
 }: WorkspaceSidebarProps) {
@@ -111,6 +115,8 @@ export function WorkspaceSidebar({
 			<FilesTab
 				onSelectFile={onSelectFile}
 				selectedFilePath={selectedFilePath}
+				pendingRevealDirectory={pendingRevealDirectory}
+				onPendingRevealConsumed={onPendingRevealConsumed}
 				workspaceId={workspaceId}
 				workspaceName={workspaceName}
 				gitStatus={gitStatus.data}

@@ -28,7 +28,7 @@ export interface UseFileTreeResult {
 	toggle: (path: string) => Promise<void>;
 	refreshAll: () => Promise<void>;
 	refreshPath: (path: string) => Promise<void>;
-	reveal: (path: string) => Promise<void>;
+	reveal: (path: string, options?: { isDirectory?: boolean }) => Promise<void>;
 }
 
 interface FileTreeState {
@@ -482,7 +482,10 @@ export function useFileTree({
 	]);
 
 	const reveal = useCallback(
-		async (absolutePath: string): Promise<void> => {
+		async (
+			absolutePath: string,
+			options?: { isDirectory?: boolean },
+		): Promise<void> => {
 			if (!rootPath || !absolutePath.startsWith(rootPath)) return;
 
 			const ancestors: string[] = [];
@@ -497,8 +500,14 @@ export function useFileTree({
 				await expand(dir);
 			}
 
+			// Trust a caller's explicit isDirectory hint (e.g. terminal link-click
+			// that already stat'd the path) — the loaded `entriesByPath` may not
+			// contain the target if its path form (case, symlink resolution) differs
+			// from what `listDirectory` produced for the parent.
 			const entry = stateRef.current.entriesByPath.get(absolutePath);
-			if (entry?.kind === "directory") {
+			const isDirectory =
+				options?.isDirectory === true || entry?.kind === "directory";
+			if (isDirectory) {
 				await expand(absolutePath);
 			}
 		},

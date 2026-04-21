@@ -8,12 +8,7 @@ const TOOLTIP_OFFSET_PX = 14;
 const TOOLTIP_CLASSES =
 	"pointer-events-none fixed z-50 w-fit rounded-md bg-foreground px-3 py-1.5 text-xs text-background";
 
-const isMac =
-	typeof navigator !== "undefined" &&
-	navigator.platform.toLowerCase().includes("mac");
-const MOD_LABEL = isMac ? "⌘" : "Ctrl";
-const MOD_SHIFT_LABEL = isMac ? "⌘⇧" : "Ctrl+Shift";
-const HINT_LABEL = `Hold ${MOD_LABEL} to open · ${MOD_SHIFT_LABEL} for external`;
+const HINT_LABEL = "Not bound · configure in Settings → Links";
 
 interface LinkHoverTooltipProps {
 	hoveredLink: HoveredLink | null;
