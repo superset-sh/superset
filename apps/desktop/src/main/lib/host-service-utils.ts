@@ -31,8 +31,10 @@ export function openRotatingLogFd(logPath: string, maxBytes: number): number {
 		// file's perms in case it was rotated out-of-band with laxer bits.
 		try {
 			fs.chmodSync(logPath, 0o600);
-		} catch {
-			// Best-effort
+		} catch (error) {
+			console.warn(
+				`[host-service] Failed to chmod log file ${logPath}: ${error}`,
+			);
 		}
 		return fd;
 	} catch (error) {
@@ -64,17 +66,18 @@ export async function pollHealthCheck(
 ): Promise<boolean> {
 	const deadline = Date.now() + timeoutMs;
 	while (Date.now() < deadline) {
+		const controller = new AbortController();
+		const timeout = setTimeout(() => controller.abort(), 2_000);
 		try {
-			const controller = new AbortController();
-			const timeout = setTimeout(() => controller.abort(), 2_000);
 			const res = await fetch(`${endpoint}/trpc/health.check`, {
 				signal: controller.signal,
 				headers: { Authorization: `Bearer ${secret}` },
 			});
-			clearTimeout(timeout);
 			if (res.ok) return true;
 		} catch {
 			// Not ready yet
+		} finally {
+			clearTimeout(timeout);
 		}
 		await new Promise((r) => setTimeout(r, HEALTH_POLL_INTERVAL_MS));
 	}

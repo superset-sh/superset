@@ -366,21 +366,26 @@ export class HostServiceCoordinator extends EventEmitter {
 		this.emitStatus(organizationId, "starting", null);
 
 		const childEnv = await this.buildEnv(organizationId, port, secret, config);
-		const isDev = process.env.NODE_ENV === "development";
+		// Gate on app.isPackaged — the authoritative "running from an installed
+		// bundle" signal. NODE_ENV is ambient (shell, wrappers, debug launches)
+		// and could silently flip detach off in a packaged app, which would
+		// re-introduce the exact Squirrel kill-chain this file exists to fix.
+		const isPackaged = app.isPackaged;
 
-		// In prod, detach so the child survives app relaunch: auto-updater's
-		// quitAndInstall would otherwise take the host-service (and its PTYs)
-		// down with the old app's process group. Stdio must point at real
-		// fds — piped stdio would EPIPE once the parent exits. In dev we
-		// keep pipes so logs flow to the Electron console; dev restarts via
-		// enableDevReload anyway, so survival isn't needed.
-		const logFd = isDev
-			? -1
-			: openRotatingLogFd(
+		// In packaged builds, detach so the child survives app relaunch:
+		// auto-updater's quitAndInstall would otherwise take the host-service
+		// (and its PTYs) down with the old app's process group. Stdio must
+		// point at real fds — piped stdio would EPIPE once the parent exits.
+		// Unpackaged (dev) keeps pipes so logs flow to the Electron console;
+		// enableDevReload restarts instances on rebuild, so survival isn't
+		// needed.
+		const logFd = isPackaged
+			? openRotatingLogFd(
 					path.join(manifestDir(organizationId), "host-service.log"),
 					MAX_HOST_LOG_BYTES,
-				);
-		const stdio: childProcess.StdioOptions = isDev
+				)
+			: -1;
+		const stdio: childProcess.StdioOptions = !isPackaged
 			? ["ignore", "pipe", "pipe"]
 			: logFd >= 0
 				? ["ignore", logFd, logFd]
@@ -389,7 +394,7 @@ export class HostServiceCoordinator extends EventEmitter {
 		let child: ReturnType<typeof childProcess.spawn>;
 		try {
 			child = childProcess.spawn(process.execPath, [this.scriptPath], {
-				detached: !isDev,
+				detached: isPackaged,
 				stdio,
 				env: childEnv,
 				// Avoid a flashing CMD window on Windows for the detached child.
@@ -413,7 +418,7 @@ export class HostServiceCoordinator extends EventEmitter {
 
 		instance.pid = childPid;
 
-		if (isDev) {
+		if (!isPackaged) {
 			child.stdout?.on("data", (data: Buffer) => {
 				console.log(
 					`[host-service:${organizationId}] ${data.toString().trim()}`,
