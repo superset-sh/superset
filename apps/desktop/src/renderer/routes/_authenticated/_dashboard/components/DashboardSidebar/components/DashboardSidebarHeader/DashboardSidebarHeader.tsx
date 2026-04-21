@@ -47,13 +47,6 @@ export function DashboardSidebarHeader({
 			toast.error(`Import failed: ${message}`);
 		},
 	});
-	const handleImportFolder = () => {
-		folderImport.start().catch((err) => {
-			toast.error(
-				`Import failed: ${err instanceof Error ? err.message : String(err)}`,
-			);
-		});
-	};
 	const shortcutText = useHotkeyDisplay("NEW_WORKSPACE").text;
 	const navigate = useNavigate();
 	const matchRoute = useMatchRoute();
@@ -153,7 +146,7 @@ export function DashboardSidebarHeader({
 							<HiMiniPlus className="size-4" />
 							New project
 						</DropdownMenuItem>
-						<DropdownMenuItem onSelect={handleImportFolder}>
+						<DropdownMenuItem onSelect={() => folderImport.start()}>
 							<LuFolderInput className="size-4" />
 							Import existing folder
 						</DropdownMenuItem>
@@ -230,7 +223,7 @@ export function DashboardSidebarHeader({
 							<HiMiniPlus className="size-4" />
 							New project
 						</DropdownMenuItem>
-						<DropdownMenuItem onSelect={handleImportFolder}>
+						<DropdownMenuItem onSelect={() => folderImport.start()}>
 							<LuFolderInput className="size-4" />
 							Import existing folder
 						</DropdownMenuItem>
