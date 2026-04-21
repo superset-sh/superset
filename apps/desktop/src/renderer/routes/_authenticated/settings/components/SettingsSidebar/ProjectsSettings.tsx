@@ -1,10 +1,16 @@
 import { FEATURE_FLAGS } from "@superset/shared/constants";
 import { cn } from "@superset/ui/utils";
+import { eq } from "@tanstack/db";
+import { useLiveQuery } from "@tanstack/react-db";
 import { Link, useMatchRoute } from "@tanstack/react-router";
 import { useFeatureFlagEnabled } from "posthog-js/react";
 import { HiOutlineFolder } from "react-icons/hi2";
+import { env } from "renderer/env.renderer";
+import { authClient } from "renderer/lib/auth-client";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import type { SettingsSection } from "renderer/stores/settings-state";
+import { MOCK_ORG_ID } from "shared/constants";
 
 interface ProjectsSettingsProps {
 	isSearchActive: boolean;
@@ -19,6 +25,23 @@ export function ProjectsSettings({
 		electronTrpc.workspaces.getAllGrouped.useQuery();
 	const matchRoute = useMatchRoute();
 	const hasCloudAccess = useFeatureFlagEnabled(FEATURE_FLAGS.CLOUD_ACCESS);
+	const collections = useCollections();
+	const { data: session } = authClient.useSession();
+
+	const activeOrganizationId = env.SKIP_ENV_VALIDATION
+		? MOCK_ORG_ID
+		: (session?.session?.activeOrganizationId ?? null);
+
+	const { data: v2Projects = [] } = useLiveQuery(
+		(q) =>
+			q
+				.from({ projects: collections.v2Projects })
+				.where(({ projects }) =>
+					eq(projects.organizationId, activeOrganizationId ?? ""),
+				)
+				.select(({ projects }) => ({ ...projects })),
+		[collections, activeOrganizationId],
+	);
 
 	const hasProjectMatches = (matchCounts?.project ?? 0) > 0;
 
@@ -26,13 +49,12 @@ export function ProjectsSettings({
 		return null;
 	}
 
-	if (groups.length === 0) {
+	if (groups.length === 0 && v2Projects.length === 0) {
 		return null;
 	}
 
-	// Check if we're on the projects list or any project settings page
 	const isProjectsListActive = matchRoute({ to: "/settings/projects" });
-	const isAnyProjectActive = groups.some(
+	const isAnyV1ProjectActive = groups.some(
 		(group) =>
 			matchRoute({
 				to: "/settings/project/$projectId/general",
@@ -44,7 +66,14 @@ export function ProjectsSettings({
 					params: { projectId: group.project.id },
 				})),
 	);
-	const isActive = !!isProjectsListActive || isAnyProjectActive;
+	const isAnyV2ProjectActive = v2Projects.some((project) =>
+		matchRoute({
+			to: "/settings/v2-project/$projectId/general",
+			params: { projectId: project.id },
+		}),
+	);
+	const isActive =
+		!!isProjectsListActive || isAnyV1ProjectActive || isAnyV2ProjectActive;
 
 	const count = matchCounts?.project;
 

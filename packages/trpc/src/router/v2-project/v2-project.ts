@@ -242,6 +242,89 @@ export const v2ProjectRouter = {
 			return project;
 		}),
 
+	linkRepoCloneUrl: jwtProcedure
+		.input(
+			z.object({
+				organizationId: z.string().uuid(),
+				id: z.string().uuid(),
+				repoCloneUrl: z.string().min(1),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			if (!ctx.organizationIds.includes(input.organizationId)) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "Not a member of this organization",
+				});
+			}
+			const parsed = parseGitHubRemote(input.repoCloneUrl);
+			if (!parsed) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Could not parse GitHub remote URL",
+				});
+			}
+			const canonicalUrl = parsed.url;
+
+			const existing = await requireOrgScopedResource(
+				() =>
+					dbWs.query.v2Projects.findFirst({
+						columns: { id: true, organizationId: true, repoCloneUrl: true },
+						where: eq(v2Projects.id, input.id),
+					}),
+				{
+					message: "Project not found",
+					organizationId: input.organizationId,
+				},
+			);
+			if (existing.repoCloneUrl) {
+				throw new TRPCError({
+					code: "CONFLICT",
+					message: "Project already has a linked repository",
+				});
+			}
+
+			const fullNameLower = `${parsed.owner}/${parsed.name}`.toLowerCase();
+			const repo = await dbWs.query.githubRepositories.findFirst({
+				columns: { id: true },
+				where: and(
+					eq(sql`lower(${githubRepositories.fullName})`, fullNameLower),
+					eq(githubRepositories.organizationId, input.organizationId),
+				),
+			});
+
+			try {
+				const [updated] = await dbWs
+					.update(v2Projects)
+					.set({
+						repoCloneUrl: canonicalUrl,
+						githubRepositoryId: repo?.id ?? null,
+					})
+					.where(eq(v2Projects.id, input.id))
+					.returning();
+				if (!updated) {
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: "Project not found",
+					});
+				}
+				return updated;
+			} catch (err) {
+				if (
+					err instanceof Error &&
+					"code" in err &&
+					(err as { code?: string }).code === "23505"
+				) {
+					throw new TRPCError({
+						code: "CONFLICT",
+						message:
+							"Another project in this organization already uses this repository URL",
+					});
+				}
+				throw err;
+			}
+		}),
+
 	update: protectedProcedure
 		.input(
 			z.object({
