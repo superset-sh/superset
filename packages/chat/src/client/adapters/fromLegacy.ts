@@ -119,12 +119,28 @@ export function fromLegacyMessages(
 	// message twice for that frame (and longer if clears race).
 	const deduped = dedupeOptimisticUserMessages(legacy);
 
+	// Collapse any id-duplicates the upstream view ended up with. The
+	// useWorkspaceChatDisplay dual-write also guards against appending
+	// `currentMessage` when it's already in `messages`, but a defensive
+	// pass here catches any other dupes — last occurrence wins.
+	const byId = new Map<string, number>();
+	const uniq: LegacyMessage[] = [];
+	for (const m of deduped) {
+		const prevIdx = byId.get(m.id);
+		if (prevIdx !== undefined) {
+			uniq[prevIdx] = m;
+			continue;
+		}
+		byId.set(m.id, uniq.length);
+		uniq.push(m);
+	}
+
 	const messages: Message[] = [];
 	const parts: { [messageID: string]: Part[] } = {};
 
 	let lastUserID: string | null = null;
 
-	for (const legacyMsg of deduped) {
+	for (const legacyMsg of uniq) {
 		if (legacyMsg.role === "user") {
 			const user = toUserMessage(legacyMsg, options.sessionID);
 			messages.push(user);

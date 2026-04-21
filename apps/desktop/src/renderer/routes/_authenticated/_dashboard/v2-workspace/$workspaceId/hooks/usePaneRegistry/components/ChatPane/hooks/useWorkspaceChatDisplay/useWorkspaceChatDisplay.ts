@@ -210,28 +210,63 @@ export function useChatDisplay(options: UseChatDisplayOptions) {
 	}, [historicalMessages, optimisticUserMessage, currentMessage, isRunning]);
 
 	// Phase 1 dual-write: shadow the legacy message stream into the new
-	// v2 chat store. We feed `messages` (historicalMessages + legacy's
-	// optimistic user message, active-assistant-turn stripped) plus the
-	// in-flight `currentMessage`, so the new Timeline reflects exactly
-	// what legacy renders — no 250 ms poll-delay dead window after hit
-	// send. `activeMessageId` is the latest USER id while the session is
-	// busy so selectTurns can flag `turn.active` and the Timeline's
-	// "Thinking…" row fires. Plan §1.2.
+	// v2 chat store. We feed the RAW `historicalMessages` (no strip, no
+	// legacy optimistic) — those are handled in the new store via
+	// `addOptimistic` + `applySessionSnapshot`'s preserve-opt path. The
+	// streaming `currentMessage` gets appended only when it's safe:
+	//
+	//   a) the session is running
+	//   b) its `parentID` is actually in the array we're sending
+	//
+	// Why (b) matters: the NEW user message often lands in
+	// `historicalMessages` a poll after the send returns. While
+	// `historicalMessages` is stale, appending `currentMessage` would
+	// cause the adapter's lastUserID walk to attach the streaming
+	// assistant to the PRIOR user's turn — visible as the streaming
+	// response briefly replacing the response above it, then jumping
+	// back down once the poll catches up. Parent check prevents that.
+	//
+	// The id-dedup in `fromLegacyMessages` handles the other corner —
+	// the brief overlap where historical has the completed assistant
+	// and currentMessage is still set.
 	const dualWriteMessages = useMemo(() => {
-		if (!messages) return undefined;
-		if (!currentMessage || currentMessage.role !== "assistant") return messages;
-		return [...messages, currentMessage];
-	}, [messages, currentMessage]);
-
-	const activeUserMessageId = useMemo<string | null>(() => {
-		if (!isRunning) return null;
-		const list = messages ?? [];
-		for (let i = list.length - 1; i >= 0; i -= 1) {
-			const m = list[i];
-			if (m?.role === "user") return m.id;
+		const list = historicalMessages;
+		if (!list) return undefined;
+		if (
+			!isRunning ||
+			!currentMessage ||
+			currentMessage.role !== "assistant"
+		) {
+			return list;
 		}
-		return null;
-	}, [messages, isRunning]);
+		const currentId =
+			typeof (currentMessage as { id?: unknown }).id === "string"
+				? ((currentMessage as { id: string }).id)
+				: null;
+		if (!currentId) return list;
+
+		// Parent-check guard: only attach if currentMessage.parentID is
+		// in the array; otherwise the adapter would misattribute.
+		const parentID = (currentMessage as { parentID?: unknown }).parentID;
+		if (typeof parentID === "string" && parentID) {
+			if (!list.some((m) => m.id === parentID)) return list;
+		}
+		// Already in the list (transition window where historical picked
+		// up the completed message but currentMessage hasn't cleared).
+		if (list.some((m) => m.id === currentId)) return list;
+
+		return [...list, currentMessage];
+	}, [historicalMessages, currentMessage, isRunning]);
+
+	// `activeMessageID` in the adapter flags tool parts as input-streaming.
+	// It's the ASSISTANT id being streamed, not a user id — previously
+	// this was wrong (was passing a user id, which did nothing useful).
+	const activeAssistantMessageId = useMemo<string | null>(() => {
+		if (!isRunning || !currentMessage) return null;
+		if (currentMessage.role !== "assistant") return null;
+		const id = (currentMessage as { id?: unknown }).id;
+		return typeof id === "string" ? id : null;
+	}, [currentMessage, isRunning]);
 
 	useDualWriteFromLegacy({
 		sessionId,
@@ -239,7 +274,7 @@ export function useChatDisplay(options: UseChatDisplayOptions) {
 			| readonly LegacyMessage[]
 			| undefined,
 		isRunning,
-		activeMessageId: activeUserMessageId,
+		activeMessageId: activeAssistantMessageId,
 	});
 
 	// Phase 4 dock bridge: mirror pendingApproval / pendingQuestion /

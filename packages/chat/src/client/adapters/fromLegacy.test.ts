@@ -388,6 +388,40 @@ describe("fromLegacyMessages — data URL wrapping", () => {
 	});
 });
 
+describe("fromLegacyMessages — id dedup (defensive)", () => {
+	it("collapses id-duplicates so a double assistant message doesn't render twice", () => {
+		const legacy: LegacyMessage[] = [
+			{
+				id: "u1",
+				role: "user",
+				createdAt: 1000,
+				content: [{ type: "text", text: "hi" }],
+			},
+			{
+				id: "a1",
+				role: "assistant",
+				createdAt: 2000,
+				content: [{ type: "text", text: "first (stale)" }],
+			},
+			{
+				id: "a1",
+				role: "assistant",
+				createdAt: 2000,
+				content: [{ type: "text", text: "second (fresh)" }],
+			},
+		];
+		const out = fromLegacyMessages(legacy, { sessionID: SESSION });
+		expect(out.messages.map((m) => m.id)).toEqual(["u1", "a1"]);
+		const parts = out.parts.a1;
+		expect(parts).toHaveLength(1);
+		const textPart = parts?.[0];
+		if (!textPart || textPart.type !== "text") {
+			throw new Error("expected text part");
+		}
+		expect(textPart.text).toBe("second (fresh)"); // last occurrence wins
+	});
+});
+
 describe("dedupeOptimisticUserMessages", () => {
 	const real = (id: string, text: string): LegacyMessage => ({
 		id,
