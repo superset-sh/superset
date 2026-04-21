@@ -3,7 +3,6 @@ import { useLiveQuery } from "@tanstack/react-db";
 import { Link } from "@tanstack/react-router";
 import { cn } from "@superset/ui/utils";
 import { useMemo } from "react";
-import { HiOutlineCloud } from "react-icons/hi2";
 import { env } from "renderer/env.renderer";
 import { authClient } from "renderer/lib/auth-client";
 import { electronTrpc } from "renderer/lib/electron-trpc";
@@ -14,7 +13,6 @@ interface ProjectRow {
 	kind: "v1" | "v2";
 	id: string;
 	name: string;
-	color: string | null;
 }
 
 interface ProjectsSettingsSidebarProps {
@@ -56,7 +54,6 @@ export function ProjectsSettingsSidebar({
 			kind: "v2",
 			id: p.id,
 			name: p.name,
-			color: null,
 		}));
 
 		const v1Rows: ProjectRow[] = groups
@@ -69,7 +66,6 @@ export function ProjectsSettingsSidebar({
 				kind: "v1",
 				id: g.project.id,
 				name: g.project.name,
-				color: g.project.color,
 			}));
 
 		return { v2Rows, v1Rows };
@@ -86,7 +82,7 @@ export function ProjectsSettingsSidebar({
 					</p>
 				)}
 				{v2Rows.length > 0 && (
-					<Section title="Cloud">
+					<Section title="v2">
 						{v2Rows.map((row) => (
 							<ProjectLink
 								key={`v2:${row.id}`}
@@ -97,7 +93,7 @@ export function ProjectsSettingsSidebar({
 					</Section>
 				)}
 				{v1Rows.length > 0 && (
-					<Section title="Local">
+					<Section title="v1">
 						{v1Rows.map((row) => (
 							<ProjectLink
 								key={`v1:${row.id}`}
@@ -141,20 +137,12 @@ function ProjectLink({
 			to="/settings/projects/$projectId"
 			params={{ projectId: row.id }}
 			className={cn(
-				"flex items-center gap-2 px-2 py-1.5 text-sm rounded-md transition-colors",
+				"flex items-center px-2 py-1.5 text-sm rounded-md transition-colors",
 				isActive
 					? "bg-accent text-accent-foreground"
 					: "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
 			)}
 		>
-			{row.color ? (
-				<div
-					className="w-2.5 h-2.5 rounded-full shrink-0"
-					style={{ backgroundColor: row.color }}
-				/>
-			) : (
-				<HiOutlineCloud className="w-3.5 h-3.5 shrink-0" />
-			)}
 			<span className="truncate">{row.name}</span>
 		</Link>
 	);
