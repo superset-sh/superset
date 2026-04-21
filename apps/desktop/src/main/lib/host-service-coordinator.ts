@@ -55,6 +55,18 @@ const HEALTH_POLL_INTERVAL = 200;
 const HEALTH_POLL_TIMEOUT = 10_000;
 const ADOPTED_LIVENESS_INTERVAL = 5_000;
 
+function openLogFile(organizationId: string): number {
+	try {
+		const dir = manifestDir(organizationId);
+		if (!fs.existsSync(dir)) {
+			fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
+		}
+		return fs.openSync(path.join(dir, "host-service.log"), "a", 0o600);
+	} catch {
+		return -1;
+	}
+}
+
 async function findFreePort(): Promise<number> {
 	return new Promise((resolve, reject) => {
 		const server = createServer();
@@ -402,10 +414,25 @@ export class HostServiceCoordinator extends EventEmitter {
 		this.emitStatus(organizationId, "starting", null);
 
 		const env = await this.buildEnv(organizationId, port, secret, config);
-		const child = childProcess.spawn(process.execPath, [this.scriptPath], {
-			stdio: ["ignore", "pipe", "pipe"],
-			env,
-		});
+
+		// Detached + file-backed stdio so the child outlives the parent's process
+		// group (Squirrel.Mac SIGTERMs it during updates) and doesn't depend on
+		// parent-held stdout/stderr pipes.
+		const logFd = openLogFile(organizationId);
+		let child: childProcess.ChildProcess;
+		try {
+			child = childProcess.spawn(process.execPath, [this.scriptPath], {
+				detached: true,
+				stdio: logFd >= 0 ? ["ignore", logFd, logFd] : "ignore",
+				env,
+			});
+		} finally {
+			if (logFd >= 0) {
+				try {
+					fs.closeSync(logFd);
+				} catch {}
+			}
+		}
 
 		const childPid = child.pid;
 		if (!childPid) {
@@ -415,14 +442,6 @@ export class HostServiceCoordinator extends EventEmitter {
 
 		instance.pid = childPid;
 
-		child.stdout?.on("data", (data: Buffer) => {
-			console.log(`[host-service:${organizationId}] ${data.toString().trim()}`);
-		});
-		child.stderr?.on("data", (data: Buffer) => {
-			console.error(
-				`[host-service:${organizationId}] ${data.toString().trim()}`,
-			);
-		});
 		child.on("exit", (code) => {
 			console.log(`[host-service:${organizationId}] exited with code ${code}`);
 			const current = this.instances.get(organizationId);

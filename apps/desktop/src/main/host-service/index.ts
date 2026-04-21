@@ -18,7 +18,7 @@ import {
 	resolveTerminalBaseEnv,
 } from "@superset/host-service/terminal-env";
 import { connectRelay } from "@superset/host-service/tunnel";
-import { removeManifest, writeManifest } from "main/lib/host-service-manifest";
+import { writeManifest } from "main/lib/host-service-manifest";
 import { env } from "./env";
 
 async function main(): Promise<void> {
@@ -81,10 +81,8 @@ async function main(): Promise<void> {
 	);
 	injectWebSocket(server);
 
+	// Manifest lifecycle belongs to the coordinator, not the child.
 	const shutdown = () => {
-		if (env.ORGANIZATION_ID) {
-			removeManifest(env.ORGANIZATION_ID);
-		}
 		server.close();
 		process.exit(0);
 	};
