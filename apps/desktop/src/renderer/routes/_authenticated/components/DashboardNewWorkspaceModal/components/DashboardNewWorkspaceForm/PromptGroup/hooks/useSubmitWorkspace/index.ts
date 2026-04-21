@@ -1,1 +1,4 @@
-export { useSubmitWorkspace } from "./useSubmitWorkspace";
+export {
+	type SubmitAttachment,
+	useSubmitWorkspace,
+} from "./useSubmitWorkspace";
