@@ -1,7 +1,7 @@
+import { cn } from "@superset/ui/utils";
 import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { Link } from "@tanstack/react-router";
-import { cn } from "@superset/ui/utils";
 import { useMemo } from "react";
 import { env } from "renderer/env.renderer";
 import { authClient } from "renderer/lib/auth-client";
@@ -59,8 +59,7 @@ export function ProjectsSettingsSidebar({
 		const v1Rows: ProjectRow[] = groups
 			.filter(
 				(g) =>
-					!g.project.neonProjectId ||
-					!linkedV2Ids.has(g.project.neonProjectId),
+					!g.project.neonProjectId || !linkedV2Ids.has(g.project.neonProjectId),
 			)
 			.map((g) => ({
 				kind: "v1",
@@ -78,9 +77,7 @@ export function ProjectsSettingsSidebar({
 		<div className="w-64 shrink-0 border-r overflow-y-auto">
 			<div className="p-3 space-y-4">
 				{isEmpty && (
-					<p className="px-2 text-sm text-muted-foreground">
-						No projects yet.
-					</p>
+					<p className="px-2 text-sm text-muted-foreground">No projects yet.</p>
 				)}
 				{v2Rows.length > 0 && (
 					<Section title={showHeaders ? "v2" : null}>

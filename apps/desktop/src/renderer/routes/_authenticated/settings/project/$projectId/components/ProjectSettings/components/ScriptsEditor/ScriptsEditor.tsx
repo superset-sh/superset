@@ -114,7 +114,7 @@ function ScriptTextarea({
 			{/* biome-ignore lint/a11y/useSemanticElements: Drop zone wrapper for drag-and-drop functionality */}
 			<div
 				role="region"
-				aria-label={`${title} script editor with file drop support`}
+				aria-label="Script editor with file drop support"
 				className={cn(
 					"relative rounded-lg border transition-colors",
 					isDragOver

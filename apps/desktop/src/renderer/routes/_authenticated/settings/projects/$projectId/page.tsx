@@ -6,13 +6,11 @@ import { env } from "renderer/env.renderer";
 import { authClient } from "renderer/lib/auth-client";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { NotFound } from "renderer/routes/not-found";
-import {
-	useSettingsSearchQuery,
-} from "renderer/stores/settings-state";
+import { useSettingsSearchQuery } from "renderer/stores/settings-state";
 import { MOCK_ORG_ID } from "shared/constants";
 import { ProjectSettings } from "../../project/$projectId/components/ProjectSettings";
-import { V2ProjectSettings } from "../../v2-project/$projectId/components/V2ProjectSettings";
 import { getMatchingItemsForSection } from "../../utils/settings-search";
+import { V2ProjectSettings } from "../../v2-project/$projectId/components/V2ProjectSettings";
 
 export const Route = createFileRoute(
 	"/_authenticated/settings/projects/$projectId/",
