@@ -56,12 +56,8 @@ export function V2ProjectSettings({ projectId }: V2ProjectSettingsProps) {
 				</SettingsSection>
 
 				<SettingsSection
-					title="Project Location"
-					description={
-						hostProject
-							? "Where this project lives on disk. Change it if the folder was moved or added at the wrong location."
-							: "Point this project at a local clone of the repository to set it up on this device."
-					}
+					title="Host Service Location"
+					description="Where this project lives on disk, per host connected to this organization."
 				>
 					<ProjectLocationSection
 						projectId={projectId}
