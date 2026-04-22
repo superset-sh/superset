@@ -42,7 +42,6 @@ interface FilesTabProps {
 	pendingReveal?: {
 		path: string;
 		isDirectory: boolean;
-		nonce: number;
 	} | null;
 	workspaceId: string;
 	workspaceName?: string;
@@ -293,7 +292,6 @@ export function FilesTab({
 
 	const scrollContainerRef = useRef<HTMLDivElement>(null);
 	const lastMousePos = useRef<{ x: number; y: number } | null>(null);
-	const prevSelectedRef = useRef(selectedFilePath);
 
 	const updateHoverFromPoint = useCallback((x: number, y: number) => {
 		const el = document.elementFromPoint(x, y)?.closest("[data-filepath]");
@@ -318,16 +316,15 @@ export function FilesTab({
 		setHoveredPath(null);
 	}, []);
 
-	// Keyed on pendingReveal.nonce so repeat reveals of the same path still
-	// re-expand and re-scroll. rootPath is included so a reveal fired before
-	// the worktree path loads still runs once rootPath arrives. fileTree is
-	// intentionally omitted — its identity changes every render and would
-	// cause an update loop; the closure sees the latest state via its internal
-	// refs. The cancelled flag guards against stale reveals scrolling the
-	// sidebar back to an outdated path if a newer nonce arrives mid-flight.
-	// biome-ignore lint/correctness/useExhaustiveDependencies: nonce-keyed trigger
+	// Every reveal request from the parent is a fresh `pendingReveal` object,
+	// so depending on its identity re-runs this effect for repeat reveals of
+	// the same path too. fileTree is intentionally omitted — its identity
+	// changes every render and would loop; the closure reads the latest state
+	// via useFileTree's internal refs. `cancelled` guards against a stale
+	// reveal scrolling the sidebar back to an outdated path if a newer
+	// request lands mid-flight.
+	// biome-ignore lint/correctness/useExhaustiveDependencies: fileTree intentionally omitted
 	useEffect(() => {
-		prevSelectedRef.current = selectedFilePath;
 		if (!pendingReveal || !rootPath) return;
 		let cancelled = false;
 		const { path, isDirectory } = pendingReveal;
@@ -343,7 +340,7 @@ export function FilesTab({
 		return () => {
 			cancelled = true;
 		};
-	}, [pendingReveal?.nonce, rootPath]);
+	}, [pendingReveal, rootPath]);
 
 	const handleRefresh = useCallback(async () => {
 		setIsRefreshing(true);

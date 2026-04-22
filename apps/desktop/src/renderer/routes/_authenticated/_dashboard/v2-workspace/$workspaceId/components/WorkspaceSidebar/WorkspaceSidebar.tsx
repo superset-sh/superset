@@ -18,7 +18,6 @@ import type { SidebarTabDefinition } from "./types";
 export interface PendingReveal {
 	path: string;
 	isDirectory: boolean;
-	nonce: number;
 }
 
 interface WorkspaceSidebarProps {
