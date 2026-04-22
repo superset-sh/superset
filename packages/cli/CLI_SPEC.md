@@ -22,7 +22,6 @@ All device commands use this as the default. `--device` overrides it for remote 
 --quiet       IDs only (for piping)
 --device      Override device (default: auto-detected from ~/.superset/device.json)
 --api-url     Override API URL
---organization Override active organization
 ```
 
 ---
