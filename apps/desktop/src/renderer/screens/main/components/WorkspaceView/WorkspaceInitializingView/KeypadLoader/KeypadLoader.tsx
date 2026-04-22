@@ -74,16 +74,20 @@ interface KeypadLoaderProps {
 	currentStep: WorkspaceInitStep;
 	className?: string;
 	muted?: boolean;
+	/** 0–1 click-sound volume. Clamped and ignored if muted. */
+	volume?: number;
 }
+
+const DEFAULT_CLICK_VOLUME = 0.35;
 
 export function KeypadLoader({
 	currentStep,
 	className,
 	muted = false,
+	volume = DEFAULT_CLICK_VOLUME,
 }: KeypadLoaderProps) {
 	const audioRef = useRef<HTMLAudioElement | null>(null);
 	const prevStepRef = useRef<WorkspaceInitStep>(currentStep);
-	const timeoutsRef = useRef<number[]>([]);
 	const [reducedMotion, setReducedMotion] = useState(false);
 
 	useEffect(() => {
@@ -97,21 +101,20 @@ export function KeypadLoader({
 	// Reduced-motion implies reduced-audio — always auto-mute when it's on,
 	// even if the caller didn't pass muted.
 	const effectiveMuted = muted || reducedMotion;
+	const clampedVolume = Math.max(0, Math.min(1, volume));
 
 	useEffect(() => {
 		if (!audioRef.current) {
 			const audio = new Audio(clickSoundUrl);
-			audio.volume = 0.35;
 			audio.preload = "auto";
 			audioRef.current = audio;
 		}
 		audioRef.current.muted = effectiveMuted;
-	}, [effectiveMuted]);
+		audioRef.current.volume = clampedVolume;
+	}, [effectiveMuted, clampedVolume]);
 
 	useEffect(() => {
 		return () => {
-			for (const id of timeoutsRef.current) window.clearTimeout(id);
-			timeoutsRef.current = [];
 			const audio = audioRef.current;
 			if (audio) {
 				audio.pause();
@@ -138,24 +141,32 @@ export function KeypadLoader({
 
 		if (crossed.length === 0 || effectiveMuted || !audioRef.current) return;
 
-		const template = audioRef.current;
 		// Cap rapid-fire clicks (e.g. on a huge step skip) to avoid audio spam.
 		const clicksToPlay = Math.min(crossed.length, 2);
+		const scheduled: number[] = [];
 		for (let i = 0; i < clicksToPlay; i++) {
 			const id = window.setTimeout(() => {
 				try {
+					// Re-check mute at fire time — the user may have toggled the
+					// notification-mute setting in the 0–280ms since we scheduled.
+					const current = audioRef.current;
+					if (!current || current.muted) return;
 					// Clone per click so overlapping plays don't cancel each other
 					// via currentTime=0 while the previous play() Promise is pending.
-					const player = template.cloneNode() as HTMLAudioElement;
-					player.volume = 0.35;
+					const player = current.cloneNode() as HTMLAudioElement;
+					player.volume = clampedVolume;
 					void player.play().catch(() => {});
 				} catch {
 					// ignore — audio is best-effort
 				}
 			}, i * 140);
-			timeoutsRef.current.push(id);
+			scheduled.push(id);
 		}
-	}, [currentStep, effectiveMuted]);
+
+		return () => {
+			for (const id of scheduled) window.clearTimeout(id);
+		};
+	}, [currentStep, effectiveMuted, clampedVolume]);
 
 	const currentIdx = getStepIndex(currentStep);
 

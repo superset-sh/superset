@@ -68,9 +68,13 @@ export function WorkspaceInitializingView({
 	const deleteWorkspace = useDeleteWorkspace();
 	const utils = electronTrpc.useUtils();
 
-	// Honor the user's notification-mute preference for the keypad click sound.
-	const { data: notificationSoundsMuted = false } =
+	// Honor the user's notification-mute preference and volume for the keypad
+	// click sound. Default to muted while the setting loads so we never play a
+	// click for a user who has it disabled before the query resolves.
+	const { data: notificationSoundsMuted = true } =
 		electronTrpc.settings.getNotificationSoundsMuted.useQuery();
+	const { data: notificationVolume = 100 } =
+		electronTrpc.settings.getNotificationVolume.useQuery();
 
 	const handleRetry = (deduplicateBranchName = false) => {
 		retryMutation.mutate(
@@ -302,6 +306,7 @@ export function WorkspaceInitializingView({
 				<KeypadLoader
 					currentStep={currentStep}
 					muted={notificationSoundsMuted}
+					volume={0.35 * (notificationVolume / 100)}
 				/>
 
 				<div className="space-y-1">
