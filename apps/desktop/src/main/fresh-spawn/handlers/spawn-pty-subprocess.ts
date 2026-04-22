@@ -147,17 +147,25 @@ export function handleSpawnPtySubprocess(
 	// ======================================================================
 
 	child.stdout.on("data", (chunk: Buffer) => {
-		writeFrame(client, {
+		const flushed = writeFrame(client, {
 			type: "stdout",
 			data: chunk.toString("base64"),
 		});
+		if (!flushed && child.stdout) {
+			child.stdout.pause();
+			client.once("drain", () => child.stdout?.resume());
+		}
 	});
 
 	child.stderr.on("data", (chunk: Buffer) => {
-		writeFrame(client, {
+		const flushed = writeFrame(client, {
 			type: "stderr",
 			data: chunk.toString("base64"),
 		});
+		if (!flushed && child.stderr) {
+			child.stderr.pause();
+			client.once("drain", () => child.stderr?.resume());
+		}
 	});
 
 	child.once("exit", (code, signal) => {
@@ -196,7 +204,7 @@ export function handleSpawnPtySubprocess(
 		while ((newlineIdx = buffer.indexOf("\n")) !== -1) {
 			const line = buffer.slice(0, newlineIdx);
 			buffer = buffer.slice(newlineIdx + 1);
-			handleIncomingFrame(line, child);
+			handleIncomingFrame(line, child, client);
 		}
 		// Mirrors the handshake cap: a client that streams bytes without a
 		// trailing newline must not be able to grow this buffer unbounded and
@@ -274,15 +282,23 @@ function writeRawLine(
 	}
 }
 
-function writeFrame(client: Socket, frame: ServerToClientStreamFrame): void {
+function writeFrame(
+	client: Socket,
+	frame: ServerToClientStreamFrame,
+): boolean {
 	try {
-		client.write(`${JSON.stringify(frame)}\n`);
+		return client.write(`${JSON.stringify(frame)}\n`);
 	} catch {
 		// socket may be destroyed; ignore
+		return false;
 	}
 }
 
-function handleIncomingFrame(line: string, child: ChildProcess): void {
+function handleIncomingFrame(
+	line: string,
+	child: ChildProcess,
+	client: Socket,
+): void {
 	if (line.trim().length === 0) return;
 	let parsed: unknown;
 	try {
@@ -298,7 +314,13 @@ function handleIncomingFrame(line: string, child: ChildProcess): void {
 		case "stdin":
 			if (child.stdin && !child.stdin.destroyed) {
 				try {
-					child.stdin.write(Buffer.from(frame.data, "base64"));
+					const flushed = child.stdin.write(
+						Buffer.from(frame.data, "base64"),
+					);
+					if (!flushed) {
+						client.pause();
+						child.stdin.once("drain", () => client.resume());
+					}
 				} catch {
 					// ignore — stdin may have closed between the check and write
 				}
