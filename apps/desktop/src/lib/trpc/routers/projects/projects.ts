@@ -44,6 +44,7 @@ import {
 } from "../workspaces/utils/git";
 import { getSimpleGitWithShellPath } from "../workspaces/utils/git-client";
 import { execWithShellEnv } from "../workspaces/utils/shell-env";
+import { getWorkspacePath } from "../workspaces/utils/worktree";
 import { getDefaultProjectColor } from "./utils/colors";
 import { discoverAndSaveProjectIcon } from "./utils/favicon-discovery";
 import { fetchGitHubOwner, getGitHubAvatarUrl } from "./utils/github";
@@ -337,6 +338,173 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 				.orderBy(desc(projects.lastOpenedAt))
 				.all();
 		}),
+
+		getArchived: publicProcedure.query(() => {
+			const archivedProjects = localDb
+				.select()
+				.from(projects)
+				.where(isNotNull(projects.archivedAt))
+				.orderBy(desc(projects.archivedAt))
+				.all();
+
+			return archivedProjects.map((project) => {
+				const projectWorkspaces = localDb
+					.select()
+					.from(workspaces)
+					.where(
+						and(
+							eq(workspaces.projectId, project.id),
+							isNull(workspaces.deletingAt),
+						),
+					)
+					.all()
+					.sort((a, b) => a.tabOrder - b.tabOrder);
+
+				const workspaceItems = projectWorkspaces.map((ws) => ({
+					id: ws.id,
+					projectId: ws.projectId,
+					sectionId: ws.sectionId ?? null,
+					worktreeId: ws.worktreeId,
+					type: ws.type as "worktree" | "branch",
+					branch: ws.branch,
+					name: ws.name,
+					tabOrder: ws.tabOrder,
+					createdAt: ws.createdAt,
+					updatedAt: ws.updatedAt,
+					lastOpenedAt: ws.lastOpenedAt,
+					isUnread: ws.isUnread ?? false,
+					isUnnamed: ws.isUnnamed ?? false,
+					worktreePath: getWorkspacePath(ws) ?? "",
+				}));
+
+				return {
+					project: {
+						id: project.id,
+						name: project.name,
+						color: project.color,
+						mainRepoPath: project.mainRepoPath,
+						// biome-ignore lint/style/noNonNullAssertion: query filters archivedAt non-null
+						archivedAt: project.archivedAt!,
+					},
+					workspaces: workspaceItems,
+				};
+			});
+		}),
+
+		archive: publicProcedure
+			.input(z.object({ id: z.string() }))
+			.mutation(async ({ input }) => {
+				const project = localDb
+					.select()
+					.from(projects)
+					.where(eq(projects.id, input.id))
+					.get();
+
+				if (!project) {
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: "Project not found",
+					});
+				}
+				if (project.archivedAt != null) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: "Project is already archived",
+					});
+				}
+
+				const projectWorkspaces = localDb
+					.select()
+					.from(workspaces)
+					.where(eq(workspaces.projectId, input.id))
+					.all();
+
+				let totalFailed = 0;
+				const registry = getWorkspaceRuntimeRegistry();
+				for (const workspace of projectWorkspaces) {
+					const terminal = registry.getForWorkspaceId(workspace.id).terminal;
+					const terminalResult = await terminal.killByWorkspaceId(workspace.id);
+					totalFailed += terminalResult.failed;
+				}
+
+				const now = Date.now();
+				localDb
+					.update(projects)
+					.set({ archivedAt: now, tabOrder: null })
+					.where(eq(projects.id, input.id))
+					.run();
+
+				const workspaceIds = projectWorkspaces.map((w) => w.id);
+
+				const currentSettings = localDb.select().from(settings).get();
+				if (
+					currentSettings?.lastActiveWorkspaceId &&
+					workspaceIds.includes(currentSettings.lastActiveWorkspaceId)
+				) {
+					setLastActiveWorkspace(selectNextActiveWorkspace());
+				}
+
+				const terminalWarning =
+					totalFailed > 0
+						? `${totalFailed} terminal process(es) may still be running`
+						: undefined;
+
+				track("project_archived", { project_id: input.id });
+
+				return {
+					success: true as const,
+					workspaceIds,
+					terminalWarning,
+				};
+			}),
+
+		unarchive: publicProcedure
+			.input(z.object({ id: z.string() }))
+			.mutation(({ input }) => {
+				const project = localDb
+					.select()
+					.from(projects)
+					.where(eq(projects.id, input.id))
+					.get();
+
+				if (!project) {
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: "Project not found",
+					});
+				}
+				if (project.archivedAt == null) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: "Project is not archived",
+					});
+				}
+
+				localDb
+					.update(projects)
+					.set({ archivedAt: null })
+					.where(eq(projects.id, input.id))
+					.run();
+
+				const refreshed = localDb
+					.select()
+					.from(projects)
+					.where(eq(projects.id, input.id))
+					.get();
+
+				if (!refreshed) {
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: "Project not found",
+					});
+				}
+
+				activateProject(refreshed);
+
+				track("project_unarchived", { project_id: input.id });
+
+				return { success: true as const };
+			}),
 
 		listPullRequests: publicProcedure
 			.input(z.object({ projectId: z.string() }))

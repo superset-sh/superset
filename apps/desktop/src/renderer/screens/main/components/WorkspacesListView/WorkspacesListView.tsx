@@ -6,6 +6,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { LuSearch, LuX } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { useUnarchiveProject } from "renderer/react-query/projects/useUnarchiveProject";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import type { FilterMode, ProjectGroup, WorkspaceItem } from "./types";
 import { WorkspaceRow } from "./WorkspaceRow";
@@ -14,6 +15,7 @@ const FILTER_OPTIONS: { value: FilterMode; label: string }[] = [
 	{ value: "all", label: "All" },
 	{ value: "active", label: "Active" },
 	{ value: "closed", label: "Closed" },
+	{ value: "archived", label: "Archived" },
 ];
 
 export function WorkspacesListView() {
@@ -27,6 +29,13 @@ export function WorkspacesListView() {
 		electronTrpc.workspaces.getAllGrouped.useQuery();
 	const { data: allProjects = [] } =
 		electronTrpc.projects.getRecents.useQuery();
+	const { data: archivedGroups = [] } =
+		electronTrpc.projects.getArchived.useQuery();
+
+	const unarchiveProject = useUnarchiveProject({
+		onError: (error) =>
+			toast.error(`Failed to restore project: ${error.message}`),
+	});
 
 	// Fetch worktrees for all projects
 	const worktreeQueries = electronTrpc.useQueries((t) =>
@@ -105,6 +114,28 @@ export function WorkspacesListView() {
 		return items;
 	}, [groups, allProjects, worktreeQueries]);
 
+	const archivedProjectGroups = useMemo<ProjectGroup[]>(() => {
+		return archivedGroups.map((g) => ({
+			projectId: g.project.id,
+			projectName: g.project.name,
+			workspaces: g.workspaces.map((ws) => ({
+				uniqueId: ws.id,
+				workspaceId: ws.id,
+				worktreeId: ws.worktreeId,
+				projectId: g.project.id,
+				projectName: g.project.name,
+				worktreePath: ws.worktreePath,
+				type: ws.type,
+				branch: ws.branch,
+				name: ws.name,
+				lastOpenedAt: ws.lastOpenedAt,
+				createdAt: ws.createdAt,
+				isUnread: ws.isUnread,
+				isOpen: true,
+			})),
+		}));
+	}, [archivedGroups]);
+
 	// Filter by search query and filter mode
 	const filteredItems = useMemo(() => {
 		let items = allItems;
@@ -114,6 +145,8 @@ export function WorkspacesListView() {
 			items = items.filter((ws) => ws.isOpen);
 		} else if (filterMode === "closed") {
 			items = items.filter((ws) => !ws.isOpen);
+		} else if (filterMode === "archived") {
+			items = [];
 		}
 
 		// Apply search filter
@@ -132,6 +165,25 @@ export function WorkspacesListView() {
 
 	// Group by project
 	const projectGroups = useMemo<ProjectGroup[]>(() => {
+		if (filterMode === "archived") {
+			let groups = archivedProjectGroups;
+			if (searchQuery.trim()) {
+				const query = searchQuery.toLowerCase();
+				groups = groups
+					.map((g) => ({
+						...g,
+						workspaces: g.workspaces.filter(
+							(ws) =>
+								ws.name.toLowerCase().includes(query) ||
+								g.projectName.toLowerCase().includes(query) ||
+								ws.branch.toLowerCase().includes(query),
+						),
+					}))
+					.filter((g) => g.workspaces.length > 0);
+			}
+			return groups;
+		}
+
 		const groupsMap = new Map<string, ProjectGroup>();
 
 		for (const item of filteredItems) {
@@ -161,7 +213,7 @@ export function WorkspacesListView() {
 			const bRecent = Math.max(...b.workspaces.map((w) => w.lastOpenedAt));
 			return bRecent - aRecent;
 		});
-	}, [filteredItems]);
+	}, [filteredItems, filterMode, archivedProjectGroups, searchQuery]);
 
 	const handleSwitch = (item: WorkspaceItem) => {
 		if (item.workspaceId) {
@@ -178,6 +230,7 @@ export function WorkspacesListView() {
 	// Count stats for filter badges
 	const activeCount = allItems.filter((w) => w.isOpen).length;
 	const closedCount = allItems.filter((w) => !w.isOpen).length;
+	const archivedCount = archivedGroups.length;
 
 	return (
 		<div className="flex-1 flex flex-col bg-card overflow-hidden">
@@ -191,7 +244,9 @@ export function WorkspacesListView() {
 								? allItems.length
 								: option.value === "active"
 									? activeCount
-									: closedCount;
+									: option.value === "closed"
+										? closedCount
+										: archivedCount;
 						return (
 							<button
 								key={option.value}
@@ -239,13 +294,31 @@ export function WorkspacesListView() {
 				{projectGroups.map((group) => (
 					<div key={group.projectId}>
 						{/* Project header */}
-						<div className="sticky top-0 bg-card/95 backdrop-blur-sm px-4 py-2 border-b border-border/50">
-							<span className="text-xs font-medium text-foreground/70">
-								{group.projectName}
-							</span>
-							<span className="text-xs text-foreground/40 ml-2">
-								{group.workspaces.length}
-							</span>
+						<div className="sticky top-0 bg-card/95 backdrop-blur-sm px-4 py-2 border-b border-border/50 flex items-center justify-between gap-2">
+							<div className="min-w-0">
+								<span className="text-xs font-medium text-foreground/70">
+									{group.projectName}
+								</span>
+								<span className="text-xs text-foreground/40 ml-2">
+									{group.workspaces.length}
+								</span>
+							</div>
+							{filterMode === "archived" && (
+								<Button
+									variant="outline"
+									size="sm"
+									className="h-7 shrink-0 text-xs"
+									disabled={unarchiveProject.isPending}
+									onClick={() =>
+										unarchiveProject.mutate({ id: group.projectId })
+									}
+								>
+									{unarchiveProject.isPending &&
+									unarchiveProject.variables?.id === group.projectId
+										? "Restoring..."
+										: "Restore"}
+								</Button>
+							)}
 						</div>
 
 						{/* Workspaces in this project */}
@@ -264,7 +337,7 @@ export function WorkspacesListView() {
 					</div>
 				))}
 
-				{filteredItems.length === 0 && (
+				{projectGroups.length === 0 && (
 					<div className="flex items-center justify-center h-32 text-foreground/50 text-sm">
 						{searchQuery
 							? "No workspaces match your search"
@@ -272,7 +345,9 @@ export function WorkspacesListView() {
 								? "No active workspaces"
 								: filterMode === "closed"
 									? "No closed workspaces"
-									: "No workspaces yet"}
+									: filterMode === "archived"
+										? "No archived projects"
+										: "No workspaces yet"}
 					</div>
 				)}
 			</div>

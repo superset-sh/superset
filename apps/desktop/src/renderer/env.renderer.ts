@@ -50,9 +50,11 @@ const rawEnv = {
 	RELAY_URL: process.env.RELAY_URL,
 };
 
-// Only allow skipping validation in development (never in production)
+// Allow skipping validation in development and in Bun tests (never in production)
 const SKIP_ENV_VALIDATION =
-	process.env.NODE_ENV === "development" && !!process.env.SKIP_ENV_VALIDATION;
+	(process.env.NODE_ENV === "development" ||
+		process.env.NODE_ENV === "test") &&
+	!!process.env.SKIP_ENV_VALIDATION;
 
 export const env = {
 	...(SKIP_ENV_VALIDATION

@@ -116,6 +116,8 @@ export interface TabsStore extends TabsState {
 		options: AddTabWithMultiplePanesOptions,
 	) => { tabId: string; paneIds: string[] };
 	removeTab: (tabId: string) => void;
+	/** Remove all tabs (and panes) for the given workspace IDs; reuses removeTab terminal cleanup. */
+	removeTabsForWorkspaceIds: (workspaceIds: string[]) => void;
 	renameTab: (tabId: string, newName: string) => void;
 	setTabAutoTitle: (tabId: string, title: string) => void;
 	setActiveTab: (workspaceId: string, tabId: string) => void;

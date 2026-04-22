@@ -30,6 +30,8 @@ export const projects = sqliteTable(
 		lastOpenedAt: integer("last_opened_at")
 			.notNull()
 			.$defaultFn(() => Date.now()),
+		/** When set, project is archived (sidebar hidden via tabOrder null). */
+		archivedAt: integer("archived_at"),
 		createdAt: integer("created_at")
 			.notNull()
 			.$defaultFn(() => Date.now()),
@@ -50,6 +52,7 @@ export const projects = sqliteTable(
 	(table) => [
 		index("projects_main_repo_path_idx").on(table.mainRepoPath),
 		index("projects_last_opened_at_idx").on(table.lastOpenedAt),
+		index("projects_archived_at_idx").on(table.archivedAt),
 	],
 );
 

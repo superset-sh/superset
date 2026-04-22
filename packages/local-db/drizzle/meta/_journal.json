@@ -288,6 +288,13 @@
       "when": 1776796221146,
       "tag": "0040_agent_preset_permissions_migrated_at",
       "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "6",
+      "when": 1776869869873,
+      "tag": "0041_vengeful_toxin",
+      "breakpoints": true
     }
   ]
 }
