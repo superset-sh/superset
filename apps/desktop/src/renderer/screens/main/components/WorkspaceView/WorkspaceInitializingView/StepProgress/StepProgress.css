@@ -48,6 +48,10 @@
 	flex-shrink: 0;
 }
 
+.step-progress__check-stroke {
+	stroke: var(--background, #fff);
+}
+
 .step-progress__title {
 	font-size: 0.8125rem;
 	font-weight: 500;

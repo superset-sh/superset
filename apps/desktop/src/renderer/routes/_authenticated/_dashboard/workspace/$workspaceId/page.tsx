@@ -42,6 +42,7 @@ import {
 import {
 	useHasWorkspaceFailed,
 	useIsWorkspaceInitializing,
+	useWorkspaceInitProgress,
 } from "renderer/stores/workspace-init";
 
 const EMPTY_HISTORY_STACK: string[] = [];
@@ -122,12 +123,19 @@ function WorkspacePage() {
 	// Check if workspace is initializing or failed
 	const isInitializing = useIsWorkspaceInitializing(workspaceId);
 	const hasFailed = useHasWorkspaceFailed(workspaceId);
+	const initProgress = useWorkspaceInitProgress(workspaceId);
+	// If init completed in this session, the store still has a "ready" entry
+	// (cleared after 5 min). Use that to suppress the init view while a fresh
+	// workspace query is in-flight — otherwise returning to a just-finished
+	// workspace briefly re-renders the init UI.
+	const recentlyFinishedInit = initProgress?.step === "ready";
 
 	// Check for incomplete init after app restart
 	const gitStatus = workspace?.worktree?.gitStatus;
 	const hasIncompleteInit =
+		!recentlyFinishedInit &&
 		workspace?.type === "worktree" &&
-		(gitStatus === null || gitStatus === undefined);
+		gitStatus === null;
 
 	// Show full-screen initialization view for:
 	// - Actively initializing workspaces (shows progress)

@@ -34,7 +34,9 @@ const KEYS: readonly KeyDef[] = [
 	{
 		id: "one",
 		pressedAfter: "verifying",
-		activeSteps: ["syncing", "verifying"],
+		// Include "pending" so the keypad shows immediate activity before the
+		// first progress event arrives from the backend.
+		activeSteps: ["pending", "syncing", "verifying"],
 		Icon: LuRefreshCw,
 		label: "Syncing",
 	},
@@ -81,6 +83,7 @@ export function KeypadLoader({
 }: KeypadLoaderProps) {
 	const audioRef = useRef<HTMLAudioElement | null>(null);
 	const prevStepRef = useRef<WorkspaceInitStep>(currentStep);
+	const timeoutsRef = useRef<number[]>([]);
 
 	useEffect(() => {
 		if (!audioRef.current) {
@@ -91,6 +94,19 @@ export function KeypadLoader({
 		}
 		audioRef.current.muted = muted;
 	}, [muted]);
+
+	useEffect(() => {
+		return () => {
+			for (const id of timeoutsRef.current) window.clearTimeout(id);
+			timeoutsRef.current = [];
+			const audio = audioRef.current;
+			if (audio) {
+				audio.pause();
+				audio.src = "";
+				audioRef.current = null;
+			}
+		};
+	}, []);
 
 	useEffect(() => {
 		const prevStep = prevStepRef.current;
@@ -110,16 +126,19 @@ export function KeypadLoader({
 		if (crossed.length === 0 || muted || !audioRef.current) return;
 
 		const audio = audioRef.current;
-		crossed.forEach((_, i) => {
-			window.setTimeout(() => {
+		// Cap rapid-fire clicks (e.g. on a huge step skip) to avoid audio spam.
+		const clicksToPlay = Math.min(crossed.length, 2);
+		for (let i = 0; i < clicksToPlay; i++) {
+			const id = window.setTimeout(() => {
 				try {
 					audio.currentTime = 0;
 					void audio.play().catch(() => {});
 				} catch {
 					// ignore — audio is best-effort
 				}
-			}, i * 120);
-		});
+			}, i * 140);
+			timeoutsRef.current.push(id);
+		}
 	}, [currentStep, muted]);
 
 	const currentIdx = getStepIndex(currentStep);

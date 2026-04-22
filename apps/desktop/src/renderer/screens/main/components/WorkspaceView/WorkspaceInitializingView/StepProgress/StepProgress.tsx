@@ -121,8 +121,8 @@ function CheckCircle() {
 		>
 			<circle fill="currentColor" cx="8" cy="8" r="8" />
 			<polyline
+				className="step-progress__check-stroke"
 				fill="none"
-				stroke="var(--background, #fff)"
 				strokeLinecap="round"
 				strokeLinejoin="round"
 				strokeWidth="1.75"
