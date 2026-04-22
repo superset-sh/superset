@@ -1,5 +1,8 @@
+"use client";
+
 import { cn } from "@superset/ui/utils";
 import { Check, Minus } from "lucide-react";
+import { useState } from "react";
 import {
 	COMPARISON_SECTIONS,
 	type ComparisonRow,
@@ -18,39 +21,46 @@ export function ComparisonTable() {
 				</h2>
 			</div>
 
-			<div className="overflow-x-auto">
-				<table className="w-full min-w-[720px] border-collapse">
-					<thead>
-						<tr className="border-b border-border">
-							<th className="w-2/5 py-4 pr-4 text-left text-sm font-medium text-muted-foreground">
-								Features
-							</th>
-							{PRICING_TIERS.map((tier) => (
-								<th
-									key={tier.id}
-									className="w-1/5 py-4 px-4 text-left text-sm font-medium text-foreground"
-								>
-									{tier.name}
-								</th>
-							))}
-						</tr>
-					</thead>
-					<tbody>
-						{COMPARISON_SECTIONS.map((section) => (
-							<SectionGroup key={section.title} title={section.title}>
-								{section.rows.map((row) => (
-									<Row key={row.label} row={row} />
-								))}
-							</SectionGroup>
-						))}
-					</tbody>
-				</table>
-			</div>
+			<DesktopTable />
+			<MobileTable />
 		</div>
 	);
 }
 
-function SectionGroup({
+function DesktopTable() {
+	return (
+		<div className="hidden md:block">
+			<table className="w-full table-fixed border-collapse">
+				<thead>
+					<tr className="border-b border-border">
+						<th className="w-2/5 py-4 pr-4 text-left text-sm font-medium text-muted-foreground">
+							Features
+						</th>
+						{PRICING_TIERS.map((tier) => (
+							<th
+								key={tier.id}
+								className="w-1/5 py-4 px-4 text-left text-sm font-medium text-foreground"
+							>
+								{tier.name}
+							</th>
+						))}
+					</tr>
+				</thead>
+				<tbody>
+					{COMPARISON_SECTIONS.map((section) => (
+						<DesktopSectionGroup key={section.title} title={section.title}>
+							{section.rows.map((row) => (
+								<DesktopRow key={row.label} row={row} />
+							))}
+						</DesktopSectionGroup>
+					))}
+				</tbody>
+			</table>
+		</div>
+	);
+}
+
+function DesktopSectionGroup({
 	title,
 	children,
 }: {
@@ -72,7 +82,7 @@ function SectionGroup({
 	);
 }
 
-function Row({ row }: { row: ComparisonRow }) {
+function DesktopRow({ row }: { row: ComparisonRow }) {
 	return (
 		<tr className="border-b border-border/60">
 			<td className="py-4 pr-4 text-sm text-foreground">
@@ -90,6 +100,61 @@ function Row({ row }: { row: ComparisonRow }) {
 				</td>
 			))}
 		</tr>
+	);
+}
+
+function MobileTable() {
+	const [selectedIndex, setSelectedIndex] = useState(1);
+	const selectedTier = PRICING_TIERS[selectedIndex];
+	if (!selectedTier) return null;
+
+	return (
+		<div className="flex flex-col gap-6 md:hidden">
+			<div className="inline-flex rounded-md border border-border bg-card p-1">
+				{PRICING_TIERS.map((tier, index) => (
+					<button
+						key={tier.id}
+						type="button"
+						onClick={() => setSelectedIndex(index)}
+						aria-pressed={index === selectedIndex}
+						className={cn(
+							"flex-1 rounded-sm px-3 py-1.5 text-sm font-medium transition-colors",
+							index === selectedIndex
+								? "bg-foreground text-background"
+								: "text-muted-foreground hover:text-foreground",
+						)}
+					>
+						{tier.name}
+					</button>
+				))}
+			</div>
+
+			<div className="flex flex-col gap-6">
+				{COMPARISON_SECTIONS.map((section) => (
+					<section key={section.title} className="flex flex-col">
+						<p className="mb-1 rounded-md bg-accent/20 px-3 py-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+							{section.title}
+						</p>
+						<ul>
+							{section.rows.map((row) => (
+								<li
+									key={row.label}
+									className="flex items-center justify-between gap-3 border-b border-border/60 py-3 last:border-b-0"
+								>
+									<div className="flex items-center gap-2 text-sm text-foreground">
+										<span>{row.label}</span>
+										{row.comingSoon && <ComingSoonBadge />}
+									</div>
+									<div className="shrink-0 text-sm text-foreground">
+										<Cell value={row.values[selectedIndex] ?? null} />
+									</div>
+								</li>
+							))}
+						</ul>
+					</section>
+				))}
+			</div>
+		</div>
 	);
 }
 
@@ -112,7 +177,7 @@ function ComingSoonBadge() {
 	return (
 		<span
 			className={cn(
-				"rounded-full bg-accent/40 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground",
+				"rounded-sm bg-accent/40 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground",
 			)}
 		>
 			Coming soon

@@ -25,7 +25,7 @@ export function PricingCard({ tier, isYearly }: PricingCardProps) {
 				<div className="flex items-center justify-between">
 					<h3 className="text-lg font-medium text-foreground">{tier.name}</h3>
 					{tier.highlight && (
-						<span className="rounded-full bg-foreground px-2.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-background">
+						<span className="rounded-sm bg-foreground px-2.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-background">
 							Popular
 						</span>
 					)}
