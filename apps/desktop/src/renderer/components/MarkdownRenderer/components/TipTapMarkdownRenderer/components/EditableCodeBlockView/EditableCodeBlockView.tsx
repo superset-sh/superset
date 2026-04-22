@@ -66,10 +66,10 @@ export function EditableCodeBlockView({
 	return (
 		<NodeViewWrapper
 			as="pre"
-			className={`${htmlAttrs.class} relative group ${showMermaidPreview ? "!bg-transparent !p-0 !font-sans !text-base" : ""}`}
+			className={`${htmlAttrs.class} relative group ${showMermaidPreview ? "!bg-transparent !p-0" : ""}`}
 		>
 			<div
-				className={`absolute top-2 right-2 z-10 flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 ${menuOpen ? "opacity-100" : ""}`}
+				className={`absolute top-2 z-10 flex items-center gap-1 rounded-md border border-border bg-background/80 p-1 opacity-0 backdrop-blur-sm transition-opacity supports-[backdrop-filter]:bg-background/70 group-hover:opacity-100 group-focus-within:opacity-100 ${menuOpen ? "opacity-100" : ""} ${showMermaidPreview ? "left-2" : "right-2"}`}
 			>
 				{showMermaidToggle && (
 					<button
@@ -87,7 +87,7 @@ export function EditableCodeBlockView({
 								? "Edit mermaid source"
 								: "View mermaid diagram"
 						}
-						className="flex h-6 w-6 items-center justify-center rounded border border-border bg-background/80 backdrop-blur transition-colors hover:bg-accent"
+						className="flex items-center justify-center rounded p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
 					>
 						{mermaidMode === "preview" ? (
 							<HiOutlineCodeBracket className="h-3.5 w-3.5" />
@@ -100,7 +100,7 @@ export function EditableCodeBlockView({
 					<DropdownMenuTrigger asChild>
 						<button
 							type="button"
-							className="flex h-6 items-center gap-1 rounded border border-border bg-background/80 px-2 text-xs backdrop-blur transition-colors hover:bg-accent"
+							className="flex items-center gap-1 rounded px-2 py-1 text-muted-foreground text-xs transition-colors hover:bg-muted hover:text-foreground"
 						>
 							{currentLabel}
 							<HiChevronDown className="h-3 w-3" />
@@ -130,7 +130,7 @@ export function EditableCodeBlockView({
 					onClick={handleCopy}
 					aria-label={copied ? "Copied code block" : "Copy code block"}
 					title={copied ? "Copied code block" : "Copy code block"}
-					className="flex h-6 w-6 items-center justify-center rounded border border-border bg-background/80 backdrop-blur transition-colors hover:bg-accent"
+					className="flex items-center justify-center rounded p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
 				>
 					{copied ? (
 						<HiCheck className="h-3.5 w-3.5 text-green-500" />
@@ -141,13 +141,7 @@ export function EditableCodeBlockView({
 			</div>
 
 			{showMermaidPreview && (
-				<button
-					type="button"
-					contentEditable={false}
-					onClick={() => setMermaidMode("source")}
-					aria-label="Edit mermaid source"
-					className="flex w-full justify-center rounded-md bg-muted p-4 cursor-pointer hover:bg-muted/80 transition-colors"
-				>
+				<div contentEditable={false} className="w-full [&_.min-h-28]:min-h-80">
 					<Streamdown
 						mode="static"
 						plugins={mermaidPlugins}
@@ -155,11 +149,12 @@ export function EditableCodeBlockView({
 					>
 						{`\`\`\`mermaid\n${mermaidSource}\n\`\`\``}
 					</Streamdown>
-				</button>
+				</div>
 			)}
 
 			<code
-				className={`hljs block !bg-transparent ${showMermaidPreview ? "hidden" : ""}`}
+				className="hljs block !bg-transparent"
+				style={showMermaidPreview ? { display: "none" } : undefined}
 			>
 				<NodeViewContent />
 			</code>
