@@ -187,7 +187,9 @@ export function handleSpawnPtySubprocess(
 	// Client -> server direction (UDS frames -> child stdin / signals)
 	// ======================================================================
 
+	const MAX_LINE_BYTES = 1 * 1024 * 1024;
 	let buffer = options.initialBuffer ?? "";
+	let bufferOverflow = false;
 	const drainBuffer = (): void => {
 		let newlineIdx: number;
 		// biome-ignore lint/suspicious/noAssignInExpressions: standard NDJSON line extractor
@@ -196,10 +198,25 @@ export function handleSpawnPtySubprocess(
 			buffer = buffer.slice(newlineIdx + 1);
 			handleIncomingFrame(line, child);
 		}
+		// Mirrors the handshake cap: a client that streams bytes without a
+		// trailing newline must not be able to grow this buffer unbounded and
+		// OOM the long-lived daemon hosting every PTY session.
+		if (!bufferOverflow && buffer.length > MAX_LINE_BYTES) {
+			bufferOverflow = true;
+			console.error(
+				`[fresh-spawn] spawn-pty-subprocess line exceeded ${MAX_LINE_BYTES} bytes; destroying socket (pid=${child.pid})`,
+			);
+			try {
+				client.destroy();
+			} catch {
+				// already gone
+			}
+		}
 	};
 	// Drain any pipelined frames the caller already read off the socket.
 	drainBuffer();
 	client.on("data", (chunk: Buffer) => {
+		if (bufferOverflow) return;
 		buffer += chunk.toString("utf8");
 		drainBuffer();
 	});
