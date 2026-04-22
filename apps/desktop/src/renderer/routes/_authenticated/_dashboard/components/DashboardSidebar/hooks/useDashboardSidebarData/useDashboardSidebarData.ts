@@ -120,6 +120,7 @@ export function useDashboardSidebarData() {
 					projectId: sidebarWorkspaces.sidebarState.projectId,
 					hostId: workspaces.hostId,
 					hostMachineId: hosts?.machineId ?? null,
+					hostIsOnline: hosts?.isOnline ?? null,
 					name: workspaces.name,
 					branch: workspaces.branch,
 					createdAt: workspaces.createdAt,
@@ -239,6 +240,10 @@ export function useDashboardSidebarData() {
 				projectId: workspace.projectId,
 				hostId: workspace.hostId,
 				hostType,
+				hostIsOnline:
+					hostType === "remote-device"
+						? (workspace.hostIsOnline ?? null)
+						: null,
 				accentColor: null,
 				name: workspace.name,
 				branch: workspace.branch,
@@ -290,6 +295,7 @@ export function useDashboardSidebarData() {
 				projectId: pw.projectId,
 				hostId: "",
 				hostType: "local-device",
+				hostIsOnline: null,
 				accentColor: null,
 				name: pw.name,
 				branch: pw.branchName,
