@@ -97,9 +97,7 @@ export function CollapsedWorkspaceItem({
 				<ContextMenu>
 					<Tooltip delayDuration={300}>
 						<TooltipTrigger asChild>
-							<ContextMenuTrigger asChild>
-								{collapsedButton}
-							</ContextMenuTrigger>
+							<ContextMenuTrigger asChild>{collapsedButton}</ContextMenuTrigger>
 						</TooltipTrigger>
 						<TooltipContent side="right" className="flex flex-col gap-0.5">
 							<span className="font-medium">local</span>
