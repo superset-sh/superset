@@ -8,7 +8,13 @@ import {
 import type { NodeViewProps } from "@tiptap/react";
 import { NodeViewContent, NodeViewWrapper } from "@tiptap/react";
 import { useState } from "react";
-import { HiCheck, HiChevronDown, HiOutlineClipboard } from "react-icons/hi2";
+import {
+	HiCheck,
+	HiChevronDown,
+	HiOutlineClipboard,
+	HiOutlineCodeBracket,
+	HiOutlineEye,
+} from "react-icons/hi2";
 import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
 import {
 	FILE_VIEW_CODE_BLOCK_LANGUAGES,
@@ -39,7 +45,13 @@ export function EditableCodeBlockView({
 
 	const isMermaid = currentLanguage === "mermaid";
 	const mermaidSource = node.textContent;
-	const showMermaidPreview = isMermaid && mermaidSource.trim().length > 0;
+	const mermaidHasContent = mermaidSource.trim().length > 0;
+	const [mermaidMode, setMermaidMode] = useState<"preview" | "source">(() =>
+		mermaidHasContent ? "preview" : "source",
+	);
+	const showMermaidPreview =
+		isMermaid && mermaidMode === "preview" && mermaidHasContent;
+	const showMermaidToggle = isMermaid && mermaidHasContent;
 
 	const { copyToClipboard, copied } = useCopyToClipboard();
 	const handleCopy = () => {
@@ -52,10 +64,38 @@ export function EditableCodeBlockView({
 	};
 
 	return (
-		<NodeViewWrapper as="pre" className={`${htmlAttrs.class} relative group`}>
+		<NodeViewWrapper
+			as="pre"
+			className={`${htmlAttrs.class} relative group ${showMermaidPreview ? "!bg-transparent !p-0 !font-sans !text-base" : ""}`}
+		>
 			<div
-				className={`absolute top-2 right-2 flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 ${menuOpen ? "opacity-100" : ""}`}
+				className={`absolute top-2 right-2 z-10 flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 ${menuOpen ? "opacity-100" : ""}`}
 			>
+				{showMermaidToggle && (
+					<button
+						type="button"
+						onClick={() =>
+							setMermaidMode(mermaidMode === "preview" ? "source" : "preview")
+						}
+						aria-label={
+							mermaidMode === "preview"
+								? "Edit mermaid source"
+								: "View mermaid diagram"
+						}
+						title={
+							mermaidMode === "preview"
+								? "Edit mermaid source"
+								: "View mermaid diagram"
+						}
+						className="flex h-6 w-6 items-center justify-center rounded border border-border bg-background/80 backdrop-blur transition-colors hover:bg-accent"
+					>
+						{mermaidMode === "preview" ? (
+							<HiOutlineCodeBracket className="h-3.5 w-3.5" />
+						) : (
+							<HiOutlineEye className="h-3.5 w-3.5" />
+						)}
+					</button>
+				)}
 				<DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
 					<DropdownMenuTrigger asChild>
 						<button
@@ -101,9 +141,12 @@ export function EditableCodeBlockView({
 			</div>
 
 			{showMermaidPreview && (
-				<div
+				<button
+					type="button"
 					contentEditable={false}
-					className="mb-3 flex justify-center rounded-md bg-background p-3"
+					onClick={() => setMermaidMode("source")}
+					aria-label="Edit mermaid source"
+					className="flex w-full justify-center rounded-md bg-muted p-4 cursor-pointer hover:bg-muted/80 transition-colors"
 				>
 					<Streamdown
 						mode="static"
@@ -112,10 +155,12 @@ export function EditableCodeBlockView({
 					>
 						{`\`\`\`mermaid\n${mermaidSource}\n\`\`\``}
 					</Streamdown>
-				</div>
+				</button>
 			)}
 
-			<code className="hljs block !bg-transparent">
+			<code
+				className={`hljs block !bg-transparent ${showMermaidPreview ? "hidden" : ""}`}
+			>
 				<NodeViewContent />
 			</code>
 		</NodeViewWrapper>
