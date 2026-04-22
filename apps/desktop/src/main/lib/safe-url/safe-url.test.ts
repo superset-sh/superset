@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { isSafeExternalUrl } from "./safe-url";
+import { externalUrlLogLabel, isSafeExternalUrl } from "./safe-url";
 
 describe("isSafeExternalUrl", () => {
 	it("allows http, https, and mailto URLs", () => {
@@ -27,5 +27,20 @@ describe("isSafeExternalUrl", () => {
 		expect(isSafeExternalUrl("")).toBe(false);
 		expect(isSafeExternalUrl("not a url")).toBe(false);
 		expect(isSafeExternalUrl("/etc/passwd")).toBe(false);
+	});
+});
+
+describe("externalUrlLogLabel", () => {
+	it("returns only the scheme, never the full URL", () => {
+		expect(externalUrlLogLabel("https://example.com/path?token=secret")).toBe(
+			"https:",
+		);
+		expect(externalUrlLogLabel("file:///etc/passwd")).toBe("file:");
+		expect(externalUrlLogLabel("mailto:user@example.com")).toBe("mailto:");
+	});
+
+	it("returns sentinels for empty and malformed input", () => {
+		expect(externalUrlLogLabel("")).toBe("empty");
+		expect(externalUrlLogLabel("not a url")).toBe("malformed");
 	});
 });

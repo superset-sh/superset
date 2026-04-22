@@ -9,7 +9,7 @@ import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { clipboard, shell } from "electron";
 import { localDb } from "main/lib/local-db";
-import { isSafeExternalUrl } from "main/lib/safe-url";
+import { externalUrlLogLabel, isSafeExternalUrl } from "main/lib/safe-url";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 import { getWorkspace } from "../workspaces/utils/db-helpers";
@@ -95,7 +95,10 @@ export const createExternalRouter = () => {
 	return router({
 		openUrl: publicProcedure.input(z.string()).mutation(async ({ input }) => {
 			if (!isSafeExternalUrl(input)) {
-				console.error("[external/openUrl] Blocked unsafe URL scheme:", input);
+				console.warn(
+					"[external/openUrl] Blocked unsafe URL scheme:",
+					externalUrlLogLabel(input),
+				);
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message: "URL scheme not allowed",
@@ -106,7 +109,11 @@ export const createExternalRouter = () => {
 			} catch (error) {
 				const errorMessage =
 					error instanceof Error ? error.message : "Unknown error";
-				console.error("[external/openUrl] Failed to open URL:", input, error);
+				console.error(
+					"[external/openUrl] Failed to open URL:",
+					externalUrlLogLabel(input),
+					error,
+				);
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: errorMessage,

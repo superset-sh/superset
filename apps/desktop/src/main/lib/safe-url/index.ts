@@ -1,1 +1,5 @@
-export { isSafeExternalUrl, safeOpenExternal } from "./safe-url";
+export {
+	externalUrlLogLabel,
+	isSafeExternalUrl,
+	safeOpenExternal,
+} from "./safe-url";
