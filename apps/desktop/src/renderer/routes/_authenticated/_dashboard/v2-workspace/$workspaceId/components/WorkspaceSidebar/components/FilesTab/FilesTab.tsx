@@ -39,6 +39,10 @@ type InlineEditState =
 interface FilesTabProps {
 	onSelectFile: (absolutePath: string, openInNewTab?: boolean) => void;
 	selectedFilePath?: string;
+	pendingReveal?: {
+		path: string;
+		isDirectory: boolean;
+	} | null;
 	workspaceId: string;
 	workspaceName?: string;
 	gitStatus: GitStatusData | undefined;
@@ -208,6 +212,7 @@ function TreeNode({
 export function FilesTab({
 	onSelectFile,
 	selectedFilePath,
+	pendingReveal,
 	workspaceId,
 	workspaceName,
 	gitStatus,
@@ -287,7 +292,6 @@ export function FilesTab({
 
 	const scrollContainerRef = useRef<HTMLDivElement>(null);
 	const lastMousePos = useRef<{ x: number; y: number } | null>(null);
-	const prevSelectedRef = useRef(selectedFilePath);
 
 	const updateHoverFromPoint = useCallback((x: number, y: number) => {
 		const el = document.elementFromPoint(x, y)?.closest("[data-filepath]");
@@ -312,22 +316,31 @@ export function FilesTab({
 		setHoveredPath(null);
 	}, []);
 
+	// Every reveal request from the parent is a fresh `pendingReveal` object,
+	// so depending on its identity re-runs this effect for repeat reveals of
+	// the same path too. fileTree is intentionally omitted — its identity
+	// changes every render and would loop; the closure reads the latest state
+	// via useFileTree's internal refs. `cancelled` guards against a stale
+	// reveal scrolling the sidebar back to an outdated path if a newer
+	// request lands mid-flight.
+	// biome-ignore lint/correctness/useExhaustiveDependencies: fileTree intentionally omitted
 	useEffect(() => {
-		if (
-			selectedFilePath &&
-			selectedFilePath !== prevSelectedRef.current &&
-			rootPath
-		) {
-			void fileTree.reveal(selectedFilePath).then(() => {
-				requestAnimationFrame(() => {
-					scrollContainerRef.current
-						?.querySelector(`[data-filepath="${CSS.escape(selectedFilePath)}"]`)
-						?.scrollIntoView({ block: "center" });
-				});
+		if (!pendingReveal || !rootPath) return;
+		let cancelled = false;
+		const { path, isDirectory } = pendingReveal;
+		void fileTree.reveal(path, { isDirectory }).then(() => {
+			if (cancelled) return;
+			requestAnimationFrame(() => {
+				if (cancelled) return;
+				scrollContainerRef.current
+					?.querySelector(`[data-filepath="${CSS.escape(path)}"]`)
+					?.scrollIntoView({ block: "center" });
 			});
-		}
-		prevSelectedRef.current = selectedFilePath;
-	}, [selectedFilePath, rootPath, fileTree]);
+		});
+		return () => {
+			cancelled = true;
+		};
+	}, [pendingReveal, rootPath]);
 
 	const handleRefresh = useCallback(async () => {
 		setIsRefreshing(true);

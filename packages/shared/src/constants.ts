@@ -2,6 +2,8 @@
 export const AUTH_PROVIDERS = ["github", "google"] as const;
 export type AuthProvider = (typeof AUTH_PROVIDERS)[number];
 
+export const ORGANIZATION_HEADER = "x-superset-organization-id";
+
 // Deep link protocol schemes (used for desktop OAuth callbacks)
 export const PROTOCOL_SCHEMES = {
 	DEV: "superset-dev",
@@ -24,9 +26,14 @@ export const COMPANY = {
 		(process.env.NEXT_PUBLIC_MARKETING_URL || "https://superset.sh") +
 		"/changelog",
 	X_URL: "https://x.com/superset_sh",
+	LINKEDIN_URL: "https://www.linkedin.com/company/superset-sh",
+	YOUTUBE_URL: "https://www.youtube.com/@superset-sh",
 	MAIL_TO: "mailto:founders@superset.sh",
 	REPORT_ISSUE_URL: "https://github.com/superset-sh/superset/issues/new",
 	DISCORD_URL: "https://discord.gg/cZeD9WYcV7",
+	STATUS_URL: "https://status.superset.sh",
+	TRUST_URL: "https://trust.superset.sh",
+	CAREERS_URL: "https://www.ycombinator.com/companies/superset/jobs",
 } as const;
 
 // Theme

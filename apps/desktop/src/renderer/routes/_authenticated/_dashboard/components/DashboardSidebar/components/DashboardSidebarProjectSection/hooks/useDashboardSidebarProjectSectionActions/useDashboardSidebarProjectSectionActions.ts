@@ -1,5 +1,6 @@
 import { alert } from "@superset/ui/atoms/Alert";
 import { toast } from "@superset/ui/sonner";
+import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
@@ -14,6 +15,7 @@ export function useDashboardSidebarProjectSectionActions({
 	project,
 }: UseDashboardSidebarProjectSectionActionsOptions) {
 	const openModal = useOpenNewWorkspaceModal();
+	const navigate = useNavigate();
 	const {
 		createSection,
 		deleteSection,
@@ -43,7 +45,6 @@ export function useDashboardSidebarProjectSectionActions({
 			await apiTrpcClient.v2Project.update.mutate({
 				id: project.id,
 				name: trimmed,
-				slug: trimmed.toLowerCase().replace(/\s+/g, "-"),
 			});
 		} catch (error) {
 			toast.error(
@@ -57,7 +58,10 @@ export function useDashboardSidebarProjectSectionActions({
 	};
 
 	const handleOpenSettings = () => {
-		toast.info("Project settings are coming soon");
+		navigate({
+			to: "/settings/projects/$projectId",
+			params: { projectId: project.id },
+		});
 	};
 
 	const confirmRemoveFromSidebar = () => {

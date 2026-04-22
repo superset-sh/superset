@@ -22,6 +22,7 @@ import {
 	LuCopy,
 	LuFolderOpen,
 	LuFolderPlus,
+	LuGitBranch,
 	LuPencil,
 	LuTrash2,
 	LuX,
@@ -38,6 +39,7 @@ interface DashboardSidebarWorkspaceContextMenuProps {
 	onMoveToSection: (sectionId: string | null) => void;
 	onOpenInFinder: () => void;
 	onCopyPath: () => void;
+	onCopyBranchName: () => void;
 	onRemoveFromSidebar: () => void;
 	onRename: () => void;
 	onDelete: () => void;
@@ -54,6 +56,7 @@ export function DashboardSidebarWorkspaceContextMenu({
 	onMoveToSection,
 	onOpenInFinder,
 	onCopyPath,
+	onCopyBranchName,
 	onRemoveFromSidebar,
 	onRename,
 	onDelete,
@@ -96,6 +99,11 @@ export function DashboardSidebarWorkspaceContextMenu({
 					</ContextMenuItem>
 				</>
 			)}
+			{!isLocalWorkspace && <ContextMenuSeparator />}
+			<ContextMenuItem onSelect={onCopyBranchName}>
+				<LuGitBranch className="size-4 mr-2" />
+				Copy Branch Name
+			</ContextMenuItem>
 			<ContextMenuSeparator />
 			<ContextMenuItem onSelect={onCreateSection}>
 				<LuFolderPlus className="size-4 mr-2" />

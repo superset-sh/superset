@@ -27,15 +27,8 @@ import {
 import { toast } from "@superset/ui/sonner";
 import { Switch } from "@superset/ui/switch";
 import { cn } from "@superset/ui/utils";
-import { useNavigate } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import {
-	HiOutlineCog6Tooth,
-	HiOutlineCommandLine,
-	HiOutlineFolderOpen,
-	HiOutlinePaintBrush,
-} from "react-icons/hi2";
 import { LuImagePlus, LuTrash2 } from "react-icons/lu";
 import { ColorSelector } from "renderer/components/ColorSelector";
 import { electronTrpc } from "renderer/lib/electron-trpc";
@@ -65,13 +58,13 @@ export function SettingsSection({
 	description,
 	children,
 }: {
-	icon: ReactNode;
+	icon?: ReactNode;
 	title: string;
 	description?: string;
 	children: ReactNode;
 }) {
 	return (
-		<div className="pt-3 border-t space-y-3">
+		<div className="space-y-3">
 			<div>
 				<h3 className="text-base font-semibold text-foreground flex items-center gap-2">
 					{icon}
@@ -95,7 +88,6 @@ export function ProjectSettings({
 	projectId,
 	visibleItems,
 }: ProjectSettingsProps) {
-	const navigate = useNavigate();
 	const utils = electronTrpc.useUtils();
 	const { data: project } = electronTrpc.projects.get.useQuery({
 		id: projectId,
@@ -299,27 +291,22 @@ export function ProjectSettings({
 	return (
 		<div className="p-6 max-w-4xl w-full select-text">
 			<ProjectSettingsHeader title={project.name}>
-				<ClickablePath path={project.mainRepoPath} />
+				<ClickablePath
+					path={project.mainRepoPath}
+					className="text-xs text-muted-foreground"
+				/>
 			</ProjectSettingsHeader>
 
-			<div className="space-y-4">
+			<div className="space-y-8">
 				<SettingsSection
-					icon={<HiOutlineCog6Tooth className="h-4 w-4" />}
 					title="Branch Prefix"
-					description="Override the default prefix for new workspaces."
+					description={
+						previewPrefix
+							? `Preview: ${previewPrefix}/branch-name`
+							: "Preview: branch-name"
+					}
 				>
-					<div className="flex items-center justify-between">
-						<div className="space-y-0.5">
-							<Label className="text-sm font-medium">Branch Prefix</Label>
-							<p className="text-xs text-muted-foreground">
-								Preview:{" "}
-								<code className="bg-muted px-1.5 py-0.5 rounded text-foreground">
-									{previewPrefix
-										? `${previewPrefix}/branch-name`
-										: "branch-name"}
-								</code>
-							</p>
-						</div>
+					<div className="flex items-center justify-end">
 						<div className="flex items-center gap-2">
 							<Select
 								value={currentMode}
@@ -357,18 +344,10 @@ export function ProjectSettings({
 				</SettingsSection>
 
 				<SettingsSection
-					icon={<HiOutlineCog6Tooth className="h-4 w-4" />}
-					title="Workspace Base Branch"
-					description="Set the default base branch for new workspaces in this repository."
+					title="Base Branch"
+					description="Default base for new workspaces. Override per-workspace at creation."
 				>
-					<div className="flex items-center justify-between gap-4">
-						<div className="space-y-0.5">
-							<Label className="text-sm font-medium">Default Base Branch</Label>
-							<p className="text-xs text-muted-foreground">
-								Used when creating a workspace unless you choose a one-off base
-								branch.
-							</p>
-						</div>
+					<div className="flex items-center justify-end gap-4">
 						<Select
 							value={workspaceBaseBranchValue}
 							onValueChange={handleWorkspaceBaseBranchChange}
@@ -406,11 +385,7 @@ export function ProjectSettings({
 					)}
 				</SettingsSection>
 
-				<SettingsSection
-					icon={<HiOutlineFolderOpen className="h-4 w-4" />}
-					title="Worktrees"
-					description="Manage worktree location and import existing worktrees."
-				>
+				<SettingsSection title="Worktrees">
 					<WorktreeLocationPicker
 						currentPath={project.worktreeBaseDir}
 						defaultPathLabel={`Using global default: ${globalPath}`}
@@ -530,56 +505,10 @@ export function ProjectSettings({
 						)}
 				</SettingsSection>
 
-				<SettingsSection
-					icon={<HiOutlineCommandLine className="h-4 w-4" />}
-					title="Terminal Presets"
-					description="Create repo-specific terminal presets without leaving settings."
-				>
+				<ScriptsEditor projectId={project.id} />
+
+				<SettingsSection title="Appearance">
 					<div className="flex items-center justify-between gap-4">
-						<div className="space-y-0.5">
-							<Label className="text-sm font-medium">Project Presets</Label>
-							<p className="text-xs text-muted-foreground">
-								New presets can be limited to this project or expanded later to
-								multiple projects.
-							</p>
-						</div>
-						<div className="flex items-center gap-2">
-							<Button
-								type="button"
-								variant="outline"
-								onClick={() =>
-									navigate({
-										to: "/settings/terminal",
-									})
-								}
-							>
-								Manage Presets
-							</Button>
-							<Button
-								type="button"
-								onClick={() =>
-									navigate({
-										to: "/settings/terminal",
-										search: { createProjectId: projectId },
-									})
-								}
-							>
-								New Preset for This Project
-							</Button>
-						</div>
-					</div>
-				</SettingsSection>
-
-				<div className="pt-3 border-t">
-					<ScriptsEditor projectId={project.id} />
-				</div>
-
-				<SettingsSection
-					icon={<HiOutlinePaintBrush className="h-4 w-4" />}
-					title="Appearance"
-					description="Customize this project's sidebar look."
-				>
-					<div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
 						<ColorSelector
 							selectedColor={project.color}
 							onSelectColor={(color) =>
@@ -588,73 +517,64 @@ export function ProjectSettings({
 									patch: { color },
 								})
 							}
-							className="max-w-xl"
 						/>
-						<div className="flex items-center gap-2">
-							<Label className="text-sm text-muted-foreground">
-								Hide Image
-							</Label>
-							<Switch
-								checked={project.hideImage ?? false}
-								onCheckedChange={(checked) =>
-									updateProject.mutate({
-										id: projectId,
-										patch: { hideImage: checked },
-									})
-								}
-							/>
-						</div>
-					</div>
-
-					{/* Project Icon */}
-					<div className="flex items-center justify-between">
-						<div className="space-y-0.5">
-							<Label className="text-sm font-medium">Project Icon</Label>
-							<p className="text-xs text-muted-foreground">
-								Upload a custom icon for the sidebar.
-							</p>
-						</div>
-						<div className="flex items-center gap-2">
-							{project.iconUrl && (
-								<img
-									src={project.iconUrl}
-									alt="Project icon"
-									className="size-8 rounded object-cover border"
-								/>
-							)}
-							<input
-								ref={fileInputRef}
-								type="file"
-								accept="image/png,image/jpeg,image/svg+xml,image/x-icon,image/vnd.microsoft.icon,.ico"
-								className="hidden"
-								onChange={handleFileChange}
-							/>
-							<button
-								type="button"
-								onClick={handleIconUpload}
-								disabled={setProjectIcon.isPending}
-								className={cn(
-									"flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md border",
-									"hover:bg-muted transition-colors",
+						<div className="flex items-center gap-4">
+							<div className="flex items-center gap-2">
+								{project.iconUrl && (
+									<img
+										src={project.iconUrl}
+										alt="Project icon"
+										className="size-8 rounded object-cover border"
+									/>
 								)}
-							>
-								<LuImagePlus className="size-4" />
-								{project.iconUrl ? "Replace" : "Upload"}
-							</button>
-							{project.iconUrl && (
+								<input
+									ref={fileInputRef}
+									type="file"
+									accept="image/png,image/jpeg,image/svg+xml,image/x-icon,image/vnd.microsoft.icon,.ico"
+									className="hidden"
+									onChange={handleFileChange}
+								/>
 								<button
 									type="button"
-									onClick={handleRemoveIcon}
+									onClick={handleIconUpload}
 									disabled={setProjectIcon.isPending}
 									className={cn(
 										"flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md border",
-										"hover:bg-destructive/10 text-destructive transition-colors",
+										"hover:bg-muted transition-colors",
 									)}
 								>
-									<LuTrash2 className="size-4" />
-									Remove
+									<LuImagePlus className="size-4" />
+									{project.iconUrl ? "Replace icon" : "Upload icon"}
 								</button>
-							)}
+								{project.iconUrl && (
+									<button
+										type="button"
+										onClick={handleRemoveIcon}
+										disabled={setProjectIcon.isPending}
+										className={cn(
+											"flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md border",
+											"hover:bg-destructive/10 text-destructive transition-colors",
+										)}
+									>
+										<LuTrash2 className="size-4" />
+										Remove
+									</button>
+								)}
+							</div>
+							<div className="flex items-center gap-2">
+								<Label className="text-sm text-muted-foreground">
+									Hide image
+								</Label>
+								<Switch
+									checked={project.hideImage ?? false}
+									onCheckedChange={(checked) =>
+										updateProject.mutate({
+											id: projectId,
+											patch: { hideImage: checked },
+										})
+									}
+								/>
+							</div>
 						</div>
 					</div>
 				</SettingsSection>

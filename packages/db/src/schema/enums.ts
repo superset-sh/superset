@@ -69,7 +69,6 @@ export const workspaceTypeEnum = z.enum(workspaceTypeValues);
 export type WorkspaceType = z.infer<typeof workspaceTypeEnum>;
 
 export const automationRunStatusValues = [
-	"pending",
 	"dispatching",
 	"dispatched",
 	"skipped_offline",

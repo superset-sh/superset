@@ -34,7 +34,7 @@ export async function generateWorkspaceNameFromPrompt(prompt: string): Promise<{
 	usedPromptFallback: boolean;
 	warning?: string;
 }> {
-	const model = getSmallModel();
+	const model = await getSmallModel();
 	if (model) {
 		try {
 			const generated = await generateTitleFromMessage({
@@ -42,7 +42,8 @@ export async function generateWorkspaceNameFromPrompt(prompt: string): Promise<{
 				agentModel: model,
 				agentId: "workspace-namer",
 				agentName: "Workspace Namer",
-				instructions: "You generate concise workspace titles.",
+				instructions:
+					"You generate concise workspace titles. 20 characters or less. Return ONLY the title, nothing else.",
 				tracingContext: { surface: "workspace-auto-name" },
 			});
 			if (generated !== null && generated !== undefined) {

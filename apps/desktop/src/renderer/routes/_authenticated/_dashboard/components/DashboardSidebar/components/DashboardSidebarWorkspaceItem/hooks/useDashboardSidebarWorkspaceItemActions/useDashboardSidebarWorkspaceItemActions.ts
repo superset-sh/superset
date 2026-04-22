@@ -16,12 +16,14 @@ interface UseDashboardSidebarWorkspaceItemActionsOptions {
 	workspaceId: string;
 	projectId: string;
 	workspaceName: string;
+	branch: string;
 }
 
 export function useDashboardSidebarWorkspaceItemActions({
 	workspaceId,
 	projectId,
 	workspaceName,
+	branch,
 }: UseDashboardSidebarWorkspaceItemActionsOptions) {
 	const navigate = useNavigate();
 	const matchRoute = useMatchRoute();
@@ -144,10 +146,26 @@ export function useDashboardSidebarWorkspaceItemActions({
 		}
 	};
 
+	const handleCopyBranchName = async () => {
+		if (!branch) {
+			toast.error("Branch name is not available");
+			return;
+		}
+		try {
+			await copyToClipboard(branch);
+			toast.success("Branch name copied");
+		} catch (error) {
+			toast.error(
+				`Failed to copy branch name: ${error instanceof Error ? error.message : "Unknown error"}`,
+			);
+		}
+	};
+
 	return {
 		cancelRename,
 		handleClick,
 		handleCopyPath,
+		handleCopyBranchName,
 		handleCreateSection,
 		handleDeleted,
 		handleOpenInFinder,

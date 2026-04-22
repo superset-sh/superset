@@ -8,7 +8,6 @@ import { useNow } from "renderer/hooks/useNow";
 const STATUS_DOT: Record<SelectAutomationRun["status"], string> = {
 	dispatched: "bg-emerald-500",
 	dispatching: "bg-amber-500",
-	pending: "bg-amber-500",
 	skipped_offline: "bg-red-500",
 	dispatch_failed: "bg-red-500",
 };

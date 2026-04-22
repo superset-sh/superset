@@ -133,7 +133,7 @@ export function readCachedRepoContext(
 }
 
 export function clearGitHubCachesForWorktree(worktreePath: string): void {
-	githubStatusResource.invalidate(worktreePath);
+	githubStatusResource.invalidatePrefix(worktreePath);
 	repoContextResource.invalidate(worktreePath);
 	pullRequestCommentsResource.invalidatePrefix(
 		makePullRequestCommentsCachePrefix(worktreePath),

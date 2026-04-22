@@ -54,7 +54,7 @@ export function SetupScriptCard({
 					actionLabel="Configure"
 					onAction={() =>
 						navigate({
-							to: "/settings/project/$projectId",
+							to: "/settings/projects/$projectId",
 							params: { projectId },
 						})
 					}

@@ -15,6 +15,7 @@ export type SupersetConfig = {
 		expiresAt: number;
 	};
 	apiUrl?: string;
+	organizationId?: string;
 };
 
 export type DeviceConfig = {

@@ -15,12 +15,18 @@ import { useChangesTab } from "./hooks/useChangesTab";
 import { useReviewTab } from "./hooks/useReviewTab";
 import type { SidebarTabDefinition } from "./types";
 
+export interface PendingReveal {
+	path: string;
+	isDirectory: boolean;
+}
+
 interface WorkspaceSidebarProps {
 	onSelectFile: (absolutePath: string, openInNewTab?: boolean) => void;
 	onSelectDiffFile?: (path: string) => void;
 	onOpenComment?: (comment: CommentPaneData) => void;
 	onSearch?: () => void;
 	selectedFilePath?: string;
+	pendingReveal?: PendingReveal | null;
 	workspaceId: string;
 	workspaceName?: string;
 }
@@ -57,6 +63,7 @@ export function WorkspaceSidebar({
 	onOpenComment,
 	onSearch,
 	selectedFilePath,
+	pendingReveal,
 	workspaceId,
 	workspaceName,
 }: WorkspaceSidebarProps) {
@@ -111,6 +118,7 @@ export function WorkspaceSidebar({
 			<FilesTab
 				onSelectFile={onSelectFile}
 				selectedFilePath={selectedFilePath}
+				pendingReveal={pendingReveal}
 				workspaceId={workspaceId}
 				workspaceName={workspaceName}
 				gitStatus={gitStatus.data}

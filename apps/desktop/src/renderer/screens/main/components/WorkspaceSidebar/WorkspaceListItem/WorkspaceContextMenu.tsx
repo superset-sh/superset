@@ -23,6 +23,7 @@ import {
 	LuEyeOff,
 	LuFolderOpen,
 	LuFolderPlus,
+	LuGitBranch,
 	LuMinus,
 	LuPencil,
 	LuX,
@@ -50,6 +51,7 @@ interface WorkspaceContextMenuProps {
 	onOpenInFinder: () => void;
 	onOpenInEditor: () => void;
 	onCopyPath: () => void;
+	onCopyBranchName: () => void;
 	onSetUnread: (isUnread: boolean) => void;
 	onResetStatus: () => void;
 	onDelete: () => void;
@@ -68,6 +70,7 @@ export function WorkspaceContextMenu({
 	onOpenInFinder,
 	onOpenInEditor,
 	onCopyPath,
+	onCopyBranchName,
 	onSetUnread,
 	onResetStatus,
 	onDelete,
@@ -149,6 +152,10 @@ export function WorkspaceContextMenu({
 			<ContextMenuItem onSelect={onCopyPath}>
 				<LuCopy className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
 				Copy Path
+			</ContextMenuItem>
+			<ContextMenuItem onSelect={onCopyBranchName}>
+				<LuGitBranch className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
+				Copy Branch Name
 			</ContextMenuItem>
 			<ContextMenuSeparator />
 			<ContextMenuSub>

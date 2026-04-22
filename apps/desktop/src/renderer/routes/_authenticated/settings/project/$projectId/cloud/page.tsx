@@ -15,7 +15,7 @@ function CloudSettingsIndex() {
 	if (!hasCloudAccess) {
 		return (
 			<Navigate
-				to="/settings/project/$projectId/general"
+				to="/settings/projects/$projectId"
 				params={{ projectId }}
 				replace
 			/>

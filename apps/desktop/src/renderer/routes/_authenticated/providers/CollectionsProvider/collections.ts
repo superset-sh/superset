@@ -47,7 +47,9 @@ import {
 	type PendingWorkspaceRow,
 	pendingWorkspaceSchema,
 	type V2TerminalPresetRow,
+	type V2UserPreferencesRow,
 	v2TerminalPresetSchema,
+	v2UserPreferencesSchema,
 	type WorkspaceLocalStateRow,
 	workspaceLocalStateSchema,
 } from "./dashboardSidebarLocal";
@@ -138,6 +140,13 @@ export interface OrgCollections {
 		LocalStorageCollectionUtils,
 		typeof pendingWorkspaceSchema,
 		z.input<typeof pendingWorkspaceSchema>
+	>;
+	v2UserPreferences: Collection<
+		V2UserPreferencesRow,
+		string,
+		LocalStorageCollectionUtils,
+		typeof v2UserPreferencesSchema,
+		z.input<typeof v2UserPreferencesSchema>
 	>;
 }
 
@@ -606,6 +615,18 @@ function createOrgCollections(organizationId: string): OrgCollections {
 		}),
 	);
 
+	const v2UserPreferences = createCollection(
+		localStorageCollectionOptions({
+			id: `v2_user_preferences-${organizationId}`,
+			storageKey: `v2-user-preferences-${organizationId}`,
+			schema: v2UserPreferencesSchema,
+			// Cast widens the inferred literal "preferences" key to string so
+			// the collection slots into the shared OrgCollections.{...<TKey=string>}
+			// shape alongside the other v2 collections.
+			getKey: (item) => item.id as string,
+		}),
+	);
+
 	return {
 		tasks,
 		taskStatuses,
@@ -634,6 +655,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 		v2SidebarSections,
 		v2TerminalPresets,
 		pendingWorkspaces,
+		v2UserPreferences,
 	};
 }
 

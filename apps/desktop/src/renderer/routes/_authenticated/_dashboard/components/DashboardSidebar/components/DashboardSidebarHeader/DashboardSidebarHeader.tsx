@@ -6,6 +6,7 @@ import {
 	DropdownMenuItem,
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
+import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { useMatchRoute, useNavigate } from "@tanstack/react-router";
@@ -21,13 +22,11 @@ import {
 import { GATED_FEATURES, usePaywall } from "renderer/components/Paywall";
 import { useCurrentPlan } from "renderer/hooks/useCurrentPlan";
 import { useHotkeyDisplay } from "renderer/hotkeys";
+import { useFolderFirstImport } from "renderer/routes/_authenticated/_dashboard/components/AddRepositoryModals/hooks/useFolderFirstImport";
 import { OrganizationDropdown } from "renderer/routes/_authenticated/_dashboard/components/TopBar/components/OrganizationDropdown";
 import { useTasksFilterStore } from "renderer/routes/_authenticated/_dashboard/tasks/stores/tasks-filter-state";
 import { STROKE_WIDTH_THICK } from "renderer/screens/main/components/WorkspaceSidebar/constants";
-import {
-	useOpenNewProjectModal,
-	useTriggerFolderImport,
-} from "renderer/stores/add-repository-modal";
+import { useOpenNewProjectModal } from "renderer/stores/add-repository-modal";
 import { useOpenNewWorkspaceModal } from "renderer/stores/new-workspace-modal";
 
 interface DashboardSidebarHeaderProps {
@@ -39,7 +38,14 @@ export function DashboardSidebarHeader({
 }: DashboardSidebarHeaderProps) {
 	const openModal = useOpenNewWorkspaceModal();
 	const openNewProject = useOpenNewProjectModal();
-	const triggerFolderImport = useTriggerFolderImport();
+	const folderImport = useFolderFirstImport({
+		onSuccess: () => {
+			toast.success("Project ready — open it from the sidebar.");
+		},
+		onError: (message) => {
+			toast.error(`Import failed: ${message}`);
+		},
+	});
 	const shortcutText = useHotkeyDisplay("NEW_WORKSPACE").text;
 	const navigate = useNavigate();
 	const matchRoute = useMatchRoute();
@@ -139,7 +145,7 @@ export function DashboardSidebarHeader({
 							<HiMiniPlus className="size-4" />
 							New project
 						</DropdownMenuItem>
-						<DropdownMenuItem onSelect={triggerFolderImport}>
+						<DropdownMenuItem onSelect={() => folderImport.start()}>
 							<LuFolderInput className="size-4" />
 							Import existing folder
 						</DropdownMenuItem>
@@ -210,7 +216,7 @@ export function DashboardSidebarHeader({
 							<HiMiniPlus className="size-4" />
 							New project
 						</DropdownMenuItem>
-						<DropdownMenuItem onSelect={triggerFolderImport}>
+						<DropdownMenuItem onSelect={() => folderImport.start()}>
 							<LuFolderInput className="size-4" />
 							Import existing folder
 						</DropdownMenuItem>

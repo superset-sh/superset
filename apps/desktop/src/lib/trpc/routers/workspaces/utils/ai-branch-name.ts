@@ -3,7 +3,7 @@ import { getSmallModel } from "@superset/chat/server/shared";
 import { sanitizeBranchNameWithMaxLength } from "@superset/shared/workspace-launch";
 
 const BRANCH_NAME_INSTRUCTIONS =
-	"Generate a concise git branch name (2-4 words, kebab-case, descriptive). Return ONLY the branch name, nothing else.";
+	"Generate a concise git branch name (2-4 words, kebab-case, descriptive, 20 characters or less). Return ONLY the branch name, nothing else.";
 const MAX_CONFLICT_RESOLUTION_ATTEMPTS = 1000;
 const INITIAL_CONFLICT_SUFFIX = 2;
 
@@ -58,7 +58,7 @@ export async function generateBranchNameFromPrompt(
 	existingBranches: string[],
 	branchPrefix?: string,
 ): Promise<string | null> {
-	const model = getSmallModel();
+	const model = await getSmallModel();
 	if (!model) return null;
 
 	let generated: string | null;

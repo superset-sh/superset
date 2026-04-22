@@ -387,10 +387,7 @@ export function createWorkspaceStore<TData>(
 										newPane.id,
 									),
 									panes: { ...restPanes, [newPane.id]: newPane },
-									activePaneId:
-										tab.activePaneId === args.paneId
-											? newPane.id
-											: tab.activePaneId,
+									activePaneId: newPane.id,
 								}
 							: t,
 					),

@@ -12,6 +12,15 @@ function getNextTabOrder(items: Array<{ tabOrder: number }>): number {
 	return maxTabOrder + 1;
 }
 
+function getPrependTabOrder(items: Array<{ tabOrder: number }>): number {
+	if (items.length === 0) return 1;
+	const minTabOrder = items.reduce(
+		(minValue, item) => Math.min(minValue, item.tabOrder),
+		Number.POSITIVE_INFINITY,
+	);
+	return minTabOrder - 1;
+}
+
 function ensureSidebarProjectRecord(
 	collections: Pick<AppCollections, "v2SidebarProjects">,
 	projectId: string,
@@ -60,7 +69,7 @@ function ensureSidebarWorkspaceRecord(
 		createdAt: new Date(),
 		sidebarState: {
 			projectId,
-			tabOrder: getNextTabOrder(topLevelOrders),
+			tabOrder: getPrependTabOrder(topLevelOrders),
 			sectionId: null,
 		},
 		paneLayout: {

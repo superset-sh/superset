@@ -4,24 +4,20 @@ import { app, nativeImage } from "electron";
 import { env } from "main/env.main";
 import { prerelease } from "semver";
 import { getWorkspaceName } from "shared/env.shared";
-import twColors from "tailwindcss/colors";
 
 type RGB = [number, number, number];
 
 type Bounds = { top: number; left: number; bottom: number; right: number };
 
 /**
- * Deterministic workspace-name → RGB picker using Tailwind's 500-level palette.
+ * Deterministic workspace-name → RGB picker. Hashes the name to a hue via the
+ * golden angle (137.508°) so successive workspaces land far apart on the color
+ * wheel, then converts a fixed-lightness/chroma OKLCH point to sRGB.
  */
 const pickWorkspaceColor = (() => {
-	const FALLBACK: RGB = [59, 130, 246]; // blue-500
-
-	function parseOklch(str: string): { l: number; c: number; h: number } | null {
-		const m = str.match(/oklch\(([\d.]+)%\s+([\d.]+)\s+([\d.]+)\)/);
-		return m
-			? { l: Number(m[1]) / 100, c: Number(m[2]), h: Number(m[3]) }
-			: null;
-	}
+	const L = 0.68;
+	const C = 0.18;
+	const GOLDEN_ANGLE = 137.508;
 
 	function oklchToRgb(l: number, c: number, h: number): RGB {
 		const hRad = (h * Math.PI) / 180;
@@ -47,14 +43,6 @@ const pickWorkspaceColor = (() => {
 		];
 	}
 
-	const skip = new Set(["inherit", "current", "transparent", "black", "white"]);
-	const palette: RGB[] = [];
-	for (const [name, val] of Object.entries(twColors)) {
-		if (skip.has(name) || typeof val !== "object" || !("500" in val)) continue;
-		const parsed = parseOklch((val as Record<string, string>)["500"]);
-		if (parsed) palette.push(oklchToRgb(parsed.l, parsed.c, parsed.h));
-	}
-
 	function hash(seed: string): number {
 		let h = 0;
 		for (let i = 0; i < seed.length; i++) {
@@ -64,8 +52,10 @@ const pickWorkspaceColor = (() => {
 		return Math.abs(h);
 	}
 
-	return (workspaceName: string): RGB =>
-		palette[hash(workspaceName) % palette.length] ?? FALLBACK;
+	return (workspaceName: string): RGB => {
+		const hue = (hash(workspaceName) * GOLDEN_ANGLE) % 360;
+		return oklchToRgb(L, C, hue);
+	};
 })();
 
 /**

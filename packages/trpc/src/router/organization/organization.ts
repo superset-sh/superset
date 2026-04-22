@@ -56,7 +56,7 @@ function verificationMatchesInvitation({
 
 export const organizationRouter = {
 	getActive: protectedProcedure.query(async ({ ctx }) => {
-		const orgId = ctx.session.session.activeOrganizationId;
+		const orgId = ctx.activeOrganizationId;
 		if (!orgId) return null;
 
 		const membership = await db.query.members.findFirst({
@@ -91,6 +91,26 @@ export const organizationRouter = {
 		});
 		return org ?? null;
 	}),
+
+	getByIdFromJwt: jwtProcedure
+		.input(z.object({ id: z.string() }))
+		.query(async ({ ctx, input }) => {
+			if (!ctx.organizationIds.includes(input.id)) return null;
+
+			const membership = await db.query.members.findFirst({
+				where: and(
+					eq(members.userId, ctx.userId),
+					eq(members.organizationId, input.id),
+				),
+			});
+			if (!membership) return null;
+
+			const org = await db.query.organizations.findFirst({
+				where: eq(organizations.id, input.id),
+				columns: { id: true, name: true, slug: true },
+			});
+			return org ?? null;
+		}),
 
 	getInvitation: protectedProcedure
 		.input(z.uuid())

@@ -19,9 +19,9 @@ import type {
 import {
 	buildBranch,
 	getChangedFilesForDiff,
-	getDefaultBranchName,
 	mapGitStatus,
 	parseNumstat,
+	resolveBaseComparison,
 } from "./utils/git-helpers";
 import {
 	type GraphQLThreadsResult,
@@ -40,7 +40,7 @@ export const gitRouter = router({
 			const currentBranchName = (
 				await git.revparse(["--abbrev-ref", "HEAD"]).catch(() => "")
 			).trim();
-			const defaultBranchName = await getDefaultBranchName(git);
+			const base = await resolveBaseComparison(git);
 
 			let branchNames: string[] = [];
 			try {
@@ -54,12 +54,7 @@ export const gitRouter = router({
 
 			const branches = await Promise.all(
 				branchNames.map((name) =>
-					buildBranch(
-						git,
-						name,
-						name === currentBranchName,
-						defaultBranchName ? `origin/${defaultBranchName}` : undefined,
-					),
+					buildBranch(git, name, name === currentBranchName, base?.baseRef),
 				),
 			);
 
@@ -80,11 +75,9 @@ export const gitRouter = router({
 			const currentBranchName = (
 				await git.revparse(["--abbrev-ref", "HEAD"]).catch(() => "")
 			).trim();
-			const defaultBranchName =
-				input.baseBranch ?? (await getDefaultBranchName(git));
-			const baseRef = defaultBranchName
-				? `origin/${defaultBranchName}`
-				: "HEAD";
+			const base = await resolveBaseComparison(git, input.baseBranch);
+			const defaultBranchName = base?.branchName ?? null;
+			const baseRef = base?.baseRef ?? "HEAD";
 
 			const [currentBranch, defaultBranch, status, ignoredRaw] =
 				await Promise.all([
@@ -112,11 +105,13 @@ export const gitRouter = router({
 				.map((line) => line.trim().replace(/\/$/, ""))
 				.filter(Boolean);
 
-			const againstBase = await getChangedFilesForDiff(git, [baseRef, "HEAD"]);
+			const againstBase = await getChangedFilesForDiff(git, [
+				`${baseRef}...HEAD`,
+			]);
 
 			// Staged — use status.files index character for correct status
 			const stagedNumstat = parseNumstat(
-				await git.raw(["diff", "--numstat", "--cached"]).catch(() => ""),
+				await git.raw(["diff", "--numstat", "-z", "--cached"]).catch(() => ""),
 			);
 			const staged: ChangedFile[] = [];
 			for (const file of status.files) {
@@ -137,7 +132,7 @@ export const gitRouter = router({
 
 			// Unstaged — use status.files working_dir character
 			const unstagedNumstat = parseNumstat(
-				await git.raw(["diff", "--numstat"]).catch(() => ""),
+				await git.raw(["diff", "--numstat", "-z"]).catch(() => ""),
 			);
 			const unstaged: ChangedFile[] = [];
 			for (const file of status.files) {
@@ -184,11 +179,8 @@ export const gitRouter = router({
 			const worktreePath = resolveWorktreePath(ctx, input.workspaceId);
 			const git = await ctx.git(worktreePath);
 
-			const defaultBranchName =
-				input.baseBranch ?? (await getDefaultBranchName(git));
-			const baseRef = defaultBranchName
-				? `origin/${defaultBranchName}`
-				: "HEAD";
+			const base = await resolveBaseComparison(git, input.baseBranch);
+			const baseRef = base?.baseRef ?? "HEAD";
 
 			const commits: Commit[] = [];
 			try {
@@ -337,11 +329,17 @@ export const gitRouter = router({
 			let modifiedContent = "";
 
 			if (input.category === "against-base") {
-				const baseBranch =
-					input.baseBranch ?? (await getDefaultBranchName(git));
-				const baseRef = baseBranch ? `origin/${baseBranch}` : "HEAD";
+				const base = await resolveBaseComparison(git, input.baseBranch);
+				const baseRef = base?.baseRef ?? "HEAD";
+				// Use the merge base so the diff excludes unrelated changes
+				// landed on the base branch after we forked — matches what the
+				// file list (3-dot diff) is already filtered by.
+				const originRef = await git
+					.raw(["merge-base", baseRef, "HEAD"])
+					.then((s) => s.trim())
+					.catch(() => baseRef);
 				try {
-					originalContent = await git.show([`${baseRef}:${input.path}`]);
+					originalContent = await git.show([`${originRef}:${input.path}`]);
 				} catch {}
 				try {
 					modifiedContent = await git.show([`HEAD:${input.path}`]);

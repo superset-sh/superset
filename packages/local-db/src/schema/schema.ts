@@ -190,6 +190,9 @@ export const settings = sqliteTable("settings", {
 	agentCustomDefinitions: text("agent_custom_definitions", {
 		mode: "json",
 	}).$type<AgentCustomDefinition[]>(),
+	agentPresetPermissionsMigratedAt: integer(
+		"agent_preset_permissions_migrated_at",
+	),
 	selectedRingtoneId: text("selected_ringtone_id"),
 	activeOrganizationId: text("active_organization_id"),
 	confirmOnQuit: integer("confirm_on_quit", { mode: "boolean" }),

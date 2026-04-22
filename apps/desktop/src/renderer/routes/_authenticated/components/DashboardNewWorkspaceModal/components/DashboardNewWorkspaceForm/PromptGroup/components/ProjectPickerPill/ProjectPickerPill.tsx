@@ -45,10 +45,14 @@ export function ProjectPickerPill({
 					<HiChevronUpDown className="size-3 shrink-0" />
 				</FormPickerTrigger>
 			</PopoverTrigger>
-			<PopoverContent align="start" className="w-60 p-0">
+			<PopoverContent
+				align="start"
+				className="w-60 p-0"
+				onWheel={(event) => event.stopPropagation()}
+			>
 				<Command>
 					<CommandInput placeholder="Search projects..." />
-					<CommandList>
+					<CommandList className="max-h-[min(320px,var(--radix-popover-content-available-height))]">
 						<CommandEmpty>No projects found.</CommandEmpty>
 						<CommandGroup>
 							{projects.map((project) => (

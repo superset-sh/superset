@@ -7,7 +7,7 @@ export const apiKeyRouter = {
 	create: protectedProcedure
 		.input(z.object({ name: z.string().min(1) }))
 		.mutation(async ({ ctx, input }) => {
-			const organizationId = ctx.session.session.activeOrganizationId;
+			const organizationId = ctx.activeOrganizationId;
 			if (!organizationId) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
