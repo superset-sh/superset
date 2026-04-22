@@ -66,7 +66,9 @@ export function useV2UserPreferences(): V2UserPreferencesApi {
 			const existing = collections.v2UserPreferences.get(
 				V2_USER_PREFERENCES_ID,
 			);
-			const prev = existing?.rightSidebarOpen ?? false;
+			const prev =
+				existing?.rightSidebarOpen ??
+				DEFAULT_V2_USER_PREFERENCES.rightSidebarOpen;
 			const value = typeof next === "function" ? next(prev) : next;
 			if (!existing) {
 				collections.v2UserPreferences.insert({
