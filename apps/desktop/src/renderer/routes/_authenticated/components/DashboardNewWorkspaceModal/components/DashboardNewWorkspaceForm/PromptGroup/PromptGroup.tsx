@@ -1,7 +1,4 @@
-import {
-	sanitizeUserBranchName,
-	slugifyForBranch,
-} from "@superset/shared/workspace-launch";
+import { sanitizeUserBranchName } from "@superset/shared/workspace-launch";
 import {
 	PromptInput,
 	PromptInputAttachment,
@@ -109,10 +106,9 @@ export function PromptGroup({
 			agentsReady: agentsFetched,
 		});
 
-	const trimmedPrompt = prompt.trim();
 	const branchPreview = branchNameEdited
 		? sanitizeUserBranchName(branchName)
-		: slugifyForBranch(trimmedPrompt);
+		: "";
 
 	// Reset baseBranch on project or host change.
 	const previousProjectIdRef = useRef(projectId);

@@ -1,7 +1,6 @@
 import {
 	generateFriendlyBranchName,
 	sanitizeUserBranchName,
-	slugifyForBranch,
 } from "@superset/shared/workspace-launch";
 import type { DashboardNewWorkspaceDraft } from "../../../../../DashboardNewWorkspaceDraftContext";
 
@@ -15,24 +14,24 @@ interface ResolvedNames {
  * Pure function — no side effects, no hooks.
  *
  * Priority:
- * - Branch: user-typed (sanitized) > prompt slug > friendly random
- * - Workspace: user-typed > prompt text > same as branch
+ * - Branch: user-typed (sanitized) > friendly random
+ * - Workspace: user-typed > friendly random
+ *
+ * Prompt-based derivation is intentionally not used here — AI naming runs
+ * post-create in host-service for the workspace title.
  */
 export function resolveNames(draft: DashboardNewWorkspaceDraft): ResolvedNames {
-	const trimmedPrompt = draft.prompt.trim();
 	const friendlyFallback = generateFriendlyBranchName();
 
 	const branchName =
 		draft.branchNameEdited && draft.branchName.trim()
 			? sanitizeUserBranchName(draft.branchName.trim())
-			: trimmedPrompt
-				? slugifyForBranch(trimmedPrompt)
-				: friendlyFallback;
+			: friendlyFallback;
 
 	const workspaceName =
 		draft.workspaceNameEdited && draft.workspaceName.trim()
 			? draft.workspaceName.trim()
-			: trimmedPrompt || friendlyFallback;
+			: friendlyFallback;
 
 	return { branchName, workspaceName };
 }
