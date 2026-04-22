@@ -295,10 +295,7 @@ export const v2ProjectRouter = {
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			const organizationId = requireActiveOrgId(
-				ctx.session,
-				"No active organization",
-			);
+			const organizationId = requireActiveOrgId(ctx, "No active organization");
 			const project = await getProjectAccess(ctx.session.user.id, input.id, {
 				organizationId,
 			});
@@ -372,7 +369,7 @@ export const v2ProjectRouter = {
 		.input(z.object({ id: z.string().uuid() }))
 		.mutation(async ({ ctx, input }) => {
 			const organizationId = await requireActiveOrgMembership(
-				ctx.session,
+				ctx,
 				"No active organization",
 			);
 			const project = await getScopedProject(organizationId, input.id);

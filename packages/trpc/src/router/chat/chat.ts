@@ -53,7 +53,7 @@ export const chatRouter = {
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			const organizationId = ctx.session.session.activeOrganizationId;
+			const organizationId = ctx.activeOrganizationId;
 
 			if (!organizationId) {
 				throw new TRPCError({
@@ -85,7 +85,7 @@ export const chatRouter = {
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			const organizationId = ctx.session.session.activeOrganizationId;
+			const organizationId = ctx.activeOrganizationId;
 
 			if (!organizationId) {
 				throw new TRPCError({
@@ -121,7 +121,7 @@ export const chatRouter = {
 	deleteSession: protectedProcedure
 		.input(z.object({ sessionId: z.uuid() }))
 		.mutation(async ({ ctx, input }) => {
-			const organizationId = ctx.session.session.activeOrganizationId;
+			const organizationId = ctx.activeOrganizationId;
 
 			if (!organizationId) {
 				throw new TRPCError({

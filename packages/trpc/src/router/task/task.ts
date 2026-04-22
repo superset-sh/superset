@@ -170,7 +170,7 @@ async function getScopedAssigneeId(
 
 export const taskRouter = {
 	all: protectedProcedure.query(async ({ ctx }) => {
-		const organizationId = await requireActiveOrgMembership(ctx.session);
+		const organizationId = await requireActiveOrgMembership(ctx);
 
 		const assignee = alias(users, "assignee");
 		const creator = alias(users, "creator");
@@ -215,7 +215,7 @@ export const taskRouter = {
 		.query(({ ctx, input }) => getTaskById(ctx.session.user.id, input)),
 
 	bySlug: protectedProcedure.input(z.string()).query(async ({ ctx, input }) => {
-		const organizationId = await requireActiveOrgMembership(ctx.session);
+		const organizationId = await requireActiveOrgMembership(ctx);
 		return getTaskBySlug(ctx.session.user.id, organizationId, input);
 	}),
 
@@ -267,7 +267,7 @@ export const taskRouter = {
 	createFromUi: protectedProcedure
 		.input(createTaskFromUiSchema)
 		.mutation(async ({ ctx, input }) => {
-			const organizationId = await requireActiveOrgMembership(ctx.session);
+			const organizationId = await requireActiveOrgMembership(ctx);
 
 			for (let attempt = 0; attempt < TASK_SLUG_RETRY_LIMIT; attempt += 1) {
 				try {

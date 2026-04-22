@@ -142,10 +142,7 @@ export const v2WorkspaceRouter = {
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			const organizationId = requireActiveOrgId(
-				ctx.session,
-				"No active organization",
-			);
+			const organizationId = requireActiveOrgId(ctx, "No active organization");
 			const workspace = await getWorkspaceAccess(
 				ctx.session.user.id,
 				input.id,

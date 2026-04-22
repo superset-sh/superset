@@ -2,6 +2,8 @@
 export const AUTH_PROVIDERS = ["github", "google"] as const;
 export type AuthProvider = (typeof AUTH_PROVIDERS)[number];
 
+export const ORGANIZATION_HEADER = "x-superset-organization-id";
+
 // Deep link protocol schemes (used for desktop OAuth callbacks)
 export const PROTOCOL_SCHEMES = {
 	DEV: "superset-dev",

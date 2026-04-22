@@ -11,7 +11,7 @@ export const userRouter = {
 	me: protectedProcedure.query(({ ctx }) => ctx.session.user),
 
 	myOrganization: protectedProcedure.query(async ({ ctx }) => {
-		const activeOrganizationId = ctx.session.session.activeOrganizationId;
+		const activeOrganizationId = ctx.activeOrganizationId;
 
 		const membership = await db.query.members.findFirst({
 			where: activeOrganizationId

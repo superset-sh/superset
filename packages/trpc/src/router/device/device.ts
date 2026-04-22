@@ -79,7 +79,7 @@ export const deviceRouter = {
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			const organizationId = ctx.session.session.activeOrganizationId;
+			const organizationId = ctx.activeOrganizationId;
 			if (!organizationId) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
@@ -132,7 +132,7 @@ export const deviceRouter = {
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			const organizationId = ctx.session.session.activeOrganizationId;
+			const organizationId = ctx.activeOrganizationId;
 			if (!organizationId) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
@@ -180,7 +180,7 @@ export const deviceRouter = {
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			const organizationId = ctx.session.session.activeOrganizationId;
+			const organizationId = ctx.activeOrganizationId;
 			if (!organizationId) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",

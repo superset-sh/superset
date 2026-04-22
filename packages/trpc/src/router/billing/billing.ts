@@ -27,12 +27,10 @@ function subtractMonthsClamped(date: Date, months: number) {
 }
 
 async function requireOwnerWithCustomer(ctx: {
-	session: {
-		session: { activeOrganizationId: string | null };
-		user: { id: string };
-	};
+	session: { user: { id: string } };
+	activeOrganizationId: string | null;
 }) {
-	const activeOrgId = ctx.session.session.activeOrganizationId;
+	const activeOrgId = ctx.activeOrganizationId;
 	if (!activeOrgId) {
 		throw new TRPCError({
 			code: "BAD_REQUEST",
@@ -68,7 +66,7 @@ async function requireOwnerWithCustomer(ctx: {
 
 export const billingRouter = {
 	invoices: protectedProcedure.query(async ({ ctx }) => {
-		const activeOrgId = ctx.session.session.activeOrganizationId;
+		const activeOrgId = ctx.activeOrganizationId;
 		if (!activeOrgId) {
 			throw new TRPCError({
 				code: "BAD_REQUEST",

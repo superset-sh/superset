@@ -40,12 +40,38 @@ export default command({
 		try {
 			const api = createApiClient(config, { bearer: result.accessToken });
 			const user = await api.user.me.query();
-			const organization = await api.user.myOrganization.query();
 			p.log.info(`${user.name} (${user.email})`);
-			if (organization) p.log.info(`Organization: ${organization.name}`);
-		} catch {
-			// Non-fatal
-		}
+
+			const organizations = await api.user.myOrganizations.query();
+			const sessionActive = await api.user.myOrganization.query();
+
+			let chosenId = sessionActive?.id;
+
+			if (organizations.length > 1 && process.stdout.isTTY) {
+				const selection = await p.select({
+					message: "Select organization for this CLI",
+					initialValue: chosenId ?? organizations[0]?.id,
+					options: organizations.map((organization) => ({
+						value: organization.id,
+						label: `${organization.name} (${organization.slug})`,
+					})),
+				});
+				if (p.isCancel(selection)) {
+					p.cancel("Login cancelled");
+					return { data: { apiUrl } };
+				}
+				chosenId = selection as string;
+			} else if (organizations.length === 1) {
+				chosenId = organizations[0]?.id;
+			}
+
+			if (chosenId) {
+				config.organizationId = chosenId;
+				writeConfig(config);
+				const chosen = organizations.find((o) => o.id === chosenId);
+				if (chosen) p.log.info(`Organization: ${chosen.name}`);
+			}
+		} catch {}
 
 		p.outro("Logged in successfully.");
 		return { data: { apiUrl } };
