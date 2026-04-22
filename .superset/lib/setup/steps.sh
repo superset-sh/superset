@@ -618,7 +618,6 @@ step_seed_host_dbs() {
     return 0
   fi
 
-  # Collect org dirs that actually have a host.db
   local org_dirs=()
   for org_dir in "$source_root"/*/; do
     [ -d "$org_dir" ] || continue
