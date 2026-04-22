@@ -38,6 +38,7 @@ export function DashboardSidebarWorkspaceItem({
 		cancelRename,
 		handleClick,
 		handleCopyPath,
+		handleCopyBranchName,
 		handleCreateSection,
 		handleDeleted,
 		handleOpenInFinder,
@@ -55,6 +56,7 @@ export function DashboardSidebarWorkspaceItem({
 		workspaceId: id,
 		projectId,
 		workspaceName: name,
+		branch,
 	});
 
 	const navigate = useNavigate();
@@ -119,6 +121,7 @@ export function DashboardSidebarWorkspaceItem({
 							}
 							onOpenInFinder={handleOpenInFinder}
 							onCopyPath={handleCopyPath}
+							onCopyBranchName={handleCopyBranchName}
 							onRemoveFromSidebar={() => removeWorkspaceFromSidebar(id)}
 							onRename={startRename}
 							onDelete={() => setIsDeleteDialogOpen(true)}
@@ -183,6 +186,7 @@ export function DashboardSidebarWorkspaceItem({
 						isLocalWorkspace={hostType === "local-device"}
 						onOpenInFinder={handleOpenInFinder}
 						onCopyPath={handleCopyPath}
+						onCopyBranchName={handleCopyBranchName}
 						onRemoveFromSidebar={() => removeWorkspaceFromSidebar(id)}
 						onRename={startRename}
 						onDelete={() => setIsDeleteDialogOpen(true)}

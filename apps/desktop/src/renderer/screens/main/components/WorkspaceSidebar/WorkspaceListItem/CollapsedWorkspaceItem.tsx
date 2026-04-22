@@ -13,7 +13,7 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { type RefObject, useMemo, useState } from "react";
-import { LuCopy, LuX } from "react-icons/lu";
+import { LuCopy, LuGitBranch, LuX } from "react-icons/lu";
 import { createContextMenuDeleteDialogCoordinator } from "renderer/react-query/workspaces/useWorkspaceDeleteHandler";
 import type { ActivePaneStatus } from "shared/tabs-types";
 import { STROKE_WIDTH } from "../constants";
@@ -36,6 +36,7 @@ interface CollapsedWorkspaceItemProps {
 	onClick: () => void;
 	onDeleteClick: () => void;
 	onCopyPath: () => void;
+	onCopyBranchName: () => void;
 }
 
 export function CollapsedWorkspaceItem({
@@ -53,6 +54,7 @@ export function CollapsedWorkspaceItem({
 	onClick,
 	onDeleteClick,
 	onCopyPath,
+	onCopyBranchName,
 }: CollapsedWorkspaceItemProps) {
 	const isBranchWorkspace = type === "branch";
 	const deleteDialogCoordinator = useMemo(
@@ -131,6 +133,10 @@ export function CollapsedWorkspaceItem({
 						<ContextMenuItem onSelect={onCopyPath}>
 							<LuCopy className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
 							Copy Path
+						</ContextMenuItem>
+						<ContextMenuItem onSelect={onCopyBranchName}>
+							<LuGitBranch className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
+							Copy Branch Name
 						</ContextMenuItem>
 						<ContextMenuSeparator />
 						<ContextMenuItem
