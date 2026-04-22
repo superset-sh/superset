@@ -108,6 +108,7 @@ export async function spawnHostService(
 			AUTH_TOKEN: options.sessionToken,
 			CLOUD_API_URL: env.CLOUD_API_URL,
 			RELAY_URL: env.RELAY_URL,
+			PORT: String(port),
 			HOST_SERVICE_PORT: String(port),
 			HOST_SERVICE_SECRET: secret,
 			HOST_DB_PATH: hostDbPath(options.organizationId),
