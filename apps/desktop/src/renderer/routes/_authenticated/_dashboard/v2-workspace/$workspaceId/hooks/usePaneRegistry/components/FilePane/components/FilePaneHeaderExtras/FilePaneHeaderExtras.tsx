@@ -58,6 +58,7 @@ export function FilePaneHeaderExtras({
 				<TooltipTrigger asChild>
 					<button
 						type="button"
+						aria-label="Open in editor"
 						onClick={handleOpenExternal}
 						className="rounded p-1 text-muted-foreground/60 transition-colors hover:text-muted-foreground"
 					>

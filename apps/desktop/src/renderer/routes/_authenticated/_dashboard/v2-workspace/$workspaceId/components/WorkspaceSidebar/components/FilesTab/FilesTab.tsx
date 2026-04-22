@@ -318,24 +318,32 @@ export function FilesTab({
 		setHoveredPath(null);
 	}, []);
 
-	// Depends only on pendingReveal.nonce so repeat reveals of the same path
-	// (e.g. user collapsed a folder and re-⌘-clicked it in terminal) still
-	// re-expand and re-scroll. rootPath/fileTree are intentionally omitted —
-	// fileTree's identity changes every render and would cause an update loop;
-	// the closure captures the latest values via useFileTree's internal refs.
+	// Keyed on pendingReveal.nonce so repeat reveals of the same path still
+	// re-expand and re-scroll. rootPath is included so a reveal fired before
+	// the worktree path loads still runs once rootPath arrives. fileTree is
+	// intentionally omitted — its identity changes every render and would
+	// cause an update loop; the closure sees the latest state via its internal
+	// refs. The cancelled flag guards against stale reveals scrolling the
+	// sidebar back to an outdated path if a newer nonce arrives mid-flight.
 	// biome-ignore lint/correctness/useExhaustiveDependencies: nonce-keyed trigger
 	useEffect(() => {
 		prevSelectedRef.current = selectedFilePath;
 		if (!pendingReveal || !rootPath) return;
+		let cancelled = false;
 		const { path, isDirectory } = pendingReveal;
 		void fileTree.reveal(path, { isDirectory }).then(() => {
+			if (cancelled) return;
 			requestAnimationFrame(() => {
+				if (cancelled) return;
 				scrollContainerRef.current
 					?.querySelector(`[data-filepath="${CSS.escape(path)}"]`)
 					?.scrollIntoView({ block: "center" });
 			});
 		});
-	}, [pendingReveal?.nonce]);
+		return () => {
+			cancelled = true;
+		};
+	}, [pendingReveal?.nonce, rootPath]);
 
 	const handleRefresh = useCallback(async () => {
 		setIsRefreshing(true);

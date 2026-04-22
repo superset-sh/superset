@@ -284,14 +284,14 @@ export function MarkdownEditor({
 				if (!anchor) return false;
 				const href = anchor.getAttribute("href");
 				if (!href) return false;
+				// No pane context here, so "pane" and "external" both route to the
+				// system browser. Null means do nothing — fall through to ProseMirror
+				// so the user can still click into the link to place a cursor.
+				if (getUrlAction(event) === null) return false;
 				event.preventDefault();
-				// No pane context available here, so "pane" and "external" both
-				// route to the system browser. Null means do nothing.
-				if (getUrlAction(event) !== null) {
-					electronTrpcClient.external.openUrl.mutate(href).catch((error) => {
-						console.error("[MarkdownEditor] Failed to open URL:", href, error);
-					});
-				}
+				electronTrpcClient.external.openUrl.mutate(href).catch((error) => {
+					console.error("[MarkdownEditor] Failed to open URL:", href, error);
+				});
 				return true;
 			},
 		},
