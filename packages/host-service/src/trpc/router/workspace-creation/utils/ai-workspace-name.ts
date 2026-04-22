@@ -4,7 +4,7 @@ import { getSmallModel } from "@superset/chat/server/shared";
 const WORKSPACE_NAME_INSTRUCTIONS =
 	"You generate concise workspace titles. 20 characters or less. Return ONLY the title, nothing else.";
 
-const MAX_WORKSPACE_NAME_LENGTH = 60;
+const MAX_WORKSPACE_NAME_LENGTH = 20;
 
 export async function generateWorkspaceNameFromPrompt(
 	prompt: string,

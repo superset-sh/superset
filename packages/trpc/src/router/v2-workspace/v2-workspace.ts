@@ -210,6 +210,12 @@ export const v2WorkspaceRouter = {
 				.set({ name: input.name })
 				.where(eq(v2Workspaces.id, workspace.id))
 				.returning();
+			if (!updated) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Workspace not found",
+				});
+			}
 			return updated;
 		}),
 
