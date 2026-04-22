@@ -1,4 +1,8 @@
-import type { ChangedFile, GitChangesStatus } from "shared/changes-types";
+import type {
+	ChangedFile,
+	CommitInfo,
+	GitChangesStatus,
+} from "shared/changes-types";
 
 export interface GitTaskPayloadMap {
 	getStatus: {
@@ -9,11 +13,17 @@ export interface GitTaskPayloadMap {
 		worktreePath: string;
 		commitHash: string;
 	};
+	getHistory: {
+		worktreePath: string;
+		maxCount: number;
+		skip: number;
+	};
 }
 
 export interface GitTaskResultMap {
 	getStatus: GitChangesStatus;
 	getCommitFiles: ChangedFile[];
+	getHistory: CommitInfo[];
 }
 
 export type GitTaskType = keyof GitTaskPayloadMap;

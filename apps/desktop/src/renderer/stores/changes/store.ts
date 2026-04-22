@@ -34,6 +34,7 @@ interface ChangesState {
 	showRenderedMarkdown: Record<string, boolean>;
 	hideUnchangedRegions: boolean;
 	focusMode: boolean;
+	historyExpanded: boolean;
 
 	selectFile: (
 		workspaceId: string,
@@ -60,6 +61,7 @@ interface ChangesState {
 	getShowRenderedMarkdown: (worktreePath: string) => boolean;
 	toggleHideUnchangedRegions: () => void;
 	toggleFocusMode: () => void;
+	toggleHistory: () => void;
 	reset: (workspaceId: string) => void;
 }
 
@@ -78,6 +80,7 @@ const initialState = {
 	showRenderedMarkdown: {} as Record<string, boolean>,
 	hideUnchangedRegions: false,
 	focusMode: false,
+	historyExpanded: false,
 };
 
 export const useChangesStore = create<ChangesState>()(
@@ -219,6 +222,10 @@ export const useChangesStore = create<ChangesState>()(
 					set({ focusMode: !get().focusMode });
 				},
 
+				toggleHistory: () => {
+					set({ historyExpanded: !get().historyExpanded });
+				},
+
 				reset: (workspaceId) => {
 					const { selectedFiles } = get();
 					set({
@@ -231,7 +238,7 @@ export const useChangesStore = create<ChangesState>()(
 			}),
 			{
 				name: "changes-store",
-				version: 5,
+				version: 6,
 				migrate: (persisted, version) => {
 					const state = persisted as Record<string, unknown>;
 					if (version < 2) {
@@ -245,6 +252,9 @@ export const useChangesStore = create<ChangesState>()(
 					}
 					if (version < 5) {
 						state.activeTab = "diffs";
+					}
+					if (version < 6) {
+						state.historyExpanded = false;
 					}
 					state.sectionOrder = normalizeChangeSectionOrder(
 						state.sectionOrder as ChangeCategory[] | undefined,
@@ -261,6 +271,7 @@ export const useChangesStore = create<ChangesState>()(
 					showRenderedMarkdown: state.showRenderedMarkdown,
 					hideUnchangedRegions: state.hideUnchangedRegions,
 					focusMode: state.focusMode,
+					historyExpanded: state.historyExpanded,
 				}),
 			},
 		),
