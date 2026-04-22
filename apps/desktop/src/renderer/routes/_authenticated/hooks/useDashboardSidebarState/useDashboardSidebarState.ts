@@ -13,7 +13,7 @@ function getNextTabOrder(items: Array<{ tabOrder: number }>): number {
 }
 
 function getPrependTabOrder(items: Array<{ tabOrder: number }>): number {
-	if (items.length === 0) return 0;
+	if (items.length === 0) return 1;
 	const minTabOrder = items.reduce(
 		(minValue, item) => Math.min(minValue, item.tabOrder),
 		Number.POSITIVE_INFINITY,
