@@ -15,7 +15,7 @@ jobs:
     steps:
       - name: Delete Neon branch
         id: neon-cleanup
-        uses: neondatabase/delete-branch-action@v3
+        uses: neondatabase/delete-branch-action@4468d825d5a88ef4012f1705a82f02ec3072f776 # v3
         continue-on-error: true
         with:
           project_id: ${{ vars.NEON_PROJECT_ID }}
@@ -23,7 +23,7 @@ jobs:
           api_key: ${{ secrets.NEON_API_KEY }}
 
       - name: Setup Fly CLI
-        uses: superfly/flyctl-actions/setup-flyctl@master
+        uses: superfly/flyctl-actions/setup-flyctl@ed8efb33836e8b2096c7fd3ba1c8afe303ebbff1 # master @ 2026-04-21
 
       - name: Delete Electric Fly.io app
         id: electric-cleanup
@@ -35,7 +35,7 @@ jobs:
 
       - name: Update comment
         if: always()
-        uses: thollander/actions-comment-pull-request@v3
+        uses: thollander/actions-comment-pull-request@24bffb9b452ba05a4f3f77933840a6a841d1b32b # v3
         with:
           message: |
             ## 🧹 Preview Cleanup Complete
