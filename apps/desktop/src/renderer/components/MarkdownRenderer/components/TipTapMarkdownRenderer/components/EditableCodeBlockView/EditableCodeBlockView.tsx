@@ -1,3 +1,4 @@
+import { mermaid } from "@streamdown/mermaid";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -13,6 +14,10 @@ import {
 	FILE_VIEW_CODE_BLOCK_LANGUAGES,
 	getCodeBlockLanguageLabel,
 } from "renderer/lib/tiptap/code-block-languages";
+import { useTheme } from "renderer/stores";
+import { Streamdown } from "streamdown";
+
+const mermaidPlugins = { mermaid };
 
 export function EditableCodeBlockView({
 	node,
@@ -20,6 +25,8 @@ export function EditableCodeBlockView({
 	extension,
 }: NodeViewProps) {
 	const [menuOpen, setMenuOpen] = useState(false);
+	const theme = useTheme();
+	const isDark = theme?.type !== "light";
 
 	const attrs = node.attrs as { language?: string };
 	const htmlAttrs = extension.options.HTMLAttributes as { class?: string };
@@ -29,6 +36,10 @@ export function EditableCodeBlockView({
 		FILE_VIEW_CODE_BLOCK_LANGUAGES,
 		currentLanguage,
 	);
+
+	const isMermaid = currentLanguage === "mermaid";
+	const mermaidSource = node.textContent;
+	const showMermaidPreview = isMermaid && mermaidSource.trim().length > 0;
 
 	const { copyToClipboard, copied } = useCopyToClipboard();
 	const handleCopy = () => {
@@ -88,6 +99,21 @@ export function EditableCodeBlockView({
 					)}
 				</button>
 			</div>
+
+			{showMermaidPreview && (
+				<div
+					contentEditable={false}
+					className="mb-3 flex justify-center rounded-md bg-background p-3"
+				>
+					<Streamdown
+						mode="static"
+						plugins={mermaidPlugins}
+						mermaid={{ config: { theme: isDark ? "dark" : "default" } }}
+					>
+						{`\`\`\`mermaid\n${mermaidSource}\n\`\`\``}
+					</Streamdown>
+				</div>
+			)}
 
 			<code className="hljs block !bg-transparent">
 				<NodeViewContent />
