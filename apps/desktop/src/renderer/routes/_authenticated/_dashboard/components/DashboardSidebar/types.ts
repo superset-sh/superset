@@ -25,6 +25,7 @@ export interface DashboardSidebarWorkspace {
 	projectId: string;
 	hostId: string;
 	hostType: DashboardSidebarWorkspaceHostType;
+	hostIsOnline: boolean | null;
 	accentColor: string | null;
 	name: string;
 	branch: string;

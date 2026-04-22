@@ -29,6 +29,7 @@ export function DashboardSidebarWorkspaceItem({
 		projectId,
 		accentColor = null,
 		hostType,
+		hostIsOnline,
 		name,
 		branch,
 		creationStatus,
@@ -85,6 +86,7 @@ export function DashboardSidebarWorkspaceItem({
 				)}
 				<DashboardSidebarCollapsedWorkspaceButton
 					hostType={hostType}
+					hostIsOnline={hostIsOnline}
 					isActive={isActive}
 					onClick={isPending ? handlePendingClick : handleClick}
 					creationStatus={creationStatus}
