@@ -13,7 +13,6 @@ export {
 	runSessionStartHook,
 	subscribeToSessionEvents,
 	syncRuntimeHookSessionId,
-	type TitleRuntime,
 } from "./runtime";
 export {
 	authenticateRuntimeMcpServer,

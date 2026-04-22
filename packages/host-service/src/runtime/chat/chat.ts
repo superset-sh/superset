@@ -1,13 +1,11 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { generateAndSetTitle } from "@superset/chat/server/trpc";
 import { eq } from "drizzle-orm";
 import { createMastraCode } from "mastracode";
 import type { HostDb } from "../../db";
 import { workspaces } from "../../db/schema";
 import type { ModelProviderRuntimeResolver } from "../../providers/model-providers";
-import type { ApiClient } from "../../types";
 
 type RuntimeHarness = Awaited<ReturnType<typeof createMastraCode>>["harness"];
 type RuntimeMcpManager = Awaited<
@@ -149,7 +147,6 @@ interface HarnessWithConfig {
 export interface ChatRuntimeManagerOptions {
 	db: HostDb;
 	runtimeResolver: ModelProviderRuntimeResolver;
-	api: ApiClient;
 }
 
 function isObjectRecord(value: unknown): value is Record<string, unknown> {
@@ -315,7 +312,6 @@ async function restartRuntimeFromUserMessage(
 export class ChatRuntimeManager {
 	private readonly db: HostDb;
 	private readonly runtimeResolver: ModelProviderRuntimeResolver;
-	private readonly api: ApiClient;
 	private readonly runtimes = new Map<string, RuntimeSession>();
 	private readonly runtimeCreations = new Map<
 		string,
@@ -325,7 +321,6 @@ export class ChatRuntimeManager {
 	constructor(options: ChatRuntimeManagerOptions) {
 		this.db = options.db;
 		this.runtimeResolver = options.runtimeResolver;
-		this.api = options.api;
 	}
 
 	private subscribeToSessionEvents(runtime: RuntimeSession): void {
@@ -533,11 +528,6 @@ When you need to ask the user ANY question — including simple yes/no, confirma
 			await runtime.harness.setState({ thinkingLevel });
 		}
 
-		const submittedUserMessage = input.payload.content.trim();
-		void generateAndSetTitle(runtime, this.api, {
-			submittedUserMessage: submittedUserMessage || undefined,
-		});
-
 		return runtime.harness.sendMessage(input.payload);
 	}
 
@@ -548,10 +538,6 @@ When you need to ask the user ANY question — including simple yes/no, confirma
 		);
 		runtime.lastErrorMessage = null;
 		await restartRuntimeFromUserMessage(runtime, input);
-		const submittedUserMessage = input.payload.content.trim();
-		void generateAndSetTitle(runtime, this.api, {
-			submittedUserMessage: submittedUserMessage || undefined,
-		});
 	}
 
 	async stop(input: { sessionId: string; workspaceId: string }): Promise<void> {
