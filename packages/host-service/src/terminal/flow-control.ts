@@ -4,7 +4,6 @@
  *--------------------------------------------------------------------------------------------*/
 
 // Vendored from VSCode:
-//   - FlowControlConstants:            src/vs/platform/terminal/common/terminal.ts
 //   - _unacknowledgedCharCount / _isPtyPaused / acknowledgeDataEvent / clearUnacknowledgedChars:
 //     src/vs/platform/terminal/node/terminalProcess.ts (inline fields/methods on TerminalProcess)
 //
@@ -12,21 +11,13 @@
 // here as a tiny state helper so it can be unit-tested without spawning a real pty.
 // The observable behaviour (thresholds, clamp-to-zero on over-ack, force-resume
 // on clear) mirrors upstream byte-for-byte.
+//
+// FlowControlConstants live in @superset/shared/terminal-flow-control so the
+// client and server cannot drift apart on watermark values.
 
-/**
- * Upstream (VSCode terminal.ts):
- *
- *   export const enum FlowControlConstants {
- *       HighWatermarkChars = 100000,
- *       LowWatermarkChars = 5000,
- *       CharCountAckSize = 5000
- *   }
- */
-export const FlowControlConstants = {
-	HighWatermarkChars: 100000,
-	LowWatermarkChars: 5000,
-	CharCountAckSize: 5000,
-} as const;
+import { FlowControlConstants } from "@superset/shared/terminal-flow-control";
+
+export { FlowControlConstants } from "@superset/shared/terminal-flow-control";
 
 export interface FlowControlState {
 	unacknowledgedCharCount: number;

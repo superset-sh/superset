@@ -587,7 +587,19 @@ export function registerWorkspaceTerminalRoute({
 					}
 
 					if (message.type === "ack") {
-						if (recordAck(session.flowControl, message.charCount)) {
+						// charCount is untrusted JSON — reject anything that
+						// would corrupt the flow-control counter (NaN poisons
+						// all future arithmetic and permanently disables
+						// pause/resume for the session).
+						const charCount = message.charCount;
+						if (
+							typeof charCount !== "number" ||
+							!Number.isFinite(charCount) ||
+							charCount <= 0
+						) {
+							return;
+						}
+						if (recordAck(session.flowControl, Math.floor(charCount))) {
 							try {
 								session.pty.resume();
 							} catch {

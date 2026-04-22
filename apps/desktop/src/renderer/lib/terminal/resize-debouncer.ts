@@ -141,6 +141,15 @@ export class TerminalResizeDebouncer {
 
 		// Resize in an idle callback if the terminal is not visible
 		if (!this._cb.isVisible()) {
+			// A previous visible tick may have left a debounced X reflow
+			// pending. Cancel it — otherwise it will fire later with the old
+			// (closed-over) cols and revert the idle-applied value. Upstream
+			// avoids this implicitly by storing both the debounce job and the
+			// idle job in a single `MutableDisposable` slot.
+			if (this._debounceTimer !== null) {
+				clearTimeout(this._debounceTimer);
+				this._debounceTimer = null;
+			}
 			if (this._idleXHandle === null) {
 				this._idleXHandle = scheduleIdle(() => {
 					this._idleXHandle = null;
@@ -154,6 +163,18 @@ export class TerminalResizeDebouncer {
 				});
 			}
 			return;
+		}
+
+		// Symmetric to the hidden-path cleanup: drop any still-pending idle
+		// jobs that were queued while hidden — they'd fire after this visible
+		// tick and clobber state we just set.
+		if (this._idleXHandle !== null) {
+			cancelIdle(this._idleXHandle);
+			this._idleXHandle = null;
+		}
+		if (this._idleYHandle !== null) {
+			cancelIdle(this._idleYHandle);
+			this._idleYHandle = null;
 		}
 
 		// Update dimensions independently as vertical resize is cheap and horizontal resize is

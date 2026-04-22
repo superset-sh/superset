@@ -16,6 +16,10 @@
 			"types": "./src/terminal-link-parsing/index.ts",
 			"default": "./src/terminal-link-parsing/index.ts"
 		},
+		"./terminal-flow-control": {
+			"types": "./src/terminal-flow-control.ts",
+			"default": "./src/terminal-flow-control.ts"
+		},
 		"./auth": {
 			"types": "./src/auth/index.ts",
 			"default": "./src/auth/index.ts"

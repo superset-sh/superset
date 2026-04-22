@@ -198,6 +198,62 @@ describe("TerminalResizeDebouncer — dispose", () => {
 	});
 });
 
+describe("TerminalResizeDebouncer — path switching", () => {
+	test("visible→hidden cancels the pending X debounce", async () => {
+		const harness = createHarness({
+			visible: true,
+			bufferLength: 10_000,
+			debounceMs: 10,
+		});
+		const { debouncer, cb } = harness;
+
+		// 1. Visible resize schedules a debounced X with cols=80.
+		debouncer.resize(80, 24, false);
+		expect(cb.resizeX).not.toHaveBeenCalled();
+
+		// 2. Terminal becomes hidden; a new resize enters the idle path with cols=90.
+		cb.isVisible.mockImplementation(() => false);
+		debouncer.resize(90, 25, false);
+
+		// 3. Idle callback fires (setTimeout(0) fallback in node/bun) and applies 90.
+		// The debounce timer, had it been left pending, would fire 10ms later
+		// with the stale closure value 80 and revert us.
+		await wait(30);
+
+		// Only the latest (90) should have been applied — no revert to 80.
+		expect(cb.resizeX.mock.calls).toEqual([[90]]);
+	});
+
+	test("hidden→visible cancels the pending idle X/Y jobs", async () => {
+		const harness = createHarness({
+			visible: false,
+			bufferLength: 10_000,
+			debounceMs: 10,
+		});
+		const { debouncer, cb } = harness;
+
+		// 1. Hidden resize schedules idle X=80, Y=24.
+		debouncer.resize(80, 24, false);
+		expect(cb.resizeX).not.toHaveBeenCalled();
+		expect(cb.resizeY).not.toHaveBeenCalled();
+
+		// 2. Terminal becomes visible; new resize should apply Y immediately
+		// and debounce X — without letting the stale idle jobs fire after.
+		cb.isVisible.mockImplementation(() => true);
+		debouncer.resize(90, 25, false);
+		expect(cb.resizeY).toHaveBeenCalledTimes(1);
+		expect(cb.resizeY).toHaveBeenCalledWith(25);
+
+		// Wait past both idle and debounce.
+		await wait(30);
+
+		// Y fired exactly once (from the visible path) — no stale idle Y.
+		expect(cb.resizeY.mock.calls).toEqual([[25]]);
+		// X fired exactly once (from the debounce) — no stale idle X.
+		expect(cb.resizeX.mock.calls).toEqual([[90]]);
+	});
+});
+
 describe("Constants", () => {
 	test("match upstream VSCode values", () => {
 		expect(StartDebouncingThreshold).toBe(200);
