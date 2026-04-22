@@ -147,18 +147,8 @@ export function useDashboardSidebarWorkspaceItemActions({
 	};
 
 	const handleCopyBranchName = async () => {
-		if (!branch) {
-			toast.error("Branch name is not available");
-			return;
-		}
-		try {
-			await copyToClipboard(branch);
-			toast.success("Branch name copied");
-		} catch (error) {
-			toast.error(
-				`Failed to copy branch name: ${error instanceof Error ? error.message : "Unknown error"}`,
-			);
-		}
+		if (!branch) return;
+		await copyToClipboard(branch);
 	};
 
 	return {

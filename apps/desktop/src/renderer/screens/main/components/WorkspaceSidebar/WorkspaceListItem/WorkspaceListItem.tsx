@@ -246,7 +246,6 @@ export function WorkspaceListItem({
 	const handleCopyBranchName = async () => {
 		if (!branch) return;
 		await copyToClipboard(branch);
-		toast.success("Branch name copied to clipboard");
 	};
 
 	const pr = githubStatus?.pr;
