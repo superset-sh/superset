@@ -16,8 +16,9 @@ import type {
 	DashboardSidebarWorkspace,
 } from "../../types";
 
-// Pending workspaces are always rendered at the end of the project's workspace list
-const PENDING_WORKSPACE_TAB_ORDER = Number.MAX_SAFE_INTEGER;
+// Pending workspaces render at the top of the project's workspace list, matching where
+// the real workspace is inserted (getPrependTabOrder) once creation succeeds.
+const PENDING_WORKSPACE_TAB_ORDER = Number.MIN_SAFE_INTEGER;
 
 export function useDashboardSidebarData() {
 	const { data: session } = authClient.useSession();
