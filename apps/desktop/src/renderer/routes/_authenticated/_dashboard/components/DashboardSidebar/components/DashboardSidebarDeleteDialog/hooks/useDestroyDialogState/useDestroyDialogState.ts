@@ -10,6 +10,7 @@ interface UseDestroyDialogStateOptions {
 	workspaceId: string;
 	workspaceName: string;
 	onOpenChange: (open: boolean) => void;
+	onDeleting?: () => void;
 	onDeleted?: () => void;
 }
 
@@ -18,21 +19,23 @@ interface UseDestroyDialogStateOptions {
  *
  * UX pattern:
  *   - On confirm, close the dialog immediately, mark the workspace as
- *     deleting (sidebar row hides optimistically), and run destroy in
- *     the background silently. No loading toast — destroy can take
- *     10–20s and a persistent toast across that window feels bad. The
- *     hidden row is the feedback.
- *   - On success, `onDeleted` removes the row from sidebar state.
+ *     deleting (sidebar row hides optimistically), show a loading toast,
+ *     and fire `onDeleting` so the caller can immediately navigate off
+ *     the deleted workspace (don't leave the user staring at a workspace
+ *     that's being torn down). Destroy itself runs in the background.
+ *   - On success, the loading toast resolves to success and `onDeleted`
+ *     removes the row from sidebar state.
  *   - On error, `clearDeleting` runs in the `finally` block so the row
  *     reappears. For decision-required errors (CONFLICT, TEARDOWN_FAILED)
  *     we reopen the dialog in the matching error pane so the user can
  *     force-retry with full context. The branch opt-in is preserved.
- *   - For unknown errors we just toast.error — no reopen.
+ *   - For unknown errors the loading toast resolves to error — no reopen.
  */
 export function useDestroyDialogState({
 	workspaceId,
 	workspaceName,
 	onOpenChange,
+	onDeleting,
 	onDeleted,
 }: UseDestroyDialogStateOptions) {
 	const { destroy } = useDestroyWorkspace(workspaceId);
@@ -68,19 +71,26 @@ export function useDestroyDialogState({
 			setError(null);
 			onOpenChange(false);
 			markDeleting(workspaceId);
+			onDeleting?.();
+
+			const toastId = toast.loading(`Deleting "${workspaceName}"...`);
 
 			try {
 				const result = await destroy({ deleteBranch, force });
+				toast.success(`Deleted "${workspaceName}"`, { id: toastId });
 				for (const warning of result.warnings) toast.warning(warning);
 				setDeleteBranch(false);
 				onDeleted?.();
 			} catch (err) {
 				const e = err as DestroyWorkspaceError;
 				if (e.kind === "conflict" || e.kind === "teardown-failed") {
+					toast.dismiss(toastId);
 					setError(e);
 					onOpenChange(true);
 				} else {
-					toast.error(`Failed to delete ${workspaceName}: ${e.message}`);
+					toast.error(`Failed to delete ${workspaceName}: ${e.message}`, {
+						id: toastId,
+					});
 				}
 			} finally {
 				clearDeleting(workspaceId);
@@ -93,6 +103,7 @@ export function useDestroyDialogState({
 			workspaceName,
 			workspaceId,
 			onOpenChange,
+			onDeleting,
 			onDeleted,
 			markDeleting,
 			clearDeleting,

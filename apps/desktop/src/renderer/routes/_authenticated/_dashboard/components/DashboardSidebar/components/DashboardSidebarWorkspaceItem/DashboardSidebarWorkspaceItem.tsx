@@ -41,6 +41,7 @@ export function DashboardSidebarWorkspaceItem({
 		handleCopyPath,
 		handleCopyBranchName,
 		handleCreateSection,
+		handleDeleting,
 		handleDeleted,
 		handleOpenInFinder,
 		isActive,
@@ -139,6 +140,7 @@ export function DashboardSidebarWorkspaceItem({
 						workspaceName={name || branch}
 						open={isDeleteDialogOpen}
 						onOpenChange={setIsDeleteDialogOpen}
+						onDeleting={handleDeleting}
 						onDeleted={handleDeleted}
 					/>
 				)}
