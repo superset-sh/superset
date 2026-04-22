@@ -604,6 +604,96 @@ step_seed_auth_token() {
   return 0
 }
 
+step_seed_host_dbs() {
+  echo "🛰️  Seeding host-service DBs into superset-dev-data/host/..."
+
+  local source_root="$HOME/.superset/host"
+  local dev_data_dir="superset-dev-data"
+  local dest_root="$dev_data_dir/host"
+  local force_overwrite="$FORCE_OVERWRITE_DATA"
+
+  if [ ! -d "$source_root" ]; then
+    warn "No host-service DBs found at $source_root — skipping (host-service will create fresh DBs per org)"
+    step_skipped "Seed host-service DBs (no source dir)"
+    return 0
+  fi
+
+  local org_dirs=()
+  for org_dir in "$source_root"/*/; do
+    [ -d "$org_dir" ] || continue
+    local org_id
+    org_id="$(basename "$org_dir")"
+    if [ -f "${org_dir}host.db" ]; then
+      org_dirs+=("$org_id")
+    fi
+  done
+
+  if [ ${#org_dirs[@]} -eq 0 ]; then
+    warn "No host.db files under $source_root — skipping"
+    step_skipped "Seed host-service DBs (no host.db files)"
+    return 0
+  fi
+
+  mkdir -p "$dest_root"
+  chmod 700 "$dev_data_dir" "$dest_root"
+
+  local seeded=0
+  local skipped=0
+  for org_id in "${org_dirs[@]}"; do
+    local source_db="$source_root/$org_id/host.db"
+    local dest_org_dir="$dest_root/$org_id"
+    local dest_db="$dest_org_dir/host.db"
+
+    if [ -f "$dest_db" ] && [ "$force_overwrite" != "1" ]; then
+      warn "Host DB already exists at $dest_db — skipping (use -f/--force)"
+      skipped=$((skipped + 1))
+      continue
+    fi
+
+    mkdir -p "$dest_org_dir"
+    chmod 700 "$dest_org_dir"
+
+    # Clear stale WAL siblings when overwriting so we don't mix old WAL
+    # data with a freshly-copied DB (their page pointers won't match).
+    if [ "$force_overwrite" = "1" ]; then
+      rm -f "$dest_db" "${dest_db}-shm" "${dest_db}-wal"
+    fi
+
+    # Copy all SQLite files so WAL data isn't lost when source is held open.
+    local copy_failed=0
+    for ext in "" "-shm" "-wal"; do
+      local source_file="${source_db}${ext}"
+      local dest_file="${dest_db}${ext}"
+
+      if [ -f "$source_file" ]; then
+        if ! cp "$source_file" "$dest_file"; then
+          error "Failed to copy $source_file to $dest_file"
+          copy_failed=1
+          break
+        fi
+        chmod 600 "$dest_file"
+      fi
+    done
+
+    if [ "$copy_failed" = "1" ]; then
+      # A lone host.db without its -wal/-shm siblings would make the next
+      # non-force run think this org is already seeded and skip it.
+      rm -f "$dest_db" "${dest_db}-shm" "${dest_db}-wal"
+      return 1
+    fi
+
+    # Checkpoint the copy's WAL (no lock contention since nothing else has it open).
+    if command -v sqlite3 &> /dev/null; then
+      sqlite3 "$dest_db" "PRAGMA wal_checkpoint(TRUNCATE);" &> /dev/null || true
+    fi
+
+    seeded=$((seeded + 1))
+  done
+
+  success "Host-service DBs seeded ($seeded copied, $skipped skipped) from $source_root"
+  return 0
+}
+
 step_seed_local_db() {
   echo "💾 Seeding local DB into superset-dev-data/..."
 
