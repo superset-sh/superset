@@ -184,6 +184,35 @@ export const v2WorkspaceRouter = {
 			return updated;
 		}),
 
+	// JWT-authed so host-service can apply AI-generated workspace names
+	// after create without requiring an end-user session.
+	updateNameFromHost: jwtProcedure
+		.input(z.object({ id: z.string().uuid(), name: z.string().min(1) }))
+		.mutation(async ({ ctx, input }) => {
+			const workspace = await dbWs.query.v2Workspaces.findFirst({
+				columns: { id: true, organizationId: true },
+				where: eq(v2Workspaces.id, input.id),
+			});
+			if (!workspace) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Workspace not found",
+				});
+			}
+			if (!ctx.organizationIds.includes(workspace.organizationId)) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "Not a member of this organization",
+				});
+			}
+			const [updated] = await dbWs
+				.update(v2Workspaces)
+				.set({ name: input.name })
+				.where(eq(v2Workspaces.id, workspace.id))
+				.returning();
+			return updated;
+		}),
+
 	// JWT-authed so host-service can orchestrate the full delete saga
 	// (terminals → teardown → worktree → branch → cloud → host sqlite) via
 	// its own JWT auth provider. The session-backed protectedProcedure

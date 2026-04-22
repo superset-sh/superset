@@ -18,6 +18,7 @@ import type { HostServiceContext } from "../../../types";
 import type { ProjectNotSetupCause } from "../../error-types";
 import { protectedProcedure, router } from "../../index";
 import { generateBranchNameFromPrompt } from "./utils/ai-branch-name";
+import { generateWorkspaceNameFromPrompt } from "./utils/ai-workspace-name";
 import { execGh } from "./utils/exec-gh";
 import { derivePrLocalBranchName } from "./utils/pr-branch-name";
 import { resolveStartPoint } from "./utils/resolve-start-point";
@@ -955,6 +956,27 @@ export const workspaceCreationRouter = router({
 					branch: branchName,
 				})
 				.run();
+
+			// Fire-and-forget AI rename from the composer prompt. Electric syncs
+			// the new name to the renderer via v2_workspaces, so the pending/
+			// workspace page will update in place once the model responds.
+			const composerPrompt = input.composer.prompt?.trim();
+			if (composerPrompt) {
+				void generateWorkspaceNameFromPrompt(composerPrompt)
+					.then(async (aiName) => {
+						if (!aiName || aiName === input.names.workspaceName) return;
+						await ctx.api.v2Workspace.updateNameFromHost.mutate({
+							id: cloudRow.id,
+							name: aiName,
+						});
+					})
+					.catch((err) => {
+						console.warn(
+							"[workspaceCreation.create] AI workspace rename failed",
+							err,
+						);
+					});
+			}
 
 			// 5. Create setup terminal if setup script exists
 			const terminals: Array<{
