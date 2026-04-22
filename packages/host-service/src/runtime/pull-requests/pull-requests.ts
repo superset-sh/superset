@@ -107,6 +107,12 @@ async function resolveWorkspaceUpstream(
 	}
 
 	// Fallback when `@{push}` isn't configured — mirrors gh's config chain.
+	// Require `branch.<n>.merge`; without it, `remote.pushDefault` alone would
+	// re-open the same-name collision hole on untracked branches.
+	const mergeRef = await tryConfig(git, `branch.${localBranch}.merge`);
+	const trackedBranch = mergeRef?.replace(/^refs\/heads\//, "");
+	if (!trackedBranch) return null;
+
 	const remoteValue =
 		(await tryConfig(git, `branch.${localBranch}.pushRemote`)) ??
 		(await tryConfig(git, "remote.pushDefault")) ??
@@ -120,10 +126,7 @@ async function resolveWorkspaceUpstream(
 	// `gh pr checkout` renames the local branch on collision (`main` →
 	// `quueli-main`) but the PR's headRefName stays `main`, so we key on the
 	// tracked remote branch, not the local name.
-	const mergeRef = await tryConfig(git, `branch.${localBranch}.merge`);
-	const branch = mergeRef?.replace(/^refs\/heads\//, "") || localBranch;
-
-	return { owner: parsed.owner, name: parsed.name, branch };
+	return { owner: parsed.owner, name: parsed.name, branch: trackedBranch };
 }
 
 async function tryRaw(
