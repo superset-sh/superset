@@ -1,0 +1,1 @@
+export { resolveClickedExternalHref } from "./resolveClickedExternalHref";

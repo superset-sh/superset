@@ -4,12 +4,15 @@ import { cn } from "@superset/ui/utils";
 import { type Editor, EditorContent, useEditor } from "@tiptap/react";
 import { BubbleMenu } from "@tiptap/react/menus";
 import { type MutableRefObject, useEffect, useRef } from "react";
+import { useInlineLinkActions } from "renderer/hooks/useV2UserPreferences";
+import { electronTrpcClient } from "renderer/lib/trpc-client";
 import { useMarkdownStyle } from "renderer/stores";
 import { defaultConfig } from "../../styles/default/config";
 import { tufteConfig } from "../../styles/tufte/config";
 import { SelectionContextMenu } from "../SelectionContextMenu";
 import { BubbleMenuToolbar } from "./components/BubbleMenuToolbar";
 import { createMarkdownExtensions } from "./createMarkdownExtensions";
+import { resolveClickedExternalHref } from "./utils/resolveClickedExternalHref";
 
 const styleConfigs = {
 	default: defaultConfig,
@@ -77,9 +80,12 @@ export function TipTapMarkdownRenderer({
 	const articleRef = useRef<HTMLElement | null>(null);
 	const onChangeRef = useRef(onChange);
 	const onSaveRef = useRef(onSave);
+	const { getUrlAction } = useInlineLinkActions();
+	const getUrlActionRef = useRef(getUrlAction);
 
 	onChangeRef.current = onChange;
 	onSaveRef.current = onSave;
+	getUrlActionRef.current = getUrlAction;
 
 	const editor = useEditor({
 		immediatelyRender: false,
@@ -92,6 +98,23 @@ export function TipTapMarkdownRenderer({
 		editorProps: {
 			attributes: {
 				class: cn("focus:outline-none", editable && "min-h-[100px]"),
+			},
+			handleClick: (_view, _pos, event) => {
+				const href = resolveClickedExternalHref(event.target);
+				if (!href) return false;
+				// Defer to user preference: plain click tier is null by default, so
+				// a normal click falls through to ProseMirror (cursor placement).
+				// Cmd/Ctrl+click opens the URL in the system browser (#3644).
+				if (getUrlActionRef.current(event) === null) return false;
+				event.preventDefault();
+				electronTrpcClient.external.openUrl.mutate(href).catch((error) => {
+					console.error(
+						"[TipTapMarkdownRenderer] Failed to open URL:",
+						href,
+						error,
+					);
+				});
+				return true;
 			},
 		},
 		onUpdate: ({ editor: currentEditor }) => {

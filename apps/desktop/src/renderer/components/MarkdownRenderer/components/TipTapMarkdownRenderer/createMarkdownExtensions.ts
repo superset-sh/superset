@@ -149,7 +149,11 @@ export function createMarkdownExtensions({
 		HardBreak,
 		History,
 		Link.configure({
-			openOnClick: !editable,
+			// Click handling for external URLs lives in TipTapMarkdownRenderer's
+			// editorProps.handleClick — TipTap's built-in openOnClick uses
+			// window.open, which doesn't reliably route to shell.openExternal in
+			// Electron (see #3644).
+			openOnClick: false,
 			HTMLAttributes: {
 				class:
 					"text-primary underline underline-offset-2 hover:text-primary/80",
