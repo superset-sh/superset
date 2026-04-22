@@ -28,7 +28,9 @@ export class JwtApiAuthProvider implements ApiAuthProvider {
 		}
 
 		const response = await fetch(`${this.apiUrl}/api/auth/token`, {
-			headers: { Authorization: `Bearer ${this.sessionToken}` },
+			headers: this.sessionToken.startsWith("sk_live_")
+				? { "x-api-key": this.sessionToken }
+				: { Authorization: `Bearer ${this.sessionToken}` },
 		});
 		if (!response.ok) {
 			throw new Error(`Failed to mint JWT: ${response.status}`);

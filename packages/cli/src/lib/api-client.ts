@@ -16,7 +16,9 @@ export function createApiClient(
 				url: `${getApiUrl(config)}/api/trpc`,
 				transformer: SuperJSON,
 				headers() {
-					return { Authorization: `Bearer ${opts.bearer}` };
+					return opts.bearer.startsWith("sk_live_")
+						? { "x-api-key": opts.bearer }
+						: { Authorization: `Bearer ${opts.bearer}` };
 				},
 			}),
 		],

@@ -20,6 +20,7 @@ import { getTrustedVercelPreviewOrigins } from "@superset/shared/vercel-preview-
 import { Client } from "@upstash/qstash";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import { APIError, createAuthMiddleware } from "better-auth/api";
 import { bearer, customSession, organization } from "better-auth/plugins";
 import { jwt } from "better-auth/plugins/jwt";
 import { and, count, desc, eq, sql } from "drizzle-orm";
@@ -52,6 +53,26 @@ export const auth = betterAuth({
 	baseURL: env.NEXT_PUBLIC_API_URL,
 	secret: env.BETTER_AUTH_SECRET,
 	disabledPaths: [],
+	hooks: {
+		before: createAuthMiddleware(async (ctx) => {
+			// API key metadata is mint-immutable. `metadata.organizationId` is
+			// the authority for which org an api key operates on (enforced in
+			// trpc/context.ts via resolveApiKey). Without this, an attacker
+			// holding a stolen key could call `POST /api-key/update` on the
+			// same key and rewrite `metadata.organizationId` to any value
+			// the owner is a member of, bypassing the strict binding.
+			// Other update fields (name, enabled, expiresIn) remain mutable.
+			if (
+				ctx.path === "/api-key/update" &&
+				(ctx.body as { metadata?: unknown } | undefined)?.metadata !== undefined
+			) {
+				throw new APIError("BAD_REQUEST", {
+					message:
+						"API key metadata is immutable. Delete and recreate the key to change its organization.",
+				});
+			}
+		}),
+	},
 	database: drizzleAdapter(db, {
 		provider: "pg",
 		usePlural: true,
@@ -182,10 +203,64 @@ export const auth = betterAuth({
 				expirationTime: "1h",
 				definePayload: async ({
 					user,
+					session,
 				}: {
 					user: { id: string; email: string };
-					session: Record<string, unknown>;
+					session: { id?: string; token?: string } & Record<string, unknown>;
 				}) => {
+					// API-key-derived JWTs must carry only the key's bound org in
+					// their `organizationIds` claim — otherwise `jwtProcedure`
+					// routes (e.g. `v2-workspace.create`, `v2-project.create`,
+					// `device.create`) would accept cross-org input via the
+					// `ctx.organizationIds.includes(input.organizationId)` check.
+					// The api-key plugin synthesizes session.token = raw key and
+					// session.id = apikey.id. For non-api-key callers (browser
+					// OAuth, desktop auth) session.token is a normal session
+					// token and we emit the user's full org list as before.
+					if (session.token?.startsWith("sk_live_") && session.id) {
+						const keyRow = await db.query.apikeys.findFirst({
+							where: eq(authSchema.apikeys.id, session.id),
+							columns: { metadata: true },
+						});
+						const rawMetadata = keyRow?.metadata;
+						let parsedMetadata: Record<string, unknown> | null = null;
+						if (rawMetadata) {
+							if (typeof rawMetadata === "string") {
+								try {
+									const parsed = JSON.parse(rawMetadata);
+									parsedMetadata =
+										parsed && typeof parsed === "object"
+											? (parsed as Record<string, unknown>)
+											: null;
+								} catch {
+									parsedMetadata = null;
+								}
+							} else if (typeof rawMetadata === "object") {
+								parsedMetadata = rawMetadata as Record<string, unknown>;
+							}
+						}
+						const boundOrganizationId =
+							typeof parsedMetadata?.organizationId === "string"
+								? parsedMetadata.organizationId
+								: null;
+
+						const boundMembership = boundOrganizationId
+							? await db.query.members.findFirst({
+									where: and(
+										eq(members.userId, user.id),
+										eq(members.organizationId, boundOrganizationId),
+									),
+									columns: { userId: true },
+								})
+							: undefined;
+
+						return {
+							sub: user.id,
+							email: user.email,
+							organizationIds: boundMembership ? [boundOrganizationId] : [],
+						};
+					}
+
 					const userMemberships = await db.query.members.findMany({
 						where: eq(members.userId, user.id),
 						columns: { organizationId: true },
