@@ -7,16 +7,12 @@ import { useCollections } from "renderer/routes/_authenticated/providers/Collect
 const SEED_FLAG_KEY = "superset:dev:v2-sidebar-seeded";
 
 /**
- * On first dev launch in a fresh worktree, the v2 sidebar localStorage
- * (`v2WorkspaceLocalState`) is empty even when the cloud has plenty of
- * accessible workspaces — Chromium localStorage is per-origin and the dev
- * Vite origin (`http://localhost:<port>`) doesn't share data with the
- * packaged-app `file://` origin. Seeding the leveldb file from prod userData
- * doesn't help for the same reason.
- *
- * This hook auto-pins every accessible workspace once per worktree's dev
- * userData so the sidebar isn't blank. The flag in localStorage prevents
- * re-pinning workspaces the user has explicitly unpinned later.
+ * Auto-pins accessible v2 workspaces in dev so a fresh worktree's sidebar
+ * isn't blank. Chromium's localStorage is per-origin: the dev Vite origin
+ * (`http://localhost:<port>`) can't share data with the packaged `file://`
+ * origin, so copying prod's leveldb seeds the wrong namespace. We pin at
+ * runtime instead. The flag prevents re-pinning workspaces the user later
+ * unpins.
  */
 export function useDevSeedV2Sidebar(): void {
 	const collections = useCollections();
