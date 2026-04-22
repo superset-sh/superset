@@ -3,4 +3,8 @@ export {
 	type ChatRuntimeServiceOptions,
 	type ChatRuntimeServiceRouter,
 } from "./service";
-export type { LifecycleEvent } from "./utils/runtime";
+export {
+	generateAndSetTitle,
+	type LifecycleEvent,
+	type TitleRuntime,
+} from "./utils/runtime";

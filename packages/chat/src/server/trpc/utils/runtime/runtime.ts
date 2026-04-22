@@ -454,8 +454,13 @@ function extractTextContent(parts: MessageLike["content"]): string {
 		.join(" ");
 }
 
+export interface TitleRuntime {
+	sessionId: string;
+	harness: RuntimeHarness;
+}
+
 export async function generateAndSetTitle(
-	runtime: RuntimeSession,
+	runtime: TitleRuntime,
 	apiClient: ApiClient,
 	options?: {
 		submittedUserMessage?: string;
