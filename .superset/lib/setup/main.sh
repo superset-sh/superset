@@ -41,7 +41,12 @@ setup_main() {
     step_failed "Seed host-service DBs"
   fi
 
-  # Step 6: Seed auth token into superset-dev-data/
+  # Step 6: Seed Electron renderer Local Storage from prod userData
+  if ! step_seed_renderer_state; then
+    step_failed "Seed renderer state"
+  fi
+
+  # Step 7: Seed auth token into superset-dev-data/
   if ! step_seed_auth_token; then
     step_failed "Seed auth token"
   fi

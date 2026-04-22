@@ -692,6 +692,64 @@ step_seed_host_dbs() {
   return 0
 }
 
+step_seed_renderer_state() {
+  echo "🪟 Seeding Electron renderer state (Local Storage) from prod userData..."
+
+  # Renderer localStorage holds v2 sidebar pins, sections, terminal presets, etc.
+  # Without this, a fresh dev build boots with an empty sidebar even when the
+  # cloud + host.db clones have plenty of accessible workspaces.
+
+  if [ "$(uname)" != "Darwin" ]; then
+    warn "Renderer state seeding only implemented for macOS — skipping"
+    step_skipped "Seed renderer state (non-darwin)"
+    return 0
+  fi
+
+  local app_support="$HOME/Library/Application Support"
+  local source_userdata="$app_support/Superset"
+  local source_local_storage="$source_userdata/Local Storage"
+  local workspace_name="${SUPERSET_WORKSPACE_NAME:-$(basename "$PWD")}"
+  local dest_userdata="$app_support/Superset (${workspace_name})"
+  local dest_local_storage="$dest_userdata/Local Storage"
+  local force_overwrite="$FORCE_OVERWRITE_DATA"
+
+  if [ ! -d "$source_local_storage" ]; then
+    warn "No prod Local Storage found at $source_local_storage — skipping (dev sidebar will start empty)"
+    step_skipped "Seed renderer state (no source)"
+    return 0
+  fi
+
+  if [ -d "$dest_local_storage" ] && [ "$force_overwrite" != "1" ]; then
+    warn "Renderer state already exists at $dest_local_storage — skipping (use -f/--force)"
+    step_skipped "Seed renderer state (already exists)"
+    return 0
+  fi
+
+  mkdir -p "$dest_userdata"
+
+  if [ -d "$dest_local_storage" ] && [ "$force_overwrite" = "1" ]; then
+    rm -rf "$dest_local_storage"
+  fi
+
+  # APFS clonefile (cp -c) snapshots each file atomically, so prod can keep
+  # running. Worst case is the leveldb log loses its trailing partial record
+  # on first dev open — i.e. a pin you clicked seconds before setup may not
+  # carry over. Fall back to plain cp on non-APFS filesystems.
+  if ! cp -cR "$source_local_storage" "$dest_userdata/" 2>/dev/null; then
+    if ! cp -R "$source_local_storage" "$dest_userdata/"; then
+      error "Failed to copy $source_local_storage to $dest_userdata/"
+      return 1
+    fi
+  fi
+
+  # The flock guard from prod must not be inherited — its presence wouldn't
+  # block dev (different inode), but removing it keeps the snapshot tidy.
+  rm -f "$dest_local_storage/leveldb/LOCK"
+
+  success "Renderer state seeded from $source_local_storage"
+  return 0
+}
+
 step_seed_local_db() {
   echo "💾 Seeding local DB into superset-dev-data/..."
 
