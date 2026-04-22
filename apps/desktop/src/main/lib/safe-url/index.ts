@@ -1,5 +1,2 @@
-export {
-	externalUrlLogLabel,
-	isSafeExternalUrl,
-	safeOpenExternal,
-} from "./safe-url";
+export { safeOpenExternal } from "./safe-url";
+export { externalUrlLogLabel, isSafeExternalUrl } from "./scheme";

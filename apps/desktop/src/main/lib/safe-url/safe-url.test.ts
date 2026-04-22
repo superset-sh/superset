@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { externalUrlLogLabel, isSafeExternalUrl } from "./safe-url";
+import { externalUrlLogLabel, isSafeExternalUrl } from "./scheme";
 
 describe("isSafeExternalUrl", () => {
 	it("allows http, https, and mailto URLs", () => {
