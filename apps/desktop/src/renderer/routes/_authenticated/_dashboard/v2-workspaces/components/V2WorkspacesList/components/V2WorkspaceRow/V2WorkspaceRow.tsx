@@ -81,12 +81,35 @@ export function V2WorkspaceRow({
 
 	const handleRowKeyDown = useCallback(
 		(event: React.KeyboardEvent<HTMLDivElement>) => {
+			// Ignore keystrokes bubbling from focused descendants (e.g. the
+			// Add/Remove icon buttons) — `stopPropagation` on their click handlers
+			// doesn't catch keyboard events.
+			if (event.target !== event.currentTarget) return;
 			if (event.key === "Enter" || event.key === " ") {
 				event.preventDefault();
 				handleOpen();
 			}
 		},
 		[handleOpen],
+	);
+
+	const hostCell = (
+		<span
+			className={cn(
+				"hidden min-w-0 items-center gap-1.5 text-xs text-muted-foreground md:flex",
+				treatAsOffline && "text-muted-foreground/60",
+			)}
+			title={workspace.hostName}
+		>
+			<HostIcon className="size-3 shrink-0" />
+			<span className="min-w-0 truncate">{workspace.hostName}</span>
+			{treatAsOffline ? (
+				<span
+					aria-hidden
+					className="inline-block size-1.5 shrink-0 rounded-full bg-muted-foreground/40"
+				/>
+			) : null}
+		</span>
 	);
 
 	return (
@@ -128,22 +151,14 @@ export function V2WorkspaceRow({
 					</span>
 				</span>
 
-				<span
-					className={cn(
-						"hidden min-w-0 items-center gap-1.5 text-xs text-muted-foreground md:flex",
-						treatAsOffline && "text-muted-foreground/60",
-					)}
-					title={`${workspace.hostName}${treatAsOffline ? " (offline)" : ""}`}
-				>
-					<HostIcon className="size-3 shrink-0" />
-					<span className="min-w-0 truncate">{workspace.hostName}</span>
-					{treatAsOffline ? (
-						<span
-							aria-hidden
-							className="inline-block size-1.5 shrink-0 rounded-full bg-muted-foreground/40"
-						/>
-					) : null}
-				</span>
+				{treatAsOffline ? (
+					<Tooltip delayDuration={300}>
+						<TooltipTrigger asChild>{hostCell}</TooltipTrigger>
+						<TooltipContent side="top">Host is offline</TooltipContent>
+					</Tooltip>
+				) : (
+					hostCell
+				)}
 
 				<span
 					className="hidden min-w-0 items-center gap-1.5 text-xs text-muted-foreground lg:flex"

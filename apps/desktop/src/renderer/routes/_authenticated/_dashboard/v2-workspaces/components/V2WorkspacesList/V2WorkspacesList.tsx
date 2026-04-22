@@ -11,13 +11,7 @@ import { ScrollArea } from "@superset/ui/scroll-area";
 import { cn } from "@superset/ui/utils";
 import { useMatchRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import {
-	LuChevronDown,
-	LuChevronsUpDown,
-	LuChevronUp,
-	LuLayers,
-	LuSearchX,
-} from "react-icons/lu";
+import { LuLayers, LuSearchX } from "react-icons/lu";
 import type {
 	AccessibleV2Workspace,
 	V2WorkspaceHostType,
@@ -26,15 +20,14 @@ import {
 	useV2WorkspacesFilterStore,
 	type V2WorkspacesDeviceFilter,
 } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/stores/v2WorkspacesFilterStore";
+import { SortableHeader } from "./components/SortableHeader";
 import { V2WorkspaceRow } from "./components/V2WorkspaceRow";
 import { V2_WORKSPACES_ROW_GRID } from "./constants";
+import type { SortDirection, SortField } from "./types";
 
 interface V2WorkspacesListProps {
 	workspaces: AccessibleV2Workspace[];
 }
-
-type SortField = "sidebar" | "name" | "host" | "branch" | "created";
-type SortDirection = "asc" | "desc";
 
 interface ProjectGroup {
 	projectId: string;
@@ -81,7 +74,7 @@ function compareWorkspaces(
 	let cmp = 0;
 	switch (field) {
 		case "sidebar":
-			cmp = Number(b.isInSidebar) - Number(a.isInSidebar);
+			cmp = Number(a.isInSidebar) - Number(b.isInSidebar);
 			break;
 		case "name":
 			cmp = a.name.localeCompare(b.name);
@@ -146,63 +139,6 @@ const DEFAULT_DIRECTION_BY_FIELD: Record<SortField, SortDirection> = {
 	branch: "asc",
 	created: "desc",
 };
-
-interface SortableHeaderProps {
-	field: SortField;
-	label: string;
-	align?: "start" | "center";
-	className?: string;
-	sortField: SortField;
-	sortDirection: SortDirection;
-	onSort: (field: SortField) => void;
-	srOnlyLabel?: boolean;
-}
-
-function SortableHeader({
-	field,
-	label,
-	align = "start",
-	className,
-	sortField,
-	sortDirection,
-	onSort,
-	srOnlyLabel = false,
-}: SortableHeaderProps) {
-	const isActive = sortField === field;
-	const Icon = !isActive
-		? LuChevronsUpDown
-		: sortDirection === "asc"
-			? LuChevronUp
-			: LuChevronDown;
-	const sortLabel = isActive
-		? sortDirection === "asc"
-			? "ascending"
-			: "descending"
-		: "not sorted";
-
-	return (
-		<button
-			type="button"
-			onClick={() => onSort(field)}
-			aria-label={`Sort by ${label}, currently ${sortLabel}`}
-			className={cn(
-				"group flex min-w-0 items-center gap-1 rounded outline-none transition-colors",
-				"hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/40",
-				align === "center" && "justify-center",
-				isActive && "text-foreground",
-				className,
-			)}
-		>
-			<span className={cn("truncate", srOnlyLabel && "sr-only")}>{label}</span>
-			<Icon
-				className={cn(
-					"size-3 shrink-0 transition-opacity",
-					isActive ? "opacity-100" : "opacity-0 group-hover:opacity-60",
-				)}
-			/>
-		</button>
-	);
-}
 
 export function V2WorkspacesList({ workspaces }: V2WorkspacesListProps) {
 	const matchRoute = useMatchRoute();
