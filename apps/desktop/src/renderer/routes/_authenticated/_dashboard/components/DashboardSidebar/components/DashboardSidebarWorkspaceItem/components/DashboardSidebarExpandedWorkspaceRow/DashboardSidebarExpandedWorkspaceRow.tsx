@@ -15,7 +15,6 @@ import type { DashboardSidebarWorkspace } from "../../../../types";
 import { getCreationStatusText } from "../../utils/getCreationStatusText";
 import { DashboardSidebarWorkspaceDiffStats } from "../DashboardSidebarWorkspaceDiffStats";
 import { DashboardSidebarWorkspaceIcon } from "../DashboardSidebarWorkspaceIcon";
-import { DashboardSidebarWorkspaceStatusBadge } from "../DashboardSidebarWorkspaceStatusBadge";
 
 interface DashboardSidebarExpandedWorkspaceRowProps
 	extends ComponentPropsWithoutRef<"div"> {
@@ -101,10 +100,10 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 				}}
 				onDoubleClick={onDoubleClick}
 				className={cn(
-					"relative flex w-full items-center pl-3 pr-2 text-left text-sm",
+					"relative flex w-full items-center pl-6 pr-2 text-left text-sm",
 					onClick && "cursor-pointer hover:bg-muted/50",
 					"group",
-					"py-1.5",
+					"py-1",
 					isActive && "bg-muted",
 					className,
 				)}
@@ -119,26 +118,60 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 
 				<Tooltip delayDuration={500}>
 					<TooltipTrigger asChild>
-						<div className="relative mr-2.5 flex size-5 shrink-0 items-center justify-center">
-							<DashboardSidebarWorkspaceIcon
-								hostType={hostType}
-								isActive={isActive}
-								variant="expanded"
-								workspaceStatus={null}
-								creationStatus={creationStatus}
-							/>
-						</div>
+						{pullRequest ? (
+							<a
+								href={pullRequest.url}
+								target="_blank"
+								rel="noopener noreferrer"
+								onClick={(event) => event.stopPropagation()}
+								aria-label={`Open pull request #${pullRequest.number}`}
+								className="relative mr-2.5 flex size-5 shrink-0 items-center justify-center rounded transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+							>
+								<DashboardSidebarWorkspaceIcon
+									hostType={hostType}
+									isActive={isActive}
+									variant="expanded"
+									workspaceStatus={null}
+									creationStatus={creationStatus}
+									pullRequest={pullRequest}
+								/>
+							</a>
+						) : (
+							<div className="relative mr-2.5 flex size-5 shrink-0 items-center justify-center">
+								<DashboardSidebarWorkspaceIcon
+									hostType={hostType}
+									isActive={isActive}
+									variant="expanded"
+									workspaceStatus={null}
+									creationStatus={creationStatus}
+									pullRequest={pullRequest}
+								/>
+							</div>
+						)}
 					</TooltipTrigger>
 					<TooltipContent side="right" sideOffset={8}>
-						<p className="text-xs font-medium">Worktree workspace</p>
-						<p className="text-xs text-muted-foreground">
-							Isolated copy for parallel development
-						</p>
+						{pullRequest ? (
+							<>
+								<p className="text-xs font-medium">
+									#{pullRequest.number} · {pullRequest.state}
+								</p>
+								<p className="text-xs text-muted-foreground">
+									{pullRequest.title}
+								</p>
+							</>
+						) : (
+							<>
+								<p className="text-xs font-medium">Worktree workspace</p>
+								<p className="text-xs text-muted-foreground">
+									Isolated copy for parallel development
+								</p>
+							</>
+						)}
 					</TooltipContent>
 				</Tooltip>
 
 				<div className="flex min-w-0 flex-1 flex-col justify-center">
-					<div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] grid-rows-2 items-center gap-x-1.5 gap-y-0.5">
+					<div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-1.5">
 						{isRenaming ? (
 							<RenameInput
 								value={renameValue}
@@ -214,18 +247,7 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 							)}
 						</div>
 
-						<span className="col-start-1 row-start-2 truncate font-mono text-[11px] leading-tight text-muted-foreground/60">
-							{branch}
-						</span>
-
-						{pullRequest && (
-							<DashboardSidebarWorkspaceStatusBadge
-								state={pullRequest.state}
-								prNumber={pullRequest.number}
-								prUrl={pullRequest.url}
-								className="col-start-2 row-start-2 justify-self-end"
-							/>
-						)}
+						{/* branch + PR badge hidden — PR state shown via colored icon on the left */}
 					</div>
 				</div>
 			</div>
