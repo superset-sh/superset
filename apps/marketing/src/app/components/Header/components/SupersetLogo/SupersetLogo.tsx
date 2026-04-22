@@ -1,20 +1,11 @@
-"use client";
-
-import { COMPANY } from "@superset/shared/constants";
-import { motion } from "framer-motion";
-import { ArrowUpRight } from "lucide-react";
-import Link from "next/link";
-import { SocialLinks } from "../SocialLinks";
-
-function SupersetLogo() {
+export function SupersetLogo() {
 	return (
 		<svg
-			width="156"
-			height="26"
 			viewBox="0 0 392 64"
 			fill="none"
 			xmlns="http://www.w3.org/2000/svg"
 			aria-label="Superset"
+			className="h-5 w-auto"
 		>
 			<title>Superset</title>
 			<path
@@ -22,109 +13,5 @@ function SupersetLogo() {
 				fill="currentColor"
 			/>
 		</svg>
-	);
-}
-
-interface FooterLink {
-	href: string;
-	label: string;
-	external?: boolean;
-}
-
-const COMPANY_LINKS: FooterLink[] = [
-	{ href: "/team", label: "About" },
-	{ href: COMPANY.CAREERS_URL, label: "Careers", external: true },
-	{ href: COMPANY.STATUS_URL, label: "Status", external: true },
-];
-
-const RESOURCE_LINKS: FooterLink[] = [
-	{ href: COMPANY.DOCS_URL, label: "Documentation", external: true },
-	{ href: "/pricing", label: "Pricing" },
-	{ href: "/blog", label: "Blog" },
-	{ href: "/community", label: "Community" },
-	{ href: "/enterprise", label: "Enterprise" },
-	{ href: "/changelog", label: "Changelog" },
-];
-
-const LEGAL_LINKS: FooterLink[] = [
-	{ href: COMPANY.TRUST_URL, label: "Security", external: true },
-	{ href: "/terms", label: "Terms" },
-	{ href: "/privacy", label: "Privacy" },
-];
-
-export function Footer() {
-	return (
-		<footer className="border-t border-border bg-background">
-			<motion.div
-				initial={{ opacity: 0 }}
-				whileInView={{ opacity: 1 }}
-				viewport={{ once: true }}
-				transition={{ duration: 0.5 }}
-				className="max-w-7xl mx-auto px-6 sm:px-8 py-14 sm:py-20"
-			>
-				<div className="grid grid-cols-2 gap-10 md:grid-cols-[minmax(0,1fr)_auto_auto_auto] md:gap-x-20">
-					<div className="col-span-2 flex flex-col gap-6 md:col-span-1">
-						<Link
-							href="/"
-							className="inline-block text-foreground transition-colors hover:text-foreground/80"
-						>
-							<SupersetLogo />
-						</Link>
-						<SocialLinks className="-ml-2" />
-						<p className="text-sm text-muted-foreground">
-							© {new Date().getFullYear()} Superset Inc.
-						</p>
-					</div>
-
-					<FooterColumn title="Company" links={COMPANY_LINKS} />
-					<FooterColumn title="Resources" links={RESOURCE_LINKS} />
-					<FooterColumn title="Legal" links={LEGAL_LINKS} />
-				</div>
-			</motion.div>
-		</footer>
-	);
-}
-
-function FooterColumn({
-	title,
-	links,
-}: {
-	title: string;
-	links: FooterLink[];
-}) {
-	return (
-		<div className="flex flex-col gap-4">
-			<p className="text-sm font-medium text-foreground">{title}</p>
-			<ul className="flex flex-col gap-3">
-				{links.map((link) => (
-					<li key={link.href}>
-						<FooterLinkItem link={link} />
-					</li>
-				))}
-			</ul>
-		</div>
-	);
-}
-
-function FooterLinkItem({ link }: { link: FooterLink }) {
-	const className =
-		"group inline-flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground";
-	if (link.external) {
-		return (
-			<a
-				href={link.href}
-				target="_blank"
-				rel="noopener noreferrer"
-				className={className}
-			>
-				{link.label}
-				<ArrowUpRight className="h-3 w-3 opacity-0 transition-opacity group-hover:opacity-100" />
-			</a>
-		);
-	}
-	return (
-		<Link href={link.href} className={className}>
-			{link.label}
-		</Link>
 	);
 }
