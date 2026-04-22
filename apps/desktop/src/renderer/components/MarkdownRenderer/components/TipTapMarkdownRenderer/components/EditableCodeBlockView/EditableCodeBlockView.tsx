@@ -147,7 +147,7 @@ export function EditableCodeBlockView({
 						plugins={mermaidPlugins}
 						mermaid={{ config: { theme: isDark ? "dark" : "default" } }}
 					>
-						{`\`\`\`mermaid\n${mermaidSource}\n\`\`\``}
+						{`\`\`\`\`mermaid\n${mermaidSource}\n\`\`\`\``}
 					</Streamdown>
 				</div>
 			)}
