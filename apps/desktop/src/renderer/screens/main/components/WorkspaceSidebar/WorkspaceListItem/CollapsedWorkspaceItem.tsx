@@ -94,15 +94,27 @@ export function CollapsedWorkspaceItem({
 	if (isBranchWorkspace) {
 		return (
 			<>
-				<Tooltip delayDuration={300}>
-					<TooltipTrigger asChild>{collapsedButton}</TooltipTrigger>
-					<TooltipContent side="right" className="flex flex-col gap-0.5">
-						<span className="font-medium">local</span>
-						<span className="text-xs text-muted-foreground font-mono">
-							{branch}
-						</span>
-					</TooltipContent>
-				</Tooltip>
+				<ContextMenu>
+					<Tooltip delayDuration={300}>
+						<TooltipTrigger asChild>
+							<ContextMenuTrigger asChild>
+								{collapsedButton}
+							</ContextMenuTrigger>
+						</TooltipTrigger>
+						<TooltipContent side="right" className="flex flex-col gap-0.5">
+							<span className="font-medium">local</span>
+							<span className="text-xs text-muted-foreground font-mono">
+								{branch}
+							</span>
+						</TooltipContent>
+					</Tooltip>
+					<ContextMenuContent>
+						<ContextMenuItem onSelect={onCopyBranchName}>
+							<LuGitBranch className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
+							Copy Branch Name
+						</ContextMenuItem>
+					</ContextMenuContent>
+				</ContextMenu>
 				<DeleteWorkspaceDialog
 					workspaceId={id}
 					workspaceName={name}
