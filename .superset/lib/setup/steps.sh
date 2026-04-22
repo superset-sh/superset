@@ -676,6 +676,9 @@ step_seed_host_dbs() {
     done
 
     if [ "$copy_failed" = "1" ]; then
+      # A lone host.db without its -wal/-shm siblings would make the next
+      # non-force run think this org is already seeded and skip it.
+      rm -f "$dest_db" "${dest_db}-shm" "${dest_db}-wal"
       return 1
     fi
 
