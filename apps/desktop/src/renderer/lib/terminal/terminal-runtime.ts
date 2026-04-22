@@ -6,6 +6,7 @@ import { Terminal as XTerm } from "@xterm/xterm";
 import { resolveHotkeyFromEvent } from "renderer/hotkeys";
 import { DEFAULT_TERMINAL_SCROLLBACK } from "shared/constants";
 import type { TerminalAppearance } from "./appearance";
+import { TerminalResizeDebouncer } from "./resize-debouncer";
 import { loadAddons } from "./terminal-addons";
 
 const SERIALIZE_SCROLLBACK = 1000;
@@ -32,6 +33,8 @@ export interface TerminalRuntime {
 	wrapper: HTMLDivElement;
 	container: HTMLDivElement | null;
 	resizeObserver: ResizeObserver | null;
+	/** Debounces the expensive horizontal reflow during rapid container resizes. */
+	resizeDebouncer: TerminalResizeDebouncer;
 	lastCols: number;
 	lastRows: number;
 	_disposeAddons: (() => void) | null;
@@ -124,11 +127,21 @@ function hostIsVisible(container: HTMLDivElement | null): boolean {
 	return container.clientWidth > 0 && container.clientHeight > 0;
 }
 
-function measureAndResize(runtime: TerminalRuntime) {
+function measureAndResize(runtime: TerminalRuntime, immediate: boolean) {
 	if (!hostIsVisible(runtime.container)) return;
-	runtime.fitAddon.fit();
-	runtime.lastCols = runtime.terminal.cols;
-	runtime.lastRows = runtime.terminal.rows;
+	// Split what `fitAddon.fit()` would do into propose → apply so the debouncer
+	// can coalesce the apply step (expensive reflow on cols change).
+	const dims = runtime.fitAddon.proposeDimensions();
+	if (!dims) return;
+	// Skip no-change ticks — ResizeObserver fires on subpixel layout shifts
+	// that often don't change the cell grid.
+	if (
+		dims.cols === runtime.terminal.cols &&
+		dims.rows === runtime.terminal.rows
+	) {
+		return;
+	}
+	runtime.resizeDebouncer.resize(dims.cols, dims.rows, immediate);
 }
 
 export function createRuntime(
@@ -157,7 +170,7 @@ export function createRuntime(
 	const addonsResult = loadAddons(terminal);
 	restoreBuffer(terminalId, terminal);
 
-	return {
+	const runtime: TerminalRuntime = {
 		terminalId,
 		terminal,
 		fitAddon,
@@ -167,10 +180,33 @@ export function createRuntime(
 		wrapper,
 		container: null,
 		resizeObserver: null,
+		// Assigned immediately below — declared non-null here since the debouncer
+		// closes over `runtime` and would otherwise need a placeholder.
+		resizeDebouncer: null as unknown as TerminalResizeDebouncer,
 		lastCols: cols,
 		lastRows: rows,
 		_disposeAddons: addonsResult.dispose,
 	};
+
+	runtime.resizeDebouncer = new TerminalResizeDebouncer({
+		isVisible: () => hostIsVisible(runtime.container),
+		getBufferLength: () => terminal.buffer.normal.length,
+		resizeBoth: (c, r) => {
+			terminal.resize(c, r);
+			runtime.lastCols = c;
+			runtime.lastRows = r;
+		},
+		resizeX: (c) => {
+			terminal.resize(c, terminal.rows);
+			runtime.lastCols = c;
+		},
+		resizeY: (r) => {
+			terminal.resize(terminal.cols, r);
+			runtime.lastRows = r;
+		},
+	});
+
+	return runtime;
 }
 
 export function attachToContainer(
@@ -180,14 +216,17 @@ export function attachToContainer(
 ) {
 	runtime.container = container;
 	container.appendChild(runtime.wrapper);
-	measureAndResize(runtime);
+	// Initial attach: apply dimensions now so the first frame isn't stale.
+	measureAndResize(runtime, true);
 
 	// Renderer may have skipped frames while the wrapper was detached.
 	runtime.terminal.refresh(0, runtime.terminal.rows - 1);
 
 	runtime.resizeObserver?.disconnect();
 	const observer = new ResizeObserver(() => {
-		measureAndResize(runtime);
+		// Subsequent resizes go through the debouncer (splitter drags,
+		// window resizes, sidebar toggles fire this many times per frame).
+		measureAndResize(runtime, false);
 		onResize?.();
 	});
 	observer.observe(container);
@@ -197,6 +236,9 @@ export function attachToContainer(
 }
 
 export function detachFromContainer(runtime: TerminalRuntime) {
+	// Flush any pending debounced resize so `lastCols`/`lastRows` reflect the
+	// latest intended dimensions before we persist them.
+	runtime.resizeDebouncer.flush();
 	persistBuffer(runtime.terminalId, runtime.serializeAddon);
 	persistDimensions(runtime.terminalId, runtime.lastCols, runtime.lastRows);
 	runtime.resizeObserver?.disconnect();
@@ -209,7 +251,7 @@ export function updateRuntimeAppearance(
 	runtime: TerminalRuntime,
 	appearance: TerminalAppearance,
 ) {
-	const { terminal, fitAddon } = runtime;
+	const { terminal } = runtime;
 	terminal.options.theme = appearance.theme;
 
 	const fontChanged =
@@ -219,11 +261,8 @@ export function updateRuntimeAppearance(
 	if (fontChanged) {
 		terminal.options.fontFamily = appearance.fontFamily;
 		terminal.options.fontSize = appearance.fontSize;
-		if (hostIsVisible(runtime.container)) {
-			fitAddon.fit();
-			runtime.lastCols = terminal.cols;
-			runtime.lastRows = terminal.rows;
-		}
+		// Font change is an explicit user action → apply immediately.
+		measureAndResize(runtime, true);
 	}
 }
 
@@ -232,6 +271,7 @@ export function disposeRuntime(runtime: TerminalRuntime) {
 	runtime._disposeAddons = null;
 	runtime.resizeObserver?.disconnect();
 	runtime.resizeObserver = null;
+	runtime.resizeDebouncer.dispose();
 	runtime.wrapper.remove();
 	runtime.terminal.dispose();
 	clearPersistedBuffer(runtime.terminalId);
