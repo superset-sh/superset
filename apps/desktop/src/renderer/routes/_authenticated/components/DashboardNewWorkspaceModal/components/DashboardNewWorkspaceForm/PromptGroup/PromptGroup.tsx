@@ -88,6 +88,7 @@ export function PromptGroup({
 		branchNameEdited,
 		linkedIssues,
 		linkedPR,
+		friendlyFallback,
 	} = draft;
 
 	// ── Agent presets ────────────────────────────────────────────────
@@ -108,7 +109,7 @@ export function PromptGroup({
 
 	const branchPreview = branchNameEdited
 		? sanitizeUserBranchName(branchName)
-		: "";
+		: friendlyFallback;
 
 	// Reset baseBranch on project or host change.
 	const previousProjectIdRef = useRef(projectId);
