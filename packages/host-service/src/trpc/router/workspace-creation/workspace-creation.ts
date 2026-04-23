@@ -84,9 +84,8 @@ function projectNotSetupError(projectId: string): TRPCError {
 	});
 }
 
-// Superset-managed worktrees live under ~/.superset/worktrees/<projectId>/<branch>,
-// mirroring the v1 desktop pattern. Keeps worktrees out of the primary
-// checkout tree so editors, watchers, and ignore rules don't see them.
+// Kept outside the primary checkout so editors, file watchers, and
+// ignore rules treat worktrees as separate trees, not nested ones.
 function supersetWorktreesRoot(): string {
 	return join(homedir(), ".superset", "worktrees");
 }
@@ -186,13 +185,10 @@ async function listWorktreeBranches(
 	git: GitClient,
 	projectId: string,
 ): Promise<{
-	// Superset-managed worktrees. A worktree counts as "ours" if either
-	// (a) a row in the local `workspaces` table points at its path (the
-	// primary source of truth, works for both new and legacy locations),
-	// or (b) the path lives under our managed root for this project
-	// (catches orphans — worktree on disk, no `workspaces` row, e.g.
-	// partial create rollback). Legacy orphans under <repo>/.worktrees/
-	// from before this change are intentionally not detected; no migration.
+	// A worktree counts as "ours" if its path either matches a row in
+	// the local `workspaces` table or lives under our managed root. The
+	// second case catches orphans (worktree on disk, no workspaces row,
+	// e.g. partial create rollback) so they surface for adoption.
 	worktreeMap: Map<string, string>;
 	// Every branch checked out in any git worktree, including the primary
 	// working tree. Used to disable the Checkout action when a branch is
