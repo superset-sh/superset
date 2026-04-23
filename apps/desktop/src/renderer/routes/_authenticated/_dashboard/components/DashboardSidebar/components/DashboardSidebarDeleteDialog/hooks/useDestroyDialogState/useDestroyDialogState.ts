@@ -10,6 +10,7 @@ interface UseDestroyDialogStateOptions {
 	workspaceId: string;
 	workspaceName: string;
 	onOpenChange: (open: boolean) => void;
+	onDeleting?: () => void;
 	onDeleted?: () => void;
 }
 
@@ -33,6 +34,7 @@ export function useDestroyDialogState({
 	workspaceId,
 	workspaceName,
 	onOpenChange,
+	onDeleting,
 	onDeleted,
 }: UseDestroyDialogStateOptions) {
 	const { destroy } = useDestroyWorkspace(workspaceId);
@@ -68,6 +70,7 @@ export function useDestroyDialogState({
 			setError(null);
 			onOpenChange(false);
 			markDeleting(workspaceId);
+			onDeleting?.();
 			toast(`Deleting "${workspaceName}"...`);
 
 			try {
@@ -94,6 +97,7 @@ export function useDestroyDialogState({
 			workspaceName,
 			workspaceId,
 			onOpenChange,
+			onDeleting,
 			onDeleted,
 			markDeleting,
 			clearDeleting,

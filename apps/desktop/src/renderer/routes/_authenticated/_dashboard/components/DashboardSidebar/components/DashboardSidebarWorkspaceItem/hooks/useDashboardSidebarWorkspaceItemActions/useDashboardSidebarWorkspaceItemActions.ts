@@ -78,26 +78,37 @@ export function useDashboardSidebarWorkspaceItemActions({
 	};
 
 	/**
-	 * Runs after `workspaceCleanup.destroy` succeeds. Removes the row from
-	 * the sidebar and, if we were viewing the deleted workspace, navigates
-	 * to the next sibling or home.
+	 * If the user is currently viewing this workspace, jump to a sibling
+	 * (or home if none). Shared by delete + hide — in both cases we must
+	 * move the user off the row before it disappears.
 	 */
-	const handleDeleted = () => {
-		const focusTargetId = isActive
-			? getDeleteFocusTargetWorkspaceId(
-					getFlattenedV2WorkspaceIds(collections),
-					workspaceId,
-				)
-			: null;
-
-		removeWorkspaceFromSidebar(workspaceId);
-
+	const navigateAwayIfActive = () => {
 		if (!isActive) return;
+		const focusTargetId = getDeleteFocusTargetWorkspaceId(
+			getFlattenedV2WorkspaceIds(collections),
+			workspaceId,
+		);
 		if (focusTargetId) {
 			void navigateToV2Workspace(focusTargetId, navigate);
 		} else {
 			void navigate({ to: "/" });
 		}
+	};
+
+	/**
+	 * Fires the moment destroy kicks off, before the 10–20s teardown, so
+	 * the user isn't stuck staring at a workspace that's being removed.
+	 */
+	const handleDeleting = navigateAwayIfActive;
+
+	/** Fires after `workspaceCleanup.destroy` succeeds. */
+	const handleDeleted = () => {
+		removeWorkspaceFromSidebar(workspaceId);
+	};
+
+	const handleRemoveFromSidebar = () => {
+		navigateAwayIfActive();
+		removeWorkspaceFromSidebar(workspaceId);
 	};
 
 	const handleCreateSection = () => {
@@ -167,13 +178,14 @@ export function useDashboardSidebarWorkspaceItemActions({
 		handleCopyPath,
 		handleCopyBranchName,
 		handleCreateSection,
+		handleDeleting,
 		handleDeleted,
 		handleOpenInFinder,
+		handleRemoveFromSidebar,
 		isActive,
 		isDeleteDialogOpen,
 		isRenaming,
 		moveWorkspaceToSection,
-		removeWorkspaceFromSidebar,
 		renameValue,
 		setIsDeleteDialogOpen,
 		setRenameValue,
