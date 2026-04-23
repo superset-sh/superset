@@ -18,6 +18,34 @@ const DIMS_KEY_PREFIX = "terminal-dims:";
 const DEFAULT_COLS = 120;
 const DEFAULT_ROWS = 32;
 
+// Diagnostic logging: always on. Watch DevTools console for `[kbd:*]` lines
+// to see every onData byte, every kitty-flag push/set/pop, and every keydown
+// that reaches our handler. Printable chars shown as-is, non-printable as \xNN.
+function kbdDebugSkipOverride(): boolean {
+	try {
+		return (
+			typeof localStorage !== "undefined" &&
+			localStorage.getItem("__kbdDebugSkipOverride") === "1"
+		);
+	} catch {
+		return false;
+	}
+}
+
+function kbdHex(data: string): string {
+	let out = "";
+	for (const ch of data) {
+		const cp = ch.codePointAt(0) ?? 0;
+		out +=
+			cp >= 0x20 && cp < 0x7f ? ch : `\\x${cp.toString(16).padStart(2, "0")}`;
+	}
+	return out;
+}
+
+function kbdLog(tag: string, ...args: unknown[]): void {
+	console.log(`[kbd:${tag}]`, ...args);
+}
+
 // xterm's _keyDown calls stopPropagation after processing, so any chord we
 // want the host (react-hotkeys-hook, Electron menu accelerators) or the shell
 // (Ctrl+A/E/U escape sequences for line edit) to see must short-circuit xterm
@@ -53,6 +81,7 @@ function createKittyFlagTracker(terminal: XTerm): () => number {
 	terminal.parser.registerCsiHandler({ prefix: ">", final: "u" }, (params) => {
 		stack.push(flags);
 		flags = numeric(params[0], 1);
+		kbdLog("kitty-push", { flags, stackDepth: stack.length });
 		return false;
 	});
 
@@ -62,12 +91,14 @@ function createKittyFlagTracker(terminal: XTerm): () => number {
 		if (mode === 1) flags = next;
 		else if (mode === 2) flags |= next;
 		else if (mode === 3) flags &= ~next;
+		kbdLog("kitty-set", { mode, next, flags });
 		return false;
 	});
 
 	terminal.parser.registerCsiHandler({ prefix: "<", final: "u" }, (params) => {
 		const levels = numeric(params[0], 1);
 		for (let i = 0; i < levels; i++) flags = stack.pop() ?? 0;
+		kbdLog("kitty-pop", { levels, flags, stackDepth: stack.length });
 		return false;
 	});
 
@@ -83,6 +114,24 @@ function createKeyEventHandler(terminal: XTerm, getKittyFlags: () => number) {
 	const isWindows = platform.includes("win");
 
 	return (event: KeyboardEvent): boolean => {
+		if (event.type === "keydown") {
+			const mods =
+				[
+					event.metaKey && "Meta",
+					event.ctrlKey && "Ctrl",
+					event.altKey && "Alt",
+					event.shiftKey && "Shift",
+				]
+					.filter(Boolean)
+					.join("+") || "none";
+			kbdLog("keydown", {
+				key: event.key,
+				code: event.code,
+				mods,
+				kittyFlags: getKittyFlags(),
+			});
+		}
+
 		if (resolveHotkeyFromEvent(event) !== null) return false;
 
 		// Shift+Enter when the running program has pushed kitty's disambiguate
@@ -98,10 +147,12 @@ function createKeyEventHandler(terminal: XTerm, getKittyFlags: () => number) {
 			!event.metaKey &&
 			!event.ctrlKey &&
 			!event.altKey &&
-			(getKittyFlags() & KITTY_FLAG_DISAMBIGUATE) !== 0
+			(getKittyFlags() & KITTY_FLAG_DISAMBIGUATE) !== 0 &&
+			!kbdDebugSkipOverride()
 		) {
 			if (event.type === "keydown") {
 				event.preventDefault();
+				kbdLog("override", "Shift+Enter → \\x1b[13;2u");
 				terminal.input("\x1b[13;2u", true);
 			}
 			return false;
@@ -365,6 +416,14 @@ export function createRuntime(
 	terminal.attachCustomKeyEventHandler(
 		createKeyEventHandler(terminal, getKittyFlags),
 	);
+
+	terminal.onData((data) => {
+		kbdLog("onData", {
+			bytes: kbdHex(data),
+			length: data.length,
+			kittyFlags: getKittyFlags(),
+		});
+	});
 
 	// Activate Unicode 11 widths (inside loadAddons) before restoring the buffer,
 	// else CJK/emoji/ZWJ widths get baked wrong into the replay. (#3572)
