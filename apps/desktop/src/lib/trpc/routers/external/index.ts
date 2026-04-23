@@ -25,8 +25,9 @@ import {
 
 /**
  * Wraps a tRPC handler so a `RelativePathWithoutCwdError` (thrown by
- * `resolvePath` when a caller forgot to pass `cwd`) surfaces as a clear
- * BAD_REQUEST with the root-cause message instead of a generic 500.
+ * `resolvePath` when a relative path arrives without a `worktreePath`)
+ * surfaces as a clear BAD_REQUEST with the root-cause message instead
+ * of a generic 500.
  */
 async function withResolveGuard<T>(fn: () => Promise<T> | T): Promise<T> {
 	try {
