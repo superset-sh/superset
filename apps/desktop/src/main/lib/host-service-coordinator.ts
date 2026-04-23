@@ -294,9 +294,11 @@ export class HostServiceCoordinator extends EventEmitter {
 			manifest.endpoint,
 			manifest.authToken,
 		);
-		if (version && version < MIN_HOST_SERVICE_VERSION) {
+		if (!version || version < MIN_HOST_SERVICE_VERSION) {
 			console.log(
-				`[host-service:${organizationId}] Adopted service version ${version} < ${MIN_HOST_SERVICE_VERSION}, killing`,
+				`[host-service:${organizationId}] Adopted service version ${
+					version ?? "unknown"
+				} < ${MIN_HOST_SERVICE_VERSION}, killing`,
 			);
 			try {
 				process.kill(manifest.pid, "SIGTERM");
