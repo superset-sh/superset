@@ -37,8 +37,8 @@
 		12% 23%,
 		47% 0%
 	);
-	mask: url("../assets/key-single.png") 50% 50% / 100% 100%;
-	-webkit-mask: url("../assets/key-single.png") 50% 50% / 100% 100%;
+	mask: url("./assets/key-single.png") 50% 50% / 100% 100%;
+	-webkit-mask: url("./assets/key-single.png") 50% 50% / 100% 100%;
 }
 
 .keypad-loader__key--one {

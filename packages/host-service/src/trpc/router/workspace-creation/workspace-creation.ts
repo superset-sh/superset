@@ -38,7 +38,9 @@ interface ProgressState {
 }
 
 const STEP_DEFINITIONS = [
-	{ id: "ensuring_repo", label: "Ensuring local repository" },
+	{ id: "ensuring_repo", label: "Preparing repository" },
+	{ id: "resolving_branch", label: "Resolving base branch" },
+	{ id: "fetching_remote", label: "Fetching latest changes" },
 	{ id: "creating_worktree", label: "Creating worktree" },
 	{ id: "registering", label: "Registering workspace" },
 ] as const;
@@ -770,7 +772,7 @@ export const workspaceCreationRouter = router({
 				throw projectNotSetupError(input.projectId);
 			}
 
-			setProgress(input.pendingId, "creating_worktree");
+			setProgress(input.pendingId, "resolving_branch");
 
 			// 2. Validate + deduplicate branch name
 			// Renderer already sanitized/slugified. Host-service only validates
@@ -856,6 +858,7 @@ export const workspaceCreationRouter = router({
 			// If we resolved to a remote-tracking ref, fetch just that branch
 			// to ensure we're branching from the latest remote state.
 			if (startPoint.kind === "remote-tracking") {
+				setProgress(input.pendingId, "fetching_remote");
 				try {
 					await git.fetch([
 						startPoint.remote,
@@ -870,6 +873,8 @@ export const workspaceCreationRouter = router({
 					);
 				}
 			}
+
+			setProgress(input.pendingId, "creating_worktree");
 
 			// Always create a new branch — never check out an existing one.
 			// Checking out existing branches is a separate intent (createFromPr,
@@ -1137,7 +1142,7 @@ export const workspaceCreationRouter = router({
 				throw projectNotSetupError(input.projectId);
 			}
 
-			setProgress(input.pendingId, "creating_worktree");
+			setProgress(input.pendingId, "resolving_branch");
 
 			// ── PR path ────────────────────────────────────────────────────────
 			if (input.pr) {
@@ -1193,6 +1198,8 @@ export const workspaceCreationRouter = router({
 				} catch {
 					// Non-zero exit = branch doesn't exist. Expected path.
 				}
+
+				setProgress(input.pendingId, "creating_worktree");
 
 				// Detached worktree first — `gh pr checkout` inside it creates the
 				// branch with correct fork-remote + upstream config. Mirrors v1's
@@ -1314,6 +1321,7 @@ export const workspaceCreationRouter = router({
 			}
 
 			if (resolved.kind === "remote-tracking") {
+				setProgress(input.pendingId, "fetching_remote");
 				try {
 					await git.fetch([
 						resolved.remote,
@@ -1328,6 +1336,8 @@ export const workspaceCreationRouter = router({
 					);
 				}
 			}
+
+			setProgress(input.pendingId, "creating_worktree");
 
 			try {
 				// For a remote-only branch, create a local tracking branch

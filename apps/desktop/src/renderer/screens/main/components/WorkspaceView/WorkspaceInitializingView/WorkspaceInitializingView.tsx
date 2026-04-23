@@ -7,9 +7,21 @@ import {
 	AlertDialogTitle,
 } from "@superset/ui/alert-dialog";
 import { Button } from "@superset/ui/button";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { HiExclamationTriangle } from "react-icons/hi2";
-import { LuGitBranch, LuLoader } from "react-icons/lu";
+import {
+	LuDatabase,
+	LuDownload,
+	LuFileCog,
+	LuGitBranch,
+	LuLoader,
+	LuRefreshCw,
+} from "react-icons/lu";
+import {
+	KeypadLoader,
+	type ProgressStep,
+} from "renderer/components/KeypadLoader";
+import { StepProgress } from "renderer/components/StepProgress";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useDeleteWorkspace } from "renderer/react-query/workspaces";
 import { deleteWithToast } from "renderer/routes/_authenticated/components/TeardownLogsDialog";
@@ -17,8 +29,72 @@ import {
 	useHasWorkspaceFailed,
 	useWorkspaceInitProgress,
 } from "renderer/stores/workspace-init";
-import { KeypadLoader } from "./KeypadLoader";
-import { StepProgress } from "./StepProgress";
+import {
+	getStepIndex,
+	type WorkspaceInitStep,
+} from "shared/types/workspace-init";
+
+// Bridges v1's 6-phase `WorkspaceInitStep` enum to the shared 5-position step
+// array. `pending`/`syncing`/`verifying` collapse into a single "Syncing" key
+// so the visual matches the 5-key keypad artwork.
+const V1_KEYS: ReadonlyArray<{
+	id: string;
+	label: string;
+	pressedAfter: WorkspaceInitStep;
+	activeSteps: readonly WorkspaceInitStep[];
+}> = [
+	{
+		id: "syncing",
+		label: "Syncing with remote",
+		pressedAfter: "verifying",
+		activeSteps: ["pending", "syncing", "verifying"],
+	},
+	{
+		id: "fetching",
+		label: "Fetching latest changes",
+		pressedAfter: "fetching",
+		activeSteps: ["fetching"],
+	},
+	{
+		id: "creating_worktree",
+		label: "Creating git worktree",
+		pressedAfter: "creating_worktree",
+		activeSteps: ["creating_worktree"],
+	},
+	{
+		id: "copying_config",
+		label: "Copying configuration",
+		pressedAfter: "copying_config",
+		activeSteps: ["copying_config"],
+	},
+	{
+		id: "finalizing",
+		label: "Finalizing setup",
+		pressedAfter: "finalizing",
+		activeSteps: ["finalizing"],
+	},
+];
+
+const V1_KEY_ICONS = [
+	LuRefreshCw,
+	LuDownload,
+	LuGitBranch,
+	LuFileCog,
+	LuDatabase,
+] as const;
+
+function buildV1Steps(currentStep: WorkspaceInitStep): ProgressStep[] {
+	const curIdx = getStepIndex(currentStep);
+	return V1_KEYS.map((k) => {
+		const threshold = getStepIndex(k.pressedAfter);
+		const status: ProgressStep["status"] = k.activeSteps.includes(currentStep)
+			? "active"
+			: curIdx > threshold
+				? "done"
+				: "pending";
+		return { id: k.id, label: k.label, status };
+	});
+}
 
 interface WorkspaceInitializingViewProps {
 	workspaceId: string;
@@ -99,6 +175,7 @@ export function WorkspaceInitializingView({
 	};
 
 	const currentStep = progress?.step ?? "pending";
+	const steps = useMemo(() => buildV1Steps(currentStep), [currentStep]);
 	const canRetryWithDeduplicatedBranch = isDuplicateBranchInitError(
 		progress?.error,
 	);
@@ -304,7 +381,8 @@ export function WorkspaceInitializingView({
 		<div className="flex flex-col items-center justify-center h-full w-full px-8">
 			<div className="flex flex-col items-center max-w-md text-center space-y-5">
 				<KeypadLoader
-					currentStep={currentStep}
+					steps={steps}
+					icons={V1_KEY_ICONS}
 					muted={notificationSoundsMuted}
 					volume={0.35 * (notificationVolume / 100)}
 				/>
@@ -316,7 +394,7 @@ export function WorkspaceInitializingView({
 					<p className="text-sm text-muted-foreground">{workspaceName}</p>
 				</div>
 
-				<StepProgress currentStep={currentStep} />
+				<StepProgress steps={steps} />
 
 				<p className="text-xs text-muted-foreground/60">
 					Takes 10s to a few minutes depending on the size of your repo

@@ -29,6 +29,7 @@ import {
 	buildPrCheckoutPayload,
 } from "./buildIntentPayload";
 import { buildSetupPaneLayout } from "./buildSetupPaneLayout";
+import { PendingLoader } from "./components/PendingLoader";
 import { dispatchForkLaunch } from "./dispatchForkLaunch";
 
 /**
@@ -263,10 +264,12 @@ function PendingWorkspacePage() {
 		void fireIntent();
 	}, [pending, fireIntent]);
 
-	// Poll host-service for step-by-step progress (fork + checkout only;
-	// adopt is fast and doesn't instrument progress).
+	// Poll host-service for step-by-step progress (fork + checkout + pr-checkout
+	// all route through instrumented mutations; adopt is fast and skips it).
 	const intentHasProgress =
-		pending?.intent === "fork" || pending?.intent === "checkout";
+		pending?.intent === "fork" ||
+		pending?.intent === "checkout" ||
+		pending?.intent === "pr-checkout";
 	const hostUrl = !pending
 		? activeHostUrl
 		: pending.hostTarget.kind === "local"
@@ -371,18 +374,27 @@ function PendingWorkspacePage() {
 
 	return (
 		<div className="flex h-full w-full flex-1 justify-center pt-24">
-			<div className="w-full max-w-sm space-y-5 p-8">
-				<div className="space-y-1">
-					<h2 className="text-lg font-semibold">{pending.name}</h2>
-					<div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-						<GoGitBranch className="size-3.5" />
-						<span className="font-mono">{pending.branchName}</span>
-					</div>
-				</div>
-
-				{pending.status === "creating" && (
-					<div className="space-y-3">
-						<div className="flex items-center justify-between">
+			<div className="w-full max-w-md space-y-5 p-8">
+				{pending.status === "creating" ? (
+					<div className="flex flex-col items-center space-y-6 text-center">
+						{intentHasProgress ? (
+							<PendingLoader steps={steps} />
+						) : (
+							// Adopt has no host-side progress steps — show a generic spinner.
+							<div className="flex items-center gap-2.5 text-sm text-muted-foreground">
+								<div className="size-4 flex items-center justify-center">
+									<div className="size-2.5 rounded-full bg-foreground animate-pulse" />
+								</div>
+							</div>
+						)}
+						<div className="space-y-1">
+							<h2 className="text-lg font-medium">{pending.name}</h2>
+							<div className="flex items-center justify-center gap-1.5 text-sm text-muted-foreground">
+								<GoGitBranch className="size-3.5" />
+								<span className="font-mono">{pending.branchName}</span>
+							</div>
+						</div>
+						<div className="flex items-center gap-2">
 							<p
 								className={`text-sm ${isStale ? "text-amber-500" : "text-muted-foreground"}`}
 							>
@@ -394,45 +406,10 @@ function PendingWorkspacePage() {
 								{elapsedLabel}
 							</span>
 						</div>
-						{intentHasProgress && steps.length > 0 ? (
-							<div className="space-y-2">
-								{steps.map((step) => (
-									<div
-										key={step.id}
-										className="flex items-center gap-2.5 text-sm"
-									>
-										{step.status === "done" ? (
-											<HiCheck className="size-4 text-emerald-500" />
-										) : step.status === "active" ? (
-											<div className="size-4 flex items-center justify-center">
-												<div className="size-2.5 rounded-full bg-foreground animate-pulse" />
-											</div>
-										) : (
-											<div className="size-4 flex items-center justify-center">
-												<div className="size-2 rounded-full bg-muted-foreground/30" />
-											</div>
-										)}
-										<span
-											className={
-												step.status === "done" || step.status === "active"
-													? "text-foreground"
-													: "text-muted-foreground/50"
-											}
-										>
-											{step.label}
-										</span>
-									</div>
-								))}
-							</div>
-						) : (
-							// Adopt has no host-side progress steps — show a generic spinner.
-							<div className="flex items-center gap-2.5 text-sm text-muted-foreground">
-								<div className="size-4 flex items-center justify-center">
-									<div className="size-2.5 rounded-full bg-foreground animate-pulse" />
-								</div>
-							</div>
-						)}
-						<div className="flex gap-2 pt-1">
+						<p className="text-xs text-muted-foreground/60">
+							Takes 10s to a few minutes depending on the size of your repo
+						</p>
+						<div className="pt-1">
 							<button
 								type="button"
 								className="rounded-md border px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-accent"
@@ -444,6 +421,14 @@ function PendingWorkspacePage() {
 							>
 								Dismiss
 							</button>
+						</div>
+					</div>
+				) : (
+					<div className="space-y-1">
+						<h2 className="text-lg font-semibold">{pending.name}</h2>
+						<div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+							<GoGitBranch className="size-3.5" />
+							<span className="font-mono">{pending.branchName}</span>
 						</div>
 					</div>
 				)}

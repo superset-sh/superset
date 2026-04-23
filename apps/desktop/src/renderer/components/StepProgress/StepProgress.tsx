@@ -1,30 +1,36 @@
 import { cn } from "@superset/ui/utils";
 import { useEffect, useState } from "react";
-import {
-	getStepIndex,
-	INIT_STEP_MESSAGES,
-	INIT_STEP_ORDER,
-	type WorkspaceInitStep,
-} from "shared/types/workspace-init";
+import type { ProgressStep } from "../KeypadLoader";
 import "./StepProgress.css";
 
-// Hold a just-completed step centered with the green check for this long before
-// sliding to the next step, so the transition is readable.
+// Hold a just-completed step centered with the green check for this long
+// before sliding to the next step, so the transition is readable.
 const DONE_HOLD_MS = 750;
 
-// Show every step except the terminal "ready" state.
-const DISPLAY_STEPS: readonly WorkspaceInitStep[] = INIT_STEP_ORDER.filter(
-	(s) => s !== "ready",
-);
-
-type StepState = "waiting" | "progress" | "done";
+type DisplayState = "waiting" | "progress" | "done";
 
 interface StepProgressProps {
-	currentStep: WorkspaceInitStep;
+	steps: ProgressStep[];
 }
 
-export function StepProgress({ currentStep }: StepProgressProps) {
-	const targetIdx = getStepIndex(currentStep);
+function stripEllipsis(s: string) {
+	return s.replace(/[.…]+$/, "");
+}
+
+export function StepProgress({ steps }: StepProgressProps) {
+	// Drive the scroll position from the active step index, falling back to
+	// the last done step so the list keeps climbing even if the backend
+	// jumps state without a visible "active" beat.
+	const activeIdx = steps.findIndex((s) => s.status === "active");
+	const lastDoneIdx = (() => {
+		let idx = -1;
+		for (let i = 0; i < steps.length; i++) {
+			if (steps[i]?.status === "done") idx = i;
+		}
+		return idx;
+	})();
+	const targetIdx = activeIdx >= 0 ? activeIdx : Math.max(0, lastDoneIdx + 1);
+
 	const [renderIdx, setRenderIdx] = useState(targetIdx);
 	const [holdDoneIdx, setHoldDoneIdx] = useState<number | null>(null);
 
@@ -39,8 +45,6 @@ export function StepProgress({ currentStep }: StepProgressProps) {
 			setHoldDoneIdx(null);
 			return;
 		}
-		// Hold the just-completed step centered with the done icon, then advance
-		// one step at a time so skipped steps still get a visible beat.
 		setHoldDoneIdx(renderIdx);
 		const t = window.setTimeout(() => {
 			setHoldDoneIdx(null);
@@ -49,14 +53,15 @@ export function StepProgress({ currentStep }: StepProgressProps) {
 		return () => window.clearTimeout(t);
 	}, [targetIdx, renderIdx]);
 
+	if (steps.length === 0) return null;
+
 	return (
 		<div className="step-progress" aria-live="polite">
 			<div className="step-progress__list">
-				{DISPLAY_STEPS.map((step) => {
-					const idx = getStepIndex(step);
+				{steps.map((step, idx) => {
 					const distance = idx - renderIdx;
 					const isHeldDone = holdDoneIdx === idx;
-					const state: StepState = isHeldDone
+					const state: DisplayState = isHeldDone
 						? "done"
 						: distance < 0
 							? "done"
@@ -67,7 +72,7 @@ export function StepProgress({ currentStep }: StepProgressProps) {
 
 					return (
 						<div
-							key={step}
+							key={step.id}
 							className="step-progress__item text-foreground/85"
 							style={{
 								transform: `translateY(${distance * 100}%)`,
@@ -85,7 +90,7 @@ export function StepProgress({ currentStep }: StepProgressProps) {
 								<StepIcon state={state} />
 							</span>
 							<span className="step-progress__title">
-								{stripEllipsis(INIT_STEP_MESSAGES[step])}
+								{stripEllipsis(step.label)}
 								{state === "progress" ? <Ellipsis /> : null}
 							</span>
 						</div>
@@ -96,11 +101,7 @@ export function StepProgress({ currentStep }: StepProgressProps) {
 	);
 }
 
-function stripEllipsis(s: string) {
-	return s.replace(/[.…]+$/, "");
-}
-
-function StepIcon({ state }: { state: StepState }) {
+function StepIcon({ state }: { state: DisplayState }) {
 	if (state === "done") {
 		return <CheckCircle />;
 	}
