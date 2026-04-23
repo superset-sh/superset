@@ -1,5 +1,5 @@
 import { toast } from "@superset/ui/sonner";
-import { useNavigate, useParams } from "@tanstack/react-router";
+import { useMatchRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
@@ -23,7 +23,7 @@ export function useDashboardSidebarWorkspaceItemActions({
 	branch,
 }: UseDashboardSidebarWorkspaceItemActionsOptions) {
 	const navigate = useNavigate();
-	const params = useParams({ strict: false });
+	const matchRoute = useMatchRoute();
 	const navigateAway = useNavigateAwayFromWorkspace();
 	const { activeHostUrl } = useLocalHostService();
 	const { copyToClipboard } = useCopyToClipboard();
@@ -34,7 +34,11 @@ export function useDashboardSidebarWorkspaceItemActions({
 	const [renameValue, setRenameValue] = useState(workspaceName);
 	const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
-	const isActive = params.workspaceId === workspaceId;
+	const isActive = !!matchRoute({
+		to: "/v2-workspace/$workspaceId",
+		params: { workspaceId },
+		fuzzy: true,
+	});
 
 	const handleClick = () => {
 		if (isRenaming) return;

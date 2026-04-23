@@ -18,11 +18,11 @@ interface UseDestroyDialogStateOptions {
  * Drives the delete flow for `DashboardSidebarDeleteDialog`.
  *
  * UX pattern:
- *   - On confirm, close the dialog immediately, mark the workspace as
- *     deleting (sidebar row hides optimistically), and run destroy in
- *     the background silently. No loading toast — destroy can take
- *     10–20s and a persistent toast across that window feels bad. The
- *     hidden row is the feedback.
+ *   - On confirm, navigate off the workspace first (if viewing it),
+ *     close the dialog, mark the workspace deleting (row hides
+ *     optimistically), fire a one-shot "Deleting..." toast, and let
+ *     destroy run in the background. A loading toast across the 10–20s
+ *     teardown feels worse than fire-and-forget + hidden row.
  *   - On success, `onDeleted` removes the row from sidebar state.
  *   - On error, `clearDeleting` runs in the `finally` block so the row
  *     reappears. For decision-required errors (CONFLICT, TEARDOWN_FAILED)
@@ -65,11 +65,12 @@ export function useDestroyDialogState({
 			if (inFlight.current) return;
 			inFlight.current = true;
 
-			// Navigate off the doomed workspace FIRST, before dialog close /
-			// markDeleting / any other state thrash. Closing the dialog and
-			// hiding the row were swallowing the nav otherwise.
+			// Navigate off the doomed workspace FIRST. Closing the dialog
+			// and hiding the row were swallowing the nav otherwise.
 			navigateAway(workspaceId);
 
+			// Optimistic close. `deleteBranch` preserved in case we re-open
+			// on a decision-required error.
 			setError(null);
 			onOpenChange(false);
 			markDeleting(workspaceId);
