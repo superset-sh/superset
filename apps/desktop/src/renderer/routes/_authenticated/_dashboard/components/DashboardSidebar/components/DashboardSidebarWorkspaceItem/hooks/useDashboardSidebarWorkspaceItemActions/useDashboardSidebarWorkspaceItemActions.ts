@@ -5,11 +5,8 @@ import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
-import { getDeleteFocusTargetWorkspaceId } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/utils/getDeleteFocusTargetWorkspaceId";
-import { getFlattenedV2WorkspaceIds } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/utils/getFlattenedV2WorkspaceIds";
-import { navigateToV2Workspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
+import { useNavigateAwayFromWorkspace } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/hooks/useNavigateAwayFromWorkspace";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
-import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 
 interface UseDashboardSidebarWorkspaceItemActionsOptions {
@@ -27,7 +24,7 @@ export function useDashboardSidebarWorkspaceItemActions({
 }: UseDashboardSidebarWorkspaceItemActionsOptions) {
 	const navigate = useNavigate();
 	const params = useParams({ strict: false });
-	const collections = useCollections();
+	const navigateAway = useNavigateAwayFromWorkspace();
 	const { activeHostUrl } = useLocalHostService();
 	const { copyToClipboard } = useCopyToClipboard();
 	const { createSection, moveWorkspaceToSection, removeWorkspaceFromSidebar } =
@@ -73,37 +70,12 @@ export function useDashboardSidebarWorkspaceItemActions({
 		}
 	};
 
-	/**
-	 * If the user is currently viewing this workspace, jump to a sibling
-	 * (or home if none). Shared by delete + hide — in both cases we must
-	 * move the user off the row before it disappears.
-	 */
-	const navigateAwayIfActive = () => {
-		if (!isActive) return;
-		const focusTargetId = getDeleteFocusTargetWorkspaceId(
-			getFlattenedV2WorkspaceIds(collections),
-			workspaceId,
-		);
-		if (focusTargetId) {
-			void navigateToV2Workspace(focusTargetId, navigate);
-		} else {
-			void navigate({ to: "/" });
-		}
-	};
-
-	/**
-	 * Fires the moment destroy kicks off, before the 10–20s teardown, so
-	 * the user isn't stuck staring at a workspace that's being removed.
-	 */
-	const handleDeleting = navigateAwayIfActive;
-
-	/** Fires after `workspaceCleanup.destroy` succeeds. */
 	const handleDeleted = () => {
 		removeWorkspaceFromSidebar(workspaceId);
 	};
 
 	const handleRemoveFromSidebar = () => {
-		navigateAwayIfActive();
+		navigateAway(workspaceId);
 		removeWorkspaceFromSidebar(workspaceId);
 	};
 
@@ -174,7 +146,6 @@ export function useDashboardSidebarWorkspaceItemActions({
 		handleCopyPath,
 		handleCopyBranchName,
 		handleCreateSection,
-		handleDeleting,
 		handleDeleted,
 		handleOpenInFinder,
 		handleRemoveFromSidebar,

@@ -4,13 +4,13 @@ import {
 	type DestroyWorkspaceError,
 	useDestroyWorkspace,
 } from "renderer/hooks/host-service/useDestroyWorkspace";
+import { useNavigateAwayFromWorkspace } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/hooks/useNavigateAwayFromWorkspace";
 import { useDeletingWorkspaces } from "renderer/routes/_authenticated/providers/DeletingWorkspacesProvider";
 
 interface UseDestroyDialogStateOptions {
 	workspaceId: string;
 	workspaceName: string;
 	onOpenChange: (open: boolean) => void;
-	onDeleting?: () => void;
 	onDeleted?: () => void;
 }
 
@@ -34,11 +34,11 @@ export function useDestroyDialogState({
 	workspaceId,
 	workspaceName,
 	onOpenChange,
-	onDeleting,
 	onDeleted,
 }: UseDestroyDialogStateOptions) {
 	const { destroy } = useDestroyWorkspace(workspaceId);
 	const { markDeleting, clearDeleting } = useDeletingWorkspaces();
+	const navigateAway = useNavigateAwayFromWorkspace();
 
 	const [deleteBranch, setDeleteBranch] = useState(false);
 	const [error, setError] = useState<DestroyWorkspaceError | null>(null);
@@ -70,7 +70,7 @@ export function useDestroyDialogState({
 			setError(null);
 			onOpenChange(false);
 			markDeleting(workspaceId);
-			onDeleting?.();
+			navigateAway(workspaceId);
 			toast(`Deleting "${workspaceName}"...`);
 
 			try {
@@ -97,10 +97,10 @@ export function useDestroyDialogState({
 			workspaceName,
 			workspaceId,
 			onOpenChange,
-			onDeleting,
 			onDeleted,
 			markDeleting,
 			clearDeleting,
+			navigateAway,
 		],
 	);
 
