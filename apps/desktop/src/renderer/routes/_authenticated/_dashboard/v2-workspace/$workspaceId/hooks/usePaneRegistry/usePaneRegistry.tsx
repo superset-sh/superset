@@ -40,11 +40,7 @@ import type {
 	PaneViewerData,
 	TerminalPaneData,
 } from "../../types";
-import {
-	BrowserPane,
-	BrowserPaneToolbar,
-	browserRuntimeRegistry,
-} from "./components/BrowserPane";
+import { BrowserPane, BrowserPaneToolbar } from "./components/BrowserPane";
 import { CommentPane } from "./components/CommentPane";
 import { DiffPane } from "./components/DiffPane";
 import { FilePane } from "./components/FilePane";
@@ -334,7 +330,11 @@ export function usePaneRegistry(
 				renderToolbar: (ctx: RendererContext<PaneViewerData>) => (
 					<BrowserPaneToolbar ctx={ctx} />
 				),
-				onRemoved: (pane) => browserRuntimeRegistry.destroy(pane.id),
+				// Destruction is handled by useGlobalBrowserLifecycle instead —
+				// the Panes library's onRemoved diff fires on transient workspace-
+				// switch churn (when the pane store replaceState's in place rather
+				// than remounting) and would prematurely destroy webviews whose
+				// owning workspace is still present.
 				contextMenuActions: (_ctx, defaults) =>
 					defaults.map((d) =>
 						d.key === "close-pane" ? { ...d, label: "Close Browser" } : d,

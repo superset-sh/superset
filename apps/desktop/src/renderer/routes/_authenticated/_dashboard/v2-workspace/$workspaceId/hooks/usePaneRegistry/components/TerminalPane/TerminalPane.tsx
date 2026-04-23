@@ -107,7 +107,6 @@ export function TerminalPane({
 	// Deps narrowed to [terminalId] so provider key remount churn (workspaceId
 	// briefly flipping while pane data catches up) doesn't re-run this effect.
 	// workspaceId / websocketUrl are read through refs.
-	// biome-ignore lint/correctness/useExhaustiveDependencies: intentional — see comment above
 	useEffect(() => {
 		const container = containerRef.current;
 		if (!container) return;
