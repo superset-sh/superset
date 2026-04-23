@@ -86,12 +86,12 @@ export const FileRow = memo(function FileRow({
 
 	return (
 		<ContextMenu>
-			<ContextMenuTrigger asChild>
-				<Tooltip>
+			<Tooltip>
+				<ContextMenuTrigger asChild>
 					<TooltipTrigger asChild>{rowButton}</TooltipTrigger>
-					<TooltipContent side="right">{CLICK_HINT_TOOLTIP}</TooltipContent>
-				</Tooltip>
-			</ContextMenuTrigger>
+				</ContextMenuTrigger>
+				<TooltipContent side="right">{CLICK_HINT_TOOLTIP}</TooltipContent>
+			</Tooltip>
 			<ContextMenuContent className="w-56">
 				<ContextMenuItem onSelect={() => onSelect?.(file.path)}>
 					Open Diff

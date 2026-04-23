@@ -154,16 +154,16 @@ function WorkspaceFilesTreeItemComponent({
 
 	return (
 		<ContextMenu>
-			<ContextMenuTrigger asChild>
-				{isFolder ? (
-					rowButton
-				) : (
-					<Tooltip>
+			{isFolder ? (
+				<ContextMenuTrigger asChild>{rowButton}</ContextMenuTrigger>
+			) : (
+				<Tooltip>
+					<ContextMenuTrigger asChild>
 						<TooltipTrigger asChild>{rowButton}</TooltipTrigger>
-						<TooltipContent side="right">{CLICK_HINT_TOOLTIP}</TooltipContent>
-					</Tooltip>
-				)}
-			</ContextMenuTrigger>
+					</ContextMenuTrigger>
+					<TooltipContent side="right">{CLICK_HINT_TOOLTIP}</TooltipContent>
+				</Tooltip>
+			)}
 			{isFolder ? (
 				<FolderContextMenu
 					absolutePath={node.absolutePath}
