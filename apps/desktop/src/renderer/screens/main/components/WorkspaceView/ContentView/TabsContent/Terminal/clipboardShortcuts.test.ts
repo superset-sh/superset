@@ -39,12 +39,6 @@ describe("shouldBubbleClipboardShortcut", () => {
 				expected: true,
 			},
 			{
-				name: "macOS Cmd+C without selection stays with the PTY",
-				event: makeEvent({ code: "KeyC", metaKey: true }),
-				options: { isMac: true, isWindows: false, hasSelection: false },
-				expected: false,
-			},
-			{
 				name: "windows Ctrl+V",
 				event: makeEvent({ code: "KeyV", ctrlKey: true }),
 				options: { isMac: false, isWindows: true, hasSelection: false },
@@ -63,10 +57,10 @@ describe("shouldBubbleClipboardShortcut", () => {
 				expected: true,
 			},
 			{
-				name: "windows Ctrl+C without selection stays with PTY (SIGINT)",
-				event: makeEvent({ code: "KeyC", ctrlKey: true }),
-				options: { isMac: false, isWindows: true, hasSelection: false },
-				expected: false,
+				name: "linux Ctrl+Shift+C with selection",
+				event: makeEvent({ code: "KeyC", ctrlKey: true, shiftKey: true }),
+				options: { isMac: false, isWindows: false, hasSelection: true },
+				expected: true,
 			},
 			{
 				name: "linux Ctrl+Shift+V",
@@ -81,10 +75,40 @@ describe("shouldBubbleClipboardShortcut", () => {
 				expected: true,
 			},
 			{
-				name: "linux Ctrl+Shift+C without selection still bubbles",
+				name: "macOS Cmd+C without selection",
+				event: makeEvent({ code: "KeyC", metaKey: true }),
+				options: { isMac: true, isWindows: false, hasSelection: false },
+				expected: false,
+			},
+			{
+				name: "windows Ctrl+C without selection",
+				event: makeEvent({ code: "KeyC", ctrlKey: true }),
+				options: { isMac: false, isWindows: true, hasSelection: false },
+				expected: false,
+			},
+			{
+				name: "linux Ctrl+Shift+C without selection",
 				event: makeEvent({ code: "KeyC", ctrlKey: true, shiftKey: true }),
 				options: { isMac: false, isWindows: false, hasSelection: false },
-				expected: true,
+				expected: false,
+			},
+			{
+				name: "linux Ctrl+Insert stays with the PTY",
+				event: makeEvent({ code: "Insert", ctrlKey: true }),
+				options: { isMac: false, isWindows: false, hasSelection: false },
+				expected: false,
+			},
+			{
+				name: "macOS does not inherit linux fallback chords",
+				event: makeEvent({ code: "KeyV", ctrlKey: true, shiftKey: true }),
+				options: { isMac: true, isWindows: false, hasSelection: false },
+				expected: false,
+			},
+			{
+				name: "macOS Shift+Insert stays with the PTY",
+				event: makeEvent({ code: "Insert", shiftKey: true }),
+				options: { isMac: true, isWindows: false, hasSelection: false },
+				expected: false,
 			},
 		];
 

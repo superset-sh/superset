@@ -28,10 +28,8 @@ export function shouldSelectAllShortcut(
 }
 
 /**
- * EXPERIMENT: narrow Mac rule back to just Cmd+V + Cmd+C-with-selection (the
- * original VS Code-style bubble). Test whether TERM_PROGRAM=kitty alone is
- * enough — claude-code/codex should parse CSI-u Cmd+chords correctly with the
- * TERM_PROGRAM fix, so maybe we don't need the broad Ghostty rule.
+ * Mirror VS Code terminal clipboard bindings so host copy/paste can run before
+ * xterm's kitty keyboard handler turns the chord into CSI-u input.
  */
 export function shouldBubbleClipboardShortcut(
 	event: ClipboardShortcutEvent,
@@ -53,15 +51,24 @@ export function shouldBubbleClipboardShortcut(
 	}
 
 	if (isWindows) {
-		if (event.code === "KeyV" && (onlyCtrl || ctrlShiftOnly)) return true;
-		if (event.code === "KeyC" && ctrlShiftOnly) return true;
-		if (event.code === "KeyC" && onlyCtrl && hasSelection) return true;
+		if (event.code === "KeyV" && (onlyCtrl || ctrlShiftOnly)) {
+			return true;
+		}
+
+		if (hasSelection && event.code === "KeyC" && (onlyCtrl || ctrlShiftOnly)) {
+			return true;
+		}
+
 		return false;
 	}
 
-	return (
-		(event.code === "KeyV" && ctrlShiftOnly) ||
-		(event.code === "Insert" && onlyShift) ||
-		(event.code === "KeyC" && ctrlShiftOnly)
-	);
+	if (!isMac) {
+		return (
+			(event.code === "KeyV" && ctrlShiftOnly) ||
+			(event.code === "Insert" && onlyShift) ||
+			(hasSelection && event.code === "KeyC" && ctrlShiftOnly)
+		);
+	}
+
+	return false;
 }
