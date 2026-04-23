@@ -1021,25 +1021,32 @@ export const workspaceCreationRouter = router({
 					.then(async (aiNames) => {
 						if (!aiNames) return;
 
-						let nextBranchName = oldBranchName;
-						if (aiNames.branchName && aiNames.branchName !== oldBranchName) {
+						const titleChanged =
+							aiNames.title !== "" && aiNames.title !== oldWorkspaceName;
+						const branchChanged =
+							aiNames.branchName !== "" && aiNames.branchName !== oldBranchName;
+						if (!titleChanged && !branchChanged) return;
+
+						// Apply git rename first (local, fast, cheap to revert). Then
+						// push name+branch to the cloud. If the cloud write fails we
+						// roll back git so git+local-db+cloud stay in lockstep —
+						// otherwise a dead cloud row would silently render the old
+						// branch to the web app forever.
+						let deduped = oldBranchName;
+						let gitRenamed = false;
+						if (branchChanged) {
 							const freshBranches = await listBranchNames(
 								ctx,
 								localProject.repoPath,
 							);
-							const deduped = deduplicateBranchName(
+							deduped = deduplicateBranchName(
 								aiNames.branchName,
 								freshBranches.filter((b) => b !== oldBranchName),
 							);
 							try {
 								const worktreeGit = await ctx.git(worktreePath);
 								await worktreeGit.raw(["branch", "-m", oldBranchName, deduped]);
-								ctx.db
-									.update(workspaces)
-									.set({ branch: deduped })
-									.where(eq(workspaces.id, cloudRow.id))
-									.run();
-								nextBranchName = deduped;
+								gitRenamed = true;
 							} catch (err) {
 								console.warn(
 									"[workspaceCreation.create] git branch rename failed",
@@ -1054,17 +1061,39 @@ export const workspaceCreationRouter = router({
 							branch?: string;
 							expectedCurrentName?: string;
 						} = { id: cloudRow.id };
-						if (aiNames.title && aiNames.title !== oldWorkspaceName) {
+						if (titleChanged) {
 							patch.name = aiNames.title;
 							patch.expectedCurrentName = oldWorkspaceName;
 						}
-						if (nextBranchName !== oldBranchName) {
-							patch.branch = nextBranchName;
-						}
+						if (gitRenamed) patch.branch = deduped;
 						if (patch.name === undefined && patch.branch === undefined) {
 							return;
 						}
-						await ctx.api.v2Workspace.updateNameFromHost.mutate(patch);
+
+						try {
+							await ctx.api.v2Workspace.updateNameFromHost.mutate(patch);
+						} catch (err) {
+							if (gitRenamed) {
+								await ctx
+									.git(worktreePath)
+									.then((g) => g.raw(["branch", "-m", deduped, oldBranchName]))
+									.catch((rollbackErr) => {
+										console.warn(
+											`[workspaceCreation.create] git branch rollback failed (workspace ${cloudRow.id}, ${deduped} → ${oldBranchName})`,
+											rollbackErr,
+										);
+									});
+							}
+							throw err;
+						}
+
+						if (gitRenamed) {
+							ctx.db
+								.update(workspaces)
+								.set({ branch: deduped })
+								.where(eq(workspaces.id, cloudRow.id))
+								.run();
+						}
 					})
 					.catch((err) => {
 						console.warn(

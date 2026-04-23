@@ -5,20 +5,37 @@ import { z } from "zod";
 const WORKSPACE_TITLE_MAX = 40;
 const BRANCH_NAME_MAX = 25;
 
+function sanitizeBranchCandidate(raw: string): string {
+	return raw
+		.toLowerCase()
+		.trim()
+		.replace(/\s+/g, "-")
+		.replace(/[^a-z0-9-]/g, "")
+		.replace(/-+/g, "-")
+		.replace(/^-+|-+$/g, "")
+		.slice(0, BRANCH_NAME_MAX)
+		.replace(/-+$/g, "");
+}
+
+function trimTitle(raw: string): string {
+	return raw.trim().replace(/[\s.,;:!?-]+$/g, "");
+}
+
+// Transforms run inside zod parse so model overshoots are coerced into
+// shape rather than rejected — otherwise a 26-char branch or a 41-char
+// title would silently no-op the whole rename.
 const workspaceNamesSchema = z.object({
 	title: z
 		.string()
-		.trim()
-		.min(1)
-		.max(WORKSPACE_TITLE_MAX)
+		.transform(trimTitle)
+		.pipe(z.string().min(1))
 		.describe(
 			`Short human-readable workspace title. Up to ${WORKSPACE_TITLE_MAX} characters. No trailing punctuation. Prefer whole words; never truncate mid-word.`,
 		),
 	branchName: z
 		.string()
-		.trim()
-		.min(1)
-		.max(BRANCH_NAME_MAX)
+		.transform(sanitizeBranchCandidate)
+		.pipe(z.string().min(1))
 		.describe(
 			`Git branch name in kebab-case (lowercase, dashes). 2-4 words, up to ${BRANCH_NAME_MAX} characters. Only [a-z0-9-]. No leading/trailing dashes. No prefixes.`,
 		),
@@ -34,27 +51,10 @@ const INSTRUCTIONS = [
 	"Both fields must describe the same underlying task; the branch is just a compact slug of the title.",
 ].join("\n");
 
-function sanitizeBranchCandidate(raw: string): string {
-	return raw
-		.toLowerCase()
-		.trim()
-		.replace(/\s+/g, "-")
-		.replace(/[^a-z0-9-]/g, "")
-		.replace(/-+/g, "-")
-		.replace(/^-+|-+$/g, "")
-		.slice(0, BRANCH_NAME_MAX)
-		.replace(/-+$/g, "");
-}
-
 /**
  * Generates both a workspace title and a git branch name from a prompt
  * using a single structured-output LLM call. Shares the same credentials
  * path as `generateTitleFromMessage` (small model via `getSmallModel`).
- *
- * Title is returned verbatim (no post-trim) so the model decides word
- * boundaries — `generateObjectFromMessage` already drops it if the
- * model overshoots the zod `.max()`. Branch is lightly sanitized to
- * enforce git-ref shape without changing semantics.
  */
 export async function generateWorkspaceNamesFromPrompt(
 	prompt: string,
@@ -65,9 +65,8 @@ export async function generateWorkspaceNamesFromPrompt(
 	const model = await getSmallModel();
 	if (!model) return null;
 
-	let result: GeneratedWorkspaceNames | null;
 	try {
-		result = await generateObjectFromMessage({
+		return await generateObjectFromMessage({
 			message: cleaned,
 			agentModel: model,
 			agentId: "workspace-namer",
@@ -83,12 +82,4 @@ export async function generateWorkspaceNamesFromPrompt(
 		);
 		return null;
 	}
-	if (!result) return null;
-
-	const branchName = sanitizeBranchCandidate(result.branchName);
-	if (!branchName) return null;
-	const title = result.title.trim();
-	if (!title) return null;
-
-	return { title, branchName };
 }
