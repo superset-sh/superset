@@ -42,8 +42,20 @@ function kbdHex(data: string): string {
 	return out;
 }
 
-function kbdLog(tag: string, ...args: unknown[]): void {
-	console.log(`[kbd:${tag}]`, ...args);
+function kbdLog(tag: string, data?: unknown): void {
+	if (data === undefined) {
+		console.log(`[kbd:${tag}]`);
+		return;
+	}
+	if (typeof data === "string") {
+		console.log(`[kbd:${tag}] ${data}`);
+		return;
+	}
+	try {
+		console.log(`[kbd:${tag}] ${JSON.stringify(data)}`);
+	} catch {
+		console.log(`[kbd:${tag}]`, data);
+	}
 }
 
 // xterm's _keyDown calls stopPropagation after processing, so any chord we
@@ -106,6 +118,23 @@ function createKittyFlagTracker(terminal: XTerm): () => number {
 }
 
 const KITTY_FLAG_DISAMBIGUATE = 0x01;
+const KITTY_FLAG_REPORT_EVENTS = 0x02;
+
+/**
+ * Build the kitty CSI-u press sequence for Shift+Enter in the exact form the
+ * running program expects, based on the flags it has pushed.
+ *
+ * - With only disambiguate (0x01): "\x1b[13;2u"
+ * - With report-events (0x02) also active: "\x1b[13;2:1u" (explicit press
+ *   event type). Observed empirically: xterm.js emits event-type-suffixed
+ *   sequences when the program activates 0x02 (Escape release was
+ *   "\x1b[27;1:3u" in the diagnostic trace), and claude-code's parser appears
+ *   to require the explicit suffix when it has requested the event-type flag.
+ */
+function shiftEnterCsiU(flags: number): string {
+	if ((flags & KITTY_FLAG_REPORT_EVENTS) !== 0) return "\x1b[13;2:1u";
+	return "\x1b[13;2u";
+}
 
 function createKeyEventHandler(terminal: XTerm, getKittyFlags: () => number) {
 	const platform =
@@ -151,9 +180,10 @@ function createKeyEventHandler(terminal: XTerm, getKittyFlags: () => number) {
 			!kbdDebugSkipOverride()
 		) {
 			if (event.type === "keydown") {
+				const seq = shiftEnterCsiU(getKittyFlags());
 				event.preventDefault();
-				kbdLog("override", "Shift+Enter → \\x1b[13;2u");
-				terminal.input("\x1b[13;2u", true);
+				kbdLog("override", `Shift+Enter → ${kbdHex(seq)}`);
+				terminal.input(seq, true);
 			}
 			return false;
 		}
