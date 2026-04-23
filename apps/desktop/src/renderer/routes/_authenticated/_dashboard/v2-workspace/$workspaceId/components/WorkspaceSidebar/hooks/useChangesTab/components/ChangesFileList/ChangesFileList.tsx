@@ -5,13 +5,15 @@ import { FileRow } from "./components/FileRow";
 interface ChangesFileListProps {
 	files: ChangesetFile[];
 	isLoading?: boolean;
-	onSelectFile?: (path: string) => void;
+	onSelectFile?: (path: string, openInNewTab?: boolean) => void;
+	onOpenInEditor?: (path: string) => void;
 }
 
 export const ChangesFileList = memo(function ChangesFileList({
 	files,
 	isLoading,
 	onSelectFile,
+	onOpenInEditor,
 }: ChangesFileListProps) {
 	if (isLoading) {
 		return (
@@ -36,6 +38,7 @@ export const ChangesFileList = memo(function ChangesFileList({
 					key={`${file.source.kind}:${file.path}`}
 					file={file}
 					onSelect={onSelectFile}
+					onOpenInEditor={onOpenInEditor}
 				/>
 			))}
 		</div>

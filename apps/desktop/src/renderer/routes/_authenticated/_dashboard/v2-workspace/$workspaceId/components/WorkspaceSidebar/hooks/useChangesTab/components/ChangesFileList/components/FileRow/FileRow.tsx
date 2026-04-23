@@ -14,17 +14,30 @@ function splitPath(path: string): { dir: string; basename: string } {
 
 interface FileRowProps {
 	file: ChangesetFile;
-	onSelect?: (path: string) => void;
+	onSelect?: (path: string, openInNewTab?: boolean) => void;
+	onOpenInEditor?: (path: string) => void;
 }
 
-export const FileRow = memo(function FileRow({ file, onSelect }: FileRowProps) {
+export const FileRow = memo(function FileRow({
+	file,
+	onSelect,
+	onOpenInEditor,
+}: FileRowProps) {
 	const { dir, basename } = splitPath(file.path);
 
 	return (
 		<button
 			type="button"
 			className="flex w-full items-center gap-1.5 py-1 pr-3 pl-3 text-left text-xs hover:bg-accent/50"
-			onClick={() => onSelect?.(file.path)}
+			onClick={(e) => {
+				if (e.metaKey || e.ctrlKey) {
+					onOpenInEditor?.(file.path);
+				} else if (e.shiftKey) {
+					onSelect?.(file.path, true);
+				} else {
+					onSelect?.(file.path);
+				}
+			}}
 		>
 			<FileIcon fileName={basename} className="size-3.5 shrink-0" />
 			<span className="flex min-w-0 flex-1 items-baseline overflow-hidden">

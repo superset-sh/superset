@@ -4,7 +4,9 @@ import { useCallback } from "react";
 import type { useGitStatus } from "renderer/hooks/host-service/useGitStatus";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import type { ChangesFilter } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal/schema";
+import { toAbsoluteWorkspacePath } from "shared/absolute-paths";
 import { useChangeset } from "../../../../hooks/useChangeset";
+import { useOpenInExternalEditor } from "../../../../hooks/useOpenInExternalEditor";
 import { useSidebarDiffRef } from "../../../../hooks/useSidebarDiffRef";
 import type { SidebarTabDefinition } from "../../types";
 import { ChangesTabContent } from "./components/ChangesTabContent";
@@ -14,7 +16,7 @@ export type { ChangesFilter };
 interface UseChangesTabParams {
 	workspaceId: string;
 	gitStatus: ReturnType<typeof useGitStatus>;
-	onSelectFile?: (path: string) => void;
+	onSelectFile?: (path: string, openInNewTab?: boolean) => void;
 }
 
 export function useChangesTab({
@@ -37,6 +39,20 @@ export function useChangesTab({
 
 	const ref = useSidebarDiffRef(workspaceId);
 	const { files, isLoading } = useChangeset({ workspaceId, ref });
+
+	const workspaceQuery = workspaceTrpc.workspace.get.useQuery({
+		id: workspaceId,
+	});
+	const worktreePath = workspaceQuery.data?.worktreePath;
+	const openInExternalEditor = useOpenInExternalEditor(workspaceId);
+
+	const handleOpenInEditor = useCallback(
+		(relativePath: string) => {
+			if (!worktreePath) return;
+			openInExternalEditor(toAbsoluteWorkspacePath(worktreePath, relativePath));
+		},
+		[worktreePath, openInExternalEditor],
+	);
 
 	const setFilter = useCallback(
 		(next: ChangesFilter) => {
@@ -116,6 +132,7 @@ export function useChangesTab({
 			totalAdditions={totalAdditions}
 			totalDeletions={totalDeletions}
 			onSelectFile={onSelectFile}
+			onOpenInEditor={handleOpenInEditor}
 			onFilterChange={setFilter}
 			onBaseBranchChange={setBaseBranch}
 			onRenameBranch={handleRenameBranch}
