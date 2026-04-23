@@ -187,14 +187,21 @@ export const v2WorkspaceRouter = {
 	// JWT-authed so host-service can apply AI-generated workspace names
 	// after create without an end-user session. Optional `expectedCurrentName`
 	// is folded into the UPDATE's WHERE so a concurrent user edit can't be
-	// clobbered between check and write.
+	// clobbered between check and write. `branch` is optional so the same
+	// entry point covers the AI rename (name + branch together) and any
+	// future name-only or branch-only updates.
 	updateNameFromHost: jwtProcedure
 		.input(
-			z.object({
-				id: z.string().uuid(),
-				name: z.string().min(1),
-				expectedCurrentName: z.string().optional(),
-			}),
+			z
+				.object({
+					id: z.string().uuid(),
+					name: z.string().min(1).optional(),
+					branch: z.string().min(1).optional(),
+					expectedCurrentName: z.string().optional(),
+				})
+				.refine((v) => v.name !== undefined || v.branch !== undefined, {
+					message: "At least one of name or branch must be provided",
+				}),
 		)
 		.mutation(async ({ ctx, input }) => {
 			const conditions = [
@@ -204,9 +211,12 @@ export const v2WorkspaceRouter = {
 			if (input.expectedCurrentName !== undefined) {
 				conditions.push(eq(v2Workspaces.name, input.expectedCurrentName));
 			}
+			const patch: { name?: string; branch?: string } = {};
+			if (input.name !== undefined) patch.name = input.name;
+			if (input.branch !== undefined) patch.branch = input.branch;
 			const [updated] = await dbWs
 				.update(v2Workspaces)
-				.set({ name: input.name })
+				.set(patch)
 				.where(and(...conditions))
 				.returning();
 			if (updated) return updated;
