@@ -28,17 +28,10 @@ export function shouldSelectAllShortcut(
 }
 
 /**
- * Decide whether a chord should bubble to the host (Electron menu accelerators,
- * OS clipboard handlers, etc.) instead of reaching xterm's kitty encoder and
- * leaking into the PTY as a CSI-u sequence.
- *
- * On macOS we follow Ghostty's rule (ghostty/src/input/key_encode.zig:534-545:
- * "on macOS, command+keys do not encode text"): every Cmd chord bubbles. Specific
- * chords the terminal wants to intercept (Cmd+Left/Right/Backspace, Cmd+A, etc.)
- * must run before this check in the caller.
- *
- * Windows/Linux have standard copy/paste keybinds that bubble selectively:
- * Ctrl+C only bubbles with a selection because it doubles as SIGINT.
+ * EXPERIMENT: narrow Mac rule back to just Cmd+V + Cmd+C-with-selection (the
+ * original VS Code-style bubble). Test whether TERM_PROGRAM=kitty alone is
+ * enough — claude-code/codex should parse CSI-u Cmd+chords correctly with the
+ * TERM_PROGRAM fix, so maybe we don't need the broad Ghostty rule.
  */
 export function shouldBubbleClipboardShortcut(
 	event: ClipboardShortcutEvent,
@@ -46,16 +39,18 @@ export function shouldBubbleClipboardShortcut(
 ): boolean {
 	const { isMac, isWindows, hasSelection } = options;
 
-	if (isMac) {
-		return event.metaKey;
-	}
-
+	const onlyMeta =
+		event.metaKey && !event.ctrlKey && !event.altKey && !event.shiftKey;
 	const onlyCtrl =
 		event.ctrlKey && !event.metaKey && !event.altKey && !event.shiftKey;
 	const ctrlShiftOnly =
 		event.ctrlKey && event.shiftKey && !event.metaKey && !event.altKey;
 	const onlyShift =
 		event.shiftKey && !event.ctrlKey && !event.metaKey && !event.altKey;
+
+	if (isMac && onlyMeta) {
+		return event.code === "KeyV" || (hasSelection && event.code === "KeyC");
+	}
 
 	if (isWindows) {
 		if (event.code === "KeyV" && (onlyCtrl || ctrlShiftOnly)) return true;
