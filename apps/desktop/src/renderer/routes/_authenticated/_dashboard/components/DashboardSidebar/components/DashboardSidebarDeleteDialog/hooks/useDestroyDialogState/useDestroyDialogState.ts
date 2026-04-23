@@ -27,7 +27,7 @@ interface UseDestroyDialogStateOptions {
  *   - On error, `clearDeleting` runs in the `finally` block so the row
  *     reappears. For decision-required errors (CONFLICT, TEARDOWN_FAILED)
  *     we reopen the dialog in the matching error pane so the user can
- *     force-retry with full context. The branch opt-in is preserved.
+ *     force-retry with full context.
  *   - For unknown errors we just toast.error — no reopen.
  */
 export function useDestroyDialogState({
@@ -39,15 +39,11 @@ export function useDestroyDialogState({
 	const { destroy } = useDestroyWorkspace(workspaceId);
 	const { markDeleting, clearDeleting } = useDeletingWorkspaces();
 
-	const { preferences, setDeleteLocalBranch } = useV2UserPreferences();
+	const { preferences, setDeleteLocalBranch: setDeleteBranch } =
+		useV2UserPreferences();
 	const deleteBranch = preferences.deleteLocalBranch;
 	const [error, setError] = useState<DestroyWorkspaceError | null>(null);
 	const inFlight = useRef(false);
-
-	const setDeleteBranch = useCallback(
-		(next: boolean) => setDeleteLocalBranch(next),
-		[setDeleteLocalBranch],
-	);
 
 	const handleOpenChange = useCallback(
 		(next: boolean) => {
