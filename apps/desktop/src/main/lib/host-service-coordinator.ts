@@ -7,6 +7,7 @@ import { settings } from "@superset/local-db";
 import { getDeviceName, getHashedDeviceId } from "@superset/shared/device-info";
 import { app } from "electron";
 import { env } from "main/env.main";
+import semver from "semver";
 import { env as sharedEnv } from "shared/env.shared";
 import { getProcessEnvWithShellPath } from "../../lib/trpc/routers/workspaces/utils/shell-env";
 import { SUPERSET_HOME_DIR } from "./app-environment";
@@ -39,19 +40,9 @@ import { HOOK_PROTOCOL_VERSION } from "./terminal/env";
 const MIN_HOST_SERVICE_VERSION = "0.2.0";
 
 function isHostServiceVersionSupported(version: string | null): boolean {
-	if (!version) return false;
-	const current = version.split(".").map((n) => Number.parseInt(n, 10));
-	const minimum = MIN_HOST_SERVICE_VERSION.split(".").map((n) =>
-		Number.parseInt(n, 10),
+	return (
+		!!version && semver.satisfies(version, `>=${MIN_HOST_SERVICE_VERSION}`)
 	);
-	for (let i = 0; i < Math.max(current.length, minimum.length); i++) {
-		const a = current[i] ?? 0;
-		const b = minimum[i] ?? 0;
-		if (!Number.isFinite(a)) return false;
-		if (a > b) return true;
-		if (a < b) return false;
-	}
-	return true;
 }
 
 export type HostServiceStatus = "starting" | "running" | "stopped";
