@@ -111,32 +111,26 @@ export function TerminalPane({
 		const container = containerRef.current;
 		if (!container) return;
 
-		// DOM first — synchronous. Empty cursor visible immediately on cold
-		// mount; on warm return this unparks the wrapper.
 		terminalRuntimeRegistry.mount(terminalId, container, appearanceRef.current);
 
 		let cancelled = false;
 
-		// Ensure the server session exists, then connect the transport.
-		// connect() is idempotent — for a warm terminal whose WS is already
-		// open against the same URL, this is a no-op.
+		// Always connect after ensureSession settles, even on error: if the
+		// session actually exists on the server (e.g. we raced another client),
+		// connect() succeeds; otherwise "Session not found" surfaces in-terminal
+		// as an error line. connect() is idempotent, so a warm terminal whose
+		// WS is already open against the same URL is a no-op.
 		ensureSessionRef.current
 			.mutateAsync({
 				terminalId,
 				workspaceId: workspaceIdRef.current,
 				themeType: initialThemeTypeRef.current,
 			})
-			.then(() => {
-				if (cancelled) return;
-				terminalRuntimeRegistry.connect(terminalId, websocketUrlRef.current);
-			})
 			.catch((err) => {
-				if (cancelled) return;
 				console.error("[TerminalPane] ensureSession failed:", err);
-				// Try connecting anyway — if the session actually exists (we
-				// raced another client), it'll succeed; otherwise the server's
-				// "Session not found" surfaces in-terminal as an error line,
-				// which is the same failure mode as before.
+			})
+			.finally(() => {
+				if (cancelled) return;
 				terminalRuntimeRegistry.connect(terminalId, websocketUrlRef.current);
 			});
 

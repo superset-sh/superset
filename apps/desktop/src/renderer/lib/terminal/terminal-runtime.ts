@@ -239,11 +239,8 @@ export function detachFromContainer(runtime: TerminalRuntime) {
 	persistDimensions(runtime.terminalId, runtime.lastCols, runtime.lastRows);
 	runtime.resizeObserver?.disconnect();
 	runtime.resizeObserver = null;
-	// Move the wrapper into a hidden body-level container instead of removing
-	// it. xterm stays attached to the document, so a subsequent attachToContainer
-	// is a DOM move (no renderer teardown, no flicker) — matching VSCode's
-	// setVisible(false) behavior under our constraint that the React subtree
-	// must unmount across workspace switches.
+	// Park instead of .remove() so xterm survives the React unmount —
+	// see getParkingContainer.
 	getParkingContainer().appendChild(runtime.wrapper);
 	runtime.container = null;
 }
