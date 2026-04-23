@@ -5,6 +5,10 @@ import { NOTIFICATION_EVENTS } from "shared/constants";
 import { debugLog } from "shared/debug";
 import { useTabsStore } from "./store";
 import { resolveNotificationTarget } from "./utils/resolve-notification-target";
+import {
+	parseWorkspaceIdFromHash,
+	resolveStopPaneStatus,
+} from "./utils/resolve-stop-pane-status";
 
 /**
  * Hook that listens for agent lifecycle events via tRPC subscription and updates
@@ -34,14 +38,12 @@ import { resolveNotificationTarget } from "./utils/resolve-notification-target";
 
 /**
  * Returns the current workspace ID from the live URL hash.
- * The app uses hash routing: file:///.../index.html#/workspace/<id>
  * We must read window.location.hash (not pathname) at event time since the
  * _authenticated layout does not re-render on workspace navigation.
  */
 function getCurrentWorkspaceId(): string | null {
 	try {
-		const match = window.location.hash.match(/\/workspace\/([^/?#]+)/);
-		return match ? match[1] : null;
+		return parseWorkspaceIdFromHash(window.location.hash);
 	} catch {
 		return null;
 	}
@@ -76,30 +78,16 @@ export function useAgentHookListener() {
 				) {
 					state.setPaneStatus(paneId, "permission");
 				} else if (eventType === "Stop") {
-					const activeTabId = state.activeTabIds[workspaceId];
 					const pane = state.panes[paneId];
-					const tabId = pane?.tabId;
-					// Tab must be active for this workspace
-					const isTabActive = tabId != null && tabId === activeTabId;
-					// User is on this workspace if the URL hash matches OR if they have this
-					// pane focused (more reliable than URL parsing which can lag behind navigation)
-					const isPaneFocused =
-						tabId != null && state.focusedPaneIds[tabId] === paneId;
-					const isInActiveTab =
-						isTabActive &&
-						(getCurrentWorkspaceId() === workspaceId || isPaneFocused);
-
-					// If stopping from a pending question state, always go idle (user already engaged)
-					const nextStatus =
-						pane?.status === "permission"
-							? "idle"
-							: isInActiveTab
-								? "idle"
-								: "review";
+					const nextStatus = resolveStopPaneStatus(
+						state,
+						workspaceId,
+						paneId,
+						getCurrentWorkspaceId(),
+					);
 
 					debugLog("agent-hooks", "Stop event:", {
-						isInActiveTab,
-						activeTabId,
+						activeTabId: state.activeTabIds[workspaceId],
 						paneTabId: pane?.tabId,
 						paneId,
 						paneStatus: pane?.status,
