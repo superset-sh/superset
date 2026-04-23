@@ -11,6 +11,7 @@ import {
 	createRuntime,
 	detachFromContainer,
 	disposeRuntime,
+	termLog,
 	type TerminalRuntime,
 	updateRuntimeAppearance,
 } from "./terminal-runtime";
@@ -29,7 +30,7 @@ interface RegistryEntry {
 	runtime: TerminalRuntime | null;
 	transport: TerminalTransport;
 	linkManager: TerminalLinkManager | null;
-	/** Stored until linkManager is created (attach called after setLinkHandlers). */
+	/** Stored until linkManager is created (mount called after setLinkHandlers). */
 	pendingLinkHandlers: TerminalLinkHandlers | null;
 }
 
@@ -39,6 +40,12 @@ class TerminalRuntimeRegistryImpl {
 	private getOrCreateEntry(terminalId: string): RegistryEntry {
 		let entry = this.entries.get(terminalId);
 		if (entry) return entry;
+
+		termLog("registry:entry-create", {
+			terminalId,
+			registrySize: this.entries.size,
+			stack: new Error().stack?.split("\n").slice(2, 6).join(" <- "),
+		});
 
 		entry = {
 			runtime: null,
@@ -51,18 +58,35 @@ class TerminalRuntimeRegistryImpl {
 		return entry;
 	}
 
-	attach(
+	/**
+	 * Ensure the xterm runtime exists and attach it to `container`.
+	 * Synchronous. DOM-only — the WebSocket transport is untouched.
+	 *
+	 * Matches VSCode's pattern (`TerminalInstance.attachToElement`) and
+	 * Tabby's (`XTermFrontend.attach`): the terminal renders immediately
+	 * with a blank cursor, the backend pipe catches up via `connect()` once
+	 * the caller has confirmed the server session exists. Decoupling the
+	 * DOM from the transport is what lets a terminal survive workspace
+	 * switches without an in-flight WebSocket being opened against a
+	 * nonexistent session.
+	 */
+	mount(
 		terminalId: string,
 		container: HTMLDivElement,
-		wsUrl: string,
 		appearance: TerminalAppearance,
 	) {
+		const existed = this.entries.has(terminalId);
 		const entry = this.getOrCreateEntry(terminalId);
+		termLog("registry:mount", {
+			terminalId,
+			entryExisted: existed,
+			hadRuntime: !!entry.runtime,
+			registrySize: this.entries.size,
+		});
 
 		if (!entry.runtime) {
 			entry.runtime = createRuntime(terminalId, appearance);
 			entry.linkManager = new TerminalLinkManager(entry.runtime.terminal);
-			// Apply pending handlers if setLinkHandlers was called before attach
 			if (entry.pendingLinkHandlers) {
 				entry.linkManager.setHandlers(entry.pendingLinkHandlers);
 				entry.pendingLinkHandlers = null;
@@ -72,17 +96,59 @@ class TerminalRuntimeRegistryImpl {
 		}
 
 		const { runtime, transport } = entry;
-
 		attachToContainer(runtime, container, () => {
 			sendResize(transport, runtime.terminal.cols, runtime.terminal.rows);
 		});
+	}
 
-		connect(transport, runtime.terminal, wsUrl);
+	/**
+	 * Open (or re-use) the WebSocket transport for this terminal.
+	 * Caller is responsible for ensuring the server session exists before
+	 * calling — otherwise the server replies "Session not found".
+	 *
+	 * Idempotent: no-op if already connected/connecting to the same URL.
+	 */
+	connect(terminalId: string, wsUrl: string) {
+		const entry = this.entries.get(terminalId);
+		if (!entry?.runtime) return;
+		termLog("registry:connect", {
+			terminalId,
+			prevState: entry.transport.connectionState,
+			prevUrl: entry.transport.currentUrl,
+			nextUrl: wsUrl,
+		});
+		connect(entry.transport, entry.runtime.terminal, wsUrl);
+	}
+
+	/**
+	 * Swap the transport onto a new URL *only if* it's already live.
+	 * Used by effects watching `websocketUrl` — they fire on initial mount
+	 * when the transport hasn't been opened yet (ensureSession is still
+	 * in-flight), and we must not pre-empt that with a premature connect.
+	 */
+	reconnect(terminalId: string, wsUrl: string) {
+		const entry = this.entries.get(terminalId);
+		if (!entry?.runtime) return;
+		const state = entry.transport.connectionState;
+		if (state === "disconnected") {
+			termLog("registry:reconnect-skip", { terminalId, reason: "no-transport" });
+			return;
+		}
+		if (entry.transport.currentUrl === wsUrl) {
+			termLog("registry:reconnect-skip", { terminalId, reason: "same-url" });
+			return;
+		}
+		termLog("registry:reconnect", {
+			terminalId,
+			prevUrl: entry.transport.currentUrl,
+			nextUrl: wsUrl,
+		});
+		connect(entry.transport, entry.runtime.terminal, wsUrl);
 	}
 
 	/**
 	 * Set link handler callbacks for a terminal. Safe to call before or after
-	 * attach(). If the runtime already exists, link providers are re-registered.
+	 * mount(). If the runtime already exists, link providers are re-registered.
 	 */
 	setLinkHandlers(terminalId: string, handlers: TerminalLinkHandlers) {
 		const entry = this.getOrCreateEntry(terminalId);
@@ -93,8 +159,18 @@ class TerminalRuntimeRegistryImpl {
 		}
 	}
 
+	/**
+	 * Park the wrapper in the hidden body-level container. Runtime and
+	 * transport stay alive; DOM is moved off the React-controlled tree so
+	 * it survives the parent unmount without re-entering xterm.open().
+	 */
 	detach(terminalId: string) {
 		const entry = this.entries.get(terminalId);
+		termLog("registry:detach", {
+			terminalId,
+			found: !!entry,
+			hadRuntime: !!entry?.runtime,
+		});
 		if (!entry?.runtime) return;
 
 		detachFromContainer(entry.runtime);
@@ -117,6 +193,11 @@ class TerminalRuntimeRegistryImpl {
 
 	dispose(terminalId: string) {
 		const entry = this.entries.get(terminalId);
+		termLog("registry:dispose", {
+			terminalId,
+			found: !!entry,
+			stack: new Error().stack?.split("\n").slice(1, 6).join(" <- "),
+		});
 		if (!entry) return;
 
 		entry.linkManager?.dispose();

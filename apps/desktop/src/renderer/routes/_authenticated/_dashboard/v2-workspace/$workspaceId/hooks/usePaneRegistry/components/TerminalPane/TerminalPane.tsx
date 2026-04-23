@@ -10,6 +10,7 @@ import {
 } from "react";
 import { useTerminalLinkActions } from "renderer/hooks/useV2UserPreferences";
 import { useHotkey } from "renderer/hotkeys";
+import { termLog } from "renderer/lib/terminal/terminal-runtime";
 import {
 	type ConnectionState,
 	terminalRuntimeRegistry,
@@ -78,11 +79,14 @@ export function TerminalPane({
 			activeThemeType: activeTheme?.type,
 		}),
 	);
-	const initialThemeType = initialThemeTypeRef.current;
 
 	// URL is stable — no workspaceId/themeType in query params.
 	// Session is created via tRPC before WebSocket connects.
 	const websocketUrl = useWorkspaceWsUrl(`/terminal/${terminalId}`);
+	const websocketUrlRef = useRef(websocketUrl);
+	websocketUrlRef.current = websocketUrl;
+	const workspaceIdRef = useRef(workspaceId);
+	workspaceIdRef.current = workspaceId;
 
 	const ensureSession = workspaceTrpc.terminal.ensureSession.useMutation();
 	const ensureSessionRef = useRef(ensureSession);
@@ -93,45 +97,94 @@ export function TerminalPane({
 		() => getConnectionState(terminalId),
 	);
 
+	// DOM-first lifecycle (VSCode/Tabby pattern):
+	//   1. mount() attaches xterm to the container synchronously — terminal
+	//      is visible immediately, even on cold start. For a warm return
+	//      (workspace switch) this reparents the wrapper from the parking
+	//      container back into the live tree, preserving the buffer.
+	//   2. ensureSession guarantees the server session exists, then connect()
+	//      opens the WebSocket. Never before — otherwise the server replies
+	//      "Session not found."
+	// Deps narrowed to [terminalId] so provider key remount churn (workspaceId
+	// briefly flipping while pane data catches up) doesn't re-run this effect.
+	// workspaceId / websocketUrl are read through refs.
+	// biome-ignore lint/correctness/useExhaustiveDependencies: intentional — see comment above
 	useEffect(() => {
 		const container = containerRef.current;
 		if (!container) return;
 
+		termLog("pane:effect-mount", {
+			terminalId,
+			workspaceId: workspaceIdRef.current,
+			wsUrl: websocketUrlRef.current,
+			containerW: container.clientWidth,
+			containerH: container.clientHeight,
+		});
+
+		// DOM first — synchronous. Empty cursor visible immediately on cold
+		// mount; on warm return this unparks the wrapper.
+		terminalRuntimeRegistry.mount(
+			terminalId,
+			container,
+			appearanceRef.current,
+		);
+
 		let cancelled = false;
 
-		// Create session via tRPC, then connect WebSocket as data pipe.
+		// Ensure the server session exists, then connect the transport.
+		// connect() is idempotent — for a warm terminal whose WS is already
+		// open against the same URL, this is a no-op.
 		ensureSessionRef.current
 			.mutateAsync({
 				terminalId,
-				workspaceId,
-				themeType: initialThemeType,
+				workspaceId: workspaceIdRef.current,
+				themeType: initialThemeTypeRef.current,
 			})
 			.then(() => {
-				if (cancelled) return;
-				terminalRuntimeRegistry.attach(
+				if (cancelled) {
+					termLog("pane:ensureSession-cancelled", { terminalId });
+					return;
+				}
+				termLog("pane:ensureSession-ok", { terminalId });
+				terminalRuntimeRegistry.connect(
 					terminalId,
-					container,
-					websocketUrl,
-					appearanceRef.current,
+					websocketUrlRef.current,
 				);
 			})
 			.catch((err) => {
 				if (cancelled) return;
-				console.error("[TerminalPane] ensureSession failed:", err);
-				// Still try to connect — WS handler has fallback for existing sessions
-				terminalRuntimeRegistry.attach(
+				termLog("pane:ensureSession-err", {
 					terminalId,
-					container,
-					websocketUrl,
-					appearanceRef.current,
+					err: err instanceof Error ? err.message : String(err),
+				});
+				console.error("[TerminalPane] ensureSession failed:", err);
+				// Try connecting anyway — if the session actually exists (we
+				// raced another client), it'll succeed; otherwise the server's
+				// "Session not found" surfaces in-terminal as an error line,
+				// which is the same failure mode as before.
+				terminalRuntimeRegistry.connect(
+					terminalId,
+					websocketUrlRef.current,
 				);
 			});
 
 		return () => {
 			cancelled = true;
+			termLog("pane:effect-cleanup", {
+				terminalId,
+				workspaceId: workspaceIdRef.current,
+			});
 			terminalRuntimeRegistry.detach(terminalId);
 		};
-	}, [terminalId, websocketUrl, initialThemeType, workspaceId]);
+	}, [terminalId]);
+
+	// WS URL can change while the terminal stays mounted (token refresh, host
+	// URL re-resolution on provider remount). Reconnect only if the transport
+	// is already live — on initial mount the transport is "disconnected" and
+	// we let the ensureSession path above open it.
+	useEffect(() => {
+		terminalRuntimeRegistry.reconnect(terminalId, websocketUrl);
+	}, [terminalId, websocketUrl]);
 
 	useEffect(() => {
 		terminalRuntimeRegistry.updateAppearance(terminalId, appearance);
