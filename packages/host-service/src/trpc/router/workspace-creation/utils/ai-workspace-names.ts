@@ -68,9 +68,8 @@ export async function generateWorkspaceNamesFromPrompt(
 	const model = await getSmallModel();
 	if (!model) return null;
 
-	let result: GeneratedWorkspaceNames | null;
 	try {
-		result = await generateObjectFromMessage({
+		return await generateObjectFromMessage({
 			message: cleaned,
 			agentModel: model,
 			agentId: "workspace-namer",
@@ -86,10 +85,4 @@ export async function generateWorkspaceNamesFromPrompt(
 		);
 		return null;
 	}
-	if (!result) return null;
-
-	// If the model's branchName sanitizes to nothing (e.g. all emoji), slug
-	// the title instead — branch rename shouldn't be a failure point.
-	const branchName = result.branchName || sanitizeBranchCandidate(result.title);
-	return { title: result.title, branchName };
 }
