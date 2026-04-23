@@ -1,4 +1,5 @@
 import type { Terminal as XTerm } from "@xterm/xterm";
+import { AckDataBufferer } from "./flow-control";
 
 export type ConnectionState = "disconnected" | "connecting" | "open" | "closed";
 
@@ -23,6 +24,12 @@ export interface TerminalTransport {
 	_terminal: XTerm | null;
 	/** Set when the server sends an exit message — no reconnect after this. */
 	_exited: boolean;
+	/**
+	 * Batches per-chunk ack counts before flushing over the wire as an
+	 * `{type:"ack",charCount}` message. Re-created per connection so a stale
+	 * buffer from a prior socket can't ack into a fresh one.
+	 */
+	_ackBufferer: AckDataBufferer | null;
 }
 
 function setConnectionState(
@@ -50,6 +57,7 @@ export function createTransport(): TerminalTransport {
 		_reconnectAttempt: 0,
 		_terminal: null,
 		_exited: false,
+		_ackBufferer: null,
 	};
 }
 
@@ -108,6 +116,16 @@ export function connect(
 	const socket = new WebSocket(wsUrl);
 	transport.socket = socket;
 
+	// Ack-based flow control: batches acks into CharCountAckSize chunks and
+	// sends `{type:"ack",charCount}` upstream so the server can pause/resume
+	// the pty. See apps/desktop/src/renderer/lib/terminal/flow-control.ts.
+	const ackBufferer = new AckDataBufferer((charCount) => {
+		if (socket.readyState === WebSocket.OPEN) {
+			socket.send(JSON.stringify({ type: "ack", charCount }));
+		}
+	});
+	transport._ackBufferer = ackBufferer;
+
 	socket.addEventListener("open", () => {
 		if (transport.socket !== socket) return;
 		transport._reconnectAttempt = 0;
@@ -126,7 +144,13 @@ export function connect(
 		}
 
 		if (message.type === "data" || message.type === "replay") {
-			terminal.write(message.data);
+			// Ack after xterm has *parsed* (not merely received) this chunk —
+			// matches VSCode's write-callback pattern so the server only
+			// resumes once the renderer has actually caught up.
+			const len = message.data.length;
+			terminal.write(message.data, () => {
+				ackBufferer.ack(len);
+			});
 			return;
 		}
 
@@ -176,6 +200,7 @@ export function disconnect(transport: TerminalTransport) {
 	setConnectionState(transport, "disconnected");
 	transport.onDataDisposable?.dispose();
 	transport.onDataDisposable = null;
+	transport._ackBufferer = null;
 }
 
 export function sendResize(

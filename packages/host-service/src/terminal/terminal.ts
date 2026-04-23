@@ -17,6 +17,13 @@ import {
 	getTerminalBaseEnv,
 	resolveLaunchShell,
 } from "./env";
+import {
+	clearUnacknowledged,
+	createFlowControlState,
+	type FlowControlState,
+	recordAck,
+	recordOutput,
+} from "./flow-control";
 
 interface RegisterWorkspaceTerminalRouteOptions {
 	app: Hono;
@@ -33,7 +40,8 @@ export function parseThemeType(
 type TerminalClientMessage =
 	| { type: "input"; data: string }
 	| { type: "resize"; cols: number; rows: number }
-	| { type: "dispose" };
+	| { type: "dispose" }
+	| { type: "ack"; charCount: number };
 
 type TerminalServerMessage =
 	| { type: "data"; data: string }
@@ -84,6 +92,9 @@ interface TerminalSession {
 	shellReadyPromise: Promise<void>;
 	shellReadyTimeoutId: ReturnType<typeof setTimeout> | null;
 	scanState: ShellReadyScanState;
+
+	/** Ack-based flow control. See packages/host-service/src/terminal/flow-control.ts. */
+	flowControl: FlowControlState;
 }
 
 /** PTY lifetime is independent of socket lifetime — sockets detach/reattach freely. */
@@ -95,6 +106,22 @@ function sendMessage(
 ) {
 	if (socket.readyState !== 1) return;
 	socket.send(JSON.stringify(message));
+}
+
+/**
+ * Reset flow control when the client detaches. Without this, a pty paused at
+ * the high-watermark would stay paused forever — the detached socket can't
+ * ack, and the in-memory buffer is capped by MAX_BUFFER_BYTES anyway so
+ * there's no need to keep backpressure applied while nobody is consuming.
+ */
+function detachFlowControl(session: TerminalSession) {
+	if (clearUnacknowledged(session.flowControl)) {
+		try {
+			session.pty.resume();
+		} catch {
+			// node-pty may reject resume() post-exit; ignore.
+		}
+	}
 }
 
 function bufferOutput(session: TerminalSession, data: string) {
@@ -321,6 +348,7 @@ export function createTerminalSessionInternal({
 		shellReadyPromise,
 		shellReadyTimeoutId: null,
 		scanState: createScanState(),
+		flowControl: createFlowControlState(),
 	};
 	sessions.set(terminalId, session);
 
@@ -348,6 +376,17 @@ export function createTerminalSessionInternal({
 			sendMessage(session.socket, { type: "data", data });
 		} else {
 			bufferOutput(session, data);
+		}
+
+		// Flow control: pause the pty when too many chars are unacked. The
+		// client acks after xterm has *parsed* each write (not merely received
+		// it), so this bounds how far ahead of the renderer we get.
+		if (recordOutput(session.flowControl, data.length)) {
+			try {
+				pty.pause();
+			} catch {
+				// node-pty may reject pause() post-exit; ignore.
+			}
 		}
 	});
 
@@ -544,6 +583,29 @@ export function registerWorkspaceTerminalRoute({
 						const cols = Math.max(20, Math.floor(message.cols));
 						const rows = Math.max(5, Math.floor(message.rows));
 						session.pty.resize(cols, rows);
+						return;
+					}
+
+					if (message.type === "ack") {
+						// charCount is untrusted JSON — reject anything that
+						// would corrupt the flow-control counter (NaN poisons
+						// all future arithmetic and permanently disables
+						// pause/resume for the session).
+						const charCount = message.charCount;
+						if (
+							typeof charCount !== "number" ||
+							!Number.isFinite(charCount) ||
+							charCount <= 0
+						) {
+							return;
+						}
+						if (recordAck(session.flowControl, Math.floor(charCount))) {
+							try {
+								session.pty.resume();
+							} catch {
+								// node-pty may reject resume() post-exit; ignore.
+							}
+						}
 					}
 				},
 
@@ -551,6 +613,7 @@ export function registerWorkspaceTerminalRoute({
 					const session = sessions.get(terminalId ?? "");
 					if (session?.socket === ws) {
 						session.socket = null;
+						detachFlowControl(session);
 					}
 				},
 
@@ -558,6 +621,7 @@ export function registerWorkspaceTerminalRoute({
 					const session = sessions.get(terminalId ?? "");
 					if (session?.socket === ws) {
 						session.socket = null;
+						detachFlowControl(session);
 					}
 				},
 			};
