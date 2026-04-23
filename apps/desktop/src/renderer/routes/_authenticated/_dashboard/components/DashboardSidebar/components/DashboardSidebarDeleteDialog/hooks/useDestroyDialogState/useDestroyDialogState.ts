@@ -65,12 +65,14 @@ export function useDestroyDialogState({
 			if (inFlight.current) return;
 			inFlight.current = true;
 
-			// Optimistic close. State (deleteBranch) preserved in case we re-open
-			// on a decision-required error.
+			// Navigate off the doomed workspace FIRST, before dialog close /
+			// markDeleting / any other state thrash. Closing the dialog and
+			// hiding the row were swallowing the nav otherwise.
+			onDeleting?.();
+
 			setError(null);
 			onOpenChange(false);
 			markDeleting(workspaceId);
-			onDeleting?.();
 			toast(`Deleting "${workspaceName}"...`);
 
 			try {
