@@ -38,6 +38,22 @@ import { HOOK_PROTOCOL_VERSION } from "./terminal/env";
  */
 const MIN_HOST_SERVICE_VERSION = "0.2.0";
 
+function isHostServiceVersionSupported(version: string | null): boolean {
+	if (!version) return false;
+	const current = version.split(".").map((n) => Number.parseInt(n, 10));
+	const minimum = MIN_HOST_SERVICE_VERSION.split(".").map((n) =>
+		Number.parseInt(n, 10),
+	);
+	for (let i = 0; i < Math.max(current.length, minimum.length); i++) {
+		const a = current[i] ?? 0;
+		const b = minimum[i] ?? 0;
+		if (!Number.isFinite(a)) return false;
+		if (a > b) return true;
+		if (a < b) return false;
+	}
+	return true;
+}
+
 export type HostServiceStatus = "starting" | "running" | "stopped";
 
 export interface Connection {
@@ -294,11 +310,12 @@ export class HostServiceCoordinator extends EventEmitter {
 			manifest.endpoint,
 			manifest.authToken,
 		);
-		if (!version || version < MIN_HOST_SERVICE_VERSION) {
+		if (!isHostServiceVersionSupported(version)) {
+			const reason = version
+				? `version ${version} < ${MIN_HOST_SERVICE_VERSION}`
+				: "version unknown";
 			console.log(
-				`[host-service:${organizationId}] Adopted service version ${
-					version ?? "unknown"
-				} < ${MIN_HOST_SERVICE_VERSION}, killing`,
+				`[host-service:${organizationId}] Adopted service ${reason}, killing`,
 			);
 			try {
 				process.kill(manifest.pid, "SIGTERM");
