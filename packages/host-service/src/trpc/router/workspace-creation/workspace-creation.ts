@@ -1,5 +1,6 @@
-import { existsSync } from "node:fs";
-import { join, resolve, sep } from "node:path";
+import { existsSync, mkdirSync } from "node:fs";
+import { homedir } from "node:os";
+import { dirname, join, resolve, sep } from "node:path";
 import { getDeviceName, getHashedDeviceId } from "@superset/shared/device-info";
 import { TRPCError } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
@@ -83,12 +84,26 @@ function projectNotSetupError(projectId: string): TRPCError {
 	});
 }
 
-function safeResolveWorktreePath(repoPath: string, branchName: string): string {
-	const worktreesRoot = resolve(repoPath, ".worktrees");
-	const worktreePath = resolve(worktreesRoot, branchName);
+// Superset-managed worktrees live under ~/.superset/worktrees/<projectId>/<branch>,
+// mirroring the v1 desktop pattern. Keeps worktrees out of the primary
+// checkout tree so editors, watchers, and ignore rules don't see them.
+function supersetWorktreesRoot(): string {
+	return join(homedir(), ".superset", "worktrees");
+}
+
+function projectWorktreesRoot(projectId: string): string {
+	return resolve(supersetWorktreesRoot(), projectId);
+}
+
+function safeResolveWorktreePath(
+	projectId: string,
+	branchName: string,
+): string {
+	const projectRoot = projectWorktreesRoot(projectId);
+	const worktreePath = resolve(projectRoot, branchName);
 	if (
-		worktreePath !== worktreesRoot &&
-		!worktreePath.startsWith(worktreesRoot + sep)
+		worktreePath !== projectRoot &&
+		!worktreePath.startsWith(projectRoot + sep)
 	) {
 		throw new TRPCError({
 			code: "BAD_REQUEST",
@@ -167,18 +182,32 @@ function markRefetchRemote(projectId: string): void {
 type GitClient = Awaited<ReturnType<HostServiceContext["git"]>>;
 
 async function listWorktreeBranches(
+	ctx: HostServiceContext,
 	git: GitClient,
-	repoPath: string,
+	projectId: string,
 ): Promise<{
-	// Superset-managed worktrees only (under <repoPath>/.worktrees/).
-	// These count as "has a workspace" for the picker.
+	// Superset-managed worktrees. A worktree counts as "ours" if either
+	// (a) a row in the local `workspaces` table points at its path (the
+	// primary source of truth, works for both new and legacy locations),
+	// or (b) the path lives under our managed root for this project
+	// (catches orphans — worktree on disk, no `workspaces` row, e.g.
+	// partial create rollback). Legacy orphans under <repo>/.worktrees/
+	// from before this change are intentionally not detected; no migration.
 	worktreeMap: Map<string, string>;
 	// Every branch checked out in any git worktree, including the primary
 	// working tree. Used to disable the Checkout action when a branch is
 	// already in use elsewhere — `git worktree add <path> <branch>` would fail.
 	checkedOutBranches: Set<string>;
 }> {
-	const worktreesRoot = resolve(repoPath, ".worktrees");
+	const managedRoot = projectWorktreesRoot(projectId);
+	const knownPaths = new Set<string>(
+		ctx.db
+			.select({ path: workspaces.worktreePath })
+			.from(workspaces)
+			.where(eq(workspaces.projectId, projectId))
+			.all()
+			.map((w) => w.path),
+	);
 	const worktreeMap = new Map<string, string>();
 	const checkedOutBranches = new Set<string>();
 	try {
@@ -191,9 +220,10 @@ async function listWorktreeBranches(
 				const branch = line.slice("branch refs/heads/".length).trim();
 				if (!branch) continue;
 				checkedOutBranches.add(branch);
-				// Superset-managed worktrees live under <repoPath>/.worktrees/<name>;
-				// the primary working tree is at repoPath itself and skipped here.
-				if (currentPath.startsWith(worktreesRoot + sep)) {
+				if (
+					knownPaths.has(currentPath) ||
+					currentPath.startsWith(managedRoot + sep)
+				) {
 					worktreeMap.set(branch, currentPath);
 				}
 			} else if (line === "") {
@@ -522,8 +552,9 @@ export const workspaceCreationRouter = router({
 			const defaultBranch: string | null = await resolveDefaultBranchName(git);
 
 			const { worktreeMap, checkedOutBranches } = await listWorktreeBranches(
+				ctx,
 				git,
-				localProject.repoPath,
+				input.projectId,
 			);
 			const recencyMap = await getRecentBranchOrder(git, 30);
 
@@ -752,9 +783,10 @@ export const workspaceCreationRouter = router({
 
 			// 3. Create worktree
 			const worktreePath = safeResolveWorktreePath(
-				localProject.repoPath,
+				localProject.id,
 				branchName,
 			);
+			mkdirSync(dirname(worktreePath), { recursive: true });
 
 			const git = await ctx.git(localProject.repoPath);
 
@@ -1093,11 +1125,12 @@ export const workspaceCreationRouter = router({
 
 				let worktreePath: string;
 				try {
-					worktreePath = safeResolveWorktreePath(localProject.repoPath, branch);
+					worktreePath = safeResolveWorktreePath(localProject.id, branch);
 				} catch (err) {
 					clearProgress(input.pendingId);
 					throw err;
 				}
+				mkdirSync(dirname(worktreePath), { recursive: true });
 				const git = await ctx.git(localProject.repoPath);
 
 				// Detect a pre-existing local branch with the same derived name
@@ -1218,11 +1251,12 @@ export const workspaceCreationRouter = router({
 
 			let worktreePath: string;
 			try {
-				worktreePath = safeResolveWorktreePath(localProject.repoPath, branch);
+				worktreePath = safeResolveWorktreePath(localProject.id, branch);
 			} catch (err) {
 				clearProgress(input.pendingId);
 				throw err;
 			}
+			mkdirSync(dirname(worktreePath), { recursive: true });
 			const git = await ctx.git(localProject.repoPath);
 
 			// Resolve via the discriminated-ref helper so we don't infer kind
@@ -1321,10 +1355,10 @@ export const workspaceCreationRouter = router({
 
 	/**
 	 * Adopt an existing git worktree as a workspace. Used when the Worktree
-	 * tab surfaces a branch whose `.worktrees/<branch>` directory exists on
-	 * disk but has no corresponding workspaces row (e.g. created by an older
-	 * flow, or partial create rollback). No git ops — just registers the
-	 * cloud + local workspace row over the existing worktree path.
+	 * tab surfaces a branch whose worktree directory exists on disk but has
+	 * no corresponding workspaces row (e.g. partial create rollback). No git
+	 * ops — just registers the cloud + local workspace row over the
+	 * existing worktree path.
 	 */
 	adopt: protectedProcedure
 		.input(
@@ -1355,8 +1389,9 @@ export const workspaceCreationRouter = router({
 
 			const git = await ctx.git(localProject.repoPath);
 			const { worktreeMap } = await listWorktreeBranches(
+				ctx,
 				git,
-				localProject.repoPath,
+				input.projectId,
 			);
 			const worktreePath = worktreeMap.get(branch);
 			if (!worktreePath) {
