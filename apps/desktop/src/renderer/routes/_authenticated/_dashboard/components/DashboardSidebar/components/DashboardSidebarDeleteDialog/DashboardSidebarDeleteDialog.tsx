@@ -1,7 +1,5 @@
-import { ConflictPane } from "./components/ConflictPane";
 import { DestroyConfirmPane } from "./components/DestroyConfirmPane";
 import { TeardownFailedPane } from "./components/TeardownFailedPane";
-import { UnknownErrorPane } from "./components/UnknownErrorPane";
 import { useDestroyDialogState } from "./hooks/useDestroyDialogState";
 
 interface DashboardSidebarDeleteDialogProps {
@@ -14,10 +12,10 @@ interface DashboardSidebarDeleteDialogProps {
 }
 
 /**
- * Dispatches between confirm / conflict / teardown-failed / unknown-error
- * panes based on the error returned by `workspaceCleanup.destroy`. The
- * destroy itself runs in the background under a toast — this dialog is
- * only on screen when the user has a decision to make.
+ * Dispatches between confirm and teardown-failed panes based on the error
+ * returned by `workspaceCleanup.destroy`. Dirty-worktree state is surfaced
+ * inline as a banner on the confirm pane so the user only sees one warning
+ * before the destroy runs.
  */
 export function DashboardSidebarDeleteDialog({
 	workspaceId,
@@ -29,26 +27,19 @@ export function DashboardSidebarDeleteDialog({
 	const {
 		deleteBranch,
 		setDeleteBranch,
+		hasChanges,
+		hasUnpushedCommits,
+		isCheckingStatus,
 		error,
-		clearError,
 		handleOpenChange,
 		run,
 	} = useDestroyDialogState({
 		workspaceId,
 		workspaceName,
+		open,
 		onOpenChange,
 		onDeleted,
 	});
-
-	if (error?.kind === "conflict") {
-		return (
-			<ConflictPane
-				open={open}
-				onOpenChange={handleOpenChange}
-				onForceDelete={() => run(true)}
-			/>
-		);
-	}
 
 	if (error?.kind === "teardown-failed") {
 		return (
@@ -61,16 +52,7 @@ export function DashboardSidebarDeleteDialog({
 		);
 	}
 
-	if (error?.kind === "unknown") {
-		return (
-			<UnknownErrorPane
-				open={open}
-				onOpenChange={handleOpenChange}
-				message={error.message}
-				onRetry={clearError}
-			/>
-		);
-	}
+	const hasWarnings = hasChanges || hasUnpushedCommits;
 
 	return (
 		<DestroyConfirmPane
@@ -79,7 +61,10 @@ export function DashboardSidebarDeleteDialog({
 			workspaceName={workspaceName}
 			deleteBranch={deleteBranch}
 			onDeleteBranchChange={setDeleteBranch}
-			onConfirm={() => run(false)}
+			hasChanges={hasChanges}
+			hasUnpushedCommits={hasUnpushedCommits}
+			isCheckingStatus={isCheckingStatus}
+			onConfirm={() => run(hasWarnings)}
 		/>
 	);
 }
