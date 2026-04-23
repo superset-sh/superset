@@ -6,6 +6,7 @@ import { Search } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { LuFile, LuGitCompareArrows } from "react-icons/lu";
 import { useGitStatus } from "renderer/hooks/host-service/useGitStatus";
+import { useV2UserPreferences } from "renderer/hooks/useV2UserPreferences";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { sidebarHeaderTabTriggerClassName } from "renderer/screens/main/components/WorkspaceView/RightSidebar/headerTabStyles";
 import type { CommentPaneData } from "../../types";
@@ -68,16 +69,14 @@ export function WorkspaceSidebar({
 	workspaceName,
 }: WorkspaceSidebarProps) {
 	const collections = useCollections();
+	const { preferences, setRightSidebarTab } = useV2UserPreferences();
+	const activeTab = preferences.rightSidebarTab;
 	const localState = collections.v2WorkspaceLocalState.get(workspaceId);
-	const activeTab = localState?.sidebarState?.activeTab ?? "changes";
 	const changesSubtab = localState?.sidebarState?.changesSubtab ?? "diffs";
 
 	function setActiveTab(tab: string) {
 		if (tab !== "changes" && tab !== "files") return;
-		if (!collections.v2WorkspaceLocalState.get(workspaceId)) return;
-		collections.v2WorkspaceLocalState.update(workspaceId, (draft) => {
-			draft.sidebarState.activeTab = tab;
-		});
+		setRightSidebarTab(tab);
 	}
 
 	function setChangesSubtab(subtab: "diffs" | "review") {

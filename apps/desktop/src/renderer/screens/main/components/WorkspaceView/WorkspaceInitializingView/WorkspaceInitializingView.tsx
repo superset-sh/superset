@@ -7,10 +7,9 @@ import {
 	AlertDialogTitle,
 } from "@superset/ui/alert-dialog";
 import { Button } from "@superset/ui/button";
-import { cn } from "@superset/ui/utils";
 import { useEffect, useState } from "react";
 import { HiExclamationTriangle } from "react-icons/hi2";
-import { LuCheck, LuCircle, LuGitBranch, LuLoader } from "react-icons/lu";
+import { LuGitBranch, LuLoader } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useDeleteWorkspace } from "renderer/react-query/workspaces";
 import { deleteWithToast } from "renderer/routes/_authenticated/components/TeardownLogsDialog";
@@ -18,12 +17,8 @@ import {
 	useHasWorkspaceFailed,
 	useWorkspaceInitProgress,
 } from "renderer/stores/workspace-init";
-import {
-	INIT_STEP_MESSAGES,
-	INIT_STEP_ORDER,
-	isStepComplete,
-	type WorkspaceInitStep,
-} from "shared/types/workspace-init";
+import { KeypadLoader } from "./KeypadLoader";
+import { StepProgress } from "./StepProgress";
 
 interface WorkspaceInitializingViewProps {
 	workspaceId: string;
@@ -31,11 +26,6 @@ interface WorkspaceInitializingViewProps {
 	/** True if init was interrupted (e.g., app restart during init) */
 	isInterrupted?: boolean;
 }
-
-// Steps to display in the progress view (skip pending and ready)
-const DISPLAY_STEPS: WorkspaceInitStep[] = INIT_STEP_ORDER.filter(
-	(step) => step !== "pending" && step !== "ready",
-);
 
 const DUPLICATE_BRANCH_ERROR_PATTERNS = [
 	"a branch named",
@@ -77,6 +67,14 @@ export function WorkspaceInitializingView({
 	const retryMutation = electronTrpc.workspaces.retryInit.useMutation();
 	const deleteWorkspace = useDeleteWorkspace();
 	const utils = electronTrpc.useUtils();
+
+	// Honor the user's notification-mute preference and volume for the keypad
+	// click sound. Default to muted while the setting loads so we never play a
+	// click for a user who has it disabled before the query resolves.
+	const { data: notificationSoundsMuted = true } =
+		electronTrpc.settings.getNotificationSoundsMuted.useQuery();
+	const { data: notificationVolume = 100 } =
+		electronTrpc.settings.getNotificationVolume.useQuery();
 
 	const handleRetry = (deduplicateBranchName = false) => {
 		retryMutation.mutate(
@@ -304,64 +302,22 @@ export function WorkspaceInitializingView({
 	// Initializing state
 	return (
 		<div className="flex flex-col items-center justify-center h-full w-full px-8">
-			<div className="flex flex-col items-center max-w-sm text-center space-y-6">
-				{/* Icon with pulse animation */}
-				<div className="relative">
-					<div className="absolute inset-0 animate-ping rounded-full bg-primary/20" />
-					<div className="relative flex items-center justify-center size-16 rounded-full bg-primary/10">
-						<LuGitBranch className="size-8 text-primary" />
-					</div>
-				</div>
+			<div className="flex flex-col items-center max-w-md text-center space-y-5">
+				<KeypadLoader
+					currentStep={currentStep}
+					muted={notificationSoundsMuted}
+					volume={0.35 * (notificationVolume / 100)}
+				/>
 
-				{/* Title and description */}
-				<div className="space-y-2">
+				<div className="space-y-1">
 					<h2 className="text-lg font-medium text-foreground">
 						Setting up workspace
 					</h2>
 					<p className="text-sm text-muted-foreground">{workspaceName}</p>
 				</div>
 
-				{/* Step list */}
-				<div className="w-full space-y-2">
-					{DISPLAY_STEPS.map((step) => {
-						const isComplete = isStepComplete(step, currentStep);
-						const isCurrent = step === currentStep;
+				<StepProgress currentStep={currentStep} />
 
-						return (
-							<div
-								key={step}
-								className={cn(
-									"flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors",
-									isComplete && "bg-muted/30",
-									isCurrent && "bg-primary/5",
-								)}
-							>
-								{/* Step icon */}
-								{isComplete ? (
-									<LuCheck className="size-4 text-green-500 shrink-0" />
-								) : isCurrent ? (
-									<LuLoader className="size-4 text-primary animate-spin shrink-0" />
-								) : (
-									<LuCircle className="size-4 text-muted-foreground/40 shrink-0" />
-								)}
-
-								{/* Step label */}
-								<span
-									className={cn(
-										"text-left flex-1",
-										isComplete && "text-muted-foreground line-through",
-										isCurrent && "text-foreground font-medium",
-										!isComplete && !isCurrent && "text-muted-foreground/60",
-									)}
-								>
-									{INIT_STEP_MESSAGES[step]}
-								</span>
-							</div>
-						);
-					})}
-				</div>
-
-				{/* Helper text */}
 				<p className="text-xs text-muted-foreground/60">
 					Takes 10s to a few minutes depending on the size of your repo
 				</p>

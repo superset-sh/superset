@@ -88,9 +88,7 @@ export function TopBar() {
 					/>
 				) : null}
 				{!isV2CloudEnabled && <OrganizationDropdown />}
-				{isV2WorkspaceRoute && (
-					<RightSidebarToggle workspaceId={v2WorkspaceId} />
-				)}
+				{isV2WorkspaceRoute && <RightSidebarToggle />}
 				{!isMac && <WindowControls />}
 			</div>
 		</div>
