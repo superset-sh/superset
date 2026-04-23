@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import type { EnrichedPort } from "shared/types";
+import { useRemoteHostsPorts } from "./useRemoteHostsPorts";
 
 const PORTS_FALLBACK_REFETCH_INTERVAL_MS = 10_000;
 
@@ -15,13 +16,10 @@ export function usePortsData() {
 
 	const utils = electronTrpc.useUtils();
 
-	const { data: detectedPorts } = electronTrpc.ports.getAll.useQuery(
-		undefined,
-		{
-			// Keep a low-frequency safety net in case subscription events are missed.
-			refetchInterval: PORTS_FALLBACK_REFETCH_INTERVAL_MS,
-		},
-	);
+	const { data: localPorts } = electronTrpc.ports.getAll.useQuery(undefined, {
+		// Keep a low-frequency safety net in case subscription events are missed.
+		refetchInterval: PORTS_FALLBACK_REFETCH_INTERVAL_MS,
+	});
 
 	electronTrpc.ports.subscribe.useSubscription(undefined, {
 		onData: () => {
@@ -29,7 +27,18 @@ export function usePortsData() {
 		},
 	});
 
-	const ports = detectedPorts ?? [];
+	const remoteHostsPorts = useRemoteHostsPorts();
+
+	const ports = useMemo<EnrichedPort[]>(() => {
+		const merged: EnrichedPort[] = localPorts ? [...localPorts] : [];
+		for (const { hostUrl, ports } of remoteHostsPorts) {
+			for (const port of ports) {
+				// Remote host-services don't yet resolve ports.json labels; step 4.
+				merged.push({ ...port, label: null, hostUrl });
+			}
+		}
+		return merged;
+	}, [localPorts, remoteHostsPorts]);
 
 	const workspaceNames = useMemo(() => {
 		if (!allWorkspaces) return {};

@@ -76,7 +76,11 @@ export const createPortsRouter = () => {
 			const detectedPorts = portManager.getAllPorts();
 			return detectedPorts.map((port) => {
 				const labels = getLabelsForWorkspace(port.workspaceId);
-				return { ...port, label: labels?.get(port.port) ?? null };
+				return {
+					...port,
+					label: labels?.get(port.port) ?? null,
+					hostUrl: null,
+				};
 			});
 		}),
 
