@@ -93,10 +93,10 @@ function WorkspaceFilesTreeItemComponent({
 			)}
 			onClick={(e) => {
 				const intent = getSidebarClickIntent(e);
-				if (intent === "openInEditor") {
-					onOpenInEditor(node.absolutePath);
-				} else if (isFolder) {
+				if (isFolder) {
 					onToggleDirectory(node.absolutePath);
+				} else if (intent === "openInEditor") {
+					onOpenInEditor(node.absolutePath);
 				} else {
 					onSelectFile(node.absolutePath, intent === "openInNewTab");
 				}
