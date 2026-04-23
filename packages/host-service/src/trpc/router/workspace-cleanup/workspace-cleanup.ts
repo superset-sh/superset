@@ -23,8 +23,10 @@ export const workspaceCleanupRouter = router({
 	 * Force semantics:
 	 *   - skips preflight (step 0)
 	 *   - skips teardown  (step 1)
-	 *   - upgrades `git branch -d` to `-D` in step 3c
 	 *   - step 3b always uses `--force` (we're past the commit point)
+	 *   - step 3c always uses `-D` regardless: the `deleteBranch`
+	 *     checkbox is the user's consent, so refusing unmerged branches
+	 *     would just silently drop the opt-in.
 	 *
 	 * Typed errors for the renderer:
 	 *   - CONFLICT             → dirty worktree; prompt force-retry
@@ -147,7 +149,7 @@ export const workspaceCleanupRouter = router({
 
 				if (input.deleteBranch && local.branch) {
 					try {
-						await git.raw(["branch", input.force ? "-D" : "-d", local.branch]);
+						await git.raw(["branch", "-D", local.branch]);
 						branchDeleted = true;
 					} catch (err) {
 						const message = err instanceof Error ? err.message : String(err);
