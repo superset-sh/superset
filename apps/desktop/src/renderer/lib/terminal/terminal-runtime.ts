@@ -163,30 +163,8 @@ function createKeyEventHandler(terminal: XTerm, getKittyFlags: () => number) {
 
 		if (resolveHotkeyFromEvent(event) !== null) return false;
 
-		// Shift+Enter when the running program has pushed kitty's disambiguate
-		// flag: emit the canonical CSI-u form so claude-code (which only
-		// accepts `\x1b[13;2u`) inserts a newline instead of submitting.
-		// xterm.js's own kitty encoder can vary by flag set — Codex's crossterm
-		// parser tolerates the variance but claude-code does not. Gated like
-		// Ghostty: only when the program is in kitty mode, so pre-kitty shells
-		// still see plain `\r` and behave normally.
-		if (
-			event.key === "Enter" &&
-			event.shiftKey &&
-			!event.metaKey &&
-			!event.ctrlKey &&
-			!event.altKey &&
-			(getKittyFlags() & KITTY_FLAG_DISAMBIGUATE) !== 0 &&
-			!kbdDebugSkipOverride()
-		) {
-			if (event.type === "keydown") {
-				const seq = shiftEnterCsiU(getKittyFlags());
-				event.preventDefault();
-				kbdLog("override", `Shift+Enter → ${kbdHex(seq)}`);
-				terminal.input(seq, true);
-			}
-			return false;
-		}
+		// DIAGNOSTIC MODE: Shift+Enter override disabled so we observe xterm.js's
+		// raw kitty encoding. TODO reinstate once we know the right form.
 
 		const translation = translateLineEditChord(event, { isMac, isWindows });
 		if (translation !== null) {
