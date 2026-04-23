@@ -6,8 +6,7 @@ CREATE TABLE `v1_migration_state` (
 	`status` text NOT NULL,
 	`reason` text,
 	`migrated_at` integer NOT NULL,
-	PRIMARY KEY(`v1_id`, `kind`)
+	PRIMARY KEY(`organization_id`, `v1_id`, `kind`)
 );
 --> statement-breakpoint
-CREATE INDEX `v1_migration_state_v2_id_idx` ON `v1_migration_state` (`v2_id`);--> statement-breakpoint
-CREATE INDEX `v1_migration_state_organization_id_idx` ON `v1_migration_state` (`organization_id`);
+CREATE INDEX `v1_migration_state_v2_id_idx` ON `v1_migration_state` (`v2_id`);

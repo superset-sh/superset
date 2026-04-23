@@ -200,7 +200,7 @@ describe("writeV2SidebarState", () => {
 		expect(sections[0]?.projectId).toBe("v2-p1");
 	});
 
-	test("workspace sectionId gets remapped to v2 section uuid", () => {
+	test("workspace sectionId matches the v2 section id (deterministic from v1)", () => {
 		const c = makeCollections();
 		writeV2SidebarState(
 			c.collections,
@@ -215,8 +215,21 @@ describe("writeV2SidebarState", () => {
 		const ws = c.v2WorkspaceLocalState._values()[0];
 		const sec = c.v2SidebarSections._values()[0];
 		expect(ws?.sidebarState.sectionId).toBe(sec?.sectionId ?? "missing");
-		// v2 section id is a fresh UUID, not the v1 id
-		expect(ws?.sidebarState.sectionId).not.toBe("v1-sec");
+		// Reuses v1 id so reruns don't duplicate sections
+		expect(sec?.sectionId).toBe("v1-sec");
+	});
+
+	test("rerun does not duplicate sections (idempotency)", () => {
+		const c = makeCollections();
+		const input = buildInput({
+			projectV1ToV2: new Map([["v1-p", "v2-p"]]),
+			v1Projects: [project("v1-p")],
+			v1Sections: [section("s1", "v1-p", 0), section("s2", "v1-p", 1)],
+		});
+		writeV2SidebarState(c.collections, input);
+		writeV2SidebarState(c.collections, input);
+		writeV2SidebarState(c.collections, input);
+		expect(c.v2SidebarSections._values()).toHaveLength(2);
 	});
 
 	test("workspace pointing to non-existent v1 section ends up at top level", () => {

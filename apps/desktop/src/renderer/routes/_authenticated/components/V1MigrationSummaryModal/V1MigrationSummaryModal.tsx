@@ -1,6 +1,11 @@
 import { Badge } from "@superset/ui/badge";
 import { Button } from "@superset/ui/button";
-import { Dialog, DialogContent } from "@superset/ui/dialog";
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogTitle,
+} from "@superset/ui/dialog";
 import { MeshGradient } from "@superset/ui/mesh-gradient";
 import { cn } from "@superset/ui/utils";
 import { useEffect, useState } from "react";
@@ -128,6 +133,11 @@ export function V1MigrationSummaryModal() {
 				onPointerDownOutside={(event) => event.preventDefault()}
 				onInteractOutside={(event) => event.preventDefault()}
 			>
+				<DialogTitle className="sr-only">Welcome to Superset v2</DialogTitle>
+				<DialogDescription className="sr-only">
+					We imported your v1 data. Review the summary and click Got it to
+					continue.
+				</DialogDescription>
 				<div className="relative h-[180px] overflow-hidden">
 					<MeshGradient
 						colors={GRADIENT_COLORS}
@@ -169,9 +179,9 @@ export function V1MigrationSummaryModal() {
 						}
 					>
 						<EntryList>
-							{summary.projects.map((p) => (
+							{summary.projects.map((p, index) => (
 								<Entry
-									key={`project-${p.name}`}
+									key={`project-${index}-${p.name}`}
 									primary={p.name}
 									statusLabel={p.status}
 									statusTone={entryTone(p.status)}
@@ -197,9 +207,9 @@ export function V1MigrationSummaryModal() {
 						}
 					>
 						<EntryList>
-							{summary.workspaces.map((w) => (
+							{summary.workspaces.map((w, index) => (
 								<Entry
-									key={`workspace-${w.name}-${w.branch}`}
+									key={`workspace-${index}-${w.name}-${w.branch}`}
 									primary={w.name}
 									secondary={w.branch}
 									statusLabel={w.status}

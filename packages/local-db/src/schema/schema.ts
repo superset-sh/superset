@@ -256,9 +256,10 @@ export const v1MigrationState = sqliteTable(
 			.$defaultFn(() => Date.now()),
 	},
 	(table) => [
-		primaryKey({ columns: [table.v1Id, table.kind] }),
+		primaryKey({
+			columns: [table.organizationId, table.v1Id, table.kind],
+		}),
 		index("v1_migration_state_v2_id_idx").on(table.v2Id),
-		index("v1_migration_state_organization_id_idx").on(table.organizationId),
 	],
 );
 

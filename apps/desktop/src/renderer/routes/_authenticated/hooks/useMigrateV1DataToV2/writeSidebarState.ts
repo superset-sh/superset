@@ -91,14 +91,16 @@ export function writeV2SidebarState(
 	}
 
 	// 2. Sections: create v2 sections for every v1 section under a migrated
-	//    project. Fresh UUIDs per section. Empty sections are preserved —
-	//    v1 supports them as an organizational primitive and the user may
-	//    have intentionally created one ahead of filling it.
+	//    project. Reuse the v1 section id (already a UUID) as the v2 section
+	//    id — deterministic mapping makes reruns idempotent and lets the
+	//    `get(id)` guard actually dedup. Empty sections are preserved — v1
+	//    supports them as an organizational primitive and the user may have
+	//    intentionally created one ahead of filling it.
 	const sectionV1ToV2 = new Map<string, string>();
 	for (const v1Section of input.v1Sections) {
 		const v2ProjectId = input.projectV1ToV2.get(v1Section.projectId);
 		if (!v2ProjectId) continue;
-		const v2SectionId = crypto.randomUUID();
+		const v2SectionId = v1Section.id;
 		sectionV1ToV2.set(v1Section.id, v2SectionId);
 		if (collections.v2SidebarSections.get(v2SectionId)) continue;
 		collections.v2SidebarSections.insert({

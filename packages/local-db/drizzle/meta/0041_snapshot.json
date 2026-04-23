@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "a0dc640e-ec2b-4a4d-b337-44f1465cbde4",
+  "id": "3d1d0ce7-6731-4286-970a-304b4e0a1f6a",
   "prevId": "ecc4c8b8-883e-4e25-8ae4-d4d6298d1030",
   "tables": {
     "browser_history": {
@@ -1086,23 +1086,17 @@
             "v2_id"
           ],
           "isUnique": false
-        },
-        "v1_migration_state_organization_id_idx": {
-          "name": "v1_migration_state_organization_id_idx",
-          "columns": [
-            "organization_id"
-          ],
-          "isUnique": false
         }
       },
       "foreignKeys": {},
       "compositePrimaryKeys": {
-        "v1_migration_state_v1_id_kind_pk": {
+        "v1_migration_state_organization_id_v1_id_kind_pk": {
           "columns": [
+            "organization_id",
             "v1_id",
             "kind"
           ],
-          "name": "v1_migration_state_v1_id_kind_pk"
+          "name": "v1_migration_state_organization_id_v1_id_kind_pk"
         }
       },
       "uniqueConstraints": {},

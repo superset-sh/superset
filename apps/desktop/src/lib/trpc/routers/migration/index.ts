@@ -73,10 +73,13 @@ export const createMigrationRouter = () => {
 						migratedAt: Date.now(),
 					})
 					.onConflictDoUpdate({
-						target: [v1MigrationState.v1Id, v1MigrationState.kind],
+						target: [
+							v1MigrationState.organizationId,
+							v1MigrationState.v1Id,
+							v1MigrationState.kind,
+						],
 						set: {
 							v2Id: input.v2Id,
-							organizationId: input.organizationId,
 							status: input.status,
 							reason: input.reason ?? null,
 							migratedAt: Date.now(),
