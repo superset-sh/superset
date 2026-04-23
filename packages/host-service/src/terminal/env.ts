@@ -144,14 +144,10 @@ export function buildV2TerminalEnv(
 	Object.assign(env, getShellBootstrapEnv({ shell, baseEnv, supersetHomeDir }));
 
 	env.TERM = "xterm-256color";
-	// claude-code (and similar chat TUIs) gate kitty keyboard CSI-u parsing on
-	// TERM_PROGRAM matching a small allowlist — {ghostty, kitty, iTerm.app,
-	// WezTerm, WarpTerminal}. xterm.js v6 with `vtExtensions.kittyKeyboard` DOES
-	// emit the correct CSI-u bytes (Shift+Enter → \x1b[13;2u press +
-	// \x1b[13;2:3u release, same as Ghostty, verified via diagnostic trace), but
-	// claude-code's bundled parser ignores them unless TERM_PROGRAM is in the
-	// allowlist. Claim kitty — the protocol origin, with fewer version-gated
-	// branches downstream than claiming ghostty/iTerm.
+	// claude-code and similar chat TUIs only parse kitty CSI-u (e.g. Shift+Enter
+	// → \x1b[13;2u) when TERM_PROGRAM ∈ {ghostty, kitty, iTerm.app, WezTerm,
+	// WarpTerminal}. xterm.js already emits the right bytes — claim kitty so
+	// they're parsed instead of submitted as plain Enter.
 	env.TERM_PROGRAM = "kitty";
 	env.TERM_PROGRAM_VERSION = hostServiceVersion;
 	env.COLORTERM = "truecolor";
