@@ -2,7 +2,7 @@ import { generateObjectFromMessage } from "@superset/chat/server/desktop";
 import { getSmallModel } from "@superset/chat/server/shared";
 import { z } from "zod";
 
-const WORKSPACE_TITLE_MAX = 40;
+const WORKSPACE_TITLE_MAX = 150;
 const BRANCH_NAME_MAX = 25;
 
 function sanitizeBranchCandidate(raw: string): string {
@@ -18,24 +18,27 @@ function sanitizeBranchCandidate(raw: string): string {
 }
 
 function trimTitle(raw: string): string {
-	return raw.trim().replace(/[\s.,;:!?-]+$/g, "");
+	return raw
+		.trim()
+		.replace(/[\s.,;:!?-]+$/g, "")
+		.slice(0, WORKSPACE_TITLE_MAX);
 }
 
-// Transforms run inside zod parse so model overshoots are coerced into
-// shape rather than rejected — otherwise a 26-char branch or a 41-char
-// title would silently no-op the whole rename.
+// Forgiving transforms: coerce anything the model sends into shape
+// rather than failing the whole rename. The small model has been
+// reliable with `.describe()` guidance so hard bounds aren't needed.
+// Empty fields fall through to the caller, which skips the respective
+// rename step.
 const workspaceNamesSchema = z.object({
 	title: z
 		.string()
 		.transform(trimTitle)
-		.pipe(z.string().min(1))
 		.describe(
 			`Short human-readable workspace title. Up to ${WORKSPACE_TITLE_MAX} characters. No trailing punctuation. Prefer whole words; never truncate mid-word.`,
 		),
 	branchName: z
 		.string()
 		.transform(sanitizeBranchCandidate)
-		.pipe(z.string().min(1))
 		.describe(
 			`Git branch name in kebab-case (lowercase, dashes). 2-4 words, up to ${BRANCH_NAME_MAX} characters. Only [a-z0-9-]. No leading/trailing dashes. No prefixes.`,
 		),
@@ -65,8 +68,9 @@ export async function generateWorkspaceNamesFromPrompt(
 	const model = await getSmallModel();
 	if (!model) return null;
 
+	let result: GeneratedWorkspaceNames | null;
 	try {
-		return await generateObjectFromMessage({
+		result = await generateObjectFromMessage({
 			message: cleaned,
 			agentModel: model,
 			agentId: "workspace-namer",
@@ -82,4 +86,10 @@ export async function generateWorkspaceNamesFromPrompt(
 		);
 		return null;
 	}
+	if (!result) return null;
+
+	// If the model's branchName sanitizes to nothing (e.g. all emoji), slug
+	// the title instead — branch rename shouldn't be a failure point.
+	const branchName = result.branchName || sanitizeBranchCandidate(result.title);
+	return { title: result.title, branchName };
 }
