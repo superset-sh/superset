@@ -211,9 +211,7 @@ describe("resolvePath", () => {
 		});
 
 		test("throws RelativePathWithoutCwdError when no cwd provided", () => {
-			expect(() => resolvePath("file.ts")).toThrow(
-				RelativePathWithoutCwdError,
-			);
+			expect(() => resolvePath("file.ts")).toThrow(RelativePathWithoutCwdError);
 		});
 	});
 
