@@ -141,6 +141,7 @@ export class ChatRuntimeService {
 					mcpManualStatuses: new Map(),
 					lastErrorMessage: null,
 					pendingSandboxQuestion: null,
+					answeredQuestionIds: new Set(),
 					cwd: runtimeCwd,
 				};
 				syncRuntimeHookSessionId(sessionRuntime);
@@ -225,22 +226,30 @@ export class ChatRuntimeService {
 							? {
 									questionId: runtime.pendingSandboxQuestion.questionId,
 									question: `Grant sandbox access to "${runtime.pendingSandboxQuestion.path}"?`,
+									description: runtime.pendingSandboxQuestion.reason,
 									options: [
 										{
 											label: "Yes",
 											description: `Allow access. Reason: ${runtime.pendingSandboxQuestion.reason}`,
 										},
-										{
-											label: "No",
-											description: "Deny access.",
-										},
+										{ label: "No", description: "Deny access." },
 									],
 								}
 							: null;
+						// Skip any pending question whose ID was already answered this turn.
+						// The harness only clears pendingQuestion on agent_end, so without this
+						// filter an answered ask_user question would permanently shadow the
+						// sandbox question that fired in the same turn.
+						const harnessPendingQuestion =
+							displayState.pendingQuestion &&
+							!runtime.answeredQuestionIds.has(
+								displayState.pendingQuestion.questionId,
+							)
+								? displayState.pendingQuestion
+								: null;
 						return {
 							...displayState,
-							pendingQuestion:
-								displayState.pendingQuestion ?? sandboxPendingQuestion,
+							pendingQuestion: harnessPendingQuestion ?? sandboxPendingQuestion,
 							errorMessage: currentMessageError ?? runtime.lastErrorMessage,
 						};
 					}),
@@ -348,6 +357,7 @@ export class ChatRuntimeService {
 								input.sessionId,
 								input.cwd,
 							);
+							runtime.answeredQuestionIds.add(input.payload.questionId);
 							if (
 								runtime.pendingSandboxQuestion?.questionId ===
 								input.payload.questionId

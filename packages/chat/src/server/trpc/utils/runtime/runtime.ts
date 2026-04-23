@@ -32,6 +32,7 @@ export interface RuntimeSession {
 		path: string;
 		reason: string;
 	} | null;
+	answeredQuestionIds: Set<string>;
 	cwd: string;
 }
 
@@ -224,6 +225,7 @@ export function subscribeToSessionEvents(
 		if (isHarnessAgentStartEvent(event)) {
 			runtime.lastErrorMessage = null;
 			runtime.pendingSandboxQuestion = null;
+			runtime.answeredQuestionIds.clear();
 			onLifecycleEvent?.({
 				sessionId: runtime.sessionId,
 				eventType: "Start",
@@ -232,6 +234,7 @@ export function subscribeToSessionEvents(
 		}
 		if (isHarnessAgentEndEvent(event)) {
 			runtime.pendingSandboxQuestion = null;
+			runtime.answeredQuestionIds.clear();
 			const raw = event.reason;
 			const reason = raw === "aborted" || raw === "error" ? raw : "complete";
 			if (runtime.hookManager) {

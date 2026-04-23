@@ -55,6 +55,7 @@ function createRuntimeForTest(): {
 		mcpManualStatuses: new Map(),
 		lastErrorMessage: null,
 		pendingSandboxQuestion: null,
+		answeredQuestionIds: new Set(),
 		cwd: "/tmp",
 	};
 
@@ -103,6 +104,7 @@ function createRuntimeForTitleTest(options?: {
 		mcpManualStatuses: new Map(),
 		lastErrorMessage: null,
 		pendingSandboxQuestion: null,
+		answeredQuestionIds: new Set(),
 		cwd: "/tmp",
 	};
 
