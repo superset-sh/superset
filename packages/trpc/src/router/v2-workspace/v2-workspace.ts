@@ -186,11 +186,21 @@ export const v2WorkspaceRouter = {
 
 	// JWT-authed so host-service can apply AI-generated workspace names
 	// after create without requiring an end-user session.
+	//
+	// `expectedCurrentName` lets host-service avoid clobbering a user edit
+	// that landed between create and the AI response: if the row no longer
+	// has the name host-service submitted at create time, the rename is
+	// skipped.
 	updateNameFromHost: jwtProcedure
-		.input(z.object({ id: z.string().uuid(), name: z.string().min(1) }))
+		.input(
+			z.object({
+				id: z.string().uuid(),
+				name: z.string().min(1),
+				expectedCurrentName: z.string().optional(),
+			}),
+		)
 		.mutation(async ({ ctx, input }) => {
 			const workspace = await dbWs.query.v2Workspaces.findFirst({
-				columns: { id: true, organizationId: true },
 				where: eq(v2Workspaces.id, input.id),
 			});
 			if (!workspace) {
@@ -204,6 +214,12 @@ export const v2WorkspaceRouter = {
 					code: "FORBIDDEN",
 					message: "Not a member of this organization",
 				});
+			}
+			if (
+				input.expectedCurrentName !== undefined &&
+				workspace.name !== input.expectedCurrentName
+			) {
+				return workspace;
 			}
 			const [updated] = await dbWs
 				.update(v2Workspaces)

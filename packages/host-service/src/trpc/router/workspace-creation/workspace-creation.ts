@@ -960,6 +960,9 @@ export const workspaceCreationRouter = router({
 			// Fire-and-forget AI rename from the composer prompt. Electric syncs
 			// the new name to the renderer via v2_workspaces, so the pending/
 			// workspace page will update in place once the model responds.
+			// `expectedCurrentName` makes the cloud skip the rename if the user
+			// already edited the workspace title between create and the AI
+			// response — user edits win.
 			const composerPrompt = input.composer.prompt?.trim();
 			if (composerPrompt) {
 				void generateWorkspaceNameFromPrompt(composerPrompt)
@@ -968,6 +971,7 @@ export const workspaceCreationRouter = router({
 						await ctx.api.v2Workspace.updateNameFromHost.mutate({
 							id: cloudRow.id,
 							name: aiName,
+							expectedCurrentName: input.names.workspaceName,
 						});
 					})
 					.catch((err) => {
