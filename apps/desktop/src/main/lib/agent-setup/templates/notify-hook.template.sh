@@ -71,6 +71,38 @@ if [ "$DEBUG_HOOKS_ENABLED" = "1" ]; then
   echo "[notify-hook] event=$EVENT_TYPE sessionId=$SESSION_ID hookSessionId=$HOOK_SESSION_ID resourceId=$RESOURCE_ID paneId=$SUPERSET_PANE_ID tabId=$SUPERSET_TAB_ID workspaceId=$SUPERSET_WORKSPACE_ID" >&2
 fi
 
+# Escape backslashes and double quotes for safe JSON embedding.
+json_escape() {
+  printf '%s' "$1" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g'
+}
+
+# v2: host-service tRPC endpoint. The renderer subscribes over the event
+# bus and plays the ringtone. Preferred when both the URL and the PSK are
+# provided by host-service's terminal env.
+if [ -n "$SUPERSET_HOST_AGENT_HOOK_URL" ] && [ -n "$SUPERSET_HOST_AGENT_HOOK_TOKEN" ]; then
+  PAYLOAD="{\"json\":{\"paneId\":\"$(json_escape "$SUPERSET_PANE_ID")\",\"tabId\":\"$(json_escape "$SUPERSET_TAB_ID")\",\"workspaceId\":\"$(json_escape "$SUPERSET_WORKSPACE_ID")\",\"sessionId\":\"$(json_escape "$SESSION_ID")\",\"hookSessionId\":\"$(json_escape "$HOOK_SESSION_ID")\",\"resourceId\":\"$(json_escape "$RESOURCE_ID")\",\"eventType\":\"$(json_escape "$EVENT_TYPE")\",\"env\":\"$(json_escape "$SUPERSET_ENV")\",\"version\":\"$(json_escape "$SUPERSET_HOOK_VERSION")\"}}"
+
+  if [ "$DEBUG_HOOKS_ENABLED" = "1" ]; then
+    STATUS_CODE=$(curl -sX POST "$SUPERSET_HOST_AGENT_HOOK_URL" \
+      --connect-timeout 1 --max-time 2 \
+      -H "Authorization: Bearer $SUPERSET_HOST_AGENT_HOOK_TOKEN" \
+      -H "Content-Type: application/json" \
+      -d "$PAYLOAD" \
+      -o /dev/null -w "%{http_code}" 2>/dev/null)
+    echo "[notify-hook] host-service dispatched status=$STATUS_CODE" >&2
+  else
+    curl -sX POST "$SUPERSET_HOST_AGENT_HOOK_URL" \
+      --connect-timeout 1 --max-time 2 \
+      -H "Authorization: Bearer $SUPERSET_HOST_AGENT_HOOK_TOKEN" \
+      -H "Content-Type: application/json" \
+      -d "$PAYLOAD" \
+      > /dev/null 2>&1
+  fi
+  exit 0
+fi
+
+# v1 fallback: electron localhost server. Used by v1 terminals and when
+# host-service is unreachable from the agent's shell.
 # Timeouts prevent blocking agent completion if notification server is unresponsive
 if [ "$DEBUG_HOOKS_ENABLED" = "1" ]; then
   STATUS_CODE=$(curl -sG "http://127.0.0.1:${SUPERSET_PORT:-{{DEFAULT_PORT}}}/hook/complete" \

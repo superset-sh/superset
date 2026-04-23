@@ -31,6 +31,7 @@ import { useDefaultContextMenuActions } from "./hooks/useDefaultContextMenuActio
 import { usePaneRegistry } from "./hooks/usePaneRegistry";
 import { renderBrowserTabIcon } from "./hooks/usePaneRegistry/components/BrowserPane";
 import { useRecentlyViewedFiles } from "./hooks/useRecentlyViewedFiles";
+import { useV2AgentHookListener } from "./hooks/useV2AgentHookListener";
 import { useV2PresetExecution } from "./hooks/useV2PresetExecution";
 import { useV2WorkspacePaneLayout } from "./hooks/useV2WorkspacePaneLayout";
 import { useWorkspaceHotkeys } from "./hooks/useWorkspaceHotkeys";
@@ -68,6 +69,8 @@ function V2WorkspacePage() {
 	const { workspaceId } = Route.useParams();
 	const { terminalId, chatSessionId } = Route.useSearch();
 	const collections = useCollections();
+
+	useV2AgentHookListener(workspaceId);
 
 	const { data: workspaces } = useLiveQuery(
 		(q) =>

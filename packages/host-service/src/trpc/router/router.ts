@@ -6,6 +6,7 @@ import { gitRouter } from "./git";
 import { githubRouter } from "./github";
 import { healthRouter } from "./health";
 import { hostRouter } from "./host";
+import { notificationsRouter } from "./notifications";
 import { projectRouter } from "./project";
 import { pullRequestsRouter } from "./pull-requests";
 import { terminalRouter } from "./terminal";
@@ -21,6 +22,7 @@ export const appRouter = router({
 	git: gitRouter,
 	github: githubRouter,
 	cloud: cloudRouter,
+	notifications: notificationsRouter,
 	pullRequests: pullRequestsRouter,
 	project: projectRouter,
 	terminal: terminalRouter,

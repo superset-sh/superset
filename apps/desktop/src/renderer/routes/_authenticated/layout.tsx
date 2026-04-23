@@ -21,6 +21,7 @@ import { migrateHotkeyOverrides } from "renderer/hotkeys/migrate";
 import { authClient, getAuthToken } from "renderer/lib/auth-client";
 import { dragDropManager } from "renderer/lib/dnd";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { primeRingtoneAudioOnFirstGesture } from "renderer/lib/ringtones/play";
 import { showWorkspaceAutoNameWarningToast } from "renderer/lib/workspaces/showWorkspaceAutoNameWarningToast";
 import { InitGitDialog } from "renderer/react-query/projects/InitGitDialog";
 import { DashboardNewWorkspaceModal } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal";
@@ -72,6 +73,12 @@ function AuthenticatedLayout() {
 		void migrateHotkeyOverrides().catch((error) => {
 			console.error("[hotkeys] Migration failed:", error);
 		});
+	}, []);
+
+	// Unlock browser audio autoplay so v2 agent-hook sounds can play without
+	// a visible user gesture on each event.
+	useEffect(() => {
+		primeRingtoneAudioOnFirstGesture();
 	}, []);
 
 	// Update workspace-run pane state on terminal exit

@@ -1,4 +1,5 @@
 import {
+	type AgentLifecyclePayload,
 	type GitChangedPayload,
 	getEventBus,
 } from "@superset/workspace-client";
@@ -24,11 +25,18 @@ export function useWorkspaceEvent(
 	enabled?: boolean,
 ): void;
 export function useWorkspaceEvent(
-	type: "git:changed" | "fs:events",
+	type: "agent:lifecycle",
+	workspaceId: string,
+	callback: (payload: AgentLifecyclePayload) => void,
+	enabled?: boolean,
+): void;
+export function useWorkspaceEvent(
+	type: "git:changed" | "fs:events" | "agent:lifecycle",
 	workspaceId: string,
 	callback:
 		| ((event: FsWatchEvent) => void)
-		| ((payload: GitChangedPayload) => void),
+		| ((payload: GitChangedPayload) => void)
+		| ((payload: AgentLifecyclePayload) => void),
 	enabled = true,
 ): void {
 	const hostUrl = useWorkspaceHostUrl(workspaceId);
@@ -52,6 +60,15 @@ export function useWorkspaceEvent(
 				},
 			);
 			cleanups.push(removeListener, () => bus.unwatchFs(workspaceId));
+		} else if (type === "agent:lifecycle") {
+			const removeListener = bus.on(
+				"agent:lifecycle",
+				workspaceId,
+				(_wid, payload) => {
+					(handler as (payload: AgentLifecyclePayload) => void)(payload);
+				},
+			);
+			cleanups.push(removeListener);
 		} else {
 			const removeListener = bus.on(
 				"git:changed",

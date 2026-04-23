@@ -1,10 +1,11 @@
 import type {
+	AgentLifecycleEventType,
 	ClientMessage,
 	ServerMessage,
 } from "@superset/host-service/events";
 import type { FsWatchEvent } from "@superset/workspace-fs/host";
 
-type EventType = "fs:events" | "git:changed";
+type EventType = "fs:events" | "git:changed" | "agent:lifecycle";
 
 interface FsEventsPayload {
 	events: FsWatchEvent[];
@@ -18,11 +19,23 @@ export interface GitChangedPayload {
 	paths?: string[];
 }
 
+export interface AgentLifecyclePayload {
+	eventType: AgentLifecycleEventType;
+	paneId?: string;
+	tabId?: string;
+	sessionId?: string;
+	hookSessionId?: string;
+	resourceId?: string;
+	occurredAt: number;
+}
+
 type EventListener<T extends EventType> = T extends "fs:events"
 	? (workspaceId: string, payload: FsEventsPayload) => void
 	: T extends "git:changed"
 		? (workspaceId: string, payload: GitChangedPayload) => void
-		: never;
+		: T extends "agent:lifecycle"
+			? (workspaceId: string, payload: AgentLifecyclePayload) => void
+			: never;
 
 interface ListenerEntry {
 	type: EventType;
@@ -75,7 +88,9 @@ function handleMessage(state: ConnectionState, data: unknown): void {
 		if (entry.type !== message.type) continue;
 
 		const workspaceId =
-			message.type === "fs:events" || message.type === "git:changed"
+			message.type === "fs:events" ||
+			message.type === "git:changed" ||
+			message.type === "agent:lifecycle"
 				? message.workspaceId
 				: null;
 
@@ -95,6 +110,19 @@ function handleMessage(state: ConnectionState, data: unknown): void {
 			(entry.callback as EventListener<"git:changed">)(message.workspaceId, {
 				paths: message.paths,
 			});
+		} else if (message.type === "agent:lifecycle") {
+			(entry.callback as EventListener<"agent:lifecycle">)(
+				message.workspaceId,
+				{
+					eventType: message.eventType,
+					paneId: message.paneId,
+					tabId: message.tabId,
+					sessionId: message.sessionId,
+					hookSessionId: message.hookSessionId,
+					resourceId: message.resourceId,
+					occurredAt: message.occurredAt,
+				},
+			);
 		}
 	}
 }

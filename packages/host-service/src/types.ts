@@ -2,6 +2,7 @@ import type { Octokit } from "@octokit/rest";
 import type { AppRouter } from "@superset/trpc";
 import type { TRPCClient } from "@trpc/client";
 import type { HostDb } from "./db";
+import type { EventBus } from "./events";
 import type { ChatRuntimeManager } from "./runtime/chat";
 import type { WorkspaceFilesystemManager } from "./runtime/filesystem";
 import type { GitFactory } from "./runtime/git";
@@ -21,6 +22,7 @@ export interface HostServiceContext {
 	api: ApiClient;
 	db: HostDb;
 	runtime: HostServiceRuntime;
+	eventBus: EventBus;
 	organizationId: string;
 	isAuthenticated: boolean;
 }

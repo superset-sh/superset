@@ -118,6 +118,7 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 					api,
 					db,
 					runtime,
+					eventBus,
 					organizationId: config.organizationId,
 					isAuthenticated,
 				} as Record<string, unknown>;

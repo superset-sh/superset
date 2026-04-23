@@ -30,6 +30,17 @@ export function parseThemeType(
 	return value === "dark" || value === "light" ? value : undefined;
 }
 
+/**
+ * Build the host-service tRPC URL for the v2 agent hook. The agent shell
+ * script POSTs to this; host-service fans out on the event bus so the
+ * renderer (web or electron) can play the finish sound.
+ */
+function getHostAgentHookUrl(): string {
+	const port = process.env.HOST_SERVICE_PORT || process.env.PORT;
+	if (!port) return "";
+	return `http://127.0.0.1:${port}/trpc/notifications.hook`;
+}
+
 type TerminalClientMessage =
 	| { type: "input"; data: string }
 	| { type: "resize"; cols: number; rows: number }
@@ -266,6 +277,8 @@ export function createTerminalSessionInternal({
 			process.env.NODE_ENV === "development" ? "development" : "production",
 		agentHookPort: process.env.SUPERSET_AGENT_HOOK_PORT || "",
 		agentHookVersion: process.env.SUPERSET_AGENT_HOOK_VERSION || "",
+		hostAgentHookUrl: getHostAgentHookUrl(),
+		hostAgentHookToken: process.env.HOST_SERVICE_SECRET || "",
 	});
 
 	let pty: IPty;

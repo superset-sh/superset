@@ -122,6 +122,21 @@ export class EventBus {
 		}
 	}
 
+	/**
+	 * Fan out an agent lifecycle event (hook completion) to all connected
+	 * clients. The workspace-client filters by `workspaceId` on the receiving
+	 * side; we broadcast indiscriminately here to match the existing
+	 * `git:changed` pattern.
+	 */
+	broadcastAgentLifecycle(
+		message: Omit<
+			Extract<ServerMessage, { type: "agent:lifecycle" }>,
+			"type"
+		>,
+	): void {
+		this.broadcast({ type: "agent:lifecycle", ...message });
+	}
+
 	private startFsWatch(
 		socket: WsSocket,
 		state: ClientState,
