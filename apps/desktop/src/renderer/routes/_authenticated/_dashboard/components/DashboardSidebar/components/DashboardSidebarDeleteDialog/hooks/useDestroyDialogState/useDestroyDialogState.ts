@@ -10,7 +10,6 @@ interface UseDestroyDialogStateOptions {
 	workspaceId: string;
 	workspaceName: string;
 	onOpenChange: (open: boolean) => void;
-	onDeleting?: () => void;
 	onDeleted?: () => void;
 }
 
@@ -19,10 +18,10 @@ interface UseDestroyDialogStateOptions {
  *
  * UX pattern:
  *   - On confirm, close the dialog immediately, mark the workspace as
- *     deleting (sidebar row hides optimistically), fire an info toast,
- *     and fire `onDeleting` so the caller can immediately navigate off
- *     the deleted workspace (don't leave the user staring at a workspace
- *     that's being torn down). Destroy itself runs in the background.
+ *     deleting (sidebar row hides optimistically), and run destroy in
+ *     the background silently. No loading toast — destroy can take
+ *     10–20s and a persistent toast across that window feels bad. The
+ *     hidden row is the feedback.
  *   - On success, `onDeleted` removes the row from sidebar state.
  *   - On error, `clearDeleting` runs in the `finally` block so the row
  *     reappears. For decision-required errors (CONFLICT, TEARDOWN_FAILED)
@@ -34,7 +33,6 @@ export function useDestroyDialogState({
 	workspaceId,
 	workspaceName,
 	onOpenChange,
-	onDeleting,
 	onDeleted,
 }: UseDestroyDialogStateOptions) {
 	const { destroy } = useDestroyWorkspace(workspaceId);
@@ -70,7 +68,6 @@ export function useDestroyDialogState({
 			setError(null);
 			onOpenChange(false);
 			markDeleting(workspaceId);
-			onDeleting?.();
 			toast(`Deleting "${workspaceName}"...`);
 
 			try {
@@ -97,7 +94,6 @@ export function useDestroyDialogState({
 			workspaceName,
 			workspaceId,
 			onOpenChange,
-			onDeleting,
 			onDeleted,
 			markDeleting,
 			clearDeleting,

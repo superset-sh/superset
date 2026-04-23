@@ -78,30 +78,26 @@ export function useDashboardSidebarWorkspaceItemActions({
 	};
 
 	/**
-	 * Runs the moment destroy kicks off. If we were viewing the deleted
-	 * workspace, navigate immediately to a sibling (or home) so the user
-	 * isn't stuck on a workspace that's being torn down. Destroy itself
-	 * can take 10–20s.
+	 * Runs after `workspaceCleanup.destroy` succeeds. Removes the row from
+	 * the sidebar and, if we were viewing the deleted workspace, navigates
+	 * to the next sibling or home.
 	 */
-	const handleDeleting = () => {
+	const handleDeleted = () => {
+		const focusTargetId = isActive
+			? getDeleteFocusTargetWorkspaceId(
+					getFlattenedV2WorkspaceIds(collections),
+					workspaceId,
+				)
+			: null;
+
+		removeWorkspaceFromSidebar(workspaceId);
+
 		if (!isActive) return;
-		const focusTargetId = getDeleteFocusTargetWorkspaceId(
-			getFlattenedV2WorkspaceIds(collections),
-			workspaceId,
-		);
 		if (focusTargetId) {
 			void navigateToV2Workspace(focusTargetId, navigate);
 		} else {
 			void navigate({ to: "/" });
 		}
-	};
-
-	/**
-	 * Runs after `workspaceCleanup.destroy` succeeds. Removes the row from
-	 * sidebar state (the row was already hidden optimistically).
-	 */
-	const handleDeleted = () => {
-		removeWorkspaceFromSidebar(workspaceId);
 	};
 
 	const handleCreateSection = () => {
@@ -171,7 +167,6 @@ export function useDashboardSidebarWorkspaceItemActions({
 		handleCopyPath,
 		handleCopyBranchName,
 		handleCreateSection,
-		handleDeleting,
 		handleDeleted,
 		handleOpenInFinder,
 		isActive,
