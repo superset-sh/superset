@@ -1,8 +1,9 @@
 import { dbWs } from "@superset/db/client";
+import { v2WorkspaceTypeValues } from "@superset/db/enums";
 import { v2Hosts, v2Projects, v2Workspaces } from "@superset/db/schema";
 import type { TRPCRouterRecord } from "@trpc/server";
 import { TRPCError } from "@trpc/server";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { jwtProcedure, protectedProcedure } from "../../trpc";
 import { requireActiveOrgId } from "../utils/active-org";
@@ -102,6 +103,8 @@ export const v2WorkspaceRouter = {
 				name: z.string().min(1),
 				branch: z.string().min(1),
 				hostId: z.string().uuid(),
+				type: z.enum(v2WorkspaceTypeValues).default("worktree"),
+				pinnedAt: z.date().nullable().optional(),
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
@@ -118,7 +121,11 @@ export const v2WorkspaceRouter = {
 			);
 			const host = await getScopedHost(input.organizationId, input.hostId);
 
-			const [workspace] = await dbWs
+			// Relies on the partial unique index
+			// (project_id, host_id) WHERE type='main' for idempotency — race-safe
+			// even if two callers (e.g. the startup sweep and project.setup) both
+			// miss the existence check at the same instant.
+			const [inserted] = await dbWs
 				.insert(v2Workspaces)
 				.values({
 					organizationId: project.organizationId,
@@ -126,10 +133,40 @@ export const v2WorkspaceRouter = {
 					name: input.name,
 					branch: input.branch,
 					hostId: host.id,
+					type: input.type,
+					pinnedAt: input.pinnedAt ?? null,
 					createdByUserId: ctx.userId,
 				})
+				.onConflictDoNothing()
 				.returning();
-			return workspace;
+
+			if (inserted) return inserted;
+
+			if (input.type === "main") {
+				const existing = await dbWs.query.v2Workspaces.findFirst({
+					where: and(
+						eq(v2Workspaces.projectId, project.id),
+						eq(v2Workspaces.hostId, host.id),
+						eq(v2Workspaces.type, "main"),
+					),
+				});
+				if (existing) {
+					if (!existing.pinnedAt && input.pinnedAt) {
+						const [updated] = await dbWs
+							.update(v2Workspaces)
+							.set({ pinnedAt: input.pinnedAt })
+							.where(eq(v2Workspaces.id, existing.id))
+							.returning();
+						return updated ?? existing;
+					}
+					return existing;
+				}
+			}
+
+			throw new TRPCError({
+				code: "INTERNAL_SERVER_ERROR",
+				message: "Workspace insert returned no row",
+			});
 		}),
 
 	update: protectedProcedure

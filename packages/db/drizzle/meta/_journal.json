@@ -253,6 +253,13 @@
       "when": 1776661088164,
       "tag": "0035_add_automations",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1776978978385,
+      "tag": "0036_v2_workspaces_main_type_and_pin",
+      "breakpoints": true
     }
   ]
 }

@@ -14,6 +14,7 @@ import { ChatRuntimeManager } from "./runtime/chat";
 import { WorkspaceFilesystemManager } from "./runtime/filesystem";
 import type { GitCredentialProvider } from "./runtime/git";
 import { createGitFactory } from "./runtime/git";
+import { runMainWorkspaceSweep } from "./runtime/main-workspace-sweep";
 import { PullRequestRuntimeManager } from "./runtime/pull-requests";
 import { registerWorkspaceTerminalRoute } from "./terminal/terminal";
 import { appRouter } from "./trpc/router";
@@ -87,6 +88,18 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 
 	const eventBus = new EventBus({ db, filesystem });
 	eventBus.start();
+
+	// Backfill `kind='main'` v2 workspaces for projects already set up before
+	// this column shipped. Idempotent; runs in the background so it doesn't
+	// block server startup.
+	void runMainWorkspaceSweep({
+		api,
+		db,
+		git,
+		organizationId: config.organizationId,
+	}).catch((err) => {
+		console.warn("[host-service] main-workspace sweep failed:", err);
+	});
 
 	const wsAuth: MiddlewareHandler = async (c, next) => {
 		const token = c.req.query("token");

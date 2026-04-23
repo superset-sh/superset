@@ -7,6 +7,7 @@ import { z } from "zod";
 import { projects, workspaces } from "../../../db/schema";
 import { protectedProcedure, router } from "../../index";
 import { createFromClone, createFromImportLocal } from "./handlers";
+import { ensureMainWorkspace } from "./utils/ensure-main-workspace";
 import { persistLocalProject } from "./utils/persist-project";
 import {
 	cloneRepoInto,
@@ -194,12 +195,16 @@ export const projectRouter = router({
 						expectedParsed.name,
 					);
 					rejectIfRepoint(predictedPath);
-					if (existing) return { repoPath: existing.repoPath };
+					if (existing) {
+						await ensureMainWorkspace(ctx, input.projectId, existing.repoPath);
+						return { repoPath: existing.repoPath };
+					}
 					const resolved = await cloneRepoInto(
 						cloudProject.repoCloneUrl,
 						input.mode.parentDir,
 					);
 					persistLocalProject(ctx, input.projectId, resolved);
+					await ensureMainWorkspace(ctx, input.projectId, resolved.repoPath);
 					return { repoPath: resolved.repoPath };
 				}
 				case "import": {
@@ -222,6 +227,7 @@ export const projectRouter = router({
 
 					rejectIfRepoint(resolved.repoPath);
 					if (existing && existing.repoPath === resolved.repoPath) {
+						await ensureMainWorkspace(ctx, input.projectId, existing.repoPath);
 						return { repoPath: existing.repoPath };
 					}
 
@@ -233,6 +239,7 @@ export const projectRouter = router({
 						});
 					}
 					persistLocalProject(ctx, input.projectId, resolved);
+					await ensureMainWorkspace(ctx, input.projectId, resolved.repoPath);
 					return { repoPath: resolved.repoPath };
 				}
 			}

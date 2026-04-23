@@ -1,6 +1,7 @@
 import { rmSync } from "node:fs";
 import { TRPCError } from "@trpc/server";
 import type { HostServiceContext } from "../../../types";
+import { ensureMainWorkspace } from "./utils/ensure-main-workspace";
 import { persistLocalProject } from "./utils/persist-project";
 import { cloneRepoInto, resolveWithPrimaryRemote } from "./utils/resolve-repo";
 
@@ -42,6 +43,7 @@ export async function createFromClone(
 			repoCloneUrl: args.url,
 		});
 		persistLocalProject(ctx, cloudProject.id, resolved);
+		await ensureMainWorkspace(ctx, cloudProject.id, resolved.repoPath);
 		return { projectId: cloudProject.id, repoPath: resolved.repoPath };
 	} catch (err) {
 		try {
@@ -68,5 +70,6 @@ export async function createFromImportLocal(
 		repoCloneUrl: resolved.parsed.url,
 	});
 	persistLocalProject(ctx, cloudProject.id, resolved);
+	await ensureMainWorkspace(ctx, cloudProject.id, resolved.repoPath);
 	return { projectId: cloudProject.id, repoPath: resolved.repoPath };
 }
