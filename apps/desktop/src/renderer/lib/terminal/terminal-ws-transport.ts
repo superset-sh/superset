@@ -1,5 +1,4 @@
 import type { Terminal as XTerm } from "@xterm/xterm";
-import { termLog } from "./terminal-runtime";
 
 export type ConnectionState = "disconnected" | "connecting" | "open" | "closed";
 
@@ -30,9 +29,7 @@ function setConnectionState(
 	transport: TerminalTransport,
 	state: ConnectionState,
 ) {
-	const prev = transport.connectionState;
 	transport.connectionState = state;
-	termLog("transport:state", { prev, next: state, url: transport.currentUrl });
 	for (const listener of transport.stateListeners) {
 		listener();
 	}
@@ -96,20 +93,7 @@ export function connect(
 	const isActive =
 		transport.connectionState === "open" ||
 		transport.connectionState === "connecting";
-	if (isActive && transport.currentUrl === wsUrl) {
-		termLog("transport:connect-skip", {
-			reason: "idempotent",
-			state: transport.connectionState,
-			url: wsUrl,
-		});
-		return;
-	}
-	termLog("transport:connect", {
-		prevState: transport.connectionState,
-		prevUrl: transport.currentUrl,
-		nextUrl: wsUrl,
-		willCloseSocket: !!transport.socket,
-	});
+	if (isActive && transport.currentUrl === wsUrl) return;
 
 	if (transport.socket) {
 		transport.socket.close();
@@ -217,10 +201,6 @@ export function sendDispose(transport: TerminalTransport) {
 }
 
 export function disposeTransport(transport: TerminalTransport) {
-	termLog("transport:dispose", {
-		state: transport.connectionState,
-		url: transport.currentUrl,
-	});
 	cancelReconnect(transport);
 	if (transport.socket) {
 		transport.socket.close();

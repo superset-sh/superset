@@ -10,7 +10,6 @@ import {
 } from "react";
 import { useTerminalLinkActions } from "renderer/hooks/useV2UserPreferences";
 import { useHotkey } from "renderer/hotkeys";
-import { termLog } from "renderer/lib/terminal/terminal-runtime";
 import {
 	type ConnectionState,
 	terminalRuntimeRegistry,
@@ -113,21 +112,9 @@ export function TerminalPane({
 		const container = containerRef.current;
 		if (!container) return;
 
-		termLog("pane:effect-mount", {
-			terminalId,
-			workspaceId: workspaceIdRef.current,
-			wsUrl: websocketUrlRef.current,
-			containerW: container.clientWidth,
-			containerH: container.clientHeight,
-		});
-
 		// DOM first — synchronous. Empty cursor visible immediately on cold
 		// mount; on warm return this unparks the wrapper.
-		terminalRuntimeRegistry.mount(
-			terminalId,
-			container,
-			appearanceRef.current,
-		);
+		terminalRuntimeRegistry.mount(terminalId, container, appearanceRef.current);
 
 		let cancelled = false;
 
@@ -141,39 +128,21 @@ export function TerminalPane({
 				themeType: initialThemeTypeRef.current,
 			})
 			.then(() => {
-				if (cancelled) {
-					termLog("pane:ensureSession-cancelled", { terminalId });
-					return;
-				}
-				termLog("pane:ensureSession-ok", { terminalId });
-				terminalRuntimeRegistry.connect(
-					terminalId,
-					websocketUrlRef.current,
-				);
+				if (cancelled) return;
+				terminalRuntimeRegistry.connect(terminalId, websocketUrlRef.current);
 			})
 			.catch((err) => {
 				if (cancelled) return;
-				termLog("pane:ensureSession-err", {
-					terminalId,
-					err: err instanceof Error ? err.message : String(err),
-				});
 				console.error("[TerminalPane] ensureSession failed:", err);
 				// Try connecting anyway — if the session actually exists (we
 				// raced another client), it'll succeed; otherwise the server's
 				// "Session not found" surfaces in-terminal as an error line,
 				// which is the same failure mode as before.
-				terminalRuntimeRegistry.connect(
-					terminalId,
-					websocketUrlRef.current,
-				);
+				terminalRuntimeRegistry.connect(terminalId, websocketUrlRef.current);
 			});
 
 		return () => {
 			cancelled = true;
-			termLog("pane:effect-cleanup", {
-				terminalId,
-				workspaceId: workspaceIdRef.current,
-			});
 			terminalRuntimeRegistry.detach(terminalId);
 		};
 	}, [terminalId]);

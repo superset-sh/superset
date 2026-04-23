@@ -11,7 +11,6 @@ import {
 	createRuntime,
 	detachFromContainer,
 	disposeRuntime,
-	termLog,
 	type TerminalRuntime,
 	updateRuntimeAppearance,
 } from "./terminal-runtime";
@@ -41,12 +40,6 @@ class TerminalRuntimeRegistryImpl {
 		let entry = this.entries.get(terminalId);
 		if (entry) return entry;
 
-		termLog("registry:entry-create", {
-			terminalId,
-			registrySize: this.entries.size,
-			stack: new Error().stack?.split("\n").slice(2, 6).join(" <- "),
-		});
-
 		entry = {
 			runtime: null,
 			transport: createTransport(),
@@ -75,14 +68,7 @@ class TerminalRuntimeRegistryImpl {
 		container: HTMLDivElement,
 		appearance: TerminalAppearance,
 	) {
-		const existed = this.entries.has(terminalId);
 		const entry = this.getOrCreateEntry(terminalId);
-		termLog("registry:mount", {
-			terminalId,
-			entryExisted: existed,
-			hadRuntime: !!entry.runtime,
-			registrySize: this.entries.size,
-		});
 
 		if (!entry.runtime) {
 			entry.runtime = createRuntime(terminalId, appearance);
@@ -111,12 +97,6 @@ class TerminalRuntimeRegistryImpl {
 	connect(terminalId: string, wsUrl: string) {
 		const entry = this.entries.get(terminalId);
 		if (!entry?.runtime) return;
-		termLog("registry:connect", {
-			terminalId,
-			prevState: entry.transport.connectionState,
-			prevUrl: entry.transport.currentUrl,
-			nextUrl: wsUrl,
-		});
 		connect(entry.transport, entry.runtime.terminal, wsUrl);
 	}
 
@@ -129,20 +109,8 @@ class TerminalRuntimeRegistryImpl {
 	reconnect(terminalId: string, wsUrl: string) {
 		const entry = this.entries.get(terminalId);
 		if (!entry?.runtime) return;
-		const state = entry.transport.connectionState;
-		if (state === "disconnected") {
-			termLog("registry:reconnect-skip", { terminalId, reason: "no-transport" });
-			return;
-		}
-		if (entry.transport.currentUrl === wsUrl) {
-			termLog("registry:reconnect-skip", { terminalId, reason: "same-url" });
-			return;
-		}
-		termLog("registry:reconnect", {
-			terminalId,
-			prevUrl: entry.transport.currentUrl,
-			nextUrl: wsUrl,
-		});
+		if (entry.transport.connectionState === "disconnected") return;
+		if (entry.transport.currentUrl === wsUrl) return;
 		connect(entry.transport, entry.runtime.terminal, wsUrl);
 	}
 
@@ -166,11 +134,6 @@ class TerminalRuntimeRegistryImpl {
 	 */
 	detach(terminalId: string) {
 		const entry = this.entries.get(terminalId);
-		termLog("registry:detach", {
-			terminalId,
-			found: !!entry,
-			hadRuntime: !!entry?.runtime,
-		});
 		if (!entry?.runtime) return;
 
 		detachFromContainer(entry.runtime);
@@ -193,11 +156,6 @@ class TerminalRuntimeRegistryImpl {
 
 	dispose(terminalId: string) {
 		const entry = this.entries.get(terminalId);
-		termLog("registry:dispose", {
-			terminalId,
-			found: !!entry,
-			stack: new Error().stack?.split("\n").slice(1, 6).join(" <- "),
-		});
 		if (!entry) return;
 
 		entry.linkManager?.dispose();

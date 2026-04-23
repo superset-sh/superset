@@ -14,16 +14,6 @@ const DIMS_KEY_PREFIX = "terminal-dims:";
 const DEFAULT_COLS = 120;
 const DEFAULT_ROWS = 32;
 
-// Temporary instrumentation — filter with `[term]` in DevTools console.
-// Remove once workspace-switch reattach is confirmed stable.
-export function termLog(action: string, detail?: Record<string, unknown>) {
-	if (detail) {
-		console.log(`[term] ${action}`, detail);
-	} else {
-		console.log(`[term] ${action}`);
-	}
-}
-
 // xterm's _keyDown calls stopPropagation after processing, which kills the
 // bubble to react-hotkeys-hook. Returning false from the custom handler makes
 // xterm bail before that, so app hotkeys reach document. (VSCode pattern:
@@ -168,7 +158,6 @@ export function createRuntime(
 	terminalId: string,
 	appearance: TerminalAppearance,
 ): TerminalRuntime {
-	termLog("runtime:create", { terminalId });
 	const savedDims = loadSavedDimensions(terminalId);
 	const cols = savedDims?.cols ?? DEFAULT_COLS;
 	const rows = savedDims?.rows ?? DEFAULT_ROWS;
@@ -212,22 +201,12 @@ export function attachToContainer(
 	container: HTMLDivElement,
 	onResize?: () => void,
 ) {
-	const prevParent = runtime.wrapper.parentElement;
-	const sameContainer = runtime.container === container && prevParent === container;
-	termLog("runtime:attach", {
-		terminalId: runtime.terminalId,
-		prevParent: prevParent?.id || prevParent?.tagName || "none",
-		wasParked: prevParent?.id === PARKING_CONTAINER_ID,
-		sameContainer,
-		containerW: container.clientWidth,
-		containerH: container.clientHeight,
-		cols: runtime.terminal.cols,
-		rows: runtime.terminal.rows,
-	});
-
 	// If we're already attached to this exact container, do nothing. Prevents
 	// redundant refresh/focus/fit from transient remounts during provider key
 	// churn — VSCode setVisible() is idempotent for the same host element.
+	const sameContainer =
+		runtime.container === container &&
+		runtime.wrapper.parentElement === container;
 	if (sameContainer && runtime.resizeObserver) {
 		return;
 	}
@@ -251,11 +230,6 @@ export function attachToContainer(
 }
 
 export function detachFromContainer(runtime: TerminalRuntime) {
-	termLog("runtime:detach", {
-		terminalId: runtime.terminalId,
-		lastCols: runtime.lastCols,
-		lastRows: runtime.lastRows,
-	});
 	persistBuffer(runtime.terminalId, runtime.serializeAddon);
 	persistDimensions(runtime.terminalId, runtime.lastCols, runtime.lastRows);
 	runtime.resizeObserver?.disconnect();
@@ -292,7 +266,6 @@ export function updateRuntimeAppearance(
 }
 
 export function disposeRuntime(runtime: TerminalRuntime) {
-	termLog("runtime:dispose", { terminalId: runtime.terminalId });
 	runtime._disposeAddons?.();
 	runtime._disposeAddons = null;
 	runtime.resizeObserver?.disconnect();
