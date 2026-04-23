@@ -28,7 +28,55 @@ const DEFAULT_ROWS = 32;
 // sidesteps this by suppressing all super/Cmd chords on macOS before the
 // encoder runs (ghostty/src/input/key_encode.zig:534-545). We do the same via
 // shouldBubbleClipboardShortcut's Mac branch.
-function createKeyEventHandler(terminal: XTerm) {
+
+/**
+ * Mirror the running program's kitty progressive-enhancement flags so we can
+ * gate canonical CSI-u injection (Shift+Enter etc.) on the program having
+ * actually requested kitty mode. Matches how Ghostty / kitty / wezterm decide
+ * whether to encode CSI-u vs legacy — see ghostty/src/input/key_encode.zig:88
+ * and kitty/key_encoding.c:153.
+ *
+ * xterm.js v6.1-beta has its own internal tracker but doesn't expose the
+ * active flags via public API, so we register our own CSI handlers alongside.
+ * Returning `false` passes the sequence to xterm.js's built-in handler.
+ */
+function createKittyFlagTracker(terminal: XTerm): () => number {
+	let flags = 0;
+	const stack: number[] = [];
+
+	const numeric = (p: number | number[] | undefined, fallback: number) => {
+		if (typeof p === "number") return p;
+		if (Array.isArray(p) && typeof p[0] === "number") return p[0];
+		return fallback;
+	};
+
+	terminal.parser.registerCsiHandler({ prefix: ">", final: "u" }, (params) => {
+		stack.push(flags);
+		flags = numeric(params[0], 1);
+		return false;
+	});
+
+	terminal.parser.registerCsiHandler({ prefix: "=", final: "u" }, (params) => {
+		const next = numeric(params[0], 0);
+		const mode = numeric(params[1], 1);
+		if (mode === 1) flags = next;
+		else if (mode === 2) flags |= next;
+		else if (mode === 3) flags &= ~next;
+		return false;
+	});
+
+	terminal.parser.registerCsiHandler({ prefix: "<", final: "u" }, (params) => {
+		const levels = numeric(params[0], 1);
+		for (let i = 0; i < levels; i++) flags = stack.pop() ?? 0;
+		return false;
+	});
+
+	return () => flags;
+}
+
+const KITTY_FLAG_DISAMBIGUATE = 0x01;
+
+function createKeyEventHandler(terminal: XTerm, getKittyFlags: () => number) {
 	const platform =
 		typeof navigator !== "undefined" ? navigator.platform.toLowerCase() : "";
 	const isMac = platform.includes("mac");
@@ -36,6 +84,28 @@ function createKeyEventHandler(terminal: XTerm) {
 
 	return (event: KeyboardEvent): boolean => {
 		if (resolveHotkeyFromEvent(event) !== null) return false;
+
+		// Shift+Enter when the running program has pushed kitty's disambiguate
+		// flag: emit the canonical CSI-u form so claude-code (which only
+		// accepts `\x1b[13;2u`) inserts a newline instead of submitting.
+		// xterm.js's own kitty encoder can vary by flag set — Codex's crossterm
+		// parser tolerates the variance but claude-code does not. Gated like
+		// Ghostty: only when the program is in kitty mode, so pre-kitty shells
+		// still see plain `\r` and behave normally.
+		if (
+			event.key === "Enter" &&
+			event.shiftKey &&
+			!event.metaKey &&
+			!event.ctrlKey &&
+			!event.altKey &&
+			(getKittyFlags() & KITTY_FLAG_DISAMBIGUATE) !== 0
+		) {
+			if (event.type === "keydown") {
+				event.preventDefault();
+				terminal.input("\x1b[13;2u", true);
+			}
+			return false;
+		}
 
 		const translation = translateLineEditChord(event, { isMac, isWindows });
 		if (translation !== null) {
@@ -291,7 +361,10 @@ export function createRuntime(
 	wrapper.style.height = "100%";
 	terminal.open(wrapper);
 
-	terminal.attachCustomKeyEventHandler(createKeyEventHandler(terminal));
+	const getKittyFlags = createKittyFlagTracker(terminal);
+	terminal.attachCustomKeyEventHandler(
+		createKeyEventHandler(terminal, getKittyFlags),
+	);
 
 	// Activate Unicode 11 widths (inside loadAddons) before restoring the buffer,
 	// else CJK/emoji/ZWJ widths get baked wrong into the replay. (#3572)
