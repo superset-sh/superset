@@ -88,6 +88,7 @@
 		"@superset/local-db": "workspace:*",
 		"@superset/macos-process-metrics": "workspace:*",
 		"@superset/panes": "workspace:*",
+		"@superset/port-scanner": "workspace:*",
 		"@superset/shared": "workspace:*",
 		"@superset/trpc": "workspace:*",
 		"@superset/ui": "workspace:*",

@@ -1,12 +1,6 @@
-export interface DetectedPort {
-	port: number;
-	pid: number;
-	processName: string;
-	paneId: string;
-	workspaceId: string;
-	detectedAt: number;
-	address: string;
-}
+export type { DetectedPort } from "@superset/port-scanner";
+
+import type { DetectedPort } from "@superset/port-scanner";
 
 export interface StaticPort {
 	port: number;

@@ -46,6 +46,7 @@
 		"@hono/trpc-server": "^0.3.4",
 		"@octokit/rest": "^22.0.1",
 		"@superset/chat": "workspace:*",
+		"@superset/port-scanner": "workspace:*",
 		"@superset/shared": "workspace:*",
 		"@superset/trpc": "workspace:*",
 		"@superset/workspace-fs": "workspace:*",
@@ -59,6 +60,7 @@
 		"node-pty": "1.1.0",
 		"simple-git": "^3.30.0",
 		"superjson": "^2.2.5",
+		"tree-kill": "^1.2.2",
 		"zod": "^4.3.5"
 	},
 	"devDependencies": {
