@@ -2,7 +2,7 @@ import { dbWs } from "@superset/db/client";
 import { v2Hosts, v2Projects, v2Workspaces } from "@superset/db/schema";
 import type { TRPCRouterRecord } from "@trpc/server";
 import { TRPCError } from "@trpc/server";
-import { eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { jwtProcedure, protectedProcedure } from "../../trpc";
 import { requireActiveOrgId } from "../utils/active-org";
@@ -185,12 +185,9 @@ export const v2WorkspaceRouter = {
 		}),
 
 	// JWT-authed so host-service can apply AI-generated workspace names
-	// after create without requiring an end-user session.
-	//
-	// `expectedCurrentName` lets host-service avoid clobbering a user edit
-	// that landed between create and the AI response: if the row no longer
-	// has the name host-service submitted at create time, the rename is
-	// skipped.
+	// after create without an end-user session. Optional `expectedCurrentName`
+	// is folded into the UPDATE's WHERE so a concurrent user edit can't be
+	// clobbered between check and write.
 	updateNameFromHost: jwtProcedure
 		.input(
 			z.object({
@@ -200,6 +197,23 @@ export const v2WorkspaceRouter = {
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
+			const conditions = [
+				eq(v2Workspaces.id, input.id),
+				inArray(v2Workspaces.organizationId, ctx.organizationIds),
+			];
+			if (input.expectedCurrentName !== undefined) {
+				conditions.push(eq(v2Workspaces.name, input.expectedCurrentName));
+			}
+			const [updated] = await dbWs
+				.update(v2Workspaces)
+				.set({ name: input.name })
+				.where(and(...conditions))
+				.returning();
+			if (updated) return updated;
+
+			// Nothing updated — disambiguate for a useful error. Happy path
+			// already returned above, so this fetch only runs when id/org/name
+			// failed to match.
 			const workspace = await dbWs.query.v2Workspaces.findFirst({
 				where: eq(v2Workspaces.id, input.id),
 			});
@@ -215,24 +229,9 @@ export const v2WorkspaceRouter = {
 					message: "Not a member of this organization",
 				});
 			}
-			if (
-				input.expectedCurrentName !== undefined &&
-				workspace.name !== input.expectedCurrentName
-			) {
-				return workspace;
-			}
-			const [updated] = await dbWs
-				.update(v2Workspaces)
-				.set({ name: input.name })
-				.where(eq(v2Workspaces.id, workspace.id))
-				.returning();
-			if (!updated) {
-				throw new TRPCError({
-					code: "NOT_FOUND",
-					message: "Workspace not found",
-				});
-			}
-			return updated;
+			// Expected-name mismatch: a user edit landed first. Return the
+			// current row so host-service can observe the skip.
+			return workspace;
 		}),
 
 	// JWT-authed so host-service can orchestrate the full delete saga
