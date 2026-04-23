@@ -29,6 +29,7 @@ export function DashboardSidebarWorkspaceItem({
 		projectId,
 		accentColor = null,
 		hostType,
+		hostIsOnline,
 		name,
 		branch,
 		creationStatus,
@@ -42,11 +43,11 @@ export function DashboardSidebarWorkspaceItem({
 		handleCreateSection,
 		handleDeleted,
 		handleOpenInFinder,
+		handleRemoveFromSidebar,
 		isActive,
 		isDeleteDialogOpen,
 		isRenaming,
 		moveWorkspaceToSection,
-		removeWorkspaceFromSidebar,
 		renameValue,
 		setIsDeleteDialogOpen,
 		setRenameValue,
@@ -85,6 +86,7 @@ export function DashboardSidebarWorkspaceItem({
 				)}
 				<DashboardSidebarCollapsedWorkspaceButton
 					hostType={hostType}
+					hostIsOnline={hostIsOnline}
 					isActive={isActive}
 					onClick={isPending ? handlePendingClick : handleClick}
 					creationStatus={creationStatus}
@@ -122,7 +124,7 @@ export function DashboardSidebarWorkspaceItem({
 							onOpenInFinder={handleOpenInFinder}
 							onCopyPath={handleCopyPath}
 							onCopyBranchName={handleCopyBranchName}
-							onRemoveFromSidebar={() => removeWorkspaceFromSidebar(id)}
+							onRemoveFromSidebar={handleRemoveFromSidebar}
 							onRename={startRename}
 							onDelete={() => setIsDeleteDialogOpen(true)}
 						>
@@ -187,7 +189,7 @@ export function DashboardSidebarWorkspaceItem({
 						onOpenInFinder={handleOpenInFinder}
 						onCopyPath={handleCopyPath}
 						onCopyBranchName={handleCopyBranchName}
-						onRemoveFromSidebar={() => removeWorkspaceFromSidebar(id)}
+						onRemoveFromSidebar={handleRemoveFromSidebar}
 						onRename={startRename}
 						onDelete={() => setIsDeleteDialogOpen(true)}
 					>

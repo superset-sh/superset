@@ -1,32 +1,17 @@
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
-import { eq } from "@tanstack/db";
-import { useLiveQuery } from "@tanstack/react-db";
 import {
 	LuPanelRight,
 	LuPanelRightClose,
 	LuPanelRightOpen,
 } from "react-icons/lu";
+import { useV2UserPreferences } from "renderer/hooks/useV2UserPreferences";
 import { HotkeyLabel } from "renderer/hotkeys";
-import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 
-export function RightSidebarToggle({ workspaceId }: { workspaceId: string }) {
-	const collections = useCollections();
-	const { data: localStateRows = [] } = useLiveQuery(
-		(query) =>
-			query
-				.from({ v2WorkspaceLocalState: collections.v2WorkspaceLocalState })
-				.where(({ v2WorkspaceLocalState }) =>
-					eq(v2WorkspaceLocalState.workspaceId, workspaceId),
-				),
-		[collections, workspaceId],
-	);
-	const isOpen = localStateRows[0]?.rightSidebarOpen ?? false;
+export function RightSidebarToggle() {
+	const { preferences, setRightSidebarOpen } = useV2UserPreferences();
+	const isOpen = preferences.rightSidebarOpen;
 
-	const toggle = () => {
-		collections.v2WorkspaceLocalState.update(workspaceId, (draft) => {
-			draft.rightSidebarOpen = !draft.rightSidebarOpen;
-		});
-	};
+	const toggle = () => setRightSidebarOpen((prev) => !prev);
 
 	const getToggleIcon = (isHovering: boolean) => {
 		if (!isOpen) {

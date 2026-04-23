@@ -7,10 +7,10 @@ import {
 	EmptyMedia,
 	EmptyTitle,
 } from "@superset/ui/empty";
-import { ItemGroup } from "@superset/ui/item";
 import { ScrollArea } from "@superset/ui/scroll-area";
+import { cn } from "@superset/ui/utils";
 import { useMatchRoute } from "@tanstack/react-router";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { LuLayers, LuSearchX } from "react-icons/lu";
 import type {
 	AccessibleV2Workspace,
@@ -20,17 +20,20 @@ import {
 	useV2WorkspacesFilterStore,
 	type V2WorkspacesDeviceFilter,
 } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/stores/v2WorkspacesFilterStore";
+import { SortableHeader } from "./components/SortableHeader";
 import { V2WorkspaceRow } from "./components/V2WorkspaceRow";
+import { V2_WORKSPACES_ROW_GRID } from "./constants";
+import type { SortDirection, SortField } from "./types";
 
 interface V2WorkspacesListProps {
-	pinned: AccessibleV2Workspace[];
-	others: AccessibleV2Workspace[];
+	workspaces: AccessibleV2Workspace[];
 }
 
 interface ProjectGroup {
 	projectId: string;
 	projectName: string;
 	workspaces: AccessibleV2Workspace[];
+	latestCreatedAt: number;
 }
 
 function matchesDeviceFilter(
@@ -49,32 +52,95 @@ function matchesDeviceFilter(
 	}
 }
 
-function groupByProject(workspaces: AccessibleV2Workspace[]): ProjectGroup[] {
-	const groupsById = new Map<string, ProjectGroup>();
-	for (const workspace of workspaces) {
-		const existing = groupsById.get(workspace.projectId);
-		if (existing) {
-			existing.workspaces.push(workspace);
-		} else {
-			groupsById.set(workspace.projectId, {
-				projectId: workspace.projectId,
-				projectName: workspace.projectName,
-				workspaces: [workspace],
-			});
-		}
+// Host-type rank used as a tiebreaker when sorting by host — keeps local
+// device first, then remote devices, then cloud.
+function hostTypeRank(hostType: V2WorkspaceHostType): number {
+	switch (hostType) {
+		case "local-device":
+			return 0;
+		case "remote-device":
+			return 1;
+		case "cloud":
+			return 2;
 	}
-	return Array.from(groupsById.values()).sort((a, b) => {
-		const aLatest = Math.max(
-			...a.workspaces.map((workspace) => workspace.createdAt.getTime()),
-		);
-		const bLatest = Math.max(
-			...b.workspaces.map((workspace) => workspace.createdAt.getTime()),
-		);
-		return bLatest - aLatest;
-	});
 }
 
-export function V2WorkspacesList({ pinned, others }: V2WorkspacesListProps) {
+function compareWorkspaces(
+	a: AccessibleV2Workspace,
+	b: AccessibleV2Workspace,
+	field: SortField,
+	direction: SortDirection,
+): number {
+	let cmp = 0;
+	switch (field) {
+		case "sidebar":
+			cmp = Number(a.isInSidebar) - Number(b.isInSidebar);
+			break;
+		case "name":
+			cmp = a.name.localeCompare(b.name);
+			break;
+		case "host":
+			cmp = hostTypeRank(a.hostType) - hostTypeRank(b.hostType);
+			if (cmp === 0) cmp = a.hostName.localeCompare(b.hostName);
+			break;
+		case "branch":
+			cmp = a.branch.localeCompare(b.branch);
+			break;
+		case "created":
+			cmp = a.createdAt.getTime() - b.createdAt.getTime();
+			break;
+	}
+	if (cmp === 0) {
+		cmp = b.createdAt.getTime() - a.createdAt.getTime();
+	}
+	return direction === "asc" ? cmp : -cmp;
+}
+
+function groupByProject(
+	workspaces: AccessibleV2Workspace[],
+	sortField: SortField,
+	sortDirection: SortDirection,
+): ProjectGroup[] {
+	const projectsById = new Map<string, ProjectGroup>();
+
+	for (const workspace of workspaces) {
+		let project = projectsById.get(workspace.projectId);
+		if (!project) {
+			project = {
+				projectId: workspace.projectId,
+				projectName: workspace.projectName,
+				workspaces: [],
+				latestCreatedAt: 0,
+			};
+			projectsById.set(workspace.projectId, project);
+		}
+		project.workspaces.push(workspace);
+		const createdAt = workspace.createdAt.getTime();
+		if (createdAt > project.latestCreatedAt) {
+			project.latestCreatedAt = createdAt;
+		}
+	}
+
+	for (const project of projectsById.values()) {
+		project.workspaces.sort((a, b) =>
+			compareWorkspaces(a, b, sortField, sortDirection),
+		);
+	}
+
+	return Array.from(projectsById.values()).sort(
+		(a, b) => b.latestCreatedAt - a.latestCreatedAt,
+	);
+}
+
+const DEFAULT_DIRECTION_BY_FIELD: Record<SortField, SortDirection> = {
+	sidebar: "desc",
+	name: "asc",
+	host: "asc",
+	branch: "asc",
+	created: "desc",
+};
+
+export function V2WorkspacesList({ workspaces }: V2WorkspacesListProps) {
 	const matchRoute = useMatchRoute();
 	const currentWorkspaceMatch = matchRoute({
 		to: "/v2-workspace/$workspaceId",
@@ -88,120 +154,150 @@ export function V2WorkspacesList({ pinned, others }: V2WorkspacesListProps) {
 	);
 	const resetFilters = useV2WorkspacesFilterStore((state) => state.reset);
 
-	const filteredPinnedGroups = useMemo(() => {
-		const filtered = pinned.filter((workspace) =>
+	const [sortField, setSortField] = useState<SortField>("created");
+	const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
+
+	const handleSort = (field: SortField) => {
+		if (sortField === field) {
+			setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
+		} else {
+			setSortField(field);
+			setSortDirection(DEFAULT_DIRECTION_BY_FIELD[field]);
+		}
+	};
+
+	const projectGroups = useMemo(() => {
+		const filtered = workspaces.filter((workspace) =>
 			matchesDeviceFilter(workspace.hostType, deviceFilter),
 		);
-		return groupByProject(filtered);
-	}, [pinned, deviceFilter]);
+		return groupByProject(filtered, sortField, sortDirection);
+	}, [workspaces, deviceFilter, sortField, sortDirection]);
 
-	const filteredOtherGroups = useMemo(() => {
-		const filtered = others.filter((workspace) =>
-			matchesDeviceFilter(workspace.hostType, deviceFilter),
-		);
-		return groupByProject(filtered);
-	}, [others, deviceFilter]);
-
-	const pinnedCount = filteredPinnedGroups.reduce(
-		(total, group) => total + group.workspaces.length,
+	const totalCount = projectGroups.reduce(
+		(total, project) => total + project.workspaces.length,
 		0,
 	);
-	const othersCount = filteredOtherGroups.reduce(
-		(total, group) => total + group.workspaces.length,
-		0,
-	);
-	const hasAnyMatches = pinnedCount > 0 || othersCount > 0;
 	const hasActiveFilters = searchQuery.trim() !== "" || deviceFilter !== "all";
 
-	if (!hasAnyMatches) {
-		return (
-			<Empty className="flex-1 border-0">
-				<EmptyHeader>
-					<EmptyMedia
-						variant="icon"
-						className="size-14 [&_svg:not([class*='size-'])]:size-7"
-					>
-						{hasActiveFilters ? <LuSearchX /> : <LuLayers />}
-					</EmptyMedia>
-					<EmptyTitle>
-						{hasActiveFilters
-							? "No workspaces match your filters"
-							: "No workspaces yet"}
-					</EmptyTitle>
-					<EmptyDescription>
-						{hasActiveFilters
-							? "Try a different search term or clear the device filter."
-							: "Workspaces you have access to across all your devices will show up here."}
-					</EmptyDescription>
-				</EmptyHeader>
-				{hasActiveFilters ? (
-					<EmptyContent>
-						<Button variant="outline" size="sm" onClick={() => resetFilters()}>
-							Clear filters
-						</Button>
-					</EmptyContent>
-				) : null}
-			</Empty>
-		);
-	}
-
-	const renderProjectGroups = (groups: ProjectGroup[]) => (
-		<div className="flex flex-col gap-5">
-			{groups.map((group) => (
-				<div key={group.projectId} className="flex flex-col gap-2">
-					<div className="flex items-baseline gap-2 px-1">
-						<h3 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-							{group.projectName}
-						</h3>
-						<span className="text-xs text-muted-foreground/70">
-							{group.workspaces.length}
-						</span>
-					</div>
-					<ItemGroup className="gap-2">
-						{group.workspaces.map((workspace) => (
-							<V2WorkspaceRow
-								key={workspace.id}
-								workspace={workspace}
-								showProjectName={false}
-								isCurrentRoute={workspace.id === currentWorkspaceId}
-							/>
-						))}
-					</ItemGroup>
-				</div>
-			))}
+	const columnHeader = (
+		<div
+			className={cn(
+				V2_WORKSPACES_ROW_GRID,
+				"sticky top-0 z-10 border-b border-border bg-background px-6 py-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/80",
+			)}
+		>
+			<SortableHeader
+				field="sidebar"
+				label="In sidebar"
+				align="center"
+				srOnlyLabel
+				sortField={sortField}
+				sortDirection={sortDirection}
+				onSort={handleSort}
+			/>
+			<SortableHeader
+				field="name"
+				label="Name"
+				sortField={sortField}
+				sortDirection={sortDirection}
+				onSort={handleSort}
+			/>
+			<SortableHeader
+				field="host"
+				label="Host"
+				className="hidden md:flex"
+				sortField={sortField}
+				sortDirection={sortDirection}
+				onSort={handleSort}
+			/>
+			<SortableHeader
+				field="branch"
+				label="Branch"
+				className="hidden lg:flex"
+				sortField={sortField}
+				sortDirection={sortDirection}
+				onSort={handleSort}
+			/>
+			<SortableHeader
+				field="created"
+				label="Created"
+				className="hidden xl:flex"
+				sortField={sortField}
+				sortDirection={sortDirection}
+				onSort={handleSort}
+			/>
+			<span />
 		</div>
 	);
 
+	if (totalCount === 0) {
+		return (
+			<div className="flex min-h-0 flex-1 flex-col">
+				{columnHeader}
+				<Empty className="flex-1 border-0">
+					<EmptyHeader>
+						<EmptyMedia
+							variant="icon"
+							className="size-14 [&_svg:not([class*='size-'])]:size-7"
+						>
+							{hasActiveFilters ? <LuSearchX /> : <LuLayers />}
+						</EmptyMedia>
+						<EmptyTitle>
+							{hasActiveFilters
+								? "No workspaces match your filters"
+								: "No workspaces yet"}
+						</EmptyTitle>
+						<EmptyDescription>
+							{hasActiveFilters
+								? "Try a different search term or clear the device filter."
+								: "Workspaces you have access to across all your devices will show up here."}
+						</EmptyDescription>
+					</EmptyHeader>
+					{hasActiveFilters ? (
+						<EmptyContent>
+							<Button
+								variant="outline"
+								size="sm"
+								onClick={() => resetFilters()}
+							>
+								Clear filters
+							</Button>
+						</EmptyContent>
+					) : null}
+				</Empty>
+			</div>
+		);
+	}
+
 	return (
 		<ScrollArea className="min-h-0 flex-1">
-			<div className="flex flex-col gap-8 px-6 py-6">
-				{pinnedCount > 0 ? (
-					<section className="flex flex-col gap-3">
-						<div className="flex items-baseline gap-2">
-							<h2 className="text-sm font-semibold text-foreground">
-								In your sidebar
-							</h2>
-							<span className="text-xs text-muted-foreground">
-								{pinnedCount}
-							</span>
-						</div>
-						{renderProjectGroups(filteredPinnedGroups)}
-					</section>
-				) : null}
+			<div className="flex w-full flex-col">
+				{columnHeader}
 
-				{othersCount > 0 ? (
-					<section className="flex flex-col gap-3">
-						<div className="flex items-baseline gap-2">
-							<h2 className="text-sm font-semibold text-foreground">
-								Other workspaces
-							</h2>
-							<span className="text-xs text-muted-foreground">
-								{othersCount}
+				{projectGroups.map((project) => (
+					<div key={project.projectId} className="flex flex-col">
+						<div className="flex items-center gap-2 border-b border-border/60 bg-muted/30 px-6 py-1.5">
+							<h3
+								className="min-w-0 truncate text-xs font-semibold text-foreground/80"
+								title={project.projectName}
+							>
+								{project.projectName}
+							</h3>
+							<span className="shrink-0 text-xs tabular-nums text-muted-foreground/60">
+								{project.workspaces.length}
 							</span>
 						</div>
-						{renderProjectGroups(filteredOtherGroups)}
-					</section>
-				) : null}
+						<ul className="flex flex-col">
+							{project.workspaces.map((workspace) => (
+								<V2WorkspaceRow
+									key={workspace.id}
+									workspace={workspace}
+									isCurrentRoute={workspace.id === currentWorkspaceId}
+								/>
+							))}
+						</ul>
+					</div>
+				))}
 			</div>
 		</ScrollArea>
 	);

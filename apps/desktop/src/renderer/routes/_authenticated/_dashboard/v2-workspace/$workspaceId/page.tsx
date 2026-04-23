@@ -12,6 +12,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { HiMiniXMark } from "react-icons/hi2";
 import { TbLayoutColumns, TbLayoutRows } from "react-icons/tb";
+import { useV2UserPreferences } from "renderer/hooks/useV2UserPreferences";
 import { HotkeyLabel, useHotkey } from "renderer/hotkeys";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { CommandPalette } from "renderer/screens/main/components/CommandPalette";
@@ -110,8 +111,12 @@ function WorkspaceContent({
 	terminalId?: string;
 	chatSessionId?: string;
 }) {
-	const collections = useCollections();
-	const { localWorkspaceState, store } = useV2WorkspacePaneLayout({
+	const {
+		preferences: v2UserPreferences,
+		setRightSidebarOpen,
+		setRightSidebarTab,
+	} = useV2UserPreferences();
+	const { store } = useV2WorkspacePaneLayout({
 		projectId,
 		workspaceId,
 	});
@@ -217,14 +222,12 @@ function WorkspaceContent({
 
 	const revealPath = useCallback(
 		(path: string, options?: { isDirectory?: boolean }) => {
-			collections.v2WorkspaceLocalState.update(workspaceId, (draft) => {
-				draft.rightSidebarOpen = true;
-				draft.sidebarState.activeTab = "files";
-			});
+			setRightSidebarOpen(true);
+			setRightSidebarTab("files");
 			setSelectedFilePath(path);
 			setPendingReveal({ path, isDirectory: options?.isDirectory === true });
 		},
-		[collections, workspaceId],
+		[setRightSidebarOpen, setRightSidebarTab],
 	);
 
 	const paneRegistry = usePaneRegistry(workspaceId, {
@@ -234,8 +237,22 @@ function WorkspaceContent({
 	const defaultContextMenuActions = useDefaultContextMenuActions(paneRegistry);
 
 	const openDiffPane = useCallback(
-		(filePath: string) => {
+		(filePath: string, openInNewTab?: boolean) => {
 			const state = store.getState();
+			if (openInNewTab) {
+				state.addTab({
+					panes: [
+						{
+							kind: "diff",
+							data: {
+								path: filePath,
+								collapsedFiles: [],
+							} as DiffPaneData,
+						},
+					],
+				});
+				return;
+			}
 			for (const tab of state.tabs) {
 				for (const pane of Object.values(tab.panes)) {
 					if (pane.kind !== "diff") continue;
@@ -252,16 +269,14 @@ function WorkspaceContent({
 					return;
 				}
 			}
-			state.addTab({
-				panes: [
-					{
-						kind: "diff",
-						data: {
-							path: filePath,
-							collapsedFiles: [],
-						} as DiffPaneData,
-					},
-				],
+			state.openPane({
+				pane: {
+					kind: "diff",
+					data: {
+						path: filePath,
+						collapsedFiles: [],
+					} as DiffPaneData,
+				},
 			});
 		},
 		[store],
@@ -366,11 +381,10 @@ function WorkspaceContent({
 		[],
 	);
 
-	const sidebarOpen = localWorkspaceState?.rightSidebarOpen ?? false;
+	const sidebarOpen = v2UserPreferences.rightSidebarOpen;
 
 	useWorkspaceHotkeys({
 		store,
-		workspaceId,
 		matchedPresets,
 		executePreset,
 		paneRegistry,

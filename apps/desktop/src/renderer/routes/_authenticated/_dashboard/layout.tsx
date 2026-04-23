@@ -9,7 +9,9 @@ import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import { useHotkey } from "renderer/hotkeys";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { DashboardSidebar } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar";
+import { V1MigrationSummaryModal } from "renderer/routes/_authenticated/components/V1MigrationSummaryModal";
 import { useDevSeedV2Sidebar } from "renderer/routes/_authenticated/hooks/useDevSeedV2Sidebar";
+import { useMigrateV1DataToV2 } from "renderer/routes/_authenticated/hooks/useMigrateV1DataToV2";
 import { ResizablePanel } from "renderer/screens/main/components/ResizablePanel";
 import { WorkspaceSidebar } from "renderer/screens/main/components/WorkspaceSidebar";
 import { DeleteWorkspaceDialog } from "renderer/screens/main/components/WorkspaceSidebar/WorkspaceListItem/components";
@@ -32,6 +34,7 @@ function DashboardLayout() {
 	const openNewWorkspaceModal = useOpenNewWorkspaceModal();
 	const { isV2CloudEnabled } = useIsV2CloudEnabled();
 	useDevSeedV2Sidebar();
+	useMigrateV1DataToV2();
 	// Get current workspace from route to pre-select project in new workspace modal
 	const matchRoute = useMatchRoute();
 	const currentWorkspaceMatch = matchRoute({
@@ -124,6 +127,7 @@ function DashboardLayout() {
 					<Outlet />
 				</div>
 				<AddRepositoryModals />
+				<V1MigrationSummaryModal />
 				{deleteTarget && (
 					<DeleteWorkspaceDialog
 						workspaceId={deleteTarget.workspaceId}

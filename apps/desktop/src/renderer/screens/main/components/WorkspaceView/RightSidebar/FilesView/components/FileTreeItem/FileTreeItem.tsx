@@ -64,7 +64,7 @@ export function FileTreeItem({
 		usePathActions({
 			absolutePath: entry.path,
 			relativePath: entry.relativePath,
-			cwd: worktreePath,
+			worktreePath,
 			projectId,
 		});
 

@@ -58,52 +58,48 @@ export function V2WorkspacesHeader({ counts }: V2WorkspacesHeaderProps) {
 	};
 
 	return (
-		<div className="flex flex-col gap-3 border-b border-border px-6 pt-5 pb-4">
-			<div className="flex flex-col gap-0.5">
-				<h1 className="text-lg font-semibold tracking-tight">Workspaces</h1>
-				<p className="text-sm text-muted-foreground">
-					Every workspace you can access across your devices. Open one to jump
-					in, or add it to your sidebar.
-				</p>
-			</div>
+		<div className="border-b border-border">
+			<div className="flex w-full flex-wrap items-center justify-between gap-3 px-6 py-4">
+				<h1 className="text-sm font-semibold tracking-tight">Workspaces</h1>
 
-			<div className="flex flex-wrap items-center gap-3">
-				<InputGroup className="w-full max-w-sm">
-					<InputGroupAddon align="inline-start">
-						<LuSearch className="size-4" />
-					</InputGroupAddon>
-					<InputGroupInput
-						type="search"
-						placeholder="Search workspace, project, branch, or device..."
-						value={searchQuery}
-						onChange={(event) => setSearchQuery(event.target.value)}
-					/>
-				</InputGroup>
+				<div className="flex flex-wrap items-center gap-2">
+					<InputGroup className="w-72">
+						<InputGroupAddon align="inline-start">
+							<LuSearch className="size-4" />
+						</InputGroupAddon>
+						<InputGroupInput
+							type="search"
+							placeholder="Search workspaces…"
+							value={searchQuery}
+							onChange={(event) => setSearchQuery(event.target.value)}
+						/>
+					</InputGroup>
 
-				<ToggleGroup
-					type="single"
-					variant="outline"
-					size="sm"
-					value={deviceFilter}
-					onValueChange={(value) => {
-						if (value) setDeviceFilter(value as V2WorkspacesDeviceFilter);
-					}}
-				>
-					{DEVICE_FILTER_OPTIONS.map(({ value, label, Icon }) => (
-						<ToggleGroupItem
-							key={value}
-							value={value}
-							aria-label={label}
-							className="gap-1.5"
-						>
-							{Icon ? <Icon className="size-3.5" /> : null}
-							<span>{label}</span>
-							<span className="tabular-nums text-muted-foreground">
-								{countForFilter(value)}
-							</span>
-						</ToggleGroupItem>
-					))}
-				</ToggleGroup>
+					<ToggleGroup
+						type="single"
+						variant="outline"
+						size="sm"
+						value={deviceFilter}
+						onValueChange={(value) => {
+							if (value) setDeviceFilter(value as V2WorkspacesDeviceFilter);
+						}}
+					>
+						{DEVICE_FILTER_OPTIONS.map(({ value, label, Icon }) => (
+							<ToggleGroupItem
+								key={value}
+								value={value}
+								aria-label={label}
+								className="gap-1.5"
+							>
+								{Icon ? <Icon className="size-3.5" /> : null}
+								<span>{label}</span>
+								<span className="tabular-nums text-muted-foreground">
+									{countForFilter(value)}
+								</span>
+							</ToggleGroupItem>
+						))}
+					</ToggleGroup>
+				</div>
 			</div>
 		</div>
 	);
