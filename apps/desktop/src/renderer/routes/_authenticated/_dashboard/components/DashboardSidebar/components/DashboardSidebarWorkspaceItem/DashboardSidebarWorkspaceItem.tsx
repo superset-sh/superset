@@ -43,11 +43,11 @@ export function DashboardSidebarWorkspaceItem({
 		handleCreateSection,
 		handleDeleted,
 		handleOpenInFinder,
+		handleRemoveFromSidebar,
 		isActive,
 		isDeleteDialogOpen,
 		isRenaming,
 		moveWorkspaceToSection,
-		removeWorkspaceFromSidebar,
 		renameValue,
 		setIsDeleteDialogOpen,
 		setRenameValue,
@@ -124,7 +124,7 @@ export function DashboardSidebarWorkspaceItem({
 							onOpenInFinder={handleOpenInFinder}
 							onCopyPath={handleCopyPath}
 							onCopyBranchName={handleCopyBranchName}
-							onRemoveFromSidebar={() => removeWorkspaceFromSidebar(id)}
+							onRemoveFromSidebar={handleRemoveFromSidebar}
 							onRename={startRename}
 							onDelete={() => setIsDeleteDialogOpen(true)}
 						>
@@ -189,7 +189,7 @@ export function DashboardSidebarWorkspaceItem({
 						onOpenInFinder={handleOpenInFinder}
 						onCopyPath={handleCopyPath}
 						onCopyBranchName={handleCopyBranchName}
-						onRemoveFromSidebar={() => removeWorkspaceFromSidebar(id)}
+						onRemoveFromSidebar={handleRemoveFromSidebar}
 						onRename={startRename}
 						onDelete={() => setIsDeleteDialogOpen(true)}
 					>

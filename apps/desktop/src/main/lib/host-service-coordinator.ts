@@ -28,8 +28,15 @@ import {
 import { localDb } from "./local-db";
 import { HOOK_PROTOCOL_VERSION } from "./terminal/env";
 
-/** Minimum host-service version this app can work with. */
-const MIN_HOST_SERVICE_VERSION = "0.1.0";
+/**
+ * Minimum host-service version this app can work with. Bumping this forces
+ * the coordinator to kill + respawn any adopted service older than this,
+ * which is how we prevent the renderer from talking to a stale host-service
+ * that's missing newly-added procedures/params.
+ *
+ * 0.2.0: `workspaceCreation.adopt` gained optional `worktreePath`.
+ */
+const MIN_HOST_SERVICE_VERSION = "0.2.0";
 
 export type HostServiceStatus = "starting" | "running" | "stopped";
 

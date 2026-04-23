@@ -4,6 +4,7 @@ import {
 	type DestroyWorkspaceError,
 	useDestroyWorkspace,
 } from "renderer/hooks/host-service/useDestroyWorkspace";
+import { useNavigateAwayFromWorkspace } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/hooks/useNavigateAwayFromWorkspace";
 import { useDeletingWorkspaces } from "renderer/routes/_authenticated/providers/DeletingWorkspacesProvider";
 
 interface UseDestroyDialogStateOptions {
@@ -17,11 +18,11 @@ interface UseDestroyDialogStateOptions {
  * Drives the delete flow for `DashboardSidebarDeleteDialog`.
  *
  * UX pattern:
- *   - On confirm, close the dialog immediately, mark the workspace as
- *     deleting (sidebar row hides optimistically), and run destroy in
- *     the background silently. No loading toast — destroy can take
- *     10–20s and a persistent toast across that window feels bad. The
- *     hidden row is the feedback.
+ *   - On confirm, navigate off the workspace first (if viewing it),
+ *     close the dialog, mark the workspace deleting (row hides
+ *     optimistically), fire a one-shot "Deleting..." toast, and let
+ *     destroy run in the background. A loading toast across the 10–20s
+ *     teardown feels worse than fire-and-forget + hidden row.
  *   - On success, `onDeleted` removes the row from sidebar state.
  *   - On error, `clearDeleting` runs in the `finally` block so the row
  *     reappears. For decision-required errors (CONFLICT, TEARDOWN_FAILED)
@@ -37,6 +38,7 @@ export function useDestroyDialogState({
 }: UseDestroyDialogStateOptions) {
 	const { destroy } = useDestroyWorkspace(workspaceId);
 	const { markDeleting, clearDeleting } = useDeletingWorkspaces();
+	const navigateAway = useNavigateAwayFromWorkspace();
 
 	const [deleteBranch, setDeleteBranch] = useState(false);
 	const [error, setError] = useState<DestroyWorkspaceError | null>(null);
@@ -63,11 +65,16 @@ export function useDestroyDialogState({
 			if (inFlight.current) return;
 			inFlight.current = true;
 
-			// Optimistic close. State (deleteBranch) preserved in case we re-open
+			// Navigate off the doomed workspace FIRST. Closing the dialog
+			// and hiding the row were swallowing the nav otherwise.
+			navigateAway(workspaceId);
+
+			// Optimistic close. `deleteBranch` preserved in case we re-open
 			// on a decision-required error.
 			setError(null);
 			onOpenChange(false);
 			markDeleting(workspaceId);
+			toast(`Deleting "${workspaceName}"...`);
 
 			try {
 				const result = await destroy({ deleteBranch, force });
@@ -96,6 +103,7 @@ export function useDestroyDialogState({
 			onDeleted,
 			markDeleting,
 			clearDeleting,
+			navigateAway,
 		],
 	);
 
