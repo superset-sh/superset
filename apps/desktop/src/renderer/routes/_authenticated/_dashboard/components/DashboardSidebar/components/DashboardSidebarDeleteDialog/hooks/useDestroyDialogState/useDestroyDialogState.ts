@@ -4,6 +4,7 @@ import {
 	type DestroyWorkspaceError,
 	useDestroyWorkspace,
 } from "renderer/hooks/host-service/useDestroyWorkspace";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useDeletingWorkspaces } from "renderer/routes/_authenticated/providers/DeletingWorkspacesProvider";
 
 interface UseDestroyDialogStateOptions {
@@ -38,14 +39,26 @@ export function useDestroyDialogState({
 	const { destroy } = useDestroyWorkspace(workspaceId);
 	const { markDeleting, clearDeleting } = useDeletingWorkspaces();
 
-	const [deleteBranch, setDeleteBranch] = useState(false);
+	const { data: persistedDeleteBranch } =
+		electronTrpc.settings.getDeleteLocalBranch.useQuery();
+	const setPersistedDeleteBranch =
+		electronTrpc.settings.setDeleteLocalBranch.useMutation();
+
+	const [deleteBranchOverride, setDeleteBranchOverride] = useState<
+		boolean | null
+	>(null);
+	const deleteBranch = deleteBranchOverride ?? persistedDeleteBranch ?? false;
 	const [error, setError] = useState<DestroyWorkspaceError | null>(null);
 	const inFlight = useRef(false);
+
+	const setDeleteBranch = useCallback((next: boolean) => {
+		setDeleteBranchOverride(next);
+	}, []);
 
 	const handleOpenChange = useCallback(
 		(next: boolean) => {
 			if (!next) {
-				setDeleteBranch(false);
+				setDeleteBranchOverride(null);
 				setError(null);
 			}
 			onOpenChange(next);
@@ -69,10 +82,12 @@ export function useDestroyDialogState({
 			onOpenChange(false);
 			markDeleting(workspaceId);
 
+			setPersistedDeleteBranch.mutate({ enabled: deleteBranch });
+
 			try {
 				const result = await destroy({ deleteBranch, force });
 				for (const warning of result.warnings) toast.warning(warning);
-				setDeleteBranch(false);
+				setDeleteBranchOverride(null);
 				onDeleted?.();
 			} catch (err) {
 				const e = err as DestroyWorkspaceError;
@@ -90,6 +105,7 @@ export function useDestroyDialogState({
 		[
 			destroy,
 			deleteBranch,
+			setPersistedDeleteBranch,
 			workspaceName,
 			workspaceId,
 			onOpenChange,
