@@ -85,14 +85,6 @@ function handleMessage(state: ConnectionState, data: unknown): void {
 		return;
 	}
 
-	if (message.type === "agent:lifecycle") {
-		console.log("[event-bus-client] agent:lifecycle received", {
-			workspaceId: message.workspaceId,
-			eventType: message.eventType,
-			listenerCount: state.listeners.size,
-		});
-	}
-
 	for (const entry of state.listeners) {
 		if (entry.type !== message.type) continue;
 

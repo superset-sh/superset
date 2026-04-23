@@ -19,6 +19,10 @@ import { isPaneVisible } from "./isPaneVisible";
  * Keeps v1 behavior: skip `Start` for sound, suppress when the event's
  * pane is visible and the window is focused, and honor the existing
  * mute/volume settings.
+ *
+ * Mount once per v2 workspace you want to receive events for. The
+ * layout-level `V2AgentHookListenersMount` component iterates every open
+ * workspace so backgrounded workspaces also light up the sidebar.
  */
 export function useV2AgentHookListener(workspaceId: string): void {
 	const { data: volume = 100 } =
@@ -28,28 +32,12 @@ export function useV2AgentHookListener(workspaceId: string): void {
 
 	const handleEvent = useCallback(
 		(payload: AgentLifecyclePayload) => {
-			console.log("[useV2AgentHookListener] handleEvent", {
-				workspaceId,
-				eventType: payload.eventType,
-				paneId: payload.paneId,
-				tabId: payload.tabId,
-			});
 			updatePaneStatus(workspaceId, payload);
 
 			if (payload.eventType === "Start") return;
-			const suppress = shouldSuppress(workspaceId, payload);
-			console.log("[useV2AgentHookListener] suppress check", {
-				suppress,
-				eventType: payload.eventType,
-			});
-			if (suppress) return;
+			if (shouldSuppress(workspaceId, payload)) return;
 
 			const ringtoneId = useRingtoneStore.getState().selectedRingtoneId;
-			console.log("[useV2AgentHookListener] playing ringtone", {
-				ringtoneId,
-				volume,
-				muted,
-			});
 			void playRingtone({ ringtoneId, volume, muted });
 
 			showNativeNotification(payload, workspaceId);
@@ -73,14 +61,12 @@ function updatePaneStatus(
 	workspaceId: string,
 	payload: AgentLifecyclePayload,
 ): void {
-	// V2 terminals don't have a `paneId` (those live in the client-side
-	// panes store); fall back to terminalId / sessionId / hookSessionId as
-	// the unique key. The sidebar selector only filters on workspaceId so
-	// any non-empty unique id per running agent is fine — we just need
-	// SOMETHING to distinguish concurrent agents in the same workspace.
-	//
-	// Agent payloads frequently send empty strings (""), not missing
-	// fields, so `??` is wrong here — use a blank-string coalesce.
+	// V2 terminals expose `SUPERSET_TERMINAL_ID` but not `SUPERSET_PANE_ID`
+	// (panes are a client-side layout concept in v2, unknown to host-service),
+	// and agents frequently send empty strings for missing fields — not
+	// undefined — so `??` is wrong here. `firstNonBlank` falls through
+	// empties to the next candidate. The sidebar selector only filters on
+	// workspaceId, so any non-empty unique id per agent is fine.
 	const paneId = firstNonBlank(
 		payload.paneId,
 		payload.terminalId,
@@ -88,25 +74,15 @@ function updatePaneStatus(
 		payload.hookSessionId,
 		payload.resourceId,
 	);
-	if (!paneId) {
-		console.log(
-			"[useV2AgentHookListener] updatePaneStatus skipped — no identifier",
-			payload,
-		);
-		return;
-	}
+	if (!paneId) return;
 	const store = useV2PaneStatusStore.getState();
 
 	if (payload.eventType === "Start") {
-		console.log("[useV2AgentHookListener] setPaneStatus working", { paneId });
 		store.setPaneStatus(paneId, workspaceId, "working");
 		return;
 	}
 
 	if (payload.eventType === "PermissionRequest") {
-		console.log("[useV2AgentHookListener] setPaneStatus permission", {
-			paneId,
-		});
 		store.setPaneStatus(paneId, workspaceId, "permission");
 		return;
 	}
@@ -115,12 +91,6 @@ function updatePaneStatus(
 		const prev = store.statuses[paneId]?.status;
 		const viewing = isCurrentWorkspace(workspaceId);
 		const nextStatus = prev === "permission" || viewing ? "idle" : "review";
-		console.log("[useV2AgentHookListener] Stop -> transition", {
-			paneId,
-			prev,
-			viewing,
-			nextStatus,
-		});
 		if (nextStatus === "idle") {
 			store.clearPaneStatus(paneId);
 		} else {

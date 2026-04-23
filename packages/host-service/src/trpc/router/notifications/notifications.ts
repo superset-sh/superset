@@ -29,30 +29,15 @@ export const notificationsRouter = router({
 	 * (desktop renderer, web) can play the finish sound themselves.
 	 */
 	hook: protectedProcedure.input(hookInput).mutation(async ({ ctx, input }) => {
-		console.log("[notifications.hook] received", {
-			raw: input.eventType,
-			workspaceId: input.workspaceId,
-			paneId: input.paneId,
-			tabId: input.tabId,
-		});
 		const eventType = mapEventType(input.eventType);
 		if (!eventType) {
-			console.log(
-				"[notifications.hook] ignored — unmapped eventType",
-				input.eventType,
-			);
 			return { success: true, ignored: true as const };
 		}
 
 		if (!input.workspaceId) {
-			console.log("[notifications.hook] ignored — missing workspaceId");
 			return { success: true, ignored: true as const };
 		}
 
-		console.log("[notifications.hook] broadcasting", {
-			workspaceId: input.workspaceId,
-			eventType,
-		});
 		ctx.eventBus.broadcastAgentLifecycle({
 			workspaceId: input.workspaceId,
 			eventType,

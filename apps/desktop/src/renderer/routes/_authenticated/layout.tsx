@@ -35,6 +35,7 @@ import { MOCK_ORG_ID, NOTIFICATION_EVENTS } from "shared/constants";
 import { AgentHooks } from "./components/AgentHooks";
 import { GlobalTerminalLifecycle } from "./components/GlobalTerminalLifecycle";
 import { TeardownLogsDialog } from "./components/TeardownLogsDialog";
+import { V2AgentHookListeners } from "./components/V2AgentHookListeners";
 import { createPierreWorker } from "./lib/pierreWorker";
 import { CollectionsProvider } from "./providers/CollectionsProvider";
 import { DeletingWorkspacesProvider } from "./providers/DeletingWorkspacesProvider";
@@ -197,6 +198,7 @@ function AuthenticatedLayout() {
 							highlighterOptions={{ preferredHighlighter: "shiki-wasm" }}
 						>
 							<AgentHooks />
+							<V2AgentHookListeners />
 							<Outlet />
 							<WorkspaceInitEffects />
 							{isV2CloudEnabled ? (
