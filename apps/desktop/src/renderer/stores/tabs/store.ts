@@ -354,6 +354,16 @@ export const useTabsStore = create<TabsStore>()(
 					return { tabId: tab.id, paneIds };
 				},
 
+				removeTabsForWorkspaceIds: (workspaceIds) => {
+					const idSet = new Set(workspaceIds);
+					const tabIds = get()
+						.tabs.filter((t) => idSet.has(t.workspaceId))
+						.map((t) => t.id);
+					for (const tabId of tabIds) {
+						get().removeTab(tabId);
+					}
+				},
+
 				removeTab: (tabId) => {
 					const state = get();
 					const tabToRemove = state.tabs.find((t) => t.id === tabId);

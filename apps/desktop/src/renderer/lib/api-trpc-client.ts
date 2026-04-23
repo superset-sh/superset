@@ -1,8 +1,16 @@
 import type { AppRouter } from "@superset/trpc";
 import { createTRPCProxyClient, httpBatchLink } from "@trpc/client";
-import { env } from "renderer/env.renderer";
 import superjson from "superjson";
 import { getAuthToken } from "./auth-client";
+
+/** Base API URL without trailing slash (avoid importing `env` here — breaks circular init in tests). */
+function getApiTrpcBaseUrl(): string {
+	const u = process.env.NEXT_PUBLIC_API_URL;
+	if (typeof u === "string" && u.length > 0) {
+		return u.replace(/\/$/, "");
+	}
+	return "https://api.superset.sh";
+}
 
 /**
  * HTTP tRPC client for calling the API server.
@@ -12,7 +20,7 @@ import { getAuthToken } from "./auth-client";
 export const apiTrpcClient = createTRPCProxyClient<AppRouter>({
 	links: [
 		httpBatchLink({
-			url: `${env.NEXT_PUBLIC_API_URL}/api/trpc`,
+			url: `${getApiTrpcBaseUrl()}/api/trpc`,
 			transformer: superjson,
 			headers: () => {
 				const token = getAuthToken();

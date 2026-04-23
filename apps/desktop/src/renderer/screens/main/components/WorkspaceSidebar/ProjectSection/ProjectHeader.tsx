@@ -15,6 +15,7 @@ import { useNavigate, useParams } from "@tanstack/react-router";
 import { useState } from "react";
 import { HiChevronRight, HiMiniPlus } from "react-icons/hi2";
 import {
+	LuArchive,
 	LuFolderOpen,
 	LuImage,
 	LuImageOff,
@@ -26,11 +27,13 @@ import {
 } from "react-icons/lu";
 import { ColorSelector } from "renderer/components/ColorSelector";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { useArchiveProject } from "renderer/react-query/projects/useArchiveProject";
 import { useUpdateProject } from "renderer/react-query/projects/useUpdateProject";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { useProjectRename } from "renderer/screens/main/hooks/useProjectRename";
 import { STROKE_WIDTH } from "../constants";
 import { RenameInput } from "../RenameInput";
+import { ArchiveProjectDialog } from "./ArchiveProjectDialog";
 import { CloseProjectDialog } from "./CloseProjectDialog";
 import { ProjectThumbnail } from "./ProjectThumbnail";
 
@@ -69,6 +72,7 @@ export function ProjectHeader({
 	const navigate = useNavigate();
 	const params = useParams({ strict: false }) as { workspaceId?: string };
 	const [isCloseDialogOpen, setIsCloseDialogOpen] = useState(false);
+	const [isArchiveDialogOpen, setIsArchiveDialogOpen] = useState(false);
 	const rename = useProjectRename(projectId, projectName);
 
 	const closeProject = electronTrpc.projects.close.useMutation({
@@ -117,6 +121,54 @@ export function ProjectHeader({
 		},
 	});
 
+	const archiveProject = useArchiveProject({
+		onMutate: async ({ id }) => {
+			let shouldNavigate = false;
+
+			if (params.workspaceId) {
+				try {
+					const currentWorkspace = await utils.workspaces.get.fetch({
+						id: params.workspaceId,
+					});
+					shouldNavigate = currentWorkspace?.projectId === id;
+				} catch (error) {
+					console.warn(
+						"[ProjectHeader] Failed to resolve current workspace before archiving project",
+						error,
+					);
+				}
+			}
+
+			return { shouldNavigate };
+		},
+		onSuccess: async (data, { id }, context) => {
+			const navigateAway = (context as { shouldNavigate?: boolean } | undefined)
+				?.shouldNavigate;
+			if (navigateAway) {
+				const groups = await utils.workspaces.getAllGrouped.fetch();
+				const otherWorkspace = groups
+					.flatMap((group) => group.workspaces)
+					.find((w) => w.projectId !== id);
+
+				if (otherWorkspace) {
+					navigateToWorkspace(otherWorkspace.id, navigate);
+				} else {
+					navigate({ to: "/workspace" });
+				}
+			}
+
+			if (data.terminalWarning) {
+				toast.warning(data.terminalWarning);
+			}
+		},
+		onError: (error) => {
+			toast.error(`Failed to archive project: ${error.message}`);
+		},
+		onSettled: () => {
+			setIsArchiveDialogOpen(false);
+		},
+	});
+
 	const openInFinder = electronTrpc.external.openInFinder.useMutation({
 		onError: (error) => toast.error(`Failed to open: ${error.message}`),
 	});
@@ -125,8 +177,16 @@ export function ProjectHeader({
 		setIsCloseDialogOpen(true);
 	};
 
+	const handleArchiveProject = () => {
+		setIsArchiveDialogOpen(true);
+	};
+
 	const handleConfirmClose = () => {
 		closeProject.mutate({ id: projectId });
+	};
+
+	const handleConfirmArchive = () => {
+		archiveProject.mutate({ id: projectId });
 	};
 
 	const handleOpenInFinder = () => {
@@ -232,6 +292,13 @@ export function ProjectHeader({
 						</ContextMenuItem>
 						<ContextMenuSeparator />
 						<ContextMenuItem
+							onSelect={handleArchiveProject}
+							disabled={archiveProject.isPending}
+						>
+							<LuArchive className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
+							{archiveProject.isPending ? "Archiving..." : "Archive Project"}
+						</ContextMenuItem>
+						<ContextMenuItem
 							onSelect={handleCloseProject}
 							disabled={closeProject.isPending}
 							className="text-destructive focus:text-destructive"
@@ -244,6 +311,14 @@ export function ProjectHeader({
 						</ContextMenuItem>
 					</ContextMenuContent>
 				</ContextMenu>
+
+				<ArchiveProjectDialog
+					projectName={projectName}
+					workspaceCount={workspaceCount}
+					open={isArchiveDialogOpen}
+					onOpenChange={setIsArchiveDialogOpen}
+					onConfirm={handleConfirmArchive}
+				/>
 
 				<CloseProjectDialog
 					projectName={projectName}
@@ -370,6 +445,13 @@ export function ProjectHeader({
 					</ContextMenuItem>
 					<ContextMenuSeparator />
 					<ContextMenuItem
+						onSelect={handleArchiveProject}
+						disabled={archiveProject.isPending}
+					>
+						<LuArchive className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
+						{archiveProject.isPending ? "Archiving..." : "Archive Project"}
+					</ContextMenuItem>
+					<ContextMenuItem
 						onSelect={handleCloseProject}
 						disabled={closeProject.isPending}
 						className="text-destructive focus:text-destructive"
@@ -382,6 +464,14 @@ export function ProjectHeader({
 					</ContextMenuItem>
 				</ContextMenuContent>
 			</ContextMenu>
+
+			<ArchiveProjectDialog
+				projectName={projectName}
+				workspaceCount={workspaceCount}
+				open={isArchiveDialogOpen}
+				onOpenChange={setIsArchiveDialogOpen}
+				onConfirm={handleConfirmArchive}
+			/>
 
 			<CloseProjectDialog
 				projectName={projectName}

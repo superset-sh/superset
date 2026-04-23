@@ -23,4 +23,4 @@ export interface ProjectGroup {
 	workspaces: WorkspaceItem[];
 }
 
-export type FilterMode = "all" | "active" | "closed";
+export type FilterMode = "all" | "active" | "closed" | "archived";
