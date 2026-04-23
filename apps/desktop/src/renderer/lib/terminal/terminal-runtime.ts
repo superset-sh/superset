@@ -143,7 +143,7 @@ function createKeyEventHandler(terminal: XTerm, getKittyFlags: () => number) {
 	const isWindows = platform.includes("win");
 
 	return (event: KeyboardEvent): boolean => {
-		if (event.type === "keydown") {
+		if (event.type === "keydown" || event.type === "keyup") {
 			const mods =
 				[
 					event.metaKey && "Meta",
@@ -153,7 +153,7 @@ function createKeyEventHandler(terminal: XTerm, getKittyFlags: () => number) {
 				]
 					.filter(Boolean)
 					.join("+") || "none";
-			kbdLog("keydown", {
+			kbdLog(event.type, {
 				key: event.key,
 				code: event.code,
 				mods,
