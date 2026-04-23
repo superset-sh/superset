@@ -19,17 +19,16 @@ interface UseDestroyDialogStateOptions {
  *
  * UX pattern:
  *   - On confirm, close the dialog immediately, mark the workspace as
- *     deleting (sidebar row hides optimistically), show a loading toast,
+ *     deleting (sidebar row hides optimistically), fire an info toast,
  *     and fire `onDeleting` so the caller can immediately navigate off
  *     the deleted workspace (don't leave the user staring at a workspace
  *     that's being torn down). Destroy itself runs in the background.
- *   - On success, the loading toast resolves to success and `onDeleted`
- *     removes the row from sidebar state.
+ *   - On success, `onDeleted` removes the row from sidebar state.
  *   - On error, `clearDeleting` runs in the `finally` block so the row
  *     reappears. For decision-required errors (CONFLICT, TEARDOWN_FAILED)
  *     we reopen the dialog in the matching error pane so the user can
  *     force-retry with full context. The branch opt-in is preserved.
- *   - For unknown errors the loading toast resolves to error — no reopen.
+ *   - For unknown errors we just toast.error — no reopen.
  */
 export function useDestroyDialogState({
 	workspaceId,
@@ -72,25 +71,20 @@ export function useDestroyDialogState({
 			onOpenChange(false);
 			markDeleting(workspaceId);
 			onDeleting?.();
-
-			const toastId = toast.loading(`Deleting "${workspaceName}"...`);
+			toast(`Deleting "${workspaceName}"...`);
 
 			try {
 				const result = await destroy({ deleteBranch, force });
-				toast.success(`Deleted "${workspaceName}"`, { id: toastId });
 				for (const warning of result.warnings) toast.warning(warning);
 				setDeleteBranch(false);
 				onDeleted?.();
 			} catch (err) {
 				const e = err as DestroyWorkspaceError;
 				if (e.kind === "conflict" || e.kind === "teardown-failed") {
-					toast.dismiss(toastId);
 					setError(e);
 					onOpenChange(true);
 				} else {
-					toast.error(`Failed to delete ${workspaceName}: ${e.message}`, {
-						id: toastId,
-					});
+					toast.error(`Failed to delete ${workspaceName}: ${e.message}`);
 				}
 			} finally {
 				clearDeleting(workspaceId);
