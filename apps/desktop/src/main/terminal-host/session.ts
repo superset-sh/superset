@@ -26,6 +26,7 @@ import { raceWithAbort, throwIfAborted } from "../lib/terminal/abort";
 import { buildSafeEnv } from "../lib/terminal/env";
 import { isTerminalAttachCanceledError } from "../lib/terminal/errors";
 import { HeadlessEmulator } from "../lib/terminal-host/headless-emulator";
+import { stripTerminalQueryResponses } from "../lib/terminal-host/terminal-query-response-filter";
 import type {
 	CreateOrAttachRequest,
 	IpcEvent,
@@ -845,12 +846,17 @@ export class Session {
 	/**
 	 * Write data to the PTY's stdin.
 	 *
-	 * Escape-sequence responses (`\x1b`-prefixed) are dropped while the shell
-	 * is still initializing — these are stale DA/DSR replies from the
-	 * renderer's xterm to terminal queries the shell sent during startup. If
-	 * forwarded, they appear as typed text like `?62;4;9;22c` at the shell
-	 * prompt. The headless emulator answers those queries directly (see
-	 * constructor), so dropping the renderer's duplicate is safe.
+	 * The headless emulator answers terminal queries (DA, DSR, OSC 10/11, ...)
+	 * directly and forwards its reply to the PTY (see constructor). When a
+	 * renderer xterm is also attached it replies to the same queries and sends
+	 * the reply back here — we must drop those duplicates or the shell reads
+	 * them as typed text (e.g. `^[[?62;4;9;22c` at the prompt after quitting
+	 * nvim, see #3685). Known query-response shapes are stripped at all times;
+	 * legitimate user input (arrow keys, Alt-chords, paste) is preserved.
+	 *
+	 * During shell init the renderer can also emit replies to queries the
+	 * shell issued during startup; those are dropped by the broader
+	 * `startsWith("\x1b")` guard while `pending`.
 	 *
 	 * All other data — user keystrokes and preset commands alike — passes
 	 * through immediately. Buffering here previously froze workspaces when
@@ -864,7 +870,9 @@ export class Session {
 		if (this.shellReadyState === "pending" && data.startsWith("\x1b")) {
 			return;
 		}
-		this.sendWriteToSubprocess(data);
+		const filtered = stripTerminalQueryResponses(data);
+		if (filtered.length === 0) return;
+		this.sendWriteToSubprocess(filtered);
 	}
 
 	/**
