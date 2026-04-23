@@ -2,6 +2,7 @@ import { execFile } from "node:child_process";
 import os from "node:os";
 import { promisify } from "node:util";
 import pidtree from "pidtree";
+import { getListeningPortsLinuxProcfs } from "./procfs";
 
 const execFileAsync = promisify(execFile);
 
@@ -79,7 +80,10 @@ export async function getListeningPortsForPids(
 
 	const platform = os.platform();
 
-	if (platform === "darwin" || platform === "linux") {
+	if (platform === "linux") {
+		return getListeningPortsLinuxProcfs(pids, signal);
+	}
+	if (platform === "darwin") {
 		return getListeningPortsLsof(pids, signal);
 	}
 	if (platform === "win32") {
