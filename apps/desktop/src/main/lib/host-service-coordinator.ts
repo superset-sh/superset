@@ -39,12 +39,6 @@ import { HOOK_PROTOCOL_VERSION } from "./terminal/env";
  */
 const MIN_HOST_SERVICE_VERSION = "0.2.0";
 
-function isHostServiceVersionSupported(version: string | null): boolean {
-	return (
-		!!version && semver.satisfies(version, `>=${MIN_HOST_SERVICE_VERSION}`)
-	);
-}
-
 export type HostServiceStatus = "starting" | "running" | "stopped";
 
 export interface Connection {
@@ -301,7 +295,10 @@ export class HostServiceCoordinator extends EventEmitter {
 			manifest.endpoint,
 			manifest.authToken,
 		);
-		if (!isHostServiceVersionSupported(version)) {
+		if (
+			!version ||
+			!semver.satisfies(version, `>=${MIN_HOST_SERVICE_VERSION}`)
+		) {
 			const reason = version
 				? `version ${version} < ${MIN_HOST_SERVICE_VERSION}`
 				: "version unknown";
