@@ -5,6 +5,7 @@ import { LuChevronDown, LuChevronRight, LuCircle } from "react-icons/lu";
 import type { FileTreeNode } from "renderer/hooks/host-service/useFileTree";
 import type { FileStatus } from "renderer/hooks/host-service/useGitStatusMap";
 import { FileIcon } from "renderer/screens/main/components/WorkspaceView/RightSidebar/FilesView/utils";
+import { getSidebarClickIntent } from "../../../../../../utils/getSidebarClickIntent";
 
 import { FileContextMenu } from "./components/FileContextMenu";
 import { FolderContextMenu } from "./components/FolderContextMenu";
@@ -91,14 +92,13 @@ function WorkspaceFilesTreeItemComponent({
 						isSelected ? "!bg-accent" : undefined,
 					)}
 					onClick={(e) => {
-						if (e.metaKey || e.ctrlKey) {
+						const intent = getSidebarClickIntent(e);
+						if (intent === "openInEditor") {
 							onOpenInEditor(node.absolutePath);
 						} else if (isFolder) {
 							onToggleDirectory(node.absolutePath);
-						} else if (e.shiftKey) {
-							onSelectFile(node.absolutePath, true);
 						} else {
-							onSelectFile(node.absolutePath);
+							onSelectFile(node.absolutePath, intent === "openInNewTab");
 						}
 					}}
 					style={{

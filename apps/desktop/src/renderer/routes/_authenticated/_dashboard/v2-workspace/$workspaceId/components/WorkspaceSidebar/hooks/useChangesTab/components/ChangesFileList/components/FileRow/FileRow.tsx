@@ -1,5 +1,6 @@
 import { memo } from "react";
 import { StatusIndicator } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/StatusIndicator";
+import { getSidebarClickIntent } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/utils/getSidebarClickIntent";
 import { FileIcon } from "renderer/screens/main/components/WorkspaceView/RightSidebar/FilesView/utils";
 import type { ChangesetFile } from "../../../../../../../../hooks/useChangeset";
 
@@ -30,12 +31,11 @@ export const FileRow = memo(function FileRow({
 			type="button"
 			className="flex w-full items-center gap-1.5 py-1 pr-3 pl-3 text-left text-xs hover:bg-accent/50"
 			onClick={(e) => {
-				if (e.metaKey || e.ctrlKey) {
+				const intent = getSidebarClickIntent(e);
+				if (intent === "openInEditor") {
 					onOpenInEditor?.(file.path);
-				} else if (e.shiftKey) {
-					onSelect?.(file.path, true);
 				} else {
-					onSelect?.(file.path);
+					onSelect?.(file.path, intent === "openInNewTab");
 				}
 			}}
 		>
