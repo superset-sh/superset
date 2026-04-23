@@ -9,6 +9,7 @@ interface DashboardSidebarDeleteDialogProps {
 	workspaceName: string;
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
+	onDeleting?: () => void;
 	/** Fires after a successful destroy (any warnings reported via toast). */
 	onDeleted?: () => void;
 }
@@ -24,6 +25,7 @@ export function DashboardSidebarDeleteDialog({
 	workspaceName,
 	open,
 	onOpenChange,
+	onDeleting,
 	onDeleted,
 }: DashboardSidebarDeleteDialogProps) {
 	const {
@@ -37,6 +39,7 @@ export function DashboardSidebarDeleteDialog({
 		workspaceId,
 		workspaceName,
 		onOpenChange,
+		onDeleting,
 		onDeleted,
 	});
 

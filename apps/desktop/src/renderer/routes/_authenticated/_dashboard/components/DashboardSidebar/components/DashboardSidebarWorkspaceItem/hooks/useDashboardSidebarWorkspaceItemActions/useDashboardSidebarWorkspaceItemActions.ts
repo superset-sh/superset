@@ -1,12 +1,15 @@
 import { toast } from "@superset/ui/sonner";
-import { useNavigate, useParams } from "@tanstack/react-router";
+import { useMatchRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
-import { useNavigateAwayFromWorkspace } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/hooks/useNavigateAwayFromWorkspace";
+import { getDeleteFocusTargetWorkspaceId } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/utils/getDeleteFocusTargetWorkspaceId";
+import { getFlattenedV2WorkspaceIds } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/utils/getFlattenedV2WorkspaceIds";
+import { navigateToV2Workspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
+import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 
 interface UseDashboardSidebarWorkspaceItemActionsOptions {
@@ -23,8 +26,8 @@ export function useDashboardSidebarWorkspaceItemActions({
 	branch,
 }: UseDashboardSidebarWorkspaceItemActionsOptions) {
 	const navigate = useNavigate();
-	const params = useParams({ strict: false });
-	const navigateAway = useNavigateAwayFromWorkspace();
+	const matchRoute = useMatchRoute();
+	const collections = useCollections();
 	const { activeHostUrl } = useLocalHostService();
 	const { copyToClipboard } = useCopyToClipboard();
 	const { createSection, moveWorkspaceToSection, removeWorkspaceFromSidebar } =
@@ -34,7 +37,11 @@ export function useDashboardSidebarWorkspaceItemActions({
 	const [renameValue, setRenameValue] = useState(workspaceName);
 	const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
-	const isActive = params.workspaceId === workspaceId;
+	const isActive = !!matchRoute({
+		to: "/v2-workspace/$workspaceId",
+		params: { workspaceId },
+		fuzzy: true,
+	});
 
 	const handleClick = () => {
 		if (isRenaming) return;
@@ -70,12 +77,25 @@ export function useDashboardSidebarWorkspaceItemActions({
 		}
 	};
 
+	const navigateAway = () => {
+		if (!isActive) return;
+		const focusTargetId = getDeleteFocusTargetWorkspaceId(
+			getFlattenedV2WorkspaceIds(collections),
+			workspaceId,
+		);
+		if (focusTargetId) {
+			void navigateToV2Workspace(focusTargetId, navigate);
+		} else {
+			void navigate({ to: "/" });
+		}
+	};
+
 	const handleDeleted = () => {
 		removeWorkspaceFromSidebar(workspaceId);
 	};
 
 	const handleRemoveFromSidebar = () => {
-		navigateAway(workspaceId);
+		navigateAway();
 		removeWorkspaceFromSidebar(workspaceId);
 	};
 
@@ -147,6 +167,7 @@ export function useDashboardSidebarWorkspaceItemActions({
 		handleCopyBranchName,
 		handleCreateSection,
 		handleDeleted,
+		handleDeleting: navigateAway,
 		handleOpenInFinder,
 		handleRemoveFromSidebar,
 		isActive,
