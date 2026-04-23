@@ -19,18 +19,18 @@ Goal: play the agent finish sound on the client (web renderer / electron rendere
 
 ## Architecture
 
-```
-agent  ──POST /hook/complete──▶  host-service
-                                      │
-                                      ├── persist event (optional, for reconnect replay)
-                                      └── broadcast via existing WebSocket EventBus
-                                             │
-                                             ▼
-                                   web client / electron renderer
-                                             │
-                                             ├── decide (focus + visibility + settings)
-                                             ├── dedup across tabs (event-id)
-                                             └── play ringtone + show Notification
+```text
+agent  ──POST /trpc/notifications.hook──▶  host-service
+                                                │
+                                                ├── persist event (optional, for reconnect replay)
+                                                └── broadcast via existing WebSocket EventBus
+                                                       │
+                                                       ▼
+                                             web client / electron renderer
+                                                       │
+                                                       ├── decide (focus + visibility + settings)
+                                                       ├── dedup across tabs (event-id)
+                                                       └── play ringtone + show Notification
 ```
 
 Key move: the electron localhost hook server (`apps/desktop/src/main/lib/notifications/server.ts`) is retired for v2. Electron main does no sound work.
@@ -39,7 +39,7 @@ Key move: the electron localhost hook server (`apps/desktop/src/main/lib/notific
 
 Status: next
 
-- Add `POST /hook/complete` to host-service. Port the event-shape validation and normalization from `apps/desktop/src/main/lib/notifications/map-event-type.ts` (Start / Stop / PermissionRequest) into a shared module — plan to import from `packages/shared` or duplicate per v1-v2 duplication memory.
+- Add `notifications.hook` tRPC mutation to host-service (shipped as `POST /trpc/notifications.hook`). Port the event-shape validation and normalization from `apps/desktop/src/main/lib/notifications/map-event-type.ts` (Start / Stop / PermissionRequest) into a shared module — plan to import from `packages/shared` or duplicate per v1-v2 duplication memory.
 - Add `agent:lifecycle` channel to the existing WebSocket event bus (`packages/host-service/src/events/event-bus.ts`, alongside `git:changed` / `fs:events`). Payload: `{ eventId, workspaceId, paneId, tabId, sessionId, type, occurredAt }`.
 - Broadcast is scoped by `workspaceId` → only subscribers authorized for that workspace receive the event.
 - Auth: require the workspace token the agent already uses. The endpoint is reachable over the network, so unlike v1's `127.0.0.1`-bound server it must authenticate.

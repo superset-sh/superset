@@ -110,8 +110,11 @@ function firstNonBlank(
 
 function isCurrentWorkspace(workspaceId: string): boolean {
 	try {
-		const match = window.location.hash.match(/\/workspace\/([^/?#]+)/);
-		return match?.[1] === workspaceId;
+		// Matches both v1 `/workspace/<id>` and v2 `/v2-workspace/<id>`
+		// routes — the hook runs in a mixed-UI window so either can be
+		// the active URL while an event arrives.
+		const match = window.location.hash.match(/\/(?:v2-)?workspace\/([^/?#]+)/);
+		return match ? decodeURIComponent(match[1] ?? "") === workspaceId : false;
 	} catch {
 		return false;
 	}
@@ -121,9 +124,15 @@ function shouldSuppress(
 	workspaceId: string,
 	payload: AgentLifecyclePayload,
 ): boolean {
-	if (!payload.paneId || !payload.tabId) return false;
 	if (typeof document !== "undefined" && document.hidden) return false;
 	if (typeof window !== "undefined" && !document.hasFocus()) return false;
+
+	// V2 terminal payloads have no paneId/tabId; fall back to "is this
+	// workspace the one the user is currently viewing". That's the best
+	// approximation of v1's isPaneVisible rule without pane metadata.
+	if (!payload.paneId || !payload.tabId) {
+		return isCurrentWorkspace(workspaceId);
+	}
 
 	const tabsState = useTabsStore.getState();
 	return isPaneVisible({
@@ -153,10 +162,19 @@ function showNativeNotification(
 		? "Your agent needs input"
 		: "Your agent has finished";
 
+	const tagId =
+		firstNonBlank(
+			payload.paneId,
+			payload.terminalId,
+			payload.sessionId,
+			payload.hookSessionId,
+			payload.resourceId,
+		) ?? "_";
+
 	try {
 		new Notification(title, {
 			body,
-			tag: `${workspaceId}:${payload.paneId ?? payload.sessionId ?? "_"}`,
+			tag: `${workspaceId}:${tagId}`,
 			silent: true,
 		});
 	} catch {

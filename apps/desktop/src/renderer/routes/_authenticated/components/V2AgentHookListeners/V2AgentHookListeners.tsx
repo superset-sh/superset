@@ -1,6 +1,6 @@
 import { useLiveQuery } from "@tanstack/react-db";
-import { useV2AgentHookListener } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/useV2AgentHookListener";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { WorkspaceListener } from "./components/WorkspaceListener";
 
 /**
  * Mounts one agent-lifecycle listener per v2 workspace so backgrounded
@@ -30,9 +30,4 @@ export function V2AgentHookListeners() {
 			))}
 		</>
 	);
-}
-
-function WorkspaceListener({ workspaceId }: { workspaceId: string }): null {
-	useV2AgentHookListener(workspaceId);
-	return null;
 }

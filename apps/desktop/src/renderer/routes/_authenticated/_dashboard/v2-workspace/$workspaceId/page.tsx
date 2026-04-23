@@ -110,9 +110,19 @@ function useClearPaneAttentionOnView(workspaceId: string): void {
 	const clearWorkspaceAttention = useV2PaneStatusStore(
 		(s) => s.clearWorkspaceAttention,
 	);
+	// Re-run whenever a new review status appears for this workspace — else
+	// a Stop event arriving while the user is already on the page would
+	// leave the sidebar dot lit until navigation.
+	const hasReviewStatus = useV2PaneStatusStore((s) =>
+		Object.values(s.statuses).some(
+			(entry) => entry.workspaceId === workspaceId && entry.status === "review",
+		),
+	);
 	useEffect(() => {
-		clearWorkspaceAttention(workspaceId);
-	}, [workspaceId, clearWorkspaceAttention]);
+		if (hasReviewStatus) {
+			clearWorkspaceAttention(workspaceId);
+		}
+	}, [workspaceId, clearWorkspaceAttention, hasReviewStatus]);
 }
 
 function WorkspaceContent({
