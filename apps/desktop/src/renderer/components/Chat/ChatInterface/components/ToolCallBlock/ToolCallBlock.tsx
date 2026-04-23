@@ -20,6 +20,7 @@ import {
 } from "../../utils/tool-helpers";
 import { ReadOnlyToolCall } from "../ReadOnlyToolCall";
 import { AskUserQuestionToolCall } from "./components/AskUserQuestionToolCall";
+import { RequestSandboxAccessToolCall } from "./components/RequestSandboxAccessToolCall";
 import { CreateTaskToolCall } from "./components/CreateTaskToolCall";
 import { CreateWorkspaceToolCall } from "./components/CreateWorkspaceToolCall";
 import { DeleteTaskToolCall } from "./components/DeleteTaskToolCall";
@@ -614,8 +615,15 @@ export function ToolCallBlock({
 		);
 	}
 
-	if (toolName === "request_sandbox_access") {
-		return <SupersetToolCall part={part} toolName="Request sandbox access" />;
+	if (toolName === "request_access") {
+		return (
+			<RequestSandboxAccessToolCall
+				part={part}
+				args={args}
+				result={result}
+				isInterrupted={isInterrupted}
+			/>
+		);
 	}
 
 	if (toolName === "lsp_inspect") {
