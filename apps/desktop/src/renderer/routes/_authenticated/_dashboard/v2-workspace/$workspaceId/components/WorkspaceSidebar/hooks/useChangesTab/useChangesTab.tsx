@@ -131,6 +131,7 @@ export function useChangesTab({
 			totalChanges={totalChanges}
 			totalAdditions={totalAdditions}
 			totalDeletions={totalDeletions}
+			worktreePath={worktreePath}
 			onSelectFile={onSelectFile}
 			onOpenInEditor={handleOpenInEditor}
 			onFilterChange={setFilter}

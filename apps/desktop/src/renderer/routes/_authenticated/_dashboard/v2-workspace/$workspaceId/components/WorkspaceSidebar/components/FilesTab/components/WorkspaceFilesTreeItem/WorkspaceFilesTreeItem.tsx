@@ -1,9 +1,11 @@
 import { ContextMenu, ContextMenuTrigger } from "@superset/ui/context-menu";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { memo } from "react";
 import { LuChevronDown, LuChevronRight, LuCircle } from "react-icons/lu";
 import type { FileTreeNode } from "renderer/hooks/host-service/useFileTree";
 import type { FileStatus } from "renderer/hooks/host-service/useGitStatusMap";
+import { CLICK_HINT_TOOLTIP } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/utils/clickModifierLabels";
 import { getSidebarClickIntent } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/utils/getSidebarClickIntent";
 import { FileIcon } from "renderer/screens/main/components/WorkspaceView/RightSidebar/FilesView/utils";
 
@@ -75,83 +77,92 @@ function WorkspaceFilesTreeItemComponent({
 			? STATUS_TEXT_CLASS[decoration]
 			: undefined;
 
+	const rowButton = (
+		<button
+			data-filepath={node.absolutePath}
+			aria-expanded={isFolder ? node.isExpanded : undefined}
+			className={cn(
+				"flex w-full cursor-pointer select-none items-center gap-1 pr-4 text-left transition-colors",
+				isFolder ? "bg-background" : undefined,
+				isHovered && !isSelected
+					? isFolder
+						? "!bg-muted"
+						: "!bg-accent/50"
+					: undefined,
+				isSelected ? "!bg-accent" : undefined,
+			)}
+			onClick={(e) => {
+				const intent = getSidebarClickIntent(e);
+				if (intent === "openInEditor") {
+					onOpenInEditor(node.absolutePath);
+				} else if (isFolder) {
+					onToggleDirectory(node.absolutePath);
+				} else {
+					onSelectFile(node.absolutePath, intent === "openInNewTab");
+				}
+			}}
+			style={{
+				height: rowHeight,
+				paddingLeft: 8 + (depth - 1) * indent,
+				...(isFolder
+					? {
+							position: "sticky" as const,
+							top: (depth - 1) * rowHeight,
+							zIndex: Math.max(1, 50 - depth),
+						}
+					: {}),
+			}}
+			type="button"
+		>
+			<span className="flex h-4 w-4 shrink-0 items-center justify-center">
+				{isFolder ? (
+					node.isExpanded ? (
+						<LuChevronDown className="size-3.5 text-muted-foreground" />
+					) : (
+						<LuChevronRight className="size-3.5 text-muted-foreground" />
+					)
+				) : null}
+			</span>
+
+			<FileIcon
+				className="size-4 shrink-0"
+				fileName={node.name}
+				isDirectory={isFolder}
+				isOpen={node.isExpanded}
+			/>
+
+			<span className={cn("min-w-0 flex-1 truncate text-xs", nameColorClass)}>
+				{node.name}
+			</span>
+
+			{decoration && !isMuted && (
+				<span
+					className={cn(
+						"ml-auto shrink-0 text-[10px] font-semibold leading-none",
+						STATUS_TEXT_CLASS[decoration],
+					)}
+				>
+					{isFolder ? (
+						<LuCircle className="size-2 fill-current opacity-50" />
+					) : (
+						STATUS_LETTER[decoration]
+					)}
+				</span>
+			)}
+		</button>
+	);
+
 	return (
 		<ContextMenu>
 			<ContextMenuTrigger asChild>
-				<button
-					data-filepath={node.absolutePath}
-					aria-expanded={isFolder ? node.isExpanded : undefined}
-					className={cn(
-						"flex w-full cursor-pointer select-none items-center gap-1 pr-4 text-left transition-colors",
-						isFolder ? "bg-background" : undefined,
-						isHovered && !isSelected
-							? isFolder
-								? "!bg-muted"
-								: "!bg-accent/50"
-							: undefined,
-						isSelected ? "!bg-accent" : undefined,
-					)}
-					onClick={(e) => {
-						const intent = getSidebarClickIntent(e);
-						if (intent === "openInEditor") {
-							onOpenInEditor(node.absolutePath);
-						} else if (isFolder) {
-							onToggleDirectory(node.absolutePath);
-						} else {
-							onSelectFile(node.absolutePath, intent === "openInNewTab");
-						}
-					}}
-					style={{
-						height: rowHeight,
-						paddingLeft: 8 + (depth - 1) * indent,
-						...(isFolder
-							? {
-									position: "sticky" as const,
-									top: (depth - 1) * rowHeight,
-									zIndex: Math.max(1, 50 - depth),
-								}
-							: {}),
-					}}
-					type="button"
-				>
-					<span className="flex h-4 w-4 shrink-0 items-center justify-center">
-						{isFolder ? (
-							node.isExpanded ? (
-								<LuChevronDown className="size-3.5 text-muted-foreground" />
-							) : (
-								<LuChevronRight className="size-3.5 text-muted-foreground" />
-							)
-						) : null}
-					</span>
-
-					<FileIcon
-						className="size-4 shrink-0"
-						fileName={node.name}
-						isDirectory={isFolder}
-						isOpen={node.isExpanded}
-					/>
-
-					<span
-						className={cn("min-w-0 flex-1 truncate text-xs", nameColorClass)}
-					>
-						{node.name}
-					</span>
-
-					{decoration && !isMuted && (
-						<span
-							className={cn(
-								"ml-auto shrink-0 text-[10px] font-semibold leading-none",
-								STATUS_TEXT_CLASS[decoration],
-							)}
-						>
-							{isFolder ? (
-								<LuCircle className="size-2 fill-current opacity-50" />
-							) : (
-								STATUS_LETTER[decoration]
-							)}
-						</span>
-					)}
-				</button>
+				{isFolder ? (
+					rowButton
+				) : (
+					<Tooltip>
+						<TooltipTrigger asChild>{rowButton}</TooltipTrigger>
+						<TooltipContent side="right">{CLICK_HINT_TOOLTIP}</TooltipContent>
+					</Tooltip>
+				)}
 			</ContextMenuTrigger>
 			{isFolder ? (
 				<FolderContextMenu
@@ -166,6 +177,9 @@ function WorkspaceFilesTreeItemComponent({
 				<FileContextMenu
 					absolutePath={node.absolutePath}
 					relativePath={node.relativePath}
+					onOpen={() => onSelectFile(node.absolutePath)}
+					onOpenInNewTab={() => onSelectFile(node.absolutePath, true)}
+					onOpenInEditor={() => onOpenInEditor(node.absolutePath)}
 					onRename={() => onRename(node.absolutePath, node.name, false)}
 					onDelete={() => onDelete(node.absolutePath, node.name, false)}
 				/>
