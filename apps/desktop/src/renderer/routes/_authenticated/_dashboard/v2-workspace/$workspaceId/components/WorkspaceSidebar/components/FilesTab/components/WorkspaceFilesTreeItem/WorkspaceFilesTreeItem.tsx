@@ -4,8 +4,8 @@ import { memo } from "react";
 import { LuChevronDown, LuChevronRight, LuCircle } from "react-icons/lu";
 import type { FileTreeNode } from "renderer/hooks/host-service/useFileTree";
 import type { FileStatus } from "renderer/hooks/host-service/useGitStatusMap";
+import { getSidebarClickIntent } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/utils/getSidebarClickIntent";
 import { FileIcon } from "renderer/screens/main/components/WorkspaceView/RightSidebar/FilesView/utils";
-import { getSidebarClickIntent } from "../../../../../../utils/getSidebarClickIntent";
 
 import { FileContextMenu } from "./components/FileContextMenu";
 import { FolderContextMenu } from "./components/FolderContextMenu";
