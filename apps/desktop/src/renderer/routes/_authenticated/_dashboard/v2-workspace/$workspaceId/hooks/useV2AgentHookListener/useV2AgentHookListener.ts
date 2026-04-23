@@ -5,16 +5,20 @@ import { electronTrpc } from "renderer/lib/electron-trpc";
 import { playRingtone } from "renderer/lib/ringtones/play";
 import { useRingtoneStore } from "renderer/stores/ringtone";
 import { useTabsStore } from "renderer/stores/tabs";
+import { useV2PaneStatusStore } from "renderer/stores/v2-pane-status";
 import { isPaneVisible } from "./isPaneVisible";
 
 /**
- * Listens for v2 agent lifecycle events over the host-service WebSocket and
+ * Listens for v2 agent lifecycle events over the host-service WebSocket,
+ * updates pane status indicators (working/review/permission/idle) and
  * plays the selected ringtone in the renderer. Mirrors the v1 electron-main
  * playback path (see apps/desktop/src/main/lib/notifications/notification-manager.ts)
+ * plus the v1 sidebar-status path (renderer/stores/tabs/useAgentHookListener.ts),
  * but runs client-side so it works when host-service is off-machine.
  *
- * Keeps v1 behavior: skip `Start`, suppress when the event's pane is visible
- * and the window is focused, and honor the existing mute/volume settings.
+ * Keeps v1 behavior: skip `Start` for sound, suppress when the event's
+ * pane is visible and the window is focused, and honor the existing
+ * mute/volume settings.
  */
 export function useV2AgentHookListener(workspaceId: string): void {
 	const { data: volume = 100 } =
@@ -24,11 +28,28 @@ export function useV2AgentHookListener(workspaceId: string): void {
 
 	const handleEvent = useCallback(
 		(payload: AgentLifecyclePayload) => {
-			if (payload.eventType === "Start") return;
-			if (shouldSuppress(workspaceId, payload)) return;
+			console.log("[useV2AgentHookListener] handleEvent", {
+				workspaceId,
+				eventType: payload.eventType,
+				paneId: payload.paneId,
+				tabId: payload.tabId,
+			});
+			updatePaneStatus(workspaceId, payload);
 
-			const ringtoneId =
-				useRingtoneStore.getState().selectedRingtoneId;
+			if (payload.eventType === "Start") return;
+			const suppress = shouldSuppress(workspaceId, payload);
+			console.log("[useV2AgentHookListener] suppress check", {
+				suppress,
+				eventType: payload.eventType,
+			});
+			if (suppress) return;
+
+			const ringtoneId = useRingtoneStore.getState().selectedRingtoneId;
+			console.log("[useV2AgentHookListener] playing ringtone", {
+				ringtoneId,
+				volume,
+				muted,
+			});
 			void playRingtone({ ringtoneId, volume, muted });
 
 			showNativeNotification(payload, workspaceId);
@@ -37,6 +58,93 @@ export function useV2AgentHookListener(workspaceId: string): void {
 	);
 
 	useWorkspaceEvent("agent:lifecycle", workspaceId, handleEvent);
+}
+
+/**
+ * Writes pane agent-lifecycle status into the v2 pane-status store so the
+ * dashboard sidebar icon can pick it up. V2 panes are not tracked in the
+ * v1 `useTabsStore`, so this is its own source of truth.
+ *
+ * The Stop transition mirrors v1 (useAgentHookListener.ts): clear to idle
+ * when the user is currently looking at this workspace (they'll see the
+ * result immediately); otherwise mark review so the sidebar surfaces it.
+ */
+function updatePaneStatus(
+	workspaceId: string,
+	payload: AgentLifecyclePayload,
+): void {
+	// V2 terminals don't have a `paneId` (those live in the client-side
+	// panes store); fall back to terminalId / sessionId / hookSessionId as
+	// the unique key. The sidebar selector only filters on workspaceId so
+	// any non-empty unique id per running agent is fine — we just need
+	// SOMETHING to distinguish concurrent agents in the same workspace.
+	//
+	// Agent payloads frequently send empty strings (""), not missing
+	// fields, so `??` is wrong here — use a blank-string coalesce.
+	const paneId = firstNonBlank(
+		payload.paneId,
+		payload.terminalId,
+		payload.sessionId,
+		payload.hookSessionId,
+		payload.resourceId,
+	);
+	if (!paneId) {
+		console.log(
+			"[useV2AgentHookListener] updatePaneStatus skipped — no identifier",
+			payload,
+		);
+		return;
+	}
+	const store = useV2PaneStatusStore.getState();
+
+	if (payload.eventType === "Start") {
+		console.log("[useV2AgentHookListener] setPaneStatus working", { paneId });
+		store.setPaneStatus(paneId, workspaceId, "working");
+		return;
+	}
+
+	if (payload.eventType === "PermissionRequest") {
+		console.log("[useV2AgentHookListener] setPaneStatus permission", {
+			paneId,
+		});
+		store.setPaneStatus(paneId, workspaceId, "permission");
+		return;
+	}
+
+	if (payload.eventType === "Stop") {
+		const prev = store.statuses[paneId]?.status;
+		const viewing = isCurrentWorkspace(workspaceId);
+		const nextStatus = prev === "permission" || viewing ? "idle" : "review";
+		console.log("[useV2AgentHookListener] Stop -> transition", {
+			paneId,
+			prev,
+			viewing,
+			nextStatus,
+		});
+		if (nextStatus === "idle") {
+			store.clearPaneStatus(paneId);
+		} else {
+			store.setPaneStatus(paneId, workspaceId, nextStatus);
+		}
+	}
+}
+
+function firstNonBlank(
+	...values: (string | undefined | null)[]
+): string | null {
+	for (const v of values) {
+		if (v && v.length > 0) return v;
+	}
+	return null;
+}
+
+function isCurrentWorkspace(workspaceId: string): boolean {
+	try {
+		const match = window.location.hash.match(/\/workspace\/([^/?#]+)/);
+		return match?.[1] === workspaceId;
+	} catch {
+		return false;
+	}
 }
 
 function shouldSuppress(

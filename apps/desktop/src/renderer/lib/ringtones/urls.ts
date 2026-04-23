@@ -9,14 +9,10 @@ export const builtInRingtoneUrls: Record<string, string> = {
 		"../../../resources/sounds/shamisen.mp3",
 		import.meta.url,
 	).href,
-	"arcade.mp3": new URL(
-		"../../../resources/sounds/arcade.mp3",
-		import.meta.url,
-	).href,
-	"ping.mp3": new URL(
-		"../../../resources/sounds/ping.mp3",
-		import.meta.url,
-	).href,
+	"arcade.mp3": new URL("../../../resources/sounds/arcade.mp3", import.meta.url)
+		.href,
+	"ping.mp3": new URL("../../../resources/sounds/ping.mp3", import.meta.url)
+		.href,
 	"supersetquick.mp3": new URL(
 		"../../../resources/sounds/supersetquick.mp3",
 		import.meta.url,

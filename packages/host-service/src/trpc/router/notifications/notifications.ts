@@ -11,6 +11,7 @@ import { protectedProcedure, router } from "../../index";
 const hookInput = z.object({
 	paneId: z.string().optional(),
 	tabId: z.string().optional(),
+	terminalId: z.string().optional(),
 	workspaceId: z.string().optional(),
 	sessionId: z.string().optional(),
 	hookSessionId: z.string().optional(),
@@ -27,29 +28,43 @@ export const notificationsRouter = router({
 	 * the event type and fan out over the WebSocket event bus so clients
 	 * (desktop renderer, web) can play the finish sound themselves.
 	 */
-	hook: protectedProcedure
-		.input(hookInput)
-		.mutation(async ({ ctx, input }) => {
-			const eventType = mapEventType(input.eventType);
-			if (!eventType) {
-				return { success: true, ignored: true as const };
-			}
+	hook: protectedProcedure.input(hookInput).mutation(async ({ ctx, input }) => {
+		console.log("[notifications.hook] received", {
+			raw: input.eventType,
+			workspaceId: input.workspaceId,
+			paneId: input.paneId,
+			tabId: input.tabId,
+		});
+		const eventType = mapEventType(input.eventType);
+		if (!eventType) {
+			console.log(
+				"[notifications.hook] ignored — unmapped eventType",
+				input.eventType,
+			);
+			return { success: true, ignored: true as const };
+		}
 
-			if (!input.workspaceId) {
-				return { success: true, ignored: true as const };
-			}
+		if (!input.workspaceId) {
+			console.log("[notifications.hook] ignored — missing workspaceId");
+			return { success: true, ignored: true as const };
+		}
 
-			ctx.eventBus.broadcastAgentLifecycle({
-				workspaceId: input.workspaceId,
-				eventType,
-				paneId: input.paneId,
-				tabId: input.tabId,
-				sessionId: input.sessionId,
-				hookSessionId: input.hookSessionId,
-				resourceId: input.resourceId,
-				occurredAt: Date.now(),
-			});
+		console.log("[notifications.hook] broadcasting", {
+			workspaceId: input.workspaceId,
+			eventType,
+		});
+		ctx.eventBus.broadcastAgentLifecycle({
+			workspaceId: input.workspaceId,
+			eventType,
+			paneId: input.paneId,
+			tabId: input.tabId,
+			terminalId: input.terminalId,
+			sessionId: input.sessionId,
+			hookSessionId: input.hookSessionId,
+			resourceId: input.resourceId,
+			occurredAt: Date.now(),
+		});
 
-			return { success: true, ignored: false as const };
-		}),
+		return { success: true, ignored: false as const };
+	}),
 });

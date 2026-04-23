@@ -16,6 +16,7 @@ import { useV2UserPreferences } from "renderer/hooks/useV2UserPreferences";
 import { HotkeyLabel, useHotkey } from "renderer/hotkeys";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { CommandPalette } from "renderer/screens/main/components/CommandPalette";
+import { useV2PaneStatusStore } from "renderer/stores/v2-pane-status";
 import {
 	toAbsoluteWorkspacePath,
 	toRelativeWorkspacePath,
@@ -72,6 +73,7 @@ function V2WorkspacePage() {
 	const collections = useCollections();
 
 	useV2AgentHookListener(workspaceId);
+	useClearPaneAttentionOnView(workspaceId);
 
 	const { data: workspaces } = useLiveQuery(
 		(q) =>
@@ -99,6 +101,20 @@ function V2WorkspacePage() {
 			chatSessionId={chatSessionId}
 		/>
 	);
+}
+
+/**
+ * Clear "review" statuses for this workspace whenever the user is viewing
+ * the workspace page. Mirrors v1's `resetWorkspaceStatus` effect: being
+ * on the page counts as attention, so the sidebar indicator should clear.
+ */
+function useClearPaneAttentionOnView(workspaceId: string): void {
+	const clearWorkspaceAttention = useV2PaneStatusStore(
+		(s) => s.clearWorkspaceAttention,
+	);
+	useEffect(() => {
+		clearWorkspaceAttention(workspaceId);
+	}, [workspaceId, clearWorkspaceAttention]);
 }
 
 function WorkspaceContent({

@@ -80,7 +80,7 @@ json_escape() {
 # bus and plays the ringtone. Preferred when both the URL and the PSK are
 # provided by host-service's terminal env.
 if [ -n "$SUPERSET_HOST_AGENT_HOOK_URL" ] && [ -n "$SUPERSET_HOST_AGENT_HOOK_TOKEN" ]; then
-  PAYLOAD="{\"json\":{\"paneId\":\"$(json_escape "$SUPERSET_PANE_ID")\",\"tabId\":\"$(json_escape "$SUPERSET_TAB_ID")\",\"workspaceId\":\"$(json_escape "$SUPERSET_WORKSPACE_ID")\",\"sessionId\":\"$(json_escape "$SESSION_ID")\",\"hookSessionId\":\"$(json_escape "$HOOK_SESSION_ID")\",\"resourceId\":\"$(json_escape "$RESOURCE_ID")\",\"eventType\":\"$(json_escape "$EVENT_TYPE")\",\"env\":\"$(json_escape "$SUPERSET_ENV")\",\"version\":\"$(json_escape "$SUPERSET_HOOK_VERSION")\"}}"
+  PAYLOAD="{\"json\":{\"paneId\":\"$(json_escape "$SUPERSET_PANE_ID")\",\"tabId\":\"$(json_escape "$SUPERSET_TAB_ID")\",\"terminalId\":\"$(json_escape "$SUPERSET_TERMINAL_ID")\",\"workspaceId\":\"$(json_escape "$SUPERSET_WORKSPACE_ID")\",\"sessionId\":\"$(json_escape "$SESSION_ID")\",\"hookSessionId\":\"$(json_escape "$HOOK_SESSION_ID")\",\"resourceId\":\"$(json_escape "$RESOURCE_ID")\",\"eventType\":\"$(json_escape "$EVENT_TYPE")\",\"env\":\"$(json_escape "$SUPERSET_ENV")\",\"version\":\"$(json_escape "$SUPERSET_HOOK_VERSION")\"}}"
 
   if [ "$DEBUG_HOOKS_ENABLED" = "1" ]; then
     STATUS_CODE=$(curl -sX POST "$SUPERSET_HOST_AGENT_HOOK_URL" \

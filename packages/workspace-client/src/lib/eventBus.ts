@@ -23,6 +23,7 @@ export interface AgentLifecyclePayload {
 	eventType: AgentLifecycleEventType;
 	paneId?: string;
 	tabId?: string;
+	terminalId?: string;
 	sessionId?: string;
 	hookSessionId?: string;
 	resourceId?: string;
@@ -84,6 +85,14 @@ function handleMessage(state: ConnectionState, data: unknown): void {
 		return;
 	}
 
+	if (message.type === "agent:lifecycle") {
+		console.log("[event-bus-client] agent:lifecycle received", {
+			workspaceId: message.workspaceId,
+			eventType: message.eventType,
+			listenerCount: state.listeners.size,
+		});
+	}
+
 	for (const entry of state.listeners) {
 		if (entry.type !== message.type) continue;
 
@@ -117,6 +126,7 @@ function handleMessage(state: ConnectionState, data: unknown): void {
 					eventType: message.eventType,
 					paneId: message.paneId,
 					tabId: message.tabId,
+					terminalId: message.terminalId,
 					sessionId: message.sessionId,
 					hookSessionId: message.hookSessionId,
 					resourceId: message.resourceId,

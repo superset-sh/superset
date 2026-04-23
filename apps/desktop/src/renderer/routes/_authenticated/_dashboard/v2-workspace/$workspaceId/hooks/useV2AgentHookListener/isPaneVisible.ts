@@ -26,9 +26,7 @@ export function isPaneVisible({
 }): boolean {
 	if (!currentWorkspaceId || !tabsState) return false;
 	const isViewingWorkspace = currentWorkspaceId === pane.workspaceId;
-	const isActiveTab =
-		tabsState.activeTabIds?.[pane.workspaceId] === pane.tabId;
-	const isFocusedPane =
-		tabsState.focusedPaneIds?.[pane.tabId] === pane.paneId;
+	const isActiveTab = tabsState.activeTabIds?.[pane.workspaceId] === pane.tabId;
+	const isFocusedPane = tabsState.focusedPaneIds?.[pane.tabId] === pane.paneId;
 	return isViewingWorkspace && isActiveTab && isFocusedPane;
 }

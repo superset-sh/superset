@@ -129,11 +129,13 @@ export class EventBus {
 	 * `git:changed` pattern.
 	 */
 	broadcastAgentLifecycle(
-		message: Omit<
-			Extract<ServerMessage, { type: "agent:lifecycle" }>,
-			"type"
-		>,
+		message: Omit<Extract<ServerMessage, { type: "agent:lifecycle" }>, "type">,
 	): void {
+		console.log("[event-bus] broadcastAgentLifecycle", {
+			clientCount: this.clients.size,
+			workspaceId: message.workspaceId,
+			eventType: message.eventType,
+		});
 		this.broadcast({ type: "agent:lifecycle", ...message });
 	}
 

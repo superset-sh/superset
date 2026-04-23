@@ -1,6 +1,10 @@
 import { useNavigate } from "@tanstack/react-router";
 import { useDiffStats } from "renderer/hooks/host-service/useDiffStats";
 import { useDeletingWorkspaces } from "renderer/routes/_authenticated/providers/DeletingWorkspacesProvider";
+import {
+	selectWorkspaceStatus,
+	useV2PaneStatusStore,
+} from "renderer/stores/v2-pane-status";
 import type { DashboardSidebarWorkspace } from "../../types";
 import { DashboardSidebarDeleteDialog } from "../DashboardSidebarDeleteDialog";
 import { DashboardSidebarCollapsedWorkspaceButton } from "./components/DashboardSidebarCollapsedWorkspaceButton";
@@ -35,6 +39,7 @@ export function DashboardSidebarWorkspaceItem({
 		creationStatus,
 	} = workspace;
 	const diffStats = useDiffStats(id);
+	const workspaceStatus = useV2PaneStatusStore(selectWorkspaceStatus(id));
 	const {
 		cancelRename,
 		handleClick,
@@ -88,6 +93,7 @@ export function DashboardSidebarWorkspaceItem({
 					hostType={hostType}
 					hostIsOnline={hostIsOnline}
 					isActive={isActive}
+					workspaceStatus={workspaceStatus}
 					onClick={isPending ? handlePendingClick : handleClick}
 					creationStatus={creationStatus}
 					disabled={isPending}
@@ -154,6 +160,7 @@ export function DashboardSidebarWorkspaceItem({
 			renameValue={renameValue}
 			shortcutLabel={shortcutLabel}
 			diffStats={isPending ? null : diffStats}
+			workspaceStatus={workspaceStatus}
 			onClick={isPending ? handlePendingClick : handleClick}
 			onDoubleClick={isPending ? undefined : startRename}
 			onDeleteClick={() => setIsDeleteDialogOpen(true)}

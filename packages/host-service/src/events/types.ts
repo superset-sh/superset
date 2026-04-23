@@ -27,6 +27,7 @@ export interface AgentLifecycleMessage {
 	eventType: AgentLifecycleEventType;
 	paneId?: string;
 	tabId?: string;
+	terminalId?: string;
 	sessionId?: string;
 	hookSessionId?: string;
 	resourceId?: string;

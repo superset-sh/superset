@@ -113,9 +113,9 @@ interface BuildV2TerminalEnvParams {
 	agentHookPort: string;
 	agentHookVersion: string;
 	/** tRPC URL for the host-service notifications.hook mutation. */
-	hostAgentHookUrl: string;
+	hostAgentHookUrl?: string;
 	/** PSK the agent attaches as `Authorization: Bearer <token>`. */
-	hostAgentHookToken: string;
+	hostAgentHookToken?: string;
 }
 
 /**
@@ -170,6 +170,15 @@ export function buildV2TerminalEnv(
 	if (hostAgentHookUrl && hostAgentHookToken) {
 		env.SUPERSET_HOST_AGENT_HOOK_URL = hostAgentHookUrl;
 		env.SUPERSET_HOST_AGENT_HOOK_TOKEN = hostAgentHookToken;
+		console.log("[terminal-env] v2 hook vars injected", {
+			url: hostAgentHookUrl,
+			tokenLen: hostAgentHookToken.length,
+		});
+	} else {
+		console.log("[terminal-env] v2 hook vars NOT injected", {
+			hasUrl: Boolean(hostAgentHookUrl),
+			hasToken: Boolean(hostAgentHookToken),
+		});
 	}
 
 	if (supersetHomeDir) {
