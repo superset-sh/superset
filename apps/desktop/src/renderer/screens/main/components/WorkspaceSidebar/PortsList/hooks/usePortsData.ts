@@ -33,8 +33,7 @@ export function usePortsData() {
 		const merged: EnrichedPort[] = localPorts ? [...localPorts] : [];
 		for (const { hostUrl, ports } of remoteHostsPorts) {
 			for (const port of ports) {
-				// Remote host-services don't yet resolve ports.json labels; step 4.
-				merged.push({ ...port, label: null, hostUrl });
+				merged.push({ ...port, hostUrl });
 			}
 		}
 		return merged;

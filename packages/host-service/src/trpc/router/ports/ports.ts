@@ -1,15 +1,31 @@
 import type { DetectedPort } from "@superset/port-scanner";
 import { z } from "zod";
 import { portManager } from "../../../ports/port-manager";
+import { getLabelsForWorkspace } from "../../../ports/static-ports";
 import { protectedProcedure, router } from "../../index";
+
+export interface EnrichedPort extends DetectedPort {
+	label: string | null;
+}
 
 export type PortEvent =
 	| { type: "add"; port: DetectedPort }
 	| { type: "remove"; port: DetectedPort };
 
 export const portsRouter = router({
-	getAll: protectedProcedure.query((): DetectedPort[] => {
-		return portManager.getAllPorts();
+	getAll: protectedProcedure.query(({ ctx }): EnrichedPort[] => {
+		const resolve = (workspaceId: string): string | null => {
+			try {
+				return ctx.runtime.filesystem.resolveWorkspaceRoot(workspaceId);
+			} catch {
+				// Workspace deleted or unknown — no labels for this row.
+				return null;
+			}
+		};
+		return portManager.getAllPorts().map((port) => {
+			const labels = getLabelsForWorkspace(resolve, port.workspaceId);
+			return { ...port, label: labels?.get(port.port) ?? null };
+		});
 	}),
 
 	/**

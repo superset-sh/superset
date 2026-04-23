@@ -10,10 +10,14 @@ import type { DetectedPort } from "shared/types";
 
 const REMOTE_PORTS_REFETCH_INTERVAL_MS = 5_000;
 
+export interface RemotePort extends DetectedPort {
+	label: string | null;
+}
+
 export interface RemoteHostPorts {
 	hostId: string;
 	hostUrl: string;
-	ports: DetectedPort[];
+	ports: RemotePort[];
 }
 
 /**
