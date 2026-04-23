@@ -129,6 +129,9 @@ function hostIsVisible(container: HTMLDivElement | null): boolean {
 // xterm attached to the document so it survives provider remounts without
 // a detach/reattach flash — VSCode's setVisible(false) model. Looked up
 // by DOM id so it's HMR-safe (module-level `let` would leak on re-eval).
+// `inert` removes the whole subtree from the tab order and the accessibility
+// tree, and also moves focus out of it — so a parked terminal's internal
+// <textarea> can't receive keystrokes meant for the active pane.
 const PARKING_CONTAINER_ID = "v2-terminal-parking";
 function getParkingContainer(): HTMLDivElement {
 	const existing = document.getElementById(PARKING_CONTAINER_ID);
@@ -136,6 +139,8 @@ function getParkingContainer(): HTMLDivElement {
 
 	const el = document.createElement("div");
 	el.id = PARKING_CONTAINER_ID;
+	el.setAttribute("inert", "");
+	el.setAttribute("aria-hidden", "true");
 	el.style.position = "fixed";
 	el.style.left = "-9999px";
 	el.style.top = "-9999px";

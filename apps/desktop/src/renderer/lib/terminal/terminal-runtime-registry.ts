@@ -101,10 +101,16 @@ class TerminalRuntimeRegistryImpl {
 	}
 
 	/**
-	 * Swap the transport onto a new URL *only if* it's already live.
-	 * Used by effects watching `websocketUrl` — they fire on initial mount
-	 * when the transport hasn't been opened yet (ensureSession is still
-	 * in-flight), and we must not pre-empt that with a premature connect.
+	 * Swap the transport onto a new URL when it's already been brought up
+	 * once. Used by effects watching `websocketUrl` — they fire on initial
+	 * mount when the transport is still `"disconnected"` and ensureSession
+	 * is in-flight, and we must not pre-empt that with a premature connect.
+	 *
+	 * Skipped states: `"disconnected"` (never opened; caller should use
+	 * `connect()` via the ensureSession path). Allowed states: `"connecting"`
+	 * (connect() cleanly aborts the in-flight socket), `"open"` (standard
+	 * swap), and `"closed"` (previously live and mid-auto-reconnect — swap
+	 * the URL so the reconnect targets the new endpoint).
 	 */
 	reconnect(terminalId: string, wsUrl: string) {
 		const entry = this.entries.get(terminalId);
