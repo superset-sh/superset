@@ -10,7 +10,10 @@ interface PricingCardProps {
 }
 
 export function PricingCard({ tier, isYearly }: PricingCardProps) {
-	const { display, note, cadence } = resolvePrice(tier, isYearly);
+	const { display, strikethrough, note, cadence } = resolvePrice(
+		tier,
+		isYearly,
+	);
 
 	return (
 		<div
@@ -34,12 +37,19 @@ export function PricingCard({ tier, isYearly }: PricingCardProps) {
 			</div>
 
 			<div className="flex flex-col gap-1">
-				<div className="flex items-baseline gap-2">
-					<span className="text-4xl font-medium tracking-tight text-foreground">
+				<div className="flex h-10 items-baseline gap-2">
+					{strikethrough && (
+						<span className="text-2xl font-medium tracking-tight leading-none text-muted-foreground line-through">
+							{strikethrough}
+						</span>
+					)}
+					<span className="text-4xl font-medium tracking-tight leading-none text-foreground">
 						{display}
 					</span>
 					{note && (
-						<span className="text-sm text-muted-foreground">{note}</span>
+						<span className="text-sm leading-none text-muted-foreground">
+							{note}
+						</span>
 					)}
 				</div>
 				{cadence && <p className="text-xs text-muted-foreground">{cadence}</p>}
@@ -72,11 +82,26 @@ export function PricingCard({ tier, isYearly }: PricingCardProps) {
 
 function resolvePrice(tier: PricingTier, isYearly: boolean) {
 	if (tier.price.kind === "fixed") {
-		return { display: tier.price.display, note: "", cadence: tier.price.note };
+		return {
+			display: tier.price.display,
+			strikethrough: null,
+			note: "",
+			cadence: tier.price.note,
+		};
 	}
 	if (tier.price.kind === "custom") {
-		return { display: tier.price.display, note: "", cadence: tier.price.note };
+		return {
+			display: tier.price.display,
+			strikethrough: null,
+			note: "",
+			cadence: tier.price.note,
+		};
 	}
 	const entry = isYearly ? tier.price.yearly : tier.price.monthly;
-	return { display: entry.display, note: entry.note, cadence: entry.cadence };
+	return {
+		display: entry.display,
+		strikethrough: isYearly ? tier.price.monthly.display : null,
+		note: entry.note,
+		cadence: entry.cadence,
+	};
 }
