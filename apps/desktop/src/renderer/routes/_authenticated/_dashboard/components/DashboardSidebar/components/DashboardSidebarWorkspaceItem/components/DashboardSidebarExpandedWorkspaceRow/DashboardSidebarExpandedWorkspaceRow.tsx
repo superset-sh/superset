@@ -12,10 +12,23 @@ import type { DiffStats } from "renderer/hooks/host-service/useDiffStats";
 import { HotkeyLabel } from "renderer/hotkeys";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { RenameInput } from "renderer/screens/main/components/WorkspaceSidebar/RenameInput";
-import type { DashboardSidebarWorkspace } from "../../../../types";
+import type {
+	DashboardSidebarWorkspace,
+	DashboardSidebarWorkspacePullRequest,
+} from "../../../../types";
 import { getCreationStatusText } from "../../utils/getCreationStatusText";
 import { DashboardSidebarWorkspaceDiffStats } from "../DashboardSidebarWorkspaceDiffStats";
 import { DashboardSidebarWorkspaceIcon } from "../DashboardSidebarWorkspaceIcon";
+
+const PR_STATE_LABEL: Record<
+	DashboardSidebarWorkspacePullRequest["state"],
+	string
+> = {
+	open: "Open",
+	merged: "Merged",
+	closed: "Closed",
+	draft: "Draft",
+};
 
 interface DashboardSidebarExpandedWorkspaceRowProps
 	extends ComponentPropsWithoutRef<"div"> {
@@ -128,8 +141,13 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 									event.stopPropagation();
 									openUrl.mutate(pullRequest.url);
 								}}
+								onKeyDown={(event) => {
+									if (event.key === "Enter" || event.key === " ") {
+										event.stopPropagation();
+									}
+								}}
 								aria-label={`Open pull request #${pullRequest.number}`}
-								className="relative mr-2.5 flex size-5 shrink-0 cursor-pointer items-center justify-center rounded hover:bg-muted"
+								className="relative mr-2.5 flex size-5 shrink-0 cursor-pointer items-center justify-center rounded hover:bg-foreground/10"
 							>
 								<DashboardSidebarWorkspaceIcon
 									hostType={hostType}
@@ -159,7 +177,7 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 						{pullRequest ? (
 							<>
 								<p className="text-xs font-medium">
-									PR #{pullRequest.number} — {pullRequest.state}
+									PR #{pullRequest.number} — {PR_STATE_LABEL[pullRequest.state]}
 								</p>
 								<p className="text-xs text-muted-foreground">
 									Click to open on GitHub

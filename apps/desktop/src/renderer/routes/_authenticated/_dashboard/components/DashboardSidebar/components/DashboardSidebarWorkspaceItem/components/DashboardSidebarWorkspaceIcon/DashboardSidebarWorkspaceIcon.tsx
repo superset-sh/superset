@@ -1,11 +1,11 @@
 import { cn } from "@superset/ui/utils";
 import { HiExclamationTriangle } from "react-icons/hi2";
 import {
-	LuCircleDot,
 	LuCloud,
 	LuCloudOff,
 	LuGitMerge,
 	LuGitPullRequest,
+	LuGitPullRequestClosed,
 	LuGitPullRequestDraft,
 } from "react-icons/lu";
 import { AsciiSpinner } from "renderer/screens/main/components/AsciiSpinner";
@@ -34,7 +34,7 @@ const OVERLAY_POSITION = {
 const PR_ICON_BY_STATE = {
 	open: LuGitPullRequest,
 	merged: LuGitMerge,
-	closed: LuCircleDot,
+	closed: LuGitPullRequestClosed,
 	draft: LuGitPullRequestDraft,
 } as const;
 
