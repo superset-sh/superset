@@ -13,27 +13,43 @@ export interface PlayRingtoneOptions {
 }
 
 let audioPrimed = false;
+let audioPrimingListenersInstalled = false;
 
 /**
  * Some browsers block `audio.play()` until the user has interacted with the
  * page. Wire this up once at app mount so the first pointerdown unlocks
  * autoplay and subsequent hook events can play without a visible gesture.
+ * Safe to call repeatedly — listeners are only installed once.
  */
 export function primeRingtoneAudioOnFirstGesture(): void {
 	if (audioPrimed || typeof window === "undefined") return;
-	const prime = () => {
-		audioPrimed = true;
-		const silent = new Audio();
-		silent.muted = true;
-		silent.play().catch(() => {
-			// If the gesture somehow still can't unlock audio, we'll retry on
-			// the next one — listener is re-added below.
-			audioPrimed = false;
-			window.addEventListener("pointerdown", prime, { once: true });
-		});
+	if (audioPrimingListenersInstalled) return;
+	audioPrimingListenersInstalled = true;
+
+	const removeListeners = () => {
 		window.removeEventListener("pointerdown", prime);
 		window.removeEventListener("keydown", prime);
 	};
+
+	const prime = () => {
+		const silent = new Audio();
+		silent.muted = true;
+		silent
+			.play()
+			.then(() => {
+				audioPrimed = true;
+				removeListeners();
+			})
+			.catch(() => {
+				// Browser refused even with a gesture — wait for the next one.
+				// Listeners stay active (once:true triggered, so re-attach).
+				audioPrimingListenersInstalled = false;
+				window.addEventListener("pointerdown", prime, { once: true });
+				window.addEventListener("keydown", prime, { once: true });
+				audioPrimingListenersInstalled = true;
+			});
+	};
+
 	window.addEventListener("pointerdown", prime, { once: true });
 	window.addEventListener("keydown", prime, { once: true });
 }

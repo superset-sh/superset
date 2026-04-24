@@ -79,25 +79,25 @@ json_escape() {
 # v2: host-service tRPC endpoint. The renderer subscribes over the event
 # bus and plays the ringtone. Preferred when the URL is provided by
 # host-service's terminal env. Endpoint is unauthenticated — it only
-# broadcasts chimes, no auth header needed.
+# broadcasts chimes, no auth header needed. Always captures the status
+# so we can fall back to v1 when host-service is unreachable or the
+# mutation returns non-2xx (restarts, crashes, transient errors).
 if [ -n "$SUPERSET_HOST_AGENT_HOOK_URL" ]; then
   PAYLOAD="{\"json\":{\"paneId\":\"$(json_escape "$SUPERSET_PANE_ID")\",\"tabId\":\"$(json_escape "$SUPERSET_TAB_ID")\",\"terminalId\":\"$(json_escape "$SUPERSET_TERMINAL_ID")\",\"workspaceId\":\"$(json_escape "$SUPERSET_WORKSPACE_ID")\",\"sessionId\":\"$(json_escape "$SESSION_ID")\",\"hookSessionId\":\"$(json_escape "$HOOK_SESSION_ID")\",\"resourceId\":\"$(json_escape "$RESOURCE_ID")\",\"eventType\":\"$(json_escape "$EVENT_TYPE")\",\"env\":\"$(json_escape "$SUPERSET_ENV")\",\"version\":\"$(json_escape "$SUPERSET_HOOK_VERSION")\"}}"
 
+  STATUS_CODE=$(curl -sX POST "$SUPERSET_HOST_AGENT_HOOK_URL" \
+    --connect-timeout 1 --max-time 2 \
+    -H "Content-Type: application/json" \
+    -d "$PAYLOAD" \
+    -o /dev/null -w "%{http_code}" 2>/dev/null)
+
   if [ "$DEBUG_HOOKS_ENABLED" = "1" ]; then
-    STATUS_CODE=$(curl -sX POST "$SUPERSET_HOST_AGENT_HOOK_URL" \
-      --connect-timeout 1 --max-time 2 \
-      -H "Content-Type: application/json" \
-      -d "$PAYLOAD" \
-      -o /dev/null -w "%{http_code}" 2>/dev/null)
     echo "[notify-hook] host-service dispatched status=$STATUS_CODE" >&2
-  else
-    curl -sX POST "$SUPERSET_HOST_AGENT_HOOK_URL" \
-      --connect-timeout 1 --max-time 2 \
-      -H "Content-Type: application/json" \
-      -d "$PAYLOAD" \
-      > /dev/null 2>&1
   fi
-  exit 0
+
+  case "$STATUS_CODE" in
+    2*) exit 0 ;;
+  esac
 fi
 
 # v1 fallback: electron localhost server. Used by v1 terminals and when
