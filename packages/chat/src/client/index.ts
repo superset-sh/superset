@@ -16,3 +16,41 @@ export {
 	createChatRuntimeServiceClient,
 	createChatRuntimeServiceHttpClient,
 } from "./provider";
+export {
+	type ChatRecoveryCoordinator,
+	type ChatRecoveryPhase,
+	type ChatRecoveryReason,
+	type ChatRecoveryState,
+	createChatRecoveryCoordinator,
+	deriveReplayRetryDecision,
+	type EventClassification,
+	type ReplayRecoveryCompletion,
+	type ReplayRetryDecision,
+	type ReplayRetryTracker,
+} from "./recovery";
+export {
+	deriveToolState,
+	type FromLegacyOptions,
+	type FromLegacyResult,
+	fromLegacyMessages,
+	type LegacyContent,
+	type LegacyFileContent,
+	type LegacyImageContent,
+	type LegacyMessage,
+	type LegacyTextContent,
+	type LegacyThinkingContent,
+	type LegacyToolCallContent,
+	type LegacyToolResultContent,
+} from "./adapters/fromLegacy";
+export {
+	type SessionSnapshotResult,
+	startStream,
+	type StartStreamOptions,
+	type StreamEventSink,
+	type StreamFetchSnapshot,
+	type StreamHandle,
+	type StreamLogger,
+	type StreamSubscribe,
+	type StreamSubscribeHandle,
+	type StreamSubscribeOptions,
+} from "./stream";

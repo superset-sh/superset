@@ -26,6 +26,7 @@ import { FileDropOverlay } from "./components/FileDropOverlay";
 import { LinkedIssues } from "./components/LinkedIssues";
 import { SlashCommandPreview } from "./components/SlashCommandPreview";
 import type { LinkedIssue } from "./types";
+import { useV2PromptEditorDataSource } from "./useV2PromptEditorDataSource";
 import { getErrorMessage } from "./utils/getErrorMessage";
 
 interface ChatInputFooterProps {
@@ -65,7 +66,7 @@ interface ChatInputFooterProps {
 export function ChatInputFooter({
 	sessionId,
 	workspaceId,
-	cwd,
+	cwd: _cwd,
 	isFocused,
 	error,
 	canAbort,
@@ -92,6 +93,8 @@ export function ChatInputFooter({
 	onQuestionCancel,
 }: ChatInputFooterProps) {
 	useFocusPromptOnPane(isFocused);
+
+	const promptEditorDataSource = useV2PromptEditorDataSource(workspaceId);
 
 	// Re-focus the editor when the question overlay dismisses.
 	const { textInput } = usePromptInputController();
@@ -192,7 +195,7 @@ export function ChatInputFooter({
 									slashCommands={slashCommands}
 								/>
 								<TiptapPromptEditor
-									cwd={cwd}
+									dataSource={promptEditorDataSource}
 									slashCommands={slashCommands}
 									availableModels={availableModels}
 									placeholder="Ask to make changes, @mention files, run /commands"

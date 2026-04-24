@@ -1,4 +1,3 @@
-import { chatServiceTrpc } from "@superset/chat/client";
 import {
 	usePromptInputAttachments,
 	usePromptInputController,
@@ -40,6 +39,7 @@ import type { ModelOption } from "../../types";
 import { SlashCommandMenu } from "../SlashCommandMenu";
 import { FileMentionNode } from "./FileMentionNode";
 import { parseTextToEditorContent } from "./parseTextToEditorContent";
+import type { PromptEditorDataSource } from "./promptEditorDataSource";
 import { SlashCommandNode } from "./SlashCommandNode";
 import { SlashCommandPreviewPopover } from "./SlashCommandPreviewPopover";
 import { serializeEditorToText } from "./serializeEditorToText";
@@ -60,7 +60,7 @@ type MentionState = {
 };
 
 export interface TiptapPromptEditorProps {
-	cwd: string;
+	dataSource: PromptEditorDataSource;
 	slashCommands: SlashCommand[];
 	availableModels?: ModelOption[];
 	placeholder?: string;
@@ -75,7 +75,7 @@ function getDirectoryPath(relativePath: string): string {
 }
 
 export function TiptapPromptEditor({
-	cwd,
+	dataSource,
 	slashCommands,
 	availableModels,
 	placeholder = "Ask to make changes, @mention files, run /commands",
@@ -139,23 +139,13 @@ export function TiptapPromptEditor({
 		mentionState?.query ?? "",
 		120,
 	);
-	const { data: fileResults } = chatServiceTrpc.workspace.searchFiles.useQuery(
-		{
-			rootPath: cwd,
-			query: debouncedMentionQuery,
-			includeHidden: false,
-			limit: 20,
-		},
-		{
-			enabled:
-				!!mentionState &&
-				!!cwd &&
-				debouncedMentionQuery.length > 0 &&
-				(mentionState?.query?.length ?? 0) > 0,
-			staleTime: 1000,
-			placeholderData: (prev) => prev ?? [],
-		},
-	);
+	const fileResults = dataSource.useFileSearch({
+		query: debouncedMentionQuery,
+		enabled:
+			!!mentionState &&
+			debouncedMentionQuery.length > 0 &&
+			(mentionState?.query?.length ?? 0) > 0,
+	});
 
 	const mentionFiles: FileResult[] =
 		mentionState && (mentionState.query?.length ?? 0) > 0
@@ -637,7 +627,7 @@ export function TiptapPromptEditor({
 			{/* Slash command params popover — anchored to the chip node */}
 			{editor && (
 				<SlashCommandPreviewPopover
-					cwd={cwd}
+					useSlashPreview={dataSource.useSlashPreview}
 					slashCommands={slashCommands}
 					editor={editor}
 					isFocused={chipHovered || chipNodeSelected}

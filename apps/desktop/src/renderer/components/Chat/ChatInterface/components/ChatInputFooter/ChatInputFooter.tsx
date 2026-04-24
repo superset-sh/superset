@@ -15,6 +15,7 @@ import { useHotkeyDisplay } from "renderer/hotkeys";
 import type { SlashCommand } from "../../hooks/useSlashCommands";
 import type { ModelOption, PermissionMode } from "../../types";
 import { TiptapPromptEditor } from "../TiptapPromptEditor";
+import { useV1PromptEditorDataSource } from "../TiptapPromptEditor/useV1PromptEditorDataSource";
 import { ChatComposerControls } from "./components/ChatComposerControls";
 import { ChatInputDropZone } from "./components/ChatInputDropZone";
 import { ChatShortcuts } from "./components/ChatShortcuts";
@@ -84,6 +85,8 @@ export function ChatInputFooter({
 	onQuestionCancel,
 }: ChatInputFooterProps) {
 	useFocusPromptOnPane(isFocused);
+
+	const promptEditorDataSource = useV1PromptEditorDataSource(cwd);
 
 	// Focus the prompt when the question overlay dismisses (pendingQuestion → null).
 	// Uses rAF so the editor has time to mount, register its ref, and browser
@@ -175,7 +178,7 @@ export function ChatInputFooter({
 									onRemove={removeLinkedIssue}
 								/>
 								<TiptapPromptEditor
-									cwd={cwd}
+									dataSource={promptEditorDataSource}
 									slashCommands={slashCommands}
 									availableModels={availableModels}
 									placeholder="Ask to make changes, @mention files, run /commands"

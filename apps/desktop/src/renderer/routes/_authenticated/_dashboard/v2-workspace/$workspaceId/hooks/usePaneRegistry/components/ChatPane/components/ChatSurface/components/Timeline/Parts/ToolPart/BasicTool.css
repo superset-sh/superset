@@ -1,0 +1,54 @@
+/* Radix Collapsible height animation for BasicTool. Uses the
+   --radix-collapsible-content-height var that Radix sets during open /
+   close. Keeps timing short so streaming tool states feel responsive. */
+
+[data-slot="basic-tool-content"] {
+	overflow: hidden;
+}
+
+[data-slot="basic-tool-content"][data-state="open"] {
+	animation: basic-tool-open 220ms ease-out;
+}
+
+[data-slot="basic-tool-content"][data-state="closed"] {
+	animation: basic-tool-close 180ms ease-out;
+}
+
+@keyframes basic-tool-open {
+	from {
+		height: 0;
+		opacity: 0;
+	}
+	to {
+		height: var(--radix-collapsible-content-height);
+		opacity: 1;
+	}
+}
+
+@keyframes basic-tool-close {
+	from {
+		height: var(--radix-collapsible-content-height);
+		opacity: 1;
+	}
+	to {
+		height: 0;
+		opacity: 0;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	[data-slot="basic-tool-content"][data-state="open"],
+	[data-slot="basic-tool-content"][data-state="closed"] {
+		animation-duration: 0ms;
+	}
+}
+
+/* Trigger chevron rotation */
+[data-component="basic-tool-trigger"] [data-slot="basic-tool-chevron"] {
+	transition: transform 180ms ease-out;
+}
+
+[data-component="basic-tool-trigger"][data-state="open"]
+	[data-slot="basic-tool-chevron"] {
+	transform: rotate(180deg);
+}

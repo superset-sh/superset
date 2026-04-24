@@ -3,6 +3,9 @@ import { workspaceTrpc } from "@superset/workspace-client";
 import type { inferRouterInputs, inferRouterOutputs } from "@trpc/server";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { hasAnsweredQuestionToolCall } from "renderer/components/Chat/ChatInterface/utils/messageHelpers";
+import type { LegacyMessage } from "@superset/chat/client";
+import { useDualWriteFromLegacy } from "../../store/useDualWriteFromLegacy";
+import { useDualWriteDocksFromLegacy } from "../../store/useDualWriteDocksFromLegacy";
 
 interface UseChatDisplayOptions {
 	sessionId: string | null;
@@ -205,6 +208,82 @@ export function useChatDisplay(options: UseChatDisplayOptions) {
 			isRunning,
 		});
 	}, [historicalMessages, optimisticUserMessage, currentMessage, isRunning]);
+
+	// Phase 1 dual-write: shadow the legacy message stream into the new
+	// v2 chat store. We feed the RAW `historicalMessages` (no strip, no
+	// legacy optimistic) — those are handled in the new store via
+	// `addOptimistic` + `applySessionSnapshot`'s preserve-opt path. The
+	// streaming `currentMessage` gets appended only when it's safe:
+	//
+	//   a) the session is running
+	//   b) its `parentID` is actually in the array we're sending
+	//
+	// Why (b) matters: the NEW user message often lands in
+	// `historicalMessages` a poll after the send returns. While
+	// `historicalMessages` is stale, appending `currentMessage` would
+	// cause the adapter's lastUserID walk to attach the streaming
+	// assistant to the PRIOR user's turn — visible as the streaming
+	// response briefly replacing the response above it, then jumping
+	// back down once the poll catches up. Parent check prevents that.
+	//
+	// The id-dedup in `fromLegacyMessages` handles the other corner —
+	// the brief overlap where historical has the completed assistant
+	// and currentMessage is still set.
+	const dualWriteMessages = useMemo(() => {
+		const list = historicalMessages;
+		if (!list) return undefined;
+		if (
+			!isRunning ||
+			!currentMessage ||
+			currentMessage.role !== "assistant"
+		) {
+			return list;
+		}
+		const currentId =
+			typeof (currentMessage as { id?: unknown }).id === "string"
+				? ((currentMessage as { id: string }).id)
+				: null;
+		if (!currentId) return list;
+
+		// Parent-check guard: only attach if currentMessage.parentID is
+		// in the array; otherwise the adapter would misattribute.
+		const parentID = (currentMessage as { parentID?: unknown }).parentID;
+		if (typeof parentID === "string" && parentID) {
+			if (!list.some((m) => m.id === parentID)) return list;
+		}
+		// Already in the list (transition window where historical picked
+		// up the completed message but currentMessage hasn't cleared).
+		if (list.some((m) => m.id === currentId)) return list;
+
+		return [...list, currentMessage];
+	}, [historicalMessages, currentMessage, isRunning]);
+
+	// `activeMessageID` in the adapter flags tool parts as input-streaming.
+	// It's the ASSISTANT id being streamed, not a user id — previously
+	// this was wrong (was passing a user id, which did nothing useful).
+	const activeAssistantMessageId = useMemo<string | null>(() => {
+		if (!isRunning || !currentMessage) return null;
+		if (currentMessage.role !== "assistant") return null;
+		const id = (currentMessage as { id?: unknown }).id;
+		return typeof id === "string" ? id : null;
+	}, [currentMessage, isRunning]);
+
+	useDualWriteFromLegacy({
+		sessionId,
+		historicalMessages: dualWriteMessages as unknown as
+			| readonly LegacyMessage[]
+			| undefined,
+		isRunning,
+		activeMessageId: activeAssistantMessageId,
+	});
+
+	// Phase 4 dock bridge: mirror pendingApproval / pendingQuestion /
+	// pendingPlanApproval into the new store.docks map so the new
+	// DocksStack can render them. Plan §4.3.
+	useDualWriteDocksFromLegacy({
+		sessionId,
+		legacy: displayState as unknown as import("../../store/useDualWriteDocksFromLegacy").LegacyDockState | null,
+	});
 
 	const commands = useMemo(
 		() => ({

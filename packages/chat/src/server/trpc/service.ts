@@ -35,26 +35,38 @@ import {
 
 const ENABLE_MASTRA_MCP_SERVERS = false;
 
-function resolveOmModelFromAuth(): string | undefined {
-	if (process.env.GOOGLE_GENERATIVE_AI_API_KEY)
-		return "google/gemini-2.5-flash";
+const DEFAULT_OM_MODEL_ID = "anthropic/claude-haiku-4-5";
+
+function resolveOmModelFromAuth(): string {
 	const authStorage = createAuthStorage();
 	authStorage.reload();
+
 	const anthropic = authStorage.get("anthropic");
 	if (
+		process.env.ANTHROPIC_API_KEY?.trim() ||
 		anthropic?.type === "oauth" ||
 		(anthropic?.type === "api_key" && anthropic.key.trim())
 	) {
 		return "anthropic/claude-haiku-4-5";
 	}
+
 	const openai = authStorage.get("openai-codex");
 	if (
+		process.env.OPENAI_API_KEY?.trim() ||
 		openai?.type === "oauth" ||
 		(openai?.type === "api_key" && openai.key.trim())
 	) {
 		return "openai/gpt-4.1-nano";
 	}
-	return undefined;
+
+	if (process.env.GOOGLE_GENERATIVE_AI_API_KEY?.trim()) {
+		return "google/gemini-2.5-flash";
+	}
+
+	// No provider creds detected. Fall back to Anthropic so mastracode doesn't
+	// pick its hardcoded Gemini default — OM reflection will still error out,
+	// but at least against a provider Superset users typically auth for.
+	return DEFAULT_OM_MODEL_ID;
 }
 
 export interface ChatRuntimeServiceOptions {
@@ -121,12 +133,10 @@ export class ChatRuntimeService {
 					cwd: runtimeCwd,
 					extraTools,
 					disableMcp: !ENABLE_MASTRA_MCP_SERVERS,
-					...(omModel && {
-						initialState: {
-							observerModelId: omModel,
-							reflectorModelId: omModel,
-						},
-					}),
+					initialState: {
+						observerModelId: omModel,
+						reflectorModelId: omModel,
+					},
 				});
 				runtime.hookManager?.setSessionId(sessionId);
 				await runtime.harness.init();

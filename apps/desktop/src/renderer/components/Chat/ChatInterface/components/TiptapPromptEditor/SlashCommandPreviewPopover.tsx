@@ -1,4 +1,3 @@
-import { chatServiceTrpc } from "@superset/chat/client";
 import { usePromptInputController } from "@superset/ui/ai-elements/prompt-input";
 import { Popover, PopoverAnchor, PopoverContent } from "@superset/ui/popover";
 import type { Editor } from "@tiptap/core";
@@ -9,9 +8,10 @@ import {
 	parseSlashInput,
 	resolveSlashCommandDefinition,
 } from "../ChatInputFooter/components/SlashCommandPreview/slash-command-preview.model";
+import type { PromptEditorDataSource } from "./promptEditorDataSource";
 
 interface SlashCommandPreviewPopoverProps {
-	cwd: string;
+	useSlashPreview: PromptEditorDataSource["useSlashPreview"];
 	slashCommands: Array<{
 		name: string;
 		aliases: string[];
@@ -23,7 +23,7 @@ interface SlashCommandPreviewPopoverProps {
 }
 
 export function SlashCommandPreviewPopover({
-	cwd,
+	useSlashPreview,
 	slashCommands,
 	editor,
 	isFocused,
@@ -59,15 +59,10 @@ export function SlashCommandPreviewPopover({
 	const parsedInput = useMemo(() => parseSlashInput(inputValue), [inputValue]);
 	const debouncedSlashPreviewInput = useDebouncedValue(slashPreviewInput, 120);
 
-	const { data: slashPreview } =
-		chatServiceTrpc.workspace.previewSlashCommand.useQuery(
-			{ cwd, text: debouncedSlashPreviewInput },
-			{
-				enabled: debouncedSlashPreviewInput.length > 1 && !!cwd,
-				staleTime: 250,
-				placeholderData: (previous) => previous,
-			},
-		);
+	const slashPreview = useSlashPreview({
+		text: debouncedSlashPreviewInput,
+		enabled: debouncedSlashPreviewInput.length > 1,
+	});
 
 	const commandDefinition = useMemo(() => {
 		if (!parsedInput?.commandName) return null;
