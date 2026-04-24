@@ -17,6 +17,30 @@ import type { Branch, ChangedFile, FileStatus } from "../types";
 // and the LOC signal isn't useful for it.
 const MAX_UNTRACKED_LINE_COUNT_SIZE = 1 * 1024 * 1024;
 
+// Cap parallel file I/O so a workspace with thousands of untracked
+// files (e.g. fresh checkout with un-gitignored build artifacts)
+// doesn't exhaust the process file-descriptor limit.
+const UNTRACKED_IO_CONCURRENCY = 64;
+
+async function mapWithConcurrency<T>(
+	items: T[],
+	limit: number,
+	fn: (item: T) => Promise<void>,
+): Promise<void> {
+	let next = 0;
+	const workers = Array.from(
+		{ length: Math.min(limit, items.length) },
+		async () => {
+			while (true) {
+				const i = next++;
+				if (i >= items.length) return;
+				await fn(items[i] as T);
+			}
+		},
+	);
+	await Promise.all(workers);
+}
+
 /** Map git's single-letter status codes to GitHub-aligned FileStatus */
 export function mapGitStatus(code: string): FileStatus {
 	switch (code) {
@@ -232,30 +256,37 @@ export async function countUntrackedFileLines(
 		return;
 	}
 
-	await Promise.all(
-		files.map(async (file) => {
-			try {
-				const absolutePath = resolve(worktreePath, file.path);
-				if (!isPathWithinWorktree(worktreePath, absolutePath)) return;
+	await mapWithConcurrency(files, UNTRACKED_IO_CONCURRENCY, async (file) => {
+		try {
+			const absolutePath = resolve(worktreePath, file.path);
+			if (!isPathWithinWorktree(worktreePath, absolutePath)) return;
 
-				const fileReal = await realpath(absolutePath);
-				if (!isPathWithinWorktree(worktreeReal, fileReal)) return;
+			const fileReal = await realpath(absolutePath);
+			if (!isPathWithinWorktree(worktreeReal, fileReal)) return;
 
-				const stats = await stat(fileReal);
-				if (!stats.isFile() || stats.size > MAX_UNTRACKED_LINE_COUNT_SIZE) {
-					return;
-				}
+			const stats = await stat(fileReal);
+			if (!stats.isFile() || stats.size > MAX_UNTRACKED_LINE_COUNT_SIZE) {
+				return;
+			}
 
-				const content = await readFile(fileReal, "utf-8");
-				file.additions =
-					content === ""
-						? 0
-						: content.endsWith("\n")
-							? content.split(/\r?\n/).length - 1
-							: content.split(/\r?\n/).length;
-			} catch {}
-		}),
-	);
+			// `readFile(file, "utf-8")` happily turns binary into U+FFFDs
+			// and returns a non-zero line count, so sniff first 8KB for
+			// NULs the way git's own binary heuristic does.
+			const buf = await readFile(fileReal);
+			const sniffEnd = Math.min(buf.length, 8192);
+			for (let i = 0; i < sniffEnd; i++) {
+				if (buf[i] === 0) return;
+			}
+
+			const content = buf.toString("utf-8");
+			file.additions =
+				content === ""
+					? 0
+					: content.endsWith("\n")
+						? content.split(/\r?\n/).length - 1
+						: content.split(/\r?\n/).length;
+		} catch {}
+	});
 }
 
 export interface DetectedRename {
@@ -337,7 +368,12 @@ export async function detectUnstagedRenames(
 	} catch {
 		return [];
 	} finally {
-		await rm(tempDir, { recursive: true, force: true }).catch(() => {});
+		await rm(tempDir, { recursive: true, force: true }).catch((error) => {
+			console.warn("[git-helpers] failed to remove rename-detection tempdir", {
+				tempDir,
+				error,
+			});
+		});
 	}
 }
 

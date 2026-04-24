@@ -111,9 +111,14 @@ export const gitRouter = router({
 				`${baseRef}...HEAD`,
 			]);
 
-			// Staged — use status.files index character for correct status
+			// Staged — use status.files index character for correct status.
+			// `-M -C` lets the numstat collapse renamed/copied entries so a
+			// `git add` of `mv old new` yields a single 0/0 rename row
+			// instead of an A + D pair.
 			const stagedNumstat = parseNumstat(
-				await git.raw(["diff", "--numstat", "-z", "--cached"]).catch(() => ""),
+				await git
+					.raw(["diff", "--numstat", "-z", "-M", "-C", "--cached"])
+					.catch(() => ""),
 			);
 			const staged: ChangedFile[] = [];
 			for (const file of status.files) {
@@ -125,6 +130,8 @@ export const gitRouter = router({
 					};
 					staged.push({
 						path: file.path,
+						oldPath:
+							file.from && file.from !== file.path ? file.from : undefined,
 						status: mapGitStatus(idx),
 						additions: stats.additions,
 						deletions: stats.deletions,
