@@ -370,7 +370,8 @@ export class PortManager extends EventEmitter {
 				this.emit("port:add", detectedPort);
 			} else if (
 				existing.pid !== info.pid ||
-				existing.processName !== info.processName
+				existing.processName !== info.processName ||
+				existing.address !== info.address
 			) {
 				const updatedPort: DetectedPort = {
 					...existing,

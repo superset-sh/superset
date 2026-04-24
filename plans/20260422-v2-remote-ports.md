@@ -1,7 +1,7 @@
 # v2 Port Surfacing Across Local + Remote Host Services
 
 **Date:** 2026-04-22
-**Status:** Proposed
+**Status:** In review on PR #3676
 
 ## Goal
 
@@ -15,13 +15,15 @@ Show listening ports in the v2 sidebar for workspaces whose terminals run locall
 
 - Local detection: `apps/desktop/src/main/lib/terminal/port-manager.ts` (singleton, 2.5s poll + hint-debounce) + `port-scanner.ts` (lsof/netstat).
 - Exposure to UI: `apps/desktop/src/lib/trpc/routers/ports/ports.ts` — `getAll`, `subscribe` (observable), `kill`.
-- Consumer: `apps/desktop/src/renderer/screens/main/components/WorkspaceSidebar/PortsList/hooks/usePortsData.ts`. Keyed by `workspaceId`, falls back to 10s refetch.
+- Consumers:
+  - v2: `apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarPortsList/`
+  - v1/legacy: `apps/desktop/src/renderer/screens/main/components/WorkspaceSidebar/PortsList/` remains local-only.
 - Types: `apps/desktop/src/shared/types/ports.ts` — `DetectedPort`, `EnrichedPort`.
 - Host-service terminals: `packages/host-service/src/terminal/terminal.ts`, session rows in `packages/host-service/src/db/schema.ts` (`terminalSessions`). No port detection today.
 
 ## Target architecture
 
-```
+```text
  ┌────────────────────────┐       ┌────────────────────────────┐
  │ desktop main process   │       │ host-service (remote)      │
  │                        │       │                            │
@@ -37,8 +39,8 @@ Show listening ports in the v2 sidebar for workspaces whose terminals run locall
               │                                  │ (tunnel tRPC)
               ▼                                  ▼
         ┌──────────────────────────────────────────────┐
-        │ desktop renderer: usePortsData                │
-        │   merges local stream + per-remote streams    │
+        │ desktop renderer: DashboardSidebarPortsList    │
+        │   merges local + per-host getAll results      │
         │   groups by workspaceId                       │
         └──────────────────────────────────────────────┘
 ```
@@ -72,27 +74,36 @@ No behavior change in this step. Land it alone to de-risk.
   - `kill({ paneId, port })` → forwards to host-service port manager.
 - Register under the existing host-service router.
 
-### 4. Desktop: merge local + remote streams
+### 4. Desktop: merge local + remote host-service results
 
-Two options — recommend A.
+Use a v2-specific sidebar component instead of wiring remote host-service
+polling into the legacy `WorkspaceSidebar` path.
 
-**A. Renderer merges (recommended).** `usePortsData` subscribes to the local `electronTrpc.ports.subscribe` *plus* one remote subscription per connected host-service. Merge into a single `DetectedPort[]`, group by `workspaceId`. Each workspace already knows which host it lives on (via the `isRemote` path in `packages/host-service/src/trpc/router/workspace-creation/workspace-creation.ts:160+`), so the renderer picks the right stream.
+`DashboardSidebarPortsList` reads v2 hosts/workspaces from the renderer DB
+collections, queries each relevant host-service `ports.getAll`, and groups the
+result by workspace. Local v2 workspaces query the local host-service through
+`activeHostUrl`; remote v2 workspaces query the relay URL for their host.
 
-Pros: no proxy code in desktop main; remote failures are local to the hook (can show a "remote ports unavailable" badge per workspace).
+Pros: no proxy code in desktop main; remote failures are local to the sidebar
+query and don't affect other hosts.
 
-Cons: renderer gets wider — it now knows about N host-service connections. But it already does for terminals.
+Cons: renderer owns N host-service queries. This matches the v2 terminal model
+and keeps PID-local scanning on the owning host.
 
-**B. Desktop-main proxy.** Desktop main process subscribes to each host-service's `ports.subscribe` and re-emits through its own singleton. Renderer keeps current one-stream shape.
-
-Pros: renderer unchanged.
-
-Cons: duplicates buffering, partitions errors awkwardly, and leaks host-service identity into desktop-main state for no real benefit.
+Rejected alternative: a desktop-main proxy that subscribes to each host-service
+and re-emits through a singleton. It duplicates buffering, partitions errors
+awkwardly, and leaks host-service identity into desktop-main state for no real
+benefit.
 
 ### 5. Sidebar display
 
-`PortsList` stays as-is. Optional polish:
-- Add a small badge on each workspace group showing origin (local / remote hostname). Only if there's real ambiguity — if remote workspaces are visually distinct elsewhere in the sidebar, skip it.
-- `kill` button: route to local or remote `ports.kill` based on the workspace's host. Trivial if we keep option A.
+`DashboardSidebarPortsList` is mounted in the v2 `DashboardSidebar`. It groups
+ports by workspace and shows an origin badge (local / remote) because v2 can
+mix host-service owners in one sidebar.
+
+The kill button routes through the same host-service client that produced the
+port row. Browser-open is only enabled for local-device ports, where
+`localhost:<port>` is meaningful.
 
 ### 6. Schema
 
@@ -145,7 +156,7 @@ Big finding: **VS Code and Gitpod both read `/proc/net/tcp{,6}` directly on Linu
 
 - [VS Code `extHostTunnelService.ts`](https://github.com/microsoft/vscode/blob/main/src/vs/workbench/api/node/extHostTunnelService.ts) — `loadListeningPorts` reads procfs, filters state `0A`, parses big-endian hex IPs; correlates socket inodes → PIDs via `/proc/<pid>/fd/*`. Uses a `MovingAverage` of scan cost and polls at `max(avg * 20, 2000ms)` — adaptive backoff. We should steal this.
 - [VS Code `urlFinder.ts`](https://github.com/microsoft/vscode/blob/main/src/vs/workbench/contrib/remote/browser/urlFinder.ts) — canonical hint regexes:
-  ```
+  ```text
   localUrlRegex:   /\b\w{0,20}(?::\/\/)?(?:localhost|127\.0\.0\.1|0\.0\.0\.0|:\d{2,5})[\w\-\.\~:\/\?\#[\]\@!\$&\(\)\*\+\,\;\=]*/gim
   extractPortRegex: /(localhost|127\.0\.0\.1|0\.0\.0\.0):(\d{1,5})/
   localPythonServerRegex: /HTTP\son\s(127\.0\.0\.1|0\.0\.0\.0)\sport\s(\d+)/
@@ -166,6 +177,11 @@ Polling cadence: replace fixed `SCAN_INTERVAL_MS = 2500` with `max(movingAvg * 2
 
 ## Open questions
 
-- **Port labels for remote workspaces.** `loadStaticPorts(worktreePath)` reads `ports.json` from disk. For remote workspaces, host-service must read it from its own worktree and return `EnrichedPort`, not `DetectedPort`. Either (a) enrich in host-service before emitting, or (b) keep hosts emitting raw `DetectedPort` and have a separate `getStaticLabels(workspaceId)` tRPC call cached in the renderer. (b) is cleaner — labels rarely change, so one query per workspace beats sending labels over the subscription every tick.
-- **Multi-host fan-out.** If a user connects to several host-services, the renderer holds N+1 subscriptions. Fine for small N; revisit if it grows.
+- **Resolved: port labels for remote workspaces.** Host-service reads
+  `.superset/ports.json` from its own worktree and returns enriched rows from
+  `ports.getAll`; both desktop and host-service refresh cached labels when the
+  file mtime/size changes.
+- **Multi-host fan-out.** If a user connects to several host-services, the
+  renderer holds one polling query per relevant host. Fine for small N; revisit
+  if it grows.
 - **Security.** Port kill across tRPC needs the same auth boundary as terminal kill — confirm host-service already gates this before exposing `ports.kill`.

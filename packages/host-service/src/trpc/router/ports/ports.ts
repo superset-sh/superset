@@ -62,12 +62,17 @@ export const portsRouter = router({
 					if (event) yield event;
 				}
 				await new Promise<void>((r) => {
+					if (signal?.aborted) {
+						r();
+						return;
+					}
 					resolve = r;
 				});
 			}
 		} finally {
 			portManager.off("port:add", onAdd);
 			portManager.off("port:remove", onRemove);
+			signal?.removeEventListener("abort", wake);
 		}
 	}),
 

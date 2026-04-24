@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
+import type { DetectedPort } from "./types";
 
 /**
  * Regression tests for #3372 ("excessive lsof spawning").
@@ -24,6 +25,13 @@ interface ScannerSpy {
 	aborted: number;
 }
 
+interface MockPortInfo {
+	port: number;
+	pid: number;
+	address: string;
+	processName: string;
+}
+
 const spy: ScannerSpy = {
 	getProcessTree: 0,
 	getListeningPortsForPids: 0,
@@ -34,6 +42,7 @@ const spy: ScannerSpy = {
 };
 
 let lsofDelayMs = 0;
+let listeningPorts: MockPortInfo[] = [];
 
 mock.module("./scanner", () => ({
 	getProcessTree: async (pid: number) => {
@@ -58,7 +67,7 @@ mock.module("./scanner", () => ({
 					});
 				});
 			}
-			return [];
+			return listeningPorts;
 		} finally {
 			spy.inFlight--;
 		}
@@ -76,8 +85,10 @@ const noopKill = async () => ({ success: true });
 
 let manager: InstanceType<typeof PortManager>;
 
-// biome-ignore lint/suspicious/noExplicitAny: reach into private state for invariant checks
-const pmInternals = () => manager as any;
+const pmInternals = () =>
+	manager as unknown as {
+		scanInterval: ReturnType<typeof setInterval> | null;
+	};
 
 function resetSpy(): void {
 	spy.getProcessTree = 0;
@@ -87,6 +98,7 @@ function resetSpy(): void {
 	spy.lastSignal = undefined;
 	spy.aborted = 0;
 	lsofDelayMs = 0;
+	listeningPorts = [];
 }
 
 beforeEach(() => {
@@ -180,6 +192,35 @@ describe("PortManager — #3372 concurrency (at most one lsof in flight)", () =>
 		expect(spy.maxInFlight).toBe(1);
 		// Exact — one initial scan + one coalesced follow-up, never more, never fewer.
 		expect(spy.getListeningPortsForPids).toBe(2);
+	});
+});
+
+describe("PortManager — port identity updates", () => {
+	it("emits an update when an existing port rebinds to a new address", async () => {
+		const added: DetectedPort[] = [];
+		const removed: DetectedPort[] = [];
+		manager.on("port:add", (port: DetectedPort) => added.push(port));
+		manager.on("port:remove", (port: DetectedPort) => removed.push(port));
+
+		manager.upsertSession("p1", "ws1", 1000);
+
+		listeningPorts = [
+			{ port: 3000, pid: 1000, address: "0.0.0.0", processName: "node" },
+		];
+		await manager.forceScan();
+
+		listeningPorts = [
+			{ port: 3000, pid: 1000, address: "127.0.0.1", processName: "node" },
+		];
+		await manager.forceScan();
+
+		const [port] = manager.getAllPorts();
+		expect(port?.address).toBe("127.0.0.1");
+		expect(added.map((event) => event.address)).toEqual([
+			"0.0.0.0",
+			"127.0.0.1",
+		]);
+		expect(removed.map((event) => event.address)).toEqual(["0.0.0.0"]);
 	});
 });
 

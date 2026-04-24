@@ -2,9 +2,7 @@
 	"extends": "@superset/typescript/internal-package.json",
 	"compilerOptions": {
 		"types": ["bun-types"],
-		// The scanner parses lsof/netstat output by column index after
-		// explicit length checks; undefined narrowing would add noise.
-		"noUncheckedIndexedAccess": false
+		"noUncheckedIndexedAccess": true
 	},
 	"include": ["src"],
 	"exclude": ["node_modules", "dist"]

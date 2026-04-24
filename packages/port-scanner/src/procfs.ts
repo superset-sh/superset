@@ -26,6 +26,9 @@ import type { PortInfo } from "./scanner";
 /** Linux kernel TCP state code for LISTEN. See include/net/tcp_states.h. */
 const TCP_STATE_LISTEN = "0A";
 
+/** Keep procfs fd symlink reads bounded across all scanned PIDs. */
+const FD_READLINK_CONCURRENCY = 64;
+
 interface ProcNetListener {
 	port: number;
 	inode: number;
@@ -143,6 +146,29 @@ async function readProcNetFile(
 	return listeners;
 }
 
+function createLimiter(
+	concurrency: number,
+): <T>(fn: () => Promise<T>) => Promise<T> {
+	let active = 0;
+	const queue: Array<() => void> = [];
+
+	return async <T>(fn: () => Promise<T>): Promise<T> => {
+		if (active >= concurrency) {
+			await new Promise<void>((resolve) => {
+				queue.push(resolve);
+			});
+		}
+
+		active++;
+		try {
+			return await fn();
+		} finally {
+			active--;
+			queue.shift()?.();
+		}
+	};
+}
+
 /**
  * Walk /proc/<pid>/fd/ for each PID we care about and build an inode → pid
  * map. We ignore fds we can't read — they may have been closed between
@@ -153,6 +179,7 @@ async function buildInodeToPid(
 	signal?: AbortSignal,
 ): Promise<Map<number, number>> {
 	const inodeToPid = new Map<number, number>();
+	const limitReadlink = createLimiter(FD_READLINK_CONCURRENCY);
 
 	await Promise.all(
 		Array.from(pids, async (pid) => {
@@ -166,24 +193,27 @@ async function buildInodeToPid(
 			}
 
 			await Promise.all(
-				entries.map(async (fd) => {
-					try {
-						const link = await fs.readlink(`/proc/${pid}/fd/${fd}`);
-						const match = link.match(/^socket:\[(\d+)\]$/);
-						const inodeStr = match?.[1];
-						if (inodeStr === undefined) return;
-						const inode = Number.parseInt(inodeStr, 10);
-						if (!Number.isFinite(inode) || inode <= 0) return;
-						// Last-write-wins if two PIDs share an inode (rare:
-						// inherited via fork before bind, or passed via
-						// SCM_RIGHTS). For listening sockets the realistic
-						// case is a parent + child sharing the socket, and
-						// either PID is a reasonable answer.
-						inodeToPid.set(inode, pid);
-					} catch {
-						// fd closed between readdir and readlink — normal.
-					}
-				}),
+				entries.map((fd) =>
+					limitReadlink(async () => {
+						signal?.throwIfAborted();
+						try {
+							const link = await fs.readlink(`/proc/${pid}/fd/${fd}`);
+							const match = link.match(/^socket:\[(\d+)\]$/);
+							const inodeStr = match?.[1];
+							if (inodeStr === undefined) return;
+							const inode = Number.parseInt(inodeStr, 10);
+							if (!Number.isFinite(inode) || inode <= 0) return;
+							// Last-write-wins if two PIDs share an inode (rare:
+							// inherited via fork before bind, or passed via
+							// SCM_RIGHTS). For listening sockets the realistic
+							// case is a parent + child sharing the socket, and
+							// either PID is a reasonable answer.
+							inodeToPid.set(inode, pid);
+						} catch {
+							// fd closed between readdir and readlink — normal.
+						}
+					}),
+				),
 			);
 		}),
 	);
