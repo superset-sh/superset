@@ -2,6 +2,7 @@ import type {
 	SelectAutomation,
 	SelectAutomationRun,
 } from "@superset/db/schema";
+import { alert } from "@superset/ui/atoms/Alert";
 import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useMutation } from "@tanstack/react-query";
@@ -80,13 +81,20 @@ function AutomationDetailPage() {
 					onBack={() => navigate({ to: "/automations" })}
 					onToggleEnabled={() => setEnabledMutation.mutate(!automation.enabled)}
 					onDelete={() => {
-						if (
-							confirm(
-								`Delete "${automation.name}"? This removes the automation and its run history.`,
-							)
-						) {
-							deleteMutation.mutate();
-						}
+						alert({
+							title: "Delete automation?",
+							description: `"${automation.name}" will stop firing and its run history will be removed. This can't be undone.`,
+							actions: [
+								{ label: "Cancel", variant: "outline", onClick: () => {} },
+								{
+									label: "Delete",
+									variant: "destructive",
+									onClick: async () => {
+										await deleteMutation.mutateAsync();
+									},
+								},
+							],
+						});
 					}}
 					onRunNow={() => runNowMutation.mutate()}
 					toggleDisabled={setEnabledMutation.isPending}
