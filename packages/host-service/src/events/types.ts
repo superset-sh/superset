@@ -34,6 +34,16 @@ export interface AgentLifecycleMessage {
 	occurredAt: number;
 }
 
+export interface TerminalLifecycleMessage {
+	type: "terminal:lifecycle";
+	workspaceId: string;
+	terminalId: string;
+	eventType: "exit";
+	exitCode: number;
+	signal: number;
+	occurredAt: number;
+}
+
 export interface EventBusErrorMessage {
 	type: "error";
 	message: string;
@@ -43,6 +53,7 @@ export type ServerMessage =
 	| FsEventsMessage
 	| GitChangedMessage
 	| AgentLifecycleMessage
+	| TerminalLifecycleMessage
 	| EventBusErrorMessage;
 
 // ── Client → Server ────────────────────────────────────────────────

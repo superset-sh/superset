@@ -11,6 +11,7 @@ import type { Hono } from "hono";
 import { type IPty, spawn } from "node-pty";
 import type { HostDb } from "../db";
 import { projects, terminalSessions, workspaces } from "../db/schema";
+import type { EventBus } from "../events";
 import {
 	buildV2TerminalEnv,
 	getShellLaunchArgs,
@@ -21,6 +22,7 @@ import {
 interface RegisterWorkspaceTerminalRouteOptions {
 	app: Hono;
 	db: HostDb;
+	eventBus: EventBus;
 	upgradeWebSocket: NodeWebSocket["upgradeWebSocket"];
 }
 
@@ -222,6 +224,7 @@ interface CreateTerminalSessionOptions {
 	workspaceId: string;
 	themeType?: "dark" | "light";
 	db: HostDb;
+	eventBus?: EventBus;
 	/** Command to run after the shell is ready. Queued behind shellReadyPromise. */
 	initialCommand?: string;
 }
@@ -231,6 +234,7 @@ export function createTerminalSessionInternal({
 	workspaceId,
 	themeType,
 	db,
+	eventBus,
 	initialCommand,
 }: CreateTerminalSessionOptions): TerminalSession | { error: string } {
 	const existing = sessions.get(terminalId);
@@ -380,6 +384,15 @@ export function createTerminalSessionInternal({
 				signal: session.exitSignal,
 			});
 		}
+
+		eventBus?.broadcastTerminalLifecycle({
+			workspaceId,
+			terminalId,
+			eventType: "exit",
+			exitCode: session.exitCode,
+			signal: session.exitSignal,
+			occurredAt: Date.now(),
+		});
 	});
 
 	if (initialCommand) {
@@ -399,6 +412,7 @@ export function createTerminalSessionInternal({
 export function registerWorkspaceTerminalRoute({
 	app,
 	db,
+	eventBus,
 	upgradeWebSocket,
 }: RegisterWorkspaceTerminalRouteOptions) {
 	app.post("/terminal/sessions", async (c) => {
@@ -417,6 +431,7 @@ export function registerWorkspaceTerminalRoute({
 			workspaceId: body.workspaceId,
 			themeType: parseThemeType(body.themeType),
 			db,
+			eventBus,
 		});
 
 		if ("error" in result) {
@@ -486,6 +501,7 @@ export function registerWorkspaceTerminalRoute({
 							workspaceId,
 							themeType,
 							db,
+							eventBus,
 						});
 
 						if ("error" in result) {

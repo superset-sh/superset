@@ -1,4 +1,9 @@
-import { type PaneActionConfig, Workspace } from "@superset/panes";
+import {
+	type Pane,
+	type PaneActionConfig,
+	Workspace,
+	type WorkspaceStore,
+} from "@superset/panes";
 import { alert } from "@superset/ui/atoms/Alert";
 import {
 	ResizableHandle,
@@ -22,6 +27,7 @@ import {
 	toRelativeWorkspacePath,
 } from "shared/absolute-paths";
 import { useStore } from "zustand";
+import type { StoreApi } from "zustand/vanilla";
 import { WorkspaceNotFoundState } from "../components/WorkspaceNotFoundState";
 import { AddTabMenu } from "./components/AddTabMenu";
 import { V2PresetsBar } from "./components/V2PresetsBar";
@@ -71,8 +77,6 @@ function V2WorkspacePage() {
 	const { terminalId, chatSessionId } = Route.useSearch();
 	const collections = useCollections();
 
-	useClearPaneAttentionOnView(workspaceId);
-
 	const { data: workspaces } = useLiveQuery(
 		(q) =>
 			q
@@ -102,27 +106,64 @@ function V2WorkspacePage() {
 }
 
 /**
- * Clear "review" statuses for this workspace whenever the user is viewing
- * the workspace page. Mirrors v1's `resetWorkspaceStatus` effect: being
- * on the page counts as attention, so the sidebar indicator should clear.
+ * Clear post-completion attention only for the pane the user is actually
+ * viewing. Clearing every review status on route entry would drop background
+ * tab attention before the user has looked at that pane.
  */
-function useClearPaneAttentionOnView(workspaceId: string): void {
-	const clearWorkspaceAttention = useV2PaneStatusStore(
-		(s) => s.clearWorkspaceAttention,
+function useClearActivePaneAttention({
+	workspaceId,
+	store,
+}: {
+	workspaceId: string;
+	store: StoreApi<WorkspaceStore<PaneViewerData>>;
+}): void {
+	const activePaneKeys = useStore(store, (state) => {
+		const tab = state.tabs.find(
+			(candidate) => candidate.id === state.activeTabId,
+		);
+		const pane = tab?.activePaneId ? tab.panes[tab.activePaneId] : undefined;
+		return getPaneAttentionKeys(pane).join("\u0000");
+	});
+	const clearPaneStatus = useV2PaneStatusStore(
+		(state) => state.clearPaneStatus,
 	);
-	// Re-run whenever a new review status appears for this workspace — else
-	// a Stop event arriving while the user is already on the page would
-	// leave the sidebar dot lit until navigation.
-	const hasReviewStatus = useV2PaneStatusStore((s) =>
-		Object.values(s.statuses).some(
-			(entry) => entry.workspaceId === workspaceId && entry.status === "review",
-		),
+	const hasActivePaneReview = useV2PaneStatusStore((state) =>
+		activePaneKeys
+			.split("\u0000")
+			.filter(Boolean)
+			.some(
+				(key) =>
+					state.statuses[key]?.workspaceId === workspaceId &&
+					state.statuses[key]?.status === "review",
+			),
 	);
+
 	useEffect(() => {
-		if (hasReviewStatus) {
-			clearWorkspaceAttention(workspaceId);
+		if (!hasActivePaneReview) return;
+		for (const key of activePaneKeys.split("\u0000").filter(Boolean)) {
+			const entry = useV2PaneStatusStore.getState().statuses[key];
+			if (entry?.workspaceId === workspaceId && entry.status === "review") {
+				clearPaneStatus(key);
+			}
 		}
-	}, [workspaceId, clearWorkspaceAttention, hasReviewStatus]);
+	}, [activePaneKeys, clearPaneStatus, hasActivePaneReview, workspaceId]);
+}
+
+function getPaneAttentionKeys(
+	pane: Pane<PaneViewerData> | undefined,
+): string[] {
+	if (!pane) return [];
+
+	const keys = new Set<string>([pane.id]);
+	if (pane.kind === "terminal") {
+		const data = pane.data as TerminalPaneData;
+		if (data.terminalId) keys.add(data.terminalId);
+	}
+	if (pane.kind === "chat") {
+		const data = pane.data as ChatPaneData;
+		if (data.sessionId) keys.add(data.sessionId);
+	}
+	return [...keys];
 }
 
 function WorkspaceContent({
@@ -147,6 +188,7 @@ function WorkspaceContent({
 		projectId,
 		workspaceId,
 	});
+	useClearActivePaneAttention({ workspaceId, store });
 	const { matchedPresets, executePreset } = useV2PresetExecution({
 		store,
 		workspaceId,

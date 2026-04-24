@@ -134,6 +134,20 @@ export class EventBus {
 		this.broadcast({ type: "agent:lifecycle", ...message });
 	}
 
+	/**
+	 * Fan out terminal process lifecycle events to renderer clients. Agent hook
+	 * status can otherwise get stuck when a terminal exits while its pane is not
+	 * mounted and therefore cannot observe the terminal websocket `exit` packet.
+	 */
+	broadcastTerminalLifecycle(
+		message: Omit<
+			Extract<ServerMessage, { type: "terminal:lifecycle" }>,
+			"type"
+		>,
+	): void {
+		this.broadcast({ type: "terminal:lifecycle", ...message });
+	}
+
 	private startFsWatch(
 		socket: WsSocket,
 		state: ClientState,

@@ -86,7 +86,7 @@ if [ -n "$SUPERSET_HOST_AGENT_HOOK_URL" ]; then
   PAYLOAD="{\"json\":{\"paneId\":\"$(json_escape "$SUPERSET_PANE_ID")\",\"tabId\":\"$(json_escape "$SUPERSET_TAB_ID")\",\"terminalId\":\"$(json_escape "$SUPERSET_TERMINAL_ID")\",\"workspaceId\":\"$(json_escape "$SUPERSET_WORKSPACE_ID")\",\"sessionId\":\"$(json_escape "$SESSION_ID")\",\"hookSessionId\":\"$(json_escape "$HOOK_SESSION_ID")\",\"resourceId\":\"$(json_escape "$RESOURCE_ID")\",\"eventType\":\"$(json_escape "$EVENT_TYPE")\",\"env\":\"$(json_escape "$SUPERSET_ENV")\",\"version\":\"$(json_escape "$SUPERSET_HOOK_VERSION")\"}}"
 
   STATUS_CODE=$(curl -sX POST "$SUPERSET_HOST_AGENT_HOOK_URL" \
-    --connect-timeout 1 --max-time 2 \
+    --connect-timeout 2 --max-time 5 \
     -H "Content-Type: application/json" \
     -d "$PAYLOAD" \
     -o /dev/null -w "%{http_code}" 2>/dev/null)

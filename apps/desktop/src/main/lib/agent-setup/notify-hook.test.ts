@@ -21,4 +21,15 @@ describe("getNotifyScriptContent", () => {
 			"event=$EVENT_TYPE sessionId=$SESSION_ID hookSessionId=$HOOK_SESSION_ID resourceId=$RESOURCE_ID",
 		);
 	});
+
+	it("gives the v2 host-service hook enough time to avoid false fallback", () => {
+		const script = readFileSync(
+			path.join(import.meta.dir, "templates", "notify-hook.template.sh"),
+			"utf-8",
+		);
+
+		expect(script).toContain(
+			'curl -sX POST "$SUPERSET_HOST_AGENT_HOOK_URL" \\\n    --connect-timeout 2 --max-time 5',
+		);
+	});
 });

@@ -103,6 +103,7 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 	registerWorkspaceTerminalRoute({
 		app,
 		db,
+		eventBus,
 		upgradeWebSocket,
 	});
 

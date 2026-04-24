@@ -12,4 +12,5 @@ export type {
 	FsWatchCommand,
 	GitChangedMessage,
 	ServerMessage,
+	TerminalLifecycleMessage,
 } from "./types";

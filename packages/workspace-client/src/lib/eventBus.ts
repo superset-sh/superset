@@ -5,7 +5,11 @@ import type {
 } from "@superset/host-service/events";
 import type { FsWatchEvent } from "@superset/workspace-fs/host";
 
-type EventType = "fs:events" | "git:changed" | "agent:lifecycle";
+type EventType =
+	| "fs:events"
+	| "git:changed"
+	| "agent:lifecycle"
+	| "terminal:lifecycle";
 
 interface FsEventsPayload {
 	events: FsWatchEvent[];
@@ -30,13 +34,23 @@ export interface AgentLifecyclePayload {
 	occurredAt: number;
 }
 
+export interface TerminalLifecyclePayload {
+	eventType: "exit";
+	terminalId: string;
+	exitCode: number;
+	signal: number;
+	occurredAt: number;
+}
+
 type EventListener<T extends EventType> = T extends "fs:events"
 	? (workspaceId: string, payload: FsEventsPayload) => void
 	: T extends "git:changed"
 		? (workspaceId: string, payload: GitChangedPayload) => void
 		: T extends "agent:lifecycle"
 			? (workspaceId: string, payload: AgentLifecyclePayload) => void
-			: never;
+			: T extends "terminal:lifecycle"
+				? (workspaceId: string, payload: TerminalLifecyclePayload) => void
+				: never;
 
 interface ListenerEntry {
 	type: EventType;
@@ -91,7 +105,8 @@ function handleMessage(state: ConnectionState, data: unknown): void {
 		const workspaceId =
 			message.type === "fs:events" ||
 			message.type === "git:changed" ||
-			message.type === "agent:lifecycle"
+			message.type === "agent:lifecycle" ||
+			message.type === "terminal:lifecycle"
 				? message.workspaceId
 				: null;
 
@@ -122,6 +137,17 @@ function handleMessage(state: ConnectionState, data: unknown): void {
 					sessionId: message.sessionId,
 					hookSessionId: message.hookSessionId,
 					resourceId: message.resourceId,
+					occurredAt: message.occurredAt,
+				},
+			);
+		} else if (message.type === "terminal:lifecycle") {
+			(entry.callback as EventListener<"terminal:lifecycle">)(
+				message.workspaceId,
+				{
+					eventType: message.eventType,
+					terminalId: message.terminalId,
+					exitCode: message.exitCode,
+					signal: message.signal,
 					occurredAt: message.occurredAt,
 				},
 			);

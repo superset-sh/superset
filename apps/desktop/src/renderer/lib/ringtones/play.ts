@@ -14,6 +14,7 @@ export interface PlayRingtoneOptions {
 
 let audioPrimed = false;
 let audioPrimingListenersInstalled = false;
+let audioPrimingInFlight = false;
 
 /**
  * Some browsers block `audio.play()` until the user has interacted with the
@@ -23,56 +24,59 @@ let audioPrimingListenersInstalled = false;
  */
 export function primeRingtoneAudioOnFirstGesture(): void {
 	if (audioPrimed || typeof window === "undefined") return;
-	if (audioPrimingListenersInstalled) return;
-	audioPrimingListenersInstalled = true;
+	if (audioPrimingListenersInstalled || audioPrimingInFlight) return;
 
 	const removeListeners = () => {
 		window.removeEventListener("pointerdown", prime);
 		window.removeEventListener("keydown", prime);
+		audioPrimingListenersInstalled = false;
+	};
+
+	const installListeners = () => {
+		if (audioPrimed || audioPrimingListenersInstalled || audioPrimingInFlight) {
+			return;
+		}
+		window.addEventListener("pointerdown", prime, { once: true });
+		window.addEventListener("keydown", prime, { once: true });
+		audioPrimingListenersInstalled = true;
 	};
 
 	const prime = () => {
+		if (audioPrimed || audioPrimingInFlight) return;
+		audioPrimingInFlight = true;
+		removeListeners();
+
 		const silent = new Audio();
 		silent.muted = true;
 		silent
 			.play()
 			.then(() => {
 				audioPrimed = true;
-				removeListeners();
+				audioPrimingInFlight = false;
 			})
 			.catch(() => {
 				// Browser refused even with a gesture — wait for the next one.
-				// Listeners stay active (once:true triggered, so re-attach).
-				audioPrimingListenersInstalled = false;
-				window.addEventListener("pointerdown", prime, { once: true });
-				window.addEventListener("keydown", prime, { once: true });
-				audioPrimingListenersInstalled = true;
+				audioPrimingInFlight = false;
+				installListeners();
 			});
 	};
 
-	window.addEventListener("pointerdown", prime, { once: true });
-	window.addEventListener("keydown", prime, { once: true });
+	installListeners();
 }
 
 /**
- * Resolve the bundled audio URL for a ringtone id. Returns null for the
- * custom-ringtone id (handled separately via host-service upload — not
- * part of this MVP) and for unknown ids that aren't the default.
+ * Resolve the bundled audio URL for a ringtone id. Custom uploads are not
+ * wired into renderer playback yet, so custom and unknown ids fall back to the
+ * default built-in ringtone.
  */
 function resolveRingtoneUrl(ringtoneId: string): string | null {
-	if (ringtoneId === CUSTOM_RINGTONE_ID) {
-		// Custom uploads aren't wired into renderer playback yet — fall back
-		// to the default so muted is the only way to get silence in v2.
-		return (
-			builtInRingtoneUrls[
-				getRingtoneById(DEFAULT_RINGTONE_ID)?.filename ?? ""
-			] ?? null
-		);
-	}
-	const ringtone = getRingtoneById(ringtoneId);
-	if (ringtone && builtInRingtoneUrls[ringtone.filename]) {
-		return builtInRingtoneUrls[ringtone.filename] ?? null;
-	}
+	const ringtone =
+		ringtoneId === CUSTOM_RINGTONE_ID ? null : getRingtoneById(ringtoneId);
+	const resolved = ringtone
+		? builtInRingtoneUrls[ringtone.filename]
+		: undefined;
+	if (resolved) return resolved;
+
 	const fallback = getRingtoneById(DEFAULT_RINGTONE_ID);
 	return fallback ? (builtInRingtoneUrls[fallback.filename] ?? null) : null;
 }

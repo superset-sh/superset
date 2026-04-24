@@ -1,150 +1,599 @@
-# V2 Notification Hooks: Client-Side Playback
+# V2 Notification Hooks: Client-Side Playback Design
 
-Shipped in PR #3675. First commit `f6aed52f4` (the branch's `save` baseline) through `103c00a17`; the doc itself is `828ca8c21`.
+Status: PR #3675 shipped an MVP. This document is the design record for where the notification system should go next, including what v1 got wrong, what v2 fixed, what v2 still misses, and the target architecture.
 
-## Goal
+## Executive Summary
 
-Play the agent finish sound + surface sidebar status on the **renderer** instead of the electron main process, so v2 notifications work when host-service is off-machine (relay / remote device). Keep v1 feature parity: ringtone playback, volume/mute, pane-visibility suppression, sidebar working/permission/review indicator on the dashboard workspace list.
+Agent notification UX should be owned by the client, not by Electron main and not by the host-service.
 
-## Why we moved off electron main
+The host-service should only ingest normalized agent lifecycle events and broadcast them over its authenticated event bus. The renderer or web client should resolve those events to visible workspaces/panes, update sidebar attention state, decide whether to suppress the notification, play audio, show OS/browser notifications, and handle click-to-focus.
 
-V1 plays sound in electron main via `afplay`/`paplay` child processes and shows native notifications from main. That works when main and the agent run on the same machine. V2 workspaces can have their PTYs on a remote host-service reached via relay — electron main no longer sits in the agent's path, so it can't hear the hook. Playback has to happen wherever the user is looking: the renderer.
+This is the right split because the client is the only layer that knows:
 
-## Principles
+- which workspace, tab, and pane the user is currently viewing
+- whether the window/tab has focus
+- which notification preferences apply
+- how to focus the correct UI surface when a notification is clicked
+- whether this is desktop, web, or another client
 
-- **One code path for web and electron renderer.** Audio plays via `HTMLAudioElement` in the renderer; electron main does no sound work for v2. When the web client comes online, the same hooks/stores carry over.
-- **Host-service is the hook ingress.** The agent shell script POSTs to host-service's tRPC, not electron's localhost Express server.
-- **Same UX as v1.** Single ringtone per user applied to all hook events. No event-specific sounds, no randomized variants, no multi-slot library.
-- **Feature-parity before parity-plus.** Ship built-ins first; custom ringtone and Postgres-synced prefs are follow-ups.
+The shipped v2 path moved playback out of Electron main, which is the important architectural correction. It should now be tightened into a small client-side notification controller with explicit identity resolution, terminal-exit cleanup, click handling, and tests.
 
-## Non-goals
+## Goals
 
-- Event-specific sounds (save / format / chat-received). Not v1 behavior.
-- Randomized sound variants (vscode's `responseReceived1..4.mp3` style).
-- Multi-slot custom ringtone library. Keep v1's single-slot model.
-- Per-workspace ringtone override.
-- Native OS integrations beyond `Notification` + `HTMLAudioElement` (no dock bounce, no tray flash).
-- Cross-device dedup. If a user has web + desktop open, both chime. Same as email.
+- Support notifications when the host-service is local, remote, relayed, or eventually cloud-hosted.
+- Preserve the good parts of v1 UX:
+  - sound on completion and permission/input requests
+  - no sound on start events
+  - mute, volume, selected ringtone, and eventually custom ringtone support
+  - suppress notifications when the user is already looking at the relevant pane
+  - sidebar indicators for working, permission, and review states
+  - click a notification to focus the relevant workspace/pane
+  - clear stuck transient statuses when the underlying terminal/session exits
+- Keep host-service credentials out of PTY environments.
+- Keep the hook endpoint deliberately low-capability.
+- Make the shared path usable by desktop and web.
+- Make event identity and status transitions testable as pure functions.
 
-## Architecture
+## Non-Goals
+
+- Retire the v1 terminal hook server immediately. V1 terminals still need it until the v1 workspace UI is removed.
+- Persist notification events durably. Chimes are acceptable to lose across disconnect/reconnect.
+- Add cross-device or cross-tab dedup before web support needs it.
+- Add arbitrary agent-provided notification title/body. The client should own displayed copy so a hook cannot spoof system messages.
+
+## What V1 Got Right
+
+V1 was not all bad. The target design should keep these behaviors:
+
+- Hook failures never block the agent. Unknown event types are ignored with a successful response.
+- `Start`, `Stop`, and `PermissionRequest` are normalized from several agent-specific hook names.
+- `Start` updates working state but does not play a completion sound.
+- Notifications are suppressed when the target pane is visible and the window is focused.
+- Native notification clicks focus the app and route the renderer to the target tab/pane.
+- Terminal exit events clear `working` and `permission` states so interrupted agents do not leave permanent sidebar dots.
+- Notification audio honors mute, volume, selected ringtone, and custom ringtone fallback.
+
+## What V1 Got Wrong
+
+V1's core problem was ownership. It split one user-facing feature across Electron main, a localhost Express hook server, renderer stores, local DB settings, and a tRPC subscription.
+
+Specific problems:
+
+- Electron main owned sound playback and OS notifications. That cannot work for an off-machine host-service or web client.
+- Renderer owned pane status, so main had to receive a renderer state snapshot to decide suppression and notification titles. That snapshot can lag and is not a durable contract.
+- The hook server was desktop-local and bound to Electron lifecycle. Remote host-service events had no way to reach the user-facing client.
+- Notification ingress shared a server with unrelated auth callback fallback behavior.
+- Event type mapping was duplicated and not exported from a shared contract.
+- The hook protocol relied on query strings and shell-side string scraping.
+- Pane identity was weak. Main tried to resolve `paneId` from partial metadata, but v2 panes are client-only and host-service cannot know them.
+- Notification state was stored directly on v1 panes, making it hard to share with v2 panes or other clients.
+- There was no single testable "notification controller" responsible for status transitions, suppression, playback, and click behavior.
+
+## What Shipped In PR #3675
+
+The MVP moved the playback trigger from Electron main to the renderer for v2 terminals:
 
 ```text
-agent shell hook (notify.sh)
-   │ POST /trpc/notifications.hook  (unauthenticated, loopback)
-   ▼
-host-service
-   ├── mapEventType() normalizes 20+ agent-specific strings to Start / Stop / PermissionRequest
-   └── EventBus.broadcastAgentLifecycle()
-         │
-         ▼ fan out on the existing WebSocket event bus alongside git:changed / fs:events
-renderer (desktop electron; web later)
-   ├── V2AgentHookListeners at _authenticated/layout.tsx — one listener per open v2 workspace
-   ├── useV2AgentHookListener(workspaceId)
-   │     ├── updatePaneStatus → useV2PaneStatusStore (working/permission/review)
-   │     ├── shouldSuppress   → skip ringtone if user is viewing + window focused
-   │     ├── playRingtone     → HTMLAudioElement with the 11 bundled v1 mp3s
-   │     └── new Notification() → native OS toast (silent, we play audio ourselves)
-   └── DashboardSidebarWorkspaceIcon renders the status dot (amber spinner / red pulse / static green)
+agent shell hook
+  POST /trpc/notifications.hook
+    host-service maps event type
+    host-service broadcasts agent:lifecycle over /events WebSocket
+      renderer listener updates v2 pane-status store
+      renderer suppresses or plays ringtone
+      renderer shows browser/OS Notification
+      dashboard sidebar reads aggregated v2 status
 ```
 
-Electron main's v1 hook server (`apps/desktop/src/main/lib/notifications/server.ts`) stays running for v1 terminals. The shell script prefers the v2 host-service endpoint when `SUPERSET_HOST_AGENT_HOOK_URL` is set; falls back to v1 on missing URL or non-2xx response.
+Important shipped pieces:
 
-## What shipped
+- `packages/host-service/src/trpc/router/notifications/notifications.ts`
+  - public `notifications.hook` mutation
+  - event type normalization
+  - event-bus broadcast
+- `packages/host-service/src/events/*`
+  - `AgentLifecycleMessage`
+  - `broadcastAgentLifecycle`
+- `packages/workspace-client/src/lib/eventBus.ts`
+  - typed `agent:lifecycle` client event
+- `apps/desktop/src/main/lib/agent-setup/templates/notify-hook.template.sh`
+  - posts to `SUPERSET_HOST_AGENT_HOOK_URL`
+  - falls back to the v1 hook server on missing URL or non-2xx response
+- `apps/desktop/src/renderer/routes/_authenticated/components/V2AgentHookListeners`
+  - mounts listeners for v2 workspaces
+- `apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/useV2AgentHookListener`
+  - updates status, suppresses, plays sound, and shows notifications
+- `apps/desktop/src/renderer/stores/v2-pane-status`
+  - separate v2 status store, aggregated by workspace for the dashboard sidebar
+- `apps/desktop/src/renderer/lib/ringtones`
+  - renderer-side built-in ringtone playback
 
-### host-service (hook ingress + broadcast)
+This was the right first move, but it should not be the final architecture.
 
-- **`packages/host-service/src/events/map-event-type.ts`** — normalizes arbitrary agent event names to `Start | Stop | PermissionRequest | null`. Ported from `apps/desktop/src/main/lib/notifications/map-event-type.ts` (duplicated per the v1/v2 duplication memory — v1 dies with the v1 UI sunset, so no shared extraction).
-- **`packages/host-service/src/events/types.ts`** — `AgentLifecycleMessage` added to the `ServerMessage` union. Fields: `workspaceId`, `eventType`, optional `paneId` / `tabId` / `terminalId` / `sessionId` / `hookSessionId` / `resourceId`, `occurredAt`.
-- **`packages/host-service/src/events/event-bus.ts`** — `broadcastAgentLifecycle()` public method; fans out to all connected sockets, matching the existing `git:changed` pattern (workspaceId filtering happens client-side).
-- **`packages/host-service/src/trpc/router/notifications/`** — `notifications.hook` mutation. **`publicProcedure`**. Input shape mirrors v1's `/hook/complete` query string so the same shell script can speak both. On valid input: call `ctx.eventBus.broadcastAgentLifecycle(...)`.
-- **`packages/host-service/src/types.ts`** + **`app.ts`** — `eventBus` added to the tRPC context so the mutation can reach it.
-- **`packages/host-service/src/terminal/env.ts`** + **`terminal.ts`** — `buildV2TerminalEnv` now injects `SUPERSET_HOST_AGENT_HOOK_URL` (`http://127.0.0.1:$HOST_SERVICE_PORT/trpc/notifications.hook`) into v2 PTY env. No token — endpoint is unauth (see "Why no auth" below).
+## Current V2 Gaps
 
-### workspace-client (wire format)
+The current implementation is useful but incomplete.
 
-- **`packages/workspace-client/src/lib/eventBus.ts`** — extended `EventType` with `"agent:lifecycle"`; added `AgentLifecyclePayload`; handler branch in `handleMessage` that passes the payload through. Multiple listeners against the same host reuse one WebSocket connection (existing pooling).
-- **`packages/workspace-client/src/index.ts`** — re-exports `AgentLifecyclePayload`.
+- **No v2 terminal-exit cleanup.** V1 clears stuck `working` and `permission` statuses when a terminal exits. V2 status only changes on hook events, so interrupted or killed agents can leave a stale sidebar indicator.
+- **No notification click routing.** V1 notification clicks focus the app and route to the target workspace/tab/pane. V2 creates a `Notification` but does not handle clicks.
+- **Suppression is too coarse.** If the v2 event lacks `paneId` and `tabId`, suppression falls back to "current workspace is visible." That can suppress a notification for a background pane in the same workspace. The client has v2 pane layout data and should resolve by `terminalId`, `sessionId`, or `resourceId` instead.
+- **One listener per workspace is more work than needed.** Event-bus connections are reused per host, but each workspace still mounts a hook and settings queries. A host-level controller should subscribe once per host and fan events into the store.
+- **The renderer hook is desktop-specific.** It imports `electronTrpc` for settings, so the current path is not actually web-ready.
+- **Browser notification permission is not handled.** The v2 client checks `Notification.permission` but does not request permission or route users to settings.
+- **Custom ringtones are not supported.** The v2 path falls back to the default ringtone when `"custom"` is selected.
+- **The tests do not cover the new contract.** The copied host-service event mapper, hook mutation, v2 status transitions, suppression, audio fallback, and notification click behavior need direct tests.
 
-### renderer (playback + sidebar)
+## Target Architecture
 
-- **`apps/desktop/src/renderer/hooks/host-service/useWorkspaceEvent/`** — overload for `"agent:lifecycle"` next to the existing `git:changed` / `fs:events` overloads.
-- **`apps/desktop/src/renderer/lib/ringtones/urls.ts`** — Vite-bundled URLs for the 11 v1 ringtones via `new URL("../../../resources/sounds/<file>", import.meta.url)`. Emits hashed asset URLs in prod, served from dev server in dev, without copying files into `resources/public/`.
-- **`apps/desktop/src/renderer/lib/ringtones/play.ts`** — `playRingtone({ ringtoneId, volume, muted })` (HTMLAudioElement, early-return on mute / 0 volume, silent catch on autoplay-blocked) + `primeRingtoneAudioOnFirstGesture()`. The primer is idempotent (repeated calls don't stack listeners), marks `audioPrimed` only after `silent.play()` resolves, and re-arms **both** pointerdown and keydown on failure — the first iteration dropped keydown on the retry path, which would have broken keyboard-only users.
-- **`apps/desktop/src/renderer/stores/v2-pane-status/store.ts`** — `useV2PaneStatusStore` with `Record<paneId, { workspaceId, status }>`. Separate from v1's `useTabsStore` because v2 paneIds aren't registered there. Exposes `setPaneStatus`, `clearPaneStatus`, `clearWorkspaceStatuses`, `clearWorkspaceAttention` (review-only clear, mirrors v1's `resetWorkspaceStatus`). `selectWorkspaceStatus(id)` selector aggregates non-idle statuses by workspaceId via `getHighestPriorityStatus`.
-- **`apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/useV2AgentHookListener/`**:
-  - `useV2AgentHookListener(workspaceId)` — subscribes via `useWorkspaceEvent("agent:lifecycle", ...)`, calls `updatePaneStatus` unconditionally, then `playRingtone` + `Notification` for non-Start events that pass suppression.
-  - `updatePaneStatus` — maps Start → `working`, PermissionRequest → `permission`, Stop → `idle` (if the user is viewing this workspace) or `review` otherwise. Uses `firstNonBlank(paneId, terminalId, sessionId, hookSessionId, resourceId)` as the store key.
-  - `shouldSuppress` — document hidden / window not focused → don't suppress. Full pane info → use `isPaneVisible`. Missing pane info (the v2 common case) → fall back to `isCurrentWorkspace` as the closest approximation.
-  - `isCurrentWorkspace` — matches both `/workspace/<id>` and `/v2-workspace/<id>` hash routes.
-  - `showNativeNotification` — `new Notification(title, { body, tag, silent: true })`. The `tag` also uses `firstNonBlank` so v2 events don't collide on `workspaceId:_`.
-  - `isPaneVisible.ts` — small local copy of main's `isPaneVisible` to avoid crossing the renderer/main boundary for a pure data helper.
-- **`apps/desktop/src/renderer/routes/_authenticated/components/V2AgentHookListeners/`** — `V2AgentHookListeners` queries `collections.v2Workspaces` via `useLiveQuery`, renders one invisible `WorkspaceListener` per workspace. `WorkspaceListener` lives in its own file (one-component-per-file rule). Mounted at `_authenticated/layout.tsx` alongside `AgentHooks` — always active, whether or not the user is on a v2 workspace page, so backgrounded workspaces still flash the sidebar dot.
-- **`apps/desktop/src/renderer/routes/_authenticated/layout.tsx`** — renders `<V2AgentHookListeners />`; calls `primeRingtoneAudioOnFirstGesture()` on mount.
-- **`apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/page.tsx`** — `useClearPaneAttentionOnView(workspaceId)` clears review statuses on mount AND whenever a new review arrives while the page is open (subscribes to `Object.values(s.statuses).some(...)` for presence so the effect re-fires on in-place arrivals).
+The correct design has five layers, each with a narrow responsibility.
 
-### dashboard sidebar (status display)
+```text
+agent runtime / shell hook
+  emits raw hook payload and stable Superset identifiers
+  |
+  v
+host-service notification ingress
+  validates shape, maps raw agent event names to normalized lifecycle events
+  performs no user-facing decisions
+  |
+  v
+host-service event bus
+  broadcasts normalized events to authenticated clients for that host
+  |
+  v
+client notification controller
+  one controller per host connection
+  resolves event identity to workspace/pane/session
+  updates attention state
+  decides suppression
+  plays sound
+  shows notification
+  handles click-to-focus
+  |
+  v
+UI surfaces
+  dashboard sidebar, pane chrome, tab chrome, settings UI
+```
 
-- **`DashboardSidebarWorkspaceItem`** — subscribes via `useV2PaneStatusStore(selectWorkspaceStatus(id))`; threads `workspaceStatus` through both expanded and collapsed variants.
-- **`DashboardSidebarExpandedWorkspaceRow`** — new `workspaceStatus?: ActivePaneStatus | null` prop, forwarded into the icon.
-- **`DashboardSidebarWorkspaceIcon`** — already had the dot overlay and spinner machinery; it was just receiving `null`. Now gets real status → same visual as v1: amber `AsciiSpinner` when `working`, red pulsing dot on `permission`, static green dot on `review`. Same `StatusIndicator` component as v1 so the visual is pixel-identical.
+### Layer 1: Agent Hook Script
 
-### agent shell hook
+The hook script should stay intentionally dumb:
 
-- **`apps/desktop/src/main/lib/agent-setup/templates/notify-hook.template.sh`** — added a v2 branch above the existing v1 fallback. Builds a tRPC single-call JSON body (`{"json": {...}}` with superjson transformer), POSTs to `$SUPERSET_HOST_AGENT_HOOK_URL`, captures HTTP status. Exits only on `2xx`; otherwise falls through to the v1 electron endpoint (covers host-service restarts, crashes, transient 5xxs). Debug mode logs status on both paths.
+- read the agent hook payload
+- extract known IDs and event type
+- POST JSON to `SUPERSET_HOST_AGENT_HOOK_URL`
+- time out quickly
+- fall back to the v1 hook server only for v1 compatibility
+- never receive `HOST_SERVICE_SECRET` or any broad host credential
 
-## Key decisions
+The script can continue to be defensive because hooks run in user shells with inconsistent payloads. Long term, wrappers should pass the normalized Superset identifiers directly so the script does less text parsing.
 
-- **No auth on `notifications.hook`.** The endpoint only broadcasts chimes — no code execution, no data access, no state change. Reusing the global `HOST_SERVICE_SECRET` as a bearer was both theater (the same secret already sits in a user-readable `~/.superset/host/<org>/manifest.json` alongside its port, so any user-level process can grab it) and a leak vector (PTY env exposure to every agent subprocess). We removed the token from PTY env entirely. If the endpoint ever grows real capabilities, re-introduce auth with a hook-scoped secret — not the global PSK.
-- **V2 pane status in a separate store.** V2 panes live in `@superset/panes` (a workspace-scoped layout store with no `status` field). Piggybacking on v1's `useTabsStore` wouldn't work because v2 paneIds aren't registered there. `useV2PaneStatusStore` parallels the layout state and filters by workspaceId for sidebar derivation.
-- **`terminalId` as the canonical v2 key.** V2 terminals set `SUPERSET_TERMINAL_ID` but not `SUPERSET_PANE_ID` — panes are a client-only concept in v2. The fallback chain is `paneId → terminalId → sessionId → hookSessionId → resourceId`, treating **empty strings as missing** (agents send `""` not `undefined`, so `??` was wrong — we use a `firstNonBlank` helper).
-- **Listener at the layout, not per-page.** Mounted once on `_authenticated/layout.tsx` per v2 workspace via `V2AgentHookListeners`. Matches v1's global `useAgentHookListener`. Alternative (subscribe only for the currently-viewed workspace) was a behavior regression — users expect to hear the chime for workspace A while looking at workspace B.
-- **Fallback to v1 on v2 failure.** Initial version `exit 0`-ed unconditionally after the v2 POST. Reviewers flagged that host-service restarts would silently drop notifications. Now captures status and only exits on 2xx — otherwise falls through to v1.
+Required identifiers:
 
-## Review feedback addressed
+- `workspaceId`: required for v2
+- one stable source ID:
+  - `terminalId` for terminal-backed agents
+  - `sessionId` or `resourceId` for chat-backed agents
+  - automation run ID when automation notifications move here
 
-- **`isCurrentWorkspace` matched `/workspace/` only** → v2 routes are `/v2-workspace/`, so Stop events always hit the `review` branch even when the user was viewing. Fixed to match both.
-- **`shouldSuppress` dead for v2** → early-returned `false` when `paneId || tabId` missing, but v2 never populates those. Added workspace-level fallback.
-- **Notification `tag` collision** → `paneId ?? sessionId ?? "_"` gave v2 events the same `_` tag, so each new notification replaced the previous. Uses `firstNonBlank` now.
-- **`useClearPaneAttentionOnView` only ran on mount** → reviews arriving while the user was already on the page lingered on the sidebar. Now re-runs when a review appears for the viewed workspace.
-- **`WorkspaceListener` in the same file as `V2AgentHookListeners`** → split per AGENTS.md one-component rule.
-- **Autoplay priming listener stacking + dropped keyboard retry** → guarded with `audioPrimingListenersInstalled` and re-arm both pointer + keyboard on retry.
-- **Plan doc drift** → `/hook/complete` → `/trpc/notifications.hook`.
-- **`HOST_SERVICE_SECRET` in PTY env** → removed; endpoint is now unauth.
+Optional identifiers:
 
-## What we didn't do
+- `paneId` and `tabId`, when a client-side caller can provide them
+- `hookSessionId`, for agent-runtime correlation/debugging
 
-- **Postgres-synced prefs.** Renderer still reads `notificationVolume` / `notificationSoundsMuted` / `selectedRingtoneId` via electron-trpc from local-db. Fine for desktop-only usage. Migrating to Postgres `userSettings` is a follow-up; ship when the web client needs pref sync across devices.
-- **Custom ringtones.** v1 supports a single user-uploaded `.mp3` on local filesystem. V2 treats the `"custom"` id as fallback-to-default for now. To ship: R2 upload + IndexedDB cache + one-shot local→R2 migration. Gate on telemetry — worth checking if anyone actually used the feature before investing in storage infra.
-- **Web client subscription.** `apps/web` doesn't connect to host-service's event bus yet. The rendering path is already web-compatible (no electron IPC in `playRingtone`, `useV2AgentHookListener`, or the pane-status store). Same hooks should drop in once apps/web has a host-service connection.
-- **Cross-tab dedup** (for the web client). If the web client is ever opened in two tabs, both chime. Plan called for `BroadcastChannel` leader election; skip until it's a real problem.
-- **Missed events while disconnected.** WebSocket is lossy on reconnect. Fire-and-forget is acceptable for chimes. If "I missed 3 completions" matters, persist hook events in host-service and replay with a `since` cursor.
-- **Retiring v1 electron-main audio.** `apps/desktop/src/main/lib/notifications/server.ts`, `play-sound.ts`, and `custom-ringtones.ts` stay for v1 terminals. Delete when v1 UI sunsets (see `project_v1_sunset`). The shell script's v1 fallback can go at the same time.
-- **Native dock/tray integrations.** Electron-specific dock bounce, tray flash, etc. Out of scope — browser `Notification` works on all platforms inside Electron.
+### Layer 2: Host-Service Notification Ingress
 
-## Risks / open questions
+The host-service endpoint should be an ingest endpoint, not a notification manager.
 
-- **Mobile Safari autoplay policy** (when web client ships). Stricter about unprimed audio than desktop Chrome. If the user's first interaction is returning to a backgrounded tab after a hook fires, the sound may be blocked. The `Notification` toast still fires so it degrades gracefully.
-- **Multi-device simultaneous play.** Arguably correct (like email notifications on phone + laptop). No dedup.
-- **Relay exposure of the unauth endpoint.** If host-service is exposed via relay, anyone who can reach the relay's proxy for this host can POST fake `notifications.hook` events. Concrete impact: nuisance chimes. No state change, no data. We accept this.
+Responsibilities:
 
-## Sequencing (context, not current)
+- accept the hook payload
+- reject oversized or malformed input
+- require `workspaceId`
+- ignore unknown event types
+- normalize raw event names into a small lifecycle vocabulary
+- attach `occurredAt`
+- broadcast to the event bus
+- return success even for ignored events so agent hooks do not block
 
-Shipping order in this PR:
-1. Pipeline plumbing (map-event-type, event-bus channel, tRPC mutation, terminal-env URL injection, workspace-client, useWorkspaceEvent overload) — `f6aed52f4`
-2. Renderer side (playRingtone, useV2AgentHookListener, sidebar wiring, status store) — `7767b729f`
-3. Layout-level listener + debug-log cleanup — `6acb4a340`
-4. Review fixes — `e6dab1864`
-5. Drop auth + remove PSK from PTY — `87d079689`
-6. v1 fallback + safer priming — `103c00a17`
+It should not:
 
-Postgres prefs + R2 custom ringtones follow in a separate PR when gated on user need.
+- play sound
+- create OS notifications
+- read user notification settings
+- decide whether the user is viewing the target pane
+- accept arbitrary notification title/body
+- mutate workspace, pane, terminal, or chat state
 
-## Commit trail
+Security posture:
 
-- `f6aed52f4` — initial v2 notification hook pipeline (map-event-type, event-bus, tRPC, terminal-env, workspace-client, ringtones, useV2AgentHookListener, layout priming, plan doc)
-- `7767b729f` — v2 sidebar status store + terminalId payload + empty-string coalesce fix
-- `6acb4a340` — hoist listener to authenticated layout + drop debug logs
-- `e6dab1864` — review fixes (v2 route regex, v2 suppression, notif tag, component split, attention clear, plan doc)
-- `87d079689` — drop auth on `notifications.hook`, remove `HOST_SERVICE_SECRET` from PTY env
-- `103c00a17` — v1 fallback on v2 non-2xx + idempotent autoplay priming
-- `828ca8c21` — this doc
+- Keeping this endpoint unauthenticated is acceptable only because it is deliberately low-capability.
+- The only allowed effect must remain "broadcast a generic lifecycle event."
+- If this endpoint ever gains capabilities beyond chime/sidebar attention, it needs a new auth design.
+- Do not reuse `HOST_SERVICE_SECRET` in PTY env. If auth is required later, use a scoped hook token with limited lifetime and limited permissions.
+- Add basic abuse controls:
+  - payload size limit
+  - event type allowlist
+  - workspace existence check when cheap
+  - per-process or per-workspace rate limiting
+  - generic responses that do not expose workspace data
+
+### Layer 3: Event Bus Contract
+
+The event bus should carry normalized lifecycle events and terminal/session lifecycle events.
+
+Current event:
+
+```ts
+type AgentLifecycleEventType = "Start" | "Stop" | "PermissionRequest";
+```
+
+Recommended normalized model:
+
+```ts
+type AgentLifecycleKind =
+  | "started"
+  | "waiting-for-input"
+  | "completed";
+
+interface AgentLifecycleEvent {
+  type: "agent:lifecycle";
+  workspaceId: string;
+  kind: AgentLifecycleKind;
+  source: {
+    kind: "terminal" | "chat" | "automation" | "unknown";
+    terminalId?: string;
+    sessionId?: string;
+    hookSessionId?: string;
+    resourceId?: string;
+    automationRunId?: string;
+  };
+  pane?: {
+    paneId?: string;
+    tabId?: string;
+  };
+  rawEventType?: string;
+  occurredAt: number;
+}
+```
+
+The existing `Start` / `Stop` / `PermissionRequest` names can remain for compatibility, but the client code should convert them immediately into the normalized client vocabulary. It makes status transitions easier to read and avoids leaking hook-system naming into UI logic.
+
+Terminal exits should also be visible to the same controller:
+
+```ts
+interface TerminalLifecycleEvent {
+  type: "terminal:lifecycle";
+  workspaceId: string;
+  terminalId: string;
+  kind: "exited" | "killed" | "errored";
+  exitCode?: number;
+  signal?: number;
+  occurredAt: number;
+}
+```
+
+This is how v2 gets the v1 behavior of clearing stuck statuses without coupling to mounted terminal panes.
+
+### Layer 4: Client Notification Controller
+
+The client should have one controller per host URL, not one notification hook per workspace.
+
+Responsibilities:
+
+- subscribe to `agent:lifecycle` and `terminal:lifecycle` for all workspaces on a host
+- keep a current index of v2 pane layout data:
+  - `terminalId -> { workspaceId, tabId, paneId }`
+  - `sessionId -> { workspaceId, tabId, paneId }`
+  - `resourceId -> { workspaceId, tabId, paneId }` when available
+- resolve incoming events to a `NotificationTarget`
+- update the attention store through pure transition functions
+- suppress audio/toasts only when the target is actually visible and focused
+- read notification preferences through a platform abstraction
+- play ringtone through a platform abstraction
+- show native/browser notifications through a platform abstraction
+- handle click-to-focus through a platform abstraction
+
+Suggested shape:
+
+```ts
+interface NotificationTarget {
+  workspaceId: string;
+  tabId?: string;
+  paneId?: string;
+  sourceKey: string;
+  sourceKind: "terminal" | "chat" | "automation" | "unknown";
+}
+
+interface NotificationPreferences {
+  soundsMuted: boolean;
+  volume: number;
+  selectedRingtoneId: string;
+  notificationsEnabled: boolean;
+}
+
+interface NotificationPlatform {
+  getPreferences(): NotificationPreferences;
+  playRingtone(input: { ringtoneId: string; volume: number; muted: boolean }): void;
+  showNotification(input: {
+    target: NotificationTarget;
+    kind: "completed" | "waiting-for-input";
+    silent: boolean;
+  }): void;
+  focusTarget(target: NotificationTarget): void;
+}
+```
+
+Desktop can implement `NotificationPlatform` with Electron/local-db today. Web can implement it with Postgres-backed user settings, browser `Notification`, and `BroadcastChannel` leader election later.
+
+### Layer 5: Attention Store
+
+Do not treat `terminalId` as a fake `paneId`. It works for sidebar aggregation, but it obscures what the key actually means.
+
+Use an attention store keyed by a stable source key:
+
+```ts
+type AttentionStatus = "working" | "permission" | "review";
+
+interface AttentionEntry {
+  workspaceId: string;
+  sourceKey: string;
+  sourceKind: "terminal" | "chat" | "automation" | "unknown";
+  status: AttentionStatus;
+  paneId?: string;
+  tabId?: string;
+  updatedAt: number;
+}
+```
+
+Key examples:
+
+| Event identifiers | Source key |
+| --- | --- |
+| `terminalId=abc` | `terminal:abc` |
+| `sessionId=abc` | `chat-session:abc` |
+| `resourceId=abc` | `resource:abc` |
+| no source ID | ignore for status, but may still play a generic chime if allowed |
+
+Workspace sidebar aggregation should reduce all entries for a workspace by priority:
+
+```text
+permission > working > review > idle
+```
+
+Pane/tab chrome can use `paneId` when resolution succeeds. The sidebar should still work when only a source key is available.
+
+## Status Transitions
+
+Status transitions should be pure and tested.
+
+| Incoming event | Prior status | Target visible and focused | Next status |
+| --- | --- | --- | --- |
+| `started` | any | any | `working` |
+| `waiting-for-input` | any | any | `permission` |
+| `completed` | `permission` | any | clear |
+| `completed` | any | yes | clear |
+| `completed` | any | no | `review` |
+| `terminal exited/killed/errored` | `working` or `permission` | any | clear |
+| user views target with `review` | `review` | yes | clear |
+
+Optional hardening:
+
+- expire stale `working` statuses after a long TTL if no stop/exit arrives
+- expire stale `permission` statuses only after the source is known dead
+- keep `review` until acknowledged or workspace closes
+
+## Suppression Rules
+
+Suppression should be target-based, not workspace-based.
+
+Correct behavior:
+
+- If the app/tab is not focused, do not suppress.
+- If the event resolves to a visible active pane, suppress sound and OS/browser notification.
+- If the event resolves to a different pane in the same workspace, do not suppress.
+- If the event cannot resolve beyond `workspaceId`, do not blindly suppress just because the workspace is visible. Prefer a generic notification over a missed completion.
+- A `waiting-for-input` event may still show an in-app indicator even when sound is suppressed.
+
+This differs from the shipped fallback, which suppresses by current workspace when `paneId` and `tabId` are absent.
+
+## Notification Click Behavior
+
+Click handling is part of parity and should not be optional.
+
+On notification click:
+
+- focus/restore the desktop window or browser tab when possible
+- navigate to `/v2-workspace/$workspaceId`
+- if `tabId` and `paneId` are known, activate them
+- if only `terminalId` or `sessionId` is known, resolve it through pane layout and activate the matching pane
+- if no pane can be resolved, navigate to the workspace and clear review attention for that source/workspace
+
+V1 did this through Electron main emitting `FOCUS_TAB`. V2 should do it in the client controller through a platform-specific focus adapter.
+
+## Ringtones And Preferences
+
+The notification controller should depend on a preference provider, not directly on `electronTrpc`.
+
+Desktop phase:
+
+- read existing local-db settings through Electron tRPC
+- keep built-in renderer playback
+- keep `"custom"` fallback to default until custom playback is implemented
+
+Web phase:
+
+- move notification preferences to synced user settings
+- store custom ringtones outside local filesystem, for example R2 plus IndexedDB cache
+- add cross-tab leadership so only one tab plays sound
+
+Audio unlock should stay client-side. The current first-gesture priming is the right kind of workaround, but it should live with the notification platform implementation.
+
+## Host And Workspace Listener Topology
+
+Current topology:
+
+```text
+authenticated layout
+  V2AgentHookListeners
+    one WorkspaceListener per workspace
+      useWorkspaceEvent("agent:lifecycle", workspaceId)
+```
+
+Recommended topology:
+
+```text
+authenticated layout
+  AgentNotificationControllers
+    group open/known workspaces by host URL
+    one HostAgentNotificationController per host URL
+      eventBus.on("agent:lifecycle", "*")
+      eventBus.on("terminal:lifecycle", "*")
+      resolve event workspace/source locally
+```
+
+Benefits:
+
+- one subscription path per host
+- one set of notification settings reads
+- one place for click handling and suppression
+- easier web reuse
+- easier tests
+
+The event bus already supports `workspaceId: "*"`, so this is mostly a client refactor.
+
+## Testing Plan
+
+Add tests before expanding the behavior further.
+
+Host-service unit tests:
+
+- `mapEventType` maps every v1-supported raw event name.
+- unknown and empty event types return ignored success.
+- missing `workspaceId` returns ignored success.
+- valid hook input broadcasts exactly one normalized event.
+- public hook endpoint does not expose workspace data in responses.
+- rate limiting/payload limits when implemented.
+
+Workspace-client tests:
+
+- `agent:lifecycle` messages dispatch to matching workspace listeners.
+- wildcard listeners receive all workspace events.
+- reconnect preserves active subscriptions.
+
+Renderer/client unit tests:
+
+- identity resolver maps `terminalId`, `sessionId`, and `resourceId` to v2 pane locations.
+- status transition table is covered.
+- terminal exit clears `working` and `permission`.
+- review clears when the user views the target.
+- suppression only happens for focused, visible target panes.
+- unresolved workspace-only events are not over-suppressed.
+- notification click calls the focus adapter with the resolved target.
+- custom ringtone falls back consistently until full support lands.
+
+Integration tests:
+
+- shell hook POST -> host-service event bus -> client controller receives event.
+- remote/relay host URL uses the same event path.
+- v1 fallback still works when `SUPERSET_HOST_AGENT_HOOK_URL` is absent or non-2xx.
+
+Manual QA:
+
+- local v2 terminal completes while current pane visible: sidebar clears, no chime.
+- local v2 terminal completes in background workspace: chime, sidebar review dot.
+- permission request in background workspace: chime, sidebar permission dot.
+- kill/interruption clears working/permission.
+- notification click focuses the right workspace.
+- mute/volume/ringtone settings apply.
+- host-service restart does not permanently duplicate listeners.
+
+## Implementation Plan
+
+### Phase 1: Stabilize The MVP
+
+- Add tests for host-service event mapping and hook mutation.
+- Extract v2 status transition logic into pure functions.
+- Add terminal lifecycle events to host-service event bus.
+- Clear v2 `working` and `permission` statuses on terminal exit.
+- Add click handling for v2 notifications.
+- Fix suppression to resolve by `terminalId` / `sessionId` / `resourceId` before falling back.
+
+### Phase 2: Refactor Ownership
+
+- Replace per-workspace listeners with per-host notification controllers.
+- Rename `v2-pane-status` or wrap it as an agent attention store keyed by source key, not fake pane ID.
+- Add a pane-layout identity index for v2.
+- Introduce a `NotificationPlatform` abstraction for preferences, playback, browser/OS notification, and focus.
+- Keep desktop implementation backed by existing Electron/local-db APIs.
+
+### Phase 3: Web Readiness
+
+- Move preferences to synced user settings.
+- Add browser notification permission UI.
+- Add BroadcastChannel leadership for cross-tab dedup.
+- Add web-compatible ringtone asset and custom ringtone loading.
+- Reuse the same controller with a web platform adapter.
+
+### Phase 4: V1 Retirement
+
+- Keep the v1 hook server until v1 workspace UI is gone.
+- During retirement, remove:
+  - Electron main notification playback
+  - v1 localhost hook server
+  - duplicated event mappers
+  - v1 pane-status notification paths
+- Keep only the host-service ingest and client notification controller.
+
+## File Shape Recommendation
+
+Suggested future layout:
+
+```text
+packages/host-service/src/events/
+  agent-lifecycle.ts          # event types, normalization exports
+  event-bus.ts
+
+packages/host-service/src/trpc/router/notifications/
+  notifications.ts            # low-capability ingest only
+  notifications.test.ts
+
+packages/workspace-client/src/lib/
+  eventBus.ts                 # typed wildcard and per-workspace events
+
+apps/desktop/src/renderer/routes/_authenticated/components/AgentNotificationControllers/
+  AgentNotificationControllers.tsx
+  components/HostAgentNotificationController/
+    HostAgentNotificationController.tsx
+    hooks/useAgentNotificationController/
+      useAgentNotificationController.ts
+      resolveNotificationTarget.ts
+      notificationTransitions.ts
+      notificationSuppression.ts
+      *.test.ts
+
+apps/desktop/src/renderer/stores/agent-attention/
+  store.ts
+  selectors.ts
+
+apps/desktop/src/renderer/lib/notifications/
+  desktopNotificationPlatform.ts
+  ringtonePlayback.ts
+```
+
+When this moves to web, create a web platform adapter rather than forking the lifecycle logic.
+
+## Acceptance Criteria
+
+This design is done when:
+
+- v2 completion and permission notifications work for local and remote host-service.
+- v2 has parity with v1 for sound, mute, volume, suppression, click-to-focus, and terminal-exit cleanup.
+- the notification controller is client-side and host-agnostic.
+- host-service remains a low-capability event ingress layer.
+- no broad host-service secret is exposed to agent PTY env.
+- behavior is covered by unit tests for normalization, identity resolution, transitions, suppression, and click handling.
+- web can reuse the controller by swapping the platform adapter.
+
+## Security Rule For Future Changes
+
+Any future change that makes `notifications.hook` do more than broadcast generic lifecycle attention must re-open the auth design. The endpoint is intentionally public only because it is low-impact. Do not add state mutation, data reads, arbitrary user-visible content, or command execution behind the same unauthenticated route.

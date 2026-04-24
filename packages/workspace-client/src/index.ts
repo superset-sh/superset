@@ -5,6 +5,7 @@ export {
 	type EventBusHandle,
 	type GitChangedPayload,
 	getEventBus,
+	type TerminalLifecyclePayload,
 } from "./lib/eventBus";
 export {
 	useWorkspaceClient,

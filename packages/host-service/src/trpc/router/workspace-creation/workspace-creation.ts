@@ -433,6 +433,7 @@ async function finishCheckout(
 				terminalId,
 				workspaceId: cloudRow.id,
 				db: ctx.db,
+				eventBus: ctx.eventBus,
 				initialCommand: `bash "${setupScriptPath}"`,
 			});
 			if ("error" in result) {
@@ -1010,6 +1011,7 @@ export const workspaceCreationRouter = router({
 						terminalId,
 						workspaceId: cloudRow.id,
 						db: ctx.db,
+						eventBus: ctx.eventBus,
 						initialCommand: `bash "${setupScriptPath}"`,
 					});
 					if ("error" in result) {

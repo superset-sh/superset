@@ -2,6 +2,7 @@ import {
 	type AgentLifecyclePayload,
 	type GitChangedPayload,
 	getEventBus,
+	type TerminalLifecyclePayload,
 } from "@superset/workspace-client";
 import type { FsWatchEvent } from "@superset/workspace-fs/client";
 import { useEffect, useEffectEvent } from "react";
@@ -31,12 +32,19 @@ export function useWorkspaceEvent(
 	enabled?: boolean,
 ): void;
 export function useWorkspaceEvent(
-	type: "git:changed" | "fs:events" | "agent:lifecycle",
+	type: "terminal:lifecycle",
+	workspaceId: string,
+	callback: (payload: TerminalLifecyclePayload) => void,
+	enabled?: boolean,
+): void;
+export function useWorkspaceEvent(
+	type: "git:changed" | "fs:events" | "agent:lifecycle" | "terminal:lifecycle",
 	workspaceId: string,
 	callback:
 		| ((event: FsWatchEvent) => void)
 		| ((payload: GitChangedPayload) => void)
-		| ((payload: AgentLifecyclePayload) => void),
+		| ((payload: AgentLifecyclePayload) => void)
+		| ((payload: TerminalLifecyclePayload) => void),
 	enabled = true,
 ): void {
 	const hostUrl = useWorkspaceHostUrl(workspaceId);
@@ -66,6 +74,15 @@ export function useWorkspaceEvent(
 				workspaceId,
 				(_wid, payload) => {
 					(handler as (payload: AgentLifecyclePayload) => void)(payload);
+				},
+			);
+			cleanups.push(removeListener);
+		} else if (type === "terminal:lifecycle") {
+			const removeListener = bus.on(
+				"terminal:lifecycle",
+				workspaceId,
+				(_wid, payload) => {
+					(handler as (payload: TerminalLifecyclePayload) => void)(payload);
 				},
 			);
 			cleanups.push(removeListener);
