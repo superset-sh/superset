@@ -34,6 +34,7 @@ function makePending(
 		runSetupScript: true,
 		terminalLaunch: null,
 		chatLaunch: null,
+		agentId: null,
 		...overrides,
 	};
 }

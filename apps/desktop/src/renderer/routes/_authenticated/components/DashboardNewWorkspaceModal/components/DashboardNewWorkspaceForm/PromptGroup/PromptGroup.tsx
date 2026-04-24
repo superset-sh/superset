@@ -139,7 +139,7 @@ export function PromptGroup({
 	});
 
 	// ── Submit (fork) ────────────────────────────────────────────────
-	const createWorkspace = useSubmitWorkspace(projectId);
+	const createWorkspace = useSubmitWorkspace(projectId, selectedAgent);
 	const handleSubmit = useCallback(
 		(files: SubmitAttachment[] = []) => {
 			if (needsSetup) {
