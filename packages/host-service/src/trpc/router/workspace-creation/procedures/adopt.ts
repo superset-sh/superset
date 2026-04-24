@@ -1,6 +1,6 @@
 import { getDeviceName, getHashedDeviceId } from "@superset/shared/device-info";
 import { TRPCError } from "@trpc/server";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { workspaces } from "../../../../db/schema";
 import { protectedProcedure } from "../../../index";
 import { adoptInputSchema } from "../schemas";
@@ -62,19 +62,39 @@ export const adopt = protectedProcedure
 		// Always create a fresh cloud row; if a stale local row leftover
 		// from a prior delete exists, replace it below. Proper host-side
 		// cleanup on delete is owned by the follow-up delete PR.
-		const host = await ctx.api.device.ensureV2Host.mutate({
-			organizationId: ctx.organizationId,
-			machineId: deviceClientId,
-			name: deviceName,
-		});
+		let host: { id: string };
+		try {
+			host = await ctx.api.device.ensureV2Host.mutate({
+				organizationId: ctx.organizationId,
+				machineId: deviceClientId,
+				name: deviceName,
+			});
+		} catch (err) {
+			if (err instanceof TRPCError) throw err;
+			console.error("[workspaceCreation.adopt] ensureV2Host failed", err);
+			throw new TRPCError({
+				code: "INTERNAL_SERVER_ERROR",
+				message: `Failed to register host: ${err instanceof Error ? err.message : String(err)}`,
+			});
+		}
 
-		const cloudRow = await ctx.api.v2Workspace.create.mutate({
-			organizationId: ctx.organizationId,
-			projectId: input.projectId,
-			name: input.workspaceName,
-			branch,
-			hostId: host.id,
-		});
+		let cloudRow: Awaited<ReturnType<typeof ctx.api.v2Workspace.create.mutate>>;
+		try {
+			cloudRow = await ctx.api.v2Workspace.create.mutate({
+				organizationId: ctx.organizationId,
+				projectId: input.projectId,
+				name: input.workspaceName,
+				branch,
+				hostId: host.id,
+			});
+		} catch (err) {
+			if (err instanceof TRPCError) throw err;
+			console.error("[workspaceCreation.adopt] v2Workspace.create failed", err);
+			throw new TRPCError({
+				code: "INTERNAL_SERVER_ERROR",
+				message: `Failed to create workspace: ${err instanceof Error ? err.message : String(err)}`,
+			});
+		}
 
 		if (!cloudRow) {
 			throw new TRPCError({
@@ -86,25 +106,50 @@ export const adopt = protectedProcedure
 		// Replace any stale local row for this (project, branch) — its
 		// id likely points at a deleted cloud row. The new cloudRow.id
 		// is the authoritative mapping.
-		const stale = ctx.db
-			.select()
-			.from(workspaces)
-			.where(eq(workspaces.projectId, input.projectId))
-			.all()
-			.find((workspace) => workspace.branch === branch);
+		const stale = ctx.db.query.workspaces
+			.findFirst({
+				where: and(
+					eq(workspaces.projectId, input.projectId),
+					eq(workspaces.branch, branch),
+				),
+			})
+			.sync();
 		if (stale && stale.id !== cloudRow.id) {
 			ctx.db.delete(workspaces).where(eq(workspaces.id, stale.id)).run();
 		}
 
-		ctx.db
-			.insert(workspaces)
-			.values({
-				id: cloudRow.id,
-				projectId: input.projectId,
-				worktreePath,
-				branch,
-			})
-			.run();
+		try {
+			ctx.db
+				.insert(workspaces)
+				.values({
+					id: cloudRow.id,
+					projectId: input.projectId,
+					worktreePath,
+					branch,
+				})
+				.onConflictDoUpdate({
+					target: workspaces.id,
+					set: { projectId: input.projectId, worktreePath, branch },
+				})
+				.run();
+		} catch (err) {
+			console.error(
+				"[workspaceCreation.adopt] local workspaces insert failed",
+				err,
+			);
+			await ctx.api.v2Workspace.delete
+				.mutate({ id: cloudRow.id })
+				.catch((cleanupErr) => {
+					console.warn(
+						"[workspaceCreation.adopt] failed to rollback cloud workspace",
+						{ workspaceId: cloudRow.id, err: cleanupErr },
+					);
+				});
+			throw new TRPCError({
+				code: "INTERNAL_SERVER_ERROR",
+				message: `Failed to persist workspace locally: ${err instanceof Error ? err.message : String(err)}`,
+			});
+		}
 
 		return {
 			workspace: cloudRow,

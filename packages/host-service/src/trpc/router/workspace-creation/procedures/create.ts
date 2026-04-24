@@ -126,17 +126,25 @@ export const create = protectedProcedure
 		// separately by push.autoSetupRemote (set below).
 		const startPointArg =
 			startPoint.kind === "head" ? "HEAD" : startPoint.shortName;
-		await git.raw([
-			"worktree",
-			"add",
-			"--no-track",
-			"-b",
-			branchName,
-			worktreePath,
-			startPoint.kind === "remote-tracking"
-				? startPoint.remoteShortName
-				: startPointArg,
-		]);
+		try {
+			await git.raw([
+				"worktree",
+				"add",
+				"--no-track",
+				"-b",
+				branchName,
+				worktreePath,
+				startPoint.kind === "remote-tracking"
+					? startPoint.remoteShortName
+					: startPointArg,
+			]);
+		} catch (err) {
+			clearProgress(input.pendingId);
+			throw new TRPCError({
+				code: "CONFLICT",
+				message: err instanceof Error ? err.message : "Failed to add worktree",
+			});
+		}
 
 		// Enable autoSetupRemote so the first terminal `git push` creates
 		// origin/<branchName> and sets it as upstream without requiring
@@ -224,15 +232,36 @@ export const create = protectedProcedure
 			});
 		}
 
-		ctx.db
-			.insert(workspaces)
-			.values({
-				id: cloudRow.id,
-				projectId: input.projectId,
-				worktreePath,
-				branch: branchName,
-			})
-			.run();
+		try {
+			ctx.db
+				.insert(workspaces)
+				.values({
+					id: cloudRow.id,
+					projectId: input.projectId,
+					worktreePath,
+					branch: branchName,
+				})
+				.run();
+		} catch (err) {
+			console.error(
+				"[workspaceCreation.create] local workspaces insert failed",
+				err,
+			);
+			clearProgress(input.pendingId);
+			await rollbackWorktree();
+			await ctx.api.v2Workspace.delete
+				.mutate({ id: cloudRow.id })
+				.catch((cleanupErr) => {
+					console.warn(
+						"[workspaceCreation.create] failed to rollback cloud workspace",
+						{ workspaceId: cloudRow.id, err: cleanupErr },
+					);
+				});
+			throw new TRPCError({
+				code: "INTERNAL_SERVER_ERROR",
+				message: `Failed to persist workspace locally: ${err instanceof Error ? err.message : String(err)}`,
+			});
+		}
 
 		// Fire-and-forget AI rename from the composer prompt. A single
 		// structured-output call generates both a display title and a

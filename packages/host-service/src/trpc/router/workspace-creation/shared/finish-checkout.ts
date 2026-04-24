@@ -108,15 +108,36 @@ export async function finishCheckout(
 		});
 	}
 
-	ctx.db
-		.insert(workspaces)
-		.values({
-			id: cloudRow.id,
-			projectId: args.projectId,
-			worktreePath: args.worktreePath,
-			branch: args.branch,
-		})
-		.run();
+	try {
+		ctx.db
+			.insert(workspaces)
+			.values({
+				id: cloudRow.id,
+				projectId: args.projectId,
+				worktreePath: args.worktreePath,
+				branch: args.branch,
+			})
+			.run();
+	} catch (err) {
+		console.error(
+			"[workspaceCreation.checkout] local workspaces insert failed",
+			err,
+		);
+		clearProgress(args.pendingId);
+		await rollbackWorktree();
+		await ctx.api.v2Workspace.delete
+			.mutate({ id: cloudRow.id })
+			.catch((cleanupErr) => {
+				console.warn(
+					"[workspaceCreation.checkout] failed to rollback cloud workspace",
+					{ workspaceId: cloudRow.id, err: cleanupErr },
+				);
+			});
+		throw new TRPCError({
+			code: "INTERNAL_SERVER_ERROR",
+			message: `Failed to persist workspace locally: ${err instanceof Error ? err.message : String(err)}`,
+		});
+	}
 
 	const terminals: TerminalDescriptor[] = [];
 	const warnings: string[] = [...args.extraWarnings];

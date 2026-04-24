@@ -18,6 +18,12 @@ const STEP_DEFINITIONS = [
 const createProgress = new Map<string, ProgressState>();
 
 export function setProgress(pendingId: string, activeStepId: string): void {
+	if (!STEP_DEFINITIONS.some((def) => def.id === activeStepId)) {
+		console.warn(
+			`[workspaceCreation.progress] unknown activeStepId "${activeStepId}" for pendingId "${pendingId}"`,
+		);
+		return;
+	}
 	let reachedActive = false;
 	const steps: ProgressStep[] = STEP_DEFINITIONS.map((def) => {
 		if (def.id === activeStepId) {

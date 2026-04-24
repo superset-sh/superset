@@ -155,7 +155,7 @@ Guards on the page:
 
 ## The three mutations
 
-All three live in `packages/host-service/src/trpc/router/workspace-creation/workspace-creation.ts`:
+The router entrypoint is `packages/host-service/src/trpc/router/workspace-creation/workspace-creation.ts`; the mutation implementations live under `packages/host-service/src/trpc/router/workspace-creation/procedures/`:
 
 **`create`** (fork from a base branch):
 1. Ensure local project (clone if missing).

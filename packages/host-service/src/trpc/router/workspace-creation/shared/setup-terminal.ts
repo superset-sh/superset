@@ -19,7 +19,7 @@ export function startSetupTerminalIfPresent(args: {
 		terminalId,
 		workspaceId: args.workspaceId,
 		db: args.ctx.db,
-		initialCommand: `bash "${setupScriptPath}"`,
+		initialCommand: `bash ${singleQuote(setupScriptPath)}`,
 	});
 	if ("error" in result) {
 		return {
@@ -36,4 +36,9 @@ export function startSetupTerminalIfPresent(args: {
 		},
 		warning: null,
 	};
+}
+
+/** POSIX single-quote escape: safe for any path passed through a shell. */
+function singleQuote(value: string): string {
+	return `'${value.replaceAll("'", "'\\''")}'`;
 }

@@ -114,8 +114,11 @@ export const searchBranches = protectedProcedure
 					isRemote,
 				});
 			}
-		} catch {
-			// ignore
+		} catch (err) {
+			console.warn(
+				"[workspaceCreation.searchBranches] git for-each-ref failed:",
+				err,
+			);
 		}
 
 		let branches = Array.from(branchMap.values());

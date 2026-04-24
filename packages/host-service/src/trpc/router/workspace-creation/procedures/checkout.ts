@@ -55,8 +55,14 @@ export const checkout = protectedProcedure
 				clearProgress(input.pendingId);
 				throw err;
 			}
-			mkdirSync(dirname(worktreePath), { recursive: true });
-			const git = await ctx.git(localProject.repoPath);
+			let git: Awaited<ReturnType<typeof ctx.git>>;
+			try {
+				mkdirSync(dirname(worktreePath), { recursive: true });
+				git = await ctx.git(localProject.repoPath);
+			} catch (err) {
+				clearProgress(input.pendingId);
+				throw err;
+			}
 
 			// Detect a pre-existing local branch with the same derived name
 			// BEFORE running `gh pr checkout --force`. The idempotency check
@@ -110,7 +116,12 @@ export const checkout = protectedProcedure
 			} catch (err) {
 				await git
 					.raw(["worktree", "remove", "--force", worktreePath])
-					.catch(() => {});
+					.catch((rollbackErr) => {
+						console.warn(
+							"[workspaceCreation.checkout] failed to rollback PR worktree",
+							{ worktreePath, err: rollbackErr },
+						);
+					});
 				clearProgress(input.pendingId);
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
@@ -171,8 +182,14 @@ export const checkout = protectedProcedure
 			clearProgress(input.pendingId);
 			throw err;
 		}
-		mkdirSync(dirname(worktreePath), { recursive: true });
-		const git = await ctx.git(localProject.repoPath);
+		let git: Awaited<ReturnType<typeof ctx.git>>;
+		try {
+			mkdirSync(dirname(worktreePath), { recursive: true });
+			git = await ctx.git(localProject.repoPath);
+		} catch (err) {
+			clearProgress(input.pendingId);
+			throw err;
+		}
 
 		// Resolve via the discriminated-ref helper so we don't infer kind
 		// from a refname string (a local branch named `origin/foo` would
