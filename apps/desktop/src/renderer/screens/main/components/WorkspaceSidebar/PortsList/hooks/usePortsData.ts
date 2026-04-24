@@ -1,7 +1,6 @@
 import { useMemo } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import type { EnrichedPort } from "shared/types";
-import { useRemoteHostsPorts } from "./useRemoteHostsPorts";
 
 const PORTS_FALLBACK_REFETCH_INTERVAL_MS = 10_000;
 
@@ -27,17 +26,9 @@ export function usePortsData() {
 		},
 	});
 
-	const remoteHostsPorts = useRemoteHostsPorts();
-
 	const ports = useMemo<EnrichedPort[]>(() => {
-		const merged: EnrichedPort[] = localPorts ? [...localPorts] : [];
-		for (const { hostUrl, ports } of remoteHostsPorts) {
-			for (const port of ports) {
-				merged.push({ ...port, hostUrl });
-			}
-		}
-		return merged;
-	}, [localPorts, remoteHostsPorts]);
+		return localPorts ? [...localPorts] : [];
+	}, [localPorts]);
 
 	const workspaceNames = useMemo(() => {
 		if (!allWorkspaces) return {};
