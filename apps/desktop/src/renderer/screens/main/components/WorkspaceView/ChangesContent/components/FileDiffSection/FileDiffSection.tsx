@@ -138,7 +138,7 @@ export function FileDiffSection({
 			e.stopPropagation();
 			if (worktreePath) {
 				const absolutePath = toAbsoluteWorkspacePath(worktreePath, file.path);
-				openInEditorMutation.mutate({ path: absolutePath, cwd: worktreePath });
+				openInEditorMutation.mutate({ path: absolutePath, worktreePath });
 			}
 		},
 		[worktreePath, file.path, openInEditorMutation],

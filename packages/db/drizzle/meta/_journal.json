@@ -257,8 +257,15 @@
     {
       "idx": 36,
       "version": "7",
-      "when": 1776978978385,
-      "tag": "0036_v2_workspaces_main_type_and_pin",
+      "when": 1776661543389,
+      "tag": "0036_drop_pending_automation_status",
+      "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1777016421998,
+      "tag": "0037_v2_workspaces_main_type_and_pin",
       "breakpoints": true
     }
   ]

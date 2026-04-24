@@ -37,14 +37,44 @@ export default command({
 		spinner?.stop("Authorized!");
 		if (!spinner) p.log.success("Authorized!");
 
+		const api = createApiClient(config, { bearer: result.accessToken });
+
 		try {
-			const api = createApiClient(config, { bearer: result.accessToken });
 			const user = await api.user.me.query();
-			const organization = await api.user.myOrganization.query();
 			p.log.info(`${user.name} (${user.email})`);
-			if (organization) p.log.info(`Organization: ${organization.name}`);
-		} catch {
-			// Non-fatal
+		} catch (error) {
+			p.log.warn(
+				`Could not fetch user profile: ${error instanceof Error ? error.message : String(error)}`,
+			);
+		}
+
+		const organizations = await api.user.myOrganizations.query();
+
+		let chosenId: string | undefined;
+		if (organizations.length === 1) {
+			chosenId = organizations[0]?.id;
+		} else if (organizations.length > 1 && process.stdout.isTTY) {
+			const sessionActive = await api.user.myOrganization.query();
+			const selection = await p.select({
+				message: "Select organization for this CLI",
+				initialValue: sessionActive?.id ?? organizations[0]?.id,
+				options: organizations.map((organization) => ({
+					value: organization.id,
+					label: `${organization.name} (${organization.slug})`,
+				})),
+			});
+			if (p.isCancel(selection)) {
+				p.cancel("Login cancelled");
+				return { data: { apiUrl } };
+			}
+			chosenId = selection as string;
+		}
+
+		if (chosenId) {
+			config.organizationId = chosenId;
+			writeConfig(config);
+			const chosen = organizations.find((o) => o.id === chosenId);
+			if (chosen) p.log.info(`Organization: ${chosen.name}`);
 		}
 
 		p.outro("Logged in successfully.");

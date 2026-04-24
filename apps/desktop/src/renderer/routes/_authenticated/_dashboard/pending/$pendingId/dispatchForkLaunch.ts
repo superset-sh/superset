@@ -17,7 +17,12 @@ export interface DispatchForkLaunchInputs {
 	workspaceId: string;
 	pending: Pick<
 		PendingWorkspaceRow,
-		"projectId" | "prompt" | "linkedIssues" | "linkedPR" | "hostTarget"
+		| "projectId"
+		| "prompt"
+		| "linkedIssues"
+		| "linkedPR"
+		| "hostTarget"
+		| "agentId"
 	>;
 	loadedAttachments: LoadedAttachment[] | undefined;
 	agentConfigs: ResolvedAgentConfig[];

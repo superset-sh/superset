@@ -18,6 +18,8 @@ import type {
 } from "./types";
 import {
 	buildBranch,
+	countUntrackedFileLines,
+	detectUnstagedRenames,
 	getChangedFilesForDiff,
 	mapGitStatus,
 	parseNumstat,
@@ -109,9 +111,14 @@ export const gitRouter = router({
 				`${baseRef}...HEAD`,
 			]);
 
-			// Staged — use status.files index character for correct status
+			// Staged — use status.files index character for correct status.
+			// `-M -C` lets the numstat collapse renamed/copied entries so a
+			// `git add` of `mv old new` yields a single 0/0 rename row
+			// instead of an A + D pair.
 			const stagedNumstat = parseNumstat(
-				await git.raw(["diff", "--numstat", "-z", "--cached"]).catch(() => ""),
+				await git
+					.raw(["diff", "--numstat", "-z", "-M", "-C", "--cached"])
+					.catch(() => ""),
 			);
 			const staged: ChangedFile[] = [];
 			for (const file of status.files) {
@@ -123,6 +130,8 @@ export const gitRouter = router({
 					};
 					staged.push({
 						path: file.path,
+						oldPath:
+							file.from && file.from !== file.path ? file.from : undefined,
 						status: mapGitStatus(idx),
 						additions: stats.additions,
 						deletions: stats.deletions,
@@ -135,15 +144,18 @@ export const gitRouter = router({
 				await git.raw(["diff", "--numstat", "-z"]).catch(() => ""),
 			);
 			const unstaged: ChangedFile[] = [];
+			const untrackedFiles: ChangedFile[] = [];
 			for (const file of status.files) {
 				const wd = file.working_dir;
 				if (file.index === "?" && wd === "?") {
-					unstaged.push({
+					const entry: ChangedFile = {
 						path: file.path,
 						status: "untracked",
 						additions: 0,
 						deletions: 0,
-					});
+					};
+					untrackedFiles.push(entry);
+					unstaged.push(entry);
 				} else if (wd && wd !== " ") {
 					const stats = unstagedNumstat.get(file.path) ?? {
 						additions: 0,
@@ -157,13 +169,48 @@ export const gitRouter = router({
 					});
 				}
 			}
+			await countUntrackedFileLines(worktreePath, untrackedFiles);
+
+			const hasDeletions = unstaged.some((f) => f.status === "deleted");
+			const renames = await detectUnstagedRenames(
+				git,
+				worktreePath,
+				untrackedFiles.map((f) => f.path),
+				hasDeletions,
+			);
+
+			let mergedUnstaged = unstaged;
+			if (renames.length > 0) {
+				const consumedDeleted = new Set<string>();
+				const consumedUntracked = new Set<string>();
+				for (const r of renames) {
+					if (r.status === "renamed") consumedDeleted.add(r.oldPath);
+					consumedUntracked.add(r.newPath);
+				}
+				mergedUnstaged = unstaged.filter((f) => {
+					if (f.status === "deleted" && consumedDeleted.has(f.path))
+						return false;
+					if (f.status === "untracked" && consumedUntracked.has(f.path))
+						return false;
+					return true;
+				});
+				for (const r of renames) {
+					mergedUnstaged.push({
+						path: r.newPath,
+						oldPath: r.oldPath,
+						status: r.status,
+						additions: r.additions,
+						deletions: r.deletions,
+					});
+				}
+			}
 
 			return {
 				currentBranch,
 				defaultBranch,
 				againstBase,
 				staged,
-				unstaged,
+				unstaged: mergedUnstaged,
 				ignoredPaths,
 			};
 		}),

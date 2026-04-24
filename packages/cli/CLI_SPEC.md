@@ -22,7 +22,6 @@ All device commands use this as the default. `--device` overrides it for remote 
 --quiet       IDs only (for piping)
 --device      Override device (default: auto-detected from ~/.superset/device.json)
 --api-url     Override API URL
---org         Override active org
 ```
 
 ---
@@ -1082,9 +1081,9 @@ Extensible — new providers (Linear, Notion, calendar, etc.) can be added as bl
 
 ---
 
-## `superset org` (cloud)
+## `superset organization` (cloud)
 
-### `superset org list`
+### `superset organization list`
 List organizations you belong to.
 
 **Human output:**
@@ -1106,7 +1105,7 @@ Acme Corp     member
 }
 ```
 
-### `superset org switch <nameOrId>`
+### `superset organization switch <nameOrId>`
 Switch active organization.
 
 **Human output:**

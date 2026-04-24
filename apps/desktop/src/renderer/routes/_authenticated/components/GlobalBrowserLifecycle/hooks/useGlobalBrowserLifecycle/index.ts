@@ -1,0 +1,1 @@
+export { useGlobalBrowserLifecycle } from "./useGlobalBrowserLifecycle";

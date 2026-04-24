@@ -353,11 +353,6 @@ export class UrlLinkProvider extends MultiLineLinkProvider {
 	}
 
 	protected handleActivation(event: MouseEvent, text: string): void {
-		if (!event.metaKey && !event.ctrlKey) {
-			return;
-		}
-
-		event.preventDefault();
 		this.onOpen(event, text);
 	}
 }

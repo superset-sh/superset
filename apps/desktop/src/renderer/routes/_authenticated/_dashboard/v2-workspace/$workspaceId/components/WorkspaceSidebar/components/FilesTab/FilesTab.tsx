@@ -1,12 +1,9 @@
 import type { AppRouter } from "@superset/host-service";
-import type { ExternalApp } from "@superset/local-db";
 import { alert } from "@superset/ui/atoms/Alert";
 import { Button } from "@superset/ui/button";
 import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { workspaceTrpc } from "@superset/workspace-client";
-import { eq } from "@tanstack/db";
-import { useLiveQuery } from "@tanstack/react-db";
 import type { inferRouterOutputs } from "@trpc/server";
 import { FilePlus, FolderPlus, FoldVertical, RefreshCw } from "lucide-react";
 import { Fragment, useCallback, useEffect, useRef, useState } from "react";
@@ -19,9 +16,7 @@ import {
 	useGitStatusMap,
 } from "renderer/hooks/host-service/useGitStatusMap";
 import { useWorkspaceEvent } from "renderer/hooks/host-service/useWorkspaceEvent";
-import { electronTrpcClient } from "renderer/lib/trpc-client";
-import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
-import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
+import { useOpenInExternalEditor } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/useOpenInExternalEditor";
 import {
 	ROW_HEIGHT,
 	TREE_INDENT,
@@ -39,6 +34,10 @@ type InlineEditState =
 interface FilesTabProps {
 	onSelectFile: (absolutePath: string, openInNewTab?: boolean) => void;
 	selectedFilePath?: string;
+	pendingReveal?: {
+		path: string;
+		isDirectory: boolean;
+	} | null;
 	workspaceId: string;
 	workspaceName?: string;
 	gitStatus: GitStatusData | undefined;
@@ -208,6 +207,7 @@ function TreeNode({
 export function FilesTab({
 	onSelectFile,
 	selectedFilePath,
+	pendingReveal,
 	workspaceId,
 	workspaceName,
 	gitStatus,
@@ -220,52 +220,14 @@ export function FilesTab({
 		id: workspaceId,
 	});
 	const rootPath = workspaceQuery.data?.worktreePath ?? "";
-	const projectId = workspaceQuery.data?.projectId;
 
-	const collections = useCollections();
-	const { machineId } = useLocalHostService();
-	const { data: workspacesWithHost = [] } = useLiveQuery(
-		(q) =>
-			q
-				.from({ workspaces: collections.v2Workspaces })
-				.leftJoin({ hosts: collections.v2Hosts }, ({ workspaces, hosts }) =>
-					eq(workspaces.hostId, hosts.id),
-				)
-				.where(({ workspaces }) => eq(workspaces.id, workspaceId))
-				.select(({ hosts }) => ({
-					hostMachineId: hosts?.machineId ?? null,
-				})),
-		[collections, workspaceId],
-	);
-	const workspaceHost = workspacesWithHost[0];
-
-	const { data: sidebarProjectRows = [] } = useLiveQuery(
-		(q) =>
-			q
-				.from({ sp: collections.v2SidebarProjects })
-				.where(({ sp }) => eq(sp.projectId, projectId ?? ""))
-				.select(({ sp }) => ({ defaultOpenInApp: sp.defaultOpenInApp })),
-		[collections, projectId],
-	);
-	const resolvedOpenInApp: ExternalApp =
-		(sidebarProjectRows[0]?.defaultOpenInApp as ExternalApp | null) ?? "finder";
+	const openInExternalEditor = useOpenInExternalEditor(workspaceId);
 
 	const handleOpenInEditor = useCallback(
 		(absolutePath: string) => {
-			if (!workspaceHost) return;
-			if (workspaceHost.hostMachineId !== machineId) {
-				toast.error("Opening in editor is only supported on local workspaces");
-				return;
-			}
-			electronTrpcClient.external.openInApp
-				.mutate({ path: absolutePath, app: resolvedOpenInApp })
-				.catch((err) => {
-					toast.error("Couldn't open file", {
-						description: err instanceof Error ? err.message : String(err),
-					});
-				});
+			openInExternalEditor(absolutePath);
 		},
-		[workspaceHost, machineId, resolvedOpenInApp],
+		[openInExternalEditor],
 	);
 
 	const writeFile = workspaceTrpc.filesystem.writeFile.useMutation();
@@ -287,7 +249,6 @@ export function FilesTab({
 
 	const scrollContainerRef = useRef<HTMLDivElement>(null);
 	const lastMousePos = useRef<{ x: number; y: number } | null>(null);
-	const prevSelectedRef = useRef(selectedFilePath);
 
 	const updateHoverFromPoint = useCallback((x: number, y: number) => {
 		const el = document.elementFromPoint(x, y)?.closest("[data-filepath]");
@@ -312,22 +273,31 @@ export function FilesTab({
 		setHoveredPath(null);
 	}, []);
 
+	// Every reveal request from the parent is a fresh `pendingReveal` object,
+	// so depending on its identity re-runs this effect for repeat reveals of
+	// the same path too. fileTree is intentionally omitted — its identity
+	// changes every render and would loop; the closure reads the latest state
+	// via useFileTree's internal refs. `cancelled` guards against a stale
+	// reveal scrolling the sidebar back to an outdated path if a newer
+	// request lands mid-flight.
+	// biome-ignore lint/correctness/useExhaustiveDependencies: fileTree intentionally omitted
 	useEffect(() => {
-		if (
-			selectedFilePath &&
-			selectedFilePath !== prevSelectedRef.current &&
-			rootPath
-		) {
-			void fileTree.reveal(selectedFilePath).then(() => {
-				requestAnimationFrame(() => {
-					scrollContainerRef.current
-						?.querySelector(`[data-filepath="${CSS.escape(selectedFilePath)}"]`)
-						?.scrollIntoView({ block: "center" });
-				});
+		if (!pendingReveal || !rootPath) return;
+		let cancelled = false;
+		const { path, isDirectory } = pendingReveal;
+		void fileTree.reveal(path, { isDirectory }).then(() => {
+			if (cancelled) return;
+			requestAnimationFrame(() => {
+				if (cancelled) return;
+				scrollContainerRef.current
+					?.querySelector(`[data-filepath="${CSS.escape(path)}"]`)
+					?.scrollIntoView({ block: "center" });
 			});
-		}
-		prevSelectedRef.current = selectedFilePath;
-	}, [selectedFilePath, rootPath, fileTree]);
+		});
+		return () => {
+			cancelled = true;
+		};
+	}, [pendingReveal, rootPath]);
 
 	const handleRefresh = useCallback(async () => {
 		setIsRefreshing(true);

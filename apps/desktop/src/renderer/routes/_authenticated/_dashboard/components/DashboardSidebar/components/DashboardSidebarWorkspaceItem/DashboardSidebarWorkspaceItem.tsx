@@ -29,6 +29,7 @@ export function DashboardSidebarWorkspaceItem({
 		projectId,
 		accentColor = null,
 		hostType,
+		hostIsOnline,
 		name,
 		branch,
 		creationStatus,
@@ -39,14 +40,15 @@ export function DashboardSidebarWorkspaceItem({
 		cancelRename,
 		handleClick,
 		handleCopyPath,
+		handleCopyBranchName,
 		handleCreateSection,
 		handleDeleted,
 		handleOpenInFinder,
+		handleRemoveFromSidebar,
 		isActive,
 		isDeleteDialogOpen,
 		isRenaming,
 		moveWorkspaceToSection,
-		removeWorkspaceFromSidebar,
 		renameValue,
 		setIsDeleteDialogOpen,
 		setRenameValue,
@@ -56,6 +58,7 @@ export function DashboardSidebarWorkspaceItem({
 		workspaceId: id,
 		projectId,
 		workspaceName: name,
+		branch,
 	});
 
 	const navigate = useNavigate();
@@ -84,6 +87,7 @@ export function DashboardSidebarWorkspaceItem({
 				)}
 				<DashboardSidebarCollapsedWorkspaceButton
 					hostType={hostType}
+					hostIsOnline={hostIsOnline}
 					isActive={isActive}
 					onClick={isPending ? handlePendingClick : handleClick}
 					creationStatus={creationStatus}
@@ -120,7 +124,8 @@ export function DashboardSidebarWorkspaceItem({
 							}
 							onOpenInFinder={handleOpenInFinder}
 							onCopyPath={handleCopyPath}
-							onRemoveFromSidebar={() => removeWorkspaceFromSidebar(id)}
+							onCopyBranchName={handleCopyBranchName}
+							onRemoveFromSidebar={handleRemoveFromSidebar}
 							onRename={startRename}
 							onDelete={
 								isMainWorkspace ? undefined : () => setIsDeleteDialogOpen(true)
@@ -156,7 +161,7 @@ export function DashboardSidebarWorkspaceItem({
 			onDoubleClick={isPending ? undefined : startRename}
 			onDeleteClick={
 				isMainWorkspace
-					? () => removeWorkspaceFromSidebar(id)
+					? handleRemoveFromSidebar
 					: () => setIsDeleteDialogOpen(true)
 			}
 			onRenameValueChange={setRenameValue}
@@ -190,7 +195,8 @@ export function DashboardSidebarWorkspaceItem({
 						isLocalWorkspace={hostType === "local-device"}
 						onOpenInFinder={handleOpenInFinder}
 						onCopyPath={handleCopyPath}
-						onRemoveFromSidebar={() => removeWorkspaceFromSidebar(id)}
+						onCopyBranchName={handleCopyBranchName}
+						onRemoveFromSidebar={handleRemoveFromSidebar}
 						onRename={startRename}
 						onDelete={
 							isMainWorkspace ? undefined : () => setIsDeleteDialogOpen(true)

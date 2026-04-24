@@ -10,7 +10,6 @@ import { MOCK_ORG_ID } from "shared/constants";
 export interface WorkspaceHostOption {
 	id: string;
 	name: string;
-	isCloud: boolean;
 	isOnline: boolean;
 }
 
@@ -66,7 +65,6 @@ export function useWorkspaceHostOptions(): UseWorkspaceHostOptionsResult {
 				.map((host) => ({
 					id: host.id,
 					name: host.name,
-					isCloud: host.machineId == null,
 					isOnline: host.isOnline ?? false,
 				}))
 				.sort((a, b) => a.name.localeCompare(b.name)),

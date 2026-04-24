@@ -1,5 +1,5 @@
 {
-  "id": "876e5e47-0a75-431e-8595-0898f5c60137",
+  "id": "8b691b52-7bc4-4149-8451-0bc6d0bb96b3",
   "prevId": "b8be4250-5f27-4936-b4db-1273efaf1428",
   "version": "7",
   "dialect": "postgresql",
@@ -2569,8 +2569,7 @@
           "type": "automation_run_status",
           "typeSchema": "public",
           "primaryKey": false,
-          "notNull": true,
-          "default": "'pending'"
+          "notNull": true
         },
         "error": {
           "name": "error",
@@ -5361,20 +5360,6 @@
           "primaryKey": false,
           "notNull": true
         },
-        "type": {
-          "name": "type",
-          "type": "v2_workspace_type",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'worktree'"
-        },
-        "pinned_at": {
-          "name": "pinned_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
         "created_by_user_id": {
           "name": "created_by_user_id",
           "type": "uuid",
@@ -5438,28 +5423,6 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "v2_workspaces_one_main_per_host": {
-          "name": "v2_workspaces_one_main_per_host",
-          "columns": [
-            {
-              "expression": "project_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "host_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "where": "type = 'main'",
           "concurrently": false,
           "method": "btree",
           "with": {}
@@ -5692,7 +5655,6 @@
       "name": "automation_run_status",
       "schema": "public",
       "values": [
-        "pending",
         "dispatching",
         "dispatched",
         "skipped_offline",
@@ -5775,14 +5737,6 @@
       "values": [
         "owner",
         "member"
-      ]
-    },
-    "public.v2_workspace_type": {
-      "name": "v2_workspace_type",
-      "schema": "public",
-      "values": [
-        "main",
-        "worktree"
       ]
     },
     "public.workspace_type": {

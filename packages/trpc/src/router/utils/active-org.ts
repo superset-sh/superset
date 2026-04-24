@@ -4,11 +4,16 @@ import { verifyOrgMembership } from "../integration/utils";
 
 type Session = NonNullable<TRPCContext["session"]>;
 
+type ProtectedContext = {
+	session: Session;
+	activeOrganizationId: string | null;
+};
+
 export function requireActiveOrgId(
-	session: Session,
+	ctx: ProtectedContext,
 	message = "No active organization selected",
 ) {
-	const organizationId = session.session.activeOrganizationId;
+	const organizationId = ctx.activeOrganizationId;
 
 	if (!organizationId) {
 		throw new TRPCError({
@@ -21,10 +26,10 @@ export function requireActiveOrgId(
 }
 
 export async function requireActiveOrgMembership(
-	session: Session,
+	ctx: ProtectedContext,
 	message?: string,
 ) {
-	const organizationId = requireActiveOrgId(session, message);
-	await verifyOrgMembership(session.user.id, organizationId);
+	const organizationId = requireActiveOrgId(ctx, message);
+	await verifyOrgMembership(ctx.session.user.id, organizationId);
 	return organizationId;
 }

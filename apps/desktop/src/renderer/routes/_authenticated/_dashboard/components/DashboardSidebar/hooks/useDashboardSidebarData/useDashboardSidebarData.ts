@@ -16,8 +16,9 @@ import type {
 	DashboardSidebarWorkspace,
 } from "../../types";
 
-// Pending workspaces are always rendered at the end of the project's workspace list
-const PENDING_WORKSPACE_TAB_ORDER = Number.MAX_SAFE_INTEGER;
+// Sits above every real workspace so the pending row lines up with the real one,
+// which is inserted via getPrependTabOrder.
+const PENDING_WORKSPACE_TAB_ORDER = Number.MIN_SAFE_INTEGER;
 const MAIN_WORKSPACE_TAB_ORDER = Number.MIN_SAFE_INTEGER;
 
 export function useDashboardSidebarData() {
@@ -122,6 +123,7 @@ export function useDashboardSidebarData() {
 					hostId: workspaces.hostId,
 					hostMachineId: hosts?.machineId ?? null,
 					type: workspaces.type,
+					hostIsOnline: hosts?.isOnline ?? null,
 					name: workspaces.name,
 					branch: workspaces.branch,
 					createdAt: workspaces.createdAt,
@@ -146,6 +148,7 @@ export function useDashboardSidebarData() {
 					hostId: workspaces.hostId,
 					hostMachineId: hosts?.machineId ?? null,
 					type: workspaces.type,
+					hostIsOnline: hosts?.isOnline ?? null,
 					name: workspaces.name,
 					branch: workspaces.branch,
 					createdAt: workspaces.createdAt,
@@ -284,6 +287,10 @@ export function useDashboardSidebarData() {
 				hostId: workspace.hostId,
 				hostType,
 				type: workspace.type,
+				hostIsOnline:
+					hostType === "remote-device"
+						? (workspace.hostIsOnline ?? null)
+						: null,
 				accentColor: null,
 				name: workspace.name,
 				branch: workspace.branch,
@@ -336,6 +343,7 @@ export function useDashboardSidebarData() {
 				hostId: "",
 				hostType: "local-device",
 				type: "worktree",
+				hostIsOnline: null,
 				accentColor: null,
 				name: pw.name,
 				branch: pw.branchName,

@@ -288,6 +288,13 @@
       "when": 1776796221146,
       "tag": "0040_agent_preset_permissions_migrated_at",
       "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "6",
+      "when": 1776928440569,
+      "tag": "0041_v1_migration_state",
+      "breakpoints": true
     }
   ]
 }

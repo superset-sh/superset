@@ -13,6 +13,7 @@ import { hasRenderedPreview, isImageFile } from "shared/file-types";
 import {
 	acknowledgedStatus,
 	type BrowserPaneState,
+	type CommentPaneState,
 	type DevToolsPaneState,
 	type DiffLayout,
 	type FileViewerMode,
@@ -355,6 +356,42 @@ export const createChatTabWithPane = (
 		createdAt: Date.now(),
 	};
 
+	return { tab, pane };
+};
+
+/**
+ * Creates a new comment pane (PR review / conversation comment viewer)
+ */
+export const createCommentPane = (
+	tabId: string,
+	comment: CommentPaneState,
+): Pane => {
+	const id = generateId("pane");
+	return {
+		id,
+		tabId,
+		type: "comment",
+		name: `@${comment.authorLogin}`,
+		comment,
+	};
+};
+
+/**
+ * Creates a new tab with a comment pane atomically
+ */
+export const createCommentTabWithPane = (
+	workspaceId: string,
+	comment: CommentPaneState,
+): { tab: Tab; pane: Pane } => {
+	const tabId = generateId("tab");
+	const pane = createCommentPane(tabId, comment);
+	const tab: Tab = {
+		id: tabId,
+		name: `@${comment.authorLogin}`,
+		workspaceId,
+		layout: pane.id,
+		createdAt: Date.now(),
+	};
 	return { tab, pane };
 };
 

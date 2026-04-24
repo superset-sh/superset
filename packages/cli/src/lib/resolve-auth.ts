@@ -36,6 +36,9 @@ export async function resolveAuth(
 		bearer = config.auth.accessToken;
 	}
 
-	const api = createApiClient(config, { bearer });
+	const api = createApiClient(config, {
+		bearer,
+		organizationId: config.organizationId,
+	});
 	return { config, api, bearer, authSource };
 }

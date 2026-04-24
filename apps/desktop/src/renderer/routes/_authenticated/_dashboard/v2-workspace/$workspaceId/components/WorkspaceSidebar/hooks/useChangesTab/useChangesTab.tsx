@@ -2,10 +2,12 @@ import { toast } from "@superset/ui/sonner";
 import { workspaceTrpc } from "@superset/workspace-client";
 import { useCallback } from "react";
 import type { useGitStatus } from "renderer/hooks/host-service/useGitStatus";
+import { useChangeset } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/useChangeset";
+import { useOpenInExternalEditor } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/useOpenInExternalEditor";
+import { useSidebarDiffRef } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/useSidebarDiffRef";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import type { ChangesFilter } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal/schema";
-import { useChangeset } from "../../../../hooks/useChangeset";
-import { useSidebarDiffRef } from "../../../../hooks/useSidebarDiffRef";
+import { toAbsoluteWorkspacePath } from "shared/absolute-paths";
 import type { SidebarTabDefinition } from "../../types";
 import { ChangesTabContent } from "./components/ChangesTabContent";
 
@@ -14,7 +16,7 @@ export type { ChangesFilter };
 interface UseChangesTabParams {
 	workspaceId: string;
 	gitStatus: ReturnType<typeof useGitStatus>;
-	onSelectFile?: (path: string) => void;
+	onSelectFile?: (path: string, openInNewTab?: boolean) => void;
 }
 
 export function useChangesTab({
@@ -37,6 +39,20 @@ export function useChangesTab({
 
 	const ref = useSidebarDiffRef(workspaceId);
 	const { files, isLoading } = useChangeset({ workspaceId, ref });
+
+	const workspaceQuery = workspaceTrpc.workspace.get.useQuery({
+		id: workspaceId,
+	});
+	const worktreePath = workspaceQuery.data?.worktreePath;
+	const openInExternalEditor = useOpenInExternalEditor(workspaceId);
+
+	const handleOpenInEditor = useCallback(
+		(relativePath: string) => {
+			if (!worktreePath) return;
+			openInExternalEditor(toAbsoluteWorkspacePath(worktreePath, relativePath));
+		},
+		[worktreePath, openInExternalEditor],
+	);
 
 	const setFilter = useCallback(
 		(next: ChangesFilter) => {
@@ -115,7 +131,9 @@ export function useChangesTab({
 			totalChanges={totalChanges}
 			totalAdditions={totalAdditions}
 			totalDeletions={totalDeletions}
+			worktreePath={worktreePath}
 			onSelectFile={onSelectFile}
+			onOpenInEditor={handleOpenInEditor}
 			onFilterChange={setFilter}
 			onBaseBranchChange={setBaseBranch}
 			onRenameBranch={handleRenameBranch}

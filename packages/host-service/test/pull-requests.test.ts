@@ -64,6 +64,9 @@ describe("PullRequestRuntimeManager branch sync", () => {
 		expect(setMock).toHaveBeenCalledWith({
 			branch: "feature/unborn",
 			headSha: null,
+			upstreamOwner: null,
+			upstreamRepo: null,
+			upstreamBranch: null,
 		});
 		expect(refreshProjectMock).toHaveBeenCalledWith("project-1", true);
 	});

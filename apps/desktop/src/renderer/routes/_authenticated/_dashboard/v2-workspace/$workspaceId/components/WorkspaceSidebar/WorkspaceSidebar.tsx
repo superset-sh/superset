@@ -6,6 +6,7 @@ import { Search } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { LuFile, LuGitCompareArrows } from "react-icons/lu";
 import { useGitStatus } from "renderer/hooks/host-service/useGitStatus";
+import { useV2UserPreferences } from "renderer/hooks/useV2UserPreferences";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { sidebarHeaderTabTriggerClassName } from "renderer/screens/main/components/WorkspaceView/RightSidebar/headerTabStyles";
 import type { CommentPaneData } from "../../types";
@@ -15,12 +16,18 @@ import { useChangesTab } from "./hooks/useChangesTab";
 import { useReviewTab } from "./hooks/useReviewTab";
 import type { SidebarTabDefinition } from "./types";
 
+export interface PendingReveal {
+	path: string;
+	isDirectory: boolean;
+}
+
 interface WorkspaceSidebarProps {
 	onSelectFile: (absolutePath: string, openInNewTab?: boolean) => void;
-	onSelectDiffFile?: (path: string) => void;
+	onSelectDiffFile?: (path: string, openInNewTab?: boolean) => void;
 	onOpenComment?: (comment: CommentPaneData) => void;
 	onSearch?: () => void;
 	selectedFilePath?: string;
+	pendingReveal?: PendingReveal | null;
 	workspaceId: string;
 	workspaceName?: string;
 }
@@ -57,20 +64,19 @@ export function WorkspaceSidebar({
 	onOpenComment,
 	onSearch,
 	selectedFilePath,
+	pendingReveal,
 	workspaceId,
 	workspaceName,
 }: WorkspaceSidebarProps) {
 	const collections = useCollections();
+	const { preferences, setRightSidebarTab } = useV2UserPreferences();
+	const activeTab = preferences.rightSidebarTab;
 	const localState = collections.v2WorkspaceLocalState.get(workspaceId);
-	const activeTab = localState?.sidebarState?.activeTab ?? "changes";
 	const changesSubtab = localState?.sidebarState?.changesSubtab ?? "diffs";
 
 	function setActiveTab(tab: string) {
 		if (tab !== "changes" && tab !== "files") return;
-		if (!collections.v2WorkspaceLocalState.get(workspaceId)) return;
-		collections.v2WorkspaceLocalState.update(workspaceId, (draft) => {
-			draft.sidebarState.activeTab = tab;
-		});
+		setRightSidebarTab(tab);
 	}
 
 	function setChangesSubtab(subtab: "diffs" | "review") {
@@ -111,6 +117,7 @@ export function WorkspaceSidebar({
 			<FilesTab
 				onSelectFile={onSelectFile}
 				selectedFilePath={selectedFilePath}
+				pendingReveal={pendingReveal}
 				workspaceId={workspaceId}
 				workspaceName={workspaceName}
 				gitStatus={gitStatus.data}

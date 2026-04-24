@@ -2,12 +2,14 @@ import type { RendererContext } from "@superset/panes";
 import { workspaceTrpc } from "@superset/workspace-client";
 import "@xterm/xterm/css/xterm.css";
 import {
+	useCallback,
 	useEffect,
 	useMemo,
 	useRef,
 	useState,
 	useSyncExternalStore,
 } from "react";
+import { useTerminalLinkActions } from "renderer/hooks/useV2UserPreferences";
 import { useHotkey } from "renderer/hotkeys";
 import {
 	type ConnectionState,
@@ -35,16 +37,7 @@ interface TerminalPaneProps {
 	ctx: RendererContext<PaneViewerData>;
 	workspaceId: string;
 	onOpenFile: (path: string, openInNewTab?: boolean) => void;
-	onRevealPath: (path: string) => void;
-}
-
-function subscribeToState(terminalId: string) {
-	return (callback: () => void) =>
-		terminalRuntimeRegistry.onStateChange(terminalId, callback);
-}
-
-function getConnectionState(terminalId: string): ConnectionState {
-	return terminalRuntimeRegistry.getConnectionState(terminalId);
+	onRevealPath: (path: string, options?: { isDirectory?: boolean }) => void;
 }
 
 export function TerminalPane({
@@ -54,6 +47,7 @@ export function TerminalPane({
 	onRevealPath,
 }: TerminalPaneProps) {
 	const openInExternalEditor = useOpenInExternalEditor(workspaceId);
+	const { getFileAction, getUrlAction } = useTerminalLinkActions();
 	const {
 		hoveredLink,
 		onHover: onLinkHover,
@@ -76,60 +70,86 @@ export function TerminalPane({
 			activeThemeType: activeTheme?.type,
 		}),
 	);
-	const initialThemeType = initialThemeTypeRef.current;
 
 	// URL is stable — no workspaceId/themeType in query params.
 	// Session is created via tRPC before WebSocket connects.
 	const websocketUrl = useWorkspaceWsUrl(`/terminal/${terminalId}`);
+	const websocketUrlRef = useRef(websocketUrl);
+	websocketUrlRef.current = websocketUrl;
+	const workspaceIdRef = useRef(workspaceId);
+	workspaceIdRef.current = workspaceId;
 
 	const ensureSession = workspaceTrpc.terminal.ensureSession.useMutation();
 	const ensureSessionRef = useRef(ensureSession);
 	ensureSessionRef.current = ensureSession;
 
-	const connectionState = useSyncExternalStore(
-		subscribeToState(terminalId),
-		() => getConnectionState(terminalId),
+	// useCallback so useSyncExternalStore doesn't re-subscribe every render —
+	// otherwise every keystroke-triggered re-render unsubscribes and
+	// re-subscribes the registry listener. See React's useSyncExternalStore
+	// docs ("If you don't memoize the subscribe function…").
+	const subscribe = useCallback(
+		(callback: () => void) =>
+			terminalRuntimeRegistry.onStateChange(terminalId, callback),
+		[terminalId],
 	);
+	const getSnapshot = useCallback(
+		(): ConnectionState =>
+			terminalRuntimeRegistry.getConnectionState(terminalId),
+		[terminalId],
+	);
+	const connectionState = useSyncExternalStore(subscribe, getSnapshot);
 
+	// DOM-first lifecycle (VSCode/Tabby pattern):
+	//   1. mount() attaches xterm to the container synchronously — terminal
+	//      is visible immediately, even on cold start. For a warm return
+	//      (workspace switch) this reparents the wrapper from the parking
+	//      container back into the live tree, preserving the buffer.
+	//   2. ensureSession guarantees the server session exists, then connect()
+	//      opens the WebSocket. Never before — otherwise the server replies
+	//      "Session not found."
+	// Deps narrowed to [terminalId] so provider key remount churn (workspaceId
+	// briefly flipping while pane data catches up) doesn't re-run this effect.
+	// workspaceId / websocketUrl are read through refs.
 	useEffect(() => {
 		const container = containerRef.current;
 		if (!container) return;
 
+		terminalRuntimeRegistry.mount(terminalId, container, appearanceRef.current);
+
 		let cancelled = false;
 
-		// Create session via tRPC, then connect WebSocket as data pipe.
+		// Always connect after ensureSession settles, even on error: if the
+		// session actually exists on the server (e.g. we raced another client),
+		// connect() succeeds; otherwise "Session not found" surfaces in-terminal
+		// as an error line. connect() is idempotent, so a warm terminal whose
+		// WS is already open against the same URL is a no-op.
 		ensureSessionRef.current
 			.mutateAsync({
 				terminalId,
-				workspaceId,
-				themeType: initialThemeType,
-			})
-			.then(() => {
-				if (cancelled) return;
-				terminalRuntimeRegistry.attach(
-					terminalId,
-					container,
-					websocketUrl,
-					appearanceRef.current,
-				);
+				workspaceId: workspaceIdRef.current,
+				themeType: initialThemeTypeRef.current,
 			})
 			.catch((err) => {
-				if (cancelled) return;
 				console.error("[TerminalPane] ensureSession failed:", err);
-				// Still try to connect — WS handler has fallback for existing sessions
-				terminalRuntimeRegistry.attach(
-					terminalId,
-					container,
-					websocketUrl,
-					appearanceRef.current,
-				);
+			})
+			.finally(() => {
+				if (cancelled) return;
+				terminalRuntimeRegistry.connect(terminalId, websocketUrlRef.current);
 			});
 
 		return () => {
 			cancelled = true;
 			terminalRuntimeRegistry.detach(terminalId);
 		};
-	}, [terminalId, websocketUrl, initialThemeType, workspaceId]);
+	}, [terminalId]);
+
+	// WS URL can change while the terminal stays mounted (token refresh, host
+	// URL re-resolution on provider remount). Reconnect only if the transport
+	// is already live — on initial mount the transport is "disconnected" and
+	// we let the ensureSession path above open it.
+	useEffect(() => {
+		terminalRuntimeRegistry.reconnect(terminalId, websocketUrl);
+	}, [terminalId, websocketUrl]);
 
 	useEffect(() => {
 		terminalRuntimeRegistry.updateAppearance(terminalId, appearance);
@@ -161,37 +181,56 @@ export function TerminalPane({
 				}
 			},
 			onFileLinkClick: (event, link) => {
-				if (!event.metaKey && !event.ctrlKey) {
+				// Folders are not settings-controlled: ⌘ reveals in sidebar,
+				// ⌘⇧ falls through to the external editor path, plain = hint.
+				if (link.isDirectory) {
+					if (!event.metaKey && !event.ctrlKey) {
+						showHint(event.clientX, event.clientY);
+						return;
+					}
+					event.preventDefault();
+					if (event.shiftKey) {
+						openInExternalEditor(link.resolvedPath);
+					} else {
+						onRevealPath(link.resolvedPath, { isDirectory: true });
+					}
+					return;
+				}
+
+				const action = getFileAction(event);
+				if (action === null) {
 					showHint(event.clientX, event.clientY);
 					return;
 				}
 				event.preventDefault();
-				if (event.shiftKey) {
+				if (action === "external") {
 					openInExternalEditor(link.resolvedPath, {
 						line: link.row,
 						column: link.col,
 					});
-					return;
-				}
-				if (link.isDirectory) {
-					onRevealPath(link.resolvedPath);
 				} else {
 					onOpenFile(link.resolvedPath);
 				}
 			},
 			onUrlClick: (event, url) => {
-				if (event.shiftKey) {
+				const action = getUrlAction(event);
+				if (action === null) {
+					showHint(event.clientX, event.clientY);
+					return;
+				}
+				event.preventDefault();
+				if (action === "external") {
 					electronTrpcClient.external.openUrl.mutate(url).catch((error) => {
 						console.error("[v2 Terminal] Failed to open URL:", url, error);
 					});
-					return;
+				} else {
+					ctx.store.getState().openPane({
+						pane: {
+							kind: "browser",
+							data: { url } satisfies BrowserPaneData,
+						},
+					});
 				}
-				ctx.store.getState().openPane({
-					pane: {
-						kind: "browser",
-						data: { url } satisfies BrowserPaneData,
-					},
-				});
 			},
 			onLinkHover,
 			onLinkLeave,
@@ -206,6 +245,8 @@ export function TerminalPane({
 		onLinkHover,
 		onLinkLeave,
 		showHint,
+		getFileAction,
+		getUrlAction,
 	]);
 
 	useHotkey(

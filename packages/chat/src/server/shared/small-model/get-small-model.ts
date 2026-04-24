@@ -1,5 +1,6 @@
 import { createAnthropic } from "@ai-sdk/anthropic";
 import { createOpenAI } from "@ai-sdk/openai";
+import type { MastraModelConfig } from "@mastra/core/llm";
 import { createAuthStorage } from "mastracode";
 import {
 	ANTHROPIC_AUTH_PROVIDER_ID,
@@ -153,7 +154,7 @@ async function resolveOpenAIApiKey(): Promise<string | null> {
  * (e.g. `ANTHROPIC_API_KEY=dummy` from a sample .env) fall through to the
  * next path instead of being sent to the API and failing 401.
  */
-export async function getSmallModel(): Promise<unknown> {
+export async function getSmallModel(): Promise<MastraModelConfig | null> {
 	const anthropic = await resolveAnthropic();
 	if (anthropic?.kind === "apiKey") {
 		return createAnthropic({ apiKey: anthropic.key })(ANTHROPIC_SMALL_MODEL_ID);

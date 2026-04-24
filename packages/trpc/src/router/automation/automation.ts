@@ -15,7 +15,7 @@ import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
 import { and, desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { env } from "../../env";
-import { paidPlanProcedure } from "../../trpc";
+import { protectedProcedure } from "../../trpc";
 import { requireActiveOrgMembership } from "../utils/active-org";
 import { dispatchAutomation } from "./dispatch";
 import {
@@ -108,8 +108,8 @@ async function getAutomationForUser(
 
 export const automationRouter = {
 	/** List automations scoped to the caller's active organization. */
-	list: paidPlanProcedure.query(async ({ ctx }) => {
-		const organizationId = await requireActiveOrgMembership(ctx.session);
+	list: protectedProcedure.query(async ({ ctx }) => {
+		const organizationId = await requireActiveOrgMembership(ctx);
 
 		const rows = await db
 			.select()
@@ -124,10 +124,10 @@ export const automationRouter = {
 	}),
 
 	/** Get one automation plus the last 10 runs. */
-	get: paidPlanProcedure
+	get: protectedProcedure
 		.input(z.object({ id: z.string().uuid() }))
 		.query(async ({ ctx, input }) => {
-			const organizationId = await requireActiveOrgMembership(ctx.session);
+			const organizationId = await requireActiveOrgMembership(ctx);
 			const automation = await getAutomationForUser(
 				ctx.session.user.id,
 				organizationId,
@@ -148,10 +148,10 @@ export const automationRouter = {
 			};
 		}),
 
-	create: paidPlanProcedure
+	create: protectedProcedure
 		.input(createAutomationSchema)
 		.mutation(async ({ ctx, input }) => {
-			const organizationId = await requireActiveOrgMembership(ctx.session);
+			const organizationId = await requireActiveOrgMembership(ctx);
 
 			if (input.targetHostId) {
 				await verifyHostAccess(
@@ -193,10 +193,10 @@ export const automationRouter = {
 			return { ...created, scheduleText: safeDescribeRrule(created) };
 		}),
 
-	update: paidPlanProcedure
+	update: protectedProcedure
 		.input(updateAutomationSchema)
 		.mutation(async ({ ctx, input }) => {
-			const organizationId = await requireActiveOrgMembership(ctx.session);
+			const organizationId = await requireActiveOrgMembership(ctx);
 			const existing = await getAutomationForUser(
 				ctx.session.user.id,
 				organizationId,
@@ -257,10 +257,10 @@ export const automationRouter = {
 			return { ...updated, scheduleText: safeDescribeRrule(updated) };
 		}),
 
-	delete: paidPlanProcedure
+	delete: protectedProcedure
 		.input(z.object({ id: z.string().uuid() }))
 		.mutation(async ({ ctx, input }) => {
-			const organizationId = await requireActiveOrgMembership(ctx.session);
+			const organizationId = await requireActiveOrgMembership(ctx);
 			await getAutomationForUser(ctx.session.user.id, organizationId, input.id);
 
 			await dbWs.delete(automations).where(eq(automations.id, input.id));
@@ -268,10 +268,10 @@ export const automationRouter = {
 			return { ok: true };
 		}),
 
-	setEnabled: paidPlanProcedure
+	setEnabled: protectedProcedure
 		.input(z.object({ id: z.string().uuid(), enabled: z.boolean() }))
 		.mutation(async ({ ctx, input }) => {
-			const organizationId = await requireActiveOrgMembership(ctx.session);
+			const organizationId = await requireActiveOrgMembership(ctx);
 			const existing = await getAutomationForUser(
 				ctx.session.user.id,
 				organizationId,
@@ -301,10 +301,10 @@ export const automationRouter = {
 			return { ...updated, scheduleText: safeDescribeRrule(updated) };
 		}),
 
-	runNow: paidPlanProcedure
+	runNow: protectedProcedure
 		.input(z.object({ id: z.string().uuid() }))
 		.mutation(async ({ ctx, input }) => {
-			const organizationId = await requireActiveOrgMembership(ctx.session);
+			const organizationId = await requireActiveOrgMembership(ctx);
 			const automation = await getAutomationForUser(
 				ctx.session.user.id,
 				organizationId,
@@ -340,10 +340,10 @@ export const automationRouter = {
 		}),
 
 	/** Run history for a given automation (paginated). */
-	listRuns: paidPlanProcedure
+	listRuns: protectedProcedure
 		.input(listRunsSchema)
 		.query(async ({ ctx, input }) => {
-			const organizationId = await requireActiveOrgMembership(ctx.session);
+			const organizationId = await requireActiveOrgMembership(ctx);
 			await getAutomationForUser(
 				ctx.session.user.id,
 				organizationId,
@@ -359,7 +359,7 @@ export const automationRouter = {
 		}),
 
 	/** Validate an RRule body + preview its next occurrences. */
-	validateRrule: paidPlanProcedure
+	validateRrule: protectedProcedure
 		.input(parseRruleSchema)
 		.mutation(async ({ input }) => {
 			const dtstart = input.dtstart ?? new Date();

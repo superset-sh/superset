@@ -56,7 +56,7 @@ function verificationMatchesInvitation({
 
 export const organizationRouter = {
 	getActive: protectedProcedure.query(async ({ ctx }) => {
-		const orgId = ctx.session.session.activeOrganizationId;
+		const orgId = ctx.activeOrganizationId;
 		if (!orgId) return null;
 
 		const membership = await db.query.members.findFirst({

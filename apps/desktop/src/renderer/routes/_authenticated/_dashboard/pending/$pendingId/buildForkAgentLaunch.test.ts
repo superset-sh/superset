@@ -15,6 +15,7 @@ function pendingBase(
 		prompt: "",
 		linkedIssues: [],
 		linkedPR: null,
+		agentId: null,
 		...overrides,
 	};
 }
@@ -121,9 +122,12 @@ describe("buildForkAgentLaunch", () => {
 		expect(build).toBeNull();
 	});
 
-	test("prompt-only → terminal launch via default agent (claude)", async () => {
+	test("selected claude agent → terminal launch", async () => {
 		const build = await buildForkAgentLaunch({
-			pending: pendingBase({ prompt: "refactor the auth middleware" }),
+			pending: pendingBase({
+				prompt: "refactor the auth middleware",
+				agentId: "claude",
+			}),
 			attachments: undefined,
 			agentConfigs,
 		});
@@ -140,6 +144,7 @@ describe("buildForkAgentLaunch", () => {
 		const build = await buildForkAgentLaunch({
 			pending: pendingBase({
 				prompt: "do it",
+				agentId: "claude",
 				linkedIssues: [
 					{
 						source: "internal",
@@ -158,7 +163,7 @@ describe("buildForkAgentLaunch", () => {
 
 	test("attachments produce disk-ready bytes + matching names", async () => {
 		const build = await buildForkAgentLaunch({
-			pending: pendingBase({ prompt: "fix" }),
+			pending: pendingBase({ prompt: "fix", agentId: "claude" }),
 			attachments: [
 				{
 					data: "data:text/plain;base64,AQID", // [1,2,3]
@@ -178,13 +183,11 @@ describe("buildForkAgentLaunch", () => {
 	});
 
 	test("chat agent → chat launch with initialPrompt + files", async () => {
-		const chatOnlyConfigs = agentConfigs.map((c) =>
-			c.id === "superset-chat"
-				? { ...c, enabled: true }
-				: { ...c, enabled: false },
-		);
 		const build = await buildForkAgentLaunch({
-			pending: pendingBase({ prompt: "help me refactor" }),
+			pending: pendingBase({
+				prompt: "help me refactor",
+				agentId: "superset-chat",
+			}),
 			attachments: [
 				{
 					data: "data:text/plain;base64,AQID",
@@ -192,7 +195,7 @@ describe("buildForkAgentLaunch", () => {
 					filename: "logs.txt",
 				},
 			],
-			agentConfigs: chatOnlyConfigs,
+			agentConfigs,
 		});
 		expect(build?.kind).toBe("chat");
 		if (build?.kind !== "chat") throw new Error("wrong kind");
@@ -207,9 +210,27 @@ describe("buildForkAgentLaunch", () => {
 	test("disabled agent → null", async () => {
 		const disabled = agentConfigs.map((c) => ({ ...c, enabled: false }));
 		const build = await buildForkAgentLaunch({
-			pending: pendingBase({ prompt: "hi" }),
+			pending: pendingBase({ prompt: "hi", agentId: "claude" }),
 			attachments: undefined,
 			agentConfigs: disabled,
+		});
+		expect(build).toBeNull();
+	});
+
+	test("agentId null → null (no user selection, no launch)", async () => {
+		const build = await buildForkAgentLaunch({
+			pending: pendingBase({ prompt: "hi", agentId: null }),
+			attachments: undefined,
+			agentConfigs,
+		});
+		expect(build).toBeNull();
+	});
+
+	test('agentId "none" → null (explicit opt-out)', async () => {
+		const build = await buildForkAgentLaunch({
+			pending: pendingBase({ prompt: "hi", agentId: "none" }),
+			attachments: undefined,
+			agentConfigs,
 		});
 		expect(build).toBeNull();
 	});
