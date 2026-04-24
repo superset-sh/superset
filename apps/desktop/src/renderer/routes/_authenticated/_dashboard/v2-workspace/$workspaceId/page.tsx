@@ -306,8 +306,22 @@ function WorkspaceContent({
 	const defaultContextMenuActions = useDefaultContextMenuActions(paneRegistry);
 
 	const openDiffPane = useCallback(
-		(filePath: string) => {
+		(filePath: string, openInNewTab?: boolean) => {
 			const state = store.getState();
+			if (openInNewTab) {
+				state.addTab({
+					panes: [
+						{
+							kind: "diff",
+							data: {
+								path: filePath,
+								collapsedFiles: [],
+							} as DiffPaneData,
+						},
+					],
+				});
+				return;
+			}
 			for (const tab of state.tabs) {
 				for (const pane of Object.values(tab.panes)) {
 					if (pane.kind !== "diff") continue;
@@ -324,16 +338,14 @@ function WorkspaceContent({
 					return;
 				}
 			}
-			state.addTab({
-				panes: [
-					{
-						kind: "diff",
-						data: {
-							path: filePath,
-							collapsedFiles: [],
-						} as DiffPaneData,
-					},
-				],
+			state.openPane({
+				pane: {
+					kind: "diff",
+					data: {
+						path: filePath,
+						collapsedFiles: [],
+					} as DiffPaneData,
+				},
 			});
 		},
 		[store],

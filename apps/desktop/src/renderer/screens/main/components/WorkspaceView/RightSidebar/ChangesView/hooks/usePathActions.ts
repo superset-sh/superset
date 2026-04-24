@@ -7,8 +7,8 @@ import { electronTrpc } from "renderer/lib/electron-trpc";
 interface UsePathActionsProps {
 	absolutePath: string | null;
 	relativePath?: string;
-	/** For files: pass cwd to use openFileInEditor. For folders: omit to use openInApp */
-	cwd?: string;
+	/** For files: pass worktreePath to use openFileInEditor. For folders: omit to use openInApp */
+	worktreePath?: string;
 	/** Pre-resolved app to avoid per-row default-app queries */
 	defaultApp?: ExternalApp | null;
 	/** Project identifier for project-scoped actions/metadata */
@@ -18,7 +18,7 @@ interface UsePathActionsProps {
 export function usePathActions({
 	absolutePath,
 	relativePath,
-	cwd,
+	worktreePath,
 	defaultApp,
 	projectId,
 }: UsePathActionsProps) {
@@ -60,8 +60,12 @@ export function usePathActions({
 	const openInEditor = useCallback(() => {
 		if (!absolutePath) return;
 
-		if (cwd) {
-			openFileInEditorMutation.mutate({ path: absolutePath, cwd, projectId });
+		if (worktreePath) {
+			openFileInEditorMutation.mutate({
+				path: absolutePath,
+				worktreePath,
+				projectId,
+			});
 		} else {
 			// Avoid opening with an incorrect fallback before upstream default app query resolves.
 			if (defaultApp === undefined) {
@@ -87,7 +91,7 @@ export function usePathActions({
 		}
 	}, [
 		absolutePath,
-		cwd,
+		worktreePath,
 		projectId,
 		defaultApp,
 		openInAppMutation,

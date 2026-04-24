@@ -4,7 +4,11 @@ import { TRPCError } from "@trpc/server";
 import type { ApiClient } from "../../../types";
 import { protectedProcedure, router } from "../../index";
 
-const HOST_SERVICE_VERSION = "0.1.0";
+// 0.2.0: `workspaceCreation.adopt` accepts optional `worktreePath` for
+// adopting worktrees at arbitrary paths (not just <repoPath>/.worktrees/).
+// The v1→v2 migration depends on this to adopt legacy ~/.superset/worktrees
+// paths. Clients using the new param must refuse to adopt an older service.
+const HOST_SERVICE_VERSION = "0.2.0";
 const ORGANIZATION_CACHE_TTL_MS = 60 * 60 * 1000;
 
 let cachedOrganization: {

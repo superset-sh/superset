@@ -17,7 +17,6 @@ import {
 	RESOURCE_LINKS,
 	TOP_LEVEL_LINKS,
 } from "../../constants";
-import { SupersetLogo } from "../SupersetLogo";
 
 const triggerClass = cn(
 	navigationMenuTriggerStyle(),
@@ -33,14 +32,11 @@ export function DesktopNav() {
 						Product
 					</NavigationMenuTrigger>
 					<NavigationMenuContent>
-						<div className="grid w-[560px] grid-cols-[0.9fr_1fr] gap-2 p-2">
-							<FeatureCard />
-							<ul className="flex flex-col gap-1">
-								{PRODUCT_LINKS.map((link) => (
-									<NavListItem key={link.href} link={link} />
-								))}
-							</ul>
-						</div>
+						<ul className="flex w-[320px] flex-col gap-1 p-2">
+							{PRODUCT_LINKS.map((link) => (
+								<NavListItem key={link.href} link={link} />
+							))}
+						</ul>
 					</NavigationMenuContent>
 				</NavigationMenuItem>
 
@@ -66,30 +62,6 @@ export function DesktopNav() {
 				))}
 			</NavigationMenuList>
 		</NavigationMenu>
-	);
-}
-
-function FeatureCard() {
-	return (
-		<NavigationMenuLink asChild className="h-full p-0 hover:bg-transparent">
-			<Link
-				href="/"
-				className="group flex h-full flex-col justify-between rounded-md border border-border bg-gradient-to-br from-accent/60 to-accent/10 p-5 no-underline outline-none transition-colors hover:border-foreground/20"
-			>
-				<div className="text-foreground">
-					<SupersetLogo />
-				</div>
-				<div className="space-y-2">
-					<p className="text-sm font-medium text-foreground">
-						The terminal for coding agents
-					</p>
-					<p className="text-xs leading-relaxed text-muted-foreground">
-						Run 10+ parallel coding agents on your machine and switch between
-						tasks as they need your attention.
-					</p>
-				</div>
-			</Link>
-		</NavigationMenuLink>
 	);
 }
 

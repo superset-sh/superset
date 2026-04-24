@@ -24,90 +24,120 @@ function makeEvent(
 }
 
 describe("shouldBubbleClipboardShortcut", () => {
-	it("matches the VS Code terminal clipboard bindings", () => {
+	it("bubbles every Mac Cmd chord, Ghostty-style", () => {
 		const cases = [
 			{
-				name: "macOS Cmd+V",
-				event: makeEvent({ code: "KeyV", metaKey: true }),
-				options: { isMac: true, isWindows: false, hasSelection: false },
-				expected: true,
-			},
-			{
-				name: "macOS Cmd+C with selection",
+				name: "Cmd+C (no selection)",
 				event: makeEvent({ code: "KeyC", metaKey: true }),
-				options: { isMac: true, isWindows: false, hasSelection: true },
-				expected: true,
+			},
+			{ name: "Cmd+V", event: makeEvent({ code: "KeyV", metaKey: true }) },
+			{ name: "Cmd+Enter", event: makeEvent({ code: "Enter", metaKey: true }) },
+			{ name: "Cmd+W", event: makeEvent({ code: "KeyW", metaKey: true }) },
+			{
+				name: "Cmd+Shift+K",
+				event: makeEvent({ code: "KeyK", metaKey: true, shiftKey: true }),
 			},
 			{
-				name: "windows Ctrl+V",
+				name: "Cmd+Alt+Left",
+				event: makeEvent({ code: "ArrowLeft", metaKey: true, altKey: true }),
+			},
+		];
+
+		for (const { name, event } of cases) {
+			expect(
+				shouldBubbleClipboardShortcut(event, {
+					isMac: true,
+					isWindows: false,
+					hasSelection: false,
+				}),
+				name,
+			).toBe(true);
+		}
+	});
+
+	it("does not bubble non-Cmd chords on Mac", () => {
+		const cases = [
+			{ name: "plain c", event: makeEvent({ code: "KeyC" }) },
+			{
+				name: "Ctrl+C (not a Mac idiom)",
+				event: makeEvent({ code: "KeyC", ctrlKey: true }),
+			},
+			{
+				name: "Shift+Insert",
+				event: makeEvent({ code: "Insert", shiftKey: true }),
+			},
+			{
+				name: "Ctrl+Shift+V (linux chord on mac)",
+				event: makeEvent({ code: "KeyV", ctrlKey: true, shiftKey: true }),
+			},
+		];
+
+		for (const { name, event } of cases) {
+			expect(
+				shouldBubbleClipboardShortcut(event, {
+					isMac: true,
+					isWindows: false,
+					hasSelection: false,
+				}),
+				name,
+			).toBe(false);
+		}
+	});
+
+	it("matches standard Windows / Linux clipboard bindings", () => {
+		const cases = [
+			{
+				name: "Windows Ctrl+V",
 				event: makeEvent({ code: "KeyV", ctrlKey: true }),
 				options: { isMac: false, isWindows: true, hasSelection: false },
 				expected: true,
 			},
 			{
-				name: "windows Ctrl+Shift+V",
+				name: "Windows Ctrl+Shift+V",
 				event: makeEvent({ code: "KeyV", ctrlKey: true, shiftKey: true }),
 				options: { isMac: false, isWindows: true, hasSelection: false },
 				expected: true,
 			},
 			{
-				name: "windows Ctrl+C with selection",
+				name: "Windows Ctrl+C with selection",
 				event: makeEvent({ code: "KeyC", ctrlKey: true }),
 				options: { isMac: false, isWindows: true, hasSelection: true },
 				expected: true,
 			},
 			{
-				name: "linux Ctrl+Shift+C with selection",
-				event: makeEvent({ code: "KeyC", ctrlKey: true, shiftKey: true }),
-				options: { isMac: false, isWindows: false, hasSelection: true },
-				expected: true,
-			},
-			{
-				name: "linux Ctrl+Shift+V",
-				event: makeEvent({ code: "KeyV", ctrlKey: true, shiftKey: true }),
-				options: { isMac: false, isWindows: false, hasSelection: false },
-				expected: true,
-			},
-			{
-				name: "linux Shift+Insert",
-				event: makeEvent({ code: "Insert", shiftKey: true }),
-				options: { isMac: false, isWindows: false, hasSelection: false },
-				expected: true,
-			},
-			{
-				name: "macOS Cmd+C without selection",
-				event: makeEvent({ code: "KeyC", metaKey: true }),
-				options: { isMac: true, isWindows: false, hasSelection: false },
-				expected: false,
-			},
-			{
-				name: "windows Ctrl+C without selection",
+				name: "Windows Ctrl+C without selection stays with PTY (SIGINT)",
 				event: makeEvent({ code: "KeyC", ctrlKey: true }),
 				options: { isMac: false, isWindows: true, hasSelection: false },
 				expected: false,
 			},
 			{
-				name: "linux Ctrl+Shift+C without selection",
+				name: "Windows Ctrl+Shift+C without selection still bubbles",
+				event: makeEvent({ code: "KeyC", ctrlKey: true, shiftKey: true }),
+				options: { isMac: false, isWindows: true, hasSelection: false },
+				expected: true,
+			},
+			{
+				name: "Linux Ctrl+Shift+V",
+				event: makeEvent({ code: "KeyV", ctrlKey: true, shiftKey: true }),
+				options: { isMac: false, isWindows: false, hasSelection: false },
+				expected: true,
+			},
+			{
+				name: "Linux Shift+Insert",
+				event: makeEvent({ code: "Insert", shiftKey: true }),
+				options: { isMac: false, isWindows: false, hasSelection: false },
+				expected: true,
+			},
+			{
+				name: "Linux Ctrl+Shift+C without selection still bubbles",
 				event: makeEvent({ code: "KeyC", ctrlKey: true, shiftKey: true }),
 				options: { isMac: false, isWindows: false, hasSelection: false },
-				expected: false,
+				expected: true,
 			},
 			{
-				name: "linux Ctrl+Insert stays with the PTY",
+				name: "Linux Ctrl+Insert stays with the PTY",
 				event: makeEvent({ code: "Insert", ctrlKey: true }),
 				options: { isMac: false, isWindows: false, hasSelection: false },
-				expected: false,
-			},
-			{
-				name: "macOS does not inherit linux fallback chords",
-				event: makeEvent({ code: "KeyV", ctrlKey: true, shiftKey: true }),
-				options: { isMac: true, isWindows: false, hasSelection: false },
-				expected: false,
-			},
-			{
-				name: "macOS Shift+Insert stays with the PTY",
-				event: makeEvent({ code: "Insert", shiftKey: true }),
-				options: { isMac: true, isWindows: false, hasSelection: false },
 				expected: false,
 			},
 		];

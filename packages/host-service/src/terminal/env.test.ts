@@ -393,7 +393,7 @@ describe("buildV2TerminalEnv", () => {
 		const env = buildV2TerminalEnv(baseParams);
 		expect(env).toMatchObject({
 			TERM: "xterm-256color",
-			TERM_PROGRAM: "Superset",
+			TERM_PROGRAM: "kitty",
 			TERM_PROGRAM_VERSION: "2.0.0",
 			COLORTERM: "truecolor",
 			PWD: "/tmp/workspace",
@@ -405,7 +405,7 @@ describe("buildV2TerminalEnv", () => {
 			SUPERSET_AGENT_HOOK_PORT: "51741",
 			SUPERSET_AGENT_HOOK_VERSION: "2",
 		});
-		expect(env.TERM_PROGRAM).toBe("Superset");
+		expect(env.TERM_PROGRAM).toBe("kitty");
 		expect(env.LANG).toContain("UTF-8");
 	});
 

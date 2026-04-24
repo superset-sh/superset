@@ -185,6 +185,10 @@ export const pendingWorkspaceSchema = z.object({
 	linkedIssues: z.array(pendingLinkedIssueSchema).default([]),
 	linkedPR: pendingLinkedPRSchema.nullable().default(null),
 	attachmentCount: z.number().int().default(0),
+	// User-selected agent from the modal. `"none"` = user explicitly chose not
+	// to launch; any other string = `AgentDefinitionId`; null = legacy rows
+	// (predating this field), treated as "use fallback".
+	agentId: z.string().nullable().default(null),
 
 	// fork + checkout (irrelevant for adopt — worktree already exists).
 	runSetupScript: z.boolean().default(true),
@@ -243,6 +247,7 @@ export const v2UserPreferencesSchema = z.object({
 	urlLinks: linkTierMapSchema.default(DEFAULT_LINK_TIER_MAP),
 	rightSidebarOpen: z.boolean().default(true),
 	rightSidebarTab: z.enum(["changes", "files"]).default("changes"),
+	deleteLocalBranch: z.boolean().default(false),
 });
 
 export type V2UserPreferencesRow = z.infer<typeof v2UserPreferencesSchema>;
@@ -255,4 +260,5 @@ export const DEFAULT_V2_USER_PREFERENCES: V2UserPreferencesRow = {
 	urlLinks: DEFAULT_LINK_TIER_MAP,
 	rightSidebarOpen: true,
 	rightSidebarTab: "changes",
+	deleteLocalBranch: false,
 };

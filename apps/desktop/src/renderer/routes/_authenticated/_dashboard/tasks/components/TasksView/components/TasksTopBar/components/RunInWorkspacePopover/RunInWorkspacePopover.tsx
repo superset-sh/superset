@@ -174,7 +174,7 @@ export function RunInWorkspacePopover({
 				const result = await createWorkspace.mutateAsyncWithPendingSetup(
 					{
 						projectId: effectiveProjectId,
-						name: task.slug,
+						name: task.title,
 						branchName,
 					},
 					{ agentLaunchRequest: launchRequestTemplate ?? undefined },

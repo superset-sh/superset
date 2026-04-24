@@ -121,7 +121,7 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 			const result = await createWorkspace.mutateAsyncWithPendingSetup(
 				{
 					projectId,
-					name: task.slug,
+					name: task.title,
 					branchName,
 				},
 				{ agentLaunchRequest: launchRequestTemplate ?? undefined },

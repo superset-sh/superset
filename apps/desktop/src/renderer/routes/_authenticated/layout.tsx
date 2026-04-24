@@ -33,6 +33,7 @@ import { setPaneWorkspaceRunState } from "renderer/stores/tabs/workspace-run";
 import { useWorkspaceInitStore } from "renderer/stores/workspace-init";
 import { MOCK_ORG_ID, NOTIFICATION_EVENTS } from "shared/constants";
 import { AgentHooks } from "./components/AgentHooks";
+import { GlobalBrowserLifecycle } from "./components/GlobalBrowserLifecycle";
 import { GlobalTerminalLifecycle } from "./components/GlobalTerminalLifecycle";
 import { TeardownLogsDialog } from "./components/TeardownLogsDialog";
 import { V2AgentHookListeners } from "./components/V2AgentHookListeners";
@@ -191,6 +192,7 @@ function AuthenticatedLayout() {
 		<DndProvider manager={dragDropManager}>
 			<CollectionsProvider>
 				<GlobalTerminalLifecycle />
+				<GlobalBrowserLifecycle />
 				<LocalHostServiceProvider>
 					<DeletingWorkspacesProvider>
 						<WorkerPoolContextProvider

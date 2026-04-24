@@ -7,6 +7,7 @@ import { settings } from "@superset/local-db";
 import { getDeviceName, getHashedDeviceId } from "@superset/shared/device-info";
 import { app } from "electron";
 import { env } from "main/env.main";
+import semver from "semver";
 import { env as sharedEnv } from "shared/env.shared";
 import { getProcessEnvWithShellPath } from "../../lib/trpc/routers/workspaces/utils/shell-env";
 import { SUPERSET_HOME_DIR } from "./app-environment";
@@ -28,8 +29,15 @@ import {
 import { localDb } from "./local-db";
 import { HOOK_PROTOCOL_VERSION } from "./terminal/env";
 
-/** Minimum host-service version this app can work with. */
-const MIN_HOST_SERVICE_VERSION = "0.1.0";
+/**
+ * Minimum host-service version this app can work with. Bumping this forces
+ * the coordinator to kill + respawn any adopted service older than this,
+ * which is how we prevent the renderer from talking to a stale host-service
+ * that's missing newly-added procedures/params.
+ *
+ * 0.2.0: `workspaceCreation.adopt` gained optional `worktreePath`.
+ */
+const MIN_HOST_SERVICE_VERSION = "0.2.0";
 
 export type HostServiceStatus = "starting" | "running" | "stopped";
 
@@ -287,9 +295,15 @@ export class HostServiceCoordinator extends EventEmitter {
 			manifest.endpoint,
 			manifest.authToken,
 		);
-		if (version && version < MIN_HOST_SERVICE_VERSION) {
+		if (
+			!version ||
+			!semver.satisfies(version, `>=${MIN_HOST_SERVICE_VERSION}`)
+		) {
+			const reason = version
+				? `version ${version} < ${MIN_HOST_SERVICE_VERSION}`
+				: "version unknown";
 			console.log(
-				`[host-service:${organizationId}] Adopted service version ${version} < ${MIN_HOST_SERVICE_VERSION}, killing`,
+				`[host-service:${organizationId}] Adopted service ${reason}, killing`,
 			);
 			try {
 				process.kill(manifest.pid, "SIGTERM");

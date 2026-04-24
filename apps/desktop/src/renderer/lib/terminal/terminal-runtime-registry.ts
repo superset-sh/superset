@@ -29,7 +29,7 @@ interface RegistryEntry {
 	runtime: TerminalRuntime | null;
 	transport: TerminalTransport;
 	linkManager: TerminalLinkManager | null;
-	/** Stored until linkManager is created (attach called after setLinkHandlers). */
+	/** Stored until linkManager is created (mount called after setLinkHandlers). */
 	pendingLinkHandlers: TerminalLinkHandlers | null;
 }
 
@@ -51,10 +51,21 @@ class TerminalRuntimeRegistryImpl {
 		return entry;
 	}
 
-	attach(
+	/**
+	 * Ensure the xterm runtime exists and attach it to `container`.
+	 * Synchronous. DOM-only — the WebSocket transport is untouched.
+	 *
+	 * Matches VSCode's pattern (`TerminalInstance.attachToElement`) and
+	 * Tabby's (`XTermFrontend.attach`): the terminal renders immediately
+	 * with a blank cursor, the backend pipe catches up via `connect()` once
+	 * the caller has confirmed the server session exists. Decoupling the
+	 * DOM from the transport is what lets a terminal survive workspace
+	 * switches without an in-flight WebSocket being opened against a
+	 * nonexistent session.
+	 */
+	mount(
 		terminalId: string,
 		container: HTMLDivElement,
-		wsUrl: string,
 		appearance: TerminalAppearance,
 	) {
 		const entry = this.getOrCreateEntry(terminalId);
@@ -62,7 +73,6 @@ class TerminalRuntimeRegistryImpl {
 		if (!entry.runtime) {
 			entry.runtime = createRuntime(terminalId, appearance);
 			entry.linkManager = new TerminalLinkManager(entry.runtime.terminal);
-			// Apply pending handlers if setLinkHandlers was called before attach
 			if (entry.pendingLinkHandlers) {
 				entry.linkManager.setHandlers(entry.pendingLinkHandlers);
 				entry.pendingLinkHandlers = null;
@@ -72,17 +82,47 @@ class TerminalRuntimeRegistryImpl {
 		}
 
 		const { runtime, transport } = entry;
-
 		attachToContainer(runtime, container, () => {
 			sendResize(transport, runtime.terminal.cols, runtime.terminal.rows);
 		});
+	}
 
-		connect(transport, runtime.terminal, wsUrl);
+	/**
+	 * Open (or re-use) the WebSocket transport for this terminal.
+	 * Caller is responsible for ensuring the server session exists before
+	 * calling — otherwise the server replies "Session not found".
+	 *
+	 * Idempotent: no-op if already connected/connecting to the same URL.
+	 */
+	connect(terminalId: string, wsUrl: string) {
+		const entry = this.entries.get(terminalId);
+		if (!entry?.runtime) return;
+		connect(entry.transport, entry.runtime.terminal, wsUrl);
+	}
+
+	/**
+	 * Swap the transport onto a new URL when it's already been brought up
+	 * once. Used by effects watching `websocketUrl` — they fire on initial
+	 * mount when the transport is still `"disconnected"` and ensureSession
+	 * is in-flight, and we must not pre-empt that with a premature connect.
+	 *
+	 * Skipped states: `"disconnected"` (never opened; caller should use
+	 * `connect()` via the ensureSession path). Allowed states: `"connecting"`
+	 * (connect() cleanly aborts the in-flight socket), `"open"` (standard
+	 * swap), and `"closed"` (previously live and mid-auto-reconnect — swap
+	 * the URL so the reconnect targets the new endpoint).
+	 */
+	reconnect(terminalId: string, wsUrl: string) {
+		const entry = this.entries.get(terminalId);
+		if (!entry?.runtime) return;
+		if (entry.transport.connectionState === "disconnected") return;
+		if (entry.transport.currentUrl === wsUrl) return;
+		connect(entry.transport, entry.runtime.terminal, wsUrl);
 	}
 
 	/**
 	 * Set link handler callbacks for a terminal. Safe to call before or after
-	 * attach(). If the runtime already exists, link providers are re-registered.
+	 * mount(). If the runtime already exists, link providers are re-registered.
 	 */
 	setLinkHandlers(terminalId: string, handlers: TerminalLinkHandlers) {
 		const entry = this.getOrCreateEntry(terminalId);
@@ -93,6 +133,11 @@ class TerminalRuntimeRegistryImpl {
 		}
 	}
 
+	/**
+	 * Park the wrapper in the hidden body-level container. Runtime and
+	 * transport stay alive; DOM is moved off the React-controlled tree so
+	 * it survives the parent unmount without re-entering xterm.open().
+	 */
 	detach(terminalId: string) {
 		const entry = this.entries.get(terminalId);
 		if (!entry?.runtime) return;

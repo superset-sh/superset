@@ -1193,6 +1193,69 @@ describe("agent-wrappers codex hooks.json", () => {
 		).toBe(true);
 	});
 
+	it("reaps stale notify.sh paths from in-repo dev worktrees", () => {
+		const codexHooksPath = path.join(mockedHomeDir, ".codex", "hooks.json");
+		// Real-world layout: a dev worktree lives under <repo>/.worktrees/<name>
+		// and its dev setup writes SUPERSET_HOME_DIR=<worktree>/superset-dev-data.
+		// There is no /.superset/ segment anywhere in the path.
+		const staleHookPath =
+			"/Users/test/code/superset/.worktrees/old-branch/superset-dev-data/hooks/notify.sh";
+		const currentHookPath = "/tmp/.superset-new/hooks/notify.sh";
+
+		mkdirSync(path.dirname(codexHooksPath), { recursive: true });
+		writeFileSync(
+			codexHooksPath,
+			JSON.stringify(
+				{
+					hooks: {
+						SessionStart: [
+							{ hooks: [{ type: "command", command: staleHookPath }] },
+						],
+						UserPromptSubmit: [
+							{ hooks: [{ type: "command", command: staleHookPath }] },
+						],
+						Stop: [{ hooks: [{ type: "command", command: staleHookPath }] }],
+					},
+				},
+				null,
+				2,
+			),
+		);
+
+		const content = getCodexGlobalHooksJsonContent(currentHookPath);
+		expect(content).not.toBeNull();
+		if (content === null) throw new Error("Expected content");
+
+		const parsed = JSON.parse(content) as {
+			hooks: Record<
+				string,
+				Array<{
+					matcher?: string;
+					hooks: Array<{ type: string; command: string }>;
+				}>
+			>;
+		};
+
+		for (const eventName of [
+			"SessionStart",
+			"UserPromptSubmit",
+			"Stop",
+		] as const) {
+			const hooks = parsed.hooks[eventName];
+			expect(Array.isArray(hooks)).toBe(true);
+			expect(
+				hooks.some((def) =>
+					def.hooks.some((hook) => hook.command === currentHookPath),
+				),
+			).toBe(true);
+			expect(
+				hooks.some((def) =>
+					def.hooks.some((hook) => hook.command === staleHookPath),
+				),
+			).toBe(false);
+		}
+	});
+
 	it("skips Codex hooks writes when existing JSON is invalid", () => {
 		const codexHooksPath = path.join(mockedHomeDir, ".codex", "hooks.json");
 		const invalidJson = "{not-json";
