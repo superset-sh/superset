@@ -1,4 +1,4 @@
-import { generateObjectFromMessage } from "@superset/chat/server/desktop";
+import { Agent } from "@mastra/core/agent";
 import { getSmallModel } from "@superset/chat/server/shared";
 import { z } from "zod";
 
@@ -68,16 +68,21 @@ export async function generateWorkspaceNamesFromPrompt(
 	const model = await getSmallModel();
 	if (!model) return null;
 
+	const agent = new Agent({
+		id: "workspace-namer",
+		name: "Workspace Namer",
+		instructions: INSTRUCTIONS,
+		model,
+	});
+
 	try {
-		return await generateObjectFromMessage({
-			message: cleaned,
-			agentModel: model,
-			agentId: "workspace-namer",
-			agentName: "Workspace Namer",
-			instructions: INSTRUCTIONS,
-			schema: workspaceNamesSchema,
-			tracingContext: { surface: "host-service-workspace-names" },
+		const { object } = await agent.generate(cleaned, {
+			structuredOutput: {
+				schema: workspaceNamesSchema,
+				jsonPromptInjection: true,
+			},
 		});
+		return object;
 	} catch (error) {
 		console.warn(
 			"[generateWorkspaceNamesFromPrompt] generation failed:",
