@@ -2,6 +2,7 @@ import type { RendererContext } from "@superset/panes";
 import { workspaceTrpc } from "@superset/workspace-client";
 import "@xterm/xterm/css/xterm.css";
 import {
+	useCallback,
 	useEffect,
 	useMemo,
 	useRef,
@@ -37,15 +38,6 @@ interface TerminalPaneProps {
 	workspaceId: string;
 	onOpenFile: (path: string, openInNewTab?: boolean) => void;
 	onRevealPath: (path: string, options?: { isDirectory?: boolean }) => void;
-}
-
-function subscribeToState(terminalId: string) {
-	return (callback: () => void) =>
-		terminalRuntimeRegistry.onStateChange(terminalId, callback);
-}
-
-function getConnectionState(terminalId: string): ConnectionState {
-	return terminalRuntimeRegistry.getConnectionState(terminalId);
 }
 
 export function TerminalPane({
@@ -91,10 +83,21 @@ export function TerminalPane({
 	const ensureSessionRef = useRef(ensureSession);
 	ensureSessionRef.current = ensureSession;
 
-	const connectionState = useSyncExternalStore(
-		subscribeToState(terminalId),
-		() => getConnectionState(terminalId),
+	// useCallback so useSyncExternalStore doesn't re-subscribe every render —
+	// otherwise every keystroke-triggered re-render unsubscribes and
+	// re-subscribes the registry listener. See React's useSyncExternalStore
+	// docs ("If you don't memoize the subscribe function…").
+	const subscribe = useCallback(
+		(callback: () => void) =>
+			terminalRuntimeRegistry.onStateChange(terminalId, callback),
+		[terminalId],
 	);
+	const getSnapshot = useCallback(
+		(): ConnectionState =>
+			terminalRuntimeRegistry.getConnectionState(terminalId),
+		[terminalId],
+	);
+	const connectionState = useSyncExternalStore(subscribe, getSnapshot);
 
 	// DOM-first lifecycle (VSCode/Tabby pattern):
 	//   1. mount() attaches xterm to the container synchronously — terminal
