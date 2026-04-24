@@ -3,37 +3,44 @@ import { useLiveQuery } from "@tanstack/react-db";
 import { useEffect, useRef } from "react";
 import { terminalRuntimeRegistry } from "renderer/lib/terminal/terminal-runtime-registry";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import {
+	extractPaneLocations,
+	extractWorkspaceIds,
+	getRemovedPaneLocations,
+	type PaneLifecycleRow,
+} from "../../../utils/paneLifecycleRows";
 
-/** Grace period for cross-workspace pane moves before disposing. */
-const DISPOSE_DELAY_MS = 500;
+/** Grace period for cross-workspace pane moves before releasing renderer state. */
+const RELEASE_DELAY_MS = 500;
 
 interface TerminalPaneData {
 	terminalId: string;
 }
 
-function extractTerminalIds(rows: { paneLayout: unknown }[]): Set<string> {
-	const ids = new Set<string>();
-	for (const row of rows) {
-		const layout = row.paneLayout as WorkspaceState<unknown> | undefined;
-		if (!layout?.tabs) continue;
-		for (const tab of layout.tabs) {
-			for (const pane of Object.values(tab.panes)) {
-				if (pane.kind === "terminal") {
-					const data = pane.data as TerminalPaneData;
-					if (data.terminalId) {
-						ids.add(data.terminalId);
-					}
-				}
-			}
-		}
-	}
-	return ids;
+interface PendingTerminalRelease {
+	workspaceId: string;
+	timer: ReturnType<typeof setTimeout> | null;
+}
+
+function getTerminalId(
+	pane: WorkspaceState<unknown>["tabs"][number]["panes"][string],
+): string | null {
+	if (pane.kind !== "terminal") return null;
+	if (!pane.data || typeof pane.data !== "object") return null;
+	const data = pane.data as Partial<TerminalPaneData>;
+	return typeof data.terminalId === "string" ? data.terminalId : null;
+}
+
+function extractTerminalLocations(
+	rows: PaneLifecycleRow[],
+): Map<string, string> {
+	return extractPaneLocations(rows, getTerminalId);
 }
 
 export function useGlobalTerminalLifecycle() {
 	const collections = useCollections();
-	const prevTerminalIdsRef = useRef<Set<string>>(new Set());
-	const pendingDisposals = useRef<Map<string, ReturnType<typeof setTimeout>>>(
+	const prevTerminalLocationsRef = useRef<Map<string, string>>(new Map());
+	const pendingReleases = useRef<Map<string, PendingTerminalRelease>>(
 		new Map(),
 	);
 
@@ -46,46 +53,78 @@ export function useGlobalTerminalLifecycle() {
 	);
 
 	useEffect(() => {
-		const currentTerminalIds = extractTerminalIds(allWorkspaceRows);
-		const prevTerminalIds = prevTerminalIdsRef.current;
+		const rows = allWorkspaceRows as PaneLifecycleRow[];
+		const currentTerminalLocations = extractTerminalLocations(rows);
+		const currentWorkspaceIds = extractWorkspaceIds(rows);
+		const prevTerminalLocations = prevTerminalLocationsRef.current;
 
-		for (const terminalId of currentTerminalIds) {
-			const timer = pendingDisposals.current.get(terminalId);
-			if (timer) {
-				clearTimeout(timer);
-				pendingDisposals.current.delete(terminalId);
+		for (const terminalId of currentTerminalLocations.keys()) {
+			const pending = pendingReleases.current.get(terminalId);
+			if (pending?.timer) {
+				clearTimeout(pending.timer);
+			}
+			pendingReleases.current.delete(terminalId);
+		}
+
+		// If a pane was authoritatively removed but the owner row disappeared
+		// before the grace timer fired, keep waiting until that row is present
+		// again. That avoids releasing active renderer state during sleep/wake
+		// while still cleaning up when the post-removal layout comes back.
+		for (const [terminalId, pending] of pendingReleases.current) {
+			if (pending.timer) continue;
+			if (currentWorkspaceIds.has(pending.workspaceId)) {
+				pendingReleases.current.delete(terminalId);
+				terminalRuntimeRegistry.release(terminalId);
 			}
 		}
 
-		for (const terminalId of prevTerminalIds) {
-			if (currentTerminalIds.has(terminalId)) continue;
-			if (pendingDisposals.current.has(terminalId)) continue;
+		const removedLocations = getRemovedPaneLocations({
+			previousLocations: prevTerminalLocations,
+			currentLocations: currentTerminalLocations,
+			currentWorkspaceIds,
+		});
+
+		for (const { id: terminalId, workspaceId } of removedLocations) {
+			if (pendingReleases.current.has(terminalId)) continue;
 
 			const timer = setTimeout(() => {
-				pendingDisposals.current.delete(terminalId);
-
 				const freshRows = Array.from(
 					collections.v2WorkspaceLocalState.state.values(),
-				);
-				const freshIds = extractTerminalIds(freshRows);
+				) as PaneLifecycleRow[];
+				const freshLocations = extractTerminalLocations(freshRows);
+				const freshWorkspaceIds = extractWorkspaceIds(freshRows);
 
-				if (!freshIds.has(terminalId)) {
-					terminalRuntimeRegistry.dispose(terminalId);
+				if (freshLocations.has(terminalId)) {
+					pendingReleases.current.delete(terminalId);
+					return;
 				}
-			}, DISPOSE_DELAY_MS);
 
-			pendingDisposals.current.set(terminalId, timer);
+				if (freshWorkspaceIds.has(workspaceId)) {
+					pendingReleases.current.delete(terminalId);
+					terminalRuntimeRegistry.release(terminalId);
+					return;
+				}
+
+				const pending = pendingReleases.current.get(terminalId);
+				if (pending) {
+					pending.timer = null;
+				}
+			}, RELEASE_DELAY_MS);
+
+			pendingReleases.current.set(terminalId, { workspaceId, timer });
 		}
 
-		prevTerminalIdsRef.current = currentTerminalIds;
+		prevTerminalLocationsRef.current = currentTerminalLocations;
 	}, [allWorkspaceRows, collections]);
 
 	useEffect(() => {
 		return () => {
-			for (const timer of pendingDisposals.current.values()) {
-				clearTimeout(timer);
+			for (const pending of pendingReleases.current.values()) {
+				if (pending.timer) {
+					clearTimeout(pending.timer);
+				}
 			}
-			pendingDisposals.current.clear();
+			pendingReleases.current.clear();
 		};
 	}, []);
 }

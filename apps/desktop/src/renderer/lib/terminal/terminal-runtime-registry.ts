@@ -160,17 +160,40 @@ class TerminalRuntimeRegistryImpl {
 		}
 	}
 
+	private disposeEntry(
+		terminalId: string,
+		entry: RegistryEntry,
+		options: { clearPersistedState?: boolean } = {},
+	) {
+		entry.linkManager?.dispose();
+		disposeTransport(entry.transport);
+		if (entry.runtime) {
+			disposeRuntime(entry.runtime, options);
+		}
+		this.entries.delete(terminalId);
+	}
+
+	/**
+	 * Release the renderer-side terminal runtime only. This detaches the xterm
+	 * view and closes the WebSocket, but it does not tell host-service to kill
+	 * the underlying PTY. Use this for pane/sidebar lifecycle cleanup.
+	 */
+	release(terminalId: string) {
+		const entry = this.entries.get(terminalId);
+		if (!entry) return;
+		this.disposeEntry(terminalId, entry, { clearPersistedState: false });
+	}
+
+	/**
+	 * Kill the host-service terminal session and remove all renderer-side state.
+	 * This is destructive and should only be used from explicit kill actions.
+	 */
 	dispose(terminalId: string) {
 		const entry = this.entries.get(terminalId);
 		if (!entry) return;
 
-		entry.linkManager?.dispose();
-
 		sendDispose(entry.transport);
-		disposeTransport(entry.transport);
-		if (entry.runtime) disposeRuntime(entry.runtime);
-
-		this.entries.delete(terminalId);
+		this.disposeEntry(terminalId, entry);
 	}
 
 	getSelection(terminalId: string): string {

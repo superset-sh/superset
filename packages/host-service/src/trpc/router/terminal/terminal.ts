@@ -1,6 +1,7 @@
 import { z } from "zod";
 import {
 	createTerminalSessionInternal,
+	disposeSession,
 	parseThemeType,
 } from "../../../terminal/terminal";
 import { protectedProcedure, router } from "../../index";
@@ -33,5 +34,16 @@ export const terminalRouter = router({
 			}
 
 			return { terminalId: result.terminalId, status: "active" as const };
+		}),
+
+	killSession: protectedProcedure
+		.input(
+			z.object({
+				terminalId: z.string(),
+			}),
+		)
+		.mutation(({ ctx, input }) => {
+			disposeSession(input.terminalId, ctx.db);
+			return { terminalId: input.terminalId, status: "disposed" as const };
 		}),
 });

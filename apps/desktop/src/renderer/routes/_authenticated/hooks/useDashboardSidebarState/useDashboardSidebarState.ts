@@ -1,5 +1,11 @@
-import type { WorkspaceState } from "@superset/panes";
+import type { Pane, WorkspaceState } from "@superset/panes";
 import { useCallback } from "react";
+import { terminalRuntimeRegistry } from "renderer/lib/terminal/terminal-runtime-registry";
+import { browserRuntimeRegistry } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/BrowserPane/browserRuntimeRegistry";
+import {
+	extractPaneIds,
+	type PaneLifecycleRow,
+} from "renderer/routes/_authenticated/components/utils/paneLifecycleRows";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import type { AppCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider/collections";
 import { PROJECT_CUSTOM_COLORS } from "shared/constants/project-colors";
@@ -78,6 +84,26 @@ function ensureSidebarWorkspaceRecord(
 			activeTabId: null,
 		} satisfies WorkspaceState<unknown>,
 	});
+}
+
+function getTerminalRuntimeId(pane: Pane<unknown>): string | null {
+	if (pane.kind !== "terminal") return null;
+	if (!pane.data || typeof pane.data !== "object") return null;
+	const data = pane.data as { terminalId?: unknown };
+	return typeof data.terminalId === "string" ? data.terminalId : null;
+}
+
+function getBrowserRuntimeId(pane: Pane<unknown>): string | null {
+	return pane.kind === "browser" ? pane.id : null;
+}
+
+function cleanupWorkspacePaneRuntimes(rows: PaneLifecycleRow[]): void {
+	for (const terminalId of extractPaneIds(rows, getTerminalRuntimeId)) {
+		terminalRuntimeRegistry.release(terminalId);
+	}
+	for (const browserId of extractPaneIds(rows, getBrowserRuntimeId)) {
+		browserRuntimeRegistry.destroy(browserId);
+	}
 }
 
 export function useDashboardSidebarState() {
@@ -403,7 +429,9 @@ export function useDashboardSidebarState() {
 
 	const removeWorkspaceFromSidebar = useCallback(
 		(workspaceId: string) => {
-			if (!collections.v2WorkspaceLocalState.get(workspaceId)) return;
+			const workspace = collections.v2WorkspaceLocalState.get(workspaceId);
+			if (!workspace) return;
+			cleanupWorkspacePaneRuntimes([workspace]);
 			collections.v2WorkspaceLocalState.delete(workspaceId);
 		},
 		[collections],
@@ -411,11 +439,10 @@ export function useDashboardSidebarState() {
 
 	const removeProjectFromSidebar = useCallback(
 		(projectId: string) => {
-			const workspaceIds = Array.from(
+			const workspaceRows = Array.from(
 				collections.v2WorkspaceLocalState.state.values(),
-			)
-				.filter((item) => item.sidebarState.projectId === projectId)
-				.map((item) => item.workspaceId);
+			).filter((item) => item.sidebarState.projectId === projectId);
+			const workspaceIds = workspaceRows.map((item) => item.workspaceId);
 			const sectionIds = Array.from(
 				collections.v2SidebarSections.state.values(),
 			)
@@ -423,6 +450,7 @@ export function useDashboardSidebarState() {
 				.map((item) => item.sectionId);
 
 			if (workspaceIds.length > 0) {
+				cleanupWorkspacePaneRuntimes(workspaceRows);
 				collections.v2WorkspaceLocalState.delete(workspaceIds);
 			}
 			if (sectionIds.length > 0) {

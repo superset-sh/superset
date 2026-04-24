@@ -360,13 +360,23 @@ export function updateRuntimeAppearance(
 	}
 }
 
-export function disposeRuntime(runtime: TerminalRuntime) {
+export function disposeRuntime(
+	runtime: TerminalRuntime,
+	options: { clearPersistedState?: boolean } = {},
+) {
+	const clearPersistedState = options.clearPersistedState ?? true;
+	if (!clearPersistedState) {
+		persistBuffer(runtime.terminalId, runtime.serializeAddon);
+		persistDimensions(runtime.terminalId, runtime.lastCols, runtime.lastRows);
+	}
 	runtime._disposeAddons?.();
 	runtime._disposeAddons = null;
 	runtime.resizeObserver?.disconnect();
 	runtime.resizeObserver = null;
 	runtime.wrapper.remove();
 	runtime.terminal.dispose();
-	clearPersistedBuffer(runtime.terminalId);
-	clearPersistedDimensions(runtime.terminalId);
+	if (clearPersistedState) {
+		clearPersistedBuffer(runtime.terminalId);
+		clearPersistedDimensions(runtime.terminalId);
+	}
 }

@@ -4,8 +4,10 @@ import type {
 	RendererContext,
 } from "@superset/panes";
 import { alert } from "@superset/ui/atoms/Alert";
+import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
+import { workspaceTrpc } from "@superset/workspace-client";
 import {
 	Circle,
 	GitCompareArrows,
@@ -22,6 +24,7 @@ import {
 	LuClipboard,
 	LuClipboardCopy,
 	LuEraser,
+	LuPower,
 } from "react-icons/lu";
 import { TbScan } from "react-icons/tb";
 import { useHotkeyDisplay } from "renderer/hotkeys";
@@ -145,6 +148,16 @@ export function usePaneRegistry(
 ): PaneRegistry<PaneViewerData> {
 	const clearShortcut = useHotkeyDisplay("CLEAR_TERMINAL").text;
 	const scrollToBottomShortcut = useHotkeyDisplay("SCROLL_TO_BOTTOM").text;
+	const killTerminalSession = workspaceTrpc.terminal.killSession.useMutation({
+		onSuccess: () => {
+			toast.success("Terminal session killed");
+		},
+		onError: (error) => {
+			toast.error("Failed to kill terminal session", {
+				description: error.message,
+			});
+		},
+	});
 
 	return useMemo<PaneRegistry<PaneViewerData>>(
 		() => ({
@@ -306,10 +319,41 @@ export function usePaneRegistry(
 
 					// Update close label
 					const modifiedDefaults = defaults.map((d) =>
-						d.key === "close-pane" ? { ...d, label: "Close Terminal" } : d,
+						d.key === "close-pane" ? { ...d, label: "Close Terminal Pane" } : d,
 					);
 
-					return [...terminalActions, ...modifiedDefaults];
+					const killAction: ContextMenuActionConfig<PaneViewerData> = {
+						key: "kill-terminal-session",
+						label: "Kill Terminal Session",
+						icon: <LuPower />,
+						variant: "destructive",
+						disabled: killTerminalSession.isPending,
+						onSelect: (ctx) => {
+							const { terminalId } = ctx.pane.data as TerminalPaneData;
+							alert({
+								title: "Kill terminal session?",
+								description:
+									"This will terminate the underlying process. Closing the pane only detaches the view.",
+								actions: [
+									{ label: "Cancel", variant: "outline", onClick: () => {} },
+									{
+										label: "Kill Session",
+										variant: "destructive",
+										onClick: () => {
+											killTerminalSession.mutate({ terminalId });
+										},
+									},
+								],
+							});
+						},
+					};
+
+					return [
+						...terminalActions,
+						...modifiedDefaults,
+						{ key: "sep-terminal-kill", type: "separator" },
+						killAction,
+					];
 				},
 			},
 			browser: {
@@ -409,6 +453,7 @@ export function usePaneRegistry(
 			workspaceId,
 			clearShortcut,
 			scrollToBottomShortcut,
+			killTerminalSession,
 			onOpenFile,
 			onRevealPath,
 		],
