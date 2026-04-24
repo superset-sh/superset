@@ -18,6 +18,7 @@ import type {
 } from "./types";
 import {
 	buildBranch,
+	countUntrackedFileLines,
 	getChangedFilesForDiff,
 	mapGitStatus,
 	parseNumstat,
@@ -135,15 +136,18 @@ export const gitRouter = router({
 				await git.raw(["diff", "--numstat", "-z"]).catch(() => ""),
 			);
 			const unstaged: ChangedFile[] = [];
+			const untrackedFiles: ChangedFile[] = [];
 			for (const file of status.files) {
 				const wd = file.working_dir;
 				if (file.index === "?" && wd === "?") {
-					unstaged.push({
+					const entry: ChangedFile = {
 						path: file.path,
 						status: "untracked",
 						additions: 0,
 						deletions: 0,
-					});
+					};
+					untrackedFiles.push(entry);
+					unstaged.push(entry);
 				} else if (wd && wd !== " ") {
 					const stats = unstagedNumstat.get(file.path) ?? {
 						additions: 0,
@@ -157,6 +161,7 @@ export const gitRouter = router({
 					});
 				}
 			}
+			await countUntrackedFileLines(worktreePath, untrackedFiles);
 
 			return {
 				currentBranch,

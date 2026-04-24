@@ -1,6 +1,13 @@
+import { readFile, realpath, stat } from "node:fs/promises";
+import { isAbsolute, relative, resolve, sep } from "node:path";
 import type { SimpleGit } from "simple-git";
 import { resolveUpstream } from "../../../../runtime/git/refs";
 import type { Branch, ChangedFile, FileStatus } from "../types";
+
+// Skip line counting for files larger than this — anything over a MB
+// of "source" is almost certainly a data file or accidental binary,
+// and the LOC signal isn't useful for it.
+const MAX_UNTRACKED_LINE_COUNT_SIZE = 1 * 1024 * 1024;
 
 /** Map git's single-letter status codes to GitHub-aligned FileStatus */
 export function mapGitStatus(code: string): FileStatus {
@@ -183,6 +190,64 @@ export async function buildBranch(
 		lastCommitHash,
 		lastCommitDate,
 	};
+}
+
+function isPathWithinWorktree(
+	worktreePath: string,
+	candidate: string,
+): boolean {
+	const relativePath = relative(worktreePath, candidate);
+	if (relativePath === "") return true;
+	return (
+		relativePath !== ".." &&
+		!relativePath.startsWith(`..${sep}`) &&
+		!isAbsolute(relativePath)
+	);
+}
+
+/**
+ * Untracked files don't appear in `git diff --numstat` (they're not in
+ * the index). The only batch-friendly way to get their line counts is
+ * to read them directly — `git diff --no-index` requires a subprocess
+ * per file, and `git add -N` would mutate the index inside a read.
+ */
+export async function countUntrackedFileLines(
+	worktreePath: string,
+	files: ChangedFile[],
+): Promise<void> {
+	if (files.length === 0) return;
+
+	let worktreeReal: string;
+	try {
+		worktreeReal = await realpath(worktreePath);
+	} catch {
+		return;
+	}
+
+	await Promise.all(
+		files.map(async (file) => {
+			try {
+				const absolutePath = resolve(worktreePath, file.path);
+				if (!isPathWithinWorktree(worktreePath, absolutePath)) return;
+
+				const fileReal = await realpath(absolutePath);
+				if (!isPathWithinWorktree(worktreeReal, fileReal)) return;
+
+				const stats = await stat(fileReal);
+				if (!stats.isFile() || stats.size > MAX_UNTRACKED_LINE_COUNT_SIZE) {
+					return;
+				}
+
+				const content = await readFile(fileReal, "utf-8");
+				file.additions =
+					content === ""
+						? 0
+						: content.endsWith("\n")
+							? content.split(/\r?\n/).length - 1
+							: content.split(/\r?\n/).length;
+			} catch {}
+		}),
+	);
 }
 
 export async function getChangedFilesForDiff(
