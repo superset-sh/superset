@@ -73,6 +73,16 @@ function createKeyEventHandler(terminal: XTerm) {
 	};
 }
 
+/** True when `mod` is the only non-shift modifier held. */
+function onlyMod(event: KeyboardEvent, mod: "meta" | "alt" | "ctrl"): boolean {
+	return (
+		event.metaKey === (mod === "meta") &&
+		event.altKey === (mod === "alt") &&
+		event.ctrlKey === (mod === "ctrl") &&
+		!event.shiftKey
+	);
+}
+
 /**
  * Translate Mac Cmd+/Option+ and Windows Ctrl+ arrow / backspace chords into
  * the escape sequences shells expect. Returns the bytes to send, or null if
@@ -87,84 +97,21 @@ function translateLineEditChord(
 	options: { isMac: boolean; isWindows: boolean },
 ): string | null {
 	const { isMac, isWindows } = options;
+	const { key } = event;
 
-	if (
-		isMac &&
-		event.key === "Backspace" &&
-		event.metaKey &&
-		!event.ctrlKey &&
-		!event.altKey &&
-		!event.shiftKey
-	) {
-		return "\x15\x1b[D";
+	if (isMac && onlyMod(event, "meta")) {
+		if (key === "Backspace") return "\x15\x1b[D";
+		if (key === "ArrowLeft") return "\x01";
+		if (key === "ArrowRight") return "\x05";
 	}
-
-	if (
-		isMac &&
-		event.key === "ArrowLeft" &&
-		event.metaKey &&
-		!event.ctrlKey &&
-		!event.altKey &&
-		!event.shiftKey
-	) {
-		return "\x01";
+	if (isMac && onlyMod(event, "alt")) {
+		if (key === "ArrowLeft") return "\x1bb";
+		if (key === "ArrowRight") return "\x1bf";
 	}
-
-	if (
-		isMac &&
-		event.key === "ArrowRight" &&
-		event.metaKey &&
-		!event.ctrlKey &&
-		!event.altKey &&
-		!event.shiftKey
-	) {
-		return "\x05";
+	if (isWindows && onlyMod(event, "ctrl")) {
+		if (key === "ArrowLeft") return "\x1bb";
+		if (key === "ArrowRight") return "\x1bf";
 	}
-
-	if (
-		isMac &&
-		event.key === "ArrowLeft" &&
-		event.altKey &&
-		!event.metaKey &&
-		!event.ctrlKey &&
-		!event.shiftKey
-	) {
-		return "\x1bb";
-	}
-
-	if (
-		isMac &&
-		event.key === "ArrowRight" &&
-		event.altKey &&
-		!event.metaKey &&
-		!event.ctrlKey &&
-		!event.shiftKey
-	) {
-		return "\x1bf";
-	}
-
-	if (
-		isWindows &&
-		event.key === "ArrowLeft" &&
-		event.ctrlKey &&
-		!event.metaKey &&
-		!event.altKey &&
-		!event.shiftKey
-	) {
-		return "\x1bb";
-	}
-
-	if (
-		isWindows &&
-		event.key === "ArrowRight" &&
-		event.ctrlKey &&
-		!event.metaKey &&
-		!event.altKey &&
-		!event.shiftKey
-	) {
-		return "\x1bf";
-	}
-
 	return null;
 }
 
