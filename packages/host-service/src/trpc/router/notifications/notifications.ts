@@ -1,32 +1,25 @@
+import { eq } from "drizzle-orm";
 import { z } from "zod";
+import { terminalSessions } from "../../../db/schema";
 import { mapEventType } from "../../../events";
 import { publicProcedure, router } from "../../index";
 
 /**
- * Input shape matches the v1 `/hook/complete` query-string contract so the
- * agent shell hook (notify-hook.template.sh) can point at either endpoint
- * during the v1→v2 transition. Fields are optional because different agent
- * runtimes emit different subsets.
+ * v2 terminal hook payload. The shell hook sends only stable runtime identity;
+ * host-service derives workspace identity from its terminal session table.
  */
 const hookInput = z.object({
-	paneId: z.string().optional(),
-	tabId: z.string().optional(),
 	terminalId: z.string().optional(),
-	workspaceId: z.string().optional(),
-	sessionId: z.string().optional(),
-	hookSessionId: z.string().optional(),
-	resourceId: z.string().optional(),
 	eventType: z.string().optional(),
-	env: z.string().optional(),
-	version: z.string().optional(),
 });
 
 export const notificationsRouter = router({
 	/**
 	 * Agent lifecycle hook. The agent shell script POSTs here on
 	 * session-start / permission-request / task-complete events. We normalize
-	 * the event type and fan out over the WebSocket event bus so clients
-	 * (desktop renderer, web) can play the finish sound themselves.
+	 * the event type, resolve the terminal's workspace, and fan out over the
+	 * WebSocket event bus so clients (desktop renderer, web) can play the
+	 * finish sound themselves.
 	 *
 	 * Intentionally unauthenticated. The only thing a caller can do is
 	 * cause clients to chime and flash a sidebar indicator — no code
@@ -41,19 +34,24 @@ export const notificationsRouter = router({
 			return { success: true, ignored: true as const };
 		}
 
-		if (!input.workspaceId) {
+		if (!input.terminalId) {
+			return { success: true, ignored: true as const };
+		}
+
+		const terminalSession = ctx.db.query.terminalSessions
+			.findFirst({
+				where: eq(terminalSessions.id, input.terminalId),
+				columns: { originWorkspaceId: true },
+			})
+			.sync();
+		if (!terminalSession?.originWorkspaceId) {
 			return { success: true, ignored: true as const };
 		}
 
 		ctx.eventBus.broadcastAgentLifecycle({
-			workspaceId: input.workspaceId,
+			workspaceId: terminalSession.originWorkspaceId,
 			eventType,
-			paneId: input.paneId,
-			tabId: input.tabId,
 			terminalId: input.terminalId,
-			sessionId: input.sessionId,
-			hookSessionId: input.hookSessionId,
-			resourceId: input.resourceId,
 			occurredAt: Date.now(),
 		});
 

@@ -19,8 +19,14 @@ if [ -z "$RESOURCE_ID" ]; then
 fi
 SESSION_ID=${RESOURCE_ID:-$HOOK_SESSION_ID}
 
-# Skip if this isn't a Superset terminal hook and no Mastra session context exists
-[ -z "$SUPERSET_TAB_ID" ] && [ -z "$SESSION_ID" ] && exit 0
+# v2 terminal hooks identify the runtime by terminalId. The v1 fallback still
+# uses pane/tab/session fields, so keep its legacy guard when no host-service
+# hook URL is available.
+if [ -n "$SUPERSET_HOST_AGENT_HOOK_URL" ]; then
+  [ -z "$SUPERSET_TERMINAL_ID" ] && exit 0
+else
+  [ -z "$SUPERSET_TAB_ID" ] && [ -z "$SESSION_ID" ] && exit 0
+fi
 
 # Extract event type - Claude uses "hook_event_name", Codex uses "type"
 # Use flexible pattern to handle optional whitespace: "key": "value" or "key":"value"
@@ -68,7 +74,7 @@ elif [ "$SUPERSET_ENV" = "development" ] || [ "$NODE_ENV" = "development" ]; the
 fi
 
 if [ "$DEBUG_HOOKS_ENABLED" = "1" ]; then
-  echo "[notify-hook] event=$EVENT_TYPE sessionId=$SESSION_ID hookSessionId=$HOOK_SESSION_ID resourceId=$RESOURCE_ID paneId=$SUPERSET_PANE_ID tabId=$SUPERSET_TAB_ID workspaceId=$SUPERSET_WORKSPACE_ID" >&2
+  echo "[notify-hook] event=$EVENT_TYPE terminalId=$SUPERSET_TERMINAL_ID sessionId=$SESSION_ID hookSessionId=$HOOK_SESSION_ID resourceId=$RESOURCE_ID paneId=$SUPERSET_PANE_ID tabId=$SUPERSET_TAB_ID workspaceId=$SUPERSET_WORKSPACE_ID" >&2
 fi
 
 # Escape backslashes and double quotes for safe JSON embedding.
@@ -83,7 +89,7 @@ json_escape() {
 # so we can fall back to v1 when host-service is unreachable or the
 # mutation returns non-2xx (restarts, crashes, transient errors).
 if [ -n "$SUPERSET_HOST_AGENT_HOOK_URL" ]; then
-  PAYLOAD="{\"json\":{\"paneId\":\"$(json_escape "$SUPERSET_PANE_ID")\",\"tabId\":\"$(json_escape "$SUPERSET_TAB_ID")\",\"terminalId\":\"$(json_escape "$SUPERSET_TERMINAL_ID")\",\"workspaceId\":\"$(json_escape "$SUPERSET_WORKSPACE_ID")\",\"sessionId\":\"$(json_escape "$SESSION_ID")\",\"hookSessionId\":\"$(json_escape "$HOOK_SESSION_ID")\",\"resourceId\":\"$(json_escape "$RESOURCE_ID")\",\"eventType\":\"$(json_escape "$EVENT_TYPE")\",\"env\":\"$(json_escape "$SUPERSET_ENV")\",\"version\":\"$(json_escape "$SUPERSET_HOOK_VERSION")\"}}"
+  PAYLOAD="{\"json\":{\"terminalId\":\"$(json_escape "$SUPERSET_TERMINAL_ID")\",\"eventType\":\"$(json_escape "$EVENT_TYPE")\"}}"
 
   STATUS_CODE=$(curl -sX POST "$SUPERSET_HOST_AGENT_HOOK_URL" \
     --connect-timeout 2 --max-time 5 \

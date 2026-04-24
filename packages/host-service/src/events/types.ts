@@ -25,12 +25,7 @@ export interface AgentLifecycleMessage {
 	type: "agent:lifecycle";
 	workspaceId: string;
 	eventType: AgentLifecycleEventType;
-	paneId?: string;
-	tabId?: string;
-	terminalId?: string;
-	sessionId?: string;
-	hookSessionId?: string;
-	resourceId?: string;
+	terminalId: string;
 	occurredAt: number;
 }
 

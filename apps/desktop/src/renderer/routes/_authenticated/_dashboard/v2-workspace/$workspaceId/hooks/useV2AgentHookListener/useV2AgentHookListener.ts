@@ -37,9 +37,9 @@ type Navigate = ReturnType<typeof useNavigate>;
  * pane is visible and the window is focused, and honor the existing
  * mute/volume settings.
  *
- * Mount once per v2 workspace you want to receive events for. The
- * layout-level `V2AgentHookListenersMount` component iterates every open
- * workspace so backgrounded workspaces also light up the sidebar.
+ * The layout-level `V2AgentHookListeners` component is the active mount path:
+ * it subscribes once per host so backgrounded workspaces also light up the
+ * sidebar.
  */
 export function useV2AgentHookListener(workspaceId: string): void {
 	const navigate = useNavigate();
@@ -122,7 +122,7 @@ export function handleV2AgentLifecycleEvent({
 	const ringtoneId = useRingtoneStore.getState().selectedRingtoneId;
 	void playRingtone({ ringtoneId, volume, muted });
 
-	showNativeNotification(payload, workspaceId, target, () => {
+	showNativeNotification(payload, workspaceId, () => {
 		openNotificationTarget(navigate, workspaceId, target);
 	});
 }
@@ -214,7 +214,6 @@ function shouldSuppress(
 function showNativeNotification(
 	payload: AgentLifecyclePayload,
 	workspaceId: string,
-	target: V2NotificationTarget,
 	onClick: () => void,
 ): void {
 	if (typeof Notification === "undefined") return;
@@ -226,7 +225,7 @@ function showNativeNotification(
 		? "Your agent needs input"
 		: "Your agent has finished";
 
-	const tagId = target.sourceId ?? getNotificationSourceId(payload) ?? "_";
+	const tagId = getNotificationSourceId(payload);
 
 	try {
 		const notification = new Notification(title, {
@@ -273,7 +272,6 @@ function openNotificationTarget(
 		params: { workspaceId },
 		search: {
 			terminalId: target.terminalId,
-			chatSessionId: target.chatSessionId,
 		},
 	});
 }

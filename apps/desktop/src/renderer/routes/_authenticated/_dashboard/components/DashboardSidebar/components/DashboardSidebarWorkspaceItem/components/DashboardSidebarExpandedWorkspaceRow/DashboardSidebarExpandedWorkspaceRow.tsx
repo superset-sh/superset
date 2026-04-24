@@ -157,7 +157,7 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 									hostIsOnline={hostIsOnline}
 									isActive={isActive}
 									variant="expanded"
-									workspaceStatus={null}
+									workspaceStatus={workspaceStatus}
 									creationStatus={creationStatus}
 									pullRequestState={pullRequest.state}
 								/>

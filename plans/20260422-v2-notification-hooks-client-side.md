@@ -115,7 +115,7 @@ The current implementation is useful but incomplete.
 
 - **No v2 terminal-exit cleanup.** V1 clears stuck `working` and `permission` statuses when a terminal exits. V2 status only changes on hook events, so interrupted or killed agents can leave a stale sidebar indicator.
 - **No notification click routing.** V1 notification clicks focus the app and route to the target workspace/tab/pane. V2 creates a `Notification` but does not handle clicks.
-- **Suppression is too coarse.** If the v2 event lacks `paneId` and `tabId`, suppression falls back to "current workspace is visible." That can suppress a notification for a background pane in the same workspace. The client has v2 pane layout data and should resolve by `terminalId`, `sessionId`, or `resourceId` instead.
+- **Suppression is too coarse.** If the v2 event lacks `paneId` and `tabId`, suppression falls back to "current workspace is visible." That can suppress a notification for a background pane in the same workspace. The client has v2 pane layout data and should resolve by `terminalId` instead.
 - **One listener per workspace is more work than needed.** Event-bus connections are reused per host, but each workspace still mounts a hook and settings queries. A host-level controller should subscribe once per host and fan events into the store.
 - **The renderer hook is desktop-specific.** It imports `electronTrpc` for settings, so the current path is not actually web-ready.
 - **Browser notification permission is not handled.** The v2 client checks `Notification.permission` but does not request permission or route users to settings.
@@ -167,18 +167,12 @@ The hook script should stay intentionally dumb:
 
 The script can continue to be defensive because hooks run in user shells with inconsistent payloads. Long term, wrappers should pass the normalized Superset identifiers directly so the script does less text parsing.
 
-Required identifiers:
+Required v2 hook payload:
 
-- `workspaceId`: required for v2
-- one stable source ID:
-  - `terminalId` for terminal-backed agents
-  - `sessionId` or `resourceId` for chat-backed agents
-  - automation run ID when automation notifications move here
+- `terminalId`: stable runtime identity for terminal-backed agents
+- `eventType`: raw agent lifecycle event name
 
-Optional identifiers:
-
-- `paneId` and `tabId`, when a client-side caller can provide them
-- `hookSessionId`, for agent-runtime correlation/debugging
+`workspaceId`, `paneId`, and `tabId` should not be part of the v2 hook payload. Host-service derives `workspaceId` from `terminalId`, and the renderer derives pane/tab visibility from its current v2 pane layout.
 
 ### Layer 2: Host-Service Notification Ingress
 
@@ -188,7 +182,8 @@ Responsibilities:
 
 - accept the hook payload
 - reject oversized or malformed input
-- require `workspaceId`
+- require `terminalId`
+- derive `workspaceId` from the terminal session table
 - ignore unknown event types
 - normalize raw event names into a small lifecycle vocabulary
 - attach `occurredAt`
@@ -239,18 +234,7 @@ interface AgentLifecycleEvent {
   type: "agent:lifecycle";
   workspaceId: string;
   kind: AgentLifecycleKind;
-  source: {
-    kind: "terminal" | "chat" | "automation" | "unknown";
-    terminalId?: string;
-    sessionId?: string;
-    hookSessionId?: string;
-    resourceId?: string;
-    automationRunId?: string;
-  };
-  pane?: {
-    paneId?: string;
-    tabId?: string;
-  };
+  terminalId: string;
   rawEventType?: string;
   occurredAt: number;
 }
@@ -283,8 +267,6 @@ Responsibilities:
 - subscribe to `agent:lifecycle` and `terminal:lifecycle` for all workspaces on a host
 - keep a current index of v2 pane layout data:
   - `terminalId -> { workspaceId, tabId, paneId }`
-  - `sessionId -> { workspaceId, tabId, paneId }`
-  - `resourceId -> { workspaceId, tabId, paneId }` when available
 - resolve incoming events to a `NotificationTarget`
 - update the attention store through pure transition functions
 - suppress audio/toasts only when the target is actually visible and focused
@@ -350,8 +332,6 @@ Key examples:
 | Event identifiers | Source key |
 | --- | --- |
 | `terminalId=abc` | `terminal:abc` |
-| `sessionId=abc` | `chat-session:abc` |
-| `resourceId=abc` | `resource:abc` |
 | no source ID | ignore for status, but may still play a generic chime if allowed |
 
 Workspace sidebar aggregation should reduce all entries for a workspace by priority:
@@ -405,7 +385,7 @@ On notification click:
 - focus/restore the desktop window or browser tab when possible
 - navigate to `/v2-workspace/$workspaceId`
 - if `tabId` and `paneId` are known, activate them
-- if only `terminalId` or `sessionId` is known, resolve it through pane layout and activate the matching pane
+- if only `terminalId` is known, resolve it through pane layout and activate the matching pane
 - if no pane can be resolved, navigate to the workspace and clear review attention for that source/workspace
 
 V1 did this through Electron main emitting `FOCUS_TAB`. V2 should do it in the client controller through a platform-specific focus adapter.
@@ -469,7 +449,7 @@ Host-service unit tests:
 
 - `mapEventType` maps every v1-supported raw event name.
 - unknown and empty event types return ignored success.
-- missing `workspaceId` returns ignored success.
+- missing or unknown `terminalId` returns ignored success.
 - valid hook input broadcasts exactly one normalized event.
 - public hook endpoint does not expose workspace data in responses.
 - rate limiting/payload limits when implemented.
@@ -482,7 +462,7 @@ Workspace-client tests:
 
 Renderer/client unit tests:
 
-- identity resolver maps `terminalId`, `sessionId`, and `resourceId` to v2 pane locations.
+- identity resolver maps `terminalId` to v2 pane locations.
 - status transition table is covered.
 - terminal exit clears `working` and `permission`.
 - review clears when the user views the target.
@@ -516,7 +496,7 @@ Manual QA:
 - Add terminal lifecycle events to host-service event bus.
 - Clear v2 `working` and `permission` statuses on terminal exit.
 - Add click handling for v2 notifications.
-- Fix suppression to resolve by `terminalId` / `sessionId` / `resourceId` before falling back.
+- Fix suppression to resolve by `terminalId` before falling back.
 
 ### Phase 2: Refactor Ownership
 

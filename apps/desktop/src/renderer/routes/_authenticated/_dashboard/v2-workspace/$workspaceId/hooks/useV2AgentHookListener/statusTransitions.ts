@@ -29,9 +29,7 @@ export function resolveV2AgentStatusTransition({
 	const statusIds = new Set(getNotificationSourceIds(payload));
 	if (target.paneId) statusIds.add(target.paneId);
 
-	const primaryId = target.sourceId ?? [...statusIds][0] ?? null;
-	if (!primaryId) return { clearIds: [], setStatus: null };
-
+	const primaryId = target.terminalId;
 	statusIds.add(primaryId);
 	const alternateIds = [...statusIds].filter((id) => id !== primaryId);
 

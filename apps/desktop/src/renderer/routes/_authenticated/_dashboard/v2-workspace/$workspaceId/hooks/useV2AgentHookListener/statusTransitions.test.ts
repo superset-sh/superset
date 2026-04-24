@@ -9,7 +9,6 @@ const target: V2NotificationTarget = {
 	workspaceId: WORKSPACE_ID,
 	tabId: "tab-1",
 	paneId: "pane-1",
-	sourceId: "terminal-1",
 	terminalId: "terminal-1",
 };
 
@@ -18,19 +17,19 @@ function payload(
 ): AgentLifecyclePayload {
 	return {
 		eventType: "Stop",
+		terminalId: "terminal-1",
 		occurredAt: 1,
 		...overrides,
 	};
 }
 
 describe("resolveV2AgentStatusTransition", () => {
-	it("marks start as working on the stable source id and clears alternates", () => {
+	it("marks start as working on the terminal id and clears pane aliases", () => {
 		expect(
 			resolveV2AgentStatusTransition({
 				workspaceId: WORKSPACE_ID,
 				payload: payload({
 					eventType: "Start",
-					paneId: "legacy-pane",
 					terminalId: "terminal-1",
 				}),
 				target,
@@ -38,28 +37,27 @@ describe("resolveV2AgentStatusTransition", () => {
 				targetVisible: false,
 			}),
 		).toEqual({
-			clearIds: ["legacy-pane", "pane-1"],
+			clearIds: ["pane-1"],
 			setStatus: { id: "terminal-1", status: "working" },
 		});
 	});
 
-	it("clears permission state on stop even when permission was keyed by an alternate id", () => {
+	it("clears permission state on stop even when permission was keyed by the pane id", () => {
 		expect(
 			resolveV2AgentStatusTransition({
 				workspaceId: WORKSPACE_ID,
 				payload: payload({
 					eventType: "Stop",
-					paneId: "legacy-pane",
 					terminalId: "terminal-1",
 				}),
 				target,
 				statuses: {
-					"legacy-pane": { workspaceId: WORKSPACE_ID, status: "permission" },
+					"pane-1": { workspaceId: WORKSPACE_ID, status: "permission" },
 				},
 				targetVisible: false,
 			}),
 		).toEqual({
-			clearIds: ["terminal-1", "legacy-pane", "pane-1"],
+			clearIds: ["terminal-1", "pane-1"],
 			setStatus: null,
 		});
 	});

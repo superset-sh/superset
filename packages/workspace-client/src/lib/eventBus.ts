@@ -25,12 +25,7 @@ export interface GitChangedPayload {
 
 export interface AgentLifecyclePayload {
 	eventType: AgentLifecycleEventType;
-	paneId?: string;
-	tabId?: string;
-	terminalId?: string;
-	sessionId?: string;
-	hookSessionId?: string;
-	resourceId?: string;
+	terminalId: string;
 	occurredAt: number;
 }
 
@@ -131,12 +126,7 @@ function handleMessage(state: ConnectionState, data: unknown): void {
 				message.workspaceId,
 				{
 					eventType: message.eventType,
-					paneId: message.paneId,
-					tabId: message.tabId,
 					terminalId: message.terminalId,
-					sessionId: message.sessionId,
-					hookSessionId: message.hookSessionId,
-					resourceId: message.resourceId,
 					occurredAt: message.occurredAt,
 				},
 			);

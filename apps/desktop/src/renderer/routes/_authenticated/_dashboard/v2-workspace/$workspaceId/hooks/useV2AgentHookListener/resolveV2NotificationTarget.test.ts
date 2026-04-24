@@ -26,23 +26,23 @@ const layout: WorkspaceState<PaneViewerData> = {
 					kind: "terminal",
 					data: { terminalId: "terminal-1" },
 				},
-				"pane-chat-hidden": {
-					id: "pane-chat-hidden",
-					kind: "chat",
-					data: { sessionId: "chat-1" },
+				"pane-terminal-hidden": {
+					id: "pane-terminal-hidden",
+					kind: "terminal",
+					data: { terminalId: "terminal-hidden" },
 				},
 			},
 		},
 		{
 			id: "tab-background",
 			createdAt: 2,
-			activePaneId: "pane-chat-background",
-			layout: { type: "pane", paneId: "pane-chat-background" },
+			activePaneId: "pane-terminal-background",
+			layout: { type: "pane", paneId: "pane-terminal-background" },
 			panes: {
-				"pane-chat-background": {
-					id: "pane-chat-background",
-					kind: "chat",
-					data: { sessionId: "chat-2" },
+				"pane-terminal-background": {
+					id: "pane-terminal-background",
+					kind: "terminal",
+					data: { terminalId: "terminal-2" },
 				},
 			},
 		},
@@ -54,6 +54,7 @@ function payload(
 ): AgentLifecyclePayload {
 	return {
 		eventType: "Stop",
+		terminalId: "terminal-1",
 		occurredAt: 1,
 		...overrides,
 	};
@@ -71,28 +72,11 @@ describe("resolveV2NotificationTarget", () => {
 			workspaceId: WORKSPACE_ID,
 			tabId: "tab-active",
 			paneId: "pane-terminal",
-			sourceId: "terminal-1",
 			terminalId: "terminal-1",
 		});
 	});
 
-	it("uses chat session ids to find the owning v2 pane", () => {
-		const target = resolveV2NotificationTarget({
-			workspaceId: WORKSPACE_ID,
-			payload: payload({ resourceId: "chat-2" }),
-			paneLayout: layout,
-		});
-
-		expect(target).toMatchObject({
-			workspaceId: WORKSPACE_ID,
-			tabId: "tab-background",
-			paneId: "pane-chat-background",
-			sourceId: "chat-2",
-			chatSessionId: "chat-2",
-		});
-	});
-
-	it("falls back to a source-only target when no pane matches", () => {
+	it("falls back to a terminal-only target when no pane matches", () => {
 		const target = resolveV2NotificationTarget({
 			workspaceId: WORKSPACE_ID,
 			payload: payload({ terminalId: "terminal-missing" }),
@@ -101,7 +85,6 @@ describe("resolveV2NotificationTarget", () => {
 
 		expect(target).toEqual({
 			workspaceId: WORKSPACE_ID,
-			sourceId: "terminal-missing",
 			terminalId: "terminal-missing",
 		});
 	});
@@ -114,7 +97,7 @@ describe("resolveV2NotificationTarget", () => {
 		});
 		const backgroundTarget = resolveV2NotificationTarget({
 			workspaceId: WORKSPACE_ID,
-			payload: payload({ sessionId: "chat-2" }),
+			payload: payload({ terminalId: "terminal-2" }),
 			paneLayout: layout,
 		});
 
@@ -137,11 +120,9 @@ describe("resolveV2NotificationTarget", () => {
 		).toBe(false);
 	});
 
-	it("prefers stable runtime ids over legacy pane ids for status keys", () => {
-		expect(
-			getNotificationSourceId(
-				payload({ paneId: "legacy-pane", terminalId: "terminal-1" }),
-			),
-		).toBe("terminal-1");
+	it("uses the terminal id as the status key", () => {
+		expect(getNotificationSourceId(payload({ terminalId: "terminal-1" }))).toBe(
+			"terminal-1",
+		);
 	});
 });
