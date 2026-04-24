@@ -3,6 +3,7 @@ import type {
 	SelectAutomationRun,
 } from "@superset/db/schema";
 import { alert } from "@superset/ui/atoms/Alert";
+import { toast } from "@superset/ui/sonner";
 import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useMutation } from "@tanstack/react-query";
@@ -89,8 +90,15 @@ function AutomationDetailPage() {
 								{
 									label: "Delete",
 									variant: "destructive",
-									onClick: async () => {
-										await deleteMutation.mutateAsync();
+									onClick: () => {
+										toast.promise(deleteMutation.mutateAsync(), {
+											loading: "Deleting automation...",
+											success: `"${automation.name}" deleted`,
+											error: (err) =>
+												err instanceof Error
+													? err.message
+													: "Failed to delete automation",
+										});
 									},
 								},
 							],
