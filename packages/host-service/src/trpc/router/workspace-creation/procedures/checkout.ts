@@ -21,8 +21,6 @@ export const checkout = protectedProcedure
 
 		const localProject = requireLocalProject(ctx, input.projectId);
 
-		setProgress(input.pendingId, "creating_worktree");
-
 		// ── PR path ────────────────────────────────────────────────────────
 		if (input.pr) {
 			const branch = derivePrLocalBranchName(input.pr);
@@ -88,6 +86,7 @@ export const checkout = protectedProcedure
 			// Detached worktree first — `gh pr checkout` inside it creates the
 			// branch with correct fork-remote + upstream config. Mirrors v1's
 			// `createWorktreeFromPr`.
+			setProgress(input.pendingId, "creating_worktree");
 			try {
 				await git.raw(["worktree", "add", "--detach", worktreePath]);
 			} catch (err) {
@@ -207,6 +206,7 @@ export const checkout = protectedProcedure
 		}
 
 		if (resolved.kind === "remote-tracking") {
+			setProgress(input.pendingId, "fetching_remote");
 			try {
 				await git.fetch([
 					resolved.remote,
@@ -221,6 +221,8 @@ export const checkout = protectedProcedure
 				);
 			}
 		}
+
+		setProgress(input.pendingId, "creating_worktree");
 
 		try {
 			// For a remote-only branch, create a local tracking branch

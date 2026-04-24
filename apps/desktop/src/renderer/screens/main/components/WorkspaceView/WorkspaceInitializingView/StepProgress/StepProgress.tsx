@@ -21,14 +21,23 @@ type StepState = "waiting" | "progress" | "done";
 
 interface StepProgressProps {
 	currentStep: WorkspaceInitStep;
+	animate?: boolean;
 }
 
-export function StepProgress({ currentStep }: StepProgressProps) {
+export function StepProgress({
+	currentStep,
+	animate = true,
+}: StepProgressProps) {
 	const targetIdx = getStepIndex(currentStep);
 	const [renderIdx, setRenderIdx] = useState(targetIdx);
 	const [holdDoneIdx, setHoldDoneIdx] = useState<number | null>(null);
 
 	useEffect(() => {
+		if (!animate) {
+			setRenderIdx(targetIdx);
+			setHoldDoneIdx(null);
+			return;
+		}
 		if (targetIdx === renderIdx) {
 			setHoldDoneIdx(null);
 			return;
@@ -47,15 +56,18 @@ export function StepProgress({ currentStep }: StepProgressProps) {
 			setRenderIdx((prev) => Math.min(prev + 1, targetIdx));
 		}, DONE_HOLD_MS);
 		return () => window.clearTimeout(t);
-	}, [targetIdx, renderIdx]);
+	}, [animate, targetIdx, renderIdx]);
+
+	const activeRenderIdx = animate ? renderIdx : targetIdx;
+	const activeHoldDoneIdx = animate ? holdDoneIdx : null;
 
 	return (
 		<div className="step-progress" aria-live="polite">
 			<div className="step-progress__list">
 				{DISPLAY_STEPS.map((step) => {
 					const idx = getStepIndex(step);
-					const distance = idx - renderIdx;
-					const isHeldDone = holdDoneIdx === idx;
+					const distance = idx - activeRenderIdx;
+					const isHeldDone = activeHoldDoneIdx === idx;
 					const state: StepState = isHeldDone
 						? "done"
 						: distance < 0

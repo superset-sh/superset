@@ -108,6 +108,8 @@ export async function finishCheckout(
 		});
 	}
 
+	setProgress(args.pendingId, "finalizing");
+
 	try {
 		ctx.db
 			.insert(workspaces)
