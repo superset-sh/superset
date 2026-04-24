@@ -112,10 +112,12 @@ interface BuildV2TerminalEnvParams {
 	supersetEnv: "development" | "production";
 	agentHookPort: string;
 	agentHookVersion: string;
-	/** tRPC URL for the host-service notifications.hook mutation. */
+	/**
+	 * tRPC URL for the host-service notifications.hook mutation.
+	 * Endpoint is unauthenticated by design — it only broadcasts chimes,
+	 * no state change. See the router for rationale.
+	 */
 	hostAgentHookUrl?: string;
-	/** PSK the agent attaches as `Authorization: Bearer <token>`. */
-	hostAgentHookToken?: string;
 }
 
 /**
@@ -140,7 +142,6 @@ export function buildV2TerminalEnv(
 		agentHookPort,
 		agentHookVersion,
 		hostAgentHookUrl,
-		hostAgentHookToken,
 	} = params;
 
 	// Defense in depth — baseEnv is pre-stripped at init, but strip again
@@ -165,11 +166,11 @@ export function buildV2TerminalEnv(
 	env.SUPERSET_AGENT_HOOK_PORT = agentHookPort;
 	env.SUPERSET_AGENT_HOOK_VERSION = agentHookVersion;
 	// v2 — agent posts to host-service so the renderer can play the sound
-	// client-side. Set only when both URL and token are available; the
-	// notify-hook script falls back to the electron endpoint otherwise.
-	if (hostAgentHookUrl && hostAgentHookToken) {
+	// client-side. No auth token: the endpoint is unauthenticated by design
+	// (it only broadcasts chimes). The notify-hook script falls back to
+	// the electron endpoint when this URL isn't set.
+	if (hostAgentHookUrl) {
 		env.SUPERSET_HOST_AGENT_HOOK_URL = hostAgentHookUrl;
-		env.SUPERSET_HOST_AGENT_HOOK_TOKEN = hostAgentHookToken;
 	}
 
 	if (supersetHomeDir) {

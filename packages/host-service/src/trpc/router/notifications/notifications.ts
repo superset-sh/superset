@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { mapEventType } from "../../../events";
-import { protectedProcedure, router } from "../../index";
+import { publicProcedure, router } from "../../index";
 
 /**
  * Input shape matches the v1 `/hook/complete` query-string contract so the
@@ -27,8 +27,15 @@ export const notificationsRouter = router({
 	 * session-start / permission-request / task-complete events. We normalize
 	 * the event type and fan out over the WebSocket event bus so clients
 	 * (desktop renderer, web) can play the finish sound themselves.
+	 *
+	 * Intentionally unauthenticated. The only thing a caller can do is
+	 * cause clients to chime and flash a sidebar indicator — no code
+	 * execution, no data access, no state change. Reusing the host-service
+	 * PSK for this endpoint would leak the credential into every agent
+	 * shell's env for zero practical gain (manifest.authToken already
+	 * exposes it to any user-level process).
 	 */
-	hook: protectedProcedure.input(hookInput).mutation(async ({ ctx, input }) => {
+	hook: publicProcedure.input(hookInput).mutation(async ({ ctx, input }) => {
 		const eventType = mapEventType(input.eventType);
 		if (!eventType) {
 			return { success: true, ignored: true as const };

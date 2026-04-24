@@ -278,7 +278,6 @@ export function createTerminalSessionInternal({
 		agentHookPort: process.env.SUPERSET_AGENT_HOOK_PORT || "",
 		agentHookVersion: process.env.SUPERSET_AGENT_HOOK_VERSION || "",
 		hostAgentHookUrl: getHostAgentHookUrl(),
-		hostAgentHookToken: process.env.HOST_SERVICE_SECRET || "",
 	});
 
 	let pty: IPty;
