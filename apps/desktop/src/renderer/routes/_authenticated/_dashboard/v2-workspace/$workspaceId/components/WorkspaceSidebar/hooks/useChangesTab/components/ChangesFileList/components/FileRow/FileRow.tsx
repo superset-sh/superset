@@ -43,6 +43,10 @@ export const FileRow = memo(function FileRow({
 	onOpenInEditor,
 }: FileRowProps) {
 	const { dir, basename } = splitPath(file.path);
+	const oldBasename =
+		file.oldPath && (file.status === "renamed" || file.status === "copied")
+			? splitPath(file.oldPath).basename
+			: null;
 	const absolutePath = worktreePath
 		? toAbsoluteWorkspacePath(worktreePath, file.path)
 		: undefined;
@@ -63,6 +67,12 @@ export const FileRow = memo(function FileRow({
 			<FileIcon fileName={basename} className="size-3.5 shrink-0" />
 			<span className="flex min-w-0 flex-1 items-baseline overflow-hidden">
 				{dir && <span className="truncate text-muted-foreground">{dir}</span>}
+				{oldBasename && (
+					<span className="truncate text-muted-foreground">
+						{oldBasename}
+						<span className="px-1">→</span>
+					</span>
+				)}
 				<span className="min-w-[120px] truncate font-medium text-foreground">
 					{basename}
 				</span>

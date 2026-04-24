@@ -19,6 +19,7 @@ import type {
 import {
 	buildBranch,
 	countUntrackedFileLines,
+	detectUnstagedRenames,
 	getChangedFilesForDiff,
 	mapGitStatus,
 	parseNumstat,
@@ -163,12 +164,46 @@ export const gitRouter = router({
 			}
 			await countUntrackedFileLines(worktreePath, untrackedFiles);
 
+			const hasDeletions = unstaged.some((f) => f.status === "deleted");
+			const renames = await detectUnstagedRenames(
+				git,
+				worktreePath,
+				untrackedFiles.map((f) => f.path),
+				hasDeletions,
+			);
+
+			let mergedUnstaged = unstaged;
+			if (renames.length > 0) {
+				const consumedDeleted = new Set<string>();
+				const consumedUntracked = new Set<string>();
+				for (const r of renames) {
+					if (r.status === "renamed") consumedDeleted.add(r.oldPath);
+					consumedUntracked.add(r.newPath);
+				}
+				mergedUnstaged = unstaged.filter((f) => {
+					if (f.status === "deleted" && consumedDeleted.has(f.path))
+						return false;
+					if (f.status === "untracked" && consumedUntracked.has(f.path))
+						return false;
+					return true;
+				});
+				for (const r of renames) {
+					mergedUnstaged.push({
+						path: r.newPath,
+						oldPath: r.oldPath,
+						status: r.status,
+						additions: r.additions,
+						deletions: r.deletions,
+					});
+				}
+			}
+
 			return {
 				currentBranch,
 				defaultBranch,
 				againstBase,
 				staged,
-				unstaged,
+				unstaged: mergedUnstaged,
 				ignoredPaths,
 			};
 		}),

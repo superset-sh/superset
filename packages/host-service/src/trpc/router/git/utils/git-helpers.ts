@@ -1,6 +1,14 @@
-import { readFile, realpath, stat } from "node:fs/promises";
-import { isAbsolute, relative, resolve, sep } from "node:path";
-import type { SimpleGit } from "simple-git";
+import {
+	copyFile,
+	mkdtemp,
+	readFile,
+	realpath,
+	rm,
+	stat,
+} from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { isAbsolute, join, relative, resolve, sep } from "node:path";
+import simpleGit, { type SimpleGit } from "simple-git";
 import { resolveUpstream } from "../../../../runtime/git/refs";
 import type { Branch, ChangedFile, FileStatus } from "../types";
 
@@ -248,6 +256,89 @@ export async function countUntrackedFileLines(
 			} catch {}
 		}),
 	);
+}
+
+export interface DetectedRename {
+	oldPath: string;
+	newPath: string;
+	status: "renamed" | "copied";
+	additions: number;
+	deletions: number;
+}
+
+/**
+ * Run git's real rename/copy detection across the working tree by
+ * copying the index to a temp file, marking untracked files
+ * intent-to-add against that copy, and diffing. Real index is never
+ * mutated. Falls back to an empty result on any error — caller still
+ * has the unrelated deleted+untracked entries to display.
+ */
+export async function detectUnstagedRenames(
+	git: SimpleGit,
+	worktreePath: string,
+	untrackedPaths: string[],
+	hasDeletions: boolean,
+): Promise<DetectedRename[]> {
+	if (untrackedPaths.length === 0) return [];
+	// Renames need a deletion; copy detection between two untracked
+	// files needs at least two of them.
+	if (!hasDeletions && untrackedPaths.length < 2) return [];
+
+	let indexPath: string;
+	try {
+		indexPath = (await git.raw(["rev-parse", "--git-path", "index"])).trim();
+		if (!indexPath) return [];
+		if (!isAbsolute(indexPath)) indexPath = resolve(worktreePath, indexPath);
+	} catch {
+		return [];
+	}
+
+	let tempDir: string;
+	try {
+		tempDir = await mkdtemp(join(tmpdir(), "superset-renames-"));
+	} catch {
+		return [];
+	}
+
+	try {
+		const tempIndex = join(tempDir, "index");
+		await copyFile(indexPath, tempIndex);
+
+		const tempGit = simpleGit(worktreePath).env({
+			...process.env,
+			GIT_INDEX_FILE: tempIndex,
+		});
+
+		await tempGit.raw(["add", "--intent-to-add", "--", ...untrackedPaths]);
+
+		const [nameStatusRaw, numstatRaw] = await Promise.all([
+			tempGit.raw(["diff", "--name-status", "-z", "-M", "-C"]),
+			tempGit.raw(["diff", "--numstat", "-z", "-M", "-C"]),
+		]);
+
+		const nameStatus = parseNameStatus(nameStatusRaw);
+		const numstat = parseNumstat(numstatRaw);
+
+		const result: DetectedRename[] = [];
+		for (const entry of nameStatus) {
+			if (!entry.oldPath) continue;
+			const code = entry.status[0];
+			if (code !== "R" && code !== "C") continue;
+			const stats = numstat.get(entry.path) ?? { additions: 0, deletions: 0 };
+			result.push({
+				oldPath: entry.oldPath,
+				newPath: entry.path,
+				status: code === "R" ? "renamed" : "copied",
+				additions: stats.additions,
+				deletions: stats.deletions,
+			});
+		}
+		return result;
+	} catch {
+		return [];
+	} finally {
+		await rm(tempDir, { recursive: true, force: true }).catch(() => {});
+	}
 }
 
 export async function getChangedFilesForDiff(
