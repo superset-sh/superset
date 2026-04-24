@@ -183,15 +183,21 @@ export const workspaceRouter = router({
 					.sync();
 
 				if (localProject) {
-					try {
-						const git = await ctx.git(localProject.repoPath);
-						await git.raw(["worktree", "remove", localWorkspace.worktreePath]);
-					} catch (err) {
-						console.warn("[workspace.delete] failed to remove worktree", {
-							workspaceId: input.id,
-							worktreePath: localWorkspace.worktreePath,
-							err,
-						});
+					if (localWorkspace.worktreePath !== localProject.repoPath) {
+						try {
+							const git = await ctx.git(localProject.repoPath);
+							await git.raw([
+								"worktree",
+								"remove",
+								localWorkspace.worktreePath,
+							]);
+						} catch (err) {
+							console.warn("[workspace.delete] failed to remove worktree", {
+								workspaceId: input.id,
+								worktreePath: localWorkspace.worktreePath,
+								err,
+							});
+						}
 					}
 				}
 			}

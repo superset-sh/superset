@@ -23,6 +23,7 @@ function slugifyProjectName(name: string): string {
 interface CreateResult {
 	projectId: string;
 	repoPath: string;
+	mainWorkspaceId: string | null;
 }
 
 /**
@@ -43,8 +44,16 @@ export async function createFromClone(
 			repoCloneUrl: args.url,
 		});
 		persistLocalProject(ctx, cloudProject.id, resolved);
-		await ensureMainWorkspace(ctx, cloudProject.id, resolved.repoPath);
-		return { projectId: cloudProject.id, repoPath: resolved.repoPath };
+		const mainWorkspace = await ensureMainWorkspace(
+			ctx,
+			cloudProject.id,
+			resolved.repoPath,
+		);
+		return {
+			projectId: cloudProject.id,
+			repoPath: resolved.repoPath,
+			mainWorkspaceId: mainWorkspace?.id ?? null,
+		};
 	} catch (err) {
 		try {
 			rmSync(resolved.repoPath, { recursive: true, force: true });
@@ -70,6 +79,14 @@ export async function createFromImportLocal(
 		repoCloneUrl: resolved.parsed.url,
 	});
 	persistLocalProject(ctx, cloudProject.id, resolved);
-	await ensureMainWorkspace(ctx, cloudProject.id, resolved.repoPath);
-	return { projectId: cloudProject.id, repoPath: resolved.repoPath };
+	const mainWorkspace = await ensureMainWorkspace(
+		ctx,
+		cloudProject.id,
+		resolved.repoPath,
+	);
+	return {
+		projectId: cloudProject.id,
+		repoPath: resolved.repoPath,
+		mainWorkspaceId: mainWorkspace?.id ?? null,
+	};
 }

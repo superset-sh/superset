@@ -165,7 +165,7 @@ export const v2WorkspaceRouter = {
 
 			throw new TRPCError({
 				code: "INTERNAL_SERVER_ERROR",
-				message: "Workspace insert returned no row",
+				message: `Workspace insert returned no row (type=${input.type}, projectId=${project.id}, hostId=${host.id})`,
 			});
 		}),
 

@@ -18,6 +18,7 @@ import type {
 
 // Pending workspaces are always rendered at the end of the project's workspace list
 const PENDING_WORKSPACE_TAB_ORDER = Number.MAX_SAFE_INTEGER;
+const MAIN_WORKSPACE_TAB_ORDER = Number.MIN_SAFE_INTEGER;
 
 export function useDashboardSidebarData() {
 	const { data: session } = authClient.useSession();
@@ -120,6 +121,7 @@ export function useDashboardSidebarData() {
 					projectId: sidebarWorkspaces.sidebarState.projectId,
 					hostId: workspaces.hostId,
 					hostMachineId: hosts?.machineId ?? null,
+					type: workspaces.type,
 					name: workspaces.name,
 					branch: workspaces.branch,
 					createdAt: workspaces.createdAt,
@@ -130,9 +132,51 @@ export function useDashboardSidebarData() {
 		[collections],
 	);
 
+	const { data: localMainWorkspaces = [] } = useLiveQuery(
+		(q) =>
+			q
+				.from({ workspaces: collections.v2Workspaces })
+				.leftJoin({ hosts: collections.v2Hosts }, ({ workspaces, hosts }) =>
+					eq(workspaces.hostId, hosts.id),
+				)
+				.where(({ workspaces }) => eq(workspaces.type, "main"))
+				.select(({ workspaces, hosts }) => ({
+					id: workspaces.id,
+					projectId: workspaces.projectId,
+					hostId: workspaces.hostId,
+					hostMachineId: hosts?.machineId ?? null,
+					type: workspaces.type,
+					name: workspaces.name,
+					branch: workspaces.branch,
+					createdAt: workspaces.createdAt,
+					updatedAt: workspaces.updatedAt,
+					tabOrder: MAIN_WORKSPACE_TAB_ORDER,
+					sectionId: null as string | null,
+				})),
+		[collections],
+	);
+
+	const visibleSidebarWorkspaces = useMemo(() => {
+		const sidebarWorkspaceIds = new Set(
+			sidebarWorkspaces.map((workspace) => workspace.id),
+		);
+		const sidebarProjectIds = new Set(
+			sidebarProjects.map((project) => project.id),
+		);
+		const autoLocalMainWorkspaces = localMainWorkspaces.filter(
+			(workspace) =>
+				!sidebarWorkspaceIds.has(workspace.id) &&
+				workspace.hostMachineId != null &&
+				workspace.hostMachineId === machineId &&
+				sidebarProjectIds.has(workspace.projectId),
+		);
+
+		return [...autoLocalMainWorkspaces, ...sidebarWorkspaces];
+	}, [localMainWorkspaces, machineId, sidebarProjects, sidebarWorkspaces]);
+
 	const localWorkspaceIds = useMemo(
 		() =>
-			sidebarWorkspaces
+			visibleSidebarWorkspaces
 				.filter(
 					(workspace) =>
 						workspace.hostMachineId != null &&
@@ -140,7 +184,7 @@ export function useDashboardSidebarData() {
 				)
 				.map((workspace) => workspace.id)
 				.sort(),
-		[machineId, sidebarWorkspaces],
+		[machineId, visibleSidebarWorkspaces],
 	);
 
 	const { data: pullRequestData, refetch: refetchPullRequests } = useQuery({
@@ -223,7 +267,7 @@ export function useDashboardSidebarData() {
 			});
 		}
 
-		for (const workspace of sidebarWorkspaces) {
+		for (const workspace of visibleSidebarWorkspaces) {
 			const project = projectsById.get(workspace.projectId);
 			if (!project) continue;
 
@@ -239,6 +283,7 @@ export function useDashboardSidebarData() {
 				projectId: workspace.projectId,
 				hostId: workspace.hostId,
 				hostType,
+				type: workspace.type,
 				accentColor: null,
 				name: workspace.name,
 				branch: workspace.branch,
@@ -290,6 +335,7 @@ export function useDashboardSidebarData() {
 				projectId: pw.projectId,
 				hostId: "",
 				hostType: "local-device",
+				type: "worktree",
 				accentColor: null,
 				name: pw.name,
 				branch: pw.branchName,
@@ -357,7 +403,7 @@ export function useDashboardSidebarData() {
 		pendingWorkspaces,
 		sidebarProjects,
 		sidebarSections,
-		sidebarWorkspaces,
+		visibleSidebarWorkspaces,
 	]);
 
 	return {

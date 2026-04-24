@@ -5,24 +5,35 @@ import { getBaseName } from "renderer/lib/pathBasename";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 
+interface ProjectSetupResult {
+	projectId: string;
+	repoPath: string;
+	mainWorkspaceId: string | null;
+}
+
 export interface UseFolderFirstImportResult {
 	start: () => Promise<void>;
 }
 
 export function useFolderFirstImport(options?: {
-	onSuccess?: (result: { projectId: string; repoPath: string }) => void;
+	onSuccess?: (result: ProjectSetupResult) => void;
 	onError?: (message: string) => void;
 }): UseFolderFirstImportResult {
 	const { activeHostUrl } = useLocalHostService();
-	const { ensureProjectInSidebar } = useDashboardSidebarState();
+	const { ensureProjectInSidebar, ensureWorkspaceInSidebar } =
+		useDashboardSidebarState();
 	const selectDirectory = electronTrpc.window.selectDirectory.useMutation();
 
 	const reportSuccess = useCallback(
-		(result: { projectId: string; repoPath: string }) => {
-			ensureProjectInSidebar(result.projectId);
+		(result: ProjectSetupResult) => {
+			if (result.mainWorkspaceId) {
+				ensureWorkspaceInSidebar(result.mainWorkspaceId, result.projectId);
+			} else {
+				ensureProjectInSidebar(result.projectId);
+			}
 			options?.onSuccess?.(result);
 		},
-		[ensureProjectInSidebar, options],
+		[ensureProjectInSidebar, ensureWorkspaceInSidebar, options],
 	);
 
 	const reportError = useCallback(
@@ -77,7 +88,11 @@ export function useFolderFirstImport(options?: {
 					projectId: only.id,
 					mode: { kind: "import", repoPath },
 				});
-				reportSuccess({ projectId: only.id, repoPath: result.repoPath });
+				reportSuccess({
+					projectId: only.id,
+					repoPath: result.repoPath,
+					mainWorkspaceId: result.mainWorkspaceId,
+				});
 			} else {
 				const result = await client.project.create.mutate({
 					name: getBaseName(repoPath),

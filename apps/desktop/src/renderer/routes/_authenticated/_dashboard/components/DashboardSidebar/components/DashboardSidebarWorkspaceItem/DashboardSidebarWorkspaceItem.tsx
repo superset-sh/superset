@@ -33,6 +33,7 @@ export function DashboardSidebarWorkspaceItem({
 		branch,
 		creationStatus,
 	} = workspace;
+	const isMainWorkspace = workspace.type === "main";
 	const diffStats = useDiffStats(id);
 	const {
 		cancelRename,
@@ -121,14 +122,16 @@ export function DashboardSidebarWorkspaceItem({
 							onCopyPath={handleCopyPath}
 							onRemoveFromSidebar={() => removeWorkspaceFromSidebar(id)}
 							onRename={startRename}
-							onDelete={() => setIsDeleteDialogOpen(true)}
+							onDelete={
+								isMainWorkspace ? undefined : () => setIsDeleteDialogOpen(true)
+							}
 						>
 							{content}
 						</DashboardSidebarWorkspaceContextMenu>
 					)}
 				</div>
 
-				{!isPending && (
+				{!isPending && !isMainWorkspace && (
 					<DashboardSidebarDeleteDialog
 						workspaceId={id}
 						workspaceName={name || branch}
@@ -151,7 +154,11 @@ export function DashboardSidebarWorkspaceItem({
 			diffStats={isPending ? null : diffStats}
 			onClick={isPending ? handlePendingClick : handleClick}
 			onDoubleClick={isPending ? undefined : startRename}
-			onDeleteClick={() => setIsDeleteDialogOpen(true)}
+			onDeleteClick={
+				isMainWorkspace
+					? () => removeWorkspaceFromSidebar(id)
+					: () => setIsDeleteDialogOpen(true)
+			}
 			onRenameValueChange={setRenameValue}
 			onSubmitRename={submitRename}
 			onCancelRename={cancelRename}
@@ -185,14 +192,16 @@ export function DashboardSidebarWorkspaceItem({
 						onCopyPath={handleCopyPath}
 						onRemoveFromSidebar={() => removeWorkspaceFromSidebar(id)}
 						onRename={startRename}
-						onDelete={() => setIsDeleteDialogOpen(true)}
+						onDelete={
+							isMainWorkspace ? undefined : () => setIsDeleteDialogOpen(true)
+						}
 					>
 						{expandedContent}
 					</DashboardSidebarWorkspaceContextMenu>
 				)}
 			</div>
 
-			{!isPending && (
+			{!isPending && !isMainWorkspace && (
 				<DashboardSidebarDeleteDialog
 					workspaceId={id}
 					workspaceName={name || branch}

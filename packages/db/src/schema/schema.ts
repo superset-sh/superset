@@ -560,7 +560,7 @@ export const v2Workspaces = pgTable(
 		index("v2_workspaces_host_id_idx").on(table.hostId),
 		uniqueIndex("v2_workspaces_one_main_per_host")
 			.on(table.projectId, table.hostId)
-			.where(sql`type = 'main'`),
+			.where(sql`${table.type} = 'main'`),
 	],
 );
 

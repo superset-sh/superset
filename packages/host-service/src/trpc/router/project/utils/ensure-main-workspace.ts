@@ -73,7 +73,14 @@ export async function ensureMainWorkspace(
 				worktreePath: repoPath,
 				branch,
 			})
-			.onConflictDoNothing()
+			.onConflictDoUpdate({
+				target: workspaces.id,
+				set: {
+					projectId,
+					worktreePath: repoPath,
+					branch,
+				},
+			})
 			.run();
 
 		return { id: cloudRow.id };

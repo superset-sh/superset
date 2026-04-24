@@ -196,16 +196,30 @@ export const projectRouter = router({
 					);
 					rejectIfRepoint(predictedPath);
 					if (existing) {
-						await ensureMainWorkspace(ctx, input.projectId, existing.repoPath);
-						return { repoPath: existing.repoPath };
+						const mainWorkspace = await ensureMainWorkspace(
+							ctx,
+							input.projectId,
+							existing.repoPath,
+						);
+						return {
+							repoPath: existing.repoPath,
+							mainWorkspaceId: mainWorkspace?.id ?? null,
+						};
 					}
 					const resolved = await cloneRepoInto(
 						cloudProject.repoCloneUrl,
 						input.mode.parentDir,
 					);
 					persistLocalProject(ctx, input.projectId, resolved);
-					await ensureMainWorkspace(ctx, input.projectId, resolved.repoPath);
-					return { repoPath: resolved.repoPath };
+					const mainWorkspace = await ensureMainWorkspace(
+						ctx,
+						input.projectId,
+						resolved.repoPath,
+					);
+					return {
+						repoPath: resolved.repoPath,
+						mainWorkspaceId: mainWorkspace?.id ?? null,
+					};
 				}
 				case "import": {
 					let resolved: ResolvedRepo;
@@ -227,8 +241,15 @@ export const projectRouter = router({
 
 					rejectIfRepoint(resolved.repoPath);
 					if (existing && existing.repoPath === resolved.repoPath) {
-						await ensureMainWorkspace(ctx, input.projectId, existing.repoPath);
-						return { repoPath: existing.repoPath };
+						const mainWorkspace = await ensureMainWorkspace(
+							ctx,
+							input.projectId,
+							existing.repoPath,
+						);
+						return {
+							repoPath: existing.repoPath,
+							mainWorkspaceId: mainWorkspace?.id ?? null,
+						};
 					}
 
 					if (!cloudProject.repoCloneUrl) {
@@ -239,8 +260,15 @@ export const projectRouter = router({
 						});
 					}
 					persistLocalProject(ctx, input.projectId, resolved);
-					await ensureMainWorkspace(ctx, input.projectId, resolved.repoPath);
-					return { repoPath: resolved.repoPath };
+					const mainWorkspace = await ensureMainWorkspace(
+						ctx,
+						input.projectId,
+						resolved.repoPath,
+					);
+					return {
+						repoPath: resolved.repoPath,
+						mainWorkspaceId: mainWorkspace?.id ?? null,
+					};
 				}
 			}
 		}),
@@ -260,6 +288,7 @@ export const projectRouter = router({
 				.all();
 
 			for (const ws of localWorkspaces) {
+				if (ws.worktreePath === localProject.repoPath) continue;
 				try {
 					const git = await ctx.git(localProject.repoPath);
 					await git.raw(["worktree", "remove", ws.worktreePath]);
