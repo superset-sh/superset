@@ -357,6 +357,9 @@ export class ChatRuntimeService {
 								input.sessionId,
 								input.cwd,
 							);
+							const response = await runtime.harness.respondToQuestion(
+								input.payload,
+							);
 							runtime.answeredQuestionIds.add(input.payload.questionId);
 							if (
 								runtime.pendingSandboxQuestion?.questionId ===
@@ -364,7 +367,7 @@ export class ChatRuntimeService {
 							) {
 								runtime.pendingSandboxQuestion = null;
 							}
-							return runtime.harness.respondToQuestion(input.payload);
+							return response;
 						}),
 				}),
 

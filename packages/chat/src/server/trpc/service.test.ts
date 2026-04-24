@@ -20,14 +20,17 @@ mock.module("mastracode", () => ({
 
 const { ChatRuntimeService } = await import("./service");
 
-function createRuntime(): RuntimeSession {
+function createRuntime(options?: {
+	respondToQuestion?: RuntimeSession["harness"]["respondToQuestion"];
+}): RuntimeSession {
 	return {
 		sessionId: SESSION_ID,
 		cwd: CWD,
 		harness: {
 			abort: mock(() => {}),
 			respondToToolApproval: mock(async (payload: unknown) => payload),
-			respondToQuestion: mock(async (payload: unknown) => payload),
+			respondToQuestion:
+				options?.respondToQuestion ?? mock(async (payload: unknown) => payload),
 			respondToPlanApproval: mock(async (payload: unknown) => payload),
 		} as unknown as RuntimeSession["harness"],
 		mcpManager: null as RuntimeSession["mcpManager"],
@@ -39,11 +42,12 @@ function createRuntime(): RuntimeSession {
 			path: "/tmp/secret",
 			reason: "Need access",
 		},
+		answeredQuestionIds: new Set(),
 	};
 }
 
-function createServiceHarness() {
-	const runtime = createRuntime();
+function createServiceHarness(options?: Parameters<typeof createRuntime>[0]) {
+	const runtime = createRuntime(options);
 	const service = new ChatRuntimeService({
 		headers: async () => ({}),
 		apiUrl: "http://localhost:3000",
@@ -133,5 +137,27 @@ describe("ChatRuntimeService control mutations", () => {
 			response: { action: "approved", feedback: "ship it" },
 		});
 		expect(runtime.pendingSandboxQuestion).toBeNull();
+	});
+
+	it("does not clear pending question state when question response fails", async () => {
+		const respondToQuestion = mock(async () => {
+			throw new Error("failed to answer");
+		}) as RuntimeSession["harness"]["respondToQuestion"];
+		const { caller, runtime } = createServiceHarness({ respondToQuestion });
+
+		await expect(
+			caller.session.question.respond({
+				sessionId: SESSION_ID,
+				cwd: CWD,
+				payload: { questionId: "sandbox-1", answer: "Yes" },
+			}),
+		).rejects.toThrow("failed to answer");
+
+		expect(runtime.answeredQuestionIds.has("sandbox-1")).toBe(false);
+		expect(runtime.pendingSandboxQuestion).toEqual({
+			questionId: "sandbox-1",
+			path: "/tmp/secret",
+			reason: "Need access",
+		});
 	});
 });

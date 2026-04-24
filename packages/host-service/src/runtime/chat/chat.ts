@@ -581,6 +581,7 @@ When you need to ask the user ANY question — including simple yes/no, confirma
 			input.workspaceId,
 		);
 
+		const response = await runtime.harness.respondToQuestion(input.payload);
 		runtime.answeredQuestionIds.add(input.payload.questionId);
 		if (
 			runtime.pendingSandboxQuestion?.questionId === input.payload.questionId
@@ -588,7 +589,7 @@ When you need to ask the user ANY question — including simple yes/no, confirma
 			runtime.pendingSandboxQuestion = null;
 		}
 
-		return runtime.harness.respondToQuestion(input.payload);
+		return response;
 	}
 
 	async respondToPlan(input: {

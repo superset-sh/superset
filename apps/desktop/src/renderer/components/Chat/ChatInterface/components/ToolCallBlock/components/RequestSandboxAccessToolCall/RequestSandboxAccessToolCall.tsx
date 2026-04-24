@@ -8,8 +8,8 @@ import {
 } from "lucide-react";
 import type { ComponentType } from "react";
 import type { ToolPart } from "../../../../utils/tool-helpers";
-import { ToolStatusBadge } from "../ToolStatusBadge";
 import type { ToolStatusBadgeVariant } from "../ToolStatusBadge";
+import { ToolStatusBadge } from "../ToolStatusBadge";
 
 interface RequestSandboxAccessToolCallProps {
 	part: ToolPart;
@@ -47,7 +47,11 @@ function toAccessStatus(
 	result: Record<string, unknown>,
 	isInterrupted: boolean,
 ): AccessStatus {
-	if (isInterrupted && part.state !== "output-available" && part.state !== "output-error") {
+	if (
+		isInterrupted &&
+		part.state !== "output-available" &&
+		part.state !== "output-error"
+	) {
 		return "cancelled";
 	}
 	if (part.state !== "output-available" && part.state !== "output-error") {
@@ -69,13 +73,14 @@ export function RequestSandboxAccessToolCall({
 	result,
 	isInterrupted = false,
 }: RequestSandboxAccessToolCallProps) {
-	const requestedPath =
-		typeof args.path === "string" ? args.path.trim() : null;
+	const requestedPath = typeof args.path === "string" ? args.path.trim() : null;
 	const reason = typeof args.reason === "string" ? args.reason.trim() : null;
 
 	const status = toAccessStatus(part, result, isInterrupted);
 	const { icon, label, variant } = ACCESS_STATUS_CONFIG[status];
-	const statusBadge = <ToolStatusBadge icon={icon} label={label} variant={variant} />;
+	const statusBadge = (
+		<ToolStatusBadge icon={icon} label={label} variant={variant} />
+	);
 
 	const isPending = status === "pending";
 	const isCancelledOrError = status === "cancelled" || status === "error";
@@ -92,10 +97,14 @@ export function RequestSandboxAccessToolCall({
 			{!isPending && hasContext ? (
 				<div className="space-y-1 px-3 py-2">
 					{requestedPath ? (
-						<div className="text-xs text-muted-foreground">Path: {requestedPath}</div>
+						<div className="text-xs text-muted-foreground">
+							Path: {requestedPath}
+						</div>
 					) : null}
 					{reason ? (
-						<div className="text-xs text-muted-foreground">Reason: {reason}</div>
+						<div className="text-xs text-muted-foreground">
+							Reason: {reason}
+						</div>
 					) : null}
 					{!isCancelledOrError ? (
 						<div className="text-sm text-foreground">

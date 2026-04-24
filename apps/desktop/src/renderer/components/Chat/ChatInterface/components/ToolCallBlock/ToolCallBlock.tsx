@@ -20,7 +20,6 @@ import {
 } from "../../utils/tool-helpers";
 import { ReadOnlyToolCall } from "../ReadOnlyToolCall";
 import { AskUserQuestionToolCall } from "./components/AskUserQuestionToolCall";
-import { RequestSandboxAccessToolCall } from "./components/RequestSandboxAccessToolCall";
 import { CreateTaskToolCall } from "./components/CreateTaskToolCall";
 import { CreateWorkspaceToolCall } from "./components/CreateWorkspaceToolCall";
 import { DeleteTaskToolCall } from "./components/DeleteTaskToolCall";
@@ -37,6 +36,7 @@ import { ListTaskStatusesToolCall } from "./components/ListTaskStatusesToolCall"
 import { ListTasksToolCall } from "./components/ListTasksToolCall";
 import { ListWorkspacesToolCall } from "./components/ListWorkspacesToolCall";
 import { LspInspectToolCall } from "./components/LspInspectToolCall";
+import { RequestSandboxAccessToolCall } from "./components/RequestSandboxAccessToolCall";
 import { SkillToolCall } from "./components/SkillToolCall";
 import { StartAgentSessionToolCall } from "./components/StartAgentSessionToolCall";
 import { SubagentToolCall } from "./components/SubagentToolCall";
