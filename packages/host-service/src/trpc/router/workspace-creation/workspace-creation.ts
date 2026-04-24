@@ -820,10 +820,7 @@ export const workspaceCreationRouter = router({
 			);
 
 			// 3. Create worktree
-			const worktreePath = safeResolveWorktreePath(
-				localProject.id,
-				branchName,
-			);
+			const worktreePath = safeResolveWorktreePath(localProject.id, branchName);
 			mkdirSync(dirname(worktreePath), { recursive: true });
 
 			const git = await ctx.git(localProject.repoPath);
