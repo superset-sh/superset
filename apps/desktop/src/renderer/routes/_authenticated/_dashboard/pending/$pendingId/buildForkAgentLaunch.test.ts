@@ -15,6 +15,7 @@ function pendingBase(
 		prompt: "",
 		linkedIssues: [],
 		linkedPR: null,
+		agentId: null,
 		...overrides,
 	};
 }

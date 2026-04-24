@@ -4,6 +4,7 @@ import { useCallback } from "react";
 import { storeAttachments } from "renderer/lib/pending-attachment-store";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useDashboardNewWorkspaceDraft } from "../../../../../DashboardNewWorkspaceDraftContext";
+import type { WorkspaceCreateAgent } from "../../types";
 import { resolveNames } from "./resolveNames";
 
 export interface SubmitAttachment {
@@ -24,7 +25,10 @@ export interface SubmitAttachment {
  * the library clears provider state + revokes blob URLs *before*
  * invoking onSubmit, so the ref is stale by the time we'd see it.
  */
-export function useSubmitWorkspace(projectId: string | null) {
+export function useSubmitWorkspace(
+	projectId: string | null,
+	selectedAgent: WorkspaceCreateAgent,
+) {
 	const navigate = useNavigate();
 	const { closeAndResetDraft, draft } = useDashboardNewWorkspaceDraft();
 	const collections = useCollections();
@@ -83,6 +87,7 @@ export function useSubmitWorkspace(projectId: string | null) {
 				linkedPR: draft.linkedPR,
 				hostTarget: draft.hostTarget,
 				attachmentCount: files.length,
+				agentId: selectedAgent,
 				status: "creating",
 				error: null,
 				workspaceId: null,
@@ -93,6 +98,13 @@ export function useSubmitWorkspace(projectId: string | null) {
 			closeAndResetDraft();
 			void navigate({ to: `/pending/${pendingId}` as string });
 		},
-		[closeAndResetDraft, collections, draft, navigate, projectId],
+		[
+			closeAndResetDraft,
+			collections,
+			draft,
+			navigate,
+			projectId,
+			selectedAgent,
+		],
 	);
 }
