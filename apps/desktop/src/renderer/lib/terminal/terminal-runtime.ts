@@ -61,6 +61,11 @@ function createKeyEventHandler(terminal: XTerm) {
 				hasSelection: terminal.hasSelection(),
 			})
 		) {
+			// Prevent browser default from double-firing against the Electron
+			// `role: 'paste'`/`'copy'` accelerator (src/main/lib/menu.ts).
+			if (event.type === "keydown") {
+				event.preventDefault();
+			}
 			return false;
 		}
 
