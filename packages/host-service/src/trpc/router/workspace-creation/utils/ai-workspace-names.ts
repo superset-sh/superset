@@ -1,6 +1,11 @@
 import { Agent } from "@mastra/core/agent";
 import { getSmallModel } from "@superset/chat/server/shared";
+import { eq } from "drizzle-orm";
 import { z } from "zod";
+import { workspaces } from "../../../../db/schema";
+import type { HostServiceContext } from "../../../../types";
+import { listBranchNames } from "./list-branch-names";
+import { deduplicateBranchName } from "./sanitize-branch";
 
 const WORKSPACE_TITLE_MAX = 150;
 const BRANCH_NAME_MAX = 25;
@@ -89,5 +94,100 @@ export async function generateWorkspaceNamesFromPrompt(
 			error,
 		);
 		return null;
+	}
+}
+
+interface ApplyAiRenameArgs {
+	ctx: HostServiceContext;
+	workspaceId: string;
+	repoPath: string;
+	worktreePath: string;
+	oldBranchName: string;
+	oldWorkspaceName: string;
+	prompt: string;
+}
+
+/**
+ * Generates an AI title+branch for a freshly-created workspace and
+ * applies both. Git rename runs first (cheap to roll back); cloud
+ * update is source of truth; host-local DB only writes after cloud
+ * confirms. On cloud failure the git rename is reverted so git,
+ * host-local DB, and cloud stay in lockstep.
+ */
+export async function applyAiWorkspaceRename(
+	args: ApplyAiRenameArgs,
+): Promise<void> {
+	const {
+		ctx,
+		workspaceId,
+		repoPath,
+		worktreePath,
+		oldBranchName,
+		oldWorkspaceName,
+		prompt,
+	} = args;
+
+	const aiNames = await generateWorkspaceNamesFromPrompt(prompt);
+	if (!aiNames) return;
+
+	const titleChanged =
+		aiNames.title !== "" && aiNames.title !== oldWorkspaceName;
+	const branchChanged =
+		aiNames.branchName !== "" && aiNames.branchName !== oldBranchName;
+	if (!titleChanged && !branchChanged) return;
+
+	let deduped = oldBranchName;
+	let gitRenamed = false;
+	if (branchChanged) {
+		const freshBranches = await listBranchNames(ctx, repoPath);
+		deduped = deduplicateBranchName(
+			aiNames.branchName,
+			freshBranches.filter((b) => b !== oldBranchName),
+		);
+		try {
+			const worktreeGit = await ctx.git(worktreePath);
+			await worktreeGit.raw(["branch", "-m", oldBranchName, deduped]);
+			gitRenamed = true;
+		} catch (err) {
+			console.warn("[applyAiWorkspaceRename] git branch rename failed", err);
+		}
+	}
+
+	const patch: {
+		id: string;
+		name?: string;
+		branch?: string;
+		expectedCurrentName?: string;
+	} = { id: workspaceId };
+	if (titleChanged) {
+		patch.name = aiNames.title;
+		patch.expectedCurrentName = oldWorkspaceName;
+	}
+	if (gitRenamed) patch.branch = deduped;
+	if (patch.name === undefined && patch.branch === undefined) return;
+
+	try {
+		await ctx.api.v2Workspace.updateNameFromHost.mutate(patch);
+	} catch (err) {
+		if (gitRenamed) {
+			await ctx
+				.git(worktreePath)
+				.then((g) => g.raw(["branch", "-m", deduped, oldBranchName]))
+				.catch((rollbackErr) => {
+					console.warn(
+						`[applyAiWorkspaceRename] git branch rollback failed (workspace ${workspaceId}, ${deduped} → ${oldBranchName})`,
+						rollbackErr,
+					);
+				});
+		}
+		throw err;
+	}
+
+	if (gitRenamed) {
+		ctx.db
+			.update(workspaces)
+			.set({ branch: deduped })
+			.where(eq(workspaces.id, workspaceId))
+			.run();
 	}
 }
