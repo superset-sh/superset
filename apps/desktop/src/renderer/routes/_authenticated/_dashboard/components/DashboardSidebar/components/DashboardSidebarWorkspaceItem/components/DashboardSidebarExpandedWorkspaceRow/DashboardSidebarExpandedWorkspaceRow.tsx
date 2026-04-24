@@ -10,12 +10,12 @@ import {
 import { HiMiniXMark } from "react-icons/hi2";
 import type { DiffStats } from "renderer/hooks/host-service/useDiffStats";
 import { HotkeyLabel } from "renderer/hotkeys";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { RenameInput } from "renderer/screens/main/components/WorkspaceSidebar/RenameInput";
 import type { DashboardSidebarWorkspace } from "../../../../types";
 import { getCreationStatusText } from "../../utils/getCreationStatusText";
 import { DashboardSidebarWorkspaceDiffStats } from "../DashboardSidebarWorkspaceDiffStats";
 import { DashboardSidebarWorkspaceIcon } from "../DashboardSidebarWorkspaceIcon";
-import { DashboardSidebarWorkspaceStatusBadge } from "../DashboardSidebarWorkspaceStatusBadge";
 
 interface DashboardSidebarExpandedWorkspaceRowProps
 	extends ComponentPropsWithoutRef<"div"> {
@@ -67,6 +67,7 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 		} = workspace;
 		const showsStandaloneActiveStripe = accentColor == null;
 		const localRef = useRef<HTMLDivElement>(null);
+		const openUrl = electronTrpc.external.openUrl.useMutation();
 
 		useEffect(() => {
 			if (isActive) {
@@ -120,36 +121,72 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 
 				<Tooltip delayDuration={500}>
 					<TooltipTrigger asChild>
-						<div className="relative mr-2.5 flex size-5 shrink-0 items-center justify-center">
-							<DashboardSidebarWorkspaceIcon
-								hostType={hostType}
-								hostIsOnline={hostIsOnline}
-								isActive={isActive}
-								variant="expanded"
-								workspaceStatus={null}
-								creationStatus={creationStatus}
-							/>
-						</div>
+						{pullRequest ? (
+							<button
+								type="button"
+								onClick={(event) => {
+									event.stopPropagation();
+									openUrl.mutate(pullRequest.url);
+								}}
+								aria-label={`Open pull request #${pullRequest.number}`}
+								className="relative mr-2.5 flex size-5 shrink-0 cursor-pointer items-center justify-center rounded hover:bg-muted"
+							>
+								<DashboardSidebarWorkspaceIcon
+									hostType={hostType}
+									hostIsOnline={hostIsOnline}
+									isActive={isActive}
+									variant="expanded"
+									workspaceStatus={null}
+									creationStatus={creationStatus}
+									pullRequestState={pullRequest.state}
+								/>
+							</button>
+						) : (
+							<div className="relative mr-2.5 flex size-5 shrink-0 items-center justify-center">
+								<DashboardSidebarWorkspaceIcon
+									hostType={hostType}
+									hostIsOnline={hostIsOnline}
+									isActive={isActive}
+									variant="expanded"
+									workspaceStatus={null}
+									creationStatus={creationStatus}
+									pullRequestState={null}
+								/>
+							</div>
+						)}
 					</TooltipTrigger>
 					<TooltipContent side="right" sideOffset={8}>
-						<p className="text-xs font-medium">
-							{hostType === "local-device"
-								? "Local workspace"
-								: hostType === "remote-device"
-									? hostIsOnline === false
-										? "Remote workspace — device offline"
-										: "Remote workspace"
-									: "Cloud workspace"}
-						</p>
-						<p className="text-xs text-muted-foreground">
-							{hostType === "local-device"
-								? "Running on this device"
-								: hostType === "remote-device"
-									? hostIsOnline === false
-										? "The associated device isn't reachable right now"
-										: "Running on a paired device"
-									: "Hosted in the cloud"}
-						</p>
+						{pullRequest ? (
+							<>
+								<p className="text-xs font-medium">
+									PR #{pullRequest.number} — {pullRequest.state}
+								</p>
+								<p className="text-xs text-muted-foreground">
+									Click to open on GitHub
+								</p>
+							</>
+						) : (
+							<>
+								<p className="text-xs font-medium">
+									{hostType === "local-device"
+										? "Local workspace"
+										: hostType === "remote-device"
+											? hostIsOnline === false
+												? "Remote workspace — device offline"
+												: "Remote workspace"
+											: "Cloud workspace"}
+								</p>
+								<p className="text-xs text-muted-foreground">
+									{hostType === "local-device"
+										? "Running on this device"
+										: hostType === "remote-device"
+											? hostIsOnline === false
+												? "The associated device isn't reachable right now"
+												: "Running on a paired device"
+											: "Hosted in the cloud"}
+								</p>
+							</>
+						)}
 					</TooltipContent>
 				</Tooltip>
 
@@ -233,15 +270,6 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 						<span className="col-start-1 row-start-2 truncate font-mono text-[11px] leading-tight text-muted-foreground/60">
 							{branch}
 						</span>
-
-						{pullRequest && (
-							<DashboardSidebarWorkspaceStatusBadge
-								state={pullRequest.state}
-								prNumber={pullRequest.number}
-								prUrl={pullRequest.url}
-								className="col-start-2 row-start-2 justify-self-end"
-							/>
-						)}
 					</div>
 				</div>
 			</div>
