@@ -61,11 +61,11 @@ function createKeyEventHandler(terminal: XTerm) {
 				hasSelection: terminal.hasSelection(),
 			})
 		) {
-			// Prevent browser default from double-firing against the Electron
-			// `role: 'paste'`/`'copy'` accelerator (src/main/lib/menu.ts).
-			if (event.type === "keydown") {
-				event.preventDefault();
-			}
+			// Do NOT preventDefault — the browser's keydown → paste-command pipeline
+			// is what fires the `paste` event on xterm's textarea. VS Code and Tabby
+			// preventDefault here only because they implement paste themselves via
+			// the command system / ClipboardAddon; we rely on xterm's built-in paste
+			// listener, so the default must run.
 			return false;
 		}
 
