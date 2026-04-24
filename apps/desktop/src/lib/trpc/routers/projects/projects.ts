@@ -339,7 +339,12 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 		}),
 
 		listPullRequests: publicProcedure
-			.input(z.object({ projectId: z.string() }))
+			.input(
+				z.object({
+					projectId: z.string(),
+					includeClosed: z.boolean().optional(),
+				}),
+			)
 			.query(async ({ input }) => {
 				const project = localDb
 					.select()
@@ -355,7 +360,7 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 							"pr",
 							"list",
 							"--state",
-							"open",
+							input.includeClosed ? "all" : "open",
 							"--limit",
 							"30",
 							"--json",
@@ -376,6 +381,7 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 				z.object({
 					projectId: z.string(),
 					query: z.string(),
+					includeClosed: z.boolean().optional(),
 				}),
 			)
 			.query(async ({ input }) => {
@@ -393,7 +399,7 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 							"pr",
 							"list",
 							"--state",
-							"all",
+							input.includeClosed ? "all" : "open",
 							"--search",
 							input.query,
 							"--limit",
@@ -412,7 +418,12 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 			}),
 
 		listIssues: publicProcedure
-			.input(z.object({ projectId: z.string() }))
+			.input(
+				z.object({
+					projectId: z.string(),
+					includeClosed: z.boolean().optional(),
+				}),
+			)
 			.query(async ({ input }) => {
 				const project = localDb
 					.select()
@@ -428,7 +439,7 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 							"issue",
 							"list",
 							"--state",
-							"open",
+							input.includeClosed ? "all" : "open",
 							"--limit",
 							"30",
 							"--json",

@@ -86,6 +86,14 @@ function projectNotSetupError(projectId: string): TRPCError {
 	});
 }
 
+function normalizePullRequestState(
+	state: string,
+	mergedAt: string | null | undefined,
+): "open" | "closed" | "merged" {
+	if (mergedAt) return "merged";
+	return state.toLowerCase() === "closed" ? "closed" : "open";
+}
+
 // Kept outside the primary checkout so editors, file watchers, and
 // ignore rules treat worktrees as separate trees, not nested ones.
 function supersetWorktreesRoot(): string {
@@ -1521,6 +1529,7 @@ export const workspaceCreationRouter = router({
 				projectId: z.string(),
 				query: z.string().optional(),
 				limit: z.number().min(1).max(100).optional(),
+				includeClosed: z.boolean().optional(),
 			}),
 		)
 		.query(async ({ ctx, input }) => {
@@ -1554,6 +1563,9 @@ export const workspaceCreationRouter = router({
 					if (issue.pull_request) {
 						return { issues: [] };
 					}
+					if (!input.includeClosed && issue.state !== "open") {
+						return { issues: [] };
+					}
 					return {
 						issues: [
 							{
@@ -1567,8 +1579,9 @@ export const workspaceCreationRouter = router({
 					};
 				}
 
+				const stateFilter = input.includeClosed ? "" : " is:open";
 				const q =
-					`repo:${repo.owner}/${repo.name} is:issue ${effectiveQuery}`.trim();
+					`repo:${repo.owner}/${repo.name} is:issue${stateFilter} ${effectiveQuery}`.trim();
 				const { data } = await octokit.search.issuesAndPullRequests({
 					q,
 					per_page: limit,
@@ -1598,6 +1611,7 @@ export const workspaceCreationRouter = router({
 				projectId: z.string(),
 				query: z.string().optional(),
 				limit: z.number().min(1).max(100).optional(),
+				includeClosed: z.boolean().optional(),
 			}),
 		)
 		.query(async ({ ctx, input }) => {
@@ -1627,13 +1641,17 @@ export const workspaceCreationRouter = router({
 						repo: repo.name,
 						pull_number: prNumber,
 					});
+					const state = normalizePullRequestState(pr.state, pr.merged_at);
+					if (!input.includeClosed && state !== "open") {
+						return { pullRequests: [] };
+					}
 					return {
 						pullRequests: [
 							{
 								prNumber: pr.number,
 								title: pr.title,
 								url: pr.html_url,
-								state: pr.state,
+								state,
 								isDraft: pr.draft ?? false,
 								authorLogin: pr.user?.login ?? null,
 							},
@@ -1641,8 +1659,9 @@ export const workspaceCreationRouter = router({
 					};
 				}
 
+				const stateFilter = input.includeClosed ? "" : " is:open";
 				const q =
-					`repo:${repo.owner}/${repo.name} is:pr ${effectiveQuery}`.trim();
+					`repo:${repo.owner}/${repo.name} is:pr${stateFilter} ${effectiveQuery}`.trim();
 				const { data } = await octokit.search.issuesAndPullRequests({
 					q,
 					per_page: limit,
@@ -1652,14 +1671,20 @@ export const workspaceCreationRouter = router({
 				return {
 					pullRequests: data.items
 						.filter((item) => item.pull_request)
-						.map((item) => ({
-							prNumber: item.number,
-							title: item.title,
-							url: item.html_url,
-							state: item.state,
-							isDraft: item.draft ?? false,
-							authorLogin: item.user?.login ?? null,
-						})),
+						.map((item) => {
+							const state = normalizePullRequestState(
+								item.state,
+								item.pull_request?.merged_at,
+							);
+							return {
+								prNumber: item.number,
+								title: item.title,
+								url: item.html_url,
+								state,
+								isDraft: item.draft ?? false,
+								authorLogin: item.user?.login ?? null,
+							};
+						}),
 				};
 			} catch (err) {
 				console.warn("[workspaceCreation.searchPullRequests] failed", err);
