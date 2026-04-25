@@ -1,4 +1,7 @@
-import { normalizeTerminalTitle } from "@superset/shared/terminal-title";
+import {
+	normalizeTerminalTitle,
+	parseConEmuOsc9Title,
+} from "@superset/shared/terminal-title";
 import type { Terminal as XTerm } from "@xterm/xterm";
 
 export type ConnectionState = "disconnected" | "connecting" | "open" | "closed";
@@ -231,9 +234,10 @@ export function connect(
 	transport.onTitleTokenDisposable = terminal.parser.registerOscHandler(
 		9,
 		(data) => {
-			if (!data.startsWith("3;")) return false;
+			const title = parseConEmuOsc9Title(data);
+			if (title === undefined) return false;
 			if (replayTitleSuppressDepth > 0) return true;
-			if (setTitle(transport, data.slice(2))) {
+			if (setTitle(transport, title)) {
 				sendTitle(transport, socket);
 			}
 			return true;

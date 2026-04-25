@@ -1,5 +1,10 @@
 const MAX_TERMINAL_TITLE_LENGTH = 120;
 
+export function parseConEmuOsc9Title(data: string): string | null | undefined {
+	if (!data.startsWith("3;")) return undefined;
+	return data.length === 2 ? null : data.slice(2);
+}
+
 export function normalizeTerminalTitle(
 	title: string | null | undefined,
 ): string | null {

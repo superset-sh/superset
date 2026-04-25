@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { normalizeTerminalTitle } from "./terminal-title";
+import { normalizeTerminalTitle, parseConEmuOsc9Title } from "./terminal-title";
 
 describe("normalizeTerminalTitle", () => {
 	it("normalizes empty and missing titles to null", () => {
@@ -18,5 +18,21 @@ describe("normalizeTerminalTitle", () => {
 		const title = `${"a".repeat(119)}😀extra`;
 
 		expect(normalizeTerminalTitle(title)).toBe(`${"a".repeat(119)}😀`);
+	});
+});
+
+describe("parseConEmuOsc9Title", () => {
+	it("parses ConEmu tab title updates", () => {
+		expect(parseConEmuOsc9Title("3;foo bar")).toBe("foo bar");
+	});
+
+	it("parses ConEmu tab title reset", () => {
+		expect(parseConEmuOsc9Title("3;")).toBeNull();
+	});
+
+	it("ignores non-title OSC 9 payloads", () => {
+		expect(parseConEmuOsc9Title("3")).toBeUndefined();
+		expect(parseConEmuOsc9Title("3a")).toBeUndefined();
+		expect(parseConEmuOsc9Title("4;1;50")).toBeUndefined();
 	});
 });
