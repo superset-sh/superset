@@ -36,10 +36,10 @@ These collections have Electric mutation handlers in `CollectionsProvider/collec
 
 | Collection | Handlers | Current write surface | Behavior |
 | --- | --- | --- | --- |
-| `tasks` | insert, update, delete | `useTaskOptimisticActions` for update/delete; create dialog still uses `task.createFromUi` directly | Optimistic for task edits/deletes; collection handlers return `{ txid }`. |
-| `v2Projects` | update | `useV2ProjectOptimisticActions` for rename/repository updates | Optimistic for project row edits; create/delete remain API-confirmed. |
-| `v2Workspaces` | update | `useV2WorkspaceOptimisticActions` for rename-style updates | Optimistic for workspace row edits; create/delete remain host-service sagas. |
-| `chatSessions` | delete | `useChatSessionOptimisticActions` for chat session deletion | Optimistic delete; create remains server-confirmed because the chat runtime coordinates session creation. |
+| `tasks` | insert, update, delete | `useOptimisticCollectionActions().tasks` for update/delete; create dialog still uses `task.createFromUi` directly | Optimistic for task edits/deletes; collection handlers return `{ txid }`. |
+| `v2Projects` | update | `useOptimisticCollectionActions().v2Projects` for rename/repository updates | Optimistic for project row edits; create/delete remain API-confirmed. |
+| `v2Workspaces` | update | `useOptimisticCollectionActions().v2Workspaces` for rename-style updates | Optimistic for workspace row edits; create/delete remain host-service sagas. |
+| `chatSessions` | delete | `useOptimisticCollectionActions().chatSessions` for chat session deletion | Optimistic delete; create remains server-confirmed because the chat runtime coordinates session creation. |
 | `agentCommands` | update | `useCommandWatcher` | Background optimistic update; caller awaits `tx.isPersisted.promise` and retries on failure. |
 
 ### Read-only Electric collections
@@ -70,7 +70,7 @@ Workspace create/delete flows do not use `collections.v2Workspaces.insert/delete
 - workspace create/checkout/adopt writes a local `pendingWorkspaces` row, then the pending page calls host-service
 - workspace delete calls host-service `workspaceCleanup.destroy`; the sidebar hides the row through `DeletingWorkspacesProvider` while the saga runs
 
-Workspace rename does use `collections.v2Workspaces.update` via `useV2WorkspaceOptimisticActions`, backed by `v2Workspace.update` returning `{ txid }` from the same Postgres transaction.
+Workspace rename does use `collections.v2Workspaces.update` via `useOptimisticCollectionActions().v2Workspaces`, backed by `v2Workspace.update` returning `{ txid }` from the same Postgres transaction.
 
 ### LocalStorage collections
 
@@ -89,7 +89,7 @@ LocalStorage mutations can still throw for schema/storage errors, but they do no
 
 Collection handlers must return `{ txid }` for server-backed Electric writes. The txid must come from `pg_current_xact_id()` inside the same transaction that performs the mutation. A txid captured before or after the write can leave `tx.isPersisted.promise` waiting for a transaction that Electric will never stream.
 
-Feature code should not scatter direct server-backed collection mutations. Use a domain action hook, such as `useTaskOptimisticActions`, `useV2WorkspaceOptimisticActions`, `useV2ProjectOptimisticActions`, or `useChatSessionOptimisticActions`, so every call site gets the same behavior:
+Feature code should not scatter direct server-backed collection mutations. Use `useOptimisticCollectionActions` and the relevant grouped action surface, such as `.tasks`, `.v2Workspaces`, `.v2Projects`, or `.chatSessions`, so every call site gets the same behavior:
 
 - apply the optimistic collection mutation immediately
 - attach a rejection handler to `tx.isPersisted.promise`
