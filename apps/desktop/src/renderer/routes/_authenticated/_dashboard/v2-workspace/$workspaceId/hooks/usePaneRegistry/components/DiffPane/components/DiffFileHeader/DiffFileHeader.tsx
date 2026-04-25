@@ -50,7 +50,7 @@ export function DiffFileHeader({
 	const viewedId = useId();
 
 	return (
-		<div className="flex min-w-0 items-center justify-between gap-1 px-2 py-1.5">
+		<div className="@container/diff-file-header flex min-w-0 flex-wrap items-center justify-between gap-1 px-2 py-1.5">
 			<button
 				type="button"
 				onClick={onToggleCollapsed}
@@ -79,13 +79,13 @@ export function DiffFileHeader({
 						disabled={!onOpenFile && !onOpenInExternalEditor}
 						aria-label="Open in file viewer"
 						title={path}
-						className="flex h-6 min-w-0 flex-1 items-center gap-1.5 rounded border border-border px-1.5 py-0.5 text-left transition-colors hover:bg-accent disabled:pointer-events-none disabled:opacity-60"
+						className="flex h-6 min-w-20 flex-[1_1_10rem] items-center gap-1.5 rounded border border-border px-1.5 py-0.5 text-left transition-colors hover:bg-accent disabled:pointer-events-none disabled:opacity-60"
 					>
 						<FileIcon fileName={path} className="size-3.5 shrink-0" />
 						<span className="min-w-0 flex-1 truncate font-mono text-xs text-foreground">
 							{path}
 						</span>
-						<span className="shrink-0 font-mono text-[10px] text-muted-foreground">
+						<span className="hidden shrink-0 font-mono text-[10px] text-muted-foreground @min-[300px]/diff-file-header:inline">
 							{additions > 0 && (
 								<span className="text-green-700 dark:text-green-400">
 									+{additions}
@@ -105,7 +105,7 @@ export function DiffFileHeader({
 				</TooltipContent>
 			</Tooltip>
 
-			<div className="flex shrink-0 items-center gap-1">
+			<div className="ml-auto flex shrink-0 items-center gap-1">
 				<Tooltip>
 					<TooltipTrigger asChild>
 						<span className="inline-flex rounded">
@@ -136,7 +136,7 @@ export function DiffFileHeader({
 					/>
 					<label
 						htmlFor={viewedId}
-						className="cursor-pointer select-none text-[10px] text-muted-foreground"
+						className="hidden cursor-pointer select-none text-[10px] text-muted-foreground @min-[380px]/diff-file-header:inline"
 					>
 						Viewed
 					</label>

@@ -119,7 +119,7 @@ export function TabItem<TData>({
 					{isEditing ? (
 						<div className="flex h-full w-full shrink-0 items-center px-2">
 							<TabRenameInput
-								className="text-sm w-full min-w-0 rounded border border-border bg-background px-1 py-0.5 text-foreground outline-none focus:ring-1 focus:ring-ring"
+								className="w-full min-w-0 rounded border border-border bg-background px-1 py-0.5 text-xs text-foreground outline-none focus:ring-1 focus:ring-ring"
 								maxLength={64}
 								onCancel={stopEditing}
 								onChange={setEditValue}
@@ -136,7 +136,7 @@ export function TabItem<TData>({
 								<TooltipTrigger asChild>
 									<button
 										className={cn(
-											"flex h-full w-full shrink-0 items-center gap-2 pl-3 pr-8 text-left text-sm transition-all",
+											"flex h-full min-w-0 flex-1 items-center gap-1.5 pl-3 pr-1 text-left text-xs transition-all",
 											isActive
 												? "bg-border/30 text-foreground"
 												: "text-muted-foreground/70 hover:bg-tertiary/20 hover:text-muted-foreground",
@@ -151,20 +151,22 @@ export function TabItem<TData>({
 										onDoubleClick={startEditing}
 										type="button"
 									>
-										{icon}
-										<span className="flex-1 truncate">{title}</span>
-										{accessory}
+										{icon && <span className="shrink-0">{icon}</span>}
+										<span className="min-w-0 flex-1 truncate">{title}</span>
+										{accessory && (
+											<span className="shrink-0 leading-none">{accessory}</span>
+										)}
 									</button>
 								</TooltipTrigger>
 								<TooltipContent side="bottom" showArrow={false}>
 									{title}
 								</TooltipContent>
 							</Tooltip>
-							<div className="absolute right-1 top-1/2 hidden -translate-y-1/2 items-center gap-0.5 group-hover:flex">
+							<div className="flex h-full w-7 shrink-0 items-center justify-center opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
 								<Tooltip delayDuration={500}>
 									<TooltipTrigger asChild>
 										<Button
-											className="size-6 cursor-pointer hover:bg-muted"
+											className="size-5 cursor-pointer hover:bg-muted"
 											onClick={(event) => {
 												event.stopPropagation();
 												onClose();

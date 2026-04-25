@@ -215,13 +215,13 @@ export function TerminalSessionDropdown({
 					type="button"
 					aria-label="Terminal sessions"
 					title={triggerTitle}
-					className="flex min-w-0 max-w-full flex-1 items-center gap-1.5 rounded px-1.5 py-0.5 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+					className="@container/terminal-session flex min-w-0 max-w-full flex-1 items-center gap-1.5 rounded px-1.5 py-0.5 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
 					onMouseDown={(event) => event.stopPropagation()}
 					onClick={(event) => event.stopPropagation()}
 				>
 					<TerminalSquare className="size-3.5 shrink-0" />
 					<span className="min-w-0 truncate">{triggerTitle}</span>
-					<span className="shrink-0 text-[10px] text-muted-foreground/70">
+					<span className="hidden shrink-0 text-[10px] text-muted-foreground/70 @min-[160px]/terminal-session:inline">
 						{currentCreatedAtLabel}
 					</span>
 					{sessionsQuery.isFetching && isOpen ? (

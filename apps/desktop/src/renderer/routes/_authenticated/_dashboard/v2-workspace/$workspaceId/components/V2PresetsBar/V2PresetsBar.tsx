@@ -267,7 +267,7 @@ export function V2PresetsBar({
 
 	return (
 		<div
-			className="flex items-center h-8 border-b border-border bg-background px-2 gap-0.5 overflow-x-auto shrink-0"
+			className="flex h-8 min-w-0 shrink-0 items-center gap-0.5 overflow-x-auto overflow-y-hidden border-b border-border bg-background px-2"
 			style={{ scrollbarWidth: "none" }}
 		>
 			<DropdownMenu>

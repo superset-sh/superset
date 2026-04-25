@@ -18,6 +18,7 @@ import { HiMiniXMark } from "react-icons/hi2";
 import { TbLayoutColumns, TbLayoutRows } from "react-icons/tb";
 import { useV2UserPreferences } from "renderer/hooks/useV2UserPreferences";
 import { HotkeyLabel, useHotkey } from "renderer/hotkeys";
+import { getBaseName } from "renderer/lib/pathBasename";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { CommandPalette } from "renderer/screens/main/components/CommandPalette";
 import {
@@ -501,7 +502,7 @@ function WorkspaceContent({
 									return getDocument(workspaceId, filePath)?.dirty === true;
 								});
 								const dirtyFileNames = dirtyPanes.map((p) =>
-									(p.data as FilePaneData).filePath.split("/").pop(),
+									getBaseName((p.data as FilePaneData).filePath),
 								);
 								if (dirtyPanes.length === 0) return true;
 								const title =

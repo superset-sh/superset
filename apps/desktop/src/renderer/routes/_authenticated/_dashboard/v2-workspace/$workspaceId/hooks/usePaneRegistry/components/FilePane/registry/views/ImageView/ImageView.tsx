@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { getBaseName } from "renderer/lib/pathBasename";
 import { getImageMimeType } from "shared/file-types";
 import type { ViewProps } from "../../types";
 
@@ -34,7 +35,7 @@ export function ImageView({ document, filePath }: ViewProps) {
 			>
 				<img
 					src={objectUrl}
-					alt={filePath.split("/").pop() ?? ""}
+					alt={getBaseName(filePath)}
 					className="block max-h-full max-w-full object-contain"
 					draggable={false}
 				/>

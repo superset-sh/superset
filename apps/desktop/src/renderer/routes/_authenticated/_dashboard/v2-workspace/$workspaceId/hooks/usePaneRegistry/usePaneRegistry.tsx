@@ -28,6 +28,7 @@ import {
 } from "react-icons/lu";
 import { TbScan } from "react-icons/tb";
 import { useHotkeyDisplay } from "renderer/hotkeys";
+import { getBaseName } from "renderer/lib/pathBasename";
 import { terminalRuntimeRegistry } from "renderer/lib/terminal/terminal-runtime-registry";
 import { FileIcon } from "renderer/screens/main/components/WorkspaceView/RightSidebar/FilesView/utils";
 import { useSettings } from "renderer/stores/settings";
@@ -55,7 +56,7 @@ import { TerminalHeaderExtras } from "./components/TerminalPane/components/Termi
 import { TerminalSessionDropdown } from "./components/TerminalPane/components/TerminalSessionDropdown";
 
 function getFileName(filePath: string): string {
-	return filePath.split("/").pop() ?? filePath;
+	return getBaseName(filePath);
 }
 
 function FilePaneTabTitle({
@@ -210,7 +211,7 @@ export function usePaneRegistry(
 					const data = pane.data as FilePaneData;
 					const doc = getDocument(workspaceId, data.filePath);
 					if (!doc?.dirty) return true;
-					const name = data.filePath.split("/").pop();
+					const name = getFileName(data.filePath);
 					return new Promise<boolean>((resolve) => {
 						alert({
 							title: `Do you want to save the changes you made to ${name}?`,
