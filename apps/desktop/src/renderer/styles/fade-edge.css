@@ -20,6 +20,7 @@
 		--fade-edge-r-size: 0px;
 		--fade-edge-b-size: 0px;
 		--fade-edge-l-size: 0px;
+
 		mask-image:
 			linear-gradient(
 				to bottom,
