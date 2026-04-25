@@ -96,7 +96,7 @@ Feature code should not scatter direct server-backed collection mutations. Use `
 - show a user-visible error when persistence fails
 - let TanStack DB own rollback
 
-Use `{ optimistic: false }` only for exceptional flows where the UI must wait for server confirmation before revealing the result, such as a workflow that depends on a server-generated identifier or a multi-step server side effect.
+Use `{ optimistic: false }` only for exceptional flows where the UI must wait for server confirmation before revealing the result, such as a workflow that depends on a server-generated identifier or a multi-step server-side effect.
 
 ## Offline-First Boundary
 

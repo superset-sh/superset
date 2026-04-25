@@ -353,9 +353,12 @@ function createOrgCollections(organizationId: string): OrgCollections {
 			getKey: (item) => item.id,
 			onUpdate: async ({ transaction }) => {
 				const { original, changes } = transaction.mutations[0];
+				const { branch, hostId, name } = changes;
 				const result = await apiClient.v2Workspace.update.mutate({
-					...changes,
 					id: original.id,
+					branch,
+					hostId,
+					name,
 				});
 				return { txid: result.txid };
 			},
