@@ -38,9 +38,34 @@ function setConnectionState(
 	}
 }
 
+function shouldDebugTerminalTitles() {
+	try {
+		return localStorage.getItem("superset:debugTerminalTitles") === "1";
+	} catch {
+		return false;
+	}
+}
+
 function setTerminalTitle(transport: TerminalTransport, title: string | null) {
-	if (transport.title === title) return;
+	if (transport.title === title) {
+		if (shouldDebugTerminalTitles()) {
+			console.debug("[terminal-title:renderer] unchanged", {
+				title,
+				currentUrl: transport.currentUrl,
+			});
+		}
+		return;
+	}
+	const previousTitle = transport.title;
 	transport.title = title;
+	if (shouldDebugTerminalTitles()) {
+		console.debug("[terminal-title:renderer] changed", {
+			previousTitle,
+			title,
+			listeners: transport.titleListeners.size,
+			currentUrl: transport.currentUrl,
+		});
+	}
 	for (const listener of transport.titleListeners) {
 		listener();
 	}

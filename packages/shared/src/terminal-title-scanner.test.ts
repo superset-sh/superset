@@ -25,6 +25,28 @@ describe("terminal title scanner", () => {
 		).toEqual(["Workspace"]);
 	});
 
+	it("handles C1 ST terminators", () => {
+		const state = createTerminalTitleScanState();
+
+		expect(scanForTerminalTitle(state, "\x1b]2;Workspace\x9c").updates).toEqual(
+			["Workspace"],
+		);
+		expect(scanForTerminalTitle(state, "\x1b]2;Changed\x9c").updates).toEqual([
+			"Changed",
+		]);
+	});
+
+	it("handles C1 OSC introducers", () => {
+		const state = createTerminalTitleScanState();
+
+		expect(scanForTerminalTitle(state, "\x9d2;Workspace\x9c").updates).toEqual([
+			"Workspace",
+		]);
+		expect(scanForTerminalTitle(state, "\x9d9;3;Agent\x07").updates).toEqual([
+			"Agent",
+		]);
+	});
+
 	it("handles fragmented OSC sequences", () => {
 		const state = createTerminalTitleScanState();
 

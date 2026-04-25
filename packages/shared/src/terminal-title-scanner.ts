@@ -1,7 +1,9 @@
 const ESC = "\x1b";
 const OSC = `${ESC}]`;
+const C1_OSC = "\x9d";
 const BEL = "\x07";
 const ST = `${ESC}\\`;
+const C1_ST = "\x9c";
 
 const MAX_OSC_SEQUENCE_BYTES = 4096;
 const MAX_TERMINAL_TITLE_LENGTH = 200;
@@ -44,11 +46,27 @@ function findOscTerminator(
 	for (let i = fromIndex; i < input.length; i++) {
 		const ch = input[i];
 		if (ch === BEL) return { index: i, length: BEL.length };
+		if (ch === C1_ST) return { index: i, length: C1_ST.length };
 		if (ch === ESC && input.startsWith(ST, i)) {
 			return { index: i, length: ST.length };
 		}
 	}
 	return null;
+}
+
+function findOscStart(
+	input: string,
+	fromIndex: number,
+): { index: number; length: number } | null {
+	const escOscIndex = input.indexOf(OSC, fromIndex);
+	const c1OscIndex = input.indexOf(C1_OSC, fromIndex);
+
+	if (escOscIndex === -1 && c1OscIndex === -1) return null;
+	if (escOscIndex === -1) return { index: c1OscIndex, length: C1_OSC.length };
+	if (c1OscIndex === -1 || escOscIndex < c1OscIndex) {
+		return { index: escOscIndex, length: OSC.length };
+	}
+	return { index: c1OscIndex, length: C1_OSC.length };
 }
 
 function parseTitlePayload(payload: string): string | null | undefined {
@@ -76,6 +94,9 @@ function parseTitlePayload(payload: string): string | null | undefined {
  * - OSC 2;<title> BEL/ST
  * - OSC 9;3;<title> BEL/ST (ConEmu tab title)
  * - OSC 9;3; BEL/ST reset
+ *
+ * OSC may be encoded as ESC ] or the single-byte C1 introducer.
+ * ST may be encoded as ESC \ or the single-byte C1 terminator.
  */
 export function scanForTerminalTitle(
 	state: TerminalTitleScanState,
@@ -86,16 +107,16 @@ export function scanForTerminalTitle(
 	let searchIndex = 0;
 
 	while (searchIndex < input.length) {
-		const oscStart = input.indexOf(OSC, searchIndex);
-		if (oscStart === -1) {
+		const oscStart = findOscStart(input, searchIndex);
+		if (!oscStart) {
 			state.buffer = input.endsWith(ESC) ? ESC : "";
 			return { updates };
 		}
 
-		const payloadStart = oscStart + OSC.length;
+		const payloadStart = oscStart.index + oscStart.length;
 		const terminator = findOscTerminator(input, payloadStart);
 		if (!terminator) {
-			const sequence = input.slice(oscStart);
+			const sequence = input.slice(oscStart.index);
 			state.buffer = sequence.length <= MAX_OSC_SEQUENCE_BYTES ? sequence : "";
 			return { updates };
 		}
