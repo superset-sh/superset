@@ -218,7 +218,6 @@ function measureAndResize(runtime: TerminalRuntime): boolean {
 	runtime.fitAddon.fit();
 	runtime.lastCols = terminal.cols;
 	runtime.lastRows = terminal.rows;
-	terminal.refresh(0, Math.max(0, terminal.rows - 1));
 
 	if (wasPinnedToBottom) {
 		terminal.scrollToBottom();
@@ -228,6 +227,8 @@ function measureAndResize(runtime: TerminalRuntime): boolean {
 			terminal.scrollToLine(targetY);
 		}
 	}
+
+	terminal.refresh(0, Math.max(0, terminal.rows - 1));
 
 	return terminal.cols !== prevCols || terminal.rows !== prevRows;
 }
