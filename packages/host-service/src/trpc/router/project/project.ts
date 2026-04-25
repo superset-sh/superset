@@ -45,26 +45,11 @@ export const projectRouter = router({
 				repoPath: z.string().min(1),
 			}),
 		)
-		.query(async ({ ctx, input }) => {
-			const cloudProject = await ctx.api.v2Project.get.query({
-				organizationId: ctx.organizationId,
-				id: input.projectId,
-			});
-			if (cloudProject.repoCloneUrl) return { conflict: null };
-
-			const { parsed } = await resolveWithPrimaryRemote(input.repoPath);
-			const { candidates } = await ctx.api.v2Project.findByGitHubRemote.query({
-				organizationId: ctx.organizationId,
-				repoCloneUrl: parsed.url,
-			});
-			const other = candidates.find((c) => c.id !== input.projectId);
-			if (!other) return { conflict: null };
-			return {
-				conflict: {
-					id: other.id,
-					name: other.name,
-				},
-			};
+		.query(() => {
+			// Multiple v2 projects may point at the same GitHub URL, so a matching
+			// repo URL is no longer a conflict. Kept for backwards-compatible
+			// clients while older settings screens still call the endpoint.
+			return { conflict: null };
 		}),
 
 	findByPath: protectedProcedure

@@ -137,11 +137,8 @@ export async function migrateV1DataToV2(args: Args): Promise<MigrationSummary> {
 				const candidate = found.candidates[0];
 				if (!candidate) throw new Error("findByPath returned empty candidate");
 				if (found.candidates.length > 1) {
-					// Shouldn't happen — v2 has a unique index on
-					// (organization_id, lower(repo_clone_url)). Log so it's
-					// diagnosable if the constraint ever slips.
 					console.warn(
-						`[v1-migration] findByPath for ${project.mainRepoPath} returned ${found.candidates.length} candidates; linking to first (${candidate.id})`,
+						`[v1-migration] findByPath for ${project.mainRepoPath} returned ${found.candidates.length} candidates; migration has no project picker, linking to first (${candidate.id})`,
 					);
 				}
 				v2ProjectId = candidate.id;

@@ -62,11 +62,8 @@ export function useFolderFirstImport(options?: {
 
 		const [only, ...rest] = candidates;
 		if (rest.length > 0) {
-			// Unreachable given single-org findByGitHubRemote + the unique
-			// index on (organizationId, lower(repoCloneUrl)). Surface loudly
-			// if we ever hit it — means the invariants broke.
 			reportError(
-				`Multiple matching projects returned (${candidates.length}) — please report this`,
+				`Multiple projects use this repository (${candidates.length}). Open the project you want from settings to set it up on this device.`,
 			);
 			return;
 		}
