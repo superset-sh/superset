@@ -65,6 +65,7 @@ const checkoutPrSchema = z.object({
 	url: z.string().url(),
 	title: z.string(),
 	headRefName: z.string(),
+	headRefOid: z.string().min(1),
 	baseRefName: z.string(),
 	headRepositoryOwner: z.string(),
 	isCrossRepository: z.boolean(),
@@ -143,6 +144,7 @@ export const pullRequestContentSchema = z.object({
 	url: z.string(),
 	state: z.string(),
 	headRefName: z.string(),
+	headRefOid: z.string().min(1),
 	baseRefName: z.string(),
 	// `gh pr view` returns null when the PR's head fork repository has been
 	// deleted. Nullable so the schema parse doesn't fail; consumers decide

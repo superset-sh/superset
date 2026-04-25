@@ -19,7 +19,7 @@ export const getGitHubPullRequestContent = protectedProcedure
 				"--repo",
 				`${repo.owner}/${repo.name}`,
 				"--json",
-				"number,title,body,url,state,author,headRefName,baseRefName,headRepositoryOwner,isCrossRepository,isDraft,createdAt,updatedAt",
+				"number,title,body,url,state,author,headRefName,headRefOid,baseRefName,headRepositoryOwner,isCrossRepository,isDraft,createdAt,updatedAt",
 			]);
 			const data = pullRequestContentSchema.parse(raw);
 			return {
@@ -29,6 +29,7 @@ export const getGitHubPullRequestContent = protectedProcedure
 				url: data.url,
 				state: data.state.toLowerCase(),
 				branch: data.headRefName,
+				headRefOid: data.headRefOid,
 				baseBranch: data.baseRefName,
 				headRepositoryOwner: data.headRepositoryOwner?.login ?? null,
 				isCrossRepository: data.isCrossRepository,

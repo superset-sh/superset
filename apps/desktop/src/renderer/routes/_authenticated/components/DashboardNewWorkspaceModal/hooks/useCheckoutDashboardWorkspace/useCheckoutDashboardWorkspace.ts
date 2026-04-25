@@ -18,6 +18,7 @@ export interface CheckoutWorkspaceInput {
 		url: string;
 		title: string;
 		headRefName: string;
+		headRefOid: string;
 		baseRefName: string;
 		headRepositoryOwner: string;
 		isCrossRepository: boolean;
