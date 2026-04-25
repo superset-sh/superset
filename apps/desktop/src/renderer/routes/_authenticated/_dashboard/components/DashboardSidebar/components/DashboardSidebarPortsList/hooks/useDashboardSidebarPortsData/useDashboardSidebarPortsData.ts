@@ -1,15 +1,18 @@
+import { getEventBus } from "@superset/workspace-client";
 import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
-import { useQueries } from "@tanstack/react-query";
-import { useMemo } from "react";
+import { useQueries, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useMemo } from "react";
 import { env } from "renderer/env.renderer";
+import { getHostServiceWsToken } from "renderer/lib/host-service-auth";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import type { DetectedPort } from "shared/types";
 import type { DashboardSidebarWorkspaceHostType } from "../../../../types";
 
-const PORTS_REFETCH_INTERVAL_MS = 5_000;
+const PORTS_FALLBACK_REFETCH_INTERVAL_MS = 30_000;
+const PORT_EVENT_INVALIDATE_DEBOUNCE_MS = 100;
 
 export interface DashboardSidebarPort extends RemotePort {
 	hostId: string;
@@ -41,12 +44,31 @@ interface HostPortsResult {
 	ports: RemotePort[];
 }
 
+interface HostPortsQueryTarget {
+	id: string;
+	hostType: DashboardSidebarWorkspaceHostType;
+	hostUrl: string;
+	workspaceIds: string[];
+}
+
+function getHostPortsQueryKey(host: HostPortsQueryTarget) {
+	return [
+		"host-service",
+		"ports",
+		"getAll",
+		host.id,
+		host.hostUrl,
+		host.workspaceIds,
+	] as const;
+}
+
 export function useDashboardSidebarPortsData(): {
 	workspacePortGroups: DashboardSidebarPortGroup[];
 	totalPortCount: number;
 	portLoadErrors: DashboardSidebarPortsLoadError[];
 } {
 	const collections = useCollections();
+	const queryClient = useQueryClient();
 	const { activeHostUrl, machineId } = useLocalHostService();
 
 	const { data: hosts = [] } = useLiveQuery(
@@ -91,7 +113,7 @@ export function useDashboardSidebarPortsData(): {
 		return map;
 	}, [workspaces]);
 
-	const hostsToQuery = useMemo(
+	const hostsToQuery = useMemo<HostPortsQueryTarget[]>(
 		() =>
 			hosts.flatMap((host) => {
 				const workspaceIds = workspaceIdsByHostId.get(host.id);
@@ -118,15 +140,8 @@ export function useDashboardSidebarPortsData(): {
 
 	const queries = useQueries({
 		queries: hostsToQuery.map((host) => ({
-			queryKey: [
-				"host-service",
-				"ports",
-				"getAll",
-				host.id,
-				host.hostUrl,
-				host.workspaceIds,
-			],
-			refetchInterval: PORTS_REFETCH_INTERVAL_MS,
+			queryKey: getHostPortsQueryKey(host),
+			refetchInterval: PORTS_FALLBACK_REFETCH_INTERVAL_MS,
 			queryFn: async (): Promise<HostPortsResult> => {
 				const client = getHostServiceClientByUrl(host.hostUrl);
 				const ports = await client.ports.getAll.query({
@@ -141,6 +156,40 @@ export function useDashboardSidebarPortsData(): {
 			},
 		})),
 	});
+
+	useEffect(() => {
+		const cleanups: Array<() => void> = [];
+
+		for (const host of hostsToQuery) {
+			const workspaceIds = new Set(host.workspaceIds);
+			let invalidateTimer: ReturnType<typeof setTimeout> | null = null;
+			const invalidateHostPorts = () => {
+				if (invalidateTimer) return;
+				invalidateTimer = setTimeout(() => {
+					invalidateTimer = null;
+					void queryClient.invalidateQueries({
+						queryKey: getHostPortsQueryKey(host),
+					});
+				}, PORT_EVENT_INVALIDATE_DEBOUNCE_MS);
+			};
+			const bus = getEventBus(host.hostUrl, () =>
+				getHostServiceWsToken(host.hostUrl),
+			);
+			const removeListener = bus.on("port:changed", "*", (workspaceId) => {
+				if (!workspaceIds.has(workspaceId)) return;
+				invalidateHostPorts();
+			});
+			cleanups.push(removeListener, bus.retain(), () => {
+				if (invalidateTimer) clearTimeout(invalidateTimer);
+			});
+		}
+
+		return () => {
+			for (const cleanup of cleanups) {
+				cleanup();
+			}
+		};
+	}, [hostsToQuery, queryClient]);
 
 	const workspacesById = useMemo(
 		() =>

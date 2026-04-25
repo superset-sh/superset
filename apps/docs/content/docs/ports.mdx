@@ -14,6 +14,8 @@ Superset does not assign per-workspace port ranges. It discovers listening ports
 - **View active ports** - See which processes are using which ports
 - **Kill processes** - Stop a process by clicking its port
 - **Workspace grouping** - Ports are grouped by the workspace that owns the process
+- **Terminal focus** - Select a port to jump back to the terminal that owns it
+- **Browser actions** - Open local web servers in the in-app browser or externally from the port action
 
 ## Port Labels
 
@@ -46,7 +48,7 @@ Create `.superset/ports.json` in your repository:
 - Label entries for ports that are not currently listening are ignored
 - Each workspace reads labels from its own worktree's file
 - Changes are detected automatically
-- Ports open `localhost:PORT` in browser when clicked
+- Ports can be opened at `localhost:PORT` from the browser action
 
 **Error Handling:**
 
@@ -57,3 +59,9 @@ If `ports.json` is malformed:
 **Tips:**
 - Commit `.superset/ports.json` to share port labels with your team
 - **Pro tip:** If you want deterministic per-workspace port ranges, implement it in setup/teardown scripts by reserving a range in a shared file (for example `~/.superset/port-allocations.json`) during setup and releasing it during teardown. See this repo's examples: [`.superset/setup.sh`](https://github.com/superset-sh/superset/blob/main/.superset/setup.sh) and [`.superset/teardown.sh`](https://github.com/superset-sh/superset/blob/main/.superset/teardown.sh).
+
+## Discovery and Updates
+
+Port discovery runs in each host service, not in the desktop renderer. The host service watches terminal process trees, scans for listening ports, and publishes `port:changed` events when ports appear or disappear.
+
+The desktop sidebar keeps one ports query per online host and invalidates that query as soon as the host service emits a port event. A slower fallback refetch still runs so the UI recovers if an event is missed during reconnect.
