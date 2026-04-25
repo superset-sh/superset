@@ -159,7 +159,12 @@ export function BrowserToolbar({
 				</Tooltip>
 			</div>
 			<div className="mx-1.5 h-3.5 w-px bg-muted-foreground/60" />
-			<div className="relative flex flex-1 min-w-0 items-center">
+			{/* biome-ignore lint/a11y/noStaticElementInteractions: handlers only stop propagation; interactive children carry the real semantics */}
+			<div
+				className="relative flex flex-1 min-w-0 items-center"
+				onMouseDown={(e) => e.stopPropagation()}
+				onWheel={(e) => e.stopPropagation()}
+			>
 				{isEditing ? (
 					<form
 						onSubmit={handleSubmit}
