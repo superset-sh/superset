@@ -15,6 +15,7 @@ export type {
 	PaneRegistry,
 	RendererContext,
 	TabContext,
+	WorkspaceInteractionState,
 	WorkspaceProps,
 } from "./react";
 export { resolveTabTitle, Workspace } from "./react";

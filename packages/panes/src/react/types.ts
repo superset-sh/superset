@@ -82,6 +82,10 @@ export interface PaneDefinition<TData> {
 
 export type PaneRegistry<TData> = Record<string, PaneDefinition<TData>>;
 
+export interface WorkspaceInteractionState {
+	resizeActive: boolean;
+}
+
 export interface WorkspaceProps<TData> {
 	store: StoreApi<WorkspaceStore<TData>>;
 	registry: PaneRegistry<TData>;
@@ -96,6 +100,7 @@ export interface WorkspaceProps<TData> {
 		tab: Tab<TData>,
 	) => boolean | Promise<boolean>;
 	onBeforeCloseTab?: (tab: Tab<TData>) => boolean | Promise<boolean>;
+	onInteractionStateChange?: (state: WorkspaceInteractionState) => void;
 	paneActions?:
 		| PaneActionConfig<TData>[]
 		| ((context: RendererContext<TData>) => PaneActionConfig<TData>[]);

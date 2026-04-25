@@ -3,7 +3,7 @@ import {
 	ResizablePanel,
 	ResizablePanelGroup,
 } from "@superset/ui/resizable";
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import type { StoreApi } from "zustand/vanilla";
 import type { WorkspaceStore } from "../../../../../core/store";
 import type {
@@ -30,6 +30,7 @@ interface TabProps<TData> {
 	contextMenuActions?:
 		| ContextMenuActionConfig<TData>[]
 		| ((context: RendererContext<TData>) => ContextMenuActionConfig<TData>[]);
+	onSplitResizeDragging?: (sourceId: string, isDragging: boolean) => void;
 }
 
 function SplitView<TData>({
@@ -40,6 +41,7 @@ function SplitView<TData>({
 	registry,
 	paneActions,
 	contextMenuActions,
+	onSplitResizeDragging,
 }: {
 	store: StoreApi<WorkspaceStore<TData>>;
 	tab: TabType<TData>;
@@ -48,10 +50,18 @@ function SplitView<TData>({
 	registry: PaneRegistry<TData>;
 	paneActions?: TabProps<TData>["paneActions"];
 	contextMenuActions?: TabProps<TData>["contextMenuActions"];
+	onSplitResizeDragging?: TabProps<TData>["onSplitResizeDragging"];
 }) {
 	const groupRef = useRef<React.ComponentRef<typeof ResizablePanelGroup>>(null);
 	const firstSize = node.splitPercentage ?? 50;
 	const secondSize = 100 - firstSize;
+	const resizeSourceId = `${tab.id}:${path.join(".") || "root"}`;
+
+	useEffect(() => {
+		return () => {
+			onSplitResizeDragging?.(resizeSourceId, false);
+		};
+	}, [onSplitResizeDragging, resizeSourceId]);
 
 	return (
 		<ResizablePanelGroup
@@ -84,10 +94,15 @@ function SplitView<TData>({
 					registry={registry}
 					paneActions={paneActions}
 					contextMenuActions={contextMenuActions}
+					onSplitResizeDragging={onSplitResizeDragging}
 					parentDirection={node.direction}
 				/>
 			</ResizablePanel>
-			<ResizableHandle />
+			<ResizableHandle
+				onDragging={(isDragging) =>
+					onSplitResizeDragging?.(resizeSourceId, isDragging)
+				}
+			/>
 			<ResizablePanel
 				className={PANE_MIN_SIZE_CLASS_NAME}
 				defaultSize={secondSize}
@@ -100,6 +115,7 @@ function SplitView<TData>({
 					registry={registry}
 					paneActions={paneActions}
 					contextMenuActions={contextMenuActions}
+					onSplitResizeDragging={onSplitResizeDragging}
 					parentDirection={node.direction}
 				/>
 			</ResizablePanel>
@@ -115,6 +131,7 @@ function LayoutNodeView<TData>({
 	registry,
 	paneActions,
 	contextMenuActions,
+	onSplitResizeDragging,
 	parentDirection = null,
 }: {
 	store: StoreApi<WorkspaceStore<TData>>;
@@ -124,6 +141,7 @@ function LayoutNodeView<TData>({
 	registry: PaneRegistry<TData>;
 	paneActions?: TabProps<TData>["paneActions"];
 	contextMenuActions?: TabProps<TData>["contextMenuActions"];
+	onSplitResizeDragging?: TabProps<TData>["onSplitResizeDragging"];
 	parentDirection?: "horizontal" | "vertical" | null;
 }) {
 	if (node.type === "pane") {
@@ -153,6 +171,7 @@ function LayoutNodeView<TData>({
 			registry={registry}
 			paneActions={paneActions}
 			contextMenuActions={contextMenuActions}
+			onSplitResizeDragging={onSplitResizeDragging}
 		/>
 	);
 }
@@ -163,6 +182,7 @@ export function Tab<TData>({
 	registry,
 	paneActions,
 	contextMenuActions,
+	onSplitResizeDragging,
 }: TabProps<TData>) {
 	if (!tab.layout) {
 		return (
@@ -182,6 +202,7 @@ export function Tab<TData>({
 				registry={registry}
 				paneActions={paneActions}
 				contextMenuActions={contextMenuActions}
+				onSplitResizeDragging={onSplitResizeDragging}
 			/>
 		</div>
 	);
