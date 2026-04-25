@@ -18,7 +18,13 @@ import {
 	TerminalSquare,
 	Trash2,
 } from "lucide-react";
-import { useCallback, useMemo, useState, useSyncExternalStore } from "react";
+import {
+	useCallback,
+	useEffect,
+	useMemo,
+	useState,
+	useSyncExternalStore,
+} from "react";
 import { markTerminalForBackground } from "renderer/lib/terminal/terminal-background-intents";
 import { terminalRuntimeRegistry } from "renderer/lib/terminal/terminal-runtime-registry";
 import type {
@@ -225,7 +231,30 @@ export function TerminalSessionDropdown({
 
 	const hostTitle =
 		runtimeTitle !== undefined ? runtimeTitle : currentSession?.title;
-	const triggerTitle = context.pane.titleOverride ?? hostTitle ?? "Terminal";
+	const titleOverride = context.pane.titleOverride;
+	const triggerTitle = hostTitle ?? titleOverride ?? "Terminal";
+
+	useEffect(() => {
+		console.debug("[terminal-title:dropdown] resolved", {
+			terminalId,
+			paneId: context.pane.id,
+			runtimeTitle,
+			sessionTitle: currentSession?.title,
+			titleOverride,
+			triggerTitle,
+			sessions: sessions.length,
+			isOpen,
+		});
+	}, [
+		terminalId,
+		context.pane.id,
+		runtimeTitle,
+		currentSession?.title,
+		titleOverride,
+		triggerTitle,
+		sessions.length,
+		isOpen,
+	]);
 
 	return (
 		<DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
@@ -271,7 +300,7 @@ export function TerminalSessionDropdown({
 										: "Detached";
 							const title = isCurrent
 								? triggerTitle
-								: (location?.titleOverride ?? session.title ?? "Terminal");
+								: (session.title ?? location?.titleOverride ?? "Terminal");
 
 							return (
 								<DropdownMenuItem
