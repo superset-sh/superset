@@ -173,7 +173,7 @@ export function TabBar<TData>({
 
 	if (tabs.length === 0) {
 		return (
-			<div className="group/root-tabs flex h-10 min-w-0 shrink-0 items-stretch bg-background">
+			<div className="group/root-tabs flex h-10 min-w-0 shrink-0 items-stretch border-b border-border bg-background">
 				<div className="flex h-full w-10 shrink-0 items-stretch bg-background">
 					<AddTabButton renderAddTabMenu={renderAddTabMenu} />
 				</div>
@@ -183,7 +183,7 @@ export function TabBar<TData>({
 	}
 
 	return (
-		<div className="group/root-tabs flex h-10 min-w-0 shrink-0 items-stretch bg-background">
+		<div className="group/root-tabs flex h-10 min-w-0 shrink-0 items-stretch border-b border-border bg-background">
 			<div
 				ref={setScrollContainerRef}
 				className={cn(
