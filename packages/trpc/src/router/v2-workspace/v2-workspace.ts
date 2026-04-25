@@ -1,5 +1,6 @@
 import { dbWs } from "@superset/db/client";
 import { v2Hosts, v2Projects, v2Workspaces } from "@superset/db/schema";
+import { getCurrentTxid } from "@superset/db/utils";
 import type { TRPCRouterRecord } from "@trpc/server";
 import { TRPCError } from "@trpc/server";
 import { and, eq, inArray } from "drizzle-orm";
@@ -170,18 +171,25 @@ export const v2WorkspaceRouter = {
 					message: "No fields to update",
 				});
 			}
-			const [updated] = await dbWs
-				.update(v2Workspaces)
-				.set(data)
-				.where(eq(v2Workspaces.id, workspace.id))
-				.returning();
+			const result = await dbWs.transaction(async (tx) => {
+				const [updated] = await tx
+					.update(v2Workspaces)
+					.set(data)
+					.where(eq(v2Workspaces.id, workspace.id))
+					.returning();
+
+				const txid = await getCurrentTxid(tx);
+
+				return { updated, txid };
+			});
+			const { updated, txid } = result;
 			if (!updated) {
 				throw new TRPCError({
 					code: "NOT_FOUND",
 					message: "Workspace not found",
 				});
 			}
-			return updated;
+			return { ...updated, txid };
 		}),
 
 	// JWT-authed so host-service can apply AI-generated workspace names
