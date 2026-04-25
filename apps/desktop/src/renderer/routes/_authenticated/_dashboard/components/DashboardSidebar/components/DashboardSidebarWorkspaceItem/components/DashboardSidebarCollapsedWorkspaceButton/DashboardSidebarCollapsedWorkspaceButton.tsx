@@ -35,8 +35,8 @@ export const DashboardSidebarCollapsedWorkspaceButton = forwardRef<
 				ref={ref}
 				className={cn(
 					"relative flex items-center justify-center size-8 rounded-md",
-					"hover:bg-muted/50 transition-colors cursor-pointer",
-					isActive && "bg-muted",
+					"transition-colors cursor-pointer",
+					isActive ? "bg-muted hover:bg-muted" : "hover:bg-muted/50",
 					className,
 				)}
 				{...props}

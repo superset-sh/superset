@@ -115,9 +115,10 @@ export function SessionSelector({
 			<DropdownMenuTrigger asChild>
 				<button
 					type="button"
+					title={currentTitle}
 					className="flex min-w-0 flex-1 items-center gap-1 rounded px-1.5 py-0.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
 				>
-					<HiMiniChevronDown className="size-3" />
+					<HiMiniChevronDown className="size-3 shrink-0" />
 					<span className="min-w-0 flex-1 truncate text-left">
 						{currentTitle}
 					</span>

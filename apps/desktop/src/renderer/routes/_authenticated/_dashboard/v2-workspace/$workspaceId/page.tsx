@@ -18,6 +18,7 @@ import { HiMiniXMark } from "react-icons/hi2";
 import { TbLayoutColumns, TbLayoutRows } from "react-icons/tb";
 import { useV2UserPreferences } from "renderer/hooks/useV2UserPreferences";
 import { HotkeyLabel, useHotkey } from "renderer/hotkeys";
+import { getBaseName } from "renderer/lib/pathBasename";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { CommandPalette } from "renderer/screens/main/components/CommandPalette";
 import {
@@ -492,8 +493,11 @@ function WorkspaceContent({
 
 	return (
 		<FileDocumentStoreProvider workspaceId={workspaceId}>
-			<ResizablePanelGroup direction="horizontal" className="flex-1">
-				<ResizablePanel defaultSize={80} minSize={30}>
+			<ResizablePanelGroup
+				direction="horizontal"
+				className="min-h-0 min-w-0 flex-1 overflow-auto"
+			>
+				<ResizablePanel className="min-w-[320px]" defaultSize={80} minSize={30}>
 					<div
 						className="flex min-h-0 min-w-0 h-full flex-col overflow-hidden"
 						data-workspace-id={workspaceId}
@@ -537,7 +541,7 @@ function WorkspaceContent({
 									return getDocument(workspaceId, filePath)?.dirty === true;
 								});
 								const dirtyFileNames = dirtyPanes.map((p) =>
-									(p.data as FilePaneData).filePath.split("/").pop(),
+									getBaseName((p.data as FilePaneData).filePath),
 								);
 								if (dirtyPanes.length === 0) return true;
 								const title =
@@ -596,7 +600,12 @@ function WorkspaceContent({
 				{sidebarOpen && (
 					<>
 						<ResizableHandle />
-						<ResizablePanel defaultSize={20} minSize={15} maxSize={40}>
+						<ResizablePanel
+							className="min-w-[220px]"
+							defaultSize={20}
+							minSize={15}
+							maxSize={40}
+						>
 							<WorkspaceSidebar
 								workspaceId={workspaceId}
 								workspaceName={workspaceName}

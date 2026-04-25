@@ -45,7 +45,7 @@ export function FilePaneHeaderExtras({
 	}, [filePath, openInExternalEditor]);
 
 	return (
-		<div className="flex items-center gap-1">
+		<div className="flex min-w-0 items-center gap-1">
 			{shouldShowToggle && activeView && (
 				<FileViewToggle
 					views={orderForToggle(views)}

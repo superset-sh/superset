@@ -18,6 +18,7 @@ import type {
 	RendererContext,
 } from "../../../../types";
 import { Pane } from "./components/Pane";
+import { PANE_MIN_SIZE_CLASS_NAME } from "./constants";
 
 interface TabProps<TData> {
 	store: StoreApi<WorkspaceStore<TData>>;
@@ -55,6 +56,7 @@ function SplitView<TData>({
 	return (
 		<ResizablePanelGroup
 			ref={groupRef}
+			className="min-h-full min-w-full overflow-auto"
 			direction={node.direction}
 			onLayout={(sizes) => {
 				if (sizes[0] != null) {
@@ -70,7 +72,10 @@ function SplitView<TData>({
 				groupRef.current?.setLayout([50, 50]);
 			}}
 		>
-			<ResizablePanel defaultSize={firstSize}>
+			<ResizablePanel
+				className={PANE_MIN_SIZE_CLASS_NAME}
+				defaultSize={firstSize}
+			>
 				<LayoutNodeView
 					store={store}
 					tab={tab}
@@ -83,7 +88,10 @@ function SplitView<TData>({
 				/>
 			</ResizablePanel>
 			<ResizableHandle />
-			<ResizablePanel defaultSize={secondSize}>
+			<ResizablePanel
+				className={PANE_MIN_SIZE_CLASS_NAME}
+				defaultSize={secondSize}
+			>
 				<LayoutNodeView
 					store={store}
 					tab={tab}
@@ -165,7 +173,7 @@ export function Tab<TData>({
 	}
 
 	return (
-		<div className="flex h-full w-full min-h-0 min-w-0 overflow-hidden">
+		<div className="flex h-full w-full min-h-0 min-w-0 flex-1 overflow-auto">
 			<LayoutNodeView
 				store={store}
 				tab={tab}
