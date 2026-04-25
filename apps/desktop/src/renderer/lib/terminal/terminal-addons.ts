@@ -10,7 +10,12 @@ import type { Terminal as XTerm } from "@xterm/xterm";
 export interface LoadAddonsResult {
 	searchAddon: SearchAddon;
 	progressAddon: ProgressAddon;
+	clearTextureAtlas: () => void;
 	dispose: () => void;
+}
+
+interface LoadAddonsOptions {
+	onRendererChange?: () => void;
 }
 
 // Once WebGL fails, skip it for all subsequent runtimes (VS Code pattern).
@@ -21,7 +26,10 @@ let suggestedRendererType: "webgl" | "dom" | undefined;
  * function and addon instances. WebGL is deferred to rAF to avoid
  * racing with xterm's post-open viewport sync.
  */
-export function loadAddons(terminal: XTerm): LoadAddonsResult {
+export function loadAddons(
+	terminal: XTerm,
+	options: LoadAddonsOptions = {},
+): LoadAddonsResult {
 	let disposed = false;
 	let webglAddon: WebglAddon | null = null;
 
@@ -51,9 +59,11 @@ export function loadAddons(terminal: XTerm): LoadAddonsResult {
 			webglAddon.onContextLoss(() => {
 				webglAddon?.dispose();
 				webglAddon = null;
+				options.onRendererChange?.();
 				terminal.refresh(0, terminal.rows - 1);
 			});
 			terminal.loadAddon(webglAddon);
+			options.onRendererChange?.();
 		} catch {
 			suggestedRendererType = "dom";
 			webglAddon = null;
@@ -63,6 +73,11 @@ export function loadAddons(terminal: XTerm): LoadAddonsResult {
 	return {
 		searchAddon,
 		progressAddon,
+		clearTextureAtlas: () => {
+			try {
+				webglAddon?.clearTextureAtlas();
+			} catch {}
+		},
 		dispose: () => {
 			disposed = true;
 			cancelAnimationFrame(rafId);

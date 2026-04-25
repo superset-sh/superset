@@ -22,7 +22,7 @@ hypotheses and from items already handled by xterm internals.
 
 ## 1. Font loading race on first open
 
-**Status:** Partially valid.
+**Status:** Implemented after PR #3739.
 
 **Us:** `terminal-runtime.ts:232` — `terminal.open(wrapper)` runs immediately
 after construction. xterm measures cell width with whatever font is resolved at
@@ -38,14 +38,17 @@ any user-selected font that is resolved through CSS font loading. Also, Tabby
 does not wait before `open()`; it opens first, waits a tick for font/layout
 settling, then configures colors/WebGL (`xtermFrontend.ts:275-306`).
 
-**Fix:** Do not make `createRuntime()` async unless the registry lifecycle is
-rewired. Prefer a bounded post-open font-settle step:
-- after `terminal.open(wrapper)`, wait for `document.fonts.ready` or
-  `document.fonts.load(\`${size}px ${family}\`)` when available;
-- then call `measureAndResize(runtime)`, `terminal.clearTextureAtlas()` if using
-  the built-in API or the WebGL addon is exposed, and `terminal.refresh(...)`;
-- apply the same settle/refit path after font changes at
-  `terminal-runtime.ts:317`.
+**Fix:** Implemented without making `createRuntime()` async. The runtime now
+stores the active resize sender, exposes WebGL atlas clearing from
+`terminal-addons.ts`, and schedules a bounded font-settle refit after attach,
+after font changes, and after WebGL renderer changes:
+- wait for `document.fonts.load(\`${size}px ${family}\`)` when available, capped
+  by `FONT_SETTLE_TIMEOUT_MS`, then wait one animation frame for layout to
+  settle;
+- clear the WebGL texture atlas when present;
+- run the existing `measureAndResize(runtime)` path, which preserves viewport
+  state, refreshes the terminal, and sends backend resize only when cols/rows
+  change.
 
 ---
 
