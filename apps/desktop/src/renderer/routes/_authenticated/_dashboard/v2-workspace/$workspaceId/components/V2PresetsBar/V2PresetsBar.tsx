@@ -13,8 +13,9 @@ import {
 } from "@superset/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useNavigate } from "@tanstack/react-router";
+import { Settings } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { HiMiniCog6Tooth, HiMiniCommandLine } from "react-icons/hi2";
+import { HiMiniCommandLine } from "react-icons/hi2";
 import { LuCirclePlus, LuPin } from "react-icons/lu";
 import {
 	getPresetIcon,
@@ -270,12 +271,28 @@ export function V2PresetsBar({
 			className="flex h-8 min-w-0 shrink-0 items-center gap-0.5 overflow-x-auto overflow-y-hidden border-b border-border bg-background px-2"
 			style={{ scrollbarWidth: "none" }}
 		>
+			{pinnedPresets.map(({ preset, index }, pinnedIndex) => {
+				const hotkeyId = PRESET_HOTKEY_IDS[index];
+				return (
+					<V2PresetBarItem
+						key={preset.id}
+						preset={preset}
+						pinnedIndex={pinnedIndex}
+						hotkeyId={hotkeyId}
+						isDark={isDark}
+						onExecutePreset={executePreset}
+						onEdit={(presetToEdit) => handleEditPreset(presetToEdit.id)}
+						onLocalReorder={handleLocalPinnedReorder}
+						onPersistReorder={handlePersistPinnedReorder}
+					/>
+				);
+			})}
 			<DropdownMenu>
 				<Tooltip>
 					<TooltipTrigger asChild>
 						<DropdownMenuTrigger asChild>
 							<Button variant="ghost" size="icon" className="size-6 shrink-0">
-								<HiMiniCog6Tooth className="size-3.5" />
+								<Settings className="size-3.5" />
 							</Button>
 						</DropdownMenuTrigger>
 					</TooltipTrigger>
@@ -283,7 +300,7 @@ export function V2PresetsBar({
 						Manage Presets
 					</TooltipContent>
 				</Tooltip>
-				<DropdownMenuContent align="start" className="w-56">
+				<DropdownMenuContent align="end" className="w-56">
 					{managedPresets.map((item) => {
 						const icon = getPresetIcon(item.iconName, isDark);
 						const isPinned = item.preset
@@ -339,28 +356,11 @@ export function V2PresetsBar({
 						className="gap-2"
 						onClick={() => navigate({ to: "/settings/terminal" })}
 					>
-						<HiMiniCog6Tooth className="size-4" />
+						<Settings className="size-4" />
 						<span>Manage Presets</span>
 					</DropdownMenuItem>
 				</DropdownMenuContent>
 			</DropdownMenu>
-			<div className="h-4 w-px bg-border mx-1 shrink-0" />
-			{pinnedPresets.map(({ preset, index }, pinnedIndex) => {
-				const hotkeyId = PRESET_HOTKEY_IDS[index];
-				return (
-					<V2PresetBarItem
-						key={preset.id}
-						preset={preset}
-						pinnedIndex={pinnedIndex}
-						hotkeyId={hotkeyId}
-						isDark={isDark}
-						onExecutePreset={executePreset}
-						onEdit={(presetToEdit) => handleEditPreset(presetToEdit.id)}
-						onLocalReorder={handleLocalPinnedReorder}
-						onPersistReorder={handlePersistPinnedReorder}
-					/>
-				);
-			})}
 		</div>
 	);
 }
