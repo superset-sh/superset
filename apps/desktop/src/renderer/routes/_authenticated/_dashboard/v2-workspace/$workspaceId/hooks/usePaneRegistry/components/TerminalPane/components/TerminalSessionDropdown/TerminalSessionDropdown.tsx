@@ -18,8 +18,9 @@ import {
 	TerminalSquare,
 	Trash2,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState, useSyncExternalStore } from "react";
 import { markTerminalForBackground } from "renderer/lib/terminal/terminal-background-intents";
+import { terminalRuntimeRegistry } from "renderer/lib/terminal/terminal-runtime-registry";
 import type {
 	PaneViewerData,
 	TerminalPaneData,
@@ -38,6 +39,7 @@ interface VisibleTerminalSession {
 	exited: boolean;
 	exitCode: number;
 	attached: boolean;
+	title: string | null;
 	pending?: boolean;
 }
 
@@ -82,6 +84,7 @@ export function TerminalSessionDropdown({
 	const [isOpen, setIsOpen] = useState(false);
 	const data = context.pane.data as TerminalPaneData;
 	const { terminalId } = data;
+	const terminalInstanceId = context.pane.id;
 	const utils = workspaceTrpc.useUtils();
 	const killTerminalSession = workspaceTrpc.terminal.killSession.useMutation();
 	const sessionsQuery = workspaceTrpc.terminal.listSessions.useQuery(
@@ -104,12 +107,30 @@ export function TerminalSessionDropdown({
 				exited: false,
 				exitCode: 0,
 				attached: false,
+				title: null,
 				pending: true,
 			},
 			...liveSessions,
 		];
 	}, [sessionsQuery.data?.sessions, terminalId, workspaceId]);
 	const renderTerminalPaneLocations = getTerminalPaneLocations(context);
+	const subscribeRuntimeTitle = useCallback(
+		(callback: () => void) =>
+			terminalRuntimeRegistry.onStateChange(
+				terminalId,
+				callback,
+				terminalInstanceId,
+			),
+		[terminalId, terminalInstanceId],
+	);
+	const getRuntimeTitle = useCallback(
+		() => terminalRuntimeRegistry.getTitle(terminalId, terminalInstanceId),
+		[terminalId, terminalInstanceId],
+	);
+	const runtimeTitle = useSyncExternalStore(
+		subscribeRuntimeTitle,
+		getRuntimeTitle,
+	);
 
 	const handleSelectSession = (nextTerminalId: string) => {
 		if (nextTerminalId === terminalId) {
@@ -202,10 +223,12 @@ export function TerminalSessionDropdown({
 		setIsOpen(false);
 	};
 
-	const triggerTitle = context.pane.titleOverride ?? "Terminal";
 	const currentSession = sessions.find(
 		(session) => session.terminalId === terminalId,
 	);
+	const currentSessionTitle = runtimeTitle ?? currentSession?.title ?? null;
+	const triggerTitle =
+		context.pane.titleOverride ?? currentSessionTitle ?? "Terminal";
 	const currentCreatedAtLabel = formatCreatedAt(currentSession?.createdAt);
 
 	return (
@@ -252,7 +275,7 @@ export function TerminalSessionDropdown({
 										: "Detached";
 							const title = isCurrent
 								? triggerTitle
-								: (location?.titleOverride ?? "Terminal");
+								: (location?.titleOverride ?? session.title ?? "Terminal");
 
 							return (
 								<DropdownMenuItem

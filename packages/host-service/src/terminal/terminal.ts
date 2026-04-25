@@ -18,6 +18,7 @@ import {
 	getTerminalBaseEnv,
 	resolveLaunchShell,
 } from "./env";
+import { TerminalTitleTracker } from "./title-tracker";
 
 interface RegisterWorkspaceTerminalRouteOptions {
 	app: Hono;
@@ -52,7 +53,8 @@ type TerminalServerMessage =
 	| { type: "data"; data: string }
 	| { type: "error"; message: string }
 	| { type: "exit"; exitCode: number; signal: number }
-	| { type: "replay"; data: string };
+	| { type: "replay"; data: string }
+	| { type: "title"; title: string | null };
 
 const MAX_BUFFER_BYTES = 64 * 1024;
 const SOCKET_OPEN = 1;
@@ -98,6 +100,8 @@ interface TerminalSession {
 	exitCode: number;
 	exitSignal: number;
 	listed: boolean;
+	title: string | null;
+	titleTracker: TerminalTitleTracker;
 
 	// Shell readiness (OSC 133)
 	shellReadyState: ShellReadyState;
@@ -132,6 +136,7 @@ export interface TerminalSessionSummary {
 	exited: boolean;
 	exitCode: number;
 	attached: boolean;
+	title: string | null;
 }
 
 export function listTerminalSessions(
@@ -154,6 +159,7 @@ export function listTerminalSessions(
 			exited: session.exited,
 			exitCode: session.exitCode,
 			attached: pruneAndCountOpenSockets(session) > 0,
+			title: session.title,
 		}));
 }
 
@@ -247,6 +253,7 @@ export function disposeSession(terminalId: string, db: HostDb) {
 			clearTimeout(session.shellReadyTimeoutId);
 			session.shellReadyTimeoutId = null;
 		}
+		session.titleTracker.dispose();
 		for (const socket of session.sockets) {
 			socket.close(1000, "Session disposed");
 		}
@@ -410,7 +417,13 @@ export function createTerminalSessionInternal({
 			})
 		: Promise.resolve();
 
-	const session: TerminalSession = {
+	let session: TerminalSession;
+	const titleTracker = new TerminalTitleTracker((title) => {
+		session.title = title;
+		broadcastMessage(session, { type: "title", title });
+	});
+
+	session = {
 		terminalId,
 		workspaceId,
 		pty,
@@ -422,6 +435,8 @@ export function createTerminalSessionInternal({
 		exitCode: 0,
 		exitSignal: 0,
 		listed,
+		title: null,
+		titleTracker,
 		shellReadyState: shellSupportsReady ? "pending" : "unsupported",
 		shellReadyResolve,
 		shellReadyPromise,
@@ -439,6 +454,8 @@ export function createTerminalSessionInternal({
 	}
 
 	pty.onData((rawData) => {
+		session.titleTracker.write(rawData);
+
 		// Scan for OSC 133;A and strip it from output
 		let data = rawData;
 		if (session.shellReadyState === "pending") {
@@ -459,6 +476,7 @@ export function createTerminalSessionInternal({
 		session.exited = true;
 		session.exitCode = exitCode ?? 0;
 		session.exitSignal = signal ?? 0;
+		session.titleTracker.dispose();
 
 		db.update(terminalSessions)
 			.set({ status: "exited", endedAt: Date.now() })
@@ -599,6 +617,7 @@ export function registerWorkspaceTerminalRoute({
 							.set({ lastAttachedAt: Date.now() })
 							.where(eq(terminalSessions.id, terminalId))
 							.run();
+						sendMessage(ws, { type: "title", title: result.title });
 						return;
 					}
 
@@ -609,6 +628,7 @@ export function registerWorkspaceTerminalRoute({
 						.where(eq(terminalSessions.id, terminalId))
 						.run();
 
+					sendMessage(ws, { type: "title", title: existing.title });
 					replayBuffer(existing, ws);
 					if (existing.exited) {
 						sendMessage(ws, {

@@ -1,3 +1,4 @@
+import { normalizeTerminalTitle } from "@superset/shared/terminal-title";
 import type { Terminal as XTerm } from "@xterm/xterm";
 
 export type ConnectionState = "disconnected" | "connecting" | "open" | "closed";
@@ -6,7 +7,8 @@ type TerminalServerMessage =
 	| { type: "data"; data: string }
 	| { type: "error"; message: string }
 	| { type: "exit"; exitCode: number; signal: number }
-	| { type: "replay"; data: string };
+	| { type: "replay"; data: string }
+	| { type: "title"; title: string | null };
 
 export interface TerminalTransport {
 	socket: WebSocket | null;
@@ -23,6 +25,9 @@ export interface TerminalTransport {
 	_terminal: XTerm | null;
 	/** Set when the server sends an exit message — no reconnect after this. */
 	_exited: boolean;
+	/** Latest title emitted by terminal title sequences. */
+	title: string | null;
+	onTitleDisposable: { dispose(): void } | null;
 }
 
 function setConnectionState(
@@ -30,9 +35,20 @@ function setConnectionState(
 	state: ConnectionState,
 ) {
 	transport.connectionState = state;
+	notifyStateListeners(transport);
+}
+
+function notifyStateListeners(transport: TerminalTransport) {
 	for (const listener of transport.stateListeners) {
 		listener();
 	}
+}
+
+function setTitle(transport: TerminalTransport, title: string | null) {
+	const normalizedTitle = normalizeTerminalTitle(title);
+	if (transport.title === normalizedTitle) return;
+	transport.title = normalizedTitle;
+	notifyStateListeners(transport);
 }
 
 const MAX_RECONNECT_DELAY = 10_000;
@@ -50,6 +66,8 @@ export function createTransport(): TerminalTransport {
 		_reconnectAttempt: 0,
 		_terminal: null,
 		_exited: false,
+		title: null,
+		onTitleDisposable: null,
 	};
 }
 
@@ -130,6 +148,11 @@ export function connect(
 			return;
 		}
 
+		if (message.type === "title") {
+			setTitle(transport, message.title);
+			return;
+		}
+
 		if (message.type === "error") {
 			terminal.writeln(`\r\n[terminal] ${message.message}`);
 			return;
@@ -162,6 +185,10 @@ export function connect(
 		if (socket.readyState !== WebSocket.OPEN) return;
 		socket.send(JSON.stringify({ type: "input", data }));
 	});
+	transport.onTitleDisposable?.dispose();
+	transport.onTitleDisposable = terminal.onTitleChange((title) => {
+		setTitle(transport, title || null);
+	});
 }
 
 export function disconnect(transport: TerminalTransport) {
@@ -176,6 +203,8 @@ export function disconnect(transport: TerminalTransport) {
 	setConnectionState(transport, "disconnected");
 	transport.onDataDisposable?.dispose();
 	transport.onDataDisposable = null;
+	transport.onTitleDisposable?.dispose();
+	transport.onTitleDisposable = null;
 }
 
 export function sendResize(
@@ -211,5 +240,7 @@ export function disposeTransport(transport: TerminalTransport) {
 	transport._reconnectAttempt = 0;
 	transport.onDataDisposable?.dispose();
 	transport.onDataDisposable = null;
+	transport.onTitleDisposable?.dispose();
+	transport.onTitleDisposable = null;
 	transport.stateListeners.clear();
 }
