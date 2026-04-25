@@ -7,7 +7,7 @@ type TerminalServerMessage =
 	| { type: "data"; data: string }
 	| { type: "error"; message: string }
 	| { type: "exit"; exitCode: number; signal: number }
-	| { type: "replay"; data: string }
+	| { type: "replay"; data: string; title?: string | null }
 	| { type: "title"; title: string | null };
 
 type TerminalClientMessage =
@@ -146,7 +146,7 @@ export function connect(
 	setConnectionState(transport, "connecting");
 	const socket = new WebSocket(wsUrl);
 	transport.socket = socket;
-	let replaySuppressDepth = 0;
+	let replayTitleSuppressDepth = 0;
 
 	socket.addEventListener("open", () => {
 		if (transport.socket !== socket) return;
@@ -174,9 +174,15 @@ export function connect(
 		}
 
 		if (message.type === "replay") {
-			replaySuppressDepth += 1;
+			const hasAuthoritativeTitle = message.title != null;
+			if (hasAuthoritativeTitle) {
+				setTitle(transport, message.title ?? null);
+				replayTitleSuppressDepth += 1;
+			}
 			terminal.write(message.data, () => {
-				replaySuppressDepth = Math.max(0, replaySuppressDepth - 1);
+				if (hasAuthoritativeTitle) {
+					replayTitleSuppressDepth = Math.max(0, replayTitleSuppressDepth - 1);
+				}
 			});
 			return;
 		}
@@ -219,7 +225,7 @@ export function connect(
 	});
 	transport.onTitleDisposable?.dispose();
 	transport.onTitleDisposable = terminal.onTitleChange((title) => {
-		if (replaySuppressDepth > 0) return;
+		if (replayTitleSuppressDepth > 0) return;
 		if (setTitle(transport, title || null)) {
 			sendTitle(transport, socket);
 		}
@@ -229,7 +235,7 @@ export function connect(
 		9,
 		(data) => {
 			if (!data.startsWith("3;")) return false;
-			if (replaySuppressDepth > 0) return true;
+			if (replayTitleSuppressDepth > 0) return true;
 			if (setTitle(transport, data.slice(2))) {
 				sendTitle(transport, socket);
 			}

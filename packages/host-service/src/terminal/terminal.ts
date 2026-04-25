@@ -55,7 +55,7 @@ type TerminalServerMessage =
 	| { type: "data"; data: string }
 	| { type: "error"; message: string }
 	| { type: "exit"; exitCode: number; signal: number }
-	| { type: "replay"; data: string }
+	| { type: "replay"; data: string; title: string | null }
 	| { type: "title"; title: string | null };
 
 const MAX_BUFFER_BYTES = 64 * 1024;
@@ -208,12 +208,13 @@ function bufferOutput(session: TerminalSession, data: string) {
 function replayBuffer(
 	session: TerminalSession,
 	socket: { send: (data: string) => void; readyState: number },
-) {
-	if (session.buffer.length === 0) return;
+): boolean {
+	if (session.buffer.length === 0) return false;
 	const combined = session.buffer.join("");
 	session.buffer.length = 0;
 	session.bufferBytes = 0;
-	sendMessage(socket, { type: "replay", data: combined });
+	sendMessage(socket, { type: "replay", data: combined, title: session.title });
+	return true;
 }
 
 function setSessionTitle(
@@ -642,8 +643,10 @@ export function registerWorkspaceTerminalRoute({
 						.where(eq(terminalSessions.id, terminalId))
 						.run();
 
-					replayBuffer(existing, ws);
-					sendMessage(ws, { type: "title", title: existing.title });
+					const replayed = replayBuffer(existing, ws);
+					if (!replayed) {
+						sendMessage(ws, { type: "title", title: existing.title });
+					}
 					if (existing.exited) {
 						sendMessage(ws, {
 							type: "exit",
