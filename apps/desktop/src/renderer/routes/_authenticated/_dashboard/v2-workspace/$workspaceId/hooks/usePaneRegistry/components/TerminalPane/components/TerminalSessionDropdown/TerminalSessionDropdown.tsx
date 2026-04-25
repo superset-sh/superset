@@ -203,10 +203,6 @@ export function TerminalSessionDropdown({
 	};
 
 	const triggerTitle = context.pane.titleOverride ?? "Terminal";
-	const currentSession = sessions.find(
-		(session) => session.terminalId === terminalId,
-	);
-	const currentCreatedAtLabel = formatCreatedAt(currentSession?.createdAt);
 
 	return (
 		<DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
@@ -214,14 +210,13 @@ export function TerminalSessionDropdown({
 				<button
 					type="button"
 					aria-label="Terminal sessions"
-					className="flex min-w-0 max-w-72 items-center gap-1.5 rounded px-1.5 py-0.5 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+					className="flex min-w-32 max-w-96 items-center gap-1.5 rounded px-1.5 py-0.5 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
 					onMouseDown={(event) => event.stopPropagation()}
 					onClick={(event) => event.stopPropagation()}
 				>
 					<TerminalSquare className="size-4 shrink-0" />
-					<span className="min-w-0 truncate">{triggerTitle}</span>
-					<span className="shrink-0 text-[10px] text-muted-foreground/70">
-						{currentCreatedAtLabel}
+					<span className="min-w-0 flex-1 truncate text-left">
+						{triggerTitle}
 					</span>
 					{sessionsQuery.isFetching && isOpen ? (
 						<LoaderCircle className="size-3 shrink-0 animate-spin" />
@@ -230,7 +225,7 @@ export function TerminalSessionDropdown({
 					)}
 				</button>
 			</DropdownMenuTrigger>
-			<DropdownMenuContent align="start" className="w-80">
+			<DropdownMenuContent align="start" className="w-96">
 				<DropdownMenuLabel className="text-xs">
 					Terminal Sessions
 				</DropdownMenuLabel>
@@ -268,7 +263,7 @@ export function TerminalSessionDropdown({
 									<span className="min-w-0 flex-1 truncate text-xs">
 										{title}
 									</span>
-									<span className="shrink-0 text-[10px] text-muted-foreground/70">
+									<span className="shrink-0 text-xs text-muted-foreground/70">
 										{createdAtLabel}
 									</span>
 									<span className="shrink-0 text-xs text-muted-foreground">
