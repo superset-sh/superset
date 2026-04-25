@@ -3,6 +3,7 @@ import {
 	DEFAULT_RINGTONE_ID,
 	getRingtoneById,
 } from "shared/ringtones";
+import { electronTrpcClient } from "../trpc-client";
 import { builtInRingtoneUrls } from "./urls";
 
 export interface PlayRingtoneOptions {
@@ -65,13 +66,12 @@ export function primeRingtoneAudioOnFirstGesture(): void {
 }
 
 /**
- * Resolve the bundled audio URL for a ringtone id. Custom uploads are not
- * wired into renderer playback yet, so custom and unknown ids fall back to the
- * default built-in ringtone.
+ * Resolve the bundled audio URL for a built-in ringtone id. Custom uploads are
+ * stored outside the Vite bundle, so they are played by main on renderer
+ * request instead of exposing local file paths to the web runtime.
  */
 function resolveRingtoneUrl(ringtoneId: string): string | null {
-	const ringtone =
-		ringtoneId === CUSTOM_RINGTONE_ID ? null : getRingtoneById(ringtoneId);
+	const ringtone = getRingtoneById(ringtoneId);
 	const resolved = ringtone
 		? builtInRingtoneUrls[ringtone.filename]
 		: undefined;
@@ -83,8 +83,21 @@ function resolveRingtoneUrl(ringtoneId: string): string | null {
 
 export async function playRingtone(opts: PlayRingtoneOptions): Promise<void> {
 	if (opts.muted) return;
-	const volume = Math.max(0, Math.min(1, opts.volume / 100));
+	const volumePercent = Math.max(0, Math.min(100, opts.volume));
+	const volume = volumePercent / 100;
 	if (volume === 0) return;
+
+	if (opts.ringtoneId === CUSTOM_RINGTONE_ID) {
+		try {
+			await electronTrpcClient.ringtone.playNotification.mutate({
+				ringtoneId: opts.ringtoneId,
+				volume: volumePercent,
+			});
+		} catch (error) {
+			console.warn("[ringtone] custom playback failed:", error);
+		}
+		return;
+	}
 
 	const url = resolveRingtoneUrl(opts.ringtoneId);
 	if (!url) return;

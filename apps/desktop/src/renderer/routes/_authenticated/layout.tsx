@@ -97,8 +97,14 @@ function AuthenticatedLayout() {
 					params: { workspaceId: event.data.workspaceId },
 					search:
 						source.type === "terminal"
-							? { terminalId: source.id }
-							: { chatSessionId: source.id },
+							? {
+									terminalId: source.id,
+									focusRequestId: crypto.randomUUID(),
+								}
+							: {
+									chatSessionId: source.id,
+									focusRequestId: crypto.randomUUID(),
+								},
 				});
 				return;
 			}

@@ -64,6 +64,7 @@ import type {
 interface WorkspaceSearch {
 	terminalId?: string;
 	chatSessionId?: string;
+	focusRequestId?: string;
 }
 
 export const Route = createFileRoute(
@@ -74,12 +75,14 @@ export const Route = createFileRoute(
 		terminalId: typeof raw.terminalId === "string" ? raw.terminalId : undefined,
 		chatSessionId:
 			typeof raw.chatSessionId === "string" ? raw.chatSessionId : undefined,
+		focusRequestId:
+			typeof raw.focusRequestId === "string" ? raw.focusRequestId : undefined,
 	}),
 });
 
 function V2WorkspacePage() {
 	const { workspaceId } = Route.useParams();
-	const { terminalId, chatSessionId } = Route.useSearch();
+	const { terminalId, chatSessionId, focusRequestId } = Route.useSearch();
 	const collections = useCollections();
 
 	const { data: workspaces } = useLiveQuery(
@@ -106,6 +109,7 @@ function V2WorkspacePage() {
 			workspaceName={workspace.name}
 			terminalId={terminalId}
 			chatSessionId={chatSessionId}
+			focusRequestId={focusRequestId}
 		/>
 	);
 }
@@ -147,12 +151,14 @@ function WorkspaceContent({
 	workspaceName,
 	terminalId,
 	chatSessionId,
+	focusRequestId,
 }: {
 	projectId: string;
 	workspaceId: string;
 	workspaceName: string;
 	terminalId?: string;
 	chatSessionId?: string;
+	focusRequestId?: string;
 }) {
 	const {
 		preferences: v2UserPreferences,
@@ -170,7 +176,12 @@ function WorkspaceContent({
 		projectId,
 	});
 	useConsumePendingLaunch({ workspaceId, store });
-	useConsumeAutomationRunLink({ store, terminalId, chatSessionId });
+	useConsumeAutomationRunLink({
+		store,
+		terminalId,
+		chatSessionId,
+		focusRequestId,
+	});
 
 	const workspaceQuery = workspaceTrpc.workspace.get.useQuery({
 		id: workspaceId,
