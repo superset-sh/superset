@@ -13,57 +13,7 @@ export interface PlayRingtoneOptions {
 	muted: boolean;
 }
 
-let audioPrimed = false;
-let audioPrimingListenersInstalled = false;
-let audioPrimingInFlight = false;
-
-/**
- * Some browsers block `audio.play()` until the user has interacted with the
- * page. Wire this up once at app mount so the first pointerdown unlocks
- * autoplay and subsequent hook events can play without a visible gesture.
- * Safe to call repeatedly — listeners are only installed once.
- */
-export function primeRingtoneAudioOnFirstGesture(): void {
-	if (audioPrimed || typeof window === "undefined") return;
-	if (audioPrimingListenersInstalled || audioPrimingInFlight) return;
-
-	const removeListeners = () => {
-		window.removeEventListener("pointerdown", prime);
-		window.removeEventListener("keydown", prime);
-		audioPrimingListenersInstalled = false;
-	};
-
-	const installListeners = () => {
-		if (audioPrimed || audioPrimingListenersInstalled || audioPrimingInFlight) {
-			return;
-		}
-		window.addEventListener("pointerdown", prime, { once: true });
-		window.addEventListener("keydown", prime, { once: true });
-		audioPrimingListenersInstalled = true;
-	};
-
-	const prime = () => {
-		if (audioPrimed || audioPrimingInFlight) return;
-		audioPrimingInFlight = true;
-		removeListeners();
-
-		const silent = new Audio();
-		silent.muted = true;
-		silent
-			.play()
-			.then(() => {
-				audioPrimed = true;
-				audioPrimingInFlight = false;
-			})
-			.catch(() => {
-				// Browser refused even with a gesture — wait for the next one.
-				audioPrimingInFlight = false;
-				installListeners();
-			});
-	};
-
-	installListeners();
-}
+const builtInAudioByUrl = new Map<string, HTMLAudioElement>();
 
 /**
  * Resolve the bundled audio URL for a built-in ringtone id. Custom uploads are
@@ -79,6 +29,25 @@ function resolveRingtoneUrl(ringtoneId: string): string | null {
 
 	const fallback = getRingtoneById(DEFAULT_RINGTONE_ID);
 	return fallback ? (builtInRingtoneUrls[fallback.filename] ?? null) : null;
+}
+
+function getBuiltInAudio(url: string): HTMLAudioElement {
+	let audio = builtInAudioByUrl.get(url);
+	if (!audio) {
+		audio = new Audio(url);
+		audio.preload = "auto";
+		builtInAudioByUrl.set(url, audio);
+	}
+	return audio;
+}
+
+function isUserGesturePlaybackError(error: unknown): boolean {
+	if (!(error instanceof Error)) return false;
+	return (
+		error.name === "NotAllowedError" ||
+		error.message.includes("user gesture") ||
+		error.message.includes("not allowed")
+	);
 }
 
 export async function playRingtone(opts: PlayRingtoneOptions): Promise<void> {
@@ -102,12 +71,15 @@ export async function playRingtone(opts: PlayRingtoneOptions): Promise<void> {
 	const url = resolveRingtoneUrl(opts.ringtoneId);
 	if (!url) return;
 
-	const audio = new Audio(url);
+	const audio = getBuiltInAudio(url);
 	audio.volume = volume;
+	audio.currentTime = 0;
 
 	try {
 		await audio.play();
 	} catch (error) {
-		console.warn("[ringtone] autoplay blocked or failed:", error);
+		if (!isUserGesturePlaybackError(error)) {
+			console.warn("[ringtone] playback failed:", error);
+		}
 	}
 }
