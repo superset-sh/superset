@@ -12,6 +12,8 @@ interface TerminalHeaderExtrasProps {
 }
 
 export function TerminalHeaderExtras({ context }: TerminalHeaderExtrasProps) {
+	if (context.pane.kind !== "terminal") return null;
+
 	const data = context.pane.data as TerminalPaneData;
 
 	const handleMoveToBackground = () => {

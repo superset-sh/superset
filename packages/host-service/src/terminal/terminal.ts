@@ -42,6 +42,9 @@ type TerminalServerMessage =
 	| { type: "replay"; data: string };
 
 const MAX_BUFFER_BYTES = 64 * 1024;
+const SOCKET_OPEN = 1;
+const SOCKET_CLOSING = 2;
+const SOCKET_CLOSED = 3;
 
 type TerminalSocket = {
 	send: (data: string) => void;
@@ -94,6 +97,21 @@ interface TerminalSession {
 /** PTY lifetime is independent of socket lifetime — sockets detach/reattach freely. */
 const sessions = new Map<string, TerminalSession>();
 
+function pruneAndCountOpenSockets(session: TerminalSession): number {
+	let openSockets = 0;
+	for (const socket of session.sockets) {
+		if (socket.readyState === SOCKET_OPEN) {
+			openSockets += 1;
+		} else if (
+			socket.readyState === SOCKET_CLOSING ||
+			socket.readyState === SOCKET_CLOSED
+		) {
+			session.sockets.delete(socket);
+		}
+	}
+	return openSockets;
+}
+
 export interface TerminalSessionSummary {
 	terminalId: string;
 	workspaceId: string;
@@ -122,7 +140,7 @@ export function listTerminalSessions(
 			createdAt: session.createdAt,
 			exited: session.exited,
 			exitCode: session.exitCode,
-			attached: session.sockets.size > 0,
+			attached: pruneAndCountOpenSockets(session) > 0,
 		}));
 }
 
@@ -130,17 +148,29 @@ function sendMessage(
 	socket: { send: (data: string) => void; readyState: number },
 	message: TerminalServerMessage,
 ) {
-	if (socket.readyState !== 1) return;
+	if (socket.readyState !== SOCKET_OPEN) return;
 	socket.send(JSON.stringify(message));
 }
 
 function broadcastMessage(
 	session: TerminalSession,
 	message: TerminalServerMessage,
-) {
+): number {
+	let sent = 0;
 	for (const socket of session.sockets) {
+		if (socket.readyState !== SOCKET_OPEN) {
+			if (
+				socket.readyState === SOCKET_CLOSING ||
+				socket.readyState === SOCKET_CLOSED
+			) {
+				session.sockets.delete(socket);
+			}
+			continue;
+		}
 		sendMessage(socket, message);
+		sent += 1;
 	}
+	return sent;
 }
 
 function bufferOutput(session: TerminalSession, data: string) {
@@ -404,9 +434,7 @@ export function createTerminalSessionInternal({
 		}
 		if (data.length === 0) return;
 
-		if (session.sockets.size > 0) {
-			broadcastMessage(session, { type: "data", data });
-		} else {
+		if (broadcastMessage(session, { type: "data", data }) === 0) {
 			bufferOutput(session, data);
 		}
 	});

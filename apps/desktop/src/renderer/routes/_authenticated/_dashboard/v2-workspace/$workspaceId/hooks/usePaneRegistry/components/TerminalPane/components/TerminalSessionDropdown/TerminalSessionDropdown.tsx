@@ -53,24 +53,26 @@ function formatCreatedAt(createdAt: number | undefined): string {
 	return getRelativeTime(createdAt, { format: "compact" });
 }
 
-function findTerminalPaneLocation(
+function getTerminalPaneLocations(
 	context: RendererContext<PaneViewerData>,
-	terminalId: string,
-): TerminalPaneLocation | null {
+): Map<string, TerminalPaneLocation[]> {
+	const locations = new Map<string, TerminalPaneLocation[]>();
 	for (const tab of context.store.getState().tabs) {
 		for (const pane of Object.values(tab.panes)) {
 			if (pane.id === context.pane.id || pane.kind !== "terminal") continue;
 			const data = pane.data as Partial<TerminalPaneData>;
-			if (data.terminalId === terminalId) {
-				return {
+			if (data.terminalId) {
+				const terminalLocations = locations.get(data.terminalId) ?? [];
+				terminalLocations.push({
 					tabId: tab.id,
 					paneId: pane.id,
 					titleOverride: pane.titleOverride,
-				};
+				});
+				locations.set(data.terminalId, terminalLocations);
 			}
 		}
 	}
-	return null;
+	return locations;
 }
 
 export function TerminalSessionDropdown({
@@ -107,6 +109,7 @@ export function TerminalSessionDropdown({
 			...liveSessions,
 		];
 	}, [sessionsQuery.data?.sessions, terminalId, workspaceId]);
+	const terminalPaneLocations = getTerminalPaneLocations(context);
 
 	const handleSelectSession = (nextTerminalId: string) => {
 		if (nextTerminalId === terminalId) {
@@ -115,8 +118,8 @@ export function TerminalSessionDropdown({
 		}
 
 		const state = context.store.getState();
-		const existingLocation = findTerminalPaneLocation(context, nextTerminalId);
-		if (!findTerminalPaneLocation(context, terminalId)) {
+		const existingLocation = terminalPaneLocations.get(nextTerminalId)?.[0];
+		if ((terminalPaneLocations.get(terminalId)?.length ?? 0) === 0) {
 			markTerminalForBackground(terminalId);
 		}
 
@@ -132,24 +135,25 @@ export function TerminalSessionDropdown({
 		setIsOpen(false);
 	};
 
-	const closePaneForTerminal = (targetTerminalId: string) => {
-		if (targetTerminalId === terminalId) {
-			void context.actions.close();
-			return;
+	const closePanesForTerminal = (targetTerminalId: string) => {
+		for (const location of terminalPaneLocations.get(targetTerminalId) ?? []) {
+			context.store.getState().closePane({
+				tabId: location.tabId,
+				paneId: location.paneId,
+			});
 		}
 
-		const location = findTerminalPaneLocation(context, targetTerminalId);
-		if (!location) return;
-
-		context.store.getState().closePane({
-			tabId: location.tabId,
-			paneId: location.paneId,
-		});
+		if (targetTerminalId === terminalId) {
+			void context.actions.close();
+		}
 	};
 
 	const removeTerminalSession = async (targetTerminalId: string) => {
-		await killTerminalSession.mutateAsync({ terminalId: targetTerminalId });
-		closePaneForTerminal(targetTerminalId);
+		await killTerminalSession.mutateAsync({
+			terminalId: targetTerminalId,
+			workspaceId,
+		});
+		closePanesForTerminal(targetTerminalId);
 		await utils.terminal.listSessions.invalidate({ workspaceId });
 	};
 
@@ -177,7 +181,7 @@ export function TerminalSessionDropdown({
 
 	const handleNewTerminal = () => {
 		const state = context.store.getState();
-		if (!findTerminalPaneLocation(context, terminalId)) {
+		if ((terminalPaneLocations.get(terminalId)?.length ?? 0) === 0) {
 			markTerminalForBackground(terminalId);
 		}
 		state.setPaneData({
@@ -232,10 +236,9 @@ export function TerminalSessionDropdown({
 					{sessions.length > 0 ? (
 						sessions.map((session) => {
 							const isCurrent = session.terminalId === terminalId;
-							const location = findTerminalPaneLocation(
-								context,
+							const location = terminalPaneLocations.get(
 								session.terminalId,
-							);
+							)?.[0];
 							const createdAtLabel = formatCreatedAt(session.createdAt);
 							const status = isCurrent
 								? "Current"

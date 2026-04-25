@@ -136,6 +136,7 @@ export function TerminalPane({
 		);
 
 		let cancelled = false;
+		const sessionWorkspaceId = workspaceIdRef.current;
 
 		// Always connect after ensureSession settles, even on error: if the
 		// session actually exists on the server (e.g. we raced another client),
@@ -145,13 +146,13 @@ export function TerminalPane({
 		ensureSessionRef.current
 			.mutateAsync({
 				terminalId,
-				workspaceId: workspaceIdRef.current,
+				workspaceId: sessionWorkspaceId,
 				themeType: initialThemeTypeRef.current,
 			})
 			.then((result) => {
 				if (result.status === "active") {
 					void invalidateTerminalSessionsRef.current({
-						workspaceId: workspaceIdRef.current,
+						workspaceId: sessionWorkspaceId,
 					});
 				}
 			})

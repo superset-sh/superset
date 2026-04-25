@@ -151,17 +151,20 @@ export function usePaneRegistry(
 	const clearShortcut = useHotkeyDisplay("CLEAR_TERMINAL").text;
 	const scrollToBottomShortcut = useHotkeyDisplay("SCROLL_TO_BOTTOM").text;
 	const workspaceTrpcUtils = workspaceTrpc.useUtils();
-	const killTerminalSession = workspaceTrpc.terminal.killSession.useMutation({
-		onSuccess: () => {
-			toast.success("Terminal session killed");
-			void workspaceTrpcUtils.terminal.listSessions.invalidate({ workspaceId });
-		},
-		onError: (error) => {
-			toast.error("Failed to kill terminal session", {
-				description: error.message,
-			});
-		},
-	});
+	const { mutate: killTerminalSession, isPending: isKillingTerminalSession } =
+		workspaceTrpc.terminal.killSession.useMutation({
+			onSuccess: () => {
+				toast.success("Terminal session killed");
+				void workspaceTrpcUtils.terminal.listSessions.invalidate({
+					workspaceId,
+				});
+			},
+			onError: (error) => {
+				toast.error("Failed to kill terminal session", {
+					description: error.message,
+				});
+			},
+		});
 
 	return useMemo<PaneRegistry<PaneViewerData>>(
 		() => ({
@@ -348,7 +351,7 @@ export function usePaneRegistry(
 						label: "Kill Terminal Session",
 						icon: <LuPower />,
 						variant: "destructive",
-						disabled: killTerminalSession.isPending,
+						disabled: isKillingTerminalSession,
 						onSelect: (ctx) => {
 							const { terminalId } = ctx.pane.data as TerminalPaneData;
 							alert({
@@ -361,7 +364,10 @@ export function usePaneRegistry(
 										label: "Kill Session",
 										variant: "destructive",
 										onClick: () => {
-											killTerminalSession.mutate({ terminalId });
+											killTerminalSession({
+												terminalId,
+												workspaceId,
+											});
 										},
 									},
 								],
@@ -475,6 +481,7 @@ export function usePaneRegistry(
 			clearShortcut,
 			scrollToBottomShortcut,
 			killTerminalSession,
+			isKillingTerminalSession,
 			onOpenFile,
 			onRevealPath,
 		],

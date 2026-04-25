@@ -1,4 +1,7 @@
+import { TRPCError } from "@trpc/server";
+import { eq } from "drizzle-orm";
 import { z } from "zod";
+import { terminalSessions, workspaces } from "../../../db/schema";
 import {
 	createTerminalSessionInternal,
 	disposeSession,
@@ -54,9 +57,39 @@ export const terminalRouter = router({
 		.input(
 			z.object({
 				terminalId: z.string(),
+				workspaceId: z.string(),
 			}),
 		)
 		.mutation(({ ctx, input }) => {
+			const workspace = ctx.db.query.workspaces
+				.findFirst({ where: eq(workspaces.id, input.workspaceId) })
+				.sync();
+
+			if (!workspace) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Workspace not found",
+				});
+			}
+
+			const session = ctx.db.query.terminalSessions
+				.findFirst({ where: eq(terminalSessions.id, input.terminalId) })
+				.sync();
+
+			if (!session) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Terminal session not found",
+				});
+			}
+
+			if (session.originWorkspaceId !== input.workspaceId) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "Terminal session does not belong to this workspace",
+				});
+			}
+
 			disposeSession(input.terminalId, ctx.db);
 			return { terminalId: input.terminalId, status: "disposed" as const };
 		}),

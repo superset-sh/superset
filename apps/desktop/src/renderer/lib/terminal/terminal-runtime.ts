@@ -277,7 +277,7 @@ export function createRuntime(
 	// Activate Unicode 11 widths (inside loadAddons) before restoring the buffer,
 	// else CJK/emoji/ZWJ widths get baked wrong into the replay. (#3572)
 	const addonsResult = loadAddons(terminal);
-	if (options.initialBuffer) {
+	if (options.initialBuffer !== undefined) {
 		terminal.write(options.initialBuffer);
 	} else {
 		restoreBuffer(terminalId, terminal);

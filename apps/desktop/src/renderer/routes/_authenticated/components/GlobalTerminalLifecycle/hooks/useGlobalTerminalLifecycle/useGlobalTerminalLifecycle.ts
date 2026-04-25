@@ -97,7 +97,7 @@ function cleanupRemovedTerminal({
 	}
 
 	getHostServiceClientByUrl(hostUrl)
-		.terminal.killSession.mutate({ terminalId })
+		.terminal.killSession.mutate({ terminalId, workspaceId })
 		.catch((error) => {
 			console.warn(
 				"[GlobalTerminalLifecycle] Failed to kill removed terminal",
@@ -162,6 +162,8 @@ export function useGlobalTerminalLifecycle() {
 		}
 		return urls;
 	}, [activeHostUrl, machineId, workspacesWithHosts]);
+	const hostUrlByWorkspaceIdRef = useRef(hostUrlByWorkspaceId);
+	hostUrlByWorkspaceIdRef.current = hostUrlByWorkspaceId;
 
 	useEffect(() => {
 		const rows = allWorkspaceRows as PaneLifecycleRow[];
@@ -200,7 +202,7 @@ export function useGlobalTerminalLifecycle() {
 				cleanupRemovedTerminal({
 					terminalId,
 					workspaceId: pending.workspaceId,
-					hostUrlByWorkspaceId,
+					hostUrlByWorkspaceId: hostUrlByWorkspaceIdRef.current,
 				});
 			}
 		}
@@ -286,7 +288,7 @@ export function useGlobalTerminalLifecycle() {
 					cleanupRemovedTerminal({
 						terminalId,
 						workspaceId,
-						hostUrlByWorkspaceId,
+						hostUrlByWorkspaceId: hostUrlByWorkspaceIdRef.current,
 					});
 					return;
 				}
@@ -302,7 +304,7 @@ export function useGlobalTerminalLifecycle() {
 
 		prevTerminalLocationsRef.current = currentTerminalLocations;
 		prevTerminalInstanceLocationsRef.current = currentTerminalInstanceLocations;
-	}, [allWorkspaceRows, collections, hostUrlByWorkspaceId]);
+	}, [allWorkspaceRows, collections]);
 
 	useEffect(() => {
 		return () => {
