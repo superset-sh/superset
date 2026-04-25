@@ -66,9 +66,13 @@ export function V2WorkspaceRow({
 	const handleRemoveFromSidebar = useCallback(
 		(event: React.MouseEvent) => {
 			event.stopPropagation();
+			if (isCurrentRoute) {
+				event.preventDefault();
+				return;
+			}
 			removeWorkspaceFromSidebar(workspace.id);
 		},
-		[removeWorkspaceFromSidebar, workspace.id],
+		[isCurrentRoute, removeWorkspaceFromSidebar, workspace.id],
 	);
 
 	const creatorLabel = workspace.isCreatedByCurrentUser
@@ -139,9 +143,12 @@ export function V2WorkspaceRow({
 									size="icon"
 									variant="ghost"
 									onClick={handleRemoveFromSidebar}
-									disabled={isCurrentRoute}
+									aria-disabled={isCurrentRoute}
 									aria-label="Remove from sidebar"
-									className="size-7"
+									className={cn(
+										"size-7",
+										isCurrentRoute && "cursor-not-allowed opacity-50",
+									)}
 								>
 									<LuMinus className="size-3.5" />
 								</Button>
