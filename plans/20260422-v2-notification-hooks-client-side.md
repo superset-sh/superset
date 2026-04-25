@@ -78,7 +78,7 @@ agent shell hook
   POST /trpc/notifications.hook
     host-service maps event type
     host-service broadcasts agent:lifecycle over /events WebSocket
-      renderer listener updates v2 pane-status store
+      renderer listener updates v2 notification store
       renderer suppresses or plays ringtone
       renderer shows browser/OS Notification
       dashboard sidebar reads aggregated v2 status
@@ -102,7 +102,7 @@ Important shipped pieces:
   - mounts listeners for v2 workspaces
 - `apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/useV2AgentHookListener`
   - updates status, suppresses, plays sound, and shows notifications
-- `apps/desktop/src/renderer/stores/v2-pane-status`
+- `apps/desktop/src/renderer/stores/v2-notifications`
   - separate v2 status store, aggregated by workspace for the dashboard sidebar
 - `apps/desktop/src/renderer/lib/ringtones`
   - renderer-side built-in ringtone playback
@@ -501,7 +501,7 @@ Manual QA:
 ### Phase 2: Refactor Ownership
 
 - Replace per-workspace listeners with per-host notification controllers.
-- Rename `v2-pane-status` or wrap it as an agent attention store keyed by source key, not fake pane ID.
+- Store v2 notification attention in `v2-notifications` keyed by source key, not fake pane ID.
 - Add a pane-layout identity index for v2.
 - Introduce a `NotificationPlatform` abstraction for preferences, playback, browser/OS notification, and focus.
 - Keep desktop implementation backed by existing Electron/local-db APIs.

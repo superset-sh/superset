@@ -1,5 +1,5 @@
 import type { AgentLifecyclePayload } from "@superset/workspace-client";
-import type { PaneStatus } from "shared/tabs-types";
+import type { ActivePaneStatus, PaneStatus } from "shared/tabs-types";
 import type { V2NotificationTarget } from "./resolveV2NotificationTarget";
 import { getNotificationSourceIds } from "./resolveV2NotificationTarget";
 
@@ -10,7 +10,7 @@ interface StatusEntry {
 
 export interface V2AgentStatusTransition {
 	clearIds: string[];
-	setStatus: { id: string; status: PaneStatus } | null;
+	setStatus: { id: string; status: ActivePaneStatus } | null;
 }
 
 export function resolveV2AgentStatusTransition({

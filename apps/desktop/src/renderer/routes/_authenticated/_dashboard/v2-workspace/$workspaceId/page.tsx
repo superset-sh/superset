@@ -1,5 +1,4 @@
 import {
-	type Pane,
 	type PaneActionConfig,
 	Workspace,
 	type WorkspaceStore,
@@ -21,7 +20,11 @@ import { useV2UserPreferences } from "renderer/hooks/useV2UserPreferences";
 import { HotkeyLabel, useHotkey } from "renderer/hotkeys";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { CommandPalette } from "renderer/screens/main/components/CommandPalette";
-import { useV2PaneStatusStore } from "renderer/stores/v2-pane-status";
+import {
+	getV2NotificationSourceIdsForPane,
+	useV2NotificationStore,
+	useV2PaneNotificationStatus,
+} from "renderer/stores/v2-notifications";
 import {
 	toAbsoluteWorkspacePath,
 	toRelativeWorkspacePath,
@@ -117,53 +120,23 @@ function useClearActivePaneAttention({
 	workspaceId: string;
 	store: StoreApi<WorkspaceStore<PaneViewerData>>;
 }): void {
-	const activePaneKeys = useStore(store, (state) => {
+	const activePane = useStore(store, (state) => {
 		const tab = state.tabs.find(
 			(candidate) => candidate.id === state.activeTabId,
 		);
-		const pane = tab?.activePaneId ? tab.panes[tab.activePaneId] : undefined;
-		return getPaneAttentionKeys(pane).join("\u0000");
+		return tab?.activePaneId ? tab.panes[tab.activePaneId] : undefined;
 	});
-	const clearPaneStatus = useV2PaneStatusStore(
-		(state) => state.clearPaneStatus,
-	);
-	const hasActivePaneReview = useV2PaneStatusStore((state) =>
-		activePaneKeys
-			.split("\u0000")
-			.filter(Boolean)
-			.some(
-				(key) =>
-					state.statuses[key]?.workspaceId === workspaceId &&
-					state.statuses[key]?.status === "review",
-			),
+	const activePaneStatus = useV2PaneNotificationStatus(workspaceId, activePane);
+	const clearSourceAttention = useV2NotificationStore(
+		(state) => state.clearSourceAttention,
 	);
 
 	useEffect(() => {
-		if (!hasActivePaneReview) return;
-		for (const key of activePaneKeys.split("\u0000").filter(Boolean)) {
-			const entry = useV2PaneStatusStore.getState().statuses[key];
-			if (entry?.workspaceId === workspaceId && entry.status === "review") {
-				clearPaneStatus(key);
-			}
+		if (activePaneStatus !== "review") return;
+		for (const sourceId of getV2NotificationSourceIdsForPane(activePane)) {
+			clearSourceAttention(sourceId, workspaceId);
 		}
-	}, [activePaneKeys, clearPaneStatus, hasActivePaneReview, workspaceId]);
-}
-
-function getPaneAttentionKeys(
-	pane: Pane<PaneViewerData> | undefined,
-): string[] {
-	if (!pane) return [];
-
-	const keys = new Set<string>([pane.id]);
-	if (pane.kind === "terminal") {
-		const data = pane.data as TerminalPaneData;
-		if (data.terminalId) keys.add(data.terminalId);
-	}
-	if (pane.kind === "chat") {
-		const data = pane.data as ChatPaneData;
-		if (data.sessionId) keys.add(data.sessionId);
-	}
-	return [...keys];
+	}, [activePane, activePaneStatus, clearSourceAttention, workspaceId]);
 }
 
 function WorkspaceContent({

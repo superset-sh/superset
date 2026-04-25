@@ -12,7 +12,7 @@ import { electronTrpc } from "renderer/lib/electron-trpc";
 import { playRingtone } from "renderer/lib/ringtones/play";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useRingtoneStore } from "renderer/stores/ringtone";
-import { useV2PaneStatusStore } from "renderer/stores/v2-pane-status";
+import { useV2NotificationStore } from "renderer/stores/v2-notifications";
 import type { PaneViewerData } from "../../types";
 import {
 	getNotificationSourceId,
@@ -146,9 +146,8 @@ export function handleV2TerminalLifecycleEvent({
 }
 
 /**
- * Writes pane agent-lifecycle status into the v2 pane-status store so the
- * dashboard sidebar icon can pick it up. V2 panes are not tracked in the
- * v1 `useTabsStore`, so this is its own source of truth.
+ * Writes agent-lifecycle status into the v2 notification store so workspace,
+ * tab, and pane UI can derive attention from the same terminal source.
  *
  * The Stop transition mirrors v1 (useAgentHookListener.ts), but uses the v2
  * pane layout instead of workspace-level guessing: clear to idle when the
@@ -161,7 +160,7 @@ function updatePaneStatus(
 	target: V2NotificationTarget,
 	paneLayout: WorkspaceState<PaneViewerData> | null | undefined,
 ): void {
-	const store = useV2PaneStatusStore.getState();
+	const store = useV2NotificationStore.getState();
 	const targetVisible = isV2NotificationTargetVisible({
 		currentWorkspaceId: getCurrentWorkspaceId(),
 		paneLayout,
@@ -171,16 +170,17 @@ function updatePaneStatus(
 		workspaceId,
 		payload,
 		target,
-		statuses: store.statuses,
+		statuses: store.sources,
 		targetVisible,
 	});
 
 	clearStatusIds(workspaceId, transition.clearIds);
 	if (transition.setStatus) {
-		store.setPaneStatus(
+		store.setTerminalStatus(
 			transition.setStatus.id,
 			workspaceId,
 			transition.setStatus.status,
+			payload.occurredAt,
 		);
 	}
 }
@@ -248,13 +248,9 @@ function clearStatusIds(
 	workspaceId: string,
 	ids: Array<string | null | undefined>,
 ): void {
-	const store = useV2PaneStatusStore.getState();
+	const store = useV2NotificationStore.getState();
 	const uniqueIds = new Set(ids.filter((id): id is string => Boolean(id)));
-	for (const id of uniqueIds) {
-		if (store.statuses[id]?.workspaceId === workspaceId) {
-			store.clearPaneStatus(id);
-		}
-	}
+	store.clearSourceStatuses(uniqueIds, workspaceId);
 }
 
 function openNotificationTarget(
