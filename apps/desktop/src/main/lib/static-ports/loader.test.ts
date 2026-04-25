@@ -257,6 +257,161 @@ describe("loadStaticPorts", () => {
 		const result = loadStaticPorts(WORKTREE_PATH);
 		expect(result).toEqual({ exists: true, ports: [], error: null });
 	});
+
+	test("loads valid entry with host", () => {
+		const config = {
+			ports: [{ port: 3000, label: "App 1", host: "app1.localhost" }],
+		};
+		writeFileSync(PORTS_FILE, JSON.stringify(config));
+
+		const result = loadStaticPorts(WORKTREE_PATH);
+		expect(result).toEqual({
+			exists: true,
+			ports: [{ port: 3000, label: "App 1", host: "app1.localhost" }],
+			error: null,
+		});
+	});
+
+	test("loads valid entry without host (backward compat)", () => {
+		const config = {
+			ports: [{ port: 3000, label: "Frontend" }],
+		};
+		writeFileSync(PORTS_FILE, JSON.stringify(config));
+
+		const result = loadStaticPorts(WORKTREE_PATH);
+		expect(result.ports?.[0]).toEqual({ port: 3000, label: "Frontend" });
+		expect(result.ports?.[0]).not.toHaveProperty("host");
+	});
+
+	test("returns error when host is not a string", () => {
+		writeFileSync(
+			PORTS_FILE,
+			JSON.stringify({ ports: [{ port: 3000, label: "Test", host: 123 }] }),
+		);
+
+		const result = loadStaticPorts(WORKTREE_PATH);
+		expect(result.error).toBe("ports[0].host must be a string");
+	});
+
+	test("returns error when host is empty", () => {
+		writeFileSync(
+			PORTS_FILE,
+			JSON.stringify({ ports: [{ port: 3000, label: "Test", host: "" }] }),
+		);
+
+		const result = loadStaticPorts(WORKTREE_PATH);
+		expect(result.error).toBe("ports[0].host cannot be empty");
+	});
+
+	test("returns error when host is only whitespace", () => {
+		writeFileSync(
+			PORTS_FILE,
+			JSON.stringify({
+				ports: [{ port: 3000, label: "Test", host: "   " }],
+			}),
+		);
+
+		const result = loadStaticPorts(WORKTREE_PATH);
+		expect(result.error).toBe("ports[0].host cannot be empty");
+	});
+
+	test("trims whitespace from host", () => {
+		const config = {
+			ports: [{ port: 3000, label: "App", host: " app.localhost " }],
+		};
+		writeFileSync(PORTS_FILE, JSON.stringify(config));
+
+		const result = loadStaticPorts(WORKTREE_PATH);
+		expect(result.ports?.[0].host).toBe("app.localhost");
+	});
+
+	test("allows same port with different hosts", () => {
+		const config = {
+			ports: [
+				{ port: 3000, label: "App 1", host: "app1.localhost" },
+				{ port: 3000, label: "App 2", host: "app2.localhost" },
+			],
+		};
+		writeFileSync(PORTS_FILE, JSON.stringify(config));
+
+		const result = loadStaticPorts(WORKTREE_PATH);
+		expect(result).toEqual({
+			exists: true,
+			ports: [
+				{ port: 3000, label: "App 1", host: "app1.localhost" },
+				{ port: 3000, label: "App 2", host: "app2.localhost" },
+			],
+			error: null,
+		});
+	});
+
+	test("handles mixed entries with and without host", () => {
+		const config = {
+			ports: [
+				{ port: 3000, label: "Frontend" },
+				{ port: 8080, label: "API", host: "api.localhost" },
+			],
+		};
+		writeFileSync(PORTS_FILE, JSON.stringify(config));
+
+		const result = loadStaticPorts(WORKTREE_PATH);
+		expect(result.ports).toHaveLength(2);
+		expect(result.ports?.[0]).toEqual({ port: 3000, label: "Frontend" });
+		expect(result.ports?.[0]).not.toHaveProperty("host");
+		expect(result.ports?.[1]).toEqual({
+			port: 8080,
+			label: "API",
+			host: "api.localhost",
+		});
+	});
+
+	test("returns error when host contains URL path", () => {
+		writeFileSync(
+			PORTS_FILE,
+			JSON.stringify({
+				ports: [{ port: 3000, label: "Test", host: "app.localhost/path" }],
+			}),
+		);
+
+		const result = loadStaticPorts(WORKTREE_PATH);
+		expect(result.error).toBe("ports[0].host contains invalid characters");
+	});
+
+	test("returns error when host contains query string", () => {
+		writeFileSync(
+			PORTS_FILE,
+			JSON.stringify({
+				ports: [{ port: 3000, label: "Test", host: "app.localhost?x=1" }],
+			}),
+		);
+
+		const result = loadStaticPorts(WORKTREE_PATH);
+		expect(result.error).toBe("ports[0].host contains invalid characters");
+	});
+
+	test("returns error when host contains userinfo", () => {
+		writeFileSync(
+			PORTS_FILE,
+			JSON.stringify({
+				ports: [{ port: 3000, label: "Test", host: "user@host" }],
+			}),
+		);
+
+		const result = loadStaticPorts(WORKTREE_PATH);
+		expect(result.error).toBe("ports[0].host contains invalid characters");
+	});
+
+	test("returns error when host contains colon", () => {
+		writeFileSync(
+			PORTS_FILE,
+			JSON.stringify({
+				ports: [{ port: 3000, label: "Test", host: "localhost:8080" }],
+			}),
+		);
+
+		const result = loadStaticPorts(WORKTREE_PATH);
+		expect(result.error).toBe("ports[0].host contains invalid characters");
+	});
 });
 
 describe("hasStaticPortsConfig", () => {

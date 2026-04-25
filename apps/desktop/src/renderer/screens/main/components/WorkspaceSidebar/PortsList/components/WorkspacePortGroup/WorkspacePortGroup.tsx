@@ -50,7 +50,10 @@ export function WorkspacePortGroup({ group }: WorkspacePortGroupProps) {
 			</div>
 			<div className="flex flex-wrap gap-1 px-3">
 				{group.ports.map((port) => (
-					<MergedPortBadge key={port.port} port={port} />
+					<MergedPortBadge
+						key={`${port.host || "localhost"}:${port.port}`}
+						port={port}
+					/>
 				))}
 			</div>
 		</div>

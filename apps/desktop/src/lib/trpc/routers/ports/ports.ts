@@ -13,15 +13,16 @@ type PortEvent =
 	| { type: "add"; port: DetectedPort }
 	| { type: "remove"; port: DetectedPort };
 
-function getLabelsForPath(worktreePath: string): Map<number, string> | null {
+interface StaticPortInfo {
+	port: number;
+	label: string;
+	host?: string;
+}
+
+function getStaticPortsForPath(worktreePath: string): StaticPortInfo[] | null {
 	const result = loadStaticPorts(worktreePath);
 	if (!result.exists || result.error || !result.ports) return null;
-
-	const labels = new Map<number, string>();
-	for (const p of result.ports) {
-		labels.set(p.port, p.label);
-	}
-	return labels;
+	return result.ports;
 }
 
 export const createPortsRouter = () => {
@@ -29,25 +30,48 @@ export const createPortsRouter = () => {
 		getAll: publicProcedure.query((): EnrichedPort[] => {
 			const detectedPorts = portManager.getAllPorts();
 
-			const labelCache = new Map<string, Map<number, string> | null>();
+			const staticCache = new Map<string, StaticPortInfo[] | null>();
+			const enriched: EnrichedPort[] = [];
 
-			return detectedPorts.map((port) => {
-				if (!labelCache.has(port.workspaceId)) {
+			for (const port of detectedPorts) {
+				if (!staticCache.has(port.workspaceId)) {
 					const ws = localDb
 						.select()
 						.from(workspaces)
 						.where(eq(workspaces.id, port.workspaceId))
 						.get();
 					const wsPath = ws ? getWorkspacePath(ws) : null;
-					labelCache.set(
+					staticCache.set(
 						port.workspaceId,
-						wsPath ? getLabelsForPath(wsPath) : null,
+						wsPath ? getStaticPortsForPath(wsPath) : null,
 					);
 				}
 
-				const labels = labelCache.get(port.workspaceId);
-				return { ...port, label: labels?.get(port.port) ?? null };
-			});
+				const staticPorts = staticCache.get(port.workspaceId);
+				const matchesByHost = new Map<string, StaticPortInfo>();
+				for (const sp of staticPorts ?? []) {
+					if (sp.port !== port.port) continue;
+					const key = (sp.host ?? "localhost").toLowerCase();
+					if (!matchesByHost.has(key)) {
+						matchesByHost.set(key, sp);
+					}
+				}
+				const matches = [...matchesByHost.values()];
+
+				if (matches.length === 0) {
+					enriched.push({ ...port, label: null, host: null });
+				} else {
+					for (const match of matches) {
+						enriched.push({
+							...port,
+							label: match.label,
+							host: match.host ?? null,
+						});
+					}
+				}
+			}
+
+			return enriched;
 		}),
 
 		subscribe: publicProcedure.subscription(() => {

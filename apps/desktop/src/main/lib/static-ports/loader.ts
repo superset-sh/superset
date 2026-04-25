@@ -6,6 +6,7 @@ import type { StaticPortsResult } from "shared/types";
 interface PortEntry {
 	port: unknown;
 	label: unknown;
+	host: unknown;
 }
 
 interface PortsConfig {
@@ -23,7 +24,7 @@ function validatePortEntry(
 	entry: PortEntry,
 	index: number,
 ):
-	| { valid: true; port: number; label: string }
+	| { valid: true; port: number; label: string; host?: string }
 	| { valid: false; error: string } {
 	if (typeof entry !== "object" || entry === null) {
 		return { valid: false, error: `ports[${index}] must be an object` };
@@ -62,6 +63,30 @@ function validatePortEntry(
 
 	if (label.trim() === "") {
 		return { valid: false, error: `ports[${index}].label cannot be empty` };
+	}
+
+	if ("host" in entry) {
+		const { host } = entry;
+		if (typeof host !== "string") {
+			return {
+				valid: false,
+				error: `ports[${index}].host must be a string`,
+			};
+		}
+		const trimmedHost = host.trim();
+		if (trimmedHost === "") {
+			return {
+				valid: false,
+				error: `ports[${index}].host cannot be empty`,
+			};
+		}
+		if (/[/:?#@]/.test(trimmedHost)) {
+			return {
+				valid: false,
+				error: `ports[${index}].host contains invalid characters`,
+			};
+		}
+		return { valid: true, port, label: label.trim(), host: trimmedHost };
 	}
 
 	return { valid: true, port, label: label.trim() };
@@ -132,7 +157,8 @@ export function loadStaticPorts(worktreePath: string): StaticPortsResult {
 		};
 	}
 
-	const validatedPorts: Array<{ port: number; label: string }> = [];
+	const validatedPorts: Array<{ port: number; label: string; host?: string }> =
+		[];
 
 	for (let i = 0; i < parsed.ports.length; i++) {
 		const entry = parsed.ports[i] as PortEntry;
@@ -142,7 +168,11 @@ export function loadStaticPorts(worktreePath: string): StaticPortsResult {
 			return { exists: true, ports: null, error: result.error };
 		}
 
-		validatedPorts.push({ port: result.port, label: result.label });
+		validatedPorts.push({
+			port: result.port,
+			label: result.label,
+			...(result.host ? { host: result.host } : {}),
+		});
 	}
 
 	return { exists: true, ports: validatedPorts, error: null };

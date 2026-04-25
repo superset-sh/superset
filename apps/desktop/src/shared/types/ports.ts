@@ -11,6 +11,7 @@ export interface DetectedPort {
 export interface StaticPort {
 	port: number;
 	label: string;
+	host?: string;
 	workspaceId: string;
 }
 
@@ -22,4 +23,5 @@ export interface StaticPortsResult {
 
 export interface EnrichedPort extends DetectedPort {
 	label: string | null;
+	host: string | null;
 }
