@@ -74,6 +74,12 @@ function sendTitle(transport: TerminalTransport, socket: WebSocket): void {
 	sendClientMessage(socket, { type: "title", title: transport.title });
 }
 
+function hasReplayTitle(
+	message: Extract<TerminalServerMessage, { type: "replay" }>,
+): boolean {
+	return Object.hasOwn(message, "title");
+}
+
 const MAX_RECONNECT_DELAY = 10_000;
 const BASE_RECONNECT_DELAY = 500;
 const MAX_RECONNECT_ATTEMPTS = 10;
@@ -174,9 +180,12 @@ export function connect(
 		}
 
 		if (message.type === "replay") {
-			const hasAuthoritativeTitle = message.title != null;
-			if (hasAuthoritativeTitle) {
+			const includesTitle = hasReplayTitle(message);
+			const hasAuthoritativeTitle = includesTitle && message.title !== null;
+			if (includesTitle) {
 				setTitle(transport, message.title ?? null);
+			}
+			if (hasAuthoritativeTitle) {
 				replayTitleSuppressDepth += 1;
 			}
 			terminal.write(message.data, () => {
