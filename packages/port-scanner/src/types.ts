@@ -2,7 +2,7 @@ export interface DetectedPort {
 	port: number;
 	pid: number;
 	processName: string;
-	paneId: string;
+	terminalId: string;
 	workspaceId: string;
 	detectedAt: number;
 	address: string;

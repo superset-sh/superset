@@ -28,6 +28,12 @@ export interface DashboardSidebarPortGroup {
 	ports: DashboardSidebarPort[];
 }
 
+export interface DashboardSidebarPortsLoadError {
+	hostId: string;
+	hostType: DashboardSidebarWorkspaceHostType;
+	message: string;
+}
+
 interface HostPortsResult {
 	hostId: string;
 	hostType: DashboardSidebarWorkspaceHostType;
@@ -38,6 +44,7 @@ interface HostPortsResult {
 export function useDashboardSidebarPortsData(): {
 	workspacePortGroups: DashboardSidebarPortGroup[];
 	totalPortCount: number;
+	portLoadErrors: DashboardSidebarPortsLoadError[];
 } {
 	const collections = useCollections();
 	const { activeHostUrl, machineId } = useLocalHostService();
@@ -68,9 +75,27 @@ export function useDashboardSidebarPortsData(): {
 		[collections],
 	);
 
+	const workspaceIdsByHostId = useMemo(() => {
+		const map = new Map<string, string[]>();
+		for (const workspace of workspaces) {
+			const existing = map.get(workspace.hostId);
+			if (existing) {
+				existing.push(workspace.id);
+			} else {
+				map.set(workspace.hostId, [workspace.id]);
+			}
+		}
+		for (const workspaceIds of map.values()) {
+			workspaceIds.sort();
+		}
+		return map;
+	}, [workspaces]);
+
 	const hostsToQuery = useMemo(
 		() =>
 			hosts.flatMap((host) => {
+				const workspaceIds = workspaceIdsByHostId.get(host.id);
+				if (!workspaceIds || workspaceIds.length === 0) return [];
 				const isLocal = host.machineId === machineId;
 				if (!isLocal && !host.isOnline) return [];
 				const hostUrl = isLocal
@@ -84,19 +109,29 @@ export function useDashboardSidebarPortsData(): {
 							? ("local-device" as const)
 							: ("remote-device" as const),
 						hostUrl,
+						workspaceIds,
 					},
 				];
 			}),
-		[activeHostUrl, hosts, machineId],
+		[activeHostUrl, hosts, machineId, workspaceIdsByHostId],
 	);
 
 	const queries = useQueries({
 		queries: hostsToQuery.map((host) => ({
-			queryKey: ["host-service", "ports", "getAll", host.id, host.hostUrl],
+			queryKey: [
+				"host-service",
+				"ports",
+				"getAll",
+				host.id,
+				host.hostUrl,
+				host.workspaceIds,
+			],
 			refetchInterval: PORTS_REFETCH_INTERVAL_MS,
 			queryFn: async (): Promise<HostPortsResult> => {
 				const client = getHostServiceClientByUrl(host.hostUrl);
-				const ports = await client.ports.getAll.query();
+				const ports = await client.ports.getAll.query({
+					workspaceIds: host.workspaceIds,
+				});
 				return {
 					hostId: host.id,
 					hostType: host.hostType,
@@ -173,8 +208,25 @@ export function useDashboardSidebarPortsData(): {
 		0,
 	);
 
+	const portLoadErrors = queries.flatMap((query, index) => {
+		if (!query.isError && !query.isRefetchError) return [];
+		const host = hostsToQuery[index];
+		if (!host) return [];
+		return [
+			{
+				hostId: host.id,
+				hostType: host.hostType,
+				message:
+					query.error instanceof Error
+						? query.error.message
+						: "Unable to load ports",
+			},
+		];
+	});
+
 	return {
 		workspacePortGroups,
 		totalPortCount,
+		portLoadErrors,
 	};
 }

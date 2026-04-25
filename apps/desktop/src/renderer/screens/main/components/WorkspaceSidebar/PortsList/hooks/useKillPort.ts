@@ -8,15 +8,24 @@ type KillResult = { success: boolean; error?: string };
 
 async function killOne(
 	port: EnrichedPort,
-	killLocal: (input: { paneId: string; port: number }) => Promise<KillResult>,
+	killLocal: (input: {
+		workspaceId: string;
+		terminalId: string;
+		port: number;
+	}) => Promise<KillResult>,
 ): Promise<KillResult> {
 	if (port.hostUrl) {
 		return getHostServiceClientByUrl(port.hostUrl).ports.kill.mutate({
-			paneId: port.paneId,
+			workspaceId: port.workspaceId,
+			terminalId: port.terminalId,
 			port: port.port,
 		});
 	}
-	return killLocal({ paneId: port.paneId, port: port.port });
+	return killLocal({
+		workspaceId: port.workspaceId,
+		terminalId: port.terminalId,
+		port: port.port,
+	});
 }
 
 export function useKillPort() {

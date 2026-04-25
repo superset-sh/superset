@@ -15,6 +15,14 @@ const HINT_SCAN_DELAY_MS = 500;
 /** Ports to ignore (common system ports that are usually not dev servers) */
 const IGNORED_PORTS = new Set([22, 80, 443, 5432, 3306, 6379, 27017]);
 
+const PORT_HINT_PATTERNS = [
+	/listening\s+on\s+(?:port\s+)?(\d+)/i,
+	/server\s+(?:started|running)\s+(?:on|at)\s+(?:http:\/\/)?(?:localhost|127\.0\.0\.1|0\.0\.0\.0)?:?(\d+)/i,
+	/ready\s+on\s+(?:http:\/\/)?(?:localhost|127\.0\.0\.1|0\.0\.0\.0)?:?(\d+)/i,
+	/\bLocal:\s+https?:\/\//i,
+	/development\s+server\s+at\s+https?:\/\//i,
+];
+
 /**
  * Check if terminal output contains hints that a port may have been opened.
  * Restricted to phrases that strongly imply a server just started listening;
@@ -27,14 +35,50 @@ const IGNORED_PORTS = new Set([22, 80, 443, 5432, 3306, 6379, 27017]);
  * for the next periodic scan.
  */
 function containsPortHint(data: string): boolean {
-	const portPatterns = [
-		/listening\s+on\s+(?:port\s+)?(\d+)/i,
-		/server\s+(?:started|running)\s+(?:on|at)\s+(?:http:\/\/)?(?:localhost|127\.0\.0\.1|0\.0\.0\.0)?:?(\d+)/i,
-		/ready\s+on\s+(?:http:\/\/)?(?:localhost|127\.0\.0\.1|0\.0\.0\.0)?:?(\d+)/i,
-		/\bLocal:\s+https?:\/\//i,
-		/development\s+server\s+at\s+https?:\/\//i,
-	];
-	return portPatterns.some((pattern) => pattern.test(data));
+	return PORT_HINT_PATTERNS.some((pattern) => pattern.test(data));
+}
+
+function addressRank(address: string): number {
+	const normalizedAddress = address.toLowerCase();
+	if (normalizedAddress === "127.0.0.1" || normalizedAddress === "localhost") {
+		return 0;
+	}
+	if (normalizedAddress === "0.0.0.0" || normalizedAddress === "*") {
+		return 1;
+	}
+	if (!normalizedAddress.includes(":")) {
+		return 2;
+	}
+	if (normalizedAddress === "::1") {
+		return 3;
+	}
+	if (normalizedAddress === "::" || normalizedAddress === "0:0:0:0:0:0:0:0") {
+		return 4;
+	}
+	return 5;
+}
+
+function comparePortInfo(a: PortInfo, b: PortInfo): number {
+	return (
+		a.port - b.port ||
+		a.pid - b.pid ||
+		a.processName.localeCompare(b.processName) ||
+		addressRank(a.address) - addressRank(b.address) ||
+		a.address.localeCompare(b.address)
+	);
+}
+
+function dedupePortInfosByPort(portInfos: PortInfo[]): PortInfo[] {
+	const portsByNumber = new Map<number, PortInfo>();
+
+	for (const info of portInfos) {
+		const existing = portsByNumber.get(info.port);
+		if (!existing || comparePortInfo(info, existing) < 0) {
+			portsByNumber.set(info.port, info);
+		}
+	}
+
+	return Array.from(portsByNumber.values()).sort(comparePortInfo);
 }
 
 interface SessionEntry {
@@ -44,10 +88,10 @@ interface SessionEntry {
 }
 
 interface ScanState {
-	panePortMap: Map<string, { workspaceId: string; pids: number[] }>;
-	pidOwnerMap: Map<number, { paneId: string; workspaceId: string }>;
+	terminalPortMap: Map<string, { workspaceId: string; pids: number[] }>;
+	pidOwnerMap: Map<number, { terminalId: string; workspaceId: string }>;
 	allPids: Set<number>;
-	emptyTreePanes: Set<string>;
+	emptyTreeTerminals: Set<string>;
 }
 
 /**
@@ -65,7 +109,7 @@ export interface PortManagerOptions {
 
 export class PortManager extends EventEmitter {
 	private ports = new Map<string, DetectedPort>();
-	/** paneId → { workspaceId, pid | null } */
+	/** terminalId → { workspaceId, pid | null } */
 	private sessions = new Map<string, SessionEntry>();
 	private scanInterval: ReturnType<typeof setInterval> | null = null;
 	private hintScanTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -86,21 +130,26 @@ export class PortManager extends EventEmitter {
 	 * Pass `pid = null` when the terminal hasn't spawned yet; call again with
 	 * the real PID once it's known. Safe to call multiple times.
 	 */
-	upsertSession(paneId: string, workspaceId: string, pid: number | null): void {
-		this.sessions.set(paneId, { workspaceId, pid });
+	upsertSession(
+		terminalId: string,
+		workspaceId: string,
+		pid: number | null,
+	): void {
+		this.sessions.set(terminalId, { workspaceId, pid });
 		this.ensurePeriodicScanRunning();
 	}
 
 	/**
 	 * Remove a session and forget any ports it owned.
 	 */
-	unregisterSession(paneId: string): void {
-		this.sessions.delete(paneId);
-		this.removePortsForPane(paneId);
+	unregisterSession(terminalId: string): void {
+		this.sessions.delete(terminalId);
+		this.removePortsForTerminal(terminalId);
 		this.stopPeriodicScanIfIdle();
 	}
 
 	checkOutputForHint(data: string): void {
+		if (this.hintScanTimeout || this.scanRequested) return;
 		if (!containsPortHint(data)) return;
 		this.scheduleHintScan();
 	}
@@ -176,20 +225,26 @@ export class PortManager extends EventEmitter {
 
 	private createScanState(): ScanState {
 		return {
-			panePortMap: new Map<string, { workspaceId: string; pids: number[] }>(),
-			pidOwnerMap: new Map<number, { paneId: string; workspaceId: string }>(),
+			terminalPortMap: new Map<
+				string,
+				{ workspaceId: string; pids: number[] }
+			>(),
+			pidOwnerMap: new Map<
+				number,
+				{ terminalId: string; workspaceId: string }
+			>(),
 			allPids: new Set<number>(),
-			emptyTreePanes: new Set<string>(),
+			emptyTreeTerminals: new Set<string>(),
 		};
 	}
 
 	private async collectSessionPids(scanState: ScanState): Promise<void> {
 		const tasks: Promise<void>[] = [];
-		for (const [paneId, { workspaceId, pid }] of this.sessions) {
+		for (const [terminalId, { workspaceId, pid }] of this.sessions) {
 			if (pid === null) continue;
 			tasks.push(
 				this.collectPidTree({
-					paneId,
+					terminalId,
 					workspaceId,
 					pid,
 					scanState,
@@ -200,12 +255,12 @@ export class PortManager extends EventEmitter {
 	}
 
 	private async collectPidTree({
-		paneId,
+		terminalId,
 		workspaceId,
 		pid,
 		scanState,
 	}: {
-		paneId: string;
+		terminalId: string;
 		workspaceId: string;
 		pid: number;
 		scanState: ScanState;
@@ -213,24 +268,24 @@ export class PortManager extends EventEmitter {
 		try {
 			const pids = await getProcessTree(pid);
 			if (pids.length === 0) {
-				scanState.emptyTreePanes.add(paneId);
+				scanState.emptyTreeTerminals.add(terminalId);
 				return;
 			}
 
-			scanState.panePortMap.set(paneId, { workspaceId, pids });
-			this.addPanePids({ paneId, workspaceId, pids, scanState });
+			scanState.terminalPortMap.set(terminalId, { workspaceId, pids });
+			this.addTerminalPids({ terminalId, workspaceId, pids, scanState });
 		} catch {
 			// Session may have exited
 		}
 	}
 
-	private addPanePids({
-		paneId,
+	private addTerminalPids({
+		terminalId,
 		workspaceId,
 		pids,
 		scanState,
 	}: {
-		paneId: string;
+		terminalId: string;
 		workspaceId: string;
 		pids: number[];
 		scanState: ScanState;
@@ -238,21 +293,21 @@ export class PortManager extends EventEmitter {
 		for (const childPid of pids) {
 			scanState.allPids.add(childPid);
 			if (!scanState.pidOwnerMap.has(childPid)) {
-				scanState.pidOwnerMap.set(childPid, { paneId, workspaceId });
+				scanState.pidOwnerMap.set(childPid, { terminalId, workspaceId });
 			}
 		}
 	}
 
-	private async buildPortsByPane({
+	private async buildPortsByTerminal({
 		allPids,
 		pidOwnerMap,
 	}: {
 		allPids: Set<number>;
 		pidOwnerMap: ScanState["pidOwnerMap"];
 	}): Promise<Map<string, PortInfo[]>> {
-		const portsByPane = new Map<string, PortInfo[]>();
+		const portsByTerminal = new Map<string, PortInfo[]>();
 		const allPidList = Array.from(allPids);
-		if (allPidList.length === 0) return portsByPane;
+		if (allPidList.length === 0) return portsByTerminal;
 
 		const portInfos = await getListeningPortsForPids(
 			allPidList,
@@ -261,39 +316,39 @@ export class PortManager extends EventEmitter {
 		for (const info of portInfos) {
 			const owner = pidOwnerMap.get(info.pid);
 			if (!owner) continue;
-			const existing = portsByPane.get(owner.paneId);
+			const existing = portsByTerminal.get(owner.terminalId);
 			if (existing) {
 				existing.push(info);
 			} else {
-				portsByPane.set(owner.paneId, [info]);
+				portsByTerminal.set(owner.terminalId, [info]);
 			}
 		}
 
-		return portsByPane;
+		return portsByTerminal;
 	}
 
 	private updatePortsFromScan({
-		panePortMap,
-		portsByPane,
+		terminalPortMap,
+		portsByTerminal,
 	}: {
-		panePortMap: ScanState["panePortMap"];
-		portsByPane: Map<string, PortInfo[]>;
+		terminalPortMap: ScanState["terminalPortMap"];
+		portsByTerminal: Map<string, PortInfo[]>;
 	}): void {
-		for (const [paneId, { workspaceId }] of panePortMap) {
-			const portInfos = portsByPane.get(paneId) ?? [];
-			this.updatePortsForPane({ paneId, workspaceId, portInfos });
+		for (const [terminalId, { workspaceId }] of terminalPortMap) {
+			const portInfos = portsByTerminal.get(terminalId) ?? [];
+			this.updatePortsForTerminal({ terminalId, workspaceId, portInfos });
 		}
 	}
 
-	private clearEmptyTreePanes(emptyTreePanes: Set<string>): void {
-		for (const paneId of emptyTreePanes) {
-			this.removePortsForPane(paneId);
+	private clearEmptyTreeTerminals(emptyTreeTerminals: Set<string>): void {
+		for (const terminalId of emptyTreeTerminals) {
+			this.removePortsForTerminal(terminalId);
 		}
 	}
 
 	private cleanupUnregisteredPorts(): void {
 		for (const [key, port] of this.ports) {
-			if (!this.sessions.has(port.paneId)) {
+			if (!this.sessions.has(port.terminalId)) {
 				this.ports.delete(key);
 				this.emit("port:remove", port);
 			}
@@ -313,16 +368,16 @@ export class PortManager extends EventEmitter {
 			const scanState = this.createScanState();
 			await this.collectSessionPids(scanState);
 
-			const portsByPane = await this.buildPortsByPane({
+			const portsByTerminal = await this.buildPortsByTerminal({
 				allPids: scanState.allPids,
 				pidOwnerMap: scanState.pidOwnerMap,
 			});
 
 			this.updatePortsFromScan({
-				panePortMap: scanState.panePortMap,
-				portsByPane,
+				terminalPortMap: scanState.terminalPortMap,
+				portsByTerminal,
 			});
-			this.clearEmptyTreePanes(scanState.emptyTreePanes);
+			this.clearEmptyTreeTerminals(scanState.emptyTreeTerminals);
 			this.cleanupUnregisteredPorts();
 		} finally {
 			this.isScanning = false;
@@ -334,12 +389,12 @@ export class PortManager extends EventEmitter {
 		}
 	}
 
-	private updatePortsForPane({
-		paneId,
+	private updatePortsForTerminal({
+		terminalId,
 		workspaceId,
 		portInfos,
 	}: {
-		paneId: string;
+		terminalId: string;
 		workspaceId: string;
 		portInfos: PortInfo[];
 	}): void {
@@ -348,11 +403,12 @@ export class PortManager extends EventEmitter {
 		const validPortInfos = portInfos.filter(
 			(info) => !IGNORED_PORTS.has(info.port),
 		);
+		const dedupedPortInfos = dedupePortInfosByPort(validPortInfos);
 
 		const seenKeys = new Set<string>();
 
-		for (const info of validPortInfos) {
-			const key = this.makeKey(paneId, info.port);
+		for (const info of dedupedPortInfos) {
+			const key = this.makeKey(terminalId, info.port);
 			seenKeys.add(key);
 
 			const existing = this.ports.get(key);
@@ -361,7 +417,7 @@ export class PortManager extends EventEmitter {
 					port: info.port,
 					pid: info.pid,
 					processName: info.processName,
-					paneId,
+					terminalId,
 					workspaceId,
 					detectedAt: now,
 					address: info.address,
@@ -386,22 +442,22 @@ export class PortManager extends EventEmitter {
 		}
 
 		for (const [key, port] of this.ports) {
-			if (port.paneId === paneId && !seenKeys.has(key)) {
+			if (port.terminalId === terminalId && !seenKeys.has(key)) {
 				this.ports.delete(key);
 				this.emit("port:remove", port);
 			}
 		}
 	}
 
-	private makeKey(paneId: string, port: number): string {
-		return `${paneId}:${port}`;
+	private makeKey(terminalId: string, port: number): string {
+		return `${terminalId}:${port}`;
 	}
 
-	removePortsForPane(paneId: string): void {
+	removePortsForTerminal(terminalId: string): void {
 		const portsToRemove: DetectedPort[] = [];
 
 		for (const [key, port] of this.ports) {
-			if (port.paneId === paneId) {
+			if (port.terminalId === terminalId) {
 				portsToRemove.push(port);
 				this.ports.delete(key);
 			}
@@ -428,15 +484,23 @@ export class PortManager extends EventEmitter {
 
 	/**
 	 * Kill the process listening on a tracked port.
-	 * Refuses to kill the terminal's own shell — that would close the pane.
+	 * Refuses to kill the terminal's own shell — that would close the terminal.
 	 * A dev server is always a descendant (different PID), so `killFn` with the
 	 * port's owning PID correctly tears down the server without touching the shell.
 	 */
-	killPort({ paneId, port }: { paneId: string; port: number }): Promise<{
+	killPort({
+		terminalId,
+		workspaceId,
+		port,
+	}: {
+		terminalId: string;
+		workspaceId: string;
+		port: number;
+	}): Promise<{
 		success: boolean;
 		error?: string;
 	}> {
-		const key = this.makeKey(paneId, port);
+		const key = this.makeKey(terminalId, port);
 		const detectedPort = this.ports.get(key);
 
 		if (!detectedPort) {
@@ -446,7 +510,14 @@ export class PortManager extends EventEmitter {
 			});
 		}
 
-		const shellPid = this.sessions.get(paneId)?.pid;
+		if (detectedPort.workspaceId !== workspaceId) {
+			return Promise.resolve({
+				success: false,
+				error: "Port does not belong to the requested workspace",
+			});
+		}
+
+		const shellPid = this.sessions.get(terminalId)?.pid;
 
 		if (shellPid != null && detectedPort.pid === shellPid) {
 			return Promise.resolve({

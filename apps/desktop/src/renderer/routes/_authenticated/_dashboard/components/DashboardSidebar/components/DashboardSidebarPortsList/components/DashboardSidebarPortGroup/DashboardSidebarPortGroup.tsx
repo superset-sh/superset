@@ -1,6 +1,7 @@
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
+import { cn } from "@superset/ui/utils";
 import { useNavigate } from "@tanstack/react-router";
-import { LuX } from "react-icons/lu";
+import { LuLoaderCircle, LuX } from "react-icons/lu";
 import { navigateToV2Workspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { STROKE_WIDTH } from "renderer/screens/main/components/WorkspaceSidebar/constants";
 import { useDashboardSidebarPortKill } from "../../hooks/useDashboardSidebarPortKill";
@@ -15,13 +16,14 @@ export function DashboardSidebarPortGroup({
 	group,
 }: DashboardSidebarPortGroupProps) {
 	const navigate = useNavigate();
-	const { killPorts } = useDashboardSidebarPortKill();
+	const { isPending, killPorts } = useDashboardSidebarPortKill();
 
 	const handleWorkspaceClick = () => {
 		void navigateToV2Workspace(group.workspaceId, navigate);
 	};
 
 	const handleCloseAll = () => {
+		if (isPending) return;
 		void killPorts(group.ports);
 	};
 
@@ -43,9 +45,21 @@ export function DashboardSidebarPortGroup({
 						<button
 							type="button"
 							onClick={handleCloseAll}
-							className="ml-auto rounded p-0.5 text-muted-foreground hover:bg-muted/50 hover:text-primary"
+							disabled={isPending}
+							aria-busy={isPending}
+							className={cn(
+								"ml-auto rounded p-0.5 text-muted-foreground hover:bg-muted/50 hover:text-primary",
+								"disabled:pointer-events-none disabled:opacity-60",
+							)}
 						>
-							<LuX className="size-3" strokeWidth={STROKE_WIDTH} />
+							{isPending ? (
+								<LuLoaderCircle
+									className="size-3 animate-spin"
+									strokeWidth={STROKE_WIDTH}
+								/>
+							) : (
+								<LuX className="size-3" strokeWidth={STROKE_WIDTH} />
+							)}
 						</button>
 					</TooltipTrigger>
 					<TooltipContent side="top" sideOffset={4}>
@@ -53,10 +67,10 @@ export function DashboardSidebarPortGroup({
 					</TooltipContent>
 				</Tooltip>
 			</div>
-			<div className="flex flex-wrap gap-1 px-3">
+			<div className="fade-edge-r grid auto-cols-max grid-flow-col grid-rows-2 gap-1 overflow-x-auto px-3 pb-1 hide-scrollbar">
 				{group.ports.map((port) => (
 					<DashboardSidebarPortBadge
-						key={`${port.hostId}:${port.paneId}:${port.port}`}
+						key={`${port.hostId}:${port.terminalId}:${port.port}`}
 						port={port}
 					/>
 				))}

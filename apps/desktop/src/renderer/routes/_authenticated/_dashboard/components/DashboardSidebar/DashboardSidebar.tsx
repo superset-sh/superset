@@ -184,8 +184,8 @@ export function DashboardSidebar({
 						document.body,
 					)}
 				</DndContext>
-				{!isCollapsed && <DashboardSidebarPortsList />}
 			</div>
+			{!isCollapsed && <DashboardSidebarPortsList />}
 		</div>
 	);
 }

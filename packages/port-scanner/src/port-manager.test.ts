@@ -222,6 +222,37 @@ describe("PortManager — port identity updates", () => {
 		]);
 		expect(removed.map((event) => event.address)).toEqual(["0.0.0.0"]);
 	});
+
+	it("dedupes dual-address listeners for the same terminal port", async () => {
+		const added: DetectedPort[] = [];
+		const removed: DetectedPort[] = [];
+		manager.on("port:add", (port: DetectedPort) => added.push(port));
+		manager.on("port:remove", (port: DetectedPort) => removed.push(port));
+
+		manager.upsertSession("p1", "ws1", 1000);
+
+		listeningPorts = [
+			{ port: 3000, pid: 1000, address: "::1", processName: "node" },
+			{ port: 3000, pid: 1000, address: "127.0.0.1", processName: "node" },
+		];
+		await manager.forceScan();
+
+		expect(manager.getAllPorts()).toHaveLength(1);
+		expect(manager.getAllPorts()[0]?.address).toBe("127.0.0.1");
+		expect(added).toHaveLength(1);
+		expect(removed).toHaveLength(0);
+
+		listeningPorts = [
+			{ port: 3000, pid: 1000, address: "127.0.0.1", processName: "node" },
+			{ port: 3000, pid: 1000, address: "::1", processName: "node" },
+		];
+		await manager.forceScan();
+
+		expect(manager.getAllPorts()).toHaveLength(1);
+		expect(manager.getAllPorts()[0]?.address).toBe("127.0.0.1");
+		expect(added).toHaveLength(1);
+		expect(removed).toHaveLength(0);
+	});
 });
 
 describe("PortManager — #3372 hint regex narrowing", () => {

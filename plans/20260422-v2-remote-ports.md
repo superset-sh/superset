@@ -9,7 +9,14 @@ Show listening ports in the v2 sidebar for workspaces whose terminals run locall
 
 ## Guiding principle
 
-**Scan where the PID lives.** PIDs are only meaningful on the host that owns the process. Don't ship PIDs across the wire to scan elsewhere; ship fully-resolved `DetectedPort` records instead. The sidebar consumes a single workspace-scoped stream and doesn't care which host detected each port.
+**Scan where the PID lives, and key ports by terminal session.** PIDs are only meaningful on the host that owns the process. A listening port belongs to a process tree rooted at a terminal session, not to a renderer pane. Don't ship PIDs across the wire to scan elsewhere; ship fully-resolved port records keyed by `terminalId` instead. The sidebar consumes per-host port snapshots and groups them by workspace without caring which host detected each port.
+
+This matches the recent v2 notification model: notification attention is keyed
+by durable sources (`terminalId` for terminal panes, chat session id for chat
+panes), and panes/tabs are only views over those sources. Ports should follow
+the same boundary. A port row can open the workspace and route kill/open actions
+through the host-service that owns the terminal, but it should not carry or
+depend on renderer pane focus identity.
 
 ## Current state
 
@@ -63,15 +70,15 @@ No behavior change in this step. Land it alone to de-risk.
 ### 2. Host-service port manager
 
 - `packages/host-service/src/ports/port-manager.ts`: thin wrapper that instantiates `PortManager` from the shared package and wires it to the host-service terminal registry.
-- Terminal lifecycle hooks in `packages/host-service/src/terminal/terminal.ts`: call `portManager.upsertDaemonSession(paneId, workspaceId, pid)` on spawn and `unregisterDaemonSession(paneId)` on exit. The existing `daemonSessions` path fits — host-service runs like the daemon mode.
+- Terminal lifecycle hooks in `packages/host-service/src/terminal/terminal.ts`: call `portManager.upsertSession(terminalId, workspaceId, pid)` on spawn and `unregisterSession(terminalId)` on exit. The existing terminal session lifecycle fits the shared manager model.
 - Pipe PTY output through `portManager.checkOutputForHint(data)` at the same site that already streams to the renderer.
 
 ### 3. Host-service tRPC `ports` router
 
 - `packages/host-service/src/trpc/router/ports/ports.ts`: mirror of `apps/desktop/src/lib/trpc/routers/ports/ports.ts`.
-  - `getAll()` → `DetectedPort[]` (no label enrichment here; labels require `ports.json` from the worktree — host-service can load it from its own filesystem since it owns the worktree).
-  - `subscribe()` → observable of `{ type: 'add' | 'remove', port }`. **Note:** host-service uses `@trpc/server` async iterators over WebSocket, not `trpc-electron`; the observable constraint in `apps/desktop/AGENTS.md` does *not* apply to host-service. Use whichever pattern the rest of host-service uses (grep `subscription(` in `packages/host-service/src/trpc/router/` to match).
-  - `kill({ paneId, port })` → forwards to host-service port manager.
+  - `getAll({ workspaceIds })` → enriched detected ports for the requested workspaces. `.superset/ports.json` is supplemental label metadata only: it names ports that were already detected as listening; it does not create static rows and does not replace dynamic discovery. Host-service can load labels from its own filesystem since it owns the worktree.
+  - `subscribe({ workspaceIds })` → observable of `{ type: 'add' | 'remove', port }` scoped to the requested workspaces. **Note:** host-service uses `@trpc/server` async iterators over WebSocket, not `trpc-electron`; the observable constraint in `apps/desktop/AGENTS.md` does *not* apply to host-service. Use whichever pattern the rest of host-service uses (grep `subscription(` in `packages/host-service/src/trpc/router/` to match).
+  - `kill({ workspaceId, terminalId, port })` → forwards to host-service port manager after verifying the tracked port belongs to that workspace and terminal session.
 - Register under the existing host-service router.
 
 ### 4. Desktop: merge local + remote host-service results
@@ -83,6 +90,10 @@ polling into the legacy `WorkspaceSidebar` path.
 collections, queries each relevant host-service `ports.getAll`, and groups the
 result by workspace. Local v2 workspaces query the local host-service through
 `activeHostUrl`; remote v2 workspaces query the relay URL for their host.
+The first implementation uses low-frequency polling instead of subscriptions
+because it keeps renderer state simple and avoids proxying per-host streams
+through desktop main. The host-service `subscribe` endpoint remains useful for a
+future lower-latency UI if polling becomes insufficient.
 
 Pros: no proxy code in desktop main; remote failures are local to the sidebar
 query and don't affect other hosts.
@@ -102,12 +113,13 @@ ports by workspace and shows an origin badge (local / remote) because v2 can
 mix host-service owners in one sidebar.
 
 The kill button routes through the same host-service client that produced the
-port row. Browser-open is only enabled for local-device ports, where
-`localhost:<port>` is meaningful.
+port row using `workspaceId + terminalId + port`. Browser-open is only enabled
+for local-device ports, where `localhost:<port>` is meaningful. Clicking a port
+opens the workspace; ports no longer carry renderer pane focus identity.
 
 ### 6. Schema
 
-**No schema changes.** The `terminalSessions` table (`packages/host-service/src/db/schema.ts:9`) already has everything the manager needs (paneId, workspaceId, pid). Ports are runtime state — persisting them adds no value and costs writes on every 2.5s scan.
+**No schema changes.** The `terminalSessions` table (`packages/host-service/src/db/schema.ts:9`) already has everything the manager needs (`terminalId`, `workspaceId`, `pid`). Ports are runtime state — persisting them adds no value and costs writes on every 2.5s scan.
 
 ## Perf safeguards (carry over from v1)
 
@@ -131,12 +143,12 @@ Land these in step 1 so the shared package starts clean.
 
 **Blockers:**
 - `port-manager.ts:124,151` — `scanAbort` can be `undefined` when a lingering `hintScanTimeout` fires after `stopPeriodicScan`. Lazy-allocate at the top of `scanAllSessions`.
-- `ports.ts:36-45` + `usePortsData.ts:28` — DB `SELECT workspace` per unique `workspaceId` per `getAll`, and `getAll` is re-run on every `port:add`/`port:remove`. With a dev server churning ports this is a cascade of sync `better-sqlite3` reads on the main thread. Cache `workspaceId → labels` on the manager (invalidate on workspace CRUD), or coalesce `invalidate()` in the renderer with a 50ms debounce.
+- `ports.ts:36-45` + `usePortsData.ts:28` — DB `SELECT workspace` per unique `workspaceId` per `getAll`, and `getAll` is re-run on every `port:add`/`port:remove`. With a dev server churning ports this is a cascade of sync `better-sqlite3` reads on the main thread. Cache `workspaceId → labels` for supplemental `.superset/ports.json` names (invalidate on workspace CRUD), or coalesce `invalidate()` in the renderer with a 50ms debounce.
 
 **Worth-fixing:**
 - Delete `registerSession`/`unregisterSession` — no production callers (only tests). Only `upsertDaemonSession` is wired from `daemon-manager.ts`. Simplifies the extracted class.
 - `port-manager.ts:317-350` — replace tail-recursion on `scanRequested` with `while (this.scanRequested) { … }`.
-- `port-manager.ts:402-407` — O(ports × panes) sweep per tick. Partition `this.ports` into `Map<paneId, Map<port, DetectedPort>>`.
+- `port-manager.ts:402-407` — O(ports × terminals) sweep per tick. Partition `this.ports` into `Map<terminalId, Map<port, DetectedPort>>`.
 - `port-scanner.ts:128-152` — lsof parser is fragile on `COMMAND` names with spaces (e.g. `"Google Chrome Helper"`). Switch to `lsof -F pcPn` field output — trivially parseable, no column-index arithmetic.
 - Hint regex adds: Vite/Next.js print `Local:  http://localhost:5173/` with no "listening/ready". Add `/\bLocal:\s+https?:\/\//i` and `/development server at/i`. Steal VS Code's three regexes verbatim (see below) — they're the de-facto reference.
 - `IGNORED_PORTS` filters 5432/3306/6379/27017 globally. Devs often *do* want to see a dockerized Postgres spun up by their dev shell. Narrow to 22/80/443 or make the filter opt-in per workspace.
@@ -177,10 +189,17 @@ Polling cadence: replace fixed `SCAN_INTERVAL_MS = 2500` with `max(movingAvg * 2
 
 ## Open questions
 
+- **Resolved: `ports.json` semantics.** `.superset/ports.json` is supplemental
+  label metadata. It gives friendly names to ports that dynamic scanning already
+  detects. It must not create port rows, hide unlabelled detected ports, replace
+  dynamic detection, or make malformed label config suppress detected ports.
 - **Resolved: port labels for remote workspaces.** Host-service reads
   `.superset/ports.json` from its own worktree and returns enriched rows from
   `ports.getAll`; both desktop and host-service refresh cached labels when the
   file mtime/size changes.
+- **Resolved: port identity.** Shared port records are terminal-owned
+  (`terminalId`), workspace-grouped (`workspaceId`), and host-scoped by the
+  client/router path. They do not include renderer `paneId` or any UI focus key.
 - **Multi-host fan-out.** If a user connects to several host-services, the
   renderer holds one polling query per relevant host. Fine for small N; revisit
   if it grows.

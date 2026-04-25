@@ -48,7 +48,8 @@ export const createPortsRouter = () => {
 		kill: publicProcedure
 			.input(
 				z.object({
-					paneId: z.string(),
+					workspaceId: z.string(),
+					terminalId: z.string(),
 					port: z.number().int().positive(),
 				}),
 			)

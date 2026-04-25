@@ -12,74 +12,90 @@ export type PortEvent =
 	| { type: "add"; port: DetectedPort }
 	| { type: "remove"; port: DetectedPort };
 
+const getAllInputSchema = z.object({
+	workspaceIds: z.array(z.string()).min(1),
+});
+
 export const portsRouter = router({
-	getAll: protectedProcedure.query(({ ctx }): EnrichedPort[] => {
-		const resolve = (workspaceId: string): string | null => {
-			try {
-				return ctx.runtime.filesystem.resolveWorkspaceRoot(workspaceId);
-			} catch {
-				// Workspace deleted or unknown — no labels for this row.
-				return null;
-			}
-		};
-		return portManager.getAllPorts().map((port) => {
-			const labels = getLabelsForWorkspace(resolve, port.workspaceId);
-			return { ...port, label: labels?.get(port.port) ?? null };
-		});
-	}),
+	getAll: protectedProcedure
+		.input(getAllInputSchema)
+		.query(({ ctx, input }): EnrichedPort[] => {
+			const requestedWorkspaceIds = new Set(input.workspaceIds);
+			const resolve = (workspaceId: string): string | null => {
+				try {
+					return ctx.runtime.filesystem.resolveWorkspaceRoot(workspaceId);
+				} catch {
+					// Workspace deleted or unknown — no labels for this row.
+					return null;
+				}
+			};
+			return portManager
+				.getAllPorts()
+				.filter((port) => requestedWorkspaceIds.has(port.workspaceId))
+				.map((port) => {
+					const labels = getLabelsForWorkspace(resolve, port.workspaceId);
+					return { ...port, label: labels?.get(port.port) ?? null };
+				});
+		}),
 
 	/**
 	 * Stream port add/remove events. tRPC v11 async iterators: the generator
 	 * runs until the client disconnects (or an abort signal cancels it), at
 	 * which point the `finally` block detaches emitter listeners.
 	 */
-	subscribe: protectedProcedure.subscription(async function* ({ signal }) {
-		const queue: PortEvent[] = [];
-		let resolve: (() => void) | null = null;
-		const wake = () => {
-			resolve?.();
-			resolve = null;
-		};
+	subscribe: protectedProcedure
+		.input(getAllInputSchema)
+		.subscription(async function* ({ signal, input }) {
+			const requestedWorkspaceIds = new Set(input.workspaceIds);
+			const queue: PortEvent[] = [];
+			let resolve: (() => void) | null = null;
+			const wake = () => {
+				resolve?.();
+				resolve = null;
+			};
 
-		const onAdd = (port: DetectedPort) => {
-			queue.push({ type: "add", port });
-			wake();
-		};
-		const onRemove = (port: DetectedPort) => {
-			queue.push({ type: "remove", port });
-			wake();
-		};
+			const onAdd = (port: DetectedPort) => {
+				if (!requestedWorkspaceIds.has(port.workspaceId)) return;
+				queue.push({ type: "add", port });
+				wake();
+			};
+			const onRemove = (port: DetectedPort) => {
+				if (!requestedWorkspaceIds.has(port.workspaceId)) return;
+				queue.push({ type: "remove", port });
+				wake();
+			};
 
-		portManager.on("port:add", onAdd);
-		portManager.on("port:remove", onRemove);
+			portManager.on("port:add", onAdd);
+			portManager.on("port:remove", onRemove);
 
-		signal?.addEventListener("abort", wake);
+			signal?.addEventListener("abort", wake);
 
-		try {
-			while (!signal?.aborted) {
-				while (queue.length > 0) {
-					const event = queue.shift();
-					if (event) yield event;
-				}
-				await new Promise<void>((r) => {
-					if (signal?.aborted) {
-						r();
-						return;
+			try {
+				while (!signal?.aborted) {
+					while (queue.length > 0) {
+						const event = queue.shift();
+						if (event) yield event;
 					}
-					resolve = r;
-				});
+					await new Promise<void>((r) => {
+						if (signal?.aborted) {
+							r();
+							return;
+						}
+						resolve = r;
+					});
+				}
+			} finally {
+				portManager.off("port:add", onAdd);
+				portManager.off("port:remove", onRemove);
+				signal?.removeEventListener("abort", wake);
 			}
-		} finally {
-			portManager.off("port:add", onAdd);
-			portManager.off("port:remove", onRemove);
-			signal?.removeEventListener("abort", wake);
-		}
-	}),
+		}),
 
 	kill: protectedProcedure
 		.input(
 			z.object({
-				paneId: z.string(),
+				workspaceId: z.string(),
+				terminalId: z.string(),
 				port: z.number().int().positive(),
 			}),
 		)

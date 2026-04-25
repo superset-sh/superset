@@ -8,7 +8,8 @@ type KillResult = { success: boolean; error?: string };
 
 async function killOne(port: DashboardSidebarPort): Promise<KillResult> {
 	return getHostServiceClientByUrl(port.hostUrl).ports.kill.mutate({
-		paneId: port.paneId,
+		workspaceId: port.workspaceId,
+		terminalId: port.terminalId,
 		port: port.port,
 	});
 }

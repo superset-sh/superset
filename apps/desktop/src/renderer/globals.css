@@ -204,6 +204,20 @@
 		display: none; /* Chrome/Safari/Electron */
 	}
 
+	/* Fade out the right edge of a horizontally-scrolling container */
+	.fade-edge-r {
+		mask-image: linear-gradient(
+			to right,
+			black calc(100% - 1.5rem),
+			transparent
+		);
+		-webkit-mask-image: linear-gradient(
+			to right,
+			black calc(100% - 1.5rem),
+			transparent
+		);
+	}
+
 	/* Dark mode scrollbar styling */
 	* {
 		scrollbar-width: thin;

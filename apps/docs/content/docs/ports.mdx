@@ -15,13 +15,13 @@ Superset does not assign per-workspace port ranges. It discovers listening ports
 - **Kill processes** - Stop a process by clicking its port
 - **Workspace grouping** - Ports are grouped by the workspace that owns the process
 
-## Static Port Configuration
+## Port Labels
 
-Override automatic port discovery with a static configuration file. Useful for:
+Add friendly names to automatically detected ports with a workspace
+configuration file. Useful for:
 
-- Documenting ports that aren't auto-detected (databases, external services)
 - Providing meaningful labels for your team
-- Projects where dynamic scanning doesn't work well
+- Making common dev-server ports easier to scan in the UI
 
 Create `.superset/ports.json` in your repository:
 
@@ -40,17 +40,19 @@ Create `.superset/ports.json` in your repository:
 - `label` - Display text shown in tooltip
 
 **Behavior:**
-- Static config replaces dynamic port discovery
-- Each workspace reads from its own worktree's file
+- Dynamic port discovery is still authoritative
+- `ports.json` only labels ports that Superset already detects as listening
+- Ports without a matching label still appear
+- Label entries for ports that are not currently listening are ignored
+- Each workspace reads labels from its own worktree's file
 - Changes are detected automatically
 - Ports open `localhost:PORT` in browser when clicked
 
 **Error Handling:**
 
 If `ports.json` is malformed:
-- Error toast appears with details
-- No ports displayed until fixed
-- Dynamic detection is NOT used as fallback
+- Labels from that file are ignored until fixed
+- Detected ports still appear without those labels
 
 **Tips:**
 - Commit `.superset/ports.json` to share port labels with your team
