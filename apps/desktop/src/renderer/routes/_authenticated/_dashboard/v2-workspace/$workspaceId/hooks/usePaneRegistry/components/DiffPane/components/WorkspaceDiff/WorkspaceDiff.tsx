@@ -27,7 +27,8 @@ interface WorkspaceDiffProps {
 	onToggleCollapsed: () => void;
 	viewed: boolean;
 	onToggleViewed: () => void;
-	onOpenFile?: () => void;
+	onOpenFile?: (openInNewTab?: boolean) => void;
+	onOpenInExternalEditor?: () => void;
 }
 
 export const WorkspaceDiff = memo(function WorkspaceDiff({
@@ -45,6 +46,7 @@ export const WorkspaceDiff = memo(function WorkspaceDiff({
 	viewed,
 	onToggleViewed,
 	onOpenFile,
+	onOpenInExternalEditor,
 }: WorkspaceDiffProps) {
 	const activeTheme = useResolvedTheme();
 	const { data: fontSettings } = useQuery({
@@ -151,6 +153,7 @@ export const WorkspaceDiff = memo(function WorkspaceDiff({
 				viewed={viewed}
 				onToggleViewed={onToggleViewed}
 				onOpenFile={onOpenFile}
+				onOpenInExternalEditor={onOpenInExternalEditor}
 				onCopyContents={handleCopyContents}
 				onDiscard={handleDiscard}
 			/>

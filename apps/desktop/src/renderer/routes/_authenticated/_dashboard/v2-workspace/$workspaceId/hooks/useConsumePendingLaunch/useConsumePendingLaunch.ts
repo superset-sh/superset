@@ -62,9 +62,6 @@ export function useConsumePendingLaunch({
 
 	useEffect(() => {
 		if (!pending) {
-			console.log("[v2-launch] useConsumePendingLaunch: no pending row yet", {
-				workspaceId,
-			});
 			return;
 		}
 

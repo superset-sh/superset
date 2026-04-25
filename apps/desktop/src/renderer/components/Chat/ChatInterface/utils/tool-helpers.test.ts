@@ -17,9 +17,7 @@ describe("normalizeToolName", () => {
 		expect(normalizeToolName("web_extract")).toBe("web_fetch");
 		expect(normalizeToolName("ask_user")).toBe("ask_user_question");
 		expect(normalizeToolName("ast_smart_edit")).toBe("ast_smart_edit");
-		expect(normalizeToolName("request_sandbox_access")).toBe(
-			"request_sandbox_access",
-		);
+		expect(normalizeToolName("request_sandbox_access")).toBe("request_access");
 		expect(normalizeToolName("task_write")).toBe("task_write");
 		expect(normalizeToolName("task_check")).toBe("task_check");
 		expect(normalizeToolName("submit_plan")).toBe("submit_plan");

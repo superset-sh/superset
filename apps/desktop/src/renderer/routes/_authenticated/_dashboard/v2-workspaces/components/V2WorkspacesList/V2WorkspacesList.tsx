@@ -226,7 +226,6 @@ export function V2WorkspacesList({ workspaces }: V2WorkspacesListProps) {
 				sortDirection={sortDirection}
 				onSort={handleSort}
 			/>
-			<span />
 		</div>
 	);
 

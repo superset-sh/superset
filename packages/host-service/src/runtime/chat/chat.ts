@@ -59,12 +59,13 @@ interface PendingSandboxQuestion {
 
 interface ChatPendingQuestionOption {
 	label: string;
-	description: string;
+	description?: string;
 }
 
 interface ChatPendingQuestion {
 	questionId: string;
 	question: string;
+	description?: string;
 	options: ChatPendingQuestionOption[];
 }
 
@@ -102,6 +103,53 @@ interface RuntimeSession {
 	hookManager: RuntimeHookManager;
 	lastErrorMessage: string | null;
 	pendingSandboxQuestion: PendingSandboxQuestion | null;
+	answeredQuestionIds: Set<string>;
+	pendingQuestionResponses: Map<string, Promise<RuntimeQuestionResult>>;
+}
+
+function respondToQuestionWithOptimisticState(
+	runtime: RuntimeSession,
+	payload: ChatQuestionPayload,
+): Promise<RuntimeQuestionResult> {
+	const questionId = payload.questionId;
+	const pendingResponse = runtime.pendingQuestionResponses.get(questionId);
+	if (pendingResponse) return pendingResponse;
+
+	const wasAlreadyAnswered = runtime.answeredQuestionIds.has(questionId);
+	const previousSandboxQuestion = runtime.pendingSandboxQuestion;
+	const clearsSandboxQuestion =
+		previousSandboxQuestion?.questionId === questionId;
+
+	runtime.answeredQuestionIds.add(questionId);
+	if (clearsSandboxQuestion) {
+		runtime.pendingSandboxQuestion = null;
+	}
+
+	let responsePromise: Promise<RuntimeQuestionResult>;
+	responsePromise = Promise.resolve()
+		.then(() => runtime.harness.respondToQuestion(payload))
+		.catch((error) => {
+			if (
+				runtime.pendingQuestionResponses.get(questionId) === responsePromise
+			) {
+				if (!wasAlreadyAnswered) {
+					runtime.answeredQuestionIds.delete(questionId);
+				}
+				if (clearsSandboxQuestion && runtime.pendingSandboxQuestion === null) {
+					runtime.pendingSandboxQuestion = previousSandboxQuestion;
+				}
+			}
+			throw error;
+		})
+		.finally(() => {
+			if (
+				runtime.pendingQuestionResponses.get(questionId) === responsePromise
+			) {
+				runtime.pendingQuestionResponses.delete(questionId);
+			}
+		});
+	runtime.pendingQuestionResponses.set(questionId, responsePromise);
+	return responsePromise;
 }
 
 interface RuntimeStoredMessage {
@@ -342,11 +390,15 @@ export class ChatRuntimeManager {
 			if (isObjectRecord(event) && event.type === "agent_start") {
 				runtime.lastErrorMessage = null;
 				runtime.pendingSandboxQuestion = null;
+				runtime.answeredQuestionIds.clear();
+				runtime.pendingQuestionResponses.clear();
 				return;
 			}
 
 			if (isObjectRecord(event) && event.type === "agent_end") {
 				runtime.pendingSandboxQuestion = null;
+				runtime.answeredQuestionIds.clear();
+				runtime.pendingQuestionResponses.clear();
 			}
 		});
 	}
@@ -419,6 +471,8 @@ When you need to ask the user ANY question — including simple yes/no, confirma
 			hookManager: runtime.hookManager,
 			lastErrorMessage: null,
 			pendingSandboxQuestion: null,
+			answeredQuestionIds: new Set(),
+			pendingQuestionResponses: new Map(),
 		};
 		this.subscribeToSessionEvents(sessionRuntime);
 		this.runtimes.set(sessionId, sessionRuntime);
@@ -471,26 +525,32 @@ When you need to ask the user ANY question — including simple yes/no, confirma
 				? currentMessage.errorMessage.trim()
 				: null;
 
+		// Skip any pending question whose ID was already answered this turn.
+		// The harness only clears pendingQuestion on agent_end, so without this
+		// filter an answered ask_user question would permanently shadow the
+		// sandbox question that fired in the same turn.
+		const harnessPendingQuestion =
+			displayState.pendingQuestion &&
+			!runtime.answeredQuestionIds.has(displayState.pendingQuestion.questionId)
+				? displayState.pendingQuestion
+				: null;
+		const sandboxPendingQuestion = runtime.pendingSandboxQuestion
+			? {
+					questionId: runtime.pendingSandboxQuestion.questionId,
+					question: `Grant sandbox access to "${runtime.pendingSandboxQuestion.path}"?`,
+					description: runtime.pendingSandboxQuestion.reason,
+					options: [
+						{
+							label: "Yes",
+							description: "Allow access.",
+						},
+						{ label: "No", description: "Deny access." },
+					],
+				}
+			: null;
 		return {
 			...displayState,
-			pendingQuestion:
-				displayState.pendingQuestion ??
-				(runtime.pendingSandboxQuestion
-					? {
-							questionId: runtime.pendingSandboxQuestion.questionId,
-							question: `Grant sandbox access to "${runtime.pendingSandboxQuestion.path}"?`,
-							options: [
-								{
-									label: "Yes",
-									description: `Allow access. Reason: ${runtime.pendingSandboxQuestion.reason}`,
-								},
-								{
-									label: "No",
-									description: "Deny access.",
-								},
-							],
-						}
-					: null),
+			pendingQuestion: harnessPendingQuestion ?? sandboxPendingQuestion,
 			errorMessage: currentMessageError ?? runtime.lastErrorMessage,
 		};
 	}
@@ -570,13 +630,7 @@ When you need to ask the user ANY question — including simple yes/no, confirma
 			input.workspaceId,
 		);
 
-		if (
-			runtime.pendingSandboxQuestion?.questionId === input.payload.questionId
-		) {
-			runtime.pendingSandboxQuestion = null;
-		}
-
-		return runtime.harness.respondToQuestion(input.payload);
+		return respondToQuestionWithOptimisticState(runtime, input.payload);
 	}
 
 	async respondToPlan(input: {

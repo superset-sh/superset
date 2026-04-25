@@ -21,6 +21,7 @@ import { OrderedList } from "@tiptap/extension-ordered-list";
 import { Paragraph } from "@tiptap/extension-paragraph";
 import Placeholder from "@tiptap/extension-placeholder";
 import { Strike } from "@tiptap/extension-strike";
+import { TableKit } from "@tiptap/extension-table";
 import TaskItem from "@tiptap/extension-task-item";
 import TaskList from "@tiptap/extension-task-list";
 import { Text } from "@tiptap/extension-text";
@@ -150,6 +151,20 @@ function getMarkdown(editor: Editor | null): string {
 	return storage?.markdown?.getMarkdown?.() ?? "";
 }
 
+function isMarkdownTable(text: string): boolean {
+	const lines = text
+		.trim()
+		.split(/\r?\n/)
+		.map((line) => line.trim())
+		.filter(Boolean);
+
+	if (lines.length < 2 || !lines[0]?.includes("|")) {
+		return false;
+	}
+
+	return /^\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?$/.test(lines[1]);
+}
+
 export function MarkdownEditor({
 	content,
 	onSave,
@@ -166,6 +181,7 @@ export function MarkdownEditor({
 	// Thread through a ref so the extension reads the live callback each fire.
 	const searchFilesRef = useRef(searchFiles);
 	searchFilesRef.current = searchFiles;
+	const editorRef = useRef<Editor | null>(null);
 
 	const { getUrlAction } = useInlineLinkActions();
 
@@ -241,6 +257,26 @@ export function MarkdownEditor({
 			LinearImage.configure({
 				HTMLAttributes: { class: "max-w-full h-auto rounded-md my-3" },
 			}),
+			TableKit.configure({
+				table: {
+					resizable: false,
+					cellMinWidth: 192,
+					HTMLAttributes: {
+						class: "markdown-table my-4 min-w-full border-collapse",
+					},
+				},
+				tableHeader: {
+					HTMLAttributes: {
+						class:
+							"bg-muted px-4 py-2 text-left text-sm font-semibold align-top",
+					},
+				},
+				tableCell: {
+					HTMLAttributes: {
+						class: "border-t border-border px-4 py-2 text-sm align-top",
+					},
+				},
+			}),
 			Placeholder.configure({
 				placeholder: ({ node }) => {
 					if (node.type.name === "paragraph") {
@@ -278,6 +314,22 @@ export function MarkdownEditor({
 				}
 				return false;
 			},
+			handlePaste: (_, event) => {
+				const text = event.clipboardData?.getData("text/plain") ?? "";
+				const currentEditor = editorRef.current;
+				if (!currentEditor || !isMarkdownTable(text)) {
+					return false;
+				}
+
+				event.preventDefault();
+				return currentEditor.commands.insertContentAt(
+					{
+						from: currentEditor.state.selection.from,
+						to: currentEditor.state.selection.to,
+					},
+					text,
+				);
+			},
 			handleClickOn: (_view, _pos, _node, _nodePos, event) => {
 				const target = event.target as HTMLElement | null;
 				const anchor = target?.closest?.("a") as HTMLAnchorElement | null;
@@ -302,6 +354,7 @@ export function MarkdownEditor({
 			onSave?.(getMarkdown(editor));
 		},
 	});
+	editorRef.current = editor;
 
 	useEffect(() => {
 		if (!editor || editor.isFocused) return;

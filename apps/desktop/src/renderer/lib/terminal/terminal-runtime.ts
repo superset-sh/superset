@@ -255,6 +255,7 @@ function measureAndResize(runtime: TerminalRuntime) {
 export function createRuntime(
 	terminalId: string,
 	appearance: TerminalAppearance,
+	options: { initialBuffer?: string } = {},
 ): TerminalRuntime {
 	const savedDims = loadSavedDimensions(terminalId);
 	const cols = savedDims?.cols ?? DEFAULT_COLS;
@@ -276,7 +277,11 @@ export function createRuntime(
 	// Activate Unicode 11 widths (inside loadAddons) before restoring the buffer,
 	// else CJK/emoji/ZWJ widths get baked wrong into the replay. (#3572)
 	const addonsResult = loadAddons(terminal);
-	restoreBuffer(terminalId, terminal);
+	if (options.initialBuffer !== undefined) {
+		terminal.write(options.initialBuffer);
+	} else {
+		restoreBuffer(terminalId, terminal);
+	}
 
 	return {
 		terminalId,
@@ -360,13 +365,23 @@ export function updateRuntimeAppearance(
 	}
 }
 
-export function disposeRuntime(runtime: TerminalRuntime) {
+export function disposeRuntime(
+	runtime: TerminalRuntime,
+	options: { clearPersistedState?: boolean } = {},
+) {
+	const clearPersistedState = options.clearPersistedState ?? true;
+	if (!clearPersistedState) {
+		persistBuffer(runtime.terminalId, runtime.serializeAddon);
+		persistDimensions(runtime.terminalId, runtime.lastCols, runtime.lastRows);
+	}
 	runtime._disposeAddons?.();
 	runtime._disposeAddons = null;
 	runtime.resizeObserver?.disconnect();
 	runtime.resizeObserver = null;
 	runtime.wrapper.remove();
 	runtime.terminal.dispose();
-	clearPersistedBuffer(runtime.terminalId);
-	clearPersistedDimensions(runtime.terminalId);
+	if (clearPersistedState) {
+		clearPersistedBuffer(runtime.terminalId);
+		clearPersistedDimensions(runtime.terminalId);
+	}
 }

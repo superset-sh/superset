@@ -41,9 +41,10 @@ function ScrollToFile({ path }: { path: string }) {
 interface DiffPaneProps {
 	context: RendererContext<PaneViewerData>;
 	workspaceId: string;
+	onOpenFile: (path: string, openInNewTab?: boolean) => void;
 }
 
-export function DiffPane({ context, workspaceId }: DiffPaneProps) {
+export function DiffPane({ context, workspaceId, onOpenFile }: DiffPaneProps) {
 	const data = context.pane.data as DiffPaneData;
 
 	const diffStyle = useSettings((s) => s.diffStyle);
@@ -104,7 +105,8 @@ export function DiffPane({ context, workspaceId }: DiffPaneProps) {
 					onSetCollapsed={setCollapsed}
 					viewed={viewedSet.has(file.path)}
 					onSetViewed={setViewed}
-					onOpenFile={openInExternalEditor}
+					onOpenFile={onOpenFile}
+					onOpenInExternalEditor={openInExternalEditor}
 				/>
 			))}
 		</Virtualizer>
