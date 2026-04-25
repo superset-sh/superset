@@ -175,9 +175,11 @@ function sendMessage(
 function broadcastMessage(
 	session: TerminalSession,
 	message: TerminalServerMessage,
+	options: { except?: TerminalSocket } = {},
 ): number {
 	let sent = 0;
 	for (const socket of session.sockets) {
+		if (socket === options.except) continue;
 		if (socket.readyState !== SOCKET_OPEN) {
 			if (
 				socket.readyState === SOCKET_CLOSING ||
@@ -217,11 +219,16 @@ function replayBuffer(
 function setSessionTitle(
 	session: TerminalSession,
 	title: string | null | undefined,
+	sourceSocket?: TerminalSocket,
 ): void {
 	const normalizedTitle = normalizeTerminalTitle(title);
 	if (session.title === normalizedTitle) return;
 	session.title = normalizedTitle;
-	broadcastMessage(session, { type: "title", title: normalizedTitle });
+	broadcastMessage(
+		session,
+		{ type: "title", title: normalizedTitle },
+		{ except: sourceSocket },
+	);
 }
 
 /**
@@ -667,7 +674,7 @@ export function registerWorkspaceTerminalRoute({
 					}
 
 					if (message.type === "title") {
-						setSessionTitle(session, message.title);
+						setSessionTitle(session, message.title, ws);
 						return;
 					}
 
