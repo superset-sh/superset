@@ -38,7 +38,10 @@ function setConnectionState(
 	}
 }
 
-function setTerminalTitle(transport: TerminalTransport, title: string | null) {
+function setTerminalTitle(
+	transport: TerminalTransport,
+	title: string | null | undefined,
+) {
 	if (transport.title === title) {
 		console.debug("[terminal-title:renderer] unchanged", {
 			title,
@@ -204,7 +207,7 @@ export function disconnect(transport: TerminalTransport) {
 	transport.currentUrl = null;
 	transport._terminal = null;
 	transport._reconnectAttempt = 0;
-	transport.title = undefined;
+	setTerminalTitle(transport, undefined);
 	setConnectionState(transport, "disconnected");
 	transport.onDataDisposable?.dispose();
 	transport.onDataDisposable = null;
@@ -241,7 +244,7 @@ export function disposeTransport(transport: TerminalTransport) {
 	transport.currentUrl = null;
 	transport._terminal = null;
 	transport._reconnectAttempt = 0;
-	transport.title = undefined;
+	setTerminalTitle(transport, undefined);
 	transport.onDataDisposable?.dispose();
 	transport.onDataDisposable = null;
 	transport.stateListeners.clear();

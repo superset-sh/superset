@@ -94,6 +94,15 @@ describe("terminal title scanner", () => {
 				.updates,
 		).toEqual(["First", "Second"]);
 	});
+
+	it("drops oversized incomplete OSC payloads by UTF-8 byte length", () => {
+		const state = createTerminalTitleScanState();
+
+		expect(
+			scanForTerminalTitle(state, `\x1b]2;${"🙂".repeat(1024)}`).updates,
+		).toEqual([]);
+		expect(state.buffer).toBe("");
+	});
 });
 
 describe("normalizeTerminalTitle", () => {

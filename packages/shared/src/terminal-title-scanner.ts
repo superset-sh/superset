@@ -39,6 +39,23 @@ export function normalizeTerminalTitle(title: string): string | null {
 	return chars.slice(0, MAX_TERMINAL_TITLE_LENGTH).join("");
 }
 
+function getUtf8ByteLength(value: string): number {
+	let bytes = 0;
+	for (const char of value) {
+		const codePoint = char.codePointAt(0) ?? 0;
+		if (codePoint <= 0x7f) {
+			bytes += 1;
+		} else if (codePoint <= 0x7ff) {
+			bytes += 2;
+		} else if (codePoint <= 0xffff) {
+			bytes += 3;
+		} else {
+			bytes += 4;
+		}
+	}
+	return bytes;
+}
+
 function findOscTerminator(
 	input: string,
 	fromIndex: number,
@@ -117,7 +134,8 @@ export function scanForTerminalTitle(
 		const terminator = findOscTerminator(input, payloadStart);
 		if (!terminator) {
 			const sequence = input.slice(oscStart.index);
-			state.buffer = sequence.length <= MAX_OSC_SEQUENCE_BYTES ? sequence : "";
+			state.buffer =
+				getUtf8ByteLength(sequence) <= MAX_OSC_SEQUENCE_BYTES ? sequence : "";
 			return { updates };
 		}
 
