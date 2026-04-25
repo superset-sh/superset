@@ -19,10 +19,12 @@ import {
 	Trash2,
 } from "lucide-react";
 import { useMemo, useState } from "react";
+import { markTerminalForBackground } from "renderer/lib/terminal/terminal-background-intents";
 import type {
 	PaneViewerData,
 	TerminalPaneData,
 } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/types";
+import { getRelativeTime } from "renderer/screens/main/components/WorkspacesListView/utils";
 
 interface TerminalSessionDropdownProps {
 	context: RendererContext<PaneViewerData>;
@@ -45,26 +47,10 @@ interface TerminalPaneLocation {
 	titleOverride?: string;
 }
 
-function isSameCalendarDay(date: Date, reference: Date): boolean {
-	return (
-		date.getFullYear() === reference.getFullYear() &&
-		date.getMonth() === reference.getMonth() &&
-		date.getDate() === reference.getDate()
-	);
-}
-
 function formatCreatedAt(createdAt: number | undefined): string {
 	if (!createdAt) return "Creating";
 
-	const date = new Date(createdAt);
-	if (Number.isNaN(date.getTime())) return "Creating";
-
-	const today = new Date();
-	const options: Intl.DateTimeFormatOptions = isSameCalendarDay(date, today)
-		? { hour: "numeric", minute: "2-digit" }
-		: { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" };
-
-	return new Intl.DateTimeFormat(undefined, options).format(date);
+	return getRelativeTime(createdAt, { format: "compact" });
 }
 
 function findTerminalPaneLocation(
@@ -199,6 +185,9 @@ export function TerminalSessionDropdown({
 
 	const handleNewTerminal = () => {
 		const state = context.store.getState();
+		if (!findTerminalPaneLocation(context, terminalId)) {
+			markTerminalForBackground(terminalId);
+		}
 		state.setPaneData({
 			paneId: context.pane.id,
 			data: {
@@ -233,9 +222,7 @@ export function TerminalSessionDropdown({
 					<TerminalSquare className="size-4 shrink-0" />
 					<span className="min-w-0 truncate">{triggerTitle}</span>
 					<span className="shrink-0 text-[10px] text-muted-foreground/70">
-						{currentSession?.createdAt
-							? `Created ${currentCreatedAtLabel}`
-							: currentCreatedAtLabel}
+						{currentCreatedAtLabel}
 					</span>
 					{sessionsQuery.isFetching && isOpen ? (
 						<LoaderCircle className="size-3 shrink-0 animate-spin" />
@@ -260,15 +247,6 @@ export function TerminalSessionDropdown({
 							const canSelect =
 								isCurrent || !session.attached || location !== null;
 							const createdAtLabel = formatCreatedAt(session.createdAt);
-							const status = isCurrent
-								? "Current"
-								: location
-									? "Swap"
-									: session.pending
-										? "Starting"
-										: session.attached
-											? "Attached"
-											: "Detached";
 							const title = isCurrent
 								? triggerTitle
 								: (location?.titleOverride ?? "Terminal");
@@ -292,16 +270,11 @@ export function TerminalSessionDropdown({
 										{title}
 									</span>
 									<span className="shrink-0 text-[10px] text-muted-foreground/70">
-										{session.createdAt
-											? `Created ${createdAtLabel}`
-											: createdAtLabel}
-									</span>
-									<span className="shrink-0 text-xs text-muted-foreground">
-										{status}
+										{createdAtLabel}
 									</span>
 									<button
 										type="button"
-										aria-label={`Remove terminal ${session.createdAt ? `created ${createdAtLabel}` : "session"}`}
+										aria-label={`Remove terminal ${session.createdAt ? createdAtLabel : "session"}`}
 										disabled={killTerminalSession.isPending}
 										className="shrink-0 rounded p-0.5 opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive disabled:pointer-events-none disabled:opacity-30 group-hover:opacity-100"
 										onClick={(event) => {
