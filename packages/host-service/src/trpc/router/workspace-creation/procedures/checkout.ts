@@ -5,6 +5,7 @@ import { and, eq } from "drizzle-orm";
 import { workspaces } from "../../../../db/schema";
 import { resolveRef } from "../../../../runtime/git/refs";
 import { protectedProcedure } from "../../../index";
+import { ensureMainWorkspace } from "../../project/utils/ensure-main-workspace";
 import { checkoutInputSchema } from "../schemas";
 import { finishCheckout } from "../shared/finish-checkout";
 import { enablePushAutoSetupRemote } from "../shared/git-config";
@@ -20,6 +21,7 @@ export const checkout = protectedProcedure
 		setProgress(input.pendingId, "ensuring_repo");
 
 		const localProject = requireLocalProject(ctx, input.projectId);
+		await ensureMainWorkspace(ctx, input.projectId, localProject.repoPath);
 
 		setProgress(input.pendingId, "creating_worktree");
 

@@ -7,6 +7,7 @@ import simpleGit from "simple-git";
 import { z } from "zod";
 import { projects, workspaces } from "../../../db/schema";
 import { protectedProcedure, router } from "../../index";
+import { ensureMainWorkspace } from "../project/utils/ensure-main-workspace";
 
 export const workspaceRouter = router({
 	get: protectedProcedure
@@ -75,6 +76,8 @@ export const workspaceRouter = router({
 
 				localProject = inserted;
 			}
+
+			await ensureMainWorkspace(ctx, input.projectId, localProject.repoPath);
 
 			const worktreePath = join(
 				localProject.repoPath,

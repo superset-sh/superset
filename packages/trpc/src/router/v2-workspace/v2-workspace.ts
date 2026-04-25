@@ -151,10 +151,24 @@ export const v2WorkspaceRouter = {
 					),
 				});
 				if (existing) {
+					const patch: {
+						branch?: string;
+						name?: string;
+						pinnedAt?: Date;
+					} = {};
+					if (existing.branch !== input.branch) {
+						patch.branch = input.branch;
+						if (existing.name === existing.branch) {
+							patch.name = input.name;
+						}
+					}
 					if (!existing.pinnedAt && input.pinnedAt) {
+						patch.pinnedAt = input.pinnedAt;
+					}
+					if (Object.keys(patch).length > 0) {
 						const [updated] = await dbWs
 							.update(v2Workspaces)
-							.set({ pinnedAt: input.pinnedAt })
+							.set(patch)
 							.where(eq(v2Workspaces.id, existing.id))
 							.returning();
 						return updated ?? existing;

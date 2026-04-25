@@ -3,6 +3,7 @@ import { TRPCError } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
 import { workspaces } from "../../../../db/schema";
 import { protectedProcedure } from "../../../index";
+import { ensureMainWorkspace } from "../../project/utils/ensure-main-workspace";
 import { adoptInputSchema } from "../schemas";
 import {
 	findWorktreeAtPath,
@@ -18,6 +19,7 @@ export const adopt = protectedProcedure
 		const deviceName = getDeviceName();
 
 		const localProject = requireLocalProject(ctx, input.projectId);
+		await ensureMainWorkspace(ctx, input.projectId, localProject.repoPath);
 
 		const branch = input.branch.trim();
 		if (!branch) {
