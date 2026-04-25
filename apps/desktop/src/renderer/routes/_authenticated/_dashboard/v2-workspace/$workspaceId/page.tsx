@@ -1,4 +1,8 @@
-import { type PaneActionConfig, Workspace } from "@superset/panes";
+import {
+	type PaneActionConfig,
+	Workspace,
+	type WorkspaceStore,
+} from "@superset/panes";
 import { alert } from "@superset/ui/atoms/Alert";
 import {
 	ResizableHandle,
@@ -17,12 +21,20 @@ import { HotkeyLabel, useHotkey } from "renderer/hotkeys";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { CommandPalette } from "renderer/screens/main/components/CommandPalette";
 import {
+	getV2NotificationSourcesForPane,
+	getV2NotificationSourcesForTab,
+	useV2NotificationStore,
+	useV2PaneNotificationStatus,
+} from "renderer/stores/v2-notifications";
+import {
 	toAbsoluteWorkspacePath,
 	toRelativeWorkspacePath,
 } from "shared/absolute-paths";
 import { useStore } from "zustand";
+import type { StoreApi } from "zustand/vanilla";
 import { WorkspaceNotFoundState } from "../components/WorkspaceNotFoundState";
 import { AddTabMenu } from "./components/AddTabMenu";
+import { V2NotificationStatusIndicator } from "./components/V2NotificationStatusIndicator";
 import { V2PresetsBar } from "./components/V2PresetsBar";
 import { WorkspaceEmptyState } from "./components/WorkspaceEmptyState";
 import { WorkspaceSidebar } from "./components/WorkspaceSidebar";
@@ -52,6 +64,7 @@ import type {
 interface WorkspaceSearch {
 	terminalId?: string;
 	chatSessionId?: string;
+	focusRequestId?: string;
 }
 
 export const Route = createFileRoute(
@@ -62,12 +75,14 @@ export const Route = createFileRoute(
 		terminalId: typeof raw.terminalId === "string" ? raw.terminalId : undefined,
 		chatSessionId:
 			typeof raw.chatSessionId === "string" ? raw.chatSessionId : undefined,
+		focusRequestId:
+			typeof raw.focusRequestId === "string" ? raw.focusRequestId : undefined,
 	}),
 });
 
 function V2WorkspacePage() {
 	const { workspaceId } = Route.useParams();
-	const { terminalId, chatSessionId } = Route.useSearch();
+	const { terminalId, chatSessionId, focusRequestId } = Route.useSearch();
 	const collections = useCollections();
 
 	const { data: workspaces } = useLiveQuery(
@@ -94,8 +109,40 @@ function V2WorkspacePage() {
 			workspaceName={workspace.name}
 			terminalId={terminalId}
 			chatSessionId={chatSessionId}
+			focusRequestId={focusRequestId}
 		/>
 	);
+}
+
+/**
+ * Clear post-completion attention only for the pane the user is actually
+ * viewing. Clearing every review status on route entry would drop background
+ * tab attention before the user has looked at that pane.
+ */
+function useClearActivePaneAttention({
+	workspaceId,
+	store,
+}: {
+	workspaceId: string;
+	store: StoreApi<WorkspaceStore<PaneViewerData>>;
+}): void {
+	const activePane = useStore(store, (state) => {
+		const tab = state.tabs.find(
+			(candidate) => candidate.id === state.activeTabId,
+		);
+		return tab?.activePaneId ? tab.panes[tab.activePaneId] : undefined;
+	});
+	const activePaneStatus = useV2PaneNotificationStatus(workspaceId, activePane);
+	const clearSourceAttention = useV2NotificationStore(
+		(state) => state.clearSourceAttention,
+	);
+
+	useEffect(() => {
+		if (activePaneStatus !== "review") return;
+		for (const source of getV2NotificationSourcesForPane(activePane)) {
+			clearSourceAttention(source, workspaceId);
+		}
+	}, [activePane, activePaneStatus, clearSourceAttention, workspaceId]);
 }
 
 function WorkspaceContent({
@@ -104,12 +151,14 @@ function WorkspaceContent({
 	workspaceName,
 	terminalId,
 	chatSessionId,
+	focusRequestId,
 }: {
 	projectId: string;
 	workspaceId: string;
 	workspaceName: string;
 	terminalId?: string;
 	chatSessionId?: string;
+	focusRequestId?: string;
 }) {
 	const {
 		preferences: v2UserPreferences,
@@ -120,13 +169,19 @@ function WorkspaceContent({
 		projectId,
 		workspaceId,
 	});
+	useClearActivePaneAttention({ workspaceId, store });
 	const { matchedPresets, executePreset } = useV2PresetExecution({
 		store,
 		workspaceId,
 		projectId,
 	});
 	useConsumePendingLaunch({ workspaceId, store });
-	useConsumeAutomationRunLink({ store, terminalId, chatSessionId });
+	useConsumeAutomationRunLink({
+		store,
+		terminalId,
+		chatSessionId,
+		focusRequestId,
+	});
 
 	const workspaceQuery = workspaceTrpc.workspace.get.useQuery({
 		id: workspaceId,
@@ -409,6 +464,12 @@ function WorkspaceContent({
 							paneActions={defaultPaneActions}
 							contextMenuActions={defaultContextMenuActions}
 							renderTabIcon={renderBrowserTabIcon}
+							renderTabAccessory={(tab) => (
+								<V2NotificationStatusIndicator
+									workspaceId={workspaceId}
+									sources={getV2NotificationSourcesForTab(tab)}
+								/>
+							)}
 							renderBelowTabBar={() => (
 								<V2PresetsBar
 									matchedPresets={matchedPresets}

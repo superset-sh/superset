@@ -1,9 +1,11 @@
 export { useEventBus } from "./hooks/useEventBus";
 export { useGitChangeEvents } from "./hooks/useGitChangeEvents";
 export {
+	type AgentLifecyclePayload,
 	type EventBusHandle,
 	type GitChangedPayload,
 	getEventBus,
+	type TerminalLifecyclePayload,
 } from "./lib/eventBus";
 export {
 	useWorkspaceClient,

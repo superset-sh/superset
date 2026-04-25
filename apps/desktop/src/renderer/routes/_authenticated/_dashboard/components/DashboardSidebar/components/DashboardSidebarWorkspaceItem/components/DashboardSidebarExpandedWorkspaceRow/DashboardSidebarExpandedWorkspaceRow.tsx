@@ -12,6 +12,7 @@ import type { DiffStats } from "renderer/hooks/host-service/useDiffStats";
 import { HotkeyLabel } from "renderer/hotkeys";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { RenameInput } from "renderer/screens/main/components/WorkspaceSidebar/RenameInput";
+import type { ActivePaneStatus } from "shared/tabs-types";
 import type {
 	DashboardSidebarWorkspace,
 	DashboardSidebarWorkspacePullRequest,
@@ -38,6 +39,7 @@ interface DashboardSidebarExpandedWorkspaceRowProps
 	renameValue: string;
 	shortcutLabel?: string;
 	diffStats: DiffStats | null;
+	workspaceStatus?: ActivePaneStatus | null;
 	onClick?: () => void;
 	onDoubleClick?: () => void;
 	onDeleteClick: () => void;
@@ -58,6 +60,7 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 			renameValue,
 			shortcutLabel,
 			diffStats,
+			workspaceStatus = null,
 			onClick,
 			onDoubleClick,
 			onDeleteClick,
@@ -164,7 +167,7 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 									hostIsOnline={hostIsOnline}
 									isActive={isActive}
 									variant="expanded"
-									workspaceStatus={null}
+									workspaceStatus={workspaceStatus}
 									creationStatus={creationStatus}
 									pullRequestState={pullRequest.state}
 								/>
@@ -176,7 +179,7 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 									hostIsOnline={hostIsOnline}
 									isActive={isActive}
 									variant="expanded"
-									workspaceStatus={null}
+									workspaceStatus={workspaceStatus}
 									creationStatus={creationStatus}
 									pullRequestState={null}
 								/>

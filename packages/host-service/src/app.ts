@@ -116,6 +116,7 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 	registerWorkspaceTerminalRoute({
 		app,
 		db,
+		eventBus,
 		upgradeWebSocket,
 	});
 
@@ -131,6 +132,7 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 					api,
 					db,
 					runtime,
+					eventBus,
 					organizationId: config.organizationId,
 					isAuthenticated,
 				} as Record<string, unknown>;

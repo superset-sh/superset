@@ -26,6 +26,7 @@ export const terminalRouter = router({
 				workspaceId: input.workspaceId,
 				themeType: parseThemeType(input.themeType),
 				db: ctx.db,
+				eventBus: ctx.eventBus,
 				initialCommand: input.initialCommand,
 			});
 
