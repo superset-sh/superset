@@ -32,6 +32,7 @@ interface TerminalSessionDropdownProps {
 interface VisibleTerminalSession {
 	terminalId: string;
 	workspaceId: string;
+	createdAt?: number;
 	exited: boolean;
 	exitCode: number;
 	attached: boolean;
@@ -44,8 +45,26 @@ interface TerminalPaneLocation {
 	titleOverride?: string;
 }
 
-function getShortTerminalId(terminalId: string): string {
-	return terminalId.length <= 8 ? terminalId : terminalId.slice(0, 8);
+function isSameCalendarDay(date: Date, reference: Date): boolean {
+	return (
+		date.getFullYear() === reference.getFullYear() &&
+		date.getMonth() === reference.getMonth() &&
+		date.getDate() === reference.getDate()
+	);
+}
+
+function formatCreatedAt(createdAt: number | undefined): string {
+	if (!createdAt) return "Creating";
+
+	const date = new Date(createdAt);
+	if (Number.isNaN(date.getTime())) return "Creating";
+
+	const today = new Date();
+	const options: Intl.DateTimeFormatOptions = isSameCalendarDay(date, today)
+		? { hour: "numeric", minute: "2-digit" }
+		: { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" };
+
+	return new Intl.DateTimeFormat(undefined, options).format(date);
 }
 
 function findTerminalPaneLocation(
@@ -80,7 +99,6 @@ export function TerminalSessionDropdown({
 	const sessionsQuery = workspaceTrpc.terminal.listSessions.useQuery(
 		{ workspaceId },
 		{
-			enabled: isOpen,
 			refetchInterval: isOpen ? 2_000 : false,
 			refetchOnWindowFocus: true,
 		},
@@ -197,6 +215,10 @@ export function TerminalSessionDropdown({
 	};
 
 	const triggerTitle = context.pane.titleOverride ?? "Terminal";
+	const currentSession = sessions.find(
+		(session) => session.terminalId === terminalId,
+	);
+	const currentCreatedAtLabel = formatCreatedAt(currentSession?.createdAt);
 
 	return (
 		<DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
@@ -210,8 +232,10 @@ export function TerminalSessionDropdown({
 				>
 					<TerminalSquare className="size-4 shrink-0" />
 					<span className="min-w-0 truncate">{triggerTitle}</span>
-					<span className="shrink-0 font-mono text-[10px] text-muted-foreground/70">
-						{getShortTerminalId(terminalId)}
+					<span className="shrink-0 text-[10px] text-muted-foreground/70">
+						{currentSession?.createdAt
+							? `Created ${currentCreatedAtLabel}`
+							: currentCreatedAtLabel}
 					</span>
 					{sessionsQuery.isFetching && isOpen ? (
 						<LoaderCircle className="size-3 shrink-0 animate-spin" />
@@ -235,6 +259,7 @@ export function TerminalSessionDropdown({
 							);
 							const canSelect =
 								isCurrent || !session.attached || location !== null;
+							const createdAtLabel = formatCreatedAt(session.createdAt);
 							const status = isCurrent
 								? "Current"
 								: location
@@ -266,15 +291,17 @@ export function TerminalSessionDropdown({
 									<span className="min-w-0 flex-1 truncate text-xs">
 										{title}
 									</span>
-									<span className="shrink-0 font-mono text-[10px] text-muted-foreground/70">
-										{getShortTerminalId(session.terminalId)}
+									<span className="shrink-0 text-[10px] text-muted-foreground/70">
+										{session.createdAt
+											? `Created ${createdAtLabel}`
+											: createdAtLabel}
 									</span>
 									<span className="shrink-0 text-xs text-muted-foreground">
 										{status}
 									</span>
 									<button
 										type="button"
-										aria-label={`Remove terminal ${getShortTerminalId(session.terminalId)}`}
+										aria-label={`Remove terminal ${session.createdAt ? `created ${createdAtLabel}` : "session"}`}
 										disabled={killTerminalSession.isPending}
 										className="shrink-0 rounded p-0.5 opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive disabled:pointer-events-none disabled:opacity-30 group-hover:opacity-100"
 										onClick={(event) => {

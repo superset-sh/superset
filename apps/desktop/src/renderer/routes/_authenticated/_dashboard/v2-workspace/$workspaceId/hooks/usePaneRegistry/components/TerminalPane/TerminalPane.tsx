@@ -82,6 +82,12 @@ export function TerminalPane({
 	const ensureSession = workspaceTrpc.terminal.ensureSession.useMutation();
 	const ensureSessionRef = useRef(ensureSession);
 	ensureSessionRef.current = ensureSession;
+	const workspaceTrpcUtils = workspaceTrpc.useUtils();
+	const invalidateTerminalSessionsRef = useRef(
+		workspaceTrpcUtils.terminal.listSessions.invalidate,
+	);
+	invalidateTerminalSessionsRef.current =
+		workspaceTrpcUtils.terminal.listSessions.invalidate;
 
 	// useCallback so useSyncExternalStore doesn't re-subscribe every render —
 	// otherwise every keystroke-triggered re-render unsubscribes and
@@ -128,6 +134,13 @@ export function TerminalPane({
 				terminalId,
 				workspaceId: workspaceIdRef.current,
 				themeType: initialThemeTypeRef.current,
+			})
+			.then((result) => {
+				if (result.status === "active") {
+					void invalidateTerminalSessionsRef.current({
+						workspaceId: workspaceIdRef.current,
+					});
+				}
 			})
 			.catch((err) => {
 				console.error("[TerminalPane] ensureSession failed:", err);

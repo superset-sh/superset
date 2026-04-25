@@ -75,6 +75,7 @@ interface TerminalSession {
 	} | null;
 	buffer: string[];
 	bufferBytes: number;
+	createdAt: number;
 	exited: boolean;
 	exitCode: number;
 	exitSignal: number;
@@ -94,6 +95,7 @@ const sessions = new Map<string, TerminalSession>();
 export interface TerminalSessionSummary {
 	terminalId: string;
 	workspaceId: string;
+	createdAt: number;
 	exited: boolean;
 	exitCode: number;
 	attached: boolean;
@@ -115,6 +117,7 @@ export function listTerminalSessions(
 		.map((session) => ({
 			terminalId: session.terminalId,
 			workspaceId: session.workspaceId,
+			createdAt: session.createdAt,
 			exited: session.exited,
 			exitCode: session.exitCode,
 			attached: session.socket !== null,
@@ -320,15 +323,18 @@ export function createTerminalSessionInternal({
 		};
 	}
 
+	const createdAt = Date.now();
+
 	db.insert(terminalSessions)
 		.values({
 			id: terminalId,
 			originWorkspaceId: workspaceId,
 			status: "active",
+			createdAt,
 		})
 		.onConflictDoUpdate({
 			target: terminalSessions.id,
-			set: { status: "active", endedAt: null },
+			set: { status: "active", createdAt, endedAt: null },
 		})
 		.run();
 
@@ -350,6 +356,7 @@ export function createTerminalSessionInternal({
 		socket: null,
 		buffer: [],
 		bufferBytes: 0,
+		createdAt,
 		exited: false,
 		exitCode: 0,
 		exitSignal: 0,
