@@ -2,8 +2,8 @@ import { alert } from "@superset/ui/atoms/Alert";
 import { toast } from "@superset/ui/sonner";
 import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
+import { useOptimisticCollectionActions } from "renderer/routes/_authenticated/hooks/useOptimisticCollectionActions";
 import { useOpenNewWorkspaceModal } from "renderer/stores/new-workspace-modal";
 import type { DashboardSidebarProject } from "../../../../types";
 
@@ -16,6 +16,7 @@ export function useDashboardSidebarProjectSectionActions({
 }: UseDashboardSidebarProjectSectionActionsOptions) {
 	const openModal = useOpenNewWorkspaceModal();
 	const navigate = useNavigate();
+	const { v2Projects: projectActions } = useOptimisticCollectionActions();
 	const {
 		createSection,
 		deleteSection,
@@ -37,20 +38,11 @@ export function useDashboardSidebarProjectSectionActions({
 		setRenameValue(project.name);
 	};
 
-	const submitRename = async () => {
+	const submitRename = () => {
 		setIsRenaming(false);
 		const trimmed = renameValue.trim();
 		if (!trimmed || trimmed === project.name) return;
-		try {
-			await apiTrpcClient.v2Project.update.mutate({
-				id: project.id,
-				name: trimmed,
-			});
-		} catch (error) {
-			toast.error(
-				`Failed to rename: ${error instanceof Error ? error.message : "Unknown error"}`,
-			);
-		}
+		projectActions.renameProject(project.id, trimmed);
 	};
 
 	const handleOpenInFinder = () => {

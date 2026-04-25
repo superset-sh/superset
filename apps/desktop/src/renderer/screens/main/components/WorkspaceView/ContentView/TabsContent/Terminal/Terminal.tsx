@@ -2,7 +2,7 @@ import type { FitAddon } from "@xterm/addon-fit";
 import type { SearchAddon } from "@xterm/addon-search";
 import type { Terminal as XTerm } from "@xterm/xterm";
 import "@xterm/xterm/css/xterm.css";
-import { memo, useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { sanitizeTerminalFontFamily } from "renderer/lib/terminal/appearance";
 import { buildTerminalCommand } from "renderer/lib/terminal/launch-command";
@@ -289,8 +289,16 @@ export const Terminal = memo(function Terminal({
 		return () => clearTimeout(timeout);
 	}, [connectionError, handleRetryConnection]);
 
+	const handleClearHotkey = useCallback(() => {
+		const xterm = xtermRef.current;
+		if (!xterm) return;
+		xterm.clear();
+		clearScrollbackRef.current({ paneId });
+	}, [paneId, clearScrollbackRef]);
+
 	const { isSearchOpen, setIsSearchOpen } = useTerminalHotkeys({
 		isFocused,
+		onClear: handleClearHotkey,
 		xtermRef,
 	});
 	useEffect(() => {

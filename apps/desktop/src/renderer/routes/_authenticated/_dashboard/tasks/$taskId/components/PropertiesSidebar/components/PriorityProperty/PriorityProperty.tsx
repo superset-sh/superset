@@ -6,7 +6,7 @@ import {
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
 import { useState } from "react";
-import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { useOptimisticCollectionActions } from "renderer/routes/_authenticated/hooks/useOptimisticCollectionActions";
 import { PriorityIcon } from "../../../../../components/TasksView/components/shared/PriorityIcon";
 import type { TaskWithStatus } from "../../../../../components/TasksView/hooks/useTasksTable";
 import { ALL_PRIORITIES } from "../../../../../components/TasksView/utils/sorting";
@@ -24,7 +24,7 @@ interface PriorityPropertyProps {
 }
 
 export function PriorityProperty({ task }: PriorityPropertyProps) {
-	const collections = useCollections();
+	const { tasks: taskActions } = useOptimisticCollectionActions();
 	const [open, setOpen] = useState(false);
 
 	const currentPriority = task.priority;
@@ -36,13 +36,9 @@ export function PriorityProperty({ task }: PriorityPropertyProps) {
 			return;
 		}
 
-		try {
-			collections.tasks.update(task.id, (draft) => {
-				draft.priority = newPriority;
-			});
+		const transaction = taskActions.updatePriority(task.id, newPriority);
+		if (transaction) {
 			setOpen(false);
-		} catch (error) {
-			console.error("[PriorityProperty] Failed to update priority:", error);
 		}
 	};
 

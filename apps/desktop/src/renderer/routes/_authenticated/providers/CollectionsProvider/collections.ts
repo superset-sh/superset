@@ -271,6 +271,22 @@ function createOrgCollections(organizationId: string): OrgCollections {
 				columnMapper,
 			},
 			getKey: (item) => item.id,
+			onUpdate: async ({ transaction }) => {
+				const { original, changes } = transaction.mutations[0];
+				const githubRepositoryId =
+					changes.githubRepositoryId === null &&
+					changes.repoCloneUrl !== undefined
+						? undefined
+						: changes.githubRepositoryId;
+				const result = await apiClient.v2Project.update.mutate({
+					id: original.id,
+					name: changes.name,
+					slug: changes.slug,
+					repoCloneUrl: changes.repoCloneUrl,
+					githubRepositoryId,
+				});
+				return { txid: result.txid };
+			},
 		}),
 	);
 
@@ -335,6 +351,17 @@ function createOrgCollections(organizationId: string): OrgCollections {
 				columnMapper,
 			},
 			getKey: (item) => item.id,
+			onUpdate: async ({ transaction }) => {
+				const { original, changes } = transaction.mutations[0];
+				const { branch, hostId, name } = changes;
+				const result = await apiClient.v2Workspace.update.mutate({
+					id: original.id,
+					branch,
+					hostId,
+					name,
+				});
+				return { txid: result.txid };
+			},
 		}),
 	);
 
@@ -487,6 +514,16 @@ function createOrgCollections(organizationId: string): OrgCollections {
 				columnMapper,
 			},
 			getKey: (item) => item.id,
+			onDelete: async ({ transaction }) => {
+				const item = transaction.mutations[0].original;
+				const result = await apiClient.chat.deleteSession.mutate({
+					sessionId: item.id,
+				});
+				if (!result.deleted) {
+					throw new Error("Chat session was not deleted");
+				}
+				return { txid: result.txid };
+			},
 		}),
 	);
 

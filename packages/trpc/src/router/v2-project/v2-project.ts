@@ -4,6 +4,7 @@ import {
 	organizations,
 	v2Projects,
 } from "@superset/db/schema";
+import { getCurrentTxid } from "@superset/db/utils";
 import { parseGitHubRemote } from "@superset/shared/github-remote";
 import type { TRPCRouterRecord } from "@trpc/server";
 import { TRPCError } from "@trpc/server";
@@ -290,7 +291,7 @@ export const v2ProjectRouter = {
 				id: z.string().uuid(),
 				name: z.string().min(1).optional(),
 				slug: z.string().min(1).optional(),
-				githubRepositoryId: z.string().uuid().optional(),
+				githubRepositoryId: z.string().uuid().nullable().optional(),
 				repoCloneUrl: z.string().min(1).nullable().optional(),
 			}),
 		)
@@ -351,18 +352,25 @@ export const v2ProjectRouter = {
 					message: "No fields to update",
 				});
 			}
-			const [updated] = await dbWs
-				.update(v2Projects)
-				.set(data)
-				.where(eq(v2Projects.id, project.id))
-				.returning();
+			const result = await dbWs.transaction(async (tx) => {
+				const [updated] = await tx
+					.update(v2Projects)
+					.set(data)
+					.where(eq(v2Projects.id, project.id))
+					.returning();
+
+				const txid = await getCurrentTxid(tx);
+
+				return { updated, txid };
+			});
+			const { updated, txid } = result;
 			if (!updated) {
 				throw new TRPCError({
 					code: "NOT_FOUND",
 					message: "Project not found",
 				});
 			}
-			return updated;
+			return { ...updated, txid };
 		}),
 
 	delete: protectedProcedure

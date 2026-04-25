@@ -21,10 +21,10 @@ import {
 	setupClickToMoveCursor,
 	setupCopyHandler,
 	setupFocusListener,
-	setupKeyboardHandler,
 } from "../helpers";
 import { isPaneDestroyed } from "../pane-guards";
 import { coldRestoreState, pendingDetaches } from "../state";
+import { setupKeyboardHandler } from "../terminalKeyboardHandler";
 import type {
 	CreateOrAttachMutate,
 	CreateOrAttachResult,
@@ -757,7 +757,6 @@ export function useTerminalLifecycle({
 
 		const cleanupKeyboard = setupKeyboardHandler(xterm, {
 			onShiftEnter: () => handleWrite("\x1b\r"),
-			onClear: handleClear,
 			onWrite: handleWrite,
 		});
 		const cleanupClickToMove = setupClickToMoveCursor(xterm, {

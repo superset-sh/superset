@@ -10,6 +10,7 @@ import {
 } from "renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/Terminal/clipboardShortcuts";
 import { DEFAULT_TERMINAL_SCROLLBACK } from "shared/constants";
 import type { TerminalAppearance } from "./appearance";
+import { translateLineEditChord } from "./line-edit-translations";
 import { loadAddons } from "./terminal-addons";
 
 const SERIALIZE_SCROLLBACK = 1000;
@@ -71,48 +72,6 @@ function createKeyEventHandler(terminal: XTerm) {
 
 		return true;
 	};
-}
-
-/** True when `mod` is the only non-shift modifier held. */
-function onlyMod(event: KeyboardEvent, mod: "meta" | "alt" | "ctrl"): boolean {
-	return (
-		event.metaKey === (mod === "meta") &&
-		event.altKey === (mod === "alt") &&
-		event.ctrlKey === (mod === "ctrl") &&
-		!event.shiftKey
-	);
-}
-
-/**
- * Translate Mac Cmd+/Option+ and Windows Ctrl+ arrow / backspace chords into
- * the escape sequences shells expect. Returns the bytes to send, or null if
- * this chord isn't a line-edit translation.
- *
- * Mirrors v1 helpers.ts:319-427. These translations only exist because xterm's
- * default encoding (with kitty on) would send a CSI-u sequence that most
- * shells don't map to line-edit commands.
- */
-function translateLineEditChord(
-	event: KeyboardEvent,
-	options: { isMac: boolean; isWindows: boolean },
-): string | null {
-	const { isMac, isWindows } = options;
-	const { key } = event;
-
-	if (isMac && onlyMod(event, "meta")) {
-		if (key === "Backspace") return "\x15\x1b[D";
-		if (key === "ArrowLeft") return "\x01";
-		if (key === "ArrowRight") return "\x05";
-	}
-	if (isMac && onlyMod(event, "alt")) {
-		if (key === "ArrowLeft") return "\x1bb";
-		if (key === "ArrowRight") return "\x1bf";
-	}
-	if (isWindows && onlyMod(event, "ctrl")) {
-		if (key === "ArrowLeft") return "\x1bb";
-		if (key === "ArrowRight") return "\x1bf";
-	}
-	return null;
 }
 
 export interface TerminalRuntime {
