@@ -276,11 +276,17 @@ export function usePaneRegistry(
 							shortcut: `${MOD_KEY}C`,
 							disabled: (ctx) => {
 								const { terminalId } = ctx.pane.data as TerminalPaneData;
-								return !terminalRuntimeRegistry.getSelection(terminalId);
+								return !terminalRuntimeRegistry.getSelection(
+									terminalId,
+									ctx.pane.id,
+								);
 							},
 							onSelect: (ctx) => {
 								const { terminalId } = ctx.pane.data as TerminalPaneData;
-								const text = terminalRuntimeRegistry.getSelection(terminalId);
+								const text = terminalRuntimeRegistry.getSelection(
+									terminalId,
+									ctx.pane.id,
+								);
 								if (text) navigator.clipboard.writeText(text);
 							},
 						},
@@ -293,7 +299,13 @@ export function usePaneRegistry(
 								const { terminalId } = ctx.pane.data as TerminalPaneData;
 								try {
 									const text = await navigator.clipboard.readText();
-									if (text) terminalRuntimeRegistry.paste(terminalId, text);
+									if (text) {
+										terminalRuntimeRegistry.paste(
+											terminalId,
+											text,
+											ctx.pane.id,
+										);
+									}
 								} catch {
 									// Clipboard access denied
 								}
@@ -308,7 +320,7 @@ export function usePaneRegistry(
 								clearShortcut !== "Unassigned" ? clearShortcut : undefined,
 							onSelect: (ctx) => {
 								const { terminalId } = ctx.pane.data as TerminalPaneData;
-								terminalRuntimeRegistry.clear(terminalId);
+								terminalRuntimeRegistry.clear(terminalId, ctx.pane.id);
 							},
 						},
 						{
@@ -321,7 +333,7 @@ export function usePaneRegistry(
 									: undefined,
 							onSelect: (ctx) => {
 								const { terminalId } = ctx.pane.data as TerminalPaneData;
-								terminalRuntimeRegistry.scrollToBottom(terminalId);
+								terminalRuntimeRegistry.scrollToBottom(terminalId, ctx.pane.id);
 							},
 						},
 						{ key: "sep-terminal-defaults", type: "separator" },

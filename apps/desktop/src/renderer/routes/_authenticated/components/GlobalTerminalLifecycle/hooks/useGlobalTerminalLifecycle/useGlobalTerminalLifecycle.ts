@@ -27,6 +27,12 @@ interface PendingTerminalCleanup {
 	timer: ReturnType<typeof setTimeout> | null;
 }
 
+interface PendingTerminalInstanceRelease {
+	terminalId: string;
+	workspaceId: string;
+	timer: ReturnType<typeof setTimeout> | null;
+}
+
 function getTerminalId(
 	pane: WorkspaceState<unknown>["tabs"][number]["panes"][string],
 ): string | null {
@@ -36,10 +42,34 @@ function getTerminalId(
 	return typeof data.terminalId === "string" ? data.terminalId : null;
 }
 
+function getTerminalInstanceKey(
+	pane: WorkspaceState<unknown>["tabs"][number]["panes"][string],
+): string | null {
+	const terminalId = getTerminalId(pane);
+	return terminalId ? `${terminalId}\u0000${pane.id}` : null;
+}
+
+function parseTerminalInstanceKey(
+	key: string,
+): { terminalId: string; instanceId: string } | null {
+	const separatorIndex = key.indexOf("\u0000");
+	if (separatorIndex === -1) return null;
+	return {
+		terminalId: key.slice(0, separatorIndex),
+		instanceId: key.slice(separatorIndex + 1),
+	};
+}
+
 function extractTerminalLocations(
 	rows: PaneLifecycleRow[],
 ): Map<string, string> {
 	return extractPaneLocations(rows, getTerminalId);
+}
+
+function extractTerminalInstanceLocations(
+	rows: PaneLifecycleRow[],
+): Map<string, string> {
+	return extractPaneLocations(rows, getTerminalInstanceKey);
 }
 
 function cleanupRemovedTerminal({
@@ -80,9 +110,15 @@ export function useGlobalTerminalLifecycle() {
 	const collections = useCollections();
 	const { machineId, activeHostUrl } = useLocalHostService();
 	const prevTerminalLocationsRef = useRef<Map<string, string>>(new Map());
+	const prevTerminalInstanceLocationsRef = useRef<Map<string, string>>(
+		new Map(),
+	);
 	const pendingCleanups = useRef<Map<string, PendingTerminalCleanup>>(
 		new Map(),
 	);
+	const pendingInstanceReleases = useRef<
+		Map<string, PendingTerminalInstanceRelease>
+	>(new Map());
 
 	const { data: allWorkspaceRows = [] } = useLiveQuery(
 		(query) =>
@@ -130,8 +166,12 @@ export function useGlobalTerminalLifecycle() {
 	useEffect(() => {
 		const rows = allWorkspaceRows as PaneLifecycleRow[];
 		const currentTerminalLocations = extractTerminalLocations(rows);
+		const currentTerminalInstanceLocations =
+			extractTerminalInstanceLocations(rows);
 		const currentWorkspaceIds = extractWorkspaceIds(rows);
 		const prevTerminalLocations = prevTerminalLocationsRef.current;
+		const prevTerminalInstanceLocations =
+			prevTerminalInstanceLocationsRef.current;
 
 		for (const terminalId of currentTerminalLocations.keys()) {
 			const pending = pendingCleanups.current.get(terminalId);
@@ -139,6 +179,14 @@ export function useGlobalTerminalLifecycle() {
 				clearTimeout(pending.timer);
 			}
 			pendingCleanups.current.delete(terminalId);
+		}
+
+		for (const instanceKey of currentTerminalInstanceLocations.keys()) {
+			const pending = pendingInstanceReleases.current.get(instanceKey);
+			if (pending?.timer) {
+				clearTimeout(pending.timer);
+			}
+			pendingInstanceReleases.current.delete(instanceKey);
 		}
 
 		// If a pane was authoritatively removed but the owner row disappeared
@@ -155,6 +203,61 @@ export function useGlobalTerminalLifecycle() {
 					hostUrlByWorkspaceId,
 				});
 			}
+		}
+
+		for (const [instanceKey, pending] of pendingInstanceReleases.current) {
+			if (pending.timer) continue;
+			if (currentWorkspaceIds.has(pending.workspaceId)) {
+				pendingInstanceReleases.current.delete(instanceKey);
+				const parsed = parseTerminalInstanceKey(instanceKey);
+				if (parsed) {
+					terminalRuntimeRegistry.release(parsed.terminalId, parsed.instanceId);
+				}
+			}
+		}
+
+		const removedInstanceLocations = getRemovedPaneLocations({
+			previousLocations: prevTerminalInstanceLocations,
+			currentLocations: currentTerminalInstanceLocations,
+			currentWorkspaceIds,
+		});
+
+		for (const { id: instanceKey, workspaceId } of removedInstanceLocations) {
+			if (pendingInstanceReleases.current.has(instanceKey)) continue;
+
+			const parsed = parseTerminalInstanceKey(instanceKey);
+			if (!parsed) continue;
+
+			const timer = setTimeout(() => {
+				const freshRows = Array.from(
+					collections.v2WorkspaceLocalState.state.values(),
+				) as PaneLifecycleRow[];
+				const freshInstanceLocations =
+					extractTerminalInstanceLocations(freshRows);
+				const freshWorkspaceIds = extractWorkspaceIds(freshRows);
+
+				if (freshInstanceLocations.has(instanceKey)) {
+					pendingInstanceReleases.current.delete(instanceKey);
+					return;
+				}
+
+				if (freshWorkspaceIds.has(workspaceId)) {
+					pendingInstanceReleases.current.delete(instanceKey);
+					terminalRuntimeRegistry.release(parsed.terminalId, parsed.instanceId);
+					return;
+				}
+
+				const pending = pendingInstanceReleases.current.get(instanceKey);
+				if (pending) {
+					pending.timer = null;
+				}
+			}, RELEASE_DELAY_MS);
+
+			pendingInstanceReleases.current.set(instanceKey, {
+				terminalId: parsed.terminalId,
+				workspaceId,
+				timer,
+			});
 		}
 
 		const removedLocations = getRemovedPaneLocations({
@@ -198,6 +301,7 @@ export function useGlobalTerminalLifecycle() {
 		}
 
 		prevTerminalLocationsRef.current = currentTerminalLocations;
+		prevTerminalInstanceLocationsRef.current = currentTerminalInstanceLocations;
 	}, [allWorkspaceRows, collections, hostUrlByWorkspaceId]);
 
 	useEffect(() => {
@@ -208,6 +312,12 @@ export function useGlobalTerminalLifecycle() {
 				}
 			}
 			pendingCleanups.current.clear();
+			for (const pending of pendingInstanceReleases.current.values()) {
+				if (pending.timer) {
+					clearTimeout(pending.timer);
+				}
+			}
+			pendingInstanceReleases.current.clear();
 		};
 	}, []);
 }

@@ -116,16 +116,8 @@ export function TerminalSessionDropdown({
 
 		const state = context.store.getState();
 		const existingLocation = findTerminalPaneLocation(context, nextTerminalId);
-		if (existingLocation) {
-			state.setPaneData({
-				paneId: existingLocation.paneId,
-				data: { terminalId } as PaneViewerData,
-			});
-			state.setPaneTitleOverride({
-				tabId: existingLocation.tabId,
-				paneId: existingLocation.paneId,
-				titleOverride: context.pane.titleOverride,
-			});
+		if (!findTerminalPaneLocation(context, terminalId)) {
+			markTerminalForBackground(terminalId);
 		}
 
 		state.setPaneData({
@@ -244,9 +236,14 @@ export function TerminalSessionDropdown({
 								context,
 								session.terminalId,
 							);
-							const canSelect =
-								isCurrent || !session.attached || location !== null;
 							const createdAtLabel = formatCreatedAt(session.createdAt);
+							const status = isCurrent
+								? "Current"
+								: session.pending
+									? "Starting"
+									: session.attached
+										? "Attached"
+										: "Detached";
 							const title = isCurrent
 								? triggerTitle
 								: (location?.titleOverride ?? "Terminal");
@@ -254,12 +251,8 @@ export function TerminalSessionDropdown({
 							return (
 								<DropdownMenuItem
 									key={session.terminalId}
-									className={`group flex items-center gap-2 ${!canSelect ? "text-muted-foreground/50" : ""}`}
-									onSelect={(event) => {
-										if (!canSelect) {
-											event.preventDefault();
-											return;
-										}
+									className="group flex items-center gap-2"
+									onSelect={(_event) => {
 										handleSelectSession(session.terminalId);
 									}}
 								>
@@ -271,6 +264,9 @@ export function TerminalSessionDropdown({
 									</span>
 									<span className="shrink-0 text-[10px] text-muted-foreground/70">
 										{createdAtLabel}
+									</span>
+									<span className="shrink-0 text-xs text-muted-foreground">
+										{status}
 									</span>
 									<button
 										type="button"

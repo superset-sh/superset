@@ -43,6 +43,12 @@ type TerminalServerMessage =
 
 const MAX_BUFFER_BYTES = 64 * 1024;
 
+type TerminalSocket = {
+	send: (data: string) => void;
+	close: (code?: number, reason?: string) => void;
+	readyState: number;
+};
+
 // ---------------------------------------------------------------------------
 // OSC 133 shell readiness detection (FinalTerm semantic prompt standard).
 // Scanner logic lives in @superset/shared/shell-ready-scanner.
@@ -68,11 +74,7 @@ interface TerminalSession {
 	terminalId: string;
 	workspaceId: string;
 	pty: IPty;
-	socket: {
-		send: (data: string) => void;
-		close: (code?: number, reason?: string) => void;
-		readyState: number;
-	} | null;
+	sockets: Set<TerminalSocket>;
 	buffer: string[];
 	bufferBytes: number;
 	createdAt: number;
@@ -120,7 +122,7 @@ export function listTerminalSessions(
 			createdAt: session.createdAt,
 			exited: session.exited,
 			exitCode: session.exitCode,
-			attached: session.socket !== null,
+			attached: session.sockets.size > 0,
 		}));
 }
 
@@ -130,6 +132,15 @@ function sendMessage(
 ) {
 	if (socket.readyState !== 1) return;
 	socket.send(JSON.stringify(message));
+}
+
+function broadcastMessage(
+	session: TerminalSession,
+	message: TerminalServerMessage,
+) {
+	for (const socket of session.sockets) {
+		sendMessage(socket, message);
+	}
 }
 
 function bufferOutput(session: TerminalSession, data: string) {
@@ -193,6 +204,10 @@ export function disposeSession(terminalId: string, db: HostDb) {
 			clearTimeout(session.shellReadyTimeoutId);
 			session.shellReadyTimeoutId = null;
 		}
+		for (const socket of session.sockets) {
+			socket.close(1000, "Session disposed");
+		}
+		session.sockets.clear();
 		if (!session.exited) {
 			try {
 				session.pty.kill();
@@ -353,7 +368,7 @@ export function createTerminalSessionInternal({
 		terminalId,
 		workspaceId,
 		pty,
-		socket: null,
+		sockets: new Set(),
 		buffer: [],
 		bufferBytes: 0,
 		createdAt,
@@ -389,8 +404,8 @@ export function createTerminalSessionInternal({
 		}
 		if (data.length === 0) return;
 
-		if (session.socket?.readyState === 1) {
-			sendMessage(session.socket, { type: "data", data });
+		if (session.sockets.size > 0) {
+			broadcastMessage(session, { type: "data", data });
 		} else {
 			bufferOutput(session, data);
 		}
@@ -406,13 +421,11 @@ export function createTerminalSessionInternal({
 			.where(eq(terminalSessions.id, terminalId))
 			.run();
 
-		if (session.socket?.readyState === 1) {
-			sendMessage(session.socket, {
-				type: "exit",
-				exitCode: session.exitCode,
-				signal: session.exitSignal,
-			});
-		}
+		broadcastMessage(session, {
+			type: "exit",
+			exitCode: session.exitCode,
+			signal: session.exitSignal,
+		});
 	});
 
 	if (initialCommand) {
@@ -524,7 +537,7 @@ export function registerWorkspaceTerminalRoute({
 							return;
 						}
 
-						result.socket = ws;
+						result.sockets.add(ws);
 
 						db.update(terminalSessions)
 							.set({ lastAttachedAt: Date.now() })
@@ -533,10 +546,7 @@ export function registerWorkspaceTerminalRoute({
 						return;
 					}
 
-					if (existing.socket && existing.socket !== ws) {
-						existing.socket.close(4000, "Displaced by new connection");
-					}
-					existing.socket = ws;
+					existing.sockets.add(ws);
 
 					db.update(terminalSessions)
 						.set({ lastAttachedAt: Date.now() })
@@ -555,18 +565,16 @@ export function registerWorkspaceTerminalRoute({
 
 				onMessage: (event, ws) => {
 					const session = sessions.get(terminalId ?? "");
-					if (!session || session.socket !== ws) return;
+					if (!session || !session.sockets.has(ws)) return;
 
 					let message: TerminalClientMessage;
 					try {
 						message = JSON.parse(String(event.data)) as TerminalClientMessage;
 					} catch {
-						if (session.socket) {
-							sendMessage(session.socket, {
-								type: "error",
-								message: "Invalid terminal message payload",
-							});
-						}
+						sendMessage(ws, {
+							type: "error",
+							message: "Invalid terminal message payload",
+						});
 						return;
 					}
 
@@ -591,16 +599,12 @@ export function registerWorkspaceTerminalRoute({
 
 				onClose: (_event, ws) => {
 					const session = sessions.get(terminalId ?? "");
-					if (session?.socket === ws) {
-						session.socket = null;
-					}
+					session?.sockets.delete(ws);
 				},
 
 				onError: (_event, ws) => {
 					const session = sessions.get(terminalId ?? "");
-					if (session?.socket === ws) {
-						session.socket = null;
-					}
+					session?.sockets.delete(ws);
 				},
 			};
 		}),
