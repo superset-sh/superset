@@ -2,6 +2,7 @@ import { execFile } from "node:child_process";
 import os from "node:os";
 import { promisify } from "node:util";
 import pidtree from "pidtree";
+import { getListeningPortsLinuxProcfs } from "./procfs";
 
 const execFileAsync = promisify(execFile);
 
@@ -79,7 +80,10 @@ export async function getListeningPortsForPids(
 
 	const platform = os.platform();
 
-	if (platform === "darwin" || platform === "linux") {
+	if (platform === "linux") {
+		return getListeningPortsLinuxProcfs(pids, signal);
+	}
+	if (platform === "darwin") {
 		return getListeningPortsLsof(pids, signal);
 	}
 	if (platform === "win32") {
@@ -123,33 +127,43 @@ async function getListeningPortsLsof(
 			// Format: COMMAND PID USER FD TYPE DEVICE SIZE/OFF NODE NAME
 			// Example: node 12345 user 23u IPv4 0x1234 0t0 TCP *:3000 (LISTEN)
 			const columns = line.split(/\s+/);
-			if (columns.length < 10) continue;
-
 			const processName = columns[0];
-			const pid = Number.parseInt(columns[1], 10);
+			const pidStr = columns[1];
+			const name = columns[columns.length - 2]; // before (LISTEN)
+			if (
+				columns.length < 10 ||
+				processName === undefined ||
+				pidStr === undefined ||
+				name === undefined
+			) {
+				continue;
+			}
+
+			const pid = Number.parseInt(pidStr, 10);
 
 			// CRITICAL: Verify the PID is in our requested set
 			// lsof ignores -p filter when PIDs don't exist, returning all TCP listeners
 			if (!pidSet.has(pid)) continue;
 
-			const name = columns[columns.length - 2]; // NAME column (e.g., *:3000), before (LISTEN)
-
 			// Parse address:port from NAME column
 			// Formats: *:3000, 127.0.0.1:3000, [::1]:3000, [::]:3000
 			const match = name.match(/^(?:\[([^\]]+)\]|([^:]+)):(\d+)$/);
-			if (match) {
-				const address = match[1] || match[2] || "*";
-				const port = Number.parseInt(match[3], 10);
+			if (!match) continue;
 
-				if (port < 1 || port > 65535) continue;
+			// match[3] is the mandatory port group; one of match[1]/[2] is the host.
+			const portStr = match[3];
+			if (portStr === undefined) continue;
+			const address = match[1] || match[2] || "*";
+			const port = Number.parseInt(portStr, 10);
 
-				ports.push({
-					port,
-					pid,
-					address: address === "*" ? "0.0.0.0" : address,
-					processName,
-				});
-			}
+			if (port < 1 || port > 65535) continue;
+
+			ports.push({
+				port,
+				pid,
+				address: address === "*" ? "0.0.0.0" : address,
+				processName,
+			});
 		}
 
 		return ports;
@@ -184,9 +198,10 @@ async function getListeningPortsWindows(
 
 			// Format: TCP 0.0.0.0:3000 0.0.0.0:0 LISTENING 12345
 			const columns = line.trim().split(/\s+/);
-			if (columns.length < 5) continue;
+			const pidStr = columns[columns.length - 1];
+			if (columns.length < 5 || pidStr === undefined) continue;
 
-			const pid = Number.parseInt(columns[columns.length - 1], 10);
+			const pid = Number.parseInt(pidStr, 10);
 			if (!pidSet.has(pid)) continue;
 
 			if (!processNames.has(pid) && !pidsToLookup.includes(pid)) {
@@ -210,29 +225,32 @@ async function getListeningPortsWindows(
 			if (!line.includes("LISTENING")) continue;
 
 			const columns = line.trim().split(/\s+/);
-			if (columns.length < 5) continue;
+			const pidStr = columns[columns.length - 1];
+			const localAddr = columns[1];
+			if (columns.length < 5 || pidStr === undefined || localAddr === undefined)
+				continue;
 
-			const pid = Number.parseInt(columns[columns.length - 1], 10);
+			const pid = Number.parseInt(pidStr, 10);
 			if (!pidSet.has(pid)) continue;
 
-			const localAddr = columns[1];
 			// Parse address:port - handles both IPv4 and IPv6
-			// IPv4: 0.0.0.0:3000
-			// IPv6: [::]:3000
+			// IPv4: 0.0.0.0:3000, IPv6: [::]:3000
 			const match = localAddr.match(/^(?:\[([^\]]+)\]|([^:]+)):(\d+)$/);
-			if (match) {
-				const address = match[1] || match[2] || "0.0.0.0";
-				const port = Number.parseInt(match[3], 10);
+			if (!match) continue;
 
-				if (port < 1 || port > 65535) continue;
+			const portStr = match[3];
+			if (portStr === undefined) continue;
+			const address = match[1] || match[2] || "0.0.0.0";
+			const port = Number.parseInt(portStr, 10);
 
-				ports.push({
-					port,
-					pid,
-					address,
-					processName: processNames.get(pid) || "unknown",
-				});
-			}
+			if (port < 1 || port > 65535) continue;
+
+			ports.push({
+				port,
+				pid,
+				address,
+				processName: processNames.get(pid) || "unknown",
+			});
 		}
 
 		return ports;
@@ -255,8 +273,9 @@ async function getProcessNameWindows(
 			{ timeout: EXEC_TIMEOUT_MS, signal },
 		);
 		const lines = output.trim().split("\n");
-		if (lines.length >= 2) {
-			const name = lines[1].trim();
+		const secondLine = lines[1];
+		if (secondLine) {
+			const name = secondLine.trim();
 			return name.replace(/\.exe$/i, "") || "unknown";
 		}
 	} catch {

@@ -138,7 +138,7 @@ export class DaemonTerminalManager extends EventEmitter {
 
 			// Enable port scanning before user opens terminal tabs
 			for (const session of preservedSessions) {
-				portManager.upsertDaemonSession(
+				portManager.upsertSession(
 					session.paneId,
 					session.workspaceId,
 					session.pid,
@@ -210,7 +210,7 @@ export class DaemonTerminalManager extends EventEmitter {
 					session.pid = null;
 				}
 
-				portManager.unregisterDaemonSession(paneId);
+				portManager.unregisterSession(paneId);
 				this.historyManager.closeHistoryWriter(paneId, exitCode);
 				const reason =
 					session?.exitReason ??
@@ -511,7 +511,7 @@ export class DaemonTerminalManager extends EventEmitter {
 				rows: effectiveRows,
 			});
 
-			portManager.upsertDaemonSession(paneId, workspaceId, response.pid);
+			portManager.upsertSession(paneId, workspaceId, response.pid);
 
 			const snapshotAnsi = response.snapshot.snapshotAnsi || "";
 			const snapshotAnsiBytes = Buffer.byteLength(snapshotAnsi, "utf8");
@@ -722,7 +722,7 @@ export class DaemonTerminalManager extends EventEmitter {
 			session.pid = null;
 		}
 
-		portManager.unregisterDaemonSession(paneId);
+		portManager.unregisterSession(paneId);
 
 		if (deleteHistory && session) {
 			await this.historyManager.cleanupHistory(paneId, session.workspaceId);
@@ -855,7 +855,7 @@ export class DaemonTerminalManager extends EventEmitter {
 					session.pid = null;
 				}
 
-				portManager.unregisterDaemonSession(paneId);
+				portManager.unregisterSession(paneId);
 				await this.historyManager.cleanupHistory(paneId, workspaceId);
 				await this.client.kill({ sessionId: paneId, deleteHistory: true });
 			}),
@@ -974,7 +974,7 @@ export class DaemonTerminalManager extends EventEmitter {
 			await this.client.killAll({});
 		}
 		for (const paneId of sessionIds) {
-			portManager.unregisterDaemonSession(paneId);
+			portManager.unregisterSession(paneId);
 		}
 		this.daemonAliveSessionIds.clear();
 		this.daemonSessionIdsHydrated = true;

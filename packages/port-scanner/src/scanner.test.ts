@@ -45,20 +45,30 @@ function parseLsofOutput(
 		if (columns.length < 10) continue;
 
 		const processName = columns[0];
-		const pid = Number.parseInt(columns[1], 10);
+		const pidStr = columns[1];
+		const name = columns[columns.length - 2]; // NAME column (e.g., *:3000), before (LISTEN)
+		if (
+			processName === undefined ||
+			pidStr === undefined ||
+			name === undefined
+		) {
+			continue;
+		}
+
+		const pid = Number.parseInt(pidStr, 10);
 
 		// Filter by allowed PIDs if provided
 		// This guards against lsof returning all ports when -p filter is ignored
 		if (allowedPids && !allowedPids.has(pid)) continue;
-
-		const name = columns[columns.length - 2]; // NAME column (e.g., *:3000), before (LISTEN)
 
 		// Parse address:port from NAME column
 		// Formats: *:3000, 127.0.0.1:3000, [::1]:3000, [::]:3000
 		const match = name.match(/^(?:\[([^\]]+)\]|([^:]+)):(\d+)$/);
 		if (match) {
 			const address = match[1] || match[2] || "*";
-			const port = Number.parseInt(match[3], 10);
+			const portStr = match[3];
+			if (portStr === undefined) continue;
+			const port = Number.parseInt(portStr, 10);
 
 			// Skip invalid ports
 			if (port < 1 || port > 65535) continue;
@@ -187,8 +197,8 @@ node      67890   user   24u  IPv4 0x1234567890ac      0t0  TCP *:4000 (LISTEN)`
 			const ports = parseLsofOutput(output);
 
 			expect(ports).toHaveLength(2);
-			expect(ports[0].port).toBe(3000);
-			expect(ports[1].port).toBe(4000);
+			expect(ports[0]?.port).toBe(3000);
+			expect(ports[1]?.port).toBe(4000);
 		});
 
 		it("should skip invalid port numbers", () => {
@@ -200,11 +210,10 @@ node      12345   user   25u  IPv4 0x1234567890ad      0t0  TCP *:3000 (LISTEN)`
 			const ports = parseLsofOutput(output);
 
 			expect(ports).toHaveLength(1);
-			expect(ports[0].port).toBe(3000);
+			expect(ports[0]?.port).toBe(3000);
 		});
 
 		it("should handle real-world lsof output format", () => {
-			// Real output from macOS lsof command
 			const output = `COMMAND     PID   USER   FD   TYPE             DEVICE SIZE/OFF                NODE NAME
 rapportd    947 kietho    8u  IPv4 0x9e27f4f0c86f6338      0t0                 TCP *:59251 (LISTEN)
 ControlCe  1020 kietho    8u  IPv4 0xe6bd39002aa591ca      0t0                 TCP *:7000 (LISTEN)
@@ -234,17 +243,14 @@ postgres   3457 kietho    8u  IPv4 0xb4db4c0cd4dfeb63      0t0                 T
 		});
 
 		it("should not parse (LISTEN) as the port name", () => {
-			// This was the bug: using columns[columns.length - 1] would get "(LISTEN)"
-			// instead of the actual NAME field like "*:3000"
 			const output = `COMMAND     PID   USER   FD   TYPE             DEVICE SIZE/OFF NODE NAME
 node      12345   user   23u  IPv4 0x1234567890ab      0t0  TCP *:3000 (LISTEN)`;
 
 			const ports = parseLsofOutput(output);
 
 			expect(ports).toHaveLength(1);
-			// Should extract port 3000, not fail to parse "(LISTEN)"
-			expect(ports[0].port).toBe(3000);
-			expect(ports[0].address).toBe("0.0.0.0");
+			expect(ports[0]?.port).toBe(3000);
+			expect(ports[0]?.address).toBe("0.0.0.0");
 		});
 
 		it("should handle process names with different lengths", () => {
@@ -255,10 +261,10 @@ verylongprocessname 67890   user   24u  IPv4 0x1234567890ac      0t0  TCP *:4000
 			const ports = parseLsofOutput(output);
 
 			expect(ports).toHaveLength(2);
-			expect(ports[0].processName).toBe("n");
-			expect(ports[0].port).toBe(3000);
-			expect(ports[1].processName).toBe("verylongprocessname");
-			expect(ports[1].port).toBe(4000);
+			expect(ports[0]?.processName).toBe("n");
+			expect(ports[0]?.port).toBe(3000);
+			expect(ports[1]?.processName).toBe("verylongprocessname");
+			expect(ports[1]?.port).toBe(4000);
 		});
 	});
 
@@ -269,15 +275,14 @@ node      12345   user   23u  IPv4 0x1234567890ab      0t0  TCP *:3000 (LISTEN)
 python    67890   user   5u   IPv4 0x1234567890ad      0t0  TCP *:8000 (LISTEN)
 ruby      99999   user   6u   IPv4 0x1234567890ae      0t0  TCP *:9000 (LISTEN)`;
 
-			// Only allow PID 12345 and 99999
 			const allowedPids = new Set([12345, 99999]);
 			const ports = parseLsofOutput(output, allowedPids);
 
 			expect(ports).toHaveLength(2);
-			expect(ports[0].pid).toBe(12345);
-			expect(ports[0].port).toBe(3000);
-			expect(ports[1].pid).toBe(99999);
-			expect(ports[1].port).toBe(9000);
+			expect(ports[0]?.pid).toBe(12345);
+			expect(ports[0]?.port).toBe(3000);
+			expect(ports[1]?.pid).toBe(99999);
+			expect(ports[1]?.port).toBe(9000);
 		});
 
 		it("should return empty when no PIDs match", () => {
@@ -285,7 +290,6 @@ ruby      99999   user   6u   IPv4 0x1234567890ae      0t0  TCP *:9000 (LISTEN)`
 node      12345   user   23u  IPv4 0x1234567890ab      0t0  TCP *:3000 (LISTEN)
 python    67890   user   5u   IPv4 0x1234567890ad      0t0  TCP *:8000 (LISTEN)`;
 
-			// Request PIDs that don't exist in output
 			const allowedPids = new Set([11111, 22222]);
 			const ports = parseLsofOutput(output, allowedPids);
 
@@ -297,30 +301,24 @@ python    67890   user   5u   IPv4 0x1234567890ad      0t0  TCP *:8000 (LISTEN)`
 node      12345   user   23u  IPv4 0x1234567890ab      0t0  TCP *:3000 (LISTEN)
 python    67890   user   5u   IPv4 0x1234567890ad      0t0  TCP *:8000 (LISTEN)`;
 
-			// No PID filter
 			const ports = parseLsofOutput(output);
 
 			expect(ports).toHaveLength(2);
 		});
 
 		it("should handle lsof returning unrelated ports when -p filter fails", () => {
-			// This simulates the bug: we request PID 12345, but lsof ignores -p
-			// and returns ALL listening ports (947, 1020, 3457, etc.)
 			const output = `COMMAND     PID   USER   FD   TYPE             DEVICE SIZE/OFF                NODE NAME
 rapportd    947 kietho    8u  IPv4 0x9e27f4f0c86f6338      0t0                 TCP *:59251 (LISTEN)
 ControlCe  1020 kietho    8u  IPv4 0xe6bd39002aa591ca      0t0                 TCP *:7000 (LISTEN)
 postgres   3457 kietho    8u  IPv4 0xb4db4c0cd4dfeb63      0t0                 TCP 127.0.0.1:5432 (LISTEN)
 node      12345 kietho   23u  IPv4 0x1234567890ab          0t0                 TCP *:3000 (LISTEN)`;
 
-			// We only requested PID 12345 (our terminal's process tree)
 			const allowedPids = new Set([12345]);
 			const ports = parseLsofOutput(output, allowedPids);
 
-			// Should ONLY return port 3000 from PID 12345
-			// NOT the system ports from rapportd, ControlCenter, postgres
 			expect(ports).toHaveLength(1);
-			expect(ports[0].port).toBe(3000);
-			expect(ports[0].pid).toBe(12345);
+			expect(ports[0]?.port).toBe(3000);
+			expect(ports[0]?.pid).toBe(12345);
 		});
 	});
 });

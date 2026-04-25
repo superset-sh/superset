@@ -18,10 +18,10 @@ import {
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import { useOpenInExternalEditor } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/useOpenInExternalEditor";
 import type {
-	BrowserPaneData,
 	PaneViewerData,
 	TerminalPaneData,
 } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/types";
+import { openUrlInV2Workspace } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/utils/openUrlInV2Workspace";
 import { useWorkspaceWsUrl } from "renderer/routes/_authenticated/_dashboard/v2-workspace/providers/WorkspaceTrpcProvider/WorkspaceTrpcProvider";
 import { ScrollToBottomButton } from "renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/Terminal/ScrollToBottomButton";
 import { TerminalSearch } from "renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/Terminal/TerminalSearch";
@@ -265,11 +265,10 @@ export function TerminalPane({
 							console.error("[v2 Terminal] Failed to open URL:", url, error);
 						});
 					} else {
-						ctx.store.getState().openPane({
-							pane: {
-								kind: "browser",
-								data: { url } satisfies BrowserPaneData,
-							},
+						openUrlInV2Workspace({
+							store: ctx.store,
+							target: "current-tab",
+							url,
 						});
 					}
 				},

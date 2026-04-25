@@ -1,3 +1,4 @@
+import type { DetectedPort } from "@superset/port-scanner";
 import type { FsWatchEvent } from "@superset/workspace-fs/host";
 import type { AgentLifecycleEventType } from "./map-event-type";
 
@@ -39,6 +40,15 @@ export interface TerminalLifecycleMessage {
 	occurredAt: number;
 }
 
+export interface PortChangedMessage {
+	type: "port:changed";
+	workspaceId: string;
+	eventType: "add" | "remove";
+	port: DetectedPort;
+	label: string | null;
+	occurredAt: number;
+}
+
 export interface EventBusErrorMessage {
 	type: "error";
 	message: string;
@@ -49,6 +59,7 @@ export type ServerMessage =
 	| GitChangedMessage
 	| AgentLifecycleMessage
 	| TerminalLifecycleMessage
+	| PortChangedMessage
 	| EventBusErrorMessage;
 
 // ── Client → Server ────────────────────────────────────────────────

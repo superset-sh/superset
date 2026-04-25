@@ -18,6 +18,7 @@ const STORAGE_KEY_PREFIX = "terminal-buffer:";
 const DIMS_KEY_PREFIX = "terminal-dims:";
 const DEFAULT_COLS = 120;
 const DEFAULT_ROWS = 32;
+const RESIZE_DEBOUNCE_MS = 75;
 
 // xterm's _keyDown calls stopPropagation after processing, so any chord we
 // want the host (react-hotkeys-hook, Electron menu accelerators) or the shell
@@ -84,6 +85,7 @@ export interface TerminalRuntime {
 	wrapper: HTMLDivElement;
 	container: HTMLDivElement | null;
 	resizeObserver: ResizeObserver | null;
+	_disposeResizeObserver: (() => void) | null;
 	lastCols: number;
 	lastRows: number;
 	_disposeAddons: (() => void) | null;
@@ -204,11 +206,70 @@ function getParkingContainer(): HTMLDivElement {
 	return el;
 }
 
-function measureAndResize(runtime: TerminalRuntime) {
-	if (!hostIsVisible(runtime.container)) return;
+function measureAndResize(runtime: TerminalRuntime): boolean {
+	if (!hostIsVisible(runtime.container)) return false;
+	const { terminal } = runtime;
+	const buffer = terminal.buffer.active;
+	const wasPinnedToBottom = buffer.viewportY >= buffer.baseY;
+	const savedViewportY = buffer.viewportY;
+	const prevCols = terminal.cols;
+	const prevRows = terminal.rows;
+
 	runtime.fitAddon.fit();
-	runtime.lastCols = runtime.terminal.cols;
-	runtime.lastRows = runtime.terminal.rows;
+	runtime.lastCols = terminal.cols;
+	runtime.lastRows = terminal.rows;
+
+	if (wasPinnedToBottom) {
+		terminal.scrollToBottom();
+	} else {
+		const targetY = Math.min(savedViewportY, terminal.buffer.active.baseY);
+		if (terminal.buffer.active.viewportY !== targetY) {
+			terminal.scrollToLine(targetY);
+		}
+	}
+
+	terminal.refresh(0, Math.max(0, terminal.rows - 1));
+
+	return terminal.cols !== prevCols || terminal.rows !== prevRows;
+}
+
+function createResizeScheduler(
+	runtime: TerminalRuntime,
+	onResize?: () => void,
+): {
+	observe: ResizeObserverCallback;
+	dispose: () => void;
+} {
+	let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
+	const dispose = () => {
+		if (timeoutId !== null) {
+			clearTimeout(timeoutId);
+			timeoutId = null;
+		}
+	};
+
+	const run = () => {
+		timeoutId = null;
+		const changed = measureAndResize(runtime);
+		if (changed) onResize?.();
+	};
+
+	const observe: ResizeObserverCallback = (entries) => {
+		if (
+			entries.some(
+				(entry) =>
+					entry.contentRect.width <= 0 || entry.contentRect.height <= 0,
+			)
+		) {
+			dispose();
+			return;
+		}
+		dispose();
+		timeoutId = setTimeout(run, RESIZE_DEBOUNCE_MS);
+	};
+
+	return { observe, dispose };
 }
 
 export function createRuntime(
@@ -252,6 +313,7 @@ export function createRuntime(
 		wrapper,
 		container: null,
 		resizeObserver: null,
+		_disposeResizeObserver: null,
 		lastCols: cols,
 		lastRows: rows,
 		_disposeAddons: addonsResult.dispose,
@@ -275,18 +337,16 @@ export function attachToContainer(
 
 	runtime.container = container;
 	container.appendChild(runtime.wrapper);
-	measureAndResize(runtime);
+	if (measureAndResize(runtime)) onResize?.();
 
-	// Renderer may have skipped frames while the wrapper was detached.
-	runtime.terminal.refresh(0, runtime.terminal.rows - 1);
-
+	runtime._disposeResizeObserver?.();
+	runtime._disposeResizeObserver = null;
 	runtime.resizeObserver?.disconnect();
-	const observer = new ResizeObserver(() => {
-		measureAndResize(runtime);
-		onResize?.();
-	});
+	const scheduler = createResizeScheduler(runtime, onResize);
+	const observer = new ResizeObserver(scheduler.observe);
 	observer.observe(container);
 	runtime.resizeObserver = observer;
+	runtime._disposeResizeObserver = scheduler.dispose;
 
 	runtime.terminal.focus();
 }
@@ -294,6 +354,8 @@ export function attachToContainer(
 export function detachFromContainer(runtime: TerminalRuntime) {
 	persistBuffer(runtime.terminalId, runtime.serializeAddon);
 	persistDimensions(runtime.terminalId, runtime.lastCols, runtime.lastRows);
+	runtime._disposeResizeObserver?.();
+	runtime._disposeResizeObserver = null;
 	runtime.resizeObserver?.disconnect();
 	runtime.resizeObserver = null;
 	// Park instead of .remove() so xterm survives the React unmount —
@@ -306,7 +368,7 @@ export function updateRuntimeAppearance(
 	runtime: TerminalRuntime,
 	appearance: TerminalAppearance,
 ) {
-	const { terminal, fitAddon } = runtime;
+	const { terminal } = runtime;
 	terminal.options.theme = appearance.theme;
 
 	const fontChanged =
@@ -317,9 +379,7 @@ export function updateRuntimeAppearance(
 		terminal.options.fontFamily = appearance.fontFamily;
 		terminal.options.fontSize = appearance.fontSize;
 		if (hostIsVisible(runtime.container)) {
-			fitAddon.fit();
-			runtime.lastCols = terminal.cols;
-			runtime.lastRows = terminal.rows;
+			measureAndResize(runtime);
 		}
 	}
 }
@@ -335,6 +395,8 @@ export function disposeRuntime(
 	}
 	runtime._disposeAddons?.();
 	runtime._disposeAddons = null;
+	runtime._disposeResizeObserver?.();
+	runtime._disposeResizeObserver = null;
 	runtime.resizeObserver?.disconnect();
 	runtime.resizeObserver = null;
 	runtime.wrapper.remove();
