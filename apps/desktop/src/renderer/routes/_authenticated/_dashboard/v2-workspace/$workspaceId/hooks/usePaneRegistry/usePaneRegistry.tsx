@@ -225,7 +225,11 @@ export function usePaneRegistry(
 				getIcon: () => <GitCompareArrows className="size-4" />,
 				getTitle: () => "Changes",
 				renderPane: (ctx: RendererContext<PaneViewerData>) => (
-					<DiffPane context={ctx} workspaceId={workspaceId} />
+					<DiffPane
+						context={ctx}
+						workspaceId={workspaceId}
+						onOpenFile={onOpenFile}
+					/>
 				),
 				renderHeaderExtras: () => <DiffViewModeToggle />,
 				contextMenuActions: (_ctx, defaults) =>
