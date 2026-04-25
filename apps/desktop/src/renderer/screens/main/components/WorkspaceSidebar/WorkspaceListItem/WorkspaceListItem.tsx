@@ -303,10 +303,11 @@ export function WorkspaceListItem({
 			onDoubleClick={isBranchWorkspace ? undefined : rename.startRename}
 			className={cn(
 				"flex w-full pl-3 pr-2 text-sm",
-				"hover:bg-muted/50 transition-colors text-left cursor-pointer",
+				"transition-colors text-left cursor-pointer",
+				isActive ? "hover:bg-border/30" : "hover:bg-muted/50",
 				"group relative",
 				showBranchSubtitle ? "py-1.5" : "py-2 items-center",
-				isActive && "bg-muted",
+				isActive && "bg-border/30",
 				isSelected && "bg-primary/10 ring-1 ring-inset ring-primary/30",
 				(isDragging || isMultiDragging) && "opacity-30",
 			)}

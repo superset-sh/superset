@@ -58,7 +58,7 @@ export function PaneHeader({
 			ref={setRef}
 			className={cn(
 				"flex h-7 shrink-0 items-center transition-[background-color] duration-150 cursor-grab",
-				isActive ? "bg-secondary" : "bg-tertiary",
+				isActive ? "bg-border/30" : "bg-transparent",
 				isDragging && "opacity-30",
 			)}
 			onClick={onClick}

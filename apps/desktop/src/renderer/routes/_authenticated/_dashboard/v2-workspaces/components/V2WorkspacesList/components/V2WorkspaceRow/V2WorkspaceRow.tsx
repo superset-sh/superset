@@ -130,9 +130,11 @@ export function V2WorkspaceRow({
 				className={cn(
 					V2_WORKSPACES_ROW_GRID,
 					"group/row relative min-w-0 px-6 py-2 text-sm outline-none",
-					"cursor-pointer transition-colors hover:bg-accent/50",
-					"focus-visible:bg-accent/50 focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-inset",
-					isCurrentRoute && "bg-accent/40",
+					"cursor-pointer transition-colors",
+					"focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-inset",
+					isCurrentRoute
+						? "bg-border/30 hover:bg-border/30 focus-visible:bg-border/30"
+						: "hover:bg-accent/50 focus-visible:bg-accent/50",
 				)}
 			>
 				<div className="flex items-center justify-center">
