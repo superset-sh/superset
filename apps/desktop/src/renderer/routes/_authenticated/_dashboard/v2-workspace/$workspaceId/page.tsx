@@ -221,11 +221,16 @@ function WorkspaceContent({
 
 	const openFilePane = useCallback(
 		(filePath: string, openInNewTab?: boolean) => {
+			const absoluteFilePath = worktreePath
+				? toAbsoluteWorkspacePath(worktreePath, filePath)
+				: filePath;
 			if (worktreePath) {
-				const absolutePath = toAbsoluteWorkspacePath(worktreePath, filePath);
-				const relativePath = toRelativeWorkspacePath(worktreePath, filePath);
+				const relativePath = toRelativeWorkspacePath(
+					worktreePath,
+					absoluteFilePath,
+				);
 				if (relativePath && relativePath !== ".") {
-					recordView({ relativePath, absolutePath });
+					recordView({ relativePath, absolutePath: absoluteFilePath });
 				}
 			}
 			const state = store.getState();
@@ -235,7 +240,7 @@ function WorkspaceContent({
 						{
 							kind: "file",
 							data: {
-								filePath,
+								filePath: absoluteFilePath,
 								mode: "editor",
 							} as FilePaneData,
 						},
@@ -246,7 +251,7 @@ function WorkspaceContent({
 			const active = state.getActivePane();
 			if (
 				active?.pane.kind === "file" &&
-				(active.pane.data as FilePaneData).filePath === filePath
+				(active.pane.data as FilePaneData).filePath === absoluteFilePath
 			) {
 				state.setPanePinned({ paneId: active.pane.id, pinned: true });
 				return;
@@ -255,7 +260,7 @@ function WorkspaceContent({
 				pane: {
 					kind: "file",
 					data: {
-						filePath,
+						filePath: absoluteFilePath,
 						mode: "editor",
 					} as FilePaneData,
 				},

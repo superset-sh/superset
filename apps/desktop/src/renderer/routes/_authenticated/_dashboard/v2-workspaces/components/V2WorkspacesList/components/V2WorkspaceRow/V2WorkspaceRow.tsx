@@ -66,9 +66,13 @@ export function V2WorkspaceRow({
 	const handleRemoveFromSidebar = useCallback(
 		(event: React.MouseEvent) => {
 			event.stopPropagation();
+			if (isCurrentRoute) {
+				event.preventDefault();
+				return;
+			}
 			removeWorkspaceFromSidebar(workspace.id);
 		},
-		[removeWorkspaceFromSidebar, workspace.id],
+		[isCurrentRoute, removeWorkspaceFromSidebar, workspace.id],
 	);
 
 	const creatorLabel = workspace.isCreatedByCurrentUser
@@ -131,16 +135,47 @@ export function V2WorkspaceRow({
 					isCurrentRoute && "bg-accent/40",
 				)}
 			>
-				<span className="flex items-center justify-center">
+				<div className="flex items-center justify-center">
 					{workspace.isInSidebar ? (
-						<span
-							role="img"
-							aria-label="In your sidebar"
-							title="In your sidebar"
-							className="size-1.5 rounded-full bg-primary"
-						/>
-					) : null}
-				</span>
+						<Tooltip delayDuration={300}>
+							<TooltipTrigger asChild>
+								<Button
+									size="icon"
+									variant="ghost"
+									onClick={handleRemoveFromSidebar}
+									aria-disabled={isCurrentRoute}
+									aria-label="Remove from sidebar"
+									className={cn(
+										"size-7",
+										isCurrentRoute && "cursor-not-allowed opacity-50",
+									)}
+								>
+									<LuMinus className="size-3.5" />
+								</Button>
+							</TooltipTrigger>
+							<TooltipContent side="right">
+								{isCurrentRoute
+									? "Can't remove the current workspace"
+									: "Remove from sidebar"}
+							</TooltipContent>
+						</Tooltip>
+					) : (
+						<Tooltip delayDuration={300}>
+							<TooltipTrigger asChild>
+								<Button
+									size="icon"
+									variant="ghost"
+									onClick={handleAddToSidebar}
+									aria-label="Add to sidebar"
+									className="size-7"
+								>
+									<LuPlus className="size-3.5" />
+								</Button>
+							</TooltipTrigger>
+							<TooltipContent side="right">Add to sidebar</TooltipContent>
+						</Tooltip>
+					)}
+				</div>
 
 				<span className="flex min-w-0 items-center">
 					<span
@@ -176,45 +211,6 @@ export function V2WorkspaceRow({
 				>
 					{timeLabel} · {creatorLabel}
 				</span>
-
-				<div className="flex justify-end">
-					{workspace.isInSidebar ? (
-						<Tooltip delayDuration={300}>
-							<TooltipTrigger asChild>
-								<Button
-									size="icon"
-									variant="ghost"
-									onClick={handleRemoveFromSidebar}
-									disabled={isCurrentRoute}
-									aria-label="Remove from sidebar"
-									className="size-7 opacity-0 transition-opacity group-hover/row:opacity-100 focus-visible:opacity-100 data-[state=open]:opacity-100"
-								>
-									<LuMinus className="size-3.5" />
-								</Button>
-							</TooltipTrigger>
-							<TooltipContent side="left">
-								{isCurrentRoute
-									? "Can't remove the current workspace"
-									: "Remove from sidebar"}
-							</TooltipContent>
-						</Tooltip>
-					) : (
-						<Tooltip delayDuration={300}>
-							<TooltipTrigger asChild>
-								<Button
-									size="icon"
-									variant="ghost"
-									onClick={handleAddToSidebar}
-									aria-label="Add to sidebar"
-									className="size-7 opacity-0 transition-opacity group-hover/row:opacity-100 focus-visible:opacity-100"
-								>
-									<LuPlus className="size-3.5" />
-								</Button>
-							</TooltipTrigger>
-							<TooltipContent side="left">Add to sidebar</TooltipContent>
-						</Tooltip>
-					)}
-				</div>
 			</div>
 		</li>
 	);

@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { useMemo } from "react";
 import type { ToolPart } from "../../../../utils/tool-helpers";
+import { ToolStatusBadge } from "../ToolStatusBadge";
 
 interface QuestionToolOption {
 	label: string;
@@ -122,27 +123,6 @@ function findAnswerForQuestion({
 	}
 
 	return undefined;
-}
-
-type QuestionStatus = "awaiting" | "answered" | "cancelled";
-
-const QUESTION_STATUS_CONFIG: Record<
-	QuestionStatus,
-	{ label: string; icon: typeof ClockIcon }
-> = {
-	awaiting: { label: "Awaiting Response", icon: ClockIcon },
-	answered: { label: "Answered", icon: CheckIcon },
-	cancelled: { label: "Cancelled", icon: XIcon },
-};
-
-function QuestionStatusDescription({ status }: { status: QuestionStatus }) {
-	const { label, icon: Icon } = QUESTION_STATUS_CONFIG[status];
-	return (
-		<span className="ml-2 flex items-center gap-1 font-medium uppercase tracking-wide">
-			<Icon className="h-3 w-3 shrink-0" />
-			{label}
-		</span>
-	);
 }
 
 function toSingleQuestion(
@@ -267,11 +247,11 @@ export function AskUserQuestionToolCall({
 			title="Question"
 			description={
 				isPending ? (
-					<QuestionStatusDescription status="awaiting" />
+					<ToolStatusBadge icon={ClockIcon} label="Awaiting Response" />
 				) : isAnswered ? (
-					<QuestionStatusDescription status="answered" />
+					<ToolStatusBadge icon={CheckIcon} label="Answered" />
 				) : isCancelled || isCancelledByError || isCancelledByStop ? (
-					<QuestionStatusDescription status="cancelled" />
+					<ToolStatusBadge icon={XIcon} label="Cancelled" />
 				) : undefined
 			}
 		>

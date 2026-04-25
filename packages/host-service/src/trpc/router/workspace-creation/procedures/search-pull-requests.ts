@@ -3,6 +3,14 @@ import { normalizeGitHubQuery } from "../normalize-github-query";
 import { githubSearchInputSchema } from "../schemas";
 import { resolveGithubRepo } from "../shared/project-helpers";
 
+function normalizePullRequestState(
+	state: string,
+	mergedAt: string | null | undefined,
+): "open" | "closed" | "merged" {
+	if (mergedAt) return "merged";
+	return state.toLowerCase() === "closed" ? "closed" : "open";
+}
+
 export const searchPullRequests = protectedProcedure
 	.input(githubSearchInputSchema)
 	.query(async ({ ctx, input }) => {
@@ -32,13 +40,17 @@ export const searchPullRequests = protectedProcedure
 					repo: repo.name,
 					pull_number: prNumber,
 				});
+				const state = normalizePullRequestState(pr.state, pr.merged_at);
+				if (!input.includeClosed && state !== "open") {
+					return { pullRequests: [] };
+				}
 				return {
 					pullRequests: [
 						{
 							prNumber: pr.number,
 							title: pr.title,
 							url: pr.html_url,
-							state: pr.state,
+							state,
 							isDraft: pr.draft ?? false,
 							authorLogin: pr.user?.login ?? null,
 						},
@@ -46,8 +58,9 @@ export const searchPullRequests = protectedProcedure
 				};
 			}
 
+			const stateFilter = input.includeClosed ? "" : " is:open";
 			const query =
-				`repo:${repo.owner}/${repo.name} is:pr ${effectiveQuery}`.trim();
+				`repo:${repo.owner}/${repo.name} is:pr${stateFilter} ${effectiveQuery}`.trim();
 			const { data } = await octokit.search.issuesAndPullRequests({
 				q: query,
 				per_page: limit,
@@ -57,14 +70,20 @@ export const searchPullRequests = protectedProcedure
 			return {
 				pullRequests: data.items
 					.filter((item) => item.pull_request)
-					.map((item) => ({
-						prNumber: item.number,
-						title: item.title,
-						url: item.html_url,
-						state: item.state,
-						isDraft: item.draft ?? false,
-						authorLogin: item.user?.login ?? null,
-					})),
+					.map((item) => {
+						const state = normalizePullRequestState(
+							item.state,
+							item.pull_request?.merged_at,
+						);
+						return {
+							prNumber: item.number,
+							title: item.title,
+							url: item.html_url,
+							state,
+							isDraft: item.draft ?? false,
+							authorLogin: item.user?.login ?? null,
+						};
+					}),
 			};
 		} catch (err) {
 			console.warn("[workspaceCreation.searchPullRequests] failed", err);

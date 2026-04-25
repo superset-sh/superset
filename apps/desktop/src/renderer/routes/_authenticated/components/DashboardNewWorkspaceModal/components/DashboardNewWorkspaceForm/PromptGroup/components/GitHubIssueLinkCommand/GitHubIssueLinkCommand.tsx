@@ -1,3 +1,4 @@
+import { Checkbox } from "@superset/ui/checkbox";
 import {
 	Command,
 	CommandEmpty,
@@ -10,7 +11,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useQuery } from "@tanstack/react-query";
 import type { ReactNode } from "react";
-import { useState } from "react";
+import { useId, useState } from "react";
 import { env } from "renderer/env.renderer";
 import { useDebouncedValue } from "renderer/hooks/useDebouncedValue";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
@@ -50,6 +51,8 @@ export function GitHubIssueLinkCommand({
 }: GitHubIssueLinkCommandProps) {
 	const [open, setOpen] = useState(false);
 	const [searchQuery, setSearchQuery] = useState("");
+	const [showClosed, setShowClosed] = useState(false);
+	const showClosedId = useId();
 	const debouncedQuery = useDebouncedValue(searchQuery, 300);
 	const { activeHostUrl } = useLocalHostService();
 
@@ -69,6 +72,7 @@ export function GitHubIssueLinkCommand({
 			projectId,
 			hostUrl,
 			debouncedTrimmed,
+			showClosed,
 		],
 		queryFn: async () => {
 			if (!hostUrl || !projectId) return { issues: [] };
@@ -77,6 +81,7 @@ export function GitHubIssueLinkCommand({
 				projectId,
 				query: debouncedTrimmed || undefined,
 				limit: MAX_RESULTS,
+				includeClosed: showClosed,
 			});
 		},
 		enabled: !!projectId && !!hostUrl && open,
@@ -128,6 +133,19 @@ export function GitHubIssueLinkCommand({
 						value={searchQuery}
 						onValueChange={setSearchQuery}
 					/>
+					<div className="flex items-center gap-2 border-b px-3 py-2">
+						<Checkbox
+							id={showClosedId}
+							checked={showClosed}
+							onCheckedChange={(checked) => setShowClosed(checked === true)}
+						/>
+						<label
+							htmlFor={showClosedId}
+							className="cursor-pointer select-none text-xs text-muted-foreground"
+						>
+							Show closed
+						</label>
+					</div>
 					<CommandList className="max-h-[280px]">
 						{searchResults.length === 0 && (
 							<CommandEmpty>
@@ -138,8 +156,12 @@ export function GitHubIssueLinkCommand({
 									: repoMismatch
 										? `Issue URL must match ${repoMismatch}.`
 										: debouncedTrimmed
-											? "No issues found."
-											: "No issues found."}
+											? showClosed
+												? "No issues found."
+												: "No open issues found."
+											: showClosed
+												? "No issues found."
+												: "No open issues found."}
 							</CommandEmpty>
 						)}
 						{searchResults.length > 0 && (
@@ -147,7 +169,9 @@ export function GitHubIssueLinkCommand({
 								heading={
 									debouncedTrimmed
 										? `${searchResults.length} result${searchResults.length === 1 ? "" : "s"}`
-										: "Recent issues"
+										: showClosed
+											? "Recent issues"
+											: "Open issues"
 								}
 							>
 								{searchResults.map((issue) => (

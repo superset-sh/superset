@@ -1,9 +1,17 @@
 import { Checkbox } from "@superset/ui/checkbox";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
-import { ChevronDown, ChevronRight, Eye, EyeOff } from "lucide-react";
+import {
+	ChevronDown,
+	ChevronRight,
+	ExternalLink,
+	Eye,
+	EyeOff,
+} from "lucide-react";
 import { useId } from "react";
 import { LuCopy, LuUndo2 } from "react-icons/lu";
 import { StatusIndicator } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/StatusIndicator";
+import { CLICK_HINT_TOOLTIP } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/utils/clickModifierLabels";
+import { getSidebarClickIntent } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/utils/getSidebarClickIntent";
 import { FileIcon } from "renderer/screens/main/components/WorkspaceView/RightSidebar/FilesView/utils";
 
 interface DiffFileHeaderProps {
@@ -17,7 +25,8 @@ interface DiffFileHeaderProps {
 	onToggleCollapsed: () => void;
 	viewed: boolean;
 	onToggleViewed: () => void;
-	onOpenFile?: () => void;
+	onOpenFile?: (openInNewTab?: boolean) => void;
+	onOpenInExternalEditor?: () => void;
 	onCopyContents?: () => void;
 	onDiscard?: () => void;
 }
@@ -34,6 +43,7 @@ export function DiffFileHeader({
 	viewed,
 	onToggleViewed,
 	onOpenFile,
+	onOpenInExternalEditor,
 	onCopyContents,
 	onDiscard,
 }: DiffFileHeaderProps) {
@@ -58,8 +68,16 @@ export function DiffFileHeader({
 				<TooltipTrigger asChild>
 					<button
 						type="button"
-						onClick={onOpenFile}
-						disabled={!onOpenFile}
+						onClick={(event) => {
+							const intent = getSidebarClickIntent(event);
+							if (intent === "openInEditor") {
+								onOpenInExternalEditor?.();
+								return;
+							}
+							onOpenFile?.(intent === "openInNewTab");
+						}}
+						disabled={!onOpenFile && !onOpenInExternalEditor}
+						aria-label="Open in file viewer"
 						className="flex min-w-0 flex-1 items-center gap-2 rounded border border-border px-2 py-1 text-left transition-colors hover:bg-accent disabled:pointer-events-none disabled:opacity-60"
 					>
 						<FileIcon fileName={path} className="size-4 shrink-0" />
@@ -82,11 +100,32 @@ export function DiffFileHeader({
 					</button>
 				</TooltipTrigger>
 				<TooltipContent side="bottom" showArrow={false}>
-					Open {path}
+					Open in file viewer. {CLICK_HINT_TOOLTIP}
 				</TooltipContent>
 			</Tooltip>
 
 			<div className="flex shrink-0 items-center gap-2">
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<span className="inline-flex rounded">
+							<button
+								type="button"
+								onClick={onOpenInExternalEditor}
+								disabled={!onOpenInExternalEditor}
+								aria-label="Open in editor"
+								className="rounded p-1 text-muted-foreground/60 transition-colors hover:bg-accent hover:text-muted-foreground disabled:pointer-events-none disabled:opacity-40"
+							>
+								<ExternalLink className="size-3.5" />
+							</button>
+						</span>
+					</TooltipTrigger>
+					<TooltipContent side="bottom" showArrow={false}>
+						{onOpenInExternalEditor
+							? "Open in editor"
+							: "Open in editor unavailable"}
+					</TooltipContent>
+				</Tooltip>
+
 				<div className="flex items-center gap-1.5">
 					<Checkbox
 						id={viewedId}
