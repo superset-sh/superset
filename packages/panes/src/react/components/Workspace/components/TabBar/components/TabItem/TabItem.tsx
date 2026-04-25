@@ -164,7 +164,10 @@ export function TabItem<TData>({
 								<Tooltip delayDuration={500}>
 									<TooltipTrigger asChild>
 										<Button
-											className="size-5 cursor-pointer text-current hover:bg-muted"
+											className={cn(
+												"size-5 cursor-pointer text-current",
+												isActive ? "hover:bg-foreground/10" : "hover:bg-muted",
+											)}
 											onClick={(event) => {
 												event.stopPropagation();
 												onClose();

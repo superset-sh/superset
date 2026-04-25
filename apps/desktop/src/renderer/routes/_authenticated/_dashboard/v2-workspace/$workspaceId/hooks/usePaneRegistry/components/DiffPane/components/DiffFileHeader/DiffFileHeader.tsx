@@ -78,7 +78,6 @@ export function DiffFileHeader({
 						}}
 						disabled={!onOpenFile && !onOpenInExternalEditor}
 						aria-label="Open in file viewer"
-						title={path}
 						className="flex h-6 min-w-20 flex-[1_1_10rem] items-center gap-1.5 rounded border border-border px-1.5 py-0.5 text-left transition-colors hover:bg-accent disabled:pointer-events-none disabled:opacity-60"
 					>
 						<FileIcon fileName={path} className="size-3.5 shrink-0" />
@@ -100,8 +99,17 @@ export function DiffFileHeader({
 						</span>
 					</button>
 				</TooltipTrigger>
-				<TooltipContent side="bottom" showArrow={false}>
-					Open in file viewer. {CLICK_HINT_TOOLTIP}
+				<TooltipContent
+					side="bottom"
+					showArrow={false}
+					className="max-w-[80vw]"
+				>
+					<div className="space-y-1">
+						<div>Open in file viewer. {CLICK_HINT_TOOLTIP}</div>
+						<div className="break-all font-mono text-[10px] text-muted-foreground">
+							{path}
+						</div>
+					</div>
 				</TooltipContent>
 			</Tooltip>
 

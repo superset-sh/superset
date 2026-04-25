@@ -18,6 +18,7 @@ import type {
 	RendererContext,
 } from "../../../../types";
 import { Pane } from "./components/Pane";
+import { PANE_MIN_SIZE_CLASS_NAME } from "./constants";
 
 interface TabProps<TData> {
 	store: StoreApi<WorkspaceStore<TData>>;
@@ -51,7 +52,6 @@ function SplitView<TData>({
 	const groupRef = useRef<React.ComponentRef<typeof ResizablePanelGroup>>(null);
 	const firstSize = node.splitPercentage ?? 50;
 	const secondSize = 100 - firstSize;
-	const panelMinSizeClassName = "min-h-[160px] min-w-[260px]";
 
 	return (
 		<ResizablePanelGroup
@@ -72,7 +72,10 @@ function SplitView<TData>({
 				groupRef.current?.setLayout([50, 50]);
 			}}
 		>
-			<ResizablePanel className={panelMinSizeClassName} defaultSize={firstSize}>
+			<ResizablePanel
+				className={PANE_MIN_SIZE_CLASS_NAME}
+				defaultSize={firstSize}
+			>
 				<LayoutNodeView
 					store={store}
 					tab={tab}
@@ -86,7 +89,7 @@ function SplitView<TData>({
 			</ResizablePanel>
 			<ResizableHandle />
 			<ResizablePanel
-				className={panelMinSizeClassName}
+				className={PANE_MIN_SIZE_CLASS_NAME}
 				defaultSize={secondSize}
 			>
 				<LayoutNodeView

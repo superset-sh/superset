@@ -164,8 +164,12 @@ export function V2PresetsBar({
 				.filter((preset) => !visibleSet.has(preset.id))
 				.map((preset) => preset.id);
 			const finalOrder = [...reorderedVisiblePresetIds, ...hidden];
+			const currentTabOrderById = new Map(
+				matchedPresets.map((preset) => [preset.id, preset.tabOrder]),
+			);
 
 			for (const [index, id] of finalOrder.entries()) {
+				if (currentTabOrderById.get(id) === index) continue;
 				collections.v2TerminalPresets.update(id, (draft) => {
 					draft.tabOrder = index;
 				});
