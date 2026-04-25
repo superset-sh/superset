@@ -22,6 +22,7 @@ import {
 	sendDispose,
 	sendInput,
 	sendResize,
+	type TerminalExitEvent,
 	type TerminalTransport,
 } from "./terminal-ws-transport";
 
@@ -248,6 +249,17 @@ class TerminalRuntimeRegistryImpl {
 			entry.transport.stateListeners.delete(listener);
 		};
 	}
+
+	onExit(
+		terminalId: string,
+		listener: (event: TerminalExitEvent) => void,
+	): () => void {
+		const entry = this.getOrCreateEntry(terminalId);
+		entry.transport.exitListeners.add(listener);
+		return () => {
+			entry.transport.exitListeners.delete(listener);
+		};
+	}
 }
 
 // In dev, preserve the singleton across Vite HMR so active WebSocket
@@ -262,4 +274,9 @@ if (import.meta.hot) {
 	import.meta.hot.data.registry = terminalRuntimeRegistry;
 }
 
-export type { ConnectionState, LinkHoverInfo, TerminalLinkHandlers };
+export type {
+	ConnectionState,
+	LinkHoverInfo,
+	TerminalExitEvent,
+	TerminalLinkHandlers,
+};

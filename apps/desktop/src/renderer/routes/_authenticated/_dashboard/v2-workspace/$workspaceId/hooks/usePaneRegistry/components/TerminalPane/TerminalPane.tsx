@@ -82,6 +82,8 @@ export function TerminalPane({
 	const ensureSession = workspaceTrpc.terminal.ensureSession.useMutation();
 	const ensureSessionRef = useRef(ensureSession);
 	ensureSessionRef.current = ensureSession;
+	const updatePaneDataRef = useRef(ctx.actions.updateData);
+	updatePaneDataRef.current = ctx.actions.updateData;
 
 	// useCallback so useSyncExternalStore doesn't re-subscribe every render —
 	// otherwise every keystroke-triggered re-render unsubscribes and
@@ -98,6 +100,15 @@ export function TerminalPane({
 		[terminalId],
 	);
 	const connectionState = useSyncExternalStore(subscribe, getSnapshot);
+
+	useEffect(() => {
+		return terminalRuntimeRegistry.onExit(terminalId, () => {
+			terminalRuntimeRegistry.dispose(terminalId);
+			updatePaneDataRef.current({
+				terminalId: crypto.randomUUID(),
+			} as PaneViewerData);
+		});
+	}, [terminalId]);
 
 	// DOM-first lifecycle (VSCode/Tabby pattern):
 	//   1. mount() attaches xterm to the container synchronously — terminal

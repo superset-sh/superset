@@ -2,6 +2,11 @@ import type { Terminal as XTerm } from "@xterm/xterm";
 
 export type ConnectionState = "disconnected" | "connecting" | "open" | "closed";
 
+export interface TerminalExitEvent {
+	exitCode: number;
+	signal: number;
+}
+
 type TerminalServerMessage =
 	| { type: "data"; data: string }
 	| { type: "error"; message: string }
@@ -15,6 +20,7 @@ export interface TerminalTransport {
 	currentUrl: string | null;
 	onDataDisposable: { dispose(): void } | null;
 	stateListeners: Set<() => void>;
+	exitListeners: Set<(event: TerminalExitEvent) => void>;
 	/** Internal: auto-reconnect timer. */
 	_reconnectTimer: ReturnType<typeof setTimeout> | null;
 	/** Internal: reconnect attempt count for backoff. */
@@ -35,6 +41,12 @@ function setConnectionState(
 	}
 }
 
+function emitExit(transport: TerminalTransport, event: TerminalExitEvent) {
+	for (const listener of Array.from(transport.exitListeners)) {
+		listener(event);
+	}
+}
+
 const MAX_RECONNECT_DELAY = 10_000;
 const BASE_RECONNECT_DELAY = 500;
 const MAX_RECONNECT_ATTEMPTS = 10;
@@ -46,6 +58,7 @@ export function createTransport(): TerminalTransport {
 		currentUrl: null,
 		onDataDisposable: null,
 		stateListeners: new Set(),
+		exitListeners: new Set(),
 		_reconnectTimer: null,
 		_reconnectAttempt: 0,
 		_terminal: null,
@@ -141,6 +154,10 @@ export function connect(
 			terminal.writeln(
 				`\r\n[terminal] exited with code ${message.exitCode} (signal ${message.signal})`,
 			);
+			emitExit(transport, {
+				exitCode: message.exitCode,
+				signal: message.signal,
+			});
 		}
 	});
 
@@ -212,4 +229,5 @@ export function disposeTransport(transport: TerminalTransport) {
 	transport.onDataDisposable?.dispose();
 	transport.onDataDisposable = null;
 	transport.stateListeners.clear();
+	transport.exitListeners.clear();
 }
