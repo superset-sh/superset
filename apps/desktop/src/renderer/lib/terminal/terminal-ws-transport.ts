@@ -10,6 +10,12 @@ type TerminalServerMessage =
 	| { type: "replay"; data: string }
 	| { type: "title"; title: string | null };
 
+type TerminalClientMessage =
+	| { type: "input"; data: string }
+	| { type: "resize"; cols: number; rows: number }
+	| { type: "dispose" }
+	| { type: "title"; title: string | null };
+
 export interface TerminalTransport {
 	socket: WebSocket | null;
 	connectionState: ConnectionState;
@@ -28,6 +34,7 @@ export interface TerminalTransport {
 	/** Latest title emitted by terminal title sequences. */
 	title: string | null;
 	onTitleDisposable: { dispose(): void } | null;
+	onTitleTokenDisposable: { dispose(): void } | null;
 }
 
 function setConnectionState(
@@ -44,11 +51,24 @@ function notifyStateListeners(transport: TerminalTransport) {
 	}
 }
 
-function setTitle(transport: TerminalTransport, title: string | null) {
+function setTitle(transport: TerminalTransport, title: string | null): boolean {
 	const normalizedTitle = normalizeTerminalTitle(title);
-	if (transport.title === normalizedTitle) return;
+	if (transport.title === normalizedTitle) return false;
 	transport.title = normalizedTitle;
 	notifyStateListeners(transport);
+	return true;
+}
+
+function sendClientMessage(
+	socket: WebSocket,
+	message: TerminalClientMessage,
+): void {
+	if (socket.readyState !== WebSocket.OPEN) return;
+	socket.send(JSON.stringify(message));
+}
+
+function sendTitle(transport: TerminalTransport, socket: WebSocket): void {
+	sendClientMessage(socket, { type: "title", title: transport.title });
 }
 
 const MAX_RECONNECT_DELAY = 10_000;
@@ -68,6 +88,7 @@ export function createTransport(): TerminalTransport {
 		_exited: false,
 		title: null,
 		onTitleDisposable: null,
+		onTitleTokenDisposable: null,
 	};
 }
 
@@ -131,6 +152,9 @@ export function connect(
 		transport._reconnectAttempt = 0;
 		setConnectionState(transport, "open");
 		sendResize(transport, terminal.cols, terminal.rows);
+		if (transport.title !== null) {
+			sendTitle(transport, socket);
+		}
 	});
 
 	socket.addEventListener("message", (event) => {
@@ -182,13 +206,25 @@ export function connect(
 
 	transport.onDataDisposable?.dispose();
 	transport.onDataDisposable = terminal.onData((data) => {
-		if (socket.readyState !== WebSocket.OPEN) return;
-		socket.send(JSON.stringify({ type: "input", data }));
+		sendClientMessage(socket, { type: "input", data });
 	});
 	transport.onTitleDisposable?.dispose();
 	transport.onTitleDisposable = terminal.onTitleChange((title) => {
-		setTitle(transport, title || null);
+		if (setTitle(transport, title || null)) {
+			sendTitle(transport, socket);
+		}
 	});
+	transport.onTitleTokenDisposable?.dispose();
+	transport.onTitleTokenDisposable = terminal.parser.registerOscHandler(
+		9,
+		(data) => {
+			if (!data.startsWith("3;")) return false;
+			if (setTitle(transport, data.slice(2))) {
+				sendTitle(transport, socket);
+			}
+			return true;
+		},
+	);
 }
 
 export function disconnect(transport: TerminalTransport) {
@@ -205,6 +241,8 @@ export function disconnect(transport: TerminalTransport) {
 	transport.onDataDisposable = null;
 	transport.onTitleDisposable?.dispose();
 	transport.onTitleDisposable = null;
+	transport.onTitleTokenDisposable?.dispose();
+	transport.onTitleTokenDisposable = null;
 }
 
 export function sendResize(
@@ -214,18 +252,18 @@ export function sendResize(
 ) {
 	if (!transport.socket || transport.socket.readyState !== WebSocket.OPEN)
 		return;
-	transport.socket.send(JSON.stringify({ type: "resize", cols, rows }));
+	sendClientMessage(transport.socket, { type: "resize", cols, rows });
 }
 
 export function sendInput(transport: TerminalTransport, data: string) {
 	if (!transport.socket || transport.socket.readyState !== WebSocket.OPEN)
 		return;
-	transport.socket.send(JSON.stringify({ type: "input", data }));
+	sendClientMessage(transport.socket, { type: "input", data });
 }
 
 export function sendDispose(transport: TerminalTransport) {
 	if (transport.socket?.readyState === WebSocket.OPEN) {
-		transport.socket.send(JSON.stringify({ type: "dispose" }));
+		sendClientMessage(transport.socket, { type: "dispose" });
 	}
 }
 
@@ -242,5 +280,7 @@ export function disposeTransport(transport: TerminalTransport) {
 	transport.onDataDisposable = null;
 	transport.onTitleDisposable?.dispose();
 	transport.onTitleDisposable = null;
+	transport.onTitleTokenDisposable?.dispose();
+	transport.onTitleTokenDisposable = null;
 	transport.stateListeners.clear();
 }

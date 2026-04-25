@@ -6,6 +6,7 @@ import {
 	type ShellReadyScanState,
 	scanForShellReady,
 } from "@superset/shared/shell-ready-scanner";
+import { normalizeTerminalTitle } from "@superset/shared/terminal-title";
 import { and, eq } from "drizzle-orm";
 import type { Hono } from "hono";
 import { type IPty, spawn } from "node-pty";
@@ -19,7 +20,6 @@ import {
 	getTerminalBaseEnv,
 	resolveLaunchShell,
 } from "./env";
-import { TerminalTitleTracker } from "./title-tracker";
 
 interface RegisterWorkspaceTerminalRouteOptions {
 	app: Hono;
@@ -48,7 +48,8 @@ function getHostAgentHookUrl(): string {
 type TerminalClientMessage =
 	| { type: "input"; data: string }
 	| { type: "resize"; cols: number; rows: number }
-	| { type: "dispose" };
+	| { type: "dispose" }
+	| { type: "title"; title: string | null };
 
 type TerminalServerMessage =
 	| { type: "data"; data: string }
@@ -102,7 +103,6 @@ interface TerminalSession {
 	exitSignal: number;
 	listed: boolean;
 	title: string | null;
-	titleTracker: TerminalTitleTracker;
 
 	// Shell readiness (OSC 133)
 	shellReadyState: ShellReadyState;
@@ -214,6 +214,16 @@ function replayBuffer(
 	sendMessage(socket, { type: "replay", data: combined });
 }
 
+function setSessionTitle(
+	session: TerminalSession,
+	title: string | null | undefined,
+): void {
+	const normalizedTitle = normalizeTerminalTitle(title);
+	if (session.title === normalizedTitle) return;
+	session.title = normalizedTitle;
+	broadcastMessage(session, { type: "title", title: normalizedTitle });
+}
+
 /**
  * Transition out of `pending`. Flushes any partially-matched marker
  * bytes as terminal output (they weren't a real marker). Idempotent.
@@ -254,7 +264,6 @@ export function disposeSession(terminalId: string, db: HostDb) {
 			clearTimeout(session.shellReadyTimeoutId);
 			session.shellReadyTimeoutId = null;
 		}
-		session.titleTracker.dispose();
 		for (const socket of session.sockets) {
 			socket.close(1000, "Session disposed");
 		}
@@ -420,13 +429,7 @@ export function createTerminalSessionInternal({
 			})
 		: Promise.resolve();
 
-	let session: TerminalSession;
-	const titleTracker = new TerminalTitleTracker((title) => {
-		session.title = title;
-		broadcastMessage(session, { type: "title", title });
-	});
-
-	session = {
+	const session: TerminalSession = {
 		terminalId,
 		workspaceId,
 		pty,
@@ -439,7 +442,6 @@ export function createTerminalSessionInternal({
 		exitSignal: 0,
 		listed,
 		title: null,
-		titleTracker,
 		shellReadyState: shellSupportsReady ? "pending" : "unsupported",
 		shellReadyResolve,
 		shellReadyPromise,
@@ -458,8 +460,6 @@ export function createTerminalSessionInternal({
 	}
 
 	pty.onData((rawData) => {
-		session.titleTracker.write(rawData);
-
 		// Scan for OSC 133;A and strip it from output
 		let data = rawData;
 		if (session.shellReadyState === "pending") {
@@ -482,7 +482,6 @@ export function createTerminalSessionInternal({
 		session.exited = true;
 		session.exitCode = exitCode ?? 0;
 		session.exitSignal = signal ?? 0;
-		session.titleTracker.dispose();
 
 		portManager.unregisterSession(terminalId);
 
@@ -664,6 +663,11 @@ export function registerWorkspaceTerminalRoute({
 
 					if (message.type === "dispose") {
 						disposeSession(terminalId ?? "", db);
+						return;
+					}
+
+					if (message.type === "title") {
+						setSessionTitle(session, message.title);
 						return;
 					}
 
