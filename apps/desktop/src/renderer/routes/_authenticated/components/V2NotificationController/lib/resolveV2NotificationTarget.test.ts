@@ -1,9 +1,8 @@
 import { describe, expect, it } from "bun:test";
 import type { WorkspaceState } from "@superset/panes";
 import type { AgentLifecyclePayload } from "@superset/workspace-client";
-import type { PaneViewerData } from "../../types";
+import type { PaneViewerData } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/types";
 import {
-	getNotificationSourceId,
 	isV2NotificationTargetVisible,
 	resolveTerminalTarget,
 	resolveV2NotificationTarget,
@@ -118,11 +117,5 @@ describe("resolveV2NotificationTarget", () => {
 				target: backgroundTarget,
 			}),
 		).toBe(false);
-	});
-
-	it("uses the terminal id as the native notification source id", () => {
-		expect(getNotificationSourceId(payload({ terminalId: "terminal-1" }))).toBe(
-			"terminal-1",
-		);
 	});
 });

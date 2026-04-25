@@ -3,21 +3,15 @@ import type {
 	AgentLifecyclePayload,
 	TerminalLifecyclePayload,
 } from "@superset/workspace-client";
-import { eq } from "@tanstack/db";
-import { useLiveQuery } from "@tanstack/react-db";
-import { useCallback, useMemo } from "react";
-import { useWorkspaceEvent } from "renderer/hooks/host-service/useWorkspaceEvent";
-import { electronTrpc } from "renderer/lib/electron-trpc";
 import { playRingtone } from "renderer/lib/ringtones/play";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
-import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import type { PaneViewerData } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/types";
 import { useRingtoneStore } from "renderer/stores/ringtone";
 import {
 	getV2TerminalNotificationSource,
 	useV2NotificationStore,
 	type V2NotificationSourceInput,
 } from "renderer/stores/v2-notifications";
-import type { PaneViewerData } from "../../types";
 import {
 	isV2NotificationTargetVisible,
 	resolveV2NotificationTarget,
@@ -26,71 +20,19 @@ import {
 import { resolveV2AgentStatusTransition } from "./statusTransitions";
 
 /**
- * Listens for v2 agent lifecycle events over the host-service WebSocket,
- * updates pane status indicators (working/review/permission/idle) and
- * plays the selected ringtone in the renderer. Mirrors the v1 electron-main
- * playback path (see apps/desktop/src/main/lib/notifications/notification-manager.ts)
- * plus the v1 sidebar-status path (renderer/stores/tabs/useAgentHookListener.ts),
- * but runs client-side so it works when host-service is off-machine.
+ * Handles v2 lifecycle events received by V2NotificationController. Updates
+ * pane status indicators (working/review/permission/idle) and plays the
+ * selected ringtone in the renderer.
+ *
+ * Mirrors the v1 electron-main playback path
+ * (apps/desktop/src/main/lib/notifications/notification-manager.ts) plus the
+ * v1 sidebar-status path (renderer/stores/tabs/useAgentHookListener.ts), but
+ * runs client-side so it works when host-service is off-machine.
  *
  * Keeps v1 behavior: skip `Start` for sound, suppress when the event's
  * pane is visible and the window is focused, and honor the existing
  * mute/volume settings.
- *
- * The layout-level `V2NotificationController` component is the active mount path:
- * it subscribes once per host so backgrounded workspaces also light up the
- * sidebar.
  */
-export function useV2AgentHookListener(workspaceId: string): void {
-	const collections = useCollections();
-	const { data: volume = 100 } =
-		electronTrpc.settings.getNotificationVolume.useQuery();
-	const { data: muted = false } =
-		electronTrpc.settings.getNotificationSoundsMuted.useQuery();
-	const { data: localWorkspaceRows = [] } = useLiveQuery(
-		(query) =>
-			query
-				.from({ v2WorkspaceLocalState: collections.v2WorkspaceLocalState })
-				.where(({ v2WorkspaceLocalState }) =>
-					eq(v2WorkspaceLocalState.workspaceId, workspaceId),
-				),
-		[collections, workspaceId],
-	);
-	const paneLayout = useMemo(
-		() =>
-			(localWorkspaceRows[0]?.paneLayout as
-				| WorkspaceState<PaneViewerData>
-				| undefined) ?? null,
-		[localWorkspaceRows],
-	);
-
-	const handleEvent = useCallback(
-		(payload: AgentLifecyclePayload) => {
-			handleV2AgentLifecycleEvent({
-				workspaceId,
-				payload,
-				paneLayout,
-				volume,
-				muted,
-			});
-		},
-		[workspaceId, paneLayout, volume, muted],
-	);
-
-	const handleTerminalLifecycle = useCallback(
-		(payload: TerminalLifecyclePayload) => {
-			handleV2TerminalLifecycleEvent({
-				workspaceId,
-				payload,
-			});
-		},
-		[workspaceId],
-	);
-
-	useWorkspaceEvent("agent:lifecycle", workspaceId, handleEvent);
-	useWorkspaceEvent("terminal:lifecycle", workspaceId, handleTerminalLifecycle);
-}
-
 export function handleV2AgentLifecycleEvent({
 	workspaceId,
 	payload,
@@ -175,8 +117,8 @@ function updatePaneStatus(
 function getCurrentWorkspaceId(): string | null {
 	try {
 		// Matches both v1 `/workspace/<id>` and v2 `/v2-workspace/<id>`
-		// routes — the hook runs in a mixed-UI window so either can be
-		// the active URL while an event arrives.
+		// routes. Notifications are layout-level, so either can be active
+		// while an event arrives.
 		const match = window.location.hash.match(/\/(?:v2-)?workspace\/([^/?#]+)/);
 		return match ? decodeURIComponent(match[1] ?? "") : null;
 	} catch {

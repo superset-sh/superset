@@ -1,18 +1,15 @@
 import type { WorkspaceState } from "@superset/panes";
 import type { AgentLifecyclePayload } from "@superset/workspace-client";
-import type { PaneViewerData, TerminalPaneData } from "../../types";
+import type {
+	PaneViewerData,
+	TerminalPaneData,
+} from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/types";
 
 export interface V2NotificationTarget {
 	workspaceId: string;
 	tabId?: string;
 	paneId?: string;
 	terminalId: string;
-}
-
-export function getNotificationSourceId(
-	payload: Pick<AgentLifecyclePayload, "terminalId">,
-): string {
-	return payload.terminalId;
 }
 
 export function resolveV2NotificationTarget({
