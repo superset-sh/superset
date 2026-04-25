@@ -1,6 +1,7 @@
 import { toast } from "@superset/ui/sonner";
 import { useMatchRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
+import { env } from "renderer/env.renderer";
 import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
@@ -8,12 +9,16 @@ import { electronTrpcClient } from "renderer/lib/trpc-client";
 import { useNavigateAwayFromWorkspace } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/hooks/useNavigateAwayFromWorkspace";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
+import type { DashboardSidebarWorkspaceHostType } from "../../../../types";
 
 interface UseDashboardSidebarWorkspaceItemActionsOptions {
 	workspaceId: string;
 	projectId: string;
 	workspaceName: string;
 	branch: string;
+	hostId: string;
+	hostType: DashboardSidebarWorkspaceHostType;
+	hostIsOnline: boolean | null;
 }
 
 export function useDashboardSidebarWorkspaceItemActions({
@@ -21,6 +26,9 @@ export function useDashboardSidebarWorkspaceItemActions({
 	projectId,
 	workspaceName,
 	branch,
+	hostId,
+	hostType,
+	hostIsOnline,
 }: UseDashboardSidebarWorkspaceItemActionsOptions) {
 	const navigate = useNavigate();
 	const matchRoute = useMatchRoute();
@@ -67,6 +75,24 @@ export function useDashboardSidebarWorkspaceItemActions({
 				id: workspaceId,
 				name: trimmed,
 			});
+			const hostUrl =
+				hostType === "local-device"
+					? activeHostUrl
+					: hostType === "remote-device" && hostIsOnline
+						? `${env.RELAY_URL}/hosts/${hostId}`
+						: null;
+			if (hostUrl) {
+				try {
+					await getHostServiceClientByUrl(
+						hostUrl,
+					).workspace.refreshNameArtifacts.mutate({ id: workspaceId });
+				} catch (error) {
+					console.warn("[workspace rename] failed to refresh name artifacts", {
+						workspaceId,
+						error,
+					});
+				}
+			}
 		} catch (error) {
 			toast.error(
 				`Failed to rename: ${error instanceof Error ? error.message : "Unknown error"}`,

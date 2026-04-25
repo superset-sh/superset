@@ -58,6 +58,9 @@ export function DashboardSidebarWorkspaceItem({
 		projectId,
 		workspaceName: name,
 		branch,
+		hostId: workspace.hostId,
+		hostType: workspace.hostType,
+		hostIsOnline: workspace.hostIsOnline,
 	});
 
 	const navigate = useNavigate();

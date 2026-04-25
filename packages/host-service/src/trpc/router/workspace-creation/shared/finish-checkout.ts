@@ -147,6 +147,7 @@ export async function finishCheckout(
 			ctx,
 			workspaceId: cloudRow.id,
 			worktreePath: args.worktreePath,
+			workspaceName: args.workspaceName,
 		});
 		if (warning) {
 			warnings.push(warning);

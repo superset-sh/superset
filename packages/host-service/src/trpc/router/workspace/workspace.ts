@@ -7,6 +7,7 @@ import simpleGit from "simple-git";
 import { z } from "zod";
 import { projects, workspaces } from "../../../db/schema";
 import { protectedProcedure, router } from "../../index";
+import { syncWorkspaceNameArtifacts } from "./workspace-name-artifacts";
 
 export const workspaceRouter = router({
 	get: protectedProcedure
@@ -159,6 +160,27 @@ export const workspaceRouter = router({
 				})),
 				isClean: status.isClean(),
 			};
+		}),
+
+	refreshNameArtifacts: protectedProcedure
+		.input(z.object({ id: z.string() }))
+		.mutation(async ({ ctx, input }) => {
+			const localWorkspace = ctx.db.query.workspaces
+				.findFirst({ where: eq(workspaces.id, input.id) })
+				.sync();
+
+			if (!localWorkspace) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Workspace not found",
+				});
+			}
+
+			return syncWorkspaceNameArtifacts({
+				ctx,
+				workspaceId: input.id,
+				worktreePath: localWorkspace.worktreePath,
+			});
 		}),
 
 	delete: protectedProcedure

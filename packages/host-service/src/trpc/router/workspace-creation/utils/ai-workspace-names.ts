@@ -107,6 +107,11 @@ interface ApplyAiRenameArgs {
 	prompt: string;
 }
 
+export interface AppliedAiWorkspaceRename {
+	workspaceName: string;
+	branchName: string;
+}
+
 /**
  * Generates an AI title+branch for a freshly-created workspace and
  * applies both. Git rename runs first (cheap to roll back); cloud
@@ -116,7 +121,7 @@ interface ApplyAiRenameArgs {
  */
 export async function applyAiWorkspaceRename(
 	args: ApplyAiRenameArgs,
-): Promise<void> {
+): Promise<AppliedAiWorkspaceRename | null> {
 	const {
 		ctx,
 		workspaceId,
@@ -128,13 +133,13 @@ export async function applyAiWorkspaceRename(
 	} = args;
 
 	const aiNames = await generateWorkspaceNamesFromPrompt(prompt);
-	if (!aiNames) return;
+	if (!aiNames) return null;
 
 	const titleChanged =
 		aiNames.title !== "" && aiNames.title !== oldWorkspaceName;
 	const branchChanged =
 		aiNames.branchName !== "" && aiNames.branchName !== oldBranchName;
-	if (!titleChanged && !branchChanged) return;
+	if (!titleChanged && !branchChanged) return null;
 
 	let deduped = oldBranchName;
 	let gitRenamed = false;
@@ -164,10 +169,11 @@ export async function applyAiWorkspaceRename(
 		patch.expectedCurrentName = oldWorkspaceName;
 	}
 	if (gitRenamed) patch.branch = deduped;
-	if (patch.name === undefined && patch.branch === undefined) return;
+	if (patch.name === undefined && patch.branch === undefined) return null;
 
+	let updated: { name: string; branch: string };
 	try {
-		await ctx.api.v2Workspace.updateNameFromHost.mutate(patch);
+		updated = await ctx.api.v2Workspace.updateNameFromHost.mutate(patch);
 	} catch (err) {
 		if (gitRenamed) {
 			await ctx
@@ -183,11 +189,26 @@ export async function applyAiWorkspaceRename(
 		throw err;
 	}
 
-	if (gitRenamed) {
+	if (gitRenamed && updated.branch === deduped) {
 		ctx.db
 			.update(workspaces)
 			.set({ branch: deduped })
 			.where(eq(workspaces.id, workspaceId))
 			.run();
+	} else if (gitRenamed) {
+		await ctx
+			.git(worktreePath)
+			.then((g) => g.raw(["branch", "-m", deduped, oldBranchName]))
+			.catch((rollbackErr) => {
+				console.warn(
+					`[applyAiWorkspaceRename] git branch rollback failed after cloud branch skip (workspace ${workspaceId}, ${deduped} → ${oldBranchName})`,
+					rollbackErr,
+				);
+			});
 	}
+
+	return {
+		workspaceName: updated.name,
+		branchName: updated.branch,
+	};
 }

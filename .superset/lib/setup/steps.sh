@@ -13,12 +13,83 @@ step_load_env() {
     return 1
   fi
 
+  local setup_workspace_name="${SUPERSET_SETUP_WORKSPACE_NAME:-}"
+  local setup_workspace_name_file="${SUPERSET_SETUP_WORKSPACE_NAME_FILE:-}"
+  local setup_workspace_name_wait_seconds="${SUPERSET_SETUP_WORKSPACE_NAME_WAIT_SECONDS:-}"
+
   set -a
   # shellcheck source=/dev/null
   source "$SUPERSET_ROOT_PATH/.env"
   set +a
 
+  if [ -n "$setup_workspace_name" ]; then
+    export SUPERSET_SETUP_WORKSPACE_NAME="$setup_workspace_name"
+  fi
+  if [ -n "$setup_workspace_name_file" ]; then
+    export SUPERSET_SETUP_WORKSPACE_NAME_FILE="$setup_workspace_name_file"
+  fi
+  if [ -n "$setup_workspace_name_wait_seconds" ]; then
+    export SUPERSET_SETUP_WORKSPACE_NAME_WAIT_SECONDS="$setup_workspace_name_wait_seconds"
+  fi
+
   success "Environment variables loaded"
+  return 0
+}
+
+resolve_setup_workspace_name() {
+  local wait_seconds="${1:-0}"
+  local fallback="${SUPERSET_SETUP_WORKSPACE_NAME:-${WORKSPACE_NAME:-${SUPERSET_WORKSPACE_NAME:-$(basename "$PWD")}}}"
+  local name_file="${SUPERSET_SETUP_WORKSPACE_NAME_FILE:-.superset/workspace-name}"
+
+  case "$wait_seconds" in
+    ''|*[!0-9]*) wait_seconds=0 ;;
+  esac
+
+  local waited=0
+  while [ "$waited" -lt "$wait_seconds" ] && [ ! -s "$name_file" ]; do
+    sleep 1
+    waited=$((waited + 1))
+  done
+
+  if [ -s "$name_file" ]; then
+    local file_name
+    file_name="$(head -n 1 "$name_file" | tr -d '\r\n')"
+    if [ -n "$file_name" ]; then
+      echo "$file_name"
+      return 0
+    fi
+  fi
+
+  echo "$fallback"
+  return 0
+}
+
+remove_generated_workspace_name_blocks() {
+  local env_file="$1"
+  local tmp_file="${env_file}.tmp.$$"
+
+  if ! awk '
+    /^# Workspace Name \((last assignment wins|from v2 workspace rename|managed by Superset)\)$/ {
+      if ((getline next_line) > 0) {
+        if (next_line ~ /^SUPERSET_WORKSPACE_NAME=/) {
+          next
+        }
+        print $0
+        print next_line
+        next
+      }
+    }
+    { print }
+  ' "$env_file" > "$tmp_file"; then
+    rm -f "$tmp_file"
+    return 1
+  fi
+
+  if ! mv "$tmp_file" "$env_file"; then
+    rm -f "$tmp_file"
+    return 1
+  fi
+
   return 0
 }
 
@@ -94,7 +165,7 @@ step_setup_neon_branch() {
     return 1
   fi
 
-  WORKSPACE_NAME="${SUPERSET_WORKSPACE_NAME:-$(basename "$PWD")}"
+  WORKSPACE_NAME="$(resolve_setup_workspace_name 0)"
 
   # Check if branch already exists
   local branches_output
@@ -229,7 +300,7 @@ step_start_electric() {
     return 1
   fi
 
-  WORKSPACE_NAME="${WORKSPACE_NAME:-$(basename "$PWD")}"
+  WORKSPACE_NAME="$(resolve_setup_workspace_name 0)"
 
   # Sanitize workspace name for Docker (valid chars only, max 64 chars)
   local container_suffix
@@ -389,7 +460,6 @@ step_write_env() {
   {
     echo ""
     echo "# Workspace Identity"
-    write_env_var "SUPERSET_WORKSPACE_NAME" "${WORKSPACE_NAME:-$(basename "$PWD")}"
     write_env_var "SUPERSET_HOME_DIR" "$PWD/superset-dev-data"
     echo ""
     echo "# Workspace Database (Neon Branch)"
@@ -534,6 +604,32 @@ ELECTRIC_SOURCE_SECRET=${ELECTRIC_SOURCE_SECRET:-}
 DEVVARS
   success "Electric proxy .dev.vars written"
 
+  return 0
+}
+
+step_append_workspace_name_last() {
+  echo "🏷️  Finalizing workspace name..."
+
+  if [ ! -f ".env" ]; then
+    error ".env file not found"
+    return 1
+  fi
+
+  WORKSPACE_NAME="$(resolve_setup_workspace_name "${SUPERSET_SETUP_WORKSPACE_NAME_WAIT_SECONDS:-0}")"
+  export WORKSPACE_NAME
+
+  if ! remove_generated_workspace_name_blocks ".env"; then
+    error "Failed to refresh existing workspace name assignment"
+    return 1
+  fi
+
+  {
+    echo ""
+    echo "# Workspace Name (managed by Superset)"
+    write_env_var "SUPERSET_WORKSPACE_NAME" "$WORKSPACE_NAME"
+  } >> .env
+
+  success "Workspace name appended last"
   return 0
 }
 

@@ -73,6 +73,12 @@ setup_main() {
     fi
   fi
 
+  # Final step: append workspace name after all setup work so it wins over
+  # copied root env values and any earlier generated assignment.
+  if ! step_append_workspace_name_last; then
+    step_failed "Finalize workspace name"
+  fi
+
   # Print summary and exit with appropriate code
   print_summary "Setup"
 }

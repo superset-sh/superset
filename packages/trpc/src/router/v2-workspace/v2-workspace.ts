@@ -132,6 +132,24 @@ export const v2WorkspaceRouter = {
 			return workspace;
 		}),
 
+	getFromHost: jwtProcedure
+		.input(z.object({ id: z.string().uuid() }))
+		.query(async ({ ctx, input }) => {
+			const workspace = await dbWs.query.v2Workspaces.findFirst({
+				where: and(
+					eq(v2Workspaces.id, input.id),
+					inArray(v2Workspaces.organizationId, ctx.organizationIds),
+				),
+			});
+			if (!workspace) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Workspace not found",
+				});
+			}
+			return workspace;
+		}),
+
 	update: protectedProcedure
 		.input(
 			z.object({
