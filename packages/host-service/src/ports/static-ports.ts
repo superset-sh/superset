@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { parseStaticPortsConfig } from "@superset/port-scanner";
 
@@ -15,11 +15,50 @@ function getPortsPath(worktreePath: string): string {
 	return join(worktreePath, PROJECT_SUPERSET_DIR_NAME, PORTS_FILE_NAME);
 }
 
+function isMissingPathError(error: unknown): boolean {
+	const code = (error as NodeJS.ErrnoException | undefined)?.code;
+	return code === "ENOENT" || code === "ENOTDIR";
+}
+
 function getPortsFileSignature(worktreePath: string): string | null {
 	try {
 		const stat = statSync(getPortsPath(worktreePath));
 		return `${stat.mtimeMs}:${stat.size}`;
-	} catch {
+	} catch (error) {
+		if (isMissingPathError(error)) return null;
+		throw error;
+	}
+}
+
+function safeGetPortsFileSignature(worktreePath: string): string | null {
+	try {
+		return getPortsFileSignature(worktreePath);
+	} catch (error) {
+		console.warn("[ports] Failed to stat static port labels:", {
+			worktreePath,
+			error,
+		});
+		return null;
+	}
+}
+
+function readPortsFile(worktreePath: string): string | null {
+	try {
+		return readFileSync(getPortsPath(worktreePath), "utf-8");
+	} catch (error) {
+		if (isMissingPathError(error)) return null;
+		throw error;
+	}
+}
+
+function safeLoadLabels(worktreePath: string): Map<number, string> | null {
+	try {
+		return loadLabels(worktreePath);
+	} catch (error) {
+		console.warn("[ports] Failed to load static port labels:", {
+			worktreePath,
+			error,
+		});
 		return null;
 	}
 }
@@ -30,16 +69,8 @@ function getPortsFileSignature(worktreePath: string): string | null {
  * best-effort label hint, not a validator, so parse errors are silent.
  */
 function loadLabels(worktreePath: string): Map<number, string> | null {
-	const portsPath = getPortsPath(worktreePath);
-
-	if (!existsSync(portsPath)) return null;
-
-	let content: string;
-	try {
-		content = readFileSync(portsPath, "utf-8");
-	} catch {
-		return null;
-	}
+	const content = readPortsFile(worktreePath);
+	if (content === null) return null;
 
 	const parsed = parseStaticPortsConfig(content);
 	if (parsed.ports === null) return null;
@@ -52,10 +83,11 @@ function loadLabels(worktreePath: string): Map<number, string> | null {
 }
 
 /**
- * Memoize label lookups per workspaceId. Called on every `ports.getAll`
- * (5s poll from each connected desktop), so the SQLite + fs reads would
- * otherwise repeat needlessly. `null` cached = "no labels file" — we want
- * that negative to stick too.
+ * Memoize label lookups per workspaceId. Called by host port snapshots and
+ * add-event enrichment, so the workspace-root + fs reads would otherwise repeat
+ * needlessly. `labels: null` with a resolved worktree means "no labels file" —
+ * that negative can stick until the file signature changes. A missing
+ * worktreePath is not cached because workspace hydration can race first reads.
  */
 const labelCache = new Map<string, LabelCacheEntry>();
 
@@ -64,11 +96,12 @@ function setLabelCache(
 	worktreePath: string | null,
 	labels: Map<number, string> | null,
 ): Map<number, string> | null {
+	const portsFileSignature = worktreePath
+		? safeGetPortsFileSignature(worktreePath)
+		: null;
 	labelCache.set(workspaceId, {
 		labels,
-		portsFileSignature: worktreePath
-			? getPortsFileSignature(worktreePath)
-			: null,
+		portsFileSignature,
 		worktreePath,
 	});
 	return labels;
@@ -80,22 +113,23 @@ export function getLabelsForWorkspace(
 ): Map<number, string> | null {
 	const cached = labelCache.get(workspaceId);
 	if (cached) {
-		if (cached.worktreePath === null) return cached.labels;
-		const currentSignature = getPortsFileSignature(cached.worktreePath);
-		if (currentSignature === cached.portsFileSignature) return cached.labels;
-		return setLabelCache(
-			workspaceId,
-			cached.worktreePath,
-			loadLabels(cached.worktreePath),
-		);
+		if (cached.worktreePath === null) {
+			labelCache.delete(workspaceId);
+		} else {
+			const currentSignature = safeGetPortsFileSignature(cached.worktreePath);
+			if (currentSignature === cached.portsFileSignature) return cached.labels;
+			return setLabelCache(
+				workspaceId,
+				cached.worktreePath,
+				safeLoadLabels(cached.worktreePath),
+			);
+		}
 	}
 
 	const worktreePath = resolveWorktreePath(workspaceId);
-	return setLabelCache(
-		workspaceId,
-		worktreePath,
-		worktreePath ? loadLabels(worktreePath) : null,
-	);
+	if (!worktreePath) return null;
+
+	return setLabelCache(workspaceId, worktreePath, safeLoadLabels(worktreePath));
 }
 
 export function invalidateLabelCache(workspaceId?: string): void {

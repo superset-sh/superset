@@ -75,6 +75,8 @@ export class EventBus {
 	}
 
 	start(): void {
+		if (this.removeGitListener || this.removePortListeners) return;
+
 		this.gitWatcher.start();
 		this.removeGitListener = this.gitWatcher.onChanged((event) => {
 			this.broadcast({
@@ -170,10 +172,10 @@ export class EventBus {
 
 	/**
 	 * Fan out port add/remove events discovered by the host-service scanner.
-	 * Renderer clients use this to invalidate the authoritative host query
-	 * immediately while keeping a slow refetch as a reconnect fallback.
+	 * Renderer clients use this to patch their host snapshot immediately while
+	 * keeping a slow refetch as a reconnect fallback.
 	 */
-	broadcastPortChanged({
+	private broadcastPortChanged({
 		eventType,
 		port,
 	}: {
@@ -185,7 +187,7 @@ export class EventBus {
 			workspaceId: port.workspaceId,
 			eventType,
 			port,
-			label: this.getPortLabel(port),
+			label: eventType === "add" ? this.getPortLabel(port) : null,
 			occurredAt: Date.now(),
 		});
 	}

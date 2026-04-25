@@ -253,6 +253,24 @@ describe("PortManager — port identity updates", () => {
 		expect(added).toHaveLength(1);
 		expect(removed).toHaveLength(0);
 	});
+
+	it("ranks expanded IPv6 loopback the same as ::1 when deduping", async () => {
+		manager.upsertSession("p1", "ws1", 1000);
+
+		listeningPorts = [
+			{
+				port: 3000,
+				pid: 1000,
+				address: "0:0:0:0:0:0:0:1",
+				processName: "node",
+			},
+			{ port: 3000, pid: 1000, address: "0.0.0.0", processName: "node" },
+		];
+		await manager.forceScan();
+
+		expect(manager.getAllPorts()).toHaveLength(1);
+		expect(manager.getAllPorts()[0]?.address).toBe("0.0.0.0");
+	});
 });
 
 describe("PortManager — #3372 hint regex narrowing", () => {

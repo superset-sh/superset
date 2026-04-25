@@ -47,6 +47,11 @@ export interface HostPortsResult {
 	ports: RemotePort[];
 }
 
+type HostPortsMetadata = Pick<
+	HostPortsResult,
+	"hostId" | "hostType" | "hostUrl"
+>;
+
 interface HostPortsQueryTarget {
 	id: string;
 	hostType: DashboardSidebarWorkspaceHostType;
@@ -74,11 +79,19 @@ function getPortCacheKey(
 export function applyPortEventsToHostPortsResult(
 	result: HostPortsResult | undefined,
 	events: PortChangedPayload[],
+	host?: HostPortsMetadata,
 ): HostPortsResult | undefined {
-	if (!result || events.length === 0) return result;
+	if (events.length === 0) return result;
 
-	let ports = result.ports;
-	let changed = false;
+	const initialResult =
+		result ??
+		(events.some((event) => event.eventType === "add") && host
+			? { ...host, ports: [] }
+			: undefined);
+	if (!initialResult) return result;
+
+	let ports = initialResult.ports;
+	let changed = initialResult !== result;
 
 	for (const event of events) {
 		const eventPortKey = getPortCacheKey(event.port);
@@ -98,7 +111,7 @@ export function applyPortEventsToHostPortsResult(
 	}
 
 	if (!changed) return result;
-	return { ...result, ports };
+	return { ...initialResult, ports };
 }
 
 export function useDashboardSidebarPortsData(): {
@@ -206,9 +219,15 @@ export function useDashboardSidebarPortsData(): {
 			const flushPortEvents = () => {
 				cacheUpdateTimer = null;
 				const events = pendingEvents.splice(0);
+				if (events.length === 0) return;
 				queryClient.setQueryData<HostPortsResult | undefined>(
 					getHostPortsQueryKey(host),
-					(result) => applyPortEventsToHostPortsResult(result, events),
+					(result) =>
+						applyPortEventsToHostPortsResult(result, events, {
+							hostId: host.id,
+							hostType: host.hostType,
+							hostUrl: host.hostUrl,
+						}),
 				);
 			};
 			const enqueuePortEvent = (event: PortChangedPayload) => {
@@ -230,8 +249,15 @@ export function useDashboardSidebarPortsData(): {
 					enqueuePortEvent(event);
 				},
 			);
-			cleanups.push(removeListener, bus.retain(), () => {
-				if (cacheUpdateTimer) clearTimeout(cacheUpdateTimer);
+			const releaseBus = bus.retain();
+			cleanups.push(() => {
+				if (cacheUpdateTimer) {
+					clearTimeout(cacheUpdateTimer);
+					cacheUpdateTimer = null;
+				}
+				flushPortEvents();
+				removeListener();
+				releaseBus();
 			});
 		}
 

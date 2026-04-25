@@ -40,14 +40,15 @@ depend on renderer pane focus identity.
  │                        │       │                            │
  │ emits add/remove ─────┐│       │ emits add/remove ─────────┐│
  │                       ▼│       │                           ▼│
- │ ports tRPC router      │       │ ports tRPC router          │
+ │ ports router + events  │       │ ports router + event bus   │
  └────────────┬───────────┘       └──────────────┬─────────────┘
               │                                  │
-              │                                  │ (tunnel tRPC)
+              │                                  │ (tunnel tRPC + WS)
               ▼                                  ▼
         ┌──────────────────────────────────────────────┐
         │ desktop renderer: DashboardSidebarPortsList    │
-        │   merges local + per-host getAll results      │
+        │   patches per-host snapshots from events      │
+        │   refetches getAll as reconnect fallback      │
         │   groups by workspaceId                       │
         └──────────────────────────────────────────────┘
 ```
@@ -77,7 +78,7 @@ No behavior change in this step. Land it alone to de-risk.
 
 - `packages/host-service/src/trpc/router/ports/ports.ts`: mirror of `apps/desktop/src/lib/trpc/routers/ports/ports.ts`.
   - `getAll({ workspaceIds })` → enriched detected ports for the requested workspaces. `.superset/ports.json` is supplemental label metadata only: it names ports that were already detected as listening; it does not create static rows and does not replace dynamic discovery. Host-service can load labels from its own filesystem since it owns the worktree.
-  - `subscribe({ workspaceIds })` → observable of `{ type: 'add' | 'remove', port }` scoped to the requested workspaces. **Note:** host-service uses `@trpc/server` async iterators over WebSocket, not `trpc-electron`; the observable constraint in `apps/desktop/AGENTS.md` does *not* apply to host-service. Use whichever pattern the rest of host-service uses (grep `subscription(` in `packages/host-service/src/trpc/router/` to match).
+  - `subscribe({ workspaceIds })` → observable of `{ type: 'add' | 'remove', port }` scoped to the requested workspaces. **Note:** this is a useful router-level API, but the dashboard sidebar should prefer the unified host-service event bus so one WebSocket carries git, terminal, notification, filesystem, and port events for a host.
   - `kill({ workspaceId, terminalId, port })` → forwards to host-service port manager after verifying the tracked port belongs to that workspace and terminal session.
 - Register under the existing host-service router.
 
@@ -90,16 +91,19 @@ polling into the legacy `WorkspaceSidebar` path.
 collections, queries each relevant host-service `ports.getAll`, and groups the
 result by workspace. Local v2 workspaces query the local host-service through
 `activeHostUrl`; remote v2 workspaces query the relay URL for their host.
-The first implementation uses low-frequency polling instead of subscriptions
-because it keeps renderer state simple and avoids proxying per-host streams
-through desktop main. The host-service `subscribe` endpoint remains useful for a
-future lower-latency UI if polling becomes insufficient.
+The sidebar then subscribes to each queried host's unified event bus and patches
+the corresponding React Query snapshot from `port:changed` events. Events are
+batched briefly before cache writes, and `ports.getAll` still runs on a slow
+fallback interval so reconnects, dropped WebSocket messages, and version skew
+converge without making the normal UI path wait for the next poll.
 
 Pros: no proxy code in desktop main; remote failures are local to the sidebar
-query and don't affect other hosts.
+query and don't affect other hosts. The renderer owns one query and one shared
+event-bus connection per relevant host, matching the v2 terminal model while
+keeping PID-local scanning on the owning host.
 
-Cons: renderer owns N host-service queries. This matches the v2 terminal model
-and keeps PID-local scanning on the owning host.
+Cons: renderer still fans out per host. Fine for small N; revisit with a
+sidebar aggregate endpoint if many simultaneous host-services become common.
 
 Rejected alternative: a desktop-main proxy that subscribes to each host-service
 and re-emits through a singleton. It duplicates buffering, partitions errors
@@ -114,8 +118,11 @@ mix host-service owners in one sidebar.
 
 The kill button routes through the same host-service client that produced the
 port row using `workspaceId + terminalId + port`. Browser-open is only enabled
-for local-device ports, where `localhost:<port>` is meaningful. Clicking a port
-opens the workspace; ports no longer carry renderer pane focus identity.
+for local-device ports, where `localhost:<port>` is meaningful, and its click
+intent uses the same current-tab/new-tab/external split as file/tree open
+actions. Clicking a port opens the workspace with `terminalId` plus a fresh
+focus request; the client resolves that to a pane/tab. Ports still do not carry
+renderer pane identity.
 
 ### 6. Schema
 
@@ -161,6 +168,8 @@ Land these in step 1 so the shared package starts clean.
 - `pidSet.has(pid)` recheck on lsof output — lsof returns *everything* if `-p` resolves to zero matches. The "CRITICAL" comment is right.
 - `unref()` on timers — required for clean Electron exit.
 - Hint-scan debounce via `hintScanTimeout` guard — protects against the #3372 regression.
+- Host-service `port:changed` events patch the dashboard cache immediately;
+  the 30s `ports.getAll` interval is a fallback, not the responsiveness path.
 
 ## Prior art — steal from VS Code & Gitpod
 

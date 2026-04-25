@@ -79,22 +79,21 @@ function parseOpenUrlTarget(
 	return undefined;
 }
 
+function parseNonEmptyString(value: unknown): string | undefined {
+	return typeof value === "string" && value.length > 0 ? value : undefined;
+}
+
 export const Route = createFileRoute(
 	"/_authenticated/_dashboard/v2-workspace/$workspaceId/",
 )({
 	component: V2WorkspacePage,
 	validateSearch: (raw: Record<string, unknown>): WorkspaceSearch => ({
-		terminalId: typeof raw.terminalId === "string" ? raw.terminalId : undefined,
-		chatSessionId:
-			typeof raw.chatSessionId === "string" ? raw.chatSessionId : undefined,
-		focusRequestId:
-			typeof raw.focusRequestId === "string" ? raw.focusRequestId : undefined,
-		openUrl: typeof raw.openUrl === "string" ? raw.openUrl : undefined,
+		terminalId: parseNonEmptyString(raw.terminalId),
+		chatSessionId: parseNonEmptyString(raw.chatSessionId),
+		focusRequestId: parseNonEmptyString(raw.focusRequestId),
+		openUrl: parseNonEmptyString(raw.openUrl),
 		openUrlTarget: parseOpenUrlTarget(raw.openUrlTarget),
-		openUrlRequestId:
-			typeof raw.openUrlRequestId === "string"
-				? raw.openUrlRequestId
-				: undefined,
+		openUrlRequestId: parseNonEmptyString(raw.openUrlRequestId),
 	}),
 });
 

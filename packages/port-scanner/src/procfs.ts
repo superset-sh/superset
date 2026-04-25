@@ -176,6 +176,7 @@ function createLimiter(
  */
 async function buildInodeToPid(
 	pids: Iterable<number>,
+	pidRank: Map<number, number>,
 	signal?: AbortSignal,
 ): Promise<Map<number, number>> {
 	const inodeToPid = new Map<number, number>();
@@ -203,12 +204,19 @@ async function buildInodeToPid(
 							if (inodeStr === undefined) return;
 							const inode = Number.parseInt(inodeStr, 10);
 							if (!Number.isFinite(inode) || inode <= 0) return;
-							// Last-write-wins if two PIDs share an inode (rare:
-							// inherited via fork before bind, or passed via
-							// SCM_RIGHTS). For listening sockets the realistic
-							// case is a parent + child sharing the socket, and
-							// either PID is a reasonable answer.
-							inodeToPid.set(inode, pid);
+							// If multiple PIDs share a listening socket (prefork
+							// servers, inherited fds), choose deterministically from
+							// the caller's PID order instead of whichever async
+							// readlink finishes last. This keeps port identity stable
+							// across scans.
+							const existingPid = inodeToPid.get(inode);
+							if (
+								existingPid === undefined ||
+								(pidRank.get(pid) ?? Number.POSITIVE_INFINITY) <
+									(pidRank.get(existingPid) ?? Number.POSITIVE_INFINITY)
+							) {
+								inodeToPid.set(inode, pid);
+							}
 						} catch {
 							// fd closed between readdir and readlink — normal.
 						}
@@ -244,11 +252,12 @@ export async function getListeningPortsLinuxProcfs(
 	if (pids.length === 0) return [];
 
 	const pidSet = new Set(pids);
+	const pidRank = new Map(pids.map((pid, index) => [pid, index]));
 
 	try {
 		// Walk fds and read /proc/net/tcp{,6} concurrently — they're independent.
 		const [inodeToPid, ipv4Listeners, ipv6Listeners] = await Promise.all([
-			buildInodeToPid(pidSet, signal),
+			buildInodeToPid(pidSet, pidRank, signal),
 			readProcNetFile("/proc/net/tcp", false),
 			readProcNetFile("/proc/net/tcp6", true),
 		]);

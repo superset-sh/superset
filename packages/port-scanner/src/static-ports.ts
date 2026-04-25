@@ -83,11 +83,19 @@ export function parseStaticPortsConfig(
 	}
 
 	const ports: StaticPortLabel[] = [];
+	const seenPorts = new Set<number>();
 	for (let index = 0; index < portsField.length; index++) {
 		const result = validatePortEntry(portsField[index], index);
 		if (!result.valid) {
 			return { ports: null, error: result.error };
 		}
+		if (seenPorts.has(result.port)) {
+			return {
+				ports: null,
+				error: `ports[${index}].port duplicates an earlier entry`,
+			};
+		}
+		seenPorts.add(result.port);
 		ports.push({ port: result.port, label: result.label });
 	}
 

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import type { DetectedPort } from "@superset/port-scanner";
 import type { HostDb } from "../db";
+import { portManager } from "../ports/port-manager";
 import type { WorkspaceFilesystemManager } from "../runtime/filesystem";
 import { EventBus } from "./event-bus";
 
@@ -14,7 +15,7 @@ function createEventBus(): EventBus {
 }
 
 describe("EventBus port events", () => {
-	it("broadcasts port changes with the owning workspace id", () => {
+	it("broadcasts port changes from the shared port manager and removes listeners on close", () => {
 		const eventBus = createEventBus();
 		const sentMessages: string[] = [];
 		const socket = {
@@ -35,7 +36,9 @@ describe("EventBus port events", () => {
 		};
 
 		eventBus.handleOpen(socket);
-		eventBus.broadcastPortChanged({ eventType: "add", port });
+		eventBus.start();
+		eventBus.start();
+		portManager.emit("port:add", port);
 
 		expect(sentMessages).toHaveLength(1);
 		const message = JSON.parse(sentMessages[0] ?? "{}");
@@ -47,5 +50,19 @@ describe("EventBus port events", () => {
 			label: null,
 		});
 		expect(typeof message.occurredAt).toBe("number");
+
+		portManager.emit("port:remove", port);
+		expect(sentMessages).toHaveLength(2);
+		expect(JSON.parse(sentMessages[1] ?? "{}")).toMatchObject({
+			type: "port:changed",
+			workspaceId: "workspace-1",
+			eventType: "remove",
+			port,
+			label: null,
+		});
+
+		eventBus.close();
+		portManager.emit("port:add", port);
+		expect(sentMessages).toHaveLength(2);
 	});
 });

@@ -49,13 +49,19 @@ function addressRank(address: string): number {
 	if (!normalizedAddress.includes(":")) {
 		return 2;
 	}
-	if (normalizedAddress === "::1") {
+	if (normalizedAddress === "::1" || normalizedAddress === "0:0:0:0:0:0:0:1") {
 		return 3;
 	}
 	if (normalizedAddress === "::" || normalizedAddress === "0:0:0:0:0:0:0:0") {
 		return 4;
 	}
 	return 5;
+}
+
+function isAbortError(error: unknown): boolean {
+	if (!error || typeof error !== "object") return false;
+	const candidate = error as { name?: unknown; code?: unknown };
+	return candidate.name === "AbortError" || candidate.code === "ABORT_ERR";
 }
 
 function comparePortInfo(a: PortInfo, b: PortInfo): number {
@@ -218,7 +224,9 @@ export class PortManager extends EventEmitter {
 
 		this.hintScanTimeout = setTimeout(() => {
 			this.hintScanTimeout = null;
-			this.scanAllSessions().catch(() => {});
+			this.scanAllSessions().catch((error) => {
+				console.error("[PortManager] Hint-triggered scan error:", error);
+			});
 		}, HINT_SCAN_DELAY_MS);
 		this.hintScanTimeout.unref();
 	}
@@ -379,6 +387,9 @@ export class PortManager extends EventEmitter {
 			});
 			this.clearEmptyTreeTerminals(scanState.emptyTreeTerminals);
 			this.cleanupUnregisteredPorts();
+		} catch (error) {
+			if (isAbortError(error)) return;
+			throw error;
 		} finally {
 			this.isScanning = false;
 		}

@@ -29,11 +29,19 @@ export const portsRouter = router({
 					return null;
 				}
 			};
+			const labelsByWorkspace = new Map<
+				string,
+				ReturnType<typeof getLabelsForWorkspace>
+			>();
 			return portManager
 				.getAllPorts()
 				.filter((port) => requestedWorkspaceIds.has(port.workspaceId))
 				.map((port) => {
-					const labels = getLabelsForWorkspace(resolve, port.workspaceId);
+					let labels = labelsByWorkspace.get(port.workspaceId);
+					if (!labelsByWorkspace.has(port.workspaceId)) {
+						labels = getLabelsForWorkspace(resolve, port.workspaceId);
+						labelsByWorkspace.set(port.workspaceId, labels);
+					}
 					return { ...port, label: labels?.get(port.port) ?? null };
 				});
 		}),

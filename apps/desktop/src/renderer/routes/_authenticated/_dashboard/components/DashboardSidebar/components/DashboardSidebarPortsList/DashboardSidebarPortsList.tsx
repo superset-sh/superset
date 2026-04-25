@@ -12,7 +12,7 @@ export function DashboardSidebarPortsList() {
 		useDashboardSidebarPortsData();
 	const failedHostCount = portLoadErrors.length;
 
-	if (totalPortCount === 0) {
+	if (totalPortCount === 0 && failedHostCount === 0) {
 		return null;
 	}
 

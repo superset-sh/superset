@@ -19,7 +19,39 @@ function getPortsFileSignature(worktreePath: string): string | null {
 			join(worktreePath, PROJECT_SUPERSET_DIR_NAME, PORTS_FILE_NAME),
 		);
 		return `${stat.mtimeMs}:${stat.size}`;
-	} catch {
+	} catch (error) {
+		if (isMissingPathError(error)) return null;
+		throw error;
+	}
+}
+
+function isMissingPathError(error: unknown): boolean {
+	const code = (error as NodeJS.ErrnoException | undefined)?.code;
+	return code === "ENOENT" || code === "ENOTDIR";
+}
+
+function safeGetPortsFileSignature(worktreePath: string): string | null {
+	try {
+		return getPortsFileSignature(worktreePath);
+	} catch (error) {
+		console.warn("[ports] Failed to stat static port labels:", {
+			worktreePath,
+			error,
+		});
+		return null;
+	}
+}
+
+function safeLoadLabelsForWorktree(
+	worktreePath: string,
+): Map<number, string> | null {
+	try {
+		return loadLabelsForWorktree(worktreePath);
+	} catch (error) {
+		console.warn("[ports] Failed to load static port labels:", {
+			worktreePath,
+			error,
+		});
 		return null;
 	}
 }
@@ -32,8 +64,9 @@ function getPortsFileSignature(worktreePath: string): string | null {
  * server that flaps 5 ports cascades into 5 `getAll` calls × N workspaces of
  * sync SQLite reads on the main thread. Cache once; ports.json rarely changes.
  *
- * A resolved entry of `null` means "no labels file" — still cached so we don't
- * re-check the filesystem every event.
+ * `labels: null` with a resolved worktree means "no labels file" — still
+ * cached so we don't re-check the filesystem every event. A missing worktree is
+ * not cached because workspace hydration can race first reads.
  *
  * Lives in its own module so workspace-delete paths in `workspaces/utils/*`
  * can call `invalidatePortLabelCache` without creating a ports ↔ workspaces
@@ -61,11 +94,12 @@ function setLabelCache(
 	worktreePath: string | null,
 	labels: Map<number, string> | null,
 ): Map<number, string> | null {
+	const portsFileSignature = worktreePath
+		? safeGetPortsFileSignature(worktreePath)
+		: null;
 	labelCache.set(workspaceId, {
 		labels,
-		portsFileSignature: worktreePath
-			? getPortsFileSignature(worktreePath)
-			: null,
+		portsFileSignature,
 		worktreePath,
 	});
 	return labels;
@@ -76,14 +110,17 @@ export function getLabelsForWorkspace(
 ): Map<number, string> | null {
 	const cached = labelCache.get(workspaceId);
 	if (cached) {
-		if (cached.worktreePath === null) return cached.labels;
-		const currentSignature = getPortsFileSignature(cached.worktreePath);
-		if (currentSignature === cached.portsFileSignature) return cached.labels;
-		return setLabelCache(
-			workspaceId,
-			cached.worktreePath,
-			loadLabelsForWorktree(cached.worktreePath),
-		);
+		if (cached.worktreePath === null) {
+			labelCache.delete(workspaceId);
+		} else {
+			const currentSignature = safeGetPortsFileSignature(cached.worktreePath);
+			if (currentSignature === cached.portsFileSignature) return cached.labels;
+			return setLabelCache(
+				workspaceId,
+				cached.worktreePath,
+				safeLoadLabelsForWorktree(cached.worktreePath),
+			);
+		}
 	}
 
 	const ws = localDb
@@ -93,19 +130,19 @@ export function getLabelsForWorkspace(
 		.get();
 	const worktreePath = ws ? getWorkspacePath(ws) : null;
 	if (!worktreePath) {
-		return setLabelCache(workspaceId, null, null);
+		return null;
 	}
 
 	return setLabelCache(
 		workspaceId,
 		worktreePath,
-		loadLabelsForWorktree(worktreePath),
+		safeLoadLabelsForWorktree(worktreePath),
 	);
 }
 
 /**
- * Invalidate the label cache. Call when a workspace is deleted or its
- * `ports.json` is edited — otherwise stale labels linger until app restart.
+ * Invalidate the label cache. Call when a workspace is deleted. Edits to
+ * `ports.json` are detected by the cached file signature.
  */
 export function invalidatePortLabelCache(workspaceId?: string): void {
 	if (workspaceId === undefined) {

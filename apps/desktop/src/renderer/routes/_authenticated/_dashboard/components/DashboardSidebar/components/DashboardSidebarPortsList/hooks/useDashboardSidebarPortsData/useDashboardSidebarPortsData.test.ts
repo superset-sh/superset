@@ -71,4 +71,78 @@ describe("applyPortEventsToHostPortsResult", () => {
 
 		expect(result).toBe(initial);
 	});
+
+	it("creates an initial host result when an add event arrives before the snapshot", () => {
+		const result = applyPortEventsToHostPortsResult(
+			undefined,
+			[
+				createPortEvent("add", {
+					port: 4000,
+					pid: 999,
+					processName: "newproc",
+				}),
+			],
+			{
+				hostId: "host-1",
+				hostType: "local-device",
+				hostUrl: "http://localhost:4567",
+			},
+		);
+
+		expect(result).toMatchObject({
+			hostId: "host-1",
+			hostType: "local-device",
+			hostUrl: "http://localhost:4567",
+		});
+		expect(result?.ports).toHaveLength(1);
+		expect(result?.ports[0]).toMatchObject({
+			port: 4000,
+			pid: 999,
+			processName: "newproc",
+			address: "0.0.0.0",
+			label: "Vite",
+		});
+	});
+
+	it("does not create an initial host result for a remove-only event", () => {
+		const result = applyPortEventsToHostPortsResult(
+			undefined,
+			[createPortEvent("remove")],
+			{
+				hostId: "host-1",
+				hostType: "local-device",
+				hostUrl: "http://localhost:4567",
+			},
+		);
+
+		expect(result).toBeUndefined();
+	});
+
+	it("appends a new add event to an existing snapshot", () => {
+		const result = applyPortEventsToHostPortsResult(createResult(), [
+			createPortEvent("add", { port: 4000, pid: 999, processName: "newproc" }),
+		]);
+
+		expect(result?.ports).toHaveLength(2);
+		expect(result?.ports.find((port) => port.port === 4000)).toMatchObject({
+			port: 4000,
+			pid: 999,
+			processName: "newproc",
+			label: "Vite",
+		});
+	});
+
+	it("replaces an existing row on add for the same terminal port", () => {
+		const result = applyPortEventsToHostPortsResult(createResult(), [
+			createPortEvent("add", { pid: 999, processName: "newproc" }),
+		]);
+
+		expect(result?.ports).toHaveLength(1);
+		expect(result?.ports[0]).toMatchObject({
+			port: 5173,
+			pid: 999,
+			processName: "newproc",
+			label: "Vite",
+		});
+	});
 });
