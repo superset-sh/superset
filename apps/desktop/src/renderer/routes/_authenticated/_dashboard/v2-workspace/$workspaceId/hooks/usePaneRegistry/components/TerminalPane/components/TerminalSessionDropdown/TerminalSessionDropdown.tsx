@@ -109,7 +109,7 @@ export function TerminalSessionDropdown({
 			...liveSessions,
 		];
 	}, [sessionsQuery.data?.sessions, terminalId, workspaceId]);
-	const terminalPaneLocations = getTerminalPaneLocations(context);
+	const renderTerminalPaneLocations = getTerminalPaneLocations(context);
 
 	const handleSelectSession = (nextTerminalId: string) => {
 		if (nextTerminalId === terminalId) {
@@ -118,6 +118,7 @@ export function TerminalSessionDropdown({
 		}
 
 		const state = context.store.getState();
+		const terminalPaneLocations = getTerminalPaneLocations(context);
 		const existingLocation = terminalPaneLocations.get(nextTerminalId)?.[0];
 		if ((terminalPaneLocations.get(terminalId)?.length ?? 0) === 0) {
 			markTerminalForBackground(terminalId);
@@ -136,6 +137,7 @@ export function TerminalSessionDropdown({
 	};
 
 	const closePanesForTerminal = (targetTerminalId: string) => {
+		const terminalPaneLocations = getTerminalPaneLocations(context);
 		for (const location of terminalPaneLocations.get(targetTerminalId) ?? []) {
 			context.store.getState().closePane({
 				tabId: location.tabId,
@@ -181,6 +183,7 @@ export function TerminalSessionDropdown({
 
 	const handleNewTerminal = () => {
 		const state = context.store.getState();
+		const terminalPaneLocations = getTerminalPaneLocations(context);
 		if ((terminalPaneLocations.get(terminalId)?.length ?? 0) === 0) {
 			markTerminalForBackground(terminalId);
 		}
@@ -236,7 +239,7 @@ export function TerminalSessionDropdown({
 					{sessions.length > 0 ? (
 						sessions.map((session) => {
 							const isCurrent = session.terminalId === terminalId;
-							const location = terminalPaneLocations.get(
+							const location = renderTerminalPaneLocations.get(
 								session.terminalId,
 							)?.[0];
 							const createdAtLabel = formatCreatedAt(session.createdAt);
