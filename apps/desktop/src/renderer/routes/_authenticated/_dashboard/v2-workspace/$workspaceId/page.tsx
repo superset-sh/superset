@@ -453,8 +453,11 @@ function WorkspaceContent({
 
 	return (
 		<FileDocumentStoreProvider workspaceId={workspaceId}>
-			<ResizablePanelGroup direction="horizontal" className="flex-1">
-				<ResizablePanel defaultSize={80} minSize={30}>
+			<ResizablePanelGroup
+				direction="horizontal"
+				className="min-h-0 min-w-0 flex-1 overflow-auto"
+			>
+				<ResizablePanel className="min-w-[320px]" defaultSize={80} minSize={30}>
 					<div
 						className="flex min-h-0 min-w-0 h-full flex-col overflow-hidden"
 						data-workspace-id={workspaceId}
@@ -557,7 +560,12 @@ function WorkspaceContent({
 				{sidebarOpen && (
 					<>
 						<ResizableHandle />
-						<ResizablePanel defaultSize={20} minSize={15} maxSize={40}>
+						<ResizablePanel
+							className="min-w-[220px]"
+							defaultSize={20}
+							minSize={15}
+							maxSize={40}
+						>
 							<WorkspaceSidebar
 								workspaceId={workspaceId}
 								workspaceName={workspaceName}

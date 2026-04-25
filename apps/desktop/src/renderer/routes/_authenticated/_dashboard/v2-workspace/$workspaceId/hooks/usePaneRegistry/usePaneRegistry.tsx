@@ -60,10 +60,12 @@ function getFileName(filePath: string): string {
 
 function FilePaneTabTitle({
 	filePath,
+	isActive,
 	pinned,
 	workspaceId,
 }: {
 	filePath: string;
+	isActive: boolean;
 	pinned: boolean;
 	workspaceId: string;
 }) {
@@ -73,9 +75,17 @@ function FilePaneTabTitle({
 	});
 	const name = getFileName(filePath);
 	return (
-		<div className="flex items-center space-x-2">
-			<FileIcon fileName={name} className="size-4 shrink-0" />
-			<span className={pinned ? undefined : "italic"}>{name}</span>
+		<div
+			className={cn(
+				"flex min-w-0 items-center gap-1.5 text-xs transition-colors duration-150",
+				isActive ? "text-foreground" : "text-muted-foreground",
+			)}
+			title={filePath}
+		>
+			<FileIcon fileName={name} className="size-3.5 shrink-0" />
+			<span className={cn("min-w-0 truncate", !pinned && "italic")}>
+				{name}
+			</span>
 			{document.dirty && (
 				<Circle className="size-2 shrink-0 fill-current text-muted-foreground" />
 			)}
@@ -93,7 +103,7 @@ function DiffViewModeToggle() {
 
 	const buttonClass = (active: boolean) =>
 		cn(
-			"flex size-6 items-center justify-center transition-colors",
+			"flex size-5 items-center justify-center transition-colors",
 			active
 				? "bg-secondary text-foreground"
 				: "text-muted-foreground hover:text-foreground",
@@ -134,7 +144,7 @@ function DiffViewModeToggle() {
 				</TooltipContent>
 			</Tooltip>
 			<div
-				className="mx-1.5 h-4 w-px bg-muted-foreground/30"
+				className="mx-1 h-3.5 w-px bg-muted-foreground/30"
 				aria-hidden="true"
 			/>
 		</div>
@@ -182,6 +192,7 @@ export function usePaneRegistry(
 					return (
 						<FilePaneTabTitle
 							filePath={data.filePath}
+							isActive={ctx.isActive}
 							pinned={Boolean(ctx.pane.pinned)}
 							workspaceId={workspaceId}
 						/>
@@ -244,7 +255,7 @@ export function usePaneRegistry(
 					),
 			},
 			diff: {
-				getIcon: () => <GitCompareArrows className="size-4" />,
+				getIcon: () => <GitCompareArrows className="size-3.5" />,
 				getTitle: () => "Changes",
 				renderPane: (ctx: RendererContext<PaneViewerData>) => (
 					<DiffPane
@@ -260,16 +271,16 @@ export function usePaneRegistry(
 					),
 			},
 			terminal: {
-				getIcon: () => <TerminalSquare className="size-4" />,
+				getIcon: () => <TerminalSquare className="size-3.5" />,
 				getTitle: () => "Terminal",
 				renderTitle: (ctx: RendererContext<PaneViewerData>) => (
-					<>
+					<div className="flex min-w-0 flex-1 items-center gap-1.5">
 						<TerminalSessionDropdown context={ctx} workspaceId={workspaceId} />
 						<V2NotificationStatusIndicator
 							workspaceId={workspaceId}
 							sources={getV2NotificationSourcesForPane(ctx.pane)}
 						/>
-					</>
+					</div>
 				),
 				renderHeaderExtras: (ctx: RendererContext<PaneViewerData>) => (
 					<TerminalHeaderExtras context={ctx} />
@@ -396,7 +407,7 @@ export function usePaneRegistry(
 				},
 			},
 			browser: {
-				getIcon: () => <Globe className="size-4" />,
+				getIcon: () => <Globe className="size-3.5" />,
 				getTitle: (pane) => {
 					const data = pane.data as BrowserPaneData;
 					if (data.pageTitle) return data.pageTitle;
@@ -424,14 +435,14 @@ export function usePaneRegistry(
 					),
 			},
 			chat: {
-				getIcon: () => <MessageSquare className="size-4" />,
+				getIcon: () => <MessageSquare className="size-3.5" />,
 				getTitle: () => "Chat",
 				renderTitle: (ctx: RendererContext<PaneViewerData>) => (
-					<>
-						<MessageSquare className="size-4 shrink-0" />
+					<div className="flex min-w-0 flex-1 items-center gap-1.5">
+						<MessageSquare className="size-3.5 shrink-0" />
 						<span
 							className={cn(
-								"truncate text-sm transition-colors duration-150",
+								"min-w-0 flex-1 truncate text-xs transition-colors duration-150",
 								ctx.isActive ? "text-foreground" : "text-muted-foreground",
 							)}
 						>
@@ -441,7 +452,7 @@ export function usePaneRegistry(
 							workspaceId={workspaceId}
 							sources={getV2NotificationSourcesForPane(ctx.pane)}
 						/>
-					</>
+					</div>
 				),
 				// Disabled until ChatServiceProvider is wired above v2 panes —
 				// TiptapPromptEditor needs its tRPC context.
@@ -459,10 +470,14 @@ export function usePaneRegistry(
 				getIcon: (ctx: RendererContext<PaneViewerData>) => {
 					const data = ctx.pane.data as CommentPaneData;
 					if (!data.avatarUrl) {
-						return <MessageSquare className="size-4" />;
+						return <MessageSquare className="size-3.5" />;
 					}
 					return (
-						<img src={data.avatarUrl} alt="" className="size-4 rounded-full" />
+						<img
+							src={data.avatarUrl}
+							alt=""
+							className="size-3.5 rounded-full"
+						/>
 					);
 				},
 				getTitle: (pane) => {
@@ -480,10 +495,10 @@ export function usePaneRegistry(
 							href={data.url}
 							target="_blank"
 							rel="noopener noreferrer"
-							className="flex items-center gap-0.5 text-muted-foreground hover:text-foreground"
+							className="flex shrink-0 items-center gap-0.5 rounded p-0.5 text-muted-foreground/60 transition-colors hover:text-muted-foreground"
 							aria-label="View on GitHub"
 						>
-							<FaGithub className="size-4" />
+							<FaGithub className="size-3.5" />
 							<LuArrowUpRight className="size-3" />
 						</a>
 					);
