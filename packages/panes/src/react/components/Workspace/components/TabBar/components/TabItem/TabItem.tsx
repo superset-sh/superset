@@ -110,7 +110,10 @@ export function TabItem<TData>({
 				<div
 					ref={setRef}
 					className={cn(
-						"group relative flex h-full w-full items-center border-r border-border",
+						"group relative flex h-full w-full items-center border-r border-border transition-colors",
+						isActive
+							? "bg-border/30 text-foreground"
+							: "text-muted-foreground/70 hover:bg-tertiary/20 hover:text-muted-foreground",
 						isPaneOver && "bg-primary/5",
 						isDragging && "opacity-30",
 					)}
@@ -135,12 +138,7 @@ export function TabItem<TData>({
 							>
 								<TooltipTrigger asChild>
 									<button
-										className={cn(
-											"flex h-full min-w-0 flex-1 items-center gap-1.5 pl-3 pr-1 text-left text-xs transition-all",
-											isActive
-												? "bg-border/30 text-foreground"
-												: "text-muted-foreground/70 hover:bg-tertiary/20 hover:text-muted-foreground",
-										)}
+										className="flex h-full min-w-0 flex-1 items-center gap-1.5 pl-3 pr-1 text-left text-xs transition-colors"
 										onAuxClick={(event) => {
 											if (event.button === 1) {
 												event.preventDefault();
@@ -166,7 +164,7 @@ export function TabItem<TData>({
 								<Tooltip delayDuration={500}>
 									<TooltipTrigger asChild>
 										<Button
-											className="size-5 cursor-pointer hover:bg-muted"
+											className="size-5 cursor-pointer text-current hover:bg-muted"
 											onClick={(event) => {
 												event.stopPropagation();
 												onClose();
