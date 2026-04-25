@@ -153,9 +153,6 @@ export function connect(
 		transport._reconnectAttempt = 0;
 		setConnectionState(transport, "open");
 		sendResize(transport, terminal.cols, terminal.rows);
-		if (transport.title !== null) {
-			sendTitle(transport, socket);
-		}
 	});
 
 	socket.addEventListener("message", (event) => {
