@@ -214,9 +214,9 @@ function AuthenticatedLayout() {
 	return (
 		<DndProvider manager={dragDropManager}>
 			<CollectionsProvider>
-				<GlobalTerminalLifecycle />
 				<GlobalBrowserLifecycle />
 				<LocalHostServiceProvider>
+					<GlobalTerminalLifecycle />
 					<DeletingWorkspacesProvider>
 						<WorkerPoolContextProvider
 							poolOptions={{ workerFactory: createPierreWorker, poolSize: 8 }}

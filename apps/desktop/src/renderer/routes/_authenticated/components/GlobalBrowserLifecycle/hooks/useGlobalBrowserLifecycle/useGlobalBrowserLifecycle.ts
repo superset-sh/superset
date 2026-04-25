@@ -3,6 +3,12 @@ import { useLiveQuery } from "@tanstack/react-db";
 import { useEffect, useRef } from "react";
 import { browserRuntimeRegistry } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/BrowserPane/browserRuntimeRegistry";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import {
+	extractPaneLocations,
+	extractWorkspaceIds,
+	getRemovedPaneLocations,
+	type PaneLifecycleRow,
+} from "../../../utils/paneLifecycleRows";
 
 /**
  * Grace period for cross-workspace pane moves / renames before destroying.
@@ -10,20 +16,21 @@ import { useCollections } from "renderer/routes/_authenticated/providers/Collect
  */
 const DESTROY_DELAY_MS = 500;
 
-function extractBrowserPaneIds(rows: { paneLayout: unknown }[]): Set<string> {
-	const ids = new Set<string>();
-	for (const row of rows) {
-		const layout = row.paneLayout as WorkspaceState<unknown> | undefined;
-		if (!layout?.tabs) continue;
-		for (const tab of layout.tabs) {
-			for (const pane of Object.values(tab.panes)) {
-				if (pane.kind === "browser") {
-					ids.add(pane.id);
-				}
-			}
-		}
-	}
-	return ids;
+interface PendingBrowserDestruction {
+	workspaceId: string;
+	timer: ReturnType<typeof setTimeout> | null;
+}
+
+function getBrowserPaneId(
+	pane: WorkspaceState<unknown>["tabs"][number]["panes"][string],
+): string | null {
+	return pane.kind === "browser" ? pane.id : null;
+}
+
+function extractBrowserLocations(
+	rows: PaneLifecycleRow[],
+): Map<string, string> {
+	return extractPaneLocations(rows, getBrowserPaneId);
 }
 
 /**
@@ -40,8 +47,8 @@ function extractBrowserPaneIds(rows: { paneLayout: unknown }[]): Set<string> {
  */
 export function useGlobalBrowserLifecycle() {
 	const collections = useCollections();
-	const prevBrowserIdsRef = useRef<Set<string>>(new Set());
-	const pendingDestruction = useRef<Map<string, ReturnType<typeof setTimeout>>>(
+	const prevBrowserLocationsRef = useRef<Map<string, string>>(new Map());
+	const pendingDestruction = useRef<Map<string, PendingBrowserDestruction>>(
 		new Map(),
 	);
 
@@ -54,47 +61,79 @@ export function useGlobalBrowserLifecycle() {
 	);
 
 	useEffect(() => {
-		const currentBrowserIds = extractBrowserPaneIds(allWorkspaceRows);
-		const prevBrowserIds = prevBrowserIdsRef.current;
+		const rows = allWorkspaceRows as PaneLifecycleRow[];
+		const currentBrowserLocations = extractBrowserLocations(rows);
+		const currentWorkspaceIds = extractWorkspaceIds(rows);
+		const prevBrowserLocations = prevBrowserLocationsRef.current;
 
 		// Cancel any pending destruction for ids that reappeared (e.g. pane
 		// moved between workspaces, user undo, or the transient replaceState
 		// churn we were fighting in the first place).
-		for (const browserId of currentBrowserIds) {
-			const timer = pendingDestruction.current.get(browserId);
-			if (timer) {
-				clearTimeout(timer);
+		for (const browserId of currentBrowserLocations.keys()) {
+			const pending = pendingDestruction.current.get(browserId);
+			if (pending?.timer) {
+				clearTimeout(pending.timer);
+			}
+			pendingDestruction.current.delete(browserId);
+		}
+
+		// If a pane was authoritatively removed but the owner row disappeared
+		// before the grace timer fired, keep waiting until that row is present
+		// again. That avoids destroying webviews during sleep/wake while still
+		// cleaning up when the post-removal layout comes back.
+		for (const [browserId, pending] of pendingDestruction.current) {
+			if (pending.timer) continue;
+			if (currentWorkspaceIds.has(pending.workspaceId)) {
 				pendingDestruction.current.delete(browserId);
+				browserRuntimeRegistry.destroy(browserId);
 			}
 		}
 
-		for (const browserId of prevBrowserIds) {
-			if (currentBrowserIds.has(browserId)) continue;
+		const removedLocations = getRemovedPaneLocations({
+			previousLocations: prevBrowserLocations,
+			currentLocations: currentBrowserLocations,
+			currentWorkspaceIds,
+		});
+
+		for (const { id: browserId, workspaceId } of removedLocations) {
 			if (pendingDestruction.current.has(browserId)) continue;
 
 			const timer = setTimeout(() => {
-				pendingDestruction.current.delete(browserId);
-
 				const freshRows = Array.from(
 					collections.v2WorkspaceLocalState.state.values(),
-				);
-				const freshIds = extractBrowserPaneIds(freshRows);
+				) as PaneLifecycleRow[];
+				const freshLocations = extractBrowserLocations(freshRows);
+				const freshWorkspaceIds = extractWorkspaceIds(freshRows);
 
-				if (!freshIds.has(browserId)) {
+				if (freshLocations.has(browserId)) {
+					pendingDestruction.current.delete(browserId);
+					return;
+				}
+
+				if (freshWorkspaceIds.has(workspaceId)) {
+					pendingDestruction.current.delete(browserId);
 					browserRuntimeRegistry.destroy(browserId);
+					return;
+				}
+
+				const pending = pendingDestruction.current.get(browserId);
+				if (pending) {
+					pending.timer = null;
 				}
 			}, DESTROY_DELAY_MS);
 
-			pendingDestruction.current.set(browserId, timer);
+			pendingDestruction.current.set(browserId, { workspaceId, timer });
 		}
 
-		prevBrowserIdsRef.current = currentBrowserIds;
+		prevBrowserLocationsRef.current = currentBrowserLocations;
 	}, [allWorkspaceRows, collections]);
 
 	useEffect(() => {
 		return () => {
-			for (const timer of pendingDestruction.current.values()) {
-				clearTimeout(timer);
+			for (const pending of pendingDestruction.current.values()) {
+				if (pending.timer) {
+					clearTimeout(pending.timer);
+				}
 			}
 			pendingDestruction.current.clear();
 		};
