@@ -1,7 +1,11 @@
 import type { AgentLifecyclePayload } from "@superset/workspace-client";
+import {
+	getV2NotificationSourceKey,
+	getV2TerminalNotificationSource,
+	type V2NotificationSource,
+	type V2NotificationSourceInput,
+} from "renderer/stores/v2-notifications";
 import type { ActivePaneStatus, PaneStatus } from "shared/tabs-types";
-import type { V2NotificationTarget } from "./resolveV2NotificationTarget";
-import { getNotificationSourceIds } from "./resolveV2NotificationTarget";
 
 interface StatusEntry {
 	workspaceId: string;
@@ -9,55 +13,47 @@ interface StatusEntry {
 }
 
 export interface V2AgentStatusTransition {
-	clearIds: string[];
-	setStatus: { id: string; status: ActivePaneStatus } | null;
+	clearSources: V2NotificationSourceInput[];
+	setStatus: { source: V2NotificationSource; status: ActivePaneStatus } | null;
 }
 
 export function resolveV2AgentStatusTransition({
 	workspaceId,
 	payload,
-	target,
 	statuses,
 	targetVisible,
 }: {
 	workspaceId: string;
 	payload: AgentLifecyclePayload;
-	target: V2NotificationTarget;
 	statuses: Record<string, StatusEntry | undefined>;
 	targetVisible: boolean;
 }): V2AgentStatusTransition {
-	const statusIds = new Set(getNotificationSourceIds(payload));
-	if (target.paneId) statusIds.add(target.paneId);
-
-	const primaryId = target.terminalId;
-	statusIds.add(primaryId);
-	const alternateIds = [...statusIds].filter((id) => id !== primaryId);
+	const terminalSource = getV2TerminalNotificationSource(payload.terminalId);
+	const terminalSourceKey = getV2NotificationSourceKey(terminalSource);
 
 	if (payload.eventType === "Start") {
 		return {
-			clearIds: alternateIds,
-			setStatus: { id: primaryId, status: "working" },
+			clearSources: [],
+			setStatus: { source: terminalSource, status: "working" },
 		};
 	}
 
 	if (payload.eventType === "PermissionRequest") {
 		return {
-			clearIds: alternateIds,
-			setStatus: { id: primaryId, status: "permission" },
+			clearSources: [],
+			setStatus: { source: terminalSource, status: "permission" },
 		};
 	}
 
-	const allIds = [primaryId, ...alternateIds];
-	const wasAwaitingPermission = allIds.some((id) => {
-		const entry = statuses[id];
-		return entry?.workspaceId === workspaceId && entry.status === "permission";
-	});
+	const entry = statuses[terminalSourceKey];
+	const wasAwaitingPermission =
+		entry?.workspaceId === workspaceId && entry.status === "permission";
 	if (wasAwaitingPermission || targetVisible) {
-		return { clearIds: allIds, setStatus: null };
+		return { clearSources: [terminalSource], setStatus: null };
 	}
 
 	return {
-		clearIds: alternateIds,
-		setStatus: { id: primaryId, status: "review" },
+		clearSources: [],
+		setStatus: { source: terminalSource, status: "review" },
 	};
 }

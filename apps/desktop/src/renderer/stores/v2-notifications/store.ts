@@ -8,46 +8,70 @@ import { create } from "zustand";
 export type V2NotificationPaneLike = Pick<Pane<unknown>, "kind" | "data">;
 export type V2NotificationTabLike = Pick<Tab<unknown>, "panes">;
 
-export interface V2NotificationSource {
-	sourceId: string;
-	terminalId: string;
+export type V2NotificationSource =
+	| { type: "terminal"; id: string }
+	| { type: "chat"; id: string };
+
+export type V2NotificationSourceType = V2NotificationSource["type"];
+export type V2NotificationSourceKey = `${V2NotificationSourceType}:${string}`;
+export type V2NotificationSourceInput =
+	| V2NotificationSource
+	| V2NotificationSourceKey;
+
+export interface V2NotificationStatusEntry {
+	sourceKey: V2NotificationSourceKey;
+	source: V2NotificationSource;
 	workspaceId: string;
 	status: ActivePaneStatus;
 	occurredAt: number;
 }
 
 export interface V2NotificationState {
-	sources: Record<string, V2NotificationSource>;
+	sources: Record<string, V2NotificationStatusEntry>;
+	setSourceStatus: (
+		source: V2NotificationSource,
+		workspaceId: string,
+		status: ActivePaneStatus,
+		occurredAt?: number,
+	) => void;
 	setTerminalStatus: (
 		terminalId: string,
 		workspaceId: string,
 		status: ActivePaneStatus,
 		occurredAt?: number,
 	) => void;
-	clearSourceStatus: (sourceId: string, workspaceId?: string) => void;
-	clearSourceStatuses: (
-		sourceIds: Iterable<string>,
+	setChatStatus: (
+		chatId: string,
+		workspaceId: string,
+		status: ActivePaneStatus,
+		occurredAt?: number,
+	) => void;
+	clearSourceStatus: (
+		source: V2NotificationSourceInput,
 		workspaceId?: string,
 	) => void;
-	clearSourceAttention: (sourceId: string, workspaceId?: string) => void;
+	clearSourceStatuses: (
+		sources: Iterable<V2NotificationSourceInput>,
+		workspaceId?: string,
+	) => void;
+	clearSourceAttention: (
+		source: V2NotificationSourceInput,
+		workspaceId?: string,
+	) => void;
 	clearWorkspaceStatuses: (workspaceId: string) => void;
 	clearWorkspaceAttention: (workspaceId: string) => void;
 }
 
 export const useV2NotificationStore = create<V2NotificationState>()((set) => ({
 	sources: {},
-	setTerminalStatus: (
-		terminalId,
-		workspaceId,
-		status,
-		occurredAt = Date.now(),
-	) => {
+	setSourceStatus: (source, workspaceId, status, occurredAt = Date.now()) => {
+		const sourceKey = getV2NotificationSourceKey(source);
 		set((state) => ({
 			sources: {
 				...state.sources,
-				[terminalId]: {
-					sourceId: terminalId,
-					terminalId,
+				[sourceKey]: {
+					sourceKey,
+					source,
 					workspaceId,
 					status,
 					occurredAt,
@@ -55,96 +79,142 @@ export const useV2NotificationStore = create<V2NotificationState>()((set) => ({
 			},
 		}));
 	},
-	clearSourceStatus: (sourceId, workspaceId) => {
+	setTerminalStatus: (terminalId, workspaceId, status, occurredAt) => {
+		useV2NotificationStore
+			.getState()
+			.setSourceStatus(
+				getV2TerminalNotificationSource(terminalId),
+				workspaceId,
+				status,
+				occurredAt,
+			);
+	},
+	setChatStatus: (chatId, workspaceId, status, occurredAt) => {
+		useV2NotificationStore
+			.getState()
+			.setSourceStatus(
+				getV2ChatNotificationSource(chatId),
+				workspaceId,
+				status,
+				occurredAt,
+			);
+	},
+	clearSourceStatus: (source, workspaceId) => {
+		const sourceKey = getV2NotificationSourceKey(source);
 		set((state) => {
-			const source = state.sources[sourceId];
-			if (!source || (workspaceId && source.workspaceId !== workspaceId)) {
+			const entry = state.sources[sourceKey];
+			if (!entry || (workspaceId && entry.workspaceId !== workspaceId)) {
 				return state;
 			}
-			const { [sourceId]: _removed, ...sources } = state.sources;
+			const { [sourceKey]: _removed, ...sources } = state.sources;
 			return { sources };
 		});
 	},
-	clearSourceStatuses: (sourceIds, workspaceId) => {
+	clearSourceStatuses: (sourceInputs, workspaceId) => {
 		set((state) => {
-			const ids = new Set(sourceIds);
-			const sources: Record<string, V2NotificationSource> = {};
+			const sourceKeys = new Set(
+				[...sourceInputs].map(getV2NotificationSourceKey),
+			);
+			const sources: Record<string, V2NotificationStatusEntry> = {};
 			let changed = false;
-			for (const [sourceId, source] of Object.entries(state.sources)) {
+			for (const [sourceKey, source] of Object.entries(state.sources)) {
 				if (
-					ids.has(sourceId) &&
+					sourceKeys.has(sourceKey as V2NotificationSourceKey) &&
 					(!workspaceId || source.workspaceId === workspaceId)
 				) {
 					changed = true;
 					continue;
 				}
-				sources[sourceId] = source;
+				sources[sourceKey] = source;
 			}
 			return changed ? { sources } : state;
 		});
 	},
-	clearSourceAttention: (sourceId, workspaceId) => {
+	clearSourceAttention: (source, workspaceId) => {
+		const sourceKey = getV2NotificationSourceKey(source);
 		set((state) => {
-			const source = state.sources[sourceId];
+			const entry = state.sources[sourceKey];
 			if (
-				!source ||
-				source.status !== "review" ||
-				(workspaceId && source.workspaceId !== workspaceId)
+				!entry ||
+				entry.status !== "review" ||
+				(workspaceId && entry.workspaceId !== workspaceId)
 			) {
 				return state;
 			}
-			const { [sourceId]: _removed, ...sources } = state.sources;
+			const { [sourceKey]: _removed, ...sources } = state.sources;
 			return { sources };
 		});
 	},
 	clearWorkspaceStatuses: (workspaceId) => {
 		set((state) => {
-			const sources: Record<string, V2NotificationSource> = {};
+			const sources: Record<string, V2NotificationStatusEntry> = {};
 			let changed = false;
-			for (const [sourceId, source] of Object.entries(state.sources)) {
+			for (const [sourceKey, source] of Object.entries(state.sources)) {
 				if (source.workspaceId === workspaceId) {
 					changed = true;
 					continue;
 				}
-				sources[sourceId] = source;
+				sources[sourceKey] = source;
 			}
 			return changed ? { sources } : state;
 		});
 	},
 	clearWorkspaceAttention: (workspaceId) => {
 		set((state) => {
-			const sources: Record<string, V2NotificationSource> = {};
+			const sources: Record<string, V2NotificationStatusEntry> = {};
 			let changed = false;
-			for (const [sourceId, source] of Object.entries(state.sources)) {
+			for (const [sourceKey, source] of Object.entries(state.sources)) {
 				if (source.workspaceId === workspaceId && source.status === "review") {
 					changed = true;
 					continue;
 				}
-				sources[sourceId] = source;
+				sources[sourceKey] = source;
 			}
 			return changed ? { sources } : state;
 		});
 	},
 }));
 
-export function getV2NotificationSourceIdsForPane(
-	pane: V2NotificationPaneLike | null | undefined,
-): string[] {
-	const terminalId = getTerminalIdForPane(pane);
-	return terminalId ? [terminalId] : [];
+export function getV2NotificationSourceKey(
+	source: V2NotificationSourceInput,
+): V2NotificationSourceKey {
+	if (typeof source === "string") return source;
+	return `${source.type}:${source.id}`;
 }
 
-export function getV2NotificationSourceIdsForTab(
+export function getV2TerminalNotificationSource(
+	terminalId: string,
+): V2NotificationSource {
+	return { type: "terminal", id: terminalId };
+}
+
+export function getV2ChatNotificationSource(
+	chatId: string,
+): V2NotificationSource {
+	return { type: "chat", id: chatId };
+}
+
+export function getV2NotificationSourcesForPane(
+	pane: V2NotificationPaneLike | null | undefined,
+): V2NotificationSource[] {
+	const terminalId = getTerminalIdForPane(pane);
+	if (terminalId) return [getV2TerminalNotificationSource(terminalId)];
+	const chatId = getChatIdForPane(pane);
+	if (chatId) return [getV2ChatNotificationSource(chatId)];
+	return [];
+}
+
+export function getV2NotificationSourcesForTab(
 	tab: V2NotificationTabLike | null | undefined,
-): string[] {
+): V2NotificationSource[] {
 	if (!tab) return [];
-	const sourceIds = new Set<string>();
+	const sources = new Map<V2NotificationSourceKey, V2NotificationSource>();
 	for (const pane of Object.values(tab.panes)) {
-		for (const sourceId of getV2NotificationSourceIdsForPane(pane)) {
-			sourceIds.add(sourceId);
+		for (const source of getV2NotificationSourcesForPane(pane)) {
+			sources.set(getV2NotificationSourceKey(source), source);
 		}
 	}
-	return [...sourceIds];
+	return [...sources.values()];
 }
 
 export function selectV2WorkspaceNotificationStatus(workspaceId: string) {
@@ -164,35 +234,49 @@ export function selectV2TabNotificationStatus(
 	workspaceId: string,
 	tab: V2NotificationTabLike | null | undefined,
 ) {
-	const sourceIds = getV2NotificationSourceIdsForTab(tab);
-	return selectV2SourceIdsNotificationStatus(workspaceId, sourceIds);
+	return selectV2SourcesNotificationStatus(
+		workspaceId,
+		getV2NotificationSourcesForTab(tab),
+	);
 }
 
 export function selectV2PaneNotificationStatus(
 	workspaceId: string,
 	pane: V2NotificationPaneLike | null | undefined,
 ) {
-	const sourceIds = getV2NotificationSourceIdsForPane(pane);
-	return selectV2SourceIdsNotificationStatus(workspaceId, sourceIds);
+	return selectV2SourcesNotificationStatus(
+		workspaceId,
+		getV2NotificationSourcesForPane(pane),
+	);
 }
 
 export function selectV2TerminalNotificationStatus(
 	workspaceId: string,
 	terminalId: string | null | undefined,
 ) {
-	return selectV2SourceIdsNotificationStatus(
+	return selectV2SourcesNotificationStatus(
 		workspaceId,
-		terminalId ? [terminalId] : [],
+		terminalId ? [getV2TerminalNotificationSource(terminalId)] : [],
 	);
 }
 
-export function selectV2SourceIdsNotificationStatus(
+export function selectV2ChatNotificationStatus(
 	workspaceId: string,
-	sourceIds: Iterable<string>,
+	chatId: string | null | undefined,
 ) {
-	const sourceIdList = [...new Set(sourceIds)];
+	return selectV2SourcesNotificationStatus(
+		workspaceId,
+		chatId ? [getV2ChatNotificationSource(chatId)] : [],
+	);
+}
+
+export function selectV2SourcesNotificationStatus(
+	workspaceId: string,
+	sources: Iterable<V2NotificationSourceInput>,
+) {
+	const sourceKeys = [...new Set([...sources].map(getV2NotificationSourceKey))];
 	return (state: V2NotificationState) =>
-		selectStatusForSourceIds(state, workspaceId, sourceIdList);
+		selectStatusForSourceKeys(state, workspaceId, sourceKeys);
 }
 
 export function useV2WorkspaceNotificationStatus(workspaceId: string) {
@@ -228,23 +312,32 @@ export function useV2TerminalNotificationStatus(
 	);
 }
 
-export function useV2SourceIdsNotificationStatus(
+export function useV2ChatNotificationStatus(
 	workspaceId: string,
-	sourceIds: Iterable<string>,
+	chatId: string | null | undefined,
 ) {
 	return useV2NotificationStore(
-		selectV2SourceIdsNotificationStatus(workspaceId, sourceIds),
+		selectV2ChatNotificationStatus(workspaceId, chatId),
 	);
 }
 
-function selectStatusForSourceIds(
+export function useV2SourcesNotificationStatus(
+	workspaceId: string,
+	sources: Iterable<V2NotificationSourceInput>,
+) {
+	return useV2NotificationStore(
+		selectV2SourcesNotificationStatus(workspaceId, sources),
+	);
+}
+
+function selectStatusForSourceKeys(
 	state: V2NotificationState,
 	workspaceId: string,
-	sourceIds: Iterable<string>,
+	sourceKeys: Iterable<V2NotificationSourceKey>,
 ) {
 	function* statuses() {
-		for (const sourceId of sourceIds) {
-			const source = state.sources[sourceId];
+		for (const sourceKey of sourceKeys) {
+			const source = state.sources[sourceKey];
 			if (source?.workspaceId === workspaceId) {
 				yield source.status;
 			}
@@ -260,4 +353,13 @@ function getTerminalIdForPane(
 	if (!pane.data || typeof pane.data !== "object") return null;
 	const terminalId = (pane.data as { terminalId?: unknown }).terminalId;
 	return typeof terminalId === "string" && terminalId ? terminalId : null;
+}
+
+function getChatIdForPane(
+	pane: V2NotificationPaneLike | null | undefined,
+): string | null {
+	if (!pane || pane.kind !== "chat") return null;
+	if (!pane.data || typeof pane.data !== "object") return null;
+	const sessionId = (pane.data as { sessionId?: unknown }).sessionId;
+	return typeof sessionId === "string" && sessionId ? sessionId : null;
 }

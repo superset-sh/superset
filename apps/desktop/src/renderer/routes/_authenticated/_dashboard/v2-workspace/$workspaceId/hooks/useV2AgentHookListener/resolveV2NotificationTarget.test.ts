@@ -120,7 +120,7 @@ describe("resolveV2NotificationTarget", () => {
 		).toBe(false);
 	});
 
-	it("uses the terminal id as the status key", () => {
+	it("uses the terminal id as the native notification source id", () => {
 		expect(getNotificationSourceId(payload({ terminalId: "terminal-1" }))).toBe(
 			"terminal-1",
 		);

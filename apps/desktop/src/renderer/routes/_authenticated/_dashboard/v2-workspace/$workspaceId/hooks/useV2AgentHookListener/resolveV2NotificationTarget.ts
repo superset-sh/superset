@@ -15,12 +15,6 @@ export function getNotificationSourceId(
 	return payload.terminalId;
 }
 
-export function getNotificationSourceIds(
-	payload: Pick<AgentLifecyclePayload, "terminalId">,
-): string[] {
-	return [payload.terminalId];
-}
-
 export function resolveV2NotificationTarget({
 	workspaceId,
 	payload,

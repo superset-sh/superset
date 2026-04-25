@@ -98,12 +98,13 @@ Important shipped pieces:
 - `apps/desktop/src/main/lib/agent-setup/templates/notify-hook.template.sh`
   - posts to `SUPERSET_HOST_AGENT_HOOK_URL`
   - falls back to the v1 hook server on missing URL or non-2xx response
-- `apps/desktop/src/renderer/routes/_authenticated/components/V2AgentHookListeners`
-  - mounts listeners for v2 workspaces
+- `apps/desktop/src/renderer/routes/_authenticated/components/V2NotificationController`
+  - mounts one host notification subscriber per host-service URL
 - `apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/useV2AgentHookListener`
   - updates status, suppresses, plays sound, and shows notifications
 - `apps/desktop/src/renderer/stores/v2-notifications`
-  - separate v2 status store, aggregated by workspace for the dashboard sidebar
+  - separate v2 status store, keyed by typed notification source
+    (`terminal:<id>`, `chat:<id>`) and aggregated by workspace, tab, and pane
 - `apps/desktop/src/renderer/lib/ringtones`
   - renderer-side built-in ringtone playback
 
@@ -410,25 +411,26 @@ Audio unlock should stay client-side. The current first-gesture priming is the r
 
 ## Host And Workspace Listener Topology
 
+Previous topology:
+
+```text
+authenticated layout
+  V2NotificationController
+    one HostNotificationSubscriber per host URL
+      eventBus.on("agent:lifecycle", "*")
+      eventBus.on("terminal:lifecycle", "*")
+```
+
 Current topology:
 
 ```text
 authenticated layout
-  V2AgentHookListeners
-    one WorkspaceListener per workspace
-      useWorkspaceEvent("agent:lifecycle", workspaceId)
-```
-
-Recommended topology:
-
-```text
-authenticated layout
-  AgentNotificationControllers
+  V2NotificationController
     group open/known workspaces by host URL
-    one HostAgentNotificationController per host URL
+    one HostNotificationSubscriber per host URL
       eventBus.on("agent:lifecycle", "*")
       eventBus.on("terminal:lifecycle", "*")
-      resolve event workspace/source locally
+      resolve event workspace and typed source locally
 ```
 
 Benefits:

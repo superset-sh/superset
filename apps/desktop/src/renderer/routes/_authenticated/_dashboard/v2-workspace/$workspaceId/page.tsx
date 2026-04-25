@@ -21,8 +21,8 @@ import { HotkeyLabel, useHotkey } from "renderer/hotkeys";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { CommandPalette } from "renderer/screens/main/components/CommandPalette";
 import {
-	getV2NotificationSourceIdsForPane,
-	getV2NotificationSourceIdsForTab,
+	getV2NotificationSourcesForPane,
+	getV2NotificationSourcesForTab,
 	useV2NotificationStore,
 	useV2PaneNotificationStatus,
 } from "renderer/stores/v2-notifications";
@@ -135,8 +135,8 @@ function useClearActivePaneAttention({
 
 	useEffect(() => {
 		if (activePaneStatus !== "review") return;
-		for (const sourceId of getV2NotificationSourceIdsForPane(activePane)) {
-			clearSourceAttention(sourceId, workspaceId);
+		for (const source of getV2NotificationSourcesForPane(activePane)) {
+			clearSourceAttention(source, workspaceId);
 		}
 	}, [activePane, activePaneStatus, clearSourceAttention, workspaceId]);
 }
@@ -451,7 +451,7 @@ function WorkspaceContent({
 							renderTabAccessory={(tab) => (
 								<V2NotificationStatusIndicator
 									workspaceId={workspaceId}
-									sourceIds={getV2NotificationSourceIdsForTab(tab)}
+									sources={getV2NotificationSourcesForTab(tab)}
 								/>
 							)}
 							renderBelowTabBar={() => (

@@ -14,17 +14,17 @@ import {
 } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/useV2AgentHookListener";
 import type { PaneViewerData } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/types";
 
-export interface HostWorkspaceListenerState {
+export interface HostNotificationWorkspaceState {
 	workspaceId: string;
 	paneLayout: WorkspaceState<PaneViewerData> | null;
 }
 
-export function HostListener({
+export function HostNotificationSubscriber({
 	hostUrl,
 	workspaces,
 }: {
 	hostUrl: string;
-	workspaces: HostWorkspaceListenerState[];
+	workspaces: HostNotificationWorkspaceState[];
 }): null {
 	const navigate = useNavigate();
 	const { data: volume = 100 } =
@@ -61,7 +61,6 @@ export function HostListener({
 			handleV2TerminalLifecycleEvent({
 				workspaceId,
 				payload,
-				paneLayout: workspace.paneLayout,
 			});
 		},
 	);

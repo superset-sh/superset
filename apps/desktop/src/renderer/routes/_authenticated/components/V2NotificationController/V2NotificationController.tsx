@@ -7,9 +7,9 @@ import type { PaneViewerData } from "renderer/routes/_authenticated/_dashboard/v
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import {
-	HostListener,
-	type HostWorkspaceListenerState,
-} from "./components/HostListener";
+	HostNotificationSubscriber,
+	type HostNotificationWorkspaceState,
+} from "./components/HostNotificationSubscriber";
 
 interface WorkspaceHostRow {
 	workspaceId: string;
@@ -17,9 +17,9 @@ interface WorkspaceHostRow {
 	hostMachineId: string | null | undefined;
 }
 
-interface HostListenerGroup {
+interface HostNotificationSubscriberGroup {
 	hostUrl: string;
-	workspaces: HostWorkspaceListenerState[];
+	workspaces: HostNotificationWorkspaceState[];
 }
 
 /**
@@ -27,11 +27,11 @@ interface HostListenerGroup {
  * workspaces update their sidebar status indicator and play the finish sound.
  * Sibling to `AgentHooks`; rendered at the authenticated layout level.
  *
- * A host listener subscribes with workspaceId `*` and filters against the
+ * A host subscriber subscribes with workspaceId `*` and filters against the
  * workspaces assigned to that host. This keeps the topology O(1 listener per
  * host), not O(1 listener and settings observer per workspace).
  */
-export function V2AgentHookListeners() {
+export function V2NotificationController() {
 	const collections = useCollections();
 	const { machineId, activeHostUrl } = useLocalHostService();
 	const { data: workspaceHosts = [] } = useLiveQuery(
@@ -73,7 +73,7 @@ export function V2AgentHookListeners() {
 	return (
 		<>
 			{hostGroups.map((group) => (
-				<HostListener
+				<HostNotificationSubscriber
 					key={group.hostUrl}
 					hostUrl={group.hostUrl}
 					workspaces={group.workspaces}
@@ -96,14 +96,14 @@ function groupWorkspacesByHostUrl({
 	}>;
 	machineId: string | null;
 	activeHostUrl: string | null;
-}): HostListenerGroup[] {
+}): HostNotificationSubscriberGroup[] {
 	const paneLayoutsByWorkspaceId = new Map(
 		localWorkspaceRows.map((row) => [
 			row.workspaceId,
 			row.paneLayout as WorkspaceState<PaneViewerData>,
 		]),
 	);
-	const groups = new Map<string, HostWorkspaceListenerState[]>();
+	const groups = new Map<string, HostNotificationWorkspaceState[]>();
 
 	for (const workspace of workspaceHosts) {
 		const hostUrl = getHostUrlForWorkspace({

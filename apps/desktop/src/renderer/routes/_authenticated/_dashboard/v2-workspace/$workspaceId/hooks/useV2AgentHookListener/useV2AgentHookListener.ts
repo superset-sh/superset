@@ -12,12 +12,15 @@ import { electronTrpc } from "renderer/lib/electron-trpc";
 import { playRingtone } from "renderer/lib/ringtones/play";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useRingtoneStore } from "renderer/stores/ringtone";
-import { useV2NotificationStore } from "renderer/stores/v2-notifications";
+import {
+	getV2TerminalNotificationSource,
+	useV2NotificationStore,
+	type V2NotificationSourceInput,
+} from "renderer/stores/v2-notifications";
 import type { PaneViewerData } from "../../types";
 import {
 	getNotificationSourceId,
 	isV2NotificationTargetVisible,
-	resolveTerminalTarget,
 	resolveV2NotificationTarget,
 	type V2NotificationTarget,
 } from "./resolveV2NotificationTarget";
@@ -37,7 +40,7 @@ type Navigate = ReturnType<typeof useNavigate>;
  * pane is visible and the window is focused, and honor the existing
  * mute/volume settings.
  *
- * The layout-level `V2AgentHookListeners` component is the active mount path:
+ * The layout-level `V2NotificationController` component is the active mount path:
  * it subscribes once per host so backgrounded workspaces also light up the
  * sidebar.
  */
@@ -84,10 +87,9 @@ export function useV2AgentHookListener(workspaceId: string): void {
 			handleV2TerminalLifecycleEvent({
 				workspaceId,
 				payload,
-				paneLayout,
 			});
 		},
-		[workspaceId, paneLayout],
+		[workspaceId],
 	);
 
 	useWorkspaceEvent("agent:lifecycle", workspaceId, handleEvent);
@@ -130,19 +132,14 @@ export function handleV2AgentLifecycleEvent({
 export function handleV2TerminalLifecycleEvent({
 	workspaceId,
 	payload,
-	paneLayout,
 }: {
 	workspaceId: string;
 	payload: TerminalLifecyclePayload;
-	paneLayout: WorkspaceState<PaneViewerData> | null | undefined;
 }): void {
 	if (payload.eventType !== "exit") return;
-	const target = resolveTerminalTarget({
-		workspaceId,
-		terminalId: payload.terminalId,
-		paneLayout,
-	});
-	clearStatusIds(workspaceId, [payload.terminalId, target?.paneId]);
+	clearSources(workspaceId, [
+		getV2TerminalNotificationSource(payload.terminalId),
+	]);
 }
 
 /**
@@ -169,15 +166,14 @@ function updatePaneStatus(
 	const transition = resolveV2AgentStatusTransition({
 		workspaceId,
 		payload,
-		target,
 		statuses: store.sources,
 		targetVisible,
 	});
 
-	clearStatusIds(workspaceId, transition.clearIds);
+	clearSources(workspaceId, transition.clearSources);
 	if (transition.setStatus) {
-		store.setTerminalStatus(
-			transition.setStatus.id,
+		store.setSourceStatus(
+			transition.setStatus.source,
 			workspaceId,
 			transition.setStatus.status,
 			payload.occurredAt,
@@ -244,13 +240,17 @@ function showNativeNotification(
 	}
 }
 
-function clearStatusIds(
+function clearSources(
 	workspaceId: string,
-	ids: Array<string | null | undefined>,
+	sources: Array<V2NotificationSourceInput | null | undefined>,
 ): void {
 	const store = useV2NotificationStore.getState();
-	const uniqueIds = new Set(ids.filter((id): id is string => Boolean(id)));
-	store.clearSourceStatuses(uniqueIds, workspaceId);
+	store.clearSourceStatuses(
+		sources.filter((source): source is V2NotificationSourceInput =>
+			Boolean(source),
+		),
+		workspaceId,
+	);
 }
 
 function openNotificationTarget(

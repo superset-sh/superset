@@ -28,7 +28,7 @@ import { useHotkeyDisplay } from "renderer/hotkeys";
 import { terminalRuntimeRegistry } from "renderer/lib/terminal/terminal-runtime-registry";
 import { FileIcon } from "renderer/screens/main/components/WorkspaceView/RightSidebar/FilesView/utils";
 import { useSettings } from "renderer/stores/settings";
-import { getV2NotificationSourceIdsForPane } from "renderer/stores/v2-notifications";
+import { getV2NotificationSourcesForPane } from "renderer/stores/v2-notifications";
 import { V2NotificationStatusIndicator } from "../../components/V2NotificationStatusIndicator";
 import {
 	getDocument,
@@ -251,7 +251,7 @@ export function usePaneRegistry(
 						</span>
 						<V2NotificationStatusIndicator
 							workspaceId={workspaceId}
-							sourceIds={getV2NotificationSourceIdsForPane(ctx.pane)}
+							sources={getV2NotificationSourcesForPane(ctx.pane)}
 						/>
 					</>
 				),
@@ -362,6 +362,23 @@ export function usePaneRegistry(
 			chat: {
 				getIcon: () => <MessageSquare className="size-4" />,
 				getTitle: () => "Chat",
+				renderTitle: (ctx: RendererContext<PaneViewerData>) => (
+					<>
+						<MessageSquare className="size-4 shrink-0" />
+						<span
+							className={cn(
+								"truncate text-sm transition-colors duration-150",
+								ctx.isActive ? "text-foreground" : "text-muted-foreground",
+							)}
+						>
+							Chat
+						</span>
+						<V2NotificationStatusIndicator
+							workspaceId={workspaceId}
+							sources={getV2NotificationSourcesForPane(ctx.pane)}
+						/>
+					</>
+				),
 				// Disabled until ChatServiceProvider is wired above v2 panes —
 				// TiptapPromptEditor needs its tRPC context.
 				renderPane: (_ctx: RendererContext<PaneViewerData>) => (
