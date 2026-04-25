@@ -1,7 +1,3 @@
-import {
-	normalizeTerminalTitle,
-	parseConEmuOsc9Title,
-} from "@superset/shared/terminal-title";
 import type { Terminal as XTerm } from "@xterm/xterm";
 
 export type ConnectionState = "disconnected" | "connecting" | "open" | "closed";
@@ -10,14 +6,7 @@ type TerminalServerMessage =
 	| { type: "data"; data: string }
 	| { type: "error"; message: string }
 	| { type: "exit"; exitCode: number; signal: number }
-	| { type: "replay"; data: string; title?: string | null }
-	| { type: "title"; title: string | null };
-
-type TerminalClientMessage =
-	| { type: "input"; data: string }
-	| { type: "resize"; cols: number; rows: number }
-	| { type: "dispose" }
-	| { type: "title"; title: string | null };
+	| { type: "replay"; data: string };
 
 export interface TerminalTransport {
 	socket: WebSocket | null;
@@ -34,10 +23,6 @@ export interface TerminalTransport {
 	_terminal: XTerm | null;
 	/** Set when the server sends an exit message — no reconnect after this. */
 	_exited: boolean;
-	/** Latest title emitted by terminal title sequences. */
-	title: string | null;
-	onTitleDisposable: { dispose(): void } | null;
-	onTitleTokenDisposable: { dispose(): void } | null;
 }
 
 function setConnectionState(
@@ -45,39 +30,9 @@ function setConnectionState(
 	state: ConnectionState,
 ) {
 	transport.connectionState = state;
-	notifyStateListeners(transport);
-}
-
-function notifyStateListeners(transport: TerminalTransport) {
 	for (const listener of transport.stateListeners) {
 		listener();
 	}
-}
-
-function setTitle(transport: TerminalTransport, title: string | null): boolean {
-	const normalizedTitle = normalizeTerminalTitle(title);
-	if (transport.title === normalizedTitle) return false;
-	transport.title = normalizedTitle;
-	notifyStateListeners(transport);
-	return true;
-}
-
-function sendClientMessage(
-	socket: WebSocket,
-	message: TerminalClientMessage,
-): void {
-	if (socket.readyState !== WebSocket.OPEN) return;
-	socket.send(JSON.stringify(message));
-}
-
-function sendTitle(transport: TerminalTransport, socket: WebSocket): void {
-	sendClientMessage(socket, { type: "title", title: transport.title });
-}
-
-function hasReplayTitle(
-	message: Extract<TerminalServerMessage, { type: "replay" }>,
-): boolean {
-	return Object.hasOwn(message, "title");
 }
 
 const MAX_RECONNECT_DELAY = 10_000;
@@ -95,9 +50,6 @@ export function createTransport(): TerminalTransport {
 		_reconnectAttempt: 0,
 		_terminal: null,
 		_exited: false,
-		title: null,
-		onTitleDisposable: null,
-		onTitleTokenDisposable: null,
 	};
 }
 
@@ -155,7 +107,6 @@ export function connect(
 	setConnectionState(transport, "connecting");
 	const socket = new WebSocket(wsUrl);
 	transport.socket = socket;
-	let replayTitleSuppressDepth = 0;
 
 	socket.addEventListener("open", () => {
 		if (transport.socket !== socket) return;
@@ -174,30 +125,8 @@ export function connect(
 			return;
 		}
 
-		if (message.type === "data") {
+		if (message.type === "data" || message.type === "replay") {
 			terminal.write(message.data);
-			return;
-		}
-
-		if (message.type === "replay") {
-			const includesTitle = hasReplayTitle(message);
-			const hasAuthoritativeTitle = includesTitle && message.title !== null;
-			if (includesTitle) {
-				setTitle(transport, message.title ?? null);
-			}
-			if (hasAuthoritativeTitle) {
-				replayTitleSuppressDepth += 1;
-			}
-			terminal.write(message.data, () => {
-				if (hasAuthoritativeTitle) {
-					replayTitleSuppressDepth = Math.max(0, replayTitleSuppressDepth - 1);
-				}
-			});
-			return;
-		}
-
-		if (message.type === "title") {
-			setTitle(transport, message.title);
 			return;
 		}
 
@@ -230,28 +159,9 @@ export function connect(
 
 	transport.onDataDisposable?.dispose();
 	transport.onDataDisposable = terminal.onData((data) => {
-		sendClientMessage(socket, { type: "input", data });
+		if (socket.readyState !== WebSocket.OPEN) return;
+		socket.send(JSON.stringify({ type: "input", data }));
 	});
-	transport.onTitleDisposable?.dispose();
-	transport.onTitleDisposable = terminal.onTitleChange((title) => {
-		if (replayTitleSuppressDepth > 0) return;
-		if (setTitle(transport, title || null)) {
-			sendTitle(transport, socket);
-		}
-	});
-	transport.onTitleTokenDisposable?.dispose();
-	transport.onTitleTokenDisposable = terminal.parser.registerOscHandler(
-		9,
-		(data) => {
-			const title = parseConEmuOsc9Title(data);
-			if (title === undefined) return false;
-			if (replayTitleSuppressDepth > 0) return true;
-			if (setTitle(transport, title)) {
-				sendTitle(transport, socket);
-			}
-			return true;
-		},
-	);
 }
 
 export function disconnect(transport: TerminalTransport) {
@@ -266,10 +176,6 @@ export function disconnect(transport: TerminalTransport) {
 	setConnectionState(transport, "disconnected");
 	transport.onDataDisposable?.dispose();
 	transport.onDataDisposable = null;
-	transport.onTitleDisposable?.dispose();
-	transport.onTitleDisposable = null;
-	transport.onTitleTokenDisposable?.dispose();
-	transport.onTitleTokenDisposable = null;
 }
 
 export function sendResize(
@@ -279,18 +185,18 @@ export function sendResize(
 ) {
 	if (!transport.socket || transport.socket.readyState !== WebSocket.OPEN)
 		return;
-	sendClientMessage(transport.socket, { type: "resize", cols, rows });
+	transport.socket.send(JSON.stringify({ type: "resize", cols, rows }));
 }
 
 export function sendInput(transport: TerminalTransport, data: string) {
 	if (!transport.socket || transport.socket.readyState !== WebSocket.OPEN)
 		return;
-	sendClientMessage(transport.socket, { type: "input", data });
+	transport.socket.send(JSON.stringify({ type: "input", data }));
 }
 
 export function sendDispose(transport: TerminalTransport) {
 	if (transport.socket?.readyState === WebSocket.OPEN) {
-		sendClientMessage(transport.socket, { type: "dispose" });
+		transport.socket.send(JSON.stringify({ type: "dispose" }));
 	}
 }
 
@@ -305,9 +211,5 @@ export function disposeTransport(transport: TerminalTransport) {
 	transport._reconnectAttempt = 0;
 	transport.onDataDisposable?.dispose();
 	transport.onDataDisposable = null;
-	transport.onTitleDisposable?.dispose();
-	transport.onTitleDisposable = null;
-	transport.onTitleTokenDisposable?.dispose();
-	transport.onTitleTokenDisposable = null;
 	transport.stateListeners.clear();
 }

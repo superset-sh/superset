@@ -360,10 +360,6 @@ class TerminalRuntimeRegistryImpl {
 		);
 	}
 
-	getTitle(terminalId: string, instanceId?: string): string | null {
-		return this.getEntry(terminalId, instanceId)?.transport.title ?? null;
-	}
-
 	onStateChange(
 		terminalId: string,
 		listener: () => void,

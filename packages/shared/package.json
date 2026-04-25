@@ -96,10 +96,6 @@
 			"types": "./src/shell-ready-scanner.ts",
 			"default": "./src/shell-ready-scanner.ts"
 		},
-		"./terminal-title": {
-			"types": "./src/terminal-title.ts",
-			"default": "./src/terminal-title.ts"
-		},
 		"./rrule": {
 			"types": "./src/rrule.ts",
 			"default": "./src/rrule.ts"

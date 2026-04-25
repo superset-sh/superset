@@ -6,7 +6,6 @@ import {
 	type ShellReadyScanState,
 	scanForShellReady,
 } from "@superset/shared/shell-ready-scanner";
-import { normalizeTerminalTitle } from "@superset/shared/terminal-title";
 import { and, eq } from "drizzle-orm";
 import type { Hono } from "hono";
 import { type IPty, spawn } from "node-pty";
@@ -48,15 +47,13 @@ function getHostAgentHookUrl(): string {
 type TerminalClientMessage =
 	| { type: "input"; data: string }
 	| { type: "resize"; cols: number; rows: number }
-	| { type: "dispose" }
-	| { type: "title"; title: string | null };
+	| { type: "dispose" };
 
 type TerminalServerMessage =
 	| { type: "data"; data: string }
 	| { type: "error"; message: string }
 	| { type: "exit"; exitCode: number; signal: number }
-	| { type: "replay"; data: string; title: string | null }
-	| { type: "title"; title: string | null };
+	| { type: "replay"; data: string };
 
 const MAX_BUFFER_BYTES = 64 * 1024;
 const SOCKET_OPEN = 1;
@@ -102,7 +99,6 @@ interface TerminalSession {
 	exitCode: number;
 	exitSignal: number;
 	listed: boolean;
-	title: string | null;
 
 	// Shell readiness (OSC 133)
 	shellReadyState: ShellReadyState;
@@ -137,7 +133,6 @@ export interface TerminalSessionSummary {
 	exited: boolean;
 	exitCode: number;
 	attached: boolean;
-	title: string | null;
 }
 
 export function listTerminalSessions(
@@ -160,7 +155,6 @@ export function listTerminalSessions(
 			exited: session.exited,
 			exitCode: session.exitCode,
 			attached: pruneAndCountOpenSockets(session) > 0,
-			title: session.title,
 		}));
 }
 
@@ -175,11 +169,9 @@ function sendMessage(
 function broadcastMessage(
 	session: TerminalSession,
 	message: TerminalServerMessage,
-	options: { except?: TerminalSocket } = {},
 ): number {
 	let sent = 0;
 	for (const socket of session.sockets) {
-		if (socket === options.except) continue;
 		if (socket.readyState !== SOCKET_OPEN) {
 			if (
 				socket.readyState === SOCKET_CLOSING ||
@@ -208,28 +200,12 @@ function bufferOutput(session: TerminalSession, data: string) {
 function replayBuffer(
 	session: TerminalSession,
 	socket: { send: (data: string) => void; readyState: number },
-): boolean {
-	if (session.buffer.length === 0) return false;
+) {
+	if (session.buffer.length === 0) return;
 	const combined = session.buffer.join("");
 	session.buffer.length = 0;
 	session.bufferBytes = 0;
-	sendMessage(socket, { type: "replay", data: combined, title: session.title });
-	return true;
-}
-
-function setSessionTitle(
-	session: TerminalSession,
-	title: string | null | undefined,
-	sourceSocket?: TerminalSocket,
-): void {
-	const normalizedTitle = normalizeTerminalTitle(title);
-	if (session.title === normalizedTitle) return;
-	session.title = normalizedTitle;
-	broadcastMessage(
-		session,
-		{ type: "title", title: normalizedTitle },
-		{ except: sourceSocket },
-	);
+	sendMessage(socket, { type: "replay", data: combined });
 }
 
 /**
@@ -449,7 +425,6 @@ export function createTerminalSessionInternal({
 		exitCode: 0,
 		exitSignal: 0,
 		listed,
-		title: null,
 		shellReadyState: shellSupportsReady ? "pending" : "unsupported",
 		shellReadyResolve,
 		shellReadyPromise,
@@ -632,7 +607,6 @@ export function registerWorkspaceTerminalRoute({
 							.set({ lastAttachedAt: Date.now() })
 							.where(eq(terminalSessions.id, terminalId))
 							.run();
-						sendMessage(ws, { type: "title", title: result.title });
 						return;
 					}
 
@@ -643,10 +617,7 @@ export function registerWorkspaceTerminalRoute({
 						.where(eq(terminalSessions.id, terminalId))
 						.run();
 
-					const replayed = replayBuffer(existing, ws);
-					if (!replayed) {
-						sendMessage(ws, { type: "title", title: existing.title });
-					}
+					replayBuffer(existing, ws);
 					if (existing.exited) {
 						sendMessage(ws, {
 							type: "exit",
@@ -673,18 +644,6 @@ export function registerWorkspaceTerminalRoute({
 
 					if (message.type === "dispose") {
 						disposeSession(terminalId ?? "", db);
-						return;
-					}
-
-					if (message.type === "title") {
-						if (typeof message.title !== "string" && message.title !== null) {
-							sendMessage(ws, {
-								type: "error",
-								message: "Invalid terminal title payload",
-							});
-							return;
-						}
-						setSessionTitle(session, message.title, ws);
 						return;
 					}
 
