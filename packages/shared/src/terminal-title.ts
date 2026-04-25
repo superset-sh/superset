@@ -12,5 +12,5 @@ export function normalizeTerminalTitle(
 	const normalized = withoutControlCharacters.replace(/\s+/g, " ").trim();
 
 	if (normalized.length === 0) return null;
-	return normalized.slice(0, MAX_TERMINAL_TITLE_LENGTH);
+	return Array.from(normalized).slice(0, MAX_TERMINAL_TITLE_LENGTH).join("");
 }

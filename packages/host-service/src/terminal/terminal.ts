@@ -642,8 +642,8 @@ export function registerWorkspaceTerminalRoute({
 						.where(eq(terminalSessions.id, terminalId))
 						.run();
 
-					sendMessage(ws, { type: "title", title: existing.title });
 					replayBuffer(existing, ws);
+					sendMessage(ws, { type: "title", title: existing.title });
 					if (existing.exited) {
 						sendMessage(ws, {
 							type: "exit",
@@ -674,6 +674,13 @@ export function registerWorkspaceTerminalRoute({
 					}
 
 					if (message.type === "title") {
+						if (typeof message.title !== "string" && message.title !== null) {
+							sendMessage(ws, {
+								type: "error",
+								message: "Invalid terminal title payload",
+							});
+							return;
+						}
 						setSessionTitle(session, message.title, ws);
 						return;
 					}

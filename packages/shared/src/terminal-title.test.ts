@@ -13,4 +13,10 @@ describe("normalizeTerminalTitle", () => {
 
 		expect(normalizeTerminalTitle(longTitle)).toBe("a".repeat(120));
 	});
+
+	it("truncates without splitting surrogate pairs", () => {
+		const title = `${"a".repeat(119)}😀extra`;
+
+		expect(normalizeTerminalTitle(title)).toBe(`${"a".repeat(119)}😀`);
+	});
 });

@@ -146,6 +146,7 @@ export function connect(
 	setConnectionState(transport, "connecting");
 	const socket = new WebSocket(wsUrl);
 	transport.socket = socket;
+	let replaySuppressDepth = 0;
 
 	socket.addEventListener("open", () => {
 		if (transport.socket !== socket) return;
@@ -167,8 +168,16 @@ export function connect(
 			return;
 		}
 
-		if (message.type === "data" || message.type === "replay") {
+		if (message.type === "data") {
 			terminal.write(message.data);
+			return;
+		}
+
+		if (message.type === "replay") {
+			replaySuppressDepth += 1;
+			terminal.write(message.data, () => {
+				replaySuppressDepth = Math.max(0, replaySuppressDepth - 1);
+			});
 			return;
 		}
 
@@ -210,6 +219,7 @@ export function connect(
 	});
 	transport.onTitleDisposable?.dispose();
 	transport.onTitleDisposable = terminal.onTitleChange((title) => {
+		if (replaySuppressDepth > 0) return;
 		if (setTitle(transport, title || null)) {
 			sendTitle(transport, socket);
 		}
@@ -219,6 +229,7 @@ export function connect(
 		9,
 		(data) => {
 			if (!data.startsWith("3;")) return false;
+			if (replaySuppressDepth > 0) return true;
 			if (setTitle(transport, data.slice(2))) {
 				sendTitle(transport, socket);
 			}
