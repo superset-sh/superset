@@ -11,6 +11,7 @@ import {
 	getRuntimeMcpOverview,
 	type LifecycleEvent,
 	onUserPromptSubmit,
+	type RuntimeQuestionResponse,
 	type RuntimeSession,
 	reloadHookConfig,
 	restartRuntimeFromUserMessage,
@@ -34,6 +35,55 @@ import {
 } from "./zod";
 
 const ENABLE_MASTRA_MCP_SERVERS = false;
+
+type RuntimeQuestionPayload = Parameters<
+	RuntimeSession["harness"]["respondToQuestion"]
+>[0];
+
+function respondToQuestionWithOptimisticState(
+	runtime: RuntimeSession,
+	payload: RuntimeQuestionPayload,
+): Promise<RuntimeQuestionResponse> {
+	const questionId = payload.questionId;
+	const pendingResponse = runtime.pendingQuestionResponses.get(questionId);
+	if (pendingResponse) return pendingResponse;
+
+	const wasAlreadyAnswered = runtime.answeredQuestionIds.has(questionId);
+	const previousSandboxQuestion = runtime.pendingSandboxQuestion;
+	const clearsSandboxQuestion =
+		previousSandboxQuestion?.questionId === questionId;
+
+	runtime.answeredQuestionIds.add(questionId);
+	if (clearsSandboxQuestion) {
+		runtime.pendingSandboxQuestion = null;
+	}
+
+	let responsePromise: Promise<RuntimeQuestionResponse>;
+	responsePromise = Promise.resolve()
+		.then(() => runtime.harness.respondToQuestion(payload))
+		.catch((error) => {
+			if (
+				runtime.pendingQuestionResponses.get(questionId) === responsePromise
+			) {
+				if (!wasAlreadyAnswered) {
+					runtime.answeredQuestionIds.delete(questionId);
+				}
+				if (clearsSandboxQuestion && runtime.pendingSandboxQuestion === null) {
+					runtime.pendingSandboxQuestion = previousSandboxQuestion;
+				}
+			}
+			throw error;
+		})
+		.finally(() => {
+			if (
+				runtime.pendingQuestionResponses.get(questionId) === responsePromise
+			) {
+				runtime.pendingQuestionResponses.delete(questionId);
+			}
+		});
+	runtime.pendingQuestionResponses.set(questionId, responsePromise);
+	return responsePromise;
+}
 
 function resolveOmModelFromAuth(): string | undefined {
 	if (process.env.GOOGLE_GENERATIVE_AI_API_KEY)
@@ -142,6 +192,7 @@ export class ChatRuntimeService {
 					lastErrorMessage: null,
 					pendingSandboxQuestion: null,
 					answeredQuestionIds: new Set(),
+					pendingQuestionResponses: new Map(),
 					cwd: runtimeCwd,
 				};
 				syncRuntimeHookSessionId(sessionRuntime);
@@ -230,7 +281,7 @@ export class ChatRuntimeService {
 									options: [
 										{
 											label: "Yes",
-											description: `Allow access. Reason: ${runtime.pendingSandboxQuestion.reason}`,
+											description: "Allow access.",
 										},
 										{ label: "No", description: "Deny access." },
 									],
@@ -357,32 +408,10 @@ export class ChatRuntimeService {
 								input.sessionId,
 								input.cwd,
 							);
-							const questionId = input.payload.questionId;
-							const wasAlreadyAnswered =
-								runtime.answeredQuestionIds.has(questionId);
-							const previousSandboxQuestion = runtime.pendingSandboxQuestion;
-							const clearsSandboxQuestion =
-								previousSandboxQuestion?.questionId === questionId;
-
-							runtime.answeredQuestionIds.add(questionId);
-							if (clearsSandboxQuestion) {
-								runtime.pendingSandboxQuestion = null;
-							}
-
-							try {
-								return await runtime.harness.respondToQuestion(input.payload);
-							} catch (error) {
-								if (!wasAlreadyAnswered) {
-									runtime.answeredQuestionIds.delete(questionId);
-								}
-								if (
-									clearsSandboxQuestion &&
-									runtime.pendingSandboxQuestion === null
-								) {
-									runtime.pendingSandboxQuestion = previousSandboxQuestion;
-								}
-								throw error;
-							}
+							return respondToQuestionWithOptimisticState(
+								runtime,
+								input.payload,
+							);
 						}),
 				}),
 

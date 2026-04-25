@@ -56,6 +56,7 @@ function createRuntimeForTest(): {
 		lastErrorMessage: null,
 		pendingSandboxQuestion: null,
 		answeredQuestionIds: new Set(),
+		pendingQuestionResponses: new Map(),
 		cwd: "/tmp",
 	};
 
@@ -105,6 +106,7 @@ function createRuntimeForTitleTest(options?: {
 		lastErrorMessage: null,
 		pendingSandboxQuestion: null,
 		answeredQuestionIds: new Set(),
+		pendingQuestionResponses: new Map(),
 		cwd: "/tmp",
 	};
 
@@ -341,6 +343,8 @@ describe("runtime message restart", () => {
 			mcpManualStatuses: new Map(),
 			lastErrorMessage: "stale error",
 			pendingSandboxQuestion: null,
+			answeredQuestionIds: new Set(),
+			pendingQuestionResponses: new Map(),
 			cwd: "/tmp",
 		};
 

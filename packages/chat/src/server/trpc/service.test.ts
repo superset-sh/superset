@@ -43,6 +43,7 @@ function createRuntime(options?: {
 			reason: "Need access",
 		},
 		answeredQuestionIds: new Set(),
+		pendingQuestionResponses: new Map(),
 	};
 }
 
@@ -159,5 +160,40 @@ describe("ChatRuntimeService control mutations", () => {
 			path: "/tmp/secret",
 			reason: "Need access",
 		});
+	});
+
+	it("deduplicates concurrent responses for the same question", async () => {
+		let resolveResponse: (value: unknown) => void = () => {};
+		const respondToQuestion = mock(
+			() =>
+				new Promise((resolve) => {
+					resolveResponse = resolve;
+				}),
+		) as RuntimeSession["harness"]["respondToQuestion"];
+		const { caller, runtime } = createServiceHarness({ respondToQuestion });
+		const payload = { questionId: "sandbox-1", answer: "Yes" };
+
+		const firstResponse = caller.session.question.respond({
+			sessionId: SESSION_ID,
+			cwd: CWD,
+			payload,
+		});
+		const secondResponse = caller.session.question.respond({
+			sessionId: SESSION_ID,
+			cwd: CWD,
+			payload,
+		});
+
+		await new Promise((resolve) => setTimeout(resolve, 0));
+
+		expect(respondToQuestion).toHaveBeenCalledTimes(1);
+		expect(runtime.answeredQuestionIds.has("sandbox-1")).toBe(true);
+		expect(runtime.pendingSandboxQuestion).toBeNull();
+
+		resolveResponse({ ok: true });
+
+		await expect(firstResponse).resolves.toEqual({ ok: true });
+		await expect(secondResponse).resolves.toEqual({ ok: true });
+		expect(runtime.pendingQuestionResponses.size).toBe(0);
 	});
 });

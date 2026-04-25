@@ -104,6 +104,52 @@ interface RuntimeSession {
 	lastErrorMessage: string | null;
 	pendingSandboxQuestion: PendingSandboxQuestion | null;
 	answeredQuestionIds: Set<string>;
+	pendingQuestionResponses: Map<string, Promise<RuntimeQuestionResult>>;
+}
+
+function respondToQuestionWithOptimisticState(
+	runtime: RuntimeSession,
+	payload: ChatQuestionPayload,
+): Promise<RuntimeQuestionResult> {
+	const questionId = payload.questionId;
+	const pendingResponse = runtime.pendingQuestionResponses.get(questionId);
+	if (pendingResponse) return pendingResponse;
+
+	const wasAlreadyAnswered = runtime.answeredQuestionIds.has(questionId);
+	const previousSandboxQuestion = runtime.pendingSandboxQuestion;
+	const clearsSandboxQuestion =
+		previousSandboxQuestion?.questionId === questionId;
+
+	runtime.answeredQuestionIds.add(questionId);
+	if (clearsSandboxQuestion) {
+		runtime.pendingSandboxQuestion = null;
+	}
+
+	let responsePromise: Promise<RuntimeQuestionResult>;
+	responsePromise = Promise.resolve()
+		.then(() => runtime.harness.respondToQuestion(payload))
+		.catch((error) => {
+			if (
+				runtime.pendingQuestionResponses.get(questionId) === responsePromise
+			) {
+				if (!wasAlreadyAnswered) {
+					runtime.answeredQuestionIds.delete(questionId);
+				}
+				if (clearsSandboxQuestion && runtime.pendingSandboxQuestion === null) {
+					runtime.pendingSandboxQuestion = previousSandboxQuestion;
+				}
+			}
+			throw error;
+		})
+		.finally(() => {
+			if (
+				runtime.pendingQuestionResponses.get(questionId) === responsePromise
+			) {
+				runtime.pendingQuestionResponses.delete(questionId);
+			}
+		});
+	runtime.pendingQuestionResponses.set(questionId, responsePromise);
+	return responsePromise;
 }
 
 interface RuntimeStoredMessage {
@@ -345,12 +391,14 @@ export class ChatRuntimeManager {
 				runtime.lastErrorMessage = null;
 				runtime.pendingSandboxQuestion = null;
 				runtime.answeredQuestionIds.clear();
+				runtime.pendingQuestionResponses.clear();
 				return;
 			}
 
 			if (isObjectRecord(event) && event.type === "agent_end") {
 				runtime.pendingSandboxQuestion = null;
 				runtime.answeredQuestionIds.clear();
+				runtime.pendingQuestionResponses.clear();
 			}
 		});
 	}
@@ -424,6 +472,7 @@ When you need to ask the user ANY question — including simple yes/no, confirma
 			lastErrorMessage: null,
 			pendingSandboxQuestion: null,
 			answeredQuestionIds: new Set(),
+			pendingQuestionResponses: new Map(),
 		};
 		this.subscribeToSessionEvents(sessionRuntime);
 		this.runtimes.set(sessionId, sessionRuntime);
@@ -493,7 +542,7 @@ When you need to ask the user ANY question — including simple yes/no, confirma
 					options: [
 						{
 							label: "Yes",
-							description: `Allow access. Reason: ${runtime.pendingSandboxQuestion.reason}`,
+							description: "Allow access.",
 						},
 						{ label: "No", description: "Deny access." },
 					],
@@ -581,28 +630,7 @@ When you need to ask the user ANY question — including simple yes/no, confirma
 			input.workspaceId,
 		);
 
-		const questionId = input.payload.questionId;
-		const wasAlreadyAnswered = runtime.answeredQuestionIds.has(questionId);
-		const previousSandboxQuestion = runtime.pendingSandboxQuestion;
-		const clearsSandboxQuestion =
-			previousSandboxQuestion?.questionId === questionId;
-
-		runtime.answeredQuestionIds.add(questionId);
-		if (clearsSandboxQuestion) {
-			runtime.pendingSandboxQuestion = null;
-		}
-
-		try {
-			return await runtime.harness.respondToQuestion(input.payload);
-		} catch (error) {
-			if (!wasAlreadyAnswered) {
-				runtime.answeredQuestionIds.delete(questionId);
-			}
-			if (clearsSandboxQuestion && runtime.pendingSandboxQuestion === null) {
-				runtime.pendingSandboxQuestion = previousSandboxQuestion;
-			}
-			throw error;
-		}
+		return respondToQuestionWithOptimisticState(runtime, input.payload);
 	}
 
 	async respondToPlan(input: {
