@@ -13,7 +13,12 @@ type PortEvent =
 	| { type: "add"; port: DetectedPort }
 	| { type: "remove"; port: DetectedPort };
 
-function getLabelsForPath(worktreePath: string): Map<number, string> | null {
+interface PortLabels {
+	labels: Map<number, string>;
+	hideUnmapped: boolean;
+}
+
+function getLabelsForPath(worktreePath: string): PortLabels | null {
 	const result = loadStaticPorts(worktreePath);
 	if (!result.exists || result.error || !result.ports) return null;
 
@@ -21,7 +26,7 @@ function getLabelsForPath(worktreePath: string): Map<number, string> | null {
 	for (const p of result.ports) {
 		labels.set(p.port, p.label);
 	}
-	return labels;
+	return { labels, hideUnmapped: result.hideUnmapped };
 }
 
 export const createPortsRouter = () => {
@@ -29,9 +34,11 @@ export const createPortsRouter = () => {
 		getAll: publicProcedure.query((): EnrichedPort[] => {
 			const detectedPorts = portManager.getAllPorts();
 
-			const labelCache = new Map<string, Map<number, string> | null>();
+			const labelCache = new Map<string, PortLabels | null>();
 
-			return detectedPorts.map((port) => {
+			const enriched: EnrichedPort[] = [];
+
+			for (const port of detectedPorts) {
 				if (!labelCache.has(port.workspaceId)) {
 					const ws = localDb
 						.select()
@@ -45,9 +52,16 @@ export const createPortsRouter = () => {
 					);
 				}
 
-				const labels = labelCache.get(port.workspaceId);
-				return { ...port, label: labels?.get(port.port) ?? null };
-			});
+				const portLabels = labelCache.get(port.workspaceId);
+				const label = portLabels?.labels.get(port.port) ?? null;
+
+				// If hideUnmapped is enabled, skip ports not listed in ports.json
+				if (portLabels?.hideUnmapped && label == null) continue;
+
+				enriched.push({ ...port, label });
+			}
+
+			return enriched;
 		}),
 
 		subscribe: publicProcedure.subscription(() => {
