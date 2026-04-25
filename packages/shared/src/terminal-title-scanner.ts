@@ -119,7 +119,7 @@ export function scanForTerminalTitle(
 	state: TerminalTitleScanState,
 	chunk: string,
 ): TerminalTitleScanResult {
-	const input = state.buffer + chunk;
+	const input = state.buffer ? state.buffer + chunk : chunk;
 	const updates: Array<string | null> = [];
 	let searchIndex = 0;
 

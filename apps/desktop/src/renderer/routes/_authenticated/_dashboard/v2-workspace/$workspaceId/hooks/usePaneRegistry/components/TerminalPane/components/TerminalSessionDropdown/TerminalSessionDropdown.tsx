@@ -55,6 +55,8 @@ interface TerminalPaneLocation {
 	titleOverride?: string;
 }
 
+const EMPTY_TERMINAL_PANE_LOCATIONS = new Map<string, TerminalPaneLocation[]>();
+
 function formatCreatedAt(createdAt: number | undefined): string {
 	if (!createdAt) return "Creating";
 
@@ -136,7 +138,9 @@ export function TerminalSessionDropdown({
 		[terminalId, terminalInstanceId],
 	);
 	const runtimeTitle = useSyncExternalStore(subscribeTitle, getTitleSnapshot);
-	const renderTerminalPaneLocations = getTerminalPaneLocations(context);
+	const renderTerminalPaneLocations = isOpen
+		? getTerminalPaneLocations(context)
+		: EMPTY_TERMINAL_PANE_LOCATIONS;
 
 	const handleSelectSession = (nextTerminalId: string) => {
 		if (nextTerminalId === terminalId) {
