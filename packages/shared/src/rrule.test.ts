@@ -2,8 +2,11 @@ import { describe, expect, it } from "bun:test";
 import {
 	buildRrule,
 	describeSchedule,
+	formatDateTimeInTimezone,
 	matchPreset,
+	nextOccurrences,
 	type PresetMatch,
+	parseRrule,
 } from "./rrule";
 
 const US = { locale: "en-US" };
@@ -279,4 +282,50 @@ describe("matchPreset + buildRrule round-trip", () => {
 			expect(matchPreset(rrule)).toEqual(match);
 		});
 	}
+});
+
+describe("recurrence timezone math", () => {
+	it("computes daily wall-clock times as plain UTC Date instances", () => {
+		const next = parseRrule({
+			rrule: "FREQ=DAILY;BYHOUR=6;BYMINUTE=0",
+			dtstart: new Date("2026-04-24T20:00:00.000Z"),
+			timezone: "America/Los_Angeles",
+			after: new Date("2026-04-25T00:00:00.000Z"),
+		}).nextRunAt;
+
+		expect(next.constructor.name).toBe("Date");
+		expect(next.toISOString()).toBe("2026-04-25T13:00:00.000Z");
+		expect(
+			formatDateTimeInTimezone(next, "America/Los_Angeles", {
+				locale: "en-US",
+			}),
+		).toBe("Apr 25, 2026 at 6:00 AM PDT");
+	});
+
+	it("keeps the same local time across daylight saving changes", () => {
+		const runs = nextOccurrences({
+			rrule: "FREQ=DAILY;BYHOUR=6;BYMINUTE=0",
+			dtstart: new Date("2026-03-06T20:00:00.000Z"),
+			timezone: "America/Los_Angeles",
+			after: new Date("2026-03-07T00:00:00.000Z"),
+			count: 3,
+		});
+
+		expect(runs.map((run) => run.toISOString())).toEqual([
+			"2026-03-07T14:00:00.000Z",
+			"2026-03-08T13:00:00.000Z",
+			"2026-03-09T13:00:00.000Z",
+		]);
+		expect(
+			runs.map((run) =>
+				formatDateTimeInTimezone(run, "America/Los_Angeles", {
+					locale: "en-US",
+				}),
+			),
+		).toEqual([
+			"Mar 7, 2026 at 6:00 AM PST",
+			"Mar 8, 2026 at 6:00 AM PDT",
+			"Mar 9, 2026 at 6:00 AM PDT",
+		]);
+	});
 });

@@ -1,5 +1,6 @@
 import { positional } from "@superset/cli-framework";
 import { command } from "../../../lib/command";
+import { formatAutomationDate } from "../format";
 
 export default command({
 	description: "Resume a paused automation",
@@ -12,7 +13,7 @@ export default command({
 		});
 		return {
 			data: result,
-			message: `Resumed automation ${id}. Next run: ${result.nextRunAt?.toISOString() ?? "—"}`,
+			message: `Resumed automation ${id}. Next run: ${formatAutomationDate(result.nextRunAt, result.timezone)}`,
 		};
 	},
 });
