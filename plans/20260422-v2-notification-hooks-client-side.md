@@ -24,7 +24,7 @@ The shipped v2 path moved playback out of Electron main, which is the important 
 - Preserve the good parts of v1 UX:
   - sound on completion and permission/input requests
   - no sound on start events
-  - mute, volume, selected ringtone, and eventually custom ringtone support
+  - mute, volume, selected ringtone, and custom ringtone support on desktop
   - suppress notifications when the user is already looking at the relevant pane
   - sidebar indicators for working, permission, and review states
   - click a notification to focus the relevant workspace/pane
@@ -51,7 +51,7 @@ V1 was not all bad. The target design should keep these behaviors:
 - Notifications are suppressed when the target pane is visible and the window is focused.
 - Native notification clicks focus the app and route the renderer to the target tab/pane.
 - Terminal exit events clear `working` and `permission` states so interrupted agents do not leave permanent sidebar dots.
-- Notification audio honors mute, volume, selected ringtone, and custom ringtone fallback.
+- Notification audio honors mute, volume, selected ringtone, and custom ringtone playback.
 
 ## What V1 Got Wrong
 
@@ -100,8 +100,7 @@ Important shipped pieces:
   - falls back to the v1 hook server on missing URL or non-2xx response
 - `apps/desktop/src/renderer/routes/_authenticated/components/V2NotificationController`
   - mounts one host notification subscriber per host-service URL
-- `apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/useV2AgentHookListener`
-  - updates status, suppresses, plays sound, and requests native notifications
+  - owns lifecycle event handling, status transitions, suppression, ringtone playback, and native notification requests
 - `apps/desktop/src/lib/trpc/routers/notifications.ts`
   - creates Electron native notifications and emits v2 source-focus events on click
 - `apps/desktop/src/renderer/stores/v2-notifications`
@@ -109,6 +108,7 @@ Important shipped pieces:
     (`terminal:<id>`, `chat:<id>`) and aggregated by workspace, tab, and pane
 - `apps/desktop/src/renderer/lib/ringtones`
   - renderer-side built-in ringtone playback
+  - Electron-main playback for imported custom ringtone files
 
 This was the right first move, but it should not be the final architecture.
 
@@ -116,9 +116,9 @@ This was the right first move, but it should not be the final architecture.
 
 The current implementation is useful but incomplete.
 
-- **The renderer hook is desktop-specific.** It imports `electronTrpc` for settings, so the current path is not actually web-ready.
-- **Custom ringtones are not supported.** The v2 path falls back to the default ringtone when `"custom"` is selected.
-- **The tests do not cover the new contract.** The copied host-service event mapper, hook mutation, v2 status transitions, suppression, audio fallback, and notification click behavior need direct tests.
+- **The controller is still desktop-specific.** It imports Electron tRPC-backed settings and native notification APIs, so the current path is not actually web-ready.
+- **Custom ringtone storage is still desktop-local.** Imported files are played through Electron main; web will need synced metadata plus browser-readable assets.
+- **Integration coverage is still thin.** The pure transition and hook mutation paths are covered, but there is no end-to-end shell hook -> host-service event bus -> renderer assertion yet.
 
 ## Target Architecture
 
@@ -396,7 +396,7 @@ Desktop phase:
 
 - read existing local-db settings through Electron tRPC
 - keep built-in renderer playback
-- keep `"custom"` fallback to default until custom playback is implemented
+- ask Electron main to play imported custom ringtone files so local paths are not exposed to the renderer
 
 Web phase:
 
@@ -404,7 +404,7 @@ Web phase:
 - store custom ringtones outside local filesystem, for example R2 plus IndexedDB cache
 - add cross-tab leadership so only one tab plays sound
 
-Audio unlock should stay client-side. The current first-gesture priming is the right kind of workaround, but it should live with the notification platform implementation.
+Audio playback should stay client-side and best-effort. The desktop renderer now follows the VS Code-style `HTMLAudioElement.play()` pattern: cache real audio elements, suppress expected user-gesture/autoplay failures, and avoid global Electron autoplay-policy overrides.
 
 ## Host And Workspace Listener Topology
 
@@ -468,7 +468,7 @@ Renderer/client unit tests:
 - suppression only happens for focused, visible target panes.
 - unresolved workspace-only events are not over-suppressed.
 - notification click calls the focus adapter with the resolved target.
-- custom ringtone falls back consistently until full support lands.
+- imported custom ringtone playback goes through Electron main, while built-in ringtone playback stays in the renderer.
 
 Integration tests:
 

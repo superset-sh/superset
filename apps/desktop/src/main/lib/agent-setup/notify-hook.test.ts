@@ -35,4 +35,25 @@ describe("getNotifyScriptContent", () => {
 			'curl -sX POST "$SUPERSET_HOST_AGENT_HOOK_URL" \\\n    --connect-timeout 2 --max-time 5',
 		);
 	});
+
+	it("keeps the legacy v1 fallback path when no host-service hook URL exists", () => {
+		const script = readFileSync(
+			path.join(import.meta.dir, "templates", "notify-hook.template.sh"),
+			"utf-8",
+		);
+
+		expect(script).toContain('if [ -n "$SUPERSET_HOST_AGENT_HOOK_URL" ]; then');
+		expect(script).toContain(
+			'[ -z "$SUPERSET_TAB_ID" ] && [ -z "$SESSION_ID" ] && exit 0',
+		);
+		expect(script).toContain(
+			'curl -sG "http://127.0.0.1:' +
+				"$" +
+				"{SUPERSET_PORT:-{{DEFAULT_PORT}}}" +
+				'/hook/complete"',
+		);
+		expect(script).toContain('--data-urlencode "paneId=$SUPERSET_PANE_ID"');
+		expect(script).toContain('--data-urlencode "tabId=$SUPERSET_TAB_ID"');
+		expect(script).toContain('--data-urlencode "sessionId=$SESSION_ID"');
+	});
 });
