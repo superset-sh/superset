@@ -97,8 +97,5 @@ export function useV2WorkspacePaneLayout({
 		};
 	}, [collections, ensureWorkspaceInSidebar, projectId, store, workspaceId]);
 
-	return {
-		localWorkspaceState,
-		store,
-	};
+	return { store };
 }

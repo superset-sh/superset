@@ -22,7 +22,9 @@ interface ChangesTabContentProps {
 	totalChanges: number;
 	totalAdditions: number;
 	totalDeletions: number;
-	onSelectFile?: (path: string) => void;
+	worktreePath?: string;
+	onSelectFile?: (path: string, openInNewTab?: boolean) => void;
+	onOpenInEditor?: (path: string) => void;
 	onFilterChange: (filter: ChangesFilter) => void;
 	onBaseBranchChange: (branchName: string) => void;
 	onRenameBranch: (newName: string) => void;
@@ -40,7 +42,9 @@ export const ChangesTabContent = memo(function ChangesTabContent({
 	totalChanges,
 	totalAdditions,
 	totalDeletions,
+	worktreePath,
 	onSelectFile,
+	onOpenInEditor,
 	onFilterChange,
 	onBaseBranchChange,
 	onRenameBranch,
@@ -87,7 +91,9 @@ export const ChangesTabContent = memo(function ChangesTabContent({
 				<ChangesFileList
 					files={files}
 					isLoading={isLoading}
+					worktreePath={worktreePath}
 					onSelectFile={onSelectFile}
+					onOpenInEditor={onOpenInEditor}
 				/>
 			</div>
 		</div>

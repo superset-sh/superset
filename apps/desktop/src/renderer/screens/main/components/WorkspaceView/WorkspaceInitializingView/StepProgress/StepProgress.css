@@ -1,0 +1,123 @@
+.step-progress {
+	position: relative;
+	width: 100%;
+	max-width: 20rem;
+	height: 1.75rem;
+	overflow: hidden;
+	margin: 0 auto;
+	mask-image: linear-gradient(
+		to bottom,
+		transparent,
+		black 35%,
+		black 65%,
+		transparent
+	);
+	-webkit-mask-image: linear-gradient(
+		to bottom,
+		transparent,
+		black 35%,
+		black 65%,
+		transparent
+	);
+}
+
+.step-progress__list {
+	position: relative;
+	width: 100%;
+	height: 100%;
+}
+
+.step-progress__item {
+	position: absolute;
+	inset: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.5rem;
+	transition:
+		opacity 0.55s cubic-bezier(0.22, 1, 0.36, 1),
+		transform 0.55s cubic-bezier(0.22, 1, 0.36, 1),
+		color 0.3s ease-out;
+	will-change: transform, opacity;
+}
+
+.step-progress__icon {
+	display: grid;
+	place-items: center;
+	font-size: 0.875rem;
+	flex-shrink: 0;
+}
+
+.step-progress__check-stroke {
+	stroke: var(--background, #fff);
+}
+
+.step-progress__title {
+	font-size: 0.8125rem;
+	font-weight: 500;
+	line-height: 1;
+	display: inline-flex;
+	align-items: baseline;
+}
+
+.step-progress__ellipsis {
+	display: inline-flex;
+	width: 0.9em;
+	margin-left: 0.05em;
+	letter-spacing: 0.05em;
+}
+
+.step-progress__ellipsis-dot {
+	visibility: hidden;
+	animation: step-progress-dot-1 1.6s steps(1, end) infinite;
+}
+
+.step-progress__ellipsis-dot:nth-child(2) {
+	animation-name: step-progress-dot-2;
+}
+
+.step-progress__ellipsis-dot:nth-child(3) {
+	animation-name: step-progress-dot-3;
+}
+
+@keyframes step-progress-dot-1 {
+	0% {
+		visibility: hidden;
+	}
+	25%,
+	100% {
+		visibility: visible;
+	}
+}
+
+@keyframes step-progress-dot-2 {
+	0%,
+	25% {
+		visibility: hidden;
+	}
+	50%,
+	100% {
+		visibility: visible;
+	}
+}
+
+@keyframes step-progress-dot-3 {
+	0%,
+	50% {
+		visibility: hidden;
+	}
+	75%,
+	100% {
+		visibility: visible;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.step-progress__item {
+		transition: none;
+	}
+	.step-progress__ellipsis-dot {
+		animation: none;
+		visibility: visible;
+	}
+}

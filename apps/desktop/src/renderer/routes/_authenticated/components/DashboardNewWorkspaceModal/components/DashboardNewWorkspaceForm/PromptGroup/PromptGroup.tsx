@@ -1,7 +1,4 @@
-import {
-	sanitizeUserBranchName,
-	slugifyForBranch,
-} from "@superset/shared/workspace-launch";
+import { sanitizeUserBranchName } from "@superset/shared/workspace-launch";
 import {
 	PromptInput,
 	PromptInputAttachment,
@@ -91,6 +88,7 @@ export function PromptGroup({
 		branchNameEdited,
 		linkedIssues,
 		linkedPR,
+		friendlyFallback,
 	} = draft;
 
 	// ── Agent presets ────────────────────────────────────────────────
@@ -109,10 +107,9 @@ export function PromptGroup({
 			agentsReady: agentsFetched,
 		});
 
-	const trimmedPrompt = prompt.trim();
 	const branchPreview = branchNameEdited
 		? sanitizeUserBranchName(branchName)
-		: slugifyForBranch(trimmedPrompt);
+		: friendlyFallback;
 
 	// Reset baseBranch on project or host change.
 	const previousProjectIdRef = useRef(projectId);
@@ -142,7 +139,7 @@ export function PromptGroup({
 	});
 
 	// ── Submit (fork) ────────────────────────────────────────────────
-	const createWorkspace = useSubmitWorkspace(projectId);
+	const createWorkspace = useSubmitWorkspace(projectId, selectedAgent);
 	const handleSubmit = useCallback(
 		(files: SubmitAttachment[] = []) => {
 			if (needsSetup) {

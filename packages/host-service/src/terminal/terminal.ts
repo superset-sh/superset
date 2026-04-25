@@ -11,6 +11,7 @@ import type { Hono } from "hono";
 import { type IPty, spawn } from "node-pty";
 import type { HostDb } from "../db";
 import { projects, terminalSessions, workspaces } from "../db/schema";
+import type { EventBus } from "../events";
 import { portManager } from "../ports/port-manager";
 import {
 	buildV2TerminalEnv,
@@ -22,6 +23,7 @@ import {
 interface RegisterWorkspaceTerminalRouteOptions {
 	app: Hono;
 	db: HostDb;
+	eventBus: EventBus;
 	upgradeWebSocket: NodeWebSocket["upgradeWebSocket"];
 }
 
@@ -29,6 +31,17 @@ export function parseThemeType(
 	value: string | null | undefined,
 ): "dark" | "light" | undefined {
 	return value === "dark" || value === "light" ? value : undefined;
+}
+
+/**
+ * Build the host-service tRPC URL for the v2 agent hook. The agent shell
+ * script POSTs to this; host-service fans out on the event bus so the
+ * renderer (web or electron) can play the finish sound.
+ */
+function getHostAgentHookUrl(): string {
+	const port = process.env.HOST_SERVICE_PORT || process.env.PORT;
+	if (!port) return "";
+	return `http://127.0.0.1:${port}/trpc/notifications.hook`;
 }
 
 type TerminalClientMessage =
@@ -43,6 +56,15 @@ type TerminalServerMessage =
 	| { type: "replay"; data: string };
 
 const MAX_BUFFER_BYTES = 64 * 1024;
+const SOCKET_OPEN = 1;
+const SOCKET_CLOSING = 2;
+const SOCKET_CLOSED = 3;
+
+type TerminalSocket = {
+	send: (data: string) => void;
+	close: (code?: number, reason?: string) => void;
+	readyState: number;
+};
 
 // ---------------------------------------------------------------------------
 // OSC 133 shell readiness detection (FinalTerm semantic prompt standard).
@@ -67,17 +89,16 @@ type ShellReadyState = "pending" | "ready" | "timed_out" | "unsupported";
 
 interface TerminalSession {
 	terminalId: string;
+	workspaceId: string;
 	pty: IPty;
-	socket: {
-		send: (data: string) => void;
-		close: (code?: number, reason?: string) => void;
-		readyState: number;
-	} | null;
+	sockets: Set<TerminalSocket>;
 	buffer: string[];
 	bufferBytes: number;
+	createdAt: number;
 	exited: boolean;
 	exitCode: number;
 	exitSignal: number;
+	listed: boolean;
 
 	// Shell readiness (OSC 133)
 	shellReadyState: ShellReadyState;
@@ -90,12 +111,80 @@ interface TerminalSession {
 /** PTY lifetime is independent of socket lifetime — sockets detach/reattach freely. */
 const sessions = new Map<string, TerminalSession>();
 
+function pruneAndCountOpenSockets(session: TerminalSession): number {
+	let openSockets = 0;
+	for (const socket of session.sockets) {
+		if (socket.readyState === SOCKET_OPEN) {
+			openSockets += 1;
+		} else if (
+			socket.readyState === SOCKET_CLOSING ||
+			socket.readyState === SOCKET_CLOSED
+		) {
+			session.sockets.delete(socket);
+		}
+	}
+	return openSockets;
+}
+
+export interface TerminalSessionSummary {
+	terminalId: string;
+	workspaceId: string;
+	createdAt: number;
+	exited: boolean;
+	exitCode: number;
+	attached: boolean;
+}
+
+export function listTerminalSessions(
+	options: { workspaceId?: string; includeExited?: boolean } = {},
+): TerminalSessionSummary[] {
+	const includeExited = options.includeExited ?? true;
+
+	return Array.from(sessions.values())
+		.filter((session) => session.listed)
+		.filter(
+			(session) =>
+				options.workspaceId === undefined ||
+				session.workspaceId === options.workspaceId,
+		)
+		.filter((session) => includeExited || !session.exited)
+		.map((session) => ({
+			terminalId: session.terminalId,
+			workspaceId: session.workspaceId,
+			createdAt: session.createdAt,
+			exited: session.exited,
+			exitCode: session.exitCode,
+			attached: pruneAndCountOpenSockets(session) > 0,
+		}));
+}
+
 function sendMessage(
 	socket: { send: (data: string) => void; readyState: number },
 	message: TerminalServerMessage,
 ) {
-	if (socket.readyState !== 1) return;
+	if (socket.readyState !== SOCKET_OPEN) return;
 	socket.send(JSON.stringify(message));
+}
+
+function broadcastMessage(
+	session: TerminalSession,
+	message: TerminalServerMessage,
+): number {
+	let sent = 0;
+	for (const socket of session.sockets) {
+		if (socket.readyState !== SOCKET_OPEN) {
+			if (
+				socket.readyState === SOCKET_CLOSING ||
+				socket.readyState === SOCKET_CLOSED
+			) {
+				session.sockets.delete(socket);
+			}
+			continue;
+		}
+		sendMessage(socket, message);
+		sent += 1;
+	}
+	return sent;
 }
 
 function bufferOutput(session: TerminalSession, data: string) {
@@ -159,6 +248,10 @@ export function disposeSession(terminalId: string, db: HostDb) {
 			clearTimeout(session.shellReadyTimeoutId);
 			session.shellReadyTimeoutId = null;
 		}
+		for (const socket of session.sockets) {
+			socket.close(1000, "Session disposed");
+		}
+		session.sockets.clear();
 		if (!session.exited) {
 			try {
 				session.pty.kill();
@@ -214,8 +307,11 @@ interface CreateTerminalSessionOptions {
 	workspaceId: string;
 	themeType?: "dark" | "light";
 	db: HostDb;
+	eventBus?: EventBus;
 	/** Command to run after the shell is ready. Queued behind shellReadyPromise. */
 	initialCommand?: string;
+	/** Hidden sessions are process-internal and should not appear in user pickers. */
+	listed?: boolean;
 }
 
 export function createTerminalSessionInternal({
@@ -223,10 +319,13 @@ export function createTerminalSessionInternal({
 	workspaceId,
 	themeType,
 	db,
+	eventBus,
 	initialCommand,
+	listed = true,
 }: CreateTerminalSessionOptions): TerminalSession | { error: string } {
 	const existing = sessions.get(terminalId);
 	if (existing) {
+		if (listed) existing.listed = true;
 		return existing;
 	}
 
@@ -269,6 +368,7 @@ export function createTerminalSessionInternal({
 			process.env.NODE_ENV === "development" ? "development" : "production",
 		agentHookPort: process.env.SUPERSET_AGENT_HOOK_PORT || "",
 		agentHookVersion: process.env.SUPERSET_AGENT_HOOK_VERSION || "",
+		hostAgentHookUrl: getHostAgentHookUrl(),
 	});
 
 	let pty: IPty;
@@ -287,15 +387,18 @@ export function createTerminalSessionInternal({
 		};
 	}
 
+	const createdAt = Date.now();
+
 	db.insert(terminalSessions)
 		.values({
 			id: terminalId,
 			originWorkspaceId: workspaceId,
 			status: "active",
+			createdAt,
 		})
 		.onConflictDoUpdate({
 			target: terminalSessions.id,
-			set: { status: "active", endedAt: null },
+			set: { status: "active", createdAt, endedAt: null },
 		})
 		.run();
 
@@ -312,13 +415,16 @@ export function createTerminalSessionInternal({
 
 	const session: TerminalSession = {
 		terminalId,
+		workspaceId,
 		pty,
-		socket: null,
+		sockets: new Set(),
 		buffer: [],
 		bufferBytes: 0,
+		createdAt,
 		exited: false,
 		exitCode: 0,
 		exitSignal: 0,
+		listed,
 		shellReadyState: shellSupportsReady ? "pending" : "unsupported",
 		shellReadyResolve,
 		shellReadyPromise,
@@ -350,9 +456,7 @@ export function createTerminalSessionInternal({
 
 		portManager.checkOutputForHint(data);
 
-		if (session.socket?.readyState === 1) {
-			sendMessage(session.socket, { type: "data", data });
-		} else {
+		if (broadcastMessage(session, { type: "data", data }) === 0) {
 			bufferOutput(session, data);
 		}
 	});
@@ -369,13 +473,20 @@ export function createTerminalSessionInternal({
 			.where(eq(terminalSessions.id, terminalId))
 			.run();
 
-		if (session.socket?.readyState === 1) {
-			sendMessage(session.socket, {
-				type: "exit",
-				exitCode: session.exitCode,
-				signal: session.exitSignal,
-			});
-		}
+		broadcastMessage(session, {
+			type: "exit",
+			exitCode: session.exitCode,
+			signal: session.exitSignal,
+		});
+
+		eventBus?.broadcastTerminalLifecycle({
+			workspaceId,
+			terminalId,
+			eventType: "exit",
+			exitCode: session.exitCode,
+			signal: session.exitSignal,
+			occurredAt: Date.now(),
+		});
 	});
 
 	if (initialCommand) {
@@ -395,6 +506,7 @@ export function createTerminalSessionInternal({
 export function registerWorkspaceTerminalRoute({
 	app,
 	db,
+	eventBus,
 	upgradeWebSocket,
 }: RegisterWorkspaceTerminalRouteOptions) {
 	app.post("/terminal/sessions", async (c) => {
@@ -413,6 +525,7 @@ export function registerWorkspaceTerminalRoute({
 			workspaceId: body.workspaceId,
 			themeType: parseThemeType(body.themeType),
 			db,
+			eventBus,
 		});
 
 		if ("error" in result) {
@@ -440,13 +553,10 @@ export function registerWorkspaceTerminalRoute({
 
 	// REST list — enumerate live terminal sessions
 	app.get("/terminal/sessions", (c) => {
-		const result = Array.from(sessions.values()).map((s) => ({
-			terminalId: s.terminalId,
-			exited: s.exited,
-			exitCode: s.exitCode,
-			attached: s.socket !== null,
-		}));
-		return c.json({ sessions: result });
+		const workspaceId = c.req.query("workspaceId") || undefined;
+		return c.json({
+			sessions: listTerminalSessions({ workspaceId, includeExited: true }),
+		});
 	});
 
 	app.get(
@@ -482,6 +592,7 @@ export function registerWorkspaceTerminalRoute({
 							workspaceId,
 							themeType,
 							db,
+							eventBus,
 						});
 
 						if ("error" in result) {
@@ -490,7 +601,7 @@ export function registerWorkspaceTerminalRoute({
 							return;
 						}
 
-						result.socket = ws;
+						result.sockets.add(ws);
 
 						db.update(terminalSessions)
 							.set({ lastAttachedAt: Date.now() })
@@ -499,10 +610,7 @@ export function registerWorkspaceTerminalRoute({
 						return;
 					}
 
-					if (existing.socket && existing.socket !== ws) {
-						existing.socket.close(4000, "Displaced by new connection");
-					}
-					existing.socket = ws;
+					existing.sockets.add(ws);
 
 					db.update(terminalSessions)
 						.set({ lastAttachedAt: Date.now() })
@@ -521,18 +629,16 @@ export function registerWorkspaceTerminalRoute({
 
 				onMessage: (event, ws) => {
 					const session = sessions.get(terminalId ?? "");
-					if (!session || session.socket !== ws) return;
+					if (!session || !session.sockets.has(ws)) return;
 
 					let message: TerminalClientMessage;
 					try {
 						message = JSON.parse(String(event.data)) as TerminalClientMessage;
 					} catch {
-						if (session.socket) {
-							sendMessage(session.socket, {
-								type: "error",
-								message: "Invalid terminal message payload",
-							});
-						}
+						sendMessage(ws, {
+							type: "error",
+							message: "Invalid terminal message payload",
+						});
 						return;
 					}
 
@@ -557,16 +663,12 @@ export function registerWorkspaceTerminalRoute({
 
 				onClose: (_event, ws) => {
 					const session = sessions.get(terminalId ?? "");
-					if (session?.socket === ws) {
-						session.socket = null;
-					}
+					session?.sockets.delete(ws);
 				},
 
 				onError: (_event, ws) => {
 					const session = sessions.get(terminalId ?? "");
-					if (session?.socket === ws) {
-						session.socket = null;
-					}
+					session?.sockets.delete(ws);
 				},
 			};
 		}),

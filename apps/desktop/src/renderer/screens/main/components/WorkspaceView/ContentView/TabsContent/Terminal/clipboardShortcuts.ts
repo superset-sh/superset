@@ -28,8 +28,17 @@ export function shouldSelectAllShortcut(
 }
 
 /**
- * Mirror VS Code terminal clipboard bindings so host copy/paste can run before
- * xterm's kitty keyboard handler turns the chord into CSI-u input.
+ * Decide whether a chord should bubble to the host (Electron menu accelerators,
+ * OS clipboard handlers, etc.) instead of reaching xterm's kitty encoder and
+ * leaking into the PTY as a CSI-u sequence.
+ *
+ * On macOS we follow Ghostty's rule (ghostty/src/input/key_encode.zig:534-545:
+ * "on macOS, command+keys do not encode text"): every Cmd chord bubbles. Specific
+ * chords the terminal wants to intercept (Cmd+Left/Right/Backspace, Cmd+A, etc.)
+ * must run before this check in the caller.
+ *
+ * Windows/Linux have standard copy/paste keybinds that bubble selectively:
+ * Ctrl+C only bubbles with a selection because it doubles as SIGINT.
  */
 export function shouldBubbleClipboardShortcut(
 	event: ClipboardShortcutEvent,
@@ -37,8 +46,10 @@ export function shouldBubbleClipboardShortcut(
 ): boolean {
 	const { isMac, isWindows, hasSelection } = options;
 
-	const onlyMeta =
-		event.metaKey && !event.ctrlKey && !event.altKey && !event.shiftKey;
+	if (isMac) {
+		return event.metaKey;
+	}
+
 	const onlyCtrl =
 		event.ctrlKey && !event.metaKey && !event.altKey && !event.shiftKey;
 	const ctrlShiftOnly =
@@ -46,29 +57,16 @@ export function shouldBubbleClipboardShortcut(
 	const onlyShift =
 		event.shiftKey && !event.ctrlKey && !event.metaKey && !event.altKey;
 
-	if (isMac && onlyMeta) {
-		return event.code === "KeyV" || (hasSelection && event.code === "KeyC");
-	}
-
 	if (isWindows) {
-		if (event.code === "KeyV" && (onlyCtrl || ctrlShiftOnly)) {
-			return true;
-		}
-
-		if (hasSelection && event.code === "KeyC" && (onlyCtrl || ctrlShiftOnly)) {
-			return true;
-		}
-
+		if (event.code === "KeyV" && (onlyCtrl || ctrlShiftOnly)) return true;
+		if (event.code === "KeyC" && ctrlShiftOnly) return true;
+		if (event.code === "KeyC" && onlyCtrl && hasSelection) return true;
 		return false;
 	}
 
-	if (!isMac) {
-		return (
-			(event.code === "KeyV" && ctrlShiftOnly) ||
-			(event.code === "Insert" && onlyShift) ||
-			(hasSelection && event.code === "KeyC" && ctrlShiftOnly)
-		);
-	}
-
-	return false;
+	return (
+		(event.code === "KeyV" && ctrlShiftOnly) ||
+		(event.code === "Insert" && onlyShift) ||
+		(event.code === "KeyC" && ctrlShiftOnly)
+	);
 }

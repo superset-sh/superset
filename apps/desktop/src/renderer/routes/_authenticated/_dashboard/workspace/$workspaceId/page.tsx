@@ -40,6 +40,7 @@ import {
 	resolveActiveTabIdForWorkspace,
 } from "renderer/stores/tabs/utils";
 import {
+	useHasCompletedInitThisSession,
 	useHasWorkspaceFailed,
 	useIsWorkspaceInitializing,
 } from "renderer/stores/workspace-init";
@@ -122,12 +123,18 @@ function WorkspacePage() {
 	// Check if workspace is initializing or failed
 	const isInitializing = useIsWorkspaceInitializing(workspaceId);
 	const hasFailed = useHasWorkspaceFailed(workspaceId);
+	// If we witnessed this workspace reach "ready" in the current app session,
+	// never misidentify it as mid-init even if the workspace query momentarily
+	// returns a null gitStatus (happens on the first navigation after create,
+	// because WorkspaceInitEffects clears the progress entry post-setup).
+	const completedThisSession = useHasCompletedInitThisSession(workspaceId);
 
 	// Check for incomplete init after app restart
 	const gitStatus = workspace?.worktree?.gitStatus;
 	const hasIncompleteInit =
+		!completedThisSession &&
 		workspace?.type === "worktree" &&
-		(gitStatus === null || gitStatus === undefined);
+		gitStatus === null;
 
 	// Show full-screen initialization view for:
 	// - Actively initializing workspaces (shows progress)

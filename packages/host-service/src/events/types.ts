@@ -1,4 +1,5 @@
 import type { FsWatchEvent } from "@superset/workspace-fs/host";
+import type { AgentLifecycleEventType } from "./map-event-type";
 
 // ── Server → Client ────────────────────────────────────────────────
 
@@ -20,6 +21,24 @@ export interface GitChangedMessage {
 	paths?: string[];
 }
 
+export interface AgentLifecycleMessage {
+	type: "agent:lifecycle";
+	workspaceId: string;
+	eventType: AgentLifecycleEventType;
+	terminalId: string;
+	occurredAt: number;
+}
+
+export interface TerminalLifecycleMessage {
+	type: "terminal:lifecycle";
+	workspaceId: string;
+	terminalId: string;
+	eventType: "exit";
+	exitCode: number;
+	signal: number;
+	occurredAt: number;
+}
+
 export interface EventBusErrorMessage {
 	type: "error";
 	message: string;
@@ -28,6 +47,8 @@ export interface EventBusErrorMessage {
 export type ServerMessage =
 	| FsEventsMessage
 	| GitChangedMessage
+	| AgentLifecycleMessage
+	| TerminalLifecycleMessage
 	| EventBusErrorMessage;
 
 // ── Client → Server ────────────────────────────────────────────────

@@ -122,6 +122,32 @@ export class EventBus {
 		}
 	}
 
+	/**
+	 * Fan out an agent lifecycle event (hook completion) to all connected
+	 * clients. The workspace-client filters by `workspaceId` on the receiving
+	 * side; we broadcast indiscriminately here to match the existing
+	 * `git:changed` pattern.
+	 */
+	broadcastAgentLifecycle(
+		message: Omit<Extract<ServerMessage, { type: "agent:lifecycle" }>, "type">,
+	): void {
+		this.broadcast({ type: "agent:lifecycle", ...message });
+	}
+
+	/**
+	 * Fan out terminal process lifecycle events to renderer clients. Agent hook
+	 * status can otherwise get stuck when a terminal exits while its pane is not
+	 * mounted and therefore cannot observe the terminal websocket `exit` packet.
+	 */
+	broadcastTerminalLifecycle(
+		message: Omit<
+			Extract<ServerMessage, { type: "terminal:lifecycle" }>,
+			"type"
+		>,
+	): void {
+		this.broadcast({ type: "terminal:lifecycle", ...message });
+	}
+
 	private startFsWatch(
 		socket: WsSocket,
 		state: ClientState,

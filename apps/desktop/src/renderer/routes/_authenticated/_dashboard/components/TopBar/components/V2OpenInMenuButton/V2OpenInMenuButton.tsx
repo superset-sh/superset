@@ -8,8 +8,6 @@ import {
 import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
-import { eq } from "@tanstack/db";
-import { useLiveQuery } from "@tanstack/react-db";
 import { useCallback, useMemo } from "react";
 import { HiChevronDown } from "react-icons/hi2";
 import {
@@ -18,8 +16,7 @@ import {
 } from "renderer/components/OpenInExternalDropdown";
 import { HotkeyLabel, useHotkey, useHotkeyDisplay } from "renderer/hotkeys";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
-import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { useV2ProjectDefaultApp } from "renderer/routes/_authenticated/hooks/useV2ProjectDefaultApp";
 import { useThemeStore } from "renderer/stores";
 
 interface V2OpenInMenuButtonProps {
@@ -33,30 +30,11 @@ export function V2OpenInMenuButton({
 	branch,
 	projectId,
 }: V2OpenInMenuButtonProps) {
-	const collections = useCollections();
-	const { ensureProjectInSidebar } = useDashboardSidebarState();
 	const activeTheme = useThemeStore((state) => state.activeTheme);
 
-	const { data: sidebarProjectRows = [] } = useLiveQuery(
-		(q) =>
-			q
-				.from({ sp: collections.v2SidebarProjects })
-				.where(({ sp }) => eq(sp.projectId, projectId))
-				.select(({ sp }) => ({ defaultOpenInApp: sp.defaultOpenInApp })),
-		[collections, projectId],
-	);
-	const resolvedApp: ExternalApp =
-		(sidebarProjectRows[0]?.defaultOpenInApp as ExternalApp | null) ?? "finder";
-
-	const persistDefaultApp = useCallback(
-		(app: ExternalApp) => {
-			ensureProjectInSidebar(projectId);
-			collections.v2SidebarProjects.update(projectId, (draft) => {
-				draft.defaultOpenInApp = app;
-			});
-		},
-		[collections, ensureProjectInSidebar, projectId],
-	);
+	const { app: persistedApp, setApp: persistDefaultApp } =
+		useV2ProjectDefaultApp(projectId);
+	const resolvedApp: ExternalApp = persistedApp ?? "finder";
 
 	const openInApp = electronTrpc.external.openInApp.useMutation({
 		onSuccess: (_data, variables) => {

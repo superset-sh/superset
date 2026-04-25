@@ -112,6 +112,12 @@ interface BuildV2TerminalEnvParams {
 	supersetEnv: "development" | "production";
 	agentHookPort: string;
 	agentHookVersion: string;
+	/**
+	 * tRPC URL for the host-service notifications.hook mutation.
+	 * Endpoint is unauthenticated by design — it only broadcasts chimes,
+	 * no state change. See the router for rationale.
+	 */
+	hostAgentHookUrl?: string;
 }
 
 /**
@@ -135,6 +141,7 @@ export function buildV2TerminalEnv(
 		supersetEnv,
 		agentHookPort,
 		agentHookVersion,
+		hostAgentHookUrl,
 	} = params;
 
 	// Defense in depth — baseEnv is pre-stripped at init, but strip again
@@ -144,7 +151,11 @@ export function buildV2TerminalEnv(
 	Object.assign(env, getShellBootstrapEnv({ shell, baseEnv, supersetHomeDir }));
 
 	env.TERM = "xterm-256color";
-	env.TERM_PROGRAM = "Superset";
+	// claude-code and similar chat TUIs only parse kitty CSI-u (e.g. Shift+Enter
+	// → \x1b[13;2u) when TERM_PROGRAM ∈ {ghostty, kitty, iTerm.app, WezTerm,
+	// WarpTerminal}. xterm.js already emits the right bytes — claim kitty so
+	// they're parsed instead of submitted as plain Enter.
+	env.TERM_PROGRAM = "kitty";
 	env.TERM_PROGRAM_VERSION = hostServiceVersion;
 	env.COLORTERM = "truecolor";
 	env.COLORFGBG = themeType === "light" ? "0;15" : "15;0";
@@ -158,6 +169,13 @@ export function buildV2TerminalEnv(
 	env.SUPERSET_ENV = supersetEnv;
 	env.SUPERSET_AGENT_HOOK_PORT = agentHookPort;
 	env.SUPERSET_AGENT_HOOK_VERSION = agentHookVersion;
+	// v2 — agent posts to host-service so the renderer can play the sound
+	// client-side. No auth token: the endpoint is unauthenticated by design
+	// (it only broadcasts chimes). The notify-hook script falls back to
+	// the electron endpoint when this URL isn't set.
+	if (hostAgentHookUrl) {
+		env.SUPERSET_HOST_AGENT_HOOK_URL = hostAgentHookUrl;
+	}
 
 	if (supersetHomeDir) {
 		env.SUPERSET_HOME_DIR = supersetHomeDir;

@@ -1,8 +1,10 @@
-import { isTerminalAgentDefinition } from "@superset/shared/agent-catalog";
+import {
+	type AgentDefinitionId,
+	isTerminalAgentDefinition,
+} from "@superset/shared/agent-catalog";
 import {
 	buildPromptCommandFromAgentConfig,
 	getCommandFromAgentConfig,
-	getFallbackAgentId,
 	indexResolvedAgentConfigs,
 	type ResolvedAgentConfig,
 } from "@superset/shared/agent-settings";
@@ -40,7 +42,7 @@ export interface ResolvedPrContent {
 export interface BuildForkAgentLaunchInputs {
 	pending: Pick<
 		PendingWorkspaceRow,
-		"projectId" | "prompt" | "linkedIssues" | "linkedPR"
+		"projectId" | "prompt" | "linkedIssues" | "linkedPR" | "agentId"
 	>;
 	attachments: LoadedAttachment[] | undefined;
 	agentConfigs: ResolvedAgentConfig[];
@@ -124,7 +126,7 @@ export type PendingLaunchBuild =
 export async function buildForkAgentLaunch(
 	inputs: BuildForkAgentLaunchInputs,
 ): Promise<PendingLaunchBuild | null> {
-	const agentId = getFallbackAgentId(inputs.agentConfigs);
+	const agentId = resolveAgentId(inputs.pending.agentId, inputs.agentConfigs);
 	if (!agentId) return null;
 
 	const agentConfig = indexResolvedAgentConfigs(inputs.agentConfigs).get(
@@ -160,6 +162,17 @@ export async function buildForkAgentLaunch(
 		return buildTerminalLaunch(spec, agentConfig);
 	}
 	return buildChatLaunch(spec, agentConfig);
+}
+
+function resolveAgentId(
+	selected: string | null,
+	configs: ResolvedAgentConfig[],
+): AgentDefinitionId | null {
+	if (!selected || selected === "none") return null;
+	const match = indexResolvedAgentConfigs(configs).get(
+		selected as AgentDefinitionId,
+	);
+	return match?.enabled ? match.id : null;
 }
 
 // ---------------------------------------------------------------------------
