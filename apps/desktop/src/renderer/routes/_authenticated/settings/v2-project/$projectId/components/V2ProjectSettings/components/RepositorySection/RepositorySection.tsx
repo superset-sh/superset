@@ -1,7 +1,7 @@
 import { Button } from "@superset/ui/button";
 import { Input } from "@superset/ui/input";
 import { useEffect, useRef, useState } from "react";
-import { useV2ProjectOptimisticActions } from "renderer/routes/_authenticated/hooks/useV2ProjectOptimisticActions";
+import { useOptimisticCollectionActions } from "renderer/routes/_authenticated/hooks/useOptimisticCollectionActions";
 
 interface RepositorySectionProps {
 	projectId: string;
@@ -12,7 +12,7 @@ export function RepositorySection({
 	projectId,
 	currentRepoCloneUrl,
 }: RepositorySectionProps) {
-	const projectActions = useV2ProjectOptimisticActions();
+	const { v2Projects: projectActions } = useOptimisticCollectionActions();
 	const [isEditing, setIsEditing] = useState(false);
 	const [value, setValue] = useState(currentRepoCloneUrl ?? "");
 	const inputRef = useRef<HTMLInputElement>(null);

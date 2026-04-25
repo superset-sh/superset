@@ -3,7 +3,7 @@ import { toast } from "@superset/ui/sonner";
 import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
-import { useV2ProjectOptimisticActions } from "renderer/routes/_authenticated/hooks/useV2ProjectOptimisticActions";
+import { useOptimisticCollectionActions } from "renderer/routes/_authenticated/hooks/useOptimisticCollectionActions";
 import { useOpenNewWorkspaceModal } from "renderer/stores/new-workspace-modal";
 import type { DashboardSidebarProject } from "../../../../types";
 
@@ -16,7 +16,7 @@ export function useDashboardSidebarProjectSectionActions({
 }: UseDashboardSidebarProjectSectionActionsOptions) {
 	const openModal = useOpenNewWorkspaceModal();
 	const navigate = useNavigate();
-	const projectActions = useV2ProjectOptimisticActions();
+	const { v2Projects: projectActions } = useOptimisticCollectionActions();
 	const {
 		createSection,
 		deleteSection,

@@ -8,7 +8,7 @@ import {
 import { useLiveQuery } from "@tanstack/react-db";
 import { useMemo, useState } from "react";
 import { HiOutlineUserCircle } from "react-icons/hi2";
-import { useTaskOptimisticActions } from "renderer/routes/_authenticated/_dashboard/tasks/hooks/useTaskOptimisticActions";
+import { useOptimisticCollectionActions } from "renderer/routes/_authenticated/hooks/useOptimisticCollectionActions";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import type { TaskWithStatus } from "../../../../../components/TasksView/hooks/useTasksTable";
 
@@ -18,7 +18,7 @@ interface AssigneePropertyProps {
 
 export function AssigneeProperty({ task }: AssigneePropertyProps) {
 	const collections = useCollections();
-	const taskActions = useTaskOptimisticActions();
+	const { tasks: taskActions } = useOptimisticCollectionActions();
 	const [open, setOpen] = useState(false);
 
 	const { data: allUsers } = useLiveQuery(

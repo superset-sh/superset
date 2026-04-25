@@ -9,7 +9,7 @@ import {
 	resolveDesktopChatOrganizationId,
 } from "renderer/lib/dev-chat";
 import { posthog } from "renderer/lib/posthog";
-import { useChatSessionOptimisticActions } from "renderer/routes/_authenticated/hooks/useChatSessionOptimisticActions";
+import { useOptimisticCollectionActions } from "renderer/routes/_authenticated/hooks/useOptimisticCollectionActions";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 
 interface SessionSelectorItem {
@@ -63,7 +63,7 @@ export function useWorkspaceChatController({
 		session?.session?.activeOrganizationId,
 	);
 	const collections = useCollections();
-	const chatSessionActions = useChatSessionOptimisticActions();
+	const { chatSessions: chatSessionActions } = useOptimisticCollectionActions();
 
 	const { data: workspace } = workspaceTrpc.workspace.get.useQuery(
 		{ id: workspaceId },

@@ -13,7 +13,7 @@ import {
 	HiOutlineTrash,
 } from "react-icons/hi2";
 import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
-import { useTaskOptimisticActions } from "renderer/routes/_authenticated/_dashboard/tasks/hooks/useTaskOptimisticActions";
+import { useOptimisticCollectionActions } from "renderer/routes/_authenticated/hooks/useOptimisticCollectionActions";
 import type { TaskWithStatus } from "../../../components/TasksView/hooks/useTasksTable";
 
 interface TaskActionMenuProps {
@@ -22,7 +22,7 @@ interface TaskActionMenuProps {
 }
 
 export function TaskActionMenu({ task, onDelete }: TaskActionMenuProps) {
-	const taskActions = useTaskOptimisticActions();
+	const { tasks: taskActions } = useOptimisticCollectionActions();
 	const [open, setOpen] = useState(false);
 
 	const { copyToClipboard } = useCopyToClipboard();

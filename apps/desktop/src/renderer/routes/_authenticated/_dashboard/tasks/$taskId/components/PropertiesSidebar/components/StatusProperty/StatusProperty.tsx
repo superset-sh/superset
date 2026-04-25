@@ -7,7 +7,7 @@ import {
 } from "@superset/ui/dropdown-menu";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useMemo, useState } from "react";
-import { useTaskOptimisticActions } from "renderer/routes/_authenticated/_dashboard/tasks/hooks/useTaskOptimisticActions";
+import { useOptimisticCollectionActions } from "renderer/routes/_authenticated/hooks/useOptimisticCollectionActions";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import {
 	StatusIcon,
@@ -23,7 +23,7 @@ interface StatusPropertyProps {
 
 export function StatusProperty({ task }: StatusPropertyProps) {
 	const collections = useCollections();
-	const taskActions = useTaskOptimisticActions();
+	const { tasks: taskActions } = useOptimisticCollectionActions();
 	const [open, setOpen] = useState(false);
 
 	const { data: allStatuses } = useLiveQuery(

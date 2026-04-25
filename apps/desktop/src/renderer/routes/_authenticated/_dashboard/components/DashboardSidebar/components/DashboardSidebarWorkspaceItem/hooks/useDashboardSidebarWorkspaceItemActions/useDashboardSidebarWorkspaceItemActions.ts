@@ -6,7 +6,7 @@ import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import { useNavigateAwayFromWorkspace } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/hooks/useNavigateAwayFromWorkspace";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
-import { useV2WorkspaceOptimisticActions } from "renderer/routes/_authenticated/hooks/useV2WorkspaceOptimisticActions";
+import { useOptimisticCollectionActions } from "renderer/routes/_authenticated/hooks/useOptimisticCollectionActions";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 
 interface UseDashboardSidebarWorkspaceItemActionsOptions {
@@ -27,7 +27,7 @@ export function useDashboardSidebarWorkspaceItemActions({
 	const navigateAway = useNavigateAwayFromWorkspace();
 	const { activeHostUrl } = useLocalHostService();
 	const { copyToClipboard } = useCopyToClipboard();
-	const workspaceActions = useV2WorkspaceOptimisticActions();
+	const { v2Workspaces: workspaceActions } = useOptimisticCollectionActions();
 	const { createSection, moveWorkspaceToSection, removeWorkspaceFromSidebar } =
 		useDashboardSidebarState();
 

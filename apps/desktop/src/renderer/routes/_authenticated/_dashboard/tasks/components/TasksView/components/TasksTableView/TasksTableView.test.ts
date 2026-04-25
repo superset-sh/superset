@@ -16,7 +16,7 @@ describe("Tasks table delete wiring", () => {
 			"components/TaskContextMenu/TaskContextMenu.tsx",
 		);
 
-		expect(source).toContain("useTaskOptimisticActions");
+		expect(source).toContain("useOptimisticCollectionActions");
 		expect(source).toContain("taskActions.deleteTask(task.id)");
 		expect(source).toContain("onSelect={handleDelete}");
 	});

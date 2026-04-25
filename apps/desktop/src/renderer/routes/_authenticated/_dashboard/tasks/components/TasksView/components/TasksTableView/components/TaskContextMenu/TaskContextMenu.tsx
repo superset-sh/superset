@@ -17,7 +17,7 @@ import {
 	HiOutlineUserCircle,
 } from "react-icons/hi2";
 import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
-import { useTaskOptimisticActions } from "renderer/routes/_authenticated/_dashboard/tasks/hooks/useTaskOptimisticActions";
+import { useOptimisticCollectionActions } from "renderer/routes/_authenticated/hooks/useOptimisticCollectionActions";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import type { TaskWithStatus } from "../../../../hooks/useTasksTable";
 import { compareStatusesForDropdown } from "../../../../utils/sorting";
@@ -39,7 +39,7 @@ export function TaskContextMenu({
 	onDelete,
 }: TaskContextMenuProps) {
 	const collections = useCollections();
-	const taskActions = useTaskOptimisticActions();
+	const { tasks: taskActions } = useOptimisticCollectionActions();
 
 	const { data: allStatuses } = useLiveQuery(
 		(q) => q.from({ taskStatuses: collections.taskStatuses }),
