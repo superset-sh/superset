@@ -210,11 +210,12 @@ export function TerminalSessionDropdown({
 				<button
 					type="button"
 					aria-label="Terminal sessions"
-					className="flex min-w-32 max-w-96 items-center gap-1.5 rounded px-1.5 py-0.5 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+					title={triggerTitle}
+					className="flex min-w-32 max-w-96 items-center gap-1.5 rounded px-1.5 py-0.5 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
 					onMouseDown={(event) => event.stopPropagation()}
 					onClick={(event) => event.stopPropagation()}
 				>
-					<TerminalSquare className="size-4 shrink-0" />
+					<TerminalSquare className="size-3.5 shrink-0" />
 					<span className="min-w-0 flex-1 truncate text-left">
 						{triggerTitle}
 					</span>

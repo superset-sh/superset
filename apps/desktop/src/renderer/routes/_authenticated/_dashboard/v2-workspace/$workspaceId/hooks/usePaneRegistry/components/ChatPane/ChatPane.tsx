@@ -32,7 +32,7 @@ export function ChatPane({
 
 	return (
 		<div className="flex h-full w-full min-h-0 flex-col">
-			<div className="border-b border-border px-4 py-3">
+			<div className="flex h-8 shrink-0 items-center border-b border-border px-2">
 				<SessionSelector
 					currentSessionId={sessionId}
 					sessions={sessionItems}

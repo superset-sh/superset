@@ -77,8 +77,8 @@ export function CollapsedWorkspaceItem({
 			onMouseEnter={onMouseEnter}
 			className={cn(
 				"relative flex items-center justify-center size-8 rounded-md",
-				"hover:bg-muted/50 transition-colors",
-				isActive && "bg-muted",
+				"transition-colors",
+				isActive ? "bg-muted hover:bg-muted" : "hover:bg-muted/50",
 			)}
 		>
 			<WorkspaceIcon
