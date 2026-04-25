@@ -360,6 +360,10 @@ class TerminalRuntimeRegistryImpl {
 		);
 	}
 
+	getTitle(terminalId: string, instanceId?: string): string | null | undefined {
+		return this.getEntry(terminalId, instanceId)?.transport.title;
+	}
+
 	onStateChange(
 		terminalId: string,
 		listener: () => void,
@@ -369,6 +373,18 @@ class TerminalRuntimeRegistryImpl {
 		entry.transport.stateListeners.add(listener);
 		return () => {
 			entry.transport.stateListeners.delete(listener);
+		};
+	}
+
+	onTitleChange(
+		terminalId: string,
+		listener: () => void,
+		instanceId = terminalId,
+	): () => void {
+		const entry = this.getOrCreateEntry(terminalId, instanceId);
+		entry.transport.titleListeners.add(listener);
+		return () => {
+			entry.transport.titleListeners.delete(listener);
 		};
 	}
 }

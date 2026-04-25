@@ -2,7 +2,9 @@
 
 ## Current Status
 
-The terminal-session naming implementation on this branch should be treated as reverted/abandoned. Start from `origin/main` and use this document as context rather than trying to patch the previous approach forward.
+Implemented using the host-authoritative approach from this document. The
+previous renderer/replay implementation should still be treated as abandoned
+context, not as the design to revive.
 
 The previous implementation mixed three title authorities:
 
@@ -10,7 +12,8 @@ The previous implementation mixed three title authorities:
 - host-service session state
 - replay-buffer recovery logic
 
-That created fragile reconnect/replay behavior. The next implementation should pick one title authority and keep the other side read-only.
+That created fragile reconnect/replay behavior. The replacement implementation
+picks one title authority and keeps the renderer read-only.
 
 ## References Checked Under `~/workplace`
 
@@ -32,9 +35,25 @@ That created fragile reconnect/replay behavior. The next implementation should p
 - WezTerm/Rio
   - Parse title OSCs in the terminal/parser layer and emit title-change events to UI/mux layers.
 
-## Recommended Architecture
+## Implemented Architecture
 
-Prefer one of these two approaches.
+The branch now uses Option B:
+
+- host-service parses title OSC sequences directly from PTY output
+- host-service stores `session.title`
+- `listSessions` exposes the current title
+- websocket attach sends `{ type: "title", title }`
+- live title changes broadcast the same websocket message
+- renderer stores the received title as read-only transport state
+- the session dropdown displays explicit pane title overrides first, then the
+  host title, then `Terminal`
+
+No `@xterm/headless` usage was added for naming. Parsing is handled by
+`@superset/shared/terminal-title-scanner`.
+
+## Alternative Architectures Considered
+
+The two viable approaches were:
 
 ### Option A: Renderer-Only, Lowest Risk
 
