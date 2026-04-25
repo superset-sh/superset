@@ -420,19 +420,30 @@ export interface FormatDateTimeInTimezoneOptions {
 	locale?: string;
 }
 
+const DATE_TIME_IN_TIMEZONE_FORMAT_OPTIONS: Intl.DateTimeFormatOptions = {
+	month: "short",
+	day: "numeric",
+	year: "numeric",
+	hour: "numeric",
+	minute: "2-digit",
+	timeZoneName: "short",
+};
+
 /** Format a real UTC instant in the automation's configured timezone. */
 export function formatDateTimeInTimezone(
 	date: Date,
 	timezone: string,
 	options: FormatDateTimeInTimezoneOptions = {},
 ): string {
-	return new Intl.DateTimeFormat(options.locale, {
-		timeZone: timezone,
-		month: "short",
-		day: "numeric",
-		year: "numeric",
-		hour: "numeric",
-		minute: "2-digit",
-		timeZoneName: "short",
-	}).format(date);
+	try {
+		return new Intl.DateTimeFormat(options.locale, {
+			...DATE_TIME_IN_TIMEZONE_FORMAT_OPTIONS,
+			timeZone: timezone,
+		}).format(date);
+	} catch {
+		return new Intl.DateTimeFormat(options.locale, {
+			...DATE_TIME_IN_TIMEZONE_FORMAT_OPTIONS,
+			timeZone: "UTC",
+		}).format(date);
+	}
 }
