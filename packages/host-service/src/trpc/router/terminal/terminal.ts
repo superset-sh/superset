@@ -2,6 +2,7 @@ import { z } from "zod";
 import {
 	createTerminalSessionInternal,
 	disposeSession,
+	listTerminalSessions,
 	parseThemeType,
 } from "../../../terminal/terminal";
 import { protectedProcedure, router } from "../../index";
@@ -35,6 +36,19 @@ export const terminalRouter = router({
 
 			return { terminalId: result.terminalId, status: "active" as const };
 		}),
+
+	listSessions: protectedProcedure
+		.input(
+			z.object({
+				workspaceId: z.string(),
+			}),
+		)
+		.query(({ input }) => ({
+			sessions: listTerminalSessions({
+				workspaceId: input.workspaceId,
+				includeExited: false,
+			}),
+		})),
 
 	killSession: protectedProcedure
 		.input(

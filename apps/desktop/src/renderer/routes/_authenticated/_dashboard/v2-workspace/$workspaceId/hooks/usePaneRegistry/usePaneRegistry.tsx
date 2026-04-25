@@ -49,6 +49,7 @@ import { DiffPane } from "./components/DiffPane";
 import { FilePane } from "./components/FilePane";
 import { FilePaneHeaderExtras } from "./components/FilePane/components/FilePaneHeaderExtras";
 import { TerminalPane } from "./components/TerminalPane";
+import { TerminalSessionDropdown } from "./components/TerminalPane/components/TerminalSessionDropdown";
 
 function getFileName(filePath: string): string {
 	return filePath.split("/").pop() ?? filePath;
@@ -148,9 +149,11 @@ export function usePaneRegistry(
 ): PaneRegistry<PaneViewerData> {
 	const clearShortcut = useHotkeyDisplay("CLEAR_TERMINAL").text;
 	const scrollToBottomShortcut = useHotkeyDisplay("SCROLL_TO_BOTTOM").text;
+	const workspaceTrpcUtils = workspaceTrpc.useUtils();
 	const killTerminalSession = workspaceTrpc.terminal.killSession.useMutation({
 		onSuccess: () => {
 			toast.success("Terminal session killed");
+			void workspaceTrpcUtils.terminal.listSessions.invalidate({ workspaceId });
 		},
 		onError: (error) => {
 			toast.error("Failed to kill terminal session", {
@@ -249,6 +252,9 @@ export function usePaneRegistry(
 			terminal: {
 				getIcon: () => <TerminalSquare className="size-4" />,
 				getTitle: () => "Terminal",
+				renderTitle: (ctx: RendererContext<PaneViewerData>) => (
+					<TerminalSessionDropdown context={ctx} workspaceId={workspaceId} />
+				),
 				renderPane: (ctx: RendererContext<PaneViewerData>) => (
 					<TerminalPane
 						ctx={ctx}

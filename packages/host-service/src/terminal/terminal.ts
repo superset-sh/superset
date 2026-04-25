@@ -66,6 +66,7 @@ type ShellReadyState = "pending" | "ready" | "timed_out" | "unsupported";
 
 interface TerminalSession {
 	terminalId: string;
+	workspaceId: string;
 	pty: IPty;
 	socket: {
 		send: (data: string) => void;
@@ -77,6 +78,7 @@ interface TerminalSession {
 	exited: boolean;
 	exitCode: number;
 	exitSignal: number;
+	listed: boolean;
 
 	// Shell readiness (OSC 133)
 	shellReadyState: ShellReadyState;
@@ -88,6 +90,36 @@ interface TerminalSession {
 
 /** PTY lifetime is independent of socket lifetime — sockets detach/reattach freely. */
 const sessions = new Map<string, TerminalSession>();
+
+export interface TerminalSessionSummary {
+	terminalId: string;
+	workspaceId: string;
+	exited: boolean;
+	exitCode: number;
+	attached: boolean;
+}
+
+export function listTerminalSessions(
+	options: { workspaceId?: string; includeExited?: boolean } = {},
+): TerminalSessionSummary[] {
+	const includeExited = options.includeExited ?? true;
+
+	return Array.from(sessions.values())
+		.filter((session) => session.listed)
+		.filter(
+			(session) =>
+				options.workspaceId === undefined ||
+				session.workspaceId === options.workspaceId,
+		)
+		.filter((session) => includeExited || !session.exited)
+		.map((session) => ({
+			terminalId: session.terminalId,
+			workspaceId: session.workspaceId,
+			exited: session.exited,
+			exitCode: session.exitCode,
+			attached: session.socket !== null,
+		}));
+}
 
 function sendMessage(
 	socket: { send: (data: string) => void; readyState: number },
@@ -213,6 +245,8 @@ interface CreateTerminalSessionOptions {
 	db: HostDb;
 	/** Command to run after the shell is ready. Queued behind shellReadyPromise. */
 	initialCommand?: string;
+	/** Hidden sessions are process-internal and should not appear in user pickers. */
+	listed?: boolean;
 }
 
 export function createTerminalSessionInternal({
@@ -221,9 +255,11 @@ export function createTerminalSessionInternal({
 	themeType,
 	db,
 	initialCommand,
+	listed = true,
 }: CreateTerminalSessionOptions): TerminalSession | { error: string } {
 	const existing = sessions.get(terminalId);
 	if (existing) {
+		if (listed) existing.listed = true;
 		return existing;
 	}
 
@@ -309,6 +345,7 @@ export function createTerminalSessionInternal({
 
 	const session: TerminalSession = {
 		terminalId,
+		workspaceId,
 		pty,
 		socket: null,
 		buffer: [],
@@ -316,6 +353,7 @@ export function createTerminalSessionInternal({
 		exited: false,
 		exitCode: 0,
 		exitSignal: 0,
+		listed,
 		shellReadyState: shellSupportsReady ? "pending" : "unsupported",
 		shellReadyResolve,
 		shellReadyPromise,
@@ -432,13 +470,10 @@ export function registerWorkspaceTerminalRoute({
 
 	// REST list — enumerate live terminal sessions
 	app.get("/terminal/sessions", (c) => {
-		const result = Array.from(sessions.values()).map((s) => ({
-			terminalId: s.terminalId,
-			exited: s.exited,
-			exitCode: s.exitCode,
-			attached: s.socket !== null,
-		}));
-		return c.json({ sessions: result });
+		const workspaceId = c.req.query("workspaceId") || undefined;
+		return c.json({
+			sessions: listTerminalSessions({ workspaceId, includeExited: true }),
+		});
 	});
 
 	app.get(
