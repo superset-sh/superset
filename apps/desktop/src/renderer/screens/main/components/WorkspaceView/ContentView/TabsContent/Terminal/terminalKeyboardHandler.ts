@@ -1,8 +1,6 @@
 import type { Terminal as XTerm } from "@xterm/xterm";
-import {
-	isTerminalReservedEvent,
-	resolveHotkeyFromEvent,
-} from "renderer/hotkeys";
+import { resolveHotkeyFromEvent } from "renderer/hotkeys";
+import { translateLineEditChord } from "renderer/lib/terminal/line-edit-translations";
 import {
 	shouldBubbleClipboardShortcut,
 	shouldSelectAllShortcut,
@@ -50,112 +48,11 @@ export function setupKeyboardHandler(
 			return false;
 		}
 
-		const isCmdBackspace =
-			event.key === "Backspace" &&
-			event.metaKey &&
-			!event.ctrlKey &&
-			!event.altKey &&
-			!event.shiftKey;
-
-		if (isCmdBackspace) {
+		const translation = translateLineEditChord(event, { isMac, isWindows });
+		if (translation !== null) {
 			if (event.type === "keydown" && options.onWrite) {
 				event.preventDefault();
-				options.onWrite("\x15\x1b[D"); // Ctrl+U + left arrow
-			}
-			return false;
-		}
-
-		// Cmd+Left: Move cursor to beginning of line (sends Ctrl+A)
-		const isCmdLeft =
-			event.key === "ArrowLeft" &&
-			event.metaKey &&
-			!event.ctrlKey &&
-			!event.altKey &&
-			!event.shiftKey;
-
-		if (isCmdLeft) {
-			if (event.type === "keydown" && options.onWrite) {
-				event.preventDefault();
-				options.onWrite("\x01"); // Ctrl+A - beginning of line
-			}
-			return false;
-		}
-
-		// Cmd+Right: Move cursor to end of line (sends Ctrl+E)
-		const isCmdRight =
-			event.key === "ArrowRight" &&
-			event.metaKey &&
-			!event.ctrlKey &&
-			!event.altKey &&
-			!event.shiftKey;
-
-		if (isCmdRight) {
-			if (event.type === "keydown" && options.onWrite) {
-				event.preventDefault();
-				options.onWrite("\x05"); // Ctrl+E - end of line
-			}
-			return false;
-		}
-
-		// Option+Left/Right (macOS): word navigation (Meta+B / Meta+F)
-		const isOptionLeft =
-			event.key === "ArrowLeft" &&
-			event.altKey &&
-			isMac &&
-			!event.metaKey &&
-			!event.ctrlKey &&
-			!event.shiftKey;
-
-		if (isOptionLeft) {
-			if (event.type === "keydown" && options.onWrite) {
-				options.onWrite("\x1bb"); // Meta+B - backward word
-			}
-			return false;
-		}
-
-		// Option+Right: Move cursor forward by word (Meta+F)
-		const isOptionRight =
-			event.key === "ArrowRight" &&
-			event.altKey &&
-			isMac &&
-			!event.metaKey &&
-			!event.ctrlKey &&
-			!event.shiftKey;
-
-		if (isOptionRight) {
-			if (event.type === "keydown" && options.onWrite) {
-				options.onWrite("\x1bf"); // Meta+F - forward word
-			}
-			return false;
-		}
-
-		// Ctrl+Left/Right (Windows): word navigation (Meta+B / Meta+F)
-		const isCtrlLeft =
-			event.key === "ArrowLeft" &&
-			event.ctrlKey &&
-			isWindows &&
-			!event.metaKey &&
-			!event.altKey &&
-			!event.shiftKey;
-
-		if (isCtrlLeft) {
-			if (event.type === "keydown" && options.onWrite) {
-				options.onWrite("\x1bb"); // Meta+B - backward word
-			}
-			return false;
-		}
-
-		const isCtrlRight =
-			event.key === "ArrowRight" &&
-			event.ctrlKey &&
-			isWindows &&
-			!event.metaKey &&
-			!event.altKey &&
-			!event.shiftKey;
-
-		if (isCtrlRight) {
-			if (event.type === "keydown" && options.onWrite) {
-				options.onWrite("\x1bf"); // Meta+F - forward word
+				options.onWrite(translation);
 			}
 			return false;
 		}
@@ -180,9 +77,8 @@ export function setupKeyboardHandler(
 			return false;
 		}
 
-		// Unregistered terminal-reserved chords (ctrl+c/d/z/s/q) stay with xterm.
-		if (isTerminalReservedEvent(event)) return true;
-
+		// Default: let xterm process unhandled keys, including terminal-reserved
+		// chords like ctrl+c/d/z/s/q.
 		return true;
 	};
 
