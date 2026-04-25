@@ -133,7 +133,7 @@ export function V2WorkspaceRow({
 					"cursor-pointer transition-colors",
 					"focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-inset",
 					isCurrentRoute
-						? "bg-border/30 hover:bg-border/30 focus-visible:bg-border/30"
+						? "bg-muted hover:bg-muted focus-visible:bg-muted"
 						: "hover:bg-accent/50 focus-visible:bg-accent/50",
 				)}
 			>

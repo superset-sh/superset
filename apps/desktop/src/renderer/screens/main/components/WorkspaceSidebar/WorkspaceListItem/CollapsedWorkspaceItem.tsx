@@ -78,7 +78,7 @@ export function CollapsedWorkspaceItem({
 			className={cn(
 				"relative flex items-center justify-center size-8 rounded-md",
 				"transition-colors",
-				isActive ? "bg-border/30 hover:bg-border/30" : "hover:bg-muted/50",
+				isActive ? "bg-muted hover:bg-muted" : "hover:bg-muted/50",
 			)}
 		>
 			<WorkspaceIcon

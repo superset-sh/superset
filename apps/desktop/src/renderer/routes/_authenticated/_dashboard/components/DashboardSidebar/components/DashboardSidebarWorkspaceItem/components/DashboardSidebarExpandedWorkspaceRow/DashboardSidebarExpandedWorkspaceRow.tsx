@@ -122,11 +122,11 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 					"relative flex w-full items-center pl-3 pr-2 text-left text-sm",
 					onClick &&
 						(isActive
-							? "cursor-pointer hover:bg-border/30"
+							? "cursor-pointer hover:bg-muted"
 							: "cursor-pointer hover:bg-muted/50"),
 					"group",
 					"py-2",
-					isActive && "bg-border/30",
+					isActive && "bg-muted",
 					className,
 				)}
 				{...props}
