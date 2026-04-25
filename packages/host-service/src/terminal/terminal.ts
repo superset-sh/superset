@@ -65,8 +65,6 @@ const MAX_BUFFER_BYTES = 64 * 1024;
 const SOCKET_OPEN = 1;
 const SOCKET_CLOSING = 2;
 const SOCKET_CLOSED = 3;
-const DEBUG_TERMINAL_TITLES =
-	process.env.SUPERSET_DEBUG_TERMINAL_TITLES === "1";
 
 type TerminalSocket = {
 	send: (data: string) => void;
@@ -203,7 +201,6 @@ function logTerminalTitleDebug(
 	event: string,
 	details: Record<string, unknown>,
 ) {
-	if (!DEBUG_TERMINAL_TITLES) return;
 	console.debug("[terminal-title]", event, details);
 }
 
@@ -487,11 +484,10 @@ export function createTerminalSessionInternal({
 		const titleBufferedBytesBefore = session.titleScanState.buffer.length;
 		const titleUpdates = scanForTerminalTitle(session.titleScanState, rawData);
 		if (
-			DEBUG_TERMINAL_TITLES &&
-			(rawData.includes("\x1b]") ||
-				rawData.includes("\x9d") ||
-				titleBufferedBytesBefore > 0 ||
-				titleUpdates.updates.length > 0)
+			rawData.includes("\x1b]") ||
+			rawData.includes("\x9d") ||
+			titleBufferedBytesBefore > 0 ||
+			titleUpdates.updates.length > 0
 		) {
 			logTerminalTitleDebug("scan", {
 				terminalId,
