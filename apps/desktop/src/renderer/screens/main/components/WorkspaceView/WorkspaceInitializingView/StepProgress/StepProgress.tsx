@@ -22,11 +22,13 @@ type StepState = "waiting" | "progress" | "done";
 interface StepProgressProps {
 	currentStep: WorkspaceInitStep;
 	animate?: boolean;
+	messages?: Partial<Record<WorkspaceInitStep, string>>;
 }
 
 export function StepProgress({
 	currentStep,
 	animate = true,
+	messages,
 }: StepProgressProps) {
 	const targetIdx = getStepIndex(currentStep);
 	const [renderIdx, setRenderIdx] = useState(targetIdx);
@@ -57,6 +59,23 @@ export function StepProgress({
 		}, DONE_HOLD_MS);
 		return () => window.clearTimeout(t);
 	}, [animate, targetIdx, renderIdx]);
+
+	if (currentStep === "failed") {
+		return (
+			<div className="step-progress" aria-live="assertive">
+				<div className="step-progress__list">
+					<div className="step-progress__item text-destructive">
+						<span className="step-progress__icon">
+							<FailedCircle />
+						</span>
+						<span className="step-progress__title">
+							{stripEllipsis(messages?.failed ?? INIT_STEP_MESSAGES.failed)}
+						</span>
+					</div>
+				</div>
+			</div>
+		);
+	}
 
 	const activeRenderIdx = animate ? renderIdx : targetIdx;
 	const activeHoldDoneIdx = animate ? holdDoneIdx : null;
@@ -97,7 +116,7 @@ export function StepProgress({
 								<StepIcon state={state} />
 							</span>
 							<span className="step-progress__title">
-								{stripEllipsis(INIT_STEP_MESSAGES[step])}
+								{stripEllipsis(messages?.[step] ?? INIT_STEP_MESSAGES[step])}
 								{state === "progress" ? <Ellipsis /> : null}
 							</span>
 						</div>
@@ -187,6 +206,28 @@ function HalfCircle() {
 				r="7"
 			/>
 			<path fill="currentColor" d="M8 3 A5 5 0 0 1 8 13 Z" />
+		</svg>
+	);
+}
+
+function FailedCircle() {
+	return (
+		<svg
+			width="1em"
+			height="1em"
+			viewBox="0 0 16 16"
+			aria-hidden="true"
+			role="presentation"
+		>
+			<circle fill="currentColor" cx="8" cy="8" r="8" />
+			<path
+				fill="none"
+				stroke="var(--background, #fff)"
+				strokeLinecap="round"
+				strokeWidth="1.75"
+				d="M8 4.25v4.25"
+			/>
+			<circle fill="var(--background, #fff)" cx="8" cy="11.5" r="0.8" />
 		</svg>
 	);
 }

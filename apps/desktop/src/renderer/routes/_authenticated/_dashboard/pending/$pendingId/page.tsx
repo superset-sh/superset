@@ -56,6 +56,30 @@ export const Route = createFileRoute(
 	component: PendingWorkspacePage,
 });
 
+const V2_PENDING_STEP_MESSAGES: Partial<Record<WorkspaceInitStep, string>> = {
+	pending: "Preparing workspace",
+	syncing: "Preparing workspace",
+	verifying: "Checking repository",
+	fetching: "Fetching latest changes",
+	creating_worktree: "Creating worktree",
+	copying_config: "Registering workspace",
+	finalizing: "Opening workspace",
+	ready: "Ready",
+	failed: "Failed",
+};
+
+const V2_PENDING_KEYPAD_LABELS: Partial<Record<WorkspaceInitStep, string>> = {
+	pending: "Preparing workspace",
+	syncing: "Preparing workspace",
+	verifying: "Checking repository",
+	fetching: "Fetching latest changes",
+	creating_worktree: "Creating worktree",
+	copying_config: "Registering workspace",
+	finalizing: "Opening workspace",
+	ready: "Ready",
+	failed: "Failed",
+};
+
 function useFireIntent(pendingId: string, pending: PendingWorkspaceRow | null) {
 	const collections = useCollections();
 	const createWorkspace = useCreateDashboardWorkspace();
@@ -219,6 +243,7 @@ function PendingWorkspacePage() {
 	const { ensureWorkspaceInSidebar } = useDashboardSidebarState();
 	const navigatedRef = useRef(false);
 	const firedRef = useRef(false);
+	const warningsToastedRef = useRef<string | null>(null);
 
 	// Route params can change under a mounted component (user navigates from
 	// one pending page to another). Reset the fire/nav guards so the new
@@ -230,6 +255,7 @@ function PendingWorkspacePage() {
 		prevPendingIdRef.current = pendingId;
 		firedRef.current = false;
 		navigatedRef.current = false;
+		warningsToastedRef.current = null;
 		setSyncTimedOut(false);
 	}
 
@@ -308,8 +334,6 @@ function PendingWorkspacePage() {
 				? "failed"
 				: rawInitStep;
 	const displayedInitStep = useAnimatedInitStep(walkerTarget, pendingId);
-	const walkerCaughtUp =
-		displayedInitStep === "ready" || displayedInitStep === "failed";
 
 	// Honor the user's notification-mute preference + volume for the keypad
 	// click sound. Default to muted while the query loads so we never play a
@@ -334,6 +358,21 @@ function PendingWorkspacePage() {
 	const elapsedLabel = formatRelativeTime(createdAtMs);
 	const isStale =
 		pending?.status === "creating" && elapsedMs > STALE_THRESHOLD_MS;
+
+	useEffect(() => {
+		if (
+			pending?.status !== "succeeded" ||
+			pending.warnings.length === 0 ||
+			warningsToastedRef.current === pendingId
+		) {
+			return;
+		}
+
+		warningsToastedRef.current = pendingId;
+		for (const warning of pending.warnings) {
+			toast.warning(warning);
+		}
+	}, [pending?.status, pending?.warnings, pendingId]);
 
 	// If sync stalls past this, swap the spinner for a recoverable stall UI
 	// rather than silently navigating into "Workspace not found". syncTimedOut
@@ -379,18 +418,11 @@ function PendingWorkspacePage() {
 		if (
 			pending?.status === "succeeded" &&
 			pending.workspaceId &&
-			workspaceSynced &&
-			walkerCaughtUp
+			workspaceSynced
 		) {
 			doNavigate();
 		}
-	}, [
-		pending?.status,
-		pending?.workspaceId,
-		workspaceSynced,
-		walkerCaughtUp,
-		doNavigate,
-	]);
+	}, [pending?.status, pending?.workspaceId, workspaceSynced, doNavigate]);
 
 	if (!pending) {
 		return (
@@ -407,11 +439,9 @@ function PendingWorkspacePage() {
 				? "Checking out branch"
 				: "Setting up workspace";
 
-	// Hold the keypad view through every pre-navigation state (including
-	// walker catch-up + the Electric-sync wait). Flipping to a separate
-	// "Workspace ready — opening..." pane for a tick between walker done and
-	// `doNavigate` firing would flash a different layout before the route
-	// change — the keypad's all-keys-pressed frame already signals done.
+	// Hold the keypad view through the real pre-navigation states. We do not wait
+	// for the animation to catch up once the workspace is synced; navigation
+	// should be gated only by workspace readiness, not loader timing.
 	const showCreatingUI =
 		pending.status === "creating" ||
 		(pending.status === "succeeded" && !syncTimedOut);
@@ -424,6 +454,7 @@ function PendingWorkspacePage() {
 						currentStep={displayedInitStep}
 						muted={notificationSoundsMuted}
 						volume={0.35 * (notificationVolume / 100)}
+						ariaLabelByStep={V2_PENDING_KEYPAD_LABELS}
 					/>
 
 					<div className="space-y-1">
@@ -441,7 +472,11 @@ function PendingWorkspacePage() {
 						</div>
 					</div>
 
-					<StepProgress currentStep={displayedInitStep} animate={false} />
+					<StepProgress
+						currentStep={displayedInitStep}
+						animate={false}
+						messages={V2_PENDING_STEP_MESSAGES}
+					/>
 
 					<div className="flex items-center gap-3">
 						<p className="text-xs text-muted-foreground/60">
@@ -454,7 +489,7 @@ function PendingWorkspacePage() {
 
 					<button
 						type="button"
-						className="rounded-md border px-3 py-1.5 text-sm text-muted-foreground hover:bg-accent hover:text-foreground"
+						className="text-xs text-muted-foreground/45 transition-colors hover:text-muted-foreground"
 						onClick={() => {
 							collections.pendingWorkspaces.delete(pendingId);
 							void clearAttachments(pendingId);
@@ -463,6 +498,58 @@ function PendingWorkspacePage() {
 					>
 						Dismiss
 					</button>
+				</div>
+			</div>
+		);
+	}
+
+	if (pending.status === "failed") {
+		return (
+			<div className="flex h-full w-full flex-1 flex-col items-center justify-center px-8">
+				<div className="flex w-full max-w-md flex-col items-center space-y-5 text-center">
+					<div className="space-y-1">
+						<h2 className="text-lg font-medium text-foreground">
+							Workspace setup failed
+						</h2>
+						<p className="text-sm text-muted-foreground">{pending.name}</p>
+						<div className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
+							<GoGitBranch className="size-3.5" />
+							<span className="font-mono">{pending.branchName}</span>
+						</div>
+					</div>
+
+					<StepProgress
+						currentStep="failed"
+						messages={{ failed: "Failed to set up workspace" }}
+					/>
+
+					<p className="max-w-sm select-text break-words text-xs leading-relaxed text-destructive/75">
+						{pending.error ?? "Failed to create workspace"}
+					</p>
+
+					<div className="flex items-center gap-4 pt-1">
+						<button
+							type="button"
+							className="rounded-md border border-foreground/15 px-3 py-1.5 text-xs text-foreground transition-colors hover:bg-foreground/[0.04]"
+							onClick={() => {
+								firedRef.current = true; // prevent the mount-effect from racing
+								void fireIntent();
+							}}
+						>
+							Retry
+						</button>
+						<button
+							type="button"
+							className="text-xs text-muted-foreground/45 transition-colors hover:text-muted-foreground"
+							onClick={() => {
+								collections.pendingWorkspaces.delete(pendingId);
+								void clearAttachments(pendingId);
+								void navigate({ to: "/" });
+							}}
+						>
+							Dismiss
+						</button>
+					</div>
 				</div>
 			</div>
 		);
@@ -506,40 +593,6 @@ function PendingWorkspacePage() {
 							<button
 								type="button"
 								className="rounded-md border px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-accent"
-								onClick={() => {
-									collections.pendingWorkspaces.delete(pendingId);
-									void clearAttachments(pendingId);
-									void navigate({ to: "/" });
-								}}
-							>
-								Dismiss
-							</button>
-						</div>
-					</div>
-				)}
-
-				{pending.status === "failed" && (
-					<div className="space-y-4">
-						<div className="flex items-start gap-2 text-sm text-destructive">
-							<HiExclamationTriangle className="size-4 mt-0.5 shrink-0" />
-							<span className="select-text cursor-text break-words">
-								{pending.error ?? "Failed to create workspace"}
-							</span>
-						</div>
-						<div className="flex gap-2">
-							<button
-								type="button"
-								className="rounded-md bg-primary px-3 py-1.5 text-sm text-primary-foreground hover:bg-primary/90"
-								onClick={() => {
-									firedRef.current = true; // prevent the mount-effect from racing
-									void fireIntent();
-								}}
-							>
-								Retry
-							</button>
-							<button
-								type="button"
-								className="rounded-md border px-3 py-1.5 text-sm hover:bg-accent"
 								onClick={() => {
 									collections.pendingWorkspaces.delete(pendingId);
 									void clearAttachments(pendingId);

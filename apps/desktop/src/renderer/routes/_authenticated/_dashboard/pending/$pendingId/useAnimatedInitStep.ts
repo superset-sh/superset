@@ -5,10 +5,14 @@ import {
 	type WorkspaceInitStep,
 } from "shared/types/workspace-init";
 
-const STEP_HOLD_MS = 400;
+const STEP_HOLD_MS = 160;
+const LEAD_IN_HOLD_MS = 60;
+const READY_CATCH_UP_HOLD_MS = 60;
 
 /**
- * Advances through `INIT_STEP_ORDER` at most one step per `STEP_HOLD_MS`.
+ * Advances through `INIT_STEP_ORDER` at a readable pace. The first two keypad
+ * beats are a v2 lead-in, so move through them quickly and leave the later
+ * keys for the real worktree/register/opening states.
  *
  * v2's host-service can blow through its 5 steps in well under a poll interval
  * (the whole local-only flow is a handful of synchronous ops), so a raw
@@ -16,9 +20,8 @@ const STEP_HOLD_MS = 400;
  * instantly pressing all keypad keys with no visible progression.
  *
  * Returns a displayed step that walks forward until it catches up, so both
- * `KeypadLoader` and `StepProgress` get a visible beat per step. When the
- * backend genuinely takes longer than the hold, displayed stays pinned at
- * target (the hook adds no artificial latency to slow flows).
+ * `KeypadLoader` and `StepProgress` get a visible beat per step. Navigation
+ * must not wait on this hook; it is purely presentational.
  */
 export function useAnimatedInitStep(
 	targetStep: WorkspaceInitStep,
@@ -49,11 +52,18 @@ export function useAnimatedInitStep(
 		}
 		if (displayedIdx >= targetIdx) return;
 
+		const nextIdx = displayedIdx + 1;
+		const isLeadInStep = nextIdx <= getStepIndex("creating_worktree");
+		const holdMs =
+			targetStep === "ready"
+				? READY_CATCH_UP_HOLD_MS
+				: isLeadInStep
+					? LEAD_IN_HOLD_MS
+					: STEP_HOLD_MS;
 		const timer = window.setTimeout(() => {
-			const nextIdx = displayedIdx + 1;
 			const next = INIT_STEP_ORDER[nextIdx];
 			if (next) setDisplayed(next);
-		}, STEP_HOLD_MS);
+		}, holdMs);
 		return () => window.clearTimeout(timer);
 	}, [targetStep, displayed, resetKey]);
 

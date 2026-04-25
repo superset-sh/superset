@@ -11,15 +11,13 @@ export interface HostServiceProgressStep {
  * `WorkspaceInitStep` enum so we can reuse the v1 KeypadLoader + StepProgress
  * components on the v2 pending page.
  *
- * Host-service emits five steps that line up 1:1 with the v1 keypad's five
- * keys. `fetching_remote` only fires when the start point is a remote-tracking
- * ref — for fully-local base branches, that key passes through pressed
- * without an active beat.
+ * Host-service emits five steps, but v2's meaningful user-facing work is in
+ * the latter three: worktree creation, registration, and finalizing/opening.
+ * Keep the first two keypad beats as quick preflight/fetch lead-ins, then map
+ * those latter three states onto the final three keypad keys.
  *
- * `finalizing` active maps to `ready` (all keys pressed) so the final key
- * visibly presses down before the pending row flips to `succeeded` and
- * navigates away; finalizing is fast (local sqlite insert + optional setup-
- * terminal spawn) and the brief pressed frame is what reads as "done".
+ * Navigation does not wait for this display mapping; it is purely
+ * presentational.
  */
 export function mapProgressToInitStep(
 	steps: HostServiceProgressStep[] | undefined,
@@ -40,7 +38,7 @@ export function mapProgressToInitStep(
 			case "registering":
 				return "copying_config";
 			case "finalizing":
-				return "ready";
+				return "finalizing";
 		}
 	}
 
@@ -51,7 +49,7 @@ export function mapProgressToInitStep(
 	if (lastDoneIdx === -1) return "pending";
 	const lastDoneId = steps[lastDoneIdx].id;
 	if (lastDoneId === "ensuring_repo") return "verifying";
-	if (lastDoneId === "fetching_remote") return "fetching";
+	if (lastDoneId === "fetching_remote") return "creating_worktree";
 	if (lastDoneId === "creating_worktree") return "copying_config";
 	if (lastDoneId === "registering") return "finalizing";
 	if (lastDoneId === "finalizing") return "ready";

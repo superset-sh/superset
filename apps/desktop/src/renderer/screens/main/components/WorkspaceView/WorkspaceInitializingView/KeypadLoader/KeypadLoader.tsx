@@ -76,6 +76,7 @@ interface KeypadLoaderProps {
 	muted?: boolean;
 	/** 0–1 click-sound volume. Clamped and ignored if muted. */
 	volume?: number;
+	ariaLabelByStep?: Partial<Record<WorkspaceInitStep, string>>;
 }
 
 const DEFAULT_CLICK_VOLUME = 0.35;
@@ -85,6 +86,7 @@ export function KeypadLoader({
 	className,
 	muted = false,
 	volume = DEFAULT_CLICK_VOLUME,
+	ariaLabelByStep,
 }: KeypadLoaderProps) {
 	const audioRef = useRef<HTMLAudioElement | null>(null);
 	const prevStepRef = useRef<WorkspaceInitStep>(currentStep);
@@ -169,15 +171,16 @@ export function KeypadLoader({
 	}, [currentStep, effectiveMuted, clampedVolume]);
 
 	const currentIdx = getStepIndex(currentStep);
+	const currentLabel =
+		ariaLabelByStep?.[currentStep] ??
+		KEYS.find((k) => k.activeSteps.includes(currentStep))?.label ??
+		"Preparing";
 
 	return (
 		<div
 			className={cn("keypad-loader", className)}
 			role="img"
-			aria-label={`Setup in progress: ${
-				KEYS.find((k) => k.activeSteps.includes(currentStep))?.label ??
-				"Preparing"
-			}`}
+			aria-label={`Setup in progress: ${currentLabel}`}
 		>
 			<div className="keypad-loader__base">
 				<img src={keypadBaseUrl} alt="" />
