@@ -397,16 +397,19 @@ export class PullRequestRuntimeManager {
 				const upstreamOwner = upstream?.owner ?? null;
 				const upstreamRepo = upstream?.name ?? null;
 				const upstreamBranch = upstream?.branch ?? null;
-				const branchChanged = branch !== workspace.branch;
 				const pullRequestId =
-					branchChanged && !upstream ? null : workspace.pullRequestId;
+					upstream ||
+					this.pullRequestHeadMatches(workspace.pullRequestId, headSha)
+						? workspace.pullRequestId
+						: null;
 
 				if (
 					branch === workspace.branch &&
 					headSha === workspace.headSha &&
 					upstreamOwner === workspace.upstreamOwner &&
 					upstreamRepo === workspace.upstreamRepo &&
-					upstreamBranch === workspace.upstreamBranch
+					upstreamBranch === workspace.upstreamBranch &&
+					pullRequestId === workspace.pullRequestId
 				) {
 					continue;
 				}
@@ -530,8 +533,23 @@ export class PullRequestRuntimeManager {
 			);
 			if (!key) {
 				// PR checkouts recovered from GitHub's archived refs intentionally
-				// have no upstream. Keep their explicit PR link instead of erasing it
-				// during the periodic branch-inference refresh.
+				// have no upstream. Keep the explicit PR link only while the
+				// workspace HEAD still matches the selected PR head.
+				if (
+					this.pullRequestHeadMatches(
+						workspace.pullRequestId,
+						workspace.headSha,
+					)
+				) {
+					continue;
+				}
+				if (workspace.pullRequestId) {
+					this.db
+						.update(workspaces)
+						.set({ pullRequestId: null })
+						.where(eq(workspaces.id, workspace.id))
+						.run();
+				}
 				continue;
 			}
 			const match = keyToPullRequest.get(key);
@@ -615,6 +633,21 @@ export class PullRequestRuntimeManager {
 				),
 			})
 			.sync();
+	}
+
+	private findPullRequestRowById(id: string): PullRequestRow | undefined {
+		return this.db.query.pullRequests
+			.findFirst({ where: eq(pullRequests.id, id) })
+			.sync();
+	}
+
+	private pullRequestHeadMatches(
+		pullRequestId: string | null,
+		headSha: string | null,
+	): boolean {
+		if (!pullRequestId || !headSha) return false;
+		const pr = this.findPullRequestRowById(pullRequestId);
+		return pr?.headSha.toLowerCase() === headSha.trim().toLowerCase();
 	}
 
 	private upsertPullRequestRow({

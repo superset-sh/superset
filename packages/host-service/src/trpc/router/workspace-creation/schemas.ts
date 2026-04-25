@@ -72,7 +72,6 @@ const checkoutPrSchema = z.object({
 	isCrossRepository: z.boolean(),
 	isDraft: z.boolean().optional(),
 	state: z.enum(["open", "closed", "merged"]),
-	updatedAt: z.string().optional(),
 });
 
 export const checkoutInputSchema = z

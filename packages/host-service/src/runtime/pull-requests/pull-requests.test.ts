@@ -212,4 +212,30 @@ describe("PullRequestRuntimeManager direct checkout PR linking", () => {
 
 		expect(state.workspace.pullRequestId).toBe(prId);
 	});
+
+	test("clears a no-upstream PR link when workspace HEAD no longer matches the PR", async () => {
+		const state = makeState("pr/42");
+		const manager = createManager(state);
+
+		await manager.linkWorkspaceToCheckoutPullRequest({
+			workspaceId: WORKSPACE_ID,
+			projectId: PROJECT_ID,
+			pullRequest: {
+				number: 42,
+				url: "https://github.com/base-owner/base-repo/pull/42",
+				title: "Deleted fork",
+				state: "merged",
+				headRefName: "fix-typo",
+				headRefOid: "abc123",
+				headRepositoryOwner: null,
+				headRepositoryName: null,
+				isCrossRepository: true,
+			},
+		});
+		state.workspace.headSha = "def456";
+
+		await manager.refreshPullRequestsByWorkspaces([WORKSPACE_ID]);
+
+		expect(state.workspace.pullRequestId).toBeNull();
+	});
 });

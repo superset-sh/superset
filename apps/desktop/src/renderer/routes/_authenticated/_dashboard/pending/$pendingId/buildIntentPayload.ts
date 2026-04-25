@@ -104,7 +104,6 @@ export function buildPrCheckoutPayload(
 		isCrossRepository: boolean;
 		isDraft?: boolean;
 		state: string;
-		updatedAt?: string;
 	},
 ): CheckoutWorkspaceInput {
 	const linked = mapLinkedContextFromPending(pending);
@@ -133,7 +132,6 @@ export function buildPrCheckoutPayload(
 			isCrossRepository: prContent.isCrossRepository,
 			isDraft: prContent.isDraft ?? false,
 			state: normalizedState,
-			updatedAt: prContent.updatedAt,
 		},
 		composer: {
 			prompt: pending.prompt || undefined,

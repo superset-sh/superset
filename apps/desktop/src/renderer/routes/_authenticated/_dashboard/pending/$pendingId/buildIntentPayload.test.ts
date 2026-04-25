@@ -199,7 +199,6 @@ describe("buildPrCheckoutPayload", () => {
 		isCrossRepository: true,
 		isDraft: false,
 		state: "open",
-		updatedAt: "2026-04-13T00:00:00Z",
 		body: "body text",
 	};
 
@@ -228,7 +227,6 @@ describe("buildPrCheckoutPayload", () => {
 			isCrossRepository: true,
 			isDraft: false,
 			state: "open",
-			updatedAt: "2026-04-13T00:00:00Z",
 		});
 		expect(payload.branch).toBeUndefined();
 	});

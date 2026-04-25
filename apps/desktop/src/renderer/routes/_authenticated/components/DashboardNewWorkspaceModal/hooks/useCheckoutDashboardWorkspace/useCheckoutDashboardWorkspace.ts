@@ -25,7 +25,6 @@ export interface CheckoutWorkspaceInput {
 		isCrossRepository: boolean;
 		isDraft?: boolean;
 		state: "open" | "closed" | "merged";
-		updatedAt?: string;
 	};
 	composer: {
 		prompt?: string;
