@@ -4,6 +4,7 @@ import type { FsWatchEvent } from "@superset/workspace-fs/host";
 import type { Hono } from "hono";
 import type { HostDb } from "../db";
 import { portManager } from "../ports/port-manager";
+import { getLabelsForWorkspace } from "../ports/static-ports";
 import type { WorkspaceFilesystemManager } from "../runtime/filesystem";
 import { GitWatcher } from "./git-watcher";
 import type { ClientMessage, ServerMessage } from "./types";
@@ -184,8 +185,20 @@ export class EventBus {
 			workspaceId: port.workspaceId,
 			eventType,
 			port,
+			label: this.getPortLabel(port),
 			occurredAt: Date.now(),
 		});
+	}
+
+	private getPortLabel(port: DetectedPort): string | null {
+		const labels = getLabelsForWorkspace((workspaceId) => {
+			try {
+				return this.filesystem.resolveWorkspaceRoot(workspaceId);
+			} catch {
+				return null;
+			}
+		}, port.workspaceId);
+		return labels?.get(port.port) ?? null;
 	}
 
 	private startFsWatch(

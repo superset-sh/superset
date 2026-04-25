@@ -7,7 +7,9 @@ import { EventBus } from "./event-bus";
 function createEventBus(): EventBus {
 	return new EventBus({
 		db: {} as unknown as HostDb,
-		filesystem: {} as unknown as WorkspaceFilesystemManager,
+		filesystem: {
+			resolveWorkspaceRoot: () => "/tmp/missing-workspace",
+		} as unknown as WorkspaceFilesystemManager,
 	});
 }
 
@@ -42,6 +44,7 @@ describe("EventBus port events", () => {
 			workspaceId: "workspace-1",
 			eventType: "add",
 			port,
+			label: null,
 		});
 		expect(typeof message.occurredAt).toBe("number");
 	});

@@ -1,4 +1,7 @@
-import { getEventBus } from "@superset/workspace-client";
+import {
+	getEventBus,
+	type PortChangedPayload,
+} from "@superset/workspace-client";
 import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useQueries, useQueryClient } from "@tanstack/react-query";
@@ -12,7 +15,7 @@ import type { DetectedPort } from "shared/types";
 import type { DashboardSidebarWorkspaceHostType } from "../../../../types";
 
 const PORTS_FALLBACK_REFETCH_INTERVAL_MS = 30_000;
-const PORT_EVENT_INVALIDATE_DEBOUNCE_MS = 100;
+const PORT_EVENT_CACHE_BATCH_DELAY_MS = 100;
 
 export interface DashboardSidebarPort extends RemotePort {
 	hostId: string;
@@ -37,7 +40,7 @@ export interface DashboardSidebarPortsLoadError {
 	message: string;
 }
 
-interface HostPortsResult {
+export interface HostPortsResult {
 	hostId: string;
 	hostType: DashboardSidebarWorkspaceHostType;
 	hostUrl: string;
@@ -60,6 +63,42 @@ function getHostPortsQueryKey(host: HostPortsQueryTarget) {
 		host.hostUrl,
 		host.workspaceIds,
 	] as const;
+}
+
+function getPortCacheKey(
+	port: Pick<DetectedPort, "workspaceId" | "terminalId" | "port">,
+): string {
+	return `${port.workspaceId}:${port.terminalId}:${port.port}`;
+}
+
+export function applyPortEventsToHostPortsResult(
+	result: HostPortsResult | undefined,
+	events: PortChangedPayload[],
+): HostPortsResult | undefined {
+	if (!result || events.length === 0) return result;
+
+	let ports = result.ports;
+	let changed = false;
+
+	for (const event of events) {
+		const eventPortKey = getPortCacheKey(event.port);
+		const portsWithoutEventPort = ports.filter(
+			(port) => getPortCacheKey(port) !== eventPortKey,
+		);
+		if (portsWithoutEventPort.length !== ports.length) {
+			changed = true;
+		}
+
+		if (event.eventType === "add") {
+			ports = [...portsWithoutEventPort, { ...event.port, label: event.label }];
+			changed = true;
+		} else {
+			ports = portsWithoutEventPort;
+		}
+	}
+
+	if (!changed) return result;
+	return { ...result, ports };
 }
 
 export function useDashboardSidebarPortsData(): {
@@ -162,25 +201,37 @@ export function useDashboardSidebarPortsData(): {
 
 		for (const host of hostsToQuery) {
 			const workspaceIds = new Set(host.workspaceIds);
-			let invalidateTimer: ReturnType<typeof setTimeout> | null = null;
-			const invalidateHostPorts = () => {
-				if (invalidateTimer) return;
-				invalidateTimer = setTimeout(() => {
-					invalidateTimer = null;
-					void queryClient.invalidateQueries({
-						queryKey: getHostPortsQueryKey(host),
-					});
-				}, PORT_EVENT_INVALIDATE_DEBOUNCE_MS);
+			const pendingEvents: PortChangedPayload[] = [];
+			let cacheUpdateTimer: ReturnType<typeof setTimeout> | null = null;
+			const flushPortEvents = () => {
+				cacheUpdateTimer = null;
+				const events = pendingEvents.splice(0);
+				queryClient.setQueryData<HostPortsResult | undefined>(
+					getHostPortsQueryKey(host),
+					(result) => applyPortEventsToHostPortsResult(result, events),
+				);
+			};
+			const enqueuePortEvent = (event: PortChangedPayload) => {
+				pendingEvents.push(event);
+				if (cacheUpdateTimer) return;
+				cacheUpdateTimer = setTimeout(
+					flushPortEvents,
+					PORT_EVENT_CACHE_BATCH_DELAY_MS,
+				);
 			};
 			const bus = getEventBus(host.hostUrl, () =>
 				getHostServiceWsToken(host.hostUrl),
 			);
-			const removeListener = bus.on("port:changed", "*", (workspaceId) => {
-				if (!workspaceIds.has(workspaceId)) return;
-				invalidateHostPorts();
-			});
+			const removeListener = bus.on(
+				"port:changed",
+				"*",
+				(workspaceId, event) => {
+					if (!workspaceIds.has(workspaceId)) return;
+					enqueuePortEvent(event);
+				},
+			);
 			cleanups.push(removeListener, bus.retain(), () => {
-				if (invalidateTimer) clearTimeout(invalidateTimer);
+				if (cacheUpdateTimer) clearTimeout(cacheUpdateTimer);
 			});
 		}
 

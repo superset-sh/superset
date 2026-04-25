@@ -43,6 +43,7 @@ type PortChangedMessage = Extract<ServerMessage, { type: "port:changed" }>;
 export interface PortChangedPayload {
 	eventType: PortChangedMessage["eventType"];
 	port: PortChangedMessage["port"];
+	label: PortChangedMessage["label"];
 	occurredAt: number;
 }
 
@@ -157,6 +158,7 @@ function handleMessage(state: ConnectionState, data: unknown): void {
 			(entry.callback as EventListener<"port:changed">)(message.workspaceId, {
 				eventType: message.eventType,
 				port: message.port,
+				label: message.label,
 				occurredAt: message.occurredAt,
 			});
 		}

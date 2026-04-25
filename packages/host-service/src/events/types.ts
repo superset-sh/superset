@@ -45,6 +45,7 @@ export interface PortChangedMessage {
 	workspaceId: string;
 	eventType: "add" | "remove";
 	port: DetectedPort;
+	label: string | null;
 	occurredAt: number;
 }
 
