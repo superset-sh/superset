@@ -87,6 +87,23 @@ function AuthenticatedLayout() {
 	electronTrpc.notifications.subscribe.useSubscription(undefined, {
 		onData: (event) => {
 			if (
+				event.type === NOTIFICATION_EVENTS.FOCUS_V2_NOTIFICATION_SOURCE &&
+				event.data
+			) {
+				localStorage.setItem("lastViewedWorkspaceId", event.data.workspaceId);
+				const source = event.data.source;
+				void navigate({
+					to: "/v2-workspace/$workspaceId",
+					params: { workspaceId: event.data.workspaceId },
+					search:
+						source.type === "terminal"
+							? { terminalId: source.id }
+							: { chatSessionId: source.id },
+				});
+				return;
+			}
+
+			if (
 				event.type !== NOTIFICATION_EVENTS.TERMINAL_EXIT ||
 				!event.data?.paneId
 			) {

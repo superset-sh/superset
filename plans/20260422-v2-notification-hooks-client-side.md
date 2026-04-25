@@ -80,7 +80,7 @@ agent shell hook
     host-service broadcasts agent:lifecycle over /events WebSocket
       renderer listener updates v2 notification store
       renderer suppresses or plays ringtone
-      renderer shows browser/OS Notification
+      renderer asks Electron main to show a silent native Notification
       dashboard sidebar reads aggregated v2 status
 ```
 
@@ -101,7 +101,9 @@ Important shipped pieces:
 - `apps/desktop/src/renderer/routes/_authenticated/components/V2NotificationController`
   - mounts one host notification subscriber per host-service URL
 - `apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/useV2AgentHookListener`
-  - updates status, suppresses, plays sound, and shows notifications
+  - updates status, suppresses, plays sound, and requests native notifications
+- `apps/desktop/src/lib/trpc/routers/notifications.ts`
+  - creates Electron native notifications and emits v2 source-focus events on click
 - `apps/desktop/src/renderer/stores/v2-notifications`
   - separate v2 status store, keyed by typed notification source
     (`terminal:<id>`, `chat:<id>`) and aggregated by workspace, tab, and pane
@@ -114,12 +116,7 @@ This was the right first move, but it should not be the final architecture.
 
 The current implementation is useful but incomplete.
 
-- **No v2 terminal-exit cleanup.** V1 clears stuck `working` and `permission` statuses when a terminal exits. V2 status only changes on hook events, so interrupted or killed agents can leave a stale sidebar indicator.
-- **No notification click routing.** V1 notification clicks focus the app and route to the target workspace/tab/pane. V2 creates a `Notification` but does not handle clicks.
-- **Suppression is too coarse.** If the v2 event lacks `paneId` and `tabId`, suppression falls back to "current workspace is visible." That can suppress a notification for a background pane in the same workspace. The client has v2 pane layout data and should resolve by `terminalId` instead.
-- **One listener per workspace is more work than needed.** Event-bus connections are reused per host, but each workspace still mounts a hook and settings queries. A host-level controller should subscribe once per host and fan events into the store.
 - **The renderer hook is desktop-specific.** It imports `electronTrpc` for settings, so the current path is not actually web-ready.
-- **Browser notification permission is not handled.** The v2 client checks `Notification.permission` but does not request permission or route users to settings.
 - **Custom ringtones are not supported.** The v2 path falls back to the default ringtone when `"custom"` is selected.
 - **The tests do not cover the new contract.** The copied host-service event mapper, hook mutation, v2 status transitions, suppression, audio fallback, and notification click behavior need direct tests.
 
@@ -389,7 +386,7 @@ On notification click:
 - if only `terminalId` is known, resolve it through pane layout and activate the matching pane
 - if no pane can be resolved, navigate to the workspace and clear review attention for that source/workspace
 
-V1 did this through Electron main emitting `FOCUS_TAB`. V2 should do it in the client controller through a platform-specific focus adapter.
+V1 did this through Electron main emitting `FOCUS_TAB`. V2 now emits a typed source-focus event from Electron main, and the renderer routes to the v2 workspace with `terminalId` or `chatSessionId` search params.
 
 ## Ringtones And Preferences
 

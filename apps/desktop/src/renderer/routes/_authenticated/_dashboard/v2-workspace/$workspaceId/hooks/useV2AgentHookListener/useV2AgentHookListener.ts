@@ -5,11 +5,11 @@ import type {
 } from "@superset/workspace-client";
 import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
-import { useNavigate } from "@tanstack/react-router";
 import { useCallback, useMemo } from "react";
 import { useWorkspaceEvent } from "renderer/hooks/host-service/useWorkspaceEvent";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { playRingtone } from "renderer/lib/ringtones/play";
+import { electronTrpcClient } from "renderer/lib/trpc-client";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useRingtoneStore } from "renderer/stores/ringtone";
 import {
@@ -19,14 +19,11 @@ import {
 } from "renderer/stores/v2-notifications";
 import type { PaneViewerData } from "../../types";
 import {
-	getNotificationSourceId,
 	isV2NotificationTargetVisible,
 	resolveV2NotificationTarget,
 	type V2NotificationTarget,
 } from "./resolveV2NotificationTarget";
 import { resolveV2AgentStatusTransition } from "./statusTransitions";
-
-type Navigate = ReturnType<typeof useNavigate>;
 
 /**
  * Listens for v2 agent lifecycle events over the host-service WebSocket,
@@ -45,7 +42,6 @@ type Navigate = ReturnType<typeof useNavigate>;
  * sidebar.
  */
 export function useV2AgentHookListener(workspaceId: string): void {
-	const navigate = useNavigate();
 	const collections = useCollections();
 	const { data: volume = 100 } =
 		electronTrpc.settings.getNotificationVolume.useQuery();
@@ -76,10 +72,9 @@ export function useV2AgentHookListener(workspaceId: string): void {
 				paneLayout,
 				volume,
 				muted,
-				navigate,
 			});
 		},
-		[workspaceId, paneLayout, volume, muted, navigate],
+		[workspaceId, paneLayout, volume, muted],
 	);
 
 	const handleTerminalLifecycle = useCallback(
@@ -102,14 +97,12 @@ export function handleV2AgentLifecycleEvent({
 	paneLayout,
 	volume,
 	muted,
-	navigate,
 }: {
 	workspaceId: string;
 	payload: AgentLifecyclePayload;
 	paneLayout: WorkspaceState<PaneViewerData> | null | undefined;
 	volume: number;
 	muted: boolean;
-	navigate: Navigate;
 }): void {
 	const target = resolveV2NotificationTarget({
 		workspaceId,
@@ -124,9 +117,7 @@ export function handleV2AgentLifecycleEvent({
 	const ringtoneId = useRingtoneStore.getState().selectedRingtoneId;
 	void playRingtone({ ringtoneId, volume, muted });
 
-	showNativeNotification(payload, workspaceId, () => {
-		openNotificationTarget(navigate, workspaceId, target);
-	});
+	showNativeNotification({ payload, workspaceId, target });
 }
 
 export function handleV2TerminalLifecycleEvent({
@@ -207,37 +198,37 @@ function shouldSuppress(
 	});
 }
 
-function showNativeNotification(
-	payload: AgentLifecyclePayload,
-	workspaceId: string,
-	onClick: () => void,
-): void {
-	if (typeof Notification === "undefined") return;
-	if (Notification.permission !== "granted") return;
-
+function showNativeNotification({
+	payload,
+	workspaceId,
+	target,
+}: {
+	payload: AgentLifecyclePayload;
+	workspaceId: string;
+	target: V2NotificationTarget;
+}): void {
 	const isPermission = payload.eventType === "PermissionRequest";
 	const title = isPermission ? "Awaiting Response" : "Agent Complete";
 	const body = isPermission
 		? "Your agent needs input"
 		: "Your agent has finished";
 
-	const tagId = getNotificationSourceId(payload);
-
-	try {
-		const notification = new Notification(title, {
+	void electronTrpcClient.notifications.showNative
+		.mutate({
+			title,
 			body,
-			tag: `${workspaceId}:${tagId}`,
 			silent: true,
+			clickTarget: {
+				workspaceId,
+				source: { type: "terminal", id: target.terminalId },
+			},
+		})
+		.catch((error) => {
+			console.warn(
+				"[notifications] failed to show native notification:",
+				error,
+			);
 		});
-		notification.onclick = (event) => {
-			event.preventDefault();
-			onClick();
-			notification.close();
-		};
-	} catch {
-		// Notification constructor can throw if the permission was revoked
-		// between the check and the call. Non-fatal.
-	}
 }
 
 function clearSources(
@@ -251,23 +242,4 @@ function clearSources(
 		),
 		workspaceId,
 	);
-}
-
-function openNotificationTarget(
-	navigate: Navigate,
-	workspaceId: string,
-	target: V2NotificationTarget,
-): void {
-	if (typeof window !== "undefined") {
-		window.focus();
-		localStorage.setItem("lastViewedWorkspaceId", workspaceId);
-	}
-
-	void navigate({
-		to: "/v2-workspace/$workspaceId",
-		params: { workspaceId },
-		search: {
-			terminalId: target.terminalId,
-		},
-	});
 }

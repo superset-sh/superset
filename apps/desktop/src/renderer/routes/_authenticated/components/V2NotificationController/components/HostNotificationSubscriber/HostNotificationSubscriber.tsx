@@ -4,7 +4,6 @@ import type {
 	TerminalLifecyclePayload,
 } from "@superset/workspace-client";
 import { getEventBus } from "@superset/workspace-client";
-import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useEffectEvent, useMemo } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { getHostServiceWsToken } from "renderer/lib/host-service-auth";
@@ -26,7 +25,6 @@ export function HostNotificationSubscriber({
 	hostUrl: string;
 	workspaces: HostNotificationWorkspaceState[];
 }): null {
-	const navigate = useNavigate();
 	const { data: volume = 100 } =
 		electronTrpc.settings.getNotificationVolume.useQuery();
 	const { data: muted = false } =
@@ -49,7 +47,6 @@ export function HostNotificationSubscriber({
 				paneLayout: workspace.paneLayout,
 				volume,
 				muted,
-				navigate,
 			});
 		},
 	);

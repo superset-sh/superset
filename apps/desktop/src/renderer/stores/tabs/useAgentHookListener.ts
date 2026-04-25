@@ -53,6 +53,9 @@ export function useAgentHookListener() {
 	electronTrpc.notifications.subscribe.useSubscription(undefined, {
 		onData: (event) => {
 			if (!event.data) return;
+			if (event.type === NOTIFICATION_EVENTS.FOCUS_V2_NOTIFICATION_SOURCE) {
+				return;
+			}
 
 			const state = useTabsStore.getState();
 			const target = resolveNotificationTarget(event.data, state);

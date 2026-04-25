@@ -31,6 +31,7 @@ export const CONFIG_TEMPLATE = `{
 export const NOTIFICATION_EVENTS = {
 	AGENT_LIFECYCLE: "agent-lifecycle",
 	FOCUS_TAB: "focus-tab",
+	FOCUS_V2_NOTIFICATION_SOURCE: "focus-v2-notification-source",
 	TERMINAL_EXIT: "terminal-exit",
 } as const;
 
