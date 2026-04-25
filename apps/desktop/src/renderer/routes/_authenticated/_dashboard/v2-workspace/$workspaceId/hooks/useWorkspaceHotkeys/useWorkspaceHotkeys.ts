@@ -4,7 +4,7 @@ import {
 	type PaneRegistry,
 	type WorkspaceStore,
 } from "@superset/panes";
-import { useCallback, useRef } from "react";
+import { useCallback, useMemo, useRef } from "react";
 import { useV2UserPreferences } from "renderer/hooks/useV2UserPreferences";
 import { useHotkey } from "renderer/hotkeys";
 import type { V2TerminalPresetRow } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
@@ -29,6 +29,10 @@ export function useWorkspaceHotkeys({
 	paneRegistry: PaneRegistry<PaneViewerData>;
 }) {
 	const { setRightSidebarOpen, setRightSidebarTab } = useV2UserPreferences();
+	const visiblePresets = useMemo(
+		() => matchedPresets.filter((preset) => preset.pinnedToBar !== false),
+		[matchedPresets],
+	);
 
 	useHotkey("TOGGLE_SIDEBAR", () => {
 		setRightSidebarOpen((prev) => !prev);
@@ -280,10 +284,10 @@ export function useWorkspaceHotkeys({
 
 	const openPresetByIndex = useCallback(
 		(index: number) => {
-			const preset = matchedPresets[index];
+			const preset = visiblePresets[index];
 			if (preset) executePreset(preset);
 		},
-		[matchedPresets, executePreset],
+		[visiblePresets, executePreset],
 	);
 
 	useHotkey("OPEN_PRESET_1", () => openPresetByIndex(0));

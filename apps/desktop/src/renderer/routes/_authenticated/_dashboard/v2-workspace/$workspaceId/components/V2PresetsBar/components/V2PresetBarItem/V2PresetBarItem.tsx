@@ -19,18 +19,18 @@ const V2_PRESET_BAR_ITEM_TYPE = "V2_PRESET_BAR_ITEM";
 
 interface V2PresetBarItemProps {
 	preset: V2TerminalPresetRow;
-	pinnedIndex: number;
+	visibleIndex: number;
 	hotkeyId?: HotkeyId;
 	isDark: boolean;
 	onExecutePreset: (preset: V2TerminalPresetRow) => void;
 	onEdit: (preset: V2TerminalPresetRow) => void;
 	onLocalReorder: (fromIndex: number, toIndex: number) => void;
-	onPersistReorder: (presetId: string, targetPinnedIndex: number) => void;
+	onPersistReorder: (presetId: string, targetVisibleIndex: number) => void;
 }
 
 export function V2PresetBarItem({
 	preset,
-	pinnedIndex,
+	visibleIndex,
 	hotkeyId,
 	isDark,
 	onExecutePreset,
@@ -47,22 +47,22 @@ export function V2PresetBarItem({
 			type: V2_PRESET_BAR_ITEM_TYPE,
 			item: {
 				id: preset.id,
-				index: pinnedIndex,
-				originalIndex: pinnedIndex,
+				index: visibleIndex,
+				originalIndex: visibleIndex,
 			},
 			collect: (monitor) => ({
 				isDragging: monitor.isDragging(),
 			}),
 		}),
-		[preset.id, pinnedIndex],
+		[preset.id, visibleIndex],
 	);
 
 	const [, drop] = useDrop({
 		accept: V2_PRESET_BAR_ITEM_TYPE,
 		hover: (item: { id: string; index: number; originalIndex: number }) => {
-			if (item.index !== pinnedIndex) {
-				onLocalReorder(item.index, pinnedIndex);
-				item.index = pinnedIndex;
+			if (item.index !== visibleIndex) {
+				onLocalReorder(item.index, visibleIndex);
+				item.index = visibleIndex;
 			}
 		},
 		drop: (item: { id: string; index: number; originalIndex: number }) => {
