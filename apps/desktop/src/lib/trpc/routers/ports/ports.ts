@@ -3,8 +3,9 @@ import { observable } from "@trpc/server/observable";
 import { eq } from "drizzle-orm";
 import { localDb } from "main/lib/local-db";
 import { loadStaticPorts } from "main/lib/static-ports";
+import { interpolateStaticUrls, loadStaticUrls } from "main/lib/static-urls";
 import { portManager } from "main/lib/terminal/port-manager";
-import type { DetectedPort, EnrichedPort } from "shared/types";
+import type { DetectedPort, EnrichedPort, StaticUrl } from "shared/types";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 import { getWorkspacePath } from "../workspaces/utils/worktree";
@@ -69,6 +70,39 @@ export const createPortsRouter = () => {
 				};
 			});
 		}),
+
+		getUrls: publicProcedure
+			.input(z.object({ workspaceId: z.string() }))
+			.query(({ input }): { urls: StaticUrl[]; error: string | null } => {
+				const ws = localDb
+					.select()
+					.from(workspaces)
+					.where(eq(workspaces.id, input.workspaceId))
+					.get();
+
+				if (!ws) {
+					return { urls: [], error: null };
+				}
+
+				const wsPath = getWorkspacePath(ws);
+				if (!wsPath) {
+					return { urls: [], error: null };
+				}
+
+				const result = loadStaticUrls(wsPath);
+				if (!result.exists) {
+					return { urls: [], error: null };
+				}
+				if (result.error || !result.urls) {
+					return { urls: [], error: result.error };
+				}
+
+				const interpolated = interpolateStaticUrls(result.urls, {
+					WORKSPACE: ws.name,
+				});
+
+				return { urls: interpolated, error: null };
+			}),
 
 		kill: publicProcedure
 			.input(

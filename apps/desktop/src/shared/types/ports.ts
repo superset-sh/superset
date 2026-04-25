@@ -23,3 +23,14 @@ export interface StaticPortsResult {
 export interface EnrichedPort extends DetectedPort {
 	label: string | null;
 }
+
+export interface StaticUrl {
+	url: string;
+	label: string;
+}
+
+export interface StaticUrlsResult {
+	exists: boolean;
+	urls: StaticUrl[] | null;
+	error: string | null;
+}
