@@ -188,22 +188,6 @@ export function V2PresetsBar({
 			className="flex h-8 min-w-0 shrink-0 items-center gap-0.5 overflow-x-auto overflow-y-hidden border-b border-border bg-background px-2"
 			style={{ scrollbarWidth: "none" }}
 		>
-			{visiblePresets.map(({ preset }, visibleIndex) => {
-				const hotkeyId = PRESET_HOTKEY_IDS[visibleIndex];
-				return (
-					<V2PresetBarItem
-						key={preset.id}
-						preset={preset}
-						visibleIndex={visibleIndex}
-						hotkeyId={hotkeyId}
-						isDark={isDark}
-						onExecutePreset={executePreset}
-						onEdit={(presetToEdit) => handleEditPreset(presetToEdit.id)}
-						onLocalReorder={handleLocalVisibleReorder}
-						onPersistReorder={handlePersistVisibleReorder}
-					/>
-				);
-			})}
 			<DropdownMenu>
 				<Tooltip>
 					<TooltipTrigger asChild>
@@ -247,9 +231,6 @@ export function V2PresetsBar({
 									{isVisible && hotkeyId ? (
 										<HotkeyMenuShortcut hotkeyId={hotkeyId} />
 									) : null}
-									<span className="text-[10px] text-muted-foreground">
-										{isVisible ? "Shown" : "Hidden"}
-									</span>
 									{isVisible ? (
 										<Eye className="size-3.5 text-foreground" />
 									) : (
@@ -269,6 +250,22 @@ export function V2PresetsBar({
 					</DropdownMenuItem>
 				</DropdownMenuContent>
 			</DropdownMenu>
+			{visiblePresets.map(({ preset }, visibleIndex) => {
+				const hotkeyId = PRESET_HOTKEY_IDS[visibleIndex];
+				return (
+					<V2PresetBarItem
+						key={preset.id}
+						preset={preset}
+						visibleIndex={visibleIndex}
+						hotkeyId={hotkeyId}
+						isDark={isDark}
+						onExecutePreset={executePreset}
+						onEdit={(presetToEdit) => handleEditPreset(presetToEdit.id)}
+						onLocalReorder={handleLocalVisibleReorder}
+						onPersistReorder={handlePersistVisibleReorder}
+					/>
+				);
+			})}
 		</div>
 	);
 }
