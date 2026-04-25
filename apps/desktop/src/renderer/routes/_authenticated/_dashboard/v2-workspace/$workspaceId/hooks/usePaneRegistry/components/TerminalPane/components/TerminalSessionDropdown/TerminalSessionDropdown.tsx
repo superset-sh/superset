@@ -1,4 +1,5 @@
 import type { RendererContext } from "@superset/panes";
+import { alert } from "@superset/ui/atoms/Alert";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -7,6 +8,7 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
+import { toast } from "@superset/ui/sonner";
 import { workspaceTrpc } from "@superset/workspace-client";
 import {
 	Check,
@@ -14,6 +16,7 @@ import {
 	LoaderCircle,
 	Plus,
 	TerminalSquare,
+	Trash2,
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import type {
@@ -73,6 +76,7 @@ export function TerminalSessionDropdown({
 	const data = context.pane.data as TerminalPaneData;
 	const { terminalId } = data;
 	const utils = workspaceTrpc.useUtils();
+	const killTerminalSession = workspaceTrpc.terminal.killSession.useMutation();
 	const sessionsQuery = workspaceTrpc.terminal.listSessions.useQuery(
 		{ workspaceId },
 		{
@@ -130,6 +134,49 @@ export function TerminalSessionDropdown({
 			titleOverride: existingLocation?.titleOverride,
 		});
 		setIsOpen(false);
+	};
+
+	const closePaneForTerminal = (targetTerminalId: string) => {
+		if (targetTerminalId === terminalId) {
+			void context.actions.close();
+			return;
+		}
+
+		const location = findTerminalPaneLocation(context, targetTerminalId);
+		if (!location) return;
+
+		context.store.getState().closePane({
+			tabId: location.tabId,
+			paneId: location.paneId,
+		});
+	};
+
+	const removeTerminalSession = async (targetTerminalId: string) => {
+		await killTerminalSession.mutateAsync({ terminalId: targetTerminalId });
+		closePaneForTerminal(targetTerminalId);
+		await utils.terminal.listSessions.invalidate({ workspaceId });
+	};
+
+	const handleRemoveTerminal = (targetTerminalId: string) => {
+		alert({
+			title: "Remove terminal session?",
+			description:
+				"This will terminate the underlying process. Use Move terminal to background to keep it running without a pane.",
+			actions: [
+				{ label: "Cancel", variant: "outline", onClick: () => {} },
+				{
+					label: "Remove Terminal",
+					variant: "destructive",
+					onClick: () => {
+						toast.promise(removeTerminalSession(targetTerminalId), {
+							loading: "Removing terminal...",
+							success: "Terminal removed",
+							error: "Failed to remove terminal",
+						});
+					},
+				},
+			],
+		});
 	};
 
 	const handleNewTerminal = () => {
@@ -204,9 +251,14 @@ export function TerminalSessionDropdown({
 							return (
 								<DropdownMenuItem
 									key={session.terminalId}
-									disabled={!canSelect}
-									className="flex items-center gap-2"
-									onSelect={() => handleSelectSession(session.terminalId)}
+									className={`group flex items-center gap-2 ${!canSelect ? "text-muted-foreground/50" : ""}`}
+									onSelect={(event) => {
+										if (!canSelect) {
+											event.preventDefault();
+											return;
+										}
+										handleSelectSession(session.terminalId);
+									}}
 								>
 									<span className="w-4 shrink-0">
 										{isCurrent && <Check className="size-3.5" />}
@@ -220,6 +272,19 @@ export function TerminalSessionDropdown({
 									<span className="shrink-0 text-xs text-muted-foreground">
 										{status}
 									</span>
+									<button
+										type="button"
+										aria-label={`Remove terminal ${getShortTerminalId(session.terminalId)}`}
+										disabled={killTerminalSession.isPending}
+										className="shrink-0 rounded p-0.5 opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive disabled:pointer-events-none disabled:opacity-30 group-hover:opacity-100"
+										onClick={(event) => {
+											event.preventDefault();
+											event.stopPropagation();
+											handleRemoveTerminal(session.terminalId);
+										}}
+									>
+										<Trash2 className="size-3" />
+									</button>
 								</DropdownMenuItem>
 							);
 						})
