@@ -28,6 +28,8 @@ import { useHotkeyDisplay } from "renderer/hotkeys";
 import { terminalRuntimeRegistry } from "renderer/lib/terminal/terminal-runtime-registry";
 import { FileIcon } from "renderer/screens/main/components/WorkspaceView/RightSidebar/FilesView/utils";
 import { useSettings } from "renderer/stores/settings";
+import { getV2NotificationSourceIdsForPane } from "renderer/stores/v2-notifications";
+import { V2NotificationStatusIndicator } from "../../components/V2NotificationStatusIndicator";
 import {
 	getDocument,
 	useSharedFileDocument,
@@ -236,6 +238,23 @@ export function usePaneRegistry(
 			terminal: {
 				getIcon: () => <TerminalSquare className="size-4" />,
 				getTitle: () => "Terminal",
+				renderTitle: (ctx: RendererContext<PaneViewerData>) => (
+					<>
+						<TerminalSquare className="size-4 shrink-0" />
+						<span
+							className={cn(
+								"truncate text-sm transition-colors duration-150",
+								ctx.isActive ? "text-foreground" : "text-muted-foreground",
+							)}
+						>
+							Terminal
+						</span>
+						<V2NotificationStatusIndicator
+							workspaceId={workspaceId}
+							sourceIds={getV2NotificationSourceIdsForPane(ctx.pane)}
+						/>
+					</>
+				),
 				renderPane: (ctx: RendererContext<PaneViewerData>) => (
 					<TerminalPane
 						ctx={ctx}

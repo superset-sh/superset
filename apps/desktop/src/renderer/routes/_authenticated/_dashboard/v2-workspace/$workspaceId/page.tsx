@@ -22,6 +22,7 @@ import { useCollections } from "renderer/routes/_authenticated/providers/Collect
 import { CommandPalette } from "renderer/screens/main/components/CommandPalette";
 import {
 	getV2NotificationSourceIdsForPane,
+	getV2NotificationSourceIdsForTab,
 	useV2NotificationStore,
 	useV2PaneNotificationStatus,
 } from "renderer/stores/v2-notifications";
@@ -33,6 +34,7 @@ import { useStore } from "zustand";
 import type { StoreApi } from "zustand/vanilla";
 import { WorkspaceNotFoundState } from "../components/WorkspaceNotFoundState";
 import { AddTabMenu } from "./components/AddTabMenu";
+import { V2NotificationStatusIndicator } from "./components/V2NotificationStatusIndicator";
 import { V2PresetsBar } from "./components/V2PresetsBar";
 import { WorkspaceEmptyState } from "./components/WorkspaceEmptyState";
 import { WorkspaceSidebar } from "./components/WorkspaceSidebar";
@@ -446,6 +448,12 @@ function WorkspaceContent({
 							paneActions={defaultPaneActions}
 							contextMenuActions={defaultContextMenuActions}
 							renderTabIcon={renderBrowserTabIcon}
+							renderTabAccessory={(tab) => (
+								<V2NotificationStatusIndicator
+									workspaceId={workspaceId}
+									sourceIds={getV2NotificationSourceIdsForTab(tab)}
+								/>
+							)}
 							renderBelowTabBar={() => (
 								<V2PresetsBar
 									matchedPresets={matchedPresets}

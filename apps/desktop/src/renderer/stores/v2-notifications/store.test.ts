@@ -3,6 +3,7 @@ import {
 	getV2NotificationSourceIdsForPane,
 	getV2NotificationSourceIdsForTab,
 	selectV2PaneNotificationStatus,
+	selectV2SourceIdsNotificationStatus,
 	selectV2TabNotificationStatus,
 	selectV2TerminalNotificationStatus,
 	selectV2WorkspaceNotificationStatus,
@@ -70,6 +71,12 @@ describe("v2 notification store", () => {
 		).toBe("working");
 		expect(
 			selectV2TerminalNotificationStatus("workspace-1", "terminal-2")(state),
+		).toBe("permission");
+		expect(
+			selectV2SourceIdsNotificationStatus("workspace-1", [
+				"terminal-1",
+				"terminal-2",
+			])(state),
 		).toBe("permission");
 		expect(
 			selectV2TerminalNotificationStatus("workspace-1", "terminal-3")(state),

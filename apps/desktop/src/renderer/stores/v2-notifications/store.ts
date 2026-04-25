@@ -165,8 +165,7 @@ export function selectV2TabNotificationStatus(
 	tab: V2NotificationTabLike | null | undefined,
 ) {
 	const sourceIds = getV2NotificationSourceIdsForTab(tab);
-	return (state: V2NotificationState) =>
-		selectStatusForSourceIds(state, workspaceId, sourceIds);
+	return selectV2SourceIdsNotificationStatus(workspaceId, sourceIds);
 }
 
 export function selectV2PaneNotificationStatus(
@@ -174,20 +173,26 @@ export function selectV2PaneNotificationStatus(
 	pane: V2NotificationPaneLike | null | undefined,
 ) {
 	const sourceIds = getV2NotificationSourceIdsForPane(pane);
-	return (state: V2NotificationState) =>
-		selectStatusForSourceIds(state, workspaceId, sourceIds);
+	return selectV2SourceIdsNotificationStatus(workspaceId, sourceIds);
 }
 
 export function selectV2TerminalNotificationStatus(
 	workspaceId: string,
 	terminalId: string | null | undefined,
 ) {
+	return selectV2SourceIdsNotificationStatus(
+		workspaceId,
+		terminalId ? [terminalId] : [],
+	);
+}
+
+export function selectV2SourceIdsNotificationStatus(
+	workspaceId: string,
+	sourceIds: Iterable<string>,
+) {
+	const sourceIdList = [...new Set(sourceIds)];
 	return (state: V2NotificationState) =>
-		selectStatusForSourceIds(
-			state,
-			workspaceId,
-			terminalId ? [terminalId] : [],
-		);
+		selectStatusForSourceIds(state, workspaceId, sourceIdList);
 }
 
 export function useV2WorkspaceNotificationStatus(workspaceId: string) {
@@ -220,6 +225,15 @@ export function useV2TerminalNotificationStatus(
 ) {
 	return useV2NotificationStore(
 		selectV2TerminalNotificationStatus(workspaceId, terminalId),
+	);
+}
+
+export function useV2SourceIdsNotificationStatus(
+	workspaceId: string,
+	sourceIds: Iterable<string>,
+) {
+	return useV2NotificationStore(
+		selectV2SourceIdsNotificationStatus(workspaceId, sourceIds),
 	);
 }
 
