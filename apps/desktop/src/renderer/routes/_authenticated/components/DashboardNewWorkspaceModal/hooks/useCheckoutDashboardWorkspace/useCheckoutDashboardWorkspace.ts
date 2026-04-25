@@ -21,8 +21,11 @@ export interface CheckoutWorkspaceInput {
 		headRefOid: string;
 		baseRefName: string;
 		headRepositoryOwner: string;
+		headRepositoryName?: string | null;
 		isCrossRepository: boolean;
+		isDraft?: boolean;
 		state: "open" | "closed" | "merged";
+		updatedAt?: string;
 	};
 	composer: {
 		prompt?: string;

@@ -43,11 +43,27 @@ export const checkout = protectedProcedure
 				})
 				.sync();
 			if (existing) {
+				const warnings: string[] = [];
+				try {
+					await ctx.runtime.pullRequests.linkWorkspaceToCheckoutPullRequest({
+						workspaceId: existing.id,
+						projectId: input.projectId,
+						pullRequest: input.pr,
+					});
+				} catch (err) {
+					console.warn(
+						"[workspaceCreation.checkout] failed to link existing workspace PR metadata",
+						{ workspaceId: existing.id, err },
+					);
+					warnings.push(
+						"Existing workspace found, but Superset could not link pull request status automatically.",
+					);
+				}
 				clearProgress(input.pendingId);
 				return {
 					workspace: { id: existing.id },
 					terminals: [],
-					warnings: [],
+					warnings,
 					alreadyExists: true as const,
 				};
 			}
@@ -195,6 +211,7 @@ export const checkout = protectedProcedure
 				runSetupScript: input.composer.runSetupScript ?? false,
 				git,
 				extraWarnings,
+				pullRequest: input.pr,
 			});
 		}
 

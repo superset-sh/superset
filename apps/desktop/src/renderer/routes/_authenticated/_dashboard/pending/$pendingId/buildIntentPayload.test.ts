@@ -195,8 +195,11 @@ describe("buildPrCheckoutPayload", () => {
 		headRefOid: "c4ecea7dec8c6d09cf54fe0ad2f9edb8a24fd45a",
 		baseBranch: "main",
 		headRepositoryOwner: "kietho",
+		headRepositoryName: "r",
 		isCrossRepository: true,
+		isDraft: false,
 		state: "open",
+		updatedAt: "2026-04-13T00:00:00Z",
 		body: "body text",
 	};
 
@@ -221,8 +224,11 @@ describe("buildPrCheckoutPayload", () => {
 			headRefOid: "c4ecea7dec8c6d09cf54fe0ad2f9edb8a24fd45a",
 			baseRefName: "main",
 			headRepositoryOwner: "kietho",
+			headRepositoryName: "r",
 			isCrossRepository: true,
+			isDraft: false,
 			state: "open",
+			updatedAt: "2026-04-13T00:00:00Z",
 		});
 		expect(payload.branch).toBeUndefined();
 	});

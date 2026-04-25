@@ -68,8 +68,11 @@ const checkoutPrSchema = z.object({
 	headRefOid: z.string().min(1),
 	baseRefName: z.string(),
 	headRepositoryOwner: z.string(),
+	headRepositoryName: z.string().nullable().optional(),
 	isCrossRepository: z.boolean(),
+	isDraft: z.boolean().optional(),
 	state: z.enum(["open", "closed", "merged"]),
+	updatedAt: z.string().optional(),
 });
 
 export const checkoutInputSchema = z
@@ -151,6 +154,7 @@ export const pullRequestContentSchema = z.object({
 	// how to handle a missing owner (client surfaces a clear error for
 	// cross-repo PRs — same-repo PRs shouldn't see null in practice).
 	headRepositoryOwner: z.object({ login: z.string() }).nullable(),
+	headRepository: z.object({ name: z.string() }).nullable(),
 	isCrossRepository: z.boolean(),
 	isDraft: z.boolean(),
 	author: z.object({ login: z.string() }).optional(),

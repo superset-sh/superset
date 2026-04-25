@@ -100,8 +100,11 @@ export function buildPrCheckoutPayload(
 		headRefOid: string;
 		baseBranch: string; // baseRefName
 		headRepositoryOwner: string | null;
+		headRepositoryName?: string | null;
 		isCrossRepository: boolean;
+		isDraft?: boolean;
 		state: string;
+		updatedAt?: string;
 	},
 ): CheckoutWorkspaceInput {
 	const linked = mapLinkedContextFromPending(pending);
@@ -126,8 +129,11 @@ export function buildPrCheckoutPayload(
 			// Same-repo PRs don't need an owner for branch derivation; pass an
 			// empty string rather than leaking null into the server input.
 			headRepositoryOwner: prContent.headRepositoryOwner ?? "",
+			headRepositoryName: prContent.headRepositoryName ?? null,
 			isCrossRepository: prContent.isCrossRepository,
+			isDraft: prContent.isDraft ?? false,
 			state: normalizedState,
+			updatedAt: prContent.updatedAt,
 		},
 		composer: {
 			prompt: pending.prompt || undefined,

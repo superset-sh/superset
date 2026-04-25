@@ -1,4 +1,5 @@
 export {
+	type CheckoutPullRequestMetadata,
 	PullRequestRuntimeManager,
 	type PullRequestRuntimeManagerOptions,
 	type PullRequestStateSnapshot,
