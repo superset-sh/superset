@@ -34,63 +34,68 @@ function addCorsHeaders(response: Response): Response {
 
 export default {
 	async fetch(request: Request, env: Env): Promise<Response> {
-		if (request.method === "OPTIONS") {
-			return new Response(null, { status: 204, headers: CORS_HEADERS });
-		}
-
-		if (request.method !== "GET") {
-			return corsResponse(405, "Method not allowed");
-		}
-
-		const authHeader = request.headers.get("Authorization");
-		if (!authHeader?.startsWith("Bearer ")) {
-			return corsResponse(401, "Missing or invalid Authorization header");
-		}
-
-		const token = authHeader.slice(7);
-		const auth = await verifyJWT(token, env.AUTH_URL);
-		if (!auth) {
-			return corsResponse(401, "Invalid or expired token");
-		}
-
-		const url = new URL(request.url);
-
-		const tableName = url.searchParams.get("table");
-		if (!tableName) {
-			return corsResponse(400, "Missing table parameter");
-		}
-
-		const organizationId = url.searchParams.get("organizationId");
-
-		if (tableName !== "auth.organizations") {
-			if (!organizationId) {
-				return corsResponse(400, "Missing organizationId parameter");
+		try {
+			if (request.method === "OPTIONS") {
+				return new Response(null, { status: 204, headers: CORS_HEADERS });
 			}
-			if (!auth.organizationIds.includes(organizationId)) {
-				return corsResponse(403, "Not a member of this organization");
+
+			if (request.method !== "GET") {
+				return corsResponse(405, "Method not allowed");
 			}
+
+			const authHeader = request.headers.get("Authorization");
+			if (!authHeader?.startsWith("Bearer ")) {
+				return corsResponse(401, "Missing or invalid Authorization header");
+			}
+
+			const token = authHeader.slice(7);
+			const auth = await verifyJWT(token, env.AUTH_URL);
+			if (!auth) {
+				return corsResponse(401, "Invalid or expired token");
+			}
+
+			const url = new URL(request.url);
+
+			const tableName = url.searchParams.get("table");
+			if (!tableName) {
+				return corsResponse(400, "Missing table parameter");
+			}
+
+			const organizationId = url.searchParams.get("organizationId");
+
+			if (tableName !== "auth.organizations") {
+				if (!organizationId) {
+					return corsResponse(400, "Missing organizationId parameter");
+				}
+				if (!auth.organizationIds.includes(organizationId)) {
+					return corsResponse(403, "Not a member of this organization");
+				}
+			}
+
+			const authorizedOrganizationIds = [...auth.organizationIds].sort();
+			const whereClause = buildWhereClause(
+				tableName,
+				organizationId ?? "",
+				authorizedOrganizationIds,
+			);
+			if (!whereClause) {
+				return corsResponse(400, `Unknown table: ${tableName}`);
+			}
+
+			const upstreamUrl = buildUpstreamUrl(url, tableName, whereClause, env);
+			const upstreamHeaders = new Headers(request.headers);
+			upstreamHeaders.delete("Authorization");
+			upstreamHeaders.delete("Cookie");
+
+			const response = await fetch(upstreamUrl.toString(), {
+				headers: upstreamHeaders,
+				cf: { cacheEverything: true },
+			});
+
+			return addCorsHeaders(response);
+		} catch (err) {
+			const message = err instanceof Error ? err.message : String(err);
+			return corsResponse(500, `Electric proxy error: ${message}`);
 		}
-
-		const authorizedOrganizationIds = [...auth.organizationIds].sort();
-		const whereClause = buildWhereClause(
-			tableName,
-			organizationId ?? "",
-			authorizedOrganizationIds,
-		);
-		if (!whereClause) {
-			return corsResponse(400, `Unknown table: ${tableName}`);
-		}
-
-		const upstreamUrl = buildUpstreamUrl(url, tableName, whereClause, env);
-		const upstreamHeaders = new Headers(request.headers);
-		upstreamHeaders.delete("Authorization");
-		upstreamHeaders.delete("Cookie");
-
-		const response = await fetch(upstreamUrl.toString(), {
-			headers: upstreamHeaders,
-			cf: { cacheEverything: true },
-		});
-
-		return addCorsHeaders(response);
 	},
 } satisfies ExportedHandler<Env>;

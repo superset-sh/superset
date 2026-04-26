@@ -5,8 +5,8 @@ import { writeV2SidebarState } from "./writeSidebarState";
 
 type ElectronTrpcClient = typeof electronTrpcClient;
 
-export type ProjectStatus = "created" | "linked" | "error";
-export type WorkspaceStatus = "adopted" | "skipped" | "error";
+export type ProjectStatus = "created" | "linked" | "synced" | "error";
+export type WorkspaceStatus = "adopted" | "synced" | "skipped" | "error";
 
 export interface ProjectEntry {
 	name: string;
@@ -62,6 +62,108 @@ function errorMessage(err: unknown): string {
 	return String(err);
 }
 
+async function setupProjectImport(
+	hostService: HostServiceClient,
+	projectId: string,
+	repoPath: string,
+): Promise<void> {
+	await hostService.project.setup.mutate({
+		projectId,
+		mode: { kind: "import", repoPath },
+	});
+}
+
+function shouldRetryWorkspace(
+	existing: { status: string; reason?: string | null } | undefined,
+): boolean {
+	if (!existing) return true;
+	if (existing.status === "success") return false;
+	if (existing.status === "error") return true;
+	return (
+		existing.status === "skipped" &&
+		existing.reason === "parent_project_unresolved"
+	);
+}
+
+async function hasLocalWorkspace(
+	hostService: HostServiceClient,
+	workspaceId: string,
+): Promise<boolean> {
+	try {
+		await hostService.workspace.get.query({ id: workspaceId });
+		return true;
+	} catch (err) {
+		if (trpcCode(err) === "NOT_FOUND") return false;
+		throw err;
+	}
+}
+
+function addProjectError(
+	summary: MigrationSummary,
+	name: string,
+	message: string,
+): void {
+	summary.projectsErrored += 1;
+	summary.projects.push({
+		name,
+		status: "error",
+		reason: message,
+	});
+	summary.errors.push({
+		kind: "project",
+		name,
+		message,
+	});
+}
+
+function addWorkspaceSkip(
+	summary: MigrationSummary,
+	name: string,
+	branch: string,
+	reason: string,
+): void {
+	summary.workspacesSkipped += 1;
+	summary.workspaces.push({
+		name,
+		branch,
+		status: "skipped",
+		reason,
+	});
+}
+
+function skippedWorkspaceReason(reason: string | null | undefined): string {
+	switch (reason) {
+		case "orphan_worktree":
+			return "worktree record missing";
+		case "worktree_not_registered":
+			return "worktree no longer exists";
+		case "parent_project_unresolved":
+			return "parent project did not migrate";
+		default:
+			return reason ?? "skipped";
+	}
+}
+
+function addWorkspaceError(
+	summary: MigrationSummary,
+	name: string,
+	branch: string,
+	message: string,
+): void {
+	summary.workspacesErrored += 1;
+	summary.workspaces.push({
+		name,
+		branch,
+		status: "error",
+		reason: message,
+	});
+	summary.errors.push({
+		kind: "workspace",
+		name,
+		message,
+	});
+}
+
 interface Args {
 	organizationId: string;
 	electronTrpc: ElectronTrpcClient;
@@ -106,7 +208,11 @@ export async function migrateV1DataToV2(args: Args): Promise<MigrationSummary> {
 
 	const projectV1ToV2 = new Map<string, string>();
 	for (const row of existingState) {
-		if (row.kind === "project" && row.v2Id) {
+		if (
+			row.kind === "project" &&
+			row.v2Id &&
+			(row.status === "success" || row.status === "linked")
+		) {
 			projectV1ToV2.set(row.v1Id, row.v2Id);
 		}
 	}
@@ -121,7 +227,40 @@ export async function migrateV1DataToV2(args: Args): Promise<MigrationSummary> {
 	for (const project of v1Projects) {
 		const key = `project:${project.id}`;
 		const existing = stateByKey.get(key);
-		if (existing && existing.status !== "error") {
+		if (
+			existing?.v2Id &&
+			(existing.status === "success" || existing.status === "linked")
+		) {
+			try {
+				await setupProjectImport(
+					hostService,
+					existing.v2Id,
+					project.mainRepoPath,
+				);
+				projectV1ToV2.set(project.id, existing.v2Id);
+				summary.projects.push({
+					name: project.name,
+					status: "synced",
+					reason: "Already imported",
+				});
+			} catch (err) {
+				const message = errorMessage(err);
+				await electronTrpc.migration.upsertState.mutate({
+					v1Id: project.id,
+					kind: "project",
+					v2Id: existing.v2Id,
+					organizationId,
+					status: "error",
+					reason: message,
+				});
+				projectV1ToV2.delete(project.id);
+				addProjectError(summary, project.name, message);
+				console.error(
+					"[v1-migration] existing project setup failed",
+					project.name,
+					err,
+				);
+			}
 			continue;
 		}
 
@@ -143,14 +282,11 @@ export async function migrateV1DataToV2(args: Args): Promise<MigrationSummary> {
 				}
 				v2ProjectId = candidate.id;
 				status = "linked";
-				try {
-					await hostService.project.setup.mutate({
-						projectId: candidate.id,
-						mode: { kind: "import", repoPath: project.mainRepoPath },
-					});
-				} catch (err) {
-					if (trpcCode(err) !== "CONFLICT") throw err;
-				}
+				await setupProjectImport(
+					hostService,
+					candidate.id,
+					project.mainRepoPath,
+				);
 			} else {
 				const created = await hostService.project.create.mutate({
 					name: project.name,
@@ -163,7 +299,6 @@ export async function migrateV1DataToV2(args: Args): Promise<MigrationSummary> {
 				status = "success";
 			}
 
-			projectV1ToV2.set(project.id, v2ProjectId);
 			await electronTrpc.migration.upsertState.mutate({
 				v1Id: project.id,
 				kind: "project",
@@ -172,6 +307,7 @@ export async function migrateV1DataToV2(args: Args): Promise<MigrationSummary> {
 				status,
 				reason: null,
 			});
+			projectV1ToV2.set(project.id, v2ProjectId);
 			if (status === "success") {
 				summary.projectsCreated += 1;
 				summary.projects.push({ name: project.name, status: "created" });
@@ -181,6 +317,7 @@ export async function migrateV1DataToV2(args: Args): Promise<MigrationSummary> {
 			}
 		} catch (err) {
 			const message = errorMessage(err);
+			projectV1ToV2.delete(project.id);
 			await electronTrpc.migration.upsertState.mutate({
 				v1Id: project.id,
 				kind: "project",
@@ -189,17 +326,7 @@ export async function migrateV1DataToV2(args: Args): Promise<MigrationSummary> {
 				status: "error",
 				reason: message,
 			});
-			summary.projectsErrored += 1;
-			summary.projects.push({
-				name: project.name,
-				status: "error",
-				reason: message,
-			});
-			summary.errors.push({
-				kind: "project",
-				name: project.name,
-				message,
-			});
+			addProjectError(summary, project.name, message);
 			console.error("[v1-migration] project failed", project.name, err);
 		}
 	}
@@ -207,7 +334,48 @@ export async function migrateV1DataToV2(args: Args): Promise<MigrationSummary> {
 	for (const workspace of v1Workspaces) {
 		const key = `workspace:${workspace.id}`;
 		const existing = stateByKey.get(key);
-		if (existing && existing.status !== "error") {
+		let recoverCompletedWorkspace = false;
+		if (existing?.status === "success" && existing.v2Id) {
+			try {
+				if (await hasLocalWorkspace(hostService, existing.v2Id)) {
+					workspaceV1ToV2.set(workspace.id, existing.v2Id);
+					summary.workspaces.push({
+						name: workspace.name,
+						branch: workspace.branch,
+						status: "synced",
+						reason: "Already imported",
+					});
+					continue;
+				}
+				recoverCompletedWorkspace = true;
+			} catch (err) {
+				const message = errorMessage(err);
+				await electronTrpc.migration.upsertState.mutate({
+					v1Id: workspace.id,
+					kind: "workspace",
+					v2Id: existing.v2Id,
+					organizationId,
+					status: "error",
+					reason: message,
+				});
+				addWorkspaceError(summary, workspace.name, workspace.branch, message);
+				console.error(
+					"[v1-migration] workspace local reconciliation failed",
+					workspace.name,
+					err,
+				);
+				continue;
+			}
+		}
+		if (!recoverCompletedWorkspace && !shouldRetryWorkspace(existing)) {
+			if (existing?.status === "skipped") {
+				summary.workspaces.push({
+					name: workspace.name,
+					branch: workspace.branch,
+					status: "skipped",
+					reason: skippedWorkspaceReason(existing.reason),
+				});
+			}
 			continue;
 		}
 
@@ -221,13 +389,12 @@ export async function migrateV1DataToV2(args: Args): Promise<MigrationSummary> {
 				status: "skipped",
 				reason: "parent_project_unresolved",
 			});
-			summary.workspacesSkipped += 1;
-			summary.workspaces.push({
-				name: workspace.name,
-				branch: workspace.branch,
-				status: "skipped",
-				reason: "parent project did not migrate",
-			});
+			addWorkspaceSkip(
+				summary,
+				workspace.name,
+				workspace.branch,
+				"parent project did not migrate",
+			);
 			continue;
 		}
 
@@ -241,13 +408,12 @@ export async function migrateV1DataToV2(args: Args): Promise<MigrationSummary> {
 					status: "skipped",
 					reason: "orphan_worktree",
 				});
-				summary.workspacesSkipped += 1;
-				summary.workspaces.push({
-					name: workspace.name,
-					branch: workspace.branch,
-					status: "skipped",
-					reason: "worktree record missing",
-				});
+				addWorkspaceSkip(
+					summary,
+					workspace.name,
+					workspace.branch,
+					"worktree record missing",
+				);
 				continue;
 			}
 		}
@@ -255,12 +421,17 @@ export async function migrateV1DataToV2(args: Args): Promise<MigrationSummary> {
 		const v1WorktreePath = workspace.worktreeId
 			? worktreesById.get(workspace.worktreeId)?.path
 			: undefined;
+		const v1BaseBranch = workspace.worktreeId
+			? worktreesById.get(workspace.worktreeId)?.baseBranch
+			: undefined;
 
 		try {
 			const result = await hostService.workspaceCreation.adopt.mutate({
 				projectId: v2ProjectId,
 				workspaceName: workspace.name,
 				branch: workspace.branch,
+				baseBranch: v1BaseBranch ?? undefined,
+				existingWorkspaceId: existing?.v2Id ?? undefined,
 				worktreePath: v1WorktreePath,
 			});
 			await electronTrpc.migration.upsertState.mutate({
@@ -288,13 +459,12 @@ export async function migrateV1DataToV2(args: Args): Promise<MigrationSummary> {
 					status: "skipped",
 					reason: "worktree_not_registered",
 				});
-				summary.workspacesSkipped += 1;
-				summary.workspaces.push({
-					name: workspace.name,
-					branch: workspace.branch,
-					status: "skipped",
-					reason: "worktree no longer exists",
-				});
+				addWorkspaceSkip(
+					summary,
+					workspace.name,
+					workspace.branch,
+					"worktree no longer exists",
+				);
 				continue;
 			}
 			const message = errorMessage(err);
@@ -306,18 +476,7 @@ export async function migrateV1DataToV2(args: Args): Promise<MigrationSummary> {
 				status: "error",
 				reason: message,
 			});
-			summary.workspacesErrored += 1;
-			summary.workspaces.push({
-				name: workspace.name,
-				branch: workspace.branch,
-				status: "error",
-				reason: message,
-			});
-			summary.errors.push({
-				kind: "workspace",
-				name: workspace.name,
-				message,
-			});
+			addWorkspaceError(summary, workspace.name, workspace.branch, message);
 			console.error("[v1-migration] workspace failed", workspace.name, err);
 		}
 	}
