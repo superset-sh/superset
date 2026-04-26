@@ -2,7 +2,7 @@ import { rmSync } from "node:fs";
 import { TRPCError } from "@trpc/server";
 import type { HostServiceContext } from "../../../types";
 import { persistLocalProject } from "./utils/persist-project";
-import { cloneRepoInto, resolveWithPrimaryRemote } from "./utils/resolve-repo";
+import { cloneRepoInto, resolveLocalGitRepo } from "./utils/resolve-repo";
 
 function slugifyProjectName(name: string): string {
 	const slug = name
@@ -34,12 +34,13 @@ export async function createFromClone(
 	args: { name: string; parentDir: string; url: string },
 ): Promise<CreateResult> {
 	const resolved = await cloneRepoInto(args.url, args.parentDir);
+	const repoCloneUrl = resolved.parsed?.url;
 	try {
 		const cloudProject = await ctx.api.v2Project.create.mutate({
 			organizationId: ctx.organizationId,
 			name: args.name,
 			slug: slugifyProjectName(args.name),
-			repoCloneUrl: args.url,
+			...(repoCloneUrl ? { repoCloneUrl } : {}),
 		});
 		persistLocalProject(ctx, cloudProject.id, resolved);
 		return { projectId: cloudProject.id, repoPath: resolved.repoPath };
@@ -60,12 +61,13 @@ export async function createFromImportLocal(
 	ctx: HostServiceContext,
 	args: { name: string; repoPath: string },
 ): Promise<CreateResult> {
-	const resolved = await resolveWithPrimaryRemote(args.repoPath);
+	const resolved = await resolveLocalGitRepo(args.repoPath);
+	const repoCloneUrl = resolved.parsed?.url;
 	const cloudProject = await ctx.api.v2Project.create.mutate({
 		organizationId: ctx.organizationId,
 		name: args.name,
 		slug: slugifyProjectName(args.name),
-		repoCloneUrl: resolved.parsed.url,
+		...(repoCloneUrl ? { repoCloneUrl } : {}),
 	});
 	persistLocalProject(ctx, cloudProject.id, resolved);
 	return { projectId: cloudProject.id, repoPath: resolved.repoPath };

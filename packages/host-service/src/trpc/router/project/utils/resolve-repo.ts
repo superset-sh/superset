@@ -11,8 +11,8 @@ import {
 
 export interface ResolvedRepo {
 	repoPath: string;
-	remoteName: string;
-	parsed: ParsedGitHubRemote;
+	remoteName: string | null;
+	parsed: ParsedGitHubRemote | null;
 }
 
 function validateDirectoryPath(path: string, label: string): void {
@@ -43,38 +43,50 @@ async function revParseGitRoot(path: string): Promise<string> {
 
 /**
  * Validates that a path is a git working tree and returns the canonical git
- * root plus its "primary" GitHub remote — `origin` if present, otherwise
- * the first GitHub remote found. Throws if the path isn't a git repo or has
- * no GitHub remotes.
+ * root plus its "primary" GitHub remote when one exists — `origin` if
+ * present, otherwise the first GitHub remote found. Repos without a GitHub
+ * remote are still valid local-only projects.
  *
  * Used when the caller doesn't have an authoritative clone URL to match
  * against (e.g. `findByPath`, `create mode=importLocal`).
  */
-export async function resolveWithPrimaryRemote(
+export async function resolveLocalGitRepo(
 	repoPath: string,
 ): Promise<ResolvedRepo> {
 	validateDirectoryPath(repoPath, "Path");
 	const gitRoot = await revParseGitRoot(repoPath);
 	const remotes = await getGitHubRemotes(simpleGit(gitRoot));
-	if (remotes.size === 0) {
-		throw new TRPCError({
-			code: "BAD_REQUEST",
-			message: "Repository has no GitHub remotes",
-		});
-	}
 	const originParsed = remotes.get("origin");
 	if (originParsed) {
 		return { repoPath: gitRoot, remoteName: "origin", parsed: originParsed };
 	}
 	const first = remotes.entries().next().value;
 	if (!first) {
-		throw new TRPCError({
-			code: "INTERNAL_SERVER_ERROR",
-			message: "Remote iteration produced no entries",
-		});
+		return { repoPath: gitRoot, remoteName: null, parsed: null };
 	}
 	const [firstName, firstParsed] = first;
 	return { repoPath: gitRoot, remoteName: firstName, parsed: firstParsed };
+}
+
+/**
+ * Same as resolveLocalGitRepo, but requires a GitHub remote. Use for flows
+ * that must perform cloud de-duping/linking by GitHub clone URL.
+ */
+export async function resolveWithPrimaryRemote(
+	repoPath: string,
+): Promise<ResolvedRepo & { remoteName: string; parsed: ParsedGitHubRemote }> {
+	const resolved = await resolveLocalGitRepo(repoPath);
+	if (!resolved.parsed || !resolved.remoteName) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: "Repository has no GitHub remotes",
+		});
+	}
+	return {
+		repoPath: resolved.repoPath,
+		remoteName: resolved.remoteName,
+		parsed: resolved.parsed,
+	};
 }
 
 /**
@@ -113,28 +125,43 @@ export async function resolveMatchingSlug(
 	return { repoPath: gitRoot, remoteName, parsed };
 }
 
+function deriveCloneDirectoryName(repoCloneUrl: string): string {
+	const normalized = repoCloneUrl
+		.trim()
+		.replace(/[?#].*$/, "")
+		.replace(/[\\/]+$/g, "")
+		.replace(/\.git$/i, "");
+	const segments = normalized.split(/[/:\\]/).filter(Boolean);
+	const lastSegment = segments[segments.length - 1] ?? "";
+	if (!lastSegment || lastSegment === "." || lastSegment === "..") {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: `Could not derive repository name from ${repoCloneUrl}`,
+		});
+	}
+	return lastSegment;
+}
+
 /**
- * Clones a GitHub repo into `<parentDir>/<repoName>` and returns the resolved
- * repo. Fails and cleans up the target directory if the clone succeeds but
- * the resulting remote doesn't match the URL we cloned from (defensive).
+ * Clones a repo into `<parentDir>/<repoName>` and returns the resolved repo.
+ * GitHub URLs are still verified after clone; non-GitHub/local URLs are
+ * accepted and persisted as local-only projects unless the cloned repo has a
+ * parseable GitHub remote.
  */
 export async function cloneRepoInto(
 	repoCloneUrl: string,
 	parentDir: string,
 ): Promise<ResolvedRepo> {
 	const parsedUrl = parseGitHubRemote(repoCloneUrl);
-	if (!parsedUrl) {
-		throw new TRPCError({
-			code: "BAD_REQUEST",
-			message: `Could not parse GitHub remote from ${repoCloneUrl}`,
-		});
-	}
-	const expectedSlug = `${parsedUrl.owner}/${parsedUrl.name}`;
+	const expectedSlug = parsedUrl
+		? `${parsedUrl.owner}/${parsedUrl.name}`
+		: null;
+	const repoName = parsedUrl?.name ?? deriveCloneDirectoryName(repoCloneUrl);
 
 	const resolvedParentDir = resolvePath(parentDir);
 	validateDirectoryPath(resolvedParentDir, "Parent directory");
 
-	const targetPath = join(resolvedParentDir, parsedUrl.name);
+	const targetPath = join(resolvedParentDir, repoName);
 
 	// Atomic claim: mkdirSync without `recursive` throws EEXIST when the
 	// path is already present, which avoids the TOCTOU window between an
@@ -171,7 +198,10 @@ export async function cloneRepoInto(
 	}
 
 	try {
-		return await resolveMatchingSlug(targetPath, expectedSlug);
+		if (expectedSlug) {
+			return await resolveMatchingSlug(targetPath, expectedSlug);
+		}
+		return await resolveLocalGitRepo(targetPath);
 	} catch (err) {
 		rmSync(targetPath, { recursive: true, force: true });
 		throw err;

@@ -11,8 +11,8 @@ import { persistLocalProject } from "./utils/persist-project";
 import {
 	cloneRepoInto,
 	type ResolvedRepo,
+	resolveLocalGitRepo,
 	resolveMatchingSlug,
-	resolveWithPrimaryRemote,
 } from "./utils/resolve-repo";
 
 export const projectRouter = router({
@@ -52,10 +52,30 @@ export const projectRouter = router({
 			});
 			if (cloudProject.repoCloneUrl) return { conflict: null };
 
-			const { parsed } = await resolveWithPrimaryRemote(input.repoPath);
+			const resolved = await resolveLocalGitRepo(input.repoPath);
+			const localOwner = ctx.db
+				.select({ id: projects.id })
+				.from(projects)
+				.where(eq(projects.repoPath, resolved.repoPath))
+				.get();
+			if (localOwner && localOwner.id !== input.projectId) {
+				const otherProject = await ctx.api.v2Project.get
+					.query({
+						organizationId: ctx.organizationId,
+						id: localOwner.id,
+					})
+					.catch(() => null);
+				return {
+					conflict: {
+						id: localOwner.id,
+						name: otherProject?.name ?? "another project",
+					},
+				};
+			}
+			if (!resolved.parsed) return { conflict: null };
 			const { candidates } = await ctx.api.v2Project.findByGitHubRemote.query({
 				organizationId: ctx.organizationId,
-				repoCloneUrl: parsed.url,
+				repoCloneUrl: resolved.parsed.url,
 			});
 			const other = candidates.find((c) => c.id !== input.projectId);
 			if (!other) return { conflict: null };
@@ -70,10 +90,17 @@ export const projectRouter = router({
 	findByPath: protectedProcedure
 		.input(z.object({ repoPath: z.string().min(1) }))
 		.query(async ({ ctx, input }) => {
-			const { parsed } = await resolveWithPrimaryRemote(input.repoPath);
+			const resolved = await resolveLocalGitRepo(input.repoPath);
+			const localProject = ctx.db
+				.select({ id: projects.id })
+				.from(projects)
+				.where(eq(projects.repoPath, resolved.repoPath))
+				.get();
+			if (localProject) return { candidates: [localProject] };
+			if (!resolved.parsed) return { candidates: [] };
 			const { candidates } = await ctx.api.v2Project.findByGitHubRemote.query({
 				organizationId: ctx.organizationId,
-				repoCloneUrl: parsed.url,
+				repoCloneUrl: resolved.parsed.url,
 			});
 			return { candidates };
 		}),
@@ -83,8 +110,8 @@ export const projectRouter = router({
 			z.object({
 				name: z.string().min(1),
 				// `visibility` lives on the GitHub-provisioning modes only.
-				// Clone + importLocal reuse an existing remote where visibility
-				// is already set on the remote itself.
+				// Clone + importLocal reuse an existing remote when one exists;
+				// local-only repos create a project without repoCloneUrl.
 				mode: z.discriminatedUnion("kind", [
 					z.object({
 						kind: z.literal("empty"),
@@ -217,7 +244,20 @@ export const projectRouter = router({
 							`${parsed.owner}/${parsed.name}`,
 						);
 					} else {
-						resolved = await resolveWithPrimaryRemote(input.mode.repoPath);
+						resolved = await resolveLocalGitRepo(input.mode.repoPath);
+					}
+
+					const localOwner = ctx.db
+						.select({ id: projects.id })
+						.from(projects)
+						.where(eq(projects.repoPath, resolved.repoPath))
+						.get();
+					if (localOwner && localOwner.id !== input.projectId) {
+						throw new TRPCError({
+							code: "CONFLICT",
+							message:
+								"Repository is already set up as another project on this device.",
+						});
 					}
 
 					rejectIfRepoint(resolved.repoPath);
@@ -225,7 +265,7 @@ export const projectRouter = router({
 						return { repoPath: existing.repoPath };
 					}
 
-					if (!cloudProject.repoCloneUrl) {
+					if (!cloudProject.repoCloneUrl && resolved.parsed) {
 						await ctx.api.v2Project.linkRepoCloneUrl.mutate({
 							organizationId: ctx.organizationId,
 							id: input.projectId,
