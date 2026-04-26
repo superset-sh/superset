@@ -11,7 +11,6 @@ import { MemberRow, type MemberRowData } from "./components/MemberRow";
 interface MembersTableProps {
 	members: MemberRowData[];
 	isOwner: boolean;
-	currentUserId: string | null;
 	onSetRole: (member: MemberRowData, role: "owner" | "member") => void;
 	onRemove: (member: MemberRowData) => void;
 }
@@ -19,7 +18,6 @@ interface MembersTableProps {
 export function MembersTable({
 	members,
 	isOwner,
-	currentUserId,
 	onSetRole,
 	onRemove,
 }: MembersTableProps) {
@@ -40,7 +38,6 @@ export function MembersTable({
 							key={member.usersHostsId}
 							member={member}
 							isOwner={isOwner}
-							isSelf={member.userId === currentUserId}
 							onSetRole={onSetRole}
 							onRemove={onRemove}
 						/>

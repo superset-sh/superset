@@ -125,18 +125,11 @@ export const v2HostRouter = {
 				organizationId,
 			);
 
-			if (input.userId === ctx.session.user.id) {
-				throw new TRPCError({
-					code: "BAD_REQUEST",
-					message: "You can't remove yourself from a host you own.",
-				});
-			}
-
 			if (host.createdByUserId === input.userId) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message:
-						"This user runs the host service for this device and can't be removed. Demote them to member instead.",
+						"This user runs the host service for this device and can't be removed.",
 				});
 			}
 
@@ -197,12 +190,17 @@ export const v2HostRouter = {
 		)
 		.mutation(async ({ ctx, input }) => {
 			const organizationId = requireActiveOrgId(ctx);
-			await requireHostOwner(ctx.session.user.id, input.hostId, organizationId);
+			const host = await requireHostOwner(
+				ctx.session.user.id,
+				input.hostId,
+				organizationId,
+			);
 
-			if (input.role === "member" && input.userId === ctx.session.user.id) {
+			if (input.role === "member" && host.createdByUserId === input.userId) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message: "You can't demote yourself.",
+					message:
+						"This user runs the host service for this device and must remain an owner.",
 				});
 			}
 

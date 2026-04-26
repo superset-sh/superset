@@ -177,7 +177,6 @@ export function HostSettings({ hostId }: HostSettingsProps) {
 				<MembersTable
 					members={members}
 					isOwner={isOwner}
-					currentUserId={currentUserId}
 					onSetRole={handleSetRole}
 					onRemove={handleRemove}
 				/>

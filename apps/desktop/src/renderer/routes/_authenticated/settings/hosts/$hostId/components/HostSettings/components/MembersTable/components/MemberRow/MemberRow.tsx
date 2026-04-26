@@ -20,7 +20,6 @@ export interface MemberRowData {
 interface MemberRowProps {
 	member: MemberRowData;
 	isOwner: boolean;
-	isSelf: boolean;
 	onSetRole: (member: MemberRowData, role: "owner" | "member") => void;
 	onRemove: (member: MemberRowData) => void;
 }
@@ -28,7 +27,6 @@ interface MemberRowProps {
 export function MemberRow({
 	member,
 	isOwner,
-	isSelf,
 	onSetRole,
 	onRemove,
 }: MemberRowProps) {
@@ -43,7 +41,6 @@ export function MemberRow({
 						onValueChange={(value) =>
 							onSetRole(member, value as "owner" | "member")
 						}
-						disabled={isSelf}
 					>
 						<SelectTrigger className="h-8">
 							<SelectValue />
@@ -62,7 +59,6 @@ export function MemberRow({
 					<Button
 						variant="ghost"
 						size="sm"
-						disabled={isSelf}
 						onClick={() => onRemove(member)}
 						aria-label={`Remove ${member.name}`}
 					>
