@@ -197,30 +197,10 @@ function broadcastMessage(
 	return sent;
 }
 
-function logTerminalTitleDebug(
-	event: string,
-	details: Record<string, unknown>,
-) {
-	console.debug("[terminal-title]", event, details);
-}
-
 function setSessionTitle(session: TerminalSession, title: string | null) {
-	if (session.title === title) {
-		logTerminalTitleDebug("unchanged", {
-			terminalId: session.terminalId,
-			title,
-		});
-		return;
-	}
-	const previousTitle = session.title;
+	if (session.title === title) return;
 	session.title = title;
-	const listeners = broadcastMessage(session, { type: "title", title });
-	logTerminalTitleDebug("changed", {
-		terminalId: session.terminalId,
-		previousTitle,
-		title,
-		listeners,
-	});
+	broadcastMessage(session, { type: "title", title });
 }
 
 function bufferOutput(session: TerminalSession, data: string) {
@@ -481,23 +461,7 @@ export function createTerminalSessionInternal({
 	}
 
 	pty.onData((rawData) => {
-		const titleBufferedBytesBefore = session.titleScanState.buffer.length;
 		const titleUpdates = scanForTerminalTitle(session.titleScanState, rawData);
-		if (
-			rawData.includes("\x1b]") ||
-			rawData.includes("\x9d") ||
-			titleBufferedBytesBefore > 0 ||
-			titleUpdates.updates.length > 0
-		) {
-			logTerminalTitleDebug("scan", {
-				terminalId,
-				updateCount: titleUpdates.updates.length,
-				updates: titleUpdates.updates,
-				bufferedBytesBefore: titleBufferedBytesBefore,
-				bufferedBytes: session.titleScanState.buffer.length,
-				chunkBytes: rawData.length,
-			});
-		}
 		for (const title of titleUpdates.updates) {
 			setSessionTitle(session, title);
 		}
@@ -662,10 +626,6 @@ export function registerWorkspaceTerminalRoute({
 
 						result.sockets.add(ws);
 						sendMessage(ws, { type: "title", title: result.title });
-						logTerminalTitleDebug("attach", {
-							terminalId,
-							title: result.title,
-						});
 
 						db.update(terminalSessions)
 							.set({ lastAttachedAt: Date.now() })
@@ -682,10 +642,6 @@ export function registerWorkspaceTerminalRoute({
 						.run();
 
 					sendMessage(ws, { type: "title", title: existing.title });
-					logTerminalTitleDebug("attach", {
-						terminalId,
-						title: existing.title,
-					});
 					replayBuffer(existing, ws);
 					if (existing.exited) {
 						sendMessage(ws, {

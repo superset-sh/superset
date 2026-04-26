@@ -42,21 +42,8 @@ function setTerminalTitle(
 	transport: TerminalTransport,
 	title: string | null | undefined,
 ) {
-	if (transport.title === title) {
-		console.debug("[terminal-title:renderer] unchanged", {
-			title,
-			currentUrl: transport.currentUrl,
-		});
-		return;
-	}
-	const previousTitle = transport.title;
+	if (transport.title === title) return;
 	transport.title = title;
-	console.debug("[terminal-title:renderer] changed", {
-		previousTitle,
-		title,
-		listeners: transport.titleListeners.size,
-		currentUrl: transport.currentUrl,
-	});
 	for (const listener of transport.titleListeners) {
 		listener();
 	}
