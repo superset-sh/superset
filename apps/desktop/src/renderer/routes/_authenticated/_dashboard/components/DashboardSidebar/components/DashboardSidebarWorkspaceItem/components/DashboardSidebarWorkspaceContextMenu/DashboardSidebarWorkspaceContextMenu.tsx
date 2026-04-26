@@ -107,14 +107,14 @@ export function DashboardSidebarWorkspaceContextMenu({
 			<ContextMenuSeparator />
 			<ContextMenuItem onSelect={onCreateSection}>
 				<LuFolderPlus className="size-4 mr-2" />
-				Create Section Below
+				New group from workspace
 			</ContextMenuItem>
 			{(sections.length > 0 || isInSection) && <ContextMenuSeparator />}
 			{sections.length > 0 && (
 				<ContextMenuSub>
 					<ContextMenuSubTrigger>
 						<LuArrowRightLeft className="size-4 mr-2" />
-						Move to Section
+						Move to group
 					</ContextMenuSubTrigger>
 					<ContextMenuSubContent>
 						{sections.map((section) => (
@@ -137,7 +137,7 @@ export function DashboardSidebarWorkspaceContextMenu({
 			{isInSection && (
 				<ContextMenuItem onSelect={() => onMoveToSection(null)}>
 					<LuArrowUp className="size-4 mr-2" />
-					Remove from Group
+					Ungroup
 				</ContextMenuItem>
 			)}
 			<ContextMenuSeparator />
