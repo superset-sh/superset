@@ -168,7 +168,9 @@ export function usePaneRegistry(
 		workspaceTrpc.terminal.killSession.useMutation({
 			onSuccess: () => {
 				toast.success("Terminal session killed");
-				void workspaceTrpcUtils.terminal.listSessions.invalidate();
+				void workspaceTrpcUtils.terminal.listSessions.invalidate({
+					workspaceId,
+				});
 			},
 			onError: (error) => {
 				toast.error("Failed to kill terminal session", {
@@ -375,10 +377,10 @@ export function usePaneRegistry(
 						variant: "destructive",
 						disabled: isKillingTerminalSession,
 						onSelect: (ctx) => {
-							const data = ctx.pane.data as TerminalPaneData;
+							const { terminalId } = ctx.pane.data as TerminalPaneData;
 							killTerminalSession({
-								terminalId: data.terminalId,
-								workspaceId: data.workspaceId ?? workspaceId,
+								terminalId,
+								workspaceId,
 							});
 						},
 					};

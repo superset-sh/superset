@@ -15,14 +15,21 @@ export interface UseFolderFirstImportResult {
 	start: () => Promise<void>;
 }
 
+interface MatchingProject {
+	id: string;
+	name: string;
+}
+
 export function useFolderFirstImport(options?: {
 	onSuccess?: (result: ProjectSetupResult) => void;
 	onError?: (message: string) => void;
+	onMultipleProjects?: (input: { candidates: MatchingProject[] }) => void;
 }): UseFolderFirstImportResult {
 	const { activeHostUrl } = useLocalHostService();
 	const { ensureProjectInSidebar, ensureWorkspaceInSidebar } =
 		useDashboardSidebarState();
 	const selectDirectory = electronTrpc.window.selectDirectory.useMutation();
+	const { onError, onMultipleProjects, onSuccess } = options ?? {};
 
 	const reportSuccess = useCallback(
 		(result: ProjectSetupResult) => {
@@ -31,16 +38,16 @@ export function useFolderFirstImport(options?: {
 			} else {
 				ensureProjectInSidebar(result.projectId);
 			}
-			options?.onSuccess?.(result);
+			onSuccess?.(result);
 		},
-		[ensureProjectInSidebar, ensureWorkspaceInSidebar, options],
+		[ensureProjectInSidebar, ensureWorkspaceInSidebar, onSuccess],
 	);
 
 	const reportError = useCallback(
 		(message: string) => {
-			options?.onError?.(message);
+			onError?.(message);
 		},
-		[options],
+		[onError],
 	);
 
 	const start = useCallback(async () => {
@@ -62,7 +69,7 @@ export function useFolderFirstImport(options?: {
 		}
 
 		const client = getHostServiceClientByUrl(activeHostUrl);
-		let candidates: Array<{ id: string }>;
+		let candidates: MatchingProject[];
 		try {
 			const response = await client.project.findByPath.query({ repoPath });
 			candidates = response.candidates;
@@ -73,12 +80,13 @@ export function useFolderFirstImport(options?: {
 
 		const [only, ...rest] = candidates;
 		if (rest.length > 0) {
-			// Unreachable given single-org findByGitHubRemote + the unique
-			// index on (organizationId, lower(repoCloneUrl)). Surface loudly
-			// if we ever hit it — means the invariants broke.
-			reportError(
-				`Multiple matching projects returned (${candidates.length}) — please report this`,
-			);
+			if (onMultipleProjects) {
+				onMultipleProjects({ candidates });
+			} else {
+				reportError(
+					`Multiple projects use this repository (${candidates.length}). Open the project you want from settings to set it up on this device.`,
+				);
+			}
 			return;
 		}
 
@@ -103,7 +111,13 @@ export function useFolderFirstImport(options?: {
 		} catch (err) {
 			reportError(err instanceof Error ? err.message : String(err));
 		}
-	}, [activeHostUrl, reportError, reportSuccess, selectDirectory]);
+	}, [
+		activeHostUrl,
+		onMultipleProjects,
+		reportError,
+		reportSuccess,
+		selectDirectory,
+	]);
 
 	return { start };
 }

@@ -75,6 +75,10 @@ export const SETTING_ITEM_ID = {
 
 	SECURITY_EXPOSE_HOST_SERVICE_VIA_RELAY:
 		"security-expose-host-service-via-relay",
+
+	HOST_MEMBERS: "host-members",
+	HOST_INVITE_MEMBER: "host-invite-member",
+	HOST_MEMBER_ROLE: "host-member-role",
 } as const;
 
 export type SettingItemId =
@@ -1079,6 +1083,54 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"host service",
 			"tunnel",
 			"attack surface",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.HOST_MEMBERS,
+		section: "hosts",
+		title: "Host members",
+		description: "View who has access to a host in your organization",
+		keywords: [
+			"host",
+			"hosts",
+			"member",
+			"members",
+			"access",
+			"team",
+			"share",
+			"machine",
+			"device",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.HOST_INVITE_MEMBER,
+		section: "hosts",
+		title: "Grant access to a host",
+		description: "Add an organization member to a host",
+		keywords: [
+			"host",
+			"hosts",
+			"invite",
+			"add",
+			"grant",
+			"member",
+			"access",
+			"share",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.HOST_MEMBER_ROLE,
+		section: "hosts",
+		title: "Host member role",
+		description: "Change a member's role on a host (owner or member)",
+		keywords: [
+			"host",
+			"hosts",
+			"role",
+			"owner",
+			"member",
+			"permission",
+			"admin",
 		],
 	},
 ];

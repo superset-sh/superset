@@ -18,7 +18,7 @@ import {
 	verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { DashboardSidebarHeader } from "./components/DashboardSidebarHeader";
@@ -33,21 +33,23 @@ interface DashboardSidebarProps {
 	isCollapsed?: boolean;
 }
 
-function SortableProjectWrapper({
-	project,
-	isCollapsed,
-	isDraggingProject,
-	workspaceShortcutLabels,
-	onWorkspaceHover,
-	onToggleCollapse,
-}: {
+interface SortableProjectWrapperProps {
 	project: DashboardSidebarProject;
 	isCollapsed: boolean;
 	isDraggingProject: boolean;
 	workspaceShortcutLabels: Map<string, string>;
 	onWorkspaceHover: (workspaceId: string) => void | Promise<void>;
 	onToggleCollapse: (projectId: string) => void;
-}) {
+}
+
+const SortableProjectWrapper = memo(function SortableProjectWrapper({
+	project,
+	isCollapsed,
+	isDraggingProject,
+	workspaceShortcutLabels,
+	onWorkspaceHover,
+	onToggleCollapse,
+}: SortableProjectWrapperProps) {
 	const {
 		attributes,
 		listeners,
@@ -78,7 +80,7 @@ function SortableProjectWrapper({
 			/>
 		</div>
 	);
-}
+});
 
 export function DashboardSidebar({
 	isCollapsed = false,

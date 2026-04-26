@@ -1,5 +1,5 @@
 {
-  "id": "2f9e4f84-cc6c-49e1-9f82-caabc731d413",
+  "id": "16fdad31-9719-48da-880a-05e1c736dee7",
   "prevId": "8b691b52-7bc4-4149-8451-0bc6d0bb96b3",
   "version": "7",
   "dialect": "postgresql",
@@ -5094,27 +5094,6 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
-        },
-        "v2_projects_org_repo_clone_url_unique": {
-          "name": "v2_projects_org_repo_clone_url_unique",
-          "columns": [
-            {
-              "expression": "organization_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "lower(\"repo_clone_url\")",
-              "asc": true,
-              "isExpression": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
         }
       },
       "foreignKeys": {
@@ -5360,20 +5339,6 @@
           "primaryKey": false,
           "notNull": true
         },
-        "type": {
-          "name": "type",
-          "type": "v2_workspace_type",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'worktree'"
-        },
-        "pinned_at": {
-          "name": "pinned_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
         "created_by_user_id": {
           "name": "created_by_user_id",
           "type": "uuid",
@@ -5437,28 +5402,6 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "v2_workspaces_one_main_per_host": {
-          "name": "v2_workspaces_one_main_per_host",
-          "columns": [
-            {
-              "expression": "project_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "host_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "where": "\"v2_workspaces\".\"type\" = 'main'",
           "concurrently": false,
           "method": "btree",
           "with": {}
@@ -5773,14 +5716,6 @@
       "values": [
         "owner",
         "member"
-      ]
-    },
-    "public.v2_workspace_type": {
-      "name": "v2_workspace_type",
-      "schema": "public",
-      "values": [
-        "main",
-        "worktree"
       ]
     },
     "public.workspace_type": {

@@ -2,7 +2,8 @@ import { cn } from "@superset/ui/utils";
 import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { Link } from "@tanstack/react-router";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
+import { HiMagnifyingGlass } from "react-icons/hi2";
 import { env } from "renderer/env.renderer";
 import { authClient } from "renderer/lib/auth-client";
 import { electronTrpc } from "renderer/lib/electron-trpc";
@@ -24,6 +25,7 @@ export function ProjectsSettingsSidebar({
 }: ProjectsSettingsSidebarProps) {
 	const collections = useCollections();
 	const { data: session } = authClient.useSession();
+	const [filter, setFilter] = useState("");
 
 	const activeOrganizationId = env.SKIP_ENV_VALIDATION
 		? MOCK_ORG_ID
@@ -43,16 +45,16 @@ export function ProjectsSettingsSidebar({
 		[collections, activeOrganizationId],
 	);
 
-	const { v2Rows, v1Rows } = useMemo(() => {
+	const { v2Rows, v1Rows, totalUnfiltered } = useMemo(() => {
 		const loadedV2Ids = new Set(v2Projects.map((p) => p.id));
 
-		const v2Rows: ProjectRow[] = v2Projects.map((p) => ({
+		const allV2: ProjectRow[] = v2Projects.map((p) => ({
 			kind: "v2",
 			id: p.id,
 			name: p.name,
 		}));
 
-		const v1Rows: ProjectRow[] = groups
+		const allV1: ProjectRow[] = groups
 			.filter(
 				(g) =>
 					!g.project.neonProjectId || !loadedV2Ids.has(g.project.neonProjectId),
@@ -63,17 +65,46 @@ export function ProjectsSettingsSidebar({
 				name: g.project.name,
 			}));
 
-		return { v2Rows, v1Rows };
-	}, [groups, v2Projects]);
+		const trimmed = filter.trim().toLowerCase();
+		const matches = (rows: ProjectRow[]) =>
+			trimmed
+				? rows.filter((r) => r.name.toLowerCase().includes(trimmed))
+				: rows;
 
-	const isEmpty = v2Rows.length === 0 && v1Rows.length === 0;
+		return {
+			v2Rows: matches(allV2),
+			v1Rows: matches(allV1),
+			totalUnfiltered: allV2.length + allV1.length,
+		};
+	}, [groups, v2Projects, filter]);
+
+	const isEmpty = totalUnfiltered === 0;
+	const noMatches =
+		!isEmpty && v2Rows.length === 0 && v1Rows.length === 0 && filter !== "";
 	const showHeaders = v2Rows.length > 0 && v1Rows.length > 0;
 
 	return (
 		<div className="w-64 shrink-0 border-r overflow-y-auto">
-			<div className="p-3 space-y-4">
+			<div className="p-3 space-y-3">
+				{!isEmpty && (
+					<div className="relative">
+						<HiMagnifyingGlass className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+						<input
+							type="text"
+							placeholder="Filter projects..."
+							value={filter}
+							onChange={(e) => setFilter(e.target.value)}
+							className="w-full h-8 pl-8 pr-2 text-sm bg-accent/50 rounded-md border-0 outline-none focus:ring-1 focus:ring-ring placeholder:text-muted-foreground"
+						/>
+					</div>
+				)}
 				{isEmpty && (
 					<p className="px-2 text-sm text-muted-foreground">No projects yet.</p>
+				)}
+				{noMatches && (
+					<p className="px-2 text-sm text-muted-foreground">
+						No projects match "{filter}".
+					</p>
 				)}
 				{v2Rows.length > 0 && (
 					<Section title={showHeaders ? "v2" : null}>

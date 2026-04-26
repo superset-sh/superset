@@ -47,8 +47,10 @@ export function DashboardSidebarWorkspaceItem({
 		handleDeleted,
 		handleOpenInFinder,
 		handleRemoveFromSidebar,
+		handleToggleUnread,
 		isActive,
 		isDeleteDialogOpen,
+		isUnread,
 		isRenaming,
 		moveWorkspaceToSection,
 		renameValue,
@@ -111,6 +113,7 @@ export function DashboardSidebarWorkspaceItem({
 						<DashboardSidebarWorkspaceContextMenu
 							projectId={projectId}
 							isInSection={isInSection}
+							isUnread={isUnread}
 							onHoverCardOpen={
 								hostType === "local-device" ? onHoverCardOpen : undefined
 							}
@@ -133,6 +136,7 @@ export function DashboardSidebarWorkspaceItem({
 							onDelete={
 								isMainWorkspace ? undefined : () => setIsDeleteDialogOpen(true)
 							}
+							onToggleUnread={handleToggleUnread}
 						>
 							{content}
 						</DashboardSidebarWorkspaceContextMenu>
@@ -183,6 +187,7 @@ export function DashboardSidebarWorkspaceItem({
 					<DashboardSidebarWorkspaceContextMenu
 						projectId={projectId}
 						isInSection={isInSection}
+						isUnread={isUnread}
 						onHoverCardOpen={
 							hostType === "local-device" ? onHoverCardOpen : undefined
 						}
@@ -205,6 +210,7 @@ export function DashboardSidebarWorkspaceItem({
 						onDelete={
 							isMainWorkspace ? undefined : () => setIsDeleteDialogOpen(true)
 						}
+						onToggleUnread={handleToggleUnread}
 					>
 						{expandedContent}
 					</DashboardSidebarWorkspaceContextMenu>

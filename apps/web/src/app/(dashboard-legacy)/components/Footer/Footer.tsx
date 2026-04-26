@@ -1,10 +1,14 @@
 import { env } from "@/env";
 
 export function Footer() {
+	const currentYear = new Date().getFullYear();
+
 	return (
 		<footer className="mt-auto w-full border-t border-border/50 py-5">
 			<div className="mx-auto flex w-[95vw] max-w-screen-2xl items-center justify-between">
-				<p className="text-sm text-muted-foreground">© 2025 Superset</p>
+				<p className="text-sm text-muted-foreground">
+					© {currentYear} Superset
+				</p>
 				<div className="flex items-center gap-4">
 					<a
 						href={`${env.NEXT_PUBLIC_MARKETING_URL}/terms`}

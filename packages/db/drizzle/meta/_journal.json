@@ -264,8 +264,15 @@
     {
       "idx": 37,
       "version": "7",
-      "when": 1777016421998,
-      "tag": "0037_v2_workspaces_main_type_and_pin",
+      "when": 1777226062658,
+      "tag": "0037_drop_v2_project_repo_clone_url_unique",
+      "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1777246318187,
+      "tag": "0038_v2_workspaces_main_type_and_pin",
       "breakpoints": true
     }
   ]
