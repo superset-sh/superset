@@ -2,6 +2,7 @@ import type { AppRouter } from "@superset/host-service";
 import { workspaceTrpc } from "@superset/workspace-client";
 import type { inferRouterOutputs } from "@trpc/server";
 import { useMemo } from "react";
+import { LuMessageSquare } from "react-icons/lu";
 import type { CommentPaneData } from "../../../../types";
 import type { SidebarTabDefinition } from "../../types";
 import { ReviewTabContent } from "./components/ReviewTabContent";
@@ -85,6 +86,7 @@ export function useReviewTab({
 	return {
 		id: "review",
 		label: "Review",
+		icon: LuMessageSquare,
 		badge: openCommentCount,
 		content,
 	};

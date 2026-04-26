@@ -435,6 +435,59 @@ export const gitRouter = router({
 			};
 		}),
 
+	getBranchSyncStatus: protectedProcedure
+		.input(z.object({ workspaceId: z.string() }))
+		.query(async ({ ctx, input }) => {
+			const worktreePath = resolveWorktreePath(ctx, input.workspaceId);
+			const git = await ctx.git(worktreePath);
+
+			const currentBranch = (
+				await git.revparse(["--abbrev-ref", "HEAD"]).catch(() => "")
+			).trim();
+			const isDetached = !currentBranch || currentBranch === "HEAD";
+
+			const defaultBranch = await getDefaultBranchName(git);
+			const isDefaultBranch =
+				!isDetached && !!defaultBranch && currentBranch === defaultBranch;
+
+			const remotes = await git.getRemotes(false).catch(() => []);
+			const hasRepo = remotes.length > 0;
+
+			let hasUpstream = false;
+			let pushCount = 0;
+			let pullCount = 0;
+			try {
+				await git.raw(["rev-parse", "--abbrev-ref", "@{upstream}"]);
+				hasUpstream = true;
+				const tracking = await git.raw([
+					"rev-list",
+					"--left-right",
+					"--count",
+					"@{upstream}...HEAD",
+				]);
+				const [pullStr, pushStr] = tracking.trim().split(/\s+/);
+				pullCount = Number.parseInt(pullStr || "0", 10);
+				pushCount = Number.parseInt(pushStr || "0", 10);
+			} catch {
+				// no upstream — counts stay zero
+			}
+
+			const status = await git.status().catch(() => null);
+			const hasUncommitted = status ? status.files.length > 0 : false;
+
+			return {
+				hasRepo,
+				hasUpstream,
+				pushCount,
+				pullCount,
+				isDefaultBranch,
+				isDetached,
+				hasUncommitted,
+				currentBranch: isDetached ? null : currentBranch,
+				defaultBranch,
+			};
+		}),
+
 	getPullRequest: protectedProcedure
 		.input(z.object({ workspaceId: z.string() }))
 		.query(({ ctx, input }) => {
