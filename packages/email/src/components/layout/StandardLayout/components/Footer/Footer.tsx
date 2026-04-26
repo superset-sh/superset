@@ -6,6 +6,8 @@ interface FooterProps {
 }
 
 export function Footer({ showSocial = true }: FooterProps) {
+	const currentYear = new Date().getFullYear();
+
 	const socialIcons = {
 		x: `${env.NEXT_PUBLIC_MARKETING_URL}/assets/emails/x.png`,
 		instagram: `${env.NEXT_PUBLIC_MARKETING_URL}/assets/emails/instagram.png`,
@@ -96,7 +98,7 @@ export function Footer({ showSocial = true }: FooterProps) {
 
 			{/* Company Info */}
 			<Text className="text-muted text-xs leading-none m-0">
-				© 2026 Superset. All rights reserved.
+				© {currentYear} Superset. All rights reserved.
 			</Text>
 		</Section>
 	);
