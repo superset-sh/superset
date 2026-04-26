@@ -8,6 +8,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { HiMiniXMark } from "react-icons/hi2";
 import { TbLayoutColumns, TbLayoutRows } from "react-icons/tb";
+import { useV2UserPreferences } from "renderer/hooks/useV2UserPreferences";
 import { HotkeyLabel, useHotkey } from "renderer/hotkeys";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { CommandPalette } from "renderer/screens/main/components/CommandPalette";
@@ -48,6 +49,11 @@ import type {
 interface WorkspaceSearch {
 	terminalId?: string;
 	chatSessionId?: string;
+	focusRequestId?: string;
+}
+
+function parseNonEmptyString(value: unknown): string | undefined {
+	return typeof value === "string" && value.length > 0 ? value : undefined;
 }
 
 export const Route = createFileRoute(
@@ -55,15 +61,15 @@ export const Route = createFileRoute(
 )({
 	component: V2WorkspacePage,
 	validateSearch: (raw: Record<string, unknown>): WorkspaceSearch => ({
-		terminalId: typeof raw.terminalId === "string" ? raw.terminalId : undefined,
-		chatSessionId:
-			typeof raw.chatSessionId === "string" ? raw.chatSessionId : undefined,
+		terminalId: parseNonEmptyString(raw.terminalId),
+		chatSessionId: parseNonEmptyString(raw.chatSessionId),
+		focusRequestId: parseNonEmptyString(raw.focusRequestId),
 	}),
 });
 
 function V2WorkspacePage() {
 	const { workspaceId } = Route.useParams();
-	const { terminalId, chatSessionId } = Route.useSearch();
+	const { terminalId, chatSessionId, focusRequestId } = Route.useSearch();
 	const collections = useCollections();
 
 	const { data: workspaces } = useLiveQuery(
@@ -90,6 +96,7 @@ function V2WorkspacePage() {
 			workspaceName={workspace.name}
 			terminalId={terminalId}
 			chatSessionId={chatSessionId}
+			focusRequestId={focusRequestId}
 		/>
 	);
 }
@@ -100,15 +107,18 @@ function WorkspaceContent({
 	workspaceName,
 	terminalId,
 	chatSessionId,
+	focusRequestId,
 }: {
 	projectId: string;
 	workspaceId: string;
 	workspaceName: string;
 	terminalId?: string;
 	chatSessionId?: string;
+	focusRequestId?: string;
 }) {
 	const collections = useCollections();
-	const { localWorkspaceState, store } = useV2WorkspacePaneLayout({
+	const { preferences: v2UserPreferences } = useV2UserPreferences();
+	const { store } = useV2WorkspacePaneLayout({
 		projectId,
 		workspaceId,
 	});
@@ -118,7 +128,12 @@ function WorkspaceContent({
 		projectId,
 	});
 	useConsumePendingLaunch({ workspaceId, store });
-	useConsumeAutomationRunLink({ store, terminalId, chatSessionId });
+	useConsumeAutomationRunLink({
+		store,
+		terminalId,
+		chatSessionId,
+		focusRequestId,
+	});
 
 	const workspaceQuery = workspaceTrpc.workspace.get.useQuery({
 		id: workspaceId,
@@ -369,11 +384,10 @@ function WorkspaceContent({
 		[],
 	);
 
-	const sidebarOpen = localWorkspaceState?.rightSidebarOpen ?? false;
+	const sidebarOpen = v2UserPreferences.rightSidebarOpen;
 
 	useWorkspaceHotkeys({
 		store,
-		workspaceId,
 		matchedPresets,
 		executePreset,
 		paneRegistry,
@@ -385,7 +399,8 @@ function WorkspaceContent({
 		setSidebarSlotEl(document.getElementById("workspace-right-sidebar-slot"));
 	}, []);
 
-	const sidebarWidth = localWorkspaceState?.rightSidebarWidth ?? 340;
+	const sidebarWidth =
+		collections.v2WorkspaceLocalState.get(workspaceId)?.rightSidebarWidth ?? 340;
 	const [isSidebarResizing, setIsSidebarResizing] = useState(false);
 	const setSidebarWidth = useCallback(
 		(width: number) => {

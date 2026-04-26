@@ -15,6 +15,11 @@ import { usePRFlowState } from "./hooks/usePRFlowState";
 import { useReviewTab } from "./hooks/useReviewTab";
 import type { SidebarTabDefinition } from "./types";
 
+// Gate the PR button until the in-app chat lands in v2. The wip dispatch
+// hands off to a chat session, which doesn't exist yet — flip to true once
+// chat panes work and the slash-command flow is verified end-to-end.
+const PR_ACTION_HEADER_ENABLED = false;
+
 type SidebarTabId = "changes" | "files" | "review";
 
 const VALID_TAB_IDS: readonly SidebarTabId[] = ["changes", "files", "review"];
@@ -143,7 +148,11 @@ export function WorkspaceSidebar({
 			ref={containerRef}
 			className="isolate flex h-full w-full min-h-0 flex-col overflow-hidden bg-background"
 		>
-			<PRActionHeader state={flowState} dispatch={dispatch} onRetry={onRetry} />
+			{PR_ACTION_HEADER_ENABLED ? (
+				<PRActionHeader state={flowState} dispatch={dispatch} onRetry={onRetry} />
+			) : (
+				<div className="flex h-12 shrink-0 items-center gap-2 border-b border-border bg-muted/45 px-2 dark:bg-muted/35" />
+			)}
 			<SidebarHeader
 				tabs={tabs}
 				activeTab={activeTab}

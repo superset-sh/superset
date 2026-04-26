@@ -21,6 +21,7 @@ import {
 	countUntrackedFileLines,
 	detectUnstagedRenames,
 	getChangedFilesForDiff,
+	getDefaultBranchName,
 	mapGitStatus,
 	parseNumstat,
 	resolveBaseComparison,
