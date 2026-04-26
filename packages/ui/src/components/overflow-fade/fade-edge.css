@@ -4,10 +4,6 @@
  * Fades out one or more edges of an element via a linear-gradient mask.
  * Composable: `class="fade-edge-r fade-edge-b"` fades both edges.
  * Override the fade size per element with `[--fade-edge-size:2rem]`.
- *
- * NOTE: This is a generic, app-agnostic utility. When a second consumer
- * outside `apps/desktop` needs it, promote this file to
- * `packages/ui/src/styles/fade-edge.css` and update consumers' imports.
  */
 
 @layer utilities {

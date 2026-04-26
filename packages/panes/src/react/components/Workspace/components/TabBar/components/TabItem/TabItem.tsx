@@ -6,6 +6,7 @@ import {
 	ContextMenuSeparator,
 	ContextMenuTrigger,
 } from "@superset/ui/context-menu";
+import { OverflowFadeText } from "@superset/ui/overflow-fade-text";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { PencilIcon, XIcon } from "lucide-react";
@@ -150,7 +151,9 @@ export function TabItem<TData>({
 										type="button"
 									>
 										{icon && <span className="shrink-0">{icon}</span>}
-										<span className="min-w-0 flex-1 truncate">{title}</span>
+										<OverflowFadeText className="flex-1">
+											{title}
+										</OverflowFadeText>
 										{accessory && (
 											<span className="shrink-0 leading-none">{accessory}</span>
 										)}
