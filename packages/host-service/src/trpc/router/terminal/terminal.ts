@@ -44,7 +44,7 @@ export const terminalRouter = router({
 	listSessions: protectedProcedure
 		.input(
 			z.object({
-				workspaceId: z.string(),
+				workspaceId: z.string().optional(),
 			}),
 		)
 		.query(({ input }) => ({

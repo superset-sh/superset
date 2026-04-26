@@ -1,5 +1,4 @@
 import type { RendererContext } from "@superset/panes";
-import { alert } from "@superset/ui/atoms/Alert";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -10,6 +9,8 @@ import {
 } from "@superset/ui/dropdown-menu";
 import { toast } from "@superset/ui/sonner";
 import { workspaceTrpc } from "@superset/workspace-client";
+import { useLiveQuery } from "@tanstack/react-db";
+import { useNavigate } from "@tanstack/react-router";
 import {
 	Check,
 	ChevronDown,
@@ -18,13 +19,20 @@ import {
 	TerminalSquare,
 	Trash2,
 } from "lucide-react";
-import { useCallback, useMemo, useState, useSyncExternalStore } from "react";
+import {
+	Fragment,
+	useCallback,
+	useMemo,
+	useState,
+	useSyncExternalStore,
+} from "react";
 import { markTerminalForBackground } from "renderer/lib/terminal/terminal-background-intents";
 import { terminalRuntimeRegistry } from "renderer/lib/terminal/terminal-runtime-registry";
 import type {
 	PaneViewerData,
 	TerminalPaneData,
 } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/types";
+import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { getRelativeTime } from "renderer/screens/main/components/WorkspacesListView/utils";
 
 interface TerminalSessionDropdownProps {
@@ -47,6 +55,12 @@ interface TerminalPaneLocation {
 	tabId: string;
 	paneId: string;
 	titleOverride?: string;
+}
+
+interface TerminalSessionGroup {
+	workspaceId: string;
+	label: string;
+	sessions: VisibleTerminalSession[];
 }
 
 const EMPTY_TERMINAL_PANE_LOCATIONS = new Map<string, TerminalPaneLocation[]>();
@@ -86,16 +100,38 @@ export function TerminalSessionDropdown({
 	const [isOpen, setIsOpen] = useState(false);
 	const data = context.pane.data as TerminalPaneData;
 	const { terminalId } = data;
+	const sessionWorkspaceId = data.workspaceId ?? workspaceId;
 	const terminalInstanceId = context.pane.id;
+	const navigate = useNavigate();
+	const collections = useCollections();
 	const utils = workspaceTrpc.useUtils();
 	const killTerminalSession = workspaceTrpc.terminal.killSession.useMutation();
 	const sessionsQuery = workspaceTrpc.terminal.listSessions.useQuery(
-		{ workspaceId },
+		{},
 		{
 			refetchInterval: isOpen ? 2_000 : false,
 			refetchOnWindowFocus: true,
 		},
 	);
+	const { data: workspaceRows = [] } = useLiveQuery(
+		(q) =>
+			q
+				.from({ v2Workspaces: collections.v2Workspaces })
+				.select(({ v2Workspaces }) => ({
+					id: v2Workspaces.id,
+					name: v2Workspaces.name,
+					branch: v2Workspaces.branch,
+				})),
+		[collections],
+	);
+
+	const workspaceLabels = useMemo(() => {
+		const labels = new Map<string, string>();
+		for (const row of workspaceRows) {
+			labels.set(row.id, row.name || row.branch || "Workspace");
+		}
+		return labels;
+	}, [workspaceRows]);
 
 	const sessions = useMemo<VisibleTerminalSession[]>(() => {
 		const liveSessions = sessionsQuery.data?.sessions ?? [];
@@ -105,7 +141,7 @@ export function TerminalSessionDropdown({
 		return [
 			{
 				terminalId,
-				workspaceId,
+				workspaceId: sessionWorkspaceId,
 				exited: false,
 				exitCode: 0,
 				attached: false,
@@ -114,10 +150,48 @@ export function TerminalSessionDropdown({
 			},
 			...liveSessions,
 		];
-	}, [sessionsQuery.data?.sessions, terminalId, workspaceId]);
+	}, [sessionsQuery.data?.sessions, terminalId, sessionWorkspaceId]);
 	const currentSession = sessions.find(
 		(session) => session.terminalId === terminalId,
 	);
+	const sessionGroups = useMemo<TerminalSessionGroup[]>(() => {
+		const groupsByWorkspaceId = new Map<string, VisibleTerminalSession[]>();
+		for (const session of sessions) {
+			const group = groupsByWorkspaceId.get(session.workspaceId) ?? [];
+			group.push(session);
+			groupsByWorkspaceId.set(session.workspaceId, group);
+		}
+
+		return [...groupsByWorkspaceId.entries()]
+			.map(([groupWorkspaceId, groupSessions]) => ({
+				workspaceId: groupWorkspaceId,
+				label:
+					groupWorkspaceId === workspaceId
+						? "Current workspace"
+						: (workspaceLabels.get(groupWorkspaceId) ?? "Unknown workspace"),
+				sessions: [...groupSessions].sort((a, b) => {
+					if (a.terminalId === terminalId) return -1;
+					if (b.terminalId === terminalId) return 1;
+					return (b.createdAt ?? 0) - (a.createdAt ?? 0);
+				}),
+			}))
+			.sort((a, b) => {
+				const aHasCurrent = a.sessions.some(
+					(session) => session.terminalId === terminalId,
+				);
+				const bHasCurrent = b.sessions.some(
+					(session) => session.terminalId === terminalId,
+				);
+				if (aHasCurrent !== bHasCurrent) return aHasCurrent ? -1 : 1;
+				if (a.workspaceId === workspaceId && b.workspaceId !== workspaceId) {
+					return -1;
+				}
+				if (b.workspaceId === workspaceId && a.workspaceId !== workspaceId) {
+					return 1;
+				}
+				return a.label.localeCompare(b.label);
+			});
+	}, [sessions, terminalId, workspaceId, workspaceLabels]);
 	const subscribeTitle = useCallback(
 		(callback: () => void) =>
 			terminalRuntimeRegistry.onTitleChange(
@@ -136,7 +210,8 @@ export function TerminalSessionDropdown({
 		? getTerminalPaneLocations(context)
 		: EMPTY_TERMINAL_PANE_LOCATIONS;
 
-	const handleSelectSession = (nextTerminalId: string) => {
+	const handleSelectSession = (session: VisibleTerminalSession) => {
+		const nextTerminalId = session.terminalId;
 		if (nextTerminalId === terminalId) {
 			setIsOpen(false);
 			return;
@@ -145,18 +220,44 @@ export function TerminalSessionDropdown({
 		const state = context.store.getState();
 		const terminalPaneLocations = getTerminalPaneLocations(context);
 		const existingLocation = terminalPaneLocations.get(nextTerminalId)?.[0];
+		if (existingLocation) {
+			state.setActiveTab(existingLocation.tabId);
+			state.setActivePane({
+				tabId: existingLocation.tabId,
+				paneId: existingLocation.paneId,
+			});
+			setIsOpen(false);
+			return;
+		}
+
+		if (session.attached && session.workspaceId !== workspaceId) {
+			void navigate({
+				to: "/v2-workspace/$workspaceId",
+				params: { workspaceId: session.workspaceId },
+				search: {
+					terminalId: session.terminalId,
+					focusRequestId: crypto.randomUUID(),
+				},
+			});
+			setIsOpen(false);
+			return;
+		}
+
 		if ((terminalPaneLocations.get(terminalId)?.length ?? 0) === 0) {
 			markTerminalForBackground(terminalId);
 		}
 
 		state.setPaneData({
 			paneId: context.pane.id,
-			data: { terminalId: nextTerminalId } as PaneViewerData,
+			data: {
+				terminalId: nextTerminalId,
+				workspaceId: session.workspaceId,
+			} as PaneViewerData,
 		});
 		state.setPaneTitleOverride({
 			tabId: context.tab.id,
 			paneId: context.pane.id,
-			titleOverride: existingLocation?.titleOverride,
+			titleOverride: undefined,
 		});
 		setIsOpen(false);
 	};
@@ -175,34 +276,20 @@ export function TerminalSessionDropdown({
 		}
 	};
 
-	const removeTerminalSession = async (targetTerminalId: string) => {
+	const removeTerminalSession = async (session: VisibleTerminalSession) => {
 		await killTerminalSession.mutateAsync({
-			terminalId: targetTerminalId,
-			workspaceId,
+			terminalId: session.terminalId,
+			workspaceId: session.workspaceId,
 		});
-		closePanesForTerminal(targetTerminalId);
-		await utils.terminal.listSessions.invalidate({ workspaceId });
+		closePanesForTerminal(session.terminalId);
+		await utils.terminal.listSessions.invalidate();
 	};
 
-	const handleRemoveTerminal = (targetTerminalId: string) => {
-		alert({
-			title: "Remove terminal session?",
-			description:
-				"This will terminate the underlying process. Use Move terminal to background to keep it running without a pane.",
-			actions: [
-				{ label: "Cancel", variant: "outline", onClick: () => {} },
-				{
-					label: "Remove Terminal",
-					variant: "destructive",
-					onClick: () => {
-						toast.promise(removeTerminalSession(targetTerminalId), {
-							loading: "Removing terminal...",
-							success: "Terminal removed",
-							error: "Failed to remove terminal",
-						});
-					},
-				},
-			],
+	const handleRemoveTerminal = (session: VisibleTerminalSession) => {
+		toast.promise(removeTerminalSession(session), {
+			loading: "Removing terminal...",
+			success: "Terminal removed",
+			error: "Failed to remove terminal",
 		});
 	};
 
@@ -216,6 +303,7 @@ export function TerminalSessionDropdown({
 			paneId: context.pane.id,
 			data: {
 				terminalId: crypto.randomUUID(),
+				workspaceId,
 			} as PaneViewerData,
 		});
 		state.setPaneTitleOverride({
@@ -223,7 +311,7 @@ export function TerminalSessionDropdown({
 			paneId: context.pane.id,
 			titleOverride: undefined,
 		});
-		void utils.terminal.listSessions.invalidate({ workspaceId });
+		void utils.terminal.listSessions.invalidate();
 		setIsOpen(false);
 	};
 
@@ -255,76 +343,100 @@ export function TerminalSessionDropdown({
 				</button>
 			</DropdownMenuTrigger>
 			<DropdownMenuContent align="start" className="w-96">
-				<DropdownMenuLabel className="text-xs">
-					Terminal Sessions
+				<DropdownMenuLabel className="flex items-center gap-2 text-xs">
+					<span className="min-w-0 flex-1 truncate">Terminal Sessions</span>
+					<button
+						type="button"
+						aria-label="New terminal"
+						title="New terminal"
+						className="flex size-5 shrink-0 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+						onClick={(event) => {
+							event.preventDefault();
+							event.stopPropagation();
+							handleNewTerminal();
+						}}
+					>
+						<Plus className="size-3.5" />
+					</button>
 				</DropdownMenuLabel>
 				<DropdownMenuSeparator />
 				<div className="max-h-80 overflow-y-auto">
-					{sessions.length > 0 ? (
-						sessions.map((session) => {
-							const isCurrent = session.terminalId === terminalId;
-							const location = renderTerminalPaneLocations.get(
-								session.terminalId,
-							)?.[0];
-							const createdAtLabel = formatCreatedAt(session.createdAt);
-							const status = isCurrent
-								? "Current"
-								: session.pending
-									? "Starting"
-									: session.attached
-										? "Attached"
-										: "Detached";
-							const title = isCurrent
-								? triggerTitle
-								: (session.title ?? location?.titleOverride ?? "Terminal");
-
-							return (
-								<DropdownMenuItem
-									key={session.terminalId}
-									className="group flex items-center gap-2"
-									onSelect={(_event) => {
-										handleSelectSession(session.terminalId);
-									}}
+					{sessionGroups.length > 0 ? (
+						sessionGroups.map((group, groupIndex) => (
+							<Fragment key={group.workspaceId}>
+								{groupIndex > 0 && <DropdownMenuSeparator />}
+								<div
+									className="flex min-w-0 items-center gap-2 px-2 pt-2 pb-1 text-muted-foreground text-xs"
+									title={group.label}
 								>
-									<span className="w-4 shrink-0">
-										{isCurrent && <Check className="size-3.5" />}
+									<span className="min-w-0 flex-1 truncate font-medium">
+										{group.label}
 									</span>
-									<span className="min-w-0 flex-1 truncate text-xs">
-										{title}
+									<span className="shrink-0 text-muted-foreground/60 tabular-nums">
+										{group.sessions.length}
 									</span>
-									<span className="shrink-0 text-xs text-muted-foreground/70">
-										{createdAtLabel}
-									</span>
-									<span className="shrink-0 text-xs text-muted-foreground">
-										{status}
-									</span>
-									<button
-										type="button"
-										aria-label={`Remove terminal ${session.createdAt ? createdAtLabel : "session"}`}
-										disabled={killTerminalSession.isPending}
-										className="shrink-0 rounded p-0.5 opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive disabled:pointer-events-none disabled:opacity-30 group-hover:opacity-100"
-										onClick={(event) => {
-											event.preventDefault();
-											event.stopPropagation();
-											handleRemoveTerminal(session.terminalId);
-										}}
-									>
-										<Trash2 className="size-3" />
-									</button>
-								</DropdownMenuItem>
-							);
-						})
+								</div>
+								{group.sessions.map((session) => {
+									const isCurrent = session.terminalId === terminalId;
+									const location = renderTerminalPaneLocations.get(
+										session.terminalId,
+									)?.[0];
+									const createdAtLabel = formatCreatedAt(session.createdAt);
+									const status = isCurrent
+										? "Current"
+										: session.pending
+											? "Starting"
+											: session.attached
+												? "Attached"
+												: "Detached";
+									const title = isCurrent
+										? triggerTitle
+										: (session.title ?? location?.titleOverride ?? "Terminal");
+
+									return (
+										<DropdownMenuItem
+											key={session.terminalId}
+											className="group flex items-center gap-2"
+											onSelect={(_event) => {
+												handleSelectSession(session);
+											}}
+										>
+											<span className="w-4 shrink-0">
+												{isCurrent && <Check className="size-3.5" />}
+											</span>
+											<span className="min-w-0 flex-1 truncate text-xs">
+												{title}
+											</span>
+											<span className="shrink-0 text-xs text-muted-foreground/70">
+												{createdAtLabel}
+											</span>
+											<span className="shrink-0 text-xs text-muted-foreground">
+												{status}
+											</span>
+											<button
+												type="button"
+												aria-label={`Remove terminal ${session.createdAt ? createdAtLabel : "session"}`}
+												disabled={killTerminalSession.isPending}
+												className="shrink-0 rounded p-0.5 opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive disabled:pointer-events-none disabled:opacity-30 group-hover:opacity-100"
+												onClick={(event) => {
+													event.preventDefault();
+													event.stopPropagation();
+													handleRemoveTerminal(session);
+												}}
+											>
+												<Trash2 className="size-3" />
+											</button>
+										</DropdownMenuItem>
+									);
+								})}
+							</Fragment>
+						))
 					) : (
 						<div className="px-2 py-1.5 text-xs text-muted-foreground">
 							No live sessions
 						</div>
 					)}
 				</div>
-				<DropdownMenuSeparator />
-				<DropdownMenuItem onSelect={handleNewTerminal}>
-					<Plus className="mr-1.5 size-3.5" />
-					<span className="text-xs">New Terminal</span>
-				</DropdownMenuItem>
 			</DropdownMenuContent>
 		</DropdownMenu>
 	);

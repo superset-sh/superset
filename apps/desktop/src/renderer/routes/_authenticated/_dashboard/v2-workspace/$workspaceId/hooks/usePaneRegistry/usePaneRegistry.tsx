@@ -168,9 +168,7 @@ export function usePaneRegistry(
 		workspaceTrpc.terminal.killSession.useMutation({
 			onSuccess: () => {
 				toast.success("Terminal session killed");
-				void workspaceTrpcUtils.terminal.listSessions.invalidate({
-					workspaceId,
-				});
+				void workspaceTrpcUtils.terminal.listSessions.invalidate();
 			},
 			onError: (error) => {
 				toast.error("Failed to kill terminal session", {
@@ -377,24 +375,10 @@ export function usePaneRegistry(
 						variant: "destructive",
 						disabled: isKillingTerminalSession,
 						onSelect: (ctx) => {
-							const { terminalId } = ctx.pane.data as TerminalPaneData;
-							alert({
-								title: "Kill terminal session?",
-								description:
-									"This will terminate the underlying process. Move the terminal to background to keep it running without a pane.",
-								actions: [
-									{ label: "Cancel", variant: "outline", onClick: () => {} },
-									{
-										label: "Kill Session",
-										variant: "destructive",
-										onClick: () => {
-											killTerminalSession({
-												terminalId,
-												workspaceId,
-											});
-										},
-									},
-								],
+							const data = ctx.pane.data as TerminalPaneData;
+							killTerminalSession({
+								terminalId: data.terminalId,
+								workspaceId: data.workspaceId ?? workspaceId,
 							});
 						},
 					};

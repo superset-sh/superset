@@ -8,6 +8,7 @@ export interface FilePaneData {
 
 export interface TerminalPaneData {
 	terminalId: string;
+	workspaceId?: string;
 }
 
 export interface ChatPaneData {
