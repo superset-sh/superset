@@ -125,12 +125,6 @@ const SECTION_GROUPS: SectionGroup[] = [
 				label: "Models",
 				icon: <LuBrain className="h-4 w-4" />,
 			},
-			{
-				id: "/settings/experimental",
-				section: "experimental",
-				label: "Experimental",
-				icon: <HiOutlineBeaker className="h-4 w-4" />,
-			},
 		],
 	},
 	{
@@ -177,6 +171,12 @@ const SECTION_GROUPS: SectionGroup[] = [
 				label: "Permissions",
 				icon: <HiOutlineShieldCheck className="h-4 w-4" />,
 				macOnly: true,
+			},
+			{
+				id: "/settings/experimental",
+				section: "experimental",
+				label: "Experimental",
+				icon: <HiOutlineBeaker className="h-4 w-4" />,
 			},
 		],
 	},

@@ -34,12 +34,12 @@ const SECTION_ORDER: SettingsSection[] = [
 	"terminal",
 	"links",
 	"models",
-	"experimental",
 	"organization",
 	"integrations",
 	"billing",
 	"apikeys",
 	"permissions",
+	"experimental",
 ];
 
 function getSectionFromPath(pathname: string): SettingsSection | null {
