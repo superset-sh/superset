@@ -32,8 +32,6 @@ export const create = protectedProcedure
 
 		const localProject = requireLocalProject(ctx, input.projectId);
 
-		setProgress(input.pendingId, "creating_worktree");
-
 		// Renderer already sanitized/slugified. Host-service only validates
 		// and deduplicates — doesn't re-sanitize (which would strip case,
 		// slashes, etc. the user intended).
@@ -103,6 +101,7 @@ export const create = protectedProcedure
 		// If we resolved to a remote-tracking ref, fetch just that branch
 		// to ensure we're branching from the latest remote state.
 		if (startPoint.kind === "remote-tracking") {
+			setProgress(input.pendingId, "fetching_remote");
 			try {
 				await git.fetch([
 					startPoint.remote,
@@ -117,6 +116,8 @@ export const create = protectedProcedure
 				);
 			}
 		}
+
+		setProgress(input.pendingId, "creating_worktree");
 
 		// Always create a new branch — never check out an existing one.
 		// Checking out existing branches is a separate intent (createFromPr,
@@ -231,6 +232,8 @@ export const create = protectedProcedure
 				message: "Cloud workspace create returned no row",
 			});
 		}
+
+		setProgress(input.pendingId, "finalizing");
 
 		try {
 			ctx.db

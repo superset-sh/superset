@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { GoGitBranch } from "react-icons/go";
-import { HiCheck, HiExclamationTriangle } from "react-icons/hi2";
+import { HiExclamationTriangle } from "react-icons/hi2";
 import { env } from "renderer/env.renderer";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { formatRelativeTime } from "renderer/lib/formatRelativeTime";
@@ -21,6 +21,9 @@ import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/u
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import type { PendingWorkspaceRow } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal/schema";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
+import { KeypadLoader } from "renderer/screens/main/components/WorkspaceView/WorkspaceInitializingView/KeypadLoader";
+import { StepProgress } from "renderer/screens/main/components/WorkspaceView/WorkspaceInitializingView/StepProgress";
+import type { WorkspaceInitStep } from "shared/types/workspace-init";
 import type { ResolvedPrContent } from "./buildForkAgentLaunch";
 import {
 	buildAdoptPayload,
@@ -30,6 +33,8 @@ import {
 } from "./buildIntentPayload";
 import { buildSetupPaneLayout } from "./buildSetupPaneLayout";
 import { dispatchForkLaunch } from "./dispatchForkLaunch";
+import { mapProgressToInitStep } from "./mapProgressToInitStep";
+import { useAnimatedInitStep } from "./useAnimatedInitStep";
 
 /**
  * Pending workspace progress page.
@@ -50,6 +55,30 @@ export const Route = createFileRoute(
 )({
 	component: PendingWorkspacePage,
 });
+
+const V2_PENDING_STEP_MESSAGES: Partial<Record<WorkspaceInitStep, string>> = {
+	pending: "Preparing workspace",
+	syncing: "Preparing workspace",
+	verifying: "Checking repository",
+	fetching: "Fetching latest changes",
+	creating_worktree: "Creating worktree",
+	copying_config: "Registering workspace",
+	finalizing: "Opening workspace",
+	ready: "Ready",
+	failed: "Failed",
+};
+
+const V2_PENDING_KEYPAD_LABELS: Partial<Record<WorkspaceInitStep, string>> = {
+	pending: "Preparing workspace",
+	syncing: "Preparing workspace",
+	verifying: "Checking repository",
+	fetching: "Fetching latest changes",
+	creating_worktree: "Creating worktree",
+	copying_config: "Registering workspace",
+	finalizing: "Opening workspace",
+	ready: "Ready",
+	failed: "Failed",
+};
 
 function useFireIntent(pendingId: string, pending: PendingWorkspaceRow | null) {
 	const collections = useCollections();
@@ -214,6 +243,7 @@ function PendingWorkspacePage() {
 	const { ensureWorkspaceInSidebar } = useDashboardSidebarState();
 	const navigatedRef = useRef(false);
 	const firedRef = useRef(false);
+	const warningsToastedRef = useRef<string | null>(null);
 
 	// Route params can change under a mounted component (user navigates from
 	// one pending page to another). Reset the fire/nav guards so the new
@@ -225,6 +255,7 @@ function PendingWorkspacePage() {
 		prevPendingIdRef.current = pendingId;
 		firedRef.current = false;
 		navigatedRef.current = false;
+		warningsToastedRef.current = null;
 		setSyncTimedOut(false);
 	}
 
@@ -263,10 +294,12 @@ function PendingWorkspacePage() {
 		void fireIntent();
 	}, [pending, fireIntent]);
 
-	// Poll host-service for step-by-step progress (fork + checkout only;
+	// Poll host-service for step-by-step progress (create + checkout flows;
 	// adopt is fast and doesn't instrument progress).
 	const intentHasProgress =
-		pending?.intent === "fork" || pending?.intent === "checkout";
+		pending?.intent === "fork" ||
+		pending?.intent === "checkout" ||
+		pending?.intent === "pr-checkout";
 	const hostUrl = !pending
 		? activeHostUrl
 		: pending.hostTarget.kind === "local"
@@ -282,11 +315,33 @@ function PendingWorkspacePage() {
 				pendingId,
 			});
 		},
-		refetchInterval: 500,
+		// Poll tight enough to catch fast transitions between
+		// host-service steps — `getProgress` is a single in-memory Map read.
+		refetchInterval: 200,
 		enabled: pending?.status === "creating" && !!hostUrl && intentHasProgress,
 	});
 
 	const steps = progress?.steps ?? [];
+	const rawInitStep = mapProgressToInitStep(steps);
+	// Force the walker toward "ready" once the mutation itself resolves —
+	// the host-service's in-memory progress is cleared at the end, so
+	// `rawInitStep` drops back to "pending" right as we'd otherwise want to
+	// see the final keypad state. Pinning to "ready" lets the walker finish.
+	const walkerTarget: WorkspaceInitStep =
+		pending?.status === "succeeded"
+			? "ready"
+			: pending?.status === "failed"
+				? "failed"
+				: rawInitStep;
+	const displayedInitStep = useAnimatedInitStep(walkerTarget, pendingId);
+
+	// Honor the user's notification-mute preference + volume for the keypad
+	// click sound. Default to muted while the query loads so we never play a
+	// click for a user who has it disabled before the setting resolves.
+	const { data: notificationSoundsMuted = true } =
+		electronTrpc.settings.getNotificationSoundsMuted.useQuery();
+	const { data: notificationVolume = 100 } =
+		electronTrpc.settings.getNotificationVolume.useQuery();
 
 	const STALE_THRESHOLD_MS = 2 * 60 * 1000;
 	const [now, setNow] = useState(Date.now());
@@ -303,6 +358,21 @@ function PendingWorkspacePage() {
 	const elapsedLabel = formatRelativeTime(createdAtMs);
 	const isStale =
 		pending?.status === "creating" && elapsedMs > STALE_THRESHOLD_MS;
+
+	useEffect(() => {
+		if (
+			pending?.status !== "succeeded" ||
+			pending.warnings.length === 0 ||
+			warningsToastedRef.current === pendingId
+		) {
+			return;
+		}
+
+		warningsToastedRef.current = pendingId;
+		for (const warning of pending.warnings) {
+			toast.warning(warning);
+		}
+	}, [pending?.status, pending?.warnings, pendingId]);
 
 	// If sync stalls past this, swap the spinner for a recoverable stall UI
 	// rather than silently navigating into "Workspace not found". syncTimedOut
@@ -364,10 +434,126 @@ function PendingWorkspacePage() {
 
 	const creatingLabel =
 		pending.intent === "adopt"
-			? "Adopting worktree..."
+			? "Adopting worktree"
 			: pending.intent === "checkout"
-				? "Checking out branch..."
-				: "Creating workspace...";
+				? "Checking out branch"
+				: "Setting up workspace";
+
+	// Hold the keypad view through the real pre-navigation states. We do not wait
+	// for the animation to catch up once the workspace is synced; navigation
+	// should be gated only by workspace readiness, not loader timing.
+	const showCreatingUI =
+		pending.status === "creating" ||
+		(pending.status === "succeeded" && !syncTimedOut);
+
+	if (showCreatingUI) {
+		return (
+			<div className="flex h-full w-full flex-1 flex-col items-center justify-center px-8">
+				<div className="flex w-full max-w-md flex-col items-center space-y-5 text-center">
+					<KeypadLoader
+						currentStep={displayedInitStep}
+						muted={notificationSoundsMuted}
+						volume={0.35 * (notificationVolume / 100)}
+						ariaLabelByStep={V2_PENDING_KEYPAD_LABELS}
+					/>
+
+					<div className="space-y-1">
+						<h2
+							className={`text-lg font-medium ${isStale ? "text-amber-500" : "text-foreground"}`}
+						>
+							{isStale
+								? "This is taking longer than expected..."
+								: creatingLabel}
+						</h2>
+						<p className="text-sm text-muted-foreground">{pending.name}</p>
+						<div className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
+							<GoGitBranch className="size-3.5" />
+							<span className="font-mono">{pending.branchName}</span>
+						</div>
+					</div>
+
+					<StepProgress
+						currentStep={displayedInitStep}
+						animate={false}
+						messages={V2_PENDING_STEP_MESSAGES}
+					/>
+
+					<div className="flex items-center gap-3">
+						<p className="text-xs text-muted-foreground/60">
+							Takes 10s to a few minutes depending on the size of your repo
+						</p>
+						<span className="text-xs tabular-nums text-muted-foreground/50">
+							{elapsedLabel}
+						</span>
+					</div>
+
+					<button
+						type="button"
+						className="text-xs text-muted-foreground/45 transition-colors hover:text-muted-foreground"
+						onClick={() => {
+							collections.pendingWorkspaces.delete(pendingId);
+							void clearAttachments(pendingId);
+							void navigate({ to: "/" });
+						}}
+					>
+						Dismiss
+					</button>
+				</div>
+			</div>
+		);
+	}
+
+	if (pending.status === "failed") {
+		return (
+			<div className="flex h-full w-full flex-1 flex-col items-center justify-center px-8">
+				<div className="flex w-full max-w-md flex-col items-center space-y-5 text-center">
+					<div className="space-y-1">
+						<h2 className="text-lg font-medium text-foreground">
+							Workspace setup failed
+						</h2>
+						<p className="text-sm text-muted-foreground">{pending.name}</p>
+						<div className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
+							<GoGitBranch className="size-3.5" />
+							<span className="font-mono">{pending.branchName}</span>
+						</div>
+					</div>
+
+					<StepProgress
+						currentStep="failed"
+						messages={{ failed: "Failed to set up workspace" }}
+					/>
+
+					<p className="max-w-sm select-text break-words text-xs leading-relaxed text-destructive/75">
+						{pending.error ?? "Failed to create workspace"}
+					</p>
+
+					<div className="flex items-center gap-4 pt-1">
+						<button
+							type="button"
+							className="rounded-md border border-foreground/15 px-3 py-1.5 text-xs text-foreground transition-colors hover:bg-foreground/[0.04]"
+							onClick={() => {
+								firedRef.current = true; // prevent the mount-effect from racing
+								void fireIntent();
+							}}
+						>
+							Retry
+						</button>
+						<button
+							type="button"
+							className="text-xs text-muted-foreground/45 transition-colors hover:text-muted-foreground"
+							onClick={() => {
+								collections.pendingWorkspaces.delete(pendingId);
+								void clearAttachments(pendingId);
+								void navigate({ to: "/" });
+							}}
+						>
+							Dismiss
+						</button>
+					</div>
+				</div>
+			</div>
+		);
+	}
 
 	return (
 		<div className="flex h-full w-full flex-1 justify-center pt-24">
@@ -380,153 +566,33 @@ function PendingWorkspacePage() {
 					</div>
 				</div>
 
-				{pending.status === "creating" && (
-					<div className="space-y-3">
-						<div className="flex items-center justify-between">
-							<p
-								className={`text-sm ${isStale ? "text-amber-500" : "text-muted-foreground"}`}
-							>
-								{isStale
-									? "This is taking longer than expected..."
-									: creatingLabel}
-							</p>
-							<span className="text-xs tabular-nums text-muted-foreground/50">
-								{elapsedLabel}
-							</span>
-						</div>
-						{intentHasProgress && steps.length > 0 ? (
-							<div className="space-y-2">
-								{steps.map((step) => (
-									<div
-										key={step.id}
-										className="flex items-center gap-2.5 text-sm"
-									>
-										{step.status === "done" ? (
-											<HiCheck className="size-4 text-emerald-500" />
-										) : step.status === "active" ? (
-											<div className="size-4 flex items-center justify-center">
-												<div className="size-2.5 rounded-full bg-foreground animate-pulse" />
-											</div>
-										) : (
-											<div className="size-4 flex items-center justify-center">
-												<div className="size-2 rounded-full bg-muted-foreground/30" />
-											</div>
-										)}
-										<span
-											className={
-												step.status === "done" || step.status === "active"
-													? "text-foreground"
-													: "text-muted-foreground/50"
-											}
-										>
-											{step.label}
-										</span>
-									</div>
-								))}
-							</div>
-						) : (
-							// Adopt has no host-side progress steps — show a generic spinner.
-							<div className="flex items-center gap-2.5 text-sm text-muted-foreground">
-								<div className="size-4 flex items-center justify-center">
-									<div className="size-2.5 rounded-full bg-foreground animate-pulse" />
-								</div>
-							</div>
-						)}
-						<div className="flex gap-2 pt-1">
-							<button
-								type="button"
-								className="rounded-md border px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-accent"
-								onClick={() => {
-									collections.pendingWorkspaces.delete(pendingId);
-									void clearAttachments(pendingId);
-									void navigate({ to: "/" });
-								}}
-							>
-								Dismiss
-							</button>
-						</div>
-					</div>
-				)}
-
-				{pending.status === "succeeded" &&
-					(syncTimedOut && !workspaceSynced ? (
-						<div className="space-y-4">
-							<div className="flex items-start gap-2 text-sm text-amber-500">
-								<HiExclamationTriangle className="size-4 mt-0.5 shrink-0" />
-								<span>
-									Workspace was created but hasn't synced to this device yet.
-									Check your connection.
-								</span>
-							</div>
-							<div className="flex gap-2">
-								<button
-									type="button"
-									className="rounded-md bg-primary px-3 py-1.5 text-sm text-primary-foreground hover:bg-primary/90"
-									onClick={() => setSyncTimedOut(false)}
-								>
-									Keep waiting
-								</button>
-								<button
-									type="button"
-									className="rounded-md border px-3 py-1.5 text-sm hover:bg-accent"
-									onClick={doNavigate}
-								>
-									Open anyway
-								</button>
-								<button
-									type="button"
-									className="rounded-md border px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-accent"
-									onClick={() => {
-										collections.pendingWorkspaces.delete(pendingId);
-										void clearAttachments(pendingId);
-										void navigate({ to: "/" });
-									}}
-								>
-									Dismiss
-								</button>
-							</div>
-						</div>
-					) : (
-						<div className="space-y-2">
-							<div className="flex items-center gap-2 text-sm text-emerald-500">
-								<HiCheck className="size-4" />
-								<span>Workspace ready — opening...</span>
-							</div>
-							{pending.warnings.length > 0 && (
-								<ul className="space-y-1 text-xs text-amber-500">
-									{pending.warnings.map((w) => (
-										<li key={w} className="flex items-start gap-1.5">
-											<HiExclamationTriangle className="size-3.5 mt-0.5 shrink-0" />
-											<span>{w}</span>
-										</li>
-									))}
-								</ul>
-							)}
-						</div>
-					))}
-
-				{pending.status === "failed" && (
+				{pending.status === "succeeded" && syncTimedOut && !workspaceSynced && (
 					<div className="space-y-4">
-						<div className="flex items-start gap-2 text-sm text-destructive">
+						<div className="flex items-start gap-2 text-sm text-amber-500">
 							<HiExclamationTriangle className="size-4 mt-0.5 shrink-0" />
-							<span className="select-text cursor-text break-words">
-								{pending.error ?? "Failed to create workspace"}
+							<span>
+								Workspace was created but hasn't synced to this device yet.
+								Check your connection.
 							</span>
 						</div>
 						<div className="flex gap-2">
 							<button
 								type="button"
 								className="rounded-md bg-primary px-3 py-1.5 text-sm text-primary-foreground hover:bg-primary/90"
-								onClick={() => {
-									firedRef.current = true; // prevent the mount-effect from racing
-									void fireIntent();
-								}}
+								onClick={() => setSyncTimedOut(false)}
 							>
-								Retry
+								Keep waiting
 							</button>
 							<button
 								type="button"
 								className="rounded-md border px-3 py-1.5 text-sm hover:bg-accent"
+								onClick={doNavigate}
+							>
+								Open anyway
+							</button>
+							<button
+								type="button"
+								className="rounded-md border px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-accent"
 								onClick={() => {
 									collections.pendingWorkspaces.delete(pendingId);
 									void clearAttachments(pendingId);

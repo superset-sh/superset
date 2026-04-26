@@ -11,8 +11,10 @@ interface ProgressState {
 
 const STEP_DEFINITIONS = [
 	{ id: "ensuring_repo", label: "Ensuring local repository" },
+	{ id: "fetching_remote", label: "Fetching latest from remote" },
 	{ id: "creating_worktree", label: "Creating worktree" },
 	{ id: "registering", label: "Registering workspace" },
+	{ id: "finalizing", label: "Finalizing setup" },
 ] as const;
 
 const createProgress = new Map<string, ProgressState>();
