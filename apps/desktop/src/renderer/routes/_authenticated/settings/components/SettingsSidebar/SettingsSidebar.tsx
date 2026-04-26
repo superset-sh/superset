@@ -13,15 +13,13 @@ import {
 } from "renderer/stores/settings-state";
 import { getMatchCountBySection } from "../../utils/settings-search";
 import { GeneralSettings } from "./GeneralSettings";
-import { ProjectsSettings } from "./ProjectsSettings";
 
 export function SettingsSidebar() {
 	const searchQuery = useSettingsSearchQuery();
 	const setSearchQuery = useSetSettingsSearchQuery();
 	const originRoute = useSettingsOriginRoute();
 	const normalizedSearchQuery = searchQuery.trim();
-	const isSearchActive = normalizedSearchQuery.length > 0;
-	const matchCounts = isSearchActive
+	const matchCounts = normalizedSearchQuery
 		? getMatchCountBySection(normalizedSearchQuery)
 		: null;
 
@@ -62,10 +60,6 @@ export function SettingsSidebar() {
 
 			<div className="flex-1 overflow-y-auto min-h-0">
 				<GeneralSettings matchCounts={matchCounts} />
-				<ProjectsSettings
-					isSearchActive={isSearchActive}
-					matchCounts={matchCounts}
-				/>
 			</div>
 
 			<div className="pt-3 mt-3 border-t border-border">

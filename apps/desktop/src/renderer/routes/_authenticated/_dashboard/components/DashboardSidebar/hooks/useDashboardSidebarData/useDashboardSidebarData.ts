@@ -1,7 +1,7 @@
 import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useQuery } from "@tanstack/react-query";
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useRef } from "react";
 import { env } from "renderer/env.renderer";
 import { authClient } from "renderer/lib/auth-client";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
@@ -19,6 +19,127 @@ import type {
 // Sits above every real workspace so the pending row lines up with the real one,
 // which is inserted via getPrependTabOrder.
 const PENDING_WORKSPACE_TAB_ORDER = Number.MIN_SAFE_INTEGER;
+
+type LocalPullRequest = DashboardSidebarWorkspace["pullRequest"];
+type PullRequestWorkspaceRow = {
+	workspaceId: string;
+	pullRequest: LocalPullRequest;
+};
+
+function haveSameStrings(left: string[], right: string[]): boolean {
+	return (
+		left.length === right.length &&
+		left.every((value, index) => value === right[index])
+	);
+}
+
+function haveSameProjects(
+	left: DashboardSidebarProject[],
+	right: DashboardSidebarProject[],
+): boolean {
+	return (
+		left.length === right.length &&
+		left.every((project, index) => project === right[index])
+	);
+}
+
+function getPullRequestRowsFingerprint(
+	rows: PullRequestWorkspaceRow[],
+): string {
+	return JSON.stringify(
+		rows
+			.map((row) => [row.workspaceId, row.pullRequest] as const)
+			.sort(([leftWorkspaceId], [rightWorkspaceId]) =>
+				leftWorkspaceId.localeCompare(rightWorkspaceId),
+			),
+	);
+}
+
+function getDashboardSidebarProjectFingerprint(
+	project: DashboardSidebarProject,
+): string {
+	return JSON.stringify(project);
+}
+
+function useStableStringArray(values: string[]): string[] {
+	const previousRef = useRef<string[] | null>(null);
+
+	return useMemo(() => {
+		const previous = previousRef.current;
+		if (previous && haveSameStrings(previous, values)) {
+			return previous;
+		}
+
+		previousRef.current = values;
+		return values;
+	}, [values]);
+}
+
+function useStableLocalPullRequestsByWorkspaceId(
+	rows: PullRequestWorkspaceRow[] | undefined,
+): Map<string, LocalPullRequest> {
+	const previousRef = useRef<{
+		fingerprint: string;
+		map: Map<string, LocalPullRequest>;
+	} | null>(null);
+
+	return useMemo(() => {
+		const nextRows = rows ?? [];
+		const fingerprint = getPullRequestRowsFingerprint(nextRows);
+		const previous = previousRef.current;
+		if (previous?.fingerprint === fingerprint) {
+			return previous.map;
+		}
+
+		const map = new Map(
+			nextRows.map((workspace) => [
+				workspace.workspaceId,
+				workspace.pullRequest,
+			]),
+		);
+		previousRef.current = { fingerprint, map };
+		return map;
+	}, [rows]);
+}
+
+function useStableDashboardSidebarProjects(
+	projects: DashboardSidebarProject[],
+): DashboardSidebarProject[] {
+	const previousRef = useRef<{
+		projects: DashboardSidebarProject[];
+		byId: Map<
+			string,
+			{ fingerprint: string; project: DashboardSidebarProject }
+		>;
+	} | null>(null);
+
+	return useMemo(() => {
+		const previous = previousRef.current;
+		const nextById = new Map<
+			string,
+			{ fingerprint: string; project: DashboardSidebarProject }
+		>();
+		const nextProjects = projects.map((project) => {
+			const fingerprint = getDashboardSidebarProjectFingerprint(project);
+			const previousProject = previous?.byId.get(project.id);
+			const stableProject =
+				previousProject?.fingerprint === fingerprint
+					? previousProject.project
+					: project;
+
+			nextById.set(project.id, { fingerprint, project: stableProject });
+			return stableProject;
+		});
+
+		if (previous && haveSameProjects(previous.projects, nextProjects)) {
+			previousRef.current = { projects: previous.projects, byId: nextById };
+			return previous.projects;
+		}
+
+		previousRef.current = { projects: nextProjects, byId: nextById };
+		return nextProjects;
+	}, [projects]);
+}
 
 export function useDashboardSidebarData() {
 	const { data: session } = authClient.useSession();
@@ -132,7 +253,7 @@ export function useDashboardSidebarData() {
 		[collections],
 	);
 
-	const localWorkspaceIds = useMemo(
+	const computedLocalWorkspaceIds = useMemo(
 		() =>
 			sidebarWorkspaces
 				.filter(
@@ -144,6 +265,7 @@ export function useDashboardSidebarData() {
 				.sort(),
 		[machineId, sidebarWorkspaces],
 	);
+	const localWorkspaceIds = useStableStringArray(computedLocalWorkspaceIds);
 
 	const { data: pullRequestData, refetch: refetchPullRequests } = useQuery({
 		queryKey: [
@@ -174,18 +296,10 @@ export function useDashboardSidebarData() {
 		[activeHostClient, localWorkspaceIds, refetchPullRequests],
 	);
 
-	const localPullRequestsByWorkspaceId = useMemo(
-		() =>
-			new Map(
-				(pullRequestData?.workspaces ?? []).map((workspace) => [
-					workspace.workspaceId,
-					workspace.pullRequest,
-				]),
-			),
-		[pullRequestData?.workspaces],
-	);
+	const localPullRequestsByWorkspaceId =
+		useStableLocalPullRequestsByWorkspaceId(pullRequestData?.workspaces);
 
-	const groups = useMemo<DashboardSidebarProject[]>(() => {
+	const computedGroups = useMemo<DashboardSidebarProject[]>(() => {
 		const projectsById = new Map<
 			string,
 			DashboardSidebarProject & {
@@ -366,6 +480,7 @@ export function useDashboardSidebarData() {
 		sidebarSections,
 		sidebarWorkspaces,
 	]);
+	const groups = useStableDashboardSidebarProjects(computedGroups);
 
 	return {
 		groups,

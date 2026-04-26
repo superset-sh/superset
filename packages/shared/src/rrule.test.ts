@@ -2,11 +2,31 @@ import { describe, expect, it } from "bun:test";
 import {
 	buildRrule,
 	describeSchedule,
+	formatDateTimeInTimezone,
 	matchPreset,
+	nextOccurrences,
 	type PresetMatch,
+	parseRrule,
 } from "./rrule";
 
 const US = { locale: "en-US" };
+
+function expectDateTimeParts(
+	formatted: string,
+	expected: {
+		month: string;
+		day: string;
+		year: string;
+		hour: string;
+		minute: string;
+		dayPeriod?: string;
+		timeZoneName: string;
+	},
+): void {
+	for (const value of Object.values(expected)) {
+		expect(formatted).toContain(value);
+	}
+}
 
 describe("describeSchedule / MINUTELY + HOURLY", () => {
 	it("every minute", () => {
@@ -279,4 +299,98 @@ describe("matchPreset + buildRrule round-trip", () => {
 			expect(matchPreset(rrule)).toEqual(match);
 		});
 	}
+});
+
+describe("recurrence timezone math", () => {
+	it("computes daily wall-clock times as plain UTC Date instances", () => {
+		const next = parseRrule({
+			rrule: "FREQ=DAILY;BYHOUR=6;BYMINUTE=0",
+			dtstart: new Date("2026-04-24T20:00:00.000Z"),
+			timezone: "America/Los_Angeles",
+			after: new Date("2026-04-25T00:00:00.000Z"),
+		}).nextRunAt;
+
+		expect(next.constructor.name).toBe("Date");
+		expect(next.toISOString()).toBe("2026-04-25T13:00:00.000Z");
+		expectDateTimeParts(
+			formatDateTimeInTimezone(next, "America/Los_Angeles", {
+				locale: "en-US",
+			}),
+			{
+				month: "Apr",
+				day: "25",
+				year: "2026",
+				hour: "6",
+				minute: "00",
+				dayPeriod: "AM",
+				timeZoneName: "PDT",
+			},
+		);
+	});
+
+	it("keeps the same local time across daylight saving changes", () => {
+		const runs = nextOccurrences({
+			rrule: "FREQ=DAILY;BYHOUR=6;BYMINUTE=0",
+			dtstart: new Date("2026-03-06T20:00:00.000Z"),
+			timezone: "America/Los_Angeles",
+			after: new Date("2026-03-07T00:00:00.000Z"),
+			count: 3,
+		});
+
+		expect(runs.map((run) => run.toISOString())).toEqual([
+			"2026-03-07T14:00:00.000Z",
+			"2026-03-08T13:00:00.000Z",
+			"2026-03-09T13:00:00.000Z",
+		]);
+		const formattedRuns = runs.map((run) =>
+			formatDateTimeInTimezone(run, "America/Los_Angeles", {
+				locale: "en-US",
+			}),
+		);
+		expectDateTimeParts(formattedRuns[0] ?? "", {
+			month: "Mar",
+			day: "7",
+			year: "2026",
+			hour: "6",
+			minute: "00",
+			dayPeriod: "AM",
+			timeZoneName: "PST",
+		});
+		expectDateTimeParts(formattedRuns[1] ?? "", {
+			month: "Mar",
+			day: "8",
+			year: "2026",
+			hour: "6",
+			minute: "00",
+			dayPeriod: "AM",
+			timeZoneName: "PDT",
+		});
+		expectDateTimeParts(formattedRuns[2] ?? "", {
+			month: "Mar",
+			day: "9",
+			year: "2026",
+			hour: "6",
+			minute: "00",
+			dayPeriod: "AM",
+			timeZoneName: "PDT",
+		});
+	});
+
+	it("falls back to UTC formatting for invalid legacy timezone values", () => {
+		const formatted = formatDateTimeInTimezone(
+			new Date("2026-04-25T13:00:00.000Z"),
+			"Invalid/Timezone",
+			{ locale: "en-US" },
+		);
+
+		expectDateTimeParts(formatted, {
+			month: "Apr",
+			day: "25",
+			year: "2026",
+			hour: "1",
+			minute: "00",
+			dayPeriod: "PM",
+			timeZoneName: "UTC",
+		});
+	});
 });

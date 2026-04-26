@@ -393,9 +393,9 @@ export function V2PresetsSection({
 		[updateV2Preset],
 	);
 
-	const handleTogglePin = useCallback(
-		(presetId: string, pinned: boolean) => {
-			updateV2Preset(presetId, { pinnedToBar: pinned });
+	const handleToggleVisibility = useCallback(
+		(presetId: string, visible: boolean) => {
+			updateV2Preset(presetId, { pinnedToBar: visible });
 		},
 		[updateV2Preset],
 	);
@@ -557,7 +557,7 @@ export function V2PresetsSection({
 						onEdit={setEditingPreset}
 						onLocalReorder={handleLocalReorder}
 						onPersistReorder={handlePersistReorder}
-						onTogglePin={handleTogglePin}
+						onToggleVisibility={handleToggleVisibility}
 					/>
 					<p className="text-xs text-muted-foreground">
 						Click a preset row to edit details.

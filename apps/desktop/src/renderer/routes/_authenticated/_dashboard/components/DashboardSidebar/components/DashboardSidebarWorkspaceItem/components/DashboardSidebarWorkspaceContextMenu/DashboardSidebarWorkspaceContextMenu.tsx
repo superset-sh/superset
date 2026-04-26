@@ -20,6 +20,8 @@ import {
 	LuArrowRightLeft,
 	LuArrowUp,
 	LuCopy,
+	LuEye,
+	LuEyeOff,
 	LuFolderOpen,
 	LuFolderPlus,
 	LuGitBranch,
@@ -34,6 +36,7 @@ interface DashboardSidebarWorkspaceContextMenuProps {
 	projectId: string;
 	isInSection?: boolean;
 	isLocalWorkspace: boolean;
+	isUnread: boolean;
 	onHoverCardOpen?: () => void;
 	onCreateSection: () => void;
 	onMoveToSection: (sectionId: string | null) => void;
@@ -43,6 +46,7 @@ interface DashboardSidebarWorkspaceContextMenuProps {
 	onRemoveFromSidebar: () => void;
 	onRename: () => void;
 	onDelete: () => void;
+	onToggleUnread: () => void;
 	children: React.ReactNode;
 }
 
@@ -50,6 +54,7 @@ export function DashboardSidebarWorkspaceContextMenu({
 	projectId,
 	isInSection,
 	isLocalWorkspace,
+	isUnread,
 	onHoverCardOpen,
 	hoverCardContent,
 	onCreateSection,
@@ -60,6 +65,7 @@ export function DashboardSidebarWorkspaceContextMenu({
 	onRemoveFromSidebar,
 	onRename,
 	onDelete,
+	onToggleUnread,
 	children,
 }: DashboardSidebarWorkspaceContextMenuProps) {
 	const collections = useCollections();
@@ -105,16 +111,30 @@ export function DashboardSidebarWorkspaceContextMenu({
 				Copy Branch Name
 			</ContextMenuItem>
 			<ContextMenuSeparator />
+			<ContextMenuItem onSelect={onToggleUnread}>
+				{isUnread ? (
+					<>
+						<LuEye className="size-4 mr-2" />
+						Mark as Read
+					</>
+				) : (
+					<>
+						<LuEyeOff className="size-4 mr-2" />
+						Mark as Unread
+					</>
+				)}
+			</ContextMenuItem>
+			<ContextMenuSeparator />
 			<ContextMenuItem onSelect={onCreateSection}>
 				<LuFolderPlus className="size-4 mr-2" />
-				Create Section Below
+				New group from workspace
 			</ContextMenuItem>
 			{(sections.length > 0 || isInSection) && <ContextMenuSeparator />}
 			{sections.length > 0 && (
 				<ContextMenuSub>
 					<ContextMenuSubTrigger>
 						<LuArrowRightLeft className="size-4 mr-2" />
-						Move to Section
+						Move to group
 					</ContextMenuSubTrigger>
 					<ContextMenuSubContent>
 						{sections.map((section) => (
@@ -137,7 +157,7 @@ export function DashboardSidebarWorkspaceContextMenu({
 			{isInSection && (
 				<ContextMenuItem onSelect={() => onMoveToSection(null)}>
 					<LuArrowUp className="size-4 mr-2" />
-					Remove from Group
+					Ungroup
 				</ContextMenuItem>
 			)}
 			<ContextMenuSeparator />

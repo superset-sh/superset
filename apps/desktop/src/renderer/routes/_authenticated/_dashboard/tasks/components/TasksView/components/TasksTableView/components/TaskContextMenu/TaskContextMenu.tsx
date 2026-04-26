@@ -17,6 +17,7 @@ import {
 	HiOutlineUserCircle,
 } from "react-icons/hi2";
 import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
+import { useOptimisticCollectionActions } from "renderer/routes/_authenticated/hooks/useOptimisticCollectionActions";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import type { TaskWithStatus } from "../../../../hooks/useTasksTable";
 import { compareStatusesForDropdown } from "../../../../utils/sorting";
@@ -38,6 +39,7 @@ export function TaskContextMenu({
 	onDelete,
 }: TaskContextMenuProps) {
 	const collections = useCollections();
+	const { tasks: taskActions } = useOptimisticCollectionActions();
 
 	const { data: allStatuses } = useLiveQuery(
 		(q) => q.from({ taskStatuses: collections.taskStatuses }),
@@ -57,36 +59,15 @@ export function TaskContextMenu({
 	const users = useMemo(() => allUsers || [], [allUsers]);
 
 	const handleStatusChange = (status: SelectTaskStatus) => {
-		try {
-			collections.tasks.update(task.id, (draft) => {
-				draft.statusId = status.id;
-			});
-		} catch (error) {
-			console.error("[TaskContextMenu] Failed to update status:", error);
-		}
+		taskActions.updateStatus(task.id, status.id);
 	};
 
 	const handleAssigneeChange = (userId: string | null) => {
-		try {
-			collections.tasks.update(task.id, (draft) => {
-				draft.assigneeId = userId;
-				draft.assigneeExternalId = null;
-				draft.assigneeDisplayName = null;
-				draft.assigneeAvatarUrl = null;
-			});
-		} catch (error) {
-			console.error("[TaskContextMenu] Failed to update assignee:", error);
-		}
+		taskActions.updateAssignee(task.id, userId);
 	};
 
 	const handlePriorityChange = (priority: typeof task.priority) => {
-		try {
-			collections.tasks.update(task.id, (draft) => {
-				draft.priority = priority;
-			});
-		} catch (error) {
-			console.error("[TaskContextMenu] Failed to update priority:", error);
-		}
+		taskActions.updatePriority(task.id, priority);
 	};
 
 	const { copyToClipboard } = useCopyToClipboard();
@@ -100,11 +81,9 @@ export function TaskContextMenu({
 	};
 
 	const handleDelete = () => {
-		try {
-			collections.tasks.delete(task.id);
+		const transaction = taskActions.deleteTask(task.id);
+		if (transaction) {
 			onDelete?.();
-		} catch (error) {
-			console.error("[TaskContextMenu] Failed to delete task:", error);
 		}
 	};
 

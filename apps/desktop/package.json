@@ -2,7 +2,7 @@
 	"name": "@superset/desktop",
 	"productName": "Superset",
 	"description": "The last developer tool you'll ever need",
-	"version": "1.5.10",
+	"version": "1.6.1",
 	"main": "./dist/main/index.js",
 	"resources": "src/resources",
 	"repository": {
@@ -88,6 +88,7 @@
 		"@superset/local-db": "workspace:*",
 		"@superset/macos-process-metrics": "workspace:*",
 		"@superset/panes": "workspace:*",
+		"@superset/port-scanner": "workspace:*",
 		"@superset/shared": "workspace:*",
 		"@superset/trpc": "workspace:*",
 		"@superset/ui": "workspace:*",

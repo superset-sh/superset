@@ -13,7 +13,7 @@ import {
 	HiOutlineTrash,
 } from "react-icons/hi2";
 import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
-import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { useOptimisticCollectionActions } from "renderer/routes/_authenticated/hooks/useOptimisticCollectionActions";
 import type { TaskWithStatus } from "../../../components/TasksView/hooks/useTasksTable";
 
 interface TaskActionMenuProps {
@@ -22,7 +22,7 @@ interface TaskActionMenuProps {
 }
 
 export function TaskActionMenu({ task, onDelete }: TaskActionMenuProps) {
-	const collections = useCollections();
+	const { tasks: taskActions } = useOptimisticCollectionActions();
 	const [open, setOpen] = useState(false);
 
 	const { copyToClipboard } = useCopyToClipboard();
@@ -37,13 +37,11 @@ export function TaskActionMenu({ task, onDelete }: TaskActionMenuProps) {
 		setOpen(false);
 	};
 
-	const handleDelete = async () => {
-		try {
-			await collections.tasks.delete(task.id);
+	const handleDelete = () => {
+		const transaction = taskActions.deleteTask(task.id);
+		if (transaction) {
 			setOpen(false);
 			onDelete?.();
-		} catch (error) {
-			console.error("[TaskActionMenu] Failed to delete task:", error);
 		}
 	};
 

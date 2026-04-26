@@ -39,6 +39,8 @@ const SECTION_ORDER: SettingsSection[] = [
 	"billing",
 	"apikeys",
 	"permissions",
+	"hosts",
+	"experimental",
 ];
 
 function getSectionFromPath(pathname: string): SettingsSection | null {
@@ -52,8 +54,10 @@ function getSectionFromPath(pathname: string): SettingsSection | null {
 	if (pathname.includes("/settings/terminal")) return "terminal";
 	if (pathname.includes("/settings/links")) return "links";
 	if (pathname.includes("/settings/models")) return "models";
+	if (pathname.includes("/settings/experimental")) return "experimental";
 	if (pathname.includes("/settings/integrations")) return "integrations";
 	if (pathname.includes("/settings/permissions")) return "permissions";
+	if (pathname.includes("/settings/hosts")) return "hosts";
 	if (pathname.includes("/settings/project")) return "project";
 	return null;
 }
@@ -80,10 +84,14 @@ function getPathFromSection(section: SettingsSection): string {
 			return "/settings/links";
 		case "models":
 			return "/settings/models";
+		case "experimental":
+			return "/settings/experimental";
 		case "integrations":
 			return "/settings/integrations";
 		case "permissions":
 			return "/settings/permissions";
+		case "hosts":
+			return "/settings/hosts";
 		default:
 			return "/settings/account";
 	}
@@ -110,6 +118,7 @@ function SettingsLayout() {
 		if (!currentSection) return;
 
 		if (currentSection === "project") return;
+		if (currentSection === "hosts") return;
 
 		const matchCounts = getMatchCountBySection(normalizedSearchQuery);
 		const currentHasMatches = (matchCounts[currentSection] ?? 0) > 0;

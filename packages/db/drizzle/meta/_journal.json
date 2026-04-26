@@ -260,6 +260,13 @@
       "when": 1776661543389,
       "tag": "0036_drop_pending_automation_status",
       "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1777226062658,
+      "tag": "0037_drop_v2_project_repo_clone_url_unique",
+      "breakpoints": true
     }
   ]
 }

@@ -1,8 +1,7 @@
 import { Button } from "@superset/ui/button";
 import { Input } from "@superset/ui/input";
-import { toast } from "@superset/ui/sonner";
 import { useEffect, useRef, useState } from "react";
-import { apiTrpcClient } from "renderer/lib/api-trpc-client";
+import { useOptimisticCollectionActions } from "renderer/routes/_authenticated/hooks/useOptimisticCollectionActions";
 
 interface RepositorySectionProps {
 	projectId: string;
@@ -13,9 +12,9 @@ export function RepositorySection({
 	projectId,
 	currentRepoCloneUrl,
 }: RepositorySectionProps) {
+	const { v2Projects: projectActions } = useOptimisticCollectionActions();
 	const [isEditing, setIsEditing] = useState(false);
 	const [value, setValue] = useState(currentRepoCloneUrl ?? "");
-	const [isSaving, setIsSaving] = useState(false);
 	const inputRef = useRef<HTMLInputElement>(null);
 
 	useEffect(() => {
@@ -32,25 +31,18 @@ export function RepositorySection({
 		setIsEditing(false);
 	};
 
-	const save = async () => {
-		if (isSaving) return;
+	const save = () => {
 		const trimmed = value.trim();
 		if (trimmed === (currentRepoCloneUrl ?? "")) {
 			setIsEditing(false);
 			return;
 		}
-		setIsSaving(true);
-		try {
-			await apiTrpcClient.v2Project.update.mutate({
-				id: projectId,
-				repoCloneUrl: trimmed === "" ? null : trimmed,
-			});
-			toast.success("Repository updated");
+		const transaction = projectActions.updateRepository(
+			projectId,
+			trimmed === "" ? null : trimmed,
+		);
+		if (transaction) {
 			setIsEditing(false);
-		} catch (err) {
-			toast.error(err instanceof Error ? err.message : "Failed to update");
-		} finally {
-			setIsSaving(false);
 		}
 	};
 
@@ -67,7 +59,7 @@ export function RepositorySection({
 						onKeyDown={(e) => {
 							if (e.key === "Enter") {
 								e.preventDefault();
-								void save();
+								save();
 							} else if (e.key === "Escape") {
 								e.preventDefault();
 								cancelEdit();
@@ -79,12 +71,11 @@ export function RepositorySection({
 						variant="outline"
 						size="sm"
 						onClick={cancelEdit}
-						disabled={isSaving}
 					>
 						Cancel
 					</Button>
-					<Button type="button" size="sm" onClick={save} disabled={isSaving}>
-						{isSaving ? "Saving…" : "Save"}
+					<Button type="button" size="sm" onClick={save}>
+						Save
 					</Button>
 				</>
 			) : (

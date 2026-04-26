@@ -1,5 +1,6 @@
-import { db } from "@superset/db/client";
+import { db, dbWs } from "@superset/db/client";
 import { chatSessions } from "@superset/db/schema";
+import { getCurrentTxid } from "@superset/db/utils";
 import type { TRPCRouterRecord } from "@trpc/server";
 import { TRPCError } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
@@ -130,18 +131,25 @@ export const chatRouter = {
 				});
 			}
 
-			const [deleted] = await db
-				.delete(chatSessions)
-				.where(
-					and(
-						eq(chatSessions.id, input.sessionId),
-						eq(chatSessions.organizationId, organizationId),
-						eq(chatSessions.createdBy, ctx.session.user.id),
-					),
-				)
-				.returning({ id: chatSessions.id });
+			const result = await dbWs.transaction(async (tx) => {
+				const [deleted] = await tx
+					.delete(chatSessions)
+					.where(
+						and(
+							eq(chatSessions.id, input.sessionId),
+							eq(chatSessions.organizationId, organizationId),
+							eq(chatSessions.createdBy, ctx.session.user.id),
+						),
+					)
+					.returning({ id: chatSessions.id });
 
-			return { deleted: !!deleted };
+				const txid = await getCurrentTxid(tx);
+
+				return { deleted, txid };
+			});
+			const { deleted, txid } = result;
+
+			return { deleted: !!deleted, txid };
 		}),
 
 	uploadAttachment: protectedProcedure

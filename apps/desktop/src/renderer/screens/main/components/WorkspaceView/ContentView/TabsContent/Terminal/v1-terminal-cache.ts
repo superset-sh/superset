@@ -52,9 +52,44 @@ export interface CachedTerminal {
 	subscriptionErrorHandler: ((error: unknown) => void) | null;
 	/** ResizeObserver for the attached container. Managed by attach/detach. */
 	resizeObserver: ResizeObserver | null;
+	/** Live container, when attached. */
+	container: HTMLDivElement | null;
 }
 
 const cache = new Map<string, CachedTerminal>();
+
+function hostIsVisible(container: HTMLDivElement | null): boolean {
+	if (!container) return false;
+	return container.clientWidth > 0 && container.clientHeight > 0;
+}
+
+function fitAndRefresh(entry: CachedTerminal): boolean {
+	if (!hostIsVisible(entry.container)) return false;
+
+	const { xterm } = entry;
+	const buffer = xterm.buffer.active;
+	const wasPinnedToBottom = buffer.viewportY >= buffer.baseY;
+	const savedViewportY = buffer.viewportY;
+	const prevCols = xterm.cols;
+	const prevRows = xterm.rows;
+
+	entry.fitAddon.fit();
+	entry.lastCols = xterm.cols;
+	entry.lastRows = xterm.rows;
+
+	if (wasPinnedToBottom) {
+		xterm.scrollToBottom();
+	} else {
+		const targetY = Math.min(savedViewportY, xterm.buffer.active.baseY);
+		if (xterm.buffer.active.viewportY !== targetY) {
+			xterm.scrollToLine(targetY);
+		}
+	}
+
+	xterm.refresh(0, Math.max(0, xterm.rows - 1));
+
+	return xterm.cols !== prevCols || xterm.rows !== prevRows;
+}
 
 export function has(paneId: string): boolean {
 	return cache.has(paneId);
@@ -91,6 +126,7 @@ export function getOrCreate(
 		eventHandler: null,
 		subscriptionErrorHandler: null,
 		resizeObserver: null,
+		container: null,
 		lastCols: xterm.cols,
 		lastRows: xterm.rows,
 	};
@@ -109,27 +145,15 @@ export function attachToContainer(
 	const entry = cache.get(paneId);
 	if (!entry) return;
 
+	entry.container = container;
 	container.appendChild(entry.wrapper);
 
-	if (container.clientWidth > 0 && container.clientHeight > 0) {
-		entry.fitAddon.fit();
-		entry.lastCols = entry.xterm.cols;
-		entry.lastRows = entry.xterm.rows;
-	}
-
-	// Renderer may have skipped frames while the wrapper was detached.
-	entry.xterm.refresh(0, Math.max(0, entry.xterm.rows - 1));
+	fitAndRefresh(entry);
 
 	// Manage ResizeObserver lifecycle in the cache, not in React.
 	entry.resizeObserver?.disconnect();
 	const observer = new ResizeObserver(() => {
-		if (container.clientWidth === 0 || container.clientHeight === 0) return;
-		const prevCols = entry.lastCols;
-		const prevRows = entry.lastRows;
-		entry.fitAddon.fit();
-		entry.lastCols = entry.xterm.cols;
-		entry.lastRows = entry.xterm.rows;
-		if (entry.lastCols !== prevCols || entry.lastRows !== prevRows) {
+		if (fitAndRefresh(entry)) {
 			onResize?.();
 		}
 	});
@@ -146,6 +170,7 @@ export function detachFromContainer(paneId: string): void {
 	}
 	entry.resizeObserver?.disconnect();
 	entry.resizeObserver = null;
+	entry.container = null;
 	entry.wrapper.remove();
 }
 
@@ -164,7 +189,7 @@ export function updateAppearance(
 	const entry = cache.get(paneId);
 	if (!entry) return null;
 
-	const { xterm, fitAddon } = entry;
+	const { xterm } = entry;
 	const fontChanged =
 		xterm.options.fontFamily !== fontFamily ||
 		xterm.options.fontSize !== fontSize;
@@ -173,16 +198,12 @@ export function updateAppearance(
 	xterm.options.fontFamily = fontFamily;
 	xterm.options.fontSize = fontSize;
 
-	const prevCols = entry.lastCols;
-	const prevRows = entry.lastRows;
-	fitAddon.fit();
-	entry.lastCols = xterm.cols;
-	entry.lastRows = xterm.rows;
+	const changed = fitAndRefresh(entry);
 
 	return {
 		cols: xterm.cols,
 		rows: xterm.rows,
-		changed: xterm.cols !== prevCols || xterm.rows !== prevRows,
+		changed,
 	};
 }
 

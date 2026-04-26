@@ -19,18 +19,18 @@ const V2_PRESET_BAR_ITEM_TYPE = "V2_PRESET_BAR_ITEM";
 
 interface V2PresetBarItemProps {
 	preset: V2TerminalPresetRow;
-	pinnedIndex: number;
+	visibleIndex: number;
 	hotkeyId?: HotkeyId;
 	isDark: boolean;
 	onExecutePreset: (preset: V2TerminalPresetRow) => void;
 	onEdit: (preset: V2TerminalPresetRow) => void;
 	onLocalReorder: (fromIndex: number, toIndex: number) => void;
-	onPersistReorder: (presetId: string, targetPinnedIndex: number) => void;
+	onPersistReorder: (presetId: string, targetVisibleIndex: number) => void;
 }
 
 export function V2PresetBarItem({
 	preset,
-	pinnedIndex,
+	visibleIndex,
 	hotkeyId,
 	isDark,
 	onExecutePreset,
@@ -47,22 +47,22 @@ export function V2PresetBarItem({
 			type: V2_PRESET_BAR_ITEM_TYPE,
 			item: {
 				id: preset.id,
-				index: pinnedIndex,
-				originalIndex: pinnedIndex,
+				index: visibleIndex,
+				originalIndex: visibleIndex,
 			},
 			collect: (monitor) => ({
 				isDragging: monitor.isDragging(),
 			}),
 		}),
-		[preset.id, pinnedIndex],
+		[preset.id, visibleIndex],
 	);
 
 	const [, drop] = useDrop({
 		accept: V2_PRESET_BAR_ITEM_TYPE,
 		hover: (item: { id: string; index: number; originalIndex: number }) => {
-			if (item.index !== pinnedIndex) {
-				onLocalReorder(item.index, pinnedIndex);
-				item.index = pinnedIndex;
+			if (item.index !== visibleIndex) {
+				onLocalReorder(item.index, visibleIndex);
+				item.index = visibleIndex;
 			}
 		},
 		drop: (item: { id: string; index: number; originalIndex: number }) => {
@@ -89,15 +89,19 @@ export function V2PresetBarItem({
 							<Button
 								variant="ghost"
 								size="sm"
-								className="h-6 px-2 gap-1.5 text-xs shrink-0"
+								className="h-6 max-w-36 min-w-0 shrink-0 gap-1.5 px-2 text-xs"
 								onClick={() => onExecutePreset(preset)}
 							>
 								{icon ? (
-									<img src={icon} alt="" className="size-3.5 object-contain" />
+									<img
+										src={icon}
+										alt=""
+										className="size-3.5 shrink-0 object-contain"
+									/>
 								) : (
-									<HiMiniCommandLine className="size-3.5" />
+									<HiMiniCommandLine className="size-3.5 shrink-0" />
 								)}
-								<span className="truncate max-w-[120px]">
+								<span className="min-w-0 truncate">
 									{preset.name || "default"}
 								</span>
 							</Button>

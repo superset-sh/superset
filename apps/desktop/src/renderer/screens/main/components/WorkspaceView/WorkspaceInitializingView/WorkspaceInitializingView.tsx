@@ -120,7 +120,12 @@ export function WorkspaceInitializingView({
 							<h2 className="text-lg font-medium text-foreground">
 								Setup incomplete
 							</h2>
-							<p className="text-sm text-muted-foreground">{workspaceName}</p>
+							<p
+								className="line-clamp-3 max-w-full break-words text-sm text-muted-foreground [overflow-wrap:anywhere]"
+								title={workspaceName}
+							>
+								{workspaceName}
+							</p>
 							<p className="text-xs text-muted-foreground/80 mt-2">
 								Workspace setup didn't finish. You can retry or remove it.
 							</p>
@@ -211,7 +216,12 @@ export function WorkspaceInitializingView({
 							<h2 className="text-lg font-medium text-foreground">
 								Workspace setup failed
 							</h2>
-							<p className="text-sm text-muted-foreground">{workspaceName}</p>
+							<p
+								className="line-clamp-3 max-w-full break-words text-sm text-muted-foreground [overflow-wrap:anywhere]"
+								title={workspaceName}
+							>
+								{workspaceName}
+							</p>
 							{progress?.error && (
 								<p className="text-xs text-destructive/80 mt-2 bg-destructive/5 rounded-md px-3 py-2 select-text cursor-text break-words">
 									{progress.error}

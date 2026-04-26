@@ -43,7 +43,7 @@ export const createAppRouter = (getWindow: () => BrowserWindow | null) => {
 		terminal: createTerminalRouter(),
 		changes: createChangesRouter(),
 		filesystem: createFilesystemRouter(),
-		notifications: createNotificationsRouter(),
+		notifications: createNotificationsRouter(getWindow),
 		permissions: createPermissionsRouter(),
 		ports: createPortsRouter(),
 		resourceMetrics: createResourceMetricsRouter(),

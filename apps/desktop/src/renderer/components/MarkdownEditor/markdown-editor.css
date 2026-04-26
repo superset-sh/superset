@@ -85,3 +85,27 @@ ul[data-type="taskList"]
 		0 0 0 2px hsl(var(--background)),
 		0 0 0 4px hsl(var(--ring));
 }
+
+.markdown-table {
+	width: max-content;
+	min-width: 100%;
+	overflow: hidden;
+	border: 1px solid hsl(var(--border));
+	border-radius: 0.375rem;
+}
+
+.markdown-table th,
+.markdown-table td {
+	border: 1px solid hsl(var(--border));
+	min-width: 12rem;
+}
+
+.markdown-table th > *,
+.markdown-table td > * {
+	margin-top: 0;
+	margin-bottom: 0;
+}
+
+.markdown-table .selectedCell {
+	background-color: hsl(var(--accent) / 0.6);
+}

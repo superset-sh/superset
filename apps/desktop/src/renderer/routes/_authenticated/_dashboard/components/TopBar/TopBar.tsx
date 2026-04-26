@@ -13,7 +13,6 @@ import { SearchBarTrigger } from "./components/SearchBarTrigger";
 import { SidebarToggle } from "./components/SidebarToggle";
 import { V2WorkspaceOpenInButton } from "./components/V2WorkspaceOpenInButton";
 import { V2WorkspaceSearchBarTrigger } from "./components/V2WorkspaceSearchBarTrigger";
-import { VersionToggle } from "./components/VersionToggle";
 import { WindowControls } from "./components/WindowControls";
 
 export function TopBar() {
@@ -31,7 +30,7 @@ export function TopBar() {
 		{ enabled: !!workspaceId && !isV2WorkspaceRoute },
 	);
 	const isOnline = useOnlineStatus();
-	const { isV2CloudEnabled, isRemoteV2Enabled } = useIsV2CloudEnabled();
+	const { isV2CloudEnabled } = useIsV2CloudEnabled();
 	// Default to Mac layout while loading to avoid overlap with traffic lights
 	const isMac = platform === undefined || platform === "darwin";
 
@@ -46,7 +45,6 @@ export function TopBar() {
 				<SidebarToggle />
 				<NavigationControls />
 				<ResourceConsumption />
-				{isRemoteV2Enabled && <VersionToggle />}
 			</div>
 
 			{isV2WorkspaceRoute ? (

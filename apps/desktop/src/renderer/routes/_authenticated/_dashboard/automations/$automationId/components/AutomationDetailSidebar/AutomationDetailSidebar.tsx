@@ -2,9 +2,9 @@ import type {
 	SelectAutomation,
 	SelectAutomationRun,
 } from "@superset/db/schema";
+import { formatDateTimeInTimezone } from "@superset/shared/rrule";
 import { cn } from "@superset/ui/utils";
 import { useMutation } from "@tanstack/react-query";
-import { format } from "date-fns";
 import { useEnabledAgents } from "renderer/hooks/useEnabledAgents";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { DevicePicker } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/components/DevicePicker";
@@ -81,13 +81,20 @@ export function AutomationDetailSidebar({
 						label="Next run"
 						value={
 							automation.enabled && automation.nextRunAt
-								? format(new Date(automation.nextRunAt), "MMM d, h:mm a")
+								? formatDateTimeInTimezone(
+										new Date(automation.nextRunAt),
+										automation.timezone,
+									)
 								: "—"
 						}
 					/>
 					<Row
 						label="Last ran"
-						value={lastRunAt ? format(lastRunAt, "MMM d, h:mm a") : "—"}
+						value={
+							lastRunAt
+								? formatDateTimeInTimezone(lastRunAt, automation.timezone)
+								: "—"
+						}
 					/>
 				</Section>
 

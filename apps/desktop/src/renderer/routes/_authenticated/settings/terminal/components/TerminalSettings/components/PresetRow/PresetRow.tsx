@@ -1,8 +1,9 @@
 import { normalizeExecutionMode } from "@superset/local-db";
 import { Badge } from "@superset/ui/badge";
+import { Eye, EyeOff } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { useDrag, useDrop } from "react-dnd";
-import { LuGripVertical, LuPin } from "react-icons/lu";
+import { LuGripVertical } from "react-icons/lu";
 import type { TerminalPreset } from "renderer/routes/_authenticated/settings/presets/types";
 import {
 	getPresetProjectTargetLabel,
@@ -19,7 +20,7 @@ interface PresetRowProps {
 	onEdit: (presetId: string) => void;
 	onLocalReorder: (fromIndex: number, toIndex: number) => void;
 	onPersistReorder: (presetId: string, targetIndex: number) => void;
-	onTogglePin: (presetId: string, pinned: boolean) => void;
+	onToggleVisibility: (presetId: string, visible: boolean) => void;
 }
 
 export function PresetRow({
@@ -30,7 +31,7 @@ export function PresetRow({
 	onEdit,
 	onLocalReorder,
 	onPersistReorder,
-	onTogglePin,
+	onToggleVisibility,
 }: PresetRowProps) {
 	const rowRef = useRef<HTMLDivElement>(null);
 	const dragHandleRef = useRef<HTMLDivElement>(null);
@@ -68,6 +69,7 @@ export function PresetRow({
 
 	const isWorkspaceCreation = !!preset.applyOnWorkspaceCreated;
 	const isNewTab = !!preset.applyOnNewTab;
+	const isVisibleInBar = preset.pinnedToBar !== false;
 	const modeValue = normalizeExecutionMode(preset.executionMode);
 	const modeLabel =
 		modeValue === "new-tab"
@@ -163,22 +165,17 @@ export function PresetRow({
 					className="p-1 rounded hover:bg-accent/50 transition-colors"
 					onClick={(e) => {
 						e.stopPropagation();
-						const isPinned = preset.pinnedToBar !== false;
-						onTogglePin(preset.id, !isPinned);
+						onToggleVisibility(preset.id, !isVisibleInBar);
 					}}
-					title={preset.pinnedToBar !== false ? "Unpin from bar" : "Pin to bar"}
-					aria-label={
-						preset.pinnedToBar !== false ? "Unpin from bar" : "Pin to bar"
-					}
-					aria-pressed={preset.pinnedToBar !== false}
+					title={isVisibleInBar ? "Hide from bar" : "Show in bar"}
+					aria-label={isVisibleInBar ? "Hide from bar" : "Show in bar"}
+					aria-pressed={isVisibleInBar}
 				>
-					<LuPin
-						className={`size-3.5 ${
-							preset.pinnedToBar !== false
-								? "text-foreground"
-								: "text-muted-foreground/40"
-						}`}
-					/>
+					{isVisibleInBar ? (
+						<Eye className="size-3.5 text-foreground" />
+					) : (
+						<EyeOff className="size-3.5 text-muted-foreground/40" />
+					)}
 				</button>
 			</div>
 		</div>

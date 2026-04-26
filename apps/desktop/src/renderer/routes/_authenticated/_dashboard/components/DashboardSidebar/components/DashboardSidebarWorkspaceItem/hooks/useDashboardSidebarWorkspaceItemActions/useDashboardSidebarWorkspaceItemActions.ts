@@ -2,12 +2,17 @@ import { toast } from "@superset/ui/sonner";
 import { useMatchRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
-import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
+import { useDashboardSidebarSectionRename } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarSectionRenameContext";
 import { useNavigateAwayFromWorkspace } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/hooks/useNavigateAwayFromWorkspace";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
+import { useOptimisticCollectionActions } from "renderer/routes/_authenticated/hooks/useOptimisticCollectionActions";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
+import {
+	useV2NotificationStore,
+	useV2WorkspaceIsUnread,
+} from "renderer/stores/v2-notifications";
 
 interface UseDashboardSidebarWorkspaceItemActionsOptions {
 	workspaceId: string;
@@ -27,6 +32,13 @@ export function useDashboardSidebarWorkspaceItemActions({
 	const navigateAway = useNavigateAwayFromWorkspace();
 	const { activeHostUrl } = useLocalHostService();
 	const { copyToClipboard } = useCopyToClipboard();
+	const { v2Workspaces: workspaceActions } = useOptimisticCollectionActions();
+	const { requestSectionRename } = useDashboardSidebarSectionRename();
+	const clearWorkspaceAttention = useV2NotificationStore(
+		(s) => s.clearWorkspaceAttention,
+	);
+	const setManualUnread = useV2NotificationStore((s) => s.setManualUnread);
+	const isUnread = useV2WorkspaceIsUnread(workspaceId);
 	const { createSection, moveWorkspaceToSection, removeWorkspaceFromSidebar } =
 		useDashboardSidebarState();
 
@@ -42,6 +54,7 @@ export function useDashboardSidebarWorkspaceItemActions({
 
 	const handleClick = () => {
 		if (isRenaming) return;
+		clearWorkspaceAttention(workspaceId);
 		navigate({
 			to: "/v2-workspace/$workspaceId",
 			params: { workspaceId },
@@ -58,20 +71,11 @@ export function useDashboardSidebarWorkspaceItemActions({
 		setRenameValue(workspaceName);
 	};
 
-	const submitRename = async () => {
+	const submitRename = () => {
 		setIsRenaming(false);
 		const trimmed = renameValue.trim();
 		if (!trimmed || trimmed === workspaceName) return;
-		try {
-			await apiTrpcClient.v2Workspace.update.mutate({
-				id: workspaceId,
-				name: trimmed,
-			});
-		} catch (error) {
-			toast.error(
-				`Failed to rename: ${error instanceof Error ? error.message : "Unknown error"}`,
-			);
-		}
+		workspaceActions.renameWorkspace(workspaceId, trimmed);
 	};
 
 	const handleDeleted = () => {
@@ -84,9 +88,9 @@ export function useDashboardSidebarWorkspaceItemActions({
 	};
 
 	const handleCreateSection = () => {
-		createSection(projectId, {
-			insertAfterWorkspaceId: workspaceId,
-		});
+		const sectionId = createSection(projectId);
+		moveWorkspaceToSection(workspaceId, projectId, sectionId);
+		requestSectionRename(sectionId);
 	};
 
 	const resolveWorktreePath = async (): Promise<string | null> => {
@@ -129,6 +133,14 @@ export function useDashboardSidebarWorkspaceItemActions({
 		}
 	};
 
+	const handleToggleUnread = () => {
+		if (isUnread) {
+			clearWorkspaceAttention(workspaceId);
+		} else {
+			setManualUnread(workspaceId);
+		}
+	};
+
 	const handleCopyBranchName = async () => {
 		if (!branch) {
 			toast.error("Branch name is not available");
@@ -153,9 +165,11 @@ export function useDashboardSidebarWorkspaceItemActions({
 		handleDeleted,
 		handleOpenInFinder,
 		handleRemoveFromSidebar,
+		handleToggleUnread,
 		isActive,
 		isDeleteDialogOpen,
 		isRenaming,
+		isUnread,
 		moveWorkspaceToSection,
 		renameValue,
 		setIsDeleteDialogOpen,

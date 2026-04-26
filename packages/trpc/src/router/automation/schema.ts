@@ -14,7 +14,20 @@ const agentConfigSchema = z
 	})
 	.passthrough() as unknown as z.ZodType<ResolvedAgentConfig>;
 
-const iana = z.string().min(1).describe("IANA timezone name");
+function isValidIanaTimezone(timezone: string): boolean {
+	try {
+		new Intl.DateTimeFormat(undefined, { timeZone: timezone });
+		return true;
+	} catch {
+		return false;
+	}
+}
+
+const iana = z
+	.string()
+	.min(1)
+	.refine(isValidIanaTimezone, "Invalid IANA timezone name")
+	.describe("IANA timezone name");
 const rruleBody = z
 	.string()
 	.min(1)

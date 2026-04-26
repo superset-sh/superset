@@ -6,6 +6,7 @@ import { scrollToBottom } from "../utils";
 
 export interface UseTerminalHotkeysOptions {
 	isFocused: boolean;
+	onClear: () => void;
 	xtermRef: MutableRefObject<XTerm | null>;
 }
 
@@ -16,6 +17,7 @@ export interface UseTerminalHotkeysReturn {
 
 export function useTerminalHotkeys({
 	isFocused,
+	onClear,
 	xtermRef,
 }: UseTerminalHotkeysOptions): UseTerminalHotkeysReturn {
 	const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -35,6 +37,11 @@ export function useTerminalHotkeys({
 	}, [isFocused, xtermRef]);
 
 	useHotkey("FIND_IN_TERMINAL", () => setIsSearchOpen((prev) => !prev), {
+		enabled: isFocused,
+		preventDefault: true,
+	});
+
+	useHotkey("CLEAR_TERMINAL", onClear, {
 		enabled: isFocused,
 		preventDefault: true,
 	});

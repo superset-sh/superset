@@ -6,10 +6,10 @@
  *   - compute real-UTC occurrences with correct DST behavior
  *     (`parseRrule` / `nextOccurrenceAfter` / `nextOccurrences`)
  *
- * rrule.js's `TZID` support returns Date objects whose UTC digits encode the
- * *local wall-clock* in the rule's zone — not real UTC instants. Every call
- * is wrapped by `utcToRruleDate` on the way in and `rruleDateToUtc` on the
- * way out so callers outside this module never see the wall-clock-as-UTC.
+ * We intentionally run rrule.js on floating wall-clock dates without `TZID`.
+ * `TZID` output varies with the host process timezone; floating dates keep the
+ * recurrence calendar stable, then this module converts each occurrence to a
+ * real UTC instant in the automation's configured timezone.
  */
 
 import { TZDate } from "@date-fns/tz";
@@ -296,7 +296,7 @@ export interface ParsedRecurrence {
 
 /** Wall-clock-as-UTC → real UTC in the given zone. */
 export function rruleDateToUtc(rruleDate: Date, timezone: string): Date {
-	return new TZDate(
+	const zoned = new TZDate(
 		rruleDate.getUTCFullYear(),
 		rruleDate.getUTCMonth(),
 		rruleDate.getUTCDate(),
@@ -305,6 +305,7 @@ export function rruleDateToUtc(rruleDate: Date, timezone: string): Date {
 		rruleDate.getUTCSeconds(),
 		timezone,
 	);
+	return new Date(zoned.getTime());
 }
 
 /** Real UTC → wall-clock-as-UTC in the given zone (rrule.js input space). */
@@ -348,7 +349,7 @@ function buildRuleString(
 	dtstart: Date,
 	timezone: string,
 ): string {
-	return `DTSTART;TZID=${timezone}:${formatRRuleLocalDtstart(dtstart, timezone)}\nRRULE:${rrule}`;
+	return `DTSTART:${formatRRuleLocalDtstart(dtstart, timezone)}\nRRULE:${rrule}`;
 }
 
 /**
@@ -412,4 +413,37 @@ export function nextOccurrences(args: {
 		cursor = next;
 	}
 	return results;
+}
+
+export interface FormatDateTimeInTimezoneOptions {
+	/** BCP-47 locale for date/time formatting. Defaults to runtime default. */
+	locale?: string;
+}
+
+const DATE_TIME_IN_TIMEZONE_FORMAT_OPTIONS: Intl.DateTimeFormatOptions = {
+	month: "short",
+	day: "numeric",
+	year: "numeric",
+	hour: "numeric",
+	minute: "2-digit",
+	timeZoneName: "short",
+};
+
+/** Format a real UTC instant in the automation's configured timezone. */
+export function formatDateTimeInTimezone(
+	date: Date,
+	timezone: string,
+	options: FormatDateTimeInTimezoneOptions = {},
+): string {
+	try {
+		return new Intl.DateTimeFormat(options.locale, {
+			...DATE_TIME_IN_TIMEZONE_FORMAT_OPTIONS,
+			timeZone: timezone,
+		}).format(date);
+	} catch {
+		return new Intl.DateTimeFormat(options.locale, {
+			...DATE_TIME_IN_TIMEZONE_FORMAT_OPTIONS,
+			timeZone: "UTC",
+		}).format(date);
+	}
 }
