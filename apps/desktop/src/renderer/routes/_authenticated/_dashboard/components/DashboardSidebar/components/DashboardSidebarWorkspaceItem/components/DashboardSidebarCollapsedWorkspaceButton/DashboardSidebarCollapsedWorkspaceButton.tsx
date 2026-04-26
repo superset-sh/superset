@@ -1,7 +1,10 @@
 import { cn } from "@superset/ui/utils";
 import { type ComponentPropsWithoutRef, forwardRef } from "react";
 import type { ActivePaneStatus } from "shared/tabs-types";
-import type { DashboardSidebarWorkspaceHostType } from "../../../../types";
+import type {
+	DashboardSidebarWorkspaceHostType,
+	DashboardSidebarWorkspacePullRequest,
+} from "../../../../types";
 import { DashboardSidebarWorkspaceIcon } from "../DashboardSidebarWorkspaceIcon";
 
 interface DashboardSidebarCollapsedWorkspaceButtonProps
@@ -11,6 +14,7 @@ interface DashboardSidebarCollapsedWorkspaceButtonProps
 	isActive: boolean;
 	workspaceStatus?: ActivePaneStatus | null;
 	creationStatus?: "preparing" | "generating-branch" | "creating" | "failed";
+	pullRequestState?: DashboardSidebarWorkspacePullRequest["state"] | null;
 }
 
 export const DashboardSidebarCollapsedWorkspaceButton = forwardRef<
@@ -24,6 +28,7 @@ export const DashboardSidebarCollapsedWorkspaceButton = forwardRef<
 			isActive,
 			workspaceStatus = null,
 			creationStatus,
+			pullRequestState = null,
 			className,
 			...props
 		},
@@ -48,6 +53,7 @@ export const DashboardSidebarCollapsedWorkspaceButton = forwardRef<
 					variant="collapsed"
 					workspaceStatus={workspaceStatus}
 					creationStatus={creationStatus}
+					pullRequestState={pullRequestState}
 				/>
 			</button>
 		);

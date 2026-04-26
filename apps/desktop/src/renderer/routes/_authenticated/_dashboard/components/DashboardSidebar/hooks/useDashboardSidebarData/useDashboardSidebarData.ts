@@ -1,3 +1,4 @@
+import type { SelectGithubPullRequest } from "@superset/db/schema";
 import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useQuery } from "@tanstack/react-query";
@@ -14,6 +15,8 @@ import type {
 	DashboardSidebarProjectChild,
 	DashboardSidebarSection,
 	DashboardSidebarWorkspace,
+	DashboardSidebarWorkspacePullRequest,
+	DashboardSidebarWorkspacePullRequestCheck,
 } from "../../types";
 
 // Sits above every real workspace so the pending row lines up with the real one,
@@ -141,6 +144,133 @@ function useStableDashboardSidebarProjects(
 	}, [projects]);
 }
 
+type SyncedPullRequestCheck = NonNullable<
+	SelectGithubPullRequest["checks"]
+>[number];
+
+interface SyncedPullRequestCandidate {
+	repositoryId: string;
+	headBranch: string;
+	authorLogin: string;
+	updatedAtMs: number;
+	pullRequest: DashboardSidebarWorkspacePullRequest;
+}
+
+const NORMALIZED_CHECK_STATUSES = new Set<
+	DashboardSidebarWorkspacePullRequestCheck["status"]
+>(["success", "failure", "pending", "skipped", "cancelled"]);
+
+function getTimestampMs(value: unknown): number {
+	if (value instanceof Date) return value.getTime();
+	if (typeof value === "string" || typeof value === "number") {
+		const timestamp = new Date(value).getTime();
+		return Number.isNaN(timestamp) ? 0 : timestamp;
+	}
+	return 0;
+}
+
+function normalizeSyncedPullRequestState(
+	pr: Pick<SelectGithubPullRequest, "state" | "isDraft" | "mergedAt">,
+): DashboardSidebarWorkspacePullRequest["state"] {
+	if (pr.state === "merged" || pr.mergedAt) return "merged";
+	if (pr.state === "closed") return "closed";
+	if (pr.isDraft) return "draft";
+	return "open";
+}
+
+function normalizeSyncedReviewDecision(
+	value: SelectGithubPullRequest["reviewDecision"],
+): DashboardSidebarWorkspacePullRequest["reviewDecision"] {
+	if (value === "approved" || value === "APPROVED") return "approved";
+	if (value === "changes_requested" || value === "CHANGES_REQUESTED") {
+		return "changes_requested";
+	}
+	if (value === "pending" || value === "REVIEW_REQUIRED") return "pending";
+	return null;
+}
+
+function normalizeSyncedCheckStatus(
+	check: SyncedPullRequestCheck,
+): DashboardSidebarWorkspacePullRequestCheck["status"] {
+	const status = check.status.toLowerCase();
+	if (
+		NORMALIZED_CHECK_STATUSES.has(
+			status as DashboardSidebarWorkspacePullRequestCheck["status"],
+		)
+	) {
+		return status as DashboardSidebarWorkspacePullRequestCheck["status"];
+	}
+
+	if (status !== "completed") return "pending";
+
+	const conclusion = check.conclusion?.toLowerCase() ?? null;
+	if (conclusion === "success" || conclusion === "neutral") return "success";
+	if (conclusion === "skipped") return "skipped";
+	if (conclusion === "cancelled") return "cancelled";
+	if (!conclusion) return "pending";
+	return "failure";
+}
+
+function computeSyncedChecksStatus(
+	checks: DashboardSidebarWorkspacePullRequestCheck[],
+	fallback: SelectGithubPullRequest["checksStatus"],
+): DashboardSidebarWorkspacePullRequest["checksStatus"] {
+	let hasFailure = false;
+	let hasPending = false;
+	let relevantCount = 0;
+
+	for (const check of checks) {
+		if (check.status === "skipped" || check.status === "cancelled") continue;
+		relevantCount++;
+		if (check.status === "failure") hasFailure = true;
+		if (check.status === "pending") hasPending = true;
+	}
+
+	if (relevantCount > 0) {
+		if (hasFailure) return "failure";
+		if (hasPending) return "pending";
+		return "success";
+	}
+
+	if (
+		fallback === "success" ||
+		fallback === "failure" ||
+		fallback === "pending"
+	) {
+		return fallback;
+	}
+
+	return "none";
+}
+
+function normalizeSyncedPullRequest(
+	pr: SelectGithubPullRequest,
+): DashboardSidebarWorkspacePullRequest {
+	const checks = (pr.checks ?? []).map((check) => ({
+		name: check.name,
+		status: normalizeSyncedCheckStatus(check),
+		url: check.detailsUrl ?? null,
+	}));
+
+	return {
+		url: pr.url,
+		number: pr.prNumber,
+		title: pr.title,
+		state: normalizeSyncedPullRequestState(pr),
+		reviewDecision: normalizeSyncedReviewDecision(pr.reviewDecision),
+		checksStatus: computeSyncedChecksStatus(checks, pr.checksStatus),
+		checks,
+	};
+}
+
+function pullRequestMatchesWorkspaceBranch(
+	workspaceBranch: string,
+	pr: Pick<SyncedPullRequestCandidate, "headBranch" | "authorLogin">,
+) {
+	if (workspaceBranch === pr.headBranch) return true;
+	return workspaceBranch === `${pr.authorLogin.toLowerCase()}/${pr.headBranch}`;
+}
+
 export function useDashboardSidebarData() {
 	const { data: session } = authClient.useSession();
 	const collections = useCollections();
@@ -253,6 +383,14 @@ export function useDashboardSidebarData() {
 		[collections],
 	);
 
+	const { data: syncedPullRequests = [] } = useLiveQuery(
+		(q) =>
+			q
+				.from({ pullRequests: collections.githubPullRequests })
+				.select(({ pullRequests }) => pullRequests),
+		[collections],
+	);
+
 	const computedLocalWorkspaceIds = useMemo(
 		() =>
 			sidebarWorkspaces
@@ -298,6 +436,28 @@ export function useDashboardSidebarData() {
 
 	const localPullRequestsByWorkspaceId =
 		useStableLocalPullRequestsByWorkspaceId(pullRequestData?.workspaces);
+
+	const syncedPullRequestsByRepositoryId = useMemo(() => {
+		const map = new Map<string, SyncedPullRequestCandidate[]>();
+
+		for (const pr of syncedPullRequests) {
+			const candidates = map.get(pr.repositoryId) ?? [];
+			candidates.push({
+				repositoryId: pr.repositoryId,
+				headBranch: pr.headBranch,
+				authorLogin: pr.authorLogin,
+				updatedAtMs: getTimestampMs(pr.updatedAt),
+				pullRequest: normalizeSyncedPullRequest(pr),
+			});
+			map.set(pr.repositoryId, candidates);
+		}
+
+		for (const candidates of map.values()) {
+			candidates.sort((left, right) => right.updatedAtMs - left.updatedAtMs);
+		}
+
+		return map;
+	}, [syncedPullRequests]);
 
 	const computedGroups = useMemo<DashboardSidebarProject[]>(() => {
 		const projectsById = new Map<
@@ -349,6 +509,14 @@ export function useDashboardSidebarData() {
 					: workspace.hostMachineId === machineId
 						? "local-device"
 						: "remote-device";
+			const syncedPullRequest =
+				project.githubRepositoryId === null
+					? null
+					: (syncedPullRequestsByRepositoryId
+							.get(project.githubRepositoryId)
+							?.find((pr) =>
+								pullRequestMatchesWorkspaceBranch(workspace.branch, pr),
+							)?.pullRequest ?? null);
 
 			const sidebarWorkspace: DashboardSidebarWorkspace = {
 				id: workspace.id,
@@ -364,8 +532,9 @@ export function useDashboardSidebarData() {
 				branch: workspace.branch,
 				pullRequest:
 					hostType === "local-device"
-						? (localPullRequestsByWorkspaceId.get(workspace.id) ?? null)
-						: null,
+						? (localPullRequestsByWorkspaceId.get(workspace.id) ??
+							syncedPullRequest)
+						: syncedPullRequest,
 				repoUrl:
 					project.githubOwner && project.githubRepoName
 						? `https://github.com/${project.githubOwner}/${project.githubRepoName}`
@@ -479,6 +648,7 @@ export function useDashboardSidebarData() {
 		sidebarProjects,
 		sidebarSections,
 		sidebarWorkspaces,
+		syncedPullRequestsByRepositoryId,
 	]);
 	const groups = useStableDashboardSidebarProjects(computedGroups);
 

@@ -93,6 +93,7 @@ export function DashboardSidebarWorkspaceItem({
 					workspaceStatus={workspaceStatus}
 					onClick={isPending ? handlePendingClick : handleClick}
 					creationStatus={creationStatus}
+					pullRequestState={workspace.pullRequest?.state ?? null}
 					disabled={isPending}
 					aria-label={
 						creationStatus ? `Creating workspace: ${name}` : undefined
