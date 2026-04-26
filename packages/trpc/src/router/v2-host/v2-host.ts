@@ -1,6 +1,7 @@
-import { db } from "@superset/db/client";
+import { db, dbWs } from "@superset/db/client";
 import { v2UsersHostRoleValues } from "@superset/db/enums";
 import { members, v2Hosts, v2UsersHosts } from "@superset/db/schema";
+import { getCurrentTxid } from "@superset/db/utils";
 import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
 import { and, eq, ne } from "drizzle-orm";
 import { z } from "zod";
@@ -62,20 +63,11 @@ async function requireOrgMember(userId: string, organizationId: string) {
 	}
 }
 
-async function countOwners(hostId: string) {
-	const owners = await db
-		.select({ id: v2UsersHosts.id })
-		.from(v2UsersHosts)
-		.where(
-			and(eq(v2UsersHosts.hostId, hostId), eq(v2UsersHosts.role, "owner")),
-		);
-	return owners.length;
-}
-
 export const v2HostRouter = {
 	addMember: protectedProcedure
 		.input(
 			z.object({
+				id: z.string().uuid(),
 				hostId: z.string().uuid(),
 				userId: z.string().uuid(),
 				role: z.enum(v2UsersHostRoleValues).optional(),
@@ -86,23 +78,43 @@ export const v2HostRouter = {
 			await requireHostOwner(ctx.session.user.id, input.hostId, organizationId);
 			await requireOrgMember(input.userId, organizationId);
 
-			await db
-				.insert(v2UsersHosts)
-				.values({
-					organizationId,
-					userId: input.userId,
-					hostId: input.hostId,
-					role: input.role ?? "member",
-				})
-				.onConflictDoNothing({
-					target: [
-						v2UsersHosts.organizationId,
-						v2UsersHosts.userId,
-						v2UsersHosts.hostId,
-					],
+			const existing = await db.query.v2UsersHosts.findFirst({
+				where: and(
+					eq(v2UsersHosts.hostId, input.hostId),
+					eq(v2UsersHosts.userId, input.userId),
+				),
+				columns: { id: true },
+			});
+			if (existing) {
+				throw new TRPCError({
+					code: "CONFLICT",
+					message: "User already has access to this host",
 				});
+			}
 
-			return { success: true };
+			const result = await dbWs.transaction(async (tx) => {
+				const [inserted] = await tx
+					.insert(v2UsersHosts)
+					.values({
+						id: input.id,
+						organizationId,
+						userId: input.userId,
+						hostId: input.hostId,
+						role: input.role ?? "member",
+					})
+					.returning();
+				const txid = await getCurrentTxid(tx);
+				return { inserted, txid };
+			});
+
+			if (!result.inserted) {
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: "Failed to add member",
+				});
+			}
+
+			return { ...result.inserted, txid: result.txid };
 		}),
 
 	removeMember: protectedProcedure
@@ -132,12 +144,22 @@ export const v2HostRouter = {
 			});
 
 			if (!target) {
-				return { success: true };
+				const txid = await dbWs.transaction((tx) => getCurrentTxid(tx));
+				return { success: true, txid };
 			}
 
 			if (target.role === "owner") {
-				const ownerCount = await countOwners(input.hostId);
-				if (ownerCount <= 1) {
+				const otherOwners = await db
+					.select({ id: v2UsersHosts.id })
+					.from(v2UsersHosts)
+					.where(
+						and(
+							eq(v2UsersHosts.hostId, input.hostId),
+							eq(v2UsersHosts.role, "owner"),
+							ne(v2UsersHosts.userId, input.userId),
+						),
+					);
+				if (otherOwners.length === 0) {
 					throw new TRPCError({
 						code: "BAD_REQUEST",
 						message: "A host must have at least one owner.",
@@ -145,16 +167,19 @@ export const v2HostRouter = {
 				}
 			}
 
-			await db
-				.delete(v2UsersHosts)
-				.where(
-					and(
-						eq(v2UsersHosts.hostId, input.hostId),
-						eq(v2UsersHosts.userId, input.userId),
-					),
-				);
+			const txid = await dbWs.transaction(async (tx) => {
+				await tx
+					.delete(v2UsersHosts)
+					.where(
+						and(
+							eq(v2UsersHosts.hostId, input.hostId),
+							eq(v2UsersHosts.userId, input.userId),
+						),
+					);
+				return await getCurrentTxid(tx);
+			});
 
-			return { success: true };
+			return { success: true, txid };
 		}),
 
 	setMemberRole: protectedProcedure
@@ -177,7 +202,7 @@ export const v2HostRouter = {
 			}
 
 			if (input.role === "member") {
-				const ownerCount = await db
+				const otherOwners = await db
 					.select({ id: v2UsersHosts.id })
 					.from(v2UsersHosts)
 					.where(
@@ -187,7 +212,7 @@ export const v2HostRouter = {
 							ne(v2UsersHosts.userId, input.userId),
 						),
 					);
-				if (ownerCount.length === 0) {
+				if (otherOwners.length === 0) {
 					throw new TRPCError({
 						code: "BAD_REQUEST",
 						message: "A host must have at least one owner.",
@@ -195,16 +220,19 @@ export const v2HostRouter = {
 				}
 			}
 
-			await db
-				.update(v2UsersHosts)
-				.set({ role: input.role })
-				.where(
-					and(
-						eq(v2UsersHosts.hostId, input.hostId),
-						eq(v2UsersHosts.userId, input.userId),
-					),
-				);
+			const txid = await dbWs.transaction(async (tx) => {
+				await tx
+					.update(v2UsersHosts)
+					.set({ role: input.role })
+					.where(
+						and(
+							eq(v2UsersHosts.hostId, input.hostId),
+							eq(v2UsersHosts.userId, input.userId),
+						),
+					);
+				return await getCurrentTxid(tx);
+			});
 
-			return { success: true };
+			return { success: true, txid };
 		}),
 } satisfies TRPCRouterRecord;
