@@ -1,6 +1,11 @@
 import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
-import { createFileRoute, Outlet, useMatchRoute } from "@tanstack/react-router";
+import {
+	createFileRoute,
+	Outlet,
+	useMatchRoute,
+	useNavigate,
+} from "@tanstack/react-router";
 import { useEffect, useRef } from "react";
 import { env } from "renderer/env.renderer";
 import {
@@ -21,6 +26,7 @@ export const Route = createFileRoute("/_authenticated/_dashboard/v2-workspace")(
 
 function V2WorkspaceLayout() {
 	const matchRoute = useMatchRoute();
+	const navigate = useNavigate();
 	const workspaceMatch = matchRoute({
 		to: "/v2-workspace/$workspaceId",
 	});
@@ -64,6 +70,16 @@ function V2WorkspaceLayout() {
 		lastEnsuredWorkspaceIdRef.current = workspace.id;
 		ensureWorkspaceInSidebar(workspace.id, workspace.projectId);
 	}, [ensureWorkspaceInSidebar, workspace]);
+
+	useEffect(() => {
+		if (workspaceId && !isReady) {
+			void navigate({
+				to: "/v2-workspace-loading/$workspaceId",
+				params: { workspaceId },
+				replace: true,
+			});
+		}
+	}, [workspaceId, isReady, navigate]);
 
 	if (!workspaceId || !isReady) {
 		return null;
