@@ -181,6 +181,12 @@
 	.xterm .xterm-screen {
 		height: 100%;
 		width: 100%;
+		/* xterm.css itself does not set font-family on .xterm (only on
+		 * .xterm-accessibility-tree), so without this the element inherits
+		 * Tailwind preflight's sans-serif stack. That disagrees with
+		 * terminal.options.fontFamily and can corrupt the WebGL atlas on
+		 * startup in CJK locales. See #3570. */
+		font-family: ui-monospace, monospace;
 	}
 	.xterm .xterm-rows a {
 		color: inherit;
