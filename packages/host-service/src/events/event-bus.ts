@@ -1,7 +1,10 @@
 import type { NodeWebSocket } from "@hono/node-ws";
+import type { DetectedPort } from "@superset/port-scanner";
 import type { FsWatchEvent } from "@superset/workspace-fs/host";
 import type { Hono } from "hono";
 import type { HostDb } from "../db";
+import { portManager } from "../ports/port-manager";
+import { getLabelsForWorkspace } from "../ports/static-ports";
 import type { WorkspaceFilesystemManager } from "../runtime/filesystem";
 import { GitWatcher } from "./git-watcher";
 import type { ClientMessage, ServerMessage } from "./types";
@@ -56,6 +59,7 @@ export interface EventBusOptions {
  *
  * One connection per client. Carries:
  * - `git:changed` events (auto-pushed for all workspaces)
+ * - `port:changed` events (auto-pushed for all workspace terminals)
  * - `fs:events` (on-demand per client request)
  */
 export class EventBus {
@@ -63,6 +67,7 @@ export class EventBus {
 	private readonly gitWatcher: GitWatcher;
 	private readonly filesystem: WorkspaceFilesystemManager;
 	private removeGitListener: (() => void) | null = null;
+	private removePortListeners: (() => void) | null = null;
 
 	constructor(options: EventBusOptions) {
 		this.filesystem = options.filesystem;
@@ -70,6 +75,8 @@ export class EventBus {
 	}
 
 	start(): void {
+		if (this.removeGitListener || this.removePortListeners) return;
+
 		this.gitWatcher.start();
 		this.removeGitListener = this.gitWatcher.onChanged((event) => {
 			this.broadcast({
@@ -78,11 +85,26 @@ export class EventBus {
 				...(event.paths !== undefined ? { paths: event.paths } : {}),
 			});
 		});
+
+		const handlePortAdd = (port: DetectedPort) => {
+			this.broadcastPortChanged({ eventType: "add", port });
+		};
+		const handlePortRemove = (port: DetectedPort) => {
+			this.broadcastPortChanged({ eventType: "remove", port });
+		};
+		portManager.on("port:add", handlePortAdd);
+		portManager.on("port:remove", handlePortRemove);
+		this.removePortListeners = () => {
+			portManager.off("port:add", handlePortAdd);
+			portManager.off("port:remove", handlePortRemove);
+		};
 	}
 
 	close(): void {
 		this.removeGitListener?.();
 		this.removeGitListener = null;
+		this.removePortListeners?.();
+		this.removePortListeners = null;
 		this.gitWatcher.close();
 		for (const [socket, state] of this.clients) {
 			this.cleanupClient(socket, state);
@@ -120,6 +142,65 @@ export class EventBus {
 		for (const socket of this.clients.keys()) {
 			sendMessage(socket, message);
 		}
+	}
+
+	/**
+	 * Fan out an agent lifecycle event (hook completion) to all connected
+	 * clients. The workspace-client filters by `workspaceId` on the receiving
+	 * side; we broadcast indiscriminately here to match the existing
+	 * `git:changed` pattern.
+	 */
+	broadcastAgentLifecycle(
+		message: Omit<Extract<ServerMessage, { type: "agent:lifecycle" }>, "type">,
+	): void {
+		this.broadcast({ type: "agent:lifecycle", ...message });
+	}
+
+	/**
+	 * Fan out terminal process lifecycle events to renderer clients. Agent hook
+	 * status can otherwise get stuck when a terminal exits while its pane is not
+	 * mounted and therefore cannot observe the terminal websocket `exit` packet.
+	 */
+	broadcastTerminalLifecycle(
+		message: Omit<
+			Extract<ServerMessage, { type: "terminal:lifecycle" }>,
+			"type"
+		>,
+	): void {
+		this.broadcast({ type: "terminal:lifecycle", ...message });
+	}
+
+	/**
+	 * Fan out port add/remove events discovered by the host-service scanner.
+	 * Renderer clients use this to patch their host snapshot immediately while
+	 * keeping a slow refetch as a reconnect fallback.
+	 */
+	private broadcastPortChanged({
+		eventType,
+		port,
+	}: {
+		eventType: "add" | "remove";
+		port: DetectedPort;
+	}): void {
+		this.broadcast({
+			type: "port:changed",
+			workspaceId: port.workspaceId,
+			eventType,
+			port,
+			label: eventType === "add" ? this.getPortLabel(port) : null,
+			occurredAt: Date.now(),
+		});
+	}
+
+	private getPortLabel(port: DetectedPort): string | null {
+		const labels = getLabelsForWorkspace((workspaceId) => {
+			try {
+				return this.filesystem.resolveWorkspaceRoot(workspaceId);
+			} catch {
+				return null;
+			}
+		}, port.workspaceId);
+		return labels?.get(port.port) ?? null;
 	}
 
 	private startFsWatch(

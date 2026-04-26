@@ -18,10 +18,10 @@ import {
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import { useOpenInExternalEditor } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/useOpenInExternalEditor";
 import type {
-	BrowserPaneData,
 	PaneViewerData,
 	TerminalPaneData,
 } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/types";
+import { openUrlInV2Workspace } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/utils/openUrlInV2Workspace";
 import { useWorkspaceWsUrl } from "renderer/routes/_authenticated/_dashboard/v2-workspace/providers/WorkspaceTrpcProvider/WorkspaceTrpcProvider";
 import { ScrollToBottomButton } from "renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/Terminal/ScrollToBottomButton";
 import { TerminalSearch } from "renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/Terminal/TerminalSearch";
@@ -46,7 +46,6 @@ export function TerminalPane({
 	onOpenFile,
 	onRevealPath,
 }: TerminalPaneProps) {
-	const openInExternalEditor = useOpenInExternalEditor(workspaceId);
 	const { getFileAction, getUrlAction } = useTerminalLinkActions();
 	const {
 		hoveredLink,
@@ -56,6 +55,8 @@ export function TerminalPane({
 	const { hint, showHint } = useLinkClickHint();
 	const paneData = ctx.pane.data as TerminalPaneData;
 	const { terminalId } = paneData;
+	const sessionWorkspaceId = paneData.workspaceId ?? workspaceId;
+	const openInExternalEditor = useOpenInExternalEditor(sessionWorkspaceId);
 	const terminalInstanceId = ctx.pane.id;
 	const containerRef = useRef<HTMLDivElement | null>(null);
 	const activeTheme = useTheme();
@@ -77,8 +78,8 @@ export function TerminalPane({
 	const websocketUrl = useWorkspaceWsUrl(`/terminal/${terminalId}`);
 	const websocketUrlRef = useRef(websocketUrl);
 	websocketUrlRef.current = websocketUrl;
-	const workspaceIdRef = useRef(workspaceId);
-	workspaceIdRef.current = workspaceId;
+	const sessionWorkspaceIdRef = useRef(sessionWorkspaceId);
+	sessionWorkspaceIdRef.current = sessionWorkspaceId;
 
 	const ensureSession = workspaceTrpc.terminal.ensureSession.useMutation();
 	const ensureSessionRef = useRef(ensureSession);
@@ -123,7 +124,7 @@ export function TerminalPane({
 	//      "Session not found."
 	// Deps narrowed to [terminalId] so provider key remount churn (workspaceId
 	// briefly flipping while pane data catches up) doesn't re-run this effect.
-	// workspaceId / websocketUrl are read through refs.
+	// sessionWorkspaceId / websocketUrl are read through refs.
 	useEffect(() => {
 		const container = containerRef.current;
 		if (!container) return;
@@ -136,7 +137,7 @@ export function TerminalPane({
 		);
 
 		let cancelled = false;
-		const sessionWorkspaceId = workspaceIdRef.current;
+		const activeSessionWorkspaceId = sessionWorkspaceIdRef.current;
 
 		// Always connect after ensureSession settles, even on error: if the
 		// session actually exists on the server (e.g. we raced another client),
@@ -146,14 +147,12 @@ export function TerminalPane({
 		ensureSessionRef.current
 			.mutateAsync({
 				terminalId,
-				workspaceId: sessionWorkspaceId,
+				workspaceId: activeSessionWorkspaceId,
 				themeType: initialThemeTypeRef.current,
 			})
 			.then((result) => {
 				if (result.status === "active") {
-					void invalidateTerminalSessionsRef.current({
-						workspaceId: sessionWorkspaceId,
-					});
+					void invalidateTerminalSessionsRef.current();
 				}
 			})
 			.catch((err) => {
@@ -209,7 +208,7 @@ export function TerminalPane({
 				stat: async (path) => {
 					try {
 						const result = await statPathRef.current({
-							workspaceId,
+							workspaceId: sessionWorkspaceId,
 							path,
 						});
 						if (!result) return null;
@@ -265,11 +264,10 @@ export function TerminalPane({
 							console.error("[v2 Terminal] Failed to open URL:", url, error);
 						});
 					} else {
-						ctx.store.getState().openPane({
-							pane: {
-								kind: "browser",
-								data: { url } satisfies BrowserPaneData,
-							},
+						openUrlInV2Workspace({
+							store: ctx.store,
+							target: "current-tab",
+							url,
 						});
 					}
 				},
@@ -281,7 +279,7 @@ export function TerminalPane({
 	}, [
 		terminalId,
 		terminalInstanceId,
-		workspaceId,
+		sessionWorkspaceId,
 		ctx.store,
 		onOpenFile,
 		onRevealPath,

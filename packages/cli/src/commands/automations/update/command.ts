@@ -83,7 +83,7 @@ export default command({
 			timezone: options.timezone,
 			dtstart: options.dtstart ? new Date(options.dtstart) : undefined,
 			agentConfig,
-			targetHostId: options.device ?? null,
+			targetHostId: options.device,
 		});
 
 		return {

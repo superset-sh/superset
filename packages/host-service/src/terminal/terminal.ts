@@ -6,11 +6,18 @@ import {
 	type ShellReadyScanState,
 	scanForShellReady,
 } from "@superset/shared/shell-ready-scanner";
+import {
+	createTerminalTitleScanState,
+	scanForTerminalTitle,
+	type TerminalTitleScanState,
+} from "@superset/shared/terminal-title-scanner";
 import { and, eq } from "drizzle-orm";
 import type { Hono } from "hono";
 import { type IPty, spawn } from "node-pty";
 import type { HostDb } from "../db";
 import { projects, terminalSessions, workspaces } from "../db/schema";
+import type { EventBus } from "../events";
+import { portManager } from "../ports/port-manager";
 import {
 	buildV2TerminalEnv,
 	getShellLaunchArgs,
@@ -21,6 +28,7 @@ import {
 interface RegisterWorkspaceTerminalRouteOptions {
 	app: Hono;
 	db: HostDb;
+	eventBus: EventBus;
 	upgradeWebSocket: NodeWebSocket["upgradeWebSocket"];
 }
 
@@ -28,6 +36,17 @@ export function parseThemeType(
 	value: string | null | undefined,
 ): "dark" | "light" | undefined {
 	return value === "dark" || value === "light" ? value : undefined;
+}
+
+/**
+ * Build the host-service tRPC URL for the v2 agent hook. The agent shell
+ * script POSTs to this; host-service fans out on the event bus so the
+ * renderer (web or electron) can play the finish sound.
+ */
+function getHostAgentHookUrl(): string {
+	const port = process.env.HOST_SERVICE_PORT || process.env.PORT;
+	if (!port) return "";
+	return `http://127.0.0.1:${port}/trpc/notifications.hook`;
 }
 
 type TerminalClientMessage =
@@ -39,7 +58,8 @@ type TerminalServerMessage =
 	| { type: "data"; data: string }
 	| { type: "error"; message: string }
 	| { type: "exit"; exitCode: number; signal: number }
-	| { type: "replay"; data: string };
+	| { type: "replay"; data: string }
+	| { type: "title"; title: string | null };
 
 const MAX_BUFFER_BYTES = 64 * 1024;
 const SOCKET_OPEN = 1;
@@ -85,6 +105,8 @@ interface TerminalSession {
 	exitCode: number;
 	exitSignal: number;
 	listed: boolean;
+	title: string | null;
+	titleScanState: TerminalTitleScanState;
 
 	// Shell readiness (OSC 133)
 	shellReadyState: ShellReadyState;
@@ -119,6 +141,7 @@ export interface TerminalSessionSummary {
 	exited: boolean;
 	exitCode: number;
 	attached: boolean;
+	title: string | null;
 }
 
 export function listTerminalSessions(
@@ -141,6 +164,7 @@ export function listTerminalSessions(
 			exited: session.exited,
 			exitCode: session.exitCode,
 			attached: pruneAndCountOpenSockets(session) > 0,
+			title: session.title,
 		}));
 }
 
@@ -171,6 +195,12 @@ function broadcastMessage(
 		sent += 1;
 	}
 	return sent;
+}
+
+function setSessionTitle(session: TerminalSession, title: string | null) {
+	if (session.title === title) return;
+	session.title = title;
+	broadcastMessage(session, { type: "title", title });
 }
 
 function bufferOutput(session: TerminalSession, data: string) {
@@ -248,6 +278,8 @@ export function disposeSession(terminalId: string, db: HostDb) {
 		sessions.delete(terminalId);
 	}
 
+	portManager.unregisterSession(terminalId);
+
 	db.update(terminalSessions)
 		.set({ status: "disposed", endedAt: Date.now() })
 		.where(eq(terminalSessions.id, terminalId))
@@ -291,6 +323,7 @@ interface CreateTerminalSessionOptions {
 	workspaceId: string;
 	themeType?: "dark" | "light";
 	db: HostDb;
+	eventBus?: EventBus;
 	/** Command to run after the shell is ready. Queued behind shellReadyPromise. */
 	initialCommand?: string;
 	/** Hidden sessions are process-internal and should not appear in user pickers. */
@@ -302,6 +335,7 @@ export function createTerminalSessionInternal({
 	workspaceId,
 	themeType,
 	db,
+	eventBus,
 	initialCommand,
 	listed = true,
 }: CreateTerminalSessionOptions): TerminalSession | { error: string } {
@@ -350,6 +384,7 @@ export function createTerminalSessionInternal({
 			process.env.NODE_ENV === "development" ? "development" : "production",
 		agentHookPort: process.env.SUPERSET_AGENT_HOOK_PORT || "",
 		agentHookVersion: process.env.SUPERSET_AGENT_HOOK_VERSION || "",
+		hostAgentHookUrl: getHostAgentHookUrl(),
 	});
 
 	let pty: IPty;
@@ -406,6 +441,8 @@ export function createTerminalSessionInternal({
 		exitCode: 0,
 		exitSignal: 0,
 		listed,
+		title: null,
+		titleScanState: createTerminalTitleScanState(),
 		shellReadyState: shellSupportsReady ? "pending" : "unsupported",
 		shellReadyResolve,
 		shellReadyPromise,
@@ -413,6 +450,7 @@ export function createTerminalSessionInternal({
 		scanState: createScanState(),
 	};
 	sessions.set(terminalId, session);
+	portManager.upsertSession(terminalId, workspaceId, pty.pid);
 
 	// If the marker never arrives (broken wrapper, unsupported config),
 	// the timeout unblocks so the session degrades gracefully.
@@ -423,6 +461,11 @@ export function createTerminalSessionInternal({
 	}
 
 	pty.onData((rawData) => {
+		const titleUpdates = scanForTerminalTitle(session.titleScanState, rawData);
+		for (const title of titleUpdates.updates) {
+			setSessionTitle(session, title);
+		}
+
 		// Scan for OSC 133;A and strip it from output
 		let data = rawData;
 		if (session.shellReadyState === "pending") {
@@ -434,6 +477,8 @@ export function createTerminalSessionInternal({
 		}
 		if (data.length === 0) return;
 
+		portManager.checkOutputForHint(data);
+
 		if (broadcastMessage(session, { type: "data", data }) === 0) {
 			bufferOutput(session, data);
 		}
@@ -444,6 +489,8 @@ export function createTerminalSessionInternal({
 		session.exitCode = exitCode ?? 0;
 		session.exitSignal = signal ?? 0;
 
+		portManager.unregisterSession(terminalId);
+
 		db.update(terminalSessions)
 			.set({ status: "exited", endedAt: Date.now() })
 			.where(eq(terminalSessions.id, terminalId))
@@ -453,6 +500,15 @@ export function createTerminalSessionInternal({
 			type: "exit",
 			exitCode: session.exitCode,
 			signal: session.exitSignal,
+		});
+
+		eventBus?.broadcastTerminalLifecycle({
+			workspaceId,
+			terminalId,
+			eventType: "exit",
+			exitCode: session.exitCode,
+			signal: session.exitSignal,
+			occurredAt: Date.now(),
 		});
 	});
 
@@ -473,6 +529,7 @@ export function createTerminalSessionInternal({
 export function registerWorkspaceTerminalRoute({
 	app,
 	db,
+	eventBus,
 	upgradeWebSocket,
 }: RegisterWorkspaceTerminalRouteOptions) {
 	app.post("/terminal/sessions", async (c) => {
@@ -491,6 +548,7 @@ export function registerWorkspaceTerminalRoute({
 			workspaceId: body.workspaceId,
 			themeType: parseThemeType(body.themeType),
 			db,
+			eventBus,
 		});
 
 		if ("error" in result) {
@@ -557,6 +615,7 @@ export function registerWorkspaceTerminalRoute({
 							workspaceId,
 							themeType,
 							db,
+							eventBus,
 						});
 
 						if ("error" in result) {
@@ -566,6 +625,7 @@ export function registerWorkspaceTerminalRoute({
 						}
 
 						result.sockets.add(ws);
+						sendMessage(ws, { type: "title", title: result.title });
 
 						db.update(terminalSessions)
 							.set({ lastAttachedAt: Date.now() })
@@ -581,6 +641,7 @@ export function registerWorkspaceTerminalRoute({
 						.where(eq(terminalSessions.id, terminalId))
 						.run();
 
+					sendMessage(ws, { type: "title", title: existing.title });
 					replayBuffer(existing, ws);
 					if (existing.exited) {
 						sendMessage(ws, {

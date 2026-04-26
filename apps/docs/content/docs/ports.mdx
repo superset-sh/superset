@@ -14,14 +14,16 @@ Superset does not assign per-workspace port ranges. It discovers listening ports
 - **View active ports** - See which processes are using which ports
 - **Kill processes** - Stop a process by clicking its port
 - **Workspace grouping** - Ports are grouped by the workspace that owns the process
+- **Terminal focus** - Select a port to jump back to the terminal that owns it
+- **Browser actions** - Open local web servers in the in-app browser or externally from the port action
 
-## Static Port Configuration
+## Port Labels
 
-Override automatic port discovery with a static configuration file. Useful for:
+Add friendly names to automatically detected ports with a workspace
+configuration file. Useful for:
 
-- Documenting ports that aren't auto-detected (databases, external services)
 - Providing meaningful labels for your team
-- Projects where dynamic scanning doesn't work well
+- Making common dev-server ports easier to scan in the UI
 
 Create `.superset/ports.json` in your repository:
 
@@ -40,18 +42,26 @@ Create `.superset/ports.json` in your repository:
 - `label` - Display text shown in tooltip
 
 **Behavior:**
-- Static config replaces dynamic port discovery
-- Each workspace reads from its own worktree's file
+- Dynamic port discovery is still authoritative
+- `ports.json` only labels ports that Superset already detects as listening
+- Ports without a matching label still appear
+- Label entries for ports that are not currently listening are ignored
+- Each workspace reads labels from its own worktree's file
 - Changes are detected automatically
-- Ports open `localhost:PORT` in browser when clicked
+- Ports can be opened at `localhost:PORT` from the browser action
 
 **Error Handling:**
 
 If `ports.json` is malformed:
-- Error toast appears with details
-- No ports displayed until fixed
-- Dynamic detection is NOT used as fallback
+- Labels from that file are ignored until fixed
+- Detected ports still appear without those labels
 
 **Tips:**
 - Commit `.superset/ports.json` to share port labels with your team
 - **Pro tip:** If you want deterministic per-workspace port ranges, implement it in setup/teardown scripts by reserving a range in a shared file (for example `~/.superset/port-allocations.json`) during setup and releasing it during teardown. See this repo's examples: [`.superset/setup.sh`](https://github.com/superset-sh/superset/blob/main/.superset/setup.sh) and [`.superset/teardown.sh`](https://github.com/superset-sh/superset/blob/main/.superset/teardown.sh).
+
+## Discovery and Updates
+
+Port discovery runs in each host service, not in the desktop renderer. The host service watches terminal process trees, scans for listening ports, resolves any matching port label, and publishes `port:changed` events when ports appear or disappear.
+
+The desktop sidebar keeps one ports query per online host. It patches that cached host snapshot from port events, batching bursts so updates stay responsive without refetching every time a port changes. A slower fallback refetch still runs so the UI recovers if an event is missed during reconnect.

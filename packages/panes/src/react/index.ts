@@ -7,5 +7,6 @@ export type {
 	PaneRegistry,
 	RendererContext,
 	TabContext,
+	WorkspaceInteractionState,
 	WorkspaceProps,
 } from "./types";

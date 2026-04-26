@@ -2,6 +2,7 @@ import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { projects, workspaces } from "../../../db/schema";
+import { invalidateLabelCache } from "../../../ports/static-ports";
 import { runTeardown, type TeardownResult } from "../../../runtime/teardown";
 import { disposeSessionsByWorkspaceId } from "../../../terminal/terminal";
 import type { TeardownFailureCause } from "../../error-types";
@@ -166,6 +167,7 @@ export const workspaceCleanupRouter = router({
 					.delete(workspaces)
 					.where(eq(workspaces.id, input.workspaceId))
 					.run();
+				invalidateLabelCache(input.workspaceId);
 			}
 
 			return {

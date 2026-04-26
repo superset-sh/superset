@@ -9,6 +9,7 @@ import { useLiveQuery } from "@tanstack/react-db";
 import type { CellContext } from "@tanstack/react-table";
 import { useMemo, useState } from "react";
 import { HiOutlineUserCircle } from "react-icons/hi2";
+import { useOptimisticCollectionActions } from "renderer/routes/_authenticated/hooks/useOptimisticCollectionActions";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import type { TaskWithStatus } from "../../useTasksTable";
 
@@ -18,6 +19,7 @@ interface AssigneeCellProps {
 
 export function AssigneeCell({ info }: AssigneeCellProps) {
 	const collections = useCollections();
+	const { tasks: taskActions } = useOptimisticCollectionActions();
 	const [open, setOpen] = useState(false);
 
 	const task = info.row.original;
@@ -36,14 +38,10 @@ export function AssigneeCell({ info }: AssigneeCellProps) {
 			return;
 		}
 
-		setOpen(false);
-
-		collections.tasks.update(task.id, (draft) => {
-			draft.assigneeId = userId;
-			draft.assigneeExternalId = null;
-			draft.assigneeDisplayName = null;
-			draft.assigneeAvatarUrl = null;
-		});
+		const transaction = taskActions.updateAssignee(task.id, userId);
+		if (transaction) {
+			setOpen(false);
+		}
 	};
 
 	return (

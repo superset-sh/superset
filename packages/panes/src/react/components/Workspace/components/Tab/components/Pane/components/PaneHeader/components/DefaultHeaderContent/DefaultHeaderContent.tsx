@@ -19,16 +19,17 @@ export function DefaultHeaderContent({
 	actionsContent,
 }: DefaultHeaderContentProps) {
 	return (
-		<div className="flex h-full w-full items-center justify-between px-3">
-			<div className="flex min-w-0 items-center gap-2">
+		<div className="flex h-full w-full min-w-0 items-center gap-2 px-3">
+			<div className="flex min-w-0 flex-1 items-center gap-2">
 				{titleContent ?? (
 					<>
 						{icon && <span className="shrink-0">{icon}</span>}
 						<span
 							className={cn(
-								"truncate text-sm transition-colors duration-150",
+								"truncate text-xs transition-colors duration-150",
 								isActive ? "text-foreground" : "text-muted-foreground",
 							)}
+							title={typeof title === "string" ? title : undefined}
 						>
 							{title}
 						</span>

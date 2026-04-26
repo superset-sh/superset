@@ -46,6 +46,8 @@ class BrowserRuntimeRegistryImpl {
 	private listenersByPaneId = new Map<string, Set<() => void>>();
 	private rootContainer: HTMLDivElement | null = null;
 	private globalListenersInstalled = false;
+	private windowDragPassthrough = false;
+	private shellInteractionPassthrough = false;
 
 	private getListeners(paneId: string): Set<() => void> {
 		let set = this.listenersByPaneId.get(paneId);
@@ -57,12 +59,16 @@ class BrowserRuntimeRegistryImpl {
 	}
 
 	private ensureRootContainer(): HTMLDivElement {
-		if (this.rootContainer?.isConnected) return this.rootContainer;
+		if (this.rootContainer?.isConnected) {
+			this.installGlobalListeners();
+			return this.rootContainer;
+		}
 		const existing = document.getElementById(
 			ROOT_CONTAINER_ID,
 		) as HTMLDivElement | null;
 		if (existing) {
 			this.rootContainer = existing;
+			this.installGlobalListeners();
 			return existing;
 		}
 		const root = document.createElement("div");
@@ -84,21 +90,57 @@ class BrowserRuntimeRegistryImpl {
 		if (this.globalListenersInstalled) return;
 		this.globalListenersInstalled = true;
 
-		const setPassthrough = (passthrough: boolean) => {
-			for (const entry of this.entries.values()) {
-				if (!entry.visible) continue;
-				entry.webview.style.pointerEvents = passthrough ? "none" : "auto";
-			}
-		};
-		window.addEventListener("dragstart", () => setPassthrough(true), true);
-		window.addEventListener("dragend", () => setPassthrough(false), true);
-		window.addEventListener("drop", () => setPassthrough(false), true);
+		window.addEventListener(
+			"dragstart",
+			() => this.setWindowDragPassthrough(true),
+			true,
+		);
+		window.addEventListener(
+			"dragend",
+			() => this.setWindowDragPassthrough(false),
+			true,
+		);
+		window.addEventListener(
+			"drop",
+			() => this.setWindowDragPassthrough(false),
+			true,
+		);
+		window.addEventListener("blur", () => this.setWindowDragPassthrough(false));
 
 		window.addEventListener("resize", () => {
 			for (const entry of this.entries.values()) {
 				if (entry.placeholder) this.updateLayout(entry);
 			}
 		});
+	}
+
+	private setWindowDragPassthrough(passthrough: boolean) {
+		const wasActive = this.isPointerPassthroughActive();
+		this.windowDragPassthrough = passthrough;
+		this.applyPointerPassthroughIfChanged(wasActive);
+	}
+
+	setShellInteractionPassthrough(passthrough: boolean): void {
+		const wasActive = this.isPointerPassthroughActive();
+		this.shellInteractionPassthrough = passthrough;
+		this.applyPointerPassthroughIfChanged(wasActive);
+	}
+
+	private isPointerPassthroughActive() {
+		return this.windowDragPassthrough || this.shellInteractionPassthrough;
+	}
+
+	private applyPointerPassthroughIfChanged(wasActive: boolean) {
+		const isActive = this.isPointerPassthroughActive();
+		if (wasActive !== isActive) this.applyPointerPassthrough();
+	}
+
+	private applyPointerPassthrough() {
+		const passthrough = this.isPointerPassthroughActive();
+		for (const entry of this.entries.values()) {
+			if (!entry.visible) continue;
+			entry.webview.style.pointerEvents = passthrough ? "none" : "auto";
+		}
 	}
 
 	private updateLayout(entry: RegistryEntry) {
@@ -349,6 +391,7 @@ class BrowserRuntimeRegistryImpl {
 
 		this.updateLayout(entry);
 		entry.webview.style.visibility = "visible";
+		this.applyPointerPassthrough();
 	}
 
 	detach(paneId: string): void {

@@ -6,6 +6,7 @@ import { eq } from "drizzle-orm";
 import simpleGit from "simple-git";
 import { z } from "zod";
 import { projects, workspaces } from "../../../db/schema";
+import { invalidateLabelCache } from "../../../ports/static-ports";
 import { protectedProcedure, router } from "../../index";
 
 export const workspaceRouter = router({
@@ -197,6 +198,7 @@ export const workspaceRouter = router({
 			}
 
 			ctx.db.delete(workspaces).where(eq(workspaces.id, input.id)).run();
+			invalidateLabelCache(input.id);
 
 			return { success: true };
 		}),

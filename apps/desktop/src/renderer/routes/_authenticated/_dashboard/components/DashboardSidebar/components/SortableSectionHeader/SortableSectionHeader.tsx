@@ -1,10 +1,14 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { useDashboardSidebarSectionRename } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarSectionRenameContext";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { PROJECT_COLOR_DEFAULT } from "shared/constants/project-colors";
 import type { DashboardSidebarSection } from "../../types";
-import { DashboardSidebarSectionContextMenu } from "../DashboardSidebarSection/components/DashboardSidebarSectionContextMenu";
+import {
+	DashboardSidebarSectionActionsDropdown,
+	DashboardSidebarSectionContextMenu,
+} from "../DashboardSidebarSection/components/DashboardSidebarSectionContextMenu";
 import { DashboardSidebarSectionHeader } from "../DashboardSidebarSection/components/DashboardSidebarSectionHeader";
 
 interface SortableSectionHeaderProps {
@@ -23,6 +27,8 @@ export function SortableSectionHeader({
 	onToggleCollapse,
 }: SortableSectionHeaderProps) {
 	const { setSectionColor } = useDashboardSidebarState();
+	const { clearPendingSectionRename, pendingRenameSectionId } =
+		useDashboardSidebarSectionRename();
 	const [isRenaming, setIsRenaming] = useState(false);
 	const [renameValue, setRenameValue] = useState(section.name);
 
@@ -43,6 +49,21 @@ export function SortableSectionHeader({
 		if (trimmed) onRename(section.id, trimmed);
 		setIsRenaming(false);
 	};
+	const startRename = useCallback(() => {
+		setRenameValue(section.name);
+		setIsRenaming(true);
+	}, [section.name]);
+
+	useEffect(() => {
+		if (pendingRenameSectionId !== section.id) return;
+		startRename();
+		clearPendingSectionRename(section.id);
+	}, [
+		clearPendingSectionRename,
+		pendingRenameSectionId,
+		section.id,
+		startRename,
+	]);
 
 	return (
 		<div
@@ -58,7 +79,7 @@ export function SortableSectionHeader({
 		>
 			<DashboardSidebarSectionContextMenu
 				color={section.color}
-				onRename={() => setIsRenaming(true)}
+				onRename={startRename}
 				onSetColor={(color) => setSectionColor(section.id, color)}
 				onDelete={() => onDelete(section.id)}
 			>
@@ -72,11 +93,15 @@ export function SortableSectionHeader({
 						setRenameValue(section.name);
 						setIsRenaming(false);
 					}}
-					onStartRename={() => {
-						setRenameValue(section.name);
-						setIsRenaming(true);
-					}}
 					onToggleCollapse={() => onToggleCollapse(section.id)}
+					actions={
+						<DashboardSidebarSectionActionsDropdown
+							color={section.color}
+							onRename={startRename}
+							onSetColor={(color) => setSectionColor(section.id, color)}
+							onDelete={() => onDelete(section.id)}
+						/>
+					}
 					{...attributes}
 					{...listeners}
 				/>
