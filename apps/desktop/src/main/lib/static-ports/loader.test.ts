@@ -236,6 +236,23 @@ describe("loadStaticPorts", () => {
 		expect(result.error).toBe("ports[1].port must be an integer");
 	});
 
+	test("returns error when a port entry is duplicated", () => {
+		writeFileSync(
+			PORTS_FILE,
+			JSON.stringify({
+				ports: [
+					{ port: 3000, label: "Frontend" },
+					{ port: 3000, label: "Duplicate" },
+				],
+			}),
+		);
+
+		const result = loadStaticPorts(WORKTREE_PATH);
+		expect(result.exists).toBe(true);
+		expect(result.ports).toBeNull();
+		expect(result.error).toBe("ports[1].port duplicates an earlier entry");
+	});
+
 	test("accepts valid boundary port numbers", () => {
 		const config = {
 			ports: [

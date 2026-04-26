@@ -341,7 +341,8 @@ export class HostServiceCoordinator extends EventEmitter {
 			clearTimeout(timeout);
 			if (!response.ok) return null;
 			const data = await response.json();
-			return data?.result?.data?.version ?? null;
+			const result = data?.result?.data;
+			return result?.json?.version ?? result?.version ?? null;
 		} catch {
 			return null;
 		}
@@ -380,35 +381,21 @@ export class HostServiceCoordinator extends EventEmitter {
 		this.emitStatus(organizationId, "starting", null);
 
 		const childEnv = await this.buildEnv(organizationId, port, secret, config);
-		// Gate on app.isPackaged — the authoritative "running from an installed
-		// bundle" signal. NODE_ENV is ambient (shell, wrappers, debug launches)
-		// and could silently flip detach off in a packaged app, which would
-		// re-introduce the exact Squirrel kill-chain this file exists to fix.
-		const isPackaged = app.isPackaged;
-
-		// In packaged builds, detach so the child survives app relaunch:
-		// auto-updater's quitAndInstall would otherwise take the host-service
-		// (and its PTYs) down with the old app's process group. Stdio must
-		// point at real fds — piped stdio would EPIPE once the parent exits.
-		// Unpackaged (dev) keeps pipes so logs flow to the Electron console;
-		// enableDevReload restarts instances on rebuild, so survival isn't
-		// needed.
-		const logFd = isPackaged
-			? openRotatingLogFd(
-					path.join(manifestDir(organizationId), "host-service.log"),
-					MAX_HOST_LOG_BYTES,
-				)
-			: -1;
-		const stdio: childProcess.StdioOptions = !isPackaged
-			? ["ignore", "pipe", "pipe"]
-			: logFd >= 0
-				? ["ignore", logFd, logFd]
-				: ["ignore", "ignore", "ignore"];
+		// Host-service owns v2 PTYs, so it must survive Electron restarts in
+		// every environment. This mirrors the terminal-host daemon: detach the
+		// child and back stdio with real files so parent teardown cannot close
+		// pipes and take the service down with the app.
+		const logFd = openRotatingLogFd(
+			path.join(manifestDir(organizationId), "host-service.log"),
+			MAX_HOST_LOG_BYTES,
+		);
+		const stdio: childProcess.StdioOptions =
+			logFd >= 0 ? ["ignore", logFd, logFd] : ["ignore", "ignore", "ignore"];
 
 		let child: ReturnType<typeof childProcess.spawn>;
 		try {
 			child = childProcess.spawn(process.execPath, [this.scriptPath], {
-				detached: isPackaged,
+				detached: true,
 				stdio,
 				env: childEnv,
 				// Avoid a flashing CMD window on Windows for the detached child.
@@ -431,19 +418,6 @@ export class HostServiceCoordinator extends EventEmitter {
 		}
 
 		instance.pid = childPid;
-
-		if (!isPackaged) {
-			child.stdout?.on("data", (data: Buffer) => {
-				console.log(
-					`[host-service:${organizationId}] ${data.toString().trim()}`,
-				);
-			});
-			child.stderr?.on("data", (data: Buffer) => {
-				console.error(
-					`[host-service:${organizationId}] ${data.toString().trim()}`,
-				);
-			});
-		}
 		child.on("exit", (code) => {
 			console.log(`[host-service:${organizationId}] exited with code ${code}`);
 			const current = this.instances.get(organizationId);

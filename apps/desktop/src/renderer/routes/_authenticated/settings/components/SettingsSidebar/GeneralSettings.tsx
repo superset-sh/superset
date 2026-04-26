@@ -1,6 +1,7 @@
 import { cn } from "@superset/ui/utils";
 import { Link, useMatchRoute } from "@tanstack/react-router";
 import {
+	HiOutlineBeaker,
 	HiOutlineBell,
 	HiOutlineBuildingOffice2,
 	HiOutlineCommandLine,
@@ -35,6 +36,7 @@ type SettingsRoute =
 	| "/settings/terminal"
 	| "/settings/links"
 	| "/settings/models"
+	| "/settings/experimental"
 	| "/settings/integrations"
 	| "/settings/billing"
 	| "/settings/api-keys"
@@ -169,6 +171,12 @@ const SECTION_GROUPS: SectionGroup[] = [
 				label: "Permissions",
 				icon: <HiOutlineShieldCheck className="h-4 w-4" />,
 				macOnly: true,
+			},
+			{
+				id: "/settings/experimental",
+				section: "experimental",
+				label: "Experimental",
+				icon: <HiOutlineBeaker className="h-4 w-4" />,
 			},
 		],
 	},

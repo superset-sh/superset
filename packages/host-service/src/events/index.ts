@@ -11,6 +11,7 @@ export type {
 	FsUnwatchCommand,
 	FsWatchCommand,
 	GitChangedMessage,
+	PortChangedMessage,
 	ServerMessage,
 	TerminalLifecycleMessage,
 } from "./types";

@@ -1,6 +1,7 @@
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
+import { cn } from "@superset/ui/utils";
 import { useNavigate } from "@tanstack/react-router";
-import { LuExternalLink, LuX } from "react-icons/lu";
+import { LuExternalLink, LuLoaderCircle, LuX } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { useTabsStore } from "renderer/stores/tabs/store";
@@ -14,39 +15,18 @@ interface MergedPortBadgeProps {
 
 export function MergedPortBadge({ port }: MergedPortBadgeProps) {
 	const navigate = useNavigate();
-	const setActiveTab = useTabsStore((s) => s.setActiveTab);
-	const setFocusedPane = useTabsStore((s) => s.setFocusedPane);
 	const openInBrowserPane = useTabsStore((s) => s.openInBrowserPane);
 	const { data: openLinksInApp } =
 		electronTrpc.settings.getOpenLinksInApp.useQuery();
 	const openUrl = electronTrpc.external.openUrl.useMutation();
-	const { killPort } = useKillPort();
-
-	const displayContent = port.label ? (
-		<>
-			{port.label}{" "}
-			<span className="font-mono font-normal text-muted-foreground">
-				{port.port}
-			</span>
-		</>
-	) : (
-		<span className="font-mono text-muted-foreground">{port.port}</span>
-	);
-
-	const canJumpToTerminal = !!port.paneId;
+	const { isPending, killPort } = useKillPort();
 
 	const handleClick = () => {
-		if (!port.paneId) return;
-
-		const pane = useTabsStore.getState().panes[port.paneId];
-		if (!pane) return;
-
 		navigateToWorkspace(port.workspaceId, navigate);
-		setActiveTab(port.workspaceId, pane.tabId);
-		setFocusedPane(pane.tabId, port.paneId);
 	};
 
 	const handleOpenInBrowser = () => {
+		if (openUrl.isPending) return;
 		const url = `http://localhost:${port.port}`;
 
 		if (openLinksInApp) {
@@ -59,36 +39,63 @@ export function MergedPortBadge({ port }: MergedPortBadgeProps) {
 	};
 
 	const handleClose = () => {
-		killPort(port);
+		if (isPending) return;
+		void killPort(port);
 	};
 
 	return (
 		<Tooltip>
 			<TooltipTrigger asChild>
-				<div className="group relative inline-flex items-center gap-1 rounded-md text-xs transition-colors mb-1 bg-primary/10 text-primary hover:bg-primary/20">
+				<div
+					className={cn(
+						"group relative mb-1 inline-flex max-w-full items-center gap-1 rounded-md",
+						"bg-primary/10 text-xs text-primary transition-colors hover:bg-primary/20",
+						isPending && "opacity-70",
+					)}
+				>
 					<button
 						type="button"
 						onClick={handleClick}
-						disabled={!canJumpToTerminal}
-						className={`font-medium px-2 py-1 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring rounded-md ${!canJumpToTerminal ? "cursor-default" : ""}`}
+						className="flex max-w-40 min-w-0 items-center gap-1 rounded-md px-2 py-1 font-medium focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
 					>
-						{displayContent}
+						{port.label ? (
+							<>
+								<span className="min-w-0 truncate">{port.label}</span>
+								<span className="shrink-0 font-mono font-normal text-muted-foreground">
+									{port.port}
+								</span>
+							</>
+						) : (
+							<span className="font-mono text-muted-foreground">
+								{port.port}
+							</span>
+						)}
 					</button>
 					<button
 						type="button"
 						onClick={handleOpenInBrowser}
+						disabled={openUrl.isPending}
 						aria-label={`Open ${port.label || `port ${port.port}`} in browser`}
-						className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-primary focus-visible:opacity-100 focus-visible:outline-none"
+						className="text-muted-foreground opacity-0 transition-opacity hover:text-primary focus-visible:opacity-100 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50 group-hover:opacity-100"
 					>
 						<LuExternalLink className="size-3.5" strokeWidth={STROKE_WIDTH} />
 					</button>
 					<button
 						type="button"
 						onClick={handleClose}
+						disabled={isPending}
+						aria-busy={isPending}
 						aria-label={`Close ${port.label || `port ${port.port}`}`}
-						className="opacity-0 group-hover:opacity-100 pr-1 transition-opacity text-muted-foreground hover:text-primary focus-visible:opacity-100 focus-visible:outline-none"
+						className="pr-1 text-muted-foreground opacity-0 transition-opacity hover:text-primary focus-visible:opacity-100 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-70 group-hover:opacity-100"
 					>
-						<LuX className="size-3.5" strokeWidth={STROKE_WIDTH} />
+						{isPending ? (
+							<LuLoaderCircle
+								className="size-3.5 animate-spin"
+								strokeWidth={STROKE_WIDTH}
+							/>
+						) : (
+							<LuX className="size-3.5" strokeWidth={STROKE_WIDTH} />
+						)}
 					</button>
 				</div>
 			</TooltipTrigger>
@@ -106,11 +113,9 @@ export function MergedPortBadge({ port }: MergedPortBadgeProps) {
 							{port.pid != null && ` (pid ${port.pid})`}
 						</div>
 					)}
-					{canJumpToTerminal && (
-						<div className="text-muted-foreground/70 text-[10px]">
-							Click to open workspace
-						</div>
-					)}
+					<div className="text-[10px] text-muted-foreground/70">
+						Click to open workspace
+					</div>
 				</div>
 			</TooltipContent>
 		</Tooltip>

@@ -9,7 +9,8 @@ type EventType =
 	| "fs:events"
 	| "git:changed"
 	| "agent:lifecycle"
-	| "terminal:lifecycle";
+	| "terminal:lifecycle"
+	| "port:changed";
 
 interface FsEventsPayload {
 	events: FsWatchEvent[];
@@ -37,6 +38,15 @@ export interface TerminalLifecyclePayload {
 	occurredAt: number;
 }
 
+type PortChangedMessage = Extract<ServerMessage, { type: "port:changed" }>;
+
+export interface PortChangedPayload {
+	eventType: PortChangedMessage["eventType"];
+	port: PortChangedMessage["port"];
+	label: PortChangedMessage["label"];
+	occurredAt: number;
+}
+
 type EventListener<T extends EventType> = T extends "fs:events"
 	? (workspaceId: string, payload: FsEventsPayload) => void
 	: T extends "git:changed"
@@ -45,7 +55,9 @@ type EventListener<T extends EventType> = T extends "fs:events"
 			? (workspaceId: string, payload: AgentLifecyclePayload) => void
 			: T extends "terminal:lifecycle"
 				? (workspaceId: string, payload: TerminalLifecyclePayload) => void
-				: never;
+				: T extends "port:changed"
+					? (workspaceId: string, payload: PortChangedPayload) => void
+					: never;
 
 interface ListenerEntry {
 	type: EventType;
@@ -101,7 +113,8 @@ function handleMessage(state: ConnectionState, data: unknown): void {
 			message.type === "fs:events" ||
 			message.type === "git:changed" ||
 			message.type === "agent:lifecycle" ||
-			message.type === "terminal:lifecycle"
+			message.type === "terminal:lifecycle" ||
+			message.type === "port:changed"
 				? message.workspaceId
 				: null;
 
@@ -141,6 +154,13 @@ function handleMessage(state: ConnectionState, data: unknown): void {
 					occurredAt: message.occurredAt,
 				},
 			);
+		} else if (message.type === "port:changed") {
+			(entry.callback as EventListener<"port:changed">)(message.workspaceId, {
+				eventType: message.eventType,
+				port: message.port,
+				label: message.label,
+				occurredAt: message.occurredAt,
+			});
 		}
 	}
 }

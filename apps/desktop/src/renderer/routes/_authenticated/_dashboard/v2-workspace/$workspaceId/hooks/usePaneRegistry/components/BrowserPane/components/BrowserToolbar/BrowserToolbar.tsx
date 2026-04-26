@@ -107,8 +107,8 @@ export function BrowserToolbar({
 	);
 
 	return (
-		<div className="flex h-full flex-1 min-w-0 items-center px-2">
-			<div className="flex items-center gap-0.5 shrink-0">
+		<div className="flex h-full min-w-0 flex-1 items-center px-2">
+			<div className="flex shrink-0 items-center gap-0.5">
 				<Tooltip>
 					<TooltipTrigger asChild>
 						<button
@@ -158,8 +158,8 @@ export function BrowserToolbar({
 					</TooltipContent>
 				</Tooltip>
 			</div>
-			<div className="mx-1.5 h-3.5 w-px bg-muted-foreground/60" />
-			<div className="relative flex flex-1 min-w-0 items-center">
+			<div className="mx-1.5 h-3.5 w-px shrink-0 bg-muted-foreground/60" />
+			<div className="relative flex min-w-0 flex-1 items-center">
 				{isEditing ? (
 					<form
 						onSubmit={handleSubmit}
@@ -181,20 +181,21 @@ export function BrowserToolbar({
 				) : (
 					<button
 						type="button"
+						title={isBlank ? undefined : url}
 						onClick={enterEditMode}
-						className="group flex w-full min-w-0 items-baseline rounded-sm border border-transparent px-2 py-0.5 text-left text-xs"
+						className="group flex w-full min-w-0 items-center rounded-sm border border-transparent px-2 py-0.5 text-left text-xs"
 					>
 						{isBlank ? (
-							<span className="text-muted-foreground/40">
+							<span className="min-w-0 truncate text-muted-foreground/40">
 								Enter URL or search...
 							</span>
 						) : (
 							<>
-								<span className="min-w-0 truncate text-muted-foreground/60 transition-colors group-hover:text-foreground">
+								<span className="min-w-0 shrink truncate text-muted-foreground/60 transition-colors group-hover:text-foreground">
 									{url}
 								</span>
 								{pageTitle && (
-									<span className="min-w-0 ml-1 truncate text-muted-foreground/40 transition-opacity group-hover:opacity-0">
+									<span className="ml-1 min-w-0 flex-1 truncate text-muted-foreground/40 transition-opacity group-hover:opacity-0">
 										/ {pageTitle}
 									</span>
 								)}
