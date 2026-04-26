@@ -13,6 +13,9 @@ export type RuntimeMcpManager = Awaited<
 export type RuntimeHookManager = Awaited<
 	ReturnType<typeof createMastraCode>
 >["hookManager"];
+export type RuntimeQuestionResponse = Awaited<
+	ReturnType<RuntimeHarness["respondToQuestion"]>
+>;
 
 export interface RuntimeMcpServerStatus {
 	connected: boolean;
@@ -32,6 +35,8 @@ export interface RuntimeSession {
 		path: string;
 		reason: string;
 	} | null;
+	answeredQuestionIds: Set<string>;
+	pendingQuestionResponses: Map<string, Promise<RuntimeQuestionResponse>>;
 	cwd: string;
 }
 
@@ -224,6 +229,8 @@ export function subscribeToSessionEvents(
 		if (isHarnessAgentStartEvent(event)) {
 			runtime.lastErrorMessage = null;
 			runtime.pendingSandboxQuestion = null;
+			runtime.answeredQuestionIds.clear();
+			runtime.pendingQuestionResponses.clear();
 			onLifecycleEvent?.({
 				sessionId: runtime.sessionId,
 				eventType: "Start",
@@ -232,6 +239,8 @@ export function subscribeToSessionEvents(
 		}
 		if (isHarnessAgentEndEvent(event)) {
 			runtime.pendingSandboxQuestion = null;
+			runtime.answeredQuestionIds.clear();
+			runtime.pendingQuestionResponses.clear();
 			const raw = event.reason;
 			const reason = raw === "aborted" || raw === "error" ? raw : "complete";
 			if (runtime.hookManager) {

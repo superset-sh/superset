@@ -18,10 +18,10 @@ import {
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import { useOpenInExternalEditor } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/useOpenInExternalEditor";
 import type {
-	BrowserPaneData,
 	PaneViewerData,
 	TerminalPaneData,
 } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/types";
+import { openUrlInV2Workspace } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/utils/openUrlInV2Workspace";
 import { useWorkspaceWsUrl } from "renderer/routes/_authenticated/_dashboard/v2-workspace/providers/WorkspaceTrpcProvider/WorkspaceTrpcProvider";
 import { ScrollToBottomButton } from "renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/Terminal/ScrollToBottomButton";
 import { TerminalSearch } from "renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/Terminal/TerminalSearch";
@@ -46,7 +46,6 @@ export function TerminalPane({
 	onOpenFile,
 	onRevealPath,
 }: TerminalPaneProps) {
-	const openInExternalEditor = useOpenInExternalEditor(workspaceId);
 	const { getFileAction, getUrlAction } = useTerminalLinkActions();
 	const {
 		hoveredLink,
@@ -56,6 +55,9 @@ export function TerminalPane({
 	const { hint, showHint } = useLinkClickHint();
 	const paneData = ctx.pane.data as TerminalPaneData;
 	const { terminalId } = paneData;
+	const sessionWorkspaceId = paneData.workspaceId ?? workspaceId;
+	const openInExternalEditor = useOpenInExternalEditor(sessionWorkspaceId);
+	const terminalInstanceId = ctx.pane.id;
 	const containerRef = useRef<HTMLDivElement | null>(null);
 	const activeTheme = useTheme();
 	const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -76,12 +78,18 @@ export function TerminalPane({
 	const websocketUrl = useWorkspaceWsUrl(`/terminal/${terminalId}`);
 	const websocketUrlRef = useRef(websocketUrl);
 	websocketUrlRef.current = websocketUrl;
-	const workspaceIdRef = useRef(workspaceId);
-	workspaceIdRef.current = workspaceId;
+	const sessionWorkspaceIdRef = useRef(sessionWorkspaceId);
+	sessionWorkspaceIdRef.current = sessionWorkspaceId;
 
 	const ensureSession = workspaceTrpc.terminal.ensureSession.useMutation();
 	const ensureSessionRef = useRef(ensureSession);
 	ensureSessionRef.current = ensureSession;
+	const workspaceTrpcUtils = workspaceTrpc.useUtils();
+	const invalidateTerminalSessionsRef = useRef(
+		workspaceTrpcUtils.terminal.listSessions.invalidate,
+	);
+	invalidateTerminalSessionsRef.current =
+		workspaceTrpcUtils.terminal.listSessions.invalidate;
 
 	// useCallback so useSyncExternalStore doesn't re-subscribe every render —
 	// otherwise every keystroke-triggered re-render unsubscribes and
@@ -89,13 +97,20 @@ export function TerminalPane({
 	// docs ("If you don't memoize the subscribe function…").
 	const subscribe = useCallback(
 		(callback: () => void) =>
-			terminalRuntimeRegistry.onStateChange(terminalId, callback),
-		[terminalId],
+			terminalRuntimeRegistry.onStateChange(
+				terminalId,
+				callback,
+				terminalInstanceId,
+			),
+		[terminalId, terminalInstanceId],
 	);
 	const getSnapshot = useCallback(
 		(): ConnectionState =>
-			terminalRuntimeRegistry.getConnectionState(terminalId),
-		[terminalId],
+			terminalRuntimeRegistry.getConnectionState(
+				terminalId,
+				terminalInstanceId,
+			),
+		[terminalId, terminalInstanceId],
 	);
 	const connectionState = useSyncExternalStore(subscribe, getSnapshot);
 
@@ -109,14 +124,20 @@ export function TerminalPane({
 	//      "Session not found."
 	// Deps narrowed to [terminalId] so provider key remount churn (workspaceId
 	// briefly flipping while pane data catches up) doesn't re-run this effect.
-	// workspaceId / websocketUrl are read through refs.
+	// sessionWorkspaceId / websocketUrl are read through refs.
 	useEffect(() => {
 		const container = containerRef.current;
 		if (!container) return;
 
-		terminalRuntimeRegistry.mount(terminalId, container, appearanceRef.current);
+		terminalRuntimeRegistry.mount(
+			terminalId,
+			container,
+			appearanceRef.current,
+			terminalInstanceId,
+		);
 
 		let cancelled = false;
+		const activeSessionWorkspaceId = sessionWorkspaceIdRef.current;
 
 		// Always connect after ensureSession settles, even on error: if the
 		// session actually exists on the server (e.g. we raced another client),
@@ -126,34 +147,51 @@ export function TerminalPane({
 		ensureSessionRef.current
 			.mutateAsync({
 				terminalId,
-				workspaceId: workspaceIdRef.current,
+				workspaceId: activeSessionWorkspaceId,
 				themeType: initialThemeTypeRef.current,
+			})
+			.then((result) => {
+				if (result.status === "active") {
+					void invalidateTerminalSessionsRef.current();
+				}
 			})
 			.catch((err) => {
 				console.error("[TerminalPane] ensureSession failed:", err);
 			})
 			.finally(() => {
 				if (cancelled) return;
-				terminalRuntimeRegistry.connect(terminalId, websocketUrlRef.current);
+				terminalRuntimeRegistry.connect(
+					terminalId,
+					websocketUrlRef.current,
+					terminalInstanceId,
+				);
 			});
 
 		return () => {
 			cancelled = true;
-			terminalRuntimeRegistry.detach(terminalId);
+			terminalRuntimeRegistry.detach(terminalId, terminalInstanceId);
 		};
-	}, [terminalId]);
+	}, [terminalId, terminalInstanceId]);
 
 	// WS URL can change while the terminal stays mounted (token refresh, host
 	// URL re-resolution on provider remount). Reconnect only if the transport
 	// is already live — on initial mount the transport is "disconnected" and
 	// we let the ensureSession path above open it.
 	useEffect(() => {
-		terminalRuntimeRegistry.reconnect(terminalId, websocketUrl);
-	}, [terminalId, websocketUrl]);
+		terminalRuntimeRegistry.reconnect(
+			terminalId,
+			websocketUrl,
+			terminalInstanceId,
+		);
+	}, [terminalId, terminalInstanceId, websocketUrl]);
 
 	useEffect(() => {
-		terminalRuntimeRegistry.updateAppearance(terminalId, appearance);
-	}, [terminalId, appearance]);
+		terminalRuntimeRegistry.updateAppearance(
+			terminalId,
+			appearance,
+			terminalInstanceId,
+		);
+	}, [terminalId, terminalInstanceId, appearance]);
 
 	// --- Link handlers ---
 	// All filesystem operations go through the host service.
@@ -164,80 +202,84 @@ export function TerminalPane({
 	statPathRef.current = statPathMutation.mutateAsync;
 
 	useEffect(() => {
-		terminalRuntimeRegistry.setLinkHandlers(terminalId, {
-			stat: async (path) => {
-				try {
-					const result = await statPathRef.current({
-						workspaceId,
-						path,
-					});
-					if (!result) return null;
-					return {
-						isDirectory: result.isDirectory,
-						resolvedPath: result.resolvedPath,
-					};
-				} catch {
-					return null;
-				}
-			},
-			onFileLinkClick: (event, link) => {
-				// Folders are not settings-controlled: ⌘ reveals in sidebar,
-				// ⌘⇧ falls through to the external editor path, plain = hint.
-				if (link.isDirectory) {
-					if (!event.metaKey && !event.ctrlKey) {
+		terminalRuntimeRegistry.setLinkHandlers(
+			terminalId,
+			{
+				stat: async (path) => {
+					try {
+						const result = await statPathRef.current({
+							workspaceId: sessionWorkspaceId,
+							path,
+						});
+						if (!result) return null;
+						return {
+							isDirectory: result.isDirectory,
+							resolvedPath: result.resolvedPath,
+						};
+					} catch {
+						return null;
+					}
+				},
+				onFileLinkClick: (event, link) => {
+					// Folders are not settings-controlled: ⌘ reveals in sidebar,
+					// ⌘⇧ falls through to the external editor path, plain = hint.
+					if (link.isDirectory) {
+						if (!event.metaKey && !event.ctrlKey) {
+							showHint(event.clientX, event.clientY);
+							return;
+						}
+						event.preventDefault();
+						if (event.shiftKey) {
+							openInExternalEditor(link.resolvedPath);
+						} else {
+							onRevealPath(link.resolvedPath, { isDirectory: true });
+						}
+						return;
+					}
+
+					const action = getFileAction(event);
+					if (action === null) {
 						showHint(event.clientX, event.clientY);
 						return;
 					}
 					event.preventDefault();
-					if (event.shiftKey) {
-						openInExternalEditor(link.resolvedPath);
+					if (action === "external") {
+						openInExternalEditor(link.resolvedPath, {
+							line: link.row,
+							column: link.col,
+						});
 					} else {
-						onRevealPath(link.resolvedPath, { isDirectory: true });
+						onOpenFile(link.resolvedPath);
 					}
-					return;
-				}
-
-				const action = getFileAction(event);
-				if (action === null) {
-					showHint(event.clientX, event.clientY);
-					return;
-				}
-				event.preventDefault();
-				if (action === "external") {
-					openInExternalEditor(link.resolvedPath, {
-						line: link.row,
-						column: link.col,
-					});
-				} else {
-					onOpenFile(link.resolvedPath);
-				}
+				},
+				onUrlClick: (event, url) => {
+					const action = getUrlAction(event);
+					if (action === null) {
+						showHint(event.clientX, event.clientY);
+						return;
+					}
+					event.preventDefault();
+					if (action === "external") {
+						electronTrpcClient.external.openUrl.mutate(url).catch((error) => {
+							console.error("[v2 Terminal] Failed to open URL:", url, error);
+						});
+					} else {
+						openUrlInV2Workspace({
+							store: ctx.store,
+							target: "current-tab",
+							url,
+						});
+					}
+				},
+				onLinkHover,
+				onLinkLeave,
 			},
-			onUrlClick: (event, url) => {
-				const action = getUrlAction(event);
-				if (action === null) {
-					showHint(event.clientX, event.clientY);
-					return;
-				}
-				event.preventDefault();
-				if (action === "external") {
-					electronTrpcClient.external.openUrl.mutate(url).catch((error) => {
-						console.error("[v2 Terminal] Failed to open URL:", url, error);
-					});
-				} else {
-					ctx.store.getState().openPane({
-						pane: {
-							kind: "browser",
-							data: { url } satisfies BrowserPaneData,
-						},
-					});
-				}
-			},
-			onLinkHover,
-			onLinkLeave,
-		});
+			terminalInstanceId,
+		);
 	}, [
 		terminalId,
-		workspaceId,
+		terminalInstanceId,
+		sessionWorkspaceId,
 		ctx.store,
 		onOpenFile,
 		onRevealPath,
@@ -252,7 +294,7 @@ export function TerminalPane({
 	useHotkey(
 		"CLEAR_TERMINAL",
 		() => {
-			terminalRuntimeRegistry.clear(terminalId);
+			terminalRuntimeRegistry.clear(terminalId, terminalInstanceId);
 		},
 		{ enabled: ctx.isActive },
 	);
@@ -260,7 +302,7 @@ export function TerminalPane({
 	useHotkey(
 		"SCROLL_TO_BOTTOM",
 		() => {
-			terminalRuntimeRegistry.scrollToBottom(terminalId);
+			terminalRuntimeRegistry.scrollToBottom(terminalId, terminalInstanceId);
 		},
 		{ enabled: ctx.isActive },
 	);
@@ -273,14 +315,15 @@ export function TerminalPane({
 	// connectionState in deps ensures terminal ref re-derives after connect/disconnect
 	// biome-ignore lint/correctness/useExhaustiveDependencies: connectionState is intentionally included to trigger re-derive
 	const terminal = useMemo(
-		() => terminalRuntimeRegistry.getTerminal(terminalId),
-		[terminalId, connectionState],
+		() => terminalRuntimeRegistry.getTerminal(terminalId, terminalInstanceId),
+		[terminalId, terminalInstanceId, connectionState],
 	);
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: connectionState is intentionally included to trigger re-derive
 	const searchAddon = useMemo(
-		() => terminalRuntimeRegistry.getSearchAddon(terminalId),
-		[terminalId, connectionState],
+		() =>
+			terminalRuntimeRegistry.getSearchAddon(terminalId, terminalInstanceId),
+		[terminalId, terminalInstanceId, connectionState],
 	);
 
 	const [isDropActive, setIsDropActive] = useState(false);
@@ -325,8 +368,10 @@ export function TerminalPane({
 		if (connectionState === "closed") return;
 		const text = resolveDroppedText(event.dataTransfer);
 		if (!text) return;
-		terminalRuntimeRegistry.getTerminal(terminalId)?.focus();
-		terminalRuntimeRegistry.paste(terminalId, text);
+		terminalRuntimeRegistry
+			.getTerminal(terminalId, terminalInstanceId)
+			?.focus();
+		terminalRuntimeRegistry.paste(terminalId, text, terminalInstanceId);
 	};
 
 	return (

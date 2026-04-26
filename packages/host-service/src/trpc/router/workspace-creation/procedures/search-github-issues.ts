@@ -32,8 +32,11 @@ export const searchGitHubIssues = protectedProcedure
 					repo: repo.name,
 					issue_number: issueNumber,
 				});
-				// issues.get returns PRs too — filter them out
+				// issues.get returns PRs too - filter them out
 				if (issue.pull_request) {
+					return { issues: [] };
+				}
+				if (!input.includeClosed && issue.state !== "open") {
 					return { issues: [] };
 				}
 				return {
@@ -49,8 +52,9 @@ export const searchGitHubIssues = protectedProcedure
 				};
 			}
 
+			const stateFilter = input.includeClosed ? "" : " is:open";
 			const query =
-				`repo:${repo.owner}/${repo.name} is:issue ${effectiveQuery}`.trim();
+				`repo:${repo.owner}/${repo.name} is:issue${stateFilter} ${effectiveQuery}`.trim();
 			const { data } = await octokit.search.issuesAndPullRequests({
 				q: query,
 				per_page: limit,

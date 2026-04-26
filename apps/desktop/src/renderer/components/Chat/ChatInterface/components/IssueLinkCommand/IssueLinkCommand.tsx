@@ -1,3 +1,4 @@
+import { Checkbox } from "@superset/ui/checkbox";
 import {
 	Command,
 	CommandEmpty,
@@ -11,7 +12,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useLiveQuery } from "@tanstack/react-db";
 import Fuse from "fuse.js";
 import type { ReactNode } from "react";
-import { useMemo, useState } from "react";
+import { useId, useMemo, useState } from "react";
 import {
 	StatusIcon,
 	type StatusType,
@@ -19,6 +20,10 @@ import {
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 
 const MAX_RESULTS = 20;
+
+function isClosedStatus(type: StatusType | undefined): boolean {
+	return type === "completed" || type === "canceled";
+}
 
 interface IssueLinkCommandProps {
 	children: ReactNode;
@@ -38,6 +43,8 @@ export function IssueLinkCommand({
 }: IssueLinkCommandProps) {
 	const [open, setOpen] = useState(false);
 	const [searchQuery, setSearchQuery] = useState("");
+	const [showClosed, setShowClosed] = useState(false);
+	const showClosedId = useId();
 	const collections = useCollections();
 
 	const { data: allTasks } = useLiveQuery(
@@ -82,21 +89,35 @@ export function IssueLinkCommand({
 
 	const taskFuse = useMemo(
 		() =>
-			new Fuse(allTasks ?? [], {
-				keys: [
-					{ name: "slug", weight: 3 },
-					{ name: "title", weight: 2 },
-				],
-				threshold: 0.4,
-				ignoreLocation: true,
-			}),
-		[allTasks],
+			new Fuse(
+				(allTasks ?? []).filter((task) => {
+					if (showClosed) return true;
+					const status = task.statusId
+						? statusMap.get(task.statusId)
+						: undefined;
+					return !isClosedStatus(status?.type);
+				}),
+				{
+					keys: [
+						{ name: "slug", weight: 3 },
+						{ name: "title", weight: 2 },
+					],
+					threshold: 0.4,
+					ignoreLocation: true,
+				},
+			),
+		[allTasks, showClosed, statusMap],
 	);
 
 	const filteredTasks = useMemo(() => {
 		if (!allTasks?.length) return [];
+		const visibleTasks = allTasks.filter((task) => {
+			if (showClosed) return true;
+			const status = task.statusId ? statusMap.get(task.statusId) : undefined;
+			return !isClosedStatus(status?.type);
+		});
 		if (!searchQuery) {
-			return [...allTasks]
+			return visibleTasks
 				.sort(
 					(a, b) =>
 						new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
@@ -106,7 +127,7 @@ export function IssueLinkCommand({
 		return taskFuse
 			.search(searchQuery, { limit: MAX_RESULTS })
 			.map((r) => r.item);
-	}, [allTasks, searchQuery, taskFuse]);
+	}, [allTasks, searchQuery, showClosed, statusMap, taskFuse]);
 
 	const handleSelect = (
 		slug: string,
@@ -145,12 +166,35 @@ export function IssueLinkCommand({
 						value={searchQuery}
 						onValueChange={setSearchQuery}
 					/>
+					<div className="flex items-center gap-2 border-b px-3 py-2">
+						<Checkbox
+							id={showClosedId}
+							checked={showClosed}
+							onCheckedChange={(checked) => setShowClosed(checked === true)}
+						/>
+						<label
+							htmlFor={showClosedId}
+							className="cursor-pointer select-none text-xs text-muted-foreground"
+						>
+							Show closed
+						</label>
+					</div>
 					<CommandList className="max-h-[280px]">
 						{filteredTasks.length === 0 && (
-							<CommandEmpty>No issues found.</CommandEmpty>
+							<CommandEmpty>
+								{showClosed ? "No issues found." : "No open issues found."}
+							</CommandEmpty>
 						)}
 						{filteredTasks.length > 0 && (
-							<CommandGroup heading={searchQuery ? "Results" : "Recent issues"}>
+							<CommandGroup
+								heading={
+									searchQuery
+										? "Results"
+										: showClosed
+											? "Recent issues"
+											: "Open issues"
+								}
+							>
 								{filteredTasks.map((task) => {
 									const status = task.statusId
 										? statusMap.get(task.statusId)

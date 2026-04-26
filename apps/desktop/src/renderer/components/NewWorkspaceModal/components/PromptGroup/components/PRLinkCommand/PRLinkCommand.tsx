@@ -1,3 +1,4 @@
+import { Checkbox } from "@superset/ui/checkbox";
 import {
 	Command,
 	CommandEmpty,
@@ -9,7 +10,7 @@ import {
 import { Popover, PopoverAnchor, PopoverContent } from "@superset/ui/popover";
 import type React from "react";
 import type { RefObject } from "react";
-import { useMemo, useState } from "react";
+import { useId, useMemo, useState } from "react";
 import { useDebouncedValue } from "renderer/hooks/useDebouncedValue";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
@@ -62,6 +63,8 @@ export function PRLinkCommand({
 	anchorRef,
 }: PRLinkCommandProps) {
 	const [searchQuery, setSearchQuery] = useState("");
+	const [showClosed, setShowClosed] = useState(false);
+	const showClosedId = useId();
 	const debouncedQuery = useDebouncedValue(searchQuery, 300);
 	const trimmedQuery = searchQuery.trim(); // Immediate trim for UI decisions
 	const debouncedTrimmed = debouncedQuery.trim(); // Debounced trim for RPC calls
@@ -99,14 +102,18 @@ export function PRLinkCommand({
 	// Fetch recent PRs for browsing (only when no search query)
 	const { data: recentPRs, isLoading: isLoadingRecent } =
 		electronTrpc.projects.listPullRequests.useQuery(
-			{ projectId: projectId ?? "" },
+			{ projectId: projectId ?? "", includeClosed: showClosed },
 			{ enabled: !!projectId && open && !debouncedTrimmed },
 		);
 
 	// Server-side search when user types (use debounced for RPC)
 	const { data: searchResults, isLoading: isSearching } =
 		electronTrpc.projects.searchPullRequests.useQuery(
-			{ projectId: projectId ?? "", query: effectiveQuery },
+			{
+				projectId: projectId ?? "",
+				query: effectiveQuery,
+				includeClosed: showClosed,
+			},
 			{
 				enabled:
 					!!projectId && open && !!effectiveQuery && !isCrossRepositoryUrl,
@@ -164,6 +171,19 @@ export function PRLinkCommand({
 						value={searchQuery}
 						onValueChange={setSearchQuery}
 					/>
+					<div className="flex items-center gap-2 border-b px-3 py-2">
+						<Checkbox
+							id={showClosedId}
+							checked={showClosed}
+							onCheckedChange={(checked) => setShowClosed(checked === true)}
+						/>
+						<label
+							htmlFor={showClosedId}
+							className="cursor-pointer select-none text-xs text-muted-foreground"
+						>
+							Show closed
+						</label>
+					</div>
 					<CommandList className="max-h-[280px]">
 						{pullRequests.length === 0 && (
 							<CommandEmpty>
@@ -175,7 +195,9 @@ export function PRLinkCommand({
 										? `PR URL must match ${selectedRepositoryLabel}.`
 										: debouncedTrimmed
 											? "No pull requests found."
-											: "No open pull requests."}
+											: showClosed
+												? "No pull requests found."
+												: "No open pull requests."}
 							</CommandEmpty>
 						)}
 						{pullRequests.length > 0 && (
@@ -183,7 +205,9 @@ export function PRLinkCommand({
 								heading={
 									debouncedTrimmed
 										? `${pullRequests.length} result${pullRequests.length === 1 ? "" : "s"}`
-										: "Recent pull requests"
+										: showClosed
+											? "Recent pull requests"
+											: "Open pull requests"
 								}
 							>
 								{pullRequests.map((pr) => (

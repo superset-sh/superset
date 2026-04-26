@@ -9,6 +9,7 @@ interface QuestionInputOverlayProps {
 	question: {
 		questionId: string;
 		question: string;
+		description?: string;
 		options?: QuestionOption[];
 	};
 	isSubmitting: boolean;
@@ -63,9 +64,16 @@ export function QuestionInputOverlay({
 		<div className="flex max-h-[300px] flex-col overflow-hidden rounded-[13px] border-[0.5px] border-border bg-foreground/[0.02]">
 			{/* Question — pinned header */}
 			<div className="flex shrink-0 items-start gap-2 px-3 pt-3 pb-3">
-				<p className="flex-1 text-sm leading-snug text-foreground">
-					{question.question}
-				</p>
+				<div className="flex-1 space-y-1">
+					<p className="text-sm leading-snug text-foreground">
+						{question.question}
+					</p>
+					{question.description && (
+						<p className="text-xs leading-snug text-muted-foreground">
+							{question.description}
+						</p>
+					)}
+				</div>
 				<Tooltip>
 					<TooltipTrigger asChild>
 						<button

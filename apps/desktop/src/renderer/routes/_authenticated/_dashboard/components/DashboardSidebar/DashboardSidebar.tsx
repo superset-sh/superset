@@ -22,7 +22,9 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { DashboardSidebarHeader } from "./components/DashboardSidebarHeader";
+import { DashboardSidebarPortsList } from "./components/DashboardSidebarPortsList";
 import { DashboardSidebarProjectSection } from "./components/DashboardSidebarProjectSection";
+import { DashboardSidebarSectionRenameProvider } from "./components/DashboardSidebarSectionRenameContext";
 import { useDashboardSidebarData } from "./hooks/useDashboardSidebarData";
 import { useDashboardSidebarShortcuts } from "./hooks/useDashboardSidebarShortcuts";
 import type { DashboardSidebarProject } from "./types";
@@ -131,59 +133,62 @@ export function DashboardSidebar({
 	);
 
 	return (
-		<div className="flex h-full flex-col border-r border-border bg-muted/45 dark:bg-muted/35">
-			<DashboardSidebarHeader isCollapsed={isCollapsed} />
+		<DashboardSidebarSectionRenameProvider>
+			<div className="flex h-full flex-col border-r border-border bg-muted/45 dark:bg-muted/35">
+				<DashboardSidebarHeader isCollapsed={isCollapsed} />
 
-			<div className="flex-1 overflow-y-auto hide-scrollbar">
-				<DndContext
-					sensors={sensors}
-					collisionDetection={closestCenter}
-					measuring={{
-						droppable: { strategy: MeasuringStrategy.Always },
-					}}
-					onDragStart={({ active }) => {
-						const project = groups.find((p) => p.id === active.id);
-						setActiveProject(project ?? null);
-					}}
-					onDragEnd={handleDragEnd}
-					onDragCancel={() => setActiveProject(null)}
-				>
-					<SortableContext
-						items={projectOrder}
-						strategy={verticalListSortingStrategy}
+				<div className="flex-1 overflow-y-auto hide-scrollbar">
+					<DndContext
+						sensors={sensors}
+						collisionDetection={closestCenter}
+						measuring={{
+							droppable: { strategy: MeasuringStrategy.Always },
+						}}
+						onDragStart={({ active }) => {
+							const project = groups.find((p) => p.id === active.id);
+							setActiveProject(project ?? null);
+						}}
+						onDragEnd={handleDragEnd}
+						onDragCancel={() => setActiveProject(null)}
 					>
-						{orderedGroups.map((project) => (
-							<SortableProjectWrapper
-								key={project.id}
-								project={project}
-								isCollapsed={isCollapsed}
-								isDraggingProject={activeProject != null}
-								workspaceShortcutLabels={workspaceShortcutLabels}
-								onWorkspaceHover={refreshWorkspacePullRequest}
-								onToggleCollapse={toggleProjectCollapsed}
-							/>
-						))}
-					</SortableContext>
+						<SortableContext
+							items={projectOrder}
+							strategy={verticalListSortingStrategy}
+						>
+							{orderedGroups.map((project) => (
+								<SortableProjectWrapper
+									key={project.id}
+									project={project}
+									isCollapsed={isCollapsed}
+									isDraggingProject={activeProject != null}
+									workspaceShortcutLabels={workspaceShortcutLabels}
+									onWorkspaceHover={refreshWorkspacePullRequest}
+									onToggleCollapse={toggleProjectCollapsed}
+								/>
+							))}
+						</SortableContext>
 
-					{createPortal(
-						<DragOverlay dropAnimation={null}>
-							{activeProject && (
-								<div className="bg-background shadow-lg border-b border-border">
-									<DashboardSidebarProjectSection
-										project={activeProject}
-										isSidebarCollapsed={isCollapsed}
-										isDraggingProject
-										workspaceShortcutLabels={workspaceShortcutLabels}
-										onWorkspaceHover={() => {}}
-										onToggleCollapse={() => {}}
-									/>
-								</div>
-							)}
-						</DragOverlay>,
-						document.body,
-					)}
-				</DndContext>
+						{createPortal(
+							<DragOverlay dropAnimation={null}>
+								{activeProject && (
+									<div className="bg-background shadow-lg border-b border-border">
+										<DashboardSidebarProjectSection
+											project={activeProject}
+											isSidebarCollapsed={isCollapsed}
+											isDraggingProject
+											workspaceShortcutLabels={workspaceShortcutLabels}
+											onWorkspaceHover={() => {}}
+											onToggleCollapse={() => {}}
+										/>
+									</div>
+								)}
+							</DragOverlay>,
+							document.body,
+						)}
+					</DndContext>
+				</div>
+				{!isCollapsed && <DashboardSidebarPortsList />}
 			</div>
-		</div>
+		</DashboardSidebarSectionRenameProvider>
 	);
 }

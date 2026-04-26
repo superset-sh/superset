@@ -4,8 +4,10 @@ import type {
 	RendererContext,
 } from "@superset/panes";
 import { alert } from "@superset/ui/atoms/Alert";
+import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
+import { workspaceTrpc } from "@superset/workspace-client";
 import {
 	Circle,
 	GitCompareArrows,
@@ -22,12 +24,16 @@ import {
 	LuClipboard,
 	LuClipboardCopy,
 	LuEraser,
+	LuPower,
 } from "react-icons/lu";
 import { TbScan } from "react-icons/tb";
 import { useHotkeyDisplay } from "renderer/hotkeys";
+import { getBaseName } from "renderer/lib/pathBasename";
 import { terminalRuntimeRegistry } from "renderer/lib/terminal/terminal-runtime-registry";
 import { FileIcon } from "renderer/screens/main/components/WorkspaceView/RightSidebar/FilesView/utils";
 import { useSettings } from "renderer/stores/settings";
+import { getV2NotificationSourcesForPane } from "renderer/stores/v2-notifications";
+import { V2NotificationStatusIndicator } from "../../components/V2NotificationStatusIndicator";
 import {
 	getDocument,
 	useSharedFileDocument,
@@ -46,17 +52,21 @@ import { DiffPane } from "./components/DiffPane";
 import { FilePane } from "./components/FilePane";
 import { FilePaneHeaderExtras } from "./components/FilePane/components/FilePaneHeaderExtras";
 import { TerminalPane } from "./components/TerminalPane";
+import { TerminalHeaderExtras } from "./components/TerminalPane/components/TerminalHeaderExtras";
+import { TerminalSessionDropdown } from "./components/TerminalPane/components/TerminalSessionDropdown";
 
 function getFileName(filePath: string): string {
-	return filePath.split("/").pop() ?? filePath;
+	return getBaseName(filePath);
 }
 
 function FilePaneTabTitle({
 	filePath,
+	isActive,
 	pinned,
 	workspaceId,
 }: {
 	filePath: string;
+	isActive: boolean;
 	pinned: boolean;
 	workspaceId: string;
 }) {
@@ -66,9 +76,17 @@ function FilePaneTabTitle({
 	});
 	const name = getFileName(filePath);
 	return (
-		<div className="flex items-center space-x-2">
-			<FileIcon fileName={name} className="size-4 shrink-0" />
-			<span className={pinned ? undefined : "italic"}>{name}</span>
+		<div
+			className={cn(
+				"flex min-w-0 items-center gap-1.5 text-xs transition-colors duration-150",
+				isActive ? "text-foreground" : "text-muted-foreground",
+			)}
+			title={filePath}
+		>
+			<FileIcon fileName={name} className="size-3.5 shrink-0" />
+			<span className={cn("min-w-0 truncate", !pinned && "italic")}>
+				{name}
+			</span>
 			{document.dirty && (
 				<Circle className="size-2 shrink-0 fill-current text-muted-foreground" />
 			)}
@@ -86,7 +104,7 @@ function DiffViewModeToggle() {
 
 	const buttonClass = (active: boolean) =>
 		cn(
-			"flex size-6 items-center justify-center transition-colors",
+			"flex size-5 items-center justify-center transition-colors",
 			active
 				? "bg-secondary text-foreground"
 				: "text-muted-foreground hover:text-foreground",
@@ -127,7 +145,7 @@ function DiffViewModeToggle() {
 				</TooltipContent>
 			</Tooltip>
 			<div
-				className="mx-1.5 h-4 w-px bg-muted-foreground/30"
+				className="mx-1 h-3.5 w-px bg-muted-foreground/30"
 				aria-hidden="true"
 			/>
 		</div>
@@ -145,6 +163,19 @@ export function usePaneRegistry(
 ): PaneRegistry<PaneViewerData> {
 	const clearShortcut = useHotkeyDisplay("CLEAR_TERMINAL").text;
 	const scrollToBottomShortcut = useHotkeyDisplay("SCROLL_TO_BOTTOM").text;
+	const workspaceTrpcUtils = workspaceTrpc.useUtils();
+	const { mutate: killTerminalSession, isPending: isKillingTerminalSession } =
+		workspaceTrpc.terminal.killSession.useMutation({
+			onSuccess: () => {
+				toast.success("Terminal session killed");
+				void workspaceTrpcUtils.terminal.listSessions.invalidate();
+			},
+			onError: (error) => {
+				toast.error("Failed to kill terminal session", {
+					description: error.message,
+				});
+			},
+		});
 
 	return useMemo<PaneRegistry<PaneViewerData>>(
 		() => ({
@@ -160,6 +191,7 @@ export function usePaneRegistry(
 					return (
 						<FilePaneTabTitle
 							filePath={data.filePath}
+							isActive={ctx.isActive}
 							pinned={Boolean(ctx.pane.pinned)}
 							workspaceId={workspaceId}
 						/>
@@ -177,7 +209,7 @@ export function usePaneRegistry(
 					const data = pane.data as FilePaneData;
 					const doc = getDocument(workspaceId, data.filePath);
 					if (!doc?.dirty) return true;
-					const name = data.filePath.split("/").pop();
+					const name = getFileName(data.filePath);
 					return new Promise<boolean>((resolve) => {
 						alert({
 							title: `Do you want to save the changes you made to ${name}?`,
@@ -222,10 +254,14 @@ export function usePaneRegistry(
 					),
 			},
 			diff: {
-				getIcon: () => <GitCompareArrows className="size-4" />,
+				getIcon: () => <GitCompareArrows className="size-3.5" />,
 				getTitle: () => "Changes",
 				renderPane: (ctx: RendererContext<PaneViewerData>) => (
-					<DiffPane context={ctx} workspaceId={workspaceId} />
+					<DiffPane
+						context={ctx}
+						workspaceId={workspaceId}
+						onOpenFile={onOpenFile}
+					/>
 				),
 				renderHeaderExtras: () => <DiffViewModeToggle />,
 				contextMenuActions: (_ctx, defaults) =>
@@ -234,8 +270,20 @@ export function usePaneRegistry(
 					),
 			},
 			terminal: {
-				getIcon: () => <TerminalSquare className="size-4" />,
+				getIcon: () => <TerminalSquare className="size-3.5" />,
 				getTitle: () => "Terminal",
+				renderTitle: (ctx: RendererContext<PaneViewerData>) => (
+					<div className="flex min-w-0 flex-1 items-center gap-1.5">
+						<TerminalSessionDropdown context={ctx} workspaceId={workspaceId} />
+						<V2NotificationStatusIndicator
+							workspaceId={workspaceId}
+							sources={getV2NotificationSourcesForPane(ctx.pane)}
+						/>
+					</div>
+				),
+				renderHeaderExtras: (ctx: RendererContext<PaneViewerData>) => (
+					<TerminalHeaderExtras context={ctx} />
+				),
 				renderPane: (ctx: RendererContext<PaneViewerData>) => (
 					<TerminalPane
 						ctx={ctx}
@@ -253,11 +301,17 @@ export function usePaneRegistry(
 							shortcut: `${MOD_KEY}C`,
 							disabled: (ctx) => {
 								const { terminalId } = ctx.pane.data as TerminalPaneData;
-								return !terminalRuntimeRegistry.getSelection(terminalId);
+								return !terminalRuntimeRegistry.getSelection(
+									terminalId,
+									ctx.pane.id,
+								);
 							},
 							onSelect: (ctx) => {
 								const { terminalId } = ctx.pane.data as TerminalPaneData;
-								const text = terminalRuntimeRegistry.getSelection(terminalId);
+								const text = terminalRuntimeRegistry.getSelection(
+									terminalId,
+									ctx.pane.id,
+								);
 								if (text) navigator.clipboard.writeText(text);
 							},
 						},
@@ -270,7 +324,13 @@ export function usePaneRegistry(
 								const { terminalId } = ctx.pane.data as TerminalPaneData;
 								try {
 									const text = await navigator.clipboard.readText();
-									if (text) terminalRuntimeRegistry.paste(terminalId, text);
+									if (text) {
+										terminalRuntimeRegistry.paste(
+											terminalId,
+											text,
+											ctx.pane.id,
+										);
+									}
 								} catch {
 									// Clipboard access denied
 								}
@@ -285,7 +345,7 @@ export function usePaneRegistry(
 								clearShortcut !== "Unassigned" ? clearShortcut : undefined,
 							onSelect: (ctx) => {
 								const { terminalId } = ctx.pane.data as TerminalPaneData;
-								terminalRuntimeRegistry.clear(terminalId);
+								terminalRuntimeRegistry.clear(terminalId, ctx.pane.id);
 							},
 						},
 						{
@@ -298,22 +358,41 @@ export function usePaneRegistry(
 									: undefined,
 							onSelect: (ctx) => {
 								const { terminalId } = ctx.pane.data as TerminalPaneData;
-								terminalRuntimeRegistry.scrollToBottom(terminalId);
+								terminalRuntimeRegistry.scrollToBottom(terminalId, ctx.pane.id);
 							},
 						},
 						{ key: "sep-terminal-defaults", type: "separator" },
 					];
 
-					// Update close label
 					const modifiedDefaults = defaults.map((d) =>
 						d.key === "close-pane" ? { ...d, label: "Close Terminal" } : d,
 					);
 
-					return [...terminalActions, ...modifiedDefaults];
+					const killAction: ContextMenuActionConfig<PaneViewerData> = {
+						key: "kill-terminal-session",
+						label: "Kill Terminal Session",
+						icon: <LuPower />,
+						variant: "destructive",
+						disabled: isKillingTerminalSession,
+						onSelect: (ctx) => {
+							const data = ctx.pane.data as TerminalPaneData;
+							killTerminalSession({
+								terminalId: data.terminalId,
+								workspaceId: data.workspaceId ?? workspaceId,
+							});
+						},
+					};
+
+					return [
+						...terminalActions,
+						...modifiedDefaults,
+						{ key: "sep-terminal-kill", type: "separator" },
+						killAction,
+					];
 				},
 			},
 			browser: {
-				getIcon: () => <Globe className="size-4" />,
+				getIcon: () => <Globe className="size-3.5" />,
 				getTitle: (pane) => {
 					const data = pane.data as BrowserPaneData;
 					if (data.pageTitle) return data.pageTitle;
@@ -341,8 +420,25 @@ export function usePaneRegistry(
 					),
 			},
 			chat: {
-				getIcon: () => <MessageSquare className="size-4" />,
+				getIcon: () => <MessageSquare className="size-3.5" />,
 				getTitle: () => "Chat",
+				renderTitle: (ctx: RendererContext<PaneViewerData>) => (
+					<div className="flex min-w-0 flex-1 items-center gap-1.5">
+						<MessageSquare className="size-3.5 shrink-0" />
+						<span
+							className={cn(
+								"min-w-0 flex-1 truncate text-xs transition-colors duration-150",
+								ctx.isActive ? "text-foreground" : "text-muted-foreground",
+							)}
+						>
+							Chat
+						</span>
+						<V2NotificationStatusIndicator
+							workspaceId={workspaceId}
+							sources={getV2NotificationSourcesForPane(ctx.pane)}
+						/>
+					</div>
+				),
 				// Disabled until ChatServiceProvider is wired above v2 panes —
 				// TiptapPromptEditor needs its tRPC context.
 				renderPane: (_ctx: RendererContext<PaneViewerData>) => (
@@ -359,10 +455,14 @@ export function usePaneRegistry(
 				getIcon: (ctx: RendererContext<PaneViewerData>) => {
 					const data = ctx.pane.data as CommentPaneData;
 					if (!data.avatarUrl) {
-						return <MessageSquare className="size-4" />;
+						return <MessageSquare className="size-3.5" />;
 					}
 					return (
-						<img src={data.avatarUrl} alt="" className="size-4 rounded-full" />
+						<img
+							src={data.avatarUrl}
+							alt=""
+							className="size-3.5 rounded-full"
+						/>
 					);
 				},
 				getTitle: (pane) => {
@@ -380,10 +480,10 @@ export function usePaneRegistry(
 							href={data.url}
 							target="_blank"
 							rel="noopener noreferrer"
-							className="flex items-center gap-0.5 text-muted-foreground hover:text-foreground"
+							className="flex shrink-0 items-center gap-0.5 rounded p-0.5 text-muted-foreground/60 transition-colors hover:text-muted-foreground"
 							aria-label="View on GitHub"
 						>
-							<FaGithub className="size-4" />
+							<FaGithub className="size-3.5" />
 							<LuArrowUpRight className="size-3" />
 						</a>
 					);
@@ -409,6 +509,8 @@ export function usePaneRegistry(
 			workspaceId,
 			clearShortcut,
 			scrollToBottomShortcut,
+			killTerminalSession,
+			isKillingTerminalSession,
 			onOpenFile,
 			onRevealPath,
 		],

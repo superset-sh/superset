@@ -7,6 +7,7 @@ import {
 	resolveAgentConfigs,
 } from "@superset/shared/agent-settings";
 import { command } from "../../../lib/command";
+import { formatAutomationDate } from "../format";
 
 const DEFAULT_TIMEZONE =
 	Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
@@ -95,12 +96,9 @@ export default command({
 			mcpScope: [],
 		});
 
-		const nextRun = result.nextRunAt
-			? new Date(result.nextRunAt).toISOString()
-			: "—";
 		return {
 			data: result,
-			message: `Created automation "${result.name}" (${result.id})\nNext run: ${nextRun}`,
+			message: `Created automation "${result.name}" (${result.id})\nNext run: ${formatAutomationDate(result.nextRunAt, result.timezone)}`,
 		};
 	},
 });

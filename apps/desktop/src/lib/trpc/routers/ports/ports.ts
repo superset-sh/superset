@@ -1,52 +1,27 @@
-import { workspaces } from "@superset/local-db";
 import { observable } from "@trpc/server/observable";
-import { eq } from "drizzle-orm";
-import { localDb } from "main/lib/local-db";
-import { loadStaticPorts } from "main/lib/static-ports";
 import { portManager } from "main/lib/terminal/port-manager";
 import type { DetectedPort, EnrichedPort } from "shared/types";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
-import { getWorkspacePath } from "../workspaces/utils/worktree";
+import { getLabelsForWorkspace } from "./label-cache";
+
+export { invalidatePortLabelCache } from "./label-cache";
 
 type PortEvent =
 	| { type: "add"; port: DetectedPort }
 	| { type: "remove"; port: DetectedPort };
 
-function getLabelsForPath(worktreePath: string): Map<number, string> | null {
-	const result = loadStaticPorts(worktreePath);
-	if (!result.exists || result.error || !result.ports) return null;
-
-	const labels = new Map<number, string>();
-	for (const p of result.ports) {
-		labels.set(p.port, p.label);
-	}
-	return labels;
-}
-
 export const createPortsRouter = () => {
 	return router({
 		getAll: publicProcedure.query((): EnrichedPort[] => {
 			const detectedPorts = portManager.getAllPorts();
-
-			const labelCache = new Map<string, Map<number, string> | null>();
-
 			return detectedPorts.map((port) => {
-				if (!labelCache.has(port.workspaceId)) {
-					const ws = localDb
-						.select()
-						.from(workspaces)
-						.where(eq(workspaces.id, port.workspaceId))
-						.get();
-					const wsPath = ws ? getWorkspacePath(ws) : null;
-					labelCache.set(
-						port.workspaceId,
-						wsPath ? getLabelsForPath(wsPath) : null,
-					);
-				}
-
-				const labels = labelCache.get(port.workspaceId);
-				return { ...port, label: labels?.get(port.port) ?? null };
+				const labels = getLabelsForWorkspace(port.workspaceId);
+				return {
+					...port,
+					label: labels?.get(port.port) ?? null,
+					hostUrl: null,
+				};
 			});
 		}),
 
@@ -73,7 +48,8 @@ export const createPortsRouter = () => {
 		kill: publicProcedure
 			.input(
 				z.object({
-					paneId: z.string(),
+					workspaceId: z.string(),
+					terminalId: z.string(),
 					port: z.number().int().positive(),
 				}),
 			)

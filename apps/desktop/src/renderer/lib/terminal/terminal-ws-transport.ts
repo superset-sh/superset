@@ -6,15 +6,18 @@ type TerminalServerMessage =
 	| { type: "data"; data: string }
 	| { type: "error"; message: string }
 	| { type: "exit"; exitCode: number; signal: number }
-	| { type: "replay"; data: string };
+	| { type: "replay"; data: string }
+	| { type: "title"; title: string | null };
 
 export interface TerminalTransport {
 	socket: WebSocket | null;
 	connectionState: ConnectionState;
 	/** The URL the socket is currently connected (or connecting) to. */
 	currentUrl: string | null;
+	title: string | null | undefined;
 	onDataDisposable: { dispose(): void } | null;
 	stateListeners: Set<() => void>;
+	titleListeners: Set<() => void>;
 	/** Internal: auto-reconnect timer. */
 	_reconnectTimer: ReturnType<typeof setTimeout> | null;
 	/** Internal: reconnect attempt count for backoff. */
@@ -35,6 +38,17 @@ function setConnectionState(
 	}
 }
 
+function setTerminalTitle(
+	transport: TerminalTransport,
+	title: string | null | undefined,
+) {
+	if (transport.title === title) return;
+	transport.title = title;
+	for (const listener of transport.titleListeners) {
+		listener();
+	}
+}
+
 const MAX_RECONNECT_DELAY = 10_000;
 const BASE_RECONNECT_DELAY = 500;
 const MAX_RECONNECT_ATTEMPTS = 10;
@@ -44,8 +58,10 @@ export function createTransport(): TerminalTransport {
 		socket: null,
 		connectionState: "disconnected",
 		currentUrl: null,
+		title: undefined,
 		onDataDisposable: null,
 		stateListeners: new Set(),
+		titleListeners: new Set(),
 		_reconnectTimer: null,
 		_reconnectAttempt: 0,
 		_terminal: null,
@@ -130,6 +146,11 @@ export function connect(
 			return;
 		}
 
+		if (message.type === "title") {
+			setTerminalTitle(transport, message.title);
+			return;
+		}
+
 		if (message.type === "error") {
 			terminal.writeln(`\r\n[terminal] ${message.message}`);
 			return;
@@ -173,6 +194,7 @@ export function disconnect(transport: TerminalTransport) {
 	transport.currentUrl = null;
 	transport._terminal = null;
 	transport._reconnectAttempt = 0;
+	setTerminalTitle(transport, undefined);
 	setConnectionState(transport, "disconnected");
 	transport.onDataDisposable?.dispose();
 	transport.onDataDisposable = null;
@@ -209,7 +231,9 @@ export function disposeTransport(transport: TerminalTransport) {
 	transport.currentUrl = null;
 	transport._terminal = null;
 	transport._reconnectAttempt = 0;
+	setTerminalTitle(transport, undefined);
 	transport.onDataDisposable?.dispose();
 	transport.onDataDisposable = null;
 	transport.stateListeners.clear();
+	transport.titleListeners.clear();
 }

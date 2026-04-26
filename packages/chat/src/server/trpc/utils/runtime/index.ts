@@ -7,6 +7,7 @@ export {
 	type RuntimeHookManager,
 	type RuntimeMcpManager,
 	type RuntimeMcpServerStatus,
+	type RuntimeQuestionResponse,
 	type RuntimeSession,
 	reloadHookConfig,
 	restartRuntimeFromUserMessage,

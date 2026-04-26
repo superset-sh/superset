@@ -11,6 +11,7 @@ interface UseConsumeAutomationRunLinkArgs {
 	store: StoreApi<WorkspaceStore<PaneViewerData>>;
 	terminalId: string | undefined;
 	chatSessionId: string | undefined;
+	focusRequestId: string | undefined;
 }
 
 /**
@@ -23,24 +24,47 @@ export function useConsumeAutomationRunLink({
 	store,
 	terminalId,
 	chatSessionId,
+	focusRequestId,
 }: UseConsumeAutomationRunLinkArgs): void {
 	const consumedRef = useRef<Set<string>>(new Set());
 
 	useEffect(() => {
 		if (!terminalId) return;
-		const key = `terminal:${terminalId}`;
+		const key = getAutomationRunLinkConsumeKey({
+			type: "terminal",
+			id: terminalId,
+			focusRequestId,
+		});
 		if (consumedRef.current.has(key)) return;
 		consumedRef.current.add(key);
 		focusOrAddTerminalPane(store, terminalId);
-	}, [store, terminalId]);
+	}, [store, terminalId, focusRequestId]);
 
 	useEffect(() => {
 		if (!chatSessionId) return;
-		const key = `chat:${chatSessionId}`;
+		const key = getAutomationRunLinkConsumeKey({
+			type: "chat",
+			id: chatSessionId,
+			focusRequestId,
+		});
 		if (consumedRef.current.has(key)) return;
 		consumedRef.current.add(key);
 		focusOrAddChatPane(store, chatSessionId);
-	}, [store, chatSessionId]);
+	}, [store, chatSessionId, focusRequestId]);
+}
+
+export function getAutomationRunLinkConsumeKey({
+	type,
+	id,
+	focusRequestId,
+}: {
+	type: "terminal" | "chat";
+	id: string;
+	focusRequestId: string | undefined;
+}): string {
+	return focusRequestId
+		? `${type}:${id}:focus:${focusRequestId}`
+		: `${type}:${id}`;
 }
 
 function focusOrAddTerminalPane(
