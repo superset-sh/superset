@@ -63,6 +63,7 @@ export function DashboardSidebarWorkspaceItem({
 		projectId,
 		workspaceName: name,
 		branch,
+		isMainWorkspace,
 	});
 
 	const navigate = useNavigate();

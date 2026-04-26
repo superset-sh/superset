@@ -175,33 +175,51 @@ export const workspaceRouter = router({
 				});
 			}
 
-			await ctx.api.v2Workspace.delete.mutate({ id: input.id });
-
 			const localWorkspace = ctx.db.query.workspaces
 				.findFirst({ where: eq(workspaces.id, input.id) })
 				.sync();
+			const localProject = localWorkspace
+				? ctx.db.query.projects
+						.findFirst({ where: eq(projects.id, localWorkspace.projectId) })
+						.sync()
+				: undefined;
+
+			if (
+				localWorkspace &&
+				localProject &&
+				localWorkspace.worktreePath === localProject.repoPath
+			) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message:
+						"Main workspaces cannot be deleted. Remove them from the sidebar or remove the project from this host instead.",
+				});
+			}
+
+			const cloudWorkspace = await ctx.api.v2Workspace.getForHost.query({
+				id: input.id,
+			});
+			if (cloudWorkspace?.type === "main") {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message:
+						"Main workspaces cannot be deleted. Remove them from the sidebar or remove the project from this host instead.",
+				});
+			}
+
+			await ctx.api.v2Workspace.delete.mutate({ id: input.id });
 
 			if (localWorkspace) {
-				const localProject = ctx.db.query.projects
-					.findFirst({ where: eq(projects.id, localWorkspace.projectId) })
-					.sync();
-
 				if (localProject) {
-					if (localWorkspace.worktreePath !== localProject.repoPath) {
-						try {
-							const git = await ctx.git(localProject.repoPath);
-							await git.raw([
-								"worktree",
-								"remove",
-								localWorkspace.worktreePath,
-							]);
-						} catch (err) {
-							console.warn("[workspace.delete] failed to remove worktree", {
-								workspaceId: input.id,
-								worktreePath: localWorkspace.worktreePath,
-								err,
-							});
-						}
+					try {
+						const git = await ctx.git(localProject.repoPath);
+						await git.raw(["worktree", "remove", localWorkspace.worktreePath]);
+					} catch (err) {
+						console.warn("[workspace.delete] failed to remove worktree", {
+							workspaceId: input.id,
+							worktreePath: localWorkspace.worktreePath,
+							err,
+						});
 					}
 				}
 			}

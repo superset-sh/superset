@@ -273,7 +273,10 @@ export const projectRouter = router({
 				.all();
 
 			for (const ws of localWorkspaces) {
-				if (ws.worktreePath === localProject.repoPath) continue;
+				if (ws.worktreePath === localProject.repoPath) {
+					await ctx.api.v2Workspace.delete.mutate({ id: ws.id });
+					continue;
+				}
 				try {
 					const git = await ctx.git(localProject.repoPath);
 					await git.raw(["worktree", "remove", ws.worktreePath]);

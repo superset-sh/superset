@@ -16,7 +16,7 @@ export function getFlattenedV2WorkspaceIds(
 	const allSections = Array.from(collections.v2SidebarSections.state.values());
 	const allWorkspaces = Array.from(
 		collections.v2WorkspaceLocalState.state.values(),
-	);
+	).filter((workspace) => !workspace.sidebarState.isHidden);
 
 	const result: string[] = [];
 

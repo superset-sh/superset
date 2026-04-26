@@ -303,6 +303,24 @@ export const v2WorkspaceRouter = {
 			return workspace;
 		}),
 
+	// JWT-authed metadata lookup for host-service preflight checks.
+	getForHost: jwtProcedure
+		.input(z.object({ id: z.string().uuid() }))
+		.query(async ({ ctx, input }) => {
+			const workspace = await dbWs.query.v2Workspaces.findFirst({
+				columns: { id: true, organizationId: true, type: true },
+				where: eq(v2Workspaces.id, input.id),
+			});
+			if (!workspace) return null;
+			if (!ctx.organizationIds.includes(workspace.organizationId)) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "Not a member of this organization",
+				});
+			}
+			return workspace;
+		}),
+
 	// JWT-authed so host-service can orchestrate the full delete saga
 	// (terminals → teardown → worktree → branch → cloud → host sqlite) via
 	// its own JWT auth provider. The session-backed protectedProcedure

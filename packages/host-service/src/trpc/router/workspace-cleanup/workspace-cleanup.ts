@@ -63,6 +63,18 @@ export const workspaceCleanupRouter = router({
 						"Main workspaces cannot be deleted. Remove them from the sidebar or remove the project from this host instead.",
 				});
 			}
+			if (ctx.api) {
+				const cloudWorkspace = await ctx.api.v2Workspace.getForHost.query({
+					id: input.workspaceId,
+				});
+				if (cloudWorkspace?.type === "main") {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message:
+							"Main workspaces cannot be deleted. Remove them from the sidebar or remove the project from this host instead.",
+					});
+				}
+			}
 
 			// ─── Step 0: Preflight ─────────────────────────────────────────
 			// Block only on dirty worktree (the common "I forgot to commit"

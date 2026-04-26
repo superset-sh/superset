@@ -222,7 +222,7 @@ export function useDashboardSidebarData() {
 		[collections],
 	);
 
-	const { data: sidebarWorkspaces = [] } = useLiveQuery(
+	const { data: rawSidebarWorkspaces = [] } = useLiveQuery(
 		(q) =>
 			q
 				.from({ sidebarWorkspaces: collections.v2WorkspaceLocalState })
@@ -251,8 +251,19 @@ export function useDashboardSidebarData() {
 					updatedAt: workspaces.updatedAt,
 					tabOrder: sidebarWorkspaces.sidebarState.tabOrder,
 					sectionId: sidebarWorkspaces.sidebarState.sectionId,
+					isHidden: sidebarWorkspaces.sidebarState.isHidden,
 				})),
 		[collections],
+	);
+
+	const sidebarWorkspaces = useMemo(
+		() => rawSidebarWorkspaces.filter((workspace) => !workspace.isHidden),
+		[rawSidebarWorkspaces],
+	);
+
+	const localStateWorkspaceIds = useMemo(
+		() => new Set(rawSidebarWorkspaces.map((workspace) => workspace.id)),
+		[rawSidebarWorkspaces],
 	);
 
 	const { data: localMainWorkspaces = [] } = useLiveQuery(
@@ -281,22 +292,25 @@ export function useDashboardSidebarData() {
 	);
 
 	const visibleSidebarWorkspaces = useMemo(() => {
-		const sidebarWorkspaceIds = new Set(
-			sidebarWorkspaces.map((workspace) => workspace.id),
-		);
 		const sidebarProjectIds = new Set(
 			sidebarProjects.map((project) => project.id),
 		);
 		const autoLocalMainWorkspaces = localMainWorkspaces.filter(
 			(workspace) =>
-				!sidebarWorkspaceIds.has(workspace.id) &&
+				!localStateWorkspaceIds.has(workspace.id) &&
 				workspace.hostMachineId != null &&
 				workspace.hostMachineId === machineId &&
 				sidebarProjectIds.has(workspace.projectId),
 		);
 
 		return [...autoLocalMainWorkspaces, ...sidebarWorkspaces];
-	}, [localMainWorkspaces, machineId, sidebarProjects, sidebarWorkspaces]);
+	}, [
+		localMainWorkspaces,
+		localStateWorkspaceIds,
+		machineId,
+		sidebarProjects,
+		sidebarWorkspaces,
+	]);
 
 	const computedLocalWorkspaceIds = useMemo(
 		() =>

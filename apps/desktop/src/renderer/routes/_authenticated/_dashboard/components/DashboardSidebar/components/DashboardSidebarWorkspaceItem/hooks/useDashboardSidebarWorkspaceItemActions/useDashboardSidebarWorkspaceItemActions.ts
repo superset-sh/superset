@@ -19,6 +19,7 @@ interface UseDashboardSidebarWorkspaceItemActionsOptions {
 	projectId: string;
 	workspaceName: string;
 	branch: string;
+	isMainWorkspace?: boolean;
 }
 
 export function useDashboardSidebarWorkspaceItemActions({
@@ -26,6 +27,7 @@ export function useDashboardSidebarWorkspaceItemActions({
 	projectId,
 	workspaceName,
 	branch,
+	isMainWorkspace = false,
 }: UseDashboardSidebarWorkspaceItemActionsOptions) {
 	const navigate = useNavigate();
 	const matchRoute = useMatchRoute();
@@ -39,8 +41,12 @@ export function useDashboardSidebarWorkspaceItemActions({
 	);
 	const setManualUnread = useV2NotificationStore((s) => s.setManualUnread);
 	const isUnread = useV2WorkspaceIsUnread(workspaceId);
-	const { createSection, moveWorkspaceToSection, removeWorkspaceFromSidebar } =
-		useDashboardSidebarState();
+	const {
+		createSection,
+		hideWorkspaceInSidebar,
+		moveWorkspaceToSection,
+		removeWorkspaceFromSidebar,
+	} = useDashboardSidebarState();
 
 	const [isRenaming, setIsRenaming] = useState(false);
 	const [renameValue, setRenameValue] = useState(workspaceName);
@@ -84,6 +90,10 @@ export function useDashboardSidebarWorkspaceItemActions({
 
 	const handleRemoveFromSidebar = () => {
 		navigateAway(workspaceId);
+		if (isMainWorkspace) {
+			hideWorkspaceInSidebar(workspaceId, projectId);
+			return;
+		}
 		removeWorkspaceFromSidebar(workspaceId);
 	};
 

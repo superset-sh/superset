@@ -83,7 +83,10 @@ export function ResourceConsumption() {
 			q
 				.from({ ws: collections.v2WorkspaceLocalState })
 				.orderBy(({ ws }) => ws.sidebarState.tabOrder, "asc")
-				.select(({ ws }) => ({ workspaceId: ws.workspaceId })),
+				.select(({ ws }) => ({
+					workspaceId: ws.workspaceId,
+					isHidden: ws.sidebarState.isHidden,
+				})),
 		[collections],
 	);
 
@@ -93,7 +96,10 @@ export function ResourceConsumption() {
 	);
 
 	const sidebarWorkspaceOrder = useMemo(
-		() => rawSidebarWorkspaces.map((w) => w.workspaceId),
+		() =>
+			rawSidebarWorkspaces
+				.filter((workspace) => !workspace.isHidden)
+				.map((w) => w.workspaceId),
 		[rawSidebarWorkspaces],
 	);
 
