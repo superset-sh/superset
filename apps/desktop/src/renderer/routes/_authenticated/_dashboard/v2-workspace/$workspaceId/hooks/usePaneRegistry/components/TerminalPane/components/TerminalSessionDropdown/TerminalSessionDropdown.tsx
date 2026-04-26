@@ -277,12 +277,15 @@ export function TerminalSessionDropdown({
 	};
 
 	const removeTerminalSession = async (session: VisibleTerminalSession) => {
-		await killTerminalSession.mutateAsync({
-			terminalId: session.terminalId,
-			workspaceId: session.workspaceId,
-		});
-		closePanesForTerminal(session.terminalId);
-		await utils.terminal.listSessions.invalidate();
+		try {
+			await killTerminalSession.mutateAsync({
+				terminalId: session.terminalId,
+				workspaceId: session.workspaceId,
+			});
+			closePanesForTerminal(session.terminalId);
+		} finally {
+			await utils.terminal.listSessions.invalidate();
+		}
 	};
 
 	const handleRemoveTerminal = (session: VisibleTerminalSession) => {
