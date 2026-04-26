@@ -20,23 +20,10 @@ const RELEASE_DELAY_MS = 500;
 
 interface TerminalPaneData {
 	terminalId: string;
-	workspaceId?: string;
-}
-
-interface TerminalLocation {
-	ownerWorkspaceId: string;
-	sessionWorkspaceId: string;
-}
-
-interface RemovedTerminalLocation {
-	terminalId: string;
-	ownerWorkspaceId: string;
-	sessionWorkspaceId: string;
 }
 
 interface PendingTerminalCleanup {
-	ownerWorkspaceId: string;
-	sessionWorkspaceId: string;
+	workspaceId: string;
 	timer: ReturnType<typeof setTimeout> | null;
 }
 
@@ -53,17 +40,6 @@ function getTerminalId(
 	if (!pane.data || typeof pane.data !== "object") return null;
 	const data = pane.data as Partial<TerminalPaneData>;
 	return typeof data.terminalId === "string" ? data.terminalId : null;
-}
-
-function getTerminalSessionWorkspaceId(
-	pane: WorkspaceState<unknown>["tabs"][number]["panes"][string],
-	fallbackWorkspaceId: string,
-): string {
-	if (!pane.data || typeof pane.data !== "object") return fallbackWorkspaceId;
-	const data = pane.data as Partial<TerminalPaneData>;
-	return typeof data.workspaceId === "string"
-		? data.workspaceId
-		: fallbackWorkspaceId;
 }
 
 function getTerminalInstanceKey(
@@ -86,57 +62,14 @@ function parseTerminalInstanceKey(
 
 function extractTerminalLocations(
 	rows: PaneLifecycleRow[],
-): Map<string, TerminalLocation> {
-	const locations = new Map<string, TerminalLocation>();
-
-	for (const row of rows) {
-		if (typeof row.workspaceId !== "string") continue;
-
-		const layout = row.paneLayout as WorkspaceState<unknown> | undefined;
-		if (!layout?.tabs) continue;
-
-		for (const tab of layout.tabs) {
-			for (const pane of Object.values(tab.panes)) {
-				const terminalId = getTerminalId(pane);
-				if (!terminalId) continue;
-				locations.set(terminalId, {
-					ownerWorkspaceId: row.workspaceId,
-					sessionWorkspaceId: getTerminalSessionWorkspaceId(
-						pane,
-						row.workspaceId,
-					),
-				});
-			}
-		}
-	}
-
-	return locations;
+): Map<string, string> {
+	return extractPaneLocations(rows, getTerminalId);
 }
 
 function extractTerminalInstanceLocations(
 	rows: PaneLifecycleRow[],
 ): Map<string, string> {
 	return extractPaneLocations(rows, getTerminalInstanceKey);
-}
-
-function getRemovedTerminalLocations({
-	previousLocations,
-	currentLocations,
-	currentWorkspaceIds,
-}: {
-	previousLocations: Map<string, TerminalLocation>;
-	currentLocations: Map<string, TerminalLocation>;
-	currentWorkspaceIds: Set<string>;
-}): RemovedTerminalLocation[] {
-	const removed: RemovedTerminalLocation[] = [];
-
-	for (const [terminalId, location] of previousLocations) {
-		if (currentLocations.has(terminalId)) continue;
-		if (!currentWorkspaceIds.has(location.ownerWorkspaceId)) continue;
-		removed.push({ terminalId, ...location });
-	}
-
-	return removed;
 }
 
 function cleanupRemovedTerminal({
@@ -176,9 +109,7 @@ function cleanupRemovedTerminal({
 export function useGlobalTerminalLifecycle() {
 	const collections = useCollections();
 	const { machineId, activeHostUrl } = useLocalHostService();
-	const prevTerminalLocationsRef = useRef<Map<string, TerminalLocation>>(
-		new Map(),
-	);
+	const prevTerminalLocationsRef = useRef<Map<string, string>>(new Map());
 	const prevTerminalInstanceLocationsRef = useRef<Map<string, string>>(
 		new Map(),
 	);
@@ -266,11 +197,11 @@ export function useGlobalTerminalLifecycle() {
 		// while still cleaning up when the post-removal layout comes back.
 		for (const [terminalId, pending] of pendingCleanups.current) {
 			if (pending.timer) continue;
-			if (currentWorkspaceIds.has(pending.ownerWorkspaceId)) {
+			if (currentWorkspaceIds.has(pending.workspaceId)) {
 				pendingCleanups.current.delete(terminalId);
 				cleanupRemovedTerminal({
 					terminalId,
-					workspaceId: pending.sessionWorkspaceId,
+					workspaceId: pending.workspaceId,
 					hostUrlByWorkspaceId: hostUrlByWorkspaceIdRef.current,
 				});
 			}
@@ -331,17 +262,13 @@ export function useGlobalTerminalLifecycle() {
 			});
 		}
 
-		const removedLocations = getRemovedTerminalLocations({
+		const removedLocations = getRemovedPaneLocations({
 			previousLocations: prevTerminalLocations,
 			currentLocations: currentTerminalLocations,
 			currentWorkspaceIds,
 		});
 
-		for (const {
-			terminalId,
-			ownerWorkspaceId,
-			sessionWorkspaceId,
-		} of removedLocations) {
+		for (const { id: terminalId, workspaceId } of removedLocations) {
 			if (pendingCleanups.current.has(terminalId)) continue;
 
 			const timer = setTimeout(() => {
@@ -356,11 +283,11 @@ export function useGlobalTerminalLifecycle() {
 					return;
 				}
 
-				if (freshWorkspaceIds.has(ownerWorkspaceId)) {
+				if (freshWorkspaceIds.has(workspaceId)) {
 					pendingCleanups.current.delete(terminalId);
 					cleanupRemovedTerminal({
 						terminalId,
-						workspaceId: sessionWorkspaceId,
+						workspaceId,
 						hostUrlByWorkspaceId: hostUrlByWorkspaceIdRef.current,
 					});
 					return;
@@ -372,11 +299,7 @@ export function useGlobalTerminalLifecycle() {
 				}
 			}, RELEASE_DELAY_MS);
 
-			pendingCleanups.current.set(terminalId, {
-				ownerWorkspaceId,
-				sessionWorkspaceId,
-				timer,
-			});
+			pendingCleanups.current.set(terminalId, { workspaceId, timer });
 		}
 
 		prevTerminalLocationsRef.current = currentTerminalLocations;

@@ -10,7 +10,8 @@ export type V2NotificationTabLike = Pick<Tab<unknown>, "panes">;
 
 export type V2NotificationSource =
 	| { type: "terminal"; id: string }
-	| { type: "chat"; id: string };
+	| { type: "chat"; id: string }
+	| { type: "manual"; id: string };
 
 export type V2NotificationSourceType = V2NotificationSource["type"];
 export type V2NotificationSourceKey = `${V2NotificationSourceType}:${string}`;
@@ -46,6 +47,7 @@ export interface V2NotificationState {
 		status: ActivePaneStatus,
 		occurredAt?: number,
 	) => void;
+	setManualUnread: (workspaceId: string) => void;
 	clearSourceStatus: (
 		source: V2NotificationSourceInput,
 		workspaceId?: string,
@@ -97,6 +99,15 @@ export const useV2NotificationStore = create<V2NotificationState>()((set) => ({
 				workspaceId,
 				status,
 				occurredAt,
+			);
+	},
+	setManualUnread: (workspaceId) => {
+		useV2NotificationStore
+			.getState()
+			.setSourceStatus(
+				getV2ManualNotificationSource(workspaceId),
+				workspaceId,
+				"review",
 			);
 	},
 	clearSourceStatus: (source, workspaceId) => {
@@ -194,6 +205,12 @@ export function getV2ChatNotificationSource(
 	return { type: "chat", id: chatId };
 }
 
+export function getV2ManualNotificationSource(
+	workspaceId: string,
+): V2NotificationSource {
+	return { type: "manual", id: workspaceId };
+}
+
 export function getV2NotificationSourcesForPane(
 	pane: V2NotificationPaneLike | null | undefined,
 ): V2NotificationSource[] {
@@ -283,6 +300,21 @@ export function useV2WorkspaceNotificationStatus(workspaceId: string) {
 	return useV2NotificationStore(
 		selectV2WorkspaceNotificationStatus(workspaceId),
 	);
+}
+
+export function selectV2WorkspaceIsUnread(workspaceId: string) {
+	return (state: V2NotificationState) => {
+		for (const entry of Object.values(state.sources)) {
+			if (entry.workspaceId === workspaceId && entry.status === "review") {
+				return true;
+			}
+		}
+		return false;
+	};
+}
+
+export function useV2WorkspaceIsUnread(workspaceId: string) {
+	return useV2NotificationStore(selectV2WorkspaceIsUnread(workspaceId));
 }
 
 export function useV2TabNotificationStatus(
