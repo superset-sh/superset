@@ -28,7 +28,7 @@ function HostsIndexPage() {
 					eq(hosts.organizationId, activeOrganizationId ?? ""),
 				)
 				.select(({ hosts }) => ({
-					id: hosts.id,
+					id: hosts.machineId,
 					name: hosts.name,
 					isOnline: hosts.isOnline,
 				})),

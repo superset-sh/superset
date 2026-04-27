@@ -45,7 +45,7 @@ interface DashboardSidebarWorkspaceContextMenuProps {
 	onCopyBranchName: () => void;
 	onRemoveFromSidebar: () => void;
 	onRename: () => void;
-	onDelete: () => void;
+	onDelete?: () => void;
 	onToggleUnread: () => void;
 	children: React.ReactNode;
 }
@@ -168,13 +168,15 @@ export function DashboardSidebarWorkspaceContextMenu({
 				<LuX className="size-4 mr-2 text-destructive" />
 				Remove from Sidebar
 			</ContextMenuItem>
-			<ContextMenuItem
-				onSelect={onDelete}
-				className="text-destructive focus:text-destructive"
-			>
-				<LuTrash2 className="size-4 mr-2 text-destructive" />
-				Delete
-			</ContextMenuItem>
+			{onDelete ? (
+				<ContextMenuItem
+					onSelect={onDelete}
+					className="text-destructive focus:text-destructive"
+				>
+					<LuTrash2 className="size-4 mr-2 text-destructive" />
+					Delete
+				</ContextMenuItem>
+			) : null}
 		</ContextMenuContent>
 	);
 

@@ -38,7 +38,7 @@ export function HostSettings({ hostId }: HostSettingsProps) {
 		(q) =>
 			q
 				.from({ hosts: collections.v2Hosts })
-				.where(({ hosts }) => eq(hosts.id, hostId))
+				.where(({ hosts }) => eq(hosts.machineId, hostId))
 				.select(({ hosts }) => ({ ...hosts })),
 		[collections, hostId],
 	);
@@ -85,7 +85,7 @@ export function HostSettings({ hostId }: HostSettingsProps) {
 			.map((row) => {
 				const u = userMap.get(row.userId);
 				return {
-					usersHostsId: row.id,
+					usersHostsId: `${row.userId}:${row.hostId}`,
 					userId: row.userId,
 					role: row.role as "owner" | "member",
 					name: u?.name ?? "Unknown user",

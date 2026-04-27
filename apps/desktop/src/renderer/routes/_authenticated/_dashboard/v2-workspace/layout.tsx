@@ -1,3 +1,4 @@
+import { buildHostRoutingKey } from "@superset/shared/host-routing";
 import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import {
@@ -41,11 +42,12 @@ function V2WorkspaceLayout() {
 			q
 				.from({ v2Workspaces: collections.v2Workspaces })
 				.leftJoin({ hosts: collections.v2Hosts }, ({ v2Workspaces, hosts }) =>
-					eq(v2Workspaces.hostId, hosts.id),
+					eq(v2Workspaces.hostId, hosts.machineId),
 				)
 				.where(({ v2Workspaces }) => eq(v2Workspaces.id, workspaceId ?? ""))
 				.select(({ v2Workspaces, hosts }) => ({
 					id: v2Workspaces.id,
+					organizationId: v2Workspaces.organizationId,
 					hostId: v2Workspaces.hostId,
 					hostMachineId: hosts?.machineId ?? null,
 					projectId: v2Workspaces.projectId,
@@ -60,7 +62,7 @@ function V2WorkspaceLayout() {
 		? null
 		: isLocal
 			? activeHostUrl
-			: `${env.RELAY_URL}/hosts/${workspace.hostId}`;
+			: `${env.RELAY_URL}/hosts/${buildHostRoutingKey(workspace.organizationId, workspace.hostId)}`;
 
 	const lastEnsuredWorkspaceIdRef = useRef<string | null>(null);
 

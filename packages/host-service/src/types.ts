@@ -1,4 +1,5 @@
 import type { Octokit } from "@octokit/rest";
+import type { ChatService } from "@superset/chat/server/desktop";
 import type { AppRouter } from "@superset/trpc";
 import type { TRPCClient } from "@trpc/client";
 import type { HostDb } from "./db";
@@ -11,6 +12,7 @@ import type { PullRequestRuntimeManager } from "./runtime/pull-requests";
 export type ApiClient = TRPCClient<AppRouter>;
 
 export interface HostServiceRuntime {
+	auth: ChatService;
 	chat: ChatRuntimeManager;
 	filesystem: WorkspaceFilesystemManager;
 	pullRequests: PullRequestRuntimeManager;

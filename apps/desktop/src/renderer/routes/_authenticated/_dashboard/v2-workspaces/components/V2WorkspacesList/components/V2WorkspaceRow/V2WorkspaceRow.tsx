@@ -41,8 +41,12 @@ export function V2WorkspaceRow({
 	isCurrentRoute,
 }: V2WorkspaceRowProps) {
 	const navigate = useNavigate();
-	const { ensureWorkspaceInSidebar, removeWorkspaceFromSidebar } =
-		useDashboardSidebarState();
+	const {
+		ensureWorkspaceInSidebar,
+		hideWorkspaceInSidebar,
+		removeWorkspaceFromSidebar,
+	} = useDashboardSidebarState();
+	const isMainWorkspace = workspace.type === "main";
 
 	const HostIcon = hostIconFor(workspace.hostType);
 
@@ -70,9 +74,20 @@ export function V2WorkspaceRow({
 				event.preventDefault();
 				return;
 			}
+			if (isMainWorkspace) {
+				hideWorkspaceInSidebar(workspace.id, workspace.projectId);
+				return;
+			}
 			removeWorkspaceFromSidebar(workspace.id);
 		},
-		[isCurrentRoute, removeWorkspaceFromSidebar, workspace.id],
+		[
+			hideWorkspaceInSidebar,
+			isCurrentRoute,
+			isMainWorkspace,
+			removeWorkspaceFromSidebar,
+			workspace.id,
+			workspace.projectId,
+		],
 	);
 
 	const creatorLabel = workspace.isCreatedByCurrentUser

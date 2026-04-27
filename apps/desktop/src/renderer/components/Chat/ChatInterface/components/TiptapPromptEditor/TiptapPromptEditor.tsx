@@ -1,4 +1,3 @@
-import { chatServiceTrpc } from "@superset/chat/client";
 import {
 	usePromptInputAttachments,
 	usePromptInputController,
@@ -41,10 +40,14 @@ import { SlashCommandMenu } from "../SlashCommandMenu";
 import { FileMentionNode } from "./FileMentionNode";
 import { parseTextToEditorContent } from "./parseTextToEditorContent";
 import { SlashCommandNode } from "./SlashCommandNode";
-import { SlashCommandPreviewPopover } from "./SlashCommandPreviewPopover";
+import {
+	type PreviewSlashCommandFn,
+	SlashCommandPreviewPopover,
+} from "./SlashCommandPreviewPopover";
 import { serializeEditorToText } from "./serializeEditorToText";
 
 type FileResult = { id: string; name: string; relativePath: string };
+type SearchFilesFn = (query: string) => Promise<FileResult[]>;
 
 type SlashMenuState = {
 	commands: SlashCommand[];
@@ -61,6 +64,8 @@ type MentionState = {
 
 export interface TiptapPromptEditorProps {
 	cwd: string;
+	searchFiles: SearchFilesFn;
+	previewSlashCommand?: PreviewSlashCommandFn;
 	slashCommands: SlashCommand[];
 	availableModels?: ModelOption[];
 	placeholder?: string;
@@ -76,6 +81,8 @@ function getDirectoryPath(relativePath: string): string {
 
 export function TiptapPromptEditor({
 	cwd,
+	searchFiles,
+	previewSlashCommand,
 	slashCommands,
 	availableModels,
 	placeholder = "Ask to make changes, @mention files, run /commands",
@@ -139,28 +146,25 @@ export function TiptapPromptEditor({
 		mentionState?.query ?? "",
 		120,
 	);
-	const { data: fileResults } = chatServiceTrpc.workspace.searchFiles.useQuery(
-		{
-			rootPath: cwd,
-			query: debouncedMentionQuery,
-			includeHidden: false,
-			limit: 20,
-		},
-		{
-			enabled:
-				!!mentionState &&
-				!!cwd &&
-				debouncedMentionQuery.length > 0 &&
-				(mentionState?.query?.length ?? 0) > 0,
-			staleTime: 1000,
-			placeholderData: (prev) => prev ?? [],
-		},
-	);
+	const isMentionVisible =
+		mentionState !== null && (mentionState?.query?.length ?? 0) > 0;
+	const [fileResults, setFileResults] = useState<FileResult[]>([]);
+	useEffect(() => {
+		if (!isMentionVisible || !cwd || debouncedMentionQuery.length === 0) return;
+		let cancelled = false;
+		searchFiles(debouncedMentionQuery)
+			.then((results) => {
+				if (!cancelled) setFileResults(results);
+			})
+			.catch(() => {
+				// Empty results on error — mention popup degrades gracefully.
+			});
+		return () => {
+			cancelled = true;
+		};
+	}, [debouncedMentionQuery, cwd, isMentionVisible, searchFiles]);
 
-	const mentionFiles: FileResult[] =
-		mentionState && (mentionState.query?.length ?? 0) > 0
-			? (fileResults ?? [])
-			: [];
+	const mentionFiles: FileResult[] = isMentionVisible ? fileResults : [];
 	const mentionFilesRef = useRef(mentionFiles);
 	mentionFilesRef.current = mentionFiles;
 
@@ -634,10 +638,13 @@ export function TiptapPromptEditor({
 
 	return (
 		<>
-			{/* Slash command params popover — anchored to the chip node */}
-			{editor && (
+			{/* Slash command params popover — anchored to the chip node.
+			    Only rendered when the parent provides a previewSlashCommand
+			    function; v2 ChatPane uses its own SlashCommandPreview instead. */}
+			{editor && previewSlashCommand && (
 				<SlashCommandPreviewPopover
 					cwd={cwd}
+					previewSlashCommand={previewSlashCommand}
 					slashCommands={slashCommands}
 					editor={editor}
 					isFocused={chipHovered || chipNodeSelected}

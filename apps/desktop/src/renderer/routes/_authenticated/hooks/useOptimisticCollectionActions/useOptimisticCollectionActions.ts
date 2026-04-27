@@ -212,7 +212,6 @@ export function useOptimisticCollectionActions() {
 					runUsersHostsMutation("Failed to add member", () => {
 						const now = new Date();
 						return collections.v2UsersHosts.insert({
-							id: crypto.randomUUID(),
 							hostId: input.hostId,
 							userId: input.userId,
 							organizationId: input.organizationId,
@@ -221,13 +220,13 @@ export function useOptimisticCollectionActions() {
 							updatedAt: now,
 						});
 					}),
-				removeMember: (rowId: string) =>
+				removeMember: (rowKey: string) =>
 					runUsersHostsMutation("Failed to remove member", () =>
-						collections.v2UsersHosts.delete(rowId),
+						collections.v2UsersHosts.delete(rowKey),
 					),
-				setMemberRole: (rowId: string, role: V2UsersHostRole) =>
+				setMemberRole: (rowKey: string, role: V2UsersHostRole) =>
 					runUsersHostsMutation("Failed to update role", () =>
-						collections.v2UsersHosts.update(rowId, (draft) => {
+						collections.v2UsersHosts.update(rowKey, (draft) => {
 							draft.role = role;
 						}),
 					),

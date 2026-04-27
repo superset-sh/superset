@@ -47,6 +47,7 @@ export const SETTING_ITEM_ID = {
 	MODELS_OPENAI: "models-openai",
 
 	EXPERIMENTAL_SUPERSET_V2: "experimental-superset-v2",
+	EXPERIMENTAL_V1_MIGRATION: "experimental-v1-migration",
 
 	INTEGRATIONS_LINEAR: "integrations-linear",
 	INTEGRATIONS_GITHUB: "integrations-github",
@@ -728,6 +729,24 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"workspaces",
 			"toggle",
 			"switch",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.EXPERIMENTAL_V1_MIGRATION,
+		section: "experimental",
+		title: "V1 to V2 Migration",
+		description: "Rerun the V1 to V2 data migration",
+		keywords: [
+			"experimental",
+			"migration",
+			"migrate",
+			"rerun",
+			"retry",
+			"recover",
+			"v1",
+			"v2",
+			"projects",
+			"workspaces",
 		],
 	},
 	{

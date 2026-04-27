@@ -1,3 +1,4 @@
+import { buildHostRoutingKey } from "@superset/shared/host-routing";
 import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useMemo } from "react";
@@ -18,10 +19,11 @@ export function useWorkspaceHostUrl(workspaceId: string | null): string | null {
 			q
 				.from({ workspaces: collections.v2Workspaces })
 				.leftJoin({ hosts: collections.v2Hosts }, ({ workspaces, hosts }) =>
-					eq(workspaces.hostId, hosts.id),
+					eq(workspaces.hostId, hosts.machineId),
 				)
 				.where(({ workspaces }) => eq(workspaces.id, workspaceId ?? ""))
 				.select(({ workspaces, hosts }) => ({
+					organizationId: workspaces.organizationId,
 					hostId: workspaces.hostId,
 					hostMachineId: hosts?.machineId ?? null,
 				})),
@@ -33,6 +35,7 @@ export function useWorkspaceHostUrl(workspaceId: string | null): string | null {
 	return useMemo(() => {
 		if (!match) return null;
 		if (match.hostMachineId === machineId) return activeHostUrl;
-		return `${env.RELAY_URL}/hosts/${match.hostId}`;
+		const routingKey = buildHostRoutingKey(match.organizationId, match.hostId);
+		return `${env.RELAY_URL}/hosts/${routingKey}`;
 	}, [match, machineId, activeHostUrl]);
 }

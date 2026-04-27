@@ -35,6 +35,7 @@ export function DashboardSidebarWorkspaceItem({
 		branch,
 		creationStatus,
 	} = workspace;
+	const isMainWorkspace = workspace.type === "main";
 	const diffStats = useDiffStats(id);
 	const workspaceStatus = useV2WorkspaceNotificationStatus(id);
 	const {
@@ -62,6 +63,7 @@ export function DashboardSidebarWorkspaceItem({
 		projectId,
 		workspaceName: name,
 		branch,
+		isMainWorkspace,
 	});
 
 	const navigate = useNavigate();
@@ -132,7 +134,9 @@ export function DashboardSidebarWorkspaceItem({
 							onCopyBranchName={handleCopyBranchName}
 							onRemoveFromSidebar={handleRemoveFromSidebar}
 							onRename={startRename}
-							onDelete={() => setIsDeleteDialogOpen(true)}
+							onDelete={
+								isMainWorkspace ? undefined : () => setIsDeleteDialogOpen(true)
+							}
 							onToggleUnread={handleToggleUnread}
 						>
 							{content}
@@ -140,7 +144,7 @@ export function DashboardSidebarWorkspaceItem({
 					)}
 				</div>
 
-				{!isPending && (
+				{!isPending && !isMainWorkspace && (
 					<DashboardSidebarDeleteDialog
 						workspaceId={id}
 						workspaceName={name || branch}
@@ -164,7 +168,11 @@ export function DashboardSidebarWorkspaceItem({
 			workspaceStatus={workspaceStatus}
 			onClick={isPending ? handlePendingClick : handleClick}
 			onDoubleClick={isPending ? undefined : startRename}
-			onDeleteClick={() => setIsDeleteDialogOpen(true)}
+			onDeleteClick={
+				isMainWorkspace
+					? handleRemoveFromSidebar
+					: () => setIsDeleteDialogOpen(true)
+			}
 			onRenameValueChange={setRenameValue}
 			onSubmitRename={submitRename}
 			onCancelRename={cancelRename}
@@ -200,7 +208,9 @@ export function DashboardSidebarWorkspaceItem({
 						onCopyBranchName={handleCopyBranchName}
 						onRemoveFromSidebar={handleRemoveFromSidebar}
 						onRename={startRename}
-						onDelete={() => setIsDeleteDialogOpen(true)}
+						onDelete={
+							isMainWorkspace ? undefined : () => setIsDeleteDialogOpen(true)
+						}
 						onToggleUnread={handleToggleUnread}
 					>
 						{expandedContent}
@@ -208,7 +218,7 @@ export function DashboardSidebarWorkspaceItem({
 				)}
 			</div>
 
-			{!isPending && (
+			{!isPending && !isMainWorkspace && (
 				<DashboardSidebarDeleteDialog
 					workspaceId={id}
 					workspaceName={name || branch}

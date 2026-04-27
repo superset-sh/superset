@@ -39,7 +39,7 @@ export function HostsSettingsSidebar({
 					eq(hosts.organizationId, activeOrganizationId ?? ""),
 				)
 				.select(({ hosts }) => ({
-					id: hosts.id,
+					id: hosts.machineId,
 					name: hosts.name,
 					machineId: hosts.machineId,
 					isOnline: hosts.isOnline,

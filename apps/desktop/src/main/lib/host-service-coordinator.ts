@@ -4,7 +4,7 @@ import { EventEmitter } from "node:events";
 import * as fs from "node:fs";
 import path from "node:path";
 import { settings } from "@superset/local-db";
-import { getDeviceName, getHashedDeviceId } from "@superset/shared/device-info";
+import { getHostId, getHostName } from "@superset/shared/host-info";
 import { app } from "electron";
 import { env } from "main/env.main";
 import semver from "semver";
@@ -35,9 +35,12 @@ import { HOOK_PROTOCOL_VERSION } from "./terminal/env";
  * which is how we prevent the renderer from talking to a stale host-service
  * that's missing newly-added procedures/params.
  *
+ * 0.3.0: host-service registers via cloud `host.ensure` (was
+ * `device.ensureV2Host`); v2_hosts/v2_users_hosts/v2_workspaces use
+ * machineId text instead of uuid surrogates.
  * 0.2.0: `workspaceCreation.adopt` gained optional `worktreePath`.
  */
-const MIN_HOST_SERVICE_VERSION = "0.2.0";
+const MIN_HOST_SERVICE_VERSION = "0.3.0";
 
 export type HostServiceStatus = "starting" | "running" | "stopped";
 
@@ -75,7 +78,7 @@ export class HostServiceCoordinator extends EventEmitter {
 		ReturnType<typeof setInterval>
 	>();
 	private scriptPath = path.join(__dirname, "host-service.js");
-	private machineId = getHashedDeviceId();
+	private machineId = getHostId();
 	private devReloadWatcher: fs.FSWatcher | null = null;
 
 	async start(
@@ -461,8 +464,8 @@ export class HostServiceCoordinator extends EventEmitter {
 			...(process.env as Record<string, string>),
 			ELECTRON_RUN_AS_NODE: "1",
 			ORGANIZATION_ID: organizationId,
-			DEVICE_CLIENT_ID: getHashedDeviceId(),
-			DEVICE_NAME: getDeviceName(),
+			HOST_CLIENT_ID: getHostId(),
+			HOST_NAME: getHostName(),
 			HOST_SERVICE_SECRET: secret,
 			HOST_SERVICE_PORT: String(port),
 			HOST_MANIFEST_DIR: organizationDir,

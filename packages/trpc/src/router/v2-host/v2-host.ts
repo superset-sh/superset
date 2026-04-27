@@ -10,15 +10,15 @@ import { requireActiveOrgId } from "../utils/active-org";
 
 async function requireHostOwner(
 	userId: string,
-	hostId: string,
+	machineId: string,
 	organizationId: string,
 ) {
 	const host = await db.query.v2Hosts.findFirst({
 		where: and(
-			eq(v2Hosts.id, hostId),
 			eq(v2Hosts.organizationId, organizationId),
+			eq(v2Hosts.machineId, machineId),
 		),
-		columns: { id: true, organizationId: true, createdByUserId: true },
+		columns: { machineId: true, organizationId: true, createdByUserId: true },
 	});
 
 	if (!host) {
@@ -30,8 +30,9 @@ async function requireHostOwner(
 
 	const access = await db.query.v2UsersHosts.findFirst({
 		where: and(
-			eq(v2UsersHosts.hostId, hostId),
+			eq(v2UsersHosts.organizationId, organizationId),
 			eq(v2UsersHosts.userId, userId),
+			eq(v2UsersHosts.hostId, machineId),
 		),
 		columns: { role: true },
 	});
@@ -67,8 +68,7 @@ export const v2HostRouter = {
 	addMember: protectedProcedure
 		.input(
 			z.object({
-				id: z.string().uuid(),
-				hostId: z.string().uuid(),
+				hostId: z.string().min(1),
 				userId: z.string().uuid(),
 				role: z.enum(v2UsersHostRoleValues).optional(),
 			}),
@@ -82,7 +82,6 @@ export const v2HostRouter = {
 				const [inserted] = await tx
 					.insert(v2UsersHosts)
 					.values({
-						id: input.id,
 						organizationId,
 						userId: input.userId,
 						hostId: input.hostId,
@@ -113,7 +112,7 @@ export const v2HostRouter = {
 	removeMember: protectedProcedure
 		.input(
 			z.object({
-				hostId: z.string().uuid(),
+				hostId: z.string().min(1),
 				userId: z.string().uuid(),
 			}),
 		)
@@ -136,8 +135,9 @@ export const v2HostRouter = {
 			const txid = await dbWs.transaction(async (tx) => {
 				const target = await tx.query.v2UsersHosts.findFirst({
 					where: and(
-						eq(v2UsersHosts.hostId, input.hostId),
+						eq(v2UsersHosts.organizationId, organizationId),
 						eq(v2UsersHosts.userId, input.userId),
+						eq(v2UsersHosts.hostId, input.hostId),
 					),
 					columns: { role: true },
 				});
@@ -148,10 +148,11 @@ export const v2HostRouter = {
 
 				if (target.role === "owner") {
 					const otherOwners = await tx
-						.select({ id: v2UsersHosts.id })
+						.select({ userId: v2UsersHosts.userId })
 						.from(v2UsersHosts)
 						.where(
 							and(
+								eq(v2UsersHosts.organizationId, organizationId),
 								eq(v2UsersHosts.hostId, input.hostId),
 								eq(v2UsersHosts.role, "owner"),
 								ne(v2UsersHosts.userId, input.userId),
@@ -170,8 +171,9 @@ export const v2HostRouter = {
 					.delete(v2UsersHosts)
 					.where(
 						and(
-							eq(v2UsersHosts.hostId, input.hostId),
+							eq(v2UsersHosts.organizationId, organizationId),
 							eq(v2UsersHosts.userId, input.userId),
+							eq(v2UsersHosts.hostId, input.hostId),
 						),
 					);
 				return await getCurrentTxid(tx);
@@ -183,7 +185,7 @@ export const v2HostRouter = {
 	setMemberRole: protectedProcedure
 		.input(
 			z.object({
-				hostId: z.string().uuid(),
+				hostId: z.string().min(1),
 				userId: z.string().uuid(),
 				role: z.enum(v2UsersHostRoleValues),
 			}),
@@ -207,8 +209,9 @@ export const v2HostRouter = {
 			const txid = await dbWs.transaction(async (tx) => {
 				const target = await tx.query.v2UsersHosts.findFirst({
 					where: and(
-						eq(v2UsersHosts.hostId, input.hostId),
+						eq(v2UsersHosts.organizationId, organizationId),
 						eq(v2UsersHosts.userId, input.userId),
+						eq(v2UsersHosts.hostId, input.hostId),
 					),
 					columns: { role: true },
 				});
@@ -222,10 +225,11 @@ export const v2HostRouter = {
 
 				if (input.role === "member" && target.role === "owner") {
 					const otherOwners = await tx
-						.select({ id: v2UsersHosts.id })
+						.select({ userId: v2UsersHosts.userId })
 						.from(v2UsersHosts)
 						.where(
 							and(
+								eq(v2UsersHosts.organizationId, organizationId),
 								eq(v2UsersHosts.hostId, input.hostId),
 								eq(v2UsersHosts.role, "owner"),
 								ne(v2UsersHosts.userId, input.userId),
@@ -245,8 +249,9 @@ export const v2HostRouter = {
 					.set({ role: input.role })
 					.where(
 						and(
-							eq(v2UsersHosts.hostId, input.hostId),
+							eq(v2UsersHosts.organizationId, organizationId),
 							eq(v2UsersHosts.userId, input.userId),
+							eq(v2UsersHosts.hostId, input.hostId),
 						),
 					);
 				return await getCurrentTxid(tx);

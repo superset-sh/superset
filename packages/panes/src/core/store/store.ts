@@ -11,8 +11,9 @@ import {
 	equalizeAllSplits,
 	findFirstPaneId,
 	findPaneInLayout,
-	findSiblingPaneId,
 	generateId,
+	getActiveIdAfterRemoval,
+	getPaneIdsInLayout,
 	positionToDirection,
 	removePaneFromLayout,
 	replacePaneIdInLayout,
@@ -72,6 +73,21 @@ function buildTab<TData>(args: {
 		layout: buildBalancedTree(leaves),
 		panes: panesMap,
 	};
+}
+
+function getActivePaneIdAfterRemoval(
+	originalLayout: LayoutNode,
+	nextLayout: LayoutNode,
+	activePaneId: string | null | undefined,
+	removedPaneId: string,
+): string | null {
+	return (
+		getActiveIdAfterRemoval(
+			getPaneIdsInLayout(originalLayout),
+			activePaneId,
+			removedPaneId,
+		) ?? findFirstPaneId(nextLayout)
+	);
 }
 
 // --- Public types ---
@@ -191,8 +207,11 @@ export function createWorkspaceStore<TData>(
 				const nextTabs = s.tabs.filter((t) => t.id !== tabId);
 				return {
 					tabs: nextTabs,
-					activeTabId:
-						s.activeTabId === tabId ? (nextTabs[0]?.id ?? null) : s.activeTabId,
+					activeTabId: getActiveIdAfterRemoval(
+						s.tabs.map((tab) => tab.id),
+						s.activeTabId,
+						tabId,
+					),
 				};
 			});
 		},
@@ -266,10 +285,11 @@ export function createWorkspaceStore<TData>(
 					const nextTabs = s.tabs.filter((t) => t.id !== args.tabId);
 					return {
 						tabs: nextTabs,
-						activeTabId:
-							s.activeTabId === args.tabId
-								? (nextTabs[0]?.id ?? null)
-								: s.activeTabId,
+						activeTabId: getActiveIdAfterRemoval(
+							s.tabs.map((candidate) => candidate.id),
+							s.activeTabId,
+							args.tabId,
+						),
 					};
 				}
 
@@ -280,11 +300,12 @@ export function createWorkspaceStore<TData>(
 									...tab,
 									layout: nextLayout,
 									panes: nextPanes,
-									activePaneId:
-										tab.activePaneId === args.paneId
-											? (findSiblingPaneId(tab.layout, args.paneId) ??
-												findFirstPaneId(nextLayout))
-											: tab.activePaneId,
+									activePaneId: getActivePaneIdAfterRemoval(
+										tab.layout,
+										nextLayout,
+										tab.activePaneId,
+										args.paneId,
+									),
 								}
 							: t,
 					),
@@ -683,11 +704,12 @@ export function createWorkspaceStore<TData>(
 								...t,
 								layout: nextSourceLayout,
 								panes: nextSourcePanes,
-								activePaneId:
-									t.activePaneId === args.sourcePaneId
-										? (findSiblingPaneId(sourceTab.layout, args.sourcePaneId) ??
-											findFirstPaneId(nextSourceLayout))
-										: t.activePaneId,
+								activePaneId: getActivePaneIdAfterRemoval(
+									sourceTab.layout,
+									nextSourceLayout,
+									t.activePaneId,
+									args.sourcePaneId,
+								),
 							};
 						}
 						if (t.id === targetTab.id) {
@@ -745,11 +767,12 @@ export function createWorkspaceStore<TData>(
 								...t,
 								layout: nextSourceLayout,
 								panes: nextSourcePanes,
-								activePaneId:
-									t.activePaneId === args.paneId
-										? (findSiblingPaneId(sourceTab.layout, args.paneId) ??
-											findFirstPaneId(nextSourceLayout))
-										: t.activePaneId,
+								activePaneId: getActivePaneIdAfterRemoval(
+									sourceTab.layout,
+									nextSourceLayout,
+									t.activePaneId,
+									args.paneId,
+								),
 							};
 						}
 						if (t.id === targetTab.id) {
@@ -800,11 +823,12 @@ export function createWorkspaceStore<TData>(
 								...t,
 								layout: nextSourceLayout,
 								panes: nextSourcePanes,
-								activePaneId:
-									t.activePaneId === args.paneId
-										? (findSiblingPaneId(sourceTab.layout, args.paneId) ??
-											findFirstPaneId(nextSourceLayout))
-										: t.activePaneId,
+								activePaneId: getActivePaneIdAfterRemoval(
+									sourceTab.layout,
+									nextSourceLayout,
+									t.activePaneId,
+									args.paneId,
+								),
 							};
 						}
 						return t;

@@ -136,7 +136,7 @@ function AutomationsPage() {
 		(q) =>
 			q
 				.from({ h: collections.v2Hosts })
-				.select(({ h }) => ({ id: h.id, name: h.name })),
+				.select(({ h }) => ({ machineId: h.machineId, name: h.name })),
 		[collections.v2Hosts],
 	);
 
@@ -167,7 +167,10 @@ function AutomationsPage() {
 	const hostsById = useMemo(
 		() =>
 			new Map(
-				(hostRows as Pick<SelectV2Host, "id" | "name">[]).map((h) => [h.id, h]),
+				(hostRows as Pick<SelectV2Host, "machineId" | "name">[]).map((h) => [
+					h.machineId,
+					h,
+				]),
 			),
 		[hostRows],
 	);

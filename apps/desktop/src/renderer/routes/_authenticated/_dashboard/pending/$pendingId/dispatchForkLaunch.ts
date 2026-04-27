@@ -1,4 +1,5 @@
 import type { ResolvedAgentConfig } from "@superset/shared/agent-settings";
+import { buildHostRoutingKey } from "@superset/shared/host-routing";
 import { toast } from "@superset/ui/sonner";
 import { env } from "renderer/env.renderer";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
@@ -27,6 +28,7 @@ export interface DispatchForkLaunchInputs {
 	loadedAttachments: LoadedAttachment[] | undefined;
 	agentConfigs: ResolvedAgentConfig[];
 	activeHostUrl: string | null;
+	activeOrganizationId: string | null;
 	/**
 	 * Pre-resolved PR content from the pr-checkout flow. Threaded into
 	 * `buildForkAgentLaunch` so the `fetchPullRequest` resolver skips a
@@ -55,6 +57,7 @@ export async function dispatchForkLaunch({
 	loadedAttachments,
 	agentConfigs,
 	activeHostUrl,
+	activeOrganizationId,
 	resolvedPr,
 	onApplyToRow,
 }: DispatchForkLaunchInputs): Promise<void> {
@@ -65,7 +68,11 @@ export async function dispatchForkLaunch({
 		agentConfigCount: agentConfigs.length,
 	});
 
-	const hostUrl = resolveHostUrl(pending.hostTarget, activeHostUrl);
+	const hostUrl = resolveHostUrl(
+		pending.hostTarget,
+		activeHostUrl,
+		activeOrganizationId,
+	);
 	const hostClient = hostUrl ? getHostServiceClientByUrl(hostUrl) : undefined;
 
 	let build: Awaited<ReturnType<typeof buildForkAgentLaunch>>;
@@ -159,9 +166,15 @@ export async function dispatchForkLaunch({
 function resolveHostUrl(
 	hostTarget: PendingWorkspaceRow["hostTarget"],
 	activeHostUrl: string | null,
+	activeOrganizationId: string | null,
 ): string | null {
 	if (hostTarget.kind === "local") return activeHostUrl;
-	return `${env.RELAY_URL}/hosts/${hostTarget.hostId}`;
+	if (!activeOrganizationId) return null;
+	const routingKey = buildHostRoutingKey(
+		activeOrganizationId,
+		hostTarget.hostId,
+	);
+	return `${env.RELAY_URL}/hosts/${routingKey}`;
 }
 
 async function writeAttachmentsToWorktree({

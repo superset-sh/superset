@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { env } from "renderer/env.renderer";
 import { authClient } from "renderer/lib/auth-client";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { isSidebarWorkspaceVisible } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { MOCK_ORG_ID } from "shared/constants";
 
@@ -13,6 +14,7 @@ export interface AccessibleV2Workspace {
 	id: string;
 	name: string;
 	branch: string;
+	type: "main" | "worktree";
 	createdAt: Date;
 	createdByUserId: string | null;
 	createdByName: string | null;
@@ -85,11 +87,11 @@ export function useAccessibleV2Workspaces(
 			q
 				.from({ workspaces: collections.v2Workspaces })
 				.innerJoin({ hosts: collections.v2Hosts }, ({ workspaces, hosts }) =>
-					eq(workspaces.hostId, hosts.id),
+					eq(workspaces.hostId, hosts.machineId),
 				)
 				.innerJoin(
 					{ userHosts: collections.v2UsersHosts },
-					({ hosts, userHosts }) => eq(userHosts.hostId, hosts.id),
+					({ hosts, userHosts }) => eq(userHosts.hostId, hosts.machineId),
 				)
 				.innerJoin(
 					{ projects: collections.v2Projects },
@@ -100,6 +102,11 @@ export function useAccessibleV2Workspaces(
 					({ workspaces, sidebarState }) =>
 						eq(sidebarState.workspaceId, workspaces.id),
 				)
+				.leftJoin(
+					{ sidebarProject: collections.v2SidebarProjects },
+					({ projects, sidebarProject }) =>
+						eq(sidebarProject.projectId, projects.id),
+				)
 				.leftJoin({ creators: collections.users }, ({ workspaces, creators }) =>
 					eq(workspaces.createdByUserId, creators.id),
 				)
@@ -109,22 +116,34 @@ export function useAccessibleV2Workspaces(
 						eq(userHosts.userId, currentUserId ?? ""),
 					),
 				)
-				.select(({ workspaces, hosts, projects, sidebarState, creators }) => ({
-					id: workspaces.id,
-					name: workspaces.name,
-					branch: workspaces.branch,
-					createdAt: workspaces.createdAt,
-					createdByUserId: workspaces.createdByUserId,
-					createdByName: creators?.name ?? null,
-					createdByImage: creators?.image ?? null,
-					projectId: projects.id,
-					projectName: projects.name,
-					hostId: hosts.id,
-					hostName: hosts.name,
-					hostMachineId: hosts.machineId,
-					hostIsOnline: hosts.isOnline,
-					sidebarWorkspaceId: sidebarState?.workspaceId ?? null,
-				})),
+				.select(
+					({
+						workspaces,
+						hosts,
+						projects,
+						sidebarState,
+						sidebarProject,
+						creators,
+					}) => ({
+						id: workspaces.id,
+						name: workspaces.name,
+						branch: workspaces.branch,
+						type: workspaces.type,
+						createdAt: workspaces.createdAt,
+						createdByUserId: workspaces.createdByUserId,
+						createdByName: creators?.name ?? null,
+						createdByImage: creators?.image ?? null,
+						projectId: projects.id,
+						projectName: projects.name,
+						hostId: hosts.machineId,
+						hostName: hosts.name,
+						hostMachineId: hosts.machineId,
+						hostIsOnline: hosts.isOnline,
+						sidebarProjectId: sidebarProject?.projectId ?? null,
+						sidebarWorkspaceId: sidebarState?.workspaceId ?? null,
+						sidebarIsHidden: sidebarState?.sidebarState.isHidden ?? false,
+					}),
+				),
 		[activeOrganizationId, collections, currentUserId],
 	);
 
@@ -138,10 +157,20 @@ export function useAccessibleV2Workspaces(
 					: row.hostMachineId === machineId
 						? "local-device"
 						: "remote-device";
+			const isAutoVisibleMain =
+				row.type === "main" &&
+				row.hostMachineId != null &&
+				row.hostMachineId === machineId &&
+				row.sidebarProjectId != null;
+			const isInSidebar =
+				isSidebarWorkspaceVisible({ isHidden: row.sidebarIsHidden }) &&
+				(row.sidebarWorkspaceId != null || isAutoVisibleMain);
+
 			deduped.set(row.id, {
 				id: row.id,
 				name: row.name,
 				branch: row.branch,
+				type: row.type,
 				createdAt: new Date(row.createdAt),
 				createdByUserId: row.createdByUserId,
 				createdByName: row.createdByName ?? null,
@@ -155,7 +184,7 @@ export function useAccessibleV2Workspaces(
 				hostMachineId: row.hostMachineId,
 				hostIsOnline: row.hostIsOnline,
 				hostType,
-				isInSidebar: row.sidebarWorkspaceId != null,
+				isInSidebar,
 			});
 		}
 		return Array.from(deduped.values()).sort(

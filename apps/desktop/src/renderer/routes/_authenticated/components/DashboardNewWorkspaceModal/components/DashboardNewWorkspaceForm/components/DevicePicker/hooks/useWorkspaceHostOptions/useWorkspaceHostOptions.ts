@@ -15,7 +15,7 @@ export interface WorkspaceHostOption {
 
 interface UseWorkspaceHostOptionsResult {
 	currentDeviceName: string | null;
-	/** v2_hosts.id for the current device (the one running this desktop app). */
+	/** machineId of the current device (the one running this desktop app). */
 	localHostId: string | null;
 	activeHostUrl: string | null;
 	otherHosts: WorkspaceHostOption[];
@@ -36,7 +36,7 @@ export function useWorkspaceHostOptions(): UseWorkspaceHostOptionsResult {
 			q
 				.from({ userHosts: collections.v2UsersHosts })
 				.innerJoin({ hosts: collections.v2Hosts }, ({ userHosts, hosts }) =>
-					eq(userHosts.hostId, hosts.id),
+					eq(userHosts.hostId, hosts.machineId),
 				)
 				.where(({ userHosts, hosts }) =>
 					and(
@@ -45,7 +45,6 @@ export function useWorkspaceHostOptions(): UseWorkspaceHostOptionsResult {
 					),
 				)
 				.select(({ hosts }) => ({
-					id: hosts.id,
 					machineId: hosts.machineId,
 					name: hosts.name,
 					isOnline: hosts.isOnline,
@@ -63,7 +62,7 @@ export function useWorkspaceHostOptions(): UseWorkspaceHostOptionsResult {
 			accessibleHosts
 				.filter((host) => host.machineId !== machineId)
 				.map((host) => ({
-					id: host.id,
+					id: host.machineId,
 					name: host.name,
 					isOnline: host.isOnline ?? false,
 				}))
@@ -73,7 +72,7 @@ export function useWorkspaceHostOptions(): UseWorkspaceHostOptionsResult {
 
 	return {
 		currentDeviceName: localHost?.name ?? null,
-		localHostId: localHost?.id ?? null,
+		localHostId: localHost?.machineId ?? null,
 		activeHostUrl,
 		otherHosts,
 	};

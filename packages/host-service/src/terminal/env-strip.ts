@@ -10,15 +10,15 @@
 /**
  * Exact keys injected by desktop into host-service.
  *
- * DESKTOP_* and DEVICE_* are exact keys (not prefixes) because
- * DESKTOP_SESSION, DESKTOP_STARTUP_ID etc. are legitimate Linux vars.
+ * DESKTOP_* are exact keys (not prefixes) because DESKTOP_SESSION,
+ * DESKTOP_STARTUP_ID etc. are legitimate Linux vars.
  */
 const HOST_SERVICE_RUNTIME_KEYS = new Set([
 	"AUTH_TOKEN",
 	"CLOUD_API_URL",
 	"DESKTOP_VITE_PORT",
-	"DEVICE_CLIENT_ID",
-	"DEVICE_NAME",
+	"HOST_CLIENT_ID",
+	"HOST_NAME",
 	"KEEP_ALIVE_AFTER_PARENT",
 	"ORGANIZATION_ID",
 ]);

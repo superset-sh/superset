@@ -1,3 +1,4 @@
+import { getActiveIdAfterRemoval } from "@superset/panes";
 import { useMatchRoute, useNavigate } from "@tanstack/react-router";
 import { navigateToV2Workspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
@@ -21,9 +22,8 @@ export function useNavigateAwayFromWorkspace() {
 			fuzzy: true,
 		});
 		if (!isViewingWorkspace) return;
-		const next = getFlattenedV2WorkspaceIds(collections).find(
-			(id) => id !== workspaceId,
-		);
+		const ids = getFlattenedV2WorkspaceIds(collections);
+		const next = getActiveIdAfterRemoval(ids, workspaceId, workspaceId);
 		if (next) {
 			void navigateToV2Workspace(next, navigate);
 		} else {

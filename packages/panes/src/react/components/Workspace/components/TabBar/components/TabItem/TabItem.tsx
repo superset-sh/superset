@@ -117,7 +117,9 @@ export function TabItem<TData>({
 						isPaneOver && "bg-primary/5",
 						isDragging && "opacity-30",
 					)}
-					onMouseDown={onSelect}
+					onMouseDown={(event) => {
+						if (event.button === 0) onSelect();
+					}}
 				>
 					{isEditing ? (
 						<div className="flex h-full w-full shrink-0 items-center px-2">
@@ -145,7 +147,6 @@ export function TabItem<TData>({
 												onClose();
 											}
 										}}
-										onClick={onSelect}
 										onDoubleClick={startEditing}
 										type="button"
 									>
@@ -171,6 +172,9 @@ export function TabItem<TData>({
 											onClick={(event) => {
 												event.stopPropagation();
 												onClose();
+											}}
+											onMouseDown={(event) => {
+												event.stopPropagation();
 											}}
 											size="icon"
 											type="button"

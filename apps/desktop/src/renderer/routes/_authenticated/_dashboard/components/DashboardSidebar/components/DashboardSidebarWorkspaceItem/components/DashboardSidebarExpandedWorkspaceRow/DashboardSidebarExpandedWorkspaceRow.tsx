@@ -98,6 +98,16 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 			() => getCreationStatusText(creationStatus),
 			[creationStatus],
 		);
+		const isMainWorkspace = workspace.type === "main";
+		const workspaceKindTitle = isMainWorkspace
+			? "Main workspace"
+			: "Worktree workspace";
+		const workspaceKindDescription = isMainWorkspace
+			? "Uses the repository checkout on this host"
+			: "Isolated copy for parallel development";
+		const closeLabel = isMainWorkspace
+			? "Remove from sidebar"
+			: "Close workspace";
 
 		return (
 			// biome-ignore lint/a11y/noStaticElementInteractions: Mirrors the legacy sidebar row UI, which includes nested action buttons.
@@ -192,22 +202,26 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 						) : (
 							<>
 								<p className="text-xs font-medium">
-									{hostType === "local-device"
-										? "Local workspace"
-										: hostType === "remote-device"
-											? hostIsOnline === false
-												? "Remote workspace — device offline"
-												: "Remote workspace"
-											: "Cloud workspace"}
+									{isMainWorkspace
+										? workspaceKindTitle
+										: hostType === "local-device"
+											? "Local workspace"
+											: hostType === "remote-device"
+												? hostIsOnline === false
+													? "Remote workspace — device offline"
+													: "Remote workspace"
+												: "Cloud workspace"}
 								</p>
 								<p className="text-xs text-muted-foreground">
-									{hostType === "local-device"
-										? "Running on this device"
-										: hostType === "remote-device"
-											? hostIsOnline === false
-												? "The associated device isn't reachable right now"
-												: "Running on a paired device"
-											: "Hosted in the cloud"}
+									{isMainWorkspace
+										? workspaceKindDescription
+										: hostType === "local-device"
+											? "Running on this device"
+											: hostType === "remote-device"
+												? hostIsOnline === false
+													? "The associated device isn't reachable right now"
+													: "Running on a paired device"
+												: "Hosted in the cloud"}
 								</p>
 							</>
 						)}
@@ -273,15 +287,19 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 													onDeleteClick();
 												}}
 												className="flex items-center justify-center text-muted-foreground hover:text-foreground"
-												aria-label="Close workspace"
+												aria-label={closeLabel}
 											>
 												<HiMiniXMark className="size-3.5" />
 											</button>
 										</TooltipTrigger>
 										<TooltipContent side="top" sideOffset={4}>
 											<HotkeyLabel
-												label="Close workspace"
-												id={isActive ? "CLOSE_WORKSPACE" : undefined}
+												label={closeLabel}
+												id={
+													isActive && !isMainWorkspace
+														? "CLOSE_WORKSPACE"
+														: undefined
+												}
 											/>
 										</TooltipContent>
 									</Tooltip>
