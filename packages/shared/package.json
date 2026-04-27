@@ -88,6 +88,10 @@
 			"types": "./src/host-info.ts",
 			"default": "./src/host-info.ts"
 		},
+		"./host-routing": {
+			"types": "./src/host-routing.ts",
+			"default": "./src/host-routing.ts"
+		},
 		"./github-remote": {
 			"types": "./src/github-remote.ts",
 			"default": "./src/github-remote.ts"

@@ -5,8 +5,9 @@ import {
 	v2Hosts,
 	v2UsersHosts,
 } from "@superset/db/schema";
+import { parseHostRoutingKey } from "@superset/shared/host-routing";
 import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { jwtProcedure, protectedProcedure } from "../../trpc";
 
@@ -120,11 +121,16 @@ export const hostRouter = {
 	checkAccess: jwtProcedure
 		.input(z.object({ hostId: z.string().min(1) }))
 		.query(async ({ ctx, input }) => {
+			const parsed = parseHostRoutingKey(input.hostId);
+			if (!parsed) return { allowed: false };
+			if (!ctx.organizationIds.includes(parsed.organizationId)) {
+				return { allowed: false };
+			}
 			const row = await db.query.v2UsersHosts.findFirst({
 				where: and(
 					eq(v2UsersHosts.userId, ctx.userId),
-					inArray(v2UsersHosts.organizationId, ctx.organizationIds),
-					eq(v2UsersHosts.hostId, input.hostId),
+					eq(v2UsersHosts.organizationId, parsed.organizationId),
+					eq(v2UsersHosts.hostId, parsed.machineId),
 				),
 				columns: { hostId: true },
 			});
@@ -134,18 +140,26 @@ export const hostRouter = {
 	setOnline: jwtProcedure
 		.input(z.object({ hostId: z.string().min(1), isOnline: z.boolean() }))
 		.mutation(async ({ ctx, input }) => {
-			const memberships = await db
-				.select({ organizationId: v2UsersHosts.organizationId })
-				.from(v2UsersHosts)
-				.where(
-					and(
-						eq(v2UsersHosts.userId, ctx.userId),
-						inArray(v2UsersHosts.organizationId, ctx.organizationIds),
-						eq(v2UsersHosts.hostId, input.hostId),
-					),
-				);
+			const parsed = parseHostRoutingKey(input.hostId);
+			if (!parsed) {
+				throw new TRPCError({ code: "BAD_REQUEST", message: "Invalid hostId" });
+			}
+			if (!ctx.organizationIds.includes(parsed.organizationId)) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "No access to this host",
+				});
+			}
 
-			if (memberships.length === 0) {
+			const access = await db.query.v2UsersHosts.findFirst({
+				where: and(
+					eq(v2UsersHosts.userId, ctx.userId),
+					eq(v2UsersHosts.organizationId, parsed.organizationId),
+					eq(v2UsersHosts.hostId, parsed.machineId),
+				),
+				columns: { hostId: true },
+			});
+			if (!access) {
 				throw new TRPCError({
 					code: "FORBIDDEN",
 					message: "No access to this host",
@@ -157,11 +171,8 @@ export const hostRouter = {
 				.set({ isOnline: input.isOnline })
 				.where(
 					and(
-						inArray(
-							v2Hosts.organizationId,
-							memberships.map((m) => m.organizationId),
-						),
-						eq(v2Hosts.machineId, input.hostId),
+						eq(v2Hosts.organizationId, parsed.organizationId),
+						eq(v2Hosts.machineId, parsed.machineId),
 					),
 				);
 			return { success: true };

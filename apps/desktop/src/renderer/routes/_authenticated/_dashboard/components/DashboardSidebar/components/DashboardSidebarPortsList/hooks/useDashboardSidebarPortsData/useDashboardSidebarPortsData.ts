@@ -41,6 +41,7 @@ export function useDashboardSidebarPortsData(): {
 	const { data: hosts = [] } = useLiveQuery(
 		(q) =>
 			q.from({ hosts: collections.v2Hosts }).select(({ hosts }) => ({
+				organizationId: hosts.organizationId,
 				machineId: hosts.machineId,
 				isOnline: hosts.isOnline,
 			})),

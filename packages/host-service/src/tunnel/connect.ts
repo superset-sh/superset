@@ -1,4 +1,5 @@
 import { getHostId, getHostName } from "@superset/shared/host-info";
+import { buildHostRoutingKey } from "@superset/shared/host-routing";
 import type { JwtApiAuthProvider } from "../providers/auth/JwtAuthProvider/JwtAuthProvider";
 import type { ApiClient } from "../types";
 import { TunnelClient } from "./tunnel-client";
@@ -25,7 +26,7 @@ export async function connectRelay(
 
 		const tunnel = new TunnelClient({
 			relayUrl: options.relayUrl,
-			hostId: host.machineId,
+			hostId: buildHostRoutingKey(options.organizationId, host.machineId),
 			getAuthToken: () => options.authProvider.getJwt(),
 			localPort: options.localPort,
 			hostServiceSecret: options.hostServiceSecret,

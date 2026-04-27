@@ -1,4 +1,5 @@
 import type { WorkspaceState } from "@superset/panes";
+import { buildHostRoutingKey } from "@superset/shared/host-routing";
 import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useEffect, useMemo, useRef } from "react";
@@ -137,6 +138,7 @@ export function useGlobalTerminalLifecycle() {
 				)
 				.select(({ v2Workspaces, hosts }) => ({
 					workspaceId: v2Workspaces.id,
+					organizationId: v2Workspaces.organizationId,
 					hostId: v2Workspaces.hostId,
 					hostMachineId: hosts?.machineId ?? null,
 				})),
@@ -156,7 +158,7 @@ export function useGlobalTerminalLifecycle() {
 			if (workspace.hostId) {
 				urls.set(
 					workspace.workspaceId,
-					`${env.RELAY_URL}/hosts/${workspace.hostId}`,
+					`${env.RELAY_URL}/hosts/${buildHostRoutingKey(workspace.organizationId, workspace.hostId)}`,
 				);
 			}
 		}

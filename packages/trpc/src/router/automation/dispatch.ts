@@ -14,6 +14,7 @@ import {
 	getCommandFromAgentConfig,
 	type TerminalResolvedAgentConfig,
 } from "@superset/shared/agent-settings";
+import { buildHostRoutingKey } from "@superset/shared/host-routing";
 import {
 	deduplicateBranchName,
 	sanitizeBranchNameWithMaxLength,
@@ -97,12 +98,17 @@ export async function dispatchAutomation(
 			ttlSeconds: 300,
 		});
 
+		const routingKey = buildHostRoutingKey(
+			automation.organizationId,
+			host.machineId,
+		);
+
 		if (automation.v2WorkspaceId) {
 			workspaceId = automation.v2WorkspaceId;
 		} else {
 			const created = await createWorkspaceOnHost({
 				relayUrl,
-				hostId: host.machineId,
+				hostId: routingKey,
 				jwt,
 				projectId: automation.v2ProjectId,
 				automation,
@@ -121,7 +127,7 @@ export async function dispatchAutomation(
 		if (agentConfig.kind === "chat") {
 			const { sessionId } = await dispatchChatSession({
 				relayUrl,
-				hostId: host.machineId,
+				hostId: routingKey,
 				jwt,
 				workspaceId,
 				prompt: automation.prompt,
@@ -154,7 +160,7 @@ export async function dispatchAutomation(
 			});
 			const { terminalId } = await dispatchTerminalSession({
 				relayUrl,
-				hostId: host.machineId,
+				hostId: routingKey,
 				jwt,
 				workspaceId,
 				command,

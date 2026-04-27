@@ -1,3 +1,4 @@
+import { buildHostRoutingKey } from "@superset/shared/host-routing";
 import type { PortChangedPayload } from "@superset/workspace-client";
 import type { DetectedPort } from "shared/types";
 import type { DashboardSidebarWorkspaceHostType } from "../../../../types";
@@ -45,6 +46,7 @@ export interface HostPortsQueryTarget {
 }
 
 export interface DashboardSidebarHostRow {
+	organizationId: string;
 	machineId: string;
 	isOnline: boolean;
 }
@@ -146,7 +148,7 @@ export function deriveHostPortQueryTargets({
 
 		const hostUrl = isLocal
 			? activeHostUrl
-			: `${relayUrl}/hosts/${host.machineId}`;
+			: `${relayUrl}/hosts/${buildHostRoutingKey(host.organizationId, host.machineId)}`;
 		if (!hostUrl) return [];
 
 		return [

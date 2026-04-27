@@ -1,5 +1,7 @@
+import { buildHostRoutingKey } from "@superset/shared/host-routing";
 import { useCallback } from "react";
 import { env } from "renderer/env.renderer";
+import { authClient } from "renderer/lib/auth-client";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import type { WorkspaceHostTarget } from "../../components/DashboardNewWorkspaceForm/components/DevicePicker";
@@ -52,13 +54,17 @@ export interface CheckoutWorkspaceInput {
  */
 export function useCheckoutDashboardWorkspace() {
 	const { activeHostUrl } = useLocalHostService();
+	const { data: session } = authClient.useSession();
+	const activeOrganizationId = session?.session?.activeOrganizationId ?? null;
 
 	return useCallback(
 		async (input: CheckoutWorkspaceInput) => {
 			const hostUrl =
 				input.hostTarget.kind === "local"
 					? activeHostUrl
-					: `${env.RELAY_URL}/hosts/${input.hostTarget.hostId}`;
+					: activeOrganizationId
+						? `${env.RELAY_URL}/hosts/${buildHostRoutingKey(activeOrganizationId, input.hostTarget.hostId)}`
+						: null;
 
 			if (!hostUrl) {
 				throw new Error("Host service not available");
@@ -76,6 +82,6 @@ export function useCheckoutDashboardWorkspace() {
 				linkedContext: input.linkedContext,
 			});
 		},
-		[activeHostUrl],
+		[activeHostUrl, activeOrganizationId],
 	);
 }

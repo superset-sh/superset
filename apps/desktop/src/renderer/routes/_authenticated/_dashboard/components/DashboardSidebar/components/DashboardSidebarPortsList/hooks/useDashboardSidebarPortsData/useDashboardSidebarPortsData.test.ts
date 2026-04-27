@@ -154,8 +154,16 @@ describe("deriveHostPortQueryTargets", () => {
 		const targets = deriveHostPortQueryTargets({
 			activeHostUrl: "http://127.0.0.1:4567",
 			hosts: [
-				{ machineId: "remote-machine", isOnline: true },
-				{ machineId: "local-machine", isOnline: true },
+				{
+					organizationId: "org-1",
+					machineId: "remote-machine",
+					isOnline: true,
+				},
+				{
+					organizationId: "org-1",
+					machineId: "local-machine",
+					isOnline: true,
+				},
 			],
 			machineId: "local-machine",
 			relayUrl: "https://relay.example.com",
@@ -185,7 +193,7 @@ describe("deriveHostPortQueryTargets", () => {
 			{
 				machineId: "remote-machine",
 				hostType: "remote-device",
-				hostUrl: "https://relay.example.com/hosts/remote-machine",
+				hostUrl: "https://relay.example.com/hosts/org-1:remote-machine",
 				workspaceIds: ["workspace-c"],
 			},
 			{
@@ -201,8 +209,16 @@ describe("deriveHostPortQueryTargets", () => {
 		const targets = deriveHostPortQueryTargets({
 			activeHostUrl: null,
 			hosts: [
-				{ machineId: "remote-machine", isOnline: false },
-				{ machineId: "local-machine", isOnline: true },
+				{
+					organizationId: "org-1",
+					machineId: "remote-machine",
+					isOnline: false,
+				},
+				{
+					organizationId: "org-1",
+					machineId: "local-machine",
+					isOnline: true,
+				},
 			],
 			machineId: "local-machine",
 			relayUrl: "https://relay.example.com",
