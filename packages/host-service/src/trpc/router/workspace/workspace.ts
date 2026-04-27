@@ -196,7 +196,8 @@ export const workspaceRouter = router({
 				});
 			}
 
-			const cloudWorkspace = await ctx.api.v2Workspace.getForHost.query({
+			const cloudWorkspace = await ctx.api.v2Workspace.getFromHost.query({
+				organizationId: ctx.organizationId,
 				id: input.id,
 			});
 			if (cloudWorkspace?.type === "main") {

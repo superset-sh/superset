@@ -64,7 +64,8 @@ export const workspaceCleanupRouter = router({
 				});
 			}
 			if (ctx.api) {
-				const cloudWorkspace = await ctx.api.v2Workspace.getForHost.query({
+				const cloudWorkspace = await ctx.api.v2Workspace.getFromHost.query({
+					organizationId: ctx.organizationId,
 					id: input.workspaceId,
 				});
 				if (cloudWorkspace?.type === "main") {
