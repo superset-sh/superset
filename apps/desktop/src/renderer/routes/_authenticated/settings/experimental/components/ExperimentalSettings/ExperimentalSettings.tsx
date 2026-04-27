@@ -4,6 +4,7 @@ import { toast } from "@superset/ui/sonner";
 import { Switch } from "@superset/ui/switch";
 import { LuRefreshCw } from "react-icons/lu";
 import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
+import { track } from "renderer/lib/analytics";
 import { useMigrateV1DataToV2 } from "renderer/routes/_authenticated/hooks/useMigrateV1DataToV2";
 import type { MigrationSummary } from "renderer/routes/_authenticated/hooks/useMigrateV1DataToV2/migrate";
 import { useV2LocalOverrideStore } from "renderer/stores/v2-local-override";
@@ -74,7 +75,13 @@ export function ExperimentalSettings({
 						<Switch
 							id="superset-v2"
 							checked={isV2CloudEnabled}
-							onCheckedChange={(enabled) => setOptInV2(enabled)}
+							onCheckedChange={(enabled) => {
+								track("surface_toggled", {
+									from: isV2CloudEnabled ? "v2" : "v1",
+									to: enabled && isRemoteV2Enabled ? "v2" : "v1",
+								});
+								setOptInV2(enabled);
+							}}
 							disabled={!isRemoteV2Enabled}
 						/>
 					</div>
