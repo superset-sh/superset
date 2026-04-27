@@ -30,7 +30,7 @@ export function ExperimentalSettings({
 	);
 	const { isV2CloudEnabled, isRemoteV2Enabled } = useIsV2CloudEnabled();
 	const { rerun, isRunning } = useMigrateV1DataToV2({ autoRun: false });
-	const setForceV1 = useV2LocalOverrideStore((state) => state.setForceV1);
+	const setOptInV2 = useV2LocalOverrideStore((state) => state.setOptInV2);
 
 	async function rerunMigration() {
 		const result = await rerun();
@@ -74,7 +74,7 @@ export function ExperimentalSettings({
 						<Switch
 							id="superset-v2"
 							checked={isV2CloudEnabled}
-							onCheckedChange={(enabled) => setForceV1(!enabled)}
+							onCheckedChange={(enabled) => setOptInV2(enabled)}
 							disabled={!isRemoteV2Enabled}
 						/>
 					</div>
