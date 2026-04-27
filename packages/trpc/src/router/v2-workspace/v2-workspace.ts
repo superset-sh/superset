@@ -181,6 +181,31 @@ export const v2WorkspaceRouter = {
 			});
 		}),
 
+	getFromHost: jwtProcedure
+		.input(
+			z.object({
+				organizationId: z.string().uuid(),
+				id: z.string().uuid(),
+			}),
+		)
+		.query(async ({ ctx, input }) => {
+			if (!ctx.organizationIds.includes(input.organizationId)) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "Not a member of this organization",
+				});
+			}
+
+			return (
+				(await dbWs.query.v2Workspaces.findFirst({
+					where: and(
+						eq(v2Workspaces.id, input.id),
+						eq(v2Workspaces.organizationId, input.organizationId),
+					),
+				})) ?? null
+			);
+		}),
+
 	update: protectedProcedure
 		.input(
 			z.object({

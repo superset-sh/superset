@@ -1,8 +1,12 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
+import {
+	getSlashCommands as getSlashCommandsFromCwd,
+	resolveSlashCommand as resolveSlashCommandFromCwd,
+} from "@superset/chat/server/desktop";
 import { eq } from "drizzle-orm";
-import { createMastraCode } from "mastracode";
+import { createAuthStorage, createMastraCode } from "mastracode";
 import type { HostDb } from "../../db";
 import { workspaces } from "../../db/schema";
 import type { ModelProviderRuntimeResolver } from "../../providers/model-providers";
@@ -275,6 +279,35 @@ function toRuntimeErrorMessage(error: unknown): string {
 	return "Unexpected chat error";
 }
 
+/**
+ * Pick the model mastra should use for observational-memory reflection
+ * (a background task that runs after each turn). Mastra's default is
+ * google/gemini-2.5-flash, which fails when GOOGLE_GENERATIVE_AI_API_KEY
+ * is unset — we fall back to whichever provider the user has actually
+ * authenticated with so reflection just uses those credentials.
+ */
+function resolveOmModelFromAuth(): string | undefined {
+	if (process.env.GOOGLE_GENERATIVE_AI_API_KEY)
+		return "google/gemini-2.5-flash";
+	const authStorage = createAuthStorage();
+	authStorage.reload();
+	const anthropic = authStorage.get("anthropic");
+	if (
+		anthropic?.type === "oauth" ||
+		(anthropic?.type === "api_key" && anthropic.key.trim())
+	) {
+		return "anthropic/claude-haiku-4-5";
+	}
+	const openai = authStorage.get("openai-codex");
+	if (
+		openai?.type === "oauth" ||
+		(openai?.type === "api_key" && openai.key.trim())
+	) {
+		return "openai/gpt-4.1-nano";
+	}
+	return undefined;
+}
+
 async function getRuntimeMemoryStore(
 	runtime: RuntimeSession,
 ): Promise<RuntimeMemoryStore> {
@@ -357,13 +390,18 @@ async function restartRuntimeFromUserMessage(
 	await runtime.harness.sendMessage(input.payload);
 }
 
+interface InflightRuntimeCreation {
+	workspaceId: string;
+	promise: Promise<RuntimeSession>;
+}
+
 export class ChatRuntimeManager {
 	private readonly db: HostDb;
 	private readonly runtimeResolver: ModelProviderRuntimeResolver;
 	private readonly runtimes = new Map<string, RuntimeSession>();
 	private readonly runtimeCreations = new Map<
 		string,
-		Promise<RuntimeSession>
+		InflightRuntimeCreation
 	>();
 
 	constructor(options: ChatRuntimeManagerOptions) {
@@ -453,9 +491,16 @@ When you need to ask the user ANY question — including simple yes/no, confirma
 		this.ensureGlobalAgentInstructions();
 		await this.runtimeResolver.prepareRuntimeEnv();
 
+		const omModel = resolveOmModelFromAuth();
 		const runtime = await createMastraCode({
 			cwd,
 			disableMcp: true,
+			...(omModel && {
+				initialState: {
+					observerModelId: omModel,
+					reflectorModelId: omModel,
+				},
+			}),
 		});
 		runtime.hookManager?.setSessionId(sessionId);
 		await runtime.harness.init();
@@ -495,24 +540,79 @@ When you need to ask the user ANY question — including simple yes/no, confirma
 
 		const inflight = this.runtimeCreations.get(sessionId);
 		if (inflight) {
-			return inflight;
+			if (inflight.workspaceId !== workspaceId) {
+				throw new Error(
+					`Session ${sessionId} is already being created for workspace ${inflight.workspaceId}`,
+				);
+			}
+			return inflight.promise;
 		}
 
-		const creation = this.createRuntime(sessionId, workspaceId).finally(() => {
+		const promise = this.createRuntime(sessionId, workspaceId).finally(() => {
 			this.runtimeCreations.delete(sessionId);
 		});
-		this.runtimeCreations.set(sessionId, creation);
-		return creation;
+		this.runtimeCreations.set(sessionId, { workspaceId, promise });
+		return promise;
 	}
 
-	async getDisplayState(input: {
-		sessionId: string;
-		workspaceId: string;
-	}): Promise<ChatDisplayState> {
-		const runtime = await this.getOrCreateRuntime(
-			input.sessionId,
-			input.workspaceId,
-		);
+	/**
+	 * Tear down the in-memory runtime for a session. Aborts any in-flight
+	 * work, disconnects MCP servers, removes the runtime from the manager's
+	 * map, and is a no-op for unknown session ids. Should be called after
+	 * the cloud session row is deleted, or when a workspace is deleted.
+	 *
+	 * Validates `workspaceId` against the runtime / in-flight creation so a
+	 * caller can't dispose a session bound to a different workspace.
+	 *
+	 * If a creation is in-flight for this session, awaits it first so the
+	 * just-created runtime doesn't get inserted into `runtimes` after we
+	 * delete from it (which would leak).
+	 */
+	async disposeRuntime(sessionId: string, workspaceId: string): Promise<void> {
+		const inflight = this.runtimeCreations.get(sessionId);
+		if (inflight) {
+			if (inflight.workspaceId !== workspaceId) {
+				throw new Error(
+					`Session ${sessionId} is being created for workspace ${inflight.workspaceId}`,
+				);
+			}
+			try {
+				await inflight.promise;
+			} catch {
+				// Creation failed — nothing to dispose.
+				return;
+			}
+		}
+
+		const runtime = this.runtimes.get(sessionId);
+		if (!runtime) return;
+
+		if (runtime.workspaceId !== workspaceId) {
+			throw new Error(
+				`Session ${sessionId} is bound to workspace ${runtime.workspaceId}`,
+			);
+		}
+
+		try {
+			runtime.harness.abort();
+		} catch {
+			// best-effort — proceed with cleanup even if abort fails
+		}
+		try {
+			await runtime.mcpManager?.disconnect();
+		} catch {
+			// best-effort — MCP servers may already be disconnected
+		}
+		this.runtimes.delete(sessionId);
+	}
+
+	/**
+	 * Shape the harness's raw display state into the shape the renderer
+	 * expects. Both getDisplayState and getSnapshot must apply the same
+	 * shaping — keep this the single source of truth so the two functions
+	 * cannot drift.
+	 */
+	private buildDisplayState(runtime: RuntimeSession): ChatDisplayState {
 		const displayState = runtime.harness.getDisplayState();
 		const currentMessage = displayState.currentMessage as {
 			role?: string;
@@ -555,6 +655,17 @@ When you need to ask the user ANY question — including simple yes/no, confirma
 		};
 	}
 
+	async getDisplayState(input: {
+		sessionId: string;
+		workspaceId: string;
+	}): Promise<ChatDisplayState> {
+		const runtime = await this.getOrCreateRuntime(
+			input.sessionId,
+			input.workspaceId,
+		);
+		return this.buildDisplayState(runtime);
+	}
+
 	async listMessages(input: {
 		sessionId: string;
 		workspaceId: string;
@@ -564,6 +675,36 @@ When you need to ask the user ANY question — including simple yes/no, confirma
 			input.workspaceId,
 		);
 		return runtime.harness.listMessages();
+	}
+
+	/**
+	 * Single server-side observation that returns both displayState and messages
+	 * from one runtime acquisition. This avoids the dual-poll race between
+	 * independent getDisplayState / listMessages queries on the client.
+	 *
+	 * Note: not a fully locked atomic snapshot — listMessages() is async, so
+	 * harness state can change between the displayState read and the messages
+	 * read. This still removes the *client-side* two-query race, which is the
+	 * one that caused mismatched message/display state.
+	 */
+	async getSnapshot(input: {
+		sessionId: string;
+		workspaceId: string;
+	}): Promise<{
+		displayState: ChatDisplayState;
+		messages: RuntimeMessages;
+	}> {
+		const runtime = await this.getOrCreateRuntime(
+			input.sessionId,
+			input.workspaceId,
+		);
+		const displayState = this.buildDisplayState(runtime);
+		const messages = await runtime.harness.listMessages();
+		// Intentionally no observedAt: when the harness state hasn't changed,
+		// the response object is structurally identical to the previous poll's
+		// response, so React Query's structuralSharing preserves the object
+		// identity and idle polls don't trigger downstream rerenders.
+		return { displayState, messages };
 	}
 
 	async sendMessage(
@@ -645,39 +786,41 @@ When you need to ask the user ANY question — including simple yes/no, confirma
 		return runtime.harness.respondToPlanApproval(input.payload);
 	}
 
-	async getSlashCommands(_input: {
-		sessionId: string;
-		workspaceId: string;
-	}): Promise<
+	private resolveWorkspaceCwd(workspaceId: string): string {
+		const workspace = this.db.query.workspaces
+			.findFirst({ where: eq(workspaces.id, workspaceId) })
+			.sync();
+		if (!workspace) {
+			throw new Error(`Workspace not found: ${workspaceId}`);
+		}
+		return workspace.worktreePath;
+	}
+
+	async getSlashCommands(input: { workspaceId: string }): Promise<
 		Array<{
 			name: string;
 			aliases: string[];
 			description: string;
 			argumentHint: string;
-			kind: "builtin" | "prompt";
+			kind: "builtin" | "custom";
 		}>
 	> {
-		return [];
+		const cwd = this.resolveWorkspaceCwd(input.workspaceId);
+		return getSlashCommandsFromCwd(cwd).map((command) => ({
+			name: command.name,
+			aliases: command.aliases,
+			description: command.description,
+			argumentHint: command.argumentHint,
+			kind: command.kind,
+		}));
 	}
 
-	async resolveSlashCommand(input: {
-		sessionId: string;
-		workspaceId: string;
-		text: string;
-	}) {
-		return {
-			handled: false,
-			invokedAs: input.text.trim().startsWith("/")
-				? input.text.trim()
-				: undefined,
-		};
+	async resolveSlashCommand(input: { workspaceId: string; text: string }) {
+		const cwd = this.resolveWorkspaceCwd(input.workspaceId);
+		return resolveSlashCommandFromCwd(cwd, input.text);
 	}
 
-	async previewSlashCommand(input: {
-		sessionId: string;
-		workspaceId: string;
-		text: string;
-	}) {
+	async previewSlashCommand(input: { workspaceId: string; text: string }) {
 		return this.resolveSlashCommand(input);
 	}
 

@@ -11,6 +11,11 @@ import {
 
 export interface ResolvedRepo {
 	repoPath: string;
+	remoteName: string | null;
+	parsed: ParsedGitHubRemote | null;
+}
+
+export interface ResolvedGitHubRepo extends ResolvedRepo {
 	remoteName: string;
 	parsed: ParsedGitHubRemote;
 }
@@ -52,7 +57,7 @@ async function revParseGitRoot(path: string): Promise<string> {
  */
 export async function resolveWithPrimaryRemote(
 	repoPath: string,
-): Promise<ResolvedRepo> {
+): Promise<ResolvedGitHubRepo> {
 	validateDirectoryPath(repoPath, "Path");
 	const gitRoot = await revParseGitRoot(repoPath);
 	const remotes = await getGitHubRemotes(simpleGit(gitRoot));
@@ -79,6 +84,27 @@ export async function resolveWithPrimaryRemote(
 
 /**
  * Validates that a path is a git working tree and returns the canonical git
+ * root plus its primary GitHub remote when one exists. Local-only repos are
+ * valid v2 projects; they simply have no cloud clone URL or GitHub metadata.
+ */
+export async function resolveLocalRepo(
+	repoPath: string,
+): Promise<ResolvedRepo> {
+	validateDirectoryPath(repoPath, "Path");
+	const gitRoot = await revParseGitRoot(repoPath);
+	const remotes = await getGitHubRemotes(simpleGit(gitRoot));
+	const originParsed = remotes.get("origin");
+	if (originParsed) {
+		return { repoPath: gitRoot, remoteName: "origin", parsed: originParsed };
+	}
+	const first = remotes.entries().next().value;
+	if (!first) return { repoPath: gitRoot, remoteName: null, parsed: null };
+	const [firstName, firstParsed] = first;
+	return { repoPath: gitRoot, remoteName: firstName, parsed: firstParsed };
+}
+
+/**
+ * Validates that a path is a git working tree and returns the canonical git
  * root plus the GitHub remote whose `owner/name` matches `expectedSlug`.
  * Throws if no matching remote exists.
  *
@@ -89,7 +115,7 @@ export async function resolveWithPrimaryRemote(
 export async function resolveMatchingSlug(
 	repoPath: string,
 	expectedSlug: string,
-): Promise<ResolvedRepo> {
+): Promise<ResolvedGitHubRepo> {
 	validateDirectoryPath(repoPath, "Path");
 	const gitRoot = await revParseGitRoot(repoPath);
 	const remotes = await getGitHubRemotes(simpleGit(gitRoot));
@@ -121,7 +147,7 @@ export async function resolveMatchingSlug(
 export async function cloneRepoInto(
 	repoCloneUrl: string,
 	parentDir: string,
-): Promise<ResolvedRepo> {
+): Promise<ResolvedGitHubRepo> {
 	const parsedUrl = parseGitHubRemote(repoCloneUrl);
 	if (!parsedUrl) {
 		throw new TRPCError({
