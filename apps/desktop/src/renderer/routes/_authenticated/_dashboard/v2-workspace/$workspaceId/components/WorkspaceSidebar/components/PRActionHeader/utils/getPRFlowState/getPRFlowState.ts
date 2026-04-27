@@ -63,7 +63,7 @@ export function getPRFlowState(input: GetPRFlowStateInput): PRFlowState {
 
 export type ActionButtonVariant =
 	| { kind: "hidden" }
-	| { kind: "disabled-tooltip"; reason: string }
+	| { kind: "disabled-tooltip"; reasonKind: UnavailableReason }
 	| { kind: "create-pr-dropdown" }
 	| { kind: "cancel-busy" }
 	| { kind: "retry" };
@@ -73,10 +73,7 @@ export function selectActionButton(state: PRFlowState): ActionButtonVariant {
 		case "loading":
 			return { kind: "hidden" };
 		case "unavailable":
-			return {
-				kind: "disabled-tooltip",
-				reason: unavailableTooltip(state.reason),
-			};
+			return { kind: "disabled-tooltip", reasonKind: state.reason };
 		case "no-pr":
 			return { kind: "create-pr-dropdown" };
 		case "pr-exists":
@@ -149,7 +146,7 @@ function getPRFromState(state: PRFlowState): PullRequest | null {
 	}
 }
 
-function unavailableTooltip(reason: UnavailableReason): string {
+function _unavailableTooltip(reason: UnavailableReason): string {
 	switch (reason) {
 		case "no-repo":
 			return "No GitHub repository connected";

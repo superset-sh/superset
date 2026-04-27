@@ -197,7 +197,10 @@ function WorkspaceContent({
 	const onBeforeCloseTab = useDirtyTabCloseGuard({ workspaceId });
 
 	const sidebarOpen = v2UserPreferences.rightSidebarOpen;
-	const sidebarWidth = v2UserPreferences.rightSidebarWidth;
+	// Fallback for rows persisted before the rightSidebarWidth field existed —
+	// the live collection skips zod defaults, so an older row reads undefined
+	// here and would render the ResizablePanel without a width (full-bleed).
+	const sidebarWidth = v2UserPreferences.rightSidebarWidth ?? 340;
 	const [isSidebarResizing, setIsSidebarResizing] = useState(false);
 	const { onSidebarResizeDragging, onWorkspaceInteractionStateChange } =
 		useBrowserShellInteractionPassthrough({ sidebarOpen });
