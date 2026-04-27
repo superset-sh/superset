@@ -24,6 +24,11 @@ export const DEV_CHAT_MODELS: ModelOption[] = [
 		provider: "Anthropic",
 	},
 	{
+		id: "openai/gpt-5.5",
+		name: "GPT-5.5",
+		provider: "OpenAI",
+	},
+	{
 		id: "openai/gpt-5.4",
 		name: "GPT-5.4",
 		provider: "OpenAI",
