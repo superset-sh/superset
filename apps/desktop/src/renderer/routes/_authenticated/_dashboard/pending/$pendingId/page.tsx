@@ -62,6 +62,7 @@ function useFireIntent(pendingId: string, pending: PendingWorkspaceRow | null) {
 	const hostUrl = useHostTargetUrl(pending?.hostTarget ?? null);
 	const { data: session } = authClient.useSession();
 	const activeOrganizationId = session?.session?.activeOrganizationId ?? null;
+	const { ensureWorkspaceInSidebar } = useDashboardSidebarState();
 
 	const fire = useCallback(async () => {
 		if (!pending) return;
@@ -144,6 +145,15 @@ function useFireIntent(pendingId: string, pending: PendingWorkspaceRow | null) {
 				}
 			}
 
+			// Register in the sidebar as soon as the workspace exists. The
+			// post-create navigate effect also calls this, but only fires while
+			// the user is still on the pending page and after workspace sync
+			// completes — calling it here guarantees the row appears even if the
+			// user has navigated away or sync is slow.
+			if (result.workspace?.id) {
+				ensureWorkspaceInSidebar(result.workspace.id, pending.projectId);
+			}
+
 			// V2 dispatch: after host-service.create resolves, build the launch
 			// plan and stash it on the pending row. The V2 workspace page's
 			// useConsumePendingLaunch mount-effect picks it up and opens the
@@ -198,6 +208,7 @@ function useFireIntent(pendingId: string, pending: PendingWorkspaceRow | null) {
 		createWorkspace,
 		checkoutWorkspace,
 		adoptWorktree,
+		ensureWorkspaceInSidebar,
 		pending,
 		pendingId,
 		trpcUtils,
