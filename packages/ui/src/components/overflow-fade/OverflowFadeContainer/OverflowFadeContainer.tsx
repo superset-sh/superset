@@ -1,6 +1,6 @@
 "use client";
 
-import { type ComponentProps, useLayoutEffect } from "react";
+import { type ComponentProps, useLayoutEffect, useRef } from "react";
 import {
 	type OverflowFadeState,
 	useOverflowFade,
@@ -57,8 +57,13 @@ export function OverflowFadeContainer({
 		}
 	};
 
+	const onOverflowChangeRef = useRef(onOverflowChange);
 	useLayoutEffect(() => {
-		onOverflowChange?.({
+		onOverflowChangeRef.current = onOverflowChange;
+	});
+
+	useLayoutEffect(() => {
+		onOverflowChangeRef.current?.({
 			hasOverflowX,
 			hasOverflowY,
 			canScrollLeft,
@@ -73,7 +78,6 @@ export function OverflowFadeContainer({
 		canScrollTop,
 		hasOverflowX,
 		hasOverflowY,
-		onOverflowChange,
 	]);
 
 	return (
