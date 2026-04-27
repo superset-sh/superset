@@ -181,8 +181,9 @@ export function buildV2TerminalEnv(
 		env.SUPERSET_HOME_DIR = supersetHomeDir;
 	}
 
-	// Electron child processes can't access macOS Keychain for TLS cert verification,
-	// causing "x509: OSStatus -26276" in Go binaries like `gh`. File-based fallback.
+	// Belt-and-suspenders for tools that prefer file-based trust roots even
+	// when the macOS Security framework is reachable (clean-shell-env now
+	// forwards the XPC bootstrap vars, so trust evaluation works directly).
 	if (
 		os.platform() === "darwin" &&
 		!env.SSL_CERT_FILE &&
