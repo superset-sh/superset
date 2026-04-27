@@ -94,7 +94,7 @@ export function ExperimentalSettings({
 							disabled={!isV2CloudEnabled || isRunning}
 						>
 							<LuRefreshCw
-								className={isRunning ? "h-4 w-4 animate-spin" : "h-4 w-4"}
+								className={`h-4 w-4${isRunning ? " animate-spin" : ""}`}
 								strokeWidth={2}
 							/>
 							{isRunning ? "Running" : "Run again"}
@@ -144,9 +144,13 @@ function formatMigrationSuccess(summary: MigrationSummary): string {
 		} skipped`;
 	}
 	if (changed === 0) return "Migration run completed: nothing to update";
+	const skippedSuffix =
+		summary.workspacesSkipped > 0
+			? ` (+${summary.workspacesSkipped} skipped)`
+			: "";
 	return `Migration run completed: ${summary.projectsCreated + summary.projectsLinked} project${
 		summary.projectsCreated + summary.projectsLinked === 1 ? "" : "s"
 	}, ${summary.workspacesCreated} workspace${
 		summary.workspacesCreated === 1 ? "" : "s"
-	}`;
+	}${skippedSuffix}`;
 }

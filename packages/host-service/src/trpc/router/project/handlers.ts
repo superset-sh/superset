@@ -46,16 +46,23 @@ async function createCloudProjectWithSlugRetry(
 	let lastError: unknown;
 	const maxAttempts = 10;
 	for (let attempt = 0; attempt < maxAttempts; attempt++) {
+		const slug = slugWithSuffix(baseSlug, attempt);
 		try {
 			return await ctx.api.v2Project.create.mutate({
 				organizationId: ctx.organizationId,
 				name: args.name,
-				slug: slugWithSuffix(baseSlug, attempt),
+				slug,
 				repoCloneUrl: args.repoCloneUrl,
 			});
 		} catch (err) {
 			if (!isSlugConflict(err)) throw err;
 			lastError = err;
+			console.warn("[project.create] slug conflict, retrying", {
+				organizationId: ctx.organizationId,
+				name: args.name,
+				slug,
+				attempt,
+			});
 		}
 	}
 	throw new TRPCError({
@@ -92,11 +99,13 @@ export async function createFromClone(
 	args: { name: string; parentDir: string; url: string },
 ): Promise<CreateResult> {
 	const resolved = await cloneRepoInto(args.url, args.parentDir);
+	let cloudProjectCreated = false;
 	try {
 		const cloudProject = await createCloudProjectWithSlugRetry(ctx, {
 			name: args.name,
 			repoCloneUrl: args.url,
 		});
+		cloudProjectCreated = true;
 		persistLocalProjectOrWarn(
 			ctx,
 			cloudProject.id,
@@ -105,6 +114,9 @@ export async function createFromClone(
 		);
 		return { projectId: cloudProject.id, repoPath: resolved.repoPath };
 	} catch (err) {
+		// Once a cloud project exists, keep the clone in place so rerun/recovery
+		// has a local repo path to relink instead of creating a second clone.
+		if (cloudProjectCreated) throw err;
 		try {
 			rmSync(resolved.repoPath, { recursive: true, force: true });
 		} catch (cleanupErr) {
