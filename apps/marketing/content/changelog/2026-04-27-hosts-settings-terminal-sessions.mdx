@@ -1,0 +1,46 @@
+---
+title: Host access controls, cross-workspace terminal sessions, and v2 polish
+date: 2026-04-27
+image: /changelog/IMAGE_PLACEHOLDER.png
+---
+
+{/* TODO: Replace header image with a screenshot of the new Hosts settings page */}
+
+## Host access controls <PRBadge url="https://github.com/superset-sh/superset/pull/3768" />
+
+A new **Hosts** page in Organization settings lets you control who can connect to each registered host. The two-pane layout matches Projects: a filterable sidebar groups online and offline hosts, and the detail view lists members with owner-only controls to add, remove, or change roles. Clicking into the Hosts or Projects sidebar now navigates directly to the first available item instead of an empty placeholder.
+
+## Cross-workspace terminal sessions <PRBadge url="https://github.com/superset-sh/superset/pull/3751" />
+
+The terminal session dropdown in v2 now lists sessions from all your workspaces, grouped by workspace. Selecting a session in a different workspace navigates there with the terminal focused. Sessions also show their live shell or process title so you can tell them apart at a glance. <PRBadge url="https://github.com/superset-sh/superset/pull/3740" />
+
+## Mark workspace as unread <PRBadge url="https://github.com/superset-sh/superset/pull/3773" />
+
+Right-click any v2 sidebar workspace to **Mark as Unread** — it gets the same green dot as a real agent-ready notification. Clicking the workspace clears it automatically.
+
+## Improvements
+
+- **Diff pane file viewer** — clicking a file path in the v2 diff pane opens it in the built-in file viewer; Shift-click opens it in a new tab <PRBadge url="https://github.com/superset-sh/superset/pull/3715" />
+- **Table support in markdown editor** — Tiptap now renders and pastes markdown tables with proper cell styling <PRBadge url="https://github.com/superset-sh/superset/pull/3719" />
+- **v2 early access moved to Experimental settings** — the v2 opt-in toggle is now under Settings → Experimental instead of the top bar <PRBadge url="https://github.com/superset-sh/superset/pull/3748" />
+- **Sidebar group management** — group creation starts inline rename immediately; ungroup and delete no longer leave workspaces visually orphaned; hover-only group actions reduce clutter <PRBadge url="https://github.com/superset-sh/superset/pull/3745" />
+- **v2 terminal hotkeys in v1** — keyboard shortcuts added in v2 are now available in v1 as well <PRBadge url="https://github.com/superset-sh/superset/pull/3724" />
+- **v2 pane header responsiveness** — pane headers adapt better at narrow widths <PRBadge url="https://github.com/superset-sh/superset/pull/3737" />
+- **Updated v2 sidebar workspace icons** <PRBadge url="https://github.com/superset-sh/superset/pull/3755" />
+
+---
+
+**Bug fixes**
+
+- Fixed v2 terminal lifecycle after sleep <PRBadge url="https://github.com/superset-sh/superset/pull/3711" />
+- Fixed v2 terminal OSC links (clickable file/URL paths) <PRBadge url="https://github.com/superset-sh/superset/pull/3736" />
+- Stabilized v2 terminal resize and fixed v1 terminal resize repaint <PRBadge url="https://github.com/superset-sh/superset/pull/3739" /> <PRBadge url="https://github.com/superset-sh/superset/pull/3756" />
+- Fixed host service restart not being re-adopted <PRBadge url="https://github.com/superset-sh/superset/pull/3732" />
+- Fixed automation list flicker on initial load <PRBadge url="https://github.com/superset-sh/superset/pull/3772" />
+- Fixed automation timezone scheduling <PRBadge url="https://github.com/superset-sh/superset/pull/3738" />
+- Fixed long workspace titles overflowing on creation error page <PRBadge url="https://github.com/superset-sh/superset/pull/3718" />
+- Fixed v2 sidebar navigating away on workspace delete <PRBadge url="https://github.com/superset-sh/superset/pull/3771" />
+- Fixed v2 workspace sidebar sync <PRBadge url="https://github.com/superset-sh/superset/pull/3746" />
+- Fixed active item selection after sidebar item removal <PRBadge url="https://github.com/superset-sh/superset/pull/3767" />
+- Cleared workspace ready notification on workspace click <PRBadge url="https://github.com/superset-sh/superset/pull/3765" />
+- Allowed duplicate repo clone URLs when creating v2 workspaces <PRBadge url="https://github.com/superset-sh/superset/pull/3723" />
