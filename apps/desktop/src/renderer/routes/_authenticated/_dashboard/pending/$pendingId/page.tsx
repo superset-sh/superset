@@ -14,6 +14,7 @@ import {
 	clearAttachments,
 	loadAttachments,
 } from "renderer/lib/pending-attachment-store";
+import { V2WorkspaceLoadingView } from "renderer/routes/_authenticated/_dashboard/v2-workspace-loading/$workspaceId/components/V2WorkspaceLoadingView";
 import { useAdoptWorktree } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/hooks/useAdoptWorktree";
 import { useCheckoutDashboardWorkspace } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/hooks/useCheckoutDashboardWorkspace";
 import { useCreateDashboardWorkspace } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/hooks/useCreateDashboardWorkspace";
@@ -21,6 +22,7 @@ import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/u
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import type { PendingWorkspaceRow } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal/schema";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
+import type { WorkspaceInitStep } from "shared/types/workspace-init";
 import type { ResolvedPrContent } from "./buildForkAgentLaunch";
 import {
 	buildAdoptPayload,
@@ -264,7 +266,8 @@ function PendingWorkspacePage() {
 	}, [pending, fireIntent]);
 
 	// Poll host-service for step-by-step progress (fork + checkout only;
-	// adopt is fast and doesn't instrument progress).
+	// adopt is fast and doesn't instrument progress). Drives the keypad-loader
+	// off real backend state so keys press as steps advance.
 	const intentHasProgress =
 		pending?.intent === "fork" || pending?.intent === "checkout";
 	const hostUrl = !pending
@@ -286,7 +289,7 @@ function PendingWorkspacePage() {
 		enabled: pending?.status === "creating" && !!hostUrl && intentHasProgress,
 	});
 
-	const steps = progress?.steps ?? [];
+	const loaderStep = mapHostProgressToInitStep(progress?.steps);
 
 	const STALE_THRESHOLD_MS = 2 * 60 * 1000;
 	const [now, setNow] = useState(Date.now());
@@ -362,12 +365,39 @@ function PendingWorkspacePage() {
 		);
 	}
 
-	const creatingLabel =
+	const creatingTitle =
 		pending.intent === "adopt"
-			? "Adopting worktree..."
+			? "Adopting worktree"
 			: pending.intent === "checkout"
-				? "Checking out branch..."
-				: "Creating workspace...";
+				? "Checking out branch"
+				: "Setting up workspace";
+
+	if (pending.status === "creating") {
+		return (
+			<V2WorkspaceLoadingView
+				workspaceName={pending.name}
+				title={creatingTitle}
+				currentStep={loaderStep}
+				description={
+					isStale
+						? "This is taking longer than expected..."
+						: `Takes 10s to a few minutes (started ${elapsedLabel})`
+				}
+			>
+				<button
+					type="button"
+					className="mt-2 rounded-md border px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-accent"
+					onClick={() => {
+						collections.pendingWorkspaces.delete(pendingId);
+						void clearAttachments(pendingId);
+						void navigate({ to: "/" });
+					}}
+				>
+					Dismiss
+				</button>
+			</V2WorkspaceLoadingView>
+		);
+	}
 
 	return (
 		<div className="flex h-full w-full flex-1 justify-center pt-24">
@@ -379,74 +409,6 @@ function PendingWorkspacePage() {
 						<span className="font-mono">{pending.branchName}</span>
 					</div>
 				</div>
-
-				{pending.status === "creating" && (
-					<div className="space-y-3">
-						<div className="flex items-center justify-between">
-							<p
-								className={`text-sm ${isStale ? "text-amber-500" : "text-muted-foreground"}`}
-							>
-								{isStale
-									? "This is taking longer than expected..."
-									: creatingLabel}
-							</p>
-							<span className="text-xs tabular-nums text-muted-foreground/50">
-								{elapsedLabel}
-							</span>
-						</div>
-						{intentHasProgress && steps.length > 0 ? (
-							<div className="space-y-2">
-								{steps.map((step) => (
-									<div
-										key={step.id}
-										className="flex items-center gap-2.5 text-sm"
-									>
-										{step.status === "done" ? (
-											<HiCheck className="size-4 text-emerald-500" />
-										) : step.status === "active" ? (
-											<div className="size-4 flex items-center justify-center">
-												<div className="size-2.5 rounded-full bg-foreground animate-pulse" />
-											</div>
-										) : (
-											<div className="size-4 flex items-center justify-center">
-												<div className="size-2 rounded-full bg-muted-foreground/30" />
-											</div>
-										)}
-										<span
-											className={
-												step.status === "done" || step.status === "active"
-													? "text-foreground"
-													: "text-muted-foreground/50"
-											}
-										>
-											{step.label}
-										</span>
-									</div>
-								))}
-							</div>
-						) : (
-							// Adopt has no host-side progress steps — show a generic spinner.
-							<div className="flex items-center gap-2.5 text-sm text-muted-foreground">
-								<div className="size-4 flex items-center justify-center">
-									<div className="size-2.5 rounded-full bg-foreground animate-pulse" />
-								</div>
-							</div>
-						)}
-						<div className="flex gap-2 pt-1">
-							<button
-								type="button"
-								className="rounded-md border px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-accent"
-								onClick={() => {
-									collections.pendingWorkspaces.delete(pendingId);
-									void clearAttachments(pendingId);
-									void navigate({ to: "/" });
-								}}
-							>
-								Dismiss
-							</button>
-						</div>
-					</div>
-				)}
 
 				{pending.status === "succeeded" &&
 					(syncTimedOut && !workspaceSynced ? (
@@ -541,4 +503,25 @@ function PendingWorkspacePage() {
 			</div>
 		</div>
 	);
+}
+
+type HostProgressStep = {
+	id: string;
+	label: string;
+	status: "pending" | "active" | "done";
+};
+
+// Maps the host-service's 3-step progress (ensuring_repo → creating_worktree
+// → registering) onto the v1 keypad's step vocabulary. Skipped keys (fetching,
+// copying_config) press through quickly when the keypad jumps past them.
+function mapHostProgressToInitStep(
+	steps: HostProgressStep[] | null | undefined,
+): WorkspaceInitStep | undefined {
+	if (!steps || steps.length === 0) return undefined;
+	const byId = new Map(steps.map((s) => [s.id, s.status]));
+	if (byId.get("registering") === "done") return "ready";
+	if (byId.get("registering") === "active") return "finalizing";
+	if (byId.get("creating_worktree") === "active") return "creating_worktree";
+	if (byId.get("ensuring_repo") === "active") return "syncing";
+	return "pending";
 }
