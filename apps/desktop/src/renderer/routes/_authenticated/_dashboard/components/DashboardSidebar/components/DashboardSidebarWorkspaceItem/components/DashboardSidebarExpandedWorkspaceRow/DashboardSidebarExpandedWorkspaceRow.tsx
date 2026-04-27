@@ -288,6 +288,15 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 														event.stopPropagation();
 														onRemoveFromSidebarClick();
 													}}
+													onKeyDown={(event) => {
+														if (
+															event.key === "Enter" ||
+															event.key === " " ||
+															event.key === "Spacebar"
+														) {
+															event.stopPropagation();
+														}
+													}}
 													className="flex items-center justify-center text-muted-foreground hover:text-foreground"
 													aria-label="Remove from sidebar"
 												>
@@ -306,6 +315,15 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 													onClick={(event) => {
 														event.stopPropagation();
 														onCloseWorkspaceClick();
+													}}
+													onKeyDown={(event) => {
+														if (
+															event.key === "Enter" ||
+															event.key === " " ||
+															event.key === "Spacebar"
+														) {
+															event.stopPropagation();
+														}
 													}}
 													className="flex items-center justify-center text-muted-foreground hover:text-foreground"
 													aria-label="Close workspace"
