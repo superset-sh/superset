@@ -602,10 +602,9 @@ export function registerWorkspaceTerminalRoute({
 						if (!workspaceId) {
 							sendMessage(ws, {
 								type: "error",
-								message:
-									"Session not found. Call terminal.ensureSession first.",
+								message: `Terminal session "${terminalId}" not found; use terminal.ensureSession or workspaceId.`,
 							});
-							ws.close(1011, "Session not found");
+							ws.close(1011, "Terminal session not found");
 							return;
 						}
 

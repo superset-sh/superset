@@ -155,10 +155,27 @@ export function TerminalPane({
 					void invalidateTerminalSessionsRef.current({
 						workspaceId: sessionWorkspaceId,
 					});
+					return;
 				}
+				if (cancelled) return;
+				const details = result.error
+					? `: ${result.error}`
+					: " for an unknown reason";
+				terminalRuntimeRegistry
+					.getTerminal(terminalId, terminalInstanceId)
+					?.writeln(
+						`\r\n[terminal] Failed to create terminal session${details}`,
+					);
 			})
 			.catch((err) => {
 				console.error("[TerminalPane] ensureSession failed:", err);
+				if (cancelled) return;
+				const message = err instanceof Error ? err.message : String(err);
+				terminalRuntimeRegistry
+					.getTerminal(terminalId, terminalInstanceId)
+					?.writeln(
+						`\r\n[terminal] terminal.ensureSession request failed: ${message}`,
+					);
 			})
 			.finally(() => {
 				if (cancelled) return;
