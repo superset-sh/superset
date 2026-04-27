@@ -4,8 +4,10 @@ import {
 	equalizeAllSplits,
 	findFirstPaneId,
 	findPaneInLayout,
+	getActiveIdAfterRemoval,
 	getNodeAtPath,
 	getOtherBranch,
+	getPaneIdsInLayout,
 	getSpatialNeighborPaneId,
 	positionToDirection,
 	removePaneFromLayout,
@@ -82,6 +84,21 @@ describe("findFirstPaneId", () => {
 
 	it("returns the first pane in nested splits", () => {
 		expect(findFirstPaneId(NESTED)).toBe("a");
+	});
+});
+
+describe("getPaneIdsInLayout", () => {
+	it("returns pane ids in layout order", () => {
+		expect(getPaneIdsInLayout(NESTED)).toEqual(["a", "b", "c"]);
+	});
+});
+
+describe("getActiveIdAfterRemoval", () => {
+	it("preserves inactive focus, otherwise selects next then previous", () => {
+		expect(getActiveIdAfterRemoval(["a", "b", "c"], "a", "b")).toBe("a");
+		expect(getActiveIdAfterRemoval(["a", "b", "c"], "b", "b")).toBe("c");
+		expect(getActiveIdAfterRemoval(["a", "b", "c"], "c", "c")).toBe("b");
+		expect(getActiveIdAfterRemoval(["a"], "a", "a")).toBeNull();
 	});
 });
 

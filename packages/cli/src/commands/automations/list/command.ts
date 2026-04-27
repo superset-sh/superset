@@ -1,5 +1,6 @@
 import { table } from "@superset/cli-framework";
 import { command } from "../../../lib/command";
+import { formatAutomationDate } from "../format";
 
 export default command({
 	description: "List automations in the organization",
@@ -14,7 +15,10 @@ export default command({
 				agent: (row.agentConfig as { id?: string } | null)?.id,
 				schedule: row.scheduleText ?? row.rrule,
 				enabled: row.enabled ? "yes" : "no",
-				nextRun: row.nextRunAt ?? "—",
+				nextRun: formatAutomationDate(
+					row.nextRunAt as Date | string | null | undefined,
+					row.timezone as string | null | undefined,
+				),
 			})),
 			["id", "name", "agent", "schedule", "enabled", "nextRun"],
 			["ID", "NAME", "AGENT", "SCHEDULE", "ENABLED", "NEXT RUN"],

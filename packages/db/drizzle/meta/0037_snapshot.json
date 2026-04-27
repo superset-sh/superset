@@ -1,5 +1,5 @@
 {
-  "id": "a2ddd3af-999d-49db-b96b-5267d0d0d317",
+  "id": "16fdad31-9719-48da-880a-05e1c736dee7",
   "prevId": "8b691b52-7bc4-4149-8451-0bc6d0bb96b3",
   "version": "7",
   "dialect": "postgresql",
@@ -2535,7 +2535,7 @@
         },
         "host_id": {
           "name": "host_id",
-          "type": "text",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": false
         },
@@ -2693,6 +2693,19 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
+        "automation_runs_host_id_v2_hosts_id_fk": {
+          "name": "automation_runs_host_id_v2_hosts_id_fk",
+          "tableFrom": "automation_runs",
+          "tableTo": "v2_hosts",
+          "columnsFrom": [
+            "host_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
         "automation_runs_chat_session_id_chat_sessions_id_fk": {
           "name": "automation_runs_chat_session_id_chat_sessions_id_fk",
           "tableFrom": "automation_runs",
@@ -2702,21 +2715,6 @@
           ],
           "columnsTo": [
             "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        },
-        "automation_runs_host_fk": {
-          "name": "automation_runs_host_fk",
-          "tableFrom": "automation_runs",
-          "tableTo": "v2_hosts",
-          "columnsFrom": [
-            "organization_id",
-            "host_id"
-          ],
-          "columnsTo": [
-            "organization_id",
-            "machine_id"
           ],
           "onDelete": "set null",
           "onUpdate": "no action"
@@ -2771,7 +2769,7 @@
         },
         "target_host_id": {
           "name": "target_host_id",
-          "type": "text",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": false
         },
@@ -2922,6 +2920,19 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
+        "automations_target_host_id_v2_hosts_id_fk": {
+          "name": "automations_target_host_id_v2_hosts_id_fk",
+          "tableFrom": "automations",
+          "tableTo": "v2_hosts",
+          "columnsFrom": [
+            "target_host_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
         "automations_v2_project_id_v2_projects_id_fk": {
           "name": "automations_v2_project_id_v2_projects_id_fk",
           "tableFrom": "automations",
@@ -2933,21 +2944,6 @@
             "id"
           ],
           "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "automations_target_host_fk": {
-          "name": "automations_target_host_fk",
-          "tableFrom": "automations",
-          "tableTo": "v2_hosts",
-          "columnsFrom": [
-            "organization_id",
-            "target_host_id"
-          ],
-          "columnsTo": [
-            "organization_id",
-            "machine_id"
-          ],
-          "onDelete": "set null",
           "onUpdate": "no action"
         }
       },
@@ -3831,6 +3827,125 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
+    "public.session_hosts": {
+      "name": "session_hosts",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "session_id": {
+          "name": "session_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "organization_id": {
+          "name": "organization_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "device_id": {
+          "name": "device_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "session_hosts_session_id_idx": {
+          "name": "session_hosts_session_id_idx",
+          "columns": [
+            {
+              "expression": "session_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "session_hosts_org_idx": {
+          "name": "session_hosts_org_idx",
+          "columns": [
+            {
+              "expression": "organization_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "session_hosts_device_id_idx": {
+          "name": "session_hosts_device_id_idx",
+          "columns": [
+            {
+              "expression": "device_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "session_hosts_session_id_chat_sessions_id_fk": {
+          "name": "session_hosts_session_id_chat_sessions_id_fk",
+          "tableFrom": "session_hosts",
+          "tableTo": "chat_sessions",
+          "columnsFrom": [
+            "session_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "session_hosts_organization_id_organizations_id_fk": {
+          "name": "session_hosts_organization_id_organizations_id_fk",
+          "tableFrom": "session_hosts",
+          "tableTo": "organizations",
+          "schemaTo": "auth",
+          "columnsFrom": [
+            "organization_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.subscriptions": {
       "name": "subscriptions",
       "schema": "",
@@ -4664,6 +4779,13 @@
       "name": "v2_clients",
       "schema": "",
       "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
         "organization_id": {
           "name": "organization_id",
           "type": "uuid",
@@ -4766,9 +4888,11 @@
           "onUpdate": "no action"
         }
       },
-      "compositePrimaryKeys": {
-        "v2_clients_organization_id_user_id_machine_id_pk": {
-          "name": "v2_clients_organization_id_user_id_machine_id_pk",
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "v2_clients_org_user_machine_unique": {
+          "name": "v2_clients_org_user_machine_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "organization_id",
             "user_id",
@@ -4776,7 +4900,6 @@
           ]
         }
       },
-      "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
@@ -4785,6 +4908,13 @@
       "name": "v2_hosts",
       "schema": "",
       "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
         "organization_id": {
           "name": "organization_id",
           "type": "uuid",
@@ -4878,16 +5008,17 @@
           "onUpdate": "no action"
         }
       },
-      "compositePrimaryKeys": {
-        "v2_hosts_organization_id_machine_id_pk": {
-          "name": "v2_hosts_organization_id_machine_id_pk",
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "v2_hosts_org_machine_id_unique": {
+          "name": "v2_hosts_org_machine_id_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "organization_id",
             "machine_id"
           ]
         }
       },
-      "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
@@ -4963,27 +5094,6 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
-        },
-        "v2_projects_org_repo_clone_url_unique": {
-          "name": "v2_projects_org_repo_clone_url_unique",
-          "columns": [
-            {
-              "expression": "organization_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "lower(\"repo_clone_url\")",
-              "asc": true,
-              "isExpression": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
         }
       },
       "foreignKeys": {
@@ -5034,6 +5144,13 @@
       "name": "v2_users_hosts",
       "schema": "",
       "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
         "organization_id": {
           "name": "organization_id",
           "type": "uuid",
@@ -5048,7 +5165,7 @@
         },
         "host_id": {
           "name": "host_id",
-          "type": "text",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": true
         },
@@ -5151,25 +5268,25 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "v2_users_hosts_host_fk": {
-          "name": "v2_users_hosts_host_fk",
+        "v2_users_hosts_host_id_v2_hosts_id_fk": {
+          "name": "v2_users_hosts_host_id_v2_hosts_id_fk",
           "tableFrom": "v2_users_hosts",
           "tableTo": "v2_hosts",
           "columnsFrom": [
-            "organization_id",
             "host_id"
           ],
           "columnsTo": [
-            "organization_id",
-            "machine_id"
+            "id"
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
       },
-      "compositePrimaryKeys": {
-        "v2_users_hosts_organization_id_user_id_host_id_pk": {
-          "name": "v2_users_hosts_organization_id_user_id_host_id_pk",
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "v2_users_hosts_org_user_host_unique": {
+          "name": "v2_users_hosts_org_user_host_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "organization_id",
             "user_id",
@@ -5177,7 +5294,6 @@
           ]
         }
       },
-      "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
@@ -5207,7 +5323,7 @@
         },
         "host_id": {
           "name": "host_id",
-          "type": "text",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": true
         },
@@ -5319,6 +5435,19 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
+        "v2_workspaces_host_id_v2_hosts_id_fk": {
+          "name": "v2_workspaces_host_id_v2_hosts_id_fk",
+          "tableFrom": "v2_workspaces",
+          "tableTo": "v2_hosts",
+          "columnsFrom": [
+            "host_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
         "v2_workspaces_created_by_user_id_users_id_fk": {
           "name": "v2_workspaces_created_by_user_id_users_id_fk",
           "tableFrom": "v2_workspaces",
@@ -5331,21 +5460,6 @@
             "id"
           ],
           "onDelete": "set null",
-          "onUpdate": "no action"
-        },
-        "v2_workspaces_host_fk": {
-          "name": "v2_workspaces_host_fk",
-          "tableFrom": "v2_workspaces",
-          "tableTo": "v2_hosts",
-          "columnsFrom": [
-            "organization_id",
-            "host_id"
-          ],
-          "columnsTo": [
-            "organization_id",
-            "machine_id"
-          ],
-          "onDelete": "no action",
           "onUpdate": "no action"
         }
       },

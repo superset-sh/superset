@@ -6,7 +6,10 @@ export type {
 } from "./core/store";
 export { createWorkspaceStore } from "./core/store";
 export type { FocusDirection } from "./core/store/utils";
-export { getSpatialNeighborPaneId } from "./core/store/utils";
+export {
+	getActiveIdAfterRemoval,
+	getSpatialNeighborPaneId,
+} from "./core/store/utils";
 export type {
 	ContextMenuActionConfig,
 	PaneActionConfig,
@@ -15,6 +18,7 @@ export type {
 	PaneRegistry,
 	RendererContext,
 	TabContext,
+	WorkspaceInteractionState,
 	WorkspaceProps,
 } from "./react";
 export { resolveTabTitle, Workspace } from "./react";

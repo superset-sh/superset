@@ -77,7 +77,6 @@ export function useV2WorkspacePaneLayout({
 				return;
 			}
 
-			ensureWorkspaceInSidebar(workspaceId, projectId);
 			if (!collections.v2WorkspaceLocalState.get(workspaceId)) {
 				return;
 			}
@@ -95,7 +94,7 @@ export function useV2WorkspacePaneLayout({
 		return () => {
 			unsubscribe();
 		};
-	}, [collections, ensureWorkspaceInSidebar, projectId, store, workspaceId]);
+	}, [collections, store, workspaceId]);
 
 	return { store };
 }

@@ -5,6 +5,7 @@ import type { Pane } from "../../../types";
 import type { WorkspaceProps } from "../../types";
 import { Tab } from "./components/Tab";
 import { TabBar } from "./components/TabBar";
+import { useWorkspaceInteractionState } from "./hooks/useWorkspaceInteractionState";
 import { resolveTabTitle } from "./utils/resolveTabTitle";
 
 export function Workspace<TData>({
@@ -17,12 +18,16 @@ export function Workspace<TData>({
 	renderAddTabMenu,
 	renderBelowTabBar,
 	onBeforeCloseTab,
+	onInteractionStateChange,
 	paneActions,
 	contextMenuActions,
 }: WorkspaceProps<TData>) {
 	const tabs = useStore(store, (s) => s.tabs);
 	const activeTabId = useStore(store, (s) => s.activeTabId);
 	const activeTab = tabs.find((t) => t.id === activeTabId) ?? null;
+	const { onSplitResizeDragging } = useWorkspaceInteractionState({
+		onInteractionStateChange,
+	});
 
 	const previousPanesRef = useRef<Map<string, Pane<TData>>>(new Map());
 	useEffect(() => {
@@ -91,6 +96,7 @@ export function Workspace<TData>({
 					registry={registry}
 					paneActions={paneActions}
 					contextMenuActions={contextMenuActions}
+					onSplitResizeDragging={onSplitResizeDragging}
 				/>
 			) : (
 				<div className="flex min-h-0 min-w-0 flex-1 items-center justify-center text-sm text-muted-foreground">

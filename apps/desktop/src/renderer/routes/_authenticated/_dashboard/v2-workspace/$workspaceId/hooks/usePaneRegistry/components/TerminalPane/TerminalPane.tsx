@@ -1,4 +1,5 @@
 import type { RendererContext } from "@superset/panes";
+import { cn } from "@superset/ui/utils";
 import { workspaceTrpc } from "@superset/workspace-client";
 import "@xterm/xterm/css/xterm.css";
 import {
@@ -46,7 +47,6 @@ export function TerminalPane({
 	onOpenFile,
 	onRevealPath,
 }: TerminalPaneProps) {
-	const openInExternalEditor = useOpenInExternalEditor(workspaceId);
 	const { getFileAction, getUrlAction } = useTerminalLinkActions();
 	const {
 		hoveredLink,
@@ -54,6 +54,7 @@ export function TerminalPane({
 		onLeave: onLinkLeave,
 	} = useLinkHoverState();
 	const { hint, showHint } = useLinkClickHint();
+	const openInExternalEditor = useOpenInExternalEditor(workspaceId);
 	const paneData = ctx.pane.data as TerminalPaneData;
 	const { terminalId } = paneData;
 	const terminalInstanceId = ctx.pane.id;
@@ -378,7 +379,7 @@ export function TerminalPane({
 	return (
 		<div
 			role="application"
-			className="flex h-full w-full flex-col p-2"
+			className="relative flex h-full w-full flex-col p-2"
 			onDragEnter={handleDragEnter}
 			onDragOver={handleDragOver}
 			onDragLeave={handleDragLeave}
@@ -396,10 +397,13 @@ export function TerminalPane({
 					style={{ backgroundColor: appearance.background }}
 				/>
 				<ScrollToBottomButton terminal={terminal} />
-				{isDropActive && (
-					<div className="pointer-events-none absolute inset-0 rounded-sm border-2 border-primary/60 border-dashed bg-primary/10" />
-				)}
 			</div>
+			<div
+				className={cn(
+					"pointer-events-none absolute inset-0 bg-primary/10 transition-opacity duration-100",
+					isDropActive ? "opacity-75" : "opacity-0",
+				)}
+			/>
 			{connectionState === "closed" && (
 				<div className="flex items-center gap-2 border-t border-border px-3 py-1.5 text-xs text-muted-foreground">
 					<span>Disconnected</span>

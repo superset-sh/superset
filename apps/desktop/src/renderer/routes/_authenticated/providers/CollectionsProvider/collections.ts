@@ -336,9 +336,36 @@ function createOrgCollections(organizationId: string): OrgCollections {
 				headers: electricHeaders,
 				columnMapper,
 			},
-			// Composite PK on (organization_id, user_id, host_id); within an
-			// org-scoped collection, (user_id, host_id) is unique.
 			getKey: (item) => `${item.userId}:${item.hostId}`,
+			onInsert: async ({ transaction }) => {
+				const item = transaction.mutations[0].modified;
+				const result = await apiClient.v2Host.addMember.mutate({
+					hostId: item.hostId,
+					userId: item.userId,
+					role: item.role,
+				});
+				return { txid: result.txid };
+			},
+			onUpdate: async ({ transaction }) => {
+				const { original, changes } = transaction.mutations[0];
+				if (changes.role === undefined) {
+					throw new Error("Only role updates are supported on v2_users_hosts");
+				}
+				const result = await apiClient.v2Host.setMemberRole.mutate({
+					hostId: original.hostId,
+					userId: original.userId,
+					role: changes.role,
+				});
+				return { txid: result.txid };
+			},
+			onDelete: async ({ transaction }) => {
+				const item = transaction.mutations[0].original;
+				const result = await apiClient.v2Host.removeMember.mutate({
+					hostId: item.hostId,
+					userId: item.userId,
+				});
+				return { txid: result.txid };
+			},
 		}),
 	);
 

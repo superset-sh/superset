@@ -1,8 +1,3 @@
-import {
-	AGENT_PRESET_COMMANDS,
-	AGENT_PRESET_DESCRIPTIONS,
-	AGENT_TYPES,
-} from "@superset/shared/agent-command";
 import { Button } from "@superset/ui/button";
 import {
 	DropdownMenu,
@@ -13,9 +8,9 @@ import {
 } from "@superset/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useNavigate } from "@tanstack/react-router";
+import { Eye, EyeOff, Settings } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { HiMiniCog6Tooth, HiMiniCommandLine } from "react-icons/hi2";
-import { LuCirclePlus, LuPin } from "react-icons/lu";
+import { HiMiniCommandLine } from "react-icons/hi2";
 import {
 	getPresetIcon,
 	useIsDarkTheme,
@@ -34,7 +29,7 @@ interface V2PresetsBarProps {
 
 // Co-located to keep v2 self-contained. Mirrors the v1 array in
 // renderer/hotkeys/registry.ts; order matches the registry OPEN_PRESET_{n}
-// definitions so PRESET_HOTKEY_IDS[i] targets the i-th pinned preset.
+// definitions so PRESET_HOTKEY_IDS[i] targets the i-th visible preset.
 const PRESET_HOTKEY_IDS: HotkeyId[] = [
 	"OPEN_PRESET_1",
 	"OPEN_PRESET_2",
@@ -47,24 +42,9 @@ const PRESET_HOTKEY_IDS: HotkeyId[] = [
 	"OPEN_PRESET_9",
 ];
 
-interface PresetTemplate {
-	name: string;
-	description: string;
-	cwd: string;
-	commands: string[];
-}
-
-const QUICK_ADD_PRESET_TEMPLATES: PresetTemplate[] = AGENT_TYPES.map(
-	(agent) => ({
-		name: agent,
-		description: AGENT_PRESET_DESCRIPTIONS[agent],
-		cwd: "",
-		commands: AGENT_PRESET_COMMANDS[agent],
-	}),
-);
-
-function isPresetPinnedToBar(pinnedToBar: boolean | undefined): boolean {
-	// Backward-compatibility rule mirroring v1: undefined defaults to pinned.
+function isPresetVisibleInBar(pinnedToBar: boolean | undefined): boolean {
+	// The persisted field is legacy "pinned" wording; the v2 UI treats it as
+	// show/hide visibility. Undefined defaults to visible for compatibility.
 	return pinnedToBar !== false;
 }
 
@@ -73,11 +53,11 @@ function areStringArraysEqual(left: string[], right: string[]): boolean {
 	return left.every((value, index) => value === right[index]);
 }
 
-function getPinnedPresetOrder(
+function getVisiblePresetOrder(
 	presets: ReadonlyArray<{ id: string; pinnedToBar?: boolean }>,
 ): string[] {
 	return presets.flatMap((preset) =>
-		isPresetPinnedToBar(preset.pinnedToBar) ? [preset.id] : [],
+		isPresetVisibleInBar(preset.pinnedToBar) ? [preset.id] : [],
 	);
 }
 
@@ -90,96 +70,56 @@ export function V2PresetsBar({
 	const collections = useCollections();
 	useMigrateV1PresetsToV2();
 
-	const [localPinnedPresetIds, setLocalPinnedPresetIds] = useState<string[]>(
-		() => getPinnedPresetOrder(matchedPresets),
+	const [localVisiblePresetIds, setLocalVisiblePresetIds] = useState<string[]>(
+		() => getVisiblePresetOrder(matchedPresets),
 	);
 
 	useEffect(() => {
-		const serverPinnedPresetIds = getPinnedPresetOrder(matchedPresets);
-		setLocalPinnedPresetIds((current) =>
-			areStringArraysEqual(current, serverPinnedPresetIds)
+		const serverVisiblePresetIds = getVisiblePresetOrder(matchedPresets);
+		setLocalVisiblePresetIds((current) =>
+			areStringArraysEqual(current, serverVisiblePresetIds)
 				? current
-				: serverPinnedPresetIds,
+				: serverVisiblePresetIds,
 		);
 	}, [matchedPresets]);
 
-	const presetsByName = useMemo(() => {
-		const map = new Map<string, V2TerminalPresetRow[]>();
-		for (const preset of matchedPresets) {
-			const existing = map.get(preset.name);
-			if (existing) {
-				existing.push(preset);
-				continue;
-			}
-			map.set(preset.name, [preset]);
-		}
-		return map;
-	}, [matchedPresets]);
-
-	const pinnedPresets = useMemo(() => {
+	const visiblePresets = useMemo(() => {
 		const presetById = new Map(
 			matchedPresets.map((preset, index) => [preset.id, { preset, index }]),
 		);
-		const orderedPinnedPresets: Array<{
+		const orderedVisiblePresets: Array<{
 			preset: V2TerminalPresetRow;
 			index: number;
 		}> = [];
 		const seenIds = new Set<string>();
 
-		for (const presetId of localPinnedPresetIds) {
+		for (const presetId of localVisiblePresetIds) {
 			const item = presetById.get(presetId);
 			if (!item) continue;
-			if (!isPresetPinnedToBar(item.preset.pinnedToBar)) continue;
-			orderedPinnedPresets.push(item);
+			if (!isPresetVisibleInBar(item.preset.pinnedToBar)) continue;
+			orderedVisiblePresets.push(item);
 			seenIds.add(presetId);
 		}
 
 		for (const [index, preset] of matchedPresets.entries()) {
-			if (!isPresetPinnedToBar(preset.pinnedToBar)) continue;
+			if (!isPresetVisibleInBar(preset.pinnedToBar)) continue;
 			if (seenIds.has(preset.id)) continue;
-			orderedPinnedPresets.push({ preset, index });
+			orderedVisiblePresets.push({ preset, index });
 		}
 
-		return orderedPinnedPresets;
-	}, [matchedPresets, localPinnedPresetIds]);
+		return orderedVisiblePresets;
+	}, [matchedPresets, localVisiblePresetIds]);
 
-	const presetIndexById = useMemo(
-		() => new Map(matchedPresets.map((preset, index) => [preset.id, index])),
-		[matchedPresets],
+	const visiblePresetIndexById = useMemo(
+		() =>
+			new Map(
+				visiblePresets.map(({ preset }, visibleIndex) => [
+					preset.id,
+					visibleIndex,
+				]),
+			),
+		[visiblePresets],
 	);
-
-	const managedPresets = useMemo(() => {
-		const templateNames = new Set(
-			QUICK_ADD_PRESET_TEMPLATES.map((t) => t.name),
-		);
-		const primaryTemplatePresetIds = new Set(
-			QUICK_ADD_PRESET_TEMPLATES.flatMap((template) => {
-				const match = presetsByName.get(template.name)?.[0];
-				return match ? [match.id] : [];
-			}),
-		);
-		const fromTemplates = QUICK_ADD_PRESET_TEMPLATES.map((template) => ({
-			key: `template:${template.name}`,
-			name: template.name,
-			preset: presetsByName.get(template.name)?.[0],
-			template,
-			iconName: template.name,
-		}));
-		const customExisting = matchedPresets
-			.filter(
-				(preset) =>
-					!templateNames.has(preset.name) ||
-					!primaryTemplatePresetIds.has(preset.id),
-			)
-			.map((preset) => ({
-				key: `preset:${preset.id}`,
-				name: preset.name || "default",
-				preset: preset as V2TerminalPresetRow | undefined,
-				template: null as PresetTemplate | null,
-				iconName: preset.name,
-			}));
-		return [...fromTemplates, ...customExisting];
-	}, [matchedPresets, presetsByName]);
 
 	const handleEditPreset = useCallback(
 		(presetId: string) => {
@@ -191,9 +131,9 @@ export function V2PresetsBar({
 		[navigate],
 	);
 
-	const handleLocalPinnedReorder = useCallback(
+	const handleLocalVisibleReorder = useCallback(
 		(fromIndex: number, toIndex: number) => {
-			setLocalPinnedPresetIds((current) => {
+			setLocalVisiblePresetIds((current) => {
 				if (
 					fromIndex < 0 ||
 					fromIndex >= current.length ||
@@ -211,63 +151,45 @@ export function V2PresetsBar({
 		[],
 	);
 
-	const handlePersistPinnedReorder = useCallback(
-		(presetId: string, targetPinnedIndex: number) => {
-			const reorderedPinnedPresetIds = [...localPinnedPresetIds];
-			const currentPinnedIndex = reorderedPinnedPresetIds.indexOf(presetId);
-			if (currentPinnedIndex === -1) return;
-			const [moved] = reorderedPinnedPresetIds.splice(currentPinnedIndex, 1);
-			reorderedPinnedPresetIds.splice(targetPinnedIndex, 0, moved);
+	const handlePersistVisibleReorder = useCallback(
+		(presetId: string, targetVisibleIndex: number) => {
+			const reorderedVisiblePresetIds = [...localVisiblePresetIds];
+			const currentVisibleIndex = reorderedVisiblePresetIds.indexOf(presetId);
+			if (currentVisibleIndex === -1) return;
+			const [moved] = reorderedVisiblePresetIds.splice(currentVisibleIndex, 1);
+			reorderedVisiblePresetIds.splice(targetVisibleIndex, 0, moved);
 
-			const pinnedSet = new Set(reorderedPinnedPresetIds);
-			const unpinned = matchedPresets
-				.filter((preset) => !pinnedSet.has(preset.id))
+			const visibleSet = new Set(reorderedVisiblePresetIds);
+			const hidden = matchedPresets
+				.filter((preset) => !visibleSet.has(preset.id))
 				.map((preset) => preset.id);
-			const finalOrder = [...reorderedPinnedPresetIds, ...unpinned];
+			const finalOrder = [...reorderedVisiblePresetIds, ...hidden];
+			const currentTabOrderById = new Map(
+				matchedPresets.map((preset) => [preset.id, preset.tabOrder]),
+			);
 
 			for (const [index, id] of finalOrder.entries()) {
+				if (currentTabOrderById.get(id) === index) continue;
 				collections.v2TerminalPresets.update(id, (draft) => {
 					draft.tabOrder = index;
 				});
 			}
 		},
-		[collections.v2TerminalPresets, localPinnedPresetIds, matchedPresets],
+		[collections.v2TerminalPresets, localVisiblePresetIds, matchedPresets],
 	);
 
-	const handleTogglePinned = useCallback(
-		(presetId: string, nextPinned: boolean) => {
+	const handleTogglePresetVisibility = useCallback(
+		(presetId: string, nextVisible: boolean) => {
 			collections.v2TerminalPresets.update(presetId, (draft) => {
-				draft.pinnedToBar = nextPinned;
+				draft.pinnedToBar = nextVisible;
 			});
 		},
 		[collections.v2TerminalPresets],
 	);
 
-	const handleCreateFromTemplate = useCallback(
-		(template: PresetTemplate) => {
-			const maxTabOrder = matchedPresets.reduce(
-				(max, preset) => Math.max(max, preset.tabOrder),
-				-1,
-			);
-			collections.v2TerminalPresets.insert({
-				id: crypto.randomUUID(),
-				name: template.name,
-				description: template.description,
-				cwd: template.cwd,
-				commands: template.commands,
-				projectIds: null,
-				pinnedToBar: true,
-				executionMode: "new-tab",
-				tabOrder: maxTabOrder + 1,
-				createdAt: new Date(),
-			});
-		},
-		[collections.v2TerminalPresets, matchedPresets],
-	);
-
 	return (
 		<div
-			className="flex items-center h-8 border-b border-border bg-background px-2 gap-0.5 overflow-x-auto shrink-0"
+			className="flex h-8 min-w-0 shrink-0 items-center gap-0.5 overflow-x-auto overflow-y-hidden border-b border-border bg-background px-2"
 			style={{ scrollbarWidth: "none" }}
 		>
 			<DropdownMenu>
@@ -275,7 +197,7 @@ export function V2PresetsBar({
 					<TooltipTrigger asChild>
 						<DropdownMenuTrigger asChild>
 							<Button variant="ghost" size="icon" className="size-6 shrink-0">
-								<HiMiniCog6Tooth className="size-3.5" />
+								<Settings className="size-3.5" />
 							</Button>
 						</DropdownMenuTrigger>
 					</TooltipTrigger>
@@ -283,32 +205,22 @@ export function V2PresetsBar({
 						Manage Presets
 					</TooltipContent>
 				</Tooltip>
-				<DropdownMenuContent align="start" className="w-56">
-					{managedPresets.map((item) => {
-						const icon = getPresetIcon(item.iconName, isDark);
-						const isPinned = item.preset
-							? isPresetPinnedToBar(item.preset.pinnedToBar)
-							: false;
-						const hasPreset = !!item.preset;
-						const presetIndex = item.preset
-							? presetIndexById.get(item.preset.id)
-							: undefined;
+				<DropdownMenuContent align="end" className="w-56">
+					{matchedPresets.map((preset) => {
+						const icon = getPresetIcon(preset.name, isDark);
+						const isVisible = isPresetVisibleInBar(preset.pinnedToBar);
+						const visibleIndex = visiblePresetIndexById.get(preset.id);
 						const hotkeyId =
-							typeof presetIndex === "number"
-								? PRESET_HOTKEY_IDS[presetIndex]
+							typeof visibleIndex === "number"
+								? PRESET_HOTKEY_IDS[visibleIndex]
 								: undefined;
 						return (
 							<DropdownMenuItem
-								key={item.key}
+								key={preset.id}
 								className="gap-2"
 								onSelect={(event) => {
 									event.preventDefault();
-									if (hasPreset && item.preset) {
-										handleTogglePinned(item.preset.id, !isPinned);
-										return;
-									}
-									if (!item.template) return;
-									handleCreateFromTemplate(item.template);
+									handleTogglePresetVisibility(preset.id, !isVisible);
 								}}
 							>
 								{icon ? (
@@ -316,19 +228,17 @@ export function V2PresetsBar({
 								) : (
 									<HiMiniCommandLine className="size-4" />
 								)}
-								<span className="truncate">{item.name || "default"}</span>
+								<span className="min-w-0 flex-1 truncate">
+									{preset.name || "default"}
+								</span>
 								<div className="ml-auto flex items-center gap-2">
-									{hotkeyId ? <HotkeyMenuShortcut hotkeyId={hotkeyId} /> : null}
-									{hasPreset ? (
-										<LuPin
-											className={`size-3.5 ${
-												isPinned
-													? "text-foreground"
-													: "text-muted-foreground/60"
-											}`}
-										/>
+									{isVisible && hotkeyId ? (
+										<HotkeyMenuShortcut hotkeyId={hotkeyId} />
+									) : null}
+									{isVisible ? (
+										<Eye className="size-3.5 text-foreground" />
 									) : (
-										<LuCirclePlus className="size-3.5 text-muted-foreground" />
+										<EyeOff className="size-3.5 text-muted-foreground/60" />
 									)}
 								</div>
 							</DropdownMenuItem>
@@ -339,25 +249,24 @@ export function V2PresetsBar({
 						className="gap-2"
 						onClick={() => navigate({ to: "/settings/terminal" })}
 					>
-						<HiMiniCog6Tooth className="size-4" />
+						<Settings className="size-4" />
 						<span>Manage Presets</span>
 					</DropdownMenuItem>
 				</DropdownMenuContent>
 			</DropdownMenu>
-			<div className="h-4 w-px bg-border mx-1 shrink-0" />
-			{pinnedPresets.map(({ preset, index }, pinnedIndex) => {
-				const hotkeyId = PRESET_HOTKEY_IDS[index];
+			{visiblePresets.map(({ preset }, visibleIndex) => {
+				const hotkeyId = PRESET_HOTKEY_IDS[visibleIndex];
 				return (
 					<V2PresetBarItem
 						key={preset.id}
 						preset={preset}
-						pinnedIndex={pinnedIndex}
+						visibleIndex={visibleIndex}
 						hotkeyId={hotkeyId}
 						isDark={isDark}
 						onExecutePreset={executePreset}
 						onEdit={(presetToEdit) => handleEditPreset(presetToEdit.id)}
-						onLocalReorder={handleLocalPinnedReorder}
-						onPersistReorder={handlePersistPinnedReorder}
+						onLocalReorder={handleLocalVisibleReorder}
+						onPersistReorder={handlePersistVisibleReorder}
 					/>
 				);
 			})}

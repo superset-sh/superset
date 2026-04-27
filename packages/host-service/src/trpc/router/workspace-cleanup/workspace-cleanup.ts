@@ -56,6 +56,27 @@ export const workspaceCleanupRouter = router({
 						.sync()
 				: undefined;
 
+			if (local && project && local.worktreePath === project.repoPath) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message:
+						"Main workspaces cannot be deleted. Remove them from the sidebar or remove the project from this host instead.",
+				});
+			}
+			if (ctx.api) {
+				const cloudWorkspace = await ctx.api.v2Workspace.getFromHost.query({
+					organizationId: ctx.organizationId,
+					id: input.workspaceId,
+				});
+				if (cloudWorkspace?.type === "main") {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message:
+							"Main workspaces cannot be deleted. Remove them from the sidebar or remove the project from this host instead.",
+					});
+				}
+			}
+
 			// ─── Step 0: Preflight ─────────────────────────────────────────
 			// Block only on dirty worktree (the common "I forgot to commit"
 			// case). Anything else the local-cleanup phase handles as warning.
