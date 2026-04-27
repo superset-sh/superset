@@ -362,7 +362,7 @@ function ResultsPage({
 				</p>
 			</div>
 
-			<div className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto px-5 py-4">
+			<div className="flex min-h-0 min-w-0 flex-1 flex-col gap-1 overflow-y-auto px-5 py-4">
 				<ExpandableSummaryRow
 					icon={LuFolder}
 					label="Projects"
@@ -529,7 +529,7 @@ function ExpandableSummaryRow({
 }: ExpandableSummaryRowProps) {
 	const clickable = onToggle !== undefined;
 	return (
-		<div className="flex flex-col">
+		<div className="flex min-w-0 flex-col">
 			<button
 				type="button"
 				disabled={!clickable}
@@ -603,7 +603,7 @@ function Entry({
 	detail,
 }: EntryProps) {
 	return (
-		<div className="flex items-center justify-between gap-3 py-1">
+		<div className="flex min-w-0 items-center justify-between gap-3 py-1">
 			<div className="flex min-w-0 flex-1 flex-col">
 				<span className="truncate text-xs font-medium text-foreground">
 					{primary}
