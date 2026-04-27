@@ -1,15 +1,6 @@
 "use client";
 
-import {
-	useCallback,
-	useEffect,
-	useLayoutEffect,
-	useRef,
-	useState,
-} from "react";
-
-const useIsomorphicLayoutEffect =
-	typeof window === "undefined" ? useEffect : useLayoutEffect;
+import { useCallback, useLayoutEffect, useRef, useState } from "react";
 
 interface UseOverflowFadeOptions {
 	observeChildren?: boolean;
@@ -81,30 +72,23 @@ export function useOverflowFade<TElement extends HTMLElement>({
 		);
 	}, []);
 
-	useIsomorphicLayoutEffect(() => {
-		updateOverflow();
-	});
-
-	useIsomorphicLayoutEffect(() => {
+	useLayoutEffect(() => {
 		const node = ref.current;
 		if (!node) return;
 
-		const resizeObserver =
-			typeof ResizeObserver === "undefined"
-				? null
-				: new ResizeObserver(updateOverflow);
+		const resizeObserver = new ResizeObserver(updateOverflow);
 
 		const observeResizeTargets = () => {
-			resizeObserver?.disconnect();
-			resizeObserver?.observe(node);
+			resizeObserver.disconnect();
+			resizeObserver.observe(node);
 
 			if (observeParent && node.parentElement) {
-				resizeObserver?.observe(node.parentElement);
+				resizeObserver.observe(node.parentElement);
 			}
 
 			if (observeChildren) {
 				for (const child of node.children) {
-					resizeObserver?.observe(child);
+					resizeObserver.observe(child);
 				}
 			}
 
@@ -113,17 +97,16 @@ export function useOverflowFade<TElement extends HTMLElement>({
 
 		observeResizeTargets();
 
-		const mutationObserver =
-			observeChildren && typeof MutationObserver !== "undefined"
-				? new MutationObserver(observeResizeTargets)
-				: null;
+		const mutationObserver = observeChildren
+			? new MutationObserver(observeResizeTargets)
+			: null;
 		mutationObserver?.observe(node, { childList: true });
 
 		node.addEventListener("scroll", updateOverflow, { passive: true });
 		window.addEventListener("resize", updateOverflow);
 
 		return () => {
-			resizeObserver?.disconnect();
+			resizeObserver.disconnect();
 			mutationObserver?.disconnect();
 			node.removeEventListener("scroll", updateOverflow);
 			window.removeEventListener("resize", updateOverflow);
@@ -132,7 +115,6 @@ export function useOverflowFade<TElement extends HTMLElement>({
 
 	return {
 		ref,
-		updateOverflow,
 		...state,
 	};
 }

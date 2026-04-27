@@ -5,7 +5,6 @@ import {
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
 import { OverflowFadeContainer } from "@superset/ui/overflow-fade-container";
-import { cn } from "@superset/ui/utils";
 import { PlusIcon } from "lucide-react";
 import {
 	type ComponentProps,
@@ -142,9 +141,7 @@ export function TabBar<TData>({
 			ComponentProps<typeof OverflowFadeContainer>["onOverflowChange"]
 		>
 	>((state) => {
-		setHasHorizontalOverflow((currentState) =>
-			currentState === state.hasOverflowX ? currentState : state.hasOverflowX,
-		);
+		setHasHorizontalOverflow(state.hasOverflowX);
 	}, []);
 
 	const insertLineLeft = insertIndex !== null ? insertIndex * TAB_WIDTH : null;
@@ -166,18 +163,7 @@ export function TabBar<TData>({
 				ref={setScrollContainerRef}
 				observeChildren
 				onOverflowChange={handleOverflowChange}
-				className={cn(
-					"flex min-w-0 flex-1 items-stretch overflow-x-auto overflow-y-hidden",
-					hasHorizontalOverflow
-						? [
-								"[scrollbar-width:none]",
-								"[&::-webkit-scrollbar]:h-0",
-								"group-hover/root-tabs:[scrollbar-width:thin]",
-								"group-hover/root-tabs:[&::-webkit-scrollbar]:h-2",
-								"group-hover/root-tabs:[&::-webkit-scrollbar-thumb]:border-[2px]",
-							]
-						: "hide-scrollbar",
-				)}
+				className="hide-scrollbar flex min-w-0 flex-1 items-stretch overflow-x-auto overflow-y-hidden"
 			>
 				<div ref={tabsTrackRef} className="relative flex h-full items-stretch">
 					{tabs.map((tab, i) => (

@@ -1,12 +1,6 @@
 "use client";
 
-import {
-	type ComponentPropsWithoutRef,
-	type ForwardedRef,
-	forwardRef,
-	useCallback,
-	useLayoutEffect,
-} from "react";
+import { type ComponentProps, useLayoutEffect } from "react";
 import {
 	type OverflowFadeState,
 	useOverflowFade,
@@ -16,7 +10,9 @@ import "../fade-edge.css";
 
 type OverflowFadeEdge = "top" | "right" | "bottom" | "left";
 
-interface OverflowFadeContainerProps extends ComponentPropsWithoutRef<"div"> {
+const DEFAULT_FADE_EDGES: OverflowFadeEdge[] = ["right"];
+
+interface OverflowFadeContainerProps extends ComponentProps<"div"> {
 	/**
 	 * Edges to fade while that edge still has hidden scrollable content.
 	 * Keep this for scroll containers; masks apply to the whole painted element.
@@ -34,32 +30,14 @@ interface OverflowFadeContainerProps extends ComponentPropsWithoutRef<"div"> {
 	observeChildren?: boolean;
 }
 
-function setForwardedRef<TElement>(
-	forwardedRef: ForwardedRef<TElement>,
-	node: TElement | null,
-) {
-	if (typeof forwardedRef === "function") {
-		forwardedRef(node);
-		return;
-	}
-	if (forwardedRef) {
-		forwardedRef.current = node;
-	}
-}
-
-export const OverflowFadeContainer = forwardRef<
-	HTMLDivElement,
-	OverflowFadeContainerProps
->(function OverflowFadeContainer(
-	{
-		className,
-		fadeEdges = ["right"],
-		onOverflowChange,
-		observeChildren = false,
-		...props
-	},
-	forwardedRef,
-) {
+export function OverflowFadeContainer({
+	ref: forwardedRef,
+	className,
+	fadeEdges = DEFAULT_FADE_EDGES,
+	onOverflowChange,
+	observeChildren = false,
+	...props
+}: OverflowFadeContainerProps) {
 	const {
 		ref,
 		hasOverflowX,
@@ -70,13 +48,14 @@ export const OverflowFadeContainer = forwardRef<
 		canScrollLeft,
 	} = useOverflowFade<HTMLDivElement>({ observeChildren });
 
-	const setRef = useCallback(
-		(node: HTMLDivElement | null) => {
-			ref.current = node;
-			setForwardedRef(forwardedRef, node);
-		},
-		[forwardedRef, ref],
-	);
+	const setRef = (node: HTMLDivElement | null) => {
+		ref.current = node;
+		if (typeof forwardedRef === "function") {
+			forwardedRef(node);
+		} else if (forwardedRef) {
+			forwardedRef.current = node;
+		}
+	};
 
 	useLayoutEffect(() => {
 		onOverflowChange?.({
@@ -110,4 +89,4 @@ export const OverflowFadeContainer = forwardRef<
 			{...props}
 		/>
 	);
-});
+}
