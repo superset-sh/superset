@@ -105,14 +105,15 @@ function AutomationsPage() {
 			),
 	});
 
-	const { data: automationRows = [] } = useLiveQuery(
-		(q) =>
-			q
-				.from({ a: collections.automations })
-				.orderBy(({ a }) => a.createdAt, "desc")
-				.select(({ a }) => ({ ...a })),
-		[collections.automations],
-	);
+	const { data: automationRows = [], isLoading: automationsLoading } =
+		useLiveQuery(
+			(q) =>
+				q
+					.from({ a: collections.automations })
+					.orderBy(({ a }) => a.createdAt, "desc")
+					.select(({ a }) => ({ ...a })),
+			[collections.automations],
+		);
 	const automations = automationRows as SelectAutomation[];
 
 	const { data: userRows = [] } = useLiveQuery(
@@ -228,7 +229,7 @@ function AutomationsPage() {
 			</header>
 
 			<div className="flex-1 overflow-y-auto px-8 py-6">
-				{automations.length === 0 ? (
+				{automationsLoading ? null : automations.length === 0 ? (
 					<AutomationsEmptyState onSelectTemplate={handleSelectTemplate} />
 				) : (
 					<>
