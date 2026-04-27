@@ -40,11 +40,15 @@ UPDATE "automations" SET "target_host_id" = h."machine_id" FROM "v2_hosts" h WHE
 UPDATE "v2_users_hosts" SET "host_id" = h."machine_id" FROM "v2_hosts" h WHERE "v2_users_hosts"."host_id" = h."id"::text;--> statement-breakpoint
 UPDATE "v2_workspaces" SET "host_id" = h."machine_id" FROM "v2_hosts" h WHERE "v2_workspaces"."host_id" = h."id"::text;--> statement-breakpoint
 
--- For nullable columns, NULL out any orphans whose stringified UUIDs did not
--- translate. automations/automation_runs no longer have an FK on host_id (we
--- dropped them deliberately), but null-out keeps the data sane.
-UPDATE "automation_runs" SET "host_id" = NULL WHERE "host_id" IS NOT NULL AND "host_id" NOT IN (SELECT "machine_id" FROM "v2_hosts");--> statement-breakpoint
-UPDATE "automations" SET "target_host_id" = NULL WHERE "target_host_id" IS NOT NULL AND "target_host_id" NOT IN (SELECT "machine_id" FROM "v2_hosts");--> statement-breakpoint
+-- For nullable columns, NULL out any rows that don't have a matching
+-- (organization_id, machine_id) pair in v2_hosts. NOT EXISTS with the
+-- composite check rather than a global machine_id IN (...) so the migration
+-- doesn't rely on an implicit "automation_runs.organization_id always matches
+-- the host's organization_id" invariant — if any cross-org row exists, the
+-- translation step above would have written the wrong-org's machine_id and
+-- the new composite FK would reject it.
+UPDATE "automation_runs" SET "host_id" = NULL WHERE "host_id" IS NOT NULL AND NOT EXISTS (SELECT 1 FROM "v2_hosts" h WHERE h."machine_id" = "automation_runs"."host_id" AND h."organization_id" = "automation_runs"."organization_id");--> statement-breakpoint
+UPDATE "automations" SET "target_host_id" = NULL WHERE "target_host_id" IS NOT NULL AND NOT EXISTS (SELECT 1 FROM "v2_hosts" h WHERE h."machine_id" = "automations"."target_host_id" AND h."organization_id" = "automations"."organization_id");--> statement-breakpoint
 
 -- Drop old uuid `id` columns. Implicitly drops the old PRIMARY KEY constraints,
 -- freeing the tables to receive composite PKs below.
