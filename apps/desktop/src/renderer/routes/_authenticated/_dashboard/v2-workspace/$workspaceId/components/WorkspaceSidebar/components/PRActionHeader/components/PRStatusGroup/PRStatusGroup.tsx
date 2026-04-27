@@ -66,6 +66,11 @@ export function PRStatusGroup({
 			toast.success("PR merged", { id: context?.toastId });
 			try {
 				await refreshPRMutation.mutateAsync({ workspaceIds: [workspaceId] });
+			} catch (error) {
+				console.warn("Failed to refresh PR state after merge", error);
+				toast.warning(
+					"Merged, but couldn't refresh PR state — try again in a moment",
+				);
 			} finally {
 				onRefresh?.();
 			}

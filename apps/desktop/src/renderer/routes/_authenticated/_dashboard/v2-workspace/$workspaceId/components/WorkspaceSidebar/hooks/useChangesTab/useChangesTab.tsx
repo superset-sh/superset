@@ -135,6 +135,11 @@ export function useChangesTab({
 				utils.git.listBranches.invalidate({ workspaceId }),
 				utils.git.getBaseBranch.invalidate({ workspaceId }),
 			]);
+		} catch (error) {
+			console.warn("Failed to refresh changes tab", error);
+			toast.error(
+				error instanceof Error ? error.message : "Failed to refresh changes",
+			);
 		} finally {
 			setIsRefreshing(false);
 		}

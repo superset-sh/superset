@@ -73,9 +73,15 @@ export function planDispatch(
 }
 
 function encodeAsDataUrl(content: string, mediaType: string): string {
+	// `unescape` is removed from WHATWG; use TextEncoder for UTF-8 → base64.
+	// Branch names + commit messages can carry non-ASCII characters.
 	const base64 =
 		typeof btoa === "function"
-			? btoa(unescape(encodeURIComponent(content)))
+			? btoa(
+					Array.from(new TextEncoder().encode(content), (b) =>
+						String.fromCharCode(b),
+					).join(""),
+				)
 			: Buffer.from(content, "utf-8").toString("base64");
 	return `data:${mediaType};base64,${base64}`;
 }

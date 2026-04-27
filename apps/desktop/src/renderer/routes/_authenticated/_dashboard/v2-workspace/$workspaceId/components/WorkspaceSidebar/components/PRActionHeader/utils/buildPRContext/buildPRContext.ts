@@ -58,9 +58,16 @@ function renderNoPR(sync: BranchSyncStatus): string {
 	lines.push("");
 
 	lines.push("## Creating the PR");
-	lines.push(
-		`- Run \`gh pr create --base ${sync.defaultBranch ?? "<default>"} --title "..." --body "..."\`.`,
-	);
+	if (sync.defaultBranch) {
+		lines.push(
+			`- Run \`gh pr create --base ${sync.defaultBranch} --title "..." --body "..."\`.`,
+		);
+	} else {
+		lines.push(
+			"- Resolve the base branch first (e.g. `gh repo view --json defaultBranchRef`),",
+			'  then run `gh pr create --base <resolved-branch> --title "..." --body "..."`.',
+		);
+	}
 	lines.push(
 		"- If the prompt includes `--draft`, add `--draft` to the `gh` call.",
 	);

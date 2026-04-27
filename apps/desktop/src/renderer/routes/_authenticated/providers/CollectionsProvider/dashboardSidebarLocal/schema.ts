@@ -40,8 +40,6 @@ export const workspaceLocalStateSchema = z.object({
 		isHidden: z.boolean().default(false),
 	}),
 	paneLayout: paneWorkspaceStateSchema,
-	rightSidebarOpen: z.boolean().default(false),
-	rightSidebarWidth: z.number().default(340),
 	viewedFiles: z.array(z.string()).default([]),
 	recentlyViewedFiles: z
 		.array(

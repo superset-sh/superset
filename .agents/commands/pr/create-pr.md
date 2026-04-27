@@ -42,7 +42,8 @@ In the order listed in `pr-context.md` under "Required preconditions":
   staged, `git add -A`. Then `git commit -m "<message>"`. Keep the
   message short and specific — do not write a PR-body-style
   description here.
-- **Unpublished branch**: `git push -u origin <branch>`.
+- **Unpublished branch**: `git push -u origin -- "<branch>"` — quote `<branch>`
+  to avoid shell injection on names with metacharacters.
 - **Unpushed commits on a published branch**: `git push`.
 - **Behind upstream**: stop. Report to the user that they should sync
   first. Do not force-push. Do not rebase without asking.
@@ -52,7 +53,7 @@ force-push.
 
 ## 2. Draft the PR body
 
-Use `git log <base>..HEAD` to read the commits, `git diff <base>...HEAD`
+Use `git log "<base>..HEAD"` to read the commits, `git diff "<base>...HEAD"`
 for the scope of changes. Produce:
 
 - **Title**: short, imperative, derived from the most recent commit

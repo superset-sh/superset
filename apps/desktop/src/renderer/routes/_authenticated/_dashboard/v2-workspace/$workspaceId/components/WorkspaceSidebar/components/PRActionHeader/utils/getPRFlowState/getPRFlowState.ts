@@ -146,17 +146,6 @@ function getPRFromState(state: PRFlowState): PullRequest | null {
 	}
 }
 
-function _unavailableTooltip(reason: UnavailableReason): string {
-	switch (reason) {
-		case "no-repo":
-			return "No GitHub repository connected";
-		case "default-branch":
-			return "Switch to a feature branch to create a pull request";
-		case "detached-head":
-			return "Checkout a branch to create a pull request";
-	}
-}
-
 function unavailableBadge(reason: UnavailableReason): string {
 	switch (reason) {
 		case "no-repo":

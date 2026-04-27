@@ -213,12 +213,19 @@ function WorkspaceContent({
 	);
 
 	// The sidebar slot lives at the dashboard layout level (next to TopBar) so
-	// the sidebar runs full-height. We render into it via createPortal once the
-	// element is mounted.
-	const [sidebarSlotEl, setSidebarSlotEl] = useState<HTMLElement | null>(null);
+	// the sidebar runs full-height. The slot is mounted by the parent layout
+	// before this child renders, so look it up synchronously during state init —
+	// otherwise users with rightSidebarOpen=true persisted see a 1-frame flash
+	// while the post-mount effect fills the ref.
+	const [sidebarSlotEl, setSidebarSlotEl] = useState<HTMLElement | null>(() =>
+		typeof document !== "undefined"
+			? document.getElementById("workspace-right-sidebar-slot")
+			: null,
+	);
 	useEffect(() => {
+		if (sidebarSlotEl) return;
 		setSidebarSlotEl(document.getElementById("workspace-right-sidebar-slot"));
-	}, []);
+	}, [sidebarSlotEl]);
 
 	useWorkspaceHotkeys({
 		store,
@@ -232,7 +239,7 @@ function WorkspaceContent({
 		<FileDocumentStoreProvider workspaceId={workspaceId}>
 			<div className="flex min-h-0 min-w-0 flex-1">
 				<div
-					className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden"
+					className="flex min-h-0 min-w-[320px] flex-1 flex-col overflow-hidden"
 					data-workspace-id={workspaceId}
 				>
 					<Workspace<PaneViewerData>

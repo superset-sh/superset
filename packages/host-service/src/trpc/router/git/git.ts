@@ -473,8 +473,22 @@ export const gitRouter = router({
 				// no upstream — counts stay zero
 			}
 
-			const status = await git.status().catch(() => null);
-			const hasUncommitted = status ? status.files.length > 0 : false;
+			// Read working-tree status separately from branch info so a transient
+			// `git status` failure (e.g. lock contention during a concurrent
+			// operation) doesn't poison the whole sync read. Log on failure so it
+			// isn't silent — `hasUncommitted` defaults to false in that case
+			// because over-reporting "uncommitted" on every blip is more annoying
+			// than under-reporting briefly until the next refetch.
+			let hasUncommitted = false;
+			try {
+				const status = await git.status();
+				hasUncommitted = status.files.length > 0;
+			} catch (error) {
+				console.warn(
+					"[git/getBranchSyncStatus] git.status() failed; treating working tree as clean for this read",
+					error,
+				);
+			}
 
 			return {
 				hasRepo,
