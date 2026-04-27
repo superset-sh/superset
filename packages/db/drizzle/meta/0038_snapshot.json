@@ -1,5 +1,5 @@
 {
-  "id": "d96c9599-f091-4d18-b33b-04674e6b8b31",
+  "id": "ef3bd128-1ac9-4166-a066-b1aa6811772a",
   "prevId": "16fdad31-9719-48da-880a-05e1c736dee7",
   "version": "7",
   "dialect": "postgresql",
@@ -5346,12 +5346,6 @@
           "primaryKey": false,
           "notNull": true,
           "default": "'worktree'"
-        },
-        "pinned_at": {
-          "name": "pinned_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
         },
         "created_by_user_id": {
           "name": "created_by_user_id",
