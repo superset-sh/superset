@@ -533,6 +533,88 @@ export const cleanLayout = (
 	};
 };
 
+export const sanitizePersistedTabState = (
+	state: Pick<
+		TabsState,
+		"tabs" | "panes" | "activeTabIds" | "focusedPaneIds" | "tabHistoryStacks"
+	>,
+): Pick<
+	TabsState,
+	"tabs" | "activeTabIds" | "focusedPaneIds" | "tabHistoryStacks"
+> => {
+	const nextTabs: Tab[] = [];
+
+	for (const tab of state.tabs) {
+		const validPaneIds = new Set(
+			extractPaneIdsFromLayout(tab.layout).filter((paneId) => {
+				const pane = state.panes[paneId];
+				return pane && pane.tabId === tab.id;
+			}),
+		);
+		const layout = cleanLayout(tab.layout, validPaneIds);
+
+		if (!layout) {
+			continue;
+		}
+
+		nextTabs.push(layout === tab.layout ? tab : { ...tab, layout });
+	}
+
+	const nextActiveTabIds = { ...state.activeTabIds };
+	const nextHistoryStacks = { ...state.tabHistoryStacks };
+
+	const workspaceTabIdSets = new Map<string, Set<string>>();
+	const workspaceIds = new Set<string>([
+		...Object.keys(state.activeTabIds),
+		...Object.keys(state.tabHistoryStacks),
+	]);
+	for (const tab of nextTabs) {
+		workspaceIds.add(tab.workspaceId);
+		let setForWorkspace = workspaceTabIdSets.get(tab.workspaceId);
+		if (!setForWorkspace) {
+			setForWorkspace = new Set();
+			workspaceTabIdSets.set(tab.workspaceId, setForWorkspace);
+		}
+		setForWorkspace.add(tab.id);
+	}
+
+	for (const workspaceId of workspaceIds) {
+		nextActiveTabIds[workspaceId] = resolveActiveTabIdForWorkspace({
+			workspaceId,
+			tabs: nextTabs,
+			activeTabIds: state.activeTabIds,
+			tabHistoryStacks: state.tabHistoryStacks,
+		});
+
+		const workspaceTabIds = workspaceTabIdSets.get(workspaceId);
+		const history = nextHistoryStacks[workspaceId] ?? [];
+		if (workspaceTabIds && Array.isArray(history)) {
+			nextHistoryStacks[workspaceId] = history.filter((id) =>
+				workspaceTabIds.has(id),
+			);
+		}
+	}
+
+	const nextFocusedPaneIds: TabsState["focusedPaneIds"] = {};
+	for (const tab of nextTabs) {
+		const currentFocusedPaneId = state.focusedPaneIds[tab.id];
+		const currentFocusedPane = currentFocusedPaneId
+			? state.panes[currentFocusedPaneId]
+			: null;
+		nextFocusedPaneIds[tab.id] =
+			currentFocusedPane?.tabId === tab.id
+				? currentFocusedPaneId
+				: getFirstPaneId(tab.layout);
+	}
+
+	return {
+		tabs: nextTabs,
+		activeTabIds: nextActiveTabIds,
+		focusedPaneIds: nextFocusedPaneIds,
+		tabHistoryStacks: nextHistoryStacks,
+	};
+};
+
 /**
  * Gets the first pane ID from a layout (useful for focus fallback)
  */

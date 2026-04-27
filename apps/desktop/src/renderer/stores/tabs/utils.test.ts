@@ -12,6 +12,7 @@ import {
 	getAdjacentPaneId,
 	resolveActiveTabIdForWorkspace,
 	resolveFileViewerMode,
+	sanitizePersistedTabState,
 } from "./utils";
 
 describe("findPanePath", () => {
@@ -295,6 +296,108 @@ describe("resolveActiveTabIdForWorkspace", () => {
 				tabHistoryStacks: { "ws-1": ["tab-x"] },
 			}),
 		).toBeNull();
+	});
+});
+
+describe("sanitizePersistedTabState", () => {
+	const terminalPane = (id: string, tabId: string): Pane => ({
+		id,
+		tabId,
+		type: "terminal",
+		name: id,
+	});
+
+	it("falls focusedPaneIds back to the first valid pane in the tab layout", () => {
+		const tabs: Tab[] = [
+			{
+				id: "tab-a",
+				name: "Terminal",
+				workspaceId: "ws-1",
+				layout: "pane-a",
+				createdAt: 0,
+			},
+		];
+		const panes = {
+			"pane-a": terminalPane("pane-a", "tab-a"),
+		};
+
+		const result = sanitizePersistedTabState({
+			tabs,
+			panes,
+			activeTabIds: { "ws-1": "tab-a" },
+			focusedPaneIds: { "tab-a": "pane-missing" },
+			tabHistoryStacks: {},
+		});
+
+		expect(result.focusedPaneIds["tab-a"]).toBe("pane-a");
+	});
+
+	it("removes stale pane references from layouts before resolving active tabs", () => {
+		const tabs: Tab[] = [
+			{
+				id: "tab-a",
+				name: "Terminal",
+				workspaceId: "ws-1",
+				layout: {
+					direction: "row",
+					first: "pane-missing",
+					second: "pane-a",
+				},
+				createdAt: 0,
+			},
+		];
+		const panes = {
+			"pane-a": terminalPane("pane-a", "tab-a"),
+		};
+
+		const result = sanitizePersistedTabState({
+			tabs,
+			panes,
+			activeTabIds: { "ws-1": "tab-a" },
+			focusedPaneIds: {},
+			tabHistoryStacks: { "ws-1": ["tab-missing", "tab-a"] },
+		});
+
+		expect(result.tabs).toHaveLength(1);
+		expect(result.tabs[0].layout).toBe("pane-a");
+		expect(result.activeTabIds["ws-1"]).toBe("tab-a");
+		expect(result.focusedPaneIds["tab-a"]).toBe("pane-a");
+		expect(result.tabHistoryStacks["ws-1"]).toEqual(["tab-a"]);
+	});
+
+	it("drops tabs whose layouts contain no valid panes", () => {
+		const tabs: Tab[] = [
+			{
+				id: "tab-stale",
+				name: "Stale",
+				workspaceId: "ws-1",
+				layout: "pane-missing",
+				createdAt: 0,
+			},
+			{
+				id: "tab-good",
+				name: "Good",
+				workspaceId: "ws-1",
+				layout: "pane-good",
+				createdAt: 0,
+			},
+		];
+		const panes = {
+			"pane-good": terminalPane("pane-good", "tab-good"),
+		};
+
+		const result = sanitizePersistedTabState({
+			tabs,
+			panes,
+			activeTabIds: { "ws-1": "tab-stale" },
+			focusedPaneIds: { "tab-stale": "pane-missing" },
+			tabHistoryStacks: { "ws-1": ["tab-good", "tab-stale"] },
+		});
+
+		expect(result.tabs.map((tab) => tab.id)).toEqual(["tab-good"]);
+		expect(result.activeTabIds["ws-1"]).toBe("tab-good");
+		expect(result.focusedPaneIds).toEqual({ "tab-good": "pane-good" });
+		expect(result.tabHistoryStacks["ws-1"]).toEqual(["tab-good"]);
 	});
 });
 
