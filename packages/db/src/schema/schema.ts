@@ -735,11 +735,6 @@ export const automations = pgTable(
 			.$onUpdate(() => new Date()),
 	},
 	(t) => [
-		foreignKey({
-			columns: [t.organizationId, t.targetHostId],
-			foreignColumns: [v2Hosts.organizationId, v2Hosts.machineId],
-			name: "automations_target_host_fk",
-		}).onDelete("set null"),
 		index("automations_dispatcher_idx").on(t.enabled, t.nextRunAt),
 		index("automations_owner_idx").on(t.ownerUserId),
 		index("automations_organization_idx").on(t.organizationId),
@@ -782,11 +777,6 @@ export const automationRuns = pgTable(
 			.defaultNow(),
 	},
 	(t) => [
-		foreignKey({
-			columns: [t.organizationId, t.hostId],
-			foreignColumns: [v2Hosts.organizationId, v2Hosts.machineId],
-			name: "automation_runs_host_fk",
-		}).onDelete("set null"),
 		uniqueIndex("automation_runs_dedup_idx").on(t.automationId, t.scheduledFor),
 		index("automation_runs_history_idx").on(t.automationId, t.createdAt),
 		index("automation_runs_status_idx").on(t.status),

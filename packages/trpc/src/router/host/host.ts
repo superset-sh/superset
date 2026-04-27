@@ -51,21 +51,23 @@ export const hostRouter = {
 				});
 			}
 
-			await dbWs
-				.insert(v2UsersHosts)
-				.values({
-					organizationId: input.organizationId,
-					userId: ctx.userId,
-					hostId: host.machineId,
-					role: "owner",
-				})
-				.onConflictDoNothing({
-					target: [
-						v2UsersHosts.organizationId,
-						v2UsersHosts.userId,
-						v2UsersHosts.hostId,
-					],
-				});
+			if (host.createdByUserId === ctx.userId) {
+				await dbWs
+					.insert(v2UsersHosts)
+					.values({
+						organizationId: input.organizationId,
+						userId: ctx.userId,
+						hostId: host.machineId,
+						role: "owner",
+					})
+					.onConflictDoNothing({
+						target: [
+							v2UsersHosts.organizationId,
+							v2UsersHosts.userId,
+							v2UsersHosts.hostId,
+						],
+					});
+			}
 
 			return host;
 		}),
