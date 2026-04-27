@@ -249,6 +249,7 @@ export const v2UserPreferencesSchema = z.object({
 	urlLinks: linkTierMapSchema.default(DEFAULT_LINK_TIER_MAP),
 	rightSidebarOpen: z.boolean().default(true),
 	rightSidebarTab: z.enum(["changes", "files"]).default("changes"),
+	rightSidebarWidth: z.number().default(340),
 	deleteLocalBranch: z.boolean().default(false),
 });
 
@@ -262,5 +263,6 @@ export const DEFAULT_V2_USER_PREFERENCES: V2UserPreferencesRow = {
 	urlLinks: DEFAULT_LINK_TIER_MAP,
 	rightSidebarOpen: true,
 	rightSidebarTab: "changes",
+	rightSidebarWidth: 340,
 	deleteLocalBranch: false,
 };

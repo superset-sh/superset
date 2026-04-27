@@ -9,7 +9,6 @@ interface ChangesHeaderProps {
 	currentBranch: { name: string; aheadCount: number; behindCount: number };
 	defaultBranchName: string;
 	baseBranch: string | null;
-	commitCount: number;
 	totalFiles: number;
 	totalAdditions: number;
 	totalDeletions: number;
@@ -27,7 +26,6 @@ export function ChangesHeader({
 	currentBranch,
 	defaultBranchName,
 	baseBranch,
-	commitCount,
 	totalFiles,
 	totalAdditions,
 	totalDeletions,

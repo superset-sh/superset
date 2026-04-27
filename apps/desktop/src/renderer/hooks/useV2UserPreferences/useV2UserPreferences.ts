@@ -17,6 +17,7 @@ export interface V2UserPreferencesApi {
 	setUrlLinks: (next: LinkTierMap) => void;
 	setRightSidebarOpen: (next: boolean | ((prev: boolean) => boolean)) => void;
 	setRightSidebarTab: (next: RightSidebarTab) => void;
+	setRightSidebarWidth: (next: number) => void;
 	setDeleteLocalBranch: (next: boolean) => void;
 }
 
@@ -104,6 +105,25 @@ export function useV2UserPreferences(): V2UserPreferencesApi {
 		[collections],
 	);
 
+	const setRightSidebarWidth = useCallback(
+		(next: number) => {
+			const existing = collections.v2UserPreferences.get(
+				V2_USER_PREFERENCES_ID,
+			);
+			if (!existing) {
+				collections.v2UserPreferences.insert({
+					...DEFAULT_V2_USER_PREFERENCES,
+					rightSidebarWidth: next,
+				});
+				return;
+			}
+			collections.v2UserPreferences.update(V2_USER_PREFERENCES_ID, (draft) => {
+				draft.rightSidebarWidth = next;
+			});
+		},
+		[collections],
+	);
+
 	const setDeleteLocalBranch = useCallback(
 		(next: boolean) => {
 			const existing = collections.v2UserPreferences.get(
@@ -129,6 +149,7 @@ export function useV2UserPreferences(): V2UserPreferencesApi {
 		setUrlLinks,
 		setRightSidebarOpen,
 		setRightSidebarTab,
+		setRightSidebarWidth,
 		setDeleteLocalBranch,
 	};
 }

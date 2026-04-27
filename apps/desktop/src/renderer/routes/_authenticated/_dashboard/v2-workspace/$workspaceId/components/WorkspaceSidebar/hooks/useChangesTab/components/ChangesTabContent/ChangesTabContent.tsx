@@ -72,7 +72,6 @@ export const ChangesTabContent = memo(function ChangesTabContent({
 				currentBranch={status.data.currentBranch}
 				defaultBranchName={status.data.defaultBranch.name}
 				baseBranch={baseBranch}
-				commitCount={commits.data?.commits.length ?? 0}
 				totalFiles={totalChanges}
 				totalAdditions={totalAdditions}
 				totalDeletions={totalDeletions}

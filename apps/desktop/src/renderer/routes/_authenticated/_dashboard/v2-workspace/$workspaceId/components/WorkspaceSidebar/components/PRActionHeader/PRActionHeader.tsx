@@ -8,8 +8,8 @@ import {
 } from "@superset/ui/dropdown-menu";
 import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
-import { workspaceTrpc } from "@superset/workspace-client";
 import { cn } from "@superset/ui/utils";
+import { workspaceTrpc } from "@superset/workspace-client";
 import {
 	LuChevronDown,
 	LuGitMerge,
