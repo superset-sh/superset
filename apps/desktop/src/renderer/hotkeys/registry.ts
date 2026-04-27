@@ -202,6 +202,16 @@ export const HOTKEYS_REGISTRY = {
 		label: "Toggle Workspaces Sidebar",
 		category: "Layout",
 	},
+	TOGGLE_ZEN_MODE: {
+		key: {
+			mac: "meta+period",
+			windows: "ctrl+shift+period",
+			linux: "ctrl+shift+period",
+		},
+		label: "Toggle Zen Mode",
+		category: "Layout",
+		description: "Hide all chrome for a distraction-free view",
+	},
 	SPLIT_RIGHT: {
 		key: { mac: "meta+d", windows: "ctrl+shift+d", linux: "ctrl+shift+d" },
 		label: "Split Right",

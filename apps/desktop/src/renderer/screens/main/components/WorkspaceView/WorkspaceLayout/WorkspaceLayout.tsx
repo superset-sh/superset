@@ -6,6 +6,7 @@ import {
 	SidebarMode,
 	useSidebarStore,
 } from "renderer/stores/sidebar-state";
+import { useZenModeStore } from "renderer/stores/zen-mode";
 import { ResizablePanel } from "../../ResizablePanel";
 import { ChangesContent, ScrollProvider } from "../ChangesContent";
 import { ContentView } from "../ContentView";
@@ -30,6 +31,7 @@ export function WorkspaceLayout({
 	const isResizing = useSidebarStore((s) => s.isResizing);
 	const setIsResizing = useSidebarStore((s) => s.setIsResizing);
 	const currentMode = useSidebarStore((s) => s.currentMode);
+	const isZenMode = useZenModeStore((s) => s.isZenMode);
 
 	const isExpanded = currentMode === SidebarMode.Changes;
 
@@ -46,7 +48,7 @@ export function WorkspaceLayout({
 					/>
 				)}
 			</div>
-			{isSidebarOpen && (
+			{!isZenMode && isSidebarOpen && (
 				<ResizablePanel
 					width={sidebarWidth}
 					onWidthChange={setSidebarWidth}

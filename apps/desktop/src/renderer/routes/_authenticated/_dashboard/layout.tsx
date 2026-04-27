@@ -1,10 +1,12 @@
+import { toast } from "@superset/ui/sonner";
 import {
 	createFileRoute,
 	Outlet,
 	useMatchRoute,
 	useNavigate,
 } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useHotkeys } from "react-hotkeys-hook";
 import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import { useHotkey } from "renderer/hotkeys";
 import { electronTrpc } from "renderer/lib/electron-trpc";
@@ -21,6 +23,7 @@ import {
 	MAX_WORKSPACE_SIDEBAR_WIDTH,
 	useWorkspaceSidebarStore,
 } from "renderer/stores/workspace-sidebar-state";
+import { useZenModeStore } from "renderer/stores/zen-mode";
 import { AddRepositoryModals } from "./components/AddRepositoryModals";
 import { TopBar } from "./components/TopBar";
 
@@ -59,16 +62,68 @@ function DashboardLayout() {
 		isCollapsed: isWorkspaceSidebarCollapsed,
 	} = useWorkspaceSidebarStore();
 
+	const isZenMode = useZenModeStore((s) => s.isZenMode);
+	const toggleZenMode = useZenModeStore((s) => s.toggleZenMode);
+	const setZenMode = useZenModeStore((s) => s.setZenMode);
+	const hasShownZenHint = useZenModeStore((s) => s.hasShownHint);
+	const markZenHintShown = useZenModeStore((s) => s.markHintShown);
+	useHotkey("TOGGLE_ZEN_MODE", () => toggleZenMode());
+	const setFullScreen = electronTrpc.window.setFullScreen.useMutation();
+
+	const didMountRef = useRef(false);
+	const skipNextSyncRef = useRef(false);
+	// biome-ignore lint/correctness/useExhaustiveDependencies: setFullScreen mutation is stable
+	useEffect(() => {
+		if (!didMountRef.current) {
+			didMountRef.current = true;
+			return;
+		}
+		if (skipNextSyncRef.current) {
+			skipNextSyncRef.current = false;
+			return;
+		}
+		const revert = () => {
+			skipNextSyncRef.current = true;
+			setZenMode(!isZenMode);
+		};
+		setFullScreen.mutate(
+			{ fullScreen: isZenMode },
+			{
+				onSuccess: (result) => {
+					if (!result.success) revert();
+				},
+				onError: revert,
+			},
+		);
+	}, [isZenMode]);
+
+	useEffect(() => {
+		if (isZenMode && !hasShownZenHint) {
+			toast("Zen Mode — Esc to exit", { duration: 2000 });
+			markZenHintShown();
+		}
+	}, [isZenMode, hasShownZenHint, markZenHintShown]);
+
+	useHotkeys("esc", () => setZenMode(false), {
+		enabled: isZenMode,
+		enableOnFormTags: false,
+		enableOnContentEditable: false,
+	});
+
 	// Global hotkeys for dashboard
 	useHotkey("OPEN_SETTINGS", () => navigate({ to: "/settings/account" }));
 	useHotkey("SHOW_HOTKEYS", () => navigate({ to: "/settings/keyboard" }));
-	useHotkey("TOGGLE_WORKSPACE_SIDEBAR", () => {
-		if (!isWorkspaceSidebarOpen) {
-			setWorkspaceSidebarOpen(true);
-		} else {
-			toggleWorkspaceSidebarCollapsed();
-		}
-	});
+	useHotkey(
+		"TOGGLE_WORKSPACE_SIDEBAR",
+		() => {
+			if (!isWorkspaceSidebarOpen) {
+				setWorkspaceSidebarOpen(true);
+			} else {
+				toggleWorkspaceSidebarCollapsed();
+			}
+		},
+		{ enabled: !isZenMode },
+	);
 	useHotkey("NEW_WORKSPACE", () =>
 		openNewWorkspaceModal(currentWorkspace?.projectId),
 	);
@@ -94,10 +149,12 @@ function DashboardLayout() {
 	);
 
 	return (
-		<div className="flex flex-col h-full w-full">
-			<TopBar />
+		<div
+			className={`flex flex-col h-full w-full${isZenMode ? " zen-mode" : ""}`}
+		>
+			{!isZenMode && <TopBar />}
 			<div className="flex flex-1 min-h-0 min-w-0 overflow-hidden">
-				{isWorkspaceSidebarOpen && (
+				{!isZenMode && isWorkspaceSidebarOpen && (
 					<ResizablePanel
 						width={workspaceSidebarWidth}
 						onWidthChange={setWorkspaceSidebarWidth}

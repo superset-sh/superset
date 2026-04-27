@@ -88,6 +88,13 @@
 	overflow: hidden;
 }
 
+.zen-mode .mosaic-window .mosaic-window-toolbar {
+	display: none;
+}
+.zen-mode .mosaic-window .mosaic-window-body {
+	top: 0;
+}
+
 .mosaic-window-content {
 	outline: none;
 }

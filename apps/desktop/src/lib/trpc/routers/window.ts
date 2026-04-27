@@ -39,6 +39,15 @@ export const createWindowRouter = (getWindow: () => BrowserWindow | null) => {
 			return window.isMaximized();
 		}),
 
+		setFullScreen: publicProcedure
+			.input(z.object({ fullScreen: z.boolean() }))
+			.mutation(({ input }) => {
+				const window = getWindow();
+				if (!window) return { success: false };
+				window.setFullScreen(input.fullScreen);
+				return { success: true };
+			}),
+
 		getPlatform: publicProcedure.query(() => {
 			return process.platform;
 		}),
