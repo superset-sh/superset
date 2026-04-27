@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { GoGitBranch } from "react-icons/go";
-import { HiCheck, HiExclamationTriangle } from "react-icons/hi2";
+import { HiExclamationTriangle } from "react-icons/hi2";
 import { env } from "renderer/env.renderer";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { formatRelativeTime } from "renderer/lib/formatRelativeTime";
@@ -347,13 +347,17 @@ function PendingWorkspacePage() {
 		}, 1000);
 	}, [collections, ensureWorkspaceInSidebar, navigate, pending, pendingId]);
 
+	// Brief hold once succeeded + synced so the keypad's last key animates to
+	// pressed (CSS transition runs ~700ms) before we navigate away.
+	const NAVIGATE_HOLD_MS = 700;
 	useEffect(() => {
 		if (
 			pending?.status === "succeeded" &&
 			pending.workspaceId &&
 			workspaceSynced
 		) {
-			doNavigate();
+			const timer = setTimeout(doNavigate, NAVIGATE_HOLD_MS);
+			return () => clearTimeout(timer);
 		}
 	}, [pending?.status, pending?.workspaceId, workspaceSynced, doNavigate]);
 
@@ -372,29 +376,52 @@ function PendingWorkspacePage() {
 				? "Checking out branch"
 				: "Setting up workspace";
 
-	if (pending.status === "creating") {
+	// Render the keypad through the "succeeded" hold (and during the brief
+	// pre-sync window before that) so the last key animates to pressed —
+	// the host clears progress without ever flagging "registering: done",
+	// so the success transition is the only signal we have for that frame.
+	const showKeypad =
+		pending.status === "creating" ||
+		(pending.status === "succeeded" && !(syncTimedOut && !workspaceSynced));
+
+	if (showKeypad) {
+		const isFinalizing = pending.status === "succeeded";
 		return (
 			<V2WorkspaceLoadingView
 				workspaceName={pending.name}
 				title={creatingTitle}
-				currentStep={loaderStep}
+				currentStep={isFinalizing ? "ready" : loaderStep}
 				description={
-					isStale
-						? "This is taking longer than expected..."
-						: `Takes 10s to a few minutes (started ${elapsedLabel})`
+					isFinalizing
+						? "Workspace ready — opening..."
+						: isStale
+							? "This is taking longer than expected..."
+							: `Takes 10s to a few minutes (started ${elapsedLabel})`
 				}
 			>
-				<button
-					type="button"
-					className="mt-2 rounded-md border px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-accent"
-					onClick={() => {
-						collections.pendingWorkspaces.delete(pendingId);
-						void clearAttachments(pendingId);
-						void navigate({ to: "/" });
-					}}
-				>
-					Dismiss
-				</button>
+				{!isFinalizing && (
+					<button
+						type="button"
+						className="mt-2 rounded-md border px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-accent"
+						onClick={() => {
+							collections.pendingWorkspaces.delete(pendingId);
+							void clearAttachments(pendingId);
+							void navigate({ to: "/" });
+						}}
+					>
+						Dismiss
+					</button>
+				)}
+				{isFinalizing && pending.warnings.length > 0 && (
+					<ul className="mt-2 space-y-1 text-xs text-amber-500 text-left">
+						{pending.warnings.map((w) => (
+							<li key={w} className="flex items-start gap-1.5">
+								<HiExclamationTriangle className="size-3.5 mt-0.5 shrink-0" />
+								<span>{w}</span>
+							</li>
+						))}
+					</ul>
+				)}
 			</V2WorkspaceLoadingView>
 		);
 	}
@@ -410,62 +437,44 @@ function PendingWorkspacePage() {
 					</div>
 				</div>
 
-				{pending.status === "succeeded" &&
-					(syncTimedOut && !workspaceSynced ? (
-						<div className="space-y-4">
-							<div className="flex items-start gap-2 text-sm text-amber-500">
-								<HiExclamationTriangle className="size-4 mt-0.5 shrink-0" />
-								<span>
-									Workspace was created but hasn't synced to this device yet.
-									Check your connection.
-								</span>
-							</div>
-							<div className="flex gap-2">
-								<button
-									type="button"
-									className="rounded-md bg-primary px-3 py-1.5 text-sm text-primary-foreground hover:bg-primary/90"
-									onClick={() => setSyncTimedOut(false)}
-								>
-									Keep waiting
-								</button>
-								<button
-									type="button"
-									className="rounded-md border px-3 py-1.5 text-sm hover:bg-accent"
-									onClick={doNavigate}
-								>
-									Open anyway
-								</button>
-								<button
-									type="button"
-									className="rounded-md border px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-accent"
-									onClick={() => {
-										collections.pendingWorkspaces.delete(pendingId);
-										void clearAttachments(pendingId);
-										void navigate({ to: "/" });
-									}}
-								>
-									Dismiss
-								</button>
-							</div>
+				{pending.status === "succeeded" && syncTimedOut && !workspaceSynced && (
+					<div className="space-y-4">
+						<div className="flex items-start gap-2 text-sm text-amber-500">
+							<HiExclamationTriangle className="size-4 mt-0.5 shrink-0" />
+							<span>
+								Workspace was created but hasn't synced to this device yet.
+								Check your connection.
+							</span>
 						</div>
-					) : (
-						<div className="space-y-2">
-							<div className="flex items-center gap-2 text-sm text-emerald-500">
-								<HiCheck className="size-4" />
-								<span>Workspace ready — opening...</span>
-							</div>
-							{pending.warnings.length > 0 && (
-								<ul className="space-y-1 text-xs text-amber-500">
-									{pending.warnings.map((w) => (
-										<li key={w} className="flex items-start gap-1.5">
-											<HiExclamationTriangle className="size-3.5 mt-0.5 shrink-0" />
-											<span>{w}</span>
-										</li>
-									))}
-								</ul>
-							)}
+						<div className="flex gap-2">
+							<button
+								type="button"
+								className="rounded-md bg-primary px-3 py-1.5 text-sm text-primary-foreground hover:bg-primary/90"
+								onClick={() => setSyncTimedOut(false)}
+							>
+								Keep waiting
+							</button>
+							<button
+								type="button"
+								className="rounded-md border px-3 py-1.5 text-sm hover:bg-accent"
+								onClick={doNavigate}
+							>
+								Open anyway
+							</button>
+							<button
+								type="button"
+								className="rounded-md border px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-accent"
+								onClick={() => {
+									collections.pendingWorkspaces.delete(pendingId);
+									void clearAttachments(pendingId);
+									void navigate({ to: "/" });
+								}}
+							>
+								Dismiss
+							</button>
 						</div>
-					))}
+					</div>
+				)}
 
 				{pending.status === "failed" && (
 					<div className="space-y-4">
