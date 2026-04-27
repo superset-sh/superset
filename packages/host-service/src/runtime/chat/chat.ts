@@ -1,6 +1,10 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
+import {
+	getSlashCommands as getSlashCommandsFromCwd,
+	resolveSlashCommand as resolveSlashCommandFromCwd,
+} from "@superset/chat/server/desktop";
 import { eq } from "drizzle-orm";
 import { createAuthStorage, createMastraCode } from "mastracode";
 import type { HostDb } from "../../db";
@@ -772,7 +776,17 @@ When you need to ask the user ANY question — including simple yes/no, confirma
 		return runtime.harness.respondToPlanApproval(input.payload);
 	}
 
-	async getSlashCommands(_input: {
+	private resolveWorkspaceCwd(workspaceId: string): string {
+		const workspace = this.db.query.workspaces
+			.findFirst({ where: eq(workspaces.id, workspaceId) })
+			.sync();
+		if (!workspace) {
+			throw new Error(`Workspace not found: ${workspaceId}`);
+		}
+		return workspace.worktreePath;
+	}
+
+	async getSlashCommands(input: {
 		sessionId: string;
 		workspaceId: string;
 	}): Promise<
@@ -781,10 +795,17 @@ When you need to ask the user ANY question — including simple yes/no, confirma
 			aliases: string[];
 			description: string;
 			argumentHint: string;
-			kind: "builtin" | "prompt";
+			kind: "builtin" | "custom";
 		}>
 	> {
-		return [];
+		const cwd = this.resolveWorkspaceCwd(input.workspaceId);
+		return getSlashCommandsFromCwd(cwd).map((command) => ({
+			name: command.name,
+			aliases: command.aliases,
+			description: command.description,
+			argumentHint: command.argumentHint,
+			kind: command.kind,
+		}));
 	}
 
 	async resolveSlashCommand(input: {
@@ -792,12 +813,8 @@ When you need to ask the user ANY question — including simple yes/no, confirma
 		workspaceId: string;
 		text: string;
 	}) {
-		return {
-			handled: false,
-			invokedAs: input.text.trim().startsWith("/")
-				? input.text.trim()
-				: undefined,
-		};
+		const cwd = this.resolveWorkspaceCwd(input.workspaceId);
+		return resolveSlashCommandFromCwd(cwd, input.text);
 	}
 
 	async previewSlashCommand(input: {
