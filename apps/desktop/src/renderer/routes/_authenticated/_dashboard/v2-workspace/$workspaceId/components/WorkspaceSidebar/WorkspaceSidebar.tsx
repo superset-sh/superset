@@ -15,10 +15,10 @@ import { usePRFlowState } from "./hooks/usePRFlowState";
 import { useReviewTab } from "./hooks/useReviewTab";
 import type { SidebarTabDefinition } from "./types";
 
-// Gate the PR button until the in-app chat lands in v2. The wip dispatch
-// hands off to a chat session, which doesn't exist yet — flip to true once
-// chat panes work and the slash-command flow is verified end-to-end.
-const PR_ACTION_HEADER_ENABLED = false;
+// Gates the "Create PR" button only — the chat-driven create flow doesn't
+// exist in v2 yet. The PR status group (link + merge dropdown for an open PR)
+// always renders so users can see PR state and merge once a PR exists.
+const CREATE_PR_BUTTON_ENABLED = false;
 
 type SidebarTabId = "changes" | "files" | "review";
 
@@ -28,13 +28,19 @@ function isSidebarTabId(tab: string): tab is SidebarTabId {
 	return (VALID_TAB_IDS as readonly string[]).includes(tab);
 }
 
+export interface PendingReveal {
+	path: string;
+	isDirectory: boolean;
+}
+
 interface WorkspaceSidebarProps {
 	onSelectFile: (absolutePath: string, openInNewTab?: boolean) => void;
-	onSelectDiffFile?: (path: string) => void;
+	onSelectDiffFile?: (path: string, openInNewTab?: boolean) => void;
 	onOpenComment?: (comment: CommentPaneData) => void;
 	onOpenChat?: OpenChatFn;
 	onSearch?: () => void;
 	selectedFilePath?: string;
+	pendingReveal?: PendingReveal | null;
 	workspaceId: string;
 	workspaceName?: string;
 }
@@ -72,6 +78,7 @@ export function WorkspaceSidebar({
 	onOpenChat,
 	onSearch,
 	selectedFilePath,
+	pendingReveal,
 	workspaceId,
 	workspaceName,
 }: WorkspaceSidebarProps) {
@@ -133,6 +140,7 @@ export function WorkspaceSidebar({
 			<FilesTab
 				onSelectFile={onSelectFile}
 				selectedFilePath={selectedFilePath}
+				pendingReveal={pendingReveal}
 				workspaceId={workspaceId}
 				workspaceName={workspaceName}
 				gitStatus={gitStatus.data}
@@ -148,11 +156,13 @@ export function WorkspaceSidebar({
 			ref={containerRef}
 			className="isolate flex h-full w-full min-h-0 flex-col overflow-hidden bg-background"
 		>
-			{PR_ACTION_HEADER_ENABLED ? (
-				<PRActionHeader state={flowState} dispatch={dispatch} onRetry={onRetry} />
-			) : (
-				<div className="flex h-12 shrink-0 items-center gap-2 border-b border-border bg-muted/45 px-2 dark:bg-muted/35" />
-			)}
+			<PRActionHeader
+				workspaceId={workspaceId}
+				state={flowState}
+				dispatch={dispatch}
+				onRetry={onRetry}
+				createPREnabled={CREATE_PR_BUTTON_ENABLED}
+			/>
 			<SidebarHeader
 				tabs={tabs}
 				activeTab={activeTab}

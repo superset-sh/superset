@@ -543,6 +543,8 @@ export const gitRouter = router({
 				headRefName: pr.headBranch ?? "",
 				updatedAt: pr.updatedAt ? new Date(pr.updatedAt).toISOString() : "",
 				checks,
+				repoOwner: pr.repoOwner,
+				repoName: pr.repoName,
 			};
 		}),
 

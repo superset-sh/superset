@@ -33,6 +33,8 @@ const pr = (overrides: Partial<PullRequest> = {}): PullRequest => ({
 	headRefName: "feature-x",
 	updatedAt: "",
 	checks: [],
+	repoOwner: "org",
+	repoName: "repo",
 	...overrides,
 });
 
