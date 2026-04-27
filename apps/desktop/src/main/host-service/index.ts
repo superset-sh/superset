@@ -8,6 +8,7 @@
 import { serve } from "@hono/node-server";
 import {
 	createApp,
+	installProcessSafetyNet,
 	JwtApiAuthProvider,
 	LocalGitCredentialProvider,
 	LocalModelProvider,
@@ -22,6 +23,7 @@ import { writeManifest } from "main/lib/host-service-manifest";
 import { env } from "./env";
 
 async function main(): Promise<void> {
+	installProcessSafetyNet("host-service");
 	const terminalBaseEnv = await resolveTerminalBaseEnv();
 	initTerminalBaseEnv(terminalBaseEnv);
 

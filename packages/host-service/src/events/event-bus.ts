@@ -6,6 +6,7 @@ import type { HostDb } from "../db";
 import { portManager } from "../ports/port-manager";
 import { getLabelsForWorkspace } from "../ports/static-ports";
 import type { WorkspaceFilesystemManager } from "../runtime/filesystem";
+import { safeSync } from "../safety";
 import { GitWatcher } from "./git-watcher";
 import type { ClientMessage, ServerMessage } from "./types";
 
@@ -43,8 +44,8 @@ function parseClientMessage(data: unknown): ClientMessage | null {
 				return parsed as ClientMessage;
 			}
 		}
-	} catch {
-		// Malformed message — ignore
+	} catch (error) {
+		console.warn("[event-bus] malformed client message — ignored", { error });
 	}
 	return null;
 }
@@ -78,20 +79,28 @@ export class EventBus {
 		if (this.removeGitListener || this.removePortListeners) return;
 
 		this.gitWatcher.start();
-		this.removeGitListener = this.gitWatcher.onChanged((event) => {
-			this.broadcast({
-				type: "git:changed",
-				workspaceId: event.workspaceId,
-				...(event.paths !== undefined ? { paths: event.paths } : {}),
-			});
-		});
+		this.removeGitListener = this.gitWatcher.onChanged(
+			safeSync("event-bus:git-changed", (event) => {
+				this.broadcast({
+					type: "git:changed",
+					workspaceId: event.workspaceId,
+					...(event.paths !== undefined ? { paths: event.paths } : {}),
+				});
+			}),
+		);
 
-		const handlePortAdd = (port: DetectedPort) => {
-			this.broadcastPortChanged({ eventType: "add", port });
-		};
-		const handlePortRemove = (port: DetectedPort) => {
-			this.broadcastPortChanged({ eventType: "remove", port });
-		};
+		const handlePortAdd = safeSync(
+			"event-bus:port-add",
+			(port: DetectedPort) => {
+				this.broadcastPortChanged({ eventType: "add", port });
+			},
+		);
+		const handlePortRemove = safeSync(
+			"event-bus:port-remove",
+			(port: DetectedPort) => {
+				this.broadcastPortChanged({ eventType: "remove", port });
+			},
+		);
 		portManager.on("port:add", handlePortAdd);
 		portManager.on("port:remove", handlePortRemove);
 		this.removePortListeners = () => {
@@ -140,7 +149,8 @@ export class EventBus {
 
 	private broadcast(message: ServerMessage): void {
 		for (const socket of this.clients.keys()) {
-			sendMessage(socket, message);
+			// One bad socket must not block the rest of the fan-out.
+			safeSync("event-bus:send", sendMessage)(socket, message);
 		}
 	}
 

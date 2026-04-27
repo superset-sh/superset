@@ -5,10 +5,12 @@ import { JwtApiAuthProvider } from "./providers/auth";
 import { LocalGitCredentialProvider } from "./providers/git";
 import { PskHostAuthProvider } from "./providers/host-auth";
 import { LocalModelProvider } from "./providers/model-providers";
+import { installProcessSafetyNet } from "./safety";
 import { initTerminalBaseEnv, resolveTerminalBaseEnv } from "./terminal/env";
 import { connectRelay } from "./tunnel";
 
 async function main(): Promise<void> {
+	installProcessSafetyNet("host-service");
 	const terminalBaseEnv = await resolveTerminalBaseEnv();
 	initTerminalBaseEnv(terminalBaseEnv);
 

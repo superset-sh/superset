@@ -19,6 +19,7 @@ export {
 	LocalModelProvider,
 } from "./providers/model-providers";
 export type { GitCredentialProvider, GitFactory } from "./runtime/git";
+export { installProcessSafetyNet } from "./safety";
 export type { TeardownFailureCause } from "./trpc/error-types";
 export type { AppRouter } from "./trpc/router";
 export type { ApiClient, HostServiceContext } from "./types";

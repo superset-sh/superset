@@ -18,6 +18,7 @@ import type { HostDb } from "../db";
 import { projects, terminalSessions, workspaces } from "../db/schema";
 import type { EventBus } from "../events";
 import { portManager } from "../ports/port-manager";
+import { safeSync } from "../safety";
 import {
 	buildV2TerminalEnv,
 	getShellLaunchArgs,
@@ -460,67 +461,84 @@ export function createTerminalSessionInternal({
 		}, SHELL_READY_TIMEOUT_MS);
 	}
 
-	pty.onData((rawData) => {
-		const titleUpdates = scanForTerminalTitle(session.titleScanState, rawData);
-		for (const title of titleUpdates.updates) {
-			setSessionTitle(session, title);
-		}
-
-		// Scan for OSC 133;A and strip it from output
-		let data = rawData;
-		if (session.shellReadyState === "pending") {
-			const result = scanForShellReady(session.scanState, rawData);
-			data = result.output;
-			if (result.matched) {
-				resolveShellReady(session, "ready");
+	pty.onData(
+		safeSync("terminal:onData", (rawData: string) => {
+			const titleUpdates = scanForTerminalTitle(
+				session.titleScanState,
+				rawData,
+			);
+			for (const title of titleUpdates.updates) {
+				setSessionTitle(session, title);
 			}
-		}
-		if (data.length === 0) return;
 
-		portManager.checkOutputForHint(data);
+			// Scan for OSC 133;A and strip it from output
+			let data = rawData;
+			if (session.shellReadyState === "pending") {
+				const result = scanForShellReady(session.scanState, rawData);
+				data = result.output;
+				if (result.matched) {
+					resolveShellReady(session, "ready");
+				}
+			}
+			if (data.length === 0) return;
 
-		if (broadcastMessage(session, { type: "data", data }) === 0) {
-			bufferOutput(session, data);
-		}
-	});
+			portManager.checkOutputForHint(data);
 
-	pty.onExit(({ exitCode, signal }) => {
-		session.exited = true;
-		session.exitCode = exitCode ?? 0;
-		session.exitSignal = signal ?? 0;
+			if (broadcastMessage(session, { type: "data", data }) === 0) {
+				bufferOutput(session, data);
+			}
+		}),
+	);
 
-		portManager.unregisterSession(terminalId);
+	pty.onExit(
+		safeSync(
+			"terminal:onExit",
+			({ exitCode, signal }: { exitCode?: number; signal?: number }) => {
+				session.exited = true;
+				session.exitCode = exitCode ?? 0;
+				session.exitSignal = signal ?? 0;
 
-		db.update(terminalSessions)
-			.set({ status: "exited", endedAt: Date.now() })
-			.where(eq(terminalSessions.id, terminalId))
-			.run();
+				portManager.unregisterSession(terminalId);
 
-		broadcastMessage(session, {
-			type: "exit",
-			exitCode: session.exitCode,
-			signal: session.exitSignal,
-		});
+				db.update(terminalSessions)
+					.set({ status: "exited", endedAt: Date.now() })
+					.where(eq(terminalSessions.id, terminalId))
+					.run();
 
-		eventBus?.broadcastTerminalLifecycle({
-			workspaceId,
-			terminalId,
-			eventType: "exit",
-			exitCode: session.exitCode,
-			signal: session.exitSignal,
-			occurredAt: Date.now(),
-		});
-	});
+				broadcastMessage(session, {
+					type: "exit",
+					exitCode: session.exitCode,
+					signal: session.exitSignal,
+				});
+
+				eventBus?.broadcastTerminalLifecycle({
+					workspaceId,
+					terminalId,
+					eventType: "exit",
+					exitCode: session.exitCode,
+					signal: session.exitSignal,
+					occurredAt: Date.now(),
+				});
+			},
+		),
+	);
 
 	if (initialCommand) {
 		const cmd = initialCommand.endsWith("\n")
 			? initialCommand
 			: `${initialCommand}\n`;
-		session.shellReadyPromise.then(() => {
-			if (!session.exited) {
-				pty.write(cmd);
-			}
-		});
+		session.shellReadyPromise
+			.then(() => {
+				if (!session.exited) {
+					pty.write(cmd);
+				}
+			})
+			.catch((error) => {
+				console.error("[terminal] initial command write failed — contained", {
+					terminalId,
+					error,
+				});
+			});
 	}
 
 	return session;

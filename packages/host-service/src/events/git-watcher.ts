@@ -5,6 +5,7 @@ import type { FsWatchEvent } from "@superset/workspace-fs/host";
 import type { HostDb } from "../db";
 import { workspaces } from "../db/schema";
 import type { WorkspaceFilesystemManager } from "../runtime/filesystem";
+import { safeSync } from "../safety";
 
 const execFileAsync = promisify(execFile);
 
@@ -79,11 +80,16 @@ export class GitWatcher {
 	}
 
 	start(): void {
-		void this.rescan();
-		this.rescanTimer = setInterval(
-			() => void this.rescan(),
-			RESCAN_INTERVAL_MS,
-		);
+		void this.rescan().catch((error) => {
+			console.error("[git-watcher] initial rescan failed — contained", {
+				error,
+			});
+		});
+		this.rescanTimer = setInterval(() => {
+			void this.rescan().catch((error) => {
+				console.error("[git-watcher] rescan failed — contained", { error });
+			});
+		}, RESCAN_INTERVAL_MS);
 	}
 
 	onChanged(listener: GitChangedListener): () => void {
@@ -138,19 +144,24 @@ export class GitWatcher {
 		if (existing) clearTimeout(existing);
 		this.debounceTimers.set(
 			workspaceId,
-			setTimeout(() => {
-				this.debounceTimers.delete(workspaceId);
-				const batch = this.pendingBatches.get(workspaceId);
-				this.pendingBatches.delete(workspaceId);
-				if (!batch) return;
-				const event: GitChangedEvent =
-					batch.hasGitDir || batch.paths.size === 0
-						? { workspaceId }
-						: { workspaceId, paths: [...batch.paths] };
-				for (const listener of this.listeners) {
-					listener(event);
-				}
-			}, DEBOUNCE_MS),
+			setTimeout(
+				safeSync("git-watcher:flush", () => {
+					this.debounceTimers.delete(workspaceId);
+					const batch = this.pendingBatches.get(workspaceId);
+					this.pendingBatches.delete(workspaceId);
+					if (!batch) return;
+					const event: GitChangedEvent =
+						batch.hasGitDir || batch.paths.size === 0
+							? { workspaceId }
+							: { workspaceId, paths: [...batch.paths] };
+					for (const listener of this.listeners) {
+						// Listener throws are isolated so one bad subscriber can't
+						// kill the watcher or block other subscribers.
+						safeSync("git-watcher:listener", listener)(event);
+					}
+				}),
+				DEBOUNCE_MS,
+			),
 		);
 	}
 
