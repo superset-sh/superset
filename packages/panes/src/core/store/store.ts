@@ -167,7 +167,7 @@ export interface WorkspaceStore<TData> extends WorkspaceState<TData> {
 	}) => void;
 
 	movePaneToTab: (args: { paneId: string; targetTabId: string }) => void;
-	movePaneToNewTab: (args: { paneId: string }) => void;
+	movePaneToNewTab: (args: { paneId: string; toIndex?: number }) => void;
 
 	reorderTab: (args: { tabId: string; toIndex: number }) => void;
 
@@ -795,10 +795,12 @@ export function createWorkspaceStore<TData>(
 			set((s) => {
 				let sourceTab: Tab<TData> | undefined;
 				let pane: Pane<TData> | undefined;
-				for (const t of s.tabs) {
+				let sourceTabIndex = -1;
+				for (const [index, t] of s.tabs.entries()) {
 					if (t.panes[args.paneId]) {
 						sourceTab = t;
 						pane = t.panes[args.paneId];
+						sourceTabIndex = index;
 						break;
 					}
 				}
@@ -835,7 +837,19 @@ export function createWorkspaceStore<TData>(
 					})
 					.filter((t): t is Tab<TData> => t !== null);
 
-				nextTabs.push(newTab);
+				const requestedIndex = args.toIndex ?? nextTabs.length;
+				const adjustedIndex =
+					args.toIndex !== undefined &&
+					!nextSourceLayout &&
+					sourceTabIndex < args.toIndex
+						? args.toIndex - 1
+						: requestedIndex;
+				const insertIndex = Math.max(
+					0,
+					Math.min(adjustedIndex, nextTabs.length),
+				);
+
+				nextTabs.splice(insertIndex, 0, newTab);
 
 				return { tabs: nextTabs, activeTabId: newTab.id };
 			});
