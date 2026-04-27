@@ -1,3 +1,4 @@
+import type { AppRouter } from "@superset/host-service";
 import {
 	PromptInputAttachment,
 	type PromptInputMessage,
@@ -6,6 +7,7 @@ import {
 } from "@superset/ui/ai-elements/prompt-input";
 import { workspaceTrpc } from "@superset/workspace-client";
 import { useQuery } from "@tanstack/react-query";
+import type { inferRouterOutputs } from "@trpc/server";
 import type { ChatStatus } from "ai";
 import type React from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -43,6 +45,8 @@ import {
 	shouldClearPendingUserTurn,
 } from "./utils/transientUserTurn";
 import { uploadFiles } from "./utils/uploadFiles";
+
+type SnapshotData = inferRouterOutputs<AppRouter>["chat"]["getSnapshot"];
 
 type HarnessFilePayload = {
 	data: string;
@@ -334,10 +338,31 @@ export function ChatPaneInterface({
 			};
 			const optimisticMessage = toOptimisticUserMessage(input);
 			if (optimisticMessage) {
-				workspaceTrpcUtils.chat.listMessages.setData(
-					queryInput,
-					(existingMessages = []) => [...existingMessages, optimisticMessage],
-				);
+				// v2 reads messages from chat.getSnapshot, not chat.listMessages —
+				// the optimistic update has to land in the same cache the display
+				// reads from, otherwise the message disappears until the next
+				// snapshot poll (~250ms) and the user sees nothing.
+				workspaceTrpcUtils.chat.getSnapshot.setData(queryInput, (existing) => {
+					if (existing) {
+						return {
+							...existing,
+							messages: [...existing.messages, optimisticMessage],
+						};
+					}
+					// Fresh session — no snapshot in cache yet. Seed a minimal
+					// snapshot with just the optimistic message so the user sees
+					// it immediately; the next poll will fill in displayState.
+					return {
+						displayState: {
+							isRunning: false,
+							currentMessage: null,
+							pendingQuestion: null,
+							errorMessage: null,
+						} as SnapshotData["displayState"],
+						messages: [optimisticMessage],
+						observedAt: Date.now(),
+					};
+				});
 			}
 
 			try {
@@ -348,18 +373,23 @@ export function ChatPaneInterface({
 				});
 			} catch (error) {
 				if (optimisticMessage) {
-					workspaceTrpcUtils.chat.listMessages.setData(
+					workspaceTrpcUtils.chat.getSnapshot.setData(
 						queryInput,
-						(existingMessages = []) =>
-							existingMessages.filter(
-								(message) => message.id !== optimisticMessage.id,
-							),
+						(existing) => {
+							if (!existing) return existing;
+							return {
+								...existing,
+								messages: existing.messages.filter(
+									(message) => message.id !== optimisticMessage.id,
+								),
+							};
+						},
 					);
 				}
 				throw error;
 			}
 		},
-		[workspaceTrpcUtils.chat.listMessages, sendMessageMutation, workspaceId],
+		[workspaceTrpcUtils.chat.getSnapshot, sendMessageMutation, workspaceId],
 	);
 
 	const canAbort = Boolean(isRunning);
