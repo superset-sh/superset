@@ -10,6 +10,7 @@ import { createAuthStorage, createMastraCode } from "mastracode";
 import type { HostDb } from "../../db";
 import { workspaces } from "../../db/schema";
 import type { ModelProviderRuntimeResolver } from "../../providers/model-providers";
+import { reportHostServiceError } from "../../resilience";
 
 type RuntimeHarness = Awaited<ReturnType<typeof createMastraCode>>["harness"];
 type RuntimeMcpManager = Awaited<
@@ -411,32 +412,40 @@ export class ChatRuntimeManager {
 
 	private subscribeToSessionEvents(runtime: RuntimeSession): void {
 		runtime.harness.subscribe((event: unknown) => {
-			if (isHarnessErrorEvent(event) || isHarnessWorkspaceErrorEvent(event)) {
-				runtime.lastErrorMessage = toRuntimeErrorMessage(event.error);
-				return;
-			}
+			try {
+				if (isHarnessErrorEvent(event) || isHarnessWorkspaceErrorEvent(event)) {
+					runtime.lastErrorMessage = toRuntimeErrorMessage(event.error);
+					return;
+				}
 
-			if (isHarnessSandboxAccessRequestEvent(event)) {
-				runtime.pendingSandboxQuestion = {
-					questionId: event.questionId,
-					path: event.path,
-					reason: event.reason,
-				};
-				return;
-			}
+				if (isHarnessSandboxAccessRequestEvent(event)) {
+					runtime.pendingSandboxQuestion = {
+						questionId: event.questionId,
+						path: event.path,
+						reason: event.reason,
+					};
+					return;
+				}
 
-			if (isObjectRecord(event) && event.type === "agent_start") {
-				runtime.lastErrorMessage = null;
-				runtime.pendingSandboxQuestion = null;
-				runtime.answeredQuestionIds.clear();
-				runtime.pendingQuestionResponses.clear();
-				return;
-			}
+				if (isObjectRecord(event) && event.type === "agent_start") {
+					runtime.lastErrorMessage = null;
+					runtime.pendingSandboxQuestion = null;
+					runtime.answeredQuestionIds.clear();
+					runtime.pendingQuestionResponses.clear();
+					return;
+				}
 
-			if (isObjectRecord(event) && event.type === "agent_end") {
-				runtime.pendingSandboxQuestion = null;
-				runtime.answeredQuestionIds.clear();
-				runtime.pendingQuestionResponses.clear();
+				if (isObjectRecord(event) && event.type === "agent_end") {
+					runtime.pendingSandboxQuestion = null;
+					runtime.answeredQuestionIds.clear();
+					runtime.pendingQuestionResponses.clear();
+				}
+			} catch (error) {
+				reportHostServiceError("chat runtime event handler failed", {
+					sessionId: runtime.sessionId,
+					workspaceId: runtime.workspaceId,
+					error,
+				});
 			}
 		});
 	}

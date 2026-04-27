@@ -1,14 +1,21 @@
 import { serve } from "@hono/node-server";
 import { createApp } from "./app";
-import { env } from "./env";
 import { JwtApiAuthProvider } from "./providers/auth";
 import { LocalGitCredentialProvider } from "./providers/git";
 import { PskHostAuthProvider } from "./providers/host-auth";
 import { LocalModelProvider } from "./providers/model-providers";
+import {
+	installHostServiceProcessGuards,
+	reportHostServiceError,
+	runHostServiceBackgroundTask,
+} from "./resilience";
 import { initTerminalBaseEnv, resolveTerminalBaseEnv } from "./terminal/env";
 import { connectRelay } from "./tunnel";
 
+const STARTUP_RETRY_DELAY_MS = 5_000;
+
 async function main(): Promise<void> {
+	const { env } = await import("./env");
 	const terminalBaseEnv = await resolveTerminalBaseEnv();
 	initTerminalBaseEnv(terminalBaseEnv);
 
@@ -37,20 +44,36 @@ async function main(): Promise<void> {
 		console.log(`[host-service] listening on http://localhost:${info.port}`);
 
 		if (env.RELAY_URL) {
-			void connectRelay({
-				api,
-				relayUrl: env.RELAY_URL,
-				localPort: info.port,
-				organizationId: env.ORGANIZATION_ID,
-				authProvider,
-				hostServiceSecret: env.HOST_SERVICE_SECRET,
-			});
+			const relayUrl = env.RELAY_URL;
+			runHostServiceBackgroundTask("relay startup failed", () =>
+				connectRelay({
+					api,
+					relayUrl,
+					localPort: info.port,
+					organizationId: env.ORGANIZATION_ID,
+					authProvider,
+					hostServiceSecret: env.HOST_SERVICE_SECRET,
+				}),
+			);
 		}
 	});
-	injectWebSocket(server);
+	server.on("error", (error) => {
+		reportHostServiceError("server error", error);
+	});
+	try {
+		injectWebSocket(server);
+	} catch (error) {
+		reportHostServiceError("websocket injection failed", error);
+	}
 }
 
-void main().catch((error) => {
-	console.error("[host-service] Failed to start:", error);
-	process.exit(1);
-});
+installHostServiceProcessGuards();
+
+function startWithRetry(): void {
+	void main().catch((error) => {
+		reportHostServiceError("failed to start", error);
+		setTimeout(startWithRetry, STARTUP_RETRY_DELAY_MS);
+	});
+}
+
+startWithRetry();

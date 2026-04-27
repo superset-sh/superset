@@ -1,6 +1,7 @@
 import { getHostId, getHostName } from "@superset/shared/host-info";
 import { buildHostRoutingKey } from "@superset/shared/host-routing";
 import type { JwtApiAuthProvider } from "../providers/auth/JwtAuthProvider/JwtAuthProvider";
+import { runHostServiceBackgroundTask } from "../resilience";
 import type { ApiClient } from "../types";
 import { TunnelClient } from "./tunnel-client";
 
@@ -31,7 +32,9 @@ export async function connectRelay(
 			localPort: options.localPort,
 			hostServiceSecret: options.hostServiceSecret,
 		});
-		void tunnel.connect();
+		runHostServiceBackgroundTask("relay tunnel connect failed", () =>
+			tunnel.connect(),
+		);
 		return tunnel;
 	} catch (error) {
 		console.error("[host-service] failed to register/connect relay:", error);

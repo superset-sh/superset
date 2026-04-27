@@ -1,3 +1,7 @@
+import {
+	reportHostServiceError,
+	runHostServiceBackgroundTask,
+} from "../resilience";
 import type {
 	TunnelHttpRequest,
 	TunnelRequest,
@@ -39,45 +43,52 @@ export class TunnelClient {
 	}
 
 	async connect(): Promise<void> {
-		if (this.closed) return;
+		try {
+			if (this.closed) return;
 
-		const token = await this.getAuthToken();
-		if (!token) {
-			console.warn("[host-service:tunnel] no auth token available, retrying");
-			this.scheduleReconnect();
-			return;
-		}
-
-		const url = new URL("/tunnel", this.relayUrl);
-		url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
-		url.searchParams.set("hostId", this.hostId);
-		url.searchParams.set("token", token);
-
-		const socket = new WebSocket(url.toString());
-		this.socket = socket;
-
-		socket.onopen = () => {
-			this.reconnectAttempts = 0;
-			console.log(
-				`[host-service:tunnel] connected to relay for host ${this.hostId}`,
-			);
-		};
-
-		socket.onmessage = (event) => {
-			void this.handleMessage(event.data);
-		};
-
-		socket.onclose = () => {
-			this.socket = null;
-			this.cleanupChannels();
-			if (!this.closed) {
+			const token = await this.getAuthToken();
+			if (!token) {
+				console.warn("[host-service:tunnel] no auth token available, retrying");
 				this.scheduleReconnect();
+				return;
 			}
-		};
 
-		socket.onerror = (event) => {
-			console.error("[host-service:tunnel] socket error:", event);
-		};
+			const url = new URL("/tunnel", this.relayUrl);
+			url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
+			url.searchParams.set("hostId", this.hostId);
+			url.searchParams.set("token", token);
+
+			const socket = new WebSocket(url.toString());
+			this.socket = socket;
+
+			socket.onopen = () => {
+				this.reconnectAttempts = 0;
+				console.log(
+					`[host-service:tunnel] connected to relay for host ${this.hostId}`,
+				);
+			};
+
+			socket.onmessage = (event) => {
+				runHostServiceBackgroundTask("relay tunnel message failed", () =>
+					this.handleMessage(event.data),
+				);
+			};
+
+			socket.onclose = () => {
+				this.socket = null;
+				this.cleanupChannels();
+				if (!this.closed) {
+					this.scheduleReconnect();
+				}
+			};
+
+			socket.onerror = (event) => {
+				console.error("[host-service:tunnel] socket error:", event);
+			};
+		} catch (error) {
+			reportHostServiceError("relay tunnel connect failed", error);
+			this.scheduleReconnect();
+		}
 	}
 
 	close(): void {
@@ -91,14 +102,22 @@ export class TunnelClient {
 			this.socket?.readyState === WebSocket.CONNECTING ||
 			this.socket?.readyState === WebSocket.OPEN
 		) {
-			this.socket.close(1000, "Shutting down");
+			try {
+				this.socket.close(1000, "Shutting down");
+			} catch (error) {
+				reportHostServiceError("relay tunnel socket close failed", error);
+			}
 		}
 		this.socket = null;
 	}
 
 	private send(message: TunnelResponse): void {
 		if (this.socket?.readyState === WebSocket.OPEN) {
-			this.socket.send(JSON.stringify(message));
+			try {
+				this.socket.send(JSON.stringify(message));
+			} catch (error) {
+				reportHostServiceError("relay tunnel send failed", error);
+			}
 		}
 	}
 
@@ -170,43 +189,59 @@ export class TunnelClient {
 	}
 
 	private handleWsOpen(request: TunnelWsOpen): void {
-		const wsUrl = new URL(request.path, `ws://127.0.0.1:${this.localPort}`);
-		wsUrl.searchParams.set("token", this.hostServiceSecret);
-		if (request.query) {
-			const params = new URLSearchParams(request.query);
-			for (const [key, value] of params) {
-				if (key !== "token") {
-					wsUrl.searchParams.set(key, value);
+		try {
+			const wsUrl = new URL(request.path, `ws://127.0.0.1:${this.localPort}`);
+			wsUrl.searchParams.set("token", this.hostServiceSecret);
+			if (request.query) {
+				const params = new URLSearchParams(request.query);
+				for (const [key, value] of params) {
+					if (key !== "token") {
+						wsUrl.searchParams.set(key, value);
+					}
 				}
 			}
+
+			const localWs = new WebSocket(wsUrl.toString());
+
+			localWs.onmessage = (event) => {
+				this.send({
+					type: "ws:frame",
+					id: request.id,
+					data: String(event.data),
+				});
+			};
+
+			localWs.onclose = (event) => {
+				this.localChannels.delete(request.id);
+				this.send({ type: "ws:close", id: request.id, code: event.code });
+			};
+
+			localWs.onerror = (event) => {
+				// onclose always follows onerror; ws:close is sent from onclose
+				console.error(
+					`[host-service:tunnel] local WS error on ${request.path}`,
+					event,
+				);
+			};
+
+			this.localChannels.set(request.id, localWs);
+		} catch (error) {
+			reportHostServiceError("relay tunnel local websocket open failed", error);
+			this.send({ type: "ws:close", id: request.id, code: 1011 });
 		}
-
-		const localWs = new WebSocket(wsUrl.toString());
-
-		localWs.onmessage = (event) => {
-			this.send({ type: "ws:frame", id: request.id, data: String(event.data) });
-		};
-
-		localWs.onclose = (event) => {
-			this.localChannels.delete(request.id);
-			this.send({ type: "ws:close", id: request.id, code: event.code });
-		};
-
-		localWs.onerror = (event) => {
-			// onclose always follows onerror; ws:close is sent from onclose
-			console.error(
-				`[host-service:tunnel] local WS error on ${request.path}`,
-				event,
-			);
-		};
-
-		this.localChannels.set(request.id, localWs);
 	}
 
 	private handleWsFrame(message: TunnelWsFrame): void {
 		const localWs = this.localChannels.get(message.id);
 		if (localWs?.readyState === WebSocket.OPEN) {
-			localWs.send(message.data);
+			try {
+				localWs.send(message.data);
+			} catch (error) {
+				reportHostServiceError(
+					"relay tunnel local websocket send failed",
+					error,
+				);
+			}
 		}
 	}
 
@@ -214,13 +249,24 @@ export class TunnelClient {
 		const localWs = this.localChannels.get(message.id);
 		if (localWs) {
 			this.localChannels.delete(message.id);
-			localWs.close(message.code ?? 1000);
+			try {
+				localWs.close(message.code ?? 1000);
+			} catch (error) {
+				reportHostServiceError(
+					"relay tunnel local websocket close failed",
+					error,
+				);
+			}
 		}
 	}
 
 	private cleanupChannels(): void {
 		for (const ws of this.localChannels.values()) {
-			ws.close(1001, "Tunnel disconnected");
+			try {
+				ws.close(1001, "Tunnel disconnected");
+			} catch (error) {
+				reportHostServiceError("relay tunnel channel cleanup failed", error);
+			}
 		}
 		this.localChannels.clear();
 	}
@@ -240,7 +286,9 @@ export class TunnelClient {
 
 		this.reconnectTimer = setTimeout(() => {
 			this.reconnectTimer = null;
-			void this.connect();
+			runHostServiceBackgroundTask("relay tunnel reconnect failed", () =>
+				this.connect(),
+			);
 		}, delay);
 	}
 }

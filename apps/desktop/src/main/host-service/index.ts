@@ -8,10 +8,13 @@
 import { serve } from "@hono/node-server";
 import {
 	createApp,
+	installHostServiceProcessGuards,
 	JwtApiAuthProvider,
 	LocalGitCredentialProvider,
 	LocalModelProvider,
 	PskHostAuthProvider,
+	reportHostServiceError,
+	runHostServiceBackgroundTask,
 } from "@superset/host-service";
 import {
 	initTerminalBaseEnv,
@@ -19,9 +22,11 @@ import {
 } from "@superset/host-service/terminal-env";
 import { connectRelay } from "@superset/host-service/tunnel";
 import { writeManifest } from "main/lib/host-service-manifest";
-import { env } from "./env";
+
+const STARTUP_RETRY_DELAY_MS = 5_000;
 
 async function main(): Promise<void> {
+	const { env } = await import("./env");
 	const terminalBaseEnv = await resolveTerminalBaseEnv();
 	initTerminalBaseEnv(terminalBaseEnv);
 
@@ -68,22 +73,36 @@ async function main(): Promise<void> {
 			}
 
 			if (env.RELAY_URL && env.ORGANIZATION_ID) {
-				void connectRelay({
-					api,
-					relayUrl: env.RELAY_URL,
-					localPort: info.port,
-					organizationId: env.ORGANIZATION_ID,
-					authProvider,
-					hostServiceSecret: env.HOST_SERVICE_SECRET,
-				});
+				const relayUrl = env.RELAY_URL;
+				runHostServiceBackgroundTask("relay startup failed", () =>
+					connectRelay({
+						api,
+						relayUrl,
+						localPort: info.port,
+						organizationId: env.ORGANIZATION_ID,
+						authProvider,
+						hostServiceSecret: env.HOST_SERVICE_SECRET,
+					}),
+				);
 			}
 		},
 	);
-	injectWebSocket(server);
+	server.on("error", (error) => {
+		reportHostServiceError("server error", error);
+	});
+	try {
+		injectWebSocket(server);
+	} catch (error) {
+		reportHostServiceError("websocket injection failed", error);
+	}
 
 	// Manifest lifecycle belongs to the coordinator, not the child.
 	const shutdown = () => {
-		server.close();
+		try {
+			server.close();
+		} catch (error) {
+			reportHostServiceError("server close failed", error);
+		}
 		process.exit(0);
 	};
 
@@ -91,7 +110,13 @@ async function main(): Promise<void> {
 	process.on("SIGINT", shutdown);
 }
 
-void main().catch((error) => {
-	console.error("[host-service] Failed to start:", error);
-	process.exit(1);
-});
+installHostServiceProcessGuards();
+
+function startWithRetry(): void {
+	void main().catch((error) => {
+		reportHostServiceError("failed to start", error);
+		setTimeout(startWithRetry, STARTUP_RETRY_DELAY_MS);
+	});
+}
+
+startWithRetry();

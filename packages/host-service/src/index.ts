@@ -18,6 +18,12 @@ export {
 	CloudModelProvider,
 	LocalModelProvider,
 } from "./providers/model-providers";
+export {
+	createGuardedHandler,
+	installHostServiceProcessGuards,
+	reportHostServiceError,
+	runHostServiceBackgroundTask,
+} from "./resilience";
 export type { GitCredentialProvider, GitFactory } from "./runtime/git";
 export type { TeardownFailureCause } from "./trpc/error-types";
 export type { AppRouter } from "./trpc/router";
