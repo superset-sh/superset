@@ -1,4 +1,5 @@
 import { cn } from "@superset/ui/utils";
+import { CgLaptop } from "react-icons/cg";
 import { HiExclamationTriangle } from "react-icons/hi2";
 import {
 	LuGitMerge,
@@ -14,10 +15,12 @@ import type { ActivePaneStatus } from "shared/tabs-types";
 import type {
 	DashboardSidebarWorkspaceHostType,
 	DashboardSidebarWorkspacePullRequest,
+	DashboardSidebarWorkspaceType,
 } from "../../../../types";
 
 interface DashboardSidebarWorkspaceIconProps {
 	hostType: DashboardSidebarWorkspaceHostType;
+	workspaceType: DashboardSidebarWorkspaceType;
 	hostIsOnline: boolean | null;
 	isActive: boolean;
 	variant: "collapsed" | "expanded";
@@ -47,6 +50,7 @@ const PR_COLOR_BY_STATE = {
 
 export function DashboardSidebarWorkspaceIcon({
 	hostType,
+	workspaceType,
 	hostIsOnline,
 	isActive,
 	variant,
@@ -68,6 +72,10 @@ export function DashboardSidebarWorkspaceIcon({
 					strokeWidth={1.75}
 				/>
 			);
+		}
+
+		if (workspaceType === "main") {
+			return <CgLaptop className={cn("size-4 transition-colors", iconColor)} />;
 		}
 
 		if (hostType === "local-device") {

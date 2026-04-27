@@ -7,7 +7,7 @@ import {
 	useMemo,
 	useRef,
 } from "react";
-import { HiMiniXMark } from "react-icons/hi2";
+import { HiMiniMinus, HiMiniXMark } from "react-icons/hi2";
 import type { DiffStats } from "renderer/hooks/host-service/useDiffStats";
 import { HotkeyLabel } from "renderer/hotkeys";
 import { electronTrpc } from "renderer/lib/electron-trpc";
@@ -167,6 +167,7 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 							>
 								<DashboardSidebarWorkspaceIcon
 									hostType={hostType}
+									workspaceType={workspace.type}
 									hostIsOnline={hostIsOnline}
 									isActive={isActive}
 									variant="expanded"
@@ -179,6 +180,7 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 							<div className="relative mr-2.5 flex size-5 shrink-0 items-center justify-center">
 								<DashboardSidebarWorkspaceIcon
 									hostType={hostType}
+									workspaceType={workspace.type}
 									hostIsOnline={hostIsOnline}
 									isActive={isActive}
 									variant="expanded"
@@ -289,7 +291,11 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 												className="flex items-center justify-center text-muted-foreground hover:text-foreground"
 												aria-label={closeLabel}
 											>
-												<HiMiniXMark className="size-3.5" />
+												{isMainWorkspace ? (
+													<HiMiniMinus className="size-3.5" />
+												) : (
+													<HiMiniXMark className="size-3.5" />
+												)}
 											</button>
 										</TooltipTrigger>
 										<TooltipContent side="top" sideOffset={4}>

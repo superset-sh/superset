@@ -102,6 +102,7 @@ export function DashboardSidebarWorkspaceItem({
 				)}
 				<DashboardSidebarCollapsedWorkspaceButton
 					hostType={hostType}
+					workspaceType={workspace.type}
 					hostIsOnline={hostIsOnline}
 					isActive={isActive}
 					workspaceStatus={workspaceStatus}
