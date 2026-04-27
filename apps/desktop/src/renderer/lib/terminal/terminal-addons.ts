@@ -14,12 +14,12 @@ export interface LoadAddonsResult {
 }
 
 // Once WebGL fails, skip it for all subsequent runtimes (VS Code pattern).
-// Users can also set localStorage "terminal-renderer-type" to "dom" to
-// permanently disable WebGL (workaround for GPU texture atlas corruption).
+// Users can set localStorage "terminal-renderer-type" to "dom" to permanently
+// disable WebGL (workaround for GPU texture atlas corruption). Only "dom" is
+// meaningful — any other value (including "webgl") behaves like the default.
 let suggestedRendererType: "webgl" | "dom" | undefined = (() => {
 	try {
-		const pref = localStorage.getItem("terminal-renderer-type");
-		if (pref === "dom" || pref === "webgl") return pref;
+		if (localStorage.getItem("terminal-renderer-type") === "dom") return "dom";
 	} catch {}
 	return undefined;
 })();
