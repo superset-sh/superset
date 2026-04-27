@@ -536,7 +536,6 @@ export const v2Workspaces = pgTable(
 		name: text().notNull(),
 		branch: text().notNull(),
 		type: v2WorkspaceType().notNull().default("worktree"),
-		pinnedAt: timestamp("pinned_at", { withTimezone: true }),
 		createdByUserId: uuid("created_by_user_id").references(() => users.id, {
 			onDelete: "set null",
 		}),

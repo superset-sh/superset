@@ -7,6 +7,7 @@ import { authClient } from "renderer/lib/auth-client";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { getVisibleSidebarWorkspaces } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { MOCK_ORG_ID } from "shared/constants";
 import type {
@@ -257,7 +258,7 @@ export function useDashboardSidebarData() {
 	);
 
 	const sidebarWorkspaces = useMemo(
-		() => rawSidebarWorkspaces.filter((workspace) => !workspace.isHidden),
+		() => getVisibleSidebarWorkspaces(rawSidebarWorkspaces),
 		[rawSidebarWorkspaces],
 	);
 

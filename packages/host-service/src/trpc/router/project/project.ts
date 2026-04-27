@@ -274,7 +274,10 @@ export const projectRouter = router({
 
 			for (const ws of localWorkspaces) {
 				if (ws.worktreePath === localProject.repoPath) {
-					await ctx.api.v2Workspace.delete.mutate({ id: ws.id });
+					await ctx.api.v2Workspace.deleteMainForHost.mutate({
+						id: ws.id,
+						projectId: input.projectId,
+					});
 					continue;
 				}
 				try {

@@ -62,7 +62,6 @@ export async function ensureMainWorkspace(
 			branch,
 			hostId: host.id,
 			type: "main",
-			pinnedAt: new Date(),
 		});
 
 		ctx.db

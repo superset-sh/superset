@@ -8,6 +8,7 @@ import {
 } from "renderer/routes/_authenticated/components/utils/paneLifecycleRows";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import type { AppCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider/collections";
+import { isSidebarWorkspaceVisible } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
 import { PROJECT_CUSTOM_COLORS } from "shared/constants/project-colors";
 
 function getNextTabOrder(items: Array<{ tabOrder: number }>): number {
@@ -58,7 +59,7 @@ function getProjectTopLevelItems(
 			.filter(
 				(item) =>
 					item.sidebarState.projectId === projectId &&
-					!item.sidebarState.isHidden &&
+					isSidebarWorkspaceVisible(item) &&
 					item.sidebarState.sectionId === null &&
 					item.workspaceId !== options.excludeWorkspaceId,
 			)
@@ -150,7 +151,7 @@ function ensureSidebarWorkspaceRecord(
 	projectId: string,
 ): void {
 	const existing = collections.v2WorkspaceLocalState.get(workspaceId);
-	if (existing && !existing.sidebarState.isHidden) {
+	if (existing && isSidebarWorkspaceVisible(existing)) {
 		return;
 	}
 
@@ -294,7 +295,7 @@ export function useDashboardSidebarState() {
 				.filter(
 					(item) =>
 						item.sidebarState.projectId === projectId &&
-						!item.sidebarState.isHidden &&
+						isSidebarWorkspaceVisible(item) &&
 						item.workspaceId !== workspaceId &&
 						item.sidebarState.sectionId === sectionId,
 				)
@@ -398,7 +399,7 @@ export function useDashboardSidebarState() {
 				.filter(
 					(item) =>
 						item.sidebarState.projectId === projectId &&
-						!item.sidebarState.isHidden &&
+						isSidebarWorkspaceVisible(item) &&
 						item.workspaceId !== workspaceId &&
 						item.sidebarState.sectionId === sectionId,
 				)
@@ -430,7 +431,7 @@ export function useDashboardSidebarState() {
 				.filter(
 					(item) =>
 						item.sidebarState.projectId === section.projectId &&
-						!item.sidebarState.isHidden &&
+						isSidebarWorkspaceVisible(item) &&
 						item.sidebarState.sectionId === sectionId,
 				)
 				.sort(

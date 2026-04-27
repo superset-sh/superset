@@ -17,6 +17,7 @@ import {
 } from "react-icons/hi2";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { getVisibleSidebarWorkspaces } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { AppResourceSection } from "./components/AppResourceSection";
 import { MetricBadge } from "./components/MetricBadge";
@@ -97,9 +98,9 @@ export function ResourceConsumption() {
 
 	const sidebarWorkspaceOrder = useMemo(
 		() =>
-			rawSidebarWorkspaces
-				.filter((workspace) => !workspace.isHidden)
-				.map((w) => w.workspaceId),
+			getVisibleSidebarWorkspaces(rawSidebarWorkspaces).map(
+				(w) => w.workspaceId,
+			),
 		[rawSidebarWorkspaces],
 	);
 

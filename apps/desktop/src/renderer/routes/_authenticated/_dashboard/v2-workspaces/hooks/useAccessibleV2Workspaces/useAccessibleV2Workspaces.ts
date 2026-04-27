@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { env } from "renderer/env.renderer";
 import { authClient } from "renderer/lib/auth-client";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { isSidebarWorkspaceVisible } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { MOCK_ORG_ID } from "shared/constants";
 
@@ -162,7 +163,7 @@ export function useAccessibleV2Workspaces(
 				row.hostMachineId === machineId &&
 				row.sidebarProjectId != null;
 			const isInSidebar =
-				row.sidebarIsHidden !== true &&
+				isSidebarWorkspaceVisible({ isHidden: row.sidebarIsHidden }) &&
 				(row.sidebarWorkspaceId != null || isAutoVisibleMain);
 
 			deduped.set(row.id, {
