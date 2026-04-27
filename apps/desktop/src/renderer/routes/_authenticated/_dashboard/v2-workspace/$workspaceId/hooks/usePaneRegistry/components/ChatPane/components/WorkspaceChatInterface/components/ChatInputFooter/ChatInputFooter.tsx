@@ -6,6 +6,7 @@ import {
 	usePromptInputController,
 } from "@superset/ui/ai-elements/prompt-input";
 import type { ThinkingLevel } from "@superset/ui/ai-elements/thinking-toggle";
+import { workspaceTrpc } from "@superset/workspace-client";
 import type { ChatStatus, FileUIPart } from "ai";
 import type React from "react";
 import type { ReactNode } from "react";
@@ -115,6 +116,24 @@ export function ChatInputFooter({
 		setLinkedIssues((prev) => prev.filter((issue) => issue.slug !== slug));
 	}, []);
 
+	const trpcUtils = workspaceTrpc.useUtils();
+	const searchFiles = useCallback(
+		async (query: string) => {
+			const { matches } = await trpcUtils.filesystem.searchFiles.fetch({
+				workspaceId,
+				query,
+				includeHidden: false,
+				limit: 20,
+			});
+			return matches.map((m) => ({
+				id: m.absolutePath,
+				name: m.name,
+				relativePath: m.relativePath,
+			}));
+		},
+		[trpcUtils, workspaceId],
+	);
+
 	const handleSend = useCallback(
 		(message: PromptInputMessage) => {
 			if (linkedIssues.length === 0) return onSend(message);
@@ -193,6 +212,7 @@ export function ChatInputFooter({
 								/>
 								<TiptapPromptEditor
 									cwd={cwd}
+									searchFiles={searchFiles}
 									slashCommands={slashCommands}
 									availableModels={availableModels}
 									placeholder="Ask to make changes, @mention files, run /commands"
