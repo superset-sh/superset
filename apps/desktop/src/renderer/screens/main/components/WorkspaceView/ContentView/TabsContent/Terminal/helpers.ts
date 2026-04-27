@@ -62,7 +62,15 @@ export function getDefaultTerminalBg(): string {
  * This follows VS Code's approach: WebGL → DOM (canvas addon removed in xterm.js 6.0).
  */
 // Once WebGL fails, skip it for all subsequent terminals (VS Code pattern).
-let suggestedRendererType: "webgl" | "dom" | undefined;
+// Users can also set localStorage "terminal-renderer-type" to "dom" to
+// permanently disable WebGL (workaround for GPU texture atlas corruption).
+let suggestedRendererType: "webgl" | "dom" | undefined = (() => {
+	try {
+		const pref = localStorage.getItem("terminal-renderer-type");
+		if (pref === "dom" || pref === "webgl") return pref;
+	} catch {}
+	return undefined;
+})();
 
 export interface CreateTerminalOptions {
 	/**
