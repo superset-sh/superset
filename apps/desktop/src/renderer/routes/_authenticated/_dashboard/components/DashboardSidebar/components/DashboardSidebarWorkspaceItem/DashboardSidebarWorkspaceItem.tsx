@@ -191,11 +191,8 @@ export function DashboardSidebarWorkspaceItem({
 			workspaceStatus={workspaceStatus}
 			onClick={isPending ? handlePendingClick : handleClick}
 			onDoubleClick={isPending ? undefined : startRename}
-			onDeleteClick={
-				isMainWorkspace
-					? handleRemoveFromSidebar
-					: () => setIsDeleteDialogOpen(true)
-			}
+			onRemoveFromSidebarClick={handleRemoveFromSidebar}
+			onCloseWorkspaceClick={() => setIsDeleteDialogOpen(true)}
 			onRenameValueChange={setRenameValue}
 			onSubmitRename={submitRename}
 			onCancelRename={cancelRename}

@@ -42,7 +42,8 @@ interface DashboardSidebarExpandedWorkspaceRowProps
 	workspaceStatus?: ActivePaneStatus | null;
 	onClick?: () => void;
 	onDoubleClick?: () => void;
-	onDeleteClick: () => void;
+	onCloseWorkspaceClick: () => void;
+	onRemoveFromSidebarClick: () => void;
 	onRenameValueChange: (value: string) => void;
 	onSubmitRename: () => void;
 	onCancelRename: () => void;
@@ -63,7 +64,8 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 			workspaceStatus = null,
 			onClick,
 			onDoubleClick,
-			onDeleteClick,
+			onCloseWorkspaceClick,
+			onRemoveFromSidebarClick,
 			onRenameValueChange,
 			onSubmitRename,
 			onCancelRename,
@@ -105,9 +107,6 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 		const workspaceKindDescription = isMainWorkspace
 			? "Uses the repository checkout on this host"
 			: "Isolated copy for parallel development";
-		const closeLabel = isMainWorkspace
-			? "Remove from sidebar"
-			: "Close workspace";
 
 		return (
 			// biome-ignore lint/a11y/noStaticElementInteractions: Mirrors the legacy sidebar row UI, which includes nested action buttons.
@@ -280,35 +279,48 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 											{shortcutLabel}
 										</span>
 									)}
-									<Tooltip delayDuration={300}>
-										<TooltipTrigger asChild>
-											<button
-												type="button"
-												onClick={(event) => {
-													event.stopPropagation();
-													onDeleteClick();
-												}}
-												className="flex items-center justify-center text-muted-foreground hover:text-foreground"
-												aria-label={closeLabel}
-											>
-												{isMainWorkspace ? (
+									{isMainWorkspace ? (
+										<Tooltip delayDuration={300}>
+											<TooltipTrigger asChild>
+												<button
+													type="button"
+													onClick={(event) => {
+														event.stopPropagation();
+														onRemoveFromSidebarClick();
+													}}
+													className="flex items-center justify-center text-muted-foreground hover:text-foreground"
+													aria-label="Remove from sidebar"
+												>
 													<HiMiniMinus className="size-3.5" />
-												) : (
+												</button>
+											</TooltipTrigger>
+											<TooltipContent side="top" sideOffset={4}>
+												<HotkeyLabel label="Remove from sidebar" />
+											</TooltipContent>
+										</Tooltip>
+									) : (
+										<Tooltip delayDuration={300}>
+											<TooltipTrigger asChild>
+												<button
+													type="button"
+													onClick={(event) => {
+														event.stopPropagation();
+														onCloseWorkspaceClick();
+													}}
+													className="flex items-center justify-center text-muted-foreground hover:text-foreground"
+													aria-label="Close workspace"
+												>
 													<HiMiniXMark className="size-3.5" />
-												)}
-											</button>
-										</TooltipTrigger>
-										<TooltipContent side="top" sideOffset={4}>
-											<HotkeyLabel
-												label={closeLabel}
-												id={
-													isActive && !isMainWorkspace
-														? "CLOSE_WORKSPACE"
-														: undefined
-												}
-											/>
-										</TooltipContent>
-									</Tooltip>
+												</button>
+											</TooltipTrigger>
+											<TooltipContent side="top" sideOffset={4}>
+												<HotkeyLabel
+													label="Close workspace"
+													id={isActive ? "CLOSE_WORKSPACE" : undefined}
+												/>
+											</TooltipContent>
+										</Tooltip>
+									)}
 								</div>
 							</>
 						)}
