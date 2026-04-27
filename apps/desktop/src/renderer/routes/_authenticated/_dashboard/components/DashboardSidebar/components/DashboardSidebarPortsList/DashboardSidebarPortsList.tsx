@@ -1,8 +1,12 @@
-import { LuChevronRight, LuRadioTower } from "react-icons/lu";
+import { COMPANY } from "@superset/shared/constants";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
+import { LuChevronRight, LuCircleHelp, LuRadioTower } from "react-icons/lu";
 import { STROKE_WIDTH } from "renderer/screens/main/components/WorkspaceSidebar/constants";
 import { usePortsStore } from "renderer/stores";
 import { DashboardSidebarPortGroup } from "./components/DashboardSidebarPortGroup";
 import { useDashboardSidebarPortsData } from "./hooks/useDashboardSidebarPortsData";
+
+const PORTS_DOCS_URL = `${COMPANY.DOCS_URL}/ports`;
 
 export function DashboardSidebarPortsList() {
 	const isCollapsed = usePortsStore((state) => state.isListCollapsed);
@@ -13,6 +17,11 @@ export function DashboardSidebarPortsList() {
 	if (totalPortCount === 0) {
 		return null;
 	}
+
+	const handleOpenPortsDocs = (e: React.MouseEvent) => {
+		e.stopPropagation();
+		window.open(PORTS_DOCS_URL, "_blank");
+	};
 
 	return (
 		<div className="border-t border-border pt-3">
@@ -36,9 +45,21 @@ export function DashboardSidebarPortsList() {
 					Ports
 				</button>
 
-				<span className="ml-auto text-[10px] font-normal">
-					{totalPortCount}
-				</span>
+				<Tooltip delayDuration={300}>
+					<TooltipTrigger asChild>
+						<button
+							type="button"
+							onClick={handleOpenPortsDocs}
+							className="ml-auto rounded p-0.5 opacity-0 transition-opacity hover:bg-muted/50 group-hover:opacity-100"
+						>
+							<LuCircleHelp className="size-3" strokeWidth={STROKE_WIDTH} />
+						</button>
+					</TooltipTrigger>
+					<TooltipContent side="top" sideOffset={4}>
+						<p className="text-xs">Learn about port labels</p>
+					</TooltipContent>
+				</Tooltip>
+				<span className="text-[10px] font-normal">{totalPortCount}</span>
 			</div>
 			{!isCollapsed && (
 				<div className="max-h-72 space-y-2 overflow-y-auto pb-1 hide-scrollbar">
