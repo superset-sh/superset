@@ -1,4 +1,4 @@
-import type { TaskPriority } from "@superset/db/enums";
+import type { TaskPriority, V2UsersHostRole } from "@superset/db/enums";
 import { toast } from "@superset/ui/sonner";
 import { useCallback, useMemo } from "react";
 import { isDesktopChatDevMode } from "renderer/lib/dev-chat";
@@ -93,6 +93,11 @@ export function useOptimisticCollectionActions() {
 			failureTitle: string,
 			mutation: () => PersistableTransaction,
 		) => runMutation("optimistic.chatSessions", failureTitle, mutation);
+
+		const runUsersHostsMutation = (
+			failureTitle: string,
+			mutation: () => PersistableTransaction,
+		) => runMutation("optimistic.v2UsersHosts", failureTitle, mutation);
 
 		return {
 			tasks: {
@@ -196,6 +201,35 @@ export function useOptimisticCollectionActions() {
 						collections.chatSessions.delete(sessionId),
 					);
 				},
+			},
+			v2UsersHosts: {
+				addMember: (input: {
+					hostId: string;
+					userId: string;
+					organizationId: string;
+					role?: V2UsersHostRole;
+				}) =>
+					runUsersHostsMutation("Failed to add member", () => {
+						const now = new Date();
+						return collections.v2UsersHosts.insert({
+							hostId: input.hostId,
+							userId: input.userId,
+							organizationId: input.organizationId,
+							role: input.role ?? "member",
+							createdAt: now,
+							updatedAt: now,
+						});
+					}),
+				removeMember: (rowKey: string) =>
+					runUsersHostsMutation("Failed to remove member", () =>
+						collections.v2UsersHosts.delete(rowKey),
+					),
+				setMemberRole: (rowKey: string, role: V2UsersHostRole) =>
+					runUsersHostsMutation("Failed to update role", () =>
+						collections.v2UsersHosts.update(rowKey, (draft) => {
+							draft.role = role;
+						}),
+					),
 			},
 		};
 	}, [collections, runMutation]);

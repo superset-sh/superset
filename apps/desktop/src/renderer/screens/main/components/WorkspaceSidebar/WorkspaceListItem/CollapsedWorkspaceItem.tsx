@@ -17,7 +17,11 @@ import { LuCopy, LuGitBranch, LuX } from "react-icons/lu";
 import { createContextMenuDeleteDialogCoordinator } from "renderer/react-query/workspaces/useWorkspaceDeleteHandler";
 import type { ActivePaneStatus } from "shared/tabs-types";
 import { STROKE_WIDTH } from "../constants";
-import { DeleteWorkspaceDialog, WorkspaceHoverCardContent } from "./components";
+import {
+	DeleteWorkspaceDialog,
+	RenameBranchDialog,
+	WorkspaceHoverCardContent,
+} from "./components";
 import { HOVER_CARD_CLOSE_DELAY, HOVER_CARD_OPEN_DELAY } from "./constants";
 import { WorkspaceIcon } from "./WorkspaceIcon";
 
@@ -62,6 +66,9 @@ export function CollapsedWorkspaceItem({
 		[onDeleteClick],
 	);
 	const [isContextMenuOpen, setIsContextMenuOpen] = useState(false);
+	const [renameBranchTarget, setRenameBranchTarget] = useState<string | null>(
+		null,
+	);
 
 	const collapsedButton = (
 		<button
@@ -160,7 +167,11 @@ export function CollapsedWorkspaceItem({
 					</ContextMenuContent>
 				</ContextMenu>
 				<HoverCardContent side="right" align="start" className="w-72">
-					<WorkspaceHoverCardContent workspaceId={id} workspaceAlias={name} />
+					<WorkspaceHoverCardContent
+						workspaceId={id}
+						workspaceAlias={name}
+						onEditBranchClick={setRenameBranchTarget}
+					/>
 				</HoverCardContent>
 			</HoverCard>
 			<DeleteWorkspaceDialog
@@ -170,6 +181,16 @@ export function CollapsedWorkspaceItem({
 				open={showDeleteDialog}
 				onOpenChange={setShowDeleteDialog}
 			/>
+			{renameBranchTarget && (
+				<RenameBranchDialog
+					workspaceId={id}
+					currentBranchName={renameBranchTarget}
+					open={renameBranchTarget !== null}
+					onOpenChange={(open) => {
+						if (!open) setRenameBranchTarget(null);
+					}}
+				/>
+			)}
 		</>
 	);
 }

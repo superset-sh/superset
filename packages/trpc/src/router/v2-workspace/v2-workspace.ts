@@ -1,4 +1,5 @@
 import { dbWs } from "@superset/db/client";
+import { v2WorkspaceTypeValues } from "@superset/db/enums";
 import { v2Hosts, v2Projects, v2Workspaces } from "@superset/db/schema";
 import { getCurrentTxid } from "@superset/db/utils";
 import type { TRPCRouterRecord } from "@trpc/server";
@@ -11,6 +12,9 @@ import {
 	requireOrgResourceAccess,
 	requireOrgScopedResource,
 } from "../utils/org-resource-access";
+
+const MAIN_WORKSPACE_DELETE_MESSAGE =
+	"Main workspaces cannot be deleted through workspace delete. Remove them from the sidebar or remove the project from this host instead.";
 
 async function getScopedProject(organizationId: string, projectId: string) {
 	return requireOrgScopedResource(
@@ -35,10 +39,13 @@ async function getScopedHost(organizationId: string, hostId: string) {
 		() =>
 			dbWs.query.v2Hosts.findFirst({
 				columns: {
-					id: true,
+					machineId: true,
 					organizationId: true,
 				},
-				where: eq(v2Hosts.id, hostId),
+				where: and(
+					eq(v2Hosts.organizationId, organizationId),
+					eq(v2Hosts.machineId, hostId),
+				),
 			}),
 		{
 			code: "BAD_REQUEST",
@@ -102,7 +109,8 @@ export const v2WorkspaceRouter = {
 				projectId: z.string().uuid(),
 				name: z.string().min(1),
 				branch: z.string().min(1),
-				hostId: z.string().uuid(),
+				hostId: z.string().min(1),
+				type: z.enum(v2WorkspaceTypeValues).default("worktree"),
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
@@ -119,18 +127,86 @@ export const v2WorkspaceRouter = {
 			);
 			const host = await getScopedHost(input.organizationId, input.hostId);
 
-			const [workspace] = await dbWs
+			// Relies on the partial unique index
+			// (project_id, host_id) WHERE type='main' for idempotency — race-safe
+			// even if two callers (e.g. the startup sweep and project.setup) both
+			// miss the existence check at the same instant.
+			const [inserted] = await dbWs
 				.insert(v2Workspaces)
 				.values({
 					organizationId: project.organizationId,
 					projectId: project.id,
 					name: input.name,
 					branch: input.branch,
-					hostId: host.id,
+					hostId: host.machineId,
+					type: input.type,
 					createdByUserId: ctx.userId,
 				})
+				.onConflictDoNothing()
 				.returning();
-			return workspace;
+
+			if (inserted) return inserted;
+
+			if (input.type === "main") {
+				const existing = await dbWs.query.v2Workspaces.findFirst({
+					where: and(
+						eq(v2Workspaces.projectId, project.id),
+						eq(v2Workspaces.hostId, host.machineId),
+						eq(v2Workspaces.type, "main"),
+					),
+				});
+				if (existing) {
+					const patch: {
+						branch?: string;
+						name?: string;
+					} = {};
+					if (existing.branch !== input.branch) {
+						patch.branch = input.branch;
+						if (existing.name === existing.branch) {
+							patch.name = input.name;
+						}
+					}
+					if (Object.keys(patch).length > 0) {
+						const [updated] = await dbWs
+							.update(v2Workspaces)
+							.set(patch)
+							.where(eq(v2Workspaces.id, existing.id))
+							.returning();
+						return updated ?? existing;
+					}
+					return existing;
+				}
+			}
+
+			throw new TRPCError({
+				code: "INTERNAL_SERVER_ERROR",
+				message: `Workspace insert returned no row (type=${input.type}, projectId=${project.id}, hostId=${host.machineId})`,
+			});
+		}),
+
+	getFromHost: jwtProcedure
+		.input(
+			z.object({
+				organizationId: z.string().uuid(),
+				id: z.string().uuid(),
+			}),
+		)
+		.query(async ({ ctx, input }) => {
+			if (!ctx.organizationIds.includes(input.organizationId)) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "Not a member of this organization",
+				});
+			}
+
+			return (
+				(await dbWs.query.v2Workspaces.findFirst({
+					where: and(
+						eq(v2Workspaces.id, input.id),
+						eq(v2Workspaces.organizationId, input.organizationId),
+					),
+				})) ?? null
+			);
 		}),
 
 	update: protectedProcedure
@@ -139,7 +215,7 @@ export const v2WorkspaceRouter = {
 				id: z.string().uuid(),
 				name: z.string().min(1).optional(),
 				branch: z.string().min(1).optional(),
-				hostId: z.string().uuid().optional(),
+				hostId: z.string().min(1).optional(),
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
@@ -260,7 +336,7 @@ export const v2WorkspaceRouter = {
 		.input(z.object({ id: z.string().uuid() }))
 		.mutation(async ({ ctx, input }) => {
 			const workspace = await dbWs.query.v2Workspaces.findFirst({
-				columns: { id: true, organizationId: true },
+				columns: { id: true, organizationId: true, type: true },
 				where: eq(v2Workspaces.id, input.id),
 			});
 			if (!workspace) {
@@ -271,6 +347,52 @@ export const v2WorkspaceRouter = {
 				throw new TRPCError({
 					code: "FORBIDDEN",
 					message: "Not a member of this organization",
+				});
+			}
+			if (workspace.type === "main") {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: MAIN_WORKSPACE_DELETE_MESSAGE,
+				});
+			}
+			await dbWs.delete(v2Workspaces).where(eq(v2Workspaces.id, workspace.id));
+			return { success: true, alreadyGone: false as const };
+		}),
+
+	// Main workspaces are not normal delete targets. This endpoint is reserved
+	// for host project removal, where the repo-root workspace must be detached
+	// from this host before the local project row disappears.
+	deleteMainForHost: jwtProcedure
+		.input(z.object({ id: z.string().uuid(), projectId: z.string().uuid() }))
+		.mutation(async ({ ctx, input }) => {
+			const workspace = await dbWs.query.v2Workspaces.findFirst({
+				columns: {
+					id: true,
+					organizationId: true,
+					projectId: true,
+					type: true,
+				},
+				where: eq(v2Workspaces.id, input.id),
+			});
+			if (!workspace) {
+				return { success: true, alreadyGone: true as const };
+			}
+			if (!ctx.organizationIds.includes(workspace.organizationId)) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "Not a member of this organization",
+				});
+			}
+			if (workspace.projectId !== input.projectId) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Workspace does not belong to this project",
+				});
+			}
+			if (workspace.type !== "main") {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Workspace is not a main workspace",
 				});
 			}
 			await dbWs.delete(v2Workspaces).where(eq(v2Workspaces.id, workspace.id));

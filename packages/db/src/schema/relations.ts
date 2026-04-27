@@ -21,7 +21,6 @@ import {
 	projects,
 	sandboxImages,
 	secrets,
-	sessionHosts,
 	subscriptions,
 	taskStatuses,
 	tasks,
@@ -314,8 +313,8 @@ export const v2UsersHostsRelations = relations(v2UsersHosts, ({ one }) => ({
 		references: [users.id],
 	}),
 	host: one(v2Hosts, {
-		fields: [v2UsersHosts.hostId],
-		references: [v2Hosts.id],
+		fields: [v2UsersHosts.organizationId, v2UsersHosts.hostId],
+		references: [v2Hosts.organizationId, v2Hosts.machineId],
 	}),
 }));
 
@@ -331,8 +330,8 @@ export const v2WorkspacesRelations = relations(
 			references: [v2Projects.id],
 		}),
 		host: one(v2Hosts, {
-			fields: [v2Workspaces.hostId],
-			references: [v2Hosts.id],
+			fields: [v2Workspaces.organizationId, v2Workspaces.hostId],
+			references: [v2Hosts.organizationId, v2Hosts.machineId],
 		}),
 		createdBy: one(users, {
 			fields: [v2Workspaces.createdByUserId],
@@ -384,36 +383,21 @@ export const workspacesRelations = relations(workspaces, ({ one, many }) => ({
 	chatSessions: many(chatSessions),
 }));
 
-export const chatSessionsRelations = relations(
-	chatSessions,
-	({ one, many }) => ({
-		organization: one(organizations, {
-			fields: [chatSessions.organizationId],
-			references: [organizations.id],
-		}),
-		createdBy: one(users, {
-			fields: [chatSessions.createdBy],
-			references: [users.id],
-		}),
-		workspace: one(workspaces, {
-			fields: [chatSessions.workspaceId],
-			references: [workspaces.id],
-		}),
-		v2Workspace: one(v2Workspaces, {
-			fields: [chatSessions.v2WorkspaceId],
-			references: [v2Workspaces.id],
-		}),
-		sessionHosts: many(sessionHosts),
-	}),
-);
-
-export const sessionHostsRelations = relations(sessionHosts, ({ one }) => ({
-	chatSession: one(chatSessions, {
-		fields: [sessionHosts.sessionId],
-		references: [chatSessions.id],
-	}),
+export const chatSessionsRelations = relations(chatSessions, ({ one }) => ({
 	organization: one(organizations, {
-		fields: [sessionHosts.organizationId],
+		fields: [chatSessions.organizationId],
 		references: [organizations.id],
+	}),
+	createdBy: one(users, {
+		fields: [chatSessions.createdBy],
+		references: [users.id],
+	}),
+	workspace: one(workspaces, {
+		fields: [chatSessions.workspaceId],
+		references: [workspaces.id],
+	}),
+	v2Workspace: one(v2Workspaces, {
+		fields: [chatSessions.v2WorkspaceId],
+		references: [v2Workspaces.id],
 	}),
 }));

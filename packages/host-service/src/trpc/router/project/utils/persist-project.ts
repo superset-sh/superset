@@ -9,10 +9,10 @@ export function persistLocalProject(
 ): void {
 	const repoFields = {
 		repoPath: resolved.repoPath,
-		repoProvider: "github" as const,
-		repoOwner: resolved.parsed.owner,
-		repoName: resolved.parsed.name,
-		repoUrl: resolved.parsed.url,
+		repoProvider: resolved.parsed ? ("github" as const) : null,
+		repoOwner: resolved.parsed?.owner ?? null,
+		repoName: resolved.parsed?.name ?? null,
+		repoUrl: resolved.parsed?.url ?? null,
 		remoteName: resolved.remoteName,
 	};
 	ctx.db

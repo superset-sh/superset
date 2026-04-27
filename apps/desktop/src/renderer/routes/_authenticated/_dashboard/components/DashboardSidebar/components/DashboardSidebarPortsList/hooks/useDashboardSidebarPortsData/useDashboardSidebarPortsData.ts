@@ -41,9 +41,9 @@ export function useDashboardSidebarPortsData(): {
 	const { data: hosts = [] } = useLiveQuery(
 		(q) =>
 			q.from({ hosts: collections.v2Hosts }).select(({ hosts }) => ({
-				id: hosts.id,
-				isOnline: hosts.isOnline,
+				organizationId: hosts.organizationId,
 				machineId: hosts.machineId,
+				isOnline: hosts.isOnline,
 			})),
 		[collections],
 	);
@@ -53,7 +53,7 @@ export function useDashboardSidebarPortsData(): {
 			q
 				.from({ workspaces: collections.v2Workspaces })
 				.leftJoin({ hosts: collections.v2Hosts }, ({ workspaces, hosts }) =>
-					eq(workspaces.hostId, hosts.id),
+					eq(workspaces.hostId, hosts.machineId),
 				)
 				.select(({ workspaces, hosts }) => ({
 					id: workspaces.id,
@@ -86,7 +86,7 @@ export function useDashboardSidebarPortsData(): {
 					workspaceIds: host.workspaceIds,
 				});
 				return {
-					hostId: host.id,
+					hostId: host.machineId,
 					hostType: host.hostType,
 					hostUrl: host.hostUrl,
 					ports,
@@ -110,7 +110,7 @@ export function useDashboardSidebarPortsData(): {
 					getHostPortsQueryKey(host),
 					(result) =>
 						applyPortEventsToHostPortsResult(result, events, {
-							hostId: host.id,
+							hostId: host.machineId,
 							hostType: host.hostType,
 							hostUrl: host.hostUrl,
 						}),
@@ -175,7 +175,7 @@ export function useDashboardSidebarPortsData(): {
 		if (!host) return [];
 		return [
 			{
-				hostId: host.id,
+				hostId: host.machineId,
 				hostType: host.hostType,
 				message:
 					query.error instanceof Error

@@ -12,10 +12,9 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useQuery } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { useId, useState } from "react";
-import { env } from "renderer/env.renderer";
+import { useHostTargetUrl } from "renderer/hooks/host-service/useHostTargetUrl";
 import { useDebouncedValue } from "renderer/hooks/useDebouncedValue";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
-import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import {
 	PRIcon,
 	type PRState,
@@ -55,16 +54,11 @@ export function PRLinkCommand({
 	const [showClosed, setShowClosed] = useState(false);
 	const showClosedId = useId();
 	const debouncedQuery = useDebouncedValue(searchQuery, 300);
-	const { activeHostUrl } = useLocalHostService();
+	const hostUrl = useHostTargetUrl(hostTarget);
 
 	const trimmedQuery = searchQuery.trim();
 	const debouncedTrimmed = debouncedQuery.trim();
 	const isPendingDebounce = trimmedQuery !== debouncedTrimmed;
-
-	const hostUrl =
-		hostTarget.kind === "local"
-			? activeHostUrl
-			: `${env.RELAY_URL}/hosts/${hostTarget.hostId}`;
 
 	const { data, isFetching } = useQuery({
 		queryKey: [

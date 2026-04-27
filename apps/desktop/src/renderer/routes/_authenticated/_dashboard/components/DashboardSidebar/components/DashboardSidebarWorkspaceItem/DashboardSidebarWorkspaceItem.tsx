@@ -1,6 +1,9 @@
 import { useNavigate } from "@tanstack/react-router";
+import { useState } from "react";
 import { useDiffStats } from "renderer/hooks/host-service/useDiffStats";
+import { useOptimisticCollectionActions } from "renderer/routes/_authenticated/hooks/useOptimisticCollectionActions";
 import { useDeletingWorkspaces } from "renderer/routes/_authenticated/providers/DeletingWorkspacesProvider";
+import { RenameBranchDialog } from "renderer/screens/main/components/WorkspaceSidebar/WorkspaceListItem/components";
 import { useV2WorkspaceNotificationStatus } from "renderer/stores/v2-notifications";
 import type { DashboardSidebarWorkspace } from "../../types";
 import { DashboardSidebarDeleteDialog } from "../DashboardSidebarDeleteDialog";
@@ -35,6 +38,7 @@ export function DashboardSidebarWorkspaceItem({
 		branch,
 		creationStatus,
 	} = workspace;
+	const isMainWorkspace = workspace.type === "main";
 	const diffStats = useDiffStats(id);
 	const workspaceStatus = useV2WorkspaceNotificationStatus(id);
 	const {
@@ -46,8 +50,10 @@ export function DashboardSidebarWorkspaceItem({
 		handleDeleted,
 		handleOpenInFinder,
 		handleRemoveFromSidebar,
+		handleToggleUnread,
 		isActive,
 		isDeleteDialogOpen,
+		isUnread,
 		isRenaming,
 		moveWorkspaceToSection,
 		renameValue,
@@ -60,9 +66,17 @@ export function DashboardSidebarWorkspaceItem({
 		projectId,
 		workspaceName: name,
 		branch,
+		isMainWorkspace,
 	});
 
 	const navigate = useNavigate();
+	const { v2Workspaces: v2WorkspaceActions } = useOptimisticCollectionActions();
+	const [renameBranchTarget, setRenameBranchTarget] = useState<string | null>(
+		null,
+	);
+	const handleAfterBranchRename = (newBranchName: string) => {
+		v2WorkspaceActions.updateWorkspace(id, { branch: newBranchName });
+	};
 	const isPending = !!creationStatus;
 	// Keep the delete dialog outside the hidden wrapper below — the destroy
 	// flow reopens it into an error pane on conflict/teardown-failed.
@@ -110,6 +124,7 @@ export function DashboardSidebarWorkspaceItem({
 						<DashboardSidebarWorkspaceContextMenu
 							projectId={projectId}
 							isInSection={isInSection}
+							isUnread={isUnread}
 							onHoverCardOpen={
 								hostType === "local-device" ? onHoverCardOpen : undefined
 							}
@@ -117,6 +132,7 @@ export function DashboardSidebarWorkspaceItem({
 								<DashboardSidebarWorkspaceHoverCardContent
 									workspace={workspace}
 									diffStats={diffStats}
+									onEditBranchClick={setRenameBranchTarget}
 								/>
 							}
 							isLocalWorkspace={hostType === "local-device"}
@@ -129,20 +145,34 @@ export function DashboardSidebarWorkspaceItem({
 							onCopyBranchName={handleCopyBranchName}
 							onRemoveFromSidebar={handleRemoveFromSidebar}
 							onRename={startRename}
-							onDelete={() => setIsDeleteDialogOpen(true)}
+							onDelete={
+								isMainWorkspace ? undefined : () => setIsDeleteDialogOpen(true)
+							}
+							onToggleUnread={handleToggleUnread}
 						>
 							{content}
 						</DashboardSidebarWorkspaceContextMenu>
 					)}
 				</div>
 
-				{!isPending && (
+				{!isPending && !isMainWorkspace && (
 					<DashboardSidebarDeleteDialog
 						workspaceId={id}
 						workspaceName={name || branch}
 						open={isDeleteDialogOpen}
 						onOpenChange={setIsDeleteDialogOpen}
 						onDeleted={handleDeleted}
+					/>
+				)}
+				{renameBranchTarget && (
+					<RenameBranchDialog
+						workspaceId={id}
+						currentBranchName={renameBranchTarget}
+						open={renameBranchTarget !== null}
+						onOpenChange={(open) => {
+							if (!open) setRenameBranchTarget(null);
+						}}
+						onAfterRename={handleAfterBranchRename}
 					/>
 				)}
 			</>
@@ -160,7 +190,11 @@ export function DashboardSidebarWorkspaceItem({
 			workspaceStatus={workspaceStatus}
 			onClick={isPending ? handlePendingClick : handleClick}
 			onDoubleClick={isPending ? undefined : startRename}
-			onDeleteClick={() => setIsDeleteDialogOpen(true)}
+			onDeleteClick={
+				isMainWorkspace
+					? handleRemoveFromSidebar
+					: () => setIsDeleteDialogOpen(true)
+			}
 			onRenameValueChange={setRenameValue}
 			onSubmitRename={submitRename}
 			onCancelRename={cancelRename}
@@ -176,6 +210,7 @@ export function DashboardSidebarWorkspaceItem({
 					<DashboardSidebarWorkspaceContextMenu
 						projectId={projectId}
 						isInSection={isInSection}
+						isUnread={isUnread}
 						onHoverCardOpen={
 							hostType === "local-device" ? onHoverCardOpen : undefined
 						}
@@ -183,6 +218,7 @@ export function DashboardSidebarWorkspaceItem({
 							<DashboardSidebarWorkspaceHoverCardContent
 								workspace={workspace}
 								diffStats={diffStats}
+								onEditBranchClick={setRenameBranchTarget}
 							/>
 						}
 						onCreateSection={handleCreateSection}
@@ -195,20 +231,34 @@ export function DashboardSidebarWorkspaceItem({
 						onCopyBranchName={handleCopyBranchName}
 						onRemoveFromSidebar={handleRemoveFromSidebar}
 						onRename={startRename}
-						onDelete={() => setIsDeleteDialogOpen(true)}
+						onDelete={
+							isMainWorkspace ? undefined : () => setIsDeleteDialogOpen(true)
+						}
+						onToggleUnread={handleToggleUnread}
 					>
 						{expandedContent}
 					</DashboardSidebarWorkspaceContextMenu>
 				)}
 			</div>
 
-			{!isPending && (
+			{!isPending && !isMainWorkspace && (
 				<DashboardSidebarDeleteDialog
 					workspaceId={id}
 					workspaceName={name || branch}
 					open={isDeleteDialogOpen}
 					onOpenChange={setIsDeleteDialogOpen}
 					onDeleted={handleDeleted}
+				/>
+			)}
+			{renameBranchTarget && (
+				<RenameBranchDialog
+					workspaceId={id}
+					currentBranchName={renameBranchTarget}
+					open={renameBranchTarget !== null}
+					onOpenChange={(open) => {
+						if (!open) setRenameBranchTarget(null);
+					}}
+					onAfterRename={handleAfterBranchRename}
 				/>
 			)}
 		</>

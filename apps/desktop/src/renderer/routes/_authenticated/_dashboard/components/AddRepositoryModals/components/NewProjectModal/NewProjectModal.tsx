@@ -27,7 +27,11 @@ type NewProjectMode = "clone" | "empty" | "template";
 interface NewProjectModalProps {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
-	onSuccess?: (result: { projectId: string; repoPath: string }) => void;
+	onSuccess?: (result: {
+		projectId: string;
+		repoPath: string;
+		mainWorkspaceId: string | null;
+	}) => void;
 	onError?: (message: string) => void;
 }
 
@@ -72,7 +76,8 @@ export function NewProjectModal({
 	onError,
 }: NewProjectModalProps) {
 	const { activeHostUrl } = useLocalHostService();
-	const { ensureProjectInSidebar } = useDashboardSidebarState();
+	const { ensureProjectInSidebar, ensureWorkspaceInSidebar } =
+		useDashboardSidebarState();
 	const selectDirectory = electronTrpc.window.selectDirectory.useMutation();
 	const { data: homeDir } = electronTrpc.window.getHomeDir.useQuery();
 
@@ -142,7 +147,11 @@ export function NewProjectModal({
 				name,
 				mode: { kind: "clone", parentDir: trimmedParent, url: trimmedUrl },
 			});
-			ensureProjectInSidebar(result.projectId);
+			if (result.mainWorkspaceId) {
+				ensureWorkspaceInSidebar(result.mainWorkspaceId, result.projectId);
+			} else {
+				ensureProjectInSidebar(result.projectId);
+			}
 			onSuccess?.(result);
 			reset();
 			onOpenChange(false);

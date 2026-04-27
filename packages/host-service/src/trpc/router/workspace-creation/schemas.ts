@@ -100,6 +100,8 @@ export const adoptInputSchema = z.object({
 	projectId: z.string(),
 	workspaceName: z.string(),
 	branch: z.string(),
+	baseBranch: z.string().optional(),
+	existingWorkspaceId: z.string().optional(),
 	// When provided, adopt the worktree at this explicit path instead
 	// of looking one up under <repoPath>/.worktrees/<branch>. Used by
 	// the v1→v2 migration to adopt worktrees at legacy paths (e.g.

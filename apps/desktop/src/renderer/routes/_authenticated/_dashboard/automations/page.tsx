@@ -105,7 +105,7 @@ function AutomationsPage() {
 			),
 	});
 
-	const { data: automationRows = [] } = useLiveQuery(
+	const { data: automationRows = [], isReady: automationsReady } = useLiveQuery(
 		(q) =>
 			q
 				.from({ a: collections.automations })
@@ -136,7 +136,7 @@ function AutomationsPage() {
 		(q) =>
 			q
 				.from({ h: collections.v2Hosts })
-				.select(({ h }) => ({ id: h.id, name: h.name })),
+				.select(({ h }) => ({ machineId: h.machineId, name: h.name })),
 		[collections.v2Hosts],
 	);
 
@@ -167,7 +167,10 @@ function AutomationsPage() {
 	const hostsById = useMemo(
 		() =>
 			new Map(
-				(hostRows as Pick<SelectV2Host, "id" | "name">[]).map((h) => [h.id, h]),
+				(hostRows as Pick<SelectV2Host, "machineId" | "name">[]).map((h) => [
+					h.machineId,
+					h,
+				]),
 			),
 		[hostRows],
 	);
@@ -228,7 +231,7 @@ function AutomationsPage() {
 			</header>
 
 			<div className="flex-1 overflow-y-auto px-8 py-6">
-				{automations.length === 0 ? (
+				{!automationsReady ? null : automations.length === 0 ? (
 					<AutomationsEmptyState onSelectTemplate={handleSelectTemplate} />
 				) : (
 					<>

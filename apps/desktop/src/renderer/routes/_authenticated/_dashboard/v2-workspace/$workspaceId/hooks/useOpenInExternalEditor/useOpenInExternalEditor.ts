@@ -21,7 +21,7 @@ export function useOpenInExternalEditor(workspaceId: string) {
 			q
 				.from({ workspaces: collections.v2Workspaces })
 				.leftJoin({ hosts: collections.v2Hosts }, ({ workspaces, hosts }) =>
-					eq(workspaces.hostId, hosts.id),
+					eq(workspaces.hostId, hosts.machineId),
 				)
 				.where(({ workspaces }) => eq(workspaces.id, workspaceId))
 				.select(({ workspaces, hosts }) => ({

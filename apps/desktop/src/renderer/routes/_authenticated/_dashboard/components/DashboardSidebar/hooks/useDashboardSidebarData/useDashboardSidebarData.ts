@@ -7,6 +7,7 @@ import { authClient } from "renderer/lib/auth-client";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { getVisibleSidebarWorkspaces } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { MOCK_ORG_ID } from "shared/constants";
 import type {
@@ -19,6 +20,7 @@ import type {
 // Sits above every real workspace so the pending row lines up with the real one,
 // which is inserted via getPrependTabOrder.
 const PENDING_WORKSPACE_TAB_ORDER = Number.MIN_SAFE_INTEGER;
+const MAIN_WORKSPACE_TAB_ORDER = Number.MIN_SAFE_INTEGER;
 
 type LocalPullRequest = DashboardSidebarWorkspace["pullRequest"];
 type PullRequestWorkspaceRow = {
@@ -221,7 +223,7 @@ export function useDashboardSidebarData() {
 		[collections],
 	);
 
-	const { data: sidebarWorkspaces = [] } = useLiveQuery(
+	const { data: rawSidebarWorkspaces = [] } = useLiveQuery(
 		(q) =>
 			q
 				.from({ sidebarWorkspaces: collections.v2WorkspaceLocalState })
@@ -231,7 +233,7 @@ export function useDashboardSidebarData() {
 						eq(sidebarWorkspaces.workspaceId, workspaces.id),
 				)
 				.leftJoin({ hosts: collections.v2Hosts }, ({ workspaces, hosts }) =>
-					eq(workspaces.hostId, hosts.id),
+					eq(workspaces.hostId, hosts.machineId),
 				)
 				.orderBy(
 					({ sidebarWorkspaces }) => sidebarWorkspaces.sidebarState.tabOrder,
@@ -242,6 +244,7 @@ export function useDashboardSidebarData() {
 					projectId: sidebarWorkspaces.sidebarState.projectId,
 					hostId: workspaces.hostId,
 					hostMachineId: hosts?.machineId ?? null,
+					type: workspaces.type,
 					hostIsOnline: hosts?.isOnline ?? null,
 					name: workspaces.name,
 					branch: workspaces.branch,
@@ -249,13 +252,70 @@ export function useDashboardSidebarData() {
 					updatedAt: workspaces.updatedAt,
 					tabOrder: sidebarWorkspaces.sidebarState.tabOrder,
 					sectionId: sidebarWorkspaces.sidebarState.sectionId,
+					isHidden: sidebarWorkspaces.sidebarState.isHidden,
 				})),
 		[collections],
 	);
 
+	const sidebarWorkspaces = useMemo(
+		() => getVisibleSidebarWorkspaces(rawSidebarWorkspaces),
+		[rawSidebarWorkspaces],
+	);
+
+	const localStateWorkspaceIds = useMemo(
+		() => new Set(rawSidebarWorkspaces.map((workspace) => workspace.id)),
+		[rawSidebarWorkspaces],
+	);
+
+	const { data: localMainWorkspaces = [] } = useLiveQuery(
+		(q) =>
+			q
+				.from({ workspaces: collections.v2Workspaces })
+				.leftJoin({ hosts: collections.v2Hosts }, ({ workspaces, hosts }) =>
+					eq(workspaces.hostId, hosts.machineId),
+				)
+				.where(({ workspaces }) => eq(workspaces.type, "main"))
+				.select(({ workspaces, hosts }) => ({
+					id: workspaces.id,
+					projectId: workspaces.projectId,
+					hostId: workspaces.hostId,
+					hostMachineId: hosts?.machineId ?? null,
+					type: workspaces.type,
+					hostIsOnline: hosts?.isOnline ?? null,
+					name: workspaces.name,
+					branch: workspaces.branch,
+					createdAt: workspaces.createdAt,
+					updatedAt: workspaces.updatedAt,
+					tabOrder: MAIN_WORKSPACE_TAB_ORDER,
+					sectionId: null as string | null,
+				})),
+		[collections],
+	);
+
+	const visibleSidebarWorkspaces = useMemo(() => {
+		const sidebarProjectIds = new Set(
+			sidebarProjects.map((project) => project.id),
+		);
+		const autoLocalMainWorkspaces = localMainWorkspaces.filter(
+			(workspace) =>
+				!localStateWorkspaceIds.has(workspace.id) &&
+				workspace.hostMachineId != null &&
+				workspace.hostMachineId === machineId &&
+				sidebarProjectIds.has(workspace.projectId),
+		);
+
+		return [...autoLocalMainWorkspaces, ...sidebarWorkspaces];
+	}, [
+		localMainWorkspaces,
+		localStateWorkspaceIds,
+		machineId,
+		sidebarProjects,
+		sidebarWorkspaces,
+	]);
+
 	const computedLocalWorkspaceIds = useMemo(
 		() =>
-			sidebarWorkspaces
+			visibleSidebarWorkspaces
 				.filter(
 					(workspace) =>
 						workspace.hostMachineId != null &&
@@ -263,7 +323,7 @@ export function useDashboardSidebarData() {
 				)
 				.map((workspace) => workspace.id)
 				.sort(),
-		[machineId, sidebarWorkspaces],
+		[machineId, visibleSidebarWorkspaces],
 	);
 	const localWorkspaceIds = useStableStringArray(computedLocalWorkspaceIds);
 
@@ -339,7 +399,7 @@ export function useDashboardSidebarData() {
 			});
 		}
 
-		for (const workspace of sidebarWorkspaces) {
+		for (const workspace of visibleSidebarWorkspaces) {
 			const project = projectsById.get(workspace.projectId);
 			if (!project) continue;
 
@@ -355,6 +415,7 @@ export function useDashboardSidebarData() {
 				projectId: workspace.projectId,
 				hostId: workspace.hostId,
 				hostType,
+				type: workspace.type,
 				hostIsOnline:
 					hostType === "remote-device"
 						? (workspace.hostIsOnline ?? null)
@@ -410,6 +471,7 @@ export function useDashboardSidebarData() {
 				projectId: pw.projectId,
 				hostId: "",
 				hostType: "local-device",
+				type: "worktree",
 				hostIsOnline: null,
 				accentColor: null,
 				name: pw.name,
@@ -478,7 +540,7 @@ export function useDashboardSidebarData() {
 		pendingWorkspaces,
 		sidebarProjects,
 		sidebarSections,
-		sidebarWorkspaces,
+		visibleSidebarWorkspaces,
 	]);
 	const groups = useStableDashboardSidebarProjects(computedGroups);
 
