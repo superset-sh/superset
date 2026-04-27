@@ -1,21 +1,7 @@
-import {
-	DropdownMenu,
-	DropdownMenuContent,
-	DropdownMenuItem,
-	DropdownMenuLabel,
-	DropdownMenuTrigger,
-} from "@superset/ui/dropdown-menu";
-import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
-import { workspaceTrpc } from "@superset/workspace-client";
-import {
-	VscChevronDown,
-	VscGitMerge,
-	VscGitPullRequest,
-	VscLoading,
-} from "react-icons/vsc";
-import { PRIcon } from "renderer/screens/main/components/PRIcon";
+import { VscGitPullRequest, VscLoading } from "react-icons/vsc";
 import type { PRFlowDispatch } from "../../hooks/usePRFlowDispatch";
+import { PRStatusGroup } from "./components/PRStatusGroup";
 import {
 	type PRFlowState,
 	selectActionButton,
@@ -61,11 +47,9 @@ export function PRActionHeader({
 }
 
 /**
- * Mirrors v1's PRButton state machine: loading spinner, muted icon (with
- * tooltip) when create is unavailable, clickable icon when create is
- * available, link + merge dropdown for an open PR, plain link for closed/
- * merged/draft PRs. Text labels are intentionally absent — state is
- * conveyed through icons.
+ * Mirrors v1's PRButton state machine using just icons. PR-state, CI/review
+ * detail, and copy all live in the hover card surfaced from PRStatusGroup —
+ * the bar itself stays quiet at rest.
  */
 function ActionSlot({
 	variant,
@@ -84,7 +68,7 @@ function ActionSlot({
 }) {
 	switch (variant.kind) {
 		case "hidden":
-			// `pr-exists` lands here — render the link + merge dropdown.
+			// `pr-exists` lands here — render the link + indicators + dropdown.
 			return (
 				<PRStatusGroup
 					state={state}
@@ -105,7 +89,7 @@ function ActionSlot({
 					/>
 				);
 			}
-			return <CreatePRSplitButton state={state} dispatch={dispatch} />;
+			return <CreatePRIconButton state={state} dispatch={dispatch} />;
 
 		case "cancel-busy":
 			return (
@@ -168,7 +152,7 @@ function unavailableTooltip(
 	}
 }
 
-function CreatePRSplitButton({
+function CreatePRIconButton({
 	state,
 	dispatch,
 }: {
@@ -189,157 +173,5 @@ function CreatePRSplitButton({
 			</TooltipTrigger>
 			<TooltipContent side="bottom">Create Pull Request</TooltipContent>
 		</Tooltip>
-	);
-}
-
-/**
- * Mirrors v1's PRButton: shows the PR link with status icon, plus a merge
- * dropdown (squash / merge / rebase) when the PR is open and not a draft.
- * Closed/merged/draft PRs render as a plain link.
- */
-function PRStatusGroup({
-	state,
-	workspaceId,
-	onRefresh,
-}: {
-	state: PRFlowState;
-	workspaceId: string;
-	onRefresh?: () => void;
-}) {
-	const pr =
-		state.kind === "pr-exists"
-			? state.pr
-			: state.kind === "busy" || state.kind === "error"
-				? state.pr
-				: null;
-
-	// Triggers a GitHub→host-service-DB sync for this workspace's PR. Without
-	// this, post-merge UI state lags by up to ~30s waiting for the next
-	// background sync tick. Called after a successful merge before refetching
-	// the local query.
-	const refreshPRMutation =
-		workspaceTrpc.pullRequests.refreshByWorkspaces.useMutation();
-
-	const mergePRMutation = workspaceTrpc.github.mergePR.useMutation({
-		onMutate: () => {
-			const toastId = toast.loading("Merging PR...");
-			return { toastId };
-		},
-		onSuccess: async (_data, _variables, context) => {
-			toast.success("PR merged", { id: context?.toastId });
-			try {
-				await refreshPRMutation.mutateAsync({ workspaceIds: [workspaceId] });
-			} finally {
-				onRefresh?.();
-			}
-		},
-		onError: (error, _variables, context) => {
-			toast.error(`Merge failed: ${error.message}`, { id: context?.toastId });
-		},
-	});
-
-	if (!pr) return null;
-
-	const linkState = pr.isDraft
-		? "draft"
-		: pr.state === "merged"
-			? "merged"
-			: pr.state === "closed"
-				? "closed"
-				: "open";
-	const canMerge = pr.state === "open" && !pr.isDraft;
-
-	const handleMerge = (mergeMethod: "merge" | "squash" | "rebase") => {
-		mergePRMutation.mutate({
-			owner: pr.repoOwner,
-			repo: pr.repoName,
-			pullNumber: pr.number,
-			mergeMethod,
-		});
-	};
-
-	if (!canMerge) {
-		return (
-			<a
-				href={pr.url}
-				target="_blank"
-				rel="noopener noreferrer"
-				className="flex items-center gap-1 transition-opacity hover:opacity-80"
-			>
-				<PRIcon state={linkState} className="size-4" />
-				<span className="font-mono text-xs text-muted-foreground">
-					#{pr.number}
-				</span>
-			</a>
-		);
-	}
-
-	return (
-		<div
-			className="flex items-center overflow-hidden rounded border border-border"
-			aria-busy={mergePRMutation.isPending}
-		>
-			<a
-				href={pr.url}
-				target="_blank"
-				rel="noopener noreferrer"
-				className="flex items-center gap-1 px-1.5 py-0.5 transition-colors hover:bg-accent"
-			>
-				<PRIcon state={linkState} className="size-4" />
-				<span className="font-mono text-xs text-muted-foreground">
-					#{pr.number}
-				</span>
-			</a>
-			<div className="h-full w-px bg-border" />
-			<DropdownMenu>
-				<DropdownMenuTrigger asChild>
-					<button
-						type="button"
-						className="flex items-center px-1 py-0.5 transition-colors hover:bg-accent"
-						disabled={mergePRMutation.isPending}
-						aria-label={
-							mergePRMutation.isPending
-								? "Merging pull request"
-								: "Open merge options"
-						}
-					>
-						{mergePRMutation.isPending ? (
-							<VscLoading className="size-3 animate-spin text-muted-foreground" />
-						) : (
-							<VscChevronDown className="size-3 text-muted-foreground" />
-						)}
-					</button>
-				</DropdownMenuTrigger>
-				<DropdownMenuContent align="end" className="w-44">
-					<DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
-						Merge
-					</DropdownMenuLabel>
-					<DropdownMenuItem
-						onClick={() => handleMerge("squash")}
-						className="text-xs"
-						disabled={mergePRMutation.isPending}
-					>
-						<VscGitMerge className="size-3.5" />
-						Squash and merge
-					</DropdownMenuItem>
-					<DropdownMenuItem
-						onClick={() => handleMerge("merge")}
-						className="text-xs"
-						disabled={mergePRMutation.isPending}
-					>
-						<VscGitMerge className="size-3.5" />
-						Create merge commit
-					</DropdownMenuItem>
-					<DropdownMenuItem
-						onClick={() => handleMerge("rebase")}
-						className="text-xs"
-						disabled={mergePRMutation.isPending}
-					>
-						<VscGitMerge className="size-3.5" />
-						Rebase and merge
-					</DropdownMenuItem>
-				</DropdownMenuContent>
-			</DropdownMenu>
-		</div>
 	);
 }
