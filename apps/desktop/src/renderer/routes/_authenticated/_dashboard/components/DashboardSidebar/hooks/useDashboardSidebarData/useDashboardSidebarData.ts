@@ -110,7 +110,7 @@ export function useDashboardSidebarData() {
 						eq(sidebarWorkspaces.workspaceId, workspaces.id),
 				)
 				.leftJoin({ hosts: collections.v2Hosts }, ({ workspaces, hosts }) =>
-					eq(workspaces.hostId, hosts.id),
+					eq(workspaces.hostId, hosts.machineId),
 				)
 				.orderBy(
 					({ sidebarWorkspaces }) => sidebarWorkspaces.sidebarState.tabOrder,

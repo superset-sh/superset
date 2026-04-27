@@ -15,7 +15,7 @@ export async function checkHostAccess(
 
 	try {
 		const client = createApiClient(token);
-		const result = await client.device.checkHostAccess.query({ hostId });
+		const result = await client.host.checkAccess.query({ hostId });
 		if (result.allowed) {
 			allowedCache.set(key, true);
 		}

@@ -62,7 +62,7 @@ export class TunnelManager {
 		}, PING_INTERVAL_MS);
 
 		void createApiClient(token)
-			.device.setHostOnline.mutate({ hostId, isOnline: true })
+			.host.setOnline.mutate({ hostId, isOnline: true })
 			.catch(() => {});
 		console.log(`[relay] tunnel registered: ${hostId}`);
 	}
@@ -83,7 +83,7 @@ export class TunnelManager {
 		}
 
 		void createApiClient(tunnel.token)
-			.device.setHostOnline.mutate({ hostId, isOnline: false })
+			.host.setOnline.mutate({ hostId, isOnline: false })
 			.catch(() => {});
 		this.tunnels.delete(hostId);
 		console.log(`[relay] tunnel unregistered: ${hostId}`);

@@ -1,4 +1,4 @@
-import { getDeviceName, getHashedDeviceId } from "@superset/shared/device-info";
+import { getHostId, getHostName } from "@superset/shared/host-info";
 import { TRPCError } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
 import { workspaces } from "../../../../db/schema";
@@ -14,8 +14,8 @@ import type { TerminalDescriptor } from "../shared/types";
 export const adopt = protectedProcedure
 	.input(adoptInputSchema)
 	.mutation(async ({ ctx, input }) => {
-		const deviceClientId = getHashedDeviceId();
-		const deviceName = getDeviceName();
+		const machineId = getHostId();
+		const hostName = getHostName();
 
 		const localProject = requireLocalProject(ctx, input.projectId);
 
@@ -62,16 +62,16 @@ export const adopt = protectedProcedure
 		// Always create a fresh cloud row; if a stale local row leftover
 		// from a prior delete exists, replace it below. Proper host-side
 		// cleanup on delete is owned by the follow-up delete PR.
-		let host: { id: string };
+		let host: { machineId: string };
 		try {
-			host = await ctx.api.device.ensureV2Host.mutate({
+			host = await ctx.api.host.ensure.mutate({
 				organizationId: ctx.organizationId,
-				machineId: deviceClientId,
-				name: deviceName,
+				machineId,
+				name: hostName,
 			});
 		} catch (err) {
 			if (err instanceof TRPCError) throw err;
-			console.error("[workspaceCreation.adopt] ensureV2Host failed", err);
+			console.error("[workspaceCreation.adopt] host.ensure failed", err);
 			throw new TRPCError({
 				code: "INTERNAL_SERVER_ERROR",
 				message: `Failed to register host: ${err instanceof Error ? err.message : String(err)}`,
@@ -85,7 +85,7 @@ export const adopt = protectedProcedure
 				projectId: input.projectId,
 				name: input.workspaceName,
 				branch,
-				hostId: host.id,
+				hostId: host.machineId,
 			});
 		} catch (err) {
 			if (err instanceof TRPCError) throw err;

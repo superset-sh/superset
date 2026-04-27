@@ -260,6 +260,13 @@
       "when": 1776661543389,
       "tag": "0036_drop_pending_automation_status",
       "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1777259524489,
+      "tag": "0037_consolidate_host_client_machine_id",
+      "breakpoints": true
     }
   ]
 }

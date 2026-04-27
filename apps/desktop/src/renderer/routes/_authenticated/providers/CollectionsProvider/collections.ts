@@ -11,7 +11,6 @@ import type {
 	SelectMember,
 	SelectOrganization,
 	SelectProject,
-	SelectSessionHost,
 	SelectSubscription,
 	SelectTask,
 	SelectTaskStatus,
@@ -101,7 +100,6 @@ export interface OrgCollections {
 	subscriptions: Collection<SelectSubscription>;
 	apiKeys: Collection<ApiKeyDisplay>;
 	chatSessions: Collection<SelectChatSession>;
-	sessionHosts: Collection<SelectSessionHost>;
 	githubRepositories: Collection<SelectGithubRepository>;
 	githubPullRequests: Collection<SelectGithubPullRequest>;
 	automations: Collection<SelectAutomation>;
@@ -302,7 +300,9 @@ function createOrgCollections(organizationId: string): OrgCollections {
 				headers: electricHeaders,
 				columnMapper,
 			},
-			getKey: (item) => item.id,
+			// Composite PK on (organization_id, machine_id); within an
+			// org-scoped collection, machineId alone is unique.
+			getKey: (item) => item.machineId,
 		}),
 	);
 
@@ -318,7 +318,9 @@ function createOrgCollections(organizationId: string): OrgCollections {
 				headers: electricHeaders,
 				columnMapper,
 			},
-			getKey: (item) => item.id,
+			// Composite PK on (organization_id, user_id, machine_id); within
+			// an org-scoped collection, (user_id, machine_id) is unique.
+			getKey: (item) => `${item.userId}:${item.machineId}`,
 		}),
 	);
 
@@ -334,7 +336,9 @@ function createOrgCollections(organizationId: string): OrgCollections {
 				headers: electricHeaders,
 				columnMapper,
 			},
-			getKey: (item) => item.id,
+			// Composite PK on (organization_id, user_id, host_id); within an
+			// org-scoped collection, (user_id, host_id) is unique.
+			getKey: (item) => `${item.userId}:${item.hostId}`,
 		}),
 	);
 
@@ -527,22 +531,6 @@ function createOrgCollections(organizationId: string): OrgCollections {
 		}),
 	);
 
-	const sessionHosts = createIndexedCollection(
-		electricCollectionOptions<SelectSessionHost>({
-			id: `session_hosts-${organizationId}`,
-			shapeOptions: {
-				url: electricUrl,
-				params: {
-					table: "session_hosts",
-					organizationId,
-				},
-				headers: electricHeaders,
-				columnMapper,
-			},
-			getKey: (item) => item.id,
-		}),
-	);
-
 	const githubRepositories = createIndexedCollection(
 		electricCollectionOptions<SelectGithubRepository>({
 			id: `github_repositories-${organizationId}`,
@@ -682,7 +670,6 @@ function createOrgCollections(organizationId: string): OrgCollections {
 		subscriptions,
 		apiKeys,
 		chatSessions,
-		sessionHosts,
 		githubRepositories,
 		githubPullRequests,
 		automations,

@@ -57,7 +57,7 @@ export async function dispatchAutomation(
 		const inserted = await recordSkipped(
 			automation,
 			scheduledFor,
-			host.id,
+			host.machineId,
 			error,
 		);
 		return { status: "skipped_offline", runId: inserted?.id ?? null, error };
@@ -70,7 +70,7 @@ export async function dispatchAutomation(
 			organizationId: automation.organizationId,
 			title: automation.name,
 			scheduledFor,
-			hostId: host.id,
+			hostId: host.machineId,
 			status: "dispatching",
 		})
 		.onConflictDoNothing({
@@ -102,7 +102,7 @@ export async function dispatchAutomation(
 		} else {
 			const created = await createWorkspaceOnHost({
 				relayUrl,
-				hostId: host.id,
+				hostId: host.machineId,
 				jwt,
 				projectId: automation.v2ProjectId,
 				automation,
@@ -121,7 +121,7 @@ export async function dispatchAutomation(
 		if (agentConfig.kind === "chat") {
 			const { sessionId } = await dispatchChatSession({
 				relayUrl,
-				hostId: host.id,
+				hostId: host.machineId,
 				jwt,
 				workspaceId,
 				prompt: automation.prompt,
@@ -154,7 +154,7 @@ export async function dispatchAutomation(
 			});
 			const { terminalId } = await dispatchTerminalSession({
 				relayUrl,
-				hostId: host.id,
+				hostId: host.machineId,
 				jwt,
 				workspaceId,
 				command,
@@ -193,14 +193,18 @@ async function resolveTargetHost(
 		const [host] = await dbWs
 			.select()
 			.from(v2Hosts)
-			.where(eq(v2Hosts.id, automation.targetHostId))
+			.where(
+				and(
+					eq(v2Hosts.organizationId, automation.organizationId),
+					eq(v2Hosts.machineId, automation.targetHostId),
+				),
+			)
 			.limit(1);
 		return host ?? null;
 	}
 
 	const [host] = await dbWs
 		.select({
-			id: v2Hosts.id,
 			organizationId: v2Hosts.organizationId,
 			machineId: v2Hosts.machineId,
 			name: v2Hosts.name,
@@ -210,7 +214,13 @@ async function resolveTargetHost(
 			updatedAt: v2Hosts.updatedAt,
 		})
 		.from(v2Hosts)
-		.innerJoin(v2UsersHosts, eq(v2UsersHosts.hostId, v2Hosts.id))
+		.innerJoin(
+			v2UsersHosts,
+			and(
+				eq(v2UsersHosts.organizationId, v2Hosts.organizationId),
+				eq(v2UsersHosts.hostId, v2Hosts.machineId),
+			),
+		)
 		.where(
 			and(
 				eq(v2UsersHosts.userId, automation.ownerUserId),

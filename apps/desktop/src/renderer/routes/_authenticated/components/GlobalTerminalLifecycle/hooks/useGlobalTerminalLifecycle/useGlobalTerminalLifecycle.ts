@@ -133,7 +133,7 @@ export function useGlobalTerminalLifecycle() {
 			query
 				.from({ v2Workspaces: collections.v2Workspaces })
 				.leftJoin({ hosts: collections.v2Hosts }, ({ v2Workspaces, hosts }) =>
-					eq(v2Workspaces.hostId, hosts.id),
+					eq(v2Workspaces.hostId, hosts.machineId),
 				)
 				.select(({ v2Workspaces, hosts }) => ({
 					workspaceId: v2Workspaces.id,

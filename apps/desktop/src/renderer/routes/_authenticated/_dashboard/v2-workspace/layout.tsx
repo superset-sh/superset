@@ -35,7 +35,7 @@ function V2WorkspaceLayout() {
 			q
 				.from({ v2Workspaces: collections.v2Workspaces })
 				.leftJoin({ hosts: collections.v2Hosts }, ({ v2Workspaces, hosts }) =>
-					eq(v2Workspaces.hostId, hosts.id),
+					eq(v2Workspaces.hostId, hosts.machineId),
 				)
 				.where(({ v2Workspaces }) => eq(v2Workspaces.id, workspaceId ?? ""))
 				.select(({ v2Workspaces, hosts }) => ({

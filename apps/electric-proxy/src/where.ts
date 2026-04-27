@@ -11,7 +11,6 @@ import {
 	members,
 	organizations,
 	projects,
-	sessionHosts,
 	subscriptions,
 	taskStatuses,
 	tasks,
@@ -128,9 +127,6 @@ export function buildWhereClause(
 
 		case "chat_sessions":
 			return build(chatSessions, chatSessions.organizationId, organizationId);
-
-		case "session_hosts":
-			return build(sessionHosts, sessionHosts.organizationId, organizationId);
 
 		case "github_repositories":
 			return build(

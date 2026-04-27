@@ -40,7 +40,8 @@ export function V2NotificationController() {
 				.from({ v2Workspaces: collections.v2Workspaces })
 				.leftJoin(
 					{ v2Hosts: collections.v2Hosts },
-					({ v2Workspaces, v2Hosts }) => eq(v2Workspaces.hostId, v2Hosts.id),
+					({ v2Workspaces, v2Hosts }) =>
+						eq(v2Workspaces.hostId, v2Hosts.machineId),
 				)
 				.select(({ v2Workspaces, v2Hosts }) => ({
 					workspaceId: v2Workspaces.id,

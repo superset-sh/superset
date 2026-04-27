@@ -38,16 +38,15 @@ type HostPortsMetadata = Pick<
 >;
 
 export interface HostPortsQueryTarget {
-	id: string;
+	machineId: string;
 	hostType: DashboardSidebarWorkspaceHostType;
 	hostUrl: string;
 	workspaceIds: string[];
 }
 
 export interface DashboardSidebarHostRow {
-	id: string;
+	machineId: string;
 	isOnline: boolean;
-	machineId: string | null | undefined;
 }
 
 export interface DashboardSidebarWorkspaceRow {
@@ -62,7 +61,7 @@ export function getHostPortsQueryKey(host: HostPortsQueryTarget) {
 		"host-service",
 		"ports",
 		"getAll",
-		host.id,
+		host.machineId,
 		host.hostUrl,
 		host.workspaceIds,
 	] as const;
@@ -139,18 +138,20 @@ export function deriveHostPortQueryTargets({
 	}
 
 	return hosts.flatMap((host) => {
-		const workspaceIds = workspaceIdsByHostId.get(host.id);
+		const workspaceIds = workspaceIdsByHostId.get(host.machineId);
 		if (!workspaceIds || workspaceIds.length === 0) return [];
 
 		const isLocal = host.machineId === machineId;
 		if (!isLocal && !host.isOnline) return [];
 
-		const hostUrl = isLocal ? activeHostUrl : `${relayUrl}/hosts/${host.id}`;
+		const hostUrl = isLocal
+			? activeHostUrl
+			: `${relayUrl}/hosts/${host.machineId}`;
 		if (!hostUrl) return [];
 
 		return [
 			{
-				id: host.id,
+				machineId: host.machineId,
 				hostType: isLocal
 					? ("local-device" as const)
 					: ("remote-device" as const),

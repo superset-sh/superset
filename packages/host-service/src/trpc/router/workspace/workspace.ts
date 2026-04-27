@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { getDeviceName, getHashedDeviceId } from "@superset/shared/device-info";
+import { getHostId, getHostName } from "@superset/shared/host-info";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import simpleGit from "simple-git";
@@ -82,8 +82,8 @@ export const workspaceRouter = router({
 				".worktrees",
 				input.branch,
 			);
-			const deviceClientId = getHashedDeviceId();
-			const deviceName = getDeviceName();
+			const machineId = getHostId();
+			const hostName = getHostName();
 
 			const git = await ctx.git(localProject.repoPath);
 			try {
@@ -92,10 +92,10 @@ export const workspaceRouter = router({
 				await git.raw(["worktree", "add", "-b", input.branch, worktreePath]);
 			}
 
-			const host = await ctx.api.device.ensureV2Host.mutate({
+			const host = await ctx.api.host.ensure.mutate({
 				organizationId: ctx.organizationId,
-				machineId: deviceClientId,
-				name: deviceName,
+				machineId,
+				name: hostName,
 			});
 
 			const cloudRow = await ctx.api.v2Workspace.create
@@ -104,7 +104,7 @@ export const workspaceRouter = router({
 					projectId: input.projectId,
 					name: input.name,
 					branch: input.branch,
-					hostId: host.id,
+					hostId: host.machineId,
 				})
 				.catch(async (err) => {
 					try {

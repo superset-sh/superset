@@ -87,7 +87,7 @@ export function useBranchPickerController(args: UseBranchPickerControllerArgs) {
 	const targetHostId = useMemo<string | null>(() => {
 		if (hostTarget.kind === "host") return hostTarget.hostId;
 		if (!machineId || !allHosts) return null;
-		return allHosts.find((h) => h.machineId === machineId)?.id ?? null;
+		return allHosts.find((h) => h.machineId === machineId)?.machineId ?? null;
 	}, [hostTarget, allHosts, machineId]);
 
 	const workspaceByBranch = useMemo(() => {

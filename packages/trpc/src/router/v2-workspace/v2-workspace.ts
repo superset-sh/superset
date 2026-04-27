@@ -35,10 +35,13 @@ async function getScopedHost(organizationId: string, hostId: string) {
 		() =>
 			dbWs.query.v2Hosts.findFirst({
 				columns: {
-					id: true,
+					machineId: true,
 					organizationId: true,
 				},
-				where: eq(v2Hosts.id, hostId),
+				where: and(
+					eq(v2Hosts.organizationId, organizationId),
+					eq(v2Hosts.machineId, hostId),
+				),
 			}),
 		{
 			code: "BAD_REQUEST",
@@ -102,7 +105,7 @@ export const v2WorkspaceRouter = {
 				projectId: z.string().uuid(),
 				name: z.string().min(1),
 				branch: z.string().min(1),
-				hostId: z.string().uuid(),
+				hostId: z.string().min(1),
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
@@ -126,7 +129,7 @@ export const v2WorkspaceRouter = {
 					projectId: project.id,
 					name: input.name,
 					branch: input.branch,
-					hostId: host.id,
+					hostId: host.machineId,
 					createdByUserId: ctx.userId,
 				})
 				.returning();
@@ -139,7 +142,7 @@ export const v2WorkspaceRouter = {
 				id: z.string().uuid(),
 				name: z.string().min(1).optional(),
 				branch: z.string().min(1).optional(),
-				hostId: z.string().uuid().optional(),
+				hostId: z.string().min(1).optional(),
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {

@@ -85,11 +85,11 @@ export function useAccessibleV2Workspaces(
 			q
 				.from({ workspaces: collections.v2Workspaces })
 				.innerJoin({ hosts: collections.v2Hosts }, ({ workspaces, hosts }) =>
-					eq(workspaces.hostId, hosts.id),
+					eq(workspaces.hostId, hosts.machineId),
 				)
 				.innerJoin(
 					{ userHosts: collections.v2UsersHosts },
-					({ hosts, userHosts }) => eq(userHosts.hostId, hosts.id),
+					({ hosts, userHosts }) => eq(userHosts.hostId, hosts.machineId),
 				)
 				.innerJoin(
 					{ projects: collections.v2Projects },
@@ -119,7 +119,7 @@ export function useAccessibleV2Workspaces(
 					createdByImage: creators?.image ?? null,
 					projectId: projects.id,
 					projectName: projects.name,
-					hostId: hosts.id,
+					hostId: hosts.machineId,
 					hostName: hosts.name,
 					hostMachineId: hosts.machineId,
 					hostIsOnline: hosts.isOnline,
