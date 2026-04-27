@@ -540,7 +540,7 @@ export const sanitizePersistedTabState = (
 	>,
 ): Pick<
 	TabsState,
-	"tabs" | "activeTabIds" | "focusedPaneIds" | "tabHistoryStacks"
+	"tabs" | "panes" | "activeTabIds" | "focusedPaneIds" | "tabHistoryStacks"
 > => {
 	const nextTabs: Tab[] = [];
 
@@ -558,6 +558,16 @@ export const sanitizePersistedTabState = (
 		}
 
 		nextTabs.push(layout === tab.layout ? tab : { ...tab, layout });
+	}
+
+	const nextPanes: TabsState["panes"] = {};
+	for (const tab of nextTabs) {
+		for (const paneId of extractPaneIdsFromLayout(tab.layout)) {
+			const pane = state.panes[paneId];
+			if (pane?.tabId === tab.id) {
+				nextPanes[paneId] = pane;
+			}
+		}
 	}
 
 	const nextActiveTabIds = { ...state.activeTabIds };
@@ -579,6 +589,7 @@ export const sanitizePersistedTabState = (
 	}
 
 	for (const workspaceId of workspaceIds) {
+		// Resolve against sanitized tabs while reusing original pointers as candidates.
 		nextActiveTabIds[workspaceId] = resolveActiveTabIdForWorkspace({
 			workspaceId,
 			tabs: nextTabs,
@@ -592,6 +603,8 @@ export const sanitizePersistedTabState = (
 			nextHistoryStacks[workspaceId] = history.filter((id) =>
 				workspaceTabIds.has(id),
 			);
+		} else {
+			nextHistoryStacks[workspaceId] = [];
 		}
 	}
 
@@ -599,16 +612,20 @@ export const sanitizePersistedTabState = (
 	for (const tab of nextTabs) {
 		const currentFocusedPaneId = state.focusedPaneIds[tab.id];
 		const currentFocusedPane = currentFocusedPaneId
-			? state.panes[currentFocusedPaneId]
+			? nextPanes[currentFocusedPaneId]
 			: null;
+		const sanitizedPaneIds = new Set(extractPaneIdsFromLayout(tab.layout));
 		nextFocusedPaneIds[tab.id] =
-			currentFocusedPane?.tabId === tab.id
+			currentFocusedPaneId &&
+			currentFocusedPane?.tabId === tab.id &&
+			sanitizedPaneIds.has(currentFocusedPaneId)
 				? currentFocusedPaneId
 				: getFirstPaneId(tab.layout);
 	}
 
 	return {
 		tabs: nextTabs,
+		panes: nextPanes,
 		activeTabIds: nextActiveTabIds,
 		focusedPaneIds: nextFocusedPaneIds,
 		tabHistoryStacks: nextHistoryStacks,
