@@ -2,7 +2,11 @@ import { rmSync } from "node:fs";
 import { TRPCError } from "@trpc/server";
 import type { HostServiceContext } from "../../../types";
 import { persistLocalProject } from "./utils/persist-project";
-import { cloneRepoInto, resolveLocalRepo } from "./utils/resolve-repo";
+import {
+	cloneRepoInto,
+	type ResolvedRepo,
+	resolveLocalRepo,
+} from "./utils/resolve-repo";
 
 function slugifyProjectName(name: string): string {
 	const slug = name
@@ -61,6 +65,23 @@ async function createCloudProjectWithSlugRetry(
 	});
 }
 
+function persistLocalProjectOrWarn(
+	ctx: HostServiceContext,
+	projectId: string,
+	resolved: ResolvedRepo,
+	source: "createFromClone" | "createFromImportLocal",
+): void {
+	try {
+		persistLocalProject(ctx, projectId, resolved);
+	} catch (err) {
+		console.warn(
+			`[project.${source}] cloud project created but local persistence failed; rerun will need to relink`,
+			{ projectId, repoPath: resolved.repoPath, err },
+		);
+		throw err;
+	}
+}
+
 /**
  * Clone first so clone-time failures (bad URL, auth, network, dir
  * collision) leave no cloud state behind. The local clone can be removed
@@ -76,7 +97,12 @@ export async function createFromClone(
 			name: args.name,
 			repoCloneUrl: args.url,
 		});
-		persistLocalProject(ctx, cloudProject.id, resolved);
+		persistLocalProjectOrWarn(
+			ctx,
+			cloudProject.id,
+			resolved,
+			"createFromClone",
+		);
 		return { projectId: cloudProject.id, repoPath: resolved.repoPath };
 	} catch (err) {
 		try {
@@ -100,6 +126,11 @@ export async function createFromImportLocal(
 		name: args.name,
 		repoCloneUrl: resolved.parsed?.url,
 	});
-	persistLocalProject(ctx, cloudProject.id, resolved);
+	persistLocalProjectOrWarn(
+		ctx,
+		cloudProject.id,
+		resolved,
+		"createFromImportLocal",
+	);
 	return { projectId: cloudProject.id, repoPath: resolved.repoPath };
 }
