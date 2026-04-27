@@ -205,4 +205,41 @@ describe("session launch MCP tools", () => {
 		expect(selectMock).not.toHaveBeenCalled();
 		expect(executeOnDeviceMock).not.toHaveBeenCalled();
 	});
+
+	// Reproduces #3779: prompt launches must let the device honor user-configured
+	// agent presets (e.g. `claude --dangerously-skip-permissions`) instead of the
+	// cloud MCP hardcoding `claude --permission-mode acceptEdits`. User preset
+	// overrides live in the desktop's local DB, so the cloud MCP must hand the
+	// raw prompt + agent type to the device for resolution rather than baking a
+	// final command string here.
+	it("forwards raw prompt and agent type so the device can apply user-configured preset overrides", async () => {
+		const { promptHandler } = createHandlers();
+
+		await promptHandler(
+			{
+				deviceId: "device-1",
+				workspaceId: "workspace-1",
+				agent: "claude",
+				prompt: "Refactor the auth flow",
+			},
+			{},
+		);
+
+		const launchInput = executeOnDeviceMock.mock.calls[0]?.[0] as {
+			params: {
+				request: {
+					agentType: string;
+					terminal?: { command: string; prompt?: string };
+				};
+			};
+		};
+
+		expect(launchInput.params.request.agentType).toBe("claude");
+		expect(launchInput.params.request.terminal?.prompt).toBe(
+			"Refactor the auth flow",
+		);
+		expect(launchInput.params.request.terminal?.command).not.toContain(
+			"--permission-mode acceptEdits",
+		);
+	});
 });
