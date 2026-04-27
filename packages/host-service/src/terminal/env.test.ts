@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { SHELL_BOOTSTRAP_KEYS } from "./clean-shell-env";
 import {
 	buildV2TerminalEnv,
 	getShellBootstrapEnv,
@@ -215,6 +216,31 @@ describe("stripTerminalRuntimeEnv", () => {
 		expect(result.PYENV_ROOT).toBe("/Users/dev/.pyenv");
 		expect(result.GOPATH).toBe("/Users/dev/go");
 		expect(result.SSH_AUTH_SOCK).toBe("/tmp/ssh-agent.sock");
+	});
+
+	test("macOS XPC bootstrap keys flow seed → PTY env unmolested", () => {
+		// Seed: buildMinimalEnv() copies SHELL_BOOTSTRAP_KEYS from process.env
+		// into the helper shell, so the keys must be on this list.
+		expect(SHELL_BOOTSTRAP_KEYS).toContain("__CFBundleIdentifier");
+		expect(SHELL_BOOTSTRAP_KEYS).toContain("XPC_SERVICE_NAME");
+		expect(SHELL_BOOTSTRAP_KEYS).toContain("XPC_FLAGS");
+		expect(SHELL_BOOTSTRAP_KEYS).toContain("MallocNanoZone");
+
+		// Strip pass: none of these match a denylist prefix or exact key, so
+		// they survive stripTerminalRuntimeEnv into the PTY base env.
+		resetTerminalBaseEnvForTests();
+		initTerminalBaseEnv({
+			__CFBundleIdentifier: "com.example.app",
+			XPC_SERVICE_NAME: "0",
+			XPC_FLAGS: "0x1",
+			MallocNanoZone: "0",
+			HOME: "/Users/test",
+		});
+		const env = getTerminalBaseEnv();
+		expect(env.__CFBundleIdentifier).toBe("com.example.app");
+		expect(env.XPC_SERVICE_NAME).toBe("0");
+		expect(env.XPC_FLAGS).toBe("0x1");
+		expect(env.MallocNanoZone).toBe("0");
 	});
 });
 
