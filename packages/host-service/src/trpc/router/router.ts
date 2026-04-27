@@ -1,4 +1,5 @@
 import { router } from "../index";
+import { authRouter } from "./auth";
 import { chatRouter } from "./chat";
 import { cloudRouter } from "./cloud";
 import { filesystemRouter } from "./filesystem";
@@ -16,6 +17,7 @@ import { workspaceCleanupRouter } from "./workspace-cleanup";
 import { workspaceCreationRouter } from "./workspace-creation";
 
 export const appRouter = router({
+	auth: authRouter,
 	health: healthRouter,
 	host: hostRouter,
 	chat: chatRouter,

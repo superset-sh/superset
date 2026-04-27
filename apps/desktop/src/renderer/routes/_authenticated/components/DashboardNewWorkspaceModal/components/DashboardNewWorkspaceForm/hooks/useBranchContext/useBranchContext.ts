@@ -2,9 +2,8 @@ import type { AppRouter } from "@superset/host-service";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import type { inferRouterInputs, inferRouterOutputs } from "@trpc/server";
 import { useMemo } from "react";
-import { env } from "renderer/env.renderer";
+import { useHostTargetUrl } from "renderer/hooks/host-service/useHostTargetUrl";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
-import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import type { WorkspaceHostTarget } from "../../components/DevicePicker";
 
 type SearchBranchesInput =
@@ -29,11 +28,7 @@ export function useBranchContext(
 	query: string,
 	filter: BranchFilter = "branch",
 ) {
-	const { activeHostUrl } = useLocalHostService();
-	const hostUrl =
-		hostTarget.kind === "local"
-			? activeHostUrl
-			: `${env.RELAY_URL}/hosts/${hostTarget.hostId}`;
+	const hostUrl = useHostTargetUrl(hostTarget);
 
 	const q = useInfiniteQuery({
 		queryKey: [

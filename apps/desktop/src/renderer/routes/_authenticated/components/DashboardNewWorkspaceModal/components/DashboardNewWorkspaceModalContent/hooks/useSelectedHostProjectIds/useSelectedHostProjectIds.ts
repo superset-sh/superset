@@ -1,7 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import { env } from "renderer/env.renderer";
+import { useHostTargetUrl } from "renderer/hooks/host-service/useHostTargetUrl";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
-import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import type { WorkspaceHostTarget } from "../../../DashboardNewWorkspaceForm/components/DevicePicker/types";
 
 /**
@@ -11,11 +10,7 @@ import type { WorkspaceHostTarget } from "../../../DashboardNewWorkspaceForm/com
 export function useSelectedHostProjectIds(
 	hostTarget: WorkspaceHostTarget,
 ): Set<string> | null {
-	const { activeHostUrl } = useLocalHostService();
-	const hostUrl =
-		hostTarget.kind === "local"
-			? activeHostUrl
-			: `${env.RELAY_URL}/hosts/${hostTarget.hostId}`;
+	const hostUrl = useHostTargetUrl(hostTarget);
 
 	const { data } = useQuery({
 		queryKey: ["project", "list", hostUrl],

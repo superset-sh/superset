@@ -31,12 +31,17 @@ async function verifyHostAccess(
 	hostId: string,
 ): Promise<void> {
 	const [host] = await db
-		.select({ id: v2Hosts.id, organizationId: v2Hosts.organizationId })
+		.select({ machineId: v2Hosts.machineId })
 		.from(v2Hosts)
-		.where(eq(v2Hosts.id, hostId))
+		.where(
+			and(
+				eq(v2Hosts.organizationId, organizationId),
+				eq(v2Hosts.machineId, hostId),
+			),
+		)
 		.limit(1);
 
-	if (!host || host.organizationId !== organizationId) {
+	if (!host) {
 		throw new TRPCError({
 			code: "NOT_FOUND",
 			message: "Host not found",
@@ -44,10 +49,14 @@ async function verifyHostAccess(
 	}
 
 	const [membership] = await db
-		.select({ id: v2UsersHosts.id })
+		.select({ hostId: v2UsersHosts.hostId })
 		.from(v2UsersHosts)
 		.where(
-			and(eq(v2UsersHosts.userId, userId), eq(v2UsersHosts.hostId, hostId)),
+			and(
+				eq(v2UsersHosts.userId, userId),
+				eq(v2UsersHosts.organizationId, organizationId),
+				eq(v2UsersHosts.hostId, hostId),
+			),
 		)
 		.limit(1);
 

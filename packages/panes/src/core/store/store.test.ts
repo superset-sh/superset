@@ -39,6 +39,32 @@ describe("tab operations", () => {
 		expect(store.getState().activeTabId).toBe("t2");
 	});
 
+	it("removes the active middle tab and selects the next tab", () => {
+		const store = makeStore();
+		store.getState().addTab({ id: "t1", panes: [tp("p1")] });
+		store.getState().addTab({ id: "t2", panes: [tp("p2")] });
+		store.getState().addTab({ id: "t3", panes: [tp("p3")] });
+		store.getState().setActiveTab("t2");
+
+		store.getState().removeTab("t2");
+
+		expect(store.getState().tabs.map((t) => t.id)).toEqual(["t1", "t3"]);
+		expect(store.getState().activeTabId).toBe("t3");
+	});
+
+	it("removes the active last tab and selects the previous tab", () => {
+		const store = makeStore();
+		store.getState().addTab({ id: "t1", panes: [tp("p1")] });
+		store.getState().addTab({ id: "t2", panes: [tp("p2")] });
+		store.getState().addTab({ id: "t3", panes: [tp("p3")] });
+		store.getState().setActiveTab("t3");
+
+		store.getState().removeTab("t3");
+
+		expect(store.getState().tabs.map((t) => t.id)).toEqual(["t1", "t2"]);
+		expect(store.getState().activeTabId).toBe("t2");
+	});
+
 	it("removes the only tab and sets activeTabId to null", () => {
 		const store = makeStore();
 		store.getState().addTab({ id: "t1", panes: [tp("p1")] });
@@ -410,6 +436,19 @@ describe("collapsing", () => {
 		expect(store.getState().activeTabId).toBeNull();
 	});
 
+	it("close last pane in active middle tab selects the next tab", () => {
+		const store = makeStore();
+		store.getState().addTab({ id: "t1", panes: [tp("p1")] });
+		store.getState().addTab({ id: "t2", panes: [tp("p2")] });
+		store.getState().addTab({ id: "t3", panes: [tp("p3")] });
+		store.getState().setActiveTab("t2");
+
+		store.getState().closePane({ tabId: "t2", paneId: "p2" });
+
+		expect(store.getState().tabs.map((t) => t.id)).toEqual(["t1", "t3"]);
+		expect(store.getState().activeTabId).toBe("t3");
+	});
+
 	it("activePaneId falls back to sibling after close", () => {
 		const store = makeStore();
 		store.getState().addTab({ id: "t1", panes: [tp("p1")] });
@@ -424,6 +463,19 @@ describe("collapsing", () => {
 
 		store.getState().closePane({ tabId: "t1", paneId: "p1" });
 		expect(store.getState().tabs[0]?.activePaneId).toBe("p2");
+	});
+
+	it("activePaneId selects the next pane in layout order after close", () => {
+		const store = makeStore();
+		store.getState().addTab({
+			id: "t1",
+			activePaneId: "p2",
+			panes: [tp("p1"), tp("p2"), tp("p3")],
+		});
+
+		store.getState().closePane({ tabId: "t1", paneId: "p2" });
+
+		expect(store.getState().tabs[0]?.activePaneId).toBe("p3");
 	});
 });
 

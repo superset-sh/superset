@@ -1,3 +1,4 @@
+import { chatServiceTrpc } from "@superset/chat/client";
 import {
 	PromptInput,
 	PromptInputAttachment,
@@ -110,6 +111,34 @@ export function ChatInputFooter({
 		setLinkedIssues((prev) => prev.filter((issue) => issue.slug !== slug));
 	}, []);
 
+	const trpcUtils = chatServiceTrpc.useUtils();
+	const searchFiles = useCallback(
+		async (query: string) => {
+			const results = await trpcUtils.workspace.searchFiles.fetch({
+				rootPath: cwd,
+				query,
+				includeHidden: false,
+				limit: 20,
+			});
+			return results.map((r) => ({
+				id: r.id,
+				name: r.name,
+				relativePath: r.relativePath,
+			}));
+		},
+		[trpcUtils, cwd],
+	);
+	const previewSlashCommand = useCallback(
+		async (text: string) => {
+			const result = await trpcUtils.workspace.previewSlashCommand.fetch({
+				cwd,
+				text,
+			});
+			return result ?? null;
+		},
+		[trpcUtils, cwd],
+	);
+
 	const handleSend = useCallback(
 		(message: PromptInputMessage) => {
 			if (linkedIssues.length === 0) return onSend(message);
@@ -177,6 +206,8 @@ export function ChatInputFooter({
 								/>
 								<TiptapPromptEditor
 									cwd={cwd}
+									searchFiles={searchFiles}
+									previewSlashCommand={previewSlashCommand}
 									slashCommands={slashCommands}
 									availableModels={availableModels}
 									placeholder="Ask to make changes, @mention files, run /commands"

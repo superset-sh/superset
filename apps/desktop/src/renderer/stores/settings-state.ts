@@ -19,7 +19,8 @@ export type SettingsSection =
 	| "apikeys"
 	| "permissions"
 	| "security"
-	| "project";
+	| "project"
+	| "hosts";
 
 interface SettingsState {
 	activeSection: SettingsSection;

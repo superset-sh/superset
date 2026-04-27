@@ -3,7 +3,9 @@ import { createHmac } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { homedir, hostname, platform } from "node:os";
 
-const APP_DEVICE_SALT = "superset-desktop-device-id-v1";
+// Salt value preserved verbatim across the rename to keep existing host ids
+// stable for users already registered against the cloud.
+const APP_HOST_SALT = "superset-desktop-device-id-v1";
 
 function getRawMachineId(): string {
 	try {
@@ -48,7 +50,7 @@ let cachedMachineId: string | null = null;
 
 /**
  * Raw machine ID for local encryption key derivation.
- * Do NOT send this to the cloud - use getHashedDeviceId() instead.
+ * Do NOT send this to the cloud - use getHostId() instead.
  */
 export function getMachineId(): string {
 	if (!cachedMachineId) {
@@ -60,13 +62,14 @@ export function getMachineId(): string {
 let cachedHashedId: string | null = null;
 
 /**
- * Hashed device ID safe for cloud transmission.
- * Non-reversible, stable, and app-specific.
+ * Stable host id safe for cloud transmission.
+ * HMAC of the raw machine id; non-reversible and app-specific.
+ * This is the canonical identifier for a machine acting as a host or client.
  */
-export function getHashedDeviceId(): string {
+export function getHostId(): string {
 	if (!cachedHashedId) {
 		const machineId = getMachineId();
-		cachedHashedId = createHmac("sha256", APP_DEVICE_SALT)
+		cachedHashedId = createHmac("sha256", APP_HOST_SALT)
 			.update(machineId)
 			.digest("hex")
 			.slice(0, 32);
@@ -75,19 +78,16 @@ export function getHashedDeviceId(): string {
 }
 
 /**
- * Sanitized device name for cloud transmission.
+ * Sanitized host name for cloud transmission.
  * Returns generic identifier instead of potentially PII-containing hostname.
  */
-export function getDeviceName(): string {
+export function getHostName(): string {
 	const os = platform();
 	const osName = os === "darwin" ? "Mac" : os === "win32" ? "Windows" : "Linux";
 	const rawHostname = hostname();
 
-	// Use just the first segment if it looks like a local hostname
-	// e.g., "johns-macbook-pro.local" -> "johns-macbook-pro"
 	const shortName = rawHostname.split(".")[0] || rawHostname;
 
-	// If hostname looks generic or is very short, use OS name
 	if (shortName.length < 3 || shortName === "localhost") {
 		return `${osName} Desktop`;
 	}
