@@ -347,17 +347,13 @@ function PendingWorkspacePage() {
 		}, 1000);
 	}, [collections, ensureWorkspaceInSidebar, navigate, pending, pendingId]);
 
-	// Brief hold once succeeded + synced so the keypad's last key animates to
-	// pressed (CSS transition runs ~700ms) before we navigate away.
-	const NAVIGATE_HOLD_MS = 700;
 	useEffect(() => {
 		if (
 			pending?.status === "succeeded" &&
 			pending.workspaceId &&
 			workspaceSynced
 		) {
-			const timer = setTimeout(doNavigate, NAVIGATE_HOLD_MS);
-			return () => clearTimeout(timer);
+			doNavigate();
 		}
 	}, [pending?.status, pending?.workspaceId, workspaceSynced, doNavigate]);
 
