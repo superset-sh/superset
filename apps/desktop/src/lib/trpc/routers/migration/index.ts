@@ -96,24 +96,5 @@ export const createMigrationRouter = () => {
 					.where(eq(v1MigrationState.organizationId, input.organizationId))
 					.run();
 			}),
-
-		findMigrationByOtherOrg: publicProcedure
-			.input(z.object({ organizationId: z.string().min(1) }))
-			.query(({ input }) => {
-				const other = localDb
-					.select({
-						organizationId: v1MigrationState.organizationId,
-						status: v1MigrationState.status,
-					})
-					.from(v1MigrationState)
-					.where(eq(v1MigrationState.kind, "project"))
-					.all()
-					.find(
-						(row) =>
-							row.organizationId !== input.organizationId &&
-							(row.status === "success" || row.status === "linked"),
-					);
-				return other?.organizationId ?? null;
-			}),
 	});
 };

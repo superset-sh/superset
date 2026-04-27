@@ -59,7 +59,6 @@ interface FakeEnv {
 	v1Worktrees: V1WorktreeRow[];
 	v1Sections: V1SectionRow[];
 	state: Map<string, StateRow>;
-	otherOrg: string | null;
 	findByPath: Map<string, PathResponse>;
 	failNextStateWriteFor: Set<string>;
 	hostProjectsByPath: Map<string, string>;
@@ -88,7 +87,6 @@ function makeFakeEnv(overrides: Partial<FakeEnv> = {}): FakeEnv {
 		v1Worktrees: [],
 		v1Sections: [],
 		state: new Map(),
-		otherOrg: null,
 		findByPath: new Map(),
 		failNextStateWriteFor: new Set(),
 		hostProjectsByPath: new Map(),
@@ -129,9 +127,6 @@ function makeElectronTrpc(env: FakeEnv): ElectronTrpcClient {
 					Array.from(env.state.values()).filter(
 						(r) => r.organizationId === organizationId,
 					),
-			},
-			findMigrationByOtherOrg: {
-				query: async (_: { organizationId: string }) => env.otherOrg,
 			},
 			upsertState: {
 				mutate: async (row: Omit<StateRow, "migratedAt">) => {
@@ -589,20 +584,35 @@ describe("migrateV1DataToV2", () => {
 		expect(env.state.get("workspace:w1")?.status).toBe("error");
 	});
 
-	test("other-org guard rejects migration", async () => {
+	test("other-org state does not block migration for the active organization", async () => {
 		const env = makeFakeEnv({
-			otherOrg: "some-other-org",
 			v1Projects: [project("p1")],
+			state: new Map([
+				[
+					"project:p1",
+					{
+						v1Id: "p1",
+						v2Id: "v2-other-org-project",
+						organizationId: "some-other-org",
+						kind: "project",
+						status: "success",
+						reason: null,
+					},
+				],
+			]),
 		});
 
-		await expect(
-			migrateV1DataToV2({
-				organizationId: ORG,
-				electronTrpc: makeElectronTrpc(env),
-				hostService: makeHostService(env),
-				collections: makeCollections(),
-			}),
-		).rejects.toThrow(/already been migrated/);
+		const summary = await migrateV1DataToV2({
+			organizationId: ORG,
+			electronTrpc: makeElectronTrpc(env),
+			hostService: makeHostService(env),
+			collections: makeCollections(),
+		});
+
+		expect(summary.projectsCreated).toBe(1);
+		expect(summary.errors).toHaveLength(0);
+		expect(env.state.get("project:p1")?.organizationId).toBe(ORG);
+		expect(env.state.get("project:p1")?.status).toBe("success");
 	});
 
 	test("rerun skips rows already in success/linked state, retries error rows and skipped workspaces", async () => {
@@ -727,6 +737,61 @@ describe("migrateV1DataToV2", () => {
 			},
 		]);
 		expect(env.adoptCalls).toHaveLength(0);
+	});
+
+	test("running a completed migration again does not create duplicate projects or workspaces", async () => {
+		const env = makeFakeEnv({
+			v1Projects: [project("p1")],
+			v1Workspaces: [
+				workspace("w1", "p1", { worktreeId: "wt1", type: "worktree" }),
+			],
+			v1Worktrees: [{ id: "wt1", path: "/worktrees/w1" }],
+		});
+		const electronTrpc = makeElectronTrpc(env);
+		const hostService = makeHostService(env);
+		const collections = makeCollections();
+
+		const first = await migrateV1DataToV2({
+			organizationId: ORG,
+			electronTrpc,
+			hostService,
+			collections,
+		});
+
+		expect(first.projectsCreated).toBe(1);
+		expect(first.workspacesCreated).toBe(1);
+		expect(env.createCalls).toHaveLength(1);
+		expect(env.adoptCalls).toHaveLength(1);
+		expect(env.createdWorkspaceIds).toHaveLength(1);
+
+		const second = await migrateV1DataToV2({
+			organizationId: ORG,
+			electronTrpc,
+			hostService,
+			collections,
+		});
+
+		expect(second.projectsCreated).toBe(0);
+		expect(second.projectsLinked).toBe(0);
+		expect(second.workspacesCreated).toBe(0);
+		expect(second.workspacesErrored).toBe(0);
+		expect(second.projects).toEqual([
+			{ name: "project-p1", status: "synced", reason: "Already imported" },
+		]);
+		expect(second.workspaces).toEqual([
+			{
+				name: "workspace-w1",
+				branch: "branch-w1",
+				status: "synced",
+				reason: "Already imported",
+			},
+		]);
+		expect(env.createCalls).toHaveLength(1);
+		expect(env.adoptCalls).toHaveLength(1);
+		expect(env.createdWorkspaceIds).toHaveLength(1);
+		expect(env.setupCalls).toEqual([
+			{ projectId: "v2-proj-1", repoPath: "/repos/p1" },
+		]);
 	});
 
 	test("project state write failure does not migrate child workspaces until rerun reconciles the project", async () => {

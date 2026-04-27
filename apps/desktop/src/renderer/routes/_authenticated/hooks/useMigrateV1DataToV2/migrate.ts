@@ -187,28 +187,14 @@ export async function migrateV1DataToV2(args: Args): Promise<MigrationSummary> {
 	const { organizationId, electronTrpc, hostService, collections } = args;
 	const summary = emptySummary();
 
-	const [
-		v1Projects,
-		v1Workspaces,
-		v1Worktrees,
-		v1Sections,
-		existingState,
-		otherOrg,
-	] = await Promise.all([
-		electronTrpc.migration.readV1Projects.query(),
-		electronTrpc.migration.readV1Workspaces.query(),
-		electronTrpc.migration.readV1Worktrees.query(),
-		electronTrpc.migration.readV1WorkspaceSections.query(),
-		electronTrpc.migration.listState.query({ organizationId }),
-		electronTrpc.migration.findMigrationByOtherOrg.query({ organizationId }),
-	]);
-
-	if (otherOrg) {
-		throw new Error(
-			`v1 data has already been migrated to organization ${otherOrg}. ` +
-				"Contact support if you need to migrate to a different organization.",
-		);
-	}
+	const [v1Projects, v1Workspaces, v1Worktrees, v1Sections, existingState] =
+		await Promise.all([
+			electronTrpc.migration.readV1Projects.query(),
+			electronTrpc.migration.readV1Workspaces.query(),
+			electronTrpc.migration.readV1Worktrees.query(),
+			electronTrpc.migration.readV1WorkspaceSections.query(),
+			electronTrpc.migration.listState.query({ organizationId }),
+		]);
 
 	const stateByKey = new Map<string, (typeof existingState)[number]>();
 	for (const row of existingState) {
