@@ -74,7 +74,6 @@ export function PRDetailCard({ pr, checks, linkState }: PRDetailCardProps) {
 
 			<div className="flex flex-col gap-1.5 border-t border-border/60 px-3 py-2.5">
 				<ChecksLine checks={checks} />
-				<ReviewLine decision={pr.reviewDecision} />
 			</div>
 
 			{updatedRelative && (
@@ -142,51 +141,6 @@ function ChecksLine({ checks }: { checks: ChecksRollup }) {
 				/>
 			}
 			text={`${pending} of ${total} ${total === 1 ? "check" : "checks"} running`}
-			accent="pending"
-		/>
-	);
-}
-
-function ReviewLine({ decision }: { decision: PullRequest["reviewDecision"] }) {
-	if (decision === null) {
-		return <DetailLine icon={null} muted text="No review requested" />;
-	}
-	if (decision === "approved") {
-		return (
-			<DetailLine
-				icon={
-					<LuCircleCheck
-						aria-hidden="true"
-						className="size-3.5 shrink-0 text-emerald-500"
-					/>
-				}
-				text="Approved"
-			/>
-		);
-	}
-	if (decision === "changes_requested") {
-		return (
-			<DetailLine
-				icon={
-					<LuCircleX
-						aria-hidden="true"
-						className="size-3.5 shrink-0 text-rose-500"
-					/>
-				}
-				text="Changes requested"
-				accent="failure"
-			/>
-		);
-	}
-	return (
-		<DetailLine
-			icon={
-				<LuCircleDashed
-					aria-hidden="true"
-					className="size-3.5 shrink-0 text-amber-500"
-				/>
-			}
-			text="Review pending"
 			accent="pending"
 		/>
 	);

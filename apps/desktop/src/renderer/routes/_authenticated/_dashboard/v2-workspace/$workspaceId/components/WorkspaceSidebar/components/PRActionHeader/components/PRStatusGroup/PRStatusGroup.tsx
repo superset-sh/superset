@@ -11,10 +11,11 @@ import {
 	HoverCardTrigger,
 } from "@superset/ui/hover-card";
 import { toast } from "@superset/ui/sonner";
+import { cn } from "@superset/ui/utils";
 import { workspaceTrpc } from "@superset/workspace-client";
 import { useMemo } from "react";
 import { VscChevronDown, VscGitMerge, VscLoading } from "react-icons/vsc";
-import { PRIcon } from "renderer/screens/main/components/PRIcon";
+import { PRIcon, type PRState } from "renderer/screens/main/components/PRIcon";
 import { computeChecksRollup } from "../../utils/computeChecksStatus";
 import type { PRFlowState } from "../../utils/getPRFlowState";
 import { PRDetailCard } from "./components/PRDetailCard";
@@ -100,9 +101,14 @@ export function PRStatusGroup({
 		});
 	};
 
+	const tint = stateTintClasses(linkState);
+
 	return (
 		<div
-			className="flex items-center overflow-hidden rounded border border-border"
+			className={cn(
+				"flex items-center overflow-hidden rounded border",
+				tint.container,
+			)}
 			aria-busy={mergePRMutation.isPending}
 		>
 			<HoverCard openDelay={150} closeDelay={120}>
@@ -111,18 +117,16 @@ export function PRStatusGroup({
 						href={pr.url}
 						target="_blank"
 						rel="noopener noreferrer"
-						className="flex items-center gap-1 px-1.5 py-0.5 outline-none transition-colors hover:bg-accent focus-visible:bg-accent"
+						className={cn(
+							"flex items-center gap-1 px-1.5 py-0.5 outline-none transition-colors",
+							tint.hover,
+						)}
 					>
 						<PRIcon state={linkState} className="size-4" />
 						<span className="font-mono text-xs text-muted-foreground">
 							#{pr.number}
 						</span>
-						{showIndicators && (
-							<PRStatusIndicators
-								checks={checks}
-								reviewDecision={pr.reviewDecision}
-							/>
-						)}
+						{showIndicators && <PRStatusIndicators checks={checks} />}
 					</a>
 				</HoverCardTrigger>
 				<HoverCardContent
@@ -136,12 +140,15 @@ export function PRStatusGroup({
 
 			{canMerge && (
 				<>
-					<div className="h-full w-px bg-border" />
+					<div className={cn("h-full w-px", tint.divider)} />
 					<DropdownMenu>
 						<DropdownMenuTrigger asChild>
 							<button
 								type="button"
-								className="flex items-center px-1 py-0.5 outline-none transition-colors hover:bg-accent focus-visible:bg-accent"
+								className={cn(
+									"flex items-center px-1 py-0.5 outline-none transition-colors",
+									tint.hover,
+								)}
 								disabled={mergePRMutation.isPending}
 								aria-label={
 									mergePRMutation.isPending
@@ -190,4 +197,42 @@ export function PRStatusGroup({
 			)}
 		</div>
 	);
+}
+
+/**
+ * State-tinted styling for the PR badge bordered group. Mirrors the PRIcon
+ * color palette so the whole group reads as "open"/"draft"/etc. at a glance,
+ * not just the icon.
+ */
+function stateTintClasses(state: PRState): {
+	container: string;
+	hover: string;
+	divider: string;
+} {
+	switch (state) {
+		case "open":
+			return {
+				container: "border-emerald-500/30 bg-emerald-500/10",
+				hover: "hover:bg-emerald-500/15 focus-visible:bg-emerald-500/15",
+				divider: "bg-emerald-500/30",
+			};
+		case "merged":
+			return {
+				container: "border-violet-500/30 bg-violet-500/10",
+				hover: "hover:bg-violet-500/15 focus-visible:bg-violet-500/15",
+				divider: "bg-violet-500/30",
+			};
+		case "closed":
+			return {
+				container: "border-rose-500/30 bg-rose-500/10",
+				hover: "hover:bg-rose-500/15 focus-visible:bg-rose-500/15",
+				divider: "bg-rose-500/30",
+			};
+		case "draft":
+			return {
+				container: "border-border bg-muted/40",
+				hover: "hover:bg-muted/60 focus-visible:bg-muted/60",
+				divider: "bg-border",
+			};
+	}
 }
