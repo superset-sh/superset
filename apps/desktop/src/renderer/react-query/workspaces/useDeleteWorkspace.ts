@@ -40,7 +40,13 @@ export function useDeleteWorkspace(
 			const previousGrouped =
 				utils.workspaces.getAllGrouped.getData() ??
 				(wasViewingDeleted
-					? await utils.workspaces.getAllGrouped.fetch().catch(() => undefined)
+					? await utils.workspaces.getAllGrouped.fetch().catch((error) => {
+							console.warn(
+								"Failed to fetch grouped workspaces during delete",
+								error,
+							);
+							return undefined;
+						})
 					: undefined);
 			const previousAll = utils.workspaces.getAll.getData();
 

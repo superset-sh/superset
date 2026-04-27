@@ -1,5 +1,5 @@
 import { getActiveIdAfterRemoval } from "@superset/panes";
-import { useNavigate, useParams } from "@tanstack/react-router";
+import { useMatchRoute, useNavigate } from "@tanstack/react-router";
 import { navigateToV2Workspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { getFlattenedV2WorkspaceIds } from "../../utils/getFlattenedV2WorkspaceIds";
@@ -12,11 +12,16 @@ import { getFlattenedV2WorkspaceIds } from "../../utils/getFlattenedV2WorkspaceI
  */
 export function useNavigateAwayFromWorkspace() {
 	const navigate = useNavigate();
-	const params = useParams({ strict: false });
+	const matchRoute = useMatchRoute();
 	const collections = useCollections();
 
 	return (workspaceId: string) => {
-		if (params.workspaceId !== workspaceId) return;
+		const isViewingWorkspace = !!matchRoute({
+			to: "/v2-workspace/$workspaceId",
+			params: { workspaceId },
+			fuzzy: true,
+		});
+		if (!isViewingWorkspace) return;
 		const ids = getFlattenedV2WorkspaceIds(collections);
 		const next = getActiveIdAfterRemoval(ids, workspaceId, workspaceId);
 		if (next) {

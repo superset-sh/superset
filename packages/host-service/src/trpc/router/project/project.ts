@@ -1,5 +1,5 @@
 import { rmSync } from "node:fs";
-import { resolve as resolvePath } from "node:path";
+import { basename, resolve as resolvePath } from "node:path";
 import { parseGitHubRemote } from "@superset/shared/github-remote";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
@@ -11,8 +11,8 @@ import { persistLocalProject } from "./utils/persist-project";
 import {
 	cloneRepoInto,
 	type ResolvedRepo,
+	resolveLocalRepo,
 	resolveMatchingSlug,
-	resolveWithPrimaryRemote,
 } from "./utils/resolve-repo";
 
 export const projectRouter = router({
@@ -55,7 +55,23 @@ export const projectRouter = router({
 	findByPath: protectedProcedure
 		.input(z.object({ repoPath: z.string().min(1) }))
 		.query(async ({ ctx, input }) => {
-			const { parsed } = await resolveWithPrimaryRemote(input.repoPath);
+			const resolved = await resolveLocalRepo(input.repoPath);
+			const localProject = ctx.db.query.projects
+				.findFirst({ where: eq(projects.repoPath, resolved.repoPath) })
+				.sync();
+			if (localProject) {
+				return {
+					candidates: [
+						{
+							id: localProject.id,
+							name: localProject.repoName ?? basename(resolved.repoPath),
+						},
+					],
+				};
+			}
+
+			const { parsed } = resolved;
+			if (!parsed) return { candidates: [] };
 			const { candidates } = await ctx.api.v2Project.findByGitHubRemote.query({
 				organizationId: ctx.organizationId,
 				repoCloneUrl: parsed.url,
@@ -202,7 +218,7 @@ export const projectRouter = router({
 							`${parsed.owner}/${parsed.name}`,
 						);
 					} else {
-						resolved = await resolveWithPrimaryRemote(input.mode.repoPath);
+						resolved = await resolveLocalRepo(input.mode.repoPath);
 					}
 
 					rejectIfRepoint(resolved.repoPath);
@@ -210,7 +226,7 @@ export const projectRouter = router({
 						return { repoPath: existing.repoPath };
 					}
 
-					if (!cloudProject.repoCloneUrl) {
+					if (!cloudProject.repoCloneUrl && resolved.parsed) {
 						await ctx.api.v2Project.linkRepoCloneUrl.mutate({
 							organizationId: ctx.organizationId,
 							id: input.projectId,

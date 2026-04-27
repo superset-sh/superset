@@ -105,7 +105,7 @@ function AutomationsPage() {
 			),
 	});
 
-	const { data: automationRows = [] } = useLiveQuery(
+	const { data: automationRows = [], isReady: automationsReady } = useLiveQuery(
 		(q) =>
 			q
 				.from({ a: collections.automations })
@@ -228,7 +228,7 @@ function AutomationsPage() {
 			</header>
 
 			<div className="flex-1 overflow-y-auto px-8 py-6">
-				{automations.length === 0 ? (
+				{!automationsReady ? null : automations.length === 0 ? (
 					<AutomationsEmptyState onSelectTemplate={handleSelectTemplate} />
 				) : (
 					<>

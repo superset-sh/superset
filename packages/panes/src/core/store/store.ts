@@ -75,6 +75,21 @@ function buildTab<TData>(args: {
 	};
 }
 
+function getActivePaneIdAfterRemoval(
+	originalLayout: LayoutNode,
+	nextLayout: LayoutNode,
+	activePaneId: string | null | undefined,
+	removedPaneId: string,
+): string | null {
+	return (
+		getActiveIdAfterRemoval(
+			getPaneIdsInLayout(originalLayout),
+			activePaneId,
+			removedPaneId,
+		) ?? findFirstPaneId(nextLayout)
+	);
+}
+
 // --- Public types ---
 
 export type CreatePaneInput<TData> = {
@@ -285,12 +300,12 @@ export function createWorkspaceStore<TData>(
 									...tab,
 									layout: nextLayout,
 									panes: nextPanes,
-									activePaneId:
-										getActiveIdAfterRemoval(
-											getPaneIdsInLayout(tab.layout),
-											tab.activePaneId,
-											args.paneId,
-										) ?? findFirstPaneId(nextLayout),
+									activePaneId: getActivePaneIdAfterRemoval(
+										tab.layout,
+										nextLayout,
+										tab.activePaneId,
+										args.paneId,
+									),
 								}
 							: t,
 					),
@@ -689,12 +704,12 @@ export function createWorkspaceStore<TData>(
 								...t,
 								layout: nextSourceLayout,
 								panes: nextSourcePanes,
-								activePaneId:
-									getActiveIdAfterRemoval(
-										getPaneIdsInLayout(sourceTab.layout),
-										t.activePaneId,
-										args.sourcePaneId,
-									) ?? findFirstPaneId(nextSourceLayout),
+								activePaneId: getActivePaneIdAfterRemoval(
+									sourceTab.layout,
+									nextSourceLayout,
+									t.activePaneId,
+									args.sourcePaneId,
+								),
 							};
 						}
 						if (t.id === targetTab.id) {
@@ -752,12 +767,12 @@ export function createWorkspaceStore<TData>(
 								...t,
 								layout: nextSourceLayout,
 								panes: nextSourcePanes,
-								activePaneId:
-									getActiveIdAfterRemoval(
-										getPaneIdsInLayout(sourceTab.layout),
-										t.activePaneId,
-										args.paneId,
-									) ?? findFirstPaneId(nextSourceLayout),
+								activePaneId: getActivePaneIdAfterRemoval(
+									sourceTab.layout,
+									nextSourceLayout,
+									t.activePaneId,
+									args.paneId,
+								),
 							};
 						}
 						if (t.id === targetTab.id) {
@@ -808,12 +823,12 @@ export function createWorkspaceStore<TData>(
 								...t,
 								layout: nextSourceLayout,
 								panes: nextSourcePanes,
-								activePaneId:
-									getActiveIdAfterRemoval(
-										getPaneIdsInLayout(sourceTab.layout),
-										t.activePaneId,
-										args.paneId,
-									) ?? findFirstPaneId(nextSourceLayout),
+								activePaneId: getActivePaneIdAfterRemoval(
+									sourceTab.layout,
+									nextSourceLayout,
+									t.activePaneId,
+									args.paneId,
+								),
 							};
 						}
 						return t;

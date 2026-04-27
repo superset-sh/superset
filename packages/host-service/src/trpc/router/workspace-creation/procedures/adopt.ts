@@ -1,15 +1,115 @@
 import { getDeviceName, getHashedDeviceId } from "@superset/shared/device-info";
 import { TRPCError } from "@trpc/server";
-import { and, eq } from "drizzle-orm";
+import { and, eq, ne, or } from "drizzle-orm";
 import { workspaces } from "../../../../db/schema";
+import type { HostServiceContext } from "../../../../types";
 import { protectedProcedure } from "../../../index";
 import { adoptInputSchema } from "../schemas";
 import {
-	findWorktreeAtPath,
+	getWorktreeBranchAtPath,
 	listWorktreeBranches,
 } from "../shared/branch-search";
 import { requireLocalProject } from "../shared/local-project";
-import type { TerminalDescriptor } from "../shared/types";
+import type { GitClient, TerminalDescriptor } from "../shared/types";
+
+type HostWorkspace = NonNullable<
+	Awaited<
+		ReturnType<HostServiceContext["api"]["v2Workspace"]["getFromHost"]["query"]>
+	>
+>;
+
+function adoptResult(workspace: HostWorkspace) {
+	return {
+		workspace,
+		terminals: [] as TerminalDescriptor[],
+		warnings: [] as string[],
+	};
+}
+
+function deleteLocalWorkspace(
+	ctx: HostServiceContext,
+	workspaceId: string,
+): void {
+	ctx.db.delete(workspaces).where(eq(workspaces.id, workspaceId)).run();
+}
+
+function persistLocalWorkspace(
+	ctx: HostServiceContext,
+	args: {
+		id: string;
+		projectId: string;
+		worktreePath: string;
+		branch: string;
+	},
+): void {
+	ctx.db
+		.insert(workspaces)
+		.values({
+			id: args.id,
+			projectId: args.projectId,
+			worktreePath: args.worktreePath,
+			branch: args.branch,
+		})
+		.onConflictDoUpdate({
+			target: workspaces.id,
+			set: {
+				projectId: args.projectId,
+				worktreePath: args.worktreePath,
+				branch: args.branch,
+			},
+		})
+		.run();
+}
+
+function deleteLocalWorkspaceConflicts(
+	ctx: HostServiceContext,
+	args: {
+		projectId: string;
+		worktreePath: string;
+		branch: string;
+		keepWorkspaceId: string;
+	},
+): void {
+	ctx.db
+		.delete(workspaces)
+		.where(
+			and(
+				eq(workspaces.projectId, args.projectId),
+				or(
+					eq(workspaces.branch, args.branch),
+					eq(workspaces.worktreePath, args.worktreePath),
+				),
+				ne(workspaces.id, args.keepWorkspaceId),
+			),
+		)
+		.run();
+}
+
+async function getHostWorkspace(
+	ctx: HostServiceContext,
+	workspaceId: string,
+): Promise<HostWorkspace | null> {
+	return ctx.api.v2Workspace.getFromHost.query({
+		organizationId: ctx.organizationId,
+		id: workspaceId,
+	});
+}
+
+async function recordBaseBranch(
+	git: GitClient,
+	branch: string,
+	baseBranch: string | undefined,
+): Promise<void> {
+	if (!baseBranch) return;
+	await git
+		.raw(["config", `branch.${branch}.base`, baseBranch])
+		.catch((err) => {
+			console.warn(
+				`[workspaceCreation.adopt] failed to record base branch ${baseBranch}:`,
+				err,
+			);
+		});
+}
 
 export const adopt = protectedProcedure
 	.input(adoptInputSchema)
@@ -19,7 +119,7 @@ export const adopt = protectedProcedure
 
 		const localProject = requireLocalProject(ctx, input.projectId);
 
-		const branch = input.branch.trim();
+		let branch = input.branch.trim();
 		if (!branch) {
 			throw new TRPCError({
 				code: "BAD_REQUEST",
@@ -31,13 +131,17 @@ export const adopt = protectedProcedure
 
 		let worktreePath: string;
 		if (input.worktreePath) {
-			const found = await findWorktreeAtPath(git, input.worktreePath, branch);
-			if (!found) {
+			const actualBranch = await getWorktreeBranchAtPath(
+				git,
+				input.worktreePath,
+			);
+			if (!actualBranch) {
 				throw new TRPCError({
 					code: "NOT_FOUND",
-					message: `No git worktree registered at "${input.worktreePath}" on branch "${branch}"`,
+					message: `No git worktree registered at "${input.worktreePath}"`,
 				});
 			}
+			branch = actualBranch;
 			worktreePath = input.worktreePath;
 		} else {
 			const { worktreeMap } = await listWorktreeBranches(
@@ -55,13 +159,94 @@ export const adopt = protectedProcedure
 			worktreePath = found;
 		}
 
-		// We used to short-circuit on an existing local `workspaces` row
-		// (returning its id without calling cloud). That returned a
-		// phantom id when the cloud row had been hard-deleted — the
-		// picker would navigate to a workspace that no longer exists.
-		// Always create a fresh cloud row; if a stale local row leftover
-		// from a prior delete exists, replace it below. Proper host-side
-		// cleanup on delete is owned by the follow-up delete PR.
+		if (input.existingWorkspaceId) {
+			const existingCloud = await getHostWorkspace(
+				ctx,
+				input.existingWorkspaceId,
+			);
+			if (existingCloud) {
+				await recordBaseBranch(git, branch, input.baseBranch);
+				deleteLocalWorkspaceConflicts(ctx, {
+					projectId: input.projectId,
+					worktreePath,
+					branch,
+					keepWorkspaceId: existingCloud.id,
+				});
+				try {
+					persistLocalWorkspace(ctx, {
+						id: existingCloud.id,
+						projectId: input.projectId,
+						worktreePath,
+						branch,
+					});
+				} catch (err) {
+					console.error(
+						"[workspaceCreation.adopt] local workspace relink failed",
+						err,
+					);
+					throw new TRPCError({
+						code: "INTERNAL_SERVER_ERROR",
+						message: `Failed to persist existing workspace locally: ${err instanceof Error ? err.message : String(err)}`,
+					});
+				}
+				return adoptResult(existingCloud);
+			}
+		}
+
+		const existingLocal = ctx.db.query.workspaces
+			.findFirst({
+				where: and(
+					eq(workspaces.projectId, input.projectId),
+					eq(workspaces.branch, branch),
+				),
+			})
+			.sync();
+		if (existingLocal && existingLocal.worktreePath === worktreePath) {
+			const existingCloud = await getHostWorkspace(ctx, existingLocal.id);
+			if (existingCloud) {
+				await recordBaseBranch(git, branch, input.baseBranch);
+				return adoptResult(existingCloud);
+			}
+			deleteLocalWorkspace(ctx, existingLocal.id);
+		}
+
+		const existingLocalByPath = ctx.db.query.workspaces
+			.findFirst({
+				where: and(
+					eq(workspaces.projectId, input.projectId),
+					eq(workspaces.worktreePath, worktreePath),
+				),
+			})
+			.sync();
+		if (existingLocalByPath) {
+			const existingCloud = await getHostWorkspace(ctx, existingLocalByPath.id);
+			if (existingCloud) {
+				deleteLocalWorkspaceConflicts(ctx, {
+					projectId: input.projectId,
+					worktreePath,
+					branch,
+					keepWorkspaceId: existingLocalByPath.id,
+				});
+				const updatedCloud =
+					await ctx.api.v2Workspace.updateNameFromHost.mutate({
+						id: existingCloud.id,
+						branch,
+					});
+				ctx.db
+					.update(workspaces)
+					.set({ branch })
+					.where(eq(workspaces.id, existingLocalByPath.id))
+					.run();
+				await recordBaseBranch(git, branch, input.baseBranch);
+				return adoptResult(updatedCloud);
+			}
+			deleteLocalWorkspace(ctx, existingLocalByPath.id);
+		}
+
+		// Reuse an exact local/cloud match for rerun safety. If the local row
+		// points at a hard-deleted cloud row, drop it and create a fresh row below.
+		// Rows with the same branch but a different path are treated as stale and
+		// replaced after the new cloud row is created.
 		let host: { id: string };
 		try {
 			host = await ctx.api.device.ensureV2Host.mutate({
@@ -103,35 +288,25 @@ export const adopt = protectedProcedure
 			});
 		}
 
+		await recordBaseBranch(git, branch, input.baseBranch);
+
 		// Replace any stale local row for this (project, branch) — its
 		// id likely points at a deleted cloud row. The new cloudRow.id
 		// is the authoritative mapping.
-		const stale = ctx.db.query.workspaces
-			.findFirst({
-				where: and(
-					eq(workspaces.projectId, input.projectId),
-					eq(workspaces.branch, branch),
-				),
-			})
-			.sync();
-		if (stale && stale.id !== cloudRow.id) {
-			ctx.db.delete(workspaces).where(eq(workspaces.id, stale.id)).run();
-		}
+		deleteLocalWorkspaceConflicts(ctx, {
+			projectId: input.projectId,
+			worktreePath,
+			branch,
+			keepWorkspaceId: cloudRow.id,
+		});
 
 		try {
-			ctx.db
-				.insert(workspaces)
-				.values({
-					id: cloudRow.id,
-					projectId: input.projectId,
-					worktreePath,
-					branch,
-				})
-				.onConflictDoUpdate({
-					target: workspaces.id,
-					set: { projectId: input.projectId, worktreePath, branch },
-				})
-				.run();
+			persistLocalWorkspace(ctx, {
+				id: cloudRow.id,
+				projectId: input.projectId,
+				worktreePath,
+				branch,
+			});
 		} catch (err) {
 			console.error(
 				"[workspaceCreation.adopt] local workspaces insert failed",
@@ -151,9 +326,5 @@ export const adopt = protectedProcedure
 			});
 		}
 
-		return {
-			workspace: cloudRow,
-			terminals: [] as TerminalDescriptor[],
-			warnings: [] as string[],
-		};
+		return adoptResult(cloudRow);
 	});

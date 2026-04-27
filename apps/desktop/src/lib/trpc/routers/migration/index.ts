@@ -5,7 +5,7 @@ import {
 	workspaces,
 	worktrees,
 } from "@superset/local-db";
-import { and, eq, isNotNull, isNull } from "drizzle-orm";
+import { eq, isNotNull, isNull } from "drizzle-orm";
 import { localDb } from "main/lib/local-db";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
@@ -101,16 +101,18 @@ export const createMigrationRouter = () => {
 			.input(z.object({ organizationId: z.string().min(1) }))
 			.query(({ input }) => {
 				const other = localDb
-					.select({ organizationId: v1MigrationState.organizationId })
+					.select({
+						organizationId: v1MigrationState.organizationId,
+						status: v1MigrationState.status,
+					})
 					.from(v1MigrationState)
-					.where(
-						and(
-							eq(v1MigrationState.kind, "project"),
-							eq(v1MigrationState.status, "success"),
-						),
-					)
+					.where(eq(v1MigrationState.kind, "project"))
 					.all()
-					.find((row) => row.organizationId !== input.organizationId);
+					.find(
+						(row) =>
+							row.organizationId !== input.organizationId &&
+							(row.status === "success" || row.status === "linked"),
+					);
 				return other?.organizationId ?? null;
 			}),
 	});

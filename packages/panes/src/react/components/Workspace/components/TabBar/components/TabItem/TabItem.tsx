@@ -147,7 +147,6 @@ export function TabItem<TData>({
 												onClose();
 											}
 										}}
-										onClick={onSelect}
 										onDoubleClick={startEditing}
 										type="button"
 									>

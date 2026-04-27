@@ -40,6 +40,7 @@ import {
 } from "../../state/fileDocumentStore";
 import type {
 	BrowserPaneData,
+	ChatPaneData,
 	CommentPaneData,
 	DevtoolsPaneData,
 	FilePaneData,
@@ -47,6 +48,7 @@ import type {
 	TerminalPaneData,
 } from "../../types";
 import { BrowserPane, BrowserPaneToolbar } from "./components/BrowserPane";
+import { ChatPane } from "./components/ChatPane";
 import { CommentPane } from "./components/CommentPane";
 import { DiffPane } from "./components/DiffPane";
 import { FilePane } from "./components/FilePane";
@@ -168,7 +170,9 @@ export function usePaneRegistry(
 		workspaceTrpc.terminal.killSession.useMutation({
 			onSuccess: () => {
 				toast.success("Terminal session killed");
-				void workspaceTrpcUtils.terminal.listSessions.invalidate();
+				void workspaceTrpcUtils.terminal.listSessions.invalidate({
+					workspaceId,
+				});
 			},
 			onError: (error) => {
 				toast.error("Failed to kill terminal session", {
@@ -375,10 +379,10 @@ export function usePaneRegistry(
 						variant: "destructive",
 						disabled: isKillingTerminalSession,
 						onSelect: (ctx) => {
-							const data = ctx.pane.data as TerminalPaneData;
+							const { terminalId } = ctx.pane.data as TerminalPaneData;
 							killTerminalSession({
-								terminalId: data.terminalId,
-								workspaceId: data.workspaceId ?? workspaceId,
+								terminalId,
+								workspaceId,
 							});
 						},
 					};
@@ -439,13 +443,22 @@ export function usePaneRegistry(
 						/>
 					</div>
 				),
-				// Disabled until ChatServiceProvider is wired above v2 panes —
-				// TiptapPromptEditor needs its tRPC context.
-				renderPane: (_ctx: RendererContext<PaneViewerData>) => (
-					<div className="flex h-full items-center justify-center p-4 text-sm text-muted-foreground">
-						Chat pane is temporarily disabled.
-					</div>
-				),
+				renderPane: (ctx: RendererContext<PaneViewerData>) => {
+					const data = ctx.pane.data as ChatPaneData;
+					return (
+						<ChatPane
+							workspaceId={workspaceId}
+							sessionId={data.sessionId}
+							onSessionIdChange={(id) =>
+								ctx.actions.updateData({ ...data, sessionId: id })
+							}
+							initialLaunchConfig={data.launchConfig ?? null}
+							onConsumeLaunchConfig={() =>
+								ctx.actions.updateData({ ...data, launchConfig: null })
+							}
+						/>
+					);
+				},
 				contextMenuActions: (_ctx, defaults) =>
 					defaults.map((d) =>
 						d.key === "close-pane" ? { ...d, label: "Close Chat" } : d,

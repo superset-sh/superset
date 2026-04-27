@@ -48,7 +48,13 @@ export function useCloseWorkspace(
 			const previousGrouped =
 				utils.workspaces.getAllGrouped.getData() ??
 				(wasViewingClosed
-					? await utils.workspaces.getAllGrouped.fetch().catch(() => undefined)
+					? await utils.workspaces.getAllGrouped.fetch().catch((error) => {
+							console.warn(
+								"Failed to fetch grouped workspaces during close",
+								error,
+							);
+							return undefined;
+						})
 					: undefined);
 			const previousAll = utils.workspaces.getAll.getData();
 
@@ -85,7 +91,7 @@ export function useCloseWorkspace(
 			// Return context for rollback
 			return { previousGrouped, previousAll, wasViewingClosed } as CloseContext;
 		},
-		onError: (_err, variables, context) => {
+		onError: async (err, variables, context, ...rest) => {
 			// Rollback to previous state on error
 			if (context?.previousGrouped !== undefined) {
 				utils.workspaces.getAllGrouped.setData(
@@ -99,6 +105,7 @@ export function useCloseWorkspace(
 			if (context?.wasViewingClosed) {
 				navigateToWorkspace(variables.id, navigate);
 			}
+			await options?.onError?.(err, variables, context, ...rest);
 		},
 		onSuccess: async (data, variables, ...rest) => {
 			// Invalidate to ensure consistency with backend state

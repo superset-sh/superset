@@ -1,6 +1,7 @@
 import { createNodeWebSocket } from "@hono/node-ws";
 import { trpcServer } from "@hono/trpc-server";
 import { Octokit } from "@octokit/rest";
+import { ChatService } from "@superset/chat/server/desktop";
 import type { MiddlewareHandler } from "hono";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
@@ -68,8 +69,13 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 		db,
 		runtimeResolver: providers.modelResolver,
 	});
+	// Provider auth (Anthropic / OpenAI OAuth + API keys) is per-machine, not
+	// per-workspace. ChatService is a long-lived singleton wrapping mastra's
+	// auth storage; the `host.auth.*` router proxies to it.
+	const chatService = new ChatService();
 
 	const runtime = {
+		auth: chatService,
 		chat: chatRuntime,
 		filesystem,
 		pullRequests: pullRequestRuntime,

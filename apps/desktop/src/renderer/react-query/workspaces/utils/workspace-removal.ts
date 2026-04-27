@@ -83,6 +83,8 @@ export function removeWorkspaceFromGroups<TGroup extends WorkspaceGroupLike>(
 			const workspaces = group.workspaces.filter(
 				(workspace) => workspace.id !== workspaceId,
 			);
+			// Keep empty sections: getAllGrouped returns user-created sections even
+			// when they have no workspaces, so the optimistic cache should match.
 			const sections = group.sections.map((section) => ({
 				...section,
 				workspaces: section.workspaces.filter(

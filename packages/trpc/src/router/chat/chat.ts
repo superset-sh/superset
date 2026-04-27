@@ -83,6 +83,7 @@ export const chatRouter = {
 			z.object({
 				sessionId: z.uuid(),
 				title: z.string().optional(),
+				lastActiveAt: z.date().optional(),
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
@@ -98,6 +99,9 @@ export const chatRouter = {
 			const updates: Partial<typeof chatSessions.$inferInsert> = {};
 			if (input.title !== undefined) {
 				updates.title = input.title;
+			}
+			if (input.lastActiveAt !== undefined) {
+				updates.lastActiveAt = input.lastActiveAt;
 			}
 
 			if (Object.keys(updates).length === 0) {
