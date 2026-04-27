@@ -74,11 +74,13 @@ export function DashboardSidebarWorkspaceIcon({
 			);
 		}
 
-		if (workspaceType === "main") {
-			return <CgLaptop className={cn("size-4 transition-colors", iconColor)} />;
-		}
-
 		if (hostType === "local-device") {
+			if (workspaceType === "main") {
+				return (
+					<CgLaptop className={cn("size-4 transition-colors", iconColor)} />
+				);
+			}
+
 			return <RxDot className={cn("size-4 transition-colors", iconColor)} />;
 		}
 
