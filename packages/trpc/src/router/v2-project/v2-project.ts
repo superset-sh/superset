@@ -223,7 +223,7 @@ export const v2ProjectRouter = {
 			if (githubOwner) {
 				const iconUrl = await fetchAndStoreGitHubAvatar({
 					owner: githubOwner,
-					pathnamePrefix: `v2-project/${project.id}/icon`,
+					pathnamePrefix: `organizations/${input.organizationId}/projects/${project.id}/icon`,
 					existingUrl: null,
 				});
 				if (iconUrl) {
@@ -308,7 +308,7 @@ export const v2ProjectRouter = {
 			if (updated.iconUrl == null) {
 				const iconUrl = await fetchAndStoreGitHubAvatar({
 					owner: parsed.owner,
-					pathnamePrefix: `v2-project/${updated.id}/icon`,
+					pathnamePrefix: `organizations/${input.organizationId}/projects/${updated.id}/icon`,
 					existingUrl: null,
 				});
 				if (iconUrl) {
@@ -447,7 +447,7 @@ export const v2ProjectRouter = {
 			});
 
 			const pathname = generateImagePathname({
-				prefix: `v2-project/${input.id}/icon`,
+				prefix: `organizations/${organizationId}/projects/${input.id}/icon`,
 				mimeType: input.mimeType,
 			});
 
@@ -502,7 +502,7 @@ export const v2ProjectRouter = {
 
 			const url = await fetchAndStoreGitHubAvatar({
 				owner: parsed.owner,
-				pathnamePrefix: `v2-project/${input.id}/icon`,
+				pathnamePrefix: `organizations/${organizationId}/projects/${input.id}/icon`,
 				existingUrl: existing?.iconUrl ?? null,
 			});
 			if (!url) {
