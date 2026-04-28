@@ -74,16 +74,12 @@ PLATFORM.IS_WINDOWS &&
 
 app.commandLine.appendSwitch("force-color-profile", "srgb");
 
-// Chromium's default active-WebGL-context cap is 16 per renderer process
-// (content/renderer/webgraphicscontext3d_provider_impl.cc). When exceeded,
-// Blink's ForciblyLoseOldestContext fires `webglcontextlost` on the oldest
-// xterm, producing the blank/garbled terminals reported in #3572, #3504,
-// #3527. Each pane's xterm holds one WebGL context, and the v2 parking model
-// keeps them alive across workspace switches — cumulative panes routinely
-// reach the low hundreds. VS Code's 32 covers their ~16-terminal budget but
-// is too low here; Tabby's 9000 is high enough to mask leaks. 256 sits in
-// the middle: 16× the default, covers low-hundreds of panes, and stays
-// bounded enough that a real leak still surfaces.
+// Each xterm pane holds one WebGL context. v2 parking keeps panes alive
+// across workspace switches, so cumulative contexts can reach the low
+// hundreds — past Chromium's default cap of 16, Blink force-evicts the
+// oldest context and the terminal blanks out. 256 covers the parking load
+// while staying bounded enough that a runaway leak still surfaces (Tabby
+// raises this to 9000, which masks leaks).
 app.commandLine.appendSwitch("max-active-webgl-contexts", "256");
 
 // Only expose CDP in development when a port is explicitly configured.
