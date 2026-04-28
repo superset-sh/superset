@@ -54,8 +54,8 @@ Verifies `native-keymap` is feeding live data and the display refreshes on the f
 
 ### 2.2 Layout-stable keys don't change
 
-- [ ] **Open Settings** (`⌘,`) display stays the same on every layout — comma is at the same physical position with the same glyph everywhere.
-- [ ] Arrow-key bindings (e.g. any `⌘↑`-style binding) display the same on every layout.
+- [ ] Arrow-key bindings (e.g. any `⌘↑`-style binding) display the same on every layout — they're named keys, immune to layout.
+- [ ] **Open Settings** (`⌘,`) still dispatches correctly on every layout (the comma key is at the same physical position on US/UK/German). On AZERTY the comma is at a different physical position and the displayed glyph may change accordingly — verify it dispatches when pressing the actual comma key, regardless of label.
 
 ### 2.3 Live-data sanity (DevTools, optional)
 

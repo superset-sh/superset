@@ -316,13 +316,13 @@ Replace the `navigator.keyboard.getLayoutMap` probe + `layoutchange` listener wi
 |---|---|---|
 | US QWERTY | Open Settings → Keyboard | Glyphs identical to today |
 | German QWERTZ (or any non-US, e.g. UK) | Open Settings → Keyboard | Default `meta+z`-style binding shows the printed key glyph for the user's physical KeyZ slot |
-| Switch layout mid-session | Watch Settings page | Display refreshes within a couple seconds (`layoutchange` event) |
+| Switch layout mid-session | Watch Settings page | Display refreshes within ~1 second (native-keymap `onDidChangeKeyboardLayout`, hooked to the OS distributed notification) |
 
 ### Acceptance
 
 - All tests pass.
 - Manual QA on US (regression) + at least one non-US layout (verifies the swap).
-- No new runtime deps.
+- One new native dep (`native-keymap`); `electron-rebuild` already runs for `better-sqlite3` / `node-pty` so no new build-pipeline work.
 
 ---
 
