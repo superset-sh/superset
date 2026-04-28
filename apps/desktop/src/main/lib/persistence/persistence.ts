@@ -9,10 +9,11 @@ import {
 } from "../app-environment";
 
 let dispose: (() => void) | null = null;
+let database: Database.Database | null = null;
 
 export function initTanstackDbPersistence(): void {
 	ensureSupersetHomeDirExists();
-	const database = new Database(join(SUPERSET_HOME_DIR, "tanstack-db.sqlite"));
+	database = new Database(join(SUPERSET_HOME_DIR, "tanstack-db.sqlite"));
 	const persistence = createNodeSQLitePersistence({ database });
 	dispose = exposeElectronSQLitePersistence({ ipcMain, persistence });
 }
@@ -20,4 +21,6 @@ export function initTanstackDbPersistence(): void {
 export function shutdownTanstackDbPersistence(): void {
 	dispose?.();
 	dispose = null;
+	database?.close();
+	database = null;
 }
