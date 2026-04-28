@@ -46,8 +46,8 @@ export function ExposeViaRelayConfirmDialog({
 					<AlertDialogDescription asChild>
 						<div className="space-y-3 text-sm text-muted-foreground">
 							<p>
-								This restarts the host service. Running terminals, file watches,
-								and other host-backed work may briefly disconnect.
+								This restarts the host service and stops running terminals. File
+								watches and other host-backed work will be interrupted.
 							</p>
 							{targetEnabled ? (
 								<p>
@@ -90,12 +90,12 @@ export function ExposeViaRelayConfirmDialog({
 						Cancel
 					</Button>
 					<Button
-						variant={targetEnabled ? "destructive" : "default"}
+						variant="destructive"
 						size="sm"
 						disabled={!canConfirm}
 						onClick={onConfirm}
 					>
-						{targetEnabled ? "Enable" : "Disable"}
+						{targetEnabled ? "Enable and restart" : "Disable and restart"}
 					</Button>
 				</AlertDialogFooter>
 			</AlertDialogContent>
