@@ -70,17 +70,15 @@ export const DashboardSidebarProjectRow = forwardRef<
 				{...props}
 			>
 				<div className="flex min-w-0 flex-1 items-center gap-2 py-0.5">
-					<div className="relative shrink-0 size-5 flex items-center justify-center">
-						<span className="group-hover:opacity-0 transition-opacity duration-150">
-							<ProjectThumbnail
-								projectName={projectName}
-								githubOwner={githubOwner}
-								className="size-4"
-							/>
-						</span>
+					<div className="flex size-5 shrink-0 items-center justify-center">
+						<ProjectThumbnail
+							projectName={projectName}
+							githubOwner={githubOwner}
+							className="size-4 group-hover:hidden"
+						/>
 						<HiChevronRight
 							className={cn(
-								"absolute inset-0 m-auto size-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-all duration-150",
+								"hidden size-4 text-muted-foreground transition-transform group-hover:block",
 								!isCollapsed && "rotate-90",
 							)}
 						/>
