@@ -14,11 +14,26 @@ Make Superset's desktop keyboard handling correct on every keyboard layout — D
 
 Three phases:
 
-1. **Phase 0 — Correctness fixes (~1 day):** AltGr guard, IME composition guard, fail-closed dead-key sanitizer, `event.key` discipline in `line-edit-translations.ts`. No new deps.
-2. **Phase 1 — Layout service via `native-keymap` (~3 days):** Adopt Microsoft's `native-keymap` in the Electron main process; expose live `{ layoutId, keymap }` to the renderer via tRPC; make display layout-aware. Matching stays physical (`event.code`).
-3. **Phase 2 — Versioned dual-mode bindings (~1–2 weeks):** Each binding declares `matchMode: "physical" | "logical"`. Existing bindings migrate as `physical` (preserves muscle memory); new user-recorded printable bindings default to `logical` (matches the key the user sees on their keyboard).
+1. **Phase 0 — Correctness fixes (~1 day):** AltGr guard, IME composition guard, fail-closed dead-key sanitizer, `event.key` discipline in `line-edit-translations.ts`. No new deps. **Status: shipped.**
+2. **Phase 1 — Layout service via `native-keymap` (~half day):** Microsoft's `native-keymap` in the Electron main process; expose live `{ layoutId, keymap }` to the renderer via tRPC observable; layout-aware display + reliable on-the-fly switching. Matching stays on `event.code`.
+3. **Phase 2 — Versioned dual-mode bindings (~1–2 weeks):** Each binding declares `matchMode: "physical" | "logical"`. Existing bindings migrate as `physical` (preserves muscle memory); new user-recorded printable bindings default to `logical`. `react-hotkeys-hook`'s `useKey: true` option does the matching — no custom matcher needed.
 
 Phase 3 is demand-driven (menu accelerator sync, multi-stroke chords, when-clauses).
+
+## Decision history: browser API → native-keymap
+
+We initially planned Phase 1 with `native-keymap`, briefly switched to `navigator.keyboard.getLayoutMap()` after verifying it returned data in our packaged Electron 40 `file://` build, then switched back to `native-keymap` after empirical testing showed the browser API can't observe macOS input-source switches in real time.
+
+What we learned, in order:
+
+1. **Browser API returns data in Electron `file://`** (verified: 48-entry map with correct US glyphs). The codebase comment claiming otherwise was stale.
+2. **Browser API only exposes the unshifted glyph per code** (`Map<code, char>`); native-keymap exposes 4 layers plus dead-key flags. For *display* we don't need the extra layers.
+3. **`layoutchange` doesn't fire for macOS input-source switches.** Empirically tested: switching ABC → German via the menu-bar input picker did not trigger the listener. The browser API treats input-source changes as IME events, not layout changes.
+4. **VSCode solves this with `native-keymap`** — its mac implementation hooks `kTISNotifySelectedKeyboardInputSourceChanged` (Apple distributed notification) which fires for *every* input-source change. See `~/workplace/native-keymap/src/keyboard_mac.mm:182-189` and `~/workplace/vscode/src/vs/platform/keyboardLayout/electron-main/keyboardLayoutMainService.ts:48-60`.
+5. **The desktop already ships native modules** (`better-sqlite3`, `node-pty`, `@parcel/watcher`) — `electron-rebuild` infrastructure is in place; native-keymap is one more dep in an existing pipeline. Native-binding risk is essentially zero.
+6. **Hand-rolled alternatives create bug surface:** focus / visibilitychange / keydown-mismatch heuristics, US-fingerprint detection that false-positives on UK, two parallel detection paths (boot probe + runtime store). Adopting native-keymap lets us **delete** these instead of accumulating workarounds.
+
+Net of the swap: ~175 LOC + several heuristic edge cases removed; ~160 LOC + tests added; single source of truth; reliable runtime updates.
 
 ## Design principle: physical vs logical key identity
 
@@ -202,23 +217,49 @@ No code change today; the comment exists to prevent regression.
 
 ## Phase 1 — Layout service via `native-keymap`
 
-**Goal:** make display layout-aware and replace the unreliable `navigator.keyboard.getLayoutMap()` with a live, main-process source of truth.
-**Effort:** ~3 days.
-**Depends on:** Phase 0 (clean baseline, fail-closed migration).
-**Outcome:** non-US users see correct glyphs in Settings + tooltips; matching semantics unchanged.
+**Goal:** non-US users see the printed glyph of the physical key bound; on-the-fly input-source switches reflect immediately.
+**Effort:** ~half day.
+**Depends on:** Phase 0.
+**Outcome:** Settings page and tooltips show "⌘Y" instead of "⌘Z" on QWERTZ for the default `meta+z` (physical KeyZ) binding. Switching between ABC and German via the macOS menu-bar input picker updates the display without app reload. Matching semantics unchanged.
+
+### Architecture (mirrors VSCode)
+
+```
+┌──────────────────────────────────────────────┐
+│  Electron Main process                       │
+│                                              │
+│  native-keymap (npm)                         │
+│   ├─ getKeyMap() → IKeyboardMapping          │
+│   ├─ getCurrentKeyboardLayout() → IKeyboardLayoutInfo │
+│   └─ onDidChangeKeyboardLayout(cb)           │
+│       └─ macOS: kTISNotifySelectedKeyboardInputSourceChanged │
+│                                              │
+│  apps/desktop/src/main/lib/keyboardLayout.ts │
+│   └─ EventEmitter wrapping native-keymap     │
+└──────────────────┬───────────────────────────┘
+                   │ tRPC observable (per AGENTS.md)
+                   ▼
+┌──────────────────────────────────────────────┐
+│  Electron Renderer process                   │
+│                                              │
+│  apps/desktop/src/renderer/hotkeys/stores/   │
+│    keyboardLayoutStore.ts                    │
+│   └─ Zustand store, subscribed to tRPC       │
+│       └─ flattens IKeyMapping → Map<code, char> │
+│                                              │
+│  display.ts → formatHotkeyDisplay(chord, platform, layoutMap) │
+└──────────────────────────────────────────────┘
+```
 
 ### Implementation
 
-#### 1.1 Add `native-keymap` to the build
+#### 1.1 Add the dependency
 
 ```bash
-cd apps/desktop
-bun add native-keymap
+cd apps/desktop && bun add native-keymap
 ```
 
-- Verify `electron-rebuild` runs in the existing postinstall.
-- Linux CI image: install `libx11-dev` and `libxkbfile-dev` (Dockerfile or workflow step).
-- macOS / Windows: prebuilt binaries should resolve; verify on first CI run.
+`electron-rebuild` is already in the pipeline (we ship `better-sqlite3`, `node-pty`, `@parcel/watcher`). Linux dev/CI: ensure `libx11-dev` + `libxkbfile-dev` are installed.
 
 #### 1.2 Main-process wrapper
 
@@ -226,69 +267,15 @@ bun add native-keymap
 apps/desktop/src/main/lib/keyboardLayout.ts
 ```
 
-```ts
-import {
-  getCurrentKeyboardLayout,
-  getKeyMap,
-  onDidChangeKeyboardLayout,
-  type IKeyboardLayoutInfo,
-  type IKeyMapping,
-} from "native-keymap";
-import { EventEmitter } from "node:events";
+Wraps `native-keymap`. Lazy-init on first call. Exposes `getSnapshot()` and `onChange(cb): unsubscribe` via a single EventEmitter. Mirrors VSCode's `keyboardLayoutMainService.ts`.
 
-export type KeyboardLayoutSnapshot = {
-  layoutId: string; // OS-specific id; falsy if unknown
-  layoutName: string;
-  keymap: Record<string, IKeyMapping>;
-};
-
-const emitter = new EventEmitter();
-let cached: KeyboardLayoutSnapshot = read();
-
-function read(): KeyboardLayoutSnapshot {
-  const info = (getCurrentKeyboardLayout() ?? {}) as IKeyboardLayoutInfo;
-  return {
-    layoutId: info.id ?? info.name ?? "",
-    layoutName: info.localizedName ?? info.name ?? "",
-    keymap: getKeyMap(),
-  };
-}
-
-onDidChangeKeyboardLayout(() => {
-  cached = read();
-  emitter.emit("change", cached);
-});
-
-export function getSnapshot(): KeyboardLayoutSnapshot { return cached; }
-export function onChange(cb: (s: KeyboardLayoutSnapshot) => void) {
-  emitter.on("change", cb);
-  return () => emitter.off("change", cb);
-}
-```
-
-#### 1.3 tRPC router (observable, per `apps/desktop/AGENTS.md`)
+#### 1.3 tRPC router
 
 ```
-apps/desktop/src/main/trpc/routers/keyboardLayout.ts
+apps/desktop/src/lib/trpc/routers/keyboardLayout.ts
 ```
 
-```ts
-import { observable } from "@trpc/server/observable";
-import { router, publicProcedure } from "../trpc";
-import { getSnapshot, onChange, type KeyboardLayoutSnapshot } from "@/lib/keyboardLayout";
-
-export const keyboardLayoutRouter = router({
-  get: publicProcedure.query(() => getSnapshot()),
-  changes: publicProcedure.subscription(() =>
-    observable<KeyboardLayoutSnapshot>((emit) => {
-      emit.next(getSnapshot()); // prime
-      return onChange((s) => emit.next(s));
-    })
-  ),
-});
-```
-
-Mount under the existing root router.
+`get` query + `changes` subscription. Subscription **must** be an `observable` (`apps/desktop/AGENTS.md` — `trpc-electron` rejects async generators). Mount under root router in `routers/index.ts`.
 
 #### 1.4 Renderer store
 
@@ -296,84 +283,46 @@ Mount under the existing root router.
 apps/desktop/src/renderer/hotkeys/stores/keyboardLayoutStore.ts
 ```
 
-Zustand store + a single `<KeyboardLayoutProvider>` (or top-level `useEffect`) subscribes to `keyboardLayout.changes` and updates the store. `useKeyboardLayout()` exposes `{ layoutId, keymap }`.
+Replace the `navigator.keyboard.getLayoutMap` probe + `layoutchange` listener with a tRPC subscription. Flatten `IKeyMapping` (4 fields per code) to `Map<code, value>` so consumers (display.ts) don't change. No focus / visibilitychange listeners. No debug shims.
 
-#### 1.5 Layout-aware display
+#### 1.5 Deletions (sweep)
 
-```
-apps/desktop/src/renderer/hotkeys/utils/layoutMapper.ts
-```
+- `apps/desktop/src/renderer/hotkeys/utils/detectUSLayout.ts` — superseded by `keyboardLayoutStore.layoutId`. The 6-key fingerprint heuristic also false-positives on UK; the layout id is authoritative.
+- `apps/desktop/src/renderer/hotkeys/utils/detectUSLayout.test.ts` — goes with it.
+- `migrate.ts` — read layout id from store instead of probing.
+- The window debug shims (`__hotkeyLayoutMap`, `__refreshHotkeyLayout`).
 
-```ts
-export function glyphForCode(
-  code: string,           // canonicalized: "z", "slash", "comma"
-  shift: boolean,
-  keymap: Keymap,
-): string | null {
-  const scan = canonicalToScanCode(code); // "z" → "KeyZ", "slash" → "Slash"
-  const m = keymap[scan];
-  if (!m) return null;
-  const v = shift ? m.withShift : m.value;
-  if (!v || m.valueIsDeadKey) return null;
-  return v;
-}
-```
+#### 1.6 No change
 
-Wire into `formatHotkeyDisplay`:
-
-```ts
-// Existing path: KEY_DISPLAY[code] (US glyphs)
-// New path: glyphForCode(code, shift, keymap) ?? KEY_DISPLAY[code] ?? code
-```
-
-Special keys (Enter, Escape, arrows, F-keys) keep using `KEY_DISPLAY` symbols; only printable codes consult `keymap`.
-
-#### 1.6 Delete `detectUSLayout.ts`; replace callers
-
-- `migrate.ts` reads `keyboardLayoutStore` for the real layout id.
-- `sanitizeOverride.ts` only applies `MAC_US_DEAD_KEYS` when `layoutId.includes("US")` (or the keymap matches US ANSI fingerprint). Otherwise fail closed.
-- Remove the `navigator.keyboard.getLayoutMap()` import and probe.
+- `display.ts` — already accepts `layoutMap: ReadonlyMap<string, string> | null` (Phase 1 first attempt). The IPC just feeds the same shape.
+- `useHotkey` / `useHotkeyDisplay` — unchanged.
+- `formatHotkeyDisplay` consumers — unchanged.
 
 ### Tests
 
-#### Unit
-
 | Test | File | Covers |
 |---|---|---|
-| `glyphForCode("z", false, qwertyMap)` → `"z"` | `utils/layoutMapper.test.ts` (new) | US baseline |
-| `glyphForCode("z", false, qwertzMap)` → `"y"` | same | German layout — physical Z slot prints Y |
-| `glyphForCode("slash", false, frFrMap)` → `"!"` | same | French AZERTY non-letter glyph |
-| `glyphForCode("KeyA", false, mapWithDeadKey)` → `null` | same | dead-key positions return null (caller falls back) |
-| `formatHotkeyDisplay("meta+z", "mac", qwertzMap)` → `"⌘Y"` | `display.test.ts` (extended) | end-to-end display swap |
-| `formatHotkeyDisplay` with `keymap === undefined` falls back to `KEY_DISPLAY` | same | regression guard for boot before layout loads |
-| Store updates on `changes` event | `stores/keyboardLayoutStore.test.ts` (new) | mock the tRPC observable |
-| Sanitizer applies dead-key rewrites only when `layoutId` matches US | `utils/overrideSanitizer.test.ts` (extended) | parametrize over `["com.apple.keylayout.US", "com.apple.keylayout.German"]` |
+| `glyphForCode("z", null)` → `null` | `display.test.ts` (extended) | falls back to KEY_DISPLAY when API unavailable |
+| `glyphForCode("z", usMap)` → `"Z"` | same | US baseline |
+| `glyphForCode("z", qwertzMap)` → `"Y"` | same | QWERTZ — physical Z slot prints Y |
+| `glyphForCode("slash", azertyMap)` → glyph from map | same | non-letter punctuation |
+| `glyphForCode("arrowup", anyMap)` → `null` | same | special keys bypass keymap |
+| `formatHotkeyDisplay("meta+z", "mac", qwertzMap)` → `"⌘Y"` | same | end-to-end display swap |
+| `formatHotkeyDisplay("meta+z", "mac", null)` matches today's output | same | regression guard |
 
-#### Integration (`apps/desktop/tests/`)
+### Manual QA
 
-| Test | Covers |
-|---|---|
-| Spawn an Electron main process, call `keyboardLayout.get` over tRPC, assert shape | smoke test |
-| Mock `native-keymap.getKeyMap()` via Jest `__mocks__` to return a fixed German map; assert renderer store reflects it | wiring |
-
-#### Manual QA matrix (per Phase 1)
-
-| Layout | OS | Action | Expected |
-|---|---|---|---|
-| US QWERTY | macOS | Open Settings → Keyboard | Glyphs identical to today |
-| US QWERTY | Windows | Open Settings → Keyboard | Glyphs identical to today |
-| German QWERTZ | macOS | Open Settings → Keyboard | `meta+z` shown as `⌘Y` |
-| French AZERTY | Linux | Open Settings → Keyboard | `ctrl+shift+slash` shown using French glyph for `Slash` slot |
-| Dvorak | macOS | Open Settings → Keyboard | Glyphs reflect Dvorak character at each physical slot |
-| US QWERTY → Spanish | macOS | Switch system input source mid-session | Display refreshes within ~500ms |
-| US QWERTY | macOS, packaged build (file://) | Launch | Layout id is non-empty (proves we're not on the navigator API path) |
+| Layout | Action | Expected |
+|---|---|---|
+| US QWERTY | Open Settings → Keyboard | Glyphs identical to today |
+| German QWERTZ (or any non-US, e.g. UK) | Open Settings → Keyboard | Default `meta+z`-style binding shows the printed key glyph for the user's physical KeyZ slot |
+| Switch layout mid-session | Watch Settings page | Display refreshes within a couple seconds (`layoutchange` event) |
 
 ### Acceptance
 
-- All Phase 0 + Phase 1 tests pass.
-- Manual QA matrix above complete.
-- `detectUSLayout.ts` deleted; no remaining `navigator.keyboard.getLayoutMap` references in `apps/desktop/src/renderer/hotkeys/`.
-- Packaged macOS / Windows / Linux builds boot, report a layout, and update on layout change.
+- All tests pass.
+- Manual QA on US (regression) + at least one non-US layout (verifies the swap).
+- No new runtime deps.
 
 ---
 

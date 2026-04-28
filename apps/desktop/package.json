@@ -188,6 +188,7 @@
 		"lucide-react": "^0.563.0",
 		"mastracode": "0.15.0-alpha.3",
 		"nanoid": "^5.1.6",
+		"native-keymap": "^3.3.9",
 		"node-addon-api": "^7.1.0",
 		"node-pty": "1.1.0",
 		"os-locale": "^6.0.2",

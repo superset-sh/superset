@@ -8,7 +8,6 @@
 
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import { PLATFORM } from "./registry";
-import { isUSCompatibleLayout } from "./utils/detectUSLayout";
 import { sanitizeOverride } from "./utils/sanitizeOverride";
 
 const MIGRATION_MARKER_KEY = "hotkey-overrides-migrated-v2";
@@ -18,6 +17,21 @@ const PLATFORM_MAP = {
 	windows: "win32",
 	linux: "linux",
 } as const;
+
+// Heuristic: if the user's KeyA/KeyQ/.../Quote produce US-ANSI glyphs, the
+// MAC_US_DEAD_KEYS table can safely be applied to recover Option-glyph v1
+// overrides. Includes USInternational-PC (US-compatible). Excludes Dvorak,
+// QWERTZ, AZERTY, etc. — those fail-close to dropping the entry.
+function isUSCompatibleKeymap(unshifted: Record<string, string>): boolean {
+	return (
+		unshifted.KeyA === "a" &&
+		unshifted.KeyQ === "q" &&
+		unshifted.KeyW === "w" &&
+		unshifted.KeyZ === "z" &&
+		unshifted.Semicolon === ";" &&
+		unshifted.Quote === "'"
+	);
+}
 
 export async function migrateHotkeyOverrides(): Promise<void> {
 	if (localStorage.getItem(MIGRATION_MARKER_KEY)) return;
@@ -32,12 +46,15 @@ export async function migrateHotkeyOverrides(): Promise<void> {
 			return;
 		}
 
-		// Non-Mac platforms are unaffected by Option dead keys, so the gate
-		// only matters on macOS. On Mac, "unknown" → fail closed (drop entries
-		// rather than risk rebinding to the wrong physical key on a non-US
-		// layout where the API is unavailable).
-		const usLayout = PLATFORM === "mac" ? await isUSCompatibleLayout() : true;
-		const assumeUSMacLayout = usLayout === true;
+		// Non-Mac platforms aren't affected by Option dead keys. On Mac, ask
+		// the main-process keyboard layout service (native-keymap) for the
+		// authoritative current layout. Empty unshifted → still booting →
+		// fail closed.
+		let assumeUSMacLayout = true;
+		if (PLATFORM === "mac") {
+			const layout = await electronTrpcClient.keyboardLayout.get.query();
+			assumeUSMacLayout = isUSCompatibleKeymap(layout.unshifted);
+		}
 
 		const cleaned: Record<string, string | null> = {};
 		let dropped = 0;

@@ -3,6 +3,7 @@ import { type Options, useHotkeys } from "react-hotkeys-hook";
 import { formatHotkeyDisplay } from "../../display";
 import type { HotkeyId } from "../../registry";
 import { PLATFORM } from "../../registry";
+import { useKeyboardLayoutStore } from "../../stores/keyboardLayoutStore";
 import type { HotkeyDisplay } from "../../types";
 import { useBinding } from "../useBinding";
 
@@ -26,6 +27,7 @@ export function useHotkey(
 	options?: Options,
 ): HotkeyDisplay {
 	const keys = useBinding(id);
+	const layoutMap = useKeyboardLayoutStore((s) => s.map);
 	const callbackRef = useRef(callback);
 	callbackRef.current = callback;
 	const callerIgnore = options?.ignoreEventWhen;
@@ -47,5 +49,5 @@ export function useHotkey(
 		},
 		[keys],
 	);
-	return formatHotkeyDisplay(keys, PLATFORM);
+	return formatHotkeyDisplay(keys, PLATFORM, layoutMap);
 }
