@@ -1,11 +1,16 @@
 import type { ParsedBinding, ShortcutBinding } from "../types";
 import { canonicalizeChord, normalizeToken } from "./resolveHotkeyFromEvent";
 
-const NAMED_KEYS = new Set([
+/**
+ * Keys whose `event.code` is stable across keyboard layouts (Enter, arrows,
+ * Backspace, ...). Tokens listed here are post-`normalizeToken` form —
+ * aliases like `esc` / `up` / `return` resolve to their canonical names
+ * (`escape`, `arrowup`, `enter`) before lookup, so this set must mirror the
+ * canonical side only.
+ */
+export const NAMED_KEYS = new Set([
 	"enter",
-	"return",
 	"escape",
-	"esc",
 	"backspace",
 	"delete",
 	"tab",
@@ -14,10 +19,6 @@ const NAMED_KEYS = new Set([
 	"arrowdown",
 	"arrowleft",
 	"arrowright",
-	"up",
-	"down",
-	"left",
-	"right",
 	"home",
 	"end",
 	"pageup",
@@ -25,7 +26,7 @@ const NAMED_KEYS = new Set([
 	"insert",
 ]);
 
-function isFunctionKey(token: string): boolean {
+export function isFunctionKey(token: string): boolean {
 	return /^f([1-9]|1[0-2])$/.test(token);
 }
 

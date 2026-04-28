@@ -11,6 +11,8 @@ import type {
 import {
 	bindingsEqual,
 	bindingToDispatchChord,
+	isFunctionKey,
+	NAMED_KEYS,
 	serializeBinding,
 } from "../../utils/binding";
 import {
@@ -24,24 +26,6 @@ import {
 // strings stay visually aligned with defaults. Canonicalization handles
 // reordering at compare time.
 const MODIFIER_ORDER = ["meta", "ctrl", "alt", "shift"] as const;
-
-const NAMED_CODES = new Set([
-	"enter",
-	"escape",
-	"backspace",
-	"delete",
-	"tab",
-	"space",
-	"arrowup",
-	"arrowdown",
-	"arrowleft",
-	"arrowright",
-	"home",
-	"end",
-	"pageup",
-	"pagedown",
-	"insert",
-]);
 
 export interface CapturedHotkey {
 	/** Modifiers + canonical(event.code). Always meaningful. */
@@ -59,8 +43,8 @@ export function captureHotkeyFromEvent(
 	const codeKey = normalizeToken(event.code);
 	if (isIgnorableKey(codeKey)) return null;
 
-	const isFKey = /^f([1-9]|1[0-2])$/.test(codeKey);
-	const isNamed = NAMED_CODES.has(codeKey);
+	const isFKey = isFunctionKey(codeKey);
+	const isNamed = NAMED_KEYS.has(codeKey);
 	// Mac Option is a legitimate shortcut modifier (⌥⌫ = delete-word). On
 	// other platforms Alt is the menu key and AltGr masquerades as ctrl+alt,
 	// so we still require ctrl/meta.
