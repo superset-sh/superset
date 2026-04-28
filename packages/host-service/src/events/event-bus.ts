@@ -6,7 +6,6 @@ import type { HostDb } from "../db";
 import { portManager } from "../ports/port-manager";
 import { getLabelsForWorkspace } from "../ports/static-ports";
 import type { WorkspaceFilesystemManager } from "../runtime/filesystem";
-import { safeSync } from "../safety";
 import { GitWatcher } from "./git-watcher";
 import type { ClientMessage, ServerMessage } from "./types";
 
@@ -29,10 +28,6 @@ function sendMessage(socket: WsSocket, message: ServerMessage): void {
 	if (socket.readyState !== 1) return;
 	socket.send(JSON.stringify(message));
 }
-
-// One bad socket must not block the rest of a fan-out — wrap once at module
-// scope so we don't allocate a new closure per broadcast × per socket.
-const safeSendMessage = safeSync("event-bus:send", sendMessage);
 
 function parseClientMessage(data: unknown): ClientMessage | null {
 	try {
@@ -83,28 +78,20 @@ export class EventBus {
 		if (this.removeGitListener || this.removePortListeners) return;
 
 		this.gitWatcher.start();
-		this.removeGitListener = this.gitWatcher.onChanged(
-			safeSync("event-bus:git-changed", (event) => {
-				this.broadcast({
-					type: "git:changed",
-					workspaceId: event.workspaceId,
-					...(event.paths !== undefined ? { paths: event.paths } : {}),
-				});
-			}),
-		);
+		this.removeGitListener = this.gitWatcher.onChanged((event) => {
+			this.broadcast({
+				type: "git:changed",
+				workspaceId: event.workspaceId,
+				...(event.paths !== undefined ? { paths: event.paths } : {}),
+			});
+		});
 
-		const handlePortAdd = safeSync(
-			"event-bus:port-add",
-			(port: DetectedPort) => {
-				this.broadcastPortChanged({ eventType: "add", port });
-			},
-		);
-		const handlePortRemove = safeSync(
-			"event-bus:port-remove",
-			(port: DetectedPort) => {
-				this.broadcastPortChanged({ eventType: "remove", port });
-			},
-		);
+		const handlePortAdd = (port: DetectedPort) => {
+			this.broadcastPortChanged({ eventType: "add", port });
+		};
+		const handlePortRemove = (port: DetectedPort) => {
+			this.broadcastPortChanged({ eventType: "remove", port });
+		};
 		portManager.on("port:add", handlePortAdd);
 		portManager.on("port:remove", handlePortRemove);
 		this.removePortListeners = () => {
@@ -152,8 +139,21 @@ export class EventBus {
 	}
 
 	private broadcast(message: ServerMessage): void {
+		// One bad socket must not block fan-out to the rest. Drop dead sockets
+		// rather than logging on every broadcast forever.
+		const dead: WsSocket[] = [];
 		for (const socket of this.clients.keys()) {
-			safeSendMessage(socket, message);
+			try {
+				sendMessage(socket, message);
+			} catch (error) {
+				console.error("[event-bus:send] socket failed — dropping", { error });
+				dead.push(socket);
+			}
+		}
+		for (const socket of dead) {
+			const state = this.clients.get(socket);
+			if (state) this.cleanupClient(socket, state);
+			this.clients.delete(socket);
 		}
 	}
 

@@ -4,7 +4,6 @@ import { parseGitHubRemote } from "@superset/shared/github-remote";
 import { and, eq, inArray } from "drizzle-orm";
 import type { HostDb } from "../../db";
 import { projects, pullRequests, workspaces } from "../../db/schema";
-import { safeAsync } from "../../safety";
 import type { GitFactory } from "../git";
 import { fetchRepositoryPullRequests } from "./utils/github-query";
 import {
@@ -209,23 +208,15 @@ export class PullRequestRuntimeManager {
 	start() {
 		if (this.branchSyncTimer || this.projectRefreshTimer) return;
 
-		const runBranchSync = safeAsync("pull-requests:branch-sync", () =>
-			this.syncWorkspaceBranches(),
-		);
-		const runProjectRefresh = safeAsync(
-			"pull-requests:project-refresh",
-			(force?: boolean) => this.refreshEligibleProjects(force),
-		);
-
 		this.branchSyncTimer = setInterval(() => {
-			void runBranchSync();
+			void this.syncWorkspaceBranches();
 		}, BRANCH_SYNC_INTERVAL_MS);
 		this.projectRefreshTimer = setInterval(() => {
-			void runProjectRefresh();
+			void this.refreshEligibleProjects();
 		}, PROJECT_REFRESH_INTERVAL_MS);
 
-		void runBranchSync();
-		void runProjectRefresh(true);
+		void this.syncWorkspaceBranches();
+		void this.refreshEligibleProjects(true);
 	}
 
 	stop() {

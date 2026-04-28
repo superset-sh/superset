@@ -5,7 +5,6 @@ import type { FsWatchEvent } from "@superset/workspace-fs/host";
 import type { HostDb } from "../db";
 import { workspaces } from "../db/schema";
 import type { WorkspaceFilesystemManager } from "../runtime/filesystem";
-import { safeAsync, safeSync } from "../safety";
 
 const execFileAsync = promisify(execFile);
 
@@ -80,10 +79,9 @@ export class GitWatcher {
 	}
 
 	start(): void {
-		const runRescan = safeAsync("git-watcher:rescan", () => this.rescan());
-		void runRescan();
+		void this.rescan();
 		this.rescanTimer = setInterval(() => {
-			void runRescan();
+			void this.rescan();
 		}, RESCAN_INTERVAL_MS);
 	}
 
@@ -139,24 +137,27 @@ export class GitWatcher {
 		if (existing) clearTimeout(existing);
 		this.debounceTimers.set(
 			workspaceId,
-			setTimeout(
-				safeSync("git-watcher:flush", () => {
-					this.debounceTimers.delete(workspaceId);
-					const batch = this.pendingBatches.get(workspaceId);
-					this.pendingBatches.delete(workspaceId);
-					if (!batch) return;
-					const event: GitChangedEvent =
-						batch.hasGitDir || batch.paths.size === 0
-							? { workspaceId }
-							: { workspaceId, paths: [...batch.paths] };
-					for (const listener of this.listeners) {
-						// Listener throws are isolated so one bad subscriber can't
-						// kill the watcher or block other subscribers.
-						safeSync("git-watcher:listener", listener)(event);
+			setTimeout(() => {
+				this.debounceTimers.delete(workspaceId);
+				const batch = this.pendingBatches.get(workspaceId);
+				this.pendingBatches.delete(workspaceId);
+				if (!batch) return;
+				const event: GitChangedEvent =
+					batch.hasGitDir || batch.paths.size === 0
+						? { workspaceId }
+						: { workspaceId, paths: [...batch.paths] };
+				for (const listener of this.listeners) {
+					// Isolate per-listener throws so one bad subscriber can't skip
+					// siblings. Other escapes fall through to the process-level net.
+					try {
+						listener(event);
+					} catch (error) {
+						console.error("[git-watcher:listener] threw — contained", {
+							error,
+						});
 					}
-				}),
-				DEBOUNCE_MS,
-			),
+				}
+			}, DEBOUNCE_MS),
 		);
 	}
 
