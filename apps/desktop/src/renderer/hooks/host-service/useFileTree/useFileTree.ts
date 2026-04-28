@@ -40,6 +40,134 @@ interface FileTreeState {
 	loadingDirectories: Set<string>;
 }
 
+interface FileTreeContext {
+	rootPath: string;
+	workspaceId: string;
+}
+
+interface LoadDirectoryOptions {
+	force?: boolean;
+	ignoreInFlight?: boolean;
+	attempt?: number;
+}
+
+const LIST_DIRECTORY_TIMEOUT_MS = 5_000;
+const LIST_DIRECTORY_MAX_ATTEMPTS = 3;
+const LIST_DIRECTORY_RETRY_DELAY_MS = 300;
+
+class ListDirectoryTimeoutError extends Error {
+	constructor(timeoutMs: number) {
+		super(`listDirectory timed out after ${timeoutMs}ms`);
+		this.name = "ListDirectoryTimeoutError";
+	}
+}
+
+async function withAbortableTimeout<T>(
+	fetcher: (signal: AbortSignal) => Promise<T>,
+	timeoutMs: number,
+	abortController: AbortController,
+): Promise<T> {
+	let timeout: ReturnType<typeof setTimeout> | null = null;
+	let timedOut = false;
+	timeout = setTimeout(() => {
+		timedOut = true;
+		abortController.abort();
+	}, timeoutMs);
+
+	try {
+		return await fetcher(abortController.signal);
+	} catch (error) {
+		if (timedOut) {
+			throw new ListDirectoryTimeoutError(timeoutMs);
+		}
+		throw error;
+	} finally {
+		if (timeout) {
+			clearTimeout(timeout);
+		}
+	}
+}
+
+function applyDirectoryEntries(
+	current: FileTreeState,
+	absolutePath: string,
+	entries: FsEntry[],
+): FileTreeState {
+	const nextEntries = new Map(current.entriesByPath);
+	const nextChildren = new Map(current.childPathsByDirectory);
+	const nextLoaded = new Set(current.loadedDirectories);
+	const nextInvalidated = new Set(current.invalidatedDirectories);
+	const nextLoading = new Set(current.loadingDirectories);
+	nextLoading.delete(absolutePath);
+	nextLoaded.add(absolutePath);
+	nextInvalidated.delete(absolutePath);
+
+	for (const entry of entries) {
+		nextEntries.set(entry.absolutePath, entry);
+	}
+
+	nextChildren.set(
+		absolutePath,
+		entries.map((entry) => entry.absolutePath),
+	);
+
+	return {
+		...current,
+		childPathsByDirectory: nextChildren,
+		entriesByPath: nextEntries,
+		invalidatedDirectories: nextInvalidated,
+		loadedDirectories: nextLoaded,
+		loadingDirectories: nextLoading,
+	};
+}
+
+function isSameFileTreeContext(
+	left: FileTreeContext,
+	right: FileTreeContext,
+): boolean {
+	return (
+		left.rootPath === right.rootPath && left.workspaceId === right.workspaceId
+	);
+}
+
+function markDirectoryLoading(
+	current: FileTreeState,
+	absolutePath: string,
+): FileTreeState {
+	const nextLoading = new Set(current.loadingDirectories);
+	nextLoading.add(absolutePath);
+	return {
+		...current,
+		loadingDirectories: nextLoading,
+	};
+}
+
+function clearDirectoryLoading(
+	current: FileTreeState,
+	absolutePath: string,
+): FileTreeState {
+	const nextLoading = new Set(current.loadingDirectories);
+	nextLoading.delete(absolutePath);
+	return {
+		...current,
+		loadingDirectories: nextLoading,
+	};
+}
+
+function shouldRetryListDirectory(
+	error: unknown,
+	nextAttempt: number,
+): boolean {
+	return (
+		error instanceof ListDirectoryTimeoutError &&
+		nextAttempt <= LIST_DIRECTORY_MAX_ATTEMPTS
+	);
+}
+
+function getListDirectoryRetryDelayMs(attempt: number): number {
+	return LIST_DIRECTORY_RETRY_DELAY_MS * attempt;
+}
+
 function createInitialState(): FileTreeState {
 	return {
 		childPathsByDirectory: new Map<string, string[]>(),
@@ -171,9 +299,38 @@ export function useFileTree({
 	rootPath,
 }: UseFileTreeParams): UseFileTreeResult {
 	const utils = workspaceTrpc.useUtils();
+	const activeContextRef = useRef<FileTreeContext>({ rootPath, workspaceId });
+	activeContextRef.current = { rootPath, workspaceId };
+	const isMountedRef = useRef(false);
+	const retryTimersRef = useRef(new Set<ReturnType<typeof setTimeout>>());
+	const activeLoadAbortControllersRef = useRef(new Set<AbortController>());
 	const [state, setState] = useState<FileTreeState>(() => createInitialState());
 	const stateRef = useRef(state);
 	stateRef.current = state;
+
+	const clearRetryTimers = useCallback(() => {
+		for (const timer of retryTimersRef.current) {
+			clearTimeout(timer);
+		}
+		retryTimersRef.current.clear();
+	}, []);
+
+	const abortActiveLoads = useCallback(() => {
+		for (const abortController of activeLoadAbortControllersRef.current) {
+			abortController.abort();
+		}
+		activeLoadAbortControllersRef.current.clear();
+	}, []);
+
+	useEffect(() => {
+		isMountedRef.current = true;
+
+		return () => {
+			isMountedRef.current = false;
+			clearRetryTimers();
+			abortActiveLoads();
+		};
+	}, [abortActiveLoads, clearRetryTimers]);
 
 	const updateState = useCallback(
 		(updater: (current: FileTreeState) => FileTreeState) => {
@@ -186,14 +343,38 @@ export function useFileTree({
 		[],
 	);
 
+	const loadDirectoryRef = useRef<
+		| ((absolutePath: string, options?: LoadDirectoryOptions) => Promise<void>)
+		| null
+	>(null);
+
+	const isRequestCurrent = useCallback((requestContext: FileTreeContext) => {
+		return (
+			isMountedRef.current &&
+			isSameFileTreeContext(activeContextRef.current, requestContext)
+		);
+	}, []);
+
 	const loadDirectory = useCallback(
-		async (absolutePath: string, force = false): Promise<void> => {
+		async (
+			absolutePath: string,
+			options: LoadDirectoryOptions = {},
+		): Promise<void> => {
+			const { force = false, ignoreInFlight = false, attempt = 1 } = options;
 			if (!workspaceId || !absolutePath) {
 				return;
 			}
 
+			const requestContext = { rootPath, workspaceId };
+			if (!isRequestCurrent(requestContext)) {
+				return;
+			}
+
 			const currentState = stateRef.current;
-			if (currentState.loadingDirectories.has(absolutePath)) {
+			if (
+				!ignoreInFlight &&
+				currentState.loadingDirectories.has(absolutePath)
+			) {
 				return;
 			}
 
@@ -205,50 +386,62 @@ export function useFileTree({
 				return;
 			}
 
-			updateState((current) => {
-				const nextLoading = new Set(current.loadingDirectories);
-				nextLoading.add(absolutePath);
-				return {
-					...current,
-					loadingDirectories: nextLoading,
-				};
-			});
+			const input = { workspaceId, absolutePath };
+			const cachedResult = utils.filesystem.listDirectory.getData(input);
+			if (cachedResult) {
+				updateState((current) =>
+					applyDirectoryEntries(current, absolutePath, cachedResult.entries),
+				);
+				if (!force) {
+					return;
+				}
+			}
+
+			updateState((current) => markDirectoryLoading(current, absolutePath));
+
+			const abortController = new AbortController();
+			activeLoadAbortControllersRef.current.add(abortController);
 
 			try {
-				const result = await utils.filesystem.listDirectory.fetch({
-					workspaceId,
-					absolutePath,
-				});
+				const result = await withAbortableTimeout(
+					(signal) =>
+						utils.filesystem.listDirectory.fetch(input, {
+							trpc: { signal },
+						}),
+					LIST_DIRECTORY_TIMEOUT_MS,
+					abortController,
+				);
+
+				if (!isRequestCurrent(requestContext)) {
+					return;
+				}
 
 				updateState((current) => {
-					const nextEntries = new Map(current.entriesByPath);
-					const nextChildren = new Map(current.childPathsByDirectory);
-					const nextLoaded = new Set(current.loadedDirectories);
-					const nextInvalidated = new Set(current.invalidatedDirectories);
-					const nextLoading = new Set(current.loadingDirectories);
-					nextLoading.delete(absolutePath);
-					nextLoaded.add(absolutePath);
-					nextInvalidated.delete(absolutePath);
-
-					for (const entry of result.entries) {
-						nextEntries.set(entry.absolutePath, entry);
-					}
-
-					nextChildren.set(
-						absolutePath,
-						result.entries.map((entry) => entry.absolutePath),
-					);
-
-					return {
-						...current,
-						childPathsByDirectory: nextChildren,
-						entriesByPath: nextEntries,
-						invalidatedDirectories: nextInvalidated,
-						loadedDirectories: nextLoaded,
-						loadingDirectories: nextLoading,
-					};
+					return applyDirectoryEntries(current, absolutePath, result.entries);
 				});
 			} catch (error) {
+				if (!isRequestCurrent(requestContext)) {
+					return;
+				}
+
+				const nextAttempt = attempt + 1;
+				if (shouldRetryListDirectory(error, nextAttempt)) {
+					const retryTimer = setTimeout(() => {
+						retryTimersRef.current.delete(retryTimer);
+						if (!isRequestCurrent(requestContext)) {
+							return;
+						}
+
+						void loadDirectoryRef.current?.(absolutePath, {
+							attempt: nextAttempt,
+							force: true,
+							ignoreInFlight: true,
+						});
+					}, getListDirectoryRetryDelayMs(attempt));
+					retryTimersRef.current.add(retryTimer);
+					return;
+				}
+
 				console.error(
 					"[workspace-client/useFileTree] Failed to load directory:",
 					{
@@ -258,21 +451,25 @@ export function useFileTree({
 				);
 
 				updateState((current) => {
-					const nextLoading = new Set(current.loadingDirectories);
-					nextLoading.delete(absolutePath);
-					return {
-						...current,
-						loadingDirectories: nextLoading,
-					};
+					return clearDirectoryLoading(current, absolutePath);
 				});
+			} finally {
+				activeLoadAbortControllersRef.current.delete(abortController);
 			}
 		},
-		[updateState, utils.filesystem.listDirectory, workspaceId],
+		[
+			isRequestCurrent,
+			rootPath,
+			updateState,
+			utils.filesystem.listDirectory,
+			workspaceId,
+		],
 	);
+	loadDirectoryRef.current = loadDirectory;
 
 	const refreshPath = useCallback(
 		async (absolutePath: string): Promise<void> => {
-			await loadDirectory(absolutePath, true);
+			await loadDirectory(absolutePath, { force: true });
 		},
 		[loadDirectory],
 	);
@@ -288,10 +485,10 @@ export function useFileTree({
 			(left, right) => left.split(/[/\\]/).length - right.split(/[/\\]/).length,
 		);
 
-		await loadDirectory(rootPath, true);
+		await loadDirectory(rootPath, { force: true });
 		for (const absolutePath of expandedDirectories) {
 			if (absolutePath !== rootPath) {
-				await loadDirectory(absolutePath, true);
+				await loadDirectory(absolutePath, { force: true });
 			}
 		}
 	}, [loadDirectory, rootPath]);
@@ -346,13 +543,21 @@ export function useFileTree({
 	}, [updateState]);
 
 	useEffect(() => {
+		clearRetryTimers();
+		abortActiveLoads();
 		updateState(() => createInitialState());
 		if (!rootPath) {
 			return;
 		}
 
-		void loadDirectory(rootPath, true);
-	}, [loadDirectory, rootPath, updateState]);
+		void loadDirectory(rootPath, { force: true });
+	}, [
+		abortActiveLoads,
+		clearRetryTimers,
+		loadDirectory,
+		rootPath,
+		updateState,
+	]);
 
 	useWorkspaceEvent(
 		"fs:events",
@@ -404,16 +609,16 @@ export function useFileTree({
 				});
 
 				if (stateRef.current.loadedDirectories.has(oldParentPath)) {
-					void loadDirectory(oldParentPath, true);
+					void loadDirectory(oldParentPath, { force: true });
 				}
 				if (stateRef.current.loadedDirectories.has(newParentPath)) {
-					void loadDirectory(newParentPath, true);
+					void loadDirectory(newParentPath, { force: true });
 				}
 				if (
 					event.isDirectory &&
 					stateRef.current.expandedDirectories.has(event.absolutePath)
 				) {
-					void loadDirectory(event.absolutePath, true);
+					void loadDirectory(event.absolutePath, { force: true });
 				}
 				return;
 			}
@@ -438,7 +643,7 @@ export function useFileTree({
 			});
 
 			if (stateRef.current.loadedDirectories.has(parentPath)) {
-				void loadDirectory(parentPath, true);
+				void loadDirectory(parentPath, { force: true });
 			}
 		},
 		Boolean(workspaceId && rootPath),

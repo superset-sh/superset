@@ -5,7 +5,13 @@ import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { workspaceTrpc } from "@superset/workspace-client";
 import type { inferRouterOutputs } from "@trpc/server";
-import { FilePlus, FolderPlus, FoldVertical, RefreshCw } from "lucide-react";
+import {
+	FilePlus,
+	FolderPlus,
+	FoldVertical,
+	Loader2,
+	RefreshCw,
+} from "lucide-react";
 import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import {
 	type FileTreeNode,
@@ -462,10 +468,17 @@ export function FilesTab({
 		[workspaceId, deletePath],
 	);
 
-	if (!workspaceQuery.data?.worktreePath) {
+	if (!rootPath) {
 		return (
-			<div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-				Workspace worktree not available
+			<div className="flex h-full items-center justify-center gap-2 text-sm text-muted-foreground">
+				{workspaceQuery.isLoading || workspaceQuery.isFetching ? (
+					<>
+						<Loader2 className="size-3.5 animate-spin" />
+						<span>Loading files...</span>
+					</>
+				) : (
+					"Workspace worktree not available"
+				)}
 			</div>
 		);
 	}
