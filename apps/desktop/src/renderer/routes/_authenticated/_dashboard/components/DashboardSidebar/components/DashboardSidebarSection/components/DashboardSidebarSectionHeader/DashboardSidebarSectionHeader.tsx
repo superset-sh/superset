@@ -58,7 +58,7 @@ export const DashboardSidebarSectionHeader = forwardRef<
 							}
 				}
 				className={cn(
-					"group flex min-h-8 w-full items-center pl-0.5 pr-2 py-1.5 text-[13px] font-medium",
+					"group flex min-h-8 w-full items-center pl-5 pr-2 py-1.5 text-[13px] font-medium",
 					"text-muted-foreground hover:bg-muted/50 transition-colors",
 					className,
 				)}
