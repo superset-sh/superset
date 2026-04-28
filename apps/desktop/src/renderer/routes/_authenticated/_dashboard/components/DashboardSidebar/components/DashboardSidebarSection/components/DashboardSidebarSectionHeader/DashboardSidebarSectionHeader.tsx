@@ -90,9 +90,6 @@ export const DashboardSidebarSectionHeader = forwardRef<
 
 				{!isRenaming && (
 					<div className="relative ml-1 flex size-5 shrink-0 items-center justify-center">
-						<span className="text-[10px] font-normal tabular-nums transition-opacity group-hover:opacity-0 group-focus-within:opacity-0">
-							{section.workspaces.length}
-						</span>
 						{actions ? (
 							// biome-ignore lint/a11y/noStaticElementInteractions: Nested action controls handle their own semantics; this wrapper only isolates events from the header toggle.
 							<div
@@ -103,6 +100,9 @@ export const DashboardSidebarSectionHeader = forwardRef<
 								{actions}
 							</div>
 						) : null}
+						<span className="pointer-events-none relative text-[10px] font-normal tabular-nums text-muted-foreground transition-opacity group-hover:opacity-0 group-focus-within:opacity-0">
+							{section.workspaces.length}
+						</span>
 					</div>
 				)}
 			</div>
