@@ -122,6 +122,7 @@ describe("canonicalizeChord", () => {
 interface StubInit {
 	type?: string;
 	code?: string;
+	key?: string;
 	ctrlKey?: boolean;
 	metaKey?: boolean;
 	altKey?: boolean;
@@ -131,7 +132,7 @@ function ev(init: StubInit): KeyboardEvent {
 	return {
 		type: init.type ?? "keydown",
 		code: init.code ?? "",
-		key: "",
+		key: init.key ?? "",
 		ctrlKey: !!init.ctrlKey,
 		metaKey: !!init.metaKey,
 		altKey: !!init.altKey,
@@ -201,14 +202,16 @@ function buildEventFromChord(chord: string): KeyboardEvent {
 		altKey: parts.includes("alt"),
 		shiftKey: parts.includes("shift"),
 	};
-	const key = parts.find(
+	const chordKey = parts.find(
 		(p) => !["meta", "ctrl", "control", "alt", "shift"].includes(p),
 	);
-	const code = chordKeyToCode(key ?? "");
+	const code = chordKeyToCode(chordKey ?? "");
+	// Simulate QWERTY: for letter keys event.key matches the chord character
+	const key = /^[a-z]$/.test(chordKey ?? "") ? chordKey! : "";
 	return {
 		type: "keydown",
 		code,
-		key: "",
+		key,
 		...mods,
 	} as unknown as KeyboardEvent;
 }
@@ -383,5 +386,103 @@ describe("isTerminalReservedEvent", () => {
 		for (const chord of TERMINAL_RESERVED_CHORDS) {
 			expect(canonicalizeChord(chord)).toBe(chord);
 		}
+	});
+});
+
+// ---------------------------------------------------------------------------
+// Non-QWERTY layout tests (issue #3454)
+// ---------------------------------------------------------------------------
+// On AZERTY (French), the physical positions of W and Z are swapped relative
+// to QWERTY. Shortcuts should match the *labeled* character (event.key), not
+// the physical QWERTY position (event.code).
+//
+//   AZERTY "W" key → event.code="KeyZ", event.key="w"
+//   AZERTY "Z" key → event.code="KeyW", event.key="z"
+
+describe("eventToChord — non-QWERTY layout support (issue #3454)", () => {
+	it("AZERTY Cmd+W produces meta+w (not meta+z)", () => {
+		// User presses their W key on AZERTY; physical position is QWERTY's Z
+		const event = ev({ code: "KeyZ", key: "w", metaKey: true });
+		expect(eventToChord(event)).toBe("meta+w");
+	});
+
+	it("AZERTY Cmd+Z produces meta+z (not meta+w)", () => {
+		// User presses their Z key on AZERTY; physical position is QWERTY's W
+		const event = ev({ code: "KeyW", key: "z", metaKey: true });
+		expect(eventToChord(event)).toBe("meta+z");
+	});
+
+	it("AZERTY Ctrl+Shift+W produces ctrl+shift+w", () => {
+		const event = ev({
+			code: "KeyZ",
+			key: "W",
+			ctrlKey: true,
+			shiftKey: true,
+		});
+		expect(eventToChord(event)).toBe("ctrl+shift+w");
+	});
+
+	it("QWERTZ Cmd+Y produces meta+y (Y and Z swapped vs QWERTY)", () => {
+		// German QWERTZ: Y key is in QWERTY's Z position
+		const event = ev({ code: "KeyZ", key: "y", metaKey: true });
+		expect(eventToChord(event)).toBe("meta+y");
+	});
+
+	it("QWERTY Cmd+W still works (event.code and event.key agree)", () => {
+		const event = ev({ code: "KeyW", key: "w", metaKey: true });
+		expect(eventToChord(event)).toBe("meta+w");
+	});
+});
+
+describe("matchesChord — non-QWERTY layout support (issue #3454)", () => {
+	it("AZERTY Cmd+W matches 'meta+w' chord", () => {
+		const event = ev({ code: "KeyZ", key: "w", metaKey: true });
+		expect(matchesChord(event, "meta+w")).toBe(true);
+	});
+
+	it("AZERTY Cmd+Z does NOT match 'meta+w' chord", () => {
+		const event = ev({ code: "KeyW", key: "z", metaKey: true });
+		expect(matchesChord(event, "meta+w")).toBe(false);
+	});
+});
+
+describe("isTerminalReservedEvent — non-QWERTY layout (issue #3454)", () => {
+	it("AZERTY Ctrl+Z (labeled Z key) is terminal-reserved", () => {
+		// On AZERTY the Z key is at QWERTY's W position
+		const event = ev({ code: "KeyW", key: "z", ctrlKey: true });
+		expect(isTerminalReservedEvent(event)).toBe(true);
+	});
+
+	it("AZERTY Ctrl+W (labeled W key) is NOT terminal-reserved", () => {
+		// On AZERTY the W key is at QWERTY's Z position
+		const event = ev({ code: "KeyZ", key: "w", ctrlKey: true });
+		expect(isTerminalReservedEvent(event)).toBe(false);
+	});
+});
+
+describe("eventToChord — event.key edge cases", () => {
+	it("falls back to event.code when Alt produces a non-Latin character (macOS)", () => {
+		// On macOS, Alt+L produces "¬" — we should use event.code to get "l"
+		const event = ev({ code: "KeyL", key: "¬", altKey: true });
+		expect(eventToChord(event)).toBe("alt+l");
+	});
+
+	it("falls back to event.code for dead keys", () => {
+		const event = ev({ code: "KeyE", key: "Dead", metaKey: true });
+		expect(eventToChord(event)).toBe("meta+e");
+	});
+
+	it("uses event.code for digit keys (Shift+2 stays 2, not @)", () => {
+		const event = ev({ code: "Digit2", key: "@", shiftKey: true });
+		expect(eventToChord(event)).toBe("shift+2");
+	});
+
+	it("uses event.code for punctuation keys", () => {
+		const event = ev({
+			code: "BracketLeft",
+			key: "[",
+			metaKey: true,
+		});
+		expect(eventToChord(event)).toBe("meta+bracketleft");
 	});
 });

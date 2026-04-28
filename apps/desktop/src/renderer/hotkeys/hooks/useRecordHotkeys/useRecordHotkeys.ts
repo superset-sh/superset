@@ -5,7 +5,7 @@ import type { Platform } from "../../types";
 import {
 	canonicalizeChord,
 	isIgnorableKey,
-	normalizeToken,
+	layoutAwareKey,
 	TERMINAL_RESERVED_CHORDS,
 } from "../../utils/resolveHotkeyFromEvent";
 
@@ -15,10 +15,11 @@ import {
 const MODIFIER_ORDER = ["meta", "ctrl", "alt", "shift"] as const;
 
 export function captureHotkeyFromEvent(event: KeyboardEvent): string | null {
-	// event.code (not event.key) so Shift+2 records as `2`, Alt+L on Mac as
-	// `l`, and non-US layouts produce stable tokens matching the registry.
+	// layoutAwareKey prefers event.key for letter keys (so AZERTY/QWERTZ record
+	// the labeled character) and falls back to event.code for digits, punctuation,
+	// and Alt-modified characters where event.key is unreliable.
 	if (event.code === undefined) return null;
-	const key = normalizeToken(event.code);
+	const key = layoutAwareKey(event);
 	if (isIgnorableKey(key)) return null;
 
 	const isFKey = /^f([1-9]|1[0-2])$/.test(key);

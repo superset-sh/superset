@@ -70,7 +70,7 @@ export function canonicalizeChord(chord: string): string {
 /** KeyboardEvent → canonical chord (comparable to {@link canonicalizeChord} output), or null for pure modifier / synthetic presses. */
 export function eventToChord(event: KeyboardEvent): string | null {
 	if (event.code === undefined) return null;
-	const key = normalizeToken(event.code);
+	const key = layoutAwareKey(event);
 	if (isIgnorableKey(key)) return null;
 	const mods: string[] = [];
 	if (event.metaKey) mods.push("meta");
@@ -79,6 +79,27 @@ export function eventToChord(event: KeyboardEvent): string | null {
 	if (event.shiftKey) mods.push("shift");
 	mods.sort();
 	return [...mods, key].join("+");
+}
+
+/**
+ * Resolve a layout-aware key token from a KeyboardEvent.
+ *
+ * For letter keys (event.code `Key[A-Z]`), prefer `event.key` when it yields a
+ * single Latin letter. This makes shortcuts match the **labeled** character on
+ * the user's keyboard (e.g. AZERTY, QWERTZ) instead of the physical QWERTY
+ * position. For non-letter keys (digits, punctuation, arrows, function keys)
+ * we keep `event.code` because `event.key` is unreliable there (Shift+2 → "@",
+ * Alt+L on macOS → "¬", dead-key compositions → "Dead").
+ */
+export function layoutAwareKey(event: KeyboardEvent): string {
+	if (
+		/^Key[A-Z]$/.test(event.code) &&
+		typeof event.key === "string" &&
+		/^[a-zA-Z]$/.test(event.key)
+	) {
+		return event.key.toLowerCase();
+	}
+	return normalizeToken(event.code);
 }
 
 /** True if `event` produces `chord` (tolerating modifier order / aliases). */
