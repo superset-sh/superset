@@ -4,7 +4,7 @@ import {
 	randomBytes,
 	scryptSync,
 } from "node:crypto";
-import { getMachineId } from "@superset/shared/device-info";
+import { getMachineId } from "@superset/shared/host-info";
 
 const ALGORITHM = "aes-256-gcm";
 const KEY_LENGTH = 32;

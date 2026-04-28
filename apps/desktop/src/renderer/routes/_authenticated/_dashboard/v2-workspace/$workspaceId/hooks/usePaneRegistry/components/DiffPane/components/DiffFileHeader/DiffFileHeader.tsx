@@ -1,12 +1,6 @@
 import { Checkbox } from "@superset/ui/checkbox";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
-import {
-	ChevronDown,
-	ChevronRight,
-	ExternalLink,
-	Eye,
-	EyeOff,
-} from "lucide-react";
+import { ChevronDown, ChevronRight, Eye, EyeOff } from "lucide-react";
 import { useId } from "react";
 import { LuCopy, LuUndo2 } from "react-icons/lu";
 import { StatusIndicator } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/StatusIndicator";
@@ -78,62 +72,34 @@ export function DiffFileHeader({
 						}}
 						disabled={!onOpenFile && !onOpenInExternalEditor}
 						aria-label="Open in file viewer"
-						className="flex h-6 min-w-20 flex-[1_1_10rem] items-center gap-1.5 rounded border border-border px-1.5 py-0.5 text-left transition-colors hover:bg-accent disabled:pointer-events-none disabled:opacity-60"
+						className="flex h-6 min-w-0 items-center gap-1.5 rounded border border-border px-1.5 py-0.5 text-left transition-colors hover:bg-accent disabled:pointer-events-none disabled:opacity-60"
 					>
 						<FileIcon fileName={path} className="size-3.5 shrink-0" />
-						<span className="min-w-0 flex-1 truncate font-mono text-xs text-foreground">
+						<span className="min-w-0 truncate font-mono text-xs text-foreground">
 							{path}
-						</span>
-						<span className="hidden shrink-0 font-mono text-[10px] text-muted-foreground @min-[300px]/diff-file-header:inline">
-							{additions > 0 && (
-								<span className="text-green-700 dark:text-green-400">
-									+{additions}
-								</span>
-							)}
-							{additions > 0 && deletions > 0 && " "}
-							{deletions > 0 && (
-								<span className="text-red-700 dark:text-red-500">
-									-{deletions}
-								</span>
-							)}
 						</span>
 					</button>
 				</TooltipTrigger>
-				<TooltipContent
-					side="bottom"
-					showArrow={false}
-					className="max-w-[80vw]"
-				>
-					<div className="space-y-1">
-						<div>Open in file viewer. {CLICK_HINT_TOOLTIP}</div>
-						<div className="break-all font-mono text-[10px] text-muted-foreground">
-							{path}
-						</div>
-					</div>
+				<TooltipContent side="bottom" showArrow={false}>
+					{CLICK_HINT_TOOLTIP}
 				</TooltipContent>
 			</Tooltip>
-
-			<div className="ml-auto flex shrink-0 items-center gap-1">
-				<Tooltip>
-					<TooltipTrigger asChild>
-						<span className="inline-flex rounded">
-							<button
-								type="button"
-								onClick={onOpenInExternalEditor}
-								disabled={!onOpenInExternalEditor}
-								aria-label="Open in editor"
-								className="rounded p-0.5 text-muted-foreground/60 transition-colors hover:bg-accent hover:text-muted-foreground disabled:pointer-events-none disabled:opacity-40"
-							>
-								<ExternalLink className="size-3.5" />
-							</button>
-						</span>
-					</TooltipTrigger>
-					<TooltipContent side="bottom" showArrow={false}>
-						{onOpenInExternalEditor
-							? "Open in editor"
-							: "Open in editor unavailable"}
-					</TooltipContent>
-				</Tooltip>
+			<div className="ml-auto flex shrink-0 items-center gap-1.5">
+				{(additions > 0 || deletions > 0) && (
+					<span className="font-mono text-[10px] text-muted-foreground">
+						{additions > 0 && (
+							<span className="text-green-700 dark:text-green-400">
+								+{additions}
+							</span>
+						)}
+						{additions > 0 && deletions > 0 && " "}
+						{deletions > 0 && (
+							<span className="text-red-700 dark:text-red-500">
+								-{deletions}
+							</span>
+						)}
+					</span>
+				)}
 
 				<div className="flex items-center gap-1">
 					<Checkbox

@@ -21,6 +21,7 @@ import {
 	countUntrackedFileLines,
 	detectUnstagedRenames,
 	getChangedFilesForDiff,
+	getDefaultBranchName,
 	mapGitStatus,
 	parseNumstat,
 	resolveBaseComparison,
@@ -435,6 +436,73 @@ export const gitRouter = router({
 			};
 		}),
 
+	getBranchSyncStatus: protectedProcedure
+		.input(z.object({ workspaceId: z.string() }))
+		.query(async ({ ctx, input }) => {
+			const worktreePath = resolveWorktreePath(ctx, input.workspaceId);
+			const git = await ctx.git(worktreePath);
+
+			const currentBranch = (
+				await git.revparse(["--abbrev-ref", "HEAD"]).catch(() => "")
+			).trim();
+			const isDetached = !currentBranch || currentBranch === "HEAD";
+
+			const defaultBranch = await getDefaultBranchName(git);
+			const isDefaultBranch =
+				!isDetached && !!defaultBranch && currentBranch === defaultBranch;
+
+			const remotes = await git.getRemotes(false).catch(() => []);
+			const hasRepo = remotes.length > 0;
+
+			let hasUpstream = false;
+			let pushCount = 0;
+			let pullCount = 0;
+			try {
+				await git.raw(["rev-parse", "--abbrev-ref", "@{upstream}"]);
+				hasUpstream = true;
+				const tracking = await git.raw([
+					"rev-list",
+					"--left-right",
+					"--count",
+					"@{upstream}...HEAD",
+				]);
+				const [pullStr, pushStr] = tracking.trim().split(/\s+/);
+				pullCount = Number.parseInt(pullStr || "0", 10);
+				pushCount = Number.parseInt(pushStr || "0", 10);
+			} catch {
+				// no upstream — counts stay zero
+			}
+
+			// Read working-tree status separately from branch info so a transient
+			// `git status` failure (e.g. lock contention during a concurrent
+			// operation) doesn't poison the whole sync read. Log on failure so it
+			// isn't silent — `hasUncommitted` defaults to false in that case
+			// because over-reporting "uncommitted" on every blip is more annoying
+			// than under-reporting briefly until the next refetch.
+			let hasUncommitted = false;
+			try {
+				const status = await git.status();
+				hasUncommitted = status.files.length > 0;
+			} catch (error) {
+				console.warn(
+					"[git/getBranchSyncStatus] git.status() failed; treating working tree as clean for this read",
+					error,
+				);
+			}
+
+			return {
+				hasRepo,
+				hasUpstream,
+				pushCount,
+				pullCount,
+				isDefaultBranch,
+				isDetached,
+				hasUncommitted,
+				currentBranch: isDetached ? null : currentBranch,
+				defaultBranch,
+			};
+		}),
+
 	getPullRequest: protectedProcedure
 		.input(z.object({ workspaceId: z.string() }))
 		.query(({ ctx, input }) => {
@@ -489,6 +557,8 @@ export const gitRouter = router({
 				headRefName: pr.headBranch ?? "",
 				updatedAt: pr.updatedAt ? new Date(pr.updatedAt).toISOString() : "",
 				checks,
+				repoOwner: pr.repoOwner,
+				repoName: pr.repoName,
 			};
 		}),
 

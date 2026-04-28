@@ -16,4 +16,9 @@ export {
 export { ChatService } from "./chat-service";
 export type { ChatServiceRouter } from "./router";
 export { createChatServiceRouter } from "./router";
+export type { SlashCommand } from "./slash-commands";
+export {
+	getSlashCommands,
+	resolveSlashCommand,
+} from "./slash-commands";
 export { generateTitleFromMessage } from "./title-generation";

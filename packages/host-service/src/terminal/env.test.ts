@@ -66,8 +66,8 @@ describe("stripTerminalRuntimeEnv", () => {
 		AUTH_TOKEN: "secret-token",
 		HOST_SERVICE_SECRET: "secret",
 		ORGANIZATION_ID: "org-123",
-		DEVICE_CLIENT_ID: "device-abc",
-		DEVICE_NAME: "My Mac",
+		HOST_CLIENT_ID: "device-abc",
+		HOST_NAME: "My Mac",
 		ELECTRON_RUN_AS_NODE: "1",
 		HOST_DB_PATH: "/tmp/host.db",
 		HOST_MANIFEST_DIR: "/tmp/manifests",
@@ -110,7 +110,7 @@ describe("stripTerminalRuntimeEnv", () => {
 		expect(result.AUTH_TOKEN).toBeUndefined();
 		expect(result.HOST_SERVICE_SECRET).toBeUndefined();
 		expect(result.ORGANIZATION_ID).toBeUndefined();
-		expect(result.DEVICE_CLIENT_ID).toBeUndefined();
+		expect(result.HOST_CLIENT_ID).toBeUndefined();
 		expect(result.ELECTRON_RUN_AS_NODE).toBeUndefined();
 		expect(result.HOST_DB_PATH).toBeUndefined();
 		expect(result.CLOUD_API_URL).toBeUndefined();
@@ -123,7 +123,7 @@ describe("stripTerminalRuntimeEnv", () => {
 		expect(result.HOST_MIGRATIONS_PATH).toBeUndefined();
 		expect(result.HOST_SERVICE_VERSION).toBeUndefined();
 		expect(result.KEEP_ALIVE_AFTER_PARENT).toBeUndefined();
-		expect(result.DEVICE_NAME).toBeUndefined();
+		expect(result.HOST_NAME).toBeUndefined();
 	});
 
 	test("Node/app keys are stripped", () => {
@@ -141,16 +141,16 @@ describe("stripTerminalRuntimeEnv", () => {
 		expect(result.ELECTRON_ENABLE_LOGGING).toBeUndefined();
 	});
 
-	test("HOST_* prefix is stripped, DESKTOP_*/DEVICE_* are exact-key only", () => {
+	test("HOST_* prefix is stripped, DESKTOP_* exact keys only", () => {
 		const env: Record<string, string> = {
-			// HOST_* prefix: all stripped
+			// HOST_* prefix: all stripped (including HOST_CLIENT_ID, HOST_NAME)
 			HOST_DB_PATH: "/tmp/db",
 			HOST_MANIFEST_DIR: "/tmp/manifests",
 			HOST_SERVICE_SECRET: "secret",
-			// DESKTOP_* / DEVICE_*: only our exact keys stripped
+			HOST_CLIENT_ID: "abc",
+			HOST_NAME: "Mac",
+			// DESKTOP_*: only our exact key stripped
 			DESKTOP_VITE_PORT: "5173",
-			DEVICE_CLIENT_ID: "abc",
-			DEVICE_NAME: "Mac",
 			// Legitimate Linux desktop vars: must survive
 			DESKTOP_SESSION: "gnome",
 			DESKTOP_STARTUP_ID: "startup-123",
@@ -161,8 +161,8 @@ describe("stripTerminalRuntimeEnv", () => {
 		expect(result.HOST_MANIFEST_DIR).toBeUndefined();
 		expect(result.HOST_SERVICE_SECRET).toBeUndefined();
 		expect(result.DESKTOP_VITE_PORT).toBeUndefined();
-		expect(result.DEVICE_CLIENT_ID).toBeUndefined();
-		expect(result.DEVICE_NAME).toBeUndefined();
+		expect(result.HOST_CLIENT_ID).toBeUndefined();
+		expect(result.HOST_NAME).toBeUndefined();
 		// Linux desktop vars preserved
 		expect(result.DESKTOP_SESSION).toBe("gnome");
 		expect(result.DESKTOP_STARTUP_ID).toBe("startup-123");

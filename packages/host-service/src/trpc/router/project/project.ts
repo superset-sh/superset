@@ -1,5 +1,5 @@
 import { rmSync } from "node:fs";
-import { resolve as resolvePath } from "node:path";
+import { basename, resolve as resolvePath } from "node:path";
 import { parseGitHubRemote } from "@superset/shared/github-remote";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
@@ -7,12 +7,13 @@ import { z } from "zod";
 import { projects, workspaces } from "../../../db/schema";
 import { protectedProcedure, router } from "../../index";
 import { createFromClone, createFromImportLocal } from "./handlers";
+import { ensureMainWorkspace } from "./utils/ensure-main-workspace";
 import { persistLocalProject } from "./utils/persist-project";
 import {
 	cloneRepoInto,
 	type ResolvedRepo,
+	resolveLocalRepo,
 	resolveMatchingSlug,
-	resolveWithPrimaryRemote,
 } from "./utils/resolve-repo";
 
 export const projectRouter = router({
@@ -45,32 +46,33 @@ export const projectRouter = router({
 				repoPath: z.string().min(1),
 			}),
 		)
-		.query(async ({ ctx, input }) => {
-			const cloudProject = await ctx.api.v2Project.get.query({
-				organizationId: ctx.organizationId,
-				id: input.projectId,
-			});
-			if (cloudProject.repoCloneUrl) return { conflict: null };
-
-			const { parsed } = await resolveWithPrimaryRemote(input.repoPath);
-			const { candidates } = await ctx.api.v2Project.findByGitHubRemote.query({
-				organizationId: ctx.organizationId,
-				repoCloneUrl: parsed.url,
-			});
-			const other = candidates.find((c) => c.id !== input.projectId);
-			if (!other) return { conflict: null };
-			return {
-				conflict: {
-					id: other.id,
-					name: other.name,
-				},
-			};
+		.query(() => {
+			// Multiple v2 projects may point at the same GitHub URL, so a matching
+			// repo URL is no longer a conflict. Kept for backwards-compatible
+			// clients while older settings screens still call the endpoint.
+			return { conflict: null };
 		}),
 
 	findByPath: protectedProcedure
 		.input(z.object({ repoPath: z.string().min(1) }))
 		.query(async ({ ctx, input }) => {
-			const { parsed } = await resolveWithPrimaryRemote(input.repoPath);
+			const resolved = await resolveLocalRepo(input.repoPath);
+			const localProject = ctx.db.query.projects
+				.findFirst({ where: eq(projects.repoPath, resolved.repoPath) })
+				.sync();
+			if (localProject) {
+				return {
+					candidates: [
+						{
+							id: localProject.id,
+							name: localProject.repoName ?? basename(resolved.repoPath),
+						},
+					],
+				};
+			}
+
+			const { parsed } = resolved;
+			if (!parsed) return { candidates: [] };
 			const { candidates } = await ctx.api.v2Project.findByGitHubRemote.query({
 				organizationId: ctx.organizationId,
 				repoCloneUrl: parsed.url,
@@ -194,13 +196,31 @@ export const projectRouter = router({
 						expectedParsed.name,
 					);
 					rejectIfRepoint(predictedPath);
-					if (existing) return { repoPath: existing.repoPath };
+					if (existing) {
+						const mainWorkspace = await ensureMainWorkspace(
+							ctx,
+							input.projectId,
+							existing.repoPath,
+						);
+						return {
+							repoPath: existing.repoPath,
+							mainWorkspaceId: mainWorkspace?.id ?? null,
+						};
+					}
 					const resolved = await cloneRepoInto(
 						cloudProject.repoCloneUrl,
 						input.mode.parentDir,
 					);
 					persistLocalProject(ctx, input.projectId, resolved);
-					return { repoPath: resolved.repoPath };
+					const mainWorkspace = await ensureMainWorkspace(
+						ctx,
+						input.projectId,
+						resolved.repoPath,
+					);
+					return {
+						repoPath: resolved.repoPath,
+						mainWorkspaceId: mainWorkspace?.id ?? null,
+					};
 				}
 				case "import": {
 					let resolved: ResolvedRepo;
@@ -217,15 +237,23 @@ export const projectRouter = router({
 							`${parsed.owner}/${parsed.name}`,
 						);
 					} else {
-						resolved = await resolveWithPrimaryRemote(input.mode.repoPath);
+						resolved = await resolveLocalRepo(input.mode.repoPath);
 					}
 
 					rejectIfRepoint(resolved.repoPath);
 					if (existing && existing.repoPath === resolved.repoPath) {
-						return { repoPath: existing.repoPath };
+						const mainWorkspace = await ensureMainWorkspace(
+							ctx,
+							input.projectId,
+							existing.repoPath,
+						);
+						return {
+							repoPath: existing.repoPath,
+							mainWorkspaceId: mainWorkspace?.id ?? null,
+						};
 					}
 
-					if (!cloudProject.repoCloneUrl) {
+					if (!cloudProject.repoCloneUrl && resolved.parsed) {
 						await ctx.api.v2Project.linkRepoCloneUrl.mutate({
 							organizationId: ctx.organizationId,
 							id: input.projectId,
@@ -233,7 +261,15 @@ export const projectRouter = router({
 						});
 					}
 					persistLocalProject(ctx, input.projectId, resolved);
-					return { repoPath: resolved.repoPath };
+					const mainWorkspace = await ensureMainWorkspace(
+						ctx,
+						input.projectId,
+						resolved.repoPath,
+					);
+					return {
+						repoPath: resolved.repoPath,
+						mainWorkspaceId: mainWorkspace?.id ?? null,
+					};
 				}
 			}
 		}),
@@ -253,6 +289,13 @@ export const projectRouter = router({
 				.all();
 
 			for (const ws of localWorkspaces) {
+				if (ws.worktreePath === localProject.repoPath) {
+					await ctx.api.v2Workspace.deleteMainForHost.mutate({
+						id: ws.id,
+						projectId: input.projectId,
+					});
+					continue;
+				}
 				try {
 					const git = await ctx.git(localProject.repoPath);
 					await git.raw(["worktree", "remove", ws.worktreePath]);

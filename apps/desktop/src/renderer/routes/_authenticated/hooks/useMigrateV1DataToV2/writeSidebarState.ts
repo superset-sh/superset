@@ -135,7 +135,6 @@ export function writeV2SidebarState(
 				tabOrder: workspaceTabOrder.get(v1WorkspaceId) ?? v1Workspace.tabOrder,
 				sectionId: v2SectionId,
 				changesFilter: { kind: "all" },
-				changesSubtab: "diffs",
 			},
 			paneLayout: EMPTY_PANE_LAYOUT,
 			viewedFiles: [],

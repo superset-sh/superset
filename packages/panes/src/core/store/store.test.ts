@@ -39,6 +39,32 @@ describe("tab operations", () => {
 		expect(store.getState().activeTabId).toBe("t2");
 	});
 
+	it("removes the active middle tab and selects the next tab", () => {
+		const store = makeStore();
+		store.getState().addTab({ id: "t1", panes: [tp("p1")] });
+		store.getState().addTab({ id: "t2", panes: [tp("p2")] });
+		store.getState().addTab({ id: "t3", panes: [tp("p3")] });
+		store.getState().setActiveTab("t2");
+
+		store.getState().removeTab("t2");
+
+		expect(store.getState().tabs.map((t) => t.id)).toEqual(["t1", "t3"]);
+		expect(store.getState().activeTabId).toBe("t3");
+	});
+
+	it("removes the active last tab and selects the previous tab", () => {
+		const store = makeStore();
+		store.getState().addTab({ id: "t1", panes: [tp("p1")] });
+		store.getState().addTab({ id: "t2", panes: [tp("p2")] });
+		store.getState().addTab({ id: "t3", panes: [tp("p3")] });
+		store.getState().setActiveTab("t3");
+
+		store.getState().removeTab("t3");
+
+		expect(store.getState().tabs.map((t) => t.id)).toEqual(["t1", "t2"]);
+		expect(store.getState().activeTabId).toBe("t2");
+	});
+
 	it("removes the only tab and sets activeTabId to null", () => {
 		const store = makeStore();
 		store.getState().addTab({ id: "t1", panes: [tp("p1")] });
@@ -410,6 +436,19 @@ describe("collapsing", () => {
 		expect(store.getState().activeTabId).toBeNull();
 	});
 
+	it("close last pane in active middle tab selects the next tab", () => {
+		const store = makeStore();
+		store.getState().addTab({ id: "t1", panes: [tp("p1")] });
+		store.getState().addTab({ id: "t2", panes: [tp("p2")] });
+		store.getState().addTab({ id: "t3", panes: [tp("p3")] });
+		store.getState().setActiveTab("t2");
+
+		store.getState().closePane({ tabId: "t2", paneId: "p2" });
+
+		expect(store.getState().tabs.map((t) => t.id)).toEqual(["t1", "t3"]);
+		expect(store.getState().activeTabId).toBe("t3");
+	});
+
 	it("activePaneId falls back to sibling after close", () => {
 		const store = makeStore();
 		store.getState().addTab({ id: "t1", panes: [tp("p1")] });
@@ -424,6 +463,19 @@ describe("collapsing", () => {
 
 		store.getState().closePane({ tabId: "t1", paneId: "p1" });
 		expect(store.getState().tabs[0]?.activePaneId).toBe("p2");
+	});
+
+	it("activePaneId selects the next pane in layout order after close", () => {
+		const store = makeStore();
+		store.getState().addTab({
+			id: "t1",
+			activePaneId: "p2",
+			panes: [tp("p1"), tp("p2"), tp("p3")],
+		});
+
+		store.getState().closePane({ tabId: "t1", paneId: "p2" });
+
+		expect(store.getState().tabs[0]?.activePaneId).toBe("p3");
 	});
 });
 
@@ -543,6 +595,48 @@ describe("movePaneToSplit", () => {
 			tabs: store.getState().tabs,
 			activeTabId: store.getState().activeTabId,
 		}).toEqual(before);
+	});
+});
+
+describe("movePaneToNewTab", () => {
+	it("moves a pane into a new tab at the requested index", () => {
+		const store = makeStore();
+		store.getState().addTab({
+			id: "t1",
+			panes: [tp("p1"), tp("p2")],
+			activePaneId: "p1",
+		});
+		store.getState().addTab({ id: "t2", panes: [tp("p3")] });
+
+		store.getState().movePaneToNewTab({ paneId: "p2", toIndex: 1 });
+
+		const tabs = store.getState().tabs;
+		const newTab = tabs[1];
+		if (!newTab) throw new Error("Expected new tab at index 1");
+
+		expect(tabs.map((t) => t.id)).toEqual(["t1", newTab.id, "t2"]);
+		expect(newTab.panes.p2).toBeDefined();
+		expect(newTab.activePaneId).toBe("p2");
+		expect(newTab.layout).toEqual({ type: "pane", paneId: "p2" });
+		expect(tabs[0]?.panes.p2).toBeUndefined();
+		expect(tabs[0]?.layout).toEqual({ type: "pane", paneId: "p1" });
+		expect(store.getState().activeTabId).toBe(newTab.id);
+	});
+
+	it("keeps insertion position stable when the source tab is removed", () => {
+		const store = makeStore();
+		store.getState().addTab({ id: "t1", panes: [tp("p1")] });
+		store.getState().addTab({ id: "t2", panes: [tp("p2")] });
+
+		store.getState().movePaneToNewTab({ paneId: "p1", toIndex: 1 });
+
+		const tabs = store.getState().tabs;
+		const newTab = tabs[0];
+		if (!newTab) throw new Error("Expected new tab at index 0");
+
+		expect(tabs.map((t) => t.id)).toEqual([newTab.id, "t2"]);
+		expect(newTab.panes.p1).toBeDefined();
+		expect(store.getState().activeTabId).toBe(newTab.id);
 	});
 });
 

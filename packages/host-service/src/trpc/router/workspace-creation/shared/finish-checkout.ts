@@ -1,4 +1,4 @@
-import { getDeviceName, getHashedDeviceId } from "@superset/shared/device-info";
+import { getHostId, getHostName } from "@superset/shared/host-info";
 import { TRPCError } from "@trpc/server";
 import { workspaces } from "../../../../db/schema";
 import type { HostServiceContext } from "../../../../types";
@@ -61,18 +61,18 @@ export async function finishCheckout(
 		}
 	};
 
-	const deviceClientId = getHashedDeviceId();
-	const deviceName = getDeviceName();
+	const machineId = getHostId();
+	const hostName = getHostName();
 
-	let host: { id: string };
+	let host: { machineId: string };
 	try {
-		host = await ctx.api.device.ensureV2Host.mutate({
+		host = await ctx.api.host.ensure.mutate({
 			organizationId: ctx.organizationId,
-			machineId: deviceClientId,
-			name: deviceName,
+			machineId,
+			name: hostName,
 		});
 	} catch (err) {
-		console.error("[workspaceCreation.checkout] ensureV2Host failed", err);
+		console.error("[workspaceCreation.checkout] host.ensure failed", err);
 		clearProgress(args.pendingId);
 		await rollbackWorktree();
 		throw new TRPCError({
@@ -87,7 +87,7 @@ export async function finishCheckout(
 			projectId: args.projectId,
 			name: args.workspaceName,
 			branch: args.branch,
-			hostId: host.id,
+			hostId: host.machineId,
 		})
 		.catch(async (err) => {
 			console.error(

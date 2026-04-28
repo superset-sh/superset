@@ -2,14 +2,17 @@ import type { AppRouter } from "@superset/host-service";
 import { workspaceTrpc } from "@superset/workspace-client";
 import type { inferRouterOutputs } from "@trpc/server";
 import { useMemo } from "react";
+import { LuMessageSquare } from "react-icons/lu";
 import type { CommentPaneData } from "../../../../types";
+import {
+	coerceCheckStatus,
+	computeChecksRollup,
+} from "../../components/PRActionHeader/utils/computeChecksStatus";
 import type { SidebarTabDefinition } from "../../types";
 import { ReviewTabContent } from "./components/ReviewTabContent";
 import type { NormalizedComment, NormalizedPR } from "./types";
 
 type RouterOutputs = inferRouterOutputs<AppRouter>;
-type V2PullRequest = NonNullable<RouterOutputs["git"]["getPullRequest"]>;
-type V2CheckRun = V2PullRequest["checks"][number];
 type V2ThreadsData = RouterOutputs["git"]["getPullRequestThreads"];
 
 interface UseReviewTabParams {
@@ -50,7 +53,7 @@ export function useReviewTab({
 			title: raw.title,
 			state: raw.isDraft ? "draft" : raw.state,
 			reviewDecision: normalizeReviewDecision(raw.reviewDecision),
-			checksStatus: computeChecksStatus(raw.checks),
+			checksStatus: computeChecksRollup(raw.checks).overall,
 			checks: raw.checks.map((c) => ({
 				name: c.name,
 				// The DB stores the already-resolved effective status (success/failure/
@@ -85,6 +88,7 @@ export function useReviewTab({
 	return {
 		id: "review",
 		label: "Review",
+		icon: LuMessageSquare,
 		badge: openCommentCount,
 		content,
 	};
@@ -100,62 +104,6 @@ function normalizeReviewDecision(
 	if (decision === "approved") return "approved";
 	if (decision === "changes_requested") return "changes_requested";
 	return "pending";
-}
-
-type EffectiveCheckStatus =
-	| "success"
-	| "failure"
-	| "pending"
-	| "skipped"
-	| "cancelled";
-
-const KNOWN_CHECK_STATUSES = new Set<string>([
-	"success",
-	"failure",
-	"pending",
-	"skipped",
-	"cancelled",
-]);
-
-/**
- * The DB stores the already-resolved effective status in `checksJson[].status`
- * (e.g. "success", "failure").  But the tRPC router re-parses it into a
- * CheckRun whose `status` field is typed as CheckStatusState ("completed" etc.)
- * and whose `conclusion` is always null.  So we first check whether the status
- * value is already one of the effective statuses; if not, fall back to the
- * status+conclusion logic for raw GitHub data.
- */
-function coerceCheckStatus(
-	status: string,
-	conclusion: string | null,
-): EffectiveCheckStatus {
-	if (KNOWN_CHECK_STATUSES.has(status)) return status as EffectiveCheckStatus;
-	// Raw GitHub data path: status is "completed"/"in_progress"/etc.
-	if (status !== "completed") return "pending";
-	if (!conclusion) return "pending";
-	if (conclusion === "success" || conclusion === "neutral") return "success";
-	if (conclusion === "skipped") return "skipped";
-	if (conclusion === "cancelled") return "cancelled";
-	return "failure";
-}
-
-function computeChecksStatus(
-	checks: V2CheckRun[],
-): "success" | "failure" | "pending" | "none" {
-	let hasFailure = false;
-	let hasPending = false;
-	let relevantCount = 0;
-	for (const c of checks) {
-		const s = coerceCheckStatus(c.status, c.conclusion);
-		if (s === "skipped" || s === "cancelled") continue;
-		relevantCount++;
-		if (s === "failure") hasFailure = true;
-		else if (s === "pending") hasPending = true;
-	}
-	if (relevantCount === 0) return "none";
-	if (hasFailure) return "failure";
-	if (hasPending) return "pending";
-	return "success";
 }
 
 function computeDurationText(

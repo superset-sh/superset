@@ -11,7 +11,6 @@ import type {
 	SelectMember,
 	SelectOrganization,
 	SelectProject,
-	SelectSessionHost,
 	SelectSubscription,
 	SelectTask,
 	SelectTaskStatus,
@@ -101,7 +100,6 @@ export interface OrgCollections {
 	subscriptions: Collection<SelectSubscription>;
 	apiKeys: Collection<ApiKeyDisplay>;
 	chatSessions: Collection<SelectChatSession>;
-	sessionHosts: Collection<SelectSessionHost>;
 	githubRepositories: Collection<SelectGithubRepository>;
 	githubPullRequests: Collection<SelectGithubPullRequest>;
 	automations: Collection<SelectAutomation>;
@@ -302,7 +300,9 @@ function createOrgCollections(organizationId: string): OrgCollections {
 				headers: electricHeaders,
 				columnMapper,
 			},
-			getKey: (item) => item.id,
+			// Composite PK on (organization_id, machine_id); within an
+			// org-scoped collection, machineId alone is unique.
+			getKey: (item) => item.machineId,
 		}),
 	);
 
@@ -318,7 +318,9 @@ function createOrgCollections(organizationId: string): OrgCollections {
 				headers: electricHeaders,
 				columnMapper,
 			},
-			getKey: (item) => item.id,
+			// Composite PK on (organization_id, user_id, machine_id); within
+			// an org-scoped collection, (user_id, machine_id) is unique.
+			getKey: (item) => `${item.userId}:${item.machineId}`,
 		}),
 	);
 
@@ -334,7 +336,36 @@ function createOrgCollections(organizationId: string): OrgCollections {
 				headers: electricHeaders,
 				columnMapper,
 			},
-			getKey: (item) => item.id,
+			getKey: (item) => `${item.userId}:${item.hostId}`,
+			onInsert: async ({ transaction }) => {
+				const item = transaction.mutations[0].modified;
+				const result = await apiClient.v2Host.addMember.mutate({
+					hostId: item.hostId,
+					userId: item.userId,
+					role: item.role,
+				});
+				return { txid: result.txid };
+			},
+			onUpdate: async ({ transaction }) => {
+				const { original, changes } = transaction.mutations[0];
+				if (changes.role === undefined) {
+					throw new Error("Only role updates are supported on v2_users_hosts");
+				}
+				const result = await apiClient.v2Host.setMemberRole.mutate({
+					hostId: original.hostId,
+					userId: original.userId,
+					role: changes.role,
+				});
+				return { txid: result.txid };
+			},
+			onDelete: async ({ transaction }) => {
+				const item = transaction.mutations[0].original;
+				const result = await apiClient.v2Host.removeMember.mutate({
+					hostId: item.hostId,
+					userId: item.userId,
+				});
+				return { txid: result.txid };
+			},
 		}),
 	);
 
@@ -527,22 +558,6 @@ function createOrgCollections(organizationId: string): OrgCollections {
 		}),
 	);
 
-	const sessionHosts = createIndexedCollection(
-		electricCollectionOptions<SelectSessionHost>({
-			id: `session_hosts-${organizationId}`,
-			shapeOptions: {
-				url: electricUrl,
-				params: {
-					table: "session_hosts",
-					organizationId,
-				},
-				headers: electricHeaders,
-				columnMapper,
-			},
-			getKey: (item) => item.id,
-		}),
-	);
-
 	const githubRepositories = createIndexedCollection(
 		electricCollectionOptions<SelectGithubRepository>({
 			id: `github_repositories-${organizationId}`,
@@ -682,7 +697,6 @@ function createOrgCollections(organizationId: string): OrgCollections {
 		subscriptions,
 		apiKeys,
 		chatSessions,
-		sessionHosts,
 		githubRepositories,
 		githubPullRequests,
 		automations,

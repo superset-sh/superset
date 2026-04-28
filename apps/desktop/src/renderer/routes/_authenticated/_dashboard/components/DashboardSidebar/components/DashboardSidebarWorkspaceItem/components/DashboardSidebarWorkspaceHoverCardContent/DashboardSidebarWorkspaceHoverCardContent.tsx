@@ -2,7 +2,12 @@ import { Button } from "@superset/ui/button";
 import { Kbd, KbdGroup } from "@superset/ui/kbd";
 import { formatDistanceToNow } from "date-fns";
 import { FaGithub } from "react-icons/fa";
-import { LuExternalLink, LuGlobe, LuTriangleAlert } from "react-icons/lu";
+import {
+	LuExternalLink,
+	LuGlobe,
+	LuPencil,
+	LuTriangleAlert,
+} from "react-icons/lu";
 import type { DiffStats } from "renderer/hooks/host-service/useDiffStats";
 import { useHotkeyDisplay } from "renderer/hotkeys";
 import type { DashboardSidebarWorkspace } from "../../../../types";
@@ -14,11 +19,13 @@ import { ReviewStatus } from "./components/ReviewStatus";
 interface DashboardSidebarWorkspaceHoverCardContentProps {
 	workspace: DashboardSidebarWorkspace;
 	diffStats: DiffStats | null;
+	onEditBranchClick?: (branchName: string) => void;
 }
 
 export function DashboardSidebarWorkspaceHoverCardContent({
 	workspace,
 	diffStats,
+	onEditBranchClick,
 }: DashboardSidebarWorkspaceHoverCardContentProps) {
 	const {
 		name,
@@ -59,23 +66,37 @@ export function DashboardSidebarWorkspaceHoverCardContent({
 					<span className="text-[10px] uppercase tracking-wide text-muted-foreground">
 						Branch
 					</span>
-					{repoUrl && branchExistsOnRemote ? (
-						<a
-							href={`${repoUrl}/tree/${branch}`}
-							target="_blank"
-							rel="noopener noreferrer"
-							className={`flex items-center gap-1 font-mono break-all hover:underline ${hasCustomAlias ? "text-xs" : "text-sm"}`}
-						>
-							{branch}
-							<LuExternalLink className="size-3 shrink-0" />
-						</a>
-					) : (
-						<code
-							className={`font-mono break-all block ${hasCustomAlias ? "text-xs" : "text-sm"}`}
-						>
-							{branch}
-						</code>
-					)}
+					<div className="flex items-center gap-1.5">
+						{onEditBranchClick ? (
+							<button
+								type="button"
+								onClick={() => onEditBranchClick(branch)}
+								className={`group/branch flex min-w-0 flex-1 items-center gap-1 font-mono break-all text-left hover:text-foreground hover:underline ${hasCustomAlias ? "text-xs" : "text-sm"}`}
+								title="Rename branch"
+							>
+								<span className="break-all">{branch}</span>
+								<LuPencil className="size-3 shrink-0 opacity-0 group-hover/branch:opacity-100 transition-opacity" />
+							</button>
+						) : (
+							<code
+								className={`font-mono break-all block min-w-0 flex-1 ${hasCustomAlias ? "text-xs" : "text-sm"}`}
+							>
+								{branch}
+							</code>
+						)}
+						{repoUrl && branchExistsOnRemote && (
+							<a
+								href={`${repoUrl}/tree/${branch}`}
+								target="_blank"
+								rel="noopener noreferrer"
+								className="shrink-0 text-muted-foreground hover:text-foreground"
+								title="Open branch on GitHub"
+								onClick={(e) => e.stopPropagation()}
+							>
+								<LuExternalLink className="size-3" />
+							</a>
+						)}
+					</div>
 				</div>
 				<span className="text-xs text-muted-foreground block">
 					{formatDistanceToNow(createdAt, { addSuffix: true })}

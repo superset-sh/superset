@@ -16,6 +16,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
+import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { ClickablePath } from "../../../../../../components/ClickablePath";
@@ -42,6 +43,8 @@ export function ProjectLocationSection({
 	const selectDirectory = electronTrpc.window.selectDirectory.useMutation();
 	const navigate = useNavigate();
 	const collections = useCollections();
+	const { ensureProjectInSidebar, ensureWorkspaceInSidebar } =
+		useDashboardSidebarState();
 
 	const { data: hostRows } = useLiveQuery(
 		(q) =>
@@ -76,6 +79,11 @@ export function ProjectLocationSection({
 					? `Project relocated to ${result.repoPath}`
 					: `Project set up at ${result.repoPath}`,
 			);
+			if (result.mainWorkspaceId) {
+				ensureWorkspaceInSidebar(result.mainWorkspaceId, projectId);
+			} else {
+				ensureProjectInSidebar(projectId);
+			}
 			onChanged?.();
 			return true;
 		} catch (err) {
@@ -96,6 +104,11 @@ export function ProjectLocationSection({
 				mode: { kind: "clone", parentDir },
 			});
 			toast.success(`Cloned to ${result.repoPath}`);
+			if (result.mainWorkspaceId) {
+				ensureWorkspaceInSidebar(result.mainWorkspaceId, projectId);
+			} else {
+				ensureProjectInSidebar(projectId);
+			}
 			onChanged?.();
 			return true;
 		} catch (err) {

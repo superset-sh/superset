@@ -1,7 +1,7 @@
 import crypto from "node:crypto";
 import fs from "node:fs/promises";
 import { AUTH_PROVIDERS } from "@superset/shared/constants";
-import { getDeviceName, getHashedDeviceId } from "@superset/shared/device-info";
+import { getHostId, getHostName } from "@superset/shared/host-info";
 import { observable } from "@trpc/server/observable";
 import { shell } from "electron";
 import { env } from "main/env.main";
@@ -23,8 +23,8 @@ export const createAuthRouter = () => {
 		getStoredToken: publicProcedure.query(() => loadToken()),
 
 		getDeviceInfo: publicProcedure.query(() => ({
-			deviceId: getHashedDeviceId(),
-			deviceName: getDeviceName(),
+			deviceId: getHostId(),
+			deviceName: getHostName(),
 		})),
 
 		persistToken: publicProcedure

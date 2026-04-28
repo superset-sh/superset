@@ -4,12 +4,11 @@ WORKDIR /app
 # Stage 1: Prune monorepo to relay's dependency graph
 FROM base AS prune
 COPY . .
-RUN bunx turbo prune @superset/relay --docker
+RUN bunx turbo@2.8.7 prune @superset/relay --docker
 
 # Stage 2: Install deps + copy full source
 FROM base AS builder
 COPY --from=prune /app/out/json/ ./
-COPY patches patches
 RUN bun install --frozen-lockfile --ignore-scripts
 COPY --from=prune /app/out/full/ ./
 

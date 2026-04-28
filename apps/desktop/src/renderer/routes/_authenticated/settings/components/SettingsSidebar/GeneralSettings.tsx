@@ -5,8 +5,10 @@ import {
 	HiOutlineBell,
 	HiOutlineBuildingOffice2,
 	HiOutlineCommandLine,
+	HiOutlineComputerDesktop,
 	HiOutlineCpuChip,
 	HiOutlineCreditCard,
+	HiOutlineFolder,
 	HiOutlineKey,
 	HiOutlineLink,
 	HiOutlineLockClosed,
@@ -41,7 +43,9 @@ type SettingsRoute =
 	| "/settings/billing"
 	| "/settings/api-keys"
 	| "/settings/security"
-	| "/settings/permissions";
+	| "/settings/permissions"
+	| "/settings/projects"
+	| "/settings/hosts";
 
 interface SectionItem {
 	id: SettingsRoute;
@@ -137,6 +141,18 @@ const SECTION_GROUPS: SectionGroup[] = [
 				icon: <HiOutlineBuildingOffice2 className="h-4 w-4" />,
 			},
 			{
+				id: "/settings/projects",
+				section: "project",
+				label: "Projects",
+				icon: <HiOutlineFolder className="h-4 w-4" />,
+			},
+			{
+				id: "/settings/hosts",
+				section: "hosts",
+				label: "Hosts",
+				icon: <HiOutlineComputerDesktop className="h-4 w-4" />,
+			},
+			{
 				id: "/settings/integrations",
 				section: "integrations",
 				label: "Integrations",
@@ -206,7 +222,10 @@ export function GeneralSettings({ matchCounts }: GeneralSettingsProps) {
 						</h2>
 						<nav className="flex flex-col">
 							{filteredItems.map((section) => {
-								const isActive = matchRoute({ to: section.id });
+								const isActive = !!matchRoute({
+									to: section.id,
+									fuzzy: true,
+								});
 								const count = matchCounts?.[section.section];
 
 								return (

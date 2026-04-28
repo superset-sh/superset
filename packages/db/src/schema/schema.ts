@@ -2,11 +2,13 @@ import type { ResolvedAgentConfig } from "@superset/shared/agent-settings";
 import { sql } from "drizzle-orm";
 import {
 	boolean,
+	foreignKey,
 	index,
 	integer,
 	jsonb,
 	pgEnum,
 	pgTable,
+	primaryKey,
 	real,
 	text,
 	timestamp,
@@ -25,6 +27,7 @@ import {
 	taskStatusEnumValues,
 	v2ClientTypeValues,
 	v2UsersHostRoleValues,
+	v2WorkspaceTypeValues,
 	workspaceTypeValues,
 } from "./enums";
 import { githubRepositories } from "./github";
@@ -43,6 +46,10 @@ export const v2ClientType = pgEnum("v2_client_type", v2ClientTypeValues);
 export const v2UsersHostRole = pgEnum(
 	"v2_users_host_role",
 	v2UsersHostRoleValues,
+);
+export const v2WorkspaceType = pgEnum(
+	"v2_workspace_type",
+	v2WorkspaceTypeValues,
 );
 
 export const taskStatuses = pgTable(
@@ -243,7 +250,9 @@ export const subscriptions = pgTable(
 export type InsertSubscription = typeof subscriptions.$inferInsert;
 export type SelectSubscription = typeof subscriptions.$inferSelect;
 
-// Device presence - tracks online devices for command routing
+// Device presence — v1 concept. Tracks per-(user, machine) presence for
+// MCP ownership verification. Untouched by the v2 host consolidation; will
+// be retired when v1 is removed.
 export const devicePresence = pgTable(
 	"device_presence",
 	{
@@ -405,12 +414,6 @@ export const v2Projects = pgTable(
 	(table) => [
 		index("v2_projects_organization_id_idx").on(table.organizationId),
 		unique("v2_projects_org_slug_unique").on(table.organizationId, table.slug),
-		// One project per repo URL per org. NULLs don't collide (PG default)
-		// so empty-mode projects without a remote can still be created.
-		uniqueIndex("v2_projects_org_repo_clone_url_unique").on(
-			table.organizationId,
-			sql`lower(${table.repoCloneUrl})`,
-		),
 	],
 );
 
@@ -420,7 +423,6 @@ export type SelectV2Project = typeof v2Projects.$inferSelect;
 export const v2Hosts = pgTable(
 	"v2_hosts",
 	{
-		id: uuid().primaryKey().defaultRandom(),
 		organizationId: uuid("organization_id")
 			.notNull()
 			.references(() => organizations.id, { onDelete: "cascade" }),
@@ -439,11 +441,8 @@ export const v2Hosts = pgTable(
 			.$onUpdate(() => new Date()),
 	},
 	(table) => [
+		primaryKey({ columns: [table.organizationId, table.machineId] }),
 		index("v2_hosts_organization_id_idx").on(table.organizationId),
-		unique("v2_hosts_org_machine_id_unique").on(
-			table.organizationId,
-			table.machineId,
-		),
 	],
 );
 
@@ -453,7 +452,6 @@ export type SelectV2Host = typeof v2Hosts.$inferSelect;
 export const v2Clients = pgTable(
 	"v2_clients",
 	{
-		id: uuid().primaryKey().defaultRandom(),
 		organizationId: uuid("organization_id")
 			.notNull()
 			.references(() => organizations.id, { onDelete: "cascade" }),
@@ -471,13 +469,11 @@ export const v2Clients = pgTable(
 			.$onUpdate(() => new Date()),
 	},
 	(table) => [
+		primaryKey({
+			columns: [table.organizationId, table.userId, table.machineId],
+		}),
 		index("v2_clients_organization_id_idx").on(table.organizationId),
 		index("v2_clients_user_id_idx").on(table.userId),
-		unique("v2_clients_org_user_machine_unique").on(
-			table.organizationId,
-			table.userId,
-			table.machineId,
-		),
 	],
 );
 
@@ -487,16 +483,13 @@ export type SelectV2Client = typeof v2Clients.$inferSelect;
 export const v2UsersHosts = pgTable(
 	"v2_users_hosts",
 	{
-		id: uuid().primaryKey().defaultRandom(),
 		organizationId: uuid("organization_id")
 			.notNull()
 			.references(() => organizations.id, { onDelete: "cascade" }),
 		userId: uuid("user_id")
 			.notNull()
 			.references(() => users.id, { onDelete: "cascade" }),
-		hostId: uuid("host_id")
-			.notNull()
-			.references(() => v2Hosts.id, { onDelete: "cascade" }),
+		hostId: text("host_id").notNull(),
 		role: v2UsersHostRole().notNull().default("member"),
 		createdAt: timestamp("created_at", { withTimezone: true })
 			.notNull()
@@ -507,14 +500,17 @@ export const v2UsersHosts = pgTable(
 			.$onUpdate(() => new Date()),
 	},
 	(table) => [
+		primaryKey({
+			columns: [table.organizationId, table.userId, table.hostId],
+		}),
+		foreignKey({
+			columns: [table.organizationId, table.hostId],
+			foreignColumns: [v2Hosts.organizationId, v2Hosts.machineId],
+			name: "v2_users_hosts_host_fk",
+		}).onDelete("cascade"),
 		index("v2_users_hosts_organization_id_idx").on(table.organizationId),
 		index("v2_users_hosts_user_id_idx").on(table.userId),
 		index("v2_users_hosts_host_id_idx").on(table.hostId),
-		unique("v2_users_hosts_org_user_host_unique").on(
-			table.organizationId,
-			table.userId,
-			table.hostId,
-		),
 	],
 );
 
@@ -531,11 +527,10 @@ export const v2Workspaces = pgTable(
 		projectId: uuid("project_id")
 			.notNull()
 			.references(() => v2Projects.id, { onDelete: "cascade" }),
-		hostId: uuid("host_id")
-			.notNull()
-			.references(() => v2Hosts.id),
+		hostId: text("host_id").notNull(),
 		name: text().notNull(),
 		branch: text().notNull(),
+		type: v2WorkspaceType().notNull().default("worktree"),
 		createdByUserId: uuid("created_by_user_id").references(() => users.id, {
 			onDelete: "set null",
 		}),
@@ -548,9 +543,17 @@ export const v2Workspaces = pgTable(
 			.$onUpdate(() => new Date()),
 	},
 	(table) => [
+		foreignKey({
+			columns: [table.organizationId, table.hostId],
+			foreignColumns: [v2Hosts.organizationId, v2Hosts.machineId],
+			name: "v2_workspaces_host_fk",
+		}),
 		index("v2_workspaces_project_id_idx").on(table.projectId),
 		index("v2_workspaces_organization_id_idx").on(table.organizationId),
 		index("v2_workspaces_host_id_idx").on(table.hostId),
+		uniqueIndex("v2_workspaces_one_main_per_host")
+			.on(table.projectId, table.hostId)
+			.where(sql`${table.type} = 'main'`),
 	],
 );
 
@@ -683,29 +686,6 @@ export const chatSessions = pgTable(
 export type InsertChatSession = typeof chatSessions.$inferInsert;
 export type SelectChatSession = typeof chatSessions.$inferSelect;
 
-export const sessionHosts = pgTable(
-	"session_hosts",
-	{
-		id: uuid().primaryKey().defaultRandom(),
-		sessionId: uuid("session_id")
-			.notNull()
-			.references(() => chatSessions.id, { onDelete: "cascade" }),
-		organizationId: uuid("organization_id")
-			.notNull()
-			.references(() => organizations.id, { onDelete: "cascade" }),
-		deviceId: text("device_id").notNull(),
-		createdAt: timestamp("created_at").notNull().defaultNow(),
-	},
-	(table) => [
-		index("session_hosts_session_id_idx").on(table.sessionId),
-		index("session_hosts_org_idx").on(table.organizationId),
-		index("session_hosts_device_id_idx").on(table.deviceId),
-	],
-);
-
-export type InsertSessionHost = typeof sessionHosts.$inferInsert;
-export type SelectSessionHost = typeof sessionHosts.$inferSelect;
-
 export const automationRunStatus = pgEnum(
 	"automation_run_status",
 	automationRunStatusValues,
@@ -732,9 +712,7 @@ export const automations = pgTable(
 
 		agentConfig: jsonb("agent_config").$type<ResolvedAgentConfig>().notNull(),
 
-		targetHostId: uuid("target_host_id").references(() => v2Hosts.id, {
-			onDelete: "set null",
-		}),
+		targetHostId: text("target_host_id"),
 
 		v2ProjectId: uuid("v2_project_id")
 			.notNull()
@@ -784,9 +762,7 @@ export const automationRuns = pgTable(
 
 		scheduledFor: timestamp("scheduled_for", { withTimezone: true }).notNull(),
 
-		hostId: uuid("host_id").references(() => v2Hosts.id, {
-			onDelete: "set null",
-		}),
+		hostId: text("host_id"),
 		v2WorkspaceId: uuid("v2_workspace_id"),
 
 		sessionKind: automationSessionKind("session_kind"),

@@ -38,6 +38,7 @@ export function DashboardSidebarHeader({
 }: DashboardSidebarHeaderProps) {
 	const openModal = useOpenNewWorkspaceModal();
 	const openNewProject = useOpenNewProjectModal();
+	const navigate = useNavigate();
 	const folderImport = useFolderFirstImport({
 		onSuccess: () => {
 			toast.success("Project ready — open it from the sidebar.");
@@ -45,9 +46,17 @@ export function DashboardSidebarHeader({
 		onError: (message) => {
 			toast.error(`Import failed: ${message}`);
 		},
+		onMultipleProjects: ({ candidates }) => {
+			toast.error("Import failed", {
+				description: `Multiple projects use this repository (${candidates.length}). Choose the project in settings to set it up on this device.`,
+				action: {
+					label: "Open Projects",
+					onClick: () => navigate({ to: "/settings/projects" }),
+				},
+			});
+		},
 	});
 	const shortcutText = useHotkeyDisplay("NEW_WORKSPACE").text;
-	const navigate = useNavigate();
 	const matchRoute = useMatchRoute();
 	const { gateFeature } = usePaywall();
 	const isWorkspacesListOpen = !!matchRoute({ to: "/v2-workspaces" });

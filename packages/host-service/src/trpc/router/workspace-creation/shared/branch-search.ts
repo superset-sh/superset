@@ -1,3 +1,4 @@
+import { realpathSync } from "node:fs";
 import { resolve as resolvePath, sep } from "node:path";
 import { eq } from "drizzle-orm";
 import { workspaces } from "../../../../db/schema";
@@ -41,6 +42,14 @@ export function shouldRefetchRemote(projectId: string): boolean {
 
 export function markRefetchRemote(projectId: string): void {
 	lastRemoteRefetch.set(projectId, Date.now());
+}
+
+function normalizeWorktreePath(path: string): string {
+	try {
+		return realpathSync.native(path);
+	} catch {
+		return resolvePath(path);
+	}
 }
 
 export async function listWorktreeBranches(
@@ -109,17 +118,32 @@ export async function findWorktreeAtPath(
 	worktreePath: string,
 	expectedBranch: string,
 ): Promise<boolean> {
-	const targetPath = resolvePath(worktreePath);
+	const branch = await getWorktreeBranchAtPath(git, worktreePath);
+	return branch === expectedBranch;
+}
+
+/**
+ * Returns the branch currently checked out at a registered git worktree path.
+ * Explicit path adoption uses this so stale database branch names do not make
+ * migration skip a perfectly valid worktree.
+ */
+export async function getWorktreeBranchAtPath(
+	git: GitClient,
+	worktreePath: string,
+): Promise<string | null> {
+	const targetPath = normalizeWorktreePath(worktreePath);
 	try {
 		const raw = await git.raw(["worktree", "list", "--porcelain"]);
 		let currentPath: string | null = null;
 		for (const line of raw.split("\n")) {
 			if (line.startsWith("worktree ")) {
-				currentPath = line.slice("worktree ".length).trim();
+				currentPath = normalizeWorktreePath(
+					line.slice("worktree ".length).trim(),
+				);
 			} else if (line.startsWith("branch refs/heads/") && currentPath) {
-				if (resolvePath(currentPath) !== targetPath) continue;
+				if (currentPath !== targetPath) continue;
 				const branch = line.slice("branch refs/heads/".length).trim();
-				return branch === expectedBranch;
+				return branch || null;
 			} else if (line === "") {
 				currentPath = null;
 			}
@@ -130,7 +154,7 @@ export async function findWorktreeAtPath(
 			err,
 		);
 	}
-	return false;
+	return null;
 }
 
 // Parses `git log -g` to return {branchName: ordinal} where 0 = most recent.

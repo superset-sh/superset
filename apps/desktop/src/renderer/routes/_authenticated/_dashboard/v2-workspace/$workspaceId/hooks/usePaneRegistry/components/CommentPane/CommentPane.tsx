@@ -1,6 +1,5 @@
 import { mermaid } from "@streamdown/mermaid";
 import type { RendererContext } from "@superset/panes";
-import { Avatar, AvatarFallback, AvatarImage } from "@superset/ui/avatar";
 import {
 	type ReactNode,
 	useCallback,
@@ -8,7 +7,7 @@ import {
 	useRef,
 	useState,
 } from "react";
-import { LuCheck, LuCopy } from "react-icons/lu";
+import { LuCheck } from "react-icons/lu";
 import ReactMarkdown from "react-markdown";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import {
@@ -30,84 +29,18 @@ interface CommentPaneProps {
 
 export function CommentPane({ context }: CommentPaneProps) {
 	const data = context.pane.data as CommentPaneData;
-	const [copied, setCopied] = useState(false);
-	const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-	const isMountedRef = useRef(true);
-
-	useEffect(() => {
-		return () => {
-			isMountedRef.current = false;
-			if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
-		};
-	}, []);
-
-	const handleCopyAll = useCallback(() => {
-		void electronTrpcClient.external.copyText
-			.mutate(data.body)
-			.then(() => {
-				if (!isMountedRef.current) return;
-				if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
-				setCopied(true);
-				copyTimerRef.current = setTimeout(() => {
-					if (!isMountedRef.current) return;
-					setCopied(false);
-					copyTimerRef.current = null;
-				}, 1500);
-			})
-			.catch((err) => {
-				console.warn("Failed to copy comment text", err);
-			});
-	}, [data.body]);
 
 	return (
-		<div className="flex h-full w-full flex-col overflow-hidden">
-			<div className="flex items-center gap-2 border-b border-border px-4 py-2.5">
-				<Avatar className="size-5 shrink-0">
-					{data.avatarUrl ? (
-						<AvatarImage src={data.avatarUrl} alt={data.authorLogin} />
-					) : null}
-					<AvatarFallback className="text-[10px] font-medium">
-						{data.authorLogin.slice(0, 2).toUpperCase()}
-					</AvatarFallback>
-				</Avatar>
-				<span className="text-sm font-medium text-foreground">
-					{data.authorLogin}
-				</span>
-				{data.path && (
-					<span className="truncate text-xs text-muted-foreground">
-						{data.path}
-						{data.line != null ? `:${data.line}` : ""}
-					</span>
-				)}
-				<button
-					type="button"
-					onClick={handleCopyAll}
-					className="ml-auto flex shrink-0 items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+		<div className="comment-pane-markdown min-h-0 min-w-0 flex-1 overflow-y-auto select-text">
+			<article className="w-full px-6 py-5">
+				<ReactMarkdown
+					remarkPlugins={[remarkGfm]}
+					rehypePlugins={[rehypeRaw, rehypeSanitize]}
+					components={commentComponents}
 				>
-					{copied ? (
-						<>
-							<LuCheck className="size-3" />
-							Copied
-						</>
-					) : (
-						<>
-							<LuCopy className="size-3" />
-							Copy All
-						</>
-					)}
-				</button>
-			</div>
-			<div className="comment-pane-markdown min-h-0 flex-1 overflow-y-auto select-text">
-				<article className="w-full px-6 py-5">
-					<ReactMarkdown
-						remarkPlugins={[remarkGfm]}
-						rehypePlugins={[rehypeRaw, rehypeSanitize]}
-						components={commentComponents}
-					>
-						{data.body}
-					</ReactMarkdown>
-				</article>
-			</div>
+					{data.body}
+				</ReactMarkdown>
+			</article>
 		</div>
 	);
 }

@@ -1,7 +1,6 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "streamdown/styles.css";
-@import "./styles/fade-edge.css";
 
 @source "./**/*.{ts,tsx}";
 @source "../../../../packages/ui/src/**/*.{ts,tsx}";
@@ -203,20 +202,6 @@
 
 	.hide-scrollbar::-webkit-scrollbar {
 		display: none; /* Chrome/Safari/Electron */
-	}
-
-	/* Fade out the right edge of a horizontally-scrolling container */
-	.fade-edge-r {
-		mask-image: linear-gradient(
-			to right,
-			black calc(100% - 1.5rem),
-			transparent
-		);
-		-webkit-mask-image: linear-gradient(
-			to right,
-			black calc(100% - 1.5rem),
-			transparent
-		);
 	}
 
 	/* Dark mode scrollbar styling */
