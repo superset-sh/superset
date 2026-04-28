@@ -47,6 +47,7 @@ import type {
 } from "../../types";
 import { BrowserPane, BrowserPaneToolbar } from "./components/BrowserPane";
 import { ChatPane } from "./components/ChatPane";
+import { ChatPaneTitle } from "./components/ChatPane/components/ChatPaneTitle";
 import { CommentPane } from "./components/CommentPane";
 import { CommentPaneHeaderExtras } from "./components/CommentPane/components/CommentPaneHeaderExtras";
 import { CommentPaneTitle } from "./components/CommentPane/components/CommentPaneTitle";
@@ -427,21 +428,7 @@ export function usePaneRegistry(
 				getIcon: () => <MessageSquare className="size-3.5" />,
 				getTitle: () => "Chat",
 				renderTitle: (ctx: RendererContext<PaneViewerData>) => (
-					<div className="flex min-w-0 flex-1 items-center gap-1.5">
-						<MessageSquare className="size-3.5 shrink-0" />
-						<span
-							className={cn(
-								"min-w-0 flex-1 truncate text-xs transition-colors duration-150",
-								ctx.isActive ? "text-foreground" : "text-muted-foreground",
-							)}
-						>
-							Chat
-						</span>
-						<V2NotificationStatusIndicator
-							workspaceId={workspaceId}
-							sources={getV2NotificationSourcesForPane(ctx.pane)}
-						/>
-					</div>
+					<ChatPaneTitle context={ctx} workspaceId={workspaceId} />
 				),
 				renderPane: (ctx: RendererContext<PaneViewerData>) => {
 					const data = ctx.pane.data as ChatPaneData;

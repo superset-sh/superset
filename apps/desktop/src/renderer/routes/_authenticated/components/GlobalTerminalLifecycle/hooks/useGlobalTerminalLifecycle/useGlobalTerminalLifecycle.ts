@@ -1,6 +1,5 @@
 import type { WorkspaceState } from "@superset/panes";
 import { buildHostRoutingKey } from "@superset/shared/host-routing";
-import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useEffect, useMemo, useRef } from "react";
 import { env } from "renderer/env.renderer";
@@ -129,26 +128,22 @@ export function useGlobalTerminalLifecycle() {
 		[collections],
 	);
 
-	const { data: workspacesWithHosts = [] } = useLiveQuery(
+	const { data: workspaceRows = [] } = useLiveQuery(
 		(query) =>
 			query
 				.from({ v2Workspaces: collections.v2Workspaces })
-				.leftJoin({ hosts: collections.v2Hosts }, ({ v2Workspaces, hosts }) =>
-					eq(v2Workspaces.hostId, hosts.machineId),
-				)
-				.select(({ v2Workspaces, hosts }) => ({
+				.select(({ v2Workspaces }) => ({
 					workspaceId: v2Workspaces.id,
 					organizationId: v2Workspaces.organizationId,
 					hostId: v2Workspaces.hostId,
-					hostMachineId: hosts?.machineId ?? null,
 				})),
 		[collections],
 	);
 
 	const hostUrlByWorkspaceId = useMemo(() => {
 		const urls = new Map<string, string>();
-		for (const workspace of workspacesWithHosts) {
-			if (workspace.hostMachineId === machineId) {
+		for (const workspace of workspaceRows) {
+			if (workspace.hostId === machineId) {
 				if (activeHostUrl) {
 					urls.set(workspace.workspaceId, activeHostUrl);
 				}
@@ -163,7 +158,7 @@ export function useGlobalTerminalLifecycle() {
 			}
 		}
 		return urls;
-	}, [activeHostUrl, machineId, workspacesWithHosts]);
+	}, [activeHostUrl, machineId, workspaceRows]);
 	const hostUrlByWorkspaceIdRef = useRef(hostUrlByWorkspaceId);
 	hostUrlByWorkspaceIdRef.current = hostUrlByWorkspaceId;
 

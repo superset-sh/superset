@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useSyncExternalStore } from "react";
 import { env } from "renderer/env.renderer";
 import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import { authClient } from "renderer/lib/auth-client";
@@ -21,6 +21,10 @@ function getSummaryKey(organizationId: string): string {
 	return `v1-migration-summary-${organizationId}`;
 }
 
+function getShownKey(organizationId: string): string {
+	return `v1-migration-modal-shown-${organizationId}`;
+}
+
 export const V1_MIGRATION_SUMMARY_EVENT = "v1-migration-summary-updated";
 
 function persistSummary(organizationId: string, summary: MigrationSummary) {
@@ -28,9 +32,33 @@ function persistSummary(organizationId: string, summary: MigrationSummary) {
 		getSummaryKey(organizationId),
 		JSON.stringify({ summary, createdAt: Date.now() }),
 	);
+	localStorage.setItem(getShownKey(organizationId), "1");
 	window.dispatchEvent(
 		new CustomEvent(V1_MIGRATION_SUMMARY_EVENT, { detail: { organizationId } }),
 	);
+}
+
+// Module-level singleton so every hook instance shares the same isRunning value.
+// Without this, the auto-run from the dashboard layout and the manual rerun
+// from settings each have their own isRunning ref, letting the user start a
+// concurrent migration from settings while the auto-run is still in flight.
+let activeMigrationCount = 0;
+const migrationRunningSubscribers = new Set<() => void>();
+
+function subscribeMigrationRunning(notify: () => void) {
+	migrationRunningSubscribers.add(notify);
+	return () => {
+		migrationRunningSubscribers.delete(notify);
+	};
+}
+
+function getMigrationRunningSnapshot() {
+	return activeMigrationCount > 0;
+}
+
+function setMigrationRunning(running: boolean) {
+	activeMigrationCount = Math.max(0, activeMigrationCount + (running ? 1 : -1));
+	for (const notify of migrationRunningSubscribers) notify();
 }
 
 /**
@@ -54,12 +82,15 @@ export function useMigrateV1DataToV2({
 	const { activeHostUrl } = useLocalHostService();
 	const { isV2CloudEnabled } = useIsV2CloudEnabled();
 	const collections = useCollections();
-	const [isRunning, setIsRunning] = useState(false);
+	const isRunning = useSyncExternalStore(
+		subscribeMigrationRunning,
+		getMigrationRunningSnapshot,
+		getMigrationRunningSnapshot,
+	);
 	const organizationId = env.SKIP_ENV_VALIDATION
 		? MOCK_ORG_ID
 		: (session?.session?.activeOrganizationId ?? null);
 	const attemptedRef = useRef<string | null>(null);
-	const isRunningRef = useRef(false);
 
 	const runMigration = useCallback(
 		async ({ manual }: { manual: boolean }): Promise<MigrationRunResult> => {
@@ -72,7 +103,7 @@ export function useMigrateV1DataToV2({
 			if (!activeHostUrl) {
 				return { completed: false, reason: "Host service is not ready" };
 			}
-			if (isRunningRef.current) {
+			if (activeMigrationCount > 0) {
 				return { completed: false, reason: "Migration is already running" };
 			}
 
@@ -95,8 +126,7 @@ export function useMigrateV1DataToV2({
 
 			attemptedRef.current = organizationId;
 			sessionStorage.setItem(attemptKey, "1");
-			isRunningRef.current = true;
-			setIsRunning(true);
+			setMigrationRunning(true);
 
 			try {
 				const hostService = getHostServiceClientByUrl(activeHostUrl);
@@ -118,7 +148,9 @@ export function useMigrateV1DataToV2({
 						summary.workspacesSkipped +
 						summary.workspacesErrored >
 					0;
-				if (manual || didAnything) {
+				const alreadyShown =
+					localStorage.getItem(getShownKey(organizationId)) === "1";
+				if (manual || (didAnything && !alreadyShown)) {
 					persistSummary(organizationId, summary);
 				}
 
@@ -135,8 +167,7 @@ export function useMigrateV1DataToV2({
 				const reason = err instanceof Error ? err.message : String(err);
 				return { completed: false, reason };
 			} finally {
-				isRunningRef.current = false;
-				setIsRunning(false);
+				setMigrationRunning(false);
 			}
 		},
 		[activeHostUrl, collections, isV2CloudEnabled, organizationId],
