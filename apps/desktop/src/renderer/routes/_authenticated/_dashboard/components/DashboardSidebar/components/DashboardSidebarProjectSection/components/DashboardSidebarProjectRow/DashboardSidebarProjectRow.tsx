@@ -109,7 +109,7 @@ export const DashboardSidebarProjectRow = forwardRef<
 									onKeyDown={(event) => event.stopPropagation()}
 									onContextMenu={(event) => event.stopPropagation()}
 									aria-label="New workspace"
-									className="hidden size-full items-center justify-center rounded transition-colors hover:bg-muted group-hover:flex group-focus-within:flex focus-visible:flex focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+									className="hidden size-full items-center justify-center rounded transition-colors hover:bg-muted group-hover:flex group-has-[:focus]:flex focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
 								>
 									<HiMiniPlus className="size-4 text-muted-foreground" />
 								</button>
@@ -118,7 +118,7 @@ export const DashboardSidebarProjectRow = forwardRef<
 								New workspace
 							</TooltipContent>
 						</Tooltip>
-						<span className="text-[10px] font-normal tabular-nums text-muted-foreground group-hover:hidden group-focus-within:hidden">
+						<span className="text-[10px] font-normal tabular-nums text-muted-foreground group-hover:hidden group-has-[:focus]:hidden">
 							{totalWorkspaceCount}
 						</span>
 					</div>
