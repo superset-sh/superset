@@ -16,6 +16,7 @@ export function Workspace<TData>({
 	renderAddTabMenu,
 	renderBelowTabBar,
 	onBeforeCloseTab,
+	onAfterCloseTab,
 	onInteractionStateChange,
 	paneActions,
 	contextMenuActions,
@@ -28,13 +29,14 @@ export function Workspace<TData>({
 	});
 
 	const closeTab = async (tabId: string) => {
+		const tab = store.getState().getTab(tabId);
+		if (!tab) return;
 		if (onBeforeCloseTab) {
-			const tab = store.getState().getTab(tabId);
-			if (!tab) return;
 			const allowed = await onBeforeCloseTab(tab);
 			if (!allowed) return;
 		}
 		store.getState().removeTab(tabId);
+		onAfterCloseTab?.(tab);
 	};
 
 	return (

@@ -107,6 +107,13 @@ export interface WorkspaceProps<TData> {
 		tab: Tab<TData>,
 	) => boolean | Promise<boolean>;
 	onBeforeCloseTab?: (tab: Tab<TData>) => boolean | Promise<boolean>;
+	/**
+	 * Fires after a tab is removed via the workspace's tab-close UI. Mirrors
+	 * onBeforeCloseTab's trigger surface — does not fire from programmatic
+	 * removeTab calls outside the UI flow. Use for tab-level cleanup
+	 * (per-pane resource cleanup belongs in PaneDefinition.onAfterClose).
+	 */
+	onAfterCloseTab?: (tab: Tab<TData>) => void;
 	onInteractionStateChange?: (state: WorkspaceInteractionState) => void;
 	paneActions?:
 		| PaneActionConfig<TData>[]
