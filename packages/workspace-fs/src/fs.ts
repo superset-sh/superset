@@ -368,6 +368,11 @@ async function writeAtomically({
 	}
 }
 
+// Symlink-resolution batch size. Node's fs.readdir and fs.stat ignore
+// AbortSignal, so we can only check it between operations — batching the
+// per-entry stat calls bounds how much zombie work continues after an abort.
+const LIST_DIRECTORY_STAT_BATCH_SIZE = 16;
+
 export async function listDirectory({
 	rootPath,
 	absolutePath,
@@ -379,33 +384,35 @@ export async function listDirectory({
 }): Promise<FsEntry[]> {
 	const targetPath = ensureWithinRoot({ rootPath, absolutePath });
 	signal?.throwIfAborted();
-	// Node's fs.readdir/fs.stat ignore AbortSignal, so we can only interrupt
-	// between operations — useful for symlink-heavy dirs where the per-entry
-	// stat loop dominates the cost.
 	const entries = await fs.readdir(targetPath, { withFileTypes: true });
-	signal?.throwIfAborted();
 
-	const mapped = await Promise.all(
-		entries.map(async (entry) => {
-			signal?.throwIfAborted();
-			let kind = direntToKind(entry);
-			// Resolve symlinks to determine target type (e.g. symlinked dirs in node_modules)
-			if (kind === "symlink") {
-				try {
-					const stats = await fs.stat(path.join(targetPath, entry.name));
-					if (stats.isDirectory()) kind = "directory";
-					else if (stats.isFile()) kind = "file";
-				} catch {
-					// Dangling symlink or permission error — keep as "symlink"
-				}
-			}
-			return {
-				absolutePath: path.join(targetPath, entry.name),
-				name: entry.name,
-				kind,
-			};
-		}),
-	);
+	const mapped: FsEntry[] = [];
+	for (let i = 0; i < entries.length; i += LIST_DIRECTORY_STAT_BATCH_SIZE) {
+		signal?.throwIfAborted();
+		const batch = await Promise.all(
+			entries
+				.slice(i, i + LIST_DIRECTORY_STAT_BATCH_SIZE)
+				.map(async (entry) => {
+					let kind = direntToKind(entry);
+					// Resolve symlinks to determine target type (e.g. symlinked dirs in node_modules)
+					if (kind === "symlink") {
+						try {
+							const stats = await fs.stat(path.join(targetPath, entry.name));
+							if (stats.isDirectory()) kind = "directory";
+							else if (stats.isFile()) kind = "file";
+						} catch {
+							// Dangling symlink or permission error — keep as "symlink"
+						}
+					}
+					return {
+						absolutePath: path.join(targetPath, entry.name),
+						name: entry.name,
+						kind,
+					};
+				}),
+		);
+		mapped.push(...batch);
+	}
 
 	return mapped.sort((left, right) => {
 		const leftIsDir = left.kind === "directory";
