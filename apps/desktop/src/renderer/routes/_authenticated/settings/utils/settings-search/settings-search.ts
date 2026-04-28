@@ -26,6 +26,7 @@ export const SETTING_ITEM_ID = {
 	BEHAVIOR_FILE_OPEN_MODE: "behavior-file-open-mode",
 	BEHAVIOR_RESOURCE_MONITOR: "behavior-resource-monitor",
 	BEHAVIOR_OPEN_LINKS_IN_APP: "behavior-open-links-in-app",
+	BEHAVIOR_FOCUS_FOLLOWS_MOUSE: "behavior-focus-follows-mouse",
 
 	GIT_BRANCH_PREFIX: "git-branch-prefix",
 	GIT_DELETE_LOCAL_BRANCH: "git-delete-local-branch",
@@ -497,6 +498,24 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"chat",
 			"terminal",
 			"url",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.BEHAVIOR_FOCUS_FOLLOWS_MOUSE,
+		section: "behavior",
+		title: "Focus follows mouse",
+		description:
+			"When enabled, hovering over a pane briefly will focus it without clicking. Useful with split layouts.",
+		keywords: [
+			"focus",
+			"follows",
+			"mouse",
+			"hover",
+			"sloppy",
+			"panes",
+			"split",
+			"keyboard",
+			"x11",
 		],
 	},
 	{
