@@ -1,11 +1,17 @@
 import { cn } from "@superset/ui/utils";
-import { useContext, useRef } from "react";
+import { useContext, useEffect, useRef } from "react";
 import type { MosaicBranch } from "react-mosaic-component";
 import { MosaicWindow, MosaicWindowContext } from "react-mosaic-component";
 import { useDragPaneStore } from "renderer/stores/drag-pane-store";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import type { SplitOrientation } from "../../hooks";
 import { useSplitOrientation } from "../../hooks";
+import { useFocusFollowsMouse } from "renderer/stores/pane-preferences";
+import {
+	createHoverFocusTimer,
+	type HoverFocusTimer,
+} from "./hoverFocusTimer";
+import { useHoverFocusSuppression } from "./useHoverFocusSuppression";
 
 export interface PaneHandlers {
 	onFocus: () => void;
@@ -13,6 +19,8 @@ export interface PaneHandlers {
 	onSplitPane: (e: React.MouseEvent) => void;
 	splitOrientation: SplitOrientation;
 }
+
+const FOCUS_FOLLOWS_MOUSE_DELAY_MS = 75;
 
 /**
  * Connects drag source for root panes (single pane in a tab).
@@ -64,6 +72,36 @@ export function BasePaneWindow({
 	const isResizing = useDragPaneStore((s) => s.isResizing);
 	const setDragging = useDragPaneStore((s) => s.setDragging);
 	const clearDragging = useDragPaneStore((s) => s.clearDragging);
+	const focusFollowsMouse = useFocusFollowsMouse();
+	const isSuppressed = useHoverFocusSuppression();
+	const timerRef = useRef<HoverFocusTimer | null>(null);
+
+	useEffect(() => {
+		if (!focusFollowsMouse) {
+			timerRef.current?.dispose();
+			timerRef.current = null;
+			return;
+		}
+		timerRef.current = createHoverFocusTimer({
+			delayMs: FOCUS_FOLLOWS_MOUSE_DELAY_MS,
+			onFire: () => {
+				// Defensive: if window lost focus between suppression check and
+				// fire (microtask race), bail.
+				if (!document.hasFocus()) return;
+				// Read action imperatively to avoid an extra store subscription
+				// for a value (the action) that is stable for the store's lifetime.
+				useTabsStore.getState().setFocusedPane(tabId, paneId);
+			},
+			// `isSuppressed` is required in deps for correctness if it ever
+			// becomes non-stable; today useHoverFocusSuppression returns a
+			// useCallback([])-stable reference so the dep is a no-op.
+			isSuppressed,
+		});
+		return () => {
+			timerRef.current?.dispose();
+			timerRef.current = null;
+		};
+	}, [focusFollowsMouse, isSuppressed, tabId, paneId]);
 
 	const handleFocus = () => {
 		setFocusedPane(tabId, paneId);
@@ -81,6 +119,15 @@ export function BasePaneWindow({
 
 		const { width, height } = container.getBoundingClientRect();
 		splitPaneAuto(tabId, paneId, { width, height }, path);
+	};
+
+	const handleMouseEnter = () => {
+		if (isActive) return;
+		timerRef.current?.enter();
+	};
+
+	const handleMouseLeave = () => {
+		timerRef.current?.leave();
 	};
 
 	const handlers: PaneHandlers = {
@@ -116,6 +163,8 @@ export function BasePaneWindow({
 				className={contentClassName}
 				style={isDragging || isResizing ? { pointerEvents: "none" } : undefined}
 				onClick={handleFocus}
+				onMouseEnter={handleMouseEnter}
+				onMouseLeave={handleMouseLeave}
 			>
 				{children}
 			</div>
