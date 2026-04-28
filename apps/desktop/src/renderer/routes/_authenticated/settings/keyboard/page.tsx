@@ -19,6 +19,9 @@ import {
 	type HotkeyCategory,
 	type HotkeyId,
 	PLATFORM,
+	parseBinding,
+	type ShortcutBinding,
+	useBinding,
 	useHotkeyDisplay,
 	useHotkeyOverridesStore,
 	useRecordHotkeys,
@@ -32,6 +35,12 @@ const CATEGORY_ORDER: HotkeyCategory[] = [
 	"Window",
 	"Help",
 ];
+
+const MODE_LABEL: Record<"physical" | "logical" | "named", string> = {
+	physical: "Position",
+	logical: "Letter",
+	named: "Named",
+};
 
 function HotkeyRow({
 	id,
@@ -49,6 +58,8 @@ function HotkeyRow({
 	onReset: () => void;
 }) {
 	const { keys } = useHotkeyDisplay(id);
+	const binding = useBinding(id);
+	const mode = binding ? parseBinding(binding).mode : null;
 
 	return (
 		<div className="flex items-center justify-between gap-4 py-3 px-4">
@@ -59,6 +70,20 @@ function HotkeyRow({
 				)}
 			</div>
 			<div className="flex items-center gap-2">
+				{mode && (
+					<span
+						className="text-[10px] uppercase tracking-wider text-muted-foreground"
+						title={
+							mode === "logical"
+								? "Matches the printed character — follows your keyboard layout"
+								: mode === "physical"
+									? "Matches the physical key position — same key regardless of layout"
+									: "Matches a named key (Enter, arrows, F-keys, ...)"
+						}
+					>
+						{MODE_LABEL[mode]}
+					</span>
+				)}
 				<button
 					type="button"
 					onClick={onStartRecording}
@@ -118,7 +143,7 @@ function KeyboardShortcutsPage() {
 	const [recordingId, setRecordingId] = useState<HotkeyId | null>(null);
 	const [pendingConflict, setPendingConflict] = useState<{
 		targetId: HotkeyId;
-		keys: string;
+		binding: ShortcutBinding;
 		conflictId: HotkeyId;
 	} | null>(null);
 
@@ -127,14 +152,18 @@ function KeyboardShortcutsPage() {
 	const setOverride = useHotkeyOverridesStore((s) => s.setOverride);
 
 	useRecordHotkeys(recordingId, {
+		// New printable bindings follow the printed character (matches what the
+		// user sees on their keyboard). F-keys / named keys are forced to
+		// "named" by the recorder regardless of this preference.
+		preferredMode: "logical",
 		onSave: () => setRecordingId(null),
 		onCancel: () => setRecordingId(null),
 		onUnassign: () => setRecordingId(null),
-		onConflict: (targetId, keys, conflictId) => {
-			setPendingConflict({ targetId, keys, conflictId });
+		onConflict: (targetId, binding, conflictId) => {
+			setPendingConflict({ targetId, binding, conflictId });
 			setRecordingId(null);
 		},
-		onReserved: (_keys, info) => {
+		onReserved: (_binding, info) => {
 			if (info.severity === "error") {
 				toast.error(info.reason);
 				setRecordingId(null);
@@ -166,7 +195,7 @@ function KeyboardShortcutsPage() {
 	const handleConflictReassign = () => {
 		if (!pendingConflict) return;
 		setOverride(pendingConflict.conflictId, null);
-		setOverride(pendingConflict.targetId, pendingConflict.keys);
+		setOverride(pendingConflict.targetId, pendingConflict.binding);
 		setPendingConflict(null);
 	};
 
@@ -278,7 +307,7 @@ function KeyboardShortcutsPage() {
 							<div className="text-muted-foreground space-y-1.5">
 								<span className="block">
 									{pendingConflict
-										? `${formatHotkeyDisplay(pendingConflict.keys, PLATFORM).text} is already assigned to "${
+										? `${formatHotkeyDisplay(parseBinding(pendingConflict.binding).chord, PLATFORM).text} is already assigned to "${
 												HOTKEYS[pendingConflict.conflictId].label
 											}".`
 										: ""}
