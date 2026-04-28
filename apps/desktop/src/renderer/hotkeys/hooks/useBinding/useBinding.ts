@@ -1,6 +1,8 @@
 import { HOTKEYS, type HotkeyId } from "../../registry";
 import { useHotkeyOverridesStore } from "../../stores/hotkeyOverridesStore";
+import { useKeyboardLayoutStore } from "../../stores/keyboardLayoutStore";
 import type { ShortcutBinding } from "../../types";
+import { bindingToDispatchChord } from "../../utils/binding";
 
 /**
  * Reactive: get the effective binding for a hotkey (override ?? default).
@@ -22,4 +24,17 @@ export function getBinding(id: HotkeyId): ShortcutBinding | null {
 	if (!id) return null;
 	if (id in state.overrides) return state.overrides[id] ?? null;
 	return HOTKEYS[id]?.key ?? null;
+}
+
+/**
+ * Imperative dispatch-form chord (event.code-based, layout-translated for
+ * logical bindings). Use when synthesizing KeyboardEvents that should match
+ * the same registration `useHotkey` makes — otherwise the event won't fire
+ * the bound handler on non-US layouts.
+ */
+export function getDispatchChord(id: HotkeyId): string | null {
+	return bindingToDispatchChord(
+		getBinding(id),
+		useKeyboardLayoutStore.getState().map,
+	);
 }

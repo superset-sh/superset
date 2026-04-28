@@ -2,6 +2,7 @@ export { HotkeyLabel } from "./components/HotkeyLabel";
 export { formatHotkeyDisplay } from "./display";
 export {
 	getBinding,
+	getDispatchChord,
 	useBinding,
 	useFormatBinding,
 	useHotkey,
