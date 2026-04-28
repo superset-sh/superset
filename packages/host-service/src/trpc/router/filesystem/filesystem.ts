@@ -58,10 +58,10 @@ export const filesystemRouter = router({
 				absolutePath: z.string(),
 			}),
 		)
-		.query(async ({ ctx, input }) => {
+		.query(async ({ ctx, input, signal }) => {
 			const { workspaceId, ...serviceInput } = input;
 			const service = getFilesystemService(ctx, workspaceId);
-			return await service.listDirectory(serviceInput);
+			return await service.listDirectory(serviceInput, { signal });
 		}),
 
 	readFile: protectedProcedure

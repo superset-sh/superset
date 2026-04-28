@@ -9,9 +9,10 @@ import type {
 } from "../types";
 
 export interface FsService {
-	listDirectory(input: {
-		absolutePath: string;
-	}): Promise<{ entries: FsEntry[] }>;
+	listDirectory(
+		input: { absolutePath: string },
+		options?: { signal?: AbortSignal },
+	): Promise<{ entries: FsEntry[] }>;
 
 	readFile(input: {
 		absolutePath: string;

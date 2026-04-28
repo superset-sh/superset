@@ -371,15 +371,23 @@ async function writeAtomically({
 export async function listDirectory({
 	rootPath,
 	absolutePath,
+	signal,
 }: {
 	rootPath: string;
 	absolutePath: string;
+	signal?: AbortSignal;
 }): Promise<FsEntry[]> {
 	const targetPath = ensureWithinRoot({ rootPath, absolutePath });
+	signal?.throwIfAborted();
+	// Node's fs.readdir/fs.stat ignore AbortSignal, so we can only interrupt
+	// between operations — useful for symlink-heavy dirs where the per-entry
+	// stat loop dominates the cost.
 	const entries = await fs.readdir(targetPath, { withFileTypes: true });
+	signal?.throwIfAborted();
 
 	const mapped = await Promise.all(
 		entries.map(async (entry) => {
+			signal?.throwIfAborted();
 			let kind = direntToKind(entry);
 			// Resolve symlinks to determine target type (e.g. symlinked dirs in node_modules)
 			if (kind === "symlink") {
