@@ -96,31 +96,34 @@ export const DashboardSidebarProjectRow = forwardRef<
 					) : (
 						<span className="truncate">{projectName}</span>
 					)}
-					{!isRenaming && (
-						<span className="shrink-0 text-xs font-normal tabular-nums text-muted-foreground">
-							({totalWorkspaceCount})
-						</span>
-					)}
 				</div>
 
-				<Tooltip delayDuration={500}>
-					<TooltipTrigger asChild>
-						<button
-							type="button"
-							onClick={(event) => {
-								event.stopPropagation();
-								onNewWorkspace();
-							}}
-							onContextMenu={(event) => event.stopPropagation()}
-							className="p-1 rounded hover:bg-muted transition-colors shrink-0 ml-1"
-						>
-							<HiMiniPlus className="size-4 text-muted-foreground" />
-						</button>
-					</TooltipTrigger>
-					<TooltipContent side="bottom" sideOffset={4}>
-						New workspace
-					</TooltipContent>
-				</Tooltip>
+				{!isRenaming && (
+					<div className="relative ml-1 flex size-6 shrink-0 items-center justify-center">
+						<span className="text-[10px] font-normal tabular-nums text-muted-foreground transition-opacity group-hover:opacity-0 group-focus-within:opacity-0">
+							{totalWorkspaceCount}
+						</span>
+						<Tooltip delayDuration={500}>
+							<TooltipTrigger asChild>
+								<button
+									type="button"
+									onClick={(event) => {
+										event.stopPropagation();
+										onNewWorkspace();
+									}}
+									onContextMenu={(event) => event.stopPropagation()}
+									aria-label="New workspace"
+									className="absolute inset-0 flex items-center justify-center rounded opacity-0 transition-opacity hover:bg-muted group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+								>
+									<HiMiniPlus className="size-4 text-muted-foreground" />
+								</button>
+							</TooltipTrigger>
+							<TooltipContent side="bottom" sideOffset={4}>
+								New workspace
+							</TooltipContent>
+						</Tooltip>
+					</div>
+				)}
 			</div>
 		);
 	},

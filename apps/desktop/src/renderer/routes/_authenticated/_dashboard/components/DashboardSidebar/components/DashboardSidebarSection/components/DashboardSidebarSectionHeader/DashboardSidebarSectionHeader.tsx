@@ -86,24 +86,25 @@ export const DashboardSidebarSectionHeader = forwardRef<
 					) : (
 						<span className="truncate">{section.name}</span>
 					)}
-
-					{!isRenaming && (
-						<span className="shrink-0 text-[10px] font-normal tabular-nums">
-							({section.workspaces.length})
-						</span>
-					)}
 				</div>
 
-				{!isRenaming && actions ? (
-					// biome-ignore lint/a11y/noStaticElementInteractions: Nested action controls handle their own semantics; this wrapper only isolates events from the header toggle.
-					<div
-						className="flex items-center"
-						onClick={(event) => event.stopPropagation()}
-						onKeyDown={(event) => event.stopPropagation()}
-					>
-						{actions}
+				{!isRenaming && (
+					<div className="relative ml-1 flex size-5 shrink-0 items-center justify-center">
+						<span className="text-[10px] font-normal tabular-nums transition-opacity group-hover:opacity-0 group-focus-within:opacity-0">
+							{section.workspaces.length}
+						</span>
+						{actions ? (
+							// biome-ignore lint/a11y/noStaticElementInteractions: Nested action controls handle their own semantics; this wrapper only isolates events from the header toggle.
+							<div
+								className="absolute inset-0 flex items-center justify-center"
+								onClick={(event) => event.stopPropagation()}
+								onKeyDown={(event) => event.stopPropagation()}
+							>
+								{actions}
+							</div>
+						) : null}
 					</div>
-				) : null}
+				)}
 			</div>
 		);
 	},
