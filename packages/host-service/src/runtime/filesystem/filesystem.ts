@@ -7,6 +7,7 @@ import {
 import { eq } from "drizzle-orm";
 import type { HostDb } from "../../db";
 import { projects, workspaces } from "../../db/schema";
+import { reportHostServiceError } from "../../resilience";
 
 export interface WorkspaceFilesystemManagerOptions {
 	db: HostDb;
@@ -62,13 +63,24 @@ export class WorkspaceFilesystemManager {
 			});
 			this.serviceCache.set(rootPath, service);
 			// Pre-warm search index so first search is instant
-			getSearchIndex({ rootPath, includeHidden: false }).catch(() => {});
+			getSearchIndex({ rootPath, includeHidden: false }).catch(
+				(error: unknown) => {
+					reportHostServiceError("filesystem search index prewarm failed", {
+						rootPath,
+						error,
+					});
+				},
+			);
 		}
 		return service;
 	}
 
 	async close(): Promise<void> {
 		this.serviceCache.clear();
-		await this.watcherManager.close();
+		try {
+			await this.watcherManager.close();
+		} catch (error) {
+			reportHostServiceError("filesystem watcher manager close failed", error);
+		}
 	}
 }

@@ -18,6 +18,7 @@ import type { HostDb } from "../db";
 import { projects, terminalSessions, workspaces } from "../db/schema";
 import type { EventBus } from "../events";
 import { portManager } from "../ports/port-manager";
+import { reportHostServiceError } from "../resilience";
 import {
 	buildV2TerminalEnv,
 	getShellLaunchArgs,
@@ -171,9 +172,27 @@ export function listTerminalSessions(
 function sendMessage(
 	socket: { send: (data: string) => void; readyState: number },
 	message: TerminalServerMessage,
-) {
-	if (socket.readyState !== SOCKET_OPEN) return;
-	socket.send(JSON.stringify(message));
+): boolean {
+	if (socket.readyState !== SOCKET_OPEN) return false;
+	try {
+		socket.send(JSON.stringify(message));
+		return true;
+	} catch (error) {
+		reportHostServiceError("terminal websocket send failed", error);
+		return false;
+	}
+}
+
+function closeSocket(
+	socket: { close: (code?: number, reason?: string) => void },
+	code?: number,
+	reason?: string,
+): void {
+	try {
+		socket.close(code, reason);
+	} catch (error) {
+		reportHostServiceError("terminal websocket close failed", error);
+	}
 }
 
 function broadcastMessage(
@@ -191,8 +210,9 @@ function broadcastMessage(
 			}
 			continue;
 		}
-		sendMessage(socket, message);
-		sent += 1;
+		if (sendMessage(socket, message)) {
+			sent += 1;
+		}
 	}
 	return sent;
 }
@@ -265,7 +285,7 @@ export function disposeSession(terminalId: string, db: HostDb) {
 			session.shellReadyTimeoutId = null;
 		}
 		for (const socket of session.sockets) {
-			socket.close(1000, "Session disposed");
+			closeSocket(socket, 1000, "Session disposed");
 		}
 		session.sockets.clear();
 		if (!session.exited) {
@@ -278,12 +298,20 @@ export function disposeSession(terminalId: string, db: HostDb) {
 		sessions.delete(terminalId);
 	}
 
-	portManager.unregisterSession(terminalId);
+	try {
+		portManager.unregisterSession(terminalId);
+	} catch (error) {
+		reportHostServiceError("terminal port unregister failed", error);
+	}
 
-	db.update(terminalSessions)
-		.set({ status: "disposed", endedAt: Date.now() })
-		.where(eq(terminalSessions.id, terminalId))
-		.run();
+	try {
+		db.update(terminalSessions)
+			.set({ status: "disposed", endedAt: Date.now() })
+			.where(eq(terminalSessions.id, terminalId))
+			.run();
+	} catch (error) {
+		reportHostServiceError("terminal disposed status update failed", error);
+	}
 }
 
 /**
@@ -450,77 +478,128 @@ export function createTerminalSessionInternal({
 		scanState: createScanState(),
 	};
 	sessions.set(terminalId, session);
-	portManager.upsertSession(terminalId, workspaceId, pty.pid);
+	try {
+		portManager.upsertSession(terminalId, workspaceId, pty.pid);
+	} catch (error) {
+		reportHostServiceError("terminal port registration failed", error);
+	}
 
 	// If the marker never arrives (broken wrapper, unsupported config),
 	// the timeout unblocks so the session degrades gracefully.
 	if (session.shellReadyState === "pending") {
 		session.shellReadyTimeoutId = setTimeout(() => {
-			resolveShellReady(session, "timed_out");
+			try {
+				resolveShellReady(session, "timed_out");
+			} catch (error) {
+				reportHostServiceError("terminal shell-ready timeout failed", error);
+			}
 		}, SHELL_READY_TIMEOUT_MS);
 	}
 
 	pty.onData((rawData) => {
-		const titleUpdates = scanForTerminalTitle(session.titleScanState, rawData);
-		for (const title of titleUpdates.updates) {
-			setSessionTitle(session, title);
-		}
-
-		// Scan for OSC 133;A and strip it from output
-		let data = rawData;
-		if (session.shellReadyState === "pending") {
-			const result = scanForShellReady(session.scanState, rawData);
-			data = result.output;
-			if (result.matched) {
-				resolveShellReady(session, "ready");
+		try {
+			const titleUpdates = scanForTerminalTitle(
+				session.titleScanState,
+				rawData,
+			);
+			for (const title of titleUpdates.updates) {
+				setSessionTitle(session, title);
 			}
-		}
-		if (data.length === 0) return;
 
-		portManager.checkOutputForHint(data);
+			// Scan for OSC 133;A and strip it from output
+			let data = rawData;
+			if (session.shellReadyState === "pending") {
+				const result = scanForShellReady(session.scanState, rawData);
+				data = result.output;
+				if (result.matched) {
+					resolveShellReady(session, "ready");
+				}
+			}
+			if (data.length === 0) return;
 
-		if (broadcastMessage(session, { type: "data", data }) === 0) {
-			bufferOutput(session, data);
+			try {
+				portManager.checkOutputForHint(data);
+			} catch (error) {
+				reportHostServiceError("terminal port hint scan failed", error);
+			}
+
+			if (broadcastMessage(session, { type: "data", data }) === 0) {
+				bufferOutput(session, data);
+			}
+		} catch (error) {
+			reportHostServiceError("terminal data handler failed", {
+				terminalId,
+				workspaceId,
+				error,
+			});
 		}
 	});
 
 	pty.onExit(({ exitCode, signal }) => {
-		session.exited = true;
-		session.exitCode = exitCode ?? 0;
-		session.exitSignal = signal ?? 0;
+		try {
+			session.exited = true;
+			session.exitCode = exitCode ?? 0;
+			session.exitSignal = signal ?? 0;
 
-		portManager.unregisterSession(terminalId);
+			try {
+				portManager.unregisterSession(terminalId);
+			} catch (error) {
+				reportHostServiceError("terminal exit port unregister failed", error);
+			}
 
-		db.update(terminalSessions)
-			.set({ status: "exited", endedAt: Date.now() })
-			.where(eq(terminalSessions.id, terminalId))
-			.run();
+			try {
+				db.update(terminalSessions)
+					.set({ status: "exited", endedAt: Date.now() })
+					.where(eq(terminalSessions.id, terminalId))
+					.run();
+			} catch (error) {
+				reportHostServiceError("terminal exit status update failed", error);
+			}
 
-		broadcastMessage(session, {
-			type: "exit",
-			exitCode: session.exitCode,
-			signal: session.exitSignal,
-		});
+			broadcastMessage(session, {
+				type: "exit",
+				exitCode: session.exitCode,
+				signal: session.exitSignal,
+			});
 
-		eventBus?.broadcastTerminalLifecycle({
-			workspaceId,
-			terminalId,
-			eventType: "exit",
-			exitCode: session.exitCode,
-			signal: session.exitSignal,
-			occurredAt: Date.now(),
-		});
+			try {
+				eventBus?.broadcastTerminalLifecycle({
+					workspaceId,
+					terminalId,
+					eventType: "exit",
+					exitCode: session.exitCode,
+					signal: session.exitSignal,
+					occurredAt: Date.now(),
+				});
+			} catch (error) {
+				reportHostServiceError("terminal lifecycle broadcast failed", error);
+			}
+		} catch (error) {
+			reportHostServiceError("terminal exit handler failed", {
+				terminalId,
+				workspaceId,
+				error,
+			});
+		}
 	});
 
 	if (initialCommand) {
 		const cmd = initialCommand.endsWith("\n")
 			? initialCommand
 			: `${initialCommand}\n`;
-		session.shellReadyPromise.then(() => {
-			if (!session.exited) {
-				pty.write(cmd);
-			}
-		});
+		session.shellReadyPromise
+			.then(() => {
+				if (!session.exited) {
+					pty.write(cmd);
+				}
+			})
+			.catch((error: unknown) => {
+				reportHostServiceError("terminal initial command write failed", {
+					terminalId,
+					workspaceId,
+					error,
+				});
+			});
 	}
 
 	return session;
@@ -589,110 +668,147 @@ export function registerWorkspaceTerminalRoute({
 
 			return {
 				onOpen: (_event, ws) => {
-					if (!terminalId) {
-						ws.close(1011, "Missing terminalId");
-						return;
-					}
+					try {
+						if (!terminalId) {
+							closeSocket(ws, 1011, "Missing terminalId");
+							return;
+						}
 
-					const existing = sessions.get(terminalId);
-					if (!existing) {
-						// Session must be created via tRPC terminal.ensureSession before connecting.
-						// Fall back to query params for backwards compatibility with v1 callers.
-						const workspaceId = c.req.query("workspaceId") ?? null;
-						if (!workspaceId) {
-							sendMessage(ws, {
-								type: "error",
-								message: `Terminal session "${terminalId}" not found; use terminal.ensureSession or workspaceId.`,
+						const existing = sessions.get(terminalId);
+						if (!existing) {
+							// Session must be created via tRPC terminal.ensureSession before connecting.
+							// Fall back to query params for backwards compatibility with v1 callers.
+							const workspaceId = c.req.query("workspaceId") ?? null;
+							if (!workspaceId) {
+								sendMessage(ws, {
+									type: "error",
+									message: `Terminal session "${terminalId}" not found; use terminal.ensureSession or workspaceId.`,
+								});
+								closeSocket(ws, 1011, "Terminal session not found");
+								return;
+							}
+
+							const themeType = parseThemeType(c.req.query("themeType"));
+							const result = createTerminalSessionInternal({
+								terminalId,
+								workspaceId,
+								themeType,
+								db,
+								eventBus,
 							});
-							ws.close(1011, "Terminal session not found");
+
+							if ("error" in result) {
+								sendMessage(ws, { type: "error", message: result.error });
+								closeSocket(ws, 1011, result.error);
+								return;
+							}
+
+							result.sockets.add(ws);
+							sendMessage(ws, { type: "title", title: result.title });
+
+							db.update(terminalSessions)
+								.set({ lastAttachedAt: Date.now() })
+								.where(eq(terminalSessions.id, terminalId))
+								.run();
 							return;
 						}
 
-						const themeType = parseThemeType(c.req.query("themeType"));
-						const result = createTerminalSessionInternal({
-							terminalId,
-							workspaceId,
-							themeType,
-							db,
-							eventBus,
-						});
-
-						if ("error" in result) {
-							sendMessage(ws, { type: "error", message: result.error });
-							ws.close(1011, result.error);
-							return;
-						}
-
-						result.sockets.add(ws);
-						sendMessage(ws, { type: "title", title: result.title });
+						existing.sockets.add(ws);
 
 						db.update(terminalSessions)
 							.set({ lastAttachedAt: Date.now() })
 							.where(eq(terminalSessions.id, terminalId))
 							.run();
-						return;
-					}
 
-					existing.sockets.add(ws);
-
-					db.update(terminalSessions)
-						.set({ lastAttachedAt: Date.now() })
-						.where(eq(terminalSessions.id, terminalId))
-						.run();
-
-					sendMessage(ws, { type: "title", title: existing.title });
-					replayBuffer(existing, ws);
-					if (existing.exited) {
-						sendMessage(ws, {
-							type: "exit",
-							exitCode: existing.exitCode,
-							signal: existing.exitSignal,
+						sendMessage(ws, { type: "title", title: existing.title });
+						replayBuffer(existing, ws);
+						if (existing.exited) {
+							sendMessage(ws, {
+								type: "exit",
+								exitCode: existing.exitCode,
+								signal: existing.exitSignal,
+							});
+						}
+					} catch (error) {
+						reportHostServiceError("terminal websocket open failed", {
+							terminalId,
+							error,
 						});
+						sendMessage(ws, {
+							type: "error",
+							message: "Failed to open terminal session",
+						});
+						closeSocket(ws, 1011, "Failed to open terminal session");
 					}
 				},
 
 				onMessage: (event, ws) => {
-					const session = sessions.get(terminalId ?? "");
-					if (!session || !session.sockets.has(ws)) return;
-
-					let message: TerminalClientMessage;
 					try {
-						message = JSON.parse(String(event.data)) as TerminalClientMessage;
-					} catch {
+						const session = sessions.get(terminalId ?? "");
+						if (!session || !session.sockets.has(ws)) return;
+
+						let message: TerminalClientMessage;
+						try {
+							message = JSON.parse(String(event.data)) as TerminalClientMessage;
+						} catch {
+							sendMessage(ws, {
+								type: "error",
+								message: "Invalid terminal message payload",
+							});
+							return;
+						}
+
+						if (message.type === "dispose") {
+							disposeSession(terminalId ?? "", db);
+							return;
+						}
+
+						if (session.exited) return;
+
+						if (message.type === "input") {
+							session.pty.write(message.data);
+							return;
+						}
+
+						if (message.type === "resize") {
+							const cols = Math.max(20, Math.floor(message.cols));
+							const rows = Math.max(5, Math.floor(message.rows));
+							session.pty.resize(cols, rows);
+						}
+					} catch (error) {
+						reportHostServiceError("terminal websocket message failed", {
+							terminalId,
+							error,
+						});
 						sendMessage(ws, {
 							type: "error",
-							message: "Invalid terminal message payload",
+							message: "Terminal message failed",
 						});
-						return;
-					}
-
-					if (message.type === "dispose") {
-						disposeSession(terminalId ?? "", db);
-						return;
-					}
-
-					if (session.exited) return;
-
-					if (message.type === "input") {
-						session.pty.write(message.data);
-						return;
-					}
-
-					if (message.type === "resize") {
-						const cols = Math.max(20, Math.floor(message.cols));
-						const rows = Math.max(5, Math.floor(message.rows));
-						session.pty.resize(cols, rows);
 					}
 				},
 
 				onClose: (_event, ws) => {
-					const session = sessions.get(terminalId ?? "");
-					session?.sockets.delete(ws);
+					try {
+						const session = sessions.get(terminalId ?? "");
+						session?.sockets.delete(ws);
+					} catch (error) {
+						reportHostServiceError("terminal websocket close failed", {
+							terminalId,
+							error,
+						});
+					}
 				},
 
 				onError: (_event, ws) => {
-					const session = sessions.get(terminalId ?? "");
-					session?.sockets.delete(ws);
+					try {
+						const session = sessions.get(terminalId ?? "");
+						session?.sockets.delete(ws);
+					} catch (error) {
+						reportHostServiceError("terminal websocket error cleanup failed", {
+							terminalId,
+							error,
+						});
+					}
 				},
 			};
 		}),

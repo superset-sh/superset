@@ -1,14 +1,15 @@
-import { serve } from "@hono/node-server";
 import { createApp } from "./app";
-import { env } from "./env";
 import { JwtApiAuthProvider } from "./providers/auth";
 import { LocalGitCredentialProvider } from "./providers/git";
 import { PskHostAuthProvider } from "./providers/host-auth";
 import { LocalModelProvider } from "./providers/model-providers";
+import { runHostServiceBackgroundTask, runHostServiceMain } from "./resilience";
+import { startHostServiceServer } from "./server";
 import { initTerminalBaseEnv, resolveTerminalBaseEnv } from "./terminal/env";
 import { connectRelay } from "./tunnel";
 
 async function main(): Promise<void> {
+	const { env } = await import("./env");
 	const terminalBaseEnv = await resolveTerminalBaseEnv();
 	initTerminalBaseEnv(terminalBaseEnv);
 
@@ -33,24 +34,27 @@ async function main(): Promise<void> {
 		},
 	});
 
-	const server = serve({ fetch: app.fetch, port: env.PORT }, (info) => {
-		console.log(`[host-service] listening on http://localhost:${info.port}`);
+	await startHostServiceServer({
+		options: { fetch: app.fetch, port: env.PORT },
+		injectWebSocket,
+		onListen: (info) => {
+			console.log(`[host-service] listening on http://localhost:${info.port}`);
 
-		if (env.RELAY_URL) {
-			void connectRelay({
-				api,
-				relayUrl: env.RELAY_URL,
-				localPort: info.port,
-				organizationId: env.ORGANIZATION_ID,
-				authProvider,
-				hostServiceSecret: env.HOST_SERVICE_SECRET,
-			});
-		}
+			if (env.RELAY_URL) {
+				const relayUrl = env.RELAY_URL;
+				runHostServiceBackgroundTask("relay startup failed", () =>
+					connectRelay({
+						api,
+						relayUrl,
+						localPort: info.port,
+						organizationId: env.ORGANIZATION_ID,
+						authProvider,
+						hostServiceSecret: env.HOST_SERVICE_SECRET,
+					}),
+				);
+			}
+		},
 	});
-	injectWebSocket(server);
 }
 
-void main().catch((error) => {
-	console.error("[host-service] Failed to start:", error);
-	process.exit(1);
-});
+runHostServiceMain(main);

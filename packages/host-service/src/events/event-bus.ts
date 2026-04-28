@@ -5,6 +5,7 @@ import type { Hono } from "hono";
 import type { HostDb } from "../db";
 import { portManager } from "../ports/port-manager";
 import { getLabelsForWorkspace } from "../ports/static-ports";
+import { reportHostServiceError } from "../resilience";
 import type { WorkspaceFilesystemManager } from "../runtime/filesystem";
 import { GitWatcher } from "./git-watcher";
 import type { ClientMessage, ServerMessage } from "./types";
@@ -26,7 +27,11 @@ interface ClientState {
 
 function sendMessage(socket: WsSocket, message: ServerMessage): void {
 	if (socket.readyState !== 1) return;
-	socket.send(JSON.stringify(message));
+	try {
+		socket.send(JSON.stringify(message));
+	} catch (error) {
+		reportHostServiceError("event bus websocket send failed", error);
+	}
 }
 
 function parseClientMessage(data: unknown): ClientMessage | null {
@@ -101,11 +106,23 @@ export class EventBus {
 	}
 
 	close(): void {
-		this.removeGitListener?.();
+		try {
+			this.removeGitListener?.();
+		} catch (error) {
+			reportHostServiceError("event bus git listener cleanup failed", error);
+		}
 		this.removeGitListener = null;
-		this.removePortListeners?.();
+		try {
+			this.removePortListeners?.();
+		} catch (error) {
+			reportHostServiceError("event bus port listener cleanup failed", error);
+		}
 		this.removePortListeners = null;
-		this.gitWatcher.close();
+		try {
+			this.gitWatcher.close();
+		} catch (error) {
+			reportHostServiceError("event bus git watcher cleanup failed", error);
+		}
 		for (const [socket, state] of this.clients) {
 			this.cleanupClient(socket, state);
 		}
@@ -193,14 +210,19 @@ export class EventBus {
 	}
 
 	private getPortLabel(port: DetectedPort): string | null {
-		const labels = getLabelsForWorkspace((workspaceId) => {
-			try {
-				return this.filesystem.resolveWorkspaceRoot(workspaceId);
-			} catch {
-				return null;
-			}
-		}, port.workspaceId);
-		return labels?.get(port.port) ?? null;
+		try {
+			const labels = getLabelsForWorkspace((workspaceId) => {
+				try {
+					return this.filesystem.resolveWorkspaceRoot(workspaceId);
+				} catch {
+					return null;
+				}
+			}, port.workspaceId);
+			return labels?.get(port.port) ?? null;
+		} catch (error) {
+			reportHostServiceError("event bus port label lookup failed", error);
+			return null;
+		}
 	}
 
 	private startFsWatch(
@@ -246,7 +268,7 @@ export class EventBus {
 		const dispose = () => {
 			disposed = true;
 			void iterator?.return?.().catch((error: unknown) => {
-				console.error("[event-bus] fs watcher cleanup failed:", {
+				reportHostServiceError("event bus fs watcher cleanup failed", {
 					workspaceId,
 					error,
 				});
@@ -271,7 +293,7 @@ export class EventBus {
 				}
 			} catch (error) {
 				if (disposed) return;
-				console.error("[event-bus] fs stream failed:", {
+				reportHostServiceError("event bus fs stream failed", {
 					workspaceId,
 					error,
 				});
@@ -289,14 +311,22 @@ export class EventBus {
 	private stopFsWatch(state: ClientState, workspaceId: string): void {
 		const sub = state.fsSubscriptions.get(workspaceId);
 		if (sub) {
-			sub.dispose();
+			try {
+				sub.dispose();
+			} catch (error) {
+				reportHostServiceError("event bus fs watcher dispose failed", error);
+			}
 			state.fsSubscriptions.delete(workspaceId);
 		}
 	}
 
 	private cleanupClient(_socket: WsSocket, state: ClientState): void {
 		for (const sub of state.fsSubscriptions.values()) {
-			sub.dispose();
+			try {
+				sub.dispose();
+			} catch (error) {
+				reportHostServiceError("event bus client cleanup failed", error);
+			}
 		}
 		state.fsSubscriptions.clear();
 	}
@@ -320,16 +350,35 @@ export function registerEventBusRoute({
 		upgradeWebSocket(() => {
 			return {
 				onOpen: (_event, ws) => {
-					eventBus.handleOpen(ws);
+					try {
+						eventBus.handleOpen(ws);
+					} catch (error) {
+						reportHostServiceError("event bus websocket open failed", error);
+					}
 				},
 				onMessage: (event, ws) => {
-					eventBus.handleMessage(ws, event.data);
+					try {
+						eventBus.handleMessage(ws, event.data);
+					} catch (error) {
+						reportHostServiceError("event bus websocket message failed", error);
+					}
 				},
 				onClose: (_event, ws) => {
-					eventBus.handleClose(ws);
+					try {
+						eventBus.handleClose(ws);
+					} catch (error) {
+						reportHostServiceError("event bus websocket close failed", error);
+					}
 				},
 				onError: (_event, ws) => {
-					eventBus.handleClose(ws);
+					try {
+						eventBus.handleClose(ws);
+					} catch (error) {
+						reportHostServiceError(
+							"event bus websocket error cleanup failed",
+							error,
+						);
+					}
 				},
 			};
 		}),

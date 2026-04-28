@@ -11,6 +11,10 @@ import { EventBus, registerEventBusRoute } from "./events";
 import type { ApiAuthProvider } from "./providers/auth";
 import type { HostAuthProvider } from "./providers/host-auth";
 import type { ModelProviderRuntimeResolver } from "./providers/model-providers";
+import {
+	reportHostServiceError,
+	runHostServiceBackgroundTask,
+} from "./resilience";
 import { ChatRuntimeManager } from "./runtime/chat";
 import { WorkspaceFilesystemManager } from "./runtime/filesystem";
 import type { GitCredentialProvider } from "./runtime/git";
@@ -64,7 +68,11 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 		git,
 		github,
 	});
-	pullRequestRuntime.start();
+	try {
+		pullRequestRuntime.start();
+	} catch (error) {
+		reportHostServiceError("pull-request runtime failed to start", error);
+	}
 	const filesystem = new WorkspaceFilesystemManager({ db });
 	const chatRuntime = new ChatRuntimeManager({
 		db,
@@ -84,6 +92,11 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 	const app = new Hono();
 	const { injectWebSocket, upgradeWebSocket } = createNodeWebSocket({ app });
 
+	app.onError((error, c) => {
+		reportHostServiceError(`${c.req.method} ${c.req.path} failed`, error);
+		return c.json({ error: "Internal host-service error" }, 500);
+	});
+
 	app.use(
 		"*",
 		cors({
@@ -93,27 +106,36 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 	);
 
 	const eventBus = new EventBus({ db, filesystem });
-	eventBus.start();
+	try {
+		eventBus.start();
+	} catch (error) {
+		reportHostServiceError("event bus failed to start", error);
+	}
 
 	// Backfill `kind='main'` v2 workspaces for projects already set up before
 	// this column shipped. Idempotent; runs in the background so it doesn't
 	// block server startup.
-	void runMainWorkspaceSweep({
-		api,
-		db,
-		git,
-		organizationId: config.organizationId,
-	}).catch((err) => {
-		console.warn("[host-service] main-workspace sweep failed:", err);
-	});
+	runHostServiceBackgroundTask("main-workspace sweep failed", () =>
+		runMainWorkspaceSweep({
+			api,
+			db,
+			git,
+			organizationId: config.organizationId,
+		}),
+	);
 
 	const wsAuth: MiddlewareHandler = async (c, next) => {
-		const token = c.req.query("token");
-		const authorized =
-			(await providers.hostAuth.validate(c.req.raw)) ||
-			(token && (await providers.hostAuth.validateToken(token)));
-		if (!authorized) return c.json({ error: "Unauthorized" }, 401);
-		return next();
+		try {
+			const token = c.req.query("token");
+			const authorized =
+				(await providers.hostAuth.validate(c.req.raw)) ||
+				(token && (await providers.hostAuth.validateToken(token)));
+			if (!authorized) return c.json({ error: "Unauthorized" }, 401);
+			return next();
+		} catch (error) {
+			reportHostServiceError("websocket auth failed", error);
+			return c.json({ error: "Unauthorized" }, 401);
+		}
 	};
 	app.use("/terminal/*", wsAuth);
 	app.use("/events", wsAuth);

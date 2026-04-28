@@ -4,6 +4,7 @@ import { parseGitHubRemote } from "@superset/shared/github-remote";
 import { and, eq, inArray } from "drizzle-orm";
 import type { HostDb } from "../../db";
 import { projects, pullRequests, workspaces } from "../../db/schema";
+import { runHostServiceBackgroundTask } from "../../resilience";
 import type { GitFactory } from "../git";
 import { fetchRepositoryPullRequests } from "./utils/github-query";
 import {
@@ -205,25 +206,37 @@ export class PullRequestRuntimeManager {
 		this.github = options.github;
 	}
 
-	start() {
+	start(): void {
 		if (this.branchSyncTimer || this.projectRefreshTimer) return;
 
 		this.branchSyncTimer = setInterval(() => {
-			void this.syncWorkspaceBranches();
+			this.runBackgroundTask("workspace branch sync failed", () =>
+				this.syncWorkspaceBranches(),
+			);
 		}, BRANCH_SYNC_INTERVAL_MS);
 		this.projectRefreshTimer = setInterval(() => {
-			void this.refreshEligibleProjects();
+			this.runBackgroundTask("project refresh failed", () =>
+				this.refreshEligibleProjects(),
+			);
 		}, PROJECT_REFRESH_INTERVAL_MS);
 
-		void this.syncWorkspaceBranches();
-		void this.refreshEligibleProjects(true);
+		this.runBackgroundTask("initial workspace branch sync failed", () =>
+			this.syncWorkspaceBranches(),
+		);
+		this.runBackgroundTask("initial project refresh failed", () =>
+			this.refreshEligibleProjects(true),
+		);
 	}
 
-	stop() {
+	stop(): void {
 		if (this.branchSyncTimer) clearInterval(this.branchSyncTimer);
 		if (this.projectRefreshTimer) clearInterval(this.projectRefreshTimer);
 		this.branchSyncTimer = null;
 		this.projectRefreshTimer = null;
+	}
+
+	private runBackgroundTask(scope: string, task: () => Promise<void>): void {
+		runHostServiceBackgroundTask(`pull-request runtime ${scope}`, task);
 	}
 
 	async getPullRequestsByWorkspaces(

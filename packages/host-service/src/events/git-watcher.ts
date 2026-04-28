@@ -4,6 +4,10 @@ import { promisify } from "node:util";
 import type { FsWatchEvent } from "@superset/workspace-fs/host";
 import type { HostDb } from "../db";
 import { workspaces } from "../db/schema";
+import {
+	reportHostServiceError,
+	runHostServiceBackgroundTask,
+} from "../resilience";
 import type { WorkspaceFilesystemManager } from "../runtime/filesystem";
 
 const execFileAsync = promisify(execFile);
@@ -79,9 +83,14 @@ export class GitWatcher {
 	}
 
 	start(): void {
-		void this.rescan();
+		runHostServiceBackgroundTask("git watcher rescan failed", () =>
+			this.rescan(),
+		);
 		this.rescanTimer = setInterval(
-			() => void this.rescan(),
+			() =>
+				runHostServiceBackgroundTask("git watcher rescan failed", () =>
+					this.rescan(),
+				),
 			RESCAN_INTERVAL_MS,
 		);
 	}
@@ -105,8 +114,16 @@ export class GitWatcher {
 		this.debounceTimers.clear();
 		this.pendingBatches.clear();
 		for (const entry of this.watched.values()) {
-			entry.watcher.close();
-			entry.disposeWorktreeWatch();
+			try {
+				entry.watcher.close();
+			} catch (error) {
+				reportHostServiceError("git watcher close failed", error);
+			}
+			try {
+				entry.disposeWorktreeWatch();
+			} catch (error) {
+				reportHostServiceError("git worktree watcher dispose failed", error);
+			}
 		}
 		this.watched.clear();
 	}
@@ -148,7 +165,11 @@ export class GitWatcher {
 						? { workspaceId }
 						: { workspaceId, paths: [...batch.paths] };
 				for (const listener of this.listeners) {
-					listener(event);
+					try {
+						listener(event);
+					} catch (error) {
+						reportHostServiceError("git watcher listener failed", error);
+					}
 				}
 			}, DEBOUNCE_MS),
 		);
@@ -175,8 +196,19 @@ export class GitWatcher {
 		// Remove watchers for workspaces that no longer exist
 		for (const [id, entry] of this.watched) {
 			if (!currentIds.has(id)) {
-				entry.watcher.close();
-				entry.disposeWorktreeWatch();
+				try {
+					entry.watcher.close();
+				} catch (error) {
+					reportHostServiceError("git watcher stale close failed", error);
+				}
+				try {
+					entry.disposeWorktreeWatch();
+				} catch (error) {
+					reportHostServiceError(
+						"git worktree stale watcher dispose failed",
+						error,
+					);
+				}
 				this.watched.delete(id);
 			}
 		}
@@ -228,15 +260,33 @@ export class GitWatcher {
 			});
 		} catch {
 			// fs.watch failed (e.g. directory doesn't exist)
-			disposeWorktreeWatch();
+			try {
+				disposeWorktreeWatch();
+			} catch (error) {
+				reportHostServiceError(
+					"git worktree watcher cleanup after fs.watch failure failed",
+					error,
+				);
+			}
 			return;
 		}
 
 		watcher.on("error", () => {
 			// Watcher died — clean up so rescan can re-add
-			disposeWorktreeWatch();
+			try {
+				disposeWorktreeWatch();
+			} catch (error) {
+				reportHostServiceError(
+					"git worktree watcher error cleanup failed",
+					error,
+				);
+			}
 			this.watched.delete(workspaceId);
-			watcher.close();
+			try {
+				watcher.close();
+			} catch (error) {
+				reportHostServiceError("git watcher error close failed", error);
+			}
 		});
 
 		this.watched.set(workspaceId, {
@@ -270,7 +320,7 @@ export class GitWatcher {
 			});
 			iterator = stream[Symbol.asyncIterator]();
 		} catch (error) {
-			console.error("[git-watcher] failed to start worktree watch:", {
+			reportHostServiceError("git watcher failed to start worktree watch", {
 				workspaceId,
 				error,
 			});
@@ -317,7 +367,7 @@ export class GitWatcher {
 				}
 			} catch (error) {
 				if (!disposed) {
-					console.error("[git-watcher] worktree watch stream failed:", {
+					reportHostServiceError("git watcher worktree stream failed", {
 						workspaceId,
 						error,
 					});
@@ -327,7 +377,12 @@ export class GitWatcher {
 
 		return () => {
 			disposed = true;
-			void iterator?.return?.().catch(() => {});
+			void iterator?.return?.().catch((error: unknown) => {
+				reportHostServiceError("git watcher worktree stream cleanup failed", {
+					workspaceId,
+					error,
+				});
+			});
 			iterator = null;
 		};
 	}

@@ -5,13 +5,17 @@
  * The coordinator polls health.check to know when it's ready.
  */
 
-import { serve } from "@hono/node-server";
 import {
+	closeHostServiceServer,
 	createApp,
 	JwtApiAuthProvider,
 	LocalGitCredentialProvider,
 	LocalModelProvider,
 	PskHostAuthProvider,
+	reportHostServiceError,
+	runHostServiceBackgroundTask,
+	runHostServiceMain,
+	startHostServiceServer,
 } from "@superset/host-service";
 import {
 	initTerminalBaseEnv,
@@ -19,9 +23,9 @@ import {
 } from "@superset/host-service/terminal-env";
 import { connectRelay } from "@superset/host-service/tunnel";
 import { writeManifest } from "main/lib/host-service-manifest";
-import { env } from "./env";
 
 async function main(): Promise<void> {
+	const { env } = await import("./env");
 	const terminalBaseEnv = await resolveTerminalBaseEnv();
 	initTerminalBaseEnv(terminalBaseEnv);
 
@@ -50,9 +54,14 @@ async function main(): Promise<void> {
 	});
 
 	const startedAt = Date.now();
-	const server = serve(
-		{ fetch: app.fetch, port: env.HOST_SERVICE_PORT, hostname: "127.0.0.1" },
-		(info: { port: number }) => {
+	const server = await startHostServiceServer({
+		options: {
+			fetch: app.fetch,
+			port: env.HOST_SERVICE_PORT,
+			hostname: "127.0.0.1",
+		},
+		injectWebSocket,
+		onListen: (info) => {
 			if (env.ORGANIZATION_ID) {
 				try {
 					writeManifest({
@@ -63,27 +72,29 @@ async function main(): Promise<void> {
 						organizationId: env.ORGANIZATION_ID,
 					});
 				} catch (error) {
-					console.error("[host-service] Failed to write manifest:", error);
+					reportHostServiceError("failed to write manifest", error);
 				}
 			}
 
 			if (env.RELAY_URL && env.ORGANIZATION_ID) {
-				void connectRelay({
-					api,
-					relayUrl: env.RELAY_URL,
-					localPort: info.port,
-					organizationId: env.ORGANIZATION_ID,
-					authProvider,
-					hostServiceSecret: env.HOST_SERVICE_SECRET,
-				});
+				const relayUrl = env.RELAY_URL;
+				runHostServiceBackgroundTask("relay startup failed", () =>
+					connectRelay({
+						api,
+						relayUrl,
+						localPort: info.port,
+						organizationId: env.ORGANIZATION_ID,
+						authProvider,
+						hostServiceSecret: env.HOST_SERVICE_SECRET,
+					}),
+				);
 			}
 		},
-	);
-	injectWebSocket(server);
+	});
 
 	// Manifest lifecycle belongs to the coordinator, not the child.
 	const shutdown = () => {
-		server.close();
+		closeHostServiceServer(server);
 		process.exit(0);
 	};
 
@@ -91,7 +102,4 @@ async function main(): Promise<void> {
 	process.on("SIGINT", shutdown);
 }
 
-void main().catch((error) => {
-	console.error("[host-service] Failed to start:", error);
-	process.exit(1);
-});
+runHostServiceMain(main);
