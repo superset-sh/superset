@@ -12,6 +12,11 @@ export const env = createEnv({
 		ORGANIZATION_ID: z.string().min(1),
 		DESKTOP_VITE_PORT: z.coerce.number().int().positive(),
 		RELAY_URL: z.string().url().optional(),
+		NODE_ENV: z
+			.enum(["development", "production", "test"])
+			.default("development"),
+		SENTRY_DSN_HOST_SERVICE: z.string().url().optional(),
+		SENTRY_RELEASE: z.string().optional(),
 	},
 	runtimeEnv: process.env,
 	emptyStringAsUndefined: true,

@@ -8,6 +8,7 @@
 import { serve } from "@hono/node-server";
 import {
 	createApp,
+	initHostServiceSentry,
 	JwtApiAuthProvider,
 	LocalGitCredentialProvider,
 	LocalModelProvider,
@@ -22,6 +23,12 @@ import { writeManifest } from "main/lib/host-service-manifest";
 import { env } from "./env";
 
 async function main(): Promise<void> {
+	initHostServiceSentry({
+		dsn: env.SENTRY_DSN_HOST_SERVICE,
+		environment: env.NODE_ENV,
+		release: env.SENTRY_RELEASE,
+	});
+
 	const terminalBaseEnv = await resolveTerminalBaseEnv();
 	initTerminalBaseEnv(terminalBaseEnv);
 

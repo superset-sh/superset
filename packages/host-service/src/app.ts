@@ -1,6 +1,7 @@
 import { createNodeWebSocket } from "@hono/node-ws";
 import { trpcServer } from "@hono/trpc-server";
 import { Octokit } from "@octokit/rest";
+import * as Sentry from "@sentry/node";
 import { ChatService } from "@superset/chat/server/desktop";
 import type { MiddlewareHandler } from "hono";
 import { Hono } from "hono";
@@ -83,6 +84,12 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 	};
 	const app = new Hono();
 	const { injectWebSocket, upgradeWebSocket } = createNodeWebSocket({ app });
+
+	app.onError((err, c) => {
+		Sentry.captureException(err);
+		console.error("[host-service] unhandled error:", err);
+		return c.json({ error: "Internal Server Error" }, 500);
+	});
 
 	app.use(
 		"*",

@@ -5,10 +5,17 @@ import { JwtApiAuthProvider } from "./providers/auth";
 import { LocalGitCredentialProvider } from "./providers/git";
 import { PskHostAuthProvider } from "./providers/host-auth";
 import { LocalModelProvider } from "./providers/model-providers";
+import { initHostServiceSentry } from "./sentry";
 import { initTerminalBaseEnv, resolveTerminalBaseEnv } from "./terminal/env";
 import { connectRelay } from "./tunnel";
 
 async function main(): Promise<void> {
+	initHostServiceSentry({
+		dsn: env.SENTRY_DSN_HOST_SERVICE,
+		environment: env.NODE_ENV,
+		release: env.SENTRY_RELEASE,
+	});
+
 	const terminalBaseEnv = await resolveTerminalBaseEnv();
 	initTerminalBaseEnv(terminalBaseEnv);
 

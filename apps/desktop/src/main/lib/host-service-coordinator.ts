@@ -479,6 +479,11 @@ export class HostServiceCoordinator extends EventEmitter {
 			SUPERSET_AGENT_HOOK_VERSION: HOOK_PROTOCOL_VERSION,
 			AUTH_TOKEN: config.authToken,
 			CLOUD_API_URL: config.cloudApiUrl,
+			NODE_ENV: env.NODE_ENV,
+			...(env.SENTRY_DSN_HOST_SERVICE
+				? { SENTRY_DSN_HOST_SERVICE: env.SENTRY_DSN_HOST_SERVICE }
+				: {}),
+			SENTRY_RELEASE: app.getVersion(),
 		});
 
 		// `getProcessEnvWithShellPath` merges in the user's interactive shell env,

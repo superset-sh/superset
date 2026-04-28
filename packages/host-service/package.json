@@ -31,6 +31,10 @@
 		"./terminal-env": {
 			"types": "./src/terminal/env.ts",
 			"default": "./src/terminal/env.ts"
+		},
+		"./sentry": {
+			"types": "./src/sentry/index.ts",
+			"default": "./src/sentry/index.ts"
 		}
 	},
 	"scripts": {
@@ -46,6 +50,7 @@
 		"@hono/trpc-server": "^0.3.4",
 		"@mastra/core": "1.26.0-alpha.3",
 		"@octokit/rest": "^22.0.1",
+		"@sentry/node": "^7.120.0",
 		"@superset/chat": "workspace:*",
 		"@superset/port-scanner": "workspace:*",
 		"@superset/shared": "workspace:*",
