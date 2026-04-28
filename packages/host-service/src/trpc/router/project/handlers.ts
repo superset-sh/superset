@@ -40,6 +40,26 @@ function isSlugConflict(err: unknown): boolean {
 	return lower.includes("v2_projects_org_slug_unique");
 }
 
+// Node's global `fetch` throws `TypeError: fetch failed` for connection-level
+// problems (offline, DNS, TLS, server unreachable). The tRPC client surfaces
+// these unchanged, so a generic "fetch failed" reaches end users with no hint
+// at the actual cause.
+function isFetchFailure(err: unknown): boolean {
+	if (!(err instanceof Error)) return false;
+	if (err.message.toLowerCase().includes("fetch failed")) return true;
+	if (err.cause && err.cause !== err) return isFetchFailure(err.cause);
+	return false;
+}
+
+function cloudUnreachable(cause: unknown): TRPCError {
+	return new TRPCError({
+		code: "SERVICE_UNAVAILABLE",
+		message:
+			"Could not reach the Superset cloud service. Check your internet connection and try again.",
+		cause,
+	});
+}
+
 async function createCloudProjectWithSlugRetry(
 	ctx: HostServiceContext,
 	args: { name: string; repoCloneUrl?: string },
@@ -57,6 +77,7 @@ async function createCloudProjectWithSlugRetry(
 				repoCloneUrl: args.repoCloneUrl,
 			});
 		} catch (err) {
+			if (isFetchFailure(err)) throw cloudUnreachable(err);
 			if (!isSlugConflict(err)) throw err;
 			lastError = err;
 			console.warn("[project.create] slug conflict, retrying", {
