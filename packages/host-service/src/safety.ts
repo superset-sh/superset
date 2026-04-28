@@ -24,11 +24,8 @@ export function installProcessSafetyNet(label = "host-service"): void {
 		});
 	});
 
-	process.on("unhandledRejection", (reason, promise) => {
-		console.error(`[${label}] unhandledRejection — staying up`, {
-			reason,
-			promise,
-		});
+	process.on("unhandledRejection", (reason) => {
+		console.error(`[${label}] unhandledRejection — staying up`, { reason });
 	});
 }
 

@@ -209,23 +209,23 @@ export class PullRequestRuntimeManager {
 	start() {
 		if (this.branchSyncTimer || this.projectRefreshTimer) return;
 
-		const safeSync = safeAsync("pull-requests:branch-sync", () =>
+		const runBranchSync = safeAsync("pull-requests:branch-sync", () =>
 			this.syncWorkspaceBranches(),
 		);
-		const safeRefresh = safeAsync(
+		const runProjectRefresh = safeAsync(
 			"pull-requests:project-refresh",
 			(force?: boolean) => this.refreshEligibleProjects(force),
 		);
 
 		this.branchSyncTimer = setInterval(() => {
-			void safeSync();
+			void runBranchSync();
 		}, BRANCH_SYNC_INTERVAL_MS);
 		this.projectRefreshTimer = setInterval(() => {
-			void safeRefresh();
+			void runProjectRefresh();
 		}, PROJECT_REFRESH_INTERVAL_MS);
 
-		void safeSync();
-		void safeRefresh(true);
+		void runBranchSync();
+		void runProjectRefresh(true);
 	}
 
 	stop() {

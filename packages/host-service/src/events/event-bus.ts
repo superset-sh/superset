@@ -30,6 +30,10 @@ function sendMessage(socket: WsSocket, message: ServerMessage): void {
 	socket.send(JSON.stringify(message));
 }
 
+// One bad socket must not block the rest of a fan-out — wrap once at module
+// scope so we don't allocate a new closure per broadcast × per socket.
+const safeSendMessage = safeSync("event-bus:send", sendMessage);
+
 function parseClientMessage(data: unknown): ClientMessage | null {
 	try {
 		const raw = typeof data === "string" ? data : String(data);
@@ -149,8 +153,7 @@ export class EventBus {
 
 	private broadcast(message: ServerMessage): void {
 		for (const socket of this.clients.keys()) {
-			// One bad socket must not block the rest of the fan-out.
-			safeSync("event-bus:send", sendMessage)(socket, message);
+			safeSendMessage(socket, message);
 		}
 	}
 

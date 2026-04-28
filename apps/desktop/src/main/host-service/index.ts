@@ -23,7 +23,6 @@ import { writeManifest } from "main/lib/host-service-manifest";
 import { env } from "./env";
 
 async function main(): Promise<void> {
-	installProcessSafetyNet("host-service");
 	const terminalBaseEnv = await resolveTerminalBaseEnv();
 	initTerminalBaseEnv(terminalBaseEnv);
 
@@ -55,6 +54,10 @@ async function main(): Promise<void> {
 	const server = serve(
 		{ fetch: app.fetch, port: env.HOST_SERVICE_PORT, hostname: "127.0.0.1" },
 		(info: { port: number }) => {
+			// Install only after the server is listening so startup throws still
+			// reach `main().catch(...)` and exit with a non-zero code.
+			installProcessSafetyNet("host-service");
+
 			if (env.ORGANIZATION_ID) {
 				try {
 					writeManifest({

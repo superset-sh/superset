@@ -5,7 +5,7 @@ import type { FsWatchEvent } from "@superset/workspace-fs/host";
 import type { HostDb } from "../db";
 import { workspaces } from "../db/schema";
 import type { WorkspaceFilesystemManager } from "../runtime/filesystem";
-import { safeSync } from "../safety";
+import { safeAsync, safeSync } from "../safety";
 
 const execFileAsync = promisify(execFile);
 
@@ -80,15 +80,10 @@ export class GitWatcher {
 	}
 
 	start(): void {
-		void this.rescan().catch((error) => {
-			console.error("[git-watcher] initial rescan failed — contained", {
-				error,
-			});
-		});
+		const runRescan = safeAsync("git-watcher:rescan", () => this.rescan());
+		void runRescan();
 		this.rescanTimer = setInterval(() => {
-			void this.rescan().catch((error) => {
-				console.error("[git-watcher] rescan failed — contained", { error });
-			});
+			void runRescan();
 		}, RESCAN_INTERVAL_MS);
 	}
 
