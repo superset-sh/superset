@@ -65,13 +65,6 @@ export interface PaneDefinition<TData> {
 	renderToolbar?(context: RendererContext<TData>): ReactNode;
 	onHeaderClick?(context: RendererContext<TData>): void;
 	onBeforeClose?(pane: Pane<TData>): boolean | Promise<boolean>;
-	/**
-	 * Fires after a pane is removed from the store via closePane, removeTab,
-	 * or replacePane. Does NOT fire for replaceState (workspace switch /
-	 * sync hydration). Use for resource cleanup (e.g., disposing terminal
-	 * PTYs). Wire up via `usePaneLifecycle(store, registry)` at the page
-	 * level. Cannot cancel — use onBeforeClose for that.
-	 */
 	onAfterClose?(pane: Pane<TData>): void;
 	paneActions?:
 		| PaneActionConfig<TData>[]
@@ -107,12 +100,6 @@ export interface WorkspaceProps<TData> {
 		tab: Tab<TData>,
 	) => boolean | Promise<boolean>;
 	onBeforeCloseTab?: (tab: Tab<TData>) => boolean | Promise<boolean>;
-	/**
-	 * Fires after a tab is removed via the workspace's tab-close UI. Mirrors
-	 * onBeforeCloseTab's trigger surface — does not fire from programmatic
-	 * removeTab calls outside the UI flow. Use for tab-level cleanup
-	 * (per-pane resource cleanup belongs in PaneDefinition.onAfterClose).
-	 */
 	onAfterCloseTab?: (tab: Tab<TData>) => void;
 	onInteractionStateChange?: (state: WorkspaceInteractionState) => void;
 	paneActions?:

@@ -182,9 +182,8 @@ export function usePaneRegistry(
 				});
 			},
 		});
-	// Silent kill for the onAfterClose path: closing a pane shouldn't toast
-	// on success, and an error here is best-effort (the renderer-side cleanup
-	// has already happened).
+	// onAfterClose-driven kill: silent on both success and failure, since
+	// the user's intent was already expressed by closing the pane.
 	const { mutate: killTerminalSessionSilently } =
 		workspaceTrpc.terminal.killSession.useMutation({
 			onSuccess: () => {
@@ -441,9 +440,7 @@ export function usePaneRegistry(
 				renderToolbar: (ctx: RendererContext<PaneViewerData>) => (
 					<BrowserPaneToolbar ctx={ctx} />
 				),
-				// Destruction is currently handled by useGlobalBrowserLifecycle —
-				// it predates onAfterClose and could be migrated to follow the
-				// terminal pattern in a follow-up.
+				// Destruction handled by useGlobalBrowserLifecycle for now.
 				contextMenuActions: (_ctx, defaults) =>
 					defaults.map((d) =>
 						d.key === "close-pane" ? { ...d, label: "Close Browser" } : d,
