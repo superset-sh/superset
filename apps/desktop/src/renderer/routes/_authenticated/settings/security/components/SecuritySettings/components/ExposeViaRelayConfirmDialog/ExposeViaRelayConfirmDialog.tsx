@@ -41,38 +41,23 @@ export function ExposeViaRelayConfirmDialog({
 			<AlertDialogContent className="max-w-[480px]">
 				<AlertDialogHeader>
 					<AlertDialogTitle>
-						{targetEnabled
-							? "Expose this device to Superset Relay?"
-							: "Turn off Superset Relay access?"}
+						{targetEnabled ? "Enable Relay access?" : "Disable Relay access?"}
 					</AlertDialogTitle>
 					<AlertDialogDescription asChild>
 						<div className="space-y-3 text-sm text-muted-foreground">
 							<p>
-								Changing this setting restarts the host service. Any connected
-								workspace operations going through this host may briefly
-								disconnect.
+								This restarts the host service. Running terminals, file watches,
+								and other host-backed work may briefly disconnect.
 							</p>
 							{targetEnabled ? (
-								<>
-									<p>
-										Turning this on allows any remote device which you grant
-										access to — and anything that can compromise the Superset
-										Relay — to reach into this device to run commands. They will
-										be able to read and write files in your configured project
-										directories, run shell commands as you, and access any tools
-										the host service exposes.
-									</p>
-									<p>
-										Only enable this if you are okay with the risk that this
-										entails. Most users should leave this off.
-									</p>
-								</>
+								<p>
+									Remote workspaces you grant access to will be able to reach
+									this device through Superset Relay.
+								</p>
 							) : (
 								<p>
-									Turning this off prevents remote workspaces from reaching this
-									device through the Superset relay. Existing remote sessions
-									targeting this host may lose access until they reconnect
-									elsewhere or relay access is enabled again.
+									Remote workspaces will no longer be able to reach this device
+									through Superset Relay.
 								</p>
 							)}
 						</div>
