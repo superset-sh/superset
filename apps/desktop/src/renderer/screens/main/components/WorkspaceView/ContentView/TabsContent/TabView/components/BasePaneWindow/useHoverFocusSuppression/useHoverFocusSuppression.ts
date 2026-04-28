@@ -2,10 +2,14 @@ import { useCallback, useEffect, useRef } from "react";
 import { useDragPaneStore } from "renderer/stores/drag-pane-store";
 import { computeHoverFocusSuppression } from "./computeHoverFocusSuppression";
 
+// Tooltips (role="tooltip") are deliberately NOT in this selector. Tooltips
+// open in response to hover and have a fade-out delay; including them would
+// suppress hover-focus while the user is doing the very thing the feature
+// targets. Menus / dialogs / popovers are click-triggered and represent a
+// different user intent — those we DO suppress for.
 const RADIX_OPEN_OVERLAY_SELECTOR =
 	'[data-state="open"][role="menu"], ' +
 	'[data-state="open"][role="dialog"], ' +
-	'[data-state="open"][role="tooltip"], ' +
 	'[data-radix-popper-content-wrapper] [data-state="open"]';
 
 /**
