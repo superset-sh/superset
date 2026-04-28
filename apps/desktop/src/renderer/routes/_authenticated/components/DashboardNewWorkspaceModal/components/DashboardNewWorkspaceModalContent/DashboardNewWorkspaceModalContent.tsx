@@ -3,6 +3,10 @@ import { useLiveQuery } from "@tanstack/react-db";
 import { useEffect, useMemo, useRef } from "react";
 import { env } from "renderer/env.renderer";
 import { authClient } from "renderer/lib/auth-client";
+import {
+	getLastProjectId,
+	setLastProjectId,
+} from "renderer/lib/v2-workspace-create-defaults";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { MOCK_ORG_ID } from "shared/constants";
 import { useDashboardNewWorkspaceDraft } from "../../DashboardNewWorkspaceDraftContext";
@@ -109,7 +113,15 @@ export function DashboardNewWorkspaceModalContent({
 			(project) => project.id === draft.selectedProjectId,
 		);
 		if (!hasSelectedProject) {
-			updateDraft({ selectedProjectId: recentProjects[0]?.id ?? null });
+			const lastProjectId = getLastProjectId();
+			const persistedProjectId =
+				lastProjectId &&
+				recentProjects.some((project) => project.id === lastProjectId)
+					? lastProjectId
+					: null;
+			updateDraft({
+				selectedProjectId: persistedProjectId ?? recentProjects[0]?.id ?? null,
+			});
 		}
 	}, [
 		draft.selectedProjectId,
@@ -130,9 +142,10 @@ export function DashboardNewWorkspaceModalContent({
 				projectId={draft.selectedProjectId}
 				selectedProject={selectedProject}
 				recentProjects={recentProjects.filter((project) => Boolean(project.id))}
-				onSelectProject={(selectedProjectId) =>
-					updateDraft({ selectedProjectId })
-				}
+				onSelectProject={(selectedProjectId) => {
+					setLastProjectId(selectedProjectId);
+					updateDraft({ selectedProjectId });
+				}}
 			/>
 		</div>
 	);

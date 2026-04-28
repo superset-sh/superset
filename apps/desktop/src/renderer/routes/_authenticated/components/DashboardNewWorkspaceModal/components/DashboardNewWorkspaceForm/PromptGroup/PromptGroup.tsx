@@ -28,6 +28,10 @@ import { IssueLinkCommand } from "renderer/components/Chat/ChatInterface/compone
 import { useAgentLaunchPreferences } from "renderer/hooks/useAgentLaunchPreferences";
 import { useEnabledAgents } from "renderer/hooks/useEnabledAgents";
 import { PLATFORM } from "renderer/hotkeys";
+import {
+	getBaseBranchDefault,
+	setBaseBranchDefault,
+} from "renderer/lib/v2-workspace-create-defaults";
 import { useNewWorkspaceModalOpen } from "renderer/stores/new-workspace-modal";
 import { useDashboardNewWorkspaceDraft } from "../../../DashboardNewWorkspaceDraftContext";
 import { DevicePicker } from "../components/DevicePicker";
@@ -111,7 +115,8 @@ export function PromptGroup({
 		? sanitizeUserBranchName(branchName)
 		: friendlyFallback;
 
-	// Reset baseBranch on project or host change.
+	// Reset baseBranch on project or host change, defaulting to the user's
+	// last selected branch for that project when one exists.
 	const previousProjectIdRef = useRef(projectId);
 	const previousHostRef = useRef(JSON.stringify(hostTarget));
 	useEffect(() => {
@@ -122,7 +127,11 @@ export function PromptGroup({
 		) {
 			previousProjectIdRef.current = projectId;
 			previousHostRef.current = nextHost;
-			updateDraft({ baseBranch: null, baseBranchSource: null });
+			const persisted = getBaseBranchDefault(projectId);
+			updateDraft({
+				baseBranch: persisted?.branchName ?? null,
+				baseBranchSource: persisted?.source ?? null,
+			});
 		}
 	}, [projectId, hostTarget, updateDraft]);
 
@@ -133,8 +142,12 @@ export function PromptGroup({
 		baseBranch,
 		runSetupScript: draft.runSetupScript,
 		typedWorkspaceName: workspaceName,
-		onBaseBranchChange: (branch, source) =>
-			updateDraft({ baseBranch: branch, baseBranchSource: source }),
+		onBaseBranchChange: (branch, source) => {
+			if (projectId && branch && source) {
+				setBaseBranchDefault(projectId, branch, source);
+			}
+			updateDraft({ baseBranch: branch, baseBranchSource: source });
+		},
 		closeModal,
 	});
 
