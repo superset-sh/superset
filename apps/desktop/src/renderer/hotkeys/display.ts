@@ -73,10 +73,11 @@ export function glyphForCode(
 	const scan = canonicalToScanCode(canonical);
 	if (!scan) return null;
 	const v = layoutMap.get(scan);
-	if (!v) return null;
-	// Browser API may return multi-char strings for composing keys; we only
-	// want a single printable glyph.
-	return v.length === 1 ? v.toUpperCase() : null;
+	if (!v || v.length !== 1) return null;
+	// Uppercase only ASCII letters. Some layout glyphs expand to multiple
+	// characters when uppercased (`ß` → `SS`, Turkish `ı` → `I`/`İ`) which
+	// would break single-glyph keycap rendering — keep those as-is.
+	return /^[a-z]$/.test(v) ? v.toUpperCase() : v;
 }
 
 const MODIFIER_ORDER = ["meta", "ctrl", "alt", "shift"] as const;

@@ -93,6 +93,14 @@ describe("glyphForCode", () => {
 		const composing = new Map<string, string>([["KeyA", "ʼa"]]);
 		expect(glyphForCode("a", composing)).toBeNull();
 	});
+
+	it("preserves non-ASCII glyphs that would expand on uppercase (ß, ı)", () => {
+		// "ß".toUpperCase() === "SS" in JS — would break single-keycap display
+		const german = new Map<string, string>([["KeyS", "ß"]]);
+		expect(glyphForCode("s", german)).toBe("ß");
+		const turkish = new Map<string, string>([["KeyI", "ı"]]);
+		expect(glyphForCode("i", turkish)).toBe("ı");
+	});
 });
 
 describe("formatHotkeyDisplay — layout-aware", () => {
