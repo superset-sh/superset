@@ -40,6 +40,7 @@ interface DashboardSidebarExpandedWorkspaceRowProps
 	shortcutLabel?: string;
 	diffStats: DiffStats | null;
 	workspaceStatus?: ActivePaneStatus | null;
+	isInSection?: boolean;
 	onClick?: () => void;
 	onDoubleClick?: () => void;
 	onCloseWorkspaceClick: () => void;
@@ -62,6 +63,7 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 			shortcutLabel,
 			diffStats,
 			workspaceStatus = null,
+			isInSection = false,
 			onClick,
 			onDoubleClick,
 			onCloseWorkspaceClick,
@@ -128,7 +130,8 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 				}}
 				onDoubleClick={onDoubleClick}
 				className={cn(
-					"relative flex w-full items-center pl-5 pr-2 text-left text-sm",
+					"relative flex w-full items-center pr-2 text-left text-sm",
+					isInSection ? "pl-7" : "pl-5",
 					onClick &&
 						(isActive
 							? "cursor-pointer hover:bg-muted"
