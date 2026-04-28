@@ -128,7 +128,7 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 				}}
 				onDoubleClick={onDoubleClick}
 				className={cn(
-					"relative flex w-full items-center pl-3 pr-2 text-left text-sm",
+					"relative flex w-full items-center pl-5 pr-2 text-left text-sm",
 					onClick &&
 						(isActive
 							? "cursor-pointer hover:bg-muted"
