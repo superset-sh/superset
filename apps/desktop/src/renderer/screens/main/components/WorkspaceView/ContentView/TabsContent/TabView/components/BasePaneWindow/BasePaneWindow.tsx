@@ -17,7 +17,11 @@ export interface PaneHandlers {
 	splitOrientation: SplitOrientation;
 }
 
-const FOCUS_FOLLOWS_MOUSE_DELAY_MS = 75;
+// 10ms: imperceptible to users (sub-frame at 60fps) but still allows
+// `isSuppressed` to be evaluated at fire time rather than at enter time —
+// so an overlay opening or a drag starting between enter and fire can still
+// cancel the focus shift.
+const FOCUS_FOLLOWS_MOUSE_DELAY_MS = 10;
 
 /**
  * Connects drag source for root panes (single pane in a tab).
