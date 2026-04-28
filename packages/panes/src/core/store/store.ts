@@ -176,6 +176,14 @@ export interface WorkspaceStore<TData> extends WorkspaceState<TData> {
 			| WorkspaceState<TData>
 			| ((prev: WorkspaceState<TData>) => WorkspaceState<TData>),
 	) => void;
+
+	/**
+	 * Subscribe to pane removals caused by user/programmatic actions
+	 * (closePane, removeTab, replacePane). Does NOT fire on replaceState —
+	 * that path represents wholesale state hydration / workspace switch and
+	 * is not a true removal.
+	 */
+	subscribePaneRemovals: (listener: (pane: Pane<TData>) => void) => () => void;
 }
 
 export interface CreateWorkspaceStoreOptions<TData> {
@@ -185,6 +193,13 @@ export interface CreateWorkspaceStoreOptions<TData> {
 export function createWorkspaceStore<TData>(
 	options?: CreateWorkspaceStoreOptions<TData>,
 ): StoreApi<WorkspaceStore<TData>> {
+	const paneRemovalListeners = new Set<(pane: Pane<TData>) => void>();
+	const notifyPaneRemovals = (panes: Iterable<Pane<TData>>) => {
+		for (const pane of panes) {
+			for (const listener of paneRemovalListeners) listener(pane);
+		}
+	};
+
 	return createStore<WorkspaceStore<TData>>((set, get) => ({
 		version: 1,
 		tabs: options?.initialState?.tabs ?? [],
@@ -203,7 +218,11 @@ export function createWorkspaceStore<TData>(
 		},
 
 		removeTab: (tabId) => {
+			let removed: Pane<TData>[] = [];
 			set((s) => {
+				const tab = s.tabs.find((t) => t.id === tabId);
+				if (!tab) return s;
+				removed = Object.values(tab.panes);
 				const nextTabs = s.tabs.filter((t) => t.id !== tabId);
 				return {
 					tabs: nextTabs,
@@ -214,6 +233,7 @@ export function createWorkspaceStore<TData>(
 					),
 				};
 			});
+			notifyPaneRemovals(removed);
 		},
 
 		setActiveTab: (tabId) => {
@@ -274,10 +294,13 @@ export function createWorkspaceStore<TData>(
 		},
 
 		closePane: (args) => {
+			let removed: Pane<TData> | null = null;
 			set((s) => {
 				const tab = s.tabs.find((t) => t.id === args.tabId);
-				if (!tab || !tab.panes[args.paneId] || !tab.layout) return s;
+				const pane = tab?.panes[args.paneId];
+				if (!tab || !pane || !tab.layout) return s;
 
+				removed = pane;
 				const nextLayout = removePaneFromLayout(tab.layout, args.paneId);
 				const { [args.paneId]: _, ...nextPanes } = tab.panes;
 
@@ -311,6 +334,7 @@ export function createWorkspaceStore<TData>(
 					),
 				};
 			});
+			if (removed) notifyPaneRemovals([removed]);
 		},
 
 		setPaneData: (args) => {
@@ -387,12 +411,14 @@ export function createWorkspaceStore<TData>(
 		},
 
 		replacePane: (args) => {
+			let removed: Pane<TData> | null = null;
 			set((s) => {
 				const tab = s.tabs.find((t) => t.id === args.tabId);
 				const pane = tab?.panes[args.paneId];
 				if (!tab || !pane || !tab.layout) return s;
 				if (pane.pinned) return s;
 
+				removed = pane;
 				const { layout } = tab;
 				const newPane = buildPane(args.newPane);
 				const { [args.paneId]: _, ...restPanes } = tab.panes;
@@ -414,6 +440,7 @@ export function createWorkspaceStore<TData>(
 					),
 				};
 			});
+			if (removed) notifyPaneRemovals([removed]);
 		},
 
 		openPane: (args) => {
@@ -885,6 +912,16 @@ export function createWorkspaceStore<TData>(
 					activeTabId: resolved.activeTabId,
 				};
 			});
+			// Intentionally does not notify pane-removal listeners. replaceState
+			// is wholesale state hydration (workspace switch / sync rehydrate),
+			// not a user-initiated removal.
+		},
+
+		subscribePaneRemovals: (listener) => {
+			paneRemovalListeners.add(listener);
+			return () => {
+				paneRemovalListeners.delete(listener);
+			};
 		},
 	}));
 }

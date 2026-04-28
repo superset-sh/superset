@@ -27,6 +27,7 @@ import {
 import { TbScan } from "react-icons/tb";
 import { useHotkeyDisplay } from "renderer/hotkeys";
 import { getBaseName } from "renderer/lib/pathBasename";
+import { consumeTerminalBackgroundIntent } from "renderer/lib/terminal/terminal-background-intents";
 import { terminalRuntimeRegistry } from "renderer/lib/terminal/terminal-runtime-registry";
 import { FileIcon } from "renderer/screens/main/components/WorkspaceView/RightSidebar/FilesView/utils";
 import { useSettings } from "renderer/stores/settings";
@@ -181,6 +182,23 @@ export function usePaneRegistry(
 				});
 			},
 		});
+	// Silent kill for the onRemoved path: closing a pane shouldn't toast on
+	// success, and an error here is best-effort (the renderer-side cleanup
+	// has already happened).
+	const { mutate: killTerminalSessionSilently } =
+		workspaceTrpc.terminal.killSession.useMutation({
+			onSuccess: () => {
+				void workspaceTrpcUtils.terminal.listSessions.invalidate({
+					workspaceId,
+				});
+			},
+			onError: (error) => {
+				console.warn("Failed to kill removed terminal session", {
+					workspaceId,
+					error,
+				});
+			},
+		});
 
 	return useMemo<PaneRegistry<PaneViewerData>>(
 		() => ({
@@ -277,6 +295,15 @@ export function usePaneRegistry(
 			terminal: {
 				getIcon: () => <TerminalSquare className="size-3.5" />,
 				getTitle: () => "Terminal",
+				onRemoved: (pane) => {
+					const { terminalId } = pane.data as TerminalPaneData;
+					if (consumeTerminalBackgroundIntent(terminalId)) {
+						terminalRuntimeRegistry.release(terminalId);
+						return;
+					}
+					terminalRuntimeRegistry.dispose(terminalId);
+					killTerminalSessionSilently({ terminalId, workspaceId });
+				},
 				renderTitle: (ctx: RendererContext<PaneViewerData>) => (
 					<div className="flex min-w-0 flex-1 items-center gap-1.5">
 						<TerminalSessionDropdown context={ctx} workspaceId={workspaceId} />
@@ -500,6 +527,7 @@ export function usePaneRegistry(
 			clearShortcut,
 			scrollToBottomShortcut,
 			killTerminalSession,
+			killTerminalSessionSilently,
 			isKillingTerminalSession,
 			onOpenFile,
 			onRevealPath,

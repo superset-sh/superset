@@ -718,3 +718,70 @@ describe("reorderTab", () => {
 		expect(store.getState().tabs.map((t) => t.id)).toEqual(["t2", "t1"]);
 	});
 });
+
+describe("subscribePaneRemovals", () => {
+	it("fires for closePane", () => {
+		const store = makeStore();
+		store.getState().addTab({ id: "t1", panes: [tp("p1"), tp("p2")] });
+		const removed: string[] = [];
+		store.getState().subscribePaneRemovals((pane) => removed.push(pane.id));
+
+		store.getState().closePane({ tabId: "t1", paneId: "p1" });
+
+		expect(removed).toEqual(["p1"]);
+	});
+
+	it("fires for every pane in a removed tab", () => {
+		const store = makeStore();
+		store.getState().addTab({ id: "t1", panes: [tp("p1"), tp("p2")] });
+		const removed: string[] = [];
+		store.getState().subscribePaneRemovals((pane) => removed.push(pane.id));
+
+		store.getState().removeTab("t1");
+
+		expect(removed.sort()).toEqual(["p1", "p2"]);
+	});
+
+	it("fires for the old pane on replacePane", () => {
+		const store = makeStore();
+		store.getState().addTab({ id: "t1", panes: [tp("p1")] });
+		const removed: string[] = [];
+		store.getState().subscribePaneRemovals((pane) => removed.push(pane.id));
+
+		store
+			.getState()
+			.replacePane({ tabId: "t1", paneId: "p1", newPane: tp("p2") });
+
+		expect(removed).toEqual(["p1"]);
+	});
+
+	it("does NOT fire on replaceState (workspace switch / hydration)", () => {
+		const store = makeStore();
+		store.getState().addTab({ id: "t1", panes: [tp("p1"), tp("p2")] });
+		const removed: string[] = [];
+		store.getState().subscribePaneRemovals((pane) => removed.push(pane.id));
+
+		store.getState().replaceState({
+			version: 1,
+			tabs: [],
+			activeTabId: null,
+		});
+
+		expect(removed).toEqual([]);
+	});
+
+	it("stops firing after unsubscribe", () => {
+		const store = makeStore();
+		store.getState().addTab({ id: "t1", panes: [tp("p1"), tp("p2")] });
+		const removed: string[] = [];
+		const unsubscribe = store
+			.getState()
+			.subscribePaneRemovals((pane) => removed.push(pane.id));
+
+		store.getState().closePane({ tabId: "t1", paneId: "p1" });
+		unsubscribe();
+		store.getState().closePane({ tabId: "t1", paneId: "p2" });
+
+		expect(removed).toEqual(["p1"]);
+	});
+});

@@ -1,7 +1,6 @@
 import { cn } from "@superset/ui/utils";
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { useStore } from "zustand";
-import type { Pane } from "../../../types";
 import type { WorkspaceProps } from "../../types";
 import { Tab } from "./components/Tab";
 import { TabBar } from "./components/TabBar";
@@ -29,21 +28,13 @@ export function Workspace<TData>({
 		onInteractionStateChange,
 	});
 
-	const previousPanesRef = useRef<Map<string, Pane<TData>>>(new Map());
-	useEffect(() => {
-		const current = new Map<string, Pane<TData>>();
-		for (const tab of tabs) {
-			for (const pane of Object.values(tab.panes)) {
-				current.set(pane.id, pane);
-			}
-		}
-		for (const [prevId, prevPane] of previousPanesRef.current) {
-			if (!current.has(prevId)) {
-				registry[prevPane.kind]?.onRemoved?.(prevPane);
-			}
-		}
-		previousPanesRef.current = current;
-	}, [tabs, registry]);
+	useEffect(
+		() =>
+			store.getState().subscribePaneRemovals((pane) => {
+				registry[pane.kind]?.onRemoved?.(pane);
+			}),
+		[store, registry],
+	);
 
 	const closeTab = async (tabId: string) => {
 		if (onBeforeCloseTab) {
