@@ -89,11 +89,11 @@ export const DashboardSidebarSectionHeader = forwardRef<
 				</div>
 
 				{!isRenaming && (
-					<div className="relative ml-1 flex size-5 shrink-0 items-center justify-center">
+					<div className="ml-1 flex size-5 shrink-0 items-center justify-center">
 						{actions ? (
 							// biome-ignore lint/a11y/noStaticElementInteractions: Nested action controls handle their own semantics; this wrapper only isolates events from the header toggle.
 							<div
-								className="absolute inset-0 flex items-center justify-center"
+								className="peer hidden size-full items-center justify-center group-hover:flex group-focus-within:flex has-[[data-state=open]]:flex"
 								onClick={(event) => event.stopPropagation()}
 								onKeyDown={(event) => event.stopPropagation()}
 							>
@@ -102,8 +102,9 @@ export const DashboardSidebarSectionHeader = forwardRef<
 						) : null}
 						<span
 							className={cn(
-								"pointer-events-none relative text-[10px] font-normal tabular-nums text-muted-foreground transition-opacity",
-								actions && "group-hover:opacity-0 group-focus-within:opacity-0",
+								"text-[10px] font-normal tabular-nums text-muted-foreground",
+								actions &&
+									"group-hover:hidden group-focus-within:hidden peer-has-[[data-state=open]]:hidden",
 							)}
 						>
 							{section.workspaces.length}

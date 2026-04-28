@@ -99,10 +99,7 @@ export const DashboardSidebarProjectRow = forwardRef<
 				</div>
 
 				{!isRenaming && (
-					<div className="relative ml-1 flex size-6 shrink-0 items-center justify-center">
-						<span className="text-[10px] font-normal tabular-nums text-muted-foreground transition-opacity group-hover:opacity-0 group-focus-within:opacity-0">
-							{totalWorkspaceCount}
-						</span>
+					<div className="ml-1 flex size-6 shrink-0 items-center justify-center">
 						<Tooltip delayDuration={500}>
 							<TooltipTrigger asChild>
 								<button
@@ -114,7 +111,7 @@ export const DashboardSidebarProjectRow = forwardRef<
 									onKeyDown={(event) => event.stopPropagation()}
 									onContextMenu={(event) => event.stopPropagation()}
 									aria-label="New workspace"
-									className="pointer-events-none absolute inset-0 flex items-center justify-center rounded opacity-0 transition-opacity hover:bg-muted group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100 focus-visible:pointer-events-auto focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+									className="hidden size-full items-center justify-center rounded transition-colors hover:bg-muted group-hover:flex group-focus-within:flex focus-visible:flex focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
 								>
 									<HiMiniPlus className="size-4 text-muted-foreground" />
 								</button>
@@ -123,6 +120,9 @@ export const DashboardSidebarProjectRow = forwardRef<
 								New workspace
 							</TooltipContent>
 						</Tooltip>
+						<span className="text-[10px] font-normal tabular-nums text-muted-foreground group-hover:hidden group-focus-within:hidden">
+							{totalWorkspaceCount}
+						</span>
 					</div>
 				)}
 			</div>
