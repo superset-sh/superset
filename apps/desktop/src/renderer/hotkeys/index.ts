@@ -3,7 +3,7 @@ export { formatHotkeyDisplay } from "./display";
 export {
 	getBinding,
 	useBinding,
-	useFormatChord,
+	useFormatBinding,
 	useHotkey,
 	useHotkeyDisplay,
 	useRecordHotkeys,

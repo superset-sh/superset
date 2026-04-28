@@ -5,7 +5,7 @@ import type { HotkeyId } from "../../registry";
 import { PLATFORM } from "../../registry";
 import { useKeyboardLayoutStore } from "../../stores/keyboardLayoutStore";
 import type { HotkeyDisplay } from "../../types";
-import { parseBinding, translateLogicalChord } from "../../utils/binding";
+import { bindingToDispatchChord } from "../../utils/binding";
 import { useBinding } from "../useBinding";
 
 // react-hotkeys-hook does its own match against event.code/key and the four
@@ -29,17 +29,7 @@ export function useHotkey(
 ): HotkeyDisplay {
 	const binding = useBinding(id);
 	const layoutMap = useKeyboardLayoutStore((s) => s.map);
-	const parsed = binding ? parseBinding(binding) : null;
-	// Logical-mode bindings store the produced character ("p"); translate
-	// through the current layout map to the equivalent event.code-based chord
-	// react-hotkeys-hook expects. Falls back to the un-translated chord when
-	// the layout map is null (still loading) or the character isn't on the
-	// keyboard — which is correct for US QWERTY where the produced character
-	// equals the canonical scan-code token.
-	const chord =
-		parsed?.mode === "logical"
-			? (translateLogicalChord(parsed.chord, layoutMap) ?? parsed.chord)
-			: (parsed?.chord ?? null);
+	const chord = bindingToDispatchChord(binding, layoutMap);
 	const callbackRef = useRef(callback);
 	callbackRef.current = callback;
 	const callerIgnore = options?.ignoreEventWhen;

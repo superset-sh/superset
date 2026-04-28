@@ -71,6 +71,27 @@ export function serializeBinding(parsed: ParsedBinding): ShortcutBinding {
 	return { version: 2, mode: parsed.mode, chord };
 }
 
+/**
+ * Resolve a stored binding to the chord react-hotkeys-hook sees at dispatch
+ * time. For physical/named bindings this is just the chord field. For
+ * logical bindings the literal character is translated through the current
+ * layout map to its event.code form (e.g. logical `meta+z` on QWERTZ becomes
+ * `meta+y` because the Z character lives on physical KeyY there).
+ *
+ * Used by useHotkey for registration, by useHotkeyDisplay/useFormatChord for
+ * layout-aware display, and by useRecordHotkeys for cross-mode conflict
+ * detection — all of which must agree on the same dispatch chord.
+ */
+export function bindingToDispatchChord(
+	binding: ShortcutBinding | null,
+	layoutMap: ReadonlyMap<string, string> | null,
+): string | null {
+	if (!binding) return null;
+	const parsed = parseBinding(binding);
+	if (parsed.mode !== "logical") return parsed.chord;
+	return translateLogicalChord(parsed.chord, layoutMap) ?? parsed.chord;
+}
+
 /** Two bindings refer to the same chord under the same matching semantics. */
 export function bindingsEqual(
 	a: ShortcutBinding | null,

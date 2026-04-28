@@ -2,7 +2,7 @@ import { HOTKEYS, type HotkeyId } from "../registry";
 import { useHotkeyOverridesStore } from "../stores/hotkeyOverridesStore";
 import { useKeyboardLayoutStore } from "../stores/keyboardLayoutStore";
 import type { ShortcutBinding } from "../types";
-import { parseBinding, translateLogicalChord } from "./binding";
+import { bindingToDispatchChord } from "./binding";
 
 /**
  * KeyboardEvent → registered {@link HotkeyId}, or `null` if unbound. Uses the
@@ -128,15 +128,8 @@ function buildRegisteredAppChords(
 		if (hasOverride && override === null) continue;
 		const binding = override ?? HOTKEYS[id].key;
 		if (!binding) continue;
-		const parsed = parseBinding(binding);
-		// Logical-mode bindings need translation through the current layout
-		// map so the event.code-based lookup matches what useHotkey registers
-		// with react-hotkeys-hook. Falls back to the untranslated chord (US-
-		// correct) when the layout map hasn't loaded.
-		const dispatchChord =
-			parsed.mode === "logical"
-				? (translateLogicalChord(parsed.chord, layoutMap) ?? parsed.chord)
-				: parsed.chord;
+		const dispatchChord = bindingToDispatchChord(binding, layoutMap);
+		if (!dispatchChord) continue;
 		map.set(canonicalizeChord(dispatchChord), id);
 	}
 	return map;

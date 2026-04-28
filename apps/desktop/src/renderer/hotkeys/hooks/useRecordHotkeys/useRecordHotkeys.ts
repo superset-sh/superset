@@ -10,9 +10,8 @@ import type {
 } from "../../types";
 import {
 	bindingsEqual,
-	parseBinding,
+	bindingToDispatchChord,
 	serializeBinding,
-	translateLogicalChord,
 } from "../../utils/binding";
 import {
 	canonicalizeChord,
@@ -153,35 +152,21 @@ function checkReserved(
 	return null;
 }
 
-/**
- * Resolve a parsed binding to its dispatch chord (the event.code-form chord
- * react-hotkeys-hook actually matches). Same translation `useHotkey` does.
- * Used for cross-mode conflict detection: two bindings collide iff they
- * resolve to the same dispatch chord on the user's current layout.
- */
-function dispatchChordFor(
-	parsed: ParsedBinding,
-	layoutMap: ReadonlyMap<string, string> | null,
-): string | null {
-	if (parsed.mode !== "logical") return canonicalizeChord(parsed.chord);
-	const translated = translateLogicalChord(parsed.chord, layoutMap);
-	return translated ? canonicalizeChord(translated) : null;
-}
-
 function getHotkeyConflict(
-	candidate: ParsedBinding,
+	candidate: ShortcutBinding,
 	excludeId: HotkeyId,
 ): HotkeyId | null {
 	const { overrides } = useHotkeyOverridesStore.getState();
 	const layoutMap = useKeyboardLayoutStore.getState().map;
-	const candidateDispatch = dispatchChordFor(candidate, layoutMap);
+	const candidateDispatch = bindingToDispatchChord(candidate, layoutMap);
 	if (!candidateDispatch) return null;
+	const target = canonicalizeChord(candidateDispatch);
 	for (const id of Object.keys(HOTKEYS) as HotkeyId[]) {
 		if (id === excludeId) continue;
 		const effective = id in overrides ? overrides[id] : HOTKEYS[id].key;
 		if (!effective) continue;
-		const otherDispatch = dispatchChordFor(parseBinding(effective), layoutMap);
-		if (otherDispatch && otherDispatch === candidateDispatch) return id;
+		const otherDispatch = bindingToDispatchChord(effective, layoutMap);
+		if (otherDispatch && canonicalizeChord(otherDispatch) === target) return id;
 	}
 	return null;
 }
@@ -250,7 +235,7 @@ export function useRecordHotkeys(
 				return;
 			}
 
-			const conflictId = getHotkeyConflict(parsed, recordingId);
+			const conflictId = getHotkeyConflict(binding, recordingId);
 			if (conflictId) {
 				optionsRef.current?.onConflict?.(recordingId, binding, conflictId);
 				return;

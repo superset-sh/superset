@@ -1,5 +1,6 @@
 export {
 	bindingsEqual,
+	bindingToDispatchChord,
 	defaultModeForChord,
 	parseBinding,
 	serializeBinding,

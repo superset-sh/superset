@@ -17,9 +17,8 @@ import {
 	HOTKEYS,
 	type HotkeyCategory,
 	type HotkeyId,
-	parseBinding,
 	type ShortcutBinding,
-	useFormatChord,
+	useFormatBinding,
 	useHotkeyDisplay,
 	useHotkeyOverridesStore,
 	useRecordHotkeys,
@@ -175,10 +174,7 @@ function KeyboardShortcutsPage() {
 		setPendingConflict(null);
 	};
 
-	const conflictChord = pendingConflict
-		? parseBinding(pendingConflict.binding).chord
-		: null;
-	const conflictDisplay = useFormatChord(conflictChord);
+	const conflictDisplay = useFormatBinding(pendingConflict?.binding ?? null);
 
 	return (
 		<div className="p-6 w-full max-w-4xl">

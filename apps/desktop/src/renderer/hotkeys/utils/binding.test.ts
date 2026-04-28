@@ -1,6 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import {
 	bindingsEqual,
+	bindingToDispatchChord,
 	defaultModeForChord,
 	parseBinding,
 	serializeBinding,
@@ -170,6 +171,86 @@ describe("translateLogicalChord", () => {
 		// Verify modifiers stay in their input order; canonicalizeChord sorts them
 		const result = translateLogicalChord("alt+meta+shift+p", dvorakMap);
 		expect(result).toBe("alt+meta+shift+r");
+	});
+});
+
+describe("bindingToDispatchChord", () => {
+	const usMap = new Map<string, string>([
+		["KeyP", "p"],
+		["KeyR", "r"],
+		["KeyY", "y"],
+		["KeyZ", "z"],
+	]);
+	// QWERTZ: Y/Z swapped
+	const qwertzMap = new Map<string, string>([
+		["KeyY", "z"],
+		["KeyZ", "y"],
+	]);
+
+	it("returns null for null binding", () => {
+		expect(bindingToDispatchChord(null, usMap)).toBeNull();
+	});
+
+	it("legacy string (physical) returns chord unchanged", () => {
+		expect(bindingToDispatchChord("meta+p", usMap)).toBe("meta+p");
+		expect(bindingToDispatchChord("meta+p", qwertzMap)).toBe("meta+p");
+	});
+
+	it("explicit physical mode returns chord unchanged", () => {
+		expect(
+			bindingToDispatchChord(
+				{ version: 2, mode: "physical", chord: "meta+p" },
+				qwertzMap,
+			),
+		).toBe("meta+p");
+	});
+
+	it("named mode returns chord unchanged", () => {
+		expect(
+			bindingToDispatchChord(
+				{ version: 2, mode: "named", chord: "meta+enter" },
+				qwertzMap,
+			),
+		).toBe("meta+enter");
+	});
+
+	// The bug we just fixed: logical bindings recorded on QWERTZ were displayed
+	// as if their key were a scan-code token. Verify the translation flips the
+	// chord to the equivalent event.code form before display/dispatch.
+	it("logical binding on QWERTZ: meta+z translates to meta+y (KeyY prints 'z')", () => {
+		expect(
+			bindingToDispatchChord(
+				{ version: 2, mode: "logical", chord: "meta+z" },
+				qwertzMap,
+			),
+		).toBe("meta+y");
+	});
+
+	it("logical binding on QWERTZ: meta+y translates to meta+z (KeyZ prints 'y')", () => {
+		expect(
+			bindingToDispatchChord(
+				{ version: 2, mode: "logical", chord: "meta+y" },
+				qwertzMap,
+			),
+		).toBe("meta+z");
+	});
+
+	it("logical binding on US: identity (printed char == scan-code token)", () => {
+		expect(
+			bindingToDispatchChord(
+				{ version: 2, mode: "logical", chord: "meta+z" },
+				usMap,
+			),
+		).toBe("meta+z");
+	});
+
+	it("logical binding falls back to literal chord when layoutMap missing", () => {
+		expect(
+			bindingToDispatchChord(
+				{ version: 2, mode: "logical", chord: "meta+z" },
+				null,
+			),
+		).toBe("meta+z");
 	});
 });
 
