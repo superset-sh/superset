@@ -28,12 +28,8 @@ import { IssueLinkCommand } from "renderer/components/Chat/ChatInterface/compone
 import { useAgentLaunchPreferences } from "renderer/hooks/useAgentLaunchPreferences";
 import { useEnabledAgents } from "renderer/hooks/useEnabledAgents";
 import { PLATFORM } from "renderer/hotkeys";
-import {
-	getBaseBranchDefault,
-	setBaseBranchDefault,
-	setLastHostTarget,
-} from "renderer/lib/v2-workspace-create-defaults";
 import { useNewWorkspaceModalOpen } from "renderer/stores/new-workspace-modal";
+import { useV2WorkspaceCreateDefaultsStore } from "renderer/stores/v2-workspace-create-defaults";
 import { useDashboardNewWorkspaceDraft } from "../../../DashboardNewWorkspaceDraftContext";
 import { DevicePicker } from "../components/DevicePicker";
 import { AttachmentButtons } from "./components/AttachmentButtons";
@@ -75,6 +71,19 @@ export function PromptGroup({
 	const navigate = useNavigate();
 	const attachments = useProviderAttachments();
 	const needsSetup = selectedProject?.needsSetup === true;
+	const persistedBaseBranchDefault = useV2WorkspaceCreateDefaultsStore(
+		(state) =>
+			projectId ? (state.baseBranchesByProjectId[projectId] ?? null) : null,
+	);
+	const setBaseBranchDefault = useV2WorkspaceCreateDefaultsStore(
+		(state) => state.setBaseBranchDefault,
+	);
+	const clearBaseBranchDefault = useV2WorkspaceCreateDefaultsStore(
+		(state) => state.clearBaseBranchDefault,
+	);
+	const setLastHostTarget = useV2WorkspaceCreateDefaultsStore(
+		(state) => state.setLastHostTarget,
+	);
 	const handleGoToSetup = useCallback(() => {
 		if (!selectedProject?.id) return;
 		const targetProjectId = selectedProject.id;
@@ -128,13 +137,12 @@ export function PromptGroup({
 		) {
 			previousProjectIdRef.current = projectId;
 			previousHostRef.current = nextHost;
-			const persisted = getBaseBranchDefault(projectId);
 			updateDraft({
-				baseBranch: persisted?.branchName ?? null,
-				baseBranchSource: persisted?.source ?? null,
+				baseBranch: persistedBaseBranchDefault?.branchName ?? null,
+				baseBranchSource: persistedBaseBranchDefault?.source ?? null,
 			});
 		}
-	}, [projectId, hostTarget, updateDraft]);
+	}, [projectId, hostTarget, persistedBaseBranchDefault, updateDraft]);
 
 	// ── Branch picker controller ─────────────────────────────────────
 	const { pickerProps } = useBranchPickerController({
@@ -144,8 +152,12 @@ export function PromptGroup({
 		runSetupScript: draft.runSetupScript,
 		typedWorkspaceName: workspaceName,
 		onBaseBranchChange: (branch, source) => {
-			if (projectId && branch && source) {
-				setBaseBranchDefault(projectId, branch, source);
+			if (projectId) {
+				if (branch && source) {
+					setBaseBranchDefault(projectId, branch, source);
+				} else {
+					clearBaseBranchDefault(projectId);
+				}
 			}
 			updateDraft({ baseBranch: branch, baseBranchSource: source });
 		},

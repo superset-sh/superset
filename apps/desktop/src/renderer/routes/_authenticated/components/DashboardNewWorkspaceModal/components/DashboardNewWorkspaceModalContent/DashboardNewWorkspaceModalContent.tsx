@@ -3,12 +3,8 @@ import { useLiveQuery } from "@tanstack/react-db";
 import { useEffect, useMemo, useRef } from "react";
 import { env } from "renderer/env.renderer";
 import { authClient } from "renderer/lib/auth-client";
-import {
-	getLastHostTarget,
-	getLastProjectId,
-	setLastProjectId,
-} from "renderer/lib/v2-workspace-create-defaults";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { useV2WorkspaceCreateDefaultsStore } from "renderer/stores/v2-workspace-create-defaults";
 import { MOCK_ORG_ID } from "shared/constants";
 import { useDashboardNewWorkspaceDraft } from "../../DashboardNewWorkspaceDraftContext";
 import { PromptGroup } from "../DashboardNewWorkspaceForm/PromptGroup";
@@ -31,6 +27,9 @@ export function DashboardNewWorkspaceModalContent({
 	preSelectedProjectId,
 }: DashboardNewWorkspaceModalContentProps) {
 	const { draft, updateDraft } = useDashboardNewWorkspaceDraft();
+	const setLastProjectId = useV2WorkspaceCreateDefaultsStore(
+		(state) => state.setLastProjectId,
+	);
 	const collections = useCollections();
 	const { data: session } = authClient.useSession();
 	const activeOrganizationId = env.SKIP_ENV_VALIDATION
@@ -91,7 +90,8 @@ export function DashboardNewWorkspaceModalContent({
 		}
 		if (appliedHostTargetRef.current) return;
 		appliedHostTargetRef.current = true;
-		const persistedHostTarget = getLastHostTarget();
+		const persistedHostTarget =
+			useV2WorkspaceCreateDefaultsStore.getState().lastHostTarget;
 		if (persistedHostTarget) {
 			updateDraft({ hostTarget: persistedHostTarget });
 		}
@@ -123,7 +123,7 @@ export function DashboardNewWorkspaceModalContent({
 			(project) => project.id === draft.selectedProjectId,
 		);
 		if (!hasSelectedProject) {
-			const lastProjectId = getLastProjectId();
+			const { lastProjectId } = useV2WorkspaceCreateDefaultsStore.getState();
 			const persistedProjectId =
 				lastProjectId &&
 				recentProjects.some((project) => project.id === lastProjectId)
