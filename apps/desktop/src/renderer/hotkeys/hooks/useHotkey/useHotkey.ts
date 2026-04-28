@@ -8,14 +8,10 @@ import type { HotkeyDisplay } from "../../types";
 import { bindingToDispatchChord } from "../../utils/binding";
 import { useBinding } from "../useBinding";
 
-// react-hotkeys-hook does its own match against event.code/key and the four
-// modifier booleans (see node_modules/react-hotkeys-hook/dist/index.js,
-// function `re`). It does NOT check AltGraph or composition, so app hotkeys
-// would otherwise fire on AltGr-typed printables (Linux/Windows) and during
-// CJK composition. `ignoreEventWhen` is the library's documented suppression
-// hook (Options.ignoreEventWhen, dist/index.js line 224) — runs after match
-// but before preventDefault and the callback, so the IME / AltGr keystroke
-// passes through to the focused element unmodified.
+// react-hotkeys-hook doesn't check AltGraph or IME composition. Use its
+// `ignoreEventWhen` option (runs after match, before preventDefault) to
+// suppress those events so AltGr-typed printables and IME keystrokes pass
+// through to the focused element.
 function shouldIgnoreEvent(e: KeyboardEvent): boolean {
 	if (e.isComposing || e.keyCode === 229) return true;
 	if (e.getModifierState?.("AltGraph") === true) return true;

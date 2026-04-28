@@ -1,16 +1,11 @@
 import { EventEmitter } from "node:events";
 
-// Wraps Microsoft's native-keymap for the renderer. Mirrors VSCode's
-// keyboardLayoutMainService (src/vs/platform/keyboardLayout/electron-main):
-// - Lazy import of native-keymap (defer load until first read)
-// - Single source of truth, refreshed on onDidChangeKeyboardLayout
-// - Exposes getSnapshot() + onChange(cb) for the tRPC router to bridge
-//
-// macOS specifically: native-keymap hooks Apple's
-// kTISNotifySelectedKeyboardInputSourceChanged distributed notification, so
-// switching input source via the menu-bar picker / Cmd+Space fires the
-// onChange callback within milliseconds — something
-// navigator.keyboard.layoutchange does not do in Chromium.
+// Wraps native-keymap for the renderer (mirrors VSCode's
+// keyboardLayoutMainService). Lazy-loads on first read so the native module
+// only initializes when actually needed. On macOS, native-keymap hooks
+// Apple's kTISNotifySelectedKeyboardInputSourceChanged distributed
+// notification — input-source switches fire onChange within milliseconds,
+// which navigator.keyboard.layoutchange does not do in Chromium.
 
 export interface KeyboardLayoutData {
 	/** OS-specific layout id, e.g. "com.apple.keylayout.German". Empty if unavailable. */

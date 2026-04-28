@@ -78,12 +78,11 @@ export function eventToChord(event: KeyboardEvent): string | null {
 	if (event.isComposing || event.keyCode === 229) return null;
 	const key = normalizeToken(event.code);
 	if (isIgnorableKey(key)) return null;
-	// AltGr (`AltGraph`) is reported by Chromium as ctrlKey+altKey on
-	// Windows/Linux. Treating that combination as Ctrl+Alt would let printable
-	// keystrokes on non-US layouts (e.g. AltGr+E = € on German) accidentally
-	// trigger ctrl+alt+e bindings. Suppress both modifiers when AltGr is held;
-	// no current binding opts into AltGr explicitly. Phase 2 may add a
-	// first-class altgr+ token.
+	// AltGr is reported by Chromium as ctrlKey+altKey on Windows/Linux.
+	// Treating that combination as Ctrl+Alt would let printable keystrokes on
+	// non-US layouts (e.g. AltGr+E = € on German) accidentally trigger
+	// ctrl+alt+e bindings. Suppress both when AltGr is held; no binding opts
+	// into AltGr explicitly.
 	const altGraph = event.getModifierState?.("AltGraph") === true;
 	const mods: string[] = [];
 	if (event.metaKey) mods.push("meta");

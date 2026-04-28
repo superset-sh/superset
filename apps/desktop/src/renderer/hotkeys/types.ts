@@ -30,35 +30,27 @@ export interface HotkeyDefinition {
 
 /**
  * How a binding identifies a key:
- *
- * - `physical`: matches by `event.code` (the QWERTY-`P` slot is `KeyP` on
- *   every layout). Today's default for shipped registry entries — preserves
- *   muscle memory for users who learned the QWERTY layout.
- * - `logical`: matches by produced character (`event.key`). On Dvorak, the
- *   physical R-position prints "p" — a logical `meta+p` binding fires when
- *   the user presses the key labeled P, regardless of layout. Default for
- *   new user-recorded printable bindings.
- * - `named`: matches by the named-key event.code (Enter, Escape, ArrowUp,
- *   F1-F12, Backspace, etc.). These are stable across layouts and aren't
- *   really physical *or* logical — they have a name that the OS reports
- *   identically regardless of layout. Recorder uses this automatically for
- *   non-printable keys.
+ * - `physical`: matches `event.code` — same physical key on every layout.
+ *   Default for shipped registry entries (preserves QWERTY muscle memory).
+ * - `logical`: matches the produced character (`event.key`) — same printed
+ *   letter on every layout, even when it lives on different physical keys.
+ *   Default for new user-recorded printable bindings.
+ * - `named`: stable named keys (Enter, ArrowUp, F1-F12, ...). Used
+ *   automatically for non-printable keys regardless of preference.
  */
 export type BindingMode = "physical" | "logical" | "named";
 
 /**
- * Versioned shape for a single hotkey binding.
- *
- * Stored in localStorage as either a bare chord string (legacy / shipped
- * defaults — implicitly `physical`) or a v2 object. The legacy string form
- * is preserved indefinitely so default registry entries stay terse.
+ * Stored as a bare chord string for legacy / shipped defaults (implicitly
+ * physical) or a v2 object for explicit modes. The legacy string form is
+ * preserved indefinitely so default registry entries stay terse.
  */
 export type ShortcutBinding =
-	| string // legacy / shipped default — treated as { mode: "physical" }
+	| string
 	| {
 			version: 2;
 			mode: BindingMode;
-			/** Same canonical form as legacy strings: "meta+shift+p", "ctrl+slash". */
+			/** Canonical form, e.g. "meta+shift+p", "ctrl+slash". */
 			chord: string;
 	  };
 

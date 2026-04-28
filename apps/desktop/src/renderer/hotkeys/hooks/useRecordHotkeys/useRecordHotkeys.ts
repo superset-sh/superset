@@ -61,9 +61,9 @@ export function captureHotkeyFromEvent(
 
 	const isFKey = /^f([1-9]|1[0-2])$/.test(codeKey);
 	const isNamed = NAMED_CODES.has(codeKey);
-	// On Mac, Option is a legitimate shortcut modifier (e.g. ⌥⌫ for delete-word).
-	// Elsewhere, Alt is the menu key and AltGr masquerades as ctrl+alt, so we
-	// still require ctrl/meta.
+	// Mac Option is a legitimate shortcut modifier (⌥⌫ = delete-word). On
+	// other platforms Alt is the menu key and AltGr masquerades as ctrl+alt,
+	// so we still require ctrl/meta.
 	const altIsAppModifier = PLATFORM === "mac" && event.altKey;
 	if (!isFKey && !event.ctrlKey && !event.metaKey && !altIsAppModifier) {
 		return null;
