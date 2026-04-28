@@ -53,8 +53,14 @@ export function Workspace<TData>({
 			const allowed = await onBeforeCloseTab(tab);
 			if (!allowed) return;
 		}
+		// Re-check after the await: the tab may have been removed concurrently.
+		if (!store.getState().getTab(tabId)) return;
 		store.getState().removeTab(tabId);
-		onAfterCloseTab?.(tab);
+		try {
+			onAfterCloseTab?.(tab);
+		} catch (err) {
+			console.error("onAfterCloseTab threw", err);
+		}
 	};
 
 	return (
