@@ -1,1 +1,1 @@
-export { useHotkeyDisplay } from "./useHotkeyDisplay";
+export { useFormatChord, useHotkeyDisplay } from "./useHotkeyDisplay";

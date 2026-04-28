@@ -14,13 +14,12 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { HiMagnifyingGlass } from "react-icons/hi2";
 import {
-	formatHotkeyDisplay,
 	HOTKEYS,
 	type HotkeyCategory,
 	type HotkeyId,
-	PLATFORM,
 	parseBinding,
 	type ShortcutBinding,
+	useFormatChord,
 	useHotkeyDisplay,
 	useHotkeyOverridesStore,
 	useRecordHotkeys,
@@ -176,6 +175,11 @@ function KeyboardShortcutsPage() {
 		setPendingConflict(null);
 	};
 
+	const conflictChord = pendingConflict
+		? parseBinding(pendingConflict.binding).chord
+		: null;
+	const conflictDisplay = useFormatChord(conflictChord);
+
 	return (
 		<div className="p-6 w-full max-w-4xl">
 			{/* Header */}
@@ -284,7 +288,7 @@ function KeyboardShortcutsPage() {
 							<div className="text-muted-foreground space-y-1.5">
 								<span className="block">
 									{pendingConflict
-										? `${formatHotkeyDisplay(parseBinding(pendingConflict.binding).chord, PLATFORM).text} is already assigned to "${
+										? `${conflictDisplay.text} is already assigned to "${
 												HOTKEYS[pendingConflict.conflictId].label
 											}".`
 										: ""}
