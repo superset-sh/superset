@@ -2,7 +2,6 @@ import {
 	getEventBus,
 	type PortChangedPayload,
 } from "@superset/workspace-client";
-import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useQueries, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo } from "react";
@@ -52,14 +51,10 @@ export function useDashboardSidebarPortsData(): {
 		(q) =>
 			q
 				.from({ workspaces: collections.v2Workspaces })
-				.leftJoin({ hosts: collections.v2Hosts }, ({ workspaces, hosts }) =>
-					eq(workspaces.hostId, hosts.machineId),
-				)
-				.select(({ workspaces, hosts }) => ({
+				.select(({ workspaces }) => ({
 					id: workspaces.id,
 					name: workspaces.name,
 					hostId: workspaces.hostId,
-					hostMachineId: hosts?.machineId ?? null,
 				})),
 		[collections],
 	);
