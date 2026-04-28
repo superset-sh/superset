@@ -56,7 +56,7 @@ async function main(): Promise<void> {
 		(info: { port: number }) => {
 			// Install only after the server is listening so startup throws still
 			// reach `main().catch(...)` and exit with a non-zero code.
-			installProcessSafetyNet("host-service");
+			installProcessSafetyNet();
 
 			if (env.ORGANIZATION_ID) {
 				try {

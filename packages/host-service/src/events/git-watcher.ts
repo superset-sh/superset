@@ -80,9 +80,10 @@ export class GitWatcher {
 
 	start(): void {
 		void this.rescan();
-		this.rescanTimer = setInterval(() => {
-			void this.rescan();
-		}, RESCAN_INTERVAL_MS);
+		this.rescanTimer = setInterval(
+			() => void this.rescan(),
+			RESCAN_INTERVAL_MS,
+		);
 	}
 
 	onChanged(listener: GitChangedListener): () => void {

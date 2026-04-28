@@ -37,7 +37,7 @@ async function main(): Promise<void> {
 	const server = serve({ fetch: app.fetch, port: env.PORT }, (info) => {
 		// Install only after the server is listening so startup throws still
 		// reach `main().catch(...)` and exit with a non-zero code.
-		installProcessSafetyNet("host-service");
+		installProcessSafetyNet();
 		console.log(`[host-service] listening on http://localhost:${info.port}`);
 
 		if (env.RELAY_URL) {

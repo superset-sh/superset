@@ -15,18 +15,18 @@
 
 let safetyNetInstalled = false;
 
-export function installProcessSafetyNet(label = "host-service"): void {
+export function installProcessSafetyNet(): void {
 	if (safetyNetInstalled) return;
 	safetyNetInstalled = true;
 
 	process.on("uncaughtException", (error, origin) => {
-		console.error(`[${label}] uncaughtException — staying up`, {
+		console.error("[host-service] uncaughtException — staying up", {
 			origin,
 			error,
 		});
 	});
 
 	process.on("unhandledRejection", (reason) => {
-		console.error(`[${label}] unhandledRejection — staying up`, { reason });
+		console.error("[host-service] unhandledRejection — staying up", { reason });
 	});
 }
