@@ -70,17 +70,15 @@ export const DashboardSidebarProjectRow = forwardRef<
 				{...props}
 			>
 				<div className="flex min-w-0 flex-1 items-center gap-2 py-0.5">
-					<div className="relative shrink-0 size-5 flex items-center justify-center">
-						<span className="group-hover:opacity-0 transition-opacity duration-150">
-							<ProjectThumbnail
-								projectName={projectName}
-								githubOwner={githubOwner}
-								className="size-4"
-							/>
-						</span>
+					<div className="flex size-5 shrink-0 items-center justify-center">
+						<ProjectThumbnail
+							projectName={projectName}
+							githubOwner={githubOwner}
+							className="size-4 group-hover:hidden"
+						/>
 						<HiChevronRight
 							className={cn(
-								"absolute inset-0 m-auto size-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-all duration-150",
+								"hidden size-4 text-muted-foreground transition-transform group-hover:block",
 								!isCollapsed && "rotate-90",
 							)}
 						/>
@@ -96,31 +94,35 @@ export const DashboardSidebarProjectRow = forwardRef<
 					) : (
 						<span className="truncate">{projectName}</span>
 					)}
-					{!isRenaming && (
-						<span className="shrink-0 text-xs font-normal tabular-nums text-muted-foreground">
-							({totalWorkspaceCount})
-						</span>
-					)}
 				</div>
 
-				<Tooltip delayDuration={500}>
-					<TooltipTrigger asChild>
-						<button
-							type="button"
-							onClick={(event) => {
-								event.stopPropagation();
-								onNewWorkspace();
-							}}
-							onContextMenu={(event) => event.stopPropagation()}
-							className="p-1 rounded hover:bg-muted transition-colors shrink-0 ml-1"
-						>
-							<HiMiniPlus className="size-4 text-muted-foreground" />
-						</button>
-					</TooltipTrigger>
-					<TooltipContent side="bottom" sideOffset={4}>
-						New workspace
-					</TooltipContent>
-				</Tooltip>
+				{!isRenaming && (
+					<div className="ml-1 flex size-6 shrink-0 items-center justify-center">
+						<Tooltip delayDuration={500}>
+							<TooltipTrigger asChild>
+								<button
+									type="button"
+									onClick={(event) => {
+										event.stopPropagation();
+										onNewWorkspace();
+									}}
+									onKeyDown={(event) => event.stopPropagation()}
+									onContextMenu={(event) => event.stopPropagation()}
+									aria-label="New workspace"
+									className="hidden size-full items-center justify-center rounded transition-colors hover:bg-muted group-hover:flex group-has-[:focus]:flex focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+								>
+									<HiMiniPlus className="size-4 text-muted-foreground" />
+								</button>
+							</TooltipTrigger>
+							<TooltipContent side="bottom" sideOffset={4}>
+								New workspace
+							</TooltipContent>
+						</Tooltip>
+						<span className="text-[10px] font-normal tabular-nums text-muted-foreground group-hover:hidden group-has-[:focus]:hidden">
+							{totalWorkspaceCount}
+						</span>
+					</div>
+				)}
 			</div>
 		);
 	},

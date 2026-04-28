@@ -8,14 +8,8 @@ import {
 	ContextMenuSubTrigger,
 	ContextMenuTrigger,
 } from "@superset/ui/context-menu";
-import {
-	HoverCard,
-	HoverCardContent,
-	HoverCardTrigger,
-} from "@superset/ui/hover-card";
 import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
-import { useState } from "react";
 import {
 	LuArrowRightLeft,
 	LuArrowUp,
@@ -30,14 +24,13 @@ import {
 	LuX,
 } from "react-icons/lu";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { useDashboardSidebarHover } from "../../../../providers/DashboardSidebarHoverProvider";
 
 interface DashboardSidebarWorkspaceContextMenuProps {
-	hoverCardContent?: React.ReactNode;
 	projectId: string;
 	isInSection?: boolean;
 	isLocalWorkspace: boolean;
 	isUnread: boolean;
-	onHoverCardOpen?: () => void;
 	onCreateSection: () => void;
 	onMoveToSection: (sectionId: string | null) => void;
 	onOpenInFinder: () => void;
@@ -55,8 +48,6 @@ export function DashboardSidebarWorkspaceContextMenu({
 	isInSection,
 	isLocalWorkspace,
 	isUnread,
-	onHoverCardOpen,
-	hoverCardContent,
 	onCreateSection,
 	onMoveToSection,
 	onOpenInFinder,
@@ -69,7 +60,7 @@ export function DashboardSidebarWorkspaceContextMenu({
 	children,
 }: DashboardSidebarWorkspaceContextMenuProps) {
 	const collections = useCollections();
-	const [isContextMenuOpen, setIsContextMenuOpen] = useState(false);
+	const { setContextMenuOpen } = useDashboardSidebarHover();
 	const { data: sections = [] } = useLiveQuery(
 		(q) =>
 			q
@@ -86,129 +77,100 @@ export function DashboardSidebarWorkspaceContextMenu({
 		[collections, projectId],
 	);
 
-	const menuContent = (
-		<ContextMenuContent onCloseAutoFocus={(event) => event.preventDefault()}>
-			<ContextMenuItem onSelect={onRename}>
-				<LuPencil className="size-4 mr-2" />
-				Rename
-			</ContextMenuItem>
-			{isLocalWorkspace && (
-				<>
-					<ContextMenuSeparator />
-					<ContextMenuItem onSelect={onOpenInFinder}>
-						<LuFolderOpen className="size-4 mr-2" />
-						Open in Finder
-					</ContextMenuItem>
-					<ContextMenuItem onSelect={onCopyPath}>
-						<LuCopy className="size-4 mr-2" />
-						Copy Path
-					</ContextMenuItem>
-				</>
-			)}
-			{!isLocalWorkspace && <ContextMenuSeparator />}
-			<ContextMenuItem onSelect={onCopyBranchName}>
-				<LuGitBranch className="size-4 mr-2" />
-				Copy Branch Name
-			</ContextMenuItem>
-			<ContextMenuSeparator />
-			<ContextMenuItem onSelect={onToggleUnread}>
-				{isUnread ? (
+	return (
+		<ContextMenu onOpenChange={setContextMenuOpen}>
+			<ContextMenuTrigger asChild>{children}</ContextMenuTrigger>
+			<ContextMenuContent onCloseAutoFocus={(event) => event.preventDefault()}>
+				<ContextMenuItem onSelect={onRename}>
+					<LuPencil className="size-4 mr-2" />
+					Rename
+				</ContextMenuItem>
+				{isLocalWorkspace && (
 					<>
-						<LuEye className="size-4 mr-2" />
-						Mark as Read
-					</>
-				) : (
-					<>
-						<LuEyeOff className="size-4 mr-2" />
-						Mark as Unread
+						<ContextMenuSeparator />
+						<ContextMenuItem onSelect={onOpenInFinder}>
+							<LuFolderOpen className="size-4 mr-2" />
+							Open in Finder
+						</ContextMenuItem>
+						<ContextMenuItem onSelect={onCopyPath}>
+							<LuCopy className="size-4 mr-2" />
+							Copy Path
+						</ContextMenuItem>
 					</>
 				)}
-			</ContextMenuItem>
-			<ContextMenuSeparator />
-			<ContextMenuItem onSelect={onCreateSection}>
-				<LuFolderPlus className="size-4 mr-2" />
-				New group from workspace
-			</ContextMenuItem>
-			{(sections.length > 0 || isInSection) && <ContextMenuSeparator />}
-			{sections.length > 0 && (
-				<ContextMenuSub>
-					<ContextMenuSubTrigger>
-						<LuArrowRightLeft className="size-4 mr-2" />
-						Move to group
-					</ContextMenuSubTrigger>
-					<ContextMenuSubContent>
-						{sections.map((section) => (
-							<ContextMenuItem
-								key={section.id}
-								onSelect={() => onMoveToSection(section.id)}
-							>
-								{section.color && (
-									<span
-										className="size-2 shrink-0 rounded-full mr-2"
-										style={{ backgroundColor: section.color }}
-									/>
-								)}
-								{section.name}
-							</ContextMenuItem>
-						))}
-					</ContextMenuSubContent>
-				</ContextMenuSub>
-			)}
-			{isInSection && (
-				<ContextMenuItem onSelect={() => onMoveToSection(null)}>
-					<LuArrowUp className="size-4 mr-2" />
-					Ungroup
+				{!isLocalWorkspace && <ContextMenuSeparator />}
+				<ContextMenuItem onSelect={onCopyBranchName}>
+					<LuGitBranch className="size-4 mr-2" />
+					Copy Branch Name
 				</ContextMenuItem>
-			)}
-			<ContextMenuSeparator />
-			<ContextMenuItem
-				onSelect={onRemoveFromSidebar}
-				className="text-destructive focus:text-destructive"
-			>
-				<LuX className="size-4 mr-2 text-destructive" />
-				Remove from Sidebar
-			</ContextMenuItem>
-			{onDelete ? (
+				<ContextMenuSeparator />
+				<ContextMenuItem onSelect={onToggleUnread}>
+					{isUnread ? (
+						<>
+							<LuEye className="size-4 mr-2" />
+							Mark as Read
+						</>
+					) : (
+						<>
+							<LuEyeOff className="size-4 mr-2" />
+							Mark as Unread
+						</>
+					)}
+				</ContextMenuItem>
+				<ContextMenuSeparator />
+				<ContextMenuItem onSelect={onCreateSection}>
+					<LuFolderPlus className="size-4 mr-2" />
+					New group from workspace
+				</ContextMenuItem>
+				{(sections.length > 0 || isInSection) && <ContextMenuSeparator />}
+				{sections.length > 0 && (
+					<ContextMenuSub>
+						<ContextMenuSubTrigger>
+							<LuArrowRightLeft className="size-4 mr-2" />
+							Move to group
+						</ContextMenuSubTrigger>
+						<ContextMenuSubContent>
+							{sections.map((section) => (
+								<ContextMenuItem
+									key={section.id}
+									onSelect={() => onMoveToSection(section.id)}
+								>
+									{section.color && (
+										<span
+											className="size-2 shrink-0 rounded-full mr-2"
+											style={{ backgroundColor: section.color }}
+										/>
+									)}
+									{section.name}
+								</ContextMenuItem>
+							))}
+						</ContextMenuSubContent>
+					</ContextMenuSub>
+				)}
+				{isInSection && (
+					<ContextMenuItem onSelect={() => onMoveToSection(null)}>
+						<LuArrowUp className="size-4 mr-2" />
+						Ungroup
+					</ContextMenuItem>
+				)}
+				<ContextMenuSeparator />
 				<ContextMenuItem
-					onSelect={onDelete}
+					onSelect={onRemoveFromSidebar}
 					className="text-destructive focus:text-destructive"
 				>
-					<LuTrash2 className="size-4 mr-2 text-destructive" />
-					Delete
+					<LuX className="size-4 mr-2 text-destructive" />
+					Remove from Sidebar
 				</ContextMenuItem>
-			) : null}
-		</ContextMenuContent>
-	);
-
-	if (!hoverCardContent) {
-		return (
-			<ContextMenu>
-				<ContextMenuTrigger asChild>{children}</ContextMenuTrigger>
-				{menuContent}
-			</ContextMenu>
-		);
-	}
-
-	return (
-		<HoverCard
-			open={isContextMenuOpen ? false : undefined}
-			openDelay={400}
-			closeDelay={100}
-			onOpenChange={(open) => {
-				if (open) {
-					onHoverCardOpen?.();
-				}
-			}}
-		>
-			<ContextMenu onOpenChange={setIsContextMenuOpen}>
-				<HoverCardTrigger asChild>
-					<ContextMenuTrigger asChild>{children}</ContextMenuTrigger>
-				</HoverCardTrigger>
-				{menuContent}
-			</ContextMenu>
-			<HoverCardContent side="right" align="start" className="w-72">
-				{hoverCardContent}
-			</HoverCardContent>
-		</HoverCard>
+				{onDelete ? (
+					<ContextMenuItem
+						onSelect={onDelete}
+						className="text-destructive focus:text-destructive"
+					>
+						<LuTrash2 className="size-4 mr-2 text-destructive" />
+						Delete
+					</ContextMenuItem>
+				) : null}
+			</ContextMenuContent>
+		</ContextMenu>
 	);
 }

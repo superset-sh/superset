@@ -198,7 +198,6 @@ export function ChatPaneInterface({
 	getOrCreateSession,
 	onResetSession,
 	onUserMessageSubmitted,
-	onRawSnapshotChange,
 }: ChatPaneInterfaceProps) {
 	const { models: availableModels, defaultModel } = useAvailableModels();
 	const selectedModelId = useChatPreferencesStore(
@@ -497,23 +496,6 @@ export function ChatPaneInterface({
 	useEffect(() => {
 		bumpFooterScroll();
 	}, [bumpFooterScroll, pendingQuestion]);
-
-	useEffect(() => {
-		onRawSnapshotChange?.({
-			sessionId,
-			isRunning: canAbort,
-			currentMessage: currentMessage ?? null,
-			messages: messages ?? [],
-			error,
-		});
-	}, [
-		canAbort,
-		currentMessage,
-		error,
-		messages,
-		onRawSnapshotChange,
-		sessionId,
-	]);
 
 	useEffect(() => {
 		messagesLengthRef.current = messages?.length ?? 0;

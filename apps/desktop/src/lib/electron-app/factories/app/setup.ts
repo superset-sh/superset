@@ -74,6 +74,14 @@ PLATFORM.IS_WINDOWS &&
 
 app.commandLine.appendSwitch("force-color-profile", "srgb");
 
+// Each xterm pane holds one WebGL context. v2 parking keeps panes alive
+// across workspace switches, so cumulative contexts can reach the low
+// hundreds — past Chromium's default cap of 16, Blink force-evicts the
+// oldest context and the terminal blanks out. 256 covers the parking load
+// while staying bounded enough that a runaway leak still surfaces (Tabby
+// raises this to 9000, which masks leaks).
+app.commandLine.appendSwitch("max-active-webgl-contexts", "256");
+
 // Only expose CDP in development when a port is explicitly configured.
 const cdpPort =
 	env.NODE_ENV === "development"

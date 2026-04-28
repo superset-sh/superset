@@ -1,6 +1,5 @@
 import type { WorkspaceState } from "@superset/panes";
 import { buildHostRoutingKey } from "@superset/shared/host-routing";
-import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useMemo } from "react";
 import { env } from "renderer/env.renderer";
@@ -16,7 +15,6 @@ interface WorkspaceHostRow {
 	workspaceId: string;
 	organizationId: string;
 	hostId: string;
-	hostMachineId: string | null | undefined;
 }
 
 interface HostNotificationSubscriberGroup {
@@ -40,16 +38,10 @@ export function V2NotificationController() {
 		(q) =>
 			q
 				.from({ v2Workspaces: collections.v2Workspaces })
-				.leftJoin(
-					{ v2Hosts: collections.v2Hosts },
-					({ v2Workspaces, v2Hosts }) =>
-						eq(v2Workspaces.hostId, v2Hosts.machineId),
-				)
-				.select(({ v2Workspaces, v2Hosts }) => ({
+				.select(({ v2Workspaces }) => ({
 					workspaceId: v2Workspaces.id,
 					organizationId: v2Workspaces.organizationId,
 					hostId: v2Workspaces.hostId,
-					hostMachineId: v2Hosts?.machineId ?? null,
 				})),
 		[collections],
 	);
@@ -113,7 +105,6 @@ function groupWorkspacesByHostUrl({
 		const hostUrl = getHostUrlForWorkspace({
 			organizationId: workspace.organizationId,
 			hostId: workspace.hostId,
-			hostMachineId: workspace.hostMachineId,
 			machineId,
 			activeHostUrl,
 		});
@@ -136,17 +127,15 @@ function groupWorkspacesByHostUrl({
 function getHostUrlForWorkspace({
 	organizationId,
 	hostId,
-	hostMachineId,
 	machineId,
 	activeHostUrl,
 }: {
 	organizationId: string;
 	hostId: string;
-	hostMachineId: string | null | undefined;
 	machineId: string | null;
 	activeHostUrl: string | null;
 }): string | null {
-	if (hostMachineId && machineId && hostMachineId === machineId) {
+	if (machineId && hostId === machineId) {
 		return activeHostUrl;
 	}
 	return `${env.RELAY_URL}/hosts/${buildHostRoutingKey(organizationId, hostId)}`;
