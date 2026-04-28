@@ -45,7 +45,6 @@ interface FilesTabProps {
 		isDirectory: boolean;
 	} | null;
 	workspaceId: string;
-	workspaceName?: string;
 	gitStatus: GitStatusData | undefined;
 }
 
@@ -215,7 +214,6 @@ export function FilesTab({
 	selectedFilePath,
 	pendingReveal,
 	workspaceId,
-	workspaceName,
 	gitStatus,
 }: FilesTabProps) {
 	const [_isRefreshing, setIsRefreshing] = useState(false);
@@ -516,7 +514,7 @@ export function FilesTab({
 						zIndex: 20,
 					}}
 				>
-					<span className="truncate">{workspaceName ?? "Explorer"}</span>
+					<span className="truncate">Explorer</span>
 					<div className="flex items-center gap-0.5">
 						<Tooltip>
 							<TooltipTrigger asChild>

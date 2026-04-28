@@ -40,11 +40,6 @@ interface FileTreeState {
 	loadingDirectories: Set<string>;
 }
 
-interface FileTreeContext {
-	rootPath: string;
-	workspaceId: string;
-}
-
 interface LoadDirectoryOptions {
 	force?: boolean;
 	ignoreInFlight?: boolean;
@@ -67,9 +62,8 @@ async function withAbortableTimeout<T>(
 	timeoutMs: number,
 	abortController: AbortController,
 ): Promise<T> {
-	let timeout: ReturnType<typeof setTimeout> | null = null;
 	let timedOut = false;
-	timeout = setTimeout(() => {
+	const timeout = setTimeout(() => {
 		timedOut = true;
 		abortController.abort();
 	}, timeoutMs);
@@ -82,9 +76,7 @@ async function withAbortableTimeout<T>(
 		}
 		throw error;
 	} finally {
-		if (timeout) {
-			clearTimeout(timeout);
-		}
+		clearTimeout(timeout);
 	}
 }
 
@@ -119,53 +111,6 @@ function applyDirectoryEntries(
 		loadedDirectories: nextLoaded,
 		loadingDirectories: nextLoading,
 	};
-}
-
-function isSameFileTreeContext(
-	left: FileTreeContext,
-	right: FileTreeContext,
-): boolean {
-	return (
-		left.rootPath === right.rootPath && left.workspaceId === right.workspaceId
-	);
-}
-
-function markDirectoryLoading(
-	current: FileTreeState,
-	absolutePath: string,
-): FileTreeState {
-	const nextLoading = new Set(current.loadingDirectories);
-	nextLoading.add(absolutePath);
-	return {
-		...current,
-		loadingDirectories: nextLoading,
-	};
-}
-
-function clearDirectoryLoading(
-	current: FileTreeState,
-	absolutePath: string,
-): FileTreeState {
-	const nextLoading = new Set(current.loadingDirectories);
-	nextLoading.delete(absolutePath);
-	return {
-		...current,
-		loadingDirectories: nextLoading,
-	};
-}
-
-function shouldRetryListDirectory(
-	error: unknown,
-	nextAttempt: number,
-): boolean {
-	return (
-		error instanceof ListDirectoryTimeoutError &&
-		nextAttempt <= LIST_DIRECTORY_MAX_ATTEMPTS
-	);
-}
-
-function getListDirectoryRetryDelayMs(attempt: number): number {
-	return LIST_DIRECTORY_RETRY_DELAY_MS * attempt;
 }
 
 function createInitialState(): FileTreeState {
@@ -299,9 +244,6 @@ export function useFileTree({
 	rootPath,
 }: UseFileTreeParams): UseFileTreeResult {
 	const utils = workspaceTrpc.useUtils();
-	const activeContextRef = useRef<FileTreeContext>({ rootPath, workspaceId });
-	activeContextRef.current = { rootPath, workspaceId };
-	const isMountedRef = useRef(false);
 	const retryTimersRef = useRef(new Set<ReturnType<typeof setTimeout>>());
 	const activeLoadAbortControllersRef = useRef(new Set<AbortController>());
 	const [state, setState] = useState<FileTreeState>(() => createInitialState());
@@ -323,10 +265,7 @@ export function useFileTree({
 	}, []);
 
 	useEffect(() => {
-		isMountedRef.current = true;
-
 		return () => {
-			isMountedRef.current = false;
 			clearRetryTimers();
 			abortActiveLoads();
 		};
@@ -348,13 +287,6 @@ export function useFileTree({
 		| null
 	>(null);
 
-	const isRequestCurrent = useCallback((requestContext: FileTreeContext) => {
-		return (
-			isMountedRef.current &&
-			isSameFileTreeContext(activeContextRef.current, requestContext)
-		);
-	}, []);
-
 	const loadDirectory = useCallback(
 		async (
 			absolutePath: string,
@@ -362,11 +294,6 @@ export function useFileTree({
 		): Promise<void> => {
 			const { force = false, ignoreInFlight = false, attempt = 1 } = options;
 			if (!workspaceId || !absolutePath) {
-				return;
-			}
-
-			const requestContext = { rootPath, workspaceId };
-			if (!isRequestCurrent(requestContext)) {
 				return;
 			}
 
@@ -397,10 +324,19 @@ export function useFileTree({
 				}
 			}
 
-			updateState((current) => markDirectoryLoading(current, absolutePath));
+			updateState((current) => ({
+				...current,
+				loadingDirectories: new Set(current.loadingDirectories).add(
+					absolutePath,
+				),
+			}));
 
 			const abortController = new AbortController();
 			activeLoadAbortControllersRef.current.add(abortController);
+			// External cancellation (unmount or workspace/root change) clears the
+			// active set, so membership doubles as a "still relevant" check.
+			const isStillCurrent = () =>
+				activeLoadAbortControllersRef.current.has(abortController);
 
 			try {
 				const result = await withAbortableTimeout(
@@ -412,32 +348,31 @@ export function useFileTree({
 					abortController,
 				);
 
-				if (!isRequestCurrent(requestContext)) {
+				if (!isStillCurrent()) {
 					return;
 				}
 
-				updateState((current) => {
-					return applyDirectoryEntries(current, absolutePath, result.entries);
-				});
+				updateState((current) =>
+					applyDirectoryEntries(current, absolutePath, result.entries),
+				);
 			} catch (error) {
-				if (!isRequestCurrent(requestContext)) {
+				if (!isStillCurrent()) {
 					return;
 				}
 
 				const nextAttempt = attempt + 1;
-				if (shouldRetryListDirectory(error, nextAttempt)) {
+				if (
+					error instanceof ListDirectoryTimeoutError &&
+					nextAttempt <= LIST_DIRECTORY_MAX_ATTEMPTS
+				) {
 					const retryTimer = setTimeout(() => {
 						retryTimersRef.current.delete(retryTimer);
-						if (!isRequestCurrent(requestContext)) {
-							return;
-						}
-
 						void loadDirectoryRef.current?.(absolutePath, {
 							attempt: nextAttempt,
 							force: true,
 							ignoreInFlight: true,
 						});
-					}, getListDirectoryRetryDelayMs(attempt));
+					}, LIST_DIRECTORY_RETRY_DELAY_MS * attempt);
 					retryTimersRef.current.add(retryTimer);
 					return;
 				}
@@ -451,19 +386,15 @@ export function useFileTree({
 				);
 
 				updateState((current) => {
-					return clearDirectoryLoading(current, absolutePath);
+					const nextLoading = new Set(current.loadingDirectories);
+					nextLoading.delete(absolutePath);
+					return { ...current, loadingDirectories: nextLoading };
 				});
 			} finally {
 				activeLoadAbortControllersRef.current.delete(abortController);
 			}
 		},
-		[
-			isRequestCurrent,
-			rootPath,
-			updateState,
-			utils.filesystem.listDirectory,
-			workspaceId,
-		],
+		[updateState, utils.filesystem.listDirectory, workspaceId],
 	);
 	loadDirectoryRef.current = loadDirectory;
 
