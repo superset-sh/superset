@@ -3,6 +3,7 @@ export {
 	defaultModeForChord,
 	parseBinding,
 	serializeBinding,
+	translateLogicalChord,
 } from "./binding";
 export {
 	isTerminalReservedEvent,

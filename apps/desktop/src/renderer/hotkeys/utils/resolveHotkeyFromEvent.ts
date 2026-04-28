@@ -1,7 +1,8 @@
 import { HOTKEYS, type HotkeyId } from "../registry";
 import { useHotkeyOverridesStore } from "../stores/hotkeyOverridesStore";
+import { useKeyboardLayoutStore } from "../stores/keyboardLayoutStore";
 import type { ShortcutBinding } from "../types";
-import { parseBinding } from "./binding";
+import { parseBinding, translateLogicalChord } from "./binding";
 
 /**
  * KeyboardEvent → registered {@link HotkeyId}, or `null` if unbound. Uses the
@@ -116,6 +117,7 @@ export function isTerminalReservedEvent(event: KeyboardEvent): boolean {
 
 function buildRegisteredAppChords(
 	overrides: Record<string, ShortcutBinding | null>,
+	layoutMap: ReadonlyMap<string, string> | null,
 ): Map<string, HotkeyId> {
 	const map = new Map<string, HotkeyId>();
 	for (const id of Object.keys(HOTKEYS) as HotkeyId[]) {
@@ -126,20 +128,35 @@ function buildRegisteredAppChords(
 		if (hasOverride && override === null) continue;
 		const binding = override ?? HOTKEYS[id].key;
 		if (!binding) continue;
-		// All Phase 2 modes (physical, logical, named) currently match by
-		// event.code, so the chord field is the right index key. When commit 2
-		// adds layout-aware logical-mode dispatch, this index will need to
-		// translate logical chords through the layout map.
-		map.set(canonicalizeChord(parseBinding(binding).chord), id);
+		const parsed = parseBinding(binding);
+		// Logical-mode bindings need translation through the current layout
+		// map so the event.code-based lookup matches what useHotkey registers
+		// with react-hotkeys-hook. Falls back to the untranslated chord (US-
+		// correct) when the layout map hasn't loaded.
+		const dispatchChord =
+			parsed.mode === "logical"
+				? (translateLogicalChord(parsed.chord, layoutMap) ?? parsed.chord)
+				: parsed.chord;
+		map.set(canonicalizeChord(dispatchChord), id);
 	}
 	return map;
 }
 
-// Reassigned on each override-store change; `let` is required so the
-// subscribe callback can replace the reference the resolver reads.
+// Reassigned on each override OR layout change; `let` is required so the
+// subscribe callbacks can replace the reference the resolver reads.
 let registeredAppChords = buildRegisteredAppChords(
 	useHotkeyOverridesStore.getState().overrides,
+	useKeyboardLayoutStore.getState().map,
 );
 useHotkeyOverridesStore.subscribe((state) => {
-	registeredAppChords = buildRegisteredAppChords(state.overrides);
+	registeredAppChords = buildRegisteredAppChords(
+		state.overrides,
+		useKeyboardLayoutStore.getState().map,
+	);
+});
+useKeyboardLayoutStore.subscribe((state) => {
+	registeredAppChords = buildRegisteredAppChords(
+		useHotkeyOverridesStore.getState().overrides,
+		state.map,
+	);
 });

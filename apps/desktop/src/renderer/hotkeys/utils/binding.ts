@@ -1,5 +1,5 @@
 import type { ParsedBinding, ShortcutBinding } from "../types";
-import { canonicalizeChord } from "./resolveHotkeyFromEvent";
+import { canonicalizeChord, normalizeToken } from "./resolveHotkeyFromEvent";
 
 const NAMED_KEYS = new Set([
 	"enter",
@@ -83,4 +83,61 @@ export function bindingsEqual(
 		pa.mode === pb.mode &&
 		canonicalizeChord(pa.chord) === canonicalizeChord(pb.chord)
 	);
+}
+
+/**
+ * Translate a logical chord ("meta+p") into the equivalent event.code-based
+ * chord for the user's current layout, so it can be registered with
+ * react-hotkeys-hook (which matches by event.code by default).
+ *
+ * On US QWERTY: `meta+p` → `meta+p` (KeyP prints "p")
+ * On Dvorak:    `meta+p` → `meta+r` (physical KeyR prints "p")
+ *
+ * Returns `null` if the produced character isn't found in the layout map —
+ * the caller should fall back to the un-translated chord (works on US) or
+ * skip registration. Named/special keys (Enter, ArrowUp, F5, ...) and
+ * non-printable tokens pass through unchanged because they don't have a
+ * "produced character" to look up.
+ */
+// Punctuation aliases ("slash" → "/") used to map between the registry's
+// canonical token form and the layout map's unshifted glyph form.
+const PUNCT_ALIAS_TO_GLYPH: Record<string, string> = {
+	slash: "/",
+	backslash: "\\",
+	comma: ",",
+	period: ".",
+	semicolon: ";",
+	quote: "'",
+	backquote: "`",
+	minus: "-",
+	equal: "=",
+	bracketleft: "[",
+	bracketright: "]",
+};
+
+export function translateLogicalChord(
+	chord: string,
+	layoutMap: ReadonlyMap<string, string> | null,
+): string | null {
+	if (!layoutMap) return null;
+	const parts = canonicalizeChord(chord).split("+");
+	const key = parts[parts.length - 1];
+	if (!key) return null;
+	// Named keys (Enter, ArrowUp, F-keys) match by event.code identity and
+	// don't need translation — pass the chord through unchanged.
+	if (NAMED_KEYS.has(key) || isFunctionKey(key)) return chord;
+
+	// Everything else (letters, digits, punctuation aliases, accented chars)
+	// is treated as a logical character lookup. layoutMap.values() are the
+	// unshifted glyphs at each physical position; find the scan code whose
+	// glyph matches the chord's logical key.
+	const targetGlyph = PUNCT_ALIAS_TO_GLYPH[key] ?? key;
+	for (const [scanCode, glyph] of layoutMap) {
+		if (glyph.toLowerCase() === targetGlyph.toLowerCase()) {
+			const translatedKey = normalizeToken(scanCode);
+			parts[parts.length - 1] = translatedKey;
+			return parts.join("+");
+		}
+	}
+	return null;
 }

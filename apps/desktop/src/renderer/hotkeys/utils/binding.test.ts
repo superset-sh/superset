@@ -4,6 +4,7 @@ import {
 	defaultModeForChord,
 	parseBinding,
 	serializeBinding,
+	translateLogicalChord,
 } from "./binding";
 
 describe("defaultModeForChord", () => {
@@ -98,6 +99,77 @@ describe("serializeBinding", () => {
 		};
 		const round = serializeBinding(parseBinding(v2));
 		expect(round).toEqual(v2);
+	});
+});
+
+describe("translateLogicalChord", () => {
+	const usMap = new Map<string, string>([
+		["KeyA", "a"],
+		["KeyP", "p"],
+		["KeyR", "r"],
+		["KeyZ", "z"],
+		["Slash", "/"],
+		["Quote", "'"],
+		["Semicolon", ";"],
+	]);
+	// Dvorak: physical KeyR position prints "p", physical KeyP prints "l"
+	const dvorakMap = new Map<string, string>([
+		["KeyA", "a"],
+		["KeyP", "l"],
+		["KeyR", "p"],
+		["KeyZ", ";"],
+		["Quote", "q"],
+	]);
+	// QWERTZ: KeyY/KeyZ swapped, Slash → "-"
+	const qwertzMap = new Map<string, string>([
+		["KeyY", "z"],
+		["KeyZ", "y"],
+		["Slash", "-"],
+	]);
+
+	it("returns null when layout map is unavailable", () => {
+		expect(translateLogicalChord("meta+p", null)).toBeNull();
+	});
+
+	it("US layout: chord round-trips unchanged", () => {
+		expect(translateLogicalChord("meta+p", usMap)).toBe("meta+p");
+		expect(translateLogicalChord("ctrl+shift+a", usMap)).toBe("ctrl+shift+a");
+	});
+
+	it("Dvorak: meta+p (logical) translates to meta+r (physical R prints 'p')", () => {
+		expect(translateLogicalChord("meta+p", dvorakMap)).toBe("meta+r");
+	});
+
+	it("QWERTZ: meta+y (logical) translates to meta+z (physical Z prints 'y')", () => {
+		expect(translateLogicalChord("meta+y", qwertzMap)).toBe("meta+z");
+	});
+
+	it("translates punctuation aliases via their US glyph", () => {
+		// US: Slash prints "/" → no change
+		expect(translateLogicalChord("ctrl+slash", usMap)).toBe("ctrl+slash");
+		// QWERTZ: Slash prints "-", but the binding wants the "/" character.
+		// On QWERTZ "/" is at Shift+7, not on a single key — so no scan code
+		// has unshifted glyph "/", returns null (caller falls back).
+		expect(translateLogicalChord("ctrl+slash", qwertzMap)).toBeNull();
+	});
+
+	it("named keys (Enter, ArrowUp, F-keys) pass through unchanged", () => {
+		expect(translateLogicalChord("meta+enter", dvorakMap)).toBe("meta+enter");
+		expect(translateLogicalChord("ctrl+arrowup", dvorakMap)).toBe(
+			"ctrl+arrowup",
+		);
+		expect(translateLogicalChord("f5", dvorakMap)).toBe("f5");
+	});
+
+	it("returns null when the produced character isn't on the keyboard", () => {
+		// Logical "meta+ñ" — no scan code in usMap has "ñ" as unshifted glyph
+		expect(translateLogicalChord("meta+ñ", usMap)).toBeNull();
+	});
+
+	it("preserves modifier order from the input chord", () => {
+		// Verify modifiers stay in their input order; canonicalizeChord sorts them
+		const result = translateLogicalChord("alt+meta+shift+p", dvorakMap);
+		expect(result).toBe("alt+meta+shift+r");
 	});
 });
 
