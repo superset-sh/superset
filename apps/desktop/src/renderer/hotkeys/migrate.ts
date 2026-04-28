@@ -4,6 +4,12 @@
  *
  * Marker key is bumped (`-v2`) so users who migrated on the pre-sanitizer
  * build re-run once and get their corrupt entries dropped.
+ *
+ * SUNSET: this whole file (plus MAC_US_DEAD_KEYS in sanitizeOverride.ts) can
+ * be deleted once we're confident every active user has the v2 marker set
+ * — propose 2026-08 (~3 months after April rollout). The migration call in
+ * routes/_authenticated/layout.tsx and the layout-id query in this file go
+ * with it.
  */
 
 import { electronTrpcClient } from "renderer/lib/trpc-client";

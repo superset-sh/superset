@@ -1,9 +1,14 @@
 export { HotkeyLabel } from "./components/HotkeyLabel";
 export { formatHotkeyDisplay } from "./display";
-export { useHotkey, useHotkeyDisplay, useRecordHotkeys } from "./hooks";
-export { getBinding } from "./hooks/useBinding";
+export {
+	getBinding,
+	useBinding,
+	useHotkey,
+	useHotkeyDisplay,
+	useRecordHotkeys,
+} from "./hooks";
 export { HOTKEYS, type HotkeyId, PLATFORM } from "./registry";
-export { useHotkeyOverridesStore } from "./stores/hotkeyOverridesStore";
+export { useHotkeyOverridesStore } from "./stores";
 export type {
 	HotkeyCategory,
 	HotkeyDefinition,

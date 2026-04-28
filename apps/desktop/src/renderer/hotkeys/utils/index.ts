@@ -1,5 +1,5 @@
 export {
+	isTerminalReservedEvent,
 	matchesChord,
 	resolveHotkeyFromEvent,
 } from "./resolveHotkeyFromEvent";
-export { isTerminalReservedEvent } from "./utils";

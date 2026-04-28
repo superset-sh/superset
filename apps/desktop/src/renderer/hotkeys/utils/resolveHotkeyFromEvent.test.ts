@@ -6,12 +6,12 @@ import {
 	canonicalizeChord,
 	eventToChord,
 	isIgnorableKey,
+	isTerminalReservedEvent,
 	matchesChord,
 	normalizeToken,
 	resolveHotkeyFromEvent,
 	TERMINAL_RESERVED_CHORDS,
 } from "./resolveHotkeyFromEvent";
-import { isTerminalReservedEvent } from "./utils";
 
 // Minimal stub — the renderer references `navigator` only at import time.
 // Bun's test runtime doesn't have a DOM navigator by default; registry.ts

@@ -44,6 +44,9 @@ const ALWAYS_SAFE_REWRITES: Record<string, string> = {
 // Option+Q produces `•` (which US maps to Option+8) — same glyph, different
 // physical key. Gated behind a US-layout detection in migrate.ts to avoid
 // silently rewriting bindings to the wrong physical key on non-US Macs.
+//
+// SUNSET: only used by migrate.ts (one-time v1→v2 conversion). Delete with
+// the migration code (see migrate.ts SUNSET note).
 const MAC_US_DEAD_KEYS: Record<string, string> = {
 	"¡": "1",
 	"™": "2",
