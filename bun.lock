@@ -175,6 +175,8 @@
         "@t3-oss/env-core": "^0.13.8",
         "@tanstack/db": "0.6.5",
         "@tanstack/electric-db-collection": "0.3.3",
+        "@tanstack/electron-db-sqlite-persistence": "0.1.9",
+        "@tanstack/node-db-sqlite-persistence": "0.1.9",
         "@tanstack/react-db": "0.1.83",
         "@tanstack/react-query": "^5.90.19",
         "@tanstack/react-router": "^1.147.3",
@@ -2634,9 +2636,15 @@
 
     "@tanstack/db-ivm": ["@tanstack/db-ivm@0.1.18", "", { "dependencies": { "fractional-indexing": "^3.2.0", "sorted-btree": "^1.8.1" }, "peerDependencies": { "typescript": ">=4.7" } }, "sha512-+pZJiRKdoKRM5Epq9T7otD9ZJl82pRFauo7LKuJGrarjVKQ7r+QQlPe3kGdN9LEKSnuNGIWjX9OOY4M8kH4eLw=="],
 
+    "@tanstack/db-sqlite-persistence-core": ["@tanstack/db-sqlite-persistence-core@0.1.9", "", { "dependencies": { "@standard-schema/spec": "^1.1.0", "@tanstack/db": "0.6.5" }, "peerDependencies": { "typescript": ">=4.7" } }, "sha512-Ju4HcBzaSXTaPJFMRWNjiyXRfCmom0AXBr/22sqLoQWY1TjFM/UTbSSTQgsrExkNuFDVFiV8EDpCt8WUBFiKcQ=="],
+
     "@tanstack/electric-db-collection": ["@tanstack/electric-db-collection@0.3.3", "", { "dependencies": { "@electric-sql/client": "^1.5.15", "@standard-schema/spec": "^1.1.0", "@tanstack/db": "0.6.5", "@tanstack/store": "^0.9.2", "debug": "^4.4.3" } }, "sha512-ywx5s6kv/ZNDszl2GwnlvZPlimEBAUREo9cEN9oCN7SyO36/5andaAKgjWQYXiXDc6FamjQfE6N6WuUFb0Zg0Q=="],
 
+    "@tanstack/electron-db-sqlite-persistence": ["@tanstack/electron-db-sqlite-persistence@0.1.9", "", { "dependencies": { "@tanstack/db-sqlite-persistence-core": "0.1.9" }, "peerDependencies": { "typescript": ">=4.7" } }, "sha512-QlH4pt0vhw9BZIdf6iyIioFoUy58vJoe5gXNIpXFEXY1uP4awKpTJ7ZrVTlBPPpaYvbcJxMxqjusoFCRVA5XQg=="],
+
     "@tanstack/history": ["@tanstack/history@1.161.6", "", {}, "sha512-NaOGLRrddszbQj9upGat6HG/4TKvXLvu+osAIgfxPYA+eIvYKv8GKDJOrY2D3/U9MRnKfMWD7bU4jeD4xmqyIg=="],
+
+    "@tanstack/node-db-sqlite-persistence": ["@tanstack/node-db-sqlite-persistence@0.1.9", "", { "dependencies": { "@tanstack/db-sqlite-persistence-core": "0.1.9", "better-sqlite3": "^12.6.2" }, "peerDependencies": { "typescript": ">=4.7" } }, "sha512-irgaRzZ6eMV4Ky7fIoiy823vPfGllnsJPI0oqdjWS4kD09juktR8JfS0Gqg9ONBbwLB2kLBrC3ei72Dzz92RKg=="],
 
     "@tanstack/pacer-lite": ["@tanstack/pacer-lite@0.2.1", "", {}, "sha512-3PouiFjR4B6x1c969/Pl4ZIJleof1M0n6fNX8NRiC9Sqv1g06CVDlEaXUR4212ycGFyfq4q+t8Gi37Xy+z34iQ=="],
 

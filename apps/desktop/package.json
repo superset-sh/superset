@@ -98,6 +98,8 @@
 		"@t3-oss/env-core": "^0.13.8",
 		"@tanstack/db": "0.6.5",
 		"@tanstack/electric-db-collection": "0.3.3",
+		"@tanstack/electron-db-sqlite-persistence": "0.1.9",
+		"@tanstack/node-db-sqlite-persistence": "0.1.9",
 		"@tanstack/react-db": "0.1.83",
 		"@tanstack/react-query": "^5.90.19",
 		"@tanstack/react-router": "^1.147.3",
