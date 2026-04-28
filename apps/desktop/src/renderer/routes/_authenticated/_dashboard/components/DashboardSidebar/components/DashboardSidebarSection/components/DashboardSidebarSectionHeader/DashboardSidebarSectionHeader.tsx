@@ -58,13 +58,13 @@ export const DashboardSidebarSectionHeader = forwardRef<
 							}
 				}
 				className={cn(
-					"group flex min-h-8 w-full items-center pl-4 pr-2 py-1.5 text-[13px] font-medium",
+					"group flex min-h-8 w-full items-center pl-3 pr-2 py-1.5 text-[13px] font-medium",
 					"text-muted-foreground hover:bg-muted/50 transition-colors",
 					className,
 				)}
 				{...props}
 			>
-				<div className="grid h-5 w-5 shrink-0 cursor-grab items-center justify-center active:cursor-grabbing [&>*]:col-start-1 [&>*]:row-start-1">
+				<div className="mr-2 grid h-5 w-5 shrink-0 cursor-grab items-center justify-center active:cursor-grabbing [&>*]:col-start-1 [&>*]:row-start-1">
 					<HiChevronRight
 						className={cn(
 							"size-3 text-muted-foreground transition-[opacity,transform] duration-150 group-hover:opacity-0",
