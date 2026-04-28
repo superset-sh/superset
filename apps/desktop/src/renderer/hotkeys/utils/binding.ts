@@ -115,10 +115,11 @@ export function translateLogicalChord(
 	layoutMap: ReadonlyMap<string, string> | null,
 ): string | null {
 	if (!layoutMap) return null;
-	const parts = canonicalizeChord(chord).split("+");
+	const canonical = canonicalizeChord(chord);
+	const parts = canonical.split("+");
 	const key = parts[parts.length - 1];
 	if (!key) return null;
-	if (NAMED_KEYS.has(key) || isFunctionKey(key)) return chord;
+	if (NAMED_KEYS.has(key) || isFunctionKey(key)) return canonical;
 
 	const targetGlyph = PUNCT_ALIAS_TO_GLYPH[key] ?? key;
 	for (const [scanCode, glyph] of layoutMap) {
