@@ -17,7 +17,6 @@ import { useUpdateListener } from "renderer/components/UpdateToast";
 import { env } from "renderer/env.renderer";
 import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import { useOnlineStatus } from "renderer/hooks/useOnlineStatus";
-import { migrateHotkeyOverrides } from "renderer/hotkeys/migrate";
 import { authClient, getAuthToken } from "renderer/lib/auth-client";
 import { dragDropManager } from "renderer/lib/dnd";
 import { electronTrpc } from "renderer/lib/electron-trpc";
@@ -69,13 +68,6 @@ function AuthenticatedLayout() {
 
 	useAgentHookListener();
 	useUpdateListener();
-
-	// One-time migration from old hotkey storage to new localStorage-based store
-	useEffect(() => {
-		void migrateHotkeyOverrides().catch((error) => {
-			console.error("[hotkeys] Migration failed:", error);
-		});
-	}, []);
 
 	// Update workspace-run pane state on terminal exit
 	electronTrpc.notifications.subscribe.useSubscription(undefined, {
