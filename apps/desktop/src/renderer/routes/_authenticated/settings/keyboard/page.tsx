@@ -21,7 +21,6 @@ import {
 	PLATFORM,
 	parseBinding,
 	type ShortcutBinding,
-	useBinding,
 	useHotkeyDisplay,
 	useHotkeyOverridesStore,
 	useRecordHotkeys,
@@ -35,12 +34,6 @@ const CATEGORY_ORDER: HotkeyCategory[] = [
 	"Window",
 	"Help",
 ];
-
-const MODE_LABEL: Record<"physical" | "logical" | "named", string> = {
-	physical: "Position",
-	logical: "Letter",
-	named: "Named",
-};
 
 function HotkeyRow({
 	id,
@@ -58,8 +51,6 @@ function HotkeyRow({
 	onReset: () => void;
 }) {
 	const { keys } = useHotkeyDisplay(id);
-	const binding = useBinding(id);
-	const mode = binding ? parseBinding(binding).mode : null;
 
 	return (
 		<div className="flex items-center justify-between gap-4 py-3 px-4">
@@ -70,20 +61,6 @@ function HotkeyRow({
 				)}
 			</div>
 			<div className="flex items-center gap-2">
-				{mode && (
-					<span
-						className="text-[10px] uppercase tracking-wider text-muted-foreground"
-						title={
-							mode === "logical"
-								? "Matches the printed character — follows your keyboard layout"
-								: mode === "physical"
-									? "Matches the physical key position — same key regardless of layout"
-									: "Matches a named key (Enter, arrows, F-keys, ...)"
-						}
-					>
-						{MODE_LABEL[mode]}
-					</span>
-				)}
 				<button
 					type="button"
 					onClick={onStartRecording}
