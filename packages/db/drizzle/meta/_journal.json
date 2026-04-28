@@ -281,6 +281,13 @@
       "when": 1777266747895,
       "tag": "0039_consolidate_host_client_machine_id",
       "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1777328575902,
+      "tag": "0040_v2_projects_icon_url",
+      "breakpoints": true
     }
   ]
 }

@@ -340,7 +340,7 @@ function AutomationsPage() {
 														{project ? (
 															<ProjectThumbnail
 																projectName={project.name}
-																githubOwner={project.githubOwner}
+																iconUrl={project.iconUrl}
 																className="!size-4"
 															/>
 														) : null}

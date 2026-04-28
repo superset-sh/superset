@@ -35,7 +35,7 @@ export function ProjectPickerPill({
 					{selectedProject && (
 						<ProjectThumbnail
 							projectName={selectedProject.name}
-							githubOwner={selectedProject.githubOwner}
+							iconUrl={selectedProject.iconUrl}
 							className="size-4"
 						/>
 					)}
@@ -66,7 +66,7 @@ export function ProjectPickerPill({
 								>
 									<ProjectThumbnail
 										projectName={project.name}
-										githubOwner={project.githubOwner}
+										iconUrl={project.iconUrl}
 									/>
 									<span className="flex-1 truncate">{project.name}</span>
 									{project.needsSetup === true && (

@@ -7,6 +7,7 @@ import { HiMagnifyingGlass } from "react-icons/hi2";
 import { env } from "renderer/env.renderer";
 import { authClient } from "renderer/lib/auth-client";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { ProjectThumbnail } from "renderer/routes/_authenticated/components/ProjectThumbnail";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { MOCK_ORG_ID } from "shared/constants";
 
@@ -14,6 +15,8 @@ interface ProjectRow {
 	kind: "v1" | "v2";
 	id: string;
 	name: string;
+	iconUrl: string | null;
+	githubOwner: string | null;
 }
 
 interface ProjectsSettingsSidebarProps {
@@ -38,10 +41,19 @@ export function ProjectsSettingsSidebar({
 		(q) =>
 			q
 				.from({ projects: collections.v2Projects })
+				.leftJoin(
+					{ repos: collections.githubRepositories },
+					({ projects, repos }) => eq(projects.githubRepositoryId, repos.id),
+				)
 				.where(({ projects }) =>
 					eq(projects.organizationId, activeOrganizationId ?? ""),
 				)
-				.select(({ projects }) => ({ ...projects })),
+				.select(({ projects, repos }) => ({
+					id: projects.id,
+					name: projects.name,
+					iconUrl: projects.iconUrl,
+					githubOwner: repos?.owner ?? null,
+				})),
 		[collections, activeOrganizationId],
 	);
 
@@ -52,6 +64,8 @@ export function ProjectsSettingsSidebar({
 			kind: "v2",
 			id: p.id,
 			name: p.name,
+			iconUrl: p.iconUrl ?? null,
+			githubOwner: p.githubOwner ?? null,
 		}));
 
 		const allV1: ProjectRow[] = groups
@@ -63,6 +77,8 @@ export function ProjectsSettingsSidebar({
 				kind: "v1",
 				id: g.project.id,
 				name: g.project.name,
+				iconUrl: g.project.iconUrl,
+				githubOwner: g.project.githubOwner,
 			}));
 
 		const trimmed = filter.trim().toLowerCase();
@@ -164,12 +180,17 @@ function ProjectLink({
 			to="/settings/projects/$projectId"
 			params={{ projectId: row.id }}
 			className={cn(
-				"flex items-center px-2 py-1.5 text-sm rounded-md transition-colors",
+				"flex items-center gap-2 px-2 py-1.5 text-sm rounded-md transition-colors",
 				isActive
 					? "bg-accent text-accent-foreground"
 					: "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
 			)}
 		>
+			<ProjectThumbnail
+				projectName={row.name}
+				iconUrl={row.iconUrl}
+				className="size-5"
+			/>
 			<span className="truncate">{row.name}</span>
 		</Link>
 	);
