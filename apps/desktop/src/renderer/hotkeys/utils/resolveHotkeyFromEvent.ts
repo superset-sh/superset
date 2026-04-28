@@ -70,12 +70,22 @@ export function canonicalizeChord(chord: string): string {
 /** KeyboardEvent → canonical chord (comparable to {@link canonicalizeChord} output), or null for pure modifier / synthetic presses. */
 export function eventToChord(event: KeyboardEvent): string | null {
 	if (event.code === undefined) return null;
+	// IME composition: keydown during CJK / dead-key composition must not
+	// trigger hotkeys. Safari reports keyCode 229 instead of isComposing.
+	if (event.isComposing || event.keyCode === 229) return null;
 	const key = normalizeToken(event.code);
 	if (isIgnorableKey(key)) return null;
+	// AltGr (`AltGraph`) is reported by Chromium as ctrlKey+altKey on
+	// Windows/Linux. Treating that combination as Ctrl+Alt would let printable
+	// keystrokes on non-US layouts (e.g. AltGr+E = € on German) accidentally
+	// trigger ctrl+alt+e bindings. Suppress both modifiers when AltGr is held;
+	// no current binding opts into AltGr explicitly. Phase 2 may add a
+	// first-class altgr+ token.
+	const altGraph = event.getModifierState?.("AltGraph") === true;
 	const mods: string[] = [];
 	if (event.metaKey) mods.push("meta");
-	if (event.ctrlKey) mods.push("ctrl");
-	if (event.altKey) mods.push("alt");
+	if (event.ctrlKey && !altGraph) mods.push("ctrl");
+	if (event.altKey && !altGraph) mods.push("alt");
 	if (event.shiftKey) mods.push("shift");
 	mods.sort();
 	return [...mods, key].join("+");

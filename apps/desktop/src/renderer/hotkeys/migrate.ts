@@ -32,8 +32,12 @@ export async function migrateHotkeyOverrides(): Promise<void> {
 			return;
 		}
 
-		const assumeUSMacLayout =
-			PLATFORM === "mac" ? await isUSCompatibleLayout() : true;
+		// Non-Mac platforms are unaffected by Option dead keys, so the gate
+		// only matters on macOS. On Mac, "unknown" → fail closed (drop entries
+		// rather than risk rebinding to the wrong physical key on a non-US
+		// layout where the API is unavailable).
+		const usLayout = PLATFORM === "mac" ? await isUSCompatibleLayout() : true;
+		const assumeUSMacLayout = usLayout === true;
 
 		const cleaned: Record<string, string | null> = {};
 		let dropped = 0;

@@ -17,6 +17,12 @@ function onlyMod(event: KeyboardEvent, mod: "meta" | "alt" | "ctrl"): boolean {
  * Translate Mac Cmd+/Option+ and Windows Ctrl+ arrow / backspace chords into
  * the escape sequences shells expect. Returns the bytes to send, or null if
  * this chord isn't a line-edit translation.
+ *
+ * CONTRACT: only check `event.key` for stable named keys (Backspace,
+ * ArrowLeft/Right, Home, End, ...). Never `event.key` for printable
+ * characters — those vary by layout (`event.key === "p"` on QWERTY is `"r"`
+ * on Dvorak) and silently break non-US users. Use `event.code` via
+ * `resolveHotkeyFromEvent` for any printable-key translation.
  */
 export function translateLineEditChord(
 	event: KeyboardEvent,

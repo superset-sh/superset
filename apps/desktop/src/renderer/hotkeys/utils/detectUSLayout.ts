@@ -4,29 +4,29 @@
 // glyphs than US (e.g., German Option+Q = •), so our US-based rewrite table
 // would produce wrong bindings.
 //
-// Fallback is optimistic (returns `true`) because:
-// - `navigator.keyboard` is gated on secure contexts; packaged Electron
-//   renderers on file:// won't expose it, and we'd rather rewrite than drop
-//   for the common case.
-// - Non-Mac users are unaffected either way (the dead-key glyphs aren't
-//   typeable at all, so detection is moot).
+// Fail-closed: when the API is unavailable (packaged Electron file:// often
+// hides it) or throws, return "unknown" so callers can refuse to apply the
+// US-Mac dead-key rewrites instead of silently rebinding to the wrong key.
+// Phase 1 replaces this entirely with native-keymap from the main process.
 
 interface KeyboardLayoutMap extends ReadonlyMap<string, string> {}
 interface Keyboard {
 	getLayoutMap?: () => Promise<KeyboardLayoutMap>;
 }
 
-let cached: Promise<boolean> | null = null;
+export type USLayoutResult = boolean | "unknown";
 
-export function isUSCompatibleLayout(): Promise<boolean> {
+let cached: Promise<USLayoutResult> | null = null;
+
+export function isUSCompatibleLayout(): Promise<USLayoutResult> {
 	if (cached) return cached;
 	cached = probe();
 	return cached;
 }
 
-async function probe(): Promise<boolean> {
+async function probe(): Promise<USLayoutResult> {
 	const keyboard = (navigator as Navigator & { keyboard?: Keyboard }).keyboard;
-	if (!keyboard?.getLayoutMap) return true;
+	if (!keyboard?.getLayoutMap) return "unknown";
 	try {
 		const map = await keyboard.getLayoutMap();
 		return (
@@ -38,7 +38,7 @@ async function probe(): Promise<boolean> {
 			map.get("Quote") === "'"
 		);
 	} catch {
-		return true;
+		return "unknown";
 	}
 }
 
