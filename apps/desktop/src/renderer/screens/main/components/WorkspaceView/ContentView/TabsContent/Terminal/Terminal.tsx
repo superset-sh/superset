@@ -354,6 +354,20 @@ export const Terminal = memo(function Terminal({
 		defaultRestartCommandRef,
 	});
 
+	// Reactive focus: when this pane becomes the focused pane, re-focus xterm.
+	// useTerminalLifecycle already calls xterm.focus() at mount time, but only once;
+	// subsequent isFocused flips (e.g. from focus-follows-mouse hover) need this
+	// effect to deliver keyboard focus into the terminal.
+	const isFirstFocusEffectRef = useRef(true);
+	useEffect(() => {
+		if (isFirstFocusEffectRef.current) {
+			isFirstFocusEffectRef.current = false;
+			return;
+		}
+		if (!isFocused) return;
+		xtermInstance?.focus();
+	}, [isFocused, xtermInstance]);
+
 	// Stream event handler registration — the subscription itself lives in
 	// v1TerminalCache and stays alive across mount/unmount cycles so data
 	// keeps flowing to xterm even while the tab is hidden.
