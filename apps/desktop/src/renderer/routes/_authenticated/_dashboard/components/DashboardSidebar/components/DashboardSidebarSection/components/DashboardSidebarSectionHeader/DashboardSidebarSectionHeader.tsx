@@ -100,7 +100,12 @@ export const DashboardSidebarSectionHeader = forwardRef<
 								{actions}
 							</div>
 						) : null}
-						<span className="pointer-events-none relative text-[10px] font-normal tabular-nums text-muted-foreground transition-opacity group-hover:opacity-0 group-focus-within:opacity-0">
+						<span
+							className={cn(
+								"pointer-events-none relative text-[10px] font-normal tabular-nums text-muted-foreground transition-opacity",
+								actions && "group-hover:opacity-0 group-focus-within:opacity-0",
+							)}
+						>
 							{section.workspaces.length}
 						</span>
 					</div>
