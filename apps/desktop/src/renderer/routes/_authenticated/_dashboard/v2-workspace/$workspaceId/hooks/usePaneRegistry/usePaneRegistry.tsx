@@ -182,8 +182,8 @@ export function usePaneRegistry(
 				});
 			},
 		});
-	// Silent kill for the onRemoved path: closing a pane shouldn't toast on
-	// success, and an error here is best-effort (the renderer-side cleanup
+	// Silent kill for the onAfterClose path: closing a pane shouldn't toast
+	// on success, and an error here is best-effort (the renderer-side cleanup
 	// has already happened).
 	const { mutate: killTerminalSessionSilently } =
 		workspaceTrpc.terminal.killSession.useMutation({
@@ -295,7 +295,7 @@ export function usePaneRegistry(
 			terminal: {
 				getIcon: () => <TerminalSquare className="size-3.5" />,
 				getTitle: () => "Terminal",
-				onRemoved: (pane) => {
+				onAfterClose: (pane) => {
 					const { terminalId } = pane.data as TerminalPaneData;
 					if (consumeTerminalBackgroundIntent(terminalId)) {
 						terminalRuntimeRegistry.release(terminalId);
@@ -441,11 +441,9 @@ export function usePaneRegistry(
 				renderToolbar: (ctx: RendererContext<PaneViewerData>) => (
 					<BrowserPaneToolbar ctx={ctx} />
 				),
-				// Destruction is handled by useGlobalBrowserLifecycle instead —
-				// the Panes library's onRemoved diff fires on transient workspace-
-				// switch churn (when the pane store replaceState's in place rather
-				// than remounting) and would prematurely destroy webviews whose
-				// owning workspace is still present.
+				// Destruction is currently handled by useGlobalBrowserLifecycle —
+				// it predates onAfterClose and could be migrated to follow the
+				// terminal pattern in a follow-up.
 				contextMenuActions: (_ctx, defaults) =>
 					defaults.map((d) =>
 						d.key === "close-pane" ? { ...d, label: "Close Browser" } : d,

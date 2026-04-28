@@ -1,4 +1,4 @@
-import { Workspace } from "@superset/panes";
+import { usePaneLifecycle, Workspace } from "@superset/panes";
 import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { createFileRoute } from "@tanstack/react-router";
@@ -182,6 +182,7 @@ function WorkspaceContent({
 		onOpenFile: openFilePane,
 		onRevealPath: revealPath,
 	});
+	usePaneLifecycle(store, paneRegistry);
 	const defaultContextMenuActions = useDefaultContextMenuActions(paneRegistry);
 	const {
 		openDiffPane,

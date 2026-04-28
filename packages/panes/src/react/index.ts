@@ -10,3 +10,4 @@ export type {
 	WorkspaceInteractionState,
 	WorkspaceProps,
 } from "./types";
+export { usePaneLifecycle } from "./usePaneLifecycle";

@@ -37,7 +37,7 @@ function extractBrowserLocations(
  * Global sweeper that destroys browser registry entries whose paneId is no
  * longer present in ANY workspace's persisted layout. Predates the panes
  * store's `subscribePaneRemovals` API; could be migrated to a
- * `PaneDefinition.onRemoved` for browsers in the same way terminals were.
+ * `PaneDefinition.onAfterClose` for browsers in the same way terminals were.
  * Comparing against the persisted store is authoritative until that migration.
  */
 export function useGlobalBrowserLifecycle() {

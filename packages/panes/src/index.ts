@@ -21,7 +21,7 @@ export type {
 	WorkspaceInteractionState,
 	WorkspaceProps,
 } from "./react";
-export { resolveTabTitle, Workspace } from "./react";
+export { resolveTabTitle, usePaneLifecycle, Workspace } from "./react";
 export type {
 	LayoutNode,
 	Pane,

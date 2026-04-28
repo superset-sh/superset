@@ -65,7 +65,14 @@ export interface PaneDefinition<TData> {
 	renderToolbar?(context: RendererContext<TData>): ReactNode;
 	onHeaderClick?(context: RendererContext<TData>): void;
 	onBeforeClose?(pane: Pane<TData>): boolean | Promise<boolean>;
-	onRemoved?(pane: Pane<TData>): void;
+	/**
+	 * Fires after a pane is removed from the store via closePane, removeTab,
+	 * or replacePane. Does NOT fire for replaceState (workspace switch /
+	 * sync hydration). Use for resource cleanup (e.g., disposing terminal
+	 * PTYs). Wire up via `usePaneLifecycle(store, registry)` at the page
+	 * level. Cannot cancel — use onBeforeClose for that.
+	 */
+	onAfterClose?(pane: Pane<TData>): void;
 	paneActions?:
 		| PaneActionConfig<TData>[]
 		| ((
