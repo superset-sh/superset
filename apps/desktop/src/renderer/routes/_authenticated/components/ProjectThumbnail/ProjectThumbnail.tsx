@@ -12,11 +12,11 @@ export function ProjectThumbnail({
 	iconUrl,
 	className,
 }: ProjectThumbnailProps) {
-	const [iconError, setIconError] = useState(false);
+	const [failedUrl, setFailedUrl] = useState<string | null>(null);
 
 	const firstLetter = projectName.charAt(0).toUpperCase();
 
-	if (iconUrl && !iconError) {
+	if (iconUrl && failedUrl !== iconUrl) {
 		return (
 			<div
 				className={cn(
@@ -28,7 +28,7 @@ export function ProjectThumbnail({
 					src={iconUrl}
 					alt={`${projectName} icon`}
 					className="size-full object-cover"
-					onError={() => setIconError(true)}
+					onError={() => setFailedUrl(iconUrl)}
 				/>
 			</div>
 		);

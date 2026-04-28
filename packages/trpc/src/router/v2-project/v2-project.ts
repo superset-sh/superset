@@ -547,7 +547,13 @@ export const v2ProjectRouter = {
 			if (existing?.iconUrl) {
 				try {
 					await del(existing.iconUrl);
-				} catch {}
+				} catch (error) {
+					console.warn("Failed to delete project icon from blob storage", {
+						projectId: input.id,
+						iconUrl: existing.iconUrl,
+						error,
+					});
+				}
 			}
 
 			const { updated, txid } = await dbWs.transaction(async (tx) => {

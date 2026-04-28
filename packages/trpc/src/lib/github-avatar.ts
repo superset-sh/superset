@@ -20,11 +20,15 @@ export async function fetchAndStoreGitHubAvatar({
 	try {
 		const controller = new AbortController();
 		const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
-		const response = await fetch(
-			`https://github.com/${encodeURIComponent(owner)}.png?size=200`,
-			{ signal: controller.signal, redirect: "follow" },
-		);
-		clearTimeout(timeoutId);
+		let response: Response;
+		try {
+			response = await fetch(
+				`https://github.com/${encodeURIComponent(owner)}.png?size=200`,
+				{ signal: controller.signal, redirect: "follow" },
+			);
+		} finally {
+			clearTimeout(timeoutId);
+		}
 
 		if (!response.ok) return null;
 		const contentType = response.headers.get("content-type") ?? "image/png";
@@ -36,16 +40,20 @@ export async function fetchAndStoreGitHubAvatar({
 		const randomId = Math.random().toString(36).substring(2, 15);
 		const pathname = `${pathnamePrefix}/${randomId}.${ext}`;
 
-		if (existingUrl) {
-			try {
-				await del(existingUrl);
-			} catch {}
-		}
-
 		const blob = await put(pathname, buffer, {
 			access: "public",
 			contentType: mimeType,
 		});
+
+		if (existingUrl) {
+			void del(existingUrl).catch((error) => {
+				console.warn("Failed to delete previous project icon blob", {
+					existingUrl,
+					error,
+				});
+			});
+		}
+
 		return blob.url;
 	} catch {
 		return null;

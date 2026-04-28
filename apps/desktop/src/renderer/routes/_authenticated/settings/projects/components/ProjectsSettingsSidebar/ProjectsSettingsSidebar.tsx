@@ -16,7 +16,6 @@ interface ProjectRow {
 	id: string;
 	name: string;
 	iconUrl: string | null;
-	githubOwner: string | null;
 }
 
 interface ProjectsSettingsSidebarProps {
@@ -41,18 +40,13 @@ export function ProjectsSettingsSidebar({
 		(q) =>
 			q
 				.from({ projects: collections.v2Projects })
-				.leftJoin(
-					{ repos: collections.githubRepositories },
-					({ projects, repos }) => eq(projects.githubRepositoryId, repos.id),
-				)
 				.where(({ projects }) =>
 					eq(projects.organizationId, activeOrganizationId ?? ""),
 				)
-				.select(({ projects, repos }) => ({
+				.select(({ projects }) => ({
 					id: projects.id,
 					name: projects.name,
 					iconUrl: projects.iconUrl,
-					githubOwner: repos?.owner ?? null,
 				})),
 		[collections, activeOrganizationId],
 	);
@@ -65,7 +59,6 @@ export function ProjectsSettingsSidebar({
 			id: p.id,
 			name: p.name,
 			iconUrl: p.iconUrl ?? null,
-			githubOwner: p.githubOwner ?? null,
 		}));
 
 		const allV1: ProjectRow[] = groups
@@ -78,7 +71,6 @@ export function ProjectsSettingsSidebar({
 				id: g.project.id,
 				name: g.project.name,
 				iconUrl: g.project.iconUrl,
-				githubOwner: g.project.githubOwner,
 			}));
 
 		const trimmed = filter.trim().toLowerCase();

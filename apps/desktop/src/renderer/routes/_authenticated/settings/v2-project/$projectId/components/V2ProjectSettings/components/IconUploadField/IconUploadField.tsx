@@ -32,14 +32,22 @@ export function IconUploadField({
 			e.target.value = "";
 			if (!file) return;
 
+			setIsPending(true);
 			const reader = new FileReader();
+			reader.onerror = () => {
+				toast.error("Could not read selected file");
+				setIsPending(false);
+			};
+			reader.onabort = () => {
+				setIsPending(false);
+			};
 			reader.onload = async () => {
 				const fileData = reader.result;
 				if (typeof fileData !== "string") {
 					toast.error("Could not read selected file");
+					setIsPending(false);
 					return;
 				}
-				setIsPending(true);
 				try {
 					await apiTrpcClient.v2Project.uploadIcon.mutate({
 						id: projectId,
