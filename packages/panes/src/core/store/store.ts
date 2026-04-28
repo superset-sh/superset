@@ -178,10 +178,14 @@ export interface WorkspaceStore<TData> extends WorkspaceState<TData> {
 	) => void;
 
 	/**
-	 * Subscribe to pane removals caused by user/programmatic actions
-	 * (closePane, removeTab, replacePane). Does NOT fire on replaceState —
-	 * that path represents wholesale state hydration / workspace switch and
-	 * is not a true removal.
+	 * @internal
+	 *
+	 * Internal plumbing used by `<Workspace>` to dispatch pane-removal events
+	 * to `PaneDefinition.onAfterClose`. Consumers should NOT subscribe
+	 * directly — declare lifecycle handlers on the registry
+	 * (`PaneDefinition.onAfterClose`) or workspace props
+	 * (`onAfterCloseTab`) instead. Fires for closePane / removeTab /
+	 * replacePane; does not fire for replaceState.
 	 */
 	subscribePaneRemovals: (listener: (pane: Pane<TData>) => void) => () => void;
 }

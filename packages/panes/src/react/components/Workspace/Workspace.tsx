@@ -1,4 +1,5 @@
 import { cn } from "@superset/ui/utils";
+import { useEffect } from "react";
 import { useStore } from "zustand";
 import type { WorkspaceProps } from "../../types";
 import { Tab } from "./components/Tab";
@@ -27,6 +28,14 @@ export function Workspace<TData>({
 	const { onSplitResizeDragging } = useWorkspaceInteractionState({
 		onInteractionStateChange,
 	});
+
+	useEffect(
+		() =>
+			store.getState().subscribePaneRemovals((pane) => {
+				registry[pane.kind]?.onAfterClose?.(pane);
+			}),
+		[store, registry],
+	);
 
 	const closeTab = async (tabId: string) => {
 		const tab = store.getState().getTab(tabId);
