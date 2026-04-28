@@ -469,7 +469,7 @@ export function FilesTab({
 	if (!rootPath) {
 		return (
 			<div className="flex h-full items-center justify-center gap-2 text-sm text-muted-foreground">
-				{workspaceQuery.isLoading || workspaceQuery.isFetching ? (
+				{workspaceQuery.isLoading ? (
 					<>
 						<Loader2 className="size-3.5 animate-spin" />
 						<span>Loading files...</span>
