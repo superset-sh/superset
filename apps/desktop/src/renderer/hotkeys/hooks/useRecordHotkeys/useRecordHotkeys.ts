@@ -86,9 +86,9 @@ export function captureHotkeyFromEvent(
 	if (classification === "printable") {
 		const produced = (event.key ?? "").toLowerCase();
 		// Single printable char only — strings like "Dead", "Process" or
-		// multi-char IME output stay on codeChord (caller falls back to
-		// physical when forced into logical mode).
-		if (produced.length === 1 && /\S/.test(produced)) {
+		// multi-char IME output stay on codeChord. "+" would collide with
+		// the chord separator and break round-tripping (`meta+shift++`).
+		if (produced.length === 1 && /\S/.test(produced) && produced !== "+") {
 			keyChord = [...ordered, produced].join("+");
 		}
 	}

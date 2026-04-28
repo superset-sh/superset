@@ -196,6 +196,16 @@ describe("captureHotkeyFromEvent — classification & dual-form capture", () => 
 		);
 		expect(captured?.keyChord).toBe(captured?.codeChord);
 	});
+
+	it("printable '+' falls back to codeChord (would collide with chord separator)", () => {
+		// Shift+= on US produces event.key "+" — accepting it as a logical
+		// token would build "meta+shift++" which can't be parsed back.
+		const captured = captureHotkeyFromEvent(
+			ev({ code: "Equal", key: "+", metaKey: true, shiftKey: true }),
+		);
+		expect(captured?.codeChord).toBe("meta+shift+equal");
+		expect(captured?.keyChord).toBe(captured?.codeChord);
+	});
 });
 
 describe("resolveCapturedBinding", () => {
