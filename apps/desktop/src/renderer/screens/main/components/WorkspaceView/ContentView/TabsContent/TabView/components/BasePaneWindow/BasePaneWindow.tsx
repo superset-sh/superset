@@ -3,14 +3,11 @@ import { useContext, useEffect, useRef } from "react";
 import type { MosaicBranch } from "react-mosaic-component";
 import { MosaicWindow, MosaicWindowContext } from "react-mosaic-component";
 import { useDragPaneStore } from "renderer/stores/drag-pane-store";
+import { useFocusFollowsMouse } from "renderer/stores/pane-preferences";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import type { SplitOrientation } from "../../hooks";
 import { useSplitOrientation } from "../../hooks";
-import { useFocusFollowsMouse } from "renderer/stores/pane-preferences";
-import {
-	createHoverFocusTimer,
-	type HoverFocusTimer,
-} from "./hoverFocusTimer";
+import { createHoverFocusTimer, type HoverFocusTimer } from "./hoverFocusTimer";
 import { useHoverFocusSuppression } from "./useHoverFocusSuppression";
 
 export interface PaneHandlers {

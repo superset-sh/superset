@@ -283,8 +283,8 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 								Focus follows mouse
 							</Label>
 							<p className="text-xs text-muted-foreground">
-								When enabled, hovering over a pane briefly will focus it
-								without clicking. Useful with split layouts.
+								When enabled, hovering over a pane briefly will focus it without
+								clicking. Useful with split layouts.
 							</p>
 						</div>
 						<Switch
