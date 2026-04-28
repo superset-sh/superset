@@ -784,4 +784,37 @@ describe("subscribePaneRemovals", () => {
 
 		expect(removed).toEqual(["p1"]);
 	});
+
+	it("isolates subscribers — a thrower does not prevent others from firing", () => {
+		const store = makeStore();
+		store.getState().addTab({ id: "t1", panes: [tp("p1"), tp("p2")] });
+		const errorSpy = (() => {
+			const original = console.error;
+			const calls: unknown[][] = [];
+			console.error = (...args: unknown[]) => calls.push(args);
+			return {
+				calls,
+				restore: () => {
+					console.error = original;
+				},
+			};
+		})();
+		const observed: string[] = [];
+
+		store.getState().subscribePaneRemovals(() => {
+			throw new Error("boom");
+		});
+		store.getState().subscribePaneRemovals((pane) => observed.push(pane.id));
+
+		try {
+			store.getState().removeTab("t1");
+		} finally {
+			errorSpy.restore();
+		}
+
+		// Both panes reported to the second subscriber even though the first threw.
+		expect(observed.sort()).toEqual(["p1", "p2"]);
+		// Each thrown error was logged once per pane (2 panes × 1 throwing listener).
+		expect(errorSpy.calls.length).toBe(2);
+	});
 });

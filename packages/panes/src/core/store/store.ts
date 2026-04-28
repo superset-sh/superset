@@ -196,7 +196,15 @@ export function createWorkspaceStore<TData>(
 	const paneRemovalListeners = new Set<(pane: Pane<TData>) => void>();
 	const notifyPaneRemovals = (panes: Iterable<Pane<TData>>) => {
 		for (const pane of panes) {
-			for (const listener of paneRemovalListeners) listener(pane);
+			for (const listener of paneRemovalListeners) {
+				try {
+					listener(pane);
+				} catch (err) {
+					// One subscriber's failure should not prevent other subscribers
+					// (or other panes in the same removal batch) from being notified.
+					console.error("paneRemovals listener threw", err);
+				}
+			}
 		}
 	};
 
