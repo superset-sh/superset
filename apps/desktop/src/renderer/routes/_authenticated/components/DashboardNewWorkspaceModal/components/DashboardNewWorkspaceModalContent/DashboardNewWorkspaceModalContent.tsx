@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef } from "react";
 import { env } from "renderer/env.renderer";
 import { authClient } from "renderer/lib/auth-client";
 import {
+	getLastHostTarget,
 	getLastProjectId,
 	setLastProjectId,
 } from "renderer/lib/v2-workspace-create-defaults";
@@ -80,12 +81,21 @@ export function DashboardNewWorkspaceModalContent({
 
 	const areProjectsReady = v2Projects !== undefined;
 	const appliedPreSelectionRef = useRef<string | null>(null);
+	const appliedHostTargetRef = useRef(false);
 
 	useEffect(() => {
 		if (!isOpen) {
 			appliedPreSelectionRef.current = null;
+			appliedHostTargetRef.current = false;
+			return;
 		}
-	}, [isOpen]);
+		if (appliedHostTargetRef.current) return;
+		appliedHostTargetRef.current = true;
+		const persistedHostTarget = getLastHostTarget();
+		if (persistedHostTarget) {
+			updateDraft({ hostTarget: persistedHostTarget });
+		}
+	}, [isOpen, updateDraft]);
 
 	useEffect(() => {
 		if (!isOpen) return;

@@ -5,8 +5,13 @@ export interface V2WorkspaceCreateBaseBranchDefault {
 	source: V2WorkspaceCreateBaseBranchSource;
 }
 
+export type V2WorkspaceCreateHostTarget =
+	| { kind: "local" }
+	| { kind: "host"; hostId: string };
+
 const LAST_PROJECT_ID_KEY = "v2-workspace-create:last-project-id";
 const BASE_BRANCHES_KEY = "v2-workspace-create:base-branches";
+const LAST_HOST_TARGET_KEY = "v2-workspace-create:last-host-target";
 
 export function getLastProjectId(): string | null {
 	if (typeof window === "undefined") return null;
@@ -57,4 +62,25 @@ export function setBaseBranchDefault(
 	const map = readBaseBranches();
 	map[projectId] = { branchName: trimmed, source };
 	window.localStorage.setItem(BASE_BRANCHES_KEY, JSON.stringify(map));
+}
+
+export function getLastHostTarget(): V2WorkspaceCreateHostTarget | null {
+	if (typeof window === "undefined") return null;
+	const raw = window.localStorage.getItem(LAST_HOST_TARGET_KEY);
+	if (!raw) return null;
+	try {
+		const parsed = JSON.parse(raw) as V2WorkspaceCreateHostTarget;
+		if (parsed.kind === "local") return { kind: "local" };
+		if (parsed.kind === "host" && typeof parsed.hostId === "string") {
+			return { kind: "host", hostId: parsed.hostId };
+		}
+		return null;
+	} catch {
+		return null;
+	}
+}
+
+export function setLastHostTarget(target: V2WorkspaceCreateHostTarget): void {
+	if (typeof window === "undefined") return;
+	window.localStorage.setItem(LAST_HOST_TARGET_KEY, JSON.stringify(target));
 }

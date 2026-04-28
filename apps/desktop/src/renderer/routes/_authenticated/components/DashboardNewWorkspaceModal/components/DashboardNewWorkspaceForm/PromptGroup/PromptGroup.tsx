@@ -31,6 +31,7 @@ import { PLATFORM } from "renderer/hotkeys";
 import {
 	getBaseBranchDefault,
 	setBaseBranchDefault,
+	setLastHostTarget,
 } from "renderer/lib/v2-workspace-create-defaults";
 import { useNewWorkspaceModalOpen } from "renderer/stores/new-workspace-modal";
 import { useDashboardNewWorkspaceDraft } from "../../../DashboardNewWorkspaceDraftContext";
@@ -402,7 +403,10 @@ export function PromptGroup({
 				<div className="flex items-center gap-2 min-w-0 flex-1">
 					<DevicePicker
 						hostTarget={hostTarget}
-						onSelectHostTarget={(t) => updateDraft({ hostTarget: t })}
+						onSelectHostTarget={(t) => {
+							setLastHostTarget(t);
+							updateDraft({ hostTarget: t });
+						}}
 					/>
 					<ProjectPickerPill
 						selectedProject={selectedProject}
