@@ -5,6 +5,7 @@ import type { HotkeyId } from "../../registry";
 import { PLATFORM } from "../../registry";
 import { useKeyboardLayoutStore } from "../../stores/keyboardLayoutStore";
 import type { HotkeyDisplay } from "../../types";
+import { parseBinding } from "../../utils/binding";
 import { useBinding } from "../useBinding";
 
 // react-hotkeys-hook does its own match against event.code/key and the four
@@ -26,13 +27,19 @@ export function useHotkey(
 	callback: (e: KeyboardEvent) => void,
 	options?: Options,
 ): HotkeyDisplay {
-	const keys = useBinding(id);
+	const binding = useBinding(id);
 	const layoutMap = useKeyboardLayoutStore((s) => s.map);
+	const parsed = binding ? parseBinding(binding) : null;
+	// Phase 2 commit 2 will translate logical-mode chords via layoutMap before
+	// passing to react-hotkeys-hook. For now every binding (legacy strings,
+	// shipped defaults, explicit physical) registers identically — same
+	// behavior as before.
+	const chord = parsed?.chord ?? null;
 	const callbackRef = useRef(callback);
 	callbackRef.current = callback;
 	const callerIgnore = options?.ignoreEventWhen;
 	useHotkeys(
-		keys ?? "",
+		chord ?? "",
 		(e, _h) => {
 			if (options?.preventDefault !== false) {
 				e.preventDefault();
@@ -47,7 +54,7 @@ export function useHotkey(
 				? (e) => shouldIgnoreEvent(e) || callerIgnore(e)
 				: shouldIgnoreEvent,
 		},
-		[keys],
+		[chord],
 	);
-	return formatHotkeyDisplay(keys, PLATFORM, layoutMap);
+	return formatHotkeyDisplay(chord, PLATFORM, layoutMap);
 }

@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { HOTKEYS, type HotkeyId } from "../registry";
 import { useHotkeyOverridesStore } from "../stores/hotkeyOverridesStore";
-import type { HotkeyDefinition } from "../types";
+import type { HotkeyDefinition, ShortcutBinding } from "../types";
 import {
 	canonicalizeChord,
 	eventToChord,
@@ -147,7 +147,7 @@ function ev(init: StubInit): KeyboardEvent {
 }
 
 describe("resolveHotkeyFromEvent — live override index", () => {
-	let originalOverrides: Record<string, string | null>;
+	let originalOverrides: Record<string, ShortcutBinding | null>;
 	beforeEach(() => {
 		originalOverrides = useHotkeyOverridesStore.getState().overrides;
 	});

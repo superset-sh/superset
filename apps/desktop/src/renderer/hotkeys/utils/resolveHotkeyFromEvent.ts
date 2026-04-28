@@ -1,5 +1,7 @@
 import { HOTKEYS, type HotkeyId } from "../registry";
 import { useHotkeyOverridesStore } from "../stores/hotkeyOverridesStore";
+import type { ShortcutBinding } from "../types";
+import { parseBinding } from "./binding";
 
 /**
  * KeyboardEvent → registered {@link HotkeyId}, or `null` if unbound. Uses the
@@ -113,7 +115,7 @@ export function isTerminalReservedEvent(event: KeyboardEvent): boolean {
 }
 
 function buildRegisteredAppChords(
-	overrides: Record<string, string | null>,
+	overrides: Record<string, ShortcutBinding | null>,
 ): Map<string, HotkeyId> {
 	const map = new Map<string, HotkeyId>();
 	for (const id of Object.keys(HOTKEYS) as HotkeyId[]) {
@@ -122,9 +124,13 @@ function buildRegisteredAppChords(
 		// Explicit unassignment (null override) must drop from the index — else
 		// the terminal's isAppHotkey check would swallow the freed chord.
 		if (hasOverride && override === null) continue;
-		const keys = override ?? HOTKEYS[id].key;
-		if (!keys) continue;
-		map.set(canonicalizeChord(keys), id);
+		const binding = override ?? HOTKEYS[id].key;
+		if (!binding) continue;
+		// All Phase 2 modes (physical, logical, named) currently match by
+		// event.code, so the chord field is the right index key. When commit 2
+		// adds layout-aware logical-mode dispatch, this index will need to
+		// translate logical chords through the layout map.
+		map.set(canonicalizeChord(parseBinding(binding).chord), id);
 	}
 	return map;
 }

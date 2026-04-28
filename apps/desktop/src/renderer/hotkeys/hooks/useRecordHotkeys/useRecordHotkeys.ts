@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { HOTKEYS, type HotkeyId, PLATFORM } from "../../registry";
 import { useHotkeyOverridesStore } from "../../stores/hotkeyOverridesStore";
 import type { Platform } from "../../types";
+import { parseBinding } from "../../utils/binding";
 import {
 	canonicalizeChord,
 	isIgnorableKey,
@@ -88,7 +89,12 @@ function getHotkeyConflict(keys: string, excludeId: HotkeyId): HotkeyId | null {
 	for (const id of Object.keys(HOTKEYS) as HotkeyId[]) {
 		if (id === excludeId) continue;
 		const effective = id in overrides ? overrides[id] : HOTKEYS[id].key;
-		if (effective && canonicalizeChord(effective) === canonicalKeys) return id;
+		if (!effective) continue;
+		// Phase 2 commit 3 will compare per match-mode (physical-vs-physical,
+		// logical-vs-logical, mixed via current keymap). For now collapse to
+		// the chord — same behavior as before since all bindings are physical.
+		const effectiveChord = parseBinding(effective).chord;
+		if (canonicalizeChord(effectiveChord) === canonicalKeys) return id;
 	}
 	return null;
 }

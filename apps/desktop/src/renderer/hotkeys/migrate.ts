@@ -62,6 +62,8 @@ export async function migrateHotkeyOverrides(): Promise<void> {
 			assumeUSMacLayout = isUSCompatibleKeymap(layout.unshifted);
 		}
 
+		// Migration writes legacy-shape strings (treated as physical mode by
+		// parseBinding). Users get v2 logical bindings only by re-recording.
 		const cleaned: Record<string, string | null> = {};
 		let dropped = 0;
 		for (const [id, raw] of Object.entries(oldOverrides)) {
