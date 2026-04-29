@@ -19,7 +19,10 @@ import {
 } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
-import { useFinalizeProjectSetup } from "renderer/react-query/projects";
+import {
+	type ProjectSetupResult,
+	useFinalizeProjectSetup,
+} from "renderer/react-query/projects";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 
 type NewProjectMode = "clone" | "empty" | "template";
@@ -27,11 +30,7 @@ type NewProjectMode = "clone" | "empty" | "template";
 interface NewProjectModalProps {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
-	onSuccess?: (result: {
-		projectId: string;
-		repoPath: string;
-		mainWorkspaceId: string | null;
-	}) => void;
+	onSuccess?: (result: ProjectSetupResult) => void;
 	onError?: (message: string) => void;
 }
 

@@ -26,16 +26,9 @@ export function useFolderFirstImport(options?: {
 	const selectDirectory = electronTrpc.window.selectDirectory.useMutation();
 	const { onError, onMultipleProjects } = options ?? {};
 
-	const reportError = useCallback(
-		(message: string) => {
-			onError?.(message);
-		},
-		[onError],
-	);
-
 	const start = useCallback(async (): Promise<ProjectSetupResult | null> => {
 		if (!activeHostUrl) {
-			reportError("Host service not available");
+			onError?.("Host service not available");
 			return null;
 		}
 
@@ -47,7 +40,7 @@ export function useFolderFirstImport(options?: {
 			if (picked.canceled || !picked.path) return null;
 			repoPath = picked.path;
 		} catch (err) {
-			reportError(err instanceof Error ? err.message : String(err));
+			onError?.(err instanceof Error ? err.message : String(err));
 			return null;
 		}
 
@@ -57,7 +50,7 @@ export function useFolderFirstImport(options?: {
 			const response = await client.project.findByPath.query({ repoPath });
 			candidates = response.candidates;
 		} catch (err) {
-			reportError(err instanceof Error ? err.message : String(err));
+			onError?.(err instanceof Error ? err.message : String(err));
 			return null;
 		}
 
@@ -66,7 +59,7 @@ export function useFolderFirstImport(options?: {
 			if (onMultipleProjects) {
 				onMultipleProjects({ candidates });
 			} else {
-				reportError(
+				onError?.(
 					`Multiple projects use this repository (${candidates.length}). Open the project you want from settings to set it up on this device.`,
 				);
 			}
@@ -94,14 +87,14 @@ export function useFolderFirstImport(options?: {
 			finalizeSetup(activeHostUrl, result);
 			return result;
 		} catch (err) {
-			reportError(err instanceof Error ? err.message : String(err));
+			onError?.(err instanceof Error ? err.message : String(err));
 			return null;
 		}
 	}, [
 		activeHostUrl,
 		finalizeSetup,
+		onError,
 		onMultipleProjects,
-		reportError,
 		selectDirectory,
 	]);
 
