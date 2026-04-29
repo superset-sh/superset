@@ -3,6 +3,7 @@ import type { SearchAddon } from "@xterm/addon-search";
 import type { Terminal as XTerm } from "@xterm/xterm";
 import "@xterm/xterm/css/xterm.css";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
+import { useHotkey } from "renderer/hotkeys";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { sanitizeTerminalFontFamily } from "renderer/lib/terminal/appearance";
 import { buildTerminalCommand } from "renderer/lib/terminal/launch-command";
@@ -100,6 +101,7 @@ export const Terminal = memo(function Terminal({
 	const setFocusedPane = useTabsStore((s) => s.setFocusedPane);
 	const setPaneName = useTabsStore((s) => s.setPaneName);
 	const focusedPaneId = useTabsStore((s) => s.focusedPaneIds[tabId]);
+	const toggleZoomPane = useTabsStore((s) => s.toggleZoomPane);
 	const terminalTheme = useTerminalTheme();
 
 	// Terminal connection state and mutations
@@ -300,6 +302,9 @@ export const Terminal = memo(function Terminal({
 		isFocused,
 		onClear: handleClearHotkey,
 		xtermRef,
+	});
+	useHotkey("ZOOM_PANE", () => toggleZoomPane(tabId, paneId), {
+		enabled: isFocused,
 	});
 	useEffect(() => {
 		if (!isRestoredMode) return;
