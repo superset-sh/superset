@@ -20,7 +20,6 @@ import {
 	movePaneToTab,
 } from "./actions/move-pane";
 import {
-	clearZoomBeforeMutation,
 	toggleZoomPane as toggleZoomPaneAction,
 	unzoomPane as unzoomPaneAction,
 	zoomPane as zoomPaneAction,
@@ -593,8 +592,7 @@ export const useTabsStore = create<TabsStore>()(
 
 				zoomPane: (tabId, paneId) =>
 					set((state) => zoomPaneAction(state, tabId, paneId)),
-				unzoomPane: (tabId) =>
-					set((state) => unzoomPaneAction(state, tabId)),
+				unzoomPane: (tabId) => set((state) => unzoomPaneAction(state, tabId)),
 				toggleZoomPane: (tabId, paneId) =>
 					set((state) => toggleZoomPaneAction(state, tabId, paneId)),
 

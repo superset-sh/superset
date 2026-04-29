@@ -329,7 +329,11 @@ export const HOTKEYS_REGISTRY = {
 		category: "Terminal",
 	},
 	ZOOM_PANE: {
-		key: { mac: "meta+shift+enter", windows: "ctrl+shift+enter", linux: "ctrl+shift+enter" },
+		key: {
+			mac: "meta+shift+enter",
+			windows: "ctrl+shift+enter",
+			linux: "ctrl+shift+enter",
+		},
 		label: "Toggle Zoom Pane",
 		category: "Terminal",
 		description: "Toggle zoom for the focused terminal pane within its tab",
