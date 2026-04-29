@@ -25,7 +25,7 @@ import {
 	sanitizeBranchNameWithMaxLength,
 	slugifyForBranch,
 } from "@superset/shared/workspace-launch";
-import { and, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import { RelayDispatchError, relayMutation } from "./relay-client";
 
 export type DispatchOutcome =
@@ -242,6 +242,7 @@ async function resolveTargetHost(automation: SelectAutomation): Promise<{
 					eq(v2Hosts.machineId, automation.targetHostId),
 				),
 			)
+			.orderBy(desc(subscriptions.createdAt))
 			.limit(1);
 
 		if (!row) return null;
@@ -289,7 +290,7 @@ async function resolveTargetHost(automation: SelectAutomation): Promise<{
 				eq(v2Hosts.isOnline, true),
 			),
 		)
-		.orderBy(v2Hosts.updatedAt)
+		.orderBy(v2Hosts.updatedAt, desc(subscriptions.createdAt))
 		.limit(1);
 
 	if (!row) return null;

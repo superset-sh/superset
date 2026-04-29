@@ -1,8 +1,8 @@
 import { dbWs } from "@superset/db/client";
-import { automations } from "@superset/db/schema";
+import { automations, subscriptions } from "@superset/db/schema";
 import { nextOccurrenceAfter } from "@superset/shared/rrule";
 import { Client, Receiver } from "@upstash/qstash";
-import { and, eq, lte } from "drizzle-orm";
+import { and, eq, exists, inArray, lte, ne, sql } from "drizzle-orm";
 
 import { env } from "@/env";
 
@@ -45,7 +45,27 @@ export async function POST(request: Request): Promise<Response> {
 	const due = await dbWs
 		.select()
 		.from(automations)
-		.where(and(eq(automations.enabled, true), lte(automations.nextRunAt, now)))
+		.where(
+			and(
+				eq(automations.enabled, true),
+				lte(automations.nextRunAt, now),
+				// Skip automations whose org isn't on a paid plan — saves compute on
+				// dispatch + relay for orgs that downgraded while keeping schedules
+				// enabled. Defense-in-depth still lives in dispatchAutomation.
+				exists(
+					dbWs
+						.select({ one: sql`1` })
+						.from(subscriptions)
+						.where(
+							and(
+								eq(subscriptions.referenceId, automations.organizationId),
+								inArray(subscriptions.status, ["active", "trialing"]),
+								ne(subscriptions.plan, "free"),
+							),
+						),
+				),
+			),
+		)
 		.orderBy(automations.nextRunAt)
 		.limit(BATCH_SIZE);
 

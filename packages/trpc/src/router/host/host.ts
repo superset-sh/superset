@@ -12,7 +12,7 @@ import {
 } from "@superset/shared/billing";
 import { parseHostRoutingKey } from "@superset/shared/host-routing";
 import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
-import { and, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { jwtProcedure, protectedProcedure } from "../../trpc";
 
@@ -154,6 +154,7 @@ export const hostRouter = {
 						eq(v2UsersHosts.hostId, parsed.machineId),
 					),
 				)
+				.orderBy(desc(subscriptions.createdAt))
 				.limit(1);
 
 			const allowed = !!row;
