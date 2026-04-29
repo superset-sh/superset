@@ -1,10 +1,17 @@
 import { Button } from "@superset/ui/button";
+import {
+	HoverCard,
+	HoverCardContent,
+	HoverCardTrigger,
+} from "@superset/ui/hover-card";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { useNavigate } from "@tanstack/react-router";
 import { useCallback } from "react";
 import {
-	LuCloud,
+	LuCircleCheck,
+	LuCircleDashed,
+	LuCircleX,
 	LuGitBranch,
 	LuLaptop,
 	LuMinus,
@@ -13,11 +20,14 @@ import {
 } from "react-icons/lu";
 import { GATED_FEATURES, usePaywall } from "renderer/components/Paywall";
 import { navigateToV2Workspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
+import { V2WorkspacePrHoverCardContent } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/components/V2WorkspacePrHoverCardContent";
 import type {
 	AccessibleV2Workspace,
 	V2WorkspaceHostType,
+	V2WorkspacePrSummary,
 } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/hooks/useAccessibleV2Workspaces";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
+import { PRIcon } from "renderer/screens/main/components/PRIcon/PRIcon";
 import { getRelativeTime } from "renderer/screens/main/components/WorkspacesListView/utils";
 import { V2_WORKSPACES_ROW_GRID } from "../../constants";
 
@@ -27,14 +37,7 @@ interface V2WorkspaceRowProps {
 }
 
 function hostIconFor(hostType: V2WorkspaceHostType) {
-	switch (hostType) {
-		case "cloud":
-			return LuCloud;
-		case "local-device":
-			return LuLaptop;
-		case "remote-device":
-			return LuMonitor;
-	}
+	return hostType === "local-device" ? LuLaptop : LuMonitor;
 }
 
 export function V2WorkspaceRow({
@@ -52,8 +55,6 @@ export function V2WorkspaceRow({
 
 	const HostIcon = hostIconFor(workspace.hostType);
 
-	// The local device is always reachable from here — ignore any stale
-	// isOnline flag on that row.
 	const treatAsOffline =
 		!workspace.hostIsOnline && workspace.hostType !== "local-device";
 
@@ -119,9 +120,6 @@ export function V2WorkspaceRow({
 
 	const handleRowKeyDown = useCallback(
 		(event: React.KeyboardEvent<HTMLDivElement>) => {
-			// Ignore keystrokes bubbling from focused descendants (e.g. the
-			// Add/Remove icon buttons) — `stopPropagation` on their click handlers
-			// doesn't catch keyboard events.
 			if (event.target !== event.currentTarget) return;
 			if (event.key === "Enter" || event.key === " ") {
 				event.preventDefault();
@@ -163,7 +161,7 @@ export function V2WorkspaceRow({
 				onKeyDown={handleRowKeyDown}
 				className={cn(
 					V2_WORKSPACES_ROW_GRID,
-					"group/row relative min-w-0 px-6 py-2 text-sm outline-none",
+					"group/row relative min-w-0 px-6 py-2.5 text-sm outline-none",
 					"cursor-pointer transition-colors",
 					"focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-inset",
 					isCurrentRoute
@@ -213,13 +211,16 @@ export function V2WorkspaceRow({
 					)}
 				</div>
 
-				<span className="flex min-w-0 items-center">
+				<span className="flex min-w-0 items-center gap-2">
 					<span
 						className="min-w-0 truncate font-medium text-foreground"
 						title={workspace.name}
 					>
 						{workspace.name}
 					</span>
+					{workspace.pr ? (
+						<WorkspacePrPill pr={workspace.pr} branch={workspace.branch} />
+					) : null}
 				</span>
 
 				{treatAsOffline ? (
@@ -250,4 +251,52 @@ export function V2WorkspaceRow({
 			</div>
 		</li>
 	);
+}
+
+interface WorkspacePrPillProps {
+	pr: V2WorkspacePrSummary;
+	branch: string;
+}
+
+function WorkspacePrPill({ pr, branch }: WorkspacePrPillProps) {
+	return (
+		<HoverCard openDelay={200} closeDelay={120}>
+			<HoverCardTrigger asChild>
+				<a
+					href={pr.url}
+					target="_blank"
+					rel="noreferrer"
+					onClick={(event) => event.stopPropagation()}
+					className="inline-flex shrink-0 items-center gap-1 rounded-full border border-border/60 bg-muted/40 px-2 py-0.5 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+				>
+					<PRIcon state={pr.state} className="size-3" />
+					<span className="tabular-nums">#{pr.prNumber}</span>
+					<ChecksDot status={pr.checksStatus} />
+				</a>
+			</HoverCardTrigger>
+			<HoverCardContent
+				side="top"
+				align="start"
+				className="w-80 p-3"
+				onClick={(event) => event.stopPropagation()}
+			>
+				<V2WorkspacePrHoverCardContent pr={pr} branch={branch} />
+			</HoverCardContent>
+		</HoverCard>
+	);
+}
+
+interface ChecksDotProps {
+	status: V2WorkspacePrSummary["checksStatus"];
+}
+
+function ChecksDot({ status }: ChecksDotProps) {
+	if (status === "none") return null;
+	if (status === "pending") {
+		return <LuCircleDashed className="size-3 text-amber-500" />;
+	}
+	if (status === "success") {
+		return <LuCircleCheck className="size-3 text-emerald-500" />;
+	}
+	return <LuCircleX className="size-3 text-red-500" />;
 }

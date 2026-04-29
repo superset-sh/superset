@@ -17,9 +17,11 @@ import type {
 	V2WorkspaceHostType,
 } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/hooks/useAccessibleV2Workspaces";
 import {
+	DEVICE_FILTER_THIS_DEVICE,
+	PROJECT_FILTER_ALL,
 	useV2WorkspacesFilterStore,
-	type V2WorkspacesDeviceFilter,
 } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/stores/v2WorkspacesFilterStore";
+import { V2WorkspaceProjectIcon } from "../V2WorkspaceProjectIcon";
 import { SortableHeader } from "./components/SortableHeader";
 import { V2WorkspaceRow } from "./components/V2WorkspaceRow";
 import { V2_WORKSPACES_ROW_GRID } from "./constants";
@@ -32,37 +34,13 @@ interface V2WorkspacesListProps {
 interface ProjectGroup {
 	projectId: string;
 	projectName: string;
+	githubOwner: string | null;
 	workspaces: AccessibleV2Workspace[];
 	latestCreatedAt: number;
 }
 
-function matchesDeviceFilter(
-	hostType: V2WorkspaceHostType,
-	deviceFilter: V2WorkspacesDeviceFilter,
-): boolean {
-	switch (deviceFilter) {
-		case "all":
-			return true;
-		case "this-device":
-			return hostType === "local-device";
-		case "other-devices":
-			return hostType === "remote-device";
-		case "cloud":
-			return hostType === "cloud";
-	}
-}
-
-// Host-type rank used as a tiebreaker when sorting by host — keeps local
-// device first, then remote devices, then cloud.
 function hostTypeRank(hostType: V2WorkspaceHostType): number {
-	switch (hostType) {
-		case "local-device":
-			return 0;
-		case "remote-device":
-			return 1;
-		case "cloud":
-			return 2;
-	}
+	return hostType === "local-device" ? 0 : 1;
 }
 
 function compareWorkspaces(
@@ -109,6 +87,7 @@ function groupByProject(
 			project = {
 				projectId: workspace.projectId,
 				projectName: workspace.projectName,
+				githubOwner: workspace.projectGithubOwner,
 				workspaces: [],
 				latestCreatedAt: 0,
 			};
@@ -152,6 +131,9 @@ export function V2WorkspacesList({ workspaces }: V2WorkspacesListProps) {
 	const deviceFilter = useV2WorkspacesFilterStore(
 		(state) => state.deviceFilter,
 	);
+	const projectFilter = useV2WorkspacesFilterStore(
+		(state) => state.projectFilter,
+	);
 	const resetFilters = useV2WorkspacesFilterStore((state) => state.reset);
 
 	const [sortField, setSortField] = useState<SortField>("created");
@@ -166,24 +148,25 @@ export function V2WorkspacesList({ workspaces }: V2WorkspacesListProps) {
 		}
 	};
 
-	const projectGroups = useMemo(() => {
-		const filtered = workspaces.filter((workspace) =>
-			matchesDeviceFilter(workspace.hostType, deviceFilter),
-		);
-		return groupByProject(filtered, sortField, sortDirection);
-	}, [workspaces, deviceFilter, sortField, sortDirection]);
+	const projectGroups = useMemo(
+		() => groupByProject(workspaces, sortField, sortDirection),
+		[workspaces, sortField, sortDirection],
+	);
 
 	const totalCount = projectGroups.reduce(
 		(total, project) => total + project.workspaces.length,
 		0,
 	);
-	const hasActiveFilters = searchQuery.trim() !== "" || deviceFilter !== "all";
+	const hasActiveFilters =
+		searchQuery.trim() !== "" ||
+		deviceFilter !== DEVICE_FILTER_THIS_DEVICE ||
+		projectFilter !== PROJECT_FILTER_ALL;
 
 	const columnHeader = (
 		<div
 			className={cn(
 				V2_WORKSPACES_ROW_GRID,
-				"sticky top-0 z-10 border-b border-border bg-background px-6 py-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/80",
+				"sticky top-0 z-10 h-8 border-b border-border bg-background px-6 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/80",
 			)}
 		>
 			<SortableHeader
@@ -275,7 +258,12 @@ export function V2WorkspacesList({ workspaces }: V2WorkspacesListProps) {
 
 				{projectGroups.map((project) => (
 					<div key={project.projectId} className="flex flex-col">
-						<div className="flex items-center gap-2 border-b border-border/60 bg-muted/30 px-6 py-1.5">
+						<div className="sticky top-8 z-[5] flex items-center gap-2 border-b border-border/60 bg-muted px-6 py-1.5">
+							<V2WorkspaceProjectIcon
+								projectName={project.projectName}
+								githubOwner={project.githubOwner}
+								size="sm"
+							/>
 							<h3
 								className="min-w-0 truncate text-xs font-semibold text-foreground/80"
 								title={project.projectName}
