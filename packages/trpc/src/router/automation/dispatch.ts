@@ -56,26 +56,20 @@ export async function dispatchAutomation(
 	const resolved = await resolveTargetHost(automation);
 	if (!resolved) {
 		const error = "no host available";
-		const inserted = await recordSkipped(
-			automation,
-			scheduledFor,
-			null,
-			"skipped_offline",
-			error,
-		);
+		const inserted = await recordSkipped(automation, scheduledFor, null, error);
 		return { status: "skipped_offline", runId: inserted?.id ?? null, error };
 	}
 	const { host, paidPlan } = resolved;
+	// Defense-in-depth: the cron evaluate-step (apps/api/.../evaluate/route.ts)
+	// already filters unpaid orgs, so this only fires in a tiny window between
+	// SELECT and dispatch. Bail without writing a run row to avoid muddying
+	// dashboards with paywall blocks under the offline metric.
 	if (!paidPlan) {
-		const error = "automations require a Pro plan";
-		const inserted = await recordSkipped(
-			automation,
-			scheduledFor,
-			host.machineId,
-			"skipped_unpaid",
-			error,
-		);
-		return { status: "skipped_unpaid", runId: inserted?.id ?? null, error };
+		return {
+			status: "skipped_unpaid",
+			runId: null,
+			error: "automations require a Pro plan",
+		};
 	}
 	if (!host.isOnline) {
 		const error = "target host offline";
@@ -83,7 +77,6 @@ export async function dispatchAutomation(
 			automation,
 			scheduledFor,
 			host.machineId,
-			"skipped_offline",
 			error,
 		);
 		return { status: "skipped_offline", runId: inserted?.id ?? null, error };
@@ -306,7 +299,6 @@ async function recordSkipped(
 	automation: SelectAutomation,
 	scheduledFor: Date,
 	hostId: string | null,
-	status: "skipped_offline" | "skipped_unpaid",
 	error: string,
 ): Promise<{ id: string } | undefined> {
 	const [row] = await dbWs
@@ -317,7 +309,7 @@ async function recordSkipped(
 			title: automation.name,
 			scheduledFor,
 			hostId,
-			status,
+			status: "skipped_offline",
 			error,
 		})
 		.onConflictDoNothing({
