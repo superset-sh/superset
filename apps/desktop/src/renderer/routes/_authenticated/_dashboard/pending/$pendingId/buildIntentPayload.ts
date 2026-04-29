@@ -18,6 +18,8 @@ export function mapLinkedContextFromPending(
 	internalIssueIds: string[] | undefined;
 	githubIssueUrls: string[] | undefined;
 	linkedPrUrl: string | undefined;
+	linkedIssueTitles: string[] | undefined;
+	linkedPrTitle: string | undefined;
 } {
 	const internalIssueIds = pending.linkedIssues
 		.filter((i) => i.source === "internal" && i.taskId)
@@ -25,11 +27,17 @@ export function mapLinkedContextFromPending(
 	const githubIssueUrls = pending.linkedIssues
 		.filter((i) => i.source === "github" && i.url)
 		.map((i) => i.url as string);
+	const linkedIssueTitles = pending.linkedIssues
+		.map((i) => i.title?.trim())
+		.filter((t): t is string => Boolean(t));
 	return {
 		internalIssueIds:
 			internalIssueIds.length > 0 ? internalIssueIds : undefined,
 		githubIssueUrls: githubIssueUrls.length > 0 ? githubIssueUrls : undefined,
 		linkedPrUrl: pending.linkedPR?.url,
+		linkedIssueTitles:
+			linkedIssueTitles.length > 0 ? linkedIssueTitles : undefined,
+		linkedPrTitle: pending.linkedPR?.title || undefined,
 	};
 }
 
@@ -58,6 +66,8 @@ export function buildForkPayload(
 			internalIssueIds: linked.internalIssueIds,
 			githubIssueUrls: linked.githubIssueUrls,
 			linkedPrUrl: linked.linkedPrUrl,
+			linkedIssueTitles: linked.linkedIssueTitles,
+			linkedPrTitle: linked.linkedPrTitle,
 			attachments,
 		},
 	};
@@ -147,6 +157,8 @@ export function buildPrCheckoutPayload(
 			internalIssueIds: linked.internalIssueIds,
 			githubIssueUrls: linked.githubIssueUrls,
 			linkedPrUrl: linked.linkedPrUrl ?? prContent.url,
+			linkedIssueTitles: linked.linkedIssueTitles,
+			linkedPrTitle: linked.linkedPrTitle ?? prContent.title,
 		},
 	};
 }

@@ -36,6 +36,10 @@ export interface CheckoutWorkspaceInput {
 		internalIssueIds?: string[];
 		githubIssueUrls?: string[];
 		linkedPrUrl?: string;
+		// Forwarded so host-service's AI namer can consider linked
+		// tickets/PRs alongside the composer prompt.
+		linkedIssueTitles?: string[];
+		linkedPrTitle?: string;
 		attachments?: Array<{
 			data: string;
 			mediaType: string;

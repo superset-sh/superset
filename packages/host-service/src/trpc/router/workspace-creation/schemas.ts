@@ -11,6 +11,12 @@ const linkedContextSchema = z
 		internalIssueIds: z.array(z.string()).optional(),
 		githubIssueUrls: z.array(z.string()).optional(),
 		linkedPrUrl: z.string().optional(),
+		// Titles forwarded by the renderer so the AI namer can summarize from
+		// linked tickets/PRs instead of falling back to the composer prompt.
+		// Optional for backcompat; omitting them just means the AI rename
+		// operates on the prompt alone (legacy behavior).
+		linkedIssueTitles: z.array(z.string()).optional(),
+		linkedPrTitle: z.string().optional(),
 		attachments: z.array(attachmentSchema).optional(),
 	})
 	.optional();

@@ -103,7 +103,48 @@ describe("mapLinkedContextFromPending", () => {
 			internalIssueIds: undefined,
 			githubIssueUrls: undefined,
 			linkedPrUrl: undefined,
+			linkedIssueTitles: undefined,
+			linkedPrTitle: undefined,
 		});
+	});
+
+	// Issue #3873: linked issue titles must reach the host-service so the AI
+	// namer can summarize from them instead of falling back to the prompt.
+	test("collects linked issue titles across sources", () => {
+		const mapped = mapLinkedContextFromPending({
+			linkedIssues: [
+				{
+					slug: "SUP-1",
+					title: "Internal title",
+					source: "internal",
+					taskId: "t1",
+				},
+				{
+					slug: "#7",
+					title: "GitHub title",
+					source: "github",
+					url: "https://github.com/o/r/issues/7",
+				},
+			],
+			linkedPR: null,
+		});
+		expect(mapped.linkedIssueTitles).toEqual([
+			"Internal title",
+			"GitHub title",
+		]);
+	});
+
+	test("surfaces linkedPR title for AI naming", () => {
+		const mapped = mapLinkedContextFromPending({
+			linkedIssues: [],
+			linkedPR: {
+				prNumber: 42,
+				title: "Fix login redirect loop",
+				url: "https://github.com/o/r/pull/42",
+				state: "open",
+			},
+		});
+		expect(mapped.linkedPrTitle).toBe("Fix login redirect loop");
 	});
 });
 

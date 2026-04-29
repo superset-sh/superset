@@ -30,6 +30,10 @@ export interface CreateWorkspaceInput {
 		internalIssueIds?: string[];
 		githubIssueUrls?: string[];
 		linkedPrUrl?: string;
+		// Titles forwarded so host-service's AI namer can summarize from
+		// linked tickets/PRs instead of just the composer prompt.
+		linkedIssueTitles?: string[];
+		linkedPrTitle?: string;
 		attachments?: Array<{
 			data: string;
 			mediaType: string;
