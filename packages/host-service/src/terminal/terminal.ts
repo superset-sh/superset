@@ -11,7 +11,7 @@ import {
 	scanForTerminalTitle,
 	type TerminalTitleScanState,
 } from "@superset/shared/terminal-title-scanner";
-import { and, eq } from "drizzle-orm";
+import { and, eq, ne } from "drizzle-orm";
 import type { Hono } from "hono";
 import { type IPty, spawn } from "node-pty";
 import type { HostDb } from "../db";
@@ -318,7 +318,7 @@ export function disposeSessionsByWorkspaceId(
 		.where(
 			and(
 				eq(terminalSessions.originWorkspaceId, workspaceId),
-				eq(terminalSessions.status, "active"),
+				ne(terminalSessions.status, "disposed"),
 			),
 		)
 		.all();
