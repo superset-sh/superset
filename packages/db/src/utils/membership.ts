@@ -1,3 +1,4 @@
+import { ACTIVE_SUBSCRIPTION_STATUSES } from "@superset/shared/billing";
 import { and, desc, eq, inArray } from "drizzle-orm";
 
 import { db } from "../client";
@@ -46,7 +47,7 @@ export async function findOrgMembershipWithSubscription({
 			subscriptions,
 			and(
 				eq(subscriptions.referenceId, members.organizationId),
-				inArray(subscriptions.status, ["active", "trialing"]),
+				inArray(subscriptions.status, ACTIVE_SUBSCRIPTION_STATUSES),
 			),
 		)
 		.where(

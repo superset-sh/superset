@@ -16,6 +16,7 @@ import {
 	type TerminalResolvedAgentConfig,
 } from "@superset/shared/agent-settings";
 import {
+	ACTIVE_SUBSCRIPTION_STATUSES,
 	isActiveSubscriptionStatus,
 	isPaidPlan,
 } from "@superset/shared/billing";
@@ -226,7 +227,7 @@ async function resolveTargetHost(automation: SelectAutomation): Promise<{
 				subscriptions,
 				and(
 					eq(subscriptions.referenceId, v2Hosts.organizationId),
-					inArray(subscriptions.status, ["active", "trialing"]),
+					inArray(subscriptions.status, ACTIVE_SUBSCRIPTION_STATUSES),
 				),
 			)
 			.where(
@@ -273,7 +274,7 @@ async function resolveTargetHost(automation: SelectAutomation): Promise<{
 			subscriptions,
 			and(
 				eq(subscriptions.referenceId, v2Hosts.organizationId),
-				inArray(subscriptions.status, ["active", "trialing"]),
+				inArray(subscriptions.status, ACTIVE_SUBSCRIPTION_STATUSES),
 			),
 		)
 		.where(

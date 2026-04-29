@@ -7,6 +7,7 @@ import {
 	v2UsersHosts,
 } from "@superset/db/schema";
 import {
+	ACTIVE_SUBSCRIPTION_STATUSES,
 	isActiveSubscriptionStatus,
 	isPaidPlan,
 } from "@superset/shared/billing";
@@ -144,7 +145,7 @@ export const hostRouter = {
 					subscriptions,
 					and(
 						eq(subscriptions.referenceId, v2UsersHosts.organizationId),
-						inArray(subscriptions.status, ["active", "trialing"]),
+						inArray(subscriptions.status, ACTIVE_SUBSCRIPTION_STATUSES),
 					),
 				)
 				.where(

@@ -1,5 +1,6 @@
 import { dbWs } from "@superset/db/client";
 import { automations, subscriptions } from "@superset/db/schema";
+import { ACTIVE_SUBSCRIPTION_STATUSES } from "@superset/shared/billing";
 import { nextOccurrenceAfter } from "@superset/shared/rrule";
 import { Client, Receiver } from "@upstash/qstash";
 import { and, eq, exists, inArray, lte, ne, sql } from "drizzle-orm";
@@ -49,9 +50,8 @@ export async function POST(request: Request): Promise<Response> {
 			and(
 				eq(automations.enabled, true),
 				lte(automations.nextRunAt, now),
-				// Skip automations whose org isn't on a paid plan — saves compute on
-				// dispatch + relay for orgs that downgraded while keeping schedules
-				// enabled. Defense-in-depth still lives in dispatchAutomation.
+				// Catches orgs that downgraded with automations still enabled — the
+				// create-time gate only blocks new ones.
 				exists(
 					dbWs
 						.select({ one: sql`1` })
@@ -59,7 +59,7 @@ export async function POST(request: Request): Promise<Response> {
 						.where(
 							and(
 								eq(subscriptions.referenceId, automations.organizationId),
-								inArray(subscriptions.status, ["active", "trialing"]),
+								inArray(subscriptions.status, ACTIVE_SUBSCRIPTION_STATUSES),
 								ne(subscriptions.plan, "free"),
 							),
 						),
