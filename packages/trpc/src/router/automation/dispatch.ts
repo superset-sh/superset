@@ -31,6 +31,7 @@ import { RelayDispatchError, relayMutation } from "./relay-client";
 export type DispatchOutcome =
 	| { status: "dispatched"; runId: string }
 	| { status: "skipped_offline"; runId: string | null; error: string }
+	| { status: "skipped_unpaid"; runId: string | null; error: string }
 	| { status: "dispatch_failed"; runId: string | null; error: string }
 	| { status: "conflict" };
 
@@ -55,7 +56,13 @@ export async function dispatchAutomation(
 	const resolved = await resolveTargetHost(automation);
 	if (!resolved) {
 		const error = "no host available";
-		const inserted = await recordSkipped(automation, scheduledFor, null, error);
+		const inserted = await recordSkipped(
+			automation,
+			scheduledFor,
+			null,
+			"skipped_offline",
+			error,
+		);
 		return { status: "skipped_offline", runId: inserted?.id ?? null, error };
 	}
 	const { host, paidPlan } = resolved;
@@ -65,9 +72,10 @@ export async function dispatchAutomation(
 			automation,
 			scheduledFor,
 			host.machineId,
+			"skipped_unpaid",
 			error,
 		);
-		return { status: "dispatch_failed", runId: inserted?.id ?? null, error };
+		return { status: "skipped_unpaid", runId: inserted?.id ?? null, error };
 	}
 	if (!host.isOnline) {
 		const error = "target host offline";
@@ -75,6 +83,7 @@ export async function dispatchAutomation(
 			automation,
 			scheduledFor,
 			host.machineId,
+			"skipped_offline",
 			error,
 		);
 		return { status: "skipped_offline", runId: inserted?.id ?? null, error };
@@ -296,6 +305,7 @@ async function recordSkipped(
 	automation: SelectAutomation,
 	scheduledFor: Date,
 	hostId: string | null,
+	status: "skipped_offline" | "skipped_unpaid",
 	error: string,
 ): Promise<{ id: string } | undefined> {
 	const [row] = await dbWs
@@ -306,7 +316,7 @@ async function recordSkipped(
 			title: automation.name,
 			scheduledFor,
 			hostId,
-			status: "skipped_offline",
+			status,
 			error,
 		})
 		.onConflictDoNothing({

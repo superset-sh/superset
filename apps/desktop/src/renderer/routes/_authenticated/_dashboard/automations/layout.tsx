@@ -1,5 +1,5 @@
 import { createFileRoute, Outlet, useNavigate } from "@tanstack/react-router";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { GATED_FEATURES, usePaywall } from "renderer/components/Paywall";
 
 export const Route = createFileRoute("/_authenticated/_dashboard/automations")({
@@ -10,11 +10,13 @@ function AutomationsLayout() {
 	const navigate = useNavigate();
 	const { hasAccess, gateFeature } = usePaywall();
 	const allowed = hasAccess(GATED_FEATURES.AUTOMATIONS);
+	const handledRef = useRef(false);
 
 	useEffect(() => {
-		if (allowed) return;
+		if (allowed || handledRef.current) return;
+		handledRef.current = true;
 		gateFeature(GATED_FEATURES.AUTOMATIONS, () => {});
-		navigate({ to: "/v2-workspaces" });
+		navigate({ to: "/v2-workspaces", replace: true });
 	}, [allowed, gateFeature, navigate]);
 
 	if (!allowed) return null;

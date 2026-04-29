@@ -281,6 +281,13 @@
       "when": 1777266747895,
       "tag": "0039_consolidate_host_client_machine_id",
       "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1777435885922,
+      "tag": "0040_automation_run_skipped_unpaid_status",
+      "breakpoints": true
     }
   ]
 }

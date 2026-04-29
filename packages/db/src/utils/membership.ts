@@ -1,4 +1,4 @@
-import { and, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, inArray, sql } from "drizzle-orm";
 
 import { db } from "../client";
 import { members, type SelectMember } from "../schema/auth";
@@ -54,6 +54,10 @@ export async function findOrgMembershipWithSubscription({
 				eq(members.organizationId, organizationId),
 				eq(members.userId, userId),
 			),
+		)
+		.orderBy(
+			sql`case ${subscriptions.status} when 'active' then 0 when 'trialing' then 1 else 2 end`,
+			desc(subscriptions.createdAt),
 		)
 		.limit(1);
 

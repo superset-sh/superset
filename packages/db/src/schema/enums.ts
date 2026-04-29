@@ -76,6 +76,7 @@ export const automationRunStatusValues = [
 	"dispatching",
 	"dispatched",
 	"skipped_offline",
+	"skipped_unpaid",
 	"dispatch_failed",
 ] as const;
 export const automationRunStatusEnum = z.enum(automationRunStatusValues);

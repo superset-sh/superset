@@ -1,0 +1,1 @@
+ALTER TYPE "public"."automation_run_status" ADD VALUE 'skipped_unpaid' BEFORE 'dispatch_failed';

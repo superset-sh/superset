@@ -373,6 +373,12 @@ export const automationRouter = {
 					message: outcome.error,
 				});
 			}
+			if (outcome.status === "skipped_unpaid") {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: outcome.error,
+				});
+			}
 
 			return { automationId: automation.id, runId: outcome.runId };
 		}),
