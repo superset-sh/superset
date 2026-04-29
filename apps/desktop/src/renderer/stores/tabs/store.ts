@@ -20,6 +20,7 @@ import {
 	movePaneToTab,
 } from "./actions/move-pane";
 import {
+	clearZoomBeforeMutation,
 	toggleZoomPane as toggleZoomPaneAction,
 	unzoomPane as unzoomPaneAction,
 	zoomPane as zoomPaneAction,
@@ -543,8 +544,10 @@ export const useTabsStore = create<TabsStore>()(
 				},
 
 				updateTabLayout: (tabId, layout) => {
-					const state = get();
-					const tab = state.tabs.find((t) => t.id === tabId);
+					// Unconditionally clear zoom: react-mosaic's <Mosaic onChange>
+					// calls this on every drag-resize, bypassing internal helpers.
+					const cleared = clearZoomBeforeMutation(get(), tabId);
+					const tab = cleared.tabs.find((t) => t.id === tabId);
 					if (!tab) return;
 
 					const newPaneIds = new Set(extractPaneIdsFromLayout(layout));
@@ -554,9 +557,9 @@ export const useTabsStore = create<TabsStore>()(
 						(id) => !newPaneIds.has(id),
 					);
 
-					const newPanes = { ...state.panes };
+					const newPanes = { ...cleared.panes };
 					for (const paneId of removedPaneIds) {
-						const pane = state.panes[paneId];
+						const pane = cleared.panes[paneId];
 						// Only delete panes that actually belong to this tab
 						// During drag operations, Mosaic may temporarily include foreign panes
 						// in layouts - we must not delete those when they're "removed"
@@ -569,20 +572,21 @@ export const useTabsStore = create<TabsStore>()(
 					}
 
 					// Update focused pane if it was removed
-					let newFocusedPaneIds = state.focusedPaneIds;
-					const currentFocusedPaneId = state.focusedPaneIds[tabId];
+					let newFocusedPaneIds = cleared.focusedPaneIds;
+					const currentFocusedPaneId = cleared.focusedPaneIds[tabId];
 					if (
 						currentFocusedPaneId &&
 						removedPaneIds.includes(currentFocusedPaneId)
 					) {
 						newFocusedPaneIds = {
-							...state.focusedPaneIds,
+							...cleared.focusedPaneIds,
 							[tabId]: getFirstPaneId(layout),
 						};
 					}
 
 					set({
-						tabs: state.tabs.map((t) =>
+						...cleared,
+						tabs: cleared.tabs.map((t) =>
 							t.id === tabId ? { ...t, layout } : t,
 						),
 						panes: newPanes,
