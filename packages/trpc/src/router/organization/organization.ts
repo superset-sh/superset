@@ -255,19 +255,19 @@ export const organizationRouter = {
 		.mutation(async ({ ctx, input }) => {
 			const { id, ...data } = input;
 
-			const membership = await findOrgMembership({
+			const result = await findOrgMembership({
 				userId: ctx.session.user.id,
 				organizationId: id,
 			});
 
-			if (!membership) {
+			if (!result) {
 				throw new TRPCError({
 					code: "FORBIDDEN",
 					message: "You are not a member of this organization",
 				});
 			}
 
-			if (membership.role !== "owner") {
+			if (result.membership.role !== "owner") {
 				throw new TRPCError({
 					code: "FORBIDDEN",
 					message: "Only owners can update organization settings",
@@ -322,19 +322,19 @@ export const organizationRouter = {
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			const membership = await findOrgMembership({
+			const result = await findOrgMembership({
 				userId: ctx.session.user.id,
 				organizationId: input.organizationId,
 			});
 
-			if (!membership) {
+			if (!result) {
 				throw new TRPCError({
 					code: "FORBIDDEN",
 					message: "You are not a member of this organization",
 				});
 			}
 
-			if (membership.role !== "owner") {
+			if (result.membership.role !== "owner") {
 				throw new TRPCError({
 					code: "FORBIDDEN",
 					message: "Only owners can update organization settings",

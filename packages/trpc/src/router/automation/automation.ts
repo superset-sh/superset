@@ -2,10 +2,15 @@ import { db, dbWs } from "@superset/db/client";
 import {
 	automationRuns,
 	automations,
+	type SelectSubscription,
 	v2Hosts,
 	v2UsersHosts,
 	v2Workspaces,
 } from "@superset/db/schema";
+import {
+	isActiveSubscriptionStatus,
+	isPaidPlan,
+} from "@superset/shared/billing";
 import {
 	describeSchedule,
 	nextOccurrences,
@@ -16,7 +21,10 @@ import { and, desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { env } from "../../env";
 import { protectedProcedure } from "../../trpc";
-import { requireActiveOrgMembership } from "../utils/active-org";
+import {
+	requireActiveOrgMembership,
+	requireActiveOrgMembershipWithSubscription,
+} from "../utils/active-org";
 import { dispatchAutomation } from "./dispatch";
 import {
 	createAutomationSchema,
@@ -24,6 +32,19 @@ import {
 	parseRruleSchema,
 	updateAutomationSchema,
 } from "./schema";
+
+function requirePaidSubscription(subscription: SelectSubscription | null) {
+	if (
+		!subscription ||
+		!isPaidPlan(subscription.plan) ||
+		!isActiveSubscriptionStatus(subscription.status)
+	) {
+		throw new TRPCError({
+			code: "FORBIDDEN",
+			message: "Automations require a Pro plan",
+		});
+	}
+}
 
 async function verifyHostAccess(
 	userId: string,
@@ -160,7 +181,9 @@ export const automationRouter = {
 	create: protectedProcedure
 		.input(createAutomationSchema)
 		.mutation(async ({ ctx, input }) => {
-			const organizationId = await requireActiveOrgMembership(ctx);
+			const { organizationId, subscription } =
+				await requireActiveOrgMembershipWithSubscription(ctx);
+			requirePaidSubscription(subscription);
 
 			if (input.targetHostId) {
 				await verifyHostAccess(
@@ -280,7 +303,11 @@ export const automationRouter = {
 	setEnabled: protectedProcedure
 		.input(z.object({ id: z.string().uuid(), enabled: z.boolean() }))
 		.mutation(async ({ ctx, input }) => {
-			const organizationId = await requireActiveOrgMembership(ctx);
+			const { organizationId, subscription } =
+				await requireActiveOrgMembershipWithSubscription(ctx);
+			if (input.enabled) {
+				requirePaidSubscription(subscription);
+			}
 			const existing = await getAutomationForUser(
 				ctx.session.user.id,
 				organizationId,
@@ -313,7 +340,9 @@ export const automationRouter = {
 	runNow: protectedProcedure
 		.input(z.object({ id: z.string().uuid() }))
 		.mutation(async ({ ctx, input }) => {
-			const organizationId = await requireActiveOrgMembership(ctx);
+			const { organizationId, subscription } =
+				await requireActiveOrgMembershipWithSubscription(ctx);
+			requirePaidSubscription(subscription);
 			const automation = await getAutomationForUser(
 				ctx.session.user.id,
 				organizationId,

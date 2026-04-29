@@ -1,4 +1,3 @@
-import { isPaidPlan } from "@superset/shared/billing";
 import { FEATURE_FLAGS } from "@superset/shared/constants";
 import {
 	DropdownMenu,
@@ -20,7 +19,6 @@ import {
 	LuPlus,
 } from "react-icons/lu";
 import { GATED_FEATURES, usePaywall } from "renderer/components/Paywall";
-import { useCurrentPlan } from "renderer/hooks/useCurrentPlan";
 import { useHotkeyDisplay } from "renderer/hotkeys";
 import { useFolderFirstImport } from "renderer/routes/_authenticated/_dashboard/components/AddRepositoryModals/hooks/useFolderFirstImport";
 import { OrganizationDropdown } from "renderer/routes/_authenticated/_dashboard/components/TopBar/components/OrganizationDropdown";
@@ -63,11 +61,9 @@ export function DashboardSidebarHeader({
 	const isTasksOpen = !!matchRoute({ to: "/tasks", fuzzy: true });
 	const isAutomationsOpen = !!matchRoute({ to: "/automations", fuzzy: true });
 
-	const automationsFlagEnabled = useFeatureFlagEnabled(
+	const showAutomations = useFeatureFlagEnabled(
 		FEATURE_FLAGS.AUTOMATIONS_ACCESS,
 	);
-	const plan = useCurrentPlan();
-	const showAutomations = automationsFlagEnabled && isPaidPlan(plan);
 
 	const {
 		tab: lastTab,
@@ -80,7 +76,9 @@ export function DashboardSidebarHeader({
 	};
 
 	const handleAutomationsClick = () => {
-		navigate({ to: "/automations" });
+		gateFeature(GATED_FEATURES.AUTOMATIONS, () => {
+			navigate({ to: "/automations" });
+		});
 	};
 
 	const handleTasksClick = () => {

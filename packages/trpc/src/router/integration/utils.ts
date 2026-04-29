@@ -5,27 +5,30 @@ export async function verifyOrgMembership(
 	userId: string,
 	organizationId: string,
 ) {
-	const membership = await findOrgMembership({ userId, organizationId });
+	const result = await findOrgMembership({ userId, organizationId });
 
-	if (!membership) {
+	if (!result) {
 		throw new TRPCError({
 			code: "FORBIDDEN",
 			message: "Not a member of this organization",
 		});
 	}
 
-	return { membership };
+	return result;
 }
 
 export async function verifyOrgAdmin(userId: string, organizationId: string) {
-	const { membership } = await verifyOrgMembership(userId, organizationId);
+	const result = await verifyOrgMembership(userId, organizationId);
 
-	if (membership.role !== "admin" && membership.role !== "owner") {
+	if (
+		result.membership.role !== "admin" &&
+		result.membership.role !== "owner"
+	) {
 		throw new TRPCError({
 			code: "FORBIDDEN",
 			message: "Admin access required",
 		});
 	}
 
-	return { membership };
+	return result;
 }

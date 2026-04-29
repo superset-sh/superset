@@ -5,6 +5,7 @@ import {
 	automationRuns,
 	chatSessions,
 	type SelectAutomation,
+	subscriptions,
 	users,
 	v2Hosts,
 	v2UsersHosts,
@@ -14,13 +15,17 @@ import {
 	getCommandFromAgentConfig,
 	type TerminalResolvedAgentConfig,
 } from "@superset/shared/agent-settings";
+import {
+	isActiveSubscriptionStatus,
+	isPaidPlan,
+} from "@superset/shared/billing";
 import { buildHostRoutingKey } from "@superset/shared/host-routing";
 import {
 	deduplicateBranchName,
 	sanitizeBranchNameWithMaxLength,
 	slugifyForBranch,
 } from "@superset/shared/workspace-launch";
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { RelayDispatchError, relayMutation } from "./relay-client";
 
 export type DispatchOutcome =
@@ -47,11 +52,22 @@ export async function dispatchAutomation(
 ): Promise<DispatchOutcome> {
 	const { automation, scheduledFor, relayUrl } = opts;
 
-	const host = await resolveTargetHost(automation);
-	if (!host) {
+	const resolved = await resolveTargetHost(automation);
+	if (!resolved) {
 		const error = "no host available";
 		const inserted = await recordSkipped(automation, scheduledFor, null, error);
 		return { status: "skipped_offline", runId: inserted?.id ?? null, error };
+	}
+	const { host, paidPlan } = resolved;
+	if (!paidPlan) {
+		const error = "automations require a Pro plan";
+		const inserted = await recordSkipped(
+			automation,
+			scheduledFor,
+			host.machineId,
+			error,
+		);
+		return { status: "dispatch_failed", runId: inserted?.id ?? null, error };
 	}
 	if (!host.isOnline) {
 		const error = "target host offline";
@@ -192,13 +208,25 @@ export async function dispatchAutomation(
 	return { status: "dispatched", runId: run.id };
 }
 
-async function resolveTargetHost(
-	automation: SelectAutomation,
-): Promise<typeof v2Hosts.$inferSelect | null> {
+async function resolveTargetHost(automation: SelectAutomation): Promise<{
+	host: typeof v2Hosts.$inferSelect;
+	paidPlan: boolean;
+} | null> {
 	if (automation.targetHostId) {
-		const [host] = await dbWs
-			.select()
+		const [row] = await dbWs
+			.select({
+				host: v2Hosts,
+				subscriptionPlan: subscriptions.plan,
+				subscriptionStatus: subscriptions.status,
+			})
 			.from(v2Hosts)
+			.leftJoin(
+				subscriptions,
+				and(
+					eq(subscriptions.referenceId, v2Hosts.organizationId),
+					inArray(subscriptions.status, ["active", "trialing"]),
+				),
+			)
 			.where(
 				and(
 					eq(v2Hosts.organizationId, automation.organizationId),
@@ -206,18 +234,29 @@ async function resolveTargetHost(
 				),
 			)
 			.limit(1);
-		return host ?? null;
+
+		if (!row) return null;
+		return {
+			host: row.host,
+			paidPlan:
+				isPaidPlan(row.subscriptionPlan) &&
+				isActiveSubscriptionStatus(row.subscriptionStatus),
+		};
 	}
 
-	const [host] = await dbWs
+	const [row] = await dbWs
 		.select({
-			organizationId: v2Hosts.organizationId,
-			machineId: v2Hosts.machineId,
-			name: v2Hosts.name,
-			isOnline: v2Hosts.isOnline,
-			createdByUserId: v2Hosts.createdByUserId,
-			createdAt: v2Hosts.createdAt,
-			updatedAt: v2Hosts.updatedAt,
+			host: {
+				organizationId: v2Hosts.organizationId,
+				machineId: v2Hosts.machineId,
+				name: v2Hosts.name,
+				isOnline: v2Hosts.isOnline,
+				createdByUserId: v2Hosts.createdByUserId,
+				createdAt: v2Hosts.createdAt,
+				updatedAt: v2Hosts.updatedAt,
+			},
+			subscriptionPlan: subscriptions.plan,
+			subscriptionStatus: subscriptions.status,
 		})
 		.from(v2Hosts)
 		.innerJoin(
@@ -225,6 +264,13 @@ async function resolveTargetHost(
 			and(
 				eq(v2UsersHosts.organizationId, v2Hosts.organizationId),
 				eq(v2UsersHosts.hostId, v2Hosts.machineId),
+			),
+		)
+		.leftJoin(
+			subscriptions,
+			and(
+				eq(subscriptions.referenceId, v2Hosts.organizationId),
+				inArray(subscriptions.status, ["active", "trialing"]),
 			),
 		)
 		.where(
@@ -237,7 +283,13 @@ async function resolveTargetHost(
 		.orderBy(v2Hosts.updatedAt)
 		.limit(1);
 
-	return host ?? null;
+	if (!row) return null;
+	return {
+		host: row.host,
+		paidPlan:
+			isPaidPlan(row.subscriptionPlan) &&
+			isActiveSubscriptionStatus(row.subscriptionStatus),
+	};
 }
 
 async function recordSkipped(

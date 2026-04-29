@@ -11,6 +11,7 @@ import {
 	LuMonitor,
 	LuPlus,
 } from "react-icons/lu";
+import { GATED_FEATURES, usePaywall } from "renderer/components/Paywall";
 import { navigateToV2Workspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import type {
 	AccessibleV2Workspace,
@@ -41,6 +42,7 @@ export function V2WorkspaceRow({
 	isCurrentRoute,
 }: V2WorkspaceRowProps) {
 	const navigate = useNavigate();
+	const { gateFeature } = usePaywall();
 	const {
 		ensureWorkspaceInSidebar,
 		hideWorkspaceInSidebar,
@@ -56,15 +58,32 @@ export function V2WorkspaceRow({
 		!workspace.hostIsOnline && workspace.hostType !== "local-device";
 
 	const handleOpen = useCallback(() => {
-		navigateToV2Workspace(workspace.id, navigate);
-	}, [navigate, workspace.id]);
+		const open = () => navigateToV2Workspace(workspace.id, navigate);
+		if (workspace.hostType === "local-device") {
+			open();
+			return;
+		}
+		gateFeature(GATED_FEATURES.REMOTE_WORKSPACES, open);
+	}, [gateFeature, navigate, workspace.hostType, workspace.id]);
 
 	const handleAddToSidebar = useCallback(
 		(event: React.MouseEvent) => {
 			event.stopPropagation();
-			ensureWorkspaceInSidebar(workspace.id, workspace.projectId);
+			const add = () =>
+				ensureWorkspaceInSidebar(workspace.id, workspace.projectId);
+			if (workspace.hostType === "local-device") {
+				add();
+				return;
+			}
+			gateFeature(GATED_FEATURES.REMOTE_WORKSPACES, add);
 		},
-		[ensureWorkspaceInSidebar, workspace.id, workspace.projectId],
+		[
+			ensureWorkspaceInSidebar,
+			gateFeature,
+			workspace.hostType,
+			workspace.id,
+			workspace.projectId,
+		],
 	);
 
 	const handleRemoveFromSidebar = useCallback(

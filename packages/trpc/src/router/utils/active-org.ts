@@ -1,3 +1,4 @@
+import type { SelectSubscription } from "@superset/db/schema";
 import { TRPCError } from "@trpc/server";
 import type { TRPCContext } from "../../trpc";
 import { verifyOrgMembership } from "../integration/utils";
@@ -32,4 +33,24 @@ export async function requireActiveOrgMembership(
 	const organizationId = requireActiveOrgId(ctx, message);
 	await verifyOrgMembership(ctx.session.user.id, organizationId);
 	return organizationId;
+}
+
+/**
+ * Like `requireActiveOrgMembership` but also returns the org's currently-paying
+ * subscription (joined by the same statement that resolved membership, so this
+ * is free vs. the basic call). Use when a procedure needs to gate on plan.
+ */
+export async function requireActiveOrgMembershipWithSubscription(
+	ctx: ProtectedContext,
+	message?: string,
+): Promise<{
+	organizationId: string;
+	subscription: SelectSubscription | null;
+}> {
+	const organizationId = requireActiveOrgId(ctx, message);
+	const { subscription } = await verifyOrgMembership(
+		ctx.session.user.id,
+		organizationId,
+	);
+	return { organizationId, subscription };
 }
