@@ -60,4 +60,21 @@ describe("buildAgentPromptCommand", () => {
 		expect(command).toStartWith("pi \"$(cat <<'SUPERSET_PROMPT_pi1234'");
 		expect(command).not.toContain("pi -p");
 	});
+
+	it("passes copilot prompts via --prompt flag, not as positional", () => {
+		// Repro for #3862: `copilot -i ... "<prompt>"` errors with
+		// "Expected 0 arguments but got 1." because interactive mode does
+		// not accept a positional prompt. The prompt must be passed via
+		// the --prompt flag.
+		const command = buildAgentPromptCommand({
+			prompt: "hello",
+			randomId: "copilot-1234",
+			agent: "copilot",
+		});
+
+		expect(command).not.toMatch(/\bcopilot\b[^"]*\s-i\b/);
+		expect(command).toStartWith(
+			"copilot --allow-tool=write --prompt \"$(cat <<'SUPERSET_PROMPT_copilot1234'",
+		);
+	});
 });
