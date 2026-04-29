@@ -216,6 +216,7 @@ describe("zoom + store actions (integration)", () => {
 	//    No additional pure-function surface to test here beyond case 2.
 	it.todo(
 		"splitPaneAuto (wrapper) while zoomed inherits clearing transitively — covered by case 2 (same clearZoomBeforeMutation call path)",
+		() => {},
 	);
 
 	// 4. equalizePaneSplits calls updateTabLayout which calls
