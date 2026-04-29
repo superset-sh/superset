@@ -211,6 +211,9 @@ fi
 				["-ic", `source "${wrapperPath}"; node`],
 				{
 					encoding: "utf-8",
+					stdio: ["ignore", "pipe", "pipe"],
+					timeout: 5_000,
+					detached: true,
 					env: {
 						HOME: homeDir,
 						PATH: `${systemBinDir}:/usr/bin:/bin`,
@@ -304,6 +307,9 @@ echo wrapper
 		const args = getCommandShellArgs("/bin/bash", "claude", TEST_PATHS);
 		const output = execFileSync("bash", args, {
 			encoding: "utf-8",
+			stdio: ["ignore", "pipe", "pipe"],
+			timeout: 5_000,
+			detached: true,
 			env: {
 				...process.env,
 				HOME: homeDir,
@@ -339,6 +345,9 @@ echo system
 		const args = getCommandShellArgs("/bin/bash", "claude", fallbackPaths);
 		const output = execFileSync("bash", args, {
 			encoding: "utf-8",
+			stdio: ["ignore", "pipe", "pipe"],
+			timeout: 5_000,
+			detached: true,
 			env: {
 				...process.env,
 				HOME: homeDir,
@@ -386,6 +395,9 @@ echo wrapper
 		const args = getCommandShellArgs("/bin/bash", "claude", fallbackPaths);
 		const output = execFileSync("bash", args, {
 			encoding: "utf-8",
+			stdio: ["ignore", "pipe", "pipe"],
+			timeout: 5_000,
+			detached: true,
 			env: {
 				...process.env,
 				HOME: homeDir,
@@ -468,6 +480,9 @@ precmd_functions+=(_mise_hook_precmd)
 			],
 			{
 				encoding: "utf-8",
+				stdio: ["ignore", "pipe", "pipe"],
+				timeout: 10_000,
+				detached: true,
 				env: {
 					HOME: homeDir,
 					PATH: `${systemBinDir}:/usr/bin:/bin`,
@@ -515,6 +530,9 @@ precmd_functions+=(_mise_hook_precmd)
 
 		const output = execFileSync("zsh", ["-lic", "claude"], {
 			encoding: "utf-8",
+			stdio: ["ignore", "pipe", "pipe"],
+			timeout: 10_000,
+			detached: true,
 			env: {
 				HOME: homeDir,
 				PATH: "/usr/bin:/bin",
@@ -557,6 +575,9 @@ typeset -gr -a precmd_functions
 
 		const output = execFileSync("zsh", ["-lic", "echo STARTUP_OK"], {
 			encoding: "utf-8",
+			stdio: ["ignore", "pipe", "pipe"],
+			timeout: 10_000,
+			detached: true,
 			env: {
 				HOME: homeDir,
 				PATH: "/usr/bin:/bin",
@@ -604,6 +625,9 @@ echo wrapper
 		const args = getCommandShellArgs("/bin/bash", "claude", specialPaths);
 		const output = execFileSync("bash", args, {
 			encoding: "utf-8",
+			stdio: ["ignore", "pipe", "pipe"],
+			timeout: 10_000,
+			detached: true,
 			env: {
 				...process.env,
 				HOME: homeDir,
@@ -636,6 +660,9 @@ echo wrapper
 			];
 			const output = execFileSync("bash", args, {
 				encoding: "utf-8",
+				stdio: ["ignore", "pipe", "pipe"],
+				timeout: 10_000,
+				detached: true,
 				env: {
 					HOME: homeDir,
 					PATH: "/usr/bin:/bin",
@@ -671,6 +698,9 @@ echo wrapper
 			];
 			const output = execFileSync("bash", args, {
 				encoding: "utf-8",
+				stdio: ["ignore", "pipe", "pipe"],
+				timeout: 10_000,
+				detached: true,
 				env: {
 					HOME: homeDir,
 					PATH: "/usr/bin:/bin",
@@ -707,6 +737,9 @@ export SUPERSET_WORKSPACE_PATH="/wrong/path"
 			];
 			const output = execFileSync("bash", args, {
 				encoding: "utf-8",
+				stdio: ["ignore", "pipe", "pipe"],
+				timeout: 10_000,
+				detached: true,
 				env: {
 					HOME: homeDir,
 					PATH: "/usr/bin:/bin",
@@ -753,6 +786,9 @@ export SUPERSET_WORKSPACE_PATH="/wrong/path"
 				["-lic", 'echo "$SUPERSET_WORKSPACE_NAME"'],
 				{
 					encoding: "utf-8",
+					stdio: ["ignore", "pipe", "pipe"],
+					timeout: 10_000,
+					detached: true,
 					env: {
 						HOME: homeDir,
 						PATH: "/usr/bin:/bin",
@@ -800,6 +836,9 @@ export SUPERSET_WORKSPACE_PATH="/wrong/path"
 				["-lic", 'echo "$SUPERSET_WORKSPACE_NAME"'],
 				{
 					encoding: "utf-8",
+					stdio: ["ignore", "pipe", "pipe"],
+					timeout: 10_000,
+					detached: true,
 					env: {
 						HOME: homeDir,
 						PATH: "/usr/bin:/bin",
