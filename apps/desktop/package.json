@@ -188,7 +188,7 @@
 		"lowdb": "^7.0.1",
 		"lowlight": "^3.3.0",
 		"lucide-react": "^0.563.0",
-		"mastracode": "0.16.0",
+		"mastracode": "0.15.0-alpha.3",
 		"nanoid": "^5.1.6",
 		"native-keymap": "^3.3.9",
 		"node-addon-api": "^7.1.0",
