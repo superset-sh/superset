@@ -609,7 +609,7 @@ export const useTabsStore = create<TabsStore>()(
 
 				// Pane operations
 				addPane: (tabId, options?: CreatePaneOptions) => {
-					const state = get();
+					const state = clearZoomBeforeMutation(get(), tabId);
 					const tab = state.tabs.find((t) => t.id === tabId);
 					if (!tab) return "";
 
@@ -645,7 +645,7 @@ export const useTabsStore = create<TabsStore>()(
 					return newPane.id;
 				},
 				addChatPane: (tabId, options) => {
-					const state = get();
+					const state = clearZoomBeforeMutation(get(), tabId);
 					const tab = state.tabs.find((t) => t.id === tabId);
 					if (!tab) return "";
 
@@ -685,7 +685,7 @@ export const useTabsStore = create<TabsStore>()(
 					tabId: string,
 					options: AddTabWithMultiplePanesOptions,
 				) => {
-					const state = get();
+					const state = clearZoomBeforeMutation(get(), tabId);
 					const tab = state.tabs.find((t) => t.id === tabId);
 					if (!tab) return [];
 
@@ -743,13 +743,17 @@ export const useTabsStore = create<TabsStore>()(
 						};
 					}
 
-					const state = get();
+					const rawState = get();
 					const resolvedActiveTabId = resolveActiveTabIdForWorkspace({
 						workspaceId,
-						tabs: state.tabs,
-						activeTabIds: state.activeTabIds,
-						tabHistoryStacks: state.tabHistoryStacks,
+						tabs: rawState.tabs,
+						activeTabIds: rawState.activeTabIds,
+						tabHistoryStacks: rawState.tabHistoryStacks,
 					});
+					const state = clearZoomBeforeMutation(
+						rawState,
+						resolvedActiveTabId ?? "",
+					);
 					const activeTab = resolvedActiveTabId
 						? state.tabs.find((t) => t.id === resolvedActiveTabId)
 						: null;
