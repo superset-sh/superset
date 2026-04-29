@@ -100,6 +100,7 @@ export const BUILTIN_TERMINAL_AGENTS = [
 		description:
 			"Mastra's coding agent for building, debugging, and shipping code from the terminal.",
 		command: "mastracode",
+		promptCommand: "mastracode --prompt",
 	}),
 	createBuiltinTerminalAgent({
 		id: "opencode",
@@ -121,7 +122,7 @@ export const BUILTIN_TERMINAL_AGENTS = [
 		description:
 			"GitHub's coding agent for planning, editing, and building in your repo.",
 		command: "copilot --allow-tool=write",
-		promptCommand: "copilot -i --allow-tool=write",
+		promptCommand: "copilot --allow-tool=write -i",
 		includeInDefaultTerminalPresets: true,
 	}),
 	createBuiltinTerminalAgent({
