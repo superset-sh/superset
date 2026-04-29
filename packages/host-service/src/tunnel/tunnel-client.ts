@@ -41,43 +41,52 @@ export class TunnelClient {
 	async connect(): Promise<void> {
 		if (this.closed) return;
 
-		const token = await this.getAuthToken();
-		if (!token) {
-			console.warn("[host-service:tunnel] no auth token available, retrying");
-			this.scheduleReconnect();
-			return;
-		}
-
-		const url = new URL("/tunnel", this.relayUrl);
-		url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
-		url.searchParams.set("hostId", this.hostId);
-		url.searchParams.set("token", token);
-
-		const socket = new WebSocket(url.toString());
-		this.socket = socket;
-
-		socket.onopen = () => {
-			this.reconnectAttempts = 0;
-			console.log(
-				`[host-service:tunnel] connected to relay for host ${this.hostId}`,
-			);
-		};
-
-		socket.onmessage = (event) => {
-			void this.handleMessage(event.data);
-		};
-
-		socket.onclose = () => {
-			this.socket = null;
-			this.cleanupChannels();
-			if (!this.closed) {
+		// An unhandled rejection here (e.g. DNS failure inside getAuthToken on
+		// wake from sleep) crashes host-service and orphans every PTY.
+		try {
+			const token = await this.getAuthToken();
+			if (!token) {
+				console.warn("[host-service:tunnel] no auth token available, retrying");
 				this.scheduleReconnect();
+				return;
 			}
-		};
 
-		socket.onerror = (event) => {
-			console.error("[host-service:tunnel] socket error:", event);
-		};
+			const url = new URL("/tunnel", this.relayUrl);
+			url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
+			url.searchParams.set("hostId", this.hostId);
+			url.searchParams.set("token", token);
+
+			const socket = new WebSocket(url.toString());
+			this.socket = socket;
+
+			socket.onopen = () => {
+				this.reconnectAttempts = 0;
+				console.log(
+					`[host-service:tunnel] connected to relay for host ${this.hostId}`,
+				);
+			};
+
+			socket.onmessage = (event) => {
+				void this.handleMessage(event.data);
+			};
+
+			socket.onclose = () => {
+				this.socket = null;
+				this.cleanupChannels();
+				if (!this.closed) {
+					this.scheduleReconnect();
+				}
+			};
+
+			socket.onerror = (event) => {
+				console.error("[host-service:tunnel] socket error:", event);
+			};
+		} catch (error) {
+			const message = error instanceof Error ? error.message : String(error);
+			console.error(`[host-service:tunnel] connect failed: ${message}`);
+			this.socket = null;
+			this.scheduleReconnect();
+		}
 	}
 
 	close(): void {
