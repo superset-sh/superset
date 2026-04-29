@@ -168,8 +168,6 @@ export const githubPullRequests = pgTable(
 
 		// Record timestamps
 		createdAt: timestamp("created_at").notNull().defaultNow(),
-		// Mirrors GitHub's PR.updated_at — written explicitly by sync/webhook
-		// paths, not auto-stamped on row writes (use lastSyncedAt for that).
 		updatedAt: timestamp("updated_at").notNull().defaultNow(),
 	},
 	(table) => [

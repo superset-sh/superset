@@ -14,7 +14,6 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@superset/ui/select";
-import { cn } from "@superset/ui/utils";
 import {
 	LuFolders,
 	LuLaptop,
@@ -35,6 +34,9 @@ import {
 	useV2WorkspacesFilterStore,
 } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/stores/v2WorkspacesFilterStore";
 import { V2WorkspaceProjectIcon } from "../V2WorkspaceProjectIcon";
+import { DeviceFilterTriggerLabel } from "./components/DeviceFilterTriggerLabel";
+import { DeviceOptionLabel } from "./components/DeviceOptionLabel";
+import { ProjectFilterTriggerLabel } from "./components/ProjectFilterTriggerLabel";
 
 interface V2WorkspacesHeaderProps {
 	counts: V2WorkspaceDeviceCounts;
@@ -105,21 +107,15 @@ export function V2WorkspacesHeader({
 			: undefined;
 	const selectedProjectLabel = selectedProjectFromOptions
 		? {
-				projectId: selectedProjectFromOptions.projectId,
 				projectName: selectedProjectFromOptions.projectName,
 				githubOwner: selectedProjectFromOptions.githubOwner,
 			}
 		: selectedProjectFallback
 			? {
-					projectId: projectFilter,
 					projectName: selectedProjectFallback.projectName,
 					githubOwner: selectedProjectFallback.githubOwner,
 				}
 			: undefined;
-	const totalProjectCount = projectOptions.reduce(
-		(total, project) => total + project.count,
-		0,
-	);
 
 	return (
 		<div className="border-b border-border">
@@ -166,9 +162,6 @@ export function V2WorkspacesHeader({
 										<LuFolders className="size-3.5" />
 										<span className="min-w-0 flex-1 truncate">
 											All projects
-										</span>
-										<span className="tabular-nums text-xs text-muted-foreground">
-											{totalProjectCount}
 										</span>
 									</span>
 								</SelectItem>
@@ -259,123 +252,5 @@ export function V2WorkspacesHeader({
 				</div>
 			</div>
 		</div>
-	);
-}
-
-interface ProjectFilterTriggerLabelProps {
-	projectFilter: string;
-	selectedProject:
-		| { projectName: string; githubOwner: string | null }
-		| undefined;
-}
-
-function ProjectFilterTriggerLabel({
-	projectFilter,
-	selectedProject,
-}: ProjectFilterTriggerLabelProps) {
-	if (projectFilter === PROJECT_FILTER_ALL) {
-		return (
-			<span className="flex items-center gap-2">
-				<LuFolders className="size-3.5" />
-				<span>All projects</span>
-			</span>
-		);
-	}
-	if (!selectedProject) {
-		return (
-			<span className="flex items-center gap-2">
-				<LuFolders className="size-3.5" />
-				<span className="text-muted-foreground">Unknown project</span>
-			</span>
-		);
-	}
-	return (
-		<span className="flex min-w-0 items-center gap-2">
-			<V2WorkspaceProjectIcon
-				projectName={selectedProject.projectName}
-				githubOwner={selectedProject.githubOwner}
-				size="sm"
-			/>
-			<span className="min-w-0 truncate">{selectedProject.projectName}</span>
-		</span>
-	);
-}
-
-interface DeviceFilterTriggerLabelProps {
-	deviceFilter: string;
-	selectedRemoteHost: { hostName: string; isOnline: boolean } | undefined;
-}
-
-function DeviceFilterTriggerLabel({
-	deviceFilter,
-	selectedRemoteHost,
-}: DeviceFilterTriggerLabelProps) {
-	if (deviceFilter === DEVICE_FILTER_ALL) {
-		return (
-			<span className="flex items-center gap-2">
-				<LuLayers className="size-3.5" />
-				<span>All devices</span>
-			</span>
-		);
-	}
-	if (deviceFilter === DEVICE_FILTER_THIS_DEVICE) {
-		return (
-			<span className="flex items-center gap-2">
-				<LuLaptop className="size-3.5" />
-				<span>This device</span>
-			</span>
-		);
-	}
-	return (
-		<span className="flex min-w-0 items-center gap-2">
-			<LuMonitor className="size-3.5" />
-			<span className="min-w-0 truncate">
-				{selectedRemoteHost?.hostName ?? "Unknown device"}
-			</span>
-			{selectedRemoteHost ? (
-				<span
-					aria-hidden
-					className={cn(
-						"inline-block size-1.5 shrink-0 rounded-full",
-						selectedRemoteHost.isOnline
-							? "bg-emerald-500"
-							: "bg-muted-foreground/40",
-					)}
-				/>
-			) : null}
-		</span>
-	);
-}
-
-interface DeviceOptionLabelProps {
-	icon: React.ReactNode;
-	label: string;
-	count: number;
-	isOnline?: boolean;
-}
-
-function DeviceOptionLabel({
-	icon,
-	label,
-	count,
-	isOnline,
-}: DeviceOptionLabelProps) {
-	return (
-		<span className="flex w-full min-w-0 items-center gap-2">
-			{icon}
-			<span className="min-w-0 flex-1 truncate">{label}</span>
-			{isOnline !== undefined ? (
-				<span
-					aria-hidden
-					className={cn(
-						"inline-block size-1.5 rounded-full",
-						isOnline ? "bg-emerald-500" : "bg-muted-foreground/40",
-					)}
-				/>
-			) : null}
-			<span className="tabular-nums text-xs text-muted-foreground">
-				{count}
-			</span>
-		</span>
 	);
 }

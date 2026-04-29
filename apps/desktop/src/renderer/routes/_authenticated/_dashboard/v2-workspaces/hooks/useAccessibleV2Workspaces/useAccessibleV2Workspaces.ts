@@ -139,7 +139,7 @@ function matchesDeviceFilter(
 ): boolean {
 	if (deviceFilter === DEVICE_FILTER_ALL) return true;
 	if (deviceFilter === DEVICE_FILTER_THIS_DEVICE) {
-		return workspace.hostId === machineId;
+		return machineId == null || workspace.hostId === machineId;
 	}
 	return workspace.hostId === deviceFilter;
 }

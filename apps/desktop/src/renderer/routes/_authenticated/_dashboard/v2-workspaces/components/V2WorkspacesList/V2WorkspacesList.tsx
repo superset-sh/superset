@@ -280,12 +280,16 @@ interface ProjectSectionProps {
 }
 
 function ProjectSection({ project, currentWorkspaceId }: ProjectSectionProps) {
-	const isCollapsed = useV2ProjectLocalMetaStore(
+	const persistedCollapsed = useV2ProjectLocalMetaStore(
 		(state) => state.projects[project.projectId]?.isCollapsed ?? false,
 	);
 	const toggleCollapsed = useV2ProjectLocalMetaStore(
 		(state) => state.toggleProjectCollapsed,
 	);
+	const containsCurrent = project.workspaces.some(
+		(workspace) => workspace.id === currentWorkspaceId,
+	);
+	const isCollapsed = persistedCollapsed && !containsCurrent;
 	const Chevron = isCollapsed ? LuChevronRight : LuChevronDown;
 
 	return (
