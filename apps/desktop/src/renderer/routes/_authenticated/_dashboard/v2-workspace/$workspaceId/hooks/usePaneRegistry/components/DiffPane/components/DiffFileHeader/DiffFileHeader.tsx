@@ -44,7 +44,7 @@ export function DiffFileHeader({
 	const viewedId = useId();
 
 	return (
-		<div className="@container/diff-file-header flex min-w-0 flex-wrap items-center justify-between gap-1 px-2 py-1.5">
+		<div className="@container/diff-file-header flex min-w-0 flex-wrap items-center gap-1 px-2 py-1.5">
 			<button
 				type="button"
 				onClick={onToggleCollapsed}
