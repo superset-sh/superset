@@ -214,10 +214,7 @@ describe("zoom + store actions (integration)", () => {
 	//    Its zoom-clearing behaviour is identical to case 2 — it delegates to
 	//    splitPaneVertical (or Horizontal), which calls clearZoomBeforeMutation.
 	//    No additional pure-function surface to test here beyond case 2.
-	it.todo(
-		"splitPaneAuto (wrapper) while zoomed inherits clearing transitively — covered by case 2 (same clearZoomBeforeMutation call path)",
-		() => {},
-	);
+	it.todo("splitPaneAuto (wrapper) while zoomed inherits clearing transitively — covered by case 2 (same clearZoomBeforeMutation call path)", () => {});
 
 	// 4. equalizePaneSplits calls updateTabLayout which calls
 	//    clearZoomBeforeMutation unconditionally. Verify that applying
