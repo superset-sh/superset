@@ -455,7 +455,12 @@ export const Terminal = memo(function Terminal({
 			<TerminalSearch
 				searchAddon={searchAddonRef.current}
 				isOpen={isSearchOpen}
-				onClose={() => setIsSearchOpen(false)}
+				onClose={() => {
+					setIsSearchOpen(false);
+					// Restore focus to the terminal so keystrokes go to the shell
+					// instead of being swallowed by the body element.
+					xtermRef.current?.focus();
+				}}
 			/>
 			<ScrollToBottomButton terminal={xtermInstance} />
 			{exitStatus === "killed" &&
