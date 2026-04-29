@@ -42,42 +42,6 @@ interface FileTreeState {
 
 interface LoadDirectoryOptions {
 	force?: boolean;
-	ignoreInFlight?: boolean;
-	attempt?: number;
-}
-
-const LIST_DIRECTORY_TIMEOUT_MS = 5_000;
-const LIST_DIRECTORY_MAX_ATTEMPTS = 3;
-const LIST_DIRECTORY_RETRY_DELAY_MS = 300;
-
-class ListDirectoryTimeoutError extends Error {
-	constructor(timeoutMs: number) {
-		super(`listDirectory timed out after ${timeoutMs}ms`);
-		this.name = "ListDirectoryTimeoutError";
-	}
-}
-
-async function withAbortableTimeout<T>(
-	fetcher: (signal: AbortSignal) => Promise<T>,
-	timeoutMs: number,
-	abortController: AbortController,
-): Promise<T> {
-	let timedOut = false;
-	const timeout = setTimeout(() => {
-		timedOut = true;
-		abortController.abort();
-	}, timeoutMs);
-
-	try {
-		return await fetcher(abortController.signal);
-	} catch (error) {
-		if (timedOut) {
-			throw new ListDirectoryTimeoutError(timeoutMs);
-		}
-		throw error;
-	} finally {
-		clearTimeout(timeout);
-	}
 }
 
 function applyDirectoryEntries(
@@ -244,32 +208,9 @@ export function useFileTree({
 	rootPath,
 }: UseFileTreeParams): UseFileTreeResult {
 	const utils = workspaceTrpc.useUtils();
-	const retryTimersRef = useRef(new Set<ReturnType<typeof setTimeout>>());
-	const activeLoadAbortControllersRef = useRef(new Set<AbortController>());
 	const [state, setState] = useState<FileTreeState>(() => createInitialState());
 	const stateRef = useRef(state);
 	stateRef.current = state;
-
-	const clearRetryTimers = useCallback(() => {
-		for (const timer of retryTimersRef.current) {
-			clearTimeout(timer);
-		}
-		retryTimersRef.current.clear();
-	}, []);
-
-	const abortActiveLoads = useCallback(() => {
-		for (const abortController of activeLoadAbortControllersRef.current) {
-			abortController.abort();
-		}
-		activeLoadAbortControllersRef.current.clear();
-	}, []);
-
-	useEffect(() => {
-		return () => {
-			clearRetryTimers();
-			abortActiveLoads();
-		};
-	}, [abortActiveLoads, clearRetryTimers]);
 
 	const updateState = useCallback(
 		(updater: (current: FileTreeState) => FileTreeState) => {
@@ -282,29 +223,16 @@ export function useFileTree({
 		[],
 	);
 
-	const loadDirectoryRef = useRef<
-		| ((absolutePath: string, options?: LoadDirectoryOptions) => Promise<void>)
-		| null
-	>(null);
-
 	const loadDirectory = useCallback(
 		async (
 			absolutePath: string,
 			options: LoadDirectoryOptions = {},
 		): Promise<void> => {
-			const { force = false, ignoreInFlight = false, attempt = 1 } = options;
-			if (!workspaceId || !absolutePath) {
-				return;
-			}
+			const { force = false } = options;
+			if (!workspaceId || !absolutePath) return;
 
 			const currentState = stateRef.current;
-			if (
-				!ignoreInFlight &&
-				currentState.loadingDirectories.has(absolutePath)
-			) {
-				return;
-			}
-
+			if (currentState.loadingDirectories.has(absolutePath)) return;
 			if (
 				!force &&
 				currentState.loadedDirectories.has(absolutePath) &&
@@ -319,9 +247,7 @@ export function useFileTree({
 				updateState((current) =>
 					applyDirectoryEntries(current, absolutePath, cachedResult.entries),
 				);
-				if (!force) {
-					return;
-				}
+				if (!force) return;
 			}
 
 			updateState((current) => ({
@@ -331,72 +257,27 @@ export function useFileTree({
 				),
 			}));
 
-			const abortController = new AbortController();
-			activeLoadAbortControllersRef.current.add(abortController);
-			// External cancellation (unmount or workspace/root change) clears the
-			// active set, so membership doubles as a "still relevant" check.
-			const isStillCurrent = () =>
-				activeLoadAbortControllersRef.current.has(abortController);
-
 			try {
-				const result = await withAbortableTimeout(
-					(signal) =>
-						utils.filesystem.listDirectory.fetch(input, {
-							trpc: { signal },
-						}),
-					LIST_DIRECTORY_TIMEOUT_MS,
-					abortController,
-				);
-
-				if (!isStillCurrent()) {
-					return;
-				}
-
+				// Server-side timeout + React Query's TIMEOUT-aware retry handle
+				// hung host-service IPC; we just await the fetch and apply results.
+				const result = await utils.filesystem.listDirectory.fetch(input);
 				updateState((current) =>
 					applyDirectoryEntries(current, absolutePath, result.entries),
 				);
 			} catch (error) {
-				if (!isStillCurrent()) {
-					return;
-				}
-
-				const nextAttempt = attempt + 1;
-				if (
-					error instanceof ListDirectoryTimeoutError &&
-					nextAttempt <= LIST_DIRECTORY_MAX_ATTEMPTS
-				) {
-					const retryTimer = setTimeout(() => {
-						retryTimersRef.current.delete(retryTimer);
-						void loadDirectoryRef.current?.(absolutePath, {
-							attempt: nextAttempt,
-							force: true,
-							ignoreInFlight: true,
-						});
-					}, LIST_DIRECTORY_RETRY_DELAY_MS * attempt);
-					retryTimersRef.current.add(retryTimer);
-					return;
-				}
-
 				console.error(
 					"[workspace-client/useFileTree] Failed to load directory:",
-					{
-						absolutePath,
-						error,
-					},
+					{ absolutePath, error },
 				);
-
 				updateState((current) => {
 					const nextLoading = new Set(current.loadingDirectories);
 					nextLoading.delete(absolutePath);
 					return { ...current, loadingDirectories: nextLoading };
 				});
-			} finally {
-				activeLoadAbortControllersRef.current.delete(abortController);
 			}
 		},
 		[updateState, utils.filesystem.listDirectory, workspaceId],
 	);
-	loadDirectoryRef.current = loadDirectory;
 
 	const refreshPath = useCallback(
 		async (absolutePath: string): Promise<void> => {
@@ -474,21 +355,10 @@ export function useFileTree({
 	}, [updateState]);
 
 	useEffect(() => {
-		clearRetryTimers();
-		abortActiveLoads();
 		updateState(() => createInitialState());
-		if (!rootPath) {
-			return;
-		}
-
+		if (!rootPath) return;
 		void loadDirectory(rootPath, { force: true });
-	}, [
-		abortActiveLoads,
-		clearRetryTimers,
-		loadDirectory,
-		rootPath,
-		updateState,
-	]);
+	}, [loadDirectory, rootPath, updateState]);
 
 	useWorkspaceEvent(
 		"fs:events",

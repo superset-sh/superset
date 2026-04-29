@@ -3,7 +3,7 @@ import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { projects, pullRequests, workspaces } from "../../../db/schema";
-import { protectedProcedure, router } from "../../index";
+import { protectedProcedure, queryProcedure, router } from "../../index";
 import type {
 	ChangedFile,
 	CheckConclusionState,
@@ -34,7 +34,7 @@ import {
 import { resolveWorktreePath } from "./utils/resolve-worktree";
 
 export const gitRouter = router({
-	listBranches: protectedProcedure
+	listBranches: queryProcedure
 		.input(z.object({ workspaceId: z.string() }))
 		.query(async ({ ctx, input }) => {
 			const worktreePath = resolveWorktreePath(ctx, input.workspaceId);
@@ -64,7 +64,8 @@ export const gitRouter = router({
 			return { branches };
 		}),
 
-	getStatus: protectedProcedure
+	getStatus: queryProcedure
+		.meta({ timeoutMs: 15_000 })
 		.input(
 			z.object({
 				workspaceId: z.string(),
@@ -216,7 +217,8 @@ export const gitRouter = router({
 			};
 		}),
 
-	listCommits: protectedProcedure
+	listCommits: queryProcedure
+		.meta({ timeoutMs: 30_000 })
 		.input(
 			z.object({
 				workspaceId: z.string(),
@@ -253,7 +255,8 @@ export const gitRouter = router({
 			return { commits };
 		}),
 
-	getCommitFiles: protectedProcedure
+	getCommitFiles: queryProcedure
+		.meta({ timeoutMs: 15_000 })
 		.input(
 			z.object({
 				workspaceId: z.string(),
@@ -271,7 +274,7 @@ export const gitRouter = router({
 			return { files };
 		}),
 
-	getBaseBranch: protectedProcedure
+	getBaseBranch: queryProcedure
 		.input(z.object({ workspaceId: z.string() }))
 		.query(async ({ ctx, input }) => {
 			const worktreePath = resolveWorktreePath(ctx, input.workspaceId);
@@ -358,7 +361,8 @@ export const gitRouter = router({
 			return { name: input.newName };
 		}),
 
-	getDiff: protectedProcedure
+	getDiff: queryProcedure
+		.meta({ timeoutMs: 30_000 })
 		.input(
 			z.object({
 				workspaceId: z.string(),
@@ -436,7 +440,8 @@ export const gitRouter = router({
 			};
 		}),
 
-	getBranchSyncStatus: protectedProcedure
+	getBranchSyncStatus: queryProcedure
+		.meta({ timeoutMs: 30_000 })
 		.input(z.object({ workspaceId: z.string() }))
 		.query(async ({ ctx, input }) => {
 			const worktreePath = resolveWorktreePath(ctx, input.workspaceId);
@@ -503,7 +508,7 @@ export const gitRouter = router({
 			};
 		}),
 
-	getPullRequest: protectedProcedure
+	getPullRequest: queryProcedure
 		.input(z.object({ workspaceId: z.string() }))
 		.query(({ ctx, input }) => {
 			const workspace = ctx.db.query.workspaces
@@ -562,7 +567,8 @@ export const gitRouter = router({
 			};
 		}),
 
-	getPullRequestThreads: protectedProcedure
+	getPullRequestThreads: queryProcedure
+		.meta({ timeoutMs: 30_000 })
 		.input(z.object({ workspaceId: z.string() }))
 		.query(async ({ ctx, input }) => {
 			const workspace = ctx.db.query.workspaces
