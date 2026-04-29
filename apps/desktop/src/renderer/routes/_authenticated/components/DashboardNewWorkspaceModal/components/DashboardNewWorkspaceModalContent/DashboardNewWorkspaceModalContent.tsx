@@ -92,8 +92,15 @@ export function DashboardNewWorkspaceModalContent({
 		appliedHostTargetRef.current = true;
 		const persistedHostTarget =
 			useV2WorkspaceCreateDefaultsStore.getState().lastHostTarget;
-		if (persistedHostTarget) {
-			updateDraft({ hostTarget: persistedHostTarget });
+		const validHostTarget =
+			persistedHostTarget?.kind === "local"
+				? persistedHostTarget
+				: persistedHostTarget?.kind === "host" &&
+						typeof persistedHostTarget.hostId === "string"
+					? persistedHostTarget
+					: null;
+		if (validHostTarget) {
+			updateDraft({ hostTarget: validHostTarget });
 		}
 	}, [isOpen, updateDraft]);
 
