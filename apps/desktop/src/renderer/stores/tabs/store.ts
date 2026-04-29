@@ -19,6 +19,12 @@ import {
 	movePaneToNewTab,
 	movePaneToTab,
 } from "./actions/move-pane";
+import {
+	clearZoomBeforeMutation,
+	toggleZoomPane as toggleZoomPaneAction,
+	unzoomPane as unzoomPaneAction,
+	zoomPane as zoomPaneAction,
+} from "./actions/zoom-pane";
 import type {
 	AddFileViewerPaneOptions,
 	AddTabWithMultiplePanesOptions,
@@ -584,6 +590,13 @@ export const useTabsStore = create<TabsStore>()(
 						focusedPaneIds: newFocusedPaneIds,
 					});
 				},
+
+				zoomPane: (tabId, paneId) =>
+					set((state) => zoomPaneAction(state, tabId, paneId)),
+				unzoomPane: (tabId) =>
+					set((state) => unzoomPaneAction(state, tabId)),
+				toggleZoomPane: (tabId, paneId) =>
+					set((state) => toggleZoomPaneAction(state, tabId, paneId)),
 
 				equalizePaneSplits: (tabId) => {
 					const tab = get().tabs.find((t) => t.id === tabId);
