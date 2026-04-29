@@ -101,6 +101,7 @@ export const BUILTIN_TERMINAL_AGENTS = [
 			"Mastra's coding agent for building, debugging, and shipping code from the terminal.",
 		command: "mastracode",
 		promptCommand: "mastracode --prompt",
+		promptCommandSuffix: "; mastracode",
 	}),
 	createBuiltinTerminalAgent({
 		id: "opencode",
