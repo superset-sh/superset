@@ -1575,25 +1575,34 @@ export const useTabsStore = create<TabsStore>()(
 				},
 
 				movePaneToTab: (paneId, targetTabId) => {
-					const state = get();
-					const pane = state.panes[paneId];
+					const initial = get();
+					const pane = initial.panes[paneId];
+					if (!pane) return;
+					// Clear zoom on both source and target before computing the move,
+					// so the pure function operates on the un-zoomed layouts.
+					let state = clearZoomBeforeMutation(initial, pane.tabId);
+					if (pane.tabId !== targetTabId) {
+						state = clearZoomBeforeMutation(state, targetTabId);
+					}
 					const result = movePaneToTab(state, paneId, targetTabId);
 					if (!result) return;
 
-					set(withDerivedTabNames(result, [pane?.tabId, targetTabId]));
+					set(withDerivedTabNames(result, [pane.tabId, targetTabId]));
 				},
 
 				movePaneToNewTab: (paneId) => {
-					const state = get();
-					const pane = state.panes[paneId];
+					const initial = get();
+					const pane = initial.panes[paneId];
 					if (!pane) return "";
 
-					const sourceTab = state.tabs.find((t) => t.id === pane.tabId);
+					const sourceTab = initial.tabs.find((t) => t.id === pane.tabId);
 					if (!sourceTab) return "";
 
 					// Already in its own tab
-					if (isLastPaneInTab(state.panes, sourceTab.id)) return sourceTab.id;
+					if (isLastPaneInTab(initial.panes, sourceTab.id)) return sourceTab.id;
 
+					// Clear zoom on the source tab; the new tab can't be zoomed yet.
+					const state = clearZoomBeforeMutation(initial, sourceTab.id);
 					const moveResult = movePaneToNewTab(state, paneId);
 					if (!moveResult) return "";
 
@@ -1612,7 +1621,9 @@ export const useTabsStore = create<TabsStore>()(
 					destinationPath,
 					position,
 				) => {
-					const state = get();
+					// Clear zoom on the target tab — the source tab is being deleted by
+					// the merge, so its zoom (if any) goes with it.
+					const state = clearZoomBeforeMutation(get(), targetTabId);
 					const result = mergeTabIntoTab(
 						state,
 						sourceTabId,
