@@ -1,5 +1,6 @@
 import { COMPANY } from "@superset/shared/constants";
 import { Avatar } from "@superset/ui/atoms/Avatar";
+import { Badge } from "@superset/ui/badge";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -27,6 +28,7 @@ import {
 } from "react-icons/hi2";
 import { IoBugOutline } from "react-icons/io5";
 import { LuKeyboard } from "react-icons/lu";
+import { useCurrentPlan } from "renderer/hooks/useCurrentPlan";
 import { useHotkeyDisplay } from "renderer/hotkeys";
 import { authClient } from "renderer/lib/auth-client";
 import { electronTrpc } from "renderer/lib/electron-trpc";
@@ -69,6 +71,18 @@ export function OrganizationDropdown({
 	const userName = session?.user?.name;
 	const displayName = activeOrganization?.name ?? userName ?? "Organization";
 
+	const currentPlan = useCurrentPlan();
+	const isPaid = currentPlan !== "free";
+	const planLabel = currentPlan.charAt(0).toUpperCase() + currentPlan.slice(1);
+	const planBadge = isPaid ? (
+		<Badge
+			variant="default"
+			className="px-1 py-0 text-[9px] leading-none uppercase tracking-wide h-3.5"
+		>
+			{planLabel}
+		</Badge>
+	) : null;
+
 	const triggerButton =
 		variant === "collapsed" ? (
 			<button
@@ -96,6 +110,7 @@ export function OrganizationDropdown({
 					className="rounded size-4 shrink-0"
 				/>
 				<span className="truncate">{displayName}</span>
+				{planBadge}
 				<HiChevronUpDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
 			</button>
 		) : (
@@ -113,6 +128,7 @@ export function OrganizationDropdown({
 				<span className="text-xs font-medium truncate max-w-32">
 					{displayName}
 				</span>
+				{planBadge}
 				<HiChevronUpDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
 			</button>
 		);
