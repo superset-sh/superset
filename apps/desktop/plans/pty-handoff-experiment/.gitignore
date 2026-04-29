@@ -1,0 +1,6 @@
+pty-handoff
+runs/
+nodepty-test/node_modules/
+nodepty-test/run-*.json
+nodepty-test/run-*.child.json
+nodepty-test/package-lock.json
