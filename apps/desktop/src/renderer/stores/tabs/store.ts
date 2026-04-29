@@ -1058,7 +1058,10 @@ export const useTabsStore = create<TabsStore>()(
 				},
 
 				removePane: (paneId) => {
-					const state = get();
+					const initial = get();
+					const tabId = initial.panes[paneId]?.tabId;
+					if (!tabId) return;
+					const state = clearZoomBeforeMutation(initial, tabId);
 					const pane = state.panes[paneId];
 					if (!pane) return;
 
@@ -1751,21 +1754,22 @@ export const useTabsStore = create<TabsStore>()(
 				},
 
 				openInBrowserPane: (workspaceId: string, url: string) => {
-					const state = get();
+					const initial = get();
 
 					// Find an existing browser pane in this workspace
 					const workspaceTabIds = new Set(
-						state.tabs
+						initial.tabs
 							.filter((t) => t.workspaceId === workspaceId)
 							.map((t) => t.id),
 					);
-					const existingPane = Object.values(state.panes).find(
+					const existingPane = Object.values(initial.panes).find(
 						(p) =>
 							p.type === "webview" && p.browser && workspaceTabIds.has(p.tabId),
 					);
 
 					if (existingPane?.browser) {
 						// Navigate existing pane and make its tab active
+						const state = clearZoomBeforeMutation(initial, existingPane.tabId);
 						const { history: prevHistory, historyIndex } = existingPane.browser;
 						const history = prevHistory.slice(0, historyIndex + 1);
 						history.push({
@@ -1815,18 +1819,24 @@ export const useTabsStore = create<TabsStore>()(
 						// No existing browser pane — add one to the active tab
 						const resolvedActiveTabId = resolveActiveTabIdForWorkspace({
 							workspaceId,
-							tabs: state.tabs,
-							activeTabIds: state.activeTabIds,
-							tabHistoryStacks: state.tabHistoryStacks,
+							tabs: initial.tabs,
+							activeTabIds: initial.activeTabIds,
+							tabHistoryStacks: initial.tabHistoryStacks,
 						});
-						const activeTab = resolvedActiveTabId
-							? state.tabs.find((t) => t.id === resolvedActiveTabId)
+						const resolvedActiveTab = resolvedActiveTabId
+							? initial.tabs.find((t) => t.id === resolvedActiveTabId)
 							: null;
 
-						if (!activeTab) {
+						if (!resolvedActiveTab) {
 							get().addBrowserTab(workspaceId, url);
 							return;
 						}
+
+						const state = clearZoomBeforeMutation(
+							initial,
+							resolvedActiveTab.id,
+						);
+						const activeTab = resolvedActiveTab;
 
 						const newPane = createBrowserPane(activeTab.id, {
 							url,
@@ -2042,7 +2052,7 @@ export const useTabsStore = create<TabsStore>()(
 				},
 
 				openDevToolsPane: (tabId, browserPaneId, path) => {
-					const state = get();
+					const state = clearZoomBeforeMutation(get(), tabId);
 					const tab = state.tabs.find((t) => t.id === tabId);
 					if (!tab) return null;
 
