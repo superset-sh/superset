@@ -36,6 +36,15 @@ export interface ClosedTabEntry {
  */
 export interface Tab extends BaseTab {
 	layout: MosaicNode<string>; // Always defined, leaves are paneIds
+	/**
+	 * Transient zoom state. When set, the tab is rendering a single zoomed pane;
+	 * `layout` is overwritten with `paneId` and `savedLayout` holds the original
+	 * multi-leaf tree to restore on un-zoom. Stripped on persist rehydrate.
+	 */
+	zoom?: {
+		savedLayout: MosaicNode<string>;
+		paneId: string;
+	};
 }
 
 /**
@@ -126,6 +135,9 @@ export interface TabsStore extends TabsState {
 	) => void;
 	reorderTabById: (tabId: string, targetIndex: number) => void;
 	updateTabLayout: (tabId: string, layout: MosaicNode<string>) => void;
+	zoomPane: (tabId: string, paneId: string) => void;
+	unzoomPane: (tabId: string) => void;
+	toggleZoomPane: (tabId: string, paneId: string) => void;
 
 	// Pane operations
 	addPane: (tabId: string, options?: AddTabOptions) => string;
