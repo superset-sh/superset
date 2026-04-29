@@ -23,13 +23,65 @@ Extract PTY ownership from host-service into a small, long-lived
 |---|---|
 | Architecture | E (daemon + fd-handoff) |
 | Daemon runtime | Node + `node-pty` (matches host-service stack; fd-handoff verified on macOS arm64) |
-| Daemon scope | Pure PTY lifecycle. No HTTP, no auth, no DB, no business logic. |
+| Daemon scope | **Pure PTY runtime, stateless from the client's perspective.** No HTTP, no auth, no DB, no business logic, no persistence, no analytics. Every protocol call carries full context; every response is complete. |
 | Daemon-host transport | Unix socket (AF_UNIX, SOCK_STREAM), length-prefixed binary frames |
 | Auth at daemon boundary | Unix socket file mode `0600` (owner-only). No in-band tokens. |
-| Buffer placement | Ring buffer **on the daemon** — survives host-service restarts for free |
+| Buffer placement | In-memory ring buffer **on the daemon** (~64 KB / session). Survives host-service restarts; *not* persisted to disk — that's a v1 anti-pattern. |
 | Session granularity | Per-workspace daemon (mirrors current host-service-per-workspace) |
 | Daemon-upgrade handoff | `child_process.spawn` `stdio` fd inheritance (kernel does the dup; no SCM_RIGHTS dependency on Node) |
 | Crash policy | Daemon stability is first-class. On daemon crash, sessions are lost; respawn and surface telemetry. No serialize+replay fallback. |
+| Size budget | **~500–700 LOC** including tests. If we approach v1's ~1000 LOC, something has crept in that doesn't belong. |
+
+## Lessons from v1 (do not repeat)
+
+The v1 daemon (`apps/desktop/src/main/lib/terminal/daemon/`,
+`daemon-manager.ts:1009 LOC` + `history-manager.ts:245 LOC` +
+`priority-semaphore.ts:76 LOC`) became a "workspace manager with PTY
+runtime bolted on" instead of a PTY runtime. Roughly **56% of v1's
+daemon code was non-PTY concerns** — that's the bloat we're cutting.
+
+### Things v1 did that v2 must NOT do
+
+| v1 behavior | Why it doesn't belong | Where it lives in v2 |
+|---|---|---|
+| SQLite-backed `HistoryWriter` for persistent scrollback | Disk I/O in the survival-critical process; couples lifetime to filesystem state | host-service (or out of scope) |
+| Cold-restore replay from disk on daemon loss | Daemon should be ephemeral; replay is a client concern | host-service |
+| Killed-session tombstones to block reattach | Business rule masquerading as runtime state | client / host-service |
+| `validWorkspaceIds` checks in the daemon | Authorization in the trust boundary instead of at it | Unix socket file mode `0600` is the boundary |
+| Port-scanner integration | Unrelated feature crammed into the daemon | host-service or its own service |
+| Analytics tracking calls | Telemetry inside the survival primitive | host-service decorates the client |
+| `EventEmitter` in-process subscriber model | Wrong abstraction; the protocol is the subscription model | Unix socket protocol's `subscribe` op |
+| Pending-request deduplication / `joinPending` | Daemon caching client intent | client deduplicates its own calls |
+| Priority-based semaphore (active pane prioritization) | UI ergonomics inside the daemon | client orders its own requests |
+| ANSI clear-scrollback parsing in `HistoryManager` | Output interpretation in the byte-relay layer | renderer / host-service |
+| Sticky cross-call state (`coldRestoreInfo`, `cleanupTimeouts`, hydration flags) | Stateful daemon = upgrade-fragile daemon | none — every call is independent |
+| Cascading cleanup with `setTimeout` (5s delay etc.) | Deferred state = race conditions on shutdown/handoff | synchronous teardown only |
+
+### The single design principle
+
+> **The daemon is stateless from the client's perspective.** Every
+> request carries full context; every response is complete. The daemon
+> tracks only active PTY fds, ring buffers, and current session
+> dims/PID. Everything else — history, killed-tombstones, dedup,
+> analytics, business rules — is the client's job.
+
+This is the property that makes the daemon resistant to needing
+upgrades. State that doesn't exist can't have schema migrations,
+can't accumulate edge cases, and can't drift between versions.
+
+### Patterns from v1 worth keeping
+
+- **Per-session snapshot returned on attach** (cols/rows/pid/initial
+  state). Lean and useful — included in the protocol's `subscribe`
+  reply.
+- **Resize bounds validation** (reject cols/rows ≤ 0).
+- **Signal abstraction** (SIGINT/SIGTERM/SIGKILL as strings in the
+  protocol).
+- **Graceful shutdown ordering** (close writers → unregister → exit).
+- **AbortSignal-based cancellation** for long-running protocol calls.
+- **Concurrency limit on session creation** — but as a simple FIFO,
+  not a priority queue. (Spawning 100 PTYs at once would otherwise
+  thrash; cap at e.g. 8 concurrent spawns.)
 
 ## Package layout
 
@@ -173,6 +225,26 @@ daemon for replay-on-attach via `subscribe { replay: true }`.
 - `terminalSessions` DB table: unchanged. host-service still writes
   metadata. Daemon doesn't touch the DB.
 
+### Where the v1 daemon's bloat lands in v2
+
+Each non-PTY responsibility moves to host-service (the upgrade-frequent
+layer that *should* hold business state) or out of scope entirely:
+
+| v1 concern | v2 home |
+|---|---|
+| Persistent scrollback / `HistoryWriter` | host-service if needed; default = drop. Renderer's xterm scrollback is sufficient for live terminals. |
+| Cold-restore replay | host-service uses daemon's in-memory ring on reattach; no disk-backed restore. |
+| Killed-session tombstones | host-service `sessions: Map` tracks "this terminalId was disposed"; daemon never knew, never cared. |
+| Workspace authorization | Unix socket file mode + per-workspace daemon directory; no in-band check. |
+| Port scanning | host-service / unrelated package. |
+| Analytics on session lifecycle | host-service decorates `DaemonClient` calls. |
+| Pending-request dedup | host-service's terminal router (it already has `ensureSession` semantics — `terminal.ts:333-527`). |
+| Priority on session creation | host-service / renderer queues UI-prioritized work. |
+
+If a future feature needs daemon support (e.g. true multi-client
+attach), it gets a new versioned protocol op. The daemon's role
+doesn't expand silently.
+
 ## Daemon-upgrade handoff (Phase 2)
 
 Triggered when desktop app v_new ships with a daemon binary whose
@@ -300,3 +372,11 @@ should generate an issue.
 - Existing manifest pattern: `apps/desktop/src/main/lib/host-service-manifest.ts`
 - Existing coordinator: `apps/desktop/src/main/lib/host-service-coordinator.ts:290-331`
 - Existing terminal flow: `packages/host-service/src/terminal/terminal.ts`
+- **v1 daemon (the cautionary tale):**
+  - `apps/desktop/src/main/lib/terminal/daemon/daemon-manager.ts` (1009 LOC)
+  - `apps/desktop/src/main/lib/terminal/daemon/history-manager.ts` (245 LOC)
+  - `apps/desktop/src/main/lib/terminal/daemon/priority-semaphore.ts` (76 LOC)
+  - Total ≈ 1330 LOC; ~56% of `daemon-manager.ts` is non-PTY concerns
+    (history persistence, cold restore, killed-session tombstones,
+    in-process event routing). v2 target ≈ 500–700 LOC by leaving
+    those concerns in host-service.
