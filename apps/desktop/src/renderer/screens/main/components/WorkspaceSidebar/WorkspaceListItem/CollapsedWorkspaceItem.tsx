@@ -15,7 +15,6 @@ import { cn } from "@superset/ui/utils";
 import { type RefObject, useMemo, useState } from "react";
 import { LuCopy, LuGitBranch, LuX } from "react-icons/lu";
 import { createContextMenuDeleteDialogCoordinator } from "renderer/react-query/workspaces/useWorkspaceDeleteHandler";
-import type { LocalDiffStats } from "renderer/screens/main/hooks/useLocalDiffStats";
 import type { ActivePaneStatus } from "shared/tabs-types";
 import { STROKE_WIDTH } from "../constants";
 import {
@@ -34,7 +33,7 @@ interface CollapsedWorkspaceItemProps {
 	isActive: boolean;
 	isUnread: boolean;
 	workspaceStatus: ActivePaneStatus | null;
-	diffStats?: LocalDiffStats | null;
+	diffStats?: { additions: number; deletions: number } | null;
 	itemRef: RefObject<HTMLButtonElement | null>;
 	showDeleteDialog: boolean;
 	setShowDeleteDialog: (open: boolean) => void;

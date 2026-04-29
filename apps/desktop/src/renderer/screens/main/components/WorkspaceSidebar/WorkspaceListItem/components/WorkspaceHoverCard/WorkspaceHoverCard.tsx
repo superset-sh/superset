@@ -12,7 +12,6 @@ import {
 import { useHotkeyDisplay } from "renderer/hotkeys";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { usePRStatus } from "renderer/screens/main/hooks";
-import type { LocalDiffStats } from "renderer/screens/main/hooks/useLocalDiffStats";
 import { STROKE_WIDTH } from "../../../constants";
 import { ChecksList } from "./components/ChecksList";
 import { ChecksSummary } from "./components/ChecksSummary";
@@ -22,7 +21,7 @@ import { ReviewStatus } from "./components/ReviewStatus";
 interface WorkspaceHoverCardContentProps {
 	workspaceId: string;
 	workspaceAlias?: string;
-	diffStats?: LocalDiffStats | null;
+	diffStats?: { additions: number; deletions: number } | null;
 	onEditBranchClick?: (branchName: string) => void;
 }
 
