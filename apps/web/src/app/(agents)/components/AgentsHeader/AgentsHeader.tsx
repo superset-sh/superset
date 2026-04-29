@@ -49,9 +49,10 @@ export function AgentsHeader() {
 	const { data: activePlan } = useQuery(trpc.billing.activePlan.queryOptions());
 
 	const isPro = isPaidPlan(activePlan?.plan);
-	const planLabel = activePlan?.plan
-		? activePlan.plan.charAt(0).toUpperCase() + activePlan.plan.slice(1)
-		: "Pro";
+	const planLabel =
+		isPro && activePlan?.plan
+			? activePlan.plan.charAt(0).toUpperCase() + activePlan.plan.slice(1)
+			: null;
 
 	const user = session?.user;
 	const activeOrganizationId = session?.session?.activeOrganizationId;

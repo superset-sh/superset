@@ -1,10 +1,7 @@
 import { stripeClient } from "@superset/auth/stripe";
 import { db } from "@superset/db/client";
 import { members, subscriptions } from "@superset/db/schema";
-import {
-	ACTIVE_SUBSCRIPTION_STATUSES,
-	isActiveSubscriptionStatus,
-} from "@superset/shared/billing";
+import { ACTIVE_SUBSCRIPTION_STATUSES } from "@superset/shared/billing";
 import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
 import { and, desc, eq, inArray } from "drizzle-orm";
 import type Stripe from "stripe";
@@ -81,7 +78,7 @@ export const billingRouter = {
 			orderBy: desc(subscriptions.createdAt),
 		});
 
-		if (!subscription || !isActiveSubscriptionStatus(subscription.status)) {
+		if (!subscription) {
 			return { plan: "free" as const, status: null };
 		}
 
