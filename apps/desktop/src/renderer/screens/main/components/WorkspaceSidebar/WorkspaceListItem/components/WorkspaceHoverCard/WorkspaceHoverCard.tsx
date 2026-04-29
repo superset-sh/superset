@@ -12,6 +12,7 @@ import {
 import { useHotkeyDisplay } from "renderer/hotkeys";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { usePRStatus } from "renderer/screens/main/hooks";
+import { useLocalDiffStats } from "renderer/screens/main/hooks/useLocalDiffStats";
 import { STROKE_WIDTH } from "../../../constants";
 import { ChecksList } from "./components/ChecksList";
 import { ChecksSummary } from "./components/ChecksSummary";
@@ -42,6 +43,10 @@ export function WorkspaceHoverCardContent({
 		previewUrl,
 		isLoading: isLoadingGithub,
 	} = usePRStatus({ workspaceId, surface: "workspace-hover-card" });
+
+	const diffStats = useLocalDiffStats({
+		worktreePath: worktreeInfo?.worktreePath ?? undefined,
+	});
 
 	const { keys: openPRDisplay } = useHotkeyDisplay("OPEN_PR");
 	const hasOpenPRShortcut = !(
@@ -165,12 +170,14 @@ export function WorkspaceHoverCardContent({
 								/>
 							)}
 						</div>
-						<div className="flex items-center gap-1.5 text-xs font-mono shrink-0">
-							<span className="text-emerald-500">+{pr.additions}</span>
-							<span className="text-destructive-foreground">
-								-{pr.deletions}
-							</span>
-						</div>
+						{diffStats && (
+							<div className="flex items-center gap-1.5 text-xs font-mono shrink-0">
+								<span className="text-emerald-500">+{diffStats.additions}</span>
+								<span className="text-destructive-foreground">
+									-{diffStats.deletions}
+								</span>
+							</div>
+						)}
 					</div>
 
 					<p className="text-xs leading-relaxed line-clamp-2">{pr.title}</p>

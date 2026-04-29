@@ -3,7 +3,7 @@ import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { useMatchRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useRef } from "react";
 import { HiMiniXMark } from "react-icons/hi2";
 import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
 import { HotkeyLabel } from "renderer/hotkeys";
@@ -14,6 +14,7 @@ import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/u
 import { WorkspaceRunIndicator } from "renderer/screens/main/components/WorkspaceRunIndicator";
 import { useBranchSyncInvalidation } from "renderer/screens/main/hooks/useBranchSyncInvalidation";
 import { useGitChangesStatus } from "renderer/screens/main/hooks/useGitChangesStatus";
+import { useLocalDiffStats } from "renderer/screens/main/hooks/useLocalDiffStats";
 import { useWorkspaceRename } from "renderer/screens/main/hooks/useWorkspaceRename";
 import { useActiveDragItemStore } from "renderer/stores/active-drag-item";
 import { useTabsStore } from "renderer/stores/tabs/store";
@@ -160,6 +161,11 @@ export function WorkspaceListItem({
 		enabled: hasHovered && !!worktreePath,
 		staleTime: GITHUB_STATUS_STALE_TIME,
 	});
+	const localDiffStats = useLocalDiffStats({
+		worktreePath,
+		enabled: hasHovered,
+		staleTime: GITHUB_STATUS_STALE_TIME,
+	});
 
 	const { data: aheadBehind, refetch: refetchAheadBehind } =
 		electronTrpc.workspaces.getAheadBehind.useQuery(
@@ -175,22 +181,6 @@ export function WorkspaceListItem({
 		workspaceBranch: branch,
 		workspaceId: id,
 	});
-
-	const localDiffStats = useMemo(() => {
-		if (!localChanges) return null;
-		const allFiles =
-			localChanges.againstBase.length > 0
-				? localChanges.againstBase
-				: [
-						...localChanges.staged,
-						...localChanges.unstaged,
-						...localChanges.untracked,
-					];
-		const additions = allFiles.reduce((sum, f) => sum + (f.additions || 0), 0);
-		const deletions = allFiles.reduce((sum, f) => sum + (f.deletions || 0), 0);
-		if (additions === 0 && deletions === 0) return null;
-		return { additions, deletions };
-	}, [localChanges]);
 
 	const handleClick = (e?: React.MouseEvent) => {
 		if (rename.isRenaming) return;
@@ -250,11 +240,7 @@ export function WorkspaceListItem({
 	};
 
 	const pr = githubStatus?.pr;
-	const diffStats =
-		localDiffStats ||
-		(pr && (pr.additions > 0 || pr.deletions > 0)
-			? { additions: pr.additions, deletions: pr.deletions }
-			: null);
+	const diffStats = localDiffStats;
 
 	const showBranchSubtitle = isBranchWorkspace || (!!name && name !== branch);
 
