@@ -88,7 +88,7 @@ export function ProjectPickerPill({
 			>
 				<Command>
 					<CommandInput placeholder="Search projects..." />
-					<CommandList className="max-h-[min(320px,var(--radix-popover-content-available-height))]">
+					<CommandList className="max-h-[min(280px,var(--radix-popover-content-available-height))]">
 						<CommandEmpty>No projects found.</CommandEmpty>
 						<CommandGroup>
 							{projects.map((project) => (
@@ -119,18 +119,18 @@ export function ProjectPickerPill({
 								</CommandItem>
 							))}
 						</CommandGroup>
-						<CommandSeparator alwaysRender />
-						<CommandGroup forceMount>
-							<CommandItem forceMount onSelect={handleCreateNewProject}>
-								<HiMiniPlus className="size-4" />
-								Create new project
-							</CommandItem>
-							<CommandItem forceMount onSelect={handleImportProject}>
-								<LuFolderInput className="size-4" />
-								Import project
-							</CommandItem>
-						</CommandGroup>
 					</CommandList>
+					<CommandSeparator alwaysRender />
+					<CommandGroup forceMount>
+						<CommandItem forceMount onSelect={handleCreateNewProject}>
+							<HiMiniPlus className="size-4" />
+							Create new project
+						</CommandItem>
+						<CommandItem forceMount onSelect={handleImportProject}>
+							<LuFolderInput className="size-4" />
+							Import project
+						</CommandItem>
+					</CommandGroup>
 				</Command>
 			</PopoverContent>
 		</Popover>
