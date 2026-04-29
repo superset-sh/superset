@@ -9,7 +9,6 @@ import { useCollections } from "renderer/routes/_authenticated/providers/Collect
 interface ResolveCurrentPlanArgs {
 	subscriptionPlan?: string | null;
 	sessionPlan?: string | null;
-	subscriptionsLoaded: boolean;
 }
 
 function isPaidPlanTier(
@@ -21,16 +20,15 @@ function isPaidPlanTier(
 export function resolveCurrentPlan({
 	subscriptionPlan,
 	sessionPlan,
-	subscriptionsLoaded,
 }: ResolveCurrentPlanArgs): PlanTier {
 	if (isPaidPlanTier(subscriptionPlan)) {
 		return subscriptionPlan;
 	}
 
-	if (subscriptionsLoaded) {
-		return "free";
-	}
-
+	// The session plan is computed server-side from the authoritative
+	// subscriptions table. Trust it as a fallback so a paid user is not
+	// dropped to "free" when the local Electric-synced collection is
+	// momentarily empty or scoped to a different organization shape.
 	if (isPaidPlanTier(sessionPlan)) {
 		return sessionPlan;
 	}
@@ -54,6 +52,5 @@ export function useCurrentPlan(): PlanTier {
 	return resolveCurrentPlan({
 		subscriptionPlan: activeSubscription?.plan,
 		sessionPlan: session?.session?.plan,
-		subscriptionsLoaded: subscriptionsData !== undefined,
 	});
 }
