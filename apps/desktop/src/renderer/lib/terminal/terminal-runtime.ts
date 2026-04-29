@@ -3,6 +3,7 @@ import type { ProgressAddon } from "@xterm/addon-progress";
 import type { SearchAddon } from "@xterm/addon-search";
 import { SerializeAddon } from "@xterm/addon-serialize";
 import { Terminal as XTerm } from "@xterm/xterm";
+import { suppressQueryResponses } from "renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/Terminal/suppressQueryResponses";
 import { DEFAULT_TERMINAL_SCROLLBACK } from "shared/constants";
 import {
 	applyTerminalFontFamilyCssVariable,
@@ -214,6 +215,12 @@ export function createRuntime(
 
 	installTerminalKeyEventHandler(terminal);
 
+	// Suppress duplicate query responses (DA1, DA2, OSC 10/11/12 query reply, etc.)
+	// — daemon HeadlessEmulator owns canonical replies; without this, renderer xterm's
+	// auto-reply leaks back through the PTY and gets echoed at the next interactive
+	// prompt of any line-edited CLI. See suppressQueryResponses.ts.
+	const disposeQuerySuppression = suppressQueryResponses(terminal);
+
 	// Activate Unicode 11 widths (inside loadAddons) before restoring the buffer,
 	// else CJK/emoji/ZWJ widths get baked wrong into the replay. (#3572)
 	const addonsResult = loadAddons(terminal);
@@ -241,7 +248,10 @@ export function createRuntime(
 		_disposeResizeObserver: null,
 		lastCols: cols,
 		lastRows: rows,
-		_disposeAddons: addonsResult.dispose,
+		_disposeAddons: () => {
+			disposeQuerySuppression();
+			addonsResult.dispose();
+		},
 		_disposeImagePasteFallback: disposeImagePasteFallback,
 	};
 }
