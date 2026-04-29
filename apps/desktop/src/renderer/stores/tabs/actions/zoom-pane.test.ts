@@ -1,5 +1,5 @@
+import { describe, expect, it } from "bun:test";
 import type { MosaicNode } from "react-mosaic-component";
-import { describe, expect, it } from "vitest";
 import type { Tab, TabsState } from "../types";
 import {
 	clearZoomBeforeMutation,
@@ -20,8 +20,9 @@ function makeTab(overrides: Partial<Tab> = {}): Tab {
 		workspaceId: "ws-1",
 		name: "Tab 1",
 		layout: splitLayout,
+		createdAt: 0,
 		...overrides,
-	} as Tab;
+	};
 }
 
 function makeState(tab: Tab): TabsState {
