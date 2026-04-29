@@ -119,7 +119,8 @@ describe("captureHotkeyFromEvent — codeChord uses event.code, not event.key", 
 		).toBeNull();
 		// On Mac (test runtime PLATFORM), alt is a valid app modifier
 		expect(
-			captureHotkeyFromEvent(ev({ code: "KeyA", key: "a", altKey: true }))?.codeChord,
+			captureHotkeyFromEvent(ev({ code: "KeyA", key: "a", altKey: true }))
+				?.codeChord,
 		).toBe("alt+a");
 	});
 

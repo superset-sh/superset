@@ -6,6 +6,7 @@ import {
 	PLATFORM,
 	useHotkeyOverridesStore,
 } from "renderer/hotkeys";
+import { parseBinding as parseShortcutBinding } from "renderer/hotkeys/utils/binding";
 
 const WORKSPACE_HOTKEY_IDS: HotkeyId[] = [
 	"JUMP_TO_WORKSPACE_1",
@@ -57,16 +58,17 @@ export function useWorkspaceShortcutModifiers() {
 		const shortcutLabels = new Map<number, string>();
 
 		for (let i = 0; i < WORKSPACE_HOTKEY_IDS.length; i++) {
-			const binding = getBinding(WORKSPACE_HOTKEY_IDS[i]);
-			if (!binding) continue;
-			const { modifierKeys, triggerKey } = parseBinding(binding);
+			const rawBinding = getBinding(WORKSPACE_HOTKEY_IDS[i]);
+			if (!rawBinding) continue;
+			const chord = parseShortcutBinding(rawBinding).chord;
+			const { modifierKeys, triggerKey } = parseBinding(chord);
 			for (const key of modifierKeys) allModifierKeys.add(key);
 			shortcuts.push({ index: i, triggerKey, modifierKeys });
 			const comboKey = [...modifierKeys].sort().join("+");
 			const existing = comboToIndices.get(comboKey) ?? [];
 			existing.push(i);
 			comboToIndices.set(comboKey, existing);
-			shortcutLabels.set(i, formatHotkeyDisplay(binding, PLATFORM).text);
+			shortcutLabels.set(i, formatHotkeyDisplay(chord, PLATFORM).text);
 		}
 
 		return { allModifierKeys, shortcuts, comboToIndices, shortcutLabels };
