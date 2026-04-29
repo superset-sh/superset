@@ -61,6 +61,10 @@ export function DiffPane({ context, workspaceId, onOpenFile }: DiffPaneProps) {
 		() => new Set(data.collapsedFiles ?? []),
 		[data.collapsedFiles],
 	);
+	const expandedSet = useMemo(
+		() => new Set(data.expandedFiles ?? []),
+		[data.expandedFiles],
+	);
 
 	// Stable callback via refs — identity does not churn as collapsedFiles
 	// updates, so memo'd children can skip re-renders on unrelated toggles.
@@ -77,6 +81,19 @@ export function DiffPane({ context, workspaceId, onOpenFile }: DiffPaneProps) {
 				? [...collapsed, path]
 				: collapsed.filter((p) => p !== path);
 			updateData({ ...current, collapsedFiles: next } as PaneViewerData);
+		},
+		[updateData],
+	);
+	const setExpanded = useCallback(
+		(path: string, value: boolean) => {
+			const current = dataRef.current;
+			const expanded = current.expandedFiles ?? [];
+			const has = expanded.includes(path);
+			if (value === has) return;
+			const next = value
+				? [...expanded, path]
+				: expanded.filter((p) => p !== path);
+			updateData({ ...current, expandedFiles: next } as PaneViewerData);
 		},
 		[updateData],
 	);
@@ -103,6 +120,8 @@ export function DiffPane({ context, workspaceId, onOpenFile }: DiffPaneProps) {
 					diffStyle={diffStyle}
 					collapsed={collapsedSet.has(file.path)}
 					onSetCollapsed={setCollapsed}
+					expanded={expandedSet.has(file.path)}
+					onSetExpanded={setExpanded}
 					viewed={viewedSet.has(file.path)}
 					onSetViewed={setViewed}
 					onOpenFile={onOpenFile}

@@ -33,6 +33,8 @@ interface DiffFileEntryProps {
 	diffStyle: "split" | "unified";
 	collapsed: boolean;
 	onSetCollapsed: (path: string, value: boolean) => void;
+	expanded: boolean;
+	onSetExpanded: (path: string, value: boolean) => void;
 	viewed: boolean;
 	onSetViewed: (path: string, next: boolean) => void;
 	onOpenFile: (path: string, openInNewTab?: boolean) => void;
@@ -45,6 +47,8 @@ export const DiffFileEntry = memo(function DiffFileEntry({
 	diffStyle,
 	collapsed,
 	onSetCollapsed,
+	expanded,
+	onSetExpanded,
 	viewed,
 	onSetViewed,
 	onOpenFile,
@@ -55,9 +59,9 @@ export const DiffFileEntry = memo(function DiffFileEntry({
 	const hasBeenNearRef = useRef(false);
 	if (isNear) hasBeenNearRef.current = true;
 
-	const [showFullDiff, setShowFullDiff] = useState(false);
 	const [expandUnchanged, setExpandUnchanged] = useState(false);
 	const reason = deferReason(file);
+	const showFullDiff = expanded;
 
 	const handleToggleCollapsed = useCallback(
 		() => onSetCollapsed(file.path, !collapsed),
@@ -90,7 +94,10 @@ export const DiffFileEntry = memo(function DiffFileEntry({
 		}
 		onOpenInExternalEditor(file.path);
 	}, [file.status, file.path, onOpenInExternalEditor, showDeletedFileToast]);
-	const handleShowFullDiff = useCallback(() => setShowFullDiff(true), []);
+	const handleShowFullDiff = useCallback(
+		() => onSetExpanded(file.path, true),
+		[onSetExpanded, file.path],
+	);
 	const handleToggleExpandUnchanged = useCallback(
 		() => setExpandUnchanged((prev) => !prev),
 		[],
