@@ -301,6 +301,20 @@ export const Terminal = memo(function Terminal({
 		onClear: handleClearHotkey,
 		xtermRef,
 	});
+
+	// Restore xterm focus after the search overlay closes. Doing this inline
+	// in onClose runs before React commits the input unmount, so the browser
+	// can land focus on document.body during the unmount and our focus call
+	// gets clobbered. A useEffect runs after commit, in a clean DOM state.
+	const wasSearchOpenRef = useRef(isSearchOpen);
+	useEffect(() => {
+		const justClosed = wasSearchOpenRef.current && !isSearchOpen;
+		wasSearchOpenRef.current = isSearchOpen;
+		if (justClosed && isFocused) {
+			xtermRef.current?.focus();
+		}
+	}, [isSearchOpen, isFocused]);
+
 	useEffect(() => {
 		if (!isRestoredMode) return;
 		handleStartShell();
@@ -455,12 +469,7 @@ export const Terminal = memo(function Terminal({
 			<TerminalSearch
 				searchAddon={searchAddonRef.current}
 				isOpen={isSearchOpen}
-				onClose={() => {
-					setIsSearchOpen(false);
-					// Restore focus to the terminal so keystrokes go to the shell
-					// instead of being swallowed by the body element.
-					xtermRef.current?.focus();
-				}}
+				onClose={() => setIsSearchOpen(false)}
 			/>
 			<ScrollToBottomButton terminal={xtermInstance} />
 			{exitStatus === "killed" &&
