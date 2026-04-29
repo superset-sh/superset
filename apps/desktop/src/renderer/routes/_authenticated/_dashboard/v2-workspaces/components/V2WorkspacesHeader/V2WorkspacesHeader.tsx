@@ -40,12 +40,22 @@ interface V2WorkspacesHeaderProps {
 	counts: V2WorkspaceDeviceCounts;
 	hostOptions: V2WorkspaceHostOption[];
 	projectOptions: V2WorkspaceProjectOption[];
+	hostsById: Map<
+		string,
+		{ hostName: string; isOnline: boolean; isLocal: boolean }
+	>;
+	projectsById: Map<
+		string,
+		{ projectName: string; githubOwner: string | null }
+	>;
 }
 
 export function V2WorkspacesHeader({
 	counts,
 	hostOptions,
 	projectOptions,
+	hostsById,
+	projectsById,
 }: V2WorkspacesHeaderProps) {
 	const searchQuery = useV2WorkspacesFilterStore((state) => state.searchQuery);
 	const setSearchQuery = useV2WorkspacesFilterStore(
@@ -65,12 +75,47 @@ export function V2WorkspacesHeader({
 	);
 
 	const remoteHosts = hostOptions.filter((host) => !host.isLocal);
-	const selectedRemoteHost = remoteHosts.find(
+	const selectedRemoteHostFromOptions = remoteHosts.find(
 		(host) => host.hostId === deviceFilter,
 	);
-	const selectedProject = projectOptions.find(
+	const selectedHostFallback =
+		!selectedRemoteHostFromOptions &&
+		deviceFilter !== DEVICE_FILTER_ALL &&
+		deviceFilter !== DEVICE_FILTER_THIS_DEVICE
+			? hostsById.get(deviceFilter)
+			: undefined;
+	const selectedHostLabel = selectedRemoteHostFromOptions
+		? {
+				hostName: selectedRemoteHostFromOptions.hostName,
+				isOnline: selectedRemoteHostFromOptions.isOnline,
+			}
+		: selectedHostFallback
+			? {
+					hostName: selectedHostFallback.hostName,
+					isOnline: selectedHostFallback.isOnline,
+				}
+			: undefined;
+
+	const selectedProjectFromOptions = projectOptions.find(
 		(project) => project.projectId === projectFilter,
 	);
+	const selectedProjectFallback =
+		!selectedProjectFromOptions && projectFilter !== PROJECT_FILTER_ALL
+			? projectsById.get(projectFilter)
+			: undefined;
+	const selectedProjectLabel = selectedProjectFromOptions
+		? {
+				projectId: selectedProjectFromOptions.projectId,
+				projectName: selectedProjectFromOptions.projectName,
+				githubOwner: selectedProjectFromOptions.githubOwner,
+			}
+		: selectedProjectFallback
+			? {
+					projectId: projectFilter,
+					projectName: selectedProjectFallback.projectName,
+					githubOwner: selectedProjectFallback.githubOwner,
+				}
+			: undefined;
 	const totalProjectCount = projectOptions.reduce(
 		(total, project) => total + project.count,
 		0,
@@ -110,7 +155,7 @@ export function V2WorkspacesHeader({
 							<SelectValue placeholder="Filter projects">
 								<ProjectFilterTriggerLabel
 									projectFilter={projectFilter}
-									selectedProject={selectedProject}
+									selectedProject={selectedProjectLabel}
 								/>
 							</SelectValue>
 						</SelectTrigger>
@@ -167,7 +212,7 @@ export function V2WorkspacesHeader({
 							<SelectValue placeholder="Filter devices">
 								<DeviceFilterTriggerLabel
 									deviceFilter={deviceFilter}
-									selectedRemoteHost={selectedRemoteHost}
+									selectedRemoteHost={selectedHostLabel}
 								/>
 							</SelectValue>
 						</SelectTrigger>
@@ -219,18 +264,28 @@ export function V2WorkspacesHeader({
 
 interface ProjectFilterTriggerLabelProps {
 	projectFilter: string;
-	selectedProject: V2WorkspaceProjectOption | undefined;
+	selectedProject:
+		| { projectName: string; githubOwner: string | null }
+		| undefined;
 }
 
 function ProjectFilterTriggerLabel({
 	projectFilter,
 	selectedProject,
 }: ProjectFilterTriggerLabelProps) {
-	if (projectFilter === PROJECT_FILTER_ALL || !selectedProject) {
+	if (projectFilter === PROJECT_FILTER_ALL) {
 		return (
 			<span className="flex items-center gap-2">
 				<LuFolders className="size-3.5" />
 				<span>All projects</span>
+			</span>
+		);
+	}
+	if (!selectedProject) {
+		return (
+			<span className="flex items-center gap-2">
+				<LuFolders className="size-3.5" />
+				<span className="text-muted-foreground">Unknown project</span>
 			</span>
 		);
 	}
@@ -248,7 +303,7 @@ function ProjectFilterTriggerLabel({
 
 interface DeviceFilterTriggerLabelProps {
 	deviceFilter: string;
-	selectedRemoteHost: V2WorkspaceHostOption | undefined;
+	selectedRemoteHost: { hostName: string; isOnline: boolean } | undefined;
 }
 
 function DeviceFilterTriggerLabel({

@@ -49,7 +49,7 @@ export function V2WorkspacePrHoverCardContent({
 							#{pr.prNumber}
 						</span>
 						<PrStateBadge state={pr.state} />
-						{pr.state === "open" ? (
+						{pr.state === "open" || pr.state === "draft" ? (
 							<ReviewStatusBadge status={pr.reviewDecision} />
 						) : null}
 					</div>
@@ -65,7 +65,8 @@ export function V2WorkspacePrHoverCardContent({
 					Updated {formatDistanceToNow(pr.updatedAt, { addSuffix: true })}
 				</span>
 
-				{pr.state === "open" && pr.checksStatus !== "none" ? (
+				{(pr.state === "open" || pr.state === "draft") &&
+				pr.checksStatus !== "none" ? (
 					<div className="space-y-2 pt-1">
 						<div className="flex items-center gap-2 text-xs">
 							<ChecksSummary checks={pr.checks} status={pr.checksStatus} />

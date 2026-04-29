@@ -27,7 +27,7 @@ function V2WorkspacesPage() {
 		setSearchQuery("");
 	}, [setSearchQuery]);
 
-	const { all, counts, hostOptions, projectOptions } =
+	const { all, counts, hostOptions, projectOptions, hostsById, projectsById } =
 		useAccessibleV2Workspaces({
 			searchQuery,
 			deviceFilter,
@@ -40,6 +40,8 @@ function V2WorkspacesPage() {
 				counts={counts}
 				hostOptions={hostOptions}
 				projectOptions={projectOptions}
+				hostsById={hostsById}
+				projectsById={projectsById}
 			/>
 			<V2WorkspacesList workspaces={all} />
 		</div>

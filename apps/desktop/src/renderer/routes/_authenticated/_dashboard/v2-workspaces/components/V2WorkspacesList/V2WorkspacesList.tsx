@@ -11,7 +11,12 @@ import { ScrollArea } from "@superset/ui/scroll-area";
 import { cn } from "@superset/ui/utils";
 import { useMatchRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { LuLayers, LuSearchX } from "react-icons/lu";
+import {
+	LuChevronDown,
+	LuChevronRight,
+	LuLayers,
+	LuSearchX,
+} from "react-icons/lu";
 import type {
 	AccessibleV2Workspace,
 	V2WorkspaceHostType,
@@ -21,6 +26,7 @@ import {
 	PROJECT_FILTER_ALL,
 	useV2WorkspacesFilterStore,
 } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/stores/v2WorkspacesFilterStore";
+import { useV2ProjectLocalMetaStore } from "renderer/stores/v2-project-local-meta";
 import { V2WorkspaceProjectIcon } from "../V2WorkspaceProjectIcon";
 import { SortableHeader } from "./components/SortableHeader";
 import { V2WorkspaceRow } from "./components/V2WorkspaceRow";
@@ -257,35 +263,70 @@ export function V2WorkspacesList({ workspaces }: V2WorkspacesListProps) {
 				{columnHeader}
 
 				{projectGroups.map((project) => (
-					<div key={project.projectId} className="flex flex-col">
-						<div className="sticky top-8 z-[5] flex items-center gap-2 border-b border-border/60 bg-muted px-6 py-1.5">
-							<V2WorkspaceProjectIcon
-								projectName={project.projectName}
-								githubOwner={project.githubOwner}
-								size="sm"
-							/>
-							<h3
-								className="min-w-0 truncate text-xs font-semibold text-foreground/80"
-								title={project.projectName}
-							>
-								{project.projectName}
-							</h3>
-							<span className="shrink-0 text-xs tabular-nums text-muted-foreground/60">
-								{project.workspaces.length}
-							</span>
-						</div>
-						<ul className="flex flex-col">
-							{project.workspaces.map((workspace) => (
-								<V2WorkspaceRow
-									key={workspace.id}
-									workspace={workspace}
-									isCurrentRoute={workspace.id === currentWorkspaceId}
-								/>
-							))}
-						</ul>
-					</div>
+					<ProjectSection
+						key={project.projectId}
+						project={project}
+						currentWorkspaceId={currentWorkspaceId}
+					/>
 				))}
 			</div>
 		</ScrollArea>
+	);
+}
+
+interface ProjectSectionProps {
+	project: ProjectGroup;
+	currentWorkspaceId: string | null;
+}
+
+function ProjectSection({ project, currentWorkspaceId }: ProjectSectionProps) {
+	const isCollapsed = useV2ProjectLocalMetaStore(
+		(state) => state.projects[project.projectId]?.isCollapsed ?? false,
+	);
+	const toggleCollapsed = useV2ProjectLocalMetaStore(
+		(state) => state.toggleProjectCollapsed,
+	);
+	const Chevron = isCollapsed ? LuChevronRight : LuChevronDown;
+
+	return (
+		<div className="flex flex-col">
+			<button
+				type="button"
+				onClick={() => toggleCollapsed(project.projectId)}
+				aria-expanded={!isCollapsed}
+				aria-controls={`v2-workspaces-project-${project.projectId}`}
+				className="sticky top-8 z-[5] flex w-full items-center gap-2 border-b border-border/60 bg-muted px-6 py-1.5 text-left transition-colors hover:bg-muted/80"
+			>
+				<Chevron className="size-3 shrink-0 text-muted-foreground" />
+				<V2WorkspaceProjectIcon
+					projectName={project.projectName}
+					githubOwner={project.githubOwner}
+					size="sm"
+				/>
+				<h3
+					className="min-w-0 truncate text-xs font-semibold text-foreground/80"
+					title={project.projectName}
+				>
+					{project.projectName}
+				</h3>
+				<span className="shrink-0 text-xs tabular-nums text-muted-foreground/60">
+					{project.workspaces.length}
+				</span>
+			</button>
+			{isCollapsed ? null : (
+				<ul
+					id={`v2-workspaces-project-${project.projectId}`}
+					className="flex flex-col"
+				>
+					{project.workspaces.map((workspace) => (
+						<V2WorkspaceRow
+							key={workspace.id}
+							workspace={workspace}
+							isCurrentRoute={workspace.id === currentWorkspaceId}
+						/>
+					))}
+				</ul>
+			)}
+		</div>
 	);
 }

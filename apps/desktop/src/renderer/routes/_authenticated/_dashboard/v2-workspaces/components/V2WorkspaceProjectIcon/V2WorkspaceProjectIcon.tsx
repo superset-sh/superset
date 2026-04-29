@@ -26,7 +26,8 @@ export function V2WorkspaceProjectIcon({
 	size = "md",
 	className,
 }: V2WorkspaceProjectIconProps) {
-	const [imageFailed, setImageFailed] = useState(false);
+	const [failedOwner, setFailedOwner] = useState<string | null>(null);
+	const imageFailed = githubOwner != null && failedOwner === githubOwner;
 	const dimensions = SIZE_CLASSES[size];
 	const showImage = githubOwner != null && !imageFailed;
 
@@ -44,7 +45,7 @@ export function V2WorkspaceProjectIcon({
 					alt=""
 					aria-hidden
 					className="size-full object-cover"
-					onError={() => setImageFailed(true)}
+					onError={() => setFailedOwner(githubOwner)}
 				/>
 			</div>
 		);

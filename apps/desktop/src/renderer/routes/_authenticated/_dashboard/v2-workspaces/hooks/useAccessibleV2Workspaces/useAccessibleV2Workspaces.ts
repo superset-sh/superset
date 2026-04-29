@@ -99,6 +99,14 @@ export interface UseAccessibleV2WorkspacesResult {
 	counts: V2WorkspaceDeviceCounts;
 	hostOptions: V2WorkspaceHostOption[];
 	projectOptions: V2WorkspaceProjectOption[];
+	hostsById: Map<
+		string,
+		{ hostName: string; isOnline: boolean; isLocal: boolean }
+	>;
+	projectsById: Map<
+		string,
+		{ projectName: string; githubOwner: string | null }
+	>;
 }
 
 interface UseAccessibleV2WorkspacesOptions {
@@ -144,9 +152,13 @@ function matchesProjectFilter(
 	return workspace.projectId === projectFilter;
 }
 
-function prStateFor(state: string, isDraft: boolean): V2WorkspacePrState {
+function prStateFor(
+	state: string,
+	isDraft: boolean,
+	mergedAt: Date | string | null,
+): V2WorkspacePrState {
+	if (mergedAt != null) return "merged";
 	if (isDraft) return "draft";
-	if (state === "merged") return "merged";
 	if (state === "closed") return "closed";
 	return "open";
 }
@@ -173,6 +185,7 @@ function checkItemStatusFor(
 	if (rawStatus !== "completed") return "pending";
 	switch (rawConclusion) {
 		case "success":
+		case "neutral":
 			return "success";
 		case "skipped":
 			return "skipped";
@@ -181,6 +194,8 @@ function checkItemStatusFor(
 		case "failure":
 		case "timed_out":
 		case "action_required":
+		case "stale":
+		case "startup_failure":
 			return "failure";
 		default:
 			return "pending";
@@ -321,7 +336,7 @@ export function useAccessibleV2Workspaces(
 				prNumber: row.prNumber,
 				title: row.title,
 				url: row.url,
-				state: prStateFor(row.state, row.isDraft),
+				state: prStateFor(row.state, row.isDraft, row.mergedAt),
 				checksStatus: (row.checksStatus as V2WorkspacePrChecksStatus) ?? "none",
 				reviewDecision: reviewDecisionFor(row.reviewDecision),
 				checks: mapChecks(row.checks as RawCheckEntry[] | null | undefined),
@@ -479,6 +494,37 @@ export function useAccessibleV2Workspaces(
 		);
 	}, [deviceFiltered]);
 
+	const hostsById = useMemo(() => {
+		const map = new Map<
+			string,
+			{ hostName: string; isOnline: boolean; isLocal: boolean }
+		>();
+		for (const workspace of enriched) {
+			if (map.has(workspace.hostId)) continue;
+			map.set(workspace.hostId, {
+				hostName: workspace.hostName,
+				isOnline: workspace.hostIsOnline,
+				isLocal: workspace.hostId === machineId,
+			});
+		}
+		return map;
+	}, [enriched, machineId]);
+
+	const projectsById = useMemo(() => {
+		const map = new Map<
+			string,
+			{ projectName: string; githubOwner: string | null }
+		>();
+		for (const workspace of enriched) {
+			if (map.has(workspace.projectId)) continue;
+			map.set(workspace.projectId, {
+				projectName: workspace.projectName,
+				githubOwner: workspace.projectGithubOwner,
+			});
+		}
+		return map;
+	}, [enriched]);
+
 	return {
 		all: fullyFiltered,
 		pinned,
@@ -486,5 +532,7 @@ export function useAccessibleV2Workspaces(
 		counts,
 		hostOptions,
 		projectOptions,
+		hostsById,
+		projectsById,
 	};
 }
