@@ -22,10 +22,11 @@ const CLIENT_LOGOS = [
 		height: 20,
 	},
 	{
-		name: "perplexity",
-		label: "Perplexity",
-		logo: "/logos/perplexity-wordmark.svg",
-		height: 28,
+		name: "runway",
+		label: "Runway",
+		logo: "/logos/runway-wordmark.svg",
+		height: 18,
+		invert: false,
 	},
 	{
 		name: "salesforce",
