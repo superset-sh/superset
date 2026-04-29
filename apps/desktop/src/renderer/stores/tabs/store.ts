@@ -1426,7 +1426,7 @@ export const useTabsStore = create<TabsStore>()(
 
 				// Split operations
 				splitPaneVertical: (tabId, sourcePaneId, path, options) => {
-					const state = get();
+					const state = clearZoomBeforeMutation(get(), tabId);
 					const tab = state.tabs.find((t) => t.id === tabId);
 					if (!tab) return;
 
@@ -1495,7 +1495,7 @@ export const useTabsStore = create<TabsStore>()(
 				},
 
 				splitPaneHorizontal: (tabId, sourcePaneId, path, options) => {
-					const state = get();
+					const state = clearZoomBeforeMutation(get(), tabId);
 					const tab = state.tabs.find((t) => t.id === tabId);
 					if (!tab) return;
 
