@@ -1,7 +1,10 @@
 import type { SelectSubscription } from "@superset/db/schema";
 import { TRPCError } from "@trpc/server";
 import type { TRPCContext } from "../../trpc";
-import { verifyOrgMembership } from "../integration/utils";
+import {
+	verifyOrgMembership,
+	verifyOrgMembershipWithSubscription,
+} from "../integration/utils";
 
 type Session = NonNullable<TRPCContext["session"]>;
 
@@ -48,7 +51,7 @@ export async function requireActiveOrgMembershipWithSubscription(
 	subscription: SelectSubscription | null;
 }> {
 	const organizationId = requireActiveOrgId(ctx, message);
-	const { subscription } = await verifyOrgMembership(
+	const { subscription } = await verifyOrgMembershipWithSubscription(
 		ctx.session.user.id,
 		organizationId,
 	);
