@@ -100,8 +100,11 @@ const timeoutMiddleware = t.middleware(async ({ next, type, path, meta }) => {
  * rejects after `meta.timeoutMs` (default 5s) so the renderer doesn't
  * spin forever. React Query is configured to retry on `TIMEOUT` errors.
  *
- * Use this for `.query` procedures only — mutations (writes, deletes,
- * etc.) have variable latency and shouldn't share a blanket budget.
+ * Use this for `.query` procedures only — mutations have variable
+ * latency and shouldn't share a blanket budget.
+ *
+ * See `packages/host-service/QUERY_TIMEOUTS.md` for the policy and
+ * current per-procedure budgets.
  */
 export const queryProcedure = protectedProcedure.use(timeoutMiddleware);
 
