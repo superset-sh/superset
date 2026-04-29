@@ -11,6 +11,7 @@ import { useTerminalCallbacksStore } from "renderer/stores/tabs/terminal-callbac
 import type { SplitPaneOptions, Tab } from "renderer/stores/tabs/types";
 import { TabContentContextMenu } from "../TabContentContextMenu";
 import { Terminal } from "../Terminal";
+import { ZoomIndicator } from "../Terminal/ZoomIndicator";
 import { BasePaneWindow, PaneTitle, PaneToolbarActions } from "./components";
 
 interface TabPaneProps {
@@ -63,6 +64,9 @@ export function TabPane({
 	const setPaneName = useTabsStore((s) => s.setPaneName);
 	const setPaneStatus = useTabsStore((s) => s.setPaneStatus);
 	const equalizePaneSplits = useTabsStore((s) => s.equalizePaneSplits);
+	const isZoomed = useTabsStore(
+		(s) => s.tabs.find((t) => t.id === tabId)?.zoom?.paneId === paneId,
+	);
 
 	const terminalContainerRef = useRef<HTMLDivElement>(null);
 	const getClearCallback = useTerminalCallbacksStore((s) => s.getClearCallback);
@@ -118,11 +122,13 @@ export function TabPane({
 							<StatusIndicator status={paneStatus} />
 						)}
 					</div>
+					{isZoomed && <ZoomIndicator />}
 					<PaneToolbarActions
 						splitOrientation={handlers.splitOrientation}
 						onSplitPane={handlers.onSplitPane}
 						onClosePane={handlers.onClosePane}
 						closeHotkeyId="CLOSE_TERMINAL"
+						hideSplit={isZoomed}
 					/>
 				</div>
 			)}
