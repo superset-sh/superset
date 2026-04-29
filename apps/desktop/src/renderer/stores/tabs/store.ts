@@ -25,6 +25,7 @@ import {
 	unzoomPane as unzoomPaneAction,
 	zoomPane as zoomPaneAction,
 } from "./actions/zoom-pane";
+import { applyZoomMergeRules } from "./persist-merge";
 import type {
 	AddFileViewerPaneOptions,
 	AddTabWithMultiplePanesOptions,
@@ -2318,13 +2319,13 @@ export const useTabsStore = create<TabsStore>()(
 					return state;
 				},
 				merge: (persistedState, currentState) => {
-					const persisted = persistedState as TabsState;
+					const persistedRaw = persistedState as TabsState;
 					// Clear stale transient statuses on startup:
 					// - "working": Agent can't be working if app just restarted
 					// - "permission": Permission dialog is gone after restart
 					// Note: "review" is intentionally preserved so users see missed completions
-					if (persisted.panes) {
-						for (const pane of Object.values(persisted.panes)) {
+					if (persistedRaw.panes) {
+						for (const pane of Object.values(persistedRaw.panes)) {
 							if (pane.status === "working" || pane.status === "permission") {
 								pane.status = "idle";
 							}
@@ -2339,6 +2340,13 @@ export const useTabsStore = create<TabsStore>()(
 							}
 						}
 					}
+
+					// Apply zoom rehydrate rules: drop transient zoom and restore the
+					// pre-zoom layout for tabs that quit while zoomed. This must happen
+					// after the persistedRaw cast and before the assembled mergedState
+					// is used downstream (the zoom rules only touch `tabs`, so the
+					// pane-status mutations above don't conflict).
+					const persisted = applyZoomMergeRules(persistedRaw);
 
 					const mergedState = { ...currentState, ...persisted };
 
