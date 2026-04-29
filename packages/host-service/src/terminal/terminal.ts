@@ -51,6 +51,7 @@ function getHostAgentHookUrl(): string {
 
 type TerminalClientMessage =
 	| { type: "input"; data: string }
+	| { type: "initialCommand"; data: string }
 	| { type: "resize"; cols: number; rows: number }
 	| { type: "dispose" };
 
@@ -114,6 +115,7 @@ interface TerminalSession {
 	shellReadyPromise: Promise<void>;
 	shellReadyTimeoutId: ReturnType<typeof setTimeout> | null;
 	scanState: ShellReadyScanState;
+	initialCommandQueued: boolean;
 }
 
 /** PTY lifetime is independent of socket lifetime — sockets detach/reattach freely. */
@@ -248,6 +250,22 @@ function resolveShellReady(
 		session.shellReadyResolve();
 		session.shellReadyResolve = null;
 	}
+}
+
+function queueInitialCommand(
+	session: TerminalSession,
+	initialCommand: string,
+): void {
+	if (session.initialCommandQueued) return;
+	session.initialCommandQueued = true;
+	const cmd = initialCommand.endsWith("\n")
+		? initialCommand
+		: `${initialCommand}\n`;
+	session.shellReadyPromise.then(() => {
+		if (!session.exited) {
+			session.pty.write(cmd);
+		}
+	});
 }
 
 /**
@@ -448,6 +466,7 @@ export function createTerminalSessionInternal({
 		shellReadyPromise,
 		shellReadyTimeoutId: null,
 		scanState: createScanState(),
+		initialCommandQueued: false,
 	};
 	sessions.set(terminalId, session);
 	portManager.upsertSession(terminalId, workspaceId, pty.pid);
@@ -513,14 +532,7 @@ export function createTerminalSessionInternal({
 	});
 
 	if (initialCommand) {
-		const cmd = initialCommand.endsWith("\n")
-			? initialCommand
-			: `${initialCommand}\n`;
-		session.shellReadyPromise.then(() => {
-			if (!session.exited) {
-				pty.write(cmd);
-			}
-		});
+		queueInitialCommand(session, initialCommand);
 	}
 
 	return session;
@@ -596,13 +608,13 @@ export function registerWorkspaceTerminalRoute({
 
 					const existing = sessions.get(terminalId);
 					if (!existing) {
-						// Session must be created via tRPC terminal.ensureSession before connecting.
-						// Fall back to query params for backwards compatibility with v1 callers.
+						// V2 callers can create a session by opening the WebSocket with
+						// workspaceId; this keeps terminal attach out of tRPC request queues.
 						const workspaceId = c.req.query("workspaceId") ?? null;
 						if (!workspaceId) {
 							sendMessage(ws, {
 								type: "error",
-								message: `Terminal session "${terminalId}" not found; use terminal.ensureSession or workspaceId.`,
+								message: `Terminal session "${terminalId}" not found; open with workspaceId or create it before connecting.`,
 							});
 							ws.close(1011, "Terminal session not found");
 							return;
@@ -675,6 +687,11 @@ export function registerWorkspaceTerminalRoute({
 
 					if (message.type === "input") {
 						session.pty.write(message.data);
+						return;
+					}
+
+					if (message.type === "initialCommand") {
+						queueInitialCommand(session, message.data);
 						return;
 					}
 

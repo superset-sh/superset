@@ -16,22 +16,19 @@ export interface OpenInExternalEditorOptions {
 export function useOpenInExternalEditor(workspaceId: string) {
 	const collections = useCollections();
 	const { machineId } = useLocalHostService();
-	const { data: workspacesWithHost = [] } = useLiveQuery(
+	const { data: workspaceRows = [] } = useLiveQuery(
 		(q) =>
 			q
 				.from({ workspaces: collections.v2Workspaces })
-				.leftJoin({ hosts: collections.v2Hosts }, ({ workspaces, hosts }) =>
-					eq(workspaces.hostId, hosts.machineId),
-				)
 				.where(({ workspaces }) => eq(workspaces.id, workspaceId))
-				.select(({ workspaces, hosts }) => ({
-					hostMachineId: hosts?.machineId ?? null,
+				.select(({ workspaces }) => ({
+					hostId: workspaces.hostId,
 					projectId: workspaces.projectId ?? null,
 				})),
 		[collections, workspaceId],
 	);
-	const workspaceHost = workspacesWithHost[0];
-	const projectId = workspaceHost?.projectId ?? undefined;
+	const workspaceRow = workspaceRows[0];
+	const projectId = workspaceRow?.projectId ?? undefined;
 
 	// Forward the v2 CMD+O choice as an explicit app override; the server
 	// can't look this up on its own (v2 projects aren't in the v1 localDb).
@@ -44,9 +41,7 @@ export function useOpenInExternalEditor(workspaceId: string) {
 
 	return useCallback(
 		(path: string, opts?: OpenInExternalEditorOptions) => {
-			// Treat unloaded host data as non-local to avoid firing the mutation
-			// against a potentially remote workspace before locality is confirmed.
-			if (workspaceHost?.hostMachineId !== machineId) {
+			if (workspaceRow?.hostId !== machineId) {
 				toast.error("Can't open remote workspace paths in an external editor");
 				return;
 			}
@@ -64,6 +59,6 @@ export function useOpenInExternalEditor(workspaceId: string) {
 					toast.error("Failed to open in external editor");
 				});
 		},
-		[workspaceHost, machineId, projectId, worktreePath, v2PreferredApp],
+		[workspaceRow, machineId, projectId, worktreePath, v2PreferredApp],
 	);
 }

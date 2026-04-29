@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef } from "react";
 import { env } from "renderer/env.renderer";
 import { authClient } from "renderer/lib/auth-client";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { useV2WorkspaceCreateDefaultsStore } from "renderer/stores/v2-workspace-create-defaults";
 import { MOCK_ORG_ID } from "shared/constants";
 import { useDashboardNewWorkspaceDraft } from "../../DashboardNewWorkspaceDraftContext";
 import { PromptGroup } from "../DashboardNewWorkspaceForm/PromptGroup";
@@ -26,6 +27,9 @@ export function DashboardNewWorkspaceModalContent({
 	preSelectedProjectId,
 }: DashboardNewWorkspaceModalContentProps) {
 	const { draft, updateDraft } = useDashboardNewWorkspaceDraft();
+	const setLastProjectId = useV2WorkspaceCreateDefaultsStore(
+		(state) => state.setLastProjectId,
+	);
 	const collections = useCollections();
 	const { data: session } = authClient.useSession();
 	const activeOrganizationId = env.SKIP_ENV_VALIDATION
@@ -76,12 +80,29 @@ export function DashboardNewWorkspaceModalContent({
 
 	const areProjectsReady = v2Projects !== undefined;
 	const appliedPreSelectionRef = useRef<string | null>(null);
+	const appliedHostTargetRef = useRef(false);
 
 	useEffect(() => {
 		if (!isOpen) {
 			appliedPreSelectionRef.current = null;
+			appliedHostTargetRef.current = false;
+			return;
 		}
-	}, [isOpen]);
+		if (appliedHostTargetRef.current) return;
+		appliedHostTargetRef.current = true;
+		const persistedHostTarget =
+			useV2WorkspaceCreateDefaultsStore.getState().lastHostTarget;
+		const validHostTarget =
+			persistedHostTarget?.kind === "local"
+				? persistedHostTarget
+				: persistedHostTarget?.kind === "host" &&
+						typeof persistedHostTarget.hostId === "string"
+					? persistedHostTarget
+					: null;
+		if (validHostTarget) {
+			updateDraft({ hostTarget: validHostTarget });
+		}
+	}, [isOpen, updateDraft]);
 
 	useEffect(() => {
 		if (!isOpen) return;
@@ -109,7 +130,15 @@ export function DashboardNewWorkspaceModalContent({
 			(project) => project.id === draft.selectedProjectId,
 		);
 		if (!hasSelectedProject) {
-			updateDraft({ selectedProjectId: recentProjects[0]?.id ?? null });
+			const { lastProjectId } = useV2WorkspaceCreateDefaultsStore.getState();
+			const persistedProjectId =
+				lastProjectId &&
+				recentProjects.some((project) => project.id === lastProjectId)
+					? lastProjectId
+					: null;
+			updateDraft({
+				selectedProjectId: persistedProjectId ?? recentProjects[0]?.id ?? null,
+			});
 		}
 	}, [
 		draft.selectedProjectId,
@@ -130,9 +159,10 @@ export function DashboardNewWorkspaceModalContent({
 				projectId={draft.selectedProjectId}
 				selectedProject={selectedProject}
 				recentProjects={recentProjects.filter((project) => Boolean(project.id))}
-				onSelectProject={(selectedProjectId) =>
-					updateDraft({ selectedProjectId })
-				}
+				onSelectProject={(selectedProjectId) => {
+					setLastProjectId(selectedProjectId);
+					updateDraft({ selectedProjectId });
+				}}
 			/>
 		</div>
 	);

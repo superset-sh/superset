@@ -1,17 +1,17 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { HOTKEYS, type HotkeyId } from "../registry";
 import { useHotkeyOverridesStore } from "../stores/hotkeyOverridesStore";
-import type { HotkeyDefinition } from "../types";
+import type { HotkeyDefinition, ShortcutBinding } from "../types";
 import {
 	canonicalizeChord,
 	eventToChord,
 	isIgnorableKey,
+	isTerminalReservedEvent,
 	matchesChord,
 	normalizeToken,
 	resolveHotkeyFromEvent,
 	TERMINAL_RESERVED_CHORDS,
 } from "./resolveHotkeyFromEvent";
-import { isTerminalReservedEvent } from "./utils";
 
 // Minimal stub — the renderer references `navigator` only at import time.
 // Bun's test runtime doesn't have a DOM navigator by default; registry.ts
@@ -126,6 +126,9 @@ interface StubInit {
 	metaKey?: boolean;
 	altKey?: boolean;
 	shiftKey?: boolean;
+	altGraph?: boolean;
+	isComposing?: boolean;
+	keyCode?: number;
 }
 function ev(init: StubInit): KeyboardEvent {
 	return {
@@ -136,11 +139,15 @@ function ev(init: StubInit): KeyboardEvent {
 		metaKey: !!init.metaKey,
 		altKey: !!init.altKey,
 		shiftKey: !!init.shiftKey,
+		isComposing: !!init.isComposing,
+		keyCode: init.keyCode ?? 0,
+		getModifierState: (mod: string) =>
+			mod === "AltGraph" ? !!init.altGraph : false,
 	} as unknown as KeyboardEvent;
 }
 
 describe("resolveHotkeyFromEvent — live override index", () => {
-	let originalOverrides: Record<string, string | null>;
+	let originalOverrides: Record<string, ShortcutBinding | null>;
 	beforeEach(() => {
 		originalOverrides = useHotkeyOverridesStore.getState().overrides;
 	});
@@ -296,6 +303,57 @@ describe("eventToChord", () => {
 	it("returns null for pure modifiers and lock keys", () => {
 		expect(eventToChord(ev({ code: "ControlLeft", ctrlKey: true }))).toBeNull();
 		expect(eventToChord(ev({ code: "CapsLock" }))).toBeNull();
+	});
+
+	// AltGr on Linux/Windows is reported as ctrlKey+altKey. Without the guard,
+	// AltGr+E on a German layout (which produces €) would match a US
+	// `ctrl+alt+e` binding. Suppress both when AltGraph is set so AltGr-typed
+	// printables can never trigger Ctrl+Alt hotkeys.
+	it("suppresses ctrl/alt when AltGraph modifier is held", () => {
+		expect(
+			eventToChord(
+				ev({
+					code: "KeyE",
+					ctrlKey: true,
+					altKey: true,
+					altGraph: true,
+				}),
+			),
+		).toBe("e");
+	});
+
+	it("AltGr+letter does not match a real ctrl+alt binding", () => {
+		const altGrEvent = ev({
+			code: "KeyE",
+			ctrlKey: true,
+			altKey: true,
+			altGraph: true,
+		});
+		expect(matchesChord(altGrEvent, "ctrl+alt+e")).toBe(false);
+	});
+
+	it("real Ctrl+Alt (no AltGraph) still matches", () => {
+		const realCtrlAlt = ev({
+			code: "KeyE",
+			ctrlKey: true,
+			altKey: true,
+			altGraph: false,
+		});
+		expect(matchesChord(realCtrlAlt, "ctrl+alt+e")).toBe(true);
+	});
+
+	// IME composition: keydown during dead-key / CJK composition must not fire
+	// hotkeys. Safari uses keyCode 229 in lieu of isComposing.
+	it("returns null during IME composition (isComposing)", () => {
+		expect(
+			eventToChord(ev({ code: "KeyA", metaKey: true, isComposing: true })),
+		).toBeNull();
+	});
+
+	it("returns null when keyCode is 229 (Safari IME)", () => {
+		expect(
+			eventToChord(ev({ code: "KeyA", metaKey: true, keyCode: 229 })),
+		).toBeNull();
 	});
 });
 

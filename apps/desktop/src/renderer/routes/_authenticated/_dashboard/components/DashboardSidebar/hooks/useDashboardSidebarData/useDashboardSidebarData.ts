@@ -232,7 +232,7 @@ export function useDashboardSidebarData() {
 					({ sidebarWorkspaces, workspaces }) =>
 						eq(sidebarWorkspaces.workspaceId, workspaces.id),
 				)
-				.leftJoin({ hosts: collections.v2Hosts }, ({ workspaces, hosts }) =>
+				.innerJoin({ hosts: collections.v2Hosts }, ({ workspaces, hosts }) =>
 					eq(workspaces.hostId, hosts.machineId),
 				)
 				.orderBy(
@@ -243,9 +243,8 @@ export function useDashboardSidebarData() {
 					id: workspaces.id,
 					projectId: sidebarWorkspaces.sidebarState.projectId,
 					hostId: workspaces.hostId,
-					hostMachineId: hosts?.machineId ?? null,
 					type: workspaces.type,
-					hostIsOnline: hosts?.isOnline ?? null,
+					hostIsOnline: hosts.isOnline,
 					name: workspaces.name,
 					branch: workspaces.branch,
 					createdAt: workspaces.createdAt,
@@ -271,7 +270,7 @@ export function useDashboardSidebarData() {
 		(q) =>
 			q
 				.from({ workspaces: collections.v2Workspaces })
-				.leftJoin({ hosts: collections.v2Hosts }, ({ workspaces, hosts }) =>
+				.innerJoin({ hosts: collections.v2Hosts }, ({ workspaces, hosts }) =>
 					eq(workspaces.hostId, hosts.machineId),
 				)
 				.where(({ workspaces }) => eq(workspaces.type, "main"))
@@ -279,9 +278,8 @@ export function useDashboardSidebarData() {
 					id: workspaces.id,
 					projectId: workspaces.projectId,
 					hostId: workspaces.hostId,
-					hostMachineId: hosts?.machineId ?? null,
 					type: workspaces.type,
-					hostIsOnline: hosts?.isOnline ?? null,
+					hostIsOnline: hosts.isOnline,
 					name: workspaces.name,
 					branch: workspaces.branch,
 					createdAt: workspaces.createdAt,
@@ -299,8 +297,7 @@ export function useDashboardSidebarData() {
 		const autoLocalMainWorkspaces = localMainWorkspaces.filter(
 			(workspace) =>
 				!localStateWorkspaceIds.has(workspace.id) &&
-				workspace.hostMachineId != null &&
-				workspace.hostMachineId === machineId &&
+				workspace.hostId === machineId &&
 				sidebarProjectIds.has(workspace.projectId),
 		);
 
@@ -316,11 +313,7 @@ export function useDashboardSidebarData() {
 	const computedLocalWorkspaceIds = useMemo(
 		() =>
 			visibleSidebarWorkspaces
-				.filter(
-					(workspace) =>
-						workspace.hostMachineId != null &&
-						workspace.hostMachineId === machineId,
-				)
+				.filter((workspace) => workspace.hostId === machineId)
 				.map((workspace) => workspace.id)
 				.sort(),
 		[machineId, visibleSidebarWorkspaces],
@@ -404,11 +397,7 @@ export function useDashboardSidebarData() {
 			if (!project) continue;
 
 			const hostType: DashboardSidebarWorkspace["hostType"] =
-				workspace.hostMachineId == null
-					? "cloud"
-					: workspace.hostMachineId === machineId
-						? "local-device"
-						: "remote-device";
+				workspace.hostId === machineId ? "local-device" : "remote-device";
 
 			const sidebarWorkspace: DashboardSidebarWorkspace = {
 				id: workspace.id,
@@ -417,9 +406,7 @@ export function useDashboardSidebarData() {
 				hostType,
 				type: workspace.type,
 				hostIsOnline:
-					hostType === "remote-device"
-						? (workspace.hostIsOnline ?? null)
-						: null,
+					hostType === "remote-device" ? workspace.hostIsOnline : null,
 				accentColor: null,
 				name: workspace.name,
 				branch: workspace.branch,

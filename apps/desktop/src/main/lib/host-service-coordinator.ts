@@ -35,12 +35,14 @@ import { HOOK_PROTOCOL_VERSION } from "./terminal/env";
  * which is how we prevent the renderer from talking to a stale host-service
  * that's missing newly-added procedures/params.
  *
+ * 0.4.0: terminal launch moved from `terminal.ensureSession` to
+ * `terminal.launchSession` plus WebSocket attach params.
  * 0.3.0: host-service registers via cloud `host.ensure` (was
  * `device.ensureV2Host`); v2_hosts/v2_users_hosts/v2_workspaces use
  * machineId text instead of uuid surrogates.
  * 0.2.0: `workspaceCreation.adopt` gained optional `worktreePath`.
  */
-const MIN_HOST_SERVICE_VERSION = "0.3.0";
+const MIN_HOST_SERVICE_VERSION = "0.4.0";
 
 export type HostServiceStatus = "starting" | "running" | "stopped";
 

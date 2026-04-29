@@ -65,7 +65,7 @@ export interface PaneDefinition<TData> {
 	renderToolbar?(context: RendererContext<TData>): ReactNode;
 	onHeaderClick?(context: RendererContext<TData>): void;
 	onBeforeClose?(pane: Pane<TData>): boolean | Promise<boolean>;
-	onRemoved?(pane: Pane<TData>): void;
+	onAfterClose?(pane: Pane<TData>): void;
 	paneActions?:
 		| PaneActionConfig<TData>[]
 		| ((
@@ -100,6 +100,7 @@ export interface WorkspaceProps<TData> {
 		tab: Tab<TData>,
 	) => boolean | Promise<boolean>;
 	onBeforeCloseTab?: (tab: Tab<TData>) => boolean | Promise<boolean>;
+	onAfterCloseTab?: (tab: Tab<TData>) => void;
 	onInteractionStateChange?: (state: WorkspaceInteractionState) => void;
 	paneActions?:
 		| PaneActionConfig<TData>[]

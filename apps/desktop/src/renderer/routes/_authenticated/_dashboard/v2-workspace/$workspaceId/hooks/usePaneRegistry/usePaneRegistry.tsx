@@ -27,6 +27,7 @@ import {
 import { TbScan } from "react-icons/tb";
 import { useHotkeyDisplay } from "renderer/hotkeys";
 import { getBaseName } from "renderer/lib/pathBasename";
+import { consumeTerminalBackgroundIntent } from "renderer/lib/terminal/terminal-background-intents";
 import { terminalRuntimeRegistry } from "renderer/lib/terminal/terminal-runtime-registry";
 import { FileIcon } from "renderer/screens/main/components/WorkspaceView/RightSidebar/FilesView/utils";
 import { useSettings } from "renderer/stores/settings";
@@ -181,6 +182,22 @@ export function usePaneRegistry(
 				});
 			},
 		});
+	// onAfterClose-driven kill: silent on both success and failure, since
+	// the user's intent was already expressed by closing the pane.
+	const { mutate: killTerminalSessionSilently } =
+		workspaceTrpc.terminal.killSession.useMutation({
+			onSuccess: () => {
+				void workspaceTrpcUtils.terminal.listSessions.invalidate({
+					workspaceId,
+				});
+			},
+			onError: (error) => {
+				console.warn("Failed to kill removed terminal session", {
+					workspaceId,
+					error,
+				});
+			},
+		});
 
 	return useMemo<PaneRegistry<PaneViewerData>>(
 		() => ({
@@ -277,6 +294,15 @@ export function usePaneRegistry(
 			terminal: {
 				getIcon: () => <TerminalSquare className="size-3.5" />,
 				getTitle: () => "Terminal",
+				onAfterClose: (pane) => {
+					const { terminalId } = pane.data as TerminalPaneData;
+					if (consumeTerminalBackgroundIntent(terminalId)) {
+						terminalRuntimeRegistry.release(terminalId);
+						return;
+					}
+					terminalRuntimeRegistry.dispose(terminalId);
+					killTerminalSessionSilently({ terminalId, workspaceId });
+				},
 				renderTitle: (ctx: RendererContext<PaneViewerData>) => (
 					<div className="flex min-w-0 flex-1 items-center gap-1.5">
 						<TerminalSessionDropdown context={ctx} workspaceId={workspaceId} />
@@ -414,11 +440,7 @@ export function usePaneRegistry(
 				renderToolbar: (ctx: RendererContext<PaneViewerData>) => (
 					<BrowserPaneToolbar ctx={ctx} />
 				),
-				// Destruction is handled by useGlobalBrowserLifecycle instead —
-				// the Panes library's onRemoved diff fires on transient workspace-
-				// switch churn (when the pane store replaceState's in place rather
-				// than remounting) and would prematurely destroy webviews whose
-				// owning workspace is still present.
+				// Destruction handled by useGlobalBrowserLifecycle for now.
 				contextMenuActions: (_ctx, defaults) =>
 					defaults.map((d) =>
 						d.key === "close-pane" ? { ...d, label: "Close Browser" } : d,
@@ -500,6 +522,7 @@ export function usePaneRegistry(
 			clearShortcut,
 			scrollToBottomShortcut,
 			killTerminalSession,
+			killTerminalSessionSilently,
 			isKillingTerminalSession,
 			onOpenFile,
 			onRevealPath,

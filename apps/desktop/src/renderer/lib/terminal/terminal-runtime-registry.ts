@@ -164,28 +164,33 @@ class TerminalRuntimeRegistryImpl {
 
 	/**
 	 * Open (or re-use) the WebSocket transport for this terminal.
-	 * Caller is responsible for ensuring the server session exists before
-	 * calling — otherwise the server replies "Session not found".
+	 * The WebSocket route can create the server session when the URL includes
+	 * workspaceId; initialCommand is sent as the first frame after open.
 	 *
 	 * Idempotent: no-op if already connected/connecting to the same URL.
 	 */
-	connect(terminalId: string, wsUrl: string, instanceId = terminalId) {
+	connect(
+		terminalId: string,
+		wsUrl: string,
+		instanceId = terminalId,
+		options: { initialCommand?: string } = {},
+	) {
 		const entry = this.getEntry(terminalId, instanceId);
 		if (!entry?.runtime) return;
-		connect(entry.transport, entry.runtime.terminal, wsUrl);
+		connect(entry.transport, entry.runtime.terminal, wsUrl, options);
 	}
 
 	/**
 	 * Swap the transport onto a new URL when it's already been brought up
 	 * once. Used by effects watching `websocketUrl` — they fire on initial
-	 * mount when the transport is still `"disconnected"` and ensureSession
-	 * is in-flight, and we must not pre-empt that with a premature connect.
+	 * mount when the transport is still `"disconnected"` and the mount effect
+	 * owns the initial connect.
 	 *
 	 * Skipped states: `"disconnected"` (never opened; caller should use
-	 * `connect()` via the ensureSession path). Allowed states: `"connecting"`
-	 * (connect() cleanly aborts the in-flight socket), `"open"` (standard
-	 * swap), and `"closed"` (previously live and mid-auto-reconnect — swap
-	 * the URL so the reconnect targets the new endpoint).
+	 * `connect()` from the mount path). Allowed states: `"connecting"` (connect()
+	 * cleanly aborts the in-flight socket), `"open"` (standard swap), and
+	 * `"closed"` (previously live and mid-auto-reconnect — swap the URL so the
+	 * reconnect targets the new endpoint).
 	 */
 	reconnect(terminalId: string, wsUrl: string, instanceId = terminalId) {
 		const entry = this.getEntry(terminalId, instanceId);

@@ -8,6 +8,7 @@
 import { serve } from "@hono/node-server";
 import {
 	createApp,
+	installProcessSafetyNet,
 	JwtApiAuthProvider,
 	LocalGitCredentialProvider,
 	LocalModelProvider,
@@ -53,6 +54,10 @@ async function main(): Promise<void> {
 	const server = serve(
 		{ fetch: app.fetch, port: env.HOST_SERVICE_PORT, hostname: "127.0.0.1" },
 		(info: { port: number }) => {
+			// Install only after the server is listening so startup throws still
+			// reach `main().catch(...)` and exit with a non-zero code.
+			installProcessSafetyNet();
+
 			if (env.ORGANIZATION_ID) {
 				try {
 					writeManifest({

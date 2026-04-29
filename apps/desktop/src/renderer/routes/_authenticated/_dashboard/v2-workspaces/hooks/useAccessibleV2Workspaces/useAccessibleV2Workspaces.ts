@@ -24,7 +24,6 @@ export interface AccessibleV2Workspace {
 	projectName: string;
 	hostId: string;
 	hostName: string;
-	hostMachineId: string | null;
 	hostIsOnline: boolean;
 	hostType: V2WorkspaceHostType;
 	isInSidebar: boolean;
@@ -135,9 +134,8 @@ export function useAccessibleV2Workspaces(
 						createdByImage: creators?.image ?? null,
 						projectId: projects.id,
 						projectName: projects.name,
-						hostId: hosts.machineId,
+						hostId: workspaces.hostId,
 						hostName: hosts.name,
-						hostMachineId: hosts.machineId,
 						hostIsOnline: hosts.isOnline,
 						sidebarProjectId: sidebarProject?.projectId ?? null,
 						sidebarWorkspaceId: sidebarState?.workspaceId ?? null,
@@ -152,15 +150,10 @@ export function useAccessibleV2Workspaces(
 		for (const row of rows) {
 			if (deduped.has(row.id)) continue;
 			const hostType: V2WorkspaceHostType =
-				row.hostMachineId == null
-					? "cloud"
-					: row.hostMachineId === machineId
-						? "local-device"
-						: "remote-device";
+				row.hostId === machineId ? "local-device" : "remote-device";
 			const isAutoVisibleMain =
 				row.type === "main" &&
-				row.hostMachineId != null &&
-				row.hostMachineId === machineId &&
+				row.hostId === machineId &&
 				row.sidebarProjectId != null;
 			const isInSidebar =
 				isSidebarWorkspaceVisible({ isHidden: row.sidebarIsHidden }) &&
@@ -181,7 +174,6 @@ export function useAccessibleV2Workspaces(
 				projectName: row.projectName,
 				hostId: row.hostId,
 				hostName: row.hostName,
-				hostMachineId: row.hostMachineId,
 				hostIsOnline: row.hostIsOnline,
 				hostType,
 				isInSidebar,

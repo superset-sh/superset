@@ -357,14 +357,14 @@ async function dispatchTerminalSession(args: {
 	const terminalId = crypto.randomUUID();
 	await relayMutation<
 		{
-			terminalId: string;
 			workspaceId: string;
-			initialCommand?: string;
+			terminalId?: string;
+			initialCommand: string;
 		},
 		{ terminalId: string; status: string }
 	>(
 		{ relayUrl: args.relayUrl, hostId: args.hostId, jwt: args.jwt },
-		"terminal.ensureSession",
+		"terminal.launchSession",
 		{
 			terminalId,
 			workspaceId: args.workspaceId,

@@ -11,18 +11,19 @@ import {
 import { protectedProcedure, router } from "../../index";
 
 export const terminalRouter = router({
-	ensureSession: protectedProcedure
+	launchSession: protectedProcedure
 		.input(
 			z.object({
-				terminalId: z.string(),
 				workspaceId: z.string(),
+				terminalId: z.string().optional(),
+				initialCommand: z.string().min(1),
 				themeType: z.string().optional(),
-				initialCommand: z.string().optional(),
 			}),
 		)
 		.mutation(({ ctx, input }) => {
+			const terminalId = input.terminalId ?? crypto.randomUUID();
 			const result = createTerminalSessionInternal({
-				terminalId: input.terminalId,
+				terminalId,
 				workspaceId: input.workspaceId,
 				themeType: parseThemeType(input.themeType),
 				db: ctx.db,
@@ -31,11 +32,10 @@ export const terminalRouter = router({
 			});
 
 			if ("error" in result) {
-				return {
-					terminalId: input.terminalId,
-					status: "error" as const,
-					error: result.error,
-				};
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: result.error,
+				});
 			}
 
 			return { terminalId: result.terminalId, status: "active" as const };

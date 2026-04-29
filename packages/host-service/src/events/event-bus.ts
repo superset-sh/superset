@@ -43,8 +43,8 @@ function parseClientMessage(data: unknown): ClientMessage | null {
 				return parsed as ClientMessage;
 			}
 		}
-	} catch {
-		// Malformed message — ignore
+	} catch (error) {
+		console.warn("[event-bus] malformed client message — ignored", { error });
 	}
 	return null;
 }
@@ -139,8 +139,21 @@ export class EventBus {
 	}
 
 	private broadcast(message: ServerMessage): void {
+		// One bad socket must not block fan-out to the rest. Drop dead sockets
+		// rather than logging on every broadcast forever.
+		const dead: WsSocket[] = [];
 		for (const socket of this.clients.keys()) {
-			sendMessage(socket, message);
+			try {
+				sendMessage(socket, message);
+			} catch (error) {
+				console.error("[event-bus:send] socket failed — dropping", { error });
+				dead.push(socket);
+			}
+		}
+		for (const socket of dead) {
+			const state = this.clients.get(socket);
+			if (state) this.cleanupClient(socket, state);
+			this.clients.delete(socket);
 		}
 	}
 

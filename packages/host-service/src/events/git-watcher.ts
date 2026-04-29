@@ -148,7 +148,15 @@ export class GitWatcher {
 						? { workspaceId }
 						: { workspaceId, paths: [...batch.paths] };
 				for (const listener of this.listeners) {
-					listener(event);
+					// Isolate per-listener throws so one bad subscriber can't skip
+					// siblings. Other escapes fall through to the process-level net.
+					try {
+						listener(event);
+					} catch (error) {
+						console.error("[git-watcher:listener] threw — contained", {
+							error,
+						});
+					}
 				}
 			}, DEBOUNCE_MS),
 		);

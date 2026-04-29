@@ -46,6 +46,7 @@ export function SecuritySettings({ visibleItems }: SecuritySettingsProps) {
 		});
 
 	const [confirmOpen, setConfirmOpen] = useState(false);
+	const [confirmTargetEnabled, setConfirmTargetEnabled] = useState(false);
 
 	const runToggle = (enabled: boolean) => {
 		toast.promise(setExpose.mutateAsync({ enabled }), {
@@ -59,11 +60,8 @@ export function SecuritySettings({ visibleItems }: SecuritySettingsProps) {
 	};
 
 	const handleChange = (next: boolean) => {
-		if (next) {
-			setConfirmOpen(true);
-		} else {
-			runToggle(false);
-		}
+		setConfirmTargetEnabled(next);
+		setConfirmOpen(true);
 	};
 
 	return (
@@ -101,10 +99,12 @@ export function SecuritySettings({ visibleItems }: SecuritySettingsProps) {
 
 			<ExposeViaRelayConfirmDialog
 				open={confirmOpen}
+				targetEnabled={confirmTargetEnabled}
 				onOpenChange={setConfirmOpen}
 				onConfirm={() => {
+					const enabled = confirmTargetEnabled;
 					setConfirmOpen(false);
-					runToggle(true);
+					runToggle(enabled);
 				}}
 			/>
 		</div>

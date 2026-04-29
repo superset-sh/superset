@@ -222,6 +222,7 @@ export function DashboardSidebarWorkspaceItem({
 				shortcutLabel={shortcutLabel}
 				diffStats={isPending ? null : diffStats}
 				workspaceStatus={workspaceStatus}
+				isInSection={isInSection}
 				onClick={isPending ? handlePendingClick : handleClick}
 				onDoubleClick={isPending ? undefined : startRename}
 				onRemoveFromSidebarClick={handleRemoveFromSidebar}

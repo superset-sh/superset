@@ -8,6 +8,7 @@ export interface FilePaneData {
 
 export interface TerminalPaneData {
 	terminalId: string;
+	initialCommand?: string;
 }
 
 export interface ChatPaneData {
