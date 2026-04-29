@@ -7,6 +7,7 @@ import { FeaturePreview } from "./components/FeaturePreview";
 import { FeatureSidebar } from "./components/FeatureSidebar";
 import type { GatedFeature } from "./constants";
 import { FEATURE_ID_MAP, PRO_FEATURES } from "./constants";
+import { useHasTrialed } from "./useHasTrialed";
 
 type PaywallOptions = {
 	feature: GatedFeature;
@@ -17,6 +18,7 @@ let showPaywallFn: ((options: PaywallOptions) => void) | null = null;
 
 export const Paywall = () => {
 	const navigate = useNavigate();
+	const hasTrialed = useHasTrialed();
 	const [paywallOptions, setPaywallOptions] = useState<PaywallOptions | null>(
 		null,
 	);
@@ -139,7 +141,9 @@ export const Paywall = () => {
 					<Button variant="outline" onClick={() => handleOpenChange(false)}>
 						Cancel
 					</Button>
-					<Button onClick={handleUpgrade}>Get Superset Pro</Button>
+					<Button onClick={handleUpgrade}>
+						{hasTrialed ? "Get Superset Pro" : "Start 14-day free trial"}
+					</Button>
 				</div>
 			</DialogContent>
 		</Dialog>

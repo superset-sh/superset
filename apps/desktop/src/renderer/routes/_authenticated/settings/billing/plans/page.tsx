@@ -1,3 +1,5 @@
+import { isActiveSubscriptionStatus } from "@superset/shared/billing";
+import { Badge } from "@superset/ui/badge";
 import { Button } from "@superset/ui/button";
 import { toast } from "@superset/ui/sonner";
 import { Switch } from "@superset/ui/switch";
@@ -49,7 +51,7 @@ type ComparisonValue = string | boolean | null;
 type ComparisonRow = {
 	label: string;
 	values: ComparisonValue[];
-	comingSoon?: boolean;
+	badge?: { label: string; variant: "default" | "secondary" };
 };
 
 type ComparisonSection = {
@@ -135,18 +137,22 @@ const COMPARISON_SECTIONS: ComparisonSection[] = [
 				values: [true, true, true],
 			},
 			{
-				label: "GitHub integration",
-				values: [true, true, true],
+				label: "Remote workspaces",
+				values: [null, true, true],
+				badge: { label: "Beta", variant: "default" },
 			},
 			{
-				label: "Cloud workspaces",
+				label: "Automations",
 				values: [null, true, true],
-				comingSoon: true,
 			},
 			{
 				label: "Mobile app",
 				values: [null, true, true],
-				comingSoon: true,
+				badge: { label: "Coming soon", variant: "secondary" },
+			},
+			{
+				label: "GitHub integration",
+				values: [true, true, true],
 			},
 			{
 				label: "Linear integration",
@@ -218,8 +224,11 @@ function PlansPage() {
 		(q) => q.from({ subscriptions: collections.subscriptions }),
 		[collections],
 	);
-	const subscriptionData = subscriptionsData?.find(
-		(s) => s.status === "active",
+	const subscriptionData = subscriptionsData?.find((s) =>
+		isActiveSubscriptionStatus(s.status),
+	);
+	const hasTrialed = Boolean(
+		subscriptionsData?.some((s) => s.trialEnd != null),
 	);
 
 	const currentPlan: PlanTier = (subscriptionData?.plan as PlanTier) ?? "free";
@@ -305,6 +314,7 @@ function PlansPage() {
 		}
 
 		setIsUpgrading(true);
+		const successFlag = hasTrialed ? "true" : "trial";
 		try {
 			await authClient.subscription.upgrade(
 				{
@@ -312,7 +322,7 @@ function PlansPage() {
 					referenceId: activeOrgId,
 					annual: isYearly,
 					seats: memberCount,
-					successUrl: `${env.NEXT_PUBLIC_WEB_URL}/settings/billing?success=true`,
+					successUrl: `${env.NEXT_PUBLIC_WEB_URL}/settings/billing?success=${successFlag}`,
 					cancelUrl: env.NEXT_PUBLIC_WEB_URL,
 					returnUrl: env.NEXT_PUBLIC_WEB_URL,
 					disableRedirect: true,
@@ -483,6 +493,17 @@ function PlansPage() {
 												variant: "outline" as const,
 											},
 										];
+									} else if (plan.id === "pro" && currentPlan === "free") {
+										const upgradeLabel = hasTrialed
+											? "Upgrade"
+											: "Start 14-day free trial";
+										planActions = [
+											{
+												label: upgradeLabel,
+												action: "upgrade" as const,
+												variant: "default" as const,
+											},
+										];
 									} else {
 										planActions = plan.actions;
 									}
@@ -531,6 +552,9 @@ function PlansPage() {
 										);
 									}
 
+									const showTrialDisclaimer =
+										plan.id === "pro" && currentPlan === "free" && !hasTrialed;
+
 									return (
 										<div key={plan.id} className="px-4 py-3">
 											<div className="flex flex-col gap-2">
@@ -553,6 +577,11 @@ function PlansPage() {
 														{action.label}
 													</Button>
 												))}
+												{showTrialDisclaimer && (
+													<p className="text-[11px] leading-snug text-muted-foreground">
+														We'll remind you 3 days before your trial ends.
+													</p>
+												)}
 											</div>
 										</div>
 									);
@@ -583,10 +612,13 @@ function PlansPage() {
 										<Fragment key={row.label}>
 											<div className="flex items-center gap-1.5 px-2 py-2.5 text-xs text-muted-foreground">
 												{row.label}
-												{row.comingSoon && (
-													<span className="text-[10px] text-muted-foreground/60">
-														(Coming Soon)
-													</span>
+												{row.badge && (
+													<Badge
+														variant={row.badge.variant}
+														className="px-1.5 py-0 text-[10px] font-medium"
+													>
+														{row.badge.label}
+													</Badge>
 												)}
 											</div>
 											{row.values.map((value, valueIndex) => (

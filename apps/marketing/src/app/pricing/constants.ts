@@ -49,7 +49,7 @@ export const PRICING_TIERS: PricingTier[] = [
 	{
 		id: "pro",
 		name: "Pro",
-		description: "For teams that need more power",
+		description: "For teams that need more power. 14-day free trial included.",
 		price: {
 			kind: "variable",
 			monthly: {
@@ -184,6 +184,11 @@ export const PRICING_FAQ_ITEMS: FAQItem[] = [
 		question: "How does Pro pricing work?",
 		answer:
 			"Pro is $20 per user/month billed monthly, or $15 per user/month billed yearly (a 25% discount). You're billed per active seat on your team.",
+	},
+	{
+		question: "Is there a free trial for Pro?",
+		answer:
+			"Yes — try Pro free for 14 days. You'll need a card to start the trial, and we'll only charge you when the trial ends. Cancel anytime from billing settings.",
 	},
 	{
 		question: "Can I switch plans or cancel anytime?",

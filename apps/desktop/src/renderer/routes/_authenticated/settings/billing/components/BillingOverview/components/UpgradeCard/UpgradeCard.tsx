@@ -7,21 +7,29 @@ import { PLANS } from "../../../../constants";
 interface UpgradeCardProps {
 	onUpgrade: () => void;
 	isUpgrading: boolean;
+	hasTrialed: boolean;
 }
 
-export function UpgradeCard({ onUpgrade, isUpgrading }: UpgradeCardProps) {
+export function UpgradeCard({
+	onUpgrade,
+	isUpgrading,
+	hasTrialed,
+}: UpgradeCardProps) {
 	const plan = PLANS.pro;
+	const ctaLabel = hasTrialed ? "Upgrade now" : "Start free trial";
+	const headline = hasTrialed
+		? `Upgrade to ${plan.name} plan`
+		: `Try ${plan.name} free for 14 days`;
 
 	return (
 		<Card className="gap-0 rounded-lg border-border/60 py-0 shadow-none">
 			<CardContent className="px-5 py-4">
 				<div className="flex flex-wrap items-center justify-between gap-4">
 					<div>
-						<div className="text-sm font-medium">
-							Upgrade to {plan.name} plan
-						</div>
+						<div className="text-sm font-medium">{headline}</div>
 						<p className="text-xs text-muted-foreground">
 							${plan.price?.monthly ? plan.price.monthly / 100 : 0} per user/mo
+							{hasTrialed ? "" : " after trial"}
 						</p>
 					</div>
 					<div className="flex items-center gap-3">
@@ -29,7 +37,7 @@ export function UpgradeCard({ onUpgrade, isUpgrading }: UpgradeCardProps) {
 							<Link to="/settings/billing/plans">View all plans</Link>
 						</Button>
 						<Button onClick={onUpgrade} size="sm" disabled={isUpgrading}>
-							{isUpgrading ? "Redirecting..." : "Upgrade now"}
+							{isUpgrading ? "Redirecting..." : ctaLabel}
 						</Button>
 					</div>
 				</div>

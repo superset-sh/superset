@@ -1,1 +1,5 @@
-export { formatPrice, getOrganizationOwners } from "./billing";
+export {
+	formatPrice,
+	getOrganizationOwners,
+	hasTrialedSubscription,
+} from "./billing";

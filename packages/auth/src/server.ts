@@ -15,14 +15,16 @@ import { OrganizationInvitationEmail } from "@superset/email/emails/organization
 import { PaymentFailedEmail } from "@superset/email/emails/payment-failed";
 import { SubscriptionCancelledEmail } from "@superset/email/emails/subscription-cancelled";
 import { SubscriptionStartedEmail } from "@superset/email/emails/subscription-started";
+import { TrialEndingEmail } from "@superset/email/emails/trial-ending";
 import { canInvite, type OrganizationRole } from "@superset/shared/auth";
+import { ACTIVE_SUBSCRIPTION_STATUSES } from "@superset/shared/billing";
 import { getTrustedVercelPreviewOrigins } from "@superset/shared/vercel-preview-origins";
 import { Client } from "@upstash/qstash";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { bearer, customSession, organization } from "better-auth/plugins";
 import { jwt } from "better-auth/plugins/jwt";
-import { and, count, desc, eq, sql } from "drizzle-orm";
+import { and, count, desc, eq, inArray, sql } from "drizzle-orm";
 import type Stripe from "stripe";
 import { env } from "./env";
 import { acceptInvitationEndpoint } from "./lib/accept-invitation-endpoint";
@@ -34,7 +36,11 @@ import {
 	type SessionOrganizationContext,
 } from "./lib/resolve-session-organization-state";
 import { stripeClient } from "./stripe";
-import { formatPrice, getOrganizationOwners } from "./utils";
+import {
+	formatPrice,
+	getOrganizationOwners,
+	hasTrialedSubscription,
+} from "./utils";
 
 const qstash = new Client({ token: env.QSTASH_TOKEN });
 
@@ -348,7 +354,7 @@ export const auth = betterAuth({
 					const subscription = await db.query.subscriptions.findFirst({
 						where: and(
 							eq(subscriptions.referenceId, organization.id),
-							eq(subscriptions.status, "active"),
+							inArray(subscriptions.status, [...ACTIVE_SUBSCRIPTION_STATUSES]),
 						),
 					});
 
@@ -372,7 +378,7 @@ export const auth = betterAuth({
 					const subscription = await db.query.subscriptions.findFirst({
 						where: and(
 							eq(subscriptions.referenceId, organization.id),
-							eq(subscriptions.status, "active"),
+							inArray(subscriptions.status, [...ACTIVE_SUBSCRIPTION_STATUSES]),
 						),
 					});
 
@@ -487,7 +493,7 @@ export const auth = betterAuth({
 					const subscription = await db.query.subscriptions.findFirst({
 						where: and(
 							eq(subscriptions.referenceId, organization.id),
-							eq(subscriptions.status, "active"),
+							inArray(subscriptions.status, [...ACTIVE_SUBSCRIPTION_STATUSES]),
 						),
 					});
 
@@ -580,7 +586,7 @@ export const auth = betterAuth({
 				const subscription = await db.query.subscriptions.findFirst({
 					where: and(
 						eq(subscriptions.referenceId, activeOrganizationId),
-						eq(subscriptions.status, "active"),
+						inArray(subscriptions.status, [...ACTIVE_SUBSCRIPTION_STATUSES]),
 					),
 				});
 				plan = subscription?.plan ?? null;
@@ -634,7 +640,9 @@ export const auth = betterAuth({
 						const subscription = await db.query.subscriptions.findFirst({
 							where: and(
 								eq(subscriptions.referenceId, referenceId),
-								eq(subscriptions.status, "active"),
+								inArray(subscriptions.status, [
+									...ACTIVE_SUBSCRIPTION_STATUSES,
+								]),
 							),
 						});
 						if (subscription?.plan === "enterprise") return false;
@@ -666,6 +674,11 @@ export const auth = betterAuth({
 						),
 					});
 
+					const trialEligible =
+						plan.name === "pro" &&
+						org?.id != null &&
+						!(await hasTrialedSubscription(org.id));
+
 					return {
 						params: {
 							customer: org?.stripeCustomerId ?? undefined,
@@ -675,6 +688,9 @@ export const auth = betterAuth({
 								organizationId: org?.id ?? "",
 								initiatedByUserId: user.id,
 							},
+							...(trialEligible && {
+								subscription_data: { trial_period_days: 14 },
+							}),
 						},
 					};
 				},
@@ -917,6 +933,80 @@ export const auth = betterAuth({
 						} catch (error) {
 							console.error(
 								"[stripe/plan-changed] Failed to queue Slack notification:",
+								error,
+							);
+						}
+					}
+
+					if (event.type === "customer.subscription.trial_will_end") {
+						const stripeSubscription = event.data.object as Stripe.Subscription;
+
+						const customerId =
+							typeof stripeSubscription.customer === "string"
+								? stripeSubscription.customer
+								: stripeSubscription.customer.id;
+
+						const org = await db.query.organizations.findFirst({
+							where: eq(authSchema.organizations.stripeCustomerId, customerId),
+						});
+
+						if (!org?.stripeCustomerId) return;
+
+						const subscription = await db.query.subscriptions.findFirst({
+							where: eq(subscriptions.referenceId, org.id),
+						});
+
+						const trialEndUnix = stripeSubscription.trial_end;
+						if (!trialEndUnix) return;
+						const trialEndsAt = new Date(trialEndUnix * 1000);
+
+						const item = stripeSubscription.items.data[0];
+						const interval = item?.price?.recurring?.interval;
+						const billingInterval: "monthly" | "yearly" =
+							interval === "year" ? "yearly" : "monthly";
+						const pricePerSeat = item?.price?.unit_amount ?? 0;
+						const currency = item?.price?.currency ?? "usd";
+						const seatCount = item?.quantity ?? subscription?.seats ?? 1;
+						const amount = formatPrice(pricePerSeat * seatCount, currency);
+
+						const owners = await getOrganizationOwners(org.id);
+
+						const portalSession =
+							await stripeClient.billingPortal.sessions.create({
+								customer: org.stripeCustomerId,
+								return_url: env.NEXT_PUBLIC_WEB_URL,
+							});
+
+						await resend.batch.send(
+							owners.map((owner) => ({
+								from: "Superset <noreply@superset.sh>",
+								to: owner.email,
+								subject: `Your Superset trial ends in 3 days`,
+								react: TrialEndingEmail({
+									ownerName: owner.name,
+									organizationName: org.name,
+									planName: subscription?.plan ?? "Pro",
+									trialEndsAt,
+									amount,
+									billingInterval,
+									billingPortalUrl: portalSession.url,
+								}),
+							})),
+						);
+
+						try {
+							await qstash.publishJSON({
+								url: NOTIFY_SLACK_URL,
+								body: {
+									eventType: "trial_will_end",
+									stripeSubscriptionId: stripeSubscription.id,
+									trialEndsAt: trialEndUnix,
+								},
+								retries: 3,
+							});
+						} catch (error) {
+							console.error(
+								"[stripe/trial-will-end] Failed to queue Slack notification:",
 								error,
 							);
 						}

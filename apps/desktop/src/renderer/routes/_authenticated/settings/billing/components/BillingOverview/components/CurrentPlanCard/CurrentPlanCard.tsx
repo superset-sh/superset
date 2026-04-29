@@ -12,6 +12,8 @@ interface CurrentPlanCardProps {
 	isRestoring?: boolean;
 	cancelAt?: Date | null;
 	periodEnd?: Date | null;
+	subscriptionStatus?: string | null;
+	trialEnd?: Date | null;
 }
 
 export function CurrentPlanCard({
@@ -22,11 +24,14 @@ export function CurrentPlanCard({
 	isRestoring,
 	cancelAt,
 	periodEnd,
+	subscriptionStatus,
+	trialEnd,
 }: CurrentPlanCardProps) {
 	const plan = PLANS[currentPlan];
 	const isPaidPlan = currentPlan !== "free";
 	const isEnterprise = currentPlan === "enterprise";
 	const isCancelingAtPeriodEnd = isPaidPlan && !isEnterprise && !!cancelAt;
+	const isTrialing = subscriptionStatus === "trialing" && !!trialEnd;
 
 	return (
 		<Card className="gap-0 rounded-lg border-border/60 py-0 shadow-none">
@@ -35,7 +40,14 @@ export function CurrentPlanCard({
 					<div className="min-w-0 flex-1">
 						<div className="flex items-center gap-2 mb-1">
 							<span className="text-sm font-medium">{plan.name} plan</span>
-							{isCancelingAtPeriodEnd && cancelAt ? (
+							{isTrialing && trialEnd ? (
+								<Badge
+									variant="outline"
+									className="text-amber-600 border-amber-600/30"
+								>
+									Trialing
+								</Badge>
+							) : isCancelingAtPeriodEnd && cancelAt ? (
 								<Badge
 									variant="outline"
 									className="text-amber-600 border-amber-600/30"
@@ -47,13 +59,15 @@ export function CurrentPlanCard({
 							)}
 						</div>
 						<p className="text-xs text-muted-foreground">
-							{isCancelingAtPeriodEnd
-								? "Your plan will be downgraded to Free at the end of the billing period"
-								: isEnterprise
-									? "Managed by your organization admin"
-									: isPaidPlan && periodEnd
-										? `Renews ${format(new Date(periodEnd), "MMMM d, yyyy")}`
-										: plan.description}
+							{isTrialing && trialEnd
+								? `Trial ends ${format(new Date(trialEnd), "MMMM d, yyyy")} — your card will be charged then`
+								: isCancelingAtPeriodEnd
+									? "Your plan will be downgraded to Free at the end of the billing period"
+									: isEnterprise
+										? "Managed by your organization admin"
+										: isPaidPlan && periodEnd
+											? `Renews ${format(new Date(periodEnd), "MMMM d, yyyy")}`
+											: plan.description}
 						</p>
 					</div>
 					{isPaidPlan &&

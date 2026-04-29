@@ -1,4 +1,5 @@
 import { stripeClient } from "@superset/auth/stripe";
+import { hasTrialedSubscription } from "@superset/auth/utils";
 import { db } from "@superset/db/client";
 import { members, subscriptions } from "@superset/db/schema";
 import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
@@ -65,6 +66,12 @@ async function requireOwnerWithCustomer(ctx: {
 }
 
 export const billingRouter = {
+	hasTrialed: protectedProcedure.query(async ({ ctx }) => {
+		const activeOrgId = ctx.activeOrganizationId;
+		if (!activeOrgId) return false;
+		return hasTrialedSubscription(activeOrgId);
+	}),
+
 	invoices: protectedProcedure.query(async ({ ctx }) => {
 		const activeOrgId = ctx.activeOrganizationId;
 		if (!activeOrgId) {

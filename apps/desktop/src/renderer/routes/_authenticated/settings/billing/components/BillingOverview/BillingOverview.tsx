@@ -1,3 +1,4 @@
+import { isActiveSubscriptionStatus } from "@superset/shared/billing";
 import { Button } from "@superset/ui/button";
 import { toast } from "@superset/ui/sonner";
 import { useLiveQuery } from "@tanstack/react-db";
@@ -43,8 +44,11 @@ export function BillingOverview({ visibleItems }: BillingOverviewProps) {
 		(q) => q.from({ subscriptions: collections.subscriptions }),
 		[collections],
 	);
-	const subscriptionData = subscriptionsData?.find(
-		(s) => s.status === "active",
+	const subscriptionData = subscriptionsData?.find((s) =>
+		isActiveSubscriptionStatus(s.status),
+	);
+	const hasTrialed = Boolean(
+		subscriptionsData?.some((s) => s.trialEnd != null),
 	);
 
 	// Derive plan from subscription data (not session, which can be stale)
@@ -69,6 +73,7 @@ export function BillingOverview({ visibleItems }: BillingOverviewProps) {
 		if (!activeOrgId || memberCount === undefined) return;
 
 		setIsUpgrading(true);
+		const successFlag = hasTrialed ? "true" : "trial";
 		try {
 			await authClient.subscription.upgrade(
 				{
@@ -76,7 +81,7 @@ export function BillingOverview({ visibleItems }: BillingOverviewProps) {
 					referenceId: activeOrgId,
 					annual,
 					seats: memberCount,
-					successUrl: `${env.NEXT_PUBLIC_WEB_URL}/settings/billing?success=true`,
+					successUrl: `${env.NEXT_PUBLIC_WEB_URL}/settings/billing?success=${successFlag}`,
 					cancelUrl: env.NEXT_PUBLIC_WEB_URL,
 					disableRedirect: true,
 				},
@@ -166,11 +171,14 @@ export function BillingOverview({ visibleItems }: BillingOverviewProps) {
 							isRestoring={isRestoring}
 							cancelAt={subscriptionData?.cancelAt}
 							periodEnd={subscriptionData?.periodEnd}
+							subscriptionStatus={subscriptionData?.status}
+							trialEnd={subscriptionData?.trialEnd}
 						/>
 						{plan === "free" && (
 							<UpgradeCard
 								onUpgrade={() => handleUpgrade(false)}
 								isUpgrading={isUpgrading || memberCount === undefined}
+								hasTrialed={hasTrialed}
 							/>
 						)}
 					</>

@@ -4,9 +4,12 @@ import {
 } from "@superset/shared/auth";
 import { alert } from "@superset/ui/atoms/Alert";
 import { Button } from "@superset/ui/button";
+import { useLiveQuery } from "@tanstack/react-db";
+import { format } from "date-fns";
 import { useState } from "react";
 import { HiOutlinePlus } from "react-icons/hi2";
 import { GATED_FEATURES, usePaywall } from "renderer/components/Paywall";
+import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { InviteMemberDialog } from "./components/InviteMemberDialog";
 
 interface InviteMemberButtonProps {
@@ -22,6 +25,15 @@ export function InviteMemberButton({
 }: InviteMemberButtonProps) {
 	const [open, setOpen] = useState(false);
 	const { gateFeature } = usePaywall();
+	const collections = useCollections();
+
+	const { data: subscriptionsData } = useLiveQuery(
+		(q) => q.from({ subscriptions: collections.subscriptions }),
+		[collections],
+	);
+	const trialingSub = subscriptionsData?.find(
+		(s) => s.status === "trialing" && s.trialEnd != null,
+	);
 
 	const invitableRoles = getInvitableRoles(currentUserRole);
 
@@ -32,10 +44,17 @@ export function InviteMemberButton({
 
 	const handleClick = () => {
 		gateFeature(GATED_FEATURES.INVITE_MEMBERS, () => {
+			const description =
+				trialingSub?.trialEnd != null
+					? `Adding members will increase your subscription cost after your trial ends on ${format(
+							new Date(trialingSub.trialEnd),
+							"MMMM d, yyyy",
+						)}.`
+					: "Adding members will increase your subscription cost, prorated to your billing cycle.";
+
 			alert({
 				title: "This will affect your billing",
-				description:
-					"Adding members will increase your subscription cost, prorated to your billing cycle.",
+				description,
 				actions: [
 					{ label: "Cancel", variant: "outline", onClick: () => {} },
 					{ label: "Continue", onClick: () => setOpen(true) },

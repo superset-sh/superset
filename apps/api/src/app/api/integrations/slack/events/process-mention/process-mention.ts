@@ -4,7 +4,8 @@ import {
 	subscriptions,
 	usersSlackUsers,
 } from "@superset/db/schema";
-import { and, eq } from "drizzle-orm";
+import { ACTIVE_SUBSCRIPTION_STATUSES } from "@superset/shared/billing";
+import { and, eq, inArray } from "drizzle-orm";
 import { posthog } from "@/lib/analytics";
 import { generateConnectUrl } from "../utils/generate-connect-url";
 import {
@@ -88,7 +89,7 @@ export async function processSlackMention({
 		db.query.subscriptions.findFirst({
 			where: and(
 				eq(subscriptions.referenceId, connection.organizationId),
-				eq(subscriptions.status, "active"),
+				inArray(subscriptions.status, [...ACTIVE_SUBSCRIPTION_STATUSES]),
 			),
 			columns: { id: true },
 		}),

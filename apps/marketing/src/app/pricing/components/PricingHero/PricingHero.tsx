@@ -14,8 +14,9 @@ export function PricingHero() {
 					Simple pricing for every team
 				</h1>
 				<p className="text-muted-foreground mt-3 max-w-lg">
-					Start free. Upgrade when your team outgrows it. Enterprise plans for
-					organizations with advanced security and compliance needs.
+					Start free. Try Pro free for 14 days when your team outgrows it.
+					Enterprise plans for organizations with advanced security and
+					compliance needs.
 				</p>
 
 				<GridCross className="bottom-0 left-0" />

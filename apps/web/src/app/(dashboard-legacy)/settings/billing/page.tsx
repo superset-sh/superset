@@ -12,16 +12,20 @@ export default async function BillingPage({
 	searchParams: Promise<{ success?: string }>;
 }) {
 	const { success } = await searchParams;
-	const isSuccess = success === "true";
+	const isSuccess = success === "true" || success === "trial";
+	const isTrialStart = success === "trial";
 
 	if (isSuccess) {
 		return (
 			<div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
 				<HiCheckCircle className="h-12 w-12 text-green-500" />
-				<h1 className="text-2xl font-semibold">Payment Successful</h1>
+				<h1 className="text-2xl font-semibold">
+					{isTrialStart ? "Your free trial has started" : "Payment Successful"}
+				</h1>
 				<p className="text-muted-foreground">
-					Your subscription has been activated. You can now access all Pro
-					features.
+					{isTrialStart
+						? "You have 14 days of Pro access. We'll charge your card when the trial ends — cancel anytime in billing."
+						: "Your subscription has been activated. You can now access all Pro features."}
 				</p>
 			</div>
 		);

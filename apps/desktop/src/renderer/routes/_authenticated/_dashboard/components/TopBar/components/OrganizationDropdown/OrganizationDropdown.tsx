@@ -14,6 +14,7 @@ import {
 } from "@superset/ui/dropdown-menu";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useNavigate } from "@tanstack/react-router";
+import { differenceInCalendarDays } from "date-fns";
 import { FaDiscord, FaGithub, FaXTwitter } from "react-icons/fa6";
 import { FiUsers } from "react-icons/fi";
 import {
@@ -54,6 +55,20 @@ export function OrganizationDropdown({
 	const activeOrganization = organizations?.find(
 		(o) => o.id === activeOrganizationId,
 	);
+
+	const { data: subscriptionsData } = useLiveQuery(
+		(q) => q.from({ subscriptions: collections.subscriptions }),
+		[collections],
+	);
+	const trialingSub = subscriptionsData?.find(
+		(s) => s.status === "trialing" && s.trialEnd != null,
+	);
+	const trialDaysLeft = trialingSub?.trialEnd
+		? Math.max(
+				0,
+				differenceInCalendarDays(new Date(trialingSub.trialEnd), new Date()),
+			)
+		: null;
 
 	const userEmail = session?.user?.email;
 
@@ -123,6 +138,21 @@ export function OrganizationDropdown({
 		<DropdownMenu>
 			<DropdownMenuTrigger asChild>{triggerButton}</DropdownMenuTrigger>
 			<DropdownMenuContent align={contentAlign} className="w-56">
+				{trialDaysLeft != null && (
+					<>
+						<DropdownMenuItem
+							onSelect={() => navigate({ to: "/settings/billing" })}
+							className="gap-2"
+						>
+							<span className="size-2 rounded-full bg-amber-500" />
+							<span>
+								Trial: {trialDaysLeft} {trialDaysLeft === 1 ? "day" : "days"}{" "}
+								left
+							</span>
+						</DropdownMenuItem>
+						<DropdownMenuSeparator />
+					</>
+				)}
 				{/* Organization */}
 				<DropdownMenuItem
 					onSelect={() => navigate({ to: "/settings/account" })}

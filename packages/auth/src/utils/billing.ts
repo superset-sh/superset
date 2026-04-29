@@ -1,7 +1,20 @@
 import { db } from "@superset/db/client";
-import { members } from "@superset/db/schema";
+import { members, subscriptions } from "@superset/db/schema";
 import * as authSchema from "@superset/db/schema/auth";
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNotNull } from "drizzle-orm";
+
+export async function hasTrialedSubscription(
+	organizationId: string,
+): Promise<boolean> {
+	const row = await db.query.subscriptions.findFirst({
+		where: and(
+			eq(subscriptions.referenceId, organizationId),
+			isNotNull(subscriptions.trialEnd),
+		),
+		columns: { id: true },
+	});
+	return row != null;
+}
 
 export async function getOrganizationOwners(organizationId: string) {
 	return db
