@@ -283,7 +283,6 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 						</Select>
 					</div>
 				)}
-
 			</div>
 		</div>
 	);

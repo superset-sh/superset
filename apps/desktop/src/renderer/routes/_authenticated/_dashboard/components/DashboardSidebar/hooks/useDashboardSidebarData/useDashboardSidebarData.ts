@@ -358,7 +358,10 @@ export function useDashboardSidebarData() {
 					workspace.hostId === machineId &&
 					sidebarProjectIds.has(workspace.projectId),
 			)
-			.map((workspace) => ({ ...workspace, lastActivityAt: null as Date | null }));
+			.map((workspace) => ({
+				...workspace,
+				lastActivityAt: null as Date | null,
+			}));
 
 		return [
 			...autoLocalMainWorkspaces,
