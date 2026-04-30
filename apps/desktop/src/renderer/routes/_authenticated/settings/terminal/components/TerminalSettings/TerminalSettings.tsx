@@ -7,6 +7,7 @@ import {
 } from "../../../utils/settings-search";
 import { LinkBehaviorSetting } from "./components/LinkBehaviorSetting";
 import { PresetsSection } from "./components/PresetsSection";
+import { ScrollbackSetting } from "./components/ScrollbackSetting";
 import { SessionsSection } from "./components/SessionsSection";
 import { V2PresetsSection } from "./components/V2PresetsSection";
 
@@ -59,6 +60,10 @@ export function TerminalSettings({
 		SETTING_ITEM_ID.TERMINAL_LINK_BEHAVIOR,
 		visibleItems,
 	);
+	const showScrollback = isItemVisible(
+		SETTING_ITEM_ID.TERMINAL_SCROLLBACK,
+		visibleItems,
+	);
 	const showSessions = isItemVisible(
 		SETTING_ITEM_ID.TERMINAL_SESSIONS,
 		visibleItems,
@@ -96,6 +101,7 @@ export function TerminalSettings({
 							onPendingCreateProjectIdChange={onPendingCreateProjectIdChange}
 						/>
 					))}
+				{showScrollback && <ScrollbackSetting key="scrollback" />}
 				{showLinkBehavior && <LinkBehaviorSetting key="link-behavior" />}
 				{showSessions && <SessionsSection key="sessions" />}
 			</SectionList>

@@ -205,6 +205,7 @@ export const settings = sqliteTable("settings", {
 	terminalLinkBehavior: text(
 		"terminal_link_behavior",
 	).$type<TerminalLinkBehavior>(),
+	terminalScrollbackLines: integer("terminal_scrollback_lines"),
 	terminalPersistence: integer("persist_terminal", { mode: "boolean" }).default(
 		true,
 	),

@@ -12,6 +12,7 @@ import {
 } from "react";
 import { useTerminalLinkActions } from "renderer/hooks/useV2UserPreferences";
 import { useHotkey } from "renderer/hotkeys";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
 	type ConnectionState,
 	terminalRuntimeRegistry,
@@ -28,6 +29,7 @@ import { ScrollToBottomButton } from "renderer/screens/main/components/Workspace
 import { TerminalSearch } from "renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/Terminal/TerminalSearch";
 import { useTheme } from "renderer/stores/theme";
 import { resolveTerminalThemeType } from "renderer/stores/theme/utils";
+import { DEFAULT_TERMINAL_SCROLLBACK } from "shared/constants";
 import { LinkHoverTooltip } from "./components/LinkHoverTooltip";
 import { useLinkClickHint } from "./hooks/useLinkClickHint";
 import { useLinkHoverState } from "./hooks/useLinkHoverState";
@@ -66,6 +68,10 @@ export function TerminalPane({
 	const appearance = useTerminalAppearance();
 	const appearanceRef = useRef(appearance);
 	appearanceRef.current = appearance;
+	const { data: terminalScrollbackLines = DEFAULT_TERMINAL_SCROLLBACK } =
+		electronTrpc.settings.getTerminalScrollbackLines.useQuery();
+	const terminalScrollbackLinesRef = useRef(terminalScrollbackLines);
+	terminalScrollbackLinesRef.current = terminalScrollbackLines;
 	const initialThemeTypeRef = useRef<
 		ReturnType<typeof resolveTerminalThemeType>
 	>(
@@ -135,6 +141,7 @@ export function TerminalPane({
 			container,
 			appearanceRef.current,
 			terminalInstanceId,
+			{ scrollbackLines: terminalScrollbackLinesRef.current },
 		);
 
 		terminalRuntimeRegistry.connect(
@@ -211,6 +218,14 @@ export function TerminalPane({
 			terminalInstanceId,
 		);
 	}, [terminalId, terminalInstanceId, appearance]);
+
+	useEffect(() => {
+		terminalRuntimeRegistry.updateScrollback(
+			terminalId,
+			terminalScrollbackLines,
+			terminalInstanceId,
+		);
+	}, [terminalId, terminalInstanceId, terminalScrollbackLines]);
 
 	// --- Link handlers ---
 	// All filesystem operations go through the host service.

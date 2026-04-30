@@ -7,6 +7,12 @@ import {
 	scanForShellReady,
 } from "@superset/shared/shell-ready-scanner";
 import {
+	createTerminalCommandScanState,
+	scanForTerminalCommandEvents,
+	type TerminalCommandEvent,
+	type TerminalCommandScanState,
+} from "@superset/shared/terminal-command-scanner";
+import {
 	createTerminalTitleScanState,
 	scanForTerminalTitle,
 	type TerminalTitleScanState,
@@ -19,11 +25,23 @@ import { projects, terminalSessions, workspaces } from "../db/schema";
 import type { EventBus } from "../events";
 import { portManager } from "../ports/port-manager";
 import {
+	type TerminalCommandRecord,
+	TerminalCommandRecordManager,
+	type TerminalCommandSource,
+} from "./command-records";
+import {
 	buildV2TerminalEnv,
 	getShellLaunchArgs,
 	getTerminalBaseEnv,
 	resolveLaunchShell,
 } from "./env";
+import {
+	clearInteractiveInputState,
+	consumeInteractiveCommand,
+	createInteractiveInputState,
+	type InteractiveInputState,
+	recordInteractiveInput,
+} from "./interactive-input-tracker";
 
 interface RegisterWorkspaceTerminalRouteOptions {
 	app: Hono;
@@ -52,6 +70,12 @@ function getHostAgentHookUrl(): string {
 type TerminalClientMessage =
 	| { type: "input"; data: string }
 	| { type: "initialCommand"; data: string }
+	| {
+			type: "runCommand";
+			command: string;
+			commandId?: string;
+			source?: Extract<TerminalCommandSource, "agent" | "system">;
+	  }
 	| { type: "resize"; cols: number; rows: number }
 	| { type: "dispose" };
 
@@ -60,9 +84,16 @@ type TerminalServerMessage =
 	| { type: "error"; message: string }
 	| { type: "exit"; exitCode: number; signal: number }
 	| { type: "replay"; data: string }
-	| { type: "title"; title: string | null };
+	| { type: "title"; title: string | null }
+	| { type: "commandRecordsSnapshot"; records: TerminalCommandRecord[] }
+	| { type: "commandRecordStarted"; record: TerminalCommandRecord }
+	| { type: "commandRecordUpdated"; record: TerminalCommandRecord }
+	| { type: "commandRecordFinished"; record: TerminalCommandRecord };
 
 const MAX_BUFFER_BYTES = 64 * 1024;
+const COMMAND_RECORD_SNAPSHOT_LIMIT = 50;
+const COMMAND_RECORD_SNAPSHOT_OUTPUT_CHARS = 16_384;
+const PENDING_RUN_COMMAND_LIMIT = 20;
 const SOCKET_OPEN = 1;
 const SOCKET_CLOSING = 2;
 const SOCKET_CLOSED = 3;
@@ -94,9 +125,16 @@ const SHELL_READY_TIMEOUT_MS = 15_000;
  */
 type ShellReadyState = "pending" | "ready" | "timed_out" | "unsupported";
 
+interface PendingTrackedCommand {
+	command: string;
+	commandId?: string;
+	source: Exclude<TerminalCommandSource, "user">;
+}
+
 interface TerminalSession {
 	terminalId: string;
 	workspaceId: string;
+	cwd: string;
 	pty: IPty;
 	sockets: Set<TerminalSocket>;
 	buffer: string[];
@@ -108,6 +146,12 @@ interface TerminalSession {
 	listed: boolean;
 	title: string | null;
 	titleScanState: TerminalTitleScanState;
+	commandScanState: TerminalCommandScanState;
+	commandRecords: TerminalCommandRecordManager;
+	commandMarkersEnabled: boolean;
+	promptReady: boolean;
+	pendingCommands: PendingTrackedCommand[];
+	interactiveInputState: InteractiveInputState;
 
 	// Shell readiness (OSC 133)
 	shellReadyState: ShellReadyState;
@@ -170,6 +214,49 @@ export function listTerminalSessions(
 		}));
 }
 
+export function listTerminalCommandRecords(options: {
+	workspaceId: string;
+	terminalId: string;
+	limit?: number;
+}): TerminalCommandRecord[] {
+	const session = sessions.get(options.terminalId);
+	if (!session || session.workspaceId !== options.workspaceId) return [];
+	return session.commandRecords.listRecords({ limit: options.limit });
+}
+
+export function getTerminalCommandRecord(options: {
+	workspaceId: string;
+	terminalId: string;
+	recordId: string;
+}): TerminalCommandRecord | null {
+	const session = sessions.get(options.terminalId);
+	if (!session || session.workspaceId !== options.workspaceId) return null;
+	return session.commandRecords.getRecord(options.recordId);
+}
+
+export function queueTerminalCommand(options: {
+	workspaceId: string;
+	terminalId: string;
+	command: string;
+	commandId?: string;
+	source?: Extract<TerminalCommandSource, "agent" | "system">;
+}): boolean {
+	const session = sessions.get(options.terminalId);
+	if (
+		!session ||
+		session.workspaceId !== options.workspaceId ||
+		session.exited
+	) {
+		return false;
+	}
+	enqueueTrackedCommand(session, {
+		command: options.command,
+		commandId: options.commandId,
+		source: options.source ?? "system",
+	});
+	return true;
+}
+
 function sendMessage(
 	socket: { send: (data: string) => void; readyState: number },
 	message: TerminalServerMessage,
@@ -226,6 +313,90 @@ function replayBuffer(
 	sendMessage(socket, { type: "replay", data: combined });
 }
 
+function sendCommandRecordsSnapshot(
+	session: TerminalSession,
+	socket: { send: (data: string) => void; readyState: number },
+) {
+	sendMessage(socket, {
+		type: "commandRecordsSnapshot",
+		records: session.commandRecords
+			.listRecords({ limit: COMMAND_RECORD_SNAPSHOT_LIMIT })
+			.map(compactRecordForSnapshot),
+	});
+}
+
+function compactTextForSnapshot(value: string): string {
+	const chars = Array.from(value);
+	if (chars.length <= COMMAND_RECORD_SNAPSHOT_OUTPUT_CHARS) return value;
+	return chars.slice(0, COMMAND_RECORD_SNAPSHOT_OUTPUT_CHARS).join("");
+}
+
+function compactRecordForSnapshot(
+	record: TerminalCommandRecord,
+): TerminalCommandRecord {
+	return {
+		...record,
+		outputHead: compactTextForSnapshot(record.outputHead),
+		outputTail: "",
+	};
+}
+
+function handleCommandEvent(
+	session: TerminalSession,
+	event: TerminalCommandEvent,
+): void {
+	if (!session.commandMarkersEnabled) return;
+
+	const now = Date.now();
+	if (event.type === "commandStart") {
+		session.promptReady = false;
+		const record = session.commandRecords.startCommand({
+			now,
+			cwd: null,
+			gitBranch: null,
+			command:
+				event.command ??
+				consumeInteractiveCommand(session.interactiveInputState),
+		});
+		broadcastMessage(session, { type: "commandRecordStarted", record });
+		return;
+	}
+
+	if (event.type === "commandFinish") {
+		session.promptReady = false;
+		const record = session.commandRecords.finishCommand({
+			now,
+			exitCode: event.exitCode,
+		});
+		if (record) {
+			broadcastMessage(session, { type: "commandRecordFinished", record });
+		}
+		return;
+	}
+
+	session.promptReady = true;
+	const record = session.commandRecords.finishActiveFromPrompt(now);
+	if (record) {
+		broadcastMessage(session, { type: "commandRecordFinished", record });
+	}
+	flushQueuedTrackedCommands(session);
+}
+
+function handleVisibleTerminalOutput(
+	session: TerminalSession,
+	data: string,
+): void {
+	if (data.length === 0) return;
+
+	session.commandRecords.appendOutput(data);
+
+	portManager.checkOutputForHint(data);
+
+	if (broadcastMessage(session, { type: "data", data }) === 0) {
+		bufferOutput(session, data);
+	}
+}
+
 /**
  * Transition out of `pending`. Flushes any partially-matched marker
  * bytes as terminal output (they weren't a real marker). Idempotent.
@@ -246,10 +417,18 @@ function resolveShellReady(
 		session.scanState.heldBytes = "";
 	}
 	session.scanState.matchPos = 0;
+	if (state === "ready" && session.commandMarkersEnabled) {
+		session.promptReady = true;
+	} else if (state === "timed_out") {
+		session.commandMarkersEnabled = false;
+		session.promptReady = true;
+		clearInteractiveInputState(session.interactiveInputState);
+	}
 	if (session.shellReadyResolve) {
 		session.shellReadyResolve();
 		session.shellReadyResolve = null;
 	}
+	flushQueuedTrackedCommands(session);
 }
 
 function queueInitialCommand(
@@ -258,14 +437,65 @@ function queueInitialCommand(
 ): void {
 	if (session.initialCommandQueued) return;
 	session.initialCommandQueued = true;
-	const cmd = initialCommand.endsWith("\n")
-		? initialCommand
-		: `${initialCommand}\n`;
-	session.shellReadyPromise.then(() => {
-		if (!session.exited) {
-			session.pty.write(cmd);
-		}
+	enqueueTrackedCommand(session, {
+		command: initialCommand,
+		source: "initial-command",
 	});
+}
+
+function writeTrackedCommand(
+	session: TerminalSession,
+	options: PendingTrackedCommand,
+): void {
+	if (session.exited) return;
+	const command = options.command.endsWith("\n")
+		? options.command
+		: `${options.command}\n`;
+	if (session.commandMarkersEnabled) {
+		session.commandRecords.queueExpectedCommand({
+			commandId: options.commandId,
+			command: options.command,
+			source: options.source,
+		});
+		session.pty.write(`\x15${command}`);
+		session.promptReady = false;
+		return;
+	}
+
+	session.pty.write(command);
+}
+
+function enqueueTrackedCommand(
+	session: TerminalSession,
+	command: PendingTrackedCommand,
+): void {
+	if (session.exited) return;
+	session.pendingCommands.push(command);
+	if (session.pendingCommands.length > PENDING_RUN_COMMAND_LIMIT) {
+		const dropped = session.pendingCommands.shift();
+		console.warn(
+			`[terminal] dropped pending run command id=${dropped?.commandId ?? "unknown"} terminalId=${session.terminalId}`,
+		);
+	}
+	session.shellReadyPromise.then(() => {
+		flushQueuedTrackedCommands(session);
+	});
+}
+
+function flushQueuedTrackedCommands(session: TerminalSession): void {
+	if (session.exited || session.pendingCommands.length === 0) return;
+
+	if (session.commandMarkersEnabled) {
+		if (!session.promptReady) return;
+		const next = session.pendingCommands.shift();
+		if (next) writeTrackedCommand(session, next);
+		return;
+	}
+
+	while (session.pendingCommands.length > 0) {
+		const next = session.pendingCommands.shift();
+		if (next) writeTrackedCommand(session, next);
+	}
 }
 
 /**
@@ -439,6 +669,12 @@ export function createTerminalSessionInternal({
 	// Determine shell readiness support
 	const shellName = shell.split("/").pop() || shell;
 	const shellSupportsReady = SHELLS_WITH_READY_MARKER.has(shellName);
+	const commandMarkersEnabled = shellName === "zsh" || shellName === "fish";
+	if (!commandMarkersEnabled) {
+		console.info(
+			`[terminal] semantic command records require OSC 133;C/D markers; bundled wrappers currently support zsh/fish shell=${shellName}`,
+		);
+	}
 
 	let shellReadyResolve: (() => void) | null = null;
 	const shellReadyPromise = shellSupportsReady
@@ -450,6 +686,7 @@ export function createTerminalSessionInternal({
 	const session: TerminalSession = {
 		terminalId,
 		workspaceId,
+		cwd,
 		pty,
 		sockets: new Set(),
 		buffer: [],
@@ -461,6 +698,15 @@ export function createTerminalSessionInternal({
 		listed,
 		title: null,
 		titleScanState: createTerminalTitleScanState(),
+		commandScanState: createTerminalCommandScanState(),
+		commandRecords: new TerminalCommandRecordManager({
+			terminalId,
+			workspaceId,
+		}),
+		commandMarkersEnabled,
+		promptReady: !commandMarkersEnabled,
+		pendingCommands: [],
+		interactiveInputState: createInteractiveInputState(),
 		shellReadyState: shellSupportsReady ? "pending" : "unsupported",
 		shellReadyResolve,
 		shellReadyPromise,
@@ -485,7 +731,7 @@ export function createTerminalSessionInternal({
 			setSessionTitle(session, title);
 		}
 
-		// Scan for OSC 133;A and strip it from output
+		// Scan for initial OSC 133;A readiness and strip it from output.
 		let data = rawData;
 		if (session.shellReadyState === "pending") {
 			const result = scanForShellReady(session.scanState, rawData);
@@ -494,12 +740,17 @@ export function createTerminalSessionInternal({
 				resolveShellReady(session, "ready");
 			}
 		}
-		if (data.length === 0) return;
 
-		portManager.checkOutputForHint(data);
-
-		if (broadcastMessage(session, { type: "data", data }) === 0) {
-			bufferOutput(session, data);
+		const commandScanResult = scanForTerminalCommandEvents(
+			session.commandScanState,
+			data,
+		);
+		for (const item of commandScanResult.items) {
+			if (item.type === "event") {
+				handleCommandEvent(session, item.event);
+			} else {
+				handleVisibleTerminalOutput(session, item.data);
+			}
 		}
 	});
 
@@ -509,6 +760,13 @@ export function createTerminalSessionInternal({
 		session.exitSignal = signal ?? 0;
 
 		portManager.unregisterSession(terminalId);
+		const finishedRecord = session.commandRecords.handlePtyExit(Date.now());
+		if (finishedRecord) {
+			broadcastMessage(session, {
+				type: "commandRecordFinished",
+				record: finishedRecord,
+			});
+		}
 
 		db.update(terminalSessions)
 			.set({ status: "exited", endedAt: Date.now() })
@@ -637,6 +895,7 @@ export function registerWorkspaceTerminalRoute({
 
 						result.sockets.add(ws);
 						sendMessage(ws, { type: "title", title: result.title });
+						sendCommandRecordsSnapshot(result, ws);
 
 						db.update(terminalSessions)
 							.set({ lastAttachedAt: Date.now() })
@@ -653,6 +912,7 @@ export function registerWorkspaceTerminalRoute({
 						.run();
 
 					sendMessage(ws, { type: "title", title: existing.title });
+					sendCommandRecordsSnapshot(existing, ws);
 					replayBuffer(existing, ws);
 					if (existing.exited) {
 						sendMessage(ws, {
@@ -686,12 +946,27 @@ export function registerWorkspaceTerminalRoute({
 					if (session.exited) return;
 
 					if (message.type === "input") {
+						if (session.commandMarkersEnabled) {
+							recordInteractiveInput(
+								session.interactiveInputState,
+								message.data,
+							);
+						}
 						session.pty.write(message.data);
 						return;
 					}
 
 					if (message.type === "initialCommand") {
 						queueInitialCommand(session, message.data);
+						return;
+					}
+
+					if (message.type === "runCommand") {
+						enqueueTrackedCommand(session, {
+							command: message.command,
+							commandId: message.commandId,
+							source: message.source === "agent" ? "agent" : "system",
+						});
 						return;
 					}
 

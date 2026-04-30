@@ -1,3 +1,4 @@
+import type { TerminalCommandRecord } from "@superset/shared/terminal-command-record";
 import type { ProgressAddon } from "@xterm/addon-progress";
 import type { SearchAddon } from "@xterm/addon-search";
 import type { TerminalAppearance } from "./appearance";
@@ -13,6 +14,7 @@ import {
 	disposeRuntime,
 	type TerminalRuntime,
 	updateRuntimeAppearance,
+	updateRuntimeScrollback,
 } from "./terminal-runtime";
 import {
 	type ConnectionState,
@@ -20,9 +22,11 @@ import {
 	connect,
 	createTransport,
 	disposeTransport,
+	type RunTerminalCommandOptions,
 	sendDispose,
 	sendInput,
 	sendResize,
+	sendRunCommand,
 	type TerminalLogEntry,
 	type TerminalTransport,
 } from "./terminal-ws-transport";
@@ -142,12 +146,14 @@ class TerminalRuntimeRegistryImpl {
 		container: HTMLDivElement,
 		appearance: TerminalAppearance,
 		instanceId = terminalId,
+		options: { scrollbackLines?: number } = {},
 	) {
 		const entry = this.getOrCreateEntry(terminalId, instanceId);
 
 		if (!entry.runtime) {
 			entry.runtime = createRuntime(terminalId, appearance, {
 				initialBuffer: this.serializeExistingRuntime(terminalId, instanceId),
+				scrollbackLines: options.scrollbackLines,
 			});
 			entry.linkManager = new TerminalLinkManager(entry.runtime.terminal);
 			if (entry.pendingLinkHandlers) {
@@ -156,6 +162,9 @@ class TerminalRuntimeRegistryImpl {
 			}
 		} else {
 			updateRuntimeAppearance(entry.runtime, appearance);
+			if (options.scrollbackLines !== undefined) {
+				updateRuntimeScrollback(entry.runtime, options.scrollbackLines);
+			}
 		}
 
 		const { runtime, transport } = entry;
@@ -250,6 +259,17 @@ class TerminalRuntimeRegistryImpl {
 		}
 	}
 
+	updateScrollback(
+		terminalId: string,
+		scrollbackLines: number,
+		instanceId = terminalId,
+	) {
+		const entry = this.getEntry(terminalId, instanceId);
+		if (!entry?.runtime) return;
+
+		updateRuntimeScrollback(entry.runtime, scrollbackLines);
+	}
+
 	private disposeEntry(
 		entry: RegistryEntry,
 		options: { clearPersistedState?: boolean } = {},
@@ -316,6 +336,17 @@ class TerminalRuntimeRegistryImpl {
 		sendInput(entry.transport, data);
 	}
 
+	runCommand(
+		terminalId: string,
+		command: string,
+		instanceId?: string,
+		options: RunTerminalCommandOptions = {},
+	): void {
+		const entry = this.getEntry(terminalId, instanceId);
+		if (!entry) return;
+		sendRunCommand(entry.transport, command, options);
+	}
+
 	findNext(terminalId: string, query: string, instanceId?: string): boolean {
 		const entry = this.getEntry(terminalId, instanceId);
 		return entry?.runtime?.searchAddon?.findNext(query) ?? false;
@@ -378,6 +409,16 @@ class TerminalRuntimeRegistryImpl {
 		return this.getEntry(terminalId, instanceId)?.transport.logs ?? EMPTY_LOGS;
 	}
 
+	getCommandRecords(
+		terminalId: string,
+		instanceId?: string,
+	): readonly TerminalCommandRecord[] {
+		return (
+			this.getEntry(terminalId, instanceId)?.transport.commandRecords ??
+			EMPTY_COMMAND_RECORDS
+		);
+	}
+
 	clearLogs(terminalId: string, instanceId?: string): void {
 		const entry = this.getEntry(terminalId, instanceId);
 		if (!entry) return;
@@ -419,11 +460,26 @@ class TerminalRuntimeRegistryImpl {
 			entry.transport.logListeners.delete(listener);
 		};
 	}
+
+	onCommandRecordsChange(
+		terminalId: string,
+		listener: () => void,
+		instanceId = terminalId,
+	): () => void {
+		const entry = this.getOrCreateEntry(terminalId, instanceId);
+		entry.transport.commandRecordListeners.add(listener);
+		return () => {
+			entry.transport.commandRecordListeners.delete(listener);
+		};
+	}
 }
 
 // Stable empty reference so useSyncExternalStore on a missing entry doesn't
 // thrash from getSnapshot returning a fresh array each call.
 const EMPTY_LOGS: readonly TerminalLogEntry[] = Object.freeze(
+	[],
+) as readonly [];
+const EMPTY_COMMAND_RECORDS: readonly TerminalCommandRecord[] = Object.freeze(
 	[],
 ) as readonly [];
 
@@ -444,4 +500,5 @@ export type {
 	LinkHoverInfo,
 	TerminalLinkHandlers,
 	TerminalLogEntry,
+	TerminalCommandRecord,
 };

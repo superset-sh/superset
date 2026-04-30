@@ -8,6 +8,7 @@ import { sanitizeTerminalFontFamily } from "renderer/lib/terminal/appearance";
 import { buildTerminalCommand } from "renderer/lib/terminal/launch-command";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { useTerminalTheme } from "renderer/stores/theme";
+import { DEFAULT_TERMINAL_SCROLLBACK } from "shared/constants";
 import { SessionKilledOverlay } from "./components";
 import { DEFAULT_TERMINAL_FONT_SIZE } from "./config";
 import { getDefaultTerminalBg } from "./helpers";
@@ -141,6 +142,8 @@ export const Terminal = memo(function Terminal({
 	// URL click handler - opens in app browser or system browser based on setting
 	const { data: openLinksInApp } =
 		electronTrpc.settings.getOpenLinksInApp.useQuery();
+	const { data: terminalScrollbackLines = DEFAULT_TERMINAL_SCROLLBACK } =
+		electronTrpc.settings.getTerminalScrollbackLines.useQuery();
 	const openInBrowserPane = useTabsStore((s) => s.openInBrowserPane);
 	const handleUrlClickRef = useRef<((url: string) => void) | undefined>(
 		undefined,
@@ -399,6 +402,12 @@ export const Terminal = memo(function Terminal({
 		if (!xterm || !terminalTheme) return;
 		xterm.options.theme = terminalTheme;
 	}, [terminalTheme]);
+
+	useEffect(() => {
+		if (!xtermInstance) return;
+		if (xtermInstance.options.scrollback === terminalScrollbackLines) return;
+		xtermInstance.options.scrollback = terminalScrollbackLines;
+	}, [xtermInstance, terminalScrollbackLines]);
 
 	const { data: fontSettings } = electronTrpc.settings.getFontSettings.useQuery(
 		undefined,

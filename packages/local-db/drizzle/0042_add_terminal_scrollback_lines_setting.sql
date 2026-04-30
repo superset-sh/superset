@@ -1,0 +1,1 @@
+ALTER TABLE `settings` ADD `terminal_scrollback_lines` integer;

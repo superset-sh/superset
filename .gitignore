@@ -65,6 +65,7 @@ next-env.d.ts
 
 # Reference material downloaded for agents
 examples
+temp/
 
 # Claude binaries - downloaded at build time
 apps/desktop/resources/bin/

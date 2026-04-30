@@ -5,8 +5,11 @@ import { terminalSessions, workspaces } from "../../../db/schema";
 import {
 	createTerminalSessionInternal,
 	disposeSession,
+	getTerminalCommandRecord,
+	listTerminalCommandRecords,
 	listTerminalSessions,
 	parseThemeType,
+	queueTerminalCommand,
 } from "../../../terminal/terminal";
 import { protectedProcedure, router } from "../../index";
 
@@ -53,6 +56,74 @@ export const terminalRouter = router({
 				includeExited: false,
 			}),
 		})),
+
+	listCommandRecords: protectedProcedure
+		.input(
+			z.object({
+				workspaceId: z.string(),
+				terminalId: z.string(),
+				limit: z.number().int().min(1).max(500).optional(),
+			}),
+		)
+		.query(({ input }) => ({
+			records: listTerminalCommandRecords({
+				workspaceId: input.workspaceId,
+				terminalId: input.terminalId,
+				limit: input.limit,
+			}),
+		})),
+
+	getCommandRecord: protectedProcedure
+		.input(
+			z.object({
+				workspaceId: z.string(),
+				terminalId: z.string(),
+				recordId: z.string(),
+			}),
+		)
+		.query(({ input }) => ({
+			record: getTerminalCommandRecord(input),
+		})),
+
+	rerunCommand: protectedProcedure
+		.input(
+			z.object({
+				workspaceId: z.string(),
+				terminalId: z.string(),
+				recordId: z.string(),
+				commandId: z.string().optional(),
+			}),
+		)
+		.mutation(({ input }) => {
+			const record = getTerminalCommandRecord(input);
+			if (!record) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Command record not found",
+				});
+			}
+			if (!record.command) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Command record has no command to rerun",
+				});
+			}
+
+			const queued = queueTerminalCommand({
+				workspaceId: input.workspaceId,
+				terminalId: input.terminalId,
+				command: record.command,
+				commandId: input.commandId,
+				source: "system",
+			});
+			if (!queued) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Terminal session not found",
+				});
+			}
+			return { status: "queued" as const };
+		}),
 
 	killSession: protectedProcedure
 		.input(

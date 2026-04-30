@@ -63,3 +63,17 @@ describe("settings search - font settings", () => {
 		expect(terminalFont?.section).toBe("appearance");
 	});
 });
+
+describe("settings search - terminal settings", () => {
+	it('searching "scrollback" returns the terminal scrollback setting', () => {
+		const results = searchSettings("scrollback");
+		const ids = getIds(results);
+		expect(ids).toContain(SETTING_ITEM_ID.TERMINAL_SCROLLBACK);
+	});
+
+	it('searching "terminal history" returns the terminal scrollback setting', () => {
+		const results = searchSettings("terminal history");
+		const ids = getIds(results);
+		expect(ids).toContain(SETTING_ITEM_ID.TERMINAL_SCROLLBACK);
+	});
+});

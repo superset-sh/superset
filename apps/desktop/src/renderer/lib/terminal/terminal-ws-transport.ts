@@ -1,3 +1,8 @@
+import {
+	TERMINAL_COMMAND_RECORD_LIMIT,
+	type TerminalCommandRecord,
+	type TerminalCommandSource,
+} from "@superset/shared/terminal-command-record";
 import type { Terminal as XTerm } from "@xterm/xterm";
 
 export type ConnectionState = "disconnected" | "connecting" | "open" | "closed";
@@ -16,7 +21,16 @@ type TerminalServerMessage =
 	| { type: "error"; message: string }
 	| { type: "exit"; exitCode: number; signal: number }
 	| { type: "replay"; data: string }
-	| { type: "title"; title: string | null };
+	| { type: "title"; title: string | null }
+	| { type: "commandRecordsSnapshot"; records: TerminalCommandRecord[] }
+	| { type: "commandRecordStarted"; record: TerminalCommandRecord }
+	| { type: "commandRecordUpdated"; record: TerminalCommandRecord }
+	| { type: "commandRecordFinished"; record: TerminalCommandRecord };
+
+export interface RunTerminalCommandOptions {
+	commandId?: string;
+	source?: Extract<TerminalCommandSource, "agent" | "system">;
+}
 
 export interface TerminalTransport {
 	socket: WebSocket | null;
@@ -24,9 +38,11 @@ export interface TerminalTransport {
 	/** The URL the socket is currently connected (or connecting) to. */
 	currentUrl: string | null;
 	title: string | null | undefined;
+	commandRecords: readonly TerminalCommandRecord[];
 	onDataDisposable: { dispose(): void } | null;
 	stateListeners: Set<() => void>;
 	titleListeners: Set<() => void>;
+	commandRecordListeners: Set<() => void>;
 	/**
 	 * Transport-level status log (WebSocket close/error/reconnect notices).
 	 * Surfaced to the pane UI instead of being written into the xterm buffer,
@@ -111,9 +127,11 @@ export function createTransport(): TerminalTransport {
 		connectionState: "disconnected",
 		currentUrl: null,
 		title: undefined,
+		commandRecords: EMPTY_COMMAND_RECORDS,
 		onDataDisposable: null,
 		stateListeners: new Set(),
 		titleListeners: new Set(),
+		commandRecordListeners: new Set(),
 		logs: [],
 		logListeners: new Set(),
 		_reconnectTimer: null,
@@ -121,6 +139,43 @@ export function createTransport(): TerminalTransport {
 		_terminal: null,
 		_exited: false,
 	};
+}
+
+const EMPTY_COMMAND_RECORDS: readonly TerminalCommandRecord[] = Object.freeze(
+	[],
+) as readonly [];
+
+function notifyCommandRecordListeners(transport: TerminalTransport) {
+	for (const listener of transport.commandRecordListeners) {
+		listener();
+	}
+}
+
+function setCommandRecords(
+	transport: TerminalTransport,
+	records: TerminalCommandRecord[],
+) {
+	transport.commandRecords = records.slice(-TERMINAL_COMMAND_RECORD_LIMIT);
+	notifyCommandRecordListeners(transport);
+}
+
+function upsertCommandRecord(
+	transport: TerminalTransport,
+	record: TerminalCommandRecord,
+) {
+	const index = transport.commandRecords.findIndex(
+		(existing) => existing.id === record.id,
+	);
+	if (index === -1) {
+		transport.commandRecords = [...transport.commandRecords, record]
+			.sort((a, b) => a.sequence - b.sequence)
+			.slice(-TERMINAL_COMMAND_RECORD_LIMIT);
+	} else {
+		const next = [...transport.commandRecords];
+		next[index] = record;
+		transport.commandRecords = next;
+	}
+	notifyCommandRecordListeners(transport);
 }
 
 function scheduleReconnect(transport: TerminalTransport) {
@@ -230,6 +285,20 @@ export function connect(
 			return;
 		}
 
+		if (message.type === "commandRecordsSnapshot") {
+			setCommandRecords(transport, message.records);
+			return;
+		}
+
+		if (
+			message.type === "commandRecordStarted" ||
+			message.type === "commandRecordUpdated" ||
+			message.type === "commandRecordFinished"
+		) {
+			upsertCommandRecord(transport, message.record);
+			return;
+		}
+
 		if (message.type === "error") {
 			terminal.writeln(`\r\n[terminal] ${message.message}`);
 			return;
@@ -310,6 +379,23 @@ export function sendInput(transport: TerminalTransport, data: string) {
 	transport.socket.send(JSON.stringify({ type: "input", data }));
 }
 
+export function sendRunCommand(
+	transport: TerminalTransport,
+	command: string,
+	options: RunTerminalCommandOptions = {},
+) {
+	if (!transport.socket || transport.socket.readyState !== WebSocket.OPEN)
+		return;
+	transport.socket.send(
+		JSON.stringify({
+			type: "runCommand",
+			command,
+			commandId: options.commandId,
+			source: options.source,
+		}),
+	);
+}
+
 export function sendDispose(transport: TerminalTransport) {
 	if (transport.socket?.readyState === WebSocket.OPEN) {
 		transport.socket.send(JSON.stringify({ type: "dispose" }));
@@ -330,6 +416,8 @@ export function disposeTransport(transport: TerminalTransport) {
 	transport.onDataDisposable = null;
 	transport.stateListeners.clear();
 	transport.titleListeners.clear();
+	transport.commandRecords = EMPTY_COMMAND_RECORDS;
+	transport.commandRecordListeners.clear();
 	transport.logs = [];
 	transport.logListeners.clear();
 }

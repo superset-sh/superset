@@ -104,6 +104,14 @@
 			"types": "./src/terminal-title-scanner.ts",
 			"default": "./src/terminal-title-scanner.ts"
 		},
+		"./terminal-command-scanner": {
+			"types": "./src/terminal-command-scanner.ts",
+			"default": "./src/terminal-command-scanner.ts"
+		},
+		"./terminal-command-record": {
+			"types": "./src/terminal-command-record.ts",
+			"default": "./src/terminal-command-record.ts"
+		},
 		"./rrule": {
 			"types": "./src/rrule.ts",
 			"default": "./src/rrule.ts"
