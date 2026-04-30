@@ -51,6 +51,14 @@ export interface CreateAppOptions {
 	 * never hit the network.
 	 */
 	api?: ApiClient;
+	/**
+	 * Optional Octokit factory override. When provided, replaces the
+	 * default factory that pulls a token from `providers.credentials` and
+	 * constructs an `Octokit`. Used by the integration test harness to
+	 * inject a fake Octokit-shaped object so github tests don't hit
+	 * api.github.com.
+	 */
+	github?: () => Promise<Octokit>;
 }
 
 export interface CreateAppResult {
@@ -67,15 +75,17 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 		options.api ?? createApiClient(config.cloudApiUrl, providers.auth);
 	const db = options.db ?? createDb(config.dbPath, config.migrationsFolder);
 	const git = createGitFactory(providers.credentials);
-	const github = async () => {
-		const token = await providers.credentials.getToken("github.com");
-		if (!token) {
-			throw new Error(
-				"No GitHub token available. Set GITHUB_TOKEN/GH_TOKEN or authenticate via git credential manager.",
-			);
-		}
-		return new Octokit({ auth: token });
-	};
+	const github =
+		options.github ??
+		(async () => {
+			const token = await providers.credentials.getToken("github.com");
+			if (!token) {
+				throw new Error(
+					"No GitHub token available. Set GITHUB_TOKEN/GH_TOKEN or authenticate via git credential manager.",
+				);
+			}
+			return new Octokit({ auth: token });
+		});
 
 	const pullRequestRuntime = new PullRequestRuntimeManager({
 		db,

@@ -32,6 +32,13 @@ export interface TestHostOptions {
 	psk?: string;
 	apiOverrides?: FakeApiOverrides;
 	githubToken?: string | null;
+	/**
+	 * Optional Octokit-shaped factory. Tests pass a fake to avoid hitting
+	 * api.github.com. The harness types the override as `unknown` and casts
+	 * since Octokit's full surface is huge — only the methods exercised by
+	 * the test under run need to be implemented.
+	 */
+	githubFactory?: () => Promise<unknown>;
 }
 
 export interface TestHost {
@@ -97,6 +104,9 @@ export async function createTestHost(
 		},
 		db: db as unknown as HostDb,
 		api: fakeApi.client,
+		github: options.githubFactory
+			? (options.githubFactory as CreateAppOptions["github"])
+			: undefined,
 	};
 
 	const result = createApp(createOptions);
