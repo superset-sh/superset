@@ -1,4 +1,5 @@
 import { CLIError, number, string } from "@superset/cli-framework";
+import { isValid, parseISO } from "date-fns";
 import { command } from "../../../lib/command";
 
 export default command({
@@ -24,8 +25,8 @@ export default command({
 			: undefined;
 		let dueDate: Date | undefined;
 		if (options.dueDate) {
-			const parsed = new Date(options.dueDate);
-			if (Number.isNaN(parsed.getTime())) {
+			const parsed = parseISO(options.dueDate);
+			if (!isValid(parsed)) {
 				throw new CLIError(
 					`--due-date: invalid ISO 8601 date "${options.dueDate}"`,
 				);
