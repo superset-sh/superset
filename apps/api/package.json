@@ -25,6 +25,7 @@
 		"@superset/auth": "workspace:*",
 		"@superset/db": "workspace:*",
 		"@superset/mcp": "workspace:*",
+		"@superset/mcp-v2": "workspace:*",
 		"@superset/shared": "workspace:*",
 		"@superset/trpc": "workspace:*",
 		"@t3-oss/env-nextjs": "^0.13.8",
