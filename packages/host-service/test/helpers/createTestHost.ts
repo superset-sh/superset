@@ -39,6 +39,16 @@ export interface TestHostOptions {
 	 * the test under run need to be implemented.
 	 */
 	githubFactory?: () => Promise<unknown>;
+	/**
+	 * Optional fake `ChatRuntimeManager`. Cast through `unknown` since the
+	 * full runtime surface is large — only methods the test exercises need
+	 * to be implemented.
+	 */
+	chatRuntime?: unknown;
+	/**
+	 * Optional fake `ChatService` (provider auth singleton).
+	 */
+	chatService?: unknown;
 }
 
 export interface TestHost {
@@ -107,6 +117,8 @@ export async function createTestHost(
 		github: options.githubFactory
 			? (options.githubFactory as CreateAppOptions["github"])
 			: undefined,
+		chatRuntime: options.chatRuntime as CreateAppOptions["chatRuntime"],
+		chatService: options.chatService as CreateAppOptions["chatService"],
 	};
 
 	const result = createApp(createOptions);

@@ -59,6 +59,19 @@ export interface CreateAppOptions {
 	 * api.github.com.
 	 */
 	github?: () => Promise<Octokit>;
+	/**
+	 * Optional `ChatRuntimeManager` override. When provided, replaces the
+	 * default that `createApp` would build. Used by the integration test
+	 * harness to inject a fake so chat-router tests don't pull in mastra.
+	 */
+	chatRuntime?: ChatRuntimeManager;
+	/**
+	 * Optional `ChatService` override (the per-machine provider auth
+	 * singleton wrapped by the `host.auth.*` router). Used by the
+	 * integration test harness to inject a fake so auth-router tests
+	 * don't pull in mastra storage.
+	 */
+	chatService?: ChatService;
 }
 
 export interface CreateAppResult {
@@ -94,14 +107,16 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 	});
 	pullRequestRuntime.start();
 	const filesystem = new WorkspaceFilesystemManager({ db });
-	const chatRuntime = new ChatRuntimeManager({
-		db,
-		runtimeResolver: providers.modelResolver,
-	});
+	const chatRuntime =
+		options.chatRuntime ??
+		new ChatRuntimeManager({
+			db,
+			runtimeResolver: providers.modelResolver,
+		});
 	// Provider auth (Anthropic / OpenAI OAuth + API keys) is per-machine, not
 	// per-workspace. ChatService is a long-lived singleton wrapping mastra's
 	// auth storage; the `host.auth.*` router proxies to it.
-	const chatService = new ChatService();
+	const chatService = options.chatService ?? new ChatService();
 
 	const runtime = {
 		auth: chatService,
