@@ -4,6 +4,10 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { workspaces } from "../../../../db/schema";
 import type { HostServiceContext } from "../../../../types";
+import {
+	buildWorkspaceNamingInput,
+	type NamingInputArgs,
+} from "./build-naming-input";
 import { listBranchNames } from "./list-branch-names";
 import { deduplicateBranchName } from "./sanitize-branch";
 
@@ -52,7 +56,10 @@ const workspaceNamesSchema = z.object({
 export type GeneratedWorkspaceNames = z.infer<typeof workspaceNamesSchema>;
 
 const INSTRUCTIONS = [
-	"You name new code workspaces from the user's initial prompt.",
+	"You name new code workspaces from context the user provides about the task.",
+	"The input may include linked issues, a linked pull request, and/or a free-form prompt.",
+	"Prefer linked issue and pull request titles as the source of truth — they typically describe the task most accurately.",
+	"Use the prompt as supporting context, but do not let conversational filler override a clear ticket/PR title.",
 	"Return a structured object with two fields:",
 	`- title: a short human-readable label (<= ${WORKSPACE_TITLE_MAX} chars). Full words only; never cut mid-word. No trailing punctuation.`,
 	`- branchName: a kebab-case git branch name (<= ${BRANCH_NAME_MAX} chars, 2-4 words). Only a-z 0-9 and dashes. No prefixes.`,
@@ -60,15 +67,18 @@ const INSTRUCTIONS = [
 ].join("\n");
 
 /**
- * Generates both a workspace title and a git branch name from a prompt
- * using a single structured-output LLM call. Shares the same credentials
- * path as `generateTitleFromMessage` (small model via `getSmallModel`).
+ * Generates both a workspace title and a git branch name from the user's
+ * task context (prompt + any linked issues/PR titles) using a single
+ * structured-output LLM call. Shares the same credentials path as
+ * `generateTitleFromMessage` (small model via `getSmallModel`).
+ *
+ * Returns null when the combined context is empty.
  */
-export async function generateWorkspaceNamesFromPrompt(
-	prompt: string,
+export async function generateWorkspaceNames(
+	args: NamingInputArgs,
 ): Promise<GeneratedWorkspaceNames | null> {
-	const cleaned = prompt.trim();
-	if (!cleaned) return null;
+	const input = buildWorkspaceNamingInput(args);
+	if (!input) return null;
 
 	const model = await getSmallModel();
 	if (!model) return null;
@@ -81,7 +91,7 @@ export async function generateWorkspaceNamesFromPrompt(
 	});
 
 	try {
-		const { object } = await agent.generate(cleaned, {
+		const { object } = await agent.generate(input, {
 			structuredOutput: {
 				schema: workspaceNamesSchema,
 				jsonPromptInjection: true,
@@ -89,10 +99,7 @@ export async function generateWorkspaceNamesFromPrompt(
 		});
 		return object;
 	} catch (error) {
-		console.warn(
-			"[generateWorkspaceNamesFromPrompt] generation failed:",
-			error,
-		);
+		console.warn("[generateWorkspaceNames] generation failed:", error);
 		return null;
 	}
 }
@@ -104,7 +111,12 @@ interface ApplyAiRenameArgs {
 	worktreePath: string;
 	oldBranchName: string;
 	oldWorkspaceName: string;
-	prompt: string;
+	/** Free-form composer prompt. Optional — may be empty when the user only attached tickets/PRs. */
+	prompt?: string;
+	/** Titles of linked GitHub/internal issues. */
+	linkedIssueTitles?: string[];
+	/** Title of the linked PR, if any. */
+	linkedPrTitle?: string;
 }
 
 /**
@@ -125,9 +137,15 @@ export async function applyAiWorkspaceRename(
 		oldBranchName,
 		oldWorkspaceName,
 		prompt,
+		linkedIssueTitles,
+		linkedPrTitle,
 	} = args;
 
-	const aiNames = await generateWorkspaceNamesFromPrompt(prompt);
+	const aiNames = await generateWorkspaceNames({
+		prompt,
+		linkedIssueTitles,
+		linkedPrTitle,
+	});
 	if (!aiNames) return;
 
 	const titleChanged =
