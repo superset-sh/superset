@@ -46,6 +46,46 @@ The cloud-side prerequisites (`v2Project.create` accepting `id?`,
 touch v1 — they're safe to ship. But they need v2-only consumers, not the
 shared `/new-project` page.
 
+## Locked-in decisions (2026-04-30, post-reset)
+
+After the reset, re-walked every decision under the "never touch v1" rule.
+The plan below replaces all earlier "consolidate via /new-project" thinking.
+
+| # | Decision | Choice |
+|---|---|---|
+| 1 | v2 strategy | Extend `NewProjectModal` as the canonical v2 create surface. No new route. |
+| 2 | Cloud prereqs | Re-ship both: `v2Project.delete` → `jwtProcedure` + idempotent, `v2Project.create` accepts `id?` |
+| 3 | Host-service saga | Re-ship all four mode handlers (clone/importLocal inverted, empty + template new) + cloud-first `project.remove` delete saga |
+| 4 | Modal tabs | Leave empty + template as "coming soon" stubs for now. Modal is clone-only. |
+| 5 | `visibility` schema field | Keep on host-service schema for empty/template; no UI consumer yet |
+| 6 | `DeleteProjectSection` caller fix | Yes — thread `organizationId` through (fixes the dormant Delete button) |
+| 7 | `DeleteProjectSection` route | Through host-service `client.project.remove` (single canonical v2 delete path) |
+| 8 | v2 dashboard dropdown | Leave as-is — keeps opening `NewProjectModal` |
+| 9 | Modal-level FSM | Skip. Per-tab `mutation.isPending` is enough while only clone is active |
+| 10 | Strict ensure variant | Yes — ship `ensureMainWorkspaceStrict()` for the saga; lenient version stays for sweep + `project.setup` |
+| 11 | Workspace-fail rollback | Cloud-delete via `v2Project.delete` + full local cleanup. Saga is the commit unit |
+| 12 | PK conflict mapping | Walk `err.cause` chain for `constraint === "v2_projects_pkey"`; throw `CONFLICT 409` |
+| 13 | Disk on project delete | Never auto-rm. Saga returns `repoPath` for a future explicit "delete files too" UI |
+| 14 | Templates list location | Ship in host-service config now (`utils/templates.ts`); UI deferred |
+
+### Implementation sequence (each step shippable on its own)
+
+All v2-only. Server-side first, mirroring the v2 delete-workspace audit pattern.
+
+1. Merge `origin/main` into the branch.
+2. **Cloud prereqs:** `v2Project.delete` → `jwtProcedure` + idempotent + `v2Project.create` accepts `id?` + PK-conflict cause-walk. Single commit.
+3. **Host-service saga:** add `ensureMainWorkspaceStrict`, invert `createFromClone` and `createFromImportLocal` to local-first, add `createFromEmpty` + `createFromTemplate`, add `initEmptyRepo` + `cloneTemplateInto` helpers + templates config. Single commit.
+4. **Host-service `project.remove` rework:** cloud-delete first, never auto-rm, returns `repoPath`. Single commit.
+5. **`DeleteProjectSection` fixup:** pass `organizationId` from `V2ProjectSettings`, call `client.project.remove` instead of `apiTrpcClient.v2Project.delete` directly. Single commit.
+
+### What stays untouched (v1-reached, off-limits)
+
+- `apps/desktop/src/renderer/routes/_authenticated/_onboarding/new-project/` — entire folder
+- `apps/desktop/src/lib/trpc/routers/projects/projects.ts` — `cloneRepo`, `createEmptyRepo`, `openNew`, helpers
+- `apps/desktop/src/renderer/react-query/projects/useOpenProject*.tsx` — `useOpenProject`, `useOpenNew`, `useOpenFromPath`
+- `apps/desktop/src/renderer/stores/add-repository-modal.ts` — used by `NewProjectModal` and `ProjectPickerPill`
+- `NewProjectModal.tsx` and the v2 sidebar dropdown — no behavior change beyond what already works (clone)
+
 ## TL;DR
 
 The v2 "new project" flow has **two parallel implementations**, **no FSM**, **no rollback on failure**, and the clone-from-git path is missing several steps the empty-repo path has and several steps users would reasonably expect (install, setup-script, env seeding). Project-creation success is decided from the union of disk truth + DB truth + settings truth, with no single state owner — so partial failures leak orphan directories and project rows without workspaces.
