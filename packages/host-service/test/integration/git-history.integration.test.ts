@@ -11,7 +11,7 @@ describe("git history + diff procedures", () => {
 	});
 
 	afterEach(async () => {
-		await scenario.dispose();
+		await scenario?.dispose();
 	});
 
 	test("listCommits returns [] when on default branch with nothing ahead", async () => {

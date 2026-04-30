@@ -12,7 +12,7 @@ describe("filesystem router integration", () => {
 	});
 
 	afterEach(async () => {
-		await scenario.dispose();
+		await scenario?.dispose();
 	});
 
 	test("listDirectory enumerates files in workspace root", async () => {

@@ -10,7 +10,7 @@ describe("pullRequests router integration", () => {
 	});
 
 	afterEach(async () => {
-		await scenario.dispose();
+		await scenario?.dispose();
 	});
 
 	test("getByWorkspaces returns [] for empty input", async () => {

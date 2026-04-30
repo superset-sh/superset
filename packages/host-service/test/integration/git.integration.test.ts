@@ -14,7 +14,7 @@ describe("git router integration", () => {
 	});
 
 	afterEach(async () => {
-		await scenario.dispose();
+		await scenario?.dispose();
 	});
 
 	test("listBranches returns the current and other branches", async () => {

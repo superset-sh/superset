@@ -10,7 +10,10 @@ describe("ports router integration", () => {
 	});
 
 	afterEach(async () => {
-		await host.dispose();
+		// Optional chain so a setup failure in beforeEach (which leaves
+		// `host` undefined at runtime) doesn't mask the original error
+		// with a teardown crash.
+		await host?.dispose();
 	});
 
 	test("getAll returns [] when no ports are tracked for the workspace", async () => {

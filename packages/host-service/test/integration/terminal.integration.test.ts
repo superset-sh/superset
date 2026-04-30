@@ -11,7 +11,7 @@ describe("terminal router integration", () => {
 	});
 
 	afterEach(async () => {
-		await scenario.dispose();
+		await scenario?.dispose();
 	});
 
 	test("listSessions returns empty when no sessions exist", async () => {

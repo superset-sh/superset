@@ -1,7 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { TRPCClientError } from "@trpc/client";
 import { type BasicScenario, createBasicScenario } from "../helpers/scenarios";
 
 describe("workspace router integration", () => {
@@ -12,7 +11,7 @@ describe("workspace router integration", () => {
 	});
 
 	afterEach(async () => {
-		await scenario.dispose();
+		await scenario?.dispose();
 	});
 
 	test("get returns the workspace row", async () => {
@@ -26,7 +25,7 @@ describe("workspace router integration", () => {
 	test("get throws NOT_FOUND for missing workspace", async () => {
 		await expect(
 			scenario.host.trpc.workspace.get.query({ id: "no-such-id" }),
-		).rejects.toBeInstanceOf(TRPCClientError);
+		).rejects.toMatchObject({ data: { code: "NOT_FOUND" } });
 	});
 
 	test("gitStatus reports clean repo with no changes", async () => {
@@ -58,6 +57,6 @@ describe("workspace router integration", () => {
 	test("gitStatus throws NOT_FOUND for missing workspace", async () => {
 		await expect(
 			scenario.host.trpc.workspace.gitStatus.query({ id: "no-such-id" }),
-		).rejects.toBeInstanceOf(TRPCClientError);
+		).rejects.toMatchObject({ data: { code: "NOT_FOUND" } });
 	});
 });

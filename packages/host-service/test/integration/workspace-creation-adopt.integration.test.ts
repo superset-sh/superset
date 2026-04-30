@@ -25,13 +25,19 @@ describe("workspaceCreation.adopt integration", () => {
 		});
 		dispose = scenario.dispose;
 
+		// Assert the specific PROJECT_NOT_SETUP cause structure (set by
+		// `requireLocalProject`'s `projectNotSetupError`) rather than just
+		// "any throw" — that way an unrelated regression that happens to
+		// throw doesn't pass this test.
 		await expect(
 			scenario.host.trpc.workspaceCreation.adopt.mutate({
 				projectId: randomUUID(),
 				workspaceName: "x",
 				branch: "feature/x",
 			}),
-		).rejects.toThrow();
+		).rejects.toMatchObject({
+			data: { code: "PRECONDITION_FAILED" },
+		});
 	});
 
 	test("rejects when no managed worktree exists for the branch", async () => {

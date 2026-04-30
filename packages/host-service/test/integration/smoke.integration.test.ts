@@ -80,9 +80,10 @@ describe("host-service smoke", () => {
 				},
 			},
 		);
-		expect(rejected.headers.get("access-control-allow-origin")).not.toBe(
-			"http://evil.example",
-		);
+		// A misconfigured wildcard `*` would also satisfy `not.toBe("http://evil.example")`
+		// — assert the header is absent entirely, which is what Hono's CORS
+		// middleware does for a non-allowlisted origin.
+		expect(rejected.headers.get("access-control-allow-origin")).toBeNull();
 	});
 
 	test("websocket routes reject unauthenticated upgrade attempts", async () => {

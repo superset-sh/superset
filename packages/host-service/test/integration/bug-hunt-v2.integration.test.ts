@@ -90,12 +90,13 @@ describe("bug-hunt-v2: workspaceCleanup.destroy phase ordering", () => {
 		repo.dispose();
 	});
 
-	test("when teardown.sh exists and the harness lacks PTY, runTeardown errors are surfaced as TEARDOWN_FAILED (not silently skipped)", async () => {
-		// We can't actually exercise teardown.sh in bun:test (no node-pty),
-		// but we can verify the procedure behaves correctly when no script
-		// exists: it should skip phase 1 and proceed to phase 2 (cloud
-		// delete). The bug we're hunting: phase 1 short-circuit on missing
-		// script.
+	test("destroy rejects a main workspace BEFORE running teardown or cloud-delete", async () => {
+		// We can't exercise the actual `teardown.sh` script in bun:test
+		// (the harness has no PTY). What we *can* verify here is the
+		// phase-0 main-workspace guard fires first, so a destructive cloud
+		// delete is never attempted on a main workspace even if teardown
+		// would otherwise be skipped. Real TEARDOWN_FAILED behavior would
+		// need a PTY-enabled harness to cover.
 		const workspaceId = randomUUID();
 		host = await createTestHost({
 			apiOverrides: {

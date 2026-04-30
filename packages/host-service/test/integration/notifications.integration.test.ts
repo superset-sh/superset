@@ -11,7 +11,7 @@ describe("notifications.hook integration", () => {
 	});
 
 	afterEach(async () => {
-		await scenario.dispose();
+		await scenario?.dispose();
 	});
 
 	test("ignores unknown event types without authentication", async () => {
