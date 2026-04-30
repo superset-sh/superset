@@ -1,3 +1,4 @@
+import { Button } from "@superset/ui/button";
 import { toast } from "@superset/ui/sonner";
 import { memo, useCallback, useRef, useState } from "react";
 import type { ChangesetFile } from "../../../../../useChangeset";
@@ -199,7 +200,7 @@ function DeferredDiffPlaceholder({
 		: `${(file.additions + file.deletions).toLocaleString()} changed lines`;
 
 	return (
-		<div className="flex flex-col overflow-hidden rounded-md border border-border">
+		<div className="flex flex-col overflow-hidden">
 			<DiffFileHeader
 				path={file.path}
 				status={file.status}
@@ -222,13 +223,15 @@ function DeferredDiffPlaceholder({
 					{subtitle && (
 						<div className="text-xs text-muted-foreground">{subtitle}</div>
 					)}
-					<button
+					<Button
 						type="button"
+						size="xs"
+						variant="outline"
 						onClick={onShow}
-						className="mt-1 rounded border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted"
+						className="mt-1"
 					>
 						Show diff
-					</button>
+					</Button>
 				</div>
 			)}
 		</div>
