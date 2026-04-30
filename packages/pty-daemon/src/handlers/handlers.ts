@@ -40,8 +40,17 @@ export interface HandlerCtx {
 }
 
 export function handleOpen(ctx: HandlerCtx, msg: OpenMessage): ServerMessage {
-	if (ctx.store.get(msg.id)) {
-		return errorFor(msg.id, `session already exists: ${msg.id}`, "EEXIST");
+	const existing = ctx.store.get(msg.id);
+	if (existing) {
+		// If the existing entry is for an already-exited shell, treat the open
+		// as recycling the id: drop the dead entry and let the spawn proceed.
+		// Live shells still reject with EEXIST so host-service drives the
+		// adoption-via-list path.
+		if (existing.exited) {
+			ctx.store.delete(msg.id);
+		} else {
+			return errorFor(msg.id, `session already exists: ${msg.id}`, "EEXIST");
+		}
 	}
 	let session: Session;
 	const spawnFn = ctx.spawnPty ?? defaultSpawn;
