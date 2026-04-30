@@ -240,15 +240,19 @@ function copyNativePackages(libDir: string, target: Target): void {
 }
 
 /**
- * Desktop's `install:deps` step runs electron-rebuild on every root
- * `bun install`, clobbering the hoisted `build/Release/*.node` binaries
- * of better-sqlite3 and node-pty with Electron-ABI builds. The shipped
- * Node.js runtime cannot load those. Fix up the staged copies:
+ * Native addons need to be built against the bundled Node runtime's ABI,
+ * not Electron's. Two cases:
  *
- * 1. `better-sqlite3`: download the Node-ABI prebuild from GitHub and
- *    overwrite `build/Release/better_sqlite3.node`.
- * 2. `node-pty`: delete `build/Release/` so the `bindings` loader falls
- *    through to the N-API prebuild in `prebuilds/<target>/pty.node`.
+ * - On macOS, desktop's `install:deps` runs electron-rebuild during root
+ *   `bun install` and clobbers the hoisted `build/Release/*.node` files
+ *   with Electron-ABI builds. So we always overwrite better-sqlite3's
+ *   binary with a fetched Node-ABI prebuild, and for node-pty we delete
+ *   `build/Release/` so the `bindings` loader falls through to its
+ *   bundled `prebuilds/<target>/pty.node`.
+ * - On Linux, node-pty ships no prebuilds, so we ALWAYS need a freshly
+ *   compiled `build/Release/pty.node` against the bundled Node runtime
+ *   (CI does this via `npm rebuild` after `bun install --ignore-scripts`).
+ *   Keep `build/Release/`.
  */
 async function fixNativeBinariesForNode(
 	libDir: string,
@@ -277,8 +281,9 @@ async function fixNativeBinariesForNode(
 		join(bsqDest, "better_sqlite3.node"),
 	);
 
+	const { platform } = targetParts(target);
 	const nodePtyBuild = join(destModules, "node-pty", "build");
-	if (existsSync(nodePtyBuild)) {
+	if (platform === "darwin" && existsSync(nodePtyBuild)) {
 		console.log(
 			"[build-dist] removing node-pty build/ so bindings falls back to prebuilds/",
 		);

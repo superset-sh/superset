@@ -52,7 +52,22 @@ jobs:
         with:
           node-version: 22
 
-      - name: Install dependencies
+      - name: Install dependencies (Linux — skip scripts, rebuild manually)
+        if: startsWith(matrix.target, 'linux-')
+        run: |
+          # Bun's install-script runner has a cache materialization race
+          # against node-pty's compile-from-source path on Linux (node-pty
+          # ships no Linux prebuilds). Skip scripts at install, then rebuild
+          # native deps explicitly via npm/node-gyp.
+          set -euo pipefail
+          bun install --frozen --ignore-scripts
+          PTY_DIR=$(ls -d node_modules/.bun/node-pty@*/node_modules/node-pty)
+          (cd "$PTY_DIR" && npx --yes node-gyp rebuild)
+          npm rebuild better-sqlite3
+          npm rebuild @parcel/watcher
+
+      - name: Install dependencies (macOS)
+        if: startsWith(matrix.target, 'darwin-')
         run: bun install --frozen
 
       - name: Build distribution
