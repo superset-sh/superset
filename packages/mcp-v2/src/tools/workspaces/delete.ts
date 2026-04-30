@@ -8,7 +8,7 @@ export function register(server: McpServer): void {
 	defineTool(server, {
 		name: "workspaces_delete",
 		description:
-			"Delete a workspace by UUID. The host service removes the git worktree from disk before returning. Cannot delete 'main'-type workspaces. Errors with relay 503 if the target host is not currently connected.",
+			"Delete a workspace by UUID. The host service removes the git worktree from disk before returning. Cannot delete 'main'-type workspaces.",
 		inputSchema: {
 			id: z.string().uuid().describe("Workspace UUID."),
 		},

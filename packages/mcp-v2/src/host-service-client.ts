@@ -56,7 +56,7 @@ export async function hostServiceMutation<TInput, TOutput>(
 	const rawBody = await response.text();
 	if (!response.ok) {
 		throw new HostServiceCallError(
-			`relay ${response.status}: ${rawBody.slice(0, 500)}`,
+			describeRelayFailure(response.status, rawBody, options.hostId, procedure),
 			response.status,
 			rawBody,
 		);
@@ -78,4 +78,20 @@ export async function hostServiceMutation<TInput, TOutput>(
 	return SuperJSON.deserialize(
 		data as Parameters<typeof SuperJSON.deserialize>[0],
 	) as TOutput;
+}
+
+function describeRelayFailure(
+	status: number,
+	rawBody: string,
+	hostId: string,
+	procedure: string,
+): string {
+	const trimmed = rawBody.slice(0, 200);
+	if (status === 503 && /host not connected/i.test(trimmed)) {
+		return `Host ${hostId} is not online`;
+	}
+	if (status === 401) return "You are not authenticated";
+	if (status === 403) return `You don't have access to host ${hostId}`;
+	if (status === 404) return `Host ${hostId} not found`;
+	return `Host ${hostId} returned ${status} for ${procedure}: ${trimmed}`;
 }

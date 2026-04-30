@@ -7,7 +7,7 @@ export function register(server: McpServer): void {
 	defineTool(server, {
 		name: "workspaces_create",
 		description:
-			"Create a workspace on a host. A workspace is a branch-scoped working copy of a project. The host service materializes the git worktree on disk before returning. Use projects_list and hosts_list first to get the projectId and hostId. Errors with relay 503 if the target host is not currently connected.",
+			"Create a workspace on a host. A workspace is a branch-scoped working copy of a project. The host service materializes the git worktree on disk before returning. Use projects_list and hosts_list first to get the projectId and hostId.",
 		inputSchema: {
 			projectId: z.string().uuid().describe("Project UUID."),
 			name: z.string().min(1).describe("Workspace name (display)."),
