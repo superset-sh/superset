@@ -13,7 +13,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
-import { boolean, CLIError } from "@superset/cli-framework";
+import { boolean, CLIError, string } from "@superset/cli-framework";
 import { command } from "../../lib/command";
 import { env } from "../../lib/env";
 
@@ -54,9 +54,14 @@ async function fetchLatestVersion(): Promise<string> {
 	return version;
 }
 
-function tarballUrl(target: string): string {
-	return `${ROLLING_DOWNLOAD_BASE}/superset-${target}.tar.gz`;
+function tarballUrl(target: string, version?: string): string {
+	if (!version) {
+		return `${ROLLING_DOWNLOAD_BASE}/superset-${target}.tar.gz`;
+	}
+	return `https://github.com/superset-sh/superset/releases/download/cli-v${version}/superset-${target}.tar.gz`;
 }
+
+const SEMVER_RE = /^[0-9]+\.[0-9]+\.[0-9]+(?:-[A-Za-z0-9.]+)?$/;
 
 async function downloadAndExtract(url: string, destDir: string): Promise<void> {
 	const response = await fetch(url);
@@ -127,7 +132,10 @@ export default command({
 	skipMiddleware: true,
 	options: {
 		check: boolean().desc("Only check for updates; don't install"),
-		force: boolean().desc("Re-install even if already on the latest version"),
+		force: boolean().desc("Re-install even if already on that version"),
+		to: string().desc(
+			"Install a specific CLI version (e.g. 0.1.2) instead of the rolling latest",
+		),
 	},
 	run: async ({ options }) => {
 		const target = detectTarget();
@@ -138,20 +146,31 @@ export default command({
 				"You're running a dev build (`bun run dev`). Re-run with the released binary.",
 			);
 		}
-		const latestVersion = await fetchLatestVersion();
 
-		const upToDate = !options.force && currentVersion === latestVersion;
+		const pinnedVersion = options.to?.replace(/^cli-v/, "");
+		if (pinnedVersion && !SEMVER_RE.test(pinnedVersion)) {
+			throw new CLIError(
+				`Invalid --to: ${options.to}`,
+				"Expected a semver like 0.1.2 (or cli-v0.1.2).",
+			);
+		}
+
+		const targetVersion = pinnedVersion ?? (await fetchLatestVersion());
+		const upToDate = !options.force && currentVersion === targetVersion;
 
 		if (options.check) {
 			return {
 				data: {
 					current: currentVersion,
-					latest: latestVersion,
+					target: targetVersion,
 					upToDate,
+					pinned: !!pinnedVersion,
 				},
 				message: upToDate
 					? `Up to date (${currentVersion}).`
-					: `Update available: ${currentVersion} → ${latestVersion}`,
+					: pinnedVersion
+						? `Will install pinned ${targetVersion} (currently ${currentVersion}).`
+						: `Update available: ${currentVersion} → ${targetVersion}`,
 			};
 		}
 
@@ -159,7 +178,7 @@ export default command({
 			return {
 				data: {
 					current: currentVersion,
-					latest: latestVersion,
+					target: targetVersion,
 					updated: false,
 				},
 				message: `Already on ${currentVersion}.`,
@@ -170,7 +189,7 @@ export default command({
 		const tempDir = mkdtempSync(join(tmpdir(), "superset-update-"));
 
 		try {
-			await downloadAndExtract(tarballUrl(target), tempDir);
+			await downloadAndExtract(tarballUrl(target, pinnedVersion), tempDir);
 			const newRoot = findExtractedRoot(tempDir);
 			const newBin = join(newRoot, "bin", "superset");
 			if (!existsSync(newBin)) {
@@ -187,11 +206,13 @@ export default command({
 			return {
 				data: {
 					current: currentVersion,
-					latest: latestVersion,
+					target: targetVersion,
 					updated: true,
 					installRoot,
 				},
-				message: `Updated ${currentVersion} → ${latestVersion} (${installRoot})`,
+				message: pinnedVersion
+					? `Installed ${targetVersion} (${installRoot})`
+					: `Updated ${currentVersion} → ${targetVersion} (${installRoot})`,
 			};
 		} finally {
 			rmSync(tempDir, { recursive: true, force: true });
