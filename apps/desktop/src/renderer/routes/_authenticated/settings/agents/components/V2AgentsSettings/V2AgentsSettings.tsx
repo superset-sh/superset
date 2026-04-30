@@ -212,6 +212,22 @@ export function V2AgentsSettings() {
 				<p className="text-sm text-muted-foreground">
 					Loading agent settings...
 				</p>
+			) : configsQuery.isError ? (
+				<div className="space-y-2">
+					<p className="text-sm text-destructive">
+						Couldn't load agent settings:{" "}
+						{configsQuery.error instanceof Error
+							? configsQuery.error.message
+							: "host service unavailable"}
+					</p>
+					<Button
+						variant="outline"
+						size="sm"
+						onClick={() => configsQuery.refetch()}
+					>
+						Retry
+					</Button>
+				</div>
 			) : configs.length === 0 ? (
 				<p className="text-sm text-muted-foreground">
 					No agents configured. Add one from the menu above.

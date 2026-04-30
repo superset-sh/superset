@@ -143,8 +143,12 @@ export function V2AgentCard({
 
 	const handleTransportChange = (next: PromptTransport) => {
 		if (next === promptTransport) return;
+		const prev = promptTransport;
 		setPromptTransport(next);
-		updateMutation.mutate({ promptTransport: next });
+		updateMutation.mutate(
+			{ promptTransport: next },
+			{ onError: () => setPromptTransport(prev) },
+		);
 	};
 
 	return (

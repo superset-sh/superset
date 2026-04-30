@@ -49,7 +49,12 @@ interface HostAgentConfigRow {
 }
 
 function parseArgv(value: string): string[] {
-	const parsed: unknown = JSON.parse(value);
+	let parsed: unknown;
+	try {
+		parsed = JSON.parse(value);
+	} catch {
+		return [];
+	}
 	if (
 		!Array.isArray(parsed) ||
 		parsed.some((item) => typeof item !== "string")
@@ -60,7 +65,12 @@ function parseArgv(value: string): string[] {
 }
 
 function parseEnv(value: string): Record<string, string> {
-	const parsed: unknown = JSON.parse(value);
+	let parsed: unknown;
+	try {
+		parsed = JSON.parse(value);
+	} catch {
+		return {};
+	}
 	if (
 		parsed === null ||
 		typeof parsed !== "object" ||
@@ -124,8 +134,8 @@ function seedDefaultsIfEmpty(db: HostDb): HostAgentConfigRow[] {
 
 const updatePatchSchema = z
 	.object({
-		label: z.string().min(1).optional(),
-		command: z.string().min(1).optional(),
+		label: z.string().trim().min(1).optional(),
+		command: z.string().trim().min(1).optional(),
 		args: argvSchema.optional(),
 		promptTransport: promptTransportSchema.optional(),
 		promptArgs: argvSchema.optional(),
@@ -256,10 +266,21 @@ export const agentConfigsRouter = router({
 			return toOutput(updated);
 		}),
 
-	/** Delete a single host agent config by id. */
+	/** Delete a single host agent config by id. Throws NOT_FOUND if missing. */
 	remove: protectedProcedure
 		.input(z.object({ id: z.string().min(1) }))
 		.mutation(({ ctx, input }) => {
+			const existing = ctx.db
+				.select({ id: hostAgentConfigs.id })
+				.from(hostAgentConfigs)
+				.where(eq(hostAgentConfigs.id, input.id))
+				.get();
+			if (!existing) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: `Host agent config not found: ${input.id}`,
+				});
+			}
 			ctx.db
 				.delete(hostAgentConfigs)
 				.where(eq(hostAgentConfigs.id, input.id))
@@ -270,6 +291,8 @@ export const agentConfigsRouter = router({
 	/**
 	 * Persist a new ordering. The submitted ids must match the current
 	 * configured ids exactly — no additions, no removals, no duplicates.
+	 * All updates run in a single transaction so a crash mid-loop can't
+	 * leave displayOrder half-updated.
 	 */
 	reorder: protectedProcedure
 		.input(z.object({ ids: z.array(z.string().min(1)).min(1) }))
@@ -293,36 +316,45 @@ export const agentConfigsRouter = router({
 				});
 			}
 			const now = Date.now();
-			input.ids.forEach((id, index) => {
-				ctx.db
-					.update(hostAgentConfigs)
-					.set({ displayOrder: index, updatedAt: now })
-					.where(eq(hostAgentConfigs.id, id))
-					.run();
+			ctx.db.transaction((tx) => {
+				input.ids.forEach((id, index) => {
+					tx.update(hostAgentConfigs)
+						.set({ displayOrder: index, updatedAt: now })
+						.where(eq(hostAgentConfigs.id, id))
+						.run();
+				});
 			});
 			return listOrdered(ctx.db).map(toOutput);
 		}),
 
-	/** Replace the current configs with the bundled defaults. */
+	/**
+	 * Replace the current configs with the bundled defaults. Wrapped in a
+	 * transaction so a crash between delete and insert can't leave the
+	 * table empty.
+	 */
 	resetToDefaults: protectedProcedure.mutation(({ ctx }) => {
-		const existing = listOrdered(ctx.db);
-		if (existing.length > 0) {
-			ctx.db
-				.delete(hostAgentConfigs)
-				.where(
-					inArray(
-						hostAgentConfigs.id,
-						existing.map((row) => row.id),
-					),
-				)
-				.run();
-		}
-		const seeds = getDefaultSeedPresets().map((preset, index) =>
-			rowFromPreset(preset, index),
-		);
-		if (seeds.length > 0) {
-			ctx.db.insert(hostAgentConfigs).values(seeds).run();
-		}
+		ctx.db.transaction((tx) => {
+			const existing = tx
+				.select({ id: hostAgentConfigs.id })
+				.from(hostAgentConfigs)
+				.all();
+			if (existing.length > 0) {
+				tx.delete(hostAgentConfigs)
+					.where(
+						inArray(
+							hostAgentConfigs.id,
+							existing.map((row) => row.id),
+						),
+					)
+					.run();
+			}
+			const seeds = getDefaultSeedPresets().map((preset, index) =>
+				rowFromPreset(preset, index),
+			);
+			if (seeds.length > 0) {
+				tx.insert(hostAgentConfigs).values(seeds).run();
+			}
+		});
 		return listOrdered(ctx.db).map(toOutput);
 	}),
 });

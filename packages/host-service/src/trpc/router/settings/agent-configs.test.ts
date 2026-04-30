@@ -174,6 +174,28 @@ describe("agentConfigsRouter", () => {
 				caller.update({ id: "does-not-exist", patch: { label: "x" } }),
 			).rejects.toThrow();
 		});
+
+		it("rejects whitespace-only label and command", async () => {
+			const caller = createCaller();
+			const first = await listFirst(caller);
+			await expect(
+				caller.update({ id: first.id, patch: { label: "   " } }),
+			).rejects.toThrow();
+			await expect(
+				caller.update({ id: first.id, patch: { command: "   " } }),
+			).rejects.toThrow();
+		});
+
+		it("trims label and command on save", async () => {
+			const caller = createCaller();
+			const first = await listFirst(caller);
+			const result = await caller.update({
+				id: first.id,
+				patch: { label: "  Trimmed  ", command: "  trimmed-cmd  " },
+			});
+			expect(result.label).toBe("Trimmed");
+			expect(result.command).toBe("trimmed-cmd");
+		});
 	});
 
 	describe("remove()", () => {
@@ -186,6 +208,14 @@ describe("agentConfigsRouter", () => {
 			expect(result.success).toBe(true);
 			const remaining = await caller.list();
 			expect(remaining.find((row) => row.id === first.id)).toBeUndefined();
+		});
+
+		it("throws NOT_FOUND for an unknown id", async () => {
+			const caller = createCaller();
+			await caller.list();
+			await expect(caller.remove({ id: "does-not-exist" })).rejects.toThrow(
+				/not found/i,
+			);
 		});
 	});
 
