@@ -4,6 +4,7 @@ import {
 	automations,
 	type SelectSubscription,
 	v2Hosts,
+	v2Projects,
 	v2UsersHosts,
 	v2Workspaces,
 } from "@superset/db/schema";
@@ -92,11 +93,12 @@ async function verifyHostAccess(
 async function verifyWorkspaceInOrg(
 	organizationId: string,
 	workspaceId: string,
-): Promise<void> {
+): Promise<{ id: string; projectId: string }> {
 	const [workspace] = await db
 		.select({
 			id: v2Workspaces.id,
 			organizationId: v2Workspaces.organizationId,
+			projectId: v2Workspaces.projectId,
 		})
 		.from(v2Workspaces)
 		.where(eq(v2Workspaces.id, workspaceId))
@@ -106,6 +108,22 @@ async function verifyWorkspaceInOrg(
 		throw new TRPCError({
 			code: "NOT_FOUND",
 			message: "Workspace not found",
+		});
+	}
+	return { id: workspace.id, projectId: workspace.projectId };
+}
+
+async function verifyProjectInOrg(organizationId: string, projectId: string) {
+	const [project] = await db
+		.select({ id: v2Projects.id, organizationId: v2Projects.organizationId })
+		.from(v2Projects)
+		.where(eq(v2Projects.id, projectId))
+		.limit(1);
+
+	if (!project || project.organizationId !== organizationId) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "Project not found",
 		});
 	}
 }
@@ -192,8 +210,29 @@ export const automationRouter = {
 					input.targetHostId,
 				);
 			}
+
+			let v2ProjectId = input.v2ProjectId;
 			if (input.v2WorkspaceId) {
-				await verifyWorkspaceInOrg(organizationId, input.v2WorkspaceId);
+				const workspace = await verifyWorkspaceInOrg(
+					organizationId,
+					input.v2WorkspaceId,
+				);
+				if (v2ProjectId && v2ProjectId !== workspace.projectId) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: "v2ProjectId does not match the workspace's project",
+					});
+				}
+				v2ProjectId = workspace.projectId;
+			} else if (v2ProjectId) {
+				await verifyProjectInOrg(organizationId, v2ProjectId);
+			}
+
+			if (!v2ProjectId) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "v2ProjectId required when v2WorkspaceId is not provided",
+				});
 			}
 
 			const dtstart = input.dtstart ?? new Date();
@@ -212,7 +251,7 @@ export const automationRouter = {
 					prompt: input.prompt,
 					agentConfig: input.agentConfig,
 					targetHostId: input.targetHostId ?? null,
-					v2ProjectId: input.v2ProjectId,
+					v2ProjectId,
 					v2WorkspaceId: input.v2WorkspaceId ?? null,
 					rrule: input.rrule,
 					dtstart,

@@ -2,7 +2,6 @@ import { auth } from "@superset/auth/server";
 import { db } from "@superset/db/client";
 import { headers } from "next/headers";
 import Image from "next/image";
-import { redirect } from "next/navigation";
 
 import { env } from "@/env";
 import { api } from "@/trpc/server";
@@ -18,13 +17,13 @@ export default async function ConsentPage({ searchParams }: ConsentPageProps) {
 	});
 
 	if (!session) {
-		const params = await searchParams;
-		const returnUrl = `/oauth/consent?${new URLSearchParams(params).toString()}`;
-		redirect(`/sign-in?redirect=${encodeURIComponent(returnUrl)}`);
+		// Defensive — middleware should have caught this.
+		return null;
 	}
 
 	const params = await searchParams;
-	const { client_id, scope } = params;
+	const client_id = params.client_id;
+	const scope = params.scope;
 
 	if (!client_id) {
 		return (

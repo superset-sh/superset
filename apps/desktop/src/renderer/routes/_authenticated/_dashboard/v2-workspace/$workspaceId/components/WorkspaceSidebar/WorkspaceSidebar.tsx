@@ -42,7 +42,6 @@ interface WorkspaceSidebarProps {
 	selectedFilePath?: string;
 	pendingReveal?: PendingReveal | null;
 	workspaceId: string;
-	workspaceName?: string;
 }
 
 function IconButton({
@@ -80,7 +79,6 @@ export function WorkspaceSidebar({
 	selectedFilePath,
 	pendingReveal,
 	workspaceId,
-	workspaceName,
 }: WorkspaceSidebarProps) {
 	const collections = useCollections();
 	const localState = collections.v2WorkspaceLocalState.get(workspaceId);
@@ -142,7 +140,6 @@ export function WorkspaceSidebar({
 				selectedFilePath={selectedFilePath}
 				pendingReveal={pendingReveal}
 				workspaceId={workspaceId}
-				workspaceName={workspaceName}
 				gitStatus={gitStatus.data}
 			/>
 		),
