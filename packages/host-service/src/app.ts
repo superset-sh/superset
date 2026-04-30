@@ -6,7 +6,7 @@ import type { MiddlewareHandler } from "hono";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { createApiClient } from "./api";
-import { createDb } from "./db";
+import { createDb, type HostDb } from "./db";
 import { EventBus, registerEventBusRoute } from "./events";
 import type { ApiAuthProvider } from "./providers/auth";
 import type { HostAuthProvider } from "./providers/host-auth";
@@ -35,19 +35,37 @@ export interface CreateAppOptions {
 		credentials: GitCredentialProvider;
 		modelResolver: ModelProviderRuntimeResolver;
 	};
+	/**
+	 * Optional pre-built drizzle `HostDb`. When provided, `createApp` skips
+	 * its own `createDb(config.dbPath, config.migrationsFolder)` call. Used
+	 * by the integration test harness to inject a `bun:sqlite`-backed db so
+	 * the suite can run under `bun test` (better-sqlite3 native bindings
+	 * aren't loadable by Bun — production runs on bundled Node where they
+	 * are).
+	 */
+	db?: HostDb;
+	/**
+	 * Optional pre-built cloud `ApiClient`. When provided, replaces the
+	 * client `createApp` would build via `createApiClient(...)`. Used by
+	 * the integration test harness to inject a fake cloud api so tests
+	 * never hit the network.
+	 */
+	api?: ApiClient;
 }
 
 export interface CreateAppResult {
 	app: Hono;
 	injectWebSocket: ReturnType<typeof createNodeWebSocket>["injectWebSocket"];
 	api: ApiClient;
+	dispose: () => Promise<void>;
 }
 
 export function createApp(options: CreateAppOptions): CreateAppResult {
 	const { config, providers } = options;
 
-	const api = createApiClient(config.cloudApiUrl, providers.auth);
-	const db = createDb(config.dbPath, config.migrationsFolder);
+	const api =
+		options.api ?? createApiClient(config.cloudApiUrl, providers.auth);
+	const db = options.db ?? createDb(config.dbPath, config.migrationsFolder);
 	const git = createGitFactory(providers.credentials);
 	const github = async () => {
 		const token = await providers.credentials.getToken("github.com");
@@ -146,5 +164,18 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 		}),
 	);
 
-	return { app, injectWebSocket, api };
+	const ownsDb = options.db === undefined;
+	const dispose = async (): Promise<void> => {
+		pullRequestRuntime.stop();
+		eventBus.close();
+		if (ownsDb) {
+			try {
+				(db as unknown as { $client?: { close: () => void } }).$client?.close();
+			} catch {
+				// best-effort close; tests should not fail on teardown
+			}
+		}
+	};
+
+	return { app, injectWebSocket, api, dispose };
 }
