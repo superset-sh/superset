@@ -23,11 +23,11 @@ describe("bug-hunt-v2: progress-store leak on early errors in workspaceCreation.
 		repo.dispose();
 	});
 
-	test.todo("BUG: PROJECT_NOT_SETUP error in create() leaks an 'active' progress entry", async () => {
-		// `setProgress(pendingId, 'ensuring_repo')` runs BEFORE
-		// `requireLocalProject` (which throws PROJECT_NOT_SETUP). The throw
-		// path doesn't call clearProgress, so getProgress returns a stale
-		// "active" state for up to 5 min until sweepStaleProgress catches it.
+	test("PROJECT_NOT_SETUP error in create() does not leak a stale progress entry", async () => {
+		// Regression: previously `setProgress(pendingId, 'ensuring_repo')`
+		// ran BEFORE `requireLocalProject` threw, and the throw path did not
+		// call clearProgress, leaving a stale "active" step for up to 5 min.
+		// Fixed via the outer try/finally in create.ts.
 		const pendingId = randomUUID();
 
 		await expect(
@@ -47,7 +47,7 @@ describe("bug-hunt-v2: progress-store leak on early errors in workspaceCreation.
 		expect(progress).toBeNull();
 	});
 
-	test.todo("BUG: empty branchName error in create() leaks 'creating_worktree' progress", async () => {
+	test("whitespace-only branchName error in create() does not leak progress", async () => {
 		const projectId = randomUUID();
 		host.db
 			.insert(projects)
