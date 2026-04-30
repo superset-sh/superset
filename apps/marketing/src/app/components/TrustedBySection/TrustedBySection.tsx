@@ -63,7 +63,7 @@ const CLIENT_LOGOS = [
 		name: "toss",
 		label: "Toss",
 		logo: "/logos/toss-wordmark.svg",
-		height: 24,
+		height: 18,
 	},
 	{
 		name: "google",
