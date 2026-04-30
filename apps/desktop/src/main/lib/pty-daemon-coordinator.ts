@@ -136,11 +136,18 @@ export class PtyDaemonCoordinator {
 			fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
 		}
 		const socketPath = ptyDaemonSocketPath(organizationId);
+		const logPath = path.join(dir, "pty-daemon.log");
 
-		const logFd = openRotatingLogFd(
-			path.join(dir, "pty-daemon.log"),
-			MAX_HOST_LOG_BYTES,
-		);
+		// Sanity: refuse to spawn if the script doesn't exist (e.g. dev build
+		// hasn't produced dist/main/pty-daemon.js yet). Otherwise the spawn
+		// will silently exit and we wait the full timeout.
+		if (!fs.existsSync(this.opts.scriptPath)) {
+			throw new Error(
+				`[pty-daemon:${organizationId}] script not found at ${this.opts.scriptPath} — restart electron-vite dev to bundle the new entry`,
+			);
+		}
+
+		const logFd = openRotatingLogFd(logPath, MAX_HOST_LOG_BYTES);
 		const stdio: childProcess.StdioOptions =
 			logFd >= 0 ? ["ignore", logFd, logFd] : ["ignore", "ignore", "ignore"];
 
@@ -150,6 +157,10 @@ export class PtyDaemonCoordinator {
 			ORGANIZATION_ID: organizationId,
 			SUPERSET_HOME_DIR,
 		};
+
+		console.log(
+			`[pty-daemon:${organizationId}] spawning ${this.opts.scriptPath} → ${socketPath} (log: ${logPath})`,
+		);
 
 		let child: ReturnType<typeof childProcess.spawn>;
 		try {
@@ -178,6 +189,14 @@ export class PtyDaemonCoordinator {
 			throw new Error(`[pty-daemon:${organizationId}] failed to spawn`);
 		}
 
+		// Capture an early exit so the timeout error reports the actual cause.
+		let earlyExitCode: number | null = null;
+		let earlyExitSignal: NodeJS.Signals | null = null;
+		child.once("exit", (code, signal) => {
+			earlyExitCode = code;
+			earlyExitSignal = signal;
+		});
+
 		// Wait for the socket file to appear AND become connectable.
 		const ready = await waitForSocket(socketPath, SOCKET_READY_TIMEOUT_MS);
 		if (!ready) {
@@ -186,8 +205,15 @@ export class PtyDaemonCoordinator {
 			} catch {
 				// best-effort
 			}
+			let logTail = "";
+			try {
+				const buf = fs.readFileSync(logPath, "utf-8");
+				logTail = buf.slice(-2000);
+			} catch {
+				logTail = "(no log file written)";
+			}
 			throw new Error(
-				`[pty-daemon:${organizationId}] socket did not become ready within ${SOCKET_READY_TIMEOUT_MS}ms`,
+				`[pty-daemon:${organizationId}] socket did not become ready within ${SOCKET_READY_TIMEOUT_MS}ms (childPid=${childPid}, earlyExit=${earlyExitCode ?? earlyExitSignal ?? "still alive"}). Log tail:\n${logTail}`,
 			);
 		}
 
