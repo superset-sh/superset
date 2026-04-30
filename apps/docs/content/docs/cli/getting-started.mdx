@@ -56,7 +56,7 @@ To use an API key instead of OAuth (recommended for CI):
 
 ```bash
 export SUPERSET_API_KEY=sk_live_…
-superset auth status
+superset auth whoami
 ```
 
 API keys are issued from the **Settings → API Keys** page in the web app.
@@ -64,13 +64,13 @@ API keys are issued from the **Settings → API Keys** page in the web app.
 ## Verify your session
 
 ```bash
-superset auth status
+superset auth whoami
 ```
 
 ```text
-User:         you@example.com
-Organization: Acme (acme)
-Auth source:  oauth
+Signed in as Satya Patel (you@example.com)
+Organization: Acme
+Auth: Session (expires in 32 min)
 ```
 
 ## Start the local host service
@@ -80,14 +80,14 @@ when targeting the local machine. It manages workspaces, ports, and agent
 runs. The desktop app starts it automatically; from the CLI:
 
 ```bash
-superset host start --daemon
+superset start --daemon
 ```
 
 ```bash
-superset host status
+superset status
 ```
 
-Stop it again with `superset host stop`. State is shared with the desktop
+Stop it again with `superset stop`. State is shared with the desktop
 app under `~/.superset/host/<organizationId>/`, so a host service started
 by either client is visible to both.
 
