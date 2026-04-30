@@ -63,15 +63,24 @@ export function getSupervisor(scriptPath?: string): DaemonSupervisor {
 export function startDaemonBootstrap(organizationId: string): void {
 	if (bootstrapPromise) return;
 	const sup = getSupervisor();
-	bootstrapPromise = sup.ensure(organizationId).catch((err) => {
-		console.error(
-			`[host-service] pty-daemon bootstrap failed for org=${organizationId}:`,
-			err,
-		);
-		// Reset so a future request can retry.
-		bootstrapPromise = null;
-		throw err;
-	});
+	console.log(`[supervisor] kicking off bootstrap for org=${organizationId}`);
+	bootstrapPromise = sup
+		.ensure(organizationId)
+		.then((inst) => {
+			console.log(
+				`[supervisor] bootstrap OK for org=${organizationId} pid=${inst.pid} version=${inst.runningVersion}${inst.updatePending ? " (update pending)" : ""}`,
+			);
+			return inst;
+		})
+		.catch((err) => {
+			console.error(
+				`[supervisor] bootstrap failed for org=${organizationId}:`,
+				err,
+			);
+			// Reset so a future request can retry.
+			bootstrapPromise = null;
+			throw err;
+		});
 }
 
 /**

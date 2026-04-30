@@ -6,6 +6,13 @@
 // per-row kill. Restart already achieves the kill-all effect for v2;
 // scrollback is owned per-session by the daemon's ring buffer with no
 // disk persistence; per-row kill belongs in the renderer's pane controls.
+//
+// Provider plumbing: workspaceTrpc needs a WorkspaceClientProvider with a
+// real host URL. Settings routes are *outside* any per-workspace provider
+// (they're org-level), so we mount our own here using the active org's
+// host URL from LocalHostServiceProvider. Without this wrapping, hooks
+// fall through to electron-trpc and fail with "no procedure on path
+// terminal.daemon.*" — there's no such namespace on electron-trpc.
 
 import {
 	AlertDialog,
@@ -18,12 +25,45 @@ import {
 import { Button } from "@superset/ui/button";
 import { Label } from "@superset/ui/label";
 import { toast } from "@superset/ui/sonner";
-import { workspaceTrpc } from "@superset/workspace-client";
+import {
+	WorkspaceClientProvider,
+	workspaceTrpc,
+} from "@superset/workspace-client";
 import { useState } from "react";
+import {
+	getHostServiceHeaders,
+	getHostServiceWsToken,
+} from "renderer/lib/host-service-auth";
+import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 
 const REFETCH_WHILE_OPEN_MS = 5_000;
 
 export function V2SessionsSection() {
+	const { activeHostUrl } = useLocalHostService();
+	if (!activeHostUrl) {
+		return (
+			<div className="space-y-1">
+				<Label className="text-sm font-medium">Manage daemon</Label>
+				<p className="text-xs text-muted-foreground">
+					Host service is starting…
+				</p>
+			</div>
+		);
+	}
+	return (
+		<WorkspaceClientProvider
+			cacheKey="settings-daemon"
+			key={activeHostUrl}
+			hostUrl={activeHostUrl}
+			headers={() => getHostServiceHeaders(activeHostUrl)}
+			wsToken={() => getHostServiceWsToken(activeHostUrl)}
+		>
+			<V2SessionsSectionInner />
+		</WorkspaceClientProvider>
+	);
+}
+
+function V2SessionsSectionInner() {
 	const [confirmRestartOpen, setConfirmRestartOpen] = useState(false);
 	const [showSessionList, setShowSessionList] = useState(false);
 
@@ -40,6 +80,20 @@ export function V2SessionsSection() {
 			refetchOnWindowFocus: true,
 		},
 	);
+	// Surface query errors so they're visible in renderer logs even when
+	// the section's UI gracefully degrades to "Daemon unavailable".
+	if (updateStatusQuery.error) {
+		console.error(
+			"[V2SessionsSection] getUpdateStatus error:",
+			updateStatusQuery.error,
+		);
+	}
+	if (sessionsQuery.error) {
+		console.error(
+			"[V2SessionsSection] listSessions error:",
+			sessionsQuery.error,
+		);
+	}
 
 	const restartDaemon = workspaceTrpc.terminal.daemon.restart.useMutation({
 		onSuccess: () => {

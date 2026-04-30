@@ -11,6 +11,10 @@ import { initTerminalBaseEnv, resolveTerminalBaseEnv } from "./terminal/env";
 import { connectRelay } from "./tunnel";
 
 async function main(): Promise<void> {
+	console.log(
+		`[host-service] starting (org=${env.ORGANIZATION_ID}, port=${env.PORT}, NODE_ENV=${process.env.NODE_ENV ?? "unset"})`,
+	);
+
 	const terminalBaseEnv = await resolveTerminalBaseEnv();
 	initTerminalBaseEnv(terminalBaseEnv);
 
