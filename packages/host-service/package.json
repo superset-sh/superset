@@ -39,7 +39,7 @@
 		"build:host": "bun run build.ts",
 		"generate": "drizzle-kit generate",
 		"typecheck": "tsc --noEmit --emitDeclarationOnly false",
-		"test:integration": "node --experimental-strip-types --test src/terminal/DaemonClient/DaemonClient.node-test.ts",
+		"test:integration": "node --experimental-strip-types --test src/terminal/DaemonClient/DaemonClient.node-test.ts src/daemon/DaemonSupervisor.node-test.ts",
 		"test:e2e": "bun run scripts/test-e2e.ts"
 	},
 	"dependencies": {
