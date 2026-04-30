@@ -5,10 +5,7 @@ import Image from "next/image";
 
 import { env } from "@/env";
 import { api } from "@/trpc/server";
-import { consumePendingAuthParams } from "../../utils/pendingAuthRedirect";
 import { ConsentForm } from "./components/ConsentForm";
-
-const PAGE_PATH = "/oauth/consent";
 
 interface ConsentPageProps {
 	searchParams: Promise<Record<string, string>>;
@@ -20,14 +17,13 @@ export default async function ConsentPage({ searchParams }: ConsentPageProps) {
 	});
 
 	if (!session) {
-		// Middleware (proxy.ts) handles unauth + cookie stashing.
+		// Defensive — middleware should have caught this.
 		return null;
 	}
 
 	const params = await searchParams;
-	const restored = (await consumePendingAuthParams(PAGE_PATH)) ?? {};
-	const client_id = params.client_id ?? restored.client_id;
-	const scope = params.scope ?? restored.scope;
+	const client_id = params.client_id;
+	const scope = params.scope;
 
 	if (!client_id) {
 		return (

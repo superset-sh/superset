@@ -23,6 +23,8 @@ export const updateTaskSchema = z.object({
 	estimate: z.number().int().positive().nullish(),
 	dueDate: z.coerce.date().nullish(),
 	labels: z.array(z.string()).nullish(),
+	// Deprecated: accepted-but-ignored. Drop in CLI-vNext cleanup PR.
+	branch: z.string().nullish(),
 });
 
 export const taskListInputSchema = z

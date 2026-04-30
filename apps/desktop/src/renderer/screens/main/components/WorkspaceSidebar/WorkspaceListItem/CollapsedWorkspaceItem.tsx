@@ -33,7 +33,6 @@ interface CollapsedWorkspaceItemProps {
 	isActive: boolean;
 	isUnread: boolean;
 	workspaceStatus: ActivePaneStatus | null;
-	diffStats?: { additions: number; deletions: number } | null;
 	itemRef: RefObject<HTMLButtonElement | null>;
 	showDeleteDialog: boolean;
 	setShowDeleteDialog: (open: boolean) => void;
@@ -52,7 +51,6 @@ export function CollapsedWorkspaceItem({
 	isActive,
 	isUnread,
 	workspaceStatus,
-	diffStats,
 	itemRef,
 	showDeleteDialog,
 	setShowDeleteDialog,
@@ -172,7 +170,6 @@ export function CollapsedWorkspaceItem({
 					<WorkspaceHoverCardContent
 						workspaceId={id}
 						workspaceAlias={name}
-						diffStats={diffStats}
 						onEditBranchClick={setRenameBranchTarget}
 					/>
 				</HoverCardContent>

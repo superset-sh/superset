@@ -3,13 +3,12 @@ import { toast } from "@superset/ui/sonner";
 import { workspaceTrpc } from "@superset/workspace-client";
 import { useQuery } from "@tanstack/react-query";
 import { memo, useMemo } from "react";
-import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import {
 	getDiffsTheme,
 	getDiffViewerStyle,
 } from "renderer/screens/main/components/WorkspaceView/utils/code-theme";
-import { useResolvedTheme } from "renderer/stores/theme";
+import { useResolvedTheme, useTerminalTheme } from "renderer/stores/theme";
 import type { DiffFileSource } from "../../../../../useChangeset";
 import { DiffFileHeader } from "../DiffFileHeader";
 
@@ -49,6 +48,7 @@ export const WorkspaceDiff = memo(function WorkspaceDiff({
 	onOpenInExternalEditor,
 }: WorkspaceDiffProps) {
 	const activeTheme = useResolvedTheme();
+	const terminalTheme = useTerminalTheme();
 	const { data: fontSettings } = useQuery({
 		queryKey: ["electron", "settings", "getFontSettings"],
 		queryFn: () => electronTrpcClient.settings.getFontSettings.query(),
@@ -61,31 +61,18 @@ export const WorkspaceDiff = memo(function WorkspaceDiff({
 			: typeof fontSettings?.editorFontSize === "string"
 				? Number.parseFloat(fontSettings.editorFontSize)
 				: Number.NaN;
-	const baseThemeVars = getDiffViewerStyle(activeTheme, {
-		fontFamily: fontSettings?.editorFontFamily ?? undefined,
-		fontSize: Number.isFinite(parsedEditorFontSize)
-			? parsedEditorFontSize
-			: undefined,
-	});
-	// Match the file tree's git decoration colors (v2 WorkspaceFilesTreeItem)
-	// so addition/deletion/modified highlights read the same across the pane.
-	const gitDecorationColors =
-		activeTheme.type === "dark"
-			? {
-					addition: "var(--color-green-400)",
-					deletion: "var(--color-red-500)",
-					modified: "var(--color-yellow-400)",
-				}
-			: {
-					addition: "var(--color-green-700)",
-					deletion: "var(--color-red-700)",
-					modified: "var(--color-yellow-600)",
-				};
+	// Match the terminal pane's surface color so the diff body blends with
+	// the chrome. The actual override happens in unsafeCSS below — this just
+	// paints the wrapper before the diff mounts.
+	const surfaceBg = terminalTheme?.background ?? "var(--background)";
 	const themeVars = {
-		...baseThemeVars,
-		"--diffs-addition-color-override": gitDecorationColors.addition,
-		"--diffs-deletion-color-override": gitDecorationColors.deletion,
-		"--diffs-modified-color-override": gitDecorationColors.modified,
+		...getDiffViewerStyle(activeTheme, {
+			fontFamily: fontSettings?.editorFontFamily ?? undefined,
+			fontSize: Number.isFinite(parsedEditorFontSize)
+				? parsedEditorFontSize
+				: undefined,
+		}),
+		backgroundColor: surfaceBg,
 	};
 
 	const diffInput = useMemo(() => {
@@ -118,14 +105,6 @@ export const WorkspaceDiff = memo(function WorkspaceDiff({
 	});
 	const worktreePath = workspaceQuery.data?.worktreePath;
 
-	const { copyToClipboard } = useCopyToClipboard();
-	const newContents = diffQuery.data?.newFile.contents;
-	const handleCopyContents = useMemo(
-		() =>
-			newContents != null ? () => copyToClipboard(newContents) : undefined,
-		[newContents, copyToClipboard],
-	);
-
 	const handleDiscard = useMemo(() => {
 		if (source.kind !== "unstaged" || !worktreePath) return undefined;
 		return () => {
@@ -140,7 +119,7 @@ export const WorkspaceDiff = memo(function WorkspaceDiff({
 	}, [source.kind, worktreePath, path]);
 
 	return (
-		<div className="flex flex-col overflow-hidden rounded-md border border-border">
+		<div className="flex flex-col overflow-hidden">
 			<DiffFileHeader
 				path={path}
 				status={status}
@@ -154,7 +133,6 @@ export const WorkspaceDiff = memo(function WorkspaceDiff({
 				onToggleViewed={onToggleViewed}
 				onOpenFile={onOpenFile}
 				onOpenInExternalEditor={onOpenInExternalEditor}
-				onCopyContents={handleCopyContents}
 				onDiscard={handleDiscard}
 			/>
 			{diffQuery.data ? (
@@ -171,9 +149,26 @@ export const WorkspaceDiff = memo(function WorkspaceDiff({
 						theme: shikiTheme,
 						themeType: activeTheme.type,
 						unsafeCSS: `
-							* {
-								user-select: text;
-								-webkit-user-select: text;
+							* { user-select: text; -webkit-user-select: text; }
+							/* Pierre sets --diffs-light-bg/--diffs-dark-bg
+							 * inline on <pre data-diff> from the Shiki theme;
+							 * inline beats :host so we override at the pre. */
+							[data-diff] {
+								--diffs-light-bg: ${surfaceBg} !important;
+								--diffs-dark-bg: ${surfaceBg} !important;
+							}
+							/* Flatten the "N unmodified lines" strip flush to
+							 * the pane edges (kills wrapper/content/expand-
+							 * button rounding + inline gap on both
+							 * line-info and line-info-basic). */
+							[data-separator^='line-info'] [data-separator-wrapper],
+							[data-separator^='line-info'] [data-separator-content],
+							[data-separator^='line-info'] [data-expand-up],
+							[data-separator^='line-info'] [data-expand-down],
+							[data-separator^='line-info'] [data-expand-both] {
+								border-radius: 0 !important;
+								margin-inline: 0 !important;
+								padding-inline: 0 !important;
 							}
 						`,
 					}}

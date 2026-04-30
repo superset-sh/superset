@@ -4,13 +4,22 @@ import Image from "next/image";
 
 import { env } from "@/env";
 import { api } from "@/trpc/server";
-import { consumePendingAuthParams } from "../../utils/pendingAuthRedirect";
 import { CliAuthorizeForm } from "./components/CliAuthorizeForm";
-
-const PAGE_PATH = "/cli/authorize";
 
 interface CliAuthorizePageProps {
 	searchParams: Promise<Record<string, string>>;
+}
+
+function isLoopbackRedirectUri(value: string): boolean {
+	let parsed: URL;
+	try {
+		parsed = new URL(value);
+	} catch {
+		return false;
+	}
+	if (parsed.protocol !== "http:") return false;
+	if (parsed.username !== "" || parsed.password !== "") return false;
+	return parsed.hostname === "127.0.0.1" || parsed.hostname === "localhost";
 }
 
 export default async function CliAuthorizePage({
@@ -29,9 +38,8 @@ export default async function CliAuthorizePage({
 	}
 
 	const params = await searchParams;
-	const restored = (await consumePendingAuthParams(PAGE_PATH)) ?? {};
-	const state = params.state ?? restored.state;
-	const redirectUri = params.redirect_uri ?? restored.redirect_uri;
+	const state = params.state;
+	const redirectUri = params.redirect_uri;
 
 	if (!state || !redirectUri) {
 		return (
@@ -43,10 +51,7 @@ export default async function CliAuthorizePage({
 		);
 	}
 
-	if (
-		!redirectUri.startsWith("http://127.0.0.1:") &&
-		!redirectUri.startsWith("http://localhost:")
-	) {
+	if (!isLoopbackRedirectUri(redirectUri)) {
 		return (
 			<div className="flex min-h-screen items-center justify-center">
 				<p className="text-destructive">

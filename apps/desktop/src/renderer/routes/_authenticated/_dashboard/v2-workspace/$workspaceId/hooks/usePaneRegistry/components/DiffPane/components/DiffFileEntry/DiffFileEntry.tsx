@@ -1,3 +1,4 @@
+import { Button } from "@superset/ui/button";
 import { toast } from "@superset/ui/sonner";
 import { memo, useCallback, useRef, useState } from "react";
 import type { ChangesetFile } from "../../../../../useChangeset";
@@ -33,6 +34,8 @@ interface DiffFileEntryProps {
 	diffStyle: "split" | "unified";
 	collapsed: boolean;
 	onSetCollapsed: (path: string, value: boolean) => void;
+	expanded: boolean;
+	onSetExpanded: (path: string, value: boolean) => void;
 	viewed: boolean;
 	onSetViewed: (path: string, next: boolean) => void;
 	onOpenFile: (path: string, openInNewTab?: boolean) => void;
@@ -45,6 +48,8 @@ export const DiffFileEntry = memo(function DiffFileEntry({
 	diffStyle,
 	collapsed,
 	onSetCollapsed,
+	expanded,
+	onSetExpanded,
 	viewed,
 	onSetViewed,
 	onOpenFile,
@@ -55,9 +60,9 @@ export const DiffFileEntry = memo(function DiffFileEntry({
 	const hasBeenNearRef = useRef(false);
 	if (isNear) hasBeenNearRef.current = true;
 
-	const [showFullDiff, setShowFullDiff] = useState(false);
 	const [expandUnchanged, setExpandUnchanged] = useState(false);
 	const reason = deferReason(file);
+	const showFullDiff = expanded;
 
 	const handleToggleCollapsed = useCallback(
 		() => onSetCollapsed(file.path, !collapsed),
@@ -90,7 +95,10 @@ export const DiffFileEntry = memo(function DiffFileEntry({
 		}
 		onOpenInExternalEditor(file.path);
 	}, [file.status, file.path, onOpenInExternalEditor, showDeletedFileToast]);
-	const handleShowFullDiff = useCallback(() => setShowFullDiff(true), []);
+	const handleShowFullDiff = useCallback(
+		() => onSetExpanded(file.path, true),
+		[onSetExpanded, file.path],
+	);
 	const handleToggleExpandUnchanged = useCallback(
 		() => setExpandUnchanged((prev) => !prev),
 		[],
@@ -192,7 +200,7 @@ function DeferredDiffPlaceholder({
 		: `${(file.additions + file.deletions).toLocaleString()} changed lines`;
 
 	return (
-		<div className="flex flex-col overflow-hidden rounded-md border border-border">
+		<div className="flex flex-col overflow-hidden">
 			<DiffFileHeader
 				path={file.path}
 				status={file.status}
@@ -215,13 +223,15 @@ function DeferredDiffPlaceholder({
 					{subtitle && (
 						<div className="text-xs text-muted-foreground">{subtitle}</div>
 					)}
-					<button
+					<Button
 						type="button"
+						size="xs"
+						variant="outline"
 						onClick={onShow}
-						className="mt-1 rounded border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted"
+						className="mt-1"
 					>
 						Show diff
-					</button>
+					</Button>
 				</div>
 			)}
 		</div>

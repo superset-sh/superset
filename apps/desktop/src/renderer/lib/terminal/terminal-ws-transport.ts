@@ -2,6 +2,15 @@ import type { Terminal as XTerm } from "@xterm/xterm";
 
 export type ConnectionState = "disconnected" | "connecting" | "open" | "closed";
 
+export type TerminalLogLevel = "info" | "warn" | "error";
+
+export interface TerminalLogEntry {
+	id: number;
+	timestamp: number;
+	level: TerminalLogLevel;
+	message: string;
+}
+
 type TerminalServerMessage =
 	| { type: "data"; data: string }
 	| { type: "error"; message: string }
@@ -18,6 +27,13 @@ export interface TerminalTransport {
 	onDataDisposable: { dispose(): void } | null;
 	stateListeners: Set<() => void>;
 	titleListeners: Set<() => void>;
+	/**
+	 * Transport-level status log (WebSocket close/error/reconnect notices).
+	 * Surfaced to the pane UI instead of being written into the xterm buffer,
+	 * so terminal scrollback stays clean.
+	 */
+	logs: TerminalLogEntry[];
+	logListeners: Set<() => void>;
 	/** Internal: auto-reconnect timer. */
 	_reconnectTimer: ReturnType<typeof setTimeout> | null;
 	/** Internal: reconnect attempt count for backoff. */
@@ -27,6 +43,9 @@ export interface TerminalTransport {
 	/** Set when the server sends an exit message — no reconnect after this. */
 	_exited: boolean;
 }
+
+const MAX_LOG_ENTRIES = 200;
+let logIdCounter = 0;
 
 function setConnectionState(
 	transport: TerminalTransport,
@@ -49,6 +68,39 @@ function setTerminalTitle(
 	}
 }
 
+function pushLog(
+	transport: TerminalTransport,
+	level: TerminalLogLevel,
+	message: string,
+) {
+	logIdCounter += 1;
+	const entry: TerminalLogEntry = {
+		id: logIdCounter,
+		timestamp: Date.now(),
+		level,
+		message,
+	};
+	const next =
+		transport.logs.length >= MAX_LOG_ENTRIES
+			? [
+					...transport.logs.slice(transport.logs.length - MAX_LOG_ENTRIES + 1),
+					entry,
+				]
+			: [...transport.logs, entry];
+	transport.logs = next;
+	for (const listener of transport.logListeners) {
+		listener();
+	}
+}
+
+export function clearLogs(transport: TerminalTransport) {
+	if (transport.logs.length === 0) return;
+	transport.logs = [];
+	for (const listener of transport.logListeners) {
+		listener();
+	}
+}
+
 const MAX_RECONNECT_DELAY = 10_000;
 const BASE_RECONNECT_DELAY = 500;
 const MAX_RECONNECT_ATTEMPTS = 10;
@@ -62,6 +114,8 @@ export function createTransport(): TerminalTransport {
 		onDataDisposable: null,
 		stateListeners: new Set(),
 		titleListeners: new Set(),
+		logs: [],
+		logListeners: new Set(),
 		_reconnectTimer: null,
 		_reconnectAttempt: 0,
 		_terminal: null,
@@ -199,8 +253,10 @@ export function connect(
 				!transport._reconnectTimer &&
 				Boolean(transport.currentUrl && transport._terminal) &&
 				transport._reconnectAttempt < MAX_RECONNECT_ATTEMPTS;
-			terminal.writeln(
-				`\r\n[terminal] WebSocket closed while connected to ${formatWsEndpoint(transport.currentUrl)} (${formatCloseDetails(event)}). ${willReconnect ? "Reconnecting..." : "Max reconnect attempts reached."}`,
+			pushLog(
+				transport,
+				willReconnect ? "warn" : "error",
+				`WebSocket closed while connected to ${formatWsEndpoint(transport.currentUrl)} (${formatCloseDetails(event)}). ${willReconnect ? "Reconnecting..." : "Max reconnect attempts reached."}`,
 			);
 		}
 		// Auto-reconnect on unexpected close (host-service restart, network blip)
@@ -209,8 +265,10 @@ export function connect(
 
 	socket.addEventListener("error", () => {
 		if (transport.socket !== socket) return;
-		terminal.writeln(
-			`\r\n[terminal] WebSocket error while connecting to ${formatWsEndpoint(transport.currentUrl)}. Check host-service or relay connectivity.`,
+		pushLog(
+			transport,
+			"error",
+			`WebSocket error while connecting to ${formatWsEndpoint(transport.currentUrl)}. Check host-service or relay connectivity.`,
 		);
 	});
 
@@ -272,4 +330,6 @@ export function disposeTransport(transport: TerminalTransport) {
 	transport.onDataDisposable = null;
 	transport.stateListeners.clear();
 	transport.titleListeners.clear();
+	transport.logs = [];
+	transport.logListeners.clear();
 }

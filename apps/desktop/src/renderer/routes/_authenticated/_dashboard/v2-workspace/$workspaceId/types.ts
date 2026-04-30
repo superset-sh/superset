@@ -44,6 +44,7 @@ export interface DevtoolsPaneData {
 export interface DiffPaneData {
 	path: string;
 	collapsedFiles: string[];
+	expandedFiles?: string[];
 }
 
 export interface CommentPaneData {

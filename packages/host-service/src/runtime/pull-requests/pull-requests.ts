@@ -6,6 +6,7 @@ import type { HostDb } from "../../db";
 import { projects, pullRequests, workspaces } from "../../db/schema";
 import type { GitFactory } from "../git";
 import { fetchRepositoryPullRequests } from "./utils/github-query";
+import type { GraphQLPullRequestNode } from "./utils/github-query/types";
 import {
 	type ChecksStatus,
 	coerceChecksStatus,
@@ -22,7 +23,11 @@ import {
 } from "./utils/pull-request-mappers";
 
 const BRANCH_SYNC_INTERVAL_MS = 30_000;
-const PROJECT_REFRESH_INTERVAL_MS = 10_000;
+const PROJECT_REFRESH_INTERVAL_MS = 20_000;
+// Multiple projects can target the same GitHub repo; collapse those into a
+// single GraphQL call within the polling window so we don't multiply traffic
+// by the number of projects.
+const REPO_PULL_REQUEST_CACHE_TTL_MS = 10_000;
 const UNBORN_HEAD_ERROR_PATTERNS = [
 	"ambiguous argument 'head'",
 	"unknown revision or path not in the working tree",
@@ -197,7 +202,10 @@ export class PullRequestRuntimeManager {
 	private branchSyncTimer: ReturnType<typeof setInterval> | null = null;
 	private projectRefreshTimer: ReturnType<typeof setInterval> | null = null;
 	private readonly inFlightProjects = new Map<string, Promise<void>>();
-	private readonly nextProjectRefreshAt = new Map<string, number>();
+	private readonly repoPullRequestCache = new Map<
+		string,
+		{ promise: Promise<GraphQLPullRequestNode[]>; fetchedAt: number }
+	>();
 
 	constructor(options: PullRequestRuntimeManagerOptions) {
 		this.db = options.db;
@@ -216,7 +224,7 @@ export class PullRequestRuntimeManager {
 		}, PROJECT_REFRESH_INTERVAL_MS);
 
 		void this.syncWorkspaceBranches();
-		void this.refreshEligibleProjects(true);
+		void this.refreshEligibleProjects();
 	}
 
 	stop() {
@@ -287,7 +295,9 @@ export class PullRequestRuntimeManager {
 
 		const projectIds = [...new Set(rows.map((row) => row.projectId))];
 		await Promise.all(
-			projectIds.map((projectId) => this.refreshProject(projectId, true)),
+			projectIds.map((projectId) =>
+				this.refreshProject(projectId, { bypassCache: true }),
+			),
 		);
 	}
 
@@ -345,12 +355,12 @@ export class PullRequestRuntimeManager {
 
 		await Promise.all(
 			[...changedProjectIds].map((projectId) =>
-				this.refreshProject(projectId, true),
+				this.refreshProject(projectId, { bypassCache: true }),
 			),
 		);
 	}
 
-	private async refreshEligibleProjects(force = false): Promise<void> {
+	private async refreshEligibleProjects(): Promise<void> {
 		const rows = this.db
 			.select({
 				projectId: workspaces.projectId,
@@ -359,27 +369,21 @@ export class PullRequestRuntimeManager {
 			.all();
 		const projectIds = [...new Set(rows.map((row) => row.projectId))];
 		await Promise.all(
-			projectIds.map((projectId) => this.refreshProject(projectId, force)),
+			projectIds.map((projectId) => this.refreshProject(projectId)),
 		);
 	}
 
 	private async refreshProject(
 		projectId: string,
-		force = false,
+		options: { bypassCache?: boolean } = {},
 	): Promise<void> {
-		const now = Date.now();
 		const existing = this.inFlightProjects.get(projectId);
 		if (existing) {
 			await existing;
 			return;
 		}
 
-		const nextEligibleRefreshAt = this.nextProjectRefreshAt.get(projectId) ?? 0;
-		if (!force && nextEligibleRefreshAt > now) {
-			return;
-		}
-
-		const refreshPromise = this.performProjectRefresh(projectId)
+		const refreshPromise = this.performProjectRefresh(projectId, options)
 			.catch((error) => {
 				console.warn(
 					"[host-service:pull-request-runtime] Project refresh failed",
@@ -391,17 +395,16 @@ export class PullRequestRuntimeManager {
 			})
 			.finally(() => {
 				this.inFlightProjects.delete(projectId);
-				this.nextProjectRefreshAt.set(
-					projectId,
-					Date.now() + PROJECT_REFRESH_INTERVAL_MS,
-				);
 			});
 
 		this.inFlightProjects.set(projectId, refreshPromise);
 		await refreshPromise;
 	}
 
-	private async performProjectRefresh(projectId: string): Promise<void> {
+	private async performProjectRefresh(
+		projectId: string,
+		options: { bypassCache?: boolean } = {},
+	): Promise<void> {
 		const repo = await this.getProjectRepository(projectId);
 		if (!repo) return;
 
@@ -426,6 +429,7 @@ export class PullRequestRuntimeManager {
 			projectId,
 			repo,
 			wantedKeys,
+			options,
 		);
 
 		for (const workspace of projectWorkspaces) {
@@ -501,18 +505,49 @@ export class PullRequestRuntimeManager {
 		};
 	}
 
+	private async getCachedRepoPullRequests(
+		repo: NormalizedRepoIdentity,
+		options: { bypassCache?: boolean } = {},
+	): Promise<GraphQLPullRequestNode[]> {
+		const cacheKey = `${repo.owner.toLowerCase()}/${repo.name.toLowerCase()}`;
+		if (!options.bypassCache) {
+			const cached = this.repoPullRequestCache.get(cacheKey);
+			if (
+				cached &&
+				Date.now() - cached.fetchedAt < REPO_PULL_REQUEST_CACHE_TTL_MS
+			) {
+				return cached.promise;
+			}
+		}
+
+		const fetchedAt = Date.now();
+		const promise = (async () => {
+			const octokit = await this.github();
+			return fetchRepositoryPullRequests(octokit, {
+				owner: repo.owner,
+				name: repo.name,
+			});
+		})();
+		// Evict on failure so the next caller retries instead of serving a
+		// poisoned cache entry for the rest of the TTL.
+		promise.catch(() => {
+			if (this.repoPullRequestCache.get(cacheKey)?.promise === promise) {
+				this.repoPullRequestCache.delete(cacheKey);
+			}
+		});
+		this.repoPullRequestCache.set(cacheKey, { promise, fetchedAt });
+		return promise;
+	}
+
 	private async fetchRepoPullRequests(
 		projectId: string,
 		repo: NormalizedRepoIdentity,
 		wantedKeys: Set<string>,
+		options: { bypassCache?: boolean } = {},
 	): Promise<Map<string, { id: string }>> {
 		if (wantedKeys.size === 0) return new Map();
 
-		const octokit = await this.github();
-		const nodes = await fetchRepositoryPullRequests(octokit, {
-			owner: repo.owner,
-			name: repo.name,
-		});
+		const nodes = await this.getCachedRepoPullRequests(repo, options);
 
 		const latestByKey = new Map<string, (typeof nodes)[number]>();
 

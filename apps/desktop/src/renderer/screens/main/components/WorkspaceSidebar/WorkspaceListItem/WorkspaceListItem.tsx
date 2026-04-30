@@ -160,21 +160,6 @@ export function WorkspaceListItem({
 		enabled: hasHovered && !!worktreePath,
 		staleTime: GITHUB_STATUS_STALE_TIME,
 	});
-	const localDiffStats = useMemo(() => {
-		if (!localChanges) return null;
-		const allFiles =
-			localChanges.againstBase.length > 0
-				? localChanges.againstBase
-				: [
-						...localChanges.staged,
-						...localChanges.unstaged,
-						...localChanges.untracked,
-					];
-		const additions = allFiles.reduce((sum, f) => sum + (f.additions || 0), 0);
-		const deletions = allFiles.reduce((sum, f) => sum + (f.deletions || 0), 0);
-		if (additions === 0 && deletions === 0) return null;
-		return { additions, deletions };
-	}, [localChanges]);
 
 	const { data: aheadBehind, refetch: refetchAheadBehind } =
 		electronTrpc.workspaces.getAheadBehind.useQuery(
@@ -190,6 +175,22 @@ export function WorkspaceListItem({
 		workspaceBranch: branch,
 		workspaceId: id,
 	});
+
+	const localDiffStats = useMemo(() => {
+		if (!localChanges) return null;
+		const allFiles =
+			localChanges.againstBase.length > 0
+				? localChanges.againstBase
+				: [
+						...localChanges.staged,
+						...localChanges.unstaged,
+						...localChanges.untracked,
+					];
+		const additions = allFiles.reduce((sum, f) => sum + (f.additions || 0), 0);
+		const deletions = allFiles.reduce((sum, f) => sum + (f.deletions || 0), 0);
+		if (additions === 0 && deletions === 0) return null;
+		return { additions, deletions };
+	}, [localChanges]);
 
 	const handleClick = (e?: React.MouseEvent) => {
 		if (rename.isRenaming) return;
@@ -249,7 +250,11 @@ export function WorkspaceListItem({
 	};
 
 	const pr = githubStatus?.pr;
-	const diffStats = localDiffStats;
+	const diffStats =
+		localDiffStats ||
+		(pr && (pr.additions > 0 || pr.deletions > 0)
+			? { additions: pr.additions, deletions: pr.deletions }
+			: null);
 
 	const showBranchSubtitle = isBranchWorkspace || (!!name && name !== branch);
 
@@ -263,7 +268,6 @@ export function WorkspaceListItem({
 				isActive={isActive}
 				isUnread={isUnread}
 				workspaceStatus={workspaceStatus}
-				diffStats={diffStats}
 				itemRef={collapsedItemRef}
 				showDeleteDialog={showDeleteDialog}
 				setShowDeleteDialog={setShowDeleteDialog}
@@ -466,7 +470,6 @@ export function WorkspaceListItem({
 				isUnread={isUnread}
 				workspaceStatus={workspaceStatus}
 				sections={sections}
-				diffStats={diffStats}
 				onRename={rename.startRename}
 				onOpenInFinder={handleOpenInFinder}
 				onOpenInEditor={handleOpenInEditor}

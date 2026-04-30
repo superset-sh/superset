@@ -105,7 +105,6 @@ function V2WorkspacePage() {
 			key={workspace.id}
 			projectId={workspace.projectId}
 			workspaceId={workspace.id}
-			workspaceName={workspace.name}
 			terminalId={terminalId}
 			chatSessionId={chatSessionId}
 			focusRequestId={focusRequestId}
@@ -119,7 +118,6 @@ function V2WorkspacePage() {
 function WorkspaceContent({
 	projectId,
 	workspaceId,
-	workspaceName,
 	terminalId,
 	chatSessionId,
 	focusRequestId,
@@ -129,7 +127,6 @@ function WorkspaceContent({
 }: {
 	projectId: string;
 	workspaceId: string;
-	workspaceName: string;
 	terminalId?: string;
 	chatSessionId?: string;
 	focusRequestId?: string;
@@ -298,7 +295,6 @@ function WorkspaceContent({
 					>
 						<WorkspaceSidebar
 							workspaceId={workspaceId}
-							workspaceName={workspaceName}
 							onSelectFile={openFilePane}
 							onSelectDiffFile={openDiffPane}
 							onOpenComment={openCommentPane}

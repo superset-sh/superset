@@ -22,11 +22,10 @@ const CLIENT_LOGOS = [
 		height: 20,
 	},
 	{
-		name: "runway",
-		label: "Runway",
-		logo: "/logos/runway-wordmark.svg",
-		height: 18,
-		invert: false,
+		name: "wordware",
+		label: "Wordware",
+		logo: "/logos/wordware-wordmark.svg",
+		height: 16,
 	},
 	{
 		name: "salesforce",
@@ -60,10 +59,10 @@ const CLIENT_LOGOS = [
 		height: 18,
 	},
 	{
-		name: "ramp",
-		label: "Ramp",
-		logo: "/logos/ramp-wordmark.svg",
-		height: 22,
+		name: "toss",
+		label: "Toss",
+		logo: "/logos/toss-wordmark.svg",
+		height: 18,
 	},
 	{
 		name: "google",
