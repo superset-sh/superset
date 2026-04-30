@@ -34,6 +34,15 @@ interface DaemonInstance {
 const SOCKET_READY_TIMEOUT_MS = 5_000;
 
 /**
+ * Crash supervision parameters. If the daemon for an organization crashes
+ * more than CRASH_BUDGET times within CRASH_WINDOW_MS, we stop respawning
+ * and surface a hard error — repeated crashes are a bug, not transient
+ * recovery. Per the implementation plan's Open Decision #3.
+ */
+const CRASH_BUDGET = 3;
+const CRASH_WINDOW_MS = 60_000;
+
+/**
  * Per-organization socket path. **Must stay short** — Darwin's `sun_path`
  * is 104 bytes, and `$SUPERSET_HOME_DIR/host/{orgId}/pty-daemon.sock` blows
  * past that in dev (worktree-relative SUPERSET_HOME_DIR + 36-char UUID).
@@ -59,9 +68,32 @@ export class PtyDaemonCoordinator {
 	private readonly opts: PtyDaemonCoordinatorOptions;
 	private readonly instances = new Map<string, DaemonInstance>();
 	private readonly pendingStarts = new Map<string, Promise<DaemonInstance>>();
+	/** Recent crash timestamps per orgId, for the circuit breaker. */
+	private readonly crashTimes = new Map<string, number[]>();
+	/** Orgs we've explicitly stopped — exit isn't a crash, don't respawn. */
+	private readonly stopping = new Set<string>();
+	/** Orgs that tripped the circuit breaker — refuse respawn until cleared. */
+	private readonly circuitOpen = new Set<string>();
 
 	constructor(opts: PtyDaemonCoordinatorOptions) {
 		this.opts = opts;
+	}
+
+	/**
+	 * Has the org tripped the crash circuit breaker? Once tripped, ensure()
+	 * fails fast with a clear error until clearCrashCircuit() is called.
+	 */
+	isCircuitOpen(organizationId: string): boolean {
+		return this.circuitOpen.has(organizationId);
+	}
+
+	/**
+	 * Reset the crash counter and close the circuit. Call this from a UI
+	 * "retry" action after surfacing the error to the user.
+	 */
+	clearCrashCircuit(organizationId: string): void {
+		this.circuitOpen.delete(organizationId);
+		this.crashTimes.delete(organizationId);
 	}
 
 	/**
@@ -70,6 +102,11 @@ export class PtyDaemonCoordinator {
 	 * connect to.
 	 */
 	async ensure(organizationId: string): Promise<DaemonInstance> {
+		if (this.circuitOpen.has(organizationId)) {
+			throw new Error(
+				`[pty-daemon:${organizationId}] crash circuit open: ${CRASH_BUDGET} crashes within ${CRASH_WINDOW_MS / 1000}s. Restart the desktop app to retry.`,
+			);
+		}
 		const existing = this.instances.get(organizationId);
 		if (existing) return existing;
 		const pending = this.pendingStarts.get(organizationId);
@@ -90,6 +127,9 @@ export class PtyDaemonCoordinator {
 		const instance = this.instances.get(organizationId);
 		this.instances.delete(organizationId);
 		if (!instance) return;
+		// Mark this exit as intentional so the on-exit handler doesn't count
+		// it toward the crash circuit breaker.
+		this.stopping.add(organizationId);
 		try {
 			process.kill(instance.pid, "SIGTERM");
 		} catch {
@@ -232,10 +272,43 @@ export class PtyDaemonCoordinator {
 		child.on("exit", (code) => {
 			console.log(`[pty-daemon:${organizationId}] exited with code ${code}`);
 			const current = this.instances.get(organizationId);
-			if (current?.pid === childPid) {
-				this.instances.delete(organizationId);
-				removePtyDaemonManifest(organizationId);
+			if (current?.pid !== childPid) return;
+			this.instances.delete(organizationId);
+			removePtyDaemonManifest(organizationId);
+
+			// Was this exit intentional (we called stop)? If so, no crash
+			// accounting and no respawn.
+			if (this.stopping.has(organizationId)) {
+				this.stopping.delete(organizationId);
+				return;
 			}
+
+			// Unexpected exit — record the crash and decide whether to
+			// auto-respawn or trip the circuit breaker.
+			const now = Date.now();
+			const recent = (this.crashTimes.get(organizationId) ?? []).filter(
+				(t) => now - t < CRASH_WINDOW_MS,
+			);
+			recent.push(now);
+			this.crashTimes.set(organizationId, recent);
+
+			if (recent.length > CRASH_BUDGET) {
+				this.circuitOpen.add(organizationId);
+				console.error(
+					`[pty-daemon:${organizationId}] crash circuit OPEN — ${recent.length} crashes in ${CRASH_WINDOW_MS / 1000}s; refusing further respawns until clearCrashCircuit() is called`,
+				);
+				return;
+			}
+
+			console.warn(
+				`[pty-daemon:${organizationId}] auto-respawning after unexpected exit (${recent.length}/${CRASH_BUDGET} in window)`,
+			);
+			void this.ensure(organizationId).catch((err) => {
+				console.error(
+					`[pty-daemon:${organizationId}] auto-respawn failed:`,
+					err,
+				);
+			});
 		});
 
 		const startedAt = Date.now();
