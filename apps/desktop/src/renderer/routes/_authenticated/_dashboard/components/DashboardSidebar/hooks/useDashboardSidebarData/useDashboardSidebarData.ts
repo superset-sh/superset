@@ -322,7 +322,10 @@ export function useDashboardSidebarData() {
 					machineId,
 				}),
 			)
-			.map((workspace) => ({ ...workspace, lastActivityAt: null as Date | null }));
+			.map((workspace) => ({
+				...workspace,
+				lastActivityAt: null as Date | null,
+			}));
 
 		return [...autoLocalMainWorkspaces, ...sidebarWorkspaces];
 	}, [
