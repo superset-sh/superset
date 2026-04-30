@@ -1,1 +1,0 @@
-export { consumePendingAuthParams } from "./pendingAuthRedirect";
