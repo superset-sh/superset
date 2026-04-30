@@ -60,10 +60,10 @@ const CLIENT_LOGOS = [
 		height: 18,
 	},
 	{
-		name: "ramp",
-		label: "Ramp",
-		logo: "/logos/ramp-wordmark.svg",
-		height: 22,
+		name: "toss",
+		label: "Toss",
+		logo: "/logos/toss-wordmark.svg",
+		height: 24,
 	},
 	{
 		name: "google",
