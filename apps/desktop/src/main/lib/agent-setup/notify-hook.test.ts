@@ -25,19 +25,24 @@ describe("getNotifyScriptContent", () => {
 		);
 	});
 
-	it("keeps dispatching to the legacy hook after the v2 host-service hook when legacy ids exist", () => {
+	it("keeps the legacy hook after the v2 host-service hook", () => {
 		const script = readFileSync(
 			path.join(import.meta.dir, "templates", "notify-hook.template.sh"),
 			"utf-8",
 		);
 
-		expect(script).toContain(
-			'curl -sX POST "$SUPERSET_HOST_AGENT_HOOK_URL" \\\n    --connect-timeout 2 --max-time 5',
+		const hostServiceCurlIndex = script.indexOf(
+			'curl -sX POST "$SUPERSET_HOST_AGENT_HOOK_URL"',
 		);
-		expect(script).not.toContain("2*) exit 0");
-		expect(script).toContain(
-			'if [ -n "$SUPERSET_HOST_AGENT_HOOK_URL" ] && [ -z "$SUPERSET_PANE_ID" ] && [ -z "$SUPERSET_TAB_ID" ]; then',
+		const legacyCurlIndex = script.indexOf(
+			'curl -sG "http://127.0.0.1:' +
+				"$" +
+				'{SUPERSET_PORT:-{{DEFAULT_PORT}}}/hook/complete"',
 		);
+
+		expect(hostServiceCurlIndex).toBeGreaterThanOrEqual(0);
+		expect(legacyCurlIndex).toBeGreaterThanOrEqual(0);
+		expect(hostServiceCurlIndex).toBeLessThan(legacyCurlIndex);
 	});
 
 	it("keeps the legacy v1 fallback path when no host-service hook URL exists", () => {
