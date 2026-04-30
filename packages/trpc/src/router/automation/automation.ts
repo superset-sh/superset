@@ -4,6 +4,7 @@ import {
 	automations,
 	type SelectSubscription,
 	v2Hosts,
+	v2Projects,
 	v2UsersHosts,
 	v2Workspaces,
 } from "@superset/db/schema";
@@ -112,6 +113,21 @@ async function verifyWorkspaceInOrg(
 	return { id: workspace.id, projectId: workspace.projectId };
 }
 
+async function verifyProjectInOrg(organizationId: string, projectId: string) {
+	const [project] = await db
+		.select({ id: v2Projects.id, organizationId: v2Projects.organizationId })
+		.from(v2Projects)
+		.where(eq(v2Projects.id, projectId))
+		.limit(1);
+
+	if (!project || project.organizationId !== organizationId) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "Project not found",
+		});
+	}
+}
+
 async function getAutomationForUser(
 	userId: string,
 	organizationId: string,
@@ -201,9 +217,15 @@ export const automationRouter = {
 					organizationId,
 					input.v2WorkspaceId,
 				);
-				if (!v2ProjectId) {
-					v2ProjectId = workspace.projectId;
+				if (v2ProjectId && v2ProjectId !== workspace.projectId) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: "v2ProjectId does not match the workspace's project",
+					});
 				}
+				v2ProjectId = workspace.projectId;
+			} else if (v2ProjectId) {
+				await verifyProjectInOrg(organizationId, v2ProjectId);
 			}
 
 			if (!v2ProjectId) {
