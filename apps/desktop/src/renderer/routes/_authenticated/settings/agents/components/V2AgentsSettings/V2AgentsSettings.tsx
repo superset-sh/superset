@@ -29,6 +29,10 @@ import { toast } from "@superset/ui/sonner";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, RotateCcw } from "lucide-react";
 import { useMemo } from "react";
+import {
+	getPresetIcon,
+	useIsDarkTheme,
+} from "renderer/assets/app-icons/preset-icons";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { V2AgentCard } from "./components/V2AgentCard";
@@ -38,6 +42,7 @@ const QUERY_KEY = ["host-agent-configs"] as const;
 export function V2AgentsSettings() {
 	const { activeHostUrl } = useLocalHostService();
 	const queryClient = useQueryClient();
+	const isDark = useIsDarkTheme();
 
 	const configsQuery = useQuery({
 		queryKey: [...QUERY_KEY, activeHostUrl] as const,
@@ -177,14 +182,27 @@ export function V2AgentsSettings() {
 							</Button>
 						</DropdownMenuTrigger>
 						<DropdownMenuContent align="end">
-							{presets.map((preset) => (
-								<DropdownMenuItem
-									key={preset.presetId}
-									onSelect={() => addMutation.mutate(preset.presetId)}
-								>
-									{preset.label}
-								</DropdownMenuItem>
-							))}
+							{presets.map((preset) => {
+								const icon = getPresetIcon(preset.presetId, isDark);
+								return (
+									<DropdownMenuItem
+										key={preset.presetId}
+										onSelect={() => addMutation.mutate(preset.presetId)}
+										className="gap-2"
+									>
+										{icon ? (
+											<img
+												src={icon}
+												alt=""
+												className="size-4 object-contain shrink-0"
+											/>
+										) : (
+											<div className="size-4 rounded bg-muted shrink-0" />
+										)}
+										{preset.label}
+									</DropdownMenuItem>
+								);
+							})}
 						</DropdownMenuContent>
 					</DropdownMenu>
 				</div>
