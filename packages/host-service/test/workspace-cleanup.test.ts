@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
+import { beforeEach, describe, expect, mock, test } from "bun:test";
 import {
 	mkdirSync,
 	mkdtempSync,
@@ -8,7 +8,6 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { TRPCError } from "@trpc/server";
 import { isMainWorkspace } from "../src/trpc/router/workspace-cleanup/is-main-workspace";
 import {
 	__testDestroysInFlight,
@@ -29,7 +28,7 @@ interface ContextSpec {
 	project?: ProjectRow;
 	cloudType?: "main" | "worktree";
 	cloudDelete?: () => Promise<unknown>;
-	gitStatus?: { isClean: () => boolean; ahead?: number };
+	gitStatus?: { isClean: () => boolean };
 	revListCount?: string | (() => Promise<string>);
 	gitFactoryThrows?: boolean;
 }
@@ -274,12 +273,7 @@ describe("workspaceCleanup.inspect", () => {
 });
 
 describe("workspaceCleanup.destroy in-flight guard", () => {
-	beforeEach(() => {
-		__testDestroysInFlight.clear();
-	});
-	afterEach(() => {
-		__testDestroysInFlight.clear();
-	});
+	beforeEach(() => __testDestroysInFlight.clear());
 
 	test("clears the Set on success", async () => {
 		const ctx = makeCtx({});
@@ -311,21 +305,17 @@ describe("workspaceCleanup.destroy in-flight guard", () => {
 
 	test("rejects a concurrent call with CONFLICT + DELETE_IN_PROGRESS cause", async () => {
 		__testDestroysInFlight.add("ws-1");
-		const ctx = makeCtx({});
-		const caller = workspaceCleanupRouter.createCaller(ctx);
-		try {
-			await caller.destroy({
+		const caller = workspaceCleanupRouter.createCaller(makeCtx({}));
+		await expect(
+			caller.destroy({
 				workspaceId: "ws-1",
 				deleteBranch: false,
 				force: false,
-			});
-			throw new Error("expected destroy to throw");
-		} catch (err) {
-			expect(err).toBeInstanceOf(TRPCError);
-			const trpcErr = err as TRPCError;
-			expect(trpcErr.code).toBe("CONFLICT");
-			expect(trpcErr.cause).toMatchObject({ kind: "DELETE_IN_PROGRESS" });
-		}
+			}),
+		).rejects.toMatchObject({
+			code: "CONFLICT",
+			cause: { kind: "DELETE_IN_PROGRESS" },
+		});
 	});
 
 	test("retry after a failed destroy succeeds (no in-flight leak)", async () => {
@@ -360,7 +350,6 @@ describe("workspaceCleanup.destroy in-flight guard", () => {
 
 describe("workspaceCleanup.destroy phase-3 best-effort cleanup", () => {
 	beforeEach(() => __testDestroysInFlight.clear());
-	afterEach(() => __testDestroysInFlight.clear());
 
 	test("git-factory failure in phase 3 becomes a warning, not a hard error", async () => {
 		// Past phase 2 (cloud delete) the workspace is gone in cloud — every
