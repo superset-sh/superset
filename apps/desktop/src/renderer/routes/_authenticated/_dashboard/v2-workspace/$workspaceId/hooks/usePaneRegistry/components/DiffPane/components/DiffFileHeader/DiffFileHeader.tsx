@@ -45,8 +45,8 @@ export function DiffFileHeader({
 	const { copyToClipboard, copied } = useCopyToClipboard();
 
 	// Split into directory + basename so the basename stays visible when the
-	// header is narrow — the directory truncates with ellipsis instead of
-	// hiding the filename behind it.
+	// header is narrow — the directory truncates with ellipsis first, and the
+	// basename truncates only as a fallback (very narrow pane or no directory).
 	const lastSlash = path.lastIndexOf("/");
 	const dir = lastSlash >= 0 ? path.slice(0, lastSlash + 1) : "";
 	const name = lastSlash >= 0 ? path.slice(lastSlash + 1) : path;
@@ -84,11 +84,11 @@ export function DiffFileHeader({
 						<FileIcon fileName={path} className="size-3.5 shrink-0" />
 						<span className="flex min-w-0 items-baseline font-mono text-xs">
 							{dir && (
-								<span className="min-w-0 truncate text-muted-foreground">
+								<span className="min-w-0 shrink-[1000] truncate text-muted-foreground">
 									{dir}
 								</span>
 							)}
-							<span className="shrink-0 text-foreground">{name}</span>
+							<span className="min-w-0 truncate text-foreground">{name}</span>
 						</span>
 					</button>
 				</TooltipTrigger>
