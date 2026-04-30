@@ -113,9 +113,7 @@ describe("bug-hunt: filesystem sandbox", () => {
 	test("statPath does not crash on tilde paths when HOME is unset", async () => {
 		const oldHome = process.env.HOME;
 		const oldUserprofile = process.env.USERPROFILE;
-		// biome-ignore lint/performance/noDelete: testing env-unset path
 		delete process.env.HOME;
-		// biome-ignore lint/performance/noDelete: testing env-unset path
 		delete process.env.USERPROFILE;
 		try {
 			const result = await host.trpc.filesystem.statPath.mutate({
