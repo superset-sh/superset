@@ -1,18 +1,9 @@
 import { CLIError } from "@superset/cli-framework";
 import { getHostId } from "@superset/shared/host-info";
+import { formatDistanceToNowStrict } from "date-fns";
 import type { ApiClient } from "../../lib/api-client";
 import { command } from "../../lib/command";
 import { isProcessAlive, readManifest } from "../../lib/host/manifest";
-
-function formatUptime(seconds: number): string {
-	if (seconds < 60) return `${seconds}s`;
-	const days = Math.floor(seconds / 86400);
-	const hours = Math.floor((seconds % 86400) / 3600);
-	const minutes = Math.floor((seconds % 3600) / 60);
-	if (days > 0) return `${days}d ${hours}h`;
-	if (hours > 0) return `${hours}h ${minutes}m`;
-	return `${minutes}m`;
-}
 
 async function checkHealth(
 	endpoint: string,
@@ -84,7 +75,7 @@ export default command({
 			checkHealth(manifest.endpoint, manifest.authToken),
 			fetchHostName(ctx.api, organization.id, localHostId),
 		]);
-		const uptimeSec = Math.floor((Date.now() - manifest.startedAt) / 1000);
+		const uptime = formatDistanceToNowStrict(new Date(manifest.startedAt));
 
 		return {
 			data: {
@@ -96,9 +87,9 @@ export default command({
 				organizationId: organization.id,
 				hostId: localHostId,
 				hostName,
-				uptimeSec,
+				uptimeSec: Math.floor((Date.now() - manifest.startedAt) / 1000),
 			},
-			message: `${organization.name}: ${hostName ? `${hostName} (${localHostId.slice(0, 8)}…)` : `host ${localHostId.slice(0, 8)}…`} running (pid ${manifest.pid}, up ${formatUptime(uptimeSec)})${
+			message: `${organization.name}: ${hostName ? `${hostName} (${localHostId.slice(0, 8)}…)` : `host ${localHostId.slice(0, 8)}…`} running (pid ${manifest.pid}, up ${uptime})${
 				healthy ? "" : " — not responding to health check"
 			}`,
 		};
