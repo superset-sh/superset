@@ -31,6 +31,16 @@ describe("github router with mocked Octokit", () => {
 					},
 				};
 			},
+			merge: async (args: unknown) => {
+				calls.push({ method: "pulls.merge", args });
+				return {
+					data: {
+						sha: "deadbeefcafe",
+						merged: true,
+						message: "Pull Request successfully merged",
+					},
+				};
+			},
 		},
 		repos: {
 			get: async (args: unknown) => {
@@ -43,6 +53,24 @@ describe("github router with mocked Octokit", () => {
 						default_branch: "main",
 					},
 				};
+			},
+			listDeployments: async (args: unknown) => {
+				calls.push({ method: "repos.listDeployments", args });
+				return {
+					data: [{ id: 100, ref: "main", environment: "production" }],
+				};
+			},
+			listDeploymentStatuses: async (args: unknown) => {
+				calls.push({ method: "repos.listDeploymentStatuses", args });
+				return {
+					data: [{ id: 1, state: "success", environment: "production" }],
+				};
+			},
+		},
+		users: {
+			getAuthenticated: async () => {
+				calls.push({ method: "users.getAuthenticated", args: {} });
+				return { data: { login: "octocat", id: 583231 } };
 			},
 		},
 	};
@@ -114,5 +142,51 @@ describe("github router with mocked Octokit", () => {
 		});
 		expect(result.full_name).toBe("octocat/hello");
 		expect(calls[0].method).toBe("repos.get");
+	});
+
+	test("listDeployments forwards filters to octokit", async () => {
+		await host.trpc.github.listDeployments.query({
+			owner: "octocat",
+			repo: "hello",
+			environment: "production",
+			ref: "main",
+		});
+		expect(calls[0].method).toBe("repos.listDeployments");
+		expect(calls[0].args).toMatchObject({
+			owner: "octocat",
+			repo: "hello",
+			environment: "production",
+			ref: "main",
+		});
+	});
+
+	test("listDeploymentStatuses forwards deploymentId", async () => {
+		await host.trpc.github.listDeploymentStatuses.query({
+			owner: "octocat",
+			repo: "hello",
+			deploymentId: 100,
+		});
+		expect(calls[0].method).toBe("repos.listDeploymentStatuses");
+		expect(calls[0].args).toMatchObject({ deployment_id: 100 });
+	});
+
+	test("getUser delegates to octokit.users.getAuthenticated", async () => {
+		const result = await host.trpc.github.getUser.query();
+		expect(result.login).toBe("octocat");
+	});
+
+	test("mergePR forwards mergeMethod to octokit.pulls.merge", async () => {
+		const result = await host.trpc.github.mergePR.mutate({
+			owner: "octocat",
+			repo: "hello",
+			pullNumber: 42,
+			mergeMethod: "squash",
+		});
+		expect(result.merged).toBe(true);
+		expect(calls[0].method).toBe("pulls.merge");
+		expect(calls[0].args).toMatchObject({
+			pull_number: 42,
+			merge_method: "squash",
+		});
 	});
 });

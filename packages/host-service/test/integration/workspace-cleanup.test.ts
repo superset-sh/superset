@@ -154,6 +154,25 @@ describe("workspaceCleanup.destroy integration", () => {
 		expect(remaining).toHaveLength(0);
 	});
 
+	test("deleteBranch=true also removes the branch after worktree teardown", async () => {
+		host = await createTestHost({
+			apiOverrides: {
+				"v2Workspace.getFromHost.query": () => ({ type: "feature" }),
+				"v2Workspace.delete.mutate": () => ({ success: true }),
+			},
+		});
+		seedFeatureWorkspace();
+
+		const result = await host.trpc.workspaceCleanup.destroy.mutate({
+			workspaceId,
+			deleteBranch: true,
+		});
+		expect(result.branchDeleted).toBe(true);
+
+		const branches = await repo.git.branchLocal();
+		expect(branches.all).not.toContain("feature/cleanup");
+	});
+
 	test("returns success when no local workspace row exists, still calls cloud delete", async () => {
 		host = await createTestHost({
 			apiOverrides: {

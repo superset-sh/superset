@@ -89,4 +89,28 @@ describe("project router integration", () => {
 		});
 		expect(result.candidates).toEqual([]);
 	});
+
+	test("findByPath falls back to cloud when no local project + parseable remote", async () => {
+		await repo.git.addRemote("origin", "https://github.com/octocat/hello.git");
+		await host.dispose();
+		host = await createTestHost({
+			apiOverrides: {
+				"v2Project.findByGitHubRemote.query": () => ({
+					candidates: [{ id: "cloud-project-id", name: "octocat/hello" }],
+				}),
+			},
+		});
+
+		const result = await host.trpc.project.findByPath.query({
+			repoPath: repo.repoPath,
+		});
+		expect(result.candidates).toEqual([
+			{ id: "cloud-project-id", name: "octocat/hello" },
+		]);
+		expect(
+			host.apiCalls.some(
+				(c) => c.path === "v2Project.findByGitHubRemote.query",
+			),
+		).toBe(true);
+	});
 });
