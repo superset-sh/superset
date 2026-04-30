@@ -70,7 +70,7 @@ workspace.create({
     | {
         kind: "agent";
         agentId: string;
-        prompt?: string;
+        prompt: string;
         attachmentIds?: string[];
       }
   >,
@@ -86,7 +86,7 @@ workspace.create({
 
 Notes:
 
-- `prompt` is plain Markdown on each requested agent launch.
+- `prompt` is required, plain Markdown, on each requested agent launch. A promptless agent invocation has no place in this contract — use a raw `{ kind: "terminal", command }` launch instead. (See "Agent Configs" below for why agent profiles focus exclusively on prompt-mode startup.)
 - `attachmentIds` belong to the agent launch that needs them.
 - Setup is not a public input. If `.superset/setup.sh` exists, host-service starts it and returns it as a terminal launch.
 - Attachment paths are not returned to the UI.
@@ -227,7 +227,7 @@ For each requested agent launch, host-service receives:
 {
   kind: "agent",
   agentId: string,
-  prompt?: string,
+  prompt: string,
   attachmentIds?: string[],
 }
 ```

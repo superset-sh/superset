@@ -2,9 +2,11 @@
 
 ## Summary
 
-This PR introduces the V2 agent configuration model used by host runtimes. Agent configs are stored in the active host runtime database (`host.db`), edited through the V2 Agents settings UI, and selected by the V2 new workspace modal.
+This PR introduces the V2 agent configuration model used by host runtimes. Agent configs are stored in the active host runtime database (`host.db`) and edited through a new V2 Agents settings UI.
 
-The key product rule is that the UI sends only an `agentId` when creating a workspace. The host owns the config and resolves that `agentId` locally before launching anything.
+**Scope of this PR:** the data model, the host-service tRPC router, and the V2 settings page. Nothing else. The V2 new workspace modal and pending-page launch dispatch continue reading the legacy desktop presets — moving those onto host configs is **PR 5** ("Migrate Interactive Create UI" in `20260425-canonical-workspace-create-flow.md`). Splitting the scope this way keeps the data model PR small and avoids conflating it with the workspace-create rewrite.
+
+The eventual product rule (delivered in PR 4 + PR 5) is that the UI sends only an `agentId` when creating a workspace, and the host resolves that `agentId` locally before launching. This PR ships the storage and editing surface that contract will rely on.
 
 This PR does not migrate legacy desktop agent preset customizations into host configs. That migration should be handled later by the existing v1-to-v2 migration flow.
 
