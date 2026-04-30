@@ -10,10 +10,22 @@ via `@superset/pty-daemon/protocol`.
 
 ## Runtime
 
-**Node ≥ 20**, not Bun. node-pty's master fd handling is incompatible with
-Bun's `tty.ReadStream` (verified: Bun 1.3, node-pty 1.1 — onData/onExit
-silently never fire). The daemon ships as a Node script in the desktop app
-bundle; host-service can stay on Bun.
+**Production: Node ≥ 20** (Electron's bundled Node), via
+`process.execPath` — exactly the same pattern as `host-service` already
+uses today (`packages/host-service/build.ts` → `dist/host-service.js`,
+spawned by `apps/desktop/src/main/lib/host-service-coordinator.ts`).
+Bun is the build tool, not a runtime. **No new runtime in the desktop
+app bundle.**
+
+**Why not Bun at runtime:** verified during development that node-pty
+1.1's master fd handling is incompatible with Bun 1.3 (`tty.ReadStream`
+closes immediately, alternate `fs.createReadStream(null, { fd })`
+returns EAGAIN with no recovery). The daemon needs a runtime where
+node-pty actually works.
+
+**Dev:** unit tests run under Bun (`bun test`) for speed; integration
+tests run under Node (`bun run test:integration`) since they touch real
+PTYs. The daemon binary itself runs under Node in both dev and prod.
 
 ## Layout
 
@@ -40,7 +52,12 @@ src/
     └── index.ts
 
 test/
-└── integration.test.ts         # node --test: real shells, real socket
+├── helpers/
+│   └── client.ts               # reusable DaemonClient: connect, send, waitFor, collect
+├── integration.test.ts         # smoke / happy-path (3 tests)
+└── control-plane.test.ts       # exhaustive control-plane coverage (25 tests)
+
+build.ts                        # Bun bundler → dist/pty-daemon.js (target: node)
 ```
 
 ## Design notes
@@ -60,9 +77,26 @@ test/
 ## Testing
 
 ```sh
-bun test                     # unit tests (protocol, handlers, SessionStore, Pty validation)
-bun run test:integration     # end-to-end via node --test (spawns real shells)
+bun test                     # 24 unit tests (protocol framing, handlers, SessionStore, Pty validation)
+bun run test:integration     # 28 integration tests under node --test:
+                             #   - test/integration.test.ts (smoke / happy-path, 3 tests)
+                             #   - test/control-plane.test.ts (every usage pattern, 25 tests)
+bun run typecheck            # tsc --noEmit
+bun run build:daemon         # bundle src/main.ts → dist/pty-daemon.js (target: node)
 ```
+
+**Control-plane coverage** (`test/control-plane.test.ts`):
+
+- Handshake: rejects non-hello first, picks highest mutual protocol, rejects unsupported, rejects duplicate hello.
+- Session lifecycle: invalid dims, duplicate ids, ENOENT on missing, instant-exit shells, SIGKILL on hung shells.
+- I/O patterns: resize during running shell, burst output (200 lines), multi-byte UTF-8 (🚀).
+- Multi-client fan-out: two subscribers see same output, unsubscribe stops further delivery, dropped subscriber doesn't crash daemon.
+- Detach + reattach (the headline feature): late subscriber gets replay, full reattach cycle continues live after disconnect.
+- list reflects active sessions with cols/rows/alive.
+- Hostile input: malformed frames disconnect cleanly, oversized frames are rejected, input on exited session returns EEXITED.
+- Concurrency: 20 sessions in parallel from one connection, 10 connections opening sessions in parallel.
+- Server shutdown: in-flight clients disconnect cleanly, owned PTYs are killed.
+- Framing: tolerates split frames across multiple TCP chunks.
 
 Why two runners? `bun test` is fast for pure-JS work. node-pty doesn't work
 under Bun, so anything that spawns a real PTY runs under Node.

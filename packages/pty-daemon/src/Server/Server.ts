@@ -70,6 +70,16 @@ export class Server {
 	async close(): Promise<void> {
 		for (const c of this.conns) c.socket.destroy();
 		this.conns.clear();
+		// Kill all owned PTYs so the daemon process can actually exit (open
+		// master fds keep the event loop alive). This is what the v1 lessons
+		// call "synchronous teardown only" — no setTimeout, no graceful drain.
+		for (const session of this.store.all()) {
+			try {
+				session.pty.kill("SIGKILL");
+			} catch {
+				// already dead, ignore
+			}
+		}
 		await new Promise<void>((resolve) => this.server.close(() => resolve()));
 		try {
 			fs.unlinkSync(this.opts.socketPath);
