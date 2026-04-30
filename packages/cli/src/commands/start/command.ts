@@ -1,8 +1,8 @@
 import * as p from "@clack/prompts";
 import { boolean, CLIError, number } from "@superset/cli-framework";
-import { command } from "../../../lib/command";
-import { isProcessAlive, readManifest } from "../../../lib/host/manifest";
-import { spawnHostService } from "../../../lib/host/spawn";
+import { command } from "../../lib/command";
+import { isProcessAlive, readManifest } from "../../lib/host/manifest";
+import { spawnHostService } from "../../lib/host/spawn";
 
 export default command({
 	description: "Start the host service",
@@ -23,7 +23,7 @@ export default command({
 			};
 		}
 
-		p.intro(`superset host start (${organization.name})`);
+		p.intro(`superset start (${organization.name})`);
 		const spinner = p.spinner();
 		spinner.start("Starting host service...");
 

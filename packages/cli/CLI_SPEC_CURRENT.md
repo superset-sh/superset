@@ -102,7 +102,7 @@ observed in source.
 | CLI-CURRENT-031 | Framework | `host/meta.ts` declares `standalone: true`; the framework's `CliGroup` type does not include the field and no code path reads it. | Dead configuration — confusing for anyone who assumes it changes behaviour (e.g., skipping middleware). |
 | CLI-CURRENT-032 | Auth | `resolveAuthSource` decides `flag` vs `env` by scanning `process.argv` for any element starting with `--api-key`. | False-positive risk for any future option named `--api-key-*`; also depends on raw argv ordering, which differs between `bun run dev`, packaged binary, and shell wrappers. |
 | CLI-CURRENT-033 | Framework | `isAgentMode()` checks `process.env[v] !== undefined`, so an empty-string env (`CI=`, `CLAUDE_CODE=`) flips output to JSON. | Surprising for shells that set empty env vars without intent. |
-| CLI-CURRENT-034 | Host | The CLI and the desktop app target *different* host directories. CLI uses `~/superset/host/<orgId>/`; desktop uses `~/.superset/host/<orgId>/` (or `~/.superset-<workspace>/...` in dev). The manifest schema is shared, but the paths are not, so neither client sees the other's manifest, port, secret, or `host.db`. | Running `superset host start` while the desktop app is running spawns a second, isolated host service against a separate SQLite file. State written by one client is invisible to the other. |
+| CLI-CURRENT-034 | Host | The CLI and the desktop app target *different* host directories. CLI uses `~/superset/host/<orgId>/`; desktop uses `~/.superset/host/<orgId>/` (or `~/.superset-<workspace>/...` in dev). The manifest schema is shared, but the paths are not, so neither client sees the other's manifest, port, secret, or `host.db`. | Running `superset start` while the desktop app is running spawns a second, isolated host service against a separate SQLite file. State written by one client is invisible to the other. |
 
 ## Invocation
 
@@ -683,7 +683,7 @@ Stub. Skips auth middleware and returns:
 Not implemented yet
 ```
 
-### `superset host start`
+### `superset start`
 
 Starts the host service for the active organization.
 
@@ -725,7 +725,7 @@ HOST_MIGRATIONS_FOLDER
 The CLI polls `http://127.0.0.1:<port>/trpc/health.check` for up to 10 seconds
 using `HOST_SERVICE_SECRET`, then writes the host manifest.
 
-### `superset host status`
+### `superset status`
 
 Checks the active organization's host manifest, process liveness, and health
 endpoint.
@@ -742,7 +742,7 @@ Possible states:
 - manifest PID is dead: stale manifest
 - PID alive and health check succeeds/fails: running with `healthy: true|false`
 
-### `superset host stop`
+### `superset stop`
 
 Stops the host service process in the active organization's manifest. It sends
 `SIGTERM`, waits up to 10 seconds, then sends `SIGKILL` if the process is still

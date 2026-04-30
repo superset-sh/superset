@@ -1,10 +1,10 @@
 import { CLIError } from "@superset/cli-framework";
-import { command } from "../../../lib/command";
+import { command } from "../../lib/command";
 import {
 	isProcessAlive,
 	readManifest,
 	removeManifest,
-} from "../../../lib/host/manifest";
+} from "../../lib/host/manifest";
 
 export default command({
 	description: "Stop the host service daemon",

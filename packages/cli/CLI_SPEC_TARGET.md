@@ -97,7 +97,7 @@ if (target === getHashedDeviceId()) {
 `ioreg`/`/etc/machine-id`/Windows MachineGuid), so the comparison works
 without network and without a running host service. The local detection
 result is correct even when the host service is currently stopped — the
-CLI can then give a precise error (`Run: superset host start`) instead
+CLI can then give a precise error (`Run: superset start`) instead
 of routing via cloud and getting back a confusing "host offline."
 
 Globals are listed in every command's help, including grouped and leaf help.
@@ -121,14 +121,14 @@ env vars do not trigger this.
 ```
 
 Manifest format (written by both the desktop app and the CLI's
-`host start`):
+`start`):
 
 ```ts
 {
   pid: number;
   endpoint: string;     // http://127.0.0.1:<port>
   authToken: string;    // = HOST_SERVICE_SECRET
-  hostId: string;       // = getHashedDeviceId() — for display in host status
+  hostId: string;       // = getHashedDeviceId() — for display in `superset status`
   hostName: string;     // human-readable
   startedAt: number;
   organizationId: string;
@@ -139,12 +139,12 @@ The CLI reads the manifest to:
 
 1. Issue local-fast-path tRPC calls when the target host is this machine:
    POST to `manifest.endpoint` with `Authorization: Bearer manifest.authToken`.
-2. Implement `host status` and `host stop` against the recorded
+2. Implement `status` and `stop` against the recorded
    `pid`/`endpoint`.
 
 The CLI does **not** need the manifest to determine "is this hostId the
 local machine?" — that comes from `getHashedDeviceId()` directly. The
-`hostId` field in the manifest is for display (`host status` shows the
+`hostId` field in the manifest is for display (`status` shows the
 machine's hostId so users don't have to run `hosts list` to see their
 own).
 
@@ -257,7 +257,7 @@ Output:
 { loggedOut: true }
 ```
 
-### `superset auth status`
+### `superset auth whoami`
 
 Show the current user, active organization, and auth source.
 
@@ -380,7 +380,7 @@ Quiet: host IDs.
 Human: table with `NAME, ONLINE, LAST SEEN`.
 
 v1 only ships `list` for org-wide host discovery. Host registration happens
-via `superset host start` on each machine — there is no separate
+via `superset start` on each machine — there is no separate
 "register a host" command.
 
 ---
@@ -406,7 +406,7 @@ while still supporting "manage workspaces on a remote host."
 There is no error case for "no host" — the local machine always has an
 identity. If the user genuinely has no host service running anywhere and
 tries a workspace command, the local-target path errors with
-`Host service for this machine isn't running. Run: superset host start.`
+`Host service for this machine isn't running. Run: superset start.`
 That's the right message: they need to start the service or pick a
 different host with `--host <id>` (use `superset hosts list` to find one).
 
@@ -697,7 +697,7 @@ Human: table with `RUN ID, STATUS, STARTED, DURATION`.
 
 ## Host Service
 
-### `superset host start`
+### `superset start`
 
 | Option | Description |
 | --- | --- |
@@ -731,7 +731,7 @@ Side conventions:
   the desktop app's manifest if both are configured for the same
   organization (shared `~/.superset/host/<orgId>/`).
 
-### `superset host status`
+### `superset status`
 
 Three output shapes, depending on state:
 
@@ -761,7 +761,7 @@ Three output shapes, depending on state:
 
 `healthy` reflects a live `health.check` request (2 second timeout).
 
-### `superset host stop`
+### `superset stop`
 
 Sends SIGTERM, waits up to 10 seconds, sends SIGKILL if still alive. **The
 manifest is removed in all cases**, including when the SIGTERM call itself
@@ -821,7 +821,7 @@ These changes must land in the API/server before the v1 CLI ships:
   startup. Both fields are derived from
   `@superset/shared/device-info.getHashedDeviceId()` /
   `getDeviceName()`. The CLI does not depend on these for routing — it
-  computes `getHashedDeviceId()` itself — but `host status` displays
+  computes `getHashedDeviceId()` itself — but `status` displays
   them so users can see their own hostId without `hosts list`.
 - **Drop UUID surrogates on `v2_hosts` and `v2_clients`.** The product
   hasn't shipped widely; this is the right window to consolidate.
@@ -922,9 +922,9 @@ These changes are internal to the CLI and framework packages:
 - Add stdin support (`-`) for `--prompt` on `automations create` and
   `automations update`.
 - Stop trimming contents read by `--prompt-file`; preserve verbatim.
-- `host stop`: remove manifest in all cases, including SIGTERM failure
+- `stop`: remove manifest in all cases, including SIGTERM failure
   (CLI-CURRENT-021).
-- `host start`: guard spinner with `process.stdout.isTTY`
+- `start`: guard spinner with `process.stdout.isTTY`
   (CLI-CURRENT-023). Don't inherit the parent process env into the child
   (CLI-CURRENT-025). Unify the "already running" and "fresh start" output
   shapes (CLI-CURRENT-029).
@@ -932,7 +932,7 @@ These changes are internal to the CLI and framework packages:
   CLIError (CLI-CURRENT-022).
 - Show inherited globals and required-flag markers in command help
   (CLI-CURRENT-017, CLI-CURRENT-018).
-- `auth check` → `auth status` rename. No alias retained — the CLI has no
+- `auth check` → `auth whoami` rename. No alias retained — the CLI has no
   shipped installed base, so back-compat is unnecessary ceremony.
 - `automations resume`: guard `nextRunAt.toISOString()` against non-Date
   values (CLI-CURRENT-027).
@@ -954,7 +954,7 @@ These changes are internal to the CLI and framework packages:
   - Uninstall via `host install --uninstall` or a separate
     `host uninstall` command.
   - Use case the v1 surface does not cover: a host service that survives
-    reboot. `host start --daemon` only survives logout (with `setsid`).
+    reboot. `start --daemon` only survives logout (with `setsid`).
 - `agent` — agent presets are configured server-side; no CLI surface in v1.
 - `chat` — desktop uses Electric sync; needs a `chat.list` query before a
   CLI can exist.
@@ -1009,7 +1009,7 @@ this becomes the locked v1 contract:
 9. **Stale-manifest behaviour: fail fast, don't fall through to cloud.**
    If the resolved target is the local machine but the host service
    isn't reachable (no manifest, stale manifest, dead PID), workspace
-   /project commands error with `Run: superset host start` rather than
+   /project commands error with `Run: superset start` rather than
    silently retrying via cloud. The two failure modes are different
    (one is "your host service crashed", the other is "your network is
    down") and conflating them under one error makes debugging worse.

@@ -1,8 +1,8 @@
 import { CLIError } from "@superset/cli-framework";
 import { getHostId } from "@superset/shared/host-info";
-import type { ApiClient } from "../../../lib/api-client";
-import { command } from "../../../lib/command";
-import { isProcessAlive, readManifest } from "../../../lib/host/manifest";
+import type { ApiClient } from "../../lib/api-client";
+import { command } from "../../lib/command";
+import { isProcessAlive, readManifest } from "../../lib/host/manifest";
 
 async function checkHealth(
 	endpoint: string,
