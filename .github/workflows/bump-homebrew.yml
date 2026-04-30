@@ -14,6 +14,22 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  enforce-not-latest:
+    if: startsWith(github.event.release.tag_name, 'cli-v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: gh release edit --latest=false
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          set -euo pipefail
+          gh release edit "$TAG" \
+            --repo ${{ github.repository }} \
+            --latest=false
+
   bump:
     if: startsWith(github.event.release.tag_name, 'cli-v')
     runs-on: ubuntu-latest

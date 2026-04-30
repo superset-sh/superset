@@ -1,0 +1,87 @@
+name: Promote Desktop Release
+
+# Recreates a rolling `desktop` tag+release pointing at the latest published
+# desktop-v* release, so consumers can target /releases/download/desktop/.
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      source_tag:
+        description: "Source desktop-v* tag to promote (defaults to current latest)"
+        required: false
+        type: string
+
+concurrency:
+  group: desktop-promotion
+  cancel-in-progress: false
+
+jobs:
+  promote:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (startsWith(github.event.release.tag_name, 'desktop-v') &&
+       !github.event.release.prerelease)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Resolve source tag
+        id: src
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          EVENT_NAME: ${{ github.event_name }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          INPUT_TAG: ${{ github.event.inputs.source_tag }}
+        run: |
+          set -euo pipefail
+          if [ "$EVENT_NAME" = "release" ]; then
+            tag="$RELEASE_TAG"
+          elif [ -n "$INPUT_TAG" ]; then
+            tag="$INPUT_TAG"
+          else
+            tag="$(gh api --paginate repos/${{ github.repository }}/releases \
+              --jq '[.[] | select(.draft==false and .prerelease==false and (.tag_name | startswith("desktop-v")))] | .[0].tag_name')"
+          fi
+          if ! printf '%s' "$tag" | grep -Eq '^desktop-v[0-9]+\.[0-9]+\.[0-9]+([-.][A-Za-z0-9.]+)?$'; then
+            echo "::error::Invalid or missing source tag: '$tag'"
+            exit 1
+          fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "Promoting source tag: $tag"
+
+      - name: Download assets from source release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SRC_TAG: ${{ steps.src.outputs.tag }}
+        run: |
+          set -euo pipefail
+          mkdir -p assets
+          gh release download "$SRC_TAG" \
+            --repo ${{ github.repository }} \
+            --dir assets
+
+      - name: Delete existing desktop release and tag
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          gh release delete desktop \
+            --repo ${{ github.repository }} \
+            --yes \
+            --cleanup-tag || true
+
+      - name: Recreate rolling desktop release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SRC_TAG: ${{ steps.src.outputs.tag }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          gh release create desktop assets/* \
+            --repo "${REPO}" \
+            --title "Superset Desktop (rolling)" \
+            --notes "Rolling pointer to [\`${SRC_TAG}\`](https://github.com/${REPO}/releases/tag/${SRC_TAG}). Recreated by \`.github/workflows/promote-desktop.yml\`." \
+            --latest=false

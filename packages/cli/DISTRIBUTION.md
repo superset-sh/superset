@@ -150,7 +150,7 @@ Detects platform/arch, downloads tarball from GitHub Releases, extracts to `~/.s
 
 ```bash
 # Download
-curl -LO https://github.com/user/superset/releases/latest/download/superset-darwin-arm64.tar.gz
+curl -LO https://github.com/superset-sh/superset/releases/download/cli-v0.1.0/superset-darwin-arm64.tar.gz
 
 # Extract
 mkdir -p ~/.superset/bin

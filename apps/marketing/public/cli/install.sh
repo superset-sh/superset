@@ -47,15 +47,22 @@ detect_target() {
     esac
 }
 
+resolve_latest_cli_tag() {
+    api_url="https://api.github.com/repos/${REPO}/releases?per_page=100"
+    resolved="$(curl -fsSL "$api_url" \
+        | grep -oE '"tag_name": *"cli-v[^"]+"' \
+        | head -n 1 \
+        | sed -E 's/.*"(cli-v[^"]+)".*/\1/')"
+    if [ -z "$resolved" ]; then
+        error "Could not resolve latest cli-v* release from $api_url"
+    fi
+    echo "$resolved"
+}
+
 download_tarball() {
     target="$1"
     tarball="superset-${target}.tar.gz"
-
-    if [ "$TAG" = "latest" ]; then
-        url="https://github.com/${REPO}/releases/latest/download/${tarball}"
-    else
-        url="https://github.com/${REPO}/releases/download/${TAG}/${tarball}"
-    fi
+    url="https://github.com/${REPO}/releases/download/${TAG}/${tarball}"
 
     info "Downloading $url"
     tmp="$(mktemp -t superset-install.XXXXXX)"
@@ -130,6 +137,11 @@ main() {
 
     target="$(detect_target)"
     info "Platform: $target"
+
+    if [ "$TAG" = "latest" ]; then
+        TAG="$(resolve_latest_cli_tag)"
+        info "Resolved latest CLI release: $TAG"
+    fi
 
     tarball="$(download_tarball "$target")"
     extract_tarball "$tarball"
