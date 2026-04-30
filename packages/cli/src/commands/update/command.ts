@@ -17,16 +17,13 @@ import { boolean, CLIError } from "@superset/cli-framework";
 import { command } from "../../lib/command";
 import { env } from "../../lib/env";
 
-const RELEASES_API =
-	"https://api.github.com/repos/superset-sh/superset/releases";
-
-interface GitHubRelease {
-	tag_name: string;
-	name: string;
-	prerelease: boolean;
-	draft: boolean;
-	assets: Array<{ name: string; browser_download_url: string }>;
-}
+// `cli-latest` is a rolling GH Release/tag updated by build-cli.yml on every
+// CLI release. Reading from a fixed download path (rather than the global
+// `/releases/latest` endpoint, which doesn't filter by tag prefix) keeps the
+// CLI's update channel independent of desktop releases — which would otherwise
+// shadow CLI on `/releases/latest`.
+const ROLLING_DOWNLOAD_BASE =
+	"https://github.com/superset-sh/superset/releases/download/cli-latest";
 
 function detectTarget(): string {
 	const arch = process.arch === "arm64" ? "arm64" : "x64";
@@ -41,35 +38,24 @@ function getCurrentVersion(): string {
 	return env.VERSION;
 }
 
-async function fetchLatestRelease(): Promise<GitHubRelease> {
-	const response = await fetch(`${RELEASES_API}/latest`, {
-		headers: { Accept: "application/vnd.github+json" },
+async function fetchLatestVersion(): Promise<string> {
+	const response = await fetch(`${ROLLING_DOWNLOAD_BASE}/version.txt`, {
+		redirect: "follow",
 	});
 	if (!response.ok) {
 		throw new CLIError(
-			`Failed to fetch latest release: ${response.status} ${response.statusText}`,
+			`Failed to fetch latest CLI version: ${response.status} ${response.statusText}`,
 		);
 	}
-	const release = (await response.json()) as GitHubRelease;
-	if (!release.tag_name?.startsWith("cli-v")) {
-		throw new CLIError(
-			"No CLI release found. Latest tag is not a `cli-v*` release.",
-		);
+	const version = (await response.text()).trim();
+	if (!version) {
+		throw new CLIError("Empty version manifest at cli-latest");
 	}
-	return release;
+	return version;
 }
 
-function findAsset(release: GitHubRelease, target: string) {
-	const asset = release.assets.find(
-		(a) => a.name === `superset-${target}.tar.gz`,
-	);
-	if (!asset) {
-		throw new CLIError(
-			`Release ${release.tag_name} has no asset for ${target}`,
-			`Available: ${release.assets.map((a) => a.name).join(", ")}`,
-		);
-	}
-	return asset;
+function tarballUrl(target: string): string {
+	return `${ROLLING_DOWNLOAD_BASE}/superset-${target}.tar.gz`;
 }
 
 async function downloadAndExtract(url: string, destDir: string): Promise<void> {
@@ -152,8 +138,7 @@ export default command({
 				"You're running a dev build (`bun run dev`). Re-run with the released binary.",
 			);
 		}
-		const release = await fetchLatestRelease();
-		const latestVersion = release.tag_name.replace(/^cli-v/, "");
+		const latestVersion = await fetchLatestVersion();
 
 		const upToDate = !options.force && currentVersion === latestVersion;
 
@@ -181,12 +166,11 @@ export default command({
 			};
 		}
 
-		const asset = findAsset(release, target);
 		const installRoot = resolveInstallRoot();
 		const tempDir = mkdtempSync(join(tmpdir(), "superset-update-"));
 
 		try {
-			await downloadAndExtract(asset.browser_download_url, tempDir);
+			await downloadAndExtract(tarballUrl(target), tempDir);
 			const newRoot = findExtractedRoot(tempDir);
 			const newBin = join(newRoot, "bin", "superset");
 			if (!existsSync(newBin)) {
