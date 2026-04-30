@@ -75,6 +75,13 @@ export async function hostServiceMutation<TInput, TOutput>(
 	}
 
 	const data = parsed.result?.data;
+	if (data === undefined || data === null) {
+		throw new HostServiceCallError(
+			`Malformed response from host ${options.hostId} for ${procedure}`,
+			response.status,
+			rawBody,
+		);
+	}
 	return SuperJSON.deserialize(
 		data as Parameters<typeof SuperJSON.deserialize>[0],
 	) as TOutput;

@@ -8,7 +8,7 @@ export function register(server: McpServer): void {
 	defineTool(server, {
 		name: "workspaces_delete",
 		description:
-			"Delete a workspace by UUID. The host service removes the git worktree from disk before returning. Cannot delete 'main'-type workspaces.",
+			"Delete a workspace by UUID. The host service removes the git worktree from disk before returning. Idempotent — succeeds with alreadyGone:true if the workspace is gone. Cannot delete 'main'-type workspaces.",
 		inputSchema: {
 			id: z.string().uuid().describe("Workspace UUID."),
 		},
@@ -19,7 +19,7 @@ export function register(server: McpServer): void {
 				id: input.id,
 			});
 			if (!workspace) {
-				throw new Error(`Workspace not found: ${input.id}`);
+				return { success: true, alreadyGone: true };
 			}
 			return hostServiceMutation<{ id: string }, { success: boolean }>(
 				{
