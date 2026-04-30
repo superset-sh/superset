@@ -1,6 +1,6 @@
 import { boolean, defineConfig, string } from "@superset/cli-framework";
 
-const VERSION = "0.2.0";
+const VERSION = "0.2.1";
 
 export default defineConfig({
 	name: "superset",

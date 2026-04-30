@@ -111,7 +111,7 @@
     },
     "apps/desktop": {
       "name": "@superset/desktop",
-      "version": "1.7.2",
+      "version": "1.7.3",
       "dependencies": {
         "@ai-sdk/anthropic": "^3.0.43",
         "@ai-sdk/openai": "3.0.36",
@@ -673,7 +673,7 @@
     },
     "packages/cli": {
       "name": "@superset/cli",
-      "version": "0.2.0",
+      "version": "0.2.1",
       "dependencies": {
         "@clack/prompts": "^0.10.0",
         "@superset/cli-framework": "workspace:*",
