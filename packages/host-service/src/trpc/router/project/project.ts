@@ -1,4 +1,3 @@
-import { rmSync } from "node:fs";
 import { basename, resolve as resolvePath } from "node:path";
 import { parseGitHubRemote } from "@superset/shared/github-remote";
 import { TRPCError } from "@trpc/server";
@@ -293,13 +292,36 @@ export const projectRouter = router({
 			}
 		}),
 
+	/**
+	 * Project-delete saga. Cloud is reality — cloud delete is the kill point:
+	 *
+	 *   1. Cloud v2Project.delete   ← kill point. Cascades cloud workspaces.
+	 *      on fail → abort, leave local untouched, surface error to user.
+	 *
+	 *   2. Local DB rows (workspaces + project)
+	 *      on fail → log; user can re-run later. Cloud is already gone.
+	 *
+	 *   3. Best-effort `git worktree remove` for each non-main local
+	 *      workspace so subsequent worktree commands aren't confused.
+	 *
+	 * The on-disk repo directory is NEVER auto-removed. The user's code is
+	 * their code; deletion of the working tree must be an explicit action,
+	 * not a side-effect of project removal. Returns repoPath so a future
+	 * UI can offer an explicit "delete files too" follow-up.
+	 */
 	remove: protectedProcedure
-		.input(z.object({ projectId: z.string() }))
+		.input(z.object({ projectId: z.string().uuid() }))
 		.mutation(async ({ ctx, input }) => {
+			await ctx.api.v2Project.delete.mutate({
+				organizationId: ctx.organizationId,
+				id: input.projectId,
+			});
+
 			const localProject = ctx.db.query.projects
 				.findFirst({ where: eq(projects.id, input.projectId) })
 				.sync();
-			if (!localProject) return { success: true };
+
+			if (!localProject) return { success: true, repoPath: null };
 
 			const localWorkspaces = ctx.db
 				.select()
@@ -308,13 +330,7 @@ export const projectRouter = router({
 				.all();
 
 			for (const ws of localWorkspaces) {
-				if (ws.worktreePath === localProject.repoPath) {
-					await ctx.api.v2Workspace.deleteMainForHost.mutate({
-						id: ws.id,
-						projectId: input.projectId,
-					});
-					continue;
-				}
+				if (ws.worktreePath === localProject.repoPath) continue;
 				try {
 					const git = await ctx.git(localProject.repoPath);
 					await git.raw(["worktree", "remove", ws.worktreePath]);
@@ -328,17 +344,18 @@ export const projectRouter = router({
 			}
 
 			try {
-				rmSync(localProject.repoPath, { recursive: true, force: true });
+				ctx.db
+					.delete(workspaces)
+					.where(eq(workspaces.projectId, input.projectId))
+					.run();
+				ctx.db.delete(projects).where(eq(projects.id, input.projectId)).run();
 			} catch (err) {
-				console.warn("[project.remove] failed to remove repo dir", {
+				console.warn("[project.remove] failed to delete local rows", {
 					projectId: input.projectId,
-					repoPath: localProject.repoPath,
 					err,
 				});
 			}
 
-			ctx.db.delete(projects).where(eq(projects.id, input.projectId)).run();
-
-			return { success: true };
+			return { success: true, repoPath: localProject.repoPath };
 		}),
 });
