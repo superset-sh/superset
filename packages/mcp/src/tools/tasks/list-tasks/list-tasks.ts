@@ -230,8 +230,11 @@ export function register(server: McpServer) {
 			}
 
 			if (externalProjectName) {
+				const escaped = externalProjectName
+					.replace(/%/g, "\\%")
+					.replace(/_/g, "\\_");
 				conditions.push(
-					ilike(tasks.externalProjectName, `${externalProjectName}%`),
+					ilike(tasks.externalProjectName, `${escaped}%`),
 				);
 			}
 
