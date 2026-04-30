@@ -25,9 +25,6 @@ function isLoopbackRedirectUri(value: string): boolean {
 export default async function CliAuthorizePage({
 	searchParams,
 }: CliAuthorizePageProps) {
-	// Middleware (proxy.ts) handles unauth: stashes path+params in a cookie
-	// and redirects to /sign-in?redirect=/cli/authorize. After sign-in we
-	// arrive here with no query params; the cookie restores them.
 	const session = await auth.api.getSession({
 		headers: await headers(),
 	});
