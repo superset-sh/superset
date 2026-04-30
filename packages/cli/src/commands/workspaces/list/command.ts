@@ -11,8 +11,9 @@ export default command({
 	display: (data) =>
 		table(
 			data as Record<string, unknown>[],
-			["id", "name", "branch", "projectName", "hostId"],
-			["ID", "NAME", "BRANCH", "PROJECT", "HOST"],
+			["name", "branch", "projectName", "hostName"],
+			["NAME", "BRANCH", "PROJECT", "HOST"],
+			30,
 		),
 	run: async ({ ctx, options }) => {
 		const organizationId = ctx.config.organizationId;
@@ -25,9 +26,14 @@ export default command({
 			local: options.local ?? undefined,
 		});
 
-		return ctx.api.v2Workspace.list.query({
-			organizationId,
-			hostId,
-		});
+		const [workspaces, hosts] = await Promise.all([
+			ctx.api.v2Workspace.list.query({ organizationId, hostId }),
+			ctx.api.host.list.query({ organizationId }),
+		]);
+		const hostNameById = new Map(hosts.map((host) => [host.id, host.name]));
+		return workspaces.map((workspace) => ({
+			...workspace,
+			hostName: hostNameById.get(workspace.hostId) ?? workspace.hostId,
+		}));
 	},
 });

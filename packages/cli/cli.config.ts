@@ -20,7 +20,7 @@ export default defineConfig({
 		"process.env.SUPERSET_VERSION": JSON.stringify(VERSION),
 	},
 	globals: {
-		json: boolean().desc("Output as JSON"),
+		json: boolean().desc("Output as JSON (auto-on under CI/agent envs)"),
 		quiet: boolean().desc("Output IDs only"),
 		apiKey: string()
 			.env("SUPERSET_API_KEY")

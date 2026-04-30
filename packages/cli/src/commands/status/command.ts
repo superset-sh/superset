@@ -4,6 +4,16 @@ import type { ApiClient } from "../../lib/api-client";
 import { command } from "../../lib/command";
 import { isProcessAlive, readManifest } from "../../lib/host/manifest";
 
+function formatUptime(seconds: number): string {
+	if (seconds < 60) return `${seconds}s`;
+	const days = Math.floor(seconds / 86400);
+	const hours = Math.floor((seconds % 86400) / 3600);
+	const minutes = Math.floor((seconds % 3600) / 60);
+	if (days > 0) return `${days}d ${hours}h`;
+	if (hours > 0) return `${hours}h ${minutes}m`;
+	return `${minutes}m`;
+}
+
 async function checkHealth(
 	endpoint: string,
 	authToken: string,
@@ -88,7 +98,7 @@ export default command({
 				hostName,
 				uptimeSec,
 			},
-			message: `${organization.name}: ${hostName ? `${hostName} (${localHostId.slice(0, 8)}…)` : `host ${localHostId.slice(0, 8)}…`} running (pid ${manifest.pid}, ${uptimeSec}s)${
+			message: `${organization.name}: ${hostName ? `${hostName} (${localHostId.slice(0, 8)}…)` : `host ${localHostId.slice(0, 8)}…`} running (pid ${manifest.pid}, up ${formatUptime(uptimeSec)})${
 				healthy ? "" : " — not responding to health check"
 			}`,
 		};
