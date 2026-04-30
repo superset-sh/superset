@@ -49,7 +49,9 @@ export function useWorkspacePaneOpeners({
 						data: {
 							...prev,
 							path: filePath,
-							collapsedFiles: prev.collapsedFiles.filter((p) => p !== filePath),
+							collapsedFiles: (prev.collapsedFiles ?? []).filter(
+								(p) => p !== filePath,
+							),
 							expandedFiles: prevExpanded.includes(filePath)
 								? prevExpanded
 								: [...prevExpanded, filePath],
