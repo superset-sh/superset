@@ -19,7 +19,7 @@ export function EmptyTabActionButton({
 		<Button
 			type="button"
 			variant="ghost"
-			className="group h-9 w-full justify-between rounded-[6px] px-3 text-sm text-muted-foreground/80 transition-colors hover:bg-tertiary/60 hover:text-foreground"
+			className="group h-9 w-full justify-between rounded-md px-3 text-sm text-muted-foreground/80 transition-colors hover:bg-tertiary/60 hover:text-foreground"
 			onClick={onClick}
 		>
 			<span className="flex items-center gap-2">

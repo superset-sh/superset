@@ -86,7 +86,7 @@ export function DiffFileHeader({
 			</Tooltip>
 			<div className="ml-auto flex shrink-0 items-center gap-1.5">
 				{(additions > 0 || deletions > 0) && (
-					<span className="font-mono text-[10px] text-muted-foreground">
+					<span className="font-mono text-micro text-muted-foreground">
 						{additions > 0 && (
 							<span className="text-green-700 dark:text-green-400">
 								+{additions}
@@ -110,7 +110,7 @@ export function DiffFileHeader({
 					/>
 					<label
 						htmlFor={viewedId}
-						className="hidden cursor-pointer select-none text-[10px] text-muted-foreground @min-[380px]/diff-file-header:inline"
+						className="hidden cursor-pointer select-none text-micro text-muted-foreground @min-[380px]/diff-file-header:inline"
 					>
 						Viewed
 					</label>

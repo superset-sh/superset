@@ -5,7 +5,7 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { PaperclipIcon } from "lucide-react";
 import type { ReactNode } from "react";
-import { PILL_BUTTON_CLASS } from "../../types";
+import { PILL_ICON_BUTTON_CLASS } from "../../types";
 
 interface AttachmentButtonsProps {
 	linearIssueTrigger: ReactNode;
@@ -25,7 +25,7 @@ export function AttachmentButtons({
 				<TooltipTrigger asChild>
 					<PromptInputButton
 						aria-label="Add attachment"
-						className={`${PILL_BUTTON_CLASS} w-[22px]`}
+						className={PILL_ICON_BUTTON_CLASS}
 						onClick={() => attachments.openFileDialog()}
 					>
 						<PaperclipIcon className="size-3.5" />

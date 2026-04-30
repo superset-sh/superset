@@ -12,7 +12,7 @@ const SIZE_CLASSES: Record<
 	NonNullable<V2WorkspaceProjectIconProps["size"]>,
 	string
 > = {
-	sm: "size-5 text-[10px]",
+	sm: "size-5 text-micro",
 	md: "size-6 text-xs",
 };
 

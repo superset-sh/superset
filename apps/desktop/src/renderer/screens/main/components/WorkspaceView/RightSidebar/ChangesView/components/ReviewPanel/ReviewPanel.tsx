@@ -262,7 +262,7 @@ export function ReviewPanel({
 						{comment.avatarUrl ? (
 							<AvatarImage src={comment.avatarUrl} alt={comment.authorLogin} />
 						) : null}
-						<AvatarFallback className="text-[10px] font-medium">
+						<AvatarFallback className="text-micro font-medium">
 							{getCommentAvatarFallback(comment.authorLogin)}
 						</AvatarFallback>
 					</Avatar>
@@ -271,12 +271,12 @@ export function ReviewPanel({
 							<span className="truncate text-xs font-medium text-foreground">
 								{comment.authorLogin}
 							</span>
-							<span className="shrink-0 rounded border border-border/70 bg-muted/35 px-1 py-0 text-[9px] uppercase tracking-wide text-muted-foreground">
+							<span className="shrink-0 rounded border border-border/70 bg-muted/35 px-1 py-0 text-micro uppercase tracking-wide text-muted-foreground">
 								{getCommentKindText(comment)}
 							</span>
 							<span className="flex-1" />
 							{age ? (
-								<span className="shrink-0 text-[10px] text-muted-foreground">
+								<span className="shrink-0 text-micro text-muted-foreground">
 									{age}
 								</span>
 							) : null}
@@ -376,14 +376,14 @@ export function ReviewPanel({
 				<div className="flex items-center gap-1.5">
 					<span
 						className={cn(
-							"shrink-0 rounded-sm px-1.5 py-0.5 text-[10px] font-medium",
+							"shrink-0 rounded-sm px-1.5 py-0.5 text-micro font-medium",
 							reviewDecisionConfig[pr.reviewDecision].className,
 						)}
 					>
 						{reviewDecisionConfig[pr.reviewDecision].label}
 					</span>
 					{requestedReviewers.length > 0 && (
-						<span className="truncate text-[10px] text-muted-foreground">
+						<span className="truncate text-micro text-muted-foreground">
 							Awaiting {requestedReviewers.join(", ")}
 						</span>
 					)}
@@ -407,7 +407,7 @@ export function ReviewPanel({
 							)}
 						/>
 						<span className="text-xs font-medium truncate">Checks</span>
-						<span className="text-[10px] text-muted-foreground shrink-0">
+						<span className="text-micro text-muted-foreground shrink-0">
 							{relevantChecks.length}
 						</span>
 					</div>
@@ -423,7 +423,7 @@ export function ReviewPanel({
 								checksStatus === "pending" && "animate-spin",
 							)}
 						/>
-						<span className="max-w-[140px] truncate text-[10px] normal-case">
+						<span className="max-w-[140px] truncate text-micro normal-case">
 							{checksSummary}
 						</span>
 					</div>
@@ -460,7 +460,7 @@ export function ReviewPanel({
 											<LuArrowUpRight className="size-3.5 shrink-0 text-muted-foreground/70 opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100" />
 										</div>
 										{check.durationText && (
-											<span className="shrink-0 text-[10px] text-muted-foreground">
+											<span className="shrink-0 text-micro text-muted-foreground">
 												{check.durationText}
 											</span>
 										)}
@@ -480,7 +480,7 @@ export function ReviewPanel({
 									/>
 									<span className="min-w-0 flex-1 truncate">{check.name}</span>
 									{check.durationText && (
-										<span className="shrink-0 text-[10px] text-muted-foreground">
+										<span className="shrink-0 text-micro text-muted-foreground">
 											{check.durationText}
 										</span>
 									)}
@@ -512,7 +512,7 @@ export function ReviewPanel({
 							)}
 						/>
 						<span className="text-xs font-medium truncate">Comments</span>
-						<span className="text-[10px] text-muted-foreground shrink-0">
+						<span className="text-micro text-muted-foreground shrink-0">
 							{commentsCountLabel}
 						</span>
 					</CollapsibleTrigger>
@@ -521,7 +521,7 @@ export function ReviewPanel({
 							{uniqueResolvableThreadIds.length > 0 && workspaceId && (
 								<button
 									type="button"
-									className="shrink-0 flex items-center gap-1 rounded-sm px-1.5 py-0.5 text-[10px] text-muted-foreground transition-colors hover:bg-accent/30 hover:text-foreground disabled:opacity-50"
+									className="shrink-0 flex items-center gap-1 rounded-sm px-1.5 py-0.5 text-micro text-muted-foreground transition-colors hover:bg-accent/30 hover:text-foreground disabled:opacity-50"
 									onClick={() => void handleResolveAll()}
 									disabled={isResolvingAll}
 								>
@@ -535,7 +535,7 @@ export function ReviewPanel({
 							)}
 							<button
 								type="button"
-								className="shrink-0 flex items-center gap-1 rounded-sm px-1.5 py-0.5 text-[10px] text-muted-foreground transition-colors hover:bg-accent/30 hover:text-foreground"
+								className="shrink-0 flex items-center gap-1 rounded-sm px-1.5 py-0.5 text-micro text-muted-foreground transition-colors hover:bg-accent/30 hover:text-foreground"
 								onClick={handleCopyCommentsList}
 							>
 								{copiedActionKey === ALL_COMMENTS_COPY_ACTION_KEY ? (
@@ -584,7 +584,7 @@ export function ReviewPanel({
 							)}
 						/>
 						<span className="text-xs font-medium truncate">Resolved</span>
-						<span className="text-[10px] text-muted-foreground shrink-0">
+						<span className="text-micro text-muted-foreground shrink-0">
 							{resolvedComments.length}
 						</span>
 					</CollapsibleTrigger>

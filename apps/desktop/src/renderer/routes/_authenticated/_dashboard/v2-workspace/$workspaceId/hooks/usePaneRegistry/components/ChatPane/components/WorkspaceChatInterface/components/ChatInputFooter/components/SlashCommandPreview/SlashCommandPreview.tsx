@@ -206,7 +206,7 @@ export function SlashCommandPreview({
 				</div>
 
 				<div className="mt-2 space-y-1">
-					<div className="text-[11px] text-muted-foreground uppercase tracking-wide">
+					<div className="text-tiny text-muted-foreground uppercase tracking-wide">
 						Prompt Preview
 					</div>
 					<div className="max-h-32 overflow-y-auto whitespace-pre-wrap rounded border border-border/70 bg-background/70 px-2 py-1.5 font-mono text-xs text-foreground/90">

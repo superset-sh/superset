@@ -38,7 +38,7 @@ export function DashboardSidebarPortGroup({
 				>
 					{group.workspaceName}
 				</button>
-				<span className="ml-1.5 rounded bg-muted px-1 py-0.5 text-[9px] uppercase leading-none text-muted-foreground">
+				<span className="ml-1.5 rounded bg-muted px-1 py-0.5 text-micro uppercase leading-none text-muted-foreground">
 					{group.hostType === "local-device" ? "Local" : "Remote"}
 				</span>
 				<Tooltip>

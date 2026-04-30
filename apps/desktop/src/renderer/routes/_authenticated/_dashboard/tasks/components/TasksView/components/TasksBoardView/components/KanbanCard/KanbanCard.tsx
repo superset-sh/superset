@@ -93,7 +93,7 @@ export function KanbanCard({ task, onClick, overlay }: KanbanCardProps) {
 							<Badge
 								key={label}
 								variant="outline"
-								className="text-[10px] px-1.5 py-0 h-4 leading-none"
+								className="text-micro px-1.5 py-0 h-4 leading-none"
 							>
 								{label}
 							</Badge>
@@ -101,7 +101,7 @@ export function KanbanCard({ task, onClick, overlay }: KanbanCardProps) {
 						{labels.length > 2 && (
 							<Badge
 								variant="outline"
-								className="text-[10px] px-1.5 py-0 h-4 leading-none"
+								className="text-micro px-1.5 py-0 h-4 leading-none"
 							>
 								+{labels.length - 2}
 							</Badge>
@@ -110,7 +110,7 @@ export function KanbanCard({ task, onClick, overlay }: KanbanCardProps) {
 				)}
 
 				{createdDate && (
-					<span className="text-[10px] text-muted-foreground ml-auto">
+					<span className="text-micro text-muted-foreground ml-auto">
 						Created {createdDate}
 					</span>
 				)}

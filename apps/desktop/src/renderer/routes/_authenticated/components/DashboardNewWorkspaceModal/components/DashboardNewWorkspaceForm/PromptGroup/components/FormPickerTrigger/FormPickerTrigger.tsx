@@ -13,7 +13,7 @@ export function FormPickerTrigger({
 		<button
 			type={type}
 			className={cn(
-				"inline-flex items-center gap-1 h-[22px] text-[11px] text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50 min-w-0",
+				"inline-flex items-center gap-1 h-[22px] text-tiny text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50 min-w-0",
 				className,
 			)}
 			{...props}

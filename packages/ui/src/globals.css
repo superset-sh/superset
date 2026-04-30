@@ -4,6 +4,10 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
+	--text-micro: 10px;
+	--text-micro--line-height: 14px;
+	--text-tiny: 11px;
+	--text-tiny--line-height: 16px;
 	--radius-sm: calc(var(--radius) - 4px);
 	--radius-md: calc(var(--radius) - 2px);
 	--radius-lg: var(--radius);

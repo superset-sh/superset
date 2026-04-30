@@ -113,7 +113,7 @@ export function MergedPortBadge({ port }: MergedPortBadgeProps) {
 							{port.pid != null && ` (pid ${port.pid})`}
 						</div>
 					)}
-					<div className="text-[10px] text-muted-foreground/70">
+					<div className="text-micro text-muted-foreground/70">
 						Click to open workspace
 					</div>
 				</div>

@@ -240,13 +240,13 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 							onSubmit={onSubmitRename}
 							onCancel={onCancelRename}
 							className={cn(
-								"h-5 w-full -ml-1 border-none bg-transparent px-1 py-0 text-[13px] leading-tight outline-none",
+								"h-5 w-full -ml-1 border-none bg-transparent px-1 py-0 text-sm leading-tight outline-none",
 							)}
 						/>
 					) : (
 						<span
 							className={cn(
-								"truncate text-[13px] leading-tight transition-colors",
+								"truncate text-sm leading-tight transition-colors",
 								isActive ? "text-foreground" : "text-foreground/80",
 							)}
 						>
@@ -258,7 +258,7 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 						{creationStatusText ? (
 							<span
 								className={cn(
-									"text-[11px]",
+									"text-tiny",
 									creationStatus === "failed"
 										? "text-destructive"
 										: "text-muted-foreground",
@@ -278,7 +278,7 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 									)}
 								<div className="invisible flex items-center justify-end gap-1.5 opacity-0 transition-[opacity,visibility] group-hover:visible group-hover:opacity-100">
 									{shortcutLabel && (
-										<span className="shrink-0 font-mono text-[10px] tabular-nums text-muted-foreground">
+										<span className="shrink-0 font-mono text-micro tabular-nums text-muted-foreground">
 											{shortcutLabel}
 										</span>
 									)}

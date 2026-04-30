@@ -229,7 +229,7 @@ export function NewProjectModal({
 									<div className="flex flex-col items-center gap-0.5 text-xs font-medium text-foreground leading-tight">
 										<span>{option.label}</span>
 										{option.suffix && (
-											<span className="text-[11px] font-normal text-muted-foreground">
+											<span className="text-tiny font-normal text-muted-foreground">
 												{option.suffix}
 											</span>
 										)}

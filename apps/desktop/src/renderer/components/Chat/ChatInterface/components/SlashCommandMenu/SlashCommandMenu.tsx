@@ -56,7 +56,7 @@ export function SlashCommandMenu({
 								{cmd.name}
 							</span>
 							{cmd.kind === "builtin" && (
-								<span className="rounded-sm border border-border/70 bg-muted/40 px-1 py-0.5 font-mono text-[10px] text-muted-foreground uppercase leading-none">
+								<span className="rounded-sm border border-border/70 bg-muted/40 px-1 py-0.5 font-mono text-micro text-muted-foreground uppercase leading-none">
 									builtin
 								</span>
 							)}

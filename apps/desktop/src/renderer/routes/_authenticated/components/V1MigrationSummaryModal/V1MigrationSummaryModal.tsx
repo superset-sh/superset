@@ -609,19 +609,19 @@ function Entry({
 					{primary}
 				</span>
 				{secondary && (
-					<span className="truncate font-mono text-[10px] text-muted-foreground">
+					<span className="truncate font-mono text-micro text-muted-foreground">
 						{secondary}
 					</span>
 				)}
 				{detail && (
-					<span className="truncate text-[10px] text-muted-foreground">
+					<span className="truncate text-micro text-muted-foreground">
 						{detail}
 					</span>
 				)}
 			</div>
 			<span
 				className={cn(
-					"shrink-0 text-[10px] font-medium uppercase tracking-wide",
+					"shrink-0 text-micro font-medium uppercase tracking-wide",
 					statusTone === "success" && "text-emerald-600 dark:text-emerald-400",
 					statusTone === "muted" && "text-muted-foreground",
 					statusTone === "error" && "text-destructive",

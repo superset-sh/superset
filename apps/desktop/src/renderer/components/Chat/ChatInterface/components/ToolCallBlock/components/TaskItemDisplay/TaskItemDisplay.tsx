@@ -83,7 +83,7 @@ function renderContent(props: TaskItemDisplayProps) {
 					{props.title}
 				</div>
 				{hasSlug ? (
-					<span className="text-[11px] text-muted-foreground shrink-0">
+					<span className="text-tiny text-muted-foreground shrink-0">
 						#{props.slug}
 					</span>
 				) : null}
@@ -97,13 +97,13 @@ function renderContent(props: TaskItemDisplayProps) {
 						<Badge
 							key={label}
 							variant="outline"
-							className="text-[10px] h-5 px-1.5"
+							className="text-micro h-5 px-1.5"
 						>
 							{label}
 						</Badge>
 					))}
 					{hiddenLabelCount > 0 ? (
-						<Badge variant="outline" className="text-[10px] h-5 px-1.5">
+						<Badge variant="outline" className="text-micro h-5 px-1.5">
 							+{hiddenLabelCount}
 						</Badge>
 					) : null}
@@ -115,9 +115,7 @@ function renderContent(props: TaskItemDisplayProps) {
 				</div>
 			) : null}
 			{showTaskIdLine ? (
-				<div className="text-[11px] text-muted-foreground/80">
-					{props.taskId}
-				</div>
+				<div className="text-tiny text-muted-foreground/80">{props.taskId}</div>
 			) : null}
 		</TaskItem>
 	);

@@ -45,12 +45,12 @@ export function PRDetailCard({ pr, checks, linkState }: PRDetailCardProps) {
 					<p className="line-clamp-2 text-sm font-medium leading-snug text-foreground">
 						{pr.title}
 					</p>
-					<div className="mt-1 flex items-center gap-1.5 text-[11px] text-muted-foreground">
+					<div className="mt-1 flex items-center gap-1.5 text-tiny text-muted-foreground">
 						<span className="font-mono">#{pr.number}</span>
 						<span aria-hidden="true">·</span>
 						<span
 							className={cn(
-								"rounded-sm px-1 py-px text-[10px] font-medium",
+								"rounded-sm px-1 py-px text-micro font-medium",
 								statePillClass,
 							)}
 						>
@@ -61,7 +61,7 @@ export function PRDetailCard({ pr, checks, linkState }: PRDetailCardProps) {
 			</div>
 
 			{pr.headRefName && (
-				<div className="flex items-center gap-1.5 px-3 pb-2 text-[11px] text-muted-foreground">
+				<div className="flex items-center gap-1.5 px-3 pb-2 text-tiny text-muted-foreground">
 					<LuGitBranch
 						aria-hidden="true"
 						className="size-3 shrink-0 text-muted-foreground/70"
@@ -77,7 +77,7 @@ export function PRDetailCard({ pr, checks, linkState }: PRDetailCardProps) {
 			</div>
 
 			{updatedRelative && (
-				<div className="border-t border-border/60 px-3 py-2 text-[11px] text-muted-foreground">
+				<div className="border-t border-border/60 px-3 py-2 text-tiny text-muted-foreground">
 					Updated {updatedRelative}
 				</div>
 			)}
@@ -86,7 +86,7 @@ export function PRDetailCard({ pr, checks, linkState }: PRDetailCardProps) {
 				href={pr.url}
 				target="_blank"
 				rel="noopener noreferrer"
-				className="group flex items-center justify-between border-t border-border/60 px-3 py-2 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+				className="group flex items-center justify-between border-t border-border/60 px-3 py-2 text-tiny font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
 			>
 				<span>View on GitHub</span>
 				<LuArrowUpRight

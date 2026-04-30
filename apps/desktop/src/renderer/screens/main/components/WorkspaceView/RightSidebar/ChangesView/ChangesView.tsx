@@ -712,7 +712,7 @@ export function ChangesView({
 							)}
 						>
 							<span>Diffs</span>
-							<span className="text-[11px] text-muted-foreground/60 tabular-nums">
+							<span className="text-tiny text-muted-foreground/60 tabular-nums">
 								{againstMainCount}
 							</span>
 						</TabsTrigger>
@@ -724,7 +724,7 @@ export function ChangesView({
 							)}
 						>
 							<span>Review</span>
-							<span className="text-[11px] text-muted-foreground/60 tabular-nums">
+							<span className="text-tiny text-muted-foreground/60 tabular-nums">
 								{reviewCommentCount}
 							</span>
 							{activePullRequest ? (

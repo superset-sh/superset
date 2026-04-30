@@ -89,7 +89,7 @@ export function SecretRow({
 					{secret.key}
 				</span>
 				{secret.sensitive && (
-					<span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-muted text-muted-foreground shrink-0">
+					<span className="text-micro font-medium px-1.5 py-0.5 rounded bg-muted text-muted-foreground shrink-0">
 						Sensitive
 					</span>
 				)}

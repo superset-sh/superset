@@ -62,7 +62,7 @@ export function SearchBarTrigger({ workspaceName }: SearchBarTriggerProps) {
 			{!isUnassigned && (
 				<KbdGroup className="ml-auto shrink-0 hidden md:flex">
 					{display.map((key) => (
-						<Kbd key={key} className="text-[10px] h-4 min-w-4">
+						<Kbd key={key} className="text-micro h-4 min-w-4">
 							{key}
 						</Kbd>
 					))}

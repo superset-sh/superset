@@ -29,7 +29,7 @@ export function ReviewStatus({
 
 	return (
 		<span
-			className={`text-[10px] font-medium px-1.5 py-0.5 rounded-md shrink-0 truncate max-w-[200px] ${className}`}
+			className={`text-micro font-medium px-1.5 py-0.5 rounded-md shrink-0 truncate max-w-[200px] ${className}`}
 			title={label}
 		>
 			{label}

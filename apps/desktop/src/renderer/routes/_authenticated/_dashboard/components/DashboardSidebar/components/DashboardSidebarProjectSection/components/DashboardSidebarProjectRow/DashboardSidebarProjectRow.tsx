@@ -118,7 +118,7 @@ export const DashboardSidebarProjectRow = forwardRef<
 								New workspace
 							</TooltipContent>
 						</Tooltip>
-						<span className="text-[10px] font-normal tabular-nums text-muted-foreground group-hover:hidden group-has-[:focus]:hidden">
+						<span className="text-micro font-normal tabular-nums text-muted-foreground group-hover:hidden group-has-[:focus]:hidden">
 							{totalWorkspaceCount}
 						</span>
 					</div>

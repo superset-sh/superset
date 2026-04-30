@@ -172,7 +172,7 @@ export function V2WorkspacesList({ workspaces }: V2WorkspacesListProps) {
 		<div
 			className={cn(
 				V2_WORKSPACES_ROW_GRID,
-				"sticky top-0 z-10 h-8 border-b border-border bg-background px-6 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/80",
+				"sticky top-0 z-10 h-8 border-b border-border bg-background px-6 text-micro font-semibold uppercase tracking-wider text-muted-foreground/80",
 			)}
 		>
 			<SortableHeader

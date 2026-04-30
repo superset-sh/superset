@@ -83,7 +83,7 @@ export function WorkspaceRunIndicator({
 	return (
 		<span
 			className={cn(
-				"flex h-2.5 w-5 items-center justify-center rounded-[2px]",
+				"flex h-2.5 w-5 items-center justify-center rounded-sm",
 				inlineColorClasses,
 				className,
 			)}

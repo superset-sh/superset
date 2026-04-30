@@ -591,7 +591,7 @@ function PlansPage() {
 												{row.badge && (
 													<Badge
 														variant={row.badge.variant}
-														className="px-1.5 py-0 text-[10px] font-medium"
+														className="px-1.5 py-0 text-micro font-medium"
 													>
 														{row.badge.label}
 													</Badge>

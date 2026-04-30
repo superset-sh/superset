@@ -81,7 +81,7 @@ export function WorkspaceStatusBadge({
 			onClick={handleClick}
 			disabled={!isClickable}
 			className={cn(
-				"flex items-center justify-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] leading-none shrink-0 transition-colors",
+				"flex items-center justify-center gap-1 px-1.5 py-0.5 rounded-md text-micro leading-none shrink-0 transition-colors",
 				bgColor,
 				isClickable && [hoverBgColor, "cursor-pointer"],
 				!isClickable && "cursor-default",

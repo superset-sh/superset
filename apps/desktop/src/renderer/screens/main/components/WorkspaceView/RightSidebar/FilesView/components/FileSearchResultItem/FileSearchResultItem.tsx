@@ -125,7 +125,7 @@ export function FileSearchResultItem({
 			<span className="flex items-center justify-center w-4 h-4 shrink-0" />
 			<div className="flex flex-col min-w-0 flex-1 gap-0.5">
 				<span
-					className="text-[10px] text-muted-foreground truncate"
+					className="text-micro text-muted-foreground truncate"
 					title={entry.relativePath}
 				>
 					{folderLabelDisplay}

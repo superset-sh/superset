@@ -25,7 +25,7 @@ export function DashboardSidebarPortsList() {
 
 	return (
 		<div className="border-t border-border pt-3">
-			<div className="group flex w-full items-center gap-1.5 px-3 pb-2 font-medium text-[11px] text-muted-foreground/70 uppercase tracking-wider transition-colors hover:text-muted-foreground">
+			<div className="group flex w-full items-center gap-1.5 px-3 pb-2 font-medium text-tiny text-muted-foreground/70 uppercase tracking-wider transition-colors hover:text-muted-foreground">
 				<button
 					type="button"
 					aria-expanded={!isCollapsed}
@@ -59,7 +59,7 @@ export function DashboardSidebarPortsList() {
 						<p className="text-xs">Learn about port labels</p>
 					</TooltipContent>
 				</Tooltip>
-				<span className="text-[10px] font-normal">{totalPortCount}</span>
+				<span className="text-micro font-normal">{totalPortCount}</span>
 			</div>
 			{!isCollapsed && (
 				<div className="max-h-72 space-y-2 overflow-y-auto pb-1 hide-scrollbar">

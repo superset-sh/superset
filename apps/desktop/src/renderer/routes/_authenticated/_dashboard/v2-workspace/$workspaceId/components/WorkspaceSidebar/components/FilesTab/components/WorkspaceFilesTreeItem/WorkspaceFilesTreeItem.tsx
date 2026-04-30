@@ -138,7 +138,7 @@ function WorkspaceFilesTreeItemComponent({
 			{decoration && !isMuted && (
 				<span
 					className={cn(
-						"ml-auto shrink-0 text-[10px] font-semibold leading-none",
+						"ml-auto shrink-0 text-micro font-semibold leading-none",
 						STATUS_TEXT_CLASS[decoration],
 					)}
 				>

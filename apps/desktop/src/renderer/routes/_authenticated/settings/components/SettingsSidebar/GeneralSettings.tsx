@@ -217,7 +217,7 @@ export function GeneralSettings({ matchCounts }: GeneralSettingsProps) {
 
 				return (
 					<div key={group.label} className={cn(groupIndex > 0 && "mt-4")}>
-						<h2 className="text-[10px] font-medium text-muted-foreground/60 uppercase tracking-[0.1em] px-3 mb-1">
+						<h2 className="text-micro font-medium text-muted-foreground/60 uppercase tracking-[0.1em] px-3 mb-1">
 							{group.label}
 						</h2>
 						<nav className="flex flex-col">

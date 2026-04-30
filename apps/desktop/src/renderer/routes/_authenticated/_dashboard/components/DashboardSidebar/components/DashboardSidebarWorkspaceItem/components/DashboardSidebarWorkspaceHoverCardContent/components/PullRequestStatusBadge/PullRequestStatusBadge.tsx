@@ -19,7 +19,7 @@ export function PullRequestStatusBadge({ state }: PullRequestStatusBadgeProps) {
 
 	return (
 		<span
-			className={`text-[10px] font-medium px-1.5 py-0.5 rounded-md shrink-0 ${styles[state]}`}
+			className={`text-micro font-medium px-1.5 py-0.5 rounded-md shrink-0 ${styles[state]}`}
 		>
 			{labels[state]}
 		</span>

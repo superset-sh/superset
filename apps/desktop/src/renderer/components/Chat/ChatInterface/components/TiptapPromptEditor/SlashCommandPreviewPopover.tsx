@@ -132,7 +132,7 @@ export function SlashCommandPreviewPopover({
 				onMouseDown={(e) => e.preventDefault()}
 			>
 				<div className="mb-2 flex items-center gap-1.5">
-					<span className="flex size-4.5 shrink-0 items-center justify-center rounded bg-muted font-mono text-[11px]">
+					<span className="flex size-4.5 shrink-0 items-center justify-center rounded bg-muted font-mono text-tiny">
 						/
 					</span>
 					<span className="font-mono text-foreground/90">
@@ -145,10 +145,10 @@ export function SlashCommandPreviewPopover({
 					)}
 				</div>
 				<div className="space-y-1">
-					<div className="text-[11px] uppercase tracking-wide text-muted-foreground/60">
+					<div className="text-tiny uppercase tracking-wide text-muted-foreground/60">
 						Prompt preview
 					</div>
-					<div className="max-h-24 overflow-y-auto whitespace-pre-wrap rounded border border-border/60 bg-muted/30 px-2 py-1.5 font-mono text-[11px] text-foreground/80">
+					<div className="max-h-24 overflow-y-auto whitespace-pre-wrap rounded border border-border/60 bg-muted/30 px-2 py-1.5 font-mono text-tiny text-foreground/80">
 						{previewPrompt}
 					</div>
 				</div>

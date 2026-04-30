@@ -40,7 +40,7 @@ export function TeardownFailedPane({
 					</AlertDialogDescription>
 				</AlertDialogHeader>
 				{cleanTail && (
-					<pre className="mx-4 mb-2 max-h-48 overflow-auto rounded border bg-muted px-2 py-1.5 text-[11px] leading-relaxed whitespace-pre-wrap font-mono">
+					<pre className="mx-4 mb-2 max-h-48 overflow-auto rounded border bg-muted px-2 py-1.5 text-tiny leading-relaxed whitespace-pre-wrap font-mono">
 						{cleanTail}
 					</pre>
 				)}

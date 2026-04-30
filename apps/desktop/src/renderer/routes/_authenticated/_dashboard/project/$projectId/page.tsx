@@ -429,7 +429,7 @@ function ProjectPage() {
 																			</span>
 																			{effectiveCompareBaseBranch ===
 																				branchData?.defaultBranch && (
-																				<span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+																				<span className="text-micro text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
 																					default
 																				</span>
 																			)}
@@ -470,7 +470,7 @@ function ProjectPage() {
 																						</span>
 																						{branch.name ===
 																							branchData?.defaultBranch && (
-																							<span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+																							<span className="text-micro text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
 																								default
 																							</span>
 																						)}
@@ -612,7 +612,7 @@ function ProjectPage() {
 														value={setupContent}
 														onChange={(e) => setSetupContent(e.target.value)}
 													/>
-													<div className="flex flex-wrap items-center gap-1.5 border-t px-1 pt-2 text-[11px] text-muted-foreground">
+													<div className="flex flex-wrap items-center gap-1.5 border-t px-1 pt-2 text-tiny text-muted-foreground">
 														<span className="mr-1">Variables</span>
 														<span className="rounded bg-muted px-1.5 py-0.5 font-mono">
 															$SUPERSET_ROOT_PATH

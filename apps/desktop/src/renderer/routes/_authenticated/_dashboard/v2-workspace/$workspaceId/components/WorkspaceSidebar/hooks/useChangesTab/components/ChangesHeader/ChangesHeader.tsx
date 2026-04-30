@@ -107,7 +107,7 @@ export function ChangesHeader({
 				)}
 			</div>
 
-			<div className="flex items-center justify-between gap-2 text-[11px] text-muted-foreground">
+			<div className="flex items-center justify-between gap-2 text-tiny text-muted-foreground">
 				<CommitFilterDropdown
 					filter={filter}
 					onFilterChange={onFilterChange}

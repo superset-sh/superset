@@ -109,7 +109,7 @@ export function TasksDemo() {
 							</div>
 
 							{/* Assignee */}
-							<div className="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-medium text-foreground/90 shrink-0 bg-foreground/10">
+							<div className="w-5 h-5 rounded-full flex items-center justify-center text-micro font-medium text-foreground/90 shrink-0 bg-foreground/10">
 								{task.assignee}
 							</div>
 						</div>

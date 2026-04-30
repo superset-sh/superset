@@ -221,7 +221,7 @@ export function CommitInput({
 				placeholder="Commit message"
 				value={commitMessage}
 				onChange={(e) => setCommitMessage(e.target.value)}
-				className="min-h-[52px] resize-none text-[10px] bg-background"
+				className="min-h-[52px] resize-none text-micro bg-background"
 				onKeyDown={(e) => {
 					if (
 						e.key === "Enter" &&
@@ -246,7 +246,7 @@ export function CommitInput({
 							{primary.icon}
 							<span>{primary.label}</span>
 							{countBadge && (
-								<span className="text-[10px] opacity-70">{countBadge}</span>
+								<span className="text-micro opacity-70">{countBadge}</span>
 							)}
 						</Button>
 					</TooltipTrigger>
@@ -301,7 +301,7 @@ export function CommitInput({
 							<VscArrowUp className="size-3.5" />
 							<span className="flex-1">{pushActionCopy.menuLabel}</span>
 							{pushCount > 0 && (
-								<span className="text-[10px] text-muted-foreground">
+								<span className="text-micro text-muted-foreground">
 									{pushCount}
 								</span>
 							)}
@@ -314,7 +314,7 @@ export function CommitInput({
 							<VscArrowDown className="size-3.5" />
 							<span className="flex-1">Pull</span>
 							{pullCount > 0 && (
-								<span className="text-[10px] text-muted-foreground">
+								<span className="text-micro text-muted-foreground">
 									{pullCount}
 								</span>
 							)}

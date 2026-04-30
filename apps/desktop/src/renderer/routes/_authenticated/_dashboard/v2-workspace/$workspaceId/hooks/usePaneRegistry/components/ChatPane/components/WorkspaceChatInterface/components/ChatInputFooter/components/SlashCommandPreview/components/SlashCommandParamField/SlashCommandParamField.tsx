@@ -22,12 +22,12 @@ export function SlashCommandParamField({
 
 	return (
 		<label className="space-y-1" htmlFor={inputId}>
-			<div className="flex items-center gap-1 text-[11px] text-muted-foreground uppercase tracking-wide">
+			<div className="flex items-center gap-1 text-tiny text-muted-foreground uppercase tracking-wide">
 				<span>{field.label}</span>
 				{required ? (
 					<span className="text-destructive">*</span>
 				) : (
-					<span className="normal-case text-[10px] text-muted-foreground/80">
+					<span className="normal-case text-micro text-muted-foreground/80">
 						optional
 					</span>
 				)}

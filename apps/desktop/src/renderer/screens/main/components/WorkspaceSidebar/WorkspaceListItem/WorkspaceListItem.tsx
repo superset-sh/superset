@@ -379,7 +379,7 @@ export function WorkspaceListItem({
 						<div className="flex items-center gap-1.5">
 							<span
 								className={cn(
-									"truncate text-[13px] leading-tight transition-colors flex-1",
+									"truncate text-sm leading-tight transition-colors flex-1",
 									isActive
 										? "text-foreground font-medium"
 										: "text-foreground/80",
@@ -406,7 +406,7 @@ export function WorkspaceListItem({
 								<div className="flex items-center justify-end gap-1.5 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-[opacity,visibility]">
 									{shortcutIndex !== undefined &&
 										shortcutIndex < MAX_KEYBOARD_SHORTCUT_INDEX && (
-											<span className="text-[10px] text-muted-foreground font-mono tabular-nums shrink-0">
+											<span className="text-micro text-muted-foreground font-mono tabular-nums shrink-0">
 												⌘{shortcutIndex + 1}
 											</span>
 										)}
@@ -438,7 +438,7 @@ export function WorkspaceListItem({
 						</div>
 
 						{(showBranchSubtitle || pr) && (
-							<div className="flex items-center gap-2 text-[11px] w-full">
+							<div className="flex items-center gap-2 text-tiny w-full">
 								{showBranchSubtitle && (
 									<span className="text-muted-foreground/60 truncate font-mono leading-tight">
 										{branch}

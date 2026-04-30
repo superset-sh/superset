@@ -83,7 +83,7 @@ export function ChecksSection({
 						)}
 					/>
 					<span className="truncate text-xs font-medium">Checks</span>
-					<span className="shrink-0 text-[10px] text-muted-foreground">
+					<span className="shrink-0 text-micro text-muted-foreground">
 						{relevantChecks.length}
 					</span>
 				</div>
@@ -99,7 +99,7 @@ export function ChecksSection({
 							checksStatus === "pending" && "animate-spin",
 						)}
 					/>
-					<span className="max-w-[140px] truncate text-[10px] normal-case">
+					<span className="max-w-[140px] truncate text-micro normal-case">
 						{checksSummary}
 					</span>
 				</div>
@@ -153,7 +153,7 @@ function CheckRow({ check, prUrl }: { check: NormalizedCheck; prUrl: string }) {
 				)}
 			</div>
 			{check.durationText && (
-				<span className="shrink-0 text-[10px] text-muted-foreground">
+				<span className="shrink-0 text-micro text-muted-foreground">
 					{check.durationText}
 				</span>
 			)}

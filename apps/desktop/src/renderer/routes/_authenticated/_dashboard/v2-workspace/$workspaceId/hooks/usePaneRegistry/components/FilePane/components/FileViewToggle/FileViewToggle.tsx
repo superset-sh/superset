@@ -25,7 +25,7 @@ export function FileViewToggle({
 						type="button"
 						title={label}
 						className={cn(
-							"flex h-4 min-w-0 max-w-20 items-center rounded px-1.5 text-[10px] leading-none transition-colors",
+							"flex h-4 min-w-0 max-w-20 items-center rounded px-1.5 text-micro leading-none transition-colors",
 							view.id === activeViewId
 								? "bg-background text-foreground shadow-sm"
 								: "text-muted-foreground hover:text-foreground",

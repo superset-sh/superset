@@ -147,7 +147,7 @@ export function WorkspaceRow({
 
 			{/* Diff stats */}
 			{showDiffStats && (
-				<div className="flex items-center gap-1 text-[10px] font-mono shrink-0">
+				<div className="flex items-center gap-1 text-micro font-mono shrink-0">
 					<span className="text-emerald-500">+{pr.additions}</span>
 					<span className="text-destructive-foreground">-{pr.deletions}</span>
 				</div>

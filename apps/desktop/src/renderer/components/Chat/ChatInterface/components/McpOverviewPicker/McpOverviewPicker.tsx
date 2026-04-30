@@ -108,26 +108,26 @@ export function McpOverviewPicker({
 								</div>
 								<div className="ml-3 flex shrink-0 items-center gap-1.5">
 									{server.connected === true ? (
-										<span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[11px] font-medium text-emerald-700 dark:text-emerald-300">
+										<span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-tiny font-medium text-emerald-700 dark:text-emerald-300">
 											Connected
 										</span>
 									) : server.connected === false ? (
-										<span className="rounded-full border border-zinc-500/30 bg-zinc-500/10 px-2 py-0.5 text-[11px] font-medium text-zinc-700 dark:text-zinc-300">
+										<span className="rounded-full border border-zinc-500/30 bg-zinc-500/10 px-2 py-0.5 text-tiny font-medium text-zinc-700 dark:text-zinc-300">
 											Disconnected
 										</span>
 									) : null}
-									<span className="rounded-full border border-border bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+									<span className="rounded-full border border-border bg-muted px-2 py-0.5 text-tiny font-medium text-muted-foreground">
 										{formatTransportLabel(server.transport)}
 									</span>
 									<span
-										className={`rounded-full border px-2 py-0.5 text-[11px] font-medium ${getStateClassName(server.state)}`}
+										className={`rounded-full border px-2 py-0.5 text-tiny font-medium ${getStateClassName(server.state)}`}
 									>
 										{formatStateLabel(server.state)}
 									</span>
 									{onAuthenticateServer &&
 									server.transport === "remote" &&
 									server.state !== "disabled" ? (
-										<span className="rounded-full border border-border px-2 py-0.5 text-[11px] font-medium text-foreground">
+										<span className="rounded-full border border-border px-2 py-0.5 text-tiny font-medium text-foreground">
 											{authenticatingServerName === server.name
 												? "Connecting..."
 												: server.connected

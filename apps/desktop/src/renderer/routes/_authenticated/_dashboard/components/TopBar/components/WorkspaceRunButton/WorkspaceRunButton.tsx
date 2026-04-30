@@ -123,7 +123,7 @@ export const WorkspaceRunButton = memo(function WorkspaceRunButton({
 				)}
 				<span className="hidden sm:inline">{buttonLabel}</span>
 				{hotkeyText && hotkeyText !== "Unassigned" && (
-					<span className="hidden sm:inline text-[10px] text-muted-foreground/60 ml-1">
+					<span className="hidden sm:inline text-micro text-muted-foreground/60 ml-1">
 						{hotkeyText}
 					</span>
 				)}

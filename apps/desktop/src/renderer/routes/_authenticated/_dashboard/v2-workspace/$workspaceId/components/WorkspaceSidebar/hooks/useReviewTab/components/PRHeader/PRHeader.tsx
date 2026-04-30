@@ -49,7 +49,7 @@ export function PRHeader({ pr }: PRHeaderProps) {
 			<div className="flex items-center gap-1.5">
 				<span
 					className={cn(
-						"shrink-0 rounded-sm px-1.5 py-0.5 text-[10px] font-medium",
+						"shrink-0 rounded-sm px-1.5 py-0.5 text-micro font-medium",
 						reviewDecisionConfig[pr.reviewDecision].className,
 					)}
 				>

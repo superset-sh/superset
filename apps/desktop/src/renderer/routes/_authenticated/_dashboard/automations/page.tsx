@@ -321,10 +321,7 @@ function AutomationsPage() {
 														/>
 														<span className="truncate">{automation.name}</span>
 														{!automation.enabled && (
-															<Badge
-																variant="secondary"
-																className="text-[10px]"
-															>
+															<Badge variant="secondary" className="text-micro">
 																paused
 															</Badge>
 														)}

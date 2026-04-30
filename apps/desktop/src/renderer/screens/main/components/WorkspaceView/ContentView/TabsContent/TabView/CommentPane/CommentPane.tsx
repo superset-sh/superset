@@ -147,7 +147,7 @@ export function CommentPane({
 									alt={comment.authorLogin}
 								/>
 							) : null}
-							<AvatarFallback className="text-[10px] font-medium">
+							<AvatarFallback className="text-micro font-medium">
 								{comment.authorLogin.slice(0, 2).toUpperCase()}
 							</AvatarFallback>
 						</Avatar>

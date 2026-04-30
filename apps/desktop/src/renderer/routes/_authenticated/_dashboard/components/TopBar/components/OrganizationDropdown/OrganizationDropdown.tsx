@@ -77,7 +77,7 @@ export function OrganizationDropdown({
 	const planBadge = isPaid ? (
 		<Badge
 			variant="default"
-			className="px-1 py-0 text-[9px] leading-none uppercase tracking-wide h-3.5"
+			className="px-1 py-0 text-micro leading-none uppercase tracking-wide h-3.5"
 		>
 			{planLabel}
 		</Badge>

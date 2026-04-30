@@ -81,7 +81,7 @@ export function PromptGroupAdvancedOptions({
 					Advanced options
 				</CollapsibleTrigger>
 				{shortcutHint && (
-					<span className="text-[11px] text-muted-foreground/50">
+					<span className="text-tiny text-muted-foreground/50">
 						{shortcutHint}
 					</span>
 				)}
@@ -137,7 +137,7 @@ export function PromptGroupAdvancedOptions({
 												{effectiveCompareBaseBranch || "Select branch..."}
 											</span>
 											{effectiveCompareBaseBranch === defaultBranch && (
-												<span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+												<span className="text-micro text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
 													default
 												</span>
 											)}
@@ -171,7 +171,7 @@ export function PromptGroupAdvancedOptions({
 														<GoGitBranch className="size-3.5 shrink-0 text-muted-foreground" />
 														<span className="truncate">{branch.name}</span>
 														{branch.name === defaultBranch && (
-															<span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+															<span className="text-micro text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
 																default
 															</span>
 														)}

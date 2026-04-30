@@ -246,7 +246,7 @@ export function FileItem({
 						<TooltipContent side="right">{file.path}</TooltipContent>
 					</Tooltip>
 					{showStatsDisplay && (
-						<span className="flex items-center gap-0.5 text-[10px] font-mono shrink-0 whitespace-nowrap opacity-60">
+						<span className="flex items-center gap-0.5 text-micro font-mono shrink-0 whitespace-nowrap opacity-60">
 							{file.additions > 0 && (
 								<span className="text-green-600 dark:text-green-500">
 									+{file.additions}

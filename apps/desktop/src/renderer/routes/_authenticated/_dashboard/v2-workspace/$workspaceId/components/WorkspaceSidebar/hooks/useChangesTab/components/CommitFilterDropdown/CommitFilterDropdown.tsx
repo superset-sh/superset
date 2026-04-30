@@ -72,7 +72,7 @@ export function CommitFilterDropdown({
 							<div>
 								<div>Uncommitted changes</div>
 								{uncommittedCount != null && (
-									<div className="text-[10px] text-muted-foreground">
+									<div className="text-micro text-muted-foreground">
 										{uncommittedCount} files changed
 									</div>
 								)}

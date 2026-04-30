@@ -78,7 +78,7 @@ export function MobileAppDemo() {
 								<div className="text-sm font-semibold text-foreground">
 									Superset Agent
 								</div>
-								<div className="text-[10px] text-emerald-400">● Online</div>
+								<div className="text-micro text-emerald-400">● Online</div>
 							</div>
 						</div>
 					</div>

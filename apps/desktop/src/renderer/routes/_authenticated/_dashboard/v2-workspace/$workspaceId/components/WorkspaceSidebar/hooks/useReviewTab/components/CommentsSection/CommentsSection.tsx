@@ -131,7 +131,7 @@ export function CommentsSection({
 							)}
 						/>
 						<span className="truncate text-xs font-medium">Comments</span>
-						<span className="shrink-0 text-[10px] text-muted-foreground">
+						<span className="shrink-0 text-micro text-muted-foreground">
 							{commentsCountLabel}
 						</span>
 					</CollapsibleTrigger>
@@ -139,7 +139,7 @@ export function CommentsSection({
 						<div className="mr-1.5 flex items-center gap-1">
 							<button
 								type="button"
-								className="flex shrink-0 items-center gap-1 rounded-sm px-1.5 py-0.5 text-[10px] text-muted-foreground transition-colors hover:bg-accent/30 hover:text-foreground"
+								className="flex shrink-0 items-center gap-1 rounded-sm px-1.5 py-0.5 text-micro text-muted-foreground transition-colors hover:bg-accent/30 hover:text-foreground"
 								onClick={handleCopyAll}
 							>
 								{copiedActionKey === "comments:all" ? (
@@ -196,7 +196,7 @@ export function CommentsSection({
 							)}
 						/>
 						<span className="truncate text-xs font-medium">Resolved</span>
-						<span className="shrink-0 text-[10px] text-muted-foreground">
+						<span className="shrink-0 text-micro text-muted-foreground">
 							{resolvedComments.length}
 						</span>
 					</CollapsibleTrigger>
@@ -284,7 +284,7 @@ function CommentRow({
 				{comment.avatarUrl ? (
 					<AvatarImage src={comment.avatarUrl} alt={comment.authorLogin} />
 				) : null}
-				<AvatarFallback className="text-[10px] font-medium">
+				<AvatarFallback className="text-micro font-medium">
 					{comment.authorLogin.slice(0, 2).toUpperCase()}
 				</AvatarFallback>
 			</Avatar>
@@ -293,12 +293,12 @@ function CommentRow({
 					<span className="truncate text-xs font-medium text-foreground">
 						{comment.authorLogin}
 					</span>
-					<span className="shrink-0 rounded border border-border/70 bg-muted/35 px-1 py-0 text-[9px] uppercase tracking-wide text-muted-foreground">
+					<span className="shrink-0 rounded border border-border/70 bg-muted/35 px-1 py-0 text-micro uppercase tracking-wide text-muted-foreground">
 						{comment.kind === "review" ? "Review" : "Comment"}
 					</span>
 					<span className="flex-1" />
 					{age ? (
-						<span className="shrink-0 text-[10px] text-muted-foreground">
+						<span className="shrink-0 text-micro text-muted-foreground">
 							{age}
 						</span>
 					) : null}

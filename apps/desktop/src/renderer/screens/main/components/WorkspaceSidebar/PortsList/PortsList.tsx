@@ -25,7 +25,7 @@ export function PortsList() {
 
 	return (
 		<div className="pt-3 border-t border-border">
-			<div className="group text-[11px] uppercase tracking-wider text-muted-foreground/70 px-3 pb-2 font-medium flex items-center gap-1.5 w-full hover:text-muted-foreground transition-colors">
+			<div className="group text-tiny uppercase tracking-wider text-muted-foreground/70 px-3 pb-2 font-medium flex items-center gap-1.5 w-full hover:text-muted-foreground transition-colors">
 				<button
 					type="button"
 					aria-expanded={!isCollapsed}
@@ -54,7 +54,7 @@ export function PortsList() {
 						<p className="text-xs">Learn about port labels</p>
 					</TooltipContent>
 				</Tooltip>
-				<span className="text-[10px] font-normal">{totalPortCount}</span>
+				<span className="text-micro font-normal">{totalPortCount}</span>
 			</div>
 			{!isCollapsed && (
 				<div className="space-y-2 max-h-72 overflow-y-auto pb-1 hide-scrollbar">

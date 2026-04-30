@@ -23,7 +23,7 @@ export function V2WorkspacePrHoverCardContent({
 	return (
 		<div className="space-y-3">
 			<div className="space-y-0.5">
-				<span className="text-[10px] uppercase tracking-wide text-muted-foreground">
+				<span className="text-micro uppercase tracking-wide text-muted-foreground">
 					Branch
 				</span>
 				<div className="flex items-center gap-1.5 text-sm">
@@ -53,7 +53,7 @@ export function V2WorkspacePrHoverCardContent({
 
 				<p className="line-clamp-2 text-xs leading-relaxed">{pr.title}</p>
 
-				<span className="block text-[10px] text-muted-foreground">
+				<span className="block text-micro text-muted-foreground">
 					Updated {formatDistanceToNow(pr.updatedAt, { addSuffix: true })}
 				</span>
 

@@ -73,7 +73,7 @@ export function DashboardSidebarWorkspaceStatusBadge({
 			onClick={handleClick}
 			disabled={!isClickable}
 			className={cn(
-				"flex items-center justify-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] leading-none shrink-0 transition-colors",
+				"flex items-center justify-center gap-1 rounded-md px-1.5 py-0.5 text-micro leading-none shrink-0 transition-colors",
 				bgColor,
 				isClickable && "cursor-pointer hover:opacity-80",
 				!isClickable && "cursor-default",

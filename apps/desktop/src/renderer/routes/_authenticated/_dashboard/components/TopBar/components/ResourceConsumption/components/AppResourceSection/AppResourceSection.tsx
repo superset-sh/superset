@@ -65,15 +65,13 @@ export function AppResourceSection({
 			>
 				<span
 					className={cn(
-						"text-[11px] text-muted-foreground min-w-0 truncate",
+						"text-tiny text-muted-foreground min-w-0 truncate",
 						mainClasses.labelClass,
 					)}
 				>
 					Main
 				</span>
-				<div
-					className={cn(METRIC_COLS, "text-[11px]", mainClasses.metricClass)}
-				>
+				<div className={cn(METRIC_COLS, "text-tiny", mainClasses.metricClass)}>
 					<span className={CPU_COL}>{formatCpu(app.main.cpu)}</span>
 					<span className={MEM_COL}>{formatMemory(app.main.memory)}</span>
 				</div>
@@ -87,18 +85,14 @@ export function AppResourceSection({
 			>
 				<span
 					className={cn(
-						"text-[11px] text-muted-foreground min-w-0 truncate",
+						"text-tiny text-muted-foreground min-w-0 truncate",
 						rendererClasses.labelClass,
 					)}
 				>
 					Renderer
 				</span>
 				<div
-					className={cn(
-						METRIC_COLS,
-						"text-[11px]",
-						rendererClasses.metricClass,
-					)}
+					className={cn(METRIC_COLS, "text-tiny", rendererClasses.metricClass)}
 				>
 					<span className={CPU_COL}>{formatCpu(app.renderer.cpu)}</span>
 					<span className={MEM_COL}>{formatMemory(app.renderer.memory)}</span>
@@ -114,14 +108,14 @@ export function AppResourceSection({
 				>
 					<span
 						className={cn(
-							"text-[11px] text-muted-foreground min-w-0 truncate",
+							"text-tiny text-muted-foreground min-w-0 truncate",
 							otherClasses.labelClass,
 						)}
 					>
 						Other
 					</span>
 					<div
-						className={cn(METRIC_COLS, "text-[11px]", otherClasses.metricClass)}
+						className={cn(METRIC_COLS, "text-tiny", otherClasses.metricClass)}
 					>
 						<span className={CPU_COL}>{formatCpu(app.other.cpu)}</span>
 						<span className={MEM_COL}>{formatMemory(app.other.memory)}</span>

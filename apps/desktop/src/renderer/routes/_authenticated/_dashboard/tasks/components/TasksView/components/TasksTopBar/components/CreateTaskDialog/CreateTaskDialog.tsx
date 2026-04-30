@@ -260,10 +260,10 @@ export function CreateTaskDialog({
 							{isCreating ? "Creating..." : "Create task"}
 							{!isCreating && (
 								<KbdGroup className="ml-1.5 opacity-70">
-									<Kbd className="bg-primary-foreground/15 text-primary-foreground h-4 min-w-4 text-[10px]">
+									<Kbd className="bg-primary-foreground/15 text-primary-foreground h-4 min-w-4 text-micro">
 										{modKey}
 									</Kbd>
-									<Kbd className="bg-primary-foreground/15 text-primary-foreground h-4 min-w-4 text-[10px]">
+									<Kbd className="bg-primary-foreground/15 text-primary-foreground h-4 min-w-4 text-micro">
 										↵
 									</Kbd>
 								</KbdGroup>

@@ -140,10 +140,10 @@ export function CompareBaseBranchPicker({
 						className="p-2"
 					>
 						<TabsList className="grid w-full grid-cols-2 h-7 bg-transparent">
-							<TabsTrigger value="branch" className="text-[11px]">
+							<TabsTrigger value="branch" className="text-tiny">
 								Branch
 							</TabsTrigger>
-							<TabsTrigger value="worktree" className="text-[11px]">
+							<TabsTrigger value="worktree" className="text-tiny">
 								Worktree
 							</TabsTrigger>
 						</TabsList>
@@ -177,12 +177,12 @@ export function CompareBaseBranchPicker({
 											</span>
 											<span className="flex items-center gap-1.5 shrink-0">
 												{branch.name === defaultBranch && (
-													<span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+													<span className="text-micro text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
 														default
 													</span>
 												)}
 												{isRemoteOnly && (
-													<span className="text-[10px] text-muted-foreground/60 bg-muted/60 px-1.5 py-0.5 rounded">
+													<span className="text-micro text-muted-foreground/60 bg-muted/60 px-1.5 py-0.5 rounded">
 														remote
 													</span>
 												)}
@@ -190,7 +190,7 @@ export function CompareBaseBranchPicker({
 										</span>
 										<span className="flex items-center gap-2 shrink-0">
 											{branch.lastCommitDate > 0 && (
-												<span className="text-[11px] text-muted-foreground/70 group-hover:hidden">
+												<span className="text-tiny text-muted-foreground/70 group-hover:hidden">
 													{formatRelativeTime(branch.lastCommitDate * 1000)}
 												</span>
 											)}
@@ -205,7 +205,7 @@ export function CompareBaseBranchPicker({
 													return (
 														<button
 															type="button"
-															className="hidden group-hover:inline-flex group-focus-within:inline-flex items-center rounded-sm bg-primary/10 hover:bg-primary/20 px-2 py-0.5 text-[11px] text-primary font-medium"
+															className="hidden group-hover:inline-flex group-focus-within:inline-flex items-center rounded-sm bg-primary/10 hover:bg-primary/20 px-2 py-0.5 text-tiny text-primary font-medium"
 															onClick={(e) => {
 																e.stopPropagation();
 																if (hasWorkspace) {
@@ -231,7 +231,7 @@ export function CompareBaseBranchPicker({
 														<button
 															type="button"
 															aria-disabled="true"
-															className="hidden group-hover:inline-flex group-focus-within:inline-flex items-center rounded-sm bg-muted px-2 py-0.5 text-[11px] text-muted-foreground/70 cursor-not-allowed"
+															className="hidden group-hover:inline-flex group-focus-within:inline-flex items-center rounded-sm bg-muted px-2 py-0.5 text-tiny text-muted-foreground/70 cursor-not-allowed"
 															onClick={(e) => e.stopPropagation()}
 														>
 															Check out
@@ -244,7 +244,7 @@ export function CompareBaseBranchPicker({
 											) : (
 												<button
 													type="button"
-													className="hidden group-hover:inline-flex group-focus-within:inline-flex items-center rounded-sm bg-primary/10 hover:bg-primary/20 px-2 py-0.5 text-[11px] text-primary font-medium"
+													className="hidden group-hover:inline-flex group-focus-within:inline-flex items-center rounded-sm bg-primary/10 hover:bg-primary/20 px-2 py-0.5 text-tiny text-primary font-medium"
 													onClick={(e) => {
 														e.stopPropagation();
 														onCheckoutBranch(branch.name);
@@ -263,7 +263,7 @@ export function CompareBaseBranchPicker({
 							{hasNextPage && (
 								<div
 									ref={sentinelRef}
-									className="py-2 text-center text-[11px] text-muted-foreground/60"
+									className="py-2 text-center text-tiny text-muted-foreground/60"
 								>
 									{isFetchingNextPage ? "Loading more..." : ""}
 								</div>

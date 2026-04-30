@@ -96,7 +96,7 @@ function FolderRowHeader({
 					{name}
 				</span>
 				{fileCount !== undefined && (
-					<span className="text-[10px] text-muted-foreground shrink-0 tabular-nums">
+					<span className="text-micro text-muted-foreground shrink-0 tabular-nums">
 						{fileCount}
 					</span>
 				)}

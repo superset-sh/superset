@@ -48,6 +48,7 @@ import {
 import {
 	AGENT_STORAGE_KEY,
 	PILL_BUTTON_CLASS,
+	PILL_ICON_BUTTON_CLASS,
 	type ProjectOption,
 	type WorkspaceCreateAgent,
 } from "./types";
@@ -266,7 +267,7 @@ export function PromptGroup({
 				multiple
 				maxFiles={5}
 				maxFileSize={10 * 1024 * 1024}
-				className="[&>[data-slot=input-group]]:rounded-[13px] [&>[data-slot=input-group]]:border-[0.5px] [&>[data-slot=input-group]]:shadow-none [&>[data-slot=input-group]]:bg-foreground/[0.02]"
+				className="[&>[data-slot=input-group]]:rounded-xl [&>[data-slot=input-group]]:border-[0.5px] [&>[data-slot=input-group]]:shadow-none [&>[data-slot=input-group]]:bg-foreground/[0.02]"
 			>
 				{(linkedPR ||
 					linkedIssues.length > 0 ||
@@ -352,7 +353,7 @@ export function PromptGroup({
 								>
 									<PromptInputButton
 										aria-label="Link issue"
-										className={`${PILL_BUTTON_CLASS} w-[22px]`}
+										className={PILL_ICON_BUTTON_CLASS}
 									>
 										<SiLinear className="size-3.5" />
 									</PromptInputButton>
@@ -374,7 +375,7 @@ export function PromptGroup({
 								>
 									<PromptInputButton
 										aria-label="Link GitHub issue"
-										className={`${PILL_BUTTON_CLASS} w-[22px]`}
+										className={PILL_ICON_BUTTON_CLASS}
 									>
 										<GoIssueOpened className="size-3.5" />
 									</PromptInputButton>
@@ -389,7 +390,7 @@ export function PromptGroup({
 								>
 									<PromptInputButton
 										aria-label="Link pull request"
-										className={`${PILL_BUTTON_CLASS} w-[22px]`}
+										className={PILL_ICON_BUTTON_CLASS}
 									>
 										<LuGitPullRequest className="size-3.5" />
 									</PromptInputButton>
@@ -458,13 +459,13 @@ export function PromptGroup({
 							type="button"
 							variant="outline"
 							size="sm"
-							className="h-6 px-2 text-[11px] text-amber-500 hover:text-amber-500"
+							className="h-6 px-2 text-tiny text-amber-500 hover:text-amber-500"
 							onClick={handleGoToSetup}
 						>
 							Set up project…
 						</Button>
 					) : (
-						<span className="text-[11px] text-muted-foreground/50">
+						<span className="text-tiny text-muted-foreground/50">
 							{modKey}↵
 						</span>
 					)}

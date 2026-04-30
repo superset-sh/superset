@@ -262,7 +262,7 @@ export function DashboardSidebarHeader({
 					<span className="flex-1 text-left">New Workspace</span>
 					<span
 						className={cn(
-							"shrink-0 text-[10px] font-mono tabular-nums text-muted-foreground/60",
+							"shrink-0 text-micro font-mono tabular-nums text-muted-foreground/60",
 							"opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100",
 						)}
 					>

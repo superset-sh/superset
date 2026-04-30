@@ -31,7 +31,7 @@ export function TeamCollaborationDemo() {
 
 				{/* Team members */}
 				<div className="p-4">
-					<div className="text-[10px] uppercase text-muted-foreground/70 font-medium tracking-wider mb-3">
+					<div className="text-micro uppercase text-muted-foreground/70 font-medium tracking-wider mb-3">
 						Online Now
 					</div>
 					<div className="flex items-center -space-x-2 mb-4">
@@ -50,7 +50,7 @@ export function TeamCollaborationDemo() {
 					</div>
 
 					{/* Activity feed */}
-					<div className="text-[10px] uppercase text-muted-foreground/70 font-medium tracking-wider mb-2">
+					<div className="text-micro uppercase text-muted-foreground/70 font-medium tracking-wider mb-2">
 						Recent Activity
 					</div>
 					<div className="space-y-2">

@@ -58,7 +58,7 @@ export const DashboardSidebarSectionHeader = forwardRef<
 							}
 				}
 				className={cn(
-					"group flex min-h-8 w-full items-center pl-5 pr-2 py-1.5 text-[13px] font-medium",
+					"group flex min-h-8 w-full items-center pl-5 pr-2 py-1.5 text-sm font-medium",
 					"text-muted-foreground hover:bg-muted/50 transition-colors",
 					className,
 				)}
@@ -81,7 +81,7 @@ export const DashboardSidebarSectionHeader = forwardRef<
 							onChange={onRenameValueChange}
 							onSubmit={onSubmitRename}
 							onCancel={onCancelRename}
-							className="-ml-1 h-5 w-full min-w-0 px-1 py-0 text-[13px] font-medium bg-transparent border-none outline-none text-muted-foreground"
+							className="-ml-1 h-5 w-full min-w-0 px-1 py-0 text-sm font-medium bg-transparent border-none outline-none text-muted-foreground"
 						/>
 					) : (
 						<span className="truncate">{section.name}</span>
@@ -102,7 +102,7 @@ export const DashboardSidebarSectionHeader = forwardRef<
 						) : null}
 						<span
 							className={cn(
-								"text-[10px] font-normal tabular-nums text-muted-foreground",
+								"text-micro font-normal tabular-nums text-muted-foreground",
 								actions &&
 									"group-hover:hidden group-has-[:focus]:hidden peer-has-[[data-state=open]]:hidden",
 							)}

@@ -29,7 +29,7 @@ export function LinkedTaskChip({ slug }: LinkedTaskChipProps) {
 				<span className="max-w-[180px] truncate font-medium">
 					{title || slug}
 				</span>
-				<div className="flex items-center gap-1.5 text-muted-foreground text-[10px] uppercase tracking-widest">
+				<div className="flex items-center gap-1.5 text-muted-foreground text-micro uppercase tracking-widest">
 					<span className="max-w-[80px] truncate">{slug}</span>
 					<span>·</span>
 					<span>Linear</span>

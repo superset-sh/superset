@@ -506,7 +506,7 @@ export function FilesTab({
 				onScroll={handleScroll}
 			>
 				<div
-					className="group flex items-center justify-between bg-background px-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground"
+					className="group flex items-center justify-between bg-background px-2 text-tiny font-semibold uppercase tracking-wider text-muted-foreground"
 					style={{
 						height: ROW_HEIGHT,
 						position: "sticky",

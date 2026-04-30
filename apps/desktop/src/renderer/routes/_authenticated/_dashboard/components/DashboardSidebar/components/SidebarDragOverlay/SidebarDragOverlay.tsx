@@ -38,12 +38,12 @@ export function SidebarDragOverlay({ activeItem }: SidebarDragOverlayProps) {
 					: "2px solid var(--color-border)",
 			}}
 		>
-			<div className="flex min-h-8 w-full items-center gap-1.5 pl-0.5 pr-2 py-1.5 text-[11px] font-medium text-muted-foreground">
+			<div className="flex min-h-8 w-full items-center gap-1.5 pl-0.5 pr-2 py-1.5 text-tiny font-medium text-muted-foreground">
 				<div className="flex shrink-0 items-center justify-center w-5 h-5 opacity-60">
 					<LuGripVertical className="size-3" />
 				</div>
 				<span className="truncate">{section.name}</span>
-				<span className="text-[10px] font-normal tabular-nums shrink-0">
+				<span className="text-micro font-normal tabular-nums shrink-0">
 					({section.workspaces.length})
 				</span>
 			</div>

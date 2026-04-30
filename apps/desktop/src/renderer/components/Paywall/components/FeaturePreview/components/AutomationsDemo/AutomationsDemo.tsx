@@ -34,7 +34,7 @@ export function AutomationsDemo() {
 								<div className="text-xs text-foreground/90 truncate">
 									{item.name}
 								</div>
-								<div className="flex items-center gap-1 text-[10px] text-muted-foreground/80">
+								<div className="flex items-center gap-1 text-micro text-muted-foreground/80">
 									<LuClock className="size-3 shrink-0" />
 									<span className="truncate">{item.schedule}</span>
 								</div>

@@ -148,12 +148,12 @@ export function PresetRow({
 
 			<div className="w-36 shrink-0 flex items-center justify-start gap-1.5 pt-0.5">
 				{isWorkspaceCreation ? (
-					<Badge variant="secondary" className="text-[10px]">
+					<Badge variant="secondary" className="text-micro">
 						Workspace
 					</Badge>
 				) : null}
 				{isNewTab ? (
-					<Badge variant="secondary" className="text-[10px]">
+					<Badge variant="secondary" className="text-micro">
 						Tab
 					</Badge>
 				) : null}

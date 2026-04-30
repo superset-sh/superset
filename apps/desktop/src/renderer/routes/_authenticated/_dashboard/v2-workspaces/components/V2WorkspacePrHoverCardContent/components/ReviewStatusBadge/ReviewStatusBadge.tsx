@@ -21,7 +21,7 @@ export function ReviewStatusBadge({ status }: ReviewStatusBadgeProps) {
 	return (
 		<span
 			className={cn(
-				"max-w-[200px] shrink-0 truncate rounded-md px-1.5 py-0.5 text-[10px] font-medium",
+				"max-w-[200px] shrink-0 truncate rounded-md px-1.5 py-0.5 text-micro font-medium",
 				REVIEW_BADGE_STYLES[status],
 			)}
 		>

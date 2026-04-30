@@ -61,7 +61,7 @@ export function QuestionInputOverlay({
 	const handleSkip = () => handleSubmitAnswer("skip", "__skip__");
 
 	return (
-		<div className="flex max-h-[300px] flex-col overflow-hidden rounded-[13px] border-[0.5px] border-border bg-foreground/[0.02]">
+		<div className="flex max-h-[300px] flex-col overflow-hidden rounded-xl border-[0.5px] border-border bg-foreground/[0.02]">
 			{/* Question — pinned header */}
 			<div className="flex shrink-0 items-start gap-2 px-3 pt-3 pb-3">
 				<div className="flex-1 space-y-1">
@@ -111,7 +111,7 @@ export function QuestionInputOverlay({
 									disabled={isDisabled}
 									onClick={() => handleOption(option.label)}
 								>
-									<span className="flex size-6 shrink-0 items-center justify-center rounded-[3px] bg-muted/60 font-mono text-xs leading-none text-muted-foreground/70">
+									<span className="flex size-6 shrink-0 items-center justify-center rounded-sm bg-muted/60 font-mono text-xs leading-none text-muted-foreground/70">
 										{isChosen ? (
 											<Loader2Icon className="size-3.5 animate-spin" />
 										) : (
@@ -145,7 +145,7 @@ export function QuestionInputOverlay({
 				}}
 				onClick={() => inputRef.current?.focus()}
 			>
-				<span className="flex size-6 shrink-0 items-center justify-center rounded-[3px] bg-muted/60">
+				<span className="flex size-6 shrink-0 items-center justify-center rounded-sm bg-muted/60">
 					{isInputRowSubmitted ? (
 						<Loader2Icon className="size-3.5 animate-spin text-muted-foreground/70" />
 					) : (

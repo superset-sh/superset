@@ -66,7 +66,7 @@ export function CategorySection({
 						)}
 					/>
 					<span className="text-xs font-medium truncate">{title}</span>
-					<span className="text-[10px] text-muted-foreground shrink-0">
+					<span className="text-micro text-muted-foreground shrink-0">
 						{count}
 					</span>
 				</CollapsibleTrigger>

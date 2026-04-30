@@ -80,7 +80,7 @@ type WorkspaceCreateAgent = AgentDefinitionId | "none";
 const AGENT_STORAGE_KEY = "lastSelectedWorkspaceCreateAgent";
 
 const PILL_BUTTON_CLASS =
-	"!h-[22px] min-h-0 rounded-md border-[0.5px] border-border bg-foreground/[0.04] shadow-none text-[11px]";
+	"!h-[22px] min-h-0 rounded-md border-[0.5px] border-border bg-foreground/[0.04] shadow-none text-tiny";
 
 type ConvertedFile = {
 	data: string;
@@ -429,12 +429,12 @@ function CompareBaseBranchPickerInline({
 										{/* Inline badges */}
 										<span className="flex items-center gap-1.5 shrink-0">
 											{branch.name === defaultBranch && (
-												<span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+												<span className="text-micro text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
 													default
 												</span>
 											)}
 											{isExternal && !activeWorkspaceId && (
-												<span className="text-[10px] text-muted-foreground/60 bg-muted/60 px-1.5 py-0.5 rounded">
+												<span className="text-micro text-muted-foreground/60 bg-muted/60 px-1.5 py-0.5 rounded">
 													external
 												</span>
 											)}
@@ -444,7 +444,7 @@ function CompareBaseBranchPickerInline({
 									{/* Right side: time + buttons */}
 									<span className="flex items-center gap-2 shrink-0">
 										{branch.lastCommitDate > 0 && (
-											<span className="text-[11px] text-muted-foreground/70 group-data-[selected=true]:hidden">
+											<span className="text-tiny text-muted-foreground/70 group-data-[selected=true]:hidden">
 												{formatRelativeTime(branch.lastCommitDate)}
 											</span>
 										)}
@@ -474,7 +474,7 @@ function CompareBaseBranchPickerInline({
 												>
 													<GoArrowUpRight className="size-3.5 mr-1" />
 													Open
-													<span className="ml-1 text-[10px] opacity-60">↵</span>
+													<span className="ml-1 text-micro opacity-60">↵</span>
 												</Button>
 											)}
 											<Button
@@ -490,14 +490,14 @@ function CompareBaseBranchPickerInline({
 													<>
 														<PlusIcon className="size-3.5 mr-1" />
 														Create
-														<span className="ml-1 text-[10px] opacity-70">
+														<span className="ml-1 text-micro opacity-70">
 															{modKey}↵
 														</span>
 													</>
 												) : (
 													<>
 														Create
-														<span className="ml-1 text-[10px] opacity-70">
+														<span className="ml-1 text-micro opacity-70">
 															↵
 														</span>
 													</>
@@ -1207,7 +1207,7 @@ ${sanitizeText(truncatedBody)}`;
 				multiple
 				maxFiles={5}
 				maxFileSize={10 * 1024 * 1024}
-				className="[&>[data-slot=input-group]]:rounded-[13px] [&>[data-slot=input-group]]:border-[0.5px] [&>[data-slot=input-group]]:shadow-none [&>[data-slot=input-group]]:bg-foreground/[0.02]"
+				className="[&>[data-slot=input-group]]:rounded-xl [&>[data-slot=input-group]]:border-[0.5px] [&>[data-slot=input-group]]:shadow-none [&>[data-slot=input-group]]:bg-foreground/[0.02]"
 			>
 				{(linkedPR ||
 					linkedIssues.length > 0 ||
@@ -1380,7 +1380,7 @@ ${sanitizeText(truncatedBody)}`;
 						)}
 					</AnimatePresence>
 				</div>
-				<span className="text-[11px] text-muted-foreground/50">
+				<span className="text-tiny text-muted-foreground/50">
 					{modKey}↵ to create
 				</span>
 			</div>

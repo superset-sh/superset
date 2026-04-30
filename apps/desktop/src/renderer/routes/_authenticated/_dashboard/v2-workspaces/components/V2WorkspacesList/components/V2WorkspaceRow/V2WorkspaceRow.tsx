@@ -237,7 +237,7 @@ export function V2WorkspaceRow({
 					title={workspace.branch}
 				>
 					<LuGitBranch className="size-3 shrink-0" />
-					<span className="min-w-0 truncate font-mono text-[11px]">
+					<span className="min-w-0 truncate font-mono text-tiny">
 						{workspace.branch}
 					</span>
 				</span>
@@ -267,7 +267,7 @@ function WorkspacePrPill({ pr, branch }: WorkspacePrPillProps) {
 					target="_blank"
 					rel="noreferrer"
 					onClick={(event) => event.stopPropagation()}
-					className="inline-flex shrink-0 items-center gap-1 rounded-full border border-border/60 bg-muted/40 px-2 py-0.5 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+					className="inline-flex shrink-0 items-center gap-1 rounded-full border border-border/60 bg-muted/40 px-2 py-0.5 text-tiny font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
 				>
 					<PRIcon state={pr.state} className="size-3" />
 					<span className="tabular-nums">#{pr.prNumber}</span>

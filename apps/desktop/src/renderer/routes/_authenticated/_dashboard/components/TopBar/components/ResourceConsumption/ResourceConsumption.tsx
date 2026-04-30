@@ -216,7 +216,7 @@ export function ResourceConsumption() {
 								<DropdownMenuTrigger asChild>
 									<button
 										type="button"
-										className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] text-muted-foreground hover:bg-muted transition-colors"
+										className="flex items-center gap-1 px-1.5 py-0.5 rounded text-tiny text-muted-foreground hover:bg-muted transition-colors"
 										aria-label="Sort workspaces"
 									>
 										<HiOutlineBarsArrowDown className="h-3.5 w-3.5" />

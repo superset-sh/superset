@@ -99,7 +99,7 @@ export function PresetEditorSheet({
 	const neutralSelectionControlClassName =
 		"border-border bg-transparent text-foreground shadow-none dark:bg-transparent data-[state=checked]:border-foreground data-[state=checked]:bg-transparent data-[state=checked]:text-foreground dark:data-[state=checked]:bg-transparent focus-visible:border-foreground/30 focus-visible:ring-2 focus-visible:ring-foreground/10 [&_svg]:fill-current";
 	const sectionHeadingClassName =
-		"text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground/80";
+		"text-tiny font-semibold uppercase tracking-[0.16em] text-muted-foreground/80";
 	const selectDirectory = electronTrpc.window.selectDirectory.useMutation();
 	const originRoute = useSettingsOriginRoute();
 	const trimmedCwd = preset?.cwd.trim() ?? "";

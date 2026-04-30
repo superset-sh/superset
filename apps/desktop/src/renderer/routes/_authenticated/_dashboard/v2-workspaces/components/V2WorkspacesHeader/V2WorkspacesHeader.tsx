@@ -171,7 +171,7 @@ export function V2WorkspacesHeader({
 								<>
 									<SelectSeparator />
 									<SelectGroup>
-										<SelectLabel className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+										<SelectLabel className="text-micro font-semibold uppercase tracking-wider text-muted-foreground/70">
 											Projects
 										</SelectLabel>
 										{projectOptions.map((project) => (
@@ -231,7 +231,7 @@ export function V2WorkspacesHeader({
 								<>
 									<SelectSeparator />
 									<SelectGroup>
-										<SelectLabel className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+										<SelectLabel className="text-micro font-semibold uppercase tracking-wider text-muted-foreground/70">
 											Other devices
 										</SelectLabel>
 										{remoteHosts.map((host) => (
