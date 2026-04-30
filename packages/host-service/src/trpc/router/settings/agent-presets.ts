@@ -82,6 +82,17 @@ export const AGENT_PRESETS = [
 		env: {},
 	},
 	{
+		presetId: "mastracode",
+		label: "Mastracode",
+		description:
+			"Mastra's coding agent for building, debugging, and shipping code from the terminal.",
+		command: "mastracode",
+		args: [],
+		promptTransport: "argv",
+		promptArgs: ["--prompt"],
+		env: {},
+	},
+	{
 		presetId: "opencode",
 		label: "OpenCode",
 		description: "Open-source coding agent for the terminal, IDE, and desktop.",
