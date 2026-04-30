@@ -393,16 +393,27 @@ export class HostServiceCoordinator extends EventEmitter {
 		this.instances.set(organizationId, instance);
 		this.emitStatus(organizationId, "starting", null);
 
-		// Ensure the pty-daemon is up before host-service starts; host-service
-		// connects to it during boot for terminal ops.
-		const daemonInstance = await this.ptyDaemon.ensure(organizationId);
+		// Try to bring up the pty-daemon. If it fails (e.g. dev build doesn't
+		// have dist/main/pty-daemon.js yet), don't take host-service down with
+		// it — workspaces, git, chat, etc. should still work. Terminal ops
+		// will surface a clear error to the renderer instead.
+		let daemonSocketPath = "";
+		try {
+			const daemonInstance = await this.ptyDaemon.ensure(organizationId);
+			daemonSocketPath = daemonInstance.socketPath;
+		} catch (error) {
+			console.error(
+				`[host-service:${organizationId}] pty-daemon failed to start; terminals will be unavailable until it recovers:`,
+				error,
+			);
+		}
 
 		const childEnv = await this.buildEnv(
 			organizationId,
 			port,
 			secret,
 			config,
-			daemonInstance.socketPath,
+			daemonSocketPath,
 		);
 		// Host-service owns v2 PTYs, so it must survive Electron restarts in
 		// every environment. This mirrors the terminal-host daemon: detach the

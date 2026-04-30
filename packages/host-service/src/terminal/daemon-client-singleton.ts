@@ -16,7 +16,7 @@ export function ptyDaemonSocketPath(): string {
 	const path = process.env.SUPERSET_PTY_DAEMON_SOCKET;
 	if (!path) {
 		throw new Error(
-			"SUPERSET_PTY_DAEMON_SOCKET is not set; host-service requires the pty-daemon socket to be passed by the coordinator",
+			"pty-daemon is not available: SUPERSET_PTY_DAEMON_SOCKET is not set. The desktop coordinator should set this before spawning host-service. Terminals will not work until the daemon comes up.",
 		);
 	}
 	return path;
