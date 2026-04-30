@@ -3,6 +3,7 @@ export type PromptTransport = "argv" | "stdin";
 export interface AgentPreset {
 	presetId: string;
 	label: string;
+	description: string;
 	command: string;
 	args: string[];
 	promptTransport: PromptTransport;
@@ -31,6 +32,8 @@ export const AGENT_PRESETS = [
 	{
 		presetId: "claude",
 		label: "Claude",
+		description:
+			"Anthropic's coding agent for reading code, editing files, and running terminal workflows.",
 		command: "claude",
 		args: ["--permission-mode", "acceptEdits"],
 		promptTransport: "argv",
@@ -40,6 +43,8 @@ export const AGENT_PRESETS = [
 	{
 		presetId: "amp",
 		label: "Amp",
+		description:
+			"Amp's coding agent for terminal-first coding, subagents, and task work.",
 		command: "amp",
 		args: [],
 		promptTransport: "stdin",
@@ -49,6 +54,8 @@ export const AGENT_PRESETS = [
 	{
 		presetId: "codex",
 		label: "Codex",
+		description:
+			"OpenAI's coding agent for reading, modifying, and running code across tasks.",
 		command: "codex",
 		args: [
 			"-c",
@@ -66,6 +73,8 @@ export const AGENT_PRESETS = [
 	{
 		presetId: "gemini",
 		label: "Gemini",
+		description:
+			"Google's open-source terminal agent for coding, problem-solving, and task work.",
 		command: "gemini",
 		args: ["--approval-mode=auto_edit"],
 		promptTransport: "argv",
@@ -75,6 +84,7 @@ export const AGENT_PRESETS = [
 	{
 		presetId: "opencode",
 		label: "OpenCode",
+		description: "Open-source coding agent for the terminal, IDE, and desktop.",
 		command: "opencode",
 		args: [],
 		promptTransport: "argv",
@@ -84,6 +94,8 @@ export const AGENT_PRESETS = [
 	{
 		presetId: "pi",
 		label: "Pi",
+		description:
+			"Minimal terminal coding harness for flexible coding workflows.",
 		command: "pi",
 		args: [],
 		promptTransport: "argv",
@@ -93,6 +105,8 @@ export const AGENT_PRESETS = [
 	{
 		presetId: "copilot",
 		label: "Copilot",
+		description:
+			"GitHub's coding agent for planning, editing, and building in your repo.",
 		command: "copilot",
 		args: ["--allow-tool=write"],
 		promptTransport: "argv",
@@ -102,6 +116,8 @@ export const AGENT_PRESETS = [
 	{
 		presetId: "cursor-agent",
 		label: "Cursor Agent",
+		description:
+			"Cursor's coding agent for editing, running, and debugging code in parallel.",
 		command: "cursor-agent",
 		args: [],
 		promptTransport: "argv",
