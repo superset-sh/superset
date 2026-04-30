@@ -646,11 +646,13 @@ describe("cross-client continuity (host-service restart simulation)", () => {
 		await b.close();
 	});
 
-	test("subscribe-with-replay on an already-exited session yields buffered output + immediate exit event", async () => {
-		// After a host-service restart, a shell that exited during the gap
-		// should still surface its final output AND its exit event when the
-		// new host-service subscribes. Otherwise the renderer hangs waiting
-		// for output that will never come.
+	test("exited sessions are deleted immediately (no accumulation)", async () => {
+		// Sessions are removed from the store the moment their PTY exits.
+		// Late subscribers (e.g. host-service restarting in the exit gap)
+		// get ENOENT — the renderer falls back to a generic "session
+		// unavailable" footer. Tradeoff: niche UX regression in the
+		// restart-during-exit window vs. unbounded session accumulation
+		// (every closed terminal pane otherwise left a row forever).
 		const a = await connectAndHello(sockPath);
 		const id = uniqueId("postexit");
 		a.send({
@@ -661,34 +663,23 @@ describe("cross-client continuity (host-service restart simulation)", () => {
 		await a.waitFor((m) => m.type === "open-ok" && m.id === id);
 		a.send({ type: "subscribe", id, replay: true });
 		await a.waitFor((m) => m.type === "exit" && m.id === id, 3000);
-		// Connection A drops without explicit close — session enters
-		// alive:false state but is still in the daemon's map.
 		a.socket.destroy();
+		// Give the on-exit handler a beat to run its store.delete.
 		await new Promise((r) => setTimeout(r, 100));
 
+		// New connection: late subscribe gets nothing useful for a
+		// vanished id. We assert that the session is gone from list and
+		// that an op on the id returns ENOENT.
 		const b = await connectAndHello(sockPath);
-		b.send({ type: "subscribe", id, replay: true });
-		await b.waitFor(
-			(m) =>
-				m.type === "output" &&
-				m.id === id &&
-				Buffer.from(m.data, "base64").toString().includes("final-words"),
-			2000,
-		);
-		// Note: an exit event for an already-exited session is best-effort —
-		// the daemon's `wireSession` only fires onExit once when the shell
-		// actually dies. A late subscriber sees the buffered output and can
-		// observe `alive:false` via `list`. This test asserts the buffer
-		// behavior; the host-service supplements with a `list` check before
-		// declaring the session dead.
 		b.send({ type: "list" });
-		const reply = await b.waitFor((m) => m.type === "list-reply");
+		const reply = await b.waitFor((m) => m.type === "list-reply", 1000);
 		if (reply.type === "list-reply") {
-			const me = reply.sessions.find((s) => s.id === id);
-			assert.ok(me, "exited session should still be in list");
-			assert.equal(me?.alive, false);
+			const found = reply.sessions.find((s) => s.id === id);
+			assert.equal(found, undefined, "exited session should not be in list");
 		}
-		b.send({ type: "close", id, signal: "SIGTERM" });
+		b.send({ type: "close", id });
+		const err = await b.waitFor((m) => m.type === "error", 1000);
+		if (err.type === "error") assert.equal(err.code, "ENOENT");
 		await b.close();
 	});
 
@@ -773,7 +764,11 @@ describe("hostile input", () => {
 		await c.close();
 	});
 
-	test("input on already-exited session returns EEXITED", async () => {
+	test("input on a session that just exited returns ENOENT", async () => {
+		// Exit deletes the session row, so post-exit input lands on
+		// "unknown session" — same code path as input on a never-existed
+		// id. EEXITED is no longer returned because there's no exited
+		// session to be "exited"; it's just gone.
 		const c = await connectAndHello(sockPath);
 		const id = uniqueId("dead");
 		c.send({
@@ -784,6 +779,7 @@ describe("hostile input", () => {
 		await c.waitFor((m) => m.type === "open-ok" && m.id === id);
 		c.send({ type: "subscribe", id, replay: true });
 		await c.waitFor((m) => m.type === "exit" && m.id === id, 3000);
+		await new Promise((r) => setTimeout(r, 50));
 
 		c.send({
 			type: "input",
@@ -791,7 +787,7 @@ describe("hostile input", () => {
 			data: Buffer.from("ignored").toString("base64"),
 		});
 		const err = await c.waitFor((m) => m.type === "error", 1000);
-		if (err.type === "error") assert.equal(err.code, "EEXITED");
+		if (err.type === "error") assert.equal(err.code, "ENOENT");
 		await c.close();
 	});
 });

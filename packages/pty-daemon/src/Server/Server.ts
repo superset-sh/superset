@@ -234,10 +234,22 @@ export class Server {
 				signal: info.signal,
 			};
 			for (const c of this.conns) {
-				if (c.subscriptions.has(session.id)) c.send(ev);
+				if (c.subscriptions.has(session.id)) {
+					c.send(ev);
+					c.subscriptions.delete(session.id);
+				}
 			}
-			// Keep the session row around briefly so a late subscriber can still
-			// fetch the buffer; we delete on next list/close.
+			// Delete the session immediately. Without this, every closed
+			// terminal pane left a row in the store forever — list-reply
+			// inflated, memory grew unbounded.
+			//
+			// Tradeoff: a late subscriber that connects after this point
+			// (e.g. host-service restarting *during* the shell exit window)
+			// gets ENOENT instead of the buffered output + exit event. The
+			// renderer's xterm.js already has whatever was rendered before
+			// disconnect — it just loses the "Process exited with code N"
+			// footer for that narrow window.
+			this.store.delete(session.id);
 		});
 	}
 }
