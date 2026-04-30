@@ -21,10 +21,12 @@ export interface AttachmentMetadata {
  * Override with `baseDirOverride` in tests.
  */
 export function getAttachmentsRoot(baseDirOverride?: string): string {
+	if (baseDirOverride) return join(baseDirOverride, "attachments");
+	const envBase = process.env.HOST_MANIFEST_DIR?.trim();
 	const base =
-		baseDirOverride ??
-		process.env.HOST_MANIFEST_DIR?.trim() ??
-		join(homedir(), ".superset", "host", "standalone");
+		envBase && envBase.length > 0
+			? envBase
+			: join(homedir(), ".superset", "host", "standalone");
 	return join(base, "attachments");
 }
 

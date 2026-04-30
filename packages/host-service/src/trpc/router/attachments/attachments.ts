@@ -19,6 +19,16 @@ const uploadInputSchema = z.object({
 	originalFilename: z.string().optional(),
 });
 
+/**
+ * Cheap size estimate from a base64 string without allocating the
+ * decoded buffer. Used to reject oversized uploads before Buffer.from
+ * spikes memory.
+ */
+function estimateDecodedBase64Bytes(value: string): number {
+	const padding = value.endsWith("==") ? 2 : value.endsWith("=") ? 1 : 0;
+	return Math.floor((value.length * 3) / 4) - padding;
+}
+
 export const attachmentsRouter = router({
 	/**
 	 * Upload a single attachment to per-org host storage. Returns an
@@ -33,25 +43,23 @@ export const attachmentsRouter = router({
 			});
 		}
 
-		let bytes: Buffer;
-		try {
-			bytes = Buffer.from(input.data.data, "base64");
-		} catch {
+		// Reject before allocating the decoded buffer so a 1GB base64
+		// payload doesn't spike host memory only to be rejected at the end.
+		if (estimateDecodedBase64Bytes(input.data.data) > MAX_ATTACHMENT_BYTES) {
 			throw new TRPCError({
-				code: "BAD_REQUEST",
-				message: "Attachment data is not valid base64",
+				code: "PAYLOAD_TOO_LARGE",
+				message: `Attachment exceeds ${MAX_ATTACHMENT_BYTES} bytes`,
 			});
 		}
+
+		// Buffer.from(..., "base64") never throws on invalid input — it
+		// silently drops unrecognized characters. We rely on bytes.length
+		// (post-decode) to catch payloads that decode to nothing.
+		const bytes = Buffer.from(input.data.data, "base64");
 		if (bytes.length === 0) {
 			throw new TRPCError({
 				code: "BAD_REQUEST",
 				message: "Attachment is empty",
-			});
-		}
-		if (bytes.length > MAX_ATTACHMENT_BYTES) {
-			throw new TRPCError({
-				code: "PAYLOAD_TOO_LARGE",
-				message: `Attachment exceeds ${MAX_ATTACHMENT_BYTES} bytes`,
 			});
 		}
 
@@ -63,7 +71,8 @@ export const attachmentsRouter = router({
 			createdAt: Date.now(),
 		};
 
-		writeAttachment(new Uint8Array(bytes), metadata);
+		// Buffer already extends Uint8Array; no need to wrap.
+		writeAttachment(bytes, metadata);
 
 		return {
 			attachmentId: metadata.attachmentId,

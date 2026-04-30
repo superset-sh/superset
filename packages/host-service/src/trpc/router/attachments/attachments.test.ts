@@ -1,11 +1,15 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 import type { HostServiceContext } from "../../../types";
 import { attachmentsRouter } from "./attachments";
 import { MAX_ATTACHMENT_BYTES } from "./constants";
-import { getAttachmentDir, getAttachmentFilePath } from "./storage";
+import {
+	getAttachmentDir,
+	getAttachmentFilePath,
+	getAttachmentsRoot,
+} from "./storage";
 
 let tempBase: string;
 
@@ -89,15 +93,19 @@ describe("attachmentsRouter.upload", () => {
 		).rejects.toThrow(/unrecognized media type/i);
 	});
 
-	it("rejects empty payload", async () => {
+	it("accepts a single decoded byte", async () => {
 		const caller = createCaller();
+		// "AA==" is base64 of [0x00] — non-empty after decode.
 		await expect(
 			caller.upload({
-				data: { kind: "base64", data: "AA==" }, // base64 of [0x00], not empty after decode
+				data: { kind: "base64", data: "AA==" },
 				mediaType: "image/png",
 			}),
 		).resolves.toBeDefined();
-		// And actually-empty base64 fails schema (min(1)):
+	});
+
+	it("rejects an empty input string at the schema layer", async () => {
+		const caller = createCaller();
 		await expect(
 			caller.upload({
 				// biome-ignore lint/suspicious/noExplicitAny: testing invalid input
@@ -107,12 +115,28 @@ describe("attachmentsRouter.upload", () => {
 		).rejects.toThrow();
 	});
 
-	it("rejects oversized payload", async () => {
+	it("rejects base64 that decodes to zero bytes", async () => {
 		const caller = createCaller();
-		const big = Buffer.alloc(MAX_ATTACHMENT_BYTES + 1, 0x42);
+		// "=" passes z.string().min(1) but Buffer.from("=", "base64") is 0 bytes.
 		await expect(
 			caller.upload({
-				data: { kind: "base64", data: big.toString("base64") },
+				data: { kind: "base64", data: "=" },
+				mediaType: "image/png",
+			}),
+		).rejects.toThrow(/empty/i);
+	});
+
+	it("rejects oversized payload before decoding", async () => {
+		const caller = createCaller();
+		// A base64 string ~4/3 longer than MAX is enough — we shouldn't even
+		// allocate the decoded buffer. Use a fake oversized base64 string
+		// composed only of valid characters; we only care that it's rejected.
+		const oversizedBase64 = "A".repeat(
+			Math.ceil((MAX_ATTACHMENT_BYTES + 1) * (4 / 3)) + 4,
+		);
+		await expect(
+			caller.upload({
+				data: { kind: "base64", data: oversizedBase64 },
 				mediaType: "application/octet-stream",
 			}),
 		).rejects.toThrow(/exceeds/i);
@@ -161,5 +185,35 @@ describe("attachmentsRouter.delete", () => {
 		await expect(
 			caller.delete({ attachmentId: "../../etc/passwd" }),
 		).rejects.toThrow();
+	});
+});
+
+describe("getAttachmentsRoot", () => {
+	it("falls back to ~/.superset/host/standalone when HOST_MANIFEST_DIR is blank", () => {
+		const original = process.env.HOST_MANIFEST_DIR;
+		process.env.HOST_MANIFEST_DIR = "";
+		try {
+			const root = getAttachmentsRoot();
+			expect(root).toBe(
+				join(homedir(), ".superset", "host", "standalone", "attachments"),
+			);
+		} finally {
+			if (original === undefined) delete process.env.HOST_MANIFEST_DIR;
+			else process.env.HOST_MANIFEST_DIR = original;
+		}
+	});
+
+	it("falls back when HOST_MANIFEST_DIR is whitespace-only", () => {
+		const original = process.env.HOST_MANIFEST_DIR;
+		process.env.HOST_MANIFEST_DIR = "   ";
+		try {
+			const root = getAttachmentsRoot();
+			expect(root).toBe(
+				join(homedir(), ".superset", "host", "standalone", "attachments"),
+			);
+		} finally {
+			if (original === undefined) delete process.env.HOST_MANIFEST_DIR;
+			else process.env.HOST_MANIFEST_DIR = original;
+		}
 	});
 });

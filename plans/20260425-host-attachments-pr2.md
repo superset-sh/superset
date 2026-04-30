@@ -101,3 +101,4 @@ Backend tests run against a temp directory injected via `process.env.HOST_MANIFE
 - Switch to a streaming/direct upload endpoint when base64-over-tRPC starts mattering for size or memory.
 - Resolve `attachmentId` → host-readable path inside `workspace.create()` prompt assembly (PR 4).
 - Add a periodic GC sweep if orphaned attachment dirs become a real problem.
+- **Per-org storage quota.** v1 has no aggregate cap — only the 25 MB per-file limit. An authenticated user can in principle fill disk through repeated uploads. Same blast radius as v1 desktop's IndexedDB blob storage (also unbounded). Add a guard once telemetry shows real footprint creep: count `metadata.json` files or sum `sizeBytes` across the attachment dir before accepting a new upload.
