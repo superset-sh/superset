@@ -497,16 +497,38 @@ export async function createTerminalSessionInternal({
 
 	let daemon: DaemonClient;
 	let openResult: { pid: number };
+	let isAdopted = false;
 	try {
 		daemon = await getDaemonClient();
-		openResult = await daemon.open(terminalId, {
-			shell,
-			argv: shellArgs,
-			cwd,
-			cols: 120,
-			rows: 32,
-			env: ptyEnv,
-		});
+		try {
+			openResult = await daemon.open(terminalId, {
+				shell,
+				argv: shellArgs,
+				cwd,
+				cols: 120,
+				rows: 32,
+				env: ptyEnv,
+			});
+		} catch (err) {
+			// After host-service restart the daemon may already own this
+			// session. Adopt it instead of looping forever on "session already
+			// exists". The daemon kept the buffer + the live shell; we just
+			// need to stitch up a TerminalSession record on this side and
+			// subscribe-with-replay below.
+			const msg = err instanceof Error ? err.message : String(err);
+			if (msg.includes("session already exists")) {
+				const list = await daemon.list();
+				const found = list.find((s) => s.id === terminalId && s.alive);
+				if (!found) throw err;
+				openResult = { pid: found.pid };
+				isAdopted = true;
+				console.log(
+					`[terminal] adopted existing daemon session ${terminalId} pid=${found.pid}`,
+				);
+			} else {
+				throw err;
+			}
+		}
 	} catch (error) {
 		return {
 			error:
@@ -530,9 +552,12 @@ export async function createTerminalSessionInternal({
 		})
 		.run();
 
-	// Determine shell readiness support
+	// Determine shell readiness support. Adopted sessions are already past
+	// shell startup, so treat them as immediately ready — the OSC 133;A
+	// marker has already flown by and we don't want to gate writes on it.
 	const shellName = shell.split("/").pop() || shell;
-	const shellSupportsReady = SHELLS_WITH_READY_MARKER.has(shellName);
+	const shellSupportsReady =
+		!isAdopted && SHELLS_WITH_READY_MARKER.has(shellName);
 
 	let shellReadyResolve: (() => void) | null = null;
 	const shellReadyPromise = shellSupportsReady
@@ -556,12 +581,18 @@ export async function createTerminalSessionInternal({
 		listed,
 		title: null,
 		titleScanState: createTerminalTitleScanState(),
-		shellReadyState: shellSupportsReady ? "pending" : "unsupported",
+		shellReadyState: shellSupportsReady
+			? "pending"
+			: isAdopted
+				? "ready"
+				: "unsupported",
 		shellReadyResolve,
 		shellReadyPromise,
 		shellReadyTimeoutId: null,
 		scanState: createScanState(),
-		initialCommandQueued: false,
+		// Adopted sessions have already run their initialCommand in the prior
+		// host-service lifetime — flag it as queued so we don't double-fire it.
+		initialCommandQueued: isAdopted,
 	};
 	sessions.set(terminalId, session);
 	portManager.upsertSession(terminalId, workspaceId, pty.pid);

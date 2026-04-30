@@ -178,6 +178,89 @@ test("disconnect callback fires when daemon goes away", async () => {
 	await c.dispose();
 });
 
+test("adoption flow: client A opens, drops, client B finds + subscribes-with-replay", async () => {
+	// This is the exact host-service-restart sequence we hit in production:
+	// host-service v1 opens a daemon session, then dies. host-service v2
+	// starts fresh, calls daemon.open() blindly → "session already exists"
+	// → must fall back to list() + subscribe(replay:true). Regression test
+	// for the "session already exists" tight loop.
+	const a = new DaemonClient({ socketPath: sockPath });
+	await a.connect();
+	const id = "host-restart-adopt";
+	const openA = await a.open(id, {
+		shell: "/bin/sh",
+		argv: ["-i"],
+		cols: 80,
+		rows: 24,
+	});
+	const aChunks: Buffer[] = [];
+	const unsubA = a.subscribe(
+		id,
+		{ replay: false },
+		{ onOutput: (c) => aChunks.push(c), onExit: () => {} },
+	);
+	a.input(id, Buffer.from("echo before-host-restart\n"));
+	await waitFor(
+		() => Buffer.concat(aChunks).toString().includes("before-host-restart"),
+		3000,
+	);
+	unsubA();
+	await a.dispose();
+
+	// Brief settle so the daemon registers A's disconnect.
+	await new Promise((r) => setTimeout(r, 100));
+
+	// "host-service v2" connects fresh.
+	const b = new DaemonClient({ socketPath: sockPath });
+	await b.connect();
+
+	// Naive open should error with "session already exists" — that's the
+	// signal host-service uses to switch to adoption mode.
+	let openErr: Error | null = null;
+	try {
+		await b.open(id, {
+			shell: "/bin/sh",
+			argv: ["-i"],
+			cols: 80,
+			rows: 24,
+		});
+	} catch (e) {
+		openErr = e as Error;
+	}
+	assert.ok(openErr, "second open of same id must throw");
+	assert.match(openErr?.message ?? "", /session already exists/);
+
+	// list() finds the live session.
+	const list = await b.list();
+	const found = list.find((s) => s.id === id);
+	assert.ok(found, "list must surface the existing session");
+	assert.equal(found?.alive, true);
+	assert.equal(found?.pid, openA.pid);
+
+	// Subscribe with replay → see the buffered output from A's lifetime.
+	const bChunks: Buffer[] = [];
+	const unsubB = b.subscribe(
+		id,
+		{ replay: true },
+		{ onOutput: (c) => bChunks.push(c), onExit: () => {} },
+	);
+	await waitFor(
+		() => Buffer.concat(bChunks).toString().includes("before-host-restart"),
+		3000,
+	);
+
+	// And new input through B reaches the (still-living) shell.
+	b.input(id, Buffer.from("echo after-host-restart\n"));
+	await waitFor(
+		() => Buffer.concat(bChunks).toString().includes("after-host-restart"),
+		3000,
+	);
+
+	unsubB();
+	await b.close(id, "SIGTERM");
+	await b.dispose();
+});
+
 async function waitFor(predicate: () => boolean, ms: number): Promise<void> {
 	const start = Date.now();
 	while (!predicate()) {

@@ -515,6 +515,166 @@ describe("list", () => {
 	});
 });
 
+// ---------------- Cross-client continuity (host-service restart story) ----------------
+
+describe("cross-client continuity (host-service restart simulation)", () => {
+	// This is the headline path the daemon exists for. Client A (host-service v1)
+	// opens a session, then disconnects (host-service crashed). Client B
+	// (host-service v2) connects fresh, discovers the session via list, and
+	// must NOT try to re-open it — it should subscribe-with-replay and
+	// continue. Regression test for the "session already exists" tight loop
+	// observed in production after the first integration land.
+
+	test("client B finds session A's id via list after A disconnects", async () => {
+		const a = await connectAndHello(sockPath);
+		const id = uniqueId("restart");
+		a.send({
+			type: "open",
+			id,
+			meta: { ...baseMeta, argv: ["-c", "echo from-A; sleep 5"] },
+		});
+		await a.waitFor((m) => m.type === "open-ok" && m.id === id);
+		// Force-close A's connection without unsubscribing — this simulates a
+		// host-service crash. The session must keep running on the daemon.
+		a.socket.destroy();
+
+		// Brief settle so the daemon notices the close.
+		await new Promise((r) => setTimeout(r, 100));
+
+		const b = await connectAndHello(sockPath);
+		b.send({ type: "list" });
+		const reply = await b.waitFor((m) => m.type === "list-reply");
+		assert.equal(reply.type, "list-reply");
+		if (reply.type === "list-reply") {
+			const found = reply.sessions.find((s) => s.id === id);
+			assert.ok(found, `session ${id} should still be in list after A's drop`);
+			assert.equal(found?.alive, true);
+		}
+
+		b.send({ type: "close", id, signal: "SIGTERM" });
+		await b.close();
+	});
+
+	test("re-opening an existing session id returns EEXIST (the trigger for adoption)", async () => {
+		// Regression: host-service was caught in a tight loop because it
+		// blindly called `open` after restart and got "session already exists".
+		// We rely on this exact error code/message to drive the adoption path
+		// in host-service's createTerminalSessionInternal.
+		const a = await connectAndHello(sockPath);
+		const id = uniqueId("eexist");
+		a.send({ type: "open", id, meta: baseMeta });
+		await a.waitFor((m) => m.type === "open-ok" && m.id === id);
+
+		const b = await connectAndHello(sockPath);
+		b.send({ type: "open", id, meta: baseMeta });
+		const err = await b.waitFor((m) => m.type === "error" && m.id === id, 2000);
+		assert.equal(err.type, "error");
+		if (err.type === "error") {
+			assert.equal(err.code, "EEXIST");
+			assert.match(err.message, /session already exists/);
+		}
+
+		a.send({ type: "close", id, signal: "SIGTERM" });
+		await Promise.all([a.close(), b.close()]);
+	});
+
+	test("client B subscribes-with-replay to A's session and gets buffered output + live stream", async () => {
+		// The actual adoption flow: A opens, A produces output, A drops, B
+		// subscribes with replay. B must see the prior output AND any new
+		// output produced after B's subscribe. This is what host-service
+		// does after restart to give the renderer a continuous experience.
+		const a = await connectAndHello(sockPath);
+		const id = uniqueId("adopt");
+		a.send({
+			type: "open",
+			id,
+			meta: { ...baseMeta, argv: ["-i"] },
+		});
+		await a.waitFor((m) => m.type === "open-ok" && m.id === id);
+
+		a.send({ type: "subscribe", id, replay: false });
+		a.send({
+			type: "input",
+			id,
+			data: Buffer.from("echo before-restart\n").toString("base64"),
+		});
+		await a.waitFor(
+			(m) =>
+				m.type === "output" &&
+				Buffer.from(m.data, "base64").toString().includes("before-restart"),
+			3000,
+		);
+
+		// A drops without cleanup — host-service "crashed."
+		a.socket.destroy();
+		await new Promise((r) => setTimeout(r, 100));
+
+		// B picks up the session. First confirms via list, then subscribes
+		// with replay to get the buffered "before-restart" output.
+		const b = await connectAndHello(sockPath);
+		b.send({ type: "list" });
+		const list = await b.waitFor((m) => m.type === "list-reply");
+		assert.ok(
+			list.type === "list-reply" &&
+				list.sessions.some((s) => s.id === id && s.alive),
+		);
+
+		b.send({ type: "subscribe", id, replay: true });
+		await b.waitFor(
+			(m) =>
+				m.type === "output" &&
+				m.id === id &&
+				Buffer.from(m.data, "base64").toString().includes("before-restart"),
+			3000,
+		);
+
+		// New input from B reaches the (still-living) shell.
+		b.send({
+			type: "input",
+			id,
+			data: Buffer.from("echo after-restart\n").toString("base64"),
+		});
+		await b.waitFor(
+			(m) =>
+				m.type === "output" &&
+				m.id === id &&
+				Buffer.from(m.data, "base64").toString().includes("after-restart"),
+			3000,
+		);
+
+		b.send({ type: "close", id, signal: "SIGTERM" });
+		await b.close();
+	});
+
+	test("daemon `list` returns sessions whose only client just dropped", async () => {
+		// Defensive: the daemon must NOT garbage-collect a session just
+		// because its last client disconnected. host-service relies on the
+		// session staying alive across the disconnect.
+		const a = await connectAndHello(sockPath);
+		const id = uniqueId("orphan");
+		a.send({
+			type: "open",
+			id,
+			meta: { ...baseMeta, argv: ["-c", "sleep 30"] },
+		});
+		await a.waitFor((m) => m.type === "open-ok" && m.id === id);
+
+		a.socket.destroy();
+		await new Promise((r) => setTimeout(r, 200));
+
+		const b = await connectAndHello(sockPath);
+		b.send({ type: "list" });
+		const reply = await b.waitFor((m) => m.type === "list-reply");
+		if (reply.type === "list-reply") {
+			const me = reply.sessions.find((s) => s.id === id);
+			assert.ok(me, "session must persist past last-client disconnect");
+			assert.equal(me?.alive, true);
+		}
+		b.send({ type: "close", id, signal: "SIGKILL" });
+		await b.close();
+	});
+});
+
 // ---------------- Malformed / abusive input ----------------
 
 describe("hostile input", () => {
