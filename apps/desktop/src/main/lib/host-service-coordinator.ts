@@ -492,7 +492,10 @@ export class HostServiceCoordinator extends EventEmitter {
 		const row = localDb.select().from(settings).get();
 		const exposeViaRelay = row?.exposeHostServiceViaRelay ?? false;
 
-		const childEnv = await getProcessEnvWithShellPath({
+		// Allow .env / shell SUPERSET_PTY_DAEMON_SOCKET to take effect when our
+		// own daemon spawn failed. Set it explicitly only when we have a real
+		// path; otherwise inherit whatever the parent has.
+		const baseEnv: Record<string, string> = {
 			...(process.env as Record<string, string>),
 			ELECTRON_RUN_AS_NODE: "1",
 			ORGANIZATION_ID: organizationId,
@@ -509,10 +512,14 @@ export class HostServiceCoordinator extends EventEmitter {
 			SUPERSET_HOME_DIR: SUPERSET_HOME_DIR,
 			SUPERSET_AGENT_HOOK_PORT: String(sharedEnv.DESKTOP_NOTIFICATIONS_PORT),
 			SUPERSET_AGENT_HOOK_VERSION: HOOK_PROTOCOL_VERSION,
-			SUPERSET_PTY_DAEMON_SOCKET: ptyDaemonSocket,
 			AUTH_TOKEN: config.authToken,
 			CLOUD_API_URL: config.cloudApiUrl,
-		});
+		};
+		if (ptyDaemonSocket) {
+			baseEnv.SUPERSET_PTY_DAEMON_SOCKET = ptyDaemonSocket;
+		}
+
+		const childEnv = await getProcessEnvWithShellPath(baseEnv);
 
 		// `getProcessEnvWithShellPath` merges in the user's interactive shell env,
 		// which in dev has `RELAY_URL` set. Enforce the toggle *after* that merge
