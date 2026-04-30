@@ -25,6 +25,9 @@ import { isMainWorkspace } from "./is-main-workspace";
  */
 const destroysInFlight = new Set<string>();
 
+/** @internal — exposed for tests to introspect / clear the guard. */
+export const __testDestroysInFlight = destroysInFlight;
+
 interface DestroyInput {
 	workspaceId: string;
 	deleteBranch: boolean;
