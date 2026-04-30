@@ -52,6 +52,7 @@ describe("attachmentsRouter.upload", () => {
 		);
 		expect(existsSync(filePath)).toBe(true);
 		expect(existsSync(metaPath)).toBe(true);
+		expect(readFileSync(filePath)).toEqual(Buffer.from(PNG_BASE64, "base64"));
 
 		const metadata = JSON.parse(readFileSync(metaPath, "utf8"));
 		expect(metadata.attachmentId).toBe(result.attachmentId);
