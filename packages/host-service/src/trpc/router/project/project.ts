@@ -6,7 +6,12 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { projects, workspaces } from "../../../db/schema";
 import { protectedProcedure, router } from "../../index";
-import { createFromClone, createFromImportLocal } from "./handlers";
+import {
+	createFromClone,
+	createFromEmpty,
+	createFromImportLocal,
+	createFromTemplate,
+} from "./handlers";
 import { ensureMainWorkspace } from "./utils/ensure-main-workspace";
 import { persistLocalProject } from "./utils/persist-project";
 import {
@@ -123,10 +128,15 @@ export const projectRouter = router({
 		.mutation(async ({ ctx, input }) => {
 			switch (input.mode.kind) {
 				case "empty":
+					return createFromEmpty(ctx, {
+						name: input.name,
+						parentDir: input.mode.parentDir,
+					});
 				case "template":
-					throw new TRPCError({
-						code: "NOT_IMPLEMENTED",
-						message: `project.create mode="${input.mode.kind}" is not implemented yet`,
+					return createFromTemplate(ctx, {
+						name: input.name,
+						parentDir: input.mode.parentDir,
+						templateId: input.mode.templateId,
 					});
 				case "clone":
 					return createFromClone(ctx, {

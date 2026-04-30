@@ -140,6 +140,161 @@ export async function resolveMatchingSlug(
 }
 
 /**
+ * Initializes a new empty git repo at `<parentDir>/<dirName>`. Creates the
+ * directory atomically (mkdir without recursive — fails on EEXIST), runs
+ * `git init --initial-branch=main`, and creates an initial empty commit.
+ * Cleans up the target directory if any post-mkdir step fails.
+ *
+ * Surfaces a useful error when the local git user/email is unconfigured,
+ * since the initial commit fails with an "empty ident" message that's
+ * useless to a user.
+ */
+export async function initEmptyRepo(
+	parentDir: string,
+	dirName: string,
+): Promise<ResolvedRepo> {
+	if (!dirName.trim() || /[/\\]/.test(dirName)) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: `Invalid directory name: "${dirName}"`,
+		});
+	}
+
+	const resolvedParentDir = resolvePath(parentDir);
+	validateDirectoryPath(resolvedParentDir, "Parent directory");
+
+	const targetPath = join(resolvedParentDir, dirName);
+	try {
+		mkdirSync(targetPath);
+	} catch (err) {
+		if ((err as NodeJS.ErrnoException).code === "EEXIST") {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: `Directory already exists: ${targetPath}`,
+			});
+		}
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: `Could not create target directory: ${
+				err instanceof Error ? err.message : String(err)
+			}`,
+		});
+	}
+
+	try {
+		const git = simpleGit(targetPath);
+		try {
+			await git.init(["--initial-branch=main"]);
+		} catch {
+			await git.init();
+		}
+		try {
+			await git.raw(["commit", "--allow-empty", "-m", "Initial commit"]);
+		} catch (err) {
+			const message = err instanceof Error ? err.message : String(err);
+			if (
+				message.includes("empty ident") ||
+				message.includes("user.email") ||
+				message.includes("user.name")
+			) {
+				throw new TRPCError({
+					code: "PRECONDITION_FAILED",
+					message:
+						'Git user is not configured. Run: git config --global user.name "Your Name" && git config --global user.email "you@example.com"',
+				});
+			}
+			throw new TRPCError({
+				code: "INTERNAL_SERVER_ERROR",
+				message: `Failed to create initial commit: ${message}`,
+			});
+		}
+		return { repoPath: targetPath, remoteName: null, parsed: null };
+	} catch (err) {
+		rmSync(targetPath, { recursive: true, force: true });
+		throw err;
+	}
+}
+
+/**
+ * Clones a template repo into `<parentDir>/<dirName>`, strips its git
+ * history, and re-initializes the repo as a fresh project owned by the
+ * user. The resulting repo has no remote (deferred per audit decision 4).
+ *
+ * Cleans up the target directory on any post-mkdir failure.
+ */
+export async function cloneTemplateInto(
+	templateUrl: string,
+	parentDir: string,
+	dirName: string,
+): Promise<ResolvedRepo> {
+	if (!dirName.trim() || /[/\\]/.test(dirName)) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: `Invalid directory name: "${dirName}"`,
+		});
+	}
+
+	const resolvedParentDir = resolvePath(parentDir);
+	validateDirectoryPath(resolvedParentDir, "Parent directory");
+	const targetPath = join(resolvedParentDir, dirName);
+	try {
+		mkdirSync(targetPath);
+	} catch (err) {
+		if ((err as NodeJS.ErrnoException).code === "EEXIST") {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: `Directory already exists: ${targetPath}`,
+			});
+		}
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: `Could not create target directory: ${
+				err instanceof Error ? err.message : String(err)
+			}`,
+		});
+	}
+
+	try {
+		// Shallow clone keeps the template fetch fast and avoids dragging
+		// in the template's history that we're about to throw away.
+		await simpleGit().clone(templateUrl, targetPath, ["--depth=1"]);
+		rmSync(join(targetPath, ".git"), { recursive: true, force: true });
+
+		const git = simpleGit(targetPath);
+		try {
+			await git.init(["--initial-branch=main"]);
+		} catch {
+			await git.init();
+		}
+		await git.add(".");
+		try {
+			await git.raw(["commit", "-m", "Initial commit"]);
+		} catch (err) {
+			const message = err instanceof Error ? err.message : String(err);
+			if (
+				message.includes("empty ident") ||
+				message.includes("user.email") ||
+				message.includes("user.name")
+			) {
+				throw new TRPCError({
+					code: "PRECONDITION_FAILED",
+					message:
+						'Git user is not configured. Run: git config --global user.name "Your Name" && git config --global user.email "you@example.com"',
+				});
+			}
+			throw new TRPCError({
+				code: "INTERNAL_SERVER_ERROR",
+				message: `Failed to create initial commit: ${message}`,
+			});
+		}
+		return { repoPath: targetPath, remoteName: null, parsed: null };
+	} catch (err) {
+		rmSync(targetPath, { recursive: true, force: true });
+		throw err;
+	}
+}
+
+/**
  * Clones a GitHub repo into `<parentDir>/<repoName>` and returns the resolved
  * repo. Fails and cleans up the target directory if the clone succeeds but
  * the resulting remote doesn't match the URL we cloned from (defensive).

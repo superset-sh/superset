@@ -40,49 +40,7 @@ export async function ensureMainWorkspace(
 	repoPath: string,
 ): Promise<{ id: string } | null> {
 	try {
-		const git = await ctx.git(repoPath);
-		const branch = await getCurrentBranchName(git);
-		if (!branch) {
-			console.warn(
-				`[ensureMainWorkspace] could not resolve current branch for ${projectId} at ${repoPath}; skipping`,
-			);
-			return null;
-		}
-
-		const host = await ctx.api.host.ensure.mutate({
-			organizationId: ctx.organizationId,
-			machineId: getHostId(),
-			name: getHostName(),
-		});
-
-		const cloudRow = await ctx.api.v2Workspace.create.mutate({
-			organizationId: ctx.organizationId,
-			projectId,
-			name: branch,
-			branch,
-			hostId: host.machineId,
-			type: "main",
-		});
-
-		ctx.db
-			.insert(workspaces)
-			.values({
-				id: cloudRow.id,
-				projectId,
-				worktreePath: repoPath,
-				branch,
-			})
-			.onConflictDoUpdate({
-				target: workspaces.id,
-				set: {
-					projectId,
-					worktreePath: repoPath,
-					branch,
-				},
-			})
-			.run();
-
-		return { id: cloudRow.id };
+		return await ensureMainWorkspaceStrict(ctx, projectId, repoPath);
 	} catch (err) {
 		console.warn(
 			`[ensureMainWorkspace] failed for ${projectId} at ${repoPath}; will retry via startup sweep`,
@@ -90,4 +48,59 @@ export async function ensureMainWorkspace(
 		);
 		return null;
 	}
+}
+
+/**
+ * Strict variant for create flows: throws on any failure instead of
+ * swallowing. The create-project saga uses this so a workspace-creation
+ * failure rolls back the whole saga (including the cloud project commit).
+ * The lenient version above stays for `project.setup` and the startup sweep.
+ */
+export async function ensureMainWorkspaceStrict(
+	ctx: EnsureMainWorkspaceContext,
+	projectId: string,
+	repoPath: string,
+): Promise<{ id: string }> {
+	const git = await ctx.git(repoPath);
+	const branch = await getCurrentBranchName(git);
+	if (!branch) {
+		throw new Error(
+			`Could not resolve current branch for ${projectId} at ${repoPath}`,
+		);
+	}
+
+	const host = await ctx.api.host.ensure.mutate({
+		organizationId: ctx.organizationId,
+		machineId: getHostId(),
+		name: getHostName(),
+	});
+
+	const cloudRow = await ctx.api.v2Workspace.create.mutate({
+		organizationId: ctx.organizationId,
+		projectId,
+		name: branch,
+		branch,
+		hostId: host.machineId,
+		type: "main",
+	});
+
+	ctx.db
+		.insert(workspaces)
+		.values({
+			id: cloudRow.id,
+			projectId,
+			worktreePath: repoPath,
+			branch,
+		})
+		.onConflictDoUpdate({
+			target: workspaces.id,
+			set: {
+				projectId,
+				worktreePath: repoPath,
+				branch,
+			},
+		})
+		.run();
+
+	return { id: cloudRow.id };
 }
