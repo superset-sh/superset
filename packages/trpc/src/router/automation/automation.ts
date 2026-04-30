@@ -31,6 +31,7 @@ import {
 	createAutomationSchema,
 	listRunsSchema,
 	parseRruleSchema,
+	setAutomationPromptSchema,
 	updateAutomationSchema,
 } from "./schema";
 
@@ -171,7 +172,7 @@ export const automationRouter = {
 		}));
 	}),
 
-	/** Get one automation plus the last 10 runs. */
+	/** Get one automation. Use listRuns for run history. */
 	get: protectedProcedure
 		.input(z.object({ id: z.string().uuid() }))
 		.query(async ({ ctx, input }) => {
@@ -181,18 +182,9 @@ export const automationRouter = {
 				organizationId,
 				input.id,
 			);
-
-			const recentRuns = await db
-				.select()
-				.from(automationRuns)
-				.where(eq(automationRuns.automationId, input.id))
-				.orderBy(desc(automationRuns.createdAt))
-				.limit(10);
-
 			return {
 				...automation,
 				scheduleText: safeDescribeRrule(automation),
-				recentRuns,
 			};
 		}),
 
@@ -305,7 +297,6 @@ export const automationRouter = {
 				.update(automations)
 				.set({
 					name: input.name ?? existing.name,
-					prompt: input.prompt ?? existing.prompt,
 					agentConfig: input.agentConfig ?? existing.agentConfig,
 					targetHostId:
 						input.targetHostId === undefined
@@ -322,6 +313,33 @@ export const automationRouter = {
 					mcpScope: input.mcpScope ?? existing.mcpScope,
 					nextRunAt: recomputedNextRunAt,
 				})
+				.where(eq(automations.id, input.id))
+				.returning();
+
+			return { ...updated, scheduleText: safeDescribeRrule(updated) };
+		}),
+
+	getPrompt: protectedProcedure
+		.input(z.object({ id: z.string().uuid() }))
+		.query(async ({ ctx, input }) => {
+			const organizationId = await requireActiveOrgMembership(ctx);
+			const existing = await getAutomationForUser(
+				ctx.session.user.id,
+				organizationId,
+				input.id,
+			);
+			return { id: existing.id, prompt: existing.prompt };
+		}),
+
+	setPrompt: protectedProcedure
+		.input(setAutomationPromptSchema)
+		.mutation(async ({ ctx, input }) => {
+			const organizationId = await requireActiveOrgMembership(ctx);
+			await getAutomationForUser(ctx.session.user.id, organizationId, input.id);
+
+			const [updated] = await dbWs
+				.update(automations)
+				.set({ prompt: input.prompt })
 				.where(eq(automations.id, input.id))
 				.returning();
 

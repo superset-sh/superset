@@ -1,0 +1,13 @@
+{
+	"title": "CLI",
+	"description": "Command line interface",
+	"icon": "Terminal",
+	"root": true,
+	"pages": [
+		"---Rocket Get Started---",
+		"getting-started",
+		"---BookOpen Reference---",
+		"cli-reference",
+		"env-vars"
+	]
+}

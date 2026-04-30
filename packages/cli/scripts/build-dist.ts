@@ -33,9 +33,14 @@ import {
 import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 
-type Target = "darwin-arm64" | "linux-x64";
+type Target = "darwin-arm64" | "darwin-x64" | "linux-x64" | "linux-arm64";
 
-const VALID_TARGETS: Target[] = ["darwin-arm64", "linux-x64"];
+const VALID_TARGETS: Target[] = [
+	"darwin-arm64",
+	"darwin-x64",
+	"linux-x64",
+	"linux-arm64",
+];
 const NODE_VERSION = "22.13.0";
 
 /**
@@ -53,11 +58,17 @@ const NATIVE_PACKAGES = [
  * Platform-specific native bindings that live in optional dependencies
  * of their parent package and are only installed for the matching host.
  * `copyPackageWithDeps` only walks `dependencies`, so these need to be
- * listed explicitly per target.
+ * listed explicitly per target. Linux variants pin glibc (gnu) — we don't
+ * ship musl builds.
  */
 const TARGET_NATIVE_PACKAGES: Record<Target, string[]> = {
 	"darwin-arm64": ["@libsql/darwin-arm64", "@parcel/watcher-darwin-arm64"],
+	"darwin-x64": ["@libsql/darwin-x64", "@parcel/watcher-darwin-x64"],
 	"linux-x64": ["@libsql/linux-x64-gnu", "@parcel/watcher-linux-x64-glibc"],
+	"linux-arm64": [
+		"@libsql/linux-arm64-gnu",
+		"@parcel/watcher-linux-arm64-glibc",
+	],
 };
 
 /**
@@ -83,9 +94,13 @@ function parseArgs(): { target: Target } {
 	return { target };
 }
 
+function targetParts(target: Target): { platform: string; arch: string } {
+	const [platform, arch] = target.split("-") as [string, string];
+	return { platform, arch };
+}
+
 function nodeArchiveName(target: Target): string {
-	const arch = target === "darwin-arm64" ? "arm64" : "x64";
-	const platform = target === "darwin-arm64" ? "darwin" : "linux";
+	const { platform, arch } = targetParts(target);
 	return `node-v${NODE_VERSION}-${platform}-${arch}`;
 }
 
@@ -225,15 +240,19 @@ function copyNativePackages(libDir: string, target: Target): void {
 }
 
 /**
- * Desktop's `install:deps` step runs electron-rebuild on every root
- * `bun install`, clobbering the hoisted `build/Release/*.node` binaries
- * of better-sqlite3 and node-pty with Electron-ABI builds. The shipped
- * Node.js runtime cannot load those. Fix up the staged copies:
+ * Native addons need to be built against the bundled Node runtime's ABI,
+ * not Electron's. Two cases:
  *
- * 1. `better-sqlite3`: download the Node-ABI prebuild from GitHub and
- *    overwrite `build/Release/better_sqlite3.node`.
- * 2. `node-pty`: delete `build/Release/` so the `bindings` loader falls
- *    through to the N-API prebuild in `prebuilds/<target>/pty.node`.
+ * - On macOS, desktop's `install:deps` runs electron-rebuild during root
+ *   `bun install` and clobbers the hoisted `build/Release/*.node` files
+ *   with Electron-ABI builds. So we always overwrite better-sqlite3's
+ *   binary with a fetched Node-ABI prebuild, and for node-pty we delete
+ *   `build/Release/` so the `bindings` loader falls through to its
+ *   bundled `prebuilds/<target>/pty.node`.
+ * - On Linux, node-pty ships no prebuilds, so we ALWAYS need a freshly
+ *   compiled `build/Release/pty.node` against the bundled Node runtime
+ *   (CI does this via `npm rebuild` after `bun install --ignore-scripts`).
+ *   Keep `build/Release/`.
  */
 async function fixNativeBinariesForNode(
 	libDir: string,
@@ -262,8 +281,9 @@ async function fixNativeBinariesForNode(
 		join(bsqDest, "better_sqlite3.node"),
 	);
 
+	const { platform } = targetParts(target);
 	const nodePtyBuild = join(destModules, "node-pty", "build");
-	if (existsSync(nodePtyBuild)) {
+	if (platform === "darwin" && existsSync(nodePtyBuild)) {
 		console.log(
 			"[build-dist] removing node-pty build/ so bindings falls back to prebuilds/",
 		);

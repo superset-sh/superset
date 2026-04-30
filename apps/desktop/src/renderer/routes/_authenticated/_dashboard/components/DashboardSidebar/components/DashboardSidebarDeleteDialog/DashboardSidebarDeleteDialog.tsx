@@ -29,6 +29,8 @@ export function DashboardSidebarDeleteDialog({
 		setDeleteBranch,
 		hasChanges,
 		hasUnpushedCommits,
+		canConfirm,
+		blockingReason,
 		isCheckingStatus,
 		error,
 		handleOpenChange,
@@ -53,6 +55,11 @@ export function DashboardSidebarDeleteDialog({
 	}
 
 	const hasWarnings = hasChanges || hasUnpushedCommits;
+	const confirmLabel = isCheckingStatus
+		? "Checking…"
+		: hasWarnings
+			? "Delete anyway"
+			: "Delete";
 
 	return (
 		<DestroyConfirmPane
@@ -63,8 +70,11 @@ export function DashboardSidebarDeleteDialog({
 			onDeleteBranchChange={setDeleteBranch}
 			hasChanges={hasChanges}
 			hasUnpushedCommits={hasUnpushedCommits}
+			canConfirm={canConfirm}
+			blockingReason={blockingReason}
 			isCheckingStatus={isCheckingStatus}
 			onConfirm={() => run(hasWarnings)}
+			confirmLabel={confirmLabel}
 		/>
 	);
 }

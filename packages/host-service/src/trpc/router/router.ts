@@ -11,6 +11,7 @@ import { notificationsRouter } from "./notifications";
 import { portsRouter } from "./ports";
 import { projectRouter } from "./project";
 import { pullRequestsRouter } from "./pull-requests";
+import { settingsRouter } from "./settings";
 import { terminalRouter } from "./terminal";
 import { workspaceRouter } from "./workspace";
 import { workspaceCleanupRouter } from "./workspace-cleanup";
@@ -29,6 +30,7 @@ export const appRouter = router({
 	pullRequests: pullRequestsRouter,
 	project: projectRouter,
 	ports: portsRouter,
+	settings: settingsRouter,
 	terminal: terminalRouter,
 	workspace: workspaceRouter,
 	workspaceCleanup: workspaceCleanupRouter,

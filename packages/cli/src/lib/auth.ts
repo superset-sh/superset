@@ -1,7 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { createServer, type Server } from "node:http";
 import { CLIError } from "@superset/cli-framework";
-import type { SupersetConfig } from "./config";
+import { env } from "./env";
 
 const LOOPBACK_CANDIDATES = [51789, 51790];
 
@@ -126,18 +126,14 @@ function waitForCallback({
 	});
 }
 
-export function getWebUrl(config: SupersetConfig): string {
+export function getWebUrl(): string {
 	if (process.env.SUPERSET_WEB_URL) return process.env.SUPERSET_WEB_URL;
-	const apiUrl = config.apiUrl ?? "https://api.superset.sh";
-	return apiUrl.replace("api.superset.sh", "app.superset.sh");
+	return env.SUPERSET_API_URL.replace("api.superset.sh", "app.superset.sh");
 }
 
-export async function login(
-	config: SupersetConfig,
-	signal: AbortSignal,
-): Promise<LoginResult> {
-	const apiUrl = config.apiUrl ?? "https://api.superset.sh";
-	const webUrl = getWebUrl(config);
+export async function login(signal: AbortSignal): Promise<LoginResult> {
+	const apiUrl = env.SUPERSET_API_URL;
+	const webUrl = getWebUrl();
 
 	const { server, port } = await bindLoopbackServer();
 	const redirectUri = loopbackUrl(port);

@@ -1,0 +1,170 @@
+---
+title: Getting Started
+description: Install the Superset CLI, sign in, and run your first commands.
+---
+
+The Superset CLI (`superset`) is a single static binary that drives the same
+backend as the desktop app. Use it to manage workspaces, tasks, automations,
+and the local host service from your terminal or from CI.
+
+## Install
+
+### macOS (Apple Silicon)
+
+```bash
+curl -fsSL https://app.superset.sh/install.sh | sh
+```
+
+The script downloads the latest `superset-darwin-arm64` binary and installs
+it at `/usr/local/bin/superset`.
+
+### Linux (x86_64)
+
+```bash
+curl -fsSL https://app.superset.sh/install.sh | sh
+```
+
+### From source
+
+```bash
+git clone https://github.com/superset-sh/superset.git
+cd superset
+bun install
+bun --filter @superset/cli build
+```
+
+The built binary lands at `packages/cli/dist/superset`.
+
+## Sign in
+
+```bash
+superset auth login
+```
+
+The CLI starts a loopback callback server on `127.0.0.1:51789` (or `51790`
+if busy), opens your browser to the consent page, and stores a session
+token at `~/.superset/config.json`.
+
+If you belong to multiple organizations and stdout is a TTY, you'll be
+prompted to pick one. In CI or any non-TTY environment, pass it explicitly:
+
+```bash
+superset auth login --organization acme
+```
+
+To use an API key instead of OAuth (recommended for CI):
+
+```bash
+export SUPERSET_API_KEY=sk_live_…
+superset auth whoami
+```
+
+API keys are issued from the **Settings → API Keys** page in the web app.
+
+## Verify your session
+
+```bash
+superset auth whoami
+```
+
+```text
+Signed in as Satya Patel (you@example.com)
+Organization: Acme
+Auth: Session (expires in 32 min)
+```
+
+## Start the local host service
+
+The host service is the daemon that the CLI and desktop app both talk to
+when targeting the local machine. It manages workspaces, ports, and agent
+runs. The desktop app starts it automatically; from the CLI:
+
+```bash
+superset start --daemon
+```
+
+```bash
+superset status
+```
+
+Stop it again with `superset stop`. State is shared with the desktop
+app under `~/.superset/host/<organizationId>/`, so a host service started
+by either client is visible to both.
+
+## Run your first commands
+
+List workspaces on the local machine:
+
+```bash
+superset workspaces list
+```
+
+Create one against an existing project:
+
+```bash
+superset projects list
+superset workspaces create \
+  --project prj_… \
+  --name "fix-login-bug" \
+  --branch fix/login-bug
+```
+
+Trigger an automation immediately:
+
+```bash
+superset automations list
+superset automations run aut_…
+superset automations logs aut_… --follow
+```
+
+## Output modes
+
+Every command prints a TTY-friendly view by default. Two flags switch the
+shape of the output for scripting:
+
+| Flag | Output |
+| --- | --- |
+| `--json` | The data payload as formatted JSON. No envelope. |
+| `--quiet` | One ID per line for arrays of objects with `id`; the ID for single objects; JSON otherwise. |
+
+```bash
+superset tasks list --status in_progress --json | jq '.[].title'
+superset workspaces list --quiet | xargs -L1 superset workspaces delete
+```
+
+When the CLI detects an agent or CI environment (`CLAUDE_CODE`,
+`CLAUDECODE`, `CLAUDE_CODE_ENTRYPOINT`, `CODEX_CLI`, `GEMINI_CLI`,
+`SUPERSET_AGENT`, or `CI` set to a non-empty value), it defaults to JSON
+output unless you pass `--quiet`.
+
+## Local vs. remote hosts
+
+`workspaces`, `projects`, and `automations create/update` accept a
+`--host <id>` flag to pick which host services the request. When omitted,
+the CLI targets the local machine, talks directly to the host service over
+loopback, and works offline.
+
+To target a different host:
+
+```bash
+superset hosts list
+superset workspaces list --host h_…
+```
+
+Remote calls go through the cloud API and the relay; behavior is otherwise
+identical.
+
+## Where state lives
+
+```text
+~/.superset/config.json                            # auth, active organization
+~/.superset/host/<organizationId>/manifest.json    # host service endpoint + token
+~/.superset/host/<organizationId>/host.db          # local host service DB
+```
+
+`SUPERSET_HOME_DIR` relocates the whole tree, matching the desktop app.
+
+## Next steps
+
+Continue to the [CLI reference](/cli/cli-reference) for every command,
+flag, and output shape.
