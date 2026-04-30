@@ -145,13 +145,14 @@ async function resolveOAuth(
 	if (typeof payload.organizationId !== "string" || !payload.organizationId) {
 		throw new McpUnauthorizedError("OAuth token missing organizationId claim");
 	}
-	const clientName =
-		typeof payload.client_name === "string" ? payload.client_name : null;
-	const azp = typeof payload.azp === "string" ? payload.azp : null;
+	const clientLabel =
+		typeof payload.client_name === "string" && payload.client_name
+			? payload.client_name
+			: null;
 	return {
 		userId: payload.sub,
 		organizationId: payload.organizationId,
-		clientLabel: clientName ?? azp,
+		clientLabel,
 	};
 }
 
