@@ -52,6 +52,16 @@ export interface DaemonClientOptions {
 	connectTimeoutMs?: number;
 }
 
+/**
+ * Per-request timeouts. The daemon should respond within milliseconds for
+ * close/list, and within a few seconds for open (PTY spawn includes shell
+ * startup). Without these, a live-but-stuck daemon can hang callers
+ * indefinitely — a real risk if `node-pty.spawn` ever blocks.
+ */
+const OPEN_TIMEOUT_MS = 15_000;
+const CLOSE_TIMEOUT_MS = 5_000;
+const LIST_TIMEOUT_MS = 5_000;
+
 export class DaemonClient {
 	private readonly opts: DaemonClientOptions;
 	private socket: net.Socket | null = null;
@@ -72,7 +82,17 @@ export class DaemonClient {
 		socket.on("data", (chunk) => this.onData(chunk));
 		socket.on("close", () => this.onClose());
 		socket.on("error", (err) => this.onClose(err));
-		await this.handshake();
+		try {
+			await this.handshake();
+		} catch (err) {
+			// Handshake rejected — destroy the socket and clear state so the
+			// caller's retry sees a clean slate. Without this, the socket and
+			// its listeners leak across failed connect attempts.
+			this.socket = null;
+			socket.removeAllListeners();
+			socket.destroy();
+			throw err;
+		}
 		this.connected = true;
 	}
 
@@ -96,14 +116,22 @@ export class DaemonClient {
 	}
 
 	async open(id: string, meta: SessionMeta): Promise<OpenResult> {
-		const reply = await this.requestSession(id, { type: "open", id, meta });
+		const reply = await this.requestSession(
+			id,
+			{ type: "open", id, meta },
+			OPEN_TIMEOUT_MS,
+		);
 		if (reply.type === "open-ok") return { id, pid: reply.pid };
 		if (reply.type === "error") throw new Error(`open ${id}: ${reply.message}`);
 		throw new Error(`open ${id}: unexpected reply ${reply.type}`);
 	}
 
 	async close(id: string, signal: Signal = "SIGTERM"): Promise<void> {
-		const reply = await this.requestSession(id, { type: "close", id, signal });
+		const reply = await this.requestSession(
+			id,
+			{ type: "close", id, signal },
+			CLOSE_TIMEOUT_MS,
+		);
 		if (reply.type === "closed") return;
 		if (reply.type === "error")
 			throw new Error(`close ${id}: ${reply.message}`);
@@ -111,7 +139,11 @@ export class DaemonClient {
 	}
 
 	async list(): Promise<SessionInfo[]> {
-		const reply = await this.requestNonSession({ type: "list" }, "list-reply");
+		const reply = await this.requestNonSession(
+			{ type: "list" },
+			"list-reply",
+			LIST_TIMEOUT_MS,
+		);
 		if (reply.type === "list-reply") return reply.sessions;
 		throw new Error(`list: unexpected reply ${reply.type}`);
 	}
@@ -206,6 +238,7 @@ export class DaemonClient {
 		req:
 			| { type: "open"; id: string; meta: SessionMeta }
 			| { type: "close"; id: string; signal: Signal },
+		timeoutMs: number,
 	): Promise<ServerMessage> {
 		return new Promise<ServerMessage>((resolve, reject) => {
 			let resolved = false;
@@ -231,9 +264,19 @@ export class DaemonClient {
 			const offDisc = this.onDisconnect((err) =>
 				fail(err ?? new Error("daemon disconnected")),
 			);
+			const timer = setTimeout(
+				() =>
+					fail(
+						new Error(
+							`daemon ${req.type} ${id}: timed out after ${timeoutMs}ms`,
+						),
+					),
+				timeoutMs,
+			);
 			const cleanup = () => {
 				off();
 				offDisc();
+				clearTimeout(timer);
 			};
 			this.send(req);
 		});
@@ -242,6 +285,7 @@ export class DaemonClient {
 	private requestNonSession(
 		req: { type: "list" },
 		expectType: "list-reply",
+		timeoutMs: number,
 	): Promise<ServerMessage> {
 		return new Promise<ServerMessage>((resolve, reject) => {
 			let resolved = false;
@@ -258,14 +302,28 @@ export class DaemonClient {
 				reject(err);
 			};
 			const off = this.on((m) => {
-				if (m.type === expectType || m.type === "error") settle(m);
+				if (m.type === expectType) {
+					settle(m);
+					return;
+				}
+				// Non-session error frames (no `id`) belong to the
+				// most-recent non-session request — settle on those. Errors
+				// keyed to a session id come from concurrent ops on that
+				// session; ignore them here.
+				if (m.type === "error" && m.id === undefined) settle(m);
 			});
 			const offDisc = this.onDisconnect((err) =>
 				fail(err ?? new Error("daemon disconnected")),
 			);
+			const timer = setTimeout(
+				() =>
+					fail(new Error(`daemon ${req.type}: timed out after ${timeoutMs}ms`)),
+				timeoutMs,
+			);
 			const cleanup = () => {
 				off();
 				offDisc();
+				clearTimeout(timer);
 			};
 			this.send(req);
 		});
@@ -314,6 +372,11 @@ export class DaemonClient {
 		try {
 			frames = this.decoder.drain();
 		} catch (err) {
+			// Protocol decode failure — the wire stream is corrupt. Hard-close
+			// the transport so we don't keep accepting data on a broken
+			// connection. Without destroy() the socket can keep delivering
+			// frames after onClose() has fired.
+			this.socket?.destroy();
 			this.onClose(err as Error);
 			return;
 		}
