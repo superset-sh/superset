@@ -10,10 +10,9 @@ export default command({
 			.enum("urgent", "high", "medium", "low", "none")
 			.desc("Priority"),
 		assignee: string().desc("Assignee user ID"),
-		branch: string().desc("Git branch"),
 	},
 	run: async ({ ctx, options }) => {
-		const result = await ctx.api.task.createFromUi.mutate({
+		const result = await ctx.api.task.create.mutate({
 			title: options.title,
 			description: options.description ?? undefined,
 			priority: options.priority,

@@ -308,8 +308,9 @@ async function execute(
 
 	const jsonFlag = parsed.options.json as boolean | undefined;
 	const quietFlag = parsed.options.quiet as boolean | undefined;
-	const isJson = jsonFlag ?? isAgentMode();
 	const isQuiet = quietFlag ?? false;
+	// Agent-mode auto-JSON only when --quiet wasn't passed; --quiet beats it.
+	const isJson = jsonFlag ?? (!isQuiet && isAgentMode());
 
 	const result = await cmd.run({
 		options: parsed.options as never,

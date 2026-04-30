@@ -12,7 +12,10 @@ const AGENT_ENV_VARS = [
 ];
 
 export function isAgentMode(): boolean {
-	return AGENT_ENV_VARS.some((v) => process.env[v] !== undefined);
+	return AGENT_ENV_VARS.some((v) => {
+		const value = process.env[v];
+		return value !== undefined && value !== "";
+	});
 }
 
 export function camelToKebab(str: string): string {

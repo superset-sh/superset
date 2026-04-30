@@ -2,11 +2,13 @@ import { auth } from "@superset/auth/server";
 import { db } from "@superset/db/client";
 import { headers } from "next/headers";
 import Image from "next/image";
-import { redirect } from "next/navigation";
 
 import { env } from "@/env";
 import { api } from "@/trpc/server";
+import { consumePendingAuthParams } from "../../utils/pendingAuthRedirect";
 import { ConsentForm } from "./components/ConsentForm";
+
+const PAGE_PATH = "/oauth/consent";
 
 interface ConsentPageProps {
 	searchParams: Promise<Record<string, string>>;
@@ -18,13 +20,14 @@ export default async function ConsentPage({ searchParams }: ConsentPageProps) {
 	});
 
 	if (!session) {
-		const params = await searchParams;
-		const returnUrl = `/oauth/consent?${new URLSearchParams(params).toString()}`;
-		redirect(`/sign-in?redirect=${encodeURIComponent(returnUrl)}`);
+		// Middleware (proxy.ts) handles unauth + cookie stashing.
+		return null;
 	}
 
 	const params = await searchParams;
-	const { client_id, scope } = params;
+	const restored = (await consumePendingAuthParams(PAGE_PATH)) ?? {};
+	const client_id = params.client_id ?? restored.client_id;
+	const scope = params.scope ?? restored.scope;
 
 	if (!client_id) {
 		return (

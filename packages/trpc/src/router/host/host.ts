@@ -18,6 +18,46 @@ import { z } from "zod";
 import { jwtProcedure, protectedProcedure } from "../../trpc";
 
 export const hostRouter = {
+	list: jwtProcedure
+		.input(z.object({ organizationId: z.string().uuid() }))
+		.query(async ({ ctx, input }) => {
+			if (!ctx.organizationIds.includes(input.organizationId)) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "Not a member of this organization",
+				});
+			}
+
+			const rows = await db
+				.select({
+					machineId: v2Hosts.machineId,
+					name: v2Hosts.name,
+					isOnline: v2Hosts.isOnline,
+					organizationId: v2Hosts.organizationId,
+				})
+				.from(v2Hosts)
+				.innerJoin(
+					v2UsersHosts,
+					and(
+						eq(v2UsersHosts.organizationId, v2Hosts.organizationId),
+						eq(v2UsersHosts.hostId, v2Hosts.machineId),
+					),
+				)
+				.where(
+					and(
+						eq(v2Hosts.organizationId, input.organizationId),
+						eq(v2UsersHosts.userId, ctx.userId),
+					),
+				);
+
+			return rows.map((row) => ({
+				id: row.machineId,
+				name: row.name,
+				online: row.isOnline,
+				organizationId: row.organizationId,
+			}));
+		}),
+
 	ensure: jwtProcedure
 		.input(
 			z.object({

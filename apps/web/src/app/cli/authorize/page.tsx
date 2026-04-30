@@ -1,11 +1,13 @@
 import { auth } from "@superset/auth/server";
 import { headers } from "next/headers";
 import Image from "next/image";
-import { redirect } from "next/navigation";
 
 import { env } from "@/env";
 import { api } from "@/trpc/server";
+import { consumePendingAuthParams } from "../../utils/pendingAuthRedirect";
 import { CliAuthorizeForm } from "./components/CliAuthorizeForm";
+
+const PAGE_PATH = "/cli/authorize";
 
 interface CliAuthorizePageProps {
 	searchParams: Promise<Record<string, string>>;
@@ -14,20 +16,24 @@ interface CliAuthorizePageProps {
 export default async function CliAuthorizePage({
 	searchParams,
 }: CliAuthorizePageProps) {
+	// Middleware (proxy.ts) handles unauth: stashes path+params in a cookie
+	// and redirects to /sign-in?redirect=/cli/authorize. After sign-in we
+	// arrive here with no query params; the cookie restores them.
 	const session = await auth.api.getSession({
 		headers: await headers(),
 	});
 
-	const params = await searchParams;
-
 	if (!session) {
-		const returnUrl = `/cli/authorize?${new URLSearchParams(params).toString()}`;
-		redirect(`/sign-in?redirect=${encodeURIComponent(returnUrl)}`);
+		// Defensive — middleware should have caught this.
+		return null;
 	}
 
-	const { state, redirect_uri } = params;
+	const params = await searchParams;
+	const restored = (await consumePendingAuthParams(PAGE_PATH)) ?? {};
+	const state = params.state ?? restored.state;
+	const redirectUri = params.redirect_uri ?? restored.redirect_uri;
 
-	if (!state || !redirect_uri) {
+	if (!state || !redirectUri) {
 		return (
 			<div className="flex min-h-screen items-center justify-center">
 				<p className="text-muted-foreground">
@@ -38,8 +44,8 @@ export default async function CliAuthorizePage({
 	}
 
 	if (
-		!redirect_uri.startsWith("http://127.0.0.1:") &&
-		!redirect_uri.startsWith("http://localhost:")
+		!redirectUri.startsWith("http://127.0.0.1:") &&
+		!redirectUri.startsWith("http://localhost:")
 	) {
 		return (
 			<div className="flex min-h-screen items-center justify-center">
@@ -69,7 +75,7 @@ export default async function CliAuthorizePage({
 			<main className="flex flex-1 items-center justify-center">
 				<CliAuthorizeForm
 					state={state}
-					redirectUri={redirect_uri}
+					redirectUri={redirectUri}
 					userName={session.user.name}
 					organizations={organizations.map((organization) => ({
 						id: organization.id,

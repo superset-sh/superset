@@ -10,6 +10,9 @@ const publicRoutes = [
 	"/accept-invitation",
 ];
 
+const PENDING_COOKIE_NAME = "superset_pending_auth_redirect";
+const PENDING_COOKIE_TTL_SECONDS = 600;
+
 function isPublicRoute(pathname: string): boolean {
 	return publicRoutes.some((route) => pathname.startsWith(route));
 }
@@ -29,7 +32,27 @@ export default async function proxy(req: NextRequest) {
 	}
 
 	if (!session && !isPublicRoute(pathname)) {
-		return NextResponse.redirect(new URL("/sign-in", req.url));
+		const params: Record<string, string> = {};
+		req.nextUrl.searchParams.forEach((value, key) => {
+			params[key] = value;
+		});
+
+		const signInUrl = new URL("/sign-in", req.url);
+		signInUrl.searchParams.set("redirect", pathname);
+
+		const response = NextResponse.redirect(signInUrl);
+		response.cookies.set(
+			PENDING_COOKIE_NAME,
+			JSON.stringify({ path: pathname, params }),
+			{
+				httpOnly: true,
+				secure: process.env.NODE_ENV === "production",
+				sameSite: "lax",
+				maxAge: PENDING_COOKIE_TTL_SECONDS,
+				path: "/",
+			},
+		);
+		return response;
 	}
 
 	return NextResponse.next();

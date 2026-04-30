@@ -1,6 +1,5 @@
 import { CLIError } from "@superset/cli-framework";
 import { command } from "../../../lib/command";
-import { getApiUrl } from "../../../lib/config";
 
 export default command({
 	description: "Show current user, organization, and auth source",
@@ -8,8 +7,6 @@ export default command({
 		const user = await ctx.api.user.me.query();
 		const organization = await ctx.api.user.myOrganization.query();
 		if (!organization) throw new CLIError("No organization found");
-
-		const apiUrl = getApiUrl(ctx.config);
 
 		let authLine: string;
 		if (ctx.authSource === "oauth" && ctx.config.auth) {
@@ -32,13 +29,11 @@ export default command({
 				organizationId: organization.id,
 				organizationName: organization.name,
 				authSource: ctx.authSource,
-				apiUrl,
 			},
 			message: [
 				`Signed in as ${user.name} (${user.email})`,
 				`Organization: ${organization.name}`,
 				`Auth: ${authLine}`,
-				`API: ${apiUrl}`,
 			].join("\n"),
 		};
 	},

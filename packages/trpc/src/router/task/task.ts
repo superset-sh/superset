@@ -19,8 +19,8 @@ import {
 	requireOrgScopedResource,
 } from "../utils/org-resource-access";
 import {
-	createTaskFromUiSchema,
 	createTaskSchema,
+	taskListInputSchema,
 	updateTaskSchema,
 } from "./schema";
 
@@ -169,34 +169,57 @@ async function getScopedAssigneeId(
 }
 
 export const taskRouter = {
-	all: protectedProcedure.query(async ({ ctx }) => {
-		const organizationId = await requireActiveOrgMembership(ctx);
+	list: protectedProcedure
+		.input(taskListInputSchema)
+		.query(async ({ ctx, input }) => {
+			const organizationId = await requireActiveOrgMembership(ctx);
 
-		const assignee = alias(users, "assignee");
-		const creator = alias(users, "creator");
+			const assignee = alias(users, "assignee");
+			const creator = alias(users, "creator");
+			const status = alias(taskStatuses, "status");
 
-		return db
-			.select({
-				task: tasks,
-				assignee: {
-					id: assignee.id,
-					name: assignee.name,
-					image: assignee.image,
-				},
-				creator: {
-					id: creator.id,
-					name: creator.name,
-					image: creator.image,
-				},
-			})
-			.from(tasks)
-			.leftJoin(assignee, eq(tasks.assigneeId, assignee.id))
-			.leftJoin(creator, eq(tasks.creatorId, creator.id))
-			.where(
-				and(eq(tasks.organizationId, organizationId), isNull(tasks.deletedAt)),
-			)
-			.orderBy(desc(tasks.createdAt));
-	}),
+			const filters = [
+				eq(tasks.organizationId, organizationId),
+				isNull(tasks.deletedAt),
+			];
+			if (input?.priority) filters.push(eq(tasks.priority, input.priority));
+			if (input?.statusId) filters.push(eq(tasks.statusId, input.statusId));
+			if (input?.assigneeMe) {
+				filters.push(eq(tasks.assigneeId, ctx.session.user.id));
+			} else if (input?.assigneeId) {
+				filters.push(eq(tasks.assigneeId, input.assigneeId));
+			}
+			if (input?.creatorMe) {
+				filters.push(eq(tasks.creatorId, ctx.session.user.id));
+			}
+			if (input?.search) {
+				filters.push(ilike(tasks.title, `%${input.search}%`));
+			}
+
+			return db
+				.select({
+					task: tasks,
+					assignee: {
+						id: assignee.id,
+						name: assignee.name,
+						image: assignee.image,
+					},
+					creator: {
+						id: creator.id,
+						name: creator.name,
+						image: creator.image,
+					},
+					statusName: status.name,
+				})
+				.from(tasks)
+				.leftJoin(assignee, eq(tasks.assigneeId, assignee.id))
+				.leftJoin(creator, eq(tasks.creatorId, creator.id))
+				.leftJoin(status, eq(tasks.statusId, status.id))
+				.where(and(...filters))
+				.orderBy(desc(tasks.createdAt))
+				.limit(input?.limit ?? 50)
+				.offset(input?.offset ?? 0);
+		}),
 
 	byOrganization: protectedProcedure
 		.input(z.string().uuid())
@@ -219,53 +242,23 @@ export const taskRouter = {
 		return getTaskBySlug(ctx.session.user.id, organizationId, input);
 	}),
 
-	create: protectedProcedure
-		.input(createTaskSchema)
-		.mutation(async ({ ctx, input }) => {
-			await verifyOrgMembership(ctx.session.user.id, input.organizationId);
-
-			const result = await dbWs.transaction(async (tx) => {
-				const statusId = await getScopedStatusId(
-					tx,
-					input.organizationId,
-					input.statusId,
-					"Status must belong to the organization",
+	byIdOrSlug: protectedProcedure
+		.input(z.string().min(1))
+		.query(async ({ ctx, input }) => {
+			const looksLikeUuid =
+				/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+					input,
 				);
-				const assigneeId =
-					input.assigneeId === undefined
-						? undefined
-						: await getScopedAssigneeId(
-								tx,
-								input.organizationId,
-								input.assigneeId ?? null,
-								"Assignee must belong to the organization",
-							);
-
-				const [task] = await tx
-					.insert(tasks)
-					.values({
-						...input,
-						statusId,
-						assigneeId,
-						creatorId: ctx.session.user.id,
-						labels: input.labels ?? [],
-					})
-					.returning();
-
-				const txid = await getCurrentTxid(tx);
-
-				return { task, txid };
-			});
-
-			if (result.task) {
-				syncTask(result.task.id);
+			if (looksLikeUuid) {
+				const task = await getTaskById(ctx.session.user.id, input);
+				if (task) return task;
 			}
-
-			return result;
+			const organizationId = await requireActiveOrgMembership(ctx);
+			return getTaskBySlug(ctx.session.user.id, organizationId, input);
 		}),
 
-	createFromUi: protectedProcedure
-		.input(createTaskFromUiSchema)
+	create: protectedProcedure
+		.input(createTaskSchema)
 		.mutation(async ({ ctx, input }) => {
 			const organizationId = await requireActiveOrgMembership(ctx);
 

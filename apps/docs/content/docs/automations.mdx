@@ -71,7 +71,9 @@ From the automation's detail page:
 ```bash
 superset automations list
 superset automations create --name "Nightly audit" --rrule "FREQ=DAILY;BYHOUR=3;BYMINUTE=0" --project <projectId> --prompt-file prompt.md --agent claude
+superset automations get <id>
 superset automations run <id>
-superset automations logs <id>
+superset automations pause <id>
+superset automations resume <id>
 superset automations delete <id>
 ```

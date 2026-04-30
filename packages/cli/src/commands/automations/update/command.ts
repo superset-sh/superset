@@ -52,7 +52,7 @@ export default command({
 		agentConfigFile: string().desc(
 			"Path to a JSON file with a full ResolvedAgentConfig (overrides --agent)",
 		),
-		device: string().desc("New target host id"),
+		host: string().desc("New target host id"),
 		enabled: boolean().desc("Enable or pause the automation"),
 	},
 	run: async ({ ctx, args, options }) => {
@@ -83,7 +83,7 @@ export default command({
 			timezone: options.timezone,
 			dtstart: options.dtstart ? new Date(options.dtstart) : undefined,
 			agentConfig,
-			targetHostId: options.device,
+			...(options.host !== undefined ? { targetHostId: options.host } : {}),
 		});
 
 		return {

@@ -3,18 +3,18 @@ import type { AppRouter } from "@superset/trpc";
 import type { TRPCClient } from "@trpc/client";
 import { createTRPCClient, httpBatchLink } from "@trpc/client";
 import SuperJSON from "superjson";
-import { getApiUrl, type SupersetConfig } from "./config";
+import { getApiUrl } from "./config";
 
 export type ApiClient = TRPCClient<AppRouter>;
 
-export function createApiClient(
-	config: SupersetConfig,
-	opts: { bearer: string; organizationId?: string },
-): ApiClient {
+export function createApiClient(opts: {
+	bearer: string;
+	organizationId?: string;
+}): ApiClient {
 	return createTRPCClient<AppRouter>({
 		links: [
 			httpBatchLink({
-				url: `${getApiUrl(config)}/api/trpc`,
+				url: `${getApiUrl()}/api/trpc`,
 				transformer: SuperJSON,
 				headers() {
 					const headers: Record<string, string> = {

@@ -1,4 +1,6 @@
 import { CLIError } from "@superset/cli-framework";
+import { getHostId } from "@superset/shared/host-info";
+import type { ApiClient } from "../../../lib/api-client";
 import { command } from "../../../lib/command";
 import { isProcessAlive, readManifest } from "../../../lib/host/manifest";
 
@@ -20,6 +22,19 @@ async function checkHealth(
 	}
 }
 
+async function fetchHostName(
+	api: ApiClient,
+	organizationId: string,
+	hostId: string,
+): Promise<string | null> {
+	try {
+		const hosts = await api.host.list.query({ organizationId });
+		return hosts.find((host) => host.id === hostId)?.name ?? null;
+	} catch {
+		return null;
+	}
+}
+
 export default command({
 	description: "Check host service status",
 	run: async ({ ctx }) => {
@@ -27,11 +42,17 @@ export default command({
 		if (!organization)
 			throw new CLIError("No active organization", "Run: superset auth login");
 
+		const localHostId = getHostId();
 		const manifest = readManifest(organization.id);
+
 		if (!manifest) {
 			return {
-				data: { running: false, organizationId: organization.id },
-				message: `Not running for ${organization.name}`,
+				data: {
+					running: false,
+					organizationId: organization.id,
+					hostId: localHostId,
+				},
+				message: `Not running for ${organization.name} (hostId ${localHostId})`,
 			};
 		}
 
@@ -43,12 +64,16 @@ export default command({
 					stale: true,
 					pid: manifest.pid,
 					organizationId: organization.id,
+					hostId: localHostId,
 				},
 				message: `Stale manifest for ${organization.name} (pid ${manifest.pid} is dead)`,
 			};
 		}
 
-		const healthy = await checkHealth(manifest.endpoint, manifest.authToken);
+		const [healthy, hostName] = await Promise.all([
+			checkHealth(manifest.endpoint, manifest.authToken),
+			fetchHostName(ctx.api, organization.id, localHostId),
+		]);
 		const uptimeSec = Math.floor((Date.now() - manifest.startedAt) / 1000);
 
 		return {
@@ -56,11 +81,14 @@ export default command({
 				running: true,
 				healthy,
 				pid: manifest.pid,
+				port: Number.parseInt(new URL(manifest.endpoint).port || "0", 10),
 				endpoint: manifest.endpoint,
 				organizationId: organization.id,
+				hostId: localHostId,
+				hostName,
 				uptimeSec,
 			},
-			message: `${organization.name}: running (pid ${manifest.pid}, ${uptimeSec}s)${
+			message: `${organization.name}: ${hostName ? `${hostName} (${localHostId.slice(0, 8)}…)` : `host ${localHostId.slice(0, 8)}…`} running (pid ${manifest.pid}, ${uptimeSec}s)${
 				healthy ? "" : " — not responding to health check"
 			}`,
 		};
