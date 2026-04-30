@@ -34,6 +34,25 @@ interface DestroyInput {
 	force: boolean;
 }
 
+/**
+ * Discriminated so the renderer can't accidentally treat
+ * `{ canDelete: false, reason: null }` as a no-op — it's an unrepresentable
+ * combination at the type level.
+ */
+type InspectResult =
+	| {
+			canDelete: true;
+			reason: null;
+			hasChanges: boolean;
+			hasUnpushedCommits: boolean;
+	  }
+	| {
+			canDelete: false;
+			reason: string;
+			hasChanges: false;
+			hasUnpushedCommits: false;
+	  };
+
 export const workspaceCleanupRouter = router({
 	/**
 	 * Status preview for the v2 delete dialog. Co-located with `destroy` so
@@ -50,7 +69,7 @@ export const workspaceCleanupRouter = router({
 	 */
 	inspect: protectedProcedure
 		.input(z.object({ workspaceId: z.string() }))
-		.query(async ({ ctx, input }) => {
+		.query(async ({ ctx, input }): Promise<InspectResult> => {
 			const main = await isMainWorkspace(ctx, input.workspaceId);
 			if (main.isMain) {
 				return {
@@ -235,9 +254,14 @@ async function runDestroy(ctx: HostServiceContext, input: DestroyInput) {
 	// caller always sees success.
 
 	// 3a. PTYs
-	const killed = disposeSessionsByWorkspaceId(input.workspaceId, ctx.db);
-	if (killed.failed > 0) {
-		warnings.push(`${killed.failed} terminal(s) may still be running`);
+	try {
+		const killed = disposeSessionsByWorkspaceId(input.workspaceId, ctx.db);
+		if (killed.failed > 0) {
+			warnings.push(`${killed.failed} terminal(s) may still be running`);
+		}
+	} catch (err) {
+		const message = err instanceof Error ? err.message : String(err);
+		warnings.push(`Failed to dispose terminal sessions: ${message}`);
 	}
 
 	// 3b. Worktree (always --force: we're past the commit point)
@@ -291,8 +315,23 @@ async function runDestroy(ctx: HostServiceContext, input: DestroyInput) {
 
 	// 3d. Host sqlite row
 	if (local) {
-		ctx.db.delete(workspaces).where(eq(workspaces.id, input.workspaceId)).run();
-		invalidateLabelCache(input.workspaceId);
+		try {
+			ctx.db
+				.delete(workspaces)
+				.where(eq(workspaces.id, input.workspaceId))
+				.run();
+		} catch (err) {
+			const message = err instanceof Error ? err.message : String(err);
+			warnings.push(
+				`Failed to remove local workspace row for ${input.workspaceId}: ${message}`,
+			);
+		}
+		try {
+			invalidateLabelCache(input.workspaceId);
+		} catch (err) {
+			const message = err instanceof Error ? err.message : String(err);
+			warnings.push(`Failed to invalidate label cache: ${message}`);
+		}
 	}
 
 	return {

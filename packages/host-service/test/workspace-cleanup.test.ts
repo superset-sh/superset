@@ -31,6 +31,7 @@ interface ContextSpec {
 	gitStatus?: { isClean: () => boolean };
 	revListCount?: string | (() => Promise<string>);
 	gitFactoryThrows?: boolean;
+	dbDeleteThrows?: boolean;
 }
 
 function makeCtx(spec: ContextSpec): HostServiceContext {
@@ -68,7 +69,9 @@ function makeCtx(spec: ContextSpec): HostServiceContext {
 		};
 	});
 
-	const dbDeleteRun = mock(() => undefined);
+	const dbDeleteRun = mock(() => {
+		if (spec.dbDeleteThrows) throw new Error("sqlite delete boom");
+	});
 	const dbDeleteWhere = mock(() => ({ run: dbDeleteRun }));
 	const terminalSelectAll = mock(() => []);
 
@@ -378,6 +381,35 @@ describe("workspaceCleanup.destroy phase-3 best-effort cleanup", () => {
 		expect(result.worktreeRemoved).toBe(false);
 		expect(
 			result.warnings.some((w) => w.includes("Failed to open project repo")),
+		).toBe(true);
+	});
+
+	test("sqlite row-delete failure in phase 3d becomes a warning", async () => {
+		// Same contract as the git-factory case: any phase-3 op that throws
+		// past the cloud-commit point must degrade to a warning, not bubble.
+		const ctx = makeCtx({
+			workspace: {
+				id: "ws-1",
+				projectId: "p-1",
+				worktreePath: "/branch/wt",
+				branch: "feature",
+			},
+			project: { id: "p-1", repoPath: "/repo" },
+			cloudType: "worktree",
+			dbDeleteThrows: true,
+		});
+		const caller = workspaceCleanupRouter.createCaller(ctx);
+		const result = await caller.destroy({
+			workspaceId: "ws-1",
+			deleteBranch: false,
+			force: true,
+		});
+		expect(result.success).toBe(true);
+		expect(result.cloudDeleted).toBe(true);
+		expect(
+			result.warnings.some((w) =>
+				w.includes("Failed to remove local workspace row"),
+			),
 		).toBe(true);
 	});
 });

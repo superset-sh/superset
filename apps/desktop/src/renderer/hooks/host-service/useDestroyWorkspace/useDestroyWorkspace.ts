@@ -23,12 +23,24 @@ export interface DestroyWorkspaceSuccess {
 	warnings: string[];
 }
 
-export interface DestroyWorkspacePreview {
-	canDelete: boolean;
-	reason: string | null;
-	hasChanges: boolean;
-	hasUnpushedCommits: boolean;
-}
+/**
+ * Mirrors the server's `InspectResult` discriminated union so the renderer
+ * can't accidentally treat `{ canDelete: false, reason: null }` as a no-op
+ * — that combination is unrepresentable.
+ */
+export type DestroyWorkspacePreview =
+	| {
+			canDelete: true;
+			reason: null;
+			hasChanges: boolean;
+			hasUnpushedCommits: boolean;
+	  }
+	| {
+			canDelete: false;
+			reason: string;
+			hasChanges: false;
+			hasUnpushedCommits: false;
+	  };
 
 export type DestroyWorkspaceError =
 	| { kind: "conflict"; message: string }
