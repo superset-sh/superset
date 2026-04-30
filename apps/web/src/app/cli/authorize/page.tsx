@@ -1,7 +1,6 @@
 import { auth } from "@superset/auth/server";
 import { headers } from "next/headers";
 import Image from "next/image";
-import { redirect } from "next/navigation";
 
 import { env } from "@/env";
 import { api } from "@/trpc/server";
@@ -18,16 +17,16 @@ export default async function CliAuthorizePage({
 		headers: await headers(),
 	});
 
-	const params = await searchParams;
-
 	if (!session) {
-		const returnUrl = `/cli/authorize?${new URLSearchParams(params).toString()}`;
-		redirect(`/sign-in?redirect=${encodeURIComponent(returnUrl)}`);
+		// Defensive — middleware should have caught this.
+		return null;
 	}
 
-	const { state, redirect_uri } = params;
+	const params = await searchParams;
+	const state = params.state;
+	const redirectUri = params.redirect_uri;
 
-	if (!state || !redirect_uri) {
+	if (!state || !redirectUri) {
 		return (
 			<div className="flex min-h-screen items-center justify-center">
 				<p className="text-muted-foreground">
@@ -38,8 +37,8 @@ export default async function CliAuthorizePage({
 	}
 
 	if (
-		!redirect_uri.startsWith("http://127.0.0.1:") &&
-		!redirect_uri.startsWith("http://localhost:")
+		!redirectUri.startsWith("http://127.0.0.1:") &&
+		!redirectUri.startsWith("http://localhost:")
 	) {
 		return (
 			<div className="flex min-h-screen items-center justify-center">
@@ -69,7 +68,7 @@ export default async function CliAuthorizePage({
 			<main className="flex flex-1 items-center justify-center">
 				<CliAuthorizeForm
 					state={state}
-					redirectUri={redirect_uri}
+					redirectUri={redirectUri}
 					userName={session.user.name}
 					organizations={organizations.map((organization) => ({
 						id: organization.id,

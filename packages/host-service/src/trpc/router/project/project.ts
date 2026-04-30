@@ -18,7 +18,16 @@ import {
 
 export const projectRouter = router({
 	list: protectedProcedure.query(({ ctx }) => {
-		return ctx.db.select({ id: projects.id }).from(projects).all();
+		return ctx.db
+			.select({
+				id: projects.id,
+				repoPath: projects.repoPath,
+				repoOwner: projects.repoOwner,
+				repoName: projects.repoName,
+				repoUrl: projects.repoUrl,
+			})
+			.from(projects)
+			.all();
 	}),
 
 	get: protectedProcedure

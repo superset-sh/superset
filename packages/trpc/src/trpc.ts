@@ -75,33 +75,53 @@ export const jwtProcedure = t.procedure.use(async ({ ctx, next }) => {
 	if (!authHeader?.startsWith("Bearer ")) {
 		throw new TRPCError({
 			code: "UNAUTHORIZED",
-			message: "JWT bearer token required",
+			message: "Bearer token required",
 		});
 	}
 
 	const token = authHeader.slice(7);
+
 	try {
 		const { payload } = await ctx.auth.api.verifyJWT({ body: { token } });
-		if (!payload?.sub) {
-			throw new TRPCError({ code: "UNAUTHORIZED", message: "Invalid JWT" });
+		if (payload?.sub) {
+			const organizationIds = (payload.organizationIds as string[]) ?? [];
+			return next({
+				ctx: {
+					userId: payload.sub,
+					email: (payload.email as string) ?? "",
+					organizationIds,
+					activeOrganizationId: organizationIds[0] ?? null,
+				},
+			});
 		}
+	} catch {
+		// Fall through to session-token resolution.
+	}
 
-		const organizationIds = (payload.organizationIds as string[]) ?? [];
+	if (ctx.session) {
+		const userId = ctx.session.user.id;
+		const memberRows = await db.query.members.findMany({
+			where: eq(members.userId, userId),
+			columns: { organizationId: true },
+		});
+		const organizationIds = memberRows.map((row) => row.organizationId);
 		return next({
 			ctx: {
-				userId: payload.sub,
-				email: (payload.email as string) ?? "",
+				userId,
+				email: ctx.session.user.email ?? "",
 				organizationIds,
-				activeOrganizationId: organizationIds[0] ?? null,
+				activeOrganizationId:
+					ctx.session.session.activeOrganizationId ??
+					organizationIds[0] ??
+					null,
 			},
 		});
-	} catch (error) {
-		if (error instanceof TRPCError) throw error;
-		throw new TRPCError({
-			code: "UNAUTHORIZED",
-			message: "JWT verification failed",
-		});
 	}
+
+	throw new TRPCError({
+		code: "UNAUTHORIZED",
+		message: "Invalid bearer token",
+	});
 });
 
 export const adminProcedure = protectedProcedure.use(async ({ ctx, next }) => {

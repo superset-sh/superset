@@ -226,11 +226,6 @@ function createOrgCollections(organizationId: string): OrgCollections {
 				columnMapper,
 			},
 			getKey: (item) => item.id,
-			onInsert: async ({ transaction }) => {
-				const item = transaction.mutations[0].modified;
-				const result = await apiClient.task.create.mutate(item);
-				return { txid: result.txid };
-			},
 			onUpdate: async ({ transaction }) => {
 				const { original, changes } = transaction.mutations[0];
 				const result = await apiClient.task.update.mutate({
