@@ -225,9 +225,16 @@ export const auth = betterAuth({
 					return activeOrganizationId ?? undefined;
 				},
 			},
-			customAccessTokenClaims: ({ referenceId }) => ({
-				organizationId: referenceId ?? undefined,
-			}),
+			customAccessTokenClaims: ({ referenceId, metadata }) => {
+				const clientName =
+					metadata && typeof metadata === "object" && "client_name" in metadata
+						? metadata.client_name
+						: undefined;
+				return {
+					organizationId: referenceId ?? undefined,
+					client_name: typeof clientName === "string" ? clientName : undefined,
+				};
+			},
 		}),
 		expo(),
 		organization({

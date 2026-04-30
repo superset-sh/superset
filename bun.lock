@@ -673,7 +673,7 @@
     },
     "packages/cli": {
       "name": "@superset/cli",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "dependencies": {
         "@clack/prompts": "^0.10.0",
         "@superset/cli-framework": "workspace:*",
@@ -849,6 +849,7 @@
         "@superset/trpc": "workspace:*",
         "better-auth": "1.6.5",
         "drizzle-orm": "0.45.2",
+        "superjson": "^2.2.5",
         "zod": "^4.3.5",
       },
       "devDependencies": {

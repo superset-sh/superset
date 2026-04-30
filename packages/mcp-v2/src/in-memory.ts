@@ -11,6 +11,7 @@ export interface InMemoryClientOptions {
 	userId: string;
 	organizationId: string;
 	clientLabel: string;
+	relayUrl: string;
 }
 
 /**
@@ -26,6 +27,7 @@ export async function createInMemoryMcpClient({
 	userId,
 	organizationId,
 	clientLabel,
+	relayUrl,
 }: InMemoryClientOptions): Promise<{
 	client: Client;
 	cleanup: () => Promise<void>;
@@ -67,6 +69,7 @@ export async function createInMemoryMcpClient({
 		clientLabel,
 		requestId: crypto.randomUUID(),
 		bearerToken,
+		relayUrl,
 	};
 
 	const server = createMcpServer();

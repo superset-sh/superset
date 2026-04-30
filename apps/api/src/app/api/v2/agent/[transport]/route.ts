@@ -25,7 +25,10 @@ function unauthorizedResponse(req: Request, message: string): Response {
 async function handle(req: Request): Promise<Response> {
 	let ctx: McpContext;
 	try {
-		ctx = await resolveMcpContext(req, env.NEXT_PUBLIC_API_URL);
+		ctx = await resolveMcpContext(req, {
+			apiUrl: env.NEXT_PUBLIC_API_URL,
+			relayUrl: env.RELAY_URL,
+		});
 	} catch (error) {
 		if (isMcpUnauthorized(error)) {
 			return unauthorizedResponse(req, error.message);

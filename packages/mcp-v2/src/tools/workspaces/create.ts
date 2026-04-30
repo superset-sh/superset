@@ -1,13 +1,13 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { createMcpCaller } from "../../caller";
 import { defineTool } from "../../define-tool";
+import { hostServiceMutation } from "../../host-service-client";
 
 export function register(server: McpServer): void {
 	defineTool(server, {
 		name: "workspaces_create",
 		description:
-			"Create a workspace on a host. A workspace is a branch-scoped working copy of a project. Use projects_list and hosts_list first to get the projectId and hostId.",
+			"Create a workspace on a host. A workspace is a branch-scoped working copy of a project. The host service materializes the git worktree on disk before returning. Use projects_list and hosts_list first to get the projectId and hostId. Errors with relay 503 if the target host is not currently connected.",
 		inputSchema: {
 			projectId: z.string().uuid().describe("Project UUID."),
 			name: z.string().min(1).describe("Workspace name (display)."),
@@ -16,19 +16,25 @@ export function register(server: McpServer): void {
 				.string()
 				.min(1)
 				.describe("Host machineId to create the workspace on."),
-			type: z
-				.enum(["worktree", "main"])
-				.default("worktree")
-				.describe(
-					"Workspace type. Defaults to 'worktree'; 'main' has special semantics.",
-				),
 		},
 		handler: async (input, ctx) => {
-			const caller = createMcpCaller(ctx);
-			return caller.v2Workspace.create({
-				organizationId: ctx.organizationId,
-				...input,
-			});
+			return hostServiceMutation<
+				{ projectId: string; name: string; branch: string },
+				{ id: string; projectId: string; branch: string; worktreePath: string }
+			>(
+				{
+					relayUrl: ctx.relayUrl,
+					organizationId: ctx.organizationId,
+					hostId: input.hostId,
+					jwt: ctx.bearerToken,
+				},
+				"workspace.create",
+				{
+					projectId: input.projectId,
+					name: input.name,
+					branch: input.branch,
+				},
+			);
 		},
 	});
 }

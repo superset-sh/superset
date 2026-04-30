@@ -2,18 +2,35 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { createMcpCaller } from "../../caller";
 import { defineTool } from "../../define-tool";
+import { hostServiceMutation } from "../../host-service-client";
 
 export function register(server: McpServer): void {
 	defineTool(server, {
 		name: "workspaces_delete",
 		description:
-			"Delete a workspace by UUID. Idempotent — succeeds if the workspace is already gone. Cannot delete 'main'-type workspaces.",
+			"Delete a workspace by UUID. The host service removes the git worktree from disk before returning. Cannot delete 'main'-type workspaces. Errors with relay 503 if the target host is not currently connected.",
 		inputSchema: {
 			id: z.string().uuid().describe("Workspace UUID."),
 		},
 		handler: async (input, ctx) => {
 			const caller = createMcpCaller(ctx);
-			return caller.v2Workspace.delete({ id: input.id });
+			const workspace = await caller.v2Workspace.getFromHost({
+				organizationId: ctx.organizationId,
+				id: input.id,
+			});
+			if (!workspace) {
+				throw new Error(`Workspace not found: ${input.id}`);
+			}
+			return hostServiceMutation<{ id: string }, { success: boolean }>(
+				{
+					relayUrl: ctx.relayUrl,
+					organizationId: ctx.organizationId,
+					hostId: workspace.hostId,
+					jwt: ctx.bearerToken,
+				},
+				"workspace.delete",
+				{ id: input.id },
+			);
 		},
 	});
 }

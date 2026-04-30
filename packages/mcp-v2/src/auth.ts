@@ -13,6 +13,7 @@ export interface McpContext {
 	clientLabel: string | null;
 	requestId: string;
 	bearerToken: string;
+	relayUrl: string;
 }
 
 const MCP_UNAUTHORIZED = Symbol("MCP_UNAUTHORIZED");
@@ -144,33 +145,26 @@ async function resolveOAuth(
 	if (typeof payload.organizationId !== "string" || !payload.organizationId) {
 		throw new McpUnauthorizedError("OAuth token missing organizationId claim");
 	}
+	const clientName =
+		typeof payload.client_name === "string" ? payload.client_name : null;
 	const azp = typeof payload.azp === "string" ? payload.azp : null;
 	return {
 		userId: payload.sub,
 		organizationId: payload.organizationId,
-		clientLabel: azp ? mapOAuthClientId(azp) : null,
+		clientLabel: clientName ?? azp,
 	};
 }
 
-const KNOWN_OAUTH_CLIENT_PREFIXES: Array<{ prefix: string; label: string }> = [
-	{ prefix: "claude-desktop", label: "claude-desktop" },
-	{ prefix: "claude-code", label: "claude-code" },
-	{ prefix: "claude-ai", label: "claude-ai" },
-	{ prefix: "cursor", label: "cursor" },
-];
-
-function mapOAuthClientId(clientId: string): string {
-	const lower = clientId.toLowerCase();
-	for (const { prefix, label } of KNOWN_OAUTH_CLIENT_PREFIXES) {
-		if (lower.startsWith(prefix)) return label;
-	}
-	return clientId;
+export interface ResolveMcpContextOptions {
+	apiUrl: string;
+	relayUrl: string;
 }
 
 export async function resolveMcpContext(
 	req: Request,
-	apiUrl: string,
+	options: ResolveMcpContextOptions,
 ): Promise<McpContext> {
+	const { apiUrl, relayUrl } = options;
 	const token = extractBearer(req);
 	if (!token) {
 		throw new McpUnauthorizedError("Missing bearer token");
@@ -217,5 +211,6 @@ export async function resolveMcpContext(
 		clientLabel,
 		requestId: crypto.randomUUID(),
 		bearerToken,
+		relayUrl,
 	};
 }
