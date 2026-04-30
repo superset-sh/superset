@@ -72,34 +72,31 @@ export const protectedProcedure = t.procedure
 
 export const jwtProcedure = t.procedure.use(async ({ ctx, next }) => {
 	const authHeader = ctx.headers.get("authorization");
-	if (!authHeader?.startsWith("Bearer ")) {
-		throw new TRPCError({
-			code: "UNAUTHORIZED",
-			message: "Bearer token required",
-		});
-	}
+	const bearer = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
 
-	const token = authHeader.slice(7);
-
-	try {
-		const { payload } = await ctx.auth.api.verifyJWT({ body: { token } });
-		if (payload?.sub) {
-			const organizationIds = (payload.organizationIds as string[]) ?? [];
-			return next({
-				ctx: {
-					userId: payload.sub,
-					email: (payload.email as string) ?? "",
-					organizationIds,
-					activeOrganizationId: organizationIds[0] ?? null,
-				},
+	if (bearer) {
+		try {
+			const { payload } = await ctx.auth.api.verifyJWT({
+				body: { token: bearer },
 			});
+			if (payload?.sub) {
+				const organizationIds = (payload.organizationIds as string[]) ?? [];
+				return next({
+					ctx: {
+						userId: payload.sub,
+						email: (payload.email as string) ?? "",
+						organizationIds,
+						activeOrganizationId: organizationIds[0] ?? null,
+					},
+				});
+			}
+		} catch (error) {
+			// A live session is the legit fallback for an unverifiable token
+			// (expired/missing). A TRPCError from verifyJWT is an explicit
+			// rejection (revoked/forged) — surface it instead of laundering
+			// it into session auth.
+			if (error instanceof TRPCError) throw error;
 		}
-	} catch (error) {
-		// A live session is the legit fallback for an unverifiable token
-		// (expired/missing). A TRPCError from verifyJWT is an explicit
-		// rejection (revoked/forged) — surface it instead of laundering it
-		// into session auth.
-		if (error instanceof TRPCError) throw error;
 	}
 
 	if (ctx.session) {
@@ -124,7 +121,7 @@ export const jwtProcedure = t.procedure.use(async ({ ctx, next }) => {
 
 	throw new TRPCError({
 		code: "UNAUTHORIZED",
-		message: "Invalid bearer token",
+		message: "Not authenticated. Provide a bearer JWT, x-api-key, or session.",
 	});
 });
 
