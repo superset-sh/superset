@@ -183,6 +183,16 @@ export class DaemonClient {
 		entry.exit.add(cb.onExit);
 		// Only the first subscribe per session id sends the wire `subscribe`.
 		// Subsequent local callbacks just register into the existing entry.
+		// The daemon's ring buffer is delivered once, on the first subscribe
+		// — so `replay: true` only makes sense on a fresh subscription.
+		// Loud-fail the surprising case where a later subscriber asks for
+		// replay; the caller needs to replay from a server-side cache
+		// instead (see terminal.ts replayBuffer).
+		if (!wasFirst && opts.replay) {
+			throw new Error(
+				`subscribe(${id}): replay is not available on a second subscribe; the daemon's buffer was already consumed.`,
+			);
+		}
 		if (wasFirst) {
 			this.send({ type: "subscribe", id, replay: opts.replay });
 		}

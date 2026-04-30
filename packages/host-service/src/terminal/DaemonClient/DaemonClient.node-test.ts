@@ -135,9 +135,13 @@ test("multiple local subscribers get fanned out from one wire subscription", asy
 			onExit: () => {},
 		},
 	);
+	// Second subscriber must use replay:false — the daemon's buffer was
+	// already delivered to the first subscribe; requesting replay again
+	// is now an explicit error (see DaemonClient.subscribe). The
+	// fan-out applies to live output only.
 	const unsubB = c.subscribe(
 		id,
-		{ replay: true },
+		{ replay: false },
 		{
 			onOutput: (buf) => b.push(buf),
 			onExit: () => {},

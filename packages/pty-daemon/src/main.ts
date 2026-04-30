@@ -24,10 +24,14 @@ function parseArgs(argv: string[]): CliArgs {
 		if (arg.startsWith("--socket="))
 			args.socket = arg.slice("--socket=".length);
 		else if (arg.startsWith("--buffer-bytes=")) {
-			args.bufferBytes = Number.parseInt(
-				arg.slice("--buffer-bytes=".length),
-				10,
-			);
+			const raw = arg.slice("--buffer-bytes=".length);
+			const parsed = Number.parseInt(raw, 10);
+			if (!Number.isFinite(parsed) || parsed <= 0) {
+				throw new Error(
+					`--buffer-bytes must be a positive integer, got: ${raw}`,
+				);
+			}
+			args.bufferBytes = parsed;
 		}
 	}
 	if (!args.socket) {
@@ -53,10 +57,23 @@ async function main(): Promise<void> {
 		`[pty-daemon] listening on ${args.socket} (v${daemonVersion}, host=${os.hostname()})\n`,
 	);
 
+	let shuttingDown = false;
 	const shutdown = async (signal: NodeJS.Signals) => {
+		// Re-entry guard: a second SIGINT/SIGTERM during graceful close
+		// should not double-call server.close() or change the exit code.
+		if (shuttingDown) return;
+		shuttingDown = true;
 		process.stderr.write(`[pty-daemon] received ${signal}, shutting down\n`);
-		await server.close();
-		process.exit(0);
+		try {
+			await server.close();
+		} catch (err) {
+			process.stderr.write(
+				`[pty-daemon] shutdown error: ${(err as Error).stack ?? err}\n`,
+			);
+		} finally {
+			// Always exit deterministically, even if server.close() threw.
+			process.exit(0);
+		}
 	};
 	process.on("SIGINT", () => void shutdown("SIGINT"));
 	process.on("SIGTERM", () => void shutdown("SIGTERM"));
