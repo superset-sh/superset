@@ -13,18 +13,18 @@ import {
 } from "@superset/shared/terminal-title-scanner";
 import { and, eq, ne } from "drizzle-orm";
 import type { Hono } from "hono";
-import type { HostDb } from "../db";
-import { projects, terminalSessions, workspaces } from "../db/schema";
-import type { EventBus } from "../events";
-import { portManager } from "../ports/port-manager";
-import type { DaemonClient } from "./DaemonClient";
-import { getDaemonClient } from "./daemon-client-singleton";
+import type { HostDb } from "../db/index.ts";
+import { projects, terminalSessions, workspaces } from "../db/schema.ts";
+import type { EventBus } from "../events/index.ts";
+import { portManager } from "../ports/port-manager.ts";
+import type { DaemonClient } from "./DaemonClient/index.ts";
+import { getDaemonClient } from "./daemon-client-singleton.ts";
 import {
 	buildV2TerminalEnv,
 	getShellLaunchArgs,
 	getTerminalBaseEnv,
 	resolveLaunchShell,
-} from "./env";
+} from "./env.ts";
 
 /**
  * Thin adapter exposing approximately the IPty surface that the rest of
@@ -201,6 +201,27 @@ interface TerminalSession {
 
 /** PTY lifetime is independent of socket lifetime — sockets detach/reattach freely. */
 const sessions = new Map<string, TerminalSession>();
+
+/**
+ * Test-only escape hatch: simulates a host-service process restart by clearing
+ * the in-memory session map without touching the daemon. After calling this,
+ * createTerminalSessionInternal() is forced down the adoption-on-EEXIST path
+ * for any session id the daemon already owns.
+ *
+ * NEVER call this from production code paths.
+ */
+export function __resetSessionsForTesting(): void {
+	for (const session of sessions.values()) {
+		if (session.unsubscribeDaemon) {
+			try {
+				session.unsubscribeDaemon();
+			} catch {
+				// best-effort
+			}
+		}
+	}
+	sessions.clear();
+}
 
 function pruneAndCountOpenSockets(session: TerminalSession): number {
 	let openSockets = 0;

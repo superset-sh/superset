@@ -4,5 +4,5 @@ export type {
 	OpenResult,
 	Signal,
 	SubscribeCallbacks,
-} from "./DaemonClient";
-export { DaemonClient } from "./DaemonClient";
+} from "./DaemonClient.ts";
+export { DaemonClient } from "./DaemonClient.ts";

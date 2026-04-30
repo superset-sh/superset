@@ -5,8 +5,8 @@ import {
 	getSearchIndex,
 } from "@superset/workspace-fs/host";
 import { eq } from "drizzle-orm";
-import type { HostDb } from "../../db";
-import { projects, workspaces } from "../../db/schema";
+import { projects, workspaces } from "../../db/schema.ts";
+import type { HostDb } from "../../db/index.ts";
 
 export interface WorkspaceFilesystemManagerOptions {
 	db: HostDb;

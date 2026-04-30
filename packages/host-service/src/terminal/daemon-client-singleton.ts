@@ -7,7 +7,7 @@
 // host-service can be restarted to reconnect. There's no in-band reconnect
 // here on purpose; see DaemonClient's "dumb" failure model.
 
-import { DaemonClient } from "./DaemonClient";
+import { DaemonClient } from "./DaemonClient/index.ts";
 
 let cached: DaemonClient | null = null;
 let connecting: Promise<DaemonClient> | null = null;
