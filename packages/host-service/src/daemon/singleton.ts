@@ -24,16 +24,16 @@ export function resolveSupervisorScriptPath(): string {
 	if (override) return override;
 
 	const here = path.dirname(fileURLToPath(import.meta.url));
-	// Production: host-service.js and pty-daemon.js live side-by-side in
-	// the same bundled dist/. `here` is `<dist>/daemon/` after bundling
-	// (or close to it); two levels up + `pty-daemon.js` resolves there.
-	const sideBySide = path.resolve(here, "..", "..", "pty-daemon.js");
+	// Production / dev (electron-vite bundle): host-service.js and
+	// pty-daemon.js are emitted side-by-side in the same dist directory,
+	// so `here` and the daemon entry share a parent.
+	const sideBySide = path.resolve(here, "pty-daemon.js");
 	if (existsSync(sideBySide)) return sideBySide;
 
-	// Dev mode running from source: `here` is
-	// `packages/host-service/src/daemon/`; the daemon's bundled entry
-	// sits at `packages/pty-daemon/dist/pty-daemon.js` after `bun run
-	// build:daemon` in that package.
+	// Source-running fallback (`bun run` from packages/host-service):
+	// `here` is `packages/host-service/src/daemon/`; the daemon's bundled
+	// entry sits at `packages/pty-daemon/dist/pty-daemon.js` after
+	// `bun run build:daemon` in that package.
 	const workspaceDist = path.resolve(
 		here,
 		"..",
