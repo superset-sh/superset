@@ -3,6 +3,11 @@
 	"compilerOptions": {
 		"types": ["bun"],
 		"baseUrl": ".",
+		// Required because we depend on @superset/pty-daemon (transitively
+		// through @superset/host-service and directly via the daemon entry).
+		// Its package exports point at .ts source, and Node ESM requires
+		// explicit extensions in directory-style imports.
+		"allowImportingTsExtensions": true,
 		"paths": {
 			"*": ["src/*"],
 			"~/*": ["./*"]

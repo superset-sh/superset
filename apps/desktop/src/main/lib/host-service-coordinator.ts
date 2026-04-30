@@ -27,6 +27,7 @@ import {
 	pollHealthCheck,
 } from "./host-service-utils";
 import { localDb } from "./local-db";
+import { PtyDaemonCoordinator } from "./pty-daemon-coordinator";
 import { HOOK_PROTOCOL_VERSION } from "./terminal/env";
 
 /**
@@ -82,6 +83,13 @@ export class HostServiceCoordinator extends EventEmitter {
 	private scriptPath = path.join(__dirname, "host-service.js");
 	private machineId = getHostId();
 	private devReloadWatcher: fs.FSWatcher | null = null;
+	// Sibling coordinator for the long-lived pty-daemon. Owns PTYs so that
+	// host-service restarts don't kill user shells. Its scriptPath sits next
+	// to ours after the build (apps/desktop/src/main + dist/host-service.js +
+	// dist/pty-daemon.js — see runtime-dependencies.ts for packaging).
+	private ptyDaemon = new PtyDaemonCoordinator({
+		scriptPath: path.join(__dirname, "pty-daemon.js"),
+	});
 
 	async start(
 		organizationId: string,
@@ -385,7 +393,17 @@ export class HostServiceCoordinator extends EventEmitter {
 		this.instances.set(organizationId, instance);
 		this.emitStatus(organizationId, "starting", null);
 
-		const childEnv = await this.buildEnv(organizationId, port, secret, config);
+		// Ensure the pty-daemon is up before host-service starts; host-service
+		// connects to it during boot for terminal ops.
+		const daemonInstance = await this.ptyDaemon.ensure(organizationId);
+
+		const childEnv = await this.buildEnv(
+			organizationId,
+			port,
+			secret,
+			config,
+			daemonInstance.socketPath,
+		);
 		// Host-service owns v2 PTYs, so it must survive Electron restarts in
 		// every environment. This mirrors the terminal-host daemon: detach the
 		// child and back stdio with real files so parent teardown cannot close
@@ -457,6 +475,7 @@ export class HostServiceCoordinator extends EventEmitter {
 		port: number,
 		secret: string,
 		config: SpawnConfig,
+		ptyDaemonSocket: string,
 	): Promise<Record<string, string>> {
 		const organizationDir = manifestDir(organizationId);
 		const row = localDb.select().from(settings).get();
@@ -479,6 +498,7 @@ export class HostServiceCoordinator extends EventEmitter {
 			SUPERSET_HOME_DIR: SUPERSET_HOME_DIR,
 			SUPERSET_AGENT_HOOK_PORT: String(sharedEnv.DESKTOP_NOTIFICATIONS_PORT),
 			SUPERSET_AGENT_HOOK_VERSION: HOOK_PROTOCOL_VERSION,
+			SUPERSET_PTY_DAEMON_SOCKET: ptyDaemonSocket,
 			AUTH_TOKEN: config.authToken,
 			CLOUD_API_URL: config.cloudApiUrl,
 		});
