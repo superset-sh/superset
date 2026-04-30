@@ -95,7 +95,7 @@ function describeRelayFailure(
 ): string {
 	const trimmed = rawBody.slice(0, 200);
 	if (status === 503 && /host not connected/i.test(trimmed)) {
-		return `Host ${hostId} is not online`;
+		return `Host ${hostId} has not enabled remote access. Toggle "Allow remote workspaces to access this device" in Settings → Security on that machine.`;
 	}
 	if (status === 401) return "You are not authenticated";
 	if (status === 403) return `You don't have access to host ${hostId}`;
