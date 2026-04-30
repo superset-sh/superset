@@ -480,7 +480,7 @@ export class HostServiceCoordinator extends EventEmitter {
 			SUPERSET_AGENT_HOOK_PORT: String(sharedEnv.DESKTOP_NOTIFICATIONS_PORT),
 			SUPERSET_AGENT_HOOK_VERSION: HOOK_PROTOCOL_VERSION,
 			AUTH_TOKEN: config.authToken,
-			CLOUD_API_URL: config.cloudApiUrl,
+			SUPERSET_API_URL: config.cloudApiUrl,
 		});
 
 		// `getProcessEnvWithShellPath` merges in the user's interactive shell env,

@@ -11,8 +11,8 @@ export default defineConfig({
 		"process.env.RELAY_URL": JSON.stringify(
 			process.env.RELAY_URL ?? "https://relay.superset.sh",
 		),
-		"process.env.CLOUD_API_URL": JSON.stringify(
-			process.env.CLOUD_API_URL ?? "https://api.superset.sh",
+		"process.env.SUPERSET_API_URL": JSON.stringify(
+			process.env.SUPERSET_API_URL ?? "https://api.superset.sh",
 		),
 		"process.env.SUPERSET_WEB_URL": JSON.stringify(
 			process.env.SUPERSET_WEB_URL ?? "https://app.superset.sh",

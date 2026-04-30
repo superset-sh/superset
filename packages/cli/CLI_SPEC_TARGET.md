@@ -104,7 +104,7 @@ Globals are listed in every command's help, including grouped and leaf help.
 
 There is no `--api-url` flag, no `SUPERSET_API_URL` env var, and no `apiUrl`
 field in `~/.superset/config.json`. The cloud API URL is a build-time
-constant. Self-hosters rebuild the binary with their own `CLOUD_API_URL`
+constant. Self-hosters rebuild the binary with their own `SUPERSET_API_URL`
 define.
 
 When any of `CLAUDE_CODE`, `CLAUDECODE`, `CLAUDE_CODE_ENTRYPOINT`,

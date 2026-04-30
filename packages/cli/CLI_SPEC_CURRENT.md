@@ -157,7 +157,7 @@ Three URL/host knobs live in `cli.config.ts` as `define`s and are baked into
 the binary at build time:
 
 ```text
-CLOUD_API_URL  — passed to the host service as its cloud API URL
+SUPERSET_API_URL  — passed to the host service as its cloud API URL
 RELAY_URL      — passed to the host service as its relay URL
 WEB_URL        — derived in code; can be overridden at runtime via SUPERSET_WEB_URL
 ```
@@ -166,7 +166,7 @@ These are not the same as the runtime `apiUrl` stored in
 `~/superset/config.json`, which is what every authenticated tRPC call reads.
 The CLI's tRPC traffic uses `getApiUrl(config)` (config-based, default
 `https://api.superset.sh`); the host service spawned by `host start`
-uses `CLOUD_API_URL` and `RELAY_URL` (build-time). A custom build with
+uses `SUPERSET_API_URL` and `RELAY_URL` (build-time). A custom build with
 different defines will route host-service traffic to the new URL but CLI
 tRPC traffic still goes to the binary's hardcoded fallback unless the user
 also runs `auth login --api-url`.
@@ -713,7 +713,7 @@ Environment passed to the host process:
 ```text
 ORGANIZATION_ID
 AUTH_TOKEN
-CLOUD_API_URL
+SUPERSET_API_URL
 RELAY_URL
 PORT
 HOST_SERVICE_PORT

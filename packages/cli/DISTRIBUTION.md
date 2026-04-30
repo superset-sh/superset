@@ -41,7 +41,7 @@ superset start
   └─ reads ~/.superset/config.json (auth token, org ID, API URL)
   └─ resolves superset-host binary (sibling in bin/)
   └─ spawns: superset-host (which runs: lib/node lib/host-service.js)
-  └─ passes env: AUTH_TOKEN, CLOUD_API_URL, HOST_DB_PATH, RELAY_URL, etc.
+  └─ passes env: AUTH_TOKEN, SUPERSET_API_URL, HOST_DB_PATH, RELAY_URL, etc.
   └─ polls GET /trpc/health.check until ready
   └─ host service connects to relay via WebSocket tunnel
   └─ prints "Host service running on port XXXXX"

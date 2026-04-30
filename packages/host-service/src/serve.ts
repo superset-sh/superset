@@ -15,14 +15,14 @@ async function main(): Promise<void> {
 
 	const authProvider = new JwtApiAuthProvider(
 		env.AUTH_TOKEN,
-		env.CLOUD_API_URL,
+		env.SUPERSET_API_URL,
 	);
 
 	const { app, injectWebSocket, api } = createApp({
 		config: {
 			organizationId: env.ORGANIZATION_ID,
 			dbPath: env.HOST_DB_PATH,
-			cloudApiUrl: env.CLOUD_API_URL,
+			cloudApiUrl: env.SUPERSET_API_URL,
 			migrationsFolder: env.HOST_MIGRATIONS_FOLDER,
 			allowedOrigins: env.CORS_ORIGINS ?? [],
 		},

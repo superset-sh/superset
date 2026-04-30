@@ -58,9 +58,9 @@ jobs:
       - name: Build distribution
         working-directory: packages/cli
         env:
-          RELAY_URL: https://relay.superset.sh
-          CLOUD_API_URL: https://api.superset.sh
-          SUPERSET_WEB_URL: https://app.superset.sh
+          RELAY_URL: ${{ secrets.RELAY_URL }}
+          SUPERSET_API_URL: ${{ vars.SUPERSET_API_URL }}
+          SUPERSET_WEB_URL: ${{ vars.SUPERSET_WEB_URL }}
         run: bun run build:dist --target=${{ matrix.target }}
 
       - name: Smoke test binary

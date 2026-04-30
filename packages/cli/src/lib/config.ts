@@ -52,5 +52,5 @@ export function writeConfig(config: SupersetConfig): void {
 }
 
 export function getApiUrl(): string {
-	return env.CLOUD_API_URL;
+	return env.SUPERSET_API_URL;
 }

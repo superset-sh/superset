@@ -128,11 +128,11 @@ function waitForCallback({
 
 export function getWebUrl(): string {
 	if (process.env.SUPERSET_WEB_URL) return process.env.SUPERSET_WEB_URL;
-	return env.CLOUD_API_URL.replace("api.superset.sh", "app.superset.sh");
+	return env.SUPERSET_API_URL.replace("api.superset.sh", "app.superset.sh");
 }
 
 export async function login(signal: AbortSignal): Promise<LoginResult> {
-	const apiUrl = env.CLOUD_API_URL;
+	const apiUrl = env.SUPERSET_API_URL;
 	const webUrl = getWebUrl();
 
 	const { server, port } = await bindLoopbackServer();
