@@ -295,7 +295,9 @@ export class PullRequestRuntimeManager {
 
 		const projectIds = [...new Set(rows.map((row) => row.projectId))];
 		await Promise.all(
-			projectIds.map((projectId) => this.refreshProject(projectId)),
+			projectIds.map((projectId) =>
+				this.refreshProject(projectId, { bypassCache: true }),
+			),
 		);
 	}
 
@@ -352,7 +354,9 @@ export class PullRequestRuntimeManager {
 		}
 
 		await Promise.all(
-			[...changedProjectIds].map((projectId) => this.refreshProject(projectId)),
+			[...changedProjectIds].map((projectId) =>
+				this.refreshProject(projectId, { bypassCache: true }),
+			),
 		);
 	}
 
@@ -369,14 +373,17 @@ export class PullRequestRuntimeManager {
 		);
 	}
 
-	private async refreshProject(projectId: string): Promise<void> {
+	private async refreshProject(
+		projectId: string,
+		options: { bypassCache?: boolean } = {},
+	): Promise<void> {
 		const existing = this.inFlightProjects.get(projectId);
 		if (existing) {
 			await existing;
 			return;
 		}
 
-		const refreshPromise = this.performProjectRefresh(projectId)
+		const refreshPromise = this.performProjectRefresh(projectId, options)
 			.catch((error) => {
 				console.warn(
 					"[host-service:pull-request-runtime] Project refresh failed",
@@ -394,7 +401,10 @@ export class PullRequestRuntimeManager {
 		await refreshPromise;
 	}
 
-	private async performProjectRefresh(projectId: string): Promise<void> {
+	private async performProjectRefresh(
+		projectId: string,
+		options: { bypassCache?: boolean } = {},
+	): Promise<void> {
 		const repo = await this.getProjectRepository(projectId);
 		if (!repo) return;
 
@@ -419,6 +429,7 @@ export class PullRequestRuntimeManager {
 			projectId,
 			repo,
 			wantedKeys,
+			options,
 		);
 
 		for (const workspace of projectWorkspaces) {
@@ -496,14 +507,17 @@ export class PullRequestRuntimeManager {
 
 	private async getCachedRepoPullRequests(
 		repo: NormalizedRepoIdentity,
+		options: { bypassCache?: boolean } = {},
 	): Promise<GraphQLPullRequestNode[]> {
 		const cacheKey = `${repo.owner.toLowerCase()}/${repo.name.toLowerCase()}`;
-		const cached = this.repoPullRequestCache.get(cacheKey);
-		if (
-			cached &&
-			Date.now() - cached.fetchedAt < REPO_PULL_REQUEST_CACHE_TTL_MS
-		) {
-			return cached.promise;
+		if (!options.bypassCache) {
+			const cached = this.repoPullRequestCache.get(cacheKey);
+			if (
+				cached &&
+				Date.now() - cached.fetchedAt < REPO_PULL_REQUEST_CACHE_TTL_MS
+			) {
+				return cached.promise;
+			}
 		}
 
 		const fetchedAt = Date.now();
@@ -529,10 +543,11 @@ export class PullRequestRuntimeManager {
 		projectId: string,
 		repo: NormalizedRepoIdentity,
 		wantedKeys: Set<string>,
+		options: { bypassCache?: boolean } = {},
 	): Promise<Map<string, { id: string }>> {
 		if (wantedKeys.size === 0) return new Map();
 
-		const nodes = await this.getCachedRepoPullRequests(repo);
+		const nodes = await this.getCachedRepoPullRequests(repo, options);
 
 		const latestByKey = new Map<string, (typeof nodes)[number]>();
 
