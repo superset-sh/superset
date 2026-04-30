@@ -1,30 +1,20 @@
-import { CLIError, string, table } from "@superset/cli-framework";
+import { CLIError, table } from "@superset/cli-framework";
 import { command } from "../../../lib/command";
-import { resolveHostTarget } from "../../../lib/host-target";
 
 export default command({
-	description: "List projects on a host",
-	options: {
-		host: string().desc("Target host machineId (defaults to this machine)"),
-	},
+	description: "List projects in the active organization",
 	display: (data) =>
 		table(
 			data as Record<string, unknown>[],
-			["id", "repoOwner", "repoName", "repoPath"],
-			["ID", "OWNER", "REPO", "PATH"],
+			["id", "name", "slug", "repoCloneUrl"],
+			["ID", "NAME", "SLUG", "REPO"],
 		),
-	run: async ({ ctx, options }) => {
+	run: async ({ ctx }) => {
 		const organizationId = ctx.config.organizationId;
 		if (!organizationId) {
 			throw new CLIError("No active organization", "Run: superset auth login");
 		}
 
-		const target = resolveHostTarget({
-			requestedHostId: options.host ?? undefined,
-			organizationId,
-			userJwt: ctx.bearer,
-		});
-
-		return target.client.project.list.query();
+		return ctx.api.v2Project.list.query({ organizationId });
 	},
 });

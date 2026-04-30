@@ -1,12 +1,13 @@
-import { CLIError, positional, string } from "@superset/cli-framework";
+import { boolean, CLIError, positional, string } from "@superset/cli-framework";
 import { command } from "../../../lib/command";
-import { resolveHostTarget } from "../../../lib/host-target";
+import { resolveHostFilter, resolveHostTarget } from "../../../lib/host-target";
 
 export default command({
 	description: "Delete workspaces by ID",
 	args: [positional("ids").required().variadic().desc("Workspace IDs")],
 	options: {
 		host: string().desc("Skip the cloud lookup and target this host directly"),
+		local: boolean().desc("Skip the cloud lookup and target this machine"),
 	},
 	run: async ({ ctx, args, options }) => {
 		const ids = args.ids as string[];
@@ -15,9 +16,14 @@ export default command({
 			throw new CLIError("No active organization", "Run: superset auth login");
 		}
 
+		const explicitHostId = resolveHostFilter({
+			host: options.host ?? undefined,
+			local: options.local ?? undefined,
+		});
+
 		const deleted: string[] = [];
 		for (const id of ids) {
-			let hostId = options.host ?? undefined;
+			let hostId = explicitHostId;
 			if (!hostId) {
 				const cloudWorkspace = await ctx.api.v2Workspace.getFromHost.query({
 					organizationId,

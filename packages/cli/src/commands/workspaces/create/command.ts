@@ -1,11 +1,12 @@
-import { CLIError, string } from "@superset/cli-framework";
+import { boolean, CLIError, string } from "@superset/cli-framework";
 import { command } from "../../../lib/command";
-import { resolveHostTarget } from "../../../lib/host-target";
+import { requireHostTarget, resolveHostTarget } from "../../../lib/host-target";
 
 export default command({
 	description: "Create a workspace on a host",
 	options: {
-		host: string().desc("Target host machineId (defaults to this machine)"),
+		host: string().desc("Target host machineId"),
+		local: boolean().desc("Target this machine"),
 		project: string().required().desc("Project ID"),
 		name: string().required().desc("Workspace name"),
 		branch: string().required().desc("Git branch"),
@@ -16,8 +17,13 @@ export default command({
 			throw new CLIError("No active organization", "Run: superset auth login");
 		}
 
+		const hostId = requireHostTarget({
+			host: options.host ?? undefined,
+			local: options.local ?? undefined,
+		});
+
 		const target = resolveHostTarget({
-			requestedHostId: options.host ?? undefined,
+			requestedHostId: hostId,
 			organizationId,
 			userJwt: ctx.bearer,
 		});
