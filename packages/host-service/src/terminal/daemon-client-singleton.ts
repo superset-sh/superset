@@ -1,6 +1,7 @@
-// Lazy singleton DaemonClient for host-service. The desktop coordinator
-// passes the daemon socket path via SUPERSET_PTY_DAEMON_SOCKET. We connect
-// once on first use and reuse the connection for all sessions.
+// Lazy singleton DaemonClient for host-service. The DaemonSupervisor
+// (host-service-internal) owns the daemon's process lifecycle; this
+// singleton just connects to the supervisor's socket path on first use
+// and reuses the connection for all sessions.
 //
 // On disconnect we surface via console.error, notify subscribers (terminal.ts
 // uses this to close WS sockets so the renderer reconnects against the
@@ -8,6 +9,8 @@
 // the client. There's no in-band reconnect here — see DaemonClient's "dumb"
 // failure model.
 
+import { getSupervisor, waitForDaemonReady } from "../daemon/index.ts";
+import { env } from "../env.ts";
 import { DaemonClient } from "./DaemonClient/index.ts";
 
 let cached: DaemonClient | null = null;
@@ -27,20 +30,30 @@ export function onDaemonDisconnect(cb: (err?: Error) => void): () => void {
 	};
 }
 
-export function ptyDaemonSocketPath(): string {
-	const path = process.env.SUPERSET_PTY_DAEMON_SOCKET;
-	if (!path) {
+async function ptyDaemonSocketPath(): Promise<string> {
+	// Test escape hatch: when SUPERSET_PTY_DAEMON_SOCKET is set explicitly
+	// (e.g. by the adoption integration test), skip the supervisor and
+	// connect directly. Production paths leave this env var unset; the
+	// supervisor's own spawn does not set it.
+	const testOverride = process.env.SUPERSET_PTY_DAEMON_SOCKET;
+	if (testOverride) return testOverride;
+
+	await waitForDaemonReady(env.ORGANIZATION_ID);
+	const sockPath = getSupervisor().getSocketPath(env.ORGANIZATION_ID);
+	if (!sockPath) {
 		throw new Error(
-			"pty-daemon is not available: SUPERSET_PTY_DAEMON_SOCKET is not set. The desktop coordinator should set this before spawning host-service. Terminals will not work until the daemon comes up.",
+			"pty-daemon is not available: supervisor returned no socket path. " +
+				"The bootstrap must have failed — check host-service logs for spawn errors.",
 		);
 	}
-	return path;
+	return sockPath;
 }
 
 export async function getDaemonClient(): Promise<DaemonClient> {
 	if (cached?.isConnected) return cached;
 	if (connecting) return connecting;
-	const client = new DaemonClient({ socketPath: ptyDaemonSocketPath() });
+	const sockPath = await ptyDaemonSocketPath();
+	const client = new DaemonClient({ socketPath: sockPath });
 	client.onDisconnect((err) => {
 		console.error(
 			"[host-service] pty-daemon disconnected:",

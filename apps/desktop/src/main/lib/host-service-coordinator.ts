@@ -27,7 +27,6 @@ import {
 	pollHealthCheck,
 } from "./host-service-utils";
 import { localDb } from "./local-db";
-import { PtyDaemonCoordinator } from "./pty-daemon-coordinator";
 import { HOOK_PROTOCOL_VERSION } from "./terminal/env";
 
 /**
@@ -83,13 +82,10 @@ export class HostServiceCoordinator extends EventEmitter {
 	private scriptPath = path.join(__dirname, "host-service.js");
 	private machineId = getHostId();
 	private devReloadWatcher: fs.FSWatcher | null = null;
-	// Sibling coordinator for the long-lived pty-daemon. Owns PTYs so that
-	// host-service restarts don't kill user shells. Its scriptPath sits next
-	// to ours after the build (apps/desktop/src/main + dist/host-service.js +
-	// dist/pty-daemon.js — see runtime-dependencies.ts for packaging).
-	private ptyDaemon = new PtyDaemonCoordinator({
-		scriptPath: path.join(__dirname, "pty-daemon.js"),
-	});
+	// Note: pty-daemon supervision moved into host-service itself —
+	// see packages/host-service/src/daemon. Host-service spawns and adopts
+	// the daemon when it boots, so the desktop coordinator no longer needs
+	// to know about it.
 
 	async start(
 		organizationId: string,
@@ -393,28 +389,10 @@ export class HostServiceCoordinator extends EventEmitter {
 		this.instances.set(organizationId, instance);
 		this.emitStatus(organizationId, "starting", null);
 
-		// Try to bring up the pty-daemon. If it fails (e.g. dev build doesn't
-		// have dist/main/pty-daemon.js yet), don't take host-service down with
-		// it — workspaces, git, chat, etc. should still work. Terminal ops
-		// will surface a clear error to the renderer instead.
-		let daemonSocketPath = "";
-		try {
-			const daemonInstance = await this.ptyDaemon.ensure(organizationId);
-			daemonSocketPath = daemonInstance.socketPath;
-		} catch (error) {
-			console.error(
-				`[host-service:${organizationId}] pty-daemon failed to start; terminals will be unavailable until it recovers:`,
-				error,
-			);
-		}
-
-		const childEnv = await this.buildEnv(
-			organizationId,
-			port,
-			secret,
-			config,
-			daemonSocketPath,
-		);
+		// pty-daemon is supervised by host-service itself; this coordinator
+		// only spawns host-service and steps out. See
+		// packages/host-service/src/daemon for the supervisor lifecycle.
+		const childEnv = await this.buildEnv(organizationId, port, secret, config);
 		// Host-service owns v2 PTYs, so it must survive Electron restarts in
 		// every environment. This mirrors the terminal-host daemon: detach the
 		// child and back stdio with real files so parent teardown cannot close
@@ -486,15 +464,11 @@ export class HostServiceCoordinator extends EventEmitter {
 		port: number,
 		secret: string,
 		config: SpawnConfig,
-		ptyDaemonSocket: string,
 	): Promise<Record<string, string>> {
 		const organizationDir = manifestDir(organizationId);
 		const row = localDb.select().from(settings).get();
 		const exposeViaRelay = row?.exposeHostServiceViaRelay ?? false;
 
-		// Allow .env / shell SUPERSET_PTY_DAEMON_SOCKET to take effect when our
-		// own daemon spawn failed. Set it explicitly only when we have a real
-		// path; otherwise inherit whatever the parent has.
 		const baseEnv: Record<string, string> = {
 			...(process.env as Record<string, string>),
 			ELECTRON_RUN_AS_NODE: "1",
@@ -515,9 +489,6 @@ export class HostServiceCoordinator extends EventEmitter {
 			AUTH_TOKEN: config.authToken,
 			CLOUD_API_URL: config.cloudApiUrl,
 		};
-		if (ptyDaemonSocket) {
-			baseEnv.SUPERSET_PTY_DAEMON_SOCKET = ptyDaemonSocket;
-		}
 
 		const childEnv = await getProcessEnvWithShellPath(baseEnv);
 

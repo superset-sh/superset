@@ -62,6 +62,7 @@
 		"hono": "^4.8.5",
 		"mastracode": "0.15.0-alpha.3",
 		"node-pty": "1.1.0",
+		"semver": "^7.7.4",
 		"simple-git": "^3.30.0",
 		"superjson": "^2.2.5",
 		"tree-kill": "^1.2.2",
@@ -71,6 +72,7 @@
 		"@superset/typescript": "workspace:*",
 		"@types/better-sqlite3": "^7.6.13",
 		"@types/node": "^24.9.1",
+		"@types/semver": "^7.7.1",
 		"bun-types": "^1.3.1",
 		"drizzle-kit": "0.31.8",
 		"typescript": "^5.9.3"

@@ -1,5 +1,6 @@
 import { serve } from "@hono/node-server";
 import { createApp } from "./app";
+import { startDaemonBootstrap } from "./daemon";
 import { env } from "./env";
 import { JwtApiAuthProvider } from "./providers/auth";
 import { LocalGitCredentialProvider } from "./providers/git";
@@ -12,6 +13,14 @@ import { connectRelay } from "./tunnel";
 async function main(): Promise<void> {
 	const terminalBaseEnv = await resolveTerminalBaseEnv();
 	initTerminalBaseEnv(terminalBaseEnv);
+
+	// Fire-and-track: kick off pty-daemon spawn-or-adopt without blocking
+	// host-service startup. Terminal request handlers `await
+	// waitForDaemonReady(orgId)` before using the supervisor's socket path,
+	// so an in-flight bootstrap doesn't race with the first terminal launch.
+	// Non-terminal requests (workspaces, git, chat) are unaffected if the
+	// daemon takes time to come up or fails entirely.
+	startDaemonBootstrap(env.ORGANIZATION_ID);
 
 	const authProvider = new JwtApiAuthProvider(
 		env.AUTH_TOKEN,

@@ -1,7 +1,9 @@
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
+import { getSupervisor, waitForDaemonReady } from "../../../daemon";
 import { terminalSessions, workspaces } from "../../../db/schema";
+import { env } from "../../../env";
 import {
 	createTerminalSessionInternal,
 	disposeSession,
@@ -9,6 +11,27 @@ import {
 	parseThemeType,
 } from "../../../terminal/terminal";
 import { protectedProcedure, router } from "../../index";
+
+// Daemon control surface — sibling to the per-workspace terminal ops above.
+// Org-scoped (one daemon per host-service); reads org id from env.
+// Supervisor lives in this same process so calls go through the in-process
+// singleton, not over the wire.
+const daemonRouter = router({
+	getUpdateStatus: protectedProcedure.query(() =>
+		getSupervisor().getUpdateStatus(env.ORGANIZATION_ID),
+	),
+
+	listSessions: protectedProcedure.query(async () => {
+		// Wait for the bootstrap so the supervisor has a socket path.
+		await waitForDaemonReady(env.ORGANIZATION_ID);
+		return getSupervisor().listSessions(env.ORGANIZATION_ID);
+	}),
+
+	restart: protectedProcedure.mutation(async () => {
+		await waitForDaemonReady(env.ORGANIZATION_ID);
+		return getSupervisor().restart(env.ORGANIZATION_ID);
+	}),
+});
 
 export const terminalRouter = router({
 	launchSession: protectedProcedure
@@ -94,4 +117,6 @@ export const terminalRouter = router({
 			disposeSession(input.terminalId, ctx.db);
 			return { terminalId: input.terminalId, status: "disposed" as const };
 		}),
+
+	daemon: daemonRouter,
 });

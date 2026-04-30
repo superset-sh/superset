@@ -1,3 +1,7 @@
+// Manifest for a running pty-daemon instance. Lives under
+// $SUPERSET_HOME_DIR/host/{organizationId}/. Different lifecycle from
+// host-service's own manifest — the daemon outlives host-service restarts.
+
 import {
 	existsSync,
 	mkdirSync,
@@ -6,26 +10,23 @@ import {
 	unlinkSync,
 	writeFileSync,
 } from "node:fs";
+import { homedir } from "node:os";
 import { join } from "node:path";
-import { SUPERSET_HOME_DIR } from "./app-environment";
 
-/**
- * Manifest for a running pty-daemon instance. Sibling of
- * HostServiceManifest; lives in the same per-organization directory under
- * $SUPERSET_HOME_DIR/host/{organizationId}/. Different lifecycles — the
- * daemon outlives host-service restarts.
- */
 export interface PtyDaemonManifest {
 	pid: number;
 	socketPath: string;
 	protocolVersions: number[];
-	daemonVersion: string;
 	startedAt: number;
 	organizationId: string;
 }
 
+function supersetHomeDir(): string {
+	return process.env.SUPERSET_HOME_DIR || join(homedir(), ".superset");
+}
+
 export function ptyDaemonManifestDir(organizationId: string): string {
-	return join(SUPERSET_HOME_DIR, "host", organizationId);
+	return join(supersetHomeDir(), "host", organizationId);
 }
 
 function ptyDaemonManifestPath(organizationId: string): string {
@@ -57,7 +58,6 @@ export function readPtyDaemonManifest(
 			typeof data.pid !== "number" ||
 			typeof data.socketPath !== "string" ||
 			!Array.isArray(data.protocolVersions) ||
-			typeof data.daemonVersion !== "string" ||
 			typeof data.startedAt !== "number" ||
 			typeof data.organizationId !== "string"
 		) {
@@ -70,7 +70,7 @@ export function readPtyDaemonManifest(
 }
 
 export function listPtyDaemonManifests(): PtyDaemonManifest[] {
-	const hostDir = join(SUPERSET_HOME_DIR, "host");
+	const hostDir = join(supersetHomeDir(), "host");
 	if (!existsSync(hostDir)) return [];
 	const manifests: PtyDaemonManifest[] = [];
 	try {
@@ -80,7 +80,7 @@ export function listPtyDaemonManifests(): PtyDaemonManifest[] {
 			if (manifest) manifests.push(manifest);
 		}
 	} catch {
-		// Best-effort scan.
+		// best-effort
 	}
 	return manifests;
 }
@@ -90,6 +90,15 @@ export function removePtyDaemonManifest(organizationId: string): void {
 	try {
 		if (existsSync(filePath)) unlinkSync(filePath);
 	} catch {
-		// Best-effort removal.
+		// best-effort
+	}
+}
+
+export function isProcessAlive(pid: number): boolean {
+	try {
+		process.kill(pid, 0);
+		return true;
+	} catch (err) {
+		return (err as NodeJS.ErrnoException).code === "EPERM";
 	}
 }
