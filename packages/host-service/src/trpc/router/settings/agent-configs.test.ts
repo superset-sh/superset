@@ -1,31 +1,20 @@
 import { Database } from "bun:sqlite";
 import { describe, expect, it } from "bun:test";
+import { resolve } from "node:path";
 import { drizzle } from "drizzle-orm/bun-sqlite";
+import { migrate } from "drizzle-orm/bun-sqlite/migrator";
 import * as schema from "../../../db/schema";
 import type { HostServiceContext } from "../../../types";
 import { agentConfigsRouter } from "./agent-configs";
 import { AGENT_PRESETS } from "./agent-presets";
 
+const MIGRATIONS_FOLDER = resolve(import.meta.dir, "../../../../drizzle");
+
 function createTestDb() {
 	const sqlite = new Database(":memory:");
-	sqlite.run(`
-		CREATE TABLE host_agent_configs (
-			id TEXT PRIMARY KEY NOT NULL,
-			preset_id TEXT NOT NULL,
-			label TEXT NOT NULL,
-			command TEXT NOT NULL,
-			args_json TEXT NOT NULL DEFAULT '[]',
-			prompt_transport TEXT NOT NULL,
-			prompt_args_json TEXT NOT NULL DEFAULT '[]',
-			env_json TEXT NOT NULL DEFAULT '{}',
-			display_order INTEGER NOT NULL,
-			created_at INTEGER NOT NULL,
-			updated_at INTEGER NOT NULL
-		);
-		CREATE INDEX host_agent_configs_display_order_idx
-			ON host_agent_configs (display_order);
-	`);
-	return drizzle(sqlite, { schema });
+	const db = drizzle(sqlite, { schema });
+	migrate(db, { migrationsFolder: MIGRATIONS_FOLDER });
+	return db;
 }
 
 function createCaller() {
