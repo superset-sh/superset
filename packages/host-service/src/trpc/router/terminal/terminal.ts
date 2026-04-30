@@ -20,9 +20,9 @@ export const terminalRouter = router({
 				themeType: z.string().optional(),
 			}),
 		)
-		.mutation(({ ctx, input }) => {
+		.mutation(async ({ ctx, input }) => {
 			const terminalId = input.terminalId ?? crypto.randomUUID();
-			const result = createTerminalSessionInternal({
+			const result = await createTerminalSessionInternal({
 				terminalId,
 				workspaceId: input.workspaceId,
 				themeType: parseThemeType(input.themeType),

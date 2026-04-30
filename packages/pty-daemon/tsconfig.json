@@ -3,7 +3,6 @@
 	"compilerOptions": {
 		"types": ["bun-types", "node"],
 		"noUncheckedIndexedAccess": true,
-		"allowImportingTsExtensions": true,
 		"emitDeclarationOnly": false,
 		"noEmit": true
 	},

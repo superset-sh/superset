@@ -13,17 +13,96 @@ import {
 } from "@superset/shared/terminal-title-scanner";
 import { and, eq, ne } from "drizzle-orm";
 import type { Hono } from "hono";
-import { type IPty, spawn } from "node-pty";
 import type { HostDb } from "../db";
 import { projects, terminalSessions, workspaces } from "../db/schema";
 import type { EventBus } from "../events";
 import { portManager } from "../ports/port-manager";
+import type { DaemonClient } from "./DaemonClient";
+import { getDaemonClient } from "./daemon-client-singleton";
 import {
 	buildV2TerminalEnv,
 	getShellLaunchArgs,
 	getTerminalBaseEnv,
 	resolveLaunchShell,
 } from "./env";
+
+/**
+ * Thin adapter exposing approximately the IPty surface that the rest of
+ * this file (and teardown.ts) was built against, so most of the call
+ * sites stay unchanged after the daemon extraction. The PTY itself lives
+ * in pty-daemon; this is a remote control.
+ *
+ * onData / onExit register additional subscribers on top of whatever the
+ * session's primary subscription is doing — daemon supports multi-
+ * subscriber fan-out per session, so layered observers work fine.
+ */
+interface PtyDataDisposer {
+	dispose(): void;
+}
+
+interface DaemonPty {
+	pid: number;
+	write(data: string): void;
+	resize(cols: number, rows: number): void;
+	kill(signal?: NodeJS.Signals): void;
+	onData(cb: (data: string) => void): PtyDataDisposer;
+	onExit(
+		cb: (info: { exitCode: number; signal: number }) => void,
+	): PtyDataDisposer;
+}
+
+function makeDaemonPty(
+	daemon: DaemonClient,
+	sessionId: string,
+	pid: number,
+): DaemonPty {
+	return {
+		pid,
+		write(data) {
+			daemon.input(sessionId, Buffer.from(data, "utf8"));
+		},
+		resize(cols, rows) {
+			try {
+				daemon.resize(sessionId, cols, rows);
+			} catch {
+				// Daemon may have disconnected; surface via the next op.
+			}
+		},
+		kill(signal) {
+			daemon
+				.close(
+					sessionId,
+					(signal as "SIGTERM" | "SIGKILL" | "SIGINT" | "SIGHUP") ?? "SIGTERM",
+				)
+				.catch(() => {
+					// Already gone or daemon disconnected — no-op.
+				});
+		},
+		onData(cb) {
+			const unsub = daemon.subscribe(
+				sessionId,
+				{ replay: false },
+				{
+					onOutput: (chunk) => cb(chunk.toString("utf8")),
+					onExit: () => {},
+				},
+			);
+			return { dispose: unsub };
+		},
+		onExit(cb) {
+			const unsub = daemon.subscribe(
+				sessionId,
+				{ replay: false },
+				{
+					onOutput: () => {},
+					onExit: ({ code, signal }) =>
+						cb({ exitCode: code ?? 0, signal: signal ?? 0 }),
+				},
+			);
+			return { dispose: unsub };
+		},
+	};
+}
 
 interface RegisterWorkspaceTerminalRouteOptions {
 	app: Hono;
@@ -97,7 +176,9 @@ type ShellReadyState = "pending" | "ready" | "timed_out" | "unsupported";
 interface TerminalSession {
 	terminalId: string;
 	workspaceId: string;
-	pty: IPty;
+	pty: DaemonPty;
+	/** Unsubscribe from the daemon's output/exit stream when disposed. */
+	unsubscribeDaemon: (() => void) | null;
 	sockets: Set<TerminalSocket>;
 	buffer: string[];
 	bufferBytes: number;
@@ -293,6 +374,15 @@ export function disposeSession(terminalId: string, db: HostDb) {
 				// PTY may already be dead
 			}
 		}
+		// Stop receiving daemon callbacks for this session.
+		if (session.unsubscribeDaemon) {
+			try {
+				session.unsubscribeDaemon();
+			} catch {
+				// best-effort
+			}
+			session.unsubscribeDaemon = null;
+		}
 		sessions.delete(terminalId);
 	}
 
@@ -348,7 +438,7 @@ interface CreateTerminalSessionOptions {
 	listed?: boolean;
 }
 
-export function createTerminalSessionInternal({
+export async function createTerminalSessionInternal({
 	terminalId,
 	workspaceId,
 	themeType,
@@ -356,7 +446,7 @@ export function createTerminalSessionInternal({
 	eventBus,
 	initialCommand,
 	listed = true,
-}: CreateTerminalSessionOptions): TerminalSession | { error: string } {
+}: CreateTerminalSessionOptions): Promise<TerminalSession | { error: string }> {
 	const existing = sessions.get(terminalId);
 	if (existing) {
 		if (listed) existing.listed = true;
@@ -405,10 +495,13 @@ export function createTerminalSessionInternal({
 		hostAgentHookUrl: getHostAgentHookUrl(),
 	});
 
-	let pty: IPty;
+	let daemon: DaemonClient;
+	let openResult: { pid: number };
 	try {
-		pty = spawn(shell, shellArgs, {
-			name: "xterm-256color",
+		daemon = await getDaemonClient();
+		openResult = await daemon.open(terminalId, {
+			shell,
+			argv: shellArgs,
 			cwd,
 			cols: 120,
 			rows: 32,
@@ -420,6 +513,7 @@ export function createTerminalSessionInternal({
 				error instanceof Error ? error.message : "Failed to start terminal",
 		};
 	}
+	const pty: DaemonPty = makeDaemonPty(daemon, terminalId, openResult.pid);
 
 	const createdAt = Date.now();
 
@@ -451,6 +545,7 @@ export function createTerminalSessionInternal({
 		terminalId,
 		workspaceId,
 		pty,
+		unsubscribeDaemon: null,
 		sockets: new Set(),
 		buffer: [],
 		bufferBytes: 0,
@@ -479,57 +574,69 @@ export function createTerminalSessionInternal({
 		}, SHELL_READY_TIMEOUT_MS);
 	}
 
-	pty.onData((rawData) => {
-		const titleUpdates = scanForTerminalTitle(session.titleScanState, rawData);
-		for (const title of titleUpdates.updates) {
-			setSessionTitle(session, title);
-		}
+	// Subscribe to the daemon's output + exit stream for this session. We
+	// pass replay:true so a fresh host-service after a restart picks up
+	// whatever the daemon already had buffered for the session.
+	session.unsubscribeDaemon = daemon.subscribe(
+		terminalId,
+		{ replay: true },
+		{
+			onOutput(chunk) {
+				const rawData = chunk.toString("utf8");
+				const titleUpdates = scanForTerminalTitle(
+					session.titleScanState,
+					rawData,
+				);
+				for (const title of titleUpdates.updates) {
+					setSessionTitle(session, title);
+				}
 
-		// Scan for OSC 133;A and strip it from output
-		let data = rawData;
-		if (session.shellReadyState === "pending") {
-			const result = scanForShellReady(session.scanState, rawData);
-			data = result.output;
-			if (result.matched) {
-				resolveShellReady(session, "ready");
-			}
-		}
-		if (data.length === 0) return;
+				// Scan for OSC 133;A and strip it from output.
+				let data = rawData;
+				if (session.shellReadyState === "pending") {
+					const result = scanForShellReady(session.scanState, rawData);
+					data = result.output;
+					if (result.matched) {
+						resolveShellReady(session, "ready");
+					}
+				}
+				if (data.length === 0) return;
 
-		portManager.checkOutputForHint(data);
+				portManager.checkOutputForHint(data);
 
-		if (broadcastMessage(session, { type: "data", data }) === 0) {
-			bufferOutput(session, data);
-		}
-	});
+				if (broadcastMessage(session, { type: "data", data }) === 0) {
+					bufferOutput(session, data);
+				}
+			},
+			onExit({ code, signal }) {
+				session.exited = true;
+				session.exitCode = code ?? 0;
+				session.exitSignal = signal ?? 0;
 
-	pty.onExit(({ exitCode, signal }) => {
-		session.exited = true;
-		session.exitCode = exitCode ?? 0;
-		session.exitSignal = signal ?? 0;
+				portManager.unregisterSession(terminalId);
 
-		portManager.unregisterSession(terminalId);
+				db.update(terminalSessions)
+					.set({ status: "exited", endedAt: Date.now() })
+					.where(eq(terminalSessions.id, terminalId))
+					.run();
 
-		db.update(terminalSessions)
-			.set({ status: "exited", endedAt: Date.now() })
-			.where(eq(terminalSessions.id, terminalId))
-			.run();
+				broadcastMessage(session, {
+					type: "exit",
+					exitCode: session.exitCode,
+					signal: session.exitSignal,
+				});
 
-		broadcastMessage(session, {
-			type: "exit",
-			exitCode: session.exitCode,
-			signal: session.exitSignal,
-		});
-
-		eventBus?.broadcastTerminalLifecycle({
-			workspaceId,
-			terminalId,
-			eventType: "exit",
-			exitCode: session.exitCode,
-			signal: session.exitSignal,
-			occurredAt: Date.now(),
-		});
-	});
+				eventBus?.broadcastTerminalLifecycle({
+					workspaceId,
+					terminalId,
+					eventType: "exit",
+					exitCode: session.exitCode,
+					signal: session.exitSignal,
+					occurredAt: Date.now(),
+				});
+			},
+		},
+	);
 
 	if (initialCommand) {
 		queueInitialCommand(session, initialCommand);
@@ -555,7 +662,7 @@ export function registerWorkspaceTerminalRoute({
 			return c.json({ error: "Missing terminalId or workspaceId" }, 400);
 		}
 
-		const result = createTerminalSessionInternal({
+		const result = await createTerminalSessionInternal({
 			terminalId: body.terminalId,
 			workspaceId: body.workspaceId,
 			themeType: parseThemeType(body.themeType),
@@ -621,27 +728,31 @@ export function registerWorkspaceTerminalRoute({
 						}
 
 						const themeType = parseThemeType(c.req.query("themeType"));
-						const result = createTerminalSessionInternal({
-							terminalId,
-							workspaceId,
-							themeType,
-							db,
-							eventBus,
-						});
+						// Daemon open is async; fire-and-forget while keeping the WS alive.
+						// On success: register the socket; on failure: surface and close.
+						void (async () => {
+							const result = await createTerminalSessionInternal({
+								terminalId,
+								workspaceId,
+								themeType,
+								db,
+								eventBus,
+							});
 
-						if ("error" in result) {
-							sendMessage(ws, { type: "error", message: result.error });
-							ws.close(1011, result.error);
-							return;
-						}
+							if ("error" in result) {
+								sendMessage(ws, { type: "error", message: result.error });
+								ws.close(1011, result.error);
+								return;
+							}
 
-						result.sockets.add(ws);
-						sendMessage(ws, { type: "title", title: result.title });
+							result.sockets.add(ws);
+							sendMessage(ws, { type: "title", title: result.title });
 
-						db.update(terminalSessions)
-							.set({ lastAttachedAt: Date.now() })
-							.where(eq(terminalSessions.id, terminalId))
-							.run();
+							db.update(terminalSessions)
+								.set({ lastAttachedAt: Date.now() })
+								.where(eq(terminalSessions.id, terminalId))
+								.run();
+						})();
 						return;
 					}
 

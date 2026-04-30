@@ -38,7 +38,8 @@
 		"dev": "bun run src/serve.ts",
 		"build:host": "bun run build.ts",
 		"generate": "drizzle-kit generate",
-		"typecheck": "tsc --noEmit --emitDeclarationOnly false"
+		"typecheck": "tsc --noEmit --emitDeclarationOnly false",
+		"test:integration": "node --experimental-strip-types --test src/terminal/DaemonClient/DaemonClient.node-test.ts"
 	},
 	"dependencies": {
 		"@hono/node-server": "^1.14.1",

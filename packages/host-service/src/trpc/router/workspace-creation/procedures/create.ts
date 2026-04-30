@@ -302,7 +302,7 @@ export const create = protectedProcedure
 		const warnings: string[] = [];
 
 		if (input.composer.runSetupScript) {
-			const { terminal, warning } = startSetupTerminalIfPresent({
+			const { terminal, warning } = await startSetupTerminalIfPresent({
 				ctx,
 				workspaceId: cloudRow.id,
 				worktreePath,
