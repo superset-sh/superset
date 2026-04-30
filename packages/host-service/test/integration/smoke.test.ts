@@ -24,9 +24,9 @@ describe("host-service smoke", () => {
 	});
 
 	test("protected procedure rejects requests without bearer token", async () => {
-		expect(host.unauthenticatedTrpc.host.info.query()).rejects.toBeInstanceOf(
-			TRPCClientError,
-		);
+		await expect(
+			host.unauthenticatedTrpc.host.info.query(),
+		).rejects.toBeInstanceOf(TRPCClientError);
 	});
 
 	test("host.info round-trips through fake cloud api", async () => {

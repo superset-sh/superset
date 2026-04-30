@@ -123,14 +123,18 @@ export async function createTestHost(
 
 	const result = createApp(createOptions);
 
+	// Hono's `app.fetch(req, env, ctx)` second arg is the Cloudflare-style
+	// env binding, NOT a `RequestInit`. Build a proper `Request` first and
+	// pass it alone; otherwise tests that supply a pre-built `Request` plus
+	// extra `init` would silently see the init ignored.
 	const fetchApp = async (
 		input: Request | string,
 		init?: RequestInit,
-	): Promise<Response> =>
-		result.app.fetch(
-			typeof input === "string" ? new Request(input, init) : input,
-			init,
-		);
+	): Promise<Response> => {
+		const request =
+			typeof input === "string" ? new Request(input, init) : input;
+		return result.app.fetch(request);
+	};
 
 	const buildClient = (authorized: boolean) =>
 		createTRPCClient<HostAppRouter>({
@@ -150,16 +154,22 @@ export async function createTestHost(
 	const unauthenticatedTrpc = buildClient(false);
 
 	const dispose = async (): Promise<void> => {
-		await result.dispose();
+		// Run sqlite + temp-dir cleanup in a finally so a thrown
+		// `result.dispose()` can't leak the bun:sqlite handle or leave
+		// `host-service-test-db-*` directories behind for later runs.
 		try {
-			sqlite.close();
-		} catch {
-			// best-effort
-		}
-		try {
-			rmSync(dataDir, { recursive: true, force: true });
-		} catch {
-			// best-effort
+			await result.dispose();
+		} finally {
+			try {
+				sqlite.close();
+			} catch {
+				// best-effort
+			}
+			try {
+				rmSync(dataDir, { recursive: true, force: true });
+			} catch {
+				// best-effort
+			}
 		}
 	};
 

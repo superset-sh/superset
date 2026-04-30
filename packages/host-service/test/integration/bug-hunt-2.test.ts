@@ -8,7 +8,6 @@ import { randomUUID } from "node:crypto";
 import {
 	existsSync,
 	mkdirSync,
-	readFileSync,
 	rmSync,
 	symlinkSync,
 	writeFileSync,
@@ -149,7 +148,7 @@ describe("bug-hunt-2: partial-failure consistency", () => {
 		repo.dispose();
 	});
 
-	test("workspace.create rolls back when persistLocalWorkspace fails post-cloud (db UNIQUE)", async () => {
+	test("workspace.create (v1) does NOT roll back the worktree when persistLocalWorkspace fails post-cloud", async () => {
 		host = await createTestHost({
 			apiOverrides: {
 				"host.ensure.mutate": () => ({ machineId: "m1" }),
@@ -189,29 +188,26 @@ describe("bug-hunt-2: partial-failure consistency", () => {
 			})
 			.run();
 
-		const result = await host.trpc.workspace.create
-			.mutate({
+		// The legacy `workspace.create` (v1) doesn't roll back the worktree
+		// when the local DB insert fails — that's by design (a stale local
+		// row would block the retry forever). Pin that behavior: the call
+		// must throw, AND the on-disk worktree must remain (so the user
+		// can inspect/recover it before the next attempt). If a future
+		// change adds a rollback, this test flips and signals the change.
+		await expect(
+			host.trpc.workspace.create.mutate({
 				projectId,
 				name: "ws",
 				branch: "feature/post-cloud-fail",
-			})
-			.catch((err) => err);
+			}),
+		).rejects.toBeDefined();
 
-		// The procedure currently logs cleanup failures and lets the row
-		// insert error through — the worktree IS created on disk and the
-		// cloud row IS created, but the local DB insert fails. This is
-		// the documented behavior: a stale local row would block the
-		// retry forever, so the conflict surface is exposed here.
 		const expectedWorktree = join(
 			repo.repoPath,
 			".worktrees",
 			"feature/post-cloud-fail",
 		);
-		// The on-disk worktree should still exist OR the procedure rolled it
-		// back. Assert one of the two is true (no half-state).
-		const worktreeStillThere = existsSync(expectedWorktree);
-		const errorThrown = result instanceof Error;
-		expect(errorThrown || !worktreeStillThere).toBe(true);
+		expect(existsSync(expectedWorktree)).toBe(true);
 	});
 
 	test("workspace.delete with a worktree dir already removed manually still cleans up the row", async () => {
@@ -393,28 +389,8 @@ describe("bug-hunt-2: input edges", () => {
 	});
 });
 
-describe("bug-hunt-2: persistence after restart", () => {
-	test("a row written via one host is visible to a second host on the same db", async () => {
-		const repo = await createGitFixture();
-		try {
-			const a = await createTestHost();
-			const projectId = randomUUID();
-			a.db
-				.insert(projects)
-				.values({ id: projectId, repoPath: repo.repoPath })
-				.run();
-
-			// Read back via the same host first.
-			const beforeDispose = await a.trpc.project.list.query();
-			expect(beforeDispose.find((p) => p.id === projectId)).toBeDefined();
-
-			// Note: we *can't* simulate a real restart here because the
-			// harness uses an isolated in-memory bun:sqlite per host. This
-			// test exists to flag if that ever changes — drop the skip.
-			void readFileSync;
-			await a.dispose();
-		} finally {
-			repo.dispose();
-		}
-	});
-});
+// Persistence-after-restart was removed — the test harness creates a
+// fresh tmp dbPath per `createTestHost`, so two hosts can never share
+// the same on-disk file by design. A real cross-host persistence probe
+// would need a shared-dbPath option on the harness; add one if/when
+// that scenario actually matters.

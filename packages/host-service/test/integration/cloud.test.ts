@@ -32,7 +32,7 @@ describe("cloud router integration", () => {
 	});
 
 	test("whoami requires authentication", async () => {
-		expect(
+		await expect(
 			host.unauthenticatedTrpc.cloud.whoami.query(),
 		).rejects.toBeInstanceOf(TRPCClientError);
 	});

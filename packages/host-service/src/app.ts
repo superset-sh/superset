@@ -191,8 +191,19 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 
 	const ownsDb = options.db === undefined;
 	const dispose = async (): Promise<void> => {
-		pullRequestRuntime.stop();
-		eventBus.close();
+		// Each step is best-effort and isolated: a throw in one cleanup must
+		// not skip the others, otherwise a flaky `.stop()` could leak the
+		// open SQLite handle for the rest of the process lifetime.
+		try {
+			pullRequestRuntime.stop();
+		} catch (err) {
+			console.warn("[host-service] pullRequestRuntime.stop failed:", err);
+		}
+		try {
+			eventBus.close();
+		} catch (err) {
+			console.warn("[host-service] eventBus.close failed:", err);
+		}
 		if (ownsDb) {
 			try {
 				(db as unknown as { $client?: { close: () => void } }).$client?.close();

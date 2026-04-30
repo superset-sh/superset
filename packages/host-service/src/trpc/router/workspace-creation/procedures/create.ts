@@ -166,39 +166,10 @@ export const create = protectedProcedure
 				});
 			}
 
-			// Enable autoSetupRemote so the first terminal `git push` creates
-			// origin/<branchName> and sets it as upstream without requiring
-			// `-u`. Note: `--local` in a linked worktree writes to the shared
-			// repo config, so this applies repo-wide — intentional, every
-			// workspace worktree wants the same ergonomics. Safe against
-			// wrong-upstream targeting because --no-track above guarantees no
-			// upstream exists at first push, so auto-create always wins and
-			// always uses the branch's own name (never the base branch).
-			await enablePushAutoSetupRemote(
-				git,
-				worktreePath,
-				"[workspaceCreation.create]",
-			);
-
-			// Record the base branch in git config so the Changes tab knows what
-			// to compare against on first open. startPoint.shortName is the ref
-			// we actually forked from (user selection, resolved against local /
-			// remote). Skipped for "head" start point — no meaningful base.
-			if (startPoint.kind !== "head") {
-				await gitConfigWrite(git, [
-					"config",
-					`branch.${branchName}.base`,
-					startPoint.shortName,
-				]).catch((err) => {
-					console.warn(
-						`[workspaceCreation.create] failed to record base branch ${startPoint.shortName}:`,
-						err,
-					);
-				});
-			}
-
-			setProgress(input.pendingId, "registering");
-
+			// Past worktree-add: any throw must roll back the on-disk worktree
+			// before bubbling, otherwise the user is left with an orphaned
+			// `<repoPath>/.worktrees/<branch>` and a dangling local branch
+			// the next create attempt will collide with.
 			const rollbackWorktree = async () => {
 				try {
 					await git.raw(["worktree", "remove", worktreePath]);
@@ -212,6 +183,46 @@ export const create = protectedProcedure
 					);
 				}
 			};
+
+			try {
+				// Enable autoSetupRemote so the first terminal `git push`
+				// creates origin/<branchName> and sets it as upstream without
+				// requiring `-u`. `--local` in a linked worktree writes to the
+				// shared repo config, so this applies repo-wide — intentional,
+				// every workspace worktree wants the same ergonomics. Safe
+				// against wrong-upstream targeting because --no-track above
+				// guarantees no upstream exists at first push, so auto-create
+				// always wins and always uses the branch's own name (never
+				// the base branch).
+				await enablePushAutoSetupRemote(
+					git,
+					worktreePath,
+					"[workspaceCreation.create]",
+				);
+
+				// Record the base branch in git config so the Changes tab
+				// knows what to compare against on first open.
+				// startPoint.shortName is the ref we actually forked from
+				// (user selection, resolved against local / remote). Skipped
+				// for "head" start point — no meaningful base.
+				if (startPoint.kind !== "head") {
+					await gitConfigWrite(git, [
+						"config",
+						`branch.${branchName}.base`,
+						startPoint.shortName,
+					]).catch((err) => {
+						console.warn(
+							`[workspaceCreation.create] failed to record base branch ${startPoint.shortName}:`,
+							err,
+						);
+					});
+				}
+			} catch (err) {
+				await rollbackWorktree();
+				throw err;
+			}
+
+			setProgress(input.pendingId, "registering");
 
 			let host: { machineId: string };
 			try {

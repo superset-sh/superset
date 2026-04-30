@@ -282,7 +282,7 @@ describe("bug-hunt: idempotency + double-fire", () => {
 			.values({ id: projectId, repoPath: repo.repoPath })
 			.run();
 
-		const [a, b] = await Promise.allSettled([
+		await Promise.allSettled([
 			host.trpc.workspace.create.mutate({
 				projectId,
 				name: "w",
@@ -295,22 +295,17 @@ describe("bug-hunt: idempotency + double-fire", () => {
 			}),
 		]);
 
-		// At most one should succeed; we should never end up with two
-		// rows pointing at the same branch / worktreePath.
-		const fulfilled = [a, b].filter(
-			(r): r is PromiseFulfilledResult<unknown> => r.status === "fulfilled",
-		);
-		expect(fulfilled.length).toBeLessThanOrEqual(2);
-
+		// We must never end up with more than one workspace row pointing
+		// at the same branch — that's the actual collision we're guarding
+		// against. Either both calls collide (one row, one error) or git's
+		// own worktree-add lock causes one to fail; never two rows.
 		const rows = host.db
 			.select()
 			.from(workspaces)
 			.where(eq(workspaces.projectId, projectId))
 			.all();
 		const featureRows = rows.filter((r) => r.branch === "feature/race");
-		// Worst case both succeed, but they MUST then have unique ids.
-		const ids = new Set(featureRows.map((r) => r.id));
-		expect(ids.size).toBe(featureRows.length);
+		expect(featureRows.length).toBeLessThanOrEqual(1);
 	});
 });
 
@@ -373,10 +368,12 @@ describe("bug-hunt: SQL/identifier injection smoke", () => {
 			host.trpc.workspace.get.query({ id: "x'; DROP TABLE workspaces;--" }),
 		).rejects.toBeInstanceOf(TRPCClientError);
 
-		// Table still exists — issue a benign read.
-		const row = await host.trpc.workspace.get
-			.query({ id: "no-such-row" })
-			.catch(() => null);
-		expect(row).toBeNull();
+		// Table still exists. A second NOT_FOUND with a benign id proves
+		// the schema is intact — assert the rejection explicitly instead
+		// of swallowing it, otherwise a schema corruption would silently
+		// pass this test.
+		await expect(
+			host.trpc.workspace.get.query({ id: "no-such-row" }),
+		).rejects.toBeInstanceOf(TRPCClientError);
 	});
 });

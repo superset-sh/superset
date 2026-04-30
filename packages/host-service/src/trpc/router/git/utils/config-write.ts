@@ -20,17 +20,20 @@ export async function gitConfigWrite(
 	args: string[],
 	options: { retries?: number; baseDelayMs?: number } = {},
 ): Promise<string> {
-	const retries = options.retries ?? 4;
+	// `retries` is the number of *additional* attempts after the first try,
+	// so default 4 == 1 initial + 4 retries (5 total), with backoff
+	// 30/60/120/240ms between them. Clamped at 0 to keep the loop sane.
+	const retries = Math.max(0, options.retries ?? 4);
 	const baseDelayMs = options.baseDelayMs ?? 30;
-	let lastErr: unknown;
-	for (let attempt = 0; attempt < retries; attempt++) {
+	let lastErr: unknown = new Error("gitConfigWrite: no attempt completed");
+	for (let attempt = 0; attempt <= retries; attempt++) {
 		try {
 			return await git.raw(args);
 		} catch (err) {
 			lastErr = err;
 			const message = err instanceof Error ? err.message : String(err);
 			if (!message.includes("could not lock config file")) throw err;
-			if (attempt === retries - 1) break;
+			if (attempt === retries) break;
 			await new Promise((resolve) =>
 				setTimeout(resolve, baseDelayMs * 2 ** attempt),
 			);
