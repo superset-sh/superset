@@ -20,7 +20,7 @@ export function register(server: McpServer): void {
 			assigneeId: z.string().uuid().nullish(),
 			prUrl: z.string().url().nullish(),
 			estimate: z.number().int().positive().nullish(),
-			dueDate: z.coerce.date().nullish(),
+			dueDate: z.string().datetime().nullish().describe("ISO 8601 due date."),
 			labels: z.array(z.string()).nullish(),
 		},
 		handler: async (input, ctx) => {

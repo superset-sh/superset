@@ -18,6 +18,42 @@ export interface ToolDef<
 	) => Promise<unknown>;
 }
 
+export interface McpToolCallEvent {
+	toolName: string;
+	userId: string;
+	organizationId: string;
+	source: "api-key" | "oauth";
+	clientLabel: string | null;
+	durationMs: number;
+	success: boolean;
+	errorMessage?: string;
+}
+
+export type McpToolCallEmitter = (event: McpToolCallEvent) => void;
+
+const SERVER_EMITTERS = new WeakMap<McpServer, McpToolCallEmitter>();
+
+export function setServerToolCallEmitter(
+	server: McpServer,
+	emitter: McpToolCallEmitter | undefined,
+): void {
+	if (emitter) {
+		SERVER_EMITTERS.set(server, emitter);
+	} else {
+		SERVER_EMITTERS.delete(server);
+	}
+}
+
+function emitToolCall(server: McpServer, event: McpToolCallEvent): void {
+	const emitter = SERVER_EMITTERS.get(server);
+	if (!emitter) return;
+	try {
+		emitter(event);
+	} catch (e) {
+		console.error("[mcp-v2] tool-call emitter threw:", e);
+	}
+}
+
 function errorResult(message: string): CallToolResult {
 	return {
 		isError: true,
@@ -65,7 +101,7 @@ export function defineTool<
 		def.name,
 		{
 			description: def.description,
-			...(def.inputSchema ? { inputSchema: def.inputSchema } : {}),
+			inputSchema: (def.inputSchema ?? {}) as Input,
 			...(def.outputSchema ? { outputSchema: def.outputSchema } : {}),
 		},
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any -- the SDK callback type depends on whether inputSchema is provided; we always invoke with two args.
@@ -80,11 +116,32 @@ export function defineTool<
 				return errorResult(`Auth context unavailable: ${describeError(e)}`);
 			}
 
+			const startedAt = Date.now();
 			try {
 				const result = await def.handler(args, ctx);
+				emitToolCall(server, {
+					toolName: def.name,
+					userId: ctx.userId,
+					organizationId: ctx.organizationId,
+					source: ctx.source,
+					clientLabel: ctx.clientLabel,
+					durationMs: Date.now() - startedAt,
+					success: true,
+				});
 				return successResult(result);
 			} catch (e) {
-				return errorResult(describeError(e));
+				const errorMessage = describeError(e);
+				emitToolCall(server, {
+					toolName: def.name,
+					userId: ctx.userId,
+					organizationId: ctx.organizationId,
+					source: ctx.source,
+					clientLabel: ctx.clientLabel,
+					durationMs: Date.now() - startedAt,
+					success: false,
+					errorMessage: errorMessage.slice(0, 500),
+				});
+				return errorResult(errorMessage);
 			}
 		}) as never,
 	);

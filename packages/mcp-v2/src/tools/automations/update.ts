@@ -7,11 +7,10 @@ export function register(server: McpServer): void {
 	defineTool(server, {
 		name: "automations_update",
 		description:
-			"Update fields on an existing automation. Only the fields you pass change. Caller must be the automation's owner.",
+			"Update metadata on an existing automation (name, schedule, agent, host). Only the fields you pass change. Caller must be the automation's owner. Use automations_set_prompt to change the prompt body.",
 		inputSchema: {
 			id: z.string().uuid().describe("Automation UUID."),
 			name: z.string().min(1).max(200).optional(),
-			prompt: z.string().min(1).max(20_000).optional(),
 			agentConfig: z
 				.object({
 					id: z.string().min(1),
@@ -23,7 +22,11 @@ export function register(server: McpServer): void {
 			v2ProjectId: z.string().uuid().optional(),
 			v2WorkspaceId: z.string().uuid().nullish(),
 			rrule: z.string().min(1).max(500).optional(),
-			dtstart: z.coerce.date().optional(),
+			dtstart: z
+				.string()
+				.datetime()
+				.optional()
+				.describe("First scheduled fire (ISO 8601)."),
 			timezone: z.string().min(1).optional(),
 			mcpScope: z.array(z.string()).optional(),
 		},

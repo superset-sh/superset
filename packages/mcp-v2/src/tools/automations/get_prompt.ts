@@ -5,18 +5,15 @@ import { defineTool } from "../../define-tool";
 
 export function register(server: McpServer): void {
 	defineTool(server, {
-		name: "automations_get",
+		name: "automations_get_prompt",
 		description:
-			"Get a single automation's metadata. Returns name, schedule, agent, host — the prompt body is omitted (call automations_get_prompt to fetch it). For run history, call automations_logs. Caller must be the automation's owner.",
+			"Fetch the full prompt body (markdown) for one automation. Use this when you need to read or edit the prompt — automations_get and automations_list omit the body to keep responses small. Caller must be the automation's owner.",
 		inputSchema: {
 			id: z.string().uuid().describe("Automation UUID."),
 		},
 		handler: async (input, ctx) => {
 			const caller = createMcpCaller(ctx);
-			const { prompt: _prompt, ...rest } = await caller.automation.get({
-				id: input.id,
-			});
-			return rest;
+			return caller.automation.getPrompt({ id: input.id });
 		},
 	});
 }

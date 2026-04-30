@@ -31,7 +31,7 @@ export function register(server: McpServer): void {
 				.positive()
 				.nullish()
 				.describe("Story-point estimate."),
-			dueDate: z.coerce.date().nullish().describe("ISO 8601 due date."),
+			dueDate: z.string().datetime().nullish().describe("ISO 8601 due date."),
 			labels: z.array(z.string()).nullish().describe("Free-text labels."),
 		},
 		handler: async (input, ctx) => {

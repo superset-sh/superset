@@ -10,6 +10,7 @@ export interface McpContext {
 	organizationId: string;
 	organizationIds: string[];
 	source: "api-key" | "oauth";
+	clientLabel: string | null;
 	requestId: string;
 	bearerToken: string;
 }
@@ -89,9 +90,11 @@ async function loadUserAndOrgs(
 	return { email: user.email, organizationIds };
 }
 
-async function resolveApiKey(
-	token: string,
-): Promise<{ userId: string; organizationId: string }> {
+async function resolveApiKey(token: string): Promise<{
+	userId: string;
+	organizationId: string;
+	clientLabel: string | null;
+}> {
 	const result = await auth.api.verifyApiKey({ body: { key: token } });
 	if (!result.valid || !result.key) {
 		throw new McpUnauthorizedError("Invalid API key");
@@ -108,13 +111,21 @@ async function resolveApiKey(
 	if (!organizationId) {
 		throw new McpUnauthorizedError("API key missing organization scope");
 	}
-	return { userId, organizationId };
+	const clientLabel =
+		typeof metadata?.clientLabel === "string" && metadata.clientLabel
+			? metadata.clientLabel
+			: null;
+	return { userId, organizationId, clientLabel };
 }
 
 async function resolveOAuth(
 	token: string,
 	apiUrl: string,
-): Promise<{ userId: string; organizationId: string }> {
+): Promise<{
+	userId: string;
+	organizationId: string;
+	clientLabel: string | null;
+}> {
 	let payload: Record<string, unknown>;
 	try {
 		payload = (await verifyAccessToken(token, {
@@ -133,7 +144,27 @@ async function resolveOAuth(
 	if (typeof payload.organizationId !== "string" || !payload.organizationId) {
 		throw new McpUnauthorizedError("OAuth token missing organizationId claim");
 	}
-	return { userId: payload.sub, organizationId: payload.organizationId };
+	const azp = typeof payload.azp === "string" ? payload.azp : null;
+	return {
+		userId: payload.sub,
+		organizationId: payload.organizationId,
+		clientLabel: azp ? mapOAuthClientId(azp) : null,
+	};
+}
+
+const KNOWN_OAUTH_CLIENT_PREFIXES: Array<{ prefix: string; label: string }> = [
+	{ prefix: "claude-desktop", label: "claude-desktop" },
+	{ prefix: "claude-code", label: "claude-code" },
+	{ prefix: "claude-ai", label: "claude-ai" },
+	{ prefix: "cursor", label: "cursor" },
+];
+
+function mapOAuthClientId(clientId: string): string {
+	const lower = clientId.toLowerCase();
+	for (const { prefix, label } of KNOWN_OAUTH_CLIENT_PREFIXES) {
+		if (lower.startsWith(prefix)) return label;
+	}
+	return clientId;
 }
 
 export async function resolveMcpContext(
@@ -147,13 +178,17 @@ export async function resolveMcpContext(
 
 	let userId: string;
 	let organizationId: string;
+	let clientLabel: string | null;
 	let source: "api-key" | "oauth";
 
 	if (isApiKey(token)) {
-		({ userId, organizationId } = await resolveApiKey(token));
+		({ userId, organizationId, clientLabel } = await resolveApiKey(token));
 		source = "api-key";
 	} else if (looksLikeJwt(token)) {
-		({ userId, organizationId } = await resolveOAuth(token, apiUrl));
+		({ userId, organizationId, clientLabel } = await resolveOAuth(
+			token,
+			apiUrl,
+		));
 		source = "oauth";
 	} else {
 		throw new McpUnauthorizedError("Unrecognized token format");
@@ -179,6 +214,7 @@ export async function resolveMcpContext(
 		organizationId,
 		organizationIds,
 		source,
+		clientLabel,
 		requestId: crypto.randomUUID(),
 		bearerToken,
 	};

@@ -6,6 +6,7 @@ import {
 	resolveMcpContext,
 } from "@superset/mcp-v2";
 import { env } from "@/env";
+import { posthog } from "@/lib/analytics";
 import { getOAuthProtectedResourceMetadataUrl } from "@/lib/oauth-metadata";
 
 function unauthorizedResponse(req: Request, message: string): Response {
@@ -32,7 +33,26 @@ async function handle(req: Request): Promise<Response> {
 		throw error;
 	}
 
-	const server = createMcpServer();
+	const server = createMcpServer({
+		onToolCall: (event) => {
+			posthog.capture({
+				distinctId: event.userId,
+				event: "mcp_tool_called",
+				properties: {
+					tool: event.toolName,
+					organization_id: event.organizationId,
+					auth_source: event.source,
+					client_label: event.clientLabel,
+					duration_ms: event.durationMs,
+					success: event.success,
+					error_message: event.errorMessage,
+					mcp_server: "superset-v2",
+					mcp_server_version: "0.1.0",
+				},
+				groups: { organization: event.organizationId },
+			});
+		},
+	});
 	const transport = new WebStandardStreamableHTTPServerTransport();
 	await server.connect(transport);
 

@@ -571,8 +571,9 @@ List automations in the active organization.
 	]}
 	output="Automation"
 >
-Get an automation. Use [`automations logs`](#superset-automations-logs-id)
-for run history.
+Get an automation's metadata. The prompt body is omitted — use
+[`automations prompt`](#superset-automations-prompt-id) to read it.
+Use [`automations logs`](#superset-automations-logs-id) for run history.
 </Command>
 
 <Command
@@ -612,8 +613,6 @@ superset automations create \
 	]}
 	options={[
 		{ flag: "--name <name>", description: "New name." },
-		{ flag: "--prompt <text>", description: "`-` reads from stdin." },
-		{ flag: "--prompt-file <path>", description: "Read verbatim." },
 		{ flag: "--rrule <rrule>", description: "New schedule." },
 		{ flag: "--timezone <iana>", description: "New timezone." },
 		{ flag: "--dtstart <iso8601>", description: "New start time." },
@@ -624,8 +623,36 @@ superset automations create \
 	]}
 	output="Automation"
 >
-Update an automation. All flags optional. Omitting a flag preserves the
-existing value — `undefined` means "no change", not "clear".
+Update an automation's metadata (name, schedule, agent, host). All flags
+optional. Omitting a flag preserves the existing value — `undefined` means
+"no change", not "clear". Use [`automations prompt`](#superset-automations-prompt-id)
+to read or replace the prompt body.
+</Command>
+
+<Command
+	name="superset automations prompt <id>"
+	args={[
+		{ name: "id", required: true, description: "Automation ID." },
+	]}
+	options={[
+		{ flag: "--from-file <path>", description: "Read the new prompt from a file. Use `-` for stdin." },
+	]}
+	output="Markdown (read mode) or Automation (write mode)"
+>
+Read or replace an automation's prompt body. Without `--from-file`, prints
+the current prompt to stdout. With `--from-file <path>` or piped stdin,
+replaces the prompt verbatim.
+
+```bash
+# Read
+superset automations prompt aut_… > prompt.md
+
+# Write from file
+superset automations prompt aut_… --from-file ./prompt.md
+
+# Write from stdin
+cat ./prompt.md | superset automations prompt aut_…
+```
 </Command>
 
 <Command

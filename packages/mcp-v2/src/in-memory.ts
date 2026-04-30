@@ -10,6 +10,7 @@ import { createMcpServer } from "./server";
 export interface InMemoryClientOptions {
 	userId: string;
 	organizationId: string;
+	clientLabel: string;
 }
 
 /**
@@ -24,6 +25,7 @@ export interface InMemoryClientOptions {
 export async function createInMemoryMcpClient({
 	userId,
 	organizationId,
+	clientLabel,
 }: InMemoryClientOptions): Promise<{
 	client: Client;
 	cleanup: () => Promise<void>;
@@ -62,6 +64,7 @@ export async function createInMemoryMcpClient({
 		organizationId,
 		organizationIds,
 		source: "api-key",
+		clientLabel,
 		requestId: crypto.randomUUID(),
 		bearerToken,
 	};

@@ -14,7 +14,11 @@ export function register(server: McpServer): void {
 				.min(1)
 				.max(200)
 				.describe("Human name for the automation."),
-			prompt: z.string().min(1).max(20_000).describe("Prompt the agent runs."),
+			prompt: z
+				.string()
+				.min(1)
+				.max(100_000)
+				.describe("Prompt the agent runs (markdown)."),
 			agentConfig: z
 				.object({
 					id: z.string().min(1),
@@ -48,8 +52,9 @@ export function register(server: McpServer): void {
 				.describe(
 					"RFC 5545 RRULE body, no DTSTART prefix. Example: FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR;BYHOUR=9;BYMINUTE=0",
 				),
-			dtstart: z.coerce
-				.date()
+			dtstart: z
+				.string()
+				.datetime()
 				.optional()
 				.describe("First scheduled fire (ISO 8601). Defaults to now."),
 			timezone: z

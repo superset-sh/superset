@@ -5,5 +5,6 @@ export {
 	resolveMcpContext,
 } from "./auth";
 export { createMcpCaller } from "./caller";
+export type { McpToolCallEmitter, McpToolCallEvent } from "./define-tool";
 export type { McpServerOptions } from "./server";
 export { createMcpServer } from "./server";

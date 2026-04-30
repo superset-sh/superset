@@ -7,9 +7,9 @@ export default command({
 	run: async ({ ctx, args }) => {
 		const id = args.id as string;
 		const result = await ctx.api.automation.get.query({ id });
-		// Runs are intentionally omitted — use `superset automations logs <id>`
-		// for paginated run history.
-		const { recentRuns: _recentRuns, ...automation } = result;
+		// Prompt is fetched via `superset automations prompt <id>` (it can be
+		// large markdown). Runs are paginated via `superset automations logs <id>`.
+		const { prompt: _prompt, ...automation } = result;
 		return { data: automation };
 	},
 });
