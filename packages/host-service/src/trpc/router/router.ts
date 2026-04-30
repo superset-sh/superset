@@ -1,4 +1,5 @@
 import { router } from "../index";
+import { attachmentsRouter } from "./attachments";
 import { authRouter } from "./auth";
 import { chatRouter } from "./chat";
 import { cloudRouter } from "./cloud";
@@ -18,6 +19,7 @@ import { workspaceCleanupRouter } from "./workspace-cleanup";
 import { workspaceCreationRouter } from "./workspace-creation";
 
 export const appRouter = router({
+	attachments: attachmentsRouter,
 	auth: authRouter,
 	health: healthRouter,
 	host: hostRouter,
