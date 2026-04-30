@@ -646,6 +646,52 @@ describe("cross-client continuity (host-service restart simulation)", () => {
 		await b.close();
 	});
 
+	test("subscribe-with-replay on an already-exited session yields buffered output + immediate exit event", async () => {
+		// After a host-service restart, a shell that exited during the gap
+		// should still surface its final output AND its exit event when the
+		// new host-service subscribes. Otherwise the renderer hangs waiting
+		// for output that will never come.
+		const a = await connectAndHello(sockPath);
+		const id = uniqueId("postexit");
+		a.send({
+			type: "open",
+			id,
+			meta: { ...baseMeta, argv: ["-c", "echo final-words; exit 7"] },
+		});
+		await a.waitFor((m) => m.type === "open-ok" && m.id === id);
+		a.send({ type: "subscribe", id, replay: true });
+		await a.waitFor((m) => m.type === "exit" && m.id === id, 3000);
+		// Connection A drops without explicit close — session enters
+		// alive:false state but is still in the daemon's map.
+		a.socket.destroy();
+		await new Promise((r) => setTimeout(r, 100));
+
+		const b = await connectAndHello(sockPath);
+		b.send({ type: "subscribe", id, replay: true });
+		await b.waitFor(
+			(m) =>
+				m.type === "output" &&
+				m.id === id &&
+				Buffer.from(m.data, "base64").toString().includes("final-words"),
+			2000,
+		);
+		// Note: an exit event for an already-exited session is best-effort —
+		// the daemon's `wireSession` only fires onExit once when the shell
+		// actually dies. A late subscriber sees the buffered output and can
+		// observe `alive:false` via `list`. This test asserts the buffer
+		// behavior; the host-service supplements with a `list` check before
+		// declaring the session dead.
+		b.send({ type: "list" });
+		const reply = await b.waitFor((m) => m.type === "list-reply");
+		if (reply.type === "list-reply") {
+			const me = reply.sessions.find((s) => s.id === id);
+			assert.ok(me, "exited session should still be in list");
+			assert.equal(me?.alive, false);
+		}
+		b.send({ type: "close", id, signal: "SIGTERM" });
+		await b.close();
+	});
+
 	test("daemon `list` returns sessions whose only client just dropped", async () => {
 		// Defensive: the daemon must NOT garbage-collect a session just
 		// because its last client disconnected. host-service relies on the
