@@ -167,28 +167,19 @@ describe("bug-hunt: git-flag injection", () => {
 		repo.dispose();
 	});
 
-	test("setBaseBranch with a flag-shaped value doesn't write to global git config", async () => {
-		// Try to inject `--global` via the value. simple-git uses argv
-		// (not a shell), but git itself parses positional args. The
-		// procedure runs `git config branch.<current>.base <value>`, so
-		// only the value field is user-controlled here.
+	test("setBaseBranch with a flag-shaped value stores it as a literal config value", async () => {
+		// `git config branch.main.base --global` would only be a flag-injection
+		// risk if simple-git ran a shell — it doesn't (argv spawn), so the
+		// value lands as literal text. Pin that round-trip behavior.
 		await host.trpc.git.setBaseBranch.mutate({
 			workspaceId,
 			baseBranch: "--global",
 		});
-
-		// The global config should not have a stray entry. We check by
-		// reading our local config: `branch.main.base` should be set
-		// literally to "--global", and global git config shouldn't contain
-		// our trick value. Just ensure no exception and value round-trips.
 		const round = await host.trpc.git.getBaseBranch.query({ workspaceId });
 		expect(round.baseBranch).toBe("--global");
 	});
 
-	test("renameBranch refuses dangerous flag-shaped new names (or treats them as literal)", async () => {
-		// Set up a branch we own and try to rename to '--force'. Either
-		// the rename succeeds with the literal name, or git refuses. In
-		// no case should it execute a destructive flag.
+	test("renameBranch with a flag-shaped new name has no destructive side effect", async () => {
 		await repo.git.checkoutLocalBranch("rename-target");
 		host.db
 			.update(workspaces)
@@ -196,24 +187,22 @@ describe("bug-hunt: git-flag injection", () => {
 			.where(eq(workspaces.id, workspaceId))
 			.run();
 
-		try {
-			await host.trpc.git.renameBranch.mutate({
+		await host.trpc.git.renameBranch
+			.mutate({
 				workspaceId,
 				oldName: "rename-target",
 				newName: "--force",
-			});
-		} catch {
-			// Acceptable: git refused; we just want no destructive side effect.
-		}
+			})
+			.catch(() => {});
 
 		const branches = await repo.git.branchLocal();
-		// Old branch must still exist OR a literal "--force" branch was
-		// created — but no other branches should have been removed.
-		const haveExpected =
+		// Either git refused the rename (target still there) or accepted
+		// `--force` as a literal branch name — never both gone, never main
+		// affected.
+		expect(
 			branches.all.includes("rename-target") ||
-			branches.all.includes("--force");
-		expect(haveExpected).toBe(true);
-		// Main must still exist regardless.
+				branches.all.includes("--force"),
+		).toBe(true);
 		expect(branches.all).toContain("main");
 	});
 });

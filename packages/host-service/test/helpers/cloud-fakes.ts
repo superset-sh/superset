@@ -3,14 +3,8 @@ import type { FakeApiOverrides } from "./fakes";
 
 /**
  * Pre-canned cloud-API response factories. Tests compose these into
- * `apiOverrides` so the same handful of mocks ("ok host.ensure",
- * "echo-the-input v2Workspace.create") aren't redefined inline in
- * every test file.
- *
- * Convention: each factory returns an `(input) => response` shape
- * compatible with `FakeApiOverrides` values. Override-once helpers are
- * the building blocks; the bundled flow helpers below mix several
- * factories into a complete `apiOverrides` object for common scenarios.
+ * `apiOverrides` so common mocks aren't redefined inline. `cloudOk.*`
+ * are the building blocks; `cloudFlows.*` bundles them for whole flows.
  */
 
 interface CloudWorkspace {
@@ -27,10 +21,9 @@ export const cloudOk = {
 		() => ({ machineId }),
 
 	/**
-	 * Echoes the requested branch/name back with a fresh UUID id. Used by
-	 * any procedure that creates a workspace and inspects the returned
-	 * row. `ensureMainWorkspace` calls this first inside many procedures,
-	 * so each call needs a distinct id — we generate one per invocation.
+	 * Echoes branch/name back with a fresh UUID id per call. Many
+	 * procedures call `ensureMainWorkspace` first, which hits this same
+	 * mock — each invocation needs a distinct id to avoid PK collisions.
 	 */
 	workspaceCreate:
 		(overrides: Partial<CloudWorkspace> = {}) =>
@@ -54,32 +47,17 @@ export const cloudOk = {
 		() =>
 			workspace,
 
-	organization:
-		(organizationId: string, name = "Test Org", slug = "test-org") =>
-		() => ({ id: organizationId, name, slug }),
-
-	userMe:
-		(user: { id?: string; email?: string; name?: string } = {}) =>
-		() => ({
-			id: user.id ?? "user-1",
-			email: user.email ?? "test@superset.local",
-			name: user.name ?? "Test User",
-		}),
-
-	chatUpdateSession: () => () => ({ ok: true }),
-
 	v2ProjectFindByGitHubRemote:
 		(candidates: Array<{ id: string; name: string }> = []) =>
 		() => ({ candidates }),
 };
 
 /**
- * Bundles for whole flows. Spread into `apiOverrides`. The intent is
- * that a test reads as "I want the workspace-create flow to succeed"
- * rather than enumerating four individual procedure mocks.
+ * Whole-flow bundles. Spread into `apiOverrides` so a test reads as
+ * "I want the workspace-create flow to succeed" rather than enumerating
+ * each procedure mock.
  */
 export const cloudFlows = {
-	/** Successful workspace creation: host.ensure + v2Workspace.create. */
 	workspaceCreateOk(overrides: Partial<CloudWorkspace> = {}): FakeApiOverrides {
 		return {
 			"host.ensure.mutate": cloudOk.hostEnsure(),
@@ -87,7 +65,6 @@ export const cloudFlows = {
 		};
 	},
 
-	/** Successful workspace teardown: getFromHost + delete. */
 	workspaceDeleteOk(
 		options: { type?: "main" | "feature" } = { type: "feature" },
 	): FakeApiOverrides {

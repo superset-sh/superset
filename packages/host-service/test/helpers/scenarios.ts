@@ -28,8 +28,6 @@ export interface BasicScenario {
 }
 
 export interface BasicScenarioOptions {
-	/** Forwarded to `createTestHost` — pass `apiOverrides`, `chatRuntime`,
-	 *  etc. Sensible defaults are used when omitted. */
 	hostOptions?: TestHostOptions;
 }
 
@@ -72,8 +70,8 @@ export interface FeatureWorktreeScenario extends BasicScenario {
 }
 
 export interface FeatureWorktreeScenarioOptions extends BasicScenarioOptions {
-	/** Defaults to "feature/cleanup". Used both as the git branch name and
-	 *  (slugified) as the worktree directory under `.worktrees/`. */
+	/** Defaults to "feature/cleanup". Slashes get replaced with `-` for the
+	 *  on-disk worktree directory under `.worktrees/`. */
 	branch?: string;
 }
 
@@ -106,23 +104,6 @@ export async function createFeatureWorktreeScenario(
 		branch,
 		featureWorkspaceId,
 	};
-}
-
-/**
- * `await using`-style helper: pass an async function and the scenario is
- * disposed when it returns or throws. Equivalent to `try/finally` with
- * the scenario lifecycle, useful for one-off tests outside `beforeEach`.
- */
-export async function withBasicScenario<T>(
-	options: BasicScenarioOptions,
-	fn: (scenario: BasicScenario) => Promise<T>,
-): Promise<T> {
-	const scenario = await createBasicScenario(options);
-	try {
-		return await fn(scenario);
-	} finally {
-		await scenario.dispose();
-	}
 }
 
 /** Convenience for tests that need just a project id and no workspace. */

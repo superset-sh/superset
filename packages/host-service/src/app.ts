@@ -36,41 +36,17 @@ export interface CreateAppOptions {
 		modelResolver: ModelProviderRuntimeResolver;
 	};
 	/**
-	 * Optional pre-built drizzle `HostDb`. When provided, `createApp` skips
-	 * its own `createDb(config.dbPath, config.migrationsFolder)` call. Used
-	 * by the integration test harness to inject a `bun:sqlite`-backed db so
-	 * the suite can run under `bun test` (better-sqlite3 native bindings
-	 * aren't loadable by Bun — production runs on bundled Node where they
-	 * are).
+	 * Test-harness override hooks. Production never sets these — `createApp`
+	 * builds each subsystem itself when omitted. `db` is overridden so tests
+	 * can swap in `bun:sqlite` (better-sqlite3 isn't loadable under Bun;
+	 * prod uses it on bundled Node). `api`, `github`, `chatRuntime`, and
+	 * `chatService` are overridden to keep tests off the network and out of
+	 * mastra storage.
 	 */
 	db?: HostDb;
-	/**
-	 * Optional pre-built cloud `ApiClient`. When provided, replaces the
-	 * client `createApp` would build via `createApiClient(...)`. Used by
-	 * the integration test harness to inject a fake cloud api so tests
-	 * never hit the network.
-	 */
 	api?: ApiClient;
-	/**
-	 * Optional Octokit factory override. When provided, replaces the
-	 * default factory that pulls a token from `providers.credentials` and
-	 * constructs an `Octokit`. Used by the integration test harness to
-	 * inject a fake Octokit-shaped object so github tests don't hit
-	 * api.github.com.
-	 */
 	github?: () => Promise<Octokit>;
-	/**
-	 * Optional `ChatRuntimeManager` override. When provided, replaces the
-	 * default that `createApp` would build. Used by the integration test
-	 * harness to inject a fake so chat-router tests don't pull in mastra.
-	 */
 	chatRuntime?: ChatRuntimeManager;
-	/**
-	 * Optional `ChatService` override (the per-machine provider auth
-	 * singleton wrapped by the `host.auth.*` router). Used by the
-	 * integration test harness to inject a fake so auth-router tests
-	 * don't pull in mastra storage.
-	 */
 	chatService?: ChatService;
 }
 

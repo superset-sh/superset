@@ -39,7 +39,8 @@ describe("workspaceCleanup.destroy integration", () => {
 	});
 
 	test("rejects deleting a workspace flagged as main by cloud", async () => {
-		// Need a host whose cloud says type=main. Replace the scenario's host.
+		// Different scenario: cloud says type=main even though the path
+		// doesn't match repoPath. Build a fresh host with that mock.
 		await scenario.dispose();
 		const host = await createTestHost({
 			apiOverrides: {

@@ -47,7 +47,6 @@ export class FakeModelResolver implements ModelProviderRuntimeResolver {
  * `"organization.getByIdFromJwt.query"`). Anything unregistered throws so
  * an unmocked codepath fails loudly instead of silently returning undefined.
  */
-export type ProcedureKind = "query" | "mutate";
 export type FakeApiOverrides = Record<
 	string,
 	(input: unknown) => unknown | Promise<unknown>

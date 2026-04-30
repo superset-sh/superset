@@ -33,21 +33,12 @@ export interface TestHostOptions {
 	apiOverrides?: FakeApiOverrides;
 	githubToken?: string | null;
 	/**
-	 * Optional Octokit-shaped factory. Tests pass a fake to avoid hitting
-	 * api.github.com. The harness types the override as `unknown` and casts
-	 * since Octokit's full surface is huge — only the methods exercised by
-	 * the test under run need to be implemented.
+	 * Fake-runtime overrides typed as `unknown` so tests only need to
+	 * implement the methods they exercise — the real surfaces (Octokit,
+	 * ChatRuntimeManager, ChatService) are far too large to stub fully.
 	 */
 	githubFactory?: () => Promise<unknown>;
-	/**
-	 * Optional fake `ChatRuntimeManager`. Cast through `unknown` since the
-	 * full runtime surface is large — only methods the test exercises need
-	 * to be implemented.
-	 */
 	chatRuntime?: unknown;
-	/**
-	 * Optional fake `ChatService` (provider auth singleton).
-	 */
 	chatService?: unknown;
 }
 

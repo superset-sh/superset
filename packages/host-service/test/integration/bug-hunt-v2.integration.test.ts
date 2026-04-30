@@ -42,8 +42,6 @@ describe("bug-hunt-v2: progress-store leak on early errors in workspaceCreation.
 		const progress = await host.trpc.workspaceCreation.getProgress.query({
 			pendingId,
 		});
-		// Today: progress is non-null with ensuring_repo "active"; the
-		// renderer would keep showing the spinner. Should be null.
 		expect(progress).toBeNull();
 	});
 
@@ -55,11 +53,9 @@ describe("bug-hunt-v2: progress-store leak on early errors in workspaceCreation.
 			.run();
 		const pendingId = randomUUID();
 
-		// Empty branch name throws AFTER setProgress(creating_worktree).
-		// To get past requireLocalProject we need a project; to fail at
-		// the empty-name check we need branchName to fail .min(1) earlier
-		// — but z does that first. So use whitespace-only which passes
-		// zod (length 1+) but fails the `.trim()` check inside.
+		// Whitespace-only passes the zod min(1) check but fails the
+		// `.trim()` guard inside the procedure — exercises the throw
+		// path between the two `setProgress` calls.
 		await expect(
 			host.trpc.workspaceCreation.create.mutate({
 				pendingId,
@@ -118,13 +114,10 @@ describe("bug-hunt-v2: workspaceCleanup.destroy phase ordering", () => {
 			})
 			.run();
 
-		// Workspace is "main" by path equality — should reject with
-		// BAD_REQUEST BEFORE even attempting teardown.
 		await expect(
 			host.trpc.workspaceCleanup.destroy.mutate({ workspaceId }),
 		).rejects.toThrow(/Main workspaces cannot be deleted/i);
 
-		// Cloud delete must NOT have been called.
 		expect(
 			host.apiCalls.some((c) => c.path === "v2Workspace.delete.mutate"),
 		).toBe(false);
