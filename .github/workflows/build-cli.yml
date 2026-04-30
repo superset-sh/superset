@@ -119,11 +119,18 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          # --prerelease is a workaround: GitHub's /releases/latest endpoint
+          # doesn't filter by tag prefix, so a published non-prerelease cli-v*
+          # release would shadow desktop's auto-updater (which currently reads
+          # /releases/latest/download/latest-{mac,linux}.yml). Tracked in
+          # plans/release-channels-spec.md — drop once desktop migrates to a
+          # desktop-latest rolling pointer.
           gh release create "${{ github.ref_name }}" \
             release-artifacts/*.tar.gz \
             --title "Superset CLI ${{ github.ref_name }}" \
             --generate-notes \
-            --draft
+            --draft \
+            --prerelease
 
       - name: Publish version manifest
         env:
@@ -150,4 +157,5 @@ jobs:
             release-artifacts/version.txt \
             --title "Latest Superset CLI" \
             --notes "Rolling pointer to the latest published CLI release. See [${VERSION_TAG}](https://github.com/${{ github.repository }}/releases/tag/${VERSION_TAG}) for changelog." \
-            --target "${{ github.sha }}"
+            --target "${{ github.sha }}" \
+            --prerelease
