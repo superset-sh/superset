@@ -428,9 +428,8 @@ the host server directly over loopback HTTP — no cloud roundtrip, works
 offline. Otherwise it routes through the cloud API and the relay.
 
 If the resolved host is the local machine but the host server isn't
-responding, the CLI errors with
-`Host service for this machine isn't running. Run: superset start.`
-rather than silently falling through to the cloud.
+responding, the CLI errors out and points you at `superset start` rather
+than silently falling through to the cloud.
 
 <Command
 	name="superset workspaces list"
