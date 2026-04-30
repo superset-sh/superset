@@ -202,12 +202,12 @@ describe("bug-hunt-3: race + repeated config writes", () => {
 		repo.dispose();
 	});
 
-	// BUG: Two concurrent setBaseBranch calls race on `.git/config.lock`
-	// and one returns a 500: "error: could not lock config file .git/config:
-	// File exists". Renderer double-clicks during a slow request can hit
-	// this. Fix: catch the lock-contention error and retry once, or
-	// serialize per-workspace config writes.
-	test.todo("BUG: parallel setBaseBranch writes throw .git/config.lock contention", async () => {
+	// Regression: two concurrent setBaseBranch calls used to race on
+	// `.git/config.lock`. One would return a 500 with "error: could not
+	// lock config file .git/config: File exists" on a renderer double-
+	// click during a slow request. Fixed by routing config writes through
+	// `gitConfigWrite`, which retries on lock contention.
+	test("parallel setBaseBranch writes converge without a config-lock 500", async () => {
 		await Promise.all([
 			host.trpc.git.setBaseBranch.mutate({
 				workspaceId,

@@ -10,6 +10,7 @@ import {
 	resolveUpstream,
 } from "../../../../runtime/git/refs";
 import { protectedProcedure } from "../../../index";
+import { gitConfigWrite } from "../../git/utils/config-write";
 import { ensureMainWorkspace } from "../../project/utils/ensure-main-workspace";
 import { createInputSchema } from "../schemas";
 import { enablePushAutoSetupRemote } from "../shared/git-config";
@@ -184,14 +185,16 @@ export const create = protectedProcedure
 			// we actually forked from (user selection, resolved against local /
 			// remote). Skipped for "head" start point — no meaningful base.
 			if (startPoint.kind !== "head") {
-				await git
-					.raw(["config", `branch.${branchName}.base`, startPoint.shortName])
-					.catch((err) => {
-						console.warn(
-							`[workspaceCreation.create] failed to record base branch ${startPoint.shortName}:`,
-							err,
-						);
-					});
+				await gitConfigWrite(git, [
+					"config",
+					`branch.${branchName}.base`,
+					startPoint.shortName,
+				]).catch((err) => {
+					console.warn(
+						`[workspaceCreation.create] failed to record base branch ${startPoint.shortName}:`,
+						err,
+					);
+				});
 			}
 
 			setProgress(input.pendingId, "registering");
