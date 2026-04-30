@@ -60,12 +60,21 @@ jobs:
         env:
           RELAY_URL: https://relay.superset.sh
           CLOUD_API_URL: https://api.superset.sh
+          SUPERSET_WEB_URL: https://app.superset.sh
         run: bun run build:dist --target=${{ matrix.target }}
 
       - name: Smoke test binary
         run: |
-          ./packages/cli/dist/superset-${{ matrix.target }}/bin/superset --version
-          ./packages/cli/dist/superset-${{ matrix.target }}/bin/superset --help
+          DIST="./packages/cli/dist/superset-${{ matrix.target }}"
+          "$DIST/bin/superset" --version
+          "$DIST/bin/superset" --help
+          "$DIST/lib/node" --version
+          NODE_PATH="$DIST/lib/node_modules" "$DIST/lib/node" -e '
+            for (const m of ["better-sqlite3", "node-pty", "@parcel/watcher", "libsql"]) {
+              require(m);
+              console.log(m, "OK");
+            }
+          '
 
       - name: Upload tarball
         uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
