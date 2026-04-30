@@ -1,4 +1,3 @@
-import { randomUUID } from "node:crypto";
 import { join } from "node:path";
 import {
 	createTestHost,
@@ -148,11 +147,3 @@ export async function createProjectScenario(
 		},
 	};
 }
-
-/** Stable ids for tests that need to assert on them. Prefer the
- *  `randomUUID` defaults from `seed*` helpers when ids don't matter. */
-export const stableId = {
-	project: () => randomUUID(),
-	workspace: () => randomUUID(),
-	terminal: () => randomUUID(),
-};

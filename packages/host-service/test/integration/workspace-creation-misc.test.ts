@@ -1,6 +1,9 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { randomUUID } from "node:crypto";
-import { setProgress } from "../../src/trpc/router/workspace-creation/shared/progress-store";
+import {
+	clearProgress,
+	setProgress,
+} from "../../src/trpc/router/workspace-creation/shared/progress-store";
 import { createTestHost } from "../helpers/createTestHost";
 import {
 	type BasicScenario,
@@ -54,18 +57,24 @@ describe("workspaceCreation misc procedures", () => {
 
 	test("getProgress reflects state set via the in-memory store", async () => {
 		const pendingId = randomUUID();
+		// `progress-store` is a module-level Map, so any test entry has to
+		// be cleaned up explicitly — otherwise it leaks across suites and
+		// only `sweepStaleProgress` (every 5 min) clears it.
 		setProgress(pendingId, "creating_worktree");
-
-		const result = await basic.host.trpc.workspaceCreation.getProgress.query({
-			pendingId,
-		});
-		expect(result).not.toBeNull();
-		const steps = result?.steps ?? [];
-		expect(steps.find((s) => s.id === "ensuring_repo")?.status).toBe("done");
-		expect(steps.find((s) => s.id === "creating_worktree")?.status).toBe(
-			"active",
-		);
-		expect(steps.find((s) => s.id === "registering")?.status).toBe("pending");
+		try {
+			const result = await basic.host.trpc.workspaceCreation.getProgress.query({
+				pendingId,
+			});
+			expect(result).not.toBeNull();
+			const steps = result?.steps ?? [];
+			expect(steps.find((s) => s.id === "ensuring_repo")?.status).toBe("done");
+			expect(steps.find((s) => s.id === "creating_worktree")?.status).toBe(
+				"active",
+			);
+			expect(steps.find((s) => s.id === "registering")?.status).toBe("pending");
+		} finally {
+			clearProgress(pendingId);
+		}
 	});
 
 	test("generateBranchName returns null for empty prompts (no AI call)", async () => {
