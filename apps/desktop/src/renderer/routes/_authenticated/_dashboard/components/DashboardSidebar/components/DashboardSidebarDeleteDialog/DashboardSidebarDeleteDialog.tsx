@@ -29,6 +29,7 @@ export function DashboardSidebarDeleteDialog({
 		setDeleteBranch,
 		hasChanges,
 		hasUnpushedCommits,
+		blockingReason,
 		isCheckingStatus,
 		error,
 		handleOpenChange,
@@ -63,8 +64,10 @@ export function DashboardSidebarDeleteDialog({
 			onDeleteBranchChange={setDeleteBranch}
 			hasChanges={hasChanges}
 			hasUnpushedCommits={hasUnpushedCommits}
+			blockingReason={blockingReason}
 			isCheckingStatus={isCheckingStatus}
 			onConfirm={() => run(hasWarnings)}
+			confirmLabel={hasWarnings ? "Delete anyway" : "Delete"}
 		/>
 	);
 }
