@@ -14,6 +14,7 @@ import * as fs from "node:fs";
 import * as net from "node:net";
 import * as os from "node:os";
 import * as path from "node:path";
+import { track } from "./analytics";
 import { SUPERSET_HOME_DIR } from "./app-environment";
 import { isProcessAlive } from "./host-service-manifest";
 import { MAX_HOST_LOG_BYTES, openRotatingLogFd } from "./host-service-utils";
@@ -147,11 +148,22 @@ export class PtyDaemonCoordinator {
 			console.log(
 				`[pty-daemon:${organizationId}] adopted existing daemon pid=${adopted.pid}`,
 			);
+			track("pty_daemon_adopt", {
+				organizationId,
+				pid: adopted.pid,
+				ageSeconds: Math.round((Date.now() - adopted.startedAt) / 1000),
+			});
 			return adopted;
 		}
 
 		// Otherwise spawn a fresh one.
-		return this.spawn(organizationId);
+		const instance = await this.spawn(organizationId);
+		track("pty_daemon_spawn", {
+			organizationId,
+			pid: instance.pid,
+			socketPath: instance.socketPath,
+		});
+		return instance;
 	}
 
 	private async tryAdopt(
@@ -263,6 +275,13 @@ export class PtyDaemonCoordinator {
 			} catch {
 				logTail = "(no log file written)";
 			}
+			track("pty_daemon_spawn_failed", {
+				organizationId,
+				reason: "socket-not-ready",
+				timeoutMs: SOCKET_READY_TIMEOUT_MS,
+				earlyExitCode,
+				earlyExitSignal,
+			});
 			throw new Error(
 				`[pty-daemon:${organizationId}] socket did not become ready within ${SOCKET_READY_TIMEOUT_MS}ms (childPid=${childPid}, earlyExit=${earlyExitCode ?? earlyExitSignal ?? "still alive"}). Log tail:\n${logTail}`,
 			);
@@ -292,11 +311,23 @@ export class PtyDaemonCoordinator {
 			recent.push(now);
 			this.crashTimes.set(organizationId, recent);
 
+			track("pty_daemon_crash", {
+				organizationId,
+				exitCode: code,
+				crashesInWindow: recent.length,
+				windowSeconds: CRASH_WINDOW_MS / 1000,
+				ageSeconds: Math.round((now - current.startedAt) / 1000),
+			});
+
 			if (recent.length > CRASH_BUDGET) {
 				this.circuitOpen.add(organizationId);
 				console.error(
 					`[pty-daemon:${organizationId}] crash circuit OPEN — ${recent.length} crashes in ${CRASH_WINDOW_MS / 1000}s; refusing further respawns until clearCrashCircuit() is called`,
 				);
+				track("pty_daemon_circuit_open", {
+					organizationId,
+					crashesInWindow: recent.length,
+				});
 				return;
 			}
 
