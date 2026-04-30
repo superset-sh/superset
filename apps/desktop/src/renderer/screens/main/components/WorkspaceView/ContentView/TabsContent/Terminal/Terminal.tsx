@@ -2,7 +2,7 @@ import type { FitAddon } from "@xterm/addon-fit";
 import type { SearchAddon } from "@xterm/addon-search";
 import type { Terminal as XTerm } from "@xterm/xterm";
 import "@xterm/xterm/css/xterm.css";
-import { memo, useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { useUpdateLastActivityAt } from "renderer/hooks/useUpdateLastActivityAt";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { sanitizeTerminalFontFamily } from "renderer/lib/terminal/appearance";

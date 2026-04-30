@@ -121,7 +121,8 @@ describe("captureHotkeyFromEvent — codeChord uses event.code, not event.key", 
 
 	it("allows alt as a modifier on mac (test env defaults to mac)", () => {
 		expect(
-			captureHotkeyFromEvent(ev({ code: "KeyA", key: "a", altKey: true })),
+			captureHotkeyFromEvent(ev({ code: "KeyA", key: "a", altKey: true }))
+				?.codeChord,
 		).toBe("alt+a");
 	});
 

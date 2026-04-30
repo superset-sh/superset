@@ -351,12 +351,14 @@ export function useDashboardSidebarData() {
 		const sidebarProjectIds = new Set(
 			sidebarProjects.map((project) => project.id),
 		);
-		const autoLocalMainWorkspaces = localMainWorkspaces.filter(
-			(workspace) =>
-				!localStateWorkspaceIds.has(workspace.id) &&
-				workspace.hostId === machineId &&
-				sidebarProjectIds.has(workspace.projectId),
-		);
+		const autoLocalMainWorkspaces = localMainWorkspaces
+			.filter(
+				(workspace) =>
+					!localStateWorkspaceIds.has(workspace.id) &&
+					workspace.hostId === machineId &&
+					sidebarProjectIds.has(workspace.projectId),
+			)
+			.map((workspace) => ({ ...workspace, lastActivityAt: null as Date | null }));
 
 		return [
 			...autoLocalMainWorkspaces,
