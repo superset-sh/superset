@@ -52,6 +52,8 @@ const NATIVE_PACKAGES = [
 	"node-pty",
 	"@parcel/watcher",
 	"libsql",
+	"onnxruntime-node",
+	"@anush008/tokenizers",
 ] as const;
 
 /**
@@ -62,9 +64,21 @@ const NATIVE_PACKAGES = [
  * ship musl builds.
  */
 const TARGET_NATIVE_PACKAGES: Record<Target, string[]> = {
-	"darwin-arm64": ["@libsql/darwin-arm64", "@parcel/watcher-darwin-arm64"],
-	"darwin-x64": ["@libsql/darwin-x64", "@parcel/watcher-darwin-x64"],
-	"linux-x64": ["@libsql/linux-x64-gnu", "@parcel/watcher-linux-x64-glibc"],
+	"darwin-arm64": [
+		"@libsql/darwin-arm64",
+		"@parcel/watcher-darwin-arm64",
+		"@anush008/tokenizers-darwin-universal",
+	],
+	"darwin-x64": [
+		"@libsql/darwin-x64",
+		"@parcel/watcher-darwin-x64",
+		"@anush008/tokenizers-darwin-universal",
+	],
+	"linux-x64": [
+		"@libsql/linux-x64-gnu",
+		"@parcel/watcher-linux-x64-glibc",
+		"@anush008/tokenizers-linux-x64-gnu",
+	],
 	"linux-arm64": [
 		"@libsql/linux-arm64-gnu",
 		"@parcel/watcher-linux-arm64-glibc",
