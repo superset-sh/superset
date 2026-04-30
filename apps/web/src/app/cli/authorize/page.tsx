@@ -10,6 +10,18 @@ interface CliAuthorizePageProps {
 	searchParams: Promise<Record<string, string>>;
 }
 
+function isLoopbackRedirectUri(value: string): boolean {
+	let parsed: URL;
+	try {
+		parsed = new URL(value);
+	} catch {
+		return false;
+	}
+	if (parsed.protocol !== "http:") return false;
+	if (parsed.username !== "" || parsed.password !== "") return false;
+	return parsed.hostname === "127.0.0.1" || parsed.hostname === "localhost";
+}
+
 export default async function CliAuthorizePage({
 	searchParams,
 }: CliAuthorizePageProps) {
@@ -36,10 +48,7 @@ export default async function CliAuthorizePage({
 		);
 	}
 
-	if (
-		!redirectUri.startsWith("http://127.0.0.1:") &&
-		!redirectUri.startsWith("http://localhost:")
-	) {
+	if (!isLoopbackRedirectUri(redirectUri)) {
 		return (
 			<div className="flex min-h-screen items-center justify-center">
 				<p className="text-destructive">

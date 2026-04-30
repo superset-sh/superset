@@ -94,8 +94,12 @@ export const jwtProcedure = t.procedure.use(async ({ ctx, next }) => {
 				},
 			});
 		}
-	} catch {
-		// Fall through to session-token resolution.
+	} catch (error) {
+		// A live session is the legit fallback for an unverifiable token
+		// (expired/missing). A TRPCError from verifyJWT is an explicit
+		// rejection (revoked/forged) — surface it instead of laundering it
+		// into session auth.
+		if (error instanceof TRPCError) throw error;
 	}
 
 	if (ctx.session) {

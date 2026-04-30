@@ -26,6 +26,10 @@ import {
 
 const TASK_SLUG_CONSTRAINT = "tasks_org_slug_unique";
 const TASK_SLUG_RETRY_LIMIT = 5;
+
+function escapeLikePattern(value: string): string {
+	return value.replace(/[\\%_]/g, (match) => `\\${match}`);
+}
 type DbWsTransaction = Parameters<Parameters<typeof dbWs.transaction>[0]>[0];
 type Executor = typeof dbWs | DbWsTransaction;
 
@@ -317,7 +321,9 @@ export const taskRouter = {
 				filters.push(eq(tasks.creatorId, ctx.session.user.id));
 			}
 			if (input?.search) {
-				filters.push(ilike(tasks.title, `%${input.search}%`));
+				filters.push(
+					ilike(tasks.title, `%${escapeLikePattern(input.search)}%`),
+				);
 			}
 
 			return db
