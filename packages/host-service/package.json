@@ -48,6 +48,7 @@
 		"@octokit/rest": "^22.0.1",
 		"@superset/chat": "workspace:*",
 		"@superset/port-scanner": "workspace:*",
+		"@superset/pty-daemon": "workspace:*",
 		"@superset/shared": "workspace:*",
 		"@superset/trpc": "workspace:*",
 		"@superset/workspace-fs": "workspace:*",

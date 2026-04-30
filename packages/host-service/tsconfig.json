@@ -2,7 +2,11 @@
 	"extends": "@superset/typescript/base.json",
 	"compilerOptions": {
 		"jsx": "react-jsx",
-		"types": ["bun-types"]
+		"types": ["bun-types"],
+		// Required because we depend on @superset/pty-daemon, whose package
+		// exports point at .ts source files (Node ESM requires explicit
+		// extensions in directory-style imports).
+		"allowImportingTsExtensions": true
 	},
 	"include": ["src"]
 }
