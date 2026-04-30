@@ -3,6 +3,22 @@ name: Build CLI Distribution
 on:
   push:
     tags: ["cli-v*"]
+    branches: ["main", "cli-v1"]
+    paths:
+      - "packages/cli/**"
+      - "packages/cli-framework/**"
+      - "packages/host-service/**"
+      - "packages/shared/**"
+      - "packages/trpc/**"
+      - ".github/workflows/build-cli.yml"
+  pull_request:
+    paths:
+      - "packages/cli/**"
+      - "packages/cli-framework/**"
+      - "packages/host-service/**"
+      - "packages/shared/**"
+      - "packages/trpc/**"
+      - ".github/workflows/build-cli.yml"
   workflow_dispatch:
 
 jobs:
@@ -14,8 +30,12 @@ jobs:
         include:
           - os: macos-14
             target: darwin-arm64
+          - os: macos-13
+            target: darwin-x64
           - os: ubuntu-latest
             target: linux-x64
+          - os: ubuntu-24.04-arm
+            target: linux-arm64
 
     runs-on: ${{ matrix.os }}
     steps:
@@ -41,6 +61,11 @@ jobs:
           RELAY_URL: https://relay.superset.sh
           CLOUD_API_URL: https://api.superset.sh
         run: bun run build:dist --target=${{ matrix.target }}
+
+      - name: Smoke test binary
+        run: |
+          ./packages/cli/dist/superset-${{ matrix.target }}/bin/superset --version
+          ./packages/cli/dist/superset-${{ matrix.target }}/bin/superset --help
 
       - name: Upload tarball
         uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0

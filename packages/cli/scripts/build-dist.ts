@@ -33,9 +33,14 @@ import {
 import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 
-type Target = "darwin-arm64" | "linux-x64";
+type Target = "darwin-arm64" | "darwin-x64" | "linux-x64" | "linux-arm64";
 
-const VALID_TARGETS: Target[] = ["darwin-arm64", "linux-x64"];
+const VALID_TARGETS: Target[] = [
+	"darwin-arm64",
+	"darwin-x64",
+	"linux-x64",
+	"linux-arm64",
+];
 const NODE_VERSION = "22.13.0";
 
 /**
@@ -53,11 +58,17 @@ const NATIVE_PACKAGES = [
  * Platform-specific native bindings that live in optional dependencies
  * of their parent package and are only installed for the matching host.
  * `copyPackageWithDeps` only walks `dependencies`, so these need to be
- * listed explicitly per target.
+ * listed explicitly per target. Linux variants pin glibc (gnu) — we don't
+ * ship musl builds.
  */
 const TARGET_NATIVE_PACKAGES: Record<Target, string[]> = {
 	"darwin-arm64": ["@libsql/darwin-arm64", "@parcel/watcher-darwin-arm64"],
+	"darwin-x64": ["@libsql/darwin-x64", "@parcel/watcher-darwin-x64"],
 	"linux-x64": ["@libsql/linux-x64-gnu", "@parcel/watcher-linux-x64-glibc"],
+	"linux-arm64": [
+		"@libsql/linux-arm64-gnu",
+		"@parcel/watcher-linux-arm64-glibc",
+	],
 };
 
 /**
@@ -83,9 +94,13 @@ function parseArgs(): { target: Target } {
 	return { target };
 }
 
+function targetParts(target: Target): { platform: string; arch: string } {
+	const [platform, arch] = target.split("-") as [string, string];
+	return { platform, arch };
+}
+
 function nodeArchiveName(target: Target): string {
-	const arch = target === "darwin-arm64" ? "arm64" : "x64";
-	const platform = target === "darwin-arm64" ? "darwin" : "linux";
+	const { platform, arch } = targetParts(target);
 	return `node-v${NODE_VERSION}-${platform}-${arch}`;
 }
 
