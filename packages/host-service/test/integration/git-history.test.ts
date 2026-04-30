@@ -1,43 +1,23 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { randomUUID } from "node:crypto";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { projects, workspaces } from "../../src/db/schema";
-import { createTestHost, type TestHost } from "../helpers/createTestHost";
-import { createGitFixture, type GitFixture } from "../helpers/git-fixture";
+import { type BasicScenario, createBasicScenario } from "../helpers/scenarios";
 
 describe("git history + diff procedures", () => {
-	let host: TestHost;
-	let repo: GitFixture;
-	const projectId = randomUUID();
-	const workspaceId = randomUUID();
+	let scenario: BasicScenario;
 
 	beforeEach(async () => {
-		host = await createTestHost();
-		repo = await createGitFixture();
-
-		host.db
-			.insert(projects)
-			.values({ id: projectId, repoPath: repo.repoPath })
-			.run();
-		host.db
-			.insert(workspaces)
-			.values({
-				id: workspaceId,
-				projectId,
-				worktreePath: repo.repoPath,
-				branch: "main",
-			})
-			.run();
+		scenario = await createBasicScenario();
 	});
 
 	afterEach(async () => {
-		await host.dispose();
-		repo.dispose();
+		await scenario.dispose();
 	});
 
 	test("listCommits returns [] when on default branch with nothing ahead", async () => {
-		const result = await host.trpc.git.listCommits.query({ workspaceId });
+		const result = await scenario.host.trpc.git.listCommits.query({
+			workspaceId: scenario.workspaceId,
+		});
 		expect(result.commits).toEqual([]);
 	});
 
@@ -46,22 +26,24 @@ describe("git history + diff procedures", () => {
 		// configuring a real remote — `resolveBaseComparison` falls back to
 		// `origin/<default>` when no upstream is configured, so the ref must
 		// exist for `git log origin/main..HEAD` to resolve.
-		await repo.git.raw([
+		await scenario.repo.git.raw([
 			"update-ref",
 			"refs/remotes/origin/main",
 			"refs/heads/main",
 		]);
-		await repo.git.raw([
+		await scenario.repo.git.raw([
 			"symbolic-ref",
 			"refs/remotes/origin/HEAD",
 			"refs/remotes/origin/main",
 		]);
 
-		await repo.git.checkoutLocalBranch("feature/x");
-		await repo.commit("first feature commit", { "a.txt": "a" });
-		await repo.commit("second feature commit", { "b.txt": "b" });
+		await scenario.repo.git.checkoutLocalBranch("feature/x");
+		await scenario.repo.commit("first feature commit", { "a.txt": "a" });
+		await scenario.repo.commit("second feature commit", { "b.txt": "b" });
 
-		const result = await host.trpc.git.listCommits.query({ workspaceId });
+		const result = await scenario.host.trpc.git.listCommits.query({
+			workspaceId: scenario.workspaceId,
+		});
 		expect(result.commits.length).toBeGreaterThanOrEqual(2);
 		expect(result.commits[0].message).toBe("second feature commit");
 		expect(
@@ -70,13 +52,13 @@ describe("git history + diff procedures", () => {
 	});
 
 	test("getCommitFiles lists files changed in a commit", async () => {
-		const sha = await repo.commit("add files", {
+		const sha = await scenario.repo.commit("add files", {
 			"x.txt": "x content",
 			"y.txt": "y content",
 		});
 
-		const result = await host.trpc.git.getCommitFiles.query({
-			workspaceId,
+		const result = await scenario.host.trpc.git.getCommitFiles.query({
+			workspaceId: scenario.workspaceId,
 			commitHash: sha,
 		});
 		const paths = result.files.map((f) => f.path).sort();
@@ -85,12 +67,12 @@ describe("git history + diff procedures", () => {
 	});
 
 	test("getDiff returns staged content for a staged change", async () => {
-		const filePath = join(repo.repoPath, "README.md");
+		const filePath = join(scenario.repo.repoPath, "README.md");
 		writeFileSync(filePath, "modified line\n");
-		await repo.git.add("README.md");
+		await scenario.repo.git.add("README.md");
 
-		const result = await host.trpc.git.getDiff.query({
-			workspaceId,
+		const result = await scenario.host.trpc.git.getDiff.query({
+			workspaceId: scenario.workspaceId,
 			path: "README.md",
 			category: "staged",
 		});
@@ -99,8 +81,8 @@ describe("git history + diff procedures", () => {
 	});
 
 	test("getBranchSyncStatus reflects no-remote / no-upstream state", async () => {
-		const result = await host.trpc.git.getBranchSyncStatus.query({
-			workspaceId,
+		const result = await scenario.host.trpc.git.getBranchSyncStatus.query({
+			workspaceId: scenario.workspaceId,
 		});
 		expect(result.hasRepo).toBe(false);
 		expect(result.hasUpstream).toBe(false);
@@ -111,11 +93,11 @@ describe("git history + diff procedures", () => {
 	});
 
 	test("getBranchSyncStatus reports detached HEAD when checked out at a sha", async () => {
-		const sha = await repo.commit("for-detach", { "d.txt": "d" });
-		await repo.git.checkout(sha);
+		const sha = await scenario.repo.commit("for-detach", { "d.txt": "d" });
+		await scenario.repo.git.checkout(sha);
 
-		const result = await host.trpc.git.getBranchSyncStatus.query({
-			workspaceId,
+		const result = await scenario.host.trpc.git.getBranchSyncStatus.query({
+			workspaceId: scenario.workspaceId,
 		});
 		expect(result.isDetached).toBe(true);
 		expect(result.currentBranch).toBeNull();

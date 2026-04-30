@@ -1,50 +1,33 @@
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { afterEach, describe, expect, test } from "bun:test";
 import { randomUUID } from "node:crypto";
 import { join } from "node:path";
 import { eq } from "drizzle-orm";
-import { projects, workspaces } from "../../src/db/schema";
-import { createTestHost, type TestHost } from "../helpers/createTestHost";
-import { createGitFixture, type GitFixture } from "../helpers/git-fixture";
+import { workspaces } from "../../src/db/schema";
+import { cloudFlows } from "../helpers/cloud-fakes";
+import {
+	createBasicScenario,
+	createProjectScenario,
+} from "../helpers/scenarios";
 
 describe("workspaceCreation.adopt integration", () => {
-	let host: TestHost;
-	let repo: GitFixture;
-	const projectId = randomUUID();
-
-	beforeEach(async () => {
-		repo = await createGitFixture();
-	});
+	let dispose: (() => Promise<void>) | undefined;
 
 	afterEach(async () => {
-		if (host) await host.dispose();
-		repo.dispose();
+		if (dispose) {
+			await dispose();
+			dispose = undefined;
+		}
 	});
 
-	const setupHost = (
-		overrides: Record<string, (input: unknown) => unknown> = {},
-	) =>
-		createTestHost({
-			apiOverrides: {
-				"host.ensure.mutate": () => ({ machineId: "machine-1" }),
-				"v2Workspace.create.mutate": (input: unknown) => {
-					const i = input as { branch: string; name: string };
-					return {
-						id: randomUUID(),
-						projectId,
-						branch: i.branch,
-						name: i.name,
-					};
-				},
-				...overrides,
-			},
-		});
-
 	test("rejects with PROJECT_NOT_SETUP when project isn't in db", async () => {
-		host = await setupHost();
+		const scenario = await createBasicScenario({
+			hostOptions: { apiOverrides: cloudFlows.workspaceCreateOk() },
+		});
+		dispose = scenario.dispose;
 
 		await expect(
-			host.trpc.workspaceCreation.adopt.mutate({
-				projectId,
+			scenario.host.trpc.workspaceCreation.adopt.mutate({
+				projectId: randomUUID(),
 				workspaceName: "x",
 				branch: "feature/x",
 			}),
@@ -52,18 +35,14 @@ describe("workspaceCreation.adopt integration", () => {
 	});
 
 	test("rejects when no managed worktree exists for the branch", async () => {
-		host = await setupHost();
-		host.db
-			.insert(projects)
-			.values({ id: projectId, repoPath: repo.repoPath })
-			.run();
+		const scenario = await createProjectScenario({
+			hostOptions: { apiOverrides: cloudFlows.workspaceCreateOk() },
+		});
+		dispose = scenario.dispose;
 
-		// `adopt` searches `~/.superset/worktrees/<projectId>/...`; without an
-		// explicit `worktreePath`, an unmanaged worktree under our test repo
-		// is invisible.
 		await expect(
-			host.trpc.workspaceCreation.adopt.mutate({
-				projectId,
+			scenario.host.trpc.workspaceCreation.adopt.mutate({
+				projectId: scenario.projectId,
 				workspaceName: "x",
 				branch: "feature/missing",
 			}),
@@ -71,15 +50,14 @@ describe("workspaceCreation.adopt integration", () => {
 	});
 
 	test("rejects with NOT_FOUND when explicit worktreePath isn't a registered worktree", async () => {
-		host = await setupHost();
-		host.db
-			.insert(projects)
-			.values({ id: projectId, repoPath: repo.repoPath })
-			.run();
+		const scenario = await createProjectScenario({
+			hostOptions: { apiOverrides: cloudFlows.workspaceCreateOk() },
+		});
+		dispose = scenario.dispose;
 
 		await expect(
-			host.trpc.workspaceCreation.adopt.mutate({
-				projectId,
+			scenario.host.trpc.workspaceCreation.adopt.mutate({
+				projectId: scenario.projectId,
 				workspaceName: "x",
 				branch: "feature/x",
 				worktreePath: "/tmp/not-a-real-worktree",
@@ -88,14 +66,17 @@ describe("workspaceCreation.adopt integration", () => {
 	});
 
 	test("adopts a worktree at an explicit path, creates cloud row + local row", async () => {
-		host = await setupHost();
-		host.db
-			.insert(projects)
-			.values({ id: projectId, repoPath: repo.repoPath })
-			.run();
+		const scenario = await createProjectScenario({
+			hostOptions: { apiOverrides: cloudFlows.workspaceCreateOk() },
+		});
+		dispose = scenario.dispose;
 
-		const worktreePath = join(repo.repoPath, ".worktrees", "feature-adopt");
-		await repo.git.raw([
+		const worktreePath = join(
+			scenario.repo.repoPath,
+			".worktrees",
+			"feature-adopt",
+		);
+		await scenario.repo.git.raw([
 			"worktree",
 			"add",
 			"-b",
@@ -103,8 +84,8 @@ describe("workspaceCreation.adopt integration", () => {
 			worktreePath,
 		]);
 
-		const result = await host.trpc.workspaceCreation.adopt.mutate({
-			projectId,
+		const result = await scenario.host.trpc.workspaceCreation.adopt.mutate({
+			projectId: scenario.projectId,
 			workspaceName: "adopted",
 			branch: "feature/adopt",
 			worktreePath,
@@ -113,7 +94,7 @@ describe("workspaceCreation.adopt integration", () => {
 		expect(result.workspace.branch).toBe("feature/adopt");
 		expect(result.warnings).toEqual([]);
 
-		const persisted = host.db
+		const persisted = scenario.host.db
 			.select()
 			.from(workspaces)
 			.where(eq(workspaces.id, result.workspace.id))
@@ -123,17 +104,26 @@ describe("workspaceCreation.adopt integration", () => {
 	});
 
 	test("recordBaseBranch persists `branch.<name>.base` in git config", async () => {
-		host = await setupHost();
-		host.db
-			.insert(projects)
-			.values({ id: projectId, repoPath: repo.repoPath })
-			.run();
+		const scenario = await createProjectScenario({
+			hostOptions: { apiOverrides: cloudFlows.workspaceCreateOk() },
+		});
+		dispose = scenario.dispose;
 
-		const worktreePath = join(repo.repoPath, ".worktrees", "feature-base");
-		await repo.git.raw(["worktree", "add", "-b", "feature/base", worktreePath]);
+		const worktreePath = join(
+			scenario.repo.repoPath,
+			".worktrees",
+			"feature-base",
+		);
+		await scenario.repo.git.raw([
+			"worktree",
+			"add",
+			"-b",
+			"feature/base",
+			worktreePath,
+		]);
 
-		await host.trpc.workspaceCreation.adopt.mutate({
-			projectId,
+		await scenario.host.trpc.workspaceCreation.adopt.mutate({
+			projectId: scenario.projectId,
 			workspaceName: "base-test",
 			branch: "feature/base",
 			baseBranch: "main",
@@ -141,7 +131,7 @@ describe("workspaceCreation.adopt integration", () => {
 		});
 
 		const configured = (
-			await repo.git.raw(["config", "branch.feature/base.base"])
+			await scenario.repo.git.raw(["config", "branch.feature/base.base"])
 		).trim();
 		expect(configured).toBe("main");
 	});

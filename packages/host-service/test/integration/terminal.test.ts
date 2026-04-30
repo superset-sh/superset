@@ -1,50 +1,29 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { randomUUID } from "node:crypto";
 import { TRPCClientError } from "@trpc/client";
-import { projects, workspaces } from "../../src/db/schema";
-import { createTestHost, type TestHost } from "../helpers/createTestHost";
-import { createGitFixture, type GitFixture } from "../helpers/git-fixture";
+import { type BasicScenario, createBasicScenario } from "../helpers/scenarios";
 
 describe("terminal router integration", () => {
-	let host: TestHost;
-	let repo: GitFixture;
-	const projectId = randomUUID();
-	const workspaceId = randomUUID();
+	let scenario: BasicScenario;
 
 	beforeEach(async () => {
-		host = await createTestHost();
-		repo = await createGitFixture();
-
-		host.db
-			.insert(projects)
-			.values({ id: projectId, repoPath: repo.repoPath })
-			.run();
-		host.db
-			.insert(workspaces)
-			.values({
-				id: workspaceId,
-				projectId,
-				worktreePath: repo.repoPath,
-				branch: "main",
-			})
-			.run();
+		scenario = await createBasicScenario();
 	});
 
 	afterEach(async () => {
-		await host.dispose();
-		repo.dispose();
+		await scenario.dispose();
 	});
 
 	test("listSessions returns empty when no sessions exist", async () => {
-		const result = await host.trpc.terminal.listSessions.query({
-			workspaceId,
+		const result = await scenario.host.trpc.terminal.listSessions.query({
+			workspaceId: scenario.workspaceId,
 		});
 		expect(result.sessions).toEqual([]);
 	});
 
 	test("killSession throws NOT_FOUND for unknown workspace", async () => {
 		await expect(
-			host.trpc.terminal.killSession.mutate({
+			scenario.host.trpc.terminal.killSession.mutate({
 				workspaceId: "no-such-ws",
 				terminalId: randomUUID(),
 			}),
@@ -53,8 +32,8 @@ describe("terminal router integration", () => {
 
 	test("killSession throws NOT_FOUND for unknown terminal", async () => {
 		await expect(
-			host.trpc.terminal.killSession.mutate({
-				workspaceId,
+			scenario.host.trpc.terminal.killSession.mutate({
+				workspaceId: scenario.workspaceId,
 				terminalId: randomUUID(),
 			}),
 		).rejects.toBeInstanceOf(TRPCClientError);
@@ -62,7 +41,9 @@ describe("terminal router integration", () => {
 
 	test("listSessions requires authentication", async () => {
 		await expect(
-			host.unauthenticatedTrpc.terminal.listSessions.query({ workspaceId }),
+			scenario.host.unauthenticatedTrpc.terminal.listSessions.query({
+				workspaceId: scenario.workspaceId,
+			}),
 		).rejects.toBeInstanceOf(TRPCClientError);
 	});
 });

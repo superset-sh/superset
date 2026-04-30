@@ -1,26 +1,26 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { randomUUID } from "node:crypto";
-import { projects } from "../../src/db/schema";
 import { setProgress } from "../../src/trpc/router/workspace-creation/shared/progress-store";
-import { createTestHost, type TestHost } from "../helpers/createTestHost";
-import { createGitFixture, type GitFixture } from "../helpers/git-fixture";
+import { createTestHost } from "../helpers/createTestHost";
+import {
+	type BasicScenario,
+	createBasicScenario,
+	createProjectScenario,
+} from "../helpers/scenarios";
 
 describe("workspaceCreation misc procedures", () => {
-	let host: TestHost;
-	let repo: GitFixture;
+	let basic: BasicScenario;
 
 	beforeEach(async () => {
-		host = await createTestHost();
-		repo = await createGitFixture();
+		basic = await createBasicScenario();
 	});
 
 	afterEach(async () => {
-		await host.dispose();
-		repo.dispose();
+		await basic.dispose();
 	});
 
 	test("getContext reports hasLocalRepo=false for unknown project", async () => {
-		const result = await host.trpc.workspaceCreation.getContext.query({
+		const result = await basic.host.trpc.workspaceCreation.getContext.query({
 			projectId: randomUUID(),
 		});
 		expect(result.hasLocalRepo).toBe(false);
@@ -28,31 +28,35 @@ describe("workspaceCreation misc procedures", () => {
 	});
 
 	test("getContext returns defaultBranch when project exists locally", async () => {
-		const projectId = randomUUID();
-		host.db
-			.insert(projects)
-			.values({ id: projectId, repoPath: repo.repoPath })
-			.run();
-
-		const result = await host.trpc.workspaceCreation.getContext.query({
-			projectId,
-		});
-		expect(result.hasLocalRepo).toBe(true);
-		expect(result.defaultBranch).toBe("main");
+		const proj = await createProjectScenario();
+		try {
+			const result = await proj.host.trpc.workspaceCreation.getContext.query({
+				projectId: proj.projectId,
+			});
+			expect(result.hasLocalRepo).toBe(true);
+			expect(result.defaultBranch).toBe("main");
+		} finally {
+			await proj.dispose();
+		}
 	});
 
 	test("getProgress returns null for unknown pendingId", async () => {
-		const result = await host.trpc.workspaceCreation.getProgress.query({
-			pendingId: "no-such-id",
-		});
-		expect(result).toBeNull();
+		const host = await createTestHost();
+		try {
+			const result = await host.trpc.workspaceCreation.getProgress.query({
+				pendingId: "no-such-id",
+			});
+			expect(result).toBeNull();
+		} finally {
+			await host.dispose();
+		}
 	});
 
 	test("getProgress reflects state set via the in-memory store", async () => {
 		const pendingId = randomUUID();
 		setProgress(pendingId, "creating_worktree");
 
-		const result = await host.trpc.workspaceCreation.getProgress.query({
+		const result = await basic.host.trpc.workspaceCreation.getProgress.query({
 			pendingId,
 		});
 		expect(result).not.toBeNull();
@@ -65,24 +69,25 @@ describe("workspaceCreation misc procedures", () => {
 	});
 
 	test("generateBranchName returns null for empty prompts (no AI call)", async () => {
-		const projectId = randomUUID();
-		host.db
-			.insert(projects)
-			.values({ id: projectId, repoPath: repo.repoPath })
-			.run();
-
-		const result = await host.trpc.workspaceCreation.generateBranchName.mutate({
-			projectId,
-			prompt: "   ",
-		});
-		expect(result.branchName).toBeNull();
+		const proj = await createProjectScenario();
+		try {
+			const result =
+				await proj.host.trpc.workspaceCreation.generateBranchName.mutate({
+					projectId: proj.projectId,
+					prompt: "   ",
+				});
+			expect(result.branchName).toBeNull();
+		} finally {
+			await proj.dispose();
+		}
 	});
 
 	test("generateBranchName returns null when project is unknown", async () => {
-		const result = await host.trpc.workspaceCreation.generateBranchName.mutate({
-			projectId: randomUUID(),
-			prompt: "fix the bug",
-		});
+		const result =
+			await basic.host.trpc.workspaceCreation.generateBranchName.mutate({
+				projectId: randomUUID(),
+				prompt: "fix the bug",
+			});
 		expect(result.branchName).toBeNull();
 	});
 });
