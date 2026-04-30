@@ -9,8 +9,10 @@
 // without losing user shells.
 
 import * as childProcess from "node:child_process";
+import { createHash } from "node:crypto";
 import * as fs from "node:fs";
 import * as net from "node:net";
+import * as os from "node:os";
 import * as path from "node:path";
 import { SUPERSET_HOME_DIR } from "./app-environment";
 import { isProcessAlive } from "./host-service-manifest";
@@ -32,11 +34,20 @@ interface DaemonInstance {
 const SOCKET_READY_TIMEOUT_MS = 5_000;
 
 /**
- * Per-organization socket path. Owner-only directory inherits from the
- * existing $SUPERSET_HOME_DIR/host/{orgId}/ tree.
+ * Per-organization socket path. **Must stay short** — Darwin's `sun_path`
+ * is 104 bytes, and `$SUPERSET_HOME_DIR/host/{orgId}/pty-daemon.sock` blows
+ * past that in dev (worktree-relative SUPERSET_HOME_DIR + 36-char UUID).
+ *
+ * We put the socket in `os.tmpdir()` with a hash of the org id. Owner-only
+ * file mode (0600, set by the daemon's Server.listen) is the auth boundary;
+ * the directory permissions don't matter.
  */
 function ptyDaemonSocketPath(organizationId: string): string {
-	return path.join(ptyDaemonManifestDir(organizationId), "pty-daemon.sock");
+	const shortId = createHash("sha256")
+		.update(organizationId)
+		.digest("hex")
+		.slice(0, 12);
+	return path.join(os.tmpdir(), `superset-ptyd-${shortId}.sock`);
 }
 
 export interface PtyDaemonCoordinatorOptions {
