@@ -1,6 +1,6 @@
 import { serve } from "@hono/node-server";
 import { createApp } from "./app";
-import { startDaemonBootstrap } from "./daemon";
+import { getSupervisor, startDaemonBootstrap } from "./daemon";
 import { env } from "./env";
 import { JwtApiAuthProvider } from "./providers/auth";
 import { LocalGitCredentialProvider } from "./providers/git";
@@ -42,6 +42,34 @@ async function main(): Promise<void> {
 			modelResolver: new LocalModelProvider(),
 		},
 	});
+
+	// Dev-mode shutdown: kill the daemon on host-service exit so dev
+	// iteration on daemon code resets cleanly. Production keeps the
+	// daemon detached so PTYs survive host-service restarts.
+	// Per the migration plan's D5 decision.
+	const isDev = process.env.NODE_ENV !== "production";
+	if (isDev) {
+		let shuttingDown = false;
+		const devShutdown = async (signal: NodeJS.Signals) => {
+			if (shuttingDown) return;
+			shuttingDown = true;
+			console.log(
+				`[host-service] dev-mode ${signal} — stopping pty-daemon for clean iteration`,
+			);
+			try {
+				await getSupervisor().stop(env.ORGANIZATION_ID);
+			} catch (err) {
+				console.error(
+					"[host-service] dev shutdown: supervisor.stop failed:",
+					err,
+				);
+			} finally {
+				process.exit(0);
+			}
+		};
+		process.on("SIGINT", () => void devShutdown("SIGINT"));
+		process.on("SIGTERM", () => void devShutdown("SIGTERM"));
+	}
 
 	const server = serve({ fetch: app.fetch, port: env.PORT }, (info) => {
 		// Install only after the server is listening so startup throws still
