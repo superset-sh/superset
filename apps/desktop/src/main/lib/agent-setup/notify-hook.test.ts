@@ -14,7 +14,7 @@ describe("getNotifyScriptContent", () => {
 			"SESSION_ID=" + "\u0024{RESOURCE_ID:-$HOOK_SESSION_ID}",
 		);
 		expect(script).toContain(
-			'PAYLOAD="{\\"json\\":{\\"terminalId\\":\\"$(json_escape "$SUPERSET_TERMINAL_ID")\\",\\"eventType\\":\\"$(json_escape "$EVENT_TYPE")\\"}}"',
+			'PAYLOAD="{\\"json\\":{\\"terminalId\\":\\"$(json_escape "$SUPERSET_TERMINAL_ID")\\",\\"workspaceId\\":\\"$(json_escape "$SUPERSET_WORKSPACE_ID")\\",\\"eventType\\":\\"$(json_escape "$EVENT_TYPE")\\"}}"',
 		);
 		expect(script).toContain('--data-urlencode "resourceId=$RESOURCE_ID"');
 		expect(script).toContain(
@@ -25,7 +25,7 @@ describe("getNotifyScriptContent", () => {
 		);
 	});
 
-	it("gives the v2 host-service hook enough time to avoid false fallback", () => {
+	it("keeps dispatching to the legacy hook after the v2 host-service hook when legacy ids exist", () => {
 		const script = readFileSync(
 			path.join(import.meta.dir, "templates", "notify-hook.template.sh"),
 			"utf-8",
@@ -33,6 +33,10 @@ describe("getNotifyScriptContent", () => {
 
 		expect(script).toContain(
 			'curl -sX POST "$SUPERSET_HOST_AGENT_HOOK_URL" \\\n    --connect-timeout 2 --max-time 5',
+		);
+		expect(script).not.toContain("2*) exit 0");
+		expect(script).toContain(
+			'if [ -n "$SUPERSET_HOST_AGENT_HOOK_URL" ] && [ -z "$SUPERSET_PANE_ID" ] && [ -z "$SUPERSET_TAB_ID" ]; then',
 		);
 	});
 
