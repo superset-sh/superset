@@ -209,17 +209,24 @@ async function execute(
 		return;
 	}
 
-	if (args.includes("--version") || args.includes("-v")) {
-		console.log(`${name} v${version}`);
-		return;
-	}
-
 	const { segments, passthrough } = splitArgsForRouting(args, globalConfigs);
 	const { commandPath, remainingArgs: unroutedSegments } = routeCommand(
 		root,
 		segments,
 	);
 	const remainingArgs = [...unroutedSegments, ...passthrough];
+
+	// `--version` / `-v` print the CLI's version when no command resolved.
+	// Once a command is in play, the flag is the command's to consume —
+	// e.g. `superset update --version 0.1.2`.
+	if (
+		commandPath.length === 0 &&
+		(args.includes("--version") || args.includes("-v"))
+	) {
+		console.log(`${name} v${version}`);
+		return;
+	}
+
 	if (commandPath.length === 0) {
 		console.log(generateRootHelp(name, version, root, globalConfigs));
 		return;

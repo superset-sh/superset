@@ -133,7 +133,7 @@ export default command({
 	options: {
 		check: boolean().desc("Only check for updates; don't install"),
 		force: boolean().desc("Re-install even if already on that version"),
-		to: string().desc(
+		version: string().desc(
 			"Install a specific CLI version (e.g. 0.1.2) instead of the rolling latest",
 		),
 	},
@@ -147,10 +147,10 @@ export default command({
 			);
 		}
 
-		const pinnedVersion = options.to?.replace(/^cli-v/, "");
+		const pinnedVersion = options.version?.replace(/^cli-v/, "");
 		if (pinnedVersion && !SEMVER_RE.test(pinnedVersion)) {
 			throw new CLIError(
-				`Invalid --to: ${options.to}`,
+				`Invalid --version: ${options.version}`,
 				"Expected a semver like 0.1.2 (or cli-v0.1.2).",
 			);
 		}
