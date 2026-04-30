@@ -18,7 +18,10 @@ import { projects, terminalSessions, workspaces } from "../db/schema.ts";
 import type { EventBus } from "../events/index.ts";
 import { portManager } from "../ports/port-manager.ts";
 import type { DaemonClient } from "./DaemonClient/index.ts";
-import { getDaemonClient } from "./daemon-client-singleton.ts";
+import {
+	getDaemonClient,
+	onDaemonDisconnect,
+} from "./daemon-client-singleton.ts";
 import {
 	buildV2TerminalEnv,
 	getShellLaunchArgs,
@@ -201,6 +204,42 @@ interface TerminalSession {
 
 /** PTY lifetime is independent of socket lifetime — sockets detach/reattach freely. */
 const sessions = new Map<string, TerminalSession>();
+
+// When the daemon disconnects, close every WS socket so the renderer's
+// existing exponential-backoff reconnect kicks in. On reconnect, host-service
+// rebuilds the DaemonClient (next getDaemonClient() call), and the adoption-
+// via-list path re-attaches to live sessions on the respawned daemon. Without
+// this, sockets stay open and input/resize silently fail because the daemon
+// reference is dead.
+//
+// We also clear the in-memory sessions map so a stale subscription closure
+// doesn't keep firing for sessions that no longer match daemon state.
+onDaemonDisconnect((err) => {
+	const sessionCount = sessions.size;
+	if (sessionCount === 0) return;
+	console.warn(
+		`[terminal] pty-daemon disconnected (${err?.message ?? "no message"}); closing ${sessionCount} terminal WS socket(s) to trigger renderer reconnect`,
+	);
+	for (const session of sessions.values()) {
+		for (const socket of session.sockets) {
+			try {
+				socket.close(1011, "pty-daemon disconnected");
+			} catch {
+				// best-effort
+			}
+		}
+		session.sockets.clear();
+		if (session.unsubscribeDaemon) {
+			try {
+				session.unsubscribeDaemon();
+			} catch {
+				// best-effort
+			}
+			session.unsubscribeDaemon = null;
+		}
+	}
+	sessions.clear();
+});
 
 /**
  * Test-only escape hatch: simulates a host-service process restart by clearing
@@ -796,6 +835,10 @@ export function registerWorkspaceTerminalRoute({
 								ws.close(1011, result.error);
 								return;
 							}
+
+							// WS may have closed during the daemon-open await; don't
+							// register a dead socket into the session's broadcast set.
+							if (ws.readyState !== SOCKET_OPEN) return;
 
 							result.sockets.add(ws);
 							sendMessage(ws, { type: "title", title: result.title });
