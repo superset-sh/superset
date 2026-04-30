@@ -1,4 +1,4 @@
-import { number, string } from "@superset/cli-framework";
+import { CLIError, number, string } from "@superset/cli-framework";
 import { command } from "../../../lib/command";
 
 export default command({
@@ -22,6 +22,16 @@ export default command({
 					.map((label) => label.trim())
 					.filter(Boolean)
 			: undefined;
+		let dueDate: Date | undefined;
+		if (options.dueDate) {
+			const parsed = new Date(options.dueDate);
+			if (Number.isNaN(parsed.getTime())) {
+				throw new CLIError(
+					`--due-date: invalid ISO 8601 date "${options.dueDate}"`,
+				);
+			}
+			dueDate = parsed;
+		}
 		const result = await ctx.api.task.create.mutate({
 			title: options.title,
 			description: options.description ?? undefined,
@@ -29,7 +39,7 @@ export default command({
 			assigneeId: options.assignee ?? undefined,
 			statusId: options.statusId ?? undefined,
 			estimate: options.estimate ?? undefined,
-			dueDate: options.dueDate ? new Date(options.dueDate) : undefined,
+			dueDate,
 			labels,
 		});
 
