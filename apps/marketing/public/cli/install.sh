@@ -52,7 +52,7 @@ download_tarball() {
     tarball="superset-${target}.tar.gz"
 
     if [ "$TAG" = "latest" ]; then
-        url="https://github.com/${REPO}/releases/latest/download/${tarball}"
+        url="https://github.com/${REPO}/releases/download/cli-latest/${tarball}"
     else
         url="https://github.com/${REPO}/releases/download/${TAG}/${tarball}"
     fi
