@@ -15,6 +15,7 @@ import {
 	LuRotateCw,
 } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { useHoverGitHubStatus } from "renderer/lib/githubQueryPolicy";
 import { useWorkspaceDeleteHandler } from "renderer/react-query/workspaces/useWorkspaceDeleteHandler";
 import { STROKE_WIDTH } from "../../WorkspaceSidebar/constants";
 import { DeleteWorkspaceDialog } from "../../WorkspaceSidebar/WorkspaceListItem/components/DeleteWorkspaceDialog/DeleteWorkspaceDialog";
@@ -36,6 +37,12 @@ export function WorkspaceRow({
 	isOpening,
 }: WorkspaceRowProps) {
 	const isBranch = workspace.type === "branch";
+	const { githubStatus, onMouseEnter: onGithubMouseEnter } =
+		useHoverGitHubStatus({
+			workspaceId: workspace.workspaceId,
+			surface: "workspace-row",
+			isWorktree: workspace.type === "worktree",
+		});
 	const { showDeleteDialog, setShowDeleteDialog, handleDeleteClick } =
 		useWorkspaceDeleteHandler();
 	const openFileInEditor = electronTrpc.external.openFileInEditor.useMutation({
@@ -51,6 +58,9 @@ export function WorkspaceRow({
 			});
 		}
 	};
+
+	const pr = githubStatus?.pr;
+	const showDiffStats = pr && (pr.additions > 0 || pr.deletions > 0);
 
 	const timeText = workspace.isOpen
 		? `Opened ${getRelativeTime(workspace.lastOpenedAt)}`
@@ -69,6 +79,7 @@ export function WorkspaceRow({
 			type="button"
 			onClick={handleClick}
 			disabled={isOpening}
+			onMouseEnter={onGithubMouseEnter}
 			className={cn(
 				"flex items-center gap-3 w-full px-4 py-2 group text-left",
 				"hover:bg-background/50 transition-colors",
@@ -132,6 +143,14 @@ export function WorkspaceRow({
 					<span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75" />
 					<span className="relative inline-flex size-2 rounded-full bg-red-500" />
 				</span>
+			)}
+
+			{/* Diff stats */}
+			{showDiffStats && (
+				<div className="flex items-center gap-1 text-[10px] font-mono shrink-0">
+					<span className="text-emerald-500">+{pr.additions}</span>
+					<span className="text-destructive-foreground">-{pr.deletions}</span>
+				</div>
 			)}
 
 			{/* Spacer */}
