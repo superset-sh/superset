@@ -55,11 +55,18 @@ export interface UseDestroyWorkspace {
 export function useDestroyWorkspace(workspaceId: string): UseDestroyWorkspace {
 	const hostTarget = useWorkspaceHostTarget(workspaceId);
 
+	// Reduce the (object-identity-unstable) hostTarget down to two scalars so
+	// memoized callbacks below don't churn on every collection notification.
+	// useLiveQuery returns a new array each tick, which would otherwise rebuild
+	// `inspect`/`destroy` and re-fire effects that depend on them.
+	const hostUrl = hostTarget.status === "ready" ? hostTarget.url : null;
+	const hostStatus = hostTarget.status;
+
 	const destroy = useCallback(
 		async (
 			input: DestroyWorkspaceInput = {},
 		): Promise<DestroyWorkspaceSuccess> => {
-			const client = getReadyClient(hostTarget);
+			const client = getReadyClient(hostUrl, hostStatus);
 			try {
 				return await client.workspaceCleanup.destroy.mutate({
 					workspaceId,
@@ -70,29 +77,32 @@ export function useDestroyWorkspace(workspaceId: string): UseDestroyWorkspace {
 				throw normalizeError(err);
 			}
 		},
-		[hostTarget, workspaceId],
+		[hostUrl, hostStatus, workspaceId],
 	);
 
 	const inspect = useCallback(async (): Promise<DestroyWorkspacePreview> => {
-		const client = getReadyClient(hostTarget);
+		const client = getReadyClient(hostUrl, hostStatus);
 		try {
 			return await client.workspaceCleanup.inspect.query({ workspaceId });
 		} catch (err) {
 			throw normalizeError(err);
 		}
-	}, [hostTarget, workspaceId]);
+	}, [hostUrl, hostStatus, workspaceId]);
 
 	return { hostTarget, destroy, inspect };
 }
 
-function getReadyClient(hostTarget: WorkspaceHostTarget) {
-	if (hostTarget.status !== "ready") {
+function getReadyClient(
+	hostUrl: string | null,
+	hostStatus: WorkspaceHostTarget["status"],
+) {
+	if (hostUrl == null) {
 		throw {
 			kind: "host-unavailable",
-			reason: hostTarget.status,
+			reason: hostStatus,
 		} satisfies DestroyWorkspaceError;
 	}
-	return getHostServiceClientByUrl(hostTarget.url);
+	return getHostServiceClientByUrl(hostUrl);
 }
 
 function normalizeError(err: unknown): DestroyWorkspaceError {

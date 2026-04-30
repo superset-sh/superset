@@ -27,8 +27,8 @@ Scope: align v2 delete dialog with the host-service destroy saga; surface bugs/i
 |---|---|---|
 | 1 | Preflight location | Host-service `inspect` query, called from the v2 dialog |
 | 2 | "Is main workspace" check | Shared `isMainWorkspace()` helper, `realpath`-normalized paths, both local equality and cloud `getFromHost.type === "main"` |
-| 3 | Unpushed commits | No upstream = treat as has-unpushed (use `git for-each-ref` to detect missing upstream, fall back to `git rev-list HEAD`) |
-| 4 | Concurrent-delete guard | Process-local `Map<workspaceId, Promise>` on the host-service; second caller awaits the first or gets a typed `"already in progress"` error |
+| 3 | Unpushed commits | No upstream = treat as has-unpushed (`git rev-list HEAD --not --remotes` — upstream-agnostic, catches commits not reachable from any remote ref) |
+| 4 | Concurrent-delete guard | Process-local `Set<workspaceId>` on the host-service; second caller throws `CONFLICT` with `DELETE_IN_PROGRESS` cause (distinct from dirty-worktree CONFLICT so the renderer doesn't silent-retry) |
 | 5 | Pending-host UX | `loading` and `local-starting` map to `isCheckingStatus` — disabled Delete button + spinner, no banner |
 | 6 | `CONFLICT` after clean preflight | Silent force-retry, with a code comment explaining the race so it's not removed again |
 | 7 | Git status failure during inspect | `canDelete: true`, no warnings — matches v2 saga's "best-effort cleanup" contract |
@@ -40,7 +40,7 @@ Order chosen so each step is shippable on its own:
 
 1. **Add `isMainWorkspace()` helper** in host-service (or shared lib if both packages need it). Includes `realpath` normalization. Replace the inline check inside `destroy`. No behavior change yet.
 2. **Add `workspaceCleanup.inspect`** on host-service. Uses `isMainWorkspace`, the upstream-aware unpushed check, and the git-failure-is-fine contract. Returns `{ canDelete, reason, hasChanges, hasUnpushedCommits }`.
-3. **Add concurrent-delete guard** to `workspaceCleanup.destroy` — `Map<workspaceId, Promise>` at saga entry. Throws typed `"already in progress"` for the second caller.
+3. **Add concurrent-delete guard** to `workspaceCleanup.destroy` — `Set<workspaceId>` at saga entry. Second caller throws `CONFLICT` with a `DELETE_IN_PROGRESS` cause; distinct from dirty-worktree CONFLICT so the renderer surfaces a toast instead of silently force-retrying.
 4. **Promote `useWorkspaceHostUrl` → `useWorkspaceHostTarget`** with the status union (`loading | not-found | local-starting | ready`). Keep `useWorkspaceHostUrl` as a back-compat thin wrapper.
 5. **Migrate `useDestroyDialogState`** off `electronTrpc.workspaces.canDelete` and onto the new `inspect`. Treat `loading`/`local-starting` as `isCheckingStatus`. Keep the silent force-retry on `CONFLICT` (with the comment).
 6. **Wire `blockingReason` + `confirmLabel` through the dialog UI** (`DashboardSidebarDeleteDialog` → `DestroyConfirmPane`).

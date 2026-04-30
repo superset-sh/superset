@@ -357,3 +357,38 @@ describe("workspaceCleanup.destroy in-flight guard", () => {
 		expect(__testDestroysInFlight.has("ws-1")).toBe(false);
 	});
 });
+
+describe("workspaceCleanup.destroy phase-3 best-effort cleanup", () => {
+	beforeEach(() => __testDestroysInFlight.clear());
+	afterEach(() => __testDestroysInFlight.clear());
+
+	test("git-factory failure in phase 3 becomes a warning, not a hard error", async () => {
+		// Past phase 2 (cloud delete) the workspace is gone in cloud — every
+		// failure here must surface as a warning so the mutation still
+		// resolves with `success: true`. Otherwise the user sees a
+		// "Failed to delete" toast for a workspace that's actually deleted.
+		const ctx = makeCtx({
+			workspace: {
+				id: "ws-1",
+				projectId: "p-1",
+				worktreePath: "/branch/wt",
+				branch: "feature",
+			},
+			project: { id: "p-1", repoPath: "/repo" },
+			cloudType: "worktree",
+			gitFactoryThrows: true,
+		});
+		const caller = workspaceCleanupRouter.createCaller(ctx);
+		const result = await caller.destroy({
+			workspaceId: "ws-1",
+			deleteBranch: false,
+			force: true, // skip phase 0/1 so we go straight to phase 2/3
+		});
+		expect(result.success).toBe(true);
+		expect(result.cloudDeleted).toBe(true);
+		expect(result.worktreeRemoved).toBe(false);
+		expect(
+			result.warnings.some((w) => w.includes("Failed to open project repo")),
+		).toBe(true);
+	});
+});

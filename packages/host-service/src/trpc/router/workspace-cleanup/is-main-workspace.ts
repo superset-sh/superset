@@ -4,9 +4,13 @@ import { eq } from "drizzle-orm";
 import { projects, workspaces } from "../../../db/schema";
 import type { HostServiceContext } from "../../../types";
 
-export type IsMainWorkspaceResult =
-	| { isMain: true; reason: string }
-	| { isMain: false; reason: null };
+type WorkspaceRow = typeof workspaces.$inferSelect;
+type ProjectRow = typeof projects.$inferSelect;
+
+export type IsMainWorkspaceResult = {
+	local: WorkspaceRow | undefined;
+	project: ProjectRow | undefined;
+} & ({ isMain: true; reason: string } | { isMain: false; reason: null });
 
 export const MAIN_WORKSPACE_REASON =
 	"Main workspaces cannot be deleted. Remove them from the sidebar or remove the project from this host instead.";
@@ -24,6 +28,9 @@ export const MAIN_WORKSPACE_REASON =
  * Both signals exist because either side can lag the other: a workspace
  * classified as main in cloud may not yet have its local worktreePath
  * rewritten, and vice versa.
+ *
+ * Returns the loaded `local`/`project` rows alongside the verdict so callers
+ * (notably `runDestroy`) can avoid re-querying SQLite for the same rows.
  */
 export async function isMainWorkspace(
 	ctx: HostServiceContext,
@@ -43,7 +50,7 @@ export async function isMainWorkspace(
 		project &&
 		normalizePath(local.worktreePath) === normalizePath(project.repoPath)
 	) {
-		return { isMain: true, reason: MAIN_WORKSPACE_REASON };
+		return { isMain: true, reason: MAIN_WORKSPACE_REASON, local, project };
 	}
 
 	if (ctx.api) {
@@ -52,11 +59,11 @@ export async function isMainWorkspace(
 			id: workspaceId,
 		});
 		if (cloudWorkspace?.type === "main") {
-			return { isMain: true, reason: MAIN_WORKSPACE_REASON };
+			return { isMain: true, reason: MAIN_WORKSPACE_REASON, local, project };
 		}
 	}
 
-	return { isMain: false, reason: null };
+	return { isMain: false, reason: null, local, project };
 }
 
 function normalizePath(p: string): string {

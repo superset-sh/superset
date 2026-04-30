@@ -1,7 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
-import { projects, workspaces } from "../../../db/schema";
+import { workspaces } from "../../../db/schema";
 import { invalidateLabelCache } from "../../../ports/static-ports";
 import { runTeardown, type TeardownResult } from "../../../runtime/teardown";
 import { disposeSessionsByWorkspaceId } from "../../../terminal/terminal";
@@ -61,9 +61,7 @@ export const workspaceCleanupRouter = router({
 				};
 			}
 
-			const local = ctx.db.query.workspaces
-				.findFirst({ where: eq(workspaces.id, input.workspaceId) })
-				.sync();
+			const { local } = main;
 			if (!local) {
 				return {
 					canDelete: true,
@@ -166,19 +164,13 @@ export const workspaceCleanupRouter = router({
 async function runDestroy(ctx: HostServiceContext, input: DestroyInput) {
 	const warnings: string[] = [];
 
-	const local = ctx.db.query.workspaces
-		.findFirst({ where: eq(workspaces.id, input.workspaceId) })
-		.sync();
-	const project = local
-		? ctx.db.query.projects
-				.findFirst({ where: eq(projects.id, local.projectId) })
-				.sync()
-		: undefined;
-
+	// `isMainWorkspace` already loads workspace + project rows from sqlite;
+	// thread them through to avoid duplicate sync queries downstream.
 	const main = await isMainWorkspace(ctx, input.workspaceId);
 	if (main.isMain) {
 		throw new TRPCError({ code: "BAD_REQUEST", message: main.reason });
 	}
+	const { local, project } = main;
 
 	// ─── Step 0: Preflight ─────────────────────────────────────────
 	// Block only on dirty worktree (the common "I forgot to commit"
@@ -253,32 +245,46 @@ async function runDestroy(ctx: HostServiceContext, input: DestroyInput) {
 	let worktreeRemoved = false;
 	let branchDeleted = false;
 	if (local && project) {
-		const git = await ctx.git(project.repoPath);
+		// Past the commit point — every failure here is a warning, including
+		// failure to even open the repo. Letting `ctx.git` escape would surface
+		// as a hard error for a workspace that's already been deleted in cloud.
+		let git: Awaited<ReturnType<typeof ctx.git>> | null = null;
 		try {
-			await git.raw(["worktree", "remove", "--force", local.worktreePath]);
-			worktreeRemoved = true;
+			git = await ctx.git(project.repoPath);
 		} catch (err) {
 			const message = err instanceof Error ? err.message : String(err);
-			if (
-				message.includes("is not a working tree") ||
-				message.includes("No such file or directory") ||
-				message.includes("ENOENT")
-			) {
-				worktreeRemoved = true;
-			} else {
-				warnings.push(
-					`Failed to remove worktree at ${local.worktreePath}: ${message}`,
-				);
-			}
+			warnings.push(
+				`Failed to open project repo at ${project.repoPath}: ${message}`,
+			);
 		}
 
-		if (input.deleteBranch && local.branch) {
+		if (git) {
 			try {
-				await git.raw(["branch", "-D", local.branch]);
-				branchDeleted = true;
+				await git.raw(["worktree", "remove", "--force", local.worktreePath]);
+				worktreeRemoved = true;
 			} catch (err) {
 				const message = err instanceof Error ? err.message : String(err);
-				warnings.push(`Failed to delete branch ${local.branch}: ${message}`);
+				if (
+					message.includes("is not a working tree") ||
+					message.includes("No such file or directory") ||
+					message.includes("ENOENT")
+				) {
+					worktreeRemoved = true;
+				} else {
+					warnings.push(
+						`Failed to remove worktree at ${local.worktreePath}: ${message}`,
+					);
+				}
+			}
+
+			if (input.deleteBranch && local.branch) {
+				try {
+					await git.raw(["branch", "-D", local.branch]);
+					branchDeleted = true;
+				} catch (err) {
+					const message = err instanceof Error ? err.message : String(err);
+					warnings.push(`Failed to delete branch ${local.branch}: ${message}`);
+				}
 			}
 		}
 	}

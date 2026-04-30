@@ -19,6 +19,7 @@ interface DestroyConfirmPaneProps {
 	onDeleteBranchChange: (next: boolean) => void;
 	hasChanges: boolean;
 	hasUnpushedCommits: boolean;
+	canConfirm: boolean;
 	blockingReason: string | null;
 	isCheckingStatus: boolean;
 	onConfirm: () => void;
@@ -33,6 +34,7 @@ export function DestroyConfirmPane({
 	onDeleteBranchChange,
 	hasChanges,
 	hasUnpushedCommits,
+	canConfirm,
 	blockingReason,
 	isCheckingStatus,
 	onConfirm,
@@ -101,7 +103,7 @@ export function DestroyConfirmPane({
 						size="sm"
 						className="h-7 px-3 text-xs"
 						onClick={onConfirm}
-						disabled={isCheckingStatus || !!blockingReason}
+						disabled={isCheckingStatus || !canConfirm}
 					>
 						{confirmLabel}
 					</Button>

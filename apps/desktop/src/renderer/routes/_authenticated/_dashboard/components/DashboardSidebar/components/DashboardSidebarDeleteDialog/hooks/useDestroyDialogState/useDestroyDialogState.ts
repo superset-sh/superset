@@ -47,16 +47,32 @@ export function useDestroyDialogState({
 	const [error, setError] = useState<DestroyWorkspaceError | null>(null);
 	const inFlight = useRef(false);
 
-	// Run inspect when the dialog opens AND the host is ready. While the host
-	// is loading/local-starting, sit in a checking state — no destructive
-	// banner for transient pending-host UX.
+	// Run inspect when the dialog opens AND the host is ready. Distinguish
+	// transient pending-host states (loading / local-starting → silent
+	// "Checking…") from terminal ones (not-found → blocking banner) so the
+	// user can't sit in a forever-disabled dialog.
 	useEffect(() => {
 		if (!open) {
 			setInspectState({ status: "idle" });
 			return;
 		}
-		if (hostTarget.status !== "ready") {
+		if (
+			hostTarget.status === "loading" ||
+			hostTarget.status === "local-starting"
+		) {
 			setInspectState({ status: "loading" });
+			return;
+		}
+		if (hostTarget.status === "not-found") {
+			setInspectState({
+				status: "ready",
+				preview: {
+					canDelete: false,
+					reason: "Workspace is no longer available on this host.",
+					hasChanges: false,
+					hasUnpushedCommits: false,
+				},
+			});
 			return;
 		}
 
@@ -80,7 +96,6 @@ export function useDestroyDialogState({
 	}, [open, hostTarget.status, inspect]);
 
 	const preview = inspectState.status === "ready" ? inspectState.preview : null;
-	const conflictWasRaced = error?.kind === "conflict";
 
 	const handleOpenChange = useCallback(
 		(next: boolean) => {
@@ -157,8 +172,9 @@ export function useDestroyDialogState({
 	return {
 		deleteBranch,
 		setDeleteBranch,
-		hasChanges: (preview?.hasChanges ?? false) || conflictWasRaced,
+		hasChanges: preview?.hasChanges ?? false,
 		hasUnpushedCommits: preview?.hasUnpushedCommits ?? false,
+		canConfirm: preview ? preview.canDelete : true,
 		blockingReason: preview && !preview.canDelete ? preview.reason : null,
 		isCheckingStatus: open && inspectState.status === "loading",
 		error,
