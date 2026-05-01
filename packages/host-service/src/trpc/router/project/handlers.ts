@@ -54,12 +54,15 @@ function slugWithSuffix(baseSlug: string, attempt: number): string {
 	return attempt === 0 ? baseSlug : `${baseSlug}-${attempt + 1}`;
 }
 
+// Cloud v2Project.create catches v2_projects_org_slug_unique and re-throws
+// as TRPCError CONFLICT with this exact message — kept stable so the slug
+// retry below can detect it. If you change the cloud message, change this
+// too.
+const SLUG_CONFLICT_MESSAGE = "Project slug already exists";
+
 function isSlugConflict(err: unknown): boolean {
-	// Cloud v2Project.create surfaces slug uniqueness as
-	// TRPCError CONFLICT with this stable message (see
-	// packages/trpc/src/router/v2-project/v2-project.ts).
 	const message = err instanceof Error ? err.message : String(err);
-	return message === "Project slug already exists";
+	return message === SLUG_CONFLICT_MESSAGE;
 }
 
 async function createCloudProjectWithSlugRetry(
@@ -106,9 +109,7 @@ async function createCloudProjectWithSlugRetry(
  *   4. Cloud v2Workspace.create + local workspace (ensureMainWorkspaceStrict)
  *
  * Any failure unwinds the prior steps in reverse, including a cloud
- * v2Project.delete to roll back step 3 if step 4 throws. From the user's
- * perspective the project either fully exists everywhere or doesn't exist
- * at all — no half-state in the dashboard or v2 settings.
+ * v2Project.delete to roll back step 3 if step 4 throws.
  */
 async function persistFromResolved(
 	ctx: HostServiceContext,

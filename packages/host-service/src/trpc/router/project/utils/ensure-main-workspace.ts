@@ -27,13 +27,10 @@ async function getCurrentBranchName(
 }
 
 /**
- * Ensures a `type='main'` v2 workspace exists for (projectId, currentHost),
- * with a matching local `workspaces` row whose `worktreePath` is the repo root.
- *
- * Idempotent: safe to call from `project.setup` and from the startup sweep.
- * Log-and-continue: on any cloud/local failure, logs and returns null so
- * callers (e.g. `project.setup`) don't regress when a transient cloud blip
- * hits. The startup sweep will backfill on the next boot.
+ * Idempotent log-and-continue variant. Returns null on any failure so a
+ * transient cloud blip during setup or sweep doesn't fail the caller — the
+ * startup sweep retries on the next boot. Create flows want strict
+ * semantics instead; see `ensureMainWorkspaceStrict`.
  */
 export async function ensureMainWorkspace(
 	ctx: EnsureMainWorkspaceContext,
@@ -52,10 +49,10 @@ export async function ensureMainWorkspace(
 }
 
 /**
- * Strict variant for create flows: throws on any failure instead of
- * swallowing. The create-project saga uses this so a workspace-creation
- * failure rolls back the whole saga (including the cloud project commit).
- * The lenient version above stays for `project.setup` and the startup sweep.
+ * Strict variant: ensure a `type='main'` v2 workspace exists for
+ * (projectId, currentHost) with a matching local `workspaces` row, or
+ * throw. The create-project saga uses this so a workspace failure rolls
+ * back the whole saga, including the cloud project commit.
  */
 export async function ensureMainWorkspaceStrict(
 	ctx: EnsureMainWorkspaceContext,
