@@ -8,7 +8,7 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { after, before, test } from "node:test";
-import { spawn as spawnPty } from "../src/Pty/Pty.ts";
+import { adoptFromFd, spawn as spawnPty } from "../src/Pty/Pty.ts";
 import { Server } from "../src/Server/index.ts";
 import { connect, connectAndHello } from "./helpers/client.ts";
 
@@ -107,5 +107,46 @@ test("Pty.getMasterFd returns a usable kernel fd", () => {
 		assert.ok(stat, "fstat should succeed on master fd");
 	} finally {
 		pty.kill("SIGKILL");
+	}
+});
+
+test("adoptFromFd validates inputs", () => {
+	const meta = { shell: "/bin/sh", argv: [], cols: 80, rows: 24 };
+	assert.throws(() => adoptFromFd({ fd: -1, pid: 1, meta }), /invalid fd/);
+	assert.throws(() => adoptFromFd({ fd: 3, pid: 0, meta }), /invalid pid/);
+	assert.throws(
+		() =>
+			adoptFromFd({
+				fd: 3,
+				pid: 1,
+				meta: { ...meta, cols: 0 },
+			}),
+		/invalid cols/,
+	);
+});
+
+test("adoptFromFd wraps a real PTY master fd without crashing", () => {
+	// API-surface check only. End-to-end I/O on an adopted fd is validated
+	// in the cross-process handoff integration test — in this test process,
+	// node-pty's native worker is actively reading from the master fd, so
+	// adoptFromFd's read stream would race with it. In a real successor
+	// daemon, node-pty doesn't exist for the adopted session.
+	const original = spawnPty({
+		meta: { shell: "/bin/sh", argv: ["-c", "sleep 1"], cols: 80, rows: 24 },
+	});
+	try {
+		const adopted = adoptFromFd({
+			fd: original.getMasterFd(),
+			pid: original.pid,
+			meta: original.meta,
+		});
+		assert.equal(adopted.pid, original.pid);
+		assert.equal(adopted.getMasterFd(), original.getMasterFd());
+		// resize updates meta but not kernel-side window (TODO: koffi ioctl)
+		adopted.resize(120, 40);
+		assert.equal(adopted.meta.cols, 120);
+		assert.equal(adopted.meta.rows, 40);
+	} finally {
+		original.kill("SIGKILL");
 	}
 });

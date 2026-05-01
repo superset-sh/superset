@@ -1,3 +1,4 @@
+import * as fs from "node:fs";
 import * as nodePty from "node-pty";
 import type { SessionMeta } from "../protocol/index.ts";
 
@@ -109,4 +110,122 @@ export function spawn({ meta }: SpawnOptions): Pty {
 	// Validate the private-fd dependency at spawn time, not handoff time.
 	adapter.getMasterFd();
 	return adapter;
+}
+
+/**
+ * AdoptedPty — wraps a PTY master fd inherited from a predecessor daemon.
+ *
+ * The successor doesn't have a node-pty IPty for these sessions (no
+ * `forkpty` was run; the fd already existed). We build a thin adapter
+ * directly on the fd:
+ *
+ * - read via fs.createReadStream
+ * - write via fs.createWriteStream
+ * - kill via process.kill(pid)
+ * - onExit: read-stream 'end'/'error' OR PID-liveness poll (whichever first)
+ *
+ * Resize on adopted sessions is a known gap — TIOCSWINSZ requires either
+ * a native ioctl helper (koffi) or a dedicated tiny addon. Until then,
+ * resize() updates `meta.cols/rows` but leaves the kernel-side window
+ * size untouched. Accept the limitation; ship Phase 2; address resize
+ * follow-up.
+ */
+class AdoptedPty implements Pty {
+	readonly pid: number;
+	meta: SessionMeta;
+	private readonly fd: number;
+	private readonly reader: fs.ReadStream;
+	private readonly writer: fs.WriteStream;
+	private exitFired = false;
+	private livenessTimer: NodeJS.Timeout | null = null;
+	private exitCallbacks: PtyOnExit[] = [];
+
+	constructor(fd: number, pid: number, meta: SessionMeta) {
+		this.fd = fd;
+		this.pid = pid;
+		this.meta = meta;
+		this.reader = fs.createReadStream("", { fd, autoClose: false });
+		this.writer = fs.createWriteStream("", { fd, autoClose: false });
+
+		// onExit signal sources:
+		//   1. read stream 'end' or 'error' — the slave-side close drives EOF
+		//      / EIO on the master fd, which Node's stream surfaces as 'end'
+		//      (EOF) or 'error' (EIO).
+		//   2. PID-liveness poll — defense in depth for cases where the read
+		//      stream lingers without firing 'end' promptly.
+		const onExit = (info: { code: number | null; signal: number | null }) => {
+			if (this.exitFired) return;
+			this.exitFired = true;
+			if (this.livenessTimer) clearInterval(this.livenessTimer);
+			for (const cb of this.exitCallbacks) cb(info);
+		};
+		this.reader.on("end", () => onExit({ code: null, signal: null }));
+		this.reader.on("error", () => onExit({ code: null, signal: null }));
+		this.livenessTimer = setInterval(() => {
+			if (!isPidAlive(this.pid)) onExit({ code: null, signal: null });
+		}, 1000);
+		this.livenessTimer.unref();
+	}
+
+	getMasterFd(): number {
+		return this.fd;
+	}
+
+	write(data: Buffer): void {
+		this.writer.write(data);
+	}
+
+	resize(cols: number, rows: number): void {
+		validateDims(cols, rows);
+		// TODO(phase2-followup): wire TIOCSWINSZ via koffi or native helper.
+		// Today: track meta only — kernel-side window size is whatever it
+		// was at adoption time. Acceptable temporarily; visible to users
+		// only if they resize a session that was carried across an upgrade.
+		this.meta = { ...this.meta, cols, rows };
+	}
+
+	kill(signal?: NodeJS.Signals): void {
+		try {
+			process.kill(this.pid, signal ?? "SIGHUP");
+		} catch {
+			// Already dead; idempotent kill.
+		}
+	}
+
+	onData(cb: PtyOnData): void {
+		this.reader.on("data", (chunk) => {
+			cb(typeof chunk === "string" ? Buffer.from(chunk, "utf8") : chunk);
+		});
+	}
+
+	onExit(cb: PtyOnExit): void {
+		this.exitCallbacks.push(cb);
+	}
+}
+
+function isPidAlive(pid: number): boolean {
+	try {
+		process.kill(pid, 0);
+		return true;
+	} catch (err) {
+		// EPERM means the pid exists but isn't ours — count as alive.
+		return (err as NodeJS.ErrnoException).code === "EPERM";
+	}
+}
+
+export interface AdoptOptions {
+	fd: number;
+	pid: number;
+	meta: SessionMeta;
+}
+
+export function adoptFromFd({ fd, pid, meta }: AdoptOptions): Pty {
+	if (!Number.isInteger(fd) || fd < 0) {
+		throw new Error(`invalid fd: ${fd}`);
+	}
+	if (!Number.isInteger(pid) || pid <= 0) {
+		throw new Error(`invalid pid: ${pid}`);
+	}
+	validateDims(meta.cols, meta.rows);
+	return new AdoptedPty(fd, pid, meta);
 }
