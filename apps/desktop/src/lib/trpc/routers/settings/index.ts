@@ -49,6 +49,9 @@ import {
 	DEFAULT_SHOW_RESOURCE_MONITOR,
 	DEFAULT_TERMINAL_LINK_BEHAVIOR,
 	DEFAULT_USE_COMPACT_TERMINAL_ADD_BUTTON,
+	MAX_TERMINAL_SCROLLBACK,
+	MIN_TERMINAL_SCROLLBACK,
+	normalizeTerminalScrollbackLines,
 } from "shared/constants";
 import { normalizePresetProjectIds } from "shared/preset-project-targeting";
 import {
@@ -727,6 +730,37 @@ export const createSettingsRouter = () => {
 					.onConflictDoUpdate({
 						target: settings.id,
 						set: { terminalLinkBehavior: input.behavior },
+					})
+					.run();
+
+				return { success: true };
+			}),
+
+		getTerminalScrollbackLines: publicProcedure.query(() => {
+			const row = getSettings();
+			return normalizeTerminalScrollbackLines(row.terminalScrollbackLines);
+		}),
+
+		setTerminalScrollbackLines: publicProcedure
+			.input(
+				z.object({
+					scrollbackLines: z
+						.number()
+						.int()
+						.min(MIN_TERMINAL_SCROLLBACK)
+						.max(MAX_TERMINAL_SCROLLBACK),
+				}),
+			)
+			.mutation(({ input }) => {
+				localDb
+					.insert(settings)
+					.values({
+						id: 1,
+						terminalScrollbackLines: input.scrollbackLines,
+					})
+					.onConflictDoUpdate({
+						target: settings.id,
+						set: { terminalScrollbackLines: input.scrollbackLines },
 					})
 					.run();
 

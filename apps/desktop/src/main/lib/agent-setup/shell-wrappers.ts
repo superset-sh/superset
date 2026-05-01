@@ -226,10 +226,30 @@ rehash 2>/dev/null || true
 # still match against their own scanner.
 # Protocol ref: https://gitlab.freedesktop.org/Per_Bothner/specifications/blob/master/proposals/semantic-prompts.md
 __superset_prompt_mark() {
+  local _superset_status="\${__SUPERSET_LAST_STATUS:-$?}"
+  if [[ -n "\${__SUPERSET_COMMAND_RUNNING:-}" ]]; then
+    printf "\\033]133;D;%s\\007" "$_superset_status"
+    unset __SUPERSET_COMMAND_RUNNING
+  fi
   printf "\\033]777;superset-shell-ready\\007\\033]133;A\\007"
 }
+__superset_command_start() {
+  __SUPERSET_COMMAND_RUNNING=1
+  local _superset_command="\${1//$'\\033'/}"
+  _superset_command="\${_superset_command//$'\\007'/}"
+  _superset_command="\${_superset_command//$'\\n'/ }"
+  _superset_command="\${_superset_command//$'\\r'/ }"
+  printf "\\033]133;C;%s\\007" "$_superset_command"
+}
+__superset_capture_status() {
+  __SUPERSET_LAST_STATUS=$?
+}
+# Keep status capture first; later precmd hooks may change $?.
+precmd_functions=(__superset_capture_status \${precmd_functions:#__superset_capture_status})
+# Keep our command marker late so user preexec hooks still run first.
+preexec_functions=(\${preexec_functions:#__superset_command_start} __superset_command_start)
 # Keep our hook LAST so it fires after direnv and other precmd hooks complete.
-precmd_functions=(\${precmd_functions[@]} __superset_prompt_mark)
+precmd_functions=(\${precmd_functions:#__superset_prompt_mark} __superset_prompt_mark)
 export ZDOTDIR="$_superset_home"
 `;
 	const wroteZlogin = writeFileIfChanged(zloginPath, zloginScript, 0o644);
@@ -330,6 +350,13 @@ export function getShellArgs(
 				`set -l _superset_bin "${escapedBinDir}"`,
 				`contains -- "$_superset_bin" $PATH`,
 				`or set -gx PATH "$_superset_bin" $PATH`,
+				`function _superset_command_start --on-event fish_preexec`,
+				`set -l _superset_command (string replace -a (printf '\\033') '' -- $argv[1] | string replace -a (printf '\\007') '' | string replace -a (printf '\\n') ' ' | string replace -a (printf '\\r') ' ')`,
+				`printf '\\033]133;C;%s\\007' "$_superset_command"`,
+				`end`,
+				`function _superset_command_finish --on-event fish_postexec`,
+				`printf '\\033]133;D;%s\\007' $status`,
+				`end`,
 				`function _superset_prompt_mark --on-event fish_prompt`,
 				`printf '\\033]777;superset-shell-ready\\007\\033]133;A\\007'`,
 				`end`,

@@ -39,6 +39,7 @@ export const SETTING_ITEM_ID = {
 	TERMINAL_QUICK_ADD: "terminal-quick-add",
 	TERMINAL_SESSIONS: "terminal-sessions",
 	TERMINAL_LINK_BEHAVIOR: "terminal-link-behavior",
+	TERMINAL_SCROLLBACK: "terminal-scrollback",
 
 	LINKS_FILE: "links-file",
 	LINKS_URL: "links-url",
@@ -628,6 +629,25 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"cmd",
 			"ctrl",
 			"browser",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.TERMINAL_SCROLLBACK,
+		section: "terminal",
+		title: "Terminal Scrollback",
+		description: "Number of lines kept for terminal scrolling",
+		keywords: [
+			"terminal",
+			"terminal history",
+			"scrollback",
+			"scroll",
+			"history",
+			"buffer",
+			"lines",
+			"output",
+			"limit",
+			"back",
+			"warp",
 		],
 	},
 	{

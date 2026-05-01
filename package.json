@@ -28,7 +28,7 @@
 		"lint:fix": "bunx @biomejs/biome@2.4.2 migrate --write && bunx @biomejs/biome@2.4.2 check --write --unsafe .",
 		"format": "bunx @biomejs/biome@2.4.2 format --write .",
 		"format:check": "bunx @biomejs/biome@2.4.2 format .",
-		"typecheck": "turbo typecheck",
+		"typecheck": "./scripts/typecheck.sh",
 		"ui-add": "turbo run ui-add",
 		"postinstall": "./scripts/postinstall.sh",
 		"clean": "git clean -xdf node_modules",

@@ -124,6 +124,13 @@ describe("shell-wrappers", () => {
 		);
 		expect(zlogin).not.toContain(`claude() { "${TEST_BIN_DIR}/claude" "$@"; }`);
 		expect(zlogin).toContain("rehash 2>/dev/null || true");
+		expect(zlogin).toContain("__superset_capture_status()");
+		expect(zlogin).toContain("__SUPERSET_LAST_STATUS:-$?");
+		expect(zlogin).toContain("precmd_functions=(__superset_capture_status ");
+		expect(zlogin).toContain(":#__superset_capture_status})");
+		expect(zlogin).toContain(
+			":#__superset_prompt_mark} __superset_prompt_mark)",
+		);
 	});
 
 	it("creates bash wrapper without persistent command shims and with idempotent PATH prepend", () => {
@@ -843,6 +850,8 @@ export SUPERSET_WORKSPACE_PATH="/wrong/path"
 			// scanners (133;A) both detect readiness without a daemon restart.
 			expect(args[2]).toContain("\\033]777;superset-shell-ready\\007");
 			expect(args[2]).toContain("\\033]133;A\\007");
+			expect(args[2]).toContain("\\033]133;C;%s\\007");
+			expect(args[2]).toContain("\\033]133;D;%s\\007");
 		});
 
 		it("escapes fish init-command BIN_DIR safely", () => {
@@ -872,6 +881,19 @@ export SUPERSET_WORKSPACE_PATH="/wrong/path"
 				expect(wrapper).toContain("\\033]777;superset-shell-ready\\007");
 				expect(wrapper).toContain("\\033]133;A\\007");
 			}
+		});
+
+		it("zsh emits command record markers while bash remains readiness-only", () => {
+			createZshWrapper(TEST_PATHS);
+			createBashWrapper(TEST_PATHS);
+
+			const zlogin = readFileSync(path.join(TEST_ZSH_DIR, ".zlogin"), "utf-8");
+			const rcfile = readFileSync(path.join(TEST_BASH_DIR, "rcfile"), "utf-8");
+
+			expect(zlogin).toContain("\\033]133;C;%s\\007");
+			expect(zlogin).toContain("\\033]133;D;%s\\007");
+			expect(rcfile).not.toContain("\\033]133;C\\007");
+			expect(rcfile).not.toContain("\\033]133;D;%s\\007");
 		});
 	});
 });

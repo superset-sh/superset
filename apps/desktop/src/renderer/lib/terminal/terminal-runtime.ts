@@ -8,7 +8,10 @@ import {
 	shouldBubbleClipboardShortcut,
 	shouldSelectAllShortcut,
 } from "renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/Terminal/clipboardShortcuts";
-import { DEFAULT_TERMINAL_SCROLLBACK } from "shared/constants";
+import {
+	DEFAULT_TERMINAL_SCROLLBACK,
+	normalizeTerminalScrollbackLines,
+} from "shared/constants";
 import type { TerminalAppearance } from "./appearance";
 import { translateLineEditChord } from "./line-edit-translations";
 import { loadAddons } from "./terminal-addons";
@@ -95,6 +98,7 @@ function createTerminal(
 	cols: number,
 	rows: number,
 	appearance: TerminalAppearance,
+	scrollbackLines = DEFAULT_TERMINAL_SCROLLBACK,
 ): {
 	terminal: XTerm;
 	fitAddon: FitAddon;
@@ -110,7 +114,7 @@ function createTerminal(
 		fontSize: appearance.fontSize,
 		theme: appearance.theme,
 		allowProposedApi: true,
-		scrollback: DEFAULT_TERMINAL_SCROLLBACK,
+		scrollback: normalizeTerminalScrollbackLines(scrollbackLines),
 		macOptionIsMeta: false,
 		cursorStyle: "block",
 		cursorInactiveStyle: "outline",
@@ -275,7 +279,7 @@ function createResizeScheduler(
 export function createRuntime(
 	terminalId: string,
 	appearance: TerminalAppearance,
-	options: { initialBuffer?: string } = {},
+	options: { initialBuffer?: string; scrollbackLines?: number } = {},
 ): TerminalRuntime {
 	const savedDims = loadSavedDimensions(terminalId);
 	const cols = savedDims?.cols ?? DEFAULT_COLS;
@@ -285,6 +289,7 @@ export function createRuntime(
 		cols,
 		rows,
 		appearance,
+		options.scrollbackLines,
 	);
 
 	const wrapper = document.createElement("div");
@@ -382,6 +387,16 @@ export function updateRuntimeAppearance(
 			measureAndResize(runtime);
 		}
 	}
+}
+
+export function updateRuntimeScrollback(
+	runtime: TerminalRuntime,
+	scrollbackLines: number,
+) {
+	const normalizedScrollback =
+		normalizeTerminalScrollbackLines(scrollbackLines);
+	if (runtime.terminal.options.scrollback === normalizedScrollback) return;
+	runtime.terminal.options.scrollback = normalizedScrollback;
 }
 
 export function disposeRuntime(

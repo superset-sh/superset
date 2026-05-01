@@ -39,7 +39,20 @@ export const NOTIFICATION_EVENTS = {
 export const MOCK_ORG_ID = "mock-org-id";
 
 // Terminal defaults
-export const DEFAULT_TERMINAL_SCROLLBACK = 5000;
+export const MIN_TERMINAL_SCROLLBACK = 100;
+export const MAX_TERMINAL_SCROLLBACK = 1_000_000;
+export const DEFAULT_TERMINAL_SCROLLBACK = 50_000;
+
+export function normalizeTerminalScrollbackLines(value: unknown): number {
+	if (typeof value !== "number" || !Number.isFinite(value)) {
+		return DEFAULT_TERMINAL_SCROLLBACK;
+	}
+
+	return Math.min(
+		MAX_TERMINAL_SCROLLBACK,
+		Math.max(MIN_TERMINAL_SCROLLBACK, Math.trunc(value)),
+	);
+}
 
 // Default user preference values
 export const DEFAULT_CONFIRM_ON_QUIT = true;
