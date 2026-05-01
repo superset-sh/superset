@@ -22,6 +22,7 @@ import {
 	type SessionInfo,
 } from "@superset/pty-daemon/protocol";
 import semver from "semver";
+import { DaemonClient } from "../terminal/DaemonClient/index.ts";
 import { EXPECTED_DAEMON_VERSION } from "./expected-version.ts";
 import { MAX_DAEMON_LOG_BYTES, openRotatingLogFd } from "./log-fd.ts";
 import {
@@ -166,6 +167,114 @@ export class DaemonSupervisor {
 	 * Awaits any in-flight spawn before stopping so we never SIGTERM a
 	 * partially-initialized child.
 	 */
+	/**
+	 * Phase 2: ask the running daemon to spawn a successor binary that
+	 * adopts all live sessions via fd-handoff. On success the original
+	 * shell PIDs survive the daemon swap.
+	 *
+	 * Distinct from `restart()` which kills sessions. Surface this via the
+	 * "Update" UX; fall back to `restart()` only on failure.
+	 */
+	async update(
+		organizationId: string,
+	): Promise<
+		{ ok: true; successorPid: number } | { ok: false; reason: string }
+	> {
+		const instance = this.instances.get(organizationId);
+		if (!instance) {
+			return { ok: false, reason: "no daemon running for this org" };
+		}
+
+		// Suppress crash-respawn for the predecessor's imminent exit. The
+		// predecessor was either spawned by us (child.on('exit') will fire)
+		// or adopted (liveness poll); either way, marking `stopping` makes
+		// the exit handler treat it as expected.
+		this.stopping.add(organizationId);
+		this.stopAdoptedLivenessCheck(organizationId);
+
+		// Mark the manifest so a host-service crash mid-handoff is
+		// debuggable. We restore on failure or replace on success.
+		const existingManifest = readPtyDaemonManifest(organizationId);
+		if (existingManifest) {
+			writePtyDaemonManifest({
+				...existingManifest,
+				handoffInProgress: true,
+			});
+		}
+
+		const restoreOnFailure = () => {
+			this.stopping.delete(organizationId);
+			if (existingManifest) writePtyDaemonManifest(existingManifest);
+			// Re-arm liveness for the (still-living) predecessor.
+			this.startAdoptedLivenessCheck(organizationId, instance.pid);
+		};
+
+		const client = new DaemonClient({ socketPath: instance.socketPath });
+		let result: { ok: true; successorPid: number } | { ok: false; reason: string };
+		try {
+			await client.connect();
+			result = await client.prepareUpgrade();
+		} catch (err) {
+			restoreOnFailure();
+			return {
+				ok: false,
+				reason: `prepareUpgrade transport: ${(err as Error).message}`,
+			};
+		} finally {
+			await client.dispose();
+		}
+
+		if (!result.ok) {
+			restoreOnFailure();
+			return result;
+		}
+
+		// Successor is live. Probe its version (it may have bumped since the
+		// predecessor adopted), then refresh manifest + instance.
+		const probedVersion = await probeDaemonVersion(
+			instance.socketPath,
+			VERSION_PROBE_TIMEOUT_MS,
+		);
+		const runningVersion = probedVersion ?? "unknown";
+
+		const successorInstance: DaemonInstance = {
+			pid: result.successorPid,
+			socketPath: instance.socketPath,
+			startedAt: Date.now(),
+			runningVersion,
+			expectedVersion: EXPECTED_DAEMON_VERSION,
+			updatePending:
+				!!probedVersion &&
+				!semver.satisfies(probedVersion, `>=${EXPECTED_DAEMON_VERSION}`),
+		};
+		this.instances.set(organizationId, successorInstance);
+		this.stopping.delete(organizationId);
+		this.lastUpdatePendingPair.delete(organizationId);
+
+		if (existingManifest) {
+			writePtyDaemonManifest({
+				pid: result.successorPid,
+				socketPath: instance.socketPath,
+				protocolVersions: existingManifest.protocolVersions,
+				startedAt: Date.now(),
+				organizationId,
+			});
+		}
+
+		// Successor wasn't spawned as our child — start liveness polling.
+		this.startAdoptedLivenessCheck(organizationId, result.successorPid);
+
+		logEvent("pty_daemon_update", {
+			organizationId,
+			previousPid: instance.pid,
+			successorPid: result.successorPid,
+			previousVersion: instance.runningVersion,
+			successorVersion: runningVersion,
+		});
+
+		return { ok: true, successorPid: result.successorPid };
+	}
+
 	async restart(organizationId: string): Promise<{ success: true }> {
 		const prev = this.instances.get(organizationId);
 		const hadCircuitOpen = this.circuitOpen.has(organizationId);
