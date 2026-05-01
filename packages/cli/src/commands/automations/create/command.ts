@@ -89,7 +89,7 @@ export default command({
 			agentConfig,
 			targetHostId: options.host ?? null,
 			v2ProjectId: options.project ?? undefined,
-			v2WorkspaceId: options.workspace ?? null,
+			v2WorkspaceId: options.workspace ?? undefined,
 			rrule: options.rrule,
 			dtstart: options.dtstart ? new Date(options.dtstart) : undefined,
 			timezone: options.timezone ?? DEFAULT_TIMEZONE,
