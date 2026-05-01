@@ -5,11 +5,48 @@
  * host-service start are all baked into the image's superset-init.sh script.
  * This module is the sandbox-agnostic glue between OpenComputer and the
  * Superset SDK.
+ *
+ * The Superset SDK is not yet published. The shapes below are the assumed
+ * surface; replace `SupersetClient` and the call signatures with the real
+ * package once it ships.
  */
 
 import { Sandbox } from "@opencomputer/sdk";
-import { SupersetClient } from "@superset/sdk"; // assumed package name
 import { REPO_PATH, supersetImage } from "./image";
+
+// ─── Superset SDK placeholder shape (TODO: replace with real @superset/sdk) ───
+interface SupersetClientOpts {
+  apiKey: string;
+  apiUrl?: string;
+}
+interface ProjectsCreateArgs {
+  name: string;
+  repoCloneUrl: string;
+  existingClonePath?: string;
+  hostId?: string;
+}
+interface WorkspacesCreateArgs {
+  project: string;
+  hostId: string;
+  name: string;
+  branch: string;
+}
+interface SessionsCreateArgs {
+  workspaceId: string;
+  agent: string;
+  model?: string;
+  prompt: string;
+}
+interface Project { id: string }
+interface Workspace { id: string; worktreePath: string }
+interface AgentSessionRef { id: string }
+declare class SupersetClient {
+  constructor(opts: SupersetClientOpts);
+  projects: { create(args: ProjectsCreateArgs): Promise<Project> };
+  workspaces: { create(args: WorkspacesCreateArgs): Promise<Workspace> };
+  sessions: { create(args: SessionsCreateArgs): Promise<AgentSessionRef> };
+}
+// ──────────────────────────────────────────────────────────────────────────────
 
 export interface SpawnArgs {
   doppler: { token: string; project: string; config: string };
@@ -56,15 +93,13 @@ export async function spawnSupersetWorkspace(args: SpawnArgs) {
 
   // SDK calls reach api.superset.sh and route to the host-service in this
   // sandbox via the relay. The host-service self-registered using
-  // SUPERSET_API_KEY during init; we look up its hostId from the org.
+  // SUPERSET_API_KEY during init; we look up its hostId from the box.
   const client = new SupersetClient({
     apiKey: args.superset.apiKey,
     apiUrl: args.superset.apiUrl,
   });
 
-  // Find the host that just registered. Could match on a metadata tag we set
-  // via Sandbox.create({ metadata }) for stronger correlation in production.
-  const supersetHostId = await resolveHostId(sandbox, client);
+  const supersetHostId = await resolveHostId(sandbox);
 
   // Register the baked clone as a project so the host-service doesn't re-clone
   // into ~/.superset/repos/.
@@ -102,22 +137,17 @@ export async function spawnSupersetWorkspace(args: SpawnArgs) {
 }
 
 /**
- * Map an OpenComputer sandbox to its Superset hostId. The host-service running
- * inside picks its hostId at first boot and registers with the relay, so we
- * read it back rather than guess.
- *
- * Production: tag the sandbox with metadata at create time and filter
- * `client.hosts.list()` by that tag instead of asking the sandbox.
+ * Read the Superset hostId out of the sandbox. The host-service picks it at
+ * first boot and registers with the relay, so we read it back rather than
+ * guess. Production: tag the sandbox via Sandbox.create({ metadata }) and
+ * filter `client.hosts.list()` by tag instead.
  */
-async function resolveHostId(
-  sandbox: Sandbox,
-  client: SupersetClient,
-): Promise<string> {
-  const hostId = await sandbox.exec.run(
+async function resolveHostId(sandbox: Sandbox): Promise<string> {
+  const r = await sandbox.exec.run(
     `superset status --json | jq -r .hostId`,
   );
-  if (hostId.exitCode !== 0 || !hostId.stdout.trim()) {
-    throw new Error(`failed to read hostId from sandbox: ${hostId.stderr}`);
+  if (r.exitCode !== 0 || !r.stdout.trim()) {
+    throw new Error(`failed to read hostId from sandbox: ${r.stderr}`);
   }
-  return hostId.stdout.trim();
+  return r.stdout.trim();
 }

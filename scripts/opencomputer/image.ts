@@ -11,7 +11,9 @@
  * binaries, and CLI installers stay cached across image rebuilds.
  */
 
-import { Image } from "@opencomputer/sdk";
+// Image lives on the `/node` subpath because it touches the local filesystem
+// (addLocalFile/addLocalDir). The main "@opencomputer/sdk" entry is browser-safe.
+import { Image } from "@opencomputer/sdk/node";
 
 export const REPO_PATH = "/root/code/superset";
 

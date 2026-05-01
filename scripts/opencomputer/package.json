@@ -1,0 +1,19 @@
+{
+  "name": "@superset/opencomputer-bootstrap",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "OpenComputer image + spawn helpers for Superset host-service sandboxes.",
+  "scripts": {
+    "build-image": "bun run build-image.ts",
+    "spawn": "bun run spawn-workspace.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@opencomputer/sdk": "^0.5.16"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0",
+    "@types/node": "^20.0.0"
+  }
+}
