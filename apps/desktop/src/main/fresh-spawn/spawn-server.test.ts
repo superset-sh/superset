@@ -1,0 +1,205 @@
+import { afterEach, describe, expect, it } from "bun:test";
+import * as fs from "node:fs";
+import * as net from "node:net";
+import * as os from "node:os";
+import * as path from "node:path";
+import { readTokenFile } from "./auth";
+import { type SpawnServer, startSpawnServer } from "./spawn-server";
+
+describe("SpawnServer", () => {
+	let server: SpawnServer | null = null;
+	let tmpDir = "";
+
+	afterEach(async () => {
+		if (server) {
+			await server.close();
+			server = null;
+		}
+		if (tmpDir && fs.existsSync(tmpDir)) {
+			fs.rmSync(tmpDir, { recursive: true, force: true });
+		}
+		tmpDir = "";
+	});
+
+	function mkdirs(): {
+		socketPath: string;
+		tokenPath: string;
+		subprocessScriptPath: string;
+	} {
+		tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "fs-server-"));
+		// A minimal echo script. These tests don't exercise the streaming
+		// handler; a valid path is enough to satisfy the required option.
+		const subprocessScriptPath = path.join(tmpDir, "noop.js");
+		fs.writeFileSync(
+			subprocessScriptPath,
+			`process.stdin.on("end", () => process.exit(0));\n`,
+		);
+		return {
+			socketPath: path.join(tmpDir, "s.sock"),
+			tokenPath: path.join(tmpDir, "s.token"),
+			subprocessScriptPath,
+		};
+	}
+
+	/**
+	 * Connect to the UDS server, send a single NDJSON line,
+	 * and resolve with the first response line trimmed of its trailing newline.
+	 */
+	function roundTrip(sockPath: string, line: string): Promise<string> {
+		return new Promise((resolve, reject) => {
+			const client = net.createConnection(sockPath);
+			let received = "";
+			const onError = (err: Error) => {
+				client.destroy();
+				reject(err);
+			};
+			client.once("error", onError);
+			client.once("connect", () => {
+				client.write(`${line}\n`);
+			});
+			client.on("data", (data) => {
+				received += data.toString("utf8");
+				const nl = received.indexOf("\n");
+				if (nl !== -1) {
+					client.off("error", onError);
+					client.destroy();
+					resolve(received.slice(0, nl));
+				}
+			});
+			client.once("end", () => {
+				if (!received.includes("\n")) {
+					reject(new Error("server closed connection without responding"));
+				}
+			});
+		});
+	}
+
+	it("starts on given socket path (file exists after startup)", async () => {
+		const paths = mkdirs();
+		server = await startSpawnServer(paths);
+		expect(fs.existsSync(paths.socketPath)).toBe(true);
+	});
+
+	it("creates token file with 0600 mode", async () => {
+		const paths = mkdirs();
+		server = await startSpawnServer(paths);
+		expect(fs.existsSync(paths.tokenPath)).toBe(true);
+		const mode = fs.statSync(paths.tokenPath).mode & 0o777;
+		expect(mode).toBe(0o600);
+	});
+
+	it("responds with E_PARSE on invalid JSON", async () => {
+		const paths = mkdirs();
+		server = await startSpawnServer(paths);
+
+		const resp = await roundTrip(paths.socketPath, "not-valid-json{");
+		const parsed = JSON.parse(resp);
+		expect(parsed.type).toBe("error");
+		expect(parsed.code).toBe("E_PARSE");
+	});
+
+	it("responds with E_SCHEMA on schema-invalid request", async () => {
+		const paths = mkdirs();
+		server = await startSpawnServer(paths);
+
+		// Missing required `env` field and unknown `type`
+		const resp = await roundTrip(
+			paths.socketPath,
+			JSON.stringify({ type: "bogus-type", token: "whatever" }),
+		);
+		const parsed = JSON.parse(resp);
+		expect(parsed.type).toBe("error");
+		expect(parsed.code).toBe("E_SCHEMA");
+	});
+
+	it("responds with E_AUTH on bad token", async () => {
+		const paths = mkdirs();
+		server = await startSpawnServer(paths);
+
+		const resp = await roundTrip(
+			paths.socketPath,
+			JSON.stringify({
+				type: "spawn-pty-subprocess",
+				token: "WRONG_TOKEN_OF_DIFFERENT_LENGTH",
+				env: {},
+			}),
+		);
+		const parsed = JSON.parse(resp);
+		expect(parsed.type).toBe("error");
+		expect(parsed.code).toBe("E_AUTH");
+	});
+
+	it("responds with ok+pid on valid authenticated spawn-pty-subprocess request", async () => {
+		const paths = mkdirs();
+		server = await startSpawnServer(paths);
+		const token = readTokenFile(paths.tokenPath);
+
+		const resp = await roundTrip(
+			paths.socketPath,
+			JSON.stringify({
+				type: "spawn-pty-subprocess",
+				token,
+				env: { HOME: "/Users/test" },
+			}),
+		);
+		const parsed = JSON.parse(resp);
+		expect(parsed.type).toBe("ok");
+		expect(typeof parsed.pid).toBe("number");
+		expect(parsed.pid).toBeGreaterThan(0);
+	});
+
+	it("responds with ok+pid on valid authenticated fresh-exec request", async () => {
+		const paths = mkdirs();
+		server = await startSpawnServer(paths);
+		const token = readTokenFile(paths.tokenPath);
+
+		const resp = await roundTrip(
+			paths.socketPath,
+			JSON.stringify({
+				type: "fresh-exec",
+				token,
+				// Use a command that's guaranteed to exist and exits quickly so
+				// the PTY shuts down on its own without leaking processes.
+				command: "/bin/echo",
+				args: ["fresh-exec-smoke"],
+				cwd: "/tmp",
+				env: { PATH: "/usr/bin:/bin" },
+				ptyCols: 80,
+				ptyRows: 24,
+			}),
+		);
+		const parsed = JSON.parse(resp);
+		expect(parsed.type).toBe("ok");
+		expect(typeof parsed.pid).toBe("number");
+		expect(parsed.pid).toBeGreaterThan(0);
+	});
+
+	it("closes idle connections after timeout", async () => {
+		const paths = mkdirs();
+		// Use a short timeout to keep the test fast and stable on CI.
+		server = await startSpawnServer({ ...paths, idleTimeoutMs: 200 });
+
+		const start = Date.now();
+		await new Promise<void>((resolve, reject) => {
+			const client = net.createConnection(paths.socketPath);
+			client.once("error", reject);
+			client.once("close", () => resolve());
+			// Intentionally never send anything — the server should time out
+			// and destroy the connection after idleTimeoutMs.
+		});
+		const elapsed = Date.now() - start;
+		expect(elapsed).toBeGreaterThanOrEqual(200);
+		expect(elapsed).toBeLessThan(2000);
+	});
+
+	it("close() removes the socket file", async () => {
+		const paths = mkdirs();
+		server = await startSpawnServer(paths);
+		expect(fs.existsSync(paths.socketPath)).toBe(true);
+
+		await server.close();
+		server = null;
+
+		expect(fs.existsSync(paths.socketPath)).toBe(false);
+	});
+});

@@ -111,6 +111,11 @@ export default defineConfig({
 					"git-task-worker": resolve("src/main/git-task-worker.ts"),
 					// Workspace service - local HTTP/tRPC server per org
 					"host-service": resolve("src/main/host-service/index.ts"),
+					// fresh-exec helper — invoked from stale zsh sessions to re-run
+					// whitelisted commands in Electron main's fresh Mach context.
+					// Emitted as a sibling to index.js so the shell hook can resolve
+					// it via __dirname-relative paths.
+					"fresh-exec": resolve("src/main/fresh-spawn/fresh-exec.ts"),
 				},
 				output: {
 					dir: resolve(devPath, "main"),

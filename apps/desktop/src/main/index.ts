@@ -216,6 +216,9 @@ app.on("before-quit", async (event) => {
 	} catch (error) {
 		console.error("[main] Cleanup during quit failed:", error);
 	}
+	// The fresh-spawn UDS server now lives inside the terminal-host daemon
+	// (which is detached + unref'd), so it survives Electron app quit along
+	// with the PTY subprocesses it hosts. Nothing to clean up here.
 	app.exit(0);
 });
 
@@ -300,6 +303,11 @@ if (!gotTheLock) {
 		registerWithMacOSNotificationCenter();
 		requestAppleEventsAccess();
 		requestLocalNetworkAccess();
+
+		// The fresh-spawn UDS server now runs inside the terminal-host
+		// daemon (see apps/desktop/src/main/terminal-host/index.ts). Hosting
+		// it there means PTYs spawned through it become daemon grandchildren
+		// and survive Electron app quit along with the daemon itself.
 
 		// Must register on both default session and the app's custom partition
 		const iconProtocolHandler = (request: Request) => {

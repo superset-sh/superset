@@ -271,6 +271,7 @@
         "native-keymap": "^3.3.9",
         "node-addon-api": "^7.1.0",
         "node-pty": "1.1.0",
+        "node-unix-socket": "^0.2.7",
         "os-locale": "^6.0.2",
         "pidtree": "^0.6.0",
         "pidusage": "^4.0.1",
@@ -4902,6 +4903,22 @@
     "node-releases": ["node-releases@2.0.36", "", {}, "sha512-TdC8FSgHz8Mwtw9g5L4gR/Sh9XhSP/0DEkQxfEFXOpiul5IiHgHan2VhYYb6agDSfp4KuvltmGApc8HMgUrIkA=="],
 
     "node-simctl": ["node-simctl@7.7.5", "", { "dependencies": { "@appium/logger": "^1.3.0", "asyncbox": "^3.0.0", "bluebird": "^3.5.1", "lodash": "^4.2.1", "rimraf": "^5.0.0", "semver": "^7.0.0", "source-map-support": "^0.x", "teen_process": "^2.2.0", "uuid": "^11.0.1", "which": "^5.0.0" } }, "sha512-lWflzDW9xLuOOvR6mTJ9efbDtO/iSCH6rEGjxFxTV0vGgz5XjoZlW2BkNCCZib0B6Y23tCOiYhYJaMQYB8FKIQ=="],
+
+    "node-unix-socket": ["node-unix-socket@0.2.7", "", { "optionalDependencies": { "node-unix-socket-darwin-arm64": "0.2.7", "node-unix-socket-darwin-x64": "0.2.7", "node-unix-socket-linux-arm-gnueabihf": "0.2.7", "node-unix-socket-linux-arm64-gnu": "0.2.7", "node-unix-socket-linux-arm64-musl": "0.2.7", "node-unix-socket-linux-x64-gnu": "0.2.7", "node-unix-socket-linux-x64-musl": "0.2.7" } }, "sha512-Gzdi/wcz0Dd0IPkzl8OfSGmOm3uMMOvOl2yWVyE3E5hdl3tI+0lUVwYc92UnZWt5rWhrkqLBoUivzLVipCoO2w=="],
+
+    "node-unix-socket-darwin-arm64": ["node-unix-socket-darwin-arm64@0.2.7", "", { "os": "darwin", "cpu": "arm64" }, "sha512-6wSB386fFnWADWVpAlDq87lZI/0jzLEA7BsRc6QwmMwHonZ/ZbejwEI79iRKnHqFB6wh3TZdHHiKu4csMH1c3w=="],
+
+    "node-unix-socket-darwin-x64": ["node-unix-socket-darwin-x64@0.2.7", "", { "os": "darwin", "cpu": "x64" }, "sha512-eO8pVbchCy7TOvbc8DlIytsSeX6MWPmDVLnSQ8dvAUmsHRGKgJdmO74gr2NwjNmh1h974iW8IpAJfovL+DffHA=="],
+
+    "node-unix-socket-linux-arm-gnueabihf": ["node-unix-socket-linux-arm-gnueabihf@0.2.7", "", { "os": "linux", "cpu": "arm" }, "sha512-BcC2tGf+Mfs94khO6PWK2a4dJ2wX7HBOuVKxTVqfXZxcrJXplZa0NYn2H9+il4fgIJMb6EbeUo2L3iXpTDJk7w=="],
+
+    "node-unix-socket-linux-arm64-gnu": ["node-unix-socket-linux-arm64-gnu@0.2.7", "", { "os": "linux", "cpu": "arm64" }, "sha512-HB4mOFic2u/6KjGHlMJY2q2eAz6btWxzJ0tMYOll+K2WOIuMwT5moZRToc3rjOI6h8bSBMf8ZMwvCz5On9fdoQ=="],
+
+    "node-unix-socket-linux-arm64-musl": ["node-unix-socket-linux-arm64-musl@0.2.7", "", { "os": "linux", "cpu": "arm64" }, "sha512-sLuUyCBRWEqBA+EHbhMYgKhEg6zNhiD7nDIJt0zJhWoF7bIrJaRAgBWsdSK/EK8d0a6FYpWIMVVe9CcsApb+lA=="],
+
+    "node-unix-socket-linux-x64-gnu": ["node-unix-socket-linux-x64-gnu@0.2.7", "", { "os": "linux", "cpu": "x64" }, "sha512-AB3m2YIqUXLSnbezWraa37QNSaViPB/8wYuVsiiXowZzmSBB+o840fgJYV8qcmMlYutwI7Snwy6viPQNNBi8IA=="],
+
+    "node-unix-socket-linux-x64-musl": ["node-unix-socket-linux-x64-musl@0.2.7", "", { "os": "linux", "cpu": "x64" }, "sha512-zVaULR65kXiDh9VLS4fP8bY+jZafByvljMrdyGJc/5zXt//NQK5NqEql/o3c4dPkA+VfIY4GHnjDJWOcxQA+wA=="],
 
     "nofilter": ["nofilter@3.1.0", "", {}, "sha512-l2NNj07e9afPnhAhvgVrCD/oy2Ai1yfLpuo3EpiO1jFTsB4sFz6oIfAfSZyQzVpkZQ9xS8ZS5g1jCBgq4Hwo0g=="],
 

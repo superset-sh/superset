@@ -111,6 +111,7 @@ export function setupTerminalHostSignalHandlers({
 			});
 	};
 
+	// SIGINT: honor (Ctrl+C in debugger / interactive session).
 	process.on("SIGINT", () => {
 		shutdownOnce({
 			exitCode: 0,
@@ -119,21 +120,27 @@ export function setupTerminalHostSignalHandlers({
 			timeoutMessage: "Forced exit after SIGINT shutdown timeout",
 		});
 	});
+	// SIGTERM + SIGHUP: intentionally ignored (full nohup semantics).
+	//
+	// The daemon is spawned `detached: true` + `child.unref()` so it can
+	// outlive Electron's exit — the marketing blog "Terminal That (Almost)
+	// Never Dies" promise. On macOS, `setsid()` only isolates the Unix SID;
+	// the daemon still shares the Mach bootstrap / login Security Session
+	// with its parent. When Electron tears down that session, macOS may
+	// propagate BOTH SIGHUP and SIGTERM to the daemon depending on how quit
+	// is initiated (Cmd+Q, NSApplication terminate:, launchd reap, force
+	// kill). Ignoring both prevents the daemon dying on routine app quit.
+	//
+	// Intentional daemon shutdown goes through the explicit `shutdown` RPC
+	// (terminal-host/index.ts), which calls stopServer() directly, bypassing
+	// signal handlers. `killDaemonFromPidFile()` in client.ts uses SIGKILL
+	// which this handler cannot intercept, providing a reliable kill path
+	// when needed (stale auth token, dev-mode rebuild).
 	process.on("SIGTERM", () => {
-		shutdownOnce({
-			exitCode: 0,
-			message: "Received SIGTERM, shutting down...",
-			stopServerErrorMessage: "Error during stopServer in SIGTERM shutdown",
-			timeoutMessage: "Forced exit after SIGTERM shutdown timeout",
-		});
+		log("info", "Received SIGTERM; ignoring (daemon survival semantics)");
 	});
 	process.on("SIGHUP", () => {
-		shutdownOnce({
-			exitCode: 0,
-			message: "Received SIGHUP, shutting down...",
-			stopServerErrorMessage: "Error during stopServer in SIGHUP shutdown",
-			timeoutMessage: "Forced exit after SIGHUP shutdown timeout",
-		});
+		log("info", "Received SIGHUP; ignoring (daemon survival semantics)");
 	});
 
 	process.on("uncaughtException", (error) => {

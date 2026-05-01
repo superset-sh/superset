@@ -193,6 +193,7 @@
 		"native-keymap": "^3.3.9",
 		"node-addon-api": "^7.1.0",
 		"node-pty": "1.1.0",
+		"node-unix-socket": "^0.2.7",
 		"os-locale": "^6.0.2",
 		"pidtree": "^0.6.0",
 		"pidusage": "^4.0.1",

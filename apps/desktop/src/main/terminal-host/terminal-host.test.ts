@@ -98,7 +98,7 @@ describe("TerminalHost — PTY spawn failure handling", () => {
 			spawnProcess: () => fakeChild as unknown as ChildProcess,
 		});
 
-		session.spawn({
+		await session.spawn({
 			cwd: "/tmp",
 			cols: 80,
 			rows: 24,
@@ -130,7 +130,7 @@ describe("TerminalHost — PTY spawn failure handling", () => {
 			spawnProcess: () => fakeChild as unknown as ChildProcess,
 		});
 
-		session.spawn({
+		await session.spawn({
 			cwd: "/tmp",
 			cols: 80,
 			rows: 24,
@@ -162,7 +162,7 @@ describe("TerminalHost — PTY spawn failure handling", () => {
 			spawnProcess: () => fakeChild as unknown as ChildProcess,
 		});
 
-		session.spawn({
+		await session.spawn({
 			cwd: "/tmp",
 			cols: 80,
 			rows: 24,
@@ -200,7 +200,7 @@ describe("TerminalHost — PTY spawn failure handling", () => {
 			spawnProcess: () => fakeChild as unknown as ChildProcess,
 		});
 
-		session.spawn({
+		await session.spawn({
 			cwd: "/tmp",
 			cols: 80,
 			rows: 24,

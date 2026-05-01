@@ -54,6 +54,12 @@ const config: Configuration = {
 		"**/resources/sounds/**/*",
 		// Tray icon must be unpacked so Electron Tray can load it
 		"**/resources/tray/**/*",
+		// Shell hook must be unpacked so zsh can `source` it at runtime
+		// (zsh's built-in `source` is not asar-aware).
+		"**/resources/shell-hooks/**/*",
+		// fresh-exec helper binary is invoked from inside a stale-context
+		// zsh shell via its absolute path, so it must live outside asar.
+		"**/dist/main/fresh-exec.js",
 	],
 
 	// Extra resources placed outside asar archive (accessible via process.resourcesPath)

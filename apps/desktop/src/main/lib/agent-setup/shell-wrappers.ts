@@ -197,6 +197,16 @@ ${SUPERSET_ENV_RESTORE}
 ${buildPathPrependFunction(paths.BIN_DIR)}
 ${buildZshPrecmdHook(paths.BIN_DIR)}
 rehash 2>/dev/null || true
+# Superset: route whitelisted commands through fresh-exec for Mach
+# context isolation. Env-gated: hook is a no-op if
+# SUPERSET_FRESH_EXEC_BIN / COMMANDS / HOOK_PATH are unset (non-darwin,
+# dev mode without mirrored resources, or an older app bundle).
+if [[ -n "$SUPERSET_FRESH_EXEC_BIN" \\
+  && -n "$SUPERSET_FRESH_EXEC_COMMANDS" \\
+  && -n "$SUPERSET_FRESH_EXEC_HOOK_PATH" \\
+  && -r "$SUPERSET_FRESH_EXEC_HOOK_PATH" ]]; then
+  source "$SUPERSET_FRESH_EXEC_HOOK_PATH"
+fi
 # Restore ZDOTDIR so our .zlogin runs after user's .zlogin
 export ZDOTDIR=${quotedZshDir}
 `;
