@@ -31,6 +31,19 @@ const daemonRouter = router({
 		await waitForDaemonReady(env.ORGANIZATION_ID);
 		return getSupervisor().restart(env.ORGANIZATION_ID);
 	}),
+
+	/**
+	 * Phase 2: hand off live PTYs to a successor daemon binary.
+	 *
+	 * Sessions survive on success — the kernel master fds are inherited by
+	 * the new daemon process via stdio. The renderer surfaces this as the
+	 * "Update" path (vs `restart` which kills sessions). On failure, the
+	 * UI offers force-restart as a fallback.
+	 */
+	update: protectedProcedure.mutation(async () => {
+		await waitForDaemonReady(env.ORGANIZATION_ID);
+		return getSupervisor().update(env.ORGANIZATION_ID);
+	}),
 });
 
 export const terminalRouter = router({
