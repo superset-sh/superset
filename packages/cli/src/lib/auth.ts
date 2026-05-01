@@ -5,14 +5,13 @@ import { env } from "./env";
 
 const CLIENT_ID = "superset-cli";
 const PASTE_REDIRECT_PATH = "/cli/auth/code";
-const SCOPE = "openid profile email offline_access";
+const SCOPE = "openid profile email";
 const LOOPBACK_PORTS = [51789, 51790, 51791, 51792, 51793];
 const CALLBACK_TIMEOUT_MS = 5 * 60 * 1000;
 
 export interface LoginResult {
 	accessToken: string;
 	expiresAt: number;
-	refreshToken?: string;
 }
 
 export interface LoginCallbacks {
@@ -51,8 +50,7 @@ async function openBrowser(url: string): Promise<void> {
 }
 
 export function getWebUrl(): string {
-	if (process.env.SUPERSET_WEB_URL) return process.env.SUPERSET_WEB_URL;
-	return env.SUPERSET_API_URL.replace("api.superset.sh", "app.superset.sh");
+	return env.SUPERSET_WEB_URL;
 }
 
 function shouldOpenBrowser(): boolean {
@@ -240,14 +238,12 @@ async function exchangeCodeForToken({
 		access_token: string;
 		token_type: string;
 		expires_in?: number;
-		refresh_token?: string;
 	};
 
 	const expiresIn = data.expires_in ?? 60 * 60 * 24 * 30;
 	return {
 		accessToken: data.access_token,
 		expiresAt: Date.now() + expiresIn * 1000,
-		refreshToken: data.refresh_token,
 	};
 }
 

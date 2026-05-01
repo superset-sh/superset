@@ -2,7 +2,7 @@
 
 import { Button } from "@superset/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { LuClipboard, LuClipboardCheck } from "react-icons/lu";
 
 interface CliAuthCodeDisplayProps {
@@ -38,9 +38,18 @@ async function copyToClipboard(value: string): Promise<boolean> {
 
 function useCopiedFlag() {
 	const [copied, setCopied] = useState(false);
+	const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+	useEffect(() => {
+		return () => {
+			if (timerRef.current) clearTimeout(timerRef.current);
+		};
+	}, []);
+
 	const flash = () => {
 		setCopied(true);
-		setTimeout(() => setCopied(false), 2000);
+		if (timerRef.current) clearTimeout(timerRef.current);
+		timerRef.current = setTimeout(() => setCopied(false), 2000);
 	};
 	return [copied, flash] as const;
 }
