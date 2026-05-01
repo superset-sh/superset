@@ -18,10 +18,9 @@ export function register(server: McpServer): void {
 		},
 		handler: async (input, ctx) => {
 			const caller = createMcpCaller(ctx);
-			const rows = await caller.automation.list();
-			if (!input.name) return rows;
-			const needle = input.name.toLowerCase();
-			return rows.filter((row) => row.name.toLowerCase().includes(needle));
+			return await caller.automation.list(
+				input.name ? { name: input.name } : undefined,
+			);
 		},
 	});
 }

@@ -18,7 +18,7 @@ import {
 	parseRrule,
 } from "@superset/shared/rrule";
 import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
-import { and, desc, eq, getTableColumns } from "drizzle-orm";
+import { and, desc, eq, getTableColumns, ilike } from "drizzle-orm";
 import { z } from "zod";
 import { env } from "../../env";
 import { protectedProcedure } from "../../trpc";
@@ -34,6 +34,10 @@ import {
 	setAutomationPromptSchema,
 	updateAutomationSchema,
 } from "./schema";
+
+function escapeLikePattern(value: string): string {
+	return value.replace(/[\\%_]/g, (match) => `\\${match}`);
+}
 
 function requirePaidSubscription(subscription: SelectSubscription | null) {
 	if (
@@ -160,21 +164,41 @@ export const automationRouter = {
 	 * List automations scoped to the caller's active organization. The
 	 * `prompt` body is omitted — call `getPrompt` to fetch it for one row.
 	 */
-	list: protectedProcedure.query(async ({ ctx }) => {
-		const organizationId = await requireActiveOrgMembership(ctx);
+	list: protectedProcedure
+		.input(
+			z
+				.object({
+					name: z
+						.string()
+						.trim()
+						.min(1)
+						.optional()
+						.describe("Case-insensitive substring match on automation name."),
+				})
+				.optional(),
+		)
+		.query(async ({ ctx, input }) => {
+			const organizationId = await requireActiveOrgMembership(ctx);
 
-		const { prompt: _prompt, ...summaryCols } = getTableColumns(automations);
-		const rows = await db
-			.select(summaryCols)
-			.from(automations)
-			.where(eq(automations.organizationId, organizationId))
-			.orderBy(desc(automations.createdAt));
+			const { prompt: _prompt, ...summaryCols } = getTableColumns(automations);
+			const rows = await db
+				.select(summaryCols)
+				.from(automations)
+				.where(
+					and(
+						eq(automations.organizationId, organizationId),
+						input?.name
+							? ilike(automations.name, `%${escapeLikePattern(input.name)}%`)
+							: undefined,
+					),
+				)
+				.orderBy(desc(automations.createdAt));
 
-		return rows.map((row) => ({
-			...row,
-			scheduleText: safeDescribeRrule(row),
-		}));
-	}),
+			return rows.map((row) => ({
+				...row,
+				scheduleText: safeDescribeRrule(row),
+			}));
+		}),
 
 	/**
 	 * Get one automation's metadata. The `prompt` body is omitted (it can be

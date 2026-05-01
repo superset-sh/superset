@@ -10,10 +10,9 @@ export default command({
 			.desc("Filter by name (case-insensitive substring match)"),
 	},
 	run: async ({ ctx, options }) => {
-		const rows = await ctx.api.automation.list.query();
-		if (!options.name) return rows;
-		const needle = options.name.toLowerCase();
-		return rows.filter((row) => row.name.toLowerCase().includes(needle));
+		return await ctx.api.automation.list.query(
+			options.name ? { name: options.name } : undefined,
+		);
 	},
 	display: (data) =>
 		table(

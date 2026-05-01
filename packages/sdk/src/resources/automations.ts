@@ -13,15 +13,10 @@ export class Automations extends APIResource {
 		params?: AutomationListParams,
 		options?: RequestOptions,
 	): APIPromise<AutomationListResponse> {
-		const promise = this._client.query<AutomationListResponse>(
+		return this._client.query<AutomationListResponse>(
 			"automation.list",
-			undefined,
+			params,
 			options,
-		);
-		if (!params?.name) return promise;
-		const needle = params.name.toLowerCase();
-		return promise._thenUnwrap((rows) =>
-			rows.filter((row) => row.name.toLowerCase().includes(needle)),
 		);
 	}
 
