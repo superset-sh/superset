@@ -97,15 +97,44 @@ function validateDims(cols: number, rows: number): void {
 
 export function spawn({ meta }: SpawnOptions): Pty {
 	validateDims(meta.cols, meta.rows);
-	const term = nodePty.spawn(meta.shell, meta.argv, {
-		name: "xterm-256color",
-		cols: meta.cols,
-		rows: meta.rows,
-		cwd: meta.cwd,
-		env: meta.env,
-		// node-pty's encoding defaults to utf8; we want raw bytes for fidelity.
-		encoding: null,
-	});
+	// Pre-flight: node-pty's "posix_spawnp failed" message swallows errno
+	// and leaves no clue what went wrong. Surface the most common cause
+	// ahead of the native call so the caller (and the user) can see it.
+	if (meta.cwd !== undefined) {
+		try {
+			const stat = fs.statSync(meta.cwd);
+			if (!stat.isDirectory()) {
+				throw new Error(
+					`spawn: cwd is not a directory: ${meta.cwd}`,
+				);
+			}
+		} catch (err) {
+			const e = err as NodeJS.ErrnoException;
+			if (e.code === "ENOENT") {
+				throw new Error(
+					`spawn: cwd does not exist: ${meta.cwd} (workspace may have been deleted or moved)`,
+				);
+			}
+			throw new Error(`spawn: cwd not accessible: ${meta.cwd} (${e.code ?? e.message})`);
+		}
+	}
+	let term: nodePty.IPty;
+	try {
+		term = nodePty.spawn(meta.shell, meta.argv, {
+			name: "xterm-256color",
+			cols: meta.cols,
+			rows: meta.rows,
+			cwd: meta.cwd,
+			env: meta.env,
+			// node-pty's encoding defaults to utf8; we want raw bytes for fidelity.
+			encoding: null,
+		});
+	} catch (err) {
+		// Annotate with shell + cwd so the wire-error reply is actionable.
+		throw new Error(
+			`spawn failed (shell=${meta.shell} cwd=${meta.cwd ?? "(none)"}): ${(err as Error).message}`,
+		);
+	}
 	const adapter = new NodePtyAdapter(term, meta);
 	// Validate the private-fd dependency at spawn time, not handoff time.
 	adapter.getMasterFd();
