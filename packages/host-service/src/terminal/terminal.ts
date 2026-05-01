@@ -75,7 +75,7 @@ function makeDaemonPty(
 			daemon
 				.close(
 					sessionId,
-					(signal as "SIGTERM" | "SIGKILL" | "SIGINT" | "SIGHUP") ?? "SIGTERM",
+					(signal as "SIGTERM" | "SIGKILL" | "SIGINT" | "SIGHUP") ?? "SIGHUP",
 				)
 				.catch(() => {
 					// Already gone or daemon disconnected — no-op.

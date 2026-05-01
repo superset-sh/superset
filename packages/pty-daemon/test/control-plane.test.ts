@@ -164,6 +164,34 @@ describe("session lifecycle", () => {
 		await c.waitFor((m) => m.type === "exit" && m.id === id, 3000);
 		await c.close();
 	});
+
+	test("default close (SIGHUP) terminates an interactive login shell", async () => {
+		// Regression test for a real-world bug: SIGTERM is the wrong default
+		// for "user closed the terminal pane" because interactive shells
+		// (especially `zsh -l`) trap SIGTERM and stay alive. The kernel
+		// sends SIGHUP when a TTY closes, and shells DO honor it. Without
+		// this, every closed v2 terminal pane leaked a zsh process.
+		const c = await connectAndHello(sockPath);
+		const id = uniqueId("interactive");
+		// `-i` forces interactive mode even though stdin is a PTY pipe;
+		// matches the real terminal-launch shape closely enough for this
+		// regression to fire if someone reverts to SIGTERM.
+		c.send({
+			type: "open",
+			id,
+			meta: { ...baseMeta, argv: ["-i"] },
+		});
+		await c.waitFor((m) => m.type === "open-ok" && m.id === id);
+		c.send({ type: "subscribe", id, replay: false });
+
+		// Default close — no explicit signal. Server defaults to SIGHUP.
+		c.send({ type: "close", id });
+		await c.waitFor((m) => m.type === "closed" && m.id === id);
+		// Critical: the shell must actually exit. If SIGTERM defaults
+		// returned (the bug), this waitFor would timeout.
+		await c.waitFor((m) => m.type === "exit" && m.id === id, 3000);
+		await c.close();
+	});
 });
 
 // ---------------- I/O patterns ----------------

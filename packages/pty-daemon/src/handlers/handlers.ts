@@ -103,7 +103,12 @@ export function handleClose(ctx: HandlerCtx, msg: CloseMessage): ServerMessage {
 	const session = ctx.store.get(msg.id);
 	if (!session) return errorFor(msg.id, `unknown session: ${msg.id}`, "ENOENT");
 	try {
-		session.pty.kill(msg.signal ?? "SIGTERM");
+		// SIGHUP is the right signal for "your terminal is going away" —
+		// what the kernel sends when a TTY actually closes. Interactive
+		// shells (especially `zsh -l`) trap SIGTERM and stay alive, so
+		// using SIGTERM as the default leaks PTY processes on every
+		// pane close. Callers can still pass an explicit signal.
+		session.pty.kill(msg.signal ?? "SIGHUP");
 	} catch (err) {
 		return errorFor(msg.id, (err as Error).message, "EKILL");
 	}

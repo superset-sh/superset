@@ -126,7 +126,7 @@ export class DaemonClient {
 		throw new Error(`open ${id}: unexpected reply ${reply.type}`);
 	}
 
-	async close(id: string, signal: Signal = "SIGTERM"): Promise<void> {
+	async close(id: string, signal: Signal = "SIGHUP"): Promise<void> {
 		const reply = await this.requestSession(
 			id,
 			{ type: "close", id, signal },
