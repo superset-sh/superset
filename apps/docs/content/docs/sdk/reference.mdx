@@ -115,9 +115,9 @@ const onOneHost = await client.workspaces.list({ hostId: '<machineId>' });
 
 Returns `Array<Workspace>`.
 
-### `workspaces.create({ hostId, projectId, name, branch })`
+### `workspaces.create({ hostId, projectId, name, branch, agents? })`
 
-Create a worktree on a specific host. Goes through the relay tunnel — the host must be online.
+Create a worktree on a specific host. Optionally spawn one or more agents inside it as soon as the worktree is ready. Goes through the relay tunnel — the host must be online.
 
 ```ts
 const ws = await client.workspaces.create({
@@ -125,10 +125,16 @@ const ws = await client.workspaces.create({
   projectId: '<uuid>',       // see projects.list()
   name: 'wire-up-auth',
   branch: 'feat/auth',
+  agents: [                  // optional — spawn agents on creation
+    { prompt: 'Implement the auth flow described in SUPER-100.' },
+    { prompt: 'Write integration tests for the new auth flow.', agent: 'claude' },
+  ],
 });
+
+console.log(ws.id, ws.agentRuns.map((r) => r.id));
 ```
 
-Returns a `HostWorkspace`.
+Returns a `CreatedWorkspace` — a `HostWorkspace` plus an `agentRuns` array (one entry per agent in the request, empty if `agents` was omitted).
 
 ### `workspaces.delete(id, opts?)`
 

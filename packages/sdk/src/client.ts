@@ -73,8 +73,10 @@ import {
 	TaskUpdateParams,
 } from "./resources/tasks";
 import {
+	CreatedWorkspace,
 	HostWorkspace,
 	Workspace,
+	WorkspaceAgentSpawn,
 	WorkspaceCreateParams,
 	WorkspaceDeleteResult,
 	WorkspaceListParams,
@@ -1104,6 +1106,8 @@ export declare namespace Superset {
 		Workspaces,
 		Workspace,
 		HostWorkspace,
+		CreatedWorkspace,
+		WorkspaceAgentSpawn,
 		WorkspaceListResponse,
 		WorkspaceListParams,
 		WorkspaceCreateParams,

@@ -2,6 +2,11 @@ import type { APIPromise } from "../core/api-promise";
 import { SupersetError } from "../core/error";
 import { APIResource } from "../core/resource";
 import type { RequestOptions } from "../internal/request-options";
+import type {
+	AgentConfig,
+	Automation,
+	AutomationRun,
+} from "./automations";
 
 /**
  * Workspaces are physical artifacts (git worktrees / clones) on a developer's
@@ -31,18 +36,19 @@ export class Workspaces extends APIResource {
 	}
 
 	/**
-	 * Create a workspace on a specific host. The host service must be running
-	 * and reachable via the relay tunnel — the SDK is always remote, so this
-	 * always goes through the relay (the CLI may shortcut for local hosts; the
-	 * SDK never can).
+	 * Create a workspace on a specific host. Optionally spawn one or more
+	 * agents inside it as soon as the worktree is ready.
 	 *
-	 * Mirrors `superset workspaces create`.
+	 * The host service must be running and reachable via the relay tunnel.
+	 * When `agents` is provided, the SDK creates a one-shot automation per
+	 * agent (pinned to the new workspace + host) and dispatches them — the
+	 * dispatched runs are returned alongside the workspace.
 	 */
-	create(
+	async create(
 		params: WorkspaceCreateParams,
 		options?: RequestOptions,
-	): APIPromise<HostWorkspace> {
-		return this._client.hostMutation<HostWorkspace>(
+	): Promise<CreatedWorkspace> {
+		const ws = await this._client.hostMutation<HostWorkspace>(
 			params.hostId,
 			"workspace.create",
 			{
@@ -52,6 +58,45 @@ export class Workspaces extends APIResource {
 			},
 			options,
 		);
+
+		const agents = params.agents ?? [];
+		if (agents.length === 0) {
+			return { ...ws, agentRuns: [] };
+		}
+
+		const agentRuns: AutomationRun[] = [];
+		for (let i = 0; i < agents.length; i++) {
+			const spec = agents[i]!;
+			const agentId = spec.agent ?? "claude";
+			const agentConfig: AgentConfig =
+				typeof spec.agentConfig === "object"
+					? spec.agentConfig
+					: { id: agentId, kind: "terminal" };
+
+			const automation = await this._client.mutation<Automation>(
+				"automation.create",
+				{
+					name: `${params.name} (${agentId}${agents.length > 1 ? ` #${i + 1}` : ""})`,
+					prompt: spec.prompt,
+					agentConfig,
+					targetHostId: params.hostId,
+					v2WorkspaceId: ws.id,
+					// Yearly schedule = effectively one-shot. The automation row
+					// stays in the DB after dispatch — clean it up out-of-band if
+					// it bothers you.
+					rrule: "FREQ=YEARLY;BYMONTH=12;BYMONTHDAY=31",
+					timezone: "UTC",
+					mcpScope: spec.mcpScope ?? [],
+				},
+			);
+			const run = await this._client.mutation<AutomationRun>(
+				"automation.runNow",
+				{ id: automation.id },
+			);
+			agentRuns.push(run);
+		}
+
+		return { ...ws, agentRuns };
 	}
 
 	/**
@@ -132,6 +177,24 @@ export interface WorkspaceCreateParams {
 	name: string;
 	/** Git branch to check out / create. */
 	branch: string;
+	/** Spawn one or more agents in the workspace immediately after creation. */
+	agents?: WorkspaceAgentSpawn[];
+}
+
+export interface WorkspaceAgentSpawn {
+	/** What to tell the agent. */
+	prompt: string;
+	/** Agent preset id. Defaults to `"claude"`. */
+	agent?: string;
+	/** Full agent config; overrides `agent` if provided. */
+	agentConfig?: AgentConfig;
+	/** MCP servers this dispatch is allowed to use. */
+	mcpScope?: string[];
+}
+
+export interface CreatedWorkspace extends HostWorkspace {
+	/** Dispatched runs, one per `agents[]` entry. Empty if no agents were spawned. */
+	agentRuns: AutomationRun[];
 }
 
 export interface WorkspaceDeleteResult {
@@ -146,6 +209,8 @@ export declare namespace Workspaces {
 		WorkspaceListResponse,
 		WorkspaceListParams,
 		WorkspaceCreateParams,
+		WorkspaceAgentSpawn,
+		CreatedWorkspace,
 		WorkspaceDeleteResult,
 	};
 }
