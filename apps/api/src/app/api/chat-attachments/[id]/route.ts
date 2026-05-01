@@ -4,6 +4,19 @@ import { chatAttachments } from "@superset/db/schema";
 import { head } from "@vercel/blob";
 import { eq } from "drizzle-orm";
 
+const UUID_REGEX =
+	/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function buildContentDisposition(filename: string, mediaType: string): string {
+	// Only image bytes can be safely rendered inline on the API origin.
+	// HTML/XML/JSON would otherwise execute or be sniffed in the auth'd origin.
+	const disposition = mediaType.startsWith("image/") ? "inline" : "attachment";
+	// biome-ignore lint/suspicious/noControlCharactersInRegex: stripping control chars from a stored filename is the whole point.
+	const ascii = filename.replace(/[\x00-\x1f\x7f"\\]/g, "").trim() || "file";
+	const encoded = encodeURIComponent(ascii);
+	return `${disposition}; filename="${ascii}"; filename*=UTF-8''${encoded}`;
+}
+
 export async function GET(
 	request: Request,
 	{ params }: { params: Promise<{ id: string }> },
@@ -14,6 +27,9 @@ export async function GET(
 	}
 
 	const { id } = await params;
+	if (!UUID_REGEX.test(id)) {
+		return new Response("Not found", { status: 404 });
+	}
 
 	const [attachment] = await db
 		.select({
@@ -39,7 +55,13 @@ export async function GET(
 		return new Response("Attachment not available", { status: 404 });
 	}
 
-	const blobResp = await fetch(downloadUrl);
+	let blobResp: Response;
+	try {
+		blobResp = await fetch(downloadUrl);
+	} catch (error) {
+		console.error("[chat-attachments] blob fetch threw", { id, error });
+		return new Response("Failed to fetch attachment", { status: 502 });
+	}
 	if (!blobResp.ok || !blobResp.body) {
 		console.error("[chat-attachments] blob fetch failed", {
 			id,
@@ -48,12 +70,14 @@ export async function GET(
 		return new Response("Failed to fetch attachment", { status: 502 });
 	}
 
-	const safeFilename = attachment.filename.replace(/"/g, "");
 	return new Response(blobResp.body, {
 		status: 200,
 		headers: {
 			"Content-Type": attachment.mediaType,
-			"Content-Disposition": `inline; filename="${safeFilename}"`,
+			"Content-Disposition": buildContentDisposition(
+				attachment.filename,
+				attachment.mediaType,
+			),
 			"Cache-Control": "private, max-age=3600",
 		},
 	});

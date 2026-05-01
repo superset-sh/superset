@@ -171,6 +171,15 @@ export const chatRouter = {
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
+			const organizationId = ctx.activeOrganizationId;
+
+			if (!organizationId) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "No active organization selected",
+				});
+			}
+
 			const [sessionRecord] = await db
 				.select({
 					id: chatSessions.id,
@@ -180,6 +189,7 @@ export const chatRouter = {
 				.where(
 					and(
 						eq(chatSessions.id, input.sessionId),
+						eq(chatSessions.organizationId, organizationId),
 						eq(chatSessions.createdBy, ctx.session.user.id),
 					),
 				)
