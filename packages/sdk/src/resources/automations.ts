@@ -4,7 +4,8 @@ import type { RequestOptions } from "../internal/request-options";
 
 export class Automations extends APIResource {
 	/**
-	 * List automations in the active organization.
+	 * List automations in the active organization. Returned rows omit the
+	 * `prompt` body — fetch one prompt with `getPrompt(id)`.
 	 *
 	 * Mirrors `superset automations list`.
 	 */
@@ -17,12 +18,20 @@ export class Automations extends APIResource {
 	}
 
 	/**
-	 * Retrieve a single automation by id.
+	 * Retrieve a single automation by id. The `prompt` body is omitted —
+	 * fetch it separately with `getPrompt(id)`.
 	 *
 	 * Mirrors `superset automations get`.
 	 */
-	retrieve(id: string, options?: RequestOptions): APIPromise<Automation> {
-		return this._client.query<Automation>("automation.get", { id }, options);
+	retrieve(
+		id: string,
+		options?: RequestOptions,
+	): APIPromise<AutomationSummary> {
+		return this._client.query<AutomationSummary>(
+			"automation.get",
+			{ id },
+			options,
+		);
 	}
 
 	/**
@@ -125,9 +134,10 @@ export class Automations extends APIResource {
 	}
 
 	/**
-	 * Get the prompt for an automation.
+	 * Get the prompt body (markdown) for an automation. `retrieve` and
+	 * `list` omit it because it can be large.
 	 *
-	 * Mirrors `superset automations prompt --get`.
+	 * Mirrors `superset automations prompt get`.
 	 */
 	getPrompt(
 		id: string,
@@ -141,9 +151,10 @@ export class Automations extends APIResource {
 	}
 
 	/**
-	 * Update the prompt for an automation.
+	 * Replace the prompt body for an automation. The new prompt fully
+	 * overwrites the old one.
 	 *
-	 * Mirrors `superset automations prompt`.
+	 * Mirrors `superset automations prompt set`.
 	 */
 	setPrompt(
 		id: string,
@@ -165,12 +176,15 @@ export interface AgentConfig {
 	[key: string]: unknown;
 }
 
-export interface Automation {
+/**
+ * Lean automation row returned by `list` and `retrieve`. The `prompt`
+ * body is omitted — call `getPrompt(id)` to fetch it.
+ */
+export interface AutomationSummary {
 	id: string;
 	organizationId: string;
 	ownerUserId: string;
 	name: string;
-	prompt: string;
 	agentConfig: AgentConfig;
 	targetHostId: string | null;
 	v2ProjectId: string;
@@ -187,7 +201,15 @@ export interface Automation {
 	updatedAt: string;
 }
 
-export type AutomationListResponse = Array<Automation>;
+/**
+ * Full automation row including the `prompt` body. Returned by mutations
+ * like `create`, `update`, `pause`, `resume`, and `setPrompt`.
+ */
+export interface Automation extends AutomationSummary {
+	prompt: string;
+}
+
+export type AutomationListResponse = Array<AutomationSummary>;
 
 export interface AutomationCreateParams {
 	name: string;
@@ -252,6 +274,7 @@ export interface AutomationRunDispatched {
 export declare namespace Automations {
 	export type {
 		Automation,
+		AutomationSummary,
 		AutomationListResponse,
 		AutomationCreateParams,
 		AutomationUpdateParams,

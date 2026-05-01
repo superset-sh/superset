@@ -32,6 +32,7 @@ export {
 	type AutomationRun,
 	type AutomationRunDispatched,
 	Automations,
+	type AutomationSummary,
 	type AutomationUpdateParams,
 	type Host,
 	type HostListResponse,
