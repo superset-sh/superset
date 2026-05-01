@@ -42,8 +42,27 @@ const EMPTY_STATE: WorkspaceState<PaneViewerData> = {
 let deps: WorkspacePaneRegistryDeps | null = null;
 const registry = new Map<string, RegistryEntry>();
 
-function getSnapshot(state: WorkspaceState<PaneViewerData>): string {
-	return JSON.stringify(state);
+/**
+ * Deterministic JSON serialization with deep key sorting. Used to
+ * compare store state against row state without false-positive
+ * mismatches when the two paths produce structurally equal objects
+ * but in different key orders (Immer `draft.paneLayout = ...` writes
+ * via the collection do not preserve insertion order).
+ */
+function getSnapshot(value: unknown): string {
+	return JSON.stringify(deepSortKeys(value));
+}
+
+function deepSortKeys(value: unknown): unknown {
+	if (Array.isArray(value)) return value.map(deepSortKeys);
+	if (value && typeof value === "object") {
+		const sorted: Record<string, unknown> = {};
+		for (const k of Object.keys(value as Record<string, unknown>).sort()) {
+			sorted[k] = deepSortKeys((value as Record<string, unknown>)[k]);
+		}
+		return sorted;
+	}
+	return value;
 }
 
 /**
@@ -137,7 +156,21 @@ export function getOrCreateWorkspacePaneStore(
 					| undefined;
 				if (!layout) continue;
 				const incoming = getSnapshot(layout);
-				if (incoming === lastSyncedSnapshot) continue;
+				// Always compare against the current store snapshot — the row
+				// state and store state should be structurally equivalent when
+				// the row event is an echo of our own write. Tanstack DB also
+				// delivers existing rows as initial-state `insert` events on
+				// subscribe; this guard ensures those don't wipe the store.
+				const currentState = store.getState();
+				const storeSnapshot = getSnapshot({
+					version: currentState.version,
+					tabs: currentState.tabs,
+					activeTabId: currentState.activeTabId,
+				});
+				if (incoming === storeSnapshot) {
+					lastSyncedSnapshot = incoming;
+					continue;
+				}
 				lastSyncedSnapshot = incoming;
 				store.getState().replaceState(layout);
 			}
