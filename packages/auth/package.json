@@ -19,6 +19,10 @@
 		"./stripe": {
 			"types": "./src/stripe.ts",
 			"default": "./src/stripe.ts"
+		},
+		"./seed-cli-oauth-client": {
+			"types": "./src/lib/seed-cli-oauth-client.ts",
+			"default": "./src/lib/seed-cli-oauth-client.ts"
 		}
 	},
 	"scripts": {
