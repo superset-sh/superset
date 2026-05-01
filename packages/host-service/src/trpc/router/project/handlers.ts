@@ -218,7 +218,10 @@ export async function createFromEmpty(
 	ctx: HostServiceContext,
 	args: { name: string; parentDir: string },
 ): Promise<CreateResult> {
-	const resolved = await initEmptyRepo(args.parentDir, dirNameForEmpty(args.name));
+	const resolved = await initEmptyRepo(
+		args.parentDir,
+		dirNameForEmpty(args.name),
+	);
 	return persistFromResolved(ctx, {
 		name: args.name,
 		resolved,

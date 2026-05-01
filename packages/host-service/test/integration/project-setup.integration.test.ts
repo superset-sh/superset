@@ -86,40 +86,15 @@ describe("project.setup error paths", () => {
 		).rejects.toBeInstanceOf(TRPCClientError);
 	});
 
-	test("create() with empty mode returns NOT_IMPLEMENTED", async () => {
-		host = await createTestHost();
-		await expect(
-			host.trpc.project.create.mutate({
-				name: "x",
-				mode: {
-					kind: "empty",
-					parentDir: "/tmp/x",
-					visibility: "private",
-				},
-			}),
-		).rejects.toThrow(/not implemented/i);
-	});
-
-	test("create() with template mode returns NOT_IMPLEMENTED", async () => {
-		host = await createTestHost();
-		await expect(
-			host.trpc.project.create.mutate({
-				name: "x",
-				mode: {
-					kind: "template",
-					parentDir: "/tmp/x",
-					templateId: "next-app",
-					visibility: "private",
-				},
-			}),
-		).rejects.toThrow(/not implemented/i);
-	});
-
 	test("remove() is idempotent when project doesn't exist", async () => {
-		host = await createTestHost();
+		host = await createTestHost({
+			apiOverrides: {
+				"v2Project.delete.mutate": () => ({ success: true }),
+			},
+		});
 		const result = await host.trpc.project.remove.mutate({
 			projectId: randomUUID(),
 		});
-		expect(result).toEqual({ success: true });
+		expect(result).toEqual({ success: true, repoPath: null });
 	});
 });
