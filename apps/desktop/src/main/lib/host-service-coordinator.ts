@@ -41,8 +41,18 @@ import { HOOK_PROTOCOL_VERSION } from "./terminal/env";
  * `device.ensureV2Host`); v2_hosts/v2_users_hosts/v2_workspaces use
  * machineId text instead of uuid surrogates.
  * 0.2.0: `workspaceCreation.adopt` gained optional `worktreePath`.
+ *
+ * 0.5.0 — pty-daemon supervision migrated into host-service. New
+ * `terminal.daemon` tRPC namespace; older 0.4.x host-services don't
+ * expose it. Adopting one in place would leave the new desktop
+ * talking to old code: Settings → Manage daemon would silently
+ * fail, and the v2 PTY survival promise is broken. Bumping the
+ * floor forces the coordinator's `tryAdopt` (host-service-coordinator
+ * line ~308) to SIGTERM old host-services on first launch and
+ * respawn with the new bundle. One-time terminal-session loss for
+ * users on upgrade — accepted per release-notes guidance.
  */
-const MIN_HOST_SERVICE_VERSION = "0.4.0";
+const MIN_HOST_SERVICE_VERSION = "0.5.0";
 
 export type HostServiceStatus = "starting" | "running" | "stopped";
 
