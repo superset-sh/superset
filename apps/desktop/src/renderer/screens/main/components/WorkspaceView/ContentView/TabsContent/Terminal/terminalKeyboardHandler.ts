@@ -7,7 +7,15 @@ import {
 } from "./clipboardShortcuts";
 
 export interface KeyboardHandlerOptions {
-	/** Callback for Shift+Enter (sends ESC+CR to avoid \ appearing in Claude Code while keeping line continuation behavior) */
+	/**
+	 * Callback for Shift+Enter. When provided, the handler intercepts Shift+Enter
+	 * before xterm so the consumer can emit a custom sequence (e.g. ESC+CR to
+	 * keep line-continuation working in Claude Code without the "\" appearing).
+	 *
+	 * When omitted, Shift+Enter is left alone so xterm's kitty keyboard
+	 * encoding (`\x1b[13;2u`) reaches the pty — required for Codex, whose
+	 * Ink TUI listens for the CSI-u sequence rather than ESC+CR (issue #3942).
+	 */
 	onShiftEnter?: () => void;
 	onWrite?: (data: string) => void;
 }
@@ -15,7 +23,8 @@ export interface KeyboardHandlerOptions {
 /**
  * Setup keyboard handling for xterm including:
  * - Shortcut forwarding: App hotkeys bubble to document where useAppHotkey listens
- * - Shift+Enter: Sends ESC+CR sequence (to avoid \ appearing in Claude Code while keeping line continuation behavior)
+ * - Shift+Enter: Optionally rerouted via `onShiftEnter`; otherwise xterm's
+ *   kitty keyboard encoding handles it natively
  *
  * Returns a cleanup function to remove the handler.
  */
@@ -40,8 +49,8 @@ export function setupKeyboardHandler(
 			!event.ctrlKey &&
 			!event.altKey;
 
-		if (isShiftEnter) {
-			if (event.type === "keydown" && options.onShiftEnter) {
+		if (isShiftEnter && options.onShiftEnter) {
+			if (event.type === "keydown") {
 				event.preventDefault();
 				options.onShiftEnter();
 			}
