@@ -22,6 +22,7 @@ import {
 	setupCopyHandler,
 	setupFocusListener,
 } from "../helpers";
+import { isCodexCommand } from "../isCodexCommand";
 import { isPaneDestroyed } from "../pane-guards";
 import { coldRestoreState, pendingDetaches } from "../state";
 import { setupKeyboardHandler } from "../terminalKeyboardHandler";
@@ -755,8 +756,13 @@ export function useTerminalLifecycle({
 			writeRef.current({ paneId, data });
 		};
 
+		// Skip the ESC+CR override for Codex panes. Codex's Ink TUI listens for
+		// the kitty CSI-u Shift+Enter sequence (`\x1b[13;2u`) that xterm emits
+		// natively when no custom handler intercepts. Forcing ESC+CR breaks
+		// the newline insertion (issue #3942).
+		const codexPane = isCodexCommand(defaultRestartCommandRef.current);
 		const cleanupKeyboard = setupKeyboardHandler(xterm, {
-			onShiftEnter: () => handleWrite("\x1b\r"),
+			onShiftEnter: codexPane ? undefined : () => handleWrite("\x1b\r"),
 			onWrite: handleWrite,
 		});
 		const cleanupClickToMove = setupClickToMoveCursor(xterm, {
