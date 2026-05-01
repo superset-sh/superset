@@ -1,5 +1,10 @@
 export { decodeFrame, encodeFrame, FrameDecoder } from "./framing.ts";
 export type {
+	HandoffMessage,
+	UpgradeAckMessage,
+	UpgradeNakMessage,
+} from "./handoff.ts";
+export type {
 	ClientMessage,
 	ClosedMessage,
 	CloseMessage,
