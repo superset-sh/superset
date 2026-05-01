@@ -19,6 +19,13 @@ import {
 	movePaneToNewTab,
 	movePaneToTab,
 } from "./actions/move-pane";
+import {
+	clearZoomBeforeMutation,
+	toggleZoomPane as toggleZoomPaneAction,
+	unzoomPane as unzoomPaneAction,
+	zoomPane as zoomPaneAction,
+} from "./actions/zoom-pane";
+import { applyZoomMergeRules } from "./persist-merge";
 import type {
 	AddFileViewerPaneOptions,
 	AddTabWithMultiplePanesOptions,
@@ -538,8 +545,10 @@ export const useTabsStore = create<TabsStore>()(
 				},
 
 				updateTabLayout: (tabId, layout) => {
-					const state = get();
-					const tab = state.tabs.find((t) => t.id === tabId);
+					// Unconditionally clear zoom: react-mosaic's <Mosaic onChange>
+					// calls this on every drag-resize, bypassing internal helpers.
+					const cleared = clearZoomBeforeMutation(get(), tabId);
+					const tab = cleared.tabs.find((t) => t.id === tabId);
 					if (!tab) return;
 
 					const newPaneIds = new Set(extractPaneIdsFromLayout(layout));
@@ -549,9 +558,9 @@ export const useTabsStore = create<TabsStore>()(
 						(id) => !newPaneIds.has(id),
 					);
 
-					const newPanes = { ...state.panes };
+					const newPanes = { ...cleared.panes };
 					for (const paneId of removedPaneIds) {
-						const pane = state.panes[paneId];
+						const pane = cleared.panes[paneId];
 						// Only delete panes that actually belong to this tab
 						// During drag operations, Mosaic may temporarily include foreign panes
 						// in layouts - we must not delete those when they're "removed"
@@ -564,26 +573,33 @@ export const useTabsStore = create<TabsStore>()(
 					}
 
 					// Update focused pane if it was removed
-					let newFocusedPaneIds = state.focusedPaneIds;
-					const currentFocusedPaneId = state.focusedPaneIds[tabId];
+					let newFocusedPaneIds = cleared.focusedPaneIds;
+					const currentFocusedPaneId = cleared.focusedPaneIds[tabId];
 					if (
 						currentFocusedPaneId &&
 						removedPaneIds.includes(currentFocusedPaneId)
 					) {
 						newFocusedPaneIds = {
-							...state.focusedPaneIds,
+							...cleared.focusedPaneIds,
 							[tabId]: getFirstPaneId(layout),
 						};
 					}
 
 					set({
-						tabs: state.tabs.map((t) =>
+						...cleared,
+						tabs: cleared.tabs.map((t) =>
 							t.id === tabId ? { ...t, layout } : t,
 						),
 						panes: newPanes,
 						focusedPaneIds: newFocusedPaneIds,
 					});
 				},
+
+				zoomPane: (tabId, paneId) =>
+					set((state) => zoomPaneAction(state, tabId, paneId)),
+				unzoomPane: (tabId) => set((state) => unzoomPaneAction(state, tabId)),
+				toggleZoomPane: (tabId, paneId) =>
+					set((state) => toggleZoomPaneAction(state, tabId, paneId)),
 
 				equalizePaneSplits: (tabId) => {
 					const tab = get().tabs.find((t) => t.id === tabId);
@@ -594,7 +610,7 @@ export const useTabsStore = create<TabsStore>()(
 
 				// Pane operations
 				addPane: (tabId, options?: CreatePaneOptions) => {
-					const state = get();
+					const state = clearZoomBeforeMutation(get(), tabId);
 					const tab = state.tabs.find((t) => t.id === tabId);
 					if (!tab) return "";
 
@@ -630,7 +646,7 @@ export const useTabsStore = create<TabsStore>()(
 					return newPane.id;
 				},
 				addChatPane: (tabId, options) => {
-					const state = get();
+					const state = clearZoomBeforeMutation(get(), tabId);
 					const tab = state.tabs.find((t) => t.id === tabId);
 					if (!tab) return "";
 
@@ -670,7 +686,7 @@ export const useTabsStore = create<TabsStore>()(
 					tabId: string,
 					options: AddTabWithMultiplePanesOptions,
 				) => {
-					const state = get();
+					const state = clearZoomBeforeMutation(get(), tabId);
 					const tab = state.tabs.find((t) => t.id === tabId);
 					if (!tab) return [];
 
@@ -728,13 +744,17 @@ export const useTabsStore = create<TabsStore>()(
 						};
 					}
 
-					const state = get();
+					const rawState = get();
 					const resolvedActiveTabId = resolveActiveTabIdForWorkspace({
 						workspaceId,
-						tabs: state.tabs,
-						activeTabIds: state.activeTabIds,
-						tabHistoryStacks: state.tabHistoryStacks,
+						tabs: rawState.tabs,
+						activeTabIds: rawState.activeTabIds,
+						tabHistoryStacks: rawState.tabHistoryStacks,
 					});
+					const state = clearZoomBeforeMutation(
+						rawState,
+						resolvedActiveTabId ?? "",
+					);
 					const activeTab = resolvedActiveTabId
 						? state.tabs.find((t) => t.id === resolvedActiveTabId)
 						: null;
@@ -1039,7 +1059,10 @@ export const useTabsStore = create<TabsStore>()(
 				},
 
 				removePane: (paneId) => {
-					const state = get();
+					const initial = get();
+					const tabId = initial.panes[paneId]?.tabId;
+					if (!tabId) return;
+					const state = clearZoomBeforeMutation(initial, tabId);
 					const pane = state.panes[paneId];
 					if (!pane) return;
 
@@ -1407,7 +1430,7 @@ export const useTabsStore = create<TabsStore>()(
 
 				// Split operations
 				splitPaneVertical: (tabId, sourcePaneId, path, options) => {
-					const state = get();
+					const state = clearZoomBeforeMutation(get(), tabId);
 					const tab = state.tabs.find((t) => t.id === tabId);
 					if (!tab) return;
 
@@ -1476,7 +1499,7 @@ export const useTabsStore = create<TabsStore>()(
 				},
 
 				splitPaneHorizontal: (tabId, sourcePaneId, path, options) => {
-					const state = get();
+					const state = clearZoomBeforeMutation(get(), tabId);
 					const tab = state.tabs.find((t) => t.id === tabId);
 					if (!tab) return;
 
@@ -1553,25 +1576,34 @@ export const useTabsStore = create<TabsStore>()(
 				},
 
 				movePaneToTab: (paneId, targetTabId) => {
-					const state = get();
-					const pane = state.panes[paneId];
+					const initial = get();
+					const pane = initial.panes[paneId];
+					if (!pane) return;
+					// Clear zoom on both source and target before computing the move,
+					// so the pure function operates on the un-zoomed layouts.
+					let state = clearZoomBeforeMutation(initial, pane.tabId);
+					if (pane.tabId !== targetTabId) {
+						state = clearZoomBeforeMutation(state, targetTabId);
+					}
 					const result = movePaneToTab(state, paneId, targetTabId);
 					if (!result) return;
 
-					set(withDerivedTabNames(result, [pane?.tabId, targetTabId]));
+					set(withDerivedTabNames(result, [pane.tabId, targetTabId]));
 				},
 
 				movePaneToNewTab: (paneId) => {
-					const state = get();
-					const pane = state.panes[paneId];
+					const initial = get();
+					const pane = initial.panes[paneId];
 					if (!pane) return "";
 
-					const sourceTab = state.tabs.find((t) => t.id === pane.tabId);
+					const sourceTab = initial.tabs.find((t) => t.id === pane.tabId);
 					if (!sourceTab) return "";
 
 					// Already in its own tab
-					if (isLastPaneInTab(state.panes, sourceTab.id)) return sourceTab.id;
+					if (isLastPaneInTab(initial.panes, sourceTab.id)) return sourceTab.id;
 
+					// Clear zoom on the source tab; the new tab can't be zoomed yet.
+					const state = clearZoomBeforeMutation(initial, sourceTab.id);
 					const moveResult = movePaneToNewTab(state, paneId);
 					if (!moveResult) return "";
 
@@ -1590,7 +1622,9 @@ export const useTabsStore = create<TabsStore>()(
 					destinationPath,
 					position,
 				) => {
-					const state = get();
+					// Clear zoom on the target tab — the source tab is being deleted by
+					// the merge, so its zoom (if any) goes with it.
+					const state = clearZoomBeforeMutation(get(), targetTabId);
 					const result = mergeTabIntoTab(
 						state,
 						sourceTabId,
@@ -1732,21 +1766,22 @@ export const useTabsStore = create<TabsStore>()(
 				},
 
 				openInBrowserPane: (workspaceId: string, url: string) => {
-					const state = get();
+					const initial = get();
 
 					// Find an existing browser pane in this workspace
 					const workspaceTabIds = new Set(
-						state.tabs
+						initial.tabs
 							.filter((t) => t.workspaceId === workspaceId)
 							.map((t) => t.id),
 					);
-					const existingPane = Object.values(state.panes).find(
+					const existingPane = Object.values(initial.panes).find(
 						(p) =>
 							p.type === "webview" && p.browser && workspaceTabIds.has(p.tabId),
 					);
 
 					if (existingPane?.browser) {
 						// Navigate existing pane and make its tab active
+						const state = clearZoomBeforeMutation(initial, existingPane.tabId);
 						const { history: prevHistory, historyIndex } = existingPane.browser;
 						const history = prevHistory.slice(0, historyIndex + 1);
 						history.push({
@@ -1796,18 +1831,24 @@ export const useTabsStore = create<TabsStore>()(
 						// No existing browser pane — add one to the active tab
 						const resolvedActiveTabId = resolveActiveTabIdForWorkspace({
 							workspaceId,
-							tabs: state.tabs,
-							activeTabIds: state.activeTabIds,
-							tabHistoryStacks: state.tabHistoryStacks,
+							tabs: initial.tabs,
+							activeTabIds: initial.activeTabIds,
+							tabHistoryStacks: initial.tabHistoryStacks,
 						});
-						const activeTab = resolvedActiveTabId
-							? state.tabs.find((t) => t.id === resolvedActiveTabId)
+						const resolvedActiveTab = resolvedActiveTabId
+							? initial.tabs.find((t) => t.id === resolvedActiveTabId)
 							: null;
 
-						if (!activeTab) {
+						if (!resolvedActiveTab) {
 							get().addBrowserTab(workspaceId, url);
 							return;
 						}
+
+						const state = clearZoomBeforeMutation(
+							initial,
+							resolvedActiveTab.id,
+						);
+						const activeTab = resolvedActiveTab;
 
 						const newPane = createBrowserPane(activeTab.id, {
 							url,
@@ -2023,7 +2064,7 @@ export const useTabsStore = create<TabsStore>()(
 				},
 
 				openDevToolsPane: (tabId, browserPaneId, path) => {
-					const state = get();
+					const state = clearZoomBeforeMutation(get(), tabId);
 					const tab = state.tabs.find((t) => t.id === tabId);
 					if (!tab) return null;
 
@@ -2278,13 +2319,13 @@ export const useTabsStore = create<TabsStore>()(
 					return state;
 				},
 				merge: (persistedState, currentState) => {
-					const persisted = persistedState as TabsState;
+					const persistedRaw = persistedState as TabsState;
 					// Clear stale transient statuses on startup:
 					// - "working": Agent can't be working if app just restarted
 					// - "permission": Permission dialog is gone after restart
 					// Note: "review" is intentionally preserved so users see missed completions
-					if (persisted.panes) {
-						for (const pane of Object.values(persisted.panes)) {
+					if (persistedRaw.panes) {
+						for (const pane of Object.values(persistedRaw.panes)) {
 							if (pane.status === "working" || pane.status === "permission") {
 								pane.status = "idle";
 							}
@@ -2299,6 +2340,13 @@ export const useTabsStore = create<TabsStore>()(
 							}
 						}
 					}
+
+					// Apply zoom rehydrate rules: drop transient zoom and restore the
+					// pre-zoom layout for tabs that quit while zoomed. This must happen
+					// after the persistedRaw cast and before the assembled mergedState
+					// is used downstream (the zoom rules only touch `tabs`, so the
+					// pane-status mutations above don't conflict).
+					const persisted = applyZoomMergeRules(persistedRaw);
 
 					const mergedState = { ...currentState, ...persisted };
 

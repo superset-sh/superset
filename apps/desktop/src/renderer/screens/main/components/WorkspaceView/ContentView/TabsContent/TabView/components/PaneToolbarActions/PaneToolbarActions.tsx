@@ -12,6 +12,8 @@ interface PaneToolbarActionsProps {
 	leadingActions?: React.ReactNode;
 	/** Hotkey ID to display for the close action. Defaults to CLOSE_PANE. */
 	closeHotkeyId?: HotkeyId;
+	/** When true, hides the Split button (e.g. while a pane is zoomed). */
+	hideSplit?: boolean;
 }
 
 export function PaneToolbarActions({
@@ -20,6 +22,7 @@ export function PaneToolbarActions({
 	onClosePane,
 	leadingActions,
 	closeHotkeyId = "CLOSE_PANE",
+	hideSplit,
 }: PaneToolbarActionsProps) {
 	const splitIcon =
 		splitOrientation === "vertical" ? (
@@ -31,20 +34,22 @@ export function PaneToolbarActions({
 	return (
 		<div className="flex items-center gap-0.5">
 			{leadingActions}
-			<Tooltip>
-				<TooltipTrigger asChild>
-					<button
-						type="button"
-						onClick={onSplitPane}
-						className="rounded p-0.5 text-muted-foreground/60 transition-colors hover:text-muted-foreground"
-					>
-						{splitIcon}
-					</button>
-				</TooltipTrigger>
-				<TooltipContent side="bottom" showArrow={false}>
-					<HotkeyLabel label="Split pane" id="SPLIT_AUTO" />
-				</TooltipContent>
-			</Tooltip>
+			{!hideSplit && (
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<button
+							type="button"
+							onClick={onSplitPane}
+							className="rounded p-0.5 text-muted-foreground/60 transition-colors hover:text-muted-foreground"
+						>
+							{splitIcon}
+						</button>
+					</TooltipTrigger>
+					<TooltipContent side="bottom" showArrow={false}>
+						<HotkeyLabel label="Split pane" id="SPLIT_AUTO" />
+					</TooltipContent>
+				</Tooltip>
+			)}
 			<Tooltip>
 				<TooltipTrigger asChild>
 					<button

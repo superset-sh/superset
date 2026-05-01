@@ -13,22 +13,20 @@ export interface KeyboardHandlerOptions {
 }
 
 /**
- * Setup keyboard handling for xterm including:
- * - Shortcut forwarding: App hotkeys bubble to document where useAppHotkey listens
- * - Shift+Enter: Sends ESC+CR sequence (to avoid \ appearing in Claude Code while keeping line continuation behavior)
- *
- * Returns a cleanup function to remove the handler.
+ * Creates the keyboard handler function for xterm without attaching it.
+ * Exported for unit tests — prefer {@link setupKeyboardHandler} in production code.
+ * @internal exported only for tests
  */
-export function setupKeyboardHandler(
-	xterm: XTerm,
+export function createTerminalKeyboardHandler(
+	xterm: Pick<XTerm, "selectAll" | "hasSelection">,
 	options: KeyboardHandlerOptions = {},
-): () => void {
+): (event: KeyboardEvent) => boolean {
 	const platform =
 		typeof navigator !== "undefined" ? navigator.platform.toLowerCase() : "";
 	const isMac = platform.includes("mac");
 	const isWindows = platform.includes("win");
 
-	const handler = (event: KeyboardEvent): boolean => {
+	return (event: KeyboardEvent): boolean => {
 		// Match v2: registered app hotkeys must escape xterm before terminal
 		// translations or macOS Cmd bubbling can consume them.
 		if (resolveHotkeyFromEvent(event) !== null) return false;
@@ -81,7 +79,20 @@ export function setupKeyboardHandler(
 		// chords like ctrl+c/d/z/s/q.
 		return true;
 	};
+}
 
+/**
+ * Setup keyboard handling for xterm including:
+ * - Shortcut forwarding: App hotkeys bubble to document where useAppHotkey listens
+ * - Shift+Enter: Sends ESC+CR sequence (to avoid \ appearing in Claude Code while keeping line continuation behavior)
+ *
+ * Returns a cleanup function to remove the handler.
+ */
+export function setupKeyboardHandler(
+	xterm: XTerm,
+	options: KeyboardHandlerOptions = {},
+): () => void {
+	const handler = createTerminalKeyboardHandler(xterm, options);
 	xterm.attachCustomKeyEventHandler(handler);
 
 	return () => {
