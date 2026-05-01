@@ -130,8 +130,8 @@ const ws = await client.workspaces.create({
   name: 'wire-up-auth',
   branch: 'feat/auth',
   agents: [                  // optional — spawn agents on creation
-    { prompt: 'Implement the auth flow described in SUPER-100.' },
-    { prompt: 'Write integration tests for the new auth flow.', agent: 'claude' },
+    { agent: 'claude', prompt: 'Implement the auth flow described in SUPER-100.' },
+    { agent: 'claude', prompt: 'Write integration tests for the new auth flow.' },
   ],
 });
 

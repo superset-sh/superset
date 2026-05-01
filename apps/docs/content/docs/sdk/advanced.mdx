@@ -51,6 +51,7 @@ app.post('/webhooks/sentry', async (c) => {
     branch: slug,
     agents: [
       {
+        agent: 'claude',
         prompt: [
           `A Sentry alert just fired:`,
           `  Title: ${title}`,
@@ -85,8 +86,8 @@ You can spawn multiple agents in parallel by adding more entries to `agents`:
 
 ```ts
 agents: [
-  { prompt: 'Reproduce the bug and write a failing test.' },
-  { prompt: 'Investigate related Sentry issues from the last 7 days.', agent: 'claude' },
+  { agent: 'claude', prompt: 'Reproduce the bug and write a failing test.' },
+  { agent: 'claude', prompt: 'Investigate related Sentry issues from the last 7 days.' },
 ],
 ```
 
