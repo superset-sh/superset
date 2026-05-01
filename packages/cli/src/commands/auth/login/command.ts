@@ -22,7 +22,14 @@ export default command({
 		spinner?.start("Waiting for browser authorization...");
 		if (!spinner) p.log.info("Waiting for browser authorization…");
 
-		const result = await login(opts.signal);
+		const result = await login({
+			signal: opts.signal,
+			onAuthUrl: (url) => {
+				p.log.info(
+					`If your browser doesn't open automatically, paste this URL:\n${url}`,
+				);
+			},
+		});
 
 		config.auth = {
 			accessToken: result.accessToken,

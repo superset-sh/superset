@@ -131,7 +131,18 @@ export function getWebUrl(): string {
 	return env.SUPERSET_API_URL.replace("api.superset.sh", "app.superset.sh");
 }
 
-export async function login(signal: AbortSignal): Promise<LoginResult> {
+export interface LoginOptions {
+	signal: AbortSignal;
+	/**
+	 * Called once with the authorization URL just before the browser is
+	 * launched. Useful on headless hosts where `xdg-open` isn't available —
+	 * the caller can surface the URL so the user can paste it into a
+	 * browser on a different machine.
+	 */
+	onAuthUrl?: (url: string) => void;
+}
+
+export async function login(options: LoginOptions): Promise<LoginResult> {
 	const apiUrl = env.SUPERSET_API_URL;
 	const webUrl = getWebUrl();
 
@@ -143,13 +154,15 @@ export async function login(signal: AbortSignal): Promise<LoginResult> {
 	authorizeUrl.searchParams.set("redirect_uri", redirectUri);
 	authorizeUrl.searchParams.set("state", state);
 
-	await openBrowser(authorizeUrl.toString());
+	const url = authorizeUrl.toString();
+	options.onAuthUrl?.(url);
+	await openBrowser(url);
 
 	const code = await waitForCallback({
 		server,
 		port,
 		expectedState: state,
-		signal,
+		signal: options.signal,
 		timeoutMs: 5 * 60 * 1000,
 	});
 
