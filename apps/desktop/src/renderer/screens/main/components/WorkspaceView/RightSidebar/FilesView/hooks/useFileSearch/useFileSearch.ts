@@ -26,6 +26,7 @@ export function useFileSearch({
 				includePattern,
 				excludePattern,
 				limit,
+				includeHidden: true,
 			},
 			{
 				enabled: Boolean(workspaceId) && trimmedQuery.length > 0,

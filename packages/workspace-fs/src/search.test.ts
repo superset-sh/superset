@@ -241,4 +241,25 @@ describe("searchFiles", () => {
 		expect(paths).toContain(nestedPath);
 		expect(paths).toHaveLength(2);
 	});
+
+	it("finds files inside user-created dot directories when includeHidden is true", async () => {
+		// Regression test for issue #3752: dot-prefixed directories created by
+		// the user (e.g. `.test/`, `.scripts/`) were excluded from file search
+		// even when callers opted in via includeHidden.
+		const rootPath = await createTempRoot();
+		const dotDirFilePath = path.join(rootPath, ".test", "exists.md");
+
+		await fs.mkdir(path.dirname(dotDirFilePath), { recursive: true });
+		await fs.writeFile(dotDirFilePath, "# exists\n");
+
+		const results = await searchFiles({
+			rootPath,
+			query: "exists.md",
+			includeHidden: true,
+		});
+
+		expect(results.map((result) => result.absolutePath)).toContain(
+			dotDirFilePath,
+		);
+	});
 });

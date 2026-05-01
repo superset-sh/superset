@@ -13,6 +13,7 @@ export function useV2FileSearch(
 			workspaceId: workspaceId ?? "",
 			query: trimmedQuery,
 			limit: SEARCH_LIMIT,
+			includeHidden: true,
 		},
 		{
 			enabled: Boolean(workspaceId) && trimmedQuery.length > 0,
