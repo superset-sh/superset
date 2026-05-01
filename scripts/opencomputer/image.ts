@@ -56,41 +56,43 @@ export const supersetImage = Image.base()
   // ── Layer tier 2: standalone binaries (rarely change) ───────────────────────
   // Caddy is the HTTP/2 reverse proxy for Electric SSE streams; avoids the
   // browser 6-connection limit when running many streams.
-  .runCommands([
+  // NOTE: runCommands takes rest args (...string), not an array. Each call is
+  // one cache step on the OC server; commands within a single call run together.
+  .runCommands(
     `curl -fsSL "https://caddyserver.com/api/download?os=linux&arch=amd64" \
        -o /usr/local/bin/caddy && chmod +x /usr/local/bin/caddy`,
     `curl -Ls https://cli.doppler.com/install.sh | sh`,
-  ])
+  )
 
   // ── Layer tier 3: node global tooling (rarely change) ───────────────────────
   // node-gyp must exist BEFORE the bun install layer because node-pty's
   // native build invokes it. Repo convention is bun, but bun -g treats
   // CLIs differently and node-gyp expects to be on PATH as `node-gyp`,
   // so npm -g is the pragmatic choice for these.
-  .runCommands([`npm install -g node-gyp neonctl`])
+  .runCommands(`npm install -g node-gyp neonctl`)
 
   // ── Layer tier 4: agent + Superset CLIs (rarely change) ─────────────────────
-  .runCommands([
+  .runCommands(
     `curl -fsSL https://superset.sh/cli/install.sh | sh`,
     `curl -fsSL https://claude.ai/install.sh | bash`,
-  ])
+  )
 
   // ── Layer tier 5: shell hooks (rarely change) ───────────────────────────────
-  .runCommands([`echo 'eval "$(direnv hook bash)"' >> /root/.bashrc`])
+  .runCommands(`echo 'eval "$(direnv hook bash)"' >> /root/.bashrc`)
 
   // ── Layer tier 6: init script (changes when orchestration logic moves) ──────
   .addFile("/usr/local/bin/superset-init.sh", INIT_SCRIPT)
-  .runCommands([`chmod +x /usr/local/bin/superset-init.sh`])
+  .runCommands(`chmod +x /usr/local/bin/superset-init.sh`)
 
   // ── Layer tier 7: VOLATILE — repo clone + dependency resolution ─────────────
-  // Busts on every Superset main commit. Keep this last so cache hits on
-  // upstream layers survive across image rebuilds. Three commands kept in one
-  // call because they're a single logical unit (clone → install → wire).
-  .runCommands([
+  // Busts on every Superset main commit. Keep last so cache hits on upstream
+  // layers survive across image rebuilds. Three commands stay in one step
+  // because they're a single logical unit (clone → install → wire).
+  .runCommands(
     `git clone https://github.com/superset-sh/superset ${REPO_PATH}`,
     `cd ${REPO_PATH} && bun install`,
     `cp ${REPO_PATH}/Caddyfile.example ${REPO_PATH}/Caddyfile`,
-  ])
+  )
 
   .env({
     SUPERSET_HOME: "/root/superset",
