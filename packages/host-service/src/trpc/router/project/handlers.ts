@@ -55,8 +55,11 @@ function slugWithSuffix(baseSlug: string, attempt: number): string {
 }
 
 function isSlugConflict(err: unknown): boolean {
+	// Cloud v2Project.create surfaces slug uniqueness as
+	// TRPCError CONFLICT with this stable message (see
+	// packages/trpc/src/router/v2-project/v2-project.ts).
 	const message = err instanceof Error ? err.message : String(err);
-	return message.toLowerCase().includes("v2_projects_org_slug_unique");
+	return message === "Project slug already exists";
 }
 
 async function createCloudProjectWithSlugRetry(

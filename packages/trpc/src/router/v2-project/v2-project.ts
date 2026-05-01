@@ -239,6 +239,13 @@ export const v2ProjectRouter = {
 						cause: err,
 					});
 				}
+				if (constraint === "v2_projects_org_slug_unique") {
+					throw new TRPCError({
+						code: "CONFLICT",
+						message: "Project slug already exists",
+						cause: err,
+					});
+				}
 				throw err;
 			}
 			if (!project) {

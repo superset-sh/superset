@@ -150,7 +150,15 @@ export function NewProjectModal({
 			reset();
 			onOpenChange(false);
 		} catch (err) {
-			const message = err instanceof Error ? err.message : String(err);
+			const raw = err instanceof Error ? err.message : String(err);
+			// Drizzle / pg errors arrive as "Failed query: insert into ..."
+			// which is useless to a user. Hide that envelope in favor of a
+			// short generic message; details land in the console for devs.
+			const isLeakedSql = raw.startsWith("Failed query:");
+			if (isLeakedSql) console.error("[NewProjectModal] create failed", err);
+			const message = isLeakedSql
+				? "Could not create project. Please try a different name or check the logs."
+				: raw;
 			setError(message);
 			onError?.(message);
 		} finally {
