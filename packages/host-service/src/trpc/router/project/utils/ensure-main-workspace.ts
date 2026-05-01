@@ -1,4 +1,5 @@
 import { getHostId, getHostName } from "@superset/shared/host-info";
+import { TRPCError } from "@trpc/server";
 import { workspaces } from "../../../../db/schema";
 import type { HostServiceContext } from "../../../../types";
 
@@ -64,9 +65,11 @@ export async function ensureMainWorkspaceStrict(
 	const git = await ctx.git(repoPath);
 	const branch = await getCurrentBranchName(git);
 	if (!branch) {
-		throw new Error(
-			`Could not resolve current branch for ${projectId} at ${repoPath}`,
-		);
+		throw new TRPCError({
+			code: "PRECONDITION_FAILED",
+			message:
+				"Repository is in detached-HEAD state. Check out a branch (e.g. `git checkout main`) before creating the project on this device.",
+		});
 	}
 
 	const host = await ctx.api.host.ensure.mutate({

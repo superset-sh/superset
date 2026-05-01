@@ -210,22 +210,6 @@ The host service is the per-machine local Superset orchestrator (`LocalHostServi
 
 **Decision (2026-04-29):** Everything goes through the host service. Backend A (`electronTrpc.projects.*`) is legacy and will be deleted.
 
-## Decisions reaffirmed (2026-04-30)
-
-| # | Decision | Choice |
-|---|---|---|
-| 1 | Transactional model | Cloud is reality: cloud last on create (commit point), cloud first on delete (kill point) |
-| 2 | Backend for v2 create | Host service only — every path funnels through `client.project.create`. `electronTrpc.projects.*` legacy create paths get deleted |
-| 3 | `ensureMainWorkspace` failure | Throw + full local rollback. No half-state where a project row exists without a usable main workspace |
-| 4 | Empty/template visibility | Defer GitHub-remote creation until first push. Capture `visibility` in the schema but project is local-only (no `repoCloneUrl`) until the user pushes |
-| 5 | Filesystem on project delete | Never auto-rm. Cloud delete + local DB rows only. The cloned dir stays — matches the v2 delete-workspace saga's best-effort local cleanup contract |
-
-Cloud-side prerequisites have shipped (PR #3913, commit `e3e0ec8f1`):
-- `v2Project.delete` is `jwtProcedure`, idempotent on missing/cross-org rows
-- `v2Project.create` accepts optional client-supplied `id?`, maps PK conflicts to `CONFLICT 409`
-
-Manual-tested end-to-end with `kiet@superset.sh` JWT against the worktree's Neon branch — all 7 cases (B1, B2, B3, A1–A4) passed including DB-side row verification.
-
 ## Transaction principle: cloud is reality
 
 - **Create:** local first, cloud LAST. Cloud-create is the commit point.
@@ -315,114 +299,17 @@ These ship before any desktop work, per deploy-ordering rule.
 
 Any rollback step can itself fail. Rule: log loudly, never silently swallow. Failures of local rollback during a create-error keep returning the original create error to the caller; the orphan local state is picked up by a startup reconciliation sweep (or a manual "Project not in cloud" cleanup action — TBD design).
 
-## Consolidation plan (host-service-only)
+## Original consolidation plan — DEPRECATED
 
-### What the host service already exposes
-
-`packages/host-service/src/trpc/router/project/project.ts`:
-
-| Procedure | Lines | Status |
-|---|---|---|
-| `project.list` | 20 | done |
-| `project.get` | 24 | done |
-| `project.findBackfillConflict` | 42 | done |
-| `project.findByPath` | 56 | done |
-| `project.create` mode `clone` | 122 | **done** |
-| `project.create` mode `importLocal` | 128 | **done** |
-| `project.create` mode `empty` | 116–121 | **`NOT_IMPLEMENTED`** — schema accepts it but throws |
-| `project.create` mode `template` | 117–121 | **`NOT_IMPLEMENTED`** — schema accepts it but throws |
-| `project.setup` (`clone` / `import`) | 136 | done |
-
-The schema already takes `parentDir` + `visibility` (`private`/`public`) for `empty` and `templateId` + `visibility` for `template`. So the API contract is settled; only the implementations are missing.
-
-### Implementation sequence (each step shippable on its own)
-
-Mirrors the v2 delete-workspace audit's pattern: server-side first, then UI.
-
-**Server-side (host-service):**
-
-1. **Add `ensureMainWorkspaceStrict()`** — a strict variant that throws on any failure. Keep the existing log-and-continue version for the startup sweep. Update `project.setup` to keep using the lenient version (its callers tolerate the partial state) — only the new create handlers use strict.
-2. **Invert `createFromClone` to the new pipeline.** Generate UUID, insert local DB project, cloud project create, ensureMainWorkspaceStrict. On any failure post-step-3, call `v2Project.delete` to roll back the cloud commit. This is the smallest meaningful behavior change and proves the new shape with one mode.
-3. **Invert `createFromImportLocal` to the same pipeline.** Reuses helpers from step 2.
-4. **Implement `createFromEmpty`.** Same pipeline; only step 1 (`mkdir + git init + initial commit`) differs. Add git-user preflight inside step 1.
-5. **Implement `createFromTemplate`.** Same pipeline; step 1 clones the template URL, strips `.git`, re-inits. Move the templates list from `TemplateTab.tsx` constants into host-service config.
-6. **Rework `project.remove` to a cloud-first delete saga.** Cloud `v2Project.delete` first (kill point) → local DB rows. **Do not** auto-rm the on-disk repo dir. Log-and-continue on local cleanup failures (matches v2 delete-workspace's best-effort contract). Wire `DeleteProjectSection` to call this instead of cloud directly so future host-side cleanup (workspace cascade etc.) goes through one path.
-
-**UI rewiring:**
-
-7. Rewire `/new-project` `CloneRepoTab` → `client.project.create` mode `clone`.
-8. Rewire `EmptyRepoTab` → mode `empty`. Add the visibility radio (private/public).
-9. Rewire `TemplateTab` → mode `template`. Send `templateId` instead of raw URL. Add visibility radio.
-10. Replace `useOpenProject.openNew` / `openFromPath` → `client.project.findByPath` + (if no record) `client.project.create` mode `importLocal`. Init-git-and-open dialog stays.
-11. Add page-level FSM in `/new-project/page.tsx` (`idle | validating | working{step,cleanupPath} | success | error`). Disable tab switching while `working`. Replaces the three siloed `mutation.isPending` flags.
-
-**Deletion:**
-
-12. Delete `NewProjectModal/` folder, `add-repository-modal.ts` store. Replace `DashboardSidebarHeader.useOpenNewProjectModal()` calls with `navigate({ to: "/new-project" })`.
-13. Delete `electronTrpc.projects.cloneRepo / createEmptyRepo / openNew` and orphaned helpers (`initGitRepo`, `upsertProject`, `ensureMainWorkspace` if no local-IPC callers remain).
-
-### Migration steps
-
-1. **Implement the two stubbed modes in the host service.**
-   - `project.create` mode `empty`: port `initGitRepo` (`apps/desktop/src/lib/trpc/routers/projects/projects.ts:110–140`) + `upsertProject` (142–173) + `ensureMainWorkspace` (175–253) into `packages/host-service/src/trpc/router/project/utils/persist-project.ts` (or a new helper). Add the `visibility` flag handling — host service likely needs to also create the matching cloud project record (`v2Project.create` on the cloud API), since the existing `clone` and `importLocal` modes do.
-   - `project.create` mode `template`: same as empty, but seed from a template repo (clone the template URL, drop `.git`, re-init, push to a new remote at the requested visibility). Templates list lives in `apps/desktop/src/renderer/routes/_authenticated/_onboarding/new-project/components/TemplateTab/TemplateTab.tsx` constants — move that list to a shared package or to host-service config.
-   - Both modes must call `ensureMainWorkspace` equivalent so the project lands in a usable state on success — promote the silent-warn failure path (`projects.ts:234–237`) to a hard error in the new code.
-   - Both modes must `rm -rf` the parent dir on any post-`mkdir` failure (the cleanup-on-failure rule that `createEmptyRepo` already follows).
-   - Add git-user preflight (`user.name` + `user.email`) before any commit.
-
-2. **Rewire `/new-project` tabs to host-service.**
-   - `CloneRepoTab.tsx`: replace `electronTrpc.projects.cloneRepo` with `client.project.create.mutate({ name, mode: { kind: "clone", parentDir, url } })`.
-   - `EmptyRepoTab.tsx`: replace `electronTrpc.projects.createEmptyRepo` with `client.project.create.mutate({ name, mode: { kind: "empty", parentDir, visibility } })`. Add a visibility toggle to the UI (Public / Private radio).
-   - `TemplateTab.tsx`: replace with `client.project.create.mutate({ name, mode: { kind: "template", parentDir, templateId, visibility } })`. Stop sending raw template URLs from the renderer.
-   - `useOpenProject.openNew()` / `openFromPath()`: replace `electronTrpc.projects.openNew` with `client.project.findByPath` + (if no record) `client.project.create` mode `importLocal`. The init-git-and-open dialog stays.
-   - `useProjectCreationHandler` callback shape needs to match host-service response — adjust the navigate target (`projectId` extraction).
-
-3. **Delete dead surfaces.**
-   - `apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/AddRepositoryModals/components/NewProjectModal/` — entire folder. Disabled empty/template tabs go with it.
-   - `apps/desktop/src/renderer/stores/add-repository-modal.ts` — Zustand wrapper around one boolean.
-   - `DashboardSidebarHeader.tsx` lines 29, 40, 153, 224: replace `useOpenNewProjectModal()` invocation with `navigate({ to: "/new-project" })`.
-   - `AddRepositoryModals/index.tsx` (mounted in `_dashboard/layout.tsx`): if `useFolderFirstImport` is the only remaining consumer, simplify or inline it. If empty after `NewProjectModal` removal, delete the wrapper.
-
-4. **Delete the legacy IPC procedures.**
-   - `apps/desktop/src/lib/trpc/routers/projects/projects.ts`: remove `cloneRepo` (1187–1341), `createEmptyRepo` (1343–1402), `openNew` (1064–1180), and helpers that become unused (`initGitRepo`, `upsertProject`, `ensureMainWorkspace` if no other caller). Run a usage check first — these helpers may be reused by other procedures.
-   - Keep any `projects.*` procedures that are pure read-side (e.g., `getRecents` if it queries the local DB and isn't covered by `client.project.list`). Cache invalidation in `useProjectCreationHandler` will need to switch to invalidating the host-service query.
-
-5. **Single FSM in `/new-project` page.**
-   Once both backends agree on a single response shape, replace the three siloed `mutation.isPending` flags + `cloningTemplate` string with a single page-level state (per the FSM in the recommendations section above). Disable tab switching while `working`.
-
-### Acceptance checks
-
-- `/new-project` is the only path to create a project. Dashboard sidebar dropdown links to it.
-- All three tabs round-trip through `client.project.create` and show up correctly in `V2ProjectSettings` (which already reads from host-service).
-- Closing the page mid-clone aborts the host-service operation and cleans up the partial directory.
-- A failed `ensureMainWorkspace` equivalent is a hard error, not a `console.warn`.
-- `electronTrpc.projects.cloneRepo / createEmptyRepo / openNew` no longer exist.
-- `NewProjectModal` and `add-repository-modal.ts` no longer exist.
-
-### Risks / call-outs
-
-- The host service runs as a separate local process (`packages/host-service`). If it's not running or auth isn't established, `/new-project` breaks — today's Backend-A path silently sidesteps that. Need to confirm: is the host service guaranteed to be running for any authenticated v2 user? `LocalHostServiceProvider` wraps `_authenticated/layout.tsx:203`, so yes — but verify start-up ordering and surface a clear error if `activeHostUrl` is null.
-- `v2Project.create` on the cloud side may need new visibility plumbing for the `empty` and `template` modes if the existing `clone` flow assumes the remote already exists. Audit the cloud API contract before implementing.
-- Templates list lives in renderer constants today; if it moves to host-service, that's a one-time migration plus a release-ordering note (cloud/API deploy → desktop release, per the project deploy memory).
-
-## Recommendations (priority order)
-
-1. **Unify the two surfaces.** Delete `NewProjectModal`'s `client.project.create` path or make it call the same tRPC procedure as the full-page flow.
-2. **Wrap project creation in a transaction-like guard.** On any failure after `git clone` / `mkdir`, `rm -rf` the directory before returning the error. Port EmptyRepo's pattern to CloneRepo.
-3. **Promote `ensureMainWorkspace` failures to errors.** Stop `console.warn`-and-return — that's exactly the half-state we want to eliminate. Either succeed or fail the whole create.
-4. **Model the flow as one FSM at the page level:**
-   ```ts
-   type CreateProjectState =
-     | { kind: "idle" }
-     | { kind: "validating" }
-     | { kind: "working"; step: "cloning" | "init" | "db" | "workspace"; cleanupPath?: string }
-     | { kind: "success"; projectId: string }
-     | { kind: "error"; message: string; recoverable: boolean; cleanupPath?: string };
-   ```
-   Replace the three siloed `isLoading` flags with one shared store, and disable tab switching while `working`.
-5. **Add an explicit post-create pipeline** shared by all three tabs: detect framework → optionally run install → optionally run `setup.json` commands → emit progress. Even a v1 that just reads `.superset/setup.json` and shows "skipped: no config" gives users a discoverable surface.
-6. **Preflight git config** in CloneRepo the same way EmptyRepo does (`user.name`, `user.email`).
-7. **Cancellation:** if the user navigates away mid-clone, abort the child process and run cleanup. At minimum, mark the partial dir on disk with a `.superset/.creating` sentinel so a subsequent run can detect and resume/clean.
+> The original audit prescribed rewiring `/new-project` tabs, replacing
+> `useOpenProject`, deleting `electronTrpc.projects.*`, and pointing the
+> v2 dashboard dropdown at `/new-project`. After the 2026-04-30 incident
+> (see ⚠️ Hard constraint at the top), all of those touch v1-reached
+> code and are forbidden. The **Locked-in decisions** section above is
+> the authoritative plan.
+>
+> This section is left collapsed for historical context only. Do not
+> use it as a guide.
 
 ## File reference index
 

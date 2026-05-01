@@ -212,8 +212,7 @@ export async function createFromImportLocal(
 
 /**
  * Empty mode: mkdir + git init + initial commit, then run the saga.
- * `visibility` is captured at the schema layer but not enforced here —
- * GitHub-remote provisioning is deferred until first push.
+ * The project lives local-only — no GitHub remote until first push.
  */
 export async function createFromEmpty(
 	ctx: HostServiceContext,
@@ -229,8 +228,8 @@ export async function createFromEmpty(
 
 /**
  * Template mode: clone the template repo, strip history, re-init, then
- * run the saga. Like empty, GitHub-remote provisioning is deferred —
- * the project is local-only until first push.
+ * run the saga. Like empty, the project lives local-only — no GitHub
+ * remote until first push.
  */
 export async function createFromTemplate(
 	ctx: HostServiceContext,

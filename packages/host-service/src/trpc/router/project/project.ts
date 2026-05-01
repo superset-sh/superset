@@ -97,14 +97,10 @@ export const projectRouter = router({
 		.input(
 			z.object({
 				name: z.string().min(1),
-				// `visibility` lives on the GitHub-provisioning modes only.
-				// Clone + importLocal reuse an existing remote where visibility
-				// is already set on the remote itself.
 				mode: z.discriminatedUnion("kind", [
 					z.object({
 						kind: z.literal("empty"),
 						parentDir: z.string().min(1),
-						visibility: z.enum(["private", "public"]),
 					}),
 					z.object({
 						kind: z.literal("clone"),
@@ -119,7 +115,6 @@ export const projectRouter = router({
 						kind: z.literal("template"),
 						parentDir: z.string().min(1),
 						templateId: z.string().min(1),
-						visibility: z.enum(["private", "public"]),
 					}),
 				]),
 			}),
