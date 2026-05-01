@@ -119,6 +119,10 @@ Returns `Array<Workspace>`.
 
 Create a worktree on a specific host. Optionally spawn one or more agents inside it as soon as the worktree is ready. Goes through the relay tunnel — the host must be online.
 
+<Callout type="info">
+**TODO** — the `agents` shorthand is the surface we're aiming for. The SDK currently sends a minimal `agentConfig: { id: 'claude', kind: 'terminal' }`; the host service still needs full launch info (`command`, `promptCommand`, …) to actually start the agent. We'll bake in defaults for built-in presets in a follow-up. Until then, pass a full `agentConfig` (crib one from `(await client.automations.list())[0].agentConfig`).
+</Callout>
+
 ```ts
 const ws = await client.workspaces.create({
   hostId: '<machineId>',     // see hosts.list()
