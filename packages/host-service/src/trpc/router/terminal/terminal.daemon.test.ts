@@ -24,10 +24,6 @@ process.env.SUPERSET_API_URL = "https://cloud.example.com";
 
 const { appRouter } = await import("../router.ts");
 
-interface MinimalCtx {
-	isAuthenticated: boolean;
-}
-
 function makeCaller(authenticated = true) {
 	// Cast to whatever; we only invoke procedures that don't touch db/git/etc.
 	return appRouter.createCaller({

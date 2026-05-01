@@ -13,7 +13,6 @@ import {
 } from "../handlers/index.ts";
 import {
 	type ClientMessage,
-	CURRENT_PROTOCOL_VERSION,
 	encodeFrame,
 	FrameDecoder,
 	type HelloMessage,
@@ -260,7 +259,7 @@ function pickProtocol(hello: HelloMessage): number | null {
 	for (const v of hello.protocols) {
 		if (supported.has(v) && (best === null || v > best)) best = v;
 	}
-	return best ?? (supported.has(CURRENT_PROTOCOL_VERSION) ? null : null);
+	return best;
 }
 
 function writeMessage(socket: net.Socket, msg: ServerMessage): void {

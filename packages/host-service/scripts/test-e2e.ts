@@ -26,12 +26,13 @@ function findElectronBinary(): string {
 		})
 		.split("\n")
 		.filter(Boolean);
-	if (candidates.length === 0) {
+	const first = candidates[0];
+	if (!first) {
 		throw new Error(
 			"Electron binary not found. Run `bun install` from the repo root first.",
 		);
 	}
-	return path.join(repoRoot, candidates[0]!);
+	return path.join(repoRoot, first);
 }
 
 const electronBin = findElectronBinary();
