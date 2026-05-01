@@ -894,6 +894,15 @@
         "typescript": "^5.9.3",
       },
     },
+    "packages/sdk": {
+      "name": "@superset/sdk",
+      "version": "0.0.1-alpha.0",
+      "devDependencies": {
+        "@superset/typescript": "workspace:*",
+        "bun-types": "^1.3.1",
+        "typescript": "^5.9.3",
+      },
+    },
     "packages/shared": {
       "name": "@superset/shared",
       "version": "0.1.0",
@@ -2602,6 +2611,8 @@
     "@superset/port-scanner": ["@superset/port-scanner@workspace:packages/port-scanner"],
 
     "@superset/relay": ["@superset/relay@workspace:apps/relay"],
+
+    "@superset/sdk": ["@superset/sdk@workspace:packages/sdk"],
 
     "@superset/shared": ["@superset/shared@workspace:packages/shared"],
 
