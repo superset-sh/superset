@@ -1,6 +1,1 @@
-export {
-	getActiveProductId,
-	type Product,
-	products,
-	sections,
-} from "./SidebarContent";
+export { sections } from "./SidebarContent";

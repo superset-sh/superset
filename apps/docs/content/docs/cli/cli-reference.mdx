@@ -3,6 +3,10 @@ title: CLI Reference
 description: Complete reference for Superset command-line interface, including commands and flags.
 ---
 
+<Callout type="warn">
+The CLI is currently in Beta — commands and flags are still evolving. Make sure you're on the latest version of the CLI if you run into issues.
+</Callout>
+
 ## Synopsis
 
 ```text
@@ -139,7 +143,7 @@ Auth: Session (expires in 32 min)
 
 ### start
 
-Start the local host service — the daemon the CLI and desktop app both
+Start the local host server — the daemon the CLI and desktop app both
 talk to when targeting this machine.
 
 <Command
@@ -150,7 +154,7 @@ talk to when targeting this machine.
 	]}
 >
 If a manifest exists and the PID is alive, returns the existing
-instance's details. Otherwise spawns the host service binary, polls
+instance's details. Otherwise spawns the host server binary, polls
 `/trpc/health.check` for up to 10 seconds, and writes the manifest.
 Binds to `127.0.0.1` only.
 
@@ -159,7 +163,7 @@ superset start --daemon
 ```
 
 <CommandReturns>
-The running host service.
+The running host server.
 
 <JsonOutput>
 ```ts
@@ -175,7 +179,7 @@ The running host service.
 
 ### stop
 
-Stop the local host service.
+Stop the local host server.
 
 <Command name="superset stop">
 Sends SIGTERM, waits up to 10 seconds, sends SIGKILL if still alive. The
@@ -186,7 +190,7 @@ superset stop
 ```
 
 <CommandReturns>
-The stopped host service, if one was running.
+The stopped host server, if one was running.
 
 <JsonOutput>
 ```ts
@@ -202,7 +206,7 @@ The stopped host service, if one was running.
 
 ### status
 
-Inspect the local host service.
+Inspect the local host server.
 
 <Command name="superset status">
 `healthy` reflects a live `health.check` request (2-second timeout).
@@ -212,7 +216,7 @@ superset status
 ```
 
 <CommandReturns>
-The host service state. Three shapes depending on what's running.
+The host server state. Three shapes depending on what's running.
 
 <JsonOutput>
 ```ts
@@ -244,7 +248,7 @@ The host service state. Three shapes depending on what's running.
 
 ### update
 
-Update the Superset CLI and host service binary.
+Update the Superset CLI and host server binary.
 
 <Command
 	name="superset update"
@@ -335,8 +339,9 @@ superset org switch org_…
 
 ### projects
 
-Projects are checked-out repos that live on a specific host. v1 ships
-read-only; create projects from the desktop app.
+Projects are checked-out repos that live on a specific host. The host
+clones (or registers) the repo, creates the cloud record, and makes it
+available to every machine in the organization.
 
 <Command
 	name="superset projects list"
@@ -355,12 +360,42 @@ read-only; create projects from the desktop app.
 List projects on the target host.
 </Command>
 
+<Command
+	name="superset projects create"
+	options={[
+		{ flag: "--name <name>", required: true, description: "Display name for the project." },
+		{ flag: "--url <url>", description: "Clone from a Git URL. Mutually exclusive with `--path`." },
+		{ flag: "--parent-dir <path>", description: "Where to clone into. Required with `--url`." },
+		{ flag: "--path <path>", description: "Import an existing local repo. Mutually exclusive with `--url`." },
+		{ flag: "--host <id>", description: "Target host. Defaults to the local machine." },
+	]}
+	output={`{
+  projectId: string;
+  repoPath: string;
+  mainWorkspaceId: string | null;
+}`}
+>
+Register a project on a host. Two modes:
+
+- **Clone** — pass `--url` and `--parent-dir`. The host clones the repo
+  into `<parent-dir>/<derived-name>/`.
+- **Import** — pass `--path` to register a repo that already exists on disk.
+
+Either way, the cloud project row is created and the host's main workspace
+is ensured.
+
+```bash
+superset projects create --name "my-app" --url https://github.com/org/my-app.git --parent-dir ~/code
+superset projects create --name "my-app" --path ~/code/my-app
+```
+</Command>
+
 ---
 
 ### hosts
 
 Discover hosts registered to the active organization. To control the
-host service running on this machine, use [`start`](#start),
+host server running on this machine, use [`start`](#start),
 [`stop`](#stop), and [`status`](#status).
 
 <Command
@@ -389,13 +424,12 @@ superset hosts list
 Workspaces are branch-scoped working copies on a host.
 
 **Routing:** when `--host` resolves to the local machine, the CLI calls
-the host service directly over loopback HTTP — no cloud roundtrip, works
+the host server directly over loopback HTTP — no cloud roundtrip, works
 offline. Otherwise it routes through the cloud API and the relay.
 
-If the resolved host is the local machine but the host service isn't
-responding, the CLI errors with
-`Host service for this machine isn't running. Run: superset start.`
-rather than silently falling through to the cloud.
+If the resolved host is the local machine but the host server isn't
+responding, the CLI errors out and points you at `superset start` rather
+than silently falling through to the cloud.
 
 <Command
 	name="superset workspaces list"

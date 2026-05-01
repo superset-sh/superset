@@ -11,8 +11,7 @@ async function readStdin(): Promise<string> {
 }
 
 export default command({
-	description:
-		"Read or write an automation's prompt. Reads to stdout by default; writes when --from-file is given or stdin is piped.",
+	description: "Read or write an automation's prompt",
 	args: [positional("id").required().desc("Automation id")],
 	options: {
 		fromFile: string().desc(

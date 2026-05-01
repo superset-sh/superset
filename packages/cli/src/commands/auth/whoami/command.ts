@@ -9,12 +9,8 @@ export default command({
 		if (!organization) throw new CLIError("No organization found");
 
 		let authLine: string;
-		if (ctx.authSource === "oauth" && ctx.config.auth) {
-			const minutesLeft = Math.max(
-				0,
-				Math.round((ctx.config.auth.expiresAt - Date.now()) / 60_000),
-			);
-			authLine = `Session (expires in ${minutesLeft} min)`;
+		if (ctx.authSource === "oauth") {
+			authLine = "Session";
 		} else if (ctx.authSource === "flag") {
 			authLine = "API key (from --api-key flag)";
 		} else {

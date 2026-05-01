@@ -11,4 +11,5 @@ CI environment to apply them across every session.
 | Variable | Description |
 | --- | --- |
 | `SUPERSET_API_KEY` | API key (`sk_live_…` / `sk_test_…`) used in place of stored OAuth login. Equivalent to `--api-key`. |
-| `SUPERSET_HOME_DIR` | Directory the CLI uses for `config.json` and the host service tree. Default: `~/.superset`. Shared with the desktop app. |
+| `SUPERSET_HOME_DIR` | Directory the CLI uses for `config.json` and the host server tree. Default: `~/.superset`. Shared with the desktop app. |
+| `GH_TOKEN` / `GITHUB_TOKEN` | Read by the `gh` CLI the host server shells out to for PR checkout and metadata. Set this for sandboxes or CI instead of running `gh auth login` interactively. |

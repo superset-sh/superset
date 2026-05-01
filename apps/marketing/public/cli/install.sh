@@ -146,8 +146,8 @@ main() {
     update_path
 
     printf "\n${GREEN}${BOLD}Installed!${RESET}\n"
-    printf "Run ${BOLD}superset auth login${RESET} to get started.\n"
-    printf "You may need to restart your shell (or run \`source <your-profile>\`) for the PATH to take effect.\n"
+    printf "Run ${BOLD}exec \$SHELL${RESET} (or open a new terminal) to load the updated PATH.\n"
+    printf "Then run ${BOLD}superset auth login${RESET} to get started.\n"
 }
 
 main "$@"

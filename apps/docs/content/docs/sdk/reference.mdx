@@ -1,0 +1,249 @@
+---
+title: SDK Reference
+description: Method-by-method reference for the Superset TypeScript SDK.
+---
+
+<Callout type="warn">
+The SDK is in early alpha — it is not meant for production use and may be removed in the future. Stay on the latest version (`@superset_sh/sdk@latest`) while we iterate.
+</Callout>
+
+## Client
+
+```ts
+import Superset from '@superset_sh/sdk';
+
+const client = new Superset({
+  apiKey: 'sk_live_…',
+  organizationId: '…',
+  // optional:
+  baseURL: 'https://api.superset.sh',
+  relayURL: 'https://relay.superset.sh',
+  timeout: 60_000,
+  maxRetries: 2,
+  logLevel: 'warn', // 'off' | 'error' | 'warn' | 'info' | 'debug'
+});
+```
+
+---
+
+## tasks
+
+### `tasks.create(body)`
+
+Create a task.
+
+```ts
+const task = await client.tasks.create({
+  title: 'Wire up auth',
+  description: 'See SUPER-100',
+  priority: 'high',          // 'urgent' | 'high' | 'medium' | 'low' | 'none'
+  assigneeId: '<uuid>',      // optional
+  statusId: '<uuid>',        // optional, defaults to first backlog status
+  estimate: 4,               // optional, story points
+  dueDate: '2026-12-31',     // optional, ISO date
+  labels: ['bug'],           // optional
+});
+```
+
+Returns a `Task`.
+
+### `tasks.list(params?)`
+
+List tasks with rich filters. All filters AND-combine.
+
+```ts
+const tasks = await client.tasks.list({
+  assigneeMe: true,          // tasks assigned to you
+  creatorMe: true,           // tasks you created
+  priority: 'high',
+  statusId: '<uuid>',
+  assigneeId: '<uuid>',      // someone else's tasks
+  search: 'auth',            // substring of title
+  limit: 50,                 // max 500
+  offset: 0,
+});
+```
+
+Returns `Array<TaskListItem>` — each row is a `Task` denormalized with `assigneeName`, `assigneeImage`, `creatorName`, `creatorImage`, and `statusName` so you don't need follow-up calls for display.
+
+### `tasks.retrieve(idOrSlug)`
+
+Look up a single task by id or slug.
+
+```ts
+const task = await client.tasks.retrieve('SUPER-172');
+if (!task) throw new Error('not found'); // returns null when missing
+```
+
+Returns `Task | null`.
+
+### `tasks.update(body)`
+
+Patch a task.
+
+```ts
+const task = await client.tasks.update({
+  id,
+  priority: 'urgent',
+  statusId: '<uuid>',
+  prUrl: 'https://github.com/…',
+});
+```
+
+Returns the updated `Task`.
+
+### `tasks.delete(id)`
+
+Soft-delete a task.
+
+```ts
+await client.tasks.delete(id);
+```
+
+---
+
+## workspaces
+
+### `workspaces.list(params?)`
+
+List workspaces in the organization.
+
+```ts
+const all = await client.workspaces.list();
+const onOneHost = await client.workspaces.list({ hostId: '<machineId>' });
+```
+
+Returns `Array<Workspace>`.
+
+### `workspaces.create({ hostId, projectId, name, branch, agents? })`
+
+Create a worktree on a specific host. Optionally spawn one or more agents inside it as soon as the worktree is ready. Goes through the relay tunnel — the host must be online.
+
+<Callout type="info">
+**TODO** — the `agents` shorthand is the surface we're aiming for. The SDK currently sends a minimal `agentConfig: { id: 'claude', kind: 'terminal' }`; the host service still needs full launch info (`command`, `promptCommand`, …) to actually start the agent. We'll bake in defaults for built-in presets in a follow-up. Until then, pass a full `agentConfig` (crib one from `(await client.automations.list())[0].agentConfig`).
+</Callout>
+
+```ts
+const ws = await client.workspaces.create({
+  hostId: '<machineId>',     // see hosts.list()
+  projectId: '<uuid>',       // see projects.list()
+  name: 'wire-up-auth',
+  branch: 'feat/auth',
+  agents: [                  // optional — spawn agents on creation
+    { agent: 'claude', prompt: 'Implement the auth flow described in SUPER-100.' },
+    { agent: 'claude', prompt: 'Write integration tests for the new auth flow.' },
+  ],
+});
+
+console.log(ws.id, ws.agentRuns.map((r) => r.runId));
+```
+
+Returns a `CreatedWorkspace` — a `HostWorkspace` plus an `agentRuns` array (one entry per agent in the request, empty if `agents` was omitted).
+
+### `workspaces.delete(id, opts?)`
+
+Delete a workspace. Looks up its host automatically and routes through the relay.
+
+```ts
+await client.workspaces.delete(id);
+// or skip the lookup:
+await client.workspaces.delete(id, { hostId: '<machineId>' });
+```
+
+---
+
+## projects
+
+### `projects.list()`
+
+Returns `Array<Project>`.
+
+```ts
+const projects = await client.projects.list();
+```
+
+---
+
+## hosts
+
+### `hosts.list()`
+
+List developer machines registered in the org. Returns `Array<Host>` with `id` (machineId), `name`, `online`, and `organizationId`.
+
+```ts
+const hosts = await client.hosts.list();
+const online = hosts.filter((h) => h.online);
+```
+
+---
+
+## automations
+
+Recurring agent runs scheduled by RRULE. Requires a Pro subscription on the org for `create` / `update` / `delete`.
+
+### `automations.list()`
+
+```ts
+const automations = await client.automations.list();
+```
+
+Each row includes `scheduleText` — a human-readable rendering of the rrule.
+
+### `automations.retrieve(id)`
+
+```ts
+const a = await client.automations.retrieve(id);
+```
+
+### `automations.create(body)`
+
+Create a recurring automation.
+
+```ts
+const a = await client.automations.create({
+  name: 'Daily leads',
+  prompt: 'Find new leads from Linear and update the CRM…',
+  agentConfig: { id: 'claude', kind: 'terminal', /* …other fields pass through */ },
+  rrule: 'FREQ=DAILY;BYHOUR=6;BYMINUTE=0',
+  timezone: 'America/Los_Angeles',
+  v2ProjectId: '<uuid>',     // one of v2ProjectId or v2WorkspaceId required
+  // optional:
+  v2WorkspaceId: '<uuid>',   // pin to a specific workspace
+  targetHostId: '<machineId>', // pin to a specific host
+  dtstart: new Date().toISOString(),
+  mcpScope: ['linear', 'notion'],
+});
+```
+
+### `automations.update(body)`
+
+```ts
+await client.automations.update({ id, rrule: 'FREQ=WEEKLY;BYDAY=MO' });
+```
+
+### `automations.delete(id)`
+
+### `automations.run(id)`
+
+Dispatch immediately, off-schedule. Goes through the relay to the pinned host.
+
+```ts
+const run = await client.automations.run(id);
+console.log(run.status, run.hostId);
+```
+
+### `automations.pause(id)` / `automations.resume(id)`
+
+Toggle the `enabled` flag. A paused automation stops running on its schedule until you resume it.
+
+### `automations.logs(id, params?)`
+
+Run history. Owner-only — returns 404 if the automation isn't owned by the calling user.
+
+```ts
+const runs = await client.automations.logs(id, { limit: 20 });
+```
+
+### `automations.getPrompt(id)` / `automations.setPrompt(id, prompt)`
+
+Read or replace the automation's prompt without going through the full update.

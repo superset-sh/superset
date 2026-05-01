@@ -6,8 +6,8 @@ export default command({
 	display: (data) =>
 		table(
 			data as Record<string, unknown>[],
-			["id", "name", "online"],
-			["ID", "NAME", "ONLINE"],
+			["name", "online", "id"],
+			["NAME", "ONLINE", "ID"],
 		),
 	run: async ({ ctx }) => {
 		const organizationId = ctx.config.organizationId;

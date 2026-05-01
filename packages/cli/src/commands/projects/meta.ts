@@ -1,3 +1,3 @@
 export default {
-	description: "List projects on a host",
+	description: "Manage projects",
 };

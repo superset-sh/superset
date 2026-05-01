@@ -68,7 +68,9 @@ describe("PullRequestRuntimeManager branch sync", () => {
 			upstreamRepo: null,
 			upstreamBranch: null,
 		});
-		expect(refreshProjectMock).toHaveBeenCalledWith("project-1", true);
+		expect(refreshProjectMock).toHaveBeenCalledWith("project-1", {
+			bypassCache: true,
+		});
 	});
 
 	test("logs and skips unexpected HEAD lookup failures", async () => {
