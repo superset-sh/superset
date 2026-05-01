@@ -15,7 +15,7 @@ export function useIsV2CloudEnabled() {
 
 	if (IS_DEV) {
 		return {
-			isV2CloudEnabled: true,
+			isV2CloudEnabled: optInV2,
 			isRemoteV2Enabled: true,
 		};
 	}
