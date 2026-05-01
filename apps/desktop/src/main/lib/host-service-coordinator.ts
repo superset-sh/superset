@@ -401,8 +401,16 @@ export class HostServiceCoordinator extends EventEmitter {
 			path.join(manifestDir(organizationId), "host-service.log"),
 			MAX_HOST_LOG_BYTES,
 		);
-		const stdio: childProcess.StdioOptions =
-			logFd >= 0 ? ["ignore", logFd, logFd] : ["ignore", "ignore", "ignore"];
+		// Dev: pipe child stdout/stderr through this process so log lines
+		// land in the developer's `bun dev` terminal. Production: hard-back
+		// stdio with the rotating log file so the detached child survives
+		// parent teardown without losing logs.
+		const isDev = !app.isPackaged;
+		const stdio: childProcess.StdioOptions = isDev
+			? ["ignore", "pipe", "pipe"]
+			: logFd >= 0
+				? ["ignore", logFd, logFd]
+				: ["ignore", "ignore", "ignore"];
 
 		let child: ReturnType<typeof childProcess.spawn>;
 		try {
@@ -421,6 +429,15 @@ export class HostServiceCoordinator extends EventEmitter {
 					// Best-effort — child has its own dup of the fd.
 				}
 			}
+		}
+
+		// In dev, fan child output through to parent stdout/stderr with a
+		// prefix so it's identifiable in `bun dev`. The detached child has
+		// its own session, so closing pipes won't kill it on parent exit.
+		if (isDev && child.stdout && child.stderr) {
+			const tag = `[hs:${organizationId.slice(0, 8)}]`;
+			pipeWithPrefix(child.stdout, process.stdout, tag);
+			pipeWithPrefix(child.stderr, process.stderr, tag);
 		}
 
 		const childPid = child.pid;
@@ -547,6 +564,33 @@ export class HostServiceCoordinator extends EventEmitter {
 			previousStatus,
 		} satisfies HostServiceStatusEvent);
 	}
+}
+
+/**
+ * Forward child stdout/stderr to a parent stream with a per-line prefix.
+ * Plain `chunk => parent.write(`${tag} ${chunk}`)` only prefixes the first
+ * line in a chunk and breaks visual scanning when child output bursts.
+ */
+function pipeWithPrefix(
+	source: NodeJS.ReadableStream,
+	target: NodeJS.WritableStream,
+	tag: string,
+): void {
+	let pending = "";
+	source.on("data", (chunk: Buffer) => {
+		const text = pending + chunk.toString("utf8");
+		const lines = text.split("\n");
+		// Last element is a partial line if input doesn't end with \n;
+		// stash it for the next chunk.
+		pending = lines.pop() ?? "";
+		for (const line of lines) {
+			target.write(`${tag} ${line}\n`);
+		}
+	});
+	source.on("end", () => {
+		if (pending) target.write(`${tag} ${pending}\n`);
+		pending = "";
+	});
 }
 
 let coordinator: HostServiceCoordinator | null = null;

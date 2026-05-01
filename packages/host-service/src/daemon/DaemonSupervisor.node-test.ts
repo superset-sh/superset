@@ -221,6 +221,56 @@ describe("DaemonSupervisor.ensure (real spawn)", () => {
 		assert.ok(after, "expected a respawned instance");
 		assert.notEqual(after.pid, aPid);
 	});
+
+	test("detects when an adopted daemon dies externally", async () => {
+		// Adopted daemons (PIDs from a manifest, not spawned children)
+		// don't fire `child.on("exit")` when killed externally. The
+		// supervisor must poll PID liveness to notice and clear the
+		// stale instance so the next ensure() respawns. Without this,
+		// host-service would keep handing out a dead socket path until
+		// something else forced a restart.
+		const orgId = "org-adopted-died";
+
+		// Supervisor A spawns the daemon. We'll then construct a
+		// supervisor B that adopts via manifest, verify the adopted
+		// PID, kill it externally, and assert B clears its instance.
+		const supA = new DaemonSupervisor({ scriptPath: DAEMON_BUNDLE });
+		const a = await supA.ensure(orgId);
+		const adoptedPid = a.pid;
+
+		const supB = new DaemonSupervisor({ scriptPath: DAEMON_BUNDLE });
+		supervisorsToCleanup.push({ sup: supB, orgId });
+		const b = await supB.ensure(orgId);
+		assert.equal(b.pid, adoptedPid, "B should adopt A's daemon");
+
+		// Externally kill the adopted daemon. supA never had a child
+		// handle so its on-exit handler can't fire; supB only adopted
+		// (no child handle either). The poller must catch this.
+		process.kill(adoptedPid, "SIGKILL");
+
+		// Wait up to 6s for the liveness poller (2s interval) to fire.
+		const deadline = Date.now() + 6000;
+		while (Date.now() < deadline) {
+			const inst = (
+				supB as unknown as { instances: Map<string, { pid: number }> }
+			).instances.get(orgId);
+			if (!inst) break;
+			await new Promise((r) => setTimeout(r, 200));
+		}
+		const after = (
+			supB as unknown as { instances: Map<string, { pid: number }> }
+		).instances.get(orgId);
+		assert.equal(
+			after,
+			undefined,
+			"supervisor should have cleared the dead adopted instance",
+		);
+
+		// Next ensure() should respawn fresh.
+		const fresh = await supB.ensure(orgId);
+		assert.notEqual(fresh.pid, adoptedPid);
+		assert.equal(isAlive(fresh.pid), true);
+	});
 });
 
 function isAlive(pid: number): boolean {

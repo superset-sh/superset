@@ -56,6 +56,8 @@ const VERSION_PROBE_TIMEOUT_MS = 1_500;
  */
 const CRASH_BUDGET = 3;
 const CRASH_WINDOW_MS = 60_000;
+/** How often to poll an adopted daemon's PID for liveness. */
+const ADOPTED_LIVENESS_INTERVAL_MS = 2_000;
 
 /**
  * Per-organization socket path. **Must stay short** — Darwin's `sun_path`
@@ -105,6 +107,16 @@ export class DaemonSupervisor {
 	 * Debounce — re-fire only when either side changes.
 	 */
 	private readonly lastUpdatePendingPair = new Map<string, string>();
+	/**
+	 * Liveness pollers per org. We only attach a `child.on("exit")` handler
+	 * to daemons we *spawned* — adopted daemons (PIDs from a manifest) have
+	 * no child handle, so we'd never notice if they died externally. This
+	 * timer polls `process.kill(pid, 0)` to bridge that gap.
+	 */
+	private readonly adoptedLivenessTimers = new Map<
+		string,
+		ReturnType<typeof setInterval>
+	>();
 
 	constructor(opts: DaemonSupervisorOptions) {
 		this.opts = opts;
@@ -226,6 +238,7 @@ export class DaemonSupervisor {
 	async stop(organizationId: string): Promise<void> {
 		const instance = this.instances.get(organizationId);
 		this.instances.delete(organizationId);
+		this.stopAdoptedLivenessCheck(organizationId);
 		if (!instance) return;
 		this.stopping.add(organizationId);
 		try {
@@ -234,6 +247,42 @@ export class DaemonSupervisor {
 			// Already dead.
 		}
 		removePtyDaemonManifest(organizationId);
+	}
+
+	/**
+	 * Poll an adopted daemon's liveness. Adopted daemons are PIDs we
+	 * inherited via the manifest — we never spawned them as a child, so
+	 * `child.on("exit")` doesn't fire when they die. Without this poller
+	 * the supervisor's `instances` map carries a stale entry forever:
+	 * `getSocketPath` returns a socket nobody's listening on, terminal
+	 * ops fail with "ECONNREFUSED" until something forces a restart.
+	 *
+	 * On detected death: clear the instance + manifest so the next
+	 * `ensure()` call respawns.
+	 */
+	private startAdoptedLivenessCheck(organizationId: string, pid: number): void {
+		this.stopAdoptedLivenessCheck(organizationId);
+		const timer = setInterval(() => {
+			if (isProcessAlive(pid)) return;
+			console.log(
+				`[pty-daemon:${organizationId}] adopted process ${pid} died — clearing instance for next-ensure respawn`,
+			);
+			this.stopAdoptedLivenessCheck(organizationId);
+			const current = this.instances.get(organizationId);
+			if (current?.pid === pid) {
+				this.instances.delete(organizationId);
+				removePtyDaemonManifest(organizationId);
+			}
+		}, ADOPTED_LIVENESS_INTERVAL_MS);
+		this.adoptedLivenessTimers.set(organizationId, timer);
+	}
+
+	private stopAdoptedLivenessCheck(organizationId: string): void {
+		const timer = this.adoptedLivenessTimers.get(organizationId);
+		if (timer) {
+			clearInterval(timer);
+			this.adoptedLivenessTimers.delete(organizationId);
+		}
 	}
 
 	private async start(organizationId: string): Promise<DaemonInstance> {
@@ -252,6 +301,7 @@ export class DaemonSupervisor {
 				updatePending: adopted.updatePending,
 			});
 			this.maybeFireUpdatePending(organizationId, adopted);
+			this.startAdoptedLivenessCheck(organizationId, adopted.pid);
 			return adopted;
 		}
 
@@ -341,9 +391,17 @@ export class DaemonSupervisor {
 			);
 		}
 
-		const logFd = openRotatingLogFd(logPath, MAX_DAEMON_LOG_BYTES);
-		const stdio: childProcess.StdioOptions =
-			logFd >= 0 ? ["ignore", logFd, logFd] : ["ignore", "ignore", "ignore"];
+		// Dev: pipe daemon stdout/stderr through host-service so log lines
+		// flow up to the developer's `bun dev` terminal. Production:
+		// hard-back stdio with the rotating log file so the detached
+		// daemon survives host-service teardown without losing logs.
+		const isDev = process.env.NODE_ENV !== "production";
+		const logFd = isDev ? -1 : openRotatingLogFd(logPath, MAX_DAEMON_LOG_BYTES);
+		const stdio: childProcess.StdioOptions = isDev
+			? ["ignore", "pipe", "pipe"]
+			: logFd >= 0
+				? ["ignore", logFd, logFd]
+				: ["ignore", "ignore", "ignore"];
 
 		const childEnv = {
 			...(process.env as Record<string, string>),
@@ -383,6 +441,15 @@ export class DaemonSupervisor {
 		const childPid = child.pid;
 		if (!childPid) {
 			throw new Error(`[pty-daemon:${organizationId}] failed to spawn`);
+		}
+
+		// Dev: fan daemon stdout/stderr up to host-service stdout (which
+		// itself flows up to `bun dev`). Production stdio is backed by the
+		// rotating log file already (logFd above), so no fan-out needed.
+		if (isDev && child.stdout && child.stderr) {
+			const tag = `[ptyd:${organizationId.slice(0, 8)}]`;
+			pipeWithPrefix(child.stdout, process.stdout, tag);
+			pipeWithPrefix(child.stderr, process.stderr, tag);
 		}
 
 		let earlyExitCode: number | null = null;
@@ -493,6 +560,32 @@ export class DaemonSupervisor {
 		);
 		return instance;
 	}
+}
+
+/**
+ * Forward child stdout/stderr to a parent stream with a per-line prefix.
+ * Plain `chunk => parent.write(`${tag} ${chunk}`)` only prefixes the first
+ * line in a chunk; bursts of multi-line output lose the prefix on
+ * subsequent lines.
+ */
+function pipeWithPrefix(
+	source: NodeJS.ReadableStream,
+	target: NodeJS.WritableStream,
+	tag: string,
+): void {
+	let pending = "";
+	source.on("data", (chunk: Buffer) => {
+		const text = pending + chunk.toString("utf8");
+		const lines = text.split("\n");
+		pending = lines.pop() ?? "";
+		for (const line of lines) {
+			target.write(`${tag} ${line}\n`);
+		}
+	});
+	source.on("end", () => {
+		if (pending) target.write(`${tag} ${pending}\n`);
+		pending = "";
+	});
 }
 
 async function waitForSocket(
