@@ -172,7 +172,10 @@ export const chatRouter = {
 		)
 		.mutation(async ({ ctx, input }) => {
 			const [sessionRecord] = await db
-				.select({ id: chatSessions.id })
+				.select({
+					id: chatSessions.id,
+					organizationId: chatSessions.organizationId,
+				})
 				.from(chatSessions)
 				.where(
 					and(
@@ -189,7 +192,11 @@ export const chatRouter = {
 				});
 			}
 
-			const result = await uploadChatAttachment(input);
+			const result = await uploadChatAttachment({
+				...input,
+				userId: ctx.session.user.id,
+				organizationId: sessionRecord.organizationId,
+			});
 			return result;
 		}),
 

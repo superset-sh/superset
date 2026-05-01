@@ -1,3 +1,5 @@
+import { db } from "@superset/db/client";
+import { chatAttachments } from "@superset/db/schema";
 import { TRPCError } from "@trpc/server";
 import { put } from "@vercel/blob";
 
@@ -42,11 +44,15 @@ function getFileExtension({
 
 export async function uploadChatAttachment({
 	sessionId,
+	userId,
+	organizationId,
 	filename,
 	mediaType,
 	fileData,
 }: {
 	sessionId: string;
+	userId: string;
+	organizationId: string;
 	filename: string;
 	mediaType: string;
 	fileData: string;
@@ -67,16 +73,36 @@ export async function uploadChatAttachment({
 	}
 
 	const ext = getFileExtension({ filename, mediaType });
-	const randomId = crypto.randomUUID().slice(0, 8);
-	const pathname = `chat-attachments/${sessionId}/${randomId}.${ext}`;
+	const pathnamePrefix = `chat-attachments/${sessionId}/${crypto.randomUUID()}.${ext}`;
 
-	const blob = await put(pathname, buffer, {
+	const blob = await put(pathnamePrefix, buffer, {
 		access: "public",
 		contentType: mediaType,
+		addRandomSuffix: true,
 	});
 
+	const [row] = await db
+		.insert(chatAttachments)
+		.values({
+			chatSessionId: sessionId,
+			createdBy: userId,
+			organizationId,
+			blobPathname: blob.pathname,
+			mediaType,
+			filename,
+			sizeBytes: buffer.length,
+		})
+		.returning({ id: chatAttachments.id });
+
+	if (!row) {
+		throw new TRPCError({
+			code: "INTERNAL_SERVER_ERROR",
+			message: "Failed to record chat attachment",
+		});
+	}
+
 	return {
-		url: blob.url,
+		id: row.id,
 		mediaType,
 		filename,
 	};

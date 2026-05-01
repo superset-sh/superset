@@ -688,6 +688,34 @@ export const chatSessions = pgTable(
 export type InsertChatSession = typeof chatSessions.$inferInsert;
 export type SelectChatSession = typeof chatSessions.$inferSelect;
 
+export const chatAttachments = pgTable(
+	"chat_attachments",
+	{
+		id: uuid().primaryKey().defaultRandom(),
+		chatSessionId: uuid("chat_session_id")
+			.notNull()
+			.references(() => chatSessions.id, { onDelete: "cascade" }),
+		createdBy: uuid("created_by")
+			.notNull()
+			.references(() => users.id, { onDelete: "cascade" }),
+		organizationId: uuid("organization_id")
+			.notNull()
+			.references(() => organizations.id, { onDelete: "cascade" }),
+		blobPathname: text("blob_pathname").notNull(),
+		mediaType: text("media_type").notNull(),
+		filename: text().notNull(),
+		sizeBytes: integer("size_bytes").notNull(),
+		createdAt: timestamp("created_at").notNull().defaultNow(),
+	},
+	(table) => [
+		index("chat_attachments_session_idx").on(table.chatSessionId),
+		index("chat_attachments_created_by_idx").on(table.createdBy),
+	],
+);
+
+export type InsertChatAttachment = typeof chatAttachments.$inferInsert;
+export type SelectChatAttachment = typeof chatAttachments.$inferSelect;
+
 export const automationRunStatus = pgEnum(
 	"automation_run_status",
 	automationRunStatusValues,
