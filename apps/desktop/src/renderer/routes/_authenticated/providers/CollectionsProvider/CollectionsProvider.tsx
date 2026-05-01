@@ -9,6 +9,7 @@ import {
 } from "react";
 import { env } from "renderer/env.renderer";
 import { authClient } from "renderer/lib/auth-client";
+import { initWorkspacePaneRegistry } from "renderer/lib/workspace-pane-registry";
 import { MOCK_ORG_ID } from "shared/constants";
 import { getCollections, preloadCollections } from "./collections";
 
@@ -56,10 +57,20 @@ export function CollectionsProvider({ children }: { children: ReactNode }) {
 		preloadActiveOrganizationCollections(activeOrganizationId);
 	}, [activeOrganizationId]);
 
-	const collections = useMemo(
-		() => (activeOrganizationId ? getCollections(activeOrganizationId) : null),
-		[activeOrganizationId],
-	);
+	// Wire (or rewire on org switch) the workspace pane registry against
+	// the active org's v2WorkspaceLocalState collection synchronously, so
+	// callers of getOrCreateWorkspacePaneStore — including the workspace
+	// route's `useState(() => ...)` initializer — see an initialized
+	// registry before they run. initWorkspacePaneRegistry is idempotent
+	// for the same deps, so strict-mode double-invokes are safe.
+	const collections = useMemo(() => {
+		if (!activeOrganizationId) return null;
+		const next = getCollections(activeOrganizationId);
+		initWorkspacePaneRegistry({
+			v2WorkspaceLocalState: next.v2WorkspaceLocalState,
+		});
+		return next;
+	}, [activeOrganizationId]);
 
 	const contextValue = useMemo<CollectionsContextType | null>(
 		() => (collections ? { ...collections, switchOrganization } : null),
