@@ -269,9 +269,14 @@ async function collectResourceMetricsNow(): Promise<ResourceMetricsSnapshot> {
 
 	const allEntries = [...workspaceSessionMap.values()].flat();
 
-	// Single atomic snapshot: tree structure + resource data from one `ps`
-	// call, eliminating the race between pidtree and pidusage.
-	const processSnapshot = await captureProcessSnapshot();
+	// Skip the `ps` shell-out entirely when there's nothing to measure.
+	// On macOS, every `ps` spawn fans out into the host's EDR file-event
+	// pipeline (#3945); avoiding the call when no sessions are live keeps
+	// the idle-app footprint from triggering that loop.
+	const processSnapshot: ProcessSnapshot =
+		allEntries.length === 0
+			? { byPid: new Map(), childrenOf: new Map() }
+			: await captureProcessSnapshot();
 
 	// Collect all subtree PIDs so we can enrich them in bulk.
 	const allSubtreePids: number[] = [];
@@ -281,7 +286,7 @@ async function collectResourceMetricsNow(): Promise<ResourceMetricsSnapshot> {
 
 	// On Windows, `ps` isn't available so the snapshot has cpu: 0.
 	// Enrich the relevant subtree PIDs with CPU data from pidusage.
-	if (os.platform() === "win32") {
+	if (os.platform() === "win32" && allSubtreePids.length > 0) {
 		await enrichSnapshotCpu(processSnapshot, allSubtreePids);
 	}
 
