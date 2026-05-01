@@ -187,13 +187,17 @@ Recurring agent runs scheduled by RRULE. Requires a Pro subscription on the org 
 const automations = await client.automations.list();
 ```
 
-Each row includes `scheduleText` — a human-readable rendering of the rrule.
+Each row is an `AutomationSummary` — the `prompt` body is omitted (it can be
+large markdown). Fetch one with `automations.getPrompt(id)`. Each row includes
+`scheduleText`, a human-readable rendering of the rrule.
 
 ### `automations.retrieve(id)`
 
 ```ts
 const a = await client.automations.retrieve(id);
 ```
+
+Returns an `AutomationSummary` (no `prompt` body — call `getPrompt(id)`).
 
 ### `automations.create(body)`
 

@@ -18,7 +18,7 @@ import {
 	parseRrule,
 } from "@superset/shared/rrule";
 import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, getTableColumns } from "drizzle-orm";
 import { z } from "zod";
 import { env } from "../../env";
 import { protectedProcedure } from "../../trpc";
@@ -129,6 +129,14 @@ async function verifyProjectInOrg(organizationId: string, projectId: string) {
 	}
 }
 
+// Column projection that omits the (potentially large) prompt body. Used
+// by `list` and `get` so summary reads don't ship the markdown blob from
+// the database.
+const automationSummaryColumns = (() => {
+	const { prompt: _prompt, ...rest } = getTableColumns(automations);
+	return rest;
+})();
+
 async function getAutomationForUser(
 	userId: string,
 	organizationId: string,
@@ -155,6 +163,32 @@ async function getAutomationForUser(
 	return automation;
 }
 
+async function getAutomationSummaryForUser(
+	userId: string,
+	organizationId: string,
+	id: string,
+) {
+	const [row] = await db
+		.select(automationSummaryColumns)
+		.from(automations)
+		.where(
+			and(
+				eq(automations.id, id),
+				eq(automations.organizationId, organizationId),
+			),
+		)
+		.limit(1);
+
+	if (!row || row.ownerUserId !== userId) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "Automation not found",
+		});
+	}
+
+	return row;
+}
+
 export const automationRouter = {
 	/**
 	 * List automations scoped to the caller's active organization. The
@@ -164,12 +198,12 @@ export const automationRouter = {
 		const organizationId = await requireActiveOrgMembership(ctx);
 
 		const rows = await db
-			.select()
+			.select(automationSummaryColumns)
 			.from(automations)
 			.where(eq(automations.organizationId, organizationId))
 			.orderBy(desc(automations.createdAt));
 
-		return rows.map(({ prompt: _prompt, ...row }) => ({
+		return rows.map((row) => ({
 			...row,
 			scheduleText: safeDescribeRrule(row),
 		}));
@@ -184,14 +218,13 @@ export const automationRouter = {
 		.input(z.object({ id: z.string().uuid() }))
 		.query(async ({ ctx, input }) => {
 			const organizationId = await requireActiveOrgMembership(ctx);
-			const automation = await getAutomationForUser(
+			const automation = await getAutomationSummaryForUser(
 				ctx.session.user.id,
 				organizationId,
 				input.id,
 			);
-			const { prompt: _prompt, ...rest } = automation;
 			return {
-				...rest,
+				...automation,
 				scheduleText: safeDescribeRrule(automation),
 			};
 		}),

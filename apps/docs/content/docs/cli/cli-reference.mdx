@@ -606,7 +606,7 @@ List automations in the active organization.
 	output="Automation"
 >
 Get an automation's metadata. The prompt body is omitted — use
-[`automations prompt`](#superset-automations-prompt-id) to read it.
+[`automations prompt get`](#superset-automations-prompt-get-id) to read it.
 Use [`automations logs`](#superset-automations-logs-id) for run history.
 </Command>
 
@@ -659,33 +659,50 @@ superset automations create \
 >
 Update an automation's metadata (name, schedule, agent, host). All flags
 optional. Omitting a flag preserves the existing value — `undefined` means
-"no change", not "clear". Use [`automations prompt`](#superset-automations-prompt-id)
-to read or replace the prompt body.
+"no change", not "clear". Use [`automations prompt get`](#superset-automations-prompt-get-id)
+or [`automations prompt set`](#superset-automations-prompt-set-id) to read or
+replace the prompt body.
 </Command>
 
 <Command
-	name="superset automations prompt <id>"
+	name="superset automations prompt get <id>"
+	args={[
+		{ name: "id", required: true, description: "Automation ID." },
+	]}
+	output="Markdown"
+>
+Print an automation's prompt body to stdout. The output is the raw prompt
+with no trailing newline added, so `prompt get` and `prompt set` round-trip
+byte-exactly.
+
+```bash
+# Read to a file
+superset automations prompt get aut_… > prompt.md
+
+# Verify a push landed
+superset automations prompt get aut_… | diff - ./prompt.md
+```
+</Command>
+
+<Command
+	name="superset automations prompt set <id>"
 	args={[
 		{ name: "id", required: true, description: "Automation ID." },
 	]}
 	options={[
-		{ flag: "--from-file <path>", description: "Read the new prompt from a file. Use `-` for stdin." },
+		{ flag: "--from-file <path>", required: true, description: "Read the new prompt from a file. Use `-` for stdin." },
 	]}
-	output="Markdown (read mode) or Automation (write mode)"
+	output="Automation"
 >
-Read or replace an automation's prompt body. Without `--from-file`, prints
-the current prompt to stdout. With `--from-file <path>` or piped stdin,
-replaces the prompt verbatim.
+Replace an automation's prompt body. The new prompt fully overwrites the
+old one.
 
 ```bash
-# Read
-superset automations prompt aut_… > prompt.md
-
 # Write from file
-superset automations prompt aut_… --from-file ./prompt.md
+superset automations prompt set aut_… --from-file ./prompt.md
 
 # Write from stdin
-cat ./prompt.md | superset automations prompt aut_…
+cat ./prompt.md | superset automations prompt set aut_… --from-file -
 ```
 </Command>
 

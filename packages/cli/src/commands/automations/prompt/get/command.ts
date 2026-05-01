@@ -7,12 +7,12 @@ export default command({
 	run: async ({ ctx, args, options }) => {
 		const id = args.id as string;
 		const { prompt } = await ctx.api.automation.getPrompt.query({ id });
+		// `--quiet` is intentionally ignored here: it would route through
+		// `extractIds` and emit only the UUID (which the caller already has
+		// as input), discarding the prompt body. Plain stdout is the right
+		// "machine-friendly" output for this command.
 		const globals = options as Record<string, unknown>;
-		const wantsStructured =
-			globals.json !== undefined ||
-			globals.quiet !== undefined ||
-			isAgentMode();
-		if (wantsStructured) {
+		if (globals.json === true || isAgentMode()) {
 			return { data: { id, prompt } };
 		}
 		// Default: write the raw prompt with no trailing newline so that
