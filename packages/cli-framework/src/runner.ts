@@ -246,7 +246,7 @@ async function execute(
 		commandPath.length === 0 &&
 		(args.includes("--version") || args.includes("-v"))
 	) {
-		console.log(`${name} v${version}`);
+		console.log(version);
 		return;
 	}
 

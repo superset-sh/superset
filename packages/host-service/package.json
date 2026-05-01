@@ -46,6 +46,8 @@
 		"dev": "bun run src/serve.ts",
 		"build:host": "bun run build.ts",
 		"generate": "drizzle-kit generate",
+		"test": "bun test --pass-with-no-tests",
+		"test:integration": "bun test --pass-with-no-tests test/integration",
 		"typecheck": "tsc --noEmit --emitDeclarationOnly false"
 	},
 	"dependencies": {

@@ -8,17 +8,17 @@ export const Route = createFileRoute("/_authenticated/_dashboard/automations")({
 
 function AutomationsLayout() {
 	const navigate = useNavigate();
-	const { hasAccess, gateFeature } = usePaywall();
+	const { hasAccess, gateFeature, isReady } = usePaywall();
 	const allowed = hasAccess(GATED_FEATURES.AUTOMATIONS);
 	const handledRef = useRef(false);
 
 	useEffect(() => {
-		if (allowed || handledRef.current) return;
+		if (!isReady || allowed || handledRef.current) return;
 		handledRef.current = true;
 		gateFeature(GATED_FEATURES.AUTOMATIONS, () => {});
 		navigate({ to: "/v2-workspaces", replace: true });
-	}, [allowed, gateFeature, navigate]);
+	}, [isReady, allowed, gateFeature, navigate]);
 
-	if (!allowed) return null;
+	if (!isReady || !allowed) return null;
 	return <Outlet />;
 }

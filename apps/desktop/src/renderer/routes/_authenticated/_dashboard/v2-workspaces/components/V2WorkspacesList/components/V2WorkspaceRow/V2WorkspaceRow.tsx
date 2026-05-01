@@ -8,6 +8,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { useNavigate } from "@tanstack/react-router";
 import { useCallback } from "react";
+import { CgLaptop } from "react-icons/cg";
 import {
 	LuCircleCheck,
 	LuCircleDashed,
@@ -212,6 +213,17 @@ export function V2WorkspaceRow({
 				</div>
 
 				<span className="flex min-w-0 items-center gap-2">
+					{isMainWorkspace ? (
+						<Tooltip delayDuration={300}>
+							<TooltipTrigger asChild>
+								<CgLaptop
+									className="size-3.5 shrink-0 text-muted-foreground"
+									aria-label="Main workspace"
+								/>
+							</TooltipTrigger>
+							<TooltipContent side="top">Main workspace</TooltipContent>
+						</Tooltip>
+					) : null}
 					<span
 						className="min-w-0 truncate font-medium text-foreground"
 						title={workspace.name}

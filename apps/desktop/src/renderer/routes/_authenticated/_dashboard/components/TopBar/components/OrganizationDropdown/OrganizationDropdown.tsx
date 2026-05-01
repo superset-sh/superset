@@ -71,7 +71,7 @@ export function OrganizationDropdown({
 	const userName = session?.user?.name;
 	const displayName = activeOrganization?.name ?? userName ?? "Organization";
 
-	const currentPlan = useCurrentPlan();
+	const { plan: currentPlan } = useCurrentPlan();
 	const isPaid = currentPlan !== "free";
 	const planLabel = currentPlan.charAt(0).toUpperCase() + currentPlan.slice(1);
 	const planBadge = isPaid ? (

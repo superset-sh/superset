@@ -113,7 +113,7 @@ export function TabItem<TData>({
 					className={cn(
 						"group relative flex h-full w-full items-center border-r border-border transition-colors",
 						isActive
-							? "bg-muted text-foreground"
+							? "bg-border/30 text-foreground"
 							: "text-muted-foreground/70 hover:bg-tertiary/20 hover:text-muted-foreground",
 						isPaneOver && "bg-primary/5",
 						isDragging && "opacity-30",
