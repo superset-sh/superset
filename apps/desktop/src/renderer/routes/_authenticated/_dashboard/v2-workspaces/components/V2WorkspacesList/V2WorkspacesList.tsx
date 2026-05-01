@@ -74,10 +74,9 @@ function compareWorkspaces(
 			cmp = a.createdAt.getTime() - b.createdAt.getTime();
 			break;
 	}
-	if (cmp === 0) {
-		cmp = b.createdAt.getTime() - a.createdAt.getTime();
-	}
-	return direction === "asc" ? cmp : -cmp;
+	const directional = direction === "asc" ? cmp : -cmp;
+	if (directional !== 0) return directional;
+	return b.createdAt.getTime() - a.createdAt.getTime();
 }
 
 function groupByProject(
