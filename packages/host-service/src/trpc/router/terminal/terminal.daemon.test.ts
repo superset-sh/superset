@@ -20,7 +20,7 @@ process.env.HOST_SERVICE_SECRET = "test-secret";
 process.env.HOST_DB_PATH = "/tmp/test-host.db";
 process.env.HOST_MIGRATIONS_FOLDER = "/tmp/test-migrations";
 process.env.AUTH_TOKEN = "test-auth-token";
-process.env.CLOUD_API_URL = "https://cloud.example.com";
+process.env.SUPERSET_API_URL = "https://cloud.example.com";
 
 const { appRouter } = await import("../router.ts");
 

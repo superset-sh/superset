@@ -496,7 +496,7 @@ export class HostServiceCoordinator extends EventEmitter {
 		const row = localDb.select().from(settings).get();
 		const exposeViaRelay = row?.exposeHostServiceViaRelay ?? false;
 
-		const baseEnv: Record<string, string> = {
+		const childEnv = await getProcessEnvWithShellPath({
 			...(process.env as Record<string, string>),
 			ELECTRON_RUN_AS_NODE: "1",
 			ORGANIZATION_ID: organizationId,
@@ -514,10 +514,8 @@ export class HostServiceCoordinator extends EventEmitter {
 			SUPERSET_AGENT_HOOK_PORT: String(sharedEnv.DESKTOP_NOTIFICATIONS_PORT),
 			SUPERSET_AGENT_HOOK_VERSION: HOOK_PROTOCOL_VERSION,
 			AUTH_TOKEN: config.authToken,
-			CLOUD_API_URL: config.cloudApiUrl,
-		};
-
-		const childEnv = await getProcessEnvWithShellPath(baseEnv);
+			SUPERSET_API_URL: config.cloudApiUrl,
+		});
 
 		// `getProcessEnvWithShellPath` merges in the user's interactive shell env,
 		// which in dev has `RELAY_URL` set. Enforce the toggle *after* that merge

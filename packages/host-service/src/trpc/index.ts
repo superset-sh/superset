@@ -2,6 +2,8 @@ import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 import type { HostServiceContext } from "../types";
 import {
+	type DeleteInProgressCause,
+	isDeleteInProgressCause,
 	isProjectNotSetupCause,
 	isTeardownFailureCause,
 	type ProjectNotSetupCause,
@@ -46,12 +48,17 @@ const t = initTRPC
 							projectId: error.cause.projectId,
 						}
 					: undefined;
+			const deleteInProgress: DeleteInProgressCause | undefined =
+				isDeleteInProgressCause(error.cause)
+					? { kind: "DELETE_IN_PROGRESS" }
+					: undefined;
 			return {
 				...shape,
 				data: {
 					...shape.data,
 					teardownFailure,
 					projectNotSetup,
+					deleteInProgress,
 				},
 			};
 		},

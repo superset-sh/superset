@@ -12,7 +12,10 @@ const AGENT_ENV_VARS = [
 ];
 
 export function isAgentMode(): boolean {
-	return AGENT_ENV_VARS.some((v) => process.env[v] !== undefined);
+	return AGENT_ENV_VARS.some((v) => {
+		const value = process.env[v];
+		return value !== undefined && value !== "";
+	});
 }
 
 export function camelToKebab(str: string): string {
@@ -72,12 +75,17 @@ export function parseArgv(
 			continue;
 		}
 
-		// Help/version shortcuts
-		if (arg === "--help" || arg === "-h") {
+		// Help/version shortcuts. If the command declares its own --version
+		// or --help option (e.g. `update --version 0.1.2`), defer to normal
+		// option parsing instead of short-circuiting.
+		if ((arg === "--help" || arg === "-h") && !optionsByFlag.has("--help")) {
 			options._help = true;
 			continue;
 		}
-		if (arg === "--version" || arg === "-v") {
+		if (
+			(arg === "--version" || arg === "-v") &&
+			!optionsByFlag.has("--version")
+		) {
 			options._version = true;
 			continue;
 		}

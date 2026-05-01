@@ -85,6 +85,31 @@ async function getProjectAccess(
 }
 
 export const v2ProjectRouter = {
+	list: jwtProcedure
+		.input(
+			z.object({
+				organizationId: z.string().uuid(),
+			}),
+		)
+		.query(async ({ ctx, input }) => {
+			if (!ctx.organizationIds.includes(input.organizationId)) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "Not a member of this organization",
+				});
+			}
+			return dbWs
+				.select({
+					id: v2Projects.id,
+					name: v2Projects.name,
+					slug: v2Projects.slug,
+					repoCloneUrl: v2Projects.repoCloneUrl,
+					githubRepositoryId: v2Projects.githubRepositoryId,
+				})
+				.from(v2Projects)
+				.where(eq(v2Projects.organizationId, input.organizationId));
+		}),
+
 	get: jwtProcedure
 		.input(
 			z.object({

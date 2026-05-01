@@ -21,12 +21,14 @@ interface UseChangesTabParams {
 	workspaceId: string;
 	gitStatus: ReturnType<typeof useGitStatus>;
 	onSelectFile?: (path: string, openInNewTab?: boolean) => void;
+	onOpenFile?: (absolutePath: string, openInNewTab?: boolean) => void;
 }
 
 export function useChangesTab({
 	workspaceId,
 	gitStatus: status,
 	onSelectFile,
+	onOpenFile,
 }: UseChangesTabParams): SidebarTabDefinition {
 	const collections = useCollections();
 	const utils = workspaceTrpc.useUtils();
@@ -178,6 +180,7 @@ export function useChangesTab({
 			totalDeletions={totalDeletions}
 			worktreePath={worktreePath}
 			onSelectFile={onSelectFile}
+			onOpenFile={onOpenFile}
 			onOpenInEditor={handleOpenInEditor}
 			onFilterChange={setFilter}
 			onBaseBranchChange={setBaseBranch}

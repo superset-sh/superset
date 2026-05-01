@@ -37,12 +37,10 @@ function resolveDefaultAgentConfig(agentId: string): ResolvedAgentConfig {
 }
 
 export default command({
-	description: "Update an automation",
+	description: "Update an automation's metadata (name, schedule, agent, host)",
 	args: [positional("id").required().desc("Automation id")],
 	options: {
 		name: string().desc("New name"),
-		prompt: string().desc("New prompt"),
-		promptFile: string().desc("Path to a file with the new prompt"),
 		rrule: string().desc("New RRule body (RFC 5545)"),
 		timezone: string().desc("New IANA timezone"),
 		dtstart: string().desc("New ISO 8601 start anchor"),
@@ -52,15 +50,11 @@ export default command({
 		agentConfigFile: string().desc(
 			"Path to a JSON file with a full ResolvedAgentConfig (overrides --agent)",
 		),
-		device: string().desc("New target host id"),
+		host: string().desc("New target host id"),
 		enabled: boolean().desc("Enable or pause the automation"),
 	},
 	run: async ({ ctx, args, options }) => {
 		const id = args.id as string;
-		const promptFromFile = options.promptFile
-			? readFileSync(options.promptFile, "utf-8").trim()
-			: undefined;
-		const prompt = options.prompt ?? promptFromFile;
 
 		if (options.enabled !== undefined) {
 			await ctx.api.automation.setEnabled.mutate({
@@ -78,12 +72,11 @@ export default command({
 		const result = await ctx.api.automation.update.mutate({
 			id,
 			name: options.name,
-			prompt,
 			rrule: options.rrule,
 			timezone: options.timezone,
 			dtstart: options.dtstart ? new Date(options.dtstart) : undefined,
 			agentConfig,
-			targetHostId: options.device,
+			...(options.host !== undefined ? { targetHostId: options.host } : {}),
 		});
 
 		return {

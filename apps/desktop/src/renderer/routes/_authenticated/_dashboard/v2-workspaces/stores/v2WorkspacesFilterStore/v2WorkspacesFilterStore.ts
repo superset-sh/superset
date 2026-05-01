@@ -20,7 +20,7 @@ interface V2WorkspacesFilterState {
 export const useV2WorkspacesFilterStore = create<V2WorkspacesFilterState>()(
 	(set) => ({
 		searchQuery: "",
-		deviceFilter: DEVICE_FILTER_THIS_DEVICE,
+		deviceFilter: DEVICE_FILTER_ALL,
 		projectFilter: PROJECT_FILTER_ALL,
 		setSearchQuery: (searchQuery) => set({ searchQuery }),
 		setDeviceFilter: (deviceFilter) => set({ deviceFilter }),
@@ -28,7 +28,7 @@ export const useV2WorkspacesFilterStore = create<V2WorkspacesFilterState>()(
 		reset: () =>
 			set({
 				searchQuery: "",
-				deviceFilter: DEVICE_FILTER_THIS_DEVICE,
+				deviceFilter: DEVICE_FILTER_ALL,
 				projectFilter: PROJECT_FILTER_ALL,
 			}),
 	}),

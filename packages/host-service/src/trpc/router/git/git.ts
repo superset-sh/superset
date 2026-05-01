@@ -16,6 +16,7 @@ import type {
 	PullRequestReviewThread,
 	PullRequestState,
 } from "./types";
+import { gitConfigWrite } from "./utils/config-write";
 import {
 	buildBranch,
 	countUntrackedFileLines,
@@ -313,15 +314,17 @@ export const gitRouter = router({
 				});
 			}
 			if (input.baseBranch) {
-				await git.raw([
+				await gitConfigWrite(git, [
 					"config",
 					`branch.${currentBranch}.base`,
 					input.baseBranch,
 				]);
 			} else {
-				await git
-					.raw(["config", "--unset", `branch.${currentBranch}.base`])
-					.catch(() => {});
+				await gitConfigWrite(git, [
+					"config",
+					"--unset",
+					`branch.${currentBranch}.base`,
+				]).catch(() => {});
 			}
 			return { baseBranch: input.baseBranch };
 		}),
