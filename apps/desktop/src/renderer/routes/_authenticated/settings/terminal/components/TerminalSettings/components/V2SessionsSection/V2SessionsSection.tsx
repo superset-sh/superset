@@ -66,6 +66,12 @@ export function V2SessionsSection() {
 function V2SessionsSectionInner() {
 	const [confirmRestartOpen, setConfirmRestartOpen] = useState(false);
 	const [showSessionList, setShowSessionList] = useState(false);
+	// Phase 2: when handoff fails, the failure dialog asks whether to
+	// fall back to force-restart (which closes sessions). The reason
+	// string from supervisor.update goes here so the user knows why.
+	const [updateFailureReason, setUpdateFailureReason] = useState<
+		string | null
+	>(null);
 
 	const updateStatusQuery =
 		workspaceTrpc.terminal.daemon.getUpdateStatus.useQuery(undefined, {
@@ -109,6 +115,31 @@ function V2SessionsSectionInner() {
 		},
 		onError: (error) => {
 			toast.error("Failed to restart daemon", { description: error.message });
+		},
+	});
+
+	const updateDaemon = workspaceTrpc.terminal.daemon.update.useMutation({
+		onSuccess: (result) => {
+			if (result.ok) {
+				const versions = updateStatusQuery.data;
+				toast.success("Daemon updated", {
+					description:
+						versions && versions.running !== versions.expected
+							? `Now running ${versions.expected} (was ${versions.running}). All sessions preserved.`
+							: "All sessions preserved across the upgrade.",
+				});
+				void updateStatusQuery.refetch();
+				void sessionsQuery.refetch();
+			} else {
+				// Soft failure (snapshot write failed, successor never acked,
+				// etc.). Sessions are still alive on the predecessor; the user
+				// can retry or fall through to force-restart.
+				setUpdateFailureReason(result.reason);
+			}
+		},
+		onError: (error) => {
+			// Transport-level failure (the wire request itself threw).
+			setUpdateFailureReason(error.message);
 		},
 	});
 
@@ -185,13 +216,23 @@ function V2SessionsSectionInner() {
 				</div>
 
 				<div className="flex flex-wrap gap-2">
+					{updatePending ? (
+						<Button
+							variant="default"
+							size="sm"
+							disabled={updateDaemon.isPending || restartDaemon.isPending}
+							onClick={() => updateDaemon.mutate()}
+						>
+							{updateDaemon.isPending ? "Updating…" : "Update daemon"}
+						</Button>
+					) : null}
 					<Button
-						variant={updatePending ? "default" : "outline"}
+						variant={updatePending ? "outline" : "outline"}
 						size="sm"
-						disabled={restartDaemon.isPending}
+						disabled={updateDaemon.isPending || restartDaemon.isPending}
 						onClick={() => setConfirmRestartOpen(true)}
 					>
-						{updatePending ? "Restart and update" : "Restart daemon"}
+						{updatePending ? "Force restart" : "Restart daemon"}
 					</Button>
 					<Button
 						variant="ghost"
@@ -246,6 +287,59 @@ function V2SessionsSectionInner() {
 			</div>
 
 			<AlertDialog
+				open={updateFailureReason !== null}
+				onOpenChange={(open) => {
+					if (!open) setUpdateFailureReason(null);
+				}}
+			>
+				<AlertDialogContent className="max-w-[520px] gap-0 p-0">
+					<AlertDialogHeader className="px-4 pt-4 pb-2">
+						<AlertDialogTitle className="font-medium">
+							Update couldn't preserve sessions
+						</AlertDialogTitle>
+						<AlertDialogDescription asChild>
+							<div className="space-y-1.5 text-muted-foreground">
+								<span className="block">
+									The daemon couldn't hand off your live sessions to the new
+									binary. Reason:
+								</span>
+								<span className="block rounded bg-muted/40 px-2 py-1.5 font-mono text-[11px] text-foreground">
+									{updateFailureReason ?? ""}
+								</span>
+								<span className="block">
+									Force update will close every terminal session
+									{aliveCount && aliveCount > 0
+										? ` (${aliveCount} running)`
+										: ""}{" "}
+									and start a fresh daemon.
+								</span>
+							</div>
+						</AlertDialogDescription>
+					</AlertDialogHeader>
+					<AlertDialogFooter className="flex-row justify-end gap-2 px-4 pb-4 pt-2">
+						<Button
+							variant="ghost"
+							size="sm"
+							onClick={() => setUpdateFailureReason(null)}
+						>
+							Cancel
+						</Button>
+						<Button
+							variant="default"
+							size="sm"
+							disabled={restartDaemon.isPending}
+							onClick={() => {
+								setUpdateFailureReason(null);
+								restartDaemon.mutate();
+							}}
+						>
+							Force update
+						</Button>
+					</AlertDialogFooter>
+				</AlertDialogContent>
+			</AlertDialog>
+
+			<AlertDialog
 				open={confirmRestartOpen}
 				onOpenChange={setConfirmRestartOpen}
 			>
@@ -253,7 +347,7 @@ function V2SessionsSectionInner() {
 					<AlertDialogHeader className="px-4 pt-4 pb-2">
 						<AlertDialogTitle className="font-medium">
 							{updatePending
-								? "Restart and apply update?"
+								? "Force restart and apply update?"
 								: "Restart terminal daemon?"}
 						</AlertDialogTitle>
 						<AlertDialogDescription asChild>
@@ -267,10 +361,12 @@ function V2SessionsSectionInner() {
 								</span>
 								{updatePending && versions ? (
 									<span className="block">
-										Restarting will load{" "}
+										Force restart will load{" "}
 										<span className="font-mono">{versions.expected}</span>{" "}
 										(currently running{" "}
 										<span className="font-mono">{versions.running}</span>).
+										To upgrade <em>without</em> closing sessions, click{" "}
+										<span className="font-medium">Update daemon</span> instead.
 									</span>
 								) : null}
 							</div>
@@ -293,9 +389,7 @@ function V2SessionsSectionInner() {
 								restartDaemon.mutate();
 							}}
 						>
-							{updatePending
-								? "Restart and update"
-								: "Restart and close sessions"}
+							Restart and close sessions
 						</Button>
 					</AlertDialogFooter>
 				</AlertDialogContent>
