@@ -1,0 +1,190 @@
+---
+title: Advanced Usage
+description: Real-world recipes that combine the SDK's primitives — webhooks, triage scripts, and on-demand agents.
+---
+
+<Callout type="warn">
+The SDK is in early alpha — it is not meant for production use and may be removed in the future. Stay on the latest version (`@superset_sh/sdk@latest`) while we iterate.
+</Callout>
+
+The SDK's individual methods are simple. The interesting part is what you compose them into. These are end-to-end recipes you can copy as starting points.
+
+## Sentry webhook → agent on the bug
+
+<Callout type="info">
+**TODO** — the `agents: [{ prompt }]` shorthand below is the API we're aiming for. Today the SDK sends a minimal `agentConfig: { id: 'claude', kind: 'terminal' }`; the host service still needs full launch info (`command`, `promptCommand`, …) to actually start the agent. We'll bake in defaults for built-in presets in a follow-up. Until then you can pass a full `agentConfig` per agent — crib one from `(await client.automations.list())[0].agentConfig`.
+</Callout>
+
+When Sentry fires an alert, file a task and spawn an agent to investigate — all in two SDK calls. (In production, verify the Sentry signature header before trusting any payload — that part is omitted here for clarity.)
+
+```ts title="sentry-webhook.ts"
+import { Hono } from 'hono';
+import Superset from '@superset_sh/sdk';
+
+const app = new Hono();
+const client = new Superset();
+// reads SUPERSET_API_KEY + SUPERSET_ORGANIZATION_ID from env
+
+const TARGET_HOST_ID = process.env.SUPERSET_TARGET_HOST_ID!;  // see hosts.list()
+const PROJECT_ID = process.env.SUPERSET_PROJECT_ID!;          // see projects.list()
+
+app.post('/webhooks/sentry', async (c) => {
+  const event = await c.req.json();
+  const { title, web_url: sentryUrl, culprit, short_id } = event.data.issue;
+  const slug = `sentry-${short_id.toLowerCase()}`;
+
+  // 1. File a task so the bug shows up in the dashboard
+  const task = await client.tasks.create({
+    title: `[Sentry] ${title}`,
+    description: `Triggered by ${culprit}\n\nSentry: ${sentryUrl}`,
+    priority: 'high',
+    labels: ['sentry', 'bug'],
+  });
+
+  // 2. Spin up a worktree on a developer's machine and dispatch an agent
+  //    inside it. The SDK creates the worktree, then runs the agent with
+  //    your prompt — you don't manage the dispatch loop.
+  const workspace = await client.workspaces.create({
+    hostId: TARGET_HOST_ID,
+    projectId: PROJECT_ID,
+    name: slug,
+    branch: slug,
+    agents: [
+      {
+        agent: 'claude',
+        prompt: [
+          `A Sentry alert just fired:`,
+          `  Title: ${title}`,
+          `  Culprit: ${culprit}`,
+          `  URL: ${sentryUrl}`,
+          ``,
+          `Reproduce the failure, fix it, push a branch, and update task`,
+          `${task.id} with what you found.`,
+        ].join('\n'),
+      },
+    ],
+  });
+
+  return c.json({
+    ok: true,
+    taskId: task.id,
+    workspaceId: workspace.id,
+    runId: workspace.agentRuns[0]?.runId,
+  });
+});
+
+export default app;
+```
+
+What just happened, end-to-end:
+
+- The task lives in the cloud and shows up in the dashboard for everyone.
+- The workspace is a real `git worktree` on the target machine, ready for a human to take over if the agent gets stuck.
+- The agent runs inside the new workspace, with the prompt above and access to the codebase + whatever MCP servers the host has configured.
+
+You can spawn multiple agents in parallel by adding more entries to `agents`:
+
+```ts
+agents: [
+  { agent: 'claude', prompt: 'Reproduce the bug and write a failing test.' },
+  { agent: 'claude', prompt: 'Investigate related Sentry issues from the last 7 days.' },
+],
+```
+
+## Burn down the P0 backlog overnight
+
+Pick up every urgent task in the queue and spawn an agent on each one in parallel. Comes back the next morning with a branch and a comment per task.
+
+```ts title="burn-p0s.ts"
+import Superset from '@superset_sh/sdk';
+
+const client = new Superset();
+const HOST_ID = process.env.SUPERSET_HOST_ID!;
+const PROJECT_ID = process.env.SUPERSET_PROJECT_ID!; // see projects.list()
+
+const p0s = await client.tasks.list({ priority: 'urgent', limit: 50 });
+
+const dispatched = await Promise.all(
+  p0s.map((task) =>
+    client.workspaces.create({
+      hostId: HOST_ID,
+      projectId: PROJECT_ID,
+      name: task.slug,
+      branch: task.slug,
+      agents: [
+        {
+          agent: 'claude',
+          prompt: [
+            `Pick up task ${task.slug}: "${task.title}".`,
+            ``,
+            task.description ?? '(no description — read recent changes for context)',
+            ``,
+            `Investigate, make the fix, run the relevant tests, push the branch, and`,
+            `update task ${task.id} with a one-paragraph summary of what changed and why.`,
+            `If you can't make confident progress in ~30 minutes, leave a comment with`,
+            `where you got stuck and stop.`,
+          ].join('\n'),
+        },
+      ],
+    }),
+  ),
+);
+
+console.log(`dispatched ${dispatched.length} agents across the P0 backlog`);
+```
+
+Run it from a daily cron on a beefy host and you wake up to a branch per bug. Ones the agent could fix have a PR-ready branch; ones it couldn't have a comment explaining why so a human picks up where the agent stopped.
+
+## Sweep a refactor across every repo
+
+Internal API rename, dependency bump, lint rule rollout — anything that has to land identically in dozens of repos is a one-loop, fan-out problem:
+
+```ts title="sweep-rename-getUser.ts"
+import Superset from '@superset_sh/sdk';
+
+const client = new Superset();
+const HOST_ID = process.env.SUPERSET_HOST_ID!;
+
+const projects = await client.projects.list();
+
+const wave = await Promise.all(
+  projects.map((p) =>
+    client.workspaces.create({
+      hostId: HOST_ID,
+      projectId: p.id,
+      name: `rename-getUser-${p.slug}`,
+      branch: 'refactor/rename-getUser',
+      agents: [
+        {
+          agent: 'claude',
+          prompt: [
+            `Rename every caller of \`getUser()\` to \`fetchUser()\` across this repo.`,
+            ``,
+            `1. Find call sites with grep.`,
+            `2. Update each one and re-run the test suite.`,
+            `3. If green, push the branch and open a draft PR titled`,
+            `   "refactor: rename getUser → fetchUser".`,
+            `4. If a repo doesn't actually use getUser, exit cleanly with a note.`,
+          ].join('\n'),
+        },
+      ],
+    }),
+  ),
+);
+
+const totalAgents = wave.reduce((n, ws) => n + ws.agentRuns.length, 0);
+console.log(`fanned out ${totalAgents} agents across ${projects.length} repos`);
+```
+
+Same loop works for "bump TypeScript to 5.7", "swap Sentry SDK for the new one", "add a `lint:strict` script to every package.json". Anything you'd otherwise farm out to a long Slack thread.
+
+## On-demand agent dispatch from your tools
+
+If you've already created a recurring automation in the dashboard, the SDK can fire it off-schedule from anywhere — a Slack slash command, a CI job, an internal admin panel:
+
+```ts
+const run = await client.automations.run('<automation-id>');
+console.log(`dispatched run ${run.id} to host ${run.hostId}`);
+```
+
+The automation's pinned host has to be online and tunneling. The SDK will surface a `503 Host not connected` error if it isn't, so you can retry later or page someone.
