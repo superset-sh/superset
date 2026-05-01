@@ -129,14 +129,6 @@ async function verifyProjectInOrg(organizationId: string, projectId: string) {
 	}
 }
 
-// Column projection that omits the (potentially large) prompt body. Used
-// by `list` and `get` so summary reads don't ship the markdown blob from
-// the database.
-const automationSummaryColumns = (() => {
-	const { prompt: _prompt, ...rest } = getTableColumns(automations);
-	return rest;
-})();
-
 async function getAutomationForUser(
 	userId: string,
 	organizationId: string,
@@ -163,32 +155,6 @@ async function getAutomationForUser(
 	return automation;
 }
 
-async function getAutomationSummaryForUser(
-	userId: string,
-	organizationId: string,
-	id: string,
-) {
-	const [row] = await db
-		.select(automationSummaryColumns)
-		.from(automations)
-		.where(
-			and(
-				eq(automations.id, id),
-				eq(automations.organizationId, organizationId),
-			),
-		)
-		.limit(1);
-
-	if (!row || row.ownerUserId !== userId) {
-		throw new TRPCError({
-			code: "NOT_FOUND",
-			message: "Automation not found",
-		});
-	}
-
-	return row;
-}
-
 export const automationRouter = {
 	/**
 	 * List automations scoped to the caller's active organization. The
@@ -197,8 +163,9 @@ export const automationRouter = {
 	list: protectedProcedure.query(async ({ ctx }) => {
 		const organizationId = await requireActiveOrgMembership(ctx);
 
+		const { prompt: _prompt, ...summaryCols } = getTableColumns(automations);
 		const rows = await db
-			.select(automationSummaryColumns)
+			.select(summaryCols)
 			.from(automations)
 			.where(eq(automations.organizationId, organizationId))
 			.orderBy(desc(automations.createdAt));
@@ -218,15 +185,27 @@ export const automationRouter = {
 		.input(z.object({ id: z.string().uuid() }))
 		.query(async ({ ctx, input }) => {
 			const organizationId = await requireActiveOrgMembership(ctx);
-			const automation = await getAutomationSummaryForUser(
-				ctx.session.user.id,
-				organizationId,
-				input.id,
-			);
-			return {
-				...automation,
-				scheduleText: safeDescribeRrule(automation),
-			};
+
+			const { prompt: _prompt, ...summaryCols } = getTableColumns(automations);
+			const [row] = await db
+				.select(summaryCols)
+				.from(automations)
+				.where(
+					and(
+						eq(automations.id, input.id),
+						eq(automations.organizationId, organizationId),
+					),
+				)
+				.limit(1);
+
+			if (!row || row.ownerUserId !== ctx.session.user.id) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Automation not found",
+				});
+			}
+
+			return { ...row, scheduleText: safeDescribeRrule(row) };
 		}),
 
 	create: protectedProcedure
