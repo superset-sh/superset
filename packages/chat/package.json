@@ -37,7 +37,7 @@
 		"@ai-sdk/anthropic": "^3.0.43",
 		"@ai-sdk/openai": "3.0.36",
 		"@mastra/core": "1.26.0-alpha.3",
-		"@mastra/mcp": "1.5.1-alpha.1",
+		"@mastra/mcp": "1.6.0",
 		"@superset/trpc": "workspace:*",
 		"@superset/workspace-fs": "workspace:*",
 		"@trpc/client": "^11.7.1",
