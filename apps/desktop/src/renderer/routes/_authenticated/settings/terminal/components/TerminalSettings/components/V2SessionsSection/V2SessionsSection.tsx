@@ -216,23 +216,25 @@ function V2SessionsSectionInner() {
 				</div>
 
 				<div className="flex flex-wrap gap-2">
-					{updatePending ? (
-						<Button
-							variant="default"
-							size="sm"
-							disabled={updateDaemon.isPending || restartDaemon.isPending}
-							onClick={() => updateDaemon.mutate()}
-						>
-							{updateDaemon.isPending ? "Updating…" : "Update daemon"}
-						</Button>
-					) : null}
 					<Button
-						variant={updatePending ? "outline" : "outline"}
+						variant="default"
+						size="sm"
+						disabled={
+							sessions === null ||
+							updateDaemon.isPending ||
+							restartDaemon.isPending
+						}
+						onClick={() => updateDaemon.mutate()}
+					>
+						{updateDaemon.isPending ? "Updating…" : "Update daemon"}
+					</Button>
+					<Button
+						variant="outline"
 						size="sm"
 						disabled={updateDaemon.isPending || restartDaemon.isPending}
 						onClick={() => setConfirmRestartOpen(true)}
 					>
-						{updatePending ? "Force restart" : "Restart daemon"}
+						Force restart
 					</Button>
 					<Button
 						variant="ghost"
