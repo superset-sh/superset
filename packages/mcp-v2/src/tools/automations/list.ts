@@ -6,11 +6,10 @@ export function register(server: McpServer): void {
 	defineTool(server, {
 		name: "automations_list",
 		description:
-			"List automations (scheduled agent runs) the calling user owns in the active organization. Returns a summary shape — call automations_get to fetch the full prompt and agentConfig for one automation.",
+			"List automations (scheduled agent runs) the calling user owns in the active organization. Returns a summary shape — call automations_get_prompt to fetch the prompt for one automation, or automations_get for the rest of its config.",
 		handler: async (_input, ctx) => {
 			const caller = createMcpCaller(ctx);
-			const rows = await caller.automation.list();
-			return rows.map(({ prompt: _prompt, ...rest }) => rest);
+			return await caller.automation.list();
 		},
 	});
 }

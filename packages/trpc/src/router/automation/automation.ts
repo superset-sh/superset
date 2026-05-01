@@ -156,7 +156,10 @@ async function getAutomationForUser(
 }
 
 export const automationRouter = {
-	/** List automations scoped to the caller's active organization. */
+	/**
+	 * List automations scoped to the caller's active organization. The
+	 * `prompt` body is omitted — call `getPrompt` to fetch it for one row.
+	 */
 	list: protectedProcedure.query(async ({ ctx }) => {
 		const organizationId = await requireActiveOrgMembership(ctx);
 
@@ -166,13 +169,17 @@ export const automationRouter = {
 			.where(eq(automations.organizationId, organizationId))
 			.orderBy(desc(automations.createdAt));
 
-		return rows.map((row) => ({
+		return rows.map(({ prompt: _prompt, ...row }) => ({
 			...row,
 			scheduleText: safeDescribeRrule(row),
 		}));
 	}),
 
-	/** Get one automation. Use listRuns for run history. */
+	/**
+	 * Get one automation's metadata. The `prompt` body is omitted (it can be
+	 * large markdown) — call `getPrompt` to fetch it. Use `listRuns` for
+	 * run history.
+	 */
 	get: protectedProcedure
 		.input(z.object({ id: z.string().uuid() }))
 		.query(async ({ ctx, input }) => {
@@ -182,8 +189,9 @@ export const automationRouter = {
 				organizationId,
 				input.id,
 			);
+			const { prompt: _prompt, ...rest } = automation;
 			return {
-				...automation,
+				...rest,
 				scheduleText: safeDescribeRrule(automation),
 			};
 		}),
