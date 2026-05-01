@@ -157,6 +157,25 @@ class AdoptedPty implements Pty {
 			if (this.exitFired) return;
 			this.exitFired = true;
 			if (this.livenessTimer) clearInterval(this.livenessTimer);
+			// Close the read/write streams so the inherited fd doesn't keep
+			// the event loop alive after the shell exits. We use
+			// `autoClose: false` (so handoff-time refcounting works), which
+			// means we have to drive the close ourselves.
+			try {
+				this.reader.destroy();
+			} catch {
+				// already closed
+			}
+			try {
+				this.writer.destroy();
+			} catch {
+				// already closed
+			}
+			try {
+				fs.closeSync(this.fd);
+			} catch {
+				// already closed
+			}
 			for (const cb of this.exitCallbacks) cb(info);
 		};
 		this.reader.on("end", () => onExit({ code: null, signal: null }));

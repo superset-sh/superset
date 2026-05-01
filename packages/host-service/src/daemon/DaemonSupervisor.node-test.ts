@@ -273,6 +273,93 @@ describe("DaemonSupervisor.ensure (real spawn)", () => {
 	});
 });
 
+describe("DaemonSupervisor.update (Phase 2 fd-handoff)", () => {
+	test("update() preserves live sessions across a daemon binary swap", async () => {
+		// End-to-end: spawn fresh daemon, open a session via DaemonClient,
+		// call update(), verify the successor has the session with the
+		// original shell pid still alive. This is THE Phase 2 success
+		// criterion at the supervisor layer.
+		const orgId = "org-update";
+		const sup = new DaemonSupervisor({ scriptPath: DAEMON_BUNDLE });
+		supervisorsToCleanup.push({ sup, orgId });
+		const a = await sup.ensure(orgId);
+		const predecessorPid = a.pid;
+
+		// Open a session that will sleep long enough to outlive the handoff.
+		const { DaemonClient } = await import(
+			"../terminal/DaemonClient/index.ts"
+		);
+		const client = new DaemonClient({ socketPath: a.socketPath });
+		await client.connect();
+		const opened = await client.open("upd-0", {
+			shell: "/bin/sh",
+			argv: ["-c", "echo before; sleep 30"],
+			cols: 80,
+			rows: 24,
+		});
+		const shellPid = opened.pid;
+		assert.ok(shellPid > 0, "expected a positive shell pid");
+		await client.dispose();
+
+		const result = await sup.update(orgId);
+		assert.equal(result.ok, true, JSON.stringify(result));
+		if (!result.ok) return;
+		assert.notEqual(
+			result.successorPid,
+			predecessorPid,
+			"successor pid should differ from predecessor",
+		);
+
+		// Predecessor exits shortly after the handoff completes.
+		await new Promise((r) => setTimeout(r, 300));
+		assert.equal(
+			isAlive(predecessorPid),
+			false,
+			`predecessor pid ${predecessorPid} should be dead after handoff`,
+		);
+		assert.equal(
+			isAlive(result.successorPid),
+			true,
+			`successor pid ${result.successorPid} should be alive`,
+		);
+
+		// Reconnect and confirm the session survived with its original pid.
+		const successorInst = (
+			sup as unknown as { instances: Map<string, { pid: number; socketPath: string }> }
+		).instances.get(orgId);
+		assert.ok(successorInst, "supervisor should have a successor instance");
+		assert.equal(successorInst.pid, result.successorPid);
+
+		const client2 = new DaemonClient({ socketPath: successorInst.socketPath });
+		await client2.connect();
+		const sessions = await client2.list();
+		const survived = sessions.find((s) => s.id === "upd-0");
+		assert.ok(survived, `expected upd-0 in survivor list: ${JSON.stringify(sessions)}`);
+		assert.equal(survived.alive, true, "session should still be alive");
+		assert.equal(
+			survived.pid,
+			shellPid,
+			`shell pid should match across handoff (was ${shellPid}, got ${survived.pid})`,
+		);
+
+		// Cleanup: the surviving session.
+		await client2.close("upd-0", "SIGKILL").catch(() => {});
+		await client2.dispose();
+	});
+
+	test("update() returns ok:false and leaves predecessor alive when there's no daemon", async () => {
+		const orgId = "org-update-noop";
+		const sup = new DaemonSupervisor({ scriptPath: DAEMON_BUNDLE });
+		supervisorsToCleanup.push({ sup, orgId });
+		// Don't ensure() — there's no instance.
+		const result = await sup.update(orgId);
+		assert.equal(result.ok, false);
+		if (!result.ok) {
+			assert.match(result.reason, /no daemon running/);
+		}
+	});
+});
+
 function isAlive(pid: number): boolean {
 	try {
 		process.kill(pid, 0);
