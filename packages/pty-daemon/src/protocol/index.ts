@@ -18,12 +18,14 @@ export type {
 	OpenMessage,
 	OpenOkMessage,
 	OutputMessage,
+	PrepareUpgradeMessage,
 	ResizeMessage,
 	ServerMessage,
 	SessionInfo,
 	SessionMeta,
 	SubscribeMessage,
 	UnsubscribeMessage,
+	UpgradePreparedMessage,
 } from "./messages.ts";
 export {
 	CURRENT_PROTOCOL_VERSION,
