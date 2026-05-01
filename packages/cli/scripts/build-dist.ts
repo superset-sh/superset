@@ -82,6 +82,7 @@ const TARGET_NATIVE_PACKAGES: Record<Target, string[]> = {
 	"linux-arm64": [
 		"@libsql/linux-arm64-gnu",
 		"@parcel/watcher-linux-arm64-glibc",
+		"@anush008/tokenizers-linux-arm64-gnu",
 	],
 };
 
