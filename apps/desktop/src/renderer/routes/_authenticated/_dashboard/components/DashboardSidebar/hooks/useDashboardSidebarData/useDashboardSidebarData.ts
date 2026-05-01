@@ -16,6 +16,7 @@ import type {
 	DashboardSidebarSection,
 	DashboardSidebarWorkspace,
 } from "../../types";
+import { joinSidebarProjects } from "./joinSidebarProjects";
 
 // Sits above every real workspace so the pending row lines up with the real one,
 // which is inserted via getPrependTabOrder.
@@ -168,42 +169,44 @@ export function useDashboardSidebarData() {
 		? getHostServiceClientByUrl(activeHostUrl)
 		: null;
 
-	const { data: rawSidebarProjects = [] } = useLiveQuery(
+	const { data: localSidebarProjects = [] } = useLiveQuery(
 		(q) =>
 			q
 				.from({ sidebarProjects: collections.v2SidebarProjects })
-				.innerJoin(
-					{ projects: collections.v2Projects },
-					({ sidebarProjects, projects }) =>
-						eq(sidebarProjects.projectId, projects.id),
-				)
-				.leftJoin(
-					{ repos: collections.githubRepositories },
-					({ projects, repos }) => eq(projects.githubRepositoryId, repos.id),
-				)
-				.orderBy(({ sidebarProjects }) => sidebarProjects.tabOrder, "asc")
-				.select(({ sidebarProjects, projects, repos }) => ({
-					id: projects.id,
-					name: projects.name,
-					slug: projects.slug,
-					githubRepositoryId: projects.githubRepositoryId,
-					githubOwner: repos?.owner ?? null,
-					githubRepoName: repos?.name ?? null,
-					createdAt: projects.createdAt,
-					updatedAt: projects.updatedAt,
+				.select(({ sidebarProjects }) => ({
+					projectId: sidebarProjects.projectId,
+					tabOrder: sidebarProjects.tabOrder,
 					isCollapsed: sidebarProjects.isCollapsed,
 				})),
 		[collections],
 	);
 
-	const sidebarProjects = useMemo(
-		() =>
-			rawSidebarProjects.map((project) => ({
-				...project,
-				githubOwner: project.githubOwner ?? null,
-				githubRepoName: project.githubRepoName ?? null,
+	const { data: cloudProjects = [] } = useLiveQuery(
+		(q) =>
+			q.from({ projects: collections.v2Projects }).select(({ projects }) => ({
+				id: projects.id,
+				name: projects.name,
+				slug: projects.slug,
+				githubRepositoryId: projects.githubRepositoryId,
+				createdAt: projects.createdAt,
+				updatedAt: projects.updatedAt,
 			})),
-		[rawSidebarProjects],
+		[collections],
+	);
+
+	const { data: githubRepos = [] } = useLiveQuery(
+		(q) =>
+			q.from({ repos: collections.githubRepositories }).select(({ repos }) => ({
+				id: repos.id,
+				owner: repos.owner,
+				name: repos.name,
+			})),
+		[collections],
+	);
+
+	const sidebarProjects = useMemo(
+		() => joinSidebarProjects(localSidebarProjects, cloudProjects, githubRepos),
+		[localSidebarProjects, cloudProjects, githubRepos],
 	);
 
 	const { data: sidebarSections = [] } = useLiveQuery(
