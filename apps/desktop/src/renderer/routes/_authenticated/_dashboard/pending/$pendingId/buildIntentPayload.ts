@@ -37,6 +37,7 @@ export function buildForkPayload(
 	pendingId: string,
 	pending: PendingWorkspaceRow,
 	attachments: Attachment[] | undefined,
+	worktreeBaseDir?: string | null,
 ): CreateWorkspaceInput {
 	const linked = mapLinkedContextFromPending(pending);
 	return {
@@ -60,6 +61,7 @@ export function buildForkPayload(
 			linkedPrUrl: linked.linkedPrUrl,
 			attachments,
 		},
+		worktreeBaseDir,
 	};
 }
 

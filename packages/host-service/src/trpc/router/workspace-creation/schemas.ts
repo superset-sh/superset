@@ -58,6 +58,12 @@ export const createInputSchema = z.object({
 		runSetupScript: z.boolean().optional(),
 	}),
 	linkedContext: linkedContextSchema,
+	// User-configured worktree base directory, resolved by the renderer
+	// from local-db settings (per-project override > global > default).
+	// Host-service has no access to those tables, so the renderer must
+	// thread the value through. Falls back to ~/.superset/worktrees when
+	// null/omitted.
+	worktreeBaseDir: z.string().nullable().optional(),
 });
 
 const checkoutPrSchema = z.object({
