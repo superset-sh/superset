@@ -15,6 +15,15 @@ export interface Pty {
 	kill(signal?: NodeJS.Signals): void;
 	onData(cb: PtyOnData): void;
 	onExit(cb: PtyOnExit): void;
+	/**
+	 * The kernel master fd backing this PTY. Required for daemon-upgrade
+	 * fd-handoff (Phase 2): the successor daemon process inherits this fd
+	 * via stdio so the slave-side shell stays alive across the binary swap.
+	 *
+	 * Reaches into node-pty's private `_fd` property — see the version pin
+	 * in package.json and the spawn-time assert below.
+	 */
+	getMasterFd(): number;
 }
 
 export interface SpawnOptions {
@@ -30,6 +39,22 @@ class NodePtyAdapter implements Pty {
 		this.term = term;
 		this.pid = term.pid;
 		this.meta = meta;
+	}
+
+	getMasterFd(): number {
+		// node-pty 1.1.x exposes the master fd as the private property `_fd`.
+		// Pinned to "1.1.0" in package.json so a future bump can't break this
+		// silently — assert here so a missing/changed field surfaces at the
+		// first spawn, not when the user clicks "Update" months later.
+		const fd = (this.term as unknown as { _fd?: unknown })._fd;
+		if (typeof fd !== "number" || !Number.isInteger(fd) || fd < 0) {
+			throw new Error(
+				`node-pty master fd unavailable (got ${typeof fd}: ${fd}). ` +
+					`Phase 2 fd-handoff depends on node-pty's private _fd property — ` +
+					`pin node-pty to 1.1.x or update Pty.ts to match the new shape.`,
+			);
+		}
+		return fd;
 	}
 
 	write(data: Buffer): void {
@@ -80,5 +105,8 @@ export function spawn({ meta }: SpawnOptions): Pty {
 		// node-pty's encoding defaults to utf8; we want raw bytes for fidelity.
 		encoding: null,
 	});
-	return new NodePtyAdapter(term, meta);
+	const adapter = new NodePtyAdapter(term, meta);
+	// Validate the private-fd dependency at spawn time, not handoff time.
+	adapter.getMasterFd();
+	return adapter;
 }
