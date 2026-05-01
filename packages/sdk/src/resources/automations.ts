@@ -9,11 +9,19 @@ export class Automations extends APIResource {
 	 *
 	 * Mirrors `superset automations list`.
 	 */
-	list(options?: RequestOptions): APIPromise<AutomationListResponse> {
-		return this._client.query<AutomationListResponse>(
+	list(
+		params?: AutomationListParams,
+		options?: RequestOptions,
+	): APIPromise<AutomationListResponse> {
+		const promise = this._client.query<AutomationListResponse>(
 			"automation.list",
 			undefined,
 			options,
+		);
+		if (!params?.name) return promise;
+		const needle = params.name.toLowerCase();
+		return promise._thenUnwrap((rows) =>
+			rows.filter((row) => row.name.toLowerCase().includes(needle)),
 		);
 	}
 
@@ -211,6 +219,11 @@ export interface Automation extends AutomationSummary {
 
 export type AutomationListResponse = Array<AutomationSummary>;
 
+export interface AutomationListParams {
+	/** Case-insensitive substring match on automation name. */
+	name?: string;
+}
+
 export interface AutomationCreateParams {
 	name: string;
 	prompt: string;
@@ -275,6 +288,7 @@ export declare namespace Automations {
 	export type {
 		Automation,
 		AutomationSummary,
+		AutomationListParams,
 		AutomationListResponse,
 		AutomationCreateParams,
 		AutomationUpdateParams,
