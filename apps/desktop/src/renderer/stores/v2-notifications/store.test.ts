@@ -112,4 +112,20 @@ describe("v2 notification store", () => {
 		expect(state.sources["terminal:terminal-1"]).toBeUndefined();
 		expect(state.sources["terminal:terminal-2"]?.status).toBe("permission");
 	});
+
+	it("clears only review attention for a workspace", () => {
+		const store = useV2NotificationStore.getState();
+		store.setTerminalStatus("terminal-1", "workspace-1", "review", 100);
+		store.setTerminalStatus("terminal-2", "workspace-1", "working", 101);
+		store.setChatStatus("session-1", "workspace-1", "permission", 102);
+		store.setTerminalStatus("terminal-3", "workspace-2", "review", 103);
+
+		store.clearWorkspaceAttention("workspace-1");
+
+		const state = useV2NotificationStore.getState();
+		expect(state.sources["terminal:terminal-1"]).toBeUndefined();
+		expect(state.sources["terminal:terminal-2"]?.status).toBe("working");
+		expect(state.sources["chat:session-1"]?.status).toBe("permission");
+		expect(state.sources["terminal:terminal-3"]?.status).toBe("review");
+	});
 });

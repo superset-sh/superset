@@ -1,4 +1,5 @@
-import { getDeviceName, getHashedDeviceId } from "@superset/shared/device-info";
+import { getHostId, getHostName } from "@superset/shared/host-info";
+import { buildHostRoutingKey } from "@superset/shared/host-routing";
 import type { JwtApiAuthProvider } from "../providers/auth/JwtAuthProvider/JwtAuthProvider";
 import type { ApiClient } from "../types";
 import { TunnelClient } from "./tunnel-client";
@@ -16,16 +17,16 @@ export async function connectRelay(
 	options: ConnectRelayOptions,
 ): Promise<TunnelClient | null> {
 	try {
-		const host = await options.api.device.ensureV2Host.mutate({
+		const host = await options.api.host.ensure.mutate({
 			organizationId: options.organizationId,
-			machineId: getHashedDeviceId(),
-			name: getDeviceName(),
+			machineId: getHostId(),
+			name: getHostName(),
 		});
-		console.log(`[host-service] registered as host ${host.id}`);
+		console.log(`[host-service] registered as host ${host.machineId}`);
 
 		const tunnel = new TunnelClient({
 			relayUrl: options.relayUrl,
-			hostId: host.id,
+			hostId: buildHostRoutingKey(options.organizationId, host.machineId),
 			getAuthToken: () => options.authProvider.getJwt(),
 			localPort: options.localPort,
 			hostServiceSecret: options.hostServiceSecret,

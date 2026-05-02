@@ -1,8 +1,8 @@
-export { EventBus, registerEventBusRoute } from "./event-bus";
+export { EventBus, registerEventBusRoute } from "./event-bus.ts";
 export {
 	type AgentLifecycleEventType,
 	mapEventType,
-} from "./map-event-type";
+} from "./map-event-type.ts";
 export type {
 	AgentLifecycleMessage,
 	ClientMessage,
@@ -14,4 +14,4 @@ export type {
 	PortChangedMessage,
 	ServerMessage,
 	TerminalLifecycleMessage,
-} from "./types";
+} from "./types.ts";

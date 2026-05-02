@@ -45,6 +45,28 @@ export async function run(opts: RunOptions): Promise<void> {
 	}
 }
 
+function formatZodIssues(message: string): string | null {
+	const trimmed = message.trim();
+	if (!trimmed.startsWith("[")) return null;
+	let parsed: unknown;
+	try {
+		parsed = JSON.parse(trimmed);
+	} catch {
+		return null;
+	}
+	if (!Array.isArray(parsed) || parsed.length === 0) return null;
+	const lines: string[] = [];
+	for (const issue of parsed) {
+		if (!issue || typeof issue !== "object") return null;
+		const i = issue as { path?: unknown; message?: unknown };
+		const pathSegments = Array.isArray(i.path) ? i.path : [];
+		const path = pathSegments.length > 0 ? pathSegments.join(".") : "input";
+		const msg = typeof i.message === "string" ? i.message : "invalid value";
+		lines.push(`${path}: ${msg}`);
+	}
+	return lines.join("\n");
+}
+
 function handleError(error: unknown, cliName: string): never {
 	if (error instanceof CLIError) {
 		process.stderr.write(`Error: ${error.message}\n`);
@@ -71,7 +93,8 @@ function handleError(error: unknown, cliName: string): never {
 				"Error: Could not connect to API\nHint: Is the API running?\n",
 			);
 		} else {
-			process.stderr.write(`Error: ${error.message}\n`);
+			const formatted = formatZodIssues(error.message);
+			process.stderr.write(`Error: ${formatted ?? error.message}\n`);
 		}
 		process.exit(1);
 	}
@@ -209,17 +232,24 @@ async function execute(
 		return;
 	}
 
-	if (args.includes("--version") || args.includes("-v")) {
-		console.log(`${name} v${version}`);
-		return;
-	}
-
 	const { segments, passthrough } = splitArgsForRouting(args, globalConfigs);
 	const { commandPath, remainingArgs: unroutedSegments } = routeCommand(
 		root,
 		segments,
 	);
 	const remainingArgs = [...unroutedSegments, ...passthrough];
+
+	// `--version` / `-v` print the CLI's version when no command resolved.
+	// Once a command is in play, the flag is the command's to consume —
+	// e.g. `superset update --version 0.1.2`.
+	if (
+		commandPath.length === 0 &&
+		(args.includes("--version") || args.includes("-v"))
+	) {
+		console.log(version);
+		return;
+	}
+
 	if (commandPath.length === 0) {
 		console.log(generateRootHelp(name, version, root, globalConfigs));
 		return;
@@ -308,8 +338,9 @@ async function execute(
 
 	const jsonFlag = parsed.options.json as boolean | undefined;
 	const quietFlag = parsed.options.quiet as boolean | undefined;
-	const isJson = jsonFlag ?? isAgentMode();
 	const isQuiet = quietFlag ?? false;
+	// Agent-mode auto-JSON only when --quiet wasn't passed; --quiet beats it.
+	const isJson = jsonFlag ?? (!isQuiet && isAgentMode());
 
 	const result = await cmd.run({
 		options: parsed.options as never,

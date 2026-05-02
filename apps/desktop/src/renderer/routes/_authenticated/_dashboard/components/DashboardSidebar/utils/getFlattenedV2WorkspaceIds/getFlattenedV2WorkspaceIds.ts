@@ -1,4 +1,5 @@
 import type { AppCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider/collections";
+import { getVisibleSidebarWorkspaces } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
 
 type TopLevelItem =
 	| { kind: "workspace"; tabOrder: number; workspaceId: string }
@@ -17,11 +18,12 @@ export function getFlattenedV2WorkspaceIds(
 	const allWorkspaces = Array.from(
 		collections.v2WorkspaceLocalState.state.values(),
 	);
+	const visibleWorkspaces = getVisibleSidebarWorkspaces(allWorkspaces);
 
 	const result: string[] = [];
 
 	for (const project of projects) {
-		const projectWorkspaces = allWorkspaces.filter(
+		const projectWorkspaces = visibleWorkspaces.filter(
 			(workspace) => workspace.sidebarState.projectId === project.projectId,
 		);
 		const projectSections = allSections.filter(

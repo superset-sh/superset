@@ -9,7 +9,7 @@ export function persistLocalProject(
 ): void {
 	const repoFields = {
 		repoPath: resolved.repoPath,
-		repoProvider: resolved.parsed?.provider ?? null,
+		repoProvider: resolved.parsed ? ("github" as const) : null,
 		repoOwner: resolved.parsed?.owner ?? null,
 		repoName: resolved.parsed?.name ?? null,
 		repoUrl: resolved.parsed?.url ?? null,

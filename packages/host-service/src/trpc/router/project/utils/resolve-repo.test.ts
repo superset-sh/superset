@@ -1,85 +1,59 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { mkdirSync, mkdtempSync, realpathSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import simpleGit from "simple-git";
-import {
-	cloneRepoInto,
-	resolveLocalGitRepo,
-	resolveWithPrimaryRemote,
-} from "./resolve-repo";
+import { cloneRepoInto, resolveLocalRepo } from "./resolve-repo";
 
-const tempRoots: string[] = [];
+describe("resolveLocalRepo", () => {
+	let repo: string;
 
-function makeTempRoot(): string {
-	const path = mkdtempSync(join(tmpdir(), "superset-resolve-repo-"));
-	tempRoots.push(path);
-	return path;
-}
+	beforeEach(async () => {
+		repo = mkdtempSync(join(tmpdir(), "superset-local-repo-"));
+		await simpleGit(repo).init();
+	});
 
-async function initRepo(path: string) {
-	mkdirSync(path, { recursive: true });
-	const git = simpleGit(path);
-	await git.init();
-	return git;
-}
+	afterEach(() => {
+		rmSync(repo, { recursive: true, force: true });
+	});
 
-afterEach(() => {
-	for (const root of tempRoots.splice(0)) {
-		rmSync(root, { recursive: true, force: true });
-	}
-});
+	test("accepts a git repo without GitHub remotes", async () => {
+		const resolved = await resolveLocalRepo(repo);
 
-describe("resolveLocalGitRepo", () => {
-	test("accepts a local-only git repo without GitHub remotes", async () => {
-		const root = makeTempRoot();
-		const repo = join(root, "local-only");
-		await initRepo(repo);
-
-		const resolved = await resolveLocalGitRepo(repo);
-
-		expect(realpathSync(resolved.repoPath)).toBe(realpathSync(repo));
+		expect(resolved.repoPath).toBe(realpathSync.native(repo));
 		expect(resolved.remoteName).toBeNull();
 		expect(resolved.parsed).toBeNull();
 	});
 
-	test("prefers origin when multiple GitHub remotes exist", async () => {
-		const root = makeTempRoot();
-		const repo = join(root, "with-remotes");
-		const git = await initRepo(repo);
-		await git.addRemote("upstream", "https://github.com/Other/Repo.git");
-		await git.addRemote("origin", "git@github.com:Acme/App.git");
+	test("returns origin when a GitHub origin exists", async () => {
+		const git = simpleGit(repo);
+		await git.addRemote("origin", "git@github.com:acme/example.git");
 
-		const resolved = await resolveLocalGitRepo(repo);
+		const resolved = await resolveLocalRepo(repo);
 
 		expect(resolved.remoteName).toBe("origin");
-		expect(resolved.parsed).toEqual({
-			provider: "github",
-			owner: "Acme",
-			name: "App",
-			url: "https://github.com/Acme/App",
-		});
-	});
-});
-
-describe("resolveWithPrimaryRemote", () => {
-	test("still rejects repos without GitHub remotes for strict callers", async () => {
-		const root = makeTempRoot();
-		const repo = join(root, "local-only");
-		await initRepo(repo);
-
-		await expect(resolveWithPrimaryRemote(repo)).rejects.toThrow(
-			/Repository has no GitHub remotes/,
-		);
+		expect(resolved.parsed?.url).toBe("https://github.com/acme/example");
 	});
 });
 
 describe("cloneRepoInto", () => {
-	test("clones a local repo and resolves it as local-only when no GitHub remote exists", async () => {
-		const root = makeTempRoot();
-		const source = join(root, "source-repo");
-		const parentDir = join(root, "clones");
-		await initRepo(source);
+	let workRoot: string;
+
+	beforeEach(() => {
+		workRoot = mkdtempSync(join(tmpdir(), "superset-clone-repo-"));
+	});
+
+	afterEach(() => {
+		rmSync(workRoot, { recursive: true, force: true });
+	});
+
+	test("clones a local-path repo and resolves it as local-only", async () => {
+		const source = join(workRoot, "source-repo");
+		const parentDir = join(workRoot, "clones");
+		mkdirSync(source);
+		await simpleGit(source).init();
+		// commit something so `git clone` has refs to copy
+		await simpleGit(source).raw(["commit", "--allow-empty", "-m", "seed"]);
 		mkdirSync(parentDir);
 
 		const resolved = await cloneRepoInto(source, parentDir);

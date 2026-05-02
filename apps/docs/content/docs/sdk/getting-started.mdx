@@ -1,0 +1,149 @@
+---
+title: Getting Started
+description: Drive Superset programmatically from any TypeScript or JavaScript codebase.
+---
+
+<Callout type="warn">
+The SDK is in early alpha — it is not meant for production use and may be removed in the future. Stay on the latest version (`@superset_sh/sdk@latest`) while we iterate.
+</Callout>
+
+The Superset TypeScript SDK lets you create and manage your workspaces, tasks, projects, and automations from code — anything you can do in the dashboard, your scripts and services can do too.
+
+A few things you might use it for:
+
+- **Bulk task management** — script the creation, triage, or cleanup of tasks across one or many projects.
+- **Integrations** — sync tasks to/from your CRM, issue tracker, or internal tools.
+- **Provisioning** — spin up workspaces on a developer's machine when an issue is opened, a PR is reviewed, or a customer ticket lands.
+- **On-demand agents** — kick off a recurring automation off-schedule when a webhook fires.
+
+Everything is fully typed and works in Node, Bun, and Deno. The bundle also runs in browsers, but **don't ship `sk_live_…` keys to a frontend** — they're long-lived and grant full org access. From the browser, talk to a thin server proxy that holds the key.
+
+## Install
+
+<Tabs items={["npm", "pnpm", "yarn", "bun"]}>
+<Tab value="npm">
+```bash
+npm install @superset_sh/sdk
+```
+</Tab>
+<Tab value="pnpm">
+```bash
+pnpm add @superset_sh/sdk
+```
+</Tab>
+<Tab value="yarn">
+```bash
+yarn add @superset_sh/sdk
+```
+</Tab>
+<Tab value="bun">
+```bash
+bun add @superset_sh/sdk
+```
+</Tab>
+</Tabs>
+
+We're under active development — the SDK follows the API as it grows, so **stay on the latest version** rather than pinning. New methods get added; existing ones don't change shape without a version bump and a note in the changelog.
+
+## Get an API key
+
+1. Open the [Superset desktop app](https://superset.sh/download) → **Settings → API Keys** → **Create**. The key starts with `sk_live_…` — copy it now (you won't be able to see it again).
+2. Note your **organization ID** — find it in the org switcher inside the desktop app.
+
+```bash
+export SUPERSET_API_KEY=sk_live_…
+export SUPERSET_ORGANIZATION_ID=…
+```
+
+## Create the client
+
+```ts
+import Superset from '@superset_sh/sdk';
+
+const client = new Superset();
+// reads SUPERSET_API_KEY and SUPERSET_ORGANIZATION_ID from env
+```
+
+That's all the setup. From here, every resource works the same way:
+
+```ts
+// Create a task
+const task = await client.tasks.create({
+  title: 'Wire up auth',
+  priority: 'high',
+});
+
+// Update it
+await client.tasks.update({ id: task.id, statusId: '<uuid>' });
+
+// Look one up by id or slug
+const got = await client.tasks.retrieve('SUPER-172'); // returns null if missing
+
+// Find tasks with rich filters
+const urgent = await client.tasks.list({
+  priority: 'urgent',
+  search: 'auth',
+  creatorMe: true,
+});
+
+// Inspect what else you have
+const projects = await client.projects.list();
+const hosts = await client.hosts.list();
+const automations = await client.automations.list();
+
+// Trigger an automation off-schedule
+await client.automations.run('<automation-id>');
+
+// Create a workspace on a developer's machine
+await client.workspaces.create({
+  hostId: '<machine-id>',
+  projectId: '<project-id>',
+  name: 'fix-auth-bug',
+  branch: 'fix/auth',
+});
+```
+
+See the [reference](/docs/sdk/reference) for every method, parameter, and return type.
+
+## Configuration
+
+You can configure the client explicitly instead of (or alongside) the env vars:
+
+```ts
+const client = new Superset({
+  apiKey: 'sk_live_…',
+  organizationId: '…',
+  timeout: 60_000,            // default: 60s per request
+  maxRetries: 2,              // default: 2 retries with exponential backoff
+  logLevel: 'warn',           // 'off' | 'error' | 'warn' | 'info' | 'debug'
+});
+```
+
+The client retries automatically on network errors and 429/5xx responses, so transient failures usually fix themselves.
+
+## Handling errors
+
+The SDK throws typed errors for any non-success response, so you can catch what you actually care about:
+
+```ts
+import Superset, { APIError, NotFoundError, RateLimitError } from '@superset_sh/sdk';
+
+const client = new Superset();
+
+try {
+  await client.tasks.create({ title: '' });
+} catch (err) {
+  if (err instanceof RateLimitError) {
+    // 429 — already retried up to maxRetries; back off further if you keep hitting it
+  } else if (err instanceof NotFoundError) {
+    // 404
+  } else if (err instanceof APIError) {
+    // anything else — err.status, err.headers, err.error (the parsed body)
+    console.error(`Superset returned ${err.status}:`, err.error);
+  }
+}
+```
+
+## Next
+
+Head to the [reference](/docs/sdk/reference) for the complete surface.

@@ -3,15 +3,10 @@ import type { ProgressAddon } from "@xterm/addon-progress";
 import type { SearchAddon } from "@xterm/addon-search";
 import { SerializeAddon } from "@xterm/addon-serialize";
 import { Terminal as XTerm } from "@xterm/xterm";
-import { resolveHotkeyFromEvent } from "renderer/hotkeys";
-import {
-	shouldBubbleClipboardShortcut,
-	shouldSelectAllShortcut,
-} from "renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/Terminal/clipboardShortcuts";
 import { DEFAULT_TERMINAL_SCROLLBACK } from "shared/constants";
 import type { TerminalAppearance } from "./appearance";
-import { translateLineEditChord } from "./line-edit-translations";
 import { loadAddons } from "./terminal-addons";
+import { installTerminalKeyEventHandler } from "./terminal-key-event-handler";
 
 const SERIALIZE_SCROLLBACK = 1000;
 const STORAGE_KEY_PREFIX = "terminal-buffer:";
@@ -19,61 +14,6 @@ const DIMS_KEY_PREFIX = "terminal-dims:";
 const DEFAULT_COLS = 120;
 const DEFAULT_ROWS = 32;
 const RESIZE_DEBOUNCE_MS = 75;
-
-// xterm's _keyDown calls stopPropagation after processing, so any chord we
-// want the host (react-hotkeys-hook, Electron menu accelerators) or the shell
-// (Ctrl+A/E/U escape sequences for line edit) to see must short-circuit xterm
-// before it runs. (VSCode pattern: terminalInstance.ts:1116-1175.)
-//
-// Kitty keyboard protocol is enabled, which means every Mac Cmd chord xterm
-// sees gets CSI-u encoded and leaks into TUIs as a literal char. Ghostty
-// sidesteps this by suppressing all super/Cmd chords on macOS before the
-// encoder runs (ghostty/src/input/key_encode.zig:534-545). We do the same via
-// shouldBubbleClipboardShortcut's Mac branch.
-function createKeyEventHandler(terminal: XTerm) {
-	const platform =
-		typeof navigator !== "undefined" ? navigator.platform.toLowerCase() : "";
-	const isMac = platform.includes("mac");
-	const isWindows = platform.includes("win");
-
-	return (event: KeyboardEvent): boolean => {
-		if (resolveHotkeyFromEvent(event) !== null) return false;
-
-		const translation = translateLineEditChord(event, { isMac, isWindows });
-		if (translation !== null) {
-			if (event.type === "keydown") {
-				event.preventDefault();
-				terminal.input(translation, true);
-			}
-			return false;
-		}
-
-		if (shouldSelectAllShortcut(event, isMac)) {
-			if (event.type === "keydown") {
-				event.preventDefault();
-				terminal.selectAll();
-			}
-			return false;
-		}
-
-		if (
-			shouldBubbleClipboardShortcut(event, {
-				isMac,
-				isWindows,
-				hasSelection: terminal.hasSelection(),
-			})
-		) {
-			// Do NOT preventDefault — the browser's keydown → paste-command pipeline
-			// is what fires the `paste` event on xterm's textarea. VS Code and Tabby
-			// preventDefault here only because they implement paste themselves via
-			// the command system / ClipboardAddon; we rely on xterm's built-in paste
-			// listener, so the default must run.
-			return false;
-		}
-
-		return true;
-	};
-}
 
 export interface TerminalRuntime {
 	terminalId: string;
@@ -292,7 +232,7 @@ export function createRuntime(
 	wrapper.style.height = "100%";
 	terminal.open(wrapper);
 
-	terminal.attachCustomKeyEventHandler(createKeyEventHandler(terminal));
+	installTerminalKeyEventHandler(terminal);
 
 	// Activate Unicode 11 widths (inside loadAddons) before restoring the buffer,
 	// else CJK/emoji/ZWJ widths get baked wrong into the replay. (#3572)

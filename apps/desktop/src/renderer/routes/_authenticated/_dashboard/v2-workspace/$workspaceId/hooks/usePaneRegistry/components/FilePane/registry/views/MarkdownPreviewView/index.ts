@@ -6,7 +6,7 @@ export const markdownPreviewView: FileView = {
 	id: "markdown-preview",
 	label: "Preview",
 	match: (filePath) => isMarkdownFile(filePath),
-	priority: "option",
+	priority: "default",
 	documentKind: "text",
 	Renderer: MarkdownPreviewView,
 };

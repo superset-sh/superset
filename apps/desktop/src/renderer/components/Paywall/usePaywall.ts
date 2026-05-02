@@ -5,7 +5,7 @@ import { paywall } from "./Paywall";
 
 export function usePaywall() {
 	const { data: session } = authClient.useSession();
-	const userPlan = useCurrentPlan();
+	const { plan: userPlan, isReady } = useCurrentPlan();
 
 	function hasAccess(feature: GatedFeature): boolean {
 		void feature;
@@ -38,5 +38,6 @@ export function usePaywall() {
 		hasAccess,
 		gateFeature,
 		userPlan,
+		isReady,
 	};
 }

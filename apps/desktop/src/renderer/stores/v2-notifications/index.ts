@@ -1,5 +1,6 @@
 export {
 	getV2ChatNotificationSource,
+	getV2ManualNotificationSource,
 	getV2NotificationSourceKey,
 	getV2NotificationSourcesForPane,
 	getV2NotificationSourcesForTab,
@@ -9,6 +10,7 @@ export {
 	selectV2SourcesNotificationStatus,
 	selectV2TabNotificationStatus,
 	selectV2TerminalNotificationStatus,
+	selectV2WorkspaceIsUnread,
 	selectV2WorkspaceNotificationStatus,
 	useV2ChatNotificationStatus,
 	useV2NotificationStore,
@@ -16,6 +18,7 @@ export {
 	useV2SourcesNotificationStatus,
 	useV2TabNotificationStatus,
 	useV2TerminalNotificationStatus,
+	useV2WorkspaceIsUnread,
 	useV2WorkspaceNotificationStatus,
 	type V2NotificationPaneLike,
 	type V2NotificationSource,

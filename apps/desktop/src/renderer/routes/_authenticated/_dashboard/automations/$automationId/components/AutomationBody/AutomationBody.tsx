@@ -16,8 +16,16 @@ export function AutomationBody({
 	const [prompt, setPrompt] = useState(automation.prompt);
 
 	const updateMutation = useMutation({
-		mutationFn: (patch: { name?: string; prompt?: string }) =>
+		mutationFn: (patch: { name?: string }) =>
 			apiTrpcClient.automation.update.mutate({ id: automation.id, ...patch }),
+	});
+
+	const setPromptMutation = useMutation({
+		mutationFn: (next: string) =>
+			apiTrpcClient.automation.setPrompt.mutate({
+				id: automation.id,
+				prompt: next,
+			}),
 	});
 
 	const hostTarget: WorkspaceHostTarget = automation.targetHostId
@@ -47,7 +55,7 @@ export function AutomationBody({
 				onChange={setPrompt}
 				onSave={(next) => {
 					if (next !== automation.prompt) {
-						updateMutation.mutate({ prompt: next });
+						setPromptMutation.mutate(next);
 					}
 				}}
 				placeholder="Add prompt e.g. look for crashes in $sentry"

@@ -57,7 +57,7 @@ export default command({
 			"v2 project id — required for new-workspace-per-run mode",
 		),
 		workspace: string().desc("existing v2 workspace id — reuses it every run"),
-		device: string().desc("Target host id (default: owner's online host)"),
+		host: string().desc("Target host id (default: owner's online host)"),
 		agent: string()
 			.default("claude")
 			.desc("Agent preset id — resolved against shipped defaults"),
@@ -75,8 +75,8 @@ export default command({
 			throw new Error("Provide --prompt <text> or --prompt-file <path>");
 		}
 
-		if (!options.project) {
-			throw new Error("Provide --project (required)");
+		if (!options.project && !options.workspace) {
+			throw new Error("Provide --project or --workspace");
 		}
 
 		const agentConfig = options.agentConfigFile
@@ -87,9 +87,9 @@ export default command({
 			name: options.name,
 			prompt,
 			agentConfig,
-			targetHostId: options.device ?? null,
-			v2ProjectId: options.project,
-			v2WorkspaceId: options.workspace ?? null,
+			targetHostId: options.host ?? null,
+			v2ProjectId: options.project ?? undefined,
+			v2WorkspaceId: options.workspace ?? undefined,
 			rrule: options.rrule,
 			dtstart: options.dtstart ? new Date(options.dtstart) : undefined,
 			timezone: options.timezone ?? DEFAULT_TIMEZONE,

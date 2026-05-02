@@ -51,7 +51,6 @@ function makeCollections() {
 			tabOrder: number;
 			sectionId: string | null;
 			changesFilter: { kind: string };
-			changesSubtab: string;
 		};
 		paneLayout: unknown;
 		viewedFiles: string[];

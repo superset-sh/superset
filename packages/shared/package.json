@@ -84,9 +84,13 @@
 			"types": "./src/tunnel-protocol.ts",
 			"default": "./src/tunnel-protocol.ts"
 		},
-		"./device-info": {
-			"types": "./src/device-info.ts",
-			"default": "./src/device-info.ts"
+		"./host-info": {
+			"types": "./src/host-info.ts",
+			"default": "./src/host-info.ts"
+		},
+		"./host-routing": {
+			"types": "./src/host-routing.ts",
+			"default": "./src/host-routing.ts"
 		},
 		"./github-remote": {
 			"types": "./src/github-remote.ts",

@@ -2,7 +2,6 @@ import {
 	getEventBus,
 	type PortChangedPayload,
 } from "@superset/workspace-client";
-import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useQueries, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo } from "react";
@@ -41,9 +40,9 @@ export function useDashboardSidebarPortsData(): {
 	const { data: hosts = [] } = useLiveQuery(
 		(q) =>
 			q.from({ hosts: collections.v2Hosts }).select(({ hosts }) => ({
-				id: hosts.id,
-				isOnline: hosts.isOnline,
+				organizationId: hosts.organizationId,
 				machineId: hosts.machineId,
+				isOnline: hosts.isOnline,
 			})),
 		[collections],
 	);
@@ -52,14 +51,10 @@ export function useDashboardSidebarPortsData(): {
 		(q) =>
 			q
 				.from({ workspaces: collections.v2Workspaces })
-				.leftJoin({ hosts: collections.v2Hosts }, ({ workspaces, hosts }) =>
-					eq(workspaces.hostId, hosts.id),
-				)
-				.select(({ workspaces, hosts }) => ({
+				.select(({ workspaces }) => ({
 					id: workspaces.id,
 					name: workspaces.name,
 					hostId: workspaces.hostId,
-					hostMachineId: hosts?.machineId ?? null,
 				})),
 		[collections],
 	);
@@ -86,7 +81,7 @@ export function useDashboardSidebarPortsData(): {
 					workspaceIds: host.workspaceIds,
 				});
 				return {
-					hostId: host.id,
+					hostId: host.machineId,
 					hostType: host.hostType,
 					hostUrl: host.hostUrl,
 					ports,
@@ -110,7 +105,7 @@ export function useDashboardSidebarPortsData(): {
 					getHostPortsQueryKey(host),
 					(result) =>
 						applyPortEventsToHostPortsResult(result, events, {
-							hostId: host.id,
+							hostId: host.machineId,
 							hostType: host.hostType,
 							hostUrl: host.hostUrl,
 						}),
@@ -175,7 +170,7 @@ export function useDashboardSidebarPortsData(): {
 		if (!host) return [];
 		return [
 			{
-				hostId: host.id,
+				hostId: host.machineId,
 				hostType: host.hostType,
 				message:
 					query.error instanceof Error

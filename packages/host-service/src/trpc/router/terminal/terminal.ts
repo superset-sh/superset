@@ -1,7 +1,9 @@
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
+import { getSupervisor, waitForDaemonReady } from "../../../daemon";
 import { terminalSessions, workspaces } from "../../../db/schema";
+import { env } from "../../../env";
 import {
 	createTerminalSessionInternal,
 	disposeSession,
@@ -10,19 +12,54 @@ import {
 } from "../../../terminal/terminal";
 import { protectedProcedure, router } from "../../index";
 
+// Daemon control surface — sibling to the per-workspace terminal ops above.
+// Org-scoped (one daemon per host-service); reads org id from env.
+// Supervisor lives in this same process so calls go through the in-process
+// singleton, not over the wire.
+const daemonRouter = router({
+	getUpdateStatus: protectedProcedure.query(() =>
+		getSupervisor().getUpdateStatus(env.ORGANIZATION_ID),
+	),
+
+	listSessions: protectedProcedure.query(async () => {
+		// Wait for the bootstrap so the supervisor has a socket path.
+		await waitForDaemonReady(env.ORGANIZATION_ID);
+		return getSupervisor().listSessions(env.ORGANIZATION_ID);
+	}),
+
+	restart: protectedProcedure.mutation(async () => {
+		await waitForDaemonReady(env.ORGANIZATION_ID);
+		return getSupervisor().restart(env.ORGANIZATION_ID);
+	}),
+
+	/**
+	 * Phase 2: hand off live PTYs to a successor daemon binary.
+	 *
+	 * Sessions survive on success — the kernel master fds are inherited by
+	 * the new daemon process via stdio. The renderer surfaces this as the
+	 * "Update" path (vs `restart` which kills sessions). On failure, the
+	 * UI offers force-restart as a fallback.
+	 */
+	update: protectedProcedure.mutation(async () => {
+		await waitForDaemonReady(env.ORGANIZATION_ID);
+		return getSupervisor().update(env.ORGANIZATION_ID);
+	}),
+});
+
 export const terminalRouter = router({
-	ensureSession: protectedProcedure
+	launchSession: protectedProcedure
 		.input(
 			z.object({
-				terminalId: z.string(),
 				workspaceId: z.string(),
+				terminalId: z.string().optional(),
+				initialCommand: z.string().min(1),
 				themeType: z.string().optional(),
-				initialCommand: z.string().optional(),
 			}),
 		)
-		.mutation(({ ctx, input }) => {
-			const result = createTerminalSessionInternal({
-				terminalId: input.terminalId,
+		.mutation(async ({ ctx, input }) => {
+			const terminalId = input.terminalId ?? crypto.randomUUID();
+			const result = await createTerminalSessionInternal({
+				terminalId,
 				workspaceId: input.workspaceId,
 				themeType: parseThemeType(input.themeType),
 				db: ctx.db,
@@ -31,11 +68,10 @@ export const terminalRouter = router({
 			});
 
 			if ("error" in result) {
-				return {
-					terminalId: input.terminalId,
-					status: "error" as const,
-					error: result.error,
-				};
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: result.error,
+				});
 			}
 
 			return { terminalId: result.terminalId, status: "active" as const };
@@ -44,7 +80,7 @@ export const terminalRouter = router({
 	listSessions: protectedProcedure
 		.input(
 			z.object({
-				workspaceId: z.string().optional(),
+				workspaceId: z.string(),
 			}),
 		)
 		.query(({ input }) => ({
@@ -94,4 +130,6 @@ export const terminalRouter = router({
 			disposeSession(input.terminalId, ctx.db);
 			return { terminalId: input.terminalId, status: "disposed" as const };
 		}),
+
+	daemon: daemonRouter,
 });

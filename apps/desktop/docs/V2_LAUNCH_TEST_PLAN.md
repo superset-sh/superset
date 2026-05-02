@@ -80,9 +80,10 @@ Disable Claude (or set Superset Chat as preferred via order in settings).
 - [ ] **D2. Attachment write fails** — manually `chmod` the worktree
       read-only, submit with attachments. Dispatch logs warning; pane
       still opens; files missing (expected degradation).
-- [ ] **D3. `ensureSession` fails** — stop host-service after create but
-      before navigation. Consume hook logs warning. `terminalLaunch`
-      stays set. Restart host-service, refresh. Consume re-fires.
+- [ ] **D3. Terminal WebSocket attach fails** — stop host-service after
+      create but before navigation. Terminal pane opens and reports the
+      connection failure. Restart host-service, refresh. Consume re-fires
+      only if `terminalLaunch` was not cleared before attach.
 - [ ] **D4. Agent disabled mid-flow** — enable agent, start submit, disable
       before create completes. Pending page finishes. No pane opens.
       Pending row `terminalLaunch` stays null.

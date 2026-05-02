@@ -5,7 +5,7 @@ import {
 	workspaces,
 	worktrees,
 } from "@superset/local-db";
-import { and, eq, isNotNull, isNull } from "drizzle-orm";
+import { eq, isNotNull, isNull } from "drizzle-orm";
 import { localDb } from "main/lib/local-db";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
@@ -95,23 +95,6 @@ export const createMigrationRouter = () => {
 					.delete(v1MigrationState)
 					.where(eq(v1MigrationState.organizationId, input.organizationId))
 					.run();
-			}),
-
-		findMigrationByOtherOrg: publicProcedure
-			.input(z.object({ organizationId: z.string().min(1) }))
-			.query(({ input }) => {
-				const other = localDb
-					.select({ organizationId: v1MigrationState.organizationId })
-					.from(v1MigrationState)
-					.where(
-						and(
-							eq(v1MigrationState.kind, "project"),
-							eq(v1MigrationState.status, "success"),
-						),
-					)
-					.all()
-					.find((row) => row.organizationId !== input.organizationId);
-				return other?.organizationId ?? null;
 			}),
 	});
 };

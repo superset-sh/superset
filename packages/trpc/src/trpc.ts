@@ -72,36 +72,57 @@ export const protectedProcedure = t.procedure
 
 export const jwtProcedure = t.procedure.use(async ({ ctx, next }) => {
 	const authHeader = ctx.headers.get("authorization");
-	if (!authHeader?.startsWith("Bearer ")) {
-		throw new TRPCError({
-			code: "UNAUTHORIZED",
-			message: "JWT bearer token required",
-		});
+	const bearer = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
+
+	if (bearer) {
+		try {
+			const { payload } = await ctx.auth.api.verifyJWT({
+				body: { token: bearer },
+			});
+			if (payload?.sub) {
+				const organizationIds = (payload.organizationIds as string[]) ?? [];
+				return next({
+					ctx: {
+						userId: payload.sub,
+						email: (payload.email as string) ?? "",
+						organizationIds,
+						activeOrganizationId: organizationIds[0] ?? null,
+					},
+				});
+			}
+		} catch (error) {
+			// A live session is the legit fallback for an unverifiable token
+			// (expired/missing). A TRPCError from verifyJWT is an explicit
+			// rejection (revoked/forged) — surface it instead of laundering
+			// it into session auth.
+			if (error instanceof TRPCError) throw error;
+		}
 	}
 
-	const token = authHeader.slice(7);
-	try {
-		const { payload } = await ctx.auth.api.verifyJWT({ body: { token } });
-		if (!payload?.sub) {
-			throw new TRPCError({ code: "UNAUTHORIZED", message: "Invalid JWT" });
-		}
-
-		const organizationIds = (payload.organizationIds as string[]) ?? [];
+	if (ctx.session) {
+		const userId = ctx.session.user.id;
+		const memberRows = await db.query.members.findMany({
+			where: eq(members.userId, userId),
+			columns: { organizationId: true },
+		});
+		const organizationIds = memberRows.map((row) => row.organizationId);
 		return next({
 			ctx: {
-				userId: payload.sub,
-				email: (payload.email as string) ?? "",
+				userId,
+				email: ctx.session.user.email ?? "",
 				organizationIds,
-				activeOrganizationId: organizationIds[0] ?? null,
+				activeOrganizationId:
+					ctx.session.session.activeOrganizationId ??
+					organizationIds[0] ??
+					null,
 			},
 		});
-	} catch (error) {
-		if (error instanceof TRPCError) throw error;
-		throw new TRPCError({
-			code: "UNAUTHORIZED",
-			message: "JWT verification failed",
-		});
 	}
+
+	throw new TRPCError({
+		code: "UNAUTHORIZED",
+		message: "Not authenticated. Provide a bearer JWT, x-api-key, or session.",
+	});
 });
 
 export const adminProcedure = protectedProcedure.use(async ({ ctx, next }) => {

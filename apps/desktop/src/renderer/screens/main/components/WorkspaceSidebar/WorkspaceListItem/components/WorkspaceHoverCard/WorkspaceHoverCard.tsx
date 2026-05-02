@@ -6,6 +6,7 @@ import {
 	LuExternalLink,
 	LuGlobe,
 	LuLoaderCircle,
+	LuPencil,
 	LuTriangleAlert,
 } from "react-icons/lu";
 import { useHotkeyDisplay } from "renderer/hotkeys";
@@ -20,11 +21,13 @@ import { ReviewStatus } from "./components/ReviewStatus";
 interface WorkspaceHoverCardContentProps {
 	workspaceId: string;
 	workspaceAlias?: string;
+	onEditBranchClick?: (branchName: string) => void;
 }
 
 export function WorkspaceHoverCardContent({
 	workspaceId,
 	workspaceAlias,
+	onEditBranchClick,
 }: WorkspaceHoverCardContentProps) {
 	const { data: worktreeInfo } =
 		electronTrpc.workspaces.getWorktreeInfo.useQuery(
@@ -80,26 +83,43 @@ export function WorkspaceHoverCardContent({
 						<span className="text-[10px] uppercase tracking-wide text-muted-foreground">
 							Branch
 						</span>
-						{repoUrl && branchExistsOnRemote ? (
-							<a
-								href={`${repoUrl}/tree/${branchName}`}
-								target="_blank"
-								rel="noopener noreferrer"
-								className={`flex items-center gap-1 font-mono break-all hover:underline ${hasCustomAlias ? "text-xs" : "text-sm"}`}
-							>
-								{branchName}
-								<LuExternalLink
-									className="size-3 shrink-0"
-									strokeWidth={STROKE_WIDTH}
-								/>
-							</a>
-						) : (
-							<code
-								className={`font-mono break-all block ${hasCustomAlias ? "text-xs" : "text-sm"}`}
-							>
-								{branchName}
-							</code>
-						)}
+						<div className="flex items-center gap-1.5">
+							{onEditBranchClick ? (
+								<button
+									type="button"
+									onClick={() => onEditBranchClick(branchName)}
+									className={`group/branch flex min-w-0 flex-1 items-center gap-1 font-mono break-all text-left hover:text-foreground hover:underline ${hasCustomAlias ? "text-xs" : "text-sm"}`}
+									title="Rename branch"
+								>
+									<span className="break-all">{branchName}</span>
+									<LuPencil
+										className="size-3 shrink-0 opacity-0 group-hover/branch:opacity-100 transition-opacity"
+										strokeWidth={STROKE_WIDTH}
+									/>
+								</button>
+							) : (
+								<code
+									className={`font-mono break-all block min-w-0 flex-1 ${hasCustomAlias ? "text-xs" : "text-sm"}`}
+								>
+									{branchName}
+								</code>
+							)}
+							{repoUrl && branchExistsOnRemote && (
+								<a
+									href={`${repoUrl}/tree/${branchName}`}
+									target="_blank"
+									rel="noopener noreferrer"
+									className="shrink-0 text-muted-foreground hover:text-foreground"
+									title="Open branch on GitHub"
+									onClick={(e) => e.stopPropagation()}
+								>
+									<LuExternalLink
+										className="size-3"
+										strokeWidth={STROKE_WIDTH}
+									/>
+								</a>
+							)}
+						</div>
 					</div>
 				)}
 				{worktreeInfo?.createdAt && (

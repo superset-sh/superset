@@ -4,18 +4,21 @@ import { createTerminalSessionInternal } from "../../../../terminal/terminal";
 import type { HostServiceContext } from "../../../../types";
 import type { TerminalDescriptor } from "./types";
 
-export function startSetupTerminalIfPresent(args: {
+export async function startSetupTerminalIfPresent(args: {
 	ctx: HostServiceContext;
 	workspaceId: string;
 	worktreePath: string;
-}): { terminal: TerminalDescriptor | null; warning: string | null } {
+}): Promise<{
+	terminal: TerminalDescriptor | null;
+	warning: string | null;
+}> {
 	const setupScriptPath = join(args.worktreePath, ".superset", "setup.sh");
 	if (!existsSync(setupScriptPath)) {
 		return { terminal: null, warning: null };
 	}
 
 	const terminalId = crypto.randomUUID();
-	const result = createTerminalSessionInternal({
+	const result = await createTerminalSessionInternal({
 		terminalId,
 		workspaceId: args.workspaceId,
 		db: args.ctx.db,

@@ -19,7 +19,7 @@ export function SidebarHeader({
 
 	return (
 		<div className="flex h-10 shrink-0 items-stretch border-b border-border">
-			<div className="flex items-center h-full">
+			<div className="flex min-w-0 items-center h-full overflow-hidden">
 				{tabs.map((tab) => {
 					const isActive = activeTab === tab.id;
 					const btn = (
@@ -31,7 +31,7 @@ export function SidebarHeader({
 								compact,
 							})}
 						>
-							{tab.icon && <tab.icon className="size-3.5" />}
+							{tab.icon && <tab.icon className="size-3" />}
 							{!compact && tab.label}
 						</button>
 					);
@@ -54,7 +54,7 @@ export function SidebarHeader({
 							onClick={() => onTabChange(tab.id)}
 							className={getSidebarHeaderTabButtonClassName({ isActive })}
 						>
-							{tab.icon && <tab.icon className="size-3.5" />}
+							{tab.icon && <tab.icon className="size-3" />}
 							{tab.label}
 						</button>
 					);
@@ -62,7 +62,9 @@ export function SidebarHeader({
 			</div>
 			<div className="flex-1" />
 			{actions && (
-				<div className="flex items-center h-10 pr-2 gap-0.5">{actions}</div>
+				<div className="flex shrink-0 items-center h-10 pr-2 gap-0.5">
+					{actions}
+				</div>
 			)}
 		</div>
 	);

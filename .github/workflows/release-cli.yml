@@ -1,0 +1,82 @@
+name: Release CLI
+
+# Fires on cli-v* tag push. Builds the full 3-target matrix and publishes
+# a draft GitHub Release plus a rolling cli-latest pointer. workflow_dispatch
+# is the manual escape hatch for testing the full pipeline without cutting
+# a tag (the release job is gated to tag pushes only).
+
+on:
+  push:
+    tags: ["cli-v*"]
+  workflow_dispatch:
+
+jobs:
+  build:
+    uses: ./.github/workflows/build-cli.yml
+    with:
+      targets: '[{"os":"ubuntu-latest","target":"linux-x64"},{"os":"macos-14","target":"darwin-arm64"},{"os":"ubuntu-24.04-arm","target":"linux-arm64"}]'
+    secrets: inherit
+
+  release:
+    name: Create GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/cli-v')
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+        with:
+          path: release-artifacts
+          pattern: superset-*
+          merge-multiple: true
+
+      - name: Create Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # --prerelease is a workaround: GitHub's /releases/latest endpoint
+          # doesn't filter by tag prefix, so a published non-prerelease cli-v*
+          # release would shadow desktop's auto-updater (which currently reads
+          # /releases/latest/download/latest-{mac,linux}.yml). Tracked in
+          # plans/release-channels-spec.md — drop once desktop migrates to a
+          # desktop-latest rolling pointer.
+          gh release create "${{ github.ref_name }}" \
+            release-artifacts/*.tar.gz \
+            --title "Superset CLI ${{ github.ref_name }}" \
+            --generate-notes \
+            --draft \
+            --prerelease
+
+      - name: Publish version manifest
+        env:
+          VERSION_TAG: ${{ github.ref_name }}
+        run: |
+          # Strip the `cli-v` prefix; the manifest carries just the semver.
+          echo "${VERSION_TAG#cli-v}" > release-artifacts/version.txt
+
+      - name: Update rolling cli-latest release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION_TAG: ${{ github.ref_name }}
+        run: |
+          # `cli-latest` is a rolling tag/release that always points at the
+          # newest published CLI build. The update command fetches assets
+          # from `/releases/download/cli-latest/` so it never has to filter
+          # the repo's release list (where desktop releases would otherwise
+          # shadow the latest CLI release on the global /releases/latest
+          # endpoint). Recreate it on every CLI release.
+          set -euo pipefail
+          gh release delete cli-latest --yes --cleanup-tag || true
+          gh release create cli-latest \
+            release-artifacts/*.tar.gz \
+            release-artifacts/version.txt \
+            --title "Latest Superset CLI" \
+            --notes "Rolling pointer to the latest published CLI release. See [${VERSION_TAG}](https://github.com/${{ github.repository }}/releases/tag/${VERSION_TAG}) for changelog." \
+            --target "${{ github.sha }}" \
+            --prerelease

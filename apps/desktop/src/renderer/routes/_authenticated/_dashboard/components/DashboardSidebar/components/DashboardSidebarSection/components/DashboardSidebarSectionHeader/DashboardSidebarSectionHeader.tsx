@@ -58,13 +58,13 @@ export const DashboardSidebarSectionHeader = forwardRef<
 							}
 				}
 				className={cn(
-					"group flex min-h-8 w-full items-center pl-0.5 pr-2 py-1.5 text-[13px] font-medium",
+					"group flex min-h-8 w-full items-center pl-5 pr-2 py-1.5 text-[13px] font-medium",
 					"text-muted-foreground hover:bg-muted/50 transition-colors",
 					className,
 				)}
 				{...props}
 			>
-				<div className="grid h-5 w-5 shrink-0 cursor-grab items-center justify-center active:cursor-grabbing [&>*]:col-start-1 [&>*]:row-start-1">
+				<div className="mr-2 grid h-5 w-5 shrink-0 cursor-grab items-center justify-center active:cursor-grabbing [&>*]:col-start-1 [&>*]:row-start-1">
 					<HiChevronRight
 						className={cn(
 							"size-3 text-muted-foreground transition-[opacity,transform] duration-150 group-hover:opacity-0",
@@ -86,24 +86,31 @@ export const DashboardSidebarSectionHeader = forwardRef<
 					) : (
 						<span className="truncate">{section.name}</span>
 					)}
-
-					{!isRenaming && (
-						<span className="shrink-0 text-[10px] font-normal tabular-nums">
-							({section.workspaces.length})
-						</span>
-					)}
 				</div>
 
-				{!isRenaming && actions ? (
-					// biome-ignore lint/a11y/noStaticElementInteractions: Nested action controls handle their own semantics; this wrapper only isolates events from the header toggle.
-					<div
-						className="flex items-center"
-						onClick={(event) => event.stopPropagation()}
-						onKeyDown={(event) => event.stopPropagation()}
-					>
-						{actions}
+				{!isRenaming && (
+					<div className="ml-1 flex size-5 shrink-0 items-center justify-center">
+						{actions ? (
+							// biome-ignore lint/a11y/noStaticElementInteractions: Nested action controls handle their own semantics; this wrapper only isolates events from the header toggle.
+							<div
+								className="peer hidden size-full items-center justify-center group-hover:flex group-has-[:focus]:flex has-[[data-state=open]]:flex"
+								onClick={(event) => event.stopPropagation()}
+								onKeyDown={(event) => event.stopPropagation()}
+							>
+								{actions}
+							</div>
+						) : null}
+						<span
+							className={cn(
+								"text-[10px] font-normal tabular-nums text-muted-foreground",
+								actions &&
+									"group-hover:hidden group-has-[:focus]:hidden peer-has-[[data-state=open]]:hidden",
+							)}
+						>
+							{section.workspaces.length}
+						</span>
 					</div>
-				) : null}
+				)}
 			</div>
 		);
 	},

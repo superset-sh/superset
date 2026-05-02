@@ -4,6 +4,7 @@ import {
 	Gauge,
 	type LucideIcon,
 	Rocket,
+	Terminal,
 } from "lucide-react";
 import { source } from "@/lib/source";
 
@@ -12,7 +13,7 @@ interface SidebarItem {
 	href: string;
 }
 
-interface SidebarSection {
+export interface SidebarSection {
 	title: string;
 	Icon: LucideIcon;
 	items: SidebarItem[];
@@ -23,14 +24,21 @@ const iconMap: Record<string, LucideIcon> = {
 	Gauge,
 	BookOpen,
 	CircleHelp,
+	Terminal,
 };
 
-function parseSections(): SidebarSection[] {
-	const pageTree = source.pageTree;
+interface PageTreeNode {
+	type: string;
+	name?: unknown;
+	url?: string;
+	children?: PageTreeNode[];
+}
+
+function parseSectionsFromSeparators(nodes: PageTreeNode[]): SidebarSection[] {
 	const sections: SidebarSection[] = [];
 	let currentSection: SidebarSection | null = null;
 
-	for (const node of pageTree.children) {
+	const visit = (node: PageTreeNode) => {
 		if (node.type === "separator") {
 			const name = String(node.name ?? "");
 			const match = name.match(/^(\w+)\s+(.+)$/);
@@ -43,15 +51,24 @@ function parseSections(): SidebarSection[] {
 				};
 				sections.push(currentSection);
 			}
-		} else if (node.type === "page" && currentSection) {
+		} else if (node.type === "page" && currentSection && node.url) {
 			currentSection.items.push({
 				title: String(node.name ?? ""),
 				href: node.url,
 			});
+		} else if (node.type === "folder" && node.children) {
+			for (const child of node.children) visit(child);
 		}
-	}
+	};
+
+	for (const node of nodes) visit(node);
 
 	return sections;
 }
 
-export const sections: SidebarSection[] = parseSections();
+function buildSections(): SidebarSection[] {
+	const tree = source.pageTree as { children: PageTreeNode[] };
+	return parseSectionsFromSeparators(tree.children);
+}
+
+export const sections: SidebarSection[] = buildSections();

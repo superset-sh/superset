@@ -6,6 +6,7 @@ import {
 	ContextMenuSeparator,
 	ContextMenuTrigger,
 } from "@superset/ui/context-menu";
+import { OverflowFadeText } from "@superset/ui/overflow-fade-text";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { PencilIcon, XIcon } from "lucide-react";
@@ -112,12 +113,14 @@ export function TabItem<TData>({
 					className={cn(
 						"group relative flex h-full w-full items-center border-r border-border transition-colors",
 						isActive
-							? "bg-muted text-foreground"
+							? "bg-border/30 text-foreground"
 							: "text-muted-foreground/70 hover:bg-tertiary/20 hover:text-muted-foreground",
 						isPaneOver && "bg-primary/5",
 						isDragging && "opacity-30",
 					)}
-					onMouseDown={onSelect}
+					onMouseDown={(event) => {
+						if (event.button === 0) onSelect();
+					}}
 				>
 					{isEditing ? (
 						<div className="flex h-full w-full shrink-0 items-center px-2">
@@ -145,12 +148,13 @@ export function TabItem<TData>({
 												onClose();
 											}
 										}}
-										onClick={onSelect}
 										onDoubleClick={startEditing}
 										type="button"
 									>
 										{icon && <span className="shrink-0">{icon}</span>}
-										<span className="min-w-0 flex-1 truncate">{title}</span>
+										<OverflowFadeText className="flex-1">
+											{title}
+										</OverflowFadeText>
 										{accessory && (
 											<span className="shrink-0 leading-none">{accessory}</span>
 										)}
@@ -171,6 +175,9 @@ export function TabItem<TData>({
 											onClick={(event) => {
 												event.stopPropagation();
 												onClose();
+											}}
+											onMouseDown={(event) => {
+												event.stopPropagation();
 											}}
 											size="icon"
 											type="button"

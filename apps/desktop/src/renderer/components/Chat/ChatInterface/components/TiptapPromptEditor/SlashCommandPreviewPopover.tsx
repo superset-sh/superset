@@ -1,8 +1,7 @@
-import { chatServiceTrpc } from "@superset/chat/client";
 import { usePromptInputController } from "@superset/ui/ai-elements/prompt-input";
 import { Popover, PopoverAnchor, PopoverContent } from "@superset/ui/popover";
 import type { Editor } from "@tiptap/core";
-import { useLayoutEffect, useMemo, useRef } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useDebouncedValue } from "renderer/hooks/useDebouncedValue";
 import {
 	normalizeSlashPreviewInput,
@@ -10,8 +9,18 @@ import {
 	resolveSlashCommandDefinition,
 } from "../ChatInputFooter/components/SlashCommandPreview/slash-command-preview.model";
 
+export type SlashPreviewResult = {
+	commandName?: string;
+	prompt?: string;
+} | null;
+
+export type PreviewSlashCommandFn = (
+	text: string,
+) => Promise<SlashPreviewResult>;
+
 interface SlashCommandPreviewPopoverProps {
 	cwd: string;
+	previewSlashCommand: PreviewSlashCommandFn;
 	slashCommands: Array<{
 		name: string;
 		aliases: string[];
@@ -24,6 +33,7 @@ interface SlashCommandPreviewPopoverProps {
 
 export function SlashCommandPreviewPopover({
 	cwd,
+	previewSlashCommand,
 	slashCommands,
 	editor,
 	isFocused,
@@ -59,15 +69,21 @@ export function SlashCommandPreviewPopover({
 	const parsedInput = useMemo(() => parseSlashInput(inputValue), [inputValue]);
 	const debouncedSlashPreviewInput = useDebouncedValue(slashPreviewInput, 120);
 
-	const { data: slashPreview } =
-		chatServiceTrpc.workspace.previewSlashCommand.useQuery(
-			{ cwd, text: debouncedSlashPreviewInput },
-			{
-				enabled: debouncedSlashPreviewInput.length > 1 && !!cwd,
-				staleTime: 250,
-				placeholderData: (previous) => previous,
-			},
-		);
+	const [slashPreview, setSlashPreview] = useState<SlashPreviewResult>(null);
+	useEffect(() => {
+		if (debouncedSlashPreviewInput.length <= 1 || !cwd) return;
+		let cancelled = false;
+		previewSlashCommand(debouncedSlashPreviewInput)
+			.then((result) => {
+				if (!cancelled) setSlashPreview(result);
+			})
+			.catch(() => {
+				// Empty preview on error — popover degrades gracefully.
+			});
+		return () => {
+			cancelled = true;
+		};
+	}, [cwd, debouncedSlashPreviewInput, previewSlashCommand]);
 
 	const commandDefinition = useMemo(() => {
 		if (!parsedInput?.commandName) return null;

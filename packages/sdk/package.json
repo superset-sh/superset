@@ -1,0 +1,28 @@
+{
+	"name": "@superset/sdk",
+	"version": "0.0.1-alpha.7",
+	"description": "TypeScript SDK for the Superset API",
+	"private": true,
+	"type": "module",
+	"license": "Apache-2.0",
+	"exports": {
+		".": {
+			"types": "./src/index.ts",
+			"default": "./src/index.ts"
+		}
+	},
+	"publishConfig": {
+		"name": "@superset_sh/sdk",
+		"access": "public"
+	},
+	"scripts": {
+		"clean": "git clean -xdf .cache .turbo dist node_modules",
+		"typecheck": "tsc --noEmit --emitDeclarationOnly false",
+		"build": "bun run scripts/build.ts"
+	},
+	"devDependencies": {
+		"@superset/typescript": "workspace:*",
+		"bun-types": "^1.3.1",
+		"typescript": "^5.9.3"
+	}
+}

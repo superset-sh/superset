@@ -1,7 +1,9 @@
 "use client";
 
 import { authClient } from "@superset/auth/client";
+import { isPaidPlan } from "@superset/shared/billing";
 import { Avatar, AvatarFallback, AvatarImage } from "@superset/ui/avatar";
+import { Badge } from "@superset/ui/badge";
 import { Drawer, DrawerContent, DrawerTitle } from "@superset/ui/drawer";
 import {
 	DropdownMenu,
@@ -43,6 +45,14 @@ export function AgentsHeader() {
 	const { data: organizations } = useQuery(
 		trpc.user.myOrganizations.queryOptions(),
 	);
+
+	const { data: activePlan } = useQuery(trpc.billing.activePlan.queryOptions());
+
+	const isPro = isPaidPlan(activePlan?.plan);
+	const planLabel =
+		isPro && activePlan?.plan
+			? activePlan.plan.charAt(0).toUpperCase() + activePlan.plan.slice(1)
+			: null;
 
 	const user = session?.user;
 	const activeOrganizationId = session?.session?.activeOrganizationId;
@@ -191,7 +201,14 @@ export function AgentsHeader() {
 					<DrawerTitle className="sr-only">Account menu</DrawerTitle>
 					<div className="flex flex-col gap-1 p-3 pb-[max(1rem,env(safe-area-inset-bottom))]">
 						<div className="flex flex-col space-y-1 px-2 py-1.5">
-							<p className="text-sm font-medium">{user?.name}</p>
+							<div className="flex items-center gap-2">
+								<p className="text-sm font-medium">{user?.name}</p>
+								{isPro && (
+									<Badge variant="default" className="px-1.5 py-0 text-[10px]">
+										{planLabel}
+									</Badge>
+								)}
+							</div>
 							<p className="text-xs text-muted-foreground">{user?.email}</p>
 						</div>
 						<div className="my-1 h-px bg-border" />
@@ -251,7 +268,14 @@ export function AgentsHeader() {
 			<DropdownMenuContent align="end" className="min-w-56">
 				<DropdownMenuLabel>
 					<div className="flex flex-col space-y-1">
-						<p className="text-sm font-medium">{user?.name}</p>
+						<div className="flex items-center gap-2">
+							<p className="text-sm font-medium">{user?.name}</p>
+							{isPro && (
+								<Badge variant="default" className="px-1.5 py-0 text-[10px]">
+									{planLabel}
+								</Badge>
+							)}
+						</div>
 						<p className="text-xs text-muted-foreground">{user?.email}</p>
 					</div>
 				</DropdownMenuLabel>

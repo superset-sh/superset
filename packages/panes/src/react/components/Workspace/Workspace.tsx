@@ -18,6 +18,7 @@ export function Workspace<TData>({
 	renderAddTabMenu,
 	renderBelowTabBar,
 	onBeforeCloseTab,
+	onAfterCloseTab,
 	onInteractionStateChange,
 	paneActions,
 	contextMenuActions,
@@ -39,20 +40,27 @@ export function Workspace<TData>({
 		}
 		for (const [prevId, prevPane] of previousPanesRef.current) {
 			if (!current.has(prevId)) {
-				registry[prevPane.kind]?.onRemoved?.(prevPane);
+				registry[prevPane.kind]?.onAfterClose?.(prevPane);
 			}
 		}
 		previousPanesRef.current = current;
 	}, [tabs, registry]);
 
 	const closeTab = async (tabId: string) => {
+		const tab = store.getState().getTab(tabId);
+		if (!tab) return;
 		if (onBeforeCloseTab) {
-			const tab = store.getState().getTab(tabId);
-			if (!tab) return;
 			const allowed = await onBeforeCloseTab(tab);
 			if (!allowed) return;
 		}
+		// Re-check after the await: the tab may have been removed concurrently.
+		if (!store.getState().getTab(tabId)) return;
 		store.getState().removeTab(tabId);
+		try {
+			onAfterCloseTab?.(tab);
+		} catch (err) {
+			console.error("onAfterCloseTab threw", err);
+		}
 	};
 
 	return (
@@ -82,6 +90,9 @@ export function Workspace<TData>({
 				}
 				onReorderTab={(tabId, toIndex) =>
 					store.getState().reorderTab({ tabId, toIndex })
+				}
+				onMovePaneToNewTab={(paneId, toIndex) =>
+					store.getState().movePaneToNewTab({ paneId, toIndex })
 				}
 				getTabTitle={(tab) => resolveTabTitle(tab, tabs, registry)}
 				renderTabIcon={renderTabIcon}
