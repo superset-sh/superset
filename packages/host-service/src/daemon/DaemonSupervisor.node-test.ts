@@ -40,11 +40,18 @@ if (!fs.existsSync(DAEMON_BUNDLE)) {
 let tmpHome: string;
 let originalHome: string | undefined;
 const supervisorsToCleanup: { sup: DaemonSupervisor; orgId: string }[] = [];
+let originalNodeEnv: string | undefined;
 
 beforeEach(() => {
 	tmpHome = fs.mkdtempSync(path.join(os.tmpdir(), "pty-daemon-it-"));
 	originalHome = process.env.SUPERSET_HOME_DIR;
 	process.env.SUPERSET_HOME_DIR = tmpHome;
+	// Force production semantics for these tests: in dev mode the
+	// supervisor kills any leftover daemon on startup, which breaks the
+	// adoption tests that intentionally seed a running daemon. Real dev
+	// behavior is exercised through manual QA, not here.
+	originalNodeEnv = process.env.NODE_ENV;
+	process.env.NODE_ENV = "production";
 });
 
 afterEach(async () => {
@@ -61,6 +68,11 @@ afterEach(async () => {
 		process.env.SUPERSET_HOME_DIR = originalHome;
 	} else {
 		delete process.env.SUPERSET_HOME_DIR;
+	}
+	if (originalNodeEnv !== undefined) {
+		process.env.NODE_ENV = originalNodeEnv;
+	} else {
+		delete process.env.NODE_ENV;
 	}
 	try {
 		fs.rmSync(tmpHome, { recursive: true, force: true });
@@ -154,8 +166,13 @@ describe("DaemonSupervisor.ensure (real spawn)", () => {
 			};
 			writePtyDaemonManifest(manifest);
 
-			// Fresh supervisor adopts and probes.
-			const sup = new DaemonSupervisor({ scriptPath: DAEMON_BUNDLE });
+			// Fresh supervisor adopts and probes. autoUpdate=false because
+			// this test asserts the version-drift flag — auto-update would
+			// race a real handoff right after ensure() returns.
+			const sup = new DaemonSupervisor({
+				scriptPath: DAEMON_BUNDLE,
+				autoUpdate: false,
+			});
 			supervisorsToCleanup.push({ sup, orgId });
 			const adopted = await sup.ensure(orgId);
 			assert.equal(adopted.runningVersion, "0.0.1");
@@ -345,6 +362,95 @@ describe("DaemonSupervisor.update (Phase 2 fd-handoff)", () => {
 		// Cleanup: the surviving session.
 		await client2.close("upd-0", "SIGKILL").catch(() => {});
 		await client2.dispose();
+	});
+
+	test("auto-update on adopt opportunistically swaps in the bundled binary", async () => {
+		// Adopt a daemon pinned to an old version, then construct a fresh
+		// supervisor with autoUpdate=true (default). It should detect the
+		// drift, kick off a handoff in the background, and the running
+		// daemon's pid should change to the successor's within a few
+		// seconds.
+		const orgId = "org-auto-update";
+		const socketPath = path.join(
+			os.tmpdir(),
+			`superset-ptyd-${crypto
+				.createHash("sha256")
+				.update(orgId)
+				.digest("hex")
+				.slice(0, 12)}.sock`,
+		);
+		try {
+			fs.unlinkSync(socketPath);
+		} catch {}
+
+		const child = childProcess.spawn(
+			process.execPath,
+			[DAEMON_BUNDLE, `--socket=${socketPath}`],
+			{
+				detached: true,
+				stdio: "ignore",
+				env: { ...process.env, SUPERSET_PTY_DAEMON_VERSION: "0.0.1" },
+			},
+		);
+		child.unref();
+		const ready = await waitForSocket(socketPath, 5000);
+		assert.equal(ready, true);
+
+		try {
+			fs.mkdirSync(ptyDaemonManifestDir(orgId), { recursive: true, mode: 0o700 });
+			writePtyDaemonManifest({
+				pid: child.pid as number,
+				socketPath,
+				protocolVersions: [1],
+				startedAt: Date.now(),
+				organizationId: orgId,
+			});
+
+			const sup = new DaemonSupervisor({ scriptPath: DAEMON_BUNDLE });
+			supervisorsToCleanup.push({ sup, orgId });
+			const adopted = await sup.ensure(orgId);
+			assert.equal(adopted.updatePending, true);
+			const oldPid = adopted.pid;
+
+			// Auto-update fires asynchronously. Poll the supervisor's
+			// instance map for the pid swap (gives up after 8s).
+			const deadline = Date.now() + 8000;
+			let currentPid = oldPid;
+			while (Date.now() < deadline) {
+				const inst = (
+					sup as unknown as { instances: Map<string, { pid: number }> }
+				).instances.get(orgId);
+				if (inst && inst.pid !== oldPid) {
+					currentPid = inst.pid;
+					break;
+				}
+				await new Promise((r) => setTimeout(r, 100));
+			}
+			assert.notEqual(
+				currentPid,
+				oldPid,
+				`auto-update did not swap pid within 8s (still ${oldPid})`,
+			);
+			assert.equal(isAlive(currentPid), true, "successor should be alive");
+			// Predecessor exits via setTimeout(50ms) after sending the
+			// upgrade-prepared reply that resolved update(). The instance-
+			// map swap above happens BEFORE that timer fires — give the
+			// predecessor a moment to actually exit before asserting.
+			const exitDeadline = Date.now() + 2000;
+			while (Date.now() < exitDeadline && isAlive(oldPid)) {
+				await new Promise((r) => setTimeout(r, 50));
+			}
+			assert.equal(
+				isAlive(oldPid),
+				false,
+				`predecessor pid ${oldPid} should be dead after auto-update`,
+			);
+		} catch (err) {
+			try {
+				if (child.pid) process.kill(child.pid, "SIGTERM");
+			} catch {}
+			throw err;
+		}
 	});
 
 	test("update() returns ok:false and leaves predecessor alive when there's no daemon", async () => {

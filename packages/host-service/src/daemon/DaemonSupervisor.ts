@@ -91,6 +91,14 @@ function logEvent(event: string, props: Record<string, unknown>): void {
 export interface DaemonSupervisorOptions {
 	/** Path to the daemon entry script (e.g. `dist/pty-daemon.js`). */
 	scriptPath: string;
+	/**
+	 * When true (default), opportunistically calls `update()` after
+	 * adopting a daemon whose `runningVersion < EXPECTED_DAEMON_VERSION`.
+	 * Set to false in integration tests that intentionally adopt a stale
+	 * daemon and assert the version-drift flag without the test racing a
+	 * real handoff.
+	 */
+	autoUpdate?: boolean;
 }
 
 export class DaemonSupervisor {
@@ -117,6 +125,19 @@ export class DaemonSupervisor {
 	private readonly adoptedLivenessTimers = new Map<
 		string,
 		ReturnType<typeof setInterval>
+	>();
+	/**
+	 * In-flight `update()` promises per orgId. Both auto-update (on adopt
+	 * with version drift) and manual update via the renderer hit the same
+	 * supervisor.update() entry point — without this guard, two concurrent
+	 * calls would both try to handoff a daemon that's already mid-handoff.
+	 * The second caller returns the cached promise and gets the same result.
+	 */
+	private readonly updateInFlight = new Map<
+		string,
+		Promise<
+			{ ok: true; successorPid: number } | { ok: false; reason: string }
+		>
 	>();
 
 	constructor(opts: DaemonSupervisorOptions) {
@@ -175,7 +196,26 @@ export class DaemonSupervisor {
 	 * Distinct from `restart()` which kills sessions. Surface this via the
 	 * "Update" UX; fall back to `restart()` only on failure.
 	 */
-	async update(
+	update(
+		organizationId: string,
+	): Promise<
+		{ ok: true; successorPid: number } | { ok: false; reason: string }
+	> {
+		// Coalesce concurrent calls. Auto-update (on adopt with version
+		// drift) and a manual click of the Update button can race —
+		// without this guard, both would try to handoff the same daemon.
+		// The second caller observes the same outcome via the cached
+		// promise.
+		const inFlight = this.updateInFlight.get(organizationId);
+		if (inFlight) return inFlight;
+		const promise = this.runUpdate(organizationId).finally(() => {
+			this.updateInFlight.delete(organizationId);
+		});
+		this.updateInFlight.set(organizationId, promise);
+		return promise;
+	}
+
+	private async runUpdate(
 		organizationId: string,
 	): Promise<
 		{ ok: true; successorPid: number } | { ok: false; reason: string }
@@ -395,6 +435,56 @@ export class DaemonSupervisor {
 	}
 
 	/**
+	 * Auto-update: best-effort opportunistic handoff when the adopted
+	 * daemon is older than the bundled binary. Runs after host-service
+	 * boot, fire-and-track, doesn't block anything. On failure we leave
+	 * the old daemon running — the user keeps their sessions and can
+	 * retry via the Update button. The renderer's "Update available"
+	 * badge still shows in that case, which is correct: the upgrade
+	 * truly is still pending.
+	 */
+	private kickoffAutoUpdate(
+		organizationId: string,
+		instance: DaemonInstance,
+	): void {
+		logEvent("pty_daemon_auto_update_attempt", {
+			organizationId,
+			runningVersion: instance.runningVersion,
+			expectedVersion: instance.expectedVersion,
+			pid: instance.pid,
+		});
+		void this.update(organizationId).then(
+			(result) => {
+				if (result.ok) {
+					logEvent("pty_daemon_auto_update_ok", {
+						organizationId,
+						previousPid: instance.pid,
+						successorPid: result.successorPid,
+						previousVersion: instance.runningVersion,
+					});
+				} else {
+					logEvent("pty_daemon_auto_update_failed", {
+						organizationId,
+						pid: instance.pid,
+						runningVersion: instance.runningVersion,
+						expectedVersion: instance.expectedVersion,
+						reason: result.reason,
+					});
+				}
+			},
+			(err) => {
+				logEvent("pty_daemon_auto_update_failed", {
+					organizationId,
+					pid: instance.pid,
+					runningVersion: instance.runningVersion,
+					expectedVersion: instance.expectedVersion,
+					reason: `threw: ${(err as Error).message}`,
+				});
+			},
+		);
+	}
+
+	/**
 	 * Dev-only: SIGTERM any existing daemon for this org so the next
 	 * adopt-or-spawn always lands on a fresh daemon process. Reads
 	 * the manifest (the only persistent record of "a daemon exists") —
@@ -461,6 +551,14 @@ export class DaemonSupervisor {
 			});
 			this.maybeFireUpdatePending(organizationId, adopted);
 			this.startAdoptedLivenessCheck(organizationId, adopted.pid);
+			// Auto-update opportunistically: if the adopted daemon is older
+			// than the bundled binary, kick off a handoff in the background.
+			// Sessions survive on success; on failure we leave the old
+			// daemon running and the user can retry via the Update button.
+			// Fire-and-track so bootstrap returns immediately.
+			if (adopted.updatePending && this.opts.autoUpdate !== false) {
+				this.kickoffAutoUpdate(organizationId, adopted);
+			}
 			return adopted;
 		}
 

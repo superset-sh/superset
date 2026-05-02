@@ -392,7 +392,91 @@ describe("DaemonSupervisor.restart", () => {
 	});
 });
 
+describe("DaemonSupervisor.update concurrency guard", () => {
+	let sup: DaemonSupervisor;
+
+	beforeEach(() => {
+		sup = new DaemonSupervisor({ scriptPath: "/nonexistent" });
+	});
+
+	test("two concurrent update() calls coalesce to one runUpdate", async () => {
+		// Mock the private runUpdate so we can observe call counts and
+		// resolve on our schedule.
+		const deferred = createDeferred<{ ok: true; successorPid: number }>();
+		const runUpdateMock = mock(() => deferred.promise);
+		(
+			sup as unknown as { runUpdate: typeof runUpdateMock }
+		).runUpdate = runUpdateMock;
+
+		const a = sup.update("org-coalesce");
+		const b = sup.update("org-coalesce");
+		// Both calls should hand out the SAME promise (cached in-flight).
+		expect(a).toBe(b);
+		expect(runUpdateMock).toHaveBeenCalledTimes(1);
+
+		deferred.resolve({ ok: true, successorPid: 42 });
+		const [resA, resB] = await Promise.all([a, b]);
+		expect(resA).toEqual({ ok: true, successorPid: 42 });
+		expect(resB).toEqual({ ok: true, successorPid: 42 });
+	});
+
+	test("a fresh update() after the first resolves runs again (not stuck cached)", async () => {
+		const calls: ReturnType<typeof createDeferred<{ ok: true; successorPid: number }>>[] =
+			[];
+		const runUpdateMock = mock(() => {
+			const d = createDeferred<{ ok: true; successorPid: number }>();
+			calls.push(d);
+			return d.promise;
+		});
+		(
+			sup as unknown as { runUpdate: typeof runUpdateMock }
+		).runUpdate = runUpdateMock;
+
+		const first = sup.update("org-recycle");
+		calls[0]?.resolve({ ok: true, successorPid: 1 });
+		await first;
+
+		// Second call after the first settles should NOT return the cached
+		// promise — it kicks off a new runUpdate.
+		const second = sup.update("org-recycle");
+		expect(runUpdateMock).toHaveBeenCalledTimes(2);
+		calls[1]?.resolve({ ok: true, successorPid: 2 });
+		await expect(second).resolves.toEqual({ ok: true, successorPid: 2 });
+	});
+
+	test("guard is per-organization", async () => {
+		const runUpdateMock = mock(
+			async () => ({ ok: true as const, successorPid: 99 }),
+		);
+		(
+			sup as unknown as { runUpdate: typeof runUpdateMock }
+		).runUpdate = runUpdateMock;
+
+		const a = sup.update("org-A");
+		const b = sup.update("org-B");
+		expect(a).not.toBe(b);
+		expect(runUpdateMock).toHaveBeenCalledTimes(2);
+		await Promise.all([a, b]);
+	});
+});
+
 // ---------------- helpers ----------------
+
+interface Deferred<T> {
+	promise: Promise<T>;
+	resolve: (v: T) => void;
+	reject: (e: unknown) => void;
+}
+
+function createDeferred<T>(): Deferred<T> {
+	let resolve: (v: T) => void = () => {};
+	let reject: (e: unknown) => void = () => {};
+	const promise = new Promise<T>((res, rej) => {
+		resolve = res;
+		reject = rej;
+	});
+	return { promise, resolve, reject };
+}
 
 interface SeededFields {
 	runningVersion: string;
