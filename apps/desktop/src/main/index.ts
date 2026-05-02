@@ -43,6 +43,10 @@ import {
 	prewarmTerminalRuntime,
 	reconcileDaemonSessions,
 } from "./lib/terminal";
+import {
+	disposeTerminalHostClient,
+	getTerminalHostClient,
+} from "./lib/terminal-host/client";
 import { disposeTray, initTray } from "./lib/tray";
 import { MainWindow } from "./windows/main";
 
@@ -210,7 +214,15 @@ app.on("before-quit", async (event) => {
 
 	isQuitting = true;
 	try {
-		getHostServiceCoordinator().releaseAll();
+		// Production: release manifests so services keep running for re-adoption
+		// on next launch (the survival contract). Dev: services are spawned
+		// non-detached + ref'd, so a quiet `releaseAll()` would orphan them to
+		// init on app exit. Stop them explicitly instead and dispose terminal-host.
+		if (isDev) {
+			await runDevQuitCleanup();
+		} else {
+			getHostServiceCoordinator().releaseAll();
+		}
 		shutdownTanstackDbPersistence();
 		disposeTray();
 	} catch (error) {
@@ -218,6 +230,21 @@ app.on("before-quit", async (event) => {
 	}
 	app.exit(0);
 });
+
+/**
+ * Stop the dev-spawned host-service and terminal-host children. Production
+ * lets these survive (manifest adoption); in dev they're spawned attached and
+ * need an explicit kill on app exit so they don't reparent to init.
+ */
+async function runDevQuitCleanup(): Promise<void> {
+	getHostServiceCoordinator().stopAll();
+	try {
+		await getTerminalHostClient().shutdownIfRunning({ killSessions: true });
+	} catch (err) {
+		console.warn("[main] terminal-host dev shutdown failed:", err);
+	}
+	disposeTerminalHostClient();
+}
 
 process.on("uncaughtException", (error) => {
 	if (isQuitting) return;
@@ -231,9 +258,14 @@ process.on("unhandledRejection", (reason) => {
 
 // Without these handlers, Electron may not quit when electron-vite sends SIGTERM
 if (process.env.NODE_ENV === "development") {
+	let signalHandled = false;
 	const handleTerminationSignal = (signal: string) => {
+		if (signalHandled) return;
+		signalHandled = true;
 		console.log(`[main] Received ${signal}, quitting...`);
-		app.exit(0);
+		// Stop dev-spawned children before exiting; they're attached + ref'd in
+		// dev so a bare `app.exit(0)` would leak them as init-orphans.
+		void runDevQuitCleanup().finally(() => app.exit(0));
 	};
 
 	process.on("SIGTERM", () => handleTerminationSignal("SIGTERM"));
@@ -254,7 +286,7 @@ if (process.env.NODE_ENV === "development") {
 		if (!isParentAlive()) {
 			console.log("[main] Parent process exited, quitting...");
 			clearInterval(parentCheckInterval);
-			app.exit(0);
+			handleTerminationSignal("parent-exit");
 		}
 	}, 1000);
 	parentCheckInterval.unref();
