@@ -1,5 +1,6 @@
 import { cn } from "@superset/ui/utils";
 import { Link, useMatchRoute } from "@tanstack/react-router";
+import { useMemo } from "react";
 import {
 	HiOutlineBeaker,
 	HiOutlineBell,
@@ -205,7 +206,10 @@ export function GeneralSettings({ matchCounts }: GeneralSettingsProps) {
 	const { data: platform } = electronTrpc.window.getPlatform.useQuery();
 	const isMac = platform === "darwin";
 	const { isV2CloudEnabled } = useIsV2CloudEnabled();
-	const allowedSections = getAllowedSectionsForVariant(isV2CloudEnabled);
+	const allowedSections = useMemo(
+		() => getAllowedSectionsForVariant(isV2CloudEnabled),
+		[isV2CloudEnabled],
+	);
 
 	return (
 		<>
