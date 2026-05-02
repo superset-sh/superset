@@ -1,39 +1,35 @@
 import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
-import { useQuery } from "@tanstack/react-query";
+import { useQueries, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useMemo, useRef } from "react";
 import { env } from "renderer/env.renderer";
-import { authClient } from "renderer/lib/auth-client";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { getVisibleSidebarWorkspaces } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
-import { MOCK_ORG_ID } from "shared/constants";
 import type {
 	DashboardSidebarProject,
 	DashboardSidebarProjectChild,
 	DashboardSidebarSection,
 	DashboardSidebarWorkspace,
 } from "../../types";
+import {
+	derivePullRequestQueryTargets,
+	getDashboardSidebarPullRequestQueryKey,
+	type PullRequestQueryTarget,
+} from "./derivePullRequestQueryTargets";
 
 // Sits above every real workspace so the pending row lines up with the real one,
 // which is inserted via getPrependTabOrder.
 const PENDING_WORKSPACE_TAB_ORDER = Number.MIN_SAFE_INTEGER;
 const MAIN_WORKSPACE_TAB_ORDER = Number.MIN_SAFE_INTEGER;
 
-type LocalPullRequest = DashboardSidebarWorkspace["pullRequest"];
+type SidebarPullRequest = DashboardSidebarWorkspace["pullRequest"];
 type PullRequestWorkspaceRow = {
 	workspaceId: string;
-	pullRequest: LocalPullRequest;
+	pullRequest: SidebarPullRequest;
 };
-
-function haveSameStrings(left: string[], right: string[]): boolean {
-	return (
-		left.length === right.length &&
-		left.every((value, index) => value === right[index])
-	);
-}
 
 function haveSameProjects(
 	left: DashboardSidebarProject[],
@@ -63,26 +59,12 @@ function getDashboardSidebarProjectFingerprint(
 	return JSON.stringify(project);
 }
 
-function useStableStringArray(values: string[]): string[] {
-	const previousRef = useRef<string[] | null>(null);
-
-	return useMemo(() => {
-		const previous = previousRef.current;
-		if (previous && haveSameStrings(previous, values)) {
-			return previous;
-		}
-
-		previousRef.current = values;
-		return values;
-	}, [values]);
-}
-
-function useStableLocalPullRequestsByWorkspaceId(
+function useStablePullRequestsByWorkspaceId(
 	rows: PullRequestWorkspaceRow[] | undefined,
-): Map<string, LocalPullRequest> {
+): Map<string, SidebarPullRequest> {
 	const previousRef = useRef<{
 		fingerprint: string;
-		map: Map<string, LocalPullRequest>;
+		map: Map<string, SidebarPullRequest>;
 	} | null>(null);
 
 	return useMemo(() => {
@@ -144,10 +126,10 @@ function useStableDashboardSidebarProjects(
 }
 
 export function useDashboardSidebarData() {
-	const { data: session } = authClient.useSession();
 	const collections = useCollections();
 	const { machineId, activeHostUrl } = useLocalHostService();
 	const { toggleProjectCollapsed } = useDashboardSidebarState();
+	const queryClient = useQueryClient();
 
 	// Query pending workspaces from the local collection
 	const { data: pendingWorkspaces = [] } = useLiveQuery(
@@ -161,12 +143,16 @@ export function useDashboardSidebarData() {
 			})),
 		[collections],
 	);
-	const activeOrganizationId = env.SKIP_ENV_VALIDATION
-		? MOCK_ORG_ID
-		: (session?.session?.activeOrganizationId ?? null);
-	const activeHostClient = activeHostUrl
-		? getHostServiceClientByUrl(activeHostUrl)
-		: null;
+
+	const { data: hosts = [] } = useLiveQuery(
+		(q) =>
+			q.from({ hosts: collections.v2Hosts }).select(({ hosts }) => ({
+				organizationId: hosts.organizationId,
+				machineId: hosts.machineId,
+				isOnline: hosts.isOnline,
+			})),
+		[collections],
+	);
 
 	const { data: rawSidebarProjects = [] } = useLiveQuery(
 		(q) =>
@@ -310,47 +296,70 @@ export function useDashboardSidebarData() {
 		sidebarWorkspaces,
 	]);
 
-	const computedLocalWorkspaceIds = useMemo(
+	const pullRequestQueryTargets = useMemo<PullRequestQueryTarget[]>(
 		() =>
-			visibleSidebarWorkspaces
-				.filter((workspace) => workspace.hostId === machineId)
-				.map((workspace) => workspace.id)
-				.sort(),
-		[machineId, visibleSidebarWorkspaces],
+			derivePullRequestQueryTargets({
+				activeHostUrl,
+				hosts,
+				machineId,
+				relayUrl: env.RELAY_URL,
+				workspaces: visibleSidebarWorkspaces,
+			}),
+		[activeHostUrl, hosts, machineId, visibleSidebarWorkspaces],
 	);
-	const localWorkspaceIds = useStableStringArray(computedLocalWorkspaceIds);
 
-	const { data: pullRequestData, refetch: refetchPullRequests } = useQuery({
-		queryKey: [
-			"dashboard-sidebar",
-			"pull-requests",
-			activeOrganizationId,
-			localWorkspaceIds,
-		],
-		enabled: activeHostClient !== null && localWorkspaceIds.length > 0,
-		refetchInterval: 10_000,
-		queryFn: () =>
-			activeHostClient?.pullRequests.getByWorkspaces.query({
-				workspaceIds: localWorkspaceIds,
-			}) ?? Promise.resolve({ workspaces: [] }),
+	const pullRequestQueries = useQueries({
+		queries: pullRequestQueryTargets.map((target) => ({
+			queryKey: getDashboardSidebarPullRequestQueryKey(target),
+			refetchInterval: 10_000,
+			queryFn: async () => {
+				const client = getHostServiceClientByUrl(target.hostUrl);
+				return client.pullRequests.getByWorkspaces.query({
+					workspaceIds: target.workspaceIds,
+				});
+			},
+		})),
 	});
+
+	const pullRequestRows = useMemo<PullRequestWorkspaceRow[]>(() => {
+		const rows: PullRequestWorkspaceRow[] = [];
+		for (const query of pullRequestQueries) {
+			const data = query.data;
+			if (!data) continue;
+			for (const row of data.workspaces) {
+				rows.push({
+					workspaceId: row.workspaceId,
+					pullRequest: row.pullRequest,
+				});
+			}
+		}
+		return rows;
+	}, [pullRequestQueries]);
 
 	const refreshWorkspacePullRequest = useCallback(
 		async (workspaceId: string) => {
-			if (!activeHostClient || !localWorkspaceIds.includes(workspaceId)) {
-				return;
-			}
+			const workspace = visibleSidebarWorkspaces.find(
+				(candidate) => candidate.id === workspaceId,
+			);
+			if (!workspace) return;
+			const target = pullRequestQueryTargets.find(
+				(candidate) => candidate.machineId === workspace.hostId,
+			);
+			if (!target) return;
 
-			await activeHostClient.pullRequests.refreshByWorkspaces.mutate({
+			const client = getHostServiceClientByUrl(target.hostUrl);
+			await client.pullRequests.refreshByWorkspaces.mutate({
 				workspaceIds: [workspaceId],
 			});
-			await refetchPullRequests();
+			await queryClient.invalidateQueries({
+				queryKey: getDashboardSidebarPullRequestQueryKey(target),
+			});
 		},
-		[activeHostClient, localWorkspaceIds, refetchPullRequests],
+		[pullRequestQueryTargets, queryClient, visibleSidebarWorkspaces],
 	);
 
-	const localPullRequestsByWorkspaceId =
-		useStableLocalPullRequestsByWorkspaceId(pullRequestData?.workspaces);
+	const pullRequestsByWorkspaceId =
+		useStablePullRequestsByWorkspaceId(pullRequestRows);
 
 	const computedGroups = useMemo<DashboardSidebarProject[]>(() => {
 		const projectsById = new Map<
@@ -410,10 +419,7 @@ export function useDashboardSidebarData() {
 				accentColor: null,
 				name: workspace.name,
 				branch: workspace.branch,
-				pullRequest:
-					hostType === "local-device"
-						? (localPullRequestsByWorkspaceId.get(workspace.id) ?? null)
-						: null,
+				pullRequest: pullRequestsByWorkspaceId.get(workspace.id) ?? null,
 				repoUrl:
 					project.githubOwner && project.githubRepoName
 						? `https://github.com/${project.githubOwner}/${project.githubRepoName}`
@@ -523,7 +529,7 @@ export function useDashboardSidebarData() {
 		});
 	}, [
 		machineId,
-		localPullRequestsByWorkspaceId,
+		pullRequestsByWorkspaceId,
 		pendingWorkspaces,
 		sidebarProjects,
 		sidebarSections,
@@ -533,7 +539,6 @@ export function useDashboardSidebarData() {
 
 	return {
 		groups,
-		refetchPullRequests,
 		refreshWorkspacePullRequest,
 		toggleProjectCollapsed,
 	};
