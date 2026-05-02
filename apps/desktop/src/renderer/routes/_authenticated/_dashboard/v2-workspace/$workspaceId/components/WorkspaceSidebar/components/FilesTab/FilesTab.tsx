@@ -1,5 +1,7 @@
 import type {
 	FileTreeRenameEvent,
+	FileTreeRowDecoration,
+	FileTreeRowDecorationContext,
 	ContextMenuItem as PierreContextMenuItem,
 	ContextMenuOpenContext as PierreContextMenuOpenContext,
 } from "@pierre/trees";
@@ -118,6 +120,19 @@ const PIERRE_GIT_STATUS: Record<
 	untracked: "untracked",
 };
 
+// VS Code-style single-letter badges shown on the right of changed file rows.
+// Matches v1's STATUS_LETTER. Color comes from Pierre tinting the row text via
+// `--trees-status-*` once setGitStatus reports the path.
+const STATUS_LETTER: Record<FileStatus, string> = {
+	added: "A",
+	copied: "C",
+	changed: "M",
+	deleted: "D",
+	modified: "M",
+	renamed: "R",
+	untracked: "U",
+};
+
 export function FilesTab({
 	onSelectFile,
 	selectedFilePath,
@@ -137,12 +152,13 @@ export function FilesTab({
 	const movePath = workspaceTrpc.filesystem.movePath.useMutation();
 	const deletePath = workspaceTrpc.filesystem.deletePath.useMutation();
 
-	const { fileStatusByPath, ignoredPaths } = useGitStatusMap(gitStatus);
+	const { fileStatusByPath, folderStatusByPath, ignoredPaths } =
+		useGitStatusMap(gitStatus);
 
 	// Pierre's `gitStatus` is consumed only at construction; live updates
 	// flow via model.setGitStatus in an effect below.
 	const initialGitStatusEntriesRef = useRef(
-		buildPierreGitStatus(fileStatusByPath, ignoredPaths),
+		buildPierreGitStatus(fileStatusByPath, folderStatusByPath, ignoredPaths),
 	);
 
 	// Selection feedback loop guard: when the parent re-renders after we
@@ -157,6 +173,11 @@ export function FilesTab({
 	const handlersRef = useRef({
 		onSelect(_path: string) {},
 		onRename(_event: FileTreeRenameEvent) {},
+		renderRowDecoration(
+			_ctx: FileTreeRowDecorationContext,
+		): FileTreeRowDecoration | null {
+			return null;
+		},
 	});
 
 	const { model } = usePierreFileTree({
@@ -180,14 +201,17 @@ export function FilesTab({
 			if (last.endsWith("/")) return;
 			handlersRef.current.onSelect(last);
 		},
+		renderRowDecoration: (ctx) => handlersRef.current.renderRowDecoration(ctx),
 	});
 
 	const bridge = useFilesTabBridge({ model, workspaceId, rootPath });
 
 	// Push live git status updates into Pierre.
 	useEffect(() => {
-		model.setGitStatus(buildPierreGitStatus(fileStatusByPath, ignoredPaths));
-	}, [model, fileStatusByPath, ignoredPaths]);
+		model.setGitStatus(
+			buildPierreGitStatus(fileStatusByPath, folderStatusByPath, ignoredPaths),
+		);
+	}, [model, fileStatusByPath, folderStatusByPath, ignoredPaths]);
 
 	// Layer our Material-icon coverage on top of Pierre's built-ins for file
 	// types Pierre doesn't recognize (`.toml`, `.lock`, framework dirs, etc).
@@ -400,6 +424,21 @@ export function FilesTab({
 		lastSelectedFromUserRef.current = abs;
 		onSelectFile(abs);
 	};
+	handlersRef.current.renderRowDecoration = ({ row }) => {
+		const rel = stripTrailingSlash(row.path);
+		if (row.kind === "file") {
+			const status = fileStatusByPath.get(rel);
+			if (!status) return null;
+			return { text: STATUS_LETTER[status] };
+		}
+		// Directory: show a bullet indicating the folder contains changes.
+		// Color comes from Pierre's status row tint (setGitStatus reports the
+		// folder via its descendant rollup, so it gets the right --trees-status-*
+		// color for free).
+		const folderStatus = folderStatusByPath.get(rel);
+		if (!folderStatus) return null;
+		return { text: "●", title: "Contains changes" };
+	};
 
 	const handleDelete = useCallback(
 		(absolutePath: string, name: string, isDirectory: boolean): void => {
@@ -606,6 +645,7 @@ function HeaderButton({
 
 function buildPierreGitStatus(
 	fileStatusByPath: Map<string, FileStatus>,
+	folderStatusByPath: Map<string, FileStatus>,
 	ignoredPaths: Set<string>,
 ): {
 	path: string;
@@ -629,6 +669,13 @@ function buildPierreGitStatus(
 	}[] = [];
 	for (const [path, status] of fileStatusByPath) {
 		entries.push({ path, status: PIERRE_GIT_STATUS[status] });
+	}
+	// Feed folder rollup entries with a trailing slash so Pierre matches them
+	// against directory rows (its canonical directory path form). Tinting the
+	// folder row text uses the same `--trees-status-*` color as files, which
+	// then cascades to our renderRowDecoration bullet.
+	for (const [path, status] of folderStatusByPath) {
+		entries.push({ path: `${path}/`, status: PIERRE_GIT_STATUS[status] });
 	}
 	for (const path of ignoredPaths) {
 		entries.push({ path, status: "ignored" });
