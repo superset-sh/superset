@@ -178,6 +178,17 @@ if [ -z "$VERSION" ]; then
     info "Selected version: ${VERSION}"
 fi
 
+# Reject a non-semver positional VERSION (e.g. someone passed only a commit SHA).
+# Without this guard a call like `./create-release.sh 58a3f7e8` would tag
+# desktop-v58a3f7e8 and write that string into package.json.
+if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+    error "Invalid version format: ${VERSION}\nExpected: MAJOR.MINOR.PATCH (e.g., 1.2.3). To release a specific commit, pass version first: $0 <version> <commit>"
+fi
+
+if [ "$AUTO_MERGE" = true ] && [ -n "$COMMIT_INPUT" ]; then
+    warn "--merge has no effect with a commit SHA (no PR is created); the temp release branch will remain on origin until you delete it."
+fi
+
 TAG_NAME="desktop-v${VERSION}"
 DESKTOP_DIR="apps/desktop"
 
@@ -292,8 +303,7 @@ if [ -n "$COMMIT_INPUT" ]; then
         warn "Commit ${SHORT_SHA} already has version ${VERSION}; skipping bump"
     else
         TMP_FILE=$(mktemp)
-        jq ".version = \"${VERSION}\"" "${DESKTOP_DIR}/package.json" > "${TMP_FILE}"
-        mv "${TMP_FILE}" "${DESKTOP_DIR}/package.json"
+        jq ".version = \"${VERSION}\"" "${DESKTOP_DIR}/package.json" > "${TMP_FILE}" && mv "${TMP_FILE}" "${DESKTOP_DIR}/package.json"
         bunx biome format --write "${DESKTOP_DIR}/package.json"
         git add "${DESKTOP_DIR}/package.json"
         git commit -m "chore(desktop): bump version to ${VERSION}"
