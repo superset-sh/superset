@@ -107,10 +107,7 @@ export function DiffPane({ context, workspaceId, onOpenFile }: DiffPaneProps) {
 	}
 
 	return (
-		<Virtualizer
-			className="h-full w-full overflow-auto"
-			contentClassName="space-y-2"
-		>
+		<Virtualizer className="h-full w-full overflow-auto">
 			<ScrollToFile path={data.path} />
 			{files.map((file) => (
 				<DiffFileEntry
