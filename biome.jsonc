@@ -11,6 +11,7 @@
 			"!**/drizzle",
 			"!**/*.template.js",
 			"!**/*.template.sh",
+			"!**/plans",
 			"!apps/mobile/uniwind-types.d.ts",
 			"!packages/sdk/src"
 		]

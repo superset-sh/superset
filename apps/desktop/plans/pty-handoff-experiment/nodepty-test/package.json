@@ -1,9 +1,0 @@
-{
-  "name": "nodepty-test",
-  "version": "0.0.0",
-  "private": true,
-  "type": "commonjs",
-  "dependencies": {
-    "node-pty": "^1.0.0"
-  }
-}
