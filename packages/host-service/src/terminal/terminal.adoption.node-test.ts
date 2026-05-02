@@ -358,31 +358,37 @@ describe("createTerminalSessionInternal — host-service restart adoption", () =
 			"adopted session should have same shell pid",
 		);
 
-		// Watch the new subscription's data stream for the sentinel. With
-		// replayOnAdoption=true (the bug) the daemon replays the buffer and
-		// the sentinel arrives within the first chunk. With replayOnAdoption=false
-		// (the fix) it should never arrive.
-		let secondBuf = "";
-		const disposer = second.pty.onData((d) => {
-			secondBuf += d;
-		});
-
-		// Generous window so the daemon has time to send replay if it were
-		// going to. If it doesn't arrive in 500ms, it's not coming.
+		// Observe the session's own broadcast buffer (`session.buffer` /
+		// `session.bufferBytes`) — that's what the WS-broadcast path
+		// populates from the primary subscription. With replayOnAdoption=true
+		// (the bug) the daemon replays the ring buffer to the primary
+		// subscription, host-service forwards it into session.buffer, and
+		// bufferBytes spikes within the first frame. With replayOnAdoption=
+		// false (the fix) bufferBytes stays at 0.
+		//
+		// Earlier this test observed `pty.onData` instead, which subscribes
+		// with `replay:false` on the same DaemonClient. It still caught the
+		// bug by accident — the late-attaching local callback received the
+		// fanned-out replay bytes — but coupling to that timing made the
+		// assertion fragile. session.bufferBytes is the direct signal.
 		await new Promise((r) => setTimeout(r, 500));
 
 		assert.equal(
-			secondBuf.includes(SENTINEL),
-			false,
-			`adopted subscription must NOT replay buffer when replayOnAdoption=false; received: ${JSON.stringify(secondBuf.slice(0, 200))}`,
+			second.bufferBytes,
+			0,
+			`adopted session.bufferBytes must remain 0 when replayOnAdoption=false; got ${second.bufferBytes} bytes (first chunk: ${second.buffer[0] ? JSON.stringify(Buffer.from(second.buffer[0]).toString("utf8").slice(0, 100)) : "<empty>"})`,
 		);
 
-		// Sanity check: live output still flows. The shell is alive; sending
-		// new input should produce new output on this subscription.
+		// Sanity check: live output still flows into the buffer. Drive a new
+		// echo through the PTY and assert the bytes show up.
 		const LIVE_SENTINEL = `live-after-reattach-${randomUUID().slice(0, 6)}`;
 		second.pty.write(`echo ${LIVE_SENTINEL}\n`);
-		await waitFor(() => secondBuf.includes(LIVE_SENTINEL), 3000);
-		disposer.dispose();
+		await waitFor(() => {
+			const text = Buffer.concat(
+				second.buffer.map((b) => Buffer.from(b)),
+			).toString("utf8");
+			return text.includes(LIVE_SENTINEL);
+		}, 3000);
 
 		disposeSession(terminalId, db);
 	});

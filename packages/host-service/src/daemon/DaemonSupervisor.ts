@@ -277,7 +277,22 @@ export class DaemonSupervisor {
 		// connect to the still-alive predecessor — recording its OLD
 		// version as the successor's running version, which leaves
 		// updatePending falsely true and triggers an infinite re-update.
-		await waitForPidExit(instance.pid, HANDOFF_PREDECESSOR_EXIT_TIMEOUT_MS);
+		const predecessorExited = await waitForPidExit(
+			instance.pid,
+			HANDOFF_PREDECESSOR_EXIT_TIMEOUT_MS,
+		);
+		if (!predecessorExited) {
+			// Predecessor is wedged. The successor sent upgrade-ack so its
+			// adopt code path ran, but we can't tell whether it actually bound
+			// the socket. Don't pretend to succeed — bail with a useful
+			// reason so the user sees a real failure instead of infinite
+			// "UPDATE AVAILABLE".
+			restoreOnFailure();
+			return {
+				ok: false,
+				reason: `predecessor pid ${instance.pid} did not exit within ${HANDOFF_PREDECESSOR_EXIT_TIMEOUT_MS}ms after handoff ack`,
+			};
+		}
 
 		// Predecessor is dead, but the successor may not have bound the
 		// socket yet (its `await disconnect` resolves at the same instant
@@ -290,10 +305,14 @@ export class DaemonSupervisor {
 		);
 		const runningVersion = probedVersion ?? "unknown";
 
+		// One Date.now() so the in-memory instance and the on-disk manifest
+		// agree on the successor's startedAt. Two separate calls would
+		// drift by milliseconds and produce confusing log lines.
+		const successorStartedAt = Date.now();
 		const successorInstance: DaemonInstance = {
 			pid: result.successorPid,
 			socketPath: instance.socketPath,
-			startedAt: Date.now(),
+			startedAt: successorStartedAt,
 			runningVersion,
 			expectedVersion: EXPECTED_DAEMON_VERSION,
 			updatePending:
@@ -309,7 +328,7 @@ export class DaemonSupervisor {
 				pid: result.successorPid,
 				socketPath: instance.socketPath,
 				protocolVersions: existingManifest.protocolVersions,
-				startedAt: Date.now(),
+				startedAt: successorStartedAt,
 				organizationId,
 			});
 		}
@@ -984,21 +1003,30 @@ async function probeDaemonVersionWithRetry(
 
 /**
  * Poll `kill(pid, 0)` until the process is gone or the deadline hits.
- * Used to gate a post-handoff version probe on predecessor exit — without
- * this gate, the probe can connect to the still-alive predecessor and
- * record its (old) version as the successor's, leaving updatePending true.
+ * Returns `true` if we observed exit, `false` on timeout. Used to gate
+ * a post-handoff version probe on predecessor exit — without this gate,
+ * the probe can connect to the still-alive predecessor and record its
+ * (old) version as the successor's, leaving updatePending true.
+ *
+ * On timeout the caller should treat the update as failed: the predecessor
+ * is wedged, we can't reliably tell whether the successor bound, and
+ * pretending to succeed would silently corrupt the supervisor's view.
  */
-async function waitForPidExit(pid: number, timeoutMs: number): Promise<void> {
+async function waitForPidExit(
+	pid: number,
+	timeoutMs: number,
+): Promise<boolean> {
 	const deadline = Date.now() + timeoutMs;
 	while (Date.now() < deadline) {
 		try {
 			process.kill(pid, 0);
 		} catch (err) {
-			if ((err as NodeJS.ErrnoException).code === "ESRCH") return;
+			if ((err as NodeJS.ErrnoException).code === "ESRCH") return true;
 			// EPERM: process exists but isn't ours — keep waiting.
 		}
 		await new Promise((r) => setTimeout(r, 25));
 	}
+	return false;
 }
 
 /**

@@ -46,12 +46,17 @@ export interface TerminalTransport {
 	/** Set when the server sends an exit message — no reconnect after this. */
 	_exited: boolean;
 	/**
-	 * Flips true after the first successful WS open. Subsequent connects
-	 * (auto-reconnect after the server force-closed us, or a URL swap) tell
-	 * the server `replay=0`: the xterm already has the scrollback, so
-	 * replaying the daemon's ring buffer would write duplicates.
+	 * Flips true after the first PTY-output frame is written into the
+	 * xterm. Subsequent connects (auto-reconnect after the server
+	 * force-closed us, or a URL swap) tell the server `replay=0`: the
+	 * xterm already has the scrollback, so replaying the daemon's ring
+	 * buffer would write duplicates.
+	 *
+	 * Tracked on first BYTES, not first OPEN: a WS that opens cleanly but
+	 * closes before any output arrives leaves xterm empty — replay on the
+	 * next connect is the right behavior in that case.
 	 */
-	_hasEverOpened: boolean;
+	_hasReceivedBytes: boolean;
 }
 
 const MAX_LOG_ENTRIES = 200;
@@ -129,7 +134,7 @@ export function createTransport(): TerminalTransport {
 		_reconnectTimer: null,
 		_reconnectAttempt: 0,
 		_terminal: null,
-		_hasEverOpened: false,
+		_hasReceivedBytes: false,
 		_exited: false,
 	};
 }
@@ -219,7 +224,7 @@ export function connect(
 	// tell the server not to replay the daemon's ring buffer: the xterm
 	// already has the scrollback. See terminal.ts createTerminalSessionInternal
 	// (replayOnAdoption) for the server side.
-	const actualUrl = transport._hasEverOpened
+	const actualUrl = transport._hasReceivedBytes
 		? appendQueryParam(wsUrl, "replay", "0")
 		: wsUrl;
 	const socket = new WebSocket(actualUrl);
@@ -232,7 +237,6 @@ export function connect(
 	socket.addEventListener("open", () => {
 		if (transport.socket !== socket) return;
 		transport._reconnectAttempt = 0;
-		transport._hasEverOpened = true;
 		setConnectionState(transport, "open");
 		sendResize(transport, terminal.cols, terminal.rows);
 		if (options.initialCommand) {
@@ -253,6 +257,10 @@ export function connect(
 		// xterm without any decoding step.
 		if (event.data instanceof ArrayBuffer) {
 			terminal.write(new Uint8Array(event.data));
+			// Mark that we've taken delivery of at least one PTY-output frame.
+			// Subsequent reconnects will pass `?replay=0` so the server
+			// doesn't re-send what xterm already has.
+			transport._hasReceivedBytes = true;
 			return;
 		}
 

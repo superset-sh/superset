@@ -696,25 +696,28 @@ describe("DaemonSupervisor.update (Phase 2 fd-handoff)", () => {
 			},
 		);
 		child.unref();
-		const ready = await waitForSocket(socketPath, 5000);
-		assert.equal(ready, true);
-
-		// Open a session BEFORE auto-update kicks in. This is the
-		// "user has live shells" path — the failure must leave them alone.
-		const { DaemonClient } = await import("../terminal/DaemonClient/index.ts");
-		const client = new DaemonClient({ socketPath });
-		await client.connect();
-		const opened = await client.open("survivor", {
-			shell: "/bin/sh",
-			argv: ["-c", "echo alive; sleep 30"],
-			cols: 80,
-			rows: 24,
-		});
-		const shellPid = opened.pid;
-		assert.ok(shellPid > 0);
-		await client.dispose();
 
 		try {
+			const ready = await waitForSocket(socketPath, 5000);
+			assert.equal(ready, true);
+
+			// Open a session BEFORE auto-update kicks in. This is the
+			// "user has live shells" path — the failure must leave them alone.
+			const { DaemonClient } = await import(
+				"../terminal/DaemonClient/index.ts"
+			);
+			const client = new DaemonClient({ socketPath });
+			await client.connect();
+			const opened = await client.open("survivor", {
+				shell: "/bin/sh",
+				argv: ["-c", "echo alive; sleep 30"],
+				cols: 80,
+				rows: 24,
+			});
+			const shellPid = opened.pid;
+			assert.ok(shellPid > 0);
+			await client.dispose();
+
 			fs.mkdirSync(ptyDaemonManifestDir(orgId), {
 				recursive: true,
 				mode: 0o700,
