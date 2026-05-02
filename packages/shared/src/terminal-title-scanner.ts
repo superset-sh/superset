@@ -99,6 +99,17 @@ function concatBytes(a: Uint8Array, b: Uint8Array): Uint8Array {
 	return out;
 }
 
+// `subarray` returns a view into the original chunk's ArrayBuffer, which
+// would pin the entire (potentially multi-KB) chunk in memory just to hold
+// a few trailing bytes mid-OSC. Copy the slice into a fresh tiny buffer
+// before persisting in scanner state.
+function copySlice(input: Uint8Array, start: number, end?: number): Uint8Array {
+	const view = end === undefined ? input.subarray(start) : input.subarray(start, end);
+	const copy = new Uint8Array(view.length);
+	copy.set(view, 0);
+	return copy;
+}
+
 function parseTitlePayload(payload: string): string | null | undefined {
 	const firstSeparator = payload.indexOf(";");
 	if (firstSeparator <= 0) return undefined;
@@ -141,10 +152,11 @@ export function scanForTerminalTitle(
 		const oscStart = findOscStart(input, searchIndex);
 		if (!oscStart) {
 			// Hold a trailing ESC so a `]` arriving in the next chunk still gets
-			// recognized as OSC start.
+			// recognized as OSC start. Copy out the single byte rather than
+			// keeping a subarray view into the whole chunk.
 			state.buffer =
 				input.length > 0 && input[input.length - 1] === ESC_BYTE
-					? input.subarray(input.length - 1)
+					? copySlice(input, input.length - 1)
 					: new Uint8Array(0);
 			return { updates };
 		}
@@ -152,10 +164,12 @@ export function scanForTerminalTitle(
 		const payloadStart = oscStart.index + oscStart.length;
 		const terminator = findOscTerminator(input, payloadStart);
 		if (!terminator) {
-			const sequence = input.subarray(oscStart.index);
+			// Same memory-retention concern: copy the in-flight OSC slice out
+			// of the original chunk before persisting it in scanner state.
+			const sequenceLen = input.length - oscStart.index;
 			state.buffer =
-				sequence.length <= MAX_OSC_SEQUENCE_BYTES
-					? sequence
+				sequenceLen <= MAX_OSC_SEQUENCE_BYTES
+					? copySlice(input, oscStart.index)
 					: new Uint8Array(0);
 			return { updates };
 		}

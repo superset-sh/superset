@@ -1051,14 +1051,17 @@ export class Session {
 			clearTimeout(this.shellReadyTimeoutId);
 			this.shellReadyTimeoutId = null;
 		}
-		// Flush held marker bytes — they weren't part of a full marker
+		// Flush held marker bytes — they weren't part of a full marker.
+		// heldBytes is `number[]` after the byte-scanner refactor; decode to a
+		// utf-8 string for v1's emulator/event surface, which is string-based.
 		if (this.scanState.heldBytes.length > 0) {
-			this.enqueueEmulatorWrite(this.scanState.heldBytes);
+			const flushed = Buffer.from(this.scanState.heldBytes).toString("utf8");
+			this.enqueueEmulatorWrite(flushed);
 			this.broadcastEvent("data", {
 				type: "data",
-				data: this.scanState.heldBytes,
+				data: flushed,
 			} satisfies TerminalDataEvent);
-			this.scanState.heldBytes = "";
+			this.scanState.heldBytes.length = 0;
 		}
 		this.scanState.matchPos = 0;
 	}
