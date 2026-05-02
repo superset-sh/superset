@@ -51,7 +51,9 @@ export function VersionHistorySheet({
 			setSelectedVersionId(null);
 			return;
 		}
-		if (versions.length > 0 && !selectedVersionId) {
+		if (versions.length === 0) return;
+		const stillExists = versions.some((v) => v.id === selectedVersionId);
+		if (!stillExists) {
 			setSelectedVersionId(versions[0].id);
 		}
 	}, [open, versions, selectedVersionId]);
@@ -72,7 +74,6 @@ export function VersionHistorySheet({
 			apiTrpcClient.automation.versions.restore.mutate({ versionId }),
 		onSuccess: (restored) => {
 			queryClient.invalidateQueries({ queryKey: versionsQueryKey });
-			queryClient.invalidateQueries({ queryKey: ["automation", automationId] });
 			setSelectedVersionId(restored?.id ?? null);
 			toast.success("Prompt restored");
 		},

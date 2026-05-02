@@ -16,19 +16,29 @@ import { AutomationDetailHeader } from "./components/AutomationDetailHeader";
 import { AutomationDetailSidebar } from "./components/AutomationDetailSidebar";
 import { VersionHistorySheet } from "./components/VersionHistorySheet";
 
+type AutomationDetailSearch = {
+	history?: boolean;
+};
+
 export const Route = createFileRoute(
 	"/_authenticated/_dashboard/automations/$automationId/",
 )({
 	component: AutomationDetailPage,
+	validateSearch: (
+		search: Record<string, unknown>,
+	): AutomationDetailSearch => ({
+		history: search.history === true,
+	}),
 });
 
 const RECENT_RUNS_LIMIT = 10;
 
 function AutomationDetailPage() {
 	const { automationId } = Route.useParams();
+	const { history } = Route.useSearch();
 	const navigate = useNavigate();
 	const collections = useCollections();
-	const [historyOpen, setHistoryOpen] = useState(false);
+	const [historyOpen, setHistoryOpen] = useState(history ?? false);
 
 	const { data: automationRows } = useLiveQuery(
 		(q) =>

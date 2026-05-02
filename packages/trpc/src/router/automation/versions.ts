@@ -11,9 +11,22 @@ import { protectedProcedure } from "../../trpc";
 import { requireActiveOrgMembership } from "../utils/active-org";
 import { getAutomationForUser, recordPromptVersion } from "./helpers";
 
+const DEFAULT_VERSION_LIMIT = 100;
+const MAX_VERSION_LIMIT = 200;
+
 export const automationVersionsRouter = {
 	list: protectedProcedure
-		.input(z.object({ automationId: z.string().uuid() }))
+		.input(
+			z.object({
+				automationId: z.string().uuid(),
+				limit: z
+					.number()
+					.int()
+					.min(1)
+					.max(MAX_VERSION_LIMIT)
+					.default(DEFAULT_VERSION_LIMIT),
+			}),
+		)
 		.query(async ({ ctx, input }) => {
 			const organizationId = await requireActiveOrgMembership(ctx);
 			await getAutomationForUser(
@@ -38,7 +51,8 @@ export const automationVersionsRouter = {
 				.from(automationPromptVersions)
 				.leftJoin(users, eq(users.id, automationPromptVersions.authorUserId))
 				.where(eq(automationPromptVersions.automationId, input.automationId))
-				.orderBy(desc(automationPromptVersions.updatedAt));
+				.orderBy(desc(automationPromptVersions.updatedAt))
+				.limit(input.limit);
 
 			return rows;
 		}),
@@ -55,7 +69,17 @@ export const automationVersionsRouter = {
 					content: automationPromptVersions.content,
 				})
 				.from(automationPromptVersions)
-				.where(eq(automationPromptVersions.id, input.versionId))
+				.innerJoin(
+					automations,
+					eq(automations.id, automationPromptVersions.automationId),
+				)
+				.where(
+					and(
+						eq(automationPromptVersions.id, input.versionId),
+						eq(automations.organizationId, organizationId),
+						eq(automations.ownerUserId, ctx.session.user.id),
+					),
+				)
 				.limit(1);
 
 			if (!row) {
@@ -64,12 +88,6 @@ export const automationVersionsRouter = {
 					message: "Version not found",
 				});
 			}
-
-			await getAutomationForUser(
-				ctx.session.user.id,
-				organizationId,
-				row.automationId,
-			);
 
 			return row;
 		}),
@@ -86,7 +104,17 @@ export const automationVersionsRouter = {
 					content: automationPromptVersions.content,
 				})
 				.from(automationPromptVersions)
-				.where(eq(automationPromptVersions.id, input.versionId))
+				.innerJoin(
+					automations,
+					eq(automations.id, automationPromptVersions.automationId),
+				)
+				.where(
+					and(
+						eq(automationPromptVersions.id, input.versionId),
+						eq(automations.organizationId, organizationId),
+						eq(automations.ownerUserId, ctx.session.user.id),
+					),
+				)
 				.limit(1);
 
 			if (!version) {
@@ -95,12 +123,6 @@ export const automationVersionsRouter = {
 					message: "Version not found",
 				});
 			}
-
-			await getAutomationForUser(
-				ctx.session.user.id,
-				organizationId,
-				version.automationId,
-			);
 
 			const restored = await dbWs.transaction(async (tx) => {
 				await tx

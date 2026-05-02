@@ -1,5 +1,5 @@
 {
-  "id": "a4e225a0-6ab9-4eb9-a69d-8ae7e9007b7c",
+  "id": "526255a8-77d8-4a7d-9096-5b45619daaed",
   "prevId": "2174d3c6-e51b-4865-af8f-000b8f7e696f",
   "version": "7",
   "dialect": "postgresql",
@@ -2656,6 +2656,19 @@
             "id"
           ],
           "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "automation_prompt_versions_restored_from_version_id_fk": {
+          "name": "automation_prompt_versions_restored_from_version_id_fk",
+          "tableFrom": "automation_prompt_versions",
+          "tableTo": "automation_prompt_versions",
+          "columnsFrom": [
+            "restored_from_version_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
           "onUpdate": "no action"
         }
       },

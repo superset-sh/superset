@@ -1,7 +1,7 @@
 import type { AutomationPromptSource } from "@superset/db/schema";
 import { Badge } from "@superset/ui/badge";
 import { cn } from "@superset/ui/utils";
-import { format } from "date-fns";
+import { format, isSameYear } from "date-fns";
 
 interface VersionRowProps {
 	authorName: string | null;
@@ -18,12 +18,18 @@ export function VersionRow({
 	selected,
 	onSelect,
 }: VersionRowProps) {
-	const formatted = format(updatedAt, "MMMM d · h:mm a");
+	const formatted = format(
+		updatedAt,
+		isSameYear(updatedAt, new Date())
+			? "MMMM d · h:mm a"
+			: "MMMM d, yyyy · h:mm a",
+	);
 
 	return (
 		<button
 			type="button"
 			onClick={onSelect}
+			aria-pressed={selected}
 			className={cn(
 				"flex w-full flex-col items-start gap-px px-3 py-1.5 text-left transition-colors hover:bg-accent",
 				selected && "bg-accent",

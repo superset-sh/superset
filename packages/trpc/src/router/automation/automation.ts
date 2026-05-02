@@ -397,6 +397,13 @@ export const automationRouter = {
 					.where(eq(automations.id, input.id))
 					.returning();
 
+				if (!row) {
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: "Automation not found",
+					});
+				}
+
 				await recordPromptVersion(tx, {
 					automationId: input.id,
 					authorUserId: ctx.session.user.id,

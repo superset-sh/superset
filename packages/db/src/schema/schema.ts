@@ -819,7 +819,8 @@ export const automationPromptVersions = pgTable(
 			.defaultNow(),
 		updatedAt: timestamp("updated_at", { withTimezone: true })
 			.notNull()
-			.defaultNow(),
+			.defaultNow()
+			.$onUpdate(() => new Date()),
 	},
 	(t) => [
 		uniqueIndex("automation_prompt_versions_bucket_uniq")
@@ -829,6 +830,11 @@ export const automationPromptVersions = pgTable(
 			t.automationId,
 			t.updatedAt,
 		),
+		foreignKey({
+			columns: [t.restoredFromVersionId],
+			foreignColumns: [t.id],
+			name: "automation_prompt_versions_restored_from_version_id_fk",
+		}).onDelete("set null"),
 	],
 );
 
