@@ -11,7 +11,8 @@
 		"./protocol": {
 			"types": "./src/protocol/index.ts",
 			"default": "./src/protocol/index.ts"
-		}
+		},
+		"./package.json": "./package.json"
 	},
 	"bin": {
 		"pty-daemon": "./src/main.ts"

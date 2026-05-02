@@ -15,13 +15,13 @@
 //
 // Logs go to stderr; nothing on stdout.
 
-import * as fs from "node:fs";
 import * as os from "node:os";
-import * as path from "node:path";
-import { fileURLToPath } from "node:url";
+import packageJson from "../package.json" with { type: "json" };
 import type { HandoffMessage } from "./protocol/index.ts";
 import { Server } from "./Server/index.ts";
 import { clearSnapshot, readSnapshot } from "./SessionStore/index.ts";
+
+const DAEMON_VERSION: string = packageJson.version;
 
 interface CliArgs {
 	socket: string;
@@ -71,7 +71,7 @@ async function runFresh(): Promise<void> {
 	// the version to a known value. Falls back to the package.json read
 	// when env is unset — that's the deployed-artifact source of truth.
 	const daemonVersion =
-		process.env.SUPERSET_PTY_DAEMON_VERSION ?? readPackageVersion();
+		process.env.SUPERSET_PTY_DAEMON_VERSION ?? DAEMON_VERSION;
 	const server = new Server({
 		socketPath: args.socket,
 		daemonVersion,
@@ -118,7 +118,7 @@ async function runHandoffReceiver(): Promise<void> {
 	// Ignore env in handoff mode: an old-bundle predecessor won't strip
 	// SUPERSET_PTY_DAEMON_VERSION when spawning us, and trusting it
 	// would make us report the predecessor's stale version forever.
-	const daemonVersion = readPackageVersion();
+	const daemonVersion = DAEMON_VERSION;
 	log(`daemonVersion=${daemonVersion}`);
 
 	let snapshot: ReturnType<typeof readSnapshot>;
@@ -211,19 +211,6 @@ function wireShutdown(server: Server): void {
 	};
 	process.on("SIGINT", () => void shutdown("SIGINT"));
 	process.on("SIGTERM", () => void shutdown("SIGTERM"));
-}
-
-function readPackageVersion(): string {
-	try {
-		const here = path.dirname(fileURLToPath(import.meta.url));
-		const pkgPath = path.resolve(here, "..", "package.json");
-		const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf8")) as {
-			version?: string;
-		};
-		return pkg.version ?? "0.0.0";
-	} catch {
-		return "0.0.0";
-	}
 }
 
 main().catch((err) => {
