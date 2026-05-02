@@ -425,7 +425,12 @@ export class HostServiceCoordinator extends EventEmitter {
 		let child: ReturnType<typeof childProcess.spawn>;
 		try {
 			child = childProcess.spawn(process.execPath, [this.scriptPath], {
-				detached: true,
+				// In dev, keep host-service attached so it dies with Electron when
+				// `bun dev` is killed — the existing serve.ts dev-shutdown then
+				// cascades SIGTERM into pty-daemon. Production stays detached so
+				// PTYs survive Electron restarts via manifest-based adoption
+				// (see HOST_SERVICE_LIFECYCLE.md).
+				detached: !isDev,
 				stdio,
 				env: childEnv,
 				// Avoid a flashing CMD window on Windows for the detached child.
@@ -467,7 +472,9 @@ export class HostServiceCoordinator extends EventEmitter {
 			removeManifest(organizationId);
 			this.emitStatus(organizationId, "stopped", "running");
 		});
-		child.unref();
+		// Only unref in production, where the child is detached and meant to
+		// outlive the parent. In dev we want Electron's exit to take it down.
+		if (!isDev) child.unref();
 
 		const endpoint = `http://127.0.0.1:${port}`;
 		const healthy = await pollHealthCheck(endpoint, secret);
