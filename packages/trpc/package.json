@@ -35,6 +35,7 @@
 		"@vercel/blob": "^2.0.0",
 		"@vercel/kv": "^3.0.0",
 		"drizzle-orm": "0.45.2",
+		"posthog-node": "^5.24.7",
 		"resend": "^4.0.1",
 		"superjson": "^2.2.5",
 		"zod": "^4.3.5"

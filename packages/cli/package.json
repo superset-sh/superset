@@ -20,6 +20,7 @@
 		"@superset/trpc": "workspace:*",
 		"@trpc/client": "^11.7.1",
 		"date-fns": "^4.1.0",
+		"posthog-node": "^5.24.7",
 		"superjson": "^2.2.5"
 	},
 	"devDependencies": {

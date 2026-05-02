@@ -17,6 +17,12 @@ export default defineConfig({
 		"process.env.SUPERSET_WEB_URL": JSON.stringify(
 			process.env.SUPERSET_WEB_URL ?? "https://app.superset.sh",
 		),
+		"process.env.SUPERSET_POSTHOG_KEY": JSON.stringify(
+			process.env.SUPERSET_POSTHOG_KEY ?? "",
+		),
+		"process.env.SUPERSET_POSTHOG_HOST": JSON.stringify(
+			process.env.SUPERSET_POSTHOG_HOST ?? "",
+		),
 		"process.env.SUPERSET_VERSION": JSON.stringify(VERSION),
 	},
 	globals: {
