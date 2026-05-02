@@ -13,6 +13,7 @@
 
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { fileURLToPath } from "node:url";
 
 interface Marker {
 	pattern: RegExp;
@@ -27,7 +28,7 @@ const MARKERS: Marker[] = [
 			"runHandoffReceiver function — Phase 2 successor entry point. " +
 			"If missing, the bundler dead-code-eliminated the receiver " +
 			"branch, which means the handoff signal is being statically " +
-			"inlined. Verify the entry uses `process.argv.includes(\"--handoff\")`, NOT `process.env.X`.",
+			'inlined. Verify the entry uses `process.argv.includes("--handoff")`, NOT `process.env.X`.',
 	},
 	{
 		pattern: /--handoff/,
@@ -61,7 +62,9 @@ const MARKERS: Marker[] = [
 ];
 
 function parseArgs(argv: string[]): { bundle: string } {
-	const here = path.dirname(new URL(import.meta.url).pathname);
+	// fileURLToPath, not URL.pathname — the latter returns a URL-encoded string
+	// that doesn't round-trip on Windows (drive-letter paths break).
+	const here = path.dirname(fileURLToPath(import.meta.url));
 	let bundle = path.resolve(here, "..", "dist", "main", "pty-daemon.js");
 	for (const arg of argv) {
 		if (arg.startsWith("--bundle=")) {
@@ -97,7 +100,7 @@ function main(): void {
 			`[check-pty-daemon-bundle] FAIL: ${failures.length} marker(s) missing in ${bundle}:\n` +
 				failures.join("\n\n") +
 				"\n\nThis is the Phase 2 fd-handoff regression class. See\n" +
-				"  packages/pty-daemon/src/main.ts (`process.argv.includes(\"--handoff\")`)\n" +
+				'  packages/pty-daemon/src/main.ts (`process.argv.includes("--handoff")`)\n' +
 				"  apps/desktop/src/main/pty-daemon/index.ts (mirror of package main)\n" +
 				"for the runtime conditions that need to survive bundling.",
 		);

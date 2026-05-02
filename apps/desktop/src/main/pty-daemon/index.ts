@@ -30,11 +30,7 @@
  * built-in main.ts directly.
  */
 
-import {
-	clearSnapshot,
-	readSnapshot,
-	Server,
-} from "@superset/pty-daemon";
+import { clearSnapshot, readSnapshot, Server } from "@superset/pty-daemon";
 import type { HandoffMessage } from "@superset/pty-daemon/protocol";
 
 interface CliArgs {
@@ -113,7 +109,20 @@ async function runHandoffReceiver(): Promise<void> {
 	const daemonVersion = process.env.SUPERSET_PTY_DAEMON_VERSION ?? "0.1.0";
 	log(`daemonVersion=${daemonVersion}`);
 
-	const snapshot = readSnapshot(snapshotPath);
+	let snapshot: ReturnType<typeof readSnapshot>;
+	try {
+		snapshot = readSnapshot(snapshotPath);
+	} catch (err) {
+		const reason = (err as Error).message;
+		log(`SNAPSHOT READ FAILED: ${reason}`);
+		const nak: HandoffMessage = {
+			type: "upgrade-nak",
+			reason: `snapshot read failed: ${reason}`,
+		};
+		process.send?.(nak);
+		setTimeout(() => process.exit(1), 50).unref();
+		return;
+	}
 	log(`read snapshot: sessions=${snapshot.sessions.length}`);
 	const server = new Server({ socketPath, daemonVersion });
 

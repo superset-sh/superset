@@ -6,11 +6,12 @@
 //   pty-daemon --socket=/path/to/sock [--buffer-bytes=65536]
 //
 // Usage (handoff successor — invoked indirectly by a predecessor daemon):
-//   env SUPERSET_PTY_DAEMON_HANDOFF=1
-//       SUPERSET_PTY_DAEMON_SNAPSHOT=/path/to/snapshot.json
-//       SUPERSET_PTY_DAEMON_SOCKET=/path/to/sock
-//       pty-daemon
+//   pty-daemon --handoff --snapshot=/path/to/snapshot --socket=/path/to/sock
 //   (PTY master fds are inherited via stdio; control fd is 'ipc'.)
+//
+// The mode signal must be on argv, NOT env: bundlers (Bun, esbuild) inline
+// `process.env.X` references statically and DCE the unused branch — argv is
+// fully dynamic and survives every bundler we run.
 //
 // Logs go to stderr; nothing on stdout.
 
@@ -90,7 +91,9 @@ async function runFresh(): Promise<void> {
  */
 async function runHandoffReceiver(): Promise<void> {
 	const log = (msg: string) =>
-		process.stderr.write(`[pty-daemon handoff-recv pid=${process.pid}] ${msg}\n`);
+		process.stderr.write(
+			`[pty-daemon handoff-recv pid=${process.pid}] ${msg}\n`,
+		);
 
 	log("entered runHandoffReceiver");
 	// Pull snapshot + socket paths from argv (predecessor passes them as
@@ -116,7 +119,20 @@ async function runHandoffReceiver(): Promise<void> {
 		process.env.SUPERSET_PTY_DAEMON_VERSION ?? readPackageVersion();
 	log(`daemonVersion=${daemonVersion}`);
 
-	const snapshot = readSnapshot(snapshotPath);
+	let snapshot: ReturnType<typeof readSnapshot>;
+	try {
+		snapshot = readSnapshot(snapshotPath);
+	} catch (err) {
+		const reason = (err as Error).message;
+		log(`SNAPSHOT READ FAILED: ${reason}`);
+		const nak: HandoffMessage = {
+			type: "upgrade-nak",
+			reason: `snapshot read failed: ${reason}`,
+		};
+		process.send?.(nak);
+		setTimeout(() => process.exit(1), 50).unref();
+		return;
+	}
 	log(`read snapshot: sessions=${snapshot.sessions.length}`);
 	const server = new Server({ socketPath, daemonVersion });
 

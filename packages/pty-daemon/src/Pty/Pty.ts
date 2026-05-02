@@ -102,13 +102,9 @@ export function spawn({ meta }: SpawnOptions): Pty {
 	// and leaves no clue what went wrong. Surface the most common cause
 	// ahead of the native call so the caller (and the user) can see it.
 	if (meta.cwd !== undefined) {
+		let stat: fs.Stats;
 		try {
-			const stat = fs.statSync(meta.cwd);
-			if (!stat.isDirectory()) {
-				throw new Error(
-					`spawn: cwd is not a directory: ${meta.cwd}`,
-				);
-			}
+			stat = fs.statSync(meta.cwd);
 		} catch (err) {
 			const e = err as NodeJS.ErrnoException;
 			if (e.code === "ENOENT") {
@@ -116,7 +112,12 @@ export function spawn({ meta }: SpawnOptions): Pty {
 					`spawn: cwd does not exist: ${meta.cwd} (workspace may have been deleted or moved)`,
 				);
 			}
-			throw new Error(`spawn: cwd not accessible: ${meta.cwd} (${e.code ?? e.message})`);
+			throw new Error(
+				`spawn: cwd not accessible: ${meta.cwd} (${e.code ?? e.message})`,
+			);
+		}
+		if (!stat.isDirectory()) {
+			throw new Error(`spawn: cwd is not a directory: ${meta.cwd}`);
 		}
 	}
 	let term: nodePty.IPty;
@@ -210,6 +211,11 @@ class AdoptedPty implements Pty {
 		};
 		this.reader.on("end", () => onExit({ code: null, signal: null }));
 		this.reader.on("error", () => onExit({ code: null, signal: null }));
+		// Streams without an 'error' listener crash the process. Writer
+		// errors typically mean the slave-side closed mid-write (shell just
+		// exited) — drive the same exit path as reader errors instead of
+		// taking down the whole daemon.
+		this.writer.on("error", () => onExit({ code: null, signal: null }));
 		this.livenessTimer = setInterval(() => {
 			if (!isPidAlive(this.pid)) onExit({ code: null, signal: null });
 		}, 1000);
@@ -234,10 +240,14 @@ class AdoptedPty implements Pty {
 		// One process spawn per resize — resize is rare (window-drag
 		// throttled by xterm.js), so this is fine.
 		try {
-			childProcess.spawnSync("stty", ["cols", String(cols), "rows", String(rows)], {
-				stdio: [this.fd, "ignore", "ignore"],
-				timeout: 1000,
-			});
+			childProcess.spawnSync(
+				"stty",
+				["cols", String(cols), "rows", String(rows)],
+				{
+					stdio: [this.fd, "ignore", "ignore"],
+					timeout: 1000,
+				},
+			);
 		} catch {
 			// Best-effort. If stty isn't available, the meta still
 			// reflects the requested dims; the kernel side stays stale.

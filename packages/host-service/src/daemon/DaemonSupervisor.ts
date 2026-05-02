@@ -48,6 +48,7 @@ interface DaemonInstance {
 
 const SOCKET_READY_TIMEOUT_MS = 5_000;
 const VERSION_PROBE_TIMEOUT_MS = 1_500;
+const HANDOFF_PREDECESSOR_EXIT_TIMEOUT_MS = 3_000;
 
 /**
  * Crash supervision parameters. If the daemon for an organization crashes
@@ -135,9 +136,7 @@ export class DaemonSupervisor {
 	 */
 	private readonly updateInFlight = new Map<
 		string,
-		Promise<
-			{ ok: true; successorPid: number } | { ok: false; reason: string }
-		>
+		Promise<{ ok: true; successorPid: number } | { ok: false; reason: string }>
 	>();
 
 	constructor(opts: DaemonSupervisorOptions) {
@@ -250,7 +249,9 @@ export class DaemonSupervisor {
 		};
 
 		const client = new DaemonClient({ socketPath: instance.socketPath });
-		let result: { ok: true; successorPid: number } | { ok: false; reason: string };
+		let result:
+			| { ok: true; successorPid: number }
+			| { ok: false; reason: string };
 		try {
 			await client.connect();
 			result = await client.prepareUpgrade();
@@ -269,8 +270,16 @@ export class DaemonSupervisor {
 			return result;
 		}
 
-		// Successor is live. Probe its version (it may have bumped since the
-		// predecessor adopted), then refresh manifest + instance.
+		// Wait for the predecessor PID to actually exit before probing the
+		// new socket. Without this gate, probeDaemonVersion can race the
+		// predecessor's finalizeHandoff (close + 50 ms exit timer) and
+		// connect to the still-alive predecessor — recording its OLD
+		// version as the successor's running version, which leaves
+		// updatePending falsely true and triggers an infinite re-update.
+		await waitForPidExit(instance.pid, HANDOFF_PREDECESSOR_EXIT_TIMEOUT_MS);
+
+		// Successor is live and bound (or about to be — listenWithRetry
+		// covers any remaining unlink/bind race). Probe its version.
 		const probedVersion = await probeDaemonVersion(
 			instance.socketPath,
 			VERSION_PROBE_TIMEOUT_MS,
@@ -943,6 +952,25 @@ export async function listDaemonSessions(
 			}
 		});
 	});
+}
+
+/**
+ * Poll `kill(pid, 0)` until the process is gone or the deadline hits.
+ * Used to gate a post-handoff version probe on predecessor exit — without
+ * this gate, the probe can connect to the still-alive predecessor and
+ * record its (old) version as the successor's, leaving updatePending true.
+ */
+async function waitForPidExit(pid: number, timeoutMs: number): Promise<void> {
+	const deadline = Date.now() + timeoutMs;
+	while (Date.now() < deadline) {
+		try {
+			process.kill(pid, 0);
+		} catch (err) {
+			if ((err as NodeJS.ErrnoException).code === "ESRCH") return;
+			// EPERM: process exists but isn't ours — keep waiting.
+		}
+		await new Promise((r) => setTimeout(r, 25));
+	}
 }
 
 /**

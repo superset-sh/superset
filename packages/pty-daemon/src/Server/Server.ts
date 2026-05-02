@@ -25,8 +25,8 @@ import {
 } from "../protocol/index.ts";
 import type { HandoffSnapshot, Session } from "../SessionStore/index.ts";
 import {
-	serializeSessions,
 	SessionStore,
+	serializeSessions,
 	writeSnapshot,
 } from "../SessionStore/index.ts";
 
@@ -196,6 +196,14 @@ export class Server {
 		process.stderr.write(
 			`[pty-daemon prep-upgrade pid=${process.pid}] spawning successor: ${process.execPath} ${[...process.execArgv, scriptPath].join(" ")} (sessions=${liveSessions.length}, ptyFds=${liveSessions.map((s) => s.pty.getMasterFd()).join(",")})\n`,
 		);
+		// Strip SUPERSET_PTY_DAEMON_VERSION from the successor's env: if the
+		// supervisor pinned a version when it spawned us, the successor would
+		// inherit that pin and report the *old* version even though it's the
+		// new bundle. The supervisor would then think the upgrade never took
+		// effect and loop forever. Successor falls back to readPackageVersion()
+		// which reads the package.json shipped alongside the new bundle.
+		const successorEnv: NodeJS.ProcessEnv = { ...process.env };
+		delete successorEnv.SUPERSET_PTY_DAEMON_VERSION;
 		const child = childProcess.spawn(
 			process.execPath,
 			[
@@ -207,7 +215,7 @@ export class Server {
 			],
 			{
 				stdio,
-				env: process.env,
+				env: successorEnv,
 				detached: false,
 			},
 		);
@@ -221,12 +229,19 @@ export class Server {
 
 		const result = await waitForHandoffAck(child);
 		if (!result.ok) {
-			// Successor never acked. Leave snapshot for diagnostics; the
-			// supervisor will clean stale handoff state on next ensure().
 			try {
 				child.kill("SIGKILL");
 			} catch {
 				// already gone
+			}
+			// Drop the snapshot so a future handoff doesn't trip over a
+			// stale file. Best-effort: a handoff that fails before the
+			// successor reads the snapshot leaves it pointing nowhere
+			// useful, and `clearSnapshot` is idempotent against ENOENT.
+			try {
+				fs.unlinkSync(snapshotPath);
+			} catch {
+				// already gone or never written
 			}
 			return result;
 		}
@@ -495,11 +510,7 @@ function waitForHandoffAck(
 			const msg = raw as Partial<HandoffMessage>;
 			if (msg && typeof msg === "object" && msg.type === "upgrade-ack") {
 				settle({ ok: true, successorPid: msg.successorPid ?? -1 });
-			} else if (
-				msg &&
-				typeof msg === "object" &&
-				msg.type === "upgrade-nak"
-			) {
+			} else if (msg && typeof msg === "object" && msg.type === "upgrade-nak") {
 				settle({ ok: false, reason: msg.reason ?? "successor sent nak" });
 			}
 		};
