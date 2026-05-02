@@ -1,6 +1,5 @@
 export { addLaunchPanes, type LaunchPaneInput } from "./addLaunchPanes";
 export {
-	__resetWorkspacePaneRegistryForTests,
 	dropWorkspacePaneStore,
 	getOrCreateWorkspacePaneStore,
 	initWorkspacePaneRegistry,

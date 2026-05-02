@@ -61,8 +61,16 @@ export function CollectionsProvider({ children }: { children: ReactNode }) {
 	// the active org's v2WorkspaceLocalState collection synchronously, so
 	// callers of getOrCreateWorkspacePaneStore — including the workspace
 	// route's `useState(() => ...)` initializer — see an initialized
-	// registry before they run. initWorkspacePaneRegistry is idempotent
-	// for the same deps, so strict-mode double-invokes are safe.
+	// registry before they run.
+	//
+	// Side effects in `useMemo` are not React-blessed (the docs reserve
+	// the right to recompute or discard memo work). The synchrony
+	// requirement here can't be satisfied by `useEffect`, which runs
+	// after render commits. Mitigation: `initWorkspacePaneRegistry`
+	// keys teardown on the `v2WorkspaceLocalState` *instance*, so any
+	// recomputation that happens to receive the same collection is a
+	// no-op rather than a state-clearing event. The only real teardown
+	// is on org switch, when the underlying collection actually changes.
 	const collections = useMemo(() => {
 		if (!activeOrganizationId) return null;
 		const next = getCollections(activeOrganizationId);

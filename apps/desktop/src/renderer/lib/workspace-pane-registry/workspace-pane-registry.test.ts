@@ -13,6 +13,9 @@ import {
 	initWorkspacePaneRegistry,
 } from "./workspace-pane-registry";
 
+// Test-only — imported directly from the impl file so it doesn't leak
+// onto the public barrel (`./index.ts`).
+
 let collection: ReturnType<typeof makeCollection>;
 
 const PROJECT_ID = crypto.randomUUID();
@@ -141,6 +144,29 @@ describe("workspace-pane-registry", () => {
 			}),
 		).not.toThrow();
 		expect(store.getState().tabs).toHaveLength(1);
+	});
+
+	it("persists pre-mount panes when the row is later inserted with empty layout", async () => {
+		// Simulates the addLaunchPanes-before-route-mount flow: tabs are
+		// added to the store before the workspace row exists, then
+		// `ensureWorkspaceInSidebar` inserts the row with EMPTY paneLayout.
+		// The registry must (a) not wipe the in-memory tabs, and (b) push
+		// the store's state into the freshly-inserted row so the data
+		// survives an immediate app restart.
+		const store = getOrCreateWorkspacePaneStore(WORKSPACE_ID);
+		store.getState().addTab({
+			panes: [{ kind: "terminal", data: { terminalId: "t1" } }],
+		});
+		expect(store.getState().tabs).toHaveLength(1);
+
+		seedRow(WORKSPACE_ID); // inserts with EMPTY paneLayout
+		await new Promise((r) => setTimeout(r, 0));
+
+		// Store still has the pre-mount tab.
+		expect(store.getState().tabs).toHaveLength(1);
+		// Row has been updated with the pre-mount tab too.
+		const row = collection.get(WORKSPACE_ID);
+		expect(row?.paneLayout.tabs).toHaveLength(1);
 	});
 
 	it("pushes external row updates into the store", async () => {

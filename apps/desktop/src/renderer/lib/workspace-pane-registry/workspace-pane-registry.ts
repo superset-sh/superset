@@ -69,15 +69,19 @@ function deepSortKeys(value: unknown): unknown {
  * Wire the registry to the active org's collections. Call once at app
  * boot, after `CollectionsProvider` resolves an active organization.
  *
- * Calling this with a new collections instance (e.g. after switching
- * organizations) drops every existing store and re-initializes against
- * the new collections. The previous workspaces' panes won't be
- * accessible until they're re-opened against the new org's data.
+ * Calling this with a new `v2WorkspaceLocalState` collection instance
+ * (e.g. after switching organizations) drops every existing store and
+ * re-initializes against the new collection. Calling with the same
+ * collection instance is a no-op — important because the call site
+ * passes a fresh wrapper object each time, but the underlying
+ * collection is what determines org identity. Without the
+ * instance-level check, an accidental memo recomputation would silently
+ * drop every live store.
  */
 export function initWorkspacePaneRegistry(
 	nextDeps: WorkspacePaneRegistryDeps,
 ): void {
-	if (deps && deps !== nextDeps) {
+	if (deps && deps.v2WorkspaceLocalState !== nextDeps.v2WorkspaceLocalState) {
 		for (const entry of registry.values()) {
 			entry.unsubscribeStore();
 			entry.unsubscribeCollection();
@@ -156,19 +160,41 @@ export function getOrCreateWorkspacePaneStore(
 					| undefined;
 				if (!layout) continue;
 				const incoming = getSnapshot(layout);
-				// Always compare against the current store snapshot — the row
-				// state and store state should be structurally equivalent when
-				// the row event is an echo of our own write. Tanstack DB also
-				// delivers existing rows as initial-state `insert` events on
-				// subscribe; this guard ensures those don't wipe the store.
 				const currentState = store.getState();
 				const storeSnapshot = getSnapshot({
 					version: currentState.version,
 					tabs: currentState.tabs,
 					activeTabId: currentState.activeTabId,
 				});
+				// Already in sync. (This branch also catches Tanstack DB's
+				// initial-state `insert` events whose value matches what we
+				// seeded from when the store was created.)
 				if (incoming === storeSnapshot) {
 					lastSyncedSnapshot = incoming;
+					continue;
+				}
+				// Three-way reconciliation: incoming (row), storeSnapshot
+				// (memory), and lastSyncedSnapshot (last seen agreement).
+				//
+				// If storeSnapshot !== lastSyncedSnapshot, the store has
+				// unsynced mutations the row hasn't seen yet — typically
+				// addLaunchPanes ran before the row existed, then
+				// ensureWorkspaceInSidebar inserted the row with EMPTY
+				// paneLayout. Push the store back so those panes persist.
+				//
+				// Otherwise, the row diverges from the store while the store
+				// is still in sync with what we last wrote — the row was
+				// modified externally (migration, future cross-tab sync).
+				// Pull the row into the store.
+				if (storeSnapshot !== lastSyncedSnapshot) {
+					activeDeps.v2WorkspaceLocalState.update(workspaceId, (draft) => {
+						draft.paneLayout = {
+							version: currentState.version,
+							tabs: currentState.tabs,
+							activeTabId: currentState.activeTabId,
+						};
+					});
+					lastSyncedSnapshot = storeSnapshot;
 					continue;
 				}
 				lastSyncedSnapshot = incoming;

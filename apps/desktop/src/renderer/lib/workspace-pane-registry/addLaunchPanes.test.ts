@@ -12,6 +12,9 @@ import {
 	workspaceLocalStateSchema,
 } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal/schema";
 import { addLaunchPanes } from "./addLaunchPanes";
+// __resetWorkspacePaneRegistryForTests is imported directly from the impl
+// file rather than the barrel — it's a test-only helper and shouldn't
+// leak onto the public API surface.
 import {
 	__resetWorkspacePaneRegistryForTests,
 	getOrCreateWorkspacePaneStore,
