@@ -69,9 +69,27 @@ export const createContext = async ({
 	req: Request;
 	resHeaders: Headers;
 }) => {
-	let session = await auth.api.getSession({
-		headers: req.headers,
-	});
+	let session: Session | null = null;
+
+	try {
+		session = await auth.api.getSession({
+			headers: req.headers,
+		});
+	} catch (error: unknown) {
+		// Better Auth throws SignatureError (from jose) when the session cookie
+		// was signed with a different BETTER_AUTH_SECRET — e.g. after a secret
+		// rotation. Treat it the same as "no session" so the client receives a
+		// clean 401 and can re-authenticate instead of a noisy 500.
+		const isSignatureError =
+			error instanceof Error && error.name === "SignatureError";
+		if (!isSignatureError) {
+			throw error;
+		}
+		console.warn(
+			"[auth] Session signature verification failed — treating as unauthenticated. " +
+				"The client should re-authenticate.",
+		);
+	}
 
 	if (!session) {
 		session = await sessionFromOAuthBearer(req.headers);
