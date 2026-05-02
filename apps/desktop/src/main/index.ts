@@ -214,13 +214,10 @@ app.on("before-quit", async (event) => {
 
 	isQuitting = true;
 	try {
-		// Production: release manifests so services keep running for re-adoption
-		// on next launch (the survival contract). Dev: services are spawned
-		// non-detached + ref'd, so a quiet `releaseAll()` would orphan them to
-		// init on app exit. Stop them explicitly instead and dispose terminal-host.
 		if (isDev) {
 			await runDevQuitCleanup();
 		} else {
+			// Prod: leave services running so the next launch re-adopts via manifest.
 			getHostServiceCoordinator().releaseAll();
 		}
 		shutdownTanstackDbPersistence();
@@ -232,9 +229,8 @@ app.on("before-quit", async (event) => {
 });
 
 /**
- * Stop the dev-spawned host-service and terminal-host children. Production
- * lets these survive (manifest adoption); in dev they're spawned attached and
- * need an explicit kill on app exit so they don't reparent to init.
+ * Dev only — kill host-service + terminal-host children. They're spawned
+ * attached + ref'd in dev, so they'd reparent to init without an explicit stop.
  */
 async function runDevQuitCleanup(): Promise<void> {
 	getHostServiceCoordinator().stopAll();
@@ -263,8 +259,6 @@ if (process.env.NODE_ENV === "development") {
 		if (signalHandled) return;
 		signalHandled = true;
 		console.log(`[main] Received ${signal}, quitting...`);
-		// Stop dev-spawned children before exiting; they're attached + ref'd in
-		// dev so a bare `app.exit(0)` would leak them as init-orphans.
 		void runDevQuitCleanup().finally(() => app.exit(0));
 	};
 

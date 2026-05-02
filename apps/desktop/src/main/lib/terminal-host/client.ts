@@ -1185,10 +1185,8 @@ export class TerminalHostClient extends EventEmitter {
 				logFd = -1;
 			}
 
-			// In dev, keep the daemon attached so it dies with Electron when
-			// `bun dev` is killed. Production stays detached so PTYs survive
-			// Electron restarts (the daemon owns long-lived terminal sessions
-			// over a Unix socket).
+			// Prod: detached so terminal sessions survive Electron restarts.
+			// Dev: attached so it dies with Electron on `bun dev` kill.
 			const isDev = !app.isPackaged;
 			let child: ReturnType<typeof spawn> | null = null;
 			try {
@@ -1221,8 +1219,6 @@ export class TerminalHostClient extends EventEmitter {
 				);
 			}
 
-			// Unref so the parent can exit independently — only in production,
-			// where the child is detached and meant to outlive Electron.
 			if (!isDev) child.unref();
 
 			// Wait for daemon to start
