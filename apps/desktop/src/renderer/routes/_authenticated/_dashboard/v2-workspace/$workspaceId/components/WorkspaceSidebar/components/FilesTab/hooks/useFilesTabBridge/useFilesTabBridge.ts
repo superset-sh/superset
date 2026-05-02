@@ -27,37 +27,23 @@ export interface FilesTabBridge {
 	fetchDir(relDir: string): Promise<void>;
 	/** Re-fetch every loaded directory and resetPaths so drift can't accumulate. */
 	doRefresh(): Promise<void>;
-	/**
-	 * Rekey every descendant of `oldDir` to live under `newDir` in our
-	 * bookkeeping. Call after a user-driven folder rename so subsequent
-	 * fs:events / lookups don't target stale prefixes.
-	 */
-	rekeyDescendants(oldDir: string, newDir: string): void;
 	isRefreshing: boolean;
 }
 
 /**
  * Bridges Pierre's path-flat tree model to our lazy-loading useFileTree backend.
  *
- * Owns three pieces of mutable bookkeeping (mutated in place — never reassigned —
- * so consumers can hold references safely):
+ * Owns three pieces of mutable bookkeeping:
  *   - `knownPaths`: union of every path Pierre has been told about
  *   - `loadedDirs`: directories whose children we've already fetched
  *   - `pendingCreates`: placeholder paths from the inline "New" flow
  *
- * Drives four side-effects:
+ * Drives three side-effects:
  *   - Initial load: fetch root on mount / workspace switch
  *   - Lazy expand: subscribe to `model` and fetch children of any directory
  *     that becomes expanded but isn't loaded yet
  *   - Live sync: apply fs:events (create / delete / rename / overflow) to the
  *     model + bookkeeping, falling back to a full refresh on overflow
- *   - Pending-create cleanup: when Pierre's renaming flow is canceled with
- *     `removeIfCanceled`, it fires a `remove` mutation; we use that to drop
- *     the placeholder from our bookkeeping
- *
- * Workspace-switch races: every async listing captures a `versionRef` snapshot
- * and aborts its mutations if `versionRef` advanced (i.e. workspace/root
- * changed) before the await resolved.
  */
 export function useFilesTabBridge({
 	model,
@@ -67,17 +53,10 @@ export function useFilesTabBridge({
 	const utils = workspaceTrpc.useUtils();
 	const [isRefreshing, setIsRefreshing] = useState(false);
 
-	// Sets/Maps are mutated in place (clear() on reset, never reassigned) so
-	// consumers can read `bridge.knownPaths` once and trust the reference
-	// across renders.
 	const knownPathsRef = useRef(new Set<string>());
 	const loadedDirsRef = useRef(new Set<string>());
 	const loadingDirsRef = useRef(new Set<string>());
 	const pendingCreatesRef = useRef(new Map<string, "file" | "folder">());
-
-	// Bumped on workspace/root change so async listings started against an
-	// old workspace can detect they're stale and bail out before mutating.
-	const versionRef = useRef(0);
 
 	const fetchDir = useCallback(
 		async (relDir: string): Promise<void> => {
@@ -85,13 +64,11 @@ export function useFilesTabBridge({
 			if (loadingDirsRef.current.has(relDir)) return;
 			if (loadedDirsRef.current.has(relDir)) return;
 			loadingDirsRef.current.add(relDir);
-			const startVersion = versionRef.current;
 			try {
 				const result = await utils.filesystem.listDirectory.fetch({
 					workspaceId,
 					absolutePath: toAbs(rootPath, relDir),
 				});
-				if (versionRef.current !== startVersion) return;
 				const ops: { type: "add"; path: string }[] = [];
 				for (const entry of result.entries) {
 					const rel = toRel(rootPath, entry.absolutePath);
@@ -103,7 +80,6 @@ export function useFilesTabBridge({
 				if (ops.length > 0) model.batch(ops);
 				loadedDirsRef.current.add(relDir);
 			} catch (error) {
-				if (versionRef.current !== startVersion) return;
 				console.error("[v2 FilesTab] listDirectory failed", { relDir, error });
 			} finally {
 				loadingDirsRef.current.delete(relDir);
@@ -115,12 +91,11 @@ export function useFilesTabBridge({
 	const doRefresh = useCallback(async (): Promise<void> => {
 		if (!rootPath || !workspaceId) return;
 		setIsRefreshing(true);
-		const startVersion = versionRef.current;
 		try {
 			const dirsToReload = Array.from(loadedDirsRef.current).sort(
 				(a, b) => a.split("/").length - b.split("/").length,
 			);
-			loadedDirsRef.current.clear();
+			loadedDirsRef.current = new Set();
 
 			// Collect fresh listings into a flat set then resetPaths so what
 			// Pierre shows can't drift from what we think we know.
@@ -131,7 +106,6 @@ export function useFilesTabBridge({
 						{ workspaceId, absolutePath: toAbs(rootPath, dir) },
 						{ staleTime: 0 },
 					);
-					if (versionRef.current !== startVersion) return;
 					for (const entry of result.entries) {
 						const rel = toRel(rootPath, entry.absolutePath);
 						freshPaths.add(entry.kind === "directory" ? `${rel}/` : rel);
@@ -144,24 +118,20 @@ export function useFilesTabBridge({
 					});
 				}
 			}
-			if (versionRef.current !== startVersion) return;
-			knownPathsRef.current.clear();
-			for (const path of freshPaths) knownPathsRef.current.add(path);
+			knownPathsRef.current = freshPaths;
 			model.resetPaths(Array.from(freshPaths));
 		} finally {
 			setIsRefreshing(false);
 		}
 	}, [model, rootPath, workspaceId, utils.filesystem.listDirectory]);
 
-	// Reset + initial load on workspace switch. Bumping versionRef invalidates
-	// any in-flight fetches from the previous workspace.
+	// Reset + initial load on workspace switch.
 	useEffect(() => {
 		if (!rootPath || !workspaceId) return;
-		versionRef.current += 1;
-		knownPathsRef.current.clear();
-		loadedDirsRef.current.clear();
-		loadingDirsRef.current.clear();
-		pendingCreatesRef.current.clear();
+		knownPathsRef.current = new Set();
+		loadedDirsRef.current = new Set();
+		loadingDirsRef.current = new Set();
+		pendingCreatesRef.current = new Map();
 		model.resetPaths([]);
 		void fetchDir("");
 	}, [model, rootPath, workspaceId, fetchDir]);
@@ -182,22 +152,6 @@ export function useFilesTabBridge({
 			}
 		});
 	}, [model, fetchDir]);
-
-	// Pierre fires a `remove` mutation when an inline rename is canceled with
-	// `removeIfCanceled: true`. Mirror that into our bookkeeping so the
-	// placeholder doesn't ghost in pendingCreates / knownPaths. (Renames that
-	// commit fire `move`, not `remove` — those are handled in handleRename.)
-	useEffect(() => {
-		return model.onMutation("remove", (event) => {
-			pendingCreatesRef.current.delete(event.path);
-			knownPathsRef.current.delete(event.path);
-			if (event.path.endsWith("/")) {
-				const dir = stripTrailingSlash(event.path);
-				loadedDirsRef.current.delete(dir);
-				purgeDescendants(knownPathsRef.current, loadedDirsRef.current, dir);
-			}
-		});
-	}, [model]);
 
 	useWorkspaceEvent(
 		"fs:events",
@@ -225,25 +179,11 @@ export function useFilesTabBridge({
 						knownPathsRef.current.delete(oldKey);
 						knownPathsRef.current.add(newKey);
 						if (isFolder) {
-							const oldDir = stripTrailingSlash(oldKey);
-							const newDir = stripTrailingSlash(newKey);
-							rekeyDescendants(
-								knownPathsRef.current,
-								loadedDirsRef.current,
-								oldDir,
-								newDir,
-							);
+							loadedDirsRef.current.delete(stripTrailingSlash(oldKey));
 						}
 					} catch {
 						// Pierre rejected the move — fall back to remove + add.
 						removeKnownPath(model, knownPathsRef.current, oldKey);
-						if (isFolder) {
-							purgeDescendants(
-								knownPathsRef.current,
-								loadedDirsRef.current,
-								stripTrailingSlash(oldKey),
-							);
-						}
 						addKnownPath(model, knownPathsRef.current, newKey);
 					}
 				} else {
@@ -258,11 +198,7 @@ export function useFilesTabBridge({
 				const matched = matchKnown(knownPathsRef.current, rel) ?? key;
 				removeKnownPath(model, knownPathsRef.current, matched);
 				if (isFolder) {
-					purgeDescendants(
-						knownPathsRef.current,
-						loadedDirsRef.current,
-						stripTrailingSlash(matched),
-					);
+					loadedDirsRef.current.delete(stripTrailingSlash(matched));
 				}
 				return;
 			}
@@ -279,25 +215,12 @@ export function useFilesTabBridge({
 		Boolean(workspaceId && rootPath),
 	);
 
-	const rekeyDescendantsBound = useCallback(
-		(oldDir: string, newDir: string) => {
-			rekeyDescendants(
-				knownPathsRef.current,
-				loadedDirsRef.current,
-				oldDir,
-				newDir,
-			);
-		},
-		[],
-	);
-
 	return {
 		knownPaths: knownPathsRef.current,
 		loadedDirs: loadedDirsRef.current,
 		pendingCreates: pendingCreatesRef.current,
 		fetchDir,
 		doRefresh,
-		rekeyDescendants: rekeyDescendantsBound,
 		isRefreshing,
 	};
 }
@@ -334,51 +257,5 @@ function removeKnownPath(
 		model.remove(path, { recursive: true });
 	} catch {
 		// ignore
-	}
-}
-
-// Walk knownPaths/loadedDirs and remove anything under `dirRel`. Used after a
-// folder is removed (or renamed, paired with rekey) so stale descendants don't
-// pin paths that no longer exist on disk.
-function purgeDescendants(
-	known: Set<string>,
-	loaded: Set<string>,
-	dirRel: string,
-): void {
-	const prefix = `${dirRel}/`;
-	for (const path of known) {
-		if (path.startsWith(prefix)) known.delete(path);
-	}
-	for (const dir of loaded) {
-		if (dir === dirRel || dir.startsWith(prefix)) loaded.delete(dir);
-	}
-}
-
-// Walk knownPaths/loadedDirs and re-key any descendants of `oldDir` to live
-// under `newDir`. Pierre's `model.move(oldKey, newKey)` already moves the
-// renamed subtree on its side, but our bookkeeping is path-keyed — without
-// this, fs reconciliation looks up old paths and skips real changes.
-function rekeyDescendants(
-	known: Set<string>,
-	loaded: Set<string>,
-	oldDir: string,
-	newDir: string,
-): void {
-	const oldPrefix = `${oldDir}/`;
-	const movedKnown: string[] = [];
-	for (const path of known) {
-		if (path.startsWith(oldPrefix)) movedKnown.push(path);
-	}
-	for (const path of movedKnown) {
-		known.delete(path);
-		known.add(newDir + path.slice(oldDir.length));
-	}
-	const movedLoaded: string[] = [];
-	for (const dir of loaded) {
-		if (dir === oldDir || dir.startsWith(oldPrefix)) movedLoaded.push(dir);
-	}
-	for (const dir of movedLoaded) {
-		loaded.delete(dir);
-		loaded.add(newDir + dir.slice(oldDir.length));
 	}
 }
