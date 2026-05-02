@@ -244,6 +244,12 @@ export function FilesTab({
 			const rel = toRel(rootPath, absolutePath);
 			if (!rel) return;
 
+			// Always wait on the root listing before focusPath. For root-level
+			// files the ancestor loop runs zero iterations, so without this
+			// we'd race the initial fetch and the reveal silently no-ops.
+			// fetchDir is idempotent + cached, so this is free after first call.
+			await bridge.fetchDir("");
+
 			const segments = rel.split("/");
 			let acc = "";
 			for (let i = 0; i < segments.length - 1; i++) {
@@ -365,11 +371,17 @@ export function FilesTab({
 				return;
 			}
 
-			// Genuine rename.
+			// Genuine rename. Pierre has already moved the entry on its side.
+			// For folders, also rekey every cached descendant (knownPaths +
+			// loadedDirs) under the new prefix so later fs reconciliation /
+			// reveals don't target stale paths.
 			bridge.knownPaths.delete(sourcePath);
 			bridge.knownPaths.add(destinationPath);
 			if (isFolder) {
-				bridge.loadedDirs.delete(stripTrailingSlash(sourcePath));
+				bridge.rekeyDescendants(
+					stripTrailingSlash(sourcePath),
+					stripTrailingSlash(destinationPath),
+				);
 			}
 			try {
 				await movePath.mutateAsync({
@@ -383,6 +395,12 @@ export function FilesTab({
 					model.move(destinationPath, sourcePath);
 					bridge.knownPaths.delete(destinationPath);
 					bridge.knownPaths.add(sourcePath);
+					if (isFolder) {
+						bridge.rekeyDescendants(
+							stripTrailingSlash(destinationPath),
+							stripTrailingSlash(sourcePath),
+						);
+					}
 				} catch {
 					// ignore — fs:events will reconcile
 				}
@@ -456,8 +474,14 @@ export function FilesTab({
 			if (!rootPath) return;
 			if (!(e.shiftKey || e.metaKey || e.ctrlKey)) return;
 			const target = e.target as HTMLElement | null;
-			const row = target?.closest<HTMLElement>("[data-path]");
-			const treePath = row?.getAttribute("data-path");
+			// Pierre stamps the canonical tree path on each row as
+			// `data-item-path` (see render/rowAttributes.ts in @pierre/trees).
+			// If a future Pierre version renames this, our modifier-click
+			// intents (Shift = new tab, Cmd/Ctrl = external editor) silently
+			// stop working — pin coverage with the version pinned in
+			// package.json and update both together.
+			const row = target?.closest<HTMLElement>("[data-item-path]");
+			const treePath = row?.getAttribute("data-item-path");
 			if (!treePath || treePath.endsWith("/")) return;
 			e.preventDefault();
 			e.stopPropagation();
@@ -607,6 +631,7 @@ function HeaderButton({
 					size="icon"
 					className="size-5"
 					onClick={onClick}
+					aria-label={label}
 				>
 					{loading ? (
 						<Loader2 className="size-3 animate-spin" />
