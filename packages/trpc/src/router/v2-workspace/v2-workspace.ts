@@ -11,7 +11,7 @@ import type { TRPCRouterRecord } from "@trpc/server";
 import { TRPCError } from "@trpc/server";
 import { and, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
-import { captureEvent, parseClientHeader } from "../../lib/posthog-client";
+import { parseClientHeader, posthog } from "../../lib/analytics";
 import { jwtProcedure, protectedProcedure } from "../../trpc";
 import { requireActiveOrgId } from "../utils/active-org";
 import {
@@ -207,10 +207,9 @@ export const v2WorkspaceRouter = {
 				// activation event. Main workspaces are auto-created by project
 				// setup (ensure-main-workspace) and would inflate activation.
 				if (inserted.type !== "main") {
-					void captureEvent({
-						event: "workspace_created",
+					posthog.capture({
 						distinctId: ctx.userId,
-						client: parseClientHeader(ctx.headers),
+						event: "workspace_created",
 						properties: {
 							workspace_id: inserted.id,
 							project_id: inserted.projectId,
@@ -218,6 +217,7 @@ export const v2WorkspaceRouter = {
 							host_id: inserted.hostId,
 							branch: inserted.branch,
 							type: inserted.type,
+							...parseClientHeader(ctx.headers),
 						},
 					});
 				}
@@ -441,10 +441,9 @@ export const v2WorkspaceRouter = {
 			}
 			await dbWs.delete(v2Workspaces).where(eq(v2Workspaces.id, workspace.id));
 
-			void captureEvent({
-				event: "workspace_deleted",
+			posthog.capture({
 				distinctId: ctx.userId,
-				client: parseClientHeader(ctx.headers),
+				event: "workspace_deleted",
 				properties: {
 					workspace_id: workspace.id,
 					project_id: workspace.projectId,
@@ -452,6 +451,7 @@ export const v2WorkspaceRouter = {
 					host_id: workspace.hostId,
 					branch: workspace.branch,
 					type: workspace.type,
+					...parseClientHeader(ctx.headers),
 				},
 			});
 

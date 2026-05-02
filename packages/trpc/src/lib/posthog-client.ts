@@ -181,46 +181,6 @@ export async function executeQuery<T = unknown>(
 	return result;
 }
 
-export interface ClientIdentity {
-	id: string;
-	version: string | null;
-}
-
-export function parseClientHeader(headers: Headers): ClientIdentity | null {
-	const raw = headers.get("x-superset-client")?.trim();
-	if (!raw) return null;
-	const at = raw.lastIndexOf("@");
-	if (at <= 0) return { id: raw, version: null };
-	return { id: raw.slice(0, at), version: raw.slice(at + 1) || null };
-}
-
-export async function captureEvent(args: {
-	event: string;
-	distinctId: string;
-	client?: ClientIdentity | null;
-	properties?: Record<string, unknown>;
-}): Promise<void> {
-	try {
-		await fetch(`${env.POSTHOG_API_HOST}/capture/`, {
-			method: "POST",
-			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify({
-				api_key: env.NEXT_PUBLIC_POSTHOG_KEY,
-				event: args.event,
-				distinct_id: args.distinctId,
-				properties: {
-					...args.properties,
-					client: args.client?.id ?? null,
-					client_version: args.client?.version ?? null,
-				},
-				timestamp: new Date().toISOString(),
-			}),
-		});
-	} catch (error) {
-		console.error(`[posthog] capture failed for ${args.event}:`, error);
-	}
-}
-
 export async function executeFunnelQuery(
 	series: FunnelStep[],
 	dateFrom = "-7d",
