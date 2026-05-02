@@ -459,6 +459,99 @@ describe("DaemonSupervisor.update concurrency guard", () => {
 	});
 });
 
+describe("auto-update failure mode (heavy path: must not disrupt sessions)", () => {
+	// Auto-update fires on every host-service start when the adopted daemon
+	// is older than the bundle. In production this is the most-traveled
+	// code path that touches live PTYs — a bug that loses sessions here
+	// kills the user's shells silently. These tests pin the contract:
+	// when update() fails for any reason, the predecessor's instance
+	// record stays, the manifest stays pointed at the predecessor's pid,
+	// and no successor is recorded. The user's shells continue serving
+	// on the original daemon process.
+
+	let sup: DaemonSupervisor;
+
+	beforeEach(() => {
+		sup = new DaemonSupervisor({ scriptPath: "/nonexistent" });
+	});
+
+	test("ok:false from runUpdate leaves the predecessor instance untouched", async () => {
+		// Seed a stale predecessor: this is what tryAdopt would have
+		// produced for an older-version daemon adopted at startup.
+		const PREDECESSOR_PID = 4242;
+		seedInstance(sup, "org-fail", {
+			runningVersion: "0.1.0",
+			expectedVersion: "0.2.0",
+			updatePending: true,
+		});
+		(
+			sup as unknown as {
+				instances: Map<string, { pid: number; runningVersion: string }>;
+			}
+		).instances.set("org-fail", {
+			pid: PREDECESSOR_PID,
+			socketPath: "/tmp/seeded.sock",
+			startedAt: Date.now(),
+			runningVersion: "0.1.0",
+			expectedVersion: "0.2.0",
+			updatePending: true,
+		} as never);
+
+		const runUpdateMock = mock(async () => ({
+			ok: false as const,
+			reason: "snapshot write failed: ENOSPC",
+		}));
+		(sup as unknown as { runUpdate: typeof runUpdateMock }).runUpdate =
+			runUpdateMock;
+
+		const result = await sup.update("org-fail");
+		expect(result.ok).toBe(false);
+
+		// Critical assertion: predecessor is still the recorded instance.
+		// Sessions live in that process; if we'd overwritten the entry on
+		// failure the supervisor would lose track of the live shells.
+		const status = sup.getUpdateStatus("org-fail");
+		expect(status?.running).toBe("0.1.0");
+		expect(status?.pending).toBe(true);
+		const inst = (
+			sup as unknown as { instances: Map<string, { pid: number }> }
+		).instances.get("org-fail");
+		expect(inst?.pid).toBe(PREDECESSOR_PID);
+	});
+
+	test("runUpdate throwing leaves the predecessor instance untouched", async () => {
+		const PREDECESSOR_PID = 5252;
+		(
+			sup as unknown as {
+				instances: Map<string, unknown>;
+			}
+		).instances.set("org-throw", {
+			pid: PREDECESSOR_PID,
+			socketPath: "/tmp/seeded.sock",
+			startedAt: Date.now(),
+			runningVersion: "0.1.0",
+			expectedVersion: "0.2.0",
+			updatePending: true,
+		});
+
+		const runUpdateMock = mock(async () => {
+			throw new Error("transport: ECONNRESET");
+		});
+		(sup as unknown as { runUpdate: typeof runUpdateMock }).runUpdate =
+			runUpdateMock as never;
+
+		// kickoffAutoUpdate (which is what fires on adopt) calls update() and
+		// catches both ok:false and throws via .then(_, _). Drive it directly
+		// so we observe the throw branch.
+		await expect(sup.update("org-throw")).rejects.toThrow(/ECONNRESET/);
+
+		const inst = (
+			sup as unknown as { instances: Map<string, { pid: number }> }
+		).instances.get("org-throw");
+		expect(inst?.pid).toBe(PREDECESSOR_PID);
+	});
+});
+
 // ---------------- helpers ----------------
 
 interface Deferred<T> {

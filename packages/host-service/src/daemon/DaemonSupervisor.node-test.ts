@@ -570,6 +570,239 @@ describe("DaemonSupervisor.update (Phase 2 fd-handoff)", () => {
 		}
 	});
 
+	test("auto-update with zero live sessions completes cleanly", async () => {
+		// Real case: user installs new desktop with EXPECTED bumped, but had
+		// no terminals open in the prior session. Host-service starts,
+		// adopts the predecessor at the old version, kicks off auto-update
+		// in the background. Snapshot has zero session frames; successor
+		// adopts nothing and just rebinds. Easy to break in refactors that
+		// assume snapshot.sessions.length > 0.
+		const orgId = "org-empty-handoff";
+		const socketPath = path.join(
+			os.tmpdir(),
+			`superset-ptyd-${crypto
+				.createHash("sha256")
+				.update(orgId)
+				.digest("hex")
+				.slice(0, 12)}.sock`,
+		);
+		try {
+			fs.unlinkSync(socketPath);
+		} catch {}
+
+		const child = childProcess.spawn(
+			process.execPath,
+			[DAEMON_BUNDLE, `--socket=${socketPath}`],
+			{
+				detached: true,
+				stdio: "ignore",
+				env: { ...process.env, SUPERSET_PTY_DAEMON_VERSION: "0.0.1" },
+			},
+		);
+		child.unref();
+		const ready = await waitForSocket(socketPath, 5000);
+		assert.equal(ready, true);
+
+		try {
+			fs.mkdirSync(ptyDaemonManifestDir(orgId), {
+				recursive: true,
+				mode: 0o700,
+			});
+			writePtyDaemonManifest({
+				pid: child.pid as number,
+				socketPath,
+				protocolVersions: [1],
+				startedAt: Date.now(),
+				organizationId: orgId,
+			});
+
+			// autoUpdate=true (default) — the supervisor adopts and fires
+			// the background handoff.
+			const sup = new DaemonSupervisor({ scriptPath: DAEMON_BUNDLE });
+			supervisorsToCleanup.push({ sup, orgId });
+			const adopted = await sup.ensure(orgId);
+			assert.equal(adopted.updatePending, true);
+			const oldPid = adopted.pid;
+
+			// Poll for pid swap.
+			const deadline = Date.now() + 5000;
+			let currentPid = oldPid;
+			while (Date.now() < deadline) {
+				const inst = (
+					sup as unknown as { instances: Map<string, { pid: number }> }
+				).instances.get(orgId);
+				if (inst && inst.pid !== oldPid) {
+					currentPid = inst.pid;
+					break;
+				}
+				await new Promise((r) => setTimeout(r, 100));
+			}
+			assert.notEqual(
+				currentPid,
+				oldPid,
+				`auto-update did not swap pid within 5s (still ${oldPid})`,
+			);
+
+			// Successor must be a healthy daemon (probe round-trips).
+			const status = sup.getUpdateStatus(orgId);
+			assert.ok(status, "supervisor should have status post-update");
+			assert.equal(
+				status.pending,
+				false,
+				`updatePending should clear after auto-update (running=${status.running})`,
+			);
+			assert.notEqual(
+				status.running,
+				"unknown",
+				"version probe must succeed after empty-snapshot handoff",
+			);
+		} catch (err) {
+			try {
+				if (child.pid) process.kill(child.pid, "SIGTERM");
+			} catch {}
+			throw err;
+		}
+	});
+
+	test("auto-update failure does not disrupt the predecessor's live sessions", async () => {
+		// Real case: heavy path. Auto-update fires on adopt; something goes
+		// wrong (we induce by pointing scriptPath at a missing file, which
+		// is the moral equivalent of a corrupt bundle install — prepareUpgrade
+		// in the predecessor will spawn a successor that immediately exits
+		// because the script path doesn't exist as a usable Node entry).
+		//
+		// Critical contract: the user's shells DO NOT die. The predecessor
+		// keeps serving. Sessions are still attachable post-failure.
+		const orgId = "org-autoupdate-fail";
+		const socketPath = path.join(
+			os.tmpdir(),
+			`superset-ptyd-${crypto
+				.createHash("sha256")
+				.update(orgId)
+				.digest("hex")
+				.slice(0, 12)}.sock`,
+		);
+		try {
+			fs.unlinkSync(socketPath);
+		} catch {}
+
+		const child = childProcess.spawn(
+			process.execPath,
+			[DAEMON_BUNDLE, `--socket=${socketPath}`],
+			{
+				detached: true,
+				stdio: "ignore",
+				env: { ...process.env, SUPERSET_PTY_DAEMON_VERSION: "0.0.1" },
+			},
+		);
+		child.unref();
+		const ready = await waitForSocket(socketPath, 5000);
+		assert.equal(ready, true);
+
+		// Open a session BEFORE auto-update kicks in. This is the
+		// "user has live shells" path — the failure must leave them alone.
+		const { DaemonClient } = await import("../terminal/DaemonClient/index.ts");
+		const client = new DaemonClient({ socketPath });
+		await client.connect();
+		const opened = await client.open("survivor", {
+			shell: "/bin/sh",
+			argv: ["-c", "echo alive; sleep 30"],
+			cols: 80,
+			rows: 24,
+		});
+		const shellPid = opened.pid;
+		assert.ok(shellPid > 0);
+		await client.dispose();
+
+		try {
+			fs.mkdirSync(ptyDaemonManifestDir(orgId), {
+				recursive: true,
+				mode: 0o700,
+			});
+			writePtyDaemonManifest({
+				pid: child.pid as number,
+				socketPath,
+				protocolVersions: [1],
+				startedAt: Date.now(),
+				organizationId: orgId,
+			});
+
+			// scriptPath points to a missing file. The predecessor's
+			// prepareUpgrade reads its own script from process.argv[1]
+			// (the real bundle), but the supervisor's own scriptPath isn't
+			// what predecessor uses for handoff — so we need a different
+			// failure injection. Override runUpdate via the same access
+			// pattern the unit tests use: this is integration but we drive
+			// the failure deterministically.
+			const sup = new DaemonSupervisor({ scriptPath: DAEMON_BUNDLE });
+			supervisorsToCleanup.push({ sup, orgId });
+			(
+				sup as unknown as {
+					runUpdate: () => Promise<{ ok: false; reason: string }>;
+				}
+			).runUpdate = async () => ({
+				ok: false,
+				reason: "induced failure (test): simulated transient error",
+			});
+
+			const adopted = await sup.ensure(orgId);
+			assert.equal(adopted.updatePending, true);
+			const predecessorPid = adopted.pid;
+
+			// Auto-update fires asynchronously. Wait for it to complete
+			// (success or failure). The instance's pid should NOT change
+			// because the failure path leaves the predecessor recorded.
+			await new Promise((r) => setTimeout(r, 500));
+
+			const status = sup.getUpdateStatus(orgId);
+			assert.ok(status);
+			assert.equal(
+				status.running,
+				"0.0.1",
+				"running version must remain the predecessor's after auto-update failure",
+			);
+			assert.equal(
+				status.pending,
+				true,
+				"pending must remain true after auto-update failure (user can retry via Update button)",
+			);
+
+			// Predecessor process is still alive.
+			assert.equal(
+				isAlive(predecessorPid),
+				true,
+				"predecessor pid must still be running",
+			);
+
+			// And the survivor session is still attachable + alive.
+			const verifyClient = new DaemonClient({ socketPath });
+			await verifyClient.connect();
+			const sessions = await verifyClient.list();
+			const survivor = sessions.find((s) => s.id === "survivor");
+			assert.ok(
+				survivor,
+				`survivor session must still be listed: ${JSON.stringify(sessions)}`,
+			);
+			assert.equal(
+				survivor.alive,
+				true,
+				"survivor session must still be alive on the predecessor",
+			);
+			assert.equal(
+				survivor.pid,
+				shellPid,
+				"survivor shell pid must be unchanged",
+			);
+			await verifyClient.close("survivor", "SIGKILL").catch(() => {});
+			await verifyClient.dispose();
+		} catch (err) {
+			try {
+				if (child.pid) process.kill(child.pid, "SIGTERM");
+			} catch {}
+			throw err;
+		}
+	});
+
 	test("update() returns ok:false and leaves predecessor alive when there's no daemon", async () => {
 		const orgId = "org-update-noop";
 		const sup = new DaemonSupervisor({ scriptPath: DAEMON_BUNDLE });
