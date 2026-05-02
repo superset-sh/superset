@@ -6,7 +6,6 @@
 import type { CheckItem, GitHubStatus } from "@superset/local-db";
 import { execGitWithShellPath } from "../git-client";
 import { execWithShellEnv } from "../shell-env";
-import { makePRResolutionCacheKey, readCachedPRResolution } from "./cache";
 import { getPullRequestRepoArgs } from "./repo-context";
 import {
 	type GHPRResponse,
@@ -23,38 +22,26 @@ export async function getPRForBranch(
 	repoContext?: RepoContext,
 	headSha?: string,
 ): Promise<GitHubStatus["pr"]> {
-	// `getPullRequestRepoArgs` returns ["--repo", "owner/name"] for forks and []
-	// for non-forks. Joining produces a stable, repo-identity-bearing string so
-	// the cache distinguishes fork vs. base lookups for the same worktree.
-	const repoScope = getPullRequestRepoArgs(repoContext).join(":");
-	const cacheKey = makePRResolutionCacheKey({
+	const byTracking = await getPRByBranchTracking(
 		worktreePath,
-		branchName: localBranch,
+		localBranch,
 		headSha,
-		repoScope,
-	});
-	return readCachedPRResolution(cacheKey, async () => {
-		const byTracking = await getPRByBranchTracking(
-			worktreePath,
-			localBranch,
-			headSha,
-		);
-		if (byTracking) {
-			return byTracking;
-		}
+	);
+	if (byTracking) {
+		return byTracking;
+	}
 
-		const byHeadBranch = await findPRByHeadBranch(
-			worktreePath,
-			localBranch,
-			repoContext,
-			headSha,
-		);
-		if (byHeadBranch) {
-			return byHeadBranch;
-		}
+	const byHeadBranch = await findPRByHeadBranch(
+		worktreePath,
+		localBranch,
+		repoContext,
+		headSha,
+	);
+	if (byHeadBranch) {
+		return byHeadBranch;
+	}
 
-		return findPRByHeadCommit(worktreePath, repoContext, headSha);
-	});
+	return findPRByHeadCommit(worktreePath, repoContext, headSha);
 }
 
 /**

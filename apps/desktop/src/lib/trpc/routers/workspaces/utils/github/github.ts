@@ -11,7 +11,6 @@ import {
 	clearGitHubCachesForWorktree,
 	getCachedPullRequestCommentsState,
 	makePullRequestCommentsCacheKey,
-	readCachedDeploymentUrl,
 	readCachedGitHubStatus,
 	readCachedPullRequestComments,
 } from "./cache";
@@ -312,64 +311,60 @@ async function queryDeploymentUrl(
 	nwo: string,
 	queryParams: string,
 ): Promise<string | undefined> {
-	return readCachedDeploymentUrl(`${nwo}::${queryParams}`, async () => {
-		const { stdout } = await execWithShellEnv(
-			"gh",
-			["api", `repos/${nwo}/deployments?${queryParams}&per_page=5`],
-			{ cwd: worktreePath },
-		);
+	const { stdout } = await execWithShellEnv(
+		"gh",
+		["api", `repos/${nwo}/deployments?${queryParams}&per_page=5`],
+		{ cwd: worktreePath },
+	);
 
-		const rawDeployments: unknown = JSON.parse(stdout.trim());
-		if (!Array.isArray(rawDeployments) || rawDeployments.length === 0) {
-			return undefined;
-		}
+	const rawDeployments: unknown = JSON.parse(stdout.trim());
+	if (!Array.isArray(rawDeployments) || rawDeployments.length === 0) {
+		return undefined;
+	}
 
-		const deploymentIds: number[] = [];
-		for (const raw of rawDeployments) {
-			const result = GHDeploymentSchema.safeParse(raw);
-			if (result.success) {
-				deploymentIds.push(result.data.id);
-			}
+	const deploymentIds: number[] = [];
+	for (const raw of rawDeployments) {
+		const result = GHDeploymentSchema.safeParse(raw);
+		if (result.success) {
+			deploymentIds.push(result.data.id);
 		}
-		if (deploymentIds.length === 0) {
-			return undefined;
-		}
+	}
+	if (deploymentIds.length === 0) {
+		return undefined;
+	}
 
-		const urls = await Promise.all(
-			deploymentIds.map(async (id): Promise<string | undefined> => {
-				try {
-					const { stdout: out } = await execWithShellEnv(
-						"gh",
-						["api", `repos/${nwo}/deployments/${id}/statuses?per_page=1`],
-						{ cwd: worktreePath },
-					);
-					const rawStatuses: unknown = JSON.parse(out.trim());
-					if (!Array.isArray(rawStatuses) || rawStatuses.length === 0) {
-						return undefined;
-					}
-					const statusResult = GHDeploymentStatusSchema.safeParse(
-						rawStatuses[0],
-					);
-					if (!statusResult.success) {
-						return undefined;
-					}
-					if (
-						statusResult.data.state === "success" &&
-						statusResult.data.environment_url &&
-						isSafeHttpUrl(statusResult.data.environment_url)
-					) {
-						return statusResult.data.environment_url;
-					}
-					return undefined;
-				} catch {
+	const urls = await Promise.all(
+		deploymentIds.map(async (id): Promise<string | undefined> => {
+			try {
+				const { stdout: out } = await execWithShellEnv(
+					"gh",
+					["api", `repos/${nwo}/deployments/${id}/statuses?per_page=1`],
+					{ cwd: worktreePath },
+				);
+				const rawStatuses: unknown = JSON.parse(out.trim());
+				if (!Array.isArray(rawStatuses) || rawStatuses.length === 0) {
 					return undefined;
 				}
-			}),
-		);
+				const statusResult = GHDeploymentStatusSchema.safeParse(rawStatuses[0]);
+				if (!statusResult.success) {
+					return undefined;
+				}
+				if (
+					statusResult.data.state === "success" &&
+					statusResult.data.environment_url &&
+					isSafeHttpUrl(statusResult.data.environment_url)
+				) {
+					return statusResult.data.environment_url;
+				}
+				return undefined;
+			} catch {
+				return undefined;
+			}
+		}),
+	);
 
-		// Return the first successful URL (preserves deployment order: most recent first)
-		return urls.find((url): url is string => url !== undefined);
-	});
+	// Return the first successful URL (preserves deployment order: most recent first)
+	return urls.find((url): url is string => url !== undefined);
 }
 
 /**

@@ -9,14 +9,10 @@ import type { RepoContext } from "./types";
 const GITHUB_STATUS_CACHE_TTL_MS = 10_000;
 const GITHUB_PR_COMMENTS_CACHE_TTL_MS = 30_000;
 const GITHUB_REPO_CONTEXT_CACHE_TTL_MS = 300_000;
-const GITHUB_PR_RESOLUTION_CACHE_TTL_MS = 60_000;
-const GITHUB_DEPLOYMENT_URL_CACHE_TTL_MS = 300_000;
 
 const MAX_GITHUB_STATUS_CACHE_ENTRIES = 256;
 const MAX_GITHUB_PR_COMMENTS_CACHE_ENTRIES = 512;
 const MAX_GITHUB_REPO_CONTEXT_CACHE_ENTRIES = 256;
-const MAX_GITHUB_PR_RESOLUTION_CACHE_ENTRIES = 512;
-const MAX_GITHUB_DEPLOYMENT_URL_CACHE_ENTRIES = 512;
 
 const githubStatusResource = createCachedResource<GitHubStatus | null>({
 	ttlMs: GITHUB_STATUS_CACHE_TTL_MS,
@@ -31,16 +27,6 @@ const pullRequestCommentsResource = createCachedResource<PullRequestComment[]>({
 const repoContextResource = createCachedResource<RepoContext | null>({
 	ttlMs: GITHUB_REPO_CONTEXT_CACHE_TTL_MS,
 	maxEntries: MAX_GITHUB_REPO_CONTEXT_CACHE_ENTRIES,
-});
-
-const prResolutionResource = createCachedResource<GitHubStatus["pr"]>({
-	ttlMs: GITHUB_PR_RESOLUTION_CACHE_TTL_MS,
-	maxEntries: MAX_GITHUB_PR_RESOLUTION_CACHE_ENTRIES,
-});
-
-const deploymentUrlResource = createCachedResource<string | undefined>({
-	ttlMs: GITHUB_DEPLOYMENT_URL_CACHE_TTL_MS,
-	maxEntries: MAX_GITHUB_DEPLOYMENT_URL_CACHE_ENTRIES,
 });
 
 export function getCachedGitHubStatus(
@@ -146,59 +132,10 @@ export function readCachedRepoContext(
 	});
 }
 
-export function makePRResolutionCacheKey({
-	worktreePath,
-	branchName,
-	headSha,
-	repoScope,
-}: {
-	worktreePath: string;
-	branchName: string;
-	headSha?: string;
-	// `repoScope` distinguishes fork vs. base lookups for the same worktree, so
-	// switching `repoContext` doesn't return a PR from the wrong repository.
-	repoScope?: string;
-}): string {
-	return `${worktreePath}::pr::${repoScope ?? "no-repo"}::${branchName}::${headSha ?? "no-sha"}`;
-}
-
-export function makePRResolutionCachePrefix(worktreePath: string): string {
-	return `${worktreePath}::pr::`;
-}
-
-export function readCachedPRResolution(
-	cacheKey: string,
-	load: () => Promise<GitHubStatus["pr"]>,
-	options?: CachedResourceReadOptions<GitHubStatus["pr"]>,
-): Promise<GitHubStatus["pr"]> {
-	return prResolutionResource.read(cacheKey, load, options);
-}
-
-export function readCachedDeploymentUrl(
-	cacheKey: string,
-	load: () => Promise<string | undefined>,
-	options?: CachedResourceReadOptions<string | undefined>,
-): Promise<string | undefined> {
-	return deploymentUrlResource.read(cacheKey, load, {
-		...options,
-		// Don't lock in `undefined` for the full TTL on transient errors — that
-		// would suppress a healthy deployment URL in the UI for up to 5 min after
-		// a single network blip. The next status tick re-runs the lookup.
-		shouldCache: options?.shouldCache ?? ((value) => value !== undefined),
-	});
-}
-
 export function clearGitHubCachesForWorktree(worktreePath: string): void {
 	githubStatusResource.invalidatePrefix(worktreePath);
 	repoContextResource.invalidate(worktreePath);
 	pullRequestCommentsResource.invalidatePrefix(
 		makePullRequestCommentsCachePrefix(worktreePath),
 	);
-	prResolutionResource.invalidatePrefix(
-		makePRResolutionCachePrefix(worktreePath),
-	);
-	// deploymentUrlResource is intentionally not invalidated here: its cache key
-	// is `${nwo}::${queryParams}` (repo-scoped, not worktree-scoped), so a single
-	// repo's deployment lookup is shared across every worktree pointing at it.
-	// Per-worktree invalidation would be a no-op against that key.
 }
