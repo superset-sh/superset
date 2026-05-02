@@ -15,4 +15,24 @@ CREATE TABLE "automation_prompt_versions" (
 ALTER TABLE "automation_prompt_versions" ADD CONSTRAINT "automation_prompt_versions_automation_id_automations_id_fk" FOREIGN KEY ("automation_id") REFERENCES "public"."automations"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "automation_prompt_versions" ADD CONSTRAINT "automation_prompt_versions_author_user_id_users_id_fk" FOREIGN KEY ("author_user_id") REFERENCES "auth"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 CREATE UNIQUE INDEX "automation_prompt_versions_bucket_uniq" ON "automation_prompt_versions" USING btree ("automation_id","author_user_id","window_bucket") WHERE "automation_prompt_versions"."source" <> 'restore';--> statement-breakpoint
-CREATE INDEX "automation_prompt_versions_automation_idx" ON "automation_prompt_versions" USING btree ("automation_id","updated_at");
+CREATE INDEX "automation_prompt_versions_automation_idx" ON "automation_prompt_versions" USING btree ("automation_id","updated_at");--> statement-breakpoint
+INSERT INTO "automation_prompt_versions" (
+	"automation_id",
+	"author_user_id",
+	"window_bucket",
+	"content",
+	"content_hash",
+	"source",
+	"started_at",
+	"updated_at"
+)
+SELECT
+	a."id",
+	a."owner_user_id",
+	(extract(epoch from a."created_at") / 600)::int,
+	a."prompt",
+	encode(sha256(a."prompt"::bytea), 'hex'),
+	'human',
+	a."created_at",
+	a."created_at"
+FROM "automations" a;
