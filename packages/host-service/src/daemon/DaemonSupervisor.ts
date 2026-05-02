@@ -394,7 +394,57 @@ export class DaemonSupervisor {
 		}
 	}
 
+	/**
+	 * Dev-only: SIGTERM any existing daemon for this org so the next
+	 * adopt-or-spawn always lands on a fresh daemon process. Reads
+	 * the manifest (the only persistent record of "a daemon exists") —
+	 * if pid is alive, sends SIGTERM and waits up to 1s for it to exit.
+	 * If still alive, escalates to SIGKILL. Either way we remove the
+	 * manifest so tryAdopt sees a clean slate.
+	 *
+	 * Idempotent — safe to call when no daemon is running.
+	 */
+	private async killStaleDaemonForDev(organizationId: string): Promise<void> {
+		const manifest = readPtyDaemonManifest(organizationId);
+		if (!manifest) return;
+		if (!isProcessAlive(manifest.pid)) {
+			removePtyDaemonManifest(organizationId);
+			return;
+		}
+		console.log(
+			`[pty-daemon:${organizationId}] DEV: killing leftover daemon pid=${manifest.pid} (started ${Math.round((Date.now() - manifest.startedAt) / 1000)}s ago) so the next bootstrap picks up fresh bundle code`,
+		);
+		try {
+			process.kill(manifest.pid, "SIGTERM");
+		} catch {
+			// Already dead between our check and the kill.
+		}
+		const deadline = Date.now() + 1000;
+		while (Date.now() < deadline) {
+			if (!isProcessAlive(manifest.pid)) break;
+			await new Promise((r) => setTimeout(r, 50));
+		}
+		if (isProcessAlive(manifest.pid)) {
+			try {
+				process.kill(manifest.pid, "SIGKILL");
+			} catch {
+				// Already dead.
+			}
+		}
+		removePtyDaemonManifest(organizationId);
+	}
+
 	private async start(organizationId: string): Promise<DaemonInstance> {
+		// Dev mode: never adopt. A leftover detached daemon from a previous
+		// `bun dev` session would mask code changes — devs hit Update or
+		// open a session and see stale-bundle behavior with no obvious
+		// reason. Kill any running daemon for the org and spawn fresh.
+		// Production keeps the adopt path so PTY sessions survive
+		// host-service restarts (the original Phase 1 promise).
+		if (process.env.NODE_ENV !== "production") {
+			await this.killStaleDaemonForDev(organizationId);
+		}
+
 		const adopted = await this.tryAdopt(organizationId);
 		if (adopted) {
 			this.instances.set(organizationId, adopted);
