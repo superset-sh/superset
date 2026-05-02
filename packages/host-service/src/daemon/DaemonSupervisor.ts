@@ -418,11 +418,15 @@ export class DaemonSupervisor {
 
 		let child: ReturnType<typeof childProcess.spawn>;
 		try {
+			// In dev, keep the daemon attached so it dies with host-service if
+			// the dev shutdown handler in serve.ts doesn't get a chance to fire
+			// (e.g. host-service crash). Production stays detached so PTYs
+			// survive host-service restarts via socket adoption.
 			child = childProcess.spawn(
 				process.execPath,
 				[this.opts.scriptPath, `--socket=${socketPath}`],
 				{
-					detached: true,
+					detached: !isDev,
 					stdio,
 					env: childEnv,
 					windowsHide: true,
@@ -485,7 +489,9 @@ export class DaemonSupervisor {
 			);
 		}
 
-		child.unref();
+		// Only unref in production, where the daemon is detached and meant to
+		// outlive host-service. In dev we want host-service's exit to take it down.
+		if (!isDev) child.unref();
 		child.on("exit", (code) => {
 			console.log(`[pty-daemon:${organizationId}] exited with code ${code}`);
 			const current = this.instances.get(organizationId);
