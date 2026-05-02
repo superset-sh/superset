@@ -2,15 +2,15 @@ import { existsSync } from "node:fs";
 import { StringDecoder } from "node:string_decoder";
 import type { NodeWebSocket } from "@hono/node-ws";
 import {
-	createScanStateBytes,
+	createScanState,
 	SHELLS_WITH_READY_MARKER,
-	type ShellReadyScanStateBytes,
-	scanForShellReadyBytes,
+	type ShellReadyScanState,
+	scanForShellReady,
 } from "@superset/shared/shell-ready-scanner";
 import {
-	createTerminalTitleScanStateBytes,
-	scanForTerminalTitleBytes,
-	type TerminalTitleScanStateBytes,
+	createTerminalTitleScanState,
+	scanForTerminalTitle,
+	type TerminalTitleScanState,
 } from "@superset/shared/terminal-title-scanner";
 import { and, eq, ne } from "drizzle-orm";
 import type { Hono } from "hono";
@@ -211,14 +211,14 @@ interface TerminalSession {
 	exitSignal: number;
 	listed: boolean;
 	title: string | null;
-	titleScanState: TerminalTitleScanStateBytes;
+	titleScanState: TerminalTitleScanState;
 
 	// Shell readiness (OSC 133)
 	shellReadyState: ShellReadyState;
 	shellReadyResolve: (() => void) | null;
 	shellReadyPromise: Promise<void>;
 	shellReadyTimeoutId: ReturnType<typeof setTimeout> | null;
-	scanState: ShellReadyScanStateBytes;
+	scanState: ShellReadyScanState;
 	initialCommandQueued: boolean;
 
 	/**
@@ -706,7 +706,7 @@ export async function createTerminalSessionInternal({
 		exitSignal: 0,
 		listed,
 		title: null,
-		titleScanState: createTerminalTitleScanStateBytes(),
+		titleScanState: createTerminalTitleScanState(),
 		shellReadyState: shellSupportsReady
 			? "pending"
 			: isAdopted
@@ -715,7 +715,7 @@ export async function createTerminalSessionInternal({
 		shellReadyResolve,
 		shellReadyPromise,
 		shellReadyTimeoutId: null,
-		scanState: createScanStateBytes(),
+		scanState: createScanState(),
 		// Adopted sessions have already run their initialCommand in the prior
 		// host-service lifetime — flag it as queued so we don't double-fire it.
 		initialCommandQueued: isAdopted,
@@ -745,7 +745,7 @@ export async function createTerminalSessionInternal({
 				// — the bug that motivated this rewrite was a per-chunk
 				// `chunk.toString("utf8")` that mangled multi-byte codepoints
 				// straddling chunk boundaries. Don't reintroduce it.
-				const titleUpdates = scanForTerminalTitleBytes(
+				const titleUpdates = scanForTerminalTitle(
 					session.titleScanState,
 					chunk,
 				);
@@ -756,7 +756,7 @@ export async function createTerminalSessionInternal({
 				// Scan for OSC 133;A and strip it from output.
 				let bytes: Uint8Array = chunk;
 				if (session.shellReadyState === "pending") {
-					const result = scanForShellReadyBytes(session.scanState, chunk);
+					const result = scanForShellReady(session.scanState, chunk);
 					bytes = result.output;
 					if (result.matched) {
 						resolveShellReady(session, "ready");
