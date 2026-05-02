@@ -1,23 +1,26 @@
 import { cn } from "@superset/ui/utils";
+import { CgLaptop } from "react-icons/cg";
 import { HiExclamationTriangle } from "react-icons/hi2";
 import {
-	LuCloud,
-	LuCloudOff,
 	LuGitMerge,
 	LuGitPullRequest,
 	LuGitPullRequestClosed,
 	LuGitPullRequestDraft,
 } from "react-icons/lu";
+import { RxDot } from "react-icons/rx";
+import { TbCloud, TbCloudOff } from "react-icons/tb";
 import { AsciiSpinner } from "renderer/screens/main/components/AsciiSpinner";
 import { StatusIndicator } from "renderer/screens/main/components/StatusIndicator";
 import type { ActivePaneStatus } from "shared/tabs-types";
 import type {
 	DashboardSidebarWorkspaceHostType,
 	DashboardSidebarWorkspacePullRequest,
+	DashboardSidebarWorkspaceType,
 } from "../../../../types";
 
 interface DashboardSidebarWorkspaceIconProps {
 	hostType: DashboardSidebarWorkspaceHostType;
+	workspaceType: DashboardSidebarWorkspaceType;
 	hostIsOnline: boolean | null;
 	isActive: boolean;
 	variant: "collapsed" | "expanded";
@@ -47,6 +50,7 @@ const PR_COLOR_BY_STATE = {
 
 export function DashboardSidebarWorkspaceIcon({
 	hostType,
+	workspaceType,
 	hostIsOnline,
 	isActive,
 	variant,
@@ -71,19 +75,18 @@ export function DashboardSidebarWorkspaceIcon({
 		}
 
 		if (hostType === "local-device") {
-			return (
-				<span
-					className={cn(
-						"size-1.5 rounded-full transition-colors",
-						isActive ? "bg-foreground" : "bg-muted-foreground",
-					)}
-				/>
-			);
+			if (workspaceType === "main") {
+				return (
+					<CgLaptop className={cn("size-4 transition-colors", iconColor)} />
+				);
+			}
+
+			return <RxDot className={cn("size-4 transition-colors", iconColor)} />;
 		}
 
 		if (isRemoteDeviceOffline) {
 			return (
-				<LuCloudOff
+				<TbCloudOff
 					className={cn("size-4 transition-colors", iconColor, "opacity-60")}
 					strokeWidth={1.75}
 				/>
@@ -91,7 +94,7 @@ export function DashboardSidebarWorkspaceIcon({
 		}
 
 		return (
-			<LuCloud
+			<TbCloud
 				className={cn("size-4 transition-colors", iconColor)}
 				strokeWidth={1.75}
 			/>

@@ -187,6 +187,8 @@ export const oauthClients = authSchema.table("oauth_clients", {
 	responseTypes: text("response_types").array(),
 	public: boolean("public"),
 	type: text("type"),
+	requirePKCE: boolean("require_pkce"),
+	subjectType: text("subject_type"),
 	referenceId: text("reference_id"),
 	metadata: jsonb("metadata"),
 });

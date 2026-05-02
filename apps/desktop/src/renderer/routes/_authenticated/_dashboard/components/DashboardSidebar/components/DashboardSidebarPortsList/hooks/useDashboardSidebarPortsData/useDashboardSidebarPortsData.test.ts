@@ -154,8 +154,16 @@ describe("deriveHostPortQueryTargets", () => {
 		const targets = deriveHostPortQueryTargets({
 			activeHostUrl: "http://127.0.0.1:4567",
 			hosts: [
-				{ id: "remote-host", isOnline: true, machineId: "remote-machine" },
-				{ id: "local-host", isOnline: true, machineId: "local-machine" },
+				{
+					organizationId: "org-1",
+					machineId: "remote-machine",
+					isOnline: true,
+				},
+				{
+					organizationId: "org-1",
+					machineId: "local-machine",
+					isOnline: true,
+				},
 			],
 			machineId: "local-machine",
 			relayUrl: "https://relay.example.com",
@@ -163,33 +171,30 @@ describe("deriveHostPortQueryTargets", () => {
 				{
 					id: "workspace-b",
 					name: "Workspace B",
-					hostId: "local-host",
-					hostMachineId: "local-machine",
+					hostId: "local-machine",
 				},
 				{
 					id: "workspace-a",
 					name: "Workspace A",
-					hostId: "local-host",
-					hostMachineId: "local-machine",
+					hostId: "local-machine",
 				},
 				{
 					id: "workspace-c",
 					name: "Workspace C",
-					hostId: "remote-host",
-					hostMachineId: "remote-machine",
+					hostId: "remote-machine",
 				},
 			],
 		});
 
 		expect(targets).toEqual([
 			{
-				id: "remote-host",
+				machineId: "remote-machine",
 				hostType: "remote-device",
-				hostUrl: "https://relay.example.com/hosts/remote-host",
+				hostUrl: "https://relay.example.com/hosts/org-1:remote-machine",
 				workspaceIds: ["workspace-c"],
 			},
 			{
-				id: "local-host",
+				machineId: "local-machine",
 				hostType: "local-device",
 				hostUrl: "http://127.0.0.1:4567",
 				workspaceIds: ["workspace-a", "workspace-b"],
@@ -201,8 +206,16 @@ describe("deriveHostPortQueryTargets", () => {
 		const targets = deriveHostPortQueryTargets({
 			activeHostUrl: null,
 			hosts: [
-				{ id: "offline-host", isOnline: false, machineId: "remote-machine" },
-				{ id: "local-host", isOnline: true, machineId: "local-machine" },
+				{
+					organizationId: "org-1",
+					machineId: "remote-machine",
+					isOnline: false,
+				},
+				{
+					organizationId: "org-1",
+					machineId: "local-machine",
+					isOnline: true,
+				},
 			],
 			machineId: "local-machine",
 			relayUrl: "https://relay.example.com",
@@ -210,14 +223,12 @@ describe("deriveHostPortQueryTargets", () => {
 				{
 					id: "workspace-remote",
 					name: "Remote",
-					hostId: "offline-host",
-					hostMachineId: "remote-machine",
+					hostId: "remote-machine",
 				},
 				{
 					id: "workspace-local",
 					name: "Local",
-					hostId: "local-host",
-					hostMachineId: "local-machine",
+					hostId: "local-machine",
 				},
 			],
 		});
@@ -268,19 +279,17 @@ describe("groupDashboardSidebarPorts", () => {
 					],
 				},
 			],
-			machineId: "machine-1",
+			machineId: "host-1",
 			workspaces: [
 				{
 					id: "workspace-b",
 					name: "Beta",
 					hostId: "host-1",
-					hostMachineId: "machine-1",
 				},
 				{
 					id: "workspace-a",
 					name: "Alpha",
 					hostId: "host-1",
-					hostMachineId: "machine-1",
 				},
 			],
 		});
@@ -320,7 +329,6 @@ describe("groupDashboardSidebarPorts", () => {
 					id: "workspace-1",
 					name: "Workspace",
 					hostId: "host-2",
-					hostMachineId: "machine-2",
 				},
 			],
 		});

@@ -143,8 +143,10 @@ function upsertPullRequest(
 		changed_files?: number;
 		merged_at: string | null;
 		closed_at: string | null;
+		updated_at: string;
 	},
 ) {
+	const upstreamUpdatedAt = new Date(pr.updated_at);
 	return db
 		.insert(githubPullRequests)
 		.values({
@@ -167,6 +169,7 @@ function upsertPullRequest(
 			checksStatus: "none",
 			mergedAt: pr.merged_at ? new Date(pr.merged_at) : null,
 			closedAt: pr.closed_at ? new Date(pr.closed_at) : null,
+			updatedAt: upstreamUpdatedAt,
 		})
 		.onConflictDoUpdate({
 			target: [githubPullRequests.repositoryId, githubPullRequests.prNumber],
@@ -184,7 +187,7 @@ function upsertPullRequest(
 				mergedAt: pr.merged_at ? new Date(pr.merged_at) : null,
 				closedAt: pr.closed_at ? new Date(pr.closed_at) : null,
 				lastSyncedAt: new Date(),
-				updatedAt: new Date(),
+				updatedAt: upstreamUpdatedAt,
 			},
 		});
 }
@@ -290,7 +293,7 @@ webhooks.on(
 			.set({
 				reviewDecision,
 				lastSyncedAt: new Date(),
-				updatedAt: new Date(),
+				updatedAt: new Date(pr.updated_at),
 			})
 			.where(
 				and(
@@ -405,7 +408,6 @@ webhooks.on(
 					checks: currentChecks,
 					checksStatus,
 					lastSyncedAt: new Date(),
-					updatedAt: new Date(),
 				})
 				.where(eq(githubPullRequests.id, currentPr.id));
 		}

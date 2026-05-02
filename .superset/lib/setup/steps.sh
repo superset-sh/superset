@@ -492,7 +492,12 @@ step_write_env() {
 
   # Generate Caddyfile for HTTP/2 reverse proxy (avoids browser 6-connection limit with Electric SSE streams)
   # Caddy proxies to the local Wrangler worker, which handles auth and forwards upstream appropriately.
+  # auto_https disable_redirects keeps Caddy off port 80 — we only need HTTPS on the allocated port.
   cat > Caddyfile <<-CADDYEOF
+	{
+		auto_https disable_redirects
+	}
+
 	https://localhost:{\$CADDY_ELECTRIC_PORT} {
 		reverse_proxy localhost:{\$WRANGLER_PORT} {
 			flush_interval -1

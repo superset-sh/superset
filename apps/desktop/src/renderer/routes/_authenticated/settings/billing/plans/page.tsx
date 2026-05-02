@@ -1,3 +1,4 @@
+import { Badge } from "@superset/ui/badge";
 import { Button } from "@superset/ui/button";
 import { toast } from "@superset/ui/sonner";
 import { Switch } from "@superset/ui/switch";
@@ -49,7 +50,7 @@ type ComparisonValue = string | boolean | null;
 type ComparisonRow = {
 	label: string;
 	values: ComparisonValue[];
-	comingSoon?: boolean;
+	badge?: { label: string; variant: "default" | "secondary" };
 };
 
 type ComparisonSection = {
@@ -135,18 +136,22 @@ const COMPARISON_SECTIONS: ComparisonSection[] = [
 				values: [true, true, true],
 			},
 			{
-				label: "GitHub integration",
-				values: [true, true, true],
+				label: "Remote workspaces",
+				values: [null, true, true],
+				badge: { label: "Beta", variant: "default" },
 			},
 			{
-				label: "Cloud workspaces",
+				label: "Automations",
 				values: [null, true, true],
-				comingSoon: true,
 			},
 			{
 				label: "Mobile app",
 				values: [null, true, true],
-				comingSoon: true,
+				badge: { label: "Coming soon", variant: "secondary" },
+			},
+			{
+				label: "GitHub integration",
+				values: [true, true, true],
 			},
 			{
 				label: "Linear integration",
@@ -583,10 +588,13 @@ function PlansPage() {
 										<Fragment key={row.label}>
 											<div className="flex items-center gap-1.5 px-2 py-2.5 text-xs text-muted-foreground">
 												{row.label}
-												{row.comingSoon && (
-													<span className="text-[10px] text-muted-foreground/60">
-														(Coming Soon)
-													</span>
+												{row.badge && (
+													<Badge
+														variant={row.badge.variant}
+														className="px-1.5 py-0 text-[10px] font-medium"
+													>
+														{row.badge.label}
+													</Badge>
 												)}
 											</div>
 											{row.values.map((value, valueIndex) => (

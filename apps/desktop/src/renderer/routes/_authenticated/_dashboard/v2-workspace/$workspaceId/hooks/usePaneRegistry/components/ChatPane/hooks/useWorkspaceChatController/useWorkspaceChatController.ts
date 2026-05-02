@@ -63,6 +63,7 @@ export function useWorkspaceChatController({
 		session?.session?.activeOrganizationId,
 	);
 	const collections = useCollections();
+	const endSessionMutation = workspaceTrpc.chat.endSession.useMutation();
 	const { chatSessions: chatSessionActions } = useOptimisticCollectionActions();
 
 	const { data: workspace } = workspaceTrpc.workspace.get.useQuery(
@@ -100,6 +101,11 @@ export function useWorkspaceChatController({
 			if (!transaction && !isDesktopChatDevMode()) {
 				throw new Error("Failed to delete chat session");
 			}
+			// Tear down the host-service in-memory runtime so it doesn't leak.
+			// Failures here must not block the user-visible delete.
+			void endSessionMutation
+				.mutateAsync({ sessionId: sessionIdToDelete, workspaceId })
+				.catch(() => {});
 
 			posthog.capture("chat_session_deleted", {
 				workspace_id: workspaceId,
@@ -112,6 +118,7 @@ export function useWorkspaceChatController({
 		},
 		[
 			chatSessionActions,
+			endSessionMutation,
 			onSessionIdChange,
 			organizationId,
 			sessionId,

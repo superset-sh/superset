@@ -47,7 +47,7 @@ export const ReviewTabContent = memo(function ReviewTabContent({
 	}
 
 	return (
-		<div className="flex h-full min-h-0 flex-col overflow-y-auto">
+		<div className="flex h-full min-h-0 min-w-0 flex-col overflow-x-hidden overflow-y-auto">
 			<PRHeader pr={pr} />
 
 			<div className="my-1 border-b border-border/70" />

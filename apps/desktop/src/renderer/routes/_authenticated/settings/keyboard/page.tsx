@@ -14,11 +14,11 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { HiMagnifyingGlass } from "react-icons/hi2";
 import {
-	formatHotkeyDisplay,
 	HOTKEYS,
 	type HotkeyCategory,
 	type HotkeyId,
-	PLATFORM,
+	type ShortcutBinding,
+	useFormatBinding,
 	useHotkeyDisplay,
 	useHotkeyOverridesStore,
 	useRecordHotkeys,
@@ -118,7 +118,7 @@ function KeyboardShortcutsPage() {
 	const [recordingId, setRecordingId] = useState<HotkeyId | null>(null);
 	const [pendingConflict, setPendingConflict] = useState<{
 		targetId: HotkeyId;
-		keys: string;
+		binding: ShortcutBinding;
 		conflictId: HotkeyId;
 	} | null>(null);
 
@@ -127,14 +127,18 @@ function KeyboardShortcutsPage() {
 	const setOverride = useHotkeyOverridesStore((s) => s.setOverride);
 
 	useRecordHotkeys(recordingId, {
+		// New printable bindings follow the printed character (matches what the
+		// user sees on their keyboard). F-keys / named keys are forced to
+		// "named" by the recorder regardless of this preference.
+		preferredMode: "logical",
 		onSave: () => setRecordingId(null),
 		onCancel: () => setRecordingId(null),
 		onUnassign: () => setRecordingId(null),
-		onConflict: (targetId, keys, conflictId) => {
-			setPendingConflict({ targetId, keys, conflictId });
+		onConflict: (targetId, binding, conflictId) => {
+			setPendingConflict({ targetId, binding, conflictId });
 			setRecordingId(null);
 		},
-		onReserved: (_keys, info) => {
+		onReserved: (_binding, info) => {
 			if (info.severity === "error") {
 				toast.error(info.reason);
 				setRecordingId(null);
@@ -166,9 +170,11 @@ function KeyboardShortcutsPage() {
 	const handleConflictReassign = () => {
 		if (!pendingConflict) return;
 		setOverride(pendingConflict.conflictId, null);
-		setOverride(pendingConflict.targetId, pendingConflict.keys);
+		setOverride(pendingConflict.targetId, pendingConflict.binding);
 		setPendingConflict(null);
 	};
+
+	const conflictDisplay = useFormatBinding(pendingConflict?.binding ?? null);
 
 	return (
 		<div className="p-6 w-full max-w-4xl">
@@ -278,7 +284,7 @@ function KeyboardShortcutsPage() {
 							<div className="text-muted-foreground space-y-1.5">
 								<span className="block">
 									{pendingConflict
-										? `${formatHotkeyDisplay(pendingConflict.keys, PLATFORM).text} is already assigned to "${
+										? `${conflictDisplay.text} is already assigned to "${
 												HOTKEYS[pendingConflict.conflictId].label
 											}".`
 										: ""}

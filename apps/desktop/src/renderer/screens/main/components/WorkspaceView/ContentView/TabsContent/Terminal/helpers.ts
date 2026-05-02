@@ -5,7 +5,6 @@ import { ImageAddon } from "@xterm/addon-image";
 import { LigaturesAddon } from "@xterm/addon-ligatures";
 import { SearchAddon } from "@xterm/addon-search";
 import { Unicode11Addon } from "@xterm/addon-unicode11";
-import { WebglAddon } from "@xterm/addon-webgl";
 import type { ITheme } from "@xterm/xterm";
 import { Terminal as XTerm } from "@xterm/xterm";
 import type { DetectedLink } from "renderer/lib/terminal/links";
@@ -56,14 +55,6 @@ export function getDefaultTerminalBg(): string {
 	return getDefaultTerminalTheme().background ?? "#151110";
 }
 
-/**
- * Load GPU-accelerated renderer with automatic fallback.
- * Tries WebGL first, falls back to DOM if WebGL fails.
- * This follows VS Code's approach: WebGL → DOM (canvas addon removed in xterm.js 6.0).
- */
-// Once WebGL fails, skip it for all subsequent terminals (VS Code pattern).
-let suggestedRendererType: "webgl" | "dom" | undefined;
-
 export interface CreateTerminalOptions {
 	/**
 	 * Workspace id used for worktree lookup during path stat/resolution.
@@ -108,9 +99,6 @@ export function createTerminalInWrapper(options: CreateTerminalOptions = {}): {
 	const unicode11Addon = new Unicode11Addon();
 	const imageAddon = new ImageAddon();
 
-	let disposed = false;
-	let webglAddon: WebglAddon | null = null;
-
 	// Open into a detached wrapper div — not the live container.
 	const wrapper = document.createElement("div");
 	wrapper.style.width = "100%";
@@ -128,24 +116,6 @@ export function createTerminalInWrapper(options: CreateTerminalOptions = {}): {
 	} catch {
 		// Ligatures not supported by current font
 	}
-
-	// Defer WebGL to rAF — same pattern as v2 terminal-addons.ts.
-	const rafId = requestAnimationFrame(() => {
-		if (disposed || suggestedRendererType === "dom") return;
-
-		try {
-			webglAddon = new WebglAddon();
-			webglAddon.onContextLoss(() => {
-				webglAddon?.dispose();
-				webglAddon = null;
-				xterm.refresh(0, xterm.rows - 1);
-			});
-			xterm.loadAddon(webglAddon);
-		} catch {
-			suggestedRendererType = "dom";
-			webglAddon = null;
-		}
-	});
 
 	const cleanupQuerySuppression = suppressQueryResponses(xterm);
 
@@ -209,14 +179,8 @@ export function createTerminalInWrapper(options: CreateTerminalOptions = {}): {
 		wrapper,
 		linkManager,
 		cleanup: () => {
-			disposed = true;
-			cancelAnimationFrame(rafId);
 			cleanupQuerySuppression();
 			linkManager.dispose();
-			try {
-				webglAddon?.dispose();
-			} catch {}
-			webglAddon = null;
 		},
 	};
 }

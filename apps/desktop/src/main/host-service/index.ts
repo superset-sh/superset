@@ -8,6 +8,7 @@
 import { serve } from "@hono/node-server";
 import {
 	createApp,
+	installProcessSafetyNet,
 	JwtApiAuthProvider,
 	LocalGitCredentialProvider,
 	LocalModelProvider,
@@ -27,14 +28,14 @@ async function main(): Promise<void> {
 
 	const authProvider = new JwtApiAuthProvider(
 		env.AUTH_TOKEN,
-		env.CLOUD_API_URL,
+		env.SUPERSET_API_URL,
 	);
 
 	const { app, injectWebSocket, api } = createApp({
 		config: {
 			organizationId: env.ORGANIZATION_ID,
 			dbPath: env.HOST_DB_PATH,
-			cloudApiUrl: env.CLOUD_API_URL,
+			cloudApiUrl: env.SUPERSET_API_URL,
 			migrationsFolder: env.HOST_MIGRATIONS_FOLDER,
 			allowedOrigins: [
 				`http://localhost:${env.DESKTOP_VITE_PORT}`,
@@ -53,6 +54,10 @@ async function main(): Promise<void> {
 	const server = serve(
 		{ fetch: app.fetch, port: env.HOST_SERVICE_PORT, hostname: "127.0.0.1" },
 		(info: { port: number }) => {
+			// Install only after the server is listening so startup throws still
+			// reach `main().catch(...)` and exit with a non-zero code.
+			installProcessSafetyNet();
+
 			if (env.ORGANIZATION_ID) {
 				try {
 					writeManifest({

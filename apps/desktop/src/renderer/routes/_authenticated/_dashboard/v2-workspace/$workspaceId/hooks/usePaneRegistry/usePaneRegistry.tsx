@@ -5,7 +5,6 @@ import type {
 } from "@superset/panes";
 import { alert } from "@superset/ui/atoms/Alert";
 import { toast } from "@superset/ui/sonner";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { workspaceTrpc } from "@superset/workspace-client";
 import {
@@ -13,25 +12,21 @@ import {
 	GitCompareArrows,
 	Globe,
 	MessageSquare,
-	SquareSplitHorizontal,
 	TerminalSquare,
 } from "lucide-react";
 import { useMemo } from "react";
-import { FaGithub } from "react-icons/fa";
 import {
 	LuArrowDownToLine,
-	LuArrowUpRight,
 	LuClipboard,
 	LuClipboardCopy,
 	LuEraser,
 	LuPower,
 } from "react-icons/lu";
-import { TbScan } from "react-icons/tb";
 import { useHotkeyDisplay } from "renderer/hotkeys";
 import { getBaseName } from "renderer/lib/pathBasename";
+import { consumeTerminalBackgroundIntent } from "renderer/lib/terminal/terminal-background-intents";
 import { terminalRuntimeRegistry } from "renderer/lib/terminal/terminal-runtime-registry";
 import { FileIcon } from "renderer/screens/main/components/WorkspaceView/RightSidebar/FilesView/utils";
-import { useSettings } from "renderer/stores/settings";
 import { getV2NotificationSourcesForPane } from "renderer/stores/v2-notifications";
 import { V2NotificationStatusIndicator } from "../../components/V2NotificationStatusIndicator";
 import {
@@ -40,6 +35,7 @@ import {
 } from "../../state/fileDocumentStore";
 import type {
 	BrowserPaneData,
+	ChatPaneData,
 	CommentPaneData,
 	DevtoolsPaneData,
 	FilePaneData,
@@ -47,8 +43,13 @@ import type {
 	TerminalPaneData,
 } from "../../types";
 import { BrowserPane, BrowserPaneToolbar } from "./components/BrowserPane";
+import { ChatPane } from "./components/ChatPane";
+import { ChatPaneTitle } from "./components/ChatPane/components/ChatPaneTitle";
 import { CommentPane } from "./components/CommentPane";
+import { CommentPaneHeaderExtras } from "./components/CommentPane/components/CommentPaneHeaderExtras";
+import { CommentPaneTitle } from "./components/CommentPane/components/CommentPaneTitle";
 import { DiffPane } from "./components/DiffPane";
+import { DiffPaneHeaderExtras } from "./components/DiffPane/components/DiffPaneHeaderExtras";
 import { FilePane } from "./components/FilePane";
 import { FilePaneHeaderExtras } from "./components/FilePane/components/FilePaneHeaderExtras";
 import { TerminalPane } from "./components/TerminalPane";
@@ -98,60 +99,6 @@ const MOD_KEY = navigator.platform.toLowerCase().includes("mac")
 	? "⌘"
 	: "Ctrl+";
 
-function DiffViewModeToggle() {
-	const diffStyle = useSettings((s) => s.diffStyle);
-	const updateSetting = useSettings((s) => s.update);
-
-	const buttonClass = (active: boolean) =>
-		cn(
-			"flex size-5 items-center justify-center transition-colors",
-			active
-				? "bg-secondary text-foreground"
-				: "text-muted-foreground hover:text-foreground",
-		);
-
-	return (
-		<div className="flex items-center">
-			<Tooltip>
-				<TooltipTrigger asChild>
-					<button
-						type="button"
-						onClick={() => updateSetting("diffStyle", "unified")}
-						aria-label="Unified view"
-						aria-pressed={diffStyle === "unified"}
-						className={buttonClass(diffStyle === "unified")}
-					>
-						<TbScan className="size-3.5" />
-					</button>
-				</TooltipTrigger>
-				<TooltipContent side="bottom" showArrow={false}>
-					Unified view
-				</TooltipContent>
-			</Tooltip>
-			<Tooltip>
-				<TooltipTrigger asChild>
-					<button
-						type="button"
-						onClick={() => updateSetting("diffStyle", "split")}
-						aria-label="Split view"
-						aria-pressed={diffStyle === "split"}
-						className={buttonClass(diffStyle === "split")}
-					>
-						<SquareSplitHorizontal className="size-3.5" />
-					</button>
-				</TooltipTrigger>
-				<TooltipContent side="bottom" showArrow={false}>
-					Split view
-				</TooltipContent>
-			</Tooltip>
-			<div
-				className="mx-1 h-3.5 w-px bg-muted-foreground/30"
-				aria-hidden="true"
-			/>
-		</div>
-	);
-}
-
 interface UsePaneRegistryOptions {
 	onOpenFile: (path: string, openInNewTab?: boolean) => void;
 	onRevealPath: (path: string) => void;
@@ -168,11 +115,29 @@ export function usePaneRegistry(
 		workspaceTrpc.terminal.killSession.useMutation({
 			onSuccess: () => {
 				toast.success("Terminal session killed");
-				void workspaceTrpcUtils.terminal.listSessions.invalidate();
+				void workspaceTrpcUtils.terminal.listSessions.invalidate({
+					workspaceId,
+				});
 			},
 			onError: (error) => {
 				toast.error("Failed to kill terminal session", {
 					description: error.message,
+				});
+			},
+		});
+	// onAfterClose-driven kill: silent on both success and failure, since
+	// the user's intent was already expressed by closing the pane.
+	const { mutate: killTerminalSessionSilently } =
+		workspaceTrpc.terminal.killSession.useMutation({
+			onSuccess: () => {
+				void workspaceTrpcUtils.terminal.listSessions.invalidate({
+					workspaceId,
+				});
+			},
+			onError: (error) => {
+				console.warn("Failed to kill removed terminal session", {
+					workspaceId,
+					error,
 				});
 			},
 		});
@@ -263,7 +228,7 @@ export function usePaneRegistry(
 						onOpenFile={onOpenFile}
 					/>
 				),
-				renderHeaderExtras: () => <DiffViewModeToggle />,
+				renderHeaderExtras: () => <DiffPaneHeaderExtras />,
 				contextMenuActions: (_ctx, defaults) =>
 					defaults.map((d) =>
 						d.key === "close-pane" ? { ...d, label: "Close Diff" } : d,
@@ -272,6 +237,15 @@ export function usePaneRegistry(
 			terminal: {
 				getIcon: () => <TerminalSquare className="size-3.5" />,
 				getTitle: () => "Terminal",
+				onAfterClose: (pane) => {
+					const { terminalId } = pane.data as TerminalPaneData;
+					if (consumeTerminalBackgroundIntent(terminalId)) {
+						terminalRuntimeRegistry.release(terminalId);
+						return;
+					}
+					terminalRuntimeRegistry.dispose(terminalId);
+					killTerminalSessionSilently({ terminalId, workspaceId });
+				},
 				renderTitle: (ctx: RendererContext<PaneViewerData>) => (
 					<div className="flex min-w-0 flex-1 items-center gap-1.5">
 						<TerminalSessionDropdown context={ctx} workspaceId={workspaceId} />
@@ -375,10 +349,10 @@ export function usePaneRegistry(
 						variant: "destructive",
 						disabled: isKillingTerminalSession,
 						onSelect: (ctx) => {
-							const data = ctx.pane.data as TerminalPaneData;
+							const { terminalId } = ctx.pane.data as TerminalPaneData;
 							killTerminalSession({
-								terminalId: data.terminalId,
-								workspaceId: data.workspaceId ?? workspaceId,
+								terminalId,
+								workspaceId,
 							});
 						},
 					};
@@ -409,11 +383,7 @@ export function usePaneRegistry(
 				renderToolbar: (ctx: RendererContext<PaneViewerData>) => (
 					<BrowserPaneToolbar ctx={ctx} />
 				),
-				// Destruction is handled by useGlobalBrowserLifecycle instead —
-				// the Panes library's onRemoved diff fires on transient workspace-
-				// switch churn (when the pane store replaceState's in place rather
-				// than remounting) and would prematurely destroy webviews whose
-				// owning workspace is still present.
+				// Destruction handled by useGlobalBrowserLifecycle for now.
 				contextMenuActions: (_ctx, defaults) =>
 					defaults.map((d) =>
 						d.key === "close-pane" ? { ...d, label: "Close Browser" } : d,
@@ -423,29 +393,24 @@ export function usePaneRegistry(
 				getIcon: () => <MessageSquare className="size-3.5" />,
 				getTitle: () => "Chat",
 				renderTitle: (ctx: RendererContext<PaneViewerData>) => (
-					<div className="flex min-w-0 flex-1 items-center gap-1.5">
-						<MessageSquare className="size-3.5 shrink-0" />
-						<span
-							className={cn(
-								"min-w-0 flex-1 truncate text-xs transition-colors duration-150",
-								ctx.isActive ? "text-foreground" : "text-muted-foreground",
-							)}
-						>
-							Chat
-						</span>
-						<V2NotificationStatusIndicator
+					<ChatPaneTitle context={ctx} workspaceId={workspaceId} />
+				),
+				renderPane: (ctx: RendererContext<PaneViewerData>) => {
+					const data = ctx.pane.data as ChatPaneData;
+					return (
+						<ChatPane
 							workspaceId={workspaceId}
-							sources={getV2NotificationSourcesForPane(ctx.pane)}
+							sessionId={data.sessionId}
+							onSessionIdChange={(id) =>
+								ctx.actions.updateData({ ...data, sessionId: id })
+							}
+							initialLaunchConfig={data.launchConfig ?? null}
+							onConsumeLaunchConfig={() =>
+								ctx.actions.updateData({ ...data, launchConfig: null })
+							}
 						/>
-					</div>
-				),
-				// Disabled until ChatServiceProvider is wired above v2 panes —
-				// TiptapPromptEditor needs its tRPC context.
-				renderPane: (_ctx: RendererContext<PaneViewerData>) => (
-					<div className="flex h-full items-center justify-center p-4 text-sm text-muted-foreground">
-						Chat pane is temporarily disabled.
-					</div>
-				),
+					);
+				},
 				contextMenuActions: (_ctx, defaults) =>
 					defaults.map((d) =>
 						d.key === "close-pane" ? { ...d, label: "Close Chat" } : d,
@@ -469,25 +434,15 @@ export function usePaneRegistry(
 					const data = pane.data as CommentPaneData;
 					return data.authorLogin;
 				},
+				renderTitle: (ctx: RendererContext<PaneViewerData>) => (
+					<CommentPaneTitle context={ctx} />
+				),
 				renderPane: (ctx: RendererContext<PaneViewerData>) => (
 					<CommentPane context={ctx} />
 				),
-				renderHeaderExtras: (ctx: RendererContext<PaneViewerData>) => {
-					const data = ctx.pane.data as CommentPaneData;
-					if (!data.url) return null;
-					return (
-						<a
-							href={data.url}
-							target="_blank"
-							rel="noopener noreferrer"
-							className="flex shrink-0 items-center gap-0.5 rounded p-0.5 text-muted-foreground/60 transition-colors hover:text-muted-foreground"
-							aria-label="View on GitHub"
-						>
-							<FaGithub className="size-3.5" />
-							<LuArrowUpRight className="size-3" />
-						</a>
-					);
-				},
+				renderHeaderExtras: (ctx: RendererContext<PaneViewerData>) => (
+					<CommentPaneHeaderExtras context={ctx} />
+				),
 				contextMenuActions: (_ctx, defaults) =>
 					defaults.map((d) =>
 						d.key === "close-pane" ? { ...d, label: "Close Comment" } : d,
@@ -510,6 +465,7 @@ export function usePaneRegistry(
 			clearShortcut,
 			scrollToBottomShortcut,
 			killTerminalSession,
+			killTerminalSessionSilently,
 			isKillingTerminalSession,
 			onOpenFile,
 			onRevealPath,

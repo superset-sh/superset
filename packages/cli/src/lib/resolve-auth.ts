@@ -30,13 +30,14 @@ export async function resolveAuth(
 				"Run: superset auth login (or set SUPERSET_API_KEY)",
 			);
 		}
-		if (config.auth.expiresAt < Date.now()) {
+		const CLOCK_SKEW_MS = 5 * 60 * 1000;
+		if (config.auth.expiresAt + CLOCK_SKEW_MS < Date.now()) {
 			throw new CLIError("Session expired", "Run: superset auth login");
 		}
 		bearer = config.auth.accessToken;
 	}
 
-	const api = createApiClient(config, {
+	const api = createApiClient({
 		bearer,
 		organizationId: config.organizationId,
 	});

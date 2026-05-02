@@ -1,6 +1,7 @@
 import type { Pane, WorkspaceState } from "@superset/panes";
 import { useCallback } from "react";
 import { terminalRuntimeRegistry } from "renderer/lib/terminal/terminal-runtime-registry";
+import { dropWorkspacePaneStore } from "renderer/lib/workspace-pane-registry";
 import { browserRuntimeRegistry } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/BrowserPane/browserRuntimeRegistry";
 import {
 	extractPaneIds,
@@ -8,6 +9,7 @@ import {
 } from "renderer/routes/_authenticated/components/utils/paneLifecycleRows";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import type { AppCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider/collections";
+import { isSidebarWorkspaceVisible } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
 import { PROJECT_CUSTOM_COLORS } from "shared/constants/project-colors";
 
 function getNextTabOrder(items: Array<{ tabOrder: number }>): number {
@@ -58,6 +60,7 @@ function getProjectTopLevelItems(
 			.filter(
 				(item) =>
 					item.sidebarState.projectId === projectId &&
+					isSidebarWorkspaceVisible(item) &&
 					item.sidebarState.sectionId === null &&
 					item.workspaceId !== options.excludeWorkspaceId,
 			)
@@ -85,6 +88,14 @@ function getFirstSectionIndex(items: ProjectTopLevelItem[]): number {
 	return firstSectionIndex === -1 ? items.length : firstSectionIndex;
 }
 
+function createEmptyPaneLayout(): WorkspaceState<unknown> {
+	return {
+		version: 1,
+		tabs: [],
+		activeTabId: null,
+	} satisfies WorkspaceState<unknown>;
+}
+
 /**
  * Rewrites the flat top-level project lane. Workspace items are explicitly
  * ungrouped by setting sidebarState.projectId and clearing sidebarState.sectionId.
@@ -102,6 +113,7 @@ function writeProjectTopLevelOrder(
 				draft.sidebarState.projectId = projectId;
 				draft.sidebarState.sectionId = null;
 				draft.sidebarState.tabOrder = tabOrder;
+				draft.sidebarState.isHidden = false;
 			});
 			return;
 		}
@@ -139,11 +151,22 @@ function ensureSidebarWorkspaceRecord(
 	workspaceId: string,
 	projectId: string,
 ): void {
-	if (collections.v2WorkspaceLocalState.get(workspaceId)) {
+	const existing = collections.v2WorkspaceLocalState.get(workspaceId);
+	if (existing && isSidebarWorkspaceVisible(existing)) {
 		return;
 	}
 
 	const topLevelItems = getProjectTopLevelItems(collections, projectId);
+
+	if (existing) {
+		collections.v2WorkspaceLocalState.update(workspaceId, (draft) => {
+			draft.sidebarState.projectId = projectId;
+			draft.sidebarState.tabOrder = getPrependTabOrder(topLevelItems);
+			draft.sidebarState.sectionId = null;
+			draft.sidebarState.isHidden = false;
+		});
+		return;
+	}
 
 	collections.v2WorkspaceLocalState.insert({
 		workspaceId,
@@ -152,12 +175,9 @@ function ensureSidebarWorkspaceRecord(
 			projectId,
 			tabOrder: getPrependTabOrder(topLevelItems),
 			sectionId: null,
+			isHidden: false,
 		},
-		paneLayout: {
-			version: 1,
-			tabs: [],
-			activeTabId: null,
-		} satisfies WorkspaceState<unknown>,
+		paneLayout: createEmptyPaneLayout(),
 	});
 }
 
@@ -228,6 +248,7 @@ export function useDashboardSidebarState() {
 				if (!collections.v2WorkspaceLocalState.get(workspaceId)) return;
 				collections.v2WorkspaceLocalState.update(workspaceId, (draft) => {
 					draft.sidebarState.tabOrder = index + 1;
+					draft.sidebarState.isHidden = false;
 				});
 			});
 		},
@@ -247,6 +268,7 @@ export function useDashboardSidebarState() {
 						draft.sidebarState.tabOrder = tabOrder;
 						draft.sidebarState.sectionId = null;
 						draft.sidebarState.projectId = projectId;
+						draft.sidebarState.isHidden = false;
 					});
 				} else {
 					if (!collections.v2SidebarSections.get(item.id)) return;
@@ -274,6 +296,7 @@ export function useDashboardSidebarState() {
 				.filter(
 					(item) =>
 						item.sidebarState.projectId === projectId &&
+						isSidebarWorkspaceVisible(item) &&
 						item.workspaceId !== workspaceId &&
 						item.sidebarState.sectionId === sectionId,
 				)
@@ -285,6 +308,7 @@ export function useDashboardSidebarState() {
 					draft.sidebarState.tabOrder = i + 1;
 					draft.sidebarState.sectionId = sectionId;
 					draft.sidebarState.projectId = projectId;
+					draft.sidebarState.isHidden = false;
 				});
 			});
 		},
@@ -376,14 +400,17 @@ export function useDashboardSidebarState() {
 				.filter(
 					(item) =>
 						item.sidebarState.projectId === projectId &&
+						isSidebarWorkspaceVisible(item) &&
 						item.workspaceId !== workspaceId &&
 						item.sidebarState.sectionId === sectionId,
 				)
 				.map((item) => ({ tabOrder: item.sidebarState.tabOrder }));
 
 			collections.v2WorkspaceLocalState.update(workspaceId, (draft) => {
+				draft.sidebarState.projectId = projectId;
 				draft.sidebarState.sectionId = sectionId;
 				draft.sidebarState.tabOrder = getNextTabOrder(siblingRows);
+				draft.sidebarState.isHidden = false;
 			});
 		},
 		[collections],
@@ -405,6 +432,7 @@ export function useDashboardSidebarState() {
 				.filter(
 					(item) =>
 						item.sidebarState.projectId === section.projectId &&
+						isSidebarWorkspaceVisible(item) &&
 						item.sidebarState.sectionId === sectionId,
 				)
 				.sort(
@@ -435,6 +463,36 @@ export function useDashboardSidebarState() {
 			if (!workspace) return;
 			cleanupWorkspacePaneRuntimes([workspace]);
 			collections.v2WorkspaceLocalState.delete(workspaceId);
+			dropWorkspacePaneStore(workspaceId);
+		},
+		[collections],
+	);
+
+	const hideWorkspaceInSidebar = useCallback(
+		(workspaceId: string, projectId: string) => {
+			const workspace = collections.v2WorkspaceLocalState.get(workspaceId);
+			if (!workspace) {
+				collections.v2WorkspaceLocalState.insert({
+					workspaceId,
+					createdAt: new Date(),
+					sidebarState: {
+						projectId,
+						tabOrder: 0,
+						sectionId: null,
+						isHidden: true,
+					},
+					paneLayout: createEmptyPaneLayout(),
+				});
+				return;
+			}
+
+			cleanupWorkspacePaneRuntimes([workspace]);
+			collections.v2WorkspaceLocalState.update(workspaceId, (draft) => {
+				draft.sidebarState.projectId = projectId;
+				draft.sidebarState.sectionId = null;
+				draft.sidebarState.isHidden = true;
+				draft.paneLayout = createEmptyPaneLayout();
+			});
 		},
 		[collections],
 	);
@@ -470,6 +528,7 @@ export function useDashboardSidebarState() {
 		deleteSection,
 		ensureProjectInSidebar,
 		ensureWorkspaceInSidebar,
+		hideWorkspaceInSidebar,
 		moveWorkspaceToSection,
 		moveWorkspaceToSectionAtIndex,
 		removeProjectFromSidebar,

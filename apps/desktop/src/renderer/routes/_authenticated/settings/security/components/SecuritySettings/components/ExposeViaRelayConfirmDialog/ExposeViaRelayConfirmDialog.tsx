@@ -15,12 +15,14 @@ const CONFIRM_PHRASE = "I understand";
 
 interface ExposeViaRelayConfirmDialogProps {
 	open: boolean;
+	targetEnabled: boolean;
 	onOpenChange: (open: boolean) => void;
 	onConfirm: () => void;
 }
 
 export function ExposeViaRelayConfirmDialog({
 	open,
+	targetEnabled,
 	onOpenChange,
 	onConfirm,
 }: ExposeViaRelayConfirmDialogProps) {
@@ -32,51 +34,56 @@ export function ExposeViaRelayConfirmDialog({
 		if (!open) setTyped("");
 	}, [open]);
 
-	const canConfirm = typed === CONFIRM_PHRASE;
+	const canConfirm = !targetEnabled || typed === CONFIRM_PHRASE;
 
 	return (
 		<AlertDialog open={open} onOpenChange={onOpenChange}>
 			<AlertDialogContent className="max-w-[480px]">
 				<AlertDialogHeader>
 					<AlertDialogTitle>
-						Expose this device to Superset Relay?
+						{targetEnabled ? "Enable Relay access?" : "Disable Relay access?"}
 					</AlertDialogTitle>
 					<AlertDialogDescription asChild>
 						<div className="space-y-3 text-sm text-muted-foreground">
 							<p>
-								Turning this on allows any remote device which you grant access
-								to — and anything that can compromise the Superset Relay — to
-								reach into this device to run commands. They will be able to
-								read and write files in your configured project directories, run
-								shell commands as you, and access any tools the host service
-								exposes.
+								This restarts the host service and stops running terminals. File
+								watches and other host-backed work will be interrupted.
 							</p>
-							<p>
-								Only enable this if you are okay with the risk that this
-								entails. Most users should leave this off.
-							</p>
+							{targetEnabled ? (
+								<p>
+									Remote workspaces you grant access to will be able to reach
+									this device through Superset Relay.
+								</p>
+							) : (
+								<p>
+									Remote workspaces will no longer be able to reach this device
+									through Superset Relay.
+								</p>
+							)}
 						</div>
 					</AlertDialogDescription>
 				</AlertDialogHeader>
 
-				<div className="space-y-2 pt-2">
-					<Label htmlFor="expose-relay-confirm" className="text-xs">
-						Type{" "}
-						<span className="font-mono font-medium text-foreground">
-							{CONFIRM_PHRASE}
-						</span>{" "}
-						to continue
-					</Label>
-					<Input
-						id="expose-relay-confirm"
-						autoFocus
-						value={typed}
-						onChange={(event) => setTyped(event.target.value)}
-						placeholder={CONFIRM_PHRASE}
-						autoComplete="off"
-						spellCheck={false}
-					/>
-				</div>
+				{targetEnabled && (
+					<div className="space-y-2 pt-2">
+						<Label htmlFor="expose-relay-confirm" className="text-xs">
+							Type{" "}
+							<span className="font-mono font-medium text-foreground">
+								{CONFIRM_PHRASE}
+							</span>{" "}
+							to continue
+						</Label>
+						<Input
+							id="expose-relay-confirm"
+							autoFocus
+							value={typed}
+							onChange={(event) => setTyped(event.target.value)}
+							placeholder={CONFIRM_PHRASE}
+							autoComplete="off"
+							spellCheck={false}
+						/>
+					</div>
+				)}
 
 				<AlertDialogFooter>
 					<Button variant="ghost" size="sm" onClick={() => onOpenChange(false)}>
@@ -88,7 +95,7 @@ export function ExposeViaRelayConfirmDialog({
 						disabled={!canConfirm}
 						onClick={onConfirm}
 					>
-						Enable
+						{targetEnabled ? "Enable and restart" : "Disable and restart"}
 					</Button>
 				</AlertDialogFooter>
 			</AlertDialogContent>

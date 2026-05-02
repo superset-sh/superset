@@ -1,17 +1,14 @@
 import { Workspace } from "@superset/panes";
-import {
-	ResizableHandle,
-	ResizablePanel,
-	ResizablePanelGroup,
-} from "@superset/ui/resizable";
 import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { createFileRoute } from "@tanstack/react-router";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { useV2UserPreferences } from "renderer/hooks/useV2UserPreferences";
 import { useHotkey } from "renderer/hotkeys";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { CommandPalette } from "renderer/screens/main/components/CommandPalette";
+import { ResizablePanel } from "renderer/screens/main/components/ResizablePanel";
 import { getV2NotificationSourcesForTab } from "renderer/stores/v2-notifications";
 import { WorkspaceNotFoundState } from "../components/WorkspaceNotFoundState";
 import { AddTabMenu } from "./components/AddTabMenu";
@@ -102,10 +99,12 @@ function V2WorkspacePage() {
 	}
 
 	return (
+		// key={workspaceId} so each workspace gets its own pane store rather
+		// than sharing one and replaceState-ing data across switches.
 		<WorkspaceContent
+			key={workspace.id}
 			projectId={workspace.projectId}
 			workspaceId={workspace.id}
-			workspaceName={workspace.name}
 			terminalId={terminalId}
 			chatSessionId={chatSessionId}
 			focusRequestId={focusRequestId}
@@ -119,7 +118,6 @@ function V2WorkspacePage() {
 function WorkspaceContent({
 	projectId,
 	workspaceId,
-	workspaceName,
 	terminalId,
 	chatSessionId,
 	focusRequestId,
@@ -129,7 +127,6 @@ function WorkspaceContent({
 }: {
 	projectId: string;
 	workspaceId: string;
-	workspaceName: string;
 	terminalId?: string;
 	chatSessionId?: string;
 	focusRequestId?: string;
@@ -141,6 +138,7 @@ function WorkspaceContent({
 		preferences: v2UserPreferences,
 		setRightSidebarOpen,
 		setRightSidebarTab,
+		setRightSidebarWidth,
 	} = useV2UserPreferences();
 	const { store } = useV2WorkspacePaneLayout({
 		projectId,
@@ -199,8 +197,35 @@ function WorkspaceContent({
 	const onBeforeCloseTab = useDirtyTabCloseGuard({ workspaceId });
 
 	const sidebarOpen = v2UserPreferences.rightSidebarOpen;
+	// Fallback for rows persisted before the rightSidebarWidth field existed —
+	// the live collection skips zod defaults, so an older row reads undefined
+	// here and would render the ResizablePanel without a width (full-bleed).
+	const sidebarWidth = v2UserPreferences.rightSidebarWidth ?? 340;
+	const [isSidebarResizing, setIsSidebarResizing] = useState(false);
 	const { onSidebarResizeDragging, onWorkspaceInteractionStateChange } =
 		useBrowserShellInteractionPassthrough({ sidebarOpen });
+	const handleSidebarResizingChange = useCallback(
+		(resizing: boolean) => {
+			setIsSidebarResizing(resizing);
+			onSidebarResizeDragging(resizing);
+		},
+		[onSidebarResizeDragging],
+	);
+
+	// The sidebar slot lives at the dashboard layout level (next to TopBar) so
+	// the sidebar runs full-height. The slot is mounted by the parent layout
+	// before this child renders, so look it up synchronously during state init —
+	// otherwise users with rightSidebarOpen=true persisted see a 1-frame flash
+	// while the post-mount effect fills the ref.
+	const [sidebarSlotEl, setSidebarSlotEl] = useState<HTMLElement | null>(() =>
+		typeof document !== "undefined"
+			? document.getElementById("workspace-right-sidebar-slot")
+			: null,
+	);
+	useEffect(() => {
+		if (sidebarSlotEl) return;
+		setSidebarSlotEl(document.getElementById("workspace-right-sidebar-slot"));
+	}, [sidebarSlotEl]);
 
 	useWorkspaceHotkeys({
 		store,
@@ -212,76 +237,74 @@ function WorkspaceContent({
 
 	return (
 		<FileDocumentStoreProvider workspaceId={workspaceId}>
-			<ResizablePanelGroup
-				direction="horizontal"
-				className="min-h-0 min-w-0 flex-1 overflow-auto"
-			>
-				<ResizablePanel className="min-w-[320px]" defaultSize={80} minSize={30}>
-					<div
-						className="flex min-h-0 min-w-0 h-full flex-col overflow-hidden"
-						data-workspace-id={workspaceId}
-					>
-						<Workspace<PaneViewerData>
-							registry={paneRegistry}
-							paneActions={defaultPaneActions}
-							contextMenuActions={defaultContextMenuActions}
-							renderTabIcon={renderBrowserTabIcon}
-							renderTabAccessory={(tab) => (
-								<V2NotificationStatusIndicator
-									workspaceId={workspaceId}
-									sources={getV2NotificationSourcesForTab(tab)}
-								/>
-							)}
-							renderBelowTabBar={() => (
-								<V2PresetsBar
-									matchedPresets={matchedPresets}
-									executePreset={executePreset}
-								/>
-							)}
-							renderAddTabMenu={() => (
-								<AddTabMenu
-									onAddTerminal={addTerminalTab}
-									onAddChat={addChatTab}
-									onAddBrowser={addBrowserTab}
-								/>
-							)}
-							renderEmptyState={() => (
-								<WorkspaceEmptyState
-									onOpenBrowser={addBrowserTab}
-									onOpenChat={addChatTab}
-									onOpenQuickOpen={handleQuickOpen}
-									onOpenTerminal={addTerminalTab}
-								/>
-							)}
-							onBeforeCloseTab={onBeforeCloseTab}
-							onInteractionStateChange={onWorkspaceInteractionStateChange}
-							store={store}
-						/>
-					</div>
-				</ResizablePanel>
-				{sidebarOpen && (
-					<>
-						<ResizableHandle onDragging={onSidebarResizeDragging} />
-						<ResizablePanel
-							className="min-w-[220px]"
-							defaultSize={20}
-							minSize={15}
-							maxSize={40}
-						>
-							<WorkspaceSidebar
+			<div className="flex min-h-0 min-w-0 flex-1">
+				<div
+					className="flex min-h-0 min-w-[320px] flex-1 flex-col overflow-hidden"
+					data-workspace-id={workspaceId}
+				>
+					<Workspace<PaneViewerData>
+						registry={paneRegistry}
+						paneActions={defaultPaneActions}
+						contextMenuActions={defaultContextMenuActions}
+						renderTabIcon={renderBrowserTabIcon}
+						renderTabAccessory={(tab) => (
+							<V2NotificationStatusIndicator
 								workspaceId={workspaceId}
-								workspaceName={workspaceName}
-								onSelectFile={openFilePane}
-								onSelectDiffFile={openDiffPane}
-								onOpenComment={openCommentPane}
-								onSearch={handleQuickOpen}
-								selectedFilePath={selectedFilePath}
-								pendingReveal={pendingReveal}
+								sources={getV2NotificationSourcesForTab(tab)}
 							/>
-						</ResizablePanel>
-					</>
+						)}
+						renderBelowTabBar={() => (
+							<V2PresetsBar
+								matchedPresets={matchedPresets}
+								executePreset={executePreset}
+							/>
+						)}
+						renderAddTabMenu={() => (
+							<AddTabMenu
+								onAddTerminal={addTerminalTab}
+								onAddChat={addChatTab}
+								onAddBrowser={addBrowserTab}
+							/>
+						)}
+						renderEmptyState={() => (
+							<WorkspaceEmptyState
+								onOpenBrowser={addBrowserTab}
+								onOpenChat={addChatTab}
+								onOpenQuickOpen={handleQuickOpen}
+								onOpenTerminal={addTerminalTab}
+							/>
+						)}
+						onBeforeCloseTab={onBeforeCloseTab}
+						onInteractionStateChange={onWorkspaceInteractionStateChange}
+						store={store}
+					/>
+				</div>
+			</div>
+			{sidebarOpen &&
+				sidebarSlotEl &&
+				createPortal(
+					<ResizablePanel
+						width={sidebarWidth}
+						onWidthChange={setRightSidebarWidth}
+						isResizing={isSidebarResizing}
+						onResizingChange={handleSidebarResizingChange}
+						minWidth={240}
+						maxWidth={640}
+						handleSide="left"
+						onDoubleClickHandle={() => setRightSidebarWidth(340)}
+					>
+						<WorkspaceSidebar
+							workspaceId={workspaceId}
+							onSelectFile={openFilePane}
+							onSelectDiffFile={openDiffPane}
+							onOpenComment={openCommentPane}
+							onSearch={handleQuickOpen}
+							selectedFilePath={selectedFilePath}
+							pendingReveal={pendingReveal}
+						/>
+					</ResizablePanel>,
+					sidebarSlotEl,
 				)}
-			</ResizablePanelGroup>
 			<CommandPalette
 				workspaceId={workspaceId}
 				open={quickOpenOpen}

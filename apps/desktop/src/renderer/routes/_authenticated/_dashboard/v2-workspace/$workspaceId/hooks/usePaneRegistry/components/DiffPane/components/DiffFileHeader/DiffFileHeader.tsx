@@ -1,18 +1,14 @@
 import { Checkbox } from "@superset/ui/checkbox";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
-import {
-	ChevronDown,
-	ChevronRight,
-	ExternalLink,
-	Eye,
-	EyeOff,
-} from "lucide-react";
+import { ChevronDown, ChevronRight, Eye, EyeOff } from "lucide-react";
 import { useId } from "react";
-import { LuCopy, LuUndo2 } from "react-icons/lu";
+import { LuCheck, LuCopy, LuUndo2 } from "react-icons/lu";
+import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
 import { StatusIndicator } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/StatusIndicator";
 import { CLICK_HINT_TOOLTIP } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/utils/clickModifierLabels";
 import { getSidebarClickIntent } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/utils/getSidebarClickIntent";
 import { FileIcon } from "renderer/screens/main/components/WorkspaceView/RightSidebar/FilesView/utils";
+import { GIT_STAT_TEXT_CLASSES } from "../../utils/gitDecorationColors";
 
 interface DiffFileHeaderProps {
 	path: string;
@@ -27,7 +23,6 @@ interface DiffFileHeaderProps {
 	onToggleViewed: () => void;
 	onOpenFile?: (openInNewTab?: boolean) => void;
 	onOpenInExternalEditor?: () => void;
-	onCopyContents?: () => void;
 	onDiscard?: () => void;
 }
 
@@ -44,18 +39,25 @@ export function DiffFileHeader({
 	onToggleViewed,
 	onOpenFile,
 	onOpenInExternalEditor,
-	onCopyContents,
 	onDiscard,
 }: DiffFileHeaderProps) {
 	const viewedId = useId();
+	const { copyToClipboard, copied } = useCopyToClipboard();
+
+	// Split into directory + basename so the basename stays visible when the
+	// header is narrow — the directory truncates with ellipsis first, and the
+	// basename truncates only as a fallback (very narrow pane or no directory).
+	const lastSlash = path.lastIndexOf("/");
+	const dir = lastSlash >= 0 ? path.slice(0, lastSlash + 1) : "";
+	const name = lastSlash >= 0 ? path.slice(lastSlash + 1) : path;
 
 	return (
-		<div className="@container/diff-file-header flex min-w-0 flex-wrap items-center justify-between gap-1 px-2 py-1.5">
+		<div className="@container/diff-file-header sticky top-0 z-10 flex min-w-0 flex-nowrap items-center gap-1 bg-card px-3 py-2">
 			<button
 				type="button"
 				onClick={onToggleCollapsed}
 				aria-label={collapsed ? "Expand file" : "Collapse file"}
-				className="shrink-0 rounded p-0.5 text-muted-foreground/60 transition-colors hover:bg-accent hover:text-muted-foreground"
+				className="shrink-0 rounded p-1 text-muted-foreground/60 transition-colors hover:bg-accent hover:text-muted-foreground"
 			>
 				{collapsed ? (
 					<ChevronRight className="size-3.5" />
@@ -63,8 +65,7 @@ export function DiffFileHeader({
 					<ChevronDown className="size-3.5" />
 				)}
 			</button>
-			<StatusIndicator status={status} />
-			<Tooltip delayDuration={300}>
+			<Tooltip>
 				<TooltipTrigger asChild>
 					<button
 						type="button"
@@ -78,62 +79,59 @@ export function DiffFileHeader({
 						}}
 						disabled={!onOpenFile && !onOpenInExternalEditor}
 						aria-label="Open in file viewer"
-						className="flex h-6 min-w-20 flex-[1_1_10rem] items-center gap-1.5 rounded border border-border px-1.5 py-0.5 text-left transition-colors hover:bg-accent disabled:pointer-events-none disabled:opacity-60"
+						className="flex h-6 min-w-0 flex-1 items-center gap-1.5 rounded px-1 text-left transition-colors hover:bg-accent disabled:pointer-events-none disabled:opacity-60"
 					>
 						<FileIcon fileName={path} className="size-3.5 shrink-0" />
-						<span className="min-w-0 flex-1 truncate font-mono text-xs text-foreground">
-							{path}
-						</span>
-						<span className="hidden shrink-0 font-mono text-[10px] text-muted-foreground @min-[300px]/diff-file-header:inline">
-							{additions > 0 && (
-								<span className="text-green-700 dark:text-green-400">
-									+{additions}
+						<span className="flex min-w-0 items-baseline font-mono text-xs">
+							{dir && (
+								<span className="min-w-0 shrink-[1000] truncate text-muted-foreground">
+									{dir}
 								</span>
 							)}
-							{additions > 0 && deletions > 0 && " "}
-							{deletions > 0 && (
-								<span className="text-red-700 dark:text-red-500">
-									-{deletions}
-								</span>
-							)}
+							<span className="min-w-0 truncate text-foreground">{name}</span>
 						</span>
 					</button>
 				</TooltipTrigger>
-				<TooltipContent
-					side="bottom"
-					showArrow={false}
-					className="max-w-[80vw]"
-				>
-					<div className="space-y-1">
-						<div>Open in file viewer. {CLICK_HINT_TOOLTIP}</div>
-						<div className="break-all font-mono text-[10px] text-muted-foreground">
-							{path}
-						</div>
-					</div>
+				<TooltipContent side="bottom" showArrow={false}>
+					{CLICK_HINT_TOOLTIP}
 				</TooltipContent>
 			</Tooltip>
-
-			<div className="ml-auto flex shrink-0 items-center gap-1">
-				<Tooltip>
-					<TooltipTrigger asChild>
-						<span className="inline-flex rounded">
-							<button
-								type="button"
-								onClick={onOpenInExternalEditor}
-								disabled={!onOpenInExternalEditor}
-								aria-label="Open in editor"
-								className="rounded p-0.5 text-muted-foreground/60 transition-colors hover:bg-accent hover:text-muted-foreground disabled:pointer-events-none disabled:opacity-40"
-							>
-								<ExternalLink className="size-3.5" />
-							</button>
-						</span>
-					</TooltipTrigger>
-					<TooltipContent side="bottom" showArrow={false}>
-						{onOpenInExternalEditor
-							? "Open in editor"
-							: "Open in editor unavailable"}
-					</TooltipContent>
-				</Tooltip>
+			<Tooltip>
+				<TooltipTrigger asChild>
+					<button
+						type="button"
+						onClick={() => void copyToClipboard(path)}
+						aria-label="Copy path"
+						className="shrink-0 rounded p-1 text-muted-foreground/60 transition-colors hover:bg-accent hover:text-muted-foreground"
+					>
+						{copied ? (
+							<LuCheck className="size-3.5" />
+						) : (
+							<LuCopy className="size-3.5" />
+						)}
+					</button>
+				</TooltipTrigger>
+				<TooltipContent side="bottom" showArrow={false}>
+					{copied ? "Copied" : "Copy path"}
+				</TooltipContent>
+			</Tooltip>
+			<div className="ml-auto flex shrink-0 items-center gap-1.5">
+				<StatusIndicator status={status} iconClassName="size-3.5" />
+				{(additions > 0 || deletions > 0) && (
+					<span className="font-mono text-xs text-muted-foreground">
+						{additions > 0 && (
+							<span className={GIT_STAT_TEXT_CLASSES.addition}>
+								+{additions}
+							</span>
+						)}
+						{additions > 0 && deletions > 0 && " "}
+						{deletions > 0 && (
+							<span className={GIT_STAT_TEXT_CLASSES.deletion}>
+								-{deletions}
+							</span>
+						)}
+					</span>
+				)}
 
 				<div className="flex items-center gap-1">
 					<Checkbox
@@ -144,7 +142,7 @@ export function DiffFileHeader({
 					/>
 					<label
 						htmlFor={viewedId}
-						className="hidden cursor-pointer select-none text-[10px] text-muted-foreground @min-[380px]/diff-file-header:inline"
+						className="hidden cursor-pointer select-none text-xs text-muted-foreground @min-[380px]/diff-file-header:inline"
 					>
 						Viewed
 					</label>
@@ -159,7 +157,7 @@ export function DiffFileHeader({
 							aria-label={
 								expandUnchanged ? "Hide unchanged regions" : "Show all lines"
 							}
-							className="rounded p-0.5 text-muted-foreground/60 transition-colors hover:bg-accent hover:text-muted-foreground disabled:pointer-events-none disabled:opacity-40"
+							className="rounded p-1 text-muted-foreground/60 transition-colors hover:bg-accent hover:text-muted-foreground disabled:pointer-events-none disabled:opacity-40"
 						>
 							{expandUnchanged ? (
 								<EyeOff className="size-3.5" />
@@ -177,27 +175,10 @@ export function DiffFileHeader({
 					<TooltipTrigger asChild>
 						<button
 							type="button"
-							onClick={onCopyContents}
-							disabled={!onCopyContents}
-							aria-label="Copy file contents"
-							className="rounded p-0.5 text-muted-foreground/60 transition-colors hover:bg-accent hover:text-muted-foreground disabled:pointer-events-none disabled:opacity-40"
-						>
-							<LuCopy className="size-3.5" />
-						</button>
-					</TooltipTrigger>
-					<TooltipContent side="bottom" showArrow={false}>
-						Copy file contents
-					</TooltipContent>
-				</Tooltip>
-
-				<Tooltip>
-					<TooltipTrigger asChild>
-						<button
-							type="button"
 							onClick={onDiscard}
 							disabled={!onDiscard}
 							aria-label="Discard changes"
-							className="rounded p-0.5 text-muted-foreground/60 transition-colors hover:bg-accent hover:text-destructive disabled:pointer-events-none disabled:opacity-40"
+							className="rounded p-1 text-muted-foreground/60 transition-colors hover:bg-accent hover:text-destructive disabled:pointer-events-none disabled:opacity-40"
 						>
 							<LuUndo2 className="size-3.5" />
 						</button>

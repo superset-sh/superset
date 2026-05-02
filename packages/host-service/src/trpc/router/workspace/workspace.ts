@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { getDeviceName, getHashedDeviceId } from "@superset/shared/device-info";
+import { getHostId, getHostName } from "@superset/shared/host-info";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import simpleGit from "simple-git";
@@ -8,6 +8,7 @@ import { z } from "zod";
 import { projects, workspaces } from "../../../db/schema";
 import { invalidateLabelCache } from "../../../ports/static-ports";
 import { protectedProcedure, router } from "../../index";
+import { ensureMainWorkspace } from "../project/utils/ensure-main-workspace";
 
 export const workspaceRouter = router({
 	get: protectedProcedure
@@ -77,13 +78,15 @@ export const workspaceRouter = router({
 				localProject = inserted;
 			}
 
+			await ensureMainWorkspace(ctx, input.projectId, localProject.repoPath);
+
 			const worktreePath = join(
 				localProject.repoPath,
 				".worktrees",
 				input.branch,
 			);
-			const deviceClientId = getHashedDeviceId();
-			const deviceName = getDeviceName();
+			const machineId = getHostId();
+			const hostName = getHostName();
 
 			const git = await ctx.git(localProject.repoPath);
 			try {
@@ -92,10 +95,10 @@ export const workspaceRouter = router({
 				await git.raw(["worktree", "add", "-b", input.branch, worktreePath]);
 			}
 
-			const host = await ctx.api.device.ensureV2Host.mutate({
+			const host = await ctx.api.host.ensure.mutate({
 				organizationId: ctx.organizationId,
-				machineId: deviceClientId,
-				name: deviceName,
+				machineId,
+				name: hostName,
 			});
 
 			const cloudRow = await ctx.api.v2Workspace.create
@@ -104,7 +107,7 @@ export const workspaceRouter = router({
 					projectId: input.projectId,
 					name: input.name,
 					branch: input.branch,
-					hostId: host.id,
+					hostId: host.machineId,
 				})
 				.catch(async (err) => {
 					try {
@@ -172,17 +175,42 @@ export const workspaceRouter = router({
 				});
 			}
 
-			await ctx.api.v2Workspace.delete.mutate({ id: input.id });
-
 			const localWorkspace = ctx.db.query.workspaces
 				.findFirst({ where: eq(workspaces.id, input.id) })
 				.sync();
+			const localProject = localWorkspace
+				? ctx.db.query.projects
+						.findFirst({ where: eq(projects.id, localWorkspace.projectId) })
+						.sync()
+				: undefined;
+
+			if (
+				localWorkspace &&
+				localProject &&
+				localWorkspace.worktreePath === localProject.repoPath
+			) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message:
+						"Main workspaces cannot be deleted. Remove them from the sidebar or remove the project from this host instead.",
+				});
+			}
+
+			const cloudWorkspace = await ctx.api.v2Workspace.getFromHost.query({
+				organizationId: ctx.organizationId,
+				id: input.id,
+			});
+			if (cloudWorkspace?.type === "main") {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message:
+						"Main workspaces cannot be deleted. Remove them from the sidebar or remove the project from this host instead.",
+				});
+			}
+
+			await ctx.api.v2Workspace.delete.mutate({ id: input.id });
 
 			if (localWorkspace) {
-				const localProject = ctx.db.query.projects
-					.findFirst({ where: eq(projects.id, localWorkspace.projectId) })
-					.sync();
-
 				if (localProject) {
 					try {
 						const git = await ctx.git(localProject.repoPath);

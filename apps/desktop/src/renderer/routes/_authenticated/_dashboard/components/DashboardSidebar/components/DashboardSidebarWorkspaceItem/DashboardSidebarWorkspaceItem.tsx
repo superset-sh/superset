@@ -1,13 +1,16 @@
 import { useNavigate } from "@tanstack/react-router";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useDiffStats } from "renderer/hooks/host-service/useDiffStats";
+import { useOptimisticCollectionActions } from "renderer/routes/_authenticated/hooks/useOptimisticCollectionActions";
 import { useDeletingWorkspaces } from "renderer/routes/_authenticated/providers/DeletingWorkspacesProvider";
+import { RenameBranchDialog } from "renderer/screens/main/components/WorkspaceSidebar/WorkspaceListItem/components";
 import { useV2WorkspaceNotificationStatus } from "renderer/stores/v2-notifications";
+import { useDashboardSidebarHover } from "../../providers/DashboardSidebarHoverProvider";
 import type { DashboardSidebarWorkspace } from "../../types";
 import { DashboardSidebarDeleteDialog } from "../DashboardSidebarDeleteDialog";
 import { DashboardSidebarCollapsedWorkspaceButton } from "./components/DashboardSidebarCollapsedWorkspaceButton";
 import { DashboardSidebarExpandedWorkspaceRow } from "./components/DashboardSidebarExpandedWorkspaceRow";
 import { DashboardSidebarWorkspaceContextMenu } from "./components/DashboardSidebarWorkspaceContextMenu/DashboardSidebarWorkspaceContextMenu";
-import { DashboardSidebarWorkspaceHoverCardContent } from "./components/DashboardSidebarWorkspaceHoverCardContent";
 import { useDashboardSidebarWorkspaceItemActions } from "./hooks/useDashboardSidebarWorkspaceItemActions";
 
 interface DashboardSidebarWorkspaceItemProps {
@@ -35,6 +38,7 @@ export function DashboardSidebarWorkspaceItem({
 		branch,
 		creationStatus,
 	} = workspace;
+	const isMainWorkspace = workspace.type === "main";
 	const diffStats = useDiffStats(id);
 	const workspaceStatus = useV2WorkspaceNotificationStatus(id);
 	const {
@@ -46,8 +50,10 @@ export function DashboardSidebarWorkspaceItem({
 		handleDeleted,
 		handleOpenInFinder,
 		handleRemoveFromSidebar,
+		handleToggleUnread,
 		isActive,
 		isDeleteDialogOpen,
+		isUnread,
 		isRenaming,
 		moveWorkspaceToSection,
 		renameValue,
@@ -60,9 +66,17 @@ export function DashboardSidebarWorkspaceItem({
 		projectId,
 		workspaceName: name,
 		branch,
+		isMainWorkspace,
 	});
 
 	const navigate = useNavigate();
+	const { v2Workspaces: v2WorkspaceActions } = useOptimisticCollectionActions();
+	const [renameBranchTarget, setRenameBranchTarget] = useState<string | null>(
+		null,
+	);
+	const handleAfterBranchRename = (newBranchName: string) => {
+		v2WorkspaceActions.updateWorkspace(id, { branch: newBranchName });
+	};
 	const isPending = !!creationStatus;
 	// Keep the delete dialog outside the hidden wrapper below — the destroy
 	// flow reopens it into an error pane on conflict/teardown-failed.
@@ -75,9 +89,46 @@ export function DashboardSidebarWorkspaceItem({
 			}
 		: undefined;
 
+	const {
+		hoveredId: hoverHoveredId,
+		requestOpen: hoverRequestOpen,
+		requestClose: hoverRequestClose,
+		syncIfHovered: hoverSyncIfHovered,
+	} = useDashboardSidebarHover();
+	const rowRef = useRef<HTMLDivElement>(null);
+	const hoverEligible = !isPending;
+	const hoverPayload = useMemo(
+		() => ({ workspace, onEditBranchClick: setRenameBranchTarget }),
+		[workspace],
+	);
+
+	const handleMouseEnter = useCallback(() => {
+		if (!hoverEligible || !rowRef.current) return;
+		hoverRequestOpen(id, rowRef.current, hoverPayload);
+	}, [hoverEligible, hoverRequestOpen, id, hoverPayload]);
+	const handleMouseLeave = useCallback(() => {
+		if (!hoverEligible) return;
+		hoverRequestClose(id);
+	}, [hoverEligible, hoverRequestClose, id]);
+
+	const isHovered = hoverHoveredId === id;
+	useEffect(() => {
+		if (isHovered && hostType === "local-device") onHoverCardOpen?.();
+	}, [isHovered, hostType, onHoverCardOpen]);
+	useEffect(() => {
+		if (!isHovered) return;
+		hoverSyncIfHovered(id, hoverPayload);
+	}, [isHovered, hoverSyncIfHovered, id, hoverPayload]);
+
 	if (isCollapsed) {
 		const content = (
-			<div className="relative flex w-full justify-center">
+			// biome-ignore lint/a11y/noStaticElementInteractions: hover handlers drive a non-interactive popover, no new keyboard semantics
+			<div
+				ref={rowRef}
+				onMouseEnter={handleMouseEnter}
+				onMouseLeave={handleMouseLeave}
+				className="relative flex w-full justify-center"
+			>
 				{(accentColor || isActive) && (
 					<div
 						className="absolute inset-y-0 left-0 w-0.5"
@@ -88,6 +139,7 @@ export function DashboardSidebarWorkspaceItem({
 				)}
 				<DashboardSidebarCollapsedWorkspaceButton
 					hostType={hostType}
+					workspaceType={workspace.type}
 					hostIsOnline={hostIsOnline}
 					isActive={isActive}
 					workspaceStatus={workspaceStatus}
@@ -110,15 +162,7 @@ export function DashboardSidebarWorkspaceItem({
 						<DashboardSidebarWorkspaceContextMenu
 							projectId={projectId}
 							isInSection={isInSection}
-							onHoverCardOpen={
-								hostType === "local-device" ? onHoverCardOpen : undefined
-							}
-							hoverCardContent={
-								<DashboardSidebarWorkspaceHoverCardContent
-									workspace={workspace}
-									diffStats={diffStats}
-								/>
-							}
+							isUnread={isUnread}
 							isLocalWorkspace={hostType === "local-device"}
 							onCreateSection={handleCreateSection}
 							onMoveToSection={(targetSectionId) =>
@@ -129,14 +173,17 @@ export function DashboardSidebarWorkspaceItem({
 							onCopyBranchName={handleCopyBranchName}
 							onRemoveFromSidebar={handleRemoveFromSidebar}
 							onRename={startRename}
-							onDelete={() => setIsDeleteDialogOpen(true)}
+							onDelete={
+								isMainWorkspace ? undefined : () => setIsDeleteDialogOpen(true)
+							}
+							onToggleUnread={handleToggleUnread}
 						>
 							{content}
 						</DashboardSidebarWorkspaceContextMenu>
 					)}
 				</div>
 
-				{!isPending && (
+				{!isPending && !isMainWorkspace && (
 					<DashboardSidebarDeleteDialog
 						workspaceId={id}
 						workspaceName={name || branch}
@@ -145,26 +192,46 @@ export function DashboardSidebarWorkspaceItem({
 						onDeleted={handleDeleted}
 					/>
 				)}
+				{renameBranchTarget && (
+					<RenameBranchDialog
+						workspaceId={id}
+						currentBranchName={renameBranchTarget}
+						open={renameBranchTarget !== null}
+						onOpenChange={(open) => {
+							if (!open) setRenameBranchTarget(null);
+						}}
+						onAfterRename={handleAfterBranchRename}
+					/>
+				)}
 			</>
 		);
 	}
 
 	const expandedContent = (
-		<DashboardSidebarExpandedWorkspaceRow
-			workspace={workspace}
-			isActive={isActive}
-			isRenaming={isRenaming}
-			renameValue={renameValue}
-			shortcutLabel={shortcutLabel}
-			diffStats={isPending ? null : diffStats}
-			workspaceStatus={workspaceStatus}
-			onClick={isPending ? handlePendingClick : handleClick}
-			onDoubleClick={isPending ? undefined : startRename}
-			onDeleteClick={() => setIsDeleteDialogOpen(true)}
-			onRenameValueChange={setRenameValue}
-			onSubmitRename={submitRename}
-			onCancelRename={cancelRename}
-		/>
+		// biome-ignore lint/a11y/noStaticElementInteractions: hover handlers drive a non-interactive popover, no new keyboard semantics
+		<div
+			ref={rowRef}
+			onMouseEnter={handleMouseEnter}
+			onMouseLeave={handleMouseLeave}
+		>
+			<DashboardSidebarExpandedWorkspaceRow
+				workspace={workspace}
+				isActive={isActive}
+				isRenaming={isRenaming}
+				renameValue={renameValue}
+				shortcutLabel={shortcutLabel}
+				diffStats={isPending ? null : diffStats}
+				workspaceStatus={workspaceStatus}
+				isInSection={isInSection}
+				onClick={isPending ? handlePendingClick : handleClick}
+				onDoubleClick={isPending ? undefined : startRename}
+				onRemoveFromSidebarClick={handleRemoveFromSidebar}
+				onCloseWorkspaceClick={() => setIsDeleteDialogOpen(true)}
+				onRenameValueChange={setRenameValue}
+				onSubmitRename={submitRename}
+				onCancelRename={cancelRename}
+			/>
+		</div>
 	);
 
 	return (
@@ -176,15 +243,7 @@ export function DashboardSidebarWorkspaceItem({
 					<DashboardSidebarWorkspaceContextMenu
 						projectId={projectId}
 						isInSection={isInSection}
-						onHoverCardOpen={
-							hostType === "local-device" ? onHoverCardOpen : undefined
-						}
-						hoverCardContent={
-							<DashboardSidebarWorkspaceHoverCardContent
-								workspace={workspace}
-								diffStats={diffStats}
-							/>
-						}
+						isUnread={isUnread}
 						onCreateSection={handleCreateSection}
 						onMoveToSection={(targetSectionId) =>
 							moveWorkspaceToSection(id, projectId, targetSectionId)
@@ -195,20 +254,34 @@ export function DashboardSidebarWorkspaceItem({
 						onCopyBranchName={handleCopyBranchName}
 						onRemoveFromSidebar={handleRemoveFromSidebar}
 						onRename={startRename}
-						onDelete={() => setIsDeleteDialogOpen(true)}
+						onDelete={
+							isMainWorkspace ? undefined : () => setIsDeleteDialogOpen(true)
+						}
+						onToggleUnread={handleToggleUnread}
 					>
 						{expandedContent}
 					</DashboardSidebarWorkspaceContextMenu>
 				)}
 			</div>
 
-			{!isPending && (
+			{!isPending && !isMainWorkspace && (
 				<DashboardSidebarDeleteDialog
 					workspaceId={id}
 					workspaceName={name || branch}
 					open={isDeleteDialogOpen}
 					onOpenChange={setIsDeleteDialogOpen}
 					onDeleted={handleDeleted}
+				/>
+			)}
+			{renameBranchTarget && (
+				<RenameBranchDialog
+					workspaceId={id}
+					currentBranchName={renameBranchTarget}
+					open={renameBranchTarget !== null}
+					onOpenChange={(open) => {
+						if (!open) setRenameBranchTarget(null);
+					}}
+					onAfterRename={handleAfterBranchRename}
 				/>
 			)}
 		</>

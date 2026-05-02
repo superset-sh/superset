@@ -14,7 +14,6 @@ import { useCallback, useEffect, useState } from "react";
 import { FaGithub, FaSlack } from "react-icons/fa";
 import { HiCheckCircle, HiOutlineArrowTopRightOnSquare } from "react-icons/hi2";
 import { SiLinear } from "react-icons/si";
-import { GATED_FEATURES, usePaywall } from "renderer/components/Paywall";
 import { env } from "renderer/env.renderer";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { authClient } from "renderer/lib/auth-client";
@@ -44,7 +43,6 @@ export function IntegrationsSettings({
 	const { data: session } = authClient.useSession();
 	const activeOrganizationId = session?.session?.activeOrganizationId;
 	const collections = useCollections();
-	const { gateFeature } = usePaywall();
 
 	const { data: integrations } = useLiveQuery(
 		(q) =>
@@ -143,11 +141,7 @@ export function IntegrationsSettings({
 						icon={<SiLinear className="size-6" />}
 						isConnected={isLinearConnected}
 						connectedOrgName={linearConnection?.externalOrgName}
-						onManage={() =>
-							gateFeature(GATED_FEATURES.INTEGRATIONS, () =>
-								handleOpenWeb("/integrations/linear"),
-							)
-						}
+						onManage={() => handleOpenWeb("/integrations/linear")}
 					/>
 				)}
 
@@ -170,11 +164,7 @@ export function IntegrationsSettings({
 						icon={<FaSlack className="size-6" />}
 						isConnected={isSlackConnected}
 						connectedOrgName={slackConnection?.externalOrgName}
-						onManage={() =>
-							gateFeature(GATED_FEATURES.INTEGRATIONS, () =>
-								handleOpenWeb("/integrations/slack"),
-							)
-						}
+						onManage={() => handleOpenWeb("/integrations/slack")}
 					/>
 				)}
 			</div>

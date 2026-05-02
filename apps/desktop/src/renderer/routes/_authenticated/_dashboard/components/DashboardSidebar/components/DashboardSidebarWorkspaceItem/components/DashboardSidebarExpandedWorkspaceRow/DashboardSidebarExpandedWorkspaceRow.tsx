@@ -7,7 +7,7 @@ import {
 	useMemo,
 	useRef,
 } from "react";
-import { HiMiniXMark } from "react-icons/hi2";
+import { HiMiniMinus, HiMiniXMark } from "react-icons/hi2";
 import type { DiffStats } from "renderer/hooks/host-service/useDiffStats";
 import { HotkeyLabel } from "renderer/hotkeys";
 import { electronTrpc } from "renderer/lib/electron-trpc";
@@ -40,9 +40,11 @@ interface DashboardSidebarExpandedWorkspaceRowProps
 	shortcutLabel?: string;
 	diffStats: DiffStats | null;
 	workspaceStatus?: ActivePaneStatus | null;
+	isInSection?: boolean;
 	onClick?: () => void;
 	onDoubleClick?: () => void;
-	onDeleteClick: () => void;
+	onCloseWorkspaceClick: () => void;
+	onRemoveFromSidebarClick: () => void;
 	onRenameValueChange: (value: string) => void;
 	onSubmitRename: () => void;
 	onCancelRename: () => void;
@@ -61,9 +63,11 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 			shortcutLabel,
 			diffStats,
 			workspaceStatus = null,
+			isInSection = false,
 			onClick,
 			onDoubleClick,
-			onDeleteClick,
+			onCloseWorkspaceClick,
+			onRemoveFromSidebarClick,
 			onRenameValueChange,
 			onSubmitRename,
 			onCancelRename,
@@ -98,6 +102,13 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 			() => getCreationStatusText(creationStatus),
 			[creationStatus],
 		);
+		const isMainWorkspace = workspace.type === "main";
+		const workspaceKindTitle = isMainWorkspace
+			? "Main workspace"
+			: "Worktree workspace";
+		const workspaceKindDescription = isMainWorkspace
+			? "Uses the repository checkout on this host"
+			: "Isolated copy for parallel development";
 
 		return (
 			// biome-ignore lint/a11y/noStaticElementInteractions: Mirrors the legacy sidebar row UI, which includes nested action buttons.
@@ -119,7 +130,8 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 				}}
 				onDoubleClick={onDoubleClick}
 				className={cn(
-					"relative flex w-full items-center pl-3 pr-2 text-left text-sm",
+					"relative flex w-full items-center pr-2 text-left text-sm",
+					isInSection ? "pl-7" : "pl-5",
 					onClick &&
 						(isActive
 							? "cursor-pointer hover:bg-muted"
@@ -157,6 +169,7 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 							>
 								<DashboardSidebarWorkspaceIcon
 									hostType={hostType}
+									workspaceType={workspace.type}
 									hostIsOnline={hostIsOnline}
 									isActive={isActive}
 									variant="expanded"
@@ -169,6 +182,7 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 							<div className="relative mr-2.5 flex size-5 shrink-0 items-center justify-center">
 								<DashboardSidebarWorkspaceIcon
 									hostType={hostType}
+									workspaceType={workspace.type}
 									hostIsOnline={hostIsOnline}
 									isActive={isActive}
 									variant="expanded"
@@ -192,22 +206,26 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 						) : (
 							<>
 								<p className="text-xs font-medium">
-									{hostType === "local-device"
-										? "Local workspace"
-										: hostType === "remote-device"
-											? hostIsOnline === false
-												? "Remote workspace — device offline"
-												: "Remote workspace"
-											: "Cloud workspace"}
+									{isMainWorkspace
+										? workspaceKindTitle
+										: hostType === "local-device"
+											? "Local workspace"
+											: hostType === "remote-device"
+												? hostIsOnline === false
+													? "Remote workspace — device offline"
+													: "Remote workspace"
+												: "Cloud workspace"}
 								</p>
 								<p className="text-xs text-muted-foreground">
-									{hostType === "local-device"
-										? "Running on this device"
-										: hostType === "remote-device"
-											? hostIsOnline === false
-												? "The associated device isn't reachable right now"
-												: "Running on a paired device"
-											: "Hosted in the cloud"}
+									{isMainWorkspace
+										? workspaceKindDescription
+										: hostType === "local-device"
+											? "Running on this device"
+											: hostType === "remote-device"
+												? hostIsOnline === false
+													? "The associated device isn't reachable right now"
+													: "Running on a paired device"
+												: "Hosted in the cloud"}
 								</p>
 							</>
 						)}
@@ -264,27 +282,66 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 											{shortcutLabel}
 										</span>
 									)}
-									<Tooltip delayDuration={300}>
-										<TooltipTrigger asChild>
-											<button
-												type="button"
-												onClick={(event) => {
-													event.stopPropagation();
-													onDeleteClick();
-												}}
-												className="flex items-center justify-center text-muted-foreground hover:text-foreground"
-												aria-label="Close workspace"
-											>
-												<HiMiniXMark className="size-3.5" />
-											</button>
-										</TooltipTrigger>
-										<TooltipContent side="top" sideOffset={4}>
-											<HotkeyLabel
-												label="Close workspace"
-												id={isActive ? "CLOSE_WORKSPACE" : undefined}
-											/>
-										</TooltipContent>
-									</Tooltip>
+									{isMainWorkspace ? (
+										<Tooltip delayDuration={300}>
+											<TooltipTrigger asChild>
+												<button
+													type="button"
+													onClick={(event) => {
+														event.stopPropagation();
+														onRemoveFromSidebarClick();
+													}}
+													onKeyDown={(event) => {
+														if (
+															event.key === "Enter" ||
+															event.key === " " ||
+															event.key === "Spacebar"
+														) {
+															event.stopPropagation();
+														}
+													}}
+													className="flex items-center justify-center text-muted-foreground hover:text-foreground"
+													aria-label="Remove from sidebar"
+												>
+													<HiMiniMinus className="size-3.5" />
+												</button>
+											</TooltipTrigger>
+											<TooltipContent side="top" sideOffset={4}>
+												<HotkeyLabel label="Remove from sidebar" />
+											</TooltipContent>
+										</Tooltip>
+									) : (
+										<Tooltip delayDuration={300}>
+											<TooltipTrigger asChild>
+												<button
+													type="button"
+													onClick={(event) => {
+														event.stopPropagation();
+														onCloseWorkspaceClick();
+													}}
+													onKeyDown={(event) => {
+														if (
+															event.key === "Enter" ||
+															event.key === " " ||
+															event.key === "Spacebar"
+														) {
+															event.stopPropagation();
+														}
+													}}
+													className="flex items-center justify-center text-muted-foreground hover:text-foreground"
+													aria-label="Close workspace"
+												>
+													<HiMiniXMark className="size-3.5" />
+												</button>
+											</TooltipTrigger>
+											<TooltipContent side="top" sideOffset={4}>
+												<HotkeyLabel
+													label="Close workspace"
+													id={isActive ? "CLOSE_WORKSPACE" : undefined}
+												/>
+											</TooltipContent>
+										</Tooltip>
+									)}
 								</div>
 							</>
 						)}

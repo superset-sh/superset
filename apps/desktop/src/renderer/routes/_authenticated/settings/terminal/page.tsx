@@ -1,7 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo } from "react";
+import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import { useSettingsSearchQuery } from "renderer/stores/settings-state";
-import { getMatchingItemsForSection } from "../utils/settings-search";
+import { getVisibleItemsForSection } from "../utils/settings-search";
 import { TerminalSettings } from "./components/TerminalSettings";
 
 export type TerminalSettingsSearch = {
@@ -27,13 +28,17 @@ function TerminalSettingsPage() {
 	const navigate = Route.useNavigate();
 	const { editPresetId, createProjectId } = Route.useSearch();
 	const searchQuery = useSettingsSearchQuery();
+	const { isV2CloudEnabled } = useIsV2CloudEnabled();
 
-	const visibleItems = useMemo(() => {
-		if (!searchQuery) return null;
-		return getMatchingItemsForSection(searchQuery, "terminal").map(
-			(item) => item.id,
-		);
-	}, [searchQuery]);
+	const visibleItems = useMemo(
+		() =>
+			getVisibleItemsForSection({
+				section: "terminal",
+				searchQuery,
+				isV2: isV2CloudEnabled,
+			}),
+		[searchQuery, isV2CloudEnabled],
+	);
 
 	return (
 		<TerminalSettings

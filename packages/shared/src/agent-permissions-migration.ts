@@ -41,7 +41,7 @@ export const LEGACY_BUILTIN_TERMINAL_AGENT_OVERRIDES: Readonly<
 	},
 	copilot: {
 		command: "copilot --allow-all",
-		promptCommand: "copilot -i --allow-all",
+		promptCommand: "copilot --allow-all -i",
 		promptCommandSuffix: "--yolo",
 	},
 	"cursor-agent": {

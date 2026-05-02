@@ -31,6 +31,14 @@
 		"./terminal-env": {
 			"types": "./src/terminal/env.ts",
 			"default": "./src/terminal/env.ts"
+		},
+		"./settings": {
+			"types": "./src/trpc/router/settings/index.ts",
+			"default": "./src/trpc/router/settings/index.ts"
+		},
+		"./attachments": {
+			"types": "./src/trpc/router/attachments/index.ts",
+			"default": "./src/trpc/router/attachments/index.ts"
 		}
 	},
 	"scripts": {
@@ -38,6 +46,10 @@
 		"dev": "bun run src/serve.ts",
 		"build:host": "bun run build.ts",
 		"generate": "drizzle-kit generate",
+		"test": "bun test --pass-with-no-tests",
+		"test:integration": "bun test --pass-with-no-tests test/integration",
+		"test:integration:daemon": "node --experimental-strip-types --test src/terminal/DaemonClient/DaemonClient.node-test.ts src/daemon/DaemonSupervisor.node-test.ts",
+		"test:e2e": "bun run scripts/test-e2e.ts",
 		"typecheck": "tsc --noEmit --emitDeclarationOnly false"
 	},
 	"dependencies": {
@@ -48,6 +60,7 @@
 		"@octokit/rest": "^22.0.1",
 		"@superset/chat": "workspace:*",
 		"@superset/port-scanner": "workspace:*",
+		"@superset/pty-daemon": "workspace:*",
 		"@superset/shared": "workspace:*",
 		"@superset/trpc": "workspace:*",
 		"@superset/workspace-fs": "workspace:*",
@@ -58,7 +71,9 @@
 		"drizzle-orm": "0.45.2",
 		"hono": "^4.8.5",
 		"mastracode": "0.15.0-alpha.3",
+		"mime-types": "^3.0.2",
 		"node-pty": "1.1.0",
+		"semver": "^7.7.4",
 		"simple-git": "^3.30.0",
 		"superjson": "^2.2.5",
 		"tree-kill": "^1.2.2",
@@ -67,9 +82,14 @@
 	"devDependencies": {
 		"@superset/typescript": "workspace:*",
 		"@types/better-sqlite3": "^7.6.13",
+		"@types/mime-types": "^3.0.1",
 		"@types/node": "^24.9.1",
+		"@types/semver": "^7.7.1",
 		"bun-types": "^1.3.1",
 		"drizzle-kit": "0.31.8",
 		"typescript": "^5.9.3"
+	},
+	"optionalDependencies": {
+		"@anush008/tokenizers-linux-arm64-gnu": "0.6.0"
 	}
 }

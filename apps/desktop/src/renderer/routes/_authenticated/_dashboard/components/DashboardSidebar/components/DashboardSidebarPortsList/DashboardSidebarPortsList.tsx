@@ -1,20 +1,27 @@
+import { COMPANY } from "@superset/shared/constants";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
-import { LuChevronRight, LuCircleAlert, LuRadioTower } from "react-icons/lu";
+import { LuChevronRight, LuCircleHelp, LuRadioTower } from "react-icons/lu";
 import { STROKE_WIDTH } from "renderer/screens/main/components/WorkspaceSidebar/constants";
 import { usePortsStore } from "renderer/stores";
 import { DashboardSidebarPortGroup } from "./components/DashboardSidebarPortGroup";
 import { useDashboardSidebarPortsData } from "./hooks/useDashboardSidebarPortsData";
 
+const PORTS_DOCS_URL = `${COMPANY.DOCS_URL}/ports`;
+
 export function DashboardSidebarPortsList() {
 	const isCollapsed = usePortsStore((state) => state.isListCollapsed);
 	const toggleCollapsed = usePortsStore((state) => state.toggleListCollapsed);
-	const { totalPortCount, workspacePortGroups, portLoadErrors } =
+	const { totalPortCount, workspacePortGroups } =
 		useDashboardSidebarPortsData();
-	const failedHostCount = portLoadErrors.length;
 
-	if (totalPortCount === 0 && failedHostCount === 0) {
+	if (totalPortCount === 0) {
 		return null;
 	}
+
+	const handleOpenPortsDocs = (e: React.MouseEvent) => {
+		e.stopPropagation();
+		window.open(PORTS_DOCS_URL, "_blank");
+	};
 
 	return (
 		<div className="border-t border-border pt-3">
@@ -38,35 +45,21 @@ export function DashboardSidebarPortsList() {
 					Ports
 				</button>
 
-				{failedHostCount > 0 && (
-					<Tooltip delayDuration={200}>
-						<TooltipTrigger asChild>
-							<span
-								className="ml-auto rounded p-0.5 text-destructive/80"
-								role="img"
-								aria-label={`Could not load ports from ${failedHostCount} host${failedHostCount === 1 ? "" : "s"}`}
-							>
-								<LuCircleAlert className="size-3" strokeWidth={STROKE_WIDTH} />
-							</span>
-						</TooltipTrigger>
-						<TooltipContent side="top" sideOffset={4}>
-							<p className="text-xs">
-								{failedHostCount === 1
-									? "Could not load ports from 1 host"
-									: `Could not load ports from ${failedHostCount} hosts`}
-							</p>
-						</TooltipContent>
-					</Tooltip>
-				)}
-				<span
-					className={
-						failedHostCount > 0
-							? "text-[10px] font-normal"
-							: "ml-auto text-[10px] font-normal"
-					}
-				>
-					{totalPortCount}
-				</span>
+				<Tooltip delayDuration={300}>
+					<TooltipTrigger asChild>
+						<button
+							type="button"
+							onClick={handleOpenPortsDocs}
+							className="ml-auto rounded p-0.5 opacity-0 transition-opacity hover:bg-muted/50 group-hover:opacity-100"
+						>
+							<LuCircleHelp className="size-3" strokeWidth={STROKE_WIDTH} />
+						</button>
+					</TooltipTrigger>
+					<TooltipContent side="top" sideOffset={4}>
+						<p className="text-xs">Learn about port labels</p>
+					</TooltipContent>
+				</Tooltip>
+				<span className="text-[10px] font-normal">{totalPortCount}</span>
 			</div>
 			{!isCollapsed && (
 				<div className="max-h-72 space-y-2 overflow-y-auto pb-1 hide-scrollbar">
