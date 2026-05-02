@@ -93,36 +93,46 @@ function DashboardLayout() {
 		{ enabled: !!currentWorkspaceId },
 	);
 
+	const sidebarPanel = isWorkspaceSidebarOpen && (
+		<ResizablePanel
+			width={workspaceSidebarWidth}
+			onWidthChange={setWorkspaceSidebarWidth}
+			isResizing={isWorkspaceSidebarResizing}
+			onResizingChange={setWorkspaceSidebarIsResizing}
+			minWidth={COLLAPSED_WORKSPACE_SIDEBAR_WIDTH}
+			maxWidth={MAX_WORKSPACE_SIDEBAR_WIDTH}
+			handleSide="right"
+			clampWidth={false}
+			onDoubleClickHandle={() =>
+				setWorkspaceSidebarWidth(DEFAULT_WORKSPACE_SIDEBAR_WIDTH)
+			}
+		>
+			{isV2CloudEnabled ? (
+				<DashboardSidebar isCollapsed={isWorkspaceSidebarCollapsed()} />
+			) : (
+				<WorkspaceSidebar
+					isCollapsed={isWorkspaceSidebarCollapsed()}
+					activeProjectId={currentWorkspace?.projectId ?? null}
+					activeProjectName={currentWorkspace?.project?.name ?? null}
+				/>
+			)}
+		</ResizablePanel>
+	);
+
+	// Only lift the sidebar out of the TopBar column when v2 + expanded.
+	// Collapsed/closed sidebars stay inside so the TopBar runs full-width.
+	const sidebarOutsideColumn =
+		isV2CloudEnabled &&
+		isWorkspaceSidebarOpen &&
+		!isWorkspaceSidebarCollapsed();
+
 	return (
 		<div className="flex h-full w-full overflow-hidden">
+			{sidebarOutsideColumn && sidebarPanel}
 			<div className="flex flex-1 flex-col min-w-0 min-h-0">
 				<TopBar />
 				<div className="flex flex-1 min-h-0 min-w-0 overflow-hidden">
-					{isWorkspaceSidebarOpen && (
-						<ResizablePanel
-							width={workspaceSidebarWidth}
-							onWidthChange={setWorkspaceSidebarWidth}
-							isResizing={isWorkspaceSidebarResizing}
-							onResizingChange={setWorkspaceSidebarIsResizing}
-							minWidth={COLLAPSED_WORKSPACE_SIDEBAR_WIDTH}
-							maxWidth={MAX_WORKSPACE_SIDEBAR_WIDTH}
-							handleSide="right"
-							clampWidth={false}
-							onDoubleClickHandle={() =>
-								setWorkspaceSidebarWidth(DEFAULT_WORKSPACE_SIDEBAR_WIDTH)
-							}
-						>
-							{isV2CloudEnabled ? (
-								<DashboardSidebar isCollapsed={isWorkspaceSidebarCollapsed()} />
-							) : (
-								<WorkspaceSidebar
-									isCollapsed={isWorkspaceSidebarCollapsed()}
-									activeProjectId={currentWorkspace?.projectId ?? null}
-									activeProjectName={currentWorkspace?.project?.name ?? null}
-								/>
-							)}
-						</ResizablePanel>
-					)}
+					{!sidebarOutsideColumn && sidebarPanel}
 					<div className="flex flex-1 min-h-0 min-w-0">
 						<Outlet />
 					</div>

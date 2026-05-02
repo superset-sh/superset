@@ -74,7 +74,7 @@ describe("stripTerminalRuntimeEnv", () => {
 		HOST_MIGRATIONS_PATH: "/tmp/migrations",
 		HOST_SERVICE_VERSION: "1.2.3",
 		KEEP_ALIVE_AFTER_PARENT: "1",
-		CLOUD_API_URL: "https://api.example.com",
+		SUPERSET_API_URL: "https://api.example.com",
 		DESKTOP_VITE_PORT: "5173",
 		// Node/app keys
 		NODE_ENV: "development",
@@ -113,7 +113,7 @@ describe("stripTerminalRuntimeEnv", () => {
 		expect(result.HOST_CLIENT_ID).toBeUndefined();
 		expect(result.ELECTRON_RUN_AS_NODE).toBeUndefined();
 		expect(result.HOST_DB_PATH).toBeUndefined();
-		expect(result.CLOUD_API_URL).toBeUndefined();
+		expect(result.SUPERSET_API_URL).toBeUndefined();
 		expect(result.DESKTOP_VITE_PORT).toBeUndefined();
 	});
 

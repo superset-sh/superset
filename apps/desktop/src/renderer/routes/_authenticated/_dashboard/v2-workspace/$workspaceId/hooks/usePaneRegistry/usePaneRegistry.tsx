@@ -5,7 +5,6 @@ import type {
 } from "@superset/panes";
 import { alert } from "@superset/ui/atoms/Alert";
 import { toast } from "@superset/ui/sonner";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { workspaceTrpc } from "@superset/workspace-client";
 import {
@@ -13,7 +12,6 @@ import {
 	GitCompareArrows,
 	Globe,
 	MessageSquare,
-	SquareSplitHorizontal,
 	TerminalSquare,
 } from "lucide-react";
 import { useMemo } from "react";
@@ -24,13 +22,11 @@ import {
 	LuEraser,
 	LuPower,
 } from "react-icons/lu";
-import { TbScan } from "react-icons/tb";
 import { useHotkeyDisplay } from "renderer/hotkeys";
 import { getBaseName } from "renderer/lib/pathBasename";
 import { consumeTerminalBackgroundIntent } from "renderer/lib/terminal/terminal-background-intents";
 import { terminalRuntimeRegistry } from "renderer/lib/terminal/terminal-runtime-registry";
 import { FileIcon } from "renderer/screens/main/components/WorkspaceView/RightSidebar/FilesView/utils";
-import { useSettings } from "renderer/stores/settings";
 import { getV2NotificationSourcesForPane } from "renderer/stores/v2-notifications";
 import { V2NotificationStatusIndicator } from "../../components/V2NotificationStatusIndicator";
 import {
@@ -53,6 +49,7 @@ import { CommentPane } from "./components/CommentPane";
 import { CommentPaneHeaderExtras } from "./components/CommentPane/components/CommentPaneHeaderExtras";
 import { CommentPaneTitle } from "./components/CommentPane/components/CommentPaneTitle";
 import { DiffPane } from "./components/DiffPane";
+import { DiffPaneHeaderExtras } from "./components/DiffPane/components/DiffPaneHeaderExtras";
 import { FilePane } from "./components/FilePane";
 import { FilePaneHeaderExtras } from "./components/FilePane/components/FilePaneHeaderExtras";
 import { TerminalPane } from "./components/TerminalPane";
@@ -101,60 +98,6 @@ function FilePaneTabTitle({
 const MOD_KEY = navigator.platform.toLowerCase().includes("mac")
 	? "⌘"
 	: "Ctrl+";
-
-function DiffViewModeToggle() {
-	const diffStyle = useSettings((s) => s.diffStyle);
-	const updateSetting = useSettings((s) => s.update);
-
-	const buttonClass = (active: boolean) =>
-		cn(
-			"flex size-5 items-center justify-center transition-colors",
-			active
-				? "bg-secondary text-foreground"
-				: "text-muted-foreground hover:text-foreground",
-		);
-
-	return (
-		<div className="flex items-center">
-			<Tooltip>
-				<TooltipTrigger asChild>
-					<button
-						type="button"
-						onClick={() => updateSetting("diffStyle", "unified")}
-						aria-label="Unified view"
-						aria-pressed={diffStyle === "unified"}
-						className={buttonClass(diffStyle === "unified")}
-					>
-						<TbScan className="size-3.5" />
-					</button>
-				</TooltipTrigger>
-				<TooltipContent side="bottom" showArrow={false}>
-					Unified view
-				</TooltipContent>
-			</Tooltip>
-			<Tooltip>
-				<TooltipTrigger asChild>
-					<button
-						type="button"
-						onClick={() => updateSetting("diffStyle", "split")}
-						aria-label="Split view"
-						aria-pressed={diffStyle === "split"}
-						className={buttonClass(diffStyle === "split")}
-					>
-						<SquareSplitHorizontal className="size-3.5" />
-					</button>
-				</TooltipTrigger>
-				<TooltipContent side="bottom" showArrow={false}>
-					Split view
-				</TooltipContent>
-			</Tooltip>
-			<div
-				className="mx-1 h-3.5 w-px bg-muted-foreground/30"
-				aria-hidden="true"
-			/>
-		</div>
-	);
-}
 
 interface UsePaneRegistryOptions {
 	onOpenFile: (path: string, openInNewTab?: boolean) => void;
@@ -285,7 +228,7 @@ export function usePaneRegistry(
 						onOpenFile={onOpenFile}
 					/>
 				),
-				renderHeaderExtras: () => <DiffViewModeToggle />,
+				renderHeaderExtras: () => <DiffPaneHeaderExtras />,
 				contextMenuActions: (_ctx, defaults) =>
 					defaults.map((d) =>
 						d.key === "close-pane" ? { ...d, label: "Close Diff" } : d,

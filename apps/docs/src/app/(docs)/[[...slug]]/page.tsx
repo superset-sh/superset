@@ -2,7 +2,12 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getPageImage, source } from "@/lib/source";
 import { getMDXComponents } from "@/mdx-components";
-import { DocsBody, DocsPage, DocsTitle } from "./components/DocsPageLayout";
+import {
+	DocsBody,
+	DocsDescription,
+	DocsPage,
+	DocsTitle,
+} from "./components/DocsPageLayout";
 import { LLMCopyButton, ViewOptions } from "./components/PageActions";
 
 export default async function Page(props: PageProps<"/[[...slug]]">) {
@@ -25,7 +30,17 @@ export default async function Page(props: PageProps<"/[[...slug]]">) {
 				path: `apps/docs/content/docs/${page.path}`,
 			}}
 		>
-			<DocsTitle>{page.data.title}</DocsTitle>
+			<DocsTitle>
+				<span className="inline-flex flex-wrap items-center gap-x-3 gap-y-1">
+					<span>{page.data.title}</span>
+					{page.data.pro ? (
+						<span className="rounded-sm border border-primary/30 bg-primary/10 px-2 py-0.5 text-xs font-medium uppercase tracking-wide text-primary align-middle">
+							Pro
+						</span>
+					) : null}
+				</span>
+			</DocsTitle>
+			<DocsDescription>{page.data.description}</DocsDescription>
 			<div className="flex flex-row gap-2 items-center border-b pb-3">
 				<LLMCopyButton markdownUrl={`${page.url}.mdx`} />
 				<ViewOptions

@@ -206,6 +206,7 @@ export const auth = betterAuth({
 				env.NEXT_PUBLIC_API_URL,
 				`${env.NEXT_PUBLIC_API_URL}/`,
 				`${env.NEXT_PUBLIC_API_URL}/api/agent/mcp`,
+				`${env.NEXT_PUBLIC_API_URL}/api/v2/agent/mcp`,
 			],
 			silenceWarnings: {
 				oauthAuthServerConfig: true,
@@ -224,9 +225,16 @@ export const auth = betterAuth({
 					return activeOrganizationId ?? undefined;
 				},
 			},
-			customAccessTokenClaims: ({ referenceId }) => ({
-				organizationId: referenceId ?? undefined,
-			}),
+			customAccessTokenClaims: ({ referenceId, metadata }) => {
+				const clientName =
+					metadata && typeof metadata === "object" && "client_name" in metadata
+						? metadata.client_name
+						: undefined;
+				return {
+					organizationId: referenceId ?? undefined,
+					client_name: typeof clientName === "string" ? clientName : undefined,
+				};
+			},
 		}),
 		expo(),
 		organization({

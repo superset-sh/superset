@@ -1,6 +1,11 @@
-import { dbWs } from "@superset/db/client";
+import { db, dbWs } from "@superset/db/client";
 import { v2WorkspaceTypeValues } from "@superset/db/enums";
-import { v2Hosts, v2Projects, v2Workspaces } from "@superset/db/schema";
+import {
+	v2Hosts,
+	v2Projects,
+	v2UsersHosts,
+	v2Workspaces,
+} from "@superset/db/schema";
 import { getCurrentTxid } from "@superset/db/utils";
 import type { TRPCRouterRecord } from "@trpc/server";
 import { TRPCError } from "@trpc/server";
@@ -102,6 +107,57 @@ async function getWorkspaceAccess(
 }
 
 export const v2WorkspaceRouter = {
+	list: jwtProcedure
+		.input(
+			z.object({
+				organizationId: z.string().uuid(),
+				hostId: z.string().min(1).optional(),
+			}),
+		)
+		.query(async ({ ctx, input }) => {
+			if (!ctx.organizationIds.includes(input.organizationId)) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "Not a member of this organization",
+				});
+			}
+
+			const rows = await db
+				.select({
+					id: v2Workspaces.id,
+					name: v2Workspaces.name,
+					branch: v2Workspaces.branch,
+					projectId: v2Workspaces.projectId,
+					projectName: v2Projects.name,
+					hostId: v2Workspaces.hostId,
+				})
+				.from(v2Workspaces)
+				.innerJoin(
+					v2UsersHosts,
+					and(
+						eq(v2UsersHosts.organizationId, v2Workspaces.organizationId),
+						eq(v2UsersHosts.hostId, v2Workspaces.hostId),
+					),
+				)
+				.leftJoin(v2Projects, eq(v2Projects.id, v2Workspaces.projectId))
+				.where(
+					and(
+						eq(v2Workspaces.organizationId, input.organizationId),
+						eq(v2UsersHosts.userId, ctx.userId),
+						input.hostId ? eq(v2Workspaces.hostId, input.hostId) : undefined,
+					),
+				);
+
+			return rows.map((row) => ({
+				id: row.id,
+				name: row.name,
+				branch: row.branch,
+				projectId: row.projectId,
+				projectName: row.projectName ?? "",
+				hostId: row.hostId,
+			}));
+		}),
+
 	create: jwtProcedure
 		.input(
 			z.object({

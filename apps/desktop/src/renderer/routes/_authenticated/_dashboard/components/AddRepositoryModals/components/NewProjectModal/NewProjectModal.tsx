@@ -19,7 +19,10 @@ import {
 } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
-import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
+import {
+	type ProjectSetupResult,
+	useFinalizeProjectSetup,
+} from "renderer/react-query/projects";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 
 type NewProjectMode = "clone" | "empty" | "template";
@@ -27,11 +30,7 @@ type NewProjectMode = "clone" | "empty" | "template";
 interface NewProjectModalProps {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
-	onSuccess?: (result: {
-		projectId: string;
-		repoPath: string;
-		mainWorkspaceId: string | null;
-	}) => void;
+	onSuccess?: (result: ProjectSetupResult) => void;
 	onError?: (message: string) => void;
 }
 
@@ -76,8 +75,7 @@ export function NewProjectModal({
 	onError,
 }: NewProjectModalProps) {
 	const { activeHostUrl } = useLocalHostService();
-	const { ensureProjectInSidebar, ensureWorkspaceInSidebar } =
-		useDashboardSidebarState();
+	const finalizeSetup = useFinalizeProjectSetup();
 	const selectDirectory = electronTrpc.window.selectDirectory.useMutation();
 	const { data: homeDir } = electronTrpc.window.getHomeDir.useQuery();
 
@@ -147,16 +145,20 @@ export function NewProjectModal({
 				name,
 				mode: { kind: "clone", parentDir: trimmedParent, url: trimmedUrl },
 			});
-			if (result.mainWorkspaceId) {
-				ensureWorkspaceInSidebar(result.mainWorkspaceId, result.projectId);
-			} else {
-				ensureProjectInSidebar(result.projectId);
-			}
+			finalizeSetup(activeHostUrl, result);
 			onSuccess?.(result);
 			reset();
 			onOpenChange(false);
 		} catch (err) {
-			const message = err instanceof Error ? err.message : String(err);
+			const raw = err instanceof Error ? err.message : String(err);
+			// Drizzle / pg errors arrive as "Failed query: insert into ..."
+			// which is useless to a user. Hide that envelope in favor of a
+			// short generic message; details land in the console for devs.
+			const isLeakedSql = raw.startsWith("Failed query:");
+			if (isLeakedSql) console.error("[NewProjectModal] create failed", err);
+			const message = isLeakedSql
+				? "Could not create project. Please try a different name or check the logs."
+				: raw;
 			setError(message);
 			onError?.(message);
 		} finally {

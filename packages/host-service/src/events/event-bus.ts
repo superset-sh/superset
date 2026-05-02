@@ -2,12 +2,12 @@ import type { NodeWebSocket } from "@hono/node-ws";
 import type { DetectedPort } from "@superset/port-scanner";
 import type { FsWatchEvent } from "@superset/workspace-fs/host";
 import type { Hono } from "hono";
-import type { HostDb } from "../db";
-import { portManager } from "../ports/port-manager";
-import { getLabelsForWorkspace } from "../ports/static-ports";
-import type { WorkspaceFilesystemManager } from "../runtime/filesystem";
-import { GitWatcher } from "./git-watcher";
-import type { ClientMessage, ServerMessage } from "./types";
+import type { HostDb } from "../db/index.ts";
+import { portManager } from "../ports/port-manager.ts";
+import { getLabelsForWorkspace } from "../ports/static-ports.ts";
+import type { WorkspaceFilesystemManager } from "../runtime/filesystem/index.ts";
+import { GitWatcher } from "./git-watcher.ts";
+import type { ClientMessage, ServerMessage } from "./types.ts";
 
 type WsSocket = {
 	send: (data: string) => void;

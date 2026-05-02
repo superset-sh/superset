@@ -38,22 +38,24 @@ export function resolveCurrentPlan({
 	return "free";
 }
 
-export function useCurrentPlan(): PlanTier {
+export function useCurrentPlan(): { plan: PlanTier; isReady: boolean } {
 	const { data: session } = authClient.useSession();
 	const collections = useCollections();
 
-	const { data: subscriptionsData } = useLiveQuery(
+	const { data: subscriptionsData = [], isReady } = useLiveQuery(
 		(q) => q.from({ subscriptions: collections.subscriptions }),
 		[collections],
 	);
 
-	const activeSubscription = subscriptionsData?.find((subscription) =>
+	const activeSubscription = subscriptionsData.find((subscription) =>
 		isActiveSubscriptionStatus(subscription.status),
 	);
 
-	return resolveCurrentPlan({
+	const plan = resolveCurrentPlan({
 		subscriptionPlan: activeSubscription?.plan,
 		sessionPlan: session?.session?.plan,
-		subscriptionsLoaded: subscriptionsData !== undefined,
+		subscriptionsLoaded: isReady,
 	});
+
+	return { plan, isReady };
 }

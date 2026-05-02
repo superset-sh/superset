@@ -16,10 +16,11 @@ export async function checkHostAccess(
 	try {
 		const client = createApiClient(token);
 		const result = await client.host.checkAccess.query({ hostId });
-		if (result.allowed) {
+		const ok = result.allowed && result.paidPlan;
+		if (ok) {
 			allowedCache.set(key, true);
 		}
-		return result.allowed;
+		return ok;
 	} catch {
 		return false;
 	}
