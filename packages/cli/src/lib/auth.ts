@@ -155,7 +155,13 @@ export async function login(options: LoginOptions): Promise<LoginResult> {
 	authorizeUrl.searchParams.set("state", state);
 
 	const url = authorizeUrl.toString();
-	options.onAuthUrl?.(url);
+	try {
+		options.onAuthUrl?.(url);
+	} catch (err) {
+		// Don't leak the bound loopback server if the callback throws.
+		server.close();
+		throw err;
+	}
 	await openBrowser(url);
 
 	const code = await waitForCallback({
