@@ -176,7 +176,13 @@ describe("DaemonSupervisor.ensure (real spawn)", () => {
 			supervisorsToCleanup.push({ sup, orgId });
 			const adopted = await sup.ensure(orgId);
 			assert.equal(adopted.runningVersion, "0.0.1");
-			assert.equal(adopted.expectedVersion, "0.1.0");
+			// expectedVersion is whatever the host-service ships (read from
+			// EXPECTED_DAEMON_VERSION); we don't pin it in this test.
+			assert.notEqual(
+				adopted.expectedVersion,
+				"0.0.1",
+				"expectedVersion should be the host-service's bundled version, not the predecessor's stale 0.0.1",
+			);
 			assert.equal(adopted.updatePending, true);
 		} catch (err) {
 			// On failure, kill the orphaned daemon ourselves.
@@ -450,6 +456,111 @@ describe("DaemonSupervisor.update (Phase 2 fd-handoff)", () => {
 				isAlive(oldPid),
 				false,
 				`predecessor pid ${oldPid} should be dead after auto-update`,
+			);
+		} catch (err) {
+			try {
+				if (child.pid) process.kill(child.pid, "SIGTERM");
+			} catch {}
+			throw err;
+		}
+	});
+
+	test("update() clears updatePending when predecessor was running an older version", async () => {
+		// Regression for the "Update daemon stuck on UPDATE AVAILABLE" bug.
+		//
+		// User-facing symptom: predecessor was spawned with
+		// SUPERSET_PTY_DAEMON_VERSION=0.1.0 (an older host-service install).
+		// User installs a new desktop with EXPECTED=0.2.0; supervisor adopts
+		// the predecessor at 0.1.0, marks updatePending=true. User clicks
+		// "Update daemon", toast says success, but the badge keeps showing
+		// "0.1.0 → 0.2.0 pending". Reason: the post-update version probe
+		// reported 0.1.0 instead of 0.2.0.
+		//
+		// Two failure modes the bug could come back as:
+		//   1. probe race — connect to predecessor before it exits.
+		//   2. successor reads env (set to 0.1.0 by old predecessor) instead
+		//      of its own package.json.
+		//
+		// This test pins the predecessor at "0.0.1-stale" via env and asserts
+		// that after sup.update(), the supervisor's recorded runningVersion
+		// is the bundle version (NOT 0.0.1-stale) and updatePending is false.
+		const orgId = "org-update-version";
+		const socketPath = path.join(
+			os.tmpdir(),
+			`superset-ptyd-${crypto
+				.createHash("sha256")
+				.update(orgId)
+				.digest("hex")
+				.slice(0, 12)}.sock`,
+		);
+		try {
+			fs.unlinkSync(socketPath);
+		} catch {}
+
+		const child = childProcess.spawn(
+			process.execPath,
+			[DAEMON_BUNDLE, `--socket=${socketPath}`],
+			{
+				detached: true,
+				stdio: "ignore",
+				env: { ...process.env, SUPERSET_PTY_DAEMON_VERSION: "0.0.1-stale" },
+			},
+		);
+		child.unref();
+		const ready = await waitForSocket(socketPath, 5000);
+		assert.equal(ready, true);
+
+		try {
+			fs.mkdirSync(ptyDaemonManifestDir(orgId), {
+				recursive: true,
+				mode: 0o700,
+			});
+			writePtyDaemonManifest({
+				pid: child.pid as number,
+				socketPath,
+				protocolVersions: [1],
+				startedAt: Date.now(),
+				organizationId: orgId,
+			});
+
+			// Disable autoUpdate so we exercise sup.update() explicitly,
+			// not the background update path. (autoUpdate has its own test.)
+			const sup = new DaemonSupervisor({
+				scriptPath: DAEMON_BUNDLE,
+				autoUpdate: false,
+			});
+			supervisorsToCleanup.push({ sup, orgId });
+			const adopted = await sup.ensure(orgId);
+			assert.equal(
+				adopted.runningVersion,
+				"0.0.1-stale",
+				"adopted predecessor should report the env-pinned stale version",
+			);
+			assert.equal(adopted.updatePending, true);
+
+			const result = await sup.update(orgId);
+			assert.equal(
+				result.ok,
+				true,
+				`update() failed: ${JSON.stringify(result)}`,
+			);
+
+			const status = sup.getUpdateStatus(orgId);
+			assert.ok(status, "supervisor should have status after update");
+			assert.notEqual(
+				status.running,
+				"0.0.1-stale",
+				"successor must NOT report the predecessor's stale env version — main.ts ignores env in handoff mode and Server.prepareUpgrade strips it from the spawn env",
+			);
+			assert.notEqual(
+				status.running,
+				"unknown",
+				"version probe must succeed — waitForPidExit gates the probe on predecessor exit",
+			);
+			assert.equal(
+				status.pending,
+				false,
+				`updatePending should clear once successor reports a non-stale version (running=${status.running}, expected=${status.expected})`,
 			);
 		} catch (err) {
 			try {

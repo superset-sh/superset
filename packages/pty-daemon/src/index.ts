@@ -14,3 +14,13 @@ export {
 	readSnapshot,
 	writeSnapshot,
 } from "./SessionStore/index.ts";
+
+/**
+ * Source-of-truth version constant for the bundled daemon binary.
+ * Hand-edited to match `packages/pty-daemon/package.json#version`.
+ *
+ * Used by callers that bundle the daemon (apps/desktop) and can't read
+ * package.json at runtime — electron-vite collapses everything into one
+ * file. The package's own main.ts uses readPackageVersion() instead.
+ */
+export const DAEMON_PACKAGE_VERSION = "0.2.0";

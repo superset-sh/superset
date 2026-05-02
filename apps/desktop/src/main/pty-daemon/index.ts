@@ -30,7 +30,12 @@
  * built-in main.ts directly.
  */
 
-import { clearSnapshot, readSnapshot, Server } from "@superset/pty-daemon";
+import {
+	clearSnapshot,
+	DAEMON_PACKAGE_VERSION,
+	readSnapshot,
+	Server,
+} from "@superset/pty-daemon";
 import type { HandoffMessage } from "@superset/pty-daemon/protocol";
 
 interface CliArgs {
@@ -70,7 +75,11 @@ async function main(): Promise<void> {
 
 async function runFresh(): Promise<void> {
 	const args = parseFreshArgs(process.argv.slice(2));
-	const daemonVersion = process.env.SUPERSET_PTY_DAEMON_VERSION ?? "0.1.0";
+	// Fresh-spawn (from supervisor): env wins so the supervisor can pin
+	// versions for testing / drift detection. Falls back to the bundled
+	// constant.
+	const daemonVersion =
+		process.env.SUPERSET_PTY_DAEMON_VERSION ?? DAEMON_PACKAGE_VERSION;
 	const server = new Server({
 		socketPath: args.socket,
 		daemonVersion,
@@ -106,7 +115,12 @@ async function runHandoffReceiver(): Promise<void> {
 	}
 	log(`snapshotPath=${snapshotPath} socketPath=${socketPath}`);
 
-	const daemonVersion = process.env.SUPERSET_PTY_DAEMON_VERSION ?? "0.1.0";
+	// Successor reads its OWN bundle version, NOT the env. The env was
+	// inherited from the predecessor process; an old-bundle predecessor
+	// (which doesn't strip the env when spawning us) would otherwise force
+	// us to report its stale version. The supervisor would then think the
+	// upgrade didn't take effect and updatePending would loop forever.
+	const daemonVersion = DAEMON_PACKAGE_VERSION;
 	log(`daemonVersion=${daemonVersion}`);
 
 	let snapshot: ReturnType<typeof readSnapshot>;

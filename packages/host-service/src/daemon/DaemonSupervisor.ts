@@ -49,6 +49,7 @@ interface DaemonInstance {
 const SOCKET_READY_TIMEOUT_MS = 5_000;
 const VERSION_PROBE_TIMEOUT_MS = 1_500;
 const HANDOFF_PREDECESSOR_EXIT_TIMEOUT_MS = 3_000;
+const HANDOFF_PROBE_TOTAL_TIMEOUT_MS = 3_000;
 
 /**
  * Crash supervision parameters. If the daemon for an organization crashes
@@ -278,11 +279,14 @@ export class DaemonSupervisor {
 		// updatePending falsely true and triggers an infinite re-update.
 		await waitForPidExit(instance.pid, HANDOFF_PREDECESSOR_EXIT_TIMEOUT_MS);
 
-		// Successor is live and bound (or about to be — listenWithRetry
-		// covers any remaining unlink/bind race). Probe its version.
-		const probedVersion = await probeDaemonVersion(
+		// Predecessor is dead, but the successor may not have bound the
+		// socket yet (its `await disconnect` resolves at the same instant
+		// the predecessor exits, then it calls listenWithRetry). Retry the
+		// probe through that bind window — null/timeout means "try again",
+		// not "give up".
+		const probedVersion = await probeDaemonVersionWithRetry(
 			instance.socketPath,
-			VERSION_PROBE_TIMEOUT_MS,
+			HANDOFF_PROBE_TOTAL_TIMEOUT_MS,
 		);
 		const runningVersion = probedVersion ?? "unknown";
 
@@ -952,6 +956,30 @@ export async function listDaemonSessions(
 			}
 		});
 	});
+}
+
+/**
+ * Retry probeDaemonVersion through the post-handoff bind window. The
+ * successor calls `listenWithRetry` only after the predecessor's IPC
+ * channel disconnects (= predecessor exited), so there's a brief gap
+ * between predecessor death and successor bind where any probe sees
+ * ECONNREFUSED. A single probe with a long timeout still fails because
+ * `probeDaemonVersion` resolves to null on the first connect-error;
+ * we have to actively retry.
+ */
+async function probeDaemonVersionWithRetry(
+	socketPath: string,
+	totalTimeoutMs: number,
+): Promise<string | null> {
+	const deadline = Date.now() + totalTimeoutMs;
+	while (Date.now() < deadline) {
+		const remaining = deadline - Date.now();
+		const perAttempt = Math.min(remaining, VERSION_PROBE_TIMEOUT_MS);
+		const v = await probeDaemonVersion(socketPath, perAttempt);
+		if (v !== null) return v;
+		await new Promise((r) => setTimeout(r, 50));
+	}
+	return null;
 }
 
 /**
