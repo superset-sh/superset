@@ -1,2 +1,8 @@
-export type { Pty, PtyOnData, PtyOnExit, SpawnOptions } from "./Pty.ts";
-export { spawn } from "./Pty.ts";
+export type {
+	AdoptOptions,
+	Pty,
+	PtyOnData,
+	PtyOnExit,
+	SpawnOptions,
+} from "./Pty.ts";
+export { adoptFromFd, spawn } from "./Pty.ts";

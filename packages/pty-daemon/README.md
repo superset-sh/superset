@@ -3,7 +3,11 @@
 Long-lived PTY-owning process for the v2 desktop terminal. host-service is a
 client over a Unix socket; routine host-service upgrades don't touch shells.
 
-Implements [Phase 1 of the daemon plan](../../apps/desktop/plans/20260429-pty-daemon-implementation.md).
+Implements [Phase 1](../../apps/desktop/plans/done/20260429-pty-daemon-implementation.md)
+(daemon owns PTYs across host-service restarts) and
+[Phase 2](../../apps/desktop/plans/done/20260501-pty-daemon-phase2-implementation.md)
+(fd-handoff so sessions survive daemon-binary upgrades too).
+
 This package is **standalone**: it does not import from `@superset/host-service`
 or any other workspace package. Host-service consumes only the protocol types
 via `@superset/pty-daemon/protocol`.
@@ -53,9 +57,13 @@ src/
 
 test/
 ├── helpers/
-│   └── client.ts               # reusable DaemonClient: connect, send, waitFor, collect
-├── integration.test.ts         # smoke / happy-path (3 tests)
-└── control-plane.test.ts       # exhaustive control-plane coverage (25 tests)
+│   └── client.ts               # reusable test client: connect, send, waitFor, collect
+├── integration.test.ts         # smoke / happy-path
+├── control-plane.test.ts       # exhaustive control-plane coverage
+├── byte-fidelity.test.ts       # daemon → host byte-perfectness canary
+├── handoff.test.ts             # Phase 2 fd-handoff end-to-end
+├── signal-recovery.test.ts     # SIGKILL-during-handoff teardown
+└── no-encoding-hops.test.ts    # source-level grep: no base64 / per-chunk utf8 in the data path
 
 build.ts                        # Bun bundler → dist/pty-daemon.js (target: node)
 ```
@@ -65,7 +73,7 @@ build.ts                        # Bun bundler → dist/pty-daemon.js (target: no
 - **Stateless from the client's perspective.** Every protocol call carries
   full context. No client tracking, no session tombstones, no business
   rules. Single design principle from
-  [the implementation plan](../../apps/desktop/plans/20260429-pty-daemon-implementation.md#the-single-design-principle).
+  [the implementation plan](../../apps/desktop/plans/done/20260429-pty-daemon-implementation.md#the-single-design-principle).
 - **Auth boundary = Unix socket file mode 0600.** No in-band tokens. The
   daemon trusts whoever can open the socket.
 - **Buffer is in-memory only.** Survives host-service restarts (because the
@@ -77,26 +85,19 @@ build.ts                        # Bun bundler → dist/pty-daemon.js (target: no
 ## Testing
 
 ```sh
-bun test                     # 24 unit tests (protocol framing, handlers, SessionStore, Pty validation)
-bun run test:integration     # 28 integration tests under node --test:
-                             #   - test/integration.test.ts (smoke / happy-path, 3 tests)
-                             #   - test/control-plane.test.ts (every usage pattern, 25 tests)
+bun test                     # unit tests (protocol framing, handlers, SessionStore, Pty validation, byte-fidelity canary)
+bun run test:integration     # integration tests under `node --test`: control-plane, handoff, signal-recovery, byte-fidelity-runtime
 bun run typecheck            # tsc --noEmit
 bun run build:daemon         # bundle src/main.ts → dist/pty-daemon.js (target: node)
 ```
 
-**Control-plane coverage** (`test/control-plane.test.ts`):
+What the integration suites prove:
 
-- Handshake: rejects non-hello first, picks highest mutual protocol, rejects unsupported, rejects duplicate hello.
-- Session lifecycle: invalid dims, duplicate ids, ENOENT on missing, instant-exit shells, SIGKILL on hung shells.
-- I/O patterns: resize during running shell, burst output (200 lines), multi-byte UTF-8 (🚀).
-- Multi-client fan-out: two subscribers see same output, unsubscribe stops further delivery, dropped subscriber doesn't crash daemon.
-- Detach + reattach (the headline feature): late subscriber gets replay, full reattach cycle continues live after disconnect.
-- list reflects active sessions with cols/rows/alive.
-- Hostile input: malformed frames disconnect cleanly, oversized frames are rejected, input on exited session returns EEXITED.
-- Concurrency: 20 sessions in parallel from one connection, 10 connections opening sessions in parallel.
-- Server shutdown: in-flight clients disconnect cleanly, owned PTYs are killed.
-- Framing: tolerates split frames across multiple TCP chunks.
+- **`control-plane.test.ts`**: handshake/version negotiation; session lifecycle (invalid dims, duplicate ids, ENOENT, instant-exit, hung-shell SIGKILL); I/O (resize, burst, multi-byte UTF-8); multi-subscriber fan-out; detach + reattach (replay); concurrency; hostile input; framing across split chunks.
+- **`handoff.test.ts`**: Phase 2 — sessions survive a daemon-binary swap with the same shell PIDs.
+- **`byte-fidelity.test.ts`**: random bytes (including non-UTF-8) flow daemon → host byte-perfect on live and replay.
+- **`signal-recovery.test.ts`**: SIGKILL of the daemon mid-flight; clients see a clean close.
+- **`no-encoding-hops.test.ts`** (bun): source-level guard — fails the moment anyone reintroduces a base64 hop or per-chunk `chunk.toString("utf8")` on the data path.
 
 Why two runners? `bun test` is fast for pure-JS work. node-pty doesn't work
 under Bun, so anything that spawns a real PTY runs under Node.
@@ -110,10 +111,9 @@ bun run start --socket=/tmp/pty-daemon.sock
 Logs go to stderr; stdout stays empty (so the daemon can later be supervised
 by host-service with stdout reserved for protocol or kept dark).
 
-## Out of scope (Phase 1)
+## Out of scope
 
-- Host-service integration (DaemonClient, terminal.ts refactor, manifest
-  adoption) — separate PR.
-- Daemon-upgrade handoff via `child_process.spawn` `stdio` fd inheritance
-  — separate PR (Phase 2 of the plan).
-- Windows ConPTY — not in v1 protocol; defer until Windows users justify it.
+- Windows ConPTY — not in the protocol; defer until Windows users justify it.
+- "since byte N" replay cursor — would close the gap where bytes the PTY
+  produced during a WS-down window are dropped on reconnect (sub-second on
+  a daemon swap; longer on host-service restart). Not built.

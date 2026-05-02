@@ -45,6 +45,13 @@ export interface TerminalTransport {
 	_terminal: XTerm | null;
 	/** Set when the server sends an exit message — no reconnect after this. */
 	_exited: boolean;
+	/**
+	 * Flips true after the first PTY-output frame lands in xterm. Subsequent
+	 * connects send `?replay=0` so the server doesn't re-deliver scrollback.
+	 * Tracked on first bytes (not first open) so a WS that opens-and-closes
+	 * with no output still gets replay on the next connect.
+	 */
+	_hasReceivedBytes: boolean;
 }
 
 const MAX_LOG_ENTRIES = 200;
@@ -122,6 +129,7 @@ export function createTransport(): TerminalTransport {
 		_reconnectTimer: null,
 		_reconnectAttempt: 0,
 		_terminal: null,
+		_hasReceivedBytes: false,
 		_exited: false,
 	};
 }
@@ -173,6 +181,18 @@ function formatCloseDetails(event: CloseEvent): string {
 	return `code: ${code}${reason}`;
 }
 
+function appendQueryParam(url: string, key: string, value: string): string {
+	try {
+		const u = new URL(url);
+		u.searchParams.set(key, value);
+		return u.toString();
+	} catch {
+		// URL parse failed (relative url, malformed). Fall back to naive append.
+		const sep = url.includes("?") ? "&" : "?";
+		return `${url}${sep}${encodeURIComponent(key)}=${encodeURIComponent(value)}`;
+	}
+}
+
 export function connect(
 	transport: TerminalTransport,
 	terminal: XTerm,
@@ -195,7 +215,10 @@ export function connect(
 	transport._terminal = terminal;
 	transport._exited = false;
 	setConnectionState(transport, "connecting");
-	const socket = new WebSocket(wsUrl);
+	const actualUrl = transport._hasReceivedBytes
+		? appendQueryParam(wsUrl, "replay", "0")
+		: wsUrl;
+	const socket = new WebSocket(actualUrl);
 	// Receive PTY bytes as ArrayBuffer (the default would be Blob, which
 	// forces an async read); we want to feed bytes synchronously into
 	// xterm.write to keep render order strict.
@@ -225,6 +248,7 @@ export function connect(
 		// xterm without any decoding step.
 		if (event.data instanceof ArrayBuffer) {
 			terminal.write(new Uint8Array(event.data));
+			transport._hasReceivedBytes = true;
 			return;
 		}
 

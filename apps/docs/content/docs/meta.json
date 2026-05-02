@@ -11,6 +11,7 @@
 		"ports",
 		"browser",
 		"agent-integration",
+		"remote-workspaces",
 		"automations",
 		"mcp",
 		"---Terminal CLI---",

@@ -80,6 +80,19 @@ export interface UnsubscribeMessage {
 	id: string;
 }
 
+/**
+ * Phase 2: client tells the daemon to spawn a successor process and hand
+ * the PTY master fds over via stdio inheritance. Daemon replies with
+ * `upgrade-prepared` once the successor has acknowledged adoption (or
+ * once handoff has been determined to have failed).
+ *
+ * Only valid for trusted clients (the supervisor). The 0600 socket file
+ * permission is the auth boundary; same as everything else on the wire.
+ */
+export interface PrepareUpgradeMessage {
+	type: "prepare-upgrade";
+}
+
 // ---------- Daemon -> Client ----------
 
 export interface OpenOkMessage {
@@ -118,6 +131,16 @@ export interface ErrorMessage {
 	code?: string;
 }
 
+/**
+ * Reply to `prepare-upgrade`. Carries either the successor's pid (so the
+ * supervisor's manifest watcher knows what to look for) or the reason
+ * handoff failed.
+ */
+export interface UpgradePreparedMessage {
+	type: "upgrade-prepared";
+	result: { ok: true; successorPid: number } | { ok: false; reason: string };
+}
+
 // ---------- Unions ----------
 
 export type ClientMessage =
@@ -128,7 +151,8 @@ export type ClientMessage =
 	| CloseMessage
 	| ListMessage
 	| SubscribeMessage
-	| UnsubscribeMessage;
+	| UnsubscribeMessage
+	| PrepareUpgradeMessage;
 
 export type ServerMessage =
 	| HelloAckMessage
@@ -137,4 +161,5 @@ export type ServerMessage =
 	| ExitMessage
 	| ClosedMessage
 	| ListReplyMessage
-	| ErrorMessage;
+	| ErrorMessage
+	| UpgradePreparedMessage;

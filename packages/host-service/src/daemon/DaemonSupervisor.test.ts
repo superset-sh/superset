@@ -392,12 +392,174 @@ describe("DaemonSupervisor.restart", () => {
 	});
 });
 
+describe("DaemonSupervisor.update concurrency guard", () => {
+	let sup: DaemonSupervisor;
+
+	beforeEach(() => {
+		sup = new DaemonSupervisor({ scriptPath: "/nonexistent" });
+	});
+
+	test("two concurrent update() calls coalesce to one runUpdate", async () => {
+		// Mock the private runUpdate so we can observe call counts and
+		// resolve on our schedule.
+		const deferred = createDeferred<{ ok: true; successorPid: number }>();
+		const runUpdateMock = mock(() => deferred.promise);
+		(sup as unknown as { runUpdate: typeof runUpdateMock }).runUpdate =
+			runUpdateMock;
+
+		const a = sup.update("org-coalesce");
+		const b = sup.update("org-coalesce");
+		// Both calls should hand out the SAME promise (cached in-flight).
+		expect(a).toBe(b);
+		expect(runUpdateMock).toHaveBeenCalledTimes(1);
+
+		deferred.resolve({ ok: true, successorPid: 42 });
+		const [resA, resB] = await Promise.all([a, b]);
+		expect(resA).toEqual({ ok: true, successorPid: 42 });
+		expect(resB).toEqual({ ok: true, successorPid: 42 });
+	});
+
+	test("a fresh update() after the first resolves runs again (not stuck cached)", async () => {
+		const calls: ReturnType<
+			typeof createDeferred<{ ok: true; successorPid: number }>
+		>[] = [];
+		const runUpdateMock = mock(() => {
+			const d = createDeferred<{ ok: true; successorPid: number }>();
+			calls.push(d);
+			return d.promise;
+		});
+		(sup as unknown as { runUpdate: typeof runUpdateMock }).runUpdate =
+			runUpdateMock;
+
+		const first = sup.update("org-recycle");
+		calls[0]?.resolve({ ok: true, successorPid: 1 });
+		await first;
+
+		// Second call after the first settles should NOT return the cached
+		// promise — it kicks off a new runUpdate.
+		const second = sup.update("org-recycle");
+		expect(runUpdateMock).toHaveBeenCalledTimes(2);
+		calls[1]?.resolve({ ok: true, successorPid: 2 });
+		await expect(second).resolves.toEqual({ ok: true, successorPid: 2 });
+	});
+
+	test("guard is per-organization", async () => {
+		const runUpdateMock = mock(async () => ({
+			ok: true as const,
+			successorPid: 99,
+		}));
+		(sup as unknown as { runUpdate: typeof runUpdateMock }).runUpdate =
+			runUpdateMock;
+
+		const a = sup.update("org-A");
+		const b = sup.update("org-B");
+		expect(a).not.toBe(b);
+		expect(runUpdateMock).toHaveBeenCalledTimes(2);
+		await Promise.all([a, b]);
+	});
+});
+
+describe("auto-update failure mode (heavy path: must not disrupt sessions)", () => {
+	// Auto-update fires on every host-service start when the adopted daemon
+	// is older than the bundle. In production this is the most-traveled
+	// code path that touches live PTYs — a bug that loses sessions here
+	// kills the user's shells silently. These tests pin the contract:
+	// when update() fails for any reason, the predecessor's instance
+	// record stays, the manifest stays pointed at the predecessor's pid,
+	// and no successor is recorded. The user's shells continue serving
+	// on the original daemon process.
+
+	let sup: DaemonSupervisor;
+
+	beforeEach(() => {
+		sup = new DaemonSupervisor({ scriptPath: "/nonexistent" });
+	});
+
+	test("ok:false from runUpdate leaves the predecessor instance untouched", async () => {
+		const PREDECESSOR_PID = 4242;
+		seedPredecessor(sup, "org-fail", PREDECESSOR_PID);
+
+		const runUpdateMock = mock(async () => ({
+			ok: false as const,
+			reason: "snapshot write failed: ENOSPC",
+		}));
+		(sup as unknown as { runUpdate: typeof runUpdateMock }).runUpdate =
+			runUpdateMock;
+
+		const result = await sup.update("org-fail");
+		expect(result.ok).toBe(false);
+
+		// Sessions live in the predecessor process — if we overwrote this
+		// entry on failure the supervisor would lose track of them.
+		const status = sup.getUpdateStatus("org-fail");
+		expect(status?.running).toBe("0.1.0");
+		expect(status?.pending).toBe(true);
+		expect(getInstancePid(sup, "org-fail")).toBe(PREDECESSOR_PID);
+	});
+
+	test("runUpdate throwing leaves the predecessor instance untouched", async () => {
+		const PREDECESSOR_PID = 5252;
+		seedPredecessor(sup, "org-throw", PREDECESSOR_PID);
+
+		(sup as unknown as { runUpdate: () => Promise<never> }).runUpdate =
+			async () => {
+				throw new Error("transport: ECONNRESET");
+			};
+
+		await expect(sup.update("org-throw")).rejects.toThrow(/ECONNRESET/);
+		expect(getInstancePid(sup, "org-throw")).toBe(PREDECESSOR_PID);
+	});
+});
+
 // ---------------- helpers ----------------
+
+interface Deferred<T> {
+	promise: Promise<T>;
+	resolve: (v: T) => void;
+	reject: (e: unknown) => void;
+}
+
+function createDeferred<T>(): Deferred<T> {
+	let resolve: (v: T) => void = () => {};
+	let reject: (e: unknown) => void = () => {};
+	const promise = new Promise<T>((res, rej) => {
+		resolve = res;
+		reject = rej;
+	});
+	return { promise, resolve, reject };
+}
 
 interface SeededFields {
 	runningVersion: string;
 	expectedVersion: string;
 	updatePending: boolean;
+}
+
+function seedPredecessor(
+	sup: DaemonSupervisor,
+	organizationId: string,
+	pid: number,
+): void {
+	(sup as unknown as { instances: Map<string, unknown> }).instances.set(
+		organizationId,
+		{
+			pid,
+			socketPath: "/tmp/seeded.sock",
+			startedAt: Date.now(),
+			runningVersion: "0.1.0",
+			expectedVersion: "0.2.0",
+			updatePending: true,
+		},
+	);
+}
+
+function getInstancePid(
+	sup: DaemonSupervisor,
+	organizationId: string,
+): number | undefined {
+	return (
+		sup as unknown as { instances: Map<string, { pid: number }> }
+	).instances.get(organizationId)?.pid;
 }
 
 function seedInstance(

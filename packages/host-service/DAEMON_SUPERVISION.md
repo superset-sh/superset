@@ -16,10 +16,10 @@ outlives host-service crashes via detached spawn + manifest adoption.
 - **Manifest**: `src/daemon/manifest.ts` — `$SUPERSET_HOME_DIR/host/{orgId}/pty-daemon-manifest.json`.
   Read by `tryAdopt` on startup to find a still-running daemon from a
   previous host-service incarnation.
-- **Expected version**: `src/daemon/expected-version.ts` — hand-edited
-  `EXPECTED_DAEMON_VERSION`, kept in lockstep with
-  `packages/pty-daemon/package.json#version`. Drives the
-  "update available, restart terminals" UX.
+- **Expected version**: `src/daemon/expected-version.ts` — derives
+  `EXPECTED_DAEMON_VERSION` from `pty-daemon/package.json` at compile
+  time (single source of truth). Drives the "update available, restart
+  terminals" UX.
 - **Renderer surface**: `terminal.daemon.{getUpdateStatus, listSessions, restart}`
   on the host-service tRPC.
 
@@ -174,10 +174,13 @@ Adding a daemon op the renderer needs:
 2. Expose via `terminal.daemon` in `src/trpc/router/terminal/terminal.ts`.
 3. Call from the renderer via `workspaceTrpc.terminal.daemon.*`.
 
-Bumping the daemon version: edit `EXPECTED_DAEMON_VERSION` in
-`expected-version.ts` to match the new `packages/pty-daemon/package.json#version`.
-The supervisor's adoption probe will surface the "update available" flag
-on existing installs until they restart.
+Bumping the daemon version: edit `packages/pty-daemon/package.json#version`.
+That's the only place. `EXPECTED_DAEMON_VERSION` (host-service) and
+`DAEMON_PACKAGE_VERSION` (pty-daemon's runtime export) both derive from
+that JSON via compile-time imports, so drift is structurally impossible.
+The supervisor's adoption probe surfaces "update available" on installs
+running an older daemon; clicking "Update daemon" triggers fd-handoff
+(Phase 2) so live shells survive the swap.
 
 Bumping host-service-level features that the desktop coordinator
 needs to refuse to adopt old binaries: bump `HOST_SERVICE_VERSION`
@@ -186,31 +189,33 @@ in `src/trpc/router/host/host.ts` and `MIN_HOST_SERVICE_VERSION` in
 The coordinator's `tryAdopt` does a `semver.satisfies(>=)` check and
 SIGTERMs+respawns anything older.
 
-## Phase 2 deferred — daemon upgrades currently kill sessions
+## Phase 2 — daemon-upgrade fd-handoff (shipped, PR #3971)
 
-The original Architecture E plan called for **daemon-upgrade fd-handoff**
-so even daemon-binary changes preserve PTYs. Phase 0 (the Go and
-node-pty harnesses in the design-doc branch) proved the primitive
-works. **Phase 2 is not built in this codebase yet.**
+Daemon-binary upgrades preserve live PTY sessions via fd inheritance:
 
-Today: clicking "Restart and update" in Settings → Manage daemon
-SIGTERMs the running daemon and spawns the new bundle. All sessions
-die in the gap. The confirmation dialog tells the user this.
+1. Supervisor's `update(orgId)` sends `prepare-upgrade` to the running daemon.
+2. Predecessor writes a snapshot (session ids, metadata, ring buffers) and
+   spawns the new bundle with PTY master fds in its stdio array, stdio
+   `'ipc'` channel for the upgrade-ack handshake, and `--handoff` argv.
+3. Successor reads the snapshot, adopts each session via `adoptFromFd`
+   (wraps the inherited fd with read/write streams), sends `upgrade-ack`
+   over IPC, waits for the predecessor's `disconnect` event, then binds
+   the socket via `listenWithRetry`.
+4. Supervisor waits for the predecessor PID to exit, retries the version
+   probe through the bind window (`probeDaemonVersionWithRetry`), and
+   updates `instances` + the manifest with the successor's pid + version.
 
-When Phase 2 lands: the supervisor will spawn the new daemon with
-existing PTY master FDs in its `stdio` array (kernel-level dup,
-refcount preserved across the swap). New daemon adopts the FDs,
-takes over the socket, old daemon exits without closing them.
-Sessions survive the upgrade.
+If anything fails mid-handoff (snapshot write error, successor crash on
+adopt, IPC stall) the supervisor's `restoreOnFailure()` path leaves the
+predecessor's instance record intact — the user's shells keep serving on
+the original daemon process. Auto-update on adopt (`kickoffAutoUpdate`)
+relies on this contract: a transient failure must never disrupt sessions.
 
-Hooks already in place that Phase 2 will use:
-- Adopted-liveness check (it'll detect the old daemon's exit at
-  the supervisor level if anything goes wrong mid-handoff).
-- Manifest-based daemon discovery (the supervisor's current
-  `tryAdopt` is what Phase 2's "fall back if handoff fails" path
-  reuses).
-- Existing wire protocol (we'd add an `upgrade` message; the
-  protocol is versioned).
+Mode signal goes through argv (`--handoff`), not env: bundlers
+(Bun, esbuild via electron-vite) statically inline `process.env.X`
+references and DCE the unused branch. `apps/desktop/scripts/check-pty-daemon-bundle.ts`
+greps the post-build bundle for handoff-path markers as a regression
+canary.
 
-See `apps/desktop/plans/20260430-pty-daemon-host-service-migration.md`
-in the design-doc branch for the migration journey and Phase 2 sketch.
+See `apps/desktop/plans/done/20260501-pty-daemon-phase2-implementation.md`
+for the design walkthrough.
