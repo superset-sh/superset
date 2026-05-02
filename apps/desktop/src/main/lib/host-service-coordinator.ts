@@ -433,7 +433,7 @@ export class HostServiceCoordinator extends EventEmitter {
 				detached: !isDev,
 				stdio,
 				env: childEnv,
-				// Avoid a flashing CMD window on Windows for the detached child.
+				// Avoid a flashing CMD window on Windows.
 				windowsHide: true,
 			});
 		} finally {
