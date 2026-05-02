@@ -132,6 +132,43 @@ function seedDefaultsIfEmpty(db: HostDb): HostAgentConfigRow[] {
 	return listOrdered(db);
 }
 
+/**
+ * Find an agent config row by `presetId`, seeding defaults first if
+ * the table is empty and creating the row from the preset definition
+ * if the user picked a builtin that wasn't part of the default seed
+ * set (e.g. mastracode, opencode, pi). Returns null only when
+ * `presetId` doesn't match any known preset.
+ *
+ * Used by the launches/ wiring in `create.ts`: a user picking any of
+ * the 9 builtin agents gets a row materialized on first use.
+ */
+export function findOrCreateHostPresetByPresetId(
+	db: HostDb,
+	presetId: string,
+): HostAgentConfigOutput | null {
+	const seeded = seedDefaultsIfEmpty(db);
+	const existing = seeded.find((row) => row.presetId === presetId);
+	if (existing) return toOutput(existing);
+
+	const preset = getPresetById(presetId);
+	if (!preset) return null;
+
+	const nextOrder =
+		seeded.length === 0
+			? 0
+			: Math.max(...seeded.map((row) => row.displayOrder)) + 1;
+	const insert = rowFromPreset(preset, nextOrder);
+	db.insert(hostAgentConfigs).values(insert).run();
+	const created = db
+		.select()
+		.from(hostAgentConfigs)
+		.where(eq(hostAgentConfigs.id, insert.id))
+		.get();
+	return created ? toOutput(created) : null;
+}
+
+export type { HostAgentConfigOutput };
+
 const updatePatchSchema = z
 	.object({
 		label: z.string().trim().min(1).optional(),

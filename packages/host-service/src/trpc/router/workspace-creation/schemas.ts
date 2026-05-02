@@ -12,6 +12,10 @@ const linkedContextSchema = z
 		githubIssueUrls: z.array(z.string()).optional(),
 		linkedPrUrl: z.string().optional(),
 		attachments: z.array(attachmentSchema).optional(),
+		// PR4: ids into the host attachment store. Replaces the inline
+		// base64 `attachments` field above (kept for one release for
+		// backwards-compat — drop in PR 5).
+		attachmentIds: z.array(z.string()).optional(),
 	})
 	.optional();
 
@@ -56,6 +60,12 @@ export const createInputSchema = z.object({
 		// `resolve-start-point.ts` for the fallback semantics.
 		baseBranchSource: z.enum(["local", "remote-tracking"]).optional(),
 		runSetupScript: z.boolean().optional(),
+		// PR4: presetId of the host_agent_configs row to launch in the
+		// new workspace. When set, host-service builds an
+		// AgentLaunchSpec, writes attachments, and spawns the agent
+		// terminal as part of create. Returned in `launches[]` on the
+		// response.
+		agentId: z.string().optional(),
 	}),
 	linkedContext: linkedContextSchema,
 });

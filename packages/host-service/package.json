@@ -59,6 +59,7 @@
 		"@mastra/core": "1.26.0-alpha.3",
 		"@octokit/rest": "^22.0.1",
 		"@superset/chat": "workspace:*",
+		"@superset/launch-context": "workspace:*",
 		"@superset/port-scanner": "workspace:*",
 		"@superset/pty-daemon": "workspace:*",
 		"@superset/shared": "workspace:*",

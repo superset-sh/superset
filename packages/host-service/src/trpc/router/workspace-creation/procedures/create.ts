@@ -9,16 +9,25 @@ import {
 	resolveDefaultBranchName,
 	resolveUpstream,
 } from "../../../../runtime/git/refs";
+import type { HostServiceContext } from "../../../../types";
 import { protectedProcedure } from "../../../index";
 import { gitConfigWrite } from "../../git/utils/config-write";
 import { ensureMainWorkspace } from "../../project/utils/ensure-main-workspace";
+import { findOrCreateHostPresetByPresetId } from "../../settings/agent-configs";
 import { createInputSchema } from "../schemas";
 import { enablePushAutoSetupRemote } from "../shared/git-config";
+import {
+	buildAgentLaunch,
+	buildHostResolveCtx,
+	resolveAttachmentFiles,
+	startTerminalLaunch,
+	writeAttachmentsToWorktree,
+} from "../shared/launches";
 import { requireLocalProject } from "../shared/local-project";
 import { clearProgress, setProgress } from "../shared/progress-store";
 import { startSetupTerminalIfPresent } from "../shared/setup-terminal";
 import { buildStartPointFromHint } from "../shared/start-point";
-import type { TerminalDescriptor } from "../shared/types";
+import type { LaunchDescriptor, TerminalDescriptor } from "../shared/types";
 import { safeResolveWorktreePath } from "../shared/worktree-paths";
 import { applyAiWorkspaceRename } from "../utils/ai-workspace-names";
 import { listBranchNames } from "../utils/list-branch-names";
@@ -333,6 +342,7 @@ export const create = protectedProcedure
 			}
 
 			const terminals: TerminalDescriptor[] = [];
+			const launches: LaunchDescriptor[] = [];
 			const warnings: string[] = [];
 
 			if (input.composer.runSetupScript) {
@@ -349,14 +359,118 @@ export const create = protectedProcedure
 				}
 			}
 
+			// PR4: agent launch. Optional — runs only when the renderer
+			// passed `composer.agentId` (the picker selected an agent).
+			// Failures here surface as warnings rather than aborting create
+			// — the workspace is already on disk and registered, so a
+			// missing preset / spawn failure shouldn't unwind that work.
+			if (input.composer.agentId) {
+				try {
+					await runAgentLaunch({
+						ctx,
+						workspaceId: cloudRow.id,
+						projectId: input.projectId,
+						worktreePath,
+						agentPresetId: input.composer.agentId,
+						prompt: input.composer.prompt,
+						githubIssueUrls: input.linkedContext?.githubIssueUrls ?? [],
+						internalTaskIds: input.linkedContext?.internalIssueIds ?? [],
+						linkedPrUrl: input.linkedContext?.linkedPrUrl,
+						attachmentIds: input.linkedContext?.attachmentIds ?? [],
+						launches,
+						warnings,
+					});
+				} catch (err) {
+					console.warn(
+						"[workspaceCreation.create] agent launch failed; continuing without",
+						err,
+					);
+					warnings.push(
+						`Agent launch failed: ${err instanceof Error ? err.message : String(err)}`,
+					);
+				}
+			}
+
 			clearProgress(input.pendingId);
 
 			return {
 				workspace: cloudRow,
 				terminals,
+				launches,
 				warnings,
 			};
 		} finally {
 			clearProgress(input.pendingId);
 		}
 	});
+
+interface RunAgentLaunchInput {
+	ctx: HostServiceContext;
+	workspaceId: string;
+	projectId: string;
+	worktreePath: string;
+	agentPresetId: string;
+	prompt?: string;
+	githubIssueUrls: string[];
+	internalTaskIds: string[];
+	linkedPrUrl?: string;
+	attachmentIds: string[];
+	launches: LaunchDescriptor[];
+	warnings: string[];
+}
+
+/**
+ * Resolves the host preset row, builds an agent launch plan, writes
+ * any attachments to the worktree, and spawns the terminal session.
+ * Pushes the resulting terminalId+label onto `launches`. Soft-fails:
+ * an unknown presetId or empty plan logs a warning and returns
+ * without throwing — the workspace is already created and shouldn't
+ * unwind on a launch-only failure.
+ */
+async function runAgentLaunch(input: RunAgentLaunchInput): Promise<void> {
+	const presetRow = findOrCreateHostPresetByPresetId(
+		input.ctx.db,
+		input.agentPresetId,
+	);
+	if (!presetRow) {
+		input.warnings.push(`Unknown agentId: ${input.agentPresetId}`);
+		return;
+	}
+
+	const attachments = resolveAttachmentFiles(input.attachmentIds);
+	const resolveCtx = buildHostResolveCtx({
+		ctx: input.ctx,
+		projectId: input.projectId,
+		githubIssueUrls: input.githubIssueUrls,
+		linkedPrUrl: input.linkedPrUrl,
+	});
+
+	const plan = await buildAgentLaunch({
+		projectId: input.projectId,
+		preset: presetRow,
+		prompt: input.prompt,
+		internalTaskIds: input.internalTaskIds,
+		githubIssueUrls: input.githubIssueUrls,
+		linkedPrUrl: input.linkedPrUrl,
+		attachments,
+		resolveCtx,
+	});
+	if (!plan) return;
+
+	writeAttachmentsToWorktree(input.worktreePath, plan.attachmentsToWrite);
+
+	const result = await startTerminalLaunch({
+		ctx: input.ctx,
+		workspaceId: input.workspaceId,
+		plan,
+	});
+	if ("error" in result) {
+		input.warnings.push(`Failed to start agent terminal: ${result.error}`);
+		return;
+	}
+	input.launches.push({
+		kind: "terminal",
+		terminalId: result.terminalId,
+		label: result.label,
+	});
+}

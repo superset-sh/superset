@@ -116,7 +116,7 @@ function substituteVariables(
 ): string {
 	return template.replace(PLACEHOLDER_RE, (match, rawKey: string) => {
 		const key = rawKey.trim();
-		return Object.hasOwn(variables, key) ? variables[key] : match;
+		return Object.hasOwn(variables, key) ? (variables[key] ?? match) : match;
 	});
 }
 

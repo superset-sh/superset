@@ -1,4 +1,4 @@
-import { mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import mimeTypes from "mime-types";
@@ -88,4 +88,26 @@ export function deleteAttachment(
 ): void {
 	const dir = getAttachmentDir(attachmentId, baseDirOverride);
 	rmSync(dir, { recursive: true, force: true });
+}
+
+/**
+ * Reads bytes + metadata for a stored attachment. Throws if the
+ * attachment dir / metadata.json / bytes file is missing — callers
+ * should treat that as "attachment was deleted" and degrade
+ * gracefully (e.g. skip writing it to the worktree).
+ */
+export function readAttachment(
+	attachmentId: string,
+	baseDirOverride?: string,
+): { bytes: Uint8Array; metadata: AttachmentMetadata } {
+	const metaPath = getAttachmentMetadataPath(attachmentId, baseDirOverride);
+	const metadata = JSON.parse(
+		readFileSync(metaPath, "utf-8"),
+	) as AttachmentMetadata;
+	const filePath = getAttachmentFilePath(
+		attachmentId,
+		metadata.mediaType,
+		baseDirOverride,
+	);
+	return { bytes: new Uint8Array(readFileSync(filePath)), metadata };
 }

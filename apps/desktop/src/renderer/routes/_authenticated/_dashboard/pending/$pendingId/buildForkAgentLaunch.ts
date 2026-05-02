@@ -8,22 +8,22 @@ import {
 	indexResolvedAgentConfigs,
 	type ResolvedAgentConfig,
 } from "@superset/shared/agent-settings";
+import {
+	type AgentLaunchSpec,
+	type AttachmentFile,
+	buildLaunchContext,
+	buildLaunchSpec,
+	type ContentPart,
+	defaultContributorRegistry,
+	type LaunchSource,
+	type ResolveCtx,
+} from "@superset/launch-context";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import type {
 	PendingChatLaunch,
 	PendingTerminalLaunch,
 	PendingWorkspaceRow,
 } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal/schema";
-import { buildLaunchSpec } from "shared/context/buildLaunchSpec";
-import { buildLaunchContext } from "shared/context/composer";
-import { defaultContributorRegistry } from "shared/context/contributors";
-import type {
-	AgentLaunchSpec,
-	AttachmentFile,
-	ContentPart,
-	LaunchSource,
-	ResolveCtx,
-} from "shared/context/types";
 
 export interface LoadedAttachment {
 	data: string; // base64 data URL

@@ -8,6 +8,18 @@ export type TerminalDescriptor = {
 	label: string;
 };
 
+/**
+ * One agent or terminal launch surfaced on the create response. The
+ * pending page consumes this to lay out panes for the new workspace.
+ * Setup terminals also appear here as `kind: "terminal"` (PR 5
+ * collapses the parallel `terminals[]` field).
+ */
+export type LaunchDescriptor = {
+	kind: "terminal";
+	terminalId: string;
+	label: string;
+};
+
 export type BranchRow = {
 	name: string;
 	lastCommitDate: number;
