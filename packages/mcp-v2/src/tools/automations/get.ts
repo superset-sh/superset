@@ -13,10 +13,7 @@ export function register(server: McpServer): void {
 		},
 		handler: async (input, ctx) => {
 			const caller = createMcpCaller(ctx);
-			const { prompt: _prompt, ...rest } = await caller.automation.get({
-				id: input.id,
-			});
-			return rest;
+			return await caller.automation.get({ id: input.id });
 		},
 	});
 }

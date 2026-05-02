@@ -1,4 +1,3 @@
-import { rmSync } from "node:fs";
 import { basename, resolve as resolvePath } from "node:path";
 import { parseGitHubRemote } from "@superset/shared/github-remote";
 import { TRPCError } from "@trpc/server";
@@ -6,7 +5,12 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { projects, workspaces } from "../../../db/schema";
 import { protectedProcedure, router } from "../../index";
-import { createFromClone, createFromImportLocal } from "./handlers";
+import {
+	createFromClone,
+	createFromEmpty,
+	createFromImportLocal,
+	createFromTemplate,
+} from "./handlers";
 import { ensureMainWorkspace } from "./utils/ensure-main-workspace";
 import { persistLocalProject } from "./utils/persist-project";
 import {
@@ -93,14 +97,10 @@ export const projectRouter = router({
 		.input(
 			z.object({
 				name: z.string().min(1),
-				// `visibility` lives on the GitHub-provisioning modes only.
-				// Clone + importLocal reuse an existing remote where visibility
-				// is already set on the remote itself.
 				mode: z.discriminatedUnion("kind", [
 					z.object({
 						kind: z.literal("empty"),
 						parentDir: z.string().min(1),
-						visibility: z.enum(["private", "public"]),
 					}),
 					z.object({
 						kind: z.literal("clone"),
@@ -115,7 +115,6 @@ export const projectRouter = router({
 						kind: z.literal("template"),
 						parentDir: z.string().min(1),
 						templateId: z.string().min(1),
-						visibility: z.enum(["private", "public"]),
 					}),
 				]),
 			}),
@@ -123,10 +122,15 @@ export const projectRouter = router({
 		.mutation(async ({ ctx, input }) => {
 			switch (input.mode.kind) {
 				case "empty":
+					return createFromEmpty(ctx, {
+						name: input.name,
+						parentDir: input.mode.parentDir,
+					});
 				case "template":
-					throw new TRPCError({
-						code: "NOT_IMPLEMENTED",
-						message: `project.create mode="${input.mode.kind}" is not implemented yet`,
+					return createFromTemplate(ctx, {
+						name: input.name,
+						parentDir: input.mode.parentDir,
+						templateId: input.mode.templateId,
 					});
 				case "clone":
 					return createFromClone(ctx, {
@@ -283,13 +287,36 @@ export const projectRouter = router({
 			}
 		}),
 
+	/**
+	 * Project-delete saga. Cloud is reality — cloud delete is the kill point:
+	 *
+	 *   1. Cloud v2Project.delete   ← kill point. Cascades cloud workspaces.
+	 *      on fail → abort, leave local untouched, surface error to user.
+	 *
+	 *   2. Local DB rows (workspaces + project)
+	 *      on fail → log; user can re-run later. Cloud is already gone.
+	 *
+	 *   3. Best-effort `git worktree remove` for each non-main local
+	 *      workspace so subsequent worktree commands aren't confused.
+	 *
+	 * The on-disk repo directory is NEVER auto-removed. The user's code is
+	 * their code; deletion of the working tree must be an explicit action,
+	 * not a side-effect of project removal. Returns repoPath so a future
+	 * UI can offer an explicit "delete files too" follow-up.
+	 */
 	remove: protectedProcedure
-		.input(z.object({ projectId: z.string() }))
+		.input(z.object({ projectId: z.string().uuid() }))
 		.mutation(async ({ ctx, input }) => {
+			await ctx.api.v2Project.delete.mutate({
+				organizationId: ctx.organizationId,
+				id: input.projectId,
+			});
+
 			const localProject = ctx.db.query.projects
 				.findFirst({ where: eq(projects.id, input.projectId) })
 				.sync();
-			if (!localProject) return { success: true };
+
+			if (!localProject) return { success: true, repoPath: null };
 
 			const localWorkspaces = ctx.db
 				.select()
@@ -298,13 +325,7 @@ export const projectRouter = router({
 				.all();
 
 			for (const ws of localWorkspaces) {
-				if (ws.worktreePath === localProject.repoPath) {
-					await ctx.api.v2Workspace.deleteMainForHost.mutate({
-						id: ws.id,
-						projectId: input.projectId,
-					});
-					continue;
-				}
+				if (ws.worktreePath === localProject.repoPath) continue;
 				try {
 					const git = await ctx.git(localProject.repoPath);
 					await git.raw(["worktree", "remove", ws.worktreePath]);
@@ -318,17 +339,18 @@ export const projectRouter = router({
 			}
 
 			try {
-				rmSync(localProject.repoPath, { recursive: true, force: true });
+				ctx.db
+					.delete(workspaces)
+					.where(eq(workspaces.projectId, input.projectId))
+					.run();
+				ctx.db.delete(projects).where(eq(projects.id, input.projectId)).run();
 			} catch (err) {
-				console.warn("[project.remove] failed to remove repo dir", {
+				console.warn("[project.remove] failed to delete local rows", {
 					projectId: input.projectId,
-					repoPath: localProject.repoPath,
 					err,
 				});
 			}
 
-			ctx.db.delete(projects).where(eq(projects.id, input.projectId)).run();
-
-			return { success: true };
+			return { success: true, repoPath: localProject.repoPath };
 		}),
 });

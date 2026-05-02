@@ -241,12 +241,16 @@ describe("bug-hunt: idempotency + double-fire", () => {
 	});
 
 	test("project.remove is idempotent across two calls", async () => {
-		host = await createTestHost();
+		host = await createTestHost({
+			apiOverrides: {
+				"v2Project.delete.mutate": () => ({ success: true }),
+			},
+		});
 		const id = randomUUID();
 		const a = await host.trpc.project.remove.mutate({ projectId: id });
 		const b = await host.trpc.project.remove.mutate({ projectId: id });
-		expect(a).toEqual({ success: true });
-		expect(b).toEqual({ success: true });
+		expect(a).toEqual({ success: true, repoPath: null });
+		expect(b).toEqual({ success: true, repoPath: null });
 	});
 
 	test("two concurrent workspace.create calls with the same branch don't collide silently", async () => {

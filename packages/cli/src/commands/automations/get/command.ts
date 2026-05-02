@@ -6,10 +6,7 @@ export default command({
 	args: [positional("id").required().desc("Automation id")],
 	run: async ({ ctx, args }) => {
 		const id = args.id as string;
-		const result = await ctx.api.automation.get.query({ id });
-		// Prompt is fetched via `superset automations prompt <id>` (it can be
-		// large markdown). Runs are paginated via `superset automations logs <id>`.
-		const { prompt: _prompt, ...automation } = result;
+		const automation = await ctx.api.automation.get.query({ id });
 		return { data: automation };
 	},
 });

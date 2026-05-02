@@ -51,6 +51,9 @@ export default command({
 			"Path to a JSON file with a full ResolvedAgentConfig (overrides --agent)",
 		),
 		host: string().desc("New target host id"),
+		project: string().desc("New v2 project id"),
+		workspace: string().desc("New v2 workspace id"),
+		mcpScope: string().desc("Comma-separated MCP scope strings"),
 		enabled: boolean().desc("Enable or pause the automation"),
 	},
 	run: async ({ ctx, args, options }) => {
@@ -69,6 +72,14 @@ export default command({
 				? resolveDefaultAgentConfig(options.agent)
 				: undefined;
 
+		const mcpScope =
+			options.mcpScope !== undefined
+				? options.mcpScope
+						.split(",")
+						.map((s) => s.trim())
+						.filter(Boolean)
+				: undefined;
+
 		const result = await ctx.api.automation.update.mutate({
 			id,
 			name: options.name,
@@ -77,6 +88,13 @@ export default command({
 			dtstart: options.dtstart ? new Date(options.dtstart) : undefined,
 			agentConfig,
 			...(options.host !== undefined ? { targetHostId: options.host } : {}),
+			...(options.project !== undefined
+				? { v2ProjectId: options.project }
+				: {}),
+			...(options.workspace !== undefined
+				? { v2WorkspaceId: options.workspace }
+				: {}),
+			...(mcpScope !== undefined ? { mcpScope } : {}),
 		});
 
 		return {

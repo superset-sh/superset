@@ -18,7 +18,7 @@ import {
 	parseRrule,
 } from "@superset/shared/rrule";
 import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, getTableColumns, ilike } from "drizzle-orm";
 import { z } from "zod";
 import { env } from "../../env";
 import { protectedProcedure } from "../../trpc";
@@ -34,6 +34,10 @@ import {
 	setAutomationPromptSchema,
 	updateAutomationSchema,
 } from "./schema";
+
+function escapeLikePattern(value: string): string {
+	return value.replace(/[\\%_]/g, (match) => `\\${match}`);
+}
 
 function requirePaidSubscription(subscription: SelectSubscription | null) {
 	if (
@@ -156,36 +160,76 @@ async function getAutomationForUser(
 }
 
 export const automationRouter = {
-	/** List automations scoped to the caller's active organization. */
-	list: protectedProcedure.query(async ({ ctx }) => {
-		const organizationId = await requireActiveOrgMembership(ctx);
+	/**
+	 * List automations scoped to the caller's active organization. The
+	 * `prompt` body is omitted — call `getPrompt` to fetch it for one row.
+	 */
+	list: protectedProcedure
+		.input(
+			z
+				.object({
+					name: z
+						.string()
+						.trim()
+						.min(1)
+						.optional()
+						.describe("Case-insensitive substring match on automation name."),
+				})
+				.optional(),
+		)
+		.query(async ({ ctx, input }) => {
+			const organizationId = await requireActiveOrgMembership(ctx);
 
-		const rows = await db
-			.select()
-			.from(automations)
-			.where(eq(automations.organizationId, organizationId))
-			.orderBy(desc(automations.createdAt));
+			const { prompt: _prompt, ...summaryCols } = getTableColumns(automations);
+			const rows = await db
+				.select(summaryCols)
+				.from(automations)
+				.where(
+					and(
+						eq(automations.organizationId, organizationId),
+						input?.name
+							? ilike(automations.name, `%${escapeLikePattern(input.name)}%`)
+							: undefined,
+					),
+				)
+				.orderBy(desc(automations.createdAt));
 
-		return rows.map((row) => ({
-			...row,
-			scheduleText: safeDescribeRrule(row),
-		}));
-	}),
+			return rows.map((row) => ({
+				...row,
+				scheduleText: safeDescribeRrule(row),
+			}));
+		}),
 
-	/** Get one automation. Use listRuns for run history. */
+	/**
+	 * Get one automation's metadata. The `prompt` body is omitted (it can be
+	 * large markdown) — call `getPrompt` to fetch it. Use `listRuns` for
+	 * run history.
+	 */
 	get: protectedProcedure
 		.input(z.object({ id: z.string().uuid() }))
 		.query(async ({ ctx, input }) => {
 			const organizationId = await requireActiveOrgMembership(ctx);
-			const automation = await getAutomationForUser(
-				ctx.session.user.id,
-				organizationId,
-				input.id,
-			);
-			return {
-				...automation,
-				scheduleText: safeDescribeRrule(automation),
-			};
+
+			const { prompt: _prompt, ...summaryCols } = getTableColumns(automations);
+			const [row] = await db
+				.select(summaryCols)
+				.from(automations)
+				.where(
+					and(
+						eq(automations.id, input.id),
+						eq(automations.organizationId, organizationId),
+					),
+				)
+				.limit(1);
+
+			if (!row || row.ownerUserId !== ctx.session.user.id) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Automation not found",
+				});
+			}
+
+			return { ...row, scheduleText: safeDescribeRrule(row) };
 		}),
 
 	create: protectedProcedure

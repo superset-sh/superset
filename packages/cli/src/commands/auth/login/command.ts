@@ -19,10 +19,39 @@ export default command({
 		p.intro("superset auth login");
 
 		const spinner = process.stdout.isTTY ? p.spinner() : null;
-		spinner?.start("Waiting for browser authorization...");
-		if (!spinner) p.log.info("Waiting for browser authorization…");
+		let spinnerActive = false;
 
-		const result = await login(opts.signal);
+		const result = await login(opts.signal, {
+			onAuthorizationUrl: (url, mode) => {
+				p.log.step("Opening browser to authorize…");
+				p.log.message("If the browser didn't open, visit:");
+				p.log.message(url);
+				if (mode === "loopback") {
+					if (spinner) {
+						spinner.start("Waiting for browser callback…");
+						spinnerActive = true;
+					} else {
+						p.log.info("Waiting for browser callback…");
+					}
+				}
+			},
+			promptForPastedCode: async () => {
+				const pasted = await p.text({
+					message: "Paste the code from the browser",
+					validate: (value) =>
+						value.includes("#") ? undefined : "Paste the entire value",
+				});
+				if (p.isCancel(pasted)) {
+					throw new CLIError("Login cancelled");
+				}
+				return pasted;
+			},
+		});
+
+		if (spinnerActive) {
+			spinner?.stop();
+			spinnerActive = false;
+		}
 
 		config.auth = {
 			accessToken: result.accessToken,
@@ -30,8 +59,7 @@ export default command({
 		};
 		writeConfig(config);
 
-		spinner?.stop("Authorized!");
-		if (!spinner) p.log.success("Authorized!");
+		p.log.success("Authorized!");
 
 		const api = createApiClient({ bearer: result.accessToken });
 

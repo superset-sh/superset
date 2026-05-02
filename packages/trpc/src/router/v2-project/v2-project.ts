@@ -11,10 +11,7 @@ import { TRPCError } from "@trpc/server";
 import { and, eq, isNull, sql } from "drizzle-orm";
 import { z } from "zod";
 import { jwtProcedure, protectedProcedure } from "../../trpc";
-import {
-	requireActiveOrgId,
-	requireActiveOrgMembership,
-} from "../utils/active-org";
+import { requireActiveOrgId } from "../utils/active-org";
 import {
 	requireOrgResourceAccess,
 	requireOrgScopedResource,
@@ -36,23 +33,6 @@ async function getScopedGithubRepository(
 		{
 			code: "BAD_REQUEST",
 			message: "GitHub repository not found in this organization",
-			organizationId,
-		},
-	);
-}
-
-async function getScopedProject(organizationId: string, projectId: string) {
-	return requireOrgScopedResource(
-		() =>
-			dbWs.query.v2Projects.findFirst({
-				columns: {
-					id: true,
-					organizationId: true,
-				},
-				where: eq(v2Projects.id, projectId),
-			}),
-		{
-			message: "Project not found in this organization",
 			organizationId,
 		},
 	);
@@ -185,6 +165,11 @@ export const v2ProjectRouter = {
 		.input(
 			z.object({
 				organizationId: z.string().uuid(),
+				// Optional client-supplied id. Cloud-last create pipelines
+				// generate the UUID locally so they can persist
+				// downstream rows that reference the project before this
+				// commit-point insert runs.
+				id: z.string().uuid().optional(),
 				name: z.string().min(1),
 				slug: z.string().min(1),
 				// Optional — empty-mode and local-only imports have no
@@ -223,16 +208,46 @@ export const v2ProjectRouter = {
 				linkedRepoId = repo?.id ?? null;
 			}
 
-			const [project] = await dbWs
-				.insert(v2Projects)
-				.values({
-					organizationId: input.organizationId,
-					name: input.name,
-					slug: input.slug,
-					repoCloneUrl: canonicalUrl,
-					githubRepositoryId: linkedRepoId,
-				})
-				.returning();
+			let project: typeof v2Projects.$inferSelect | undefined;
+			try {
+				[project] = await dbWs
+					.insert(v2Projects)
+					.values({
+						...(input.id ? { id: input.id } : {}),
+						organizationId: input.organizationId,
+						name: input.name,
+						slug: input.slug,
+						repoCloneUrl: canonicalUrl,
+						githubRepositoryId: linkedRepoId,
+					})
+					.returning();
+			} catch (err) {
+				// Drizzle wraps pg errors in a "Failed query:" envelope; the
+				// real constraint name lives on the underlying cause. Walk
+				// the chain to find it.
+				let cur: unknown = err;
+				let constraint: string | null = null;
+				while (cur && constraint === null) {
+					const c = (cur as { constraint?: unknown }).constraint;
+					if (typeof c === "string") constraint = c;
+					cur = (cur as { cause?: unknown }).cause;
+				}
+				if (constraint === "v2_projects_pkey") {
+					throw new TRPCError({
+						code: "CONFLICT",
+						message: "Project id already in use",
+						cause: err,
+					});
+				}
+				if (constraint === "v2_projects_org_slug_unique") {
+					throw new TRPCError({
+						code: "CONFLICT",
+						message: "Project slug already exists",
+						cause: err,
+					});
+				}
+				throw err;
+			}
 			if (!project) {
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
@@ -398,14 +413,30 @@ export const v2ProjectRouter = {
 			return { ...updated, txid };
 		}),
 
-	delete: protectedProcedure
-		.input(z.object({ id: z.string().uuid() }))
+	delete: jwtProcedure
+		.input(
+			z.object({
+				organizationId: z.string().uuid(),
+				id: z.string().uuid(),
+			}),
+		)
 		.mutation(async ({ ctx, input }) => {
-			const organizationId = await requireActiveOrgMembership(
-				ctx,
-				"No active organization",
-			);
-			const project = await getScopedProject(organizationId, input.id);
+			if (!ctx.organizationIds.includes(input.organizationId)) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "Not a member of this organization",
+				});
+			}
+			const project = await dbWs.query.v2Projects.findFirst({
+				columns: { id: true, organizationId: true },
+				where: eq(v2Projects.id, input.id),
+			});
+			// Idempotent on missing: if it's already gone (or scoped to a
+			// different org), treat as success. Cloud-first delete pipelines
+			// rely on this so retries don't error after a partial success.
+			if (!project || project.organizationId !== input.organizationId) {
+				return { success: true };
+			}
 			await dbWs.delete(v2Projects).where(eq(v2Projects.id, project.id));
 			return { success: true };
 		}),

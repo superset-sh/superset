@@ -8,6 +8,7 @@ export default command({
 		priority: string()
 			.enum("urgent", "high", "medium", "low", "none")
 			.desc("Filter by priority"),
+		assignee: string().desc("Filter by assignee user id"),
 		assigneeMe: boolean().alias("m").desc("Filter to my tasks"),
 		creatorMe: boolean().desc("Filter to tasks I created"),
 		search: string().alias("s").desc("Search by title"),
@@ -24,6 +25,7 @@ export default command({
 		const result = await ctx.api.task.list.query({
 			statusId: options.status ?? undefined,
 			priority: options.priority,
+			assigneeId: options.assignee ?? undefined,
 			assigneeMe: options.assigneeMe ?? undefined,
 			creatorMe: options.creatorMe ?? undefined,
 			search: options.search ?? undefined,

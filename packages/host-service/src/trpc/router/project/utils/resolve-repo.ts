@@ -35,6 +35,66 @@ function validateDirectoryPath(path: string, label: string): void {
 	}
 }
 
+/**
+ * Atomic claim: `mkdir` without `recursive` throws EEXIST when the path is
+ * present, which avoids the TOCTOU window between an `existsSync` check
+ * and the work that follows. If anything fails after this, the caller
+ * created the dir and can rmSync it without risk of nuking someone else's.
+ */
+function claimEmptyTargetDir(targetPath: string): void {
+	try {
+		mkdirSync(targetPath);
+	} catch (err) {
+		if ((err as NodeJS.ErrnoException).code === "EEXIST") {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: `Directory already exists: ${targetPath}`,
+			});
+		}
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: `Could not create target directory: ${
+				err instanceof Error ? err.message : String(err)
+			}`,
+		});
+	}
+}
+
+/**
+ * Translates git's "empty ident"/`user.email`/`user.name` errors from a
+ * failed initial commit into a `PRECONDITION_FAILED` TRPCError with setup
+ * instructions. Falls through to `INTERNAL_SERVER_ERROR` for unknown
+ * failures.
+ */
+function asInitialCommitTrpcError(err: unknown): TRPCError {
+	const message = err instanceof Error ? err.message : String(err);
+	if (
+		message.includes("empty ident") ||
+		message.includes("user.email") ||
+		message.includes("user.name")
+	) {
+		return new TRPCError({
+			code: "PRECONDITION_FAILED",
+			message:
+				'Git user is not configured. Run: git config --global user.name "Your Name" && git config --global user.email "you@example.com"',
+		});
+	}
+	return new TRPCError({
+		code: "INTERNAL_SERVER_ERROR",
+		message: `Failed to create initial commit: ${message}`,
+	});
+}
+
+/** `git init --initial-branch=main` with a fallback for older git versions. */
+async function gitInitMainBranch(targetPath: string): Promise<void> {
+	const git = simpleGit(targetPath);
+	try {
+		await git.init(["--initial-branch=main"]);
+	} catch {
+		await git.init();
+	}
+}
+
 async function revParseGitRoot(path: string): Promise<string> {
 	try {
 		return (await simpleGit(path).revparse(["--show-toplevel"])).trim();
@@ -137,6 +197,93 @@ export async function resolveMatchingSlug(
 		});
 	}
 	return { repoPath: gitRoot, remoteName, parsed };
+}
+
+/**
+ * Empty git repo at `<parentDir>/<dirName>`: atomic mkdir (fails on EEXIST,
+ * so we never blow away someone else's directory), `git init`, initial
+ * empty commit. Cleans up the dir on any post-mkdir failure.
+ *
+ * Catches "empty ident"/`user.email`/`user.name` from git and re-throws as
+ * `PRECONDITION_FAILED` with setup instructions — git's raw message is
+ * actionable to a developer but useless to a user.
+ */
+export async function initEmptyRepo(
+	parentDir: string,
+	dirName: string,
+): Promise<ResolvedRepo> {
+	if (!dirName.trim() || /[/\\]/.test(dirName)) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: `Invalid directory name: "${dirName}"`,
+		});
+	}
+
+	const resolvedParentDir = resolvePath(parentDir);
+	validateDirectoryPath(resolvedParentDir, "Parent directory");
+	const targetPath = join(resolvedParentDir, dirName);
+	claimEmptyTargetDir(targetPath);
+
+	try {
+		await gitInitMainBranch(targetPath);
+		try {
+			await simpleGit(targetPath).raw([
+				"commit",
+				"--allow-empty",
+				"-m",
+				"Initial commit",
+			]);
+		} catch (err) {
+			throw asInitialCommitTrpcError(err);
+		}
+		return { repoPath: targetPath, remoteName: null, parsed: null };
+	} catch (err) {
+		rmSync(targetPath, { recursive: true, force: true });
+		throw err;
+	}
+}
+
+/**
+ * Shallow-clone a template into `<parentDir>/<dirName>`, drop its `.git`,
+ * re-init, and commit the snapshot as the user's first commit. The result
+ * has no remote — the caller is responsible for any first-push provisioning.
+ * Cleans up the dir on any post-mkdir failure.
+ */
+export async function cloneTemplateInto(
+	templateUrl: string,
+	parentDir: string,
+	dirName: string,
+): Promise<ResolvedRepo> {
+	if (!dirName.trim() || /[/\\]/.test(dirName)) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: `Invalid directory name: "${dirName}"`,
+		});
+	}
+
+	const resolvedParentDir = resolvePath(parentDir);
+	validateDirectoryPath(resolvedParentDir, "Parent directory");
+	const targetPath = join(resolvedParentDir, dirName);
+	claimEmptyTargetDir(targetPath);
+
+	try {
+		// --depth=1 since we're throwing away the template's history anyway.
+		await simpleGit().clone(templateUrl, targetPath, ["--depth=1"]);
+		rmSync(join(targetPath, ".git"), { recursive: true, force: true });
+
+		await gitInitMainBranch(targetPath);
+		const git = simpleGit(targetPath);
+		await git.add(".");
+		try {
+			await git.raw(["commit", "-m", "Initial commit"]);
+		} catch (err) {
+			throw asInitialCommitTrpcError(err);
+		}
+		return { repoPath: targetPath, remoteName: null, parsed: null };
+	} catch (err) {
+		rmSync(targetPath, { recursive: true, force: true });
+		throw err;
+	}
 }
 
 /**

@@ -59,6 +59,7 @@ import {
 	AutomationRun,
 	AutomationRunDispatched,
 	Automations,
+	AutomationSummary,
 	AutomationUpdateParams,
 } from "./resources/automations";
 import { Host, HostListResponse, Hosts } from "./resources/hosts";
@@ -1138,6 +1139,7 @@ export declare namespace Superset {
 	export {
 		Automations,
 		Automation,
+		AutomationSummary,
 		AutomationListResponse,
 		AutomationCreateParams,
 		AutomationUpdateParams,
