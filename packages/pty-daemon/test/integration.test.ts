@@ -8,7 +8,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { after, before, test } from "node:test";
 import { Server } from "../src/Server/index.ts";
-import { connect, connectAndHello } from "./helpers/client.ts";
+import { connect, connectAndHello, payloadAsString } from "./helpers/client.ts";
 
 const sockPath = path.join(os.tmpdir(), `pty-daemon-smoke-${process.pid}.sock`);
 let server: Server;
@@ -24,11 +24,11 @@ after(async () => {
 
 test("handshake: hello → hello-ack", async () => {
 	const c = await connect(sockPath);
-	c.send({ type: "hello", protocols: [1] });
+	c.send({ type: "hello", protocols: [2] });
 	const ack = await c.waitFor((m) => m.type === "hello-ack");
 	assert.equal(ack.type, "hello-ack");
 	if (ack.type === "hello-ack") {
-		assert.equal(ack.protocol, 1);
+		assert.equal(ack.protocol, 2);
 		assert.equal(ack.daemonVersion, "0.0.0-test");
 	}
 	await c.close();
@@ -53,7 +53,7 @@ test("open → subscribe → output → exit lifecycle", async () => {
 		(m) =>
 			m.type === "output" &&
 			m.id === "smoke-0" &&
-			Buffer.from(m.data, "base64").toString().includes("daemon-smoke"),
+			payloadAsString(m).includes("daemon-smoke"),
 		3000,
 	);
 	const exit = await c.waitFor(
@@ -73,16 +73,12 @@ test("input is forwarded and echoed via output", async () => {
 	});
 	await c.waitFor((m) => m.type === "open-ok");
 	c.send({ type: "subscribe", id: "smoke-1", replay: false });
-	c.send({
-		type: "input",
-		id: "smoke-1",
-		data: Buffer.from("echo abc-marker\n").toString("base64"),
-	});
+	c.send({ type: "input", id: "smoke-1" }, Buffer.from("echo abc-marker\n"));
 	await c.waitFor(
 		(m) =>
 			m.type === "output" &&
 			m.id === "smoke-1" &&
-			Buffer.from(m.data, "base64").toString().includes("abc-marker"),
+			payloadAsString(m).includes("abc-marker"),
 		3000,
 	);
 	c.send({ type: "close", id: "smoke-1", signal: "SIGTERM" });

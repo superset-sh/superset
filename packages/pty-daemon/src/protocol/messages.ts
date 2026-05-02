@@ -1,7 +1,9 @@
 // Message schemas for the pty-daemon Unix socket protocol.
 //
-// Wire format: 4-byte big-endian length prefix + UTF-8 JSON payload.
-// Binary data (PTY input/output) travels base64-encoded inside the JSON.
+// Wire format (v2): see ./framing.ts. Each frame carries a JSON header
+// and an optional binary payload tail. PTY input/output bytes ride in
+// the payload tail — they are NOT base64-encoded inside the JSON.
+//
 // See ../README.md and ../../../../apps/desktop/plans/20260429-pty-daemon-implementation.md
 
 export interface SessionMeta {
@@ -43,11 +45,13 @@ export interface OpenMessage {
 	meta: SessionMeta;
 }
 
+/**
+ * The bytes to write to the PTY ride in the frame's binary payload tail
+ * (see framing.ts). The message itself just identifies the target session.
+ */
 export interface InputMessage {
 	type: "input";
 	id: string;
-	/** base64-encoded bytes */
-	data: string;
 }
 
 export interface ResizeMessage {
@@ -87,11 +91,13 @@ export interface OpenOkMessage {
 	pid: number;
 }
 
+/**
+ * The PTY's output bytes ride in the frame's binary payload tail (see
+ * framing.ts). The message itself just identifies the source session.
+ */
 export interface OutputMessage {
 	type: "output";
 	id: string;
-	/** base64-encoded bytes */
-	data: string;
 }
 
 export interface ExitMessage {

@@ -40,12 +40,17 @@ function makeFakePty(state: FakePtyState, meta: SpawnOptions["meta"]): Pty {
 	};
 }
 
-function makeConn(): Conn & { sent: ServerMessage[] } {
-	const sent: ServerMessage[] = [];
+interface SentFrame {
+	message: ServerMessage;
+	payload: Uint8Array | null;
+}
+
+function makeConn(): Conn & { sent: SentFrame[] } {
+	const sent: SentFrame[] = [];
 	return {
 		sent,
 		subscriptions: new Set(),
-		send: (m) => sent.push(m),
+		send: (m, payload) => sent.push({ message: m, payload: payload ?? null }),
 	};
 }
 
@@ -114,22 +119,22 @@ describe("handlers", () => {
 			id: "s0",
 			meta: { shell: "/bin/sh", argv: [], cols: 80, rows: 24 },
 		});
-		const result = handleInput(ctx, {
-			type: "input",
-			id: "s0",
-			data: Buffer.from("hello").toString("base64"),
-		});
+		const result = handleInput(
+			ctx,
+			{ type: "input", id: "s0" },
+			Buffer.from("hello"),
+		);
 		expect(result).toBeUndefined();
 		expect(states[0]?.written.map((b) => b.toString())).toEqual(["hello"]);
 	});
 
 	test("input on missing session returns error", () => {
 		const ctx = makeCtx();
-		const result = handleInput(ctx, {
-			type: "input",
-			id: "missing",
-			data: "",
-		});
+		const result = handleInput(
+			ctx,
+			{ type: "input", id: "missing" },
+			Buffer.alloc(0),
+		);
 		expect(result?.type).toBe("error");
 	});
 
@@ -183,10 +188,11 @@ describe("handlers", () => {
 		handleSubscribe(ctx, conn, { type: "subscribe", id: "s0", replay: true });
 		expect(conn.subscriptions.has("s0")).toBe(true);
 		expect(conn.sent).toHaveLength(1);
-		const m = conn.sent[0];
-		expect(m?.type).toBe("output");
-		if (m?.type === "output") {
-			expect(Buffer.from(m.data, "base64").toString()).toBe("prior bytes");
+		const frame = conn.sent[0];
+		expect(frame?.message.type).toBe("output");
+		expect(frame?.payload).toBeTruthy();
+		if (frame?.payload) {
+			expect(Buffer.from(frame.payload).toString()).toBe("prior bytes");
 		}
 	});
 

@@ -150,11 +150,9 @@ export class DaemonClient {
 
 	/** Fire-and-forget; bytes go straight to the PTY. */
 	input(id: string, data: Buffer): void {
-		this.send({
-			type: "input",
-			id,
-			data: data.toString("base64"),
-		});
+		// Bytes ride in the frame's binary tail (see ../../protocol/framing.ts).
+		// No base64 hop on either side.
+		this.send({ type: "input", id }, data);
 	}
 
 	/** Fire-and-forget; daemon validates dims. */
@@ -368,17 +366,17 @@ export class DaemonClient {
 		});
 	}
 
-	private send(msg: unknown): void {
+	private send(msg: unknown, payload?: Uint8Array): void {
 		const sock = this.socket;
 		if (!sock || sock.destroyed) {
 			throw new Error("DaemonClient: socket not connected");
 		}
-		sock.write(encodeFrame(msg));
+		sock.write(encodeFrame(msg, payload));
 	}
 
 	private onData(chunk: Buffer): void {
 		this.decoder.push(chunk);
-		let frames: unknown[];
+		let frames: ReturnType<FrameDecoder["drain"]>;
 		try {
 			frames = this.decoder.drain();
 		} catch (err) {
@@ -390,13 +388,21 @@ export class DaemonClient {
 			this.onClose(err as Error);
 			return;
 		}
-		for (const raw of frames) {
-			const msg = raw as ServerMessage;
+		for (const frame of frames) {
+			const msg = frame.message as ServerMessage;
 			// Route session-keyed events to subscriber callbacks.
 			if (msg.type === "output" && this.callbacks.has(msg.id)) {
-				const buf = Buffer.from(msg.data, "base64");
-				for (const cb of this.callbacks.get(msg.id)?.output ?? []) {
-					cb(buf);
+				if (frame.payload) {
+					// Hand the bytes to subscribers as a Buffer view; same shape
+					// they got pre-binary-tail when we base64-decoded into Buffer.
+					const buf = Buffer.from(
+						frame.payload.buffer,
+						frame.payload.byteOffset,
+						frame.payload.byteLength,
+					);
+					for (const cb of this.callbacks.get(msg.id)?.output ?? []) {
+						cb(buf);
+					}
 				}
 				continue;
 			}

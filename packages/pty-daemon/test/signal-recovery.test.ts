@@ -147,8 +147,8 @@ function connect(): Promise<Client> {
 
 		socket.on("data", (chunk) => {
 			decoder.push(chunk);
-			for (const raw of decoder.drain()) {
-				messages.push(raw as ServerMessage);
+			for (const decoded of decoder.drain()) {
+				messages.push(decoded.message as ServerMessage);
 			}
 		});
 
