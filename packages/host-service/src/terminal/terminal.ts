@@ -161,9 +161,7 @@ const SOCKET_OPEN = 1;
 const SOCKET_CLOSING = 2;
 const SOCKET_CLOSED = 3;
 
-// `Uint8Array<ArrayBuffer>` (not the looser `Uint8Array<ArrayBufferLike>`)
-// matches what hono/ws's WSContext.send accepts. Buffers from node and from
-// our scanners are all ArrayBuffer-backed, so this is the right narrowing.
+// `<ArrayBuffer>` narrowing matches hono/ws's WSContext.send signature.
 type TerminalSocket = {
 	send: (data: string | Uint8Array<ArrayBuffer>) => void;
 	close: (code?: number, reason?: string) => void;
@@ -385,11 +383,8 @@ function bufferOutput(session: TerminalSession, data: Uint8Array) {
 	}
 }
 
-// One cast lives here for `Uint8Array<ArrayBufferLike>` → `Uint8Array<ArrayBuffer>`,
-// the shape hono/ws's WSContext.send is typed against. Buffer (what node-pty
-// hands us) and our scanner outputs are always backed by ArrayBuffer; the
-// `<ArrayBufferLike>` looseness is purely a type-system artifact, not a
-// runtime concern. Concentrating the cast here keeps callers readable.
+// All bytes we send here are ArrayBuffer-backed at runtime (node Buffers,
+// scanner outputs); the cast just narrows the type-system's loose default.
 function asArrayBufferBytes(bytes: Uint8Array): Uint8Array<ArrayBuffer> {
 	return bytes as Uint8Array<ArrayBuffer>;
 }
@@ -740,11 +735,9 @@ export async function createTerminalSessionInternal({
 		{ replay: true },
 		{
 			onOutput(chunk) {
-				// `chunk` is a Buffer (Uint8Array subclass). The whole data
-				// path stays on bytes from here to the renderer's xterm.write
-				// — the bug that motivated this rewrite was a per-chunk
-				// `chunk.toString("utf8")` that mangled multi-byte codepoints
-				// straddling chunk boundaries. Don't reintroduce it.
+				// Bytes flow daemon → host → xterm without UTF-8 decoding;
+				// per-chunk `.toString("utf8")` here would mangle codepoints
+				// straddling chunk boundaries. (See no-encoding-hops.test.ts.)
 				const titleUpdates = scanForTerminalTitle(
 					session.titleScanState,
 					chunk,
@@ -753,7 +746,6 @@ export async function createTerminalSessionInternal({
 					setSessionTitle(session, title);
 				}
 
-				// Scan for OSC 133;A and strip it from output.
 				let bytes: Uint8Array = chunk;
 				if (session.shellReadyState === "pending") {
 					const result = scanForShellReady(session.scanState, chunk);
@@ -764,10 +756,10 @@ export async function createTerminalSessionInternal({
 				}
 				if (bytes.byteLength === 0) return;
 
-				// Side channel: portManager wants strings for URL/port hint
-				// regexes. The per-session StringDecoder buffers partial
-				// codepoints internally so this stays correct across chunk
-				// boundaries — and stays out of the data path.
+				// portManager.checkOutputForHint runs URL/port regexes on
+				// strings; the per-session StringDecoder buffers partial
+				// codepoints across chunks. This is a side branch — the
+				// transport above stays on bytes.
 				const hintText = session.portHintDecoder.write(
 					bytes instanceof Buffer
 						? bytes

@@ -10,7 +10,6 @@
  * Vendored from WezTerm (MIT, Copyright 2018-Present Wez Furlong).
  */
 
-/** OSC 133;A as raw bytes. */
 const OSC_133_A_BYTES = Uint8Array.from(
 	[..."\x1b]133;A"].map((c) => c.charCodeAt(0)),
 );

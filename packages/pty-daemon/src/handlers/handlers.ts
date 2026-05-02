@@ -87,12 +87,11 @@ export function handleInput(
 	if (session.exited)
 		return errorFor(msg.id, `session exited: ${msg.id}`, "EEXITED");
 	if (!payload || payload.byteLength === 0) {
-		// No-op: empty input. Don't bother the PTY or surface an error.
+		// Empty input is a no-op; surfacing an error would force callers
+		// to special-case zero-length writes for no real benefit.
 		return undefined;
 	}
 	try {
-		// Adapt to whatever the Pty implementation expects (node-pty / adopted).
-		// Buffer is a Uint8Array<ArrayBuffer>, which both sides accept.
 		session.pty.write(Buffer.from(payload));
 	} catch (err) {
 		return errorFor(msg.id, (err as Error).message, "EWRITE");

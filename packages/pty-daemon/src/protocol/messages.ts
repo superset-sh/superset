@@ -45,10 +45,7 @@ export interface OpenMessage {
 	meta: SessionMeta;
 }
 
-/**
- * The bytes to write to the PTY ride in the frame's binary payload tail
- * (see framing.ts). The message itself just identifies the target session.
- */
+/** Bytes ride in the frame's binary tail; this message just names the session. */
 export interface InputMessage {
 	type: "input";
 	id: string;
@@ -91,10 +88,7 @@ export interface OpenOkMessage {
 	pid: number;
 }
 
-/**
- * The PTY's output bytes ride in the frame's binary payload tail (see
- * framing.ts). The message itself just identifies the source session.
- */
+/** Bytes ride in the frame's binary tail; this message just names the session. */
 export interface OutputMessage {
 	type: "output";
 	id: string;
