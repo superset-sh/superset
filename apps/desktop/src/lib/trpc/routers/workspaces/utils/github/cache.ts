@@ -9,10 +9,14 @@ import type { RepoContext } from "./types";
 const GITHUB_STATUS_CACHE_TTL_MS = 10_000;
 const GITHUB_PR_COMMENTS_CACHE_TTL_MS = 30_000;
 const GITHUB_REPO_CONTEXT_CACHE_TTL_MS = 300_000;
+const GITHUB_PR_RESOLUTION_CACHE_TTL_MS = 60_000;
+const GITHUB_DEPLOYMENT_URL_CACHE_TTL_MS = 300_000;
 
 const MAX_GITHUB_STATUS_CACHE_ENTRIES = 256;
 const MAX_GITHUB_PR_COMMENTS_CACHE_ENTRIES = 512;
 const MAX_GITHUB_REPO_CONTEXT_CACHE_ENTRIES = 256;
+const MAX_GITHUB_PR_RESOLUTION_CACHE_ENTRIES = 512;
+const MAX_GITHUB_DEPLOYMENT_URL_CACHE_ENTRIES = 512;
 
 const githubStatusResource = createCachedResource<GitHubStatus | null>({
 	ttlMs: GITHUB_STATUS_CACHE_TTL_MS,
@@ -27,6 +31,16 @@ const pullRequestCommentsResource = createCachedResource<PullRequestComment[]>({
 const repoContextResource = createCachedResource<RepoContext | null>({
 	ttlMs: GITHUB_REPO_CONTEXT_CACHE_TTL_MS,
 	maxEntries: MAX_GITHUB_REPO_CONTEXT_CACHE_ENTRIES,
+});
+
+const prResolutionResource = createCachedResource<GitHubStatus["pr"]>({
+	ttlMs: GITHUB_PR_RESOLUTION_CACHE_TTL_MS,
+	maxEntries: MAX_GITHUB_PR_RESOLUTION_CACHE_ENTRIES,
+});
+
+const deploymentUrlResource = createCachedResource<string | undefined>({
+	ttlMs: GITHUB_DEPLOYMENT_URL_CACHE_TTL_MS,
+	maxEntries: MAX_GITHUB_DEPLOYMENT_URL_CACHE_ENTRIES,
 });
 
 export function getCachedGitHubStatus(
@@ -132,10 +146,43 @@ export function readCachedRepoContext(
 	});
 }
 
+export function makePRResolutionCacheKey({
+	worktreePath,
+	branchName,
+	headSha,
+}: {
+	worktreePath: string;
+	branchName: string;
+	headSha?: string;
+}): string {
+	return `${worktreePath}::pr::${branchName}::${headSha ?? "no-sha"}`;
+}
+
+export function makePRResolutionCachePrefix(worktreePath: string): string {
+	return `${worktreePath}::pr::`;
+}
+
+export function readCachedPRResolution(
+	cacheKey: string,
+	load: () => Promise<GitHubStatus["pr"]>,
+	options?: CachedResourceReadOptions<GitHubStatus["pr"]>,
+): Promise<GitHubStatus["pr"]> {
+	return prResolutionResource.read(cacheKey, load, options);
+}
+
+export function readCachedDeploymentUrl(
+	cacheKey: string,
+	load: () => Promise<string | undefined>,
+	options?: CachedResourceReadOptions<string | undefined>,
+): Promise<string | undefined> {
+	return deploymentUrlResource.read(cacheKey, load, options);
+}
+
 export function clearGitHubCachesForWorktree(worktreePath: string): void {
 	githubStatusResource.invalidatePrefix(worktreePath);
 	repoContextResource.invalidate(worktreePath);
 	pullRequestCommentsResource.invalidatePrefix(
 		makePullRequestCommentsCachePrefix(worktreePath),
 	);
+	prResolutionResource.invalidatePrefix(makePRResolutionCachePrefix(worktreePath));
 }

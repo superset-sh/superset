@@ -6,6 +6,7 @@
 import type { CheckItem, GitHubStatus } from "@superset/local-db";
 import { execGitWithShellPath } from "../git-client";
 import { execWithShellEnv } from "../shell-env";
+import { makePRResolutionCacheKey, readCachedPRResolution } from "./cache";
 import { getPullRequestRepoArgs } from "./repo-context";
 import {
 	type GHPRResponse,
@@ -22,26 +23,33 @@ export async function getPRForBranch(
 	repoContext?: RepoContext,
 	headSha?: string,
 ): Promise<GitHubStatus["pr"]> {
-	const byTracking = await getPRByBranchTracking(
+	const cacheKey = makePRResolutionCacheKey({
 		worktreePath,
-		localBranch,
+		branchName: localBranch,
 		headSha,
-	);
-	if (byTracking) {
-		return byTracking;
-	}
+	});
+	return readCachedPRResolution(cacheKey, async () => {
+		const byTracking = await getPRByBranchTracking(
+			worktreePath,
+			localBranch,
+			headSha,
+		);
+		if (byTracking) {
+			return byTracking;
+		}
 
-	const byHeadBranch = await findPRByHeadBranch(
-		worktreePath,
-		localBranch,
-		repoContext,
-		headSha,
-	);
-	if (byHeadBranch) {
-		return byHeadBranch;
-	}
+		const byHeadBranch = await findPRByHeadBranch(
+			worktreePath,
+			localBranch,
+			repoContext,
+			headSha,
+		);
+		if (byHeadBranch) {
+			return byHeadBranch;
+		}
 
-	return findPRByHeadCommit(worktreePath, repoContext, headSha);
+		return findPRByHeadCommit(worktreePath, repoContext, headSha);
+	});
 }
 
 /**
