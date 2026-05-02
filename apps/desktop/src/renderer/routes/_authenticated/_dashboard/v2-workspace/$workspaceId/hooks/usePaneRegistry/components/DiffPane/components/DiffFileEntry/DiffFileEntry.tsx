@@ -200,7 +200,7 @@ function DeferredDiffPlaceholder({
 		: `${(file.additions + file.deletions).toLocaleString()} changed lines`;
 
 	return (
-		<div className="flex flex-col overflow-hidden">
+		<div className="flex flex-col">
 			<DiffFileHeader
 				path={file.path}
 				status={file.status}
