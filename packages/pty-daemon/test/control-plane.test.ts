@@ -13,7 +13,12 @@ import * as path from "node:path";
 import { after, before, describe, test } from "node:test";
 import { encodeFrame } from "../src/protocol/index.ts";
 import { Server } from "../src/Server/index.ts";
-import { connect, connectAndHello, payloadAsString } from "./helpers/client.ts";
+import {
+	accumulatedOutputAsString,
+	connect,
+	connectAndHello,
+	payloadAsString,
+} from "./helpers/client.ts";
 
 const sockPath = path.join(
 	os.tmpdir(),
@@ -265,9 +270,15 @@ describe("I/O patterns", () => {
 		});
 		await c.waitFor((m) => m.type === "open-ok" && m.id === id);
 		c.send({ type: "subscribe", id, replay: true });
+		// 🚀 is 4 bytes; if those bytes ever split across two `output` frames,
+		// per-frame `payloadAsString` would emit U+FFFD even though the wire
+		// is intact. Accumulate across all output frames and decode once so
+		// the test asserts the actual wire-level invariant we care about.
 		await c.waitFor(
 			(m) =>
-				m.type === "output" && m.id === id && payloadAsString(m).includes("🚀"),
+				m.type === "output" &&
+				m.id === id &&
+				accumulatedOutputAsString(c, id).includes("🚀"),
 			3000,
 		);
 		await c.waitFor((m) => m.type === "exit" && m.id === id, 3000);

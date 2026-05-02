@@ -17,11 +17,47 @@ export function payloadOf(message: ServerMessage): Uint8Array | null {
 	return payloads.get(message as object) ?? null;
 }
 
-/** UTF-8 view of an output message's payload, for log/text assertions. */
+/**
+ * UTF-8 view of an output message's payload, for log/text assertions.
+ *
+ * IMPORTANT: this decodes a SINGLE frame's payload — if a multi-byte
+ * codepoint straddles two daemon `output` frames, decoding each frame
+ * individually emits U+FFFD even though the bytes are intact on the wire.
+ * Safe for ASCII markers ("first-marker", "BURST:200", etc.) where the
+ * needle survives per-frame decoding by construction. For multi-byte
+ * markers (emoji, accented text), use {@link accumulatedOutputAsString}.
+ */
 export function payloadAsString(message: ServerMessage): string {
 	const p = payloads.get(message as object);
 	if (!p) return "";
 	return Buffer.from(p).toString("utf8");
+}
+
+/**
+ * Concatenate every output payload for `id` seen so far, then UTF-8 decode
+ * the whole thing once. Use this when the marker you're matching against
+ * is multi-byte and could theoretically split across daemon frames.
+ */
+export function accumulatedOutputAsString(
+	client: { messages: ServerMessage[] },
+	id: string,
+): string {
+	const parts: Uint8Array[] = [];
+	for (const m of client.messages) {
+		if (m.type !== "output" || m.id !== id) continue;
+		const p = payloads.get(m as object);
+		if (p) parts.push(p);
+	}
+	if (parts.length === 0) return "";
+	let total = 0;
+	for (const p of parts) total += p.byteLength;
+	const merged = new Uint8Array(total);
+	let offset = 0;
+	for (const p of parts) {
+		merged.set(p, offset);
+		offset += p.byteLength;
+	}
+	return Buffer.from(merged).toString("utf8");
 }
 
 export interface DaemonClient {
