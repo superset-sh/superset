@@ -404,9 +404,8 @@ describe("DaemonSupervisor.update concurrency guard", () => {
 		// resolve on our schedule.
 		const deferred = createDeferred<{ ok: true; successorPid: number }>();
 		const runUpdateMock = mock(() => deferred.promise);
-		(
-			sup as unknown as { runUpdate: typeof runUpdateMock }
-		).runUpdate = runUpdateMock;
+		(sup as unknown as { runUpdate: typeof runUpdateMock }).runUpdate =
+			runUpdateMock;
 
 		const a = sup.update("org-coalesce");
 		const b = sup.update("org-coalesce");
@@ -421,16 +420,16 @@ describe("DaemonSupervisor.update concurrency guard", () => {
 	});
 
 	test("a fresh update() after the first resolves runs again (not stuck cached)", async () => {
-		const calls: ReturnType<typeof createDeferred<{ ok: true; successorPid: number }>>[] =
-			[];
+		const calls: ReturnType<
+			typeof createDeferred<{ ok: true; successorPid: number }>
+		>[] = [];
 		const runUpdateMock = mock(() => {
 			const d = createDeferred<{ ok: true; successorPid: number }>();
 			calls.push(d);
 			return d.promise;
 		});
-		(
-			sup as unknown as { runUpdate: typeof runUpdateMock }
-		).runUpdate = runUpdateMock;
+		(sup as unknown as { runUpdate: typeof runUpdateMock }).runUpdate =
+			runUpdateMock;
 
 		const first = sup.update("org-recycle");
 		calls[0]?.resolve({ ok: true, successorPid: 1 });
@@ -445,12 +444,12 @@ describe("DaemonSupervisor.update concurrency guard", () => {
 	});
 
 	test("guard is per-organization", async () => {
-		const runUpdateMock = mock(
-			async () => ({ ok: true as const, successorPid: 99 }),
-		);
-		(
-			sup as unknown as { runUpdate: typeof runUpdateMock }
-		).runUpdate = runUpdateMock;
+		const runUpdateMock = mock(async () => ({
+			ok: true as const,
+			successorPid: 99,
+		}));
+		(sup as unknown as { runUpdate: typeof runUpdateMock }).runUpdate =
+			runUpdateMock;
 
 		const a = sup.update("org-A");
 		const b = sup.update("org-B");

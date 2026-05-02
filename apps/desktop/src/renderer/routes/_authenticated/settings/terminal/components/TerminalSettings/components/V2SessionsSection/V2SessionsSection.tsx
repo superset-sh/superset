@@ -69,9 +69,9 @@ function V2SessionsSectionInner() {
 	// Phase 2: when handoff fails, the failure dialog asks whether to
 	// fall back to force-restart (which closes sessions). The reason
 	// string from supervisor.update goes here so the user knows why.
-	const [updateFailureReason, setUpdateFailureReason] = useState<
-		string | null
-	>(null);
+	const [updateFailureReason, setUpdateFailureReason] = useState<string | null>(
+		null,
+	);
 
 	const updateStatusQuery =
 		workspaceTrpc.terminal.daemon.getUpdateStatus.useQuery(undefined, {
@@ -366,8 +366,8 @@ function V2SessionsSectionInner() {
 										Force restart will load{" "}
 										<span className="font-mono">{versions.expected}</span>{" "}
 										(currently running{" "}
-										<span className="font-mono">{versions.running}</span>).
-										To upgrade <em>without</em> closing sessions, click{" "}
+										<span className="font-mono">{versions.running}</span>). To
+										upgrade <em>without</em> closing sessions, click{" "}
 										<span className="font-medium">Update daemon</span> instead.
 									</span>
 								) : null}

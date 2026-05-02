@@ -138,9 +138,7 @@ export interface ErrorMessage {
  */
 export interface UpgradePreparedMessage {
 	type: "upgrade-prepared";
-	result:
-		| { ok: true; successorPid: number }
-		| { ok: false; reason: string };
+	result: { ok: true; successorPid: number } | { ok: false; reason: string };
 }
 
 // ---------- Unions ----------

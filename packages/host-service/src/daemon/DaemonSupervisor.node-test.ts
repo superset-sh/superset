@@ -303,9 +303,7 @@ describe("DaemonSupervisor.update (Phase 2 fd-handoff)", () => {
 		const predecessorPid = a.pid;
 
 		// Open a session that will sleep long enough to outlive the handoff.
-		const { DaemonClient } = await import(
-			"../terminal/DaemonClient/index.ts"
-		);
+		const { DaemonClient } = await import("../terminal/DaemonClient/index.ts");
 		const client = new DaemonClient({ socketPath: a.socketPath });
 		await client.connect();
 		const opened = await client.open("upd-0", {
@@ -342,7 +340,9 @@ describe("DaemonSupervisor.update (Phase 2 fd-handoff)", () => {
 
 		// Reconnect and confirm the session survived with its original pid.
 		const successorInst = (
-			sup as unknown as { instances: Map<string, { pid: number; socketPath: string }> }
+			sup as unknown as {
+				instances: Map<string, { pid: number; socketPath: string }>;
+			}
 		).instances.get(orgId);
 		assert.ok(successorInst, "supervisor should have a successor instance");
 		assert.equal(successorInst.pid, result.successorPid);
@@ -351,7 +351,10 @@ describe("DaemonSupervisor.update (Phase 2 fd-handoff)", () => {
 		await client2.connect();
 		const sessions = await client2.list();
 		const survived = sessions.find((s) => s.id === "upd-0");
-		assert.ok(survived, `expected upd-0 in survivor list: ${JSON.stringify(sessions)}`);
+		assert.ok(
+			survived,
+			`expected upd-0 in survivor list: ${JSON.stringify(sessions)}`,
+		);
 		assert.equal(survived.alive, true, "session should still be alive");
 		assert.equal(
 			survived.pid,
@@ -397,7 +400,10 @@ describe("DaemonSupervisor.update (Phase 2 fd-handoff)", () => {
 		assert.equal(ready, true);
 
 		try {
-			fs.mkdirSync(ptyDaemonManifestDir(orgId), { recursive: true, mode: 0o700 });
+			fs.mkdirSync(ptyDaemonManifestDir(orgId), {
+				recursive: true,
+				mode: 0o700,
+			});
 			writePtyDaemonManifest({
 				pid: child.pid as number,
 				socketPath,
