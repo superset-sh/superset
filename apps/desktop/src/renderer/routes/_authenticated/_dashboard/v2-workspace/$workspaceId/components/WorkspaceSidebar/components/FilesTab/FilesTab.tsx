@@ -1,6 +1,4 @@
 import type {
-	FileTreeDirectoryHandle,
-	FileTreeItemHandle,
 	FileTreeRenameEvent,
 	ContextMenuItem as PierreContextMenuItem,
 	ContextMenuOpenContext as PierreContextMenuOpenContext,
@@ -12,18 +10,9 @@ import {
 import type { AppRouter } from "@superset/host-service";
 import { alert } from "@superset/ui/atoms/Alert";
 import { Button } from "@superset/ui/button";
-import {
-	DropdownMenu,
-	DropdownMenuContent,
-	DropdownMenuItem,
-	DropdownMenuSeparator,
-	DropdownMenuShortcut,
-	DropdownMenuTrigger,
-} from "@superset/ui/dropdown-menu";
 import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { workspaceTrpc } from "@superset/workspace-client";
-import type { FsWatchEvent } from "@superset/workspace-fs/client";
 import type { inferRouterOutputs } from "@trpc/server";
 import {
 	FilePlus,
@@ -32,23 +21,28 @@ import {
 	Loader2,
 	RefreshCw,
 } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import type { FileStatus } from "renderer/hooks/host-service/useGitStatusMap";
 import { useGitStatusMap } from "renderer/hooks/host-service/useGitStatusMap";
-import { useWorkspaceEvent } from "renderer/hooks/host-service/useWorkspaceEvent";
-import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
-import { electronTrpcClient } from "renderer/lib/trpc-client";
 import { useOpenInExternalEditor } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/useOpenInExternalEditor";
-import {
-	MOD_CLICK_LABEL,
-	SHIFT_CLICK_LABEL,
-} from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/utils/clickModifierLabels";
 import {
 	OVERSCAN_COUNT,
 	ROW_HEIGHT,
 	TREE_INDENT,
 } from "renderer/screens/main/components/WorkspaceView/RightSidebar/FilesView/constants";
+import { FileMenuItems } from "./components/FileMenuItems";
+import { FolderMenuItems } from "./components/FolderMenuItems";
+import { RowContextMenu } from "./components/RowContextMenu";
+import { useFilesTabBridge } from "./hooks/useFilesTabBridge";
 import { loadFallthroughIcons } from "./utils/loadFallthroughIcons";
+import {
+	asDirectoryHandle,
+	basename,
+	parentRel,
+	stripTrailingSlash,
+	toAbs,
+	toRel,
+} from "./utils/treePath";
 
 // Map Pierre's --trees-* CSS variables to our shadcn tokens so the file tree
 // inherits app theme (light/dark) automatically. Pierre falls back through
@@ -124,48 +118,6 @@ const PIERRE_GIT_STATUS: Record<
 	untracked: "untracked",
 };
 
-function toPosix(p: string): string {
-	return p.replace(/\\/g, "/");
-}
-
-function stripTrailingSlash(p: string): string {
-	return p.endsWith("/") ? p.slice(0, -1) : p;
-}
-
-function toRel(rootPath: string, abs: string): string {
-	const a = toPosix(abs);
-	const r = toPosix(rootPath);
-	if (a === r) return "";
-	if (a.startsWith(`${r}/`)) return a.slice(r.length + 1);
-	return a;
-}
-
-function toAbs(rootPath: string, rel: string): string {
-	const trimmed = stripTrailingSlash(rel);
-	return trimmed ? `${rootPath}/${trimmed}` : rootPath;
-}
-
-function parentRel(rel: string): string {
-	const trimmed = stripTrailingSlash(rel);
-	const i = trimmed.lastIndexOf("/");
-	return i < 0 ? "" : trimmed.slice(0, i);
-}
-
-function basename(rel: string): string {
-	const trimmed = stripTrailingSlash(rel);
-	const i = trimmed.lastIndexOf("/");
-	return i < 0 ? trimmed : trimmed.slice(i + 1);
-}
-
-// Pierre's `isDirectory()` is typed as `() => true | false` (literal returns
-// per branch) but isn't a TS predicate, so the union doesn't narrow. This
-// helper turns it into one.
-function asDirectoryHandle(
-	handle: FileTreeItemHandle | null,
-): FileTreeDirectoryHandle | null {
-	return handle?.isDirectory() ? (handle as FileTreeDirectoryHandle) : null;
-}
-
 export function FilesTab({
 	onSelectFile,
 	selectedFilePath,
@@ -173,8 +125,6 @@ export function FilesTab({
 	workspaceId,
 	gitStatus,
 }: FilesTabProps) {
-	const [isRefreshing, setIsRefreshing] = useState(false);
-	const utils = workspaceTrpc.useUtils();
 	const workspaceQuery = workspaceTrpc.workspace.get.useQuery({
 		id: workspaceId,
 	});
@@ -195,16 +145,6 @@ export function FilesTab({
 		buildPierreGitStatus(fileStatusByPath, ignoredPaths),
 	);
 
-	// Track placeholder paths created via the "New File/Folder" flow so the
-	// rename event handler can distinguish create-from-placeholder from a
-	// genuine rename.
-	const pendingCreatesRef = useRef(new Map<string, "file" | "folder">());
-	// Track the kind of every path Pierre knows about. Pierre's path strings
-	// already encode kind via trailing-slash, but we track separately so we
-	// can map back to FsEntryKind without re-parsing.
-	const knownPathsRef = useRef(new Set<string>());
-	const loadedDirsRef = useRef(new Set<string>());
-	const loadingDirsRef = useRef(new Set<string>());
 	// Selection feedback loop guard: when the parent re-renders after we
 	// fired onSelectFile, syncing selectedFilePath back into the model would
 	// retrigger our onSelectionChange. Skip the next selection echo.
@@ -242,65 +182,7 @@ export function FilesTab({
 		},
 	});
 
-	const fetchDir = useCallback(
-		async (relDir: string): Promise<void> => {
-			if (!rootPath || !workspaceId) return;
-			if (loadingDirsRef.current.has(relDir)) return;
-			if (loadedDirsRef.current.has(relDir)) return;
-			loadingDirsRef.current.add(relDir);
-			try {
-				const result = await utils.filesystem.listDirectory.fetch({
-					workspaceId,
-					absolutePath: toAbs(rootPath, relDir),
-				});
-				const ops: { type: "add"; path: string }[] = [];
-				for (const entry of result.entries) {
-					const rel = toRel(rootPath, entry.absolutePath);
-					const treePath = entry.kind === "directory" ? `${rel}/` : rel;
-					if (knownPathsRef.current.has(treePath)) continue;
-					knownPathsRef.current.add(treePath);
-					ops.push({ type: "add", path: treePath });
-				}
-				if (ops.length > 0) model.batch(ops);
-				loadedDirsRef.current.add(relDir);
-			} catch (error) {
-				console.error("[v2 FilesTab] listDirectory failed", {
-					relDir,
-					error,
-				});
-			} finally {
-				loadingDirsRef.current.delete(relDir);
-			}
-		},
-		[model, rootPath, workspaceId, utils.filesystem.listDirectory],
-	);
-
-	// Reset + initial load whenever the workspace root changes.
-	useEffect(() => {
-		if (!rootPath || !workspaceId) return;
-		knownPathsRef.current = new Set();
-		loadedDirsRef.current = new Set();
-		loadingDirsRef.current = new Set();
-		pendingCreatesRef.current = new Map();
-		model.resetPaths([]);
-		void fetchDir("");
-	}, [model, rootPath, workspaceId, fetchDir]);
-
-	// Bridge Pierre's expansion state to our lazy backend: on every model
-	// change, scan known directory paths and fetch any newly-expanded ones.
-	useEffect(() => {
-		return model.subscribe(() => {
-			for (const path of knownPathsRef.current) {
-				if (!path.endsWith("/")) continue;
-				const dirRel = stripTrailingSlash(path);
-				if (loadedDirsRef.current.has(dirRel)) continue;
-				const handle = asDirectoryHandle(model.getItem(path));
-				if (handle?.isExpanded()) {
-					void fetchDir(dirRel);
-				}
-			}
-		});
-	}, [model, fetchDir]);
+	const bridge = useFilesTabBridge({ model, workspaceId, rootPath });
 
 	// Push live git status updates into Pierre.
 	useEffect(() => {
@@ -339,111 +221,9 @@ export function FilesTab({
 			return;
 		}
 		const rel = toRel(rootPath, selectedFilePath);
-		if (!knownPathsRef.current.has(rel)) return;
+		if (!bridge.knownPaths.has(rel)) return;
 		model.focusPath(rel);
-	}, [model, selectedFilePath, rootPath]);
-
-	// Apply incremental fs events to Pierre's tree.
-	useWorkspaceEvent(
-		"fs:events",
-		workspaceId,
-		(event: FsWatchEvent) => {
-			if (!rootPath) return;
-			if (event.kind === "overflow") {
-				void doRefresh();
-				return;
-			}
-
-			const rel = toRel(rootPath, event.absolutePath);
-			if (rel === event.absolutePath && event.absolutePath !== rootPath) {
-				return; // outside workspace
-			}
-
-			if (event.kind === "rename" && event.oldAbsolutePath) {
-				const oldRel = toRel(rootPath, event.oldAbsolutePath);
-				const oldKey = matchKnown(knownPathsRef.current, oldRel);
-				const isFolder = event.isDirectory ?? oldKey?.endsWith("/") ?? false;
-				const newKey = isFolder ? `${rel}/` : rel;
-				if (oldKey && knownPathsRef.current.has(oldKey)) {
-					try {
-						model.move(oldKey, newKey);
-						knownPathsRef.current.delete(oldKey);
-						knownPathsRef.current.add(newKey);
-						if (isFolder) {
-							loadedDirsRef.current.delete(stripTrailingSlash(oldKey));
-						}
-					} catch {
-						// Fall back to remove + add if Pierre rejects the move.
-						removeKnownPath(model, knownPathsRef.current, oldKey);
-						addKnownPath(model, knownPathsRef.current, newKey);
-					}
-				} else {
-					addKnownPath(model, knownPathsRef.current, newKey);
-				}
-				return;
-			}
-
-			if (event.kind === "delete") {
-				const isFolder = event.isDirectory ?? false;
-				const key = isFolder ? `${rel}/` : rel;
-				const matched = matchKnown(knownPathsRef.current, rel) ?? key;
-				removeKnownPath(model, knownPathsRef.current, matched);
-				if (isFolder) {
-					loadedDirsRef.current.delete(stripTrailingSlash(matched));
-				}
-				return;
-			}
-
-			if (event.kind === "create") {
-				const isFolder = event.isDirectory ?? false;
-				const key = isFolder ? `${rel}/` : rel;
-				addKnownPath(model, knownPathsRef.current, key);
-				return;
-			}
-
-			// "update" doesn't change tree shape.
-		},
-		Boolean(workspaceId && rootPath),
-	);
-
-	const doRefresh = useCallback(async (): Promise<void> => {
-		if (!rootPath || !workspaceId) return;
-		setIsRefreshing(true);
-		try {
-			// Re-fetch root + every directory we'd previously loaded so paths
-			// stay current after an external bulk change.
-			const dirsToReload = Array.from(loadedDirsRef.current).sort(
-				(a, b) => a.split("/").length - b.split("/").length,
-			);
-			loadedDirsRef.current = new Set();
-
-			// Collect fresh listings into a flat path set, then resetPaths to
-			// avoid drift between known-paths and what Pierre is showing.
-			const freshPaths = new Set<string>();
-			for (const dir of dirsToReload) {
-				try {
-					const result = await utils.filesystem.listDirectory.fetch(
-						{ workspaceId, absolutePath: toAbs(rootPath, dir) },
-						{ staleTime: 0 },
-					);
-					for (const entry of result.entries) {
-						const rel = toRel(rootPath, entry.absolutePath);
-						freshPaths.add(entry.kind === "directory" ? `${rel}/` : rel);
-					}
-					loadedDirsRef.current.add(dir);
-				} catch (error) {
-					console.error("[v2 FilesTab] refresh listDirectory failed", {
-						dir,
-						error,
-					});
-				}
-			}
-			knownPathsRef.current = freshPaths;
-			model.resetPaths(Array.from(freshPaths));
-		} finally {
-			setIsRefreshing(false);
-		}
-	}, [model, rootPath, workspaceId, utils.filesystem.listDirectory]);
+	}, [model, selectedFilePath, rootPath, bridge.knownPaths]);
 
 	// Reveal a path: ensure all ancestor directories are expanded so the row
 	// is visible, then scroll it into view.
@@ -458,14 +238,14 @@ export function FilesTab({
 			for (let i = 0; i < segments.length - 1; i++) {
 				acc = acc ? `${acc}/${segments[i]}` : segments[i];
 				const dirKey = `${acc}/`;
-				if (!knownPathsRef.current.has(dirKey)) {
+				if (!bridge.knownPaths.has(dirKey)) {
 					// Ancestor not loaded yet — load its parent then expand.
-					await fetchDir(parentRel(acc));
+					await bridge.fetchDir(parentRel(acc));
 				}
 				const handle = asDirectoryHandle(model.getItem(dirKey));
 				if (handle && !handle.isExpanded()) {
 					handle.expand();
-					await fetchDir(acc);
+					await bridge.fetchDir(acc);
 				}
 			}
 			if (isDirectory) {
@@ -473,7 +253,7 @@ export function FilesTab({
 				const handle = asDirectoryHandle(model.getItem(dirKey));
 				if (handle && !handle.isExpanded()) {
 					handle.expand();
-					await fetchDir(rel);
+					await bridge.fetchDir(rel);
 				}
 			}
 
@@ -481,7 +261,7 @@ export function FilesTab({
 				model.focusPath(rel);
 			});
 		},
-		[model, rootPath, fetchDir],
+		[model, rootPath, bridge.fetchDir, bridge.knownPaths],
 	);
 
 	useEffect(() => {
@@ -494,14 +274,14 @@ export function FilesTab({
 			if (!rootPath) return;
 			const parentAbsPath =
 				parentAbs ??
-				deriveCreationParent(selectedFilePath, knownPathsRef.current, rootPath);
+				deriveCreationParent(selectedFilePath, bridge.knownPaths, rootPath);
 			const parentRelPath = toRel(rootPath, parentAbsPath);
 			const parentDirKey = parentRelPath ? `${parentRelPath}/` : "";
 
 			// Make sure Pierre has the parent's children loaded + expanded so
 			// the placeholder row appears in the right place.
 			if (parentRelPath) {
-				await fetchDir(parentRelPath);
+				await bridge.fetchDir(parentRelPath);
 				const handle = asDirectoryHandle(model.getItem(parentDirKey));
 				if (handle && !handle.isExpanded()) {
 					handle.expand();
@@ -511,34 +291,34 @@ export function FilesTab({
 			const placeholderName = pickPlaceholderName(
 				parentRelPath,
 				mode,
-				knownPathsRef.current,
+				bridge.knownPaths,
 			);
 			const placeholderPath =
 				(parentRelPath ? `${parentRelPath}/` : "") +
 				placeholderName +
 				(mode === "folder" ? "/" : "");
 
-			pendingCreatesRef.current.set(placeholderPath, mode);
-			knownPathsRef.current.add(placeholderPath);
+			bridge.pendingCreates.set(placeholderPath, mode);
+			bridge.knownPaths.add(placeholderPath);
 			model.add(placeholderPath);
 			// removeIfCanceled cleans up the placeholder if user hits Esc.
 			model.startRenaming(placeholderPath, { removeIfCanceled: true });
 		},
-		[model, rootPath, selectedFilePath, fetchDir],
+		[model, rootPath, selectedFilePath, bridge],
 	);
 
 	const handleRename = useCallback(
 		async (event: FileTreeRenameEvent): Promise<void> => {
 			if (!rootPath) return;
 			const { sourcePath, destinationPath, isFolder } = event;
-			const pendingMode = pendingCreatesRef.current.get(sourcePath);
+			const pendingMode = bridge.pendingCreates.get(sourcePath);
 
 			if (pendingMode) {
-				pendingCreatesRef.current.delete(sourcePath);
+				bridge.pendingCreates.delete(sourcePath);
 				// Pierre has already moved placeholder → destinationPath in
 				// its tree; sync our knownPaths so we don't double-account.
-				knownPathsRef.current.delete(sourcePath);
-				knownPathsRef.current.add(destinationPath);
+				bridge.knownPaths.delete(sourcePath);
+				bridge.knownPaths.add(destinationPath);
 				const absPath = toAbs(rootPath, destinationPath);
 				try {
 					if (pendingMode === "folder") {
@@ -561,7 +341,12 @@ export function FilesTab({
 						onSelectFile(absPath);
 					}
 				} catch (error) {
-					removeKnownPath(model, knownPathsRef.current, destinationPath);
+					bridge.knownPaths.delete(destinationPath);
+					try {
+						model.remove(destinationPath, { recursive: true });
+					} catch {
+						// ignore
+					}
 					toast.error("Failed to create item", {
 						description: error instanceof Error ? error.message : undefined,
 					});
@@ -570,10 +355,10 @@ export function FilesTab({
 			}
 
 			// Genuine rename.
-			knownPathsRef.current.delete(sourcePath);
-			knownPathsRef.current.add(destinationPath);
+			bridge.knownPaths.delete(sourcePath);
+			bridge.knownPaths.add(destinationPath);
 			if (isFolder) {
-				loadedDirsRef.current.delete(stripTrailingSlash(sourcePath));
+				bridge.loadedDirs.delete(stripTrailingSlash(sourcePath));
 			}
 			try {
 				await movePath.mutateAsync({
@@ -585,8 +370,8 @@ export function FilesTab({
 				// Revert Pierre's optimistic rename.
 				try {
 					model.move(destinationPath, sourcePath);
-					knownPathsRef.current.delete(destinationPath);
-					knownPathsRef.current.add(sourcePath);
+					bridge.knownPaths.delete(destinationPath);
+					bridge.knownPaths.add(sourcePath);
 				} catch {
 					// ignore — fs:events will reconcile
 				}
@@ -603,6 +388,7 @@ export function FilesTab({
 			writeFile,
 			movePath,
 			onSelectFile,
+			bridge,
 		],
 	);
 
@@ -717,14 +503,14 @@ export function FilesTab({
 	);
 
 	const collapseAll = useCallback(() => {
-		for (const path of knownPathsRef.current) {
+		for (const path of bridge.knownPaths) {
 			if (!path.endsWith("/")) continue;
 			const handle = asDirectoryHandle(model.getItem(path));
 			if (handle?.isExpanded()) {
 				handle.collapse();
 			}
 		}
-	}, [model]);
+	}, [model, bridge.knownPaths]);
 
 	if (!rootPath) {
 		return (
@@ -767,8 +553,8 @@ export function FilesTab({
 							<HeaderButton
 								icon={RefreshCw}
 								label="Refresh"
-								loading={isRefreshing}
-								onClick={() => void doRefresh()}
+								loading={bridge.isRefreshing}
+								onClick={() => void bridge.doRefresh()}
 							/>
 							<HeaderButton
 								icon={FoldVertical}
@@ -815,170 +601,6 @@ function HeaderButton({
 			</TooltipTrigger>
 			<TooltipContent side="bottom">{label}</TooltipContent>
 		</Tooltip>
-	);
-}
-
-// Pierre invokes our renderContextMenu callback with the row's anchor rect on
-// right-click. We mount a controlled DropdownMenu whose invisible trigger sits
-// at that rect so radix handles positioning, outside-click, and focus escape.
-// The data-file-tree-context-menu-root attr tells Pierre that portaled clicks
-// inside the menu are not "outside" clicks.
-function RowContextMenu({
-	anchorRect,
-	onClose,
-	children,
-	...attrs
-}: {
-	anchorRect: PierreContextMenuOpenContext["anchorRect"];
-	onClose: () => void;
-	children: React.ReactNode;
-} & Record<string, unknown>) {
-	return (
-		<DropdownMenu open onOpenChange={(open) => !open && onClose()}>
-			<DropdownMenuTrigger asChild>
-				<span
-					aria-hidden
-					style={{
-						position: "fixed",
-						left: anchorRect.left,
-						top: anchorRect.top,
-						width: anchorRect.width,
-						height: anchorRect.height,
-						pointerEvents: "none",
-					}}
-				/>
-			</DropdownMenuTrigger>
-			<DropdownMenuContent {...attrs} className="w-56" align="start">
-				{children}
-			</DropdownMenuContent>
-		</DropdownMenu>
-	);
-}
-
-interface FileMenuItemsProps {
-	absolutePath: string;
-	relativePath: string;
-	onOpen: () => void;
-	onOpenInNewTab: () => void;
-	onOpenInEditor: () => void;
-	onRename: () => void;
-	onDelete: () => void;
-}
-
-function FileMenuItems({
-	absolutePath,
-	relativePath,
-	onOpen,
-	onOpenInNewTab,
-	onOpenInEditor,
-	onRename,
-	onDelete,
-}: FileMenuItemsProps) {
-	return (
-		<>
-			<DropdownMenuItem onSelect={onOpen}>Open</DropdownMenuItem>
-			<DropdownMenuItem onSelect={onOpenInNewTab}>
-				Open in New Tab
-				<DropdownMenuShortcut>{SHIFT_CLICK_LABEL}</DropdownMenuShortcut>
-			</DropdownMenuItem>
-			<DropdownMenuItem onSelect={onOpenInEditor}>
-				Open in Editor
-				<DropdownMenuShortcut>{MOD_CLICK_LABEL}</DropdownMenuShortcut>
-			</DropdownMenuItem>
-			<DropdownMenuSeparator />
-			<PathActions absolutePath={absolutePath} relativePath={relativePath} />
-			<DropdownMenuSeparator />
-			<DropdownMenuItem onSelect={() => setTimeout(onRename, 0)}>
-				Rename...
-			</DropdownMenuItem>
-			<DropdownMenuItem variant="destructive" onSelect={onDelete}>
-				Delete
-			</DropdownMenuItem>
-		</>
-	);
-}
-
-interface FolderMenuItemsProps {
-	absolutePath: string;
-	relativePath: string;
-	onNewFile: () => void;
-	onNewFolder: () => void;
-	onRename: () => void;
-	onDelete: () => void;
-}
-
-function FolderMenuItems({
-	absolutePath,
-	relativePath,
-	onNewFile,
-	onNewFolder,
-	onRename,
-	onDelete,
-}: FolderMenuItemsProps) {
-	return (
-		<>
-			<DropdownMenuItem onSelect={() => setTimeout(onNewFile, 0)}>
-				New File...
-			</DropdownMenuItem>
-			<DropdownMenuItem onSelect={() => setTimeout(onNewFolder, 0)}>
-				New Folder...
-			</DropdownMenuItem>
-			<DropdownMenuSeparator />
-			<PathActions absolutePath={absolutePath} relativePath={relativePath} />
-			<DropdownMenuSeparator />
-			<DropdownMenuItem onSelect={() => setTimeout(onRename, 0)}>
-				Rename...
-			</DropdownMenuItem>
-			<DropdownMenuItem variant="destructive" onSelect={onDelete}>
-				Delete
-			</DropdownMenuItem>
-		</>
-	);
-}
-
-function PathActions({
-	absolutePath,
-	relativePath,
-}: {
-	absolutePath: string;
-	relativePath: string;
-}) {
-	const { copyToClipboard } = useCopyToClipboard();
-	const handleCopy = (path: string, successMessage: string) => {
-		toast.promise(copyToClipboard(path), {
-			success: successMessage,
-			error: (err: unknown) =>
-				`Failed to copy path: ${err instanceof Error ? err.message : "Unknown error"}`,
-		});
-	};
-	const handleRevealInFinder = async () => {
-		try {
-			await electronTrpcClient.external.openInFinder.mutate(absolutePath);
-		} catch (error) {
-			toast.error(
-				`Failed to reveal in Finder: ${error instanceof Error ? error.message : "Unknown error"}`,
-			);
-		}
-	};
-	return (
-		<>
-			<DropdownMenuItem onSelect={handleRevealInFinder}>
-				Reveal in Finder
-			</DropdownMenuItem>
-			<DropdownMenuSeparator />
-			<DropdownMenuItem
-				onSelect={() => handleCopy(absolutePath, "Path copied")}
-			>
-				Copy Path
-			</DropdownMenuItem>
-			{relativePath && (
-				<DropdownMenuItem
-					onSelect={() => handleCopy(relativePath, "Relative path copied")}
-				>
-					Copy Relative Path
-				</DropdownMenuItem>
-			)}
-		</>
 	);
 }
 
@@ -1044,39 +666,4 @@ function pickPlaceholderName(
 		if (!knownPaths.has(`${prefix}${name}${suffix}`)) return name;
 	}
 	return `${base}-${Date.now()}`;
-}
-
-function matchKnown(known: Set<string>, rel: string): string | undefined {
-	if (known.has(rel)) return rel;
-	const dirKey = `${rel}/`;
-	if (known.has(dirKey)) return dirKey;
-	return undefined;
-}
-
-function addKnownPath(
-	model: { add: (p: string) => void },
-	known: Set<string>,
-	path: string,
-): void {
-	if (known.has(path)) return;
-	known.add(path);
-	try {
-		model.add(path);
-	} catch {
-		// Pierre may reject duplicates; ignore.
-	}
-}
-
-function removeKnownPath(
-	model: { remove: (p: string, options?: { recursive?: boolean }) => void },
-	known: Set<string>,
-	path: string,
-): void {
-	if (!known.has(path)) return;
-	known.delete(path);
-	try {
-		model.remove(path, { recursive: true });
-	} catch {
-		// ignore
-	}
 }
