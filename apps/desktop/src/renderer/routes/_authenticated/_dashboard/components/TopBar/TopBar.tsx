@@ -2,19 +2,17 @@ import { useMatchRoute, useParams } from "@tanstack/react-router";
 import { HiOutlineWifi } from "react-icons/hi2";
 import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import { useOnlineStatus } from "renderer/hooks/useOnlineStatus";
-import { useV2UserPreferences } from "renderer/hooks/useV2UserPreferences";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { getWorkspaceDisplayName } from "renderer/lib/getWorkspaceDisplayName";
 import { useWorkspaceSidebarStore } from "renderer/stores/workspace-sidebar-state";
-import { NavigationControls } from "./components/NavigationControls";
+import { NavigationControls } from "../NavigationControls";
+import { SidebarToggle } from "../SidebarToggle";
 import { OpenInMenuButton } from "./components/OpenInMenuButton";
 import { OrganizationDropdown } from "./components/OrganizationDropdown";
 import { ResourceConsumption } from "./components/ResourceConsumption";
 import { RightSidebarToggle } from "./components/RightSidebarToggle";
 import { SearchBarTrigger } from "./components/SearchBarTrigger";
-import { SidebarToggle } from "./components/SidebarToggle";
 import { V2WorkspaceOpenInButton } from "./components/V2WorkspaceOpenInButton";
-import { V2WorkspaceSearchBarTrigger } from "./components/V2WorkspaceSearchBarTrigger";
 import { WindowControls } from "./components/WindowControls";
 
 export function TopBar() {
@@ -33,8 +31,6 @@ export function TopBar() {
 	);
 	const isOnline = useOnlineStatus();
 	const { isV2CloudEnabled } = useIsV2CloudEnabled();
-	const { preferences: v2Preferences } = useV2UserPreferences();
-	const isRightSidebarOpen = v2Preferences.rightSidebarOpen;
 	const isSidebarOpen = useWorkspaceSidebarStore((s) => s.isOpen);
 	const isSidebarCollapsed = useWorkspaceSidebarStore((s) => s.isCollapsed());
 	// Default to Mac layout while loading to avoid overlap with traffic lights
@@ -60,29 +56,25 @@ export function TopBar() {
 						<NavigationControls />
 					</>
 				)}
-				{!isV2WorkspaceRoute && <ResourceConsumption />}
+				{!isV2CloudEnabled && <ResourceConsumption />}
 			</div>
 
-			{isV2WorkspaceRoute ? (
-				<V2WorkspaceSearchBarTrigger workspaceId={v2WorkspaceId} />
-			) : (
-				workspaceId && (
-					<div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-						<div className="pointer-events-auto">
-							<SearchBarTrigger
-								workspaceName={
-									workspace
-										? getWorkspaceDisplayName(
-												workspace.name,
-												workspace.type,
-												workspace.project?.name,
-											)
-										: undefined
-								}
-							/>
-						</div>
+			{!isV2WorkspaceRoute && workspaceId && (
+				<div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+					<div className="pointer-events-auto">
+						<SearchBarTrigger
+							workspaceName={
+								workspace
+									? getWorkspaceDisplayName(
+											workspace.name,
+											workspace.type,
+											workspace.project?.name,
+										)
+									: undefined
+							}
+						/>
 					</div>
-				)
+				</div>
 			)}
 
 			<div className="flex items-center gap-3 h-full pr-4 shrink-0">
@@ -92,10 +84,9 @@ export function TopBar() {
 						<span>Offline</span>
 					</div>
 				)}
-				{isV2WorkspaceRoute && !isRightSidebarOpen ? (
+				{isV2WorkspaceRoute ? (
 					<V2WorkspaceOpenInButton workspaceId={v2WorkspaceId} />
-				) : null}
-				{!isV2WorkspaceRoute && workspace?.worktreePath ? (
+				) : workspace?.worktreePath ? (
 					<OpenInMenuButton
 						worktreePath={workspace.worktreePath}
 						branch={workspace.worktree?.branch}

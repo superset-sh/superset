@@ -22,9 +22,9 @@ import { GATED_FEATURES, usePaywall } from "renderer/components/Paywall";
 import { useHotkeyDisplay } from "renderer/hotkeys";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useFolderFirstImport } from "renderer/routes/_authenticated/_dashboard/components/AddRepositoryModals/hooks/useFolderFirstImport";
-import { NavigationControls } from "renderer/routes/_authenticated/_dashboard/components/TopBar/components/NavigationControls";
+import { NavigationControls } from "renderer/routes/_authenticated/_dashboard/components/NavigationControls";
+import { SidebarToggle } from "renderer/routes/_authenticated/_dashboard/components/SidebarToggle";
 import { OrganizationDropdown } from "renderer/routes/_authenticated/_dashboard/components/TopBar/components/OrganizationDropdown";
-import { SidebarToggle } from "renderer/routes/_authenticated/_dashboard/components/TopBar/components/SidebarToggle";
 import { useTasksFilterStore } from "renderer/routes/_authenticated/_dashboard/tasks/stores/tasks-filter-state";
 import { STROKE_WIDTH_THICK } from "renderer/screens/main/components/WorkspaceSidebar/constants";
 import { useOpenNewProjectModal } from "renderer/stores/add-repository-modal";
@@ -209,9 +209,12 @@ export function DashboardSidebarHeader({
 
 	return (
 		<div className="flex flex-col gap-1 border-b border-border px-2 pt-2 pb-2">
+			{/* -mx-2 cancels the parent's px-2 so this row owns its own
+			    horizontal inset — keeps traffic-light alignment matching the
+			    TopBar's 80px pad regardless of parent padding changes. */}
 			<div
-				className="drag flex h-8 items-center gap-1.5"
-				style={{ paddingLeft: isMac ? "72px" : "0px" }}
+				className="drag -mx-2 flex h-8 items-center gap-1.5"
+				style={{ paddingLeft: isMac ? "80px" : "8px" }}
 			>
 				<SidebarToggle />
 				<NavigationControls />
