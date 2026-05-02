@@ -93,6 +93,107 @@ export interface SettingsItem {
 	keywords: string[];
 }
 
+/**
+ * Which v1/v2 variant of the desktop UI a setting applies to.
+ * - "v1": only used by the legacy desktop UI; hide when the user is on v2.
+ * - "v2": only meaningful in the v2 desktop UI; hide when the user is on v1.
+ * - "shared": applies to both (or is provided by a global/cloud surface).
+ *
+ * Source of truth for the v1/v2 settings audit. When adding a new setting,
+ * pick a variant or it will fail typecheck on the registry below.
+ */
+export type SettingVariant = "v1" | "v2" | "shared";
+
+export const SETTING_ITEM_VARIANT: Record<SettingItemId, SettingVariant> = {
+	[SETTING_ITEM_ID.ACCOUNT_PROFILE]: "shared",
+	[SETTING_ITEM_ID.ACCOUNT_SIGNOUT]: "shared",
+
+	[SETTING_ITEM_ID.ORGANIZATION_LOGO]: "shared",
+	[SETTING_ITEM_ID.ORGANIZATION_NAME]: "shared",
+	[SETTING_ITEM_ID.ORGANIZATION_SLUG]: "shared",
+	[SETTING_ITEM_ID.ORGANIZATION_MEMBERS_LIST]: "shared",
+	[SETTING_ITEM_ID.ORGANIZATION_MEMBERS_INVITE]: "shared",
+	[SETTING_ITEM_ID.ORGANIZATION_MEMBERS_PENDING_INVITATIONS]: "shared",
+
+	[SETTING_ITEM_ID.APPEARANCE_THEME]: "shared",
+	[SETTING_ITEM_ID.APPEARANCE_MARKDOWN]: "shared",
+	[SETTING_ITEM_ID.APPEARANCE_CUSTOM_THEMES]: "shared",
+	[SETTING_ITEM_ID.APPEARANCE_EDITOR_FONT]: "shared",
+	[SETTING_ITEM_ID.APPEARANCE_TERMINAL_FONT]: "shared",
+
+	[SETTING_ITEM_ID.RINGTONES_NOTIFICATION]: "shared",
+
+	[SETTING_ITEM_ID.KEYBOARD_SHORTCUTS]: "shared",
+
+	[SETTING_ITEM_ID.BEHAVIOR_CONFIRM_QUIT]: "shared",
+	[SETTING_ITEM_ID.BEHAVIOR_TELEMETRY]: "shared",
+	[SETTING_ITEM_ID.BEHAVIOR_FILE_OPEN_MODE]: "v1",
+	[SETTING_ITEM_ID.BEHAVIOR_RESOURCE_MONITOR]: "shared",
+	[SETTING_ITEM_ID.BEHAVIOR_OPEN_LINKS_IN_APP]: "v1",
+
+	[SETTING_ITEM_ID.GIT_BRANCH_PREFIX]: "v1",
+	[SETTING_ITEM_ID.GIT_DELETE_LOCAL_BRANCH]: "v1",
+	[SETTING_ITEM_ID.GIT_WORKTREE_LOCATION]: "v1",
+
+	[SETTING_ITEM_ID.AGENTS_ENABLED]: "shared",
+	[SETTING_ITEM_ID.AGENTS_COMMANDS]: "shared",
+	[SETTING_ITEM_ID.AGENTS_TASK_PROMPTS]: "shared",
+
+	[SETTING_ITEM_ID.TERMINAL_PRESETS]: "shared",
+	[SETTING_ITEM_ID.TERMINAL_QUICK_ADD]: "v1",
+	[SETTING_ITEM_ID.TERMINAL_SESSIONS]: "shared",
+	[SETTING_ITEM_ID.TERMINAL_LINK_BEHAVIOR]: "v1",
+
+	[SETTING_ITEM_ID.LINKS_FILE]: "v2",
+	[SETTING_ITEM_ID.LINKS_URL]: "v2",
+
+	[SETTING_ITEM_ID.MODELS_ANTHROPIC]: "shared",
+	[SETTING_ITEM_ID.MODELS_OPENAI]: "shared",
+
+	[SETTING_ITEM_ID.EXPERIMENTAL_SUPERSET_V2]: "shared",
+	[SETTING_ITEM_ID.EXPERIMENTAL_V1_MIGRATION]: "v2",
+
+	[SETTING_ITEM_ID.INTEGRATIONS_LINEAR]: "shared",
+	[SETTING_ITEM_ID.INTEGRATIONS_GITHUB]: "shared",
+	[SETTING_ITEM_ID.INTEGRATIONS_SLACK]: "shared",
+
+	[SETTING_ITEM_ID.BILLING_OVERVIEW]: "shared",
+	[SETTING_ITEM_ID.BILLING_PLANS]: "shared",
+	[SETTING_ITEM_ID.BILLING_USAGE]: "shared",
+
+	[SETTING_ITEM_ID.PROJECT_NAME]: "shared",
+	[SETTING_ITEM_ID.PROJECT_PATH]: "shared",
+	[SETTING_ITEM_ID.PROJECT_SCRIPTS]: "v1",
+	[SETTING_ITEM_ID.PROJECT_BRANCH_PREFIX]: "v1",
+	[SETTING_ITEM_ID.PROJECT_WORKTREE_LOCATION]: "v1",
+	[SETTING_ITEM_ID.PROJECT_IMPORT_WORKTREES]: "v1",
+	[SETTING_ITEM_ID.PROJECT_ENV_VARS]: "v2",
+
+	[SETTING_ITEM_ID.API_KEYS_LIST]: "shared",
+	[SETTING_ITEM_ID.API_KEYS_GENERATE]: "shared",
+
+	[SETTING_ITEM_ID.PERMISSIONS_FULL_DISK_ACCESS]: "shared",
+	[SETTING_ITEM_ID.PERMISSIONS_ACCESSIBILITY]: "shared",
+	[SETTING_ITEM_ID.PERMISSIONS_MICROPHONE]: "shared",
+	[SETTING_ITEM_ID.PERMISSIONS_APPLE_EVENTS]: "shared",
+	[SETTING_ITEM_ID.PERMISSIONS_LOCAL_NETWORK]: "shared",
+
+	[SETTING_ITEM_ID.SECURITY_EXPOSE_HOST_SERVICE_VIA_RELAY]: "shared",
+
+	[SETTING_ITEM_ID.HOST_MEMBERS]: "shared",
+	[SETTING_ITEM_ID.HOST_INVITE_MEMBER]: "shared",
+	[SETTING_ITEM_ID.HOST_MEMBER_ROLE]: "shared",
+};
+
+export function isItemAllowedForVariant(
+	itemId: SettingItemId,
+	isV2: boolean,
+): boolean {
+	const variant = SETTING_ITEM_VARIANT[itemId];
+	if (variant === "shared") return true;
+	return isV2 ? variant === "v2" : variant === "v1";
+}
+
 export const SETTINGS_ITEMS: SettingsItem[] = [
 	{
 		id: SETTING_ITEM_ID.ACCOUNT_PROFILE,
@@ -1191,4 +1292,58 @@ export function isItemVisible(
 	visibleItems: SettingItemId[] | null | undefined,
 ): boolean {
 	return !visibleItems || visibleItems.includes(itemId);
+}
+
+/**
+ * Items in `section` that are allowed for the active v1/v2 variant and
+ * (if a search query is provided) also match the query. Returns an array
+ * suitable for passing to `isItemVisible` at the leaf — never `null`, so
+ * variant-hidden items are always excluded.
+ */
+export function getVisibleItemsForSection(params: {
+	section: SettingsSection;
+	searchQuery: string;
+	isV2: boolean;
+}): SettingItemId[] {
+	const { section, searchQuery, isV2 } = params;
+	const matched = searchQuery.trim()
+		? getMatchingItemsForSection(searchQuery, section)
+		: SETTINGS_ITEMS.filter((item) => item.section === section);
+	return matched
+		.filter((item) => isItemAllowedForVariant(item.id, isV2))
+		.map((item) => item.id);
+}
+
+/**
+ * Like `getMatchCountBySection`, but excludes items that are hidden by the
+ * active v1/v2 variant. Used by the sidebar so search counts and section
+ * visibility agree.
+ */
+export function getVisibleMatchCountBySection(
+	query: string,
+	isV2: boolean,
+): Partial<Record<SettingsSection, number>> {
+	const matches = searchSettings(query).filter((item) =>
+		isItemAllowedForVariant(item.id, isV2),
+	);
+	const counts: Partial<Record<SettingsSection, number>> = {};
+	for (const item of matches) {
+		counts[item.section] = (counts[item.section] || 0) + 1;
+	}
+	return counts;
+}
+
+/**
+ * Sections that contain at least one item allowed for the active variant.
+ * Sections with no allowed items (e.g. `git` in v2, `links` in v1) should
+ * be hidden from the sidebar entirely.
+ */
+export function getAllowedSectionsForVariant(
+	isV2: boolean,
+): Set<SettingsSection> {
+	const sections = new Set<SettingsSection>();
+	for (const item of SETTINGS_ITEMS) {
+		if (isItemAllowedForVariant(item.id, isV2)) sections.add(item.section);
+	}
+	return sections;
 }
