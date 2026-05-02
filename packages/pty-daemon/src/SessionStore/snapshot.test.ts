@@ -7,8 +7,8 @@ import { SessionStore } from "./SessionStore.ts";
 import {
 	clearSnapshot,
 	readSnapshot,
-	serializeSessions,
 	SNAPSHOT_VERSION,
+	serializeSessions,
 	writeSnapshot,
 } from "./snapshot.ts";
 
@@ -28,14 +28,14 @@ function fakePty(pid: number, meta: { cols: number; rows: number }): Pty {
 function tmpPath(): string {
 	return path.join(
 		os.tmpdir(),
-		`pty-daemon-snapshot-${process.pid}-${Math.random().toString(36).slice(2)}.json`,
+		`pty-daemon-snapshot-${process.pid}-${Math.random().toString(36).slice(2)}.bin`,
 	);
 }
 
 describe("handoff snapshot", () => {
 	test("serializeSessions excludes exited sessions", () => {
 		const store = new SessionStore();
-		const a = store.add("a", fakePty(100, { cols: 80, rows: 24 }));
+		const _a = store.add("a", fakePty(100, { cols: 80, rows: 24 }));
 		const b = store.add("b", fakePty(101, { cols: 100, rows: 30 }));
 		b.exited = true;
 		const snapshot = serializeSessions({
@@ -62,7 +62,7 @@ describe("handoff snapshot", () => {
 		).toThrow(/no fdIndex assigned/);
 	});
 
-	test("serializeSessions captures the ring buffer as base64", () => {
+	test("serializeSessions captures the ring buffer as raw bytes", () => {
 		const store = new SessionStore();
 		const session = store.add("a", fakePty(100, { cols: 80, rows: 24 }));
 		store.appendOutput(session, Buffer.from("hello"));
@@ -71,9 +71,8 @@ describe("handoff snapshot", () => {
 			sessions: store.all(),
 			fdIndexBySessionId: new Map([["a", 3]]),
 		});
-		expect(
-			Buffer.from(snapshot.sessions[0]?.buffer ?? "", "base64").toString(),
-		).toBe("hello world");
+		const buf = snapshot.sessions[0]?.buffer ?? new Uint8Array(0);
+		expect(Buffer.from(buf).toString("utf8")).toBe("hello world");
 	});
 
 	test("write + read round-trips", () => {
@@ -97,11 +96,11 @@ describe("handoff snapshot", () => {
 		}
 	});
 
-	test("readSnapshot rejects malformed payloads", () => {
+	test("readSnapshot rejects garbage bytes", () => {
 		const p = tmpPath();
 		try {
-			fs.writeFileSync(p, JSON.stringify({ version: 1, sessions: "nope" }));
-			expect(() => readSnapshot(p)).toThrow(/malformed/);
+			fs.writeFileSync(p, Buffer.from("not a frame"));
+			expect(() => readSnapshot(p)).toThrow();
 		} finally {
 			clearSnapshot(p);
 		}
@@ -110,11 +109,46 @@ describe("handoff snapshot", () => {
 	test("readSnapshot rejects unsupported version", () => {
 		const p = tmpPath();
 		try {
-			fs.writeFileSync(
-				p,
-				JSON.stringify({ version: 99, writtenAt: 0, sessions: [] }),
-			);
+			// Hand-roll a header frame at version 99 using the same wire layout
+			// used by writeSnapshot, so the decoder gets past framing and we
+			// exercise the version check specifically.
+			const headerJson = JSON.stringify({
+				type: "handoff-header",
+				version: 99,
+				writtenAt: 0,
+				sessionCount: 0,
+			});
+			const jsonBytes = Buffer.from(headerJson, "utf8");
+			const totalLen = 4 + jsonBytes.byteLength;
+			const buf = Buffer.alloc(4 + totalLen);
+			buf.writeUInt32BE(totalLen, 0);
+			buf.writeUInt32BE(jsonBytes.byteLength, 4);
+			jsonBytes.copy(buf, 8);
+			fs.writeFileSync(p, buf);
 			expect(() => readSnapshot(p)).toThrow(/unsupported snapshot version/);
+		} finally {
+			clearSnapshot(p);
+		}
+	});
+
+	test("write + read round-trips a session with binary buffer bytes", () => {
+		const store = new SessionStore();
+		const session = store.add("a", fakePty(100, { cols: 80, rows: 24 }));
+		// Mix of valid and invalid UTF-8 to prove byte fidelity.
+		const bytes = Buffer.from([0x00, 0xff, 0xc3, 0xa9, 0x80, 0x7f, 0xfe]);
+		store.appendOutput(session, bytes);
+		const snapshot = serializeSessions({
+			sessions: store.all(),
+			fdIndexBySessionId: new Map([["a", 3]]),
+		});
+		const p = tmpPath();
+		try {
+			writeSnapshot(p, snapshot);
+			const decoded = readSnapshot(p);
+			expect(decoded.sessions).toHaveLength(1);
+			expect(
+				Buffer.compare(decoded.sessions[0]?.buffer ?? new Uint8Array(), bytes),
+			).toBe(0);
 		} finally {
 			clearSnapshot(p);
 		}

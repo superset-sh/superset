@@ -117,8 +117,12 @@ export class Server {
 				meta: s.meta,
 			});
 			const session = this.store.add(s.id, pty);
-			if (s.buffer.length > 0) {
-				const buf = Buffer.from(s.buffer, "base64");
+			if (s.buffer.byteLength > 0) {
+				const buf = Buffer.from(
+					s.buffer.buffer,
+					s.buffer.byteOffset,
+					s.buffer.byteLength,
+				);
 				session.buffer = [buf];
 				session.bufferBytes = buf.byteLength;
 			}
@@ -160,7 +164,7 @@ export class Server {
 
 		const snapshotPath = path.join(
 			os.tmpdir(),
-			`pty-daemon-handoff-${process.pid}-${Date.now()}.json`,
+			`pty-daemon-handoff-${process.pid}-${Date.now()}.snap`,
 		);
 		try {
 			writeSnapshot(

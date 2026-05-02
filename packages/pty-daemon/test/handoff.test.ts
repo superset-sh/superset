@@ -9,14 +9,17 @@ import * as childProcess from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { fileURLToPath } from "node:url";
 import { after, before, test } from "node:test";
-import { connect, connectAndHello } from "./helpers/client.ts";
+import { fileURLToPath } from "node:url";
+import { connectAndHello } from "./helpers/client.ts";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const DAEMON_SCRIPT = path.resolve(here, "..", "src", "main.ts");
 
-const sockPath = path.join(os.tmpdir(), `pty-daemon-handoff-${process.pid}.sock`);
+const sockPath = path.join(
+	os.tmpdir(),
+	`pty-daemon-handoff-${process.pid}.sock`,
+);
 
 let daemonA: childProcess.ChildProcess | null = null;
 
@@ -116,7 +119,10 @@ test("prepare-upgrade hands off live sessions to a successor binary", async () =
 	assert.equal(list.type, "list-reply");
 	if (list.type !== "list-reply") return;
 	const survived = list.sessions.find((s) => s.id === "handoff-0");
-	assert.ok(survived, `expected handoff-0 in survivor list: ${JSON.stringify(list.sessions)}`);
+	assert.ok(
+		survived,
+		`expected handoff-0 in survivor list: ${JSON.stringify(list.sessions)}`,
+	);
 	assert.equal(survived.alive, true, "session should still be alive");
 	assert.equal(
 		survived.pid,

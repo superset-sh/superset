@@ -8,7 +8,7 @@ export type {
 export {
 	clearSnapshot,
 	readSnapshot,
-	serializeSessions,
 	SNAPSHOT_VERSION,
+	serializeSessions,
 	writeSnapshot,
 } from "./snapshot.ts";
