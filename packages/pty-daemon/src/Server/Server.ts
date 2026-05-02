@@ -26,6 +26,12 @@ export interface ServerOptions {
 	socketPath: string;
 	daemonVersion: string;
 	bufferCap?: number;
+	/**
+	 * Override for the PTY-spawn factory. Production leaves this unset;
+	 * `defaultSpawn` (real node-pty) is used. Tests inject a fake here so
+	 * they can drive sessions deterministically without a real shell.
+	 */
+	spawnPty?: HandlerCtx["spawnPty"];
 }
 
 interface ConnState extends Conn {
@@ -207,6 +213,7 @@ export class Server {
 		return {
 			store: this.store,
 			wireSession: (session) => this.wireSession(session),
+			spawnPty: this.opts.spawnPty,
 		};
 	}
 
