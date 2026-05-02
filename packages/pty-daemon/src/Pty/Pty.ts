@@ -1,3 +1,4 @@
+import * as childProcess from "node:child_process";
 import * as fs from "node:fs";
 import * as nodePty from "node-pty";
 import type { SessionMeta } from "../protocol/index.ts";
@@ -225,11 +226,22 @@ class AdoptedPty implements Pty {
 
 	resize(cols: number, rows: number): void {
 		validateDims(cols, rows);
-		// TODO(phase2-followup): wire TIOCSWINSZ via koffi or native helper.
-		// Today: track meta only — kernel-side window size is whatever it
-		// was at adoption time. Acceptable temporarily; visible to users
-		// only if they resize a session that was carried across an upgrade.
 		this.meta = { ...this.meta, cols, rows };
+		// TIOCSWINSZ on the master fd is what node-pty does internally
+		// for non-adopted sessions; we don't have that native binding
+		// here. Workaround: spawn `stty` with the master fd as its
+		// stdin. stty(1) issues TIOCSWINSZ on its own stdin by default.
+		// One process spawn per resize — resize is rare (window-drag
+		// throttled by xterm.js), so this is fine.
+		try {
+			childProcess.spawnSync("stty", ["cols", String(cols), "rows", String(rows)], {
+				stdio: [this.fd, "ignore", "ignore"],
+				timeout: 1000,
+			});
+		} catch {
+			// Best-effort. If stty isn't available, the meta still
+			// reflects the requested dims; the kernel side stays stale.
+		}
 	}
 
 	kill(signal?: NodeJS.Signals): void {
