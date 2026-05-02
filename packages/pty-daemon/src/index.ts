@@ -4,4 +4,13 @@
 // not a runtime peer.
 
 export { Server, type ServerOptions } from "./Server/index.ts";
-export type { Session } from "./SessionStore/index.ts";
+export type {
+	HandoffSnapshot,
+	SerializedSession,
+	Session,
+} from "./SessionStore/index.ts";
+export {
+	clearSnapshot,
+	readSnapshot,
+	writeSnapshot,
+} from "./SessionStore/index.ts";

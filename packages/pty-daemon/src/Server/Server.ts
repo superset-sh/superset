@@ -183,20 +183,31 @@ export class Server {
 		// Forward process.execArgv (--experimental-strip-types etc.) so the
 		// successor loads the same way we did. In tests and dev we run TS
 		// directly; in production (built bundle) execArgv is typically empty.
+		process.stderr.write(
+			`[pty-daemon prep-upgrade pid=${process.pid}] spawning successor: ${process.execPath} ${[...process.execArgv, scriptPath].join(" ")} (sessions=${liveSessions.length}, ptyFds=${liveSessions.map((s) => s.pty.getMasterFd()).join(",")})\n`,
+		);
 		const child = childProcess.spawn(
 			process.execPath,
-			[...process.execArgv, scriptPath],
+			[
+				...process.execArgv,
+				scriptPath,
+				"--handoff",
+				`--snapshot=${snapshotPath}`,
+				`--socket=${this.opts.socketPath}`,
+			],
 			{
 				stdio,
-				env: {
-					...process.env,
-					SUPERSET_PTY_DAEMON_HANDOFF: "1",
-					SUPERSET_PTY_DAEMON_SNAPSHOT: snapshotPath,
-					SUPERSET_PTY_DAEMON_SOCKET: this.opts.socketPath,
-				},
+				env: process.env,
 				detached: false,
 			},
 		);
+		// Log child stderr separately so we see successor errors even when
+		// stdio is piped through host-service in dev.
+		child.on("exit", (code, signal) => {
+			process.stderr.write(
+				`[pty-daemon prep-upgrade pid=${process.pid}] successor exited code=${code} signal=${signal}\n`,
+			);
+		});
 
 		const result = await waitForHandoffAck(child);
 		if (!result.ok) {

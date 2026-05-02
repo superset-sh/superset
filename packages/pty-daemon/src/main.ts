@@ -50,7 +50,14 @@ function parseArgs(argv: string[]): CliArgs {
 }
 
 async function main(): Promise<void> {
-	if (process.env.SUPERSET_PTY_DAEMON_HANDOFF === "1") {
+	// Mode signal goes through argv, NOT env. Bundlers (Bun, esbuild via
+	// electron-vite) statically inline `process.env.<KEY>` references at
+	// build time and constant-fold the comparison — bracket notation
+	// `process.env["KEY"]` doesn't help; both bundlers see through it.
+	// `process.argv` is fully dynamic, can't be statically analyzed, and
+	// survives every bundler we run (handoff.test.ts, dev electron-vite,
+	// prod desktop bundle). See plans note about bundler DCE.
+	if (process.argv.includes("--handoff")) {
 		await runHandoffReceiver();
 		return;
 	}
@@ -82,23 +89,44 @@ async function runFresh(): Promise<void> {
  * inheritance and set up an IPC channel for the upgrade-ack handshake.
  */
 async function runHandoffReceiver(): Promise<void> {
-	const snapshotPath = process.env.SUPERSET_PTY_DAEMON_SNAPSHOT;
-	const socketPath = process.env.SUPERSET_PTY_DAEMON_SOCKET;
-	if (!snapshotPath) throw new Error("SUPERSET_PTY_DAEMON_SNAPSHOT not set");
-	if (!socketPath) throw new Error("SUPERSET_PTY_DAEMON_SOCKET not set");
+	const log = (msg: string) =>
+		process.stderr.write(`[pty-daemon handoff-recv pid=${process.pid}] ${msg}\n`);
+
+	log("entered runHandoffReceiver");
+	// Pull snapshot + socket paths from argv (predecessor passes them as
+	// --snapshot=... --socket=...). Args are bundler-opaque, env vars
+	// aren't.
+	let snapshotPath: string | undefined;
+	let socketPath: string | undefined;
+	for (const arg of process.argv) {
+		if (arg.startsWith("--snapshot=")) {
+			snapshotPath = arg.slice("--snapshot=".length);
+		} else if (arg.startsWith("--socket=")) {
+			socketPath = arg.slice("--socket=".length);
+		}
+	}
+	if (!snapshotPath) throw new Error("--snapshot=PATH not set in argv");
+	if (!socketPath) throw new Error("--socket=PATH not set in argv");
 	if (typeof process.send !== "function") {
 		throw new Error("handoff receiver requires an IPC channel (process.send)");
 	}
+	log(`snapshotPath=${snapshotPath} socketPath=${socketPath}`);
 
 	const daemonVersion =
 		process.env.SUPERSET_PTY_DAEMON_VERSION ?? readPackageVersion();
+	log(`daemonVersion=${daemonVersion}`);
 
 	const snapshot = readSnapshot(snapshotPath);
+	log(`read snapshot: sessions=${snapshot.sessions.length}`);
 	const server = new Server({ socketPath, daemonVersion });
 
 	try {
+		log(`adopting ${snapshot.sessions.length} sessions`);
 		server.adoptSnapshot(snapshot);
+		log(`adopted successfully`);
 	} catch (err) {
+		const reason = (err as Error).stack ?? (err as Error).message;
+		log(`ADOPT FAILED: ${reason}`);
 		const nak: HandoffMessage = {
 			type: "upgrade-nak",
 			reason: `adopt failed: ${(err as Error).message}`,
@@ -110,6 +138,7 @@ async function runHandoffReceiver(): Promise<void> {
 	}
 
 	// Tell predecessor we adopted; it will close its socket + exit.
+	log(`sending upgrade-ack`);
 	const ack: HandoffMessage = {
 		type: "upgrade-ack",
 		successorPid: process.pid,
@@ -122,6 +151,7 @@ async function runHandoffReceiver(): Promise<void> {
 	// the predecessor's unlink removes the path entry under us, and the
 	// follow-up chmod hits ENOENT. Predecessor exit closes its IPC channel
 	// — Node delivers that as the 'disconnect' event on our side.
+	log(`waiting for predecessor disconnect`);
 	await new Promise<void>((resolve) => {
 		if (process.connected !== true) return resolve();
 		process.once("disconnect", () => resolve());
@@ -130,8 +160,10 @@ async function runHandoffReceiver(): Promise<void> {
 		// remaining race.
 		setTimeout(() => resolve(), 1_000).unref();
 	});
+	log(`predecessor disconnected, binding socket`);
 
 	await server.listenWithRetry();
+	log(`bound and listening`);
 	process.stderr.write(
 		`[pty-daemon] (handoff successor) listening on ${socketPath} (v${daemonVersion}, host=${os.hostname()}, sessions=${snapshot.sessions.length})\n`,
 	);
