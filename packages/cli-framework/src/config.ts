@@ -1,6 +1,5 @@
 import { dirname, resolve } from "node:path";
 import type { GenericBuilderInternals } from "./option";
-import type { CommandCompleteHook } from "./runner";
 
 export interface CliConfig {
 	name: string;
@@ -13,8 +12,6 @@ export interface CliConfig {
 	define?: Record<string, string>;
 	/** Global option builders (shown on every command). */
 	globals?: Record<string, GenericBuilderInternals>;
-	/** Optional telemetry hook fired after every command finishes. */
-	onCommandComplete?: CommandCompleteHook;
 }
 
 export function defineConfig(config: CliConfig): CliConfig {

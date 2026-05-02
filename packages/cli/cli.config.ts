@@ -1,5 +1,4 @@
 import { boolean, defineConfig, string } from "@superset/cli-framework";
-import { onCommandComplete } from "./src/lib/analytics";
 
 const VERSION = "0.2.3";
 
@@ -8,7 +7,6 @@ export default defineConfig({
 	version: VERSION,
 	commandsDir: "./src/commands",
 	outfile: "./dist/superset",
-	onCommandComplete,
 	define: {
 		"process.env.RELAY_URL": JSON.stringify(
 			process.env.RELAY_URL ?? "https://relay.superset.sh",
@@ -18,6 +16,12 @@ export default defineConfig({
 		),
 		"process.env.SUPERSET_WEB_URL": JSON.stringify(
 			process.env.SUPERSET_WEB_URL ?? "https://app.superset.sh",
+		),
+		"process.env.SUPERSET_POSTHOG_KEY": JSON.stringify(
+			process.env.SUPERSET_POSTHOG_KEY ?? "",
+		),
+		"process.env.SUPERSET_POSTHOG_HOST": JSON.stringify(
+			process.env.SUPERSET_POSTHOG_HOST ?? "",
 		),
 		"process.env.SUPERSET_VERSION": JSON.stringify(VERSION),
 	},

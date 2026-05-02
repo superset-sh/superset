@@ -1,23 +1,9 @@
-import type { CommandCompleteEvent } from "@superset/cli-framework";
-import { PostHog } from "posthog-node";
-import { readConfig } from "./config";
-
-// PostHog public project token. Same value the desktop renderer ships with;
-// hardcoded here too so the CLI binary needs no extra config to fire events.
-const POSTHOG_PROJECT_TOKEN = "phc_relI1yg6V5m77qT7U3JctNKULVQLh3LkGFb3PCjeQ0P";
-const POSTHOG_HOST = "https://us.i.posthog.com";
-
-const posthog = new PostHog(POSTHOG_PROJECT_TOKEN, {
-	host: POSTHOG_HOST,
-	flushAt: 1,
-	flushInterval: 0,
-});
+import { env } from "./env";
 
 function decodeJwtSub(token: string): string | null {
 	const parts = token.split(".");
 	if (parts.length !== 3) return null;
 	try {
-		// JWT body is base64url; convert to base64 then decode.
 		const body = parts[1] ?? "";
 		const padded = body
 			.replace(/-/g, "+")
@@ -32,36 +18,39 @@ function decodeJwtSub(token: string): string | null {
 	}
 }
 
-function resolveDistinctId(): string | null {
-	const config = readConfig();
-	if (!config.auth?.accessToken) return null;
-	return decodeJwtSub(config.auth.accessToken);
-}
-
 /**
- * Fires `cli_command_invoked` after every CLI command finishes. Skipped when
- * the user is unauthenticated (no JWT to derive distinct_id from). Failures
- * are swallowed — telemetry should never break a command.
+ * Fire-and-forget capture of `cli_command_invoked`. Called from CLI middleware
+ * at the start of every command — we deliberately don't wait for the request
+ * to land because the bun-compiled binary often exits before HTTP completes.
+ * `keepalive: true` lets the OS finish the in-flight request after the process
+ * is gone (Node 18+ / Bun honor this).
+ *
+ * Skipped if the user isn't signed in (no JWT → no distinct_id).
  */
-export async function onCommandComplete(
-	event: CommandCompleteEvent,
-): Promise<void> {
-	const distinctId = resolveDistinctId();
+export function trackCommandInvoked(input: {
+	bearer: string;
+	commandPath: string[];
+	flags: string[];
+}): void {
+	const distinctId = decodeJwtSub(input.bearer);
 	if (!distinctId) return;
 
-	posthog.capture({
-		distinctId,
-		event: "cli_command_invoked",
-		properties: {
-			command: event.command,
-			flags: event.flags,
-			exit_status: event.exitStatus,
-			duration_ms: event.durationMs,
-			cli_version: process.env.SUPERSET_VERSION,
-		},
+	void fetch(`${env.POSTHOG_HOST}/capture/`, {
+		method: "POST",
+		keepalive: true,
+		headers: { "Content-Type": "application/json" },
+		body: JSON.stringify({
+			api_key: env.POSTHOG_KEY,
+			event: "cli_command_invoked",
+			distinct_id: distinctId,
+			properties: {
+				command: input.commandPath.join(" "),
+				flags: input.flags,
+				cli_version: env.VERSION,
+			},
+			timestamp: new Date().toISOString(),
+		}),
+	}).catch(() => {
+		// Swallow — telemetry must never affect command execution.
 	});
-
-	// Bun-compiled binary exits the moment this hook returns, so flush the
-	// batch synchronously to make sure the event makes it to PostHog.
-	await posthog.shutdown();
 }
