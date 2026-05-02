@@ -85,7 +85,7 @@ describe("createTerminalKeyEventHandler", () => {
 		expect(xterm.input).not.toHaveBeenCalled();
 	});
 
-	it("treats Node-style \"darwin\" platform as Mac, not Windows", () => {
+	it('treats Node-style "darwin" platform as Mac, not Windows', () => {
 		const xterm = terminal();
 		const event = keyboardEvent({
 			key: "Enter",
