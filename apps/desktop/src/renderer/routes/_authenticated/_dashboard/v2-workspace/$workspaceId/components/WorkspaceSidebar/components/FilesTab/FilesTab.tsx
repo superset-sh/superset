@@ -120,19 +120,6 @@ const PIERRE_GIT_STATUS: Record<
 	untracked: "untracked",
 };
 
-// VS Code-style single-letter badges shown on the right of changed file rows.
-// Matches v1's STATUS_LETTER. Color comes from Pierre tinting the row text via
-// `--trees-status-*` once setGitStatus reports the path.
-const STATUS_LETTER: Record<FileStatus, string> = {
-	added: "A",
-	copied: "C",
-	changed: "M",
-	deleted: "D",
-	modified: "M",
-	renamed: "R",
-	untracked: "U",
-};
-
 export function FilesTab({
 	onSelectFile,
 	selectedFilePath,
@@ -424,21 +411,11 @@ export function FilesTab({
 		lastSelectedFromUserRef.current = abs;
 		onSelectFile(abs);
 	};
-	handlersRef.current.renderRowDecoration = ({ row }) => {
-		const rel = stripTrailingSlash(row.path);
-		if (row.kind === "file") {
-			const status = fileStatusByPath.get(rel);
-			if (!status) return null;
-			return { text: STATUS_LETTER[status] };
-		}
-		// Directory: show a bullet indicating the folder contains changes.
-		// Color comes from Pierre's status row tint (setGitStatus reports the
-		// folder via its descendant rollup, so it gets the right --trees-status-*
-		// color for free).
-		const folderStatus = folderStatusByPath.get(rel);
-		if (!folderStatus) return null;
-		return { text: "●", title: "Contains changes" };
-	};
+	// No-op: Pierre's setGitStatus already renders its own per-row status
+	// indicator (and tints the row text), so a custom decoration here would
+	// duplicate it. Kept the wiring in place in case we want to layer
+	// something Pierre doesn't show (e.g. lock icons, debug markers).
+	handlersRef.current.renderRowDecoration = () => null;
 
 	const handleDelete = useCallback(
 		(absolutePath: string, name: string, isDirectory: boolean): void => {
