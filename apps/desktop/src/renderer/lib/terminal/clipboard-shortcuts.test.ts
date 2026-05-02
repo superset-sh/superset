@@ -2,7 +2,7 @@ import { describe, expect, it } from "bun:test";
 import {
 	shouldBubbleClipboardShortcut,
 	shouldSelectAllShortcut,
-} from "./clipboardShortcuts";
+} from "./clipboard-shortcuts";
 
 function makeEvent(
 	overrides: Partial<{

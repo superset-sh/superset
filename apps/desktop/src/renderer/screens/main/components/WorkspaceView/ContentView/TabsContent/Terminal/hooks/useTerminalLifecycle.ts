@@ -24,7 +24,7 @@ import {
 } from "../helpers";
 import { isPaneDestroyed } from "../pane-guards";
 import { coldRestoreState, pendingDetaches } from "../state";
-import { setupKeyboardHandler } from "../terminalKeyboardHandler";
+import { installTerminalKeyEventHandler } from "renderer/lib/terminal/terminal-key-event-handler";
 import type {
 	CreateOrAttachMutate,
 	CreateOrAttachResult,
@@ -755,10 +755,7 @@ export function useTerminalLifecycle({
 			writeRef.current({ paneId, data });
 		};
 
-		const cleanupKeyboard = setupKeyboardHandler(xterm, {
-			onShiftEnter: () => handleWrite("\x1b\r"),
-			onWrite: handleWrite,
-		});
+		const cleanupKeyboard = installTerminalKeyEventHandler(xterm);
 		const cleanupClickToMove = setupClickToMoveCursor(xterm, {
 			onWrite: handleWrite,
 		});
