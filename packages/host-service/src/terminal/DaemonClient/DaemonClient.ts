@@ -61,6 +61,10 @@ export interface DaemonClientOptions {
 const OPEN_TIMEOUT_MS = 15_000;
 const CLOSE_TIMEOUT_MS = 5_000;
 const LIST_TIMEOUT_MS = 5_000;
+// Daemon-side handoff has to write a snapshot, spawn a child Node process,
+// await successor adopt-ack, then reply. The Server uses 5s for the ack
+// alone; 15s here covers spawn + ack + reply round-trip with margin.
+const PREPARE_UPGRADE_TIMEOUT_MS = 15_000;
 
 export class DaemonClient {
 	private readonly opts: DaemonClientOptions;
@@ -146,6 +150,28 @@ export class DaemonClient {
 		);
 		if (reply.type === "list-reply") return reply.sessions;
 		throw new Error(`list: unexpected reply ${reply.type}`);
+	}
+
+	/**
+	 * Phase 2: ask the daemon to spawn a successor process that inherits PTY
+	 * master fds and adopts all live sessions. On success the daemon exits
+	 * shortly after replying — this client's connection will close.
+	 *
+	 * Timeout is generous: the daemon has to write a snapshot, spawn a child
+	 * Node process, wait for the successor's adopt+ack, then reply.
+	 */
+	async prepareUpgrade(): Promise<
+		{ ok: true; successorPid: number } | { ok: false; reason: string }
+	> {
+		const reply = await this.requestNonSession(
+			{ type: "prepare-upgrade" },
+			"upgrade-prepared",
+			PREPARE_UPGRADE_TIMEOUT_MS,
+		);
+		if (reply.type === "upgrade-prepared") return reply.result;
+		if (reply.type === "error")
+			throw new Error(`prepare-upgrade: ${reply.message}`);
+		throw new Error(`prepare-upgrade: unexpected reply ${reply.type}`);
 	}
 
 	/** Fire-and-forget; bytes go straight to the PTY. */
@@ -291,8 +317,8 @@ export class DaemonClient {
 	}
 
 	private requestNonSession(
-		req: { type: "list" },
-		expectType: "list-reply",
+		req: { type: "list" } | { type: "prepare-upgrade" },
+		expectType: "list-reply" | "upgrade-prepared",
 		timeoutMs: number,
 	): Promise<ServerMessage> {
 		return new Promise<ServerMessage>((resolve, reject) => {

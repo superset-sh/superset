@@ -1,6 +1,6 @@
 {
 	"name": "@superset/pty-daemon",
-	"version": "0.1.0",
+	"version": "0.2.0",
 	"private": true,
 	"type": "module",
 	"exports": {
@@ -11,7 +11,8 @@
 		"./protocol": {
 			"types": "./src/protocol/index.ts",
 			"default": "./src/protocol/index.ts"
-		}
+		},
+		"./package.json": "./package.json"
 	},
 	"bin": {
 		"pty-daemon": "./src/main.ts"
@@ -24,8 +25,8 @@
 		"start": "node --experimental-strip-types src/main.ts",
 		"build:daemon": "bun run build.ts",
 		"typecheck": "tsc --noEmit --emitDeclarationOnly false",
-		"test": "bun test src/protocol src/SessionStore src/handlers src/Pty/Pty.test.ts",
-		"test:integration": "node --experimental-strip-types --test test/integration.test.ts test/control-plane.test.ts test/signal-recovery.test.ts"
+		"test": "bun test src/protocol src/SessionStore src/handlers src/Pty/Pty.test.ts test/no-encoding-hops.test.ts",
+		"test:integration": "node --experimental-strip-types --test test/integration.test.ts test/control-plane.test.ts test/signal-recovery.test.ts test/byte-fidelity.test.ts test/handoff.test.ts"
 	},
 	"dependencies": {
 		"node-pty": "1.1.0"

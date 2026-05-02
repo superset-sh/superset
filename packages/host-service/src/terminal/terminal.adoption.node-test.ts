@@ -311,6 +311,74 @@ describe("createTerminalSessionInternal — host-service restart adoption", () =
 		disposeSession(terminalId, db);
 	});
 
+	test("replayOnAdoption: false suppresses ring-buffer replay on reconnect", async () => {
+		// Regression for the duplicated-output-on-daemon-swap bug: when the
+		// renderer's xterm scrollback survives the WS reconnect (which it
+		// does), replaying the daemon's ring buffer rewrites bytes the user
+		// has already seen and the conversation appears doubled. This test
+		// drives the createTerminalSessionInternal layer that the WS upgrade
+		// handler maps to.
+		const terminalId = `e2e-noreplay-${randomUUID().slice(0, 8)}`;
+
+		const first = await createTerminalSessionInternal({
+			terminalId,
+			workspaceId,
+			db,
+			listed: true,
+		});
+		assert.ok(!("error" in first));
+		if ("error" in first) return;
+
+		// Seed the daemon's ring buffer with a sentinel — that's what would
+		// be replayed on a normal adoption.
+		const SENTINEL = `noreplay-sentinel-${randomUUID().slice(0, 6)}`;
+		first.pty.write(`echo ${SENTINEL}\n`);
+		await waitForOutput(first.pty, SENTINEL, 3000);
+
+		// Simulate onDaemonDisconnect: host-service drops its in-memory
+		// sessions; the daemon (and its ring buffer) survives.
+		__resetSessionsForTesting();
+		await disposeDaemonClient();
+
+		const second = await createTerminalSessionInternal({
+			terminalId,
+			workspaceId,
+			db,
+			listed: true,
+			replayOnAdoption: false,
+		});
+		assert.ok(!("error" in second));
+		if ("error" in second) return;
+		assert.equal(
+			second.pty.pid,
+			first.pty.pid,
+			"adopted session should have same shell pid",
+		);
+
+		// session.bufferBytes is the direct signal: the primary subscription
+		// writes incoming chunks here for WS broadcast. Non-zero after a
+		// replay-suppressed adopt = bug.
+		await new Promise((r) => setTimeout(r, 500));
+
+		assert.equal(
+			second.bufferBytes,
+			0,
+			`adopted session.bufferBytes must remain 0 when replayOnAdoption=false; got ${second.bufferBytes} bytes (first chunk: ${second.buffer[0] ? JSON.stringify(Buffer.from(second.buffer[0]).toString("utf8").slice(0, 100)) : "<empty>"})`,
+		);
+
+		// Sanity check: live output still flows post-reattach.
+		const LIVE_SENTINEL = `live-after-reattach-${randomUUID().slice(0, 6)}`;
+		second.pty.write(`echo ${LIVE_SENTINEL}\n`);
+		await waitFor(() => {
+			const text = Buffer.concat(
+				second.buffer.map((b) => Buffer.from(b)),
+			).toString("utf8");
+			return text.includes(LIVE_SENTINEL);
+		}, 3000);
+
+		disposeSession(terminalId, db);
+	});
+
 	test("dispose then re-create with the same id works (no zombie state)", async () => {
 		// Rapid lifecycle: user creates terminal, kills it, creates again
 		// with the same id. Daemon-side cleanup must be done by the time

@@ -22,6 +22,7 @@ import {
 	type SessionInfo,
 } from "@superset/pty-daemon/protocol";
 import semver from "semver";
+import { DaemonClient } from "../terminal/DaemonClient/index.ts";
 import { EXPECTED_DAEMON_VERSION } from "./expected-version.ts";
 import { MAX_DAEMON_LOG_BYTES, openRotatingLogFd } from "./log-fd.ts";
 import {
@@ -47,6 +48,8 @@ interface DaemonInstance {
 
 const SOCKET_READY_TIMEOUT_MS = 5_000;
 const VERSION_PROBE_TIMEOUT_MS = 1_500;
+const HANDOFF_PREDECESSOR_EXIT_TIMEOUT_MS = 3_000;
+const HANDOFF_PROBE_TOTAL_TIMEOUT_MS = 3_000;
 
 /**
  * Crash supervision parameters. If the daemon for an organization crashes
@@ -90,6 +93,14 @@ function logEvent(event: string, props: Record<string, unknown>): void {
 export interface DaemonSupervisorOptions {
 	/** Path to the daemon entry script (e.g. `dist/pty-daemon.js`). */
 	scriptPath: string;
+	/**
+	 * When true (default), opportunistically calls `update()` after
+	 * adopting a daemon whose `runningVersion < EXPECTED_DAEMON_VERSION`.
+	 * Set to false in integration tests that intentionally adopt a stale
+	 * daemon and assert the version-drift flag without the test racing a
+	 * real handoff.
+	 */
+	autoUpdate?: boolean;
 }
 
 export class DaemonSupervisor {
@@ -116,6 +127,17 @@ export class DaemonSupervisor {
 	private readonly adoptedLivenessTimers = new Map<
 		string,
 		ReturnType<typeof setInterval>
+	>();
+	/**
+	 * In-flight `update()` promises per orgId. Both auto-update (on adopt
+	 * with version drift) and manual update via the renderer hit the same
+	 * supervisor.update() entry point — without this guard, two concurrent
+	 * calls would both try to handoff a daemon that's already mid-handoff.
+	 * The second caller returns the cached promise and gets the same result.
+	 */
+	private readonly updateInFlight = new Map<
+		string,
+		Promise<{ ok: true; successorPid: number } | { ok: false; reason: string }>
 	>();
 
 	constructor(opts: DaemonSupervisorOptions) {
@@ -166,6 +188,149 @@ export class DaemonSupervisor {
 	 * Awaits any in-flight spawn before stopping so we never SIGTERM a
 	 * partially-initialized child.
 	 */
+	/**
+	 * Phase 2: ask the running daemon to spawn a successor binary that
+	 * adopts all live sessions via fd-handoff. On success the original
+	 * shell PIDs survive the daemon swap.
+	 *
+	 * Distinct from `restart()` which kills sessions. Surface this via the
+	 * "Update" UX; fall back to `restart()` only on failure.
+	 */
+	update(
+		organizationId: string,
+	): Promise<
+		{ ok: true; successorPid: number } | { ok: false; reason: string }
+	> {
+		// Coalesce concurrent calls. Auto-update (on adopt with version
+		// drift) and a manual click of the Update button can race —
+		// without this guard, both would try to handoff the same daemon.
+		// The second caller observes the same outcome via the cached
+		// promise.
+		const inFlight = this.updateInFlight.get(organizationId);
+		if (inFlight) return inFlight;
+		const promise = this.runUpdate(organizationId).finally(() => {
+			this.updateInFlight.delete(organizationId);
+		});
+		this.updateInFlight.set(organizationId, promise);
+		return promise;
+	}
+
+	private async runUpdate(
+		organizationId: string,
+	): Promise<
+		{ ok: true; successorPid: number } | { ok: false; reason: string }
+	> {
+		const instance = this.instances.get(organizationId);
+		if (!instance) {
+			return { ok: false, reason: "no daemon running for this org" };
+		}
+
+		// Suppress crash-respawn for the predecessor's imminent exit. The
+		// predecessor was either spawned by us (child.on('exit') will fire)
+		// or adopted (liveness poll); either way, marking `stopping` makes
+		// the exit handler treat it as expected.
+		this.stopping.add(organizationId);
+		this.stopAdoptedLivenessCheck(organizationId);
+
+		// Mark the manifest so a host-service crash mid-handoff is
+		// debuggable. We restore on failure or replace on success.
+		const existingManifest = readPtyDaemonManifest(organizationId);
+		if (existingManifest) {
+			writePtyDaemonManifest({
+				...existingManifest,
+				handoffInProgress: true,
+			});
+		}
+
+		const restoreOnFailure = () => {
+			this.stopping.delete(organizationId);
+			if (existingManifest) writePtyDaemonManifest(existingManifest);
+			// Re-arm liveness for the (still-living) predecessor.
+			this.startAdoptedLivenessCheck(organizationId, instance.pid);
+		};
+
+		const client = new DaemonClient({ socketPath: instance.socketPath });
+		let result:
+			| { ok: true; successorPid: number }
+			| { ok: false; reason: string };
+		try {
+			await client.connect();
+			result = await client.prepareUpgrade();
+		} catch (err) {
+			restoreOnFailure();
+			return {
+				ok: false,
+				reason: `prepareUpgrade transport: ${(err as Error).message}`,
+			};
+		} finally {
+			await client.dispose();
+		}
+
+		if (!result.ok) {
+			restoreOnFailure();
+			return result;
+		}
+
+		// Gate the probe on predecessor exit — see waitForPidExit's docstring
+		// for the race it guards against.
+		const predecessorExited = await waitForPidExit(
+			instance.pid,
+			HANDOFF_PREDECESSOR_EXIT_TIMEOUT_MS,
+		);
+		if (!predecessorExited) {
+			restoreOnFailure();
+			return {
+				ok: false,
+				reason: `predecessor pid ${instance.pid} did not exit within ${HANDOFF_PREDECESSOR_EXIT_TIMEOUT_MS}ms after handoff ack`,
+			};
+		}
+
+		const probedVersion = await probeDaemonVersionWithRetry(
+			instance.socketPath,
+			HANDOFF_PROBE_TOTAL_TIMEOUT_MS,
+		);
+		const runningVersion = probedVersion ?? "unknown";
+
+		// Single capture so the in-memory instance and the manifest agree.
+		const successorStartedAt = Date.now();
+		const successorInstance: DaemonInstance = {
+			pid: result.successorPid,
+			socketPath: instance.socketPath,
+			startedAt: successorStartedAt,
+			runningVersion,
+			expectedVersion: EXPECTED_DAEMON_VERSION,
+			updatePending:
+				!!probedVersion &&
+				!semver.satisfies(probedVersion, `>=${EXPECTED_DAEMON_VERSION}`),
+		};
+		this.instances.set(organizationId, successorInstance);
+		this.stopping.delete(organizationId);
+		this.lastUpdatePendingPair.delete(organizationId);
+
+		if (existingManifest) {
+			writePtyDaemonManifest({
+				pid: result.successorPid,
+				socketPath: instance.socketPath,
+				protocolVersions: existingManifest.protocolVersions,
+				startedAt: successorStartedAt,
+				organizationId,
+			});
+		}
+
+		// Successor wasn't spawned as our child — start liveness polling.
+		this.startAdoptedLivenessCheck(organizationId, result.successorPid);
+
+		logEvent("pty_daemon_update", {
+			organizationId,
+			previousPid: instance.pid,
+			successorPid: result.successorPid,
+			previousVersion: instance.runningVersion,
+			successorVersion: runningVersion,
+		});
+
+		return { ok: true, successorPid: result.successorPid };
+	}
+
 	async restart(organizationId: string): Promise<{ success: true }> {
 		const prev = this.instances.get(organizationId);
 		const hadCircuitOpen = this.circuitOpen.has(organizationId);
@@ -285,7 +450,107 @@ export class DaemonSupervisor {
 		}
 	}
 
+	/**
+	 * Auto-update: best-effort opportunistic handoff when the adopted
+	 * daemon is older than the bundled binary. Runs after host-service
+	 * boot, fire-and-track, doesn't block anything. On failure we leave
+	 * the old daemon running — the user keeps their sessions and can
+	 * retry via the Update button. The renderer's "Update available"
+	 * badge still shows in that case, which is correct: the upgrade
+	 * truly is still pending.
+	 */
+	private kickoffAutoUpdate(
+		organizationId: string,
+		instance: DaemonInstance,
+	): void {
+		logEvent("pty_daemon_auto_update_attempt", {
+			organizationId,
+			runningVersion: instance.runningVersion,
+			expectedVersion: instance.expectedVersion,
+			pid: instance.pid,
+		});
+		void this.update(organizationId).then(
+			(result) => {
+				if (result.ok) {
+					logEvent("pty_daemon_auto_update_ok", {
+						organizationId,
+						previousPid: instance.pid,
+						successorPid: result.successorPid,
+						previousVersion: instance.runningVersion,
+					});
+				} else {
+					logEvent("pty_daemon_auto_update_failed", {
+						organizationId,
+						pid: instance.pid,
+						runningVersion: instance.runningVersion,
+						expectedVersion: instance.expectedVersion,
+						reason: result.reason,
+					});
+				}
+			},
+			(err) => {
+				logEvent("pty_daemon_auto_update_failed", {
+					organizationId,
+					pid: instance.pid,
+					runningVersion: instance.runningVersion,
+					expectedVersion: instance.expectedVersion,
+					reason: `threw: ${(err as Error).message}`,
+				});
+			},
+		);
+	}
+
+	/**
+	 * Dev-only: SIGTERM any existing daemon for this org so the next
+	 * adopt-or-spawn always lands on a fresh daemon process. Reads
+	 * the manifest (the only persistent record of "a daemon exists") —
+	 * if pid is alive, sends SIGTERM and waits up to 1s for it to exit.
+	 * If still alive, escalates to SIGKILL. Either way we remove the
+	 * manifest so tryAdopt sees a clean slate.
+	 *
+	 * Idempotent — safe to call when no daemon is running.
+	 */
+	private async killStaleDaemonForDev(organizationId: string): Promise<void> {
+		const manifest = readPtyDaemonManifest(organizationId);
+		if (!manifest) return;
+		if (!isProcessAlive(manifest.pid)) {
+			removePtyDaemonManifest(organizationId);
+			return;
+		}
+		console.log(
+			`[pty-daemon:${organizationId}] DEV: killing leftover daemon pid=${manifest.pid} (started ${Math.round((Date.now() - manifest.startedAt) / 1000)}s ago) so the next bootstrap picks up fresh bundle code`,
+		);
+		try {
+			process.kill(manifest.pid, "SIGTERM");
+		} catch {
+			// Already dead between our check and the kill.
+		}
+		const deadline = Date.now() + 1000;
+		while (Date.now() < deadline) {
+			if (!isProcessAlive(manifest.pid)) break;
+			await new Promise((r) => setTimeout(r, 50));
+		}
+		if (isProcessAlive(manifest.pid)) {
+			try {
+				process.kill(manifest.pid, "SIGKILL");
+			} catch {
+				// Already dead.
+			}
+		}
+		removePtyDaemonManifest(organizationId);
+	}
+
 	private async start(organizationId: string): Promise<DaemonInstance> {
+		// Dev mode: never adopt. A leftover detached daemon from a previous
+		// `bun dev` session would mask code changes — devs hit Update or
+		// open a session and see stale-bundle behavior with no obvious
+		// reason. Kill any running daemon for the org and spawn fresh.
+		// Production keeps the adopt path so PTY sessions survive
+		// host-service restarts (the original Phase 1 promise).
+		if (process.env.NODE_ENV !== "production") {
+			await this.killStaleDaemonForDev(organizationId);
+		}
+
 		const adopted = await this.tryAdopt(organizationId);
 		if (adopted) {
 			this.instances.set(organizationId, adopted);
@@ -302,6 +567,14 @@ export class DaemonSupervisor {
 			});
 			this.maybeFireUpdatePending(organizationId, adopted);
 			this.startAdoptedLivenessCheck(organizationId, adopted.pid);
+			// Auto-update opportunistically: if the adopted daemon is older
+			// than the bundled binary, kick off a handoff in the background.
+			// Sessions survive on success; on failure we leave the old
+			// daemon running and the user can retry via the Update button.
+			// Fire-and-track so bootstrap returns immediately.
+			if (adopted.updatePending && this.opts.autoUpdate !== false) {
+				this.kickoffAutoUpdate(organizationId, adopted);
+			}
 			return adopted;
 		}
 
@@ -686,6 +959,58 @@ export async function listDaemonSessions(
 			}
 		});
 	});
+}
+
+/**
+ * Retry probeDaemonVersion through the post-handoff bind window. The
+ * successor calls `listenWithRetry` only after the predecessor's IPC
+ * channel disconnects (= predecessor exited), so there's a brief gap
+ * between predecessor death and successor bind where any probe sees
+ * ECONNREFUSED. A single probe with a long timeout still fails because
+ * `probeDaemonVersion` resolves to null on the first connect-error;
+ * we have to actively retry.
+ */
+async function probeDaemonVersionWithRetry(
+	socketPath: string,
+	totalTimeoutMs: number,
+): Promise<string | null> {
+	const deadline = Date.now() + totalTimeoutMs;
+	while (Date.now() < deadline) {
+		const remaining = deadline - Date.now();
+		const perAttempt = Math.min(remaining, VERSION_PROBE_TIMEOUT_MS);
+		const v = await probeDaemonVersion(socketPath, perAttempt);
+		if (v !== null) return v;
+		await new Promise((r) => setTimeout(r, 50));
+	}
+	return null;
+}
+
+/**
+ * Poll `kill(pid, 0)` until the process is gone or the deadline hits.
+ * Returns `true` if we observed exit, `false` on timeout. Used to gate
+ * a post-handoff version probe on predecessor exit — without this gate,
+ * the probe can connect to the still-alive predecessor and record its
+ * (old) version as the successor's, leaving updatePending true.
+ *
+ * On timeout the caller should treat the update as failed: the predecessor
+ * is wedged, we can't reliably tell whether the successor bound, and
+ * pretending to succeed would silently corrupt the supervisor's view.
+ */
+async function waitForPidExit(
+	pid: number,
+	timeoutMs: number,
+): Promise<boolean> {
+	const deadline = Date.now() + timeoutMs;
+	while (Date.now() < deadline) {
+		try {
+			process.kill(pid, 0);
+		} catch (err) {
+			if ((err as NodeJS.ErrnoException).code === "ESRCH") return true;
+			// EPERM: process exists but isn't ours — keep waiting.
+		}
+		await new Promise((r) => setTimeout(r, 25));
+	}
+	return false;
 }
 
 /**

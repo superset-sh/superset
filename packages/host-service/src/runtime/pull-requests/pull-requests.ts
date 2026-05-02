@@ -24,10 +24,12 @@ import {
 
 const BRANCH_SYNC_INTERVAL_MS = 30_000;
 const PROJECT_REFRESH_INTERVAL_MS = 20_000;
-// Multiple projects can target the same GitHub repo; collapse those into a
-// single GraphQL call within the polling window so we don't multiply traffic
-// by the number of projects.
-const REPO_PULL_REQUEST_CACHE_TTL_MS = 10_000;
+// Must exceed every polling interval that hits this cache (BRANCH_SYNC and
+// PROJECT_REFRESH). Otherwise the cache is always stale at poll time and
+// each tick fires a fresh GraphQL call per repo. Multiple projects can
+// target the same GitHub repo; this collapses them into one call per repo
+// per TTL window.
+const REPO_PULL_REQUEST_CACHE_TTL_MS = 60_000;
 const UNBORN_HEAD_ERROR_PATTERNS = [
 	"ambiguous argument 'head'",
 	"unknown revision or path not in the working tree",
@@ -353,10 +355,12 @@ export class PullRequestRuntimeManager {
 			}
 		}
 
+		// Branch changes use the shared 60s cache rather than bypassing it.
+		// The next refreshEligibleProjects tick will pick up newly-opened PRs;
+		// up to TTL_MS lag on attaching a brand-new external PR is acceptable
+		// and keeps high-churn workspaces from multiplying GraphQL traffic.
 		await Promise.all(
-			[...changedProjectIds].map((projectId) =>
-				this.refreshProject(projectId, { bypassCache: true }),
-			),
+			[...changedProjectIds].map((projectId) => this.refreshProject(projectId)),
 		);
 	}
 
@@ -528,13 +532,15 @@ export class PullRequestRuntimeManager {
 				name: repo.name,
 			});
 		})();
-		// Evict on failure so the next caller retries instead of serving a
-		// poisoned cache entry for the rest of the TTL.
-		promise.catch(() => {
-			if (this.repoPullRequestCache.get(cacheKey)?.promise === promise) {
-				this.repoPullRequestCache.delete(cacheKey);
-			}
-		});
+		// Observer to silence unhandledRejection warnings; real consumers
+		// observe the rejection via their own await on the cached promise.
+		promise.catch(() => {});
+		// Keep failed promises cached for the full TTL so subsequent polls
+		// share the rejection without firing new GraphQL calls. Evicting on
+		// every error caused a self-perpetuating storm under rate-limit /
+		// abuse-detection responses: the failure invalidated the cache, the
+		// next 20s tick retried, hit the same 403, and re-evicted. Network
+		// blips heal at the next TTL boundary instead.
 		this.repoPullRequestCache.set(cacheKey, { promise, fetchedAt });
 		return promise;
 	}

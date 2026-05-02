@@ -557,6 +557,13 @@ interface CreateTerminalSessionOptions {
 	initialCommand?: string;
 	/** Hidden sessions are process-internal and should not appear in user pickers. */
 	listed?: boolean;
+	/**
+	 * Replay the daemon's ring buffer on subscribe. Default true. Pass false
+	 * when the renderer's xterm already has the scrollback — replaying then
+	 * doubles the visible output. Tradeoff: bytes the PTY produced during
+	 * the WS-down window are dropped (sub-second on a daemon swap).
+	 */
+	replayOnAdoption?: boolean;
 }
 
 export async function createTerminalSessionInternal({
@@ -567,6 +574,7 @@ export async function createTerminalSessionInternal({
 	eventBus,
 	initialCommand,
 	listed = true,
+	replayOnAdoption = true,
 }: CreateTerminalSessionOptions): Promise<TerminalSession | { error: string }> {
 	const existing = sessions.get(terminalId);
 	if (existing) {
@@ -727,12 +735,9 @@ export async function createTerminalSessionInternal({
 		}, SHELL_READY_TIMEOUT_MS);
 	}
 
-	// Subscribe to the daemon's output + exit stream for this session. We
-	// pass replay:true so a fresh host-service after a restart picks up
-	// whatever the daemon already had buffered for the session.
 	session.unsubscribeDaemon = daemon.subscribe(
 		terminalId,
-		{ replay: true },
+		{ replay: replayOnAdoption },
 		{
 			onOutput(chunk) {
 				// Bytes flow daemon → host → xterm without UTF-8 decoding;
@@ -891,6 +896,8 @@ export function registerWorkspaceTerminalRoute({
 						}
 
 						const themeType = parseThemeType(c.req.query("themeType"));
+						// Renderer passes `?replay=0` on reconnect; see replayOnAdoption.
+						const replayOnAdoption = c.req.query("replay") !== "0";
 						// Daemon open is async; fire-and-forget while keeping the WS alive.
 						// On success: register the socket; on failure: surface and close.
 						void (async () => {
@@ -900,6 +907,7 @@ export function registerWorkspaceTerminalRoute({
 								themeType,
 								db,
 								eventBus,
+								replayOnAdoption,
 							});
 
 							if ("error" in result) {

@@ -115,4 +115,48 @@ describe("terminal.daemon tRPC procedures", () => {
 			"00000000-0000-4000-8000-000000000000",
 		);
 	});
+
+	test("update delegates to supervisor.update with the org id", async () => {
+		const sup = getSupervisor("/nonexistent");
+		const ensureMock = mock(
+			async () => ({}) as Awaited<ReturnType<typeof sup.ensure>>,
+		);
+		const updateMock = mock(async () => ({
+			ok: true as const,
+			successorPid: 99999,
+		}));
+		(sup as unknown as { ensure: typeof sup.ensure }).ensure =
+			ensureMock as typeof sup.ensure;
+		(sup as unknown as { update: typeof sup.update }).update =
+			updateMock as typeof sup.update;
+
+		const caller = makeCaller();
+		const result = await caller.terminal.daemon.update();
+
+		expect(result).toEqual({ ok: true, successorPid: 99999 });
+		expect(updateMock).toHaveBeenCalledWith(
+			"00000000-0000-4000-8000-000000000000",
+		);
+	});
+
+	test("update surfaces failure result without throwing", async () => {
+		const sup = getSupervisor("/nonexistent");
+		const ensureMock = mock(
+			async () => ({}) as Awaited<ReturnType<typeof sup.ensure>>,
+		);
+		const updateMock = mock(async () => ({
+			ok: false as const,
+			reason: "snapshot write failed: ENOSPC",
+		}));
+		(sup as unknown as { ensure: typeof sup.ensure }).ensure =
+			ensureMock as typeof sup.ensure;
+		(sup as unknown as { update: typeof sup.update }).update =
+			updateMock as typeof sup.update;
+
+		const caller = makeCaller();
+		const result = await caller.terminal.daemon.update();
+
+		expect(result.ok).toBe(false);
+		expect(result.ok === false ? result.reason : "").toMatch(/ENOSPC/);
+	});
 });

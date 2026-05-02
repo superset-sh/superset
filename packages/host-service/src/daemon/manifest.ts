@@ -19,6 +19,15 @@ export interface PtyDaemonManifest {
 	protocolVersions: number[];
 	startedAt: number;
 	organizationId: string;
+	// ----- Phase 2 (daemon-binary upgrade fd-handoff) -----
+	// All present only during the brief handoff window. Older host-service
+	// builds that don't know these fields ignore them harmlessly.
+	/** True between predecessor's snapshot-write and successor's bind. */
+	handoffInProgress?: boolean;
+	/** Path of the on-disk handoff snapshot the successor will read. */
+	handoffSnapshotPath?: string;
+	/** PID of the spawned successor; pre-bind, supervisor uses this to track. */
+	handoffSuccessorPid?: number;
 }
 
 function supersetHomeDir(): string {
@@ -63,7 +72,27 @@ export function readPtyDaemonManifest(
 		) {
 			return null;
 		}
-		return data as PtyDaemonManifest;
+		// Phase 2 fields are optional. If present, they must have the right
+		// shape; otherwise drop them silently rather than rejecting the whole
+		// manifest — these fields are advisory state and missing/garbage
+		// values shouldn't make the daemon unrecoverable.
+		const out: PtyDaemonManifest = {
+			pid: data.pid,
+			socketPath: data.socketPath,
+			protocolVersions: data.protocolVersions,
+			startedAt: data.startedAt,
+			organizationId: data.organizationId,
+		};
+		if (typeof data.handoffInProgress === "boolean") {
+			out.handoffInProgress = data.handoffInProgress;
+		}
+		if (typeof data.handoffSnapshotPath === "string") {
+			out.handoffSnapshotPath = data.handoffSnapshotPath;
+		}
+		if (typeof data.handoffSuccessorPid === "number") {
+			out.handoffSuccessorPid = data.handoffSuccessorPid;
+		}
+		return out;
 	} catch {
 		return null;
 	}

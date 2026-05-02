@@ -903,7 +903,7 @@
     },
     "packages/pty-daemon": {
       "name": "@superset/pty-daemon",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "bin": {
         "pty-daemon": "./src/main.ts",
       },
