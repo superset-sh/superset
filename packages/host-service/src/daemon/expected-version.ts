@@ -13,4 +13,4 @@
 // `node_modules/@superset/pty-daemon/package.json` and writes a generated
 // constant, so the lockstep can't drift silently. For now: hand-edit and
 // rely on PR review.
-export const EXPECTED_DAEMON_VERSION = "0.1.0";
+export const EXPECTED_DAEMON_VERSION = "0.2.0";
