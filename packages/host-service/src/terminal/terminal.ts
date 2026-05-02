@@ -557,6 +557,19 @@ interface CreateTerminalSessionOptions {
 	initialCommand?: string;
 	/** Hidden sessions are process-internal and should not appear in user pickers. */
 	listed?: boolean;
+	/**
+	 * Whether to replay the daemon's ring buffer on subscribe. Default `true`.
+	 *
+	 * Set to `false` when the renderer's xterm already has the scrollback —
+	 * e.g., a WS reconnect after host-service force-closed sockets in
+	 * onDaemonDisconnect. The renderer's xterm survives WS reconnects, so
+	 * replaying re-writes bytes the user has already seen and the conversation
+	 * appears doubled in the terminal pane.
+	 *
+	 * Tradeoff: the few bytes the PTY produced during the WS-down window are
+	 * skipped. Sub-second on a daemon swap; longer on a host-service restart.
+	 */
+	replayOnAdoption?: boolean;
 }
 
 export async function createTerminalSessionInternal({
@@ -567,6 +580,7 @@ export async function createTerminalSessionInternal({
 	eventBus,
 	initialCommand,
 	listed = true,
+	replayOnAdoption = true,
 }: CreateTerminalSessionOptions): Promise<TerminalSession | { error: string }> {
 	const existing = sessions.get(terminalId);
 	if (existing) {
@@ -727,12 +741,20 @@ export async function createTerminalSessionInternal({
 		}, SHELL_READY_TIMEOUT_MS);
 	}
 
-	// Subscribe to the daemon's output + exit stream for this session. We
-	// pass replay:true so a fresh host-service after a restart picks up
-	// whatever the daemon already had buffered for the session.
+	// Subscribe to the daemon's output + exit stream for this session.
+	//
+	// `replay: true` (default) replays the daemon's ring buffer to host-service,
+	// which forwards to all WS subscribers. Right for cold-start scenarios:
+	// fresh host-service after a process restart, no in-memory state.
+	//
+	// `replay: false` (caller passes replayOnAdoption: false) is for the
+	// renderer-WS-reconnect path — the renderer's xterm already has the
+	// scrollback, so replaying would write bytes the user already saw and
+	// the visible terminal would show doubled output. See onDaemonDisconnect
+	// in this file for the producer of that scenario.
 	session.unsubscribeDaemon = daemon.subscribe(
 		terminalId,
-		{ replay: true },
+		{ replay: replayOnAdoption },
 		{
 			onOutput(chunk) {
 				// Bytes flow daemon → host → xterm without UTF-8 decoding;
@@ -891,6 +913,10 @@ export function registerWorkspaceTerminalRoute({
 						}
 
 						const themeType = parseThemeType(c.req.query("themeType"));
+						// `?replay=0` means "I'm reconnecting, my xterm has scrollback,
+						// don't replay the buffer." Default (omitted or =1) replays.
+						// See createTerminalSessionInternal.replayOnAdoption.
+						const replayOnAdoption = c.req.query("replay") !== "0";
 						// Daemon open is async; fire-and-forget while keeping the WS alive.
 						// On success: register the socket; on failure: surface and close.
 						void (async () => {
@@ -900,6 +926,7 @@ export function registerWorkspaceTerminalRoute({
 								themeType,
 								db,
 								eventBus,
+								replayOnAdoption,
 							});
 
 							if ("error" in result) {

@@ -45,6 +45,13 @@ export interface TerminalTransport {
 	_terminal: XTerm | null;
 	/** Set when the server sends an exit message — no reconnect after this. */
 	_exited: boolean;
+	/**
+	 * Flips true after the first successful WS open. Subsequent connects
+	 * (auto-reconnect after the server force-closed us, or a URL swap) tell
+	 * the server `replay=0`: the xterm already has the scrollback, so
+	 * replaying the daemon's ring buffer would write duplicates.
+	 */
+	_hasEverOpened: boolean;
 }
 
 const MAX_LOG_ENTRIES = 200;
@@ -122,6 +129,7 @@ export function createTransport(): TerminalTransport {
 		_reconnectTimer: null,
 		_reconnectAttempt: 0,
 		_terminal: null,
+		_hasEverOpened: false,
 		_exited: false,
 	};
 }
@@ -173,6 +181,18 @@ function formatCloseDetails(event: CloseEvent): string {
 	return `code: ${code}${reason}`;
 }
 
+function appendQueryParam(url: string, key: string, value: string): string {
+	try {
+		const u = new URL(url);
+		u.searchParams.set(key, value);
+		return u.toString();
+	} catch {
+		// URL parse failed (relative url, malformed). Fall back to naive append.
+		const sep = url.includes("?") ? "&" : "?";
+		return `${url}${sep}${encodeURIComponent(key)}=${encodeURIComponent(value)}`;
+	}
+}
+
 export function connect(
 	transport: TerminalTransport,
 	terminal: XTerm,
@@ -195,7 +215,14 @@ export function connect(
 	transport._terminal = terminal;
 	transport._exited = false;
 	setConnectionState(transport, "connecting");
-	const socket = new WebSocket(wsUrl);
+	// On a reconnect (or URL swap on a transport that has been live before),
+	// tell the server not to replay the daemon's ring buffer: the xterm
+	// already has the scrollback. See terminal.ts createTerminalSessionInternal
+	// (replayOnAdoption) for the server side.
+	const actualUrl = transport._hasEverOpened
+		? appendQueryParam(wsUrl, "replay", "0")
+		: wsUrl;
+	const socket = new WebSocket(actualUrl);
 	// Receive PTY bytes as ArrayBuffer (the default would be Blob, which
 	// forces an async read); we want to feed bytes synchronously into
 	// xterm.write to keep render order strict.
@@ -205,6 +232,7 @@ export function connect(
 	socket.addEventListener("open", () => {
 		if (transport.socket !== socket) return;
 		transport._reconnectAttempt = 0;
+		transport._hasEverOpened = true;
 		setConnectionState(transport, "open");
 		sendResize(transport, terminal.cols, terminal.rows);
 		if (options.initialCommand) {

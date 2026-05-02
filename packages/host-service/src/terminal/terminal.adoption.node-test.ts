@@ -311,6 +311,82 @@ describe("createTerminalSessionInternal — host-service restart adoption", () =
 		disposeSession(terminalId, db);
 	});
 
+	test("replayOnAdoption: false suppresses ring-buffer replay on reconnect", async () => {
+		// Regression for the duplicated-output-on-daemon-swap bug: when the
+		// renderer's xterm scrollback survives the WS reconnect (which it
+		// does), replaying the daemon's ring buffer rewrites bytes the user
+		// has already seen and the conversation appears doubled. This test
+		// drives the createTerminalSessionInternal layer that the WS upgrade
+		// handler maps to.
+		const terminalId = `e2e-noreplay-${randomUUID().slice(0, 8)}`;
+
+		const first = await createTerminalSessionInternal({
+			terminalId,
+			workspaceId,
+			db,
+			listed: true,
+		});
+		assert.ok(!("error" in first));
+		if ("error" in first) return;
+
+		// Produce a recognizable byte sequence and wait for it to land in the
+		// daemon's ring buffer (read it back through the live subscription as
+		// proof — that's also what would be replayed on a normal adoption).
+		const SENTINEL = `noreplay-sentinel-${randomUUID().slice(0, 6)}`;
+		first.pty.write(`echo ${SENTINEL}\n`);
+		await waitForOutput(first.pty, SENTINEL, 3000);
+
+		// Simulate onDaemonDisconnect: host-service drops sessions; the daemon
+		// (and its ring buffer) survives.
+		__resetSessionsForTesting();
+		await disposeDaemonClient();
+
+		// Reattach with replayOnAdoption: false — the renderer signals via
+		// `?replay=0` that its xterm already has the scrollback.
+		const second = await createTerminalSessionInternal({
+			terminalId,
+			workspaceId,
+			db,
+			listed: true,
+			replayOnAdoption: false,
+		});
+		assert.ok(!("error" in second));
+		if ("error" in second) return;
+		assert.equal(
+			second.pty.pid,
+			first.pty.pid,
+			"adopted session should have same shell pid",
+		);
+
+		// Watch the new subscription's data stream for the sentinel. With
+		// replayOnAdoption=true (the bug) the daemon replays the buffer and
+		// the sentinel arrives within the first chunk. With replayOnAdoption=false
+		// (the fix) it should never arrive.
+		let secondBuf = "";
+		const disposer = second.pty.onData((d) => {
+			secondBuf += d;
+		});
+
+		// Generous window so the daemon has time to send replay if it were
+		// going to. If it doesn't arrive in 500ms, it's not coming.
+		await new Promise((r) => setTimeout(r, 500));
+
+		assert.equal(
+			secondBuf.includes(SENTINEL),
+			false,
+			`adopted subscription must NOT replay buffer when replayOnAdoption=false; received: ${JSON.stringify(secondBuf.slice(0, 200))}`,
+		);
+
+		// Sanity check: live output still flows. The shell is alive; sending
+		// new input should produce new output on this subscription.
+		const LIVE_SENTINEL = `live-after-reattach-${randomUUID().slice(0, 6)}`;
+		second.pty.write(`echo ${LIVE_SENTINEL}\n`);
+		await waitFor(() => secondBuf.includes(LIVE_SENTINEL), 3000);
+		disposer.dispose();
+
+		disposeSession(terminalId, db);
+	});
+
 	test("dispose then re-create with the same id works (no zombie state)", async () => {
 		// Rapid lifecycle: user creates terminal, kills it, creates again
 		// with the same id. Daemon-side cleanup must be done by the time
