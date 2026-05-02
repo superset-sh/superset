@@ -288,6 +288,13 @@
       "when": 1777575539318,
       "tag": "0040_better_auth_165_columns",
       "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1777759429750,
+      "tag": "0041_add_automation_prompt_versions",
+      "breakpoints": true
     }
   ]
 }

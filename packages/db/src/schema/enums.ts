@@ -84,3 +84,11 @@ export type AutomationRunStatus = z.infer<typeof automationRunStatusEnum>;
 export const automationSessionKindValues = ["chat", "terminal"] as const;
 export const automationSessionKindEnum = z.enum(automationSessionKindValues);
 export type AutomationSessionKind = z.infer<typeof automationSessionKindEnum>;
+
+export const automationPromptSourceValues = [
+	"human",
+	"agent",
+	"restore",
+] as const;
+export const automationPromptSourceEnum = z.enum(automationPromptSourceValues);
+export type AutomationPromptSource = z.infer<typeof automationPromptSourceEnum>;
