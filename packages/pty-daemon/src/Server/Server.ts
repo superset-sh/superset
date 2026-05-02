@@ -196,12 +196,10 @@ export class Server {
 		process.stderr.write(
 			`[pty-daemon prep-upgrade pid=${process.pid}] spawning successor: ${process.execPath} ${[...process.execArgv, scriptPath].join(" ")} (sessions=${liveSessions.length}, ptyFds=${liveSessions.map((s) => s.pty.getMasterFd()).join(",")})\n`,
 		);
-		// Strip SUPERSET_PTY_DAEMON_VERSION from the successor's env: if the
-		// supervisor pinned a version when it spawned us, the successor would
-		// inherit that pin and report the *old* version even though it's the
-		// new bundle. The supervisor would then think the upgrade never took
-		// effect and loop forever. Successor falls back to readPackageVersion()
-		// which reads the package.json shipped alongside the new bundle.
+		// Don't pass our own pinned version through to the successor — it
+		// would report it as its running version, and the supervisor would
+		// loop forever auto-updating. Successor reads its bundle's
+		// package.json instead.
 		const successorEnv: NodeJS.ProcessEnv = { ...process.env };
 		delete successorEnv.SUPERSET_PTY_DAEMON_VERSION;
 		const child = childProcess.spawn(
@@ -219,8 +217,6 @@ export class Server {
 				detached: false,
 			},
 		);
-		// Log child stderr separately so we see successor errors even when
-		// stdio is piped through host-service in dev.
 		child.on("exit", (code, signal) => {
 			process.stderr.write(
 				`[pty-daemon prep-upgrade pid=${process.pid}] successor exited code=${code} signal=${signal}\n`,
@@ -234,10 +230,7 @@ export class Server {
 			} catch {
 				// already gone
 			}
-			// Drop the snapshot so a future handoff doesn't trip over a
-			// stale file. Best-effort: a handoff that fails before the
-			// successor reads the snapshot leaves it pointing nowhere
-			// useful, and `clearSnapshot` is idempotent against ENOENT.
+			// Drop the snapshot so a future handoff doesn't trip over it.
 			try {
 				fs.unlinkSync(snapshotPath);
 			} catch {

@@ -115,14 +115,9 @@ async function runHandoffReceiver(): Promise<void> {
 	}
 	log(`snapshotPath=${snapshotPath} socketPath=${socketPath}`);
 
-	// Successor reads its OWN bundle version, NOT the env. The env was
-	// inherited from the predecessor process; on the first upgrade from
-	// an old-bundle predecessor (which won't strip the env when spawning
-	// us), trusting the env would make the successor report the
-	// predecessor's stale version — the supervisor would then think the
-	// upgrade didn't take effect and updatePending would loop forever.
-	// readPackageVersion reads the package.json shipped alongside this
-	// bundle, which is the source of truth for the running binary.
+	// Ignore env in handoff mode: an old-bundle predecessor won't strip
+	// SUPERSET_PTY_DAEMON_VERSION when spawning us, and trusting it
+	// would make us report the predecessor's stale version forever.
 	const daemonVersion = readPackageVersion();
 	log(`daemonVersion=${daemonVersion}`);
 

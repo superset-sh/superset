@@ -466,24 +466,11 @@ describe("DaemonSupervisor.update (Phase 2 fd-handoff)", () => {
 	});
 
 	test("update() clears updatePending when predecessor was running an older version", async () => {
-		// Regression for the "Update daemon stuck on UPDATE AVAILABLE" bug.
-		//
-		// User-facing symptom: predecessor was spawned with
-		// SUPERSET_PTY_DAEMON_VERSION=0.1.0 (an older host-service install).
-		// User installs a new desktop with EXPECTED=0.2.0; supervisor adopts
-		// the predecessor at 0.1.0, marks updatePending=true. User clicks
-		// "Update daemon", toast says success, but the badge keeps showing
-		// "0.1.0 → 0.2.0 pending". Reason: the post-update version probe
-		// reported 0.1.0 instead of 0.2.0.
-		//
-		// Two failure modes the bug could come back as:
-		//   1. probe race — connect to predecessor before it exits.
-		//   2. successor reads env (set to 0.1.0 by old predecessor) instead
-		//      of its own package.json.
-		//
-		// This test pins the predecessor at "0.0.1-stale" via env and asserts
-		// that after sup.update(), the supervisor's recorded runningVersion
-		// is the bundle version (NOT 0.0.1-stale) and updatePending is false.
+		// Regression for "Update daemon stuck on UPDATE AVAILABLE": the
+		// post-update version probe used to either race the predecessor
+		// or trust the env it inherited, recording the OLD version as the
+		// successor's. This test pins the predecessor at 0.0.1-stale via
+		// env and asserts post-update running != stale, pending=false.
 		const orgId = "org-update-version";
 		const socketPath = path.join(
 			os.tmpdir(),
@@ -571,12 +558,8 @@ describe("DaemonSupervisor.update (Phase 2 fd-handoff)", () => {
 	});
 
 	test("auto-update with zero live sessions completes cleanly", async () => {
-		// Real case: user installs new desktop with EXPECTED bumped, but had
-		// no terminals open in the prior session. Host-service starts,
-		// adopts the predecessor at the old version, kicks off auto-update
-		// in the background. Snapshot has zero session frames; successor
-		// adopts nothing and just rebinds. Easy to break in refactors that
-		// assume snapshot.sessions.length > 0.
+		// Snapshot has zero session frames; successor adopts nothing and
+		// rebinds. Easy to break under refactors that assume sessions > 0.
 		const orgId = "org-empty-handoff";
 		const socketPath = path.join(
 			os.tmpdir(),
@@ -616,15 +599,13 @@ describe("DaemonSupervisor.update (Phase 2 fd-handoff)", () => {
 				organizationId: orgId,
 			});
 
-			// autoUpdate=true (default) — the supervisor adopts and fires
-			// the background handoff.
+			// autoUpdate defaults to true — adopt fires the background handoff.
 			const sup = new DaemonSupervisor({ scriptPath: DAEMON_BUNDLE });
 			supervisorsToCleanup.push({ sup, orgId });
 			const adopted = await sup.ensure(orgId);
 			assert.equal(adopted.updatePending, true);
 			const oldPid = adopted.pid;
 
-			// Poll for pid swap.
 			const deadline = Date.now() + 5000;
 			let currentPid = oldPid;
 			while (Date.now() < deadline) {
@@ -643,7 +624,6 @@ describe("DaemonSupervisor.update (Phase 2 fd-handoff)", () => {
 				`auto-update did not swap pid within 5s (still ${oldPid})`,
 			);
 
-			// Successor must be a healthy daemon (probe round-trips).
 			const status = sup.getUpdateStatus(orgId);
 			assert.ok(status, "supervisor should have status post-update");
 			assert.equal(
@@ -665,14 +645,11 @@ describe("DaemonSupervisor.update (Phase 2 fd-handoff)", () => {
 	});
 
 	test("auto-update failure does not disrupt the predecessor's live sessions", async () => {
-		// Real case: heavy path. Auto-update fires on adopt; something goes
-		// wrong (we induce by pointing scriptPath at a missing file, which
-		// is the moral equivalent of a corrupt bundle install — prepareUpgrade
-		// in the predecessor will spawn a successor that immediately exits
-		// because the script path doesn't exist as a usable Node entry).
-		//
-		// Critical contract: the user's shells DO NOT die. The predecessor
-		// keeps serving. Sessions are still attachable post-failure.
+		// Heavy path: auto-update fires on every adopt with version drift.
+		// When something goes wrong (snapshot ENOSPC, successor adopt
+		// crash, IPC stall — we induce via runUpdate override), the user's
+		// shells must NOT die. Predecessor keeps serving; sessions still
+		// attachable post-failure.
 		const orgId = "org-autoupdate-fail";
 		const socketPath = path.join(
 			os.tmpdir(),
@@ -730,13 +707,10 @@ describe("DaemonSupervisor.update (Phase 2 fd-handoff)", () => {
 				organizationId: orgId,
 			});
 
-			// scriptPath points to a missing file. The predecessor's
-			// prepareUpgrade reads its own script from process.argv[1]
-			// (the real bundle), but the supervisor's own scriptPath isn't
-			// what predecessor uses for handoff — so we need a different
-			// failure injection. Override runUpdate via the same access
-			// pattern the unit tests use: this is integration but we drive
-			// the failure deterministically.
+			// Predecessor uses process.argv[1] (its own bundle) for handoff,
+			// not the supervisor's scriptPath — so injecting a bad scriptPath
+			// won't fail the update. Override runUpdate directly to drive the
+			// failure deterministically.
 			const sup = new DaemonSupervisor({ scriptPath: DAEMON_BUNDLE });
 			supervisorsToCleanup.push({ sup, orgId });
 			(
@@ -752,9 +726,7 @@ describe("DaemonSupervisor.update (Phase 2 fd-handoff)", () => {
 			assert.equal(adopted.updatePending, true);
 			const predecessorPid = adopted.pid;
 
-			// Auto-update fires asynchronously. Wait for it to complete
-			// (success or failure). The instance's pid should NOT change
-			// because the failure path leaves the predecessor recorded.
+			// Auto-update is fire-and-forget; wait for it to settle.
 			await new Promise((r) => setTimeout(r, 500));
 
 			const status = sup.getUpdateStatus(orgId);
@@ -770,14 +742,12 @@ describe("DaemonSupervisor.update (Phase 2 fd-handoff)", () => {
 				"pending must remain true after auto-update failure (user can retry via Update button)",
 			);
 
-			// Predecessor process is still alive.
 			assert.equal(
 				isAlive(predecessorPid),
 				true,
 				"predecessor pid must still be running",
 			);
 
-			// And the survivor session is still attachable + alive.
 			const verifyClient = new DaemonClient({ socketPath });
 			await verifyClient.connect();
 			const sessions = await verifyClient.list();

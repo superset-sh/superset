@@ -476,26 +476,8 @@ describe("auto-update failure mode (heavy path: must not disrupt sessions)", () 
 	});
 
 	test("ok:false from runUpdate leaves the predecessor instance untouched", async () => {
-		// Seed a stale predecessor: this is what tryAdopt would have
-		// produced for an older-version daemon adopted at startup.
 		const PREDECESSOR_PID = 4242;
-		seedInstance(sup, "org-fail", {
-			runningVersion: "0.1.0",
-			expectedVersion: "0.2.0",
-			updatePending: true,
-		});
-		(
-			sup as unknown as {
-				instances: Map<string, { pid: number; runningVersion: string }>;
-			}
-		).instances.set("org-fail", {
-			pid: PREDECESSOR_PID,
-			socketPath: "/tmp/seeded.sock",
-			startedAt: Date.now(),
-			runningVersion: "0.1.0",
-			expectedVersion: "0.2.0",
-			updatePending: true,
-		} as never);
+		seedPredecessor(sup, "org-fail", PREDECESSOR_PID);
 
 		const runUpdateMock = mock(async () => ({
 			ok: false as const,
@@ -507,48 +489,25 @@ describe("auto-update failure mode (heavy path: must not disrupt sessions)", () 
 		const result = await sup.update("org-fail");
 		expect(result.ok).toBe(false);
 
-		// Critical assertion: predecessor is still the recorded instance.
-		// Sessions live in that process; if we'd overwritten the entry on
-		// failure the supervisor would lose track of the live shells.
+		// Sessions live in the predecessor process — if we overwrote this
+		// entry on failure the supervisor would lose track of them.
 		const status = sup.getUpdateStatus("org-fail");
 		expect(status?.running).toBe("0.1.0");
 		expect(status?.pending).toBe(true);
-		const inst = (
-			sup as unknown as { instances: Map<string, { pid: number }> }
-		).instances.get("org-fail");
-		expect(inst?.pid).toBe(PREDECESSOR_PID);
+		expect(getInstancePid(sup, "org-fail")).toBe(PREDECESSOR_PID);
 	});
 
 	test("runUpdate throwing leaves the predecessor instance untouched", async () => {
 		const PREDECESSOR_PID = 5252;
-		(
-			sup as unknown as {
-				instances: Map<string, unknown>;
-			}
-		).instances.set("org-throw", {
-			pid: PREDECESSOR_PID,
-			socketPath: "/tmp/seeded.sock",
-			startedAt: Date.now(),
-			runningVersion: "0.1.0",
-			expectedVersion: "0.2.0",
-			updatePending: true,
-		});
+		seedPredecessor(sup, "org-throw", PREDECESSOR_PID);
 
-		const runUpdateMock = mock(async () => {
-			throw new Error("transport: ECONNRESET");
-		});
-		(sup as unknown as { runUpdate: typeof runUpdateMock }).runUpdate =
-			runUpdateMock as never;
+		(sup as unknown as { runUpdate: () => Promise<never> }).runUpdate =
+			async () => {
+				throw new Error("transport: ECONNRESET");
+			};
 
-		// kickoffAutoUpdate (which is what fires on adopt) calls update() and
-		// catches both ok:false and throws via .then(_, _). Drive it directly
-		// so we observe the throw branch.
 		await expect(sup.update("org-throw")).rejects.toThrow(/ECONNRESET/);
-
-		const inst = (
-			sup as unknown as { instances: Map<string, { pid: number }> }
-		).instances.get("org-throw");
-		expect(inst?.pid).toBe(PREDECESSOR_PID);
+		expect(getInstancePid(sup, "org-throw")).toBe(PREDECESSOR_PID);
 	});
 });
 
@@ -574,6 +533,33 @@ interface SeededFields {
 	runningVersion: string;
 	expectedVersion: string;
 	updatePending: boolean;
+}
+
+function seedPredecessor(
+	sup: DaemonSupervisor,
+	organizationId: string,
+	pid: number,
+): void {
+	(sup as unknown as { instances: Map<string, unknown> }).instances.set(
+		organizationId,
+		{
+			pid,
+			socketPath: "/tmp/seeded.sock",
+			startedAt: Date.now(),
+			runningVersion: "0.1.0",
+			expectedVersion: "0.2.0",
+			updatePending: true,
+		},
+	);
+}
+
+function getInstancePid(
+	sup: DaemonSupervisor,
+	organizationId: string,
+): number | undefined {
+	return (
+		sup as unknown as { instances: Map<string, { pid: number }> }
+	).instances.get(organizationId)?.pid;
 }
 
 function seedInstance(

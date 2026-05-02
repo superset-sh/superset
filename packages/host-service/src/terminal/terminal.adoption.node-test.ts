@@ -329,20 +329,17 @@ describe("createTerminalSessionInternal — host-service restart adoption", () =
 		assert.ok(!("error" in first));
 		if ("error" in first) return;
 
-		// Produce a recognizable byte sequence and wait for it to land in the
-		// daemon's ring buffer (read it back through the live subscription as
-		// proof — that's also what would be replayed on a normal adoption).
+		// Seed the daemon's ring buffer with a sentinel — that's what would
+		// be replayed on a normal adoption.
 		const SENTINEL = `noreplay-sentinel-${randomUUID().slice(0, 6)}`;
 		first.pty.write(`echo ${SENTINEL}\n`);
 		await waitForOutput(first.pty, SENTINEL, 3000);
 
-		// Simulate onDaemonDisconnect: host-service drops sessions; the daemon
-		// (and its ring buffer) survives.
+		// Simulate onDaemonDisconnect: host-service drops its in-memory
+		// sessions; the daemon (and its ring buffer) survives.
 		__resetSessionsForTesting();
 		await disposeDaemonClient();
 
-		// Reattach with replayOnAdoption: false — the renderer signals via
-		// `?replay=0` that its xterm already has the scrollback.
 		const second = await createTerminalSessionInternal({
 			terminalId,
 			workspaceId,
@@ -358,19 +355,9 @@ describe("createTerminalSessionInternal — host-service restart adoption", () =
 			"adopted session should have same shell pid",
 		);
 
-		// Observe the session's own broadcast buffer (`session.buffer` /
-		// `session.bufferBytes`) — that's what the WS-broadcast path
-		// populates from the primary subscription. With replayOnAdoption=true
-		// (the bug) the daemon replays the ring buffer to the primary
-		// subscription, host-service forwards it into session.buffer, and
-		// bufferBytes spikes within the first frame. With replayOnAdoption=
-		// false (the fix) bufferBytes stays at 0.
-		//
-		// Earlier this test observed `pty.onData` instead, which subscribes
-		// with `replay:false` on the same DaemonClient. It still caught the
-		// bug by accident — the late-attaching local callback received the
-		// fanned-out replay bytes — but coupling to that timing made the
-		// assertion fragile. session.bufferBytes is the direct signal.
+		// session.bufferBytes is the direct signal: the primary subscription
+		// writes incoming chunks here for WS broadcast. Non-zero after a
+		// replay-suppressed adopt = bug.
 		await new Promise((r) => setTimeout(r, 500));
 
 		assert.equal(
@@ -379,8 +366,7 @@ describe("createTerminalSessionInternal — host-service restart adoption", () =
 			`adopted session.bufferBytes must remain 0 when replayOnAdoption=false; got ${second.bufferBytes} bytes (first chunk: ${second.buffer[0] ? JSON.stringify(Buffer.from(second.buffer[0]).toString("utf8").slice(0, 100)) : "<empty>"})`,
 		);
 
-		// Sanity check: live output still flows into the buffer. Drive a new
-		// echo through the PTY and assert the bytes show up.
+		// Sanity check: live output still flows post-reattach.
 		const LIVE_SENTINEL = `live-after-reattach-${randomUUID().slice(0, 6)}`;
 		second.pty.write(`echo ${LIVE_SENTINEL}\n`);
 		await waitFor(() => {

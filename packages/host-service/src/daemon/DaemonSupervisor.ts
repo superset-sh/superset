@@ -271,22 +271,13 @@ export class DaemonSupervisor {
 			return result;
 		}
 
-		// Wait for the predecessor PID to actually exit before probing the
-		// new socket. Without this gate, probeDaemonVersion can race the
-		// predecessor's finalizeHandoff (close + 50 ms exit timer) and
-		// connect to the still-alive predecessor — recording its OLD
-		// version as the successor's running version, which leaves
-		// updatePending falsely true and triggers an infinite re-update.
+		// Gate the probe on predecessor exit — see waitForPidExit's docstring
+		// for the race it guards against.
 		const predecessorExited = await waitForPidExit(
 			instance.pid,
 			HANDOFF_PREDECESSOR_EXIT_TIMEOUT_MS,
 		);
 		if (!predecessorExited) {
-			// Predecessor is wedged. The successor sent upgrade-ack so its
-			// adopt code path ran, but we can't tell whether it actually bound
-			// the socket. Don't pretend to succeed — bail with a useful
-			// reason so the user sees a real failure instead of infinite
-			// "UPDATE AVAILABLE".
 			restoreOnFailure();
 			return {
 				ok: false,
@@ -294,20 +285,13 @@ export class DaemonSupervisor {
 			};
 		}
 
-		// Predecessor is dead, but the successor may not have bound the
-		// socket yet (its `await disconnect` resolves at the same instant
-		// the predecessor exits, then it calls listenWithRetry). Retry the
-		// probe through that bind window — null/timeout means "try again",
-		// not "give up".
 		const probedVersion = await probeDaemonVersionWithRetry(
 			instance.socketPath,
 			HANDOFF_PROBE_TOTAL_TIMEOUT_MS,
 		);
 		const runningVersion = probedVersion ?? "unknown";
 
-		// One Date.now() so the in-memory instance and the on-disk manifest
-		// agree on the successor's startedAt. Two separate calls would
-		// drift by milliseconds and produce confusing log lines.
+		// Single capture so the in-memory instance and the manifest agree.
 		const successorStartedAt = Date.now();
 		const successorInstance: DaemonInstance = {
 			pid: result.successorPid,

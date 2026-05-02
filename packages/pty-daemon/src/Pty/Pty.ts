@@ -211,10 +211,8 @@ class AdoptedPty implements Pty {
 		};
 		this.reader.on("end", () => onExit({ code: null, signal: null }));
 		this.reader.on("error", () => onExit({ code: null, signal: null }));
-		// Streams without an 'error' listener crash the process. Writer
-		// errors typically mean the slave-side closed mid-write (shell just
-		// exited) — drive the same exit path as reader errors instead of
-		// taking down the whole daemon.
+		// Without this listener, a write that races a slave-side close
+		// emits 'error' with no handler and crashes the daemon.
 		this.writer.on("error", () => onExit({ code: null, signal: null }));
 		this.livenessTimer = setInterval(() => {
 			if (!isPidAlive(this.pid)) onExit({ code: null, signal: null });

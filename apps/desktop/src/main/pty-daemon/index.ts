@@ -75,9 +75,7 @@ async function main(): Promise<void> {
 
 async function runFresh(): Promise<void> {
 	const args = parseFreshArgs(process.argv.slice(2));
-	// Fresh-spawn (from supervisor): env wins so the supervisor can pin
-	// versions for testing / drift detection. Falls back to the bundled
-	// constant.
+	// Env wins so the supervisor can pin versions; falls back to the bundle.
 	const daemonVersion =
 		process.env.SUPERSET_PTY_DAEMON_VERSION ?? DAEMON_PACKAGE_VERSION;
 	const server = new Server({
@@ -115,11 +113,7 @@ async function runHandoffReceiver(): Promise<void> {
 	}
 	log(`snapshotPath=${snapshotPath} socketPath=${socketPath}`);
 
-	// Successor reads its OWN bundle version, NOT the env. The env was
-	// inherited from the predecessor process; an old-bundle predecessor
-	// (which doesn't strip the env when spawning us) would otherwise force
-	// us to report its stale version. The supervisor would then think the
-	// upgrade didn't take effect and updatePending would loop forever.
+	// Ignore env in handoff mode — see packages/pty-daemon/src/main.ts.
 	const daemonVersion = DAEMON_PACKAGE_VERSION;
 	log(`daemonVersion=${daemonVersion}`);
 

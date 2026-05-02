@@ -46,15 +46,10 @@ export interface TerminalTransport {
 	/** Set when the server sends an exit message — no reconnect after this. */
 	_exited: boolean;
 	/**
-	 * Flips true after the first PTY-output frame is written into the
-	 * xterm. Subsequent connects (auto-reconnect after the server
-	 * force-closed us, or a URL swap) tell the server `replay=0`: the
-	 * xterm already has the scrollback, so replaying the daemon's ring
-	 * buffer would write duplicates.
-	 *
-	 * Tracked on first BYTES, not first OPEN: a WS that opens cleanly but
-	 * closes before any output arrives leaves xterm empty — replay on the
-	 * next connect is the right behavior in that case.
+	 * Flips true after the first PTY-output frame lands in xterm. Subsequent
+	 * connects send `?replay=0` so the server doesn't re-deliver scrollback.
+	 * Tracked on first bytes (not first open) so a WS that opens-and-closes
+	 * with no output still gets replay on the next connect.
 	 */
 	_hasReceivedBytes: boolean;
 }
@@ -220,10 +215,6 @@ export function connect(
 	transport._terminal = terminal;
 	transport._exited = false;
 	setConnectionState(transport, "connecting");
-	// On a reconnect (or URL swap on a transport that has been live before),
-	// tell the server not to replay the daemon's ring buffer: the xterm
-	// already has the scrollback. See terminal.ts createTerminalSessionInternal
-	// (replayOnAdoption) for the server side.
 	const actualUrl = transport._hasReceivedBytes
 		? appendQueryParam(wsUrl, "replay", "0")
 		: wsUrl;
@@ -257,9 +248,6 @@ export function connect(
 		// xterm without any decoding step.
 		if (event.data instanceof ArrayBuffer) {
 			terminal.write(new Uint8Array(event.data));
-			// Mark that we've taken delivery of at least one PTY-output frame.
-			// Subsequent reconnects will pass `?replay=0` so the server
-			// doesn't re-send what xterm already has.
 			transport._hasReceivedBytes = true;
 			return;
 		}
