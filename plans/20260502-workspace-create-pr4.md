@@ -295,8 +295,11 @@ Renderer:
 ## Decisions (confirmed via /decide)
 
 1. **Agent preset selection.** Renderer passes `composer.agentId`;
-   host resolves the preset from PR 1's `agent_configs` table. Future
-   CLI / automation callers don't need to know how presets work.
+   host resolves the preset from PR 1's `host_agent_configs` table.
+   Future CLI / automation callers don't need to know how presets
+   work. **PR 4 extends PR 1's schema with template columns** (see
+   decision 5) so the host can build the full prompt itself, not
+   just `[command, ...args, prompt]`.
 2. **Launches shape.** Always `launches: LaunchResult[]`. Today emits
    0 or 1 agent launches plus an optional setup launch; future
    multi-pane create needs no schema change.
@@ -304,7 +307,23 @@ Renderer:
    Renderer uploads bytes, sends IDs as `linkedContext.attachmentIds`,
    host writes to worktree. Upload happens at the pending-page
    call-site (keeps `useCreateDashboardWorkspace` thin).
-4. **Setup terminal becomes a launch.** Today there are *three*
+5. **Templates stay as shared-package constants (no per-preset
+   columns).** PR 4's host-side launch builder synthesizes a
+   `ResolvedAgentConfig` inline using
+   `DEFAULT_CONTEXT_PROMPT_TEMPLATE_*` from `@superset/shared`, then
+   passes it to `buildLaunchSpec`. No new columns on
+   `host_agent_configs`. Per-preset template customization will get
+   its own storage flow when an actual product use case motivates it
+   — premature columns add migration cost and row-level duplication
+   (9 rows × 3 templates) for zero current benefit. We **also
+   deliberately do not port** V1's `promptCommand` /
+   `promptCommandSuffix` shell-string escape hatches — pure
+   argv-array spawn (`[command, ...args, ...(prompt ? promptArgs :
+   [])]`) plus stdin transport covers every builtin. Mastracode
+   moves to stdin transport (`prompt | mastracode`) instead of V1's
+   `--prompt` + `; mastracode` REPL re-entry dance.
+
+6. **Setup terminal becomes a launch.** Today there are *three*
    write paths into pane state — `buildSetupPaneLayout` writes
    `v2WorkspaceLocalState.paneLayout` directly, `dispatchForkLaunch`
    stashes on `pendingWorkspaces.terminalLaunch/chatLaunch`, and
@@ -324,20 +343,28 @@ Constraints carried over from `apps/desktop/plans/v2-create-decisions-final.md`:
 
 1. **Audit + plan update.** Read existing host terminal-start +
    `buildForkAgentLaunch`. Confirm what's reusable, what needs
-   porting.
-2. **Extract `packages/launch-context`.** `buildForkAgentLaunch`
-   depends on `apps/desktop/src/shared/context/*` (~600 LOC of pure
-   logic — `buildLaunchSpec`, `composer`, `contributors/*`, `types`).
-   Move the dir into a new workspace package so both renderer and
-   host-service can consume it. No behavior change; ships as the
-   first commit so the rest of PR 4 can import from
-   `@superset/launch-context`.
-3. **Terminal launch slice.** Build the host-side launches module
-   (terminal-only), wire into `create.ts`, update the pending page
-   to call `addLaunchPanes`. Manual-test a fork with an agent
+   porting. ✅
+2. **Extract `packages/launch-context`.** Pure file move; both
+   renderer and host-service can now import the composer +
+   buildLaunchSpec. ✅ (commit `7cbd388ac`)
+3. **Migrate mastracode preset to stdin transport.** No schema
+   change — PR 4's launch builder reads template defaults inline
+   from `@superset/shared` constants, so `host_agent_configs` keeps
+   its PR1 shape. Per-preset template customization deferred to a
+   future flow. Mastracode `argv` + `--prompt` → `stdin` + no args.
+   No `promptCommand` / suffix — argv-array spawn covers all
+   builtins. ✅
+4. **Terminal launch slice.** Build host-side `launches/` module
+   (terminal-only): `build-agent-launch.ts` (calls launch-context
+   with the host preset row), `start-terminal-launch.ts` (wraps
+   `createTerminalSessionInternal`), `write-attachments.ts` (uses
+   PR 2's attachment store). Wire into `create.ts`, update pending
+   page to call `addLaunchPanes`. Manual-test a fork with an agent
    selected.
-4. **Chat launch slice.** Add `start-chat-launch`, branch in
-   `build-agent-launch` by preset transport, manual-test.
-5. **Setup terminal as launch.** Push setup into `launches[]`, drop
+5. **Chat launch slice.** Add `start-chat-launch.ts`. Branch in
+   `build-agent-launch` by preset transport. Manual-test chat
+   preset. (Chat agent is the singleton `superset-chat`; no host
+   table row.)
+6. **Setup terminal as launch.** Push setup into `launches[]`, drop
    the `buildSetupPaneLayout` direct-write from the pending page.
-6. **Open PR.**
+7. **Open PR.**

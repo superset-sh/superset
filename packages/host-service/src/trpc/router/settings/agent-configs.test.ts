@@ -60,6 +60,14 @@ describe("agentConfigsRouter", () => {
 			expect(second.map((row) => row.id)).toEqual(first.map((row) => row.id));
 		});
 
+		it("seeds mastracode as a stdin-transport agent", async () => {
+			const caller = createCaller();
+			await caller.list();
+			const masta = await caller.add({ presetId: "mastracode" });
+			expect(masta.promptTransport).toBe("stdin");
+			expect(masta.promptArgs).toEqual([]);
+		});
+
 		it("returns rows in displayOrder", async () => {
 			const caller = createCaller();
 			const seeded = await caller.list();

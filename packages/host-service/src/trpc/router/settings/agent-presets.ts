@@ -91,8 +91,8 @@ export const AGENT_PRESETS = [
 			"Mastra's coding agent for building, debugging, and shipping code from the terminal.",
 		command: "mastracode",
 		args: [],
-		promptTransport: "argv",
-		promptArgs: ["--prompt"],
+		promptTransport: "stdin",
+		promptArgs: [],
 		env: {},
 	},
 	{
