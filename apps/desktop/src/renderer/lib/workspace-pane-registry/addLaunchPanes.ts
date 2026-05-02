@@ -16,22 +16,18 @@ interface PaneLocation {
 }
 
 /**
- * Add panes to a workspace's pane store for sessions that the host
- * already started (e.g. the result of `workspace.create()`). Each
- * launch becomes its own tab. Existing panes for the same session id
- * are deduplicated and refocused — calling this twice with the same
- * launch is idempotent.
+ * Add panes to a workspace's pane store for sessions the host already
+ * started (e.g. the result of `workspace.create()`). Each launch
+ * becomes its own tab; calling twice with the same id dedupes and
+ * refocuses. Safe to call before the workspace route mounts — the
+ * registry takes care of persisting the in-memory tabs to
+ * `v2WorkspaceLocalState` once `ensureWorkspaceInSidebar` inserts the
+ * row.
  *
- * Attach-only: terminal launches do NOT carry an `initialCommand`.
- * The terminal pane attaches to a host-side process that's already
- * running. The legacy "renderer-mints-id, embeds-command" flow used
- * by `useV2PresetExecution` and the pending-row launch path is
- * unchanged and uses `addTab` directly.
- *
- * If the workspace has no `v2WorkspaceLocalState` row yet (e.g. this
- * runs before the route mounts and `ensureWorkspaceInSidebar` runs),
- * the panes are added to the in-memory store. They persist when the
- * row is later inserted and the next store change writes back.
+ * Attach-only: terminal launches do not carry `initialCommand`. The
+ * legacy renderer-mints-id + embedded-command flow used by
+ * `useV2PresetExecution` and the pending-row launch path is unchanged
+ * and uses `addTab` directly.
  */
 export function addLaunchPanes(
 	workspaceId: string,

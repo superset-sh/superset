@@ -7,14 +7,13 @@ import {
 	type WorkspaceLocalStateRow,
 	workspaceLocalStateSchema,
 } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal/schema";
+// Imported from the impl file rather than the barrel — the test-reset
+// helper is intentionally not part of the public API surface.
 import {
 	__resetWorkspacePaneRegistryForTests,
 	getOrCreateWorkspacePaneStore,
 	initWorkspacePaneRegistry,
 } from "./workspace-pane-registry";
-
-// Test-only — imported directly from the impl file so it doesn't leak
-// onto the public barrel (`./index.ts`).
 
 let collection: ReturnType<typeof makeCollection>;
 
