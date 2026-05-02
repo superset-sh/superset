@@ -11,11 +11,14 @@ export interface TerminalLogEntry {
 	message: string;
 }
 
+// PTY output bytes arrive as binary WebSocket frames and are fed straight
+// into xterm.write(Uint8Array) — no UTF-8 decoding hop, so multi-byte
+// codepoints that straddle a frame boundary stay intact (xterm.js buffers
+// partial sequences internally). Control messages (title/error/exit) stay
+// JSON.
 type TerminalServerMessage =
-	| { type: "data"; data: string }
 	| { type: "error"; message: string }
 	| { type: "exit"; exitCode: number; signal: number }
-	| { type: "replay"; data: string }
 	| { type: "title"; title: string | null };
 
 export interface TerminalTransport {
@@ -193,6 +196,10 @@ export function connect(
 	transport._exited = false;
 	setConnectionState(transport, "connecting");
 	const socket = new WebSocket(wsUrl);
+	// Receive PTY bytes as ArrayBuffer (the default would be Blob, which
+	// forces an async read); we want to feed bytes synchronously into
+	// xterm.write to keep render order strict.
+	socket.binaryType = "arraybuffer";
 	transport.socket = socket;
 
 	socket.addEventListener("open", () => {
@@ -212,16 +219,20 @@ export function connect(
 
 	socket.addEventListener("message", (event) => {
 		if (transport.socket !== socket) return;
+
+		// Binary frame = PTY output bytes (data + replay collapsed onto one
+		// channel; renderer treats them identically). Pipe straight into
+		// xterm without any decoding step.
+		if (event.data instanceof ArrayBuffer) {
+			terminal.write(new Uint8Array(event.data));
+			return;
+		}
+
 		let message: TerminalServerMessage;
 		try {
 			message = JSON.parse(String(event.data)) as TerminalServerMessage;
 		} catch {
 			terminal.writeln("\r\n[terminal] invalid server payload");
-			return;
-		}
-
-		if (message.type === "data" || message.type === "replay") {
-			terminal.write(message.data);
 			return;
 		}
 

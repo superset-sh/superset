@@ -1,9 +1,13 @@
 import { describe, expect, it } from "bun:test";
 import {
 	createTerminalTitleScanState,
+	createTerminalTitleScanStateBytes,
 	normalizeTerminalTitle,
 	scanForTerminalTitle,
+	scanForTerminalTitleBytes,
 } from "./terminal-title-scanner";
+
+const enc = new TextEncoder();
 
 describe("terminal title scanner", () => {
 	it("handles OSC 0 and OSC 2 with BEL terminators", () => {
@@ -102,6 +106,37 @@ describe("terminal title scanner", () => {
 			scanForTerminalTitle(state, `\x1b]2;${"🙂".repeat(1024)}`).updates,
 		).toEqual([]);
 		expect(state.buffer).toBe("");
+	});
+});
+
+describe("terminal title scanner (bytes)", () => {
+	it("matches the string variant for the common cases", () => {
+		const state = createTerminalTitleScanStateBytes();
+		expect(
+			scanForTerminalTitleBytes(state, enc.encode("\x1b]0;Shell\x07")).updates,
+		).toEqual(["Shell"]);
+		expect(
+			scanForTerminalTitleBytes(state, enc.encode("\x1b]2;Editor\x1b\\"))
+				.updates,
+		).toEqual(["Editor"]);
+		expect(
+			scanForTerminalTitleBytes(state, enc.encode("\x1b]9;3;Agent\x07"))
+				.updates,
+		).toEqual(["Agent"]);
+	});
+
+	it("preserves multi-byte UTF-8 in titles when split across chunks", () => {
+		// Regression: the string variant calls Buffer.toString('utf8') per
+		// chunk and would mangle the smiley if its 4 bytes split across the
+		// wire. The byte variant decodes only the bounded payload slice so
+		// the codepoint round-trips intact.
+		const state = createTerminalTitleScanStateBytes();
+		const full = enc.encode("\x1b]0;Hi 🙂!\x07");
+		// Split mid-smiley (the 4-byte sequence is at bytes 6..10).
+		const a = full.subarray(0, 8);
+		const b = full.subarray(8);
+		expect(scanForTerminalTitleBytes(state, a).updates).toEqual([]);
+		expect(scanForTerminalTitleBytes(state, b).updates).toEqual(["Hi 🙂!"]);
 	});
 });
 

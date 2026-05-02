@@ -103,6 +103,133 @@ function parseTitlePayload(payload: string): string | null | undefined {
 	return normalizeTerminalTitle(value.slice(2));
 }
 
+// ---------- Byte-oriented variant (v2 PTY data path) ----------
+//
+// The string variant above forces a per-chunk `Buffer.toString("utf8")`
+// upstream, which loses partial codepoints at chunk boundaries. v2 carries
+// PTY data as bytes end-to-end. OSC framing is pure ASCII (ESC `]`, BEL,
+// ST), so the *framing* runs cheaply over bytes; only the title payload
+// itself needs to be decoded — and at that point we have a complete,
+// terminator-bounded slice, so the decode is lossless.
+
+const ESC_BYTE = 0x1b;
+const BACKSLASH_BYTE = 0x5c; // ESC + '\' = ST
+const RIGHT_BRACKET_BYTE = 0x5d; // ESC + ']' = OSC
+const C1_OSC_BYTE = 0x9d;
+const C1_ST_BYTE = 0x9c;
+const BEL_TITLE_BYTE = 0x07;
+
+const sharedTitleTextDecoder = /* @__PURE__ */ new TextDecoder("utf-8", {
+	fatal: false,
+});
+
+export interface TerminalTitleScanStateBytes {
+	/** Held bytes spanning a chunk boundary while an OSC sequence is mid-flight. */
+	buffer: Uint8Array;
+}
+
+export function createTerminalTitleScanStateBytes(): TerminalTitleScanStateBytes {
+	return { buffer: new Uint8Array(0) };
+}
+
+function findOscStartBytes(
+	input: Uint8Array,
+	from: number,
+): { index: number; length: number } | null {
+	for (let i = from; i < input.length; i++) {
+		const b = input[i];
+		if (b === C1_OSC_BYTE) return { index: i, length: 1 };
+		if (
+			b === ESC_BYTE &&
+			i + 1 < input.length &&
+			input[i + 1] === RIGHT_BRACKET_BYTE
+		) {
+			return { index: i, length: 2 };
+		}
+	}
+	return null;
+}
+
+function findOscTerminatorBytes(
+	input: Uint8Array,
+	from: number,
+): { index: number; length: number } | null {
+	for (let i = from; i < input.length; i++) {
+		const b = input[i];
+		if (b === BEL_TITLE_BYTE) return { index: i, length: 1 };
+		if (b === C1_ST_BYTE) return { index: i, length: 1 };
+		if (
+			b === ESC_BYTE &&
+			i + 1 < input.length &&
+			input[i + 1] === BACKSLASH_BYTE
+		) {
+			return { index: i, length: 2 };
+		}
+	}
+	return null;
+}
+
+function concatBytes(a: Uint8Array, b: Uint8Array): Uint8Array {
+	if (a.length === 0) return b;
+	if (b.length === 0) return a;
+	const out = new Uint8Array(a.length + b.length);
+	out.set(a, 0);
+	out.set(b, a.length);
+	return out;
+}
+
+/**
+ * Byte-oriented title scanner. Framing is matched on bytes; once a complete
+ * payload is bounded by its OSC start and terminator, the slice is decoded
+ * to a string for {@link normalizeTerminalTitle} (which needs codepoints
+ * to filter control characters and enforce a length cap).
+ */
+export function scanForTerminalTitleBytes(
+	state: TerminalTitleScanStateBytes,
+	chunk: Uint8Array,
+): TerminalTitleScanResult {
+	const input =
+		state.buffer.length === 0 ? chunk : concatBytes(state.buffer, chunk);
+	const updates: Array<string | null> = [];
+	let searchIndex = 0;
+
+	while (searchIndex < input.length) {
+		const oscStart = findOscStartBytes(input, searchIndex);
+		if (!oscStart) {
+			// Hold a trailing ESC so a `]` arriving in the next chunk still gets
+			// recognized as OSC start.
+			state.buffer =
+				input.length > 0 && input[input.length - 1] === ESC_BYTE
+					? input.subarray(input.length - 1)
+					: new Uint8Array(0);
+			return { updates };
+		}
+
+		const payloadStart = oscStart.index + oscStart.length;
+		const terminator = findOscTerminatorBytes(input, payloadStart);
+		if (!terminator) {
+			const sequence = input.subarray(oscStart.index);
+			state.buffer =
+				sequence.length <= MAX_OSC_SEQUENCE_BYTES
+					? sequence
+					: new Uint8Array(0);
+			return { updates };
+		}
+
+		const payloadBytes = input.subarray(payloadStart, terminator.index);
+		const payload = sharedTitleTextDecoder.decode(payloadBytes);
+		const title = parseTitlePayload(payload);
+		if (title !== undefined) {
+			updates.push(title);
+		}
+
+		searchIndex = terminator.index + terminator.length;
+	}
+
+	state.buffer = new Uint8Array(0);
+	return { updates };
+}
+
 /**
  * Scan PTY output for terminal title OSC sequences.
  *

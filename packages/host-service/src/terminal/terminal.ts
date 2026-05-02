@@ -1,15 +1,16 @@
 import { existsSync } from "node:fs";
+import { StringDecoder } from "node:string_decoder";
 import type { NodeWebSocket } from "@hono/node-ws";
 import {
-	createScanState,
+	createScanStateBytes,
 	SHELLS_WITH_READY_MARKER,
-	type ShellReadyScanState,
-	scanForShellReady,
+	type ShellReadyScanStateBytes,
+	scanForShellReadyBytes,
 } from "@superset/shared/shell-ready-scanner";
 import {
-	createTerminalTitleScanState,
-	scanForTerminalTitle,
-	type TerminalTitleScanState,
+	createTerminalTitleScanStateBytes,
+	scanForTerminalTitleBytes,
+	type TerminalTitleScanStateBytes,
 } from "@superset/shared/terminal-title-scanner";
 import { and, eq, ne } from "drizzle-orm";
 import type { Hono } from "hono";
@@ -82,11 +83,19 @@ function makeDaemonPty(
 				});
 		},
 		onData(cb) {
+			// StringDecoder buffers partial UTF-8 sequences across chunks.
+			// Without it `chunk.toString("utf8")` per chunk replaces the trailing
+			// 1–3 bytes of any codepoint that straddles a boundary with U+FFFD —
+			// the same bug we ripped out of the primary data path.
+			const decoder = new StringDecoder("utf8");
 			const unsub = daemon.subscribe(
 				sessionId,
 				{ replay: false },
 				{
-					onOutput: (chunk) => cb(chunk.toString("utf8")),
+					onOutput: (chunk) => {
+						const out = decoder.write(chunk);
+						if (out.length > 0) cb(out);
+					},
 					onExit: () => {},
 				},
 			);
@@ -137,11 +146,14 @@ type TerminalClientMessage =
 	| { type: "resize"; cols: number; rows: number }
 	| { type: "dispose" };
 
+// PTY output bytes travel as binary WebSocket frames — the renderer pipes
+// the ArrayBuffer straight into xterm.write(Uint8Array) without any UTF-8
+// decoding. Control messages stay JSON. Replay (the buffered prefix sent
+// on attach) is a binary frame too; the renderer doesn't distinguish it
+// from live data.
 type TerminalServerMessage =
-	| { type: "data"; data: string }
 	| { type: "error"; message: string }
 	| { type: "exit"; exitCode: number; signal: number }
-	| { type: "replay"; data: string }
 	| { type: "title"; title: string | null };
 
 const MAX_BUFFER_BYTES = 64 * 1024;
@@ -149,8 +161,11 @@ const SOCKET_OPEN = 1;
 const SOCKET_CLOSING = 2;
 const SOCKET_CLOSED = 3;
 
+// `Uint8Array<ArrayBuffer>` (not the looser `Uint8Array<ArrayBufferLike>`)
+// matches what hono/ws's WSContext.send accepts. Buffers from node and from
+// our scanners are all ArrayBuffer-backed, so this is the right narrowing.
 type TerminalSocket = {
-	send: (data: string) => void;
+	send: (data: string | Uint8Array<ArrayBuffer>) => void;
 	close: (code?: number, reason?: string) => void;
 	readyState: number;
 };
@@ -183,7 +198,12 @@ interface TerminalSession {
 	/** Unsubscribe from the daemon's output/exit stream when disposed. */
 	unsubscribeDaemon: (() => void) | null;
 	sockets: Set<TerminalSocket>;
-	buffer: string[];
+	/**
+	 * Buffered PTY output retained for replay on (re)attach. Bytes, not
+	 * strings — keeping this byte-aligned with the wire frees us from the
+	 * per-chunk UTF-8 decoding that used to mangle TUIs.
+	 */
+	buffer: Uint8Array[];
 	bufferBytes: number;
 	createdAt: number;
 	exited: boolean;
@@ -191,15 +211,24 @@ interface TerminalSession {
 	exitSignal: number;
 	listed: boolean;
 	title: string | null;
-	titleScanState: TerminalTitleScanState;
+	titleScanState: TerminalTitleScanStateBytes;
 
 	// Shell readiness (OSC 133)
 	shellReadyState: ShellReadyState;
 	shellReadyResolve: (() => void) | null;
 	shellReadyPromise: Promise<void>;
 	shellReadyTimeoutId: ReturnType<typeof setTimeout> | null;
-	scanState: ShellReadyScanState;
+	scanState: ShellReadyScanStateBytes;
 	initialCommandQueued: boolean;
+
+	/**
+	 * Side-channel UTF-8 decoder. portManager.checkOutputForHint takes a
+	 * string and does text-pattern matching for "Local: http://…" hints,
+	 * so we keep a per-session StringDecoder that buffers partial codepoints
+	 * across chunks — separate from the data path, never touching what we
+	 * actually broadcast to the renderer.
+	 */
+	portHintDecoder: StringDecoder;
 }
 
 /** PTY lifetime is independent of socket lifetime — sockets detach/reattach freely. */
@@ -346,25 +375,62 @@ function setSessionTitle(session: TerminalSession, title: string | null) {
 	broadcastMessage(session, { type: "title", title });
 }
 
-function bufferOutput(session: TerminalSession, data: string) {
+function bufferOutput(session: TerminalSession, data: Uint8Array) {
 	session.buffer.push(data);
-	session.bufferBytes += data.length;
+	session.bufferBytes += data.byteLength;
 
 	while (session.bufferBytes > MAX_BUFFER_BYTES && session.buffer.length > 1) {
 		const removed = session.buffer.shift();
-		if (removed) session.bufferBytes -= removed.length;
+		if (removed) session.bufferBytes -= removed.byteLength;
 	}
 }
 
-function replayBuffer(
-	session: TerminalSession,
-	socket: { send: (data: string) => void; readyState: number },
-) {
+// One cast lives here for `Uint8Array<ArrayBufferLike>` → `Uint8Array<ArrayBuffer>`,
+// the shape hono/ws's WSContext.send is typed against. Buffer (what node-pty
+// hands us) and our scanner outputs are always backed by ArrayBuffer; the
+// `<ArrayBufferLike>` looseness is purely a type-system artifact, not a
+// runtime concern. Concentrating the cast here keeps callers readable.
+function asArrayBufferBytes(bytes: Uint8Array): Uint8Array<ArrayBuffer> {
+	return bytes as Uint8Array<ArrayBuffer>;
+}
+
+function sendBytes(socket: TerminalSocket, bytes: Uint8Array) {
+	if (socket.readyState !== SOCKET_OPEN) return;
+	socket.send(asArrayBufferBytes(bytes));
+}
+
+function broadcastBytes(session: TerminalSession, bytes: Uint8Array): number {
+	let sent = 0;
+	const tight = asArrayBufferBytes(bytes);
+	for (const socket of session.sockets) {
+		if (socket.readyState !== SOCKET_OPEN) {
+			if (
+				socket.readyState === SOCKET_CLOSING ||
+				socket.readyState === SOCKET_CLOSED
+			) {
+				session.sockets.delete(socket);
+			}
+			continue;
+		}
+		socket.send(tight);
+		sent += 1;
+	}
+	return sent;
+}
+
+function replayBuffer(session: TerminalSession, socket: TerminalSocket) {
 	if (session.buffer.length === 0) return;
-	const combined = session.buffer.join("");
+	let total = 0;
+	for (const b of session.buffer) total += b.byteLength;
+	const combined = new Uint8Array(total);
+	let offset = 0;
+	for (const b of session.buffer) {
+		combined.set(b, offset);
+		offset += b.byteLength;
+	}
 	session.buffer.length = 0;
 	session.bufferBytes = 0;
-	sendMessage(socket, { type: "replay", data: combined });
+	sendBytes(socket, combined);
 }
 
 /**
@@ -383,8 +449,8 @@ function resolveShellReady(
 	}
 	// Flush held marker bytes — they weren't part of a full marker
 	if (session.scanState.heldBytes.length > 0) {
-		bufferOutput(session, session.scanState.heldBytes);
-		session.scanState.heldBytes = "";
+		bufferOutput(session, Uint8Array.from(session.scanState.heldBytes));
+		session.scanState.heldBytes.length = 0;
 	}
 	session.scanState.matchPos = 0;
 	if (session.shellReadyResolve) {
@@ -640,7 +706,7 @@ export async function createTerminalSessionInternal({
 		exitSignal: 0,
 		listed,
 		title: null,
-		titleScanState: createTerminalTitleScanState(),
+		titleScanState: createTerminalTitleScanStateBytes(),
 		shellReadyState: shellSupportsReady
 			? "pending"
 			: isAdopted
@@ -649,10 +715,11 @@ export async function createTerminalSessionInternal({
 		shellReadyResolve,
 		shellReadyPromise,
 		shellReadyTimeoutId: null,
-		scanState: createScanState(),
+		scanState: createScanStateBytes(),
 		// Adopted sessions have already run their initialCommand in the prior
 		// host-service lifetime — flag it as queued so we don't double-fire it.
 		initialCommandQueued: isAdopted,
+		portHintDecoder: new StringDecoder("utf8"),
 	};
 	sessions.set(terminalId, session);
 	portManager.upsertSession(terminalId, workspaceId, pty.pid);
@@ -673,30 +740,43 @@ export async function createTerminalSessionInternal({
 		{ replay: true },
 		{
 			onOutput(chunk) {
-				const rawData = chunk.toString("utf8");
-				const titleUpdates = scanForTerminalTitle(
+				// `chunk` is a Buffer (Uint8Array subclass). The whole data
+				// path stays on bytes from here to the renderer's xterm.write
+				// — the bug that motivated this rewrite was a per-chunk
+				// `chunk.toString("utf8")` that mangled multi-byte codepoints
+				// straddling chunk boundaries. Don't reintroduce it.
+				const titleUpdates = scanForTerminalTitleBytes(
 					session.titleScanState,
-					rawData,
+					chunk,
 				);
 				for (const title of titleUpdates.updates) {
 					setSessionTitle(session, title);
 				}
 
 				// Scan for OSC 133;A and strip it from output.
-				let data = rawData;
+				let bytes: Uint8Array = chunk;
 				if (session.shellReadyState === "pending") {
-					const result = scanForShellReady(session.scanState, rawData);
-					data = result.output;
+					const result = scanForShellReadyBytes(session.scanState, chunk);
+					bytes = result.output;
 					if (result.matched) {
 						resolveShellReady(session, "ready");
 					}
 				}
-				if (data.length === 0) return;
+				if (bytes.byteLength === 0) return;
 
-				portManager.checkOutputForHint(data);
+				// Side channel: portManager wants strings for URL/port hint
+				// regexes. The per-session StringDecoder buffers partial
+				// codepoints internally so this stays correct across chunk
+				// boundaries — and stays out of the data path.
+				const hintText = session.portHintDecoder.write(
+					bytes instanceof Buffer
+						? bytes
+						: Buffer.from(bytes.buffer, bytes.byteOffset, bytes.byteLength),
+				);
+				if (hintText.length > 0) portManager.checkOutputForHint(hintText);
 
-				if (broadcastMessage(session, { type: "data", data }) === 0) {
-					bufferOutput(session, data);
+				if (broadcastBytes(session, bytes) === 0) {
+					bufferOutput(session, bytes);
 				}
 			},
 			onExit({ code, signal }) {
