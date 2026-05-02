@@ -424,11 +424,14 @@ export class HostServiceCoordinator extends EventEmitter {
 
 		let child: ReturnType<typeof childProcess.spawn>;
 		try {
+			// Prod: detached so PTYs survive Electron restarts via manifest
+			// adoption (HOST_SERVICE_LIFECYCLE.md). Dev: attached so a `bun dev`
+			// kill propagates and serve.ts's dev shutdown can stop pty-daemon.
 			child = childProcess.spawn(process.execPath, [this.scriptPath], {
-				detached: true,
+				detached: !isDev,
 				stdio,
 				env: childEnv,
-				// Avoid a flashing CMD window on Windows for the detached child.
+				// Avoid a flashing CMD window on Windows.
 				windowsHide: true,
 			});
 		} finally {
@@ -467,7 +470,7 @@ export class HostServiceCoordinator extends EventEmitter {
 			removeManifest(organizationId);
 			this.emitStatus(organizationId, "stopped", "running");
 		});
-		child.unref();
+		if (!isDev) child.unref();
 
 		const endpoint = `http://127.0.0.1:${port}`;
 		const healthy = await pollHealthCheck(endpoint, secret);

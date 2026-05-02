@@ -73,8 +73,8 @@ async function startFakeDaemon(opts: FakeDaemonOptions): Promise<{
 		const decoder = new FrameDecoder();
 		sock.on("data", (chunk: Buffer) => {
 			decoder.push(chunk);
-			for (const raw of decoder.drain()) {
-				const msg = raw as ClientMessage;
+			for (const decoded of decoder.drain()) {
+				const msg = decoded.message as ClientMessage;
 				if (msg.type !== "hello") continue;
 				if (opts.silent) return;
 				if (opts.hangUpAfterHello) {

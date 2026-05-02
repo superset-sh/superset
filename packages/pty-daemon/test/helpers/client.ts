@@ -1,5 +1,5 @@
 // Reusable test client for pty-daemon integration tests.
-// Speaks the daemon's wire protocol over a Unix socket.
+// Speaks the daemon's wire protocol (v2) over a Unix socket.
 
 import * as net from "node:net";
 import {
@@ -8,10 +8,63 @@ import {
 	type ServerMessage,
 } from "../../src/protocol/index.ts";
 
+// Each decoded frame's binary tail (if any) is parked here, keyed by the
+// JSON message object. Tests that want output bytes use `payloadOf(m)`.
+// WeakMap so it cleans up if the message object is dropped.
+const payloads = new WeakMap<object, Uint8Array>();
+
+export function payloadOf(message: ServerMessage): Uint8Array | null {
+	return payloads.get(message as object) ?? null;
+}
+
+/**
+ * UTF-8 view of an output message's payload, for log/text assertions.
+ *
+ * IMPORTANT: this decodes a SINGLE frame's payload — if a multi-byte
+ * codepoint straddles two daemon `output` frames, decoding each frame
+ * individually emits U+FFFD even though the bytes are intact on the wire.
+ * Safe for ASCII markers ("first-marker", "BURST:200", etc.) where the
+ * needle survives per-frame decoding by construction. For multi-byte
+ * markers (emoji, accented text), use {@link accumulatedOutputAsString}.
+ */
+export function payloadAsString(message: ServerMessage): string {
+	const p = payloads.get(message as object);
+	if (!p) return "";
+	return Buffer.from(p).toString("utf8");
+}
+
+/**
+ * Concatenate every output payload for `id` seen so far, then UTF-8 decode
+ * the whole thing once. Use this when the marker you're matching against
+ * is multi-byte and could theoretically split across daemon frames.
+ */
+export function accumulatedOutputAsString(
+	client: { messages: ServerMessage[] },
+	id: string,
+): string {
+	const parts: Uint8Array[] = [];
+	for (const m of client.messages) {
+		if (m.type !== "output" || m.id !== id) continue;
+		const p = payloads.get(m as object);
+		if (p) parts.push(p);
+	}
+	if (parts.length === 0) return "";
+	let total = 0;
+	for (const p of parts) total += p.byteLength;
+	const merged = new Uint8Array(total);
+	let offset = 0;
+	for (const p of parts) {
+		merged.set(p, offset);
+		offset += p.byteLength;
+	}
+	return Buffer.from(merged).toString("utf8");
+}
+
 export interface DaemonClient {
 	socket: net.Socket;
 	messages: ServerMessage[];
-	send(m: unknown): void;
+	/** Send a control message; optional `payload` rides as the frame's binary tail. */
+	send(m: unknown, payload?: Uint8Array): void;
 	waitFor(
 		predicate: (m: ServerMessage) => boolean,
 		ms?: number,
@@ -45,8 +98,11 @@ export function connect(socketPath: string): Promise<DaemonClient> {
 		socket.on("data", (chunk) => {
 			try {
 				decoder.push(chunk);
-				for (const raw of decoder.drain()) {
-					const m = raw as ServerMessage;
+				for (const decoded of decoder.drain()) {
+					const m = decoded.message as ServerMessage;
+					if (decoded.payload) {
+						payloads.set(m as object, decoded.payload);
+					}
 					messages.push(m);
 					for (let i = waiters.length - 1; i >= 0; i--) {
 						const w = waiters[i];
@@ -58,7 +114,6 @@ export function connect(socketPath: string): Promise<DaemonClient> {
 					}
 				}
 			} catch (err) {
-				// Surface frame errors to any pending waiter.
 				for (const w of waiters) {
 					clearTimeout(w.timer);
 					w.reject(err as Error);
@@ -77,8 +132,8 @@ export function connect(socketPath: string): Promise<DaemonClient> {
 			resolve({
 				socket,
 				messages,
-				send(m) {
-					if (!socket.destroyed) socket.write(encodeFrame(m));
+				send(m, payload) {
+					if (!socket.destroyed) socket.write(encodeFrame(m, payload));
 				},
 				sendRaw(buf) {
 					if (!socket.destroyed) socket.write(buf);
@@ -108,7 +163,6 @@ export function connect(socketPath: string): Promise<DaemonClient> {
 						socket.on("data", onMsg);
 						setTimeout(() => {
 							socket.off("data", onMsg);
-							// Final sweep in case of late drains.
 							for (let i = collected.length; i < messages.length; i++) {
 								const m = messages[i];
 								if (m && predicate(m)) collected.push(m);
@@ -121,7 +175,6 @@ export function connect(socketPath: string): Promise<DaemonClient> {
 					return new Promise<void>((res) => {
 						if (socket.destroyed) return res();
 						socket.end(() => res());
-						// Fall back: if `end` doesn't fire close within 200ms, force.
 						setTimeout(() => {
 							if (!socket.destroyed) socket.destroy();
 							res();
@@ -140,12 +193,12 @@ export function connect(socketPath: string): Promise<DaemonClient> {
 	});
 }
 
-/** Convenience: connect and complete the v1 handshake. */
+/** Convenience: connect and complete the v2 handshake. */
 export async function connectAndHello(
 	socketPath: string,
 ): Promise<DaemonClient> {
 	const c = await connect(socketPath);
-	c.send({ type: "hello", protocols: [1] });
+	c.send({ type: "hello", protocols: [2] });
 	await c.waitFor((m) => m.type === "hello-ack");
 	return c;
 }

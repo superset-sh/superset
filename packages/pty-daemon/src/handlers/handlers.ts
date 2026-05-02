@@ -20,10 +20,14 @@ import type { Session, SessionStore } from "../SessionStore/index.ts";
 /**
  * Per-connection state owned by the Server. Handlers receive a Conn ref to
  * read/write subscription membership and to send messages.
+ *
+ * `send` accepts an optional `payload` — the binary tail of the wire frame.
+ * Used for output/replay messages so PTY bytes don't have to detour through
+ * base64 inside the JSON header. (See ../protocol/framing.ts.)
  */
 export interface Conn {
 	subscriptions: Set<string>;
-	send(message: ServerMessage): void;
+	send(message: ServerMessage, payload?: Uint8Array): void;
 }
 
 /**
@@ -69,16 +73,26 @@ export function handleOpen(ctx: HandlerCtx, msg: OpenMessage): ServerMessage {
 	return reply;
 }
 
+/**
+ * `payload` is the input bytes the client wants written to the PTY. Pulled
+ * from the frame's binary tail by the Server before dispatching.
+ */
 export function handleInput(
 	ctx: HandlerCtx,
 	msg: InputMessage,
+	payload: Uint8Array | null,
 ): ServerMessage | undefined {
 	const session = ctx.store.get(msg.id);
 	if (!session) return errorFor(msg.id, `unknown session: ${msg.id}`, "ENOENT");
 	if (session.exited)
 		return errorFor(msg.id, `session exited: ${msg.id}`, "EEXITED");
+	if (!payload || payload.byteLength === 0) {
+		// Empty input is a no-op; surfacing an error would force callers
+		// to special-case zero-length writes for no real benefit.
+		return undefined;
+	}
 	try {
-		session.pty.write(Buffer.from(msg.data, "base64"));
+		session.pty.write(Buffer.from(payload));
 	} catch (err) {
 		return errorFor(msg.id, (err as Error).message, "EWRITE");
 	}
@@ -121,9 +135,9 @@ export function handleList(ctx: HandlerCtx): ListReplyMessage {
 
 /**
  * Subscribe the connection to a session. If `replay` is true, immediately
- * send an `output` frame containing the buffered bytes before live streaming
- * begins. Live streaming is the Server's job once `subscriptions` includes
- * this session id.
+ * send an `output` frame whose binary tail is the buffered bytes — before
+ * live streaming begins. Live streaming is the Server's job once
+ * `subscriptions` includes this session id.
  */
 export function handleSubscribe(
 	ctx: HandlerCtx,
@@ -139,12 +153,8 @@ export function handleSubscribe(
 	if (msg.replay) {
 		const snap = ctx.store.snapshotBuffer(session);
 		if (snap.byteLength > 0) {
-			const out: OutputMessage = {
-				type: "output",
-				id: msg.id,
-				data: snap.toString("base64"),
-			};
-			conn.send(out);
+			const out: OutputMessage = { type: "output", id: msg.id };
+			conn.send(out, snap);
 		}
 	}
 }

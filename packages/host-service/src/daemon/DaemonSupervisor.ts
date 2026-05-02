@@ -675,11 +675,14 @@ export class DaemonSupervisor {
 
 		let child: ReturnType<typeof childProcess.spawn>;
 		try {
+			// Prod: detached so PTYs survive host-service restarts via socket
+			// adoption. Dev: attached as defense-in-depth in case serve.ts's
+			// dev shutdown doesn't fire (e.g. host-service crash).
 			child = childProcess.spawn(
 				process.execPath,
 				[this.opts.scriptPath, `--socket=${socketPath}`],
 				{
-					detached: true,
+					detached: !isDev,
 					stdio,
 					env: childEnv,
 					windowsHide: true,
@@ -742,7 +745,7 @@ export class DaemonSupervisor {
 			);
 		}
 
-		child.unref();
+		if (!isDev) child.unref();
 		child.on("exit", (code) => {
 			console.log(`[pty-daemon:${organizationId}] exited with code ${code}`);
 			const current = this.instances.get(organizationId);
@@ -915,8 +918,8 @@ export async function listDaemonSessions(
 		sock.on("data", (chunk: Buffer) => {
 			try {
 				decoder.push(chunk);
-				for (const raw of decoder.drain()) {
-					const msg = raw as ServerMessage;
+				for (const decoded of decoder.drain()) {
+					const msg = decoded.message as ServerMessage;
 					if (!helloAcked) {
 						if (msg.type !== "hello-ack") {
 							cleanup(null);
@@ -997,8 +1000,8 @@ export async function probeDaemonVersion(
 		sock.on("data", (chunk: Buffer) => {
 			try {
 				decoder.push(chunk);
-				for (const raw of decoder.drain()) {
-					const msg = raw as ServerMessage;
+				for (const decoded of decoder.drain()) {
+					const msg = decoded.message as ServerMessage;
 					if (msg.type === "hello-ack") {
 						cleanup(msg.daemonVersion ?? null);
 						return;

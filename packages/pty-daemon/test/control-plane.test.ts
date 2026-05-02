@@ -13,7 +13,12 @@ import * as path from "node:path";
 import { after, before, describe, test } from "node:test";
 import { encodeFrame } from "../src/protocol/index.ts";
 import { Server } from "../src/Server/index.ts";
-import { connect, connectAndHello } from "./helpers/client.ts";
+import {
+	accumulatedOutputAsString,
+	connect,
+	connectAndHello,
+	payloadAsString,
+} from "./helpers/client.ts";
 
 const sockPath = path.join(
 	os.tmpdir(),
@@ -67,15 +72,15 @@ describe("handshake", () => {
 
 	test("picks highest mutual when multiple offered", async () => {
 		const c = await connect(sockPath);
-		c.send({ type: "hello", protocols: [1, 99] });
+		c.send({ type: "hello", protocols: [2, 99] });
 		const ack = await c.waitFor((m) => m.type === "hello-ack");
-		if (ack.type === "hello-ack") assert.equal(ack.protocol, 1);
+		if (ack.type === "hello-ack") assert.equal(ack.protocol, 2);
 		await c.close();
 	});
 
 	test("rejects duplicate hello", async () => {
 		const c = await connectAndHello(sockPath);
-		c.send({ type: "hello", protocols: [1] });
+		c.send({ type: "hello", protocols: [2] });
 		const err = await c.waitFor((m) => m.type === "error", 1000);
 		if (err.type === "error") {
 			assert.match(err.message, /duplicate hello/);
@@ -115,7 +120,7 @@ describe("session lifecycle", () => {
 		const c = await connectAndHello(sockPath);
 		const missing = "missing-no-such";
 
-		c.send({ type: "input", id: missing, data: "" });
+		c.send({ type: "input", id: missing }, Buffer.alloc(0));
 		const e1 = await c.waitFor((m) => m.type === "error", 1000);
 		if (e1.type === "error") assert.equal(e1.code, "ENOENT");
 
@@ -209,16 +214,12 @@ describe("I/O patterns", () => {
 		c.send({ type: "subscribe", id, replay: false });
 
 		c.send({ type: "resize", id, cols: 120, rows: 40 });
-		c.send({
-			type: "input",
-			id,
-			data: Buffer.from("echo post-resize-marker\n").toString("base64"),
-		});
+		c.send({ type: "input", id }, Buffer.from("echo post-resize-marker\n"));
 		await c.waitFor(
 			(m) =>
 				m.type === "output" &&
 				m.id === id &&
-				Buffer.from(m.data, "base64").toString().includes("post-resize-marker"),
+				payloadAsString(m).includes("post-resize-marker"),
 			3000,
 		);
 
@@ -248,7 +249,7 @@ describe("I/O patterns", () => {
 			(m) =>
 				m.type === "output" &&
 				m.id === id &&
-				Buffer.from(m.data, "base64").toString().includes("BURST:200"),
+				payloadAsString(m).includes("BURST:200"),
 			5000,
 		);
 		await c.waitFor((m) => m.type === "exit" && m.id === id, 5000);
@@ -269,11 +270,15 @@ describe("I/O patterns", () => {
 		});
 		await c.waitFor((m) => m.type === "open-ok" && m.id === id);
 		c.send({ type: "subscribe", id, replay: true });
+		// 🚀 is 4 bytes; if those bytes ever split across two `output` frames,
+		// per-frame `payloadAsString` would emit U+FFFD even though the wire
+		// is intact. Accumulate across all output frames and decode once so
+		// the test asserts the actual wire-level invariant we care about.
 		await c.waitFor(
 			(m) =>
 				m.type === "output" &&
 				m.id === id &&
-				Buffer.from(m.data, "base64").toString().includes("🚀"),
+				accumulatedOutputAsString(c, id).includes("🚀"),
 			3000,
 		);
 		await c.waitFor((m) => m.type === "exit" && m.id === id, 3000);
@@ -304,14 +309,14 @@ describe("multi-client fan-out", () => {
 				(m) =>
 					m.type === "output" &&
 					m.id === id &&
-					Buffer.from(m.data, "base64").toString().includes("fanout-marker"),
+					payloadAsString(m).includes("fanout-marker"),
 				3000,
 			),
 			b.waitFor(
 				(m) =>
 					m.type === "output" &&
 					m.id === id &&
-					Buffer.from(m.data, "base64").toString().includes("fanout-marker"),
+					payloadAsString(m).includes("fanout-marker"),
 				3000,
 			),
 		]);
@@ -335,22 +340,16 @@ describe("multi-client fan-out", () => {
 		b.send({ type: "subscribe", id, replay: false });
 
 		// First marker — both should see it.
-		a.send({
-			type: "input",
-			id,
-			data: Buffer.from("echo first-marker\n").toString("base64"),
-		});
+		a.send({ type: "input", id }, Buffer.from("echo first-marker\n"));
 		await Promise.all([
 			a.waitFor(
 				(m) =>
-					m.type === "output" &&
-					Buffer.from(m.data, "base64").toString().includes("first-marker"),
+					m.type === "output" && payloadAsString(m).includes("first-marker"),
 				3000,
 			),
 			b.waitFor(
 				(m) =>
-					m.type === "output" &&
-					Buffer.from(m.data, "base64").toString().includes("first-marker"),
+					m.type === "output" && payloadAsString(m).includes("first-marker"),
 				3000,
 			),
 		]);
@@ -365,23 +364,17 @@ describe("multi-client fan-out", () => {
 			500,
 		);
 
-		a.send({
-			type: "input",
-			id,
-			data: Buffer.from("echo second-marker\n").toString("base64"),
-		});
+		a.send({ type: "input", id }, Buffer.from("echo second-marker\n"));
 		await a.waitFor(
 			(m) =>
-				m.type === "output" &&
-				Buffer.from(m.data, "base64").toString().includes("second-marker"),
+				m.type === "output" && payloadAsString(m).includes("second-marker"),
 			3000,
 		);
 
 		const bMessages = await bAfterUnsub;
 		const sawSecondOnB = bMessages.some(
 			(m) =>
-				m.type === "output" &&
-				Buffer.from(m.data, "base64").toString().includes("second-marker"),
+				m.type === "output" && payloadAsString(m).includes("second-marker"),
 		);
 		assert.equal(sawSecondOnB, false);
 
@@ -407,15 +400,10 @@ describe("multi-client fan-out", () => {
 		// Force-close the dropper without unsubscribing.
 		dropper.socket.destroy();
 
-		owner.send({
-			type: "input",
-			id,
-			data: Buffer.from("echo survives-drop\n").toString("base64"),
-		});
+		owner.send({ type: "input", id }, Buffer.from("echo survives-drop\n"));
 		await observer.waitFor(
 			(m) =>
-				m.type === "output" &&
-				Buffer.from(m.data, "base64").toString().includes("survives-drop"),
+				m.type === "output" && payloadAsString(m).includes("survives-drop"),
 			3000,
 		);
 
@@ -450,7 +438,7 @@ describe("detach + reattach", () => {
 			(m) =>
 				m.type === "output" &&
 				m.id === id &&
-				Buffer.from(m.data, "base64").toString().includes("early-marker"),
+				payloadAsString(m).includes("early-marker"),
 			3000,
 		);
 
@@ -473,15 +461,10 @@ describe("detach + reattach", () => {
 		first.send({ type: "subscribe", id, replay: false });
 
 		// Generate some output via input.
-		owner.send({
-			type: "input",
-			id,
-			data: Buffer.from("echo before-reattach\n").toString("base64"),
-		});
+		owner.send({ type: "input", id }, Buffer.from("echo before-reattach\n"));
 		await first.waitFor(
 			(m) =>
-				m.type === "output" &&
-				Buffer.from(m.data, "base64").toString().includes("before-reattach"),
+				m.type === "output" && payloadAsString(m).includes("before-reattach"),
 			3000,
 		);
 
@@ -496,20 +479,16 @@ describe("detach + reattach", () => {
 			(m) =>
 				m.type === "output" &&
 				m.id === id &&
-				Buffer.from(m.data, "base64").toString().includes("before-reattach"),
+				payloadAsString(m).includes("before-reattach"),
 			2000,
 		);
 
-		owner.send({
-			type: "input",
-			id,
-			data: Buffer.from("echo after-reattach\n").toString("base64"),
-		});
+		owner.send({ type: "input", id }, Buffer.from("echo after-reattach\n"));
 		await second.waitFor(
 			(m) =>
 				m.type === "output" &&
 				m.id === id &&
-				Buffer.from(m.data, "base64").toString().includes("after-reattach"),
+				payloadAsString(m).includes("after-reattach"),
 			3000,
 		);
 
@@ -621,15 +600,10 @@ describe("cross-client continuity (host-service restart simulation)", () => {
 		await a.waitFor((m) => m.type === "open-ok" && m.id === id);
 
 		a.send({ type: "subscribe", id, replay: false });
-		a.send({
-			type: "input",
-			id,
-			data: Buffer.from("echo before-restart\n").toString("base64"),
-		});
+		a.send({ type: "input", id }, Buffer.from("echo before-restart\n"));
 		await a.waitFor(
 			(m) =>
-				m.type === "output" &&
-				Buffer.from(m.data, "base64").toString().includes("before-restart"),
+				m.type === "output" && payloadAsString(m).includes("before-restart"),
 			3000,
 		);
 
@@ -652,21 +626,17 @@ describe("cross-client continuity (host-service restart simulation)", () => {
 			(m) =>
 				m.type === "output" &&
 				m.id === id &&
-				Buffer.from(m.data, "base64").toString().includes("before-restart"),
+				payloadAsString(m).includes("before-restart"),
 			3000,
 		);
 
 		// New input from B reaches the (still-living) shell.
-		b.send({
-			type: "input",
-			id,
-			data: Buffer.from("echo after-restart\n").toString("base64"),
-		});
+		b.send({ type: "input", id }, Buffer.from("echo after-restart\n"));
 		await b.waitFor(
 			(m) =>
 				m.type === "output" &&
 				m.id === id &&
-				Buffer.from(m.data, "base64").toString().includes("after-restart"),
+				payloadAsString(m).includes("after-restart"),
 			3000,
 		);
 
@@ -762,15 +732,9 @@ describe("hostile input", () => {
 
 		// Owner is still functional.
 		owner.send({ type: "subscribe", id, replay: false });
-		owner.send({
-			type: "input",
-			id,
-			data: Buffer.from("echo still-alive\n").toString("base64"),
-		});
+		owner.send({ type: "input", id }, Buffer.from("echo still-alive\n"));
 		await owner.waitFor(
-			(m) =>
-				m.type === "output" &&
-				Buffer.from(m.data, "base64").toString().includes("still-alive"),
+			(m) => m.type === "output" && payloadAsString(m).includes("still-alive"),
 			3000,
 		);
 
@@ -809,11 +773,7 @@ describe("hostile input", () => {
 		await c.waitFor((m) => m.type === "exit" && m.id === id, 3000);
 		await new Promise((r) => setTimeout(r, 50));
 
-		c.send({
-			type: "input",
-			id,
-			data: Buffer.from("ignored").toString("base64"),
-		});
+		c.send({ type: "input", id }, Buffer.from("ignored"));
 		const err = await c.waitFor((m) => m.type === "error", 1000);
 		if (err.type === "error") assert.equal(err.code, "ENOENT");
 		await c.close();
@@ -865,7 +825,7 @@ describe("concurrency", () => {
 					m.type === "output" &&
 					!seen.has(m.id) &&
 					ids.includes(m.id) &&
-					Buffer.from(m.data, "base64").toString().includes("TICK:start"),
+					payloadAsString(m).includes("TICK:start"),
 				10_000,
 			);
 			if (m.type === "output") seen.add(m.id);
@@ -905,7 +865,7 @@ describe("concurrency", () => {
 					(m) =>
 						m.type === "output" &&
 						m.id === id &&
-						Buffer.from(m.data, "base64").toString().includes(`CONN:${i}`),
+						payloadAsString(m).includes(`CONN:${i}`),
 					5000,
 				);
 				c.send({ type: "close", id, signal: "SIGTERM" });
@@ -952,7 +912,7 @@ describe("server shutdown", () => {
 describe("framing on the wire", () => {
 	test("server tolerates split frames across multiple TCP chunks", async () => {
 		const c = await connect(sockPath);
-		const hello = encodeFrame({ type: "hello", protocols: [1] });
+		const hello = encodeFrame({ type: "hello", protocols: [2] });
 		// Send the hello in 3-byte chunks to force the decoder to buffer.
 		for (let i = 0; i < hello.length; i += 3) {
 			c.sendRaw(hello.subarray(i, Math.min(i + 3, hello.length)));
