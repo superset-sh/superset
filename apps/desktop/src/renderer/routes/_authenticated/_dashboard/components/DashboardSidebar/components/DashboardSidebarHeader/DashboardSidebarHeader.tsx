@@ -20,8 +20,11 @@ import {
 } from "react-icons/lu";
 import { GATED_FEATURES, usePaywall } from "renderer/components/Paywall";
 import { useHotkeyDisplay } from "renderer/hotkeys";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useFolderFirstImport } from "renderer/routes/_authenticated/_dashboard/components/AddRepositoryModals/hooks/useFolderFirstImport";
+import { NavigationControls } from "renderer/routes/_authenticated/_dashboard/components/TopBar/components/NavigationControls";
 import { OrganizationDropdown } from "renderer/routes/_authenticated/_dashboard/components/TopBar/components/OrganizationDropdown";
+import { SidebarToggle } from "renderer/routes/_authenticated/_dashboard/components/TopBar/components/SidebarToggle";
 import { useTasksFilterStore } from "renderer/routes/_authenticated/_dashboard/tasks/stores/tasks-filter-state";
 import { STROKE_WIDTH_THICK } from "renderer/screens/main/components/WorkspaceSidebar/constants";
 import { useOpenNewProjectModal } from "renderer/stores/add-repository-modal";
@@ -59,6 +62,9 @@ export function DashboardSidebarHeader({
 		}
 	};
 	const shortcutText = useHotkeyDisplay("NEW_WORKSPACE").text;
+	const { data: platform } = electronTrpc.window.getPlatform.useQuery();
+	// Default to Mac while loading so we don't briefly cover the traffic lights.
+	const isMac = platform === undefined || platform === "darwin";
 	const matchRoute = useMatchRoute();
 	const { gateFeature } = usePaywall();
 	const isWorkspacesListOpen = !!matchRoute({ to: "/v2-workspaces" });
@@ -203,6 +209,13 @@ export function DashboardSidebarHeader({
 
 	return (
 		<div className="flex flex-col gap-1 border-b border-border px-2 pt-2 pb-2">
+			<div
+				className="drag flex h-8 items-center gap-1.5"
+				style={{ paddingLeft: isMac ? "72px" : "0px" }}
+			>
+				<SidebarToggle />
+				<NavigationControls />
+			</div>
 			<OrganizationDropdown variant="expanded" />
 
 			<button

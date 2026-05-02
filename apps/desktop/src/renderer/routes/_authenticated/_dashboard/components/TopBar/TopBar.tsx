@@ -2,8 +2,10 @@ import { useMatchRoute, useParams } from "@tanstack/react-router";
 import { HiOutlineWifi } from "react-icons/hi2";
 import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import { useOnlineStatus } from "renderer/hooks/useOnlineStatus";
+import { useV2UserPreferences } from "renderer/hooks/useV2UserPreferences";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { getWorkspaceDisplayName } from "renderer/lib/getWorkspaceDisplayName";
+import { useWorkspaceSidebarStore } from "renderer/stores/workspace-sidebar-state";
 import { NavigationControls } from "./components/NavigationControls";
 import { OpenInMenuButton } from "./components/OpenInMenuButton";
 import { OrganizationDropdown } from "./components/OrganizationDropdown";
@@ -31,20 +33,34 @@ export function TopBar() {
 	);
 	const isOnline = useOnlineStatus();
 	const { isV2CloudEnabled } = useIsV2CloudEnabled();
+	const { preferences: v2Preferences } = useV2UserPreferences();
+	const isRightSidebarOpen = v2Preferences.rightSidebarOpen;
+	const isSidebarOpen = useWorkspaceSidebarStore((s) => s.isOpen);
+	const isSidebarCollapsed = useWorkspaceSidebarStore((s) => s.isCollapsed());
 	// Default to Mac layout while loading to avoid overlap with traffic lights
 	const isMac = platform === undefined || platform === "darwin";
+	// In v2 the expanded sidebar lives outside the TopBar column, so the TopBar
+	// starts to the right of it and the sidebar header hosts the traffic-light
+	// pad + SidebarToggle. When the sidebar is closed or collapsed (too narrow
+	// for the pad), bring the toggle and pad back into the TopBar.
+	const sidebarHostsChrome =
+		isV2CloudEnabled && isSidebarOpen && !isSidebarCollapsed;
 
 	return (
 		<div className="drag gap-2 h-12 w-full flex items-center justify-between bg-muted/45 border-b border-border relative dark:bg-muted/35">
 			<div
 				className="flex items-center gap-1.5 h-full"
 				style={{
-					paddingLeft: isMac ? "88px" : "16px",
+					paddingLeft: isMac && !sidebarHostsChrome ? "80px" : "16px",
 				}}
 			>
-				<SidebarToggle />
-				<NavigationControls />
-				<ResourceConsumption />
+				{!sidebarHostsChrome && (
+					<>
+						<SidebarToggle />
+						<NavigationControls />
+					</>
+				)}
+				{!isV2WorkspaceRoute && <ResourceConsumption />}
 			</div>
 
 			{isV2WorkspaceRoute ? (
@@ -76,9 +92,10 @@ export function TopBar() {
 						<span>Offline</span>
 					</div>
 				)}
-				{isV2WorkspaceRoute ? (
+				{isV2WorkspaceRoute && !isRightSidebarOpen ? (
 					<V2WorkspaceOpenInButton workspaceId={v2WorkspaceId} />
-				) : workspace?.worktreePath ? (
+				) : null}
+				{!isV2WorkspaceRoute && workspace?.worktreePath ? (
 					<OpenInMenuButton
 						worktreePath={workspace.worktreePath}
 						branch={workspace.worktree?.branch}

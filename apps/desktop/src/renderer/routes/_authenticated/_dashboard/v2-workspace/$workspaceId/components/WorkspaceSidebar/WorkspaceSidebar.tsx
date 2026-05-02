@@ -4,6 +4,7 @@ import { Search } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { LuFile, LuGitCompareArrows } from "react-icons/lu";
 import { useGitStatus } from "renderer/hooks/host-service/useGitStatus";
+import { V2WorkspaceOpenInButton } from "renderer/routes/_authenticated/_dashboard/components/TopBar/components/V2WorkspaceOpenInButton";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import type { CommentPaneData } from "../../types";
 import { FilesTab } from "./components/FilesTab";
@@ -154,6 +155,9 @@ export function WorkspaceSidebar({
 			ref={containerRef}
 			className="isolate flex h-full w-full min-h-0 flex-col overflow-hidden bg-background"
 		>
+			<div className="flex h-10 shrink-0 items-center justify-end gap-1 border-b border-border px-2 empty:hidden">
+				<V2WorkspaceOpenInButton workspaceId={workspaceId} />
+			</div>
 			<PRActionHeader
 				workspaceId={workspaceId}
 				state={flowState}
