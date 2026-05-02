@@ -347,7 +347,9 @@ async function queryDeploymentUrl(
 					if (!Array.isArray(rawStatuses) || rawStatuses.length === 0) {
 						return undefined;
 					}
-					const statusResult = GHDeploymentStatusSchema.safeParse(rawStatuses[0]);
+					const statusResult = GHDeploymentStatusSchema.safeParse(
+						rawStatuses[0],
+					);
 					if (!statusResult.success) {
 						return undefined;
 					}

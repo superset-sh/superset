@@ -150,12 +150,16 @@ export function makePRResolutionCacheKey({
 	worktreePath,
 	branchName,
 	headSha,
+	repoScope,
 }: {
 	worktreePath: string;
 	branchName: string;
 	headSha?: string;
+	// `repoScope` distinguishes fork vs. base lookups for the same worktree, so
+	// switching `repoContext` doesn't return a PR from the wrong repository.
+	repoScope?: string;
 }): string {
-	return `${worktreePath}::pr::${branchName}::${headSha ?? "no-sha"}`;
+	return `${worktreePath}::pr::${repoScope ?? "no-repo"}::${branchName}::${headSha ?? "no-sha"}`;
 }
 
 export function makePRResolutionCachePrefix(worktreePath: string): string {
@@ -175,7 +179,13 @@ export function readCachedDeploymentUrl(
 	load: () => Promise<string | undefined>,
 	options?: CachedResourceReadOptions<string | undefined>,
 ): Promise<string | undefined> {
-	return deploymentUrlResource.read(cacheKey, load, options);
+	return deploymentUrlResource.read(cacheKey, load, {
+		...options,
+		// Don't lock in `undefined` for the full TTL on transient errors — that
+		// would suppress a healthy deployment URL in the UI for up to 5 min after
+		// a single network blip. The next status tick re-runs the lookup.
+		shouldCache: options?.shouldCache ?? ((value) => value !== undefined),
+	});
 }
 
 export function clearGitHubCachesForWorktree(worktreePath: string): void {
@@ -184,5 +194,11 @@ export function clearGitHubCachesForWorktree(worktreePath: string): void {
 	pullRequestCommentsResource.invalidatePrefix(
 		makePullRequestCommentsCachePrefix(worktreePath),
 	);
-	prResolutionResource.invalidatePrefix(makePRResolutionCachePrefix(worktreePath));
+	prResolutionResource.invalidatePrefix(
+		makePRResolutionCachePrefix(worktreePath),
+	);
+	// deploymentUrlResource is intentionally not invalidated here: its cache key
+	// is `${nwo}::${queryParams}` (repo-scoped, not worktree-scoped), so a single
+	// repo's deployment lookup is shared across every worktree pointing at it.
+	// Per-worktree invalidation would be a no-op against that key.
 }
