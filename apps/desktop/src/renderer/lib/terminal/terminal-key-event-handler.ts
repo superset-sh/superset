@@ -11,9 +11,19 @@ export interface TerminalKeyEventHandlerOptions {
 }
 
 function resolvePlatform(options: TerminalKeyEventHandlerOptions): string {
-	if (options.platform !== undefined) return options.platform.toLowerCase();
-	if (typeof navigator === "undefined") return "";
-	return navigator.platform.toLowerCase();
+	const raw =
+		options.platform !== undefined
+			? options.platform
+			: typeof navigator !== "undefined"
+				? navigator.platform
+				: "";
+	const lower = raw.toLowerCase();
+	// Node's `process.platform === "darwin"` is a common explicit input;
+	// without normalization it'd match `"win"` substring and be treated as
+	// Windows. Browser/Electron `navigator.platform` returns "MacIntel" so
+	// this only kicks in for Node-style callers (incl. tests).
+	if (lower === "darwin") return "mac";
+	return lower;
 }
 
 // xterm's _keyDown calls stopPropagation after processing, so any chord we

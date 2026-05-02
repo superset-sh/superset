@@ -1,17 +1,27 @@
-import { describe, expect, it, mock } from "bun:test";
+import { afterAll, describe, expect, it, mock } from "bun:test";
 import type { Terminal as XTerm } from "@xterm/xterm";
 
-(
-	globalThis as typeof globalThis & {
-		electronTRPC?: {
-			onMessage: (callback: (message: unknown) => void) => void;
-			sendMessage: (message: unknown) => void;
-		};
-	}
-).electronTRPC = {
+const testGlobal = globalThis as typeof globalThis & {
+	electronTRPC?: {
+		onMessage: (callback: (message: unknown) => void) => void;
+		sendMessage: (message: unknown) => void;
+	};
+};
+
+const previousElectronTRPC = testGlobal.electronTRPC;
+
+testGlobal.electronTRPC = {
 	onMessage: () => {},
 	sendMessage: () => {},
 };
+
+afterAll(() => {
+	if (previousElectronTRPC === undefined) {
+		delete testGlobal.electronTRPC;
+		return;
+	}
+	testGlobal.electronTRPC = previousElectronTRPC;
+});
 
 const { createTerminalKeyEventHandler } = await import(
 	"./terminal-key-event-handler"
@@ -73,6 +83,21 @@ describe("createTerminalKeyEventHandler", () => {
 		expect(handler(event)).toBe(false);
 		expect(event.preventDefault).not.toHaveBeenCalled();
 		expect(xterm.input).not.toHaveBeenCalled();
+	});
+
+	it("treats Node-style \"darwin\" platform as Mac, not Windows", () => {
+		const xterm = terminal();
+		const event = keyboardEvent({
+			key: "Enter",
+			code: "Enter",
+			metaKey: true,
+		});
+		const handler = createTerminalKeyEventHandler(xterm, {
+			platform: "darwin",
+		});
+
+		expect(handler(event)).toBe(false);
+		expect(xterm.input).toHaveBeenCalledWith("\x1b\r", true);
 	});
 
 	it("lets ordinary terminal input continue through xterm", () => {
