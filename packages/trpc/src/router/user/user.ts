@@ -5,21 +5,29 @@ import { and, desc, eq } from "drizzle-orm";
 import { z } from "zod";
 
 import { generateImagePathname, uploadImage } from "../../lib/upload";
-import { protectedProcedure } from "../../trpc";
+import { bearerProcedure, protectedProcedure } from "../../trpc";
 
 export const userRouter = {
-	me: protectedProcedure.query(({ ctx }) => ctx.session.user),
+	me: bearerProcedure.query(async ({ ctx }) => {
+		const user = await db.query.users.findFirst({
+			where: eq(users.id, ctx.userId),
+		});
+		if (!user) {
+			throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
+		}
+		return user;
+	}),
 
-	myOrganization: protectedProcedure.query(async ({ ctx }) => {
+	myOrganization: bearerProcedure.query(async ({ ctx }) => {
 		const activeOrganizationId = ctx.activeOrganizationId;
 
 		const membership = await db.query.members.findFirst({
 			where: activeOrganizationId
 				? and(
-						eq(members.userId, ctx.session.user.id),
+						eq(members.userId, ctx.userId),
 						eq(members.organizationId, activeOrganizationId),
 					)
-				: eq(members.userId, ctx.session.user.id),
+				: eq(members.userId, ctx.userId),
 			orderBy: desc(members.createdAt),
 			with: {
 				organization: true,
@@ -29,9 +37,9 @@ export const userRouter = {
 		return membership?.organization ?? null;
 	}),
 
-	myOrganizations: protectedProcedure.query(async ({ ctx }) => {
+	myOrganizations: bearerProcedure.query(async ({ ctx }) => {
 		const memberships = await db.query.members.findMany({
-			where: eq(members.userId, ctx.session.user.id),
+			where: eq(members.userId, ctx.userId),
 			orderBy: desc(members.createdAt),
 			with: {
 				organization: true,

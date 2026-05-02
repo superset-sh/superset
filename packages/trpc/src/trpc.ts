@@ -1,3 +1,4 @@
+import { resolveBearerAuth } from "@superset/auth/resolve-bearer-auth";
 import type { auth, Session } from "@superset/auth/server";
 import { db } from "@superset/db/client";
 import { members } from "@superset/db/schema";
@@ -67,36 +68,33 @@ export const protectedProcedure = t.procedure
 			activeOrganizationId = headerOrgId;
 		}
 
-		return next({ ctx: { ...ctx, activeOrganizationId } });
+		return next({
+			ctx: { ...ctx, activeOrganizationId, userId: ctx.session.user.id },
+		});
 	});
 
-export const jwtProcedure = t.procedure.use(async ({ ctx, next }) => {
-	const authHeader = ctx.headers.get("authorization");
-	const bearer = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
+export const bearerProcedure = t.procedure.use(async ({ ctx, next }) => {
+	let bearerAuth: Awaited<ReturnType<typeof resolveBearerAuth>> = null;
+	try {
+		bearerAuth = await resolveBearerAuth(ctx.headers);
+	} catch (error) {
+		throw new TRPCError({
+			code: "FORBIDDEN",
+			message: error instanceof Error ? error.message : "Bearer auth rejected",
+		});
+	}
 
-	if (bearer) {
-		try {
-			const { payload } = await ctx.auth.api.verifyJWT({
-				body: { token: bearer },
-			});
-			if (payload?.sub) {
-				const organizationIds = (payload.organizationIds as string[]) ?? [];
-				return next({
-					ctx: {
-						userId: payload.sub,
-						email: (payload.email as string) ?? "",
-						organizationIds,
-						activeOrganizationId: organizationIds[0] ?? null,
-					},
-				});
-			}
-		} catch (error) {
-			// A live session is the legit fallback for an unverifiable token
-			// (expired/missing). A TRPCError from verifyJWT is an explicit
-			// rejection (revoked/forged) — surface it instead of laundering
-			// it into session auth.
-			if (error instanceof TRPCError) throw error;
-		}
+	if (bearerAuth) {
+		return next({
+			ctx: {
+				userId: bearerAuth.userId,
+				email: bearerAuth.email ?? "",
+				organizationIds: bearerAuth.organizationIds,
+				activeOrganizationId: bearerAuth.activeOrganizationId,
+				authKind: bearerAuth.kind,
+				scopes: bearerAuth.scopes,
+			},
+		});
 	}
 
 	if (ctx.session) {
@@ -106,15 +104,29 @@ export const jwtProcedure = t.procedure.use(async ({ ctx, next }) => {
 			columns: { organizationId: true },
 		});
 		const organizationIds = memberRows.map((row) => row.organizationId);
+
+		const sessionOrgId = ctx.session.session.activeOrganizationId ?? null;
+		const headerOrgId = ctx.headers.get(ORGANIZATION_HEADER)?.trim() || null;
+
+		let activeOrganizationId = sessionOrgId ?? organizationIds[0] ?? null;
+		if (headerOrgId && headerOrgId !== sessionOrgId) {
+			if (!organizationIds.includes(headerOrgId)) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: `Not a member of organization ${headerOrgId}`,
+				});
+			}
+			activeOrganizationId = headerOrgId;
+		}
+
 		return next({
 			ctx: {
 				userId,
 				email: ctx.session.user.email ?? "",
 				organizationIds,
-				activeOrganizationId:
-					ctx.session.session.activeOrganizationId ??
-					organizationIds[0] ??
-					null,
+				activeOrganizationId,
+				authKind: "session" as const,
+				scopes: [] as string[],
 			},
 		});
 	}
@@ -124,6 +136,11 @@ export const jwtProcedure = t.procedure.use(async ({ ctx, next }) => {
 		message: "Not authenticated. Provide a bearer JWT, x-api-key, or session.",
 	});
 });
+
+/**
+ * @deprecated Use {@link bearerProcedure}. Kept as an alias during migration.
+ */
+export const jwtProcedure = bearerProcedure;
 
 export const adminProcedure = protectedProcedure.use(async ({ ctx, next }) => {
 	if (!ctx.session.user.email.endsWith(COMPANY.EMAIL_DOMAIN)) {

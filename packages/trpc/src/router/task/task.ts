@@ -11,7 +11,7 @@ import { and, desc, eq, ilike, isNull } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { z } from "zod";
 import { syncTask } from "../../lib/integrations/sync";
-import { protectedProcedure, type TRPCContext } from "../../trpc";
+import { bearerProcedure, protectedProcedure } from "../../trpc";
 import { verifyOrgMembership } from "../integration/utils";
 import { requireActiveOrgMembership } from "../utils/active-org";
 import {
@@ -173,7 +173,7 @@ async function getScopedAssigneeId(
 }
 
 type CreateTaskContext = {
-	session: NonNullable<TRPCContext["session"]>;
+	userId: string;
 	activeOrganizationId: string | null;
 };
 
@@ -228,7 +228,7 @@ async function createTask(
 						statusId,
 						priority: input.priority ?? "none",
 						organizationId,
-						creatorId: ctx.session.user.id,
+						creatorId: ctx.userId,
 						assigneeId,
 						estimate: input.estimate ?? null,
 						dueDate: input.dueDate ?? null,
@@ -297,7 +297,7 @@ export const taskRouter = {
 			.orderBy(desc(tasks.createdAt));
 	}),
 
-	list: protectedProcedure
+	list: bearerProcedure
 		.input(taskListInputSchema)
 		.query(async ({ ctx, input }) => {
 			const organizationId = await requireActiveOrgMembership(ctx);
@@ -313,12 +313,12 @@ export const taskRouter = {
 			if (input?.priority) filters.push(eq(tasks.priority, input.priority));
 			if (input?.statusId) filters.push(eq(tasks.statusId, input.statusId));
 			if (input?.assigneeMe) {
-				filters.push(eq(tasks.assigneeId, ctx.session.user.id));
+				filters.push(eq(tasks.assigneeId, ctx.userId));
 			} else if (input?.assigneeId) {
 				filters.push(eq(tasks.assigneeId, input.assigneeId));
 			}
 			if (input?.creatorMe) {
-				filters.push(eq(tasks.creatorId, ctx.session.user.id));
+				filters.push(eq(tasks.creatorId, ctx.userId));
 			}
 			if (input?.search) {
 				filters.push(
@@ -354,7 +354,7 @@ export const taskRouter = {
 	byOrganization: protectedProcedure
 		.input(z.string().uuid())
 		.query(async ({ ctx, input }) => {
-			await verifyOrgMembership(ctx.session.user.id, input);
+			await verifyOrgMembership(ctx.userId, input);
 
 			return db
 				.select()
@@ -365,14 +365,14 @@ export const taskRouter = {
 
 	byId: protectedProcedure
 		.input(z.string().uuid())
-		.query(({ ctx, input }) => getTaskById(ctx.session.user.id, input)),
+		.query(({ ctx, input }) => getTaskById(ctx.userId, input)),
 
 	bySlug: protectedProcedure.input(z.string()).query(async ({ ctx, input }) => {
 		const organizationId = await requireActiveOrgMembership(ctx);
-		return getTaskBySlug(ctx.session.user.id, organizationId, input);
+		return getTaskBySlug(ctx.userId, organizationId, input);
 	}),
 
-	byIdOrSlug: protectedProcedure
+	byIdOrSlug: bearerProcedure
 		.input(z.string().min(1))
 		.query(async ({ ctx, input }) => {
 			const looksLikeUuid =
@@ -380,11 +380,11 @@ export const taskRouter = {
 					input,
 				);
 			if (looksLikeUuid) {
-				const task = await getTaskById(ctx.session.user.id, input);
+				const task = await getTaskById(ctx.userId, input);
 				if (task) return task;
 			}
 			const organizationId = await requireActiveOrgMembership(ctx);
-			return getTaskBySlug(ctx.session.user.id, organizationId, input);
+			return getTaskBySlug(ctx.userId, organizationId, input);
 		}),
 
 	/**
@@ -396,17 +396,17 @@ export const taskRouter = {
 		.input(createTaskSchema)
 		.mutation(({ ctx, input }) => createTask(ctx, input)),
 
-	create: protectedProcedure
+	create: bearerProcedure
 		.input(createTaskSchema)
 		.mutation(({ ctx, input }) => createTask(ctx, input)),
 
-	update: protectedProcedure
+	update: bearerProcedure
 		.input(updateTaskSchema)
 		.mutation(async ({ ctx, input }) => {
 			const { id, ...data } = input;
 
 			const result = await dbWs.transaction(async (tx) => {
-				const taskAccess = await getTaskAccess(tx, ctx.session.user.id, id);
+				const taskAccess = await getTaskAccess(tx, ctx.userId, id);
 
 				// Enforce assignee invariant: setting internal assignee clears external snapshot
 				const updateData: Record<string, unknown> = { ...data };
@@ -450,11 +450,11 @@ export const taskRouter = {
 			return result;
 		}),
 
-	delete: protectedProcedure
+	delete: bearerProcedure
 		.input(z.string().uuid())
 		.mutation(async ({ ctx, input }) => {
 			const result = await dbWs.transaction(async (tx) => {
-				await getTaskAccess(tx, ctx.session.user.id, input);
+				await getTaskAccess(tx, ctx.userId, input);
 
 				const [deleted] = await tx
 					.update(tasks)

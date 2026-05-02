@@ -21,7 +21,7 @@ import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
 import { and, desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { env } from "../../env";
-import { protectedProcedure } from "../../trpc";
+import { bearerProcedure, protectedProcedure } from "../../trpc";
 import {
 	requireActiveOrgMembership,
 	requireActiveOrgMembershipWithSubscription,
@@ -157,7 +157,7 @@ async function getAutomationForUser(
 
 export const automationRouter = {
 	/** List automations scoped to the caller's active organization. */
-	list: protectedProcedure.query(async ({ ctx }) => {
+	list: bearerProcedure.query(async ({ ctx }) => {
 		const organizationId = await requireActiveOrgMembership(ctx);
 
 		const rows = await db
@@ -173,12 +173,12 @@ export const automationRouter = {
 	}),
 
 	/** Get one automation. Use listRuns for run history. */
-	get: protectedProcedure
+	get: bearerProcedure
 		.input(z.object({ id: z.string().uuid() }))
 		.query(async ({ ctx, input }) => {
 			const organizationId = await requireActiveOrgMembership(ctx);
 			const automation = await getAutomationForUser(
-				ctx.session.user.id,
+				ctx.userId,
 				organizationId,
 				input.id,
 			);
@@ -188,7 +188,7 @@ export const automationRouter = {
 			};
 		}),
 
-	create: protectedProcedure
+	create: bearerProcedure
 		.input(createAutomationSchema)
 		.mutation(async ({ ctx, input }) => {
 			const { organizationId, subscription } =
@@ -196,11 +196,7 @@ export const automationRouter = {
 			requirePaidSubscription(subscription);
 
 			if (input.targetHostId) {
-				await verifyHostAccess(
-					ctx.session.user.id,
-					organizationId,
-					input.targetHostId,
-				);
+				await verifyHostAccess(ctx.userId, organizationId, input.targetHostId);
 			}
 
 			let v2ProjectId = input.v2ProjectId;
@@ -238,7 +234,7 @@ export const automationRouter = {
 				.insert(automations)
 				.values({
 					organizationId,
-					ownerUserId: ctx.session.user.id,
+					ownerUserId: ctx.userId,
 					name: input.name,
 					prompt: input.prompt,
 					agentConfig: input.agentConfig,
@@ -256,22 +252,18 @@ export const automationRouter = {
 			return { ...created, scheduleText: safeDescribeRrule(created) };
 		}),
 
-	update: protectedProcedure
+	update: bearerProcedure
 		.input(updateAutomationSchema)
 		.mutation(async ({ ctx, input }) => {
 			const organizationId = await requireActiveOrgMembership(ctx);
 			const existing = await getAutomationForUser(
-				ctx.session.user.id,
+				ctx.userId,
 				organizationId,
 				input.id,
 			);
 
 			if (input.targetHostId !== undefined && input.targetHostId !== null) {
-				await verifyHostAccess(
-					ctx.session.user.id,
-					organizationId,
-					input.targetHostId,
-				);
+				await verifyHostAccess(ctx.userId, organizationId, input.targetHostId);
 			}
 			if (input.v2WorkspaceId) {
 				await verifyWorkspaceInOrg(organizationId, input.v2WorkspaceId);
@@ -319,23 +311,23 @@ export const automationRouter = {
 			return { ...updated, scheduleText: safeDescribeRrule(updated) };
 		}),
 
-	getPrompt: protectedProcedure
+	getPrompt: bearerProcedure
 		.input(z.object({ id: z.string().uuid() }))
 		.query(async ({ ctx, input }) => {
 			const organizationId = await requireActiveOrgMembership(ctx);
 			const existing = await getAutomationForUser(
-				ctx.session.user.id,
+				ctx.userId,
 				organizationId,
 				input.id,
 			);
 			return { id: existing.id, prompt: existing.prompt };
 		}),
 
-	setPrompt: protectedProcedure
+	setPrompt: bearerProcedure
 		.input(setAutomationPromptSchema)
 		.mutation(async ({ ctx, input }) => {
 			const organizationId = await requireActiveOrgMembership(ctx);
-			await getAutomationForUser(ctx.session.user.id, organizationId, input.id);
+			await getAutomationForUser(ctx.userId, organizationId, input.id);
 
 			const [updated] = await dbWs
 				.update(automations)
@@ -346,18 +338,18 @@ export const automationRouter = {
 			return { ...updated, scheduleText: safeDescribeRrule(updated) };
 		}),
 
-	delete: protectedProcedure
+	delete: bearerProcedure
 		.input(z.object({ id: z.string().uuid() }))
 		.mutation(async ({ ctx, input }) => {
 			const organizationId = await requireActiveOrgMembership(ctx);
-			await getAutomationForUser(ctx.session.user.id, organizationId, input.id);
+			await getAutomationForUser(ctx.userId, organizationId, input.id);
 
 			await dbWs.delete(automations).where(eq(automations.id, input.id));
 
 			return { ok: true };
 		}),
 
-	setEnabled: protectedProcedure
+	setEnabled: bearerProcedure
 		.input(z.object({ id: z.string().uuid(), enabled: z.boolean() }))
 		.mutation(async ({ ctx, input }) => {
 			const { organizationId, subscription } =
@@ -366,7 +358,7 @@ export const automationRouter = {
 				requirePaidSubscription(subscription);
 			}
 			const existing = await getAutomationForUser(
-				ctx.session.user.id,
+				ctx.userId,
 				organizationId,
 				input.id,
 			);
@@ -394,14 +386,14 @@ export const automationRouter = {
 			return { ...updated, scheduleText: safeDescribeRrule(updated) };
 		}),
 
-	runNow: protectedProcedure
+	runNow: bearerProcedure
 		.input(z.object({ id: z.string().uuid() }))
 		.mutation(async ({ ctx, input }) => {
 			const { organizationId, subscription } =
 				await requireActiveOrgMembershipWithSubscription(ctx);
 			requirePaidSubscription(subscription);
 			const automation = await getAutomationForUser(
-				ctx.session.user.id,
+				ctx.userId,
 				organizationId,
 				input.id,
 			);
@@ -446,7 +438,7 @@ export const automationRouter = {
 		.query(async ({ ctx, input }) => {
 			const organizationId = await requireActiveOrgMembership(ctx);
 			await getAutomationForUser(
-				ctx.session.user.id,
+				ctx.userId,
 				organizationId,
 				input.automationId,
 			);
