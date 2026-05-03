@@ -85,6 +85,7 @@ export function SubmitPromptDialog({
 							placeholder="Describe what you'd like to see built…"
 							rows={6}
 							autoFocus
+							disabled={isSubmitting}
 						/>
 					</div>
 					<div className="flex flex-col gap-2">
@@ -99,6 +100,7 @@ export function SubmitPromptDialog({
 							value={submitterName}
 							onChange={(e) => setSubmitterName(e.target.value)}
 							placeholder="Jane Doe"
+							disabled={isSubmitting}
 						/>
 					</div>
 				</div>

@@ -217,6 +217,7 @@ export function DashboardSidebar({
 									<TooltipTrigger asChild>
 										<button
 											type="button"
+											aria-label="Settings"
 											onClick={() => navigate({ to: "/settings/account" })}
 											className={cn(
 												"flex size-8 items-center justify-center rounded-md transition-colors",
