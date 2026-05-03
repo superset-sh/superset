@@ -51,18 +51,9 @@ import {
 // `*-override → theme tokens → defaults`, so providing overrides is enough —
 // no need to touch the theme tier. Custom properties cascade through Pierre's
 // shadow DOM, so setting them on the host element is sufficient.
-//
-// Explicit `width: 100%; height: 100%` on the host matches Pierre's own
-// docs/_components/TreeApp.tsx pattern. The `<file-tree-container>` is a
-// custom element that defaults to `display: inline`; flex sizing alone
-// doesn't reliably resolve `:host { height: 100% }` inside its shadow DOM
-// across browsers. Setting an explicit 100% gives Pierre's internal
-// ResizeObserver a real number to measure.
 const TREE_STYLE: React.CSSProperties = {
-	width: "100%",
-	height: "100%",
-
 	// Layout
+	"--trees-row-height-override": `${ROW_HEIGHT}px`,
 	"--trees-level-gap-override": `${TREE_INDENT}px`,
 	"--trees-padding-inline-override": "8px",
 	"--trees-border-radius-override": "0",
