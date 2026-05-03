@@ -223,18 +223,29 @@ export class Session {
 		this.emulator.setCwd(options.cwd);
 
 		// The headless emulator responds to terminal queries (e.g. DA1,
-		// DSR). These responses must be forwarded to the subprocess
-		// regardless of whether renderer clients are attached, because
-		// shells like fish send DA1 at startup and wait up to 10 seconds
-		// for a reply before disabling optional features.
-		// Unlike renderer-generated responses (which go through write()
-		// and are correctly dropped during init to avoid appearing as
-		// typed text), headless emulator responses are written directly
-		// to the PTY and consumed by the shell as protocol data.
+		// DSR). Forwarding rules:
+		//
+		// - While the shell is initializing (`pending`), forward headless
+		//   responses to the subprocess. Shells like fish send DA1 at
+		//   startup and wait up to 10 seconds for a reply before disabling
+		//   optional features, and the renderer's own escape responses
+		//   are dropped by write() during `pending` to avoid leaking
+		//   stale query replies as typed text.
+		//
+		// - Once the shell is ready (or no marker is expected), the
+		//   renderer's xterm becomes the authoritative responder — its
+		//   replies pass through write() to the PTY. If the headless
+		//   emulator also forwards its response, queries like CSI 6n get
+		//   duplicate replies, which leak into the next shell prompt as
+		//   text like `[1;1R` (#4013). So we only forward when no
+		//   renderer is attached, preserving query answers for headless
+		//   sessions while avoiding the duplicate.
 		this.emulator.onData((data) => {
-			if (this.subprocess && this.subprocessReady) {
-				this.sendWriteToSubprocess(data);
+			if (!this.subprocess || !this.subprocessReady) return;
+			if (this.shellReadyState !== "pending" && this.attachedClients.size > 0) {
+				return;
 			}
+			this.sendWriteToSubprocess(data);
 		});
 	}
 
