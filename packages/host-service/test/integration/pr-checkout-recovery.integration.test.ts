@@ -76,7 +76,10 @@ async function createDeletedBranchScenario(prNumber: number): Promise<{
 	// Delete the named branch from the remote (simulates GitHub's
 	// "delete branch on merge"). The commit is now only reachable via
 	// the synthetic PR ref.
-	await local.git.push("origin", undefined, ["--delete", "feature/will-be-deleted"]);
+	await local.git.push("origin", undefined, [
+		"--delete",
+		"feature/will-be-deleted",
+	]);
 	await bare.publishSyntheticPrRef(prNumber, prHeadOid);
 
 	// Switch back to main locally so the feature branch isn't checked out
@@ -138,9 +141,7 @@ describe("recoverPrCheckoutAfterGhFailure (real git)", () => {
 		expect(result.warning).toContain("refs/pull/4242/head");
 
 		// Branch was actually created and points at the PR head commit.
-		const head = (
-			await scenario.worktreeGit.raw(["rev-parse", "HEAD"])
-		).trim();
+		const head = (await scenario.worktreeGit.raw(["rev-parse", "HEAD"])).trim();
 		expect(head).toBe(scenario.prHeadOid);
 
 		const branch = (
@@ -180,9 +181,7 @@ describe("recoverPrCheckoutAfterGhFailure (real git)", () => {
 		// Worktree HEAD must still point at main's commit — the detached
 		// state from setup. Recovery aborted before `checkout -B` ran, so
 		// no `feature/will-be-deleted` branch should exist either.
-		const head = (
-			await scenario.worktreeGit.raw(["rev-parse", "HEAD"])
-		).trim();
+		const head = (await scenario.worktreeGit.raw(["rev-parse", "HEAD"])).trim();
 		expect(head).toBe(mainOid);
 
 		const branchExists = await scenario.worktreeGit
@@ -222,9 +221,7 @@ describe("recoverPrCheckoutAfterGhFailure (real git)", () => {
 		).trim();
 		expect(branch).toBe("user/feature");
 
-		const head = (
-			await scenario.worktreeGit.raw(["rev-parse", "HEAD"])
-		).trim();
+		const head = (await scenario.worktreeGit.raw(["rev-parse", "HEAD"])).trim();
 		expect(head).toBe(scenario.prHeadOid);
 	});
 
@@ -247,9 +244,7 @@ describe("recoverPrCheckoutAfterGhFailure (real git)", () => {
 
 		// Worktree still detached at main's commit; no recovery branch ref
 		// was written.
-		const head = (
-			await scenario.worktreeGit.raw(["rev-parse", "HEAD"])
-		).trim();
+		const head = (await scenario.worktreeGit.raw(["rev-parse", "HEAD"])).trim();
 		expect(head).toBe(mainOid);
 
 		const branchExists = await scenario.worktreeGit
