@@ -424,13 +424,22 @@ export const gitRouter = router({
 			const worktreePath = resolveWorktreePath(ctx, input.workspaceId);
 			const git = await ctx.git(worktreePath);
 			const status = await git.status();
-			// Capture before reset; afterwards these files become untracked
-			// and `git checkout` won't touch them.
+			// Files staged-as-added don't exist in HEAD — checkout would fail,
+			// so unstage and delete them instead.
 			const stagedAddedPaths = status.created;
-			await git.raw(["reset", "HEAD", "--", "."]);
-			await git.raw(["checkout", "--", "."]);
-			for (const filePath of stagedAddedPaths) {
-				await rm(join(worktreePath, filePath), { force: true });
+			// Files with staged changes that exist in HEAD (M/D/R/C/T). Scoped
+			// to staged paths only so unstaged-only files aren't touched.
+			const stagedTrackedPaths = status.files
+				.filter((f) => f.index !== " " && f.index !== "?" && f.index !== "A")
+				.map((f) => f.path);
+			if (stagedTrackedPaths.length > 0) {
+				await git.raw(["checkout", "HEAD", "--", ...stagedTrackedPaths]);
+			}
+			if (stagedAddedPaths.length > 0) {
+				await git.raw(["reset", "HEAD", "--", ...stagedAddedPaths]);
+				for (const filePath of stagedAddedPaths) {
+					await rm(join(worktreePath, filePath), { force: true });
+				}
 			}
 			return { success: true };
 		}),
