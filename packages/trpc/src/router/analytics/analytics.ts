@@ -4,7 +4,7 @@ import type { TRPCRouterRecord } from "@trpc/server";
 import { inArray } from "drizzle-orm";
 import { z } from "zod";
 
-import { captureProductEvent } from "../../lib/analytics";
+import { posthog } from "../../lib/analytics";
 import {
 	executeFunnelQuery,
 	executeHogQLQuery,
@@ -67,13 +67,18 @@ export const analyticsRouter = {
 			const augmented = ctx.session.session as typeof ctx.session.session & {
 				plan?: string | null;
 			};
-			captureProductEvent({
-				userId: ctx.session.user.id,
-				source: input.source,
+			posthog.capture({
+				distinctId: ctx.session.user.id,
 				event: input.event,
-				activeOrganizationId: ctx.activeOrganizationId,
-				plan: augmented.plan ?? null,
-				properties: input.properties,
+				properties: {
+					...(input.properties ?? {}),
+					source: input.source,
+					plan: augmented.plan ?? null,
+					active_organization_id: ctx.activeOrganizationId,
+				},
+				groups: ctx.activeOrganizationId
+					? { organization: ctx.activeOrganizationId }
+					: undefined,
 			});
 			return { ok: true };
 		}),

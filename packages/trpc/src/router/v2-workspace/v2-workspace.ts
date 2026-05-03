@@ -11,7 +11,7 @@ import type { TRPCRouterRecord } from "@trpc/server";
 import { TRPCError } from "@trpc/server";
 import { and, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
-import { captureProductEvent } from "../../lib/analytics";
+import { posthog } from "../../lib/analytics";
 import { jwtProcedure, protectedProcedure } from "../../trpc";
 import { requireActiveOrgId } from "../utils/active-org";
 import {
@@ -203,14 +203,13 @@ export const v2WorkspaceRouter = {
 				.returning();
 
 			if (inserted) {
-				captureProductEvent({
-					userId: ctx.userId,
-					source: "server",
+				posthog.capture({
+					distinctId: ctx.userId,
 					event: "workspace_created",
-					activeOrganizationId: inserted.organizationId,
 					properties: {
 						workspace_id: inserted.id,
 						project_id: inserted.projectId,
+						organization_id: inserted.organizationId,
 						host_id: inserted.hostId,
 						branch: inserted.branch,
 						type: inserted.type,
@@ -436,14 +435,13 @@ export const v2WorkspaceRouter = {
 			}
 			await dbWs.delete(v2Workspaces).where(eq(v2Workspaces.id, workspace.id));
 
-			captureProductEvent({
-				userId: ctx.userId,
-				source: "server",
+			posthog.capture({
+				distinctId: ctx.userId,
 				event: "workspace_deleted",
-				activeOrganizationId: workspace.organizationId,
 				properties: {
 					workspace_id: workspace.id,
 					project_id: workspace.projectId,
+					organization_id: workspace.organizationId,
 					host_id: workspace.hostId,
 					branch: workspace.branch,
 					type: workspace.type,
