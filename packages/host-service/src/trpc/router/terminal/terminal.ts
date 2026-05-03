@@ -3,7 +3,6 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { getSupervisor, waitForDaemonReady } from "../../../daemon";
 import { terminalSessions, workspaces } from "../../../db/schema";
-import { env } from "../../../env";
 import {
 	createTerminalSessionInternal,
 	disposeSession,
@@ -13,23 +12,25 @@ import {
 import { protectedProcedure, router } from "../../index";
 
 // Daemon control surface — sibling to the per-workspace terminal ops above.
-// Org-scoped (one daemon per host-service); reads org id from env.
+// Org-scoped (one daemon per host-service); org id comes from request ctx
+// rather than env so this module can be imported in tests where env vars
+// aren't set.
 // Supervisor lives in this same process so calls go through the in-process
 // singleton, not over the wire.
 const daemonRouter = router({
-	getUpdateStatus: protectedProcedure.query(() =>
-		getSupervisor().getUpdateStatus(env.ORGANIZATION_ID),
+	getUpdateStatus: protectedProcedure.query(({ ctx }) =>
+		getSupervisor().getUpdateStatus(ctx.organizationId),
 	),
 
-	listSessions: protectedProcedure.query(async () => {
+	listSessions: protectedProcedure.query(async ({ ctx }) => {
 		// Wait for the bootstrap so the supervisor has a socket path.
-		await waitForDaemonReady(env.ORGANIZATION_ID);
-		return getSupervisor().listSessions(env.ORGANIZATION_ID);
+		await waitForDaemonReady(ctx.organizationId);
+		return getSupervisor().listSessions(ctx.organizationId);
 	}),
 
-	restart: protectedProcedure.mutation(async () => {
-		await waitForDaemonReady(env.ORGANIZATION_ID);
-		return getSupervisor().restart(env.ORGANIZATION_ID);
+	restart: protectedProcedure.mutation(async ({ ctx }) => {
+		await waitForDaemonReady(ctx.organizationId);
+		return getSupervisor().restart(ctx.organizationId);
 	}),
 
 	/**
@@ -40,9 +41,9 @@ const daemonRouter = router({
 	 * "Update" path (vs `restart` which kills sessions). On failure, the
 	 * UI offers force-restart as a fallback.
 	 */
-	update: protectedProcedure.mutation(async () => {
-		await waitForDaemonReady(env.ORGANIZATION_ID);
-		return getSupervisor().update(env.ORGANIZATION_ID);
+	update: protectedProcedure.mutation(async ({ ctx }) => {
+		await waitForDaemonReady(ctx.organizationId);
+		return getSupervisor().update(ctx.organizationId);
 	}),
 });
 

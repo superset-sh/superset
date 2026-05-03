@@ -24,10 +24,13 @@ process.env.SUPERSET_API_URL = "https://cloud.example.com";
 
 const { appRouter } = await import("../router.ts");
 
+const TEST_ORG_ID = "00000000-0000-4000-8000-000000000000";
+
 function makeCaller(authenticated = true) {
 	// Cast to whatever; we only invoke procedures that don't touch db/git/etc.
 	return appRouter.createCaller({
 		isAuthenticated: authenticated,
+		organizationId: TEST_ORG_ID,
 	} as unknown as Parameters<typeof appRouter.createCaller>[0]);
 }
 
