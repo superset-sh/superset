@@ -151,13 +151,15 @@ async function localBranchExists(
 	branchName: string,
 ): Promise<boolean> {
 	try {
-		await git.raw([
+		// Same trap as refs.ts: `--quiet` causes simple-git's `raw` to
+		// mis-resolve missing refs as success with empty stdout. Verify a
+		// sha was printed to confirm the ref actually exists.
+		const out = await git.raw([
 			"show-ref",
 			"--verify",
-			"--quiet",
 			`refs/heads/${branchName}`,
 		]);
-		return true;
+		return /^[0-9a-f]{40,}/.test(out.trim());
 	} catch {
 		return false;
 	}
@@ -200,9 +202,11 @@ async function planBranchSource(
 			const upstream = await resolveUpstream(git, defaultBranchName);
 			if (upstream) {
 				const remoteRef = asRemoteRef(upstream.remote, upstream.remoteBranch);
+				// `--quiet` confuses simple-git's `raw` (resolves on missing
+				// refs with empty stdout). Drop it; verify a sha was printed.
 				const remoteExists = await git
-					.raw(["rev-parse", "--verify", "--quiet", `${remoteRef}^{commit}`])
-					.then(() => true)
+					.raw(["rev-parse", "--verify", `${remoteRef}^{commit}`])
+					.then((out) => /^[0-9a-f]{40,}/.test(out.trim()))
 					.catch(() => false);
 				if (remoteExists) {
 					startPoint = {

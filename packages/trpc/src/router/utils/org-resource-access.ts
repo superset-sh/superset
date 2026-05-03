@@ -20,14 +20,20 @@ export async function requireOrgScopedResource<T extends OrgScopedResource>(
 ): Promise<T> {
 	const resource = await resolveResource();
 
-	if (
-		!resource ||
-		(options.organizationId &&
-			resource.organizationId !== options.organizationId)
-	) {
+	if (!resource) {
 		throw new TRPCError({
 			code: options.code ?? "NOT_FOUND",
 			message: options.message,
+		});
+	}
+
+	if (
+		options.organizationId &&
+		resource.organizationId !== options.organizationId
+	) {
+		throw new TRPCError({
+			code: options.code ?? "NOT_FOUND",
+			message: `${options.message} (resource org ${resource.organizationId} ≠ requested org ${options.organizationId})`,
 		});
 	}
 

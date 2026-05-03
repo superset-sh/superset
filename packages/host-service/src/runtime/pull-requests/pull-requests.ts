@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { existsSync } from "node:fs";
 import type { Octokit } from "@octokit/rest";
 import { parseGitHubRemote } from "@superset/shared/github-remote";
 import { and, eq, inArray } from "drizzle-orm";
@@ -308,6 +309,10 @@ export class PullRequestRuntimeManager {
 		const changedProjectIds = new Set<string>();
 
 		for (const workspace of allWorkspaces) {
+			// Skip workspaces whose worktree was deleted on disk but whose row
+			// is still in the host db. simple-git would throw a confusing
+			// "directory does not exist" error otherwise.
+			if (!existsSync(workspace.worktreePath)) continue;
 			try {
 				const git = await this.git(workspace.worktreePath);
 				const branch = await getCurrentBranchName(git);
