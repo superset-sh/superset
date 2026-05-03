@@ -23,7 +23,7 @@ export const searchBranchesInputSchema = z.object({
 	cursor: z.string().optional(),
 	limit: z.number().min(1).max(200).optional(),
 	refresh: z.boolean().optional(),
-	filter: z.enum(["branch", "worktree"]).optional(),
+	filter: z.enum(["all", "worktree"]).optional(),
 });
 
 export const generateBranchNameInputSchema = z.object({
