@@ -55,7 +55,7 @@ export function useBranchPickerController(args: UseBranchPickerControllerArgs) {
 	// Branch list state — owned by the controller so the picker is purely
 	// presentational.
 	const [branchSearch, setBranchSearch] = useState("");
-	const [branchFilter, setBranchFilter] = useState<BranchFilter>("branch");
+	const [branchFilter, setBranchFilter] = useState<BranchFilter>("all");
 
 	const {
 		branches,

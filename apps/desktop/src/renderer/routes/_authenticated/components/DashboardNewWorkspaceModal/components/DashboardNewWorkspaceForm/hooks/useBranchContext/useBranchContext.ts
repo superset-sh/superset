@@ -26,7 +26,7 @@ export function useBranchContext(
 	projectId: string | null,
 	hostTarget: WorkspaceHostTarget,
 	query: string,
-	filter: BranchFilter = "branch",
+	filter: BranchFilter = "all",
 ) {
 	const hostUrl = useHostTargetUrl(hostTarget);
 

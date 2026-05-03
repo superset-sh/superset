@@ -197,6 +197,45 @@ interface NormalizedRepoIdentity {
 	remoteName: string;
 }
 
+type PullRequestRow = typeof pullRequests.$inferSelect;
+
+export interface CheckoutPullRequestMetadata {
+	number: number;
+	url: string;
+	title: string;
+	state: "open" | "closed" | "merged";
+	isDraft?: boolean;
+	headRefName: string;
+	headRefOid: string;
+	headRepositoryOwner?: string | null;
+	headRepositoryName?: string | null;
+	isCrossRepository: boolean;
+}
+
+function mapCheckoutPullRequestState(
+	state: CheckoutPullRequestMetadata["state"],
+	isDraft: boolean,
+): PullRequestState {
+	if (state === "merged") return "merged";
+	if (state === "closed") return "closed";
+	if (isDraft) return "draft";
+	return "open";
+}
+
+function deriveCheckoutPullRequestUpstream(
+	repo: NormalizedRepoIdentity,
+	pr: CheckoutPullRequestMetadata,
+): { owner: string; name: string; branch: string } | null {
+	if (!pr.isCrossRepository) {
+		return { owner: repo.owner, name: repo.name, branch: pr.headRefName };
+	}
+
+	const owner = pr.headRepositoryOwner?.trim();
+	const name = pr.headRepositoryName?.trim();
+	if (!owner || !name) return null;
+	return { owner, name, branch: pr.headRefName };
+}
+
 export class PullRequestRuntimeManager {
 	private readonly db: HostDb;
 	private readonly git: GitFactory;
@@ -303,6 +342,63 @@ export class PullRequestRuntimeManager {
 		);
 	}
 
+	async linkWorkspaceToCheckoutPullRequest({
+		workspaceId,
+		projectId,
+		pullRequest,
+	}: {
+		workspaceId: string;
+		projectId: string;
+		pullRequest: CheckoutPullRequestMetadata;
+	}): Promise<string | null> {
+		const repo = await this.getProjectRepository(projectId);
+		if (!repo) {
+			console.warn(
+				"[host-service:pull-request-runtime] linkWorkspaceToCheckoutPullRequest: skipping; project repo metadata unavailable",
+				{ projectId, workspaceId, prNumber: pullRequest.number },
+			);
+			return null;
+		}
+
+		const existing = this.findPullRequestRow(repo, pullRequest.number);
+		const existingChecks = parseChecksJson(existing?.checksJson ?? null);
+		const now = Date.now();
+		const isDraft = pullRequest.isDraft ?? false;
+		const rowId = this.upsertPullRequestRow({
+			existing,
+			projectId,
+			repo,
+			prNumber: pullRequest.number,
+			url: pullRequest.url,
+			title: pullRequest.title,
+			state: mapCheckoutPullRequestState(pullRequest.state, isDraft),
+			isDraft,
+			headBranch: pullRequest.headRefName,
+			headSha: pullRequest.headRefOid,
+			reviewDecision: coerceReviewDecision(existing?.reviewDecision ?? null),
+			checksStatus: coerceChecksStatus(existing?.checksStatus ?? null),
+			checksJson: JSON.stringify(existingChecks),
+			lastFetchedAt: existing?.lastFetchedAt ?? now,
+			error: null,
+			now,
+		});
+
+		const upstream = deriveCheckoutPullRequestUpstream(repo, pullRequest);
+		this.db
+			.update(workspaces)
+			.set({
+				pullRequestId: rowId,
+				headSha: pullRequest.headRefOid,
+				upstreamOwner: upstream?.owner ?? null,
+				upstreamRepo: upstream?.name ?? null,
+				upstreamBranch: upstream?.branch ?? null,
+			})
+			.where(eq(workspaces.id, workspaceId))
+			.run();
+
+		return rowId;
+	}
+
 	private async syncWorkspaceBranches(): Promise<void> {
 		const allWorkspaces = this.db.select().from(workspaces).all();
 		const changedProjectIds = new Set<string>();
@@ -319,13 +415,19 @@ export class PullRequestRuntimeManager {
 				const upstreamOwner = upstream?.owner ?? null;
 				const upstreamRepo = upstream?.name ?? null;
 				const upstreamBranch = upstream?.branch ?? null;
+				const pullRequestId =
+					upstream ||
+					this.pullRequestHeadMatches(workspace.pullRequestId, headSha)
+						? workspace.pullRequestId
+						: null;
 
 				if (
 					branch === workspace.branch &&
 					headSha === workspace.headSha &&
 					upstreamOwner === workspace.upstreamOwner &&
 					upstreamRepo === workspace.upstreamRepo &&
-					upstreamBranch === workspace.upstreamBranch
+					upstreamBranch === workspace.upstreamBranch &&
+					pullRequestId === workspace.pullRequestId
 				) {
 					continue;
 				}
@@ -338,6 +440,7 @@ export class PullRequestRuntimeManager {
 						upstreamOwner,
 						upstreamRepo,
 						upstreamBranch,
+						pullRequestId,
 					})
 					.where(eq(workspaces.id, workspace.id))
 					.run();
@@ -442,7 +545,28 @@ export class PullRequestRuntimeManager {
 				workspace.upstreamRepo,
 				workspace.upstreamBranch ?? workspace.branch,
 			);
-			const match = key ? keyToPullRequest.get(key) : undefined;
+			if (!key) {
+				// PR checkouts recovered from GitHub's archived refs intentionally
+				// have no upstream. Keep the explicit PR link only while the
+				// workspace HEAD still matches the selected PR head.
+				if (
+					this.pullRequestHeadMatches(
+						workspace.pullRequestId,
+						workspace.headSha,
+					)
+				) {
+					continue;
+				}
+				if (workspace.pullRequestId) {
+					this.db
+						.update(workspaces)
+						.set({ pullRequestId: null })
+						.where(eq(workspaces.id, workspace.id))
+						.run();
+				}
+				continue;
+			}
+			const match = keyToPullRequest.get(key);
 			this.db
 				.update(workspaces)
 				.set({ pullRequestId: match?.id ?? null })
@@ -507,6 +631,113 @@ export class PullRequestRuntimeManager {
 			...parsedRemote,
 			remoteName,
 		};
+	}
+
+	private findPullRequestRow(
+		repo: NormalizedRepoIdentity,
+		prNumber: number,
+	): PullRequestRow | undefined {
+		return this.db.query.pullRequests
+			.findFirst({
+				where: and(
+					eq(pullRequests.repoProvider, repo.provider),
+					eq(pullRequests.repoOwner, repo.owner),
+					eq(pullRequests.repoName, repo.name),
+					eq(pullRequests.prNumber, prNumber),
+				),
+			})
+			.sync();
+	}
+
+	private findPullRequestRowById(id: string): PullRequestRow | undefined {
+		return this.db.query.pullRequests
+			.findFirst({ where: eq(pullRequests.id, id) })
+			.sync();
+	}
+
+	private pullRequestHeadMatches(
+		pullRequestId: string | null,
+		headSha: string | null,
+	): boolean {
+		if (!pullRequestId || !headSha) return false;
+		const pr = this.findPullRequestRowById(pullRequestId);
+		return pr?.headSha.toLowerCase() === headSha.trim().toLowerCase();
+	}
+
+	private upsertPullRequestRow({
+		existing,
+		projectId,
+		repo,
+		prNumber,
+		url,
+		title,
+		state,
+		isDraft,
+		headBranch,
+		headSha,
+		reviewDecision,
+		checksStatus,
+		checksJson,
+		lastFetchedAt,
+		error,
+		now,
+	}: {
+		existing: PullRequestRow | undefined;
+		projectId: string;
+		repo: NormalizedRepoIdentity;
+		prNumber: number;
+		url: string;
+		title: string;
+		state: PullRequestState;
+		isDraft: boolean;
+		headBranch: string;
+		headSha: string;
+		reviewDecision: ReviewDecision;
+		checksStatus: ChecksStatus;
+		checksJson: string;
+		lastFetchedAt: number | null;
+		error: string | null;
+		now: number;
+	}): string {
+		const rowId = existing?.id ?? randomUUID();
+		const data = {
+			projectId,
+			repoProvider: repo.provider,
+			repoOwner: repo.owner,
+			repoName: repo.name,
+			prNumber,
+			url,
+			title,
+			state,
+			isDraft,
+			headBranch,
+			headSha,
+			reviewDecision,
+			checksStatus,
+			checksJson,
+			lastFetchedAt,
+			error,
+			updatedAt: now,
+		};
+
+		if (existing) {
+			this.db
+				.update(pullRequests)
+				.set(data)
+				.where(eq(pullRequests.id, rowId))
+				.run();
+		} else {
+			this.db
+				.insert(pullRequests)
+				.values({
+					id: rowId,
+					createdAt: now,
+					...data,
+				})
+				.run();
+		}
+
+		return rowId;
 	}
 
 	private async getCachedRepoPullRequests(
@@ -578,27 +809,15 @@ export class PullRequestRuntimeManager {
 		const now = Date.now();
 
 		for (const [key, node] of latestByKey) {
-			const existing = this.db.query.pullRequests
-				.findFirst({
-					where: and(
-						eq(pullRequests.repoProvider, repo.provider),
-						eq(pullRequests.repoOwner, repo.owner),
-						eq(pullRequests.repoName, repo.name),
-						eq(pullRequests.prNumber, node.number),
-					),
-				})
-				.sync();
-
-			const rowId = existing?.id ?? randomUUID();
+			const existing = this.findPullRequestRow(repo, node.number);
 			const checks = parseCheckContexts(
 				node.statusCheckRollup?.contexts?.nodes ?? [],
 			);
-			const data = {
+			const rowId = this.upsertPullRequestRow({
+				existing,
 				projectId,
-				repoProvider: repo.provider,
-				repoOwner: repo.owner,
-				repoName: repo.name,
 				prNumber: node.number,
+				repo,
 				url: node.url,
 				title: node.title,
 				state: mapPullRequestState(node.state, node.isDraft),
@@ -610,25 +829,8 @@ export class PullRequestRuntimeManager {
 				checksJson: JSON.stringify(checks),
 				lastFetchedAt: now,
 				error: null,
-				updatedAt: now,
-			};
-
-			if (existing) {
-				this.db
-					.update(pullRequests)
-					.set(data)
-					.where(eq(pullRequests.id, rowId))
-					.run();
-			} else {
-				this.db
-					.insert(pullRequests)
-					.values({
-						id: rowId,
-						createdAt: now,
-						...data,
-					})
-					.run();
-			}
+				now,
+			});
 
 			keyToRow.set(key, { id: rowId });
 		}

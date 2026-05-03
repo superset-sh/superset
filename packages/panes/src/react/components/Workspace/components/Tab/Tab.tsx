@@ -148,15 +148,8 @@ function LayoutNodeView<TData>({
 		const pane = tab.panes[node.paneId];
 		if (!pane) return null;
 
-		// key={pane.id} so React reconciles Pane instances by identity rather
-		// than position. Without this, switching the active tab to one that
-		// has a Pane in the same layout slot reuses the previous Pane's
-		// component instance — its hooks (notably `useRef`s capturing initial
-		// pane data like initialCommand) keep stale values from the prior
-		// pane and renderers like TerminalPane never see the new data.
 		return (
 			<Pane
-				key={pane.id}
 				store={store}
 				tab={tab}
 				pane={pane}

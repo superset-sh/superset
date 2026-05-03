@@ -325,6 +325,7 @@ async function execute(
 		let nextCalled = false;
 		await middleware({
 			options: parsed.options,
+			commandPath,
 			next: async (params) => {
 				nextCalled = true;
 				ctx = params.ctx;

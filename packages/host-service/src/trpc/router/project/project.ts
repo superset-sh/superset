@@ -253,6 +253,24 @@ export const projectRouter = router({
 						resolved = await resolveLocalRepo(input.mode.repoPath);
 					}
 
+					// Each on-disk repo path maps to at most one project in the
+					// local DB; importing the same folder under a second project
+					// would clobber the first. Cloud-side GitHub URL collisions
+					// are allowed (see findBackfillConflict), but local-path
+					// collisions are not.
+					const localOwner = ctx.db
+						.select({ id: projects.id })
+						.from(projects)
+						.where(eq(projects.repoPath, resolved.repoPath))
+						.get();
+					if (localOwner && localOwner.id !== input.projectId) {
+						throw new TRPCError({
+							code: "CONFLICT",
+							message:
+								"Repository is already set up as another project on this device.",
+						});
+					}
+
 					rejectIfRepoint(resolved.repoPath);
 					if (existing && existing.repoPath === resolved.repoPath) {
 						const mainWorkspace = await ensureMainWorkspace(

@@ -10,10 +10,10 @@ import {
 import { Input } from "@superset/ui/input";
 import { cn } from "@superset/ui/utils";
 import { useEffect, useState } from "react";
-import { FaGithub } from "react-icons/fa";
 import {
 	LuFolderOpen,
 	LuFolderPlus,
+	LuGitBranch,
 	LuLayoutTemplate,
 	LuX,
 } from "react-icons/lu";
@@ -38,13 +38,13 @@ const OPTIONS: {
 	mode: NewProjectMode;
 	label: string;
 	suffix?: string;
-	icon: typeof FaGithub;
+	icon: typeof LuGitBranch;
 	disabled?: boolean;
 }[] = [
 	{
 		mode: "clone",
-		label: "Clone from GitHub",
-		icon: FaGithub,
+		label: "Clone repository",
+		icon: LuGitBranch,
 	},
 	{
 		mode: "empty",
@@ -63,8 +63,12 @@ const OPTIONS: {
 ];
 
 function deriveProjectNameFromUrl(url: string): string {
-	const trimmed = url.trim().replace(/\.git$/i, "");
-	const segments = trimmed.split(/[/:]/).filter(Boolean);
+	const trimmed = url
+		.trim()
+		.replace(/[?#].*$/, "")
+		.replace(/[\\/]+$/, "")
+		.replace(/\.git$/i, "");
+	const segments = trimmed.split(/[/:\\]/).filter(Boolean);
 	return segments[segments.length - 1] ?? "";
 }
 
@@ -133,7 +137,7 @@ export function NewProjectModal({
 		}
 		const name = deriveProjectNameFromUrl(trimmedUrl);
 		if (!name) {
-			setError("Could not derive a project name from the URL");
+			setError("Could not derive a project name from the URL or path");
 			return;
 		}
 
@@ -172,7 +176,7 @@ export function NewProjectModal({
 				<DialogHeader>
 					<DialogTitle>New project</DialogTitle>
 					<DialogDescription className="sr-only">
-						Create a new project by cloning a repository.
+						Create a new project by cloning a repository or local path.
 					</DialogDescription>
 				</DialogHeader>
 
@@ -253,13 +257,13 @@ export function NewProjectModal({
 								htmlFor="clone-url"
 								className="text-xs font-medium text-muted-foreground"
 							>
-								Repository URL
+								Repository URL or path
 							</label>
 							<Input
 								id="clone-url"
 								value={url}
 								onChange={(e) => setUrl(e.target.value)}
-								placeholder="https://github.com/owner/repo.git"
+								placeholder="https://github.com/owner/repo.git or /path/to/repo"
 								disabled={working}
 								onKeyDown={(e) => {
 									if (e.key === "Enter" && !working) {

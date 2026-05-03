@@ -1,5 +1,6 @@
 import { getTableColumns, type SQL, sql } from "drizzle-orm";
 import type { PgTable, PgTransaction } from "drizzle-orm/pg-core";
+import { dbWs } from "../client";
 
 export function buildConflictUpdateColumns<
 	T extends PgTable,
@@ -30,4 +31,17 @@ export async function getCurrentTxid(
 	}
 
 	return Number.parseInt(txid, 10);
+}
+
+export async function withConnectionLock<T>(
+	connectionId: string,
+	// biome-ignore lint/suspicious/noExplicitAny: Transaction type varies by client (Neon, PostgresJs, etc)
+	fn: (tx: PgTransaction<any, any, any>) => Promise<T>,
+): Promise<T> {
+	return dbWs.transaction(async (tx) => {
+		await tx.execute(
+			sql`SELECT pg_advisory_xact_lock(hashtextextended(${connectionId}::text, 0))`,
+		);
+		return fn(tx);
+	});
 }
