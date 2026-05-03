@@ -7,7 +7,7 @@ import { env } from "../env";
 import { auth } from "../server";
 import { TRPC_AUDIENCES } from "./oauth-audiences";
 
-const apiUrl = env.NEXT_PUBLIC_API_URL.replace(/\/+$/, "");
+const apiUrl = env.NEXT_PUBLIC_API_URL;
 
 export type BearerAuthKind = "jwt" | "apiKey";
 
@@ -49,21 +49,26 @@ function isApiKey(token: string): boolean {
 	return token.startsWith("sk_live_");
 }
 
-function extractBearer(headers: Headers): {
-	apiKey?: string;
-	jwt?: string;
-} {
-	// x-api-key takes precedence; only honor it for our own prefix so an
-	// arbitrary header value can't be forwarded to verifyApiKey.
+type ExtractedBearer =
+	| { apiKey: string }
+	| { jwt: string }
+	| { malformed: "api_key" | "token" }
+	| { none: true };
+
+function extractBearer(headers: Headers): ExtractedBearer {
+	// x-api-key takes precedence. Only forward our own prefix to verifyApiKey;
+	// anything else with this header is malformed (rejected, not fallthrough).
 	const xApiKey = headers.get("x-api-key")?.trim();
-	if (xApiKey) return isApiKey(xApiKey) ? { apiKey: xApiKey } : {};
+	if (xApiKey) {
+		return isApiKey(xApiKey) ? { apiKey: xApiKey } : { malformed: "api_key" };
+	}
 
 	const match = headers.get("authorization")?.match(/^Bearer\s+(.+)$/i);
 	const token = match?.[1]?.trim();
-	if (!token) return {};
+	if (!token) return { none: true };
 	if (isApiKey(token)) return { apiKey: token };
 	if (looksLikeJwt(token)) return { jwt: token };
-	return {};
+	return { malformed: "token" };
 }
 
 function parseApiKeyMetadata(metadata: unknown): Record<string, unknown> {
@@ -122,7 +127,21 @@ export async function resolveBearerAuth(
 	headers: Headers,
 	options: ResolveBearerAuthOptions = {},
 ): Promise<BearerAuthResult | null> {
-	const { apiKey, jwt } = extractBearer(headers);
+	const extracted = extractBearer(headers);
+
+	if ("malformed" in extracted) {
+		throw new BearerAuthError(
+			extracted.malformed === "api_key" ? "invalid_api_key" : "invalid_token",
+			extracted.malformed === "api_key"
+				? "Malformed API key"
+				: "Malformed bearer token",
+		);
+	}
+
+	if ("none" in extracted) return null;
+
+	const apiKey = "apiKey" in extracted ? extracted.apiKey : undefined;
+	const jwt = "jwt" in extracted ? extracted.jwt : undefined;
 
 	if (apiKey) {
 		const result = await auth.api.verifyApiKey({ body: { key: apiKey } });
