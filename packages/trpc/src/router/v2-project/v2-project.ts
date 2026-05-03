@@ -261,19 +261,30 @@ export const v2ProjectRouter = {
 			}
 
 			if (githubOwner) {
-				const iconUrl = await fetchAndStoreGitHubAvatar({
-					owner: githubOwner,
-					pathnamePrefix: `organizations/${input.organizationId}/projects/${project.id}/icon`,
-					existingUrl: null,
-				});
-				if (iconUrl) {
-					const [withIcon] = await dbWs
-						.update(v2Projects)
-						.set({ iconUrl })
-						.where(eq(v2Projects.id, project.id))
-						.returning();
-					if (withIcon) return withIcon;
-				}
+				const owner = githubOwner;
+				const projectId = project.id;
+				const organizationId = input.organizationId;
+				void (async () => {
+					try {
+						const iconUrl = await fetchAndStoreGitHubAvatar({
+							owner,
+							pathnamePrefix: `organizations/${organizationId}/projects/${projectId}/icon`,
+							existingUrl: null,
+						});
+						if (!iconUrl) return;
+						await dbWs
+							.update(v2Projects)
+							.set({ iconUrl })
+							.where(
+								and(eq(v2Projects.id, projectId), isNull(v2Projects.iconUrl)),
+							);
+					} catch (error) {
+						console.warn(
+							"Failed to hydrate v2 project icon from GitHub",
+							{ projectId, organizationId, error },
+						);
+					}
+				})();
 			}
 
 			return project;
@@ -346,21 +357,30 @@ export const v2ProjectRouter = {
 			}
 
 			if (updated.iconUrl == null) {
-				const iconUrl = await fetchAndStoreGitHubAvatar({
-					owner: parsed.owner,
-					pathnamePrefix: `organizations/${input.organizationId}/projects/${updated.id}/icon`,
-					existingUrl: null,
-				});
-				if (iconUrl) {
-					const [withIcon] = await dbWs
-						.update(v2Projects)
-						.set({ iconUrl })
-						.where(
-							and(eq(v2Projects.id, updated.id), isNull(v2Projects.iconUrl)),
-						)
-						.returning();
-					if (withIcon) return withIcon;
-				}
+				const owner = parsed.owner;
+				const projectId = updated.id;
+				const organizationId = input.organizationId;
+				void (async () => {
+					try {
+						const iconUrl = await fetchAndStoreGitHubAvatar({
+							owner,
+							pathnamePrefix: `organizations/${organizationId}/projects/${projectId}/icon`,
+							existingUrl: null,
+						});
+						if (!iconUrl) return;
+						await dbWs
+							.update(v2Projects)
+							.set({ iconUrl })
+							.where(
+								and(eq(v2Projects.id, projectId), isNull(v2Projects.iconUrl)),
+							);
+					} catch (error) {
+						console.warn(
+							"Failed to hydrate v2 project icon from GitHub on link",
+							{ projectId, organizationId, error },
+						);
+					}
+				})();
 			}
 
 			return updated;

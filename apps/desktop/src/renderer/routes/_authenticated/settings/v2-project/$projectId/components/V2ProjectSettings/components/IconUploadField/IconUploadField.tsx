@@ -5,6 +5,8 @@ import { LuGithub, LuImagePlus, LuTrash2 } from "react-icons/lu";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 
 const ACCEPTED_MIME_TYPES = "image/png,image/jpeg,image/webp";
+const MAX_SIZE_MB = 4.5;
+const MAX_SIZE_BYTES = MAX_SIZE_MB * 1024 * 1024;
 
 interface IconUploadFieldProps {
 	projectId: string;
@@ -31,6 +33,14 @@ export function IconUploadField({
 			const file = e.target.files?.[0];
 			e.target.value = "";
 			if (!file) return;
+
+			if (file.size > MAX_SIZE_BYTES) {
+				const sizeInMB = (file.size / (1024 * 1024)).toFixed(2);
+				toast.error(
+					`File too large (${sizeInMB}MB). Maximum size is ${MAX_SIZE_MB}MB`,
+				);
+				return;
+			}
 
 			setIsPending(true);
 			const reader = new FileReader();

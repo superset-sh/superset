@@ -201,6 +201,13 @@ function unauthedContext() {
 	};
 }
 
+// Lets fire-and-forget background work (the icon auto-hydration in
+// create / linkRepoCloneUrl) settle so we can assert on its side effects.
+async function flushMicrotasks() {
+	await new Promise((resolve) => setImmediate(resolve));
+	await new Promise((resolve) => setImmediate(resolve));
+}
+
 beforeEach(() => {
 	v2ProjectsFindResults = [];
 	githubReposFindResults = [];
@@ -746,19 +753,11 @@ describe("v2Project.create — GitHub avatar auto-hydration", () => {
 		expect(dbInsert).not.toHaveBeenCalled();
 	});
 
-	it("hydrates the icon from GitHub when repoCloneUrl is supplied and avatar is found", async () => {
+	it("returns the inserted project immediately and kicks off background avatar hydration", async () => {
 		setMembershipForCreate();
-		// no matching github_repositories row
 		githubReposFindResults.push(null);
 		dbInsertReturningResults.push([
 			{ id: PROJECT_ID, organizationId: ORG_ID, iconUrl: null },
-		]);
-		dbUpdateReturningResults.push([
-			{
-				id: PROJECT_ID,
-				organizationId: ORG_ID,
-				iconUrl: "https://blob.example/avatar.png",
-			},
 		]);
 
 		const caller = createCaller(authedContext());
@@ -767,18 +766,24 @@ describe("v2Project.create — GitHub avatar auto-hydration", () => {
 			repoCloneUrl: "https://github.com/acme/repo.git",
 		});
 
+		// The mutation must not block on the GitHub fetch — it returns the
+		// inserted row immediately with iconUrl: null. Electric will sync the
+		// icon to the client once the background hydration lands.
+		expect(result).toMatchObject({ id: PROJECT_ID, iconUrl: null });
+
+		await flushMicrotasks();
+
 		expect(fetchAndStoreGitHubAvatarMock).toHaveBeenCalledWith({
 			owner: "acme",
 			pathnamePrefix: `organizations/${ORG_ID}/projects/${PROJECT_ID}/icon`,
 			existingUrl: null,
 		});
-		expect(result).toMatchObject({
-			id: PROJECT_ID,
-			iconUrl: "https://blob.example/avatar.png",
-		});
+		// Background UPDATE writes the iconUrl with the same race guard as the
+		// link path so a parallel custom upload isn't clobbered.
+		expect(dbUpdate).toHaveBeenCalledTimes(1);
 	});
 
-	it("returns the created project as-is when avatar fetch returns null", async () => {
+	it("does not write iconUrl in the background when GitHub avatar fetch returns null", async () => {
 		setMembershipForCreate();
 		githubReposFindResults.push(null);
 		dbInsertReturningResults.push([
@@ -792,9 +797,38 @@ describe("v2Project.create — GitHub avatar auto-hydration", () => {
 			repoCloneUrl: "https://github.com/acme/repo.git",
 		});
 
+		await flushMicrotasks();
+
 		expect(fetchAndStoreGitHubAvatarMock).toHaveBeenCalledTimes(1);
 		expect(dbUpdate).not.toHaveBeenCalled();
 		expect(result).toMatchObject({ id: PROJECT_ID, iconUrl: null });
+	});
+
+	it("does not crash the mutation when background avatar hydration throws", async () => {
+		setMembershipForCreate();
+		githubReposFindResults.push(null);
+		dbInsertReturningResults.push([
+			{ id: PROJECT_ID, organizationId: ORG_ID, iconUrl: null },
+		]);
+		fetchAndStoreGitHubAvatarMock.mockImplementationOnce(async () => {
+			throw new Error("connection refused");
+		});
+		const consoleWarnSpy = spyOn(console, "warn").mockImplementation(
+			() => {},
+		);
+
+		const caller = createCaller(authedContext());
+		const result = await caller.v2Project.create({
+			...baseInput,
+			repoCloneUrl: "https://github.com/acme/repo.git",
+		});
+
+		await flushMicrotasks();
+
+		expect(result).toMatchObject({ id: PROJECT_ID, iconUrl: null });
+		expect(consoleWarnSpy).toHaveBeenCalled();
+
+		consoleWarnSpy.mockRestore();
 	});
 });
 
@@ -836,36 +870,30 @@ describe("v2Project.linkRepoCloneUrl — GitHub avatar auto-hydration", () => {
 		expect(fetchAndStoreGitHubAvatarMock).not.toHaveBeenCalled();
 	});
 
-	it("auto-hydrates the icon when the linked project had no icon", async () => {
+	it("returns the linked row immediately and kicks off background avatar hydration when iconUrl was null", async () => {
 		setMembershipForJwt();
-		// project lookup for org-scope check
 		v2ProjectsFindResults.push({ id: PROJECT_ID, organizationId: ORG_ID });
-		// repo lookup
 		githubReposFindResults.push({ id: REPO_ID });
 		// link UPDATE result
 		dbUpdateReturningResults.push([
 			{ id: PROJECT_ID, organizationId: ORG_ID, iconUrl: null },
 		]);
-		// post-fetch UPDATE result (race-guarded)
-		dbUpdateReturningResults.push([
-			{
-				id: PROJECT_ID,
-				organizationId: ORG_ID,
-				iconUrl: "https://blob.example/avatar.png",
-			},
-		]);
 
 		const caller = createCaller(authedContext());
 		const result = await caller.v2Project.linkRepoCloneUrl(baseInput);
+
+		// Mutation returns immediately — iconUrl will land via Electric sync.
+		expect(result).toMatchObject({ id: PROJECT_ID, iconUrl: null });
+
+		await flushMicrotasks();
 
 		expect(fetchAndStoreGitHubAvatarMock).toHaveBeenCalledWith({
 			owner: "acme",
 			pathnamePrefix: `organizations/${ORG_ID}/projects/${PROJECT_ID}/icon`,
 			existingUrl: null,
 		});
-		expect(result).toMatchObject({
-			iconUrl: "https://blob.example/avatar.png",
-		});
+		// Background performs a second UPDATE.
+		expect(dbUpdate).toHaveBeenCalledTimes(2);
 	});
 
 	it("does not fetch the avatar when the project already has a custom icon", async () => {
@@ -883,13 +911,15 @@ describe("v2Project.linkRepoCloneUrl — GitHub avatar auto-hydration", () => {
 		const caller = createCaller(authedContext());
 		const result = await caller.v2Project.linkRepoCloneUrl(baseInput);
 
+		await flushMicrotasks();
+
 		expect(fetchAndStoreGitHubAvatarMock).not.toHaveBeenCalled();
 		expect(result).toMatchObject({
 			iconUrl: "https://blob.example/custom.png",
 		});
 	});
 
-	it("preserves a racing custom upload — avatar is fetched but the WHERE icon_url IS NULL guard rejects the second UPDATE", async () => {
+	it("preserves a racing custom upload — background UPDATE carries the isNull(iconUrl) race guard", async () => {
 		setMembershipForJwt();
 		v2ProjectsFindResults.push({ id: PROJECT_ID, organizationId: ORG_ID });
 		githubReposFindResults.push({ id: REPO_ID });
@@ -897,19 +927,18 @@ describe("v2Project.linkRepoCloneUrl — GitHub avatar auto-hydration", () => {
 		dbUpdateReturningResults.push([
 			{ id: PROJECT_ID, organizationId: ORG_ID, iconUrl: null },
 		]);
-		// but the conditional second UPDATE (WHERE icon_url IS NULL) finds it
-		// already populated by a parallel uploadIcon and returns no rows
-		dbUpdateReturningResults.push([]);
 
 		const caller = createCaller(authedContext());
 		const result = await caller.v2Project.linkRepoCloneUrl(baseInput);
 
-		expect(fetchAndStoreGitHubAvatarMock).toHaveBeenCalledTimes(1);
-		// the procedure falls back to returning the linked row without icon
+		// Linked row returned immediately
 		expect(result).toMatchObject({ id: PROJECT_ID, iconUrl: null });
 
-		// the second UPDATE must carry the isNull(iconUrl) race guard, otherwise
-		// a parallel custom upload could be silently overwritten.
+		await flushMicrotasks();
+
+		expect(fetchAndStoreGitHubAvatarMock).toHaveBeenCalledTimes(1);
+		// The background UPDATE must carry the isNull(iconUrl) race guard,
+		// otherwise a parallel custom upload could be silently overwritten.
 		expect(dbUpdateWhere.mock.calls.length).toBe(2);
 		const postFetchWhere = dbUpdateWhere.mock.calls[1]?.[0] as {
 			type: string;
@@ -922,6 +951,31 @@ describe("v2Project.linkRepoCloneUrl — GitHub avatar auto-hydration", () => {
 				value: "v2_projects.icon_url",
 			}),
 		);
+	});
+
+	it("does not crash the mutation when background avatar hydration throws", async () => {
+		setMembershipForJwt();
+		v2ProjectsFindResults.push({ id: PROJECT_ID, organizationId: ORG_ID });
+		githubReposFindResults.push({ id: REPO_ID });
+		dbUpdateReturningResults.push([
+			{ id: PROJECT_ID, organizationId: ORG_ID, iconUrl: null },
+		]);
+		fetchAndStoreGitHubAvatarMock.mockImplementationOnce(async () => {
+			throw new Error("connection refused");
+		});
+		const consoleWarnSpy = spyOn(console, "warn").mockImplementation(
+			() => {},
+		);
+
+		const caller = createCaller(authedContext());
+		const result = await caller.v2Project.linkRepoCloneUrl(baseInput);
+
+		await flushMicrotasks();
+
+		expect(result).toMatchObject({ id: PROJECT_ID, iconUrl: null });
+		expect(consoleWarnSpy).toHaveBeenCalled();
+
+		consoleWarnSpy.mockRestore();
 	});
 
 	it("rejects with CONFLICT when the project already has a linked repo (link UPDATE matched no rows)", async () => {
