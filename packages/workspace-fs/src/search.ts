@@ -284,14 +284,18 @@ export async function getSearchIndex(
 		return await inFlight;
 	}
 
-	const buildPromise = buildSearchIndex(options)
+	const buildPromise: Promise<SearchIndexEntry[]> = buildSearchIndex(options)
 		.then((items) => {
-			searchIndexCache.set(cacheKey, items);
-			searchIndexBuilds.delete(cacheKey);
+			if (searchIndexBuilds.get(cacheKey) === buildPromise) {
+				searchIndexCache.set(cacheKey, items);
+				searchIndexBuilds.delete(cacheKey);
+			}
 			return items;
 		})
 		.catch((error) => {
-			searchIndexBuilds.delete(cacheKey);
+			if (searchIndexBuilds.get(cacheKey) === buildPromise) {
+				searchIndexBuilds.delete(cacheKey);
+			}
 			throw error;
 		});
 	searchIndexBuilds.set(cacheKey, buildPromise);

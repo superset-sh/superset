@@ -4,10 +4,15 @@ import os from "node:os";
 import path from "node:path";
 import type { SearchPatchEvent } from "./search";
 import {
+	getSearchIndex,
 	invalidateAllSearchIndexes,
+	invalidateSearchIndexesForRoot,
 	patchSearchIndexesForRoot,
 	searchFiles,
 } from "./search";
+import { FsWatcherManager } from "./watch";
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const tempRoots: string[] = [];
 
@@ -129,6 +134,106 @@ describe("patchSearchIndexesForRoot", () => {
 		expect(hiddenResults.map((result) => result.absolutePath)).toContain(
 			hiddenPath,
 		);
+	});
+
+	it("indexes files created inside a brand-new subdirectory when only file events arrive", async () => {
+		const rootPath = await createTempRoot();
+		await fs.writeFile(
+			path.join(rootPath, "existing.ts"),
+			"export const existing = true;\n",
+		);
+
+		await searchFiles({
+			rootPath,
+			query: "existing",
+		});
+
+		const subdirPath = path.join(rootPath, "qa-dir");
+		await fs.mkdir(subdirPath);
+		const aPath = path.join(subdirPath, "a.txt");
+		const bPath = path.join(subdirPath, "b.txt");
+		await fs.writeFile(aPath, "alpha\n");
+		await fs.writeFile(bPath, "bravo\n");
+
+		patchSearchIndexesForRoot(rootPath, [
+			createPatchEvent({
+				kind: "create",
+				absolutePath: aPath,
+				isDirectory: false,
+			}),
+			createPatchEvent({
+				kind: "create",
+				absolutePath: bPath,
+				isDirectory: false,
+			}),
+		]);
+
+		const results = await searchFiles({
+			rootPath,
+			query: "qa-dir/a",
+		});
+
+		expect(results.map((result) => result.absolutePath)).toContain(aPath);
+	});
+
+	it("does not poison the cache when an invalidation races with an in-flight build", async () => {
+		const rootPath = await createTempRoot();
+		await fs.writeFile(path.join(rootPath, "old.ts"), "old\n");
+
+		const buildPromise = getSearchIndex({ rootPath, includeHidden: false });
+		invalidateSearchIndexesForRoot(rootPath);
+		await buildPromise;
+
+		const newFilePath = path.join(rootPath, "qa-dir", "a.txt");
+		await fs.mkdir(path.dirname(newFilePath));
+		await fs.writeFile(newFilePath, "alpha\n");
+
+		const results = await searchFiles({
+			rootPath,
+			query: "qa-dir/a",
+		});
+
+		expect(results.map((result) => result.absolutePath)).toContain(newFilePath);
+	});
+
+	it("indexes files created in a brand-new subdirectory through the real watcher", async () => {
+		const rootPath = await createTempRoot();
+		await fs.writeFile(
+			path.join(rootPath, "existing.ts"),
+			"export const existing = true;\n",
+		);
+
+		await searchFiles({
+			rootPath,
+			query: "existing",
+		});
+
+		const watcher = new FsWatcherManager({ debounceMs: 25 });
+		const unsubscribe = await watcher.subscribe(
+			{ absolutePath: rootPath },
+			() => {},
+		);
+
+		try {
+			const subdirPath = path.join(rootPath, "qa-dir");
+			await fs.mkdir(subdirPath);
+			const aPath = path.join(subdirPath, "a.txt");
+			const bPath = path.join(subdirPath, "b.txt");
+			await fs.writeFile(aPath, "alpha\n");
+			await fs.writeFile(bPath, "bravo\n");
+
+			await sleep(500);
+
+			const results = await searchFiles({
+				rootPath,
+				query: "qa-dir/a",
+			});
+
+			expect(results.map((result) => result.absolutePath)).toContain(aPath);
+		} finally {
+			await unsubscribe();
+			await watcher.close();
+		}
 	});
 
 	it("rebuilds search indexes after a directory rename", async () => {
