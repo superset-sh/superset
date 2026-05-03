@@ -15,7 +15,12 @@ export function getPrCheckoutRecoveryKind(
 ): PrCheckoutRecoveryKind | null {
 	const message = getErrorMessage(error).toLowerCase();
 
-	if (message.includes("is not a branch")) {
+	// Match the precise gh-tracking-failure phrasing — `'<remote>/<branch>' is
+	// not a branch`. Plain `"is not a branch"` matches unrelated git errors
+	// (`'HEAD~5' is not a branch`, pathspec failures) that could let the
+	// fetch-head fallback consume a stale FETCH_HEAD from a prior fetch. The
+	// OID check still rejects mismatches, but only after a confusing path.
+	if (/'[^']+\/[^']+' is not a branch/.test(message)) {
 		return "fetch-head";
 	}
 
@@ -149,7 +154,7 @@ export async function recoverPrCheckoutAfterGhFailure({
 		await checkoutFetchHeadAsBranch({ git, worktreePath, branch });
 		return {
 			recovered: true,
-			warning: `The PR head branch was unavailable, so Superset checked out GitHub's archived PR ref (${getSyntheticPrHeadRef(prNumber)}) with no upstream. Push a new branch if you need to continue from it.`,
+			warning: `The PR head branch was unavailable, so Superset checked out GitHub's PR head ref (${getSyntheticPrHeadRef(prNumber)}) with no upstream. Push a new branch if you need to continue from it.`,
 		};
 	}
 

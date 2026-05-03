@@ -51,6 +51,20 @@ describe("getPrCheckoutRecoveryKind", () => {
 		).toBe("fetch-head");
 	});
 
+	test("does not match unrelated 'is not a branch' errors", () => {
+		// Plain ref expressions and pathspec failures both use the same phrase
+		// but are unrelated to gh's tracking-ref failure. Falling through to
+		// the fetch-head path here would consume a stale FETCH_HEAD.
+		expect(
+			getPrCheckoutRecoveryKind(new Error("fatal: 'HEAD~5' is not a branch")),
+		).toBeNull();
+		expect(
+			getPrCheckoutRecoveryKind(
+				new Error("error: pathspec 'foo' is not a branch"),
+			),
+		).toBeNull();
+	});
+
 	test("does not recover auth or PR lookup failures", () => {
 		expect(
 			getPrCheckoutRecoveryKind(new Error("not logged in to GitHub")),

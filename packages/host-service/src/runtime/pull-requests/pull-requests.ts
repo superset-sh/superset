@@ -352,7 +352,13 @@ export class PullRequestRuntimeManager {
 		pullRequest: CheckoutPullRequestMetadata;
 	}): Promise<string | null> {
 		const repo = await this.getProjectRepository(projectId);
-		if (!repo) return null;
+		if (!repo) {
+			console.warn(
+				"[host-service:pull-request-runtime] linkWorkspaceToCheckoutPullRequest: skipping; project repo metadata unavailable",
+				{ projectId, workspaceId, prNumber: pullRequest.number },
+			);
+			return null;
+		}
 
 		const existing = this.findPullRequestRow(repo, pullRequest.number);
 		const existingChecks = parseChecksJson(existing?.checksJson ?? null);

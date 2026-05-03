@@ -179,7 +179,11 @@ export const checkout = protectedProcedure
 				if (prCheckoutRecoveryWarning) {
 					console.warn(
 						"[workspaceCreation.checkout] recovered failed gh pr checkout",
-						{ prNumber: input.pr.number, branch },
+						{
+							prNumber: input.pr.number,
+							branch,
+							warning: prCheckoutRecoveryWarning,
+						},
 					);
 				}
 
