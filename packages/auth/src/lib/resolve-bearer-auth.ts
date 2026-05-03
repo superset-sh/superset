@@ -2,7 +2,7 @@ import { db } from "@superset/db/client";
 import { members } from "@superset/db/schema";
 import { ORGANIZATION_HEADER } from "@superset/shared/constants";
 import { verifyAccessToken } from "better-auth/oauth2";
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { env } from "../env";
 import { auth } from "../server";
 import { TRPC_AUDIENCES } from "./oauth-audiences";
@@ -36,11 +36,7 @@ export interface BearerAuthResult {
 }
 
 export interface ResolveBearerAuthOptions {
-	/**
-	 * Audiences accepted by this resource server. Tokens whose `aud` claim
-	 * doesn't intersect this list are rejected. Defaults to `TRPC_AUDIENCES`
-	 * (general API routes). Set to `MCP_AUDIENCES` for MCP routes.
-	 */
+	/** Defaults to {@link TRPC_AUDIENCES}. MCP routes pass `MCP_AUDIENCES`. */
 	audiences?: string[];
 }
 
@@ -57,19 +53,14 @@ function extractBearer(headers: Headers): {
 	apiKey?: string;
 	jwt?: string;
 } {
+	// x-api-key takes precedence; only honor it for our own prefix so an
+	// arbitrary header value can't be forwarded to verifyApiKey.
 	const xApiKey = headers.get("x-api-key")?.trim();
-	if (xApiKey) {
-		// Only accept x-api-key values that match our prefix. An arbitrary
-		// header value should not be forwarded to verifyApiKey.
-		if (isApiKey(xApiKey)) return { apiKey: xApiKey };
-		return {};
-	}
+	if (xApiKey) return isApiKey(xApiKey) ? { apiKey: xApiKey } : {};
 
-	const authHeader = headers.get("authorization");
-	const match = authHeader?.match(/^Bearer\s+(.+)$/i);
+	const match = headers.get("authorization")?.match(/^Bearer\s+(.+)$/i);
 	const token = match?.[1]?.trim();
 	if (!token) return {};
-
 	if (isApiKey(token)) return { apiKey: token };
 	if (looksLikeJwt(token)) return { jwt: token };
 	return {};
@@ -91,30 +82,6 @@ function parseApiKeyMetadata(metadata: unknown): Record<string, unknown> {
 		: {};
 }
 
-async function resolveOrgFromHeader(
-	headers: Headers,
-	userId: string,
-	fallback: string | null,
-): Promise<string | null> {
-	const requested = headers.get(ORGANIZATION_HEADER)?.trim() || null;
-	if (!requested || requested === fallback) return fallback;
-
-	const membership = await db.query.members.findFirst({
-		where: and(
-			eq(members.userId, userId),
-			eq(members.organizationId, requested),
-		),
-		columns: { id: true },
-	});
-	if (!membership) {
-		throw new BearerAuthError(
-			"forbidden_org",
-			`Not a member of organization ${requested}`,
-		);
-	}
-	return requested;
-}
-
 async function listOrganizationIds(userId: string): Promise<string[]> {
 	const rows = await db.query.members.findMany({
 		where: eq(members.userId, userId),
@@ -124,13 +91,32 @@ async function listOrganizationIds(userId: string): Promise<string[]> {
 }
 
 /**
+ * Pick the active org: header override (validated against membership) wins,
+ * otherwise the claim (from JWT / API-key metadata).
+ */
+function resolveActiveOrg(
+	headers: Headers,
+	organizationIds: string[],
+	claimed: string | null,
+): string | null {
+	const requested = headers.get(ORGANIZATION_HEADER)?.trim() || null;
+	if (!requested) return claimed;
+	if (!organizationIds.includes(requested)) {
+		throw new BearerAuthError(
+			"forbidden_org",
+			`Not a member of organization ${requested}`,
+		);
+	}
+	return requested;
+}
+
+/**
  * Validates an `Authorization: Bearer …` JWT or an `x-api-key` header.
  *
- * - Returns `null` when no bearer/api-key header is present (caller should
- *   fall back to other auth, e.g. cookie session).
- * - Throws `BearerAuthError` when a bearer IS present but invalid or
- *   forbidden — never silently falls through, so callers don't accidentally
- *   authenticate a stale-token request via cookie.
+ * Returns `null` only when no bearer is present — caller falls back to other
+ * auth (e.g. cookie session). Throws `BearerAuthError` when a bearer IS
+ * present but invalid or forbidden, so callers don't accidentally accept a
+ * stale-token request via cookie.
  */
 export async function resolveBearerAuth(
 	headers: Headers,
@@ -143,32 +129,28 @@ export async function resolveBearerAuth(
 		if (!result.valid || !result.key) {
 			throw new BearerAuthError("invalid_api_key", "API key invalid");
 		}
-
-		const userId = result.key.referenceId ?? null;
+		const userId = result.key.referenceId;
 		if (!userId) {
 			throw new BearerAuthError(
 				"invalid_api_key",
 				"API key has no associated user",
 			);
 		}
-
 		const metadata = parseApiKeyMetadata(result.key.metadata);
 		const claimedOrg =
 			typeof metadata.organizationId === "string"
 				? metadata.organizationId
 				: null;
-
-		const activeOrganizationId = await resolveOrgFromHeader(
-			headers,
-			userId,
-			claimedOrg,
-		);
-
+		const organizationIds = await listOrganizationIds(userId);
 		return {
 			kind: "apiKey",
 			userId,
-			activeOrganizationId,
-			organizationIds: await listOrganizationIds(userId),
+			activeOrganizationId: resolveActiveOrg(
+				headers,
+				organizationIds,
+				claimedOrg,
+			),
+			organizationIds,
 			scopes: [],
 		};
 	}
@@ -189,35 +171,30 @@ export async function resolveBearerAuth(
 				error instanceof Error ? error.message : "JWT verification failed",
 			);
 		}
-
 		const userId = typeof payload.sub === "string" ? payload.sub : null;
 		if (!userId) {
 			throw new BearerAuthError("invalid_token", "JWT missing sub claim");
 		}
-
 		const claimedOrg =
 			typeof payload.organizationId === "string"
 				? payload.organizationId
 				: null;
-
-		const activeOrganizationId = await resolveOrgFromHeader(
-			headers,
-			userId,
-			claimedOrg,
-		);
-
 		const scopes = Array.isArray(payload.scope)
 			? (payload.scope as string[])
 			: typeof payload.scope === "string"
 				? payload.scope.split(" ")
 				: [];
-
+		const organizationIds = await listOrganizationIds(userId);
 		return {
 			kind: "jwt",
 			userId,
 			email: typeof payload.email === "string" ? payload.email : undefined,
-			activeOrganizationId,
-			organizationIds: await listOrganizationIds(userId),
+			activeOrganizationId: resolveActiveOrg(
+				headers,
+				organizationIds,
+				claimedOrg,
+			),
+			organizationIds,
 			scopes,
 		};
 	}

@@ -98,10 +98,6 @@ export function unauthorizedResponse(req: Request): Response {
 	});
 }
 
-function forbiddenResponse(message: string): Response {
-	return new Response(message, { status: 403 });
-}
-
 export async function handleMcpRequest(
 	req: Request,
 	deps: McpRequestDeps,
@@ -112,7 +108,7 @@ export async function handleMcpRequest(
 	} catch (error) {
 		if (error instanceof BearerAuthError) {
 			if (error.reason === "forbidden_org") {
-				return forbiddenResponse(error.message);
+				return new Response(error.message, { status: 403 });
 			}
 			console.error("[mcp/auth] Bearer rejected", {
 				reason: error.reason,
