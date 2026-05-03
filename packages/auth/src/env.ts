@@ -31,8 +31,6 @@ export const env = createEnv({
 		NEXT_PUBLIC_ADMIN_URL: z.string().url(),
 		NEXT_PUBLIC_MARKETING_URL: z.string().url(),
 		NEXT_PUBLIC_DESKTOP_URL: z.string().url().optional(),
-		NEXT_PUBLIC_POSTHOG_KEY: z.string().optional(),
-		NEXT_PUBLIC_POSTHOG_HOST: z.string().url().optional(),
 	},
 	runtimeEnv: process.env,
 	emptyStringAsUndefined: true,

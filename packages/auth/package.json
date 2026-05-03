@@ -42,7 +42,6 @@
 		"better-auth": "1.6.5",
 		"dotenv": "^17.3.1",
 		"drizzle-orm": "0.45.2",
-		"posthog-node": "^5.24.7",
 		"resend": "^4.0.1",
 		"stripe": "^20.2.0",
 		"zod": "^4.3.5"

@@ -33,10 +33,6 @@ import {
 	resolveSessionOrganizationState,
 	type SessionOrganizationContext,
 } from "./lib/resolve-session-organization-state";
-import {
-	syncOrganizationMembersPlan,
-	syncUserPlan,
-} from "./lib/sync-user-plan";
 import { stripeClient } from "./stripe";
 import { formatPrice, getOrganizationOwners } from "./utils";
 
@@ -318,7 +314,6 @@ export const auth = betterAuth({
 						.where(eq(authSchema.organizations.id, organization.id));
 
 					await seedDefaultStatuses(organization.id);
-					void syncUserPlan(user.id);
 				},
 
 				beforeDeleteOrganization: async ({ organization }) => {
@@ -483,13 +478,9 @@ export const auth = betterAuth({
 							error,
 						);
 					}
-
-					void syncUserPlan(member.userId);
 				},
 
 				afterRemoveMember: async ({ user, organization }) => {
-					void syncUserPlan(user.id);
-
 					await resend.emails.send({
 						from: "Superset <noreply@superset.sh>",
 						to: user.email,
@@ -701,8 +692,6 @@ export const auth = betterAuth({
 					stripeSubscription,
 					plan,
 				}) => {
-					void syncOrganizationMembersPlan(subscription.referenceId);
-
 					const org = await db.query.organizations.findFirst({
 						where: eq(authSchema.organizations.id, subscription.referenceId),
 					});
@@ -757,8 +746,6 @@ export const auth = betterAuth({
 				},
 
 				onSubscriptionCancel: async ({ subscription, stripeSubscription }) => {
-					void syncOrganizationMembersPlan(subscription.referenceId);
-
 					const org = await db.query.organizations.findFirst({
 						where: eq(authSchema.organizations.id, subscription.referenceId),
 					});
