@@ -1,6 +1,5 @@
 import { useEffect } from "react";
 import { track } from "renderer/lib/analytics";
-import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { authClient } from "renderer/lib/auth-client";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { posthog } from "../../lib/posthog";
@@ -12,6 +11,7 @@ export function PostHogUserIdentifier() {
 	const { data: session } = authClient.useSession();
 	const user = session?.user;
 	const activeOrganizationId = session?.session?.activeOrganizationId;
+	const plan = session?.session?.plan ?? null;
 	const { mutate: setUserId } = electronTrpc.analytics.setUserId.useMutation();
 
 	useEffect(() => {
@@ -20,6 +20,8 @@ export function PostHogUserIdentifier() {
 				email: user.email,
 				name: user.name,
 				desktop_version: window.App.appVersion,
+				plan,
+				is_paying: plan != null && plan !== "free",
 			});
 			posthog.reloadFeatureFlags();
 			setUserId({ userId: user.id });
@@ -36,7 +38,7 @@ export function PostHogUserIdentifier() {
 			localStorage.removeItem(AUTH_COMPLETED_KEY);
 			localStorage.removeItem(ACTIVE_ORG_ID_KEY);
 		}
-	}, [user, session, setUserId]);
+	}, [user, session, setUserId, plan]);
 
 	useEffect(() => {
 		if (session === undefined) return;
@@ -47,27 +49,6 @@ export function PostHogUserIdentifier() {
 			localStorage.removeItem(ACTIVE_ORG_ID_KEY);
 		}
 	}, [session, activeOrganizationId]);
-
-	useEffect(() => {
-		if (!user) return;
-		let cancelled = false;
-		apiTrpcClient.user.billingSummary
-			.query()
-			.then((billing) => {
-				if (cancelled) return;
-				posthog.setPersonProperties({
-					is_paying: billing.isPaying,
-					plan: billing.plan,
-					subscription_status: billing.subscriptionStatus,
-				});
-			})
-			.catch((error) => {
-				console.error("[PostHogUserIdentifier] billingSummary failed", error);
-			});
-		return () => {
-			cancelled = true;
-		};
-	}, [user]);
 
 	return null;
 }

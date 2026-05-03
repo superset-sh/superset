@@ -1,9 +1,5 @@
 import { db } from "@superset/db/client";
-import { members, subscriptions, users } from "@superset/db/schema";
-import {
-	isActiveSubscriptionStatus,
-	isPaidPlan,
-} from "@superset/shared/billing";
+import { members, users } from "@superset/db/schema";
 import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
 import { and, desc, eq } from "drizzle-orm";
 import { z } from "zod";
@@ -11,48 +7,8 @@ import { z } from "zod";
 import { generateImagePathname, uploadImage } from "../../lib/upload";
 import { protectedProcedure } from "../../trpc";
 
-const PLAN_TIER_RANK: Record<string, number> = {
-	enterprise: 2,
-	pro: 1,
-	free: 0,
-};
-
 export const userRouter = {
 	me: protectedProcedure.query(({ ctx }) => ctx.session.user),
-
-	billingSummary: protectedProcedure.query(async ({ ctx }) => {
-		const rows = await db
-			.select({
-				organizationId: members.organizationId,
-				plan: subscriptions.plan,
-				status: subscriptions.status,
-			})
-			.from(members)
-			.leftJoin(
-				subscriptions,
-				eq(subscriptions.referenceId, members.organizationId),
-			)
-			.where(eq(members.userId, ctx.session.user.id));
-
-		const paying = rows.filter(
-			(row) => isPaidPlan(row.plan) && isActiveSubscriptionStatus(row.status),
-		);
-
-		const best = paying
-			.slice()
-			.sort(
-				(a, b) =>
-					(PLAN_TIER_RANK[b.plan ?? ""] ?? 0) -
-					(PLAN_TIER_RANK[a.plan ?? ""] ?? 0),
-			)[0];
-
-		return {
-			isPaying: paying.length > 0,
-			plan: best?.plan ?? null,
-			subscriptionStatus: best?.status ?? null,
-			payingOrganizationIds: paying.map((row) => row.organizationId),
-		};
-	}),
 
 	myOrganization: protectedProcedure.query(async ({ ctx }) => {
 		const activeOrganizationId = ctx.activeOrganizationId;
