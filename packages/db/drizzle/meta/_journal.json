@@ -295,6 +295,13 @@
       "when": 1777766170049,
       "tag": "0041_add_automation_prompt_versions",
       "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "7",
+      "when": 1777771854049,
+      "tag": "0042_linear_disconnect_state",
+      "breakpoints": true
     }
   ]
 }

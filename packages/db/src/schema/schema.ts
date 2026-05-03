@@ -189,6 +189,9 @@ export const integrationConnections = pgTable(
 		refreshToken: text("refresh_token"),
 		tokenExpiresAt: timestamp("token_expires_at"),
 
+		disconnectedAt: timestamp("disconnected_at"),
+		disconnectReason: text("disconnect_reason"),
+
 		externalOrgId: text("external_org_id"),
 		externalOrgName: text("external_org_name"),
 
