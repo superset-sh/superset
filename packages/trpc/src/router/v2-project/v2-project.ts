@@ -607,6 +607,55 @@ export const v2ProjectRouter = {
 			return { ...updated, txid };
 		}),
 
+	hydrateIconFromGitHubIfMissing: protectedProcedure
+		.input(z.object({ id: z.string().uuid() }))
+		.mutation(async ({ ctx, input }) => {
+			const organizationId = requireActiveOrgId(ctx, "No active organization");
+			await getProjectAccess(ctx.session.user.id, input.id, {
+				organizationId,
+			});
+
+			const existing = await dbWs.query.v2Projects.findFirst({
+				columns: { iconUrl: true, repoCloneUrl: true },
+				where: eq(v2Projects.id, input.id),
+			});
+			// Idempotent: a custom icon (or any prior hydration) wins, so
+			// re-running this from the v1→v2 migration on every launch never
+			// clobbers a user's upload.
+			if (existing?.iconUrl) return { hydrated: false };
+
+			const parsed = existing?.repoCloneUrl
+				? parseGitHubRemote(existing.repoCloneUrl)
+				: null;
+			if (!parsed) return { hydrated: false };
+
+			const owner = parsed.owner;
+			const projectId = input.id;
+			void (async () => {
+				try {
+					const iconUrl = await fetchAndStoreGitHubAvatar({
+						owner,
+						pathnamePrefix: `organizations/${organizationId}/projects/${projectId}/icon`,
+						existingUrl: null,
+					});
+					if (!iconUrl) return;
+					await dbWs
+						.update(v2Projects)
+						.set({ iconUrl })
+						.where(
+							and(eq(v2Projects.id, projectId), isNull(v2Projects.iconUrl)),
+						);
+				} catch (error) {
+					console.warn(
+						"Failed to backfill v2 project icon from GitHub",
+						{ projectId, organizationId, error },
+					);
+				}
+			})();
+
+			return { hydrated: true };
+		}),
+
 	removeIcon: protectedProcedure
 		.input(z.object({ id: z.string().uuid() }))
 		.mutation(async ({ ctx, input }) => {

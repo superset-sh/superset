@@ -573,6 +573,165 @@ describe("v2Project.resetIconToGitHub", () => {
 	});
 });
 
+describe("v2Project.hydrateIconFromGitHubIfMissing", () => {
+	it("rejects unauthenticated callers", async () => {
+		const caller = createCaller(unauthedContext());
+
+		await expect(
+			caller.v2Project.hydrateIconFromGitHubIfMissing({ id: PROJECT_ID }),
+		).rejects.toMatchObject({ code: "UNAUTHORIZED" });
+	});
+
+	it("rejects when the session has no active organization", async () => {
+		const caller = createCaller(
+			authedContext({ activeOrganizationId: null }),
+		);
+
+		await expect(
+			caller.v2Project.hydrateIconFromGitHubIfMissing({ id: PROJECT_ID }),
+		).rejects.toMatchObject({ code: "FORBIDDEN" });
+	});
+
+	it("rejects with NOT_FOUND when the project belongs to another organization", async () => {
+		v2ProjectsFindResults.push({
+			id: PROJECT_ID,
+			organizationId: OTHER_ORG_ID,
+		});
+		const caller = createCaller(authedContext());
+
+		await expect(
+			caller.v2Project.hydrateIconFromGitHubIfMissing({ id: PROJECT_ID }),
+		).rejects.toMatchObject({ code: "NOT_FOUND" });
+		expect(verifyOrgMembershipMock).not.toHaveBeenCalled();
+		expect(fetchAndStoreGitHubAvatarMock).not.toHaveBeenCalled();
+	});
+
+	it("returns hydrated:false and skips the fetch when iconUrl is already set", async () => {
+		v2ProjectsFindResults.push({ id: PROJECT_ID, organizationId: ORG_ID });
+		v2ProjectsFindResults.push({
+			iconUrl: "https://blob.example/custom.png",
+			repoCloneUrl: "https://github.com/acme/repo.git",
+		});
+
+		const caller = createCaller(authedContext());
+		const result = await caller.v2Project.hydrateIconFromGitHubIfMissing({
+			id: PROJECT_ID,
+		});
+
+		await flushMicrotasks();
+
+		expect(result).toEqual({ hydrated: false });
+		expect(fetchAndStoreGitHubAvatarMock).not.toHaveBeenCalled();
+	});
+
+	it("returns hydrated:false and skips the fetch when there's no GitHub remote", async () => {
+		v2ProjectsFindResults.push({ id: PROJECT_ID, organizationId: ORG_ID });
+		v2ProjectsFindResults.push({ iconUrl: null, repoCloneUrl: null });
+
+		const caller = createCaller(authedContext());
+		const result = await caller.v2Project.hydrateIconFromGitHubIfMissing({
+			id: PROJECT_ID,
+		});
+
+		await flushMicrotasks();
+
+		expect(result).toEqual({ hydrated: false });
+		expect(fetchAndStoreGitHubAvatarMock).not.toHaveBeenCalled();
+	});
+
+	it("returns hydrated:false when the stored repoCloneUrl is unparseable", async () => {
+		v2ProjectsFindResults.push({ id: PROJECT_ID, organizationId: ORG_ID });
+		v2ProjectsFindResults.push({
+			iconUrl: null,
+			repoCloneUrl: "not-a-url://garbage",
+		});
+
+		const caller = createCaller(authedContext());
+		const result = await caller.v2Project.hydrateIconFromGitHubIfMissing({
+			id: PROJECT_ID,
+		});
+
+		expect(result).toEqual({ hydrated: false });
+		expect(fetchAndStoreGitHubAvatarMock).not.toHaveBeenCalled();
+	});
+
+	it("returns hydrated:true immediately and kicks off background fetch when iconUrl is missing", async () => {
+		v2ProjectsFindResults.push({ id: PROJECT_ID, organizationId: ORG_ID });
+		v2ProjectsFindResults.push({
+			iconUrl: null,
+			repoCloneUrl: "https://github.com/acme/repo.git",
+		});
+
+		const caller = createCaller(authedContext());
+		const result = await caller.v2Project.hydrateIconFromGitHubIfMissing({
+			id: PROJECT_ID,
+		});
+
+		expect(result).toEqual({ hydrated: true });
+
+		await flushMicrotasks();
+
+		expect(fetchAndStoreGitHubAvatarMock).toHaveBeenCalledWith({
+			owner: "acme",
+			pathnamePrefix: `organizations/${ORG_ID}/projects/${PROJECT_ID}/icon`,
+			existingUrl: null,
+		});
+		expect(dbUpdate).toHaveBeenCalledTimes(1);
+	});
+
+	it("background UPDATE carries the isNull(iconUrl) race guard so a parallel custom upload isn't overwritten", async () => {
+		v2ProjectsFindResults.push({ id: PROJECT_ID, organizationId: ORG_ID });
+		v2ProjectsFindResults.push({
+			iconUrl: null,
+			repoCloneUrl: "https://github.com/acme/repo.git",
+		});
+
+		const caller = createCaller(authedContext());
+		await caller.v2Project.hydrateIconFromGitHubIfMissing({ id: PROJECT_ID });
+
+		await flushMicrotasks();
+
+		expect(dbUpdateWhere.mock.calls.length).toBe(1);
+		const where = dbUpdateWhere.mock.calls[0]?.[0] as {
+			type: string;
+			conditions: Array<{ type: string; value?: unknown }>;
+		};
+		expect(where.type).toBe("and");
+		expect(where.conditions).toContainEqual(
+			expect.objectContaining({
+				type: "isNull",
+				value: "v2_projects.icon_url",
+			}),
+		);
+	});
+
+	it("does not crash when background avatar fetch throws", async () => {
+		v2ProjectsFindResults.push({ id: PROJECT_ID, organizationId: ORG_ID });
+		v2ProjectsFindResults.push({
+			iconUrl: null,
+			repoCloneUrl: "https://github.com/acme/repo.git",
+		});
+		fetchAndStoreGitHubAvatarMock.mockImplementationOnce(async () => {
+			throw new Error("connection refused");
+		});
+		const consoleWarnSpy = spyOn(console, "warn").mockImplementation(
+			() => {},
+		);
+
+		const caller = createCaller(authedContext());
+		const result = await caller.v2Project.hydrateIconFromGitHubIfMissing({
+			id: PROJECT_ID,
+		});
+
+		await flushMicrotasks();
+
+		expect(result).toEqual({ hydrated: true });
+		expect(consoleWarnSpy).toHaveBeenCalled();
+
+		consoleWarnSpy.mockRestore();
+	});
+});
+
 describe("v2Project.removeIcon", () => {
 	it("rejects unauthenticated callers", async () => {
 		const caller = createCaller(unauthedContext());
