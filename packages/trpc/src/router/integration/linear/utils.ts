@@ -2,11 +2,10 @@ import { LinearClient } from "@linear/sdk";
 import { db } from "@superset/db/client";
 import { integrationConnections } from "@superset/db/schema";
 import { and, eq } from "drizzle-orm";
-import { refreshLinearToken } from "./refresh";
+import { REFRESH_BUFFER_MS } from "./constants";
+import { isLinearAuthError, refreshLinearToken } from "./refresh";
 
 type Priority = "urgent" | "high" | "medium" | "low" | "none";
-
-const REFRESH_BUFFER_MS = 5 * 60 * 1000;
 
 export function mapPriorityToLinear(priority: Priority): number {
 	switch (priority) {
@@ -61,9 +60,19 @@ export async function getLinearClient(
 			await markConnectionDisconnected(connection.id, "no_refresh_token");
 			return null;
 		}
-		const result = await refreshLinearToken(connection.id);
-		if (result.disconnected) return null;
-		return new LinearClient({ accessToken: result.accessToken });
+		try {
+			const result = await refreshLinearToken(connection.id);
+			if (result.disconnected) return null;
+			return new LinearClient({ accessToken: result.accessToken });
+		} catch (error) {
+			const tokenStillValid =
+				connection.tokenExpiresAt &&
+				connection.tokenExpiresAt.getTime() > Date.now();
+			if (tokenStillValid && !isLinearAuthError(error)) {
+				return new LinearClient({ accessToken: connection.accessToken });
+			}
+			throw error;
+		}
 	}
 
 	return new LinearClient({ accessToken: connection.accessToken });

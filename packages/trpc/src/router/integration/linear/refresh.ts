@@ -5,6 +5,7 @@ import { withConnectionLock } from "@superset/db/utils";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { env } from "../../../env";
+import { REFRESH_BUFFER_MS, REFRESH_TOKEN_TIMEOUT_MS } from "./constants";
 import { getLinearClient, markConnectionDisconnected } from "./utils";
 
 export const linearTokenResponseSchema = z.object({
@@ -16,8 +17,6 @@ export const linearTokenResponseSchema = z.object({
 });
 
 export type LinearTokenResponse = z.infer<typeof linearTokenResponseSchema>;
-
-const REFRESH_BUFFER_MS = 5 * 60 * 1000;
 
 type RefreshResult =
 	| { disconnected: true }
@@ -48,16 +47,27 @@ export async function refreshLinearToken(
 			return { disconnected: false, accessToken: connection.accessToken };
 		}
 
-		const response = await fetch("https://api.linear.app/oauth/token", {
-			method: "POST",
-			headers: { "Content-Type": "application/x-www-form-urlencoded" },
-			body: new URLSearchParams({
-				grant_type: "refresh_token",
-				refresh_token: connection.refreshToken,
-				client_id: env.LINEAR_CLIENT_ID,
-				client_secret: env.LINEAR_CLIENT_SECRET,
-			}),
-		});
+		const controller = new AbortController();
+		const timeout = setTimeout(
+			() => controller.abort(),
+			REFRESH_TOKEN_TIMEOUT_MS,
+		);
+		let response: Response;
+		try {
+			response = await fetch("https://api.linear.app/oauth/token", {
+				method: "POST",
+				headers: { "Content-Type": "application/x-www-form-urlencoded" },
+				signal: controller.signal,
+				body: new URLSearchParams({
+					grant_type: "refresh_token",
+					refresh_token: connection.refreshToken,
+					client_id: env.LINEAR_CLIENT_ID,
+					client_secret: env.LINEAR_CLIENT_SECRET,
+				}),
+			});
+		} finally {
+			clearTimeout(timeout);
+		}
 
 		if (!response.ok) {
 			const body = (await response.json().catch(() => ({}))) as {
@@ -123,7 +133,12 @@ export async function callLinear<T>(
 		const result = await refreshLinearToken(connection.id);
 		if (result.disconnected) return null;
 
-		return await fn(new LinearClient({ accessToken: result.accessToken }));
+		try {
+			return await fn(new LinearClient({ accessToken: result.accessToken }));
+		} catch (retryError) {
+			if (isLinearAuthError(retryError)) return null;
+			throw retryError;
+		}
 	}
 }
 

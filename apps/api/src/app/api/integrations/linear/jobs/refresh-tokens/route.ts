@@ -21,14 +21,25 @@ export async function POST(request: Request) {
 			return Response.json({ error: "Missing signature" }, { status: 401 });
 		}
 
-		const isValid = await receiver.verify({
-			body,
-			signature,
-			url: `${env.NEXT_PUBLIC_API_URL}/api/integrations/linear/jobs/refresh-tokens`,
-		});
+		try {
+			const isValid = await receiver.verify({
+				body,
+				signature,
+				url: `${env.NEXT_PUBLIC_API_URL}/api/integrations/linear/jobs/refresh-tokens`,
+			});
 
-		if (!isValid) {
-			return Response.json({ error: "Invalid signature" }, { status: 401 });
+			if (!isValid) {
+				return Response.json({ error: "Invalid signature" }, { status: 401 });
+			}
+		} catch (verifyError) {
+			console.error(
+				"[linear-refresh-cron] Signature verification failed:",
+				verifyError,
+			);
+			return Response.json(
+				{ error: "Signature verification failed" },
+				{ status: 401 },
+			);
 		}
 	}
 
