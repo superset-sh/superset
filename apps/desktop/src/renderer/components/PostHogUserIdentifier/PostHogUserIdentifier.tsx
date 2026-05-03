@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { track } from "renderer/lib/analytics";
+import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { authClient } from "renderer/lib/auth-client";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { posthog } from "../../lib/posthog";
@@ -46,6 +47,27 @@ export function PostHogUserIdentifier() {
 			localStorage.removeItem(ACTIVE_ORG_ID_KEY);
 		}
 	}, [session, activeOrganizationId]);
+
+	useEffect(() => {
+		if (!user) return;
+		let cancelled = false;
+		apiTrpcClient.user.billingSummary
+			.query()
+			.then((billing) => {
+				if (cancelled) return;
+				posthog.setPersonProperties({
+					is_paying: billing.isPaying,
+					plan: billing.plan,
+					subscription_status: billing.subscriptionStatus,
+				});
+			})
+			.catch((error) => {
+				console.error("[PostHogUserIdentifier] billingSummary failed", error);
+			});
+		return () => {
+			cancelled = true;
+		};
+	}, [user]);
 
 	return null;
 }

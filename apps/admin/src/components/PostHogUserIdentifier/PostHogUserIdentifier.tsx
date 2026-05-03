@@ -15,6 +15,11 @@ export function PostHogUserIdentifier() {
 		enabled: !!session?.user,
 	});
 
+	const { data: billing } = useQuery({
+		...trpc.user.billingSummary.queryOptions(),
+		enabled: !!session?.user,
+	});
+
 	useEffect(() => {
 		if (user) {
 			posthog.identify(user.id, { email: user.email, name: user.name });
@@ -22,6 +27,15 @@ export function PostHogUserIdentifier() {
 			posthog.reset();
 		}
 	}, [user, session?.user]);
+
+	useEffect(() => {
+		if (!user || !billing) return;
+		posthog.setPersonProperties({
+			is_paying: billing.isPaying,
+			plan: billing.plan,
+			subscription_status: billing.subscriptionStatus,
+		});
+	}, [user, billing]);
 
 	return null;
 }
