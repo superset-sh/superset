@@ -217,7 +217,12 @@ async function doLoad(): Promise<FallthroughIconConfig> {
 			byFileExtension[extension] = SYMBOL_PREFIX + icon;
 	}
 
-	const spriteSheet = `<svg xmlns="http://www.w3.org/2000/svg">${symbols.join("")}</svg>`;
+	// Pierre injects spriteSheet into light DOM as a slotted child of the
+	// host. Without explicit dimensions an SVG defaults to ~300×150, which
+	// would steal layout space and visually truncate the tree. Mirror Pierre's
+	// own built-in sprite (`width="0" height="0" aria-hidden`) so it renders
+	// the symbols but takes no space.
+	const spriteSheet = `<svg xmlns="http://www.w3.org/2000/svg" width="0" height="0" aria-hidden="true">${symbols.join("")}</svg>`;
 	return { spriteSheet, byFileName, byFileExtension };
 }
 
