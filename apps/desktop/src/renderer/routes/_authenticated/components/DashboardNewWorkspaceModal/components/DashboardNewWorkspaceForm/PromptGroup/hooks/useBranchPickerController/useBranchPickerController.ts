@@ -53,7 +53,7 @@ export function useBranchPickerController(args: UseBranchPickerControllerArgs) {
 	const resolvedHostId = hostId ?? machineId;
 
 	const [branchSearch, setBranchSearch] = useState("");
-	const [branchFilter, setBranchFilter] = useState<BranchFilter>("branch");
+	const [branchFilter, setBranchFilter] = useState<BranchFilter>("all");
 
 	const {
 		branches,

@@ -52,7 +52,7 @@ import { HOOK_PROTOCOL_VERSION } from "./terminal/env";
  * respawn with the new bundle. One-time terminal-session loss for
  * users on upgrade — accepted per release-notes guidance.
  */
-const MIN_HOST_SERVICE_VERSION = "0.5.0";
+const MIN_HOST_SERVICE_VERSION = "0.6.0";
 
 export type HostServiceStatus = "starting" | "running" | "stopped";
 

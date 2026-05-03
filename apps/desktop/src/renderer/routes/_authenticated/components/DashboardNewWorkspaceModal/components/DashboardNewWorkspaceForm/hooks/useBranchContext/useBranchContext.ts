@@ -25,7 +25,7 @@ export function useBranchContext(
 	projectId: string | null,
 	hostId: string | null,
 	query: string,
-	filter: BranchFilter = "branch",
+	filter: BranchFilter = "all",
 ) {
 	const hostUrl = useHostUrl(hostId);
 

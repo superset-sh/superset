@@ -18,7 +18,7 @@ import { protectedProcedure, router } from "../../index";
 // them on upgrade and respawn with the new bundle. Adopting in
 // place would leave the new desktop talking to old code with no
 // `terminal.daemon.*` routes, breaking Settings → Manage daemon.
-const HOST_SERVICE_VERSION = "0.5.0";
+const HOST_SERVICE_VERSION = "0.6.0";
 const ORGANIZATION_CACHE_TTL_MS = 60 * 60 * 1000;
 
 let cachedOrganization: {
