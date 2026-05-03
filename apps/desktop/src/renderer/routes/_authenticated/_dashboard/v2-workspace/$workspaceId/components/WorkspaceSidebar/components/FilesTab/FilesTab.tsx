@@ -51,9 +51,18 @@ import {
 // `*-override → theme tokens → defaults`, so providing overrides is enough —
 // no need to touch the theme tier. Custom properties cascade through Pierre's
 // shadow DOM, so setting them on the host element is sufficient.
+//
+// Explicit `width: 100%; height: 100%` on the host matches Pierre's own
+// docs/_components/TreeApp.tsx pattern. The `<file-tree-container>` is a
+// custom element that defaults to `display: inline`; flex sizing alone
+// doesn't reliably resolve `:host { height: 100% }` inside its shadow DOM
+// across browsers. Setting an explicit 100% gives Pierre's internal
+// ResizeObserver a real number to measure.
 const TREE_STYLE: React.CSSProperties = {
+	width: "100%",
+	height: "100%",
+
 	// Layout
-	"--trees-row-height-override": `${ROW_HEIGHT}px`,
 	"--trees-level-gap-override": `${TREE_INDENT}px`,
 	"--trees-padding-inline-override": "8px",
 	"--trees-border-radius-override": "0",
@@ -90,16 +99,6 @@ const TREE_STYLE: React.CSSProperties = {
 	"--trees-status-ignored-override": "var(--muted-foreground)",
 
 	fontSize: "0.75rem",
-
-	// Pierre's host (`<file-tree-container>`) is a custom element. Browsers
-	// default unknown elements to `display: inline`, and Pierre's :host CSS
-	// only sets `height: 100%` — never `display`. Without forcing block-level
-	// flex here the inner ResizeObserver only measures the default 420px
-	// initialViewportHeight and the tree caps at ~15 rows. Setting display +
-	// flex makes the host honor `flex-1 min-h-0` from the className.
-	display: "flex",
-	flexDirection: "column",
-	minHeight: 0,
 } as React.CSSProperties;
 
 type GitStatusData = inferRouterOutputs<AppRouter>["git"]["getStatus"];
