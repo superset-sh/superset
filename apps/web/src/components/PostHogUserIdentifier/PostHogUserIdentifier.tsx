@@ -6,19 +6,17 @@ import { useEffect } from "react";
 
 export function PostHogUserIdentifier() {
 	const { data: session } = authClient.useSession();
-	const plan = session?.session?.plan ?? null;
 
 	useEffect(() => {
 		if (session?.user) {
 			posthog.identify(session.user.id, {
 				email: session.user.email,
 				name: session.user.name,
-				plan,
 			});
 		} else if (session === null) {
 			posthog.reset();
 		}
-	}, [session, plan]);
+	}, [session]);
 
 	return null;
 }

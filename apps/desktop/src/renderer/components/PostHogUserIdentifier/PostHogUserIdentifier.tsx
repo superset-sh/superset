@@ -11,7 +11,6 @@ export function PostHogUserIdentifier() {
 	const { data: session } = authClient.useSession();
 	const user = session?.user;
 	const activeOrganizationId = session?.session?.activeOrganizationId;
-	const plan = session?.session?.plan ?? null;
 	const { mutate: setUserId } = electronTrpc.analytics.setUserId.useMutation();
 
 	useEffect(() => {
@@ -20,7 +19,6 @@ export function PostHogUserIdentifier() {
 				email: user.email,
 				name: user.name,
 				desktop_version: window.App.appVersion,
-				plan,
 			});
 			posthog.reloadFeatureFlags();
 			setUserId({ userId: user.id });
@@ -37,7 +35,7 @@ export function PostHogUserIdentifier() {
 			localStorage.removeItem(AUTH_COMPLETED_KEY);
 			localStorage.removeItem(ACTIVE_ORG_ID_KEY);
 		}
-	}, [user, session, setUserId, plan]);
+	}, [user, session, setUserId]);
 
 	useEffect(() => {
 		if (session === undefined) return;

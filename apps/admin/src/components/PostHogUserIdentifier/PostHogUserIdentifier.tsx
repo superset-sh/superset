@@ -9,7 +9,6 @@ import { useTRPC } from "@/trpc/react";
 export function PostHogUserIdentifier() {
 	const { data: session } = authClient.useSession();
 	const trpc = useTRPC();
-	const plan = session?.session?.plan ?? null;
 
 	const { data: user } = useQuery({
 		...trpc.user.me.queryOptions(),
@@ -18,15 +17,11 @@ export function PostHogUserIdentifier() {
 
 	useEffect(() => {
 		if (user) {
-			posthog.identify(user.id, {
-				email: user.email,
-				name: user.name,
-				plan,
-			});
+			posthog.identify(user.id, { email: user.email, name: user.name });
 		} else if (!session?.user) {
 			posthog.reset();
 		}
-	}, [user, session?.user, plan]);
+	}, [user, session?.user]);
 
 	return null;
 }
