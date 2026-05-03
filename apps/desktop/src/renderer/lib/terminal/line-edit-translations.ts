@@ -3,19 +3,92 @@ export interface LineEditChordOptions {
 	isWindows: boolean;
 }
 
-/** True when `mod` is the only non-shift modifier held. */
-function onlyMod(event: KeyboardEvent, mod: "meta" | "alt" | "ctrl"): boolean {
+type Platform = "mac" | "windows" | "linux";
+
+interface Chord {
+	key: string;
+	shift?: boolean;
+	meta?: boolean;
+	alt?: boolean;
+	ctrl?: boolean;
+}
+
+interface ChordTranslation {
+	chord: Chord;
+	sequence: string;
+	/** Omit to match all platforms. */
+	platforms?: Platform[];
+}
+
+const TRANSLATIONS: ChordTranslation[] = [
+	// Shift+Enter and Mac Cmd+Enter both emit ESC+CR — chat TUIs (Claude Code,
+	// etc.) parse this as a newline. Sent directly because xterm's kitty
+	// keyboard encoder would otherwise produce CSI-u sequences the TUI doesn't
+	// recognize.
+	{ chord: { key: "Enter", shift: true }, sequence: "\x1b\r" },
+	// Mac Cmd+ line edit
+	{
+		chord: { key: "Backspace", meta: true },
+		sequence: "\x15\x1b[D",
+		platforms: ["mac"],
+	},
+	{
+		chord: { key: "ArrowLeft", meta: true },
+		sequence: "\x01",
+		platforms: ["mac"],
+	},
+	{
+		chord: { key: "ArrowRight", meta: true },
+		sequence: "\x05",
+		platforms: ["mac"],
+	},
+	{
+		chord: { key: "Enter", meta: true },
+		sequence: "\x1b\r",
+		platforms: ["mac"],
+	},
+	// Mac Option+ word jump
+	{
+		chord: { key: "ArrowLeft", alt: true },
+		sequence: "\x1bb",
+		platforms: ["mac"],
+	},
+	{
+		chord: { key: "ArrowRight", alt: true },
+		sequence: "\x1bf",
+		platforms: ["mac"],
+	},
+	// Windows Ctrl+ word jump
+	{
+		chord: { key: "ArrowLeft", ctrl: true },
+		sequence: "\x1bb",
+		platforms: ["windows"],
+	},
+	{
+		chord: { key: "ArrowRight", ctrl: true },
+		sequence: "\x1bf",
+		platforms: ["windows"],
+	},
+];
+
+function matchesChord(event: KeyboardEvent, chord: Chord): boolean {
 	return (
-		event.metaKey === (mod === "meta") &&
-		event.altKey === (mod === "alt") &&
-		event.ctrlKey === (mod === "ctrl") &&
-		!event.shiftKey
+		event.key === chord.key &&
+		event.shiftKey === !!chord.shift &&
+		event.metaKey === !!chord.meta &&
+		event.altKey === !!chord.alt &&
+		event.ctrlKey === !!chord.ctrl
 	);
 }
 
-/** True when Shift is the only modifier held. */
-function onlyShift(event: KeyboardEvent): boolean {
-	return event.shiftKey && !event.metaKey && !event.altKey && !event.ctrlKey;
+function matchesPlatform(
+	platforms: Platform[] | undefined,
+	options: LineEditChordOptions,
+): boolean {
+	if (!platforms) return true;
+	if (options.isMac) return platforms.includes("mac");
+	if (options.isWindows) return platforms.includes("windows");
+	return platforms.includes("linux");
 }
 
 /**
@@ -33,27 +106,10 @@ export function translateLineEditChord(
 	event: KeyboardEvent,
 	options: LineEditChordOptions,
 ): string | null {
-	const { isMac, isWindows } = options;
-	const { key } = event;
-
-	// Shift+Enter and Mac Cmd+Enter both emit ESC+CR — chat TUIs (Claude Code,
-	// etc.) parse this as a newline. Sent directly because xterm's kitty
-	// keyboard encoder would otherwise produce CSI-u sequences the TUI doesn't
-	// recognize.
-	if (key === "Enter" && onlyShift(event)) return "\x1b\r";
-	if (isMac && onlyMod(event, "meta")) {
-		if (key === "Backspace") return "\x15\x1b[D";
-		if (key === "ArrowLeft") return "\x01";
-		if (key === "ArrowRight") return "\x05";
-		if (key === "Enter") return "\x1b\r";
-	}
-	if (isMac && onlyMod(event, "alt")) {
-		if (key === "ArrowLeft") return "\x1bb";
-		if (key === "ArrowRight") return "\x1bf";
-	}
-	if (isWindows && onlyMod(event, "ctrl")) {
-		if (key === "ArrowLeft") return "\x1bb";
-		if (key === "ArrowRight") return "\x1bf";
+	for (const t of TRANSLATIONS) {
+		if (matchesPlatform(t.platforms, options) && matchesChord(event, t.chord)) {
+			return t.sequence;
+		}
 	}
 	return null;
 }
