@@ -200,32 +200,7 @@ export function CompareBaseBranchPicker({
 													{formatRelativeTime(branch.lastCommitDate * 1000)}
 												</span>
 											)}
-											{isWorktree ? (
-												(() => {
-													// Authoritative check against the cloud-synced
-													// collection — a `server hasWorkspace:true` row
-													// may be stale after a delete.
-													const hasWorkspace = hasWorkspaceForBranch(
-														branch.name,
-													);
-													return (
-														<button
-															type="button"
-															className="hidden group-hover:inline-flex group-focus-within:inline-flex items-center rounded-sm bg-primary/10 hover:bg-primary/20 px-2 py-0.5 text-[11px] text-primary font-medium"
-															onClick={(e) => {
-																e.stopPropagation();
-																if (hasWorkspace) {
-																	onOpenExisting(branch.name);
-																} else {
-																	onAdoptWorktree(branch.name);
-																}
-															}}
-														>
-															{hasWorkspace ? "Open" : "Create"}
-														</button>
-													);
-												})()
-											) : branch.isCheckedOut ? (
+											{branch.isCheckedOut ? (
 												<Tooltip>
 													<TooltipTrigger asChild>
 														{/*
@@ -259,6 +234,31 @@ export function CompareBaseBranchPicker({
 													Check out
 												</button>
 											)}
+											{isWorktree &&
+												(() => {
+													// Authoritative check against the cloud-synced
+													// collection — a `server hasWorkspace:true` row
+													// may be stale after a delete.
+													const hasWorkspace = hasWorkspaceForBranch(
+														branch.name,
+													);
+													return (
+														<button
+															type="button"
+															className="hidden group-hover:inline-flex group-focus-within:inline-flex items-center rounded-sm bg-primary/10 hover:bg-primary/20 px-2 py-0.5 text-[11px] text-primary font-medium"
+															onClick={(e) => {
+																e.stopPropagation();
+																if (hasWorkspace) {
+																	onOpenExisting(branch.name);
+																} else {
+																	onAdoptWorktree(branch.name);
+																}
+															}}
+														>
+															{hasWorkspace ? "Open" : "Create"}
+														</button>
+													);
+												})()}
 											{effectiveCompareBaseBranch === branch.name && (
 												<HiCheck className="size-4 text-primary" />
 											)}
