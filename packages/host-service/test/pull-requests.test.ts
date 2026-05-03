@@ -67,6 +67,7 @@ describe("PullRequestRuntimeManager branch sync", () => {
 			upstreamOwner: null,
 			upstreamRepo: null,
 			upstreamBranch: null,
+			pullRequestId: null,
 		});
 		expect(refreshProjectMock).toHaveBeenCalledWith("project-1");
 	});

@@ -97,22 +97,15 @@ export function buildPrCheckoutPayload(
 		url: string;
 		title: string;
 		branch: string; // headRefName
+		headRefOid: string;
 		baseBranch: string; // baseRefName
 		headRepositoryOwner: string | null;
+		headRepositoryName?: string | null;
 		isCrossRepository: boolean;
+		isDraft?: boolean;
 		state: string;
 	},
 ): CheckoutWorkspaceInput {
-	// Null owner on a cross-repo PR means the head fork repo has been
-	// deleted. We can't derive `<owner>/<headRefName>` without it, and
-	// `gh pr checkout` wouldn't have a fork to configure push against.
-	// Fail early with a clear error rather than a cryptic server-side
-	// "headRepositoryOwner is required".
-	if (prContent.isCrossRepository && !prContent.headRepositoryOwner) {
-		throw new Error(
-			`Cannot check out PR #${prContent.number}: the head fork repository has been deleted.`,
-		);
-	}
 	const linked = mapLinkedContextFromPending(pending);
 	const normalizedState: "open" | "closed" | "merged" =
 		prContent.state === "closed"
@@ -130,11 +123,14 @@ export function buildPrCheckoutPayload(
 			url: prContent.url,
 			title: prContent.title,
 			headRefName: prContent.branch,
+			headRefOid: prContent.headRefOid,
 			baseRefName: prContent.baseBranch,
 			// Same-repo PRs don't need an owner for branch derivation; pass an
 			// empty string rather than leaking null into the server input.
 			headRepositoryOwner: prContent.headRepositoryOwner ?? "",
+			headRepositoryName: prContent.headRepositoryName ?? null,
 			isCrossRepository: prContent.isCrossRepository,
+			isDraft: prContent.isDraft ?? false,
 			state: normalizedState,
 		},
 		composer: {

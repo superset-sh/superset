@@ -11,6 +11,7 @@ import type { TRPCRouterRecord } from "@trpc/server";
 import { TRPCError } from "@trpc/server";
 import { and, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
+import { posthog } from "../../lib/analytics";
 import { jwtProcedure, protectedProcedure } from "../../trpc";
 import { requireActiveOrgId } from "../utils/active-org";
 import {
@@ -201,7 +202,21 @@ export const v2WorkspaceRouter = {
 				.onConflictDoNothing()
 				.returning();
 
-			if (inserted) return inserted;
+			if (inserted) {
+				posthog.capture({
+					distinctId: ctx.userId,
+					event: "workspace_created",
+					properties: {
+						workspace_id: inserted.id,
+						project_id: inserted.projectId,
+						organization_id: inserted.organizationId,
+						host_id: inserted.hostId,
+						branch: inserted.branch,
+						type: inserted.type,
+					},
+				});
+				return inserted;
+			}
 
 			if (input.type === "main") {
 				const existing = await dbWs.query.v2Workspaces.findFirst({
@@ -392,7 +407,14 @@ export const v2WorkspaceRouter = {
 		.input(z.object({ id: z.string().uuid() }))
 		.mutation(async ({ ctx, input }) => {
 			const workspace = await dbWs.query.v2Workspaces.findFirst({
-				columns: { id: true, organizationId: true, type: true },
+				columns: {
+					id: true,
+					organizationId: true,
+					type: true,
+					projectId: true,
+					hostId: true,
+					branch: true,
+				},
 				where: eq(v2Workspaces.id, input.id),
 			});
 			if (!workspace) {
@@ -412,6 +434,20 @@ export const v2WorkspaceRouter = {
 				});
 			}
 			await dbWs.delete(v2Workspaces).where(eq(v2Workspaces.id, workspace.id));
+
+			posthog.capture({
+				distinctId: ctx.userId,
+				event: "workspace_deleted",
+				properties: {
+					workspace_id: workspace.id,
+					project_id: workspace.projectId,
+					organization_id: workspace.organizationId,
+					host_id: workspace.hostId,
+					branch: workspace.branch,
+					type: workspace.type,
+				},
+			});
+
 			return { success: true, alreadyGone: false as const };
 		}),
 

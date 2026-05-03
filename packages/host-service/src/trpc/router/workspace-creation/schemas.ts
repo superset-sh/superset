@@ -23,7 +23,7 @@ export const searchBranchesInputSchema = z.object({
 	cursor: z.string().optional(),
 	limit: z.number().min(1).max(200).optional(),
 	refresh: z.boolean().optional(),
-	filter: z.enum(["branch", "worktree"]).optional(),
+	filter: z.enum(["all", "worktree"]).optional(),
 });
 
 export const generateBranchNameInputSchema = z.object({
@@ -65,9 +65,12 @@ const checkoutPrSchema = z.object({
 	url: z.string().url(),
 	title: z.string(),
 	headRefName: z.string(),
+	headRefOid: z.string().min(1),
 	baseRefName: z.string(),
 	headRepositoryOwner: z.string(),
+	headRepositoryName: z.string().nullable().optional(),
 	isCrossRepository: z.boolean(),
+	isDraft: z.boolean().optional(),
 	state: z.enum(["open", "closed", "merged"]),
 });
 
@@ -145,12 +148,14 @@ export const pullRequestContentSchema = z.object({
 	url: z.string(),
 	state: z.string(),
 	headRefName: z.string(),
+	headRefOid: z.string().min(1),
 	baseRefName: z.string(),
 	// `gh pr view` returns null when the PR's head fork repository has been
 	// deleted. Nullable so the schema parse doesn't fail; consumers decide
 	// how to handle a missing owner (client surfaces a clear error for
 	// cross-repo PRs — same-repo PRs shouldn't see null in practice).
 	headRepositoryOwner: z.object({ login: z.string() }).nullable(),
+	headRepository: z.object({ name: z.string() }).nullable(),
 	isCrossRepository: z.boolean(),
 	isDraft: z.boolean(),
 	author: z.object({ login: z.string() }).optional(),

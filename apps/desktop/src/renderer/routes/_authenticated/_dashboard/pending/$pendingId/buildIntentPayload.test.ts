@@ -192,9 +192,12 @@ describe("buildPrCheckoutPayload", () => {
 		url: "https://github.com/o/r/pull/42",
 		title: "Fix typo",
 		branch: "fix/typo",
+		headRefOid: "c4ecea7dec8c6d09cf54fe0ad2f9edb8a24fd45a",
 		baseBranch: "main",
 		headRepositoryOwner: "kietho",
+		headRepositoryName: "r",
 		isCrossRepository: true,
+		isDraft: false,
 		state: "open",
 		body: "body text",
 	};
@@ -217,9 +220,12 @@ describe("buildPrCheckoutPayload", () => {
 			url: "https://github.com/o/r/pull/42",
 			title: "Fix typo",
 			headRefName: "fix/typo",
+			headRefOid: "c4ecea7dec8c6d09cf54fe0ad2f9edb8a24fd45a",
 			baseRefName: "main",
 			headRepositoryOwner: "kietho",
+			headRepositoryName: "r",
 			isCrossRepository: true,
+			isDraft: false,
 			state: "open",
 		});
 		expect(payload.branch).toBeUndefined();
@@ -285,15 +291,15 @@ describe("buildPrCheckoutPayload", () => {
 		expect(payload.pr?.state).toBe("open");
 	});
 
-	test("throws clear error for cross-repo PR with deleted fork (null owner)", () => {
+	test("allows cross-repo PR with deleted fork so host-service can recover from refs/pull", () => {
 		const pending = makePending({ intent: "pr-checkout" });
-		expect(() =>
-			buildPrCheckoutPayload("pid", pending, {
-				...prContent,
-				headRepositoryOwner: null,
-				isCrossRepository: true,
-			}),
-		).toThrow("head fork repository has been deleted");
+		const payload = buildPrCheckoutPayload("pid", pending, {
+			...prContent,
+			headRepositoryOwner: null,
+			isCrossRepository: true,
+		});
+		expect(payload.pr?.headRepositoryOwner).toBe("");
+		expect(payload.pr?.isCrossRepository).toBe(true);
 	});
 
 	test("same-repo PR with null owner is fine (owner not needed)", () => {

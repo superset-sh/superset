@@ -14,6 +14,10 @@ import { clearProgress, setProgress } from "../shared/progress-store";
 import { safeResolveWorktreePath } from "../shared/worktree-paths";
 import { execGh } from "../utils/exec-gh";
 import { derivePrLocalBranchName } from "../utils/pr-branch-name";
+import {
+	getErrorMessage,
+	recoverPrCheckoutAfterGhFailure,
+} from "../utils/pr-checkout-recovery";
 
 export const checkout = protectedProcedure
 	.input(checkoutInputSchema)
@@ -45,11 +49,27 @@ export const checkout = protectedProcedure
 					})
 					.sync();
 				if (existing) {
+					const warnings: string[] = [];
+					try {
+						await ctx.runtime.pullRequests.linkWorkspaceToCheckoutPullRequest({
+							workspaceId: existing.id,
+							projectId: input.projectId,
+							pullRequest: input.pr,
+						});
+					} catch (err) {
+						console.warn(
+							"[workspaceCreation.checkout] failed to link existing workspace PR metadata",
+							{ workspaceId: existing.id, err },
+						);
+						warnings.push(
+							"Existing workspace found, but Superset could not link pull request status automatically.",
+						);
+					}
 					clearProgress(input.pendingId);
 					return {
 						workspace: { id: existing.id },
 						terminals: [],
-						warnings: [],
+						warnings,
 						alreadyExists: true as const,
 					};
 				}
@@ -107,6 +127,7 @@ export const checkout = protectedProcedure
 					});
 				}
 
+				let prCheckoutRecoveryWarning: string | null = null;
 				try {
 					await execGh(
 						[
@@ -120,21 +141,57 @@ export const checkout = protectedProcedure
 						{ cwd: worktreePath, timeout: 120_000 },
 					);
 				} catch (err) {
-					await git
-						.raw(["worktree", "remove", "--force", worktreePath])
-						.catch((rollbackErr) => {
-							console.warn(
-								"[workspaceCreation.checkout] failed to rollback PR worktree",
-								{ worktreePath, err: rollbackErr },
-							);
+					// Distinguish recovery declined (recoveryError null,
+					// prCheckoutRecoveryWarning null) from recovery threw
+					// (recoveryError set) so the surfaced message includes the
+					// secondary failure only when it adds information.
+					let recoveryError: unknown = null;
+					try {
+						const recovery = await recoverPrCheckoutAfterGhFailure({
+							git,
+							worktreePath,
+							branch,
+							prNumber: input.pr.number,
+							remoteName: localProject.remoteName ?? "origin",
+							expectedHeadOid: input.pr.headRefOid,
+							error: err,
 						});
-					clearProgress(input.pendingId);
-					throw new TRPCError({
-						code: "INTERNAL_SERVER_ERROR",
-						message: `gh pr checkout failed: ${
-							err instanceof Error ? err.message : String(err)
-						}`,
-					});
+						if (recovery.recovered) {
+							prCheckoutRecoveryWarning = recovery.warning;
+						}
+					} catch (e) {
+						recoveryError = e;
+					}
+
+					if (!prCheckoutRecoveryWarning) {
+						await git
+							.raw(["worktree", "remove", "--force", worktreePath])
+							.catch((rollbackErr) => {
+								console.warn(
+									"[workspaceCreation.checkout] failed to rollback PR worktree",
+									{ worktreePath, err: rollbackErr },
+								);
+							});
+						clearProgress(input.pendingId);
+						const recoveryMessage = recoveryError
+							? ` Recovery via refs/pull/${input.pr.number}/head also failed: ${getErrorMessage(recoveryError)}`
+							: "";
+						throw new TRPCError({
+							code: "INTERNAL_SERVER_ERROR",
+							message: `gh pr checkout failed: ${getErrorMessage(err)}${recoveryMessage}`,
+						});
+					}
+				}
+
+				if (prCheckoutRecoveryWarning) {
+					console.warn(
+						"[workspaceCreation.checkout] recovered failed gh pr checkout",
+						{
+							prNumber: input.pr.number,
+							branch,
+							warning: prCheckoutRecoveryWarning,
+						},
+					);
 				}
 
 				// Push ergonomics. `gh pr checkout` sets per-branch push config
@@ -147,6 +204,9 @@ export const checkout = protectedProcedure
 				);
 
 				const extraWarnings: string[] = [];
+				if (prCheckoutRecoveryWarning) {
+					extraWarnings.push(prCheckoutRecoveryWarning);
+				}
 				if (input.pr.state !== "open") {
 					extraWarnings.push(
 						`PR is ${input.pr.state} — commits are included, but the PR may not merge.`,
@@ -168,6 +228,7 @@ export const checkout = protectedProcedure
 					runSetupScript: input.composer.runSetupScript ?? false,
 					git,
 					extraWarnings,
+					pullRequest: input.pr,
 				});
 			}
 

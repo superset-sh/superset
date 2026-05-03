@@ -14,8 +14,10 @@ type PullRequestContent = {
 	url: string;
 	state: string;
 	branch: string;
+	headRefOid: string;
 	baseBranch: string;
 	headRepositoryOwner: string | null;
+	headRepositoryName: string | null;
 	isCrossRepository: boolean;
 	author: string | null;
 	isDraft: boolean;
@@ -55,7 +57,7 @@ export const getGitHubPullRequestContent = protectedProcedure
 					"--repo",
 					`${repo.owner}/${repo.name}`,
 					"--json",
-					"number,title,body,url,state,author,headRefName,baseRefName,headRepositoryOwner,isCrossRepository,isDraft,createdAt,updatedAt",
+					"number,title,body,url,state,author,headRefName,headRefOid,baseRefName,headRepositoryOwner,headRepository,isCrossRepository,isDraft,createdAt,updatedAt",
 				]);
 				const data = pullRequestContentSchema.parse(raw);
 				return {
@@ -65,8 +67,10 @@ export const getGitHubPullRequestContent = protectedProcedure
 					url: data.url,
 					state: data.state.toLowerCase(),
 					branch: data.headRefName,
+					headRefOid: data.headRefOid,
 					baseBranch: data.baseRefName,
 					headRepositoryOwner: data.headRepositoryOwner?.login ?? null,
+					headRepositoryName: data.headRepository?.name ?? null,
 					isCrossRepository: data.isCrossRepository,
 					author: data.author?.login ?? null,
 					isDraft: data.isDraft,

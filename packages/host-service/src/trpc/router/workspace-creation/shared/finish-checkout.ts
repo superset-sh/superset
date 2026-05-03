@@ -1,6 +1,7 @@
 import { getHostId, getHostName } from "@superset/shared/host-info";
 import { TRPCError } from "@trpc/server";
 import { workspaces } from "../../../../db/schema";
+import type { CheckoutPullRequestMetadata } from "../../../../runtime/pull-requests";
 import type { HostServiceContext } from "../../../../types";
 import { clearProgress, setProgress } from "./progress-store";
 import { startSetupTerminalIfPresent } from "./setup-terminal";
@@ -27,6 +28,7 @@ export async function finishCheckout(
 		runSetupScript: boolean;
 		git: GitClient;
 		extraWarnings: string[];
+		pullRequest?: CheckoutPullRequestMetadata;
 	},
 ): Promise<CheckoutResult> {
 	setProgress(args.pendingId, "registering");
@@ -141,6 +143,24 @@ export async function finishCheckout(
 
 	const terminals: TerminalDescriptor[] = [];
 	const warnings: string[] = [...args.extraWarnings];
+
+	if (args.pullRequest) {
+		try {
+			await ctx.runtime.pullRequests.linkWorkspaceToCheckoutPullRequest({
+				workspaceId: cloudRow.id,
+				projectId: args.projectId,
+				pullRequest: args.pullRequest,
+			});
+		} catch (err) {
+			console.warn(
+				"[workspaceCreation.checkout] failed to link checkout PR metadata",
+				{ workspaceId: cloudRow.id, err },
+			);
+			warnings.push(
+				"Workspace was created, but Superset could not link pull request status automatically.",
+			);
+		}
+	}
 
 	if (args.runSetupScript) {
 		const { terminal, warning } = await startSetupTerminalIfPresent({
