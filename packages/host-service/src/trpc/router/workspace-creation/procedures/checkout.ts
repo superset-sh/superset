@@ -141,12 +141,10 @@ export const checkout = protectedProcedure
 						{ cwd: worktreePath, timeout: 120_000 },
 					);
 				} catch (err) {
-					// Two failure modes to distinguish:
-					//   1. recovery declined the error (returned recovered:false) →
-					//      surface the original gh failure as-is.
-					//   2. recovery attempted but threw → surface both errors.
-					// Tracking with an explicit error variable instead of catching
-					// `throw err` and comparing references via `recoveryErr === err`.
+					// Distinguish recovery declined (recoveryError null,
+					// prCheckoutRecoveryWarning null) from recovery threw
+					// (recoveryError set) so the surfaced message includes the
+					// secondary failure only when it adds information.
 					let recoveryError: unknown = null;
 					try {
 						const recovery = await recoverPrCheckoutAfterGhFailure({
