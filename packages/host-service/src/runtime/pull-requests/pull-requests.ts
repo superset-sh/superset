@@ -216,7 +216,10 @@ export class PullRequestRuntimeManager {
 	private projectRefreshTimer: ReturnType<typeof setInterval> | null = null;
 	private unsubscribeFromGitWatcher: (() => void) | null = null;
 	private readonly inFlightProjects = new Map<string, Promise<void>>();
-	private readonly workspaceSyncQueue = new Map<string, Promise<void>>();
+	private readonly workspaceSyncState = new Map<
+		string,
+		{ running: Promise<void>; rerunPending: boolean }
+	>();
 	private readonly repoPullRequestCache = new Map<
 		string,
 		{ promise: Promise<GraphQLPullRequestNode[]>; fetchedAt: number }
@@ -356,17 +359,34 @@ export class PullRequestRuntimeManager {
 	}
 
 	private enqueueWorkspaceSync(workspaceId: string): Promise<void> {
-		const prior = this.workspaceSyncQueue.get(workspaceId) ?? Promise.resolve();
-		const next = prior
-			.catch(() => undefined)
-			.then(() => this.syncOneWorkspace(workspaceId));
-		this.workspaceSyncQueue.set(workspaceId, next);
-		void next.finally(() => {
-			if (this.workspaceSyncQueue.get(workspaceId) === next) {
-				this.workspaceSyncQueue.delete(workspaceId);
+		// Coalesce: if a sync is already running for this workspace, just mark
+		// "rerun pending" — there's no value in queuing N back-to-back syncs
+		// when only the final state matters. At most one sync runs and one
+		// rerun is queued, regardless of how many events fire.
+		const existing = this.workspaceSyncState.get(workspaceId);
+		if (existing) {
+			existing.rerunPending = true;
+			return existing.running;
+		}
+
+		const run = async (): Promise<void> => {
+			try {
+				do {
+					const state = this.workspaceSyncState.get(workspaceId);
+					if (state) state.rerunPending = false;
+					await this.syncOneWorkspace(workspaceId);
+				} while (this.workspaceSyncState.get(workspaceId)?.rerunPending);
+			} finally {
+				this.workspaceSyncState.delete(workspaceId);
 			}
+		};
+
+		const running = run();
+		this.workspaceSyncState.set(workspaceId, {
+			running,
+			rerunPending: false,
 		});
-		return next;
+		return running;
 	}
 
 	private async syncOneWorkspace(workspaceId: string): Promise<void> {
