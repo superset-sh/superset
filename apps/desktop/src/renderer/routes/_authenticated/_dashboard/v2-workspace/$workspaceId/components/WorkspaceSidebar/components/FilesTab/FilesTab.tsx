@@ -90,6 +90,16 @@ const TREE_STYLE: React.CSSProperties = {
 	"--trees-status-ignored-override": "var(--muted-foreground)",
 
 	fontSize: "0.75rem",
+
+	// Pierre's host (`<file-tree-container>`) is a custom element. Browsers
+	// default unknown elements to `display: inline`, and Pierre's :host CSS
+	// only sets `height: 100%` — never `display`. Without forcing block-level
+	// flex here the inner ResizeObserver only measures the default 420px
+	// initialViewportHeight and the tree caps at ~15 rows. Setting display +
+	// flex makes the host honor `flex-1 min-h-0` from the className.
+	display: "flex",
+	flexDirection: "column",
+	minHeight: 0,
 } as React.CSSProperties;
 
 type GitStatusData = inferRouterOutputs<AppRouter>["git"]["getStatus"];
