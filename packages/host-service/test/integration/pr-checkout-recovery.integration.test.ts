@@ -76,7 +76,7 @@ async function createDeletedBranchScenario(prNumber: number): Promise<{
 	// Delete the named branch from the remote (simulates GitHub's
 	// "delete branch on merge"). The commit is now only reachable via
 	// the synthetic PR ref.
-	await local.git.raw(["push", "origin", "--delete", "feature/will-be-deleted"]);
+	await local.git.push("origin", undefined, ["--delete", "feature/will-be-deleted"]);
 	await bare.publishSyntheticPrRef(prNumber, prHeadOid);
 
 	// Switch back to main locally so the feature branch isn't checked out
