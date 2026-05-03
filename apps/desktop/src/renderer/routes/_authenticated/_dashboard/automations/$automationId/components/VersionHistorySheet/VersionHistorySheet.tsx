@@ -7,7 +7,12 @@ import {
 	DialogTitle,
 } from "@superset/ui/dialog";
 import { toast } from "@superset/ui/sonner";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+	keepPreviousData,
+	useMutation,
+	useQuery,
+	useQueryClient,
+} from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { LuX } from "react-icons/lu";
 import { MarkdownRenderer } from "renderer/components/MarkdownRenderer";
@@ -51,9 +56,7 @@ export function VersionHistorySheet({
 			setSelectedVersionId(null);
 			return;
 		}
-		if (versions.length === 0) return;
-		const stillExists = versions.some((v) => v.id === selectedVersionId);
-		if (!stillExists) {
+		if (versions.length > 0 && !selectedVersionId) {
 			setSelectedVersionId(versions[0].id);
 		}
 	}, [open, versions, selectedVersionId]);
@@ -67,6 +70,7 @@ export function VersionHistorySheet({
 			});
 		},
 		enabled: !!selectedVersionId,
+		placeholderData: keepPreviousData,
 	});
 
 	const restoreMutation = useMutation({

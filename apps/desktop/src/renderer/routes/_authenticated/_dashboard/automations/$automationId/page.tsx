@@ -133,6 +133,7 @@ function AutomationDetailPage() {
 			/>
 
 			<VersionHistorySheet
+				key={automation.id}
 				automationId={automation.id}
 				automationName={automation.name}
 				currentPrompt={automation.prompt}
