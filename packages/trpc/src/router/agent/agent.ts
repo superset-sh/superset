@@ -4,13 +4,13 @@ import { getCurrentTxid } from "@superset/db/utils";
 import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
-import { protectedProcedure } from "../../trpc";
+import { authenticatedProcedure } from "../../trpc";
 
 export const agentRouter = {
 	/**
 	 * Update a command's status (called by device executors via Electric sync)
 	 */
-	updateCommand: protectedProcedure
+	updateCommand: authenticatedProcedure
 		.input(
 			z.object({
 				id: z.string().uuid(),
@@ -39,7 +39,7 @@ export const agentRouter = {
 						and(
 							eq(agentCommands.id, id),
 							eq(agentCommands.organizationId, organizationId),
-							eq(agentCommands.userId, ctx.session.user.id),
+							eq(agentCommands.userId, ctx.userId),
 						),
 					);
 

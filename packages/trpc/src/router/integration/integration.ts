@@ -3,7 +3,7 @@ import { integrationConnections } from "@superset/db/schema";
 import type { TRPCRouterRecord } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
-import { protectedProcedure } from "../../trpc";
+import { authenticatedProcedure } from "../../trpc";
 import { githubRouter } from "./github";
 import { linearRouter } from "./linear";
 import { slackRouter } from "./slack";
@@ -14,10 +14,10 @@ export const integrationRouter = {
 	linear: linearRouter,
 	slack: slackRouter,
 
-	list: protectedProcedure
+	list: authenticatedProcedure
 		.input(z.object({ organizationId: z.uuid() }))
 		.query(async ({ ctx, input }) => {
-			await verifyOrgMembership(ctx.session.user.id, input.organizationId);
+			await verifyOrgMembership(ctx.userId, input.organizationId);
 
 			return db.query.integrationConnections.findMany({
 				where: eq(integrationConnections.organizationId, input.organizationId),

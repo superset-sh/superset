@@ -10,7 +10,7 @@ import type { TRPCRouterRecord } from "@trpc/server";
 import { TRPCError } from "@trpc/server";
 import { and, eq, isNull, sql } from "drizzle-orm";
 import { z } from "zod";
-import { jwtProcedure, protectedProcedure } from "../../trpc";
+import { authenticatedProcedure } from "../../trpc";
 import {
 	requireActiveOrgId,
 	requireActiveOrgMembership,
@@ -85,7 +85,7 @@ async function getProjectAccess(
 }
 
 export const v2ProjectRouter = {
-	list: jwtProcedure
+	list: authenticatedProcedure
 		.input(
 			z.object({
 				organizationId: z.string().uuid(),
@@ -110,7 +110,7 @@ export const v2ProjectRouter = {
 				.where(eq(v2Projects.organizationId, input.organizationId));
 		}),
 
-	get: jwtProcedure
+	get: authenticatedProcedure
 		.input(
 			z.object({
 				organizationId: z.string().uuid(),
@@ -138,7 +138,7 @@ export const v2ProjectRouter = {
 			return row;
 		}),
 
-	findByGitHubRemote: jwtProcedure
+	findByGitHubRemote: authenticatedProcedure
 		.input(
 			z.object({
 				organizationId: z.string().uuid(),
@@ -181,7 +181,7 @@ export const v2ProjectRouter = {
 			return { candidates: rows };
 		}),
 
-	create: jwtProcedure
+	create: authenticatedProcedure
 		.input(
 			z.object({
 				organizationId: z.string().uuid(),
@@ -242,7 +242,7 @@ export const v2ProjectRouter = {
 			return project;
 		}),
 
-	linkRepoCloneUrl: jwtProcedure
+	linkRepoCloneUrl: authenticatedProcedure
 		.input(
 			z.object({
 				organizationId: z.string().uuid(),
@@ -310,7 +310,7 @@ export const v2ProjectRouter = {
 			return updated;
 		}),
 
-	update: protectedProcedure
+	update: authenticatedProcedure
 		.input(
 			z.object({
 				id: z.string().uuid(),
@@ -322,7 +322,7 @@ export const v2ProjectRouter = {
 		)
 		.mutation(async ({ ctx, input }) => {
 			const organizationId = requireActiveOrgId(ctx, "No active organization");
-			const project = await getProjectAccess(ctx.session.user.id, input.id, {
+			const project = await getProjectAccess(ctx.userId, input.id, {
 				organizationId,
 			});
 
@@ -398,7 +398,7 @@ export const v2ProjectRouter = {
 			return { ...updated, txid };
 		}),
 
-	delete: protectedProcedure
+	delete: authenticatedProcedure
 		.input(z.object({ id: z.string().uuid() }))
 		.mutation(async ({ ctx, input }) => {
 			const organizationId = await requireActiveOrgMembership(

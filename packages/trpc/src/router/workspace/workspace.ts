@@ -10,7 +10,7 @@ import type { TRPCRouterRecord } from "@trpc/server";
 import { TRPCError } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
-import { protectedProcedure } from "../../trpc";
+import { authenticatedProcedure } from "../../trpc";
 import { verifyOrgMembership } from "../integration/utils";
 import { requireOrgScopedResource } from "../utils/org-resource-access";
 
@@ -50,7 +50,7 @@ async function getScopedWorkspace(organizationId: string, workspaceId: string) {
 }
 
 export const workspaceRouter = {
-	ensure: protectedProcedure
+	ensure: authenticatedProcedure
 		.input(
 			z.object({
 				organizationId: z.string().uuid(),
@@ -71,7 +71,7 @@ export const workspaceRouter = {
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			await verifyOrgMembership(ctx.session.user.id, input.organizationId);
+			await verifyOrgMembership(ctx.userId, input.organizationId);
 
 			const result = await dbWs.transaction(async (tx) => {
 				// Upsert project by (organizationId, slug) unique constraint
@@ -122,7 +122,7 @@ export const workspaceRouter = {
 						name: input.workspace.name,
 						type: input.workspace.type,
 						config: input.workspace.config,
-						createdByUserId: ctx.session.user.id,
+						createdByUserId: ctx.userId,
 					})
 					.onConflictDoNothing({ target: [workspaces.id] });
 
@@ -137,7 +137,7 @@ export const workspaceRouter = {
 			return result;
 		}),
 
-	create: protectedProcedure
+	create: authenticatedProcedure
 		.input(
 			z.object({
 				projectId: z.string().uuid(),
@@ -148,7 +148,7 @@ export const workspaceRouter = {
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			await verifyOrgMembership(ctx.session.user.id, input.organizationId);
+			await verifyOrgMembership(ctx.userId, input.organizationId);
 			const project = await getScopedProject(
 				input.organizationId,
 				input.projectId,
@@ -161,18 +161,18 @@ export const workspaceRouter = {
 					name: input.name,
 					type: input.type,
 					config: input.config,
-					createdByUserId: ctx.session.user.id,
+					createdByUserId: ctx.userId,
 				})
 				.returning();
 			return workspace;
 		}),
 
-	delete: protectedProcedure
+	delete: authenticatedProcedure
 		.input(
 			z.object({ id: z.string().uuid(), organizationId: z.string().uuid() }),
 		)
 		.mutation(async ({ ctx, input }) => {
-			await verifyOrgMembership(ctx.session.user.id, input.organizationId);
+			await verifyOrgMembership(ctx.userId, input.organizationId);
 			const workspace = await getScopedWorkspace(
 				input.organizationId,
 				input.id,

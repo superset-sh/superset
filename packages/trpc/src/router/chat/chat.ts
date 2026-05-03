@@ -5,7 +5,7 @@ import type { TRPCRouterRecord } from "@trpc/server";
 import { TRPCError } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
-import { protectedProcedure } from "../../trpc";
+import { authenticatedProcedure } from "../../trpc";
 import { uploadChatAttachment } from "./utils/upload-chat-attachment";
 
 const AVAILABLE_MODELS = [
@@ -47,11 +47,11 @@ const AVAILABLE_MODELS = [
 ];
 
 export const chatRouter = {
-	getModels: protectedProcedure.query(() => {
+	getModels: authenticatedProcedure.query(() => {
 		return { models: AVAILABLE_MODELS };
 	}),
 
-	createSession: protectedProcedure
+	createSession: authenticatedProcedure
 		.input(
 			z.object({
 				sessionId: z.uuid(),
@@ -73,7 +73,7 @@ export const chatRouter = {
 				.values({
 					id: input.sessionId,
 					organizationId,
-					createdBy: ctx.session.user.id,
+					createdBy: ctx.userId,
 					v2WorkspaceId: input.v2WorkspaceId,
 				})
 				.onConflictDoNothing();
@@ -83,7 +83,7 @@ export const chatRouter = {
 			};
 		}),
 
-	updateSession: protectedProcedure
+	updateSession: authenticatedProcedure
 		.input(
 			z.object({
 				sessionId: z.uuid(),
@@ -120,7 +120,7 @@ export const chatRouter = {
 					and(
 						eq(chatSessions.id, input.sessionId),
 						eq(chatSessions.organizationId, organizationId),
-						eq(chatSessions.createdBy, ctx.session.user.id),
+						eq(chatSessions.createdBy, ctx.userId),
 					),
 				)
 				.returning({ id: chatSessions.id });
@@ -128,7 +128,7 @@ export const chatRouter = {
 			return { updated: !!updated };
 		}),
 
-	deleteSession: protectedProcedure
+	deleteSession: authenticatedProcedure
 		.input(z.object({ sessionId: z.uuid() }))
 		.mutation(async ({ ctx, input }) => {
 			const organizationId = ctx.activeOrganizationId;
@@ -147,7 +147,7 @@ export const chatRouter = {
 						and(
 							eq(chatSessions.id, input.sessionId),
 							eq(chatSessions.organizationId, organizationId),
-							eq(chatSessions.createdBy, ctx.session.user.id),
+							eq(chatSessions.createdBy, ctx.userId),
 						),
 					)
 					.returning({ id: chatSessions.id });
@@ -161,7 +161,7 @@ export const chatRouter = {
 			return { deleted: !!deleted, txid };
 		}),
 
-	uploadAttachment: protectedProcedure
+	uploadAttachment: authenticatedProcedure
 		.input(
 			z.object({
 				sessionId: z.uuid(),
@@ -177,7 +177,7 @@ export const chatRouter = {
 				.where(
 					and(
 						eq(chatSessions.id, input.sessionId),
-						eq(chatSessions.createdBy, ctx.session.user.id),
+						eq(chatSessions.createdBy, ctx.userId),
 					),
 				)
 				.limit(1);
@@ -193,7 +193,7 @@ export const chatRouter = {
 			return result;
 		}),
 
-	updateTitle: protectedProcedure
+	updateTitle: authenticatedProcedure
 		.input(z.object({ sessionId: z.uuid(), title: z.string() }))
 		.mutation(async ({ ctx, input }) => {
 			const [updated] = await db
@@ -202,7 +202,7 @@ export const chatRouter = {
 				.where(
 					and(
 						eq(chatSessions.id, input.sessionId),
-						eq(chatSessions.createdBy, ctx.session.user.id),
+						eq(chatSessions.createdBy, ctx.userId),
 					),
 				)
 				.returning({ id: chatSessions.id });

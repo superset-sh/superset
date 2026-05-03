@@ -21,7 +21,7 @@ import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
 import { and, desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { env } from "../../env";
-import { bearerProcedure, protectedProcedure } from "../../trpc";
+import { authenticatedProcedure } from "../../trpc";
 import {
 	requireActiveOrgMembership,
 	requireActiveOrgMembershipWithSubscription,
@@ -157,7 +157,7 @@ async function getAutomationForUser(
 
 export const automationRouter = {
 	/** List automations scoped to the caller's active organization. */
-	list: bearerProcedure.query(async ({ ctx }) => {
+	list: authenticatedProcedure.query(async ({ ctx }) => {
 		const organizationId = await requireActiveOrgMembership(ctx);
 
 		const rows = await db
@@ -173,7 +173,7 @@ export const automationRouter = {
 	}),
 
 	/** Get one automation. Use listRuns for run history. */
-	get: bearerProcedure
+	get: authenticatedProcedure
 		.input(z.object({ id: z.string().uuid() }))
 		.query(async ({ ctx, input }) => {
 			const organizationId = await requireActiveOrgMembership(ctx);
@@ -188,7 +188,7 @@ export const automationRouter = {
 			};
 		}),
 
-	create: bearerProcedure
+	create: authenticatedProcedure
 		.input(createAutomationSchema)
 		.mutation(async ({ ctx, input }) => {
 			const { organizationId, subscription } =
@@ -252,7 +252,7 @@ export const automationRouter = {
 			return { ...created, scheduleText: safeDescribeRrule(created) };
 		}),
 
-	update: bearerProcedure
+	update: authenticatedProcedure
 		.input(updateAutomationSchema)
 		.mutation(async ({ ctx, input }) => {
 			const organizationId = await requireActiveOrgMembership(ctx);
@@ -311,7 +311,7 @@ export const automationRouter = {
 			return { ...updated, scheduleText: safeDescribeRrule(updated) };
 		}),
 
-	getPrompt: bearerProcedure
+	getPrompt: authenticatedProcedure
 		.input(z.object({ id: z.string().uuid() }))
 		.query(async ({ ctx, input }) => {
 			const organizationId = await requireActiveOrgMembership(ctx);
@@ -323,7 +323,7 @@ export const automationRouter = {
 			return { id: existing.id, prompt: existing.prompt };
 		}),
 
-	setPrompt: bearerProcedure
+	setPrompt: authenticatedProcedure
 		.input(setAutomationPromptSchema)
 		.mutation(async ({ ctx, input }) => {
 			const organizationId = await requireActiveOrgMembership(ctx);
@@ -338,7 +338,7 @@ export const automationRouter = {
 			return { ...updated, scheduleText: safeDescribeRrule(updated) };
 		}),
 
-	delete: bearerProcedure
+	delete: authenticatedProcedure
 		.input(z.object({ id: z.string().uuid() }))
 		.mutation(async ({ ctx, input }) => {
 			const organizationId = await requireActiveOrgMembership(ctx);
@@ -349,7 +349,7 @@ export const automationRouter = {
 			return { ok: true };
 		}),
 
-	setEnabled: bearerProcedure
+	setEnabled: authenticatedProcedure
 		.input(z.object({ id: z.string().uuid(), enabled: z.boolean() }))
 		.mutation(async ({ ctx, input }) => {
 			const { organizationId, subscription } =
@@ -386,7 +386,7 @@ export const automationRouter = {
 			return { ...updated, scheduleText: safeDescribeRrule(updated) };
 		}),
 
-	runNow: bearerProcedure
+	runNow: authenticatedProcedure
 		.input(z.object({ id: z.string().uuid() }))
 		.mutation(async ({ ctx, input }) => {
 			const { organizationId, subscription } =
@@ -433,7 +433,7 @@ export const automationRouter = {
 		}),
 
 	/** Run history for a given automation (paginated). */
-	listRuns: protectedProcedure
+	listRuns: authenticatedProcedure
 		.input(listRunsSchema)
 		.query(async ({ ctx, input }) => {
 			const organizationId = await requireActiveOrgMembership(ctx);
@@ -452,7 +452,7 @@ export const automationRouter = {
 		}),
 
 	/** Validate an RRule body + preview its next occurrences. */
-	validateRrule: protectedProcedure
+	validateRrule: authenticatedProcedure
 		.input(parseRruleSchema)
 		.mutation(async ({ input }) => {
 			const dtstart = input.dtstart ?? new Date();

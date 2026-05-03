@@ -11,7 +11,7 @@ import { and, desc, eq, ilike, isNull } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { z } from "zod";
 import { syncTask } from "../../lib/integrations/sync";
-import { bearerProcedure, protectedProcedure } from "../../trpc";
+import { authenticatedProcedure } from "../../trpc";
 import { verifyOrgMembership } from "../integration/utils";
 import { requireActiveOrgMembership } from "../utils/active-org";
 import {
@@ -270,7 +270,7 @@ export const taskRouter = {
 	 * shipped CLI on `main` keeps compiling against the new backend during
 	 * the CLI-v1 split rollout.
 	 */
-	all: protectedProcedure.query(async ({ ctx }) => {
+	all: authenticatedProcedure.query(async ({ ctx }) => {
 		const organizationId = await requireActiveOrgMembership(ctx);
 		const assignee = alias(users, "assignee");
 		const creator = alias(users, "creator");
@@ -297,7 +297,7 @@ export const taskRouter = {
 			.orderBy(desc(tasks.createdAt));
 	}),
 
-	list: bearerProcedure
+	list: authenticatedProcedure
 		.input(taskListInputSchema)
 		.query(async ({ ctx, input }) => {
 			const organizationId = await requireActiveOrgMembership(ctx);
@@ -351,7 +351,7 @@ export const taskRouter = {
 				.offset(input?.offset ?? 0);
 		}),
 
-	byOrganization: protectedProcedure
+	byOrganization: authenticatedProcedure
 		.input(z.string().uuid())
 		.query(async ({ ctx, input }) => {
 			await verifyOrgMembership(ctx.userId, input);
@@ -363,16 +363,18 @@ export const taskRouter = {
 				.orderBy(desc(tasks.createdAt));
 		}),
 
-	byId: protectedProcedure
+	byId: authenticatedProcedure
 		.input(z.string().uuid())
 		.query(({ ctx, input }) => getTaskById(ctx.userId, input)),
 
-	bySlug: protectedProcedure.input(z.string()).query(async ({ ctx, input }) => {
-		const organizationId = await requireActiveOrgMembership(ctx);
-		return getTaskBySlug(ctx.userId, organizationId, input);
-	}),
+	bySlug: authenticatedProcedure
+		.input(z.string())
+		.query(async ({ ctx, input }) => {
+			const organizationId = await requireActiveOrgMembership(ctx);
+			return getTaskBySlug(ctx.userId, organizationId, input);
+		}),
 
-	byIdOrSlug: bearerProcedure
+	byIdOrSlug: authenticatedProcedure
 		.input(z.string().min(1))
 		.query(async ({ ctx, input }) => {
 			const looksLikeUuid =
@@ -392,15 +394,15 @@ export const taskRouter = {
 	 * shipped renderer/CLI on `main` keep working during the CLI-v1 split
 	 * rollout.
 	 */
-	createFromUi: protectedProcedure
+	createFromUi: authenticatedProcedure
 		.input(createTaskSchema)
 		.mutation(({ ctx, input }) => createTask(ctx, input)),
 
-	create: bearerProcedure
+	create: authenticatedProcedure
 		.input(createTaskSchema)
 		.mutation(({ ctx, input }) => createTask(ctx, input)),
 
-	update: bearerProcedure
+	update: authenticatedProcedure
 		.input(updateTaskSchema)
 		.mutation(async ({ ctx, input }) => {
 			const { id, ...data } = input;
@@ -450,7 +452,7 @@ export const taskRouter = {
 			return result;
 		}),
 
-	delete: bearerProcedure
+	delete: authenticatedProcedure
 		.input(z.string().uuid())
 		.mutation(async ({ ctx, input }) => {
 			const result = await dbWs.transaction(async (tx) => {

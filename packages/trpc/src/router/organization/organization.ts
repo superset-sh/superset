@@ -13,7 +13,7 @@ import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
 import { and, eq, ne, sql } from "drizzle-orm";
 import { z } from "zod";
 import { generateImagePathname, uploadImage } from "../../lib/upload";
-import { jwtProcedure, protectedProcedure, publicProcedure } from "../../trpc";
+import { authenticatedProcedure, publicProcedure } from "../../trpc";
 import { verifyOrgAdmin } from "../integration/utils";
 
 async function getInvitationById(invitationId: string) {
@@ -55,13 +55,13 @@ function verificationMatchesInvitation({
 }
 
 export const organizationRouter = {
-	getActive: protectedProcedure.query(async ({ ctx }) => {
+	getActive: authenticatedProcedure.query(async ({ ctx }) => {
 		const orgId = ctx.activeOrganizationId;
 		if (!orgId) return null;
 
 		const membership = await db.query.members.findFirst({
 			where: and(
-				eq(members.userId, ctx.session.user.id),
+				eq(members.userId, ctx.userId),
 				eq(members.organizationId, orgId),
 			),
 		});
@@ -74,7 +74,7 @@ export const organizationRouter = {
 		return org ?? null;
 	}),
 
-	getActiveFromJwt: jwtProcedure.query(async ({ ctx }) => {
+	getActiveFromJwt: authenticatedProcedure.query(async ({ ctx }) => {
 		if (!ctx.activeOrganizationId) return null;
 
 		const membership = await db.query.members.findFirst({
@@ -92,7 +92,7 @@ export const organizationRouter = {
 		return org ?? null;
 	}),
 
-	getByIdFromJwt: jwtProcedure
+	getByIdFromJwt: authenticatedProcedure
 		.input(z.object({ id: z.string() }))
 		.query(async ({ ctx, input }) => {
 			if (!ctx.organizationIds.includes(input.id)) return null;
@@ -112,15 +112,15 @@ export const organizationRouter = {
 			return org ?? null;
 		}),
 
-	getInvitation: protectedProcedure
+	getInvitation: authenticatedProcedure
 		.input(z.uuid())
 		.query(async ({ ctx, input }) => {
 			const invitation = await getInvitationById(input);
 			const isInvitee =
-				ctx.session.user.email.toLowerCase() === invitation.email.toLowerCase();
+				ctx.email.toLowerCase() === invitation.email.toLowerCase();
 
 			if (!isInvitee) {
-				await verifyOrgAdmin(ctx.session.user.id, invitation.organizationId);
+				await verifyOrgAdmin(ctx.userId, invitation.organizationId);
 			}
 
 			return {
@@ -188,7 +188,7 @@ export const organizationRouter = {
 				},
 			};
 		}),
-	create: protectedProcedure
+	create: authenticatedProcedure
 		.input(
 			z.object({
 				name: z.string().min(1),
@@ -197,7 +197,7 @@ export const organizationRouter = {
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			const domain = ctx.session.user.email.split("@")[1]?.toLowerCase();
+			const domain = ctx.email.split("@")[1]?.toLowerCase();
 			if (domain) {
 				const domainOrg = await db.query.organizations.findFirst({
 					where: sql`${organizations.allowedDomains} @> ARRAY[${domain}]::text[]`,
@@ -223,7 +223,7 @@ export const organizationRouter = {
 			if (organization) {
 				await db.insert(members).values({
 					organizationId: organization.id,
-					userId: ctx.session.user.id,
+					userId: ctx.userId,
 					role: "owner",
 				});
 
@@ -233,7 +233,7 @@ export const organizationRouter = {
 			return organization;
 		}),
 
-	update: protectedProcedure
+	update: authenticatedProcedure
 		.input(
 			z.object({
 				id: z.string().uuid(),
@@ -256,7 +256,7 @@ export const organizationRouter = {
 			const { id, ...data } = input;
 
 			const membership = await findOrgMembership({
-				userId: ctx.session.user.id,
+				userId: ctx.userId,
 				organizationId: id,
 			});
 
@@ -312,7 +312,7 @@ export const organizationRouter = {
 			return organization;
 		}),
 
-	uploadLogo: protectedProcedure
+	uploadLogo: authenticatedProcedure
 		.input(
 			z.object({
 				organizationId: z.string().uuid(),
@@ -323,7 +323,7 @@ export const organizationRouter = {
 		)
 		.mutation(async ({ ctx, input }) => {
 			const membership = await findOrgMembership({
-				userId: ctx.session.user.id,
+				userId: ctx.userId,
 				organizationId: input.organizationId,
 			});
 
@@ -382,7 +382,7 @@ export const organizationRouter = {
 			}
 		}),
 
-	addMember: protectedProcedure
+	addMember: authenticatedProcedure
 		.input(
 			z.object({
 				organizationId: z.string().uuid(),
@@ -390,7 +390,7 @@ export const organizationRouter = {
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			await verifyOrgAdmin(ctx.session.user.id, input.organizationId);
+			await verifyOrgAdmin(ctx.userId, input.organizationId);
 			const member = await ctx.auth.api.addMember({
 				body: {
 					organizationId: input.organizationId,
@@ -402,7 +402,7 @@ export const organizationRouter = {
 			return member;
 		}),
 
-	removeMember: protectedProcedure
+	removeMember: authenticatedProcedure
 		.input(
 			z.object({
 				organizationId: z.uuid(),
@@ -422,9 +422,7 @@ export const organizationRouter = {
 				});
 			}
 
-			const actorMembership = allMembers.find(
-				(m) => m.userId === ctx.session.user.id,
-			);
+			const actorMembership = allMembers.find((m) => m.userId === ctx.userId);
 			if (!actorMembership) {
 				throw new TRPCError({
 					code: "FORBIDDEN",
@@ -433,7 +431,7 @@ export const organizationRouter = {
 			}
 
 			const ownerCount = allMembers.filter((m) => m.role === "owner").length;
-			const isTargetSelf = targetMember.userId === ctx.session.user.id;
+			const isTargetSelf = targetMember.userId === ctx.userId;
 
 			const canRemove = canRemoveMember(
 				actorMembership.role as OrganizationRole,
@@ -472,7 +470,7 @@ export const organizationRouter = {
 			return { success: true };
 		}),
 
-	leave: protectedProcedure
+	leave: authenticatedProcedure
 		.input(
 			z.object({
 				organizationId: z.uuid(),
@@ -482,7 +480,7 @@ export const organizationRouter = {
 			const membership = await db.query.members.findFirst({
 				where: and(
 					eq(members.organizationId, input.organizationId),
-					eq(members.userId, ctx.session.user.id),
+					eq(members.userId, ctx.userId),
 				),
 			});
 
@@ -507,7 +505,7 @@ export const organizationRouter = {
 
 			const otherMembership = await db.query.members.findFirst({
 				where: and(
-					eq(members.userId, ctx.session.user.id),
+					eq(members.userId, ctx.userId),
 					ne(members.organizationId, input.organizationId),
 				),
 			});
@@ -519,7 +517,7 @@ export const organizationRouter = {
 				})
 				.where(
 					and(
-						eq(authSessions.userId, ctx.session.user.id),
+						eq(authSessions.userId, ctx.userId),
 						eq(authSessions.activeOrganizationId, input.organizationId),
 					),
 				);
@@ -530,7 +528,7 @@ export const organizationRouter = {
 			};
 		}),
 
-	updateMemberRole: protectedProcedure
+	updateMemberRole: authenticatedProcedure
 		.input(
 			z.object({
 				organizationId: z.string().uuid(),
@@ -551,9 +549,7 @@ export const organizationRouter = {
 				});
 			}
 
-			const actorMembership = allMembers.find(
-				(m) => m.userId === ctx.session.user.id,
-			);
+			const actorMembership = allMembers.find((m) => m.userId === ctx.userId);
 			if (!actorMembership) {
 				throw new TRPCError({
 					code: "FORBIDDEN",

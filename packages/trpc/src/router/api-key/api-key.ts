@@ -1,10 +1,10 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
-import { protectedProcedure } from "../../trpc";
+import { authenticatedProcedure } from "../../trpc";
 
 export const apiKeyRouter = {
-	create: protectedProcedure
+	create: authenticatedProcedure
 		.input(z.object({ name: z.string().min(1) }))
 		.mutation(async ({ ctx, input }) => {
 			const organizationId = ctx.activeOrganizationId;

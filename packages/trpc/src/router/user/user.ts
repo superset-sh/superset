@@ -5,10 +5,10 @@ import { and, desc, eq } from "drizzle-orm";
 import { z } from "zod";
 
 import { generateImagePathname, uploadImage } from "../../lib/upload";
-import { bearerProcedure, protectedProcedure } from "../../trpc";
+import { authenticatedProcedure } from "../../trpc";
 
 export const userRouter = {
-	me: bearerProcedure.query(async ({ ctx }) => {
+	me: authenticatedProcedure.query(async ({ ctx }) => {
 		const user = await db.query.users.findFirst({
 			where: eq(users.id, ctx.userId),
 		});
@@ -18,7 +18,7 @@ export const userRouter = {
 		return user;
 	}),
 
-	myOrganization: bearerProcedure.query(async ({ ctx }) => {
+	myOrganization: authenticatedProcedure.query(async ({ ctx }) => {
 		const activeOrganizationId = ctx.activeOrganizationId;
 
 		const membership = await db.query.members.findFirst({
@@ -37,7 +37,7 @@ export const userRouter = {
 		return membership?.organization ?? null;
 	}),
 
-	myOrganizations: bearerProcedure.query(async ({ ctx }) => {
+	myOrganizations: authenticatedProcedure.query(async ({ ctx }) => {
 		const memberships = await db.query.members.findMany({
 			where: eq(members.userId, ctx.userId),
 			orderBy: desc(members.createdAt),
@@ -49,18 +49,18 @@ export const userRouter = {
 		return memberships.map((m) => m.organization);
 	}),
 
-	updateProfile: protectedProcedure
+	updateProfile: authenticatedProcedure
 		.input(z.object({ name: z.string().min(1).max(100) }))
 		.mutation(async ({ ctx, input }) => {
 			const [updatedUser] = await db
 				.update(users)
 				.set({ name: input.name })
-				.where(eq(users.id, ctx.session.user.id))
+				.where(eq(users.id, ctx.userId))
 				.returning();
 			return updatedUser;
 		}),
 
-	uploadAvatar: protectedProcedure
+	uploadAvatar: authenticatedProcedure
 		.input(
 			z.object({
 				fileData: z.string(),
@@ -69,7 +69,7 @@ export const userRouter = {
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			const userId = ctx.session.user.id;
+			const userId = ctx.userId;
 
 			const user = await db.query.users.findFirst({
 				where: eq(users.id, userId),
