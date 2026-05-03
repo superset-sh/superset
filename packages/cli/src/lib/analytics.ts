@@ -1,31 +1,12 @@
-import { PostHog } from "posthog-node";
+import { getApiUrl } from "./config";
 import { env } from "./env";
 
-const posthog =
-	env.POSTHOG_KEY && env.POSTHOG_HOST
-		? new PostHog(env.POSTHOG_KEY, {
-				host: env.POSTHOG_HOST,
-				flushAt: 1,
-				flushInterval: 0,
-			})
-		: null;
+const TELEMETRY_PATH = "/api/cli/telemetry";
 
-function decodeJwtSub(token: string): string | null {
-	const parts = token.split(".");
-	if (parts.length !== 3) return null;
-	try {
-		const body = parts[1] ?? "";
-		const padded = body
-			.replace(/-/g, "+")
-			.replace(/_/g, "/")
-			.padEnd(body.length + ((4 - (body.length % 4)) % 4), "=");
-		const json = JSON.parse(
-			Buffer.from(padded, "base64").toString("utf-8"),
-		) as { sub?: string };
-		return json.sub ?? null;
-	} catch {
-		return null;
-	}
+function authHeaders(bearer: string): Record<string, string> {
+	return bearer.startsWith("sk_live_")
+		? { "x-api-key": bearer }
+		: { Authorization: `Bearer ${bearer}` };
 }
 
 export function trackCommandInvoked(input: {
@@ -33,17 +14,22 @@ export function trackCommandInvoked(input: {
 	commandPath: string[];
 	flags: string[];
 }): void {
-	if (!posthog) return;
-	const distinctId = decodeJwtSub(input.bearer);
-	if (!distinctId) return;
-
-	posthog.capture({
-		distinctId,
-		event: "cli_command_invoked",
-		properties: {
-			command: input.commandPath.join(" "),
-			flags: input.flags,
-			cli_version: env.VERSION,
+	const url = `${getApiUrl()}${TELEMETRY_PATH}`;
+	void fetch(url, {
+		method: "POST",
+		headers: {
+			"Content-Type": "application/json",
+			...authHeaders(input.bearer),
 		},
+		body: JSON.stringify({
+			event: "cli_command_invoked",
+			properties: {
+				command: input.commandPath.join(" "),
+				flags: input.flags,
+				cli_version: env.VERSION,
+			},
+		}),
+	}).catch(() => {
+		// Telemetry is best-effort; never surface failures to the CLI.
 	});
 }

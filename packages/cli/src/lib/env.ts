@@ -8,7 +8,5 @@ export const env = {
 	RELAY_URL: process.env.RELAY_URL || "https://relay.superset.sh",
 	SUPERSET_API_URL: process.env.SUPERSET_API_URL || "https://api.superset.sh",
 	SUPERSET_WEB_URL: process.env.SUPERSET_WEB_URL || "https://app.superset.sh",
-	POSTHOG_KEY: process.env.SUPERSET_POSTHOG_KEY || "",
-	POSTHOG_HOST: process.env.SUPERSET_POSTHOG_HOST || "",
 	VERSION: process.env.SUPERSET_VERSION || "0.0.0-dev",
 };

@@ -482,6 +482,7 @@
         "@rn-primitives/toggle": "^1.2.0",
         "@rn-primitives/toggle-group": "^1.2.0",
         "@rn-primitives/tooltip": "^1.2.0",
+        "@superset/auth": "workspace:*",
         "@superset/db": "workspace:*",
         "@superset/trpc": "workspace:*",
         "@tanstack/db": "0.6.5",
@@ -683,7 +684,6 @@
         "@superset/trpc": "workspace:*",
         "@trpc/client": "^11.7.1",
         "date-fns": "^4.1.0",
-        "posthog-node": "^5.24.7",
         "superjson": "^2.2.5",
       },
       "devDependencies": {
