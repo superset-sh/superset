@@ -21,7 +21,8 @@ import { FsWatcherManager } from "./watch";
  */
 
 interface WatcherStateView {
-	pathTypes: Map<string, boolean>;
+	filePaths: Map<string, true>;
+	directoryPaths: Set<string>;
 }
 
 interface FsWatcherManagerInternal {
@@ -54,7 +55,19 @@ function getPathTypes(
 	if (!state) {
 		throw new Error(`No WatcherState for ${rootPath}`);
 	}
-	return state.pathTypes;
+	const merged = new Map<string, boolean>();
+	for (const filePath of state.filePaths.keys()) merged.set(filePath, false);
+	for (const dirPath of state.directoryPaths) merged.set(dirPath, true);
+	return merged;
+}
+
+function getFilePathsSize(manager: FsWatcherManager, rootPath: string): number {
+	const internal = manager as unknown as FsWatcherManagerInternal;
+	const state = internal.watchers.get(rootPath);
+	if (!state) {
+		throw new Error(`No WatcherState for ${rootPath}`);
+	}
+	return state.filePaths.size;
 }
 
 async function waitForCondition(
@@ -211,14 +224,9 @@ describe("FsWatcherManager.pathTypes — monotonic growth", () => {
 		tempRoots.push(rootPath);
 
 		const manager = new FsWatcherManager({ debounceMs: 50 });
-		let createCount = 0;
 		const unsubscribe = await manager.subscribe(
 			{ absolutePath: rootPath, recursive: true },
-			(batch) => {
-				for (const event of batch.events) {
-					if (event.kind === "create") createCount++;
-				}
-			},
+			() => {},
 		);
 
 		const PATH_TYPES_MAX = 10_000;
@@ -228,27 +236,21 @@ describe("FsWatcherManager.pathTypes — monotonic growth", () => {
 			await fs.writeFile(path.join(rootPath, `cap-${i}.tmp`), `${i}`);
 		}
 
-		// Wait for parcel to deliver enough events that we've definitely
-		// exceeded the cap (95% of total seen as a safety margin).
+		// Poll on the actual eviction outcome rather than the event count —
+		// hitting 95% of events doesn't strictly imply the cap was exceeded
+		// (could land at 9_690/10_000 and stall under coalesced delivery).
+		const firstPath = path.join(rootPath, "cap-0.tmp");
 		await waitForCondition(
-			() => createCount >= Math.floor(total * 0.95),
+			() => !getPathTypes(manager, rootPath).has(firstPath),
 			60_000,
 		);
 
-		// Give an extra tick for the final debounce flush.
-		await new Promise((resolve) => setTimeout(resolve, 200));
-
-		const cappedSize = getPathTypes(manager, rootPath).size;
-		expect(cappedSize).toBeLessThanOrEqual(PATH_TYPES_MAX);
-
-		// The cap is hard, so size should be exactly PATH_TYPES_MAX once
-		// we've sent more than that many create events through.
-		if (createCount > PATH_TYPES_MAX) {
-			expect(cappedSize).toBe(PATH_TYPES_MAX);
-		}
+		// File entries are the LRU-capped axis; directories are tracked
+		// separately and aren't counted toward the cap.
+		const cappedFileSize = getFilePathsSize(manager, rootPath);
+		expect(cappedFileSize).toBeLessThanOrEqual(PATH_TYPES_MAX);
 
 		// Earliest paths (cap-0..cap-199) should have been evicted.
-		const firstPath = path.join(rootPath, "cap-0.tmp");
 		expect(getPathTypes(manager, rootPath).has(firstPath)).toBe(false);
 
 		// Most-recent paths should still be in the map.

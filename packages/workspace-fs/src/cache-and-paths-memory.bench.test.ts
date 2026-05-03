@@ -145,11 +145,19 @@ describe("BENCH: pathTypes heap delta vs unique paths", () => {
 		);
 
 		interface ManagerInternal {
-			watchers: Map<string, { pathTypes: Map<string, boolean> }>;
+			watchers: Map<
+				string,
+				{
+					filePaths: Map<string, true>;
+					directoryPaths: Set<string>;
+				}
+			>;
 		}
 		const getPathTypesSize = (): number => {
 			const internal = manager as unknown as ManagerInternal;
-			return internal.watchers.get(rootPath)?.pathTypes.size ?? 0;
+			const state = internal.watchers.get(rootPath);
+			if (!state) return 0;
+			return state.filePaths.size + state.directoryPaths.size;
 		};
 
 		const stages = [1_000, 5_000, 20_000];
@@ -176,9 +184,16 @@ describe("BENCH: pathTypes heap delta vs unique paths", () => {
 			totalCreated = target;
 
 			// Wait for parcel watcher to catch up. We don't need every event
-			// to flush — we just want pathTypes to reflect the bulk.
+			// to flush — we just want pathTypes to reflect the bulk. Once
+			// past the 10k file cap the size plateaus, so we cap the
+			// predicate target to avoid spinning the deadline.
+			const FILE_PATHS_MAX = 10_000;
+			const expectedSize = Math.min(target, FILE_PATHS_MAX);
 			const deadline = Date.now() + 30_000;
-			while (getPathTypesSize() < target * 0.95 && Date.now() < deadline) {
+			while (
+				getPathTypesSize() < expectedSize * 0.95 &&
+				Date.now() < deadline
+			) {
 				await new Promise((resolve) => setTimeout(resolve, 200));
 			}
 
