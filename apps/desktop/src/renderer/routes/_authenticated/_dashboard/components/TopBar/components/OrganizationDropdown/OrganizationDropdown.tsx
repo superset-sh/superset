@@ -61,7 +61,7 @@ export function OrganizationDropdown({
 	const planBadge = isPaid ? (
 		<Badge
 			variant="default"
-			className="px-1 py-0 text-[9px] leading-none uppercase tracking-wide h-3.5 bg-muted-foreground text-background"
+			className="px-1 py-0 text-[9px] leading-none uppercase tracking-wide h-3.5 bg-muted-foreground text-background transition-colors group-hover:bg-highlight group-hover:text-highlight-foreground"
 		>
 			{planLabel}
 		</Badge>
@@ -84,7 +84,7 @@ export function OrganizationDropdown({
 		) : variant === "expanded" ? (
 			<button
 				type="button"
-				className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground min-w-0"
+				className="group flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground min-w-0"
 				aria-label="Organization menu"
 			>
 				<Avatar
@@ -100,7 +100,7 @@ export function OrganizationDropdown({
 		) : (
 			<button
 				type="button"
-				className="no-drag flex items-center gap-1.5 h-6 px-1.5 rounded border border-border/60 bg-secondary/50 hover:bg-secondary hover:border-border transition-all duration-150 ease-out focus:outline-none focus:ring-1 focus:ring-ring"
+				className="group no-drag flex items-center gap-1.5 h-6 px-1.5 rounded border border-border/60 bg-secondary/50 hover:bg-secondary hover:border-border transition-all duration-150 ease-out focus:outline-none focus:ring-1 focus:ring-ring"
 				aria-label="Organization menu"
 			>
 				<Avatar
