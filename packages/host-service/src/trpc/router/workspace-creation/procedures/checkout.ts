@@ -141,6 +141,13 @@ export const checkout = protectedProcedure
 						{ cwd: worktreePath, timeout: 120_000 },
 					);
 				} catch (err) {
+					// Two failure modes to distinguish:
+					//   1. recovery declined the error (returned recovered:false) →
+					//      surface the original gh failure as-is.
+					//   2. recovery attempted but threw → surface both errors.
+					// Tracking with an explicit error variable instead of catching
+					// `throw err` and comparing references via `recoveryErr === err`.
+					let recoveryError: unknown = null;
 					try {
 						const recovery = await recoverPrCheckoutAfterGhFailure({
 							git,
@@ -151,11 +158,14 @@ export const checkout = protectedProcedure
 							expectedHeadOid: input.pr.headRefOid,
 							error: err,
 						});
-						if (!recovery.recovered) {
-							throw err;
+						if (recovery.recovered) {
+							prCheckoutRecoveryWarning = recovery.warning;
 						}
-						prCheckoutRecoveryWarning = recovery.warning;
-					} catch (recoveryErr) {
+					} catch (e) {
+						recoveryError = e;
+					}
+
+					if (!prCheckoutRecoveryWarning) {
 						await git
 							.raw(["worktree", "remove", "--force", worktreePath])
 							.catch((rollbackErr) => {
@@ -165,10 +175,9 @@ export const checkout = protectedProcedure
 								);
 							});
 						clearProgress(input.pendingId);
-						const recoveryMessage =
-							recoveryErr === err
-								? ""
-								: ` Recovery via refs/pull/${input.pr.number}/head also failed: ${getErrorMessage(recoveryErr)}`;
+						const recoveryMessage = recoveryError
+							? ` Recovery via refs/pull/${input.pr.number}/head also failed: ${getErrorMessage(recoveryError)}`
+							: "";
 						throw new TRPCError({
 							code: "INTERNAL_SERVER_ERROR",
 							message: `gh pr checkout failed: ${getErrorMessage(err)}${recoveryMessage}`,

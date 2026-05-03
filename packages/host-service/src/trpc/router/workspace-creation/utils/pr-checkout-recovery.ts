@@ -123,6 +123,15 @@ export async function checkoutFetchHeadAsBranch({
  * then create a local branch from that ref instead of depending only on a
  * named head branch. This is especially important after a PR has been merged
  * and the source branch or fork has been deleted.
+ *
+ * The two recovery paths diverge in how `FETCH_HEAD` gets populated:
+ *   - `synthetic-pr-ref`: we run an explicit `git fetch refs/pull/N/head`,
+ *     so `FETCH_HEAD` is freshly written by us before the OID check.
+ *   - `fetch-head`: we rely on `gh pr checkout` having already fetched the
+ *     PR head before it failed at the `--branch` tracking step, leaving a
+ *     valid `FETCH_HEAD` behind. The OID check against `expectedHeadOid`
+ *     is the safety net — a stale or unrelated `FETCH_HEAD` from a prior
+ *     unrelated fetch will mismatch and abort the recovery.
  */
 export async function recoverPrCheckoutAfterGhFailure({
 	git,
