@@ -1,12 +1,12 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { db, dbWs } from "@superset/db/client";
-import { tasks } from "@superset/db/schema";
+import { dbWs } from "@superset/db/client";
+import { tasks, teamKeys } from "@superset/db/schema";
 import { seedDefaultStatuses } from "@superset/db/seed-default-statuses";
 import {
-	generateBaseTaskSlug,
-	generateUniqueTaskSlug,
-} from "@superset/shared/task-slug";
-import { and, eq, ilike, or } from "drizzle-orm";
+	allocateTaskNumberRange,
+	resolveDefaultTeam,
+} from "@superset/db/teams";
+import { and, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { getMcpContext } from "../../utils";
 
@@ -68,79 +68,55 @@ export function register(server: McpServer) {
 			const ctx = getMcpContext(extra);
 			const taskInputs = args.tasks as TaskInput[];
 
-			let defaultStatusId: string | undefined;
-			const needsDefaultStatus = taskInputs.some((t) => !t.statusId);
-
-			if (needsDefaultStatus) {
-				defaultStatusId = await seedDefaultStatuses(ctx.organizationId);
-			}
-
-			const baseSlugs = taskInputs.map((t) => generateBaseTaskSlug(t.title));
-			const uniqueBaseSlugs = [...new Set(baseSlugs)];
-
-			const slugConditions = uniqueBaseSlugs.map((baseSlug) =>
-				ilike(tasks.slug, `${baseSlug}%`),
-			);
-
-			const existingTasks = await db
-				.select({ slug: tasks.slug })
-				.from(tasks)
-				.where(
-					and(
-						eq(tasks.organizationId, ctx.organizationId),
-						or(...slugConditions),
-					),
-				);
-
-			const usedSlugs = new Set(existingTasks.map((t) => t.slug));
-
-			const taskValues: Array<{
-				slug: string;
-				title: string;
-				description: string | null;
-				priority: TaskPriority;
-				statusId: string;
-				organizationId: string;
-				creatorId: string;
-				assigneeId: string | null;
-				assigneeExternalId: string | null;
-				assigneeDisplayName: string | null;
-				assigneeAvatarUrl: string | null;
-				labels: string[];
-				dueDate: Date | null;
-				estimate: number | null;
-			}> = [];
-
-			for (const [i, input] of taskInputs.entries()) {
-				const baseSlug = baseSlugs[i] ?? "";
-				const slug = generateUniqueTaskSlug(baseSlug, usedSlugs);
-				usedSlugs.add(slug);
-
-				const priority: TaskPriority = isPriority(input.priority)
-					? input.priority
-					: "none";
-
-				const statusId = input.statusId ?? (defaultStatusId as string);
-
-				taskValues.push({
-					slug,
-					title: input.title,
-					description: input.description ?? null,
-					priority,
-					statusId,
-					organizationId: ctx.organizationId,
-					creatorId: ctx.userId,
-					assigneeId: input.assigneeId ?? null,
-					assigneeExternalId: null,
-					assigneeDisplayName: null,
-					assigneeAvatarUrl: null,
-					labels: input.labels ?? [],
-					dueDate: input.dueDate ? new Date(input.dueDate) : null,
-					estimate: input.estimate ?? null,
-				});
-			}
-
 			const createdTasks = await dbWs.transaction(async (tx) => {
+				let defaultStatusId: string | undefined;
+				const needsDefaultStatus = taskInputs.some((t) => !t.statusId);
+				if (needsDefaultStatus) {
+					defaultStatusId = await seedDefaultStatuses(ctx.organizationId, tx);
+				}
+
+				const teamId = await resolveDefaultTeam(ctx.organizationId, tx);
+				const startNumber = await allocateTaskNumberRange(
+					teamId,
+					taskInputs.length,
+					tx,
+				);
+				const [teamKey] = await tx
+					.select({ key: teamKeys.key })
+					.from(teamKeys)
+					.where(and(eq(teamKeys.teamId, teamId), isNull(teamKeys.retiredAt)))
+					.limit(1);
+				if (!teamKey) {
+					throw new Error(`No current key for team ${teamId}`);
+				}
+
+				const taskValues = taskInputs.map((input, i) => {
+					const number = startNumber + i;
+					const priority: TaskPriority = isPriority(input.priority)
+						? input.priority
+						: "none";
+					const statusId = input.statusId ?? (defaultStatusId as string);
+
+					return {
+						slug: `${teamKey.key}-${number}`,
+						teamId,
+						number,
+						title: input.title,
+						description: input.description ?? null,
+						priority,
+						statusId,
+						organizationId: ctx.organizationId,
+						creatorId: ctx.userId,
+						assigneeId: input.assigneeId ?? null,
+						assigneeExternalId: null,
+						assigneeDisplayName: null,
+						assigneeAvatarUrl: null,
+						labels: input.labels ?? [],
+						dueDate: input.dueDate ? new Date(input.dueDate) : null,
+						estimate: input.estimate ?? null,
+					};
+				});
+
 				return tx
 					.insert(tasks)
 					.values(taskValues)

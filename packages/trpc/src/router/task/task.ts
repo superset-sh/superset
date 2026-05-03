@@ -1,13 +1,16 @@
 import { db, dbWs } from "@superset/db/client";
-import { members, taskStatuses, tasks, users } from "@superset/db/schema";
-import { seedDefaultStatuses } from "@superset/db/seed-default-statuses";
-import { getCurrentTxid } from "@superset/db/utils";
 import {
-	generateBaseTaskSlug,
-	generateUniqueTaskSlug,
-} from "@superset/shared/task-slug";
-import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
-import { and, desc, eq, ilike, isNull } from "drizzle-orm";
+	members,
+	taskStatuses,
+	tasks,
+	teamKeys,
+	users,
+} from "@superset/db/schema";
+import { seedDefaultStatuses } from "@superset/db/seed-default-statuses";
+import { allocateNextTaskNumber, resolveDefaultTeam } from "@superset/db/teams";
+import { getCurrentTxid } from "@superset/db/utils";
+import type { TRPCRouterRecord } from "@trpc/server";
+import { and, desc, eq, ilike, isNull, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { z } from "zod";
 import { syncTask } from "../../lib/integrations/sync";
@@ -24,23 +27,11 @@ import {
 	updateTaskSchema,
 } from "./schema";
 
-const TASK_SLUG_CONSTRAINT = "tasks_org_slug_unique";
-const TASK_SLUG_RETRY_LIMIT = 5;
-
 function escapeLikePattern(value: string): string {
 	return value.replace(/[\\%_]/g, (match) => `\\${match}`);
 }
 type DbWsTransaction = Parameters<Parameters<typeof dbWs.transaction>[0]>[0];
 type Executor = typeof dbWs | DbWsTransaction;
-
-function isConstraintError(error: unknown, constraint: string): boolean {
-	if (!error || typeof error !== "object") {
-		return false;
-	}
-
-	const maybeError = error as { code?: string; constraint?: string };
-	return maybeError.code === "23505" && maybeError.constraint === constraint;
-}
 
 async function getTaskAccess(
 	executor: Executor,
@@ -103,6 +94,53 @@ async function getTaskBySlug(
 		.limit(1);
 
 	return task ?? null;
+}
+
+const KEY_PATTERN = /^([A-Za-z][A-Za-z0-9]*)-(\d+)$/i;
+
+async function getTaskByKey(
+	userId: string,
+	organizationId: string,
+	identifier: string,
+) {
+	await verifyOrgMembership(userId, organizationId);
+
+	const match = identifier.match(KEY_PATTERN);
+	if (match) {
+		const prefix = match[1] as string;
+		const number = Number.parseInt(match[2] as string, 10);
+
+		const [byKey] = await db
+			.select({ task: tasks })
+			.from(tasks)
+			.innerJoin(teamKeys, eq(teamKeys.teamId, tasks.teamId))
+			.where(
+				and(
+					eq(tasks.organizationId, organizationId),
+					eq(teamKeys.organizationId, organizationId),
+					eq(teamKeys.key, prefix),
+					eq(tasks.number, number),
+					isNull(tasks.deletedAt),
+				),
+			)
+			.limit(1);
+		if (byKey) return byKey.task;
+
+		const [byExternalKey] = await db
+			.select()
+			.from(tasks)
+			.where(
+				and(
+					eq(tasks.organizationId, organizationId),
+					eq(tasks.externalKey, identifier),
+					isNull(tasks.deletedAt),
+				),
+			)
+			.limit(1);
+		if (byExternalKey) return byExternalKey;
+	}
+
+	return getTaskBySlug(userId, organizationId, identifier);
 }
 
 async function getScopedStatusId(
@@ -183,85 +221,91 @@ async function createTask(
 ) {
 	const organizationId = await requireActiveOrgMembership(ctx);
 
-	for (let attempt = 0; attempt < TASK_SLUG_RETRY_LIMIT; attempt += 1) {
-		try {
-			const result = await dbWs.transaction(async (tx) => {
-				const statusId = input.statusId
-					? await getScopedStatusId(
-							tx,
-							organizationId,
-							input.statusId,
-							"Status must belong to the active organization",
-						)
-					: await seedDefaultStatuses(organizationId, tx);
+	const result = await dbWs.transaction(async (tx) => {
+		const statusId = input.statusId
+			? await getScopedStatusId(
+					tx,
+					organizationId,
+					input.statusId,
+					"Status must belong to the active organization",
+				)
+			: await seedDefaultStatuses(organizationId, tx);
 
-				const assigneeId = input.assigneeId
-					? await getScopedAssigneeId(
-							tx,
-							organizationId,
-							input.assigneeId,
-							"Assignee must belong to the active organization",
-						)
-					: null;
+		const assigneeId = input.assigneeId
+			? await getScopedAssigneeId(
+					tx,
+					organizationId,
+					input.assigneeId,
+					"Assignee must belong to the active organization",
+				)
+			: null;
 
-				const baseSlug = generateBaseTaskSlug(input.title);
-				const existingSlugs = await tx
-					.select({ slug: tasks.slug })
-					.from(tasks)
-					.where(
-						and(
-							eq(tasks.organizationId, organizationId),
-							ilike(tasks.slug, `${baseSlug}%`),
-						),
-					);
-				const slug = generateUniqueTaskSlug(
-					baseSlug,
-					existingSlugs.map((task) => task.slug),
-				);
+		const teamId = await resolveDefaultTeam(organizationId, tx);
+		const number = await allocateNextTaskNumber(teamId, tx);
+		const teamKey = await getCurrentTeamKey(tx, teamId);
 
-				const [task] = await tx
-					.insert(tasks)
-					.values({
-						slug,
-						title: input.title,
-						description: input.description ?? null,
-						statusId,
-						priority: input.priority ?? "none",
-						organizationId,
-						creatorId: ctx.session.user.id,
-						assigneeId,
-						estimate: input.estimate ?? null,
-						dueDate: input.dueDate ?? null,
-						labels: input.labels ?? [],
-					})
-					.returning();
+		const [task] = await tx
+			.insert(tasks)
+			.values({
+				slug: `${teamKey}-${number}`,
+				teamId,
+				number,
+				title: input.title,
+				description: input.description ?? null,
+				statusId,
+				priority: input.priority ?? "none",
+				organizationId,
+				creatorId: ctx.session.user.id,
+				assigneeId,
+				estimate: input.estimate ?? null,
+				dueDate: input.dueDate ?? null,
+				labels: input.labels ?? [],
+			})
+			.returning();
 
-				const txid = await getCurrentTxid(tx);
+		const txid = await getCurrentTxid(tx);
 
-				return { task, txid };
-			});
+		return { task, txid };
+	});
 
-			if (result.task) {
-				syncTask(result.task.id);
-			}
-
-			return result;
-		} catch (error) {
-			if (
-				isConstraintError(error, TASK_SLUG_CONSTRAINT) &&
-				attempt < TASK_SLUG_RETRY_LIMIT - 1
-			) {
-				continue;
-			}
-
-			throw error;
-		}
+	if (result.task) {
+		syncTask(result.task.id);
 	}
 
-	throw new TRPCError({
-		code: "CONFLICT",
-		message: "Failed to generate a unique task slug",
-	});
+	const enrichedTask = result.task
+		? await enrichTaskWithIdentifier(result.task)
+		: null;
+	return { task: enrichedTask, txid: result.txid };
+}
+
+async function getCurrentTeamKey(
+	executor: Executor,
+	teamId: string,
+): Promise<string> {
+	const [row] = await executor
+		.select({ key: teamKeys.key })
+		.from(teamKeys)
+		.where(and(eq(teamKeys.teamId, teamId), isNull(teamKeys.retiredAt)))
+		.limit(1);
+	if (!row) throw new Error(`No current key for team ${teamId}`);
+	return row.key;
+}
+
+type TaskRow = typeof tasks.$inferSelect;
+
+async function enrichTaskWithIdentifier<T extends TaskRow | null>(
+	task: T,
+): Promise<T extends null ? null : T & { identifier: string }> {
+	if (!task) return null as T extends null ? null : T & { identifier: string };
+	const [row] = await db
+		.select({ key: teamKeys.key })
+		.from(teamKeys)
+		.where(and(eq(teamKeys.teamId, task.teamId), isNull(teamKeys.retiredAt)))
+		.limit(1);
+	if (!row) throw new Error(`No current key for team ${task.teamId}`);
+	return { ...task, identifier: `${row.key}-${task.number}` } as T extends null
+		? null
+		: T & { identifier: string };
 }
 
 export const taskRouter = {
@@ -277,6 +321,7 @@ export const taskRouter = {
 		return db
 			.select({
 				task: tasks,
+				identifier: sql<string>`${teamKeys.key} || '-' || ${tasks.number}`,
 				assignee: {
 					id: assignee.id,
 					name: assignee.name,
@@ -289,6 +334,10 @@ export const taskRouter = {
 				},
 			})
 			.from(tasks)
+			.innerJoin(
+				teamKeys,
+				and(eq(teamKeys.teamId, tasks.teamId), isNull(teamKeys.retiredAt)),
+			)
 			.leftJoin(assignee, eq(tasks.assigneeId, assignee.id))
 			.leftJoin(creator, eq(tasks.creatorId, creator.id))
 			.where(
@@ -329,6 +378,7 @@ export const taskRouter = {
 			return db
 				.select({
 					task: tasks,
+					identifier: sql<string>`${teamKeys.key} || '-' || ${tasks.number}`,
 					assignee: {
 						id: assignee.id,
 						name: assignee.name,
@@ -342,6 +392,10 @@ export const taskRouter = {
 					statusName: status.name,
 				})
 				.from(tasks)
+				.innerJoin(
+					teamKeys,
+					and(eq(teamKeys.teamId, tasks.teamId), isNull(teamKeys.retiredAt)),
+				)
 				.leftJoin(assignee, eq(tasks.assigneeId, assignee.id))
 				.leftJoin(creator, eq(tasks.creatorId, creator.id))
 				.leftJoin(status, eq(tasks.statusId, status.id))
@@ -357,21 +411,34 @@ export const taskRouter = {
 			await verifyOrgMembership(ctx.session.user.id, input);
 
 			return db
-				.select()
+				.select({
+					task: tasks,
+					identifier: sql<string>`${teamKeys.key} || '-' || ${tasks.number}`,
+				})
 				.from(tasks)
+				.innerJoin(
+					teamKeys,
+					and(eq(teamKeys.teamId, tasks.teamId), isNull(teamKeys.retiredAt)),
+				)
 				.where(and(eq(tasks.organizationId, input), isNull(tasks.deletedAt)))
 				.orderBy(desc(tasks.createdAt));
 		}),
 
 	byId: protectedProcedure
 		.input(z.string().uuid())
-		.query(({ ctx, input }) => getTaskById(ctx.session.user.id, input)),
+		.query(async ({ ctx, input }) =>
+			enrichTaskWithIdentifier(await getTaskById(ctx.session.user.id, input)),
+		),
 
+	/** @deprecated Use `task.byIdOrKey`. Kept as an alias for one release. */
 	bySlug: protectedProcedure.input(z.string()).query(async ({ ctx, input }) => {
 		const organizationId = await requireActiveOrgMembership(ctx);
-		return getTaskBySlug(ctx.session.user.id, organizationId, input);
+		return enrichTaskWithIdentifier(
+			await getTaskByKey(ctx.session.user.id, organizationId, input),
+		);
 	}),
 
+	/** @deprecated Use `task.byIdOrKey`. Kept as an alias for one release. */
 	byIdOrSlug: protectedProcedure
 		.input(z.string().min(1))
 		.query(async ({ ctx, input }) => {
@@ -381,10 +448,29 @@ export const taskRouter = {
 				);
 			if (looksLikeUuid) {
 				const task = await getTaskById(ctx.session.user.id, input);
-				if (task) return task;
+				if (task) return enrichTaskWithIdentifier(task);
 			}
 			const organizationId = await requireActiveOrgMembership(ctx);
-			return getTaskBySlug(ctx.session.user.id, organizationId, input);
+			return enrichTaskWithIdentifier(
+				await getTaskByKey(ctx.session.user.id, organizationId, input),
+			);
+		}),
+
+	byIdOrKey: protectedProcedure
+		.input(z.string().min(1))
+		.query(async ({ ctx, input }) => {
+			const looksLikeUuid =
+				/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+					input,
+				);
+			if (looksLikeUuid) {
+				const task = await getTaskById(ctx.session.user.id, input);
+				if (task) return enrichTaskWithIdentifier(task);
+			}
+			const organizationId = await requireActiveOrgMembership(ctx);
+			return enrichTaskWithIdentifier(
+				await getTaskByKey(ctx.session.user.id, organizationId, input),
+			);
 		}),
 
 	/**
@@ -447,7 +533,10 @@ export const taskRouter = {
 				syncTask(result.task.id);
 			}
 
-			return result;
+			const enrichedTask = result.task
+				? await enrichTaskWithIdentifier(result.task)
+				: null;
+			return { task: enrichedTask, txid: result.txid };
 		}),
 
 	delete: protectedProcedure

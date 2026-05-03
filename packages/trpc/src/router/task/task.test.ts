@@ -128,8 +128,15 @@ mock.module("@superset/db/schema", () => ({
 		externalId: "tasks.externalId",
 		externalProvider: "tasks.externalProvider",
 		id: "tasks.id",
+		number: "tasks.number",
 		organizationId: "tasks.organizationId",
 		slug: "tasks.slug",
+		teamId: "tasks.teamId",
+	},
+	teamKeys: {
+		key: "team_keys.key",
+		retiredAt: "team_keys.retiredAt",
+		teamId: "team_keys.teamId",
 	},
 	users: {
 		id: "users.id",
@@ -146,9 +153,11 @@ mock.module("@superset/db/utils", () => ({
 	getCurrentTxid: getCurrentTxidMock,
 }));
 
-mock.module("@superset/shared/task-slug", () => ({
-	generateBaseTaskSlug: mock(() => "task"),
-	generateUniqueTaskSlug: mock(() => "task"),
+mock.module("@superset/db/teams", () => ({
+	resolveDefaultTeam: mock(async () => "team-id-mock"),
+	allocateNextTaskNumber: mock(async () => 1),
+	allocateTaskNumberRange: mock(async () => 1),
+	deriveTeamKey: mock(() => "TEST"),
 }));
 
 mock.module("drizzle-orm", () => ({

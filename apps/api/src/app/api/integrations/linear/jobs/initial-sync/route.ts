@@ -1,6 +1,15 @@
 import type { LinearClient } from "@linear/sdk";
 import { buildConflictUpdateColumns, db } from "@superset/db";
-import { members, taskStatuses, tasks, users } from "@superset/db/schema";
+import { dbWs } from "@superset/db/client";
+import {
+	members,
+	taskStatuses,
+	tasks,
+	teamKeys,
+	teams,
+	users,
+} from "@superset/db/schema";
+import { allocateTaskNumberRange } from "@superset/db/teams";
 import { getLinearClient } from "@superset/trpc/integrations/linear";
 import { Receiver } from "@upstash/qstash";
 import { and, eq, inArray, isNull } from "drizzle-orm";
@@ -8,7 +17,7 @@ import chunk from "lodash.chunk";
 import { z } from "zod";
 import { env } from "@/env";
 import { syncWorkflowStates } from "./syncWorkflowStates";
-import { fetchAllIssues, mapIssueToTask } from "./utils";
+import { fetchTeamIssues, mapIssueToTaskBase } from "./utils";
 
 const BATCH_SIZE = 100;
 
@@ -132,11 +141,64 @@ async function performInitialSync(
 		}
 	}
 
-	const issues = await fetchAllIssues(client);
+	const linkedTeams = await db
+		.select({
+			id: teams.id,
+			externalId: teams.externalId,
+			key: teamKeys.key,
+		})
+		.from(teams)
+		.innerJoin(
+			teamKeys,
+			and(eq(teamKeys.teamId, teams.id), isNull(teamKeys.retiredAt)),
+		)
+		.where(
+			and(
+				eq(teams.organizationId, organizationId),
+				eq(teams.externalProvider, "linear"),
+			),
+		);
 
-	if (issues.length === 0) {
+	if (linkedTeams.length === 0) {
+		console.log(
+			`[initial-sync] No linked Linear teams for org ${organizationId}, nothing to sync`,
+		);
 		return;
 	}
+
+	for (const linkedTeam of linkedTeams) {
+		if (!linkedTeam.externalId) continue;
+		await syncTeamIssues({
+			client,
+			organizationId,
+			creatorUserId,
+			supersetTeamId: linkedTeam.id,
+			supersetTeamKey: linkedTeam.key,
+			linearTeamId: linkedTeam.externalId,
+			statusByExternalId,
+		});
+	}
+}
+
+async function syncTeamIssues({
+	client,
+	organizationId,
+	creatorUserId,
+	supersetTeamId,
+	supersetTeamKey,
+	linearTeamId,
+	statusByExternalId,
+}: {
+	client: LinearClient;
+	organizationId: string;
+	creatorUserId: string;
+	supersetTeamId: string;
+	supersetTeamKey: string;
+	linearTeamId: string;
+	statusByExternalId: Map<string, string>;
+}) {
+	const issues = await fetchTeamIssues(client, linearTeamId);
+	if (issues.length === 0) return;
 
 	const assigneeEmails = [
 		...new Set(
@@ -160,19 +222,83 @@ async function performInitialSync(
 
 	const userByEmail = new Map(matchedUsers.map((u) => [u.email, u.id]));
 
-	const taskValues = issues.map((issue) =>
-		mapIssueToTask(
-			issue,
-			organizationId,
-			creatorUserId,
-			userByEmail,
-			statusByExternalId,
-		),
+	// Filter out issues that already exist in our DB (by external_id) — we only
+	// allocate numbers for genuinely new ones.
+	const existingExternalIds = new Set(
+		(
+			await db
+				.select({ externalId: tasks.externalId })
+				.from(tasks)
+				.where(
+					and(
+						eq(tasks.organizationId, organizationId),
+						eq(tasks.externalProvider, "linear"),
+						inArray(
+							tasks.externalId,
+							issues.map((i) => i.id),
+						),
+					),
+				)
+		)
+			.map((row) => row.externalId)
+			.filter((id): id is string => !!id),
 	);
 
-	const batches = chunk(taskValues, BATCH_SIZE);
+	const newIssues = issues.filter((i) => !existingExternalIds.has(i.id));
+	const existingIssues = issues.filter((i) => existingExternalIds.has(i.id));
 
-	for (const batch of batches) {
+	// Update existing tasks (no number reallocation)
+	for (const batch of chunk(existingIssues, BATCH_SIZE)) {
+		const updates = batch.map((issue) =>
+			mapIssueToTaskBase(
+				issue,
+				organizationId,
+				creatorUserId,
+				userByEmail,
+				statusByExternalId,
+			),
+		);
+		await dbWs.transaction(async (tx) => {
+			for (const update of updates) {
+				await tx
+					.update(tasks)
+					.set({ ...update, syncError: null })
+					.where(
+						and(
+							eq(tasks.organizationId, organizationId),
+							eq(tasks.externalProvider, "linear"),
+							eq(tasks.externalId, update.externalId),
+						),
+					);
+			}
+		});
+	}
+
+	// Insert new tasks with allocated numbers
+	if (newIssues.length === 0) return;
+
+	const startNumber = await allocateTaskNumberRange(
+		supersetTeamId,
+		newIssues.length,
+	);
+
+	const taskValues = newIssues.map((issue, index) => {
+		const number = startNumber + index;
+		return {
+			...mapIssueToTaskBase(
+				issue,
+				organizationId,
+				creatorUserId,
+				userByEmail,
+				statusByExternalId,
+			),
+			teamId: supersetTeamId,
+			number,
+			slug: `${supersetTeamKey}-${number}`,
+		};
+	});
+
+	for (const batch of chunk(taskValues, BATCH_SIZE)) {
 		await db
 			.insert(tasks)
 			.values(batch)
@@ -184,7 +310,6 @@ async function performInitialSync(
 				],
 				set: {
 					...buildConflictUpdateColumns(tasks, [
-						"slug",
 						"title",
 						"description",
 						"statusId",

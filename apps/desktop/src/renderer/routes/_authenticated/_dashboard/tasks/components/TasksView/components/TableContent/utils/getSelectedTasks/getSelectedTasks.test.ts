@@ -7,6 +7,8 @@ function createTask(id: string, title = `Task ${id}`): TaskWithStatus {
 		id,
 		title,
 		slug: `TASK-${id}`,
+		teamId: "team-1",
+		number: Number.parseInt(id.replace(/\D/g, ""), 10) || 1,
 		organizationId: "org-1",
 		statusId: "status-1",
 		description: null,

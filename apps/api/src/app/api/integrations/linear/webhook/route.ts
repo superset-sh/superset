@@ -3,18 +3,21 @@ import {
 	LINEAR_WEBHOOK_SIGNATURE_HEADER,
 	LinearWebhookClient,
 } from "@linear/sdk/webhooks";
-import { db } from "@superset/db/client";
+import { db, dbWs } from "@superset/db/client";
 import type { SelectIntegrationConnection } from "@superset/db/schema";
 import {
 	integrationConnections,
 	members,
 	taskStatuses,
 	tasks,
+	teamKeys,
+	teams,
 	users,
 	webhookEvents,
 } from "@superset/db/schema";
+import { allocateNextTaskNumber } from "@superset/db/teams";
 import { mapPriorityFromLinear } from "@superset/trpc/integrations/linear";
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, isNull, sql } from "drizzle-orm";
 import { env } from "@/env";
 
 const webhookClient = new LinearWebhookClient(env.LINEAR_WEBHOOK_SECRET);
@@ -124,6 +127,33 @@ async function processIssueEvent(
 	const issue = payload.data;
 
 	if (payload.action === "create" || payload.action === "update") {
+		if (!issue.team?.id) {
+			console.warn(
+				`[webhook] Issue ${issue.identifier} arrived without a team payload — skipping`,
+			);
+			return "skipped";
+		}
+
+		const linkedTeam = await db
+			.select({ id: teams.id })
+			.from(teams)
+			.where(
+				and(
+					eq(teams.organizationId, connection.organizationId),
+					eq(teams.externalProvider, "linear"),
+					eq(teams.externalId, issue.team.id),
+				),
+			)
+			.limit(1)
+			.then((rows) => rows[0]);
+
+		if (!linkedTeam) {
+			console.log(
+				`[webhook] Issue ${issue.identifier} from Linear team ${issue.team.id} is not linked to any Superset team — skipping`,
+			);
+			return "skipped";
+		}
+
 		const taskStatus = await db.query.taskStatuses.findFirst({
 			where: and(
 				eq(taskStatuses.organizationId, connection.organizationId),
@@ -169,8 +199,7 @@ async function processIssueEvent(
 			assigneeAvatarUrl = issue.assignee.avatarUrl ?? null;
 		}
 
-		const taskData = {
-			slug: issue.identifier,
+		const updateableTaskData = {
 			title: issue.title,
 			description: issue.description ?? null,
 			statusId: taskStatus.id,
@@ -191,22 +220,49 @@ async function processIssueEvent(
 			lastSyncedAt: new Date(),
 		};
 
-		await db
-			.insert(tasks)
-			.values({
-				...taskData,
+		await dbWs.transaction(async (tx) => {
+			const [existing] = await tx
+				.select({ id: tasks.id })
+				.from(tasks)
+				.where(
+					and(
+						eq(tasks.organizationId, connection.organizationId),
+						eq(tasks.externalProvider, "linear"),
+						eq(tasks.externalId, issue.id),
+					),
+				)
+				.limit(1);
+
+			if (existing) {
+				await tx
+					.update(tasks)
+					.set({ ...updateableTaskData, syncError: null })
+					.where(eq(tasks.id, existing.id));
+				return;
+			}
+
+			const number = await allocateNextTaskNumber(linkedTeam.id, tx);
+			const [teamKey] = await tx
+				.select({ key: teamKeys.key })
+				.from(teamKeys)
+				.where(
+					and(eq(teamKeys.teamId, linkedTeam.id), isNull(teamKeys.retiredAt)),
+				)
+				.limit(1);
+			if (!teamKey) {
+				throw new Error(`No current key for team ${linkedTeam.id}`);
+			}
+
+			await tx.insert(tasks).values({
+				...updateableTaskData,
+				slug: `${teamKey.key}-${number}`,
+				teamId: linkedTeam.id,
+				number,
 				organizationId: connection.organizationId,
 				creatorId: connection.connectedByUserId,
 				createdAt: new Date(issue.createdAt),
-			})
-			.onConflictDoUpdate({
-				target: [
-					tasks.organizationId,
-					tasks.externalProvider,
-					tasks.externalId,
-				],
-				set: { ...taskData, syncError: null },
 			});
+		});
 	} else if (payload.action === "remove") {
 		await db
 			.update(tasks)
