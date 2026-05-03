@@ -9,3 +9,28 @@ export const posthog = new PostHog(env.NEXT_PUBLIC_POSTHOG_KEY, {
 	flushAt: 1,
 	flushInterval: 0,
 });
+
+export interface ProductEventParams {
+	userId: string;
+	source: string;
+	event: string;
+	activeOrganizationId?: string | null;
+	plan?: string | null;
+	properties?: Record<string, unknown>;
+}
+
+export function captureProductEvent(params: ProductEventParams): void {
+	posthog.capture({
+		distinctId: params.userId,
+		event: params.event,
+		properties: {
+			...(params.properties ?? {}),
+			source: params.source,
+			plan: params.plan ?? null,
+			active_organization_id: params.activeOrganizationId ?? null,
+		},
+		groups: params.activeOrganizationId
+			? { organization: params.activeOrganizationId }
+			: undefined,
+	});
+}
