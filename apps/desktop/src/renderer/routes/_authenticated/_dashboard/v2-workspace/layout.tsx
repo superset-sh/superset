@@ -11,7 +11,6 @@ import {
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
-import { WorkspaceNotFoundState } from "./components/WorkspaceNotFoundState";
 import { WorkspaceTrpcProvider } from "./providers/WorkspaceTrpcProvider";
 
 export const Route = createFileRoute("/_authenticated/_dashboard/v2-workspace")(
@@ -67,8 +66,12 @@ function V2WorkspaceLayout() {
 		return null;
 	}
 
+	// No real workspace row yet — render the page directly so it can show
+	// in-flight create state (creating / error) or NotFound. The trpc
+	// provider isn't usable without a hostUrl, and the in-flight UI doesn't
+	// need it.
 	if (!workspace || !hostUrl) {
-		return <WorkspaceNotFoundState workspaceId={workspaceId} />;
+		return <Outlet />;
 	}
 
 	return (

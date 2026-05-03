@@ -57,7 +57,7 @@ export function DashboardNewWorkspaceModalContent({
 		[collections],
 	);
 
-	const setUpProjectIds = useSelectedHostProjectIds(draft.hostTarget);
+	const setUpProjectIds = useSelectedHostProjectIds(draft.hostId);
 
 	const recentProjects = useMemo(() => {
 		const repoById = new Map(
@@ -80,29 +80,22 @@ export function DashboardNewWorkspaceModalContent({
 
 	const areProjectsReady = v2Projects !== undefined;
 	const appliedPreSelectionRef = useRef<string | null>(null);
-	const appliedHostTargetRef = useRef(false);
+	const appliedHostIdRef = useRef(false);
 	const hasInitializedSelectionRef = useRef(false);
 
 	useEffect(() => {
 		if (!isOpen) {
 			appliedPreSelectionRef.current = null;
-			appliedHostTargetRef.current = false;
+			appliedHostIdRef.current = false;
 			hasInitializedSelectionRef.current = false;
 			return;
 		}
-		if (appliedHostTargetRef.current) return;
-		appliedHostTargetRef.current = true;
-		const persistedHostTarget =
-			useV2WorkspaceCreateDefaultsStore.getState().lastHostTarget;
-		const validHostTarget =
-			persistedHostTarget?.kind === "local"
-				? persistedHostTarget
-				: persistedHostTarget?.kind === "host" &&
-						typeof persistedHostTarget.hostId === "string"
-					? persistedHostTarget
-					: null;
-		if (validHostTarget) {
-			updateDraft({ hostTarget: validHostTarget });
+		if (appliedHostIdRef.current) return;
+		appliedHostIdRef.current = true;
+		const persistedHostId =
+			useV2WorkspaceCreateDefaultsStore.getState().lastHostId;
+		if (typeof persistedHostId === "string") {
+			updateDraft({ hostId: persistedHostId });
 		}
 	}, [isOpen, updateDraft]);
 

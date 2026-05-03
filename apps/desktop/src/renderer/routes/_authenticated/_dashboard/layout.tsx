@@ -15,6 +15,7 @@ import { ResizablePanel } from "renderer/screens/main/components/ResizablePanel"
 import { WorkspaceSidebar } from "renderer/screens/main/components/WorkspaceSidebar";
 import { DeleteWorkspaceDialog } from "renderer/screens/main/components/WorkspaceSidebar/WorkspaceListItem/components";
 import { useOpenNewWorkspaceModal } from "renderer/stores/new-workspace-modal";
+import { WorkspaceCreatesManager } from "renderer/stores/workspace-creates";
 import {
 	COLLAPSED_WORKSPACE_SIDEBAR_WIDTH,
 	DEFAULT_WORKSPACE_SIDEBAR_WIDTH,
@@ -128,6 +129,7 @@ function DashboardLayout() {
 
 	return (
 		<div className="flex h-full w-full overflow-hidden">
+			<WorkspaceCreatesManager />
 			{sidebarOutsideColumn && sidebarPanel}
 			<div className="flex flex-1 flex-col min-w-0 min-h-0">
 				<TopBar />

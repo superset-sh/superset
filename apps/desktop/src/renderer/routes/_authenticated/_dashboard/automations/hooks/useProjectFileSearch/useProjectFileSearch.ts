@@ -1,19 +1,18 @@
 import { useCallback } from "react";
 import type { FileMentionSearchFn } from "renderer/components/MarkdownEditor/components/FileMention";
-import { useHostTargetUrl } from "renderer/hooks/host-service/useHostTargetUrl";
+import { useHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
-import type { WorkspaceHostTarget } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/components/DevicePicker/types";
 
 const SEARCH_LIMIT = 15;
 
 export function useProjectFileSearch({
-	hostTarget,
+	hostId,
 	projectId,
 }: {
-	hostTarget: WorkspaceHostTarget;
+	hostId: string | null;
 	projectId: string | null;
 }): FileMentionSearchFn | undefined {
-	const hostUrl = useHostTargetUrl(hostTarget);
+	const hostUrl = useHostUrl(hostId);
 
 	return useCallback<FileMentionSearchFn>(
 		async (query) => {

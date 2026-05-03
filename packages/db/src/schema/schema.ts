@@ -566,6 +566,28 @@ export const v2Workspaces = pgTable(
 export type InsertV2Workspace = typeof v2Workspaces.$inferInsert;
 export type SelectV2Workspace = typeof v2Workspaces.$inferSelect;
 
+export const workspaceTasks = pgTable(
+	"workspace_tasks",
+	{
+		workspaceId: uuid("workspace_id")
+			.notNull()
+			.references(() => v2Workspaces.id, { onDelete: "cascade" }),
+		taskId: uuid("task_id")
+			.notNull()
+			.references(() => tasks.id, { onDelete: "cascade" }),
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.notNull()
+			.defaultNow(),
+	},
+	(table) => [
+		primaryKey({ columns: [table.workspaceId, table.taskId] }),
+		index("workspace_tasks_task_idx").on(table.taskId),
+	],
+);
+
+export type InsertWorkspaceTask = typeof workspaceTasks.$inferInsert;
+export type SelectWorkspaceTask = typeof workspaceTasks.$inferSelect;
+
 export const secrets = pgTable(
 	"secrets",
 	{

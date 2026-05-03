@@ -12,14 +12,13 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useQuery } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { useId, useState } from "react";
-import { useHostTargetUrl } from "renderer/hooks/host-service/useHostTargetUrl";
+import { useHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
 import { useDebouncedValue } from "renderer/hooks/useDebouncedValue";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import {
 	IssueIcon,
 	type IssueState,
 } from "renderer/screens/main/components/IssueIcon/IssueIcon";
-import type { WorkspaceHostTarget } from "../../../components/DevicePicker";
 
 const MAX_RESULTS = 30;
 
@@ -38,7 +37,7 @@ interface GitHubIssueLinkCommandProps {
 	tooltipLabel: string;
 	onSelect: (issue: SelectedIssue) => void;
 	projectId: string | null;
-	hostTarget: WorkspaceHostTarget;
+	hostId: string | null;
 }
 
 export function GitHubIssueLinkCommand({
@@ -46,14 +45,14 @@ export function GitHubIssueLinkCommand({
 	tooltipLabel,
 	onSelect,
 	projectId,
-	hostTarget,
+	hostId,
 }: GitHubIssueLinkCommandProps) {
 	const [open, setOpen] = useState(false);
 	const [searchQuery, setSearchQuery] = useState("");
 	const [showClosed, setShowClosed] = useState(false);
 	const showClosedId = useId();
 	const debouncedQuery = useDebouncedValue(searchQuery, 300);
-	const hostUrl = useHostTargetUrl(hostTarget);
+	const hostUrl = useHostUrl(hostId);
 
 	const trimmedQuery = searchQuery.trim();
 	const debouncedTrimmed = debouncedQuery.trim();

@@ -1,10 +1,12 @@
 import { db, dbWs } from "@superset/db/client";
 import { v2WorkspaceTypeValues } from "@superset/db/enums";
 import {
+	tasks,
 	v2Hosts,
 	v2Projects,
 	v2UsersHosts,
 	v2Workspaces,
+	workspaceTasks,
 } from "@superset/db/schema";
 import { getCurrentTxid } from "@superset/db/utils";
 import type { TRPCRouterRecord } from "@trpc/server";
@@ -167,6 +169,8 @@ export const v2WorkspaceRouter = {
 				branch: z.string().min(1),
 				hostId: z.string().min(1),
 				type: z.enum(v2WorkspaceTypeValues).default("worktree"),
+				taskIds: z.array(z.string().uuid()).optional(),
+				id: z.string().uuid().optional(),
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
@@ -183,61 +187,179 @@ export const v2WorkspaceRouter = {
 			);
 			const host = await getScopedHost(input.organizationId, input.hostId);
 
-			// Relies on the partial unique index
-			// (project_id, host_id) WHERE type='main' for idempotency — race-safe
-			// even if two callers (e.g. the startup sweep and project.setup) both
-			// miss the existence check at the same instant.
-			const [inserted] = await dbWs
-				.insert(v2Workspaces)
-				.values({
-					organizationId: project.organizationId,
-					projectId: project.id,
-					name: input.name,
-					branch: input.branch,
-					hostId: host.machineId,
-					type: input.type,
-					createdByUserId: ctx.userId,
-				})
-				.onConflictDoNothing()
-				.returning();
-
-			if (inserted) return inserted;
-
-			if (input.type === "main") {
-				const existing = await dbWs.query.v2Workspaces.findFirst({
-					where: and(
-						eq(v2Workspaces.projectId, project.id),
-						eq(v2Workspaces.hostId, host.machineId),
-						eq(v2Workspaces.type, "main"),
-					),
+			if (input.taskIds && input.taskIds.length > 0) {
+				const found = await dbWs.query.tasks.findMany({
+					columns: { id: true, organizationId: true },
+					where: inArray(tasks.id, input.taskIds),
 				});
-				if (existing) {
-					const patch: {
-						branch?: string;
-						name?: string;
-					} = {};
-					if (existing.branch !== input.branch) {
-						patch.branch = input.branch;
-						if (existing.name === existing.branch) {
-							patch.name = input.name;
-						}
-					}
-					if (Object.keys(patch).length > 0) {
-						const [updated] = await dbWs
-							.update(v2Workspaces)
-							.set(patch)
-							.where(eq(v2Workspaces.id, existing.id))
-							.returning();
-						return updated ?? existing;
-					}
-					return existing;
+				if (found.length !== input.taskIds.length) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: "One or more taskIds not found",
+					});
+				}
+				if (found.some((t) => t.organizationId !== input.organizationId)) {
+					throw new TRPCError({
+						code: "FORBIDDEN",
+						message: "All taskIds must belong to the workspace's organization",
+					});
 				}
 			}
+
+			// Insert workspace + workspace_tasks rows in one transaction so the link
+			// is atomic with the create. Relies on the partial unique index
+			// (project_id, host_id) WHERE type='main' for main-workspace idempotency.
+			const result = await dbWs.transaction(async (tx) => {
+				const [inserted] = await tx
+					.insert(v2Workspaces)
+					.values({
+						...(input.id ? { id: input.id } : {}),
+						organizationId: project.organizationId,
+						projectId: project.id,
+						name: input.name,
+						branch: input.branch,
+						hostId: host.machineId,
+						type: input.type,
+						createdByUserId: ctx.userId,
+					})
+					.onConflictDoNothing()
+					.returning();
+
+				if (inserted) {
+					if (input.taskIds && input.taskIds.length > 0) {
+						await tx
+							.insert(workspaceTasks)
+							.values(
+								input.taskIds.map((taskId) => ({
+									workspaceId: inserted.id,
+									taskId,
+								})),
+							)
+							.onConflictDoNothing();
+					}
+					return inserted;
+				}
+
+				if (input.id) {
+					const existing = await tx.query.v2Workspaces.findFirst({
+						where: and(
+							eq(v2Workspaces.id, input.id),
+							eq(v2Workspaces.organizationId, project.organizationId),
+						),
+					});
+					if (existing) return existing;
+					const collision = await tx.query.v2Workspaces.findFirst({
+						columns: { id: true },
+						where: eq(v2Workspaces.id, input.id),
+					});
+					if (collision) {
+						throw new TRPCError({
+							code: "CONFLICT",
+							message: "Workspace id already in use",
+						});
+					}
+				}
+
+				if (input.type === "main") {
+					const existing = await tx.query.v2Workspaces.findFirst({
+						where: and(
+							eq(v2Workspaces.projectId, project.id),
+							eq(v2Workspaces.hostId, host.machineId),
+							eq(v2Workspaces.type, "main"),
+						),
+					});
+					if (existing) {
+						const patch: {
+							branch?: string;
+							name?: string;
+						} = {};
+						if (existing.branch !== input.branch) {
+							patch.branch = input.branch;
+							if (existing.name === existing.branch) {
+								patch.name = input.name;
+							}
+						}
+						if (Object.keys(patch).length > 0) {
+							const [updated] = await tx
+								.update(v2Workspaces)
+								.set(patch)
+								.where(eq(v2Workspaces.id, existing.id))
+								.returning();
+							return updated ?? existing;
+						}
+						return existing;
+					}
+				}
+
+				return null;
+			});
+
+			if (result) return result;
 
 			throw new TRPCError({
 				code: "INTERNAL_SERVER_ERROR",
 				message: `Workspace insert returned no row (type=${input.type}, projectId=${project.id}, hostId=${host.machineId})`,
 			});
+		}),
+
+	linkTask: protectedProcedure
+		.input(
+			z.object({
+				workspaceId: z.string().uuid(),
+				taskId: z.string().uuid(),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			const organizationId = requireActiveOrgId(ctx, "No active organization");
+			const workspace = await getWorkspaceAccess(
+				ctx.session.user.id,
+				input.workspaceId,
+				{ organizationId },
+			);
+			const task = await dbWs.query.tasks.findFirst({
+				columns: { id: true, organizationId: true },
+				where: eq(tasks.id, input.taskId),
+			});
+			if (!task) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Task not found",
+				});
+			}
+			if (task.organizationId !== workspace.organizationId) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "Task does not belong to the workspace's organization",
+				});
+			}
+			await dbWs
+				.insert(workspaceTasks)
+				.values({ workspaceId: input.workspaceId, taskId: input.taskId })
+				.onConflictDoNothing();
+			return { success: true as const };
+		}),
+
+	unlinkTask: protectedProcedure
+		.input(
+			z.object({
+				workspaceId: z.string().uuid(),
+				taskId: z.string().uuid(),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			const organizationId = requireActiveOrgId(ctx, "No active organization");
+			await getWorkspaceAccess(ctx.session.user.id, input.workspaceId, {
+				organizationId,
+			});
+			await dbWs
+				.delete(workspaceTasks)
+				.where(
+					and(
+						eq(workspaceTasks.workspaceId, input.workspaceId),
+						eq(workspaceTasks.taskId, input.taskId),
+					),
+				);
+			return { success: true as const };
 		}),
 
 	getFromHost: jwtProcedure

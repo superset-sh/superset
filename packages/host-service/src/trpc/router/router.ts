@@ -1,4 +1,5 @@
 import { router } from "../index";
+import { agentsRouter } from "./agents";
 import { attachmentsRouter } from "./attachments";
 import { authRouter } from "./auth";
 import { chatRouter } from "./chat";
@@ -17,8 +18,10 @@ import { terminalRouter } from "./terminal";
 import { workspaceRouter } from "./workspace";
 import { workspaceCleanupRouter } from "./workspace-cleanup";
 import { workspaceCreationRouter } from "./workspace-creation";
+import { workspacesRouter } from "./workspaces";
 
 export const appRouter = router({
+	agents: agentsRouter,
 	attachments: attachmentsRouter,
 	auth: authRouter,
 	health: healthRouter,
@@ -35,6 +38,7 @@ export const appRouter = router({
 	settings: settingsRouter,
 	terminal: terminalRouter,
 	workspace: workspaceRouter,
+	workspaces: workspacesRouter,
 	workspaceCleanup: workspaceCleanupRouter,
 	workspaceCreation: workspaceCreationRouter,
 });

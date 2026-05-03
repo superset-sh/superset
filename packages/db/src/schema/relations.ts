@@ -31,6 +31,7 @@ import {
 	v2UsersHosts,
 	v2Workspaces,
 	workspaces,
+	workspaceTasks,
 } from "./schema";
 
 export const usersRelations = relations(users, ({ many }) => ({
@@ -118,7 +119,7 @@ export const subscriptionsRelations = relations(subscriptions, ({ one }) => ({
 	}),
 }));
 
-export const tasksRelations = relations(tasks, ({ one }) => ({
+export const tasksRelations = relations(tasks, ({ one, many }) => ({
 	organization: one(organizations, {
 		fields: [tasks.organizationId],
 		references: [organizations.id],
@@ -137,6 +138,7 @@ export const tasksRelations = relations(tasks, ({ one }) => ({
 		references: [users.id],
 		relationName: "creator",
 	}),
+	workspaces: many(workspaceTasks),
 }));
 
 export const taskStatusesRelations = relations(
@@ -338,8 +340,20 @@ export const v2WorkspacesRelations = relations(
 			references: [users.id],
 		}),
 		chatSessions: many(chatSessions),
+		tasks: many(workspaceTasks),
 	}),
 );
+
+export const workspaceTasksRelations = relations(workspaceTasks, ({ one }) => ({
+	workspace: one(v2Workspaces, {
+		fields: [workspaceTasks.workspaceId],
+		references: [v2Workspaces.id],
+	}),
+	task: one(tasks, {
+		fields: [workspaceTasks.taskId],
+		references: [tasks.id],
+	}),
+}));
 
 export const secretsRelations = relations(secrets, ({ one }) => ({
 	organization: one(organizations, {
