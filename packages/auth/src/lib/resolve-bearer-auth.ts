@@ -5,11 +5,26 @@ import { verifyAccessToken } from "better-auth/oauth2";
 import { and, eq } from "drizzle-orm";
 import { env } from "../env";
 import { auth } from "../server";
-import { VALID_OAUTH_AUDIENCES } from "./oauth-audiences";
+import { TRPC_AUDIENCES } from "./oauth-audiences";
 
 const apiUrl = env.NEXT_PUBLIC_API_URL.replace(/\/+$/, "");
 
 export type BearerAuthKind = "jwt" | "apiKey";
+
+export type BearerAuthErrorReason =
+	| "invalid_token"
+	| "invalid_api_key"
+	| "forbidden_org";
+
+export class BearerAuthError extends Error {
+	constructor(
+		public readonly reason: BearerAuthErrorReason,
+		message: string,
+	) {
+		super(message);
+		this.name = "BearerAuthError";
+	}
+}
 
 export interface BearerAuthResult {
 	kind: BearerAuthKind;
@@ -18,6 +33,15 @@ export interface BearerAuthResult {
 	activeOrganizationId: string | null;
 	organizationIds: string[];
 	scopes: string[];
+}
+
+export interface ResolveBearerAuthOptions {
+	/**
+	 * Audiences accepted by this resource server. Tokens whose `aud` claim
+	 * doesn't intersect this list are rejected. Defaults to `TRPC_AUDIENCES`
+	 * (general API routes). Set to `MCP_AUDIENCES` for MCP routes.
+	 */
+	audiences?: string[];
 }
 
 function looksLikeJwt(token: string): boolean {
@@ -33,8 +57,13 @@ function extractBearer(headers: Headers): {
 	apiKey?: string;
 	jwt?: string;
 } {
-	const apiKey = headers.get("x-api-key")?.trim();
-	if (apiKey) return { apiKey };
+	const xApiKey = headers.get("x-api-key")?.trim();
+	if (xApiKey) {
+		// Only accept x-api-key values that match our prefix. An arbitrary
+		// header value should not be forwarded to verifyApiKey.
+		if (isApiKey(xApiKey)) return { apiKey: xApiKey };
+		return {};
+	}
 
 	const authHeader = headers.get("authorization");
 	const match = authHeader?.match(/^Bearer\s+(.+)$/i);
@@ -78,7 +107,10 @@ async function resolveOrgFromHeader(
 		columns: { id: true },
 	});
 	if (!membership) {
-		throw new Error(`Not a member of organization ${requested}`);
+		throw new BearerAuthError(
+			"forbidden_org",
+			`Not a member of organization ${requested}`,
+		);
 	}
 	return requested;
 }
@@ -91,17 +123,34 @@ async function listOrganizationIds(userId: string): Promise<string[]> {
 	return [...new Set(rows.map((r) => r.organizationId))];
 }
 
+/**
+ * Validates an `Authorization: Bearer …` JWT or an `x-api-key` header.
+ *
+ * - Returns `null` when no bearer/api-key header is present (caller should
+ *   fall back to other auth, e.g. cookie session).
+ * - Throws `BearerAuthError` when a bearer IS present but invalid or
+ *   forbidden — never silently falls through, so callers don't accidentally
+ *   authenticate a stale-token request via cookie.
+ */
 export async function resolveBearerAuth(
 	headers: Headers,
+	options: ResolveBearerAuthOptions = {},
 ): Promise<BearerAuthResult | null> {
 	const { apiKey, jwt } = extractBearer(headers);
 
 	if (apiKey) {
 		const result = await auth.api.verifyApiKey({ body: { key: apiKey } });
-		if (!result.valid || !result.key) return null;
+		if (!result.valid || !result.key) {
+			throw new BearerAuthError("invalid_api_key", "API key invalid");
+		}
 
 		const userId = result.key.referenceId ?? null;
-		if (!userId) return null;
+		if (!userId) {
+			throw new BearerAuthError(
+				"invalid_api_key",
+				"API key has no associated user",
+			);
+		}
 
 		const metadata = parseApiKeyMetadata(result.key.metadata);
 		const claimedOrg =
@@ -131,15 +180,20 @@ export async function resolveBearerAuth(
 				jwksUrl: `${apiUrl}/api/auth/jwks`,
 				verifyOptions: {
 					issuer: apiUrl,
-					audience: VALID_OAUTH_AUDIENCES,
+					audience: options.audiences ?? TRPC_AUDIENCES,
 				},
 			})) as Record<string, unknown>;
-		} catch {
-			return null;
+		} catch (error) {
+			throw new BearerAuthError(
+				"invalid_token",
+				error instanceof Error ? error.message : "JWT verification failed",
+			);
 		}
 
 		const userId = typeof payload.sub === "string" ? payload.sub : null;
-		if (!userId) return null;
+		if (!userId) {
+			throw new BearerAuthError("invalid_token", "JWT missing sub claim");
+		}
 
 		const claimedOrg =
 			typeof payload.organizationId === "string"

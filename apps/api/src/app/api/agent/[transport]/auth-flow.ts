@@ -1,6 +1,10 @@
 import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
 import type { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
-import { resolveBearerAuth } from "@superset/auth/resolve-bearer-auth";
+import { MCP_AUDIENCES } from "@superset/auth/oauth-audiences";
+import {
+	BearerAuthError,
+	resolveBearerAuth,
+} from "@superset/auth/resolve-bearer-auth";
 import type { createMcpServer } from "@superset/mcp";
 import type { McpContext } from "@superset/mcp/auth";
 import { getOAuthProtectedResourceMetadataUrl } from "@/lib/oauth-metadata";
@@ -53,15 +57,9 @@ export async function verifyToken(
 	req: Request,
 	deps: McpRequestDeps,
 ): Promise<AuthInfo | undefined> {
-	let bearer: Awaited<ReturnType<typeof resolveBearerAuth>> = null;
-	try {
-		bearer = await resolveBearerAuth(req.headers);
-	} catch (error) {
-		console.error("[mcp/auth] Bearer auth rejected", {
-			message: error instanceof Error ? error.message : String(error),
-		});
-		return undefined;
-	}
+	const bearer = await resolveBearerAuth(req.headers, {
+		audiences: MCP_AUDIENCES,
+	});
 
 	if (bearer) {
 		if (!bearer.activeOrganizationId) {
@@ -100,11 +98,30 @@ export function unauthorizedResponse(req: Request): Response {
 	});
 }
 
+function forbiddenResponse(message: string): Response {
+	return new Response(message, { status: 403 });
+}
+
 export async function handleMcpRequest(
 	req: Request,
 	deps: McpRequestDeps,
 ): Promise<Response> {
-	const authInfo = await verifyToken(req, deps);
+	let authInfo: AuthInfo | undefined;
+	try {
+		authInfo = await verifyToken(req, deps);
+	} catch (error) {
+		if (error instanceof BearerAuthError) {
+			if (error.reason === "forbidden_org") {
+				return forbiddenResponse(error.message);
+			}
+			console.error("[mcp/auth] Bearer rejected", {
+				reason: error.reason,
+				message: error.message,
+			});
+			return unauthorizedResponse(req);
+		}
+		throw error;
+	}
 	if (!authInfo) {
 		return unauthorizedResponse(req);
 	}

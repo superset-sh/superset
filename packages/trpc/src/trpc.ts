@@ -1,4 +1,7 @@
-import { resolveBearerAuth } from "@superset/auth/resolve-bearer-auth";
+import {
+	BearerAuthError,
+	resolveBearerAuth,
+} from "@superset/auth/resolve-bearer-auth";
 import type { auth, Session } from "@superset/auth/server";
 import { db } from "@superset/db/client";
 import { members } from "@superset/db/schema";
@@ -78,10 +81,13 @@ export const bearerProcedure = t.procedure.use(async ({ ctx, next }) => {
 	try {
 		bearerAuth = await resolveBearerAuth(ctx.headers);
 	} catch (error) {
-		throw new TRPCError({
-			code: "FORBIDDEN",
-			message: error instanceof Error ? error.message : "Bearer auth rejected",
-		});
+		if (error instanceof BearerAuthError) {
+			throw new TRPCError({
+				code: error.reason === "forbidden_org" ? "FORBIDDEN" : "UNAUTHORIZED",
+				message: error.message,
+			});
+		}
+		throw error;
 	}
 
 	if (bearerAuth) {
