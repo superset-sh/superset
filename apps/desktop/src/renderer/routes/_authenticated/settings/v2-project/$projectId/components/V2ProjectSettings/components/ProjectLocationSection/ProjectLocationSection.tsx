@@ -50,7 +50,7 @@ export function ProjectLocationSection({
 		(q) =>
 			q
 				.from({ hosts: collections.v2Hosts })
-				.where(({ hosts }) => eq(hosts.machineId, machineId ?? ""))
+				.where(({ hosts }) => eq(hosts.machineId, machineId))
 				.select(({ hosts }) => ({
 					name: hosts.name,
 					isOnline: hosts.isOnline,

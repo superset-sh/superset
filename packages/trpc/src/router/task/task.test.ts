@@ -10,6 +10,10 @@ const verifyOrgAdminMock = mock(async () => ({
 const verifyOrgMembershipMock = mock(async () => ({
 	membership: { role: "member" },
 }));
+const verifyOrgMembershipWithSubscriptionMock = mock(async () => ({
+	membership: { role: "member" },
+	subscription: null,
+}));
 
 let dbSelectResults: unknown[][] = [];
 let selectResults: unknown[][] = [];
@@ -166,6 +170,7 @@ mock.module("../../lib/integrations/sync", () => ({
 mock.module("../integration/utils", () => ({
 	verifyOrgAdmin: verifyOrgAdminMock,
 	verifyOrgMembership: verifyOrgMembershipMock,
+	verifyOrgMembershipWithSubscription: verifyOrgMembershipWithSubscriptionMock,
 }));
 
 const { createCallerFactory, createTRPCRouter } = await import("../../trpc");

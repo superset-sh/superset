@@ -10,16 +10,19 @@ import {
 import { Input } from "@superset/ui/input";
 import { cn } from "@superset/ui/utils";
 import { useEffect, useState } from "react";
-import { FaGithub } from "react-icons/fa";
 import {
 	LuFolderOpen,
 	LuFolderPlus,
+	LuGitBranch,
 	LuLayoutTemplate,
 	LuX,
 } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
-import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
+import {
+	type ProjectSetupResult,
+	useFinalizeProjectSetup,
+} from "renderer/react-query/projects";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 
 type NewProjectMode = "clone" | "empty" | "template";
@@ -27,11 +30,7 @@ type NewProjectMode = "clone" | "empty" | "template";
 interface NewProjectModalProps {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
-	onSuccess?: (result: {
-		projectId: string;
-		repoPath: string;
-		mainWorkspaceId: string | null;
-	}) => void;
+	onSuccess?: (result: ProjectSetupResult) => void;
 	onError?: (message: string) => void;
 }
 
@@ -39,13 +38,13 @@ const OPTIONS: {
 	mode: NewProjectMode;
 	label: string;
 	suffix?: string;
-	icon: typeof FaGithub;
+	icon: typeof LuGitBranch;
 	disabled?: boolean;
 }[] = [
 	{
 		mode: "clone",
-		label: "Clone from GitHub",
-		icon: FaGithub,
+		label: "Clone repository",
+		icon: LuGitBranch,
 	},
 	{
 		mode: "empty",
@@ -64,8 +63,12 @@ const OPTIONS: {
 ];
 
 function deriveProjectNameFromUrl(url: string): string {
-	const trimmed = url.trim().replace(/\.git$/i, "");
-	const segments = trimmed.split(/[/:]/).filter(Boolean);
+	const trimmed = url
+		.trim()
+		.replace(/[?#].*$/, "")
+		.replace(/[\\/]+$/, "")
+		.replace(/\.git$/i, "");
+	const segments = trimmed.split(/[/:\\]/).filter(Boolean);
 	return segments[segments.length - 1] ?? "";
 }
 
@@ -76,8 +79,7 @@ export function NewProjectModal({
 	onError,
 }: NewProjectModalProps) {
 	const { activeHostUrl } = useLocalHostService();
-	const { ensureProjectInSidebar, ensureWorkspaceInSidebar } =
-		useDashboardSidebarState();
+	const finalizeSetup = useFinalizeProjectSetup();
 	const selectDirectory = electronTrpc.window.selectDirectory.useMutation();
 	const { data: homeDir } = electronTrpc.window.getHomeDir.useQuery();
 
@@ -135,7 +137,7 @@ export function NewProjectModal({
 		}
 		const name = deriveProjectNameFromUrl(trimmedUrl);
 		if (!name) {
-			setError("Could not derive a project name from the URL");
+			setError("Could not derive a project name from the URL or path");
 			return;
 		}
 
@@ -147,16 +149,20 @@ export function NewProjectModal({
 				name,
 				mode: { kind: "clone", parentDir: trimmedParent, url: trimmedUrl },
 			});
-			if (result.mainWorkspaceId) {
-				ensureWorkspaceInSidebar(result.mainWorkspaceId, result.projectId);
-			} else {
-				ensureProjectInSidebar(result.projectId);
-			}
+			finalizeSetup(activeHostUrl, result);
 			onSuccess?.(result);
 			reset();
 			onOpenChange(false);
 		} catch (err) {
-			const message = err instanceof Error ? err.message : String(err);
+			const raw = err instanceof Error ? err.message : String(err);
+			// Drizzle / pg errors arrive as "Failed query: insert into ..."
+			// which is useless to a user. Hide that envelope in favor of a
+			// short generic message; details land in the console for devs.
+			const isLeakedSql = raw.startsWith("Failed query:");
+			if (isLeakedSql) console.error("[NewProjectModal] create failed", err);
+			const message = isLeakedSql
+				? "Could not create project. Please try a different name or check the logs."
+				: raw;
 			setError(message);
 			onError?.(message);
 		} finally {
@@ -170,7 +176,7 @@ export function NewProjectModal({
 				<DialogHeader>
 					<DialogTitle>New project</DialogTitle>
 					<DialogDescription className="sr-only">
-						Create a new project by cloning a repository.
+						Create a new project by cloning a repository or local path.
 					</DialogDescription>
 				</DialogHeader>
 
@@ -251,13 +257,13 @@ export function NewProjectModal({
 								htmlFor="clone-url"
 								className="text-xs font-medium text-muted-foreground"
 							>
-								Repository URL
+								Repository URL or path
 							</label>
 							<Input
 								id="clone-url"
 								value={url}
 								onChange={(e) => setUrl(e.target.value)}
-								placeholder="https://github.com/owner/repo.git"
+								placeholder="https://github.com/owner/repo.git or /path/to/repo"
 								disabled={working}
 								onKeyDown={(e) => {
 									if (e.key === "Enter" && !working) {

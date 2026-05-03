@@ -598,6 +598,48 @@ describe("movePaneToSplit", () => {
 	});
 });
 
+describe("movePaneToNewTab", () => {
+	it("moves a pane into a new tab at the requested index", () => {
+		const store = makeStore();
+		store.getState().addTab({
+			id: "t1",
+			panes: [tp("p1"), tp("p2")],
+			activePaneId: "p1",
+		});
+		store.getState().addTab({ id: "t2", panes: [tp("p3")] });
+
+		store.getState().movePaneToNewTab({ paneId: "p2", toIndex: 1 });
+
+		const tabs = store.getState().tabs;
+		const newTab = tabs[1];
+		if (!newTab) throw new Error("Expected new tab at index 1");
+
+		expect(tabs.map((t) => t.id)).toEqual(["t1", newTab.id, "t2"]);
+		expect(newTab.panes.p2).toBeDefined();
+		expect(newTab.activePaneId).toBe("p2");
+		expect(newTab.layout).toEqual({ type: "pane", paneId: "p2" });
+		expect(tabs[0]?.panes.p2).toBeUndefined();
+		expect(tabs[0]?.layout).toEqual({ type: "pane", paneId: "p1" });
+		expect(store.getState().activeTabId).toBe(newTab.id);
+	});
+
+	it("keeps insertion position stable when the source tab is removed", () => {
+		const store = makeStore();
+		store.getState().addTab({ id: "t1", panes: [tp("p1")] });
+		store.getState().addTab({ id: "t2", panes: [tp("p2")] });
+
+		store.getState().movePaneToNewTab({ paneId: "p1", toIndex: 1 });
+
+		const tabs = store.getState().tabs;
+		const newTab = tabs[0];
+		if (!newTab) throw new Error("Expected new tab at index 0");
+
+		expect(tabs.map((t) => t.id)).toEqual([newTab.id, "t2"]);
+		expect(newTab.panes.p1).toBeDefined();
+		expect(store.getState().activeTabId).toBe(newTab.id);
+	});
+});
+
 describe("edge cases", () => {
 	it("invalid IDs are no-ops", () => {
 		const store = makeStore();

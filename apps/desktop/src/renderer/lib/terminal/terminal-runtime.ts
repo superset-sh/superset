@@ -3,15 +3,11 @@ import type { ProgressAddon } from "@xterm/addon-progress";
 import type { SearchAddon } from "@xterm/addon-search";
 import { SerializeAddon } from "@xterm/addon-serialize";
 import { Terminal as XTerm } from "@xterm/xterm";
-import { resolveHotkeyFromEvent } from "renderer/hotkeys";
-import {
-	shouldBubbleClipboardShortcut,
-	shouldSelectAllShortcut,
-} from "renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/Terminal/clipboardShortcuts";
 import { DEFAULT_TERMINAL_SCROLLBACK } from "shared/constants";
 import type { TerminalAppearance } from "./appearance";
-import { translateLineEditChord } from "./line-edit-translations";
 import { loadAddons } from "./terminal-addons";
+import { installTerminalKeyEventHandler } from "./terminal-key-event-handler";
+import { getTerminalParkingContainer } from "./terminal-parking";
 
 const SERIALIZE_SCROLLBACK = 1000;
 const STORAGE_KEY_PREFIX = "terminal-buffer:";
@@ -19,61 +15,6 @@ const DIMS_KEY_PREFIX = "terminal-dims:";
 const DEFAULT_COLS = 120;
 const DEFAULT_ROWS = 32;
 const RESIZE_DEBOUNCE_MS = 75;
-
-// xterm's _keyDown calls stopPropagation after processing, so any chord we
-// want the host (react-hotkeys-hook, Electron menu accelerators) or the shell
-// (Ctrl+A/E/U escape sequences for line edit) to see must short-circuit xterm
-// before it runs. (VSCode pattern: terminalInstance.ts:1116-1175.)
-//
-// Kitty keyboard protocol is enabled, which means every Mac Cmd chord xterm
-// sees gets CSI-u encoded and leaks into TUIs as a literal char. Ghostty
-// sidesteps this by suppressing all super/Cmd chords on macOS before the
-// encoder runs (ghostty/src/input/key_encode.zig:534-545). We do the same via
-// shouldBubbleClipboardShortcut's Mac branch.
-function createKeyEventHandler(terminal: XTerm) {
-	const platform =
-		typeof navigator !== "undefined" ? navigator.platform.toLowerCase() : "";
-	const isMac = platform.includes("mac");
-	const isWindows = platform.includes("win");
-
-	return (event: KeyboardEvent): boolean => {
-		if (resolveHotkeyFromEvent(event) !== null) return false;
-
-		const translation = translateLineEditChord(event, { isMac, isWindows });
-		if (translation !== null) {
-			if (event.type === "keydown") {
-				event.preventDefault();
-				terminal.input(translation, true);
-			}
-			return false;
-		}
-
-		if (shouldSelectAllShortcut(event, isMac)) {
-			if (event.type === "keydown") {
-				event.preventDefault();
-				terminal.selectAll();
-			}
-			return false;
-		}
-
-		if (
-			shouldBubbleClipboardShortcut(event, {
-				isMac,
-				isWindows,
-				hasSelection: terminal.hasSelection(),
-			})
-		) {
-			// Do NOT preventDefault — the browser's keydown → paste-command pipeline
-			// is what fires the `paste` event on xterm's textarea. VS Code and Tabby
-			// preventDefault here only because they implement paste themselves via
-			// the command system / ClipboardAddon; we rely on xterm's built-in paste
-			// listener, so the default must run.
-			return false;
-		}
-
-		return true;
-	};
-}
 
 export interface TerminalRuntime {
 	terminalId: string;
@@ -178,34 +119,6 @@ function hostIsVisible(container: HTMLDivElement | null): boolean {
 	return container.clientWidth > 0 && container.clientHeight > 0;
 }
 
-// Body-level hidden container that owns wrapper divs of terminals whose
-// React component is currently unmounted (e.g. workspace switch). Keeps
-// xterm attached to the document so it survives provider remounts without
-// a detach/reattach flash — VSCode's setVisible(false) model. Looked up
-// by DOM id so it's HMR-safe (module-level `let` would leak on re-eval).
-// `inert` removes the whole subtree from the tab order and the accessibility
-// tree, and also moves focus out of it — so a parked terminal's internal
-// <textarea> can't receive keystrokes meant for the active pane.
-const PARKING_CONTAINER_ID = "v2-terminal-parking";
-function getParkingContainer(): HTMLDivElement {
-	const existing = document.getElementById(PARKING_CONTAINER_ID);
-	if (existing) return existing as HTMLDivElement;
-
-	const el = document.createElement("div");
-	el.id = PARKING_CONTAINER_ID;
-	el.setAttribute("inert", "");
-	el.setAttribute("aria-hidden", "true");
-	el.style.position = "fixed";
-	el.style.left = "-9999px";
-	el.style.top = "-9999px";
-	el.style.width = "100vw";
-	el.style.height = "100vh";
-	el.style.overflow = "hidden";
-	el.style.pointerEvents = "none";
-	document.body.appendChild(el);
-	return el;
-}
-
 function measureAndResize(runtime: TerminalRuntime): boolean {
 	if (!hostIsVisible(runtime.container)) return false;
 	const { terminal } = runtime;
@@ -292,7 +205,7 @@ export function createRuntime(
 	wrapper.style.height = "100%";
 	terminal.open(wrapper);
 
-	terminal.attachCustomKeyEventHandler(createKeyEventHandler(terminal));
+	installTerminalKeyEventHandler(terminal);
 
 	// Activate Unicode 11 widths (inside loadAddons) before restoring the buffer,
 	// else CJK/emoji/ZWJ widths get baked wrong into the replay. (#3572)
@@ -359,8 +272,8 @@ export function detachFromContainer(runtime: TerminalRuntime) {
 	runtime.resizeObserver?.disconnect();
 	runtime.resizeObserver = null;
 	// Park instead of .remove() so xterm survives the React unmount —
-	// see getParkingContainer.
-	getParkingContainer().appendChild(runtime.wrapper);
+	// see getTerminalParkingContainer.
+	getTerminalParkingContainer().appendChild(runtime.wrapper);
 	runtime.container = null;
 }
 

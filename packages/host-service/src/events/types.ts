@@ -1,6 +1,6 @@
 import type { DetectedPort } from "@superset/port-scanner";
 import type { FsWatchEvent } from "@superset/workspace-fs/host";
-import type { AgentLifecycleEventType } from "./map-event-type";
+import type { AgentLifecycleEventType } from "./map-event-type.ts";
 
 // ── Server → Client ────────────────────────────────────────────────
 

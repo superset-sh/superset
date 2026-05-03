@@ -1,6 +1,7 @@
 import type { Pane, WorkspaceState } from "@superset/panes";
 import { useCallback } from "react";
 import { terminalRuntimeRegistry } from "renderer/lib/terminal/terminal-runtime-registry";
+import { dropWorkspacePaneStore } from "renderer/lib/workspace-pane-registry";
 import { browserRuntimeRegistry } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/BrowserPane/browserRuntimeRegistry";
 import {
 	extractPaneIds,
@@ -462,6 +463,7 @@ export function useDashboardSidebarState() {
 			if (!workspace) return;
 			cleanupWorkspacePaneRuntimes([workspace]);
 			collections.v2WorkspaceLocalState.delete(workspaceId);
+			dropWorkspacePaneStore(workspaceId);
 		},
 		[collections],
 	);

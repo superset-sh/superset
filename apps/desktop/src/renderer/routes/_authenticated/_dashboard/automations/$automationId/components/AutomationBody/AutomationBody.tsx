@@ -1,6 +1,6 @@
 import type { SelectAutomation } from "@superset/db/schema";
-import { useMutation } from "@tanstack/react-query";
-import { useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useRef, useState } from "react";
 import { EmojiTextInput } from "renderer/components/EmojiTextInput";
 import { MarkdownEditor } from "renderer/components/MarkdownEditor";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
@@ -14,10 +14,32 @@ export function AutomationBody({
 }) {
 	const [name, setName] = useState(automation.name);
 	const [prompt, setPrompt] = useState(automation.prompt);
+	const lastSyncedPromptRef = useRef(automation.prompt);
+	const queryClient = useQueryClient();
+
+	useEffect(() => {
+		if (automation.prompt !== lastSyncedPromptRef.current) {
+			lastSyncedPromptRef.current = automation.prompt;
+			setPrompt(automation.prompt);
+		}
+	}, [automation.prompt]);
 
 	const updateMutation = useMutation({
-		mutationFn: (patch: { name?: string; prompt?: string }) =>
+		mutationFn: (patch: { name?: string }) =>
 			apiTrpcClient.automation.update.mutate({ id: automation.id, ...patch }),
+	});
+
+	const setPromptMutation = useMutation({
+		mutationFn: (next: string) =>
+			apiTrpcClient.automation.setPrompt.mutate({
+				id: automation.id,
+				prompt: next,
+			}),
+		onSuccess: () => {
+			queryClient.invalidateQueries({
+				queryKey: ["automation-versions", automation.id],
+			});
+		},
 	});
 
 	const hostTarget: WorkspaceHostTarget = automation.targetHostId
@@ -47,7 +69,7 @@ export function AutomationBody({
 				onChange={setPrompt}
 				onSave={(next) => {
 					if (next !== automation.prompt) {
-						updateMutation.mutate({ prompt: next });
+						setPromptMutation.mutate(next);
 					}
 				}}
 				placeholder="Add prompt e.g. look for crashes in $sentry"

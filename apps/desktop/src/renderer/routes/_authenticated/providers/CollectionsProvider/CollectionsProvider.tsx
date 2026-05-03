@@ -9,6 +9,7 @@ import {
 } from "react";
 import { env } from "renderer/env.renderer";
 import { authClient } from "renderer/lib/auth-client";
+import { initWorkspacePaneRegistry } from "renderer/lib/workspace-pane-registry";
 import { MOCK_ORG_ID } from "shared/constants";
 import { getCollections, preloadCollections } from "./collections";
 
@@ -56,10 +57,28 @@ export function CollectionsProvider({ children }: { children: ReactNode }) {
 		preloadActiveOrganizationCollections(activeOrganizationId);
 	}, [activeOrganizationId]);
 
-	const collections = useMemo(
-		() => (activeOrganizationId ? getCollections(activeOrganizationId) : null),
-		[activeOrganizationId],
-	);
+	// Wire (or rewire on org switch) the workspace pane registry against
+	// the active org's v2WorkspaceLocalState collection synchronously, so
+	// callers of getOrCreateWorkspacePaneStore — including the workspace
+	// route's `useState(() => ...)` initializer — see an initialized
+	// registry before they run.
+	//
+	// Side effects in `useMemo` are not React-blessed (the docs reserve
+	// the right to recompute or discard memo work). The synchrony
+	// requirement here can't be satisfied by `useEffect`, which runs
+	// after render commits. Mitigation: `initWorkspacePaneRegistry`
+	// keys teardown on the `v2WorkspaceLocalState` *instance*, so any
+	// recomputation that happens to receive the same collection is a
+	// no-op rather than a state-clearing event. The only real teardown
+	// is on org switch, when the underlying collection actually changes.
+	const collections = useMemo(() => {
+		if (!activeOrganizationId) return null;
+		const next = getCollections(activeOrganizationId);
+		initWorkspacePaneRegistry({
+			v2WorkspaceLocalState: next.v2WorkspaceLocalState,
+		});
+		return next;
+	}, [activeOrganizationId]);
 
 	const contextValue = useMemo<CollectionsContextType | null>(
 		() => (collections ? { ...collections, switchOrganization } : null),

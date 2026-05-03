@@ -1,15 +1,29 @@
-const ESC = "\x1b";
-const OSC = `${ESC}]`;
-const C1_OSC = "\x9d";
-const BEL = "\x07";
-const ST = `${ESC}\\`;
-const C1_ST = "\x9c";
+// Byte-oriented terminal-title OSC scanner.
+//
+// PTY output flows through here as raw bytes from the daemon, so the
+// scanner runs over `Uint8Array` directly — no per-chunk UTF-8 decoding,
+// no boundary-mangling. OSC framing is pure ASCII (ESC `]`, BEL, ST), so
+// the framing pass is byte-cheap. Only the bounded title payload is
+// decoded to a string, and only at the moment {@link normalizeTerminalTitle}
+// needs codepoints to filter control characters and enforce a length cap.
 
 const MAX_OSC_SEQUENCE_BYTES = 4096;
 const MAX_TERMINAL_TITLE_LENGTH = 200;
 
+const ESC_BYTE = 0x1b;
+const BACKSLASH_BYTE = 0x5c; // ESC + '\' = ST
+const RIGHT_BRACKET_BYTE = 0x5d; // ESC + ']' = OSC
+const C1_OSC_BYTE = 0x9d;
+const C1_ST_BYTE = 0x9c;
+const BEL_BYTE = 0x07;
+
+const sharedTitleTextDecoder = /* @__PURE__ */ new TextDecoder("utf-8", {
+	fatal: false,
+});
+
 export interface TerminalTitleScanState {
-	buffer: string;
+	/** Held bytes spanning a chunk boundary while an OSC sequence is mid-flight. */
+	buffer: Uint8Array;
 }
 
 export interface TerminalTitleScanResult {
@@ -17,7 +31,7 @@ export interface TerminalTitleScanResult {
 }
 
 export function createTerminalTitleScanState(): TerminalTitleScanState {
-	return { buffer: "" };
+	return { buffer: new Uint8Array(0) };
 }
 
 export function normalizeTerminalTitle(title: string): string | null {
@@ -39,51 +53,62 @@ export function normalizeTerminalTitle(title: string): string | null {
 	return chars.slice(0, MAX_TERMINAL_TITLE_LENGTH).join("");
 }
 
-function getUtf8ByteLength(value: string): number {
-	let bytes = 0;
-	for (const char of value) {
-		const codePoint = char.codePointAt(0) ?? 0;
-		if (codePoint <= 0x7f) {
-			bytes += 1;
-		} else if (codePoint <= 0x7ff) {
-			bytes += 2;
-		} else if (codePoint <= 0xffff) {
-			bytes += 3;
-		} else {
-			bytes += 4;
-		}
-	}
-	return bytes;
-}
-
-function findOscTerminator(
-	input: string,
-	fromIndex: number,
+function findOscStart(
+	input: Uint8Array,
+	from: number,
 ): { index: number; length: number } | null {
-	for (let i = fromIndex; i < input.length; i++) {
-		const ch = input[i];
-		if (ch === BEL) return { index: i, length: BEL.length };
-		if (ch === C1_ST) return { index: i, length: C1_ST.length };
-		if (ch === ESC && input.startsWith(ST, i)) {
-			return { index: i, length: ST.length };
+	for (let i = from; i < input.length; i++) {
+		const b = input[i];
+		if (b === C1_OSC_BYTE) return { index: i, length: 1 };
+		if (
+			b === ESC_BYTE &&
+			i + 1 < input.length &&
+			input[i + 1] === RIGHT_BRACKET_BYTE
+		) {
+			return { index: i, length: 2 };
 		}
 	}
 	return null;
 }
 
-function findOscStart(
-	input: string,
-	fromIndex: number,
+function findOscTerminator(
+	input: Uint8Array,
+	from: number,
 ): { index: number; length: number } | null {
-	const escOscIndex = input.indexOf(OSC, fromIndex);
-	const c1OscIndex = input.indexOf(C1_OSC, fromIndex);
-
-	if (escOscIndex === -1 && c1OscIndex === -1) return null;
-	if (escOscIndex === -1) return { index: c1OscIndex, length: C1_OSC.length };
-	if (c1OscIndex === -1 || escOscIndex < c1OscIndex) {
-		return { index: escOscIndex, length: OSC.length };
+	for (let i = from; i < input.length; i++) {
+		const b = input[i];
+		if (b === BEL_BYTE) return { index: i, length: 1 };
+		if (b === C1_ST_BYTE) return { index: i, length: 1 };
+		if (
+			b === ESC_BYTE &&
+			i + 1 < input.length &&
+			input[i + 1] === BACKSLASH_BYTE
+		) {
+			return { index: i, length: 2 };
+		}
 	}
-	return { index: c1OscIndex, length: C1_OSC.length };
+	return null;
+}
+
+function concatBytes(a: Uint8Array, b: Uint8Array): Uint8Array {
+	if (a.length === 0) return b;
+	if (b.length === 0) return a;
+	const out = new Uint8Array(a.length + b.length);
+	out.set(a, 0);
+	out.set(b, a.length);
+	return out;
+}
+
+// `subarray` returns a view into the original chunk's ArrayBuffer, which
+// would pin the entire (potentially multi-KB) chunk in memory just to hold
+// a few trailing bytes mid-OSC. Copy the slice into a fresh tiny buffer
+// before persisting in scanner state.
+function copySlice(input: Uint8Array, start: number, end?: number): Uint8Array {
+	const view =
+		end === undefined ? input.subarray(start) : input.subarray(start, end);
+	const copy = new Uint8Array(view.length);
+	copy.set(view, 0);
+	return copy;
 }
 
 function parseTitlePayload(payload: string): string | null | undefined {
@@ -117,29 +142,38 @@ function parseTitlePayload(payload: string): string | null | undefined {
  */
 export function scanForTerminalTitle(
 	state: TerminalTitleScanState,
-	chunk: string,
+	chunk: Uint8Array,
 ): TerminalTitleScanResult {
-	const input = state.buffer ? state.buffer + chunk : chunk;
+	const input =
+		state.buffer.length === 0 ? chunk : concatBytes(state.buffer, chunk);
 	const updates: Array<string | null> = [];
 	let searchIndex = 0;
 
 	while (searchIndex < input.length) {
 		const oscStart = findOscStart(input, searchIndex);
 		if (!oscStart) {
-			state.buffer = input.endsWith(ESC) ? ESC : "";
+			// Hold a trailing ESC so a `]` arriving in the next chunk still
+			// resolves to an OSC start.
+			state.buffer =
+				input.length > 0 && input[input.length - 1] === ESC_BYTE
+					? copySlice(input, input.length - 1)
+					: new Uint8Array(0);
 			return { updates };
 		}
 
 		const payloadStart = oscStart.index + oscStart.length;
 		const terminator = findOscTerminator(input, payloadStart);
 		if (!terminator) {
-			const sequence = input.slice(oscStart.index);
+			const sequenceLen = input.length - oscStart.index;
 			state.buffer =
-				getUtf8ByteLength(sequence) <= MAX_OSC_SEQUENCE_BYTES ? sequence : "";
+				sequenceLen <= MAX_OSC_SEQUENCE_BYTES
+					? copySlice(input, oscStart.index)
+					: new Uint8Array(0);
 			return { updates };
 		}
 
-		const payload = input.slice(payloadStart, terminator.index);
+		const payloadBytes = input.subarray(payloadStart, terminator.index);
+		const payload = sharedTitleTextDecoder.decode(payloadBytes);
 		const title = parseTitlePayload(payload);
 		if (title !== undefined) {
 			updates.push(title);
@@ -148,6 +182,6 @@ export function scanForTerminalTitle(
 		searchIndex = terminator.index + terminator.length;
 	}
 
-	state.buffer = "";
+	state.buffer = new Uint8Array(0);
 	return { updates };
 }

@@ -2,6 +2,7 @@ import { Label } from "@superset/ui/label";
 import { toast } from "@superset/ui/sonner";
 import { Switch } from "@superset/ui/switch";
 import { useState } from "react";
+import { GATED_FEATURES, usePaywall } from "renderer/components/Paywall";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
 	isItemVisible,
@@ -46,6 +47,8 @@ export function SecuritySettings({ visibleItems }: SecuritySettingsProps) {
 		});
 
 	const [confirmOpen, setConfirmOpen] = useState(false);
+	const [confirmTargetEnabled, setConfirmTargetEnabled] = useState(false);
+	const { gateFeature } = usePaywall();
 
 	const runToggle = (enabled: boolean) => {
 		toast.promise(setExpose.mutateAsync({ enabled }), {
@@ -58,11 +61,16 @@ export function SecuritySettings({ visibleItems }: SecuritySettingsProps) {
 		});
 	};
 
+	const openConfirm = (next: boolean) => {
+		setConfirmTargetEnabled(next);
+		setConfirmOpen(true);
+	};
+
 	const handleChange = (next: boolean) => {
 		if (next) {
-			setConfirmOpen(true);
+			gateFeature(GATED_FEATURES.REMOTE_WORKSPACES, () => openConfirm(true));
 		} else {
-			runToggle(false);
+			openConfirm(false);
 		}
 	};
 
@@ -101,10 +109,12 @@ export function SecuritySettings({ visibleItems }: SecuritySettingsProps) {
 
 			<ExposeViaRelayConfirmDialog
 				open={confirmOpen}
+				targetEnabled={confirmTargetEnabled}
 				onOpenChange={setConfirmOpen}
 				onConfirm={() => {
+					const enabled = confirmTargetEnabled;
 					setConfirmOpen(false);
-					runToggle(true);
+					runToggle(enabled);
 				}}
 			/>
 		</div>

@@ -31,27 +31,23 @@ function V2WorkspaceLayout() {
 	const { machineId, activeHostUrl } = useLocalHostService();
 	const { ensureWorkspaceInSidebar } = useDashboardSidebarState();
 
-	const { data: workspacesWithHost = [], isReady } = useLiveQuery(
+	const { data: workspaces = [], isReady } = useLiveQuery(
 		(q) =>
 			q
 				.from({ v2Workspaces: collections.v2Workspaces })
-				.leftJoin({ hosts: collections.v2Hosts }, ({ v2Workspaces, hosts }) =>
-					eq(v2Workspaces.hostId, hosts.machineId),
-				)
 				.where(({ v2Workspaces }) => eq(v2Workspaces.id, workspaceId ?? ""))
-				.select(({ v2Workspaces, hosts }) => ({
+				.select(({ v2Workspaces }) => ({
 					id: v2Workspaces.id,
 					organizationId: v2Workspaces.organizationId,
 					hostId: v2Workspaces.hostId,
-					hostMachineId: hosts?.machineId ?? null,
 					projectId: v2Workspaces.projectId,
 					branch: v2Workspaces.branch,
 				})),
 		[collections, workspaceId],
 	);
-	const workspace = workspacesWithHost[0] ?? null;
+	const workspace = workspaces[0] ?? null;
 
-	const isLocal = workspace?.hostMachineId === machineId;
+	const isLocal = workspace?.hostId === machineId;
 	const hostUrl = !workspace
 		? null
 		: isLocal

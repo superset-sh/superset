@@ -16,25 +16,21 @@ export function V2WorkspaceOpenInButton({
 	const collections = useCollections();
 	const { machineId, activeHostUrl } = useLocalHostService();
 
-	const { data: workspacesWithHost = [] } = useLiveQuery(
+	const { data: workspaces = [] } = useLiveQuery(
 		(q) =>
 			q
 				.from({ workspaces: collections.v2Workspaces })
-				.leftJoin({ hosts: collections.v2Hosts }, ({ workspaces, hosts }) =>
-					eq(workspaces.hostId, hosts.machineId),
-				)
 				.where(({ workspaces }) => eq(workspaces.id, workspaceId))
-				.select(({ workspaces, hosts }) => ({
+				.select(({ workspaces }) => ({
 					id: workspaces.id,
 					branch: workspaces.branch,
 					projectId: workspaces.projectId,
-					hostMachineId: hosts?.machineId ?? null,
+					hostId: workspaces.hostId,
 				})),
 		[collections, workspaceId],
 	);
-	const workspace = workspacesWithHost[0] ?? null;
-	const isLocalWorkspace =
-		Boolean(workspace) && workspace.hostMachineId === machineId;
+	const workspace = workspaces[0] ?? null;
+	const isLocalWorkspace = Boolean(workspace) && workspace.hostId === machineId;
 
 	const workspaceQuery = useQuery({
 		queryKey: ["v2-open-in-workspace", activeHostUrl, workspaceId],

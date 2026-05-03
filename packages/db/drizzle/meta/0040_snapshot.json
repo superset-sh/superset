@@ -1,5 +1,5 @@
 {
-  "id": "cb97d5d4-d5b2-4ad5-a9c3-6d630efd8201",
+  "id": "2174d3c6-e51b-4865-af8f-000b8f7e696f",
   "prevId": "93706e33-59b4-4ec5-9266-49a93063f608",
   "version": "7",
   "dialect": "postgresql",
@@ -974,6 +974,18 @@
         },
         "type": {
           "name": "type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "require_pkce": {
+          "name": "require_pkce",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "subject_type": {
+          "name": "subject_type",
           "type": "text",
           "primaryKey": false,
           "notNull": false
@@ -3898,6 +3910,18 @@
           "primaryKey": false,
           "notNull": false
         },
+        "billing_interval": {
+          "name": "billing_interval",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "stripe_schedule_id": {
+          "name": "stripe_schedule_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp",
@@ -4900,12 +4924,6 @@
         "github_repository_id": {
           "name": "github_repository_id",
           "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "icon_url": {
-          "name": "icon_url",
-          "type": "text",
           "primaryKey": false,
           "notNull": false
         },

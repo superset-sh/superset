@@ -1,0 +1,128 @@
+---
+title: Host Server
+description: Set up the daemon the CLI and desktop app talk to when targeting the local machine.
+---
+
+The `superset start` command runs a headless HTTP server that any Superset desktop app or CLI can communicate with.
+
+It manages workspaces, ports, and agent runs on the machine it's running on. The desktop app starts it automatically; on a CLI-only or headless machine you start it yourself.
+
+## Prerequisites
+
+`git` and `gh` need to be on your `PATH`. `git` handles clone, worktree, and branch ops; `gh` handles PR checkout and metadata.
+
+```bash
+gh auth login
+```
+
+The host server reuses your existing `gh` auth. For sandboxes or CI, set `GH_TOKEN` (or `GITHUB_TOKEN`) instead of running `gh auth login` — `gh` picks it up automatically.
+
+### Agent CLIs (optional)
+
+If you plan to run AI agents inside workspaces, install whichever agent CLIs you want available. The host server launches them based on which are on your `PATH`:
+
+| Agent | Install |
+|-------|---------|
+| Claude Code | `npm install -g @anthropic-ai/claude-code` |
+| Codex | `npm install -g @openai/codex` |
+| Cursor Agent | install via Cursor's website |
+| Amp | `npm install -g @sourcegraph/amp` |
+| Gemini CLI | `npm install -g @google/gemini-cli` |
+| OpenCode | see [opencode.ai/docs](https://opencode.ai/docs) |
+
+None are required to start the host server or create workspaces — install only what you plan to run.
+
+## Authenticate the Superset CLI
+
+The host server starts under your Superset session. If you haven't already:
+
+```bash
+superset auth login
+```
+
+See [Getting Started](/cli/getting-started) for the full sign-in flow,
+including API-key auth for CI.
+
+## Start the host server
+
+```bash
+superset start --daemon
+```
+
+Spawns the daemon in the background and writes a manifest at
+`~/.superset/host/<organizationId>/manifest.json` so other clients can find
+it. Binds to `127.0.0.1` only.
+
+Verify it's healthy:
+
+```bash
+superset status
+```
+
+## Getting started
+
+### Create a project
+
+A workspace branches off a project — a checked-out repo registered with
+Superset. Clone a remote repo or import an existing local one:
+
+```bash
+# Clone from a Git URL
+superset projects create \
+  --name "My Project" \
+  --url https://github.com/org/repo.git \
+  --parent-dir ~/code
+
+# Or import a repo that's already on disk
+superset projects create \
+  --name "My Project" \
+  --path ~/code/existing-repo
+```
+
+The host server clones (or registers) the repo, creates the cloud project
+record, and ensures the main workspace. Project records are shared across
+the organization, so once it exists, any machine in the org can host
+worktrees of it:
+
+```bash
+superset projects list
+```
+
+### Create your first workspace
+
+```bash
+superset projects list
+superset workspaces create \
+  --project prj_… \
+  --name "fix-login-bug" \
+  --branch fix/login-bug
+```
+
+The host server clones the project (if it isn't already on disk), creates
+a git worktree at the chosen branch, and registers the workspace.
+
+## Stop the host server
+
+```bash
+superset stop
+```
+
+## Shared state
+
+State lives under `~/.superset/host/<organizationId>/`:
+
+```text
+~/.superset/host/<organizationId>/manifest.json    # endpoint + auth token
+~/.superset/host/<organizationId>/host.db          # local host server DB
+```
+
+A host server started by the desktop app is visible to the CLI and
+vice-versa. `SUPERSET_HOME_DIR` relocates the whole tree.
+
+## Command details
+
+For full flags, exit codes, and output shapes:
+
+- [`superset start`](/cli/cli-reference#superset-start)
+- [`superset status`](/cli/cli-reference#superset-status)
+- [`superset stop`](/cli/cli-reference#superset-stop)

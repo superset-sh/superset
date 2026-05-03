@@ -1,0 +1,803 @@
+---
+title: CLI Reference
+description: Complete reference for Superset command-line interface, including commands and flags.
+---
+
+<Callout type="warn">
+The CLI is currently in Beta — commands and flags are still evolving. Make sure you're on the latest version of the CLI if you run into issues.
+</Callout>
+
+## Synopsis
+
+```text
+superset <command> [subcommand] [options]
+```
+
+Run `superset --help` for the top-level command list, or
+`superset <command> --help` for any group.
+
+## Global options
+
+These flags are accepted by every command:
+
+| Flag | Env | Description |
+| --- | --- | --- |
+| `--json` | | Print the data payload as formatted JSON. |
+| `--quiet` | | One ID per line for arrays; the ID for single objects; JSON fallback otherwise. |
+| `--api-key <key>` | `SUPERSET_API_KEY` | Use an API key instead of stored OAuth login. |
+| `--help`, `-h` | | Show help for the current command. |
+| `--version`, `-v` | | Print `superset v<version>` and exit. |
+
+---
+
+## Commands
+
+### auth
+
+Authentication and session inspection.
+
+<Command
+	name="superset auth login"
+	options={[
+		{
+			flag: "--organization <idOrSlug>",
+			description: "Selects the active organization without prompting. Required for non-TTY logins when you belong to multiple orgs.",
+		},
+	]}
+>
+Authenticate via browser OAuth and store a session token at
+`~/.superset/config.json`.
+
+Single-org accounts are selected automatically. With multiple orgs and a
+TTY, the CLI prompts; with multiple orgs and no TTY, you must pass
+`--organization` or the command exits 1 listing the available slugs.
+
+```bash
+superset auth login
+superset auth login --organization acme
+```
+
+<CommandReturns>
+The newly authenticated user and active organization.
+
+<HumanOutput>
+```text
+◇  Authorized!
+│  Satya Patel (you@example.com)
+│  Organization: Acme
+└  Logged in successfully.
+```
+</HumanOutput>
+
+<JsonOutput>
+```ts
+{
+  userId: string;
+  organizationId: string;
+  organizationName: string;
+}
+```
+</JsonOutput>
+</CommandReturns>
+</Command>
+
+<Command name="superset auth logout">
+Clear the stored session. Does not call the API and does not clear the
+active organization (your preferred org persists across re-logins).
+
+```bash
+superset auth logout
+```
+
+<CommandReturns>
+A confirmation message.
+
+<HumanOutput>
+```text
+Logged out.
+```
+</HumanOutput>
+
+<JsonOutput>
+```ts
+{ message: "Logged out." }
+```
+</JsonOutput>
+</CommandReturns>
+</Command>
+
+<Command name="superset auth whoami">
+Show the current user, active organization, and auth source.
+
+```bash
+superset auth whoami
+```
+
+<CommandReturns>
+The current user and organization context.
+
+<HumanOutput>
+```text
+Signed in as Satya Patel (you@example.com)
+Organization: Acme
+Auth: Session (expires in 32 min)
+```
+</HumanOutput>
+
+<JsonOutput>
+```ts
+{
+  userId: string;
+  email: string;
+  name: string;
+  organizationId: string;
+  organizationName: string;
+  authSource: "flag" | "env" | "oauth";
+}
+```
+</JsonOutput>
+</CommandReturns>
+</Command>
+
+---
+
+### start
+
+Start the local host server — the daemon the CLI and desktop app both
+talk to when targeting this machine.
+
+<Command
+	name="superset start"
+	options={[
+		{ flag: "--daemon", description: "Run detached." },
+		{ flag: "--port <n>", description: "Specific port. Default: a free loopback port." },
+	]}
+>
+If a manifest exists and the PID is alive, returns the existing
+instance's details. Otherwise spawns the host server binary, polls
+`/trpc/health.check` for up to 10 seconds, and writes the manifest.
+Binds to `127.0.0.1` only.
+
+```bash
+superset start --daemon
+```
+
+<CommandReturns>
+The running host server.
+
+<JsonOutput>
+```ts
+{
+  pid: number;
+  port: number;
+  organizationId: string;
+}
+```
+</JsonOutput>
+</CommandReturns>
+</Command>
+
+### stop
+
+Stop the local host server.
+
+<Command name="superset stop">
+Sends SIGTERM, waits up to 10 seconds, sends SIGKILL if still alive. The
+manifest is removed in all cases — including when SIGTERM itself throws.
+
+```bash
+superset stop
+```
+
+<CommandReturns>
+The stopped host server, if one was running.
+
+<JsonOutput>
+```ts
+// No manifest
+{ running: false }
+
+// Manifest existed
+{ pid: number; organizationId: string }
+```
+</JsonOutput>
+</CommandReturns>
+</Command>
+
+### status
+
+Inspect the local host server.
+
+<Command name="superset status">
+`healthy` reflects a live `health.check` request (2-second timeout).
+
+```bash
+superset status
+```
+
+<CommandReturns>
+The host server state. Three shapes depending on what's running.
+
+<JsonOutput>
+```ts
+// No manifest
+{ running: false; organizationId: string }
+
+// Manifest exists but PID is dead
+{
+  running: false;
+  stale: true;
+  pid: number;
+  organizationId: string;
+}
+
+// Running
+{
+  running: true;
+  healthy: boolean;
+  pid: number;
+  port: number;
+  endpoint: string;
+  organizationId: string;
+  uptimeSec: number;
+}
+```
+</JsonOutput>
+</CommandReturns>
+</Command>
+
+### update
+
+Update the Superset CLI and host server binary.
+
+<Command
+	name="superset update"
+	options={[
+		{ flag: "--check", description: "Only check for updates; don't install." },
+		{ flag: "--force", description: "Re-install even if already on that version." },
+		{ flag: "--version <version>", description: "Install a specific version (e.g. `0.1.2`) instead of the rolling latest. Accepts upgrade or downgrade." },
+	]}
+>
+Downloads the matching `superset-<platform>.tar.gz` from GitHub Releases
+and atomically replaces the install root. Only available in built
+binaries; running from `bun run dev` errors out.
+
+```bash
+superset update                     # upgrade to the latest release
+superset update --check             # show current → target without installing
+superset update --version 0.1.2     # install a specific version (up or down)
+```
+
+<CommandReturns>
+The current and target version, plus whether anything changed.
+
+<HumanOutput>
+```text
+Updated 0.1.4 → 0.1.5 (/Users/you/.local/share/superset)
+```
+</HumanOutput>
+
+<JsonOutput>
+```ts
+// --check
+{
+  current: string;
+  target: string;
+  upToDate: boolean;
+  pinned: boolean;
+}
+
+// install
+{
+  current: string;
+  target: string;
+  updated: boolean;
+  installRoot?: string;
+}
+```
+</JsonOutput>
+</CommandReturns>
+</Command>
+
+---
+
+### organization (alias: `org`)
+
+Manage which organization the CLI targets.
+
+<Command
+	name="superset organization list"
+	output={`Array<{
+  id: string;
+  name: string;
+  slug: string;
+  active: boolean;
+}>`}
+	humanColumns={["NAME", "SLUG", "ACTIVE"]}
+	quiet="organization IDs"
+>
+List organizations available to the current auth context. Marks the
+active one.
+</Command>
+
+<Command
+	name="superset organization switch <idOrSlug>"
+	args={[
+		{ name: "idOrSlug", required: true, description: "Organization ID or slug." },
+	]}
+	output={`{ id: string; name: string; slug: string }`}
+>
+Set the active organization in `~/.superset/config.json`.
+
+```bash
+superset organization switch acme
+superset org switch org_…
+```
+</Command>
+
+---
+
+### projects
+
+Projects are checked-out repos that live on a specific host. The host
+clones (or registers) the repo, creates the cloud record, and makes it
+available to every machine in the organization.
+
+<Command
+	name="superset projects list"
+	options={[
+		{ flag: "--host <id>", description: "Target host. Defaults to the local machine." },
+	]}
+	output={`Array<{
+  id: string;
+  repoOwner: string;
+  repoName: string;
+  repoPath: string;
+}>`}
+	humanColumns={["ID", "OWNER", "REPO", "PATH"]}
+	quiet="project IDs"
+>
+List projects on the target host.
+</Command>
+
+<Command
+	name="superset projects create"
+	options={[
+		{ flag: "--name <name>", required: true, description: "Display name for the project." },
+		{ flag: "--url <url>", description: "Clone from a Git URL. Mutually exclusive with `--path`." },
+		{ flag: "--parent-dir <path>", description: "Where to clone into. Required with `--url`." },
+		{ flag: "--path <path>", description: "Import an existing local repo. Mutually exclusive with `--url`." },
+		{ flag: "--host <id>", description: "Target host. Defaults to the local machine." },
+	]}
+	output={`{
+  projectId: string;
+  repoPath: string;
+  mainWorkspaceId: string | null;
+}`}
+>
+Register a project on a host. Two modes:
+
+- **Clone** — pass `--url` and `--parent-dir`. The host clones the repo
+  into `<parent-dir>/<derived-name>/`.
+- **Import** — pass `--path` to register a repo that already exists on disk.
+
+Either way, the cloud project row is created and the host's main workspace
+is ensured.
+
+```bash
+superset projects create --name "my-app" --url https://github.com/org/my-app.git --parent-dir ~/code
+superset projects create --name "my-app" --path ~/code/my-app
+```
+</Command>
+
+---
+
+### hosts
+
+Discover hosts registered to the active organization. To control the
+host server running on this machine, use [`start`](#start),
+[`stop`](#stop), and [`status`](#status).
+
+<Command
+	name="superset hosts list"
+	output={`Array<{
+  id: string;
+  name: string;
+  online: boolean;
+}>`}
+	humanColumns={["ID", "NAME", "ONLINE"]}
+	quiet="host IDs"
+>
+List hosts registered to the active organization. Host registration
+happens via `superset start` on each machine — there is no
+separate registration command.
+
+```bash
+superset hosts list
+```
+</Command>
+
+---
+
+### workspaces (alias: `ws`)
+
+Workspaces are branch-scoped working copies on a host.
+
+**Routing:** when `--host` resolves to the local machine, the CLI calls
+the host server directly over loopback HTTP — no cloud roundtrip, works
+offline. Otherwise it routes through the cloud API and the relay.
+
+If the resolved host is the local machine but the host server isn't
+responding, the CLI errors out and points you at `superset start` rather
+than silently falling through to the cloud.
+
+<Command
+	name="superset workspaces list"
+	options={[
+		{ flag: "--host <id>", description: "Target host. Defaults to the local machine." },
+	]}
+	output={`Array<{
+  id: string;
+  name: string;
+  branch: string;
+  projectId: string;
+  projectName: string;
+  hostId: string;
+}>`}
+	humanColumns={["ID", "NAME", "BRANCH", "PROJECT", "HOST"]}
+	quiet="workspace IDs"
+>
+List workspaces on the target host.
+</Command>
+
+<Command
+	name="superset workspaces create"
+	options={[
+		{ flag: "--project <projectId>", required: true, description: "Project ID." },
+		{ flag: "--name <name>", required: true, description: "Workspace name." },
+		{ flag: "--branch <branch>", required: true, description: "Workspace branch." },
+		{ flag: "--host <id>", description: "Defaults to the local machine." },
+	]}
+	output="Workspace"
+>
+Create a workspace on the target host.
+
+```bash
+superset workspaces create \
+  --project prj_… \
+  --name "fix-login-bug" \
+  --branch fix/login-bug
+```
+</Command>
+
+<Command
+	name="superset workspaces delete <id...>"
+	args={[
+		{ name: "id", required: true, variadic: true, description: "Workspace IDs to delete." },
+	]}
+	options={[
+		{ flag: "--host <id>", description: "Defaults to the local machine." },
+	]}
+	output={`{ deleted: string[] }`}
+>
+Delete one or more workspaces on the target host.
+
+```bash
+superset workspaces delete ws_a ws_b ws_c
+```
+</Command>
+
+---
+
+### tasks (alias: `t`)
+
+Tasks are units of work in your organization's task tracker.
+
+<Command
+	name="superset tasks list"
+	options={[
+		{ flag: "--status <id>", description: "Filter by status ID." },
+		{ flag: "--priority <urgent|high|medium|low|none>", description: "Filter by priority." },
+		{ flag: "--assignee-me, -m", description: "Tasks assigned to the current user." },
+		{ flag: "--creator-me", description: "Tasks created by the current user." },
+		{ flag: "--search <query>, -s", description: "Substring search on title." },
+		{ flag: "--limit <n>", description: "Default 50, max 200." },
+		{ flag: "--offset <n>", description: "Default 0." },
+	]}
+	output="Array<Task>"
+	humanColumns={["SLUG", "TITLE", "PRIORITY", "ASSIGNEE"]}
+	quiet="task IDs"
+>
+List tasks in the active organization.
+
+```bash
+superset tasks list --assignee-me
+superset t list -s "auth" --json
+```
+</Command>
+
+<Command
+	name="superset tasks get <idOrSlug>"
+	args={[
+		{ name: "idOrSlug", required: true, description: "Task ID or slug." },
+	]}
+	output="Task"
+>
+Get a task by ID or slug.
+
+```bash
+superset tasks get tsk_…
+superset tasks get fix-login-bug
+```
+</Command>
+
+<Command
+	name="superset tasks create"
+	options={[
+		{ flag: "--title <title>", required: true, description: "Task title." },
+		{ flag: "--description <text>", description: "Task description." },
+		{ flag: "--priority <urgent|high|medium|low|none>", description: "Priority." },
+		{ flag: "--assignee <userId>", description: "Assignee user ID." },
+	]}
+	output="Task"
+>
+Create a task.
+
+```bash
+superset tasks create --title "Audit auth flow" --priority high
+```
+</Command>
+
+<Command
+	name="superset tasks update <idOrSlug>"
+	args={[
+		{ name: "idOrSlug", required: true, description: "Task ID or slug." },
+	]}
+	options={[
+		{ flag: "--title <title>", description: "New title." },
+		{ flag: "--description <text>", description: "New description." },
+		{ flag: "--priority <urgent|high|medium|low|none>", description: "New priority." },
+		{ flag: "--assignee <userId>", description: "New assignee." },
+	]}
+	output="Task"
+>
+Update a task. Same fields as `create`, all optional.
+
+```bash
+superset tasks update fix-login-bug --priority urgent
+```
+</Command>
+
+<Command
+	name="superset tasks delete <idOrSlug...>"
+	args={[
+		{ name: "idOrSlug", required: true, variadic: true, description: "Task IDs or slugs to delete." },
+	]}
+	output={`{ deleted: string[]; failed: string[] }`}
+>
+Delete one or more tasks.
+
+```bash
+superset tasks delete tsk_a tsk_b
+```
+</Command>
+
+---
+
+### automations (alias: `auto`)
+
+Scheduled agent runs. Schedules use RFC 5545 RRULE bodies, e.g.
+`FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR;BYHOUR=9;BYMINUTE=0`.
+
+<Command
+	name="superset automations list"
+	output="Array<Automation>"
+	humanColumns={["ID", "NAME", "AGENT", "SCHEDULE", "ENABLED", "NEXT RUN"]}
+	quiet="automation IDs"
+>
+List automations in the active organization.
+</Command>
+
+<Command
+	name="superset automations get <id>"
+	args={[
+		{ name: "id", required: true, description: "Automation ID." },
+	]}
+	output="Automation"
+>
+Get an automation's metadata. The prompt body is omitted — use
+[`automations prompt get`](#superset-automations-prompt-get-id) to read it.
+Use [`automations logs`](#superset-automations-logs-id) for run history.
+</Command>
+
+<Command
+	name="superset automations create"
+	options={[
+		{ flag: "--name <name>", required: true, description: "Automation name." },
+		{ flag: "--prompt <text>", description: "Inline prompt; pass `-` to read stdin." },
+		{ flag: "--prompt-file <path>", description: "Read prompt from file, verbatim." },
+		{ flag: "--rrule <rrule>", required: true, description: "RFC 5545 RRULE schedule." },
+		{ flag: "--timezone <iana>", description: "Default: host TZ, then UTC." },
+		{ flag: "--dtstart <iso8601>", description: "Default: now." },
+		{ flag: "--workspace <workspaceId>", description: "Reuse an existing workspace." },
+		{ flag: "--project <projectId>", required: true, description: "Project ID." },
+		{ flag: "--host <hostId>", description: "Default: owner's online host." },
+		{ flag: "--agent <presetId>", description: "Default: claude." },
+		{ flag: "--agent-config-file <path>", description: "Full ResolvedAgentConfig JSON; overrides --agent." },
+	]}
+	output="Automation"
+>
+Create an automation. Exactly one of `--prompt` or `--prompt-file` must
+be provided.
+
+```bash
+superset automations create \
+  --name "Weekday triage" \
+  --project prj_… \
+  --workspace ws_… \
+  --rrule "FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR;BYHOUR=9;BYMINUTE=0" \
+  --prompt-file ./prompts/triage.md
+```
+</Command>
+
+<Command
+	name="superset automations update <id>"
+	args={[
+		{ name: "id", required: true, description: "Automation ID." },
+	]}
+	options={[
+		{ flag: "--name <name>", description: "New name." },
+		{ flag: "--rrule <rrule>", description: "New schedule." },
+		{ flag: "--timezone <iana>", description: "New timezone." },
+		{ flag: "--dtstart <iso8601>", description: "New start time." },
+		{ flag: "--host <hostId>", description: "New target host." },
+		{ flag: "--agent <presetId>", description: "New agent preset." },
+		{ flag: "--agent-config-file <path>", description: "Overrides --agent when both provided." },
+		{ flag: "--enabled / --no-enabled", description: "Calls automation.setEnabled first." },
+	]}
+	output="Automation"
+>
+Update an automation's metadata (name, schedule, agent, host). All flags
+optional. Omitting a flag preserves the existing value — `undefined` means
+"no change", not "clear". Use [`automations prompt get`](#superset-automations-prompt-get-id)
+or [`automations prompt set`](#superset-automations-prompt-set-id) to read or
+replace the prompt body.
+</Command>
+
+<Command
+	name="superset automations prompt get <id>"
+	args={[
+		{ name: "id", required: true, description: "Automation ID." },
+	]}
+	output="Markdown"
+>
+Print an automation's prompt body to stdout. The output is the raw prompt
+with no trailing newline added, so `prompt get` and `prompt set` round-trip
+byte-exactly.
+
+```bash
+# Read to a file
+superset automations prompt get aut_… > prompt.md
+
+# Verify a push landed
+superset automations prompt get aut_… | diff - ./prompt.md
+```
+</Command>
+
+<Command
+	name="superset automations prompt set <id>"
+	args={[
+		{ name: "id", required: true, description: "Automation ID." },
+	]}
+	options={[
+		{ flag: "--from-file <path>", required: true, description: "Read the new prompt from a file. Use `-` for stdin." },
+	]}
+	output="Automation"
+>
+Replace an automation's prompt body. The new prompt fully overwrites the
+old one.
+
+```bash
+# Write from file
+superset automations prompt set aut_… --from-file ./prompt.md
+
+# Write from stdin
+cat ./prompt.md | superset automations prompt set aut_… --from-file -
+```
+</Command>
+
+<Command
+	name="superset automations delete <id>"
+	args={[
+		{ name: "id", required: true, description: "Automation ID." },
+	]}
+	output={`{ deleted: string }`}
+>
+Delete an automation.
+
+```bash
+superset automations delete aut_…
+```
+</Command>
+
+<Command
+	name="superset automations pause <id>"
+	args={[
+		{ name: "id", required: true, description: "Automation ID." },
+	]}
+	output="Automation"
+>
+Pause an automation (sets `enabled: false`).
+
+```bash
+superset automations pause aut_…
+```
+</Command>
+
+<Command
+	name="superset automations resume <id>"
+	args={[
+		{ name: "id", required: true, description: "Automation ID." },
+	]}
+	output="Automation"
+>
+Resume an automation (sets `enabled: true`). The API recomputes
+`nextRunAt` on resume.
+
+```bash
+superset automations resume aut_…
+```
+</Command>
+
+<Command
+	name="superset automations run <id>"
+	args={[
+		{ name: "id", required: true, description: "Automation ID." },
+	]}
+	output={`{
+  runId: string;
+  automationId: string;
+  dispatchedAt: string;
+}`}
+>
+Dispatch an automation immediately. Does not wait for completion.
+
+```bash
+superset automations run aut_…
+```
+</Command>
+
+<Command
+	name="superset automations logs <id>"
+	args={[
+		{ name: "id", required: true, description: "Automation ID." },
+	]}
+	options={[
+		{ flag: "--limit <n>", description: "Default 20, max 100." },
+	]}
+	output="Array<AutomationRun>"
+	humanColumns={["ID", "STATUS", "SCHEDULED FOR", "CREATED AT", "ERROR"]}
+	quiet="run IDs"
+>
+List recent runs for an automation.
+
+```bash
+superset automations logs aut_…
+```
+</Command>
+
+---
+
+## Output modes
+
+**JSON mode** (`--json`): raw payloads. Lists print arrays, get/create/update
+print objects, delete prints summary objects. No `{ "data": ... }` wrapper.
+Empty results print `null`.
+
+**Quiet mode** (`--quiet`): IDs only. Arrays of objects with an `id` field
+print one ID per line; single objects print their `id`; everything else
+falls back to JSON.
+
+When `CLAUDE_CODE`, `CLAUDECODE`, `CLAUDE_CODE_ENTRYPOINT`, `CODEX_CLI`,
+`GEMINI_CLI`, `SUPERSET_AGENT`, or `CI` is set to a non-empty value, output
+defaults to JSON unless `--quiet` is provided.

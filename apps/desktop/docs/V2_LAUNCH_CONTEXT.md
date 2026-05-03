@@ -27,8 +27,8 @@ Launch dispatch uses the **pending row as the transport** between the
 pending page (producer) and the V2 workspace page (consumer). **Zero V1
 primitives.** Same pattern V2 preset execution uses
 (`useV2PresetExecution`): live-query a record, open a pane in the V2
-`@superset/panes` store, call `workspaceTrpc.terminal.ensureSession` to
-attach PTY.
+`@superset/panes` store, and pass any terminal startup command as transient
+pane data. `TerminalPane` attaches the PTY through the terminal WebSocket.
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -62,7 +62,7 @@ attach PTY.
 │                                                             │
 │  if row.terminalLaunch:                                     │
 │    store.addTab({ panes: [{ kind:"terminal", … }] })        │
-│    TerminalPane mounts → ensureSession → write command      │
+│    TerminalPane mounts → WebSocket open → initialCommand    │
 │    update(row, { terminalLaunch: null })                    │
 │                                                             │
 │  if row.chatLaunch:                                         │
@@ -207,20 +207,19 @@ fixing before the dispatch rewrite is considered done:
    branch for `workspaceTrpc.filesystem.writeFile`. Touches V1, V2,
    chat, and every consumer — deliberate staged PR, not a quick fix.
 
-2. **Reload-mid-launch spawns a second PTY.** `consumeTerminalLaunch`
-   calls `crypto.randomUUID()` for `terminalId` each time it fires. If
-   the user reloads the app between `terminalLaunch` being applied to
-   the pending row and the consume clearing it, the fresh consume
-   generates a new terminalId and calls `ensureSession` again — first
-   PTY orphaned, second one created. Fix: store the `terminalId` on
-   `PendingTerminalLaunch` itself (generate once in `dispatchForkLaunch`);
-   `ensureSession` becomes idempotent on repeat consumes.
+2. **Reload-mid-launch can create a new terminal ID.**
+   `consumeTerminalLaunch` calls `crypto.randomUUID()` for `terminalId`
+   each time it fires. If the user reloads the app between
+   `terminalLaunch` being applied to the pending row and the consume
+   clearing it, the fresh consume can generate a new terminal ID. Fix:
+   store the `terminalId` on `PendingTerminalLaunch` itself (generate
+   once in `dispatchForkLaunch`).
 
-3. **Silent failure in the consume hook.** `ensureSession` /
-   `addTab` failures `console.warn` and return — user sees no pane
-   open and no error UI. Wrap in try/toast with the error message.
-   Low urgency while `[v2-launch]` debug logs are present; becomes
-   visible when those are removed.
+3. **Silent failure in the consume hook.** `addTab` failures
+   `console.warn` and return — user sees no pane open and no error UI.
+   Wrap in try/toast with the error message. Low urgency while
+   `[v2-launch]` debug logs are present; becomes visible when those are
+   removed.
 
 4. **`joinPath` assumes POSIX separators.** Fine on Mac/Linux hosts
    where the worktree paths come from. When remote-host launch lands

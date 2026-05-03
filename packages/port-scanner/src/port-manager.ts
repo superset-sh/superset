@@ -3,8 +3,8 @@ import {
 	getListeningPortsForPids,
 	getProcessTree,
 	type PortInfo,
-} from "./scanner";
-import type { DetectedPort } from "./types";
+} from "./scanner.ts";
+import type { DetectedPort } from "./types.ts";
 
 /** How often to poll for port changes (in ms) */
 const SCAN_INTERVAL_MS = 2500;

@@ -32,6 +32,7 @@ export function useWorkspacePaneOpeners({
 							data: {
 								path: filePath,
 								collapsedFiles: [],
+								expandedFiles: [filePath],
 							} as DiffPaneData,
 						},
 					],
@@ -42,11 +43,18 @@ export function useWorkspacePaneOpeners({
 				for (const pane of Object.values(tab.panes)) {
 					if (pane.kind !== "diff") continue;
 					const prev = pane.data as DiffPaneData;
+					const prevExpanded = prev.expandedFiles ?? [];
 					state.setPaneData({
 						paneId: pane.id,
 						data: {
 							...prev,
 							path: filePath,
+							collapsedFiles: (prev.collapsedFiles ?? []).filter(
+								(p) => p !== filePath,
+							),
+							expandedFiles: prevExpanded.includes(filePath)
+								? prevExpanded
+								: [...prevExpanded, filePath],
 						} as PaneViewerData,
 					});
 					state.setActiveTab(tab.id);
@@ -60,6 +68,7 @@ export function useWorkspacePaneOpeners({
 					data: {
 						path: filePath,
 						collapsedFiles: [],
+						expandedFiles: [filePath],
 					} as DiffPaneData,
 				},
 			});

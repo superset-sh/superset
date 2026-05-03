@@ -35,12 +35,24 @@ import { HOOK_PROTOCOL_VERSION } from "./terminal/env";
  * which is how we prevent the renderer from talking to a stale host-service
  * that's missing newly-added procedures/params.
  *
+ * 0.4.0: terminal launch moved from `terminal.ensureSession` to
+ * `terminal.launchSession` plus WebSocket attach params.
  * 0.3.0: host-service registers via cloud `host.ensure` (was
  * `device.ensureV2Host`); v2_hosts/v2_users_hosts/v2_workspaces use
  * machineId text instead of uuid surrogates.
  * 0.2.0: `workspaceCreation.adopt` gained optional `worktreePath`.
+ *
+ * 0.5.0 — pty-daemon supervision migrated into host-service. New
+ * `terminal.daemon` tRPC namespace; older 0.4.x host-services don't
+ * expose it. Adopting one in place would leave the new desktop
+ * talking to old code: Settings → Manage daemon would silently
+ * fail, and the v2 PTY survival promise is broken. Bumping the
+ * floor forces the coordinator's `tryAdopt` (host-service-coordinator
+ * line ~308) to SIGTERM old host-services on first launch and
+ * respawn with the new bundle. One-time terminal-session loss for
+ * users on upgrade — accepted per release-notes guidance.
  */
-const MIN_HOST_SERVICE_VERSION = "0.3.0";
+const MIN_HOST_SERVICE_VERSION = "0.6.0";
 
 export type HostServiceStatus = "starting" | "running" | "stopped";
 
@@ -80,6 +92,10 @@ export class HostServiceCoordinator extends EventEmitter {
 	private scriptPath = path.join(__dirname, "host-service.js");
 	private machineId = getHostId();
 	private devReloadWatcher: fs.FSWatcher | null = null;
+	// Note: pty-daemon supervision moved into host-service itself —
+	// see packages/host-service/src/daemon. Host-service spawns and adopts
+	// the daemon when it boots, so the desktop coordinator no longer needs
+	// to know about it.
 
 	async start(
 		organizationId: string,
@@ -383,6 +399,9 @@ export class HostServiceCoordinator extends EventEmitter {
 		this.instances.set(organizationId, instance);
 		this.emitStatus(organizationId, "starting", null);
 
+		// pty-daemon is supervised by host-service itself; this coordinator
+		// only spawns host-service and steps out. See
+		// packages/host-service/src/daemon for the supervisor lifecycle.
 		const childEnv = await this.buildEnv(organizationId, port, secret, config);
 		// Host-service owns v2 PTYs, so it must survive Electron restarts in
 		// every environment. This mirrors the terminal-host daemon: detach the
@@ -392,16 +411,27 @@ export class HostServiceCoordinator extends EventEmitter {
 			path.join(manifestDir(organizationId), "host-service.log"),
 			MAX_HOST_LOG_BYTES,
 		);
-		const stdio: childProcess.StdioOptions =
-			logFd >= 0 ? ["ignore", logFd, logFd] : ["ignore", "ignore", "ignore"];
+		// Dev: pipe child stdout/stderr through this process so log lines
+		// land in the developer's `bun dev` terminal. Production: hard-back
+		// stdio with the rotating log file so the detached child survives
+		// parent teardown without losing logs.
+		const isDev = !app.isPackaged;
+		const stdio: childProcess.StdioOptions = isDev
+			? ["ignore", "pipe", "pipe"]
+			: logFd >= 0
+				? ["ignore", logFd, logFd]
+				: ["ignore", "ignore", "ignore"];
 
 		let child: ReturnType<typeof childProcess.spawn>;
 		try {
+			// Prod: detached so PTYs survive Electron restarts via manifest
+			// adoption (HOST_SERVICE_LIFECYCLE.md). Dev: attached so a `bun dev`
+			// kill propagates and serve.ts's dev shutdown can stop pty-daemon.
 			child = childProcess.spawn(process.execPath, [this.scriptPath], {
-				detached: true,
+				detached: !isDev,
 				stdio,
 				env: childEnv,
-				// Avoid a flashing CMD window on Windows for the detached child.
+				// Avoid a flashing CMD window on Windows.
 				windowsHide: true,
 			});
 		} finally {
@@ -412,6 +442,15 @@ export class HostServiceCoordinator extends EventEmitter {
 					// Best-effort — child has its own dup of the fd.
 				}
 			}
+		}
+
+		// In dev, fan child output through to parent stdout/stderr with a
+		// prefix so it's identifiable in `bun dev`. The detached child has
+		// its own session, so closing pipes won't kill it on parent exit.
+		if (isDev && child.stdout && child.stderr) {
+			const tag = `[hs:${organizationId.slice(0, 8)}]`;
+			pipeWithPrefix(child.stdout, process.stdout, tag);
+			pipeWithPrefix(child.stderr, process.stderr, tag);
 		}
 
 		const childPid = child.pid;
@@ -431,7 +470,7 @@ export class HostServiceCoordinator extends EventEmitter {
 			removeManifest(organizationId);
 			this.emitStatus(organizationId, "stopped", "running");
 		});
-		child.unref();
+		if (!isDev) child.unref();
 
 		const endpoint = `http://127.0.0.1:${port}`;
 		const healthy = await pollHealthCheck(endpoint, secret);
@@ -478,7 +517,7 @@ export class HostServiceCoordinator extends EventEmitter {
 			SUPERSET_AGENT_HOOK_PORT: String(sharedEnv.DESKTOP_NOTIFICATIONS_PORT),
 			SUPERSET_AGENT_HOOK_VERSION: HOOK_PROTOCOL_VERSION,
 			AUTH_TOKEN: config.authToken,
-			CLOUD_API_URL: config.cloudApiUrl,
+			SUPERSET_API_URL: config.cloudApiUrl,
 		});
 
 		// `getProcessEnvWithShellPath` merges in the user's interactive shell env,
@@ -536,6 +575,33 @@ export class HostServiceCoordinator extends EventEmitter {
 			previousStatus,
 		} satisfies HostServiceStatusEvent);
 	}
+}
+
+/**
+ * Forward child stdout/stderr to a parent stream with a per-line prefix.
+ * Plain `chunk => parent.write(`${tag} ${chunk}`)` only prefixes the first
+ * line in a chunk and breaks visual scanning when child output bursts.
+ */
+function pipeWithPrefix(
+	source: NodeJS.ReadableStream,
+	target: NodeJS.WritableStream,
+	tag: string,
+): void {
+	let pending = "";
+	source.on("data", (chunk: Buffer) => {
+		const text = pending + chunk.toString("utf8");
+		const lines = text.split("\n");
+		// Last element is a partial line if input doesn't end with \n;
+		// stash it for the next chunk.
+		pending = lines.pop() ?? "";
+		for (const line of lines) {
+			target.write(`${tag} ${line}\n`);
+		}
+	});
+	source.on("end", () => {
+		if (pending) target.write(`${tag} ${pending}\n`);
+		pending = "";
+	});
 }
 
 let coordinator: HostServiceCoordinator | null = null;

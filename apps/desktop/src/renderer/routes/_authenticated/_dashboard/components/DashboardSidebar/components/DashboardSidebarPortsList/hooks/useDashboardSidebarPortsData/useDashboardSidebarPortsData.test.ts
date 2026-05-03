@@ -172,19 +172,16 @@ describe("deriveHostPortQueryTargets", () => {
 					id: "workspace-b",
 					name: "Workspace B",
 					hostId: "local-machine",
-					hostMachineId: "local-machine",
 				},
 				{
 					id: "workspace-a",
 					name: "Workspace A",
 					hostId: "local-machine",
-					hostMachineId: "local-machine",
 				},
 				{
 					id: "workspace-c",
 					name: "Workspace C",
 					hostId: "remote-machine",
-					hostMachineId: "remote-machine",
 				},
 			],
 		});
@@ -227,13 +224,11 @@ describe("deriveHostPortQueryTargets", () => {
 					id: "workspace-remote",
 					name: "Remote",
 					hostId: "remote-machine",
-					hostMachineId: "remote-machine",
 				},
 				{
 					id: "workspace-local",
 					name: "Local",
 					hostId: "local-machine",
-					hostMachineId: "local-machine",
 				},
 			],
 		});
@@ -284,19 +279,17 @@ describe("groupDashboardSidebarPorts", () => {
 					],
 				},
 			],
-			machineId: "machine-1",
+			machineId: "host-1",
 			workspaces: [
 				{
 					id: "workspace-b",
 					name: "Beta",
 					hostId: "host-1",
-					hostMachineId: "machine-1",
 				},
 				{
 					id: "workspace-a",
 					name: "Alpha",
 					hostId: "host-1",
-					hostMachineId: "machine-1",
 				},
 			],
 		});
@@ -336,7 +329,6 @@ describe("groupDashboardSidebarPorts", () => {
 					id: "workspace-1",
 					name: "Workspace",
 					hostId: "host-2",
-					hostMachineId: "machine-2",
 				},
 			],
 		});

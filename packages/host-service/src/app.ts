@@ -6,7 +6,7 @@ import type { MiddlewareHandler } from "hono";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { createApiClient } from "./api";
-import { createDb } from "./db";
+import { createDb, type HostDb } from "./db";
 import { EventBus, registerEventBusRoute } from "./events";
 import type { ApiAuthProvider } from "./providers/auth";
 import type { HostAuthProvider } from "./providers/host-auth";
@@ -35,29 +35,46 @@ export interface CreateAppOptions {
 		credentials: GitCredentialProvider;
 		modelResolver: ModelProviderRuntimeResolver;
 	};
+	/**
+	 * Test-harness override hooks. Production never sets these — `createApp`
+	 * builds each subsystem itself when omitted. `db` is overridden so tests
+	 * can swap in `bun:sqlite` (better-sqlite3 isn't loadable under Bun;
+	 * prod uses it on bundled Node). `api`, `github`, `chatRuntime`, and
+	 * `chatService` are overridden to keep tests off the network and out of
+	 * mastra storage.
+	 */
+	db?: HostDb;
+	api?: ApiClient;
+	github?: () => Promise<Octokit>;
+	chatRuntime?: ChatRuntimeManager;
+	chatService?: ChatService;
 }
 
 export interface CreateAppResult {
 	app: Hono;
 	injectWebSocket: ReturnType<typeof createNodeWebSocket>["injectWebSocket"];
 	api: ApiClient;
+	dispose: () => Promise<void>;
 }
 
 export function createApp(options: CreateAppOptions): CreateAppResult {
 	const { config, providers } = options;
 
-	const api = createApiClient(config.cloudApiUrl, providers.auth);
-	const db = createDb(config.dbPath, config.migrationsFolder);
+	const api =
+		options.api ?? createApiClient(config.cloudApiUrl, providers.auth);
+	const db = options.db ?? createDb(config.dbPath, config.migrationsFolder);
 	const git = createGitFactory(providers.credentials);
-	const github = async () => {
-		const token = await providers.credentials.getToken("github.com");
-		if (!token) {
-			throw new Error(
-				"No GitHub token available. Set GITHUB_TOKEN/GH_TOKEN or authenticate via git credential manager.",
-			);
-		}
-		return new Octokit({ auth: token });
-	};
+	const github =
+		options.github ??
+		(async () => {
+			const token = await providers.credentials.getToken("github.com");
+			if (!token) {
+				throw new Error(
+					"No GitHub token available. Set GITHUB_TOKEN/GH_TOKEN or authenticate via git credential manager.",
+				);
+			}
+			return new Octokit({ auth: token });
+		});
 
 	const pullRequestRuntime = new PullRequestRuntimeManager({
 		db,
@@ -66,14 +83,16 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 	});
 	pullRequestRuntime.start();
 	const filesystem = new WorkspaceFilesystemManager({ db });
-	const chatRuntime = new ChatRuntimeManager({
-		db,
-		runtimeResolver: providers.modelResolver,
-	});
+	const chatRuntime =
+		options.chatRuntime ??
+		new ChatRuntimeManager({
+			db,
+			runtimeResolver: providers.modelResolver,
+		});
 	// Provider auth (Anthropic / OpenAI OAuth + API keys) is per-machine, not
 	// per-workspace. ChatService is a long-lived singleton wrapping mastra's
 	// auth storage; the `host.auth.*` router proxies to it.
-	const chatService = new ChatService();
+	const chatService = options.chatService ?? new ChatService();
 
 	const runtime = {
 		auth: chatService,
@@ -146,5 +165,29 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 		}),
 	);
 
-	return { app, injectWebSocket, api };
+	const ownsDb = options.db === undefined;
+	const dispose = async (): Promise<void> => {
+		// Each step is best-effort and isolated: a throw in one cleanup must
+		// not skip the others, otherwise a flaky `.stop()` could leak the
+		// open SQLite handle for the rest of the process lifetime.
+		try {
+			pullRequestRuntime.stop();
+		} catch (err) {
+			console.warn("[host-service] pullRequestRuntime.stop failed:", err);
+		}
+		try {
+			eventBus.close();
+		} catch (err) {
+			console.warn("[host-service] eventBus.close failed:", err);
+		}
+		if (ownsDb) {
+			try {
+				(db as unknown as { $client?: { close: () => void } }).$client?.close();
+			} catch {
+				// best-effort close; tests should not fail on teardown
+			}
+		}
+	};
+
+	return { app, injectWebSocket, api, dispose };
 }

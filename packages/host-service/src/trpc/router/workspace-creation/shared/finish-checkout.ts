@@ -143,7 +143,7 @@ export async function finishCheckout(
 	const warnings: string[] = [...args.extraWarnings];
 
 	if (args.runSetupScript) {
-		const { terminal, warning } = startSetupTerminalIfPresent({
+		const { terminal, warning } = await startSetupTerminalIfPresent({
 			ctx,
 			workspaceId: cloudRow.id,
 			worktreePath: args.worktreePath,

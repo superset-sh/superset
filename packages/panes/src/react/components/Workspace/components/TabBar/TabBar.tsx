@@ -15,6 +15,7 @@ import {
 } from "react";
 import { useDrop } from "react-dnd";
 import type { Tab } from "../../../../../types";
+import { PANE_DRAG_TYPE } from "../Tab/components/Pane/components/PaneHeader";
 import { TAB_DRAG_TYPE, TabItem } from "./components/TabItem";
 import { computeInsertIndex, TAB_WIDTH } from "./utils";
 
@@ -27,11 +28,15 @@ interface TabBarProps<TData> {
 	onCloseAllTabs: () => void;
 	onRenameTab: (tabId: string, title: string | undefined) => void;
 	onReorderTab: (tabId: string, toIndex: number) => void;
+	onMovePaneToNewTab: (paneId: string, toIndex: number) => void;
 	getTabTitle: (tab: Tab<TData>) => string;
 	renderTabIcon?: (tab: Tab<TData>) => ReactNode;
 	renderAddTabMenu?: () => ReactNode;
 	renderTabAccessory?: (tab: Tab<TData>) => ReactNode;
 }
+
+type TabDragItem = { tabId: string };
+type PaneDragItem = { paneId: string };
 
 function AddTabButton<_TData>({
 	renderAddTabMenu,
@@ -40,8 +45,8 @@ function AddTabButton<_TData>({
 }) {
 	const button = (
 		<Button
-			className="h-full w-full rounded-none border-0 bg-transparent px-0 text-muted-foreground shadow-none hover:bg-tertiary/20 hover:text-foreground"
-			size="sm"
+			className="size-7 rounded-md border border-border/60 bg-muted/30 px-1 text-muted-foreground shadow-none hover:bg-accent/60 hover:text-foreground"
+			size="icon"
 			type="button"
 			variant="ghost"
 		>
@@ -72,6 +77,7 @@ export function TabBar<TData>({
 	onCloseAllTabs,
 	onRenameTab,
 	onReorderTab,
+	onMovePaneToNewTab,
 	getTabTitle,
 	renderTabIcon,
 	renderAddTabMenu,
@@ -85,8 +91,8 @@ export function TabBar<TData>({
 
 	const [{ isOver }, connectDrop] = useDrop(
 		() => ({
-			accept: TAB_DRAG_TYPE,
-			hover: (_item, monitor) => {
+			accept: [TAB_DRAG_TYPE, PANE_DRAG_TYPE],
+			hover: (_item: TabDragItem | PaneDragItem, monitor) => {
 				const track = tabsTrackRef.current;
 				const offset = monitor.getClientOffset();
 				if (!track || !offset) return;
@@ -101,9 +107,21 @@ export function TabBar<TData>({
 					setInsertIndex(idx);
 				}
 			},
-			drop: (item: { tabId: string }) => {
+			drop: (item: TabDragItem | PaneDragItem, monitor) => {
 				const idx = insertIndexRef.current;
 				if (idx === null) return;
+
+				insertIndexRef.current = null;
+				setInsertIndex(null);
+
+				if (monitor.getItemType() === PANE_DRAG_TYPE && "paneId" in item) {
+					onMovePaneToNewTab(item.paneId, idx);
+					return;
+				}
+
+				if (monitor.getItemType() !== TAB_DRAG_TYPE || !("tabId" in item)) {
+					return;
+				}
 
 				const dragIndex = tabs.findIndex((t) => t.id === item.tabId);
 				if (dragIndex === -1) return;
@@ -112,15 +130,13 @@ export function TabBar<TData>({
 				let toIndex = idx;
 				if (dragIndex < toIndex) toIndex--;
 
-				insertIndexRef.current = null;
-				setInsertIndex(null);
 				onReorderTab(item.tabId, toIndex);
 			},
 			collect: (monitor) => ({
 				isOver: monitor.isOver(),
 			}),
 		}),
-		[tabs, onReorderTab],
+		[tabs, onReorderTab, onMovePaneToNewTab],
 	);
 
 	// Clear indicator when cursor leaves the tab bar
@@ -129,7 +145,7 @@ export function TabBar<TData>({
 		if (insertIndex !== null) setInsertIndex(null);
 	}
 
-	const setScrollContainerRef = useCallback(
+	const setRootRef = useCallback(
 		(node: HTMLDivElement | null) => {
 			connectDrop(node);
 		},
@@ -148,8 +164,11 @@ export function TabBar<TData>({
 
 	if (tabs.length === 0) {
 		return (
-			<div className="group/root-tabs flex h-10 min-w-0 shrink-0 items-stretch border-b border-border bg-background">
-				<div className="flex h-full w-10 shrink-0 items-stretch bg-background">
+			<div
+				ref={setRootRef}
+				className="group/root-tabs flex h-10 min-w-0 shrink-0 items-stretch border-b border-border bg-background"
+			>
+				<div className="flex h-full w-10 shrink-0 items-center justify-center bg-background">
 					<AddTabButton renderAddTabMenu={renderAddTabMenu} />
 				</div>
 				<div className="flex min-w-0 flex-1 items-stretch" />
@@ -158,9 +177,11 @@ export function TabBar<TData>({
 	}
 
 	return (
-		<div className="group/root-tabs flex h-10 min-w-0 shrink-0 items-stretch border-b border-border bg-background">
+		<div
+			ref={setRootRef}
+			className="group/root-tabs flex h-10 min-w-0 shrink-0 items-stretch border-b border-border bg-background"
+		>
 			<OverflowFadeContainer
-				ref={setScrollContainerRef}
 				observeChildren
 				onOverflowChange={handleOverflowChange}
 				className="hide-scrollbar flex min-w-0 flex-1 items-stretch overflow-x-auto overflow-y-hidden"
@@ -194,14 +215,14 @@ export function TabBar<TData>({
 						/>
 					)}
 					{!hasHorizontalOverflow && (
-						<div className="flex h-full w-10 shrink-0 items-stretch">
+						<div className="flex h-full w-10 shrink-0 items-center justify-center">
 							<AddTabButton renderAddTabMenu={renderAddTabMenu} />
 						</div>
 					)}
 				</div>
 			</OverflowFadeContainer>
 			{hasHorizontalOverflow && (
-				<div className="flex h-full w-10 shrink-0 items-stretch bg-background">
+				<div className="flex h-full w-10 shrink-0 items-center justify-center bg-background">
 					<AddTabButton renderAddTabMenu={renderAddTabMenu} />
 				</div>
 			)}

@@ -56,11 +56,6 @@ export function getDefaultTerminalBg(): string {
 	return getDefaultTerminalTheme().background ?? "#151110";
 }
 
-/**
- * Load GPU-accelerated renderer with automatic fallback.
- * Tries WebGL first, falls back to DOM if WebGL fails.
- * This follows VS Code's approach: WebGL → DOM (canvas addon removed in xterm.js 6.0).
- */
 // Once WebGL fails, skip it for all subsequent terminals (VS Code pattern).
 let suggestedRendererType: "webgl" | "dom" | undefined;
 
@@ -129,7 +124,7 @@ export function createTerminalInWrapper(options: CreateTerminalOptions = {}): {
 		// Ligatures not supported by current font
 	}
 
-	// Defer WebGL to rAF — same pattern as v2 terminal-addons.ts.
+	// Defer WebGL to rAF to avoid racing xterm's post-open viewport sync.
 	const rafId = requestAnimationFrame(() => {
 		if (disposed || suggestedRendererType === "dom") return;
 

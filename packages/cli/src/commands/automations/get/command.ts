@@ -6,10 +6,7 @@ export default command({
 	args: [positional("id").required().desc("Automation id")],
 	run: async ({ ctx, args }) => {
 		const id = args.id as string;
-		const result = await ctx.api.automation.get.query({ id });
-		// Runs are intentionally omitted — use `superset automations logs <id>`
-		// for paginated run history.
-		const { recentRuns: _recentRuns, ...automation } = result;
+		const automation = await ctx.api.automation.get.query({ id });
 		return { data: automation };
 	},
 });

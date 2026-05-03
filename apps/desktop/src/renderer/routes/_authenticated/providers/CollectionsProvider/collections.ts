@@ -24,6 +24,10 @@ import type {
 } from "@superset/db/schema";
 import type { AppRouter } from "@superset/trpc";
 import { electricCollectionOptions } from "@tanstack/electric-db-collection";
+import {
+	createElectronSQLitePersistence,
+	persistedCollectionOptions,
+} from "@tanstack/electron-db-sqlite-persistence";
 import type {
 	Collection,
 	LocalStorageCollectionUtils,
@@ -57,6 +61,10 @@ const columnMapper = snakeCamelMapper();
 
 const electricUrl = `${env.NEXT_PUBLIC_ELECTRIC_URL}/v1/shape`;
 
+const persistence = createElectronSQLitePersistence({
+	invoke: (channel, request) => window.ipcRenderer.invoke(channel, request),
+});
+
 const indexDefaults = {
 	autoIndex: "eager",
 	defaultIndexType: BasicIndex,
@@ -66,6 +74,21 @@ const createIndexedCollection = ((
 	config: Parameters<typeof createCollection>[0],
 ) =>
 	createCollection({ ...config, ...indexDefaults })) as typeof createCollection;
+
+type ElectricSyncConfig = ReturnType<typeof electricCollectionOptions>;
+const createPersistedElectricCollection = ((config: ElectricSyncConfig) => {
+	const persisted = persistedCollectionOptions({
+		...config,
+		persistence,
+		schemaVersion: 1,
+		// biome-ignore lint/suspicious/noExplicitAny: forces sync-wrapped overload
+	} as any);
+	return createCollection({
+		...persisted,
+		...indexDefaults,
+		// biome-ignore lint/suspicious/noExplicitAny: persisted utils widen generics
+	} as any);
+}) as unknown as typeof createCollection;
 
 const apiKeyDisplaySchema = z.object({
 	id: z.string(),
@@ -176,7 +199,7 @@ const electricHeaders = {
 	},
 };
 
-const organizationsCollection = createIndexedCollection(
+const organizationsCollection = createPersistedElectricCollection(
 	electricCollectionOptions<SelectOrganization>({
 		id: "organizations",
 		shapeOptions: {
@@ -190,7 +213,7 @@ const organizationsCollection = createIndexedCollection(
 );
 
 function createOrgCollections(organizationId: string): OrgCollections {
-	const tasks = createIndexedCollection(
+	const tasks = createPersistedElectricCollection(
 		electricCollectionOptions<SelectTask>({
 			id: `tasks-${organizationId}`,
 			shapeOptions: {
@@ -203,11 +226,6 @@ function createOrgCollections(organizationId: string): OrgCollections {
 				columnMapper,
 			},
 			getKey: (item) => item.id,
-			onInsert: async ({ transaction }) => {
-				const item = transaction.mutations[0].modified;
-				const result = await apiClient.task.create.mutate(item);
-				return { txid: result.txid };
-			},
 			onUpdate: async ({ transaction }) => {
 				const { original, changes } = transaction.mutations[0];
 				const result = await apiClient.task.update.mutate({
@@ -224,7 +242,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 		}),
 	);
 
-	const taskStatuses = createIndexedCollection(
+	const taskStatuses = createPersistedElectricCollection(
 		electricCollectionOptions<SelectTaskStatus>({
 			id: `task_statuses-${organizationId}`,
 			shapeOptions: {
@@ -240,7 +258,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 		}),
 	);
 
-	const projects = createIndexedCollection(
+	const projects = createPersistedElectricCollection(
 		electricCollectionOptions<SelectProject>({
 			id: `projects-${organizationId}`,
 			shapeOptions: {
@@ -256,7 +274,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 		}),
 	);
 
-	const v2Projects = createIndexedCollection(
+	const v2Projects = createPersistedElectricCollection(
 		electricCollectionOptions<SelectV2Project>({
 			id: `v2_projects-${organizationId}`,
 			shapeOptions: {
@@ -288,7 +306,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 		}),
 	);
 
-	const v2Hosts = createIndexedCollection(
+	const v2Hosts = createPersistedElectricCollection(
 		electricCollectionOptions<SelectV2Host>({
 			id: `v2_hosts-${organizationId}`,
 			shapeOptions: {
@@ -306,7 +324,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 		}),
 	);
 
-	const v2Clients = createIndexedCollection(
+	const v2Clients = createPersistedElectricCollection(
 		electricCollectionOptions<SelectV2Client>({
 			id: `v2_clients-${organizationId}`,
 			shapeOptions: {
@@ -324,7 +342,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 		}),
 	);
 
-	const v2UsersHosts = createIndexedCollection(
+	const v2UsersHosts = createPersistedElectricCollection(
 		electricCollectionOptions<SelectV2UsersHosts>({
 			id: `v2_users_hosts-${organizationId}`,
 			shapeOptions: {
@@ -369,7 +387,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 		}),
 	);
 
-	const v2Workspaces = createIndexedCollection(
+	const v2Workspaces = createPersistedElectricCollection(
 		electricCollectionOptions<SelectV2Workspace>({
 			id: `v2_workspaces-${organizationId}`,
 			shapeOptions: {
@@ -396,7 +414,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 		}),
 	);
 
-	const workspaces = createIndexedCollection(
+	const workspaces = createPersistedElectricCollection(
 		electricCollectionOptions<SelectWorkspace>({
 			id: `workspaces-${organizationId}`,
 			shapeOptions: {
@@ -412,7 +430,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 		}),
 	);
 
-	const members = createIndexedCollection(
+	const members = createPersistedElectricCollection(
 		electricCollectionOptions<SelectMember>({
 			id: `members-${organizationId}`,
 			shapeOptions: {
@@ -428,7 +446,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 		}),
 	);
 
-	const users = createIndexedCollection(
+	const users = createPersistedElectricCollection(
 		electricCollectionOptions<SelectUser>({
 			id: `users-${organizationId}`,
 			shapeOptions: {
@@ -444,7 +462,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 		}),
 	);
 
-	const invitations = createIndexedCollection(
+	const invitations = createPersistedElectricCollection(
 		electricCollectionOptions<SelectInvitation>({
 			id: `invitations-${organizationId}`,
 			shapeOptions: {
@@ -460,7 +478,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 		}),
 	);
 
-	const agentCommands = createIndexedCollection(
+	const agentCommands = createPersistedElectricCollection(
 		electricCollectionOptions<SelectAgentCommand>({
 			id: `agent_commands-${organizationId}`,
 			shapeOptions: {
@@ -484,7 +502,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 		}),
 	);
 
-	const integrationConnections = createIndexedCollection(
+	const integrationConnections = createPersistedElectricCollection(
 		electricCollectionOptions<IntegrationConnectionDisplay>({
 			id: `integration_connections-${organizationId}`,
 			shapeOptions: {
@@ -500,7 +518,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 		}),
 	);
 
-	const subscriptions = createIndexedCollection(
+	const subscriptions = createPersistedElectricCollection(
 		electricCollectionOptions<SelectSubscription>({
 			id: `subscriptions-${organizationId}`,
 			shapeOptions: {
@@ -516,7 +534,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 		}),
 	);
 
-	const apiKeys = createIndexedCollection(
+	const apiKeys = createPersistedElectricCollection(
 		electricCollectionOptions<ApiKeyDisplay>({
 			id: `apikeys-${organizationId}`,
 			shapeOptions: {
@@ -532,7 +550,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 		}),
 	);
 
-	const chatSessions = createIndexedCollection(
+	const chatSessions = createPersistedElectricCollection(
 		electricCollectionOptions<SelectChatSession>({
 			id: `chat_sessions-${organizationId}`,
 			shapeOptions: {
@@ -558,7 +576,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 		}),
 	);
 
-	const githubRepositories = createIndexedCollection(
+	const githubRepositories = createPersistedElectricCollection(
 		electricCollectionOptions<SelectGithubRepository>({
 			id: `github_repositories-${organizationId}`,
 			shapeOptions: {
@@ -574,7 +592,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 		}),
 	);
 
-	const githubPullRequests = createIndexedCollection(
+	const githubPullRequests = createPersistedElectricCollection(
 		electricCollectionOptions<SelectGithubPullRequest>({
 			id: `github_pull_requests-${organizationId}`,
 			shapeOptions: {
@@ -590,7 +608,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 		}),
 	);
 
-	const automations = createIndexedCollection(
+	const automations = createPersistedElectricCollection(
 		electricCollectionOptions<SelectAutomation>({
 			id: `automations-${organizationId}`,
 			shapeOptions: {
@@ -606,7 +624,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 		}),
 	);
 
-	const automationRuns = createIndexedCollection(
+	const automationRuns = createPersistedElectricCollection(
 		electricCollectionOptions<SelectAutomationRun>({
 			id: `automation_runs-${organizationId}`,
 			shapeOptions: {

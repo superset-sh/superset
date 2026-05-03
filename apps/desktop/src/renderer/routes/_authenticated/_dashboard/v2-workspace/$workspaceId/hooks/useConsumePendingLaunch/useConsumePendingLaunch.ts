@@ -1,6 +1,5 @@
 import type { WorkspaceStore } from "@superset/panes";
 import { toast } from "@superset/ui/sonner";
-import { workspaceTrpc } from "@superset/workspace-client";
 import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useCallback, useEffect, useRef } from "react";
@@ -33,9 +32,6 @@ export function useConsumePendingLaunch({
 	store,
 }: UseConsumePendingLaunchArgs): void {
 	const collections = useCollections();
-	const ensureSession = workspaceTrpc.terminal.ensureSession.useMutation();
-	const ensureSessionRef = useRef(ensureSession);
-	ensureSessionRef.current = ensureSession;
 	const consumedRef = useRef<Set<string>>(new Set());
 
 	const { data: matches } = useLiveQuery(
@@ -87,10 +83,9 @@ export function useConsumePendingLaunch({
 			console.log("[v2-launch] useConsumePendingLaunch: consuming terminal", {
 				command: pending.terminalLaunch?.command.slice(0, 120),
 			});
-			void consumeTerminalLaunch({
+			consumeTerminalLaunch({
 				pending,
 				store,
-				ensureSession: ensureSessionRef.current.mutateAsync,
 				clear: () => updateRow({ terminalLaunch: null }),
 			});
 		}
@@ -107,21 +102,15 @@ export function useConsumePendingLaunch({
 	}, [pending, store, updateRow, workspaceId]);
 }
 
-async function consumeTerminalLaunch({
+function consumeTerminalLaunch({
 	pending,
 	store,
-	ensureSession,
 	clear,
 }: {
 	pending: PendingWorkspaceRow;
 	store: StoreApi<WorkspaceStore<PaneViewerData>>;
-	ensureSession: (input: {
-		terminalId: string;
-		workspaceId: string;
-		initialCommand?: string;
-	}) => Promise<unknown>;
 	clear: () => void;
-}): Promise<void> {
+}): void {
 	const launch = pending.terminalLaunch;
 	if (!launch || !pending.workspaceId) {
 		console.warn("[v2-launch] consumeTerminalLaunch: bailing", {
@@ -138,30 +127,16 @@ async function consumeTerminalLaunch({
 	}
 
 	const terminalId = crypto.randomUUID();
-	console.log("[v2-launch] consumeTerminalLaunch: ensureSession", {
+	console.log("[v2-launch] consumeTerminalLaunch: addTab", {
 		terminalId,
 		workspaceId: pending.workspaceId,
 		commandPreview: launch.command.slice(0, 120),
 	});
 
-	try {
-		await ensureSession({
-			terminalId,
-			workspaceId: pending.workspaceId,
-			initialCommand: launch.command,
-		});
-	} catch (err) {
-		const msg = err instanceof Error ? err.message : String(err);
-		console.warn(
-			"[v2-launch] consumeTerminalLaunch: ensureSession failed:",
-			err,
-		);
-		toast.error("Couldn't start agent terminal", { description: msg });
-		return;
-	}
-
-	const data: TerminalPaneData = { terminalId };
-	console.log("[v2-launch] consumeTerminalLaunch: addTab", { terminalId });
+	const data: TerminalPaneData = {
+		terminalId,
+		initialCommand: launch.command,
+	};
 	store.getState().addTab({
 		panes: [
 			{

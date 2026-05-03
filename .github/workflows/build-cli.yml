@@ -1,9 +1,15 @@
-name: Build CLI Distribution
+name: Build CLI
+
+# Reusable build workflow. Callers (ci-cli.yml, release-cli.yml) pass a
+# matrix as JSON to control which targets to build.
 
 on:
-  push:
-    tags: ["cli-v*"]
-  workflow_dispatch:
+  workflow_call:
+    inputs:
+      targets:
+        description: 'JSON array of {os, target} build matrix entries'
+        required: true
+        type: string
 
 jobs:
   build:
@@ -11,12 +17,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - os: macos-14
-            target: darwin-arm64
-          - os: ubuntu-latest
-            target: linux-x64
-
+        include: ${{ fromJSON(inputs.targets) }}
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout code
@@ -32,15 +33,44 @@ jobs:
         with:
           node-version: 22
 
-      - name: Install dependencies
+      - name: Install dependencies (Linux — skip scripts, rebuild manually)
+        if: startsWith(matrix.target, 'linux-')
+        run: |
+          # Bun's install-script runner has a cache materialization race
+          # against node-pty's compile-from-source path on Linux (node-pty
+          # ships no Linux prebuilds). Skip scripts at install, then rebuild
+          # native deps explicitly via npm/node-gyp.
+          set -euo pipefail
+          bun install --frozen --ignore-scripts
+          PTY_DIR=$(ls -d node_modules/.bun/node-pty@*/node_modules/node-pty)
+          (cd "$PTY_DIR" && npx --yes node-gyp rebuild)
+          npm rebuild better-sqlite3
+          npm rebuild @parcel/watcher
+
+      - name: Install dependencies (macOS)
+        if: startsWith(matrix.target, 'darwin-')
         run: bun install --frozen
 
       - name: Build distribution
         working-directory: packages/cli
         env:
-          RELAY_URL: https://relay.superset.sh
-          CLOUD_API_URL: https://api.superset.sh
+          RELAY_URL: ${{ secrets.RELAY_URL }}
+          SUPERSET_API_URL: ${{ vars.SUPERSET_API_URL }}
+          SUPERSET_WEB_URL: ${{ vars.SUPERSET_WEB_URL }}
         run: bun run build:dist --target=${{ matrix.target }}
+
+      - name: Smoke test binary
+        run: |
+          DIST="./packages/cli/dist/superset-${{ matrix.target }}"
+          "$DIST/bin/superset" --version
+          "$DIST/bin/superset" --help
+          "$DIST/lib/node" --version
+          NODE_PATH="$DIST/lib/node_modules" "$DIST/lib/node" -e '
+            for (const m of ["better-sqlite3", "node-pty", "@parcel/watcher", "libsql"]) {
+              require(m);
+              console.log(m, "OK");
+            }
+          '
 
       - name: Upload tarball
         uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
@@ -48,32 +78,3 @@ jobs:
           name: superset-${{ matrix.target }}
           path: packages/cli/dist/superset-${{ matrix.target }}.tar.gz
           if-no-files-found: error
-
-  release:
-    name: Create GitHub Release
-    needs: build
-    runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/cli-v')
-    permissions:
-      contents: write
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
-
-      - name: Download all artifacts
-        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
-        with:
-          path: release-artifacts
-          pattern: superset-*
-          merge-multiple: true
-
-      - name: Create Release
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh release create "${{ github.ref_name }}" \
-            release-artifacts/*.tar.gz \
-            --title "Superset CLI ${{ github.ref_name }}" \
-            --generate-notes \
-            --draft

@@ -5,6 +5,7 @@ import {
 	automationRuns,
 	chatSessions,
 	type SelectAutomation,
+	subscriptions,
 	users,
 	v2Hosts,
 	v2UsersHosts,
@@ -14,18 +15,24 @@ import {
 	getCommandFromAgentConfig,
 	type TerminalResolvedAgentConfig,
 } from "@superset/shared/agent-settings";
+import {
+	ACTIVE_SUBSCRIPTION_STATUSES,
+	isActiveSubscriptionStatus,
+	isPaidPlan,
+} from "@superset/shared/billing";
 import { buildHostRoutingKey } from "@superset/shared/host-routing";
 import {
 	deduplicateBranchName,
 	sanitizeBranchNameWithMaxLength,
 	slugifyForBranch,
 } from "@superset/shared/workspace-launch";
-import { and, eq } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import { RelayDispatchError, relayMutation } from "./relay-client";
 
 export type DispatchOutcome =
 	| { status: "dispatched"; runId: string }
 	| { status: "skipped_offline"; runId: string | null; error: string }
+	| { status: "skipped_unpaid"; runId: string | null; error: string }
 	| { status: "dispatch_failed"; runId: string | null; error: string }
 	| { status: "conflict" };
 
@@ -47,11 +54,23 @@ export async function dispatchAutomation(
 ): Promise<DispatchOutcome> {
 	const { automation, scheduledFor, relayUrl } = opts;
 
-	const host = await resolveTargetHost(automation);
-	if (!host) {
+	const resolved = await resolveTargetHost(automation);
+	if (!resolved) {
 		const error = "no host available";
 		const inserted = await recordSkipped(automation, scheduledFor, null, error);
 		return { status: "skipped_offline", runId: inserted?.id ?? null, error };
+	}
+	const { host, paidPlan } = resolved;
+	// Defense-in-depth: the cron evaluate-step (apps/api/.../evaluate/route.ts)
+	// already filters unpaid orgs, so this only fires in a tiny window between
+	// SELECT and dispatch. Bail without writing a run row to avoid muddying
+	// dashboards with paywall blocks under the offline metric.
+	if (!paidPlan) {
+		return {
+			status: "skipped_unpaid",
+			runId: null,
+			error: "automations require a Pro plan",
+		};
 	}
 	if (!host.isOnline) {
 		const error = "target host offline";
@@ -192,32 +211,56 @@ export async function dispatchAutomation(
 	return { status: "dispatched", runId: run.id };
 }
 
-async function resolveTargetHost(
-	automation: SelectAutomation,
-): Promise<typeof v2Hosts.$inferSelect | null> {
+async function resolveTargetHost(automation: SelectAutomation): Promise<{
+	host: typeof v2Hosts.$inferSelect;
+	paidPlan: boolean;
+} | null> {
 	if (automation.targetHostId) {
-		const [host] = await dbWs
-			.select()
+		const [row] = await dbWs
+			.select({
+				host: v2Hosts,
+				subscriptionPlan: subscriptions.plan,
+				subscriptionStatus: subscriptions.status,
+			})
 			.from(v2Hosts)
+			.leftJoin(
+				subscriptions,
+				and(
+					eq(subscriptions.referenceId, v2Hosts.organizationId),
+					inArray(subscriptions.status, ACTIVE_SUBSCRIPTION_STATUSES),
+				),
+			)
 			.where(
 				and(
 					eq(v2Hosts.organizationId, automation.organizationId),
 					eq(v2Hosts.machineId, automation.targetHostId),
 				),
 			)
+			.orderBy(desc(subscriptions.createdAt))
 			.limit(1);
-		return host ?? null;
+
+		if (!row) return null;
+		return {
+			host: row.host,
+			paidPlan:
+				isPaidPlan(row.subscriptionPlan) &&
+				isActiveSubscriptionStatus(row.subscriptionStatus),
+		};
 	}
 
-	const [host] = await dbWs
+	const [row] = await dbWs
 		.select({
-			organizationId: v2Hosts.organizationId,
-			machineId: v2Hosts.machineId,
-			name: v2Hosts.name,
-			isOnline: v2Hosts.isOnline,
-			createdByUserId: v2Hosts.createdByUserId,
-			createdAt: v2Hosts.createdAt,
-			updatedAt: v2Hosts.updatedAt,
+			host: {
+				organizationId: v2Hosts.organizationId,
+				machineId: v2Hosts.machineId,
+				name: v2Hosts.name,
+				isOnline: v2Hosts.isOnline,
+				createdByUserId: v2Hosts.createdByUserId,
+				createdAt: v2Hosts.createdAt,
+				updatedAt: v2Hosts.updatedAt,
+			},
+			subscriptionPlan: subscriptions.plan,
+			subscriptionStatus: subscriptions.status,
 		})
 		.from(v2Hosts)
 		.innerJoin(
@@ -227,6 +270,13 @@ async function resolveTargetHost(
 				eq(v2UsersHosts.hostId, v2Hosts.machineId),
 			),
 		)
+		.leftJoin(
+			subscriptions,
+			and(
+				eq(subscriptions.referenceId, v2Hosts.organizationId),
+				inArray(subscriptions.status, ACTIVE_SUBSCRIPTION_STATUSES),
+			),
+		)
 		.where(
 			and(
 				eq(v2UsersHosts.userId, automation.ownerUserId),
@@ -234,10 +284,16 @@ async function resolveTargetHost(
 				eq(v2Hosts.isOnline, true),
 			),
 		)
-		.orderBy(v2Hosts.updatedAt)
+		.orderBy(v2Hosts.updatedAt, desc(subscriptions.createdAt))
 		.limit(1);
 
-	return host ?? null;
+	if (!row) return null;
+	return {
+		host: row.host,
+		paidPlan:
+			isPaidPlan(row.subscriptionPlan) &&
+			isActiveSubscriptionStatus(row.subscriptionStatus),
+	};
 }
 
 async function recordSkipped(
@@ -357,14 +413,14 @@ async function dispatchTerminalSession(args: {
 	const terminalId = crypto.randomUUID();
 	await relayMutation<
 		{
-			terminalId: string;
 			workspaceId: string;
-			initialCommand?: string;
+			terminalId?: string;
+			initialCommand: string;
 		},
 		{ terminalId: string; status: string }
 	>(
 		{ relayUrl: args.relayUrl, hostId: args.hostId, jwt: args.jwt },
-		"terminal.ensureSession",
+		"terminal.launchSession",
 		{
 			terminalId,
 			workspaceId: args.workspaceId,
