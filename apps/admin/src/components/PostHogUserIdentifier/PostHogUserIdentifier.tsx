@@ -22,7 +22,6 @@ export function PostHogUserIdentifier() {
 				email: user.email,
 				name: user.name,
 				plan,
-				is_paying: plan != null && plan !== "free",
 			});
 		} else if (!session?.user) {
 			posthog.reset();

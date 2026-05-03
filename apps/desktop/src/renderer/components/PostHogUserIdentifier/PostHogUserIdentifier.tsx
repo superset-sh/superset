@@ -21,7 +21,6 @@ export function PostHogUserIdentifier() {
 				name: user.name,
 				desktop_version: window.App.appVersion,
 				plan,
-				is_paying: plan != null && plan !== "free",
 			});
 			posthog.reloadFeatureFlags();
 			setUserId({ userId: user.id });
