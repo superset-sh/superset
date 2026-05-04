@@ -59,40 +59,23 @@ function RingtoneCard({
 					: "border-border hover:border-muted-foreground/50",
 			)}
 		>
-			{/* Preview area */}
+			{/* Preview area — clean, just the emoji + selected check */}
 			<div
 				className={cn(
 					"h-24 flex items-center justify-center relative",
 					isSelected ? "bg-accent/40" : "bg-muted/30",
 				)}
 			>
-				{/* Emoji as visual identity */}
 				<span className="text-4xl">{ringtone.emoji}</span>
 
-				{/* Play/Stop button — corner affordance */}
-				<button
-					type="button"
-					onClick={(e) => {
-						e.stopPropagation();
-						onTogglePlay();
-					}}
-					aria-label={isPlaying ? `Stop ${ringtone.name}` : `Play ${ringtone.name}`}
-					className={cn(
-						"absolute bottom-2 right-2 h-8 w-8 rounded-full flex items-center justify-center transition-colors border",
-						isPlaying
-							? "bg-destructive text-destructive-foreground border-destructive hover:bg-destructive/90"
-							: "bg-card text-foreground border-border hover:bg-accent",
-					)}
-				>
-					{isPlaying ? (
-						<HiStop className="h-4 w-4" />
-					) : (
-						<HiPlay className="h-4 w-4 ml-0.5" />
-					)}
-				</button>
+				{isSelected && (
+					<div className="absolute top-2 right-2 h-5 w-5 rounded-full bg-primary flex items-center justify-center shadow-sm">
+						<HiCheck className="h-3 w-3 text-primary-foreground" />
+					</div>
+				)}
 			</div>
 
-			{/* Info */}
+			{/* Info — name + duration on the left, play on the right */}
 			<div
 				className={cn(
 					"p-3 border-t flex items-center justify-between gap-2",
@@ -112,11 +95,26 @@ function RingtoneCard({
 						{ringtone.description}
 					</div>
 				</div>
-				{isSelected && (
-					<div className="h-5 w-5 rounded-full bg-primary flex items-center justify-center shrink-0">
-						<HiCheck className="h-3 w-3 text-primary-foreground" />
-					</div>
-				)}
+				<button
+					type="button"
+					onClick={(e) => {
+						e.stopPropagation();
+						onTogglePlay();
+					}}
+					aria-label={isPlaying ? `Stop ${ringtone.name}` : `Play ${ringtone.name}`}
+					className={cn(
+						"h-8 w-8 rounded-full flex items-center justify-center transition-colors border shrink-0",
+						isPlaying
+							? "bg-destructive text-destructive-foreground border-destructive hover:bg-destructive/90"
+							: "bg-card text-foreground border-border hover:bg-accent",
+					)}
+				>
+					{isPlaying ? (
+						<HiStop className="h-4 w-4" />
+					) : (
+						<HiPlay className="h-4 w-4 ml-0.5" />
+					)}
+				</button>
 			</div>
 		</div>
 	);
