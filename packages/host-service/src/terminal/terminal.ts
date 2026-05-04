@@ -669,42 +669,40 @@ export async function createTerminalSessionInternal({
 					error: `Terminal session "${terminalId}" is not active; create it before connecting.`,
 				};
 			}
-		}
-		try {
-			openResult = await daemon.open(terminalId, {
-				shell,
-				argv: shellArgs,
-				cwd,
-				cols,
-				rows,
-				env: ptyEnv,
-			});
-			if (adoptOnly) {
-				await daemon.close(terminalId).catch(() => {
-					// best-effort cleanup for a lost race where open created a PTY
+			openResult = { pid: found.pid };
+			isAdopted = true;
+			console.log(
+				`[terminal] adopted existing daemon session ${terminalId} pid=${found.pid}`,
+			);
+		} else {
+			try {
+				openResult = await daemon.open(terminalId, {
+					shell,
+					argv: shellArgs,
+					cwd,
+					cols,
+					rows,
+					env: ptyEnv,
 				});
-				return {
-					error: `Terminal session "${terminalId}" is not active; create it before connecting.`,
-				};
-			}
-		} catch (err) {
-			// After host-service restart the daemon may already own this
-			// session. Adopt it instead of looping forever on "session already
-			// exists". The daemon kept the buffer + the live shell; we just
-			// need to stitch up a TerminalSession record on this side and
-			// subscribe-with-replay below.
-			const msg = err instanceof Error ? err.message : String(err);
-			if (msg.includes("session already exists")) {
-				const list = await daemon.list();
-				const found = list.find((s) => s.id === terminalId && s.alive);
-				if (!found) throw err;
-				openResult = { pid: found.pid };
-				isAdopted = true;
-				console.log(
-					`[terminal] adopted existing daemon session ${terminalId} pid=${found.pid}`,
-				);
-			} else {
-				throw err;
+			} catch (err) {
+				// After host-service restart the daemon may already own this
+				// session. Adopt it instead of looping forever on "session already
+				// exists". The daemon kept the buffer + the live shell; we just
+				// need to stitch up a TerminalSession record on this side and
+				// subscribe-with-replay below.
+				const msg = err instanceof Error ? err.message : String(err);
+				if (msg.includes("session already exists")) {
+					const list = await daemon.list();
+					const found = list.find((s) => s.id === terminalId && s.alive);
+					if (!found) throw err;
+					openResult = { pid: found.pid };
+					isAdopted = true;
+					console.log(
+						`[terminal] adopted existing daemon session ${terminalId} pid=${found.pid}`,
+					);
+				} else {
+					throw err;
+				}
 			}
 		}
 	} catch (error) {
