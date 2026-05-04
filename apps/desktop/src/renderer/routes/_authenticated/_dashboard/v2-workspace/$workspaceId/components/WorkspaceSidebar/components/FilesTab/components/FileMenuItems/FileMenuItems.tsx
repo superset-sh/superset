@@ -3,10 +3,7 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuShortcut,
 } from "@superset/ui/dropdown-menu";
-import {
-	MOD_CLICK_LABEL,
-	SHIFT_CLICK_LABEL,
-} from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/utils/clickModifierLabels";
+import { modifierLabel, useSidebarFilePolicy } from "renderer/lib/clickPolicy";
 import { PathActions } from "../PathActions";
 
 interface FileMenuItemsProps {
@@ -28,16 +25,27 @@ export function FileMenuItems({
 	onRename,
 	onDelete,
 }: FileMenuItemsProps) {
+	const { tierForAction } = useSidebarFilePolicy();
+	const newTabTier = tierForAction("newTab");
+	const externalTier = tierForAction("external");
 	return (
 		<>
 			<DropdownMenuItem onSelect={onOpen}>Open</DropdownMenuItem>
 			<DropdownMenuItem onSelect={onOpenInNewTab}>
 				Open in New Tab
-				<DropdownMenuShortcut>{SHIFT_CLICK_LABEL}</DropdownMenuShortcut>
+				{newTabTier && (
+					<DropdownMenuShortcut>
+						{modifierLabel(newTabTier)}
+					</DropdownMenuShortcut>
+				)}
 			</DropdownMenuItem>
 			<DropdownMenuItem onSelect={onOpenInEditor}>
 				Open in Editor
-				<DropdownMenuShortcut>{MOD_CLICK_LABEL}</DropdownMenuShortcut>
+				{externalTier && (
+					<DropdownMenuShortcut>
+						{modifierLabel(externalTier)}
+					</DropdownMenuShortcut>
+				)}
 			</DropdownMenuItem>
 			<DropdownMenuSeparator />
 			<PathActions absolutePath={absolutePath} relativePath={relativePath} />

@@ -3,9 +3,9 @@ import { cn } from "@superset/ui/utils";
 import { useNavigate } from "@tanstack/react-router";
 import type { MouseEvent } from "react";
 import { LuExternalLink, LuLoaderCircle, LuX } from "react-icons/lu";
+import { useSidebarFilePolicy } from "renderer/lib/clickPolicy";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { navigateToV2Workspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
-import { getOpenTargetClickIntent } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/utils/getSidebarClickIntent";
 import { STROKE_WIDTH } from "renderer/screens/main/components/WorkspaceSidebar/constants";
 import { useDashboardSidebarPortKill } from "../../hooks/useDashboardSidebarPortKill";
 import type { DashboardSidebarPort } from "../../hooks/useDashboardSidebarPortsData";
@@ -20,6 +20,7 @@ export function DashboardSidebarPortBadge({
 	const navigate = useNavigate();
 	const openUrl = electronTrpc.external.openUrl.useMutation();
 	const { isPending, killPort } = useDashboardSidebarPortKill();
+	const policy = useSidebarFilePolicy();
 	const canOpenInBrowser = port.hostType === "local-device";
 	const hostLabel =
 		port.hostType === "local-device" ? "Local device" : "Remote host";
@@ -37,8 +38,9 @@ export function DashboardSidebarPortBadge({
 		if (!canOpenInBrowser) return;
 
 		const url = `http://localhost:${port.port}`;
-		const intent = getOpenTargetClickIntent(event);
-		if (intent === "openExternally") {
+		const action = policy.getAction(event);
+		if (action === null) return;
+		if (action === "external") {
 			if (openUrl.isPending) return;
 			openUrl.mutate(url);
 			return;
@@ -47,7 +49,7 @@ export function DashboardSidebarPortBadge({
 		void navigateToV2Workspace(port.workspaceId, navigate, {
 			search: {
 				openUrl: url,
-				openUrlTarget: intent === "openInNewTab" ? "new-tab" : "current-tab",
+				openUrlTarget: action === "newTab" ? "new-tab" : "current-tab",
 				openUrlRequestId: crypto.randomUUID(),
 			},
 		});

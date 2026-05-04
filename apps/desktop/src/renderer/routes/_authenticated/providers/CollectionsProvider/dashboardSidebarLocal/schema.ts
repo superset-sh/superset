@@ -212,23 +212,31 @@ export type DashboardSidebarSectionRow = z.infer<
 export type V2TerminalPresetRow = z.infer<typeof v2TerminalPresetSchema>;
 
 /**
- * Singleton row of v2 user-scoped preferences. Today this carries link-click
- * behavior only; add fields here as v2 grows additional preferences.
+ * Singleton row of v2 user-scoped preferences.
  *
- * fileLinks / urlLinks map click tiers (plain, ⌘, ⌘⇧) to an action:
- *   - null        → tier is unbound (terminal shows a hint; chat/markdown no-op)
- *   - "pane"      → open in an in-app pane (FilePane / BrowserPane)
+ * fileLinks / urlLinks / sidebarFileLinks map click tiers
+ * (plain, ⇧, ⌘, ⌘⇧) to an action:
+ *   - null        → tier is unbound (surfaces show a hint or no-op)
+ *   - "pane"      → open in current tab/pane (file viewer, in-app browser)
+ *   - "newTab"    → open in a new tab/pane
  *   - "external"  → open in the external app (editor / system browser)
  *
- * Terminal consumes all three tiers; 2-tier surfaces (chat, task markdown)
- * read plain + meta and ignore metaShift.
+ * Surfaces:
+ *   - fileLinks / urlLinks: links embedded in terminal output and markdown.
+ *     Terminal reads all 4 tiers; 2-tier surfaces (chat, task markdown)
+ *     collapse shift→plain and metaShift→meta.
+ *   - sidebarFileLinks: file rows in the sidebar (tree, changes, diff header)
+ *     and similar in-app surfaces (port badges).
+ *
+ * Resolution and labels live in src/renderer/lib/clickPolicy.
  */
-const linkActionSchema = z.enum(["pane", "external"]);
+const linkActionSchema = z.enum(["pane", "newTab", "external"]);
 
 export type LinkAction = z.infer<typeof linkActionSchema>;
 
 const linkTierMapSchema = z.object({
 	plain: linkActionSchema.nullable(),
+	shift: linkActionSchema.nullable(),
 	meta: linkActionSchema.nullable(),
 	metaShift: linkActionSchema.nullable(),
 });
@@ -238,7 +246,15 @@ export type LinkTier = keyof LinkTierMap;
 
 const DEFAULT_LINK_TIER_MAP: LinkTierMap = {
 	plain: null,
+	shift: null,
 	meta: "pane",
+	metaShift: "external",
+};
+
+const DEFAULT_SIDEBAR_FILE_LINKS: LinkTierMap = {
+	plain: "pane",
+	shift: "newTab",
+	meta: "external",
 	metaShift: "external",
 };
 
@@ -246,6 +262,7 @@ export const v2UserPreferencesSchema = z.object({
 	id: z.literal("preferences"),
 	fileLinks: linkTierMapSchema.default(DEFAULT_LINK_TIER_MAP),
 	urlLinks: linkTierMapSchema.default(DEFAULT_LINK_TIER_MAP),
+	sidebarFileLinks: linkTierMapSchema.default(DEFAULT_SIDEBAR_FILE_LINKS),
 	rightSidebarOpen: z.boolean().default(true),
 	rightSidebarTab: z.enum(["changes", "files"]).default("changes"),
 	rightSidebarWidth: z.number().default(340),
@@ -260,6 +277,7 @@ export const DEFAULT_V2_USER_PREFERENCES: V2UserPreferencesRow = {
 	id: V2_USER_PREFERENCES_ID,
 	fileLinks: DEFAULT_LINK_TIER_MAP,
 	urlLinks: DEFAULT_LINK_TIER_MAP,
+	sidebarFileLinks: DEFAULT_SIDEBAR_FILE_LINKS,
 	rightSidebarOpen: true,
 	rightSidebarTab: "changes",
 	rightSidebarWidth: 340,

@@ -26,6 +26,11 @@ import {
 import { useCallback, useEffect, useRef } from "react";
 import type { FileStatus } from "renderer/hooks/host-service/useGitStatusMap";
 import { useGitStatusMap } from "renderer/hooks/host-service/useGitStatusMap";
+import {
+	folderIntentFor,
+	ShadowClickHint,
+	useSidebarFilePolicy,
+} from "renderer/lib/clickPolicy";
 import { useOpenInExternalEditor } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/useOpenInExternalEditor";
 import {
 	OVERSCAN_COUNT,
@@ -133,6 +138,7 @@ export function FilesTab({
 	const rootPath = workspaceQuery.data?.worktreePath ?? "";
 
 	const openInExternalEditor = useOpenInExternalEditor(workspaceId);
+	const filePolicy = useSidebarFilePolicy();
 	const writeFile = workspaceTrpc.filesystem.writeFile.useMutation();
 	const createDirectory =
 		workspaceTrpc.filesystem.createDirectory.useMutation();
@@ -466,33 +472,67 @@ export function FilesTab({
 		[workspaceId, deletePath],
 	);
 
-	// Capture-phase click intercept for our sidebar modifier intents:
-	// Shift-click → open in new tab, Cmd/Ctrl-click → open in external editor.
-	// Pierre would otherwise consume Shift/Meta for selection range/toggle.
+	// Pierre mounts its tree inside an open shadow root on a custom element
+	// (`<file-tree-container>`). Events bubbling out retarget to that host,
+	// so `e.target.closest(...)` from our wrapper finds nothing — walk
+	// `composedPath()` to cross the shadow boundary and find the row by its
+	// `data-item-path` attribute (stamped by render/rowAttributes.ts in
+	// @pierre/trees — pin coverage with the version in package.json).
+	const findRow = useCallback((e: React.MouseEvent): HTMLElement | null => {
+		const path = e.nativeEvent.composedPath();
+		for (const node of path) {
+			if (!(node instanceof HTMLElement)) continue;
+			if (node.getAttribute("data-item-path")) return node;
+		}
+		return null;
+	}, []);
+
+	// Capture-phase click intercept routes every row click through clickPolicy.
+	// File rows: settings-driven via `useSidebarFilePolicy`. Folders: fixed
+	// rule via `folderIntentFor` (meta=reveal, metaShift=external) — they're
+	// not user-configurable because the action vocabulary doesn't fit.
+	// Plain clicks bound to "pane" are left to Pierre's onSelectionChange so
+	// the visual selection stays in sync.
 	const handleClickCapture = useCallback(
 		(e: React.MouseEvent<HTMLDivElement>) => {
 			if (!rootPath) return;
-			if (!(e.shiftKey || e.metaKey || e.ctrlKey)) return;
-			const target = e.target as HTMLElement | null;
-			// Pierre stamps the canonical tree path on each row as
-			// `data-item-path` (see render/rowAttributes.ts in @pierre/trees).
-			// If a future Pierre version renames this, our modifier-click
-			// intents (Shift = new tab, Cmd/Ctrl = external editor) silently
-			// stop working — pin coverage with the version pinned in
-			// package.json and update both together.
-			const row = target?.closest<HTMLElement>("[data-item-path]");
-			const treePath = row?.getAttribute("data-item-path");
-			if (!treePath || treePath.endsWith("/")) return;
+			const treePath = findRow(e)?.getAttribute("data-item-path");
+			if (!treePath) return;
+			const abs = toAbs(rootPath, treePath);
+
+			if (treePath.endsWith("/")) {
+				const intent = folderIntentFor(e);
+				if (intent === null) return;
+				e.preventDefault();
+				e.stopPropagation();
+				if (intent === "external") openInExternalEditor(abs);
+				// "reveal" is a no-op — folder is already in this sidebar.
+				return;
+			}
+
+			const { tier, action } = filePolicy.resolve(e);
+			if (tier === "plain" && action === "pane") return;
 			e.preventDefault();
 			e.stopPropagation();
-			const abs = toAbs(rootPath, treePath);
-			if (e.metaKey || e.ctrlKey) {
-				openInExternalEditor(abs);
-			} else {
-				onSelectFile(abs, true);
-			}
+			if (action === "external") openInExternalEditor(abs);
+			else if (action === "newTab") onSelectFile(abs, true);
+			else if (action === "pane") onSelectFile(abs, false);
 		},
-		[rootPath, openInExternalEditor, onSelectFile],
+		[rootPath, openInExternalEditor, onSelectFile, findRow, filePolicy],
+	);
+
+	// Hint tooltip uses ShadowClickHint to anchor a single shadcn Tooltip
+	// over the hovered row's bounding rect — Pierre owns the row DOM inside
+	// an open shadow root, so per-row Tooltip wrappers aren't possible.
+	// Folders are excluded since folder intents are hardcoded.
+	const findFileRow = useCallback(
+		(e: React.MouseEvent): HTMLElement | null => {
+			const row = findRow(e);
+			const itemPath = row?.getAttribute("data-item-path");
+			if (!row || !itemPath || itemPath.endsWith("/")) return null;
+			return row;
+		},
+		[findRow],
 	);
 
 	const renderContextMenu = useCallback(
@@ -572,40 +612,42 @@ export function FilesTab({
 			className="flex h-full min-h-0 flex-col overflow-hidden"
 			onClickCapture={handleClickCapture}
 		>
-			<PierreFileTree
-				model={model}
-				className="flex-1 min-h-0"
-				style={TREE_STYLE}
-				header={
-					<div className="group flex h-7 items-center justify-between bg-background px-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-						<span className="truncate">Explorer</span>
-						<div className="flex items-center gap-0.5">
-							<HeaderButton
-								icon={FilePlus}
-								label="New File"
-								onClick={() => void startCreating("file")}
-							/>
-							<HeaderButton
-								icon={FolderPlus}
-								label="New Folder"
-								onClick={() => void startCreating("folder")}
-							/>
-							<HeaderButton
-								icon={RefreshCw}
-								label="Refresh"
-								loading={bridge.isRefreshing}
-								onClick={() => void bridge.doRefresh()}
-							/>
-							<HeaderButton
-								icon={FoldVertical}
-								label="Collapse All"
-								onClick={collapseAll}
-							/>
+			<ShadowClickHint hint={filePolicy.hint} findRow={findFileRow}>
+				<PierreFileTree
+					model={model}
+					className="flex-1 min-h-0"
+					style={TREE_STYLE}
+					header={
+						<div className="group flex h-7 items-center justify-between bg-background px-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+							<span className="truncate">Explorer</span>
+							<div className="flex items-center gap-0.5">
+								<HeaderButton
+									icon={FilePlus}
+									label="New File"
+									onClick={() => void startCreating("file")}
+								/>
+								<HeaderButton
+									icon={FolderPlus}
+									label="New Folder"
+									onClick={() => void startCreating("folder")}
+								/>
+								<HeaderButton
+									icon={RefreshCw}
+									label="Refresh"
+									loading={bridge.isRefreshing}
+									onClick={() => void bridge.doRefresh()}
+								/>
+								<HeaderButton
+									icon={FoldVertical}
+									label="Collapse All"
+									onClick={collapseAll}
+								/>
+							</div>
 						</div>
-					</div>
-				}
-				renderContextMenu={renderContextMenu}
-			/>
+					}
+					renderContextMenu={renderContextMenu}
+				/>
+			</ShadowClickHint>
 		</div>
 	);
 }
