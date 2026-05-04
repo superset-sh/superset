@@ -1,11 +1,9 @@
 import { Avatar } from "@superset/ui/atoms/Avatar";
 import { Button } from "@superset/ui/button";
-import { Card, CardContent } from "@superset/ui/card";
 import { Input } from "@superset/ui/input";
 import { toast } from "@superset/ui/sonner";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useEffect, useState } from "react";
-import { HiOutlinePencil } from "react-icons/hi2";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { authClient } from "renderer/lib/auth-client";
 import { electronTrpc } from "renderer/lib/electron-trpc";
@@ -112,88 +110,100 @@ export function AccountSettings({ visibleItems }: AccountSettingsProps) {
 
 			<div className="space-y-8">
 				{showProfile && (
-					<div>
-						<h3 className="text-sm font-medium mb-4">Profile</h3>
+					<section>
+						<h3 className="text-sm font-medium mb-3">Profile</h3>
 						{isLoading ? (
 							<ProfileSkeleton />
 						) : user ? (
-							<Card>
-								<CardContent>
-									<ul className="space-y-6">
-										<li className="flex items-center justify-between gap-8 pb-6 border-b border-border">
-											<div className="flex-1">
-												<div className="text-sm font-medium mb-1">Avatar</div>
-												<div className="text-xs text-muted-foreground">
-													Recommended size is 256x256px
-												</div>
-											</div>
-											<button
-												type="button"
-												onClick={handleAvatarUpload}
-												className="relative w-8 h-8 group cursor-pointer"
-											>
-												<Avatar
-													size="md"
-													fullName={user.name}
-													image={avatarPreview}
-												/>
-												<div className="absolute inset-0 bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-													<HiOutlinePencil className="h-4 w-4 text-white" />
-												</div>
-											</button>
-										</li>
+							<div className="rounded-lg border bg-card overflow-hidden">
+								<SettingRow
+									label="Avatar"
+									hint="Recommended size is 256x256px"
+								>
+									<div className="flex items-center gap-3">
+										<Avatar
+											size="xl"
+											fullName={user.name}
+											image={avatarPreview}
+										/>
+										<Button
+											variant="outline"
+											size="sm"
+											onClick={handleAvatarUpload}
+											disabled={selectImageMutation.isPending}
+										>
+											Change
+										</Button>
+									</div>
+								</SettingRow>
 
-										<li className="flex items-center justify-between gap-8 pb-6 border-b border-border">
-											<div className="flex-1 text-sm font-medium">Name</div>
-											<div className="flex-1">
-												<Input
-													value={nameValue}
-													onChange={(e) => setNameValue(e.target.value)}
-													onBlur={handleNameBlur}
-													placeholder="Your name"
-													className="w-full"
-												/>
-											</div>
-										</li>
+								<SettingRow label="Name">
+									<Input
+										value={nameValue}
+										onChange={(e) => setNameValue(e.target.value)}
+										onBlur={handleNameBlur}
+										placeholder="Your name"
+										className="w-80"
+									/>
+								</SettingRow>
 
-										<li className="flex items-center justify-between gap-8">
-											<div className="flex-1 text-sm font-medium">Email</div>
-											<div className="flex-1">
-												<Input
-													value={user.email}
-													readOnly
-													disabled
-													className="w-full"
-												/>
-											</div>
-										</li>
-									</ul>
-								</CardContent>
-							</Card>
+								<SettingRow label="Email">
+									<Input
+										value={user.email}
+										readOnly
+										className="w-80 opacity-60"
+									/>
+								</SettingRow>
+							</div>
 						) : (
-							<Card>
-								<CardContent>
-									<p className="text-muted-foreground">
-										Unable to load user info
-									</p>
-								</CardContent>
-							</Card>
+							<div className="rounded-lg border bg-card p-4">
+								<p className="text-sm text-muted-foreground">
+									Unable to load user info
+								</p>
+							</div>
 						)}
-					</div>
+					</section>
 				)}
 
 				{showSignOut && (
-					<div className={showProfile ? "pt-6 border-t" : ""}>
-						<h3 className="text-sm font-medium mb-2">Sign Out</h3>
-						<p className="text-sm text-muted-foreground mb-4">
-							Sign out of your Superset account on this device.
-						</p>
-						<Button variant="outline" onClick={() => signOutMutation.mutate()}>
-							Sign Out
-						</Button>
-					</div>
+					<section>
+						<h3 className="text-sm font-medium mb-3">Sign out</h3>
+						<div className="rounded-lg border bg-card overflow-hidden">
+							<SettingRow
+								label="Sign out of this device"
+								hint="You'll need to sign in again to use Superset on this device."
+							>
+								<Button
+									variant="outline"
+									onClick={() => signOutMutation.mutate()}
+								>
+									Sign out
+								</Button>
+							</SettingRow>
+						</div>
+					</section>
 				)}
 			</div>
+		</div>
+	);
+}
+
+interface SettingRowProps {
+	label: string;
+	hint?: string;
+	children: React.ReactNode;
+}
+
+function SettingRow({ label, hint, children }: SettingRowProps) {
+	return (
+		<div className="flex items-center justify-between gap-8 p-4 border-t border-border first:border-t-0">
+			<div className="flex-1 min-w-0">
+				<div className="text-sm font-medium">{label}</div>
+				{hint && (
+					<div className="text-xs text-muted-foreground mt-0.5">{hint}</div>
+				)}
+			</div>
+			<div className="flex-shrink-0">{children}</div>
 		</div>
 	);
 }
