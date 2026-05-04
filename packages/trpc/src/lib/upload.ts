@@ -35,16 +35,19 @@ export async function uploadImage({
 		});
 	}
 
-	if (existingUrl) {
-		try {
-			await del(existingUrl);
-		} catch {}
-	}
-
 	const blob = await put(pathname, buffer, {
 		access: "public",
 		contentType: mimeType,
 	});
+
+	if (existingUrl) {
+		void del(existingUrl).catch((error) => {
+			console.warn("Failed to delete previous blob after upload", {
+				existingUrl,
+				error,
+			});
+		});
+	}
 
 	return blob.url;
 }

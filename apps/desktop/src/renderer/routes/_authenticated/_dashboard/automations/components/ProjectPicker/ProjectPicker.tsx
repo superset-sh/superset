@@ -38,7 +38,7 @@ export function ProjectPicker({
 						selectedProject ? (
 							<ProjectThumbnail
 								projectName={selectedProject.name}
-								githubOwner={selectedProject.githubOwner}
+								iconUrl={selectedProject.iconUrl}
 								className="!size-5"
 							/>
 						) : (
@@ -65,7 +65,7 @@ export function ProjectPicker({
 								>
 									<ProjectThumbnail
 										projectName={project.name}
-										githubOwner={project.githubOwner}
+										iconUrl={project.iconUrl}
 									/>
 									{project.name}
 									{project.id === selectedProject?.id && (
