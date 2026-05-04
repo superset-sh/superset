@@ -1,7 +1,8 @@
 import { Button } from "@superset/ui/button";
 import { toast } from "@superset/ui/sonner";
 import { useCallback, useRef, useState } from "react";
-import { LuGithub, LuImagePlus, LuTrash2 } from "react-icons/lu";
+import { FaGithub } from "react-icons/fa";
+import { LuImagePlus, LuTrash2 } from "react-icons/lu";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 
 const ACCEPTED_MIME_TYPES = "image/png,image/jpeg,image/webp";
@@ -106,17 +107,23 @@ export function IconUploadField({
 
 	return (
 		<div className="flex items-center gap-3">
-			{iconUrl ? (
-				<img
-					src={iconUrl}
-					alt="Project icon"
-					className="size-10 rounded object-cover border"
-				/>
-			) : (
-				<div className="size-10 rounded border border-dashed flex items-center justify-center text-muted-foreground">
+			<button
+				type="button"
+				onClick={handleClickUpload}
+				disabled={isPending}
+				aria-label={iconUrl ? "Replace icon" : "Upload icon"}
+				className="size-10 rounded border overflow-hidden flex items-center justify-center text-muted-foreground transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed"
+			>
+				{iconUrl ? (
+					<img
+						src={iconUrl}
+						alt="Project icon"
+						className="size-full object-cover"
+					/>
+				) : (
 					<LuImagePlus className="size-4" />
-				</div>
-			)}
+				)}
+			</button>
 			<input
 				ref={fileInputRef}
 				type="file"
@@ -124,17 +131,6 @@ export function IconUploadField({
 				className="hidden"
 				onChange={handleFileChange}
 			/>
-			<Button
-				type="button"
-				variant="outline"
-				size="sm"
-				onClick={handleClickUpload}
-				disabled={isPending}
-				className="gap-1.5"
-			>
-				<LuImagePlus className="size-4" />
-				{iconUrl ? "Replace icon" : "Upload icon"}
-			</Button>
 			{hasGitHubRepo && (
 				<Button
 					type="button"
@@ -144,18 +140,18 @@ export function IconUploadField({
 					disabled={isPending}
 					className="gap-1.5"
 				>
-					<LuGithub className="size-4" />
+					<FaGithub className="size-4" />
 					Use GitHub icon
 				</Button>
 			)}
 			{iconUrl && (
 				<Button
 					type="button"
-					variant="outline"
+					variant="ghost"
 					size="sm"
 					onClick={handleRemove}
 					disabled={isPending}
-					className="gap-1.5 text-destructive hover:text-destructive hover:bg-destructive/10"
+					className="gap-1.5 text-muted-foreground hover:text-destructive"
 				>
 					<LuTrash2 className="size-4" />
 					Remove
