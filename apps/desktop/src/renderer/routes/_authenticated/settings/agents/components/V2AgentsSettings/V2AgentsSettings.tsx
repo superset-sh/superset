@@ -261,7 +261,7 @@ export function V2AgentsSettings() {
 						items={sortableIds}
 						strategy={verticalListSortingStrategy}
 					>
-						<div className="rounded-lg border border-border bg-card overflow-hidden divide-y divide-border">
+						<div className="rounded-lg border border-border overflow-hidden divide-y divide-border">
 							{configs.map((config) => (
 								<V2AgentCard
 									key={config.id}
