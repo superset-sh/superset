@@ -10,8 +10,8 @@ import { useCollections } from "renderer/routes/_authenticated/providers/Collect
 import { MOCK_ORG_ID } from "shared/constants";
 import {
 	type SettingsListGroup,
-	settingsListItemClass,
 	SettingsListSidebar,
+	settingsListItemClass,
 } from "../../../components/SettingsListSidebar";
 
 interface ProjectRow {

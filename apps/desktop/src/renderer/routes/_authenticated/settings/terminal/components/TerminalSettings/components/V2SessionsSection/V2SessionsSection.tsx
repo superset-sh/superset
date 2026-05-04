@@ -266,31 +266,29 @@ function V2SessionsSectionInner() {
 								</tr>
 							</thead>
 							<tbody className="divide-y divide-border/40">
-									{sessions.map((s) => (
-										<tr key={s.id} className="hover:bg-muted/30">
-											<td className="px-2 py-2 font-mono">{s.id}</td>
-											<td className="px-2 py-2 text-right font-mono">
-												{s.pid || "—"}
-											</td>
-											<td className="px-2 py-2 text-right font-mono">
-												{s.cols}×{s.rows}
-											</td>
-											<td className="px-2 py-2">
-												<span
-													className={
-														s.alive
-															? "text-foreground"
-															: "text-muted-foreground"
-													}
-												>
-													{s.alive ? "Alive" : "Exited"}
-												</span>
-											</td>
-										</tr>
-									))}
-								</tbody>
-							</table>
-						</div>
+								{sessions.map((s) => (
+									<tr key={s.id} className="hover:bg-muted/30">
+										<td className="px-2 py-2 font-mono">{s.id}</td>
+										<td className="px-2 py-2 text-right font-mono">
+											{s.pid || "—"}
+										</td>
+										<td className="px-2 py-2 text-right font-mono">
+											{s.cols}×{s.rows}
+										</td>
+										<td className="px-2 py-2">
+											<span
+												className={
+													s.alive ? "text-foreground" : "text-muted-foreground"
+												}
+											>
+												{s.alive ? "Alive" : "Exited"}
+											</span>
+										</td>
+									</tr>
+								))}
+							</tbody>
+						</table>
+					</div>
 				) : null}
 			</div>
 
