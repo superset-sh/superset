@@ -1,7 +1,6 @@
 import type { ExecutionMode, TerminalPreset } from "@superset/local-db";
 import { Alert, AlertDescription } from "@superset/ui/alert";
 import { Button } from "@superset/ui/button";
-import { Checkbox } from "@superset/ui/checkbox";
 import {
 	Dialog,
 	DialogContent,
@@ -11,7 +10,6 @@ import {
 } from "@superset/ui/dialog";
 import { Input } from "@superset/ui/input";
 import { Label } from "@superset/ui/label";
-import { RadioGroup, RadioGroupItem } from "@superset/ui/radio-group";
 import {
 	Select,
 	SelectContent,
@@ -19,6 +17,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@superset/ui/select";
+import { Switch } from "@superset/ui/switch";
 import { Trash2 } from "lucide-react";
 import { useMemo } from "react";
 import { HiExclamationTriangle, HiOutlineFolderOpen } from "react-icons/hi2";
@@ -90,6 +89,27 @@ function Field({ label, htmlFor, hint, children }: FieldProps) {
 	);
 }
 
+interface SettingsRowProps {
+	label: string;
+	hint?: React.ReactNode;
+	htmlFor?: string;
+	children: React.ReactNode;
+}
+
+function SettingsRow({ label, hint, htmlFor, children }: SettingsRowProps) {
+	return (
+		<div className="flex items-center justify-between gap-6 p-4">
+			<div className="min-w-0 flex-1">
+				<Label htmlFor={htmlFor} className="text-sm font-medium">
+					{label}
+				</Label>
+				{hint && <p className="text-xs text-muted-foreground mt-0.5">{hint}</p>}
+			</div>
+			<div className="shrink-0">{children}</div>
+		</div>
+	);
+}
+
 export function PresetEditorDialog({
 	preset,
 	projects,
@@ -109,8 +129,6 @@ export function PresetEditorDialog({
 	isWorkspaceCreation,
 	isNewTab,
 }: PresetEditorDialogProps) {
-	const singleCommandModeValue =
-		modeValue === "split-pane" ? modeValue : "new-tab";
 	const selectDirectory = electronTrpc.window.selectDirectory.useMutation();
 	const originRoute = useSettingsOriginRoute();
 	const trimmedCwd = preset?.cwd.trim() ?? "";
@@ -155,71 +173,103 @@ export function PresetEditorDialog({
 		}
 	};
 
+	const launchModeOptions = hasMultipleCommands
+		? [
+				{ value: "split-pane", label: "All in current tab (split panes)" },
+				{ value: "new-tab", label: "Each in its own new tab" },
+				{
+					value: "new-tab-split-pane",
+					label: "All in a new tab (split panes)",
+				},
+			]
+		: [
+				{ value: "split-pane", label: "Open in current tab" },
+				{ value: "new-tab", label: "Open in new tab" },
+			];
+	const launchModeValue = hasMultipleCommands
+		? modeValue
+		: modeValue === "split-pane"
+			? "split-pane"
+			: "new-tab";
+
+	const directoryAlert =
+		trimmedCwd && isAbsolutePath && directoryStatus?.exists === false ? (
+			<Alert variant="destructive">
+				<HiExclamationTriangle />
+				<AlertDescription>
+					This directory does not exist. The preset will fall back to the
+					workspace root.
+				</AlertDescription>
+			</Alert>
+		) : trimmedCwd &&
+			isAbsolutePath &&
+			directoryStatus?.exists &&
+			!directoryStatus.isDirectory ? (
+			<Alert variant="destructive">
+				<HiExclamationTriangle />
+				<AlertDescription>
+					This path exists, but it is not a directory.
+				</AlertDescription>
+			</Alert>
+		) : null;
+
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange} modal>
-			<DialogContent className="sm:max-w-4xl max-h-[85vh] overflow-y-auto">
+			<DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
 				{preset ? (
 					<>
 						<DialogHeader>
 							<DialogTitle>{preset.name.trim() || "Edit preset"}</DialogTitle>
 						</DialogHeader>
 
-						<div className="grid gap-x-8 gap-y-5 sm:grid-cols-2">
-							<div className="space-y-5">
-								<Field label="Name" htmlFor="preset-name">
-									<Input
-										id="preset-name"
-										value={preset.name}
-										onChange={(e) => onFieldChange("name", e.target.value)}
-										onBlur={() => onFieldBlur("name")}
-										placeholder="e.g. Dev server"
-									/>
-								</Field>
+						<div className="space-y-5">
+							<Field label="Name" htmlFor="preset-name">
+								<Input
+									id="preset-name"
+									value={preset.name}
+									onChange={(e) => onFieldChange("name", e.target.value)}
+									onBlur={() => onFieldBlur("name")}
+									placeholder="e.g. Dev server"
+								/>
+							</Field>
 
-								<Field label="Description" htmlFor="preset-description">
-									<Input
-										id="preset-description"
-										value={preset.description ?? ""}
-										onChange={(e) =>
-											onFieldChange("description", e.target.value)
-										}
-										onBlur={() => onFieldBlur("description")}
-										placeholder="Optional"
-									/>
-								</Field>
+							<Field label="Description" htmlFor="preset-description">
+								<Input
+									id="preset-description"
+									value={preset.description ?? ""}
+									onChange={(e) => onFieldChange("description", e.target.value)}
+									onBlur={() => onFieldBlur("description")}
+									placeholder="Optional"
+								/>
+							</Field>
 
-								<Field
-									label="Commands"
-									hint="One command per row. Add multiple to launch a grouped preset."
-								>
-									<CommandsEditor
-										commands={preset.commands}
-										onChange={onCommandsChange}
-										onBlur={onCommandsBlur}
-										placeholder="e.g. bun run dev"
-									/>
-								</Field>
-							</div>
+							<Field
+								label="Commands"
+								hint="One command per row. Add multiple to launch a grouped preset."
+							>
+								<CommandsEditor
+									commands={preset.commands}
+									onChange={onCommandsChange}
+									onBlur={onCommandsBlur}
+									placeholder="e.g. bun run dev"
+								/>
+							</Field>
 
-							<div className="space-y-5">
-								<Field label="Applies to">
+							<div className="rounded-lg border border-border overflow-hidden divide-y divide-border">
+								<div className="p-4 space-y-3">
+									<Label className="text-sm font-medium">Applies to</Label>
 									<ProjectTargetingField
 										projectIds={preset.projectIds}
 										projects={projects}
 										preferredProjectId={originWorkspace?.projectId ?? null}
 										onChange={onProjectIdsChange}
 									/>
-								</Field>
+								</div>
 
-								<Field
+								<SettingsRow
 									label="Directory"
 									htmlFor="preset-directory"
-									hint={
-										<>
-											Use <code>./apps/web</code> for a workspace-relative path,
-											or pick an absolute folder.
-										</>
-									}
+									hint="Working directory for the preset. Use a workspace-relative path or pick an absolute folder."
 								>
 									<div className="flex items-center gap-2">
 										<Input
@@ -227,7 +277,8 @@ export function PresetEditorDialog({
 											value={preset.cwd}
 											onChange={(e) => onFieldChange("cwd", e.target.value)}
 											onBlur={() => onFieldBlur("cwd")}
-											placeholder="e.g. ./apps/web"
+											placeholder="./apps/web"
+											className="w-56"
 										/>
 										<Button
 											type="button"
@@ -240,141 +291,66 @@ export function PresetEditorDialog({
 											Browse
 										</Button>
 									</div>
-									{trimmedCwd &&
-									isAbsolutePath &&
-									directoryStatus?.exists === false ? (
-										<Alert variant="destructive">
-											<HiExclamationTriangle />
-											<AlertDescription>
-												This directory does not exist. The preset will fall back
-												to the workspace root.
-											</AlertDescription>
-										</Alert>
-									) : null}
-									{trimmedCwd &&
-									isAbsolutePath &&
-									directoryStatus?.exists &&
-									!directoryStatus.isDirectory ? (
-										<Alert variant="destructive">
-											<HiExclamationTriangle />
-											<AlertDescription>
-												This path exists, but it is not a directory.
-											</AlertDescription>
-										</Alert>
-									) : null}
-								</Field>
+								</SettingsRow>
 
-								<Field label="Launch mode">
-									{hasMultipleCommands ? (
-										<RadioGroup
-											value={modeValue}
-											onValueChange={(value) =>
-												onModeChange(value as ExecutionMode)
-											}
-											className="gap-2"
-										>
-											<div className="flex items-start gap-2">
-												<RadioGroupItem
-													id="preset-multi-command-split-pane"
-													value="split-pane"
-													className="mt-0.5"
-												/>
-												<Label
-													htmlFor="preset-multi-command-split-pane"
-													className="text-sm font-normal"
-												>
-													All in current tab (split panes)
-												</Label>
-											</div>
-											<div className="flex items-start gap-2">
-												<RadioGroupItem
-													id="preset-multi-command-new-tab"
-													value="new-tab"
-													className="mt-0.5"
-												/>
-												<Label
-													htmlFor="preset-multi-command-new-tab"
-													className="text-sm font-normal"
-												>
-													Each in its own new tab
-												</Label>
-											</div>
-											<div className="flex items-start gap-2">
-												<RadioGroupItem
-													id="preset-multi-command-new-tab-split-pane"
-													value="new-tab-split-pane"
-													className="mt-0.5"
-												/>
-												<Label
-													htmlFor="preset-multi-command-new-tab-split-pane"
-													className="text-sm font-normal"
-												>
-													All in a new tab (split panes)
-												</Label>
-											</div>
-										</RadioGroup>
-									) : (
-										<Select
-											value={singleCommandModeValue}
-											onValueChange={(value) =>
-												onModeChange(value as ExecutionMode)
-											}
-										>
-											<SelectTrigger className="w-full">
-												<SelectValue />
-											</SelectTrigger>
-											<SelectContent>
-												<SelectItem value="split-pane">
-													Open in current tab
-												</SelectItem>
-												<SelectItem value="new-tab">Open in new tab</SelectItem>
-											</SelectContent>
-										</Select>
-									)}
-								</Field>
+								{directoryAlert && (
+									<div className="px-4 pb-4">{directoryAlert}</div>
+								)}
 
-								<Field
-									label="Auto-run"
-									hint="Launch automatically in these situations."
+								<SettingsRow
+									label="Launch mode"
+									hint={
+										hasMultipleCommands
+											? "How grouped commands open."
+											: "How the command opens."
+									}
 								>
-									<div className="space-y-2 pt-0.5">
-										<div className="flex items-start gap-2.5">
-											<Checkbox
-												id="preset-workspace-autostart"
-												checked={isWorkspaceCreation}
-												className="mt-0.5"
-												onCheckedChange={(checked) =>
-													onToggleAutoApply(
-														"applyOnWorkspaceCreated",
-														checked === true,
-													)
-												}
-											/>
-											<Label
-												htmlFor="preset-workspace-autostart"
-												className="text-sm font-normal"
-											>
-												When creating a workspace
-											</Label>
-										</div>
-										<div className="flex items-start gap-2.5">
-											<Checkbox
-												id="preset-tab-autostart"
-												checked={isNewTab}
-												className="mt-0.5"
-												onCheckedChange={(checked) =>
-													onToggleAutoApply("applyOnNewTab", checked === true)
-												}
-											/>
-											<Label
-												htmlFor="preset-tab-autostart"
-												className="text-sm font-normal"
-											>
-												When opening a new tab
-											</Label>
-										</div>
-									</div>
-								</Field>
+									<Select
+										value={launchModeValue}
+										onValueChange={(value) =>
+											onModeChange(value as ExecutionMode)
+										}
+									>
+										<SelectTrigger size="sm" className="w-64">
+											<SelectValue />
+										</SelectTrigger>
+										<SelectContent>
+											{launchModeOptions.map((option) => (
+												<SelectItem key={option.value} value={option.value}>
+													{option.label}
+												</SelectItem>
+											))}
+										</SelectContent>
+									</Select>
+								</SettingsRow>
+
+								<SettingsRow
+									label="Auto-run on workspace creation"
+									htmlFor="preset-workspace-autostart"
+									hint="Launch this preset when a new workspace is created."
+								>
+									<Switch
+										id="preset-workspace-autostart"
+										checked={isWorkspaceCreation}
+										onCheckedChange={(checked) =>
+											onToggleAutoApply("applyOnWorkspaceCreated", checked)
+										}
+									/>
+								</SettingsRow>
+
+								<SettingsRow
+									label="Auto-run on new tab"
+									htmlFor="preset-tab-autostart"
+									hint="Launch this preset whenever a new terminal tab opens."
+								>
+									<Switch
+										id="preset-tab-autostart"
+										checked={isNewTab}
+										onCheckedChange={(checked) =>
+											onToggleAutoApply("applyOnNewTab", checked)
+										}
+									/>
+								</SettingsRow>
 							</div>
 						</div>
 
