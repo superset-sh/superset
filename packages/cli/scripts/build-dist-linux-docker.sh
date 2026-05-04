@@ -89,15 +89,20 @@ docker run --rm --platform "$PLATFORM" \
         cwd: process.env.HOME || \"/\", env: process.env,
       });
       let got = \"\";
-      term.onData((d) => { got += d.toString(); });
-      term.onExit((e) => {
-        if (got.includes(\"SPAWN_OK\") && e.exitCode === 0) {
+      let exited = null;
+      const check = () => {
+        if (got.includes(\"SPAWN_OK\") && exited && exited.exitCode === 0) {
           console.log(\"pty spawn OK\"); process.exit(0);
         }
-        console.error(\"pty spawn FAIL exit=\" + e.exitCode + \" got=\" + JSON.stringify(got));
+        console.error(\"pty spawn FAIL exit=\" + (exited && exited.exitCode) + \" got=\" + JSON.stringify(got));
         process.exit(1);
-      });
+      };
+      term.onData((d) => { got += d.toString(); });
+      // onExit can fire before the final onData chunk is delivered (SIGCHLD
+      // and EOF on the pty master are independent events). Defer the
+      // assertion one tick so any in-flight onData callback runs first.
+      term.onExit((e) => { exited = e; setTimeout(check, 100); });
       setTimeout(() => { console.error(\"pty spawn timeout\"); process.exit(1); }, 5000);
     "
-    echo "[docker-build] tarball: $(ls -la dist/superset-${TARGET}.tar.gz)"
+    echo "[docker-build] tarball: $(ls -la "$DIST.tar.gz")"
   '
