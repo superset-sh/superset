@@ -41,6 +41,7 @@ import {
 	PtySubprocessFrameDecoder,
 	PtySubprocessIpcType,
 } from "./pty-subprocess-ipc";
+import { stripTerminalQueryResponses } from "./query-response-filter";
 
 // =============================================================================
 // Constants
@@ -859,12 +860,18 @@ export class Session {
 	/**
 	 * Write data to the PTY's stdin.
 	 *
-	 * Escape-sequence responses (`\x1b`-prefixed) are dropped while the shell
-	 * is still initializing — these are stale DA/DSR replies from the
-	 * renderer's xterm to terminal queries the shell sent during startup. If
-	 * forwarded, they appear as typed text like `?62;4;9;22c` at the shell
-	 * prompt. The headless emulator answers those queries directly (see
-	 * constructor), so dropping the renderer's duplicate is safe.
+	 * Terminal-capability responses from the renderer's xterm (DA1/DA2/DSR
+	 * cursor-position, OSC 10/11/12 colors) are stripped before forwarding.
+	 * The headless emulator on the main process already answers those
+	 * queries (see constructor), so any matching reply from the renderer is
+	 * a duplicate. Forwarding it leaks past the foreground process into the
+	 * shell prompt as stray text like `?62;4;9;22c` or
+	 * `11;rgb:1515/1111/1010`. See #4013, #4041.
+	 *
+	 * While the shell is still initializing, all `\x1b`-prefixed writes are
+	 * dropped — those are stale DA/DSR replies to startup probes that
+	 * answered via different render-paths and would otherwise appear as
+	 * typed text on the first prompt.
 	 *
 	 * All other data — user keystrokes and preset commands alike — passes
 	 * through immediately. Buffering here previously froze workspaces when
@@ -878,7 +885,9 @@ export class Session {
 		if (this.shellReadyState === "pending" && data.startsWith("\x1b")) {
 			return;
 		}
-		this.sendWriteToSubprocess(data);
+		const filtered = stripTerminalQueryResponses(data);
+		if (filtered.length === 0) return;
+		this.sendWriteToSubprocess(filtered);
 	}
 
 	/**
