@@ -5,7 +5,6 @@ import { Checkbox } from "@superset/ui/checkbox";
 import {
 	Dialog,
 	DialogContent,
-	DialogDescription,
 	DialogFooter,
 	DialogHeader,
 	DialogTitle,
