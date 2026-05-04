@@ -277,7 +277,9 @@ export function NewProjectModal({
 
 					{error && (
 						<div className="flex items-start gap-2 rounded-md border border-destructive/20 bg-destructive/10 px-3 py-2">
-							<span className="flex-1 text-xs text-destructive">{error}</span>
+							<span className="flex-1 text-xs text-destructive select-text">
+								{error}
+							</span>
 							<button
 								type="button"
 								onClick={() => setError(null)}
