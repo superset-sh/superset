@@ -1,1 +1,0 @@
-ALTER TABLE "v2_projects" ADD COLUMN "icon_url" text;
