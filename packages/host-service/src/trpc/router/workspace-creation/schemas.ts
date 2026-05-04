@@ -106,10 +106,9 @@ export const adoptInputSchema = z.object({
 	baseBranch: z.string().optional(),
 	existingWorkspaceId: z.string().optional(),
 	// When provided, adopt the worktree at this explicit path instead
-	// of looking one up under <repoPath>/.worktrees/<branch>. Used by
-	// the v1→v2 migration to adopt worktrees at legacy paths (e.g.
-	// ~/.superset/worktrees/...) that aren't under the picker's
-	// Superset-managed prefix.
+	// of locating one by branch via `git worktree list`. Used by the
+	// v1→v2 migration when the renderer already knows the on-disk
+	// path and wants to skip the branch-based lookup.
 	worktreePath: z.string().optional(),
 });
 

@@ -9,6 +9,7 @@ import { projects, workspaces } from "../../../db/schema";
 import { invalidateLabelCache } from "../../../ports/static-ports";
 import { protectedProcedure, router } from "../../index";
 import { ensureMainWorkspace } from "../project/utils/ensure-main-workspace";
+import { safeResolveWorktreePath } from "../workspace-creation/shared/worktree-paths";
 
 export const workspaceRouter = router({
 	get: protectedProcedure
@@ -80,11 +81,11 @@ export const workspaceRouter = router({
 
 			await ensureMainWorkspace(ctx, input.projectId, localProject.repoPath);
 
-			const worktreePath = join(
-				localProject.repoPath,
-				".worktrees",
+			const worktreePath = safeResolveWorktreePath(
+				localProject.id,
 				input.branch,
 			);
+			mkdirSync(dirname(worktreePath), { recursive: true });
 			const machineId = getHostId();
 			const hostName = getHostName();
 
