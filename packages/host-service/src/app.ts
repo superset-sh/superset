@@ -7,7 +7,7 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { createApiClient } from "./api";
 import { createDb, type HostDb } from "./db";
-import { EventBus, registerEventBusRoute } from "./events";
+import { EventBus, GitWatcher, registerEventBusRoute } from "./events";
 import type { ApiAuthProvider } from "./providers/auth";
 import type { HostAuthProvider } from "./providers/host-auth";
 import type { ModelProviderRuntimeResolver } from "./providers/model-providers";
@@ -76,13 +76,19 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 			return new Octokit({ auth: token });
 		});
 
+	const filesystem = new WorkspaceFilesystemManager({ db });
+	// GitWatcher is the single source of truth for `.git/` and worktree fs
+	// activity per workspace. Both EventBus (broadcasts to clients) and the
+	// pull-requests runtime (event-driven branch sync) subscribe to it.
+	const gitWatcher = new GitWatcher(db, filesystem);
+	gitWatcher.start();
 	const pullRequestRuntime = new PullRequestRuntimeManager({
 		db,
 		git,
 		github,
+		gitWatcher,
 	});
 	pullRequestRuntime.start();
-	const filesystem = new WorkspaceFilesystemManager({ db });
 	const chatRuntime =
 		options.chatRuntime ??
 		new ChatRuntimeManager({
@@ -111,7 +117,7 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 		}),
 	);
 
-	const eventBus = new EventBus({ db, filesystem });
+	const eventBus = new EventBus({ db, filesystem, gitWatcher });
 	eventBus.start();
 
 	// Backfill `kind='main'` v2 workspaces for projects already set up before
@@ -179,6 +185,11 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 			eventBus.close();
 		} catch (err) {
 			console.warn("[host-service] eventBus.close failed:", err);
+		}
+		try {
+			gitWatcher.close();
+		} catch (err) {
+			console.warn("[host-service] gitWatcher.close failed:", err);
 		}
 		if (ownsDb) {
 			try {

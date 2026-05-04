@@ -6,7 +6,7 @@ import type { HostDb } from "../db/index.ts";
 import { portManager } from "../ports/port-manager.ts";
 import { getLabelsForWorkspace } from "../ports/static-ports.ts";
 import type { WorkspaceFilesystemManager } from "../runtime/filesystem/index.ts";
-import { GitWatcher } from "./git-watcher.ts";
+import type { GitWatcher } from "./git-watcher.ts";
 import type { ClientMessage, ServerMessage } from "./types.ts";
 
 type WsSocket = {
@@ -52,6 +52,7 @@ function parseClientMessage(data: unknown): ClientMessage | null {
 export interface EventBusOptions {
 	db: HostDb;
 	filesystem: WorkspaceFilesystemManager;
+	gitWatcher: GitWatcher;
 }
 
 /**
@@ -71,13 +72,12 @@ export class EventBus {
 
 	constructor(options: EventBusOptions) {
 		this.filesystem = options.filesystem;
-		this.gitWatcher = new GitWatcher(options.db, options.filesystem);
+		this.gitWatcher = options.gitWatcher;
 	}
 
 	start(): void {
 		if (this.removeGitListener || this.removePortListeners) return;
 
-		this.gitWatcher.start();
 		this.removeGitListener = this.gitWatcher.onChanged((event) => {
 			this.broadcast({
 				type: "git:changed",
@@ -105,7 +105,6 @@ export class EventBus {
 		this.removeGitListener = null;
 		this.removePortListeners?.();
 		this.removePortListeners = null;
-		this.gitWatcher.close();
 		for (const [socket, state] of this.clients) {
 			this.cleanupClient(socket, state);
 		}

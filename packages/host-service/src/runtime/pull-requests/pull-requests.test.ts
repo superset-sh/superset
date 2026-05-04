@@ -148,6 +148,7 @@ function createManager(state: FakeState) {
 		github: async () => {
 			throw new Error("github should not be used for direct PR linking");
 		},
+		gitWatcher: { onChanged: () => () => {} } as never,
 	});
 }
 

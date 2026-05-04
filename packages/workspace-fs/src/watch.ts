@@ -15,6 +15,15 @@ import {
 } from "./search";
 import type { FsWatchEvent } from "./types";
 
+// Cap per-watcher file-path memory so a monotonic stream of unique paths
+// (log rotation, hashed build artifacts) doesn't grow JS heap unbounded.
+// Directories are tracked separately and uncapped — directory count per
+// worktree is bounded by repo structure (O(100s) even for huge repos), and
+// losing a directory hint causes a delete event to fall back to file-only
+// search-index pruning, leaving stale descendant entries until the next
+// full rebuild.
+const FILE_PATHS_MAX = 10_000;
+
 export interface WatchPathOptions {
 	absolutePath: string;
 	recursive?: boolean;
@@ -33,7 +42,8 @@ interface WatcherState {
 	absolutePath: string;
 	subscription: AsyncSubscription;
 	listeners: Set<WatchListener>;
-	pathTypes: Map<string, boolean>;
+	filePaths: Map<string, true>;
+	directoryPaths: Set<string>;
 	pendingEvents: ParcelWatcherEvent[];
 	flushTimer: ReturnType<typeof setTimeout> | null;
 }
@@ -368,7 +378,8 @@ export class FsWatcherManager {
 			absolutePath: normalizeAbsolutePath(absolutePath),
 			subscription: null as unknown as AsyncSubscription,
 			listeners: new Set<WatchListener>(),
-			pathTypes: new Map<string, boolean>(),
+			filePaths: new Map<string, true>(),
+			directoryPaths: new Set<string>(),
 			pendingEvents: [],
 			flushTimer: null,
 		};
@@ -450,9 +461,13 @@ export class FsWatcherManager {
 			return;
 		}
 
-		const internalEvents = await Promise.all(
-			coalescedEvents.map((event) => this.normalizeEvent(state, event)),
-		);
+		// Sequential so LRU mutations land in event order, not stat-completion
+		// order. Batches are small (debounced ~75 ms) and stat is fast on a
+		// warm fs, so the parallelism wasn't worth the eviction nondeterminism.
+		const internalEvents: InternalWatchEvent[] = [];
+		for (const event of coalescedEvents) {
+			internalEvents.push(await this.normalizeEvent(state, event));
+		}
 		const reconciledEvents = reconcileRenameEvents(internalEvents);
 
 		const searchPatchEvents = reconciledEvents
@@ -469,17 +484,32 @@ export class FsWatcherManager {
 		event: ParcelWatcherEvent,
 	): Promise<InternalWatchEvent> {
 		const absolutePath = normalizeAbsolutePath(event.path);
-		let isDirectory = state.pathTypes.get(absolutePath) ?? false;
+		let isDirectory = state.directoryPaths.has(absolutePath);
 
 		if (event.type === "delete") {
-			state.pathTypes.delete(absolutePath);
+			state.filePaths.delete(absolutePath);
+			state.directoryPaths.delete(absolutePath);
 		} else {
 			try {
 				const stats = await stat(absolutePath);
 				isDirectory = stats.isDirectory();
-				state.pathTypes.set(absolutePath, isDirectory);
+				if (isDirectory) {
+					// Directories are uncapped (bounded by repo structure).
+					state.directoryPaths.add(absolutePath);
+					state.filePaths.delete(absolutePath);
+				} else {
+					// LRU bump + evict oldest file when at cap. Map iteration is
+					// insertion-order, so the first key is least-recently-used.
+					state.filePaths.delete(absolutePath);
+					if (state.filePaths.size >= FILE_PATHS_MAX) {
+						const oldestKey = state.filePaths.keys().next().value;
+						if (oldestKey) state.filePaths.delete(oldestKey);
+					}
+					state.filePaths.set(absolutePath, true);
+					state.directoryPaths.delete(absolutePath);
+				}
 			} catch {
-				isDirectory = state.pathTypes.get(absolutePath) ?? false;
+				isDirectory = state.directoryPaths.has(absolutePath);
 			}
 		}
 

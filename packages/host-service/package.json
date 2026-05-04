@@ -50,6 +50,7 @@
 		"test:integration": "bun test --pass-with-no-tests test/integration",
 		"test:integration:daemon": "node --experimental-strip-types --test src/terminal/DaemonClient/DaemonClient.node-test.ts src/daemon/DaemonSupervisor.node-test.ts",
 		"test:e2e": "bun run scripts/test-e2e.ts",
+		"bench": "bun test test/integration/pull-requests-scaling.bench.ts",
 		"typecheck": "tsc --noEmit --emitDeclarationOnly false"
 	},
 	"dependencies": {

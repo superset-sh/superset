@@ -1,3 +1,5 @@
+import { db } from "@superset/db/client";
+import { submittedPrompts } from "@superset/db/schema";
 import { COMPANY } from "@superset/shared/constants";
 import { TRPCError } from "@trpc/server";
 import { Ratelimit } from "@upstash/ratelimit";
@@ -18,6 +20,18 @@ const supportReportRateLimit =
 				}),
 				limiter: Ratelimit.slidingWindow(3, "1 h"),
 				prefix: "ratelimit:support:migration-report",
+			})
+		: null;
+
+const submitPromptRateLimit =
+	env.KV_REST_API_URL && env.KV_REST_API_TOKEN
+		? new Ratelimit({
+				redis: new Redis({
+					url: env.KV_REST_API_URL,
+					token: env.KV_REST_API_TOKEN,
+				}),
+				limiter: Ratelimit.slidingWindow(5, "1 h"),
+				prefix: "ratelimit:support:submit-prompt",
 			})
 		: null;
 
@@ -48,6 +62,37 @@ async function assertSupportReportRateLimit({
 		throw new TRPCError({
 			code: "TOO_MANY_REQUESTS",
 			message: "Too many support reports. Try again later.",
+		});
+	}
+}
+
+async function assertSubmitPromptRateLimit({
+	userId,
+	organizationId,
+}: {
+	userId: string;
+	organizationId: string | null | undefined;
+}) {
+	if (!submitPromptRateLimit) {
+		if (env.NODE_ENV === "production") {
+			throw new TRPCError({
+				code: "INTERNAL_SERVER_ERROR",
+				message: "Submit prompt rate limiting is not configured",
+			});
+		}
+		console.warn(
+			"[support/submitPrompt] rate limit skipped because KV is not configured",
+		);
+		return;
+	}
+
+	const { success } = await submitPromptRateLimit.limit(
+		`${organizationId ?? "no-org"}:${userId}`,
+	);
+	if (!success) {
+		throw new TRPCError({
+			code: "TOO_MANY_REQUESTS",
+			message: "Too many prompt submissions. Try again later.",
 		});
 	}
 }
@@ -93,6 +138,35 @@ export const supportRouter = createTRPCRouter({
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: "Failed to send migration report",
+				});
+			}
+		}),
+
+	submitPrompt: protectedProcedure
+		.input(
+			z.object({
+				promptText: z.string().min(1).max(10_000),
+				submitterName: z.string().max(120).optional(),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			const userId = ctx.session.user.id;
+			const organizationId = ctx.activeOrganizationId ?? null;
+
+			await assertSubmitPromptRateLimit({ userId, organizationId });
+
+			try {
+				await db.insert(submittedPrompts).values({
+					userId,
+					organizationId,
+					promptText: input.promptText,
+					submitterName: input.submitterName?.trim() || null,
+				});
+			} catch (error) {
+				console.error("[support/submitPrompt] failed", error);
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: "Failed to save prompt",
 				});
 			}
 		}),

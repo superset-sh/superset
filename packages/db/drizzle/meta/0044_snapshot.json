@@ -1,6 +1,6 @@
 {
-  "id": "eec89421-4398-49a7-a83f-a51620451a11",
-  "prevId": "1875cb9e-d6b5-4ba5-93fe-83a4f9fff27e",
+  "id": "b6445029-ac5e-41e1-9f9d-1cea20881177",
+  "prevId": "eec89421-4398-49a7-a83f-a51620451a11",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -5230,6 +5230,12 @@
         "github_repository_id": {
           "name": "github_repository_id",
           "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "icon_url": {
+          "name": "icon_url",
+          "type": "text",
           "primaryKey": false,
           "notNull": false
         },

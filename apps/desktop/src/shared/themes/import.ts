@@ -41,6 +41,8 @@ const uiColorsSchema = z
 		chart5: z.string().optional(),
 		highlightMatch: z.string().optional(),
 		highlightActive: z.string().optional(),
+		highlight: z.string().optional(),
+		highlightForeground: z.string().optional(),
 	})
 	.passthrough();
 

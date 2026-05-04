@@ -9,6 +9,7 @@ import { ChangesHeader } from "../ChangesHeader";
 type RouterOutputs = inferRouterOutputs<AppRouter>;
 
 interface ChangesTabContentProps {
+	workspaceId: string;
 	status: {
 		data: RouterOutputs["git"]["getStatus"] | undefined;
 		isLoading: boolean;
@@ -33,6 +34,7 @@ interface ChangesTabContentProps {
 }
 
 export const ChangesTabContent = memo(function ChangesTabContent({
+	workspaceId,
 	status,
 	commits,
 	branches,
@@ -91,6 +93,7 @@ export const ChangesTabContent = memo(function ChangesTabContent({
 			<div className="min-h-0 flex-1 overflow-y-auto">
 				<ChangesFileList
 					files={files}
+					workspaceId={workspaceId}
 					isLoading={isLoading}
 					worktreePath={worktreePath}
 					onSelectFile={onSelectFile}
