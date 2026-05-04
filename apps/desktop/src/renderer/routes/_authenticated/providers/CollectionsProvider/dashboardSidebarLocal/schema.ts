@@ -52,6 +52,26 @@ export const workspaceLocalStateSchema = z.object({
 		.default([]),
 });
 
+// Defaults for fields heal can synthesize. Identity fields (workspaceId,
+// createdAt, paneLayout, sidebarState.projectId) intentionally absent — they
+// must come from the stored row.
+const SIDEBAR_STATE_DEFAULTS = {
+	tabOrder: 0,
+	sectionId: null,
+	changesFilter: { kind: "all" },
+	activeTab: "changes",
+	isHidden: false,
+} as const;
+
+const WORKSPACE_LOCAL_STATE_OPTIONAL_DEFAULTS = {
+	viewedFiles: [] as string[],
+	recentlyViewedFiles: [] as Array<{
+		relativePath: string;
+		absolutePath: string;
+		lastAccessedAt: number;
+	}>,
+};
+
 export const dashboardSidebarSectionSchema = z.object({
 	sectionId: z.string().uuid(),
 	projectId: z.string().uuid(),
@@ -168,10 +188,37 @@ export const DEFAULT_V2_USER_PREFERENCES: V2UserPreferencesRow = {
 };
 
 /**
- * Heal a stored row against current defaults. Used by the localStorage
- * collection's read-time parser so rows persisted before a field was added
- * (top-level or nested in a LinkTierMap) don't surface as undefined to
- * consumers. Per-tier defaults vary by map, so we deep-merge each tier map
+ * Heal a stored workspaceLocalState row against current defaults. Identity
+ * fields (workspaceId, projectId, paneLayout, createdAt) pass through from
+ * the stored row — they have no synthesizable default. Optional fields with
+ * intrinsic defaults get filled at both the top level and inside sidebarState.
+ */
+export function healWorkspaceLocalState(raw: unknown): WorkspaceLocalStateRow {
+	const r = (
+		raw && typeof raw === "object" ? raw : {}
+	) as Partial<WorkspaceLocalStateRow>;
+	const sidebar = (
+		r.sidebarState && typeof r.sidebarState === "object" ? r.sidebarState : {}
+	) as Partial<WorkspaceLocalStateRow["sidebarState"]>;
+	return {
+		...r,
+		viewedFiles:
+			r.viewedFiles ?? WORKSPACE_LOCAL_STATE_OPTIONAL_DEFAULTS.viewedFiles,
+		recentlyViewedFiles:
+			r.recentlyViewedFiles ??
+			WORKSPACE_LOCAL_STATE_OPTIONAL_DEFAULTS.recentlyViewedFiles,
+		sidebarState: {
+			...SIDEBAR_STATE_DEFAULTS,
+			...sidebar,
+		} as WorkspaceLocalStateRow["sidebarState"],
+	} as WorkspaceLocalStateRow;
+}
+
+/**
+ * Heal a stored v2 user-preferences row against current defaults. Used by the
+ * localStorage collection's read-time parser so rows persisted before a field
+ * was added (top-level or nested in a LinkTierMap) don't surface as undefined
+ * to consumers. Per-tier defaults vary by map, so we deep-merge each tier map
  * against its own default rather than relying on a single Zod default.
  */
 export function healV2UserPreferences(raw: unknown): V2UserPreferencesRow {

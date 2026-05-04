@@ -6,8 +6,10 @@ import {
 import {
 	DEFAULT_V2_USER_PREFERENCES,
 	healV2UserPreferences,
+	healWorkspaceLocalState,
 	V2_USER_PREFERENCES_ID,
 	v2UserPreferencesSchema,
+	workspaceLocalStateSchema,
 } from "./dashboardSidebarLocal";
 import { withReadHeal } from "./withReadHeal";
 
@@ -144,5 +146,55 @@ describe("withReadHeal end-to-end via real localStorageCollectionOptions", () =>
 		// buildHint. If this ever starts returning a defined value the wrapper
 		// may no longer be needed.
 		expect(row?.sidebarFileLinks).toBeUndefined();
+	});
+
+	it("heals a workspaceLocalState row missing optional + nested fields", async () => {
+		const { api: storage } = makeMapStorage();
+		const workspaceId = "11111111-1111-1111-1111-111111111111";
+		const projectId = "22222222-2222-2222-2222-222222222222";
+		// Hypothetical pre-evolution shape: identity fields present, optional
+		// top-level + nested defaults absent.
+		const stale = {
+			workspaceId,
+			createdAt: "2026-01-01T00:00:00.000Z",
+			paneLayout: { panes: [], focusedPaneId: null },
+			sidebarState: { projectId },
+		};
+		storage.setItem(
+			"test-wls",
+			JSON.stringify({
+				[`s:${workspaceId}`]: { versionKey: "v0", data: stale },
+			}),
+		);
+
+		const collection = createCollection(
+			localStorageCollectionOptions(
+				withReadHeal(
+					{
+						id: "test-wls",
+						storageKey: "test-wls",
+						schema: workspaceLocalStateSchema,
+						getKey: (item) => item.workspaceId,
+						storage,
+						storageEventApi: noopEvents,
+					},
+					healWorkspaceLocalState,
+				),
+			),
+		);
+		await collection.preload();
+
+		const row = collection.get(workspaceId);
+		expect(row).toBeDefined();
+		// Identity fields preserved.
+		expect(row?.workspaceId).toBe(workspaceId);
+		expect(row?.sidebarState.projectId).toBe(projectId);
+		// Optional defaults filled.
+		expect(row?.viewedFiles).toEqual([]);
+		expect(row?.recentlyViewedFiles).toEqual([]);
+		// Nested sidebarState defaults filled.
+		expect(row?.sidebarState.activeTab).toBe("changes");
+		expect(row?.sidebarState.changesFilter).toEqual({ kind: "all" });
+		expect(row?.sidebarState.isHidden).toBe(false);
 	});
 });

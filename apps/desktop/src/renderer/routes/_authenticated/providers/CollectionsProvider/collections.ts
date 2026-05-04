@@ -48,6 +48,7 @@ import {
 	dashboardSidebarProjectSchema,
 	dashboardSidebarSectionSchema,
 	healV2UserPreferences,
+	healWorkspaceLocalState,
 	type V2TerminalPresetRow,
 	type V2UserPreferencesRow,
 	v2TerminalPresetSchema,
@@ -643,12 +644,17 @@ function createOrgCollections(organizationId: string): OrgCollections {
 	);
 
 	const v2WorkspaceLocalState = createIndexedCollection(
-		localStorageCollectionOptions({
-			id: `v2_workspace_local_state-${organizationId}`,
-			storageKey: `v2-workspace-local-state-${organizationId}`,
-			schema: workspaceLocalStateSchema,
-			getKey: (item) => item.workspaceId,
-		}),
+		localStorageCollectionOptions(
+			withReadHeal(
+				{
+					id: `v2_workspace_local_state-${organizationId}`,
+					storageKey: `v2-workspace-local-state-${organizationId}`,
+					schema: workspaceLocalStateSchema,
+					getKey: (item) => item.workspaceId,
+				},
+				healWorkspaceLocalState,
+			),
+		),
 	);
 
 	const v2SidebarSections = createIndexedCollection(

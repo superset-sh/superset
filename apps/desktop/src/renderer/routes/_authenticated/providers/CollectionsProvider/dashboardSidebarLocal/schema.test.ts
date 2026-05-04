@@ -1,5 +1,9 @@
 import { describe, expect, it } from "bun:test";
-import { DEFAULT_V2_USER_PREFERENCES, healV2UserPreferences } from "./schema";
+import {
+	DEFAULT_V2_USER_PREFERENCES,
+	healV2UserPreferences,
+	healWorkspaceLocalState,
+} from "./schema";
 
 describe("healV2UserPreferences", () => {
 	it("returns full defaults for empty/non-object input", () => {
@@ -56,5 +60,73 @@ describe("healV2UserPreferences", () => {
 		expect(healed.sidebarFileLinks.metaShift).toBe(
 			DEFAULT_V2_USER_PREFERENCES.sidebarFileLinks.metaShift,
 		);
+	});
+});
+
+describe("healWorkspaceLocalState", () => {
+	const baseStored = {
+		workspaceId: "11111111-1111-1111-1111-111111111111",
+		createdAt: new Date("2026-01-01T00:00:00.000Z"),
+		paneLayout: { panes: [], focusedPaneId: null },
+		sidebarState: {
+			projectId: "22222222-2222-2222-2222-222222222222",
+			tabOrder: 3,
+			sectionId: null,
+			changesFilter: { kind: "all" },
+			activeTab: "changes",
+			isHidden: false,
+		},
+		viewedFiles: ["a.ts"],
+		recentlyViewedFiles: [],
+	};
+
+	it("preserves identity fields and stored values verbatim", () => {
+		const healed = healWorkspaceLocalState(baseStored);
+		expect(healed.workspaceId).toBe(baseStored.workspaceId);
+		expect(healed.createdAt).toBe(baseStored.createdAt);
+		expect(healed.paneLayout).toBe(baseStored.paneLayout);
+		expect(healed.sidebarState.projectId).toBe(
+			baseStored.sidebarState.projectId,
+		);
+		expect(healed.sidebarState.tabOrder).toBe(3);
+		expect(healed.viewedFiles).toEqual(["a.ts"]);
+	});
+
+	it("fills missing top-level optional fields", () => {
+		const stored = {
+			...baseStored,
+			viewedFiles: undefined,
+			recentlyViewedFiles: undefined,
+		};
+		const healed = healWorkspaceLocalState(stored);
+		expect(healed.viewedFiles).toEqual([]);
+		expect(healed.recentlyViewedFiles).toEqual([]);
+	});
+
+	it("fills missing nested sidebarState fields while preserving projectId", () => {
+		// Hypothetical future shape: a sidebarState field was added after this
+		// row was written. Identity (projectId) survives; defaults fill in.
+		const stored = {
+			...baseStored,
+			sidebarState: { projectId: baseStored.sidebarState.projectId },
+		};
+		const healed = healWorkspaceLocalState(stored);
+		expect(healed.sidebarState.projectId).toBe(
+			baseStored.sidebarState.projectId,
+		);
+		expect(healed.sidebarState.tabOrder).toBe(0);
+		expect(healed.sidebarState.sectionId).toBeNull();
+		expect(healed.sidebarState.changesFilter).toEqual({ kind: "all" });
+		expect(healed.sidebarState.activeTab).toBe("changes");
+		expect(healed.sidebarState.isHidden).toBe(false);
+	});
+
+	it("does not throw on null/non-object input (parser must never throw)", () => {
+		// Heal must never throw — a throw would take down the entire collection
+		// load (loadFromStorage swallows the error and returns an empty Map).
+		expect(() => healWorkspaceLocalState(null)).not.toThrow();
+		expect(() => healWorkspaceLocalState(undefined)).not.toThrow();
+		expect(() => healWorkspaceLocalState("garbage")).not.toThrow();
+		expect(() => healWorkspaceLocalState(42)).not.toThrow();
 	});
 });
