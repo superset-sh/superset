@@ -70,42 +70,43 @@ function toPresetDirectoryValue(
 	return relativePath === "." ? "." : `./${relativePath}`;
 }
 
-interface FieldProps {
-	label: string;
-	htmlFor?: string;
-	hint?: React.ReactNode;
-	children: React.ReactNode;
-}
-
-function Field({ label, htmlFor, hint, children }: FieldProps) {
-	return (
-		<div className="space-y-1.5">
-			<Label htmlFor={htmlFor} className="text-sm font-medium">
-				{label}
-			</Label>
-			{children}
-			{hint && <p className="text-xs text-muted-foreground">{hint}</p>}
-		</div>
-	);
-}
-
-interface SettingsRowProps {
+interface DialogRowProps {
 	label: string;
 	hint?: React.ReactNode;
 	htmlFor?: string;
+	stacked?: boolean;
 	children: React.ReactNode;
 }
 
-function SettingsRow({ label, hint, htmlFor, children }: SettingsRowProps) {
+function DialogRow({
+	label,
+	hint,
+	htmlFor,
+	stacked,
+	children,
+}: DialogRowProps) {
+	if (stacked) {
+		return (
+			<div className="p-4 space-y-2">
+				<div className="space-y-0.5">
+					<Label htmlFor={htmlFor} className="text-sm font-medium">
+						{label}
+					</Label>
+					{hint && <p className="text-xs text-muted-foreground">{hint}</p>}
+				</div>
+				{children}
+			</div>
+		);
+	}
 	return (
-		<div className="flex items-center justify-between gap-6 p-4">
+		<div className="flex items-start justify-between gap-6 p-4">
 			<div className="min-w-0 flex-1">
 				<Label htmlFor={htmlFor} className="text-sm font-medium">
 					{label}
 				</Label>
 				{hint && <p className="text-xs text-muted-foreground mt-0.5">{hint}</p>}
 			</div>
-			<div className="shrink-0">{children}</div>
+			<div className="w-80 shrink-0">{children}</div>
 		</div>
 	);
 }
@@ -222,8 +223,8 @@ export function PresetEditorDialog({
 							<DialogTitle>{preset.name.trim() || "Edit preset"}</DialogTitle>
 						</DialogHeader>
 
-						<div className="space-y-5">
-							<Field label="Name" htmlFor="preset-name">
+						<div className="rounded-lg border border-border overflow-hidden divide-y divide-border">
+							<DialogRow label="Name" htmlFor="preset-name">
 								<Input
 									id="preset-name"
 									value={preset.name}
@@ -231,9 +232,13 @@ export function PresetEditorDialog({
 									onBlur={() => onFieldBlur("name")}
 									placeholder="e.g. Dev server"
 								/>
-							</Field>
+							</DialogRow>
 
-							<Field label="Description" htmlFor="preset-description">
+							<DialogRow
+								label="Description"
+								htmlFor="preset-description"
+								hint="Optional context shown in the presets list."
+							>
 								<Input
 									id="preset-description"
 									value={preset.description ?? ""}
@@ -241,11 +246,12 @@ export function PresetEditorDialog({
 									onBlur={() => onFieldBlur("description")}
 									placeholder="Optional"
 								/>
-							</Field>
+							</DialogRow>
 
-							<Field
+							<DialogRow
 								label="Commands"
 								hint="One command per row. Add multiple to launch a grouped preset."
+								stacked
 							>
 								<CommandsEditor
 									commands={preset.commands}
@@ -253,82 +259,85 @@ export function PresetEditorDialog({
 									onBlur={onCommandsBlur}
 									placeholder="e.g. bun run dev"
 								/>
-							</Field>
+							</DialogRow>
 
-							<div className="rounded-lg border border-border overflow-hidden divide-y divide-border">
-								<div className="p-4 space-y-3">
-									<Label className="text-sm font-medium">Applies to</Label>
-									<ProjectTargetingField
-										projectIds={preset.projectIds}
-										projects={projects}
-										preferredProjectId={originWorkspace?.projectId ?? null}
-										onChange={onProjectIdsChange}
+							<DialogRow
+								label="Applies to"
+								hint="Where this preset is available."
+								stacked
+							>
+								<ProjectTargetingField
+									projectIds={preset.projectIds}
+									projects={projects}
+									preferredProjectId={originWorkspace?.projectId ?? null}
+									onChange={onProjectIdsChange}
+								/>
+							</DialogRow>
+
+							<DialogRow
+								label="Directory"
+								htmlFor="preset-directory"
+								hint="Use a workspace-relative path or an absolute folder."
+							>
+								<div className="flex items-center gap-2">
+									<Input
+										id="preset-directory"
+										value={preset.cwd}
+										onChange={(e) => onFieldChange("cwd", e.target.value)}
+										onBlur={() => onFieldBlur("cwd")}
+										placeholder="./apps/web"
+										className="flex-1"
 									/>
+									<Button
+										type="button"
+										variant="outline"
+										size="sm"
+										onClick={handleBrowseDirectory}
+										disabled={selectDirectory.isPending}
+										aria-label="Browse for directory"
+									>
+										<HiOutlineFolderOpen className="size-4" />
+									</Button>
 								</div>
+							</DialogRow>
 
-								<SettingsRow
-									label="Directory"
-									htmlFor="preset-directory"
-									hint="Working directory for the preset. Use a workspace-relative path or pick an absolute folder."
-								>
-									<div className="flex items-center gap-2">
-										<Input
-											id="preset-directory"
-											value={preset.cwd}
-											onChange={(e) => onFieldChange("cwd", e.target.value)}
-											onBlur={() => onFieldBlur("cwd")}
-											placeholder="./apps/web"
-											className="w-56"
-										/>
-										<Button
-											type="button"
-											variant="outline"
-											size="sm"
-											onClick={handleBrowseDirectory}
-											disabled={selectDirectory.isPending}
-										>
-											<HiOutlineFolderOpen className="size-4" />
-											Browse
-										</Button>
-									</div>
-								</SettingsRow>
+							{directoryAlert && (
+								<div className="px-4 pb-4">{directoryAlert}</div>
+							)}
 
-								{directoryAlert && (
-									<div className="px-4 pb-4">{directoryAlert}</div>
-								)}
-
-								<SettingsRow
-									label="Launch mode"
-									hint={
-										hasMultipleCommands
-											? "How grouped commands open."
-											: "How the command opens."
+							<DialogRow
+								label="Launch mode"
+								hint={
+									hasMultipleCommands
+										? "How grouped commands open."
+										: "How the command opens."
+								}
+							>
+								<Select
+									value={launchModeValue}
+									onValueChange={(value) =>
+										onModeChange(value as ExecutionMode)
 									}
 								>
-									<Select
-										value={launchModeValue}
-										onValueChange={(value) =>
-											onModeChange(value as ExecutionMode)
-										}
-									>
-										<SelectTrigger size="sm" className="w-64">
-											<SelectValue />
-										</SelectTrigger>
-										<SelectContent>
-											{launchModeOptions.map((option) => (
-												<SelectItem key={option.value} value={option.value}>
-													{option.label}
-												</SelectItem>
-											))}
-										</SelectContent>
-									</Select>
-								</SettingsRow>
+									<SelectTrigger size="sm" className="w-full">
+										<SelectValue />
+									</SelectTrigger>
+									<SelectContent>
+										{launchModeOptions.map((option) => (
+											<SelectItem key={option.value} value={option.value}>
+												{option.label}
+											</SelectItem>
+										))}
+									</SelectContent>
+								</Select>
+							</DialogRow>
 
-								<SettingsRow
-									label="Auto-run on workspace creation"
-									htmlFor="preset-workspace-autostart"
-									hint="Launch this preset when a new workspace is created."
-								>
+							<DialogRow
+								label="Auto-run on workspace creation"
+								htmlFor="preset-workspace-autostart"
+								hint="Launch this preset when a new workspace is created."
+							>
+								<div className="flex justify-end">
 									<Switch
 										id="preset-workspace-autostart"
 										checked={isWorkspaceCreation}
@@ -336,13 +345,15 @@ export function PresetEditorDialog({
 											onToggleAutoApply("applyOnWorkspaceCreated", checked)
 										}
 									/>
-								</SettingsRow>
+								</div>
+							</DialogRow>
 
-								<SettingsRow
-									label="Auto-run on new tab"
-									htmlFor="preset-tab-autostart"
-									hint="Launch this preset whenever a new terminal tab opens."
-								>
+							<DialogRow
+								label="Auto-run on new tab"
+								htmlFor="preset-tab-autostart"
+								hint="Launch this preset whenever a new terminal tab opens."
+							>
+								<div className="flex justify-end">
 									<Switch
 										id="preset-tab-autostart"
 										checked={isNewTab}
@@ -350,8 +361,8 @@ export function PresetEditorDialog({
 											onToggleAutoApply("applyOnNewTab", checked)
 										}
 									/>
-								</SettingsRow>
-							</div>
+								</div>
+							</DialogRow>
 						</div>
 
 						<DialogFooter className="sm:justify-between">
