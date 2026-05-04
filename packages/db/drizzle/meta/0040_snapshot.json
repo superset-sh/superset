@@ -1,5 +1,5 @@
 {
-  "id": "1f1abd6d-fcf7-4c3c-b58d-dc8504131f58",
+  "id": "2174d3c6-e51b-4865-af8f-000b8f7e696f",
   "prevId": "93706e33-59b4-4ec5-9266-49a93063f608",
   "version": "7",
   "dialect": "postgresql",
@@ -974,6 +974,18 @@
         },
         "type": {
           "name": "type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "require_pkce": {
+          "name": "require_pkce",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "subject_type": {
+          "name": "subject_type",
           "type": "text",
           "primaryKey": false,
           "notNull": false
@@ -3898,6 +3910,18 @@
           "primaryKey": false,
           "notNull": false
         },
+        "billing_interval": {
+          "name": "billing_interval",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "stripe_schedule_id": {
+          "name": "stripe_schedule_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp",
@@ -4250,30 +4274,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "external_project_id": {
-          "name": "external_project_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "external_project_name": {
-          "name": "external_project_name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "external_cycle_id": {
-          "name": "external_cycle_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "external_cycle_name": {
-          "name": "external_cycle_name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
         "assignee_external_id": {
           "name": "assignee_external_id",
           "type": "text",
@@ -4421,51 +4421,6 @@
           "columns": [
             {
               "expression": "external_provider",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "tasks_external_project_id_idx": {
-          "name": "tasks_external_project_id_idx",
-          "columns": [
-            {
-              "expression": "external_project_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "tasks_external_project_name_idx": {
-          "name": "tasks_external_project_name_idx",
-          "columns": [
-            {
-              "expression": "external_project_name",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "tasks_external_cycle_id_idx": {
-          "name": "tasks_external_cycle_id_idx",
-          "columns": [
-            {
-              "expression": "external_cycle_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
