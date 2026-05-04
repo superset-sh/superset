@@ -24,7 +24,10 @@ import { Server } from "@superset/pty-daemon";
 import { eq } from "drizzle-orm";
 import { createDb, type HostDb } from "../db/index.ts";
 import { projects, workspaces } from "../db/schema.ts";
-import { disposeDaemonClient } from "./daemon-client-singleton.ts";
+import {
+	disposeDaemonClient,
+	getDaemonClient,
+} from "./daemon-client-singleton.ts";
 import { initTerminalBaseEnv } from "./env.ts";
 import {
 	__resetSessionsForTesting,
@@ -93,6 +96,29 @@ after(async () => {
 });
 
 describe("createTerminalSessionInternal — host-service restart adoption", () => {
+	test("fresh open uses requested initial dimensions", async () => {
+		const terminalId = `e2e-dims-${randomUUID().slice(0, 8)}`;
+		const result = await createTerminalSessionInternal({
+			terminalId,
+			workspaceId,
+			db,
+			listed: true,
+			cols: 101,
+			rows: 27,
+		});
+		assert.ok(!("error" in result));
+		if ("error" in result) return;
+
+		const daemon = await getDaemonClient();
+		const daemonSession = (await daemon.list()).find(
+			(s) => s.id === terminalId,
+		);
+		assert.equal(daemonSession?.cols, 101);
+		assert.equal(daemonSession?.rows, 27);
+
+		disposeSession(terminalId, db);
+	});
+
 	test("fresh open spawns a shell via the daemon", async () => {
 		const terminalId = `e2e-fresh-${randomUUID().slice(0, 8)}`;
 		const result = await createTerminalSessionInternal({

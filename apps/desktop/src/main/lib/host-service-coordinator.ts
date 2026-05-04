@@ -56,8 +56,12 @@ import { HOOK_PROTOCOL_VERSION } from "./terminal/env";
  * router (PR1, #3893). Older 0.6.x host-services don't expose either,
  * so adopting one in place would break new-project creation and the
  * agent-config settings UI. Force respawn on first launch.
+ *
+ * 0.8.0 — v2 terminal creation moved to `terminal.createSession`; the
+ * WebSocket route is attach-only by `terminalId`. Older host-services would
+ * reject the renderer's creation call and still expect socket-side startup.
  */
-const MIN_HOST_SERVICE_VERSION = "0.7.0";
+const MIN_HOST_SERVICE_VERSION = "0.8.0";
 
 export type HostServiceStatus = "starting" | "running" | "stopped";
 

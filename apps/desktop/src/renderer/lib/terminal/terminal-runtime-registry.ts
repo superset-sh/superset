@@ -166,20 +166,15 @@ class TerminalRuntimeRegistryImpl {
 
 	/**
 	 * Open (or re-use) the WebSocket transport for this terminal.
-	 * The WebSocket route can create the server session when the URL includes
-	 * workspaceId; initialCommand is sent as the first frame after open.
+	 * The server session must already exist; the WebSocket route only attaches
+	 * this xterm instance to the terminal id.
 	 *
 	 * Idempotent: no-op if already connected/connecting to the same URL.
 	 */
-	connect(
-		terminalId: string,
-		wsUrl: string,
-		instanceId = terminalId,
-		options: { initialCommand?: string } = {},
-	) {
+	connect(terminalId: string, wsUrl: string, instanceId = terminalId) {
 		const entry = this.getEntry(terminalId, instanceId);
 		if (!entry?.runtime) return;
-		connect(entry.transport, entry.runtime.terminal, wsUrl, options);
+		connect(entry.transport, entry.runtime.terminal, wsUrl);
 	}
 
 	/**
@@ -337,6 +332,14 @@ class TerminalRuntimeRegistryImpl {
 
 	getTerminal(terminalId: string, instanceId?: string) {
 		return this.getEntry(terminalId, instanceId)?.runtime?.terminal ?? null;
+	}
+
+	getDimensions(
+		terminalId: string,
+		instanceId?: string,
+	): { cols: number; rows: number } | null {
+		const terminal = this.getTerminal(terminalId, instanceId);
+		return terminal ? { cols: terminal.cols, rows: terminal.rows } : null;
 	}
 
 	getSearchAddon(terminalId: string, instanceId?: string): SearchAddon | null {

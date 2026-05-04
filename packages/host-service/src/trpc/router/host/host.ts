@@ -22,7 +22,9 @@ import { protectedProcedure, router } from "../../index";
 // router (PR1, #3893). 0.6.x host-services don't expose either, so
 // adopting one in place would break new-project creation and the
 // agent-config settings UI.
-const HOST_SERVICE_VERSION = "0.7.0";
+// 0.8.0: terminal creation moved to `terminal.createSession`; WebSocket
+// `/terminal/:terminalId` is attach-only.
+const HOST_SERVICE_VERSION = "0.8.0";
 const ORGANIZATION_CACHE_TTL_MS = 60 * 60 * 1000;
 
 let cachedOrganization: {

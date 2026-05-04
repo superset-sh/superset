@@ -142,7 +142,6 @@ function getHostAgentHookUrl(): string {
 
 type TerminalClientMessage =
 	| { type: "input"; data: string }
-	| { type: "initialCommand"; data: string }
 	| { type: "resize"; cols: number; rows: number }
 	| { type: "dispose" };
 
@@ -152,6 +151,7 @@ type TerminalClientMessage =
 // on attach) is a binary frame too; the renderer doesn't distinguish it
 // from live data.
 type TerminalServerMessage =
+	| { type: "attached"; terminalId: string }
 	| { type: "error"; message: string }
 	| { type: "exit"; exitCode: number; signal: number }
 	| { type: "title"; title: string | null };
@@ -160,6 +160,10 @@ const MAX_BUFFER_BYTES = 64 * 1024;
 const SOCKET_OPEN = 1;
 const SOCKET_CLOSING = 2;
 const SOCKET_CLOSED = 3;
+const DEFAULT_TERMINAL_COLS = 120;
+const DEFAULT_TERMINAL_ROWS = 32;
+const MIN_TERMINAL_COLS = 20;
+const MIN_TERMINAL_ROWS = 5;
 
 // `<ArrayBuffer>` narrowing matches hono/ws's WSContext.send signature.
 type TerminalSocket = {
@@ -383,6 +387,15 @@ function bufferOutput(session: TerminalSession, data: Uint8Array) {
 	}
 }
 
+function normalizeTerminalDimension(
+	value: number | null | undefined,
+	min: number,
+	fallback: number,
+): number {
+	if (typeof value !== "number" || !Number.isFinite(value)) return fallback;
+	return Math.max(min, Math.floor(value));
+}
+
 // All bytes we send here are ArrayBuffer-backed at runtime (node Buffers,
 // scanner outputs); the cast just narrows the type-system's loose default.
 function asArrayBufferBytes(bytes: Uint8Array): Uint8Array<ArrayBuffer> {
@@ -557,6 +570,8 @@ interface CreateTerminalSessionOptions {
 	initialCommand?: string;
 	/** Hidden sessions are process-internal and should not appear in user pickers. */
 	listed?: boolean;
+	cols?: number;
+	rows?: number;
 	/**
 	 * Replay the daemon's ring buffer on subscribe. Default true. Pass false
 	 * when the renderer's xterm already has the scrollback — replaying then
@@ -574,6 +589,8 @@ export async function createTerminalSessionInternal({
 	eventBus,
 	initialCommand,
 	listed = true,
+	cols: requestedCols,
+	rows: requestedRows,
 	replayOnAdoption = true,
 }: CreateTerminalSessionOptions): Promise<TerminalSession | { error: string }> {
 	const existing = sessions.get(terminalId);
@@ -600,6 +617,16 @@ export async function createTerminalSessionInternal({
 	}
 
 	const cwd = workspace.worktreePath;
+	const cols = normalizeTerminalDimension(
+		requestedCols,
+		MIN_TERMINAL_COLS,
+		DEFAULT_TERMINAL_COLS,
+	);
+	const rows = normalizeTerminalDimension(
+		requestedRows,
+		MIN_TERMINAL_ROWS,
+		DEFAULT_TERMINAL_ROWS,
+	);
 
 	// Use the preserved shell snapshot — never live process.env
 	const baseEnv = getTerminalBaseEnv();
@@ -634,8 +661,8 @@ export async function createTerminalSessionInternal({
 				shell,
 				argv: shellArgs,
 				cwd,
-				cols: 120,
-				rows: 32,
+				cols,
+				rows,
 				env: ptyEnv,
 			});
 		} catch (err) {
@@ -824,6 +851,9 @@ export function registerWorkspaceTerminalRoute({
 			terminalId: string;
 			workspaceId: string;
 			themeType?: string;
+			initialCommand?: string;
+			cols?: number;
+			rows?: number;
 		}>();
 
 		if (!body.terminalId || !body.workspaceId) {
@@ -836,6 +866,9 @@ export function registerWorkspaceTerminalRoute({
 			themeType: parseThemeType(body.themeType),
 			db,
 			eventBus,
+			initialCommand: body.initialCommand,
+			cols: body.cols,
+			rows: body.rows,
 		});
 
 		if ("error" in result) {
@@ -873,6 +906,69 @@ export function registerWorkspaceTerminalRoute({
 		"/terminal/:terminalId",
 		upgradeWebSocket((c) => {
 			const terminalId = c.req.param("terminalId") ?? "";
+			const attachSocketToSession = (
+				session: TerminalSession,
+				ws: TerminalSocket,
+			): boolean => {
+				if (session.sockets.has(ws)) return false;
+				session.sockets.add(ws);
+				sendMessage(ws, { type: "attached", terminalId });
+
+				db.update(terminalSessions)
+					.set({ lastAttachedAt: Date.now() })
+					.where(eq(terminalSessions.id, terminalId))
+					.run();
+
+				sendMessage(ws, { type: "title", title: session.title });
+				replayBuffer(session, ws);
+				if (session.exited) {
+					sendMessage(ws, {
+						type: "exit",
+						exitCode: session.exitCode,
+						signal: session.exitSignal,
+					});
+				}
+				return true;
+			};
+			const resolveSessionForAttach = async (): Promise<
+				TerminalSession | { error: string }
+			> => {
+				const existing = sessions.get(terminalId);
+				if (existing) return existing;
+
+				const record = db.query.terminalSessions
+					.findFirst({ where: eq(terminalSessions.id, terminalId) })
+					.sync();
+				if (!record) {
+					return {
+						error: `Terminal session "${terminalId}" not found; create it before connecting.`,
+					};
+				}
+				if (record.status === "disposed") {
+					return { error: `Terminal session "${terminalId}" is disposed.` };
+				}
+				if (record.status === "exited") {
+					return { error: `Terminal session "${terminalId}" has exited.` };
+				}
+				if (!record.originWorkspaceId) {
+					return {
+						error: `Terminal session "${terminalId}" is missing a workspace.`,
+					};
+				}
+
+				// Attach is by terminal id only. If host-service lost in-memory
+				// state during a restart, recover from the server-owned session row
+				// and let createTerminalSessionInternal adopt the daemon PTY when it
+				// still exists.
+				return createTerminalSessionInternal({
+					terminalId,
+					workspaceId: record.originWorkspaceId,
+					db,
+					eventBus,
+					// Renderer passes `?replay=0` on reconnect; see replayOnAdoption.
+					replayOnAdoption: c.req.query("replay") !== "0",
+				});
+			};
 
 			return {
 				onOpen: (_event, ws) => {
@@ -881,78 +977,19 @@ export function registerWorkspaceTerminalRoute({
 						return;
 					}
 
-					const existing = sessions.get(terminalId);
-					if (!existing) {
-						// V2 callers can create a session by opening the WebSocket with
-						// workspaceId; this keeps terminal attach out of tRPC request queues.
-						const workspaceId = c.req.query("workspaceId") ?? null;
-						if (!workspaceId) {
-							sendMessage(ws, {
-								type: "error",
-								message: `Terminal session "${terminalId}" not found; open with workspaceId or create it before connecting.`,
-							});
-							ws.close(1011, "Terminal session not found");
+					void (async () => {
+						const session = await resolveSessionForAttach();
+						if ("error" in session) {
+							sendMessage(ws, { type: "error", message: session.error });
+							ws.close(1011, session.error);
 							return;
 						}
-
-						const themeType = parseThemeType(c.req.query("themeType"));
-						// Renderer passes `?replay=0` on reconnect; see replayOnAdoption.
-						const replayOnAdoption = c.req.query("replay") !== "0";
-						// Daemon open is async; fire-and-forget while keeping the WS alive.
-						// On success: register the socket; on failure: surface and close.
-						void (async () => {
-							const result = await createTerminalSessionInternal({
-								terminalId,
-								workspaceId,
-								themeType,
-								db,
-								eventBus,
-								replayOnAdoption,
-							});
-
-							if ("error" in result) {
-								sendMessage(ws, { type: "error", message: result.error });
-								ws.close(1011, result.error);
-								return;
-							}
-
-							// WS may have closed during the daemon-open await; don't
-							// register a dead socket into the session's broadcast set.
-							if (ws.readyState !== SOCKET_OPEN) return;
-
-							result.sockets.add(ws);
-							sendMessage(ws, { type: "title", title: result.title });
-
-							db.update(terminalSessions)
-								.set({ lastAttachedAt: Date.now() })
-								.where(eq(terminalSessions.id, terminalId))
-								.run();
-						})();
-						return;
-					}
-
-					existing.sockets.add(ws);
-
-					db.update(terminalSessions)
-						.set({ lastAttachedAt: Date.now() })
-						.where(eq(terminalSessions.id, terminalId))
-						.run();
-
-					sendMessage(ws, { type: "title", title: existing.title });
-					replayBuffer(existing, ws);
-					if (existing.exited) {
-						sendMessage(ws, {
-							type: "exit",
-							exitCode: existing.exitCode,
-							signal: existing.exitSignal,
-						});
-					}
+						if (ws.readyState !== SOCKET_OPEN) return;
+						attachSocketToSession(session, ws);
+					})();
 				},
 
 				onMessage: (event, ws) => {
-					const session = sessions.get(terminalId ?? "");
-					if (!session || !session.sockets.has(ws)) return;
-
 					let message: TerminalClientMessage;
 					try {
 						message = JSON.parse(String(event.data)) as TerminalClientMessage;
@@ -963,6 +1000,9 @@ export function registerWorkspaceTerminalRoute({
 						});
 						return;
 					}
+
+					const session = sessions.get(terminalId ?? "");
+					if (!session || !session.sockets.has(ws)) return;
 
 					if (message.type === "dispose") {
 						disposeSession(terminalId ?? "", db);
@@ -976,14 +1016,17 @@ export function registerWorkspaceTerminalRoute({
 						return;
 					}
 
-					if (message.type === "initialCommand") {
-						queueInitialCommand(session, message.data);
-						return;
-					}
-
 					if (message.type === "resize") {
-						const cols = Math.max(20, Math.floor(message.cols));
-						const rows = Math.max(5, Math.floor(message.rows));
+						const cols = normalizeTerminalDimension(
+							message.cols,
+							MIN_TERMINAL_COLS,
+							DEFAULT_TERMINAL_COLS,
+						);
+						const rows = normalizeTerminalDimension(
+							message.rows,
+							MIN_TERMINAL_ROWS,
+							DEFAULT_TERMINAL_ROWS,
+						);
 						session.pty.resize(cols, rows);
 					}
 				},
