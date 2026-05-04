@@ -18,5 +18,10 @@ export function useV2AgentConfigs() {
 				activeHostUrl,
 			).settings.agentConfigs.list.query();
 		},
+		// Configs only change via Settings → Agents mutations, which all
+		// invalidate this key explicitly. Otherwise the data is effectively
+		// static — Infinity keeps the startup prefetch warm across navigation
+		// instead of every consumer triggering a background refetch on mount.
+		staleTime: Number.POSITIVE_INFINITY,
 	});
 }

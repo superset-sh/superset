@@ -127,15 +127,37 @@ export function PromptGroup({
 		() => v2Agents.map((agent) => agent.id),
 		[v2Agents],
 	);
-	const defaultAgent = selectableAgentIds[0] ?? "none";
 	const { selectedAgent, setSelectedAgent } =
 		useAgentLaunchPreferences<WorkspaceCreateAgent>({
 			agentStorageKey: AGENT_STORAGE_KEY,
-			defaultAgent,
+			defaultAgent: "none",
 			fallbackAgent: "none",
 			validAgents: ["none", ...selectableAgentIds],
 			agentsReady: v2AgentConfigsQuery.isFetched,
 		});
+
+	// Promote the placeholder "none" → first configured agent once on initial
+	// fetch when the user has no stored preference. Without this, opening the
+	// modal before the startup prefetch resolves latches the picker on
+	// "No agent" — the corrective effect inside useAgentLaunchPreferences
+	// doesn't rescue it because "none" is always in validAgents.
+	const didInitialPromoteRef = useRef(false);
+	useEffect(() => {
+		if (didInitialPromoteRef.current) return;
+		if (!v2AgentConfigsQuery.isFetched) return;
+		didInitialPromoteRef.current = true;
+		if (selectedAgent !== "none") return;
+		if (typeof window !== "undefined") {
+			if (window.localStorage.getItem(AGENT_STORAGE_KEY)) return;
+		}
+		const first = selectableAgentIds[0];
+		if (first) setSelectedAgent(first);
+	}, [
+		v2AgentConfigsQuery.isFetched,
+		selectableAgentIds,
+		selectedAgent,
+		setSelectedAgent,
+	]);
 
 	const branchPreview = branchNameEdited
 		? sanitizeUserBranchName(branchName)
