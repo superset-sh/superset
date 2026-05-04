@@ -55,7 +55,7 @@ function RingtoneCard({
 			className={cn(
 				"group relative flex flex-col rounded-lg border overflow-hidden transition-colors text-left cursor-pointer",
 				isSelected
-					? "border-primary"
+					? "border-primary/40"
 					: "border-border hover:border-muted-foreground/50",
 			)}
 		>
