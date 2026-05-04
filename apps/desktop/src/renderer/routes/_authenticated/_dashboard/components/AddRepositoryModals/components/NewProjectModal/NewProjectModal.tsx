@@ -171,17 +171,15 @@ export function NewProjectModal({
 
 	return (
 		<Dialog open={open} onOpenChange={handleOpenChange}>
-			<DialogContent className="gap-0 overflow-hidden rounded-xl p-0 shadow-2xl sm:max-w-md">
-				<DialogHeader className="px-5 pt-5 pb-4">
-					<DialogTitle className="text-base font-semibold">
-						New project
-					</DialogTitle>
+			<DialogContent className="max-w-[420px]">
+				<DialogHeader>
+					<DialogTitle>New project</DialogTitle>
 					<DialogDescription className="sr-only">
 						Create a new project by cloning a repository or local path.
 					</DialogDescription>
 				</DialogHeader>
 
-				<div className="flex flex-col gap-4 px-5 pb-5">
+				<div className="flex flex-col gap-4">
 					<div className="grid grid-cols-3 gap-2">
 						{OPTIONS.map((option) => {
 							const selected = mode === option.mode;
@@ -193,9 +191,9 @@ export function NewProjectModal({
 									disabled={isDisabled}
 									onClick={() => setMode(option.mode)}
 									className={cn(
-										"flex flex-col items-center gap-2 rounded-xl border px-3 py-4 text-center transition-all",
+										"flex flex-col items-center gap-2 rounded-lg border px-3 py-4 text-center transition-colors",
 										selected
-											? "border-primary/40 bg-primary/5 shadow-sm"
+											? "border-primary/40 bg-primary/5"
 											: "border-border/60 bg-background",
 										!isDisabled &&
 											!selected &&
@@ -205,18 +203,12 @@ export function NewProjectModal({
 								>
 									<option.icon
 										className={cn(
-											"size-5 transition-colors",
+											"size-5",
 											selected ? "text-primary" : "text-muted-foreground",
 										)}
 									/>
 									<div className="flex flex-col items-center gap-0.5 text-xs font-medium leading-tight">
-										<span
-											className={
-												selected ? "text-foreground" : "text-foreground/90"
-											}
-										>
-											{option.label}
-										</span>
+										<span>{option.label}</span>
 										{option.suffix && (
 											<span className="text-[11px] font-normal text-muted-foreground">
 												{option.suffix}
@@ -229,10 +221,7 @@ export function NewProjectModal({
 					</div>
 
 					<div className="flex flex-col gap-1.5">
-						<Label
-							htmlFor="project-path"
-							className="text-xs font-medium text-muted-foreground"
-						>
+						<Label htmlFor="project-path" className="text-xs">
 							Location
 						</Label>
 						<div className="flex gap-1.5">
@@ -259,10 +248,7 @@ export function NewProjectModal({
 
 					{mode === "clone" && (
 						<div className="flex flex-col gap-1.5">
-							<Label
-								htmlFor="clone-url"
-								className="text-xs font-medium text-muted-foreground"
-							>
+							<Label htmlFor="clone-url" className="text-xs">
 								Repository URL or path
 							</Label>
 							<Input
@@ -282,20 +268,18 @@ export function NewProjectModal({
 					)}
 				</div>
 
-				<DialogFooter className="border-t border-border bg-muted/40 px-5 py-3 sm:gap-2">
+				<DialogFooter>
 					<Button
 						type="button"
-						variant="outline"
+						variant="ghost"
 						onClick={() => handleOpenChange(false)}
 						disabled={working}
-						className="transition-transform duration-150 active:scale-[0.97]"
 					>
 						Cancel
 					</Button>
 					<Button
 						onClick={() => void createFromClone()}
 						disabled={working || mode !== "clone"}
-						className="transition-transform duration-150 active:scale-[0.97]"
 					>
 						{working ? (
 							<>
