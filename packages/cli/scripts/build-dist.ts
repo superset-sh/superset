@@ -27,6 +27,7 @@ import {
 	readdirSync,
 	readFileSync,
 	realpathSync,
+	renameSync,
 	rmSync,
 	writeFileSync,
 } from "node:fs";
@@ -137,6 +138,35 @@ async function exec(cmd: string, args: string[], cwd?: string): Promise<void> {
 	});
 }
 
+/**
+ * curl wrapper that retries on network/HTTP flake (GitHub Releases 5xx,
+ * connection resets, etc). Writes atomically: download to a .partial
+ * sibling first, then rename — so a previous half-written file can't be
+ * mistaken for a cache hit on the next run. `--retry-all-errors` covers
+ * 5xx as well as transport errors; without it curl only retries a small
+ * subset by default.
+ */
+async function curlDownload(url: string, destPath: string): Promise<void> {
+	const partial = `${destPath}.partial`;
+	rmSync(partial, { force: true });
+	await exec("curl", [
+		"-fsSL",
+		"--retry",
+		"6",
+		"--retry-delay",
+		"2",
+		"--retry-all-errors",
+		"--connect-timeout",
+		"15",
+		"--max-time",
+		"180",
+		"-o",
+		partial,
+		url,
+	]);
+	renameSync(partial, destPath);
+}
+
 async function downloadAndExtractNode(
 	target: Target,
 	destDir: string,
@@ -150,7 +180,7 @@ async function downloadAndExtractNode(
 
 	if (!existsSync(archivePath)) {
 		console.log(`[build-dist] downloading ${nodeDownloadUrl(target)}`);
-		await exec("curl", ["-fsSL", "-o", archivePath, nodeDownloadUrl(target)]);
+		await curlDownload(nodeDownloadUrl(target), archivePath);
 	}
 
 	if (!existsSync(extractedPath)) {
@@ -282,13 +312,22 @@ async function fixNativeBinariesForNode(
 	const bsqUrl =
 		`https://github.com/WiseLibs/better-sqlite3/releases/download/` +
 		`v${bsqVersion}/better-sqlite3-v${bsqVersion}-node-v${NODE_ABI}-${target}.tar.gz`;
-	console.log(`[build-dist] fetching Node-ABI better-sqlite3: ${bsqUrl}`);
-	const tmp = join(homedir(), ".superset-build-cache", `bsq-${target}`);
+	const cacheDir = join(homedir(), ".superset-build-cache");
+	if (!existsSync(cacheDir)) mkdirSync(cacheDir, { recursive: true });
+	const cachedTarball = join(
+		cacheDir,
+		`better-sqlite3-v${bsqVersion}-node-v${NODE_ABI}-${target}.tar.gz`,
+	);
+	if (!existsSync(cachedTarball)) {
+		console.log(`[build-dist] fetching Node-ABI better-sqlite3: ${bsqUrl}`);
+		await curlDownload(bsqUrl, cachedTarball);
+	} else {
+		console.log(`[build-dist] using cached better-sqlite3: ${cachedTarball}`);
+	}
+	const tmp = join(cacheDir, `bsq-${target}`);
 	rmSync(tmp, { recursive: true, force: true });
 	mkdirSync(tmp, { recursive: true });
-	const tarball = join(tmp, "bsq.tar.gz");
-	await exec("curl", ["-fsSL", "-o", tarball, bsqUrl]);
-	await exec("tar", ["-xzf", tarball, "-C", tmp]);
+	await exec("tar", ["-xzf", cachedTarball, "-C", tmp]);
 	rmSync(bsqDest, { recursive: true, force: true });
 	mkdirSync(bsqDest, { recursive: true });
 	cpSync(
