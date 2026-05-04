@@ -73,7 +73,7 @@ function ThemeOptionRow({ theme }: { theme: Theme }) {
 
 interface ThemeRowProps {
 	label: string;
-	hint: string;
+	hint: React.ReactNode;
 	value: string;
 	onValueChange: (value: string) => void;
 	currentTheme: Theme;
@@ -302,12 +302,12 @@ export function ThemeSection() {
 	};
 
 	return (
-		<div>
-			<div className="mb-4 flex flex-wrap items-start justify-between gap-3">
-				<div>
-					<h3 className="text-sm font-medium mb-1">Theme</h3>
-					<p className="text-xs text-muted-foreground">
-						Pick a built-in theme or import your own. Browse the{" "}
+		<div className="rounded-lg border border-border overflow-hidden divide-y divide-border">
+			<ThemeRow
+				label="Theme"
+				hint={
+					<>
+						Pick a theme or follow your system appearance. Browse the{" "}
 						<a
 							href={`${COMPANY.MARKETING_URL}/marketplace/themes`}
 							target="_blank"
@@ -317,7 +317,7 @@ export function ThemeSection() {
 							marketplace
 							<HiOutlineArrowTopRightOnSquare className="h-3 w-3" />
 						</a>{" "}
-						or read the{" "}
+						or{" "}
 						<a
 							href={`${COMPANY.DOCS_URL}/custom-themes`}
 							target="_blank"
@@ -328,9 +328,45 @@ export function ThemeSection() {
 							<HiOutlineArrowTopRightOnSquare className="h-3 w-3" />
 						</a>
 						.
-					</p>
+					</>
+				}
+				value={activeThemeId}
+				onValueChange={setTheme}
+				currentTheme={currentTheme}
+				options={allOptions}
+				includeSystem={{
+					darkTheme: systemDarkTheme,
+					lightTheme: systemLightTheme,
+				}}
+			/>
+			{isSystemMode && (
+				<>
+					<ThemeRow
+						label="Light theme"
+						hint="Used when your system is in light mode."
+						value={systemLightThemeId}
+						onValueChange={(id) => setSystemThemePreference("light", id)}
+						currentTheme={systemLightTheme}
+						options={lightOptions}
+					/>
+					<ThemeRow
+						label="Dark theme"
+						hint="Used when your system is in dark mode."
+						value={systemDarkThemeId}
+						onValueChange={(id) => setSystemThemePreference("dark", id)}
+						currentTheme={systemDarkTheme}
+						options={darkOptions}
+					/>
+				</>
+			)}
+			<div className="flex items-center justify-between gap-6 p-4">
+				<div className="min-w-0 flex-1">
+					<div className="text-sm font-medium">Custom themes</div>
+					<div className="text-xs text-muted-foreground">
+						Import a theme file or grab a starter to edit.
+					</div>
 				</div>
-				<div className="flex flex-wrap items-center gap-2 justify-end">
+				<div className="flex items-center gap-2 shrink-0">
 					<input
 						ref={fileInputRef}
 						type="file"
@@ -342,57 +378,22 @@ export function ThemeSection() {
 						type="button"
 						variant="outline"
 						size="sm"
-						onClick={() => fileInputRef.current?.click()}
-						disabled={isImporting}
+						onClick={handleDownloadBaseTheme}
 					>
-						<HiOutlineArrowUpTray className="mr-1.5 h-4 w-4" />
-						{isImporting ? "Importing..." : "Import theme"}
+						<HiOutlineArrowDownTray className="mr-1.5 h-4 w-4" />
+						Download starter
 					</Button>
 					<Button
 						type="button"
 						variant="outline"
 						size="sm"
-						onClick={handleDownloadBaseTheme}
+						onClick={() => fileInputRef.current?.click()}
+						disabled={isImporting}
 					>
-						<HiOutlineArrowDownTray className="mr-1.5 h-4 w-4" />
-						Download base file
+						<HiOutlineArrowUpTray className="mr-1.5 h-4 w-4" />
+						{isImporting ? "Importing..." : "Import"}
 					</Button>
 				</div>
-			</div>
-
-			<div className="rounded-lg border border-border overflow-hidden divide-y divide-border">
-				<ThemeRow
-					label="Theme"
-					hint="Pick a theme or follow your system appearance."
-					value={activeThemeId}
-					onValueChange={setTheme}
-					currentTheme={currentTheme}
-					options={allOptions}
-					includeSystem={{
-						darkTheme: systemDarkTheme,
-						lightTheme: systemLightTheme,
-					}}
-				/>
-				{isSystemMode && (
-					<>
-						<ThemeRow
-							label="Light theme"
-							hint="Used when your system is in light mode."
-							value={systemLightThemeId}
-							onValueChange={(id) => setSystemThemePreference("light", id)}
-							currentTheme={systemLightTheme}
-							options={lightOptions}
-						/>
-						<ThemeRow
-							label="Dark theme"
-							hint="Used when your system is in dark mode."
-							value={systemDarkThemeId}
-							onValueChange={(id) => setSystemThemePreference("dark", id)}
-							currentTheme={systemDarkTheme}
-							options={darkOptions}
-						/>
-					</>
-				)}
 			</div>
 		</div>
 	);
