@@ -21,7 +21,7 @@ import {
 	joinCommandArgs,
 	parseArgs,
 	parseCommandString,
-} from "../../../utils/argv";
+} from "../../utils/argv";
 
 interface AgentDetailProps {
 	config: HostAgentConfigDto;
@@ -134,148 +134,170 @@ export function AgentDetail({
 
 	return (
 		<div className="p-6 max-w-3xl w-full mx-auto">
-			<div className="mb-8 flex items-start gap-3">
+			<div className="mb-8 flex items-center gap-3">
 				{icon ? (
 					<img
 						src={icon}
 						alt=""
-						className="size-8 object-contain shrink-0 mt-0.5"
+						className="size-8 object-contain shrink-0"
 					/>
 				) : null}
 				<div className="min-w-0 flex-1">
 					<h2 className="text-xl font-semibold truncate">{config.label}</h2>
-					<p className="text-sm text-muted-foreground mt-1">{description}</p>
+					<p className="text-sm text-muted-foreground mt-0.5 truncate">
+						{description}
+					</p>
 				</div>
 			</div>
 
-			<div className="space-y-3">
-				<AgentField
-					label="Label"
-					hint="Name shown in launchers."
-					htmlFor={`label-${config.id}`}
-				>
+			<div className="space-y-6">
+				<Section title="Label">
 					<Input
 						id={`label-${config.id}`}
 						value={label}
 						onChange={(e) => setLabel(e.target.value)}
 						onBlur={handleLabelBlur}
-						className="w-full"
 					/>
-				</AgentField>
-				<AgentField
-					label="Command"
-					hint="Argv used for launches. The prompt is appended after the prompt-only args."
-					htmlFor={`command-${config.id}`}
-				>
-					<Input
-						id={`command-${config.id}`}
-						className="w-full font-mono text-xs"
-						value={commandText}
-						onChange={(e) => setCommandText(e.target.value)}
-						onBlur={handleCommandBlur}
-						placeholder="claude --permission-mode acceptEdits"
-					/>
-				</AgentField>
-				<AgentField
-					label="Prompt-only args"
-					hint={
-						<>
-							Inserted only when launching with a prompt. Examples:{" "}
-							<code>--</code> (codex), <code>--prompt</code> (opencode),{" "}
-							<code>-i</code> (copilot).
-						</>
-					}
-					htmlFor={`prompt-args-${config.id}`}
-				>
-					<Input
-						id={`prompt-args-${config.id}`}
-						className="w-full font-mono text-xs"
-						value={promptArgsText}
-						onChange={(e) => setPromptArgsText(e.target.value)}
-						onBlur={handlePromptArgsBlur}
-						placeholder="--prompt"
-					/>
-				</AgentField>
-				<AgentField
-					label="Prompt transport"
-					hint={
-						<>
-							<code>argv</code> appends the prompt as the last argv;{" "}
-							<code>stdin</code> pipes it to the process's stdin.
-						</>
-					}
-				>
-					<div className="inline-flex rounded-md border border-border overflow-hidden w-fit">
-						<button
-							type="button"
-							onClick={() => handleTransportChange("argv")}
-							className={cn(
-								"px-3 py-1 text-xs font-medium transition-colors",
-								promptTransport === "argv"
-									? "bg-accent text-accent-foreground"
-									: "bg-transparent text-muted-foreground hover:bg-accent/50",
-							)}
-						>
-							argv
-						</button>
-						<button
-							type="button"
-							onClick={() => handleTransportChange("stdin")}
-							className={cn(
-								"px-3 py-1 text-xs font-medium transition-colors border-l border-border",
-								promptTransport === "stdin"
-									? "bg-accent text-accent-foreground"
-									: "bg-transparent text-muted-foreground hover:bg-accent/50",
-							)}
-						>
-							stdin
-						</button>
-					</div>
-				</AgentField>
+				</Section>
 
-				<div className="pt-5 flex items-center justify-between gap-6">
-					<div className="min-w-0 flex-1">
-						<div className="text-sm font-medium">Delete this agent</div>
-						<p className="text-xs text-muted-foreground mt-0.5">
-							Removes it from launchers on this host. Other hosts are not
-							affected.
-						</p>
-					</div>
-					<Button
-						variant="outline"
-						size="sm"
-						onClick={() => removeMutation.mutate()}
-						disabled={removeMutation.isPending}
-						className="gap-1.5 hover:text-destructive hover:border-destructive/30"
+				<Section title="Launch">
+					<StackedField
+						label="Command"
+						hint="Argv used to launch the agent."
+						htmlFor={`command-${config.id}`}
 					>
-						<Trash2 className="size-3.5" />
-						Delete
-					</Button>
+						<Input
+							id={`command-${config.id}`}
+							className="font-mono text-xs"
+							value={commandText}
+							onChange={(e) => setCommandText(e.target.value)}
+							onBlur={handleCommandBlur}
+							placeholder="claude --permission-mode acceptEdits"
+						/>
+					</StackedField>
+
+					<StackedField
+						label="Prompt-only args"
+						hint={
+							<>
+								Added only when launching with a prompt — e.g.{" "}
+								<code>--</code>, <code>--prompt</code>, <code>-i</code>.
+							</>
+						}
+						htmlFor={`prompt-args-${config.id}`}
+					>
+						<Input
+							id={`prompt-args-${config.id}`}
+							className="font-mono text-xs"
+							value={promptArgsText}
+							onChange={(e) => setPromptArgsText(e.target.value)}
+							onBlur={handlePromptArgsBlur}
+							placeholder="--prompt"
+						/>
+					</StackedField>
+
+					<StackedField
+						label="Prompt transport"
+						hint="How the prompt is delivered to the process."
+					>
+						<div className="inline-flex rounded-md border border-border overflow-hidden">
+							<button
+								type="button"
+								onClick={() => handleTransportChange("argv")}
+								className={cn(
+									"px-3 py-1 text-xs font-medium transition-colors",
+									promptTransport === "argv"
+										? "bg-accent text-accent-foreground"
+										: "bg-transparent text-muted-foreground hover:bg-accent/50",
+								)}
+							>
+								argv
+							</button>
+							<button
+								type="button"
+								onClick={() => handleTransportChange("stdin")}
+								className={cn(
+									"px-3 py-1 text-xs font-medium transition-colors border-l border-border",
+									promptTransport === "stdin"
+										? "bg-accent text-accent-foreground"
+										: "bg-transparent text-muted-foreground hover:bg-accent/50",
+								)}
+							>
+								stdin
+							</button>
+						</div>
+					</StackedField>
+				</Section>
+
+				<div className="pt-2 border-t border-border">
+					<div className="flex items-center justify-between gap-8">
+						<div className="min-w-0 flex-1">
+							<div className="text-sm font-medium">Delete agent</div>
+							<p className="text-sm text-muted-foreground mt-0.5">
+								Removes this agent from this device only.
+							</p>
+						</div>
+						<Button
+							variant="destructive"
+							size="sm"
+							onClick={() => removeMutation.mutate()}
+							disabled={removeMutation.isPending}
+							className="shrink-0 gap-1.5"
+						>
+							<Trash2 className="size-3.5" />
+							Delete
+						</Button>
+					</div>
 				</div>
 			</div>
 		</div>
 	);
 }
 
-interface AgentFieldProps {
+function Section({
+	title,
+	description,
+	action,
+	children,
+}: {
+	title: string;
+	description?: string;
+	action?: React.ReactNode;
+	children?: React.ReactNode;
+}) {
+	return (
+		<section className="space-y-3">
+			<div className="flex items-start justify-between gap-6">
+				<div className="min-w-0 flex-1">
+					<h3 className="text-sm font-medium">{title}</h3>
+					{description && (
+						<p className="text-xs text-muted-foreground mt-0.5">
+							{description}
+						</p>
+					)}
+				</div>
+				{action ? <div className="shrink-0">{action}</div> : null}
+			</div>
+			{children ? <div className="space-y-5">{children}</div> : null}
+		</section>
+	);
+}
+
+interface StackedFieldProps {
 	label: string;
 	hint?: React.ReactNode;
 	htmlFor?: string;
 	children: React.ReactNode;
 }
 
-function AgentField({ label, hint, htmlFor, children }: AgentFieldProps) {
+function StackedField({ label, hint, htmlFor, children }: StackedFieldProps) {
 	return (
-		<div className="flex items-start justify-between gap-6">
-			<div className="min-w-0 flex-1">
-				<Label htmlFor={htmlFor} className="text-sm font-medium">
-					{label}
-				</Label>
-				{hint && (
-					<p className="text-xs text-muted-foreground mt-0.5">{hint}</p>
-				)}
-			</div>
-			<div className="min-w-0 flex-1">{children}</div>
+		<div className="space-y-1.5">
+			<Label htmlFor={htmlFor} className="text-sm font-medium">
+				{label}
+			</Label>
+			{hint && <p className="text-xs text-muted-foreground -mt-1">{hint}</p>}
+			{children}
 		</div>
 	);
 }
