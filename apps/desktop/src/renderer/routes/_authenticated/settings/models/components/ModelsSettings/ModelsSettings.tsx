@@ -8,6 +8,7 @@ import {
 } from "@superset/ui/collapsible";
 import { claudeIcon } from "@superset/ui/icons/preset-icons";
 import { Input } from "@superset/ui/input";
+import { Label } from "@superset/ui/label";
 import { toast } from "@superset/ui/sonner";
 import { Textarea } from "@superset/ui/textarea";
 import { useEffect, useMemo, useState } from "react";
@@ -148,6 +149,29 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 			return false;
 		}
 	};
+
+	const handleAnthropicFormBlur = () => {
+		const currentEnvText = anthropicEnvConfig?.envText ?? "";
+		const nextEnvText = buildAnthropicEnvText(anthropicForm);
+		if (currentEnvText.trim() === nextEnvText.trim()) return;
+		void saveAnthropicForm(anthropicForm);
+	};
+
+	const resetAnthropicAdvanced = () => {
+		const nextForm = {
+			...anthropicForm,
+			authToken: "",
+			baseUrl: "",
+			extraEnv: "",
+		};
+		setAnthropicForm(nextForm);
+		void saveAnthropicForm(nextForm);
+	};
+
+	const hasAdvancedContent =
+		anthropicForm.authToken.trim().length > 0 ||
+		anthropicForm.baseUrl.trim().length > 0 ||
+		anthropicForm.extraEnv.trim().length > 0;
 
 	const saveAnthropicApiKey = async () => {
 		const apiKey = anthropicApiKeyInput.trim();
@@ -294,128 +318,102 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 							/>
 
 							<Collapsible open={advancedOpen} onOpenChange={setAdvancedOpen}>
-								<CollapsibleTrigger asChild>
-									<button
-										type="button"
-										className="flex items-center gap-1.5 text-left text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
-									>
-										<HiChevronDown
-											className={`size-3.5 transition-transform ${advancedOpen ? "" : "-rotate-90"}`}
+								<div className="flex items-center justify-between">
+									<CollapsibleTrigger asChild>
+										<button
+											type="button"
+											className="flex items-center gap-1.5 text-left text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+										>
+											<HiChevronDown
+												className={`size-3.5 transition-transform ${advancedOpen ? "" : "-rotate-90"}`}
+											/>
+											Advanced
+										</button>
+									</CollapsibleTrigger>
+									{advancedOpen && hasAdvancedContent ? (
+										<button
+											type="button"
+											onClick={resetAnthropicAdvanced}
+											disabled={isSavingAnthropicConfig}
+											className="text-xs text-muted-foreground hover:text-destructive transition-colors disabled:opacity-50"
+										>
+											Reset
+										</button>
+									) : null}
+								</div>
+								<CollapsibleContent className="mt-3 space-y-3">
+									<div className="space-y-1.5">
+										<Label
+											htmlFor="anthropic-auth-token"
+											className="text-sm font-medium"
+										>
+											Auth token
+										</Label>
+										<Input
+											id="anthropic-auth-token"
+											type="password"
+											value={anthropicForm.authToken}
+											onChange={(event) => {
+												setAnthropicForm((current) => ({
+													...current,
+													authToken: event.target.value,
+												}));
+											}}
+											onBlur={handleAnthropicFormBlur}
+											placeholder="ANTHROPIC_AUTH_TOKEN"
+											className="font-mono"
+											disabled={isSavingAnthropicConfig}
 										/>
-										Advanced
-									</button>
-								</CollapsibleTrigger>
-								<CollapsibleContent className="mt-3 space-y-4">
-									<ConfigRow
-										title="Auth token"
-										description="Override the bearer token used for Anthropic API calls."
-										htmlFor="anthropic-auth-token"
-										field={
-											<Input
-												id="anthropic-auth-token"
-												type="password"
-												value={anthropicForm.authToken}
-												onChange={(event) => {
-													setAnthropicForm((current) => ({
-														...current,
-														authToken: event.target.value,
-													}));
-												}}
-												placeholder="sk-ant-..."
-												className="font-mono"
-												disabled={isSavingAnthropicConfig}
-											/>
-										}
-										onSave={() => {
-											void saveAnthropicForm();
-										}}
-										onClear={() => {
-											const nextForm = { ...anthropicForm, authToken: "" };
-											setAnthropicForm(nextForm);
-											void saveAnthropicForm(nextForm);
-										}}
-										disableSave={isSavingAnthropicConfig}
-										disableClear={
-											isSavingAnthropicConfig ||
-											anthropicForm.authToken.length === 0
-										}
-									/>
-									<ConfigRow
-										title="Base URL"
-										description="Custom API endpoint."
-										htmlFor="anthropic-base-url"
-										field={
-											<Input
-												id="anthropic-base-url"
-												value={anthropicForm.baseUrl}
-												onChange={(event) => {
-													setAnthropicForm((current) => ({
-														...current,
-														baseUrl: event.target.value,
-													}));
-												}}
-												placeholder="https://api.anthropic.com"
-												className="font-mono"
-												disabled={isSavingAnthropicConfig}
-											/>
-										}
-										onSave={() => {
-											void saveAnthropicForm();
-										}}
-										onClear={() => {
-											const nextForm = { ...anthropicForm, baseUrl: "" };
-											setAnthropicForm(nextForm);
-											void saveAnthropicForm(nextForm);
-										}}
-										disableSave={isSavingAnthropicConfig}
-										disableClear={
-											isSavingAnthropicConfig ||
-											anthropicForm.baseUrl.length === 0
-										}
-									/>
-									<ConfigRow
-										title="Additional env vars"
-										description="Extra variables passed alongside the Anthropic config."
-										htmlFor="anthropic-extra-env"
-										field={
-											<Textarea
-												id="anthropic-extra-env"
-												value={anthropicForm.extraEnv}
-												onChange={(event) => {
-													setAnthropicForm((current) => ({
-														...current,
-														extraEnv: event.target.value,
-													}));
-												}}
-												placeholder={
-													"CLAUDE_CODE_USE_BEDROCK=1\nAWS_REGION=us-east-1"
-												}
-												className="min-h-24 font-mono text-xs"
-												disabled={isSavingAnthropicConfig}
-											/>
-										}
-										onSave={() => {
-											void saveAnthropicForm();
-										}}
-										onClear={
-											hasAnthropicConfig
-												? () => {
-														const nextForm = {
-															...anthropicForm,
-															extraEnv: "",
-														};
-														setAnthropicForm(nextForm);
-														void saveAnthropicForm(nextForm);
-													}
-												: undefined
-										}
-										clearLabel="Clear"
-										disableSave={isSavingAnthropicConfig}
-										disableClear={
-											isSavingAnthropicConfig ||
-											anthropicForm.extraEnv.length === 0
-										}
-									/>
+									</div>
+									<div className="space-y-1.5">
+										<Label
+											htmlFor="anthropic-base-url"
+											className="text-sm font-medium"
+										>
+											Base URL
+										</Label>
+										<Input
+											id="anthropic-base-url"
+											value={anthropicForm.baseUrl}
+											onChange={(event) => {
+												setAnthropicForm((current) => ({
+													...current,
+													baseUrl: event.target.value,
+												}));
+											}}
+											onBlur={handleAnthropicFormBlur}
+											placeholder="https://api.anthropic.com"
+											className="font-mono"
+											disabled={isSavingAnthropicConfig}
+										/>
+									</div>
+									<div className="space-y-1.5">
+										<Label
+											htmlFor="anthropic-extra-env"
+											className="text-sm font-medium"
+										>
+											Additional env vars
+										</Label>
+										<Textarea
+											id="anthropic-extra-env"
+											value={anthropicForm.extraEnv}
+											onChange={(event) => {
+												setAnthropicForm((current) => ({
+													...current,
+													extraEnv: event.target.value,
+												}));
+											}}
+											onBlur={handleAnthropicFormBlur}
+											placeholder={
+												"CLAUDE_CODE_USE_BEDROCK=1\nAWS_REGION=us-east-1"
+											}
+											className="min-h-24 font-mono text-xs"
+											disabled={isSavingAnthropicConfig}
+										/>
+									</div>
+									<p className="text-xs text-muted-foreground">
+										Saved on blur.
+									</p>
 								</CollapsibleContent>
 							</Collapsible>
 						</SettingsSection>
