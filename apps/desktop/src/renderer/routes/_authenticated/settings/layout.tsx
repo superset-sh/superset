@@ -163,7 +163,9 @@ function SettingsLayout() {
 							onClear={() => setSearchQuery("")}
 						/>
 					)}
-					<Outlet />
+					<div className="mx-auto max-w-4xl">
+						<Outlet />
+					</div>
 				</div>
 			</div>
 		</div>
