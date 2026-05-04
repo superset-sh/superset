@@ -78,7 +78,8 @@ const TREE_STYLE: React.CSSProperties = {
 	"--trees-fg-muted-override": "var(--muted-foreground)",
 	// Match v2 FileRow's `hover:bg-accent/50` — translucent accent over the
 	// row background, not solid muted.
-	"--trees-bg-muted-override": "color-mix(in oklab, var(--accent) 50%, transparent)",
+	"--trees-bg-muted-override":
+		"color-mix(in oklab, var(--accent) 50%, transparent)",
 	"--trees-accent-override": "var(--accent)",
 	"--trees-border-color-override": "var(--border)",
 
