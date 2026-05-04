@@ -1,3 +1,14 @@
+import type {
+	FileTreeRenameEvent,
+	FileTreeRowDecoration,
+	FileTreeRowDecorationContext,
+	ContextMenuItem as PierreContextMenuItem,
+	ContextMenuOpenContext as PierreContextMenuOpenContext,
+} from "@pierre/trees";
+import {
+	FileTree as PierreFileTree,
+	useFileTree as usePierreFileTree,
+} from "@pierre/trees/react";
 import type { AppRouter } from "@superset/host-service";
 import { alert } from "@superset/ui/atoms/Alert";
 import { Button } from "@superset/ui/button";
@@ -12,30 +23,93 @@ import {
 	Loader2,
 	RefreshCw,
 } from "lucide-react";
-import { Fragment, useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef } from "react";
+import type { FileStatus } from "renderer/hooks/host-service/useGitStatusMap";
+import { useGitStatusMap } from "renderer/hooks/host-service/useGitStatusMap";
 import {
-	type FileTreeNode,
-	useFileTree,
-} from "renderer/hooks/host-service/useFileTree";
-import {
-	type FileStatus,
-	useGitStatusMap,
-} from "renderer/hooks/host-service/useGitStatusMap";
-import { useWorkspaceEvent } from "renderer/hooks/host-service/useWorkspaceEvent";
+	folderIntentFor,
+	ShadowClickHint,
+	useSidebarFilePolicy,
+} from "renderer/lib/clickPolicy";
 import { useOpenInExternalEditor } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/useOpenInExternalEditor";
 import {
+	OVERSCAN_COUNT,
 	ROW_HEIGHT,
 	TREE_INDENT,
 } from "renderer/screens/main/components/WorkspaceView/RightSidebar/FilesView/constants";
-import { NewItemInput } from "./components/NewItemInput";
-import { WorkspaceFilesTreeItem } from "./components/WorkspaceFilesTreeItem";
+import { FileMenuItems } from "./components/FileMenuItems";
+import { FolderMenuItems } from "./components/FolderMenuItems";
+import { RowContextMenu } from "./components/RowContextMenu";
+import { useFilesTabBridge } from "./hooks/useFilesTabBridge";
+import { loadFallthroughIcons } from "./utils/loadFallthroughIcons";
+import {
+	asDirectoryHandle,
+	basename,
+	parentRel,
+	stripTrailingSlash,
+	toAbs,
+	toRel,
+} from "./utils/treePath";
+
+// Map Pierre's --trees-* CSS variables to our shadcn tokens so the file tree
+// inherits app theme (light/dark) automatically. Pierre falls back through
+// `*-override → theme tokens → defaults`, so providing overrides is enough —
+// no need to touch the theme tier. Custom properties cascade through Pierre's
+// shadow DOM, so setting them on the host element is sufficient.
+const TREE_STYLE: React.CSSProperties = {
+	// Layout. Hover/selected backgrounds paint on the row element, which sits
+	// inside the scroll container's `padding-inline`. Set the outer padding to
+	// 0 so highlights bleed edge-to-edge (matching v1's full-width row look).
+	// Padding/gap/icon size match the v2 ChangesFileList FileRow chrome
+	// (pl-3 pr-3, gap-1.5, size-3.5) so this tree reads consistently with the
+	// changes-tab file list.
+	"--trees-row-height-override": `${ROW_HEIGHT}px`,
+	"--trees-level-gap-override": `${TREE_INDENT}px`,
+	"--trees-padding-inline-override": "0",
+	"--trees-item-margin-x-override": "0",
+	"--trees-item-padding-x-override": "calc(var(--spacing) * 3)", // pl-3 / pr-3
+	"--trees-item-row-gap-override": "calc(var(--spacing) * 1.5)", // gap-1.5
+	"--trees-icon-width-override": "calc(var(--spacing) * 3.5)", // size-3.5
+	"--trees-border-radius-override": "0",
+
+	// Surface
+	"--trees-bg-override": "var(--background)",
+	"--trees-fg-override": "var(--foreground)",
+	"--trees-fg-muted-override": "var(--muted-foreground)",
+	// Match v2 FileRow's `hover:bg-accent/50` — translucent accent over the
+	// row background, not solid muted.
+	"--trees-bg-muted-override":
+		"color-mix(in oklab, var(--accent) 50%, transparent)",
+	"--trees-accent-override": "var(--accent)",
+	"--trees-border-color-override": "var(--border)",
+
+	// Selected row matches v2's `bg-accent`/`text-accent-foreground` rows
+	"--trees-selected-bg-override": "var(--accent)",
+	"--trees-selected-fg-override": "var(--accent-foreground)",
+	"--trees-selected-focused-border-color-override": "var(--ring)",
+
+	// Search bar matches our text input chrome
+	"--trees-search-bg-override": "var(--input, var(--background))",
+	"--trees-search-fg-override": "var(--foreground)",
+
+	// Focus ring
+	"--trees-focus-ring-color-override": "var(--ring)",
+	"--trees-focus-ring-offset-override": "0px",
+
+	// Git status row tint — matches the Tailwind palette v1 used (green / yellow
+	// / red / blue) so a 'modified' file in the tree reads the same color as a
+	// 'modified' badge elsewhere in the v2 chrome.
+	"--trees-status-added-override": "oklch(0.627 0.194 149.214)",
+	"--trees-status-untracked-override": "oklch(0.627 0.194 149.214)",
+	"--trees-status-modified-override": "oklch(0.681 0.162 75.834)",
+	"--trees-status-deleted-override": "oklch(0.577 0.245 27.325)",
+	"--trees-status-renamed-override": "oklch(0.6 0.118 244.557)",
+	"--trees-status-ignored-override": "var(--muted-foreground)",
+
+	"--trees-font-size-override": "var(--text-xs)", // text-xs
+} as React.CSSProperties;
 
 type GitStatusData = inferRouterOutputs<AppRouter>["git"]["getStatus"];
-
-type InlineEditState =
-	| { kind: "create"; mode: "file" | "folder"; parentPath: string }
-	| { kind: "rename"; absolutePath: string; name: string; isDirectory: boolean }
-	| null;
 
 interface FilesTabProps {
 	onSelectFile: (absolutePath: string, openInNewTab?: boolean) => void;
@@ -48,166 +122,20 @@ interface FilesTabProps {
 	gitStatus: GitStatusData | undefined;
 }
 
-function toPosix(path: string): string {
-	return path.replace(/\\/g, "/");
-}
-
-function TreeNode({
-	node,
-	depth,
-	indent,
-	rowHeight,
-	selectedFilePath,
-	hoveredPath,
-	inlineEdit,
-	isMuted,
-	fileStatusByPath,
-	folderStatusByPath,
-	ignoredPaths,
-	onSelectFile,
-	onOpenInEditor,
-	onToggleDirectory,
-	onInlineEditSubmit,
-	onInlineEditCancel,
-	onNewFile,
-	onNewFolder,
-	onRename,
-	onDelete,
-}: {
-	node: FileTreeNode;
-	depth: number;
-	indent: number;
-	rowHeight: number;
-	selectedFilePath?: string;
-	hoveredPath?: string | null;
-	inlineEdit: InlineEditState;
-	isMuted: boolean;
-	fileStatusByPath: Map<string, FileStatus>;
-	folderStatusByPath: Map<string, FileStatus>;
-	ignoredPaths: Set<string>;
-	onSelectFile: (absolutePath: string, openInNewTab?: boolean) => void;
-	onOpenInEditor: (absolutePath: string) => void;
-	onToggleDirectory: (absolutePath: string) => void;
-	onInlineEditSubmit: (name: string) => void;
-	onInlineEditCancel: () => void;
-	onNewFile: (parentPath: string) => void;
-	onNewFolder: (parentPath: string) => void;
-	onRename: (absolutePath: string, name: string, isDirectory: boolean) => void;
-	onDelete: (absolutePath: string, name: string, isDirectory: boolean) => void;
-}) {
-	const isCreating = inlineEdit?.kind === "create";
-	const isCreatingHere =
-		isCreating && inlineEdit.parentPath === node.absolutePath;
-	const isCreatingFile = isCreatingHere && inlineEdit.mode === "file";
-	const isRenaming =
-		inlineEdit?.kind === "rename" &&
-		inlineEdit.absolutePath === node.absolutePath;
-	const lastFolderIndex = node.children.findLastIndex(
-		(n) => n.kind === "directory",
-	);
-
-	// Resolve decoration once per node. Muted wins over change status so
-	// gitignored paths stay quiet even in the `git add -f` edge case.
-	const posixRelativePath = toPosix(node.relativePath);
-	const isFolder = node.kind === "directory";
-	const fileStatus = !isFolder
-		? fileStatusByPath.get(posixRelativePath)
-		: undefined;
-	const folderStatus = isFolder
-		? folderStatusByPath.get(posixRelativePath)
-		: undefined;
-	const decoration = isMuted ? undefined : (fileStatus ?? folderStatus);
-
-	return (
-		<div>
-			{isRenaming ? (
-				<NewItemInput
-					mode={node.kind === "directory" ? "folder" : "file"}
-					depth={depth}
-					initialValue={inlineEdit.name}
-					onSubmit={onInlineEditSubmit}
-					onCancel={onInlineEditCancel}
-				/>
-			) : (
-				<WorkspaceFilesTreeItem
-					node={node}
-					depth={depth}
-					indent={indent}
-					rowHeight={rowHeight}
-					selectedFilePath={selectedFilePath}
-					isHovered={hoveredPath === node.absolutePath}
-					decoration={decoration}
-					isMuted={isMuted}
-					onSelectFile={onSelectFile}
-					onOpenInEditor={onOpenInEditor}
-					onToggleDirectory={onToggleDirectory}
-					onNewFile={onNewFile}
-					onNewFolder={onNewFolder}
-					onRename={onRename}
-					onDelete={onDelete}
-				/>
-			)}
-			{node.kind === "directory" && node.isExpanded && (
-				<>
-					{isCreatingHere && inlineEdit.mode === "folder" && (
-						<NewItemInput
-							mode="folder"
-							depth={depth + 1}
-							onSubmit={onInlineEditSubmit}
-							onCancel={onInlineEditCancel}
-						/>
-					)}
-					{node.children.map((child, index) => {
-						const childIsMuted =
-							isMuted || ignoredPaths.has(toPosix(child.relativePath));
-						return (
-							<Fragment key={child.absolutePath}>
-								<TreeNode
-									node={child}
-									depth={depth + 1}
-									indent={indent}
-									rowHeight={rowHeight}
-									selectedFilePath={selectedFilePath}
-									hoveredPath={hoveredPath}
-									inlineEdit={inlineEdit}
-									isMuted={childIsMuted}
-									fileStatusByPath={fileStatusByPath}
-									folderStatusByPath={folderStatusByPath}
-									ignoredPaths={ignoredPaths}
-									onSelectFile={onSelectFile}
-									onOpenInEditor={onOpenInEditor}
-									onToggleDirectory={onToggleDirectory}
-									onInlineEditSubmit={onInlineEditSubmit}
-									onInlineEditCancel={onInlineEditCancel}
-									onNewFile={onNewFile}
-									onNewFolder={onNewFolder}
-									onRename={onRename}
-									onDelete={onDelete}
-								/>
-								{isCreatingFile && index === lastFolderIndex && (
-									<NewItemInput
-										mode="file"
-										depth={depth + 1}
-										onSubmit={onInlineEditSubmit}
-										onCancel={onInlineEditCancel}
-									/>
-								)}
-							</Fragment>
-						);
-					})}
-					{isCreatingFile && lastFolderIndex === -1 && (
-						<NewItemInput
-							mode="file"
-							depth={depth + 1}
-							onSubmit={onInlineEditSubmit}
-							onCancel={onInlineEditCancel}
-						/>
-					)}
-				</>
-			)}
-		</div>
-	);
-}
+// Map our richer FileStatus into Pierre's narrower GitStatus enum.
+// 'changed' (binary modify) → modified; 'copied' → added (no native equivalent).
+const PIERRE_GIT_STATUS: Record<
+	FileStatus,
+	"added" | "deleted" | "modified" | "renamed" | "untracked"
+> = {
+	added: "added",
+	changed: "modified",
+	copied: "added",
+	deleted: "deleted",
+	modified: "modified",
+	renamed: "renamed",
+	untracked: "untracked",
+};
 
 export function FilesTab({
 	onSelectFile,
@@ -216,224 +144,324 @@ export function FilesTab({
 	workspaceId,
 	gitStatus,
 }: FilesTabProps) {
-	const [_isRefreshing, setIsRefreshing] = useState(false);
-	const [hoveredPath, setHoveredPath] = useState<string | null>(null);
-	const [inlineEdit, setInlineEdit] = useState<InlineEditState>(null);
-	const utils = workspaceTrpc.useUtils();
 	const workspaceQuery = workspaceTrpc.workspace.get.useQuery({
 		id: workspaceId,
 	});
 	const rootPath = workspaceQuery.data?.worktreePath ?? "";
 
 	const openInExternalEditor = useOpenInExternalEditor(workspaceId);
-
-	const handleOpenInEditor = useCallback(
-		(absolutePath: string) => {
-			openInExternalEditor(absolutePath);
-		},
-		[openInExternalEditor],
-	);
-
+	const filePolicy = useSidebarFilePolicy();
 	const writeFile = workspaceTrpc.filesystem.writeFile.useMutation();
 	const createDirectory =
 		workspaceTrpc.filesystem.createDirectory.useMutation();
 	const movePath = workspaceTrpc.filesystem.movePath.useMutation();
-
-	const fileTree = useFileTree({ workspaceId, rootPath });
+	const deletePath = workspaceTrpc.filesystem.deletePath.useMutation();
 
 	const { fileStatusByPath, folderStatusByPath, ignoredPaths } =
 		useGitStatusMap(gitStatus);
 
-	useWorkspaceEvent(
-		"fs:events",
-		workspaceId,
-		() => void utils.filesystem.searchFiles.invalidate(),
-		Boolean(workspaceId),
+	// Pierre's `gitStatus` is consumed only at construction; live updates
+	// flow via model.setGitStatus in an effect below.
+	const initialGitStatusEntriesRef = useRef(
+		buildPierreGitStatus(fileStatusByPath, folderStatusByPath, ignoredPaths),
 	);
 
-	const scrollContainerRef = useRef<HTMLDivElement>(null);
-	const lastMousePos = useRef<{ x: number; y: number } | null>(null);
+	// Selection feedback loop guard: when the parent re-renders after we
+	// fired onSelectFile, syncing selectedFilePath back into the model would
+	// retrigger our onSelectionChange. Skip the next selection echo.
+	const lastSelectedFromUserRef = useRef<string | null>(null);
 
-	const updateHoverFromPoint = useCallback((x: number, y: number) => {
-		const el = document.elementFromPoint(x, y)?.closest("[data-filepath]");
-		setHoveredPath(el?.getAttribute("data-filepath") ?? null);
-	}, []);
-
-	const handleMouseMove = useCallback(
-		(e: React.MouseEvent) => {
-			lastMousePos.current = { x: e.clientX, y: e.clientY };
-			updateHoverFromPoint(e.clientX, e.clientY);
+	// `useFileTree` constructs the model once and never re-reads its options,
+	// so any callback we pass directly would close over stale state. Route
+	// every callback through a ref so we can update it on each render while
+	// keeping a stable function identity for Pierre.
+	const handlersRef = useRef({
+		onSelect(_path: string) {},
+		onRename(_event: FileTreeRenameEvent) {},
+		renderRowDecoration(
+			_ctx: FileTreeRowDecorationContext,
+		): FileTreeRowDecoration | null {
+			return null;
 		},
-		[updateHoverFromPoint],
-	);
+	});
 
-	const handleScroll = useCallback(() => {
-		if (lastMousePos.current)
-			updateHoverFromPoint(lastMousePos.current.x, lastMousePos.current.y);
-	}, [updateHoverFromPoint]);
+	const { model } = usePierreFileTree({
+		paths: [],
+		initialExpansion: "closed",
+		search: false,
+		renaming: {
+			onRename: (event) => handlersRef.current.onRename(event),
+			onError: (message) => toast.error(message),
+		},
+		gitStatus: initialGitStatusEntriesRef.current,
+		icons: { set: "complete", colored: true },
+		itemHeight: ROW_HEIGHT,
+		overscan: OVERSCAN_COUNT,
+		stickyFolders: true,
+		onSelectionChange: (paths) => {
+			const last = paths[paths.length - 1];
+			if (!last) return;
+			// Pierre uses trailing-slash paths for directories; we only fire
+			// onSelectFile for files (clicking a folder toggles expansion).
+			if (last.endsWith("/")) return;
+			handlersRef.current.onSelect(last);
+		},
+		renderRowDecoration: (ctx) => handlersRef.current.renderRowDecoration(ctx),
+	});
 
-	const handleMouseLeave = useCallback(() => {
-		lastMousePos.current = null;
-		setHoveredPath(null);
-	}, []);
+	const bridge = useFilesTabBridge({ model, workspaceId, rootPath });
 
-	// Every reveal request from the parent is a fresh `pendingReveal` object,
-	// so depending on its identity re-runs this effect for repeat reveals of
-	// the same path too. fileTree is intentionally omitted — its identity
-	// changes every render and would loop; the closure reads the latest state
-	// via useFileTree's internal refs. `cancelled` guards against a stale
-	// reveal scrolling the sidebar back to an outdated path if a newer
-	// request lands mid-flight.
-	// biome-ignore lint/correctness/useExhaustiveDependencies: fileTree intentionally omitted
+	// Push live git status updates into Pierre.
 	useEffect(() => {
-		if (!pendingReveal || !rootPath) return;
+		model.setGitStatus(
+			buildPierreGitStatus(fileStatusByPath, folderStatusByPath, ignoredPaths),
+		);
+	}, [model, fileStatusByPath, folderStatusByPath, ignoredPaths]);
+
+	// Layer our Material-icon coverage on top of Pierre's built-ins for file
+	// types Pierre doesn't recognize (`.toml`, `.lock`, framework dirs, etc).
+	// Initial render uses Pierre's defaults; ours fill in once the sprite
+	// finishes loading. The cache inside loadFallthroughIcons makes subsequent
+	// mounts a no-op.
+	useEffect(() => {
 		let cancelled = false;
-		const { path, isDirectory } = pendingReveal;
-		void fileTree.reveal(path, { isDirectory }).then(() => {
-			if (cancelled) return;
-			requestAnimationFrame(() => {
+		void loadFallthroughIcons().then(
+			({ spriteSheet, byFileName, byFileExtension }) => {
 				if (cancelled) return;
-				scrollContainerRef.current
-					?.querySelector(`[data-filepath="${CSS.escape(path)}"]`)
-					?.scrollIntoView({ block: "center" });
-			});
-		});
+				model.setIcons({
+					set: "complete",
+					colored: true,
+					spriteSheet,
+					byFileName,
+					byFileExtension,
+				});
+			},
+		);
 		return () => {
 			cancelled = true;
 		};
-	}, [pendingReveal, rootPath]);
+	}, [model]);
 
-	const handleRefresh = useCallback(async () => {
-		setIsRefreshing(true);
-		try {
-			await fileTree.refreshAll();
-		} finally {
-			setIsRefreshing(false);
+	// Reflect external selection changes (e.g. tab switch) back into the model.
+	useEffect(() => {
+		if (!selectedFilePath || !rootPath) return;
+		if (lastSelectedFromUserRef.current === selectedFilePath) {
+			lastSelectedFromUserRef.current = null;
+			return;
 		}
-	}, [fileTree]);
+		const rel = toRel(rootPath, selectedFilePath);
+		if (!bridge.knownPaths.has(rel)) return;
+		model.focusPath(rel);
+	}, [model, selectedFilePath, rootPath, bridge.knownPaths]);
 
-	const getParentForCreation = useCallback((): string => {
-		if (!selectedFilePath || !rootPath) return rootPath;
-		// Walk tree to check if selected is a directory
-		function isDirectory(nodes: FileTreeNode[]): boolean {
-			for (const n of nodes) {
-				if (n.absolutePath === selectedFilePath) return n.kind === "directory";
-				if (n.children.length > 0 && isDirectory(n.children)) return true;
+	// Reveal a path: ensure all ancestor directories are expanded so the row
+	// is visible, then scroll it into view.
+	const reveal = useCallback(
+		async (absolutePath: string, isDirectory: boolean): Promise<void> => {
+			if (!rootPath || !absolutePath.startsWith(rootPath)) return;
+			const rel = toRel(rootPath, absolutePath);
+			if (!rel) return;
+
+			// Always wait on the root listing before focusPath. For root-level
+			// files the ancestor loop runs zero iterations, so without this
+			// we'd race the initial fetch and the reveal silently no-ops.
+			// fetchDir is idempotent + cached, so this is free after first call.
+			await bridge.fetchDir("");
+
+			const segments = rel.split("/");
+			let acc = "";
+			for (let i = 0; i < segments.length - 1; i++) {
+				acc = acc ? `${acc}/${segments[i]}` : segments[i];
+				const dirKey = `${acc}/`;
+				if (!bridge.knownPaths.has(dirKey)) {
+					// Ancestor not loaded yet — load its parent then expand.
+					await bridge.fetchDir(parentRel(acc));
+				}
+				const handle = asDirectoryHandle(model.getItem(dirKey));
+				if (handle && !handle.isExpanded()) {
+					handle.expand();
+					await bridge.fetchDir(acc);
+				}
 			}
-			return false;
-		}
-		if (isDirectory(fileTree.rootEntries)) return selectedFilePath;
-		const lastSlash = selectedFilePath.lastIndexOf("/");
-		return lastSlash > 0 ? selectedFilePath.slice(0, lastSlash) : rootPath;
-	}, [selectedFilePath, rootPath, fileTree.rootEntries]);
+			if (isDirectory) {
+				const dirKey = `${rel}/`;
+				const handle = asDirectoryHandle(model.getItem(dirKey));
+				if (handle && !handle.isExpanded()) {
+					handle.expand();
+					await bridge.fetchDir(rel);
+				}
+			}
+
+			requestAnimationFrame(() => {
+				model.focusPath(rel);
+			});
+		},
+		[model, rootPath, bridge.fetchDir, bridge.knownPaths],
+	);
+
+	useEffect(() => {
+		if (!pendingReveal || !rootPath) return;
+		void reveal(pendingReveal.path, pendingReveal.isDirectory);
+	}, [pendingReveal, rootPath, reveal]);
 
 	const startCreating = useCallback(
-		async (mode: "file" | "folder", targetPath?: string) => {
-			const parentPath = targetPath ?? getParentForCreation();
-			if (parentPath !== rootPath) await fileTree.expand(parentPath);
-			setInlineEdit({ kind: "create", mode, parentPath });
+		async (mode: "file" | "folder", parentAbs?: string): Promise<void> => {
+			if (!rootPath) return;
+			const parentAbsPath =
+				parentAbs ??
+				deriveCreationParent(selectedFilePath, bridge.knownPaths, rootPath);
+			const parentRelPath = toRel(rootPath, parentAbsPath);
+			const parentDirKey = parentRelPath ? `${parentRelPath}/` : "";
 
-			scrollContainerRef.current
-				?.querySelector("[data-new-item-input]")
-				?.scrollIntoView({ block: "nearest" });
-			setTimeout(() => {
-				scrollContainerRef.current
-					?.querySelector<HTMLInputElement>("[data-new-item-input] input")
-					?.focus();
-			}, 200);
+			// Make sure Pierre has the parent's children loaded + expanded so
+			// the placeholder row appears in the right place.
+			if (parentRelPath) {
+				await bridge.fetchDir(parentRelPath);
+				const handle = asDirectoryHandle(model.getItem(parentDirKey));
+				if (handle && !handle.isExpanded()) {
+					handle.expand();
+				}
+			}
+
+			const placeholderName = pickPlaceholderName(
+				parentRelPath,
+				mode,
+				bridge.knownPaths,
+			);
+			const placeholderPath =
+				(parentRelPath ? `${parentRelPath}/` : "") +
+				placeholderName +
+				(mode === "folder" ? "/" : "");
+
+			bridge.pendingCreates.set(placeholderPath, mode);
+			bridge.knownPaths.add(placeholderPath);
+			model.add(placeholderPath);
+			// removeIfCanceled cleans up the placeholder if user hits Esc.
+			model.startRenaming(placeholderPath, { removeIfCanceled: true });
 		},
-		[getParentForCreation, rootPath, fileTree],
+		[model, rootPath, selectedFilePath, bridge],
 	);
 
-	const startRenaming = useCallback(
-		(absolutePath: string, name: string, isDirectory: boolean) => {
-			setInlineEdit({ kind: "rename", absolutePath, name, isDirectory });
-			setTimeout(() => {
-				scrollContainerRef.current
-					?.querySelector<HTMLInputElement>("[data-new-item-input] input")
-					?.focus();
-			}, 200);
-		},
-		[],
-	);
+	const handleRename = useCallback(
+		async (event: FileTreeRenameEvent): Promise<void> => {
+			if (!rootPath) return;
+			const { sourcePath, destinationPath, isFolder } = event;
+			const pendingMode = bridge.pendingCreates.get(sourcePath);
+			// Snapshot before any await so post-mutation cleanup against a
+			// stale workspace (user switched mid-flight) bails out instead of
+			// leaking source/destination paths into the new workspace's
+			// knownPaths / model.
+			const versionToken = bridge.getVersion();
 
-	const handleInlineEditSubmit = useCallback(
-		async (name: string) => {
-			if (!inlineEdit || !rootPath) return;
-
-			try {
-				if (inlineEdit.kind === "create") {
-					const { mode, parentPath } = inlineEdit;
-					const segments = name.split("/").filter(Boolean);
-					if (segments.length === 0) return;
-
-					const absolutePath = `${parentPath}/${name}`;
-
-					if (mode === "folder") {
+			if (pendingMode) {
+				bridge.pendingCreates.delete(sourcePath);
+				// Pierre has already moved placeholder → destinationPath in
+				// its tree; sync our knownPaths so we don't double-account.
+				bridge.knownPaths.delete(sourcePath);
+				bridge.knownPaths.add(destinationPath);
+				const absPath = toAbs(rootPath, destinationPath);
+				try {
+					if (pendingMode === "folder") {
 						await createDirectory.mutateAsync({
 							workspaceId,
-							absolutePath,
+							absolutePath: absPath,
 							recursive: true,
 						});
 					} else {
-						if (segments.length > 1) {
-							const dirPath = `${parentPath}/${segments.slice(0, -1).join("/")}`;
-							await createDirectory.mutateAsync({
-								workspaceId,
-								absolutePath: dirPath,
-								recursive: true,
-							});
-						}
+						const segments = stripTrailingSlash(
+							basename(destinationPath),
+						).split("/");
+						if (segments.length === 0) return;
 						await writeFile.mutateAsync({
 							workspaceId,
-							absolutePath,
+							absolutePath: absPath,
 							content: "",
 							options: { create: true, overwrite: false },
 						});
-						onSelectFile(absolutePath);
+						if (bridge.isCurrent(versionToken)) onSelectFile(absPath);
 					}
-				} else {
-					const { absolutePath } = inlineEdit;
-					const parentDir = absolutePath.slice(
-						0,
-						absolutePath.lastIndexOf("/"),
-					);
-					const destinationPath = `${parentDir}/${name}`;
-					await movePath.mutateAsync({
-						workspaceId,
-						sourceAbsolutePath: absolutePath,
-						destinationAbsolutePath: destinationPath,
+				} catch (error) {
+					if (!bridge.isCurrent(versionToken)) return;
+					bridge.knownPaths.delete(destinationPath);
+					try {
+						model.remove(destinationPath, { recursive: true });
+					} catch {
+						// ignore
+					}
+					toast.error("Failed to create item", {
+						description: error instanceof Error ? error.message : undefined,
 					});
 				}
-			} catch (error) {
-				toast.error(
-					inlineEdit.kind === "create"
-						? "Failed to create item"
-						: "Failed to rename",
-					{
-						description: error instanceof Error ? error.message : undefined,
-					},
+				return;
+			}
+
+			// Genuine rename. Pierre has already moved the entry on its side.
+			// For folders, also rekey every cached descendant (knownPaths +
+			// loadedDirs) under the new prefix so later fs reconciliation /
+			// reveals don't target stale paths.
+			bridge.knownPaths.delete(sourcePath);
+			bridge.knownPaths.add(destinationPath);
+			if (isFolder) {
+				bridge.rekeyDescendants(
+					stripTrailingSlash(sourcePath),
+					stripTrailingSlash(destinationPath),
 				);
 			}
-			setInlineEdit(null);
+			try {
+				await movePath.mutateAsync({
+					workspaceId,
+					sourceAbsolutePath: toAbs(rootPath, sourcePath),
+					destinationAbsolutePath: toAbs(rootPath, destinationPath),
+				});
+			} catch (error) {
+				if (!bridge.isCurrent(versionToken)) return;
+				// Revert Pierre's optimistic rename.
+				try {
+					model.move(destinationPath, sourcePath);
+					bridge.knownPaths.delete(destinationPath);
+					bridge.knownPaths.add(sourcePath);
+					if (isFolder) {
+						bridge.rekeyDescendants(
+							stripTrailingSlash(destinationPath),
+							stripTrailingSlash(sourcePath),
+						);
+					}
+				} catch {
+					// ignore — fs:events will reconcile
+				}
+				toast.error("Failed to rename", {
+					description: error instanceof Error ? error.message : undefined,
+				});
+			}
 		},
 		[
-			inlineEdit,
+			model,
 			rootPath,
 			workspaceId,
-			writeFile,
 			createDirectory,
+			writeFile,
 			movePath,
 			onSelectFile,
+			bridge,
 		],
 	);
 
-	const handleInlineEditCancel = useCallback(() => setInlineEdit(null), []);
-
-	const deletePath = workspaceTrpc.filesystem.deletePath.useMutation();
+	// Wire the ref-based handlers so Pierre's stable callbacks always reach
+	// the latest closures. Updated on every render — no diffing needed.
+	handlersRef.current.onRename = (event) => void handleRename(event);
+	handlersRef.current.onSelect = (treePath) => {
+		const abs = toAbs(rootPath, treePath);
+		lastSelectedFromUserRef.current = abs;
+		onSelectFile(abs);
+	};
+	// No-op: Pierre's setGitStatus already renders its own per-row status
+	// indicator (and tints the row text), so a custom decoration here would
+	// duplicate it. Kept the wiring in place in case we want to layer
+	// something Pierre doesn't show (e.g. lock icons, debug markers).
+	handlersRef.current.renderRowDecoration = () => null;
 
 	const handleDelete = useCallback(
-		(absolutePath: string, name: string, isDirectory: boolean) => {
+		(absolutePath: string, name: string, isDirectory: boolean): void => {
 			const itemType = isDirectory ? "folder" : "file";
 			alert({
 				title: `Delete ${name}?`,
@@ -456,15 +484,133 @@ export function FilesTab({
 							);
 						},
 					},
-					{
-						label: "Cancel",
-						variant: "ghost",
-					},
+					{ label: "Cancel", variant: "ghost" },
 				],
 			});
 		},
 		[workspaceId, deletePath],
 	);
+
+	// Pierre mounts its tree inside an open shadow root on a custom element
+	// (`<file-tree-container>`). Events bubbling out retarget to that host,
+	// so `e.target.closest(...)` from our wrapper finds nothing — walk
+	// `composedPath()` to cross the shadow boundary and find the row by its
+	// `data-item-path` attribute (stamped by render/rowAttributes.ts in
+	// @pierre/trees — pin coverage with the version in package.json).
+	const findRow = useCallback((e: React.MouseEvent): HTMLElement | null => {
+		const path = e.nativeEvent.composedPath();
+		for (const node of path) {
+			if (!(node instanceof HTMLElement)) continue;
+			if (node.getAttribute("data-item-path")) return node;
+		}
+		return null;
+	}, []);
+
+	// Capture-phase click intercept routes every row click through clickPolicy.
+	// File rows: settings-driven via `useSidebarFilePolicy`. Folders: fixed
+	// rule via `folderIntentFor` (meta=reveal, metaShift=external) — they're
+	// not user-configurable because the action vocabulary doesn't fit.
+	// Unbound tiers and plain "pane" defer to Pierre's onSelectionChange so
+	// the visual selection stays in sync; intercepting would swallow the click.
+	const handleClickCapture = useCallback(
+		(e: React.MouseEvent<HTMLDivElement>) => {
+			if (!rootPath) return;
+			const treePath = findRow(e)?.getAttribute("data-item-path");
+			if (!treePath) return;
+			const abs = toAbs(rootPath, treePath);
+
+			if (treePath.endsWith("/")) {
+				const intent = folderIntentFor(e);
+				if (intent === null) return;
+				e.preventDefault();
+				e.stopPropagation();
+				if (intent === "external") openInExternalEditor(abs);
+				// "reveal" is a no-op — folder is already in this sidebar.
+				return;
+			}
+
+			const { tier, action } = filePolicy.resolve(e);
+			if (action === null) return;
+			if (tier === "plain" && action === "pane") return;
+			e.preventDefault();
+			e.stopPropagation();
+			if (action === "external") openInExternalEditor(abs);
+			else if (action === "newTab") onSelectFile(abs, true);
+			else if (action === "pane") onSelectFile(abs, false);
+		},
+		[rootPath, openInExternalEditor, onSelectFile, findRow, filePolicy],
+	);
+
+	// Hint tooltip uses ShadowClickHint to anchor a single shadcn Tooltip
+	// over the hovered row's bounding rect — Pierre owns the row DOM inside
+	// an open shadow root, so per-row Tooltip wrappers aren't possible.
+	// Folders are excluded since folder intents are hardcoded.
+	const findFileRow = useCallback(
+		(e: React.MouseEvent): HTMLElement | null => {
+			const row = findRow(e);
+			const itemPath = row?.getAttribute("data-item-path");
+			if (!row || !itemPath || itemPath.endsWith("/")) return null;
+			return row;
+		},
+		[findRow],
+	);
+
+	const renderContextMenu = useCallback(
+		(item: PierreContextMenuItem, ctx: PierreContextMenuOpenContext) => {
+			const isFolder = item.kind === "directory";
+			const treePath = isFolder
+				? `${stripTrailingSlash(item.path)}/`
+				: item.path;
+			const abs = toAbs(rootPath, item.path);
+			const rel = stripTrailingSlash(item.path);
+			return (
+				<RowContextMenu
+					anchorRect={ctx.anchorRect}
+					onClose={ctx.close}
+					data-file-tree-context-menu-root="true"
+				>
+					{isFolder ? (
+						<FolderMenuItems
+							absolutePath={abs}
+							relativePath={rel}
+							onNewFile={() => void startCreating("file", abs)}
+							onNewFolder={() => void startCreating("folder", abs)}
+							onRename={() => model.startRenaming(treePath)}
+							onDelete={() => handleDelete(abs, item.name, true)}
+						/>
+					) : (
+						<FileMenuItems
+							absolutePath={abs}
+							relativePath={rel}
+							onOpen={() => onSelectFile(abs)}
+							onOpenInNewTab={() => onSelectFile(abs, true)}
+							onOpenInEditor={() => openInExternalEditor(abs)}
+							onRename={() => model.startRenaming(treePath)}
+							onDelete={() => handleDelete(abs, item.name, false)}
+						/>
+					)}
+				</RowContextMenu>
+			);
+		},
+		[
+			model,
+			rootPath,
+			startCreating,
+			handleDelete,
+			onSelectFile,
+			openInExternalEditor,
+		],
+	);
+
+	const collapseAll = useCallback(() => {
+		for (const path of bridge.knownPaths) {
+			if (!path.endsWith("/")) continue;
+			const handle = asDirectoryHandle(model.getItem(path));
+			if (handle?.isExpanded()) {
+				handle.collapse();
+			}
+		}
+	}, [model, bridge.knownPaths]);
 
 	if (!rootPath) {
 		return (
@@ -481,168 +627,154 @@ export function FilesTab({
 		);
 	}
 
-	const isCreatingAtRoot =
-		inlineEdit?.kind === "create" && inlineEdit.parentPath === rootPath;
-	const isCreatingFileAtRoot =
-		isCreatingAtRoot &&
-		inlineEdit?.kind === "create" &&
-		inlineEdit.mode === "file";
-	const isCreatingFolderAtRoot =
-		isCreatingAtRoot &&
-		inlineEdit?.kind === "create" &&
-		inlineEdit.mode === "folder";
-	const rootLastFolderIndex = fileTree.rootEntries.findLastIndex(
-		(n) => n.kind === "directory",
-	);
-
 	return (
-		<div className="flex h-full min-h-0 flex-col overflow-hidden">
-			{/* biome-ignore lint/a11y/noStaticElementInteractions: mouse tracking for hover state */}
-			<div
-				ref={scrollContainerRef}
-				className="min-h-0 flex-1 overflow-y-auto"
-				onMouseMove={handleMouseMove}
-				onMouseLeave={handleMouseLeave}
-				onScroll={handleScroll}
-			>
-				<div
-					className="group flex items-center justify-between bg-background px-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground"
-					style={{
-						height: ROW_HEIGHT,
-						position: "sticky",
-						top: 0,
-						zIndex: 20,
-					}}
-				>
-					<span className="truncate">Explorer</span>
-					<div className="flex items-center gap-0.5">
-						<Tooltip>
-							<TooltipTrigger asChild>
-								<Button
-									variant="ghost"
-									size="icon"
-									className="size-5"
+		<div
+			className="flex h-full min-h-0 flex-col overflow-hidden"
+			onClickCapture={handleClickCapture}
+		>
+			<ShadowClickHint hint={filePolicy.hint} findRow={findFileRow}>
+				<PierreFileTree
+					model={model}
+					className="flex-1 min-h-0"
+					style={TREE_STYLE}
+					header={
+						<div className="group flex h-7 items-center justify-between bg-background px-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+							<span className="truncate">Explorer</span>
+							<div className="flex items-center gap-0.5">
+								<HeaderButton
+									icon={FilePlus}
+									label="New File"
 									onClick={() => void startCreating("file")}
-								>
-									<FilePlus className="size-3" />
-								</Button>
-							</TooltipTrigger>
-							<TooltipContent side="bottom">New File</TooltipContent>
-						</Tooltip>
-						<Tooltip>
-							<TooltipTrigger asChild>
-								<Button
-									variant="ghost"
-									size="icon"
-									className="size-5"
+								/>
+								<HeaderButton
+									icon={FolderPlus}
+									label="New Folder"
 									onClick={() => void startCreating("folder")}
-								>
-									<FolderPlus className="size-3" />
-								</Button>
-							</TooltipTrigger>
-							<TooltipContent side="bottom">New Folder</TooltipContent>
-						</Tooltip>
-						<Tooltip>
-							<TooltipTrigger asChild>
-								<Button
-									variant="ghost"
-									size="icon"
-									className="size-5"
-									onClick={() => void handleRefresh()}
-								>
-									<RefreshCw className="size-3" />
-								</Button>
-							</TooltipTrigger>
-							<TooltipContent side="bottom">Refresh</TooltipContent>
-						</Tooltip>
-						<Tooltip>
-							<TooltipTrigger asChild>
-								<Button
-									variant="ghost"
-									size="icon"
-									className="size-5"
-									onClick={fileTree.collapseAll}
-								>
-									<FoldVertical className="size-3" />
-								</Button>
-							</TooltipTrigger>
-							<TooltipContent side="bottom">Collapse All</TooltipContent>
-						</Tooltip>
-					</div>
-				</div>
-
-				{fileTree.rootEntries.length === 0 &&
-				!fileTree.isLoadingRoot &&
-				!isCreatingAtRoot ? (
-					<div className="px-2 py-3 text-sm text-muted-foreground">
-						No files found
-					</div>
-				) : (
-					<>
-						{isCreatingFolderAtRoot && (
-							<NewItemInput
-								mode="folder"
-								depth={1}
-								onSubmit={handleInlineEditSubmit}
-								onCancel={handleInlineEditCancel}
-							/>
-						)}
-						{fileTree.rootEntries.map((node, index) => {
-							const nodeIsMuted = ignoredPaths.has(toPosix(node.relativePath));
-							return (
-								<Fragment key={node.absolutePath}>
-									<TreeNode
-										node={node}
-										depth={1}
-										indent={TREE_INDENT}
-										rowHeight={ROW_HEIGHT}
-										selectedFilePath={selectedFilePath}
-										hoveredPath={hoveredPath}
-										inlineEdit={inlineEdit}
-										isMuted={nodeIsMuted}
-										fileStatusByPath={fileStatusByPath}
-										folderStatusByPath={folderStatusByPath}
-										ignoredPaths={ignoredPaths}
-										onSelectFile={onSelectFile}
-										onOpenInEditor={handleOpenInEditor}
-										onToggleDirectory={(absolutePath) =>
-											void fileTree.toggle(absolutePath)
-										}
-										onInlineEditSubmit={handleInlineEditSubmit}
-										onInlineEditCancel={handleInlineEditCancel}
-										onNewFile={(parentPath) =>
-											void startCreating("file", parentPath)
-										}
-										onNewFolder={(parentPath) =>
-											void startCreating("folder", parentPath)
-										}
-										onRename={(absolutePath, name, isDirectory) =>
-											startRenaming(absolutePath, name, isDirectory)
-										}
-										onDelete={handleDelete}
-									/>
-									{isCreatingFileAtRoot && index === rootLastFolderIndex && (
-										<NewItemInput
-											mode="file"
-											depth={1}
-											onSubmit={handleInlineEditSubmit}
-											onCancel={handleInlineEditCancel}
-										/>
-									)}
-								</Fragment>
-							);
-						})}
-						{isCreatingFileAtRoot && rootLastFolderIndex === -1 && (
-							<NewItemInput
-								mode="file"
-								depth={1}
-								onSubmit={handleInlineEditSubmit}
-								onCancel={handleInlineEditCancel}
-							/>
-						)}
-					</>
-				)}
-			</div>
+								/>
+								<HeaderButton
+									icon={RefreshCw}
+									label="Refresh"
+									loading={bridge.isRefreshing}
+									onClick={() => void bridge.doRefresh()}
+								/>
+								<HeaderButton
+									icon={FoldVertical}
+									label="Collapse All"
+									onClick={collapseAll}
+								/>
+							</div>
+						</div>
+					}
+					renderContextMenu={renderContextMenu}
+				/>
+			</ShadowClickHint>
 		</div>
 	);
+}
+
+interface HeaderButtonProps {
+	icon: React.ComponentType<{ className?: string }>;
+	label: string;
+	loading?: boolean;
+	onClick: () => void;
+}
+
+function HeaderButton({
+	icon: Icon,
+	label,
+	loading,
+	onClick,
+}: HeaderButtonProps) {
+	return (
+		<Tooltip>
+			<TooltipTrigger asChild>
+				<Button
+					variant="ghost"
+					size="icon"
+					className="size-5"
+					onClick={onClick}
+					aria-label={label}
+				>
+					{loading ? (
+						<Loader2 className="size-3 animate-spin" />
+					) : (
+						<Icon className="size-3" />
+					)}
+				</Button>
+			</TooltipTrigger>
+			<TooltipContent side="bottom">{label}</TooltipContent>
+		</Tooltip>
+	);
+}
+
+function buildPierreGitStatus(
+	fileStatusByPath: Map<string, FileStatus>,
+	folderStatusByPath: Map<string, FileStatus>,
+	ignoredPaths: Set<string>,
+): {
+	path: string;
+	status:
+		| "added"
+		| "deleted"
+		| "ignored"
+		| "modified"
+		| "renamed"
+		| "untracked";
+}[] {
+	const entries: {
+		path: string;
+		status:
+			| "added"
+			| "deleted"
+			| "ignored"
+			| "modified"
+			| "renamed"
+			| "untracked";
+	}[] = [];
+	for (const [path, status] of fileStatusByPath) {
+		entries.push({ path, status: PIERRE_GIT_STATUS[status] });
+	}
+	// Feed folder rollup entries with a trailing slash so Pierre matches them
+	// against directory rows (its canonical directory path form). Tinting the
+	// folder row text uses the same `--trees-status-*` color as files, which
+	// then cascades to our renderRowDecoration bullet.
+	for (const [path, status] of folderStatusByPath) {
+		entries.push({ path: `${path}/`, status: PIERRE_GIT_STATUS[status] });
+	}
+	for (const path of ignoredPaths) {
+		entries.push({ path, status: "ignored" });
+	}
+	return entries;
+}
+
+function deriveCreationParent(
+	selectedFilePath: string | undefined,
+	knownPaths: Set<string>,
+	rootPath: string,
+): string {
+	if (!selectedFilePath) return rootPath;
+	// If the selected path is itself a known directory, target it.
+	const selectedRel = toRel(rootPath, selectedFilePath);
+	if (knownPaths.has(`${selectedRel}/`)) return selectedFilePath;
+	// Otherwise, target the selected file's parent dir.
+	const lastSlash = selectedFilePath.lastIndexOf("/");
+	return lastSlash > rootPath.length
+		? selectedFilePath.slice(0, lastSlash)
+		: rootPath;
+}
+
+function pickPlaceholderName(
+	parentRel: string,
+	mode: "file" | "folder",
+	knownPaths: Set<string>,
+): string {
+	const base = mode === "folder" ? "Untitled" : "untitled";
+	const suffix = mode === "folder" ? "/" : "";
+	const prefix = parentRel ? `${parentRel}/` : "";
+	if (!knownPaths.has(`${prefix}${base}${suffix}`)) return base;
+	for (let i = 2; i < 100; i++) {
+		const name = `${base}-${i}`;
+		if (!knownPaths.has(`${prefix}${name}${suffix}`)) return name;
+	}
+	return `${base}-${Date.now()}`;
 }

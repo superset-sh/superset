@@ -26,16 +26,11 @@ import {
 	Undo2,
 } from "lucide-react";
 import { memo, useState } from "react";
+import { modifierLabel, useSidebarFilePolicy } from "renderer/lib/clickPolicy";
 import { DiscardConfirmDialog } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/DiscardConfirmDialog";
 import { StatusIndicator } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/StatusIndicator";
-import { PathActionsMenuItems } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/components/FilesTab/components/WorkspaceFilesTreeItem/components/PathActionsMenuItems";
+import { PathActionsMenuItems } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/components/PathActionsMenuItems";
 import type { ChangesetFile } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/useChangeset";
-import {
-	CLICK_HINT_TOOLTIP,
-	MOD_CLICK_LABEL,
-	SHIFT_CLICK_LABEL,
-} from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/utils/clickModifierLabels";
-import { getSidebarClickIntent } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/utils/getSidebarClickIntent";
 import { FileIcon } from "renderer/screens/main/components/WorkspaceView/RightSidebar/FilesView/utils";
 import { toAbsoluteWorkspacePath } from "shared/absolute-paths";
 
@@ -91,18 +86,20 @@ export const FileRow = memo(function FileRow({
 		discardMutation.mutate({ workspaceId, filePath: file.path });
 	};
 
+	const policy = useSidebarFilePolicy();
+	const newTabTier = policy.tierForAction("newTab");
+	const externalTier = policy.tierForAction("external");
+
 	const rowButton = (
 		<div className="group relative">
 			<button
 				type="button"
 				className="flex w-full items-center gap-1.5 py-1 pr-3 pl-3 text-left text-xs hover:bg-accent/50"
 				onClick={(e) => {
-					const intent = getSidebarClickIntent(e);
-					if (intent === "openInEditor") {
-						onOpenInEditor?.(file.path);
-					} else {
-						onSelect?.(file.path, intent === "openInNewTab");
-					}
+					const action = policy.getAction(e);
+					if (action === "external") onOpenInEditor?.(file.path);
+					else if (action === "newTab") onSelect?.(file.path, true);
+					else if (action === "pane") onSelect?.(file.path, false);
 				}}
 			>
 				<FileIcon fileName={basename} className="size-3.5 shrink-0" />
@@ -171,7 +168,11 @@ export const FileRow = memo(function FileRow({
 						<DropdownMenuItem onSelect={() => onSelect?.(file.path, true)}>
 							<SquarePlus />
 							Open Diff in New Tab
-							<DropdownMenuShortcut>{SHIFT_CLICK_LABEL}</DropdownMenuShortcut>
+							{newTabTier && (
+								<DropdownMenuShortcut>
+									{modifierLabel(newTabTier)}
+								</DropdownMenuShortcut>
+							)}
 						</DropdownMenuItem>
 						<DropdownMenuItem
 							onSelect={() => absolutePath && onOpenFile?.(absolutePath)}
@@ -193,7 +194,11 @@ export const FileRow = memo(function FileRow({
 						>
 							<ExternalLink />
 							Open in Editor
-							<DropdownMenuShortcut>{MOD_CLICK_LABEL}</DropdownMenuShortcut>
+							{externalTier && (
+								<DropdownMenuShortcut>
+									{modifierLabel(externalTier)}
+								</DropdownMenuShortcut>
+							)}
 						</DropdownMenuItem>
 					</DropdownMenuContent>
 				</DropdownMenu>
@@ -207,7 +212,7 @@ export const FileRow = memo(function FileRow({
 				<ContextMenuTrigger asChild>
 					<TooltipTrigger asChild>{rowButton}</TooltipTrigger>
 				</ContextMenuTrigger>
-				<TooltipContent side="right">{CLICK_HINT_TOOLTIP}</TooltipContent>
+				<TooltipContent side="right">{policy.hint}</TooltipContent>
 			</Tooltip>
 			<ContextMenuContent className="w-64">
 				<ContextMenuItem onSelect={() => onSelect?.(file.path)}>
@@ -217,7 +222,11 @@ export const FileRow = memo(function FileRow({
 				<ContextMenuItem onSelect={() => onSelect?.(file.path, true)}>
 					<SquarePlus />
 					Open Diff in New Tab
-					<ContextMenuShortcut>{SHIFT_CLICK_LABEL}</ContextMenuShortcut>
+					{newTabTier && (
+						<ContextMenuShortcut>
+							{modifierLabel(newTabTier)}
+						</ContextMenuShortcut>
+					)}
 				</ContextMenuItem>
 				<ContextMenuItem
 					onSelect={() => absolutePath && onOpenFile?.(absolutePath)}
@@ -239,7 +248,11 @@ export const FileRow = memo(function FileRow({
 				>
 					<ExternalLink />
 					Open in Editor
-					<ContextMenuShortcut>{MOD_CLICK_LABEL}</ContextMenuShortcut>
+					{externalTier && (
+						<ContextMenuShortcut>
+							{modifierLabel(externalTier)}
+						</ContextMenuShortcut>
+					)}
 				</ContextMenuItem>
 				{absolutePath && (
 					<>

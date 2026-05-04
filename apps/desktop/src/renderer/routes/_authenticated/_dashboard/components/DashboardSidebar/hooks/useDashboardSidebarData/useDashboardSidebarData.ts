@@ -8,6 +8,7 @@ import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/u
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { getVisibleSidebarWorkspaces } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
+import { useWorkspaceCreatesStore } from "renderer/stores/workspace-creates";
 import type {
 	DashboardSidebarProject,
 	DashboardSidebarProjectChild,
@@ -131,17 +132,26 @@ export function useDashboardSidebarData() {
 	const { toggleProjectCollapsed } = useDashboardSidebarState();
 	const queryClient = useQueryClient();
 
-	// Query pending workspaces from the local collection
-	const { data: pendingWorkspaces = [] } = useLiveQuery(
-		(q) =>
-			q.from({ pw: collections.pendingWorkspaces }).select(({ pw }) => ({
-				id: pw.id,
-				projectId: pw.projectId,
-				name: pw.name,
-				branchName: pw.branchName,
-				status: pw.status,
-			})),
-		[collections],
+	// In-flight workspace.create operations. These don't have a backing DB row
+	// — they're kept in renderer memory until the real v2Workspaces row arrives
+	// via Electric sync (or until error/dismiss).
+	const inFlightEntries = useWorkspaceCreatesStore((store) => store.entries);
+	const inFlightSidebarRows = useMemo(
+		() =>
+			inFlightEntries
+				.filter((entry) => entry.snapshot.id !== undefined)
+				.map((entry) => ({
+					id: entry.snapshot.id as string,
+					projectId: entry.snapshot.projectId,
+					name: entry.snapshot.name ?? "New workspace",
+					branchName:
+						entry.snapshot.branch ?? entry.snapshot.name ?? "New workspace",
+					status:
+						entry.state === "creating"
+							? ("creating" as const)
+							: ("failed" as const),
+				})),
+		[inFlightEntries],
 	);
 
 	const { data: hosts = [] } = useLiveQuery(
@@ -453,9 +463,9 @@ export function useDashboardSidebarData() {
 			});
 		}
 
-		// Inject pending workspaces (creating / failed)
-		for (const pw of pendingWorkspaces) {
-			if (pw.status === "succeeded") continue; // will appear as a real workspace
+		// Inject in-flight workspaces (creating / failed) from the renderer-side
+		// in-flight store.
+		for (const pw of inFlightSidebarRows) {
 			const project = projectsById.get(pw.projectId);
 			if (!project) continue;
 
@@ -530,7 +540,7 @@ export function useDashboardSidebarData() {
 	}, [
 		machineId,
 		pullRequestsByWorkspaceId,
-		pendingWorkspaces,
+		inFlightSidebarRows,
 		sidebarProjects,
 		sidebarSections,
 		visibleSidebarWorkspaces,

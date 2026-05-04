@@ -23,11 +23,12 @@ export {
 	type TaskUpdateParams,
 } from "./tasks";
 export {
-	type CreatedWorkspace,
 	type HostWorkspace,
 	type Workspace,
-	type WorkspaceAgentSpawn,
+	type WorkspaceAgentLaunch,
+	type WorkspaceCreateAgentResult,
 	type WorkspaceCreateParams,
+	type WorkspaceCreateResult,
 	type WorkspaceDeleteResult,
 	type WorkspaceListParams,
 	type WorkspaceListResponse,

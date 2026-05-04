@@ -5,7 +5,6 @@ import type { MouseEvent } from "react";
 import { LuExternalLink, LuLoaderCircle, LuX } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { navigateToV2Workspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
-import { getOpenTargetClickIntent } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/utils/getSidebarClickIntent";
 import { STROKE_WIDTH } from "renderer/screens/main/components/WorkspaceSidebar/constants";
 import { useDashboardSidebarPortKill } from "../../hooks/useDashboardSidebarPortKill";
 import type { DashboardSidebarPort } from "../../hooks/useDashboardSidebarPortsData";
@@ -36,9 +35,11 @@ export function DashboardSidebarPortBadge({
 	const handleOpenInBrowser = (event: MouseEvent<HTMLButtonElement>) => {
 		if (!canOpenInBrowser) return;
 
+		// Hardcoded modifier rule — this is an explicit "open in browser"
+		// affordance, not a configurable file row, so it shouldn't pick up
+		// whatever the user mapped sidebar files to.
 		const url = `http://localhost:${port.port}`;
-		const intent = getOpenTargetClickIntent(event);
-		if (intent === "openExternally") {
+		if (event.metaKey || event.ctrlKey) {
 			if (openUrl.isPending) return;
 			openUrl.mutate(url);
 			return;
@@ -47,7 +48,7 @@ export function DashboardSidebarPortBadge({
 		void navigateToV2Workspace(port.workspaceId, navigate, {
 			search: {
 				openUrl: url,
-				openUrlTarget: intent === "openInNewTab" ? "new-tab" : "current-tab",
+				openUrlTarget: event.shiftKey ? "new-tab" : "current-tab",
 				openUrlRequestId: crypto.randomUUID(),
 			},
 		});

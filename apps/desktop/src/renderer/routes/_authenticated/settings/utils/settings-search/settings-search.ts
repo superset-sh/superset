@@ -42,6 +42,7 @@ export const SETTING_ITEM_ID = {
 
 	LINKS_FILE: "links-file",
 	LINKS_URL: "links-url",
+	LINKS_SIDEBAR_FILE: "links-sidebar-file",
 
 	MODELS_ANTHROPIC: "models-anthropic",
 	MODELS_OPENAI: "models-openai",
@@ -146,6 +147,7 @@ export const SETTING_ITEM_VARIANT: Record<SettingItemId, SettingVariant> = {
 
 	[SETTING_ITEM_ID.LINKS_FILE]: "v2",
 	[SETTING_ITEM_ID.LINKS_URL]: "v2",
+	[SETTING_ITEM_ID.LINKS_SIDEBAR_FILE]: "v2",
 
 	[SETTING_ITEM_ID.MODELS_ANTHROPIC]: "shared",
 	[SETTING_ITEM_ID.MODELS_OPENAI]: "shared",
@@ -777,6 +779,32 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"terminal",
 			"chat",
 			"markdown",
+			"behavior",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.LINKS_SIDEBAR_FILE,
+		section: "links",
+		title: "Sidebar file rows",
+		description:
+			"How file rows in the file tree, changes list, and diff header open when clicked",
+		keywords: [
+			"links",
+			"sidebar",
+			"file tree",
+			"changes",
+			"diff",
+			"file",
+			"click",
+			"cmd",
+			"ctrl",
+			"shift",
+			"meta",
+			"new tab",
+			"editor",
+			"external",
+			"open",
+			"select",
 			"behavior",
 		],
 	},

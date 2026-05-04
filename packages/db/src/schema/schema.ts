@@ -540,6 +540,9 @@ export const v2Workspaces = pgTable(
 		createdByUserId: uuid("created_by_user_id").references(() => users.id, {
 			onDelete: "set null",
 		}),
+		taskId: uuid("task_id").references(() => tasks.id, {
+			onDelete: "set null",
+		}),
 		createdAt: timestamp("created_at", { withTimezone: true })
 			.notNull()
 			.defaultNow(),
@@ -557,6 +560,7 @@ export const v2Workspaces = pgTable(
 		index("v2_workspaces_project_id_idx").on(table.projectId),
 		index("v2_workspaces_organization_id_idx").on(table.organizationId),
 		index("v2_workspaces_host_id_idx").on(table.hostId),
+		index("v2_workspaces_task_id_idx").on(table.taskId),
 		uniqueIndex("v2_workspaces_one_main_per_host")
 			.on(table.projectId, table.hostId)
 			.where(sql`${table.type} = 'main'`),
