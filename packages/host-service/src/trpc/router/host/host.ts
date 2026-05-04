@@ -18,7 +18,11 @@ import { protectedProcedure, router } from "../../index";
 // them on upgrade and respawn with the new bundle. Adopting in
 // place would leave the new desktop talking to old code with no
 // `terminal.daemon.*` routes, breaking Settings → Manage daemon.
-const HOST_SERVICE_VERSION = "0.6.0";
+// 0.7.0: canonical `workspaces.create` flow + `settings.hostAgentConfigs`
+// router (PR1, #3893). 0.6.x host-services don't expose either, so
+// adopting one in place would break new-project creation and the
+// agent-config settings UI.
+const HOST_SERVICE_VERSION = "0.7.0";
 const ORGANIZATION_CACHE_TTL_MS = 60 * 60 * 1000;
 
 let cachedOrganization: {
