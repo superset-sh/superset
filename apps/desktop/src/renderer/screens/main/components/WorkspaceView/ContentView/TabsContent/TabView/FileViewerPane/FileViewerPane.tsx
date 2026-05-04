@@ -150,6 +150,22 @@ export function FileViewerPane({
 
 	const filePath = fileViewer?.filePath ?? "";
 	const viewMode = fileViewer?.viewMode ?? "raw";
+
+	// Reactive focus: when this pane becomes the focused pane and we're showing
+	// the raw (CodeMirror) view, move keyboard focus into the editor. Markdown
+	// (TipTap) and diff views are read-ish — they don't take focus on click today
+	// either, so hover-focus matches existing behavior.
+	const isFirstFocusEffectRef = useRef(true);
+	useEffect(() => {
+		if (isFirstFocusEffectRef.current) {
+			isFirstFocusEffectRef.current = false;
+			return;
+		}
+		if (!isFocused) return;
+		if (viewMode !== "raw") return;
+		editorRef.current?.focus();
+	}, [isFocused, viewMode]);
+
 	const isPinned = fileViewer?.isPinned ?? false;
 	const diffCategory = fileViewer?.diffCategory;
 	const commitHash = fileViewer?.commitHash;

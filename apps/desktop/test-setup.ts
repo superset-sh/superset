@@ -67,6 +67,30 @@ const mockHead = {
 	})),
 };
 
+// =============================================================================
+// localStorage mock (zustand-persist writes synchronously on every state
+// change; without this, any persist-using store throws ReferenceError)
+// =============================================================================
+
+const mockStorage = new Map<string, string>();
+// biome-ignore lint/suspicious/noExplicitAny: Test setup requires extending globalThis
+(globalThis as any).localStorage = {
+	getItem: (key: string) => mockStorage.get(key) ?? null,
+	setItem: (key: string, value: string) => {
+		mockStorage.set(key, value);
+	},
+	removeItem: (key: string) => {
+		mockStorage.delete(key);
+	},
+	clear: () => {
+		mockStorage.clear();
+	},
+	key: (index: number) => Array.from(mockStorage.keys())[index] ?? null,
+	get length() {
+		return mockStorage.size;
+	},
+};
+
 // Ensure window has addEventListener/removeEventListener for react-hotkeys-hook's IIFE
 if (typeof globalThis.window !== "undefined") {
 	const win = globalThis.window as Record<string, unknown>;

@@ -10,6 +10,10 @@ import {
 import { Switch } from "@superset/ui/switch";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
+	useFocusFollowsMouse,
+	useSetFocusFollowsMouse,
+} from "renderer/stores/pane-preferences";
+import {
 	isItemVisible,
 	SETTING_ITEM_ID,
 	type SettingItemId,
@@ -38,6 +42,10 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 	);
 	const showOpenLinksInApp = isItemVisible(
 		SETTING_ITEM_ID.BEHAVIOR_OPEN_LINKS_IN_APP,
+		visibleItems,
+	);
+	const showFocusFollowsMouse = isItemVisible(
+		SETTING_ITEM_ID.BEHAVIOR_FOCUS_FOLLOWS_MOUSE,
 		visibleItems,
 	);
 
@@ -159,6 +167,9 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 		},
 	);
 
+	const focusFollowsMouse = useFocusFollowsMouse();
+	const setFocusFollowsMouse = useSetFocusFollowsMouse();
+
 	return (
 		<div className="p-6 max-w-4xl w-full">
 			<div className="mb-8">
@@ -258,6 +269,28 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 								setOpenLinksInApp.mutate({ enabled })
 							}
 							disabled={isOpenLinksInAppLoading || setOpenLinksInApp.isPending}
+						/>
+					</div>
+				)}
+
+				{showFocusFollowsMouse && (
+					<div className="flex items-center justify-between">
+						<div className="space-y-0.5">
+							<Label
+								htmlFor="focus-follows-mouse"
+								className="text-sm font-medium"
+							>
+								Focus follows mouse
+							</Label>
+							<p className="text-xs text-muted-foreground">
+								When enabled, hovering over a pane briefly will focus it without
+								clicking. Useful with split layouts.
+							</p>
+						</div>
+						<Switch
+							id="focus-follows-mouse"
+							checked={focusFollowsMouse}
+							onCheckedChange={setFocusFollowsMouse}
 						/>
 					</div>
 				)}
