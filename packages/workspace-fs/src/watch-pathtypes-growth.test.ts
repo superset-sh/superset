@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from "bun:test";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { FsWatcherManager } from "./watch";
+import { type FsWatcherManagerOptions, FsWatcherManager } from "./watch";
 
 /**
  * INTEGRATION reproduction of finding #3 in
@@ -51,7 +51,7 @@ async function createTempRoot(): Promise<string> {
 	return fs.realpath(tempPath);
 }
 
-function createManager(options?: { debounceMs?: number }): FsWatcherManager {
+function createManager(options?: FsWatcherManagerOptions): FsWatcherManager {
 	const manager = new FsWatcherManager(options);
 	managers.push(manager);
 	return manager;
