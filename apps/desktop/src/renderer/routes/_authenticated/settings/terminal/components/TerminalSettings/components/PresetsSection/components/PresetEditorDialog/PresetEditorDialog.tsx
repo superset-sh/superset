@@ -1,7 +1,7 @@
 import type { ExecutionMode, TerminalPreset } from "@superset/local-db";
 import { Alert, AlertDescription } from "@superset/ui/alert";
 import { Button } from "@superset/ui/button";
-import { Checkbox } from "@superset/ui/checkbox";
+import { Switch } from "@superset/ui/switch";
 import {
 	Dialog,
 	DialogContent,
@@ -384,37 +384,35 @@ export function PresetEditorDialog({
 								)}
 							</DialogRow>
 
-							<DialogRow label="Auto-run" hint="Launch automatically.">
-								<div className="flex flex-col gap-2 pt-0.5">
-									<label
-										htmlFor="preset-workspace-autostart"
-										className="flex items-center gap-2 text-sm font-normal"
-									>
-										<Checkbox
-											id="preset-workspace-autostart"
-											checked={isWorkspaceCreation}
-											onCheckedChange={(checked) =>
-												onToggleAutoApply(
-													"applyOnWorkspaceCreated",
-													checked === true,
-												)
-											}
-										/>
-										On workspace creation
-									</label>
-									<label
-										htmlFor="preset-tab-autostart"
-										className="flex items-center gap-2 text-sm font-normal"
-									>
-										<Checkbox
-											id="preset-tab-autostart"
-											checked={isNewTab}
-											onCheckedChange={(checked) =>
-												onToggleAutoApply("applyOnNewTab", checked === true)
-											}
-										/>
-										On new tab
-									</label>
+							<DialogRow
+								label="Auto-run on workspace creation"
+								htmlFor="preset-workspace-autostart"
+								hint="Launch this preset when a new workspace is created."
+							>
+								<div className="flex justify-end">
+									<Switch
+										id="preset-workspace-autostart"
+										checked={isWorkspaceCreation}
+										onCheckedChange={(checked) =>
+											onToggleAutoApply("applyOnWorkspaceCreated", checked)
+										}
+									/>
+								</div>
+							</DialogRow>
+
+							<DialogRow
+								label="Auto-run on new tab"
+								htmlFor="preset-tab-autostart"
+								hint="Launch this preset whenever a new terminal tab opens."
+							>
+								<div className="flex justify-end">
+									<Switch
+										id="preset-tab-autostart"
+										checked={isNewTab}
+										onCheckedChange={(checked) =>
+											onToggleAutoApply("applyOnNewTab", checked)
+										}
+									/>
 								</div>
 							</DialogRow>
 						</div>
