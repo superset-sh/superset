@@ -243,10 +243,9 @@ export function setupAutoUpdater(): void {
 		return;
 	}
 
-	// Route electron-updater's internal logging to a file so we can diagnose
-	// silent install failures (Squirrel.Mac's ShipIt fails out-of-process and
-	// never surfaces an `error` event back to the lib). Logs land at
-	// ~/Library/Logs/Superset/main.log on macOS.
+	// Squirrel.Mac install failures happen in ShipIt out-of-process and never
+	// reach the lib's `error` event, so route its logger to a file
+	// (~/Library/Logs/Superset/main.log) — our only post-mortem signal.
 	log.transports.file.level = "info";
 	autoUpdater.logger = log;
 
