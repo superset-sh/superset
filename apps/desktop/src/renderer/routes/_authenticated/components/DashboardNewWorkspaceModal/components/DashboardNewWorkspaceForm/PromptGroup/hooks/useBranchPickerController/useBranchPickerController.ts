@@ -4,8 +4,8 @@ import { useNavigate } from "@tanstack/react-router";
 import { useCallback, useMemo, useState } from "react";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
+import { useWorkspaceCreates } from "renderer/stores/workspace-creates";
 import type { BaseBranchSource } from "../../../../../DashboardNewWorkspaceDraftContext";
-import type { WorkspaceHostTarget } from "../../../components/DevicePicker";
 import {
 	type BranchFilter,
 	useBranchContext,
@@ -16,9 +16,8 @@ type PickerProps = React.ComponentProps<typeof CompareBaseBranchPicker>;
 
 export interface UseBranchPickerControllerArgs {
 	projectId: string | null;
-	hostTarget: WorkspaceHostTarget;
+	hostId: string | null;
 	baseBranch: string | null;
-	runSetupScript: boolean;
 	/** When set, used as the workspace name for picker actions; falls back to the branch name. */
 	typedWorkspaceName: string;
 	onBaseBranchChange: (
@@ -31,18 +30,14 @@ export interface UseBranchPickerControllerArgs {
 /**
  * Owns all state + handlers for the branch picker: the search/filter inputs,
  * the branch-context query, the host-id resolution that gates Open/Create
- * dispatch, and the three per-row action callbacks. Returns a single
- * `pickerProps` object ready to spread into `<CompareBaseBranchPicker />`.
- *
- * See V2_WORKSPACE_CREATION.md §2 for the action model and §3 for the
- * pending-row insert + navigate flow.
+ * dispatch, and the per-row action callbacks. Returns a single `pickerProps`
+ * object ready to spread into `<CompareBaseBranchPicker />`.
  */
 export function useBranchPickerController(args: UseBranchPickerControllerArgs) {
 	const {
 		projectId,
-		hostTarget,
+		hostId,
 		baseBranch,
-		runSetupScript,
 		typedWorkspaceName,
 		onBaseBranchChange,
 		closeModal,
@@ -51,9 +46,12 @@ export function useBranchPickerController(args: UseBranchPickerControllerArgs) {
 	const navigate = useNavigate();
 	const collections = useCollections();
 	const { machineId } = useLocalHostService();
+	const { submit } = useWorkspaceCreates();
 
-	// Branch list state — owned by the controller so the picker is purely
-	// presentational.
+	// `null` means "local active machine" — pin to the device's own machineId
+	// so workspace lookups (which key by hostId) resolve against the right host.
+	const resolvedHostId = hostId ?? machineId;
+
 	const [branchSearch, setBranchSearch] = useState("");
 	const [branchFilter, setBranchFilter] = useState<BranchFilter>("all");
 
@@ -65,114 +63,78 @@ export function useBranchPickerController(args: UseBranchPickerControllerArgs) {
 		isFetchingNextPage,
 		hasNextPage,
 		fetchNextPage,
-	} = useBranchContext(projectId, hostTarget, branchSearch, branchFilter);
+	} = useBranchContext(projectId, hostId, branchSearch, branchFilter);
 
 	const effectiveCompareBaseBranch = baseBranch || defaultBranch || null;
 
-	// Authoritative "does a workspace already exist for this (project,
-	// branch, host)?" — driven by the cloud-synced collection rather than
-	// the server's per-row hasWorkspace snapshot, which can be stale after
-	// a delete. See V2_WORKSPACE_CREATION.md §2.
+	// Authoritative "does a workspace already exist for this (project, branch,
+	// host)?" — driven by the cloud-synced collection rather than the server's
+	// per-row hasWorkspace snapshot, which can be stale after a delete.
 	const { data: projectWorkspaces } = useLiveQuery(
 		(q) => q.from({ workspaces: collections.v2Workspaces }),
 		[collections],
 	);
-	const { data: allHosts } = useLiveQuery(
-		(q) => q.from({ hosts: collections.v2Hosts }),
-		[collections],
-	);
-
-	// `v2Workspaces` rows are keyed by host id; collapsing by branch alone
-	// would collide across hosts that happen to share a branch.
-	const targetHostId = useMemo<string | null>(() => {
-		if (hostTarget.kind === "host") return hostTarget.hostId;
-		if (!machineId || !allHosts) return null;
-		return allHosts.find((h) => h.machineId === machineId)?.machineId ?? null;
-	}, [hostTarget, allHosts, machineId]);
 
 	const workspaceByBranch = useMemo(() => {
 		const map = new Map<string, string>();
-		if (!projectId || !projectWorkspaces || !targetHostId) return map;
+		if (!projectId || !projectWorkspaces || !resolvedHostId) return map;
 		for (const w of projectWorkspaces) {
-			if (w.projectId === projectId && w.hostId === targetHostId && w.branch) {
+			if (
+				w.projectId === projectId &&
+				w.hostId === resolvedHostId &&
+				w.branch
+			) {
 				map.set(w.branch, w.id);
 			}
 		}
 		return map;
-	}, [projectId, projectWorkspaces, targetHostId]);
+	}, [projectId, projectWorkspaces, resolvedHostId]);
 
 	const hasWorkspaceForBranch = useCallback(
 		(name: string) => workspaceByBranch.has(name),
 		[workspaceByBranch],
 	);
 
-	// Picker actions (Create / Check out) bypass the modal's submit, so they
-	// don't get the `resolveNames` pass — fall back to the branch name when
-	// the user hasn't typed a workspace name.
+	// Picker actions bypass the modal's submit, so they don't get the
+	// `resolveNames` pass — fall back to the branch name when the user hasn't
+	// typed a workspace name.
 	const resolveActionWorkspaceName = useCallback(
 		(branchName: string) => typedWorkspaceName.trim() || branchName,
 		[typedWorkspaceName],
 	);
 
-	const insertPendingAndNavigate = useCallback(
-		(row: {
-			pendingId: string;
-			intent: "checkout" | "adopt";
-			workspaceName: string;
-			branchName: string;
-		}) => {
+	const onCheckoutBranch = useCallback(
+		(branchName: string) => {
 			if (!projectId) {
 				toast.error("Select a project first");
 				return;
 			}
-			collections.pendingWorkspaces.insert({
-				id: row.pendingId,
-				projectId,
-				intent: row.intent,
-				name: row.workspaceName,
-				branchName: row.branchName,
-				prompt: "",
-				baseBranch: null,
-				baseBranchSource: null,
-				runSetupScript,
-				linkedIssues: [],
-				linkedPR: null,
-				hostTarget,
-				attachmentCount: 0,
-				status: "creating",
-				error: null,
-				workspaceId: null,
-				warnings: [],
-				createdAt: new Date(),
-			});
+			if (!resolvedHostId) {
+				toast.error("No active host");
+				return;
+			}
+			const workspaceId = crypto.randomUUID();
+			const workspaceName = resolveActionWorkspaceName(branchName);
 			closeModal();
-			void navigate({ to: `/pending/${row.pendingId}` as string });
-		},
-		[projectId, collections, runSetupScript, hostTarget, closeModal, navigate],
-	);
-
-	const onAdoptWorktree = useCallback(
-		(branchName: string) => {
-			insertPendingAndNavigate({
-				pendingId: crypto.randomUUID(),
-				intent: "adopt",
-				workspaceName: resolveActionWorkspaceName(branchName),
-				branchName,
+			void navigate({ to: `/v2-workspace/${workspaceId}` as string });
+			void submit({
+				hostId: resolvedHostId,
+				snapshot: {
+					id: workspaceId,
+					projectId,
+					name: workspaceName,
+					branch: branchName,
+				},
 			});
 		},
-		[insertPendingAndNavigate, resolveActionWorkspaceName],
-	);
-
-	const onCheckoutBranch = useCallback(
-		(branchName: string) => {
-			insertPendingAndNavigate({
-				pendingId: crypto.randomUUID(),
-				intent: "checkout",
-				workspaceName: resolveActionWorkspaceName(branchName),
-				branchName,
-			});
-		},
-		[insertPendingAndNavigate, resolveActionWorkspaceName],
+		[
+			projectId,
+			resolvedHostId,
+			resolveActionWorkspaceName,
+			submit,
+			closeModal,
+			navigate,
+		],
 	);
 
 	const onOpenExisting = useCallback(
@@ -218,7 +180,6 @@ export function useBranchPickerController(args: UseBranchPickerControllerArgs) {
 		onSelectCompareBaseBranch,
 		onCheckoutBranch,
 		onOpenExisting,
-		onAdoptWorktree,
 		hasWorkspaceForBranch,
 	};
 

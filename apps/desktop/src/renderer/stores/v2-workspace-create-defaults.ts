@@ -8,14 +8,10 @@ export interface V2WorkspaceCreateBaseBranchDefault {
 	source: V2WorkspaceCreateBaseBranchSource;
 }
 
-export type V2WorkspaceCreateHostTarget =
-	| { kind: "local" }
-	| { kind: "host"; hostId: string };
-
 interface V2WorkspaceCreateDefaultsState {
 	lastProjectId: string | null;
 	baseBranchesByProjectId: Record<string, V2WorkspaceCreateBaseBranchDefault>;
-	lastHostTarget: V2WorkspaceCreateHostTarget | null;
+	lastHostId: string | null;
 
 	setLastProjectId: (projectId: string | null) => void;
 	setBaseBranchDefault: (
@@ -24,7 +20,7 @@ interface V2WorkspaceCreateDefaultsState {
 		source: V2WorkspaceCreateBaseBranchSource,
 	) => void;
 	clearBaseBranchDefault: (projectId: string) => void;
-	setLastHostTarget: (target: V2WorkspaceCreateHostTarget) => void;
+	setLastHostId: (hostId: string | null) => void;
 }
 
 export const useV2WorkspaceCreateDefaultsStore =
@@ -34,7 +30,7 @@ export const useV2WorkspaceCreateDefaultsStore =
 				(set) => ({
 					lastProjectId: null,
 					baseBranchesByProjectId: {},
-					lastHostTarget: null,
+					lastHostId: null,
 
 					setLastProjectId: (projectId) => set({ lastProjectId: projectId }),
 
@@ -57,11 +53,28 @@ export const useV2WorkspaceCreateDefaultsStore =
 							return { baseBranchesByProjectId: next };
 						}),
 
-					setLastHostTarget: (target) => set({ lastHostTarget: target }),
+					setLastHostId: (hostId) => set({ lastHostId: hostId }),
 				}),
 				{
 					name: "v2-workspace-create-defaults",
-					version: 1,
+					version: 2,
+					migrate: (state, fromVersion) => {
+						if (fromVersion < 2 && state && typeof state === "object") {
+							const prev = state as Record<string, unknown>;
+							const oldTarget = prev.lastHostTarget as
+								| { kind: "local" }
+								| { kind: "host"; hostId: string }
+								| null
+								| undefined;
+							const lastHostId =
+								oldTarget && oldTarget.kind === "host"
+									? oldTarget.hostId
+									: null;
+							const { lastHostTarget: _omit, ...rest } = prev;
+							return { ...rest, lastHostId };
+						}
+						return state;
+					},
 				},
 			),
 			{ name: "V2WorkspaceCreateDefaultsStore" },

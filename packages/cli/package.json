@@ -4,7 +4,7 @@
 	"private": true,
 	"type": "module",
 	"scripts": {
-		"dev": "dotenv -e ../../.env -- sh -c 'exec env SUPERSET_API_URL=$NEXT_PUBLIC_API_URL cli-framework dev \"$@\"' --",
+		"dev": "dotenv -e ../../.env -o -- sh -c 'exec env SUPERSET_API_URL=$NEXT_PUBLIC_API_URL cli-framework dev \"$@\"' --",
 		"build": "cli-framework build",
 		"build:darwin-arm64": "cli-framework build --target=bun-darwin-arm64 --outfile=./dist/superset-darwin-arm64",
 		"build:linux-x64": "cli-framework build --target=bun-linux-x64 --outfile=./dist/superset-linux-x64",

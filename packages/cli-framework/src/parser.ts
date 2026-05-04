@@ -111,7 +111,14 @@ export function parseArgv(
 				throw new CLIError(`Unknown option: ${flagPart}`);
 			}
 
-			options[entry[0]] = coerce(entry[1], valuePart, flagPart);
+			const coerced = coerce(entry[1], valuePart, flagPart);
+			if (entry[1].isVariadic) {
+				const existing = (options[entry[0]] as string[] | undefined) ?? [];
+				existing.push(coerced as string);
+				options[entry[0]] = existing;
+			} else {
+				options[entry[0]] = coerced;
+			}
 			continue;
 		}
 
@@ -148,7 +155,14 @@ export function parseArgv(
 				);
 			}
 
-			options[entry[0]] = coerce(entry[1], nextArg, arg);
+			const coerced = coerce(entry[1], nextArg, arg);
+			if (entry[1].isVariadic) {
+				const existing = (options[entry[0]] as string[] | undefined) ?? [];
+				existing.push(coerced as string);
+				options[entry[0]] = existing;
+			} else {
+				options[entry[0]] = coerced;
+			}
 			i++;
 			continue;
 		}
@@ -179,7 +193,11 @@ export function parseArgv(
 	// Validate required options
 	for (const [key, config] of Object.entries(allConfigs)) {
 		if (config.type === "positional") continue;
-		if (config.isRequired && options[key] === undefined) {
+		const value = options[key];
+		const missing =
+			value === undefined ||
+			(config.isVariadic && Array.isArray(value) && value.length === 0);
+		if (config.isRequired && missing) {
 			const flag = config.name.startsWith("-")
 				? config.name
 				: `--${config.name}`;

@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from "react";
 import { EmojiTextInput } from "renderer/components/EmojiTextInput";
 import { MarkdownEditor } from "renderer/components/MarkdownEditor";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
-import type { WorkspaceHostTarget } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/components/DevicePicker/types";
 import { useProjectFileSearch } from "../../../hooks/useProjectFileSearch";
 
 export function AutomationBody({
@@ -42,11 +41,8 @@ export function AutomationBody({
 		},
 	});
 
-	const hostTarget: WorkspaceHostTarget = automation.targetHostId
-		? { kind: "host", hostId: automation.targetHostId }
-		: { kind: "local" };
 	const searchFiles = useProjectFileSearch({
-		hostTarget,
+		hostId: automation.targetHostId ?? null,
 		projectId: automation.v2ProjectId,
 	});
 
