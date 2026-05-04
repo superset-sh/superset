@@ -24,11 +24,13 @@ import {
 } from "@superset/ui/alert-dialog";
 import { Button } from "@superset/ui/button";
 import { toast } from "@superset/ui/sonner";
+import { cn } from "@superset/ui/utils";
 import {
 	WorkspaceClientProvider,
 	workspaceTrpc,
 } from "@superset/workspace-client";
 import { useState } from "react";
+import { HiChevronRight } from "react-icons/hi2";
 import {
 	getHostServiceHeaders,
 	getHostServiceWsToken,
@@ -165,42 +167,55 @@ function V2SessionsSectionInner() {
 		return versions.running;
 	})();
 
+	const isUnavailable = sessions === null;
+	const expandable = sessions !== null && sessions.length > 0;
+
 	return (
 		<>
 			<div className="space-y-4">
-				<div className="flex items-start justify-between gap-4">
-					<div>
-						<h3 className="text-sm font-medium">Manage daemon</h3>
-						<p className="text-sm text-muted-foreground mt-0.5">
-							Owns every PTY session and survives app restarts.
-						</p>
-					</div>
-					<Button
-						variant="ghost"
-						size="sm"
-						onClick={() => {
-							void updateStatusQuery.refetch();
-							void sessionsQuery.refetch();
-						}}
-					>
-						Refresh
-					</Button>
+				<div>
+					<h3 className="text-sm font-medium">Manage daemon</h3>
+					<p className="text-sm text-muted-foreground mt-0.5">
+						Owns every PTY session and survives app restarts.
+					</p>
 				</div>
 
 				<div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
-					<span className="inline-flex items-center gap-1.5 text-muted-foreground">
+					{expandable ? (
+						<button
+							type="button"
+							onClick={() => setShowSessionList((v) => !v)}
+							className="inline-flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+						>
+							<HiChevronRight
+								className={cn(
+									"size-3 transition-transform",
+									showSessionList && "rotate-90",
+								)}
+							/>
+							<span
+								aria-hidden
+								className="size-1.5 rounded-full bg-emerald-500"
+							/>
+							{sessionCountLabel}
+						</button>
+					) : (
 						<span
-							aria-hidden
-							className={
-								sessions === null
-									? "size-1.5 rounded-full bg-muted-foreground/40"
-									: aliveCount && aliveCount > 0
-										? "size-1.5 rounded-full bg-emerald-500"
-										: "size-1.5 rounded-full bg-muted-foreground/60"
-							}
-						/>
-						{sessionCountLabel}
-					</span>
+							className={cn(
+								"inline-flex items-center gap-1.5",
+								isUnavailable ? "text-destructive" : "text-muted-foreground",
+							)}
+						>
+							<span
+								aria-hidden
+								className={cn(
+									"size-1.5 rounded-full",
+									isUnavailable ? "bg-destructive" : "bg-muted-foreground/60",
+								)}
+							/>
+							{sessionCountLabel}
+						</span>
+					)}
 					{versionLabel ? (
 						<span className="font-mono text-muted-foreground/80">
 							{versionLabel}
@@ -233,14 +248,6 @@ function V2SessionsSectionInner() {
 						onClick={() => setConfirmRestartOpen(true)}
 					>
 						Force restart
-					</Button>
-					<Button
-						variant="ghost"
-						size="sm"
-						disabled={!sessions || sessions.length === 0}
-						onClick={() => setShowSessionList((v) => !v)}
-					>
-						{showSessionList ? "Hide sessions" : "Show sessions"}
 					</Button>
 				</div>
 
