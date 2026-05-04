@@ -73,6 +73,9 @@ function RingtoneRow({
 					{ringtone.description}
 				</div>
 			</div>
+			<div className="w-5 flex justify-center shrink-0">
+				{isSelected && <HiCheck className="h-4 w-4 text-primary" />}
+			</div>
 			<button
 				type="button"
 				onClick={(e) => {
@@ -95,9 +98,6 @@ function RingtoneRow({
 					<HiPlay className="h-3.5 w-3.5 ml-0.5" />
 				)}
 			</button>
-			<div className="w-5 flex justify-center shrink-0">
-				{isSelected && <HiCheck className="h-4 w-4 text-primary" />}
-			</div>
 		</div>
 	);
 }
