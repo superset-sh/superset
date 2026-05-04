@@ -27,7 +27,10 @@ import { getBaseName } from "renderer/lib/pathBasename";
 import { consumeTerminalBackgroundIntent } from "renderer/lib/terminal/terminal-background-intents";
 import { terminalRuntimeRegistry } from "renderer/lib/terminal/terminal-runtime-registry";
 import { FileIcon } from "renderer/screens/main/components/WorkspaceView/RightSidebar/FilesView/utils";
-import { getV2NotificationSourcesForPane } from "renderer/stores/v2-notifications";
+import {
+	clearV2TerminalRunStatus,
+	getV2NotificationSourcesForPane,
+} from "renderer/stores/v2-notifications";
 import { V2NotificationStatusIndicator } from "../../components/V2NotificationStatusIndicator";
 import {
 	getDocument,
@@ -243,6 +246,7 @@ export function usePaneRegistry(
 						terminalRuntimeRegistry.release(terminalId);
 						return;
 					}
+					clearV2TerminalRunStatus(terminalId, workspaceId);
 					terminalRuntimeRegistry.dispose(terminalId);
 					killTerminalSessionSilently({ terminalId, workspaceId });
 				},

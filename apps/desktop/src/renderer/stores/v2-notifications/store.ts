@@ -234,6 +234,22 @@ export function getV2NotificationSourcesForTab(
 	return [...sources.values()];
 }
 
+/**
+ * Used by close (races against host exit) and interrupt (pty stays alive,
+ * no host exit) — neither can rely on the `terminal:lifecycle` exit path.
+ */
+export function clearV2TerminalRunStatus(
+	terminalId: string,
+	workspaceId: string,
+): void {
+	useV2NotificationStore
+		.getState()
+		.clearSourceStatus(
+			getV2TerminalNotificationSource(terminalId),
+			workspaceId,
+		);
+}
+
 export function selectV2WorkspaceNotificationStatus(workspaceId: string) {
 	return (state: V2NotificationState) => {
 		function* statuses() {
