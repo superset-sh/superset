@@ -154,7 +154,7 @@ export function HostSettings({ hostId }: HostSettingsProps) {
 	};
 
 	return (
-		<div className="p-6 max-w-4xl w-full select-text">
+		<div className="p-6 max-w-4xl w-full mx-auto select-text">
 			<HostHeader
 				name={host.name}
 				isOnline={host.isOnline}

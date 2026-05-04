@@ -289,7 +289,7 @@ export function ProjectSettings({
 		);
 
 	return (
-		<div className="p-6 max-w-4xl w-full select-text">
+		<div className="p-6 max-w-4xl w-full mx-auto select-text">
 			<ProjectSettingsHeader title={project.name}>
 				<ClickablePath
 					path={project.mainRepoPath}

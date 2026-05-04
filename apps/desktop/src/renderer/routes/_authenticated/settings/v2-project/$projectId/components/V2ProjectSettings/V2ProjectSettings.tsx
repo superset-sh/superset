@@ -7,6 +7,7 @@ import { useLocalHostService } from "renderer/routes/_authenticated/providers/Lo
 import { SettingsSection } from "../../../../project/$projectId/components/ProjectSettings";
 import { ProjectSettingsHeader } from "../../../../project/$projectId/components/ProjectSettingsHeader";
 import { DeleteProjectSection } from "./components/DeleteProjectSection";
+import { NameSection } from "./components/NameSection";
 import { ProjectLocationSection } from "./components/ProjectLocationSection";
 import { RepositorySection } from "./components/RepositorySection";
 
@@ -45,6 +46,13 @@ export function V2ProjectSettings({ projectId }: V2ProjectSettingsProps) {
 			<ProjectSettingsHeader title={project.name} />
 
 			<div className="space-y-8">
+				<SettingsSection
+					title="Name"
+					description="What this project is called everywhere in Superset."
+				>
+					<NameSection projectId={projectId} currentName={project.name} />
+				</SettingsSection>
+
 				<SettingsSection
 					title="Repository"
 					description="The GitHub repository this project tracks."

@@ -13,6 +13,8 @@ interface SettingsListSidebarProps<T> {
 	searchAriaLabel?: string;
 	/** Hide the filter input when every group is empty (no rows at all). */
 	hideFilterWhenEmpty?: boolean;
+	/** Rendered to the right of the filter input — typically an icon-sized action. */
+	toolbar?: ReactNode;
 	groups: Array<SettingsListGroup<T>>;
 	filterRow: (row: T, query: string) => boolean;
 	getRowKey: (row: T) => string;
@@ -25,6 +27,7 @@ export function SettingsListSidebar<T>({
 	searchPlaceholder,
 	searchAriaLabel,
 	hideFilterWhenEmpty,
+	toolbar,
 	groups,
 	filterRow,
 	getRowKey,
@@ -51,16 +54,19 @@ export function SettingsListSidebar<T>({
 		<div className="w-64 shrink-0 border-r overflow-y-auto">
 			<div className="p-3 space-y-3">
 				{showFilter && (
-					<div className="relative">
-						<HiMagnifyingGlass className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-						<input
-							type="text"
-							aria-label={searchAriaLabel}
-							placeholder={searchPlaceholder}
-							value={filter}
-							onChange={(e) => setFilter(e.target.value)}
-							className="w-full h-8 pl-8 pr-2 text-sm bg-accent/50 rounded-md border-0 outline-none focus:ring-1 focus:ring-ring placeholder:text-muted-foreground"
-						/>
+					<div className="flex items-center gap-1.5">
+						<div className="relative flex-1 min-w-0">
+							<HiMagnifyingGlass className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+							<input
+								type="text"
+								aria-label={searchAriaLabel}
+								placeholder={searchPlaceholder}
+								value={filter}
+								onChange={(e) => setFilter(e.target.value)}
+								className="w-full h-8 pl-8 pr-2 text-sm bg-accent/50 rounded-md border-0 outline-none focus:ring-1 focus:ring-ring placeholder:text-muted-foreground"
+							/>
+						</div>
+						{toolbar}
 					</div>
 				)}
 

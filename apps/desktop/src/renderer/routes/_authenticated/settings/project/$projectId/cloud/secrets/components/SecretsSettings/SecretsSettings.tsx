@@ -117,7 +117,7 @@ export function SecretsSettings({ projectId }: SecretsSettingsProps) {
 	const isConnected = !!project.neonProjectId && !!linkedCloudProject;
 
 	return (
-		<div className="p-6 max-w-4xl w-full select-text">
+		<div className="p-6 max-w-4xl w-full mx-auto select-text">
 			<ProjectSettingsHeader title="Environment Variables" />
 
 			<div className="space-y-6">

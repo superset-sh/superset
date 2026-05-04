@@ -144,6 +144,11 @@ function SettingsLayout() {
 		[navigate, originRoute],
 	);
 
+	const usesInnerSidebar =
+		location.pathname.startsWith("/settings/projects") ||
+		location.pathname.startsWith("/settings/hosts") ||
+		location.pathname.startsWith("/settings/agents");
+
 	return (
 		<div className="flex flex-col h-screen w-screen bg-tertiary">
 			<div
@@ -163,9 +168,13 @@ function SettingsLayout() {
 							onClear={() => setSearchQuery("")}
 						/>
 					)}
-					<div className="mx-auto max-w-4xl">
+					{usesInnerSidebar ? (
 						<Outlet />
-					</div>
+					) : (
+						<div className="mx-auto max-w-4xl">
+							<Outlet />
+						</div>
+					)}
 				</div>
 			</div>
 		</div>

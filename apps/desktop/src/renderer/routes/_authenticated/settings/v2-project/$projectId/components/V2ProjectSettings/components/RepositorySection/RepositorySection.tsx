@@ -1,5 +1,9 @@
+import { parseGitHubRemote } from "@superset/shared/github-remote";
+import { Button } from "@superset/ui/button";
 import { Input } from "@superset/ui/input";
 import { useEffect, useState } from "react";
+import { FaGithub } from "react-icons/fa";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useOptimisticCollectionActions } from "renderer/routes/_authenticated/hooks/useOptimisticCollectionActions";
 
 interface RepositorySectionProps {
@@ -13,6 +17,7 @@ export function RepositorySection({
 }: RepositorySectionProps) {
 	const { v2Projects: projectActions } = useOptimisticCollectionActions();
 	const [value, setValue] = useState(currentRepoCloneUrl ?? "");
+	const openUrl = electronTrpc.external.openUrl.useMutation();
 
 	useEffect(() => {
 		setValue(currentRepoCloneUrl ?? "");
@@ -25,24 +30,42 @@ export function RepositorySection({
 		projectActions.updateRepository(projectId, next);
 	};
 
+	const parsed = currentRepoCloneUrl
+		? parseGitHubRemote(currentRepoCloneUrl)
+		: null;
+
 	return (
-		<Input
-			value={value}
-			onChange={(e) => setValue(e.target.value)}
-			onBlur={commit}
-			onKeyDown={(e) => {
-				if (e.key === "Enter") {
-					e.preventDefault();
-					(e.target as HTMLInputElement).blur();
-				}
-				if (e.key === "Escape") {
-					e.preventDefault();
-					setValue(currentRepoCloneUrl ?? "");
-					(e.target as HTMLInputElement).blur();
-				}
-			}}
-			placeholder="https://github.com/owner/repo"
-			className="font-mono text-sm"
-		/>
+		<div className="flex items-center gap-2">
+			<Input
+				value={value}
+				onChange={(e) => setValue(e.target.value)}
+				onBlur={commit}
+				onKeyDown={(e) => {
+					if (e.key === "Enter") {
+						e.preventDefault();
+						(e.target as HTMLInputElement).blur();
+					}
+					if (e.key === "Escape") {
+						e.preventDefault();
+						setValue(currentRepoCloneUrl ?? "");
+						(e.target as HTMLInputElement).blur();
+					}
+				}}
+				placeholder="https://github.com/owner/repo"
+				className="font-mono text-sm flex-1 min-w-0"
+			/>
+			{parsed && (
+				<Button
+					type="button"
+					variant="outline"
+					size="sm"
+					className="shrink-0 gap-1.5"
+					onClick={() => openUrl.mutate(parsed.url)}
+				>
+					<FaGithub className="size-4" />
+					Open
+				</Button>
+			)}
+		</div>
 	);
 }
