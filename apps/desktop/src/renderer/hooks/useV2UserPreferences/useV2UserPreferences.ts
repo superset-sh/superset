@@ -33,10 +33,29 @@ export function useV2UserPreferences(): V2UserPreferencesApi {
 		[collections],
 	);
 
-	// Merge over defaults so rows persisted before a field was added (e.g.
-	// sidebarFileLinks) still resolve that field instead of returning undefined.
-	const preferences: V2UserPreferencesRow = rows[0]
-		? { ...DEFAULT_V2_USER_PREFERENCES, ...rows[0] }
+	// Persisted rows come back from localStorage verbatim — Zod defaults only
+	// run on insert, not on read — so rows written before a field was added
+	// (e.g. sidebarFileLinks, or a tier added later inside a LinkTierMap) leave
+	// it undefined and crash downstream consumers like buildHint. Merge the
+	// stored row over the defaults at every level we have nested defaults for.
+	const stored = rows[0];
+	const preferences: V2UserPreferencesRow = stored
+		? {
+				...DEFAULT_V2_USER_PREFERENCES,
+				...stored,
+				fileLinks: {
+					...DEFAULT_V2_USER_PREFERENCES.fileLinks,
+					...stored.fileLinks,
+				},
+				urlLinks: {
+					...DEFAULT_V2_USER_PREFERENCES.urlLinks,
+					...stored.urlLinks,
+				},
+				sidebarFileLinks: {
+					...DEFAULT_V2_USER_PREFERENCES.sidebarFileLinks,
+					...stored.sidebarFileLinks,
+				},
+			}
 		: DEFAULT_V2_USER_PREFERENCES;
 
 	const upsertTierMap = useCallback(
