@@ -57,17 +57,28 @@ import {
 // no need to touch the theme tier. Custom properties cascade through Pierre's
 // shadow DOM, so setting them on the host element is sufficient.
 const TREE_STYLE: React.CSSProperties = {
-	// Layout
+	// Layout. Hover/selected backgrounds paint on the row element, which sits
+	// inside the scroll container's `padding-inline`. Set the outer padding to
+	// 0 so highlights bleed edge-to-edge (matching v1's full-width row look).
+	// Padding/gap/icon size match the v2 ChangesFileList FileRow chrome
+	// (pl-3 pr-3, gap-1.5, size-3.5) so this tree reads consistently with the
+	// changes-tab file list.
 	"--trees-row-height-override": `${ROW_HEIGHT}px`,
 	"--trees-level-gap-override": `${TREE_INDENT}px`,
-	"--trees-padding-inline-override": "8px",
+	"--trees-padding-inline-override": "0",
+	"--trees-item-margin-x-override": "0",
+	"--trees-item-padding-x-override": "calc(var(--spacing) * 3)", // pl-3 / pr-3
+	"--trees-item-row-gap-override": "calc(var(--spacing) * 1.5)", // gap-1.5
+	"--trees-icon-width-override": "calc(var(--spacing) * 3.5)", // size-3.5
 	"--trees-border-radius-override": "0",
 
 	// Surface
 	"--trees-bg-override": "var(--background)",
 	"--trees-fg-override": "var(--foreground)",
 	"--trees-fg-muted-override": "var(--muted-foreground)",
-	"--trees-bg-muted-override": "var(--muted)",
+	// Match v2 FileRow's `hover:bg-accent/50` — translucent accent over the
+	// row background, not solid muted.
+	"--trees-bg-muted-override": "color-mix(in oklab, var(--accent) 50%, transparent)",
 	"--trees-accent-override": "var(--accent)",
 	"--trees-border-color-override": "var(--border)",
 
@@ -94,7 +105,7 @@ const TREE_STYLE: React.CSSProperties = {
 	"--trees-status-renamed-override": "oklch(0.6 0.118 244.557)",
 	"--trees-status-ignored-override": "var(--muted-foreground)",
 
-	fontSize: "0.75rem",
+	"--trees-font-size-override": "var(--text-xs)", // text-xs
 } as React.CSSProperties;
 
 type GitStatusData = inferRouterOutputs<AppRouter>["git"]["getStatus"];
