@@ -14,12 +14,8 @@ import {
 
 const CONFIGURE_AGENTS_VALUE = "__configure_agents__";
 
-/**
- * Minimal agent shape consumed by `AgentSelect`. v1 callers pass
- * `ResolvedAgentConfig` (where `id` is the preset slug used for icons). v2
- * callers pass host-agent-config rows (where `id` is a UUID and `iconId` is
- * the preset slug to look up the icon).
- */
+// v1 callers' `id` doubles as the icon key. v2 ids are UUIDs, so v2 callers
+// pass `iconId: presetId` to keep the preset-keyed icon lookup working.
 export interface AgentSelectAgent {
 	id: string;
 	label: string;

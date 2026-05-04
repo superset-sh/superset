@@ -5,9 +5,7 @@ import { useLocalHostService } from "renderer/routes/_authenticated/providers/Lo
 
 export const V2_AGENT_CONFIGS_QUERY_KEY = ["host-agent-configs"] as const;
 
-/** Fetches v2 host-agent configs from the active host service. Shared so the
- * authenticated layout can prefetch on startup and the Settings page can read
- * the same cache without a second round-trip. */
+/** Shared between the startup prefetch and Settings → Agents so both share one cache entry. */
 export function useV2AgentConfigs() {
 	const { activeHostUrl } = useLocalHostService();
 

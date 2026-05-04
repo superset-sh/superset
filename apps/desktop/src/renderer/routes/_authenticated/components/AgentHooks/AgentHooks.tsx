@@ -9,8 +9,7 @@ import { useDevicePresence } from "./hooks/useDevicePresence";
 export function AgentHooks() {
 	useDevicePresence();
 	useCommandWatcher();
-	// Prefill v2 agent configs at startup so the Settings page (and any other
-	// reader) sees them without a navigation-triggered fetch.
+	// Warm v2 agent cache so Settings doesn't refetch on first navigation.
 	useV2AgentConfigs();
 	return null;
 }

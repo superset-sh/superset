@@ -127,8 +127,6 @@ export function PromptGroup({
 		() => v2Agents.map((agent) => agent.id),
 		[v2Agents],
 	);
-	// Default to the first configured agent so users land in a launchable state
-	// without picking. Falls back to "none" if there are no configs yet.
 	const defaultAgent = selectableAgentIds[0] ?? "none";
 	const { selectedAgent, setSelectedAgent } =
 		useAgentLaunchPreferences<WorkspaceCreateAgent>({

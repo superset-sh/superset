@@ -1,9 +1,7 @@
-// v2 agent ids are host_agent_configs UUIDs (resolved on the host by id, with
-// presetId fallback). Using `string` rather than the v1 AgentDefinitionId enum.
+// v2 ids are runtime host_agent_configs UUIDs, not a static enum like v1.
 export type WorkspaceCreateAgent = string;
 
-// New key — old `lastSelectedWorkspaceCreateAgent` stored v1 preset slugs that
-// won't match v2 UUIDs. Bump it so persisted v1 state doesn't poison v2 picker.
+// New key — old one held v1 preset slugs that won't match v2 UUIDs.
 export const AGENT_STORAGE_KEY = "lastSelectedV2WorkspaceCreateAgent";
 
 export const PILL_BUTTON_CLASS =
