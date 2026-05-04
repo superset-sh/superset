@@ -18,7 +18,11 @@ export async function getAllRemoteUrls(
 	if (!output) return remotes;
 
 	for (const line of output.trim().split(/\r?\n/)) {
-		const match = line.trim().match(/^(\S+)\s+(\S+)\s+\(fetch\)$/);
+		// Don't anchor on `(fetch)` at end-of-line: git appends partial-clone
+		// markers like ` [blob:none]` when `remote.<name>.promisor=true`, and
+		// dropping those lines silently loses the remote (we then fall back to
+		// the alphabetically-first remote, which is almost always wrong).
+		const match = line.trim().match(/^(\S+)\s+(\S+)\s+\(fetch\)(?:\s|$)/);
 		if (match?.[1] && match[2]) {
 			remotes.set(match[1], match[2]);
 		}

@@ -107,6 +107,26 @@ describe("resolveLocalRepo", () => {
 		expect(resolved.parsed?.name).toBe("App");
 	});
 
+	test("returns origin when it is configured as a partial clone (`[blob:none]` suffix)", async () => {
+		// Partial clones (e.g. `git clone --filter=blob:none`) make
+		// `git remote -v` append a `[blob:none]` marker after the URL.
+		// Earlier the parser anchored on `(fetch)$`, so the origin line was
+		// silently skipped and we fell back to the alphabetically-first
+		// remote. Regression: `aaa` must NOT win over a partial-clone origin.
+		const repo = join(workRoot, "partial-clone-origin");
+		const git = await initRepoAt(repo);
+		await git.addRemote("aaa", "https://github.com/Other/Repo.git");
+		await git.addRemote("origin", "git@github.com:Acme/App.git");
+		await git.raw(["config", "remote.origin.promisor", "true"]);
+		await git.raw(["config", "remote.origin.partialclonefilter", "blob:none"]);
+
+		const resolved = await resolveLocalRepo(repo);
+
+		expect(resolved.remoteName).toBe("origin");
+		expect(resolved.parsed?.owner).toBe("Acme");
+		expect(resolved.parsed?.name).toBe("App");
+	});
+
 	test("falls back to first GitHub remote when origin is missing", async () => {
 		const repo = join(workRoot, "no-origin");
 		const git = await initRepoAt(repo);
