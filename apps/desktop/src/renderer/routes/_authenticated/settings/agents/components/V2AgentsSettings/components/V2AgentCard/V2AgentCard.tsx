@@ -215,92 +215,116 @@ export function V2AgentCard({
 					</div>
 				</div>
 				<CollapsibleContent>
-					<div className="grid gap-4 px-4 pb-4 pt-2">
-						<div className="grid gap-1.5">
-							<Label htmlFor={`label-${config.id}`} className="text-xs">
-								Label
-							</Label>
+					<div className="border-t border-border">
+						<AgentField
+							label="Label"
+							hint="Name shown in launchers."
+							htmlFor={`label-${config.id}`}
+						>
 							<Input
 								id={`label-${config.id}`}
 								value={label}
 								onChange={(e) => setLabel(e.target.value)}
 								onBlur={handleLabelBlur}
+								className="w-full"
 							/>
-						</div>
-
-						<div className="grid gap-4 pt-4 border-t border-border">
-							<div className="grid gap-1.5">
-								<Label htmlFor={`command-${config.id}`} className="text-xs">
-									Command
-								</Label>
-								<Input
-									id={`command-${config.id}`}
-									className="font-mono text-xs"
-									value={commandText}
-									onChange={(e) => setCommandText(e.target.value)}
-									onBlur={handleCommandBlur}
-									placeholder="claude --permission-mode acceptEdits"
-								/>
-								<p className="text-xs text-muted-foreground">
-									Argv for promptless launches. The prompt is appended after the
-									prompt-only args.
-								</p>
-							</div>
-							<div className="grid gap-1.5">
-								<Label htmlFor={`prompt-args-${config.id}`} className="text-xs">
-									Prompt-only args
-								</Label>
-								<Input
-									id={`prompt-args-${config.id}`}
-									className="font-mono text-xs"
-									value={promptArgsText}
-									onChange={(e) => setPromptArgsText(e.target.value)}
-									onBlur={handlePromptArgsBlur}
-									placeholder="--prompt"
-								/>
-								<p className="text-xs text-muted-foreground">
+						</AgentField>
+						<AgentField
+							label="Command"
+							hint="Argv used for launches. The prompt is appended after the prompt-only args."
+							htmlFor={`command-${config.id}`}
+						>
+							<Input
+								id={`command-${config.id}`}
+								className="w-full font-mono text-xs"
+								value={commandText}
+								onChange={(e) => setCommandText(e.target.value)}
+								onBlur={handleCommandBlur}
+								placeholder="claude --permission-mode acceptEdits"
+							/>
+						</AgentField>
+						<AgentField
+							label="Prompt-only args"
+							hint={
+								<>
 									Inserted only when launching with a prompt. Examples:{" "}
 									<code>--</code> (codex), <code>--prompt</code> (opencode),{" "}
 									<code>-i</code> (copilot).
-								</p>
-							</div>
-							<div className="grid gap-1.5">
-								<Label className="text-xs">Prompt transport</Label>
-								<div className="inline-flex rounded-md border border-border overflow-hidden w-fit">
-									<button
-										type="button"
-										onClick={() => handleTransportChange("argv")}
-										className={cn(
-											"px-3 py-1 text-xs font-medium transition-colors",
-											promptTransport === "argv"
-												? "bg-accent text-accent-foreground"
-												: "bg-transparent text-muted-foreground hover:bg-accent/50",
-										)}
-									>
-										argv
-									</button>
-									<button
-										type="button"
-										onClick={() => handleTransportChange("stdin")}
-										className={cn(
-											"px-3 py-1 text-xs font-medium transition-colors border-l border-border",
-											promptTransport === "stdin"
-												? "bg-accent text-accent-foreground"
-												: "bg-transparent text-muted-foreground hover:bg-accent/50",
-										)}
-									>
-										stdin
-									</button>
-								</div>
-								<p className="text-xs text-muted-foreground">
+								</>
+							}
+							htmlFor={`prompt-args-${config.id}`}
+						>
+							<Input
+								id={`prompt-args-${config.id}`}
+								className="w-full font-mono text-xs"
+								value={promptArgsText}
+								onChange={(e) => setPromptArgsText(e.target.value)}
+								onBlur={handlePromptArgsBlur}
+								placeholder="--prompt"
+							/>
+						</AgentField>
+						<AgentField
+							label="Prompt transport"
+							hint={
+								<>
 									<code>argv</code> appends the prompt as the last argv;{" "}
 									<code>stdin</code> pipes it to the process's stdin.
-								</p>
+								</>
+							}
+						>
+							<div className="inline-flex rounded-md border border-border overflow-hidden w-fit">
+								<button
+									type="button"
+									onClick={() => handleTransportChange("argv")}
+									className={cn(
+										"px-3 py-1 text-xs font-medium transition-colors",
+										promptTransport === "argv"
+											? "bg-accent text-accent-foreground"
+											: "bg-transparent text-muted-foreground hover:bg-accent/50",
+									)}
+								>
+									argv
+								</button>
+								<button
+									type="button"
+									onClick={() => handleTransportChange("stdin")}
+									className={cn(
+										"px-3 py-1 text-xs font-medium transition-colors border-l border-border",
+										promptTransport === "stdin"
+											? "bg-accent text-accent-foreground"
+											: "bg-transparent text-muted-foreground hover:bg-accent/50",
+									)}
+								>
+									stdin
+								</button>
 							</div>
-						</div>
+						</AgentField>
 					</div>
 				</CollapsibleContent>
 			</Collapsible>
+		</div>
+	);
+}
+
+interface AgentFieldProps {
+	label: string;
+	hint?: React.ReactNode;
+	htmlFor?: string;
+	children: React.ReactNode;
+}
+
+function AgentField({ label, hint, htmlFor, children }: AgentFieldProps) {
+	return (
+		<div className="flex items-start justify-between gap-6 p-4 border-t border-border first:border-t-0">
+			<div className="min-w-0 flex-1">
+				<Label htmlFor={htmlFor} className="text-sm font-medium">
+					{label}
+				</Label>
+				{hint && (
+					<p className="text-xs text-muted-foreground mt-0.5">{hint}</p>
+				)}
+			</div>
+			<div className="w-80 shrink-0">{children}</div>
 		</div>
 	);
 }
