@@ -3,7 +3,6 @@ import { cn } from "@superset/ui/utils";
 import { useNavigate } from "@tanstack/react-router";
 import type { MouseEvent } from "react";
 import { LuExternalLink, LuLoaderCircle, LuX } from "react-icons/lu";
-import { useSidebarFilePolicy } from "renderer/lib/clickPolicy";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { navigateToV2Workspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { STROKE_WIDTH } from "renderer/screens/main/components/WorkspaceSidebar/constants";
@@ -20,7 +19,6 @@ export function DashboardSidebarPortBadge({
 	const navigate = useNavigate();
 	const openUrl = electronTrpc.external.openUrl.useMutation();
 	const { isPending, killPort } = useDashboardSidebarPortKill();
-	const policy = useSidebarFilePolicy();
 	const canOpenInBrowser = port.hostType === "local-device";
 	const hostLabel =
 		port.hostType === "local-device" ? "Local device" : "Remote host";
@@ -37,10 +35,11 @@ export function DashboardSidebarPortBadge({
 	const handleOpenInBrowser = (event: MouseEvent<HTMLButtonElement>) => {
 		if (!canOpenInBrowser) return;
 
+		// Hardcoded modifier rule — this is an explicit "open in browser"
+		// affordance, not a configurable file row, so it shouldn't pick up
+		// whatever the user mapped sidebar files to.
 		const url = `http://localhost:${port.port}`;
-		const action = policy.getAction(event);
-		if (action === null) return;
-		if (action === "external") {
+		if (event.metaKey || event.ctrlKey) {
 			if (openUrl.isPending) return;
 			openUrl.mutate(url);
 			return;
@@ -49,7 +48,7 @@ export function DashboardSidebarPortBadge({
 		void navigateToV2Workspace(port.workspaceId, navigate, {
 			search: {
 				openUrl: url,
-				openUrlTarget: action === "newTab" ? "new-tab" : "current-tab",
+				openUrlTarget: event.shiftKey ? "new-tab" : "current-tab",
 				openUrlRequestId: crypto.randomUUID(),
 			},
 		});
