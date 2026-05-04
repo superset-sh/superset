@@ -198,11 +198,22 @@ export function RunInWorkspacePopoverV2({
 		if (selectedProject?.needsSetup === true) {
 			return "Project not set up on this host";
 		}
+		// Agent UUIDs are host-scoped; block until the host-specific config
+		// query resolves and the selection is verified to exist there.
+		if (selectedAgent !== NONE) {
+			if (!v2AgentConfigsQuery.isFetched) return "Checking agents…";
+			if (!validAgentIds.has(selectedAgent)) {
+				return "Selected agent is not available on this host";
+			}
+		}
 		return null;
 	}, [
 		selectedProjectId,
 		selectedProject?.needsSetup,
 		setUpProjectIds,
+		selectedAgent,
+		v2AgentConfigsQuery.isFetched,
+		validAgentIds,
 		hostId,
 		machineId,
 		otherHosts,

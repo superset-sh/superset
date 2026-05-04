@@ -98,6 +98,14 @@ export function useWorkspaceCreates(): UseWorkspaceCreatesApi {
 						recentlyViewedFiles: [],
 					});
 				}
+				// On alreadyExists the server returns the canonical workspace id,
+				// which can differ from our optimistic snapshot id. The in-flight
+				// entry is still keyed by snapshot id and won't ever resolve, so
+				// drop it — the canonical workspace now lives in collections and
+				// callers redirect there.
+				if (result.alreadyExists && result.workspace.id !== workspaceId) {
+					useWorkspaceCreatesStore.getState().remove(workspaceId);
+				}
 				return {
 					ok: true,
 					workspaceId: result.workspace.id,

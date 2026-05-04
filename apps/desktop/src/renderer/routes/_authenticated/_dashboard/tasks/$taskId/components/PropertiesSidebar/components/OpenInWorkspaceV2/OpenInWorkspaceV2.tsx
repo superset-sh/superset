@@ -195,11 +195,24 @@ export function OpenInWorkspaceV2({ task }: OpenInWorkspaceV2Props) {
 		if (selectedProject?.needsSetup === true) {
 			return "Project not set up on this host";
 		}
+		// Agent UUIDs are host-scoped. Right after a host switch the stored id
+		// from the previous host is still in selectedAgent until the agent
+		// query resolves and the corrective effect runs — block submission so
+		// we don't send an id this host doesn't recognize.
+		if (selectedAgent !== NONE) {
+			if (!v2AgentConfigsQuery.isFetched) return "Checking agents…";
+			if (!validAgentIds.has(selectedAgent)) {
+				return "Selected agent is not available on this host";
+			}
+		}
 		return null;
 	}, [
 		selectedProjectId,
 		selectedProject?.needsSetup,
 		setUpProjectIds,
+		selectedAgent,
+		v2AgentConfigsQuery.isFetched,
+		validAgentIds,
 		hostId,
 		machineId,
 		otherHosts,
