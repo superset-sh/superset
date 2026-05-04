@@ -9,7 +9,6 @@ import { useHotkeys } from "react-hotkeys-hook";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
 	type SettingsSection,
-	useSetLastVisitedSettingsPath,
 	useSetSettingsSearchQuery,
 	useSettingsOriginRoute,
 	useSettingsSearchQuery,
@@ -98,33 +97,14 @@ function getPathFromSection(section: SettingsSection): string {
 	}
 }
 
-const STATIC_NESTED_PATHS = new Set(["/settings/billing/plans"]);
-
-function normalizeSettingsPath(pathname: string): string | null {
-	if (!pathname.startsWith("/settings/")) return null;
-	if (pathname === "/settings/" || pathname === "/settings") return null;
-	if (STATIC_NESTED_PATHS.has(pathname)) return pathname;
-	const segments = pathname.split("/").filter(Boolean);
-	// Strip dynamic id segments (anything past /settings/<section>) so we don't
-	// restore stale projectId / hostId references after the entity is gone.
-	if (segments.length >= 2) return `/${segments[0]}/${segments[1]}`;
-	return null;
-}
-
 function SettingsLayout() {
 	const { data: platform } = electronTrpc.window.getPlatform.useQuery();
 	const isMac = platform === undefined || platform === "darwin";
 	const searchQuery = useSettingsSearchQuery();
 	const setSearchQuery = useSetSettingsSearchQuery();
 	const originRoute = useSettingsOriginRoute();
-	const setLastVisitedPath = useSetLastVisitedSettingsPath();
 	const location = useLocation();
 	const navigate = useNavigate();
-
-	useEffect(() => {
-		const normalized = normalizeSettingsPath(location.pathname);
-		if (normalized) setLastVisitedPath(normalized);
-	}, [location.pathname, setLastVisitedPath]);
 	const normalizedSearchQuery = searchQuery.trim();
 	const isSearchActive = normalizedSearchQuery.length > 0;
 	const totalMatches = isSearchActive
