@@ -52,7 +52,7 @@ export function DiffFileHeader({
 	const name = lastSlash >= 0 ? path.slice(lastSlash + 1) : path;
 
 	return (
-		<div className="@container/diff-file-header sticky top-0 z-10 flex min-w-0 flex-nowrap items-center gap-1 bg-card px-3 py-2">
+		<div className="group/diff-file-header @container/diff-file-header sticky top-0 z-10 flex min-w-0 flex-nowrap items-center gap-1 bg-card px-3 py-2">
 			<button
 				type="button"
 				onClick={onToggleCollapsed}
@@ -171,22 +171,23 @@ export function DiffFileHeader({
 					</TooltipContent>
 				</Tooltip>
 
-				<Tooltip>
-					<TooltipTrigger asChild>
-						<button
-							type="button"
-							onClick={onDiscard}
-							disabled={!onDiscard}
-							aria-label="Discard changes"
-							className="rounded p-1 text-muted-foreground/60 transition-colors hover:bg-accent hover:text-destructive disabled:pointer-events-none disabled:opacity-40"
-						>
-							<LuUndo2 className="size-3.5" />
-						</button>
-					</TooltipTrigger>
-					<TooltipContent side="bottom" showArrow={false}>
-						Discard changes
-					</TooltipContent>
-				</Tooltip>
+				{onDiscard && (
+					<Tooltip>
+						<TooltipTrigger asChild>
+							<button
+								type="button"
+								onClick={onDiscard}
+								aria-label="Discard changes"
+								className="rounded p-1 text-muted-foreground/60 opacity-0 transition-all hover:bg-accent hover:text-destructive group-hover/diff-file-header:opacity-100"
+							>
+								<LuUndo2 className="size-3.5" />
+							</button>
+						</TooltipTrigger>
+						<TooltipContent side="bottom" showArrow={false}>
+							Discard changes
+						</TooltipContent>
+					</Tooltip>
+				)}
 			</div>
 		</div>
 	);

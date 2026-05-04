@@ -845,3 +845,27 @@ export type InsertAutomationPromptVersion =
 	typeof automationPromptVersions.$inferInsert;
 export type SelectAutomationPromptVersion =
 	typeof automationPromptVersions.$inferSelect;
+
+export const submittedPrompts = pgTable(
+	"submitted_prompts",
+	{
+		id: uuid().primaryKey().defaultRandom(),
+		userId: uuid("user_id")
+			.notNull()
+			.references(() => users.id, { onDelete: "cascade" }),
+		organizationId: uuid("organization_id").references(() => organizations.id, {
+			onDelete: "set null",
+		}),
+		promptText: text("prompt_text").notNull(),
+		submitterName: text("submitter_name"),
+		createdAt: timestamp("created_at").notNull().defaultNow(),
+	},
+	(table) => [
+		index("submitted_prompts_user_id_idx").on(table.userId),
+		index("submitted_prompts_organization_id_idx").on(table.organizationId),
+		index("submitted_prompts_created_at_idx").on(table.createdAt),
+	],
+);
+
+export type InsertSubmittedPrompt = typeof submittedPrompts.$inferInsert;
+export type SelectSubmittedPrompt = typeof submittedPrompts.$inferSelect;

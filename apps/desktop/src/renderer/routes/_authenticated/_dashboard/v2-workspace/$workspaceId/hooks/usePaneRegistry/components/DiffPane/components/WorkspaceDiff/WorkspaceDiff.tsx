@@ -1,5 +1,4 @@
 import { MultiFileDiff } from "@pierre/diffs/react";
-import { toast } from "@superset/ui/sonner";
 import { workspaceTrpc } from "@superset/workspace-client";
 import { useQuery } from "@tanstack/react-query";
 import { memo, useMemo } from "react";
@@ -28,6 +27,7 @@ interface WorkspaceDiffProps {
 	onToggleViewed: () => void;
 	onOpenFile?: (openInNewTab?: boolean) => void;
 	onOpenInExternalEditor?: () => void;
+	onDiscard?: () => void;
 }
 
 export const WorkspaceDiff = memo(function WorkspaceDiff({
@@ -46,6 +46,7 @@ export const WorkspaceDiff = memo(function WorkspaceDiff({
 	onToggleViewed,
 	onOpenFile,
 	onOpenInExternalEditor,
+	onDiscard,
 }: WorkspaceDiffProps) {
 	const activeTheme = useResolvedTheme();
 	const terminalTheme = useTerminalTheme();
@@ -100,24 +101,6 @@ export const WorkspaceDiff = memo(function WorkspaceDiff({
 		staleTime: Number.POSITIVE_INFINITY,
 	});
 
-	const workspaceQuery = workspaceTrpc.workspace.get.useQuery({
-		id: workspaceId,
-	});
-	const worktreePath = workspaceQuery.data?.worktreePath;
-
-	const handleDiscard = useMemo(() => {
-		if (source.kind !== "unstaged" || !worktreePath) return undefined;
-		return () => {
-			electronTrpcClient.changes.discardChanges
-				.mutate({ worktreePath, filePath: path })
-				.catch((err) => {
-					toast.error("Couldn't discard changes", {
-						description: err instanceof Error ? err.message : String(err),
-					});
-				});
-		};
-	}, [source.kind, worktreePath, path]);
-
 	return (
 		<div className="flex flex-col">
 			<DiffFileHeader
@@ -133,7 +116,7 @@ export const WorkspaceDiff = memo(function WorkspaceDiff({
 				onToggleViewed={onToggleViewed}
 				onOpenFile={onOpenFile}
 				onOpenInExternalEditor={onOpenInExternalEditor}
-				onDiscard={handleDiscard}
+				onDiscard={onDiscard}
 			/>
 			{diffQuery.data ? (
 				<MultiFileDiff

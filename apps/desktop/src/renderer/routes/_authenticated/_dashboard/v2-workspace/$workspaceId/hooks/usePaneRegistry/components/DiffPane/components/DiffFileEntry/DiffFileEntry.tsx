@@ -1,6 +1,8 @@
 import { Button } from "@superset/ui/button";
 import { toast } from "@superset/ui/sonner";
-import { memo, useCallback, useRef, useState } from "react";
+import { workspaceTrpc } from "@superset/workspace-client";
+import { memo, useCallback, useMemo, useRef, useState } from "react";
+import { DiscardConfirmDialog } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/DiscardConfirmDialog";
 import type { ChangesetFile } from "../../../../../useChangeset";
 import { DiffFileHeader } from "../DiffFileHeader";
 import { WorkspaceDiff } from "../WorkspaceDiff";
@@ -104,6 +106,47 @@ export const DiffFileEntry = memo(function DiffFileEntry({
 		[],
 	);
 
+	const utils = workspaceTrpc.useUtils();
+	const discardMutation = workspaceTrpc.git.discardChanges.useMutation({
+		onSuccess: () => {
+			void utils.git.getStatus.invalidate({ workspaceId });
+			void utils.git.getDiff.invalidate({ workspaceId });
+		},
+		onError: (err) => {
+			toast.error("Couldn't discard changes", { description: err.message });
+		},
+	});
+	const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
+	const canDiscard = file.source.kind === "unstaged";
+	const requestDiscard = useMemo(() => {
+		if (!canDiscard) return undefined;
+		return () => setShowDiscardConfirm(true);
+	}, [canDiscard]);
+	const confirmDiscard = useCallback(() => {
+		setShowDiscardConfirm(false);
+		discardMutation.mutate({ workspaceId, filePath: file.path });
+	}, [discardMutation, workspaceId, file.path]);
+	const isDeleteAction = file.status === "untracked" || file.status === "added";
+	const basename = file.path.split("/").pop() ?? file.path;
+	const discardDialog = canDiscard ? (
+		<DiscardConfirmDialog
+			open={showDiscardConfirm}
+			onOpenChange={setShowDiscardConfirm}
+			title={
+				isDeleteAction
+					? `Delete "${basename}"?`
+					: `Discard changes to "${basename}"?`
+			}
+			description={
+				isDeleteAction
+					? "This will permanently delete this file. This action cannot be undone."
+					: "This will revert all changes to this file. This action cannot be undone."
+			}
+			confirmLabel={isDeleteAction ? "Delete" : "Discard"}
+			onConfirm={confirmDiscard}
+		/>
+	) : null;
+
 	if (reason && !showFullDiff) {
 		const placeholderHeight =
 			reason === "deleted"
@@ -127,7 +170,9 @@ export const DiffFileEntry = memo(function DiffFileEntry({
 					onToggleViewed={handleToggleViewed}
 					onOpenFile={handleOpenFile}
 					onOpenInExternalEditor={handleOpenInExternalEditor}
+					onDiscard={requestDiscard}
 				/>
+				{discardDialog}
 			</div>
 		);
 	}
@@ -159,8 +204,10 @@ export const DiffFileEntry = memo(function DiffFileEntry({
 					onToggleViewed={handleToggleViewed}
 					onOpenFile={handleOpenFile}
 					onOpenInExternalEditor={handleOpenInExternalEditor}
+					onDiscard={requestDiscard}
 				/>
 			) : null}
+			{discardDialog}
 		</div>
 	);
 });
@@ -175,6 +222,7 @@ interface DeferredDiffPlaceholderProps {
 	onToggleViewed: () => void;
 	onOpenFile?: (openInNewTab?: boolean) => void;
 	onOpenInExternalEditor?: () => void;
+	onDiscard?: () => void;
 }
 
 function DeferredDiffPlaceholder({
@@ -187,6 +235,7 @@ function DeferredDiffPlaceholder({
 	onToggleViewed,
 	onOpenFile,
 	onOpenInExternalEditor,
+	onDiscard,
 }: DeferredDiffPlaceholderProps) {
 	const isDeleted = reason === "deleted";
 	const fullHeight = isDeleted
@@ -213,6 +262,7 @@ function DeferredDiffPlaceholder({
 				onToggleViewed={onToggleViewed}
 				onOpenFile={onOpenFile}
 				onOpenInExternalEditor={onOpenInExternalEditor}
+				onDiscard={onDiscard}
 			/>
 			{!collapsed && (
 				<div
