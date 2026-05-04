@@ -158,7 +158,7 @@ export function PresetEditorDialog({
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange} modal>
-			<DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+			<DialogContent className="sm:max-w-4xl max-h-[85vh] overflow-y-auto">
 				{preset ? (
 					<>
 						<DialogHeader>
