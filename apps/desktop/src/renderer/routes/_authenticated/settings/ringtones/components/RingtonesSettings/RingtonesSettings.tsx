@@ -62,11 +62,14 @@ function RingtoneCard({
 			{/* Preview area */}
 			<div
 				className={cn(
-					"h-20 flex flex-col items-center justify-center gap-1 relative",
+					"h-24 flex items-center justify-center relative",
 					isSelected ? "bg-accent/40" : "bg-muted/30",
 				)}
 			>
-				{/* Play/Stop button — primary affordance, centered */}
+				{/* Emoji as visual identity */}
+				<span className="text-4xl">{ringtone.emoji}</span>
+
+				{/* Play/Stop button — corner affordance */}
 				<button
 					type="button"
 					onClick={(e) => {
@@ -75,10 +78,10 @@ function RingtoneCard({
 					}}
 					aria-label={isPlaying ? `Stop ${ringtone.name}` : `Play ${ringtone.name}`}
 					className={cn(
-						"h-9 w-9 rounded-full flex items-center justify-center shadow-sm transition-colors",
+						"absolute bottom-2 right-2 h-8 w-8 rounded-full flex items-center justify-center transition-colors border",
 						isPlaying
-							? "bg-destructive text-destructive-foreground hover:bg-destructive/90"
-							: "bg-background text-foreground border border-border group-hover:bg-accent",
+							? "bg-destructive text-destructive-foreground border-destructive hover:bg-destructive/90"
+							: "bg-card text-foreground border-border hover:bg-accent",
 					)}
 				>
 					{isPlaying ? (
@@ -87,8 +90,6 @@ function RingtoneCard({
 						<HiPlay className="h-4 w-4 ml-0.5" />
 					)}
 				</button>
-				{/* Emoji as visual identity */}
-				<span className="text-xl leading-none opacity-80">{ringtone.emoji}</span>
 			</div>
 
 			{/* Info */}
