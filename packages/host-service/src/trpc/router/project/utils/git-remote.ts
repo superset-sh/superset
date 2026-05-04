@@ -7,20 +7,32 @@ import type { SimpleGit } from "simple-git";
 export type { ParsedGitHubRemote };
 
 /**
- * Get all fetch remote URLs from a git repository.
- * Returns a map of remote name → fetch URL.
+ * Map of remote name → URL, read from git config.
+ *
+ * Reads config directly instead of parsing `git remote -v` because `-v` output
+ * appends partial-clone markers like `[blob:none]` after `(fetch)` when
+ * `remote.<name>.promisor` is set, and is otherwise human-readable rather than
+ * machine-stable.
  */
 export async function getAllRemoteUrls(
 	git: SimpleGit,
 ): Promise<Map<string, string>> {
 	const remotes = new Map<string, string>();
-	const output = await git.remote(["-v"]);
+	const output = await git
+		.raw(["config", "--get-regexp", "^remote\\..*\\.url$"])
+		.catch(() => "");
 	if (!output) return remotes;
 
-	for (const line of output.trim().split(/\r?\n/)) {
-		const match = line.trim().match(/^(\S+)\s+(\S+)\s+\(fetch\)$/);
-		if (match?.[1] && match[2]) {
-			remotes.set(match[1], match[2]);
+	for (const line of output.split(/\r?\n/)) {
+		const spaceIdx = line.indexOf(" ");
+		if (spaceIdx <= 0) continue;
+		const key = line.slice(0, spaceIdx);
+		const url = line.slice(spaceIdx + 1);
+		// Greedy `.+` so a remote literally named `foo.url` resolves to
+		// `foo.url`, not `foo`.
+		const match = key.match(/^remote\.(.+)\.url$/);
+		if (match?.[1] && url) {
+			remotes.set(match[1], url);
 		}
 	}
 
