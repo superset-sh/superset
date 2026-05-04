@@ -110,28 +110,26 @@ export function AccountSettings({ visibleItems }: AccountSettingsProps) {
 
 			<div className="space-y-8">
 				{showProfile && (
-					<section>
-						<h3 className="text-sm font-medium mb-3">Profile</h3>
+					<section className="space-y-3">
+						<h3 className="text-sm font-medium">Profile</h3>
 						{isLoading ? (
 							<ProfileSkeleton />
 						) : user ? (
-							<div className="rounded-lg border bg-card overflow-hidden">
-								<SettingRow label="Avatar" hint="Recommended size is 256x256px">
-									<div className="flex items-center gap-3">
+							<div className="space-y-3">
+								<SettingRow label="Avatar" hint="Recommended size 256×256.">
+									<button
+										type="button"
+										onClick={handleAvatarUpload}
+										disabled={selectImageMutation.isPending}
+										className="rounded-full transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-100"
+										aria-label="Change avatar"
+									>
 										<Avatar
 											size="xl"
 											fullName={user.name}
 											image={avatarPreview}
 										/>
-										<Button
-											variant="outline"
-											size="sm"
-											onClick={handleAvatarUpload}
-											disabled={selectImageMutation.isPending}
-										>
-											Change
-										</Button>
-									</div>
+									</button>
 								</SettingRow>
 
 								<SettingRow label="Name">
@@ -153,31 +151,27 @@ export function AccountSettings({ visibleItems }: AccountSettingsProps) {
 								</SettingRow>
 							</div>
 						) : (
-							<div className="rounded-lg border bg-card p-4">
-								<p className="text-sm text-muted-foreground">
-									Unable to load user info
-								</p>
-							</div>
+							<p className="text-sm text-muted-foreground">
+								Unable to load user info
+							</p>
 						)}
 					</section>
 				)}
 
 				{showSignOut && (
-					<section>
-						<h3 className="text-sm font-medium mb-3">Sign out</h3>
-						<div className="rounded-lg border bg-card overflow-hidden">
-							<SettingRow
-								label="Sign out of this device"
-								hint="You'll need to sign in again to use Superset on this device."
+					<section className="space-y-3">
+						<h3 className="text-sm font-medium">Sign out</h3>
+						<SettingRow
+							label="Sign out of this device"
+							hint="You'll need to sign in again to use Superset on this device."
+						>
+							<Button
+								variant="outline"
+								onClick={() => signOutMutation.mutate()}
 							>
-								<Button
-									variant="outline"
-									onClick={() => signOutMutation.mutate()}
-								>
-									Sign out
-								</Button>
-							</SettingRow>
-						</div>
+								Sign out
+							</Button>
+						</SettingRow>
 					</section>
 				)}
 			</div>
@@ -193,7 +187,7 @@ interface SettingRowProps {
 
 function SettingRow({ label, hint, children }: SettingRowProps) {
 	return (
-		<div className="flex items-center justify-between gap-8 p-4 border-t border-border first:border-t-0">
+		<div className="flex items-center justify-between gap-8">
 			<div className="flex-1 min-w-0">
 				<div className="text-sm font-medium">{label}</div>
 				{hint && (
