@@ -1,4 +1,5 @@
 import { type ChildProcess, spawn } from "node:child_process";
+import * as os from "node:os";
 
 const SHELL_ENV_TIMEOUT_MS = 8_000;
 const CACHE_TTL_MS = 60_000;
@@ -96,12 +97,20 @@ function spawnCleanShellEnv(): Promise<Record<string, string>> {
 		const env = buildMinimalEnv();
 		const command = `echo -n "${DELIMITER}"; command env; echo -n "${DELIMITER}"; exit`;
 
+		// Anchor the snapshot shell at $HOME so it doesn't inherit a cwd
+		// host-service has no control over. Tools called from interactive
+		// rc files — brew is the recurring offender (#4025) — abort when
+		// pwd isn't readable to the invoking user, and Electron helpers
+		// can land at /private/var/... or similar at launch.
+		const cwd = env.HOME || os.homedir();
+
 		let child: ChildProcess;
 		try {
 			child = spawn(shell, ["-i", "-l", "-c", command], {
 				detached: true,
 				stdio: ["ignore", "pipe", "pipe"],
 				env,
+				cwd,
 			});
 		} catch (error) {
 			return reject(
