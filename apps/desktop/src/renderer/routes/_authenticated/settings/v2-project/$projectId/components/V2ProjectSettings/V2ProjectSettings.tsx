@@ -47,7 +47,7 @@ export function V2ProjectSettings({ projectId }: V2ProjectSettingsProps) {
 			<div className="space-y-8">
 				<SettingsSection
 					title="Repository"
-					description="The GitHub repository this project tracks. Change it to re-link this project to a different repo."
+					description="The GitHub repository this project tracks."
 				>
 					<RepositorySection
 						projectId={projectId}
@@ -56,8 +56,8 @@ export function V2ProjectSettings({ projectId }: V2ProjectSettingsProps) {
 				</SettingsSection>
 
 				<SettingsSection
-					title="Host Service Location"
-					description="Where this project lives on disk, per host connected to this organization."
+					title="Project location"
+					description="Where this project lives on disk on each connected host."
 				>
 					<ProjectLocationSection
 						projectId={projectId}
@@ -67,7 +67,7 @@ export function V2ProjectSettings({ projectId }: V2ProjectSettingsProps) {
 					/>
 				</SettingsSection>
 
-				<SettingsSection title="Danger Zone">
+				<SettingsSection title="Danger zone">
 					<DeleteProjectSection
 						projectId={projectId}
 						projectName={project.name}
