@@ -10,12 +10,17 @@ interface Step {
 	doneAt: number;
 }
 
+// Mirrors the v1 init step order in shared/types/workspace-init.ts so the
+// labels feel real — v2 workspaces.create runs the same git work server-side
+// without streaming progress events, so timings here are estimates.
 const STEPS: readonly Step[] = [
-	{ id: "allocate", label: "Allocating sandbox", doneAt: 3 },
-	{ id: "clone", label: "Cloning repository", doneAt: 12 },
-	{ id: "branch", label: "Configuring branch", doneAt: 16 },
-	{ id: "tools", label: "Installing tools", doneAt: 22 },
-	{ id: "finalize", label: "Finalizing", doneAt: 28 },
+	{ id: "preparing", label: "Preparing", doneAt: 1 },
+	{ id: "syncing", label: "Syncing with remote", doneAt: 4 },
+	{ id: "verifying", label: "Verifying base branch", doneAt: 5 },
+	{ id: "fetching", label: "Fetching latest changes", doneAt: 15 },
+	{ id: "creating_worktree", label: "Creating git worktree", doneAt: 18 },
+	{ id: "copying_config", label: "Copying configuration", doneAt: 20 },
+	{ id: "finalizing", label: "Finalizing setup", doneAt: 23 },
 ] as const;
 
 const TOTAL_SECONDS = STEPS[STEPS.length - 1].doneAt;
