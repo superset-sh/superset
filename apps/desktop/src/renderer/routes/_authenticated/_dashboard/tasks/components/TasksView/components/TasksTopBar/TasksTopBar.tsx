@@ -10,6 +10,7 @@ import {
 	HiOutlineViewColumns,
 	HiXMark,
 } from "react-icons/hi2";
+import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import { useHotkey } from "renderer/hotkeys";
 import type { ViewMode } from "../../../../stores/tasks-filter-state";
 import type { TaskWithStatus } from "../../hooks/useTasksData";
@@ -19,6 +20,7 @@ import { BacklogIcon } from "../shared/icons/BacklogIcon";
 import { AssigneeFilter } from "./components/AssigneeFilter";
 import { CreateTaskDialog } from "./components/CreateTaskDialog";
 import { RunInWorkspacePopover } from "./components/RunInWorkspacePopover";
+import { RunInWorkspacePopoverV2 } from "./components/RunInWorkspacePopoverV2";
 
 export type TabValue = "all" | "active" | "backlog";
 
@@ -68,6 +70,7 @@ export function TasksTopBar({
 	const selectedCount = selectedTasks.length;
 	const searchInputRef = useRef<HTMLInputElement>(null);
 	const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false);
+	const { isV2CloudEnabled } = useIsV2CloudEnabled();
 
 	useHotkey(
 		"FOCUS_TASK_SEARCH",
@@ -99,10 +102,17 @@ export function TasksTopBar({
 								{selectedCount} selected
 							</span>
 							<div className="h-4 w-px bg-border" />
-							<RunInWorkspacePopover
-								tasks={selectedTasks}
-								onComplete={onClearSelection ?? (() => {})}
-							/>
+							{isV2CloudEnabled ? (
+								<RunInWorkspacePopoverV2
+									tasks={selectedTasks}
+									onComplete={onClearSelection ?? (() => {})}
+								/>
+							) : (
+								<RunInWorkspacePopover
+									tasks={selectedTasks}
+									onComplete={onClearSelection ?? (() => {})}
+								/>
+							)}
 						</>
 					) : (
 						<>

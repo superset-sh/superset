@@ -6,6 +6,7 @@ export {
 } from "./store";
 export {
 	type SubmitArgs,
+	type SubmitResult,
 	type UseWorkspaceCreatesApi,
 	useWorkspaceCreates,
 } from "./useWorkspaceCreates";
