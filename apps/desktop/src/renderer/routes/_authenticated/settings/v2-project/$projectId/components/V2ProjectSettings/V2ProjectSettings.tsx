@@ -41,7 +41,7 @@ export function V2ProjectSettings({ projectId }: V2ProjectSettingsProps) {
 	if (!project) return null;
 
 	return (
-		<div className="p-6 max-w-4xl w-full select-text">
+		<div className="p-6 max-w-4xl w-full mx-auto select-text">
 			<ProjectSettingsHeader title={project.name} />
 
 			<div className="space-y-8">

@@ -10,14 +10,11 @@ import {
 } from "@superset/ui/alert-dialog";
 import { Button } from "@superset/ui/button";
 import { toast } from "@superset/ui/sonner";
-import { eq } from "@tanstack/db";
-import { useLiveQuery } from "@tanstack/react-db";
 import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
-import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { ClickablePath } from "../../../../../../components/ClickablePath";
 
@@ -39,25 +36,11 @@ export function ProjectLocationSection({
 	repoCloneUrl,
 	onChanged,
 }: ProjectLocationSectionProps) {
-	const { activeHostUrl, machineId } = useLocalHostService();
+	const { activeHostUrl } = useLocalHostService();
 	const selectDirectory = electronTrpc.window.selectDirectory.useMutation();
 	const navigate = useNavigate();
-	const collections = useCollections();
 	const { ensureProjectInSidebar, ensureWorkspaceInSidebar } =
 		useDashboardSidebarState();
-
-	const { data: hostRows } = useLiveQuery(
-		(q) =>
-			q
-				.from({ hosts: collections.v2Hosts })
-				.where(({ hosts }) => eq(hosts.machineId, machineId))
-				.select(({ hosts }) => ({
-					name: hosts.name,
-					isOnline: hosts.isOnline,
-				})),
-		[collections, machineId],
-	);
-	const hostLabel = hostRows?.[0]?.name ?? "This device";
 
 	const [pendingPath, setPendingPath] = useState<string | null>(null);
 	const [conflict, setConflict] = useState<BackfillConflict | null>(null);
@@ -213,15 +196,12 @@ export function ProjectLocationSection({
 	return (
 		<>
 			<div className="flex items-center gap-4">
-				<div className="w-32 shrink-0 text-sm font-medium truncate">
-					{hostLabel}
-				</div>
 				<div className="flex-1 min-w-0">
 					{currentPath ? (
 						<ClickablePath path={currentPath} />
 					) : (
 						<span className="text-sm text-muted-foreground">
-							Not set up on this host
+							Not set up on this device.
 						</span>
 					)}
 				</div>
@@ -233,10 +213,10 @@ export function ProjectLocationSection({
 						onClick={handleChange}
 						disabled={selectDirectory.isPending || isSubmitting}
 					>
-						Change location…
+						Change…
 					</Button>
 				) : (
-					<div className="flex items-center gap-2">
+					<div className="flex items-center gap-2 shrink-0">
 						<Button
 							type="button"
 							variant="outline"
