@@ -346,6 +346,11 @@ export function FilesTab({
 			if (!rootPath) return;
 			const { sourcePath, destinationPath, isFolder } = event;
 			const pendingMode = bridge.pendingCreates.get(sourcePath);
+			// Snapshot before any await so post-mutation cleanup against a
+			// stale workspace (user switched mid-flight) bails out instead of
+			// leaking source/destination paths into the new workspace's
+			// knownPaths / model.
+			const versionToken = bridge.getVersion();
 
 			if (pendingMode) {
 				bridge.pendingCreates.delete(sourcePath);
@@ -372,9 +377,10 @@ export function FilesTab({
 							content: "",
 							options: { create: true, overwrite: false },
 						});
-						onSelectFile(absPath);
+						if (bridge.isCurrent(versionToken)) onSelectFile(absPath);
 					}
 				} catch (error) {
+					if (!bridge.isCurrent(versionToken)) return;
 					bridge.knownPaths.delete(destinationPath);
 					try {
 						model.remove(destinationPath, { recursive: true });
@@ -407,6 +413,7 @@ export function FilesTab({
 					destinationAbsolutePath: toAbs(rootPath, destinationPath),
 				});
 			} catch (error) {
+				if (!bridge.isCurrent(versionToken)) return;
 				// Revert Pierre's optimistic rename.
 				try {
 					model.move(destinationPath, sourcePath);

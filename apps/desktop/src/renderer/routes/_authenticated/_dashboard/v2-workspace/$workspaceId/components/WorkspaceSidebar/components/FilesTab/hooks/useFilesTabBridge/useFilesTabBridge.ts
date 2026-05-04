@@ -33,6 +33,14 @@ export interface FilesTabBridge {
 	 * fs:events / lookups don't target stale prefixes.
 	 */
 	rekeyDescendants(oldDir: string, newDir: string): void;
+	/**
+	 * Snapshot the current workspace version. Pair with `isCurrent(token)`
+	 * around external awaits (e.g. tRPC mutations from FilesTab) so a
+	 * workspace switch mid-flight can be detected and the post-await mutation
+	 * skipped — same pattern fetchDir/doRefresh use internally.
+	 */
+	getVersion(): number;
+	isCurrent(token: number): boolean;
 	isRefreshing: boolean;
 }
 
@@ -291,6 +299,12 @@ export function useFilesTabBridge({
 		[],
 	);
 
+	const getVersion = useCallback(() => versionRef.current, []);
+	const isCurrent = useCallback(
+		(token: number) => versionRef.current === token,
+		[],
+	);
+
 	return {
 		knownPaths: knownPathsRef.current,
 		loadedDirs: loadedDirsRef.current,
@@ -298,6 +312,8 @@ export function useFilesTabBridge({
 		fetchDir,
 		doRefresh,
 		rekeyDescendants: rekeyDescendantsBound,
+		getVersion,
+		isCurrent,
 		isRefreshing,
 	};
 }
