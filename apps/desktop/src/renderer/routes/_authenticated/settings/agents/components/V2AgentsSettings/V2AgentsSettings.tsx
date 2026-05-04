@@ -130,8 +130,7 @@ export function V2AgentsSettings() {
 		if (!stillExists) setSelectedAgentId(configs[0].id);
 	}, [configs, selectedAgentId]);
 
-	const selectedAgent =
-		configs.find((c) => c.id === selectedAgentId) ?? null;
+	const selectedAgent = configs.find((c) => c.id === selectedAgentId) ?? null;
 
 	if (configsQuery.isError) {
 		return (

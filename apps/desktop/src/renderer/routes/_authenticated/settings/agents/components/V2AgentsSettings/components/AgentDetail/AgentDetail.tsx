@@ -136,11 +136,7 @@ export function AgentDetail({
 		<div className="p-6 max-w-3xl w-full mx-auto">
 			<div className="mb-8 flex items-center gap-3">
 				{icon ? (
-					<img
-						src={icon}
-						alt=""
-						className="size-8 object-contain shrink-0"
-					/>
+					<img src={icon} alt="" className="size-8 object-contain shrink-0" />
 				) : null}
 				<div className="min-w-0 flex-1">
 					<h2 className="text-xl font-semibold truncate">{config.label}</h2>
@@ -180,8 +176,8 @@ export function AgentDetail({
 						label="Prompt-only args"
 						hint={
 							<>
-								Added only when launching with a prompt — e.g.{" "}
-								<code>--</code>, <code>--prompt</code>, <code>-i</code>.
+								Added only when launching with a prompt — e.g. <code>--</code>,{" "}
+								<code>--prompt</code>, <code>-i</code>.
 							</>
 						}
 						htmlFor={`prompt-args-${config.id}`}

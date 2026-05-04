@@ -7,8 +7,8 @@ import { useEffect, useState } from "react";
 import { LuRefreshCw } from "react-icons/lu";
 import { env } from "renderer/env.renderer";
 import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
-import { authClient } from "renderer/lib/auth-client";
 import { track } from "renderer/lib/analytics";
+import { authClient } from "renderer/lib/auth-client";
 import {
 	readLastMigrationRunAt,
 	useMigrateV1DataToV2,
@@ -74,8 +74,7 @@ export function ExperimentalSettings({
 								Try Superset v2
 							</Label>
 							<p className="text-xs text-muted-foreground">
-								Use the new workspace experience when early access is
-								available.
+								Use the new workspace experience when early access is available.
 							</p>
 							{!isRemoteV2Enabled && (
 								<p className="text-xs text-muted-foreground">
@@ -102,9 +101,9 @@ export function ExperimentalSettings({
 						<div className="min-w-0 flex-1 space-y-0.5">
 							<Label className="text-sm font-medium">v1 → v2 migration</Label>
 							<p className="text-xs text-muted-foreground">
-								Imports your local v1 projects and workspaces into the v2
-								cloud. Runs automatically on launch — use this to retry if
-								something was missed.
+								Imports your local v1 projects and workspaces into the v2 cloud.
+								Runs automatically on launch — use this to retry if something
+								was missed.
 							</p>
 							{!isV2CloudEnabled ? (
 								<p className="text-xs text-muted-foreground">
@@ -112,8 +111,8 @@ export function ExperimentalSettings({
 								</p>
 							) : lastRunAt !== null ? (
 								<p className="text-xs text-muted-foreground">
-									Last run{" "}
-									{formatDistanceToNow(lastRunAt, { addSuffix: true })}.
+									Last run {formatDistanceToNow(lastRunAt, { addSuffix: true })}
+									.
 								</p>
 							) : null}
 						</div>
@@ -161,10 +160,7 @@ function useLastMigrationRunAt(): number | null {
 		window.addEventListener(V1_MIGRATION_LAST_RUN_AT_EVENT, onUpdate);
 		// Re-render once a minute so "1 minute ago" advances to "2 minutes ago"
 		// without requiring a navigation.
-		const interval = window.setInterval(
-			() => forceTick((t) => t + 1),
-			60_000,
-		);
+		const interval = window.setInterval(() => forceTick((t) => t + 1), 60_000);
 		return () => {
 			window.removeEventListener(V1_MIGRATION_LAST_RUN_AT_EVENT, onUpdate);
 			window.clearInterval(interval);

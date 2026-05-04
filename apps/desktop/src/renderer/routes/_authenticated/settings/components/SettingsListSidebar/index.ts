@@ -1,5 +1,5 @@
 export {
-	settingsListItemClass,
-	SettingsListSidebar,
 	type SettingsListGroup,
+	SettingsListSidebar,
+	settingsListItemClass,
 } from "./SettingsListSidebar";
