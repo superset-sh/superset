@@ -204,7 +204,7 @@ function V2SessionsSectionInner() {
 					</div>
 				</div>
 
-				<div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+				<div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-xs">
 					{expandable ? (
 						<button
 							type="button"
