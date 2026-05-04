@@ -316,6 +316,13 @@
       "when": 1777874337162,
       "tag": "0044_add_task_id_to_v2_workspaces",
       "breakpoints": true
+    },
+    {
+      "idx": 45,
+      "version": "7",
+      "when": 1777881871315,
+      "tag": "0045_v2_projects_icon_url",
+      "breakpoints": true
     }
   ]
 }

@@ -7,6 +7,7 @@ import { useLocalHostService } from "renderer/routes/_authenticated/providers/Lo
 import { SettingsSection } from "../../../../project/$projectId/components/ProjectSettings";
 import { ProjectSettingsHeader } from "../../../../project/$projectId/components/ProjectSettingsHeader";
 import { DeleteProjectSection } from "./components/DeleteProjectSection";
+import { IconUploadField } from "./components/IconUploadField";
 import { ProjectLocationSection } from "./components/ProjectLocationSection";
 import { RepositorySection } from "./components/RepositorySection";
 
@@ -64,6 +65,17 @@ export function V2ProjectSettings({ projectId }: V2ProjectSettingsProps) {
 						currentPath={hostProject?.repoPath ?? null}
 						repoCloneUrl={project.repoCloneUrl}
 						onChanged={() => refetchHostProject()}
+					/>
+				</SettingsSection>
+
+				<SettingsSection
+					title="Appearance"
+					description="A custom icon shown next to this project in the sidebar. PNG, JPEG, or WebP up to 4.5MB."
+				>
+					<IconUploadField
+						projectId={projectId}
+						iconUrl={project.iconUrl ?? null}
+						hasGitHubRepo={project.repoCloneUrl != null}
 					/>
 				</SettingsSection>
 
