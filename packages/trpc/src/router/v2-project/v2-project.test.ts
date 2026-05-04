@@ -119,6 +119,29 @@ mock.module("@superset/db/schema", () => ({
 		userId: "members.user_id",
 		organizationId: "members.organization_id",
 	},
+	subscriptions: {
+		referenceId: "subscriptions.reference_id",
+	},
+	taskStatuses: {
+		id: "task_statuses.id",
+		organizationId: "task_statuses.organization_id",
+	},
+	tasks: {
+		assigneeId: "tasks.assignee_id",
+		createdAt: "tasks.created_at",
+		creatorId: "tasks.creator_id",
+		deletedAt: "tasks.deleted_at",
+		externalId: "tasks.external_id",
+		externalProvider: "tasks.external_provider",
+		id: "tasks.id",
+		organizationId: "tasks.organization_id",
+		slug: "tasks.slug",
+	},
+	users: {
+		id: "users.id",
+		image: "users.image",
+		name: "users.name",
+	},
 }));
 
 mock.module("@superset/db/utils", () => ({
@@ -151,7 +174,9 @@ mock.module("../integration/utils", () => ({
 
 mock.module("drizzle-orm", () => ({
 	and: (...conditions: unknown[]) => ({ type: "and", conditions }),
+	desc: (value: unknown) => ({ type: "desc", value }),
 	eq: (left: unknown, right: unknown) => ({ type: "eq", left, right }),
+	ilike: (left: unknown, right: unknown) => ({ type: "ilike", left, right }),
 	isNull: (value: unknown) => ({ type: "isNull", value }),
 	sql: Object.assign(
 		(strings: TemplateStringsArray, ...values: unknown[]) => ({
@@ -178,7 +203,9 @@ const OTHER_ORG_ID = "33333333-3333-4333-8333-333333333333";
 const PROJECT_ID = "44444444-4444-4444-8444-444444444444";
 const REPO_ID = "55555555-5555-4555-8555-555555555555";
 
-function authedContext(overrides: { activeOrganizationId?: string | null } = {}) {
+function authedContext(
+	overrides: { activeOrganizationId?: string | null } = {},
+) {
 	const activeOrganizationId =
 		overrides.activeOrganizationId === undefined
 			? ORG_ID
@@ -206,6 +233,10 @@ function unauthedContext() {
 async function flushMicrotasks() {
 	await new Promise((resolve) => setImmediate(resolve));
 	await new Promise((resolve) => setImmediate(resolve));
+}
+
+function setMembershipForJwt(organizationId = ORG_ID) {
+	membersFindManyResults.push([{ organizationId }]);
 }
 
 beforeEach(() => {
@@ -288,9 +319,7 @@ describe("v2Project.uploadIcon", () => {
 	});
 
 	it("rejects when the session has no active organization", async () => {
-		const caller = createCaller(
-			authedContext({ activeOrganizationId: null }),
-		);
+		const caller = createCaller(authedContext({ activeOrganizationId: null }));
 
 		await expect(caller.v2Project.uploadIcon(validInput)).rejects.toMatchObject(
 			{ code: "FORBIDDEN", message: "No active organization" },
@@ -371,7 +400,9 @@ describe("v2Project.uploadIcon", () => {
 
 	it("forwards the existing iconUrl so uploadImage can clean up the prior blob", async () => {
 		v2ProjectsFindResults.push({ id: PROJECT_ID, organizationId: ORG_ID });
-		v2ProjectsFindResults.push({ iconUrl: "https://blob.example/old-icon.png" });
+		v2ProjectsFindResults.push({
+			iconUrl: "https://blob.example/old-icon.png",
+		});
 		txUpdateReturningResults.push([
 			{ id: PROJECT_ID, iconUrl: "https://blob.example/new-icon.png" },
 		]);
@@ -430,9 +461,7 @@ describe("v2Project.resetIconToGitHub", () => {
 	});
 
 	it("rejects when the session has no active organization", async () => {
-		const caller = createCaller(
-			authedContext({ activeOrganizationId: null }),
-		);
+		const caller = createCaller(authedContext({ activeOrganizationId: null }));
 
 		await expect(
 			caller.v2Project.resetIconToGitHub({ id: PROJECT_ID }),
@@ -573,159 +602,97 @@ describe("v2Project.resetIconToGitHub", () => {
 	});
 });
 
-describe("v2Project.hydrateIconFromGitHubIfMissing", () => {
+describe("v2Project.delete", () => {
+	const input = {
+		organizationId: ORG_ID,
+		id: PROJECT_ID,
+	};
+
 	it("rejects unauthenticated callers", async () => {
 		const caller = createCaller(unauthedContext());
 
-		await expect(
-			caller.v2Project.hydrateIconFromGitHubIfMissing({ id: PROJECT_ID }),
-		).rejects.toMatchObject({ code: "UNAUTHORIZED" });
+		await expect(caller.v2Project.delete(input)).rejects.toMatchObject({
+			code: "UNAUTHORIZED",
+		});
 	});
 
-	it("rejects when the session has no active organization", async () => {
-		const caller = createCaller(
-			authedContext({ activeOrganizationId: null }),
-		);
+	it("rejects when the caller is not a member of the organization", async () => {
+		setMembershipForJwt(OTHER_ORG_ID);
+		const caller = createCaller(authedContext());
 
-		await expect(
-			caller.v2Project.hydrateIconFromGitHubIfMissing({ id: PROJECT_ID }),
-		).rejects.toMatchObject({ code: "FORBIDDEN" });
+		await expect(caller.v2Project.delete(input)).rejects.toMatchObject({
+			code: "FORBIDDEN",
+		});
+		expect(dbDelete).not.toHaveBeenCalled();
+		expect(delMock).not.toHaveBeenCalled();
 	});
 
-	it("rejects with NOT_FOUND when the project belongs to another organization", async () => {
+	it("is idempotent when the project is missing or scoped to another organization", async () => {
+		setMembershipForJwt();
 		v2ProjectsFindResults.push({
 			id: PROJECT_ID,
 			organizationId: OTHER_ORG_ID,
+			iconUrl: "https://blob.example/other-org-icon.png",
 		});
 		const caller = createCaller(authedContext());
 
-		await expect(
-			caller.v2Project.hydrateIconFromGitHubIfMissing({ id: PROJECT_ID }),
-		).rejects.toMatchObject({ code: "NOT_FOUND" });
-		expect(verifyOrgMembershipMock).not.toHaveBeenCalled();
-		expect(fetchAndStoreGitHubAvatarMock).not.toHaveBeenCalled();
+		await expect(caller.v2Project.delete(input)).resolves.toEqual({
+			success: true,
+		});
+		expect(dbDelete).not.toHaveBeenCalled();
+		expect(delMock).not.toHaveBeenCalled();
 	});
 
-	it("returns hydrated:false and skips the fetch when iconUrl is already set", async () => {
-		v2ProjectsFindResults.push({ id: PROJECT_ID, organizationId: ORG_ID });
+	it("deletes the project row without blob cleanup when there is no icon", async () => {
+		setMembershipForJwt();
 		v2ProjectsFindResults.push({
-			iconUrl: "https://blob.example/custom.png",
-			repoCloneUrl: "https://github.com/acme/repo.git",
-		});
-
-		const caller = createCaller(authedContext());
-		const result = await caller.v2Project.hydrateIconFromGitHubIfMissing({
 			id: PROJECT_ID,
-		});
-
-		await flushMicrotasks();
-
-		expect(result).toEqual({ hydrated: false });
-		expect(fetchAndStoreGitHubAvatarMock).not.toHaveBeenCalled();
-	});
-
-	it("returns hydrated:false and skips the fetch when there's no GitHub remote", async () => {
-		v2ProjectsFindResults.push({ id: PROJECT_ID, organizationId: ORG_ID });
-		v2ProjectsFindResults.push({ iconUrl: null, repoCloneUrl: null });
-
-		const caller = createCaller(authedContext());
-		const result = await caller.v2Project.hydrateIconFromGitHubIfMissing({
-			id: PROJECT_ID,
-		});
-
-		await flushMicrotasks();
-
-		expect(result).toEqual({ hydrated: false });
-		expect(fetchAndStoreGitHubAvatarMock).not.toHaveBeenCalled();
-	});
-
-	it("returns hydrated:false when the stored repoCloneUrl is unparseable", async () => {
-		v2ProjectsFindResults.push({ id: PROJECT_ID, organizationId: ORG_ID });
-		v2ProjectsFindResults.push({
+			organizationId: ORG_ID,
 			iconUrl: null,
-			repoCloneUrl: "not-a-url://garbage",
 		});
-
 		const caller = createCaller(authedContext());
-		const result = await caller.v2Project.hydrateIconFromGitHubIfMissing({
-			id: PROJECT_ID,
-		});
 
-		expect(result).toEqual({ hydrated: false });
-		expect(fetchAndStoreGitHubAvatarMock).not.toHaveBeenCalled();
+		await expect(caller.v2Project.delete(input)).resolves.toEqual({
+			success: true,
+		});
+		expect(dbDeleteWhere).toHaveBeenCalled();
+		expect(delMock).not.toHaveBeenCalled();
 	});
 
-	it("returns hydrated:true immediately and kicks off background fetch when iconUrl is missing", async () => {
-		v2ProjectsFindResults.push({ id: PROJECT_ID, organizationId: ORG_ID });
+	it("deletes the project icon blob after deleting the project row", async () => {
+		setMembershipForJwt();
 		v2ProjectsFindResults.push({
-			iconUrl: null,
-			repoCloneUrl: "https://github.com/acme/repo.git",
-		});
-
-		const caller = createCaller(authedContext());
-		const result = await caller.v2Project.hydrateIconFromGitHubIfMissing({
 			id: PROJECT_ID,
+			organizationId: ORG_ID,
+			iconUrl: "https://blob.example/project-icon.png",
 		});
-
-		expect(result).toEqual({ hydrated: true });
-
-		await flushMicrotasks();
-
-		expect(fetchAndStoreGitHubAvatarMock).toHaveBeenCalledWith({
-			owner: "acme",
-			pathnamePrefix: `organizations/${ORG_ID}/projects/${PROJECT_ID}/icon`,
-			existingUrl: null,
-		});
-		expect(dbUpdate).toHaveBeenCalledTimes(1);
-	});
-
-	it("background UPDATE carries the isNull(iconUrl) race guard so a parallel custom upload isn't overwritten", async () => {
-		v2ProjectsFindResults.push({ id: PROJECT_ID, organizationId: ORG_ID });
-		v2ProjectsFindResults.push({
-			iconUrl: null,
-			repoCloneUrl: "https://github.com/acme/repo.git",
-		});
-
 		const caller = createCaller(authedContext());
-		await caller.v2Project.hydrateIconFromGitHubIfMissing({ id: PROJECT_ID });
 
-		await flushMicrotasks();
-
-		expect(dbUpdateWhere.mock.calls.length).toBe(1);
-		const where = dbUpdateWhere.mock.calls[0]?.[0] as {
-			type: string;
-			conditions: Array<{ type: string; value?: unknown }>;
-		};
-		expect(where.type).toBe("and");
-		expect(where.conditions).toContainEqual(
-			expect.objectContaining({
-				type: "isNull",
-				value: "v2_projects.icon_url",
-			}),
+		await expect(caller.v2Project.delete(input)).resolves.toEqual({
+			success: true,
+		});
+		expect(dbDeleteWhere).toHaveBeenCalled();
+		expect(delMock).toHaveBeenCalledWith(
+			"https://blob.example/project-icon.png",
 		);
 	});
 
-	it("does not crash when background avatar fetch throws", async () => {
-		v2ProjectsFindResults.push({ id: PROJECT_ID, organizationId: ORG_ID });
+	it("swallows project icon blob cleanup failures", async () => {
+		setMembershipForJwt();
 		v2ProjectsFindResults.push({
-			iconUrl: null,
-			repoCloneUrl: "https://github.com/acme/repo.git",
-		});
-		fetchAndStoreGitHubAvatarMock.mockImplementationOnce(async () => {
-			throw new Error("connection refused");
-		});
-		const consoleWarnSpy = spyOn(console, "warn").mockImplementation(
-			() => {},
-		);
-
-		const caller = createCaller(authedContext());
-		const result = await caller.v2Project.hydrateIconFromGitHubIfMissing({
 			id: PROJECT_ID,
+			organizationId: ORG_ID,
+			iconUrl: "https://blob.example/project-icon.png",
 		});
+		delMock.mockImplementationOnce(async () => {
+			throw new Error("blob storage unavailable");
+		});
+		const consoleWarnSpy = spyOn(console, "warn").mockImplementation(() => {});
+		const caller = createCaller(authedContext());
 
-		await flushMicrotasks();
-
-		expect(result).toEqual({ hydrated: true });
+		await expect(caller.v2Project.delete(input)).resolves.toEqual({
+			success: true,
+		});
 		expect(consoleWarnSpy).toHaveBeenCalled();
 
 		consoleWarnSpy.mockRestore();
@@ -742,9 +709,7 @@ describe("v2Project.removeIcon", () => {
 	});
 
 	it("rejects when the session has no active organization", async () => {
-		const caller = createCaller(
-			authedContext({ activeOrganizationId: null }),
-		);
+		const caller = createCaller(authedContext({ activeOrganizationId: null }));
 
 		await expect(
 			caller.v2Project.removeIcon({ id: PROJECT_ID }),
@@ -972,9 +937,7 @@ describe("v2Project.create — GitHub avatar auto-hydration", () => {
 		fetchAndStoreGitHubAvatarMock.mockImplementationOnce(async () => {
 			throw new Error("connection refused");
 		});
-		const consoleWarnSpy = spyOn(console, "warn").mockImplementation(
-			() => {},
-		);
+		const consoleWarnSpy = spyOn(console, "warn").mockImplementation(() => {});
 
 		const caller = createCaller(authedContext());
 		const result = await caller.v2Project.create({
@@ -997,10 +960,6 @@ describe("v2Project.linkRepoCloneUrl — GitHub avatar auto-hydration", () => {
 		id: PROJECT_ID,
 		repoCloneUrl: "https://github.com/acme/repo.git",
 	};
-
-	function setMembershipForJwt() {
-		membersFindManyResults.push([{ organizationId: ORG_ID }]);
-	}
 
 	it("rejects with FORBIDDEN when caller is not a member of the org", async () => {
 		membersFindManyResults.push([{ organizationId: OTHER_ORG_ID }]);
@@ -1122,9 +1081,7 @@ describe("v2Project.linkRepoCloneUrl — GitHub avatar auto-hydration", () => {
 		fetchAndStoreGitHubAvatarMock.mockImplementationOnce(async () => {
 			throw new Error("connection refused");
 		});
-		const consoleWarnSpy = spyOn(console, "warn").mockImplementation(
-			() => {},
-		);
+		const consoleWarnSpy = spyOn(console, "warn").mockImplementation(() => {});
 
 		const caller = createCaller(authedContext());
 		const result = await caller.v2Project.linkRepoCloneUrl(baseInput);

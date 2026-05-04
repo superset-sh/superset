@@ -1,4 +1,3 @@
-import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import type { HostServiceClient } from "renderer/lib/host-service-client";
 import type { electronTrpcClient } from "renderer/lib/trpc-client";
 import type { OrgCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider/collections";
@@ -236,19 +235,6 @@ export async function migrateV1DataToV2(args: Args): Promise<MigrationSummary> {
 					existing.v2Id,
 					project.mainRepoPath,
 				);
-				// Backfill GitHub icon for v2 rows that pre-date the icon
-				// feature. The cloud mutation is idempotent (no-op when
-				// iconUrl is already set or repoCloneUrl is missing) and
-				// fire-and-forget — never blocks migration on a remote fetch.
-				const v2Id = existing.v2Id;
-				void apiTrpcClient.v2Project.hydrateIconFromGitHubIfMissing
-					.mutate({ id: v2Id })
-					.catch((error: unknown) => {
-						console.warn(
-							"[v1-migration] icon backfill failed",
-							{ v2Id, error },
-						);
-					});
 				projectV1ToV2.set(project.id, existing.v2Id);
 				summary.projects.push({
 					name: project.name,
