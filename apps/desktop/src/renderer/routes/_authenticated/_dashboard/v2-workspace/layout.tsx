@@ -47,11 +47,32 @@ function V2WorkspaceLayout() {
 	const workspace = workspaces[0] ?? null;
 
 	const isLocal = workspace?.hostId === machineId;
-	const hostUrl = !workspace
+	const liveHostUrl = !workspace
 		? null
 		: isLocal
 			? activeHostUrl
 			: `${env.RELAY_URL}/hosts/${buildHostRoutingKey(workspace.organizationId, workspace.hostId)}`;
+
+	// Sticky hostUrl: hold the last good value while a local host-service
+	// momentarily reports no active connection (5s poll race during restart,
+	// brief "starting" window). Without this the provider tears down and any
+	// child reading useWorkspaceClient synchronously throws. Scoped to the
+	// current workspace.id so switching workspaces never reuses a stale URL.
+	const lastGoodHostUrlRef = useRef<{
+		workspaceId: string;
+		url: string;
+	} | null>(null);
+	if (workspace && liveHostUrl) {
+		lastGoodHostUrlRef.current = {
+			workspaceId: workspace.id,
+			url: liveHostUrl,
+		};
+	}
+	const hostUrl =
+		liveHostUrl ??
+		(workspace && lastGoodHostUrlRef.current?.workspaceId === workspace.id
+			? lastGoodHostUrlRef.current.url
+			: null);
 
 	const lastEnsuredWorkspaceIdRef = useRef<string | null>(null);
 
@@ -66,8 +87,10 @@ function V2WorkspaceLayout() {
 		return null;
 	}
 
+	// Don't render <Outlet /> without the provider — child routes call
+	// useWorkspaceClient hooks synchronously during render and would throw.
 	if (!workspace || !hostUrl) {
-		return <Outlet />;
+		return null;
 	}
 
 	return (
