@@ -25,9 +25,10 @@ import {
 	DropdownMenuItem,
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
+import { Skeleton } from "@superset/ui/skeleton";
 import { toast } from "@superset/ui/sonner";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, RotateCcw } from "lucide-react";
+import { Bot, Plus, RotateCcw } from "lucide-react";
 import { useMemo } from "react";
 import {
 	getPresetIcon,
@@ -158,7 +159,7 @@ export function V2AgentsSettings() {
 	};
 
 	return (
-		<div className="p-6 max-w-5xl w-full">
+		<div className="p-6 max-w-4xl w-full">
 			<div className="mb-8 flex items-start justify-between gap-4">
 				<div>
 					<h2 className="text-xl font-semibold">Agents</h2>
@@ -168,7 +169,7 @@ export function V2AgentsSettings() {
 				</div>
 				<div className="flex items-center gap-2 shrink-0">
 					<Button
-						variant="ghost"
+						variant="outline"
 						size="sm"
 						onClick={() => resetMutation.mutate()}
 						disabled={resetMutation.isPending}
@@ -196,9 +197,7 @@ export function V2AgentsSettings() {
 												alt=""
 												className="size-4 object-contain shrink-0"
 											/>
-										) : (
-											<div className="size-4 rounded bg-muted shrink-0" />
-										)}
+										) : null}
 										{preset.label}
 									</DropdownMenuItem>
 								);
@@ -209,9 +208,22 @@ export function V2AgentsSettings() {
 			</div>
 
 			{configsQuery.isLoading ? (
-				<p className="text-sm text-muted-foreground">
-					Loading agent settings...
-				</p>
+				<div className="space-y-3">
+					{[0, 1, 2].map((i) => (
+						<div
+							key={i}
+							className="flex items-center gap-3 p-4 rounded-lg border bg-card"
+						>
+							<Skeleton className="size-4" />
+							<Skeleton className="size-8 rounded-lg" />
+							<div className="flex-1 space-y-2">
+								<Skeleton className="h-4 w-32" />
+								<Skeleton className="h-3 w-56" />
+							</div>
+							<Skeleton className="size-8 rounded" />
+						</div>
+					))}
+				</div>
 			) : configsQuery.isError ? (
 				<div className="space-y-2">
 					<p className="text-sm text-destructive">
@@ -229,9 +241,16 @@ export function V2AgentsSettings() {
 					</Button>
 				</div>
 			) : configs.length === 0 ? (
-				<p className="text-sm text-muted-foreground">
-					No agents configured. Add one from the menu above.
-				</p>
+				<div className="rounded-lg border border-dashed py-12 px-6 text-center">
+					<Bot
+						aria-hidden="true"
+						className="mx-auto size-10 text-muted-foreground/60"
+					/>
+					<h3 className="mt-3 text-sm font-medium">No agents yet</h3>
+					<p className="mt-1 text-xs text-muted-foreground">
+						Add one from the menu above to get started.
+					</p>
+				</div>
 			) : (
 				<DndContext
 					sensors={sensors}

@@ -194,9 +194,7 @@ export function V2AgentCard({
 								alt=""
 								className="size-8 object-contain shrink-0"
 							/>
-						) : (
-							<div className="size-8 rounded-lg bg-muted shrink-0" />
-						)}
+						) : null}
 						<div className="min-w-0 flex-1">
 							<CardTitle className="truncate">{config.label}</CardTitle>
 							<CardDescription className="mt-1 truncate">
