@@ -8,7 +8,7 @@ import { RenameInput } from "renderer/screens/main/components/WorkspaceSidebar/R
 interface DashboardSidebarProjectRowProps
 	extends ComponentPropsWithoutRef<"div"> {
 	projectName: string;
-	githubOwner: string | null;
+	iconUrl: string | null;
 	totalWorkspaceCount: number;
 	isCollapsed: boolean;
 	isRenaming: boolean;
@@ -28,7 +28,7 @@ export const DashboardSidebarProjectRow = forwardRef<
 	(
 		{
 			projectName,
-			githubOwner,
+			iconUrl,
 			totalWorkspaceCount,
 			isCollapsed,
 			isRenaming,
@@ -73,7 +73,7 @@ export const DashboardSidebarProjectRow = forwardRef<
 					<div className="flex size-5 shrink-0 items-center justify-center">
 						<ProjectThumbnail
 							projectName={projectName}
-							githubOwner={githubOwner}
+							iconUrl={iconUrl}
 							className="size-4 group-hover:hidden"
 						/>
 						<HiChevronRight

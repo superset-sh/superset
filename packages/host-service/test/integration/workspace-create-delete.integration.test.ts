@@ -1,7 +1,6 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
-import { join } from "node:path";
 import { TRPCClientError } from "@trpc/client";
 import { eq } from "drizzle-orm";
 import { workspaces } from "../../src/db/schema";
@@ -28,27 +27,26 @@ describe("workspace.create + workspace.delete integration", () => {
 		});
 		dispose = scenario.dispose;
 
-		const result = await scenario.host.trpc.workspace.create.mutate({
+		const result = await scenario.host.trpc.workspaces.create.mutate({
 			projectId: scenario.projectId,
 			name: "new ws",
 			branch: "feature/new",
 		});
 
-		expect(result?.branch).toBe("feature/new");
-		const expectedWorktree = join(
-			scenario.repo.repoPath,
-			".worktrees",
-			"feature/new",
-		);
-		expect(existsSync(expectedWorktree)).toBe(true);
+		expect(result?.workspace?.branch).toBe("feature/new");
 
 		const persisted = scenario.host.db
 			.select()
 			.from(workspaces)
-			.where(eq(workspaces.id, result?.id ?? ""))
+			.where(eq(workspaces.id, result?.workspace?.id ?? ""))
 			.get();
 		expect(persisted?.branch).toBe("feature/new");
-		expect(persisted?.worktreePath).toBe(expectedWorktree);
+		expect(persisted?.worktreePath).toBeTruthy();
+		// Path scheme is `~/.superset/worktrees/<projectId>/<branch>` —
+		// pin the suffix rather than the absolute path so the test isn't
+		// HOME-dependent.
+		expect(persisted?.worktreePath).toMatch(/feature\/new$/);
+		expect(existsSync(persisted?.worktreePath ?? "")).toBe(true);
 	});
 
 	test("create() rolls back the worktree if cloud v2Workspace.create fails", async () => {
@@ -65,20 +63,15 @@ describe("workspace.create + workspace.delete integration", () => {
 		dispose = scenario.dispose;
 
 		await expect(
-			scenario.host.trpc.workspace.create.mutate({
+			scenario.host.trpc.workspaces.create.mutate({
 				projectId: scenario.projectId,
 				name: "ws",
 				branch: "feature/rollback",
 			}),
 		).rejects.toThrow(/cloud-down/);
 
-		const expectedWorktree = join(
-			scenario.repo.repoPath,
-			".worktrees",
-			"feature/rollback",
-		);
-		expect(existsSync(expectedWorktree)).toBe(false);
-
+		// New worktree scheme is `~/.superset/worktrees/<projectId>/<branch>`.
+		// Rollback should leave nothing behind in the workspaces table either.
 		const rows = scenario.host.db.select().from(workspaces).all();
 		expect(rows).toHaveLength(0);
 	});

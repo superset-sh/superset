@@ -313,16 +313,20 @@ function internalToSearchPatchEvent(
 export interface FsWatcherManagerOptions {
 	debounceMs?: number;
 	ignore?: string[];
+	/** Per-watcher LRU cap on tracked file paths. Test-only override. */
+	filePathsMax?: number;
 }
 
 export class FsWatcherManager {
 	private readonly debounceMs: number;
 	private readonly ignore: string[];
+	private readonly filePathsMax: number;
 	private readonly watchers = new Map<string, WatcherState>();
 
 	constructor(options: FsWatcherManagerOptions = {}) {
 		this.debounceMs = options.debounceMs ?? 75;
 		this.ignore = options.ignore ?? DEFAULT_IGNORE_PATTERNS;
+		this.filePathsMax = options.filePathsMax ?? FILE_PATHS_MAX;
 	}
 
 	async subscribe(
@@ -501,7 +505,7 @@ export class FsWatcherManager {
 					// LRU bump + evict oldest file when at cap. Map iteration is
 					// insertion-order, so the first key is least-recently-used.
 					state.filePaths.delete(absolutePath);
-					if (state.filePaths.size >= FILE_PATHS_MAX) {
+					if (state.filePaths.size >= this.filePathsMax) {
 						const oldestKey = state.filePaths.keys().next().value;
 						if (oldestKey) state.filePaths.delete(oldestKey);
 					}

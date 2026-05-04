@@ -22,7 +22,6 @@ export const SETTING_ITEM_ID = {
 
 	KEYBOARD_SHORTCUTS: "keyboard-shortcuts",
 	BEHAVIOR_CONFIRM_QUIT: "behavior-confirm-quit",
-	BEHAVIOR_TELEMETRY: "behavior-telemetry",
 	BEHAVIOR_FILE_OPEN_MODE: "behavior-file-open-mode",
 	BEHAVIOR_RESOURCE_MONITOR: "behavior-resource-monitor",
 	BEHAVIOR_OPEN_LINKS_IN_APP: "behavior-open-links-in-app",
@@ -127,7 +126,6 @@ export const SETTING_ITEM_VARIANT: Record<SettingItemId, SettingVariant> = {
 	[SETTING_ITEM_ID.KEYBOARD_SHORTCUTS]: "shared",
 
 	[SETTING_ITEM_ID.BEHAVIOR_CONFIRM_QUIT]: "shared",
-	[SETTING_ITEM_ID.BEHAVIOR_TELEMETRY]: "shared",
 	[SETTING_ITEM_ID.BEHAVIOR_FILE_OPEN_MODE]: "v1",
 	[SETTING_ITEM_ID.BEHAVIOR_RESOURCE_MONITOR]: "shared",
 	[SETTING_ITEM_ID.BEHAVIOR_OPEN_LINKS_IN_APP]: "v1",
@@ -510,24 +508,6 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"username",
 			"feat",
 			"custom",
-		],
-	},
-	{
-		id: SETTING_ITEM_ID.BEHAVIOR_TELEMETRY,
-		section: "behavior",
-		title: "Send anonymous usage data",
-		description: "Help improve Superset by sending anonymous usage data",
-		keywords: [
-			"telemetry",
-			"analytics",
-			"tracking",
-			"privacy",
-			"data",
-			"usage",
-			"anonymous",
-			"metrics",
-			"opt out",
-			"disable",
 		],
 	},
 	{

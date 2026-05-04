@@ -1,18 +1,11 @@
 import { FEATURE_FLAGS } from "@superset/shared/constants";
-import { Badge } from "@superset/ui/badge";
 import { Button } from "@superset/ui/button";
-import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardHeader,
-} from "@superset/ui/card";
 import { Skeleton } from "@superset/ui/skeleton";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useFeatureFlagEnabled } from "posthog-js/react";
 import { useCallback, useEffect, useState } from "react";
 import { FaGithub, FaSlack } from "react-icons/fa";
-import { HiCheckCircle, HiOutlineArrowTopRightOnSquare } from "react-icons/hi2";
+import { HiOutlineArrowTopRightOnSquare } from "react-icons/hi2";
 import { SiLinear } from "react-icons/si";
 import { env } from "renderer/env.renderer";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
@@ -114,10 +107,10 @@ export function IntegrationsSettings({
 				<div className="mb-8">
 					<h2 className="text-xl font-semibold">Integrations</h2>
 					<p className="text-sm text-muted-foreground mt-1">
-						Connect external services to sync data
+						Connect external services to sync data.
 					</p>
 				</div>
-				<p className="text-muted-foreground">
+				<p className="text-sm text-muted-foreground">
 					You need to be part of an organization to use integrations.
 				</p>
 			</div>
@@ -129,16 +122,16 @@ export function IntegrationsSettings({
 			<div className="mb-8">
 				<h2 className="text-xl font-semibold">Integrations</h2>
 				<p className="text-sm text-muted-foreground mt-1">
-					Connect external services to sync data with your organization
+					Connect external services to sync data with your organization.
 				</p>
 			</div>
 
-			<div className="grid gap-4">
+			<div className="space-y-1">
 				{showLinear && (
-					<IntegrationCard
+					<IntegrationRow
 						name="Linear"
-						description="Sync issues bidirectionally with Linear"
-						icon={<SiLinear className="size-6" />}
+						description="Sync issues bidirectionally with Linear."
+						icon={<SiLinear className="size-5" />}
 						isConnected={isLinearConnected}
 						connectedOrgName={linearConnection?.externalOrgName}
 						onManage={() => handleOpenWeb("/integrations/linear")}
@@ -146,10 +139,10 @@ export function IntegrationsSettings({
 				)}
 
 				{showGithub && (
-					<IntegrationCard
+					<IntegrationRow
 						name="GitHub"
-						description="Connect repos and sync pull requests"
-						icon={<FaGithub className="size-6" />}
+						description="Connect repos and sync pull requests."
+						icon={<FaGithub className="size-5" />}
 						isConnected={isGithubConnected}
 						connectedOrgName={githubInstallation?.accountLogin}
 						isLoading={isLoadingGithub}
@@ -158,10 +151,10 @@ export function IntegrationsSettings({
 				)}
 
 				{showSlack && (
-					<IntegrationCard
+					<IntegrationRow
 						name="Slack"
-						description="Manage tasks from Slack conversations"
-						icon={<FaSlack className="size-6" />}
+						description="Manage tasks from Slack conversations."
+						icon={<FaSlack className="size-5" />}
 						isConnected={isSlackConnected}
 						connectedOrgName={slackConnection?.externalOrgName}
 						onManage={() => handleOpenWeb("/integrations/slack")}
@@ -176,7 +169,7 @@ export function IntegrationsSettings({
 	);
 }
 
-interface IntegrationCardProps {
+interface IntegrationRowProps {
 	name: string;
 	description: string;
 	icon: React.ReactNode;
@@ -184,10 +177,9 @@ interface IntegrationCardProps {
 	connectedOrgName?: string | null;
 	isLoading?: boolean;
 	onManage: () => void;
-	comingSoon?: boolean;
 }
 
-function IntegrationCard({
+function IntegrationRow({
 	name,
 	description,
 	icon,
@@ -195,56 +187,53 @@ function IntegrationCard({
 	connectedOrgName,
 	isLoading,
 	onManage,
-	comingSoon,
-}: IntegrationCardProps) {
+}: IntegrationRowProps) {
+	const status = isLoading ? (
+		<Skeleton className="h-4 w-24" />
+	) : (
+		<div className="flex items-center gap-1.5">
+			<span
+				className={
+					isConnected
+						? "size-2 rounded-full bg-green-500"
+						: "size-2 rounded-full bg-muted-foreground/30"
+				}
+			/>
+			<span className="text-xs text-muted-foreground">
+				{isConnected
+					? connectedOrgName
+						? `Connected to ${connectedOrgName}`
+						: "Connected"
+					: "Not connected"}
+			</span>
+		</div>
+	);
+
 	return (
-		<Card>
-			<CardHeader className="pb-3">
-				<div className="flex items-center justify-between">
-					<div className="flex items-center gap-3">
-						<div className="flex size-10 items-center justify-center rounded-lg border bg-muted/50">
-							{icon}
-						</div>
-						<div>
-							<div className="flex items-center gap-2">
-								<span className="font-medium">{name}</span>
-								{isLoading ? (
-									<Skeleton className="h-5 w-20" />
-								) : isConnected ? (
-									<Badge variant="default" className="gap-1">
-										<HiCheckCircle className="size-3" />
-										Connected
-									</Badge>
-								) : comingSoon ? (
-									<Badge variant="outline">Coming Soon</Badge>
-								) : (
-									<Badge variant="secondary">Not Connected</Badge>
-								)}
-							</div>
-							<CardDescription className="mt-0.5">
-								{description}
-							</CardDescription>
-						</div>
-					</div>
-					<Button
-						variant="outline"
-						size="sm"
-						onClick={onManage}
-						disabled={comingSoon}
-						className="gap-2"
-					>
-						<HiOutlineArrowTopRightOnSquare className="size-4" />
-						{isConnected ? "Manage" : "Connect"}
-					</Button>
+		<div className="flex items-center justify-between gap-8 py-3">
+			<div className="flex items-center gap-3 min-w-0">
+				<div className="flex size-8 shrink-0 items-center justify-center text-foreground">
+					{icon}
 				</div>
-			</CardHeader>
-			{isConnected && connectedOrgName && (
-				<CardContent className="pt-0">
-					<p className="text-sm text-muted-foreground">
-						Connected to <span className="font-medium">{connectedOrgName}</span>
-					</p>
-				</CardContent>
-			)}
-		</Card>
+				<div className="min-w-0">
+					<div className="text-sm font-medium">{name}</div>
+					<div className="text-xs text-muted-foreground mt-0.5 truncate">
+						{description}
+					</div>
+				</div>
+			</div>
+			<div className="flex items-center gap-3 shrink-0">
+				{status}
+				<Button
+					variant="outline"
+					size="sm"
+					onClick={onManage}
+					className="gap-2"
+				>
+					<HiOutlineArrowTopRightOnSquare className="size-4" />
+					{isConnected ? "Manage" : "Connect"}
+				</Button>
+			</div>
+		</div>
 	);
 }

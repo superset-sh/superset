@@ -188,14 +188,13 @@ describe("bug-hunt-2: partial-failure consistency", () => {
 			})
 			.run();
 
-		// The legacy `workspace.create` (v1) doesn't roll back the worktree
-		// when the local DB insert fails — that's by design (a stale local
-		// row would block the retry forever). Pin that behavior: the call
-		// must throw, AND the on-disk worktree must remain (so the user
-		// can inspect/recover it before the next attempt). If a future
-		// change adds a rollback, this test flips and signals the change.
+		// The new canonical `workspaces.create` rolls back the worktree
+		// when the local DB insert fails (the old v1 surface deliberately
+		// did not, to leave a recoverable artefact — that surface is now
+		// gone). Pin the rollback: the call must throw AND the worktree
+		// must be cleaned up.
 		await expect(
-			host.trpc.workspace.create.mutate({
+			host.trpc.workspaces.create.mutate({
 				projectId,
 				name: "ws",
 				branch: "feature/post-cloud-fail",
@@ -207,7 +206,7 @@ describe("bug-hunt-2: partial-failure consistency", () => {
 			".worktrees",
 			"feature/post-cloud-fail",
 		);
-		expect(existsSync(expectedWorktree)).toBe(true);
+		expect(existsSync(expectedWorktree)).toBe(false);
 	});
 
 	test("workspace.delete with a worktree dir already removed manually still cleans up the row", async () => {

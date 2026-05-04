@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from "bun:test";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { FsWatcherManager } from "./watch";
+import { FsWatcherManager, type FsWatcherManagerOptions } from "./watch";
 
 /**
  * INTEGRATION reproduction of finding #3 in
@@ -51,7 +51,7 @@ async function createTempRoot(): Promise<string> {
 	return fs.realpath(tempPath);
 }
 
-function createManager(options?: { debounceMs?: number }): FsWatcherManager {
+function createManager(options?: FsWatcherManagerOptions): FsWatcherManager {
 	const manager = new FsWatcherManager(options);
 	managers.push(manager);
 	return manager;
@@ -218,47 +218,52 @@ describe("FsWatcherManager.pathTypes — monotonic growth", () => {
 		expect(sizeAfterPhase3).toBeGreaterThanOrEqual(sizeAfterDeletes + 5);
 	});
 
-	it("caps pathTypes at PATH_TYPES_MAX (10k) — older entries evicted on overflow", async () => {
-		// After Fix #3 lands, creating 10k+ unique files should plateau at the
-		// cap rather than growing without bound. Slightly above the cap (10,200)
-		// to exercise eviction without slowing the test more than necessary.
+	it("caps pathTypes at filePathsMax — older entries evicted on overflow", async () => {
+		// Verify the LRU eviction with a small injected cap so the test stays
+		// fast and doesn't OOM CI. The production cap (FILE_PATHS_MAX) is
+		// orders of magnitude larger; the eviction logic is identical.
 		const rootPath = await createTempRoot();
 		tempRoots.push(rootPath);
 
-		const manager = createManager({ debounceMs: 50 });
+		const FILE_PATHS_MAX = 50;
+		const manager = createManager({
+			debounceMs: 50,
+			filePathsMax: FILE_PATHS_MAX,
+		});
 		await manager.subscribe(
 			{ absolutePath: rootPath, recursive: true },
 			() => {},
 		);
 
-		const PATH_TYPES_MAX = 10_000;
-		const total = PATH_TYPES_MAX + 200;
+		const total = FILE_PATHS_MAX + 20;
 
 		for (let i = 0; i < total; i++) {
 			await fs.writeFile(path.join(rootPath, `cap-${i}.tmp`), `${i}`);
 		}
 
-		// Poll on the actual eviction outcome rather than the event count —
-		// hitting 95% of events doesn't strictly imply the cap was exceeded
-		// (could land at 9_690/10_000 and stall under coalesced delivery).
+		// Wait for the last write to land — that guarantees both the eviction
+		// has fired (we're well past the cap) and the most-recent path is
+		// tracked. The original 10k+ test relied on sheer scale to flush in
+		// time; with a small cap we need an explicit settle.
 		const firstPath = path.join(rootPath, "cap-0.tmp");
+		const lastPath = path.join(rootPath, `cap-${total - 1}.tmp`);
 		await waitForCondition(
-			() => !getPathTypes(manager, rootPath).has(firstPath),
-			60_000,
+			() => getPathTypes(manager, rootPath).has(lastPath),
+			30_000,
 		);
 
 		// File entries are the LRU-capped axis; directories are tracked
 		// separately and aren't counted toward the cap.
 		const cappedFileSize = getFilePathsSize(manager, rootPath);
-		expect(cappedFileSize).toBeLessThanOrEqual(PATH_TYPES_MAX);
+		expect(cappedFileSize).toBeLessThanOrEqual(FILE_PATHS_MAX);
 
-		// Earliest paths (cap-0..cap-199) should have been evicted.
+		// Earliest paths should have been evicted.
 		expect(getPathTypes(manager, rootPath).has(firstPath)).toBe(false);
 
-		// Most-recent paths should still be in the map.
-		const lastPath = path.join(rootPath, `cap-${total - 1}.tmp`);
+		// Most-recent paths should still be in the map (already verified by
+		// waitForCondition above, but assert for clarity).
 		expect(getPathTypes(manager, rootPath).has(lastPath)).toBe(true);
-	}, 120_000);
+	}, 60_000);
 
 	it("repeated create/delete with unique names grows pathTypes monotonically until delete catches up", async () => {
 		// The most realistic leak scenario: a process keeps creating files

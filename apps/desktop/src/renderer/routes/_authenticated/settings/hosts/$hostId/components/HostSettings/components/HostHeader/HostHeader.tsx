@@ -12,15 +12,15 @@ export function HostHeader({ name, isOnline, machineId }: HostHeaderProps) {
 			<div className="flex items-center gap-2">
 				<span
 					className={cn(
-						"h-2 w-2 rounded-full",
+						"size-2 rounded-full",
 						isOnline ? "bg-emerald-500" : "bg-muted-foreground/40",
 					)}
 				/>
 				<h2 className="text-xl font-semibold">{name}</h2>
 			</div>
 			<p className="text-sm text-muted-foreground mt-1">
-				{isOnline ? "Online" : "Offline"} · machine ID{" "}
-				<code className="text-xs">{machineId}</code>
+				{isOnline ? "Online" : "Offline"} ·{" "}
+				<span className="font-mono">{machineId}</span>
 			</p>
 		</div>
 	);

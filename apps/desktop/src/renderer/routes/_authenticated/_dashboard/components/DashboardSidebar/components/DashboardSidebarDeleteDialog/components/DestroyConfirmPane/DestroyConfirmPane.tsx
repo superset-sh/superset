@@ -54,6 +54,11 @@ export function DestroyConfirmPane({
 						also be removed.
 					</AlertDialogDescription>
 				</AlertDialogHeader>
+				{isCheckingStatus && !hasWarnings && (
+					<div className="px-4 pb-2 text-xs text-muted-foreground">
+						Checking delete status…
+					</div>
+				)}
 				{hasWarnings && (
 					<div className="px-4 pb-2">
 						<div className="text-xs text-yellow-700 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-500/10 border border-yellow-200 dark:border-yellow-500/20 rounded-md px-2.5 py-1.5">
@@ -103,7 +108,7 @@ export function DestroyConfirmPane({
 						size="sm"
 						className="h-7 px-3 text-xs"
 						onClick={onConfirm}
-						disabled={isCheckingStatus || !canConfirm}
+						disabled={!canConfirm}
 					>
 						{confirmLabel}
 					</Button>

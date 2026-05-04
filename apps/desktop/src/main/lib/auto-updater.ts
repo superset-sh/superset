@@ -1,5 +1,6 @@
 import { EventEmitter } from "node:events";
 import { app, dialog } from "electron";
+import log from "electron-log/main";
 import { autoUpdater } from "electron-updater";
 import { env } from "main/env.main";
 import { setSkipQuitConfirmation } from "main/index";
@@ -21,9 +22,9 @@ async function clearCachedUpdate(reason: string): Promise<void> {
 	if (!helper) return;
 	try {
 		await helper.clear();
-		console.info(`[auto-updater] Cleared cached update (${reason})`);
+		log.info(`[auto-updater] Cleared cached update (${reason})`);
 	} catch (error) {
-		console.error("[auto-updater] Failed to clear cached update:", error);
+		log.error("[auto-updater] Failed to clear cached update:", error);
 	}
 }
 
@@ -108,7 +109,7 @@ export function getUpdateStatus(): AutoUpdateStatusEvent {
 
 export function installUpdate(): void {
 	if (env.NODE_ENV === "development") {
-		console.info("[auto-updater] Install skipped in dev mode");
+		log.info("[auto-updater] Install skipped in dev mode");
 		emitStatus(AUTO_UPDATE_STATUS.IDLE);
 		return;
 	}
@@ -118,13 +119,13 @@ export function installUpdate(): void {
 	// parallel quitAndInstall calls once Squirrel fires — racing to swap
 	// the binary and leaving the app on the old version.
 	if (isInstalling) {
-		console.info(
+		log.info(
 			"[auto-updater] Install already in progress, ignoring duplicate request",
 		);
 		return;
 	}
 	if (currentStatus !== AUTO_UPDATE_STATUS.READY) {
-		console.warn(
+		log.warn(
 			`[auto-updater] Install ignored: update not ready (status=${currentStatus})`,
 		);
 		return;
@@ -147,11 +148,11 @@ export function checkForUpdates(): void {
 	emitStatus(AUTO_UPDATE_STATUS.CHECKING);
 	autoUpdater.checkForUpdates().catch((error) => {
 		if (isNetworkError(error)) {
-			console.info("[auto-updater] Network unavailable, will retry later");
+			log.info("[auto-updater] Network unavailable, will retry later");
 			emitStatus(AUTO_UPDATE_STATUS.IDLE);
 			return;
 		}
-		console.error("[auto-updater] Failed to check for updates:", error);
+		log.error("[auto-updater] Failed to check for updates:", error);
 		emitStatus(AUTO_UPDATE_STATUS.ERROR, undefined, error.message);
 	});
 }
@@ -195,7 +196,7 @@ export function checkForUpdatesInteractive(): void {
 		})
 		.catch((error) => {
 			if (isNetworkError(error)) {
-				console.info("[auto-updater] Network unavailable");
+				log.info("[auto-updater] Network unavailable");
 				emitStatus(AUTO_UPDATE_STATUS.IDLE);
 				dialog.showMessageBox({
 					type: "info",
@@ -205,7 +206,7 @@ export function checkForUpdatesInteractive(): void {
 				});
 				return;
 			}
-			console.error("[auto-updater] Failed to check for updates:", error);
+			log.error("[auto-updater] Failed to check for updates:", error);
 			emitStatus(AUTO_UPDATE_STATUS.ERROR, undefined, error.message);
 			dialog.showMessageBox({
 				type: "error",
@@ -242,6 +243,14 @@ export function setupAutoUpdater(): void {
 		return;
 	}
 
+	// Squirrel.Mac install failures happen in ShipIt out-of-process and never
+	// reach the lib's `error` event, so route both the lib's internal logger
+	// and our own handler narration through electron-log. Both halves of the
+	// state machine end up interleaved in ~/Library/Logs/Superset/main.log —
+	// always use `log.{info,warn,error}` here, not `console.*`.
+	log.transports.file.level = "info";
+	autoUpdater.logger = log;
+
 	autoUpdater.autoDownload = true;
 	autoUpdater.autoInstallOnAppQuit = true;
 	autoUpdater.disableDifferentialDownload = true;
@@ -256,7 +265,7 @@ export function setupAutoUpdater(): void {
 		url: UPDATE_FEED_URL,
 	});
 
-	console.info(
+	log.info(
 		`[auto-updater] Initialized: version=${app.getVersion()}, channel=${IS_PRERELEASE ? "canary" : "stable"}, feedURL=${UPDATE_FEED_URL}`,
 	);
 
@@ -264,11 +273,11 @@ export function setupAutoUpdater(): void {
 		// Allow retry if Squirrel surfaces an error instead of actually quitting.
 		isInstalling = false;
 		if (isNetworkError(error)) {
-			console.info("[auto-updater] Network unavailable, will retry later");
+			log.info("[auto-updater] Network unavailable, will retry later");
 			emitStatus(AUTO_UPDATE_STATUS.IDLE);
 			return;
 		}
-		console.error(
+		log.error(
 			`[auto-updater] Error during update (currentVersion=${app.getVersion()}):`,
 			error?.message || error,
 		);
@@ -277,34 +286,34 @@ export function setupAutoUpdater(): void {
 	});
 
 	autoUpdater.on("checking-for-update", () => {
-		console.info(
+		log.info(
 			`[auto-updater] Checking for updates... (currentVersion=${app.getVersion()}, feedURL=${UPDATE_FEED_URL})`,
 		);
 		emitStatus(AUTO_UPDATE_STATUS.CHECKING);
 	});
 
 	autoUpdater.on("update-available", (info) => {
-		console.info(
+		log.info(
 			`[auto-updater] Update available: ${app.getVersion()} → ${info.version} (files: ${info.files?.map((f: { url: string }) => f.url).join(", ")})`,
 		);
 		emitStatus(AUTO_UPDATE_STATUS.DOWNLOADING, info.version);
 	});
 
 	autoUpdater.on("update-not-available", (info) => {
-		console.info(
+		log.info(
 			`[auto-updater] No updates available (currentVersion=${app.getVersion()}, latestVersion=${info.version})`,
 		);
 		emitStatus(AUTO_UPDATE_STATUS.IDLE);
 	});
 
 	autoUpdater.on("download-progress", (progress) => {
-		console.info(
+		log.info(
 			`[auto-updater] Download progress: ${progress.percent.toFixed(1)}% (${(progress.transferred / 1024 / 1024).toFixed(1)}MB / ${(progress.total / 1024 / 1024).toFixed(1)}MB)`,
 		);
 	});
 
 	autoUpdater.on("update-downloaded", (info) => {
-		console.info(
+		log.info(
 			`[auto-updater] Update downloaded: ${app.getVersion()} → ${info.version}. Ready to install.`,
 		);
 		emitStatus(AUTO_UPDATE_STATUS.READY, info.version);
@@ -320,7 +329,7 @@ export function setupAutoUpdater(): void {
 			.whenReady()
 			.then(() => checkForUpdates())
 			.catch((error) => {
-				console.error("[auto-updater] Failed to start update checks:", error);
+				log.error("[auto-updater] Failed to start update checks:", error);
 			});
 	}
 }

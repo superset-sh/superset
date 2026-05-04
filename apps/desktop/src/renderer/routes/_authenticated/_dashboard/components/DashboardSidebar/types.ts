@@ -71,6 +71,7 @@ export interface DashboardSidebarProject {
 	githubRepositoryId: string | null;
 	githubOwner: string | null;
 	githubRepoName: string | null;
+	iconUrl: string | null;
 	createdAt: Date;
 	updatedAt: Date;
 	isCollapsed: boolean;

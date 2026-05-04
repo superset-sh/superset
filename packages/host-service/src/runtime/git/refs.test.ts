@@ -10,8 +10,10 @@ function createMockGit(existingFullRefs: Set<string>) {
 	return {
 		raw: mock(async (args: string[]) => {
 			if (args[0] === "rev-parse" && args[1] === "--verify") {
-				const ref = args[3]?.replace("^{commit}", "") ?? "";
-				if (existingFullRefs.has(ref)) return "";
+				const ref = args[2]?.replace("^{commit}", "") ?? "";
+				if (existingFullRefs.has(ref)) {
+					return `${"0".repeat(40)}\n`;
+				}
 				throw new Error("fatal: Needed a single revision");
 			}
 			throw new Error(`Unexpected raw args: ${args.join(" ")}`);

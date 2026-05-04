@@ -50,14 +50,22 @@ export function DeleteProjectSection({
 	};
 
 	return (
-		<div className="flex items-center justify-between gap-4">
-			<p className="text-xs text-muted-foreground">
-				Permanently delete this project from the organization. Workspaces and
-				local clones on any host are not affected.
-			</p>
+		<div className="flex items-center justify-between gap-8">
+			<div className="min-w-0 flex-1">
+				<div className="text-sm font-medium">Delete project</div>
+				<p className="text-xs text-muted-foreground mt-0.5">
+					Removes the project from the organization. Workspaces and local clones
+					on any host are not affected.
+				</p>
+			</div>
 			<AlertDialog open={isOpen} onOpenChange={setIsOpen}>
 				<AlertDialogTrigger asChild>
-					<Button type="button" variant="destructive" size="sm">
+					<Button
+						type="button"
+						variant="destructive"
+						size="sm"
+						className="shrink-0"
+					>
 						Delete project
 					</Button>
 				</AlertDialogTrigger>

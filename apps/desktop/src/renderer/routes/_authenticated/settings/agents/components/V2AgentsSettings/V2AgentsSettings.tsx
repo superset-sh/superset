@@ -1,48 +1,22 @@
-import {
-	closestCenter,
-	DndContext,
-	type DragEndEvent,
-	KeyboardSensor,
-	MouseSensor,
-	TouchSensor,
-	useSensor,
-	useSensors,
-} from "@dnd-kit/core";
-import {
-	arrayMove,
-	SortableContext,
-	sortableKeyboardCoordinates,
-	verticalListSortingStrategy,
-} from "@dnd-kit/sortable";
 import type {
 	AgentPreset,
 	HostAgentConfigDto,
 } from "@superset/host-service/settings";
-import { Button } from "@superset/ui/button";
-import {
-	DropdownMenu,
-	DropdownMenuContent,
-	DropdownMenuItem,
-	DropdownMenuTrigger,
-} from "@superset/ui/dropdown-menu";
+import { Skeleton } from "@superset/ui/skeleton";
 import { toast } from "@superset/ui/sonner";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, RotateCcw } from "lucide-react";
-import { useMemo } from "react";
-import {
-	getPresetIcon,
-	useIsDarkTheme,
-} from "renderer/assets/app-icons/preset-icons";
+import { Bot } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
-import { V2AgentCard } from "./components/V2AgentCard";
+import { AgentDetail } from "./components/AgentDetail";
+import { AgentsSettingsSidebar } from "./components/AgentsSettingsSidebar";
 
 const QUERY_KEY = ["host-agent-configs"] as const;
 
 export function V2AgentsSettings() {
 	const { activeHostUrl } = useLocalHostService();
 	const queryClient = useQueryClient();
-	const isDark = useIsDarkTheme();
 
 	const configsQuery = useQuery({
 		queryKey: [...QUERY_KEY, activeHostUrl] as const,
@@ -76,7 +50,10 @@ export function V2AgentsSettings() {
 				activeHostUrl,
 			).settings.agentConfigs.add.mutate({ presetId });
 		},
-		onSuccess: () => invalidate(),
+		onSuccess: (added) => {
+			invalidate();
+			if (added?.id) setSelectedAgentId(added.id);
+		},
 		onError: (err) =>
 			toast.error(err instanceof Error ? err.message : "Failed to add agent"),
 	});
@@ -124,140 +101,112 @@ export function V2AgentsSettings() {
 				activeHostUrl,
 			).settings.agentConfigs.resetToDefaults.mutate();
 		},
-		onSuccess: () => invalidate(),
+		onSuccess: () => {
+			setSelectedAgentId(null);
+			invalidate();
+		},
 		onError: (err) =>
 			toast.error(err instanceof Error ? err.message : "Failed to reset"),
 	});
 
-	const sensors = useSensors(
-		useSensor(MouseSensor, { activationConstraint: { distance: 4 } }),
-		useSensor(TouchSensor, {
-			activationConstraint: { delay: 150, tolerance: 5 },
-		}),
-		useSensor(KeyboardSensor, {
-			coordinateGetter: sortableKeyboardCoordinates,
-		}),
-	);
-
 	const configs = configsQuery.data ?? [];
 	const presets = presetsQuery.data ?? [];
-	const sortableIds = useMemo(() => configs.map((row) => row.id), [configs]);
 	const descriptionByPresetId = useMemo(
 		() =>
 			new Map(presets.map((preset) => [preset.presetId, preset.description])),
 		[presets],
 	);
 
-	const handleDragEnd = (event: DragEndEvent) => {
-		const { active, over } = event;
-		if (!over || active.id === over.id) return;
-		const oldIndex = sortableIds.indexOf(String(active.id));
-		const newIndex = sortableIds.indexOf(String(over.id));
-		if (oldIndex < 0 || newIndex < 0) return;
-		reorderMutation.mutate(arrayMove(sortableIds, oldIndex, newIndex));
-	};
+	const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
+
+	// Auto-select first agent when none selected, and clear selection when the
+	// selected agent disappears.
+	useEffect(() => {
+		if (configs.length === 0) {
+			if (selectedAgentId !== null) setSelectedAgentId(null);
+			return;
+		}
+		const stillExists = configs.some((c) => c.id === selectedAgentId);
+		if (!stillExists) setSelectedAgentId(configs[0].id);
+	}, [configs, selectedAgentId]);
+
+	const selectedAgent = configs.find((c) => c.id === selectedAgentId) ?? null;
+
+	if (configsQuery.isError) {
+		return (
+			<div className="p-6 text-sm text-destructive">
+				Couldn't load agent settings:{" "}
+				{configsQuery.error instanceof Error
+					? configsQuery.error.message
+					: "host service unavailable"}
+			</div>
+		);
+	}
 
 	return (
-		<div className="p-6 max-w-5xl w-full">
-			<div className="mb-8 flex items-start justify-between gap-4">
-				<div>
-					<h2 className="text-xl font-semibold">Agents</h2>
-					<p className="text-sm text-muted-foreground mt-1">
-						Configure terminal agents available on this host. Drag to reorder.
-					</p>
-				</div>
-				<div className="flex items-center gap-2 shrink-0">
-					<Button
-						variant="ghost"
-						size="sm"
-						onClick={() => resetMutation.mutate()}
-						disabled={resetMutation.isPending}
-					>
-						<RotateCcw className="size-4" /> Reset to defaults
-					</Button>
-					<DropdownMenu>
-						<DropdownMenuTrigger asChild>
-							<Button size="sm">
-								<Plus className="size-4" /> Add agent
-							</Button>
-						</DropdownMenuTrigger>
-						<DropdownMenuContent align="end">
-							{presets.map((preset) => {
-								const icon = getPresetIcon(preset.presetId, isDark);
-								return (
-									<DropdownMenuItem
-										key={preset.presetId}
-										onSelect={() => addMutation.mutate(preset.presetId)}
-										className="gap-2"
-									>
-										{icon ? (
-											<img
-												src={icon}
-												alt=""
-												className="size-4 object-contain shrink-0"
-											/>
-										) : (
-											<div className="size-4 rounded bg-muted shrink-0" />
-										)}
-										{preset.label}
-									</DropdownMenuItem>
-								);
-							})}
-						</DropdownMenuContent>
-					</DropdownMenu>
-				</div>
-			</div>
-
+		<div className="flex h-full w-full">
 			{configsQuery.isLoading ? (
-				<p className="text-sm text-muted-foreground">
-					Loading agent settings...
-				</p>
-			) : configsQuery.isError ? (
-				<div className="space-y-2">
-					<p className="text-sm text-destructive">
-						Couldn't load agent settings:{" "}
-						{configsQuery.error instanceof Error
-							? configsQuery.error.message
-							: "host service unavailable"}
-					</p>
-					<Button
-						variant="outline"
-						size="sm"
-						onClick={() => configsQuery.refetch()}
-					>
-						Retry
-					</Button>
-				</div>
-			) : configs.length === 0 ? (
-				<p className="text-sm text-muted-foreground">
-					No agents configured. Add one from the menu above.
-				</p>
+				<SidebarSkeleton />
 			) : (
-				<DndContext
-					sensors={sensors}
-					collisionDetection={closestCenter}
-					onDragEnd={handleDragEnd}
-				>
-					<SortableContext
-						items={sortableIds}
-						strategy={verticalListSortingStrategy}
-					>
-						<div className="space-y-3">
-							{configs.map((config) => (
-								<V2AgentCard
-									key={config.id}
-									config={config}
-									description={
-										descriptionByPresetId.get(config.presetId) ??
-										"Terminal agent launch configuration"
-									}
-									onChanged={invalidate}
-								/>
-							))}
-						</div>
-					</SortableContext>
-				</DndContext>
+				<AgentsSettingsSidebar
+					configs={configs}
+					presets={presets}
+					selectedAgentId={selectedAgentId}
+					onSelectAgent={setSelectedAgentId}
+					onAddAgent={(presetId) => addMutation.mutate(presetId)}
+					onReorder={(ids) => reorderMutation.mutate(ids)}
+					onResetToDefaults={() => resetMutation.mutate()}
+					isAdding={addMutation.isPending}
+					isResetting={resetMutation.isPending}
+				/>
 			)}
+			<div className="flex-1 overflow-y-auto">
+				{selectedAgent ? (
+					<AgentDetail
+						key={selectedAgent.id}
+						config={selectedAgent}
+						description={
+							descriptionByPresetId.get(selectedAgent.presetId) ??
+							"Terminal agent launch configuration"
+						}
+						onChanged={invalidate}
+						onDeleted={() => {
+							setSelectedAgentId(null);
+							invalidate();
+						}}
+					/>
+				) : (
+					<EmptyState />
+				)}
+			</div>
+		</div>
+	);
+}
+
+function SidebarSkeleton() {
+	return (
+		<div className="w-64 shrink-0 border-r p-3 space-y-3">
+			<Skeleton className="h-8 w-full" />
+			{[0, 1, 2, 3].map((i) => (
+				<Skeleton key={i} className="h-7 w-full" />
+			))}
+		</div>
+	);
+}
+
+function EmptyState() {
+	return (
+		<div className="flex h-full items-center justify-center p-6">
+			<div className="text-center">
+				<Bot
+					aria-hidden="true"
+					className="mx-auto size-10 text-muted-foreground/60"
+				/>
+				<h3 className="mt-3 text-sm font-medium">No agents yet</h3>
+				<p className="mt-1 text-xs text-muted-foreground">
+					Add one from the menu in the sidebar to get started.
+				</p>
+			</div>
 		</div>
 	);
 }

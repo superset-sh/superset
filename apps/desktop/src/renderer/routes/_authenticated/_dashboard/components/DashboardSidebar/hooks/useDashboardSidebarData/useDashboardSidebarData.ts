@@ -185,6 +185,7 @@ export function useDashboardSidebarData() {
 					githubRepositoryId: projects.githubRepositoryId,
 					githubOwner: repos?.owner ?? null,
 					githubRepoName: repos?.name ?? null,
+					iconUrl: projects.iconUrl,
 					createdAt: projects.createdAt,
 					updatedAt: projects.updatedAt,
 					isCollapsed: sidebarProjects.isCollapsed,

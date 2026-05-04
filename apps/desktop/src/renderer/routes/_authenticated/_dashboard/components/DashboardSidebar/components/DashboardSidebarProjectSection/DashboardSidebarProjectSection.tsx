@@ -72,7 +72,7 @@ export function DashboardSidebarProjectSection({
 				<div className={cn("border-b border-border last:border-b-0")}>
 					<DashboardSidebarCollapsedProjectContent
 						projectName={project.name}
-						githubOwner={project.githubOwner}
+						iconUrl={project.iconUrl}
 						isCollapsed={project.isCollapsed}
 						totalWorkspaceCount={totalWorkspaceCount}
 						workspaces={flattenedCollapsedWorkspaces}
@@ -96,7 +96,7 @@ export function DashboardSidebarProjectSection({
 			>
 				<DashboardSidebarProjectRow
 					projectName={project.name}
-					githubOwner={project.githubOwner}
+					iconUrl={project.iconUrl}
 					totalWorkspaceCount={totalWorkspaceCount}
 					isCollapsed={project.isCollapsed}
 					isRenaming={isRenaming}

@@ -55,11 +55,7 @@ export function DashboardSidebarDeleteDialog({
 	}
 
 	const hasWarnings = hasChanges || hasUnpushedCommits;
-	const confirmLabel = isCheckingStatus
-		? "Checking…"
-		: hasWarnings
-			? "Delete anyway"
-			: "Delete";
+	const confirmLabel = hasWarnings ? "Delete anyway" : "Delete";
 
 	return (
 		<DestroyConfirmPane

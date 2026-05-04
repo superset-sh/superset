@@ -23,13 +23,14 @@ import {
 	AlertDialogTitle,
 } from "@superset/ui/alert-dialog";
 import { Button } from "@superset/ui/button";
-import { Label } from "@superset/ui/label";
 import { toast } from "@superset/ui/sonner";
+import { cn } from "@superset/ui/utils";
 import {
 	WorkspaceClientProvider,
 	workspaceTrpc,
 } from "@superset/workspace-client";
 import { useState } from "react";
+import { HiChevronRight } from "react-icons/hi2";
 import {
 	getHostServiceHeaders,
 	getHostServiceWsToken,
@@ -43,8 +44,8 @@ export function V2SessionsSection() {
 	if (!activeHostUrl) {
 		return (
 			<div className="space-y-1">
-				<Label className="text-sm font-medium">Manage daemon</Label>
-				<p className="text-xs text-muted-foreground">
+				<h3 className="text-sm font-medium">Manage daemon</h3>
+				<p className="text-sm text-muted-foreground">
 					Host service is starting…
 				</p>
 			</div>
@@ -166,48 +167,86 @@ function V2SessionsSectionInner() {
 		return versions.running;
 	})();
 
+	const isUnavailable = sessions === null;
+	const expandable = sessions !== null && sessions.length > 0;
+
 	return (
 		<>
 			<div className="space-y-4">
 				<div className="flex items-start justify-between gap-4">
-					<div className="space-y-0.5">
-						<Label className="text-sm font-medium">Manage daemon</Label>
-						<p className="text-xs text-muted-foreground">
-							The terminal daemon owns all PTY sessions. It survives app
-							restarts so your shells, builds, and agents keep running.
+					<div>
+						<h3 className="text-sm font-medium flex items-baseline gap-2">
+							Manage daemon
+							{versionLabel ? (
+								<span className="text-xs font-mono font-normal text-muted-foreground/80">
+									{versionLabel}
+								</span>
+							) : null}
+						</h3>
+						<p className="text-sm text-muted-foreground mt-0.5">
+							Owns every PTY session and survives app restarts.
 						</p>
 					</div>
-					<Button
-						variant="ghost"
-						size="sm"
-						onClick={() => {
-							void updateStatusQuery.refetch();
-							void sessionsQuery.refetch();
-						}}
-					>
-						Refresh
-					</Button>
+					<div className="flex flex-wrap gap-2 shrink-0">
+						<Button
+							variant="default"
+							size="sm"
+							disabled={
+								sessions === null ||
+								updateDaemon.isPending ||
+								restartDaemon.isPending
+							}
+							onClick={() => updateDaemon.mutate()}
+						>
+							{updateDaemon.isPending ? "Updating…" : "Update daemon"}
+						</Button>
+						<Button
+							variant="outline"
+							size="sm"
+							disabled={updateDaemon.isPending || restartDaemon.isPending}
+							onClick={() => setConfirmRestartOpen(true)}
+						>
+							Force restart
+						</Button>
+					</div>
 				</div>
 
-				<div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
-					<span className="inline-flex items-center gap-1.5 text-muted-foreground">
+				<div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-xs">
+					{expandable ? (
+						<button
+							type="button"
+							onClick={() => setShowSessionList((v) => !v)}
+							className="inline-flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+						>
+							<HiChevronRight
+								className={cn(
+									"size-3 transition-transform",
+									showSessionList && "rotate-90",
+								)}
+							/>
+							<span
+								aria-hidden
+								className="size-1.5 rounded-full bg-emerald-500"
+							/>
+							{sessionCountLabel}
+						</button>
+					) : (
 						<span
-							aria-hidden
-							className={
-								sessions === null
-									? "size-1.5 rounded-full bg-muted-foreground/40"
-									: aliveCount && aliveCount > 0
-										? "size-1.5 rounded-full bg-emerald-500"
-										: "size-1.5 rounded-full bg-muted-foreground/60"
-							}
-						/>
-						{sessionCountLabel}
-					</span>
-					{versionLabel ? (
-						<span className="font-mono text-muted-foreground/80">
-							{versionLabel}
+							className={cn(
+								"inline-flex items-center gap-1.5",
+								isUnavailable ? "text-destructive" : "text-muted-foreground",
+							)}
+						>
+							<span
+								aria-hidden
+								className={cn(
+									"size-1.5 rounded-full",
+									isUnavailable ? "bg-destructive" : "bg-muted-foreground/60",
+								)}
+							/>
+							{sessionCountLabel}
 						</span>
-					) : null}
+					)}
 					{updatePending ? (
 						<span className="rounded bg-foreground/5 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-foreground/80">
 							Update available
@@ -215,75 +254,40 @@ function V2SessionsSectionInner() {
 					) : null}
 				</div>
 
-				<div className="flex flex-wrap gap-2">
-					<Button
-						variant="default"
-						size="sm"
-						disabled={
-							sessions === null ||
-							updateDaemon.isPending ||
-							restartDaemon.isPending
-						}
-						onClick={() => updateDaemon.mutate()}
-					>
-						{updateDaemon.isPending ? "Updating…" : "Update daemon"}
-					</Button>
-					<Button
-						variant="outline"
-						size="sm"
-						disabled={updateDaemon.isPending || restartDaemon.isPending}
-						onClick={() => setConfirmRestartOpen(true)}
-					>
-						Force restart
-					</Button>
-					<Button
-						variant="ghost"
-						size="sm"
-						disabled={!sessions || sessions.length === 0}
-						onClick={() => setShowSessionList((v) => !v)}
-					>
-						{showSessionList ? "Hide sessions" : "Show sessions"}
-					</Button>
-				</div>
-
 				{showSessionList && sessions && sessions.length > 0 ? (
-					<div className="overflow-hidden rounded-md border border-border/60">
-						<div className="max-h-64 overflow-auto">
-							<table className="w-full text-xs">
-								<thead className="sticky top-0 bg-background">
-									<tr className="text-muted-foreground">
-										<th className="px-2 py-2 text-left font-medium">Session</th>
-										<th className="px-2 py-2 text-right font-medium">PID</th>
-										<th className="px-2 py-2 text-right font-medium">Size</th>
-										<th className="px-2 py-2 text-left font-medium">Status</th>
+					<div className="max-h-64 overflow-auto">
+						<table className="w-full text-xs">
+							<thead className="sticky top-0 bg-background">
+								<tr className="text-muted-foreground">
+									<th className="px-2 py-2 text-left font-medium">Session</th>
+									<th className="px-2 py-2 text-right font-medium">PID</th>
+									<th className="px-2 py-2 text-right font-medium">Size</th>
+									<th className="px-2 py-2 text-left font-medium">Status</th>
+								</tr>
+							</thead>
+							<tbody className="divide-y divide-border/40">
+								{sessions.map((s) => (
+									<tr key={s.id} className="hover:bg-muted/30">
+										<td className="px-2 py-2 font-mono">{s.id}</td>
+										<td className="px-2 py-2 text-right font-mono">
+											{s.pid || "—"}
+										</td>
+										<td className="px-2 py-2 text-right font-mono">
+											{s.cols}×{s.rows}
+										</td>
+										<td className="px-2 py-2">
+											<span
+												className={
+													s.alive ? "text-foreground" : "text-muted-foreground"
+												}
+											>
+												{s.alive ? "Alive" : "Exited"}
+											</span>
+										</td>
 									</tr>
-								</thead>
-								<tbody className="divide-y divide-border/60">
-									{sessions.map((s) => (
-										<tr key={s.id} className="hover:bg-muted/30">
-											<td className="px-2 py-2 font-mono">{s.id}</td>
-											<td className="px-2 py-2 text-right font-mono">
-												{s.pid || "—"}
-											</td>
-											<td className="px-2 py-2 text-right font-mono">
-												{s.cols}×{s.rows}
-											</td>
-											<td className="px-2 py-2">
-												<span
-													className={
-														s.alive
-															? "text-foreground"
-															: "text-muted-foreground"
-													}
-												>
-													{s.alive ? "Alive" : "Exited"}
-												</span>
-											</td>
-										</tr>
-									))}
-								</tbody>
-							</table>
-						</div>
+								))}
+							</tbody>
+						</table>
 					</div>
 				) : null}
 			</div>

@@ -38,7 +38,7 @@ function V1AgentsSettings({ visibleItems }: AgentsSettingsProps) {
 	);
 
 	return (
-		<div className="p-6 max-w-5xl w-full">
+		<div className="p-6 max-w-5xl w-full mx-auto">
 			<div className="mb-8">
 				<h2 className="text-xl font-semibold">Agents</h2>
 				<p className="text-sm text-muted-foreground mt-1">

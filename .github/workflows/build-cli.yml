@@ -40,11 +40,18 @@ jobs:
           # against node-pty's compile-from-source path on Linux (node-pty
           # ships no Linux prebuilds). Skip scripts at install, then rebuild
           # native deps explicitly via npm/node-gyp.
+          #
+          # better-sqlite3 is intentionally NOT rebuilt here: build-dist.ts's
+          # fixNativeBinariesForNode() unconditionally downloads the matching
+          # Node-ABI prebuild from GitHub releases and overwrites the .node
+          # file. Running `npm rebuild better-sqlite3` here is redundant work
+          # and a CI flake source — its `prebuild-install || node-gyp rebuild`
+          # install script intermittently truncates the prebuild download or
+          # leaves partial state that breaks the gyp fallback on linux-x64.
           set -euo pipefail
           bun install --frozen --ignore-scripts
           PTY_DIR=$(ls -d node_modules/.bun/node-pty@*/node_modules/node-pty)
           (cd "$PTY_DIR" && npx --yes node-gyp rebuild)
-          npm rebuild better-sqlite3
           npm rebuild @parcel/watcher
 
       - name: Install dependencies (macOS)

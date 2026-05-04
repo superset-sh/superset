@@ -262,12 +262,12 @@ describe("bug-hunt-3: more concurrency probes", () => {
 		// `git worktree add` and `git branch.<name>.base` writes via
 		// ensureMainWorkspace / inside the procedure.
 		const results = await Promise.allSettled([
-			host.trpc.workspace.create.mutate({
+			host.trpc.workspaces.create.mutate({
 				projectId,
 				name: "a",
 				branch: "feature/a",
 			}),
-			host.trpc.workspace.create.mutate({
+			host.trpc.workspaces.create.mutate({
 				projectId,
 				name: "b",
 				branch: "feature/b",
