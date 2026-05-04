@@ -6,8 +6,8 @@ import {
 import { Avatar } from "@superset/ui/atoms/Avatar";
 import { Badge } from "@superset/ui/badge";
 import { Button } from "@superset/ui/button";
-import { Card, CardContent } from "@superset/ui/card";
 import { Input } from "@superset/ui/input";
+import { Label } from "@superset/ui/label";
 import { Skeleton } from "@superset/ui/skeleton";
 import { toast } from "@superset/ui/sonner";
 import {
@@ -21,7 +21,6 @@ import {
 import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useEffect, useState } from "react";
-import { HiOutlinePencil } from "react-icons/hi2";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { authClient } from "renderer/lib/auth-client";
 import { electronTrpc } from "renderer/lib/electron-trpc";
@@ -43,6 +42,27 @@ import { SlugDialog } from "./components/SlugDialog";
 
 interface OrganizationSettingsProps {
 	visibleItems?: SettingItemId[] | null;
+}
+
+interface SettingsRowProps {
+	label: string;
+	hint?: string;
+	htmlFor?: string;
+	children: React.ReactNode;
+}
+
+function SettingsRow({ label, hint, htmlFor, children }: SettingsRowProps) {
+	return (
+		<div className="flex items-center justify-between gap-8 py-4 border-t border-border first:border-t-0">
+			<div className="flex-1 min-w-0">
+				<Label htmlFor={htmlFor} className="text-sm font-medium">
+					{label}
+				</Label>
+				{hint && <p className="text-xs text-muted-foreground mt-0.5">{hint}</p>}
+			</div>
+			<div className="shrink-0">{children}</div>
+		</div>
+	);
 }
 
 export function OrganizationSettings({
@@ -155,7 +175,7 @@ export function OrganizationSettings({
 			});
 
 			setLogoPreview(uploadResult.url);
-			toast.success("Logo updated successfully!");
+			toast.success("Logo updated");
 		} catch (error) {
 			console.error("[organization-settings] Logo upload failed:", error);
 			toast.error("Failed to update logo");
@@ -175,7 +195,7 @@ export function OrganizationSettings({
 				id: organization.id,
 				name: nameValue,
 			});
-			toast.success("Organization name updated!");
+			toast.success("Organization name updated");
 		} catch (error) {
 			console.error("[organization-settings] Name update failed:", error);
 			toast.error("Failed to update name");
@@ -185,7 +205,7 @@ export function OrganizationSettings({
 
 	if (!activeOrganizationId) {
 		return (
-			<div className="p-8">
+			<div className="p-6 max-w-4xl w-full">
 				<p className="text-sm text-muted-foreground">
 					No organization selected
 				</p>
@@ -195,24 +215,18 @@ export function OrganizationSettings({
 
 	if (isLoading || !organization) {
 		return (
-			<div className="p-8 max-w-3xl">
-				<Skeleton className="h-8 w-48 mb-8" />
-				<div className="space-y-6">
-					<div className="flex items-center justify-between gap-8">
-						<div className="flex-1">
-							<Skeleton className="h-4 w-24 mb-2" />
-							<Skeleton className="h-3 w-48" />
+			<div className="p-6 max-w-4xl w-full">
+				<Skeleton className="h-7 w-40 mb-8" />
+				<div className="space-y-4">
+					{[0, 1, 2].map((i) => (
+						<div
+							key={i}
+							className="flex items-center justify-between gap-8 py-4"
+						>
+							<Skeleton className="h-4 w-24" />
+							<Skeleton className="h-9 w-72" />
 						</div>
-						<Skeleton className="h-8 w-8 rounded" />
-					</div>
-					<div className="flex items-center justify-between gap-8">
-						<Skeleton className="h-4 w-16" />
-						<Skeleton className="h-10 flex-1" />
-					</div>
-					<div className="flex items-center justify-between gap-8">
-						<Skeleton className="h-4 w-12" />
-						<Skeleton className="h-10 flex-1" />
-					</div>
+					))}
 				</div>
 			</div>
 		);
@@ -228,105 +242,92 @@ export function OrganizationSettings({
 		);
 
 	return (
-		<div className="flex-1 flex flex-col min-h-0">
-			<div className="flex-1 overflow-auto">
-				<div className="p-8 space-y-12 max-w-5xl">
+		<>
+			<div className="p-6 max-w-4xl w-full">
+				<div className="mb-8">
+					<h2 className="text-xl font-semibold">Organization</h2>
+					<p className="text-sm text-muted-foreground mt-1">
+						Manage your organization's branding and members.
+					</p>
+				</div>
+
+				<div className="space-y-10">
 					{showOrgSettings && (
-						<div>
-							<h2 className="text-2xl font-semibold mb-2">Organization</h2>
-							<p className="text-sm text-muted-foreground mb-6">
-								Manage your organization's branding and settings
-							</p>
-
-							<Card>
-								<CardContent>
-									<ul className="space-y-6">
-										{showLogo && (
-											<li className="flex items-center justify-between gap-8 pb-6 border-b border-border">
-												<div className="flex-1">
-													<div className="text-sm font-medium mb-1">Logo</div>
-													<div className="text-xs text-muted-foreground">
-														Recommended size is 256x256px
-													</div>
-												</div>
-												<button
+						<section>
+							<div>
+								{showLogo && (
+									<SettingsRow label="Logo" hint="Recommended size 256×256.">
+										<div className="flex items-center gap-3">
+											<OrganizationLogo
+												logo={logoPreview}
+												name={organization.name}
+											/>
+											{isOwner ? (
+												<Button
 													type="button"
+													variant="outline"
+													size="sm"
 													onClick={handleLogoUpload}
-													disabled={!isOwner}
-													className={`relative w-8 h-8 group ${
-														isOwner ? "cursor-pointer" : ""
-													}`}
 												>
-													<OrganizationLogo
-														logo={logoPreview}
-														name={organization.name}
-													/>
-													{isOwner && (
-														<div className="absolute inset-0 bg-black/50 rounded opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-															<HiOutlinePencil className="h-4 w-4 text-white" />
-														</div>
-													)}
-												</button>
-											</li>
-										)}
+													Change
+												</Button>
+											) : null}
+										</div>
+									</SettingsRow>
+								)}
 
-										{showName && (
-											<li
-												className={`flex items-center justify-between gap-8 ${showSlug ? "pb-6 border-b border-border" : ""}`}
-											>
-												<div className="flex-1 text-sm font-medium">Name</div>
-												<div className="flex-1">
-													<Input
-														value={nameValue}
-														onChange={(e) => setNameValue(e.target.value)}
-														onBlur={handleNameBlur}
-														placeholder="Acme Inc."
-														className="w-full"
-														disabled={!isOwner}
-													/>
-												</div>
-											</li>
-										)}
+								{showName && (
+									<SettingsRow label="Name" htmlFor="org-name">
+										<Input
+											id="org-name"
+											value={nameValue}
+											onChange={(e) => setNameValue(e.target.value)}
+											onBlur={handleNameBlur}
+											placeholder="Acme Inc."
+											className="w-72"
+											disabled={!isOwner}
+										/>
+									</SettingsRow>
+								)}
 
-										{showSlug && (
-											<li className="flex items-center justify-between gap-8">
-												<div className="flex-1 text-sm font-medium">Slug</div>
-												<div className="flex-1 relative group">
-													<Input
-														value={organization.slug}
-														readOnly
-														onClick={() => isOwner && setIsSlugDialogOpen(true)}
-														className={`w-full pr-8 ${isOwner ? "cursor-pointer" : ""}`}
-														disabled={!isOwner}
-													/>
-													{isOwner && (
-														<Button
-															type="button"
-															variant="ghost"
-															size="icon"
-															onClick={() => setIsSlugDialogOpen(true)}
-															className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-														>
-															<HiOutlinePencil className="h-4 w-4" />
-														</Button>
-													)}
-												</div>
-											</li>
-										)}
-									</ul>
-								</CardContent>
-							</Card>
+								{showSlug && (
+									<SettingsRow
+										label="Slug"
+										hint="Used in URLs and APIs."
+										htmlFor="org-slug"
+									>
+										<div className="flex items-center gap-2">
+											<Input
+												id="org-slug"
+												value={organization.slug}
+												readOnly
+												className="w-56 font-mono text-xs"
+											/>
+											{isOwner ? (
+												<Button
+													type="button"
+													variant="outline"
+													size="sm"
+													onClick={() => setIsSlugDialogOpen(true)}
+												>
+													Change
+												</Button>
+											) : null}
+										</div>
+									</SettingsRow>
+								)}
+							</div>
 
 							{!isOwner && (
-								<p className="text-xs text-muted-foreground mt-4">
+								<p className="text-xs text-muted-foreground mt-3">
 									Only organization owners can modify these settings.
 								</p>
 							)}
-						</div>
+						</section>
 					)}
 
 					{showMembersSection && (
-						<div className="space-y-8">
+						<section className="space-y-6">
 							{currentUserRole &&
 								activeOrganizationId &&
 								organization?.name && (
@@ -339,12 +340,17 @@ export function OrganizationSettings({
 								)}
 
 							{showMembersList && (
-								<div className="space-y-4">
-									<h3 className="text-lg font-semibold">Team Members</h3>
+								<div>
+									<div className="mb-3">
+										<h3 className="text-sm font-medium">Members</h3>
+										<p className="text-xs text-muted-foreground mt-0.5">
+											Everyone with access to this organization.
+										</p>
+									</div>
 
 									{isMembersLoading ? (
-										<div className="space-y-2 border rounded-lg">
-											{[1, 2, 3].map((i) => (
+										<div className="border rounded-lg divide-y divide-border">
+											{[0, 1, 2].map((i) => (
 												<div key={i} className="flex items-center gap-4 p-4">
 													<Skeleton className="h-8 w-8 rounded-full" />
 													<div className="flex-1 space-y-2">
@@ -357,11 +363,11 @@ export function OrganizationSettings({
 											))}
 										</div>
 									) : members.length === 0 ? (
-										<div className="text-center py-12 text-muted-foreground border rounded-lg">
-											No members yet
+										<div className="text-center py-12 text-sm text-muted-foreground border rounded-lg">
+											No members yet.
 										</div>
 									) : (
-										<div className="border rounded-lg">
+										<div className="border rounded-lg overflow-hidden">
 											<Table>
 												<TableHeader>
 													<TableRow>
@@ -393,7 +399,7 @@ export function OrganizationSettings({
 																			{isCurrentUserRow && (
 																				<Badge
 																					variant="secondary"
-																					className="text-xs"
+																					className="text-[10px] h-4 px-1.5"
 																				>
 																					You
 																				</Badge>
@@ -444,7 +450,7 @@ export function OrganizationSettings({
 									)}
 								</div>
 							)}
-						</div>
+						</section>
 					)}
 				</div>
 			</div>
@@ -457,6 +463,6 @@ export function OrganizationSettings({
 					currentSlug={organization.slug}
 				/>
 			)}
-		</div>
+		</>
 	);
 }
