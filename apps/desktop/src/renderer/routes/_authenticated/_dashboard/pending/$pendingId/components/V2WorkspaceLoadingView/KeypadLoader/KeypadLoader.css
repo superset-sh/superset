@@ -1,0 +1,146 @@
+.keypad-loader {
+	--travel: 26;
+	position: relative;
+	aspect-ratio: 400 / 310;
+	display: flex;
+	place-items: center;
+	width: clamp(260px, 34vw, 420px);
+	transform-style: preserve-3d;
+	user-select: none;
+}
+
+.keypad-loader__base {
+	position: absolute;
+	bottom: 0;
+	width: 100%;
+	pointer-events: none;
+}
+
+.keypad-loader__base img {
+	width: 100%;
+	display: block;
+}
+
+.keypad-loader__key {
+	position: absolute;
+	width: 21%;
+	height: 24%;
+	transform-style: preserve-3d;
+	clip-path: polygon(
+		0 0,
+		54% 0,
+		89% 24%,
+		100% 70%,
+		54% 100%,
+		46% 100%,
+		0 69%,
+		12% 23%,
+		47% 0%
+	);
+	mask: url("../assets/key-single.png") 50% 50% / 100% 100%;
+	-webkit-mask: url("../assets/key-single.png") 50% 50% / 100% 100%;
+}
+
+.keypad-loader__key--one {
+	left: 13.5%;
+	bottom: 57.2%;
+}
+.keypad-loader__key--two {
+	left: 25.8%;
+	bottom: 48.5%;
+}
+.keypad-loader__key--three {
+	left: 38%;
+	bottom: 39.2%;
+}
+.keypad-loader__key--four {
+	left: 50.4%;
+	bottom: 30.2%;
+}
+.keypad-loader__key--five {
+	left: 62.7%;
+	bottom: 21%;
+}
+
+.keypad-loader__mask {
+	width: 100%;
+	height: 100%;
+	display: inline-block;
+}
+
+.keypad-loader__content {
+	width: 100%;
+	height: 100%;
+	display: inline-block;
+	position: relative;
+	container-type: inline-size;
+	transition:
+		translate 0.7s cubic-bezier(0.22, 1, 0.36, 1),
+		filter 0.7s ease-out;
+}
+
+.keypad-loader__content img {
+	position: absolute;
+	top: 0;
+	left: 50%;
+	width: 96%;
+	translate: -50% 1%;
+	pointer-events: none;
+	filter: hue-rotate(118deg) saturate(1.15) brightness(0.92);
+	transition: filter 0.7s ease-out;
+}
+
+.keypad-loader__key[data-pressed="true"] .keypad-loader__content {
+	translate: 0 calc(var(--travel) * 1%);
+}
+
+.keypad-loader__key[data-pressed="true"] .keypad-loader__content img {
+	filter: hue-rotate(118deg) saturate(1.35) brightness(1.05);
+}
+
+.keypad-loader__key[data-active="true"] .keypad-loader__content {
+	animation: keypad-loader-bob 2.2s ease-in-out infinite;
+}
+
+@keyframes keypad-loader-bob {
+	0%,
+	100% {
+		translate: 0 0;
+	}
+	50% {
+		translate: 0 calc(var(--travel) * 0.28%);
+	}
+}
+
+.keypad-loader__text {
+	position: absolute;
+	top: 5%;
+	left: 0;
+	width: 52%;
+	height: 62%;
+	z-index: 21;
+	font-size: 18cqi;
+	color: #fff;
+	translate: 45% -16%;
+	transform: rotateX(36deg) rotateY(45deg) rotateX(-90deg);
+	display: grid;
+	place-items: center;
+	filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.45));
+}
+
+.keypad-loader__text svg {
+	width: 62%;
+	height: 62%;
+}
+
+.keypad-loader__key[data-pressed="true"] .keypad-loader__text {
+	opacity: 0.85;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.keypad-loader__content,
+	.keypad-loader__key[data-active="true"] .keypad-loader__content {
+		transition: none;
+		animation: none;
+	}
+}
