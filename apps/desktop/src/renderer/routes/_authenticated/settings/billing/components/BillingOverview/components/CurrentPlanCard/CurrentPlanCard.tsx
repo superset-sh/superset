@@ -1,7 +1,5 @@
 import { Button } from "@superset/ui/button";
-import { cn } from "@superset/ui/utils";
 import { format } from "date-fns";
-import { HiSparkles } from "react-icons/hi2";
 import { PLANS, type PlanTier } from "../../../../constants";
 
 interface CurrentPlanCardProps {
@@ -40,27 +38,13 @@ export function CurrentPlanCard({
 	return (
 		<div className="flex items-center justify-between gap-8 py-3">
 			<div className="min-w-0 flex-1">
-				<div className="flex items-center gap-1.5">
+				<div className="flex items-center gap-2">
+					<span className="text-sm font-medium">{plan.name} plan</span>
 					{isPaidPlan && (
-						<HiSparkles
-							className={cn(
-								"size-3.5 shrink-0",
-								currentPlan === "pro" && "text-violet-500",
-								currentPlan === "enterprise" && "text-amber-500",
-							)}
-						/>
+						<span className="inline-flex items-center rounded-md bg-foreground px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-background">
+							{plan.name}
+						</span>
 					)}
-					<span
-						className={cn(
-							"text-sm font-medium",
-							currentPlan === "pro" &&
-								"bg-gradient-to-r from-violet-600 to-blue-600 bg-clip-text text-transparent",
-							currentPlan === "enterprise" &&
-								"bg-gradient-to-r from-amber-600 to-rose-600 bg-clip-text text-transparent",
-						)}
-					>
-						{plan.name} plan
-					</span>
 				</div>
 				<div className="text-xs text-muted-foreground mt-0.5">{hint}</div>
 			</div>
