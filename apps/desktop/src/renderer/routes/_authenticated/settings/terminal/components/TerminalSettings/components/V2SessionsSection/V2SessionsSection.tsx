@@ -173,11 +173,35 @@ function V2SessionsSectionInner() {
 	return (
 		<>
 			<div className="space-y-4">
-				<div>
-					<h3 className="text-sm font-medium">Manage daemon</h3>
-					<p className="text-sm text-muted-foreground mt-0.5">
-						Owns every PTY session and survives app restarts.
-					</p>
+				<div className="flex items-start justify-between gap-4">
+					<div>
+						<h3 className="text-sm font-medium">Manage daemon</h3>
+						<p className="text-sm text-muted-foreground mt-0.5">
+							Owns every PTY session and survives app restarts.
+						</p>
+					</div>
+					<div className="flex flex-wrap gap-2 shrink-0">
+						<Button
+							variant="default"
+							size="sm"
+							disabled={
+								sessions === null ||
+								updateDaemon.isPending ||
+								restartDaemon.isPending
+							}
+							onClick={() => updateDaemon.mutate()}
+						>
+							{updateDaemon.isPending ? "Updating…" : "Update daemon"}
+						</Button>
+						<Button
+							variant="outline"
+							size="sm"
+							disabled={updateDaemon.isPending || restartDaemon.isPending}
+							onClick={() => setConfirmRestartOpen(true)}
+						>
+							Force restart
+						</Button>
+					</div>
 				</div>
 
 				<div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
@@ -226,29 +250,6 @@ function V2SessionsSectionInner() {
 							Update available
 						</span>
 					) : null}
-				</div>
-
-				<div className="flex flex-wrap gap-2">
-					<Button
-						variant="default"
-						size="sm"
-						disabled={
-							sessions === null ||
-							updateDaemon.isPending ||
-							restartDaemon.isPending
-						}
-						onClick={() => updateDaemon.mutate()}
-					>
-						{updateDaemon.isPending ? "Updating…" : "Update daemon"}
-					</Button>
-					<Button
-						variant="outline"
-						size="sm"
-						disabled={updateDaemon.isPending || restartDaemon.isPending}
-						onClick={() => setConfirmRestartOpen(true)}
-					>
-						Force restart
-					</Button>
 				</div>
 
 				{showSessionList && sessions && sessions.length > 0 ? (
