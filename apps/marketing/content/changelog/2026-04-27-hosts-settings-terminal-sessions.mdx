@@ -22,14 +22,6 @@ Fresh terminal (XTerm.js + WebGL, kitty keyboard, OSC links, search), pre-warmed
 
 **Tab → Split → Pane** with drag-and-drop everywhere — drop panes onto the tab strip to spawn tabs <PRBadge url="https://github.com/superset-sh/superset/pull/3809" />. File tree with git decorations, multi-file diff with per-file viewed state, file editor, review tab, and a browser pane that keeps state across switches — one window.
 
-## Built for parallel agents
-
-Sidebar holds dozens of workspaces. **PR state shows as the workspace icon** <PRBadge url="https://github.com/superset-sh/superset/pull/3694" />. **Terminal sessions span workspaces** so you can jump to any running shell <PRBadge url="https://github.com/superset-sh/superset/pull/3751" /> <PRBadge url="https://github.com/superset-sh/superset/pull/3740" />. Mark workspaces unread <PRBadge url="https://github.com/superset-sh/superset/pull/3773" />. AI generates title + branch together on launch <PRBadge url="https://github.com/superset-sh/superset/pull/3692" />.
-
-## Honest workspace state
-
-Icons show **local / remote / offline** <PRBadge url="https://github.com/superset-sh/superset/pull/3649" />, pending workspaces sit at the top while spinning up <PRBadge url="https://github.com/superset-sh/superset/pull/3655" />, and the **persistent hover card** shows branch / PR / status — rename branches inline <PRBadge url="https://github.com/superset-sh/superset/pull/3813" /> <PRBadge url="https://github.com/superset-sh/superset/pull/3793" />.
-
 ## Migration in place
 
 1.x projects and workspaces port directly into 2.0 <PRBadge url="https://github.com/superset-sh/superset/pull/3670" />. Org-idempotent <PRBadge url="https://github.com/superset-sh/superset/pull/3775" /> <PRBadge url="https://github.com/superset-sh/superset/pull/3781" /> <PRBadge url="https://github.com/superset-sh/superset/pull/3783" />, modal only on first onboard <PRBadge url="https://github.com/superset-sh/superset/pull/3816" />.
@@ -52,14 +44,18 @@ Automations now run on a cadence — same execution path as a manual run.
 
 ### Sidebar
 
+- Persistent hover card showing branch/PR/status <PRBadge url="https://github.com/superset-sh/superset/pull/3813" />, rename branches inline from it <PRBadge url="https://github.com/superset-sh/superset/pull/3793" />
+- PR state shown as the workspace icon <PRBadge url="https://github.com/superset-sh/superset/pull/3694" />, local/remote/offline state on icons <PRBadge url="https://github.com/superset-sh/superset/pull/3649" />, pending workspaces pinned to top <PRBadge url="https://github.com/superset-sh/superset/pull/3655" />
+- AI generates title + branch together on workspace create <PRBadge url="https://github.com/superset-sh/superset/pull/3692" />
 - Sortable v2 workspaces table <PRBadge url="https://github.com/superset-sh/superset/pull/3660" />
 - Refreshed icons <PRBadge url="https://github.com/superset-sh/superset/pull/3755" /> <PRBadge url="https://github.com/superset-sh/superset/pull/3800" />, branch row dropped (lives in hover card) <PRBadge url="https://github.com/superset-sh/superset/pull/3733" />, open state persists across workspaces <PRBadge url="https://github.com/superset-sh/superset/pull/3656" />
 - Group management — inline rename on create, cleaner ungroup/delete, hover-only actions <PRBadge url="https://github.com/superset-sh/superset/pull/3745" />
+- Mark-as-unread <PRBadge url="https://github.com/superset-sh/superset/pull/3773" /> clears on click <PRBadge url="https://github.com/superset-sh/superset/pull/3765" />, notification hooks play client-side <PRBadge url="https://github.com/superset-sh/superset/pull/3675" />
 
-### Terminal extras
+### Cross-workspace terminals
 
-- Hide other-workspace sessions from the dropdown <PRBadge url="https://github.com/superset-sh/superset/pull/3774" />
-- Notification hooks play client-side <PRBadge url="https://github.com/superset-sh/superset/pull/3675" />, mark-as-unread clears on click <PRBadge url="https://github.com/superset-sh/superset/pull/3765" />
+- Terminal session dropdown lists shells from every workspace <PRBadge url="https://github.com/superset-sh/superset/pull/3751" /> with live shell/process titles <PRBadge url="https://github.com/superset-sh/superset/pull/3740" />
+- Hide other-workspace sessions if you'd rather scope to current <PRBadge url="https://github.com/superset-sh/superset/pull/3774" />
 
 ### Chat & markdown
 
