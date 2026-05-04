@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from "bun:test";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { type FsWatcherManagerOptions, FsWatcherManager } from "./watch";
+import { FsWatcherManager, type FsWatcherManagerOptions } from "./watch";
 
 /**
  * INTEGRATION reproduction of finding #3 in
