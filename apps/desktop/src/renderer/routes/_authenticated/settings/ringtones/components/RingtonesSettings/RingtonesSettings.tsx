@@ -40,10 +40,11 @@ function RingtoneCard({
 	onTogglePlay,
 }: RingtoneCardProps) {
 	return (
-		// biome-ignore lint/a11y/useSemanticElements: Using div with role="button" to allow nested play/stop button
+		// biome-ignore lint/a11y/useSemanticElements: div role=button needed so the inner play button can be nested
 		<div
 			role="button"
 			tabIndex={0}
+			aria-pressed={isSelected}
 			onClick={onSelect}
 			onKeyDown={(e) => {
 				if (e.key === "Enter" || e.key === " ") {
@@ -52,42 +53,32 @@ function RingtoneCard({
 				}
 			}}
 			className={cn(
-				"relative flex flex-col rounded-lg border-2 overflow-hidden transition-all text-left cursor-pointer",
+				"group relative flex flex-col rounded-lg border overflow-hidden transition-colors text-left cursor-pointer",
 				isSelected
-					? "border-primary ring-2 ring-primary/20"
+					? "border-primary"
 					: "border-border hover:border-muted-foreground/50",
 			)}
 		>
 			{/* Preview area */}
 			<div
 				className={cn(
-					"h-24 flex items-center justify-center relative",
-					isSelected ? "bg-accent/50" : "bg-muted/30",
+					"h-20 flex flex-col items-center justify-center gap-1 relative",
+					isSelected ? "bg-accent/40" : "bg-muted/30",
 				)}
 			>
-				{/* Emoji */}
-				<span className="text-4xl">{ringtone.emoji}</span>
-
-				{/* Duration badge */}
-				{ringtone.duration && (
-					<span className="absolute top-2 right-2 text-xs text-muted-foreground bg-background/80 px-1.5 py-0.5 rounded">
-						{formatDuration(ringtone.duration)}
-					</span>
-				)}
-
-				{/* Play/Stop button */}
+				{/* Play/Stop button — primary affordance, centered */}
 				<button
 					type="button"
 					onClick={(e) => {
 						e.stopPropagation();
 						onTogglePlay();
 					}}
+					aria-label={isPlaying ? `Stop ${ringtone.name}` : `Play ${ringtone.name}`}
 					className={cn(
-						"absolute bottom-2 right-2 h-8 w-8 rounded-full flex items-center justify-center",
-						"transition-colors border",
+						"h-9 w-9 rounded-full flex items-center justify-center shadow-sm transition-colors",
 						isPlaying
-							? "bg-destructive text-destructive-foreground border-destructive hover:bg-destructive/90"
-							: "bg-card text-foreground border-border hover:bg-accent",
+							? "bg-destructive text-destructive-foreground hover:bg-destructive/90"
+							: "bg-background text-foreground border border-border group-hover:bg-accent",
 					)}
 				>
 					{isPlaying ? (
@@ -96,18 +87,32 @@ function RingtoneCard({
 						<HiPlay className="h-4 w-4 ml-0.5" />
 					)}
 				</button>
+				{/* Emoji as visual identity */}
+				<span className="text-xl leading-none opacity-80">{ringtone.emoji}</span>
 			</div>
 
 			{/* Info */}
-			<div className="p-3 bg-card border-t flex items-center justify-between">
-				<div>
-					<div className="text-sm font-medium">{ringtone.name}</div>
-					<div className="text-xs text-muted-foreground">
+			<div
+				className={cn(
+					"p-3 border-t flex items-center justify-between gap-2",
+					isSelected ? "bg-accent/20" : "bg-card",
+				)}
+			>
+				<div className="min-w-0 flex-1">
+					<div className="flex items-center gap-2">
+						<span className="text-sm font-medium truncate">{ringtone.name}</span>
+						{ringtone.duration && (
+							<span className="text-xs text-muted-foreground tabular-nums shrink-0">
+								{formatDuration(ringtone.duration)}
+							</span>
+						)}
+					</div>
+					<div className="text-xs text-muted-foreground truncate">
 						{ringtone.description}
 					</div>
 				</div>
 				{isSelected && (
-					<div className="h-5 w-5 rounded-full bg-primary flex items-center justify-center">
+					<div className="h-5 w-5 rounded-full bg-primary flex items-center justify-center shrink-0">
 						<HiCheck className="h-3 w-3 text-primary-foreground" />
 					</div>
 				)}
