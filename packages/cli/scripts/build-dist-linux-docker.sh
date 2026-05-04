@@ -66,6 +66,8 @@ docker run --rm --platform "$PLATFORM" \
     "$DIST/bin/superset" --version
     "$DIST/bin/superset" --help | head -5
     "$DIST/lib/node" --version
+    test -f "$DIST/lib/host-service.js" || (echo "missing host-service.js" >&2; exit 1)
+    test -f "$DIST/lib/pty-daemon.js" || (echo "missing pty-daemon.js" >&2; exit 1)
     NODE_PATH="$DIST/lib/node_modules" "$DIST/lib/node" -e "
       for (const m of [\"better-sqlite3\", \"node-pty\", \"@parcel/watcher\", \"libsql\"]) {
         require(m);

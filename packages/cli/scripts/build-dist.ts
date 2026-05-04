@@ -365,6 +365,12 @@ async function buildHostService(): Promise<string> {
 	return join(hostServiceDir, "dist", "host-service.js");
 }
 
+async function buildPtyDaemon(): Promise<string> {
+	const ptyDaemonDir = resolve(import.meta.dir, "../../pty-daemon");
+	await exec("bun", ["run", "build:daemon"], ptyDaemonDir);
+	return join(ptyDaemonDir, "dist", "pty-daemon.js");
+}
+
 function writeHostWrapper(binDir: string): void {
 	const wrapper = `#!/bin/sh
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -395,6 +401,14 @@ async function main(): Promise<void> {
 	console.log("[build-dist] building host-service bundle");
 	const hostServiceBundle = await buildHostService();
 	cpSync(hostServiceBundle, join(stagingRoot, "lib", "host-service.js"));
+
+	// pty-daemon ships side-by-side with host-service.js. The host-service
+	// resolves the script path via `resolveSupervisorScriptPath()` which
+	// looks for `pty-daemon.js` next to itself first; without this copy the
+	// supervisor falls back to the workspace path and bricks at spawn time.
+	console.log("[build-dist] building pty-daemon bundle");
+	const ptyDaemonBundle = await buildPtyDaemon();
+	cpSync(ptyDaemonBundle, join(stagingRoot, "lib", "pty-daemon.js"));
 
 	console.log("[build-dist] fetching Node.js");
 	await downloadAndExtractNode(target, join(stagingRoot, "lib"));
