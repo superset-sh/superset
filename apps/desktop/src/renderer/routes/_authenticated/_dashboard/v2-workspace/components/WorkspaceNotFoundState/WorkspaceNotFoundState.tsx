@@ -12,7 +12,11 @@ export function WorkspaceNotFoundState({
 	return (
 		<div className="flex h-full w-full items-center justify-center p-6">
 			<div className="flex w-full max-w-sm flex-col items-start gap-5">
-				<FolderX className="size-5 text-muted-foreground" strokeWidth={1.5} />
+				<FolderX
+					className="size-5 text-muted-foreground"
+					strokeWidth={1.5}
+					aria-hidden="true"
+				/>
 				<div className="flex flex-col gap-1.5">
 					<h1 className="text-[15px] font-medium tracking-tight text-foreground">
 						Workspace not found
@@ -26,7 +30,7 @@ export function WorkspaceNotFoundState({
 					<span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground/70">
 						ID
 					</span>
-					<code className="truncate font-mono text-[11px] text-muted-foreground">
+					<code className="min-w-0 truncate font-mono text-[11px] text-muted-foreground">
 						{workspaceId}
 					</code>
 				</div>
@@ -38,7 +42,11 @@ export function WorkspaceNotFoundState({
 				>
 					<Link to="/v2-workspaces">
 						Browse workspaces
-						<ArrowRight className="size-3.5" strokeWidth={2} />
+						<ArrowRight
+							className="size-3.5"
+							strokeWidth={2}
+							aria-hidden="true"
+						/>
 					</Link>
 				</Button>
 			</div>
