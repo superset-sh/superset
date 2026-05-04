@@ -116,10 +116,7 @@ export function AccountSettings({ visibleItems }: AccountSettingsProps) {
 							<ProfileSkeleton />
 						) : user ? (
 							<div className="rounded-lg border bg-card overflow-hidden">
-								<SettingRow
-									label="Avatar"
-									hint="Recommended size is 256x256px"
-								>
+								<SettingRow label="Avatar" hint="Recommended size is 256x256px">
 									<div className="flex items-center gap-3">
 										<Avatar
 											size="xl"

@@ -5,7 +5,6 @@ import type {
 	PromptTransport,
 } from "@superset/host-service/settings";
 import { Button } from "@superset/ui/button";
-import { Card, CardContent } from "@superset/ui/card";
 import { Collapsible, CollapsibleContent } from "@superset/ui/collapsible";
 import { Input } from "@superset/ui/input";
 import { Label } from "@superset/ui/label";
@@ -154,164 +153,154 @@ export function V2AgentCard({
 				transition,
 				opacity: isDragging ? 0.5 : undefined,
 			}}
+			className={cn(isDragging && "bg-accent/40 relative z-10")}
 		>
-			<Card className="p-0 gap-0 rounded-lg shadow-none">
-				<Collapsible open={isOpen} onOpenChange={setIsOpen}>
-					{/* biome-ignore lint/a11y/useSemanticElements: div needed to avoid invalid nested <button> elements */}
-					<div
-						role="button"
-						tabIndex={0}
-						aria-expanded={isOpen}
-						className="flex items-center gap-3 p-3 cursor-pointer transition-colors hover:bg-accent/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-						onClick={() => setIsOpen((open) => !open)}
-						onKeyDown={(event) => {
-							if (event.target !== event.currentTarget) return;
-							if (event.key === "Enter" || event.key === " ") {
-								event.preventDefault();
-								setIsOpen((open) => !open);
-							}
-						}}
+			<Collapsible open={isOpen} onOpenChange={setIsOpen}>
+				{/* biome-ignore lint/a11y/useSemanticElements: div needed to avoid invalid nested <button> elements */}
+				<div
+					role="button"
+					tabIndex={0}
+					aria-expanded={isOpen}
+					className="flex items-center gap-3 p-3 cursor-pointer transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+					onClick={() => setIsOpen((open) => !open)}
+					onKeyDown={(event) => {
+						if (event.target !== event.currentTarget) return;
+						if (event.key === "Enter" || event.key === " ") {
+							event.preventDefault();
+							setIsOpen((open) => !open);
+						}
+					}}
+				>
+					<button
+						type="button"
+						ref={setActivatorNodeRef}
+						{...attributes}
+						{...listeners}
+						onClick={(event) => event.stopPropagation()}
+						className="shrink-0 flex items-center justify-center text-muted-foreground/60 hover:text-foreground hover:bg-accent rounded p-1 -m-1 cursor-grab active:cursor-grabbing bg-transparent border-0"
+						aria-label="Drag to reorder"
 					>
-						<button
-							type="button"
-							ref={setActivatorNodeRef}
-							{...attributes}
-							{...listeners}
-							onClick={(event) => event.stopPropagation()}
-							className="shrink-0 flex items-center justify-center text-muted-foreground/60 hover:text-foreground hover:bg-accent rounded p-1 -m-1 cursor-grab active:cursor-grabbing bg-transparent border-0"
-							aria-label="Drag to reorder"
-						>
-							<LuGripVertical className="size-4" />
-						</button>
-						{icon ? (
-							<img
-								src={icon}
-								alt=""
-								className="size-7 object-contain shrink-0"
-							/>
-						) : null}
-						<div className="min-w-0 flex-1">
-							<div className="text-sm font-medium truncate">
-								{config.label}
-							</div>
-							<div className="text-xs text-muted-foreground truncate">
-								{description}
-							</div>
-						</div>
-						<div className="flex shrink-0 items-center gap-1">
-							<Button
-								variant="ghost"
-								size="icon"
-								onClick={(event) => {
-									event.stopPropagation();
-									removeMutation.mutate();
-								}}
-								disabled={removeMutation.isPending}
-								aria-label={`Remove ${config.label}`}
-								className="text-muted-foreground hover:text-destructive"
-							>
-								<Trash2 className="size-4" />
-							</Button>
-							<ChevronDownIcon
-								aria-hidden="true"
-								className={cn(
-									"size-4 text-muted-foreground transition-transform duration-200",
-									isOpen && "rotate-180",
-								)}
-							/>
+						<LuGripVertical className="size-4" />
+					</button>
+					{icon ? (
+						<img src={icon} alt="" className="size-7 object-contain shrink-0" />
+					) : null}
+					<div className="min-w-0 flex-1">
+						<div className="text-sm font-medium truncate">{config.label}</div>
+						<div className="text-xs text-muted-foreground truncate">
+							{description}
 						</div>
 					</div>
-					<CollapsibleContent>
-						<div className="grid gap-4 px-4 pb-4 pt-0">
+					<div className="flex shrink-0 items-center gap-1">
+						<Button
+							variant="ghost"
+							size="icon"
+							onClick={(event) => {
+								event.stopPropagation();
+								removeMutation.mutate();
+							}}
+							disabled={removeMutation.isPending}
+							aria-label={`Remove ${config.label}`}
+							className="text-muted-foreground hover:text-destructive"
+						>
+							<Trash2 className="size-4" />
+						</Button>
+						<ChevronDownIcon
+							aria-hidden="true"
+							className={cn(
+								"size-4 text-muted-foreground transition-transform duration-200",
+								isOpen && "rotate-180",
+							)}
+						/>
+					</div>
+				</div>
+				<CollapsibleContent>
+					<div className="grid gap-4 px-4 pb-4 pt-0">
+						<div className="grid gap-1.5">
+							<Label htmlFor={`label-${config.id}`} className="text-xs">
+								Label
+							</Label>
+							<Input
+								id={`label-${config.id}`}
+								value={label}
+								onChange={(e) => setLabel(e.target.value)}
+								onBlur={handleLabelBlur}
+							/>
+						</div>
+
+						<div className="grid gap-4 pt-4 border-t border-border">
 							<div className="grid gap-1.5">
-								<Label htmlFor={`label-${config.id}`} className="text-xs">
-									Label
+								<Label htmlFor={`command-${config.id}`} className="text-xs">
+									Command
 								</Label>
 								<Input
-									id={`label-${config.id}`}
-									value={label}
-									onChange={(e) => setLabel(e.target.value)}
-									onBlur={handleLabelBlur}
+									id={`command-${config.id}`}
+									className="font-mono text-xs"
+									value={commandText}
+									onChange={(e) => setCommandText(e.target.value)}
+									onBlur={handleCommandBlur}
+									placeholder="claude --permission-mode acceptEdits"
 								/>
+								<p className="text-xs text-muted-foreground">
+									Argv for promptless launches. The prompt is appended after the
+									prompt-only args.
+								</p>
 							</div>
-
-							<div className="grid gap-4 pt-4 border-t border-border">
-								<div className="grid gap-1.5">
-									<Label htmlFor={`command-${config.id}`} className="text-xs">
-										Command
-									</Label>
-									<Input
-										id={`command-${config.id}`}
-										className="font-mono text-xs"
-										value={commandText}
-										onChange={(e) => setCommandText(e.target.value)}
-										onBlur={handleCommandBlur}
-										placeholder="claude --permission-mode acceptEdits"
-									/>
-									<p className="text-xs text-muted-foreground">
-										Argv for promptless launches. The prompt is appended after
-										the prompt-only args.
-									</p>
-								</div>
-								<div className="grid gap-1.5">
-									<Label
-										htmlFor={`prompt-args-${config.id}`}
-										className="text-xs"
+							<div className="grid gap-1.5">
+								<Label htmlFor={`prompt-args-${config.id}`} className="text-xs">
+									Prompt-only args
+								</Label>
+								<Input
+									id={`prompt-args-${config.id}`}
+									className="font-mono text-xs"
+									value={promptArgsText}
+									onChange={(e) => setPromptArgsText(e.target.value)}
+									onBlur={handlePromptArgsBlur}
+									placeholder="--prompt"
+								/>
+								<p className="text-xs text-muted-foreground">
+									Inserted only when launching with a prompt. Examples:{" "}
+									<code>--</code> (codex), <code>--prompt</code> (opencode),{" "}
+									<code>-i</code> (copilot).
+								</p>
+							</div>
+							<div className="grid gap-1.5">
+								<Label className="text-xs">Prompt transport</Label>
+								<div className="inline-flex rounded-md border border-border overflow-hidden w-fit">
+									<button
+										type="button"
+										onClick={() => handleTransportChange("argv")}
+										className={cn(
+											"px-3 py-1 text-xs font-medium transition-colors",
+											promptTransport === "argv"
+												? "bg-accent text-accent-foreground"
+												: "bg-transparent text-muted-foreground hover:bg-accent/50",
+										)}
 									>
-										Prompt-only args
-									</Label>
-									<Input
-										id={`prompt-args-${config.id}`}
-										className="font-mono text-xs"
-										value={promptArgsText}
-										onChange={(e) => setPromptArgsText(e.target.value)}
-										onBlur={handlePromptArgsBlur}
-										placeholder="--prompt"
-									/>
-									<p className="text-xs text-muted-foreground">
-										Inserted only when launching with a prompt. Examples:{" "}
-										<code>--</code> (codex), <code>--prompt</code> (opencode),{" "}
-										<code>-i</code> (copilot).
-									</p>
+										argv
+									</button>
+									<button
+										type="button"
+										onClick={() => handleTransportChange("stdin")}
+										className={cn(
+											"px-3 py-1 text-xs font-medium transition-colors border-l border-border",
+											promptTransport === "stdin"
+												? "bg-accent text-accent-foreground"
+												: "bg-transparent text-muted-foreground hover:bg-accent/50",
+										)}
+									>
+										stdin
+									</button>
 								</div>
-								<div className="grid gap-1.5">
-									<Label className="text-xs">Prompt transport</Label>
-									<div className="inline-flex rounded-md border border-border overflow-hidden w-fit">
-										<button
-											type="button"
-											onClick={() => handleTransportChange("argv")}
-											className={cn(
-												"px-3 py-1 text-xs font-medium transition-colors",
-												promptTransport === "argv"
-													? "bg-accent text-accent-foreground"
-													: "bg-transparent text-muted-foreground hover:bg-accent/50",
-											)}
-										>
-											argv
-										</button>
-										<button
-											type="button"
-											onClick={() => handleTransportChange("stdin")}
-											className={cn(
-												"px-3 py-1 text-xs font-medium transition-colors border-l border-border",
-												promptTransport === "stdin"
-													? "bg-accent text-accent-foreground"
-													: "bg-transparent text-muted-foreground hover:bg-accent/50",
-											)}
-										>
-											stdin
-										</button>
-									</div>
-									<p className="text-xs text-muted-foreground">
-										<code>argv</code> appends the prompt as the last argv;{" "}
-										<code>stdin</code> pipes it to the process's stdin.
-									</p>
-								</div>
+								<p className="text-xs text-muted-foreground">
+									<code>argv</code> appends the prompt as the last argv;{" "}
+									<code>stdin</code> pipes it to the process's stdin.
+								</p>
 							</div>
 						</div>
-					</CollapsibleContent>
-				</Collapsible>
-			</Card>
+					</div>
+				</CollapsibleContent>
+			</Collapsible>
 		</div>
 	);
 }

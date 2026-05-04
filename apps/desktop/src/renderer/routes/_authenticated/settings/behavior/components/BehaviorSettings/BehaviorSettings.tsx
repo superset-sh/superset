@@ -227,7 +227,6 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 						/>
 					</div>
 				)}
-
 			</div>
 		</div>
 	);

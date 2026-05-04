@@ -84,7 +84,9 @@ function RingtoneCard({
 			>
 				<div className="min-w-0 flex-1">
 					<div className="flex items-center gap-2">
-						<span className="text-sm font-medium truncate">{ringtone.name}</span>
+						<span className="text-sm font-medium truncate">
+							{ringtone.name}
+						</span>
 						{ringtone.duration && (
 							<span className="text-xs text-muted-foreground tabular-nums shrink-0">
 								{formatDuration(ringtone.duration)}
@@ -101,7 +103,9 @@ function RingtoneCard({
 						e.stopPropagation();
 						onTogglePlay();
 					}}
-					aria-label={isPlaying ? `Stop ${ringtone.name}` : `Play ${ringtone.name}`}
+					aria-label={
+						isPlaying ? `Stop ${ringtone.name}` : `Play ${ringtone.name}`
+					}
 					className={cn(
 						"h-8 w-8 rounded-full flex items-center justify-center transition-colors border shrink-0",
 						isPlaying

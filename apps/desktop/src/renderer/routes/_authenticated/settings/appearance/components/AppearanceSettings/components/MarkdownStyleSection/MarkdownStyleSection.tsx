@@ -19,8 +19,8 @@ export function MarkdownStyleSection() {
 		<div>
 			<h3 className="text-sm font-medium mb-1">Markdown style</h3>
 			<p className="text-xs text-muted-foreground mb-3">
-				Rendering style for markdown files. Tufte uses elegant serif
-				typography inspired by Edward Tufte's books.
+				Rendering style for markdown files. Tufte uses elegant serif typography
+				inspired by Edward Tufte's books.
 			</p>
 			<Select
 				value={markdownStyle}
