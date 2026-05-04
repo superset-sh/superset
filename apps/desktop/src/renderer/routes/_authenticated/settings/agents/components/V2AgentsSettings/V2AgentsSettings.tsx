@@ -7,27 +7,20 @@ import { toast } from "@superset/ui/sonner";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Bot } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import {
+	V2_AGENT_CONFIGS_QUERY_KEY as QUERY_KEY,
+	useV2AgentConfigs,
+} from "renderer/hooks/useV2AgentConfigs";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { AgentDetail } from "./components/AgentDetail";
 import { AgentsSettingsSidebar } from "./components/AgentsSettingsSidebar";
 
-const QUERY_KEY = ["host-agent-configs"] as const;
-
 export function V2AgentsSettings() {
 	const { activeHostUrl } = useLocalHostService();
 	const queryClient = useQueryClient();
 
-	const configsQuery = useQuery({
-		queryKey: [...QUERY_KEY, activeHostUrl] as const,
-		enabled: !!activeHostUrl,
-		queryFn: () => {
-			if (!activeHostUrl) return [] as HostAgentConfigDto[];
-			return getHostServiceClientByUrl(
-				activeHostUrl,
-			).settings.agentConfigs.list.query();
-		},
-	});
+	const configsQuery = useV2AgentConfigs();
 
 	const presetsQuery = useQuery({
 		queryKey: [...QUERY_KEY, "presets", activeHostUrl] as const,

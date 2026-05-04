@@ -25,7 +25,7 @@ import { LinkedIssuePill } from "renderer/components/Chat/ChatInterface/componen
 import { IssueLinkCommand } from "renderer/components/Chat/ChatInterface/components/IssueLinkCommand";
 import { resolveHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
 import { useAgentLaunchPreferences } from "renderer/hooks/useAgentLaunchPreferences";
-import { useEnabledAgents } from "renderer/hooks/useEnabledAgents";
+import { useV2AgentConfigs } from "renderer/hooks/useV2AgentConfigs";
 import { PLATFORM } from "renderer/hotkeys";
 import { authClient } from "renderer/lib/auth-client";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
@@ -112,20 +112,31 @@ export function PromptGroup({
 		linkedPR,
 	} = draft;
 
-	// ── Agent presets ────────────────────────────────────────────────
-	const { agents: enabledAgentPresets, isFetched: agentsFetched } =
-		useEnabledAgents();
-	const selectableAgentIds = useMemo(
-		() => enabledAgentPresets.map((preset) => preset.id),
-		[enabledAgentPresets],
+	// ── Agent configs (v2 host_agent_configs) ───────────────────────
+	const v2AgentConfigsQuery = useV2AgentConfigs();
+	const v2Agents = useMemo(
+		() =>
+			(v2AgentConfigsQuery.data ?? []).map((config) => ({
+				id: config.id,
+				label: config.label,
+				iconId: config.presetId,
+			})),
+		[v2AgentConfigsQuery.data],
 	);
+	const selectableAgentIds = useMemo(
+		() => v2Agents.map((agent) => agent.id),
+		[v2Agents],
+	);
+	// Default to the first configured agent so users land in a launchable state
+	// without picking. Falls back to "none" if there are no configs yet.
+	const defaultAgent = selectableAgentIds[0] ?? "none";
 	const { selectedAgent, setSelectedAgent } =
 		useAgentLaunchPreferences<WorkspaceCreateAgent>({
 			agentStorageKey: AGENT_STORAGE_KEY,
-			defaultAgent: "claude",
+			defaultAgent,
 			fallbackAgent: "none",
 			validAgents: ["none", ...selectableAgentIds],
-			agentsReady: agentsFetched,
+			agentsReady: v2AgentConfigsQuery.isFetched,
 		});
 
 	const branchPreview = branchNameEdited
@@ -383,7 +394,7 @@ export function PromptGroup({
 				<PromptInputFooter>
 					<PromptInputTools className="gap-1.5">
 						<AgentSelect<WorkspaceCreateAgent>
-							agents={enabledAgentPresets}
+							agents={v2Agents}
 							value={selectedAgent}
 							placeholder="No agent"
 							onValueChange={setSelectedAgent}
