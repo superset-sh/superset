@@ -113,7 +113,23 @@ export function PromptGroup({
 	} = draft;
 
 	// ── Agent configs (v2 host_agent_configs) ───────────────────────
-	const v2AgentConfigsQuery = useV2AgentConfigs();
+	// Scoped to the launch host, not the local active host: agent UUIDs only
+	// exist on the host that owns them, so picking from the local list while
+	// submitting to a remote host would send a config id the target doesn't
+	// recognize.
+	const launchHostUrl = useMemo(() => {
+		const id = draft.hostId ?? machineId;
+		if (!id || !activeOrganizationId) return null;
+		return (
+			resolveHostUrl({
+				hostId: id,
+				machineId,
+				activeHostUrl,
+				organizationId: activeOrganizationId,
+			}) ?? null
+		);
+	}, [draft.hostId, machineId, activeHostUrl, activeOrganizationId]);
+	const v2AgentConfigsQuery = useV2AgentConfigs(launchHostUrl);
 	const v2Agents = useMemo(
 		() =>
 			(v2AgentConfigsQuery.data ?? []).map((config) => ({
@@ -136,20 +152,21 @@ export function PromptGroup({
 			agentsReady: v2AgentConfigsQuery.isFetched,
 		});
 
-	// Promote the placeholder "none" → first configured agent once on initial
-	// fetch when the user has no stored preference. Without this, opening the
-	// modal before the startup prefetch resolves latches the picker on
-	// "No agent" — the corrective effect inside useAgentLaunchPreferences
-	// doesn't rescue it because "none" is always in validAgents.
-	const didInitialPromoteRef = useRef(false);
+	// Promote the placeholder "none" → first configured agent whenever the
+	// current selection isn't a real agent and the user hasn't explicitly
+	// chosen "none". Fires on initial open (where useState init captured
+	// "none" before the query resolved) AND on host switch (where the
+	// previous host's UUID isn't valid here, so the corrective effect inside
+	// useAgentLaunchPreferences resets to "none"). The corrective effect
+	// can't rescue these on its own because "none" is always in validAgents.
 	useEffect(() => {
-		if (didInitialPromoteRef.current) return;
 		if (!v2AgentConfigsQuery.isFetched) return;
-		didInitialPromoteRef.current = true;
 		if (selectedAgent !== "none") return;
-		if (typeof window !== "undefined") {
-			if (window.localStorage.getItem(AGENT_STORAGE_KEY)) return;
-		}
+		const stored =
+			typeof window !== "undefined"
+				? window.localStorage.getItem(AGENT_STORAGE_KEY)
+				: null;
+		if (stored === "none") return;
 		const first = selectableAgentIds[0];
 		if (first) setSelectedAgent(first);
 	}, [

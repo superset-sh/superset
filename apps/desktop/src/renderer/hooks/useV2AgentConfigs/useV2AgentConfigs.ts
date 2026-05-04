@@ -1,27 +1,27 @@
 import type { HostAgentConfigDto } from "@superset/host-service/settings";
 import { useQuery } from "@tanstack/react-query";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
-import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 
 export const V2_AGENT_CONFIGS_QUERY_KEY = ["host-agent-configs"] as const;
 
-/** Shared between the startup prefetch and Settings → Agents so both share one cache entry. */
-export function useV2AgentConfigs() {
-	const { activeHostUrl } = useLocalHostService();
-
+/**
+ * Caller passes the host URL explicitly so this hook works for any host the
+ * user is targeting (local, remote-via-relay, or whatever the new-workspace
+ * modal has resolved). Cache is keyed on URL so distinct hosts don't share
+ * entries. Configs only change via Settings → Agents mutations that invalidate
+ * this key — `staleTime: Infinity` keeps the startup prefetch warm across
+ * navigation instead of every consumer refetching on mount.
+ */
+export function useV2AgentConfigs(hostUrl: string | null) {
 	return useQuery({
-		queryKey: [...V2_AGENT_CONFIGS_QUERY_KEY, activeHostUrl] as const,
-		enabled: !!activeHostUrl,
+		queryKey: [...V2_AGENT_CONFIGS_QUERY_KEY, hostUrl] as const,
+		enabled: !!hostUrl,
 		queryFn: () => {
-			if (!activeHostUrl) return [] as HostAgentConfigDto[];
+			if (!hostUrl) return [] as HostAgentConfigDto[];
 			return getHostServiceClientByUrl(
-				activeHostUrl,
+				hostUrl,
 			).settings.agentConfigs.list.query();
 		},
-		// Configs only change via Settings → Agents mutations, which all
-		// invalidate this key explicitly. Otherwise the data is effectively
-		// static — Infinity keeps the startup prefetch warm across navigation
-		// instead of every consumer triggering a background refetch on mount.
 		staleTime: Number.POSITIVE_INFINITY,
 	});
 }

@@ -20,7 +20,7 @@ export function V2AgentsSettings() {
 	const { activeHostUrl } = useLocalHostService();
 	const queryClient = useQueryClient();
 
-	const configsQuery = useV2AgentConfigs();
+	const configsQuery = useV2AgentConfigs(activeHostUrl);
 
 	const presetsQuery = useQuery({
 		queryKey: [...QUERY_KEY, "presets", activeHostUrl] as const,
