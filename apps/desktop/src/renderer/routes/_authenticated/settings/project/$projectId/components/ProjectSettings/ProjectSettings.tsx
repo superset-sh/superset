@@ -71,7 +71,7 @@ export function SettingsSection({
 					{title}
 				</h3>
 				{description && (
-					<p className="text-xs text-muted-foreground mt-0.5">{description}</p>
+					<p className="text-sm text-muted-foreground mt-0.5">{description}</p>
 				)}
 			</div>
 			{children}

@@ -48,14 +48,14 @@ export function V2ProjectSettings({ projectId }: V2ProjectSettingsProps) {
 			<div className="space-y-8">
 				<SettingsSection
 					title="Name"
-					description="What this project is called everywhere in Superset."
+					description="Display name for this project."
 				>
 					<NameSection projectId={projectId} currentName={project.name} />
 				</SettingsSection>
 
 				<SettingsSection
 					title="Repository"
-					description="The GitHub repository this project tracks."
+					description="GitHub repository this project tracks."
 				>
 					<RepositorySection
 						projectId={projectId}
@@ -65,7 +65,7 @@ export function V2ProjectSettings({ projectId }: V2ProjectSettingsProps) {
 
 				<SettingsSection
 					title="Project location"
-					description="Where this project lives on disk on each connected host."
+					description="Where this project lives on disk on this device."
 				>
 					<ProjectLocationSection
 						projectId={projectId}
