@@ -223,7 +223,7 @@ export function PresetEditorDialog({
 							<DialogTitle>{preset.name.trim() || "Edit preset"}</DialogTitle>
 						</DialogHeader>
 
-						<div className="divide-y divide-border">
+						<div className="space-y-1">
 							<DialogRow label="Name" htmlFor="preset-name">
 								<Input
 									id="preset-name"
