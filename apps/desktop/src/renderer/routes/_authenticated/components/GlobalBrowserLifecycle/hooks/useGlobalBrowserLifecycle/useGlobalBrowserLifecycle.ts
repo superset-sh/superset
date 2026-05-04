@@ -34,16 +34,8 @@ function extractBrowserLocations(
 }
 
 /**
- * Global sweeper that destroys browser registry entries whose paneId is no
- * longer present in ANY workspace's persisted layout. Replaces the Panes
- * library's `onRemoved` hook for browsers — `onRemoved` fires on transient
- * "missing from previous render" diffs during v2 workspace switches (the
- * provider key doesn't always remount promptly, so the pane store gets
- * `replaceState`'d in place and the diff looks like a removal), which
- * prematurely tore down webviews. Comparing against the persisted store is
- * authoritative.
- *
- * Mirrors useGlobalTerminalLifecycle by design.
+ * Destroys browser registry entries whose paneId is no longer present in
+ * any workspace's persisted layout.
  */
 export function useGlobalBrowserLifecycle() {
 	const collections = useCollections();

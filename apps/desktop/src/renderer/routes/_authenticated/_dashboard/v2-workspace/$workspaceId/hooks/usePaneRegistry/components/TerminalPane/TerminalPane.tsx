@@ -10,8 +10,15 @@ import {
 	useState,
 	useSyncExternalStore,
 } from "react";
-import { useTerminalLinkActions } from "renderer/hooks/useV2UserPreferences";
 import { useHotkey } from "renderer/hotkeys";
+import {
+	actionLabel,
+	folderIntentFor,
+	folderIntentLabel,
+	LinkHoverHint,
+	useTerminalFilePolicy,
+	useTerminalUrlPolicy,
+} from "renderer/lib/clickPolicy";
 import {
 	type ConnectionState,
 	terminalRuntimeRegistry,
@@ -28,9 +35,8 @@ import { ScrollToBottomButton } from "renderer/screens/main/components/Workspace
 import { TerminalSearch } from "renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/Terminal/TerminalSearch";
 import { useTheme } from "renderer/stores/theme";
 import { resolveTerminalThemeType } from "renderer/stores/theme/utils";
-import { LinkHoverTooltip } from "./components/LinkHoverTooltip";
 import { useLinkClickHint } from "./hooks/useLinkClickHint";
-import { useLinkHoverState } from "./hooks/useLinkHoverState";
+import { type HoveredLink, useLinkHoverState } from "./hooks/useLinkHoverState";
 import { useTerminalAppearance } from "./hooks/useTerminalAppearance";
 import { shellEscapePaths } from "./utils";
 
@@ -47,7 +53,8 @@ export function TerminalPane({
 	onOpenFile,
 	onRevealPath,
 }: TerminalPaneProps) {
-	const { getFileAction, getUrlAction } = useTerminalLinkActions();
+	const filePolicy = useTerminalFilePolicy();
+	const urlPolicy = useTerminalUrlPolicy();
 	const {
 		hoveredLink,
 		onHover: onLinkHover,
@@ -57,6 +64,7 @@ export function TerminalPane({
 	const openInExternalEditor = useOpenInExternalEditor(workspaceId);
 	const paneData = ctx.pane.data as TerminalPaneData;
 	const { terminalId } = paneData;
+	const initialCommandRef = useRef(paneData.initialCommand);
 	const terminalInstanceId = ctx.pane.id;
 	const containerRef = useRef<HTMLDivElement | null>(null);
 	const activeTheme = useTheme();
@@ -73,17 +81,17 @@ export function TerminalPane({
 		}),
 	);
 
-	// URL is stable — no workspaceId/themeType in query params.
-	// Session is created via tRPC before WebSocket connects.
-	const websocketUrl = useWorkspaceWsUrl(`/terminal/${terminalId}`);
+	// Include workspaceId/themeType so the WebSocket route can create the
+	// session on open. Terminal attach should not wait behind workspace tRPC.
+	const websocketUrl = useWorkspaceWsUrl(`/terminal/${terminalId}`, {
+		workspaceId,
+		themeType: initialThemeTypeRef.current,
+	});
 	const websocketUrlRef = useRef(websocketUrl);
 	websocketUrlRef.current = websocketUrl;
 	const workspaceIdRef = useRef(workspaceId);
 	workspaceIdRef.current = workspaceId;
 
-	const ensureSession = workspaceTrpc.terminal.ensureSession.useMutation();
-	const ensureSessionRef = useRef(ensureSession);
-	ensureSessionRef.current = ensureSession;
 	const workspaceTrpcUtils = workspaceTrpc.useUtils();
 	const invalidateTerminalSessionsRef = useRef(
 		workspaceTrpcUtils.terminal.listSessions.invalidate,
@@ -119,12 +127,12 @@ export function TerminalPane({
 	//      is visible immediately, even on cold start. For a warm return
 	//      (workspace switch) this reparents the wrapper from the parking
 	//      container back into the live tree, preserving the buffer.
-	//   2. ensureSession guarantees the server session exists, then connect()
-	//      opens the WebSocket. Never before — otherwise the server replies
-	//      "Session not found."
-	// Deps narrowed to [terminalId] so provider key remount churn (workspaceId
-	// briefly flipping while pane data catches up) doesn't re-run this effect.
-	// workspaceId / websocketUrl are read through refs.
+	//   2. connect() opens the WebSocket immediately. The host-service terminal
+	//      route creates the session from the URL workspaceId if needed, avoiding
+	//      tRPC head-of-line blocking during workspace switches.
+	// Deps narrowed to the terminal identity so provider key remount churn
+	// (workspaceId briefly flipping while pane data catches up) doesn't re-run
+	// this effect. workspaceId / websocketUrl are read through refs.
 	useEffect(() => {
 		const container = containerRef.current;
 		if (!container) return;
@@ -136,49 +144,65 @@ export function TerminalPane({
 			terminalInstanceId,
 		);
 
-		let cancelled = false;
-		const sessionWorkspaceId = workspaceIdRef.current;
-
-		// Always connect after ensureSession settles, even on error: if the
-		// session actually exists on the server (e.g. we raced another client),
-		// connect() succeeds; otherwise "Session not found" surfaces in-terminal
-		// as an error line. connect() is idempotent, so a warm terminal whose
-		// WS is already open against the same URL is a no-op.
-		ensureSessionRef.current
-			.mutateAsync({
-				terminalId,
-				workspaceId: sessionWorkspaceId,
-				themeType: initialThemeTypeRef.current,
-			})
-			.then((result) => {
-				if (result.status === "active") {
-					void invalidateTerminalSessionsRef.current({
-						workspaceId: sessionWorkspaceId,
-					});
-				}
-			})
-			.catch((err) => {
-				console.error("[TerminalPane] ensureSession failed:", err);
-			})
-			.finally(() => {
-				if (cancelled) return;
-				terminalRuntimeRegistry.connect(
-					terminalId,
-					websocketUrlRef.current,
-					terminalInstanceId,
-				);
-			});
+		terminalRuntimeRegistry.connect(
+			terminalId,
+			websocketUrlRef.current,
+			terminalInstanceId,
+			{ initialCommand: initialCommandRef.current },
+		);
 
 		return () => {
-			cancelled = true;
 			terminalRuntimeRegistry.detach(terminalId, terminalInstanceId);
 		};
+	}, [terminalId, terminalInstanceId]);
+
+	useEffect(() => {
+		if (connectionState !== "open" || !initialCommandRef.current) return;
+
+		initialCommandRef.current = undefined;
+		if (paneData.initialCommand === undefined) return;
+
+		ctx.actions.updateData({
+			...paneData,
+			initialCommand: undefined,
+		} as PaneViewerData);
+	}, [connectionState, ctx.actions, paneData]);
+
+	const lastInvalidatedOpenSessionRef = useRef<string | null>(null);
+	useEffect(() => {
+		const invalidateSessionsAfterSocketOpen = () => {
+			if (
+				terminalRuntimeRegistry.getConnectionState(
+					terminalId,
+					terminalInstanceId,
+				) !== "open"
+			) {
+				lastInvalidatedOpenSessionRef.current = null;
+				return;
+			}
+
+			const sessionWorkspaceId = workspaceIdRef.current;
+			const invalidateKey = `${sessionWorkspaceId}:${terminalId}:${terminalInstanceId}:${websocketUrlRef.current}`;
+			if (lastInvalidatedOpenSessionRef.current === invalidateKey) return;
+			lastInvalidatedOpenSessionRef.current = invalidateKey;
+
+			void invalidateTerminalSessionsRef.current({
+				workspaceId: sessionWorkspaceId,
+			});
+		};
+
+		invalidateSessionsAfterSocketOpen();
+		return terminalRuntimeRegistry.onStateChange(
+			terminalId,
+			invalidateSessionsAfterSocketOpen,
+			terminalInstanceId,
+		);
 	}, [terminalId, terminalInstanceId]);
 
 	// WS URL can change while the terminal stays mounted (token refresh, host
 	// URL re-resolution on provider remount). Reconnect only if the transport
 	// is already live — on initial mount the transport is "disconnected" and
-	// we let the ensureSession path above open it.
+	// we let the mount path above open it.
 	useEffect(() => {
 		terminalRuntimeRegistry.reconnect(
 			terminalId,
@@ -223,15 +247,14 @@ export function TerminalPane({
 					}
 				},
 				onFileLinkClick: (event, link) => {
-					// Folders are not settings-controlled: ⌘ reveals in sidebar,
-					// ⌘⇧ falls through to the external editor path, plain = hint.
 					if (link.isDirectory) {
-						if (!event.metaKey && !event.ctrlKey) {
+						const intent = folderIntentFor(event);
+						if (intent === null) {
 							showHint(event.clientX, event.clientY);
 							return;
 						}
 						event.preventDefault();
-						if (event.shiftKey) {
+						if (intent === "external") {
 							openInExternalEditor(link.resolvedPath);
 						} else {
 							onRevealPath(link.resolvedPath, { isDirectory: true });
@@ -239,7 +262,7 @@ export function TerminalPane({
 						return;
 					}
 
-					const action = getFileAction(event);
+					const action = filePolicy.getAction(event);
 					if (action === null) {
 						showHint(event.clientX, event.clientY);
 						return;
@@ -250,12 +273,14 @@ export function TerminalPane({
 							line: link.row,
 							column: link.col,
 						});
+					} else if (action === "newTab") {
+						onOpenFile(link.resolvedPath, true);
 					} else {
 						onOpenFile(link.resolvedPath);
 					}
 				},
 				onUrlClick: (event, url) => {
-					const action = getUrlAction(event);
+					const action = urlPolicy.getAction(event);
 					if (action === null) {
 						showHint(event.clientX, event.clientY);
 						return;
@@ -268,7 +293,7 @@ export function TerminalPane({
 					} else {
 						openUrlInV2Workspace({
 							store: ctx.store,
-							target: "current-tab",
+							target: action === "newTab" ? "new-tab" : "current-tab",
 							url,
 						});
 					}
@@ -289,8 +314,8 @@ export function TerminalPane({
 		onLinkHover,
 		onLinkLeave,
 		showHint,
-		getFileAction,
-		getUrlAction,
+		filePolicy,
+		urlPolicy,
 	]);
 
 	useHotkey(
@@ -409,7 +434,37 @@ export function TerminalPane({
 					<span>Disconnected</span>
 				</div>
 			)}
-			<LinkHoverTooltip hoveredLink={hoveredLink} hint={hint} />
+			<LinkHoverHint
+				hoverLabel={resolveHoverLabel(hoveredLink, filePolicy, urlPolicy)}
+				hoverPosition={hoveredLink}
+				clickHint={hint}
+			/>
 		</div>
 	);
+}
+
+// Compute "what would clicking right now do?" for the live link tooltip.
+// Folders use the hardcoded folderIntent rule; files/urls go through the
+// settings-driven policies. Returns null when no modifier is held or the
+// matching tier is unbound — the tooltip stays hidden in that case.
+function resolveHoverLabel(
+	hovered: HoveredLink | null,
+	filePolicy: ReturnType<typeof useTerminalFilePolicy>,
+	urlPolicy: ReturnType<typeof useTerminalUrlPolicy>,
+): string | null {
+	if (!hovered) return null;
+	const event = {
+		metaKey: hovered.modifier,
+		ctrlKey: false,
+		shiftKey: hovered.shift,
+	};
+	if (hovered.info.kind === "url") {
+		const action = urlPolicy.getAction(event);
+		return action ? actionLabel(action, "url") : null;
+	}
+	if (hovered.info.isDirectory) {
+		return folderIntentLabel(folderIntentFor(event));
+	}
+	const action = filePolicy.getAction(event);
+	return action ? actionLabel(action, "file") : null;
 }

@@ -49,6 +49,10 @@ export const lightTheme: Theme = {
 		// Search highlights
 		highlightMatch: "rgba(255, 211, 61, 0.35)",
 		highlightActive: "rgba(255, 150, 50, 0.55)",
+
+		// Brand highlight - warm chart-1 orange
+		highlight: "oklch(0.646 0.222 41.116)",
+		highlightForeground: "oklch(0.985 0 0)",
 	},
 
 	terminal: {

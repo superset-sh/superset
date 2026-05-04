@@ -2,9 +2,9 @@ import { execFile } from "node:child_process";
 import { type FSWatcher, watch } from "node:fs";
 import { promisify } from "node:util";
 import type { FsWatchEvent } from "@superset/workspace-fs/host";
-import type { HostDb } from "../db";
-import { workspaces } from "../db/schema";
-import type { WorkspaceFilesystemManager } from "../runtime/filesystem";
+import type { HostDb } from "../db/index.ts";
+import { workspaces } from "../db/schema.ts";
+import type { WorkspaceFilesystemManager } from "../runtime/filesystem/index.ts";
 
 const execFileAsync = promisify(execFile);
 
@@ -148,7 +148,15 @@ export class GitWatcher {
 						? { workspaceId }
 						: { workspaceId, paths: [...batch.paths] };
 				for (const listener of this.listeners) {
-					listener(event);
+					// Isolate per-listener throws so one bad subscriber can't skip
+					// siblings. Other escapes fall through to the process-level net.
+					try {
+						listener(event);
+					} catch (error) {
+						console.error("[git-watcher:listener] threw — contained", {
+							error,
+						});
+					}
 				}
 			}, DEBOUNCE_MS),
 		);

@@ -2,12 +2,12 @@ import type { NodeWebSocket } from "@hono/node-ws";
 import type { DetectedPort } from "@superset/port-scanner";
 import type { FsWatchEvent } from "@superset/workspace-fs/host";
 import type { Hono } from "hono";
-import type { HostDb } from "../db";
-import { portManager } from "../ports/port-manager";
-import { getLabelsForWorkspace } from "../ports/static-ports";
-import type { WorkspaceFilesystemManager } from "../runtime/filesystem";
-import { GitWatcher } from "./git-watcher";
-import type { ClientMessage, ServerMessage } from "./types";
+import type { HostDb } from "../db/index.ts";
+import { portManager } from "../ports/port-manager.ts";
+import { getLabelsForWorkspace } from "../ports/static-ports.ts";
+import type { WorkspaceFilesystemManager } from "../runtime/filesystem/index.ts";
+import type { GitWatcher } from "./git-watcher.ts";
+import type { ClientMessage, ServerMessage } from "./types.ts";
 
 type WsSocket = {
 	send: (data: string) => void;
@@ -43,8 +43,8 @@ function parseClientMessage(data: unknown): ClientMessage | null {
 				return parsed as ClientMessage;
 			}
 		}
-	} catch {
-		// Malformed message — ignore
+	} catch (error) {
+		console.warn("[event-bus] malformed client message — ignored", { error });
 	}
 	return null;
 }
@@ -52,6 +52,7 @@ function parseClientMessage(data: unknown): ClientMessage | null {
 export interface EventBusOptions {
 	db: HostDb;
 	filesystem: WorkspaceFilesystemManager;
+	gitWatcher: GitWatcher;
 }
 
 /**
@@ -71,13 +72,12 @@ export class EventBus {
 
 	constructor(options: EventBusOptions) {
 		this.filesystem = options.filesystem;
-		this.gitWatcher = new GitWatcher(options.db, options.filesystem);
+		this.gitWatcher = options.gitWatcher;
 	}
 
 	start(): void {
 		if (this.removeGitListener || this.removePortListeners) return;
 
-		this.gitWatcher.start();
 		this.removeGitListener = this.gitWatcher.onChanged((event) => {
 			this.broadcast({
 				type: "git:changed",
@@ -105,7 +105,6 @@ export class EventBus {
 		this.removeGitListener = null;
 		this.removePortListeners?.();
 		this.removePortListeners = null;
-		this.gitWatcher.close();
 		for (const [socket, state] of this.clients) {
 			this.cleanupClient(socket, state);
 		}
@@ -139,8 +138,21 @@ export class EventBus {
 	}
 
 	private broadcast(message: ServerMessage): void {
+		// One bad socket must not block fan-out to the rest. Drop dead sockets
+		// rather than logging on every broadcast forever.
+		const dead: WsSocket[] = [];
 		for (const socket of this.clients.keys()) {
-			sendMessage(socket, message);
+			try {
+				sendMessage(socket, message);
+			} catch (error) {
+				console.error("[event-bus:send] socket failed — dropping", { error });
+				dead.push(socket);
+			}
+		}
+		for (const socket of dead) {
+			const state = this.clients.get(socket);
+			if (state) this.cleanupClient(socket, state);
+			this.clients.delete(socket);
 		}
 	}
 

@@ -11,7 +11,7 @@ import { useIsDarkTheme } from "renderer/assets/app-icons/preset-icons";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { usePresets } from "renderer/react-query/presets";
 import type { PresetColumnKey } from "renderer/routes/_authenticated/settings/presets/types";
-import { PresetEditorSheet } from "./components/PresetEditorSheet";
+import { PresetEditorDialog } from "./components/PresetEditorDialog";
 import { PresetsTable } from "./components/PresetsTable";
 import { QuickAddPresets } from "./components/QuickAddPresets";
 import {
@@ -493,7 +493,7 @@ export function PresetsSection({
 				</>
 			)}
 
-			<PresetEditorSheet
+			<PresetEditorDialog
 				preset={editingPreset}
 				projects={projectOptions}
 				open={!!editingPreset}

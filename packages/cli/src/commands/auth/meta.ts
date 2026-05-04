@@ -1,3 +1,3 @@
 export default {
-	description: "Login, logout, and identity",
+	description: "Manage authentication",
 };

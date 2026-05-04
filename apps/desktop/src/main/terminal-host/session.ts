@@ -360,18 +360,32 @@ export class Session {
 
 			case PtySubprocessIpcType.Data: {
 				if (payload.length === 0) break;
-				let data = payload.toString("utf8");
 
 				// Scan for OSC 133;A (shell ready) and strip from output.
+				// scanForShellReady operates on bytes — the OSC marker is pure
+				// ASCII, so byte-level matching is identical to char-level
+				// matching, and we avoid `payload.toString("utf8")` per chunk
+				// (which mangles multi-byte codepoints split across chunks).
+				let bytes: Uint8Array = payload;
 				if (this.shellReadyState === "pending") {
-					const result = scanForShellReady(this.scanState, data);
-					data = result.output;
+					const result = scanForShellReady(this.scanState, payload);
+					bytes = result.output;
 					if (result.matched) {
 						this.resolveShellReady("ready");
 					}
 				}
 
-				if (data.length === 0) break;
+				if (bytes.length === 0) break;
+				// v1's emulator + IPC consumers want a string. UTF-8 decode the
+				// stripped bytes here. Boundary mangling is still possible at
+				// chunk edges (v1 has no per-session StringDecoder), but v1 is
+				// sunset — the v2 daemon-backed path is the supported one and
+				// it's clean end-to-end.
+				const data = Buffer.from(
+					bytes.buffer,
+					bytes.byteOffset,
+					bytes.byteLength,
+				).toString("utf8");
 
 				this.enqueueEmulatorWrite(data);
 
@@ -1037,14 +1051,17 @@ export class Session {
 			clearTimeout(this.shellReadyTimeoutId);
 			this.shellReadyTimeoutId = null;
 		}
-		// Flush held marker bytes — they weren't part of a full marker
+		// Flush held marker bytes — they weren't part of a full marker.
+		// heldBytes is `number[]` after the byte-scanner refactor; decode to a
+		// utf-8 string for v1's emulator/event surface, which is string-based.
 		if (this.scanState.heldBytes.length > 0) {
-			this.enqueueEmulatorWrite(this.scanState.heldBytes);
+			const flushed = Buffer.from(this.scanState.heldBytes).toString("utf8");
+			this.enqueueEmulatorWrite(flushed);
 			this.broadcastEvent("data", {
 				type: "data",
-				data: this.scanState.heldBytes,
+				data: flushed,
 			} satisfies TerminalDataEvent);
-			this.scanState.heldBytes = "";
+			this.scanState.heldBytes.length = 0;
 		}
 		this.scanState.matchPos = 0;
 	}

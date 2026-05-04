@@ -55,9 +55,9 @@ export class OptionBuilderBase<
 		OptionBuilderBase<
 			BuilderConfig<"string">,
 			string | undefined,
-			TOmit | OptionType | "min" | "max" | "int" | "variadic"
+			TOmit | OptionType | "min" | "max" | "int"
 		>,
-		TOmit | OptionType | "min" | "max" | "int" | "variadic"
+		TOmit | OptionType | "min" | "max" | "int"
 	> {
 		return new OptionBuilderBase({
 			...this._.config,
@@ -288,15 +288,22 @@ export class OptionBuilderBase<
 		OptionBuilderBase<
 			TBuilderConfig,
 			string[],
-			TOmit | "variadic" | "required" | "default",
+			TOmit | "variadic" | "default",
 			TEnums
 		>,
-		TOmit | "variadic" | "required" | "default"
+		TOmit | "variadic" | "default"
 	> {
+		if (
+			this._.config.type !== "positional" &&
+			this._.config.type !== "string"
+		) {
+			throw new CLIError(
+				"`.variadic()` is only valid on string or positional options",
+			);
+		}
 		return new OptionBuilderBase({
 			...this._.config,
 			isVariadic: true,
-			isRequired: true,
 		}) as any;
 	}
 }
@@ -325,9 +332,9 @@ export function string(): Omit<
 	OptionBuilderBase<
 		BuilderConfig<"string">,
 		string | undefined,
-		OptionType | "min" | "max" | "int" | "variadic"
+		OptionType | "min" | "max" | "int"
 	>,
-	OptionType | "min" | "max" | "int" | "variadic"
+	OptionType | "min" | "max" | "int"
 >;
 export function string<TName extends string>(
 	name: TName,
@@ -335,9 +342,9 @@ export function string<TName extends string>(
 	OptionBuilderBase<
 		BuilderConfig<"string">,
 		string | undefined,
-		OptionType | "min" | "max" | "int" | "variadic"
+		OptionType | "min" | "max" | "int"
 	>,
-	OptionType | "min" | "max" | "int" | "variadic"
+	OptionType | "min" | "max" | "int"
 >;
 export function string(name?: string) {
 	return name !== undefined

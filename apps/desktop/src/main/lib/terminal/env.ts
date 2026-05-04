@@ -464,7 +464,7 @@ export function buildTerminalEnv(params: {
 	const terminalEnv: Record<string, string> = {
 		...baseEnv,
 		...shellEnv,
-		TERM_PROGRAM: "Superset",
+		TERM_PROGRAM: "kitty",
 		TERM_PROGRAM_VERSION: process.env.npm_package_version || "1.0.0",
 		COLORTERM: "truecolor",
 		COLORFGBG: colorFgBg,

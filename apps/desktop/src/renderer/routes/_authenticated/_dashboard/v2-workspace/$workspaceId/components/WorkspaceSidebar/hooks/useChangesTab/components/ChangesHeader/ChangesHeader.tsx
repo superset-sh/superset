@@ -9,7 +9,6 @@ interface ChangesHeaderProps {
 	currentBranch: { name: string; aheadCount: number; behindCount: number };
 	defaultBranchName: string;
 	baseBranch: string | null;
-	commitCount: number;
 	totalFiles: number;
 	totalAdditions: number;
 	totalDeletions: number;
@@ -27,7 +26,6 @@ export function ChangesHeader({
 	currentBranch,
 	defaultBranchName,
 	baseBranch,
-	commitCount,
 	totalFiles,
 	totalAdditions,
 	totalDeletions,
@@ -61,9 +59,9 @@ export function ChangesHeader({
 	};
 
 	return (
-		<div className="border-b border-border bg-muted/30 px-3 py-2.5 space-y-1.5">
+		<div className="space-y-1 border-b border-border bg-muted/30 px-3 py-2">
 			<div className="group flex items-center gap-1.5 text-xs">
-				<GitBranch className="size-3.5 shrink-0 text-muted-foreground" />
+				<GitBranch className="size-3 shrink-0 text-muted-foreground" />
 				{isEditing ? (
 					<input
 						ref={inputRef}
@@ -83,78 +81,43 @@ export function ChangesHeader({
 							if (skipBlurRef.current) return;
 							handleSubmit();
 						}}
-						className="min-w-0 flex-1 truncate bg-transparent font-medium outline-none ring-1 ring-ring rounded-sm px-1"
+						className="min-w-0 flex-1 truncate rounded-sm bg-transparent px-1 font-medium outline-none ring-1 ring-ring"
 					/>
 				) : (
 					<>
-						<span className="truncate font-medium">{currentBranch.name}</span>
+						<span className="min-w-0 truncate font-medium">
+							{currentBranch.name}
+						</span>
 						{canRename && (
 							<button
 								type="button"
 								onClick={startEditing}
-								className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-foreground"
+								className="shrink-0 text-muted-foreground opacity-0 transition-opacity hover:text-foreground group-hover:opacity-100"
 							>
 								<Pencil className="size-3" />
 							</button>
 						)}
+						<span className="shrink-0 text-muted-foreground/60">from</span>
+						<BaseBranchSelector
+							branches={branches}
+							currentValue={baseBranch ?? defaultBranchName}
+							onChange={onBaseBranchChange}
+						/>
 					</>
 				)}
 			</div>
 
-			<div className="text-[11px] text-muted-foreground">
-				{commitCount} {commitCount === 1 ? "commit" : "commits"} from{" "}
-				<BaseBranchSelector
-					branches={branches}
-					currentValue={baseBranch ?? defaultBranchName}
-					onChange={onBaseBranchChange}
-				/>
-			</div>
-
-			{currentBranch.aheadCount > 0 && currentBranch.behindCount > 0 && (
-				<div className="text-[11px] text-muted-foreground">
-					<div>Your branch and</div>
-					<div className="font-medium text-foreground">
-						origin/{currentBranch.name}
-					</div>
-					<div>have diverged</div>
-					<div>
-						{currentBranch.aheadCount} local not pushed,{" "}
-						{currentBranch.behindCount} remote to pull
-					</div>
-				</div>
-			)}
-			{currentBranch.aheadCount > 0 && currentBranch.behindCount === 0 && (
-				<div className="text-[11px] text-muted-foreground">
-					<div>
-						{currentBranch.aheadCount}{" "}
-						{currentBranch.aheadCount === 1 ? "commit" : "commits"} ahead of
-					</div>
-					<div className="font-medium text-foreground">
-						origin/{currentBranch.name}
-					</div>
-				</div>
-			)}
-			{currentBranch.behindCount > 0 && currentBranch.aheadCount === 0 && (
-				<div className="text-[11px] text-muted-foreground">
-					<div>
-						{currentBranch.behindCount}{" "}
-						{currentBranch.behindCount === 1 ? "commit" : "commits"} behind
-					</div>
-					<div className="font-medium text-foreground">
-						origin/{currentBranch.name}
-					</div>
-				</div>
-			)}
-
-			<div className="flex items-center justify-between pt-0.5">
+			<div className="flex items-center justify-between gap-2 text-[11px] text-muted-foreground">
 				<CommitFilterDropdown
 					filter={filter}
 					onFilterChange={onFilterChange}
 					commits={commits}
 					uncommittedCount={uncommittedCount}
 				/>
-				<div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-					<span>{totalFiles} files changed</span>
+				<div className="flex shrink-0 items-center gap-1.5">
+					<span>
+						{totalFiles} {totalFiles === 1 ? "file" : "files"}
+					</span>
 					{(totalAdditions > 0 || totalDeletions > 0) && (
 						<span>
 							{totalAdditions > 0 && (

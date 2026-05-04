@@ -154,7 +154,7 @@ export function HostSettings({ hostId }: HostSettingsProps) {
 	};
 
 	return (
-		<div className="p-6 max-w-4xl w-full select-text">
+		<div className="p-6 max-w-4xl w-full mx-auto select-text">
 			<HostHeader
 				name={host.name}
 				isOnline={host.isOnline}
@@ -162,12 +162,14 @@ export function HostSettings({ hostId }: HostSettingsProps) {
 			/>
 
 			<section className="space-y-3">
-				<div className="flex items-end justify-between">
+				<div className="flex items-end justify-between gap-4">
 					<div>
-						<h3 className="text-base font-medium">Members</h3>
-						<p className="text-sm text-muted-foreground">
-							People in your organization who can use this host.
-						</p>
+						<h3 className="text-sm font-medium">Members</h3>
+						{!isOwner && (
+							<p className="text-sm text-muted-foreground mt-0.5">
+								Only owners can change membership.
+							</p>
+						)}
 					</div>
 					{isOwner && (
 						<AddMemberDropdown candidates={candidates} onPick={handleAdd} />
@@ -180,12 +182,6 @@ export function HostSettings({ hostId }: HostSettingsProps) {
 					onSetRole={handleSetRole}
 					onRemove={handleRemove}
 				/>
-
-				{!isOwner && (
-					<p className="text-xs text-muted-foreground">
-						Only owners of this host can change membership.
-					</p>
-				)}
 			</section>
 		</div>
 	);

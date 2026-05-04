@@ -7,7 +7,6 @@ import {
 	SelectValue,
 } from "@superset/ui/select";
 import { useCallback } from "react";
-import { HiSpeakerWave } from "react-icons/hi2";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 
 const VOLUME_LEVELS = [
@@ -58,14 +57,11 @@ export function VolumeDropdown() {
 	);
 
 	return (
-		<div className="space-y-3">
+		<div>
 			<div className="flex items-center justify-between gap-4">
-				<div className="flex items-center gap-2">
-					<HiSpeakerWave className="h-5 w-5 text-muted-foreground flex-shrink-0" />
-					<Label htmlFor="notification-volume" className="text-sm font-medium">
-						Volume
-					</Label>
-				</div>
+				<Label htmlFor="notification-volume" className="text-sm font-medium">
+					Volume
+				</Label>
 				<Select
 					value={volume.toString()}
 					onValueChange={handleVolumeChange}

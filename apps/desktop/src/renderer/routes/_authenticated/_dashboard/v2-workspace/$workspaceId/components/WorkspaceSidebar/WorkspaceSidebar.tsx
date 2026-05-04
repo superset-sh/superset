@@ -1,20 +1,32 @@
 import { Button } from "@superset/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@superset/ui/tabs";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
-import { cn } from "@superset/ui/utils";
 import { Search } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { LuFile, LuGitCompareArrows } from "react-icons/lu";
 import { useGitStatus } from "renderer/hooks/host-service/useGitStatus";
-import { useV2UserPreferences } from "renderer/hooks/useV2UserPreferences";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
-import { sidebarHeaderTabTriggerClassName } from "renderer/screens/main/components/WorkspaceView/RightSidebar/headerTabStyles";
 import type { CommentPaneData } from "../../types";
 import { FilesTab } from "./components/FilesTab";
+import { PRActionHeader } from "./components/PRActionHeader";
 import { SidebarHeader } from "./components/SidebarHeader";
 import { useChangesTab } from "./hooks/useChangesTab";
+import { type OpenChatFn, usePRFlowDispatch } from "./hooks/usePRFlowDispatch";
+import { usePRFlowState } from "./hooks/usePRFlowState";
 import { useReviewTab } from "./hooks/useReviewTab";
 import type { SidebarTabDefinition } from "./types";
+
+// Gates the "Create PR" button only — the chat-driven create flow doesn't
+// exist in v2 yet. The PR status group (link + merge dropdown for an open PR)
+// always renders so users can see PR state and merge once a PR exists.
+const CREATE_PR_BUTTON_ENABLED = false;
+
+type SidebarTabId = "changes" | "files" | "review";
+
+const VALID_TAB_IDS: readonly SidebarTabId[] = ["changes", "files", "review"];
+
+function isSidebarTabId(tab: string): tab is SidebarTabId {
+	return (VALID_TAB_IDS as readonly string[]).includes(tab);
+}
 
 export interface PendingReveal {
 	path: string;
@@ -25,11 +37,11 @@ interface WorkspaceSidebarProps {
 	onSelectFile: (absolutePath: string, openInNewTab?: boolean) => void;
 	onSelectDiffFile?: (path: string, openInNewTab?: boolean) => void;
 	onOpenComment?: (comment: CommentPaneData) => void;
+	onOpenChat?: OpenChatFn;
 	onSearch?: () => void;
 	selectedFilePath?: string;
 	pendingReveal?: PendingReveal | null;
 	workspaceId: string;
-	workspaceName?: string;
 }
 
 function IconButton({
@@ -62,27 +74,23 @@ export function WorkspaceSidebar({
 	onSelectFile,
 	onSelectDiffFile,
 	onOpenComment,
+	onOpenChat,
 	onSearch,
 	selectedFilePath,
 	pendingReveal,
 	workspaceId,
-	workspaceName,
 }: WorkspaceSidebarProps) {
 	const collections = useCollections();
-	const { preferences, setRightSidebarTab } = useV2UserPreferences();
-	const activeTab = preferences.rightSidebarTab;
 	const localState = collections.v2WorkspaceLocalState.get(workspaceId);
-	const changesSubtab = localState?.sidebarState?.changesSubtab ?? "diffs";
+	const activeTab: SidebarTabId =
+		(localState?.sidebarState?.activeTab as SidebarTabId | undefined) ??
+		"changes";
 
 	function setActiveTab(tab: string) {
-		if (tab !== "changes" && tab !== "files") return;
-		setRightSidebarTab(tab);
-	}
-
-	function setChangesSubtab(subtab: "diffs" | "review") {
+		if (!isSidebarTabId(tab)) return;
 		if (!collections.v2WorkspaceLocalState.get(workspaceId)) return;
 		collections.v2WorkspaceLocalState.update(workspaceId, (draft) => {
-			draft.sidebarState.changesSubtab = subtab;
+			draft.sidebarState.activeTab = tab;
 		});
 	}
 
@@ -92,7 +100,11 @@ export function WorkspaceSidebar({
 		const el = containerRef.current;
 		if (!el) return;
 		const ro = new ResizeObserver(([entry]) => {
-			if (entry) setCompact(entry.contentRect.width < 200);
+			if (!entry) return;
+			const width = entry.contentRect.width;
+			// Hysteresis: expand back to labels only once we're clearly past
+			// the breakpoint, so the labels don't jitter on the edge.
+			setCompact((prev) => (prev ? width < 280 : width < 260));
 		});
 		ro.observe(el);
 		return () => ro.disconnect();
@@ -100,13 +112,23 @@ export function WorkspaceSidebar({
 
 	const gitStatus = useGitStatus(workspaceId);
 
-	const changesTab = useChangesTab({
+	const changesTabDef = useChangesTab({
 		workspaceId,
 		gitStatus,
 		onSelectFile: onSelectDiffFile,
+		onOpenFile: onSelectFile,
 	});
+	const changesTab: SidebarTabDefinition = {
+		...changesTabDef,
+		icon: LuGitCompareArrows,
+	};
 
 	const reviewTab = useReviewTab({ workspaceId, onOpenComment });
+
+	const { flowState, onRetry } = usePRFlowState(workspaceId);
+	const dispatch = usePRFlowDispatch({
+		onOpenChat: onOpenChat ?? (() => {}),
+	});
 
 	const filesTab: SidebarTabDefinition = {
 		id: "files",
@@ -119,87 +141,33 @@ export function WorkspaceSidebar({
 				selectedFilePath={selectedFilePath}
 				pendingReveal={pendingReveal}
 				workspaceId={workspaceId}
-				workspaceName={workspaceName}
 				gitStatus={gitStatus.data}
 			/>
 		),
 	};
 
-	const combinedChangesTab: SidebarTabDefinition = {
-		id: "changes",
-		label: "Changes",
-		icon: LuGitCompareArrows,
-		badge: changesTab.badge,
-		actions: changesSubtab === "diffs" ? changesTab.actions : reviewTab.actions,
-		content: (
-			<Tabs
-				value={changesSubtab}
-				onValueChange={(v) => setChangesSubtab(v as "diffs" | "review")}
-				className="flex min-h-0 flex-1 flex-col gap-0"
-			>
-				<div className="h-8 shrink-0 border-b bg-background">
-					<TabsList className="grid h-full w-full grid-cols-2 items-stretch gap-0 rounded-none bg-transparent p-0">
-						<TabsTrigger
-							value="diffs"
-							className={cn(
-								sidebarHeaderTabTriggerClassName,
-								"min-w-0 w-full justify-center",
-							)}
-						>
-							<span>Diffs</span>
-							{changesTab.badge != null && (
-								<span className="text-[11px] text-muted-foreground/60 tabular-nums">
-									{changesTab.badge}
-								</span>
-							)}
-						</TabsTrigger>
-						<TabsTrigger
-							value="review"
-							className={cn(
-								sidebarHeaderTabTriggerClassName,
-								"min-w-0 w-full justify-center",
-							)}
-						>
-							<span>Review</span>
-							{reviewTab.badge != null && reviewTab.badge > 0 && (
-								<span className="text-[11px] text-muted-foreground/60 tabular-nums">
-									{reviewTab.badge}
-								</span>
-							)}
-						</TabsTrigger>
-					</TabsList>
-				</div>
-				<TabsContent
-					value="diffs"
-					className="mt-0 flex min-h-0 flex-1 flex-col outline-none"
-				>
-					{changesTab.content}
-				</TabsContent>
-				<TabsContent
-					value="review"
-					className="mt-0 flex min-h-0 flex-1 flex-col outline-none"
-				>
-					{reviewTab.content}
-				</TabsContent>
-			</Tabs>
-		),
-	};
-
-	const tabs = [combinedChangesTab, filesTab];
+	const tabs: SidebarTabDefinition[] = [filesTab, changesTab, reviewTab];
 	const activeTabDef = tabs.find((t) => t.id === activeTab);
 
 	return (
 		<div
 			ref={containerRef}
-			className="flex h-full min-h-0 flex-col overflow-hidden border-l border-border bg-background"
+			className="isolate flex h-full w-full min-h-0 flex-col overflow-hidden bg-background"
 		>
+			<PRActionHeader
+				workspaceId={workspaceId}
+				state={flowState}
+				dispatch={dispatch}
+				onRetry={onRetry}
+				createPREnabled={CREATE_PR_BUTTON_ENABLED}
+			/>
 			<SidebarHeader
 				tabs={tabs}
 				activeTab={activeTab}
 				onTabChange={setActiveTab}
 				compact={compact}
 			/>
-			<div className="flex min-h-0 flex-1 flex-col">
+			<div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
 				{activeTabDef?.content}
 			</div>
 		</div>

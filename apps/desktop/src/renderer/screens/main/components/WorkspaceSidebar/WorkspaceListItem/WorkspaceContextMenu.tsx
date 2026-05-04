@@ -36,7 +36,7 @@ import {
 import { createContextMenuDeleteDialogCoordinator } from "renderer/react-query/workspaces/useWorkspaceDeleteHandler";
 import { useWorkspaceSelectionStore } from "renderer/stores/workspace-selection";
 import { STROKE_WIDTH } from "../constants";
-import { WorkspaceHoverCardContent } from "./components";
+import { RenameBranchDialog, WorkspaceHoverCardContent } from "./components";
 import { HOVER_CARD_CLOSE_DELAY, HOVER_CARD_OPEN_DELAY } from "./constants";
 
 interface WorkspaceContextMenuProps {
@@ -77,6 +77,9 @@ export function WorkspaceContextMenu({
 	children,
 }: WorkspaceContextMenuProps) {
 	const [isContextMenuOpen, setIsContextMenuOpen] = useState(false);
+	const [renameBranchTarget, setRenameBranchTarget] = useState<string | null>(
+		null,
+	);
 	const contextMenuSelectionRef = useRef<string[]>([]);
 	const selectionStore = useWorkspaceSelectionStore;
 	const moveToSection = useMoveWorkspaceToSection();
@@ -246,8 +249,22 @@ export function WorkspaceContextMenu({
 				</ContextMenuContent>
 			</ContextMenu>
 			<HoverCardContent side="right" align="start" className="w-72">
-				<WorkspaceHoverCardContent workspaceId={id} workspaceAlias={name} />
+				<WorkspaceHoverCardContent
+					workspaceId={id}
+					workspaceAlias={name}
+					onEditBranchClick={setRenameBranchTarget}
+				/>
 			</HoverCardContent>
+			{renameBranchTarget && (
+				<RenameBranchDialog
+					workspaceId={id}
+					currentBranchName={renameBranchTarget}
+					open={renameBranchTarget !== null}
+					onOpenChange={(open) => {
+						if (!open) setRenameBranchTarget(null);
+					}}
+				/>
+			)}
 		</HoverCard>
 	);
 }

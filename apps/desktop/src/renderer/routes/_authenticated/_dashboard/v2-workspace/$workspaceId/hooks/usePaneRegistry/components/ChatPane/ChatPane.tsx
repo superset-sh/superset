@@ -1,5 +1,4 @@
 import type { ChatLaunchConfig } from "shared/tabs-types";
-import { SessionSelector } from "./components/SessionSelector";
 import { ChatPaneInterface as WorkspaceChatInterface } from "./components/WorkspaceChatInterface";
 import { useWorkspaceChatController } from "./hooks/useWorkspaceChatController";
 
@@ -16,46 +15,24 @@ export function ChatPane({
 	initialLaunchConfig?: ChatLaunchConfig | null;
 	onConsumeLaunchConfig?: () => void;
 }) {
-	const {
-		organizationId,
-		workspacePath,
-		sessionItems,
-		handleSelectSession,
-		handleNewChat,
-		handleDeleteSession,
-		getOrCreateSession,
-	} = useWorkspaceChatController({
-		onSessionIdChange,
-		sessionId,
-		workspaceId,
-	});
+	const { organizationId, workspacePath, handleNewChat, getOrCreateSession } =
+		useWorkspaceChatController({
+			onSessionIdChange,
+			sessionId,
+			workspaceId,
+		});
 
 	return (
-		<div className="flex h-full w-full min-h-0 flex-col">
-			<div className="flex h-8 shrink-0 items-center border-b border-border px-2">
-				<SessionSelector
-					currentSessionId={sessionId}
-					sessions={sessionItems}
-					fallbackTitle="New Chat"
-					onSelectSession={handleSelectSession}
-					onNewChat={handleNewChat}
-					onDeleteSession={handleDeleteSession}
-				/>
-			</div>
-
-			<div className="min-h-0 flex-1">
-				<WorkspaceChatInterface
-					getOrCreateSession={getOrCreateSession}
-					initialLaunchConfig={initialLaunchConfig ?? null}
-					onConsumeLaunchConfig={onConsumeLaunchConfig}
-					isFocused
-					onResetSession={handleNewChat}
-					sessionId={sessionId}
-					workspaceId={workspaceId}
-					organizationId={organizationId}
-					cwd={workspacePath}
-				/>
-			</div>
-		</div>
+		<WorkspaceChatInterface
+			getOrCreateSession={getOrCreateSession}
+			initialLaunchConfig={initialLaunchConfig ?? null}
+			onConsumeLaunchConfig={onConsumeLaunchConfig}
+			isFocused
+			onResetSession={handleNewChat}
+			sessionId={sessionId}
+			workspaceId={workspaceId}
+			organizationId={organizationId}
+			cwd={workspacePath}
+		/>
 	);
 }

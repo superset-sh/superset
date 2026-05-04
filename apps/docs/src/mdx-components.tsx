@@ -1,6 +1,12 @@
 import { Tab, Tabs } from "fumadocs-ui/components/tabs";
 import defaultMdxComponents from "fumadocs-ui/mdx";
 import type { MDXComponents } from "mdx/types";
+import {
+	Command,
+	CommandReturns,
+	HumanOutput,
+	JsonOutput,
+} from "@/components/Command";
 import { DatabaseTable } from "@/components/DatabaseTable";
 import { DownloadButton } from "@/components/DownloadButton";
 import { ResourceCard } from "@/components/ResourceCard";
@@ -10,6 +16,10 @@ import { YouTubeVideo } from "@/components/YouTubeVideo";
 export function getMDXComponents(components?: MDXComponents): MDXComponents {
 	return {
 		...defaultMdxComponents,
+		Command,
+		CommandReturns,
+		HumanOutput,
+		JsonOutput,
 		DownloadButton,
 		DatabaseTable,
 		ResourceCard,

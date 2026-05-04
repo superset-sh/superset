@@ -118,7 +118,7 @@ export const subscriptionsRelations = relations(subscriptions, ({ one }) => ({
 	}),
 }));
 
-export const tasksRelations = relations(tasks, ({ one }) => ({
+export const tasksRelations = relations(tasks, ({ one, many }) => ({
 	organization: one(organizations, {
 		fields: [tasks.organizationId],
 		references: [organizations.id],
@@ -137,6 +137,7 @@ export const tasksRelations = relations(tasks, ({ one }) => ({
 		references: [users.id],
 		relationName: "creator",
 	}),
+	workspaces: many(v2Workspaces),
 }));
 
 export const taskStatusesRelations = relations(
@@ -338,6 +339,10 @@ export const v2WorkspacesRelations = relations(
 			references: [users.id],
 		}),
 		chatSessions: many(chatSessions),
+		task: one(tasks, {
+			fields: [v2Workspaces.taskId],
+			references: [tasks.id],
+		}),
 	}),
 );
 

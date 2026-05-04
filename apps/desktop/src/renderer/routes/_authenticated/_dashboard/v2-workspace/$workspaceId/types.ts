@@ -8,6 +8,7 @@ export interface FilePaneData {
 
 export interface TerminalPaneData {
 	terminalId: string;
+	initialCommand?: string;
 }
 
 export interface ChatPaneData {
@@ -43,6 +44,7 @@ export interface DevtoolsPaneData {
 export interface DiffPaneData {
 	path: string;
 	collapsedFiles: string[];
+	expandedFiles?: string[];
 }
 
 export interface CommentPaneData {

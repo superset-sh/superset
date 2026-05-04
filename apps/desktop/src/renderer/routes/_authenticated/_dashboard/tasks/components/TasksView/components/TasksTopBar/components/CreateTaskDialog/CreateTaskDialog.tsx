@@ -125,7 +125,7 @@ export function CreateTaskDialog({
 		setIsCreating(true);
 
 		try {
-			const result = await apiTrpcClient.task.createFromUi.mutate({
+			const result = await apiTrpcClient.task.create.mutate({
 				title: title.trim(),
 				description: description.trim() || null,
 				statusId,

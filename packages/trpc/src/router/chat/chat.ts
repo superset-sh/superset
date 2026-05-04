@@ -30,6 +30,11 @@ const AVAILABLE_MODELS = [
 		provider: "Anthropic",
 	},
 	{
+		id: "openai/gpt-5.5",
+		name: "GPT-5.5",
+		provider: "OpenAI",
+	},
+	{
 		id: "openai/gpt-5.4",
 		name: "GPT-5.4",
 		provider: "OpenAI",
@@ -166,12 +171,25 @@ export const chatRouter = {
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
+			const organizationId = ctx.activeOrganizationId;
+
+			if (!organizationId) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "No active organization selected",
+				});
+			}
+
 			const [sessionRecord] = await db
-				.select({ id: chatSessions.id })
+				.select({
+					id: chatSessions.id,
+					organizationId: chatSessions.organizationId,
+				})
 				.from(chatSessions)
 				.where(
 					and(
 						eq(chatSessions.id, input.sessionId),
+						eq(chatSessions.organizationId, organizationId),
 						eq(chatSessions.createdBy, ctx.session.user.id),
 					),
 				)
@@ -184,7 +202,11 @@ export const chatRouter = {
 				});
 			}
 
-			const result = await uploadChatAttachment(input);
+			const result = await uploadChatAttachment({
+				...input,
+				userId: ctx.session.user.id,
+				organizationId: sessionRecord.organizationId,
+			});
 			return result;
 		}),
 

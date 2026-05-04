@@ -17,7 +17,6 @@ import { useUpdateListener } from "renderer/components/UpdateToast";
 import { env } from "renderer/env.renderer";
 import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import { useOnlineStatus } from "renderer/hooks/useOnlineStatus";
-import { migrateHotkeyOverrides } from "renderer/hotkeys/migrate";
 import { authClient, getAuthToken } from "renderer/lib/auth-client";
 import { dragDropManager } from "renderer/lib/dnd";
 import { electronTrpc } from "renderer/lib/electron-trpc";
@@ -34,7 +33,6 @@ import { useWorkspaceInitStore } from "renderer/stores/workspace-init";
 import { MOCK_ORG_ID, NOTIFICATION_EVENTS } from "shared/constants";
 import { AgentHooks } from "./components/AgentHooks";
 import { GlobalBrowserLifecycle } from "./components/GlobalBrowserLifecycle";
-import { GlobalTerminalLifecycle } from "./components/GlobalTerminalLifecycle";
 import { TeardownLogsDialog } from "./components/TeardownLogsDialog";
 import { V2NotificationController } from "./components/V2NotificationController";
 import { createPierreWorker } from "./lib/pierreWorker";
@@ -69,13 +67,6 @@ function AuthenticatedLayout() {
 
 	useAgentHookListener();
 	useUpdateListener();
-
-	// One-time migration from old hotkey storage to new localStorage-based store
-	useEffect(() => {
-		void migrateHotkeyOverrides().catch((error) => {
-			console.error("[hotkeys] Migration failed:", error);
-		});
-	}, []);
 
 	// Update workspace-run pane state on terminal exit
 	electronTrpc.notifications.subscribe.useSubscription(undefined, {
@@ -210,7 +201,6 @@ function AuthenticatedLayout() {
 			<CollectionsProvider>
 				<GlobalBrowserLifecycle />
 				<LocalHostServiceProvider>
-					<GlobalTerminalLifecycle />
 					<DeletingWorkspacesProvider>
 						<WorkerPoolContextProvider
 							poolOptions={{ workerFactory: createPierreWorker, poolSize: 8 }}

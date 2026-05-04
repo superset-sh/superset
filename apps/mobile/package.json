@@ -42,6 +42,7 @@
 		"@rn-primitives/toggle": "^1.2.0",
 		"@rn-primitives/toggle-group": "^1.2.0",
 		"@rn-primitives/tooltip": "^1.2.0",
+		"@superset/auth": "workspace:*",
 		"@superset/db": "workspace:*",
 		"@superset/trpc": "workspace:*",
 		"@tanstack/db": "0.6.5",

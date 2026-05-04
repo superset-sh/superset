@@ -18,6 +18,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { organizations, users } from "./auth";
 import {
+	automationPromptSourceValues,
 	automationRunStatusValues,
 	automationSessionKindValues,
 	commandStatusValues,
@@ -188,6 +189,9 @@ export const integrationConnections = pgTable(
 		refreshToken: text("refresh_token"),
 		tokenExpiresAt: timestamp("token_expires_at"),
 
+		disconnectedAt: timestamp("disconnected_at"),
+		disconnectReason: text("disconnect_reason"),
+
 		externalOrgId: text("external_org_id"),
 		externalOrgName: text("external_org_name"),
 
@@ -234,6 +238,8 @@ export const subscriptions = pgTable(
 		canceledAt: timestamp("canceled_at"),
 		endedAt: timestamp("ended_at"),
 		seats: integer(),
+		billingInterval: text("billing_interval"),
+		stripeScheduleId: text("stripe_schedule_id"),
 		createdAt: timestamp("created_at").notNull().defaultNow(),
 		updatedAt: timestamp("updated_at")
 			.notNull()
@@ -403,6 +409,7 @@ export const v2Projects = pgTable(
 			() => githubRepositories.id,
 			{ onDelete: "set null" },
 		),
+		iconUrl: text("icon_url"),
 		createdAt: timestamp("created_at", { withTimezone: true })
 			.notNull()
 			.defaultNow(),
@@ -534,6 +541,9 @@ export const v2Workspaces = pgTable(
 		createdByUserId: uuid("created_by_user_id").references(() => users.id, {
 			onDelete: "set null",
 		}),
+		taskId: uuid("task_id").references(() => tasks.id, {
+			onDelete: "set null",
+		}),
 		createdAt: timestamp("created_at", { withTimezone: true })
 			.notNull()
 			.defaultNow(),
@@ -551,6 +561,7 @@ export const v2Workspaces = pgTable(
 		index("v2_workspaces_project_id_idx").on(table.projectId),
 		index("v2_workspaces_organization_id_idx").on(table.organizationId),
 		index("v2_workspaces_host_id_idx").on(table.hostId),
+		index("v2_workspaces_task_id_idx").on(table.taskId),
 		uniqueIndex("v2_workspaces_one_main_per_host")
 			.on(table.projectId, table.hostId)
 			.where(sql`${table.type} = 'main'`),
@@ -686,6 +697,34 @@ export const chatSessions = pgTable(
 export type InsertChatSession = typeof chatSessions.$inferInsert;
 export type SelectChatSession = typeof chatSessions.$inferSelect;
 
+export const chatAttachments = pgTable(
+	"chat_attachments",
+	{
+		id: uuid().primaryKey().defaultRandom(),
+		chatSessionId: uuid("chat_session_id")
+			.notNull()
+			.references(() => chatSessions.id, { onDelete: "cascade" }),
+		createdBy: uuid("created_by")
+			.notNull()
+			.references(() => users.id, { onDelete: "cascade" }),
+		organizationId: uuid("organization_id")
+			.notNull()
+			.references(() => organizations.id, { onDelete: "cascade" }),
+		blobPathname: text("blob_pathname").notNull(),
+		mediaType: text("media_type").notNull(),
+		filename: text().notNull(),
+		sizeBytes: integer("size_bytes").notNull(),
+		createdAt: timestamp("created_at").notNull().defaultNow(),
+	},
+	(table) => [
+		index("chat_attachments_session_idx").on(table.chatSessionId),
+		index("chat_attachments_created_by_idx").on(table.createdBy),
+	],
+);
+
+export type InsertChatAttachment = typeof chatAttachments.$inferInsert;
+export type SelectChatAttachment = typeof chatAttachments.$inferSelect;
+
 export const automationRunStatus = pgEnum(
 	"automation_run_status",
 	automationRunStatusValues,
@@ -694,6 +733,10 @@ export const automationRunStatus = pgEnum(
 export const automationSessionKind = pgEnum(
 	"automation_session_kind",
 	automationSessionKindValues,
+);
+export const automationPromptSource = pgEnum(
+	"automation_prompt_source",
+	automationPromptSourceValues,
 );
 
 export const automations = pgTable(
@@ -789,3 +832,73 @@ export const automationRuns = pgTable(
 
 export type InsertAutomationRun = typeof automationRuns.$inferInsert;
 export type SelectAutomationRun = typeof automationRuns.$inferSelect;
+
+export const automationPromptVersions = pgTable(
+	"automation_prompt_versions",
+	{
+		id: uuid().primaryKey().defaultRandom(),
+		automationId: uuid("automation_id")
+			.notNull()
+			.references(() => automations.id, { onDelete: "cascade" }),
+		authorUserId: uuid("author_user_id")
+			.notNull()
+			.references(() => users.id, { onDelete: "cascade" }),
+		windowBucket: integer("window_bucket").notNull(),
+
+		content: text().notNull(),
+		contentHash: text("content_hash").notNull(),
+		source: automationPromptSource().notNull(),
+		restoredFromVersionId: uuid("restored_from_version_id"),
+
+		startedAt: timestamp("started_at", { withTimezone: true })
+			.notNull()
+			.defaultNow(),
+		updatedAt: timestamp("updated_at", { withTimezone: true })
+			.notNull()
+			.defaultNow()
+			.$onUpdate(() => new Date()),
+	},
+	(t) => [
+		uniqueIndex("automation_prompt_versions_bucket_uniq")
+			.on(t.automationId, t.authorUserId, t.windowBucket)
+			.where(sql`${t.source} <> 'restore'`),
+		index("automation_prompt_versions_automation_idx").on(
+			t.automationId,
+			t.updatedAt,
+		),
+		foreignKey({
+			columns: [t.restoredFromVersionId],
+			foreignColumns: [t.id],
+			name: "automation_prompt_versions_restored_from_version_id_fk",
+		}).onDelete("set null"),
+	],
+);
+
+export type InsertAutomationPromptVersion =
+	typeof automationPromptVersions.$inferInsert;
+export type SelectAutomationPromptVersion =
+	typeof automationPromptVersions.$inferSelect;
+
+export const submittedPrompts = pgTable(
+	"submitted_prompts",
+	{
+		id: uuid().primaryKey().defaultRandom(),
+		userId: uuid("user_id")
+			.notNull()
+			.references(() => users.id, { onDelete: "cascade" }),
+		organizationId: uuid("organization_id").references(() => organizations.id, {
+			onDelete: "set null",
+		}),
+		promptText: text("prompt_text").notNull(),
+		submitterName: text("submitter_name"),
+		createdAt: timestamp("created_at").notNull().defaultNow(),
+	},
+	(table) => [
+		index("submitted_prompts_user_id_idx").on(table.userId),
+		index("submitted_prompts_organization_id_idx").on(table.organizationId),
+		index("submitted_prompts_created_at_idx").on(table.createdAt),
+	],
+);
+
+export type InsertSubmittedPrompt = typeof submittedPrompts.$inferInsert;
+export type SelectSubmittedPrompt = typeof submittedPrompts.$inferSelect;

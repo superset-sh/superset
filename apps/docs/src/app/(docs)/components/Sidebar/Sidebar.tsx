@@ -10,21 +10,23 @@ import { cn } from "@/lib/cn";
 import { sections } from "./components/SidebarContent";
 
 export default function Sidebar() {
+	const pathname = usePathname();
 	const [openSections, setOpenSections] = useState<number[]>(() =>
 		Array.from({ length: sections.length }, (_, i) => i),
 	);
 
 	const { setOpenSearch } = useSearchContext();
-	const pathname = usePathname();
 
 	useEffect(() => {
 		const currentSection = sections.findIndex((section) =>
 			section.items.some((item) => item.href === pathname),
 		);
-		if (currentSection !== -1 && !openSections.includes(currentSection)) {
-			setOpenSections((prev) => [...prev, currentSection]);
+		if (currentSection !== -1) {
+			setOpenSections((prev) =>
+				prev.includes(currentSection) ? prev : [...prev, currentSection],
+			);
 		}
-	}, [pathname, openSections]);
+	}, [pathname]);
 
 	const toggleSection = (index: number) => {
 		setOpenSections((prev) =>
@@ -43,7 +45,7 @@ export default function Sidebar() {
 				<div>
 					<button
 						type="button"
-						className="flex w-full items-center gap-2 px-5 py-2.5 border-b text-muted-foreground dark:bg-zinc-950 dark:border-t-zinc-900/30 dark:border-t"
+						className="flex w-full items-center gap-2 px-5 py-3 border-b text-muted-foreground dark:bg-zinc-950 dark:border-t-zinc-900/30 dark:border-t"
 						onClick={() => setOpenSearch(true)}
 					>
 						<Search className="size-4 mx-0.5" />

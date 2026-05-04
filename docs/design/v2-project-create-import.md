@@ -67,7 +67,7 @@ project.create({
 }) → { projectId: string; repoPath: string }
 ```
 
-`visibility` lives on the GitHub-provisioning modes (`empty`, `template`) only. `clone` and `importLocal` reuse an existing remote.
+`visibility` lives on the GitHub-provisioning modes (`empty`, `template`) only. `clone` and `importLocal` reuse an existing remote when one is present; local-only repos create a project without `repoCloneUrl`.
 
 Path semantics are baked into each variant: `parentDir` for modes that create a new directory; `repoPath` (git root) for `importLocal`.
 
@@ -166,10 +166,10 @@ No Available section. No "+ New project" or "Import folder" CTAs — those live 
 
 1. User clicks "Import existing folder" → native picker.
 2. Client calls `project.findByPath({ repoPath })`.
-3. Host-service validates git root, reads remote, forwards to `v2Projects.findByGitHubRemote({ repoCloneUrl })`.
+3. Host-service validates git root, reads a GitHub remote when one exists, and forwards to `v2Projects.findByGitHubRemote({ repoCloneUrl })`.
 4. Cloud filters to projects in orgs the user belongs to.
 5. Client branches on `candidates.length`:
-   - **0** → "No match — create as new project" (pivots to `project.create importLocal`).
+   - **0** → "No match — create as new project" (pivots to `project.create importLocal`; local-only repos always take this path).
    - **1, not yet set up here** → auto-advance to `project.setup({ projectId, mode: { kind: "import", repoPath } })`.
    - **1, already set up here at a different path** → surface the `CONFLICT` error; user must `project.remove` first to re-import.
    - **>1** → picker; user picks; then `project.setup`.

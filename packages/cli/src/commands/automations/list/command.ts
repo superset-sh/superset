@@ -1,11 +1,18 @@
-import { table } from "@superset/cli-framework";
+import { string, table } from "@superset/cli-framework";
 import { command } from "../../../lib/command";
 import { formatAutomationDate } from "../format";
 
 export default command({
 	description: "List automations in the organization",
-	run: async ({ ctx }) => {
-		return ctx.api.automation.list.query();
+	options: {
+		name: string()
+			.alias("n")
+			.desc("Filter by name (case-insensitive substring match)"),
+	},
+	run: async ({ ctx, options }) => {
+		return await ctx.api.automation.list.query(
+			options.name ? { name: options.name } : undefined,
+		);
 	},
 	display: (data) =>
 		table(

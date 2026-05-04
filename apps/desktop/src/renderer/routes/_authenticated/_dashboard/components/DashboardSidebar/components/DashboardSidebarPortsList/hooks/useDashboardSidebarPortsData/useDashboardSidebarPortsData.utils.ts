@@ -55,7 +55,6 @@ export interface DashboardSidebarWorkspaceRow {
 	id: string;
 	name: string;
 	hostId: string;
-	hostMachineId: string | null | undefined;
 }
 
 export function getHostPortsQueryKey(host: HostPortsQueryTarget) {
@@ -139,7 +138,7 @@ export function deriveHostPortQueryTargets({
 		workspaceIds.sort();
 	}
 
-	return hosts.flatMap((host) => {
+	const targets = hosts.flatMap((host) => {
 		const workspaceIds = workspaceIdsByHostId.get(host.machineId);
 		if (!workspaceIds || workspaceIds.length === 0) return [];
 
@@ -162,6 +161,28 @@ export function deriveHostPortQueryTargets({
 			},
 		];
 	});
+
+	// If the local v2Hosts row hasn't synced via Electric, the loop above won't
+	// include the local machine — which would hide its ports. Synthesize a
+	// local target from machineId + activeHostUrl whenever workspaces with
+	// hostId === machineId exist.
+	if (
+		machineId &&
+		activeHostUrl &&
+		!targets.some((target) => target.machineId === machineId)
+	) {
+		const localWorkspaceIds = workspaceIdsByHostId.get(machineId);
+		if (localWorkspaceIds && localWorkspaceIds.length > 0) {
+			targets.push({
+				machineId,
+				hostType: "local-device",
+				hostUrl: activeHostUrl,
+				workspaceIds: localWorkspaceIds,
+			});
+		}
+	}
+
+	return targets;
 }
 
 export function groupDashboardSidebarPorts({
@@ -180,11 +201,9 @@ export function groupDashboardSidebarPorts({
 				name: workspace.name,
 				hostId: workspace.hostId,
 				hostType:
-					workspace.hostMachineId == null
-						? ("cloud" as const)
-						: workspace.hostMachineId === machineId
-							? ("local-device" as const)
-							: ("remote-device" as const),
+					workspace.hostId === machineId
+						? ("local-device" as const)
+						: ("remote-device" as const),
 			},
 		]),
 	);

@@ -9,6 +9,7 @@ import { ChangesHeader } from "../ChangesHeader";
 type RouterOutputs = inferRouterOutputs<AppRouter>;
 
 interface ChangesTabContentProps {
+	workspaceId: string;
 	status: {
 		data: RouterOutputs["git"]["getStatus"] | undefined;
 		isLoading: boolean;
@@ -24,6 +25,7 @@ interface ChangesTabContentProps {
 	totalDeletions: number;
 	worktreePath?: string;
 	onSelectFile?: (path: string, openInNewTab?: boolean) => void;
+	onOpenFile?: (absolutePath: string, openInNewTab?: boolean) => void;
 	onOpenInEditor?: (path: string) => void;
 	onFilterChange: (filter: ChangesFilter) => void;
 	onBaseBranchChange: (branchName: string) => void;
@@ -32,6 +34,7 @@ interface ChangesTabContentProps {
 }
 
 export const ChangesTabContent = memo(function ChangesTabContent({
+	workspaceId,
 	status,
 	commits,
 	branches,
@@ -44,6 +47,7 @@ export const ChangesTabContent = memo(function ChangesTabContent({
 	totalDeletions,
 	worktreePath,
 	onSelectFile,
+	onOpenFile,
 	onOpenInEditor,
 	onFilterChange,
 	onBaseBranchChange,
@@ -72,7 +76,6 @@ export const ChangesTabContent = memo(function ChangesTabContent({
 				currentBranch={status.data.currentBranch}
 				defaultBranchName={status.data.defaultBranch.name}
 				baseBranch={baseBranch}
-				commitCount={commits.data?.commits.length ?? 0}
 				totalFiles={totalChanges}
 				totalAdditions={totalAdditions}
 				totalDeletions={totalDeletions}
@@ -90,9 +93,11 @@ export const ChangesTabContent = memo(function ChangesTabContent({
 			<div className="min-h-0 flex-1 overflow-y-auto">
 				<ChangesFileList
 					files={files}
+					workspaceId={workspaceId}
 					isLoading={isLoading}
 					worktreePath={worktreePath}
 					onSelectFile={onSelectFile}
+					onOpenFile={onOpenFile}
 					onOpenInEditor={onOpenInEditor}
 				/>
 			</div>

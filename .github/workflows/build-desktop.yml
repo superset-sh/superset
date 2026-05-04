@@ -186,6 +186,9 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen --ignore-scripts
 
+      - name: Install Linux native build deps
+        run: sudo apt-get update && sudo apt-get install -y libx11-dev libxkbfile-dev
+
       - name: Install desktop native dependencies
         working-directory: apps/desktop
         run: bun run install:deps
