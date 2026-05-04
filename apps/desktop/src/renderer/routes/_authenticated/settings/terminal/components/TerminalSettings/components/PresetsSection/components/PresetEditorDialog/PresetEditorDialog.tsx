@@ -306,7 +306,6 @@ export function PresetEditorDialog({
 							<DialogRow
 								label="Applies to"
 								hint="Where this preset is available."
-								stacked
 							>
 								<ProjectTargetingField
 									projectIds={preset.projectIds}
