@@ -518,7 +518,7 @@ export function V2PresetsSection({
 		<div className="space-y-4">
 			<div className="flex items-center justify-between">
 				<div className="space-y-0.5">
-					<Label className="text-sm font-medium">Terminal Presets</Label>
+					<Label className="text-sm font-medium">Terminal presets</Label>
 					<p className="text-xs text-muted-foreground">
 						Presets let you quickly launch terminals with pre-configured
 						commands.
@@ -532,7 +532,7 @@ export function V2PresetsSection({
 						onClick={() => handleAddRow()}
 					>
 						<HiOutlinePlus className="h-4 w-4" />
-						Add Preset
+						Add preset
 					</Button>
 				)}
 			</div>
@@ -548,21 +548,16 @@ export function V2PresetsSection({
 			)}
 
 			{showPresets && (
-				<>
-					<PresetsTable
-						presets={localPresets}
-						isLoading={false}
-						projectOptionsById={projectOptionsById}
-						presetsContainerRef={presetsContainerRef}
-						onEdit={setEditingPreset}
-						onLocalReorder={handleLocalReorder}
-						onPersistReorder={handlePersistReorder}
-						onToggleVisibility={handleToggleVisibility}
-					/>
-					<p className="text-xs text-muted-foreground">
-						Click a preset row to edit details.
-					</p>
-				</>
+				<PresetsTable
+					presets={localPresets}
+					isLoading={false}
+					projectOptionsById={projectOptionsById}
+					presetsContainerRef={presetsContainerRef}
+					onEdit={setEditingPreset}
+					onLocalReorder={handleLocalReorder}
+					onPersistReorder={handlePersistReorder}
+					onToggleVisibility={handleToggleVisibility}
+				/>
 			)}
 
 			<PresetEditorSheet
