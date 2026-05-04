@@ -113,8 +113,12 @@ describe("createTerminalSessionInternal — host-service restart adoption", () =
 		const daemonSession = (await daemon.list()).find(
 			(s) => s.id === terminalId,
 		);
-		assert.equal(daemonSession?.cols, 101);
-		assert.equal(daemonSession?.rows, 27);
+		assert.ok(
+			daemonSession,
+			`expected terminalId "${terminalId}" in daemon.list()`,
+		);
+		assert.equal(daemonSession.cols, 101);
+		assert.equal(daemonSession.rows, 27);
 
 		disposeSession(terminalId, db);
 	});

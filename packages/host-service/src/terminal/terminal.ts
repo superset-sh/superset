@@ -1007,7 +1007,15 @@ export function registerWorkspaceTerminalRoute({
 						}
 						if (ws.readyState !== SOCKET_OPEN) return;
 						attachSocketToSession(session, ws);
-					})();
+					})().catch((error) => {
+						console.error("[terminal] unexpected error during attach", error);
+						if (ws.readyState !== SOCKET_OPEN) return;
+						sendMessage(ws, {
+							type: "error",
+							message: "Internal terminal attach error",
+						});
+						ws.close(1011, "Internal terminal attach error");
+					});
 				},
 
 				onMessage: (event, ws) => {

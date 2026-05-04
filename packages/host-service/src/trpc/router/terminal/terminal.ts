@@ -17,8 +17,8 @@ const createSessionInputSchema = z.object({
 	terminalId: z.string().optional(),
 	initialCommand: z.string().trim().min(1).optional(),
 	themeType: z.string().optional(),
-	cols: z.number().optional(),
-	rows: z.number().optional(),
+	cols: z.number().int().positive().optional(),
+	rows: z.number().int().positive().optional(),
 });
 
 async function createTerminalSessionFromInput({
