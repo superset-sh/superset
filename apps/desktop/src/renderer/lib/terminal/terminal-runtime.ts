@@ -6,6 +6,7 @@ import { Terminal as XTerm } from "@xterm/xterm";
 import { DEFAULT_TERMINAL_SCROLLBACK } from "shared/constants";
 import type { TerminalAppearance } from "./appearance";
 import { loadAddons } from "./terminal-addons";
+import { setupClickToMoveCursor } from "./terminal-click-to-move";
 import { installTerminalKeyEventHandler } from "./terminal-key-event-handler";
 import { getTerminalParkingContainer } from "./terminal-parking";
 
@@ -30,6 +31,7 @@ export interface TerminalRuntime {
 	lastCols: number;
 	lastRows: number;
 	_disposeAddons: (() => void) | null;
+	_disposeMouseHandlers: (() => void) | null;
 }
 
 function createTerminal(
@@ -185,10 +187,20 @@ function createResizeScheduler(
 	return { observe, dispose };
 }
 
+export interface CreateRuntimeOptions {
+	initialBuffer?: string;
+	/**
+	 * Send synthesized user input (e.g. arrow-key sequences from
+	 * click-to-move-cursor) to the PTY. Routed through the same path as
+	 * keystrokes so the backend treats it uniformly.
+	 */
+	onUserInput?: (data: string) => void;
+}
+
 export function createRuntime(
 	terminalId: string,
 	appearance: TerminalAppearance,
-	options: { initialBuffer?: string } = {},
+	options: CreateRuntimeOptions = {},
 ): TerminalRuntime {
 	const savedDims = loadSavedDimensions(terminalId);
 	const cols = savedDims?.cols ?? DEFAULT_COLS;
@@ -216,6 +228,10 @@ export function createRuntime(
 		restoreBuffer(terminalId, terminal);
 	}
 
+	const disposeMouseHandlers = installMouseHandlers(terminal, {
+		onUserInput: options.onUserInput,
+	});
+
 	return {
 		terminalId,
 		terminal,
@@ -230,6 +246,79 @@ export function createRuntime(
 		lastCols: cols,
 		lastRows: rows,
 		_disposeAddons: addonsResult.dispose,
+		_disposeMouseHandlers: disposeMouseHandlers,
+	};
+}
+
+/**
+ * Install mouse-related handlers on the xterm element:
+ *
+ *   1. Click-to-move-cursor: left-click on the prompt line moves the shell
+ *      cursor by emitting arrow-key sequences (parity with v1, VS Code, iTerm).
+ *   2. Suppress xterm's built-in non-left-button "primary selection" paste —
+ *      otherwise right-click silently dumps the last clipboard contents into
+ *      the PTY. We swallow the right-button mousedown in the capture phase
+ *      so xterm's SelectionService never sees it; the textarea still gets
+ *      focus from the synthesized focus event, which is what users expect.
+ *   3. Suppress the OS context menu, matching v1 behavior.
+ */
+function installMouseHandlers(
+	terminal: XTerm,
+	options: { onUserInput?: (data: string) => void },
+): () => void {
+	const cleanups: Array<() => void> = [];
+
+	if (options.onUserInput) {
+		const userInput = options.onUserInput;
+		const cleanupClickToMove = setupClickToMoveCursor(terminal, {
+			onWrite: (data) => userInput(data),
+		});
+		cleanups.push(cleanupClickToMove);
+	}
+
+	const element = terminal.element;
+	if (element) {
+		const handleMouseDown = (event: MouseEvent) => {
+			// Block xterm's primary-selection paste on right-click. Capture phase
+			// runs before xterm's own mousedown handler.
+			if (event.button === 2) {
+				event.preventDefault();
+				event.stopImmediatePropagation();
+				// Still focus the terminal so subsequent keystrokes go to the PTY —
+				// this matches the user's mental model ("clicking the terminal
+				// focuses it") without the unwanted paste side effect.
+				terminal.focus();
+				return;
+			}
+
+			// Defensive: ensure left-click reliably focuses the terminal across
+			// pane switches even if xterm's own focus handling regresses.
+			if (
+				event.button === 0 &&
+				!event.metaKey &&
+				!event.ctrlKey &&
+				!event.altKey &&
+				!event.shiftKey
+			) {
+				terminal.focus();
+			}
+		};
+		const handleContextMenu = (event: MouseEvent) => {
+			event.preventDefault();
+		};
+
+		element.addEventListener("mousedown", handleMouseDown, { capture: true });
+		element.addEventListener("contextmenu", handleContextMenu);
+		cleanups.push(() => {
+			element.removeEventListener("mousedown", handleMouseDown, {
+				capture: true,
+			});
+			element.removeEventListener("contextmenu", handleContextMenu);
+		});
+	}
+
+	return () => {
+		for (const cleanup of cleanups) cleanup();
 	};
 }
 
@@ -308,6 +397,8 @@ export function disposeRuntime(
 	}
 	runtime._disposeAddons?.();
 	runtime._disposeAddons = null;
+	runtime._disposeMouseHandlers?.();
+	runtime._disposeMouseHandlers = null;
 	runtime._disposeResizeObserver?.();
 	runtime._disposeResizeObserver = null;
 	runtime.resizeObserver?.disconnect();

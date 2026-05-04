@@ -148,6 +148,7 @@ class TerminalRuntimeRegistryImpl {
 		if (!entry.runtime) {
 			entry.runtime = createRuntime(terminalId, appearance, {
 				initialBuffer: this.serializeExistingRuntime(terminalId, instanceId),
+				onUserInput: (data) => sendInput(entry.transport, data),
 			});
 			entry.linkManager = new TerminalLinkManager(entry.runtime.terminal);
 			if (entry.pendingLinkHandlers) {
