@@ -1,5 +1,6 @@
 import { EventEmitter } from "node:events";
 import { app, dialog } from "electron";
+import log from "electron-log/main";
 import { autoUpdater } from "electron-updater";
 import { env } from "main/env.main";
 import { setSkipQuitConfirmation } from "main/index";
@@ -241,6 +242,13 @@ export function setupAutoUpdater(): void {
 	if (env.NODE_ENV === "development" || !IS_AUTO_UPDATE_PLATFORM) {
 		return;
 	}
+
+	// Route electron-updater's internal logging to a file so we can diagnose
+	// silent install failures (Squirrel.Mac's ShipIt fails out-of-process and
+	// never surfaces an `error` event back to the lib). Logs land at
+	// ~/Library/Logs/Superset/main.log on macOS.
+	log.transports.file.level = "info";
+	autoUpdater.logger = log;
 
 	autoUpdater.autoDownload = true;
 	autoUpdater.autoInstallOnAppQuit = true;
