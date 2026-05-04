@@ -6,7 +6,7 @@ image: /changelog/IMAGE_PLACEHOLDER.png
 
 {/* TODO: Replace header image with a screenshot of Settings → Experimental showing the v2 toggle */}
 
-v2 is in public beta. Enable it under **Settings → Experimental**. <PRBadge url="https://github.com/superset-sh/superset/pull/3748" /> v1 projects and workspaces port directly into v2, the sidebar grew a hover card with AI rename and PR-state icons, terminal sessions span workspaces, and GPT-5.5 is available in the v2 chat pane.
+v2 is in public beta. Enable it under **Settings → Experimental**. <PRBadge url="https://github.com/superset-sh/superset/pull/3748" /> v1 projects and workspaces port directly into v2, projects can now be created and configured end-to-end inside v2, the sidebar grew a hover card with AI rename and PR-state icons, terminal sessions span workspaces, and chat picked up GPT-5.5 and Opus 4.7.
 
 ![Settings → Experimental — enable v2](/changelog/IMAGE_PLACEHOLDER.png)
 
@@ -19,6 +19,20 @@ v1 workspaces and projects can be ported into v2 in place — no manual recreati
 - **Stabilized migration** with org-level idempotency so repeat runs don't double-up workspaces <PRBadge url="https://github.com/superset-sh/superset/pull/3775" /> <PRBadge url="https://github.com/superset-sh/superset/pull/3781" /> <PRBadge url="https://github.com/superset-sh/superset/pull/3783" />
 - **Migration modal only fires on first onboard** instead of every launch <PRBadge url="https://github.com/superset-sh/superset/pull/3816" />
 - **v1 keypad loading screen ported to v2** as a dedicated page <PRBadge url="https://github.com/superset-sh/superset/pull/3788" />
+
+## v2 project setup, end-to-end
+
+You can now create and import projects entirely in v2 — no falling back to v1 to set things up.
+
+- **Create or import a project** straight from v2 <PRBadge url="https://github.com/superset-sh/superset/pull/3566" />
+- **Project name inferred from the folder** on import <PRBadge url="https://github.com/superset-sh/superset/pull/3605" />
+- **v2 project settings** with a setup/relocate path <PRBadge url="https://github.com/superset-sh/superset/pull/3606" /> wired into the sidebar settings route <PRBadge url="https://github.com/superset-sh/superset/pull/3592" />
+- **Non-setup projects route to settings** from the new-workspace modal so you finish setup in place <PRBadge url="https://github.com/superset-sh/superset/pull/3626" />
+- **Auto-create a v2 main workspace** when a host project is set up <PRBadge url="https://github.com/superset-sh/superset/pull/3632" />
+
+## Scheduled agent runs <PRBadge url="https://github.com/superset-sh/superset/pull/3576" />
+
+Automations now run on a schedule, end-to-end. Pick a cadence, pick an agent and prompt, and it fires on its own — same execution path as a manual run.
 
 ## Sidebar workspace overhaul
 
@@ -45,12 +59,14 @@ The terminal session dropdown in v2 lists sessions from all your workspaces, gro
 
 Right-click any v2 sidebar workspace and **Mark as Unread** — it gets the same green dot as a real agent-ready notification. Clicking the workspace clears it automatically <PRBadge url="https://github.com/superset-sh/superset/pull/3765" />, and v2 notification hooks now play client-side so the sound fires reliably <PRBadge url="https://github.com/superset-sh/superset/pull/3675" />.
 
-## v2 chat & markdown
+## Chat & markdown
 
-- **GPT-5.5 added** to the v2 chat pane <PRBadge url="https://github.com/superset-sh/superset/pull/3808" />
+- **GPT-5.5** added to the v2 chat pane <PRBadge url="https://github.com/superset-sh/superset/pull/3808" />
+- **Opus 4.7** added as a chat model option <PRBadge url="https://github.com/superset-sh/superset/pull/3579" />
 - **Mermaid diagrams render in the markdown pane** <PRBadge url="https://github.com/superset-sh/superset/pull/3642" />
 - **Tiptap tables** — the markdown editor now renders and pastes proper tables <PRBadge url="https://github.com/superset-sh/superset/pull/3719" />
 - **v2 chat double header collapsed** into the pane header <PRBadge url="https://github.com/superset-sh/superset/pull/3805" />
+- **v1 review comments open in a pane** like v2 <PRBadge url="https://github.com/superset-sh/superset/pull/3596" />
 - **Comment pane headers consolidated** <PRBadge url="https://github.com/superset-sh/superset/pull/3803" />
 
 ## Improvements
@@ -58,6 +74,8 @@ Right-click any v2 sidebar workspace and **Mark as Unread** — it gets the same
 - **Diff pane file viewer** — clicking a file path in the v2 diff pane opens it in the built-in file viewer; Shift-click opens a new tab <PRBadge url="https://github.com/superset-sh/superset/pull/3715" />
 - **Tighter v2 diff file header layout** <PRBadge url="https://github.com/superset-sh/superset/pull/3776" />
 - **v2 Changes shift/cmd-click selection** — file list now follows standard multi-select gestures <PRBadge url="https://github.com/superset-sh/superset/pull/3683" />
+- **Configurable link-click behavior in v2** — choose how clicked links open <PRBadge url="https://github.com/superset-sh/superset/pull/3600" />
+- **Copy Branch Name** added to v1 and v2 sidebar context menus <PRBadge url="https://github.com/superset-sh/superset/pull/3635" />
 - **Remote host-service ports surface in the sidebar** <PRBadge url="https://github.com/superset-sh/superset/pull/3676" />
 - **Pane drops into new tabs** — drag a pane onto the tab strip to spawn one <PRBadge url="https://github.com/superset-sh/superset/pull/3809" />
 - **Sidebar group management** — group creation starts inline rename immediately; ungroup and delete no longer leave workspaces visually orphaned; hover-only group actions reduce clutter <PRBadge url="https://github.com/superset-sh/superset/pull/3745" />
@@ -72,11 +90,13 @@ Right-click any v2 sidebar workspace and **Mark as Unread** — it gets the same
 - **Worktrees placed under `~/.superset/worktrees/<projectId>`** for cleaner isolation <PRBadge url="https://github.com/superset-sh/superset/pull/3669" />
 - **Restored AI workspace naming on v2 create** <PRBadge url="https://github.com/superset-sh/superset/pull/3654" />
 - **Keypad + scrolling steps** in the workspace setup loader <PRBadge url="https://github.com/superset-sh/superset/pull/3647" />
+- **Safer defaults for builtin terminal agent presets** <PRBadge url="https://github.com/superset-sh/superset/pull/3546" />
 - **Scaffolded PR action header** in the v2 sidebar (gated) <PRBadge url="https://github.com/superset-sh/superset/pull/3777" />
 
 ## Also this week
 
 - **Hosts settings page** for managing host access — a new Org settings page that lets owners add, remove, or change member roles per host. Two-pane layout matching Projects, with online/offline filters. <PRBadge url="https://github.com/superset-sh/superset/pull/3768" />
+- **/pricing page** added to the marketing site, with a redesigned header/footer information architecture <PRBadge url="https://github.com/superset-sh/superset/pull/3639" />
 - **Marketing product menu simplified** with yearly discount surfaced <PRBadge url="https://github.com/superset-sh/superset/pull/3691" />
 
 ---
@@ -84,13 +104,32 @@ Right-click any v2 sidebar workspace and **Mark as Unread** — it gets the same
 **Bug fixes**
 
 - v2 terminal lifecycle stable across sleep <PRBadge url="https://github.com/superset-sh/superset/pull/3711" />, OSC links clickable again <PRBadge url="https://github.com/superset-sh/superset/pull/3736" />, resize stabilized <PRBadge url="https://github.com/superset-sh/superset/pull/3739" />, v1 terminal resize repaint <PRBadge url="https://github.com/superset-sh/superset/pull/3756" />
+- Terminal paste no longer auto-submits the first line without bracketed paste <PRBadge url="https://github.com/superset-sh/superset/pull/3582" />
+- Terminal buffer restored after Unicode 11 activation <PRBadge url="https://github.com/superset-sh/superset/pull/3581" />
+- Shift+Enter parses correctly in TUIs (claim TERM_PROGRAM=kitty for CSI-u) <PRBadge url="https://github.com/superset-sh/superset/pull/3667" />
+- Terminal connection diagnostics surface clearer errors <PRBadge url="https://github.com/superset-sh/superset/pull/3801" />
 - v2 terminals and browsers stay stable across workspace switches <PRBadge url="https://github.com/superset-sh/superset/pull/3687" />
 - Browser passthrough during v2 resize handled cleanly <PRBadge url="https://github.com/superset-sh/superset/pull/3744" />
+- v2 workspace git correctness — upstream tracking, 3-dot diffs, numstat <PRBadge url="https://github.com/superset-sh/superset/pull/3543" />
+- Cross-fork PRs no longer misattributed to local workspaces <PRBadge url="https://github.com/superset-sh/superset/pull/3625" />
+- GitHub status resolves for branch-only workspaces <PRBadge url="https://github.com/superset-sh/superset/pull/3295" />
+- New v2 workspaces appear at the top of their project in the sidebar <PRBadge url="https://github.com/superset-sh/superset/pull/3619" />
+- v2 workspace rows hidden while destroy is in flight <PRBadge url="https://github.com/superset-sh/superset/pull/3621" />
 - v2 sidebar sync fixed <PRBadge url="https://github.com/superset-sh/superset/pull/3746" /> and no longer navigates away on workspace delete <PRBadge url="https://github.com/superset-sh/superset/pull/3771" />
 - Active item selection after sidebar item removal <PRBadge url="https://github.com/superset-sh/superset/pull/3767" />, sidebar removal + rerender churn <PRBadge url="https://github.com/superset-sh/superset/pull/3741" />
 - Toast and switch workspace when deleting in v2 <PRBadge url="https://github.com/superset-sh/superset/pull/3661" />
+- v2 sidebar project settings link now opens the correct route <PRBadge url="https://github.com/superset-sh/superset/pull/3592" />
+- v2 new-workspace project dropdown is scrollable <PRBadge url="https://github.com/superset-sh/superset/pull/3628" />
+- Long workspace names wrap and truncate in the v1 hover card <PRBadge url="https://github.com/superset-sh/superset/pull/3603" />
+- Long workspace titles no longer overflow on the creation error page <PRBadge url="https://github.com/superset-sh/superset/pull/3718" />
+- DevicePicker deduped in the new-workspace modal <PRBadge url="https://github.com/superset-sh/superset/pull/3593" />
+- AI branch/workspace naming works for OAuth-only users <PRBadge url="https://github.com/superset-sh/superset/pull/3580" />
+- `ask_user` no longer shadows the sandbox access prompt <PRBadge url="https://github.com/superset-sh/superset/pull/3662" />
+- Spurious folder picker on settings → dashboard nav fixed <PRBadge url="https://github.com/superset-sh/superset/pull/3602" />
+- Host services no longer wiped on app update <PRBadge url="https://github.com/superset-sh/superset/pull/3620" />
 - Host service restart adoption <PRBadge url="https://github.com/superset-sh/superset/pull/3732" />
+- Tray menu shows the correct org name per host-service <PRBadge url="https://github.com/superset-sh/superset/pull/3629" />
 - Red failed-host indicator dropped from v2 ports dropdown <PRBadge url="https://github.com/superset-sh/superset/pull/3787" />
 - Allow duplicate repo clone URLs when creating v2 workspaces <PRBadge url="https://github.com/superset-sh/superset/pull/3723" />
-- Long workspace titles no longer overflow on the creation error page <PRBadge url="https://github.com/superset-sh/superset/pull/3718" />
 - Automation list flicker on initial load <PRBadge url="https://github.com/superset-sh/superset/pull/3772" /> and timezone scheduling <PRBadge url="https://github.com/superset-sh/superset/pull/3738" />
+- Security — allowlist URL schemes before `shell.openExternal` <PRBadge url="https://github.com/superset-sh/superset/pull/3650" />, bump uuid for GHSA-w5hq-g745-h8pq <PRBadge url="https://github.com/superset-sh/superset/pull/3680" />
