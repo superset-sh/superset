@@ -67,22 +67,22 @@ export function LinkTierMapper({
 	];
 
 	return (
-		<section className="rounded-md border border-border p-5">
-			<div className="mb-1 text-sm font-medium">{title}</div>
-			<p className="mb-4 text-xs text-muted-foreground">{description}</p>
-			<div className="space-y-3">
+		<div>
+			<h3 className="text-sm font-medium mb-1">{title}</h3>
+			<p className="text-xs text-muted-foreground mb-3">{description}</p>
+			<div className="space-y-2">
 				{TIER_LABELS.map(({ key, label }) => {
 					const id = `${idPrefix}-${key}`;
 					return (
-						<div key={key} className="flex items-center justify-between">
-							<Label htmlFor={id} className="text-sm">
+						<div key={key} className="flex items-center justify-between gap-4">
+							<Label htmlFor={id} className="text-sm font-medium">
 								{label}
 							</Label>
 							<Select
 								value={toSlot(value[key])}
 								onValueChange={(v) => pick(key, v as SlotValue)}
 							>
-								<SelectTrigger id={id} className="w-[180px]">
+								<SelectTrigger id={id} size="sm" className="w-44">
 									<SelectValue />
 								</SelectTrigger>
 								<SelectContent>
@@ -97,6 +97,6 @@ export function LinkTierMapper({
 					);
 				})}
 			</div>
-		</section>
+		</div>
 	);
 }
