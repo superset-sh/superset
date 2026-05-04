@@ -4,9 +4,8 @@ import { ChevronDown, ChevronRight, Eye, EyeOff } from "lucide-react";
 import { useId } from "react";
 import { LuCheck, LuCopy, LuUndo2 } from "react-icons/lu";
 import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
+import { useSidebarFilePolicy } from "renderer/lib/clickPolicy";
 import { StatusIndicator } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/StatusIndicator";
-import { CLICK_HINT_TOOLTIP } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/utils/clickModifierLabels";
-import { getSidebarClickIntent } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/utils/getSidebarClickIntent";
 import { FileIcon } from "renderer/screens/main/components/WorkspaceView/RightSidebar/FilesView/utils";
 import { GIT_STAT_TEXT_CLASSES } from "../../utils/gitDecorationColors";
 
@@ -43,6 +42,7 @@ export function DiffFileHeader({
 }: DiffFileHeaderProps) {
 	const viewedId = useId();
 	const { copyToClipboard, copied } = useCopyToClipboard();
+	const policy = useSidebarFilePolicy();
 
 	// Split into directory + basename so the basename stays visible when the
 	// header is narrow — the directory truncates with ellipsis first, and the
@@ -70,12 +70,10 @@ export function DiffFileHeader({
 					<button
 						type="button"
 						onClick={(event) => {
-							const intent = getSidebarClickIntent(event);
-							if (intent === "openInEditor") {
-								onOpenInExternalEditor?.();
-								return;
-							}
-							onOpenFile?.(intent === "openInNewTab");
+							const action = policy.getAction(event);
+							if (action === "external") onOpenInExternalEditor?.();
+							else if (action === "newTab") onOpenFile?.(true);
+							else if (action === "pane") onOpenFile?.(false);
 						}}
 						disabled={!onOpenFile && !onOpenInExternalEditor}
 						aria-label="Open in file viewer"
@@ -93,7 +91,7 @@ export function DiffFileHeader({
 					</button>
 				</TooltipTrigger>
 				<TooltipContent side="bottom" showArrow={false}>
-					{CLICK_HINT_TOOLTIP}
+					{policy.hint}
 				</TooltipContent>
 			</Tooltip>
 			<Tooltip>

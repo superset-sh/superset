@@ -8,8 +8,11 @@ import {
 
 async function refExists(git: SimpleGit, fullRef: string): Promise<boolean> {
 	try {
-		await git.raw(["rev-parse", "--verify", "--quiet", `${fullRef}^{commit}`]);
-		return true;
+		// See refs.ts — `--quiet` makes simple-git's `raw` mis-resolve a
+		// missing ref as success with empty stdout. Drop it; verify a sha
+		// was actually printed.
+		const out = await git.raw(["rev-parse", "--verify", `${fullRef}^{commit}`]);
+		return /^[0-9a-f]{40,}/.test(out.trim());
 	} catch {
 		return false;
 	}

@@ -1,7 +1,7 @@
 import { parseGitHubRemote } from "@superset/shared/github-remote";
 import { Button } from "@superset/ui/button";
 import { Input } from "@superset/ui/input";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { FaGithub } from "react-icons/fa";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useOptimisticCollectionActions } from "renderer/routes/_authenticated/hooks/useOptimisticCollectionActions";
@@ -17,10 +17,13 @@ export function RepositorySection({
 }: RepositorySectionProps) {
 	const { v2Projects: projectActions } = useOptimisticCollectionActions();
 	const [value, setValue] = useState(currentRepoCloneUrl ?? "");
+	const isFocusedRef = useRef(false);
 	const openUrl = electronTrpc.external.openUrl.useMutation();
 
 	useEffect(() => {
-		setValue(currentRepoCloneUrl ?? "");
+		if (!isFocusedRef.current) {
+			setValue(currentRepoCloneUrl ?? "");
+		}
 	}, [currentRepoCloneUrl]);
 
 	const commit = () => {
@@ -39,7 +42,13 @@ export function RepositorySection({
 			<Input
 				value={value}
 				onChange={(e) => setValue(e.target.value)}
-				onBlur={commit}
+				onFocus={() => {
+					isFocusedRef.current = true;
+				}}
+				onBlur={() => {
+					isFocusedRef.current = false;
+					commit();
+				}}
 				onKeyDown={(e) => {
 					if (e.key === "Enter") {
 						e.preventDefault();

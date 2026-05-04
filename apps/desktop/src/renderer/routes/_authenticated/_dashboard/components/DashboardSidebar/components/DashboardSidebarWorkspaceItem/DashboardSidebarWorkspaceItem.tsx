@@ -1,10 +1,10 @@
-import { useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useDiffStats } from "renderer/hooks/host-service/useDiffStats";
 import { useOptimisticCollectionActions } from "renderer/routes/_authenticated/hooks/useOptimisticCollectionActions";
 import { useDeletingWorkspaces } from "renderer/routes/_authenticated/providers/DeletingWorkspacesProvider";
 import { RenameBranchDialog } from "renderer/screens/main/components/WorkspaceSidebar/WorkspaceListItem/components";
 import { useV2WorkspaceNotificationStatus } from "renderer/stores/v2-notifications";
+import { useWorkspaceCreatesStore } from "renderer/stores/workspace-creates";
 import { useDashboardSidebarHover } from "../../providers/DashboardSidebarHoverProvider";
 import type { DashboardSidebarWorkspace } from "../../types";
 import { DashboardSidebarDeleteDialog } from "../DashboardSidebarDeleteDialog";
@@ -69,7 +69,6 @@ export function DashboardSidebarWorkspaceItem({
 		isMainWorkspace,
 	});
 
-	const navigate = useNavigate();
 	const { v2Workspaces: v2WorkspaceActions } = useOptimisticCollectionActions();
 	const [renameBranchTarget, setRenameBranchTarget] = useState<string | null>(
 		null,
@@ -78,16 +77,14 @@ export function DashboardSidebarWorkspaceItem({
 		v2WorkspaceActions.updateWorkspace(id, { branch: newBranchName });
 	};
 	const isPending = !!creationStatus;
+	const isFailedInFlight = creationStatus === "failed";
 	// Keep the delete dialog outside the hidden wrapper below — the destroy
 	// flow reopens it into an error pane on conflict/teardown-failed.
 	const isDeleting = useDeletingWorkspaces().isDeleting(id);
-	const handlePendingClick = isPending
-		? () => {
-				void navigate({
-					to: `/pending/${id}` as string,
-				});
-			}
-		: undefined;
+
+	const handleDismissInFlight = useCallback(() => {
+		useWorkspaceCreatesStore.getState().remove(id);
+	}, [id]);
 
 	const {
 		hoveredId: hoverHoveredId,
@@ -143,9 +140,8 @@ export function DashboardSidebarWorkspaceItem({
 					hostIsOnline={hostIsOnline}
 					isActive={isActive}
 					workspaceStatus={workspaceStatus}
-					onClick={isPending ? handlePendingClick : handleClick}
+					onClick={handleClick}
 					creationStatus={creationStatus}
-					disabled={isPending}
 					aria-label={
 						creationStatus ? `Creating workspace: ${name}` : undefined
 					}
@@ -223,10 +219,14 @@ export function DashboardSidebarWorkspaceItem({
 				diffStats={isPending ? null : diffStats}
 				workspaceStatus={workspaceStatus}
 				isInSection={isInSection}
-				onClick={isPending ? handlePendingClick : handleClick}
+				onClick={handleClick}
 				onDoubleClick={isPending ? undefined : startRename}
 				onRemoveFromSidebarClick={handleRemoveFromSidebar}
-				onCloseWorkspaceClick={() => setIsDeleteDialogOpen(true)}
+				onCloseWorkspaceClick={
+					isFailedInFlight
+						? handleDismissInFlight
+						: () => setIsDeleteDialogOpen(true)
+				}
 				onRenameValueChange={setRenameValue}
 				onSubmitRename={submitRename}
 				onCancelRename={cancelRename}

@@ -1,4 +1,10 @@
-import { mkdirSync, rmSync, writeFileSync } from "node:fs";
+import {
+	existsSync,
+	mkdirSync,
+	readFileSync,
+	rmSync,
+	writeFileSync,
+} from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import mimeTypes from "mime-types";
@@ -88,4 +94,36 @@ export function deleteAttachment(
 ): void {
 	const dir = getAttachmentDir(attachmentId, baseDirOverride);
 	rmSync(dir, { recursive: true, force: true });
+}
+
+export function readAttachmentMetadata(
+	attachmentId: string,
+	baseDirOverride?: string,
+): AttachmentMetadata | null {
+	const path = getAttachmentMetadataPath(attachmentId, baseDirOverride);
+	if (!existsSync(path)) return null;
+	try {
+		return JSON.parse(readFileSync(path, "utf-8")) as AttachmentMetadata;
+	} catch {
+		return null;
+	}
+}
+
+/**
+ * Resolves an attachment id to its on-disk file path, or null when missing.
+ * Used by agents.run to materialize host-readable paths in the prompt
+ * attachment block. Renderer never sees these paths.
+ */
+export function resolveAttachmentPath(
+	attachmentId: string,
+	baseDirOverride?: string,
+): { path: string; metadata: AttachmentMetadata } | null {
+	const metadata = readAttachmentMetadata(attachmentId, baseDirOverride);
+	if (!metadata) return null;
+	const path = getAttachmentFilePath(
+		attachmentId,
+		metadata.mediaType,
+		baseDirOverride,
+	);
+	return existsSync(path) ? { path, metadata } : null;
 }

@@ -2,9 +2,8 @@ import type { AppRouter } from "@superset/host-service";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import type { inferRouterInputs, inferRouterOutputs } from "@trpc/server";
 import { useMemo } from "react";
-import { useHostTargetUrl } from "renderer/hooks/host-service/useHostTargetUrl";
+import { useHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
-import type { WorkspaceHostTarget } from "../../components/DevicePicker";
 
 type SearchBranchesInput =
 	inferRouterInputs<AppRouter>["workspaceCreation"]["searchBranches"];
@@ -24,11 +23,11 @@ const PAGE_SIZE = 50;
  */
 export function useBranchContext(
 	projectId: string | null,
-	hostTarget: WorkspaceHostTarget,
+	hostId: string | null,
 	query: string,
 	filter: BranchFilter = "all",
 ) {
-	const hostUrl = useHostTargetUrl(hostTarget);
+	const hostUrl = useHostUrl(hostId);
 
 	const q = useInfiniteQuery({
 		queryKey: [

@@ -265,7 +265,7 @@ function V2SessionsSectionInner() {
 									<th className="px-2 py-2 text-left font-medium">Status</th>
 								</tr>
 							</thead>
-							<tbody>
+							<tbody className="divide-y divide-border/40">
 									{sessions.map((s) => (
 										<tr key={s.id} className="hover:bg-muted/30">
 											<td className="px-2 py-2 font-mono">{s.id}</td>

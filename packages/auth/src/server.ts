@@ -225,13 +225,27 @@ export const auth = betterAuth({
 					return activeOrganizationId ?? undefined;
 				},
 			},
-			customAccessTokenClaims: ({ referenceId, metadata }) => {
+			customAccessTokenClaims: async ({ user, referenceId, metadata }) => {
 				const clientName =
 					metadata && typeof metadata === "object" && "client_name" in metadata
 						? metadata.client_name
 						: undefined;
+				// Mirror the JWT plugin's `definePayload` so OAuth access tokens
+				// carry the user's full membership list. Without this, every
+				// `ctx.organizationIds.includes(...)` check downstream rejects
+				// the token because the claim defaults to `[]`.
+				const memberRows = user?.id
+					? await db.query.members.findMany({
+							where: eq(members.userId, user.id),
+							columns: { organizationId: true },
+						})
+					: [];
+				const organizationIds = [
+					...new Set(memberRows.map((m) => m.organizationId)),
+				];
 				return {
 					organizationId: referenceId ?? undefined,
+					organizationIds,
 					client_name: typeof clientName === "string" ? clientName : undefined,
 				};
 			},

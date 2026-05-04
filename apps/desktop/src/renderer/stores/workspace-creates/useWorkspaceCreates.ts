@@ -1,0 +1,146 @@
+import type { WorkspaceState } from "@superset/panes";
+import { useCallback } from "react";
+import { resolveHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
+import { authClient } from "renderer/lib/auth-client";
+import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
+import type { PaneViewerData } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/types";
+import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
+import { appendLaunchesToPaneLayout } from "./appendLaunchesToPaneLayout";
+import {
+	type InFlightEntry,
+	useWorkspaceCreatesStore,
+	type WorkspacesCreateInput,
+} from "./store";
+
+export interface SubmitArgs {
+	hostId: string;
+	snapshot: WorkspacesCreateInput;
+}
+
+export interface UseWorkspaceCreatesApi {
+	entries: InFlightEntry[];
+	submit: (args: SubmitArgs) => Promise<void>;
+	retry: (workspaceId: string) => Promise<void>;
+	dismiss: (workspaceId: string) => void;
+}
+
+export function useWorkspaceCreates(): UseWorkspaceCreatesApi {
+	const entries = useWorkspaceCreatesStore((s) => s.entries);
+	const { machineId, activeHostUrl } = useLocalHostService();
+	const { data: session } = authClient.useSession();
+	const organizationId = session?.session?.activeOrganizationId;
+	const collections = useCollections();
+
+	const dispatch = useCallback(
+		async (args: SubmitArgs) => {
+			const workspaceId = args.snapshot.id;
+			if (!workspaceId) {
+				throw new Error(
+					"workspaces.create requires `id` for in-flight tracking",
+				);
+			}
+			if (!organizationId) {
+				useWorkspaceCreatesStore
+					.getState()
+					.markError(workspaceId, "No active organization");
+				return;
+			}
+			const hostUrl = resolveHostUrl({
+				hostId: args.hostId,
+				machineId,
+				activeHostUrl,
+				organizationId,
+			});
+			if (!hostUrl) {
+				useWorkspaceCreatesStore
+					.getState()
+					.markError(workspaceId, "Host service not available");
+				return;
+			}
+			try {
+				const client = getHostServiceClientByUrl(hostUrl);
+				const result = await client.workspaces.create.mutate(args.snapshot);
+
+				const existing = collections.v2WorkspaceLocalState.get(
+					result.workspace.id,
+				);
+				const paneLayout = appendLaunchesToPaneLayout({
+					existing: existing?.paneLayout as
+						| WorkspaceState<PaneViewerData>
+						| undefined,
+					terminals: result.terminals,
+					agents: result.agents,
+				});
+				if (existing) {
+					collections.v2WorkspaceLocalState.update(
+						result.workspace.id,
+						(draft) => {
+							draft.paneLayout = paneLayout;
+						},
+					);
+				} else {
+					collections.v2WorkspaceLocalState.insert({
+						workspaceId: result.workspace.id,
+						createdAt: new Date(),
+						sidebarState: {
+							projectId: result.workspace.projectId,
+							tabOrder: 0,
+							sectionId: null,
+							changesFilter: { kind: "all" },
+							activeTab: "changes",
+							isHidden: false,
+						},
+						paneLayout,
+						viewedFiles: [],
+						recentlyViewedFiles: [],
+					});
+				}
+			} catch (err) {
+				useWorkspaceCreatesStore
+					.getState()
+					.markError(
+						workspaceId,
+						err instanceof Error ? err.message : String(err),
+					);
+			}
+		},
+		[machineId, activeHostUrl, organizationId, collections],
+	);
+
+	const submit = useCallback(
+		async (args: SubmitArgs) => {
+			const workspaceId = args.snapshot.id;
+			if (!workspaceId) {
+				throw new Error(
+					"workspaces.create requires `id` for in-flight tracking",
+				);
+			}
+			useWorkspaceCreatesStore.getState().add({
+				hostId: args.hostId,
+				snapshot: args.snapshot,
+				state: "creating",
+			});
+			await dispatch(args);
+		},
+		[dispatch],
+	);
+
+	const retry = useCallback(
+		async (workspaceId: string) => {
+			const entry = useWorkspaceCreatesStore
+				.getState()
+				.entries.find((e) => e.snapshot.id === workspaceId);
+			if (!entry) return;
+			useWorkspaceCreatesStore.getState().markCreating(workspaceId);
+			await dispatch({ hostId: entry.hostId, snapshot: entry.snapshot });
+		},
+		[dispatch],
+	);
+
+	const dismiss = useCallback((workspaceId: string) => {
+		useWorkspaceCreatesStore.getState().remove(workspaceId);
+	}, []);
+
+	return { entries, submit, retry, dismiss };
+}

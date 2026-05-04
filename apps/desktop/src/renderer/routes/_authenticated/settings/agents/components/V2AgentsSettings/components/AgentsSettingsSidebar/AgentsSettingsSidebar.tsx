@@ -208,11 +208,12 @@ function AgentSidebarRow({
 				) : null}
 				<span className="truncate flex-1">{row.label}</span>
 			</button>
-			<button
-				type="button"
+			<span
 				ref={setActivatorNodeRef}
 				{...attributes}
 				{...listeners}
+				role="button"
+				tabIndex={0}
 				className={cn(
 					"absolute right-1 top-1/2 -translate-y-1/2 p-0.5 rounded text-muted-foreground/60 hover:text-foreground hover:bg-accent cursor-grab active:cursor-grabbing",
 					"opacity-0 group-hover/row:opacity-100 focus-visible:opacity-100 transition-opacity",
@@ -221,7 +222,7 @@ function AgentSidebarRow({
 				aria-label="Drag to reorder"
 			>
 				<LuGripVertical className="size-3.5" />
-			</button>
+			</span>
 		</div>
 	);
 }

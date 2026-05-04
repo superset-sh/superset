@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { devtools } from "zustand/middleware";
+import { devtools, persist } from "zustand/middleware";
 
 export type SettingsSection =
 	| "account"
@@ -28,6 +28,7 @@ interface SettingsState {
 	searchQuery: string;
 	isOpen: boolean;
 	originRoute: string;
+	lastVisitedPath: string | null;
 
 	setActiveSection: (section: SettingsSection) => void;
 	setActiveProject: (projectId: string | null) => void;
@@ -35,41 +36,52 @@ interface SettingsState {
 	openSettings: (section?: SettingsSection) => void;
 	closeSettings: () => void;
 	setOriginRoute: (route: string) => void;
+	setLastVisitedPath: (path: string | null) => void;
 }
 
 export const useSettingsStore = create<SettingsState>()(
 	devtools(
-		(set) => ({
-			activeSection: "account",
-			activeProjectId: null,
-			searchQuery: "",
-			isOpen: false,
-			originRoute: "/workspace",
+		persist(
+			(set) => ({
+				activeSection: "account",
+				activeProjectId: null,
+				searchQuery: "",
+				isOpen: false,
+				originRoute: "/workspace",
+				lastVisitedPath: null,
 
-			setActiveSection: (section) => set({ activeSection: section }),
+				setActiveSection: (section) => set({ activeSection: section }),
 
-			setActiveProject: (projectId) =>
-				set({
-					activeProjectId: projectId,
-					activeSection: "project",
-				}),
+				setActiveProject: (projectId) =>
+					set({
+						activeProjectId: projectId,
+						activeSection: "project",
+					}),
 
-			setSearchQuery: (query) => set({ searchQuery: query }),
+				setSearchQuery: (query) => set({ searchQuery: query }),
 
-			openSettings: (section) =>
-				set({
-					isOpen: true,
-					activeSection: section ?? "account",
-				}),
+				openSettings: (section) =>
+					set({
+						isOpen: true,
+						activeSection: section ?? "account",
+					}),
 
-			closeSettings: () =>
-				set({
-					isOpen: false,
-					searchQuery: "",
-				}),
+				closeSettings: () =>
+					set({
+						isOpen: false,
+						searchQuery: "",
+					}),
 
-			setOriginRoute: (route) => set({ originRoute: route }),
-		}),
+				setOriginRoute: (route) => set({ originRoute: route }),
+
+				setLastVisitedPath: (path) => set({ lastVisitedPath: path }),
+			}),
+			{
+				name: "settings-store",
+				version: 1,
+				partialize: (state) => ({ lastVisitedPath: state.lastVisitedPath }),
+			},
+		),
 		{ name: "SettingsStore" },
 	),
 );
@@ -88,3 +100,7 @@ export const useCloseSettings = () =>
 	useSettingsStore((state) => state.closeSettings);
 export const useSettingsOriginRoute = () =>
 	useSettingsStore((state) => state.originRoute);
+export const useLastVisitedSettingsPath = () =>
+	useSettingsStore((state) => state.lastVisitedPath);
+export const useSetLastVisitedSettingsPath = () =>
+	useSettingsStore((state) => state.setLastVisitedPath);

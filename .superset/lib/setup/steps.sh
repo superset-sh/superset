@@ -307,6 +307,28 @@ step_start_electric() {
   return 0
 }
 
+# Ports we must avoid because the OS (or commonly-installed services) listen on
+# them. Bases whose [base, base+range) window contains any of these are skipped
+# during allocation.
+#
+# - 5000, 7000: macOS Control Center / AirPlay Receiver (Sonoma+). Cannot be
+#   freed without disabling AirPlay Receiver in System Settings, so we just
+#   route around them.
+SUPERSET_RESERVED_PORTS="5000 7000"
+
+# Returns 0 if the [base, base+range) window contains no reserved port.
+port_base_is_safe() {
+  local base=$1
+  local range=$2
+  local reserved
+  for reserved in $SUPERSET_RESERVED_PORTS; do
+    if [ "$reserved" -ge "$base" ] && [ "$reserved" -lt "$((base + range))" ]; then
+      return 1
+    fi
+  done
+  return 0
+}
+
 allocate_port_base() {
   local alloc_file="$HOME/.superset/port-allocations.json"
   local lock_dir="$HOME/.superset/port-allocations.lock"
@@ -332,9 +354,25 @@ allocate_port_base() {
   fi
 
   if [ -n "$existing" ]; then
-    export SUPERSET_PORT_BASE="$existing"
-    release_port_alloc_lock "$lock_dir"
-    return 0
+    if port_base_is_safe "$existing" "$range"; then
+      export SUPERSET_PORT_BASE="$existing"
+      release_port_alloc_lock "$lock_dir"
+      return 0
+    fi
+    echo "  Existing port base $existing overlaps a reserved port (${SUPERSET_RESERVED_PORTS}); reallocating..."
+    local tmp_file="${alloc_file}.tmp.$$"
+    if ! jq --arg k "$key" 'del(.[$k])' "$alloc_file" > "$tmp_file"; then
+      error "Failed to release stale port allocation"
+      rm -f "$tmp_file"
+      release_port_alloc_lock "$lock_dir"
+      return 1
+    fi
+    if ! mv "$tmp_file" "$alloc_file"; then
+      error "Failed to persist port allocation cleanup"
+      rm -f "$tmp_file"
+      release_port_alloc_lock "$lock_dir"
+      return 1
+    fi
   fi
 
   # Collect used port bases
@@ -345,9 +383,10 @@ allocate_port_base() {
     return 1
   fi
 
-  # Find first available slot
+  # Find first available slot, skipping any window that overlaps a reserved port
   local candidate=$start
-  while echo "$used" | grep -qx "$candidate" 2>/dev/null; do
+  while echo "$used" | grep -qx "$candidate" 2>/dev/null \
+    || ! port_base_is_safe "$candidate" "$range"; do
     candidate=$((candidate + range))
   done
 

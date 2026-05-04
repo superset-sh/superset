@@ -10,8 +10,15 @@ import {
 	useState,
 	useSyncExternalStore,
 } from "react";
-import { useTerminalLinkActions } from "renderer/hooks/useV2UserPreferences";
 import { useHotkey } from "renderer/hotkeys";
+import {
+	actionLabel,
+	folderIntentFor,
+	folderIntentLabel,
+	LinkHoverHint,
+	useTerminalFilePolicy,
+	useTerminalUrlPolicy,
+} from "renderer/lib/clickPolicy";
 import {
 	type ConnectionState,
 	terminalRuntimeRegistry,
@@ -28,9 +35,8 @@ import { ScrollToBottomButton } from "renderer/screens/main/components/Workspace
 import { TerminalSearch } from "renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/Terminal/TerminalSearch";
 import { useTheme } from "renderer/stores/theme";
 import { resolveTerminalThemeType } from "renderer/stores/theme/utils";
-import { LinkHoverTooltip } from "./components/LinkHoverTooltip";
 import { useLinkClickHint } from "./hooks/useLinkClickHint";
-import { useLinkHoverState } from "./hooks/useLinkHoverState";
+import { type HoveredLink, useLinkHoverState } from "./hooks/useLinkHoverState";
 import { useTerminalAppearance } from "./hooks/useTerminalAppearance";
 import { shellEscapePaths } from "./utils";
 
@@ -47,7 +53,8 @@ export function TerminalPane({
 	onOpenFile,
 	onRevealPath,
 }: TerminalPaneProps) {
-	const { getFileAction, getUrlAction } = useTerminalLinkActions();
+	const filePolicy = useTerminalFilePolicy();
+	const urlPolicy = useTerminalUrlPolicy();
 	const {
 		hoveredLink,
 		onHover: onLinkHover,
@@ -240,15 +247,14 @@ export function TerminalPane({
 					}
 				},
 				onFileLinkClick: (event, link) => {
-					// Folders are not settings-controlled: ⌘ reveals in sidebar,
-					// ⌘⇧ falls through to the external editor path, plain = hint.
 					if (link.isDirectory) {
-						if (!event.metaKey && !event.ctrlKey) {
+						const intent = folderIntentFor(event);
+						if (intent === null) {
 							showHint(event.clientX, event.clientY);
 							return;
 						}
 						event.preventDefault();
-						if (event.shiftKey) {
+						if (intent === "external") {
 							openInExternalEditor(link.resolvedPath);
 						} else {
 							onRevealPath(link.resolvedPath, { isDirectory: true });
@@ -256,7 +262,7 @@ export function TerminalPane({
 						return;
 					}
 
-					const action = getFileAction(event);
+					const action = filePolicy.getAction(event);
 					if (action === null) {
 						showHint(event.clientX, event.clientY);
 						return;
@@ -267,12 +273,14 @@ export function TerminalPane({
 							line: link.row,
 							column: link.col,
 						});
+					} else if (action === "newTab") {
+						onOpenFile(link.resolvedPath, true);
 					} else {
 						onOpenFile(link.resolvedPath);
 					}
 				},
 				onUrlClick: (event, url) => {
-					const action = getUrlAction(event);
+					const action = urlPolicy.getAction(event);
 					if (action === null) {
 						showHint(event.clientX, event.clientY);
 						return;
@@ -285,7 +293,7 @@ export function TerminalPane({
 					} else {
 						openUrlInV2Workspace({
 							store: ctx.store,
-							target: "current-tab",
+							target: action === "newTab" ? "new-tab" : "current-tab",
 							url,
 						});
 					}
@@ -306,8 +314,8 @@ export function TerminalPane({
 		onLinkHover,
 		onLinkLeave,
 		showHint,
-		getFileAction,
-		getUrlAction,
+		filePolicy,
+		urlPolicy,
 	]);
 
 	useHotkey(
@@ -426,7 +434,37 @@ export function TerminalPane({
 					<span>Disconnected</span>
 				</div>
 			)}
-			<LinkHoverTooltip hoveredLink={hoveredLink} hint={hint} />
+			<LinkHoverHint
+				hoverLabel={resolveHoverLabel(hoveredLink, filePolicy, urlPolicy)}
+				hoverPosition={hoveredLink}
+				clickHint={hint}
+			/>
 		</div>
 	);
+}
+
+// Compute "what would clicking right now do?" for the live link tooltip.
+// Folders use the hardcoded folderIntent rule; files/urls go through the
+// settings-driven policies. Returns null when no modifier is held or the
+// matching tier is unbound — the tooltip stays hidden in that case.
+function resolveHoverLabel(
+	hovered: HoveredLink | null,
+	filePolicy: ReturnType<typeof useTerminalFilePolicy>,
+	urlPolicy: ReturnType<typeof useTerminalUrlPolicy>,
+): string | null {
+	if (!hovered) return null;
+	const event = {
+		metaKey: hovered.modifier,
+		ctrlKey: false,
+		shiftKey: hovered.shift,
+	};
+	if (hovered.info.kind === "url") {
+		const action = urlPolicy.getAction(event);
+		return action ? actionLabel(action, "url") : null;
+	}
+	if (hovered.info.isDirectory) {
+		return folderIntentLabel(folderIntentFor(event));
+	}
+	const action = filePolicy.getAction(event);
+	return action ? actionLabel(action, "file") : null;
 }
