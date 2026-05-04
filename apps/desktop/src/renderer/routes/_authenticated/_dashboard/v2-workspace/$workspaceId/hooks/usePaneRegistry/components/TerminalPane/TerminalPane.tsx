@@ -38,7 +38,7 @@ import { resolveTerminalThemeType } from "renderer/stores/theme/utils";
 import { useLinkClickHint } from "./hooks/useLinkClickHint";
 import { type HoveredLink, useLinkHoverState } from "./hooks/useLinkHoverState";
 import { useTerminalAppearance } from "./hooks/useTerminalAppearance";
-import { shellEscapePaths } from "./utils";
+import { handleClipboardPaste, shellEscapePaths } from "./utils";
 
 interface TerminalPaneProps {
 	ctx: RendererContext<PaneViewerData>;
@@ -401,6 +401,28 @@ export function TerminalPane({
 		terminalRuntimeRegistry.paste(terminalId, text, terminalInstanceId);
 	};
 
+	// Fallback for keyboard / right-click paste when xterm's textarea handler
+	// doesn't fire (e.g. focus on the container after a re-parent). xterm calls
+	// stopPropagation on its own paste, so this only runs when the event bubbles
+	// past xterm — no double paste.
+	const handlePaste = (event: React.ClipboardEvent<HTMLDivElement>) => {
+		handleClipboardPaste(
+			{
+				clipboardData: event.clipboardData,
+				preventDefault: () => event.preventDefault(),
+			},
+			{
+				isClosed: () => connectionState === "closed",
+				paste: (text) => {
+					terminalRuntimeRegistry
+						.getTerminal(terminalId, terminalInstanceId)
+						?.focus();
+					terminalRuntimeRegistry.paste(terminalId, text, terminalInstanceId);
+				},
+			},
+		);
+	};
+
 	return (
 		<div
 			role="application"
@@ -409,6 +431,7 @@ export function TerminalPane({
 			onDragOver={handleDragOver}
 			onDragLeave={handleDragLeave}
 			onDrop={handleDrop}
+			onPaste={handlePaste}
 		>
 			<div className="relative min-h-0 flex-1 overflow-hidden">
 				<TerminalSearch
