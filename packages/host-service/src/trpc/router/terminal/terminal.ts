@@ -50,7 +50,9 @@ async function createTerminalSessionFromInput({
 	return {
 		terminalId: result.terminalId,
 		status: "active" as const,
-		initialCommandAccepted: Boolean(input.initialCommand),
+		initialCommandAccepted: Boolean(
+			input.initialCommand && result.initialCommandQueued,
+		),
 	};
 }
 

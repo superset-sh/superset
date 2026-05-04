@@ -470,8 +470,9 @@ function resolveShellReady(
 function queueInitialCommand(
 	session: TerminalSession,
 	initialCommand: string,
-): void {
-	if (session.initialCommandQueued) return;
+): boolean {
+	if (session.initialCommandQueued) return true;
+	if (session.exited) return false;
 	session.initialCommandQueued = true;
 	const cmd = initialCommand.endsWith("\n")
 		? initialCommand
@@ -481,6 +482,7 @@ function queueInitialCommand(
 			session.pty.write(cmd);
 		}
 	});
+	return true;
 }
 
 /**
@@ -572,6 +574,8 @@ interface CreateTerminalSessionOptions {
 	listed?: boolean;
 	cols?: number;
 	rows?: number;
+	/** Only recover an already-live daemon session; never spawn a new PTY. */
+	adoptOnly?: boolean;
 	/**
 	 * Replay the daemon's ring buffer on subscribe. Default true. Pass false
 	 * when the renderer's xterm already has the scrollback — replaying then
@@ -591,11 +595,13 @@ export async function createTerminalSessionInternal({
 	listed = true,
 	cols: requestedCols,
 	rows: requestedRows,
+	adoptOnly = false,
 	replayOnAdoption = true,
 }: CreateTerminalSessionOptions): Promise<TerminalSession | { error: string }> {
 	const existing = sessions.get(terminalId);
 	if (existing) {
 		if (listed) existing.listed = true;
+		if (initialCommand) queueInitialCommand(existing, initialCommand);
 		return existing;
 	}
 
@@ -656,6 +662,16 @@ export async function createTerminalSessionInternal({
 	let isAdopted = false;
 	try {
 		daemon = await getDaemonClient();
+		if (adoptOnly) {
+			const found = (await daemon.list()).find(
+				(s) => s.id === terminalId && s.alive,
+			);
+			if (!found) {
+				return {
+					error: `Terminal session "${terminalId}" is not active; create it before connecting.`,
+				};
+			}
+		}
 		try {
 			openResult = await daemon.open(terminalId, {
 				shell,
@@ -665,6 +681,14 @@ export async function createTerminalSessionInternal({
 				rows,
 				env: ptyEnv,
 			});
+			if (adoptOnly) {
+				await daemon.close(terminalId).catch(() => {
+					// best-effort cleanup for a lost race where open created a PTY
+				});
+				return {
+					error: `Terminal session "${terminalId}" is not active; create it before connecting.`,
+				};
+			}
 		} catch (err) {
 			// After host-service restart the daemon may already own this
 			// session. Adopt it instead of looping forever on "session already
@@ -965,6 +989,7 @@ export function registerWorkspaceTerminalRoute({
 					workspaceId: record.originWorkspaceId,
 					db,
 					eventBus,
+					adoptOnly: true,
 					// Renderer passes `?replay=0` on reconnect; see replayOnAdoption.
 					replayOnAdoption: c.req.query("replay") !== "0",
 				});

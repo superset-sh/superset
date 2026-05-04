@@ -167,14 +167,19 @@ export function TerminalPane({
 
 		void (async () => {
 			try {
-				await trpcClientRef.current.terminal.createSession.mutate({
-					terminalId,
-					workspaceId: workspaceIdRef.current,
-					themeType: initialThemeTypeRef.current,
-					initialCommand: pendingInitialCommand,
-					cols: dimensions?.cols,
-					rows: dimensions?.rows,
-				});
+				const { initialCommandAccepted } =
+					await trpcClientRef.current.terminal.createSession.mutate({
+						terminalId,
+						workspaceId: workspaceIdRef.current,
+						themeType: initialThemeTypeRef.current,
+						initialCommand: pendingInitialCommand,
+						cols: dimensions?.cols,
+						rows: dimensions?.rows,
+					});
+				if (cancelled) return;
+				if (pendingInitialCommand && initialCommandAccepted) {
+					markInitialCommandAccepted();
+				}
 			} catch (error) {
 				if (cancelled) return;
 				const message =
@@ -188,7 +193,6 @@ export function TerminalPane({
 			}
 
 			if (cancelled) return;
-			if (pendingInitialCommand) markInitialCommandAccepted();
 			terminalRuntimeRegistry.connect(
 				terminalId,
 				websocketUrlRef.current,

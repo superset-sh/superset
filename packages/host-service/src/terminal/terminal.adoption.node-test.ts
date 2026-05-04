@@ -23,7 +23,7 @@ import { fileURLToPath } from "node:url";
 import { Server } from "@superset/pty-daemon";
 import { eq } from "drizzle-orm";
 import { createDb, type HostDb } from "../db/index.ts";
-import { projects, workspaces } from "../db/schema.ts";
+import { projects, terminalSessions, workspaces } from "../db/schema.ts";
 import {
 	disposeDaemonClient,
 	getDaemonClient,
@@ -117,6 +117,66 @@ describe("createTerminalSessionInternal — host-service restart adoption", () =
 		assert.equal(daemonSession?.rows, 27);
 
 		disposeSession(terminalId, db);
+	});
+
+	test("existing session accepts a not-yet-queued initialCommand", async () => {
+		const terminalId = `e2e-late-initcmd-${randomUUID().slice(0, 8)}`;
+		const sentinelFile = path.join(TEST_HOME, `late-initcmd-${terminalId}`);
+
+		const first = await createTerminalSessionInternal({
+			terminalId,
+			workspaceId,
+			db,
+			listed: true,
+		});
+		assert.ok(!("error" in first));
+		if ("error" in first) return;
+		assert.equal(first.initialCommandQueued, false);
+
+		const second = await createTerminalSessionInternal({
+			terminalId,
+			workspaceId,
+			db,
+			listed: true,
+			initialCommand: `echo ok > ${sentinelFile}`,
+		});
+		assert.ok(!("error" in second));
+		if ("error" in second) return;
+		assert.equal(second.initialCommandQueued, true);
+		await waitFor(() => fs.existsSync(sentinelFile), 5000);
+
+		disposeSession(terminalId, db);
+	});
+
+	test("adoptOnly refuses to spawn when daemon does not own the session", async () => {
+		const terminalId = `e2e-adopt-only-${randomUUID().slice(0, 8)}`;
+		db.insert(terminalSessions)
+			.values({
+				id: terminalId,
+				originWorkspaceId: workspaceId,
+				status: "active",
+				createdAt: Date.now(),
+			})
+			.run();
+
+		const result = await createTerminalSessionInternal({
+			terminalId,
+			workspaceId,
+			db,
+			listed: true,
+			adoptOnly: true,
+		});
+		assert.ok("error" in result);
+
+		const daemon = await getDaemonClient();
+		const daemonSession = (await daemon.list()).find(
+			(s) => s.id === terminalId,
+		);
+		assert.equal(daemonSession, undefined);
+
+		db.delete(terminalSessions)
+			.where(eq(terminalSessions.id, terminalId))
+			.run();
 	});
 
 	test("fresh open spawns a shell via the daemon", async () => {
