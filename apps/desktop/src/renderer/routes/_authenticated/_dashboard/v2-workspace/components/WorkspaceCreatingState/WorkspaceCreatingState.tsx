@@ -1,5 +1,5 @@
 import { cn } from "@superset/ui/utils";
-import { Check, GitBranch } from "lucide-react";
+import { Check, GitBranch, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import "./WorkspaceCreatingState.css";
 
@@ -19,7 +19,8 @@ const STEPS: readonly Step[] = [
 ] as const;
 
 const TOTAL_SECONDS = STEPS[STEPS.length - 1].doneAt;
-// Cap synthetic progress so the bar never reaches 100% before real completion.
+// Cap synthetic progress so the bar never claims completion before the real
+// workspaces.create mutation resolves.
 const PROGRESS_CAP = 0.94;
 
 interface WorkspaceCreatingStateProps {
@@ -38,17 +39,49 @@ export function WorkspaceCreatingState({
 	const progress = Math.min(elapsed / TOTAL_SECONDS, PROGRESS_CAP);
 
 	return (
-		<div className="relative flex h-full w-full items-center justify-center overflow-hidden p-6">
-			<div
-				aria-hidden
-				className="pointer-events-none absolute inset-0"
-				style={{
-					background:
-						"radial-gradient(ellipse 55% 45% at 50% 35%, hsl(var(--muted) / 0.55), transparent 70%)",
-				}}
-			/>
-			<div className="relative w-full max-w-[420px]">
-				<div className="overflow-hidden rounded-xl border border-border/70 bg-card shadow-[0_1px_0_0_hsl(0_0%_100%/0.04)_inset,0_10px_40px_-12px_hsl(0_0%_0%/0.45)]">
+		<div className="flex h-full w-full items-center justify-center p-6">
+			<div className="flex w-full max-w-sm flex-col items-start gap-5">
+				<Loader2
+					className="size-5 animate-spin text-muted-foreground"
+					strokeWidth={1.5}
+					aria-hidden="true"
+				/>
+
+				<div className="flex flex-col gap-1.5">
+					<h1 className="text-[15px] font-medium tracking-tight text-foreground">
+						Creating workspace
+					</h1>
+					<p className="truncate text-[13px] leading-relaxed text-muted-foreground">
+						{name || "Untitled workspace"}
+					</p>
+				</div>
+
+				{branch && (
+					<div className="flex w-full items-center gap-2">
+						<GitBranch
+							className="size-3 shrink-0 text-muted-foreground/80"
+							strokeWidth={2}
+							aria-hidden="true"
+						/>
+						<code className="min-w-0 truncate font-mono text-[11px] text-muted-foreground">
+							{branch}
+						</code>
+					</div>
+				)}
+
+				<ul className="flex w-full flex-col gap-2">
+					{STEPS.map((step, i) => {
+						const state: StepState =
+							i < activeIndex
+								? "done"
+								: i === activeIndex
+									? "active"
+									: "pending";
+						return <StepRow key={step.id} label={step.label} state={state} />;
+					})}
+				</ul>
+
+				<div className="flex w-full flex-col gap-2">
 					<div className="wcs-bar-track">
 						<div
 							className="wcs-bar-fill"
@@ -56,43 +89,11 @@ export function WorkspaceCreatingState({
 						/>
 						<div className="wcs-bar-sweep" />
 					</div>
-
-					<div className="px-6 pt-6 pb-5">
-						<div className="space-y-2">
-							<p className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground/70">
-								Creating workspace
-							</p>
-							<h1 className="truncate text-[17px] font-semibold leading-tight tracking-tight text-foreground">
-								{name || "Untitled workspace"}
-							</h1>
-							{branch && (
-								<div className="inline-flex max-w-full items-center gap-1.5 rounded-md border border-border/70 bg-muted/40 px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground">
-									<GitBranch className="size-3 shrink-0" />
-									<span className="truncate">{branch}</span>
-								</div>
-							)}
-						</div>
-
-						<ul className="mt-5 space-y-2">
-							{STEPS.map((step, i) => {
-								const state: StepState =
-									i < activeIndex
-										? "done"
-										: i === activeIndex
-											? "active"
-											: "pending";
-								return (
-									<StepRow key={step.id} label={step.label} state={state} />
-								);
-							})}
-						</ul>
-
-						<div className="mt-5 flex items-center justify-between border-t border-border/60 pt-3 text-[11px] text-muted-foreground">
-							<span>This usually takes ~{TOTAL_SECONDS}s</span>
-							<span className="font-mono tabular-nums text-muted-foreground/85">
-								{formatElapsed(elapsed)}
-							</span>
-						</div>
+					<div className="flex items-center justify-between text-[11px] text-muted-foreground/80">
+						<span className="font-mono tabular-nums">
+							{formatElapsed(elapsed)}
+						</span>
+						<span>~{TOTAL_SECONDS}s typical</span>
 					</div>
 				</div>
 			</div>
@@ -113,11 +114,7 @@ function StepRow({ label, state }: { label: string; state: StepState }) {
 			)}
 		>
 			<StepIcon state={state} />
-			{state === "active" ? (
-				<span className="wcs-step-active-shimmer font-medium">{label}</span>
-			) : (
-				<span className={cn(state === "done" && "font-medium")}>{label}</span>
-			)}
+			<span>{label}</span>
 		</li>
 	);
 }
@@ -125,23 +122,22 @@ function StepRow({ label, state }: { label: string; state: StepState }) {
 function StepIcon({ state }: { state: StepState }) {
 	if (state === "done") {
 		return (
-			<span className="grid size-4 shrink-0 place-items-center rounded-full bg-foreground/85 text-background">
-				<Check className="size-2.5" strokeWidth={3} />
+			<span className="grid size-3.5 shrink-0 place-items-center rounded-full bg-foreground/85 text-background">
+				<Check className="size-2" strokeWidth={3.5} />
 			</span>
 		);
 	}
 	if (state === "active") {
 		return (
-			<span className="relative grid size-4 shrink-0 place-items-center">
-				<span className="absolute inset-0 rounded-full border border-orange-400/40" />
-				<span className="wcs-active-ring absolute inset-0 rounded-full border border-orange-400/70" />
-				<span className="size-1.5 rounded-full bg-orange-400 shadow-[0_0_6px_0_hsl(24_95%_60%/0.7)]" />
+			<span className="relative grid size-3.5 shrink-0 place-items-center">
+				<span className="wcs-active-ring absolute inset-0 rounded-full border border-foreground/40" />
+				<span className="size-1.5 rounded-full bg-foreground/85" />
 			</span>
 		);
 	}
 	return (
-		<span className="grid size-4 shrink-0 place-items-center">
-			<span className="size-1.5 rounded-full bg-muted-foreground/40" />
+		<span className="grid size-3.5 shrink-0 place-items-center">
+			<span className="size-1.5 rounded-full bg-muted-foreground/35" />
 		</span>
 	);
 }

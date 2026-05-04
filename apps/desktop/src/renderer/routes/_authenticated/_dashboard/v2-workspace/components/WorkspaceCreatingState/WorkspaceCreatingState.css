@@ -3,22 +3,15 @@
 	height: 1px;
 	width: 100%;
 	overflow: hidden;
-	background: hsl(var(--border) / 0.5);
+	background: hsl(var(--border) / 0.6);
 }
 
 .wcs-bar-fill {
 	position: absolute;
 	inset-block: 0;
 	left: 0;
-	background: linear-gradient(
-		to right,
-		hsl(24 95% 60% / 0),
-		hsl(24 95% 60% / 0.9) 40%,
-		hsl(24 95% 60% / 1) 80%,
-		hsl(24 95% 60% / 0.85)
-	);
+	background: hsl(var(--foreground) / 0.75);
 	transition: width 0.7s cubic-bezier(0.22, 1, 0.36, 1);
-	box-shadow: 0 0 12px 0 hsl(24 95% 60% / 0.45);
 }
 
 .wcs-bar-sweep {
@@ -27,7 +20,7 @@
 	background: linear-gradient(
 		90deg,
 		transparent,
-		hsl(0 0% 100% / 0.18) 50%,
+		hsl(var(--foreground) / 0.25) 50%,
 		transparent
 	);
 	transform: translateX(-100%);
@@ -43,31 +36,6 @@
 	}
 }
 
-.wcs-step-active-shimmer {
-	background: linear-gradient(
-		90deg,
-		hsl(var(--foreground) / 0.55) 0%,
-		hsl(var(--foreground)) 40%,
-		hsl(var(--foreground)) 60%,
-		hsl(var(--foreground) / 0.55) 100%
-	);
-	background-size: 200% 100%;
-	background-clip: text;
-	-webkit-background-clip: text;
-	color: transparent;
-	-webkit-text-fill-color: transparent;
-	animation: wcs-shimmer 2s linear infinite;
-}
-
-@keyframes wcs-shimmer {
-	0% {
-		background-position: 100% 0;
-	}
-	100% {
-		background-position: -100% 0;
-	}
-}
-
 .wcs-active-ring {
 	animation: wcs-pulse 1.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
@@ -79,14 +47,13 @@
 		transform: scale(1);
 	}
 	50% {
-		opacity: 0.9;
-		transform: scale(1.35);
+		opacity: 0.85;
+		transform: scale(1.4);
 	}
 }
 
 @media (prefers-reduced-motion: reduce) {
 	.wcs-bar-sweep,
-	.wcs-step-active-shimmer,
 	.wcs-active-ring {
 		animation: none;
 	}
