@@ -24,6 +24,9 @@ import {
 	subscriptions,
 	taskStatuses,
 	tasks,
+	teamKeys,
+	teamSequences,
+	teams,
 	usersSlackUsers,
 	v2Clients,
 	v2Hosts,
@@ -80,6 +83,7 @@ export const organizationsRelations = relations(organizations, ({ many }) => ({
 	workspaces: many(workspaces),
 	tasks: many(tasks),
 	taskStatuses: many(taskStatuses),
+	teams: many(teams),
 	integrations: many(integrationConnections),
 	githubInstallations: many(githubInstallations),
 	githubRepositories: many(githubRepositories),
@@ -123,6 +127,10 @@ export const tasksRelations = relations(tasks, ({ one }) => ({
 		fields: [tasks.organizationId],
 		references: [organizations.id],
 	}),
+	team: one(teams, {
+		fields: [tasks.teamId],
+		references: [teams.id],
+	}),
 	status: one(taskStatuses, {
 		fields: [tasks.statusId],
 		references: [taskStatuses.id],
@@ -149,6 +157,37 @@ export const taskStatusesRelations = relations(
 		tasks: many(tasks),
 	}),
 );
+
+export const teamsRelations = relations(teams, ({ one, many }) => ({
+	organization: one(organizations, {
+		fields: [teams.organizationId],
+		references: [organizations.id],
+	}),
+	keys: many(teamKeys),
+	sequence: one(teamSequences, {
+		fields: [teams.id],
+		references: [teamSequences.teamId],
+	}),
+	tasks: many(tasks),
+}));
+
+export const teamKeysRelations = relations(teamKeys, ({ one }) => ({
+	team: one(teams, {
+		fields: [teamKeys.teamId],
+		references: [teams.id],
+	}),
+	organization: one(organizations, {
+		fields: [teamKeys.organizationId],
+		references: [organizations.id],
+	}),
+}));
+
+export const teamSequencesRelations = relations(teamSequences, ({ one }) => ({
+	team: one(teams, {
+		fields: [teamSequences.teamId],
+		references: [teams.id],
+	}),
+}));
 
 export const integrationConnectionsRelations = relations(
 	integrationConnections,

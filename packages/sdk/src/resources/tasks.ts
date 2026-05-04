@@ -10,7 +10,8 @@ import type { RequestOptions } from "../internal/request-options";
 type CreateOrUpdateWire = { task: Task; txid: number };
 type DeleteWire = { txid: number };
 type ListRowWire = {
-	task: Task;
+	task: Omit<Task, "identifier">;
+	identifier: string;
 	assignee: { id: string; name: string | null; image: string | null } | null;
 	creator: { id: string; name: string | null; image: string | null } | null;
 	statusName: string | null;
@@ -72,6 +73,7 @@ export class Tasks extends APIResource {
 			._thenUnwrap((rows) =>
 				rows.map((row) => ({
 					...row.task,
+					identifier: row.identifier,
 					assigneeName: row.assignee?.name ?? null,
 					assigneeImage: row.assignee?.image ?? null,
 					creatorName: row.creator?.name ?? null,
@@ -104,6 +106,9 @@ export type TaskPriority = "urgent" | "high" | "medium" | "low" | "none";
 
 export interface Task {
 	id: string;
+	/** Canonical human-readable identifier, e.g. `SUPER-103`. */
+	identifier: string;
+	/** @deprecated Use `identifier`. Kept for one release; same value. */
 	slug: string;
 	title: string;
 	description: string | null;

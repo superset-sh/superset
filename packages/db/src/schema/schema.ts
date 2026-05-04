@@ -91,6 +91,73 @@ export const taskStatuses = pgTable(
 export type InsertTaskStatus = typeof taskStatuses.$inferInsert;
 export type SelectTaskStatus = typeof taskStatuses.$inferSelect;
 
+export const teams = pgTable(
+	"teams",
+	{
+		id: uuid().primaryKey().defaultRandom(),
+		organizationId: uuid("organization_id")
+			.notNull()
+			.references(() => organizations.id, { onDelete: "cascade" }),
+		name: text().notNull(),
+		archivedAt: timestamp("archived_at"),
+		externalProvider: integrationProvider("external_provider"),
+		externalId: text("external_id"),
+		externalKey: text("external_key"),
+		createdAt: timestamp("created_at").notNull().defaultNow(),
+		updatedAt: timestamp("updated_at")
+			.notNull()
+			.defaultNow()
+			.$onUpdate(() => new Date()),
+	},
+	(table) => [
+		index("teams_organization_id_idx").on(table.organizationId),
+		unique("teams_org_external_unique").on(
+			table.organizationId,
+			table.externalProvider,
+			table.externalId,
+		),
+	],
+);
+
+export type InsertTeam = typeof teams.$inferInsert;
+export type SelectTeam = typeof teams.$inferSelect;
+
+export const teamKeys = pgTable(
+	"team_keys",
+	{
+		id: uuid().primaryKey().defaultRandom(),
+		teamId: uuid("team_id")
+			.notNull()
+			.references(() => teams.id, { onDelete: "cascade" }),
+		organizationId: uuid("organization_id")
+			.notNull()
+			.references(() => organizations.id, { onDelete: "cascade" }),
+		key: text().notNull(),
+		effectiveAt: timestamp("effective_at").notNull().defaultNow(),
+		retiredAt: timestamp("retired_at"),
+	},
+	(table) => [
+		unique("team_keys_org_key_unique").on(table.organizationId, table.key),
+		uniqueIndex("team_keys_team_id_current_unique")
+			.on(table.teamId)
+			.where(sql`${table.retiredAt} IS NULL`),
+		index("team_keys_team_id_idx").on(table.teamId),
+	],
+);
+
+export type InsertTeamKey = typeof teamKeys.$inferInsert;
+export type SelectTeamKey = typeof teamKeys.$inferSelect;
+
+export const teamSequences = pgTable("team_sequences", {
+	teamId: uuid("team_id")
+		.primaryKey()
+		.references(() => teams.id, { onDelete: "cascade" }),
+	lastNumber: integer("last_number").notNull().default(0),
+});
+
+export type InsertTeamSequence = typeof teamSequences.$inferInsert;
+export type SelectTeamSequence = typeof teamSequences.$inferSelect;
+
 export const tasks = pgTable(
 	"tasks",
 	{
@@ -104,6 +171,13 @@ export const tasks = pgTable(
 			.notNull()
 			.references(() => taskStatuses.id),
 		priority: taskPriority().notNull().default("none"),
+
+		// Team membership + per-team number — canonical identifier is
+		// `${teamKey}-${number}`, computed via team_keys at projection time.
+		teamId: uuid("team_id")
+			.notNull()
+			.references(() => teams.id, { onDelete: "restrict" }),
+		number: integer().notNull(),
 
 		// Ownership
 		organizationId: uuid("organization_id")
@@ -151,6 +225,7 @@ export const tasks = pgTable(
 	},
 	(table) => [
 		index("tasks_slug_idx").on(table.slug),
+		index("tasks_team_id_idx").on(table.teamId),
 		index("tasks_organization_id_idx").on(table.organizationId),
 		index("tasks_assignee_id_idx").on(table.assigneeId),
 		index("tasks_creator_id_idx").on(table.creatorId),
@@ -164,6 +239,10 @@ export const tasks = pgTable(
 			table.externalId,
 		),
 		unique("tasks_org_slug_unique").on(table.organizationId, table.slug),
+		unique("tasks_team_number_unique").on(table.teamId, table.number),
+		uniqueIndex("tasks_org_external_key_unique")
+			.on(table.organizationId, table.externalKey)
+			.where(sql`${table.externalKey} IS NOT NULL`),
 	],
 );
 

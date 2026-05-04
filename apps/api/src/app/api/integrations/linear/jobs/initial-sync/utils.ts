@@ -125,8 +125,9 @@ const ISSUES_QUERY = `
   }
 `;
 
-export async function fetchAllIssues(
+export async function fetchTeamIssues(
 	client: LinearClient,
+	linearTeamId: string,
 ): Promise<LinearIssue[]> {
 	const allIssues: LinearIssue[] = [];
 	let cursor: string | undefined;
@@ -139,7 +140,10 @@ export async function fetchAllIssues(
 		>(ISSUES_QUERY, {
 			first: 100,
 			after: cursor,
-			filter: { updatedAt: { gte: threeMonthsAgo.toISOString() } },
+			filter: {
+				team: { id: { eq: linearTeamId } },
+				updatedAt: { gte: threeMonthsAgo.toISOString() },
+			},
 		});
 		allIssues.push(...response.issues.nodes);
 		cursor =
@@ -151,7 +155,7 @@ export async function fetchAllIssues(
 	return allIssues;
 }
 
-export function mapIssueToTask(
+export function mapIssueToTaskBase(
 	issue: LinearIssue,
 	organizationId: string,
 	creatorId: string,
@@ -180,7 +184,6 @@ export function mapIssueToTask(
 	return {
 		organizationId,
 		creatorId,
-		slug: issue.identifier,
 		title: issue.title,
 		description: issue.description,
 		statusId,
