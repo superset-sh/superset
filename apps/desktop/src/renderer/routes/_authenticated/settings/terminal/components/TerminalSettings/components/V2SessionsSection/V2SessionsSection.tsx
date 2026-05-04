@@ -175,7 +175,14 @@ function V2SessionsSectionInner() {
 			<div className="space-y-4">
 				<div className="flex items-start justify-between gap-4">
 					<div>
-						<h3 className="text-sm font-medium">Manage daemon</h3>
+						<h3 className="text-sm font-medium flex items-baseline gap-2">
+							Manage daemon
+							{versionLabel ? (
+								<span className="text-xs font-mono font-normal text-muted-foreground/80">
+									{versionLabel}
+								</span>
+							) : null}
+						</h3>
 						<p className="text-sm text-muted-foreground mt-0.5">
 							Owns every PTY session and survives app restarts.
 						</p>
@@ -240,11 +247,6 @@ function V2SessionsSectionInner() {
 							{sessionCountLabel}
 						</span>
 					)}
-					{versionLabel ? (
-						<span className="font-mono text-muted-foreground/80">
-							{versionLabel}
-						</span>
-					) : null}
 					{updatePending ? (
 						<span className="rounded bg-foreground/5 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-foreground/80">
 							Update available
@@ -253,18 +255,17 @@ function V2SessionsSectionInner() {
 				</div>
 
 				{showSessionList && sessions && sessions.length > 0 ? (
-					<div className="overflow-hidden rounded-md border border-border/60">
-						<div className="max-h-64 overflow-auto">
-							<table className="w-full text-xs">
-								<thead className="sticky top-0 bg-background">
-									<tr className="text-muted-foreground">
-										<th className="px-2 py-2 text-left font-medium">Session</th>
-										<th className="px-2 py-2 text-right font-medium">PID</th>
-										<th className="px-2 py-2 text-right font-medium">Size</th>
-										<th className="px-2 py-2 text-left font-medium">Status</th>
-									</tr>
-								</thead>
-								<tbody className="divide-y divide-border/60">
+					<div className="max-h-64 overflow-auto">
+						<table className="w-full text-xs">
+							<thead className="sticky top-0 bg-background">
+								<tr className="text-muted-foreground">
+									<th className="px-2 py-2 text-left font-medium">Session</th>
+									<th className="px-2 py-2 text-right font-medium">PID</th>
+									<th className="px-2 py-2 text-right font-medium">Size</th>
+									<th className="px-2 py-2 text-left font-medium">Status</th>
+								</tr>
+							</thead>
+							<tbody>
 									{sessions.map((s) => (
 										<tr key={s.id} className="hover:bg-muted/30">
 											<td className="px-2 py-2 font-mono">{s.id}</td>
@@ -290,7 +291,6 @@ function V2SessionsSectionInner() {
 								</tbody>
 							</table>
 						</div>
-					</div>
 				) : null}
 			</div>
 
