@@ -156,23 +156,26 @@ export function BillingOverview({ visibleItems }: BillingOverviewProps) {
 
 			<div className="space-y-6">
 				{showOverview && (
-					<>
-						<CurrentPlanCard
-							currentPlan={plan}
-							onCancel={handleCancel}
-							isCanceling={isCanceling}
-							onRestore={handleRestore}
-							isRestoring={isRestoring}
-							cancelAt={subscriptionData?.cancelAt}
-							periodEnd={subscriptionData?.periodEnd}
-						/>
-						{plan === "free" && (
-							<UpgradeCard
-								onUpgrade={() => handleUpgrade(false)}
-								isUpgrading={isUpgrading || memberCount === undefined}
+					<div>
+						<h3 className="text-sm font-medium mb-2">Plan</h3>
+						<div className="divide-y divide-border">
+							<CurrentPlanCard
+								currentPlan={plan}
+								onCancel={handleCancel}
+								isCanceling={isCanceling}
+								onRestore={handleRestore}
+								isRestoring={isRestoring}
+								cancelAt={subscriptionData?.cancelAt}
+								periodEnd={subscriptionData?.periodEnd}
 							/>
-						)}
-					</>
+							{plan === "free" && (
+								<UpgradeCard
+									onUpgrade={() => handleUpgrade(false)}
+									isUpgrading={isUpgrading || memberCount === undefined}
+								/>
+							)}
+						</div>
+					</div>
 				)}
 				{showOverview && isOwner && plan !== "free" && <BillingDetails />}
 				<RecentInvoices />
