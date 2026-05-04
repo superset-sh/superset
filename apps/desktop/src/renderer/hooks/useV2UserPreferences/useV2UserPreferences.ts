@@ -33,7 +33,11 @@ export function useV2UserPreferences(): V2UserPreferencesApi {
 		[collections],
 	);
 
-	const preferences = rows[0] ?? DEFAULT_V2_USER_PREFERENCES;
+	// Merge over defaults so rows persisted before a field was added (e.g.
+	// sidebarFileLinks) still resolve that field instead of returning undefined.
+	const preferences: V2UserPreferencesRow = rows[0]
+		? { ...DEFAULT_V2_USER_PREFERENCES, ...rows[0] }
+		: DEFAULT_V2_USER_PREFERENCES;
 
 	const upsertTierMap = useCallback(
 		(key: "fileLinks" | "urlLinks" | "sidebarFileLinks", next: LinkTierMap) => {
