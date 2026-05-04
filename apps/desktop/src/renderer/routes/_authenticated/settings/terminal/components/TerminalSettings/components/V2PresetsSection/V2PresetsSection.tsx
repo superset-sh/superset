@@ -4,7 +4,6 @@ import {
 	type TerminalPreset,
 } from "@superset/local-db";
 import { Button } from "@superset/ui/button";
-import { Label } from "@superset/ui/label";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { HiOutlinePlus } from "react-icons/hi2";
@@ -516,22 +515,17 @@ export function V2PresetsSection({
 
 	return (
 		<div className="space-y-4">
-			<div className="flex items-center justify-between">
-				<div className="space-y-0.5">
-					<Label className="text-sm font-medium">Terminal presets</Label>
+			<div className="flex items-start justify-between gap-3">
+				<div>
+					<h3 className="text-sm font-medium mb-1">Terminal presets</h3>
 					<p className="text-xs text-muted-foreground">
-						Presets let you quickly launch terminals with pre-configured
-						commands.
+						Pre-configured terminal launches. Click a preset to edit, drag to
+						reorder.
 					</p>
 				</div>
 				{showPresets && (
-					<Button
-						variant="default"
-						size="sm"
-						className="gap-2"
-						onClick={() => handleAddRow()}
-					>
-						<HiOutlinePlus className="h-4 w-4" />
+					<Button size="sm" onClick={() => handleAddRow()}>
+						<HiOutlinePlus className="size-4" />
 						Add preset
 					</Button>
 				)}
