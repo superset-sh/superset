@@ -45,18 +45,12 @@ export function V2ProjectSettings({ projectId }: V2ProjectSettingsProps) {
 		<div className="p-6 max-w-4xl w-full mx-auto select-text">
 			<ProjectSettingsHeader title={project.name} />
 
-			<div className="space-y-8">
-				<SettingsSection
-					title="Name"
-					description="Display name for this project."
-				>
+			<div className="space-y-6">
+				<SettingsSection title="Name">
 					<NameSection projectId={projectId} currentName={project.name} />
 				</SettingsSection>
 
-				<SettingsSection
-					title="Repository"
-					description="GitHub repository this project tracks."
-				>
+				<SettingsSection title="Repository">
 					<RepositorySection
 						projectId={projectId}
 						currentRepoCloneUrl={project.repoCloneUrl}
@@ -75,12 +69,12 @@ export function V2ProjectSettings({ projectId }: V2ProjectSettingsProps) {
 					/>
 				</SettingsSection>
 
-				<SettingsSection title="Danger zone">
+				<div className="pt-2 border-t border-border">
 					<DeleteProjectSection
 						projectId={projectId}
 						projectName={project.name}
 					/>
-				</SettingsSection>
+				</div>
 			</div>
 		</div>
 	);
