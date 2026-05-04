@@ -23,7 +23,6 @@ import {
 	AlertDialogTitle,
 } from "@superset/ui/alert-dialog";
 import { Button } from "@superset/ui/button";
-import { Label } from "@superset/ui/label";
 import { toast } from "@superset/ui/sonner";
 import {
 	WorkspaceClientProvider,
@@ -43,8 +42,8 @@ export function V2SessionsSection() {
 	if (!activeHostUrl) {
 		return (
 			<div className="space-y-1">
-				<Label className="text-sm font-medium">Manage daemon</Label>
-				<p className="text-xs text-muted-foreground">
+				<h3 className="text-sm font-medium">Manage daemon</h3>
+				<p className="text-sm text-muted-foreground">
 					Host service is starting…
 				</p>
 			</div>
@@ -170,11 +169,10 @@ function V2SessionsSectionInner() {
 		<>
 			<div className="space-y-4">
 				<div className="flex items-start justify-between gap-4">
-					<div className="space-y-0.5">
-						<Label className="text-sm font-medium">Manage daemon</Label>
-						<p className="text-xs text-muted-foreground">
-							The terminal daemon owns all PTY sessions. It survives app
-							restarts so your shells, builds, and agents keep running.
+					<div>
+						<h3 className="text-sm font-medium">Manage daemon</h3>
+						<p className="text-sm text-muted-foreground mt-0.5">
+							Owns every PTY session and survives app restarts.
 						</p>
 					</div>
 					<Button
