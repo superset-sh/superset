@@ -190,7 +190,7 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 		if (!action) return null;
 		if (action.kind === "logout") {
 			return (
-				<Button variant="outline" size="sm" onClick={onDisconnect}>
+				<Button variant="ghost" size="sm" onClick={onDisconnect}>
 					Sign out
 				</Button>
 			);
@@ -249,6 +249,7 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 							<ConfigRow
 								title="API key"
 								htmlFor="anthropic-api-key"
+								isActive={anthropicStatus?.authMethod === "api_key"}
 								field={
 									<Input
 										id="anthropic-api-key"
@@ -459,6 +460,7 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 							<ConfigRow
 								title="API key"
 								htmlFor="openai-api-key"
+								isActive={openAIStatus?.authMethod === "api_key"}
 								field={
 									<Input
 										id="openai-api-key"
