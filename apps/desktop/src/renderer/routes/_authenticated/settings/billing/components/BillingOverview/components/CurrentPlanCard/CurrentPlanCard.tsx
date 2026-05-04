@@ -29,7 +29,7 @@ export function CurrentPlanCard({
 	const isCancelingAtPeriodEnd = isPaidPlan && !isEnterprise && !!cancelAt;
 
 	return (
-		<Card className="gap-0 rounded-lg border-border/60 py-0 shadow-none">
+		<Card className="gap-0 py-0 shadow-none">
 			<CardContent className="px-5 py-4">
 				<div className="flex items-center justify-between">
 					<div className="min-w-0 flex-1">

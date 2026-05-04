@@ -13,7 +13,7 @@ export function UpgradeCard({ onUpgrade, isUpgrading }: UpgradeCardProps) {
 	const plan = PLANS.pro;
 
 	return (
-		<Card className="gap-0 rounded-lg border-border/60 py-0 shadow-none">
+		<Card className="gap-0 py-0 shadow-none">
 			<CardContent className="px-5 py-4">
 				<div className="flex flex-wrap items-center justify-between gap-4">
 					<div>

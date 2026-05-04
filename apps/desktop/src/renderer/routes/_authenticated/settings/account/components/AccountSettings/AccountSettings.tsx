@@ -108,59 +108,54 @@ export function AccountSettings({ visibleItems }: AccountSettingsProps) {
 				</p>
 			</div>
 
-			<div className="space-y-8">
-				{showProfile && (
-					<section className="space-y-3">
-						<h3 className="text-sm font-medium">Profile</h3>
-						{isLoading ? (
-							<ProfileSkeleton />
-						) : user ? (
-							<div className="space-y-3">
-								<SettingRow label="Avatar" hint="Recommended size 256×256.">
-									<button
-										type="button"
-										onClick={handleAvatarUpload}
-										disabled={selectImageMutation.isPending}
-										className="rounded-full transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-100"
-										aria-label="Change avatar"
-									>
-										<Avatar
-											size="xl"
-											fullName={user.name}
-											image={avatarPreview}
-										/>
-									</button>
-								</SettingRow>
-
-								<SettingRow label="Name">
-									<Input
-										value={nameValue}
-										onChange={(e) => setNameValue(e.target.value)}
-										onBlur={handleNameBlur}
-										placeholder="Your name"
-										className="w-80"
+			<div className="space-y-3">
+				{showProfile &&
+					(isLoading ? (
+						<ProfileSkeleton />
+					) : user ? (
+						<>
+							<SettingRow label="Avatar" hint="Recommended size 256×256.">
+								<button
+									type="button"
+									onClick={handleAvatarUpload}
+									disabled={selectImageMutation.isPending}
+									className="rounded-full transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-100"
+									aria-label="Change avatar"
+								>
+									<Avatar
+										size="xl"
+										fullName={user.name}
+										image={avatarPreview}
 									/>
-								</SettingRow>
+								</button>
+							</SettingRow>
 
-								<SettingRow label="Email">
-									<Input
-										value={user.email}
-										readOnly
-										className="w-80 opacity-60"
-									/>
-								</SettingRow>
-							</div>
-						) : (
-							<p className="text-sm text-muted-foreground">
-								Unable to load user info
-							</p>
-						)}
-					</section>
-				)}
+							<SettingRow label="Name">
+								<Input
+									value={nameValue}
+									onChange={(e) => setNameValue(e.target.value)}
+									onBlur={handleNameBlur}
+									placeholder="Your name"
+									className="w-80"
+								/>
+							</SettingRow>
+
+							<SettingRow label="Email">
+								<Input
+									value={user.email}
+									readOnly
+									className="w-80 opacity-60"
+								/>
+							</SettingRow>
+						</>
+					) : (
+						<p className="text-sm text-muted-foreground">
+							Unable to load user info
+						</p>
+					))}
 
 				{showSignOut && (
-					<section className="space-y-3">
-						<h3 className="text-sm font-medium">Sign out</h3>
+					<div className={showProfile ? "pt-5" : undefined}>
 						<SettingRow
 							label="Sign out of this device"
 							hint="You'll need to sign in again to use Superset on this device."
@@ -172,7 +167,7 @@ export function AccountSettings({ visibleItems }: AccountSettingsProps) {
 								Sign out
 							</Button>
 						</SettingRow>
-					</section>
+					</div>
 				)}
 			</div>
 		</div>

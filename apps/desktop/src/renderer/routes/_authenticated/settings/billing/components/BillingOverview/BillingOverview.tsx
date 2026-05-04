@@ -132,30 +132,29 @@ export function BillingOverview({ visibleItems }: BillingOverviewProps) {
 
 	return (
 		<div className="p-6 max-w-4xl w-full">
-			<div className="mb-6">
-				<div className="flex items-center justify-between">
-					<div>
-						<h2 className="text-lg font-semibold">Billing</h2>
-						<p className="text-xs text-muted-foreground mt-0.5">
-							For questions about billing,{" "}
-							<a
-								href="mailto:founders@superset.sh"
-								className="text-primary hover:underline"
-							>
-								contact us
-							</a>
-						</p>
-					</div>
-					<Button variant="ghost" size="sm" asChild>
-						<Link to="/settings/billing/plans">
-							All plans
-							<HiArrowRight className="h-3 w-3" />
-						</Link>
-					</Button>
+			<div className="mb-8 flex items-start justify-between gap-4">
+				<div>
+					<h2 className="text-xl font-semibold">Billing</h2>
+					<p className="text-sm text-muted-foreground mt-1">
+						For questions about billing,{" "}
+						<a
+							href="mailto:founders@superset.sh"
+							className="text-primary hover:underline"
+						>
+							contact us
+						</a>
+						.
+					</p>
 				</div>
+				<Button variant="ghost" size="sm" asChild>
+					<Link to="/settings/billing/plans">
+						All plans
+						<HiArrowRight className="h-3 w-3" />
+					</Link>
+				</Button>
 			</div>
 
-			<div className="space-y-3">
+			<div className="space-y-6">
 				{showOverview && (
 					<>
 						<CurrentPlanCard
