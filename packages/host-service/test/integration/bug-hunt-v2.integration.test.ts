@@ -10,66 +10,17 @@ import { createTestHost, type TestHost } from "../helpers/createTestHost";
 import { createGitFixture, type GitFixture } from "../helpers/git-fixture";
 
 describe("bug-hunt-v2: progress-store leak on early errors in workspaceCreation.create", () => {
-	let host: TestHost;
-	let repo: GitFixture;
-
-	beforeEach(async () => {
-		host = await createTestHost();
-		repo = await createGitFixture();
-	});
-
-	afterEach(async () => {
-		await host.dispose();
-		repo.dispose();
-	});
-
-	test("PROJECT_NOT_SETUP error in create() does not leak a stale progress entry", async () => {
-		// Regression: previously `setProgress(pendingId, 'ensuring_repo')`
-		// ran BEFORE `requireLocalProject` threw, and the throw path did not
-		// call clearProgress, leaving a stale "active" step for up to 5 min.
-		// Fixed via the outer try/finally in create.ts.
-		const pendingId = randomUUID();
-
-		await expect(
-			host.trpc.workspaceCreation.create.mutate({
-				pendingId,
-				projectId: randomUUID(),
-				names: { workspaceName: "ws", branchName: "feature/x" },
-				composer: {},
-			}),
-		).rejects.toThrow();
-
-		const progress = await host.trpc.workspaceCreation.getProgress.query({
-			pendingId,
-		});
-		expect(progress).toBeNull();
-	});
-
-	test("whitespace-only branchName error in create() does not leak progress", async () => {
-		const projectId = randomUUID();
-		host.db
-			.insert(projects)
-			.values({ id: projectId, repoPath: repo.repoPath })
-			.run();
-		const pendingId = randomUUID();
-
-		// Whitespace-only passes the zod min(1) check but fails the
-		// `.trim()` guard inside the procedure — exercises the throw
-		// path between the two `setProgress` calls.
-		await expect(
-			host.trpc.workspaceCreation.create.mutate({
-				pendingId,
-				projectId,
-				names: { workspaceName: "ws", branchName: "   " },
-				composer: {},
-			}),
-		).rejects.toThrow();
-
-		const progress = await host.trpc.workspaceCreation.getProgress.query({
-			pendingId,
-		});
-		expect(progress).toBeNull();
-	});
+	// Both `workspaceCreation.create` and `workspaceCreation.getProgress`
+	// were removed by PR #3893 (canonical workspaces.create) — the entire
+	// progress store is gone. The leak these tests guarded is no longer
+	// reachable. Re-author against `workspaces.create` if/when an
+	// equivalent surface exists.
+	test.todo(
+		"PROJECT_NOT_SETUP error in create() does not leak a stale progress entry",
+	);
+	test.todo(
+		"whitespace-only branchName error in create() does not leak progress",
+	);
 });
 
 describe("bug-hunt-v2: workspaceCleanup.destroy phase ordering", () => {
