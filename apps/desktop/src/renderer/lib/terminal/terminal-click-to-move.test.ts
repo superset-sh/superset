@@ -2,253 +2,136 @@ import { describe, expect, it, mock } from "bun:test";
 import type { Terminal as XTerm } from "@xterm/xterm";
 import { setupClickToMoveCursor } from "./terminal-click-to-move";
 
-interface FakeTerminalOptions {
-	cols?: number;
-	rows?: number;
-	cursorX?: number;
-	cursorY?: number;
-	viewportY?: number;
-	hasSelection?: boolean;
-	useAlternate?: boolean;
-	cellWidth?: number;
-	cellHeight?: number;
-	mouseTrackingMode?: string;
-	withElement?: boolean;
-}
+const CELL_W = 10;
+const CELL_H = 20;
 
-interface FakeTerminal {
-	xterm: XTerm;
-	element: HTMLElement | null;
-}
-
-function makeFakeTerminal(opts: FakeTerminalOptions = {}): FakeTerminal {
+function makeFakeTerminal(
+	opts: {
+		cursorX?: number;
+		hasSelection?: boolean;
+		useAlternate?: boolean;
+		mouseTrackingMode?: string;
+	} = {},
+) {
 	const {
-		cols = 80,
-		rows = 24,
 		cursorX = 5,
-		cursorY = 0,
-		viewportY = 0,
 		hasSelection = false,
 		useAlternate = false,
-		cellWidth = 10,
-		cellHeight = 20,
 		mouseTrackingMode = "none",
-		withElement = true,
 	} = opts;
-
-	const buffer = {
-		cursorX,
-		cursorY,
-		viewportY,
-	};
-
-	const normalBuffer = buffer;
-	const altBuffer = { ...buffer };
-
-	const listeners = new Map<string, Set<(event: MouseEvent) => void>>();
-	const element: HTMLElement | null = withElement
-		? ({
-				getBoundingClientRect() {
-					return {
-						left: 0,
-						top: 0,
-						right: cols * cellWidth,
-						bottom: rows * cellHeight,
-						width: cols * cellWidth,
-						height: rows * cellHeight,
-						x: 0,
-						y: 0,
-						toJSON() {
-							return {};
-						},
-					};
-				},
-				addEventListener(type: string, handler: (event: MouseEvent) => void) {
-					let set = listeners.get(type);
-					if (!set) {
-						set = new Set();
-						listeners.set(type, set);
-					}
-					set.add(handler);
-				},
-				removeEventListener(
-					type: string,
-					handler: (event: MouseEvent) => void,
-				) {
-					listeners.get(type)?.delete(handler);
-				},
-				dispatchEvent(event: MouseEvent) {
-					for (const handler of listeners.get(event.type) ?? []) {
-						handler(event);
-					}
-					return true;
-				},
-			} as unknown as HTMLElement)
-		: null;
+	const normal = { cursorX, cursorY: 0, viewportY: 0 };
+	const listeners = new Map<string, Set<(e: MouseEvent) => void>>();
+	const element = {
+		getBoundingClientRect: () => ({ left: 0, top: 0 }) as DOMRect,
+		addEventListener: (type: string, h: (e: MouseEvent) => void) => {
+			let s = listeners.get(type);
+			if (!s) {
+				s = new Set();
+				listeners.set(type, s);
+			}
+			s.add(h);
+		},
+		removeEventListener: (type: string, h: (e: MouseEvent) => void) =>
+			listeners.get(type)?.delete(h),
+		dispatchEvent: (e: MouseEvent) => {
+			for (const h of listeners.get(e.type) ?? []) h(e);
+			return true;
+		},
+	} as unknown as HTMLElement;
 
 	const xterm = {
-		cols,
-		rows,
+		cols: 80,
+		rows: 24,
 		element,
-		buffer: {
-			active: useAlternate ? altBuffer : normalBuffer,
-			normal: normalBuffer,
-		},
+		buffer: { active: useAlternate ? { ...normal } : normal, normal },
 		hasSelection: () => hasSelection,
 		modes: { mouseTrackingMode },
 		_core: {
 			_renderService: {
-				dimensions: {
-					css: { cell: { width: cellWidth, height: cellHeight } },
-				},
+				dimensions: { css: { cell: { width: CELL_W, height: CELL_H } } },
 			},
 		},
 	} as unknown as XTerm;
-
 	return { xterm, element };
 }
 
-function makeMouseEvent(
-	overrides: Partial<{
-		button: number;
-		clientX: number;
-		clientY: number;
-		metaKey: boolean;
-		ctrlKey: boolean;
-		altKey: boolean;
-		shiftKey: boolean;
-		type: string;
-	}> = {},
-): MouseEvent {
+function clickAt(col: number, row = 0, overrides: Partial<MouseEvent> = {}) {
 	return {
-		type: overrides.type ?? "click",
-		button: overrides.button ?? 0,
-		clientX: overrides.clientX ?? 0,
-		clientY: overrides.clientY ?? 0,
-		metaKey: overrides.metaKey ?? false,
-		ctrlKey: overrides.ctrlKey ?? false,
-		altKey: overrides.altKey ?? false,
-		shiftKey: overrides.shiftKey ?? false,
+		type: "click",
+		button: 0,
+		clientX: col * CELL_W + CELL_W / 2,
+		clientY: row * CELL_H + CELL_H / 2,
+		metaKey: false,
+		ctrlKey: false,
+		altKey: false,
+		shiftKey: false,
+		...overrides,
 	} as MouseEvent;
 }
 
 describe("setupClickToMoveCursor", () => {
-	it("emits right-arrow sequences when clicking right of the cursor", () => {
-		// cursorX=5, click at col 10 → delta=5, expect 5x \x1b[C
-		const { xterm, element } = makeFakeTerminal({ cursorX: 5, cursorY: 0 });
-		const onWrite = mock();
-		setupClickToMoveCursor(xterm, { onWrite });
+	it("emits the right number of right/left arrow sequences for the click delta", () => {
+		// Right of cursor: cursorX=5, click col=10 → 5x \x1b[C
+		const right = makeFakeTerminal({ cursorX: 5 });
+		const onWriteRight = mock();
+		setupClickToMoveCursor(right.xterm, { onWrite: onWriteRight });
+		right.element.dispatchEvent(clickAt(10));
+		expect(onWriteRight.mock.calls[0]?.[0]).toBe("\x1b[C".repeat(5));
 
-		// Cell width 10, so x=105 → col 10. Cell height 20, y=10 → row 0.
-		element?.dispatchEvent(makeMouseEvent({ clientX: 105, clientY: 10 }));
+		// Left of cursor: cursorX=10, click col=7 → 3x \x1b[D
+		const left = makeFakeTerminal({ cursorX: 10 });
+		const onWriteLeft = mock();
+		setupClickToMoveCursor(left.xterm, { onWrite: onWriteLeft });
+		left.element.dispatchEvent(clickAt(7));
+		expect(onWriteLeft.mock.calls[0]?.[0]).toBe("\x1b[D".repeat(3));
 
-		expect(onWrite).toHaveBeenCalledTimes(1);
-		expect(onWrite.mock.calls[0]?.[0]).toBe("\x1b[C\x1b[C\x1b[C\x1b[C\x1b[C");
+		// Same column: no-op
+		const same = makeFakeTerminal({ cursorX: 5 });
+		const onWriteSame = mock();
+		setupClickToMoveCursor(same.xterm, { onWrite: onWriteSame });
+		same.element.dispatchEvent(clickAt(5));
+		expect(onWriteSame).not.toHaveBeenCalled();
 	});
 
-	it("emits left-arrow sequences when clicking left of the cursor", () => {
-		// cursorX=10, click at col 7 → delta=-3, expect 3x \x1b[D
-		const { xterm, element } = makeFakeTerminal({ cursorX: 10, cursorY: 0 });
+	it.each([
+		["different row", { row: 1 }],
+		["non-left button", { button: 1 }],
+		["right button", { button: 2 }],
+		["meta modifier", { metaKey: true }],
+		["ctrl modifier", { ctrlKey: true }],
+		["alt modifier", { altKey: true }],
+		["shift modifier", { shiftKey: true }],
+	])("ignores clicks with %s", (_label, overrides) => {
+		const { xterm, element } = makeFakeTerminal({ cursorX: 5 });
 		const onWrite = mock();
 		setupClickToMoveCursor(xterm, { onWrite });
-
-		element?.dispatchEvent(makeMouseEvent({ clientX: 75, clientY: 10 }));
-
-		expect(onWrite).toHaveBeenCalledTimes(1);
-		expect(onWrite.mock.calls[0]?.[0]).toBe("\x1b[D\x1b[D\x1b[D");
-	});
-
-	it("does nothing when clicking exactly on the cursor", () => {
-		const { xterm, element } = makeFakeTerminal({ cursorX: 5, cursorY: 0 });
-		const onWrite = mock();
-		setupClickToMoveCursor(xterm, { onWrite });
-
-		// x=55 → col 5 (same as cursorX)
-		element?.dispatchEvent(makeMouseEvent({ clientX: 55, clientY: 10 }));
-
+		const { row = 0, ...mouseOverrides } = overrides as {
+			row?: number;
+		} & Partial<MouseEvent>;
+		element.dispatchEvent(clickAt(10, row, mouseOverrides));
 		expect(onWrite).not.toHaveBeenCalled();
 	});
 
-	it("ignores clicks on a different row than the cursor", () => {
-		const { xterm, element } = makeFakeTerminal({ cursorX: 5, cursorY: 0 });
-		const onWrite = mock();
-		setupClickToMoveCursor(xterm, { onWrite });
-
-		// y=30 → row 1, cursor is on row 0
-		element?.dispatchEvent(makeMouseEvent({ clientX: 105, clientY: 30 }));
-
-		expect(onWrite).not.toHaveBeenCalled();
-	});
-
-	it("ignores non-left mouse buttons", () => {
-		const { xterm, element } = makeFakeTerminal();
-		const onWrite = mock();
-		setupClickToMoveCursor(xterm, { onWrite });
-
-		element?.dispatchEvent(
-			makeMouseEvent({ button: 1, clientX: 105, clientY: 10 }),
-		);
-		element?.dispatchEvent(
-			makeMouseEvent({ button: 2, clientX: 105, clientY: 10 }),
-		);
-
-		expect(onWrite).not.toHaveBeenCalled();
-	});
-
-	it("ignores clicks with modifier keys", () => {
-		const { xterm, element } = makeFakeTerminal();
-		const onWrite = mock();
-		setupClickToMoveCursor(xterm, { onWrite });
-
-		for (const mod of ["metaKey", "ctrlKey", "altKey", "shiftKey"] as const) {
-			element?.dispatchEvent(
-				makeMouseEvent({ [mod]: true, clientX: 105, clientY: 10 }),
-			);
+	it("ignores clicks with an active selection, alternate buffer, or mouse tracking", () => {
+		for (const opts of [
+			{ hasSelection: true },
+			{ useAlternate: true },
+			{ mouseTrackingMode: "x10" },
+		]) {
+			const { xterm, element } = makeFakeTerminal({ cursorX: 5, ...opts });
+			const onWrite = mock();
+			setupClickToMoveCursor(xterm, { onWrite });
+			element.dispatchEvent(clickAt(10));
+			expect(onWrite).not.toHaveBeenCalled();
 		}
-
-		expect(onWrite).not.toHaveBeenCalled();
-	});
-
-	it("ignores clicks while the user has an active selection", () => {
-		const { xterm, element } = makeFakeTerminal({ hasSelection: true });
-		const onWrite = mock();
-		setupClickToMoveCursor(xterm, { onWrite });
-
-		element?.dispatchEvent(makeMouseEvent({ clientX: 105, clientY: 10 }));
-
-		expect(onWrite).not.toHaveBeenCalled();
-	});
-
-	it("ignores clicks while in the alternate buffer (vim, less, etc.)", () => {
-		const { xterm, element } = makeFakeTerminal({ useAlternate: true });
-		const onWrite = mock();
-		setupClickToMoveCursor(xterm, { onWrite });
-
-		element?.dispatchEvent(makeMouseEvent({ clientX: 105, clientY: 10 }));
-
-		expect(onWrite).not.toHaveBeenCalled();
-	});
-
-	it("ignores clicks while DEC mouse-tracking is active", () => {
-		const { xterm, element } = makeFakeTerminal({
-			mouseTrackingMode: "x10",
-		});
-		const onWrite = mock();
-		setupClickToMoveCursor(xterm, { onWrite });
-
-		element?.dispatchEvent(makeMouseEvent({ clientX: 105, clientY: 10 }));
-
-		expect(onWrite).not.toHaveBeenCalled();
 	});
 
 	it("returns a cleanup function that removes the click listener", () => {
-		const { xterm, element } = makeFakeTerminal();
+		const { xterm, element } = makeFakeTerminal({ cursorX: 5 });
 		const onWrite = mock();
 		const cleanup = setupClickToMoveCursor(xterm, { onWrite });
-
 		cleanup();
-		element?.dispatchEvent(makeMouseEvent({ clientX: 105, clientY: 10 }));
-
+		element.dispatchEvent(clickAt(10));
 		expect(onWrite).not.toHaveBeenCalled();
 	});
 });

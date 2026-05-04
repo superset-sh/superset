@@ -187,20 +187,17 @@ function createResizeScheduler(
 	return { observe, dispose };
 }
 
-export interface CreateRuntimeOptions {
-	initialBuffer?: string;
-	/**
-	 * Send synthesized user input (e.g. arrow-key sequences from
-	 * click-to-move-cursor) to the PTY. Routed through the same path as
-	 * keystrokes so the backend treats it uniformly.
-	 */
-	onUserInput?: (data: string) => void;
-}
-
 export function createRuntime(
 	terminalId: string,
 	appearance: TerminalAppearance,
-	options: CreateRuntimeOptions = {},
+	options: {
+		initialBuffer?: string;
+		/**
+		 * Send synthesized user input (e.g. arrow-key sequences from
+		 * click-to-move-cursor) to the PTY via the same path as keystrokes.
+		 */
+		onUserInput?: (data: string) => void;
+	} = {},
 ): TerminalRuntime {
 	const savedDims = loadSavedDimensions(terminalId);
 	const cols = savedDims?.cols ?? DEFAULT_COLS;
@@ -228,9 +225,36 @@ export function createRuntime(
 		restoreBuffer(terminalId, terminal);
 	}
 
-	const disposeMouseHandlers = installMouseHandlers(terminal, {
-		onUserInput: options.onUserInput,
+	// Click-to-move-cursor (parity with v1 Terminal). Skipped when no
+	// onUserInput is provided since the helper has nowhere to send the
+	// synthesized arrow keys.
+	const disposeClickToMove = options.onUserInput
+		? setupClickToMoveCursor(terminal, { onWrite: options.onUserInput })
+		: null;
+
+	// Block xterm's built-in right-click primary-selection paste (which
+	// silently injects the last clipboard into the PTY) and the OS context
+	// menu, matching v1 behavior. Capture phase runs before xterm's own
+	// mousedown handler; we still focus the terminal so right-click feels
+	// like a focus action without the paste side-effect.
+	const onMouseDown = (event: MouseEvent) => {
+		if (event.button !== 2) return;
+		event.preventDefault();
+		event.stopImmediatePropagation();
+		terminal.focus();
+	};
+	const onContextMenu = (event: MouseEvent) => event.preventDefault();
+	terminal.element?.addEventListener("mousedown", onMouseDown, {
+		capture: true,
 	});
+	terminal.element?.addEventListener("contextmenu", onContextMenu);
+	const disposeMouseHandlers = () => {
+		disposeClickToMove?.();
+		terminal.element?.removeEventListener("mousedown", onMouseDown, {
+			capture: true,
+		});
+		terminal.element?.removeEventListener("contextmenu", onContextMenu);
+	};
 
 	return {
 		terminalId,
@@ -247,78 +271,6 @@ export function createRuntime(
 		lastRows: rows,
 		_disposeAddons: addonsResult.dispose,
 		_disposeMouseHandlers: disposeMouseHandlers,
-	};
-}
-
-/**
- * Install mouse-related handlers on the xterm element:
- *
- *   1. Click-to-move-cursor: left-click on the prompt line moves the shell
- *      cursor by emitting arrow-key sequences (parity with v1, VS Code, iTerm).
- *   2. Suppress xterm's built-in non-left-button "primary selection" paste —
- *      otherwise right-click silently dumps the last clipboard contents into
- *      the PTY. We swallow the right-button mousedown in the capture phase
- *      so xterm's SelectionService never sees it; the textarea still gets
- *      focus from the synthesized focus event, which is what users expect.
- *   3. Suppress the OS context menu, matching v1 behavior.
- */
-function installMouseHandlers(
-	terminal: XTerm,
-	options: { onUserInput?: (data: string) => void },
-): () => void {
-	const cleanups: Array<() => void> = [];
-
-	if (options.onUserInput) {
-		const userInput = options.onUserInput;
-		const cleanupClickToMove = setupClickToMoveCursor(terminal, {
-			onWrite: (data) => userInput(data),
-		});
-		cleanups.push(cleanupClickToMove);
-	}
-
-	const element = terminal.element;
-	if (element) {
-		const handleMouseDown = (event: MouseEvent) => {
-			// Block xterm's primary-selection paste on right-click. Capture phase
-			// runs before xterm's own mousedown handler.
-			if (event.button === 2) {
-				event.preventDefault();
-				event.stopImmediatePropagation();
-				// Still focus the terminal so subsequent keystrokes go to the PTY —
-				// this matches the user's mental model ("clicking the terminal
-				// focuses it") without the unwanted paste side effect.
-				terminal.focus();
-				return;
-			}
-
-			// Defensive: ensure left-click reliably focuses the terminal across
-			// pane switches even if xterm's own focus handling regresses.
-			if (
-				event.button === 0 &&
-				!event.metaKey &&
-				!event.ctrlKey &&
-				!event.altKey &&
-				!event.shiftKey
-			) {
-				terminal.focus();
-			}
-		};
-		const handleContextMenu = (event: MouseEvent) => {
-			event.preventDefault();
-		};
-
-		element.addEventListener("mousedown", handleMouseDown, { capture: true });
-		element.addEventListener("contextmenu", handleContextMenu);
-		cleanups.push(() => {
-			element.removeEventListener("mousedown", handleMouseDown, {
-				capture: true,
-			});
-			element.removeEventListener("contextmenu", handleContextMenu);
-		});
-	}
-
-	return () => {
-		for (const cleanup of cleanups) cleanup();
 	};
 }
 
