@@ -1,6 +1,7 @@
 import type { ExecutionMode, TerminalPreset } from "@superset/local-db";
 import { Alert, AlertDescription } from "@superset/ui/alert";
 import { Button } from "@superset/ui/button";
+import { Checkbox } from "@superset/ui/checkbox";
 import {
 	Dialog,
 	DialogContent,
@@ -17,7 +18,6 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@superset/ui/select";
-import { Switch } from "@superset/ui/switch";
 import { Trash2 } from "lucide-react";
 import { useMemo } from "react";
 import { HiExclamationTriangle, HiOutlineFolderOpen } from "react-icons/hi2";
@@ -87,7 +87,7 @@ function DialogRow({
 }: DialogRowProps) {
 	if (stacked) {
 		return (
-			<div className="p-4 space-y-2">
+			<div className="py-2.5 space-y-2">
 				<div className="space-y-0.5">
 					<Label htmlFor={htmlFor} className="text-sm font-medium">
 						{label}
@@ -99,14 +99,56 @@ function DialogRow({
 		);
 	}
 	return (
-		<div className="flex items-start justify-between gap-6 p-4">
+		<div className="flex items-start justify-between gap-6 py-2.5">
 			<div className="min-w-0 flex-1">
 				<Label htmlFor={htmlFor} className="text-sm font-medium">
 					{label}
 				</Label>
 				{hint && <p className="text-xs text-muted-foreground mt-0.5">{hint}</p>}
 			</div>
-			<div className="w-80 shrink-0">{children}</div>
+			<div className="w-72 shrink-0">{children}</div>
+		</div>
+	);
+}
+
+interface SegmentedOption<T extends string> {
+	value: T;
+	label: string;
+}
+
+interface SegmentedProps<T extends string> {
+	value: T;
+	onChange: (value: T) => void;
+	options: SegmentedOption<T>[];
+	className?: string;
+}
+
+function Segmented<T extends string>({
+	value,
+	onChange,
+	options,
+	className,
+}: SegmentedProps<T>) {
+	return (
+		<div
+			className={`inline-flex rounded-md border border-border overflow-hidden w-full ${className ?? ""}`.trim()}
+		>
+			{options.map((option, idx) => (
+				<button
+					key={option.value}
+					type="button"
+					onClick={() => onChange(option.value)}
+					className={`flex-1 px-3 py-1 text-xs font-medium transition-colors ${
+						idx > 0 ? "border-l border-border" : ""
+					} ${
+						value === option.value
+							? "bg-accent text-accent-foreground"
+							: "bg-transparent text-muted-foreground hover:bg-accent/50"
+					}`}
+				>
+					{option.label}
+				</button>
+			))}
 		</div>
 	);
 }
@@ -264,7 +306,6 @@ export function PresetEditorDialog({
 							<DialogRow
 								label="Applies to"
 								hint="Where this preset is available."
-								stacked
 							>
 								<ProjectTargetingField
 									projectIds={preset.projectIds}
@@ -313,54 +354,67 @@ export function PresetEditorDialog({
 										: "How the command opens."
 								}
 							>
-								<Select
-									value={launchModeValue}
-									onValueChange={(value) =>
-										onModeChange(value as ExecutionMode)
-									}
-								>
-									<SelectTrigger size="sm" className="w-full">
-										<SelectValue />
-									</SelectTrigger>
-									<SelectContent>
-										{launchModeOptions.map((option) => (
-											<SelectItem key={option.value} value={option.value}>
-												{option.label}
-											</SelectItem>
-										))}
-									</SelectContent>
-								</Select>
+								{hasMultipleCommands ? (
+									<Select
+										value={launchModeValue}
+										onValueChange={(value) =>
+											onModeChange(value as ExecutionMode)
+										}
+									>
+										<SelectTrigger size="sm" className="w-full">
+											<SelectValue />
+										</SelectTrigger>
+										<SelectContent>
+											{launchModeOptions.map((option) => (
+												<SelectItem key={option.value} value={option.value}>
+													{option.label}
+												</SelectItem>
+											))}
+										</SelectContent>
+									</Select>
+								) : (
+									<Segmented
+										value={launchModeValue}
+										onChange={(value) => onModeChange(value as ExecutionMode)}
+										options={[
+											{ value: "split-pane", label: "Current tab" },
+											{ value: "new-tab", label: "New tab" },
+										]}
+									/>
+								)}
 							</DialogRow>
 
-							<DialogRow
-								label="Auto-run on workspace creation"
-								htmlFor="preset-workspace-autostart"
-								hint="Launch this preset when a new workspace is created."
-							>
-								<div className="flex justify-end">
-									<Switch
-										id="preset-workspace-autostart"
-										checked={isWorkspaceCreation}
-										onCheckedChange={(checked) =>
-											onToggleAutoApply("applyOnWorkspaceCreated", checked)
-										}
-									/>
-								</div>
-							</DialogRow>
-
-							<DialogRow
-								label="Auto-run on new tab"
-								htmlFor="preset-tab-autostart"
-								hint="Launch this preset whenever a new terminal tab opens."
-							>
-								<div className="flex justify-end">
-									<Switch
-										id="preset-tab-autostart"
-										checked={isNewTab}
-										onCheckedChange={(checked) =>
-											onToggleAutoApply("applyOnNewTab", checked)
-										}
-									/>
+							<DialogRow label="Auto-run" hint="Launch automatically.">
+								<div className="flex flex-col gap-2 pt-0.5">
+									<label
+										htmlFor="preset-workspace-autostart"
+										className="flex items-center gap-2 text-sm font-normal"
+									>
+										<Checkbox
+											id="preset-workspace-autostart"
+											checked={isWorkspaceCreation}
+											onCheckedChange={(checked) =>
+												onToggleAutoApply(
+													"applyOnWorkspaceCreated",
+													checked === true,
+												)
+											}
+										/>
+										On workspace creation
+									</label>
+									<label
+										htmlFor="preset-tab-autostart"
+										className="flex items-center gap-2 text-sm font-normal"
+									>
+										<Checkbox
+											id="preset-tab-autostart"
+											checked={isNewTab}
+											onCheckedChange={(checked) =>
+												onToggleAutoApply("applyOnNewTab", checked === true)
+											}
+										/>
+										On new tab
+									</label>
 								</div>
 							</DialogRow>
 						</div>
