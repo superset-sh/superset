@@ -98,8 +98,26 @@ function useFireIntent(pendingId: string, pending: PendingWorkspaceRow | null) {
 							});
 						}
 					}
+					// Resolve worktree base dir at fire time so a freshly-changed
+					// setting takes effect for the next create. Per-project
+					// override wins over the global setting; null means
+					// host-service falls back to ~/.superset/worktrees.
+					// See issue #3929.
+					const [forkProject, globalWorktreeBaseDir] = await Promise.all([
+						trpcUtils.projects.get
+							.fetch({ id: pending.projectId })
+							.catch(() => null),
+						trpcUtils.settings.getWorktreeBaseDir.fetch().catch(() => null),
+					]);
+					const worktreeBaseDir =
+						forkProject?.worktreeBaseDir ?? globalWorktreeBaseDir ?? null;
 					result = await createWorkspace(
-						buildForkPayload(pendingId, pending, loadedAttachments),
+						buildForkPayload(
+							pendingId,
+							pending,
+							loadedAttachments,
+							worktreeBaseDir,
+						),
 					);
 					break;
 				}

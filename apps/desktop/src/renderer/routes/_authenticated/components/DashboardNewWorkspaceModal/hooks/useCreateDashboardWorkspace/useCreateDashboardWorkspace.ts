@@ -36,6 +36,12 @@ export interface CreateWorkspaceInput {
 			filename?: string;
 		}>;
 	};
+	/**
+	 * Resolved by the renderer from local-db settings (per-project override
+	 * falling back to global). When set, host-service creates the worktree
+	 * under this base instead of `~/.superset/worktrees`. See issue #3929.
+	 */
+	worktreeBaseDir?: string | null;
 }
 
 /**
@@ -68,6 +74,7 @@ export function useCreateDashboardWorkspace() {
 				names: input.names,
 				composer: input.composer,
 				linkedContext: input.linkedContext,
+				worktreeBaseDir: input.worktreeBaseDir,
 			});
 		},
 		[activeHostUrl, activeOrganizationId],

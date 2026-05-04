@@ -61,7 +61,11 @@ export const create = protectedProcedure
 				existingBranches,
 			);
 
-			const worktreePath = safeResolveWorktreePath(localProject.id, branchName);
+			const worktreePath = safeResolveWorktreePath(
+				localProject.id,
+				branchName,
+				input.worktreeBaseDir,
+			);
 			mkdirSync(dirname(worktreePath), { recursive: true });
 
 			const git = await ctx.git(localProject.repoPath);
