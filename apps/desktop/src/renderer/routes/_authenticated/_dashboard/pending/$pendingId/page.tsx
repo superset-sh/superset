@@ -30,6 +30,7 @@ import {
 	buildPrCheckoutPayload,
 } from "./buildIntentPayload";
 import { buildSetupPaneLayout } from "./buildSetupPaneLayout";
+import { SYNC_TIMEOUT_MS } from "./constants";
 import { dispatchForkLaunch } from "./dispatchForkLaunch";
 
 /**
@@ -313,11 +314,10 @@ function PendingWorkspacePage() {
 	const isStale =
 		pending?.status === "creating" && elapsedMs > STALE_THRESHOLD_MS;
 
-	// If sync stalls past this, swap the spinner for a recoverable stall UI
-	// rather than silently navigating into "Workspace not found". syncTimedOut
-	// must stay in the deps + guard below so "Keep waiting" (which flips it
-	// false) re-arms a fresh timer instead of leaving the user stranded.
-	const SYNC_TIMEOUT_MS = 10_000;
+	// If sync stalls past SYNC_TIMEOUT_MS, swap the spinner for a recoverable
+	// stall UI rather than silently navigating into "Workspace not found".
+	// syncTimedOut must stay in the deps + guard below so "Keep waiting" (which
+	// flips it false) re-arms a fresh timer instead of leaving the user stranded.
 	useEffect(() => {
 		if (
 			pending?.status !== "succeeded" ||
