@@ -88,7 +88,6 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 		oauthDialog: openAIOAuthDialog,
 	} = useOpenAIOAuth(DIALOG_CONTEXT);
 
-	const hasAnthropicConfig = !!anthropicEnvConfig?.envText.trim().length;
 	const isSavingAnthropicApiKey =
 		setAnthropicApiKeyMutation.isPending ||
 		clearAnthropicApiKeyMutation.isPending;
