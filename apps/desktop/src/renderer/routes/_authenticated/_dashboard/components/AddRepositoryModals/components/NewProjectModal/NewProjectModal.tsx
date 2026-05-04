@@ -8,6 +8,8 @@ import {
 	DialogTitle,
 } from "@superset/ui/dialog";
 import { Input } from "@superset/ui/input";
+import { Label } from "@superset/ui/label";
+import { toast } from "@superset/ui/sonner";
 import { cn } from "@superset/ui/utils";
 import { useEffect, useState } from "react";
 import {
@@ -15,7 +17,7 @@ import {
 	LuFolderPlus,
 	LuGitBranch,
 	LuLayoutTemplate,
-	LuX,
+	LuLoaderCircle,
 } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
@@ -86,7 +88,6 @@ export function NewProjectModal({
 	const [mode, setMode] = useState<NewProjectMode>("clone");
 	const [parentDir, setParentDir] = useState("");
 	const [url, setUrl] = useState("");
-	const [error, setError] = useState<string | null>(null);
 	const [working, setWorking] = useState(false);
 
 	useEffect(() => {
@@ -96,7 +97,6 @@ export function NewProjectModal({
 
 	const reset = () => {
 		setUrl("");
-		setError(null);
 		setWorking(false);
 	};
 
@@ -116,33 +116,32 @@ export function NewProjectModal({
 				setParentDir(result.path);
 			}
 		} catch (err) {
-			setError(err instanceof Error ? err.message : String(err));
+			toast.error(err instanceof Error ? err.message : String(err));
 		}
 	};
 
 	const createFromClone = async () => {
 		if (!activeHostUrl) {
-			setError("Host service not available");
+			toast.error("Host service not available");
 			return;
 		}
 		const trimmedUrl = url.trim();
 		const trimmedParent = parentDir.trim();
 		if (!trimmedUrl) {
-			setError("Please enter a repository URL");
+			toast.error("Please enter a repository URL");
 			return;
 		}
 		if (!trimmedParent) {
-			setError("Please select a project location");
+			toast.error("Please select a project location");
 			return;
 		}
 		const name = deriveProjectNameFromUrl(trimmedUrl);
 		if (!name) {
-			setError("Could not derive a project name from the URL or path");
+			toast.error("Could not derive a project name from the URL or path");
 			return;
 		}
 
 		setWorking(true);
-		setError(null);
 		try {
 			const client = getHostServiceClientByUrl(activeHostUrl);
 			const result = await client.project.create.mutate({
@@ -163,7 +162,7 @@ export function NewProjectModal({
 			const message = isLeakedSql
 				? "Could not create project. Please try a different name or check the logs."
 				: raw;
-			setError(message);
+			toast.error("Could not create project", { description: message });
 			onError?.(message);
 		} finally {
 			setWorking(false);
@@ -182,12 +181,12 @@ export function NewProjectModal({
 
 				<div className="flex flex-col gap-4">
 					<div className="flex flex-col gap-1.5">
-						<label
+						<Label
 							htmlFor="project-path"
 							className="text-xs font-medium text-muted-foreground"
 						>
 							Location
-						</label>
+						</Label>
 						<div className="flex gap-1.5">
 							<Input
 								id="project-path"
@@ -219,10 +218,7 @@ export function NewProjectModal({
 									key={option.mode}
 									type="button"
 									disabled={isDisabled}
-									onClick={() => {
-										setMode(option.mode);
-										setError(null);
-									}}
+									onClick={() => setMode(option.mode)}
 									className={cn(
 										"flex flex-col items-center gap-2 rounded-lg border px-3 py-4 text-center transition-colors",
 										selected
@@ -253,12 +249,12 @@ export function NewProjectModal({
 
 					{mode === "clone" && (
 						<div className="flex flex-col gap-1.5">
-							<label
+							<Label
 								htmlFor="clone-url"
 								className="text-xs font-medium text-muted-foreground"
 							>
 								Repository URL or path
-							</label>
+							</Label>
 							<Input
 								id="clone-url"
 								value={url}
@@ -272,22 +268,6 @@ export function NewProjectModal({
 								}}
 								autoFocus
 							/>
-						</div>
-					)}
-
-					{error && (
-						<div className="flex items-start gap-2 rounded-md border border-destructive/20 bg-destructive/10 px-3 py-2">
-							<span className="flex-1 text-xs text-destructive select-text">
-								{error}
-							</span>
-							<button
-								type="button"
-								onClick={() => setError(null)}
-								className="shrink-0 rounded p-0.5 text-destructive/70 hover:text-destructive transition-colors"
-								aria-label="Dismiss error"
-							>
-								<LuX className="size-3.5" />
-							</button>
 						</div>
 					)}
 				</div>
@@ -305,7 +285,14 @@ export function NewProjectModal({
 						onClick={() => void createFromClone()}
 						disabled={working || mode !== "clone"}
 					>
-						{working ? "Cloning…" : "Clone"}
+						{working ? (
+							<>
+								<LuLoaderCircle className="size-4 animate-spin" />
+								Cloning…
+							</>
+						) : (
+							"Clone"
+						)}
 					</Button>
 				</DialogFooter>
 			</DialogContent>
