@@ -105,6 +105,7 @@ function V2WorkspacePage() {
 				<WorkspaceCreatingState
 					name={inFlight.snapshot.name}
 					branch={inFlight.snapshot.branch}
+					startedAt={inFlight.startedAt}
 				/>
 			);
 		}
