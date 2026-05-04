@@ -188,6 +188,10 @@ export function OpenInWorkspaceV2({ task }: OpenInWorkspaceV2Props) {
 		} else if (!activeHostUrl) {
 			return "Host service is not running";
 		}
+		// While the host's project list is still loading, needsSetup is null —
+		// block until we know whether the project is actually set up on the
+		// chosen host, otherwise the server-side guard becomes the only check.
+		if (setUpProjectIds === null) return "Checking host…";
 		if (selectedProject?.needsSetup === true) {
 			return "Project not set up on this host";
 		}
@@ -195,6 +199,7 @@ export function OpenInWorkspaceV2({ task }: OpenInWorkspaceV2Props) {
 	}, [
 		selectedProjectId,
 		selectedProject?.needsSetup,
+		setUpProjectIds,
 		hostId,
 		machineId,
 		otherHosts,
@@ -240,7 +245,16 @@ export function OpenInWorkspaceV2({ task }: OpenInWorkspaceV2Props) {
 				agents,
 			},
 		}).then((result) => {
-			if (!result.ok) throw new Error(result.error);
+			if (!result.ok) {
+				// We optimistically navigated to the snapshot URL — bounce back to
+				// the task on failure so the user isn't stranded on a dead route.
+				void navigate({
+					to: "/tasks/$taskId",
+					params: { taskId: task.id },
+					replace: true,
+				});
+				throw new Error(result.error);
+			}
 			if (result.workspaceId !== snapshotId) {
 				void navigate({
 					to: "/v2-workspace/$workspaceId",
@@ -328,6 +342,7 @@ export function OpenInWorkspaceV2({ task }: OpenInWorkspaceV2Props) {
 				</DropdownMenu>
 				<Button
 					size="icon"
+					aria-label="Open in workspace"
 					className="h-8 w-8 shrink-0"
 					disabled={!!submitBlocker}
 					onClick={handleOpen}

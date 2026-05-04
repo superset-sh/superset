@@ -192,6 +192,9 @@ export function RunInWorkspacePopoverV2({
 		} else if (!activeHostUrl) {
 			return "Host service is not running";
 		}
+		// Block while the host's project list is still loading — otherwise users
+		// can submit before we know whether the project is set up there.
+		if (setUpProjectIds === null) return "Checking host…";
 		if (selectedProject?.needsSetup === true) {
 			return "Project not set up on this host";
 		}
@@ -199,6 +202,7 @@ export function RunInWorkspacePopoverV2({
 	}, [
 		selectedProjectId,
 		selectedProject?.needsSetup,
+		setUpProjectIds,
 		hostId,
 		machineId,
 		otherHosts,
