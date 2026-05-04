@@ -1,7 +1,7 @@
 import { normalizeExecutionMode } from "@superset/local-db";
 import { Badge } from "@superset/ui/badge";
 import { cn } from "@superset/ui/utils";
-import { ChevronRight, Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { useDrag, useDrop } from "react-dnd";
 import { LuGripVertical } from "react-icons/lu";
@@ -150,16 +150,17 @@ export function PresetRow({
 				</div>
 			</div>
 
-			<div className="shrink-0 hidden md:flex flex-col items-end gap-0.5 text-xs text-muted-foreground">
-				<span className="truncate max-w-[14rem]">{appliesToLabel}</span>
-				<span>{modeLabel}</span>
+			<div className="shrink-0 hidden md:block text-xs text-muted-foreground truncate max-w-[18rem]">
+				{appliesToLabel} · {modeLabel}
 			</div>
 
 			<button
 				type="button"
 				className={cn(
-					"shrink-0 p-1.5 rounded hover:bg-accent transition-colors",
-					!isVisibleInBar && "text-muted-foreground/40",
+					"shrink-0 p-1.5 rounded transition-colors",
+					isVisibleInBar
+						? "text-muted-foreground/60 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 hover:bg-accent hover:text-foreground"
+						: "text-muted-foreground/40 hover:bg-accent hover:text-foreground",
 				)}
 				onClick={(e) => {
 					e.stopPropagation();
@@ -175,11 +176,6 @@ export function PresetRow({
 					<EyeOff className="size-4" />
 				)}
 			</button>
-
-			<ChevronRight
-				aria-hidden="true"
-				className="size-4 shrink-0 text-muted-foreground/60"
-			/>
 		</div>
 	);
 }

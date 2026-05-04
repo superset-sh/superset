@@ -1,4 +1,5 @@
 import type { TerminalPreset } from "@superset/local-db";
+import { cn } from "@superset/ui/utils";
 import type { RefObject } from "react";
 import { PresetRow } from "../../../PresetRow";
 import type { PresetProjectOption } from "../../preset-project-options";
@@ -12,6 +13,8 @@ interface PresetsTableProps {
 	onLocalReorder: (fromIndex: number, toIndex: number) => void;
 	onPersistReorder: (presetId: string, targetIndex: number) => void;
 	onToggleVisibility: (presetId: string, visible: boolean) => void;
+	/** When false, the parent supplies the border. Defaults to true. */
+	bordered?: boolean;
 }
 
 export function PresetsTable({
@@ -23,11 +26,15 @@ export function PresetsTable({
 	onLocalReorder,
 	onPersistReorder,
 	onToggleVisibility,
+	bordered = true,
 }: PresetsTableProps) {
 	return (
 		<div
 			ref={presetsContainerRef}
-			className="rounded-lg border border-border overflow-hidden divide-y divide-border max-h-[420px] overflow-y-auto"
+			className={cn(
+				"divide-y divide-border max-h-[420px] overflow-y-auto",
+				bordered && "rounded-lg border border-border overflow-hidden",
+			)}
 		>
 			{isLoading ? (
 				<div className="py-8 text-center text-sm text-muted-foreground">

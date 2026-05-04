@@ -514,45 +514,50 @@ export function V2PresetsSection({
 	);
 
 	return (
-		<div className="space-y-4">
-			<div className="flex items-start justify-between gap-3">
-				<div>
-					<h3 className="text-sm font-medium mb-1">Terminal presets</h3>
-					<p className="text-xs text-muted-foreground">
-						Pre-configured terminal launches. Click a preset to edit, drag to
-						reorder.
-					</p>
+		<div>
+			<div className="rounded-lg border border-border overflow-hidden divide-y divide-border">
+				<div className="flex items-start justify-between gap-3 p-4">
+					<div className="min-w-0">
+						<h3 className="text-sm font-medium">Terminal presets</h3>
+						<p className="text-xs text-muted-foreground mt-0.5">
+							Pre-configured terminal launches. Click a preset to edit, drag to
+							reorder.
+						</p>
+					</div>
+					{showPresets && (
+						<Button size="sm" onClick={() => handleAddRow()}>
+							<HiOutlinePlus className="size-4" />
+							Add preset
+						</Button>
+					)}
 				</div>
+
+				{showQuickAdd && (
+					<div className="p-4">
+						<QuickAddPresets
+							templates={PRESET_TEMPLATES}
+							isDark={isDark}
+							isCreatePending={false}
+							isTemplateAdded={isTemplateAdded}
+							onAddTemplate={handleAddTemplate}
+						/>
+					</div>
+				)}
+
 				{showPresets && (
-					<Button size="sm" onClick={() => handleAddRow()}>
-						<HiOutlinePlus className="size-4" />
-						Add preset
-					</Button>
+					<PresetsTable
+						presets={localPresets}
+						isLoading={false}
+						projectOptionsById={projectOptionsById}
+						presetsContainerRef={presetsContainerRef}
+						onEdit={setEditingPreset}
+						onLocalReorder={handleLocalReorder}
+						onPersistReorder={handlePersistReorder}
+						onToggleVisibility={handleToggleVisibility}
+						bordered={false}
+					/>
 				)}
 			</div>
-
-			{showQuickAdd && (
-				<QuickAddPresets
-					templates={PRESET_TEMPLATES}
-					isDark={isDark}
-					isCreatePending={false}
-					isTemplateAdded={isTemplateAdded}
-					onAddTemplate={handleAddTemplate}
-				/>
-			)}
-
-			{showPresets && (
-				<PresetsTable
-					presets={localPresets}
-					isLoading={false}
-					projectOptionsById={projectOptionsById}
-					presetsContainerRef={presetsContainerRef}
-					onEdit={setEditingPreset}
-					onLocalReorder={handleLocalReorder}
-					onPersistReorder={handlePersistReorder}
-					onToggleVisibility={handleToggleVisibility}
-				/>
-			)}
 
 			<PresetEditorSheet
 				preset={editingPreset}
