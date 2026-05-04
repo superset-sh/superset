@@ -2,7 +2,7 @@ import type { AppRouter } from "@superset/host-service";
 import { workspaceTrpc } from "@superset/workspace-client";
 import type { inferRouterOutputs } from "@trpc/server";
 import { useMemo } from "react";
-import { LuMessageSquare } from "react-icons/lu";
+import { TbMessage as LuMessageSquare } from "react-icons/tb";
 import type { CommentPaneData } from "../../../../types";
 import {
 	coerceCheckStatus,

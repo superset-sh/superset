@@ -1,4 +1,4 @@
-import { UploadIcon } from "lucide-react";
+import { TbUpload as UploadIcon } from "react-icons/tb";
 
 interface FileDropOverlayProps {
 	visible: boolean;

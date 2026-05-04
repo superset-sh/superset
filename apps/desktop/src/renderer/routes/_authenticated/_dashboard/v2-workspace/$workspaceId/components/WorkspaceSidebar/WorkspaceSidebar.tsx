@@ -1,8 +1,11 @@
 import { Button } from "@superset/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
-import { Search } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { LuFile, LuGitCompareArrows } from "react-icons/lu";
+import {
+	TbFile as LuFile,
+	TbGitCompare as LuGitCompareArrows,
+	TbSearch as Search,
+} from "react-icons/tb";
 import { useGitStatus } from "renderer/hooks/host-service/useGitStatus";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import type { CommentPaneData } from "../../types";

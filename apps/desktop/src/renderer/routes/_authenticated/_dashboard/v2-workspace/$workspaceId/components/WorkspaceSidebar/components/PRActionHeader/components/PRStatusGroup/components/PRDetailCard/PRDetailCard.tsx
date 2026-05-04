@@ -1,12 +1,12 @@
 import { cn } from "@superset/ui/utils";
 import { formatDistanceToNow } from "date-fns";
 import {
-	LuArrowUpRight,
-	LuCircleCheck,
-	LuCircleDashed,
-	LuCircleX,
-	LuGitBranch,
-} from "react-icons/lu";
+	TbArrowUpRight as LuArrowUpRight,
+	TbCircleCheck as LuCircleCheck,
+	TbCircleDashed as LuCircleDashed,
+	TbCircleX as LuCircleX,
+	TbGitBranch as LuGitBranch,
+} from "react-icons/tb";
 import { PRIcon, type PRState } from "renderer/screens/main/components/PRIcon";
 import type { ChecksRollup } from "../../../../utils/computeChecksStatus";
 import type { PullRequest } from "../../../../utils/getPRFlowState";

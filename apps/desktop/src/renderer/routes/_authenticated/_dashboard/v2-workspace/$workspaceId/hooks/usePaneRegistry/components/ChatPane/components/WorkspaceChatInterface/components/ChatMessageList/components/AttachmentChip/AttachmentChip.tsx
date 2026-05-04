@@ -1,4 +1,4 @@
-import { FileIcon, FileTextIcon } from "lucide-react";
+import { TbFile as FileIcon, TbFileText as FileTextIcon } from "react-icons/tb";
 
 interface AttachmentChipProps {
 	data: string;

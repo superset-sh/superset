@@ -1,5 +1,9 @@
 import { cn } from "@superset/ui/utils";
-import { LuChevronDown, LuChevronsUpDown, LuChevronUp } from "react-icons/lu";
+import {
+	TbChevronDown as LuChevronDown,
+	TbSelector as LuChevronsUpDown,
+	TbChevronUp as LuChevronUp,
+} from "react-icons/tb";
 import type { SortDirection, SortField } from "../../types";
 
 interface SortableHeaderProps {

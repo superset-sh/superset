@@ -1,7 +1,9 @@
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
-import { SquareSplitHorizontal } from "lucide-react";
-import { TbScan } from "react-icons/tb";
+import {
+	TbLayoutColumns as SquareSplitHorizontal,
+	TbScan,
+} from "react-icons/tb";
 import { useSettings } from "renderer/stores/settings";
 
 export function DiffPaneHeaderExtras() {

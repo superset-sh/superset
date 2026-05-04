@@ -1,5 +1,9 @@
 import { cn } from "@superset/ui/utils";
-import { LuLaptop, LuLayers, LuMonitor } from "react-icons/lu";
+import {
+	TbDeviceLaptop as LuLaptop,
+	TbStack as LuLayers,
+	TbDeviceDesktop as LuMonitor,
+} from "react-icons/tb";
 import {
 	DEVICE_FILTER_ALL,
 	DEVICE_FILTER_THIS_DEVICE,

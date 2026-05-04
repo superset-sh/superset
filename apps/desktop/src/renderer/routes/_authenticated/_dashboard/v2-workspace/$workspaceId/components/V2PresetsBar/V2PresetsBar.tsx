@@ -8,9 +8,13 @@ import {
 } from "@superset/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useNavigate } from "@tanstack/react-router";
-import { Eye, EyeOff, Settings } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { HiMiniCommandLine } from "react-icons/hi2";
+import {
+	TbEye as Eye,
+	TbEyeOff as EyeOff,
+	TbSettings as Settings,
+} from "react-icons/tb";
 import {
 	getPresetIcon,
 	useIsDarkTheme,

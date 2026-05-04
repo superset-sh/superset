@@ -1,5 +1,9 @@
 import { cn } from "@superset/ui/utils";
-import { LuCheck, LuLoaderCircle, LuX } from "react-icons/lu";
+import {
+	TbCheck as LuCheck,
+	TbLoader as LuLoaderCircle,
+	TbX as LuX,
+} from "react-icons/tb";
 import type {
 	V2WorkspacePrChecksStatus,
 	V2WorkspacePrSummary,

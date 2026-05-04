@@ -1,4 +1,4 @@
-import { LuFolders } from "react-icons/lu";
+import { TbFolders as LuFolders } from "react-icons/tb";
 import { V2WorkspaceProjectIcon } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/components/V2WorkspaceProjectIcon";
 import { PROJECT_FILTER_ALL } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/stores/v2WorkspacesFilterStore";
 

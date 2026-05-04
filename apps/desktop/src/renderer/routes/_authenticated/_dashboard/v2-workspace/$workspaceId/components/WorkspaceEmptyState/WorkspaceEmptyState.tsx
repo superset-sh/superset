@@ -1,8 +1,11 @@
 import { useMemo } from "react";
 import type { IconType } from "react-icons";
 import { BsTerminalPlus } from "react-icons/bs";
-import { LuSearch } from "react-icons/lu";
-import { TbMessageCirclePlus, TbWorld } from "react-icons/tb";
+import {
+	TbSearch as LuSearch,
+	TbMessageCirclePlus,
+	TbWorld,
+} from "react-icons/tb";
 import { useHotkeyDisplay } from "renderer/hotkeys";
 import supersetEmptyStateWordmark from "renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/assets/superset-empty-state-wordmark.svg";
 import { EmptyTabActionButton } from "renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/components/EmptyTabActionButton";

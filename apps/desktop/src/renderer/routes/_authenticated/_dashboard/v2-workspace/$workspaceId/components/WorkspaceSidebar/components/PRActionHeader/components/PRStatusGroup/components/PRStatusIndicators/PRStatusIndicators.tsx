@@ -1,5 +1,9 @@
 import { cn } from "@superset/ui/utils";
-import { LuCircleCheck, LuCircleDashed, LuCircleX } from "react-icons/lu";
+import {
+	TbCircleCheck as LuCircleCheck,
+	TbCircleDashed as LuCircleDashed,
+	TbCircleX as LuCircleX,
+} from "react-icons/tb";
 import type { ChecksRollup } from "../../../../utils/computeChecksStatus";
 
 interface PRStatusIndicatorsProps {

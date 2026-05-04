@@ -6,12 +6,12 @@ import {
 import { cn } from "@superset/ui/utils";
 import { useMemo, useState } from "react";
 import {
-	LuArrowUpRight,
-	LuCheck,
-	LuLoaderCircle,
-	LuMinus,
-	LuX,
-} from "react-icons/lu";
+	TbArrowUpRight as LuArrowUpRight,
+	TbCheck as LuCheck,
+	TbLoader as LuLoaderCircle,
+	TbMinus as LuMinus,
+	TbX as LuX,
+} from "react-icons/tb";
 import { VscChevronRight } from "react-icons/vsc";
 import type { NormalizedCheck, NormalizedPR } from "../../types";
 

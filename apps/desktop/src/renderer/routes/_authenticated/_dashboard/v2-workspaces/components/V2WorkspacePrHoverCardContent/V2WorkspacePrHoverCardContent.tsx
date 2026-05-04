@@ -1,7 +1,7 @@
 import { Button } from "@superset/ui/button";
 import { formatDistanceToNow } from "date-fns";
 import { FaGithub } from "react-icons/fa";
-import { LuGitBranch } from "react-icons/lu";
+import { TbGitBranch as LuGitBranch } from "react-icons/tb";
 import type { V2WorkspacePrSummary } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/hooks/useAccessibleV2Workspaces";
 import { ChecksList } from "./components/ChecksList";
 import { ChecksSummary } from "./components/ChecksSummary";

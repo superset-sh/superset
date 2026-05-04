@@ -1,5 +1,5 @@
-import { GitBranch, Pencil } from "lucide-react";
 import { useRef, useState } from "react";
+import { TbGitBranch as GitBranch, TbPencil as Pencil } from "react-icons/tb";
 import type { ChangesFilter } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal/schema";
 import type { Branch, Commit } from "../../types";
 import { BaseBranchSelector } from "../BaseBranchSelector";

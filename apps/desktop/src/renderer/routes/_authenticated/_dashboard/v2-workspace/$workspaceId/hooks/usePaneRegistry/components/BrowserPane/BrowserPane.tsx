@@ -1,8 +1,7 @@
 import type { RendererContext, Tab } from "@superset/panes";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
-import { GlobeIcon } from "lucide-react";
 import { useCallback, useSyncExternalStore } from "react";
-import { TbDeviceDesktop } from "react-icons/tb";
+import { TbWorld as GlobeIcon, TbDeviceDesktop } from "react-icons/tb";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import type { BrowserPaneData, PaneViewerData } from "../../../../types";
 

@@ -4,12 +4,12 @@ import {
 	DropdownMenuShortcut,
 } from "@superset/ui/dropdown-menu";
 import {
-	ExternalLink,
-	FileText,
-	Pencil,
-	SquarePlus,
-	Trash2,
-} from "lucide-react";
+	TbExternalLink as ExternalLink,
+	TbFileText as FileText,
+	TbPencil as Pencil,
+	TbSquarePlus as SquarePlus,
+	TbTrash as Trash2,
+} from "react-icons/tb";
 import { modifierLabel, useSidebarFilePolicy } from "renderer/lib/clickPolicy";
 import { PathActions } from "../PathActions";
 

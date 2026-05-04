@@ -1,8 +1,8 @@
 import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
-import { AlertTriangle } from "lucide-react";
 import { useCallback, useState, useSyncExternalStore } from "react";
+import { TbAlertTriangle as AlertTriangle } from "react-icons/tb";
 import {
 	type TerminalLogEntry,
 	terminalRuntimeRegistry,

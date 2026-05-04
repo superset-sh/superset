@@ -7,7 +7,11 @@ import {
 import { Skeleton } from "@superset/ui/skeleton";
 import { cn } from "@superset/ui/utils";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { LuArrowUpRight, LuCheck, LuCopy } from "react-icons/lu";
+import {
+	TbArrowUpRight as LuArrowUpRight,
+	TbCheck as LuCheck,
+	TbCopy as LuCopy,
+} from "react-icons/tb";
 import { VscChevronRight } from "react-icons/vsc";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import type { CommentPaneData } from "../../../../../../types";

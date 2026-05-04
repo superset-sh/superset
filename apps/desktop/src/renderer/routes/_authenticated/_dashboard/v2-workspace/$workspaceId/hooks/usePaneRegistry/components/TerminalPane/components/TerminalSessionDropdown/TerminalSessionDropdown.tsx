@@ -9,15 +9,15 @@ import {
 } from "@superset/ui/dropdown-menu";
 import { toast } from "@superset/ui/sonner";
 import { workspaceTrpc } from "@superset/workspace-client";
-import {
-	Check,
-	ChevronDown,
-	LoaderCircle,
-	Plus,
-	TerminalSquare,
-	Trash2,
-} from "lucide-react";
 import { useCallback, useMemo, useState, useSyncExternalStore } from "react";
+import {
+	TbCheck as Check,
+	TbChevronDown as ChevronDown,
+	TbLoader as LoaderCircle,
+	TbPlus as Plus,
+	TbTerminal2 as TerminalSquare,
+	TbTrash as Trash2,
+} from "react-icons/tb";
 import { markTerminalForBackground } from "renderer/lib/terminal/terminal-background-intents";
 import { terminalRuntimeRegistry } from "renderer/lib/terminal/terminal-runtime-registry";
 import type {

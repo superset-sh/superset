@@ -2,7 +2,12 @@ import {
 	DropdownMenuItem,
 	DropdownMenuSeparator,
 } from "@superset/ui/dropdown-menu";
-import { FilePlus, FolderPlus, Pencil, Trash2 } from "lucide-react";
+import {
+	TbFilePlus as FilePlus,
+	TbFolderPlus as FolderPlus,
+	TbPencil as Pencil,
+	TbTrash as Trash2,
+} from "react-icons/tb";
 import { PathActions } from "../PathActions";
 
 interface FolderMenuItemsProps {

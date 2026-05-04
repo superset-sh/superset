@@ -1,6 +1,9 @@
 import { Button } from "@superset/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
-import { KeyRoundIcon, Loader2Icon } from "lucide-react";
+import {
+	TbKey as KeyRoundIcon,
+	TbLoader2 as Loader2Icon,
+} from "react-icons/tb";
 
 interface AnthropicProviderHeadingProps {
 	heading: string;

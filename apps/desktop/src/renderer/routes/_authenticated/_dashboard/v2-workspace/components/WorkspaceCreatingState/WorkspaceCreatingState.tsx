@@ -1,4 +1,4 @@
-import { Loader2 } from "lucide-react";
+import { TbLoader2 as Loader2 } from "react-icons/tb";
 
 interface WorkspaceCreatingStateProps {
 	name?: string;

@@ -1,6 +1,6 @@
 import { Button } from "@superset/ui/button";
-import { Loader2Icon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { TbLoader2 as Loader2Icon } from "react-icons/tb";
 import type { UserMessageActionPayload } from "../../../../ChatMessageList.types";
 import { AttachmentChip } from "../../../AttachmentChip";
 import type { UserMessageDraft } from "../../utils/getUserMessageDraft/getUserMessageDraft";

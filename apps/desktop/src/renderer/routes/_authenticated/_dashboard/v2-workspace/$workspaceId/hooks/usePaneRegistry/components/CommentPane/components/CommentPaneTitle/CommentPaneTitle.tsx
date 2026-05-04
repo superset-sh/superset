@@ -1,6 +1,6 @@
 import type { RendererContext } from "@superset/panes";
 import { cn } from "@superset/ui/utils";
-import { MessageSquare } from "lucide-react";
+import { TbMessage as MessageSquare } from "react-icons/tb";
 import type { CommentPaneData, PaneViewerData } from "../../../../../../types";
 
 interface CommentPaneTitleProps {

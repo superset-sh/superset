@@ -3,7 +3,11 @@ import {
 	ContextMenuSeparator,
 } from "@superset/ui/context-menu";
 import { toast } from "@superset/ui/sonner";
-import { Clipboard, Copy, FolderOpen } from "lucide-react";
+import {
+	TbClipboard as Clipboard,
+	TbCopy as Copy,
+	TbFolderOpen as FolderOpen,
+} from "react-icons/tb";
 import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 

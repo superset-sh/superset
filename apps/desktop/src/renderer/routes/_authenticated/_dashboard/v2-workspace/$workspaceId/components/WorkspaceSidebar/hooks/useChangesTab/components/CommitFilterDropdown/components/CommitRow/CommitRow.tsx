@@ -1,6 +1,6 @@
 import type { AppRouter } from "@superset/host-service";
 import type { inferRouterOutputs } from "@trpc/server";
-import { Check } from "lucide-react";
+import { TbCheck as Check } from "react-icons/tb";
 
 type Commit =
 	inferRouterOutputs<AppRouter>["git"]["listCommits"]["commits"][number];

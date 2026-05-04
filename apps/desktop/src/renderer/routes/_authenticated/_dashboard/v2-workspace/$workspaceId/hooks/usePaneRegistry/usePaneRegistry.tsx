@@ -7,21 +7,19 @@ import { alert } from "@superset/ui/atoms/Alert";
 import { toast } from "@superset/ui/sonner";
 import { cn } from "@superset/ui/utils";
 import { workspaceTrpc } from "@superset/workspace-client";
-import {
-	Circle,
-	GitCompareArrows,
-	Globe,
-	MessageSquare,
-	TerminalSquare,
-} from "lucide-react";
 import { useMemo } from "react";
 import {
-	LuArrowDownToLine,
-	LuClipboard,
-	LuClipboardCopy,
-	LuEraser,
-	LuPower,
-} from "react-icons/lu";
+	TbCircle as Circle,
+	TbGitCompare as GitCompareArrows,
+	TbWorld as Globe,
+	TbArrowBarToDown as LuArrowDownToLine,
+	TbClipboard as LuClipboard,
+	TbClipboardCopy as LuClipboardCopy,
+	TbEraser as LuEraser,
+	TbPower as LuPower,
+	TbMessage as MessageSquare,
+	TbTerminal2 as TerminalSquare,
+} from "react-icons/tb";
 import { useHotkeyDisplay } from "renderer/hotkeys";
 import { getBaseName } from "renderer/lib/pathBasename";
 import { consumeTerminalBackgroundIntent } from "renderer/lib/terminal/terminal-background-intents";

@@ -3,11 +3,11 @@ import {
 	MessageActions,
 } from "@superset/ui/ai-elements/message";
 import {
-	CheckIcon,
-	CopyIcon,
-	PencilLineIcon,
-	RotateCcwIcon,
-} from "lucide-react";
+	TbCheck as CheckIcon,
+	TbCopy as CopyIcon,
+	TbPencil as PencilLineIcon,
+	TbRotate as RotateCcwIcon,
+} from "react-icons/tb";
 
 interface UserMessageActionsProps {
 	actionDisabled: boolean;

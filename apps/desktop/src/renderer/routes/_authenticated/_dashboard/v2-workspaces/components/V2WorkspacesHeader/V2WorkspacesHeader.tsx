@@ -15,13 +15,13 @@ import {
 	SelectValue,
 } from "@superset/ui/select";
 import {
-	LuFolders,
-	LuLaptop,
-	LuLayers,
-	LuMonitor,
-	LuSearch,
-	LuX,
-} from "react-icons/lu";
+	TbFolders as LuFolders,
+	TbDeviceLaptop as LuLaptop,
+	TbStack as LuLayers,
+	TbDeviceDesktop as LuMonitor,
+	TbSearch as LuSearch,
+	TbX as LuX,
+} from "react-icons/tb";
 import type {
 	V2WorkspaceDeviceCounts,
 	V2WorkspaceHostOption,

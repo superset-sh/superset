@@ -6,15 +6,15 @@ import {
 } from "@superset/panes";
 import { useMemo } from "react";
 import {
-	LuColumns2,
-	LuEqual,
-	LuGlobe,
-	LuMessageSquare,
-	LuMoveRight,
-	LuPlus,
-	LuRows2,
-	LuX,
-} from "react-icons/lu";
+	TbColumns2 as LuColumns2,
+	TbEqual as LuEqual,
+	TbWorld as LuGlobe,
+	TbMessage as LuMessageSquare,
+	TbArrowRight as LuMoveRight,
+	TbPlus as LuPlus,
+	TbLayoutRows as LuRows2,
+	TbX as LuX,
+} from "react-icons/tb";
 import { useHotkeyDisplay } from "renderer/hotkeys";
 import type {
 	BrowserPaneData,

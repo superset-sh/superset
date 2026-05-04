@@ -7,8 +7,12 @@ import {
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
 import type { inferRouterOutputs } from "@trpc/server";
-import { Check, ChevronDown, ListFilter } from "lucide-react";
 import { useState } from "react";
+import {
+	TbCheck as Check,
+	TbChevronDown as ChevronDown,
+	TbFilter as ListFilter,
+} from "react-icons/tb";
 import type { ChangesFilter } from "../../useChangesTab";
 import { CommitRow } from "./components/CommitRow";
 import { RangeModal } from "./components/RangeModal";

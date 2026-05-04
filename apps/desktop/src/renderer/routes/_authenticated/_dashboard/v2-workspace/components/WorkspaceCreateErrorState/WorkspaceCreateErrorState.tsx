@@ -1,6 +1,6 @@
 import { Button } from "@superset/ui/button";
 import { useNavigate } from "@tanstack/react-router";
-import { AlertCircle } from "lucide-react";
+import { TbAlertCircle as AlertCircle } from "react-icons/tb";
 import { useWorkspaceCreates } from "renderer/stores/workspace-creates";
 
 interface WorkspaceCreateErrorStateProps {

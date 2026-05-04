@@ -7,9 +7,13 @@ import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { workspaceTrpc } from "@superset/workspace-client";
-import { ChevronRight, Minus, Plus } from "lucide-react";
 import { type ReactNode, useState } from "react";
-import { LuUndo2 } from "react-icons/lu";
+import {
+	TbChevronRight as ChevronRight,
+	TbArrowBackUp as LuUndo2,
+	TbMinus as Minus,
+	TbPlus as Plus,
+} from "react-icons/tb";
 import { DiscardConfirmDialog } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/DiscardConfirmDialog";
 
 type SectionKind = "unstaged" | "staged";

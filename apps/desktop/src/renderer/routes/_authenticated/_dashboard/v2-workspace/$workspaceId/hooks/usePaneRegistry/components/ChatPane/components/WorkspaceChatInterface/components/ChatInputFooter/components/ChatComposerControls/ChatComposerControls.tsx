@@ -8,8 +8,12 @@ import {
 	ThinkingToggle,
 } from "@superset/ui/ai-elements/thinking-toggle";
 import type { ChatStatus } from "ai";
-import { ArrowUpIcon, Loader2Icon, SquareIcon } from "lucide-react";
 import type React from "react";
+import {
+	TbArrowUp as ArrowUpIcon,
+	TbLoader2 as Loader2Icon,
+	TbSquare as SquareIcon,
+} from "react-icons/tb";
 import { PermissionModePicker } from "renderer/components/Chat/ChatInterface/components/PermissionModePicker";
 import { PlusMenu } from "renderer/components/Chat/ChatInterface/components/PlusMenu";
 import { PILL_BUTTON_CLASS } from "renderer/components/Chat/ChatInterface/styles";

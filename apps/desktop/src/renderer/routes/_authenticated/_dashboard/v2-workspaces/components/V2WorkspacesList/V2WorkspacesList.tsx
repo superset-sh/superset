@@ -12,11 +12,11 @@ import { cn } from "@superset/ui/utils";
 import { useMatchRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import {
-	LuChevronDown,
-	LuChevronRight,
-	LuLayers,
-	LuSearchX,
-} from "react-icons/lu";
+	TbChevronDown as LuChevronDown,
+	TbChevronRight as LuChevronRight,
+	TbStack as LuLayers,
+	TbSearchOff as LuSearchX,
+} from "react-icons/tb";
 import type {
 	AccessibleV2Workspace,
 	V2WorkspaceHostType,

@@ -1,8 +1,11 @@
 import type { RendererContext } from "@superset/panes";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useCallback } from "react";
-import { LuCheck, LuCopy } from "react-icons/lu";
-import { TbExternalLink } from "react-icons/tb";
+import {
+	TbCheck as LuCheck,
+	TbCopy as LuCopy,
+	TbExternalLink,
+} from "react-icons/tb";
 import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
 import { useOpenInExternalEditor } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/useOpenInExternalEditor";
 import { useSharedFileDocument } from "../../../../../../state/fileDocumentStore";

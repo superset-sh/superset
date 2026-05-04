@@ -2,7 +2,7 @@ import type { RendererContext } from "@superset/panes";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { FaGithub } from "react-icons/fa";
-import { LuCheck, LuCopy } from "react-icons/lu";
+import { TbCheck as LuCheck, TbCopy as LuCopy } from "react-icons/tb";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import type { CommentPaneData, PaneViewerData } from "../../../../../../types";
 

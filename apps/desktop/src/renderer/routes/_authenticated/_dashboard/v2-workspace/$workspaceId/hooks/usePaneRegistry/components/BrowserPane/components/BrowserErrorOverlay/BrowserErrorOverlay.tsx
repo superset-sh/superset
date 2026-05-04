@@ -1,7 +1,6 @@
 import { Button } from "@superset/ui/button";
-import { GlobeIcon } from "lucide-react";
 import { useCallback, useState } from "react";
-import { TbCopy } from "react-icons/tb";
+import { TbWorld as GlobeIcon, TbCopy } from "react-icons/tb";
 import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
 import type { BrowserLoadError } from "shared/tabs-types";
 

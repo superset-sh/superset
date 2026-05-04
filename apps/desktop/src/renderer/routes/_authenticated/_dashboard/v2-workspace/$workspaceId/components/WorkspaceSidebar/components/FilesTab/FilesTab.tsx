@@ -16,14 +16,14 @@ import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { workspaceTrpc } from "@superset/workspace-client";
 import type { inferRouterOutputs } from "@trpc/server";
-import {
-	FilePlus,
-	FolderPlus,
-	FoldVertical,
-	Loader2,
-	RefreshCw,
-} from "lucide-react";
 import { useCallback, useEffect, useRef } from "react";
+import {
+	TbFilePlus as FilePlus,
+	TbFolderPlus as FolderPlus,
+	TbFold as FoldVertical,
+	TbLoader2 as Loader2,
+	TbRefresh as RefreshCw,
+} from "react-icons/tb";
 import type { FileStatus } from "renderer/hooks/host-service/useGitStatusMap";
 import { useGitStatusMap } from "renderer/hooks/host-service/useGitStatusMap";
 import {

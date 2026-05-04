@@ -16,16 +16,16 @@ import {
 import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { workspaceTrpc } from "@superset/workspace-client";
-import {
-	ChevronDown,
-	ExternalLink,
-	FileText,
-	GitCompare,
-	SquarePlus,
-	Trash2,
-	Undo2,
-} from "lucide-react";
 import { memo, useState } from "react";
+import {
+	TbChevronDown as ChevronDown,
+	TbExternalLink as ExternalLink,
+	TbFileText as FileText,
+	TbGitCompare as GitCompare,
+	TbSquarePlus as SquarePlus,
+	TbTrash as Trash2,
+	TbArrowBackUp as Undo2,
+} from "react-icons/tb";
 import { modifierLabel, useSidebarFilePolicy } from "renderer/lib/clickPolicy";
 import { DiscardConfirmDialog } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/DiscardConfirmDialog";
 import { StatusIndicator } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/StatusIndicator";

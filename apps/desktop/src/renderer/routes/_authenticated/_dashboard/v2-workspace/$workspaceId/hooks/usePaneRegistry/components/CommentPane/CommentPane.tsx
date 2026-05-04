@@ -7,7 +7,7 @@ import {
 	useRef,
 	useState,
 } from "react";
-import { LuCheck } from "react-icons/lu";
+import { TbCheck as LuCheck } from "react-icons/tb";
 import ReactMarkdown from "react-markdown";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import {

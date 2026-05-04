@@ -1,5 +1,10 @@
 import { cn } from "@superset/ui/utils";
-import { LuCheck, LuLoaderCircle, LuMinus, LuX } from "react-icons/lu";
+import {
+	TbCheck as LuCheck,
+	TbLoader as LuLoaderCircle,
+	TbMinus as LuMinus,
+	TbX as LuX,
+} from "react-icons/tb";
 import type { V2WorkspacePrSummary } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/hooks/useAccessibleV2Workspaces";
 
 const CHECK_ROW_CONFIG: Record<

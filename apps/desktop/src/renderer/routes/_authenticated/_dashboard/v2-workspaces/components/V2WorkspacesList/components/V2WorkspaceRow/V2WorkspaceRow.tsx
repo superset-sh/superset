@@ -10,15 +10,15 @@ import { useNavigate } from "@tanstack/react-router";
 import { useCallback } from "react";
 import { CgLaptop } from "react-icons/cg";
 import {
-	LuCircleCheck,
-	LuCircleDashed,
-	LuCircleX,
-	LuGitBranch,
-	LuLaptop,
-	LuMinus,
-	LuMonitor,
-	LuPlus,
-} from "react-icons/lu";
+	TbCircleCheck as LuCircleCheck,
+	TbCircleDashed as LuCircleDashed,
+	TbCircleX as LuCircleX,
+	TbGitBranch as LuGitBranch,
+	TbDeviceLaptop as LuLaptop,
+	TbMinus as LuMinus,
+	TbDeviceDesktop as LuMonitor,
+	TbPlus as LuPlus,
+} from "react-icons/tb";
 import { GATED_FEATURES, usePaywall } from "renderer/components/Paywall";
 import { navigateToV2Workspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { V2WorkspacePrHoverCardContent } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/components/V2WorkspacePrHoverCardContent";

@@ -1,5 +1,5 @@
 import { cn } from "@superset/ui/utils";
-import { LuArrowUpRight } from "react-icons/lu";
+import { TbArrowUpRight as LuArrowUpRight } from "react-icons/tb";
 import { PRIcon } from "renderer/screens/main/components/PRIcon";
 import type { NormalizedPR } from "../../types";
 

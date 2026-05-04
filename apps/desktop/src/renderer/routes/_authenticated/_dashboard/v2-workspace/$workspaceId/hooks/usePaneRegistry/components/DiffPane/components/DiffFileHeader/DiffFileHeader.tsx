@@ -1,8 +1,15 @@
 import { Checkbox } from "@superset/ui/checkbox";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
-import { ChevronDown, ChevronRight, Eye, EyeOff } from "lucide-react";
 import { useId } from "react";
-import { LuCheck, LuCopy, LuUndo2 } from "react-icons/lu";
+import {
+	TbChevronDown as ChevronDown,
+	TbChevronRight as ChevronRight,
+	TbEye as Eye,
+	TbEyeOff as EyeOff,
+	TbCheck as LuCheck,
+	TbCopy as LuCopy,
+	TbArrowBackUp as LuUndo2,
+} from "react-icons/tb";
 import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
 import { useSidebarFilePolicy } from "renderer/lib/clickPolicy";
 import { StatusIndicator } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/StatusIndicator";

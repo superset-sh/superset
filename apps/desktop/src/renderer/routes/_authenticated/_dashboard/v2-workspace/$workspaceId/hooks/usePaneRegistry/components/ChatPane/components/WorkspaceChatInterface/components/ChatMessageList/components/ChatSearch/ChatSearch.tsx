@@ -1,7 +1,7 @@
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useEffect, useRef } from "react";
 import { HiChevronDown, HiChevronUp, HiMiniXMark } from "react-icons/hi2";
-import { PiTextAa } from "react-icons/pi";
+import { TbTypography as PiTextAa } from "react-icons/tb";
 
 interface ChatSearchProps {
 	isOpen: boolean;

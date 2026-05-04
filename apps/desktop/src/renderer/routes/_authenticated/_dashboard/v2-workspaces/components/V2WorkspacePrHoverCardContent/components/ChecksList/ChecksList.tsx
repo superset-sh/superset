@@ -1,5 +1,8 @@
 import { useState } from "react";
-import { LuChevronDown, LuChevronRight } from "react-icons/lu";
+import {
+	TbChevronDown as LuChevronDown,
+	TbChevronRight as LuChevronRight,
+} from "react-icons/tb";
 import type { V2WorkspacePrSummary } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/hooks/useAccessibleV2Workspaces";
 import { CheckRow } from "./components/CheckRow";
 
