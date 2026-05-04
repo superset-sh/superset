@@ -1,10 +1,12 @@
 import { Button } from "@superset/ui/button";
+import { Label } from "@superset/ui/label";
 import { cn } from "@superset/ui/utils";
 import type { ReactNode } from "react";
 
 interface ConfigRowProps {
 	title: string;
 	description?: string;
+	htmlFor?: string;
 	field: ReactNode;
 	onSave?: () => void;
 	onClear?: () => void;
@@ -20,6 +22,7 @@ interface ConfigRowProps {
 export function ConfigRow({
 	title,
 	description,
+	htmlFor,
 	field,
 	onSave,
 	onClear,
@@ -32,34 +35,30 @@ export function ConfigRow({
 	className,
 }: ConfigRowProps) {
 	return (
-		<div className={cn("px-4 py-4", className)}>
-			<div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-				<div className="min-w-0 lg:w-64">
-					<p className="text-sm font-semibold">{title}</p>
-					{description ? (
-						<p className="mt-1 text-sm text-muted-foreground">{description}</p>
-					) : null}
-				</div>
-				<div className="flex min-w-0 flex-1 flex-col gap-3 lg:flex-row lg:items-center">
-					<div className="min-w-0 flex-1">{field}</div>
-					<div className="flex shrink-0 items-center gap-2 self-end lg:self-auto">
-						{onClear && showClear ? (
-							<Button
-								variant="outline"
-								size="sm"
-								onClick={onClear}
-								disabled={disableClear}
-							>
-								{clearLabel}
-							</Button>
-						) : null}
-						{onSave && showSave ? (
-							<Button size="sm" onClick={onSave} disabled={disableSave}>
-								{saveLabel}
-							</Button>
-						) : null}
-					</div>
-				</div>
+		<div className={cn("space-y-1.5", className)}>
+			<Label htmlFor={htmlFor} className="text-sm font-medium">
+				{title}
+			</Label>
+			{description ? (
+				<p className="text-xs text-muted-foreground -mt-1">{description}</p>
+			) : null}
+			<div className="flex items-center gap-2">
+				<div className="min-w-0 flex-1">{field}</div>
+				{onClear && showClear ? (
+					<Button
+						variant="outline"
+						size="sm"
+						onClick={onClear}
+						disabled={disableClear}
+					>
+						{clearLabel}
+					</Button>
+				) : null}
+				{onSave && showSave ? (
+					<Button size="sm" onClick={onSave} disabled={disableSave}>
+						{saveLabel}
+					</Button>
+				) : null}
 			</div>
 		</div>
 	);
