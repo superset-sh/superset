@@ -491,8 +491,8 @@ export function FilesTab({
 	// File rows: settings-driven via `useSidebarFilePolicy`. Folders: fixed
 	// rule via `folderIntentFor` (meta=reveal, metaShift=external) — they're
 	// not user-configurable because the action vocabulary doesn't fit.
-	// Plain clicks bound to "pane" are left to Pierre's onSelectionChange so
-	// the visual selection stays in sync.
+	// Unbound tiers and plain "pane" defer to Pierre's onSelectionChange so
+	// the visual selection stays in sync; intercepting would swallow the click.
 	const handleClickCapture = useCallback(
 		(e: React.MouseEvent<HTMLDivElement>) => {
 			if (!rootPath) return;
@@ -511,6 +511,7 @@ export function FilesTab({
 			}
 
 			const { tier, action } = filePolicy.resolve(e);
+			if (action === null) return;
 			if (tier === "plain" && action === "pane") return;
 			e.preventDefault();
 			e.stopPropagation();
