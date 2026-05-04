@@ -2,12 +2,21 @@ import { Button } from "@superset/ui/button";
 import { Label } from "@superset/ui/label";
 import { toast } from "@superset/ui/sonner";
 import { Switch } from "@superset/ui/switch";
+import { formatDistanceToNow } from "date-fns";
+import { useEffect, useState } from "react";
 import { LuRefreshCw } from "react-icons/lu";
+import { env } from "renderer/env.renderer";
 import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
+import { authClient } from "renderer/lib/auth-client";
 import { track } from "renderer/lib/analytics";
-import { useMigrateV1DataToV2 } from "renderer/routes/_authenticated/hooks/useMigrateV1DataToV2";
+import {
+	readLastMigrationRunAt,
+	useMigrateV1DataToV2,
+	V1_MIGRATION_LAST_RUN_AT_EVENT,
+} from "renderer/routes/_authenticated/hooks/useMigrateV1DataToV2";
 import type { MigrationSummary } from "renderer/routes/_authenticated/hooks/useMigrateV1DataToV2/migrate";
 import { useV2LocalOverrideStore } from "renderer/stores/v2-local-override";
+import { MOCK_ORG_ID } from "shared/constants";
 import {
 	isItemVisible,
 	SETTING_ITEM_ID,
@@ -32,6 +41,7 @@ export function ExperimentalSettings({
 	const { isV2CloudEnabled, isRemoteV2Enabled } = useIsV2CloudEnabled();
 	const { rerun, isRunning } = useMigrateV1DataToV2({ autoRun: false });
 	const setOptInV2 = useV2LocalOverrideStore((state) => state.setOptInV2);
+	const lastRunAt = useLastMigrationRunAt();
 
 	async function rerunMigration() {
 		const result = await rerun();
@@ -48,23 +58,24 @@ export function ExperimentalSettings({
 	}
 
 	return (
-		<div className="p-6 max-w-4xl w-full">
+		<div className="p-6 max-w-4xl w-full mx-auto">
 			<div className="mb-8">
 				<h2 className="text-xl font-semibold">Experimental</h2>
 				<p className="text-sm text-muted-foreground mt-1">
-					Try early access features and previews
+					Try early access features and previews.
 				</p>
 			</div>
 
 			<div className="space-y-6">
 				{showSupersetV2 && (
-					<div className="flex items-center justify-between">
-						<div className="space-y-0.5">
+					<div className="flex items-center justify-between gap-6">
+						<div className="min-w-0 flex-1 space-y-0.5">
 							<Label htmlFor="superset-v2" className="text-sm font-medium">
-								Try Superset Version 2 (Early Access)
+								Try Superset v2
 							</Label>
 							<p className="text-xs text-muted-foreground">
-								Use the new workspace experience when early access is available
+								Use the new workspace experience when early access is
+								available.
 							</p>
 							{!isRemoteV2Enabled && (
 								<p className="text-xs text-muted-foreground">
@@ -87,21 +98,35 @@ export function ExperimentalSettings({
 					</div>
 				)}
 				{showV1Migration && (
-					<div className="flex items-center justify-between border-t pt-6">
-						<div className="space-y-0.5">
-							<Label className="text-sm font-medium">V1 to V2 migration</Label>
+					<div className="flex items-center justify-between gap-6">
+						<div className="min-w-0 flex-1 space-y-0.5">
+							<Label className="text-sm font-medium">v1 → v2 migration</Label>
 							<p className="text-xs text-muted-foreground">
-								Rerun project and workspace import for this organization
+								Imports your local v1 projects and workspaces into the v2
+								cloud. Runs automatically on launch — use this to retry if
+								something was missed.
 							</p>
+							{!isV2CloudEnabled ? (
+								<p className="text-xs text-muted-foreground">
+									Available when v2 is enabled.
+								</p>
+							) : lastRunAt !== null ? (
+								<p className="text-xs text-muted-foreground">
+									Last run{" "}
+									{formatDistanceToNow(lastRunAt, { addSuffix: true })}.
+								</p>
+							) : null}
 						</div>
 						<Button
 							type="button"
 							variant="outline"
+							size="sm"
 							onClick={handleRerunMigration}
 							disabled={!isV2CloudEnabled || isRunning}
+							className="gap-1.5 shrink-0"
 						>
 							<LuRefreshCw
-								className={`h-4 w-4${isRunning ? " animate-spin" : ""}`}
+								className={`h-3.5 w-3.5${isRunning ? " animate-spin" : ""}`}
 								strokeWidth={2}
 							/>
 							{isRunning ? "Running" : "Run again"}
@@ -111,6 +136,42 @@ export function ExperimentalSettings({
 			</div>
 		</div>
 	);
+}
+
+function useLastMigrationRunAt(): number | null {
+	const { data: session } = authClient.useSession();
+	const organizationId = env.SKIP_ENV_VALIDATION
+		? MOCK_ORG_ID
+		: (session?.session?.activeOrganizationId ?? null);
+	const [lastRunAt, setLastRunAt] = useState<number | null>(null);
+	const [, forceTick] = useState(0);
+
+	useEffect(() => {
+		if (!organizationId) {
+			setLastRunAt(null);
+			return;
+		}
+		setLastRunAt(readLastMigrationRunAt(organizationId));
+		const onUpdate = (event: Event) => {
+			const detail = (event as CustomEvent<{ organizationId?: string }>).detail;
+			if (detail?.organizationId === organizationId) {
+				setLastRunAt(readLastMigrationRunAt(organizationId));
+			}
+		};
+		window.addEventListener(V1_MIGRATION_LAST_RUN_AT_EVENT, onUpdate);
+		// Re-render once a minute so "1 minute ago" advances to "2 minutes ago"
+		// without requiring a navigation.
+		const interval = window.setInterval(
+			() => forceTick((t) => t + 1),
+			60_000,
+		);
+		return () => {
+			window.removeEventListener(V1_MIGRATION_LAST_RUN_AT_EVENT, onUpdate);
+			window.clearInterval(interval);
+		};
+	}, [organizationId]);
+
+	return lastRunAt;
 }
 
 function errorMessage(err: unknown): string {

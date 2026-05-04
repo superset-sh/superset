@@ -25,7 +25,28 @@ function getShownKey(organizationId: string): string {
 	return `v1-migration-modal-shown-${organizationId}`;
 }
 
+function getLastRunAtKey(organizationId: string): string {
+	return `v1-migration-last-run-at-${organizationId}`;
+}
+
 export const V1_MIGRATION_SUMMARY_EVENT = "v1-migration-summary-updated";
+export const V1_MIGRATION_LAST_RUN_AT_EVENT = "v1-migration-last-run-at-updated";
+
+export function readLastMigrationRunAt(organizationId: string): number | null {
+	const raw = localStorage.getItem(getLastRunAtKey(organizationId));
+	if (!raw) return null;
+	const value = Number(raw);
+	return Number.isFinite(value) ? value : null;
+}
+
+function persistLastRunAt(organizationId: string) {
+	localStorage.setItem(getLastRunAtKey(organizationId), String(Date.now()));
+	window.dispatchEvent(
+		new CustomEvent(V1_MIGRATION_LAST_RUN_AT_EVENT, {
+			detail: { organizationId },
+		}),
+	);
+}
 
 function persistSummary(organizationId: string, summary: MigrationSummary) {
 	localStorage.setItem(
@@ -136,6 +157,7 @@ export function useMigrateV1DataToV2({
 					hostService,
 					collections,
 				});
+				persistLastRunAt(organizationId);
 
 				// Persist summary unconditionally before any early-return paths — it's
 				// an idempotent side effect and must survive strict-mode effect

@@ -15,6 +15,8 @@ interface SettingsListSidebarProps<T> {
 	hideFilterWhenEmpty?: boolean;
 	/** Rendered to the right of the filter input — typically an icon-sized action. */
 	toolbar?: ReactNode;
+	/** Rendered between the filter and the grouped list — typically a list-row-style "Add" trigger. */
+	listHeader?: ReactNode;
 	groups: Array<SettingsListGroup<T>>;
 	filterRow: (row: T, query: string) => boolean;
 	getRowKey: (row: T) => string;
@@ -28,6 +30,7 @@ export function SettingsListSidebar<T>({
 	searchAriaLabel,
 	hideFilterWhenEmpty,
 	toolbar,
+	listHeader,
 	groups,
 	filterRow,
 	getRowKey,
@@ -69,6 +72,8 @@ export function SettingsListSidebar<T>({
 						{toolbar}
 					</div>
 				)}
+
+				{listHeader}
 
 				{isEmpty && (
 					<p className="px-2 text-sm text-muted-foreground">{emptyLabel}</p>

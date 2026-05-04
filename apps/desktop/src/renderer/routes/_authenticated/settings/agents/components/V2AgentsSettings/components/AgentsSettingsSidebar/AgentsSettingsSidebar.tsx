@@ -19,7 +19,6 @@ import type {
 	AgentPreset,
 	HostAgentConfigDto,
 } from "@superset/host-service/settings";
-import { Button } from "@superset/ui/button";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -83,19 +82,19 @@ export function AgentsSettingsSidebar({
 		onReorder(arrayMove(sortableIds, oldIndex, newIndex));
 	};
 
-	const toolbar = (
+	const listHeader = (
 		<DropdownMenu>
 			<DropdownMenuTrigger asChild>
-				<Button
-					size="icon-sm"
-					variant="ghost"
-					aria-label="Add agent"
+				<button
+					type="button"
 					disabled={isAdding}
+					className={settingsListItemClass(false, "gap-2 w-full text-left")}
 				>
-					<Plus className="size-4" />
-				</Button>
+					<Plus className="size-3.5 shrink-0" />
+					<span className="truncate flex-1">Add agent</span>
+				</button>
 			</DropdownMenuTrigger>
-			<DropdownMenuContent align="end">
+			<DropdownMenuContent align="start" className="w-56">
 				{presets.map((preset) => {
 					const icon = getPresetIcon(preset.presetId, isDark);
 					return (
@@ -139,7 +138,7 @@ export function AgentsSettingsSidebar({
 				<SettingsListSidebar
 					searchPlaceholder="Filter agents..."
 					searchAriaLabel="Filter agents"
-					toolbar={toolbar}
+					listHeader={listHeader}
 					groups={[{ id: "all", title: "Agents", rows: configs }]}
 					filterRow={(row, q) =>
 						row.label.toLowerCase().includes(q.toLowerCase())
@@ -193,24 +192,13 @@ function AgentSidebarRow({
 				transition,
 				opacity: isDragging ? 0.5 : undefined,
 			}}
-			className={cn(isDragging && "relative z-10")}
+			className={cn("group/row relative", isDragging && "z-10")}
 		>
 			<button
 				type="button"
 				onClick={onSelect}
 				className={settingsListItemClass(isActive, "gap-2 w-full text-left")}
 			>
-				<button
-					type="button"
-					ref={setActivatorNodeRef}
-					{...attributes}
-					{...listeners}
-					onClick={(e) => e.stopPropagation()}
-					className="shrink-0 text-muted-foreground/40 hover:text-foreground cursor-grab active:cursor-grabbing"
-					aria-label="Drag to reorder"
-				>
-					<LuGripVertical className="size-3.5" />
-				</button>
 				{icon ? (
 					<img
 						src={icon}
@@ -219,6 +207,20 @@ function AgentSidebarRow({
 					/>
 				) : null}
 				<span className="truncate flex-1">{row.label}</span>
+			</button>
+			<button
+				type="button"
+				ref={setActivatorNodeRef}
+				{...attributes}
+				{...listeners}
+				className={cn(
+					"absolute right-1 top-1/2 -translate-y-1/2 p-0.5 rounded text-muted-foreground/60 hover:text-foreground hover:bg-accent cursor-grab active:cursor-grabbing",
+					"opacity-0 group-hover/row:opacity-100 focus-visible:opacity-100 transition-opacity",
+					isDragging && "opacity-100",
+				)}
+				aria-label="Drag to reorder"
+			>
+				<LuGripVertical className="size-3.5" />
 			</button>
 		</div>
 	);

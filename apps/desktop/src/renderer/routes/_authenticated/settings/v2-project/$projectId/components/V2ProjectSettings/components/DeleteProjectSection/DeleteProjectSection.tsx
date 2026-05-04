@@ -62,9 +62,9 @@ export function DeleteProjectSection({
 				<AlertDialogTrigger asChild>
 					<Button
 						type="button"
-						variant="outline"
+						variant="destructive"
 						size="sm"
-						className="shrink-0 hover:text-destructive hover:border-destructive/40 hover:bg-destructive/5"
+						className="shrink-0"
 					>
 						Delete project
 					</Button>
