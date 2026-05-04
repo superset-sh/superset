@@ -3,6 +3,7 @@ import {
 	ContextMenuItem,
 	ContextMenuSeparator,
 } from "@superset/ui/context-menu";
+import { FilePlus, FolderPlus, Pencil, Trash2 } from "lucide-react";
 import { PathActionsMenuItems } from "../PathActionsMenuItems";
 
 interface FolderContextMenuProps {
@@ -25,9 +26,11 @@ export function FolderContextMenu({
 	return (
 		<ContextMenuContent className="w-56">
 			<ContextMenuItem onSelect={() => setTimeout(onNewFile, 0)}>
+				<FilePlus />
 				New File...
 			</ContextMenuItem>
 			<ContextMenuItem onSelect={() => setTimeout(onNewFolder, 0)}>
+				<FolderPlus />
 				New Folder...
 			</ContextMenuItem>
 			<ContextMenuSeparator />
@@ -37,9 +40,11 @@ export function FolderContextMenu({
 			/>
 			<ContextMenuSeparator />
 			<ContextMenuItem onSelect={() => setTimeout(onRename, 0)}>
+				<Pencil />
 				Rename...
 			</ContextMenuItem>
 			<ContextMenuItem variant="destructive" onSelect={onDelete}>
+				<Trash2 />
 				Delete
 			</ContextMenuItem>
 		</ContextMenuContent>

@@ -5,6 +5,13 @@ import {
 	ContextMenuShortcut,
 } from "@superset/ui/context-menu";
 import {
+	ExternalLink,
+	FileText,
+	Pencil,
+	SquarePlus,
+	Trash2,
+} from "lucide-react";
+import {
 	MOD_CLICK_LABEL,
 	SHIFT_CLICK_LABEL,
 } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/utils/clickModifierLabels";
@@ -31,12 +38,17 @@ export function FileContextMenu({
 }: FileContextMenuProps) {
 	return (
 		<ContextMenuContent className="w-56">
-			<ContextMenuItem onSelect={onOpen}>Open</ContextMenuItem>
+			<ContextMenuItem onSelect={onOpen}>
+				<FileText />
+				Open
+			</ContextMenuItem>
 			<ContextMenuItem onSelect={onOpenInNewTab}>
+				<SquarePlus />
 				Open in New Tab
 				<ContextMenuShortcut>{SHIFT_CLICK_LABEL}</ContextMenuShortcut>
 			</ContextMenuItem>
 			<ContextMenuItem onSelect={onOpenInEditor}>
+				<ExternalLink />
 				Open in Editor
 				<ContextMenuShortcut>{MOD_CLICK_LABEL}</ContextMenuShortcut>
 			</ContextMenuItem>
@@ -47,9 +59,11 @@ export function FileContextMenu({
 			/>
 			<ContextMenuSeparator />
 			<ContextMenuItem onSelect={() => setTimeout(onRename, 0)}>
+				<Pencil />
 				Rename...
 			</ContextMenuItem>
 			<ContextMenuItem variant="destructive" onSelect={onDelete}>
+				<Trash2 />
 				Delete
 			</ContextMenuItem>
 		</ContextMenuContent>

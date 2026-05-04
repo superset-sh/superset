@@ -3,6 +3,7 @@ import {
 	ContextMenuSeparator,
 } from "@superset/ui/context-menu";
 import { toast } from "@superset/ui/sonner";
+import { Clipboard, Copy, FolderOpen } from "lucide-react";
 import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 
@@ -38,16 +39,19 @@ export function PathActionsMenuItems({
 	return (
 		<>
 			<ContextMenuItem onSelect={handleRevealInFinder}>
+				<FolderOpen />
 				Reveal in Finder
 			</ContextMenuItem>
 			<ContextMenuSeparator />
 			<ContextMenuItem onSelect={() => handleCopy(absolutePath, "Path copied")}>
+				<Clipboard />
 				Copy Path
 			</ContextMenuItem>
 			{relativePath && (
 				<ContextMenuItem
 					onSelect={() => handleCopy(relativePath, "Relative path copied")}
 				>
+					<Copy />
 					Copy Relative Path
 				</ContextMenuItem>
 			)}
