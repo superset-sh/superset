@@ -47,6 +47,7 @@ import {
 	type DashboardSidebarSectionRow,
 	dashboardSidebarProjectSchema,
 	dashboardSidebarSectionSchema,
+	healV2UserPreferences,
 	type V2TerminalPresetRow,
 	type V2UserPreferencesRow,
 	v2TerminalPresetSchema,
@@ -54,6 +55,7 @@ import {
 	type WorkspaceLocalStateRow,
 	workspaceLocalStateSchema,
 } from "./dashboardSidebarLocal";
+import { withReadHeal } from "./withReadHeal";
 
 const columnMapper = snakeCamelMapper();
 
@@ -668,15 +670,20 @@ function createOrgCollections(organizationId: string): OrgCollections {
 	);
 
 	const v2UserPreferences = createCollection(
-		localStorageCollectionOptions({
-			id: `v2_user_preferences-${organizationId}`,
-			storageKey: `v2-user-preferences-${organizationId}`,
-			schema: v2UserPreferencesSchema,
-			// Cast widens the inferred literal "preferences" key to string so
-			// the collection slots into the shared OrgCollections.{...<TKey=string>}
-			// shape alongside the other v2 collections.
-			getKey: (item) => item.id as string,
-		}),
+		localStorageCollectionOptions(
+			withReadHeal(
+				{
+					id: `v2_user_preferences-${organizationId}`,
+					storageKey: `v2-user-preferences-${organizationId}`,
+					schema: v2UserPreferencesSchema,
+					// Cast widens the inferred literal "preferences" key to string so
+					// the collection slots into the shared OrgCollections.{...<TKey=string>}
+					// shape alongside the other v2 collections.
+					getKey: (item) => item.id as string,
+				},
+				healV2UserPreferences,
+			),
+		),
 	);
 
 	return {

@@ -166,3 +166,26 @@ export const DEFAULT_V2_USER_PREFERENCES: V2UserPreferencesRow = {
 	rightSidebarWidth: 340,
 	deleteLocalBranch: false,
 };
+
+/**
+ * Heal a stored row against current defaults. Used by the localStorage
+ * collection's read-time parser so rows persisted before a field was added
+ * (top-level or nested in a LinkTierMap) don't surface as undefined to
+ * consumers. Per-tier defaults vary by map, so we deep-merge each tier map
+ * against its own default rather than relying on a single Zod default.
+ */
+export function healV2UserPreferences(raw: unknown): V2UserPreferencesRow {
+	const r = (
+		raw && typeof raw === "object" ? raw : {}
+	) as Partial<V2UserPreferencesRow>;
+	return {
+		...DEFAULT_V2_USER_PREFERENCES,
+		...r,
+		fileLinks: { ...DEFAULT_V2_USER_PREFERENCES.fileLinks, ...r.fileLinks },
+		urlLinks: { ...DEFAULT_V2_USER_PREFERENCES.urlLinks, ...r.urlLinks },
+		sidebarFileLinks: {
+			...DEFAULT_V2_USER_PREFERENCES.sidebarFileLinks,
+			...r.sidebarFileLinks,
+		},
+	};
+}
