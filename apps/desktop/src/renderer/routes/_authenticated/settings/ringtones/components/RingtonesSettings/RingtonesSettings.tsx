@@ -3,7 +3,7 @@ import { Label } from "@superset/ui/label";
 import { Switch } from "@superset/ui/switch";
 import { cn } from "@superset/ui/utils";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { HiCheck, HiPlay, HiPlus, HiStop } from "react-icons/hi2";
+import { HiArrowPath, HiCheck, HiPlay, HiPlus, HiStop } from "react-icons/hi2";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import {
@@ -264,11 +264,11 @@ export function RingtonesSettings({ visibleItems }: RingtonesSettingsProps) {
 			<div className="mb-8">
 				<h2 className="text-xl font-semibold">Notifications</h2>
 				<p className="text-sm text-muted-foreground mt-1">
-					Choose the notification sound for completed tasks
+					Sounds and ringtone for completed tasks
 				</p>
 			</div>
 
-			<div className="space-y-8">
+			<div className="space-y-6">
 				{/* Sound Toggle */}
 				{showNotification && (
 					<div className="flex items-center justify-between">
@@ -298,8 +298,14 @@ export function RingtonesSettings({ visibleItems }: RingtonesSettingsProps) {
 				{/* Ringtone Section */}
 				{showNotification && !isMuted && (
 					<div>
-						<div className="mb-4 flex items-center justify-between gap-2">
-							<h3 className="text-sm font-medium">Notification Sound</h3>
+						<div className="mb-3 flex items-start justify-between gap-2">
+							<div>
+								<h3 className="text-sm font-medium mb-1">Notification sound</h3>
+								<p className="text-xs text-muted-foreground">
+									Pick a sound or add your own. Custom audio supports .mp3,
+									.wav, and .ogg.
+								</p>
+							</div>
 							<Button
 								type="button"
 								size="sm"
@@ -307,8 +313,12 @@ export function RingtonesSettings({ visibleItems }: RingtonesSettingsProps) {
 								onClick={handleImportCustomRingtone}
 								disabled={importCustomRingtone.isPending}
 							>
-								<HiPlus className="mr-1.5 h-3.5 w-3.5" />
-								{customRingtone ? "Replace Custom Audio" : "Add Custom Audio"}
+								{customRingtone ? (
+									<HiArrowPath className="mr-1.5 h-3.5 w-3.5" />
+								) : (
+									<HiPlus className="mr-1.5 h-3.5 w-3.5" />
+								)}
+								{customRingtone ? "Replace custom audio" : "Add custom audio"}
 							</Button>
 						</div>
 						<div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
@@ -323,16 +333,6 @@ export function RingtonesSettings({ visibleItems }: RingtonesSettingsProps) {
 								/>
 							))}
 						</div>
-					</div>
-				)}
-
-				{/* Tip */}
-				{showNotification && !isMuted && (
-					<div className="pt-6 border-t">
-						<p className="text-sm text-muted-foreground">
-							Click the play button to preview a sound. Use Add Custom Audio to
-							import your own .mp3, .wav, or .ogg file.
-						</p>
 					</div>
 				)}
 			</div>
