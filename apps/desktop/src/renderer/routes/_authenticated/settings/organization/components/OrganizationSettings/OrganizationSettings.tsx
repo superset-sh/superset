@@ -53,7 +53,7 @@ interface SettingsRowProps {
 
 function SettingsRow({ label, hint, htmlFor, children }: SettingsRowProps) {
 	return (
-		<div className="flex items-center justify-between gap-8 py-4 border-t border-border first:border-t-0">
+		<div className="flex items-center justify-between gap-8 py-2.5">
 			<div className="flex-1 min-w-0">
 				<Label htmlFor={htmlFor} className="text-sm font-medium">
 					{label}
