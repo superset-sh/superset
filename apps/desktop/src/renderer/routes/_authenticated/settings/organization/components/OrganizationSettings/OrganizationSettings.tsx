@@ -257,22 +257,18 @@ export function OrganizationSettings({
 							<div>
 								{showLogo && (
 									<SettingsRow label="Logo" hint="Recommended size 256×256.">
-										<div className="flex items-center gap-3">
+										<button
+											type="button"
+											onClick={handleLogoUpload}
+											disabled={!isOwner}
+											className="rounded-md transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-100"
+											aria-label="Change organization logo"
+										>
 											<OrganizationLogo
 												logo={logoPreview}
 												name={organization.name}
 											/>
-											{isOwner ? (
-												<Button
-													type="button"
-													variant="outline"
-													size="sm"
-													onClick={handleLogoUpload}
-												>
-													Change
-												</Button>
-											) : null}
-										</div>
+										</button>
 									</SettingsRow>
 								)}
 
@@ -296,24 +292,28 @@ export function OrganizationSettings({
 										hint="Used in URLs and APIs."
 										htmlFor="org-slug"
 									>
-										<div className="flex items-center gap-2">
-											<Input
-												id="org-slug"
-												value={organization.slug}
-												readOnly
-												className="w-56 font-mono text-xs"
-											/>
-											{isOwner ? (
-												<Button
-													type="button"
-													variant="outline"
-													size="sm"
-													onClick={() => setIsSlugDialogOpen(true)}
-												>
-													Change
-												</Button>
-											) : null}
-										</div>
+										<Input
+											id="org-slug"
+											value={organization.slug}
+											readOnly
+											onClick={
+												isOwner ? () => setIsSlugDialogOpen(true) : undefined
+											}
+											onKeyDown={
+												isOwner
+													? (event) => {
+															if (event.key === "Enter" || event.key === " ") {
+																event.preventDefault();
+																setIsSlugDialogOpen(true);
+															}
+														}
+													: undefined
+											}
+											className={`w-72 font-mono text-xs ${
+												isOwner ? "cursor-pointer" : ""
+											}`}
+											disabled={!isOwner}
+										/>
 									</SettingsRow>
 								)}
 							</div>
