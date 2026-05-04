@@ -5,12 +5,7 @@ import type {
 	PromptTransport,
 } from "@superset/host-service/settings";
 import { Button } from "@superset/ui/button";
-import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardTitle,
-} from "@superset/ui/card";
+import { Card, CardContent } from "@superset/ui/card";
 import { Collapsible, CollapsibleContent } from "@superset/ui/collapsible";
 import { Input } from "@superset/ui/input";
 import { Label } from "@superset/ui/label";
@@ -160,14 +155,14 @@ export function V2AgentCard({
 				opacity: isDragging ? 0.5 : undefined,
 			}}
 		>
-			<Card className="p-0">
+			<Card className="p-0 gap-0 rounded-lg shadow-none">
 				<Collapsible open={isOpen} onOpenChange={setIsOpen}>
 					{/* biome-ignore lint/a11y/useSemanticElements: div needed to avoid invalid nested <button> elements */}
 					<div
 						role="button"
 						tabIndex={0}
 						aria-expanded={isOpen}
-						className="flex items-center gap-3 p-4 cursor-pointer transition-colors hover:bg-muted/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+						className="flex items-center gap-3 p-3 cursor-pointer transition-colors hover:bg-accent/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
 						onClick={() => setIsOpen((open) => !open)}
 						onKeyDown={(event) => {
 							if (event.target !== event.currentTarget) return;
@@ -183,7 +178,7 @@ export function V2AgentCard({
 							{...attributes}
 							{...listeners}
 							onClick={(event) => event.stopPropagation()}
-							className="shrink-0 flex items-center justify-center text-muted-foreground hover:text-foreground cursor-grab active:cursor-grabbing -ml-1 bg-transparent border-0 p-0"
+							className="shrink-0 flex items-center justify-center text-muted-foreground/60 hover:text-foreground hover:bg-accent rounded p-1 -m-1 cursor-grab active:cursor-grabbing bg-transparent border-0"
 							aria-label="Drag to reorder"
 						>
 							<LuGripVertical className="size-4" />
@@ -192,14 +187,16 @@ export function V2AgentCard({
 							<img
 								src={icon}
 								alt=""
-								className="size-8 object-contain shrink-0"
+								className="size-7 object-contain shrink-0"
 							/>
 						) : null}
 						<div className="min-w-0 flex-1">
-							<CardTitle className="truncate">{config.label}</CardTitle>
-							<CardDescription className="mt-1 truncate">
+							<div className="text-sm font-medium truncate">
+								{config.label}
+							</div>
+							<div className="text-xs text-muted-foreground truncate">
 								{description}
-							</CardDescription>
+							</div>
 						</div>
 						<div className="flex shrink-0 items-center gap-1">
 							<Button
@@ -211,6 +208,7 @@ export function V2AgentCard({
 								}}
 								disabled={removeMutation.isPending}
 								aria-label={`Remove ${config.label}`}
+								className="text-muted-foreground hover:text-destructive"
 							>
 								<Trash2 className="size-4" />
 							</Button>
@@ -224,9 +222,11 @@ export function V2AgentCard({
 						</div>
 					</div>
 					<CollapsibleContent>
-						<CardContent className="grid gap-4 pt-0 pb-4">
+						<div className="grid gap-4 px-4 pb-4 pt-0">
 							<div className="grid gap-1.5">
-								<Label htmlFor={`label-${config.id}`}>Label</Label>
+								<Label htmlFor={`label-${config.id}`} className="text-xs">
+									Label
+								</Label>
 								<Input
 									id={`label-${config.id}`}
 									value={label}
@@ -234,68 +234,81 @@ export function V2AgentCard({
 									onBlur={handleLabelBlur}
 								/>
 							</div>
-							<div className="grid gap-1.5">
-								<Label htmlFor={`command-${config.id}`}>Command</Label>
-								<Input
-									id={`command-${config.id}`}
-									className="font-mono"
-									value={commandText}
-									onChange={(e) => setCommandText(e.target.value)}
-									onBlur={handleCommandBlur}
-									placeholder="claude --permission-mode acceptEdits"
-								/>
-								<p className="text-xs text-muted-foreground">
-									Argv used for promptless launches. The prompt is appended
-									after the prompt-only args.
-								</p>
-							</div>
-							<div className="grid gap-1.5">
-								<Label htmlFor={`prompt-args-${config.id}`}>
-									Prompt-only args
-								</Label>
-								<Input
-									id={`prompt-args-${config.id}`}
-									className="font-mono"
-									value={promptArgsText}
-									onChange={(e) => setPromptArgsText(e.target.value)}
-									onBlur={handlePromptArgsBlur}
-									placeholder="(empty)"
-								/>
-								<p className="text-xs text-muted-foreground">
-									Inserted only when launching with a prompt — e.g.{" "}
-									<code>--</code> for codex, <code>--prompt</code> for opencode,{" "}
-									<code>-i</code> for copilot.
-								</p>
-							</div>
-							<div className="grid gap-1.5">
-								<Label>Prompt transport</Label>
-								<div className="flex gap-2">
-									<Button
-										type="button"
-										size="sm"
-										variant={promptTransport === "argv" ? "default" : "outline"}
-										onClick={() => handleTransportChange("argv")}
-									>
-										argv
-									</Button>
-									<Button
-										type="button"
-										size="sm"
-										variant={
-											promptTransport === "stdin" ? "default" : "outline"
-										}
-										onClick={() => handleTransportChange("stdin")}
-									>
-										stdin
-									</Button>
+
+							<div className="grid gap-4 pt-4 border-t border-border">
+								<div className="grid gap-1.5">
+									<Label htmlFor={`command-${config.id}`} className="text-xs">
+										Command
+									</Label>
+									<Input
+										id={`command-${config.id}`}
+										className="font-mono text-xs"
+										value={commandText}
+										onChange={(e) => setCommandText(e.target.value)}
+										onBlur={handleCommandBlur}
+										placeholder="claude --permission-mode acceptEdits"
+									/>
+									<p className="text-xs text-muted-foreground">
+										Argv for promptless launches. The prompt is appended after
+										the prompt-only args.
+									</p>
 								</div>
-								<p className="text-xs text-muted-foreground">
-									<strong>argv</strong>: append the prompt as the last argv
-									element. <strong>stdin</strong>: pipe the prompt to the
-									spawned process's stdin.
-								</p>
+								<div className="grid gap-1.5">
+									<Label
+										htmlFor={`prompt-args-${config.id}`}
+										className="text-xs"
+									>
+										Prompt-only args
+									</Label>
+									<Input
+										id={`prompt-args-${config.id}`}
+										className="font-mono text-xs"
+										value={promptArgsText}
+										onChange={(e) => setPromptArgsText(e.target.value)}
+										onBlur={handlePromptArgsBlur}
+										placeholder="--prompt"
+									/>
+									<p className="text-xs text-muted-foreground">
+										Inserted only when launching with a prompt. Examples:{" "}
+										<code>--</code> (codex), <code>--prompt</code> (opencode),{" "}
+										<code>-i</code> (copilot).
+									</p>
+								</div>
+								<div className="grid gap-1.5">
+									<Label className="text-xs">Prompt transport</Label>
+									<div className="inline-flex rounded-md border border-border overflow-hidden w-fit">
+										<button
+											type="button"
+											onClick={() => handleTransportChange("argv")}
+											className={cn(
+												"px-3 py-1 text-xs font-medium transition-colors",
+												promptTransport === "argv"
+													? "bg-accent text-accent-foreground"
+													: "bg-transparent text-muted-foreground hover:bg-accent/50",
+											)}
+										>
+											argv
+										</button>
+										<button
+											type="button"
+											onClick={() => handleTransportChange("stdin")}
+											className={cn(
+												"px-3 py-1 text-xs font-medium transition-colors border-l border-border",
+												promptTransport === "stdin"
+													? "bg-accent text-accent-foreground"
+													: "bg-transparent text-muted-foreground hover:bg-accent/50",
+											)}
+										>
+											stdin
+										</button>
+									</div>
+									<p className="text-xs text-muted-foreground">
+										<code>argv</code> appends the prompt as the last argv;{" "}
+										<code>stdin</code> pipes it to the process's stdin.
+									</p>
+								</div>
 							</div>
-						</CardContent>
+						</div>
 					</CollapsibleContent>
 				</Collapsible>
 			</Card>
