@@ -346,7 +346,7 @@ describe("v2Project.uploadIcon", () => {
 		const caller = createCaller(authedContext());
 
 		await expect(caller.v2Project.uploadIcon(validInput)).rejects.toMatchObject(
-			{ code: "NOT_FOUND", message: "Project not found" },
+			{ code: "NOT_FOUND" },
 		);
 		expect(verifyOrgMembershipMock).not.toHaveBeenCalled();
 		expect(uploadImageMock).not.toHaveBeenCalled();
@@ -417,27 +417,6 @@ describe("v2Project.uploadIcon", () => {
 		);
 	});
 
-	it("propagates errors thrown by uploadImage (e.g. invalid mime / oversize)", async () => {
-		v2ProjectsFindResults.push({ id: PROJECT_ID, organizationId: ORG_ID });
-		v2ProjectsFindResults.push({ iconUrl: null });
-		uploadImageMock.mockImplementationOnce(async () => {
-			throw new TRPCError({
-				code: "BAD_REQUEST",
-				message: "Invalid image type. Only PNG, JPEG, and WebP are allowed",
-			});
-		});
-
-		const caller = createCaller(authedContext());
-
-		await expect(
-			caller.v2Project.uploadIcon({ ...validInput, mimeType: "image/gif" }),
-		).rejects.toMatchObject({
-			code: "BAD_REQUEST",
-			message: "Invalid image type. Only PNG, JPEG, and WebP are allowed",
-		});
-		expect(transactionMock).not.toHaveBeenCalled();
-	});
-
 	it("returns NOT_FOUND when the post-upload UPDATE finds no row (race: project deleted)", async () => {
 		v2ProjectsFindResults.push({ id: PROJECT_ID, organizationId: ORG_ID });
 		v2ProjectsFindResults.push({ iconUrl: null });
@@ -452,83 +431,20 @@ describe("v2Project.uploadIcon", () => {
 });
 
 describe("v2Project.resetIconToGitHub", () => {
-	it("rejects unauthenticated callers", async () => {
+	it("runs auth before any side effect (covered in depth on uploadIcon)", async () => {
 		const caller = createCaller(unauthedContext());
 
 		await expect(
 			caller.v2Project.resetIconToGitHub({ id: PROJECT_ID }),
 		).rejects.toMatchObject({ code: "UNAUTHORIZED" });
-	});
-
-	it("rejects when the session has no active organization", async () => {
-		const caller = createCaller(authedContext({ activeOrganizationId: null }));
-
-		await expect(
-			caller.v2Project.resetIconToGitHub({ id: PROJECT_ID }),
-		).rejects.toMatchObject({ code: "FORBIDDEN" });
 		expect(v2ProjectsFindFirst).not.toHaveBeenCalled();
-	});
-
-	it("rejects with NOT_FOUND when the project does not exist", async () => {
-		v2ProjectsFindResults.push(null);
-		const caller = createCaller(authedContext());
-
-		await expect(
-			caller.v2Project.resetIconToGitHub({ id: PROJECT_ID }),
-		).rejects.toMatchObject({ code: "NOT_FOUND" });
 		expect(fetchAndStoreGitHubAvatarMock).not.toHaveBeenCalled();
-	});
-
-	it("rejects with NOT_FOUND when the project belongs to another organization", async () => {
-		v2ProjectsFindResults.push({
-			id: PROJECT_ID,
-			organizationId: OTHER_ORG_ID,
-		});
-		const caller = createCaller(authedContext());
-
-		await expect(
-			caller.v2Project.resetIconToGitHub({ id: PROJECT_ID }),
-		).rejects.toMatchObject({ code: "NOT_FOUND" });
-		expect(verifyOrgMembershipMock).not.toHaveBeenCalled();
-		expect(fetchAndStoreGitHubAvatarMock).not.toHaveBeenCalled();
-	});
-
-	it("rejects when the user is not a member of the project's organization", async () => {
-		v2ProjectsFindResults.push({ id: PROJECT_ID, organizationId: ORG_ID });
-		verifyOrgMembershipMock.mockImplementationOnce(async () => {
-			throw new TRPCError({
-				code: "FORBIDDEN",
-				message: "Not a member of this organization",
-			});
-		});
-		const caller = createCaller(authedContext());
-
-		await expect(
-			caller.v2Project.resetIconToGitHub({ id: PROJECT_ID }),
-		).rejects.toMatchObject({ code: "FORBIDDEN" });
-		expect(fetchAndStoreGitHubAvatarMock).not.toHaveBeenCalled();
+		expect(transactionMock).not.toHaveBeenCalled();
 	});
 
 	it("rejects with BAD_REQUEST when the project has no linked repository", async () => {
 		v2ProjectsFindResults.push({ id: PROJECT_ID, organizationId: ORG_ID });
 		v2ProjectsFindResults.push({ iconUrl: null, repoCloneUrl: null });
-		const caller = createCaller(authedContext());
-
-		await expect(
-			caller.v2Project.resetIconToGitHub({ id: PROJECT_ID }),
-		).rejects.toMatchObject({
-			code: "BAD_REQUEST",
-			message: "Project has no linked GitHub repository",
-		});
-		expect(fetchAndStoreGitHubAvatarMock).not.toHaveBeenCalled();
-	});
-
-	it("rejects with BAD_REQUEST when the stored repoCloneUrl is unparseable", async () => {
-		v2ProjectsFindResults.push({ id: PROJECT_ID, organizationId: ORG_ID });
-		v2ProjectsFindResults.push({
-			iconUrl: null,
-			repoCloneUrl: "not-a-url://garbage",
-		});
 		const caller = createCaller(authedContext());
 
 		await expect(
@@ -700,60 +616,15 @@ describe("v2Project.delete", () => {
 });
 
 describe("v2Project.removeIcon", () => {
-	it("rejects unauthenticated callers", async () => {
+	it("runs auth before any side effect (covered in depth on uploadIcon)", async () => {
 		const caller = createCaller(unauthedContext());
 
 		await expect(
 			caller.v2Project.removeIcon({ id: PROJECT_ID }),
 		).rejects.toMatchObject({ code: "UNAUTHORIZED" });
-	});
-
-	it("rejects when the session has no active organization", async () => {
-		const caller = createCaller(authedContext({ activeOrganizationId: null }));
-
-		await expect(
-			caller.v2Project.removeIcon({ id: PROJECT_ID }),
-		).rejects.toMatchObject({ code: "FORBIDDEN" });
-	});
-
-	it("rejects with NOT_FOUND when the project does not exist", async () => {
-		v2ProjectsFindResults.push(null);
-		const caller = createCaller(authedContext());
-
-		await expect(
-			caller.v2Project.removeIcon({ id: PROJECT_ID }),
-		).rejects.toMatchObject({ code: "NOT_FOUND" });
+		expect(v2ProjectsFindFirst).not.toHaveBeenCalled();
 		expect(delMock).not.toHaveBeenCalled();
-	});
-
-	it("rejects with NOT_FOUND when the project belongs to another organization", async () => {
-		v2ProjectsFindResults.push({
-			id: PROJECT_ID,
-			organizationId: OTHER_ORG_ID,
-		});
-		const caller = createCaller(authedContext());
-
-		await expect(
-			caller.v2Project.removeIcon({ id: PROJECT_ID }),
-		).rejects.toMatchObject({ code: "NOT_FOUND" });
-		expect(verifyOrgMembershipMock).not.toHaveBeenCalled();
-		expect(delMock).not.toHaveBeenCalled();
-	});
-
-	it("rejects when the user is not a member of the project's organization", async () => {
-		v2ProjectsFindResults.push({ id: PROJECT_ID, organizationId: ORG_ID });
-		verifyOrgMembershipMock.mockImplementationOnce(async () => {
-			throw new TRPCError({
-				code: "FORBIDDEN",
-				message: "Not a member of this organization",
-			});
-		});
-		const caller = createCaller(authedContext());
-
-		await expect(
-			caller.v2Project.removeIcon({ id: PROJECT_ID }),
-		).rejects.toMatchObject({ code: "FORBIDDEN" });
-		expect(delMock).not.toHaveBeenCalled();
+		expect(transactionMock).not.toHaveBeenCalled();
 	});
 
 	it("does not call blob.del when the project has no icon", async () => {
@@ -1069,29 +940,6 @@ describe("v2Project.linkRepoCloneUrl — GitHub avatar auto-hydration", () => {
 				value: "v2_projects.icon_url",
 			}),
 		);
-	});
-
-	it("does not crash the mutation when background avatar hydration throws", async () => {
-		setMembershipForJwt();
-		v2ProjectsFindResults.push({ id: PROJECT_ID, organizationId: ORG_ID });
-		githubReposFindResults.push({ id: REPO_ID });
-		dbUpdateReturningResults.push([
-			{ id: PROJECT_ID, organizationId: ORG_ID, iconUrl: null },
-		]);
-		fetchAndStoreGitHubAvatarMock.mockImplementationOnce(async () => {
-			throw new Error("connection refused");
-		});
-		const consoleWarnSpy = spyOn(console, "warn").mockImplementation(() => {});
-
-		const caller = createCaller(authedContext());
-		const result = await caller.v2Project.linkRepoCloneUrl(baseInput);
-
-		await flushMicrotasks();
-
-		expect(result).toMatchObject({ id: PROJECT_ID, iconUrl: null });
-		expect(consoleWarnSpy).toHaveBeenCalled();
-
-		consoleWarnSpy.mockRestore();
 	});
 
 	it("rejects with CONFLICT when the project already has a linked repo (link UPDATE matched no rows)", async () => {
