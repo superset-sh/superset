@@ -215,7 +215,7 @@ export function V2AgentCard({
 					</div>
 				</div>
 				<CollapsibleContent>
-					<div className="grid gap-4 px-4 pb-4 pt-0">
+					<div className="grid gap-4 px-4 pb-4 pt-2">
 						<div className="grid gap-1.5">
 							<Label htmlFor={`label-${config.id}`} className="text-xs">
 								Label
