@@ -30,7 +30,8 @@ function getLastRunAtKey(organizationId: string): string {
 }
 
 export const V1_MIGRATION_SUMMARY_EVENT = "v1-migration-summary-updated";
-export const V1_MIGRATION_LAST_RUN_AT_EVENT = "v1-migration-last-run-at-updated";
+export const V1_MIGRATION_LAST_RUN_AT_EVENT =
+	"v1-migration-last-run-at-updated";
 
 export function readLastMigrationRunAt(organizationId: string): number | null {
 	const raw = localStorage.getItem(getLastRunAtKey(organizationId));

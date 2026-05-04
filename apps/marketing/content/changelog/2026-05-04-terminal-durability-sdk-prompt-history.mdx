@@ -1,0 +1,52 @@
+---
+title: Terminal sessions survive updates, TypeScript SDK, and automation prompt history
+date: 2026-05-04
+image: /changelog/IMAGE_PLACEHOLDER.png
+---
+
+{/* TODO: Replace header image with a screenshot showing terminal sessions persisting through an update */}
+
+## Terminal sessions survive app updates <PRBadge url="https://github.com/superset-sh/superset/pull/3971" />
+
+The PTY daemon now hands off file descriptors when it upgrades, so your running terminal sessions stay alive through app updates and daemon binary replacements. No more losing your shell state when Superset updates in the background.
+
+## TypeScript SDK <PRBadge url="https://github.com/superset-sh/superset/pull/3937" />
+
+`@superset_sh/sdk` is a new TypeScript package that mirrors the CLI 1:1 — manage tasks, automations, workspaces, and more from your own scripts or apps without shelling out to the CLI.
+
+## Automation prompt version history <PRBadge url="https://github.com/superset-sh/superset/pull/3996" />
+
+Automation prompts now keep a version history. Browse previous versions and restore any of them — no more accidentally overwriting a prompt you wanted to keep.
+
+## V2 changes tab: stage, unstage, and discard <PRBadge url="https://github.com/superset-sh/superset/pull/4022" />
+
+The v2 Changes tab now has inline controls for staging, unstaging, and discarding individual files — no need to drop into the terminal for basic git operations.
+
+## Improvements
+
+- **Sidebar footer with help and feedback** — a new footer in the sidebar exposes a help menu and a submit-a-prompt shortcut for sending feedback directly from the app <PRBadge url="https://github.com/superset-sh/superset/pull/4024" />
+- **V2 sidebar chrome** — sidebar-hosted workspace toggle, navigation, and an "Open In" button, plus a remote workspaces guide added to docs <PRBadge url="https://github.com/superset-sh/superset/pull/3983" /> <PRBadge url="https://github.com/superset-sh/superset/pull/3985" />
+- **V2 file tree rebuilt on @pierre/trees** — faster, more correct file tree with context menus and icons on the changes and file views <PRBadge url="https://github.com/superset-sh/superset/pull/3988" /> <PRBadge url="https://github.com/superset-sh/superset/pull/4028" />
+- **V2 branch picker simplified** — "All" and "Worktree" tabs replace the previous set of picker tabs <PRBadge url="https://github.com/superset-sh/superset/pull/4012" />
+- **V2 sticky diff headers** — file headers stay visible while scrolling through a large diff <PRBadge url="https://github.com/superset-sh/superset/pull/3984" />
+- **V2 host-service performance** — host-service no longer scales linearly with worktree count, fixing slowdowns on large projects <PRBadge url="https://github.com/superset-sh/superset/pull/3999" />
+- **V1 terminals parked on detach** — v1 terminals now park when detached and re-enable WebGL for better rendering performance <PRBadge url="https://github.com/superset-sh/superset/pull/3997" />
+- **CLI: cross-device login** — `superset auth login` now supports OAuth code + PKCE for headless and cross-device flows <PRBadge url="https://github.com/superset-sh/superset/pull/3965" />
+- **CLI: automation and task commands aligned with SDK and MCP** — `automations prompt` split into `prompt get` / `prompt set`; `--name` filter on automations list; `--assignee` filter on tasks list <PRBadge url="https://github.com/superset-sh/superset/pull/3966" /> <PRBadge url="https://github.com/superset-sh/superset/pull/3959" /> <PRBadge url="https://github.com/superset-sh/superset/pull/3952" /> <PRBadge url="https://github.com/superset-sh/superset/pull/3972" />
+- **Settings vocabulary unified** — consistent terminology across every settings page in the desktop app <PRBadge url="https://github.com/superset-sh/superset/pull/4035" />
+- **V2 workspaces default to all devices** — new workspaces show across all devices by default, sorted by host then creation time <PRBadge url="https://github.com/superset-sh/superset/pull/3928" />
+
+---
+
+**Bug fixes**
+
+- Fixed Linear OAuth refresh token rotation so integrations stay connected after token expiry <PRBadge url="https://github.com/superset-sh/superset/pull/4002" />
+- New Project modal errors are now shown as selectable toasts with a loading spinner on the Clone button <PRBadge url="https://github.com/superset-sh/superset/pull/4037" />
+- Wired electron-log to autoUpdater so update errors appear in logs <PRBadge url="https://github.com/superset-sh/superset/pull/4033" />
+- Fixed PTY output carried as raw bytes end-to-end, resolving garbling on some terminals <PRBadge url="https://github.com/superset-sh/superset/pull/3981" />
+- Bounded v2 GitHub PR polling to prevent rate-limit storms <PRBadge url="https://github.com/superset-sh/superset/pull/3977" />
+- Cmd+E now splits along the longer side in v2 <PRBadge url="https://github.com/superset-sh/superset/pull/4007" />
+- Fixed stable sort tiebreaker in v2 workspaces list <PRBadge url="https://github.com/superset-sh/superset/pull/3967" />
+- V2 sidebar now shows PR badges for remote-host workspaces <PRBadge url="https://github.com/superset-sh/superset/pull/3973" />
+- SDK redacts `x-api-key` in debug-log header dumps <PRBadge url="https://github.com/superset-sh/superset/pull/3956" />
+- Replaced removed `codex --full-auto` flag in agent presets <PRBadge url="https://github.com/superset-sh/superset/pull/3947" />
