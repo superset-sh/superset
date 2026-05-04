@@ -27,16 +27,16 @@ import {
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
 import { cn } from "@superset/ui/utils";
+import { Plus } from "lucide-react";
 import { useMemo } from "react";
 import { LuGripVertical } from "react-icons/lu";
-import { Plus } from "lucide-react";
 import {
 	getPresetIcon,
 	useIsDarkTheme,
 } from "renderer/assets/app-icons/preset-icons";
 import {
-	settingsListItemClass,
 	SettingsListSidebar,
+	settingsListItemClass,
 } from "../../../../../components/SettingsListSidebar";
 
 interface AgentsSettingsSidebarProps {
@@ -200,20 +200,15 @@ function AgentSidebarRow({
 				className={settingsListItemClass(isActive, "gap-2 w-full text-left")}
 			>
 				{icon ? (
-					<img
-						src={icon}
-						alt=""
-						className="size-4 object-contain shrink-0"
-					/>
+					<img src={icon} alt="" className="size-4 object-contain shrink-0" />
 				) : null}
 				<span className="truncate flex-1">{row.label}</span>
 			</button>
-			<span
+			<button
+				type="button"
 				ref={setActivatorNodeRef}
 				{...attributes}
 				{...listeners}
-				role="button"
-				tabIndex={0}
 				className={cn(
 					"absolute right-1 top-1/2 -translate-y-1/2 p-0.5 rounded text-muted-foreground/60 hover:text-foreground hover:bg-accent cursor-grab active:cursor-grabbing",
 					"opacity-0 group-hover/row:opacity-100 focus-visible:opacity-100 transition-opacity",
@@ -222,7 +217,7 @@ function AgentSidebarRow({
 				aria-label="Drag to reorder"
 			>
 				<LuGripVertical className="size-3.5" />
-			</span>
+			</button>
 		</div>
 	);
 }
