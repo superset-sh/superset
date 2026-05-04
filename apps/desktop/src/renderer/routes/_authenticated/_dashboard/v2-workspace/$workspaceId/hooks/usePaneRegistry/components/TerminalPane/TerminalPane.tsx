@@ -167,19 +167,16 @@ export function TerminalPane({
 
 		void (async () => {
 			try {
-				const { initialCommandAccepted } =
-					await trpcClientRef.current.terminal.createSession.mutate({
-						terminalId,
-						workspaceId: workspaceIdRef.current,
-						themeType: initialThemeTypeRef.current,
-						initialCommand: pendingInitialCommand,
-						cols: dimensions?.cols,
-						rows: dimensions?.rows,
-					});
+				await trpcClientRef.current.terminal.createSession.mutate({
+					terminalId,
+					workspaceId: workspaceIdRef.current,
+					themeType: initialThemeTypeRef.current,
+					initialCommand: pendingInitialCommand,
+					cols: dimensions?.cols,
+					rows: dimensions?.rows,
+				});
 				if (cancelled) return;
-				if (pendingInitialCommand && initialCommandAccepted) {
-					markInitialCommandAccepted();
-				}
+				if (pendingInitialCommand) markInitialCommandAccepted();
 			} catch (error) {
 				if (cancelled) return;
 				const message =

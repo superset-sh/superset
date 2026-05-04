@@ -470,9 +470,8 @@ function resolveShellReady(
 function queueInitialCommand(
 	session: TerminalSession,
 	initialCommand: string,
-): boolean {
-	if (session.initialCommandQueued) return true;
-	if (session.exited) return false;
+): void {
+	if (session.initialCommandQueued || session.exited) return;
 	session.initialCommandQueued = true;
 	const cmd = initialCommand.endsWith("\n")
 		? initialCommand
@@ -482,7 +481,6 @@ function queueInitialCommand(
 			session.pty.write(cmd);
 		}
 	});
-	return true;
 }
 
 /**
