@@ -10,15 +10,8 @@ import {
 import { Input } from "@superset/ui/input";
 import { Label } from "@superset/ui/label";
 import { toast } from "@superset/ui/sonner";
-import { cn } from "@superset/ui/utils";
 import { useEffect, useState } from "react";
-import {
-	LuFolderOpen,
-	LuFolderPlus,
-	LuGitBranch,
-	LuLayoutTemplate,
-	LuLoaderCircle,
-} from "react-icons/lu";
+import { LuFolderOpen, LuLoaderCircle } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import {
@@ -27,42 +20,12 @@ import {
 } from "renderer/react-query/projects";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 
-type NewProjectMode = "clone" | "empty" | "template";
-
 interface NewProjectModalProps {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 	onSuccess?: (result: ProjectSetupResult) => void;
 	onError?: (message: string) => void;
 }
-
-const OPTIONS: {
-	mode: NewProjectMode;
-	label: string;
-	suffix?: string;
-	icon: typeof LuGitBranch;
-	disabled?: boolean;
-}[] = [
-	{
-		mode: "clone",
-		label: "Clone repository",
-		icon: LuGitBranch,
-	},
-	{
-		mode: "empty",
-		label: "Empty",
-		suffix: "(coming soon)",
-		icon: LuFolderPlus,
-		disabled: true,
-	},
-	{
-		mode: "template",
-		label: "Template",
-		suffix: "(coming soon)",
-		icon: LuLayoutTemplate,
-		disabled: true,
-	},
-];
 
 function deriveProjectNameFromUrl(url: string): string {
 	const trimmed = url
@@ -85,7 +48,6 @@ export function NewProjectModal({
 	const selectDirectory = electronTrpc.window.selectDirectory.useMutation();
 	const { data: homeDir } = electronTrpc.window.getHomeDir.useQuery();
 
-	const [mode, setMode] = useState<NewProjectMode>("clone");
 	const [parentDir, setParentDir] = useState("");
 	const [url, setUrl] = useState("");
 	const [working, setWorking] = useState(false);
@@ -173,51 +135,30 @@ export function NewProjectModal({
 		<Dialog open={open} onOpenChange={handleOpenChange}>
 			<DialogContent className="max-w-[420px]">
 				<DialogHeader>
-					<DialogTitle>New project</DialogTitle>
+					<DialogTitle>Clone a repository</DialogTitle>
 					<DialogDescription className="sr-only">
 						Create a new project by cloning a repository or local path.
 					</DialogDescription>
 				</DialogHeader>
 
 				<div className="flex flex-col gap-4">
-					<div className="grid grid-cols-3 gap-2">
-						{OPTIONS.map((option) => {
-							const selected = mode === option.mode;
-							const isDisabled = option.disabled || working;
-							return (
-								<button
-									key={option.mode}
-									type="button"
-									disabled={isDisabled}
-									onClick={() => setMode(option.mode)}
-									className={cn(
-										"flex flex-col items-center gap-2 rounded-lg border px-3 py-4 text-center transition-colors",
-										selected
-											? "border-primary/40 bg-primary/5"
-											: "border-border/60 bg-background",
-										!isDisabled &&
-											!selected &&
-											"hover:border-border hover:bg-accent/40",
-										isDisabled && "cursor-not-allowed opacity-50",
-									)}
-								>
-									<option.icon
-										className={cn(
-											"size-5",
-											selected ? "text-primary" : "text-muted-foreground",
-										)}
-									/>
-									<div className="flex flex-col items-center gap-0.5 text-xs font-medium leading-tight">
-										<span>{option.label}</span>
-										{option.suffix && (
-											<span className="text-[11px] font-normal text-muted-foreground">
-												{option.suffix}
-											</span>
-										)}
-									</div>
-								</button>
-							);
-						})}
+					<div className="flex flex-col gap-1.5">
+						<Label htmlFor="clone-url" className="text-xs">
+							Repository URL or path
+						</Label>
+						<Input
+							id="clone-url"
+							value={url}
+							onChange={(e) => setUrl(e.target.value)}
+							placeholder="https://github.com/owner/repo.git or /path/to/repo"
+							disabled={working}
+							onKeyDown={(e) => {
+								if (e.key === "Enter" && !working) {
+									void createFromClone();
+								}
+							}}
+							autoFocus
+						/>
 					</div>
 
 					<div className="flex flex-col gap-1.5">
@@ -245,27 +186,6 @@ export function NewProjectModal({
 							</Button>
 						</div>
 					</div>
-
-					{mode === "clone" && (
-						<div className="flex flex-col gap-1.5">
-							<Label htmlFor="clone-url" className="text-xs">
-								Repository URL or path
-							</Label>
-							<Input
-								id="clone-url"
-								value={url}
-								onChange={(e) => setUrl(e.target.value)}
-								placeholder="https://github.com/owner/repo.git or /path/to/repo"
-								disabled={working}
-								onKeyDown={(e) => {
-									if (e.key === "Enter" && !working) {
-										void createFromClone();
-									}
-								}}
-								autoFocus
-							/>
-						</div>
-					)}
 				</div>
 
 				<DialogFooter>
@@ -277,10 +197,7 @@ export function NewProjectModal({
 					>
 						Cancel
 					</Button>
-					<Button
-						onClick={() => void createFromClone()}
-						disabled={working || mode !== "clone"}
-					>
+					<Button onClick={() => void createFromClone()} disabled={working}>
 						{working ? (
 							<>
 								<LuLoaderCircle className="size-4 animate-spin" />
