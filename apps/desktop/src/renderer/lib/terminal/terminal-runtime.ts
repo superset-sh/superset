@@ -4,9 +4,9 @@ import type { SearchAddon } from "@xterm/addon-search";
 import { SerializeAddon } from "@xterm/addon-serialize";
 import { Terminal as XTerm } from "@xterm/xterm";
 import { DEFAULT_TERMINAL_SCROLLBACK } from "shared/constants";
+import { setupClickToMoveCursor } from "../../screens/main/components/WorkspaceView/ContentView/TabsContent/Terminal/helpers";
 import type { TerminalAppearance } from "./appearance";
 import { loadAddons } from "./terminal-addons";
-import { setupClickToMoveCursor } from "./terminal-click-to-move";
 import { installTerminalKeyEventHandler } from "./terminal-key-event-handler";
 import { getTerminalParkingContainer } from "./terminal-parking";
 
