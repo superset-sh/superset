@@ -12,7 +12,8 @@ import { useMigrateV1PresetsToV2 } from "renderer/routes/_authenticated/hooks/us
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import type { V2TerminalPresetRow } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
 import type { PresetColumnKey } from "renderer/routes/_authenticated/settings/presets/types";
-import { PresetEditorSheet } from "../PresetsSection/components/PresetEditorSheet";
+import { PresetEditorDialog } from "../PresetsSection/components/PresetEditorDialog";
+
 import { PresetsTable } from "../PresetsSection/components/PresetsTable";
 import { QuickAddPresets } from "../PresetsSection/components/QuickAddPresets";
 import {
@@ -33,7 +34,7 @@ interface V2PresetsSectionProps {
 
 /**
  * V2 clone of PresetsSection wired to the renderer-side v2TerminalPresets
- * collection. Reuses PresetsTable / PresetEditorSheet / QuickAddPresets from
+ * collection. Reuses PresetsTable / PresetEditorDialog / QuickAddPresets from
  * the v1 directory (they're prop-driven renderers). When v1 is deprecated,
  * delete PresetsSection and move the shared sub-components here.
  */
@@ -559,7 +560,7 @@ export function V2PresetsSection({
 				)}
 			</div>
 
-			<PresetEditorSheet
+			<PresetEditorDialog
 				preset={editingPreset}
 				projects={projectOptions}
 				open={!!editingPreset}
