@@ -343,6 +343,27 @@ async function fixNativeBinariesForNode(
 		);
 		rmSync(nodePtyBuild, { recursive: true, force: true });
 	}
+
+	// node-pty's `prebuilds/darwin-{arch}/spawn-helper` ships from npm with
+	// mode 0644. node-pty posix_spawnp's it as the actual fork helper at
+	// terminal-open time — without +x the kernel returns EACCES and the
+	// failure surfaces only as the cryptic "posix_spawnp failed" with no
+	// errno. The normal install path runs `npm rebuild` which fixes the
+	// mode; we ship raw prebuilds so we have to fix it ourselves.
+	if (platform === "darwin") {
+		const { arch } = targetParts(target);
+		const spawnHelper = join(
+			destModules,
+			"node-pty",
+			"prebuilds",
+			`darwin-${arch}`,
+			"spawn-helper",
+		);
+		if (existsSync(spawnHelper)) {
+			console.log(`[build-dist] chmod +x ${spawnHelper}`);
+			chmodSync(spawnHelper, 0o755);
+		}
+	}
 }
 
 async function buildCli(target: Target, outputPath: string): Promise<void> {

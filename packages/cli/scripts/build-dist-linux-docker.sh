@@ -62,17 +62,42 @@ docker run --rm --platform "$PLATFORM" \
     cd packages/cli
     bun run build:dist --target="$TARGET"
 
-    DIST="./dist/superset-${TARGET}"
+    DIST="$(pwd)/dist/superset-${TARGET}"
     "$DIST/bin/superset" --version
     "$DIST/bin/superset" --help | head -5
     "$DIST/lib/node" --version
     test -f "$DIST/lib/host-service.js" || (echo "missing host-service.js" >&2; exit 1)
     test -f "$DIST/lib/pty-daemon.js" || (echo "missing pty-daemon.js" >&2; exit 1)
+    # Run from /tmp so Node module resolution does not walk up into the
+    # repo and leak into a non-bundled node-pty (host-tree shadowing).
+    cd /tmp
     NODE_PATH="$DIST/lib/node_modules" "$DIST/lib/node" -e "
       for (const m of [\"better-sqlite3\", \"node-pty\", \"@parcel/watcher\", \"libsql\"]) {
         require(m);
         console.log(m, \"OK\");
       }
+    "
+    NODE_PATH="$DIST/lib/node_modules" DIST="$DIST" "$DIST/lib/node" -e "
+      const resolved = require.resolve(\"node-pty/lib/unixTerminal\");
+      if (!resolved.startsWith(process.env.DIST)) {
+        console.error(\"node-pty leaked from non-bundled tree:\", resolved);
+        process.exit(1);
+      }
+      const pty = require(\"node-pty\");
+      const term = pty.spawn(\"/bin/sh\", [\"-c\", \"echo SPAWN_OK\"], {
+        name: \"xterm\", cols: 80, rows: 24,
+        cwd: process.env.HOME || \"/\", env: process.env,
+      });
+      let got = \"\";
+      term.onData((d) => { got += d.toString(); });
+      term.onExit((e) => {
+        if (got.includes(\"SPAWN_OK\") && e.exitCode === 0) {
+          console.log(\"pty spawn OK\"); process.exit(0);
+        }
+        console.error(\"pty spawn FAIL exit=\" + e.exitCode + \" got=\" + JSON.stringify(got));
+        process.exit(1);
+      });
+      setTimeout(() => { console.error(\"pty spawn timeout\"); process.exit(1); }, 5000);
     "
     echo "[docker-build] tarball: $(ls -la dist/superset-${TARGET}.tar.gz)"
   '
