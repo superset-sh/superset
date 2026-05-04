@@ -1,7 +1,4 @@
-interface Parser {
-	parse: (raw: string) => unknown;
-	stringify: (value: unknown) => string;
-}
+import type { Parser } from "@tanstack/react-db";
 
 /**
  * `@tanstack/db`'s `localStorageCollectionOptions` only runs the configured

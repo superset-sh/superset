@@ -84,7 +84,11 @@ describe("healWorkspaceLocalState", () => {
 		const healed = healWorkspaceLocalState(baseStored);
 		expect(healed.workspaceId).toBe(baseStored.workspaceId);
 		expect(healed.createdAt).toBe(baseStored.createdAt);
-		expect(healed.paneLayout).toBe(baseStored.paneLayout);
+		// Reference equality — bun's strict toBe types reject the narrow stub,
+		// so compare via Object.is on a widened lhs and assert the boolean.
+		expect(Object.is(healed.paneLayout as unknown, baseStored.paneLayout)).toBe(
+			true,
+		);
 		expect(healed.sidebarState.projectId).toBe(
 			baseStored.sidebarState.projectId,
 		);

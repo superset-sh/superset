@@ -650,7 +650,9 @@ function createOrgCollections(organizationId: string): OrgCollections {
 					id: `v2_workspace_local_state-${organizationId}`,
 					storageKey: `v2-workspace-local-state-${organizationId}`,
 					schema: workspaceLocalStateSchema,
-					getKey: (item) => item.workspaceId,
+					// Explicit type so `withReadHeal`'s passthrough generic keeps the
+					// linkage between schema and getKey for downstream inference.
+					getKey: (item: WorkspaceLocalStateRow) => item.workspaceId,
 				},
 				healWorkspaceLocalState,
 			),
@@ -684,8 +686,9 @@ function createOrgCollections(organizationId: string): OrgCollections {
 					schema: v2UserPreferencesSchema,
 					// Cast widens the inferred literal "preferences" key to string so
 					// the collection slots into the shared OrgCollections.{...<TKey=string>}
-					// shape alongside the other v2 collections.
-					getKey: (item) => item.id as string,
+					// shape alongside the other v2 collections. Explicit `item` type so
+					// `withReadHeal`'s passthrough generic keeps schema/getKey linkage.
+					getKey: (item: V2UserPreferencesRow) => item.id as string,
 				},
 				healV2UserPreferences,
 			),

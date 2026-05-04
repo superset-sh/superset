@@ -8,7 +8,9 @@ import {
 	healV2UserPreferences,
 	healWorkspaceLocalState,
 	V2_USER_PREFERENCES_ID,
+	type V2UserPreferencesRow,
 	v2UserPreferencesSchema,
+	type WorkspaceLocalStateRow,
 	workspaceLocalStateSchema,
 } from "./dashboardSidebarLocal";
 import { withReadHeal } from "./withReadHeal";
@@ -37,14 +39,17 @@ const noopEvents = {
 describe("withReadHeal parser", () => {
 	it("heals each entry's data through the heal fn while preserving the envelope", () => {
 		const heal = (raw: unknown) => ({ ...(raw as object), healed: true });
-		const opts = withReadHeal({}, heal);
+		const opts = withReadHeal(
+			{} as { parser?: { parse: (s: string) => unknown } },
+			heal,
+		);
 		const raw = JSON.stringify({
 			"s:foo": { versionKey: "v1", data: { a: 1 } },
 			"s:bar": { versionKey: "v2", data: { b: 2 } },
 		});
 		const parsed = opts.parser?.parse(raw) as Record<
 			string,
-			{ versionKey: string; data: { healed: boolean } }
+			{ versionKey: string; data: Record<string, unknown> }
 		>;
 		expect(parsed["s:foo"]?.versionKey).toBe("v1");
 		expect(parsed["s:foo"]?.data).toEqual({ a: 1, healed: true });
@@ -55,7 +60,10 @@ describe("withReadHeal parser", () => {
 		const heal = () => {
 			throw new Error("should not be called for non-envelope values");
 		};
-		const opts = withReadHeal({}, heal);
+		const opts = withReadHeal(
+			{} as { parser?: { parse: (s: string) => unknown } },
+			heal,
+		);
 		const raw = JSON.stringify({ "s:foo": "string-not-an-envelope" });
 		const parsed = opts.parser?.parse(raw) as Record<string, unknown>;
 		expect(parsed["s:foo"]).toBe("string-not-an-envelope");
@@ -90,7 +98,7 @@ describe("withReadHeal end-to-end via real localStorageCollectionOptions", () =>
 						id: "test-prefs",
 						storageKey: "test-prefs",
 						schema: v2UserPreferencesSchema,
-						getKey: (item) => item.id as string,
+						getKey: (item: V2UserPreferencesRow) => item.id as string,
 						storage,
 						storageEventApi: noopEvents,
 					},
@@ -174,7 +182,7 @@ describe("withReadHeal end-to-end via real localStorageCollectionOptions", () =>
 						id: "test-wls",
 						storageKey: "test-wls",
 						schema: workspaceLocalStateSchema,
-						getKey: (item) => item.workspaceId,
+						getKey: (item: WorkspaceLocalStateRow) => item.workspaceId,
 						storage,
 						storageEventApi: noopEvents,
 					},
