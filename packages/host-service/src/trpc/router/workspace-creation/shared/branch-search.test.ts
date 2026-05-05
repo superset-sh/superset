@@ -5,9 +5,9 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import simpleGit, { type SimpleGit } from "simple-git";
 import {
-	collectWorktreesFromGit,
 	findWorktreeAtPath,
 	getWorktreeBranchAtPath,
+	listWorktreeBranches,
 } from "./branch-search";
 
 async function initRepo(path: string): Promise<SimpleGit> {
@@ -77,7 +77,7 @@ function parsePorcelain(raw: string): Map<string, string> {
 	return out;
 }
 
-describe("collectWorktreesFromGit vs raw git worktree list", () => {
+describe("listWorktreeBranches vs raw git worktree list", () => {
 	let root: string;
 	let repo: string;
 	let managedRoot: string;
@@ -100,7 +100,6 @@ describe("collectWorktreesFromGit vs raw git worktree list", () => {
 	});
 
 	test("includes every branch git worktree list reports", async () => {
-		// One worktree under the managed root, one outside it.
 		await git.raw([
 			"worktree",
 			"add",
@@ -120,27 +119,19 @@ describe("collectWorktreesFromGit vs raw git worktree list", () => {
 
 		const raw = await git.raw(["worktree", "list", "--porcelain"]);
 		const fromGit = parsePorcelain(raw);
-
-		const { worktreeMap, checkedOutBranches } =
-			await collectWorktreesFromGit(git);
+		const { worktreeMap, checkedOutBranches } = await listWorktreeBranches(git);
 
 		// Sanity: git itself sees all three branches (main + both worktrees).
 		expect([...fromGit.keys()].sort()).toEqual(
 			["foreign-feat", "main", "managed-feat"].sort(),
 		);
 
-		// `checkedOutBranches` is supposed to mirror git's view — used to
-		// gate the Checkout action — so it must include every branch that
-		// has a worktree, regardless of where the worktree lives.
 		expect([...checkedOutBranches].sort()).toEqual(
 			["foreign-feat", "main", "managed-feat"].sort(),
 		);
 
-		// And the worktreeMap should mirror git's view exactly — same
-		// branches AND same paths. Comparing full entries (not just
-		// keys) catches the case where a branch is present but the
-		// path got mangled, which would still let stale or wrong paths
-		// surface in the picker.
+		// Compare full entries, not just keys — a regression that mangled
+		// the path while preserving the branch name would otherwise pass.
 		const sortEntries = (m: Map<string, string>) =>
 			[...m.entries()].sort(([a], [b]) => a.localeCompare(b));
 		expect(sortEntries(worktreeMap)).toEqual(sortEntries(fromGit));

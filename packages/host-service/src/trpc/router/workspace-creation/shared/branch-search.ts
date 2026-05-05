@@ -1,4 +1,3 @@
-import type { HostServiceContext } from "../../../../types";
 import type { GitClient } from "./types";
 import { listGitWorktrees, normalizeWorktreePath } from "./worktree-list";
 
@@ -40,28 +39,11 @@ export function markRefetchRemote(projectId: string): void {
 	lastRemoteRefetch.set(projectId, Date.now());
 }
 
-export async function listWorktreeBranches(
-	_ctx: HostServiceContext,
-	git: GitClient,
-	_projectId: string,
-): Promise<{
-	// Every branch with a worktree git knows about — no gating on managed
-	// root or workspace rows. Foreign worktrees (user ran `git worktree
-	// add` themselves) surface here too so the v2 branch search shows
-	// everything git would.
-	worktreeMap: Map<string, string>;
-	// Every branch checked out in any git worktree, including the primary
-	// working tree. Used to disable the Checkout action when a branch is
-	// already in use elsewhere — `git worktree add <path> <branch>` would fail.
-	checkedOutBranches: Set<string>;
-}> {
-	return collectWorktreesFromGit(git);
-}
-
-// Exported for tests. Returns every branch-bearing worktree git knows
-// about. Built on the shared `parseWorktreeList` parser — do not add a
-// second porcelain parser here; extend `worktree-list.ts` instead.
-export async function collectWorktreesFromGit(git: GitClient): Promise<{
+// No gating on managed root or workspaces table — foreign worktrees
+// (user ran `git worktree add` themselves) surface too, so the v2
+// picker shows everything git would. `checkedOutBranches` is used to
+// disable Checkout when a branch is already in use elsewhere.
+export async function listWorktreeBranches(git: GitClient): Promise<{
 	worktreeMap: Map<string, string>;
 	checkedOutBranches: Set<string>;
 }> {

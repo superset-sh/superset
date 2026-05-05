@@ -50,11 +50,7 @@ export const searchBranches = protectedProcedure
 		}
 
 		const defaultBranch = await resolveDefaultBranchName(git);
-		const { worktreeMap, checkedOutBranches } = await listWorktreeBranches(
-			ctx,
-			git,
-			input.projectId,
-		);
+		const { worktreeMap, checkedOutBranches } = await listWorktreeBranches(git);
 		const recencyMap = await getRecentBranchOrder(git, 30);
 
 		// Branches that already have a workspace row on this host. The
