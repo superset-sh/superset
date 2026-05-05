@@ -62,6 +62,6 @@ If `ports.json` is malformed:
 
 ## Discovery and Updates
 
-Port discovery runs in each host service, not in the desktop renderer. The host service watches terminal process trees, scans for listening ports, resolves any matching port label, and publishes `port:changed` events when ports appear or disappear.
+Port discovery runs in each host server, not in the desktop renderer. The host server watches terminal process trees, scans for listening ports, resolves any matching port label, and publishes `port:changed` events when ports appear or disappear.
 
 The desktop sidebar keeps one ports query per online host. It patches that cached host snapshot from port events, batching bursts so updates stay responsive without refetching every time a port changes. A slower fallback refetch still runs so the UI recovers if an event is missed during reconnect.

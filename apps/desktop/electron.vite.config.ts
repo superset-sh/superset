@@ -111,6 +111,9 @@ export default defineConfig({
 					"git-task-worker": resolve("src/main/git-task-worker.ts"),
 					// Workspace service - local HTTP/tRPC server per org
 					"host-service": resolve("src/main/host-service/index.ts"),
+					// pty-daemon - long-lived per-org Unix-socket server that owns PTYs.
+					// Spawned by PtyDaemonCoordinator; survives host-service restarts.
+					"pty-daemon": resolve("src/main/pty-daemon/index.ts"),
 				},
 				output: {
 					dir: resolve(devPath, "main"),

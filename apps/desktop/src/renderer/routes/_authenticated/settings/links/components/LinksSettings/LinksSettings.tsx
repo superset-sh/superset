@@ -1,7 +1,7 @@
 import { toast } from "@superset/ui/sonner";
 import { useCallback } from "react";
 import { useV2UserPreferences } from "renderer/hooks/useV2UserPreferences";
-import type { LinkTierMap } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal/schema";
+import type { LinkTierMap } from "renderer/lib/clickPolicy";
 import {
 	isItemVisible,
 	SETTING_ITEM_ID,
@@ -14,10 +14,15 @@ interface LinksSettingsProps {
 }
 
 export function LinksSettings({ visibleItems }: LinksSettingsProps) {
-	const { preferences, setFileLinks, setUrlLinks } = useV2UserPreferences();
+	const { preferences, setFileLinks, setUrlLinks, setSidebarFileLinks } =
+		useV2UserPreferences();
 
 	const showFile = isItemVisible(SETTING_ITEM_ID.LINKS_FILE, visibleItems);
 	const showUrl = isItemVisible(SETTING_ITEM_ID.LINKS_URL, visibleItems);
+	const showSidebar = isItemVisible(
+		SETTING_ITEM_ID.LINKS_SIDEBAR_FILE,
+		visibleItems,
+	);
 
 	const handleFileChange = useCallback(
 		(next: LinkTierMap) => {
@@ -35,17 +40,36 @@ export function LinksSettings({ visibleItems }: LinksSettingsProps) {
 		[setUrlLinks],
 	);
 
+	const handleSidebarChange = useCallback(
+		(next: LinkTierMap) => {
+			setSidebarFileLinks(next);
+			toast.success("Changes saved");
+		},
+		[setSidebarFileLinks],
+	);
+
 	return (
 		<div className="p-6 max-w-4xl w-full">
 			<div className="mb-8">
 				<h2 className="text-xl font-semibold">Links</h2>
 				<p className="text-sm text-muted-foreground mt-1">
-					Control how file paths and URLs open when clicked in terminals, chat,
-					and tasks. ⌘⇧-click only applies in the terminal.
+					Control what each click — plain or with a modifier — does to a file or
+					URL. Each row binds one modifier combination to an action.
 				</p>
 			</div>
 
 			<div className="space-y-6">
+				{showSidebar && (
+					<LinkTierMapper
+						title="Sidebar file rows"
+						description="Applies to the file tree, changes list, diff header, and port badges."
+						value={preferences.sidebarFileLinks}
+						onChange={handleSidebarChange}
+						idPrefix="links-sidebar-file"
+						surface="file"
+					/>
+				)}
+
 				{showFile && (
 					<LinkTierMapper
 						title="File links"
@@ -53,24 +77,18 @@ export function LinksSettings({ visibleItems }: LinksSettingsProps) {
 						value={preferences.fileLinks}
 						onChange={handleFileChange}
 						idPrefix="links-file"
-						actionLabels={{
-							pane: "File viewer",
-							external: "External editor",
-						}}
+						surface="file"
 					/>
 				)}
 
 				{showUrl && (
 					<LinkTierMapper
 						title="URL links"
-						description="Applies to URLs in terminals, chat messages, and task markdown."
+						description="Applies to URLs in terminals, chat messages, and task browsers."
 						value={preferences.urlLinks}
 						onChange={handleUrlChange}
 						idPrefix="links-url"
-						actionLabels={{
-							pane: "In-app browser",
-							external: "Browser",
-						}}
+						surface="url"
 					/>
 				)}
 			</div>

@@ -211,6 +211,16 @@ function findEdgePaneId(
 	return findEdgePaneId(node[alignedBranch], dir, rest);
 }
 
+export function getPaneParentDirection(
+	root: LayoutNode,
+	paneId: string,
+): SplitDirection | null {
+	const path = findPanePath(root, paneId);
+	if (!path || path.length === 0) return null;
+	const parent = getNodeAtPath(root, path.slice(0, -1));
+	return parent && parent.type === "split" ? parent.direction : null;
+}
+
 export function getSpatialNeighborPaneId(
 	root: LayoutNode,
 	paneId: string,

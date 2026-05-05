@@ -37,7 +37,7 @@ import { common, createLowlight } from "lowlight";
 import { useEffect, useRef } from "react";
 import { BubbleMenuToolbar } from "renderer/components/MarkdownRenderer/components/TipTapMarkdownRenderer/components/BubbleMenuToolbar";
 import { env } from "renderer/env.renderer";
-import { useInlineLinkActions } from "renderer/hooks/useV2UserPreferences";
+import { useInlineUrlPolicy } from "renderer/lib/clickPolicy";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import { Markdown } from "tiptap-markdown";
 import { CodeBlockView } from "./components/CodeBlockView";
@@ -183,7 +183,7 @@ export function MarkdownEditor({
 	searchFilesRef.current = searchFiles;
 	const editorRef = useRef<Editor | null>(null);
 
-	const { getUrlAction } = useInlineLinkActions();
+	const urlPolicy = useInlineUrlPolicy();
 
 	const editor = useEditor({
 		autofocus: autoFocus ? "end" : false,
@@ -339,7 +339,7 @@ export function MarkdownEditor({
 				// No pane context here, so "pane" and "external" both route to the
 				// system browser. Null means do nothing — fall through to ProseMirror
 				// so the user can still click into the link to place a cursor.
-				if (getUrlAction(event) === null) return false;
+				if (urlPolicy.getAction(event) === null) return false;
 				event.preventDefault();
 				electronTrpcClient.external.openUrl.mutate(href).catch((error) => {
 					console.error("[MarkdownEditor] Failed to open URL:", href, error);

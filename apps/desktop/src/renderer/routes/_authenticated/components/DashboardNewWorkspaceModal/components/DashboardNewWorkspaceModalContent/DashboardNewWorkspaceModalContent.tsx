@@ -57,7 +57,7 @@ export function DashboardNewWorkspaceModalContent({
 		[collections],
 	);
 
-	const setUpProjectIds = useSelectedHostProjectIds(draft.hostTarget);
+	const setUpProjectIds = useSelectedHostProjectIds(draft.hostId);
 
 	const recentProjects = useMemo(() => {
 		const repoById = new Map(
@@ -72,6 +72,7 @@ export function DashboardNewWorkspaceModalContent({
 				name: project.name,
 				githubOwner: repo?.owner ?? null,
 				githubRepoName: repo?.name ?? null,
+				iconUrl: project.iconUrl,
 				needsSetup:
 					setUpProjectIds === null ? null : !setUpProjectIds.has(project.id),
 			};
@@ -80,27 +81,22 @@ export function DashboardNewWorkspaceModalContent({
 
 	const areProjectsReady = v2Projects !== undefined;
 	const appliedPreSelectionRef = useRef<string | null>(null);
-	const appliedHostTargetRef = useRef(false);
+	const appliedHostIdRef = useRef(false);
+	const hasInitializedSelectionRef = useRef(false);
 
 	useEffect(() => {
 		if (!isOpen) {
 			appliedPreSelectionRef.current = null;
-			appliedHostTargetRef.current = false;
+			appliedHostIdRef.current = false;
+			hasInitializedSelectionRef.current = false;
 			return;
 		}
-		if (appliedHostTargetRef.current) return;
-		appliedHostTargetRef.current = true;
-		const persistedHostTarget =
-			useV2WorkspaceCreateDefaultsStore.getState().lastHostTarget;
-		const validHostTarget =
-			persistedHostTarget?.kind === "local"
-				? persistedHostTarget
-				: persistedHostTarget?.kind === "host" &&
-						typeof persistedHostTarget.hostId === "string"
-					? persistedHostTarget
-					: null;
-		if (validHostTarget) {
-			updateDraft({ hostTarget: validHostTarget });
+		if (appliedHostIdRef.current) return;
+		appliedHostIdRef.current = true;
+		const persistedHostId =
+			useV2WorkspaceCreateDefaultsStore.getState().lastHostId;
+		if (typeof persistedHostId === "string") {
+			updateDraft({ hostId: persistedHostId });
 		}
 	}, [isOpen, updateDraft]);
 
@@ -117,6 +113,7 @@ export function DashboardNewWorkspaceModalContent({
 			);
 			if (hasPreSelectedProject) {
 				appliedPreSelectionRef.current = preSelectedProjectId;
+				hasInitializedSelectionRef.current = true;
 				if (preSelectedProjectId !== draft.selectedProjectId) {
 					updateDraft({ selectedProjectId: preSelectedProjectId });
 				}
@@ -125,6 +122,15 @@ export function DashboardNewWorkspaceModalContent({
 		}
 
 		if (!areProjectsReady) return;
+		// Wait for org context. Without it, v2Projects is filtered by an empty
+		// org id and resolves to []; initializing here would lock in a null
+		// selection before the real project list arrives.
+		if (activeOrganizationId === null) return;
+
+		// Only auto-pick a default once. After init, leave the user's selection
+		// alone — including freshly created projects that may not be in the live
+		// query yet (they'll appear momentarily and the picker will show them).
+		if (hasInitializedSelectionRef.current) return;
 
 		const hasSelectedProject = recentProjects.some(
 			(project) => project.id === draft.selectedProjectId,
@@ -140,9 +146,11 @@ export function DashboardNewWorkspaceModalContent({
 				selectedProjectId: persistedProjectId ?? recentProjects[0]?.id ?? null,
 			});
 		}
+		hasInitializedSelectionRef.current = true;
 	}, [
 		draft.selectedProjectId,
 		areProjectsReady,
+		activeOrganizationId,
 		isOpen,
 		preSelectedProjectId,
 		recentProjects,

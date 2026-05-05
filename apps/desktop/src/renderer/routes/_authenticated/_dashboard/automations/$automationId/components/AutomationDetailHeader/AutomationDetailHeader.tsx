@@ -8,7 +8,7 @@ import {
 } from "@superset/ui/breadcrumb";
 import { Button } from "@superset/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
-import { LuPause, LuPlay, LuTrash2 } from "react-icons/lu";
+import { LuClock, LuPause, LuPlay, LuTrash2 } from "react-icons/lu";
 
 interface AutomationDetailHeaderProps {
 	name: string;
@@ -17,6 +17,7 @@ interface AutomationDetailHeaderProps {
 	onToggleEnabled: () => void;
 	onDelete: () => void;
 	onRunNow: () => void;
+	onOpenHistory: () => void;
 	toggleDisabled?: boolean;
 	deleteDisabled?: boolean;
 	runNowDisabled?: boolean;
@@ -29,6 +30,7 @@ export function AutomationDetailHeader({
 	onToggleEnabled,
 	onDelete,
 	onRunNow,
+	onOpenHistory,
 	toggleDisabled,
 	deleteDisabled,
 	runNowDisabled,
@@ -50,6 +52,19 @@ export function AutomationDetailHeader({
 			</Breadcrumb>
 
 			<div className="flex items-center gap-2">
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<Button
+							variant="ghost"
+							size="icon"
+							onClick={onOpenHistory}
+							aria-label="Version history"
+						>
+							<LuClock className="size-4" />
+						</Button>
+					</TooltipTrigger>
+					<TooltipContent>Version history</TooltipContent>
+				</Tooltip>
 				<Tooltip>
 					<TooltipTrigger asChild>
 						<Button

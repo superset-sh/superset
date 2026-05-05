@@ -5,19 +5,38 @@ export default command({
 	description: "Delete tasks",
 	args: [positional("ids").required().variadic().desc("Task IDs or slugs")],
 	run: async ({ ctx, args }) => {
-		// Required variadic positional — framework guarantees non-empty at runtime
 		const ids = args.ids as string[];
+		const deleted: string[] = [];
+		const failed: { id: string; reason: string }[] = [];
+
 		for (const idOrSlug of ids) {
-			const task = await ctx.api.task.bySlug.query(idOrSlug);
-			if (!task) throw new CLIError(`Task not found: ${idOrSlug}`);
-			await ctx.api.task.delete.mutate(task.id);
+			try {
+				const task = await ctx.api.task.byIdOrSlug.query(idOrSlug);
+				if (!task) {
+					failed.push({ id: idOrSlug, reason: "not found" });
+					continue;
+				}
+				await ctx.api.task.delete.mutate(task.id);
+				deleted.push(idOrSlug);
+			} catch (error) {
+				failed.push({
+					id: idOrSlug,
+					reason: error instanceof Error ? error.message : "unknown error",
+				});
+			}
 		}
+
+		if (failed.length > 0) {
+			const summary = `Deleted ${deleted.length}/${ids.length}; ${failed.length} failed (${failed.map((f) => `${f.id}: ${f.reason}`).join("; ")})`;
+			throw new CLIError(summary);
+		}
+
 		return {
-			data: { count: ids.length, ids },
+			data: { deleted, failed },
 			message:
-				ids.length === 1
-					? `Deleted task ${ids[0]}`
-					: `Deleted ${ids.length} tasks`,
+				deleted.length === 1
+					? `Deleted task ${deleted[0]}`
+					: `Deleted ${deleted.length} tasks`,
 		};
 	},
 });

@@ -1,9 +1,11 @@
+import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
 	isItemVisible,
 	SETTING_ITEM_ID,
 	type SettingItemId,
 } from "../../../utils/settings-search";
+import { V2AgentsSettings } from "../V2AgentsSettings";
 import { AgentCard } from "./components/AgentCard";
 
 interface AgentsSettingsProps {
@@ -11,6 +13,14 @@ interface AgentsSettingsProps {
 }
 
 export function AgentsSettings({ visibleItems }: AgentsSettingsProps) {
+	const { isV2CloudEnabled } = useIsV2CloudEnabled();
+	if (isV2CloudEnabled) {
+		return <V2AgentsSettings />;
+	}
+	return <V1AgentsSettings visibleItems={visibleItems} />;
+}
+
+function V1AgentsSettings({ visibleItems }: AgentsSettingsProps) {
 	const { data: presets = [], isLoading } =
 		electronTrpc.settings.getAgentPresets.useQuery();
 
@@ -28,7 +38,7 @@ export function AgentsSettings({ visibleItems }: AgentsSettingsProps) {
 	);
 
 	return (
-		<div className="p-6 max-w-5xl w-full">
+		<div className="p-6 max-w-5xl w-full mx-auto">
 			<div className="mb-8">
 				<h2 className="text-xl font-semibold">Agents</h2>
 				<p className="text-sm text-muted-foreground mt-1">

@@ -1,5 +1,6 @@
 import {
 	type FocusDirection,
+	getPaneParentDirection,
 	getSpatialNeighborPaneId,
 	type PaneRegistry,
 	type WorkspaceStore,
@@ -200,10 +201,15 @@ export function useWorkspaceHotkeys({
 		const state = store.getState();
 		const active = state.getActivePane();
 		if (!active) return;
+		const tab = state.getActiveTab();
+		const parentDirection = tab
+			? getPaneParentDirection(tab.layout, active.pane.id)
+			: null;
+		const position = parentDirection === "horizontal" ? "bottom" : "right";
 		state.splitPane({
 			tabId: active.tabId,
 			paneId: active.pane.id,
-			position: "right",
+			position,
 			newPane: {
 				kind: "terminal",
 				data: { terminalId: crypto.randomUUID() } as TerminalPaneData,

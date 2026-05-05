@@ -25,6 +25,13 @@ const KEYWORD_SEARCH_CANDIDATE_MULTIPLIER = 4;
 const KEYWORD_SEARCH_MAX_COUNT_PER_FILE = 3;
 const KEYWORD_SEARCH_RIPGREP_BUFFER_BYTES = 10 * 1024 * 1024;
 
+// Both the FsWatcherManager and the search-index `fast-glob` walk consume this
+// list. Patterns matched here are not just hidden from consumers — on Linux
+// they're applied at watch-creation time by @parcel/watcher, so no inotify
+// watches are installed for matched dirs. That's the main lever against
+// ENOSPC (inotify watch limit). On macOS FSEvents these are userspace-only
+// filters; the kernel still queues events for ignored paths but consumers
+// never see them.
 export const DEFAULT_IGNORE_PATTERNS = [
 	"**/node_modules/**",
 	"**/.git/**",
@@ -33,6 +40,14 @@ export const DEFAULT_IGNORE_PATTERNS = [
 	"**/.next/**",
 	"**/.turbo/**",
 	"**/coverage/**",
+	"**/.cache/**",
+	"**/.parcel-cache/**",
+	"**/.vite/**",
+	"**/.svelte-kit/**",
+	"**/.vercel/**",
+	"**/target/**",
+	"**/out/**",
+	"**/*.tsbuildinfo",
 ];
 
 interface SearchIndexEntry {
@@ -97,8 +112,29 @@ export interface SearchContentOptions {
 	) => Promise<{ stdout: string }>;
 }
 
-const searchIndexCache = new Map<string, SearchIndexEntry[]>();
+// LRU + idle-TTL on the index cache: bound JS heap as worktree count grows.
+// Inactive worktrees pay a fresh fast-glob walk on next search (~50–200 ms
+// for a 5k-file repo) — cheap relative to keeping every index resident.
+const SEARCH_INDEX_CACHE_MAX = 12;
+const SEARCH_INDEX_CACHE_TTL_MS = 30 * 60_000;
+
+interface CachedIndex {
+	items: SearchIndexEntry[];
+	lastAccessedAt: number;
+}
+
+const searchIndexCache = new Map<string, CachedIndex>();
 const searchIndexBuilds = new Map<string, Promise<SearchIndexEntry[]>>();
+
+function evictLruSearchIndexEntries(): void {
+	// Map iteration is insertion-order; re-inserting on hit moves an entry to
+	// the end, so the first key is least-recently-used.
+	while (searchIndexCache.size >= SEARCH_INDEX_CACHE_MAX) {
+		const oldestKey = searchIndexCache.keys().next().value;
+		if (!oldestKey) break;
+		searchIndexCache.delete(oldestKey);
+	}
+}
 
 function createSearchIndexEntry(
 	rootPath: string,
@@ -276,7 +312,14 @@ export async function getSearchIndex(
 
 	const cached = searchIndexCache.get(cacheKey);
 	if (cached) {
-		return cached;
+		// TTL is the freshness contract — bypassing it on hits would let a hot
+		// key serve indefinitely-stale data. Memory is already bounded by LRU.
+		searchIndexCache.delete(cacheKey);
+		if (Date.now() - cached.lastAccessedAt <= SEARCH_INDEX_CACHE_TTL_MS) {
+			cached.lastAccessedAt = Date.now();
+			searchIndexCache.set(cacheKey, cached); // re-insert at MRU position
+			return cached.items;
+		}
 	}
 
 	const inFlight = searchIndexBuilds.get(cacheKey);
@@ -286,7 +329,11 @@ export async function getSearchIndex(
 
 	const buildPromise = buildSearchIndex(options)
 		.then((items) => {
-			searchIndexCache.set(cacheKey, items);
+			evictLruSearchIndexEntries();
+			searchIndexCache.set(cacheKey, {
+				items,
+				lastAccessedAt: Date.now(),
+			});
 			searchIndexBuilds.delete(cacheKey);
 			return items;
 		})
@@ -701,7 +748,7 @@ export function patchSearchIndexesForRoot(
 		}
 
 		const nextItemsByPath = new Map(
-			cached.map((item) => [item.absolutePath, item]),
+			cached.items.map((item) => [item.absolutePath, item]),
 		);
 		for (const event of events) {
 			applySearchPatchEvent({
@@ -712,7 +759,12 @@ export function patchSearchIndexesForRoot(
 			});
 		}
 
-		searchIndexCache.set(cacheKey, Array.from(nextItemsByPath.values()));
+		// Patches imply the worktree is alive — bump to MRU and refresh access time.
+		searchIndexCache.delete(cacheKey);
+		searchIndexCache.set(cacheKey, {
+			items: Array.from(nextItemsByPath.values()),
+			lastAccessedAt: Date.now(),
+		});
 	}
 }
 

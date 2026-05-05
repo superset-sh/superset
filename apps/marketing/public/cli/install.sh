@@ -52,7 +52,7 @@ download_tarball() {
     tarball="superset-${target}.tar.gz"
 
     if [ "$TAG" = "latest" ]; then
-        url="https://github.com/${REPO}/releases/latest/download/${tarball}"
+        url="https://github.com/${REPO}/releases/download/cli-latest/${tarball}"
     else
         url="https://github.com/${REPO}/releases/download/${TAG}/${tarball}"
     fi
@@ -146,8 +146,8 @@ main() {
     update_path
 
     printf "\n${GREEN}${BOLD}Installed!${RESET}\n"
-    printf "Run ${BOLD}superset auth login${RESET} to get started.\n"
-    printf "You may need to restart your shell (or run \`source <your-profile>\`) for the PATH to take effect.\n"
+    printf "Run ${BOLD}exec \$SHELL${RESET} (or open a new terminal) to load the updated PATH.\n"
+    printf "Then run ${BOLD}superset auth login${RESET} to get started.\n"
 }
 
 main "$@"

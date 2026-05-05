@@ -1,5 +1,6 @@
 import { cn } from "@superset/ui/utils";
 import { Link, useMatchRoute } from "@tanstack/react-router";
+import { useMemo } from "react";
 import {
 	HiOutlineBeaker,
 	HiOutlineBell,
@@ -19,8 +20,10 @@ import {
 	HiOutlineUser,
 } from "react-icons/hi2";
 import { LuBrain, LuGitBranch, LuKeyboard } from "react-icons/lu";
+import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import type { SettingsSection } from "renderer/stores/settings-state";
+import { getAllowedSectionsForVariant } from "../../utils/settings-search";
 
 interface GeneralSettingsProps {
 	matchCounts: Partial<Record<SettingsSection, number>> | null;
@@ -202,12 +205,18 @@ export function GeneralSettings({ matchCounts }: GeneralSettingsProps) {
 	const matchRoute = useMatchRoute();
 	const { data: platform } = electronTrpc.window.getPlatform.useQuery();
 	const isMac = platform === "darwin";
+	const { isV2CloudEnabled } = useIsV2CloudEnabled();
+	const allowedSections = useMemo(
+		() => getAllowedSectionsForVariant(isV2CloudEnabled),
+		[isV2CloudEnabled],
+	);
 
 	return (
 		<>
 			{SECTION_GROUPS.map((group, groupIndex) => {
 				const platformItems = group.items.filter(
-					(item) => !item.macOnly || isMac,
+					(item) =>
+						(!item.macOnly || isMac) && allowedSections.has(item.section),
 				);
 				const filteredItems = matchCounts
 					? platformItems.filter((item) => (matchCounts[item.section] ?? 0) > 0)

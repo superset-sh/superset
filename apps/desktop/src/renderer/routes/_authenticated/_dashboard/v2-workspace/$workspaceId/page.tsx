@@ -1,16 +1,13 @@
 import { Workspace } from "@superset/panes";
-import { eq } from "@tanstack/db";
-import { useLiveQuery } from "@tanstack/react-db";
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { useV2UserPreferences } from "renderer/hooks/useV2UserPreferences";
 import { useHotkey } from "renderer/hotkeys";
-import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { CommandPalette } from "renderer/screens/main/components/CommandPalette";
 import { ResizablePanel } from "renderer/screens/main/components/ResizablePanel";
 import { getV2NotificationSourcesForTab } from "renderer/stores/v2-notifications";
-import { WorkspaceNotFoundState } from "../components/WorkspaceNotFoundState";
+import { useWorkspace } from "../providers/WorkspaceProvider";
 import { AddTabMenu } from "./components/AddTabMenu";
 import { V2NotificationStatusIndicator } from "./components/V2NotificationStatusIndicator";
 import { V2PresetsBar } from "./components/V2PresetsBar";
@@ -20,7 +17,6 @@ import { useBrowserShellInteractionPassthrough } from "./hooks/useBrowserShellIn
 import { useClearActivePaneAttention } from "./hooks/useClearActivePaneAttention";
 import { useConsumeAutomationRunLink } from "./hooks/useConsumeAutomationRunLink";
 import { useConsumeOpenUrlRequest } from "./hooks/useConsumeOpenUrlRequest";
-import { useConsumePendingLaunch } from "./hooks/useConsumePendingLaunch";
 import { useDefaultContextMenuActions } from "./hooks/useDefaultContextMenuActions";
 import { useDefaultPaneActions } from "./hooks/useDefaultPaneActions";
 import { useDirtyTabCloseGuard } from "./hooks/useDirtyTabCloseGuard";
@@ -70,7 +66,6 @@ export const Route = createFileRoute(
 });
 
 function V2WorkspacePage() {
-	const { workspaceId } = Route.useParams();
 	const {
 		terminalId,
 		chatSessionId,
@@ -79,81 +74,18 @@ function V2WorkspacePage() {
 		openUrlTarget,
 		openUrlRequestId,
 	} = Route.useSearch();
-	const collections = useCollections();
+	const { workspace } = useWorkspace();
+	const workspaceId = workspace.id;
 
-	const { data: workspaces } = useLiveQuery(
-		(q) =>
-			q
-				.from({ v2Workspaces: collections.v2Workspaces })
-				.where(({ v2Workspaces }) => eq(v2Workspaces.id, workspaceId)),
-		[collections, workspaceId],
-	);
-	const workspace = workspaces?.[0] ?? null;
-
-	if (!workspaces) {
-		return <div className="flex h-full w-full" />;
-	}
-
-	if (!workspace) {
-		return <WorkspaceNotFoundState workspaceId={workspaceId} />;
-	}
-
-	return (
-		// key={workspaceId} so each workspace gets its own pane store rather
-		// than sharing one and replaceState-ing data across switches.
-		<WorkspaceContent
-			key={workspace.id}
-			projectId={workspace.projectId}
-			workspaceId={workspace.id}
-			workspaceName={workspace.name}
-			terminalId={terminalId}
-			chatSessionId={chatSessionId}
-			focusRequestId={focusRequestId}
-			openUrl={openUrl}
-			openUrlTarget={openUrlTarget}
-			openUrlRequestId={openUrlRequestId}
-		/>
-	);
-}
-
-function WorkspaceContent({
-	projectId,
-	workspaceId,
-	workspaceName,
-	terminalId,
-	chatSessionId,
-	focusRequestId,
-	openUrl,
-	openUrlTarget,
-	openUrlRequestId,
-}: {
-	projectId: string;
-	workspaceId: string;
-	workspaceName: string;
-	terminalId?: string;
-	chatSessionId?: string;
-	focusRequestId?: string;
-	openUrl?: string;
-	openUrlTarget?: V2WorkspaceUrlOpenTarget;
-	openUrlRequestId?: string;
-}) {
 	const {
 		preferences: v2UserPreferences,
 		setRightSidebarOpen,
 		setRightSidebarTab,
 		setRightSidebarWidth,
 	} = useV2UserPreferences();
-	const { store } = useV2WorkspacePaneLayout({
-		projectId,
-		workspaceId,
-	});
-	useClearActivePaneAttention({ workspaceId, store });
-	const { matchedPresets, executePreset } = useV2PresetExecution({
-		store,
-		workspaceId,
-		projectId,
-	});
-	useConsumePendingLaunch({ workspaceId, store });
+	const { store } = useV2WorkspacePaneLayout();
+	useClearActivePaneAttention({ store });
+	const { matchedPresets, executePreset } = useV2PresetExecution({ store });
 	useConsumeAutomationRunLink({
 		store,
 		terminalId,
@@ -175,13 +107,12 @@ function WorkspaceContent({
 		recentFiles,
 		openFilePaths,
 	} = useWorkspaceFileNavigation({
-		workspaceId,
 		store,
 		setRightSidebarOpen,
 		setRightSidebarTab,
 	});
 
-	const paneRegistry = usePaneRegistry(workspaceId, {
+	const paneRegistry = usePaneRegistry({
 		onOpenFile: openFilePane,
 		onRevealPath: revealPath,
 	});
@@ -197,7 +128,7 @@ function WorkspaceContent({
 	const [quickOpenOpen, setQuickOpenOpen] = useState(false);
 	const handleQuickOpen = useCallback(() => setQuickOpenOpen(true), []);
 	const defaultPaneActions = useDefaultPaneActions();
-	const onBeforeCloseTab = useDirtyTabCloseGuard({ workspaceId });
+	const onBeforeCloseTab = useDirtyTabCloseGuard();
 
 	const sidebarOpen = v2UserPreferences.rightSidebarOpen;
 	// Fallback for rows persisted before the rightSidebarWidth field existed —
@@ -239,7 +170,7 @@ function WorkspaceContent({
 	useHotkey("QUICK_OPEN", handleQuickOpen);
 
 	return (
-		<FileDocumentStoreProvider workspaceId={workspaceId}>
+		<FileDocumentStoreProvider>
 			<div className="flex min-h-0 min-w-0 flex-1">
 				<div
 					className="flex min-h-0 min-w-[320px] flex-1 flex-col overflow-hidden"
@@ -252,7 +183,6 @@ function WorkspaceContent({
 						renderTabIcon={renderBrowserTabIcon}
 						renderTabAccessory={(tab) => (
 							<V2NotificationStatusIndicator
-								workspaceId={workspaceId}
 								sources={getV2NotificationSourcesForTab(tab)}
 							/>
 						)}
@@ -298,7 +228,6 @@ function WorkspaceContent({
 					>
 						<WorkspaceSidebar
 							workspaceId={workspaceId}
-							workspaceName={workspaceName}
 							onSelectFile={openFilePane}
 							onSelectDiffFile={openDiffPane}
 							onOpenComment={openCommentPane}

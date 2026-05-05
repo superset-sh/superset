@@ -173,6 +173,8 @@ const uiColorsSchema = z.object({
 	chart5: z.string(),
 	highlightMatch: z.string(),
 	highlightActive: z.string(),
+	highlight: z.string().optional(),
+	highlightForeground: z.string().optional(),
 });
 
 /**

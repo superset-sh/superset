@@ -41,6 +41,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { HiOutlineComputerDesktop } from "react-icons/hi2";
 import {
+	LuClock,
 	LuEllipsis,
 	LuGitBranch,
 	LuPencil,
@@ -340,7 +341,7 @@ function AutomationsPage() {
 														{project ? (
 															<ProjectThumbnail
 																projectName={project.name}
-																githubOwner={project.githubOwner}
+																iconUrl={project.iconUrl}
 																className="!size-4"
 															/>
 														) : null}
@@ -418,6 +419,18 @@ function AutomationsPage() {
 																>
 																	<LuPlay className="size-4" />
 																	Run now
+																</DropdownMenuItem>
+																<DropdownMenuItem
+																	onSelect={() =>
+																		navigate({
+																			to: "/automations/$automationId",
+																			params: { automationId: automation.id },
+																			search: { history: true },
+																		})
+																	}
+																>
+																	<LuClock className="size-4" />
+																	Version history
 																</DropdownMenuItem>
 																<DropdownMenuItem
 																	variant="destructive"

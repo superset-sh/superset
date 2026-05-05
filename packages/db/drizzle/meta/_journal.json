@@ -281,6 +281,55 @@
       "when": 1777266747895,
       "tag": "0039_consolidate_host_client_machine_id",
       "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1777575539318,
+      "tag": "0040_better_auth_165_columns",
+      "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1777766170049,
+      "tag": "0041_add_automation_prompt_versions",
+      "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "7",
+      "when": 1777771854049,
+      "tag": "0042_linear_disconnect_state",
+      "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "7",
+      "when": 1777854769892,
+      "tag": "0043_submitted_prompts",
+      "breakpoints": true
+    },
+    {
+      "idx": 44,
+      "version": "7",
+      "when": 1777874337162,
+      "tag": "0044_add_task_id_to_v2_workspaces",
+      "breakpoints": true
+    },
+    {
+      "idx": 45,
+      "version": "7",
+      "when": 1777881871315,
+      "tag": "0045_v2_projects_icon_url",
+      "breakpoints": true
+    },
+    {
+      "idx": 46,
+      "version": "7",
+      "when": 1777885504135,
+      "tag": "0046_add_chat_attachments",
+      "breakpoints": true
     }
   ]
 }

@@ -356,7 +356,7 @@ import { LocalModelProvider } from "@superset/host-service/providers/desktop";
 createApp({
   config: {
     dbPath: path.join(orgDir, "host.db"),
-    cloudApiUrl: env.CLOUD_API_URL,
+    cloudApiUrl: env.SUPERSET_API_URL,
     migrationsPath: app.isPackaged
       ? path.join(process.resourcesPath, "resources/host-migrations")
       : path.join(app.getAppPath(), "../../packages/host-service/drizzle"),
@@ -381,7 +381,7 @@ import { createApp, PskHostAuthProvider, JwtApiAuthProvider,
 createApp({
   config: {
     dbPath: env.HOST_DB_PATH,
-    cloudApiUrl: env.CLOUD_API_URL,
+    cloudApiUrl: env.SUPERSET_API_URL,
     migrationsPath: join(import.meta.dirname, "../../drizzle"),
     allowedOrigins: env.CORS_ORIGINS,
   },

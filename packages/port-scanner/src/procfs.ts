@@ -1,5 +1,5 @@
 import { promises as fs } from "node:fs";
-import type { PortInfo } from "./scanner";
+import type { PortInfo } from "./scanner.ts";
 
 /**
  * Linux-only: resolve listening TCP ports for a set of PIDs by reading

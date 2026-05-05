@@ -4,6 +4,7 @@ import type { HostDb } from "../db";
 import { portManager } from "../ports/port-manager";
 import type { WorkspaceFilesystemManager } from "../runtime/filesystem";
 import { EventBus } from "./event-bus";
+import type { GitWatcher } from "./git-watcher";
 
 function createEventBus(): EventBus {
 	return new EventBus({
@@ -11,6 +12,9 @@ function createEventBus(): EventBus {
 		filesystem: {
 			resolveWorkspaceRoot: () => "/tmp/missing-workspace",
 		} as unknown as WorkspaceFilesystemManager,
+		gitWatcher: {
+			onChanged: () => () => {},
+		} as unknown as GitWatcher,
 	});
 }
 

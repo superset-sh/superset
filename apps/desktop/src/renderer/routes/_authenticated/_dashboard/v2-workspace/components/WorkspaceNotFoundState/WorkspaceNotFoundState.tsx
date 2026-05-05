@@ -1,6 +1,6 @@
 import { Button } from "@superset/ui/button";
 import { Link } from "@tanstack/react-router";
-import { FolderX } from "lucide-react";
+import { ArrowRight, FolderX } from "lucide-react";
 
 interface WorkspaceNotFoundStateProps {
 	workspaceId: string;
@@ -11,25 +11,44 @@ export function WorkspaceNotFoundState({
 }: WorkspaceNotFoundStateProps) {
 	return (
 		<div className="flex h-full w-full items-center justify-center p-6">
-			<div className="flex w-full max-w-md flex-col items-center rounded-xl border border-border bg-card px-6 py-8 text-center">
-				<div className="mb-4 rounded-full border border-border bg-muted/40 p-3 text-muted-foreground">
-					<FolderX className="size-5" />
+			<div className="flex w-full max-w-sm flex-col items-start gap-5">
+				<FolderX
+					className="size-5 text-muted-foreground"
+					strokeWidth={1.5}
+					aria-hidden="true"
+				/>
+				<div className="flex flex-col gap-1.5">
+					<h1 className="text-[15px] font-medium tracking-tight text-foreground">
+						Workspace not found
+					</h1>
+					<p className="text-[13px] leading-relaxed text-muted-foreground">
+						This workspace may have been removed, or you no longer have access
+						to it.
+					</p>
 				</div>
-				<h1 className="text-lg font-semibold tracking-tight">
-					Workspace not found
-				</h1>
-				<p className="mt-2 text-sm text-muted-foreground">
-					This workspace may have been removed or you may no longer have access
-					to it.
-				</p>
-				<p className="mt-1 text-xs text-muted-foreground/80">
-					ID: {workspaceId}
-				</p>
-				<div className="mt-6 flex items-center gap-2">
-					<Button asChild size="sm">
-						<Link to="/v2-workspaces">Browse workspaces</Link>
-					</Button>
+				<div className="flex w-full items-center gap-2 rounded-md border border-border/60 bg-muted/30 px-2.5 py-1.5">
+					<span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground/70">
+						ID
+					</span>
+					<code className="min-w-0 truncate font-mono text-[11px] text-muted-foreground">
+						{workspaceId}
+					</code>
 				</div>
+				<Button
+					asChild
+					size="sm"
+					variant="ghost"
+					className="-ml-2 h-7 gap-1.5 px-2 text-[13px] font-medium text-foreground hover:bg-muted/60"
+				>
+					<Link to="/v2-workspaces">
+						Browse workspaces
+						<ArrowRight
+							className="size-3.5"
+							strokeWidth={2}
+							aria-hidden="true"
+						/>
+					</Link>
+				</Button>
 			</div>
 		</div>
 	);

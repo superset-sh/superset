@@ -1,11 +1,17 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { httpBatchStreamLink } from "@trpc/client";
+import { httpBatchStreamLink, TRPCClientError } from "@trpc/client";
 import { createContext, type ReactNode, useContext } from "react";
 import superjson from "superjson";
 import { workspaceTrpc } from "../../workspace-trpc";
 
 const STALE_TIME_MS = 5_000;
 const GC_TIME_MS = 30 * 60 * 1_000;
+const MAX_TIMEOUT_RETRIES = 2;
+const TIMEOUT_RETRY_BASE_DELAY_MS = 300;
+
+function isTimeoutError(error: unknown): boolean {
+	return error instanceof TRPCClientError && error.data?.code === "TIMEOUT";
+}
 
 export interface WorkspaceClientContextValue {
 	hostUrl: string;
@@ -49,7 +55,18 @@ function getWorkspaceClients(
 		defaultOptions: {
 			queries: {
 				refetchOnWindowFocus: false,
-				retry: 1,
+				// Retry server-side TIMEOUT errors a couple of times — these come
+				// from `queryProcedure`'s middleware when a host-service query
+				// (filesystem, git) takes longer than its budget. Other errors
+				// fall back to a single retry as before.
+				retry: (failureCount, error) => {
+					if (isTimeoutError(error)) return failureCount < MAX_TIMEOUT_RETRIES;
+					return failureCount < 1;
+				},
+				retryDelay: (attempt, error) =>
+					isTimeoutError(error)
+						? TIMEOUT_RETRY_BASE_DELAY_MS * (attempt + 1)
+						: Math.min(1000 * 2 ** attempt, 30_000),
 				staleTime: STALE_TIME_MS,
 				gcTime: GC_TIME_MS,
 			},

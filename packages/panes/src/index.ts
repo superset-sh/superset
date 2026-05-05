@@ -8,6 +8,7 @@ export { createWorkspaceStore } from "./core/store";
 export type { FocusDirection } from "./core/store/utils";
 export {
 	getActiveIdAfterRemoval,
+	getPaneParentDirection,
 	getSpatialNeighborPaneId,
 } from "./core/store/utils";
 export type {

@@ -105,14 +105,21 @@ interface ApplyAiRenameArgs {
 	oldBranchName: string;
 	oldWorkspaceName: string;
 	prompt: string;
+	/** Replace the workspace title with an AI-picked one. Skip when the user typed a name. */
+	renameTitle: boolean;
+	/** Replace the git branch name with an AI-picked one. Skip when the user typed a branch. */
+	renameBranch: boolean;
 }
 
 /**
  * Generates an AI title+branch for a freshly-created workspace and
- * applies both. Git rename runs first (cheap to roll back); cloud
- * update is source of truth; host-local DB only writes after cloud
- * confirms. On cloud failure the git rename is reverted so git,
- * host-local DB, and cloud stay in lockstep.
+ * applies whichever side the caller asked for. Git rename runs first
+ * (cheap to roll back); cloud update is source of truth; host-local
+ * DB only writes after cloud confirms. On cloud failure the git
+ * rename is reverted so git, host-local DB, and cloud stay in lockstep.
+ *
+ * `renameTitle` / `renameBranch` let callers preserve user-typed
+ * values: skip replacing whichever side the user supplied directly.
  */
 export async function applyAiWorkspaceRename(
 	args: ApplyAiRenameArgs,
@@ -125,15 +132,21 @@ export async function applyAiWorkspaceRename(
 		oldBranchName,
 		oldWorkspaceName,
 		prompt,
+		renameTitle,
+		renameBranch,
 	} = args;
+
+	if (!renameTitle && !renameBranch) return;
 
 	const aiNames = await generateWorkspaceNamesFromPrompt(prompt);
 	if (!aiNames) return;
 
 	const titleChanged =
-		aiNames.title !== "" && aiNames.title !== oldWorkspaceName;
+		renameTitle && aiNames.title !== "" && aiNames.title !== oldWorkspaceName;
 	const branchChanged =
-		aiNames.branchName !== "" && aiNames.branchName !== oldBranchName;
+		renameBranch &&
+		aiNames.branchName !== "" &&
+		aiNames.branchName !== oldBranchName;
 	if (!titleChanged && !branchChanged) return;
 
 	let deduped = oldBranchName;

@@ -4,7 +4,6 @@ import {
 	type TerminalPreset,
 } from "@superset/local-db";
 import { Button } from "@superset/ui/button";
-import { Label } from "@superset/ui/label";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { HiOutlinePlus } from "react-icons/hi2";
@@ -13,7 +12,8 @@ import { useMigrateV1PresetsToV2 } from "renderer/routes/_authenticated/hooks/us
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import type { V2TerminalPresetRow } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
 import type { PresetColumnKey } from "renderer/routes/_authenticated/settings/presets/types";
-import { PresetEditorSheet } from "../PresetsSection/components/PresetEditorSheet";
+import { PresetEditorDialog } from "../PresetsSection/components/PresetEditorDialog";
+
 import { PresetsTable } from "../PresetsSection/components/PresetsTable";
 import { QuickAddPresets } from "../PresetsSection/components/QuickAddPresets";
 import {
@@ -34,7 +34,7 @@ interface V2PresetsSectionProps {
 
 /**
  * V2 clone of PresetsSection wired to the renderer-side v2TerminalPresets
- * collection. Reuses PresetsTable / PresetEditorSheet / QuickAddPresets from
+ * collection. Reuses PresetsTable / PresetEditorDialog / QuickAddPresets from
  * the v1 directory (they're prop-driven renderers). When v1 is deprecated,
  * delete PresetsSection and move the shared sub-components here.
  */
@@ -515,40 +515,37 @@ export function V2PresetsSection({
 	);
 
 	return (
-		<div className="space-y-4">
-			<div className="flex items-center justify-between">
-				<div className="space-y-0.5">
-					<Label className="text-sm font-medium">Terminal Presets</Label>
-					<p className="text-xs text-muted-foreground">
-						Presets let you quickly launch terminals with pre-configured
-						commands.
-					</p>
+		<div>
+			<div className="rounded-lg border border-border overflow-hidden divide-y divide-border">
+				<div className="flex items-start justify-between gap-3 p-4">
+					<div className="min-w-0">
+						<h3 className="text-sm font-medium">Terminal presets</h3>
+						<p className="text-xs text-muted-foreground mt-0.5">
+							Pre-configured terminal launches. Click a preset to edit, drag to
+							reorder.
+						</p>
+					</div>
+					{showPresets && (
+						<Button size="sm" onClick={() => handleAddRow()}>
+							<HiOutlinePlus className="size-4" />
+							Add preset
+						</Button>
+					)}
 				</div>
-				{showPresets && (
-					<Button
-						variant="default"
-						size="sm"
-						className="gap-2"
-						onClick={() => handleAddRow()}
-					>
-						<HiOutlinePlus className="h-4 w-4" />
-						Add Preset
-					</Button>
+
+				{showQuickAdd && (
+					<div className="p-4">
+						<QuickAddPresets
+							templates={PRESET_TEMPLATES}
+							isDark={isDark}
+							isCreatePending={false}
+							isTemplateAdded={isTemplateAdded}
+							onAddTemplate={handleAddTemplate}
+						/>
+					</div>
 				)}
-			</div>
 
-			{showQuickAdd && (
-				<QuickAddPresets
-					templates={PRESET_TEMPLATES}
-					isDark={isDark}
-					isCreatePending={false}
-					isTemplateAdded={isTemplateAdded}
-					onAddTemplate={handleAddTemplate}
-				/>
-			)}
-
-			{showPresets && (
-				<>
+				{showPresets && (
 					<PresetsTable
 						presets={localPresets}
 						isLoading={false}
@@ -558,14 +555,12 @@ export function V2PresetsSection({
 						onLocalReorder={handleLocalReorder}
 						onPersistReorder={handlePersistReorder}
 						onToggleVisibility={handleToggleVisibility}
+						bordered={false}
 					/>
-					<p className="text-xs text-muted-foreground">
-						Click a preset row to edit details.
-					</p>
-				</>
-			)}
+				)}
+			</div>
 
-			<PresetEditorSheet
+			<PresetEditorDialog
 				preset={editingPreset}
 				projects={projectOptions}
 				open={!!editingPreset}

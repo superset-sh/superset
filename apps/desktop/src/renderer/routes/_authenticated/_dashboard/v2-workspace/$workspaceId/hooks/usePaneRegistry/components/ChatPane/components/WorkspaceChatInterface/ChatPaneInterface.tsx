@@ -920,7 +920,7 @@ export function ChatPaneInterface({
 
 	return (
 		<PromptInputProvider initialInput={initialLaunchConfig?.draftInput}>
-			<div className="flex h-full flex-col bg-background">
+			<div className="flex h-full w-full flex-col bg-background">
 				<ChatMessageList
 					messages={visibleMessages}
 					isFocused={isFocused}

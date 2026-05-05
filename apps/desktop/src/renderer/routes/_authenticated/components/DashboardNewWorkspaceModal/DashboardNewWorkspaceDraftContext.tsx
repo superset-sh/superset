@@ -1,227 +1,84 @@
-import { generateFriendlyBranchName } from "@superset/shared/workspace-launch";
-import { toast } from "@superset/ui/sonner";
 import {
 	createContext,
 	type PropsWithChildren,
 	useCallback,
 	useContext,
 	useMemo,
-	useState,
 } from "react";
-import type { WorkspaceHostTarget } from "./components/DashboardNewWorkspaceForm/components/DevicePicker";
-import { useCreateDashboardWorkspace } from "./hooks/useCreateDashboardWorkspace";
+import {
+	type NewWorkspaceDraft,
+	useNewWorkspaceDraftStore,
+} from "renderer/stores/new-workspace-draft";
+import { useShallow } from "zustand/react/shallow";
 
-export type LinkedIssue = {
-	slug: string; // "#123" for GitHub, "SUP-123" for internal
-	title: string;
-	source?: "github" | "internal";
-	url?: string; // GitHub issue URL
-	taskId?: string; // Internal task ID for navigation
-	number?: number; // GitHub issue number
-	state?: "open" | "closed";
-};
+export type {
+	BaseBranchSource,
+	LinkedIssue,
+	LinkedPR,
+} from "renderer/stores/new-workspace-draft";
+export type DashboardNewWorkspaceDraft = NewWorkspaceDraft;
 
-export type LinkedPR = {
-	prNumber: number;
-	title: string;
-	url: string;
-	state: string;
-};
-
-export type BaseBranchSource = "local" | "remote-tracking";
-
-export interface DashboardNewWorkspaceDraft {
-	selectedProjectId: string | null;
-	hostTarget: WorkspaceHostTarget;
-	prompt: string;
-	baseBranch: string | null;
-	/** Picker hint: which form of `baseBranch` the user selected. */
-	baseBranchSource: BaseBranchSource | null;
-	runSetupScript: boolean;
-	workspaceName: string;
-	workspaceNameEdited: boolean;
-	branchName: string;
-	branchNameEdited: boolean;
-	linkedIssues: LinkedIssue[];
-	linkedPR: LinkedPR | null;
-	/**
-	 * Random friendly name (e.g. `curious-otter`) generated once per draft.
-	 * Used as the submit fallback AND the picker preview so the user sees the
-	 * same name that will be committed.
-	 */
-	friendlyFallback: string;
-}
-
-interface DashboardNewWorkspaceDraftState extends DashboardNewWorkspaceDraft {
-	draftVersion: number;
-	resetKey: number;
-}
-
-const initialDraftWithoutFallback: Omit<
-	DashboardNewWorkspaceDraft,
-	"friendlyFallback"
-> = {
-	selectedProjectId: null,
-	hostTarget: { kind: "local" },
-	prompt: "",
-	baseBranch: null,
-	baseBranchSource: null,
-	runSetupScript: true,
-	workspaceName: "",
-	workspaceNameEdited: false,
-	branchName: "",
-	branchNameEdited: false,
-	linkedIssues: [],
-	linkedPR: null,
-};
-
-function buildInitialDraft(): DashboardNewWorkspaceDraft {
-	return {
-		...initialDraftWithoutFallback,
-		friendlyFallback: generateFriendlyBranchName(),
-	};
-}
-
-function buildInitialDraftState(): DashboardNewWorkspaceDraftState {
-	return {
-		...buildInitialDraft(),
-		draftVersion: 0,
-		resetKey: 0,
-	};
-}
-
-interface DashboardNewWorkspaceActionMessages {
-	loading: string;
-	success: string;
-	error: (err: unknown) => string;
-}
-
-interface DashboardNewWorkspaceActionOptions {
-	closeAndReset?: boolean;
-}
-
-interface DashboardNewWorkspaceDraftContextValue {
-	draft: DashboardNewWorkspaceDraft;
-	draftVersion: number;
-	resetKey: number;
+interface DraftContextValue {
 	closeModal: () => void;
 	closeAndResetDraft: () => void;
-	createWorkspace: ReturnType<typeof useCreateDashboardWorkspace>;
-	runAsyncAction: <T>(
-		promise: Promise<T>,
-		messages: DashboardNewWorkspaceActionMessages,
-		options?: DashboardNewWorkspaceActionOptions,
-	) => Promise<T>;
-	updateDraft: (patch: Partial<DashboardNewWorkspaceDraft>) => void;
-	resetDraft: () => void;
 }
 
-const DashboardNewWorkspaceDraftContext =
-	createContext<DashboardNewWorkspaceDraftContextValue | null>(null);
+const DraftContext = createContext<DraftContextValue | null>(null);
 
 export function DashboardNewWorkspaceDraftProvider({
 	children,
 	onClose,
 }: PropsWithChildren<{ onClose: () => void }>) {
-	const [state, setState] = useState(buildInitialDraftState);
-
-	// Owned here so onSuccess survives Dialog unmounting content on close.
-	const createWorkspace = useCreateDashboardWorkspace();
-
-	const updateDraft = useCallback(
-		(patch: Partial<DashboardNewWorkspaceDraft>) => {
-			setState((state) => ({
-				...state,
-				...patch,
-				draftVersion: state.draftVersion + 1,
-			}));
-		},
-		[],
-	);
-
-	const resetDraft = useCallback(() => {
-		setState((state) => ({
-			...buildInitialDraft(),
-			draftVersion: state.draftVersion + 1,
-			resetKey: state.resetKey + 1,
-		}));
-	}, []);
-
+	const resetDraft = useNewWorkspaceDraftStore((store) => store.resetDraft);
 	const closeAndResetDraft = useCallback(() => {
 		resetDraft();
 		onClose();
 	}, [onClose, resetDraft]);
 
-	const runAsyncAction = useCallback(
-		<T,>(
-			promise: Promise<T>,
-			messages: DashboardNewWorkspaceActionMessages,
-			options?: DashboardNewWorkspaceActionOptions,
-		) => {
-			if (options?.closeAndReset !== false) {
-				onClose();
-				resetDraft();
-			}
-			toast.promise(promise, {
-				loading: messages.loading,
-				success: messages.success,
-				error: (err) => messages.error(err),
-			});
-			return promise;
-		},
-		[onClose, resetDraft],
-	);
-
-	const value = useMemo<DashboardNewWorkspaceDraftContextValue>(
-		() => ({
-			draft: {
-				selectedProjectId: state.selectedProjectId,
-				hostTarget: state.hostTarget,
-				prompt: state.prompt,
-				baseBranch: state.baseBranch,
-				baseBranchSource: state.baseBranchSource,
-				runSetupScript: state.runSetupScript,
-				workspaceName: state.workspaceName,
-				workspaceNameEdited: state.workspaceNameEdited,
-				branchName: state.branchName,
-				branchNameEdited: state.branchNameEdited,
-				linkedIssues: state.linkedIssues,
-				linkedPR: state.linkedPR,
-				friendlyFallback: state.friendlyFallback,
-			},
-			draftVersion: state.draftVersion,
-			resetKey: state.resetKey,
-			closeModal: onClose,
-			closeAndResetDraft,
-			createWorkspace,
-			runAsyncAction,
-			updateDraft,
-			resetDraft,
-		}),
-		[
-			closeAndResetDraft,
-			createWorkspace,
-			onClose,
-			resetDraft,
-			runAsyncAction,
-			state,
-			updateDraft,
-		],
+	const value = useMemo<DraftContextValue>(
+		() => ({ closeModal: onClose, closeAndResetDraft }),
+		[onClose, closeAndResetDraft],
 	);
 
 	return (
-		<DashboardNewWorkspaceDraftContext.Provider value={value}>
-			{children}
-		</DashboardNewWorkspaceDraftContext.Provider>
+		<DraftContext.Provider value={value}>{children}</DraftContext.Provider>
 	);
 }
 
 export function useDashboardNewWorkspaceDraft() {
-	const context = useContext(DashboardNewWorkspaceDraftContext);
-	if (!context) {
+	const ctx = useContext(DraftContext);
+	if (!ctx) {
 		throw new Error(
 			"useDashboardNewWorkspaceDraft must be used within DashboardNewWorkspaceDraftProvider",
 		);
 	}
-	return context;
+	const draft = useNewWorkspaceDraftStore<NewWorkspaceDraft>(
+		useShallow((store) => ({
+			selectedProjectId: store.selectedProjectId,
+			hostId: store.hostId,
+			prompt: store.prompt,
+			baseBranch: store.baseBranch,
+			baseBranchSource: store.baseBranchSource,
+			workspaceName: store.workspaceName,
+			workspaceNameEdited: store.workspaceNameEdited,
+			branchName: store.branchName,
+			branchNameEdited: store.branchNameEdited,
+			linkedIssues: store.linkedIssues,
+			linkedPR: store.linkedPR,
+			selectedAgentId: store.selectedAgentId,
+			attachments: store.attachments,
+		})),
+	);
+	const updateDraft = useNewWorkspaceDraftStore((store) => store.updateDraft);
+	const resetDraft = useNewWorkspaceDraftStore((store) => store.resetDraft);
+	const resetKey = useNewWorkspaceDraftStore((store) => store.resetKey);
+
+	return {
+		draft,
+		updateDraft,
+		resetDraft,
+		resetKey,
+		closeModal: ctx.closeModal,
+		closeAndResetDraft: ctx.closeAndResetDraft,
+	};
 }

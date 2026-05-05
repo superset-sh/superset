@@ -1,4 +1,5 @@
 import { AttachmentChip } from "../../../AttachmentChip";
+import { ImageHoverPreview } from "../../../ImageHoverPreview";
 import type { ChatMessage, ChatMessagePart } from "../../types";
 
 interface UserMessageAttachmentsProps {
@@ -32,14 +33,42 @@ export function UserMessageAttachments({
 				}
 
 				if (part.type === "image" && "mimeType" in part && !rawPart.mediaType) {
+					const legacySrc = `data:${part.mimeType};base64,${part.data}`;
 					return (
-						<div key={`${message.id}-${partIndex}`} className="max-w-[85%]">
+						<ImageHoverPreview
+							key={`${message.id}-${partIndex}`}
+							src={legacySrc}
+							mediaType={part.mimeType}
+							triggerClassName="max-w-[85%]"
+						>
 							<img
-								src={`data:${part.mimeType};base64,${part.data}`}
+								src={legacySrc}
 								alt="Attached"
 								className="max-h-48 rounded-lg object-contain"
 							/>
-						</div>
+						</ImageHoverPreview>
+					);
+				}
+
+				const chip = (
+					<AttachmentChip
+						data={data}
+						mediaType={mediaType}
+						filename={rawPart.filename}
+						onClick={() => onOpenAttachment(data, rawPart.filename)}
+					/>
+				);
+
+				if (mediaType.startsWith("image/")) {
+					return (
+						<ImageHoverPreview
+							key={`${message.id}-${partIndex}`}
+							src={data}
+							filename={rawPart.filename}
+							mediaType={mediaType}
+						>
+							{chip}
+						</ImageHoverPreview>
 					);
 				}
 

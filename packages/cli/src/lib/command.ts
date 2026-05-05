@@ -8,7 +8,6 @@ export interface CliContext {
 	config: SupersetConfig;
 	bearer: string;
 	authSource: AuthSource;
-	deviceId: string | undefined;
 }
 
 export const command = createCommand<CliContext>();

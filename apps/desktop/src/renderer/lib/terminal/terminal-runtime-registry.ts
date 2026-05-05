@@ -16,12 +16,14 @@ import {
 } from "./terminal-runtime";
 import {
 	type ConnectionState,
+	clearLogs,
 	connect,
 	createTransport,
 	disposeTransport,
 	sendDispose,
 	sendInput,
 	sendResize,
+	type TerminalLogEntry,
 	type TerminalTransport,
 } from "./terminal-ws-transport";
 
@@ -164,20 +166,15 @@ class TerminalRuntimeRegistryImpl {
 
 	/**
 	 * Open (or re-use) the WebSocket transport for this terminal.
-	 * The WebSocket route can create the server session when the URL includes
-	 * workspaceId; initialCommand is sent as the first frame after open.
+	 * The server session must already exist; the WebSocket route only attaches
+	 * this xterm instance to the terminal id.
 	 *
 	 * Idempotent: no-op if already connected/connecting to the same URL.
 	 */
-	connect(
-		terminalId: string,
-		wsUrl: string,
-		instanceId = terminalId,
-		options: { initialCommand?: string } = {},
-	) {
+	connect(terminalId: string, wsUrl: string, instanceId = terminalId) {
 		const entry = this.getEntry(terminalId, instanceId);
 		if (!entry?.runtime) return;
-		connect(entry.transport, entry.runtime.terminal, wsUrl, options);
+		connect(entry.transport, entry.runtime.terminal, wsUrl);
 	}
 
 	/**
@@ -337,6 +334,14 @@ class TerminalRuntimeRegistryImpl {
 		return this.getEntry(terminalId, instanceId)?.runtime?.terminal ?? null;
 	}
 
+	getDimensions(
+		terminalId: string,
+		instanceId?: string,
+	): { cols: number; rows: number } | null {
+		const terminal = this.getTerminal(terminalId, instanceId);
+		return terminal ? { cols: terminal.cols, rows: terminal.rows } : null;
+	}
+
 	getSearchAddon(terminalId: string, instanceId?: string): SearchAddon | null {
 		return this.getEntry(terminalId, instanceId)?.runtime?.searchAddon ?? null;
 	}
@@ -369,6 +374,19 @@ class TerminalRuntimeRegistryImpl {
 		return this.getEntry(terminalId, instanceId)?.transport.title;
 	}
 
+	getLogs(
+		terminalId: string,
+		instanceId?: string,
+	): readonly TerminalLogEntry[] {
+		return this.getEntry(terminalId, instanceId)?.transport.logs ?? EMPTY_LOGS;
+	}
+
+	clearLogs(terminalId: string, instanceId?: string): void {
+		const entry = this.getEntry(terminalId, instanceId);
+		if (!entry) return;
+		clearLogs(entry.transport);
+	}
+
 	onStateChange(
 		terminalId: string,
 		listener: () => void,
@@ -392,7 +410,25 @@ class TerminalRuntimeRegistryImpl {
 			entry.transport.titleListeners.delete(listener);
 		};
 	}
+
+	onLogsChange(
+		terminalId: string,
+		listener: () => void,
+		instanceId = terminalId,
+	): () => void {
+		const entry = this.getOrCreateEntry(terminalId, instanceId);
+		entry.transport.logListeners.add(listener);
+		return () => {
+			entry.transport.logListeners.delete(listener);
+		};
+	}
 }
+
+// Stable empty reference so useSyncExternalStore on a missing entry doesn't
+// thrash from getSnapshot returning a fresh array each call.
+const EMPTY_LOGS: readonly TerminalLogEntry[] = Object.freeze(
+	[],
+) as readonly [];
 
 // In dev, preserve the singleton across Vite HMR so active WebSocket
 // connections and xterm instances aren't orphaned on module re-evaluation.
@@ -406,4 +442,9 @@ if (import.meta.hot) {
 	import.meta.hot.data.registry = terminalRuntimeRegistry;
 }
 
-export type { ConnectionState, LinkHoverInfo, TerminalLinkHandlers };
+export type {
+	ConnectionState,
+	LinkHoverInfo,
+	TerminalLinkHandlers,
+	TerminalLogEntry,
+};

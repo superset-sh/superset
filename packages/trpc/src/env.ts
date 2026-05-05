@@ -10,6 +10,11 @@ export const env = createEnv({
 		POSTHOG_API_KEY: z.string(),
 		POSTHOG_API_HOST: z.string().url().default("https://us.posthog.com"),
 		POSTHOG_PROJECT_ID: z.string(),
+		NEXT_PUBLIC_POSTHOG_KEY: z.string().min(1),
+		NEXT_PUBLIC_POSTHOG_HOST: z
+			.string()
+			.url()
+			.default("https://us.i.posthog.com"),
 		QSTASH_TOKEN: z.string().min(1),
 		QSTASH_CURRENT_SIGNING_KEY: z.string().min(1),
 		QSTASH_NEXT_SIGNING_KEY: z.string().min(1),
@@ -25,6 +30,8 @@ export const env = createEnv({
 		SECRETS_ENCRYPTION_KEY: z.string().min(1),
 		ANTHROPIC_API_KEY: z.string(),
 		RELAY_URL: z.string().url(),
+		LINEAR_CLIENT_ID: z.string().min(1),
+		LINEAR_CLIENT_SECRET: z.string().min(1),
 	},
 	clientPrefix: "PUBLIC_",
 	client: {},

@@ -6,21 +6,23 @@ import {
 	HiMagnifyingGlass,
 	HiXMark,
 } from "react-icons/hi2";
+import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import {
 	useSetSettingsSearchQuery,
 	useSettingsOriginRoute,
 	useSettingsSearchQuery,
 } from "renderer/stores/settings-state";
-import { getMatchCountBySection } from "../../utils/settings-search";
+import { getVisibleMatchCountBySection } from "../../utils/settings-search";
 import { GeneralSettings } from "./GeneralSettings";
 
 export function SettingsSidebar() {
 	const searchQuery = useSettingsSearchQuery();
 	const setSearchQuery = useSetSettingsSearchQuery();
 	const originRoute = useSettingsOriginRoute();
+	const { isV2CloudEnabled } = useIsV2CloudEnabled();
 	const normalizedSearchQuery = searchQuery.trim();
 	const matchCounts = normalizedSearchQuery
-		? getMatchCountBySection(normalizedSearchQuery)
+		? getVisibleMatchCountBySection(normalizedSearchQuery, isV2CloudEnabled)
 		: null;
 
 	return (

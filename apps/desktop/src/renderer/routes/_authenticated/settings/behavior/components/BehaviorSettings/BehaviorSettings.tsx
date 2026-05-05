@@ -27,10 +27,6 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 		SETTING_ITEM_ID.BEHAVIOR_CONFIRM_QUIT,
 		visibleItems,
 	);
-	const showTelemetry = isItemVisible(
-		SETTING_ITEM_ID.BEHAVIOR_TELEMETRY,
-		visibleItems,
-	);
 	const showFileOpenMode = isItemVisible(
 		SETTING_ITEM_ID.BEHAVIOR_FILE_OPEN_MODE,
 		visibleItems,
@@ -78,36 +74,6 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 
 	const handleConfirmToggle = (enabled: boolean) => {
 		setConfirmOnQuit.mutate({ enabled });
-	};
-
-	// TODO: remove telemetry query/mutation/handler once telemetry procedures are removed
-	const { data: telemetryEnabled, isLoading: isTelemetryLoading } =
-		electronTrpc.settings.getTelemetryEnabled.useQuery();
-	const setTelemetryEnabled =
-		electronTrpc.settings.setTelemetryEnabled.useMutation({
-			onMutate: async ({ enabled }) => {
-				await utils.settings.getTelemetryEnabled.cancel();
-				const previous = utils.settings.getTelemetryEnabled.getData();
-				utils.settings.getTelemetryEnabled.setData(undefined, enabled);
-				return { previous };
-			},
-			onError: (err, _vars, context) => {
-				console.error("[settings/telemetry] Failed to update:", err);
-				if (context?.previous !== undefined) {
-					utils.settings.getTelemetryEnabled.setData(
-						undefined,
-						context.previous,
-					);
-				}
-			},
-			onSettled: () => {
-				utils.settings.getTelemetryEnabled.invalidate();
-			},
-		});
-
-	const handleTelemetryToggle = (enabled: boolean) => {
-		console.log("[settings/telemetry] Toggling to:", enabled);
-		setTelemetryEnabled.mutate({ enabled });
 	};
 
 	const { data: fileOpenMode, isLoading: isFileOpenModeLoading } =
@@ -379,6 +345,16 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 						</div>
 					)}
 				</div>
+						<Switch
+							id="open-links-in-app"
+							checked={openLinksInApp ?? false}
+							onCheckedChange={(enabled) =>
+								setOpenLinksInApp.mutate({ enabled })
+							}
+							disabled={isOpenLinksInAppLoading || setOpenLinksInApp.isPending}
+						/>
+					</div>
+				)}
 			</div>
 
 			<VscodeDisableConfirmDialog

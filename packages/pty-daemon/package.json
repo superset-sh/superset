@@ -1,0 +1,40 @@
+{
+	"name": "@superset/pty-daemon",
+	"version": "0.2.0",
+	"private": true,
+	"type": "module",
+	"exports": {
+		".": {
+			"types": "./src/index.ts",
+			"default": "./src/index.ts"
+		},
+		"./protocol": {
+			"types": "./src/protocol/index.ts",
+			"default": "./src/protocol/index.ts"
+		},
+		"./package.json": "./package.json"
+	},
+	"bin": {
+		"pty-daemon": "./src/main.ts"
+	},
+	"engines": {
+		"node": ">=20"
+	},
+	"scripts": {
+		"clean": "git clean -xdf .cache .turbo dist node_modules",
+		"start": "node --experimental-strip-types src/main.ts",
+		"build:daemon": "bun run build.ts",
+		"typecheck": "tsc --noEmit --emitDeclarationOnly false",
+		"test": "bun test src/protocol src/SessionStore src/handlers src/Pty/Pty.test.ts test/no-encoding-hops.test.ts",
+		"test:integration": "node --experimental-strip-types --test test/integration.test.ts test/control-plane.test.ts test/signal-recovery.test.ts test/byte-fidelity.test.ts test/handoff.test.ts"
+	},
+	"dependencies": {
+		"node-pty": "1.1.0"
+	},
+	"devDependencies": {
+		"@superset/typescript": "workspace:*",
+		"@types/node": "^24.9.1",
+		"bun-types": "^1.3.1",
+		"typescript": "^5.9.3"
+	}
+}

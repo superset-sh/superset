@@ -1,10 +1,5 @@
-import { realpathSync } from "node:fs";
-import { resolve as resolvePath, sep } from "node:path";
-import { eq } from "drizzle-orm";
-import { workspaces } from "../../../../db/schema";
-import type { HostServiceContext } from "../../../../types";
 import type { GitClient } from "./types";
-import { projectWorktreesRoot } from "./worktree-paths";
+import { listGitWorktrees, normalizeWorktreePath } from "./worktree-list";
 
 function encodeCursor(offset: number): string {
 	return Buffer.from(JSON.stringify({ offset })).toString("base64url");
@@ -44,65 +39,20 @@ export function markRefetchRemote(projectId: string): void {
 	lastRemoteRefetch.set(projectId, Date.now());
 }
 
-function normalizeWorktreePath(path: string): string {
-	try {
-		return realpathSync.native(path);
-	} catch {
-		return resolvePath(path);
-	}
-}
-
-export async function listWorktreeBranches(
-	ctx: HostServiceContext,
-	git: GitClient,
-	projectId: string,
-): Promise<{
-	// A worktree counts as "ours" if its path either matches a row in
-	// the local `workspaces` table or lives under our managed root. The
-	// second case catches orphans (worktree on disk, no workspaces row,
-	// e.g. partial create rollback) so they surface for adoption.
+// No gating on managed root or workspaces table — foreign worktrees
+// (user ran `git worktree add` themselves) surface too, so the v2
+// picker shows everything git would. `checkedOutBranches` is used to
+// disable Checkout when a branch is already in use elsewhere.
+export async function listWorktreeBranches(git: GitClient): Promise<{
 	worktreeMap: Map<string, string>;
-	// Every branch checked out in any git worktree, including the primary
-	// working tree. Used to disable the Checkout action when a branch is
-	// already in use elsewhere — `git worktree add <path> <branch>` would fail.
 	checkedOutBranches: Set<string>;
 }> {
-	const managedRoot = projectWorktreesRoot(projectId);
-	const knownPaths = new Set<string>(
-		ctx.db
-			.select({ path: workspaces.worktreePath })
-			.from(workspaces)
-			.where(eq(workspaces.projectId, projectId))
-			.all()
-			.map((w) => w.path),
-	);
 	const worktreeMap = new Map<string, string>();
 	const checkedOutBranches = new Set<string>();
-	try {
-		const raw = await git.raw(["worktree", "list", "--porcelain"]);
-		let currentPath: string | null = null;
-		for (const line of raw.split("\n")) {
-			if (line.startsWith("worktree ")) {
-				currentPath = line.slice("worktree ".length).trim();
-			} else if (line.startsWith("branch refs/heads/") && currentPath) {
-				const branch = line.slice("branch refs/heads/".length).trim();
-				if (!branch) continue;
-				checkedOutBranches.add(branch);
-				if (
-					knownPaths.has(currentPath) ||
-					currentPath.startsWith(managedRoot + sep)
-				) {
-					worktreeMap.set(branch, currentPath);
-				}
-			} else if (line === "") {
-				currentPath = null;
-			}
-		}
-	} catch (err) {
-		console.warn(
-			"[workspace-creation] git worktree list failed; treating no branches as checked out:",
-			err,
-		);
+	for (const wt of await listGitWorktrees(git)) {
+		if (!wt.branch) continue;
+		checkedOutBranches.add(wt.branch);
+		worktreeMap.set(wt.branch, wt.path);
 	}
 	return { worktreeMap, checkedOutBranches };
 }
@@ -132,27 +82,10 @@ export async function getWorktreeBranchAtPath(
 	worktreePath: string,
 ): Promise<string | null> {
 	const targetPath = normalizeWorktreePath(worktreePath);
-	try {
-		const raw = await git.raw(["worktree", "list", "--porcelain"]);
-		let currentPath: string | null = null;
-		for (const line of raw.split("\n")) {
-			if (line.startsWith("worktree ")) {
-				currentPath = normalizeWorktreePath(
-					line.slice("worktree ".length).trim(),
-				);
-			} else if (line.startsWith("branch refs/heads/") && currentPath) {
-				if (currentPath !== targetPath) continue;
-				const branch = line.slice("branch refs/heads/".length).trim();
-				return branch || null;
-			} else if (line === "") {
-				currentPath = null;
-			}
+	for (const wt of await listGitWorktrees(git)) {
+		if (normalizeWorktreePath(wt.path) === targetPath) {
+			return wt.branch;
 		}
-	} catch (err) {
-		console.warn(
-			"[workspace-creation] git worktree list failed in findWorktreeAtPath:",
-			err,
-		);
 	}
 	return null;
 }

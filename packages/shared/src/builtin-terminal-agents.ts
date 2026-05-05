@@ -80,9 +80,9 @@ export const BUILTIN_TERMINAL_AGENTS = [
 		description:
 			"OpenAI's coding agent for reading, modifying, and running code across tasks.",
 		command:
-			'codex -c model_reasoning_effort="high" -c model_reasoning_summary="detailed" -c model_supports_reasoning_summaries=true --full-auto',
+			'codex -c model_reasoning_effort="high" -c model_reasoning_summary="detailed" -c model_supports_reasoning_summaries=true --sandbox workspace-write --ask-for-approval never',
 		promptCommand:
-			'codex -c model_reasoning_effort="high" -c model_reasoning_summary="detailed" -c model_supports_reasoning_summaries=true --full-auto --',
+			'codex -c model_reasoning_effort="high" -c model_reasoning_summary="detailed" -c model_supports_reasoning_summaries=true --sandbox workspace-write --ask-for-approval never --',
 		includeInDefaultTerminalPresets: true,
 	}),
 	createBuiltinTerminalAgent({
@@ -100,6 +100,8 @@ export const BUILTIN_TERMINAL_AGENTS = [
 		description:
 			"Mastra's coding agent for building, debugging, and shipping code from the terminal.",
 		command: "mastracode",
+		promptCommand: "mastracode --prompt",
+		promptCommandSuffix: "; mastracode",
 	}),
 	createBuiltinTerminalAgent({
 		id: "opencode",
@@ -121,7 +123,7 @@ export const BUILTIN_TERMINAL_AGENTS = [
 		description:
 			"GitHub's coding agent for planning, editing, and building in your repo.",
 		command: "copilot --allow-tool=write",
-		promptCommand: "copilot -i --allow-tool=write",
+		promptCommand: "copilot --allow-tool=write -i",
 		includeInDefaultTerminalPresets: true,
 	}),
 	createBuiltinTerminalAgent({

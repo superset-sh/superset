@@ -40,6 +40,43 @@ interface FileTreeState {
 	loadingDirectories: Set<string>;
 }
 
+interface LoadDirectoryOptions {
+	force?: boolean;
+}
+
+function applyDirectoryEntries(
+	current: FileTreeState,
+	absolutePath: string,
+	entries: FsEntry[],
+): FileTreeState {
+	const nextEntries = new Map(current.entriesByPath);
+	const nextChildren = new Map(current.childPathsByDirectory);
+	const nextLoaded = new Set(current.loadedDirectories);
+	const nextInvalidated = new Set(current.invalidatedDirectories);
+	const nextLoading = new Set(current.loadingDirectories);
+	nextLoading.delete(absolutePath);
+	nextLoaded.add(absolutePath);
+	nextInvalidated.delete(absolutePath);
+
+	for (const entry of entries) {
+		nextEntries.set(entry.absolutePath, entry);
+	}
+
+	nextChildren.set(
+		absolutePath,
+		entries.map((entry) => entry.absolutePath),
+	);
+
+	return {
+		...current,
+		childPathsByDirectory: nextChildren,
+		entriesByPath: nextEntries,
+		invalidatedDirectories: nextInvalidated,
+		loadedDirectories: nextLoaded,
+		loadingDirectories: nextLoading,
+	};
+}
+
 function createInitialState(): FileTreeState {
 	return {
 		childPathsByDirectory: new Map<string, string[]>(),
@@ -187,16 +224,15 @@ export function useFileTree({
 	);
 
 	const loadDirectory = useCallback(
-		async (absolutePath: string, force = false): Promise<void> => {
-			if (!workspaceId || !absolutePath) {
-				return;
-			}
+		async (
+			absolutePath: string,
+			options: LoadDirectoryOptions = {},
+		): Promise<void> => {
+			const { force = false } = options;
+			if (!workspaceId || !absolutePath) return;
 
 			const currentState = stateRef.current;
-			if (currentState.loadingDirectories.has(absolutePath)) {
-				return;
-			}
-
+			if (currentState.loadingDirectories.has(absolutePath)) return;
 			if (
 				!force &&
 				currentState.loadedDirectories.has(absolutePath) &&
@@ -205,65 +241,38 @@ export function useFileTree({
 				return;
 			}
 
-			updateState((current) => {
-				const nextLoading = new Set(current.loadingDirectories);
-				nextLoading.add(absolutePath);
-				return {
-					...current,
-					loadingDirectories: nextLoading,
-				};
-			});
+			const input = { workspaceId, absolutePath };
+			const cachedResult = utils.filesystem.listDirectory.getData(input);
+			if (cachedResult) {
+				updateState((current) =>
+					applyDirectoryEntries(current, absolutePath, cachedResult.entries),
+				);
+				if (!force) return;
+			}
+
+			updateState((current) => ({
+				...current,
+				loadingDirectories: new Set(current.loadingDirectories).add(
+					absolutePath,
+				),
+			}));
 
 			try {
-				const result = await utils.filesystem.listDirectory.fetch({
-					workspaceId,
-					absolutePath,
-				});
-
-				updateState((current) => {
-					const nextEntries = new Map(current.entriesByPath);
-					const nextChildren = new Map(current.childPathsByDirectory);
-					const nextLoaded = new Set(current.loadedDirectories);
-					const nextInvalidated = new Set(current.invalidatedDirectories);
-					const nextLoading = new Set(current.loadingDirectories);
-					nextLoading.delete(absolutePath);
-					nextLoaded.add(absolutePath);
-					nextInvalidated.delete(absolutePath);
-
-					for (const entry of result.entries) {
-						nextEntries.set(entry.absolutePath, entry);
-					}
-
-					nextChildren.set(
-						absolutePath,
-						result.entries.map((entry) => entry.absolutePath),
-					);
-
-					return {
-						...current,
-						childPathsByDirectory: nextChildren,
-						entriesByPath: nextEntries,
-						invalidatedDirectories: nextInvalidated,
-						loadedDirectories: nextLoaded,
-						loadingDirectories: nextLoading,
-					};
-				});
+				// Server-side timeout + React Query's TIMEOUT-aware retry handle
+				// hung host-service IPC; we just await the fetch and apply results.
+				const result = await utils.filesystem.listDirectory.fetch(input);
+				updateState((current) =>
+					applyDirectoryEntries(current, absolutePath, result.entries),
+				);
 			} catch (error) {
 				console.error(
 					"[workspace-client/useFileTree] Failed to load directory:",
-					{
-						absolutePath,
-						error,
-					},
+					{ absolutePath, error },
 				);
-
 				updateState((current) => {
 					const nextLoading = new Set(current.loadingDirectories);
 					nextLoading.delete(absolutePath);
-					return {
-						...current,
-						loadingDirectories: nextLoading,
-					};
+					return { ...current, loadingDirectories: nextLoading };
 				});
 			}
 		},
@@ -272,7 +281,7 @@ export function useFileTree({
 
 	const refreshPath = useCallback(
 		async (absolutePath: string): Promise<void> => {
-			await loadDirectory(absolutePath, true);
+			await loadDirectory(absolutePath, { force: true });
 		},
 		[loadDirectory],
 	);
@@ -288,10 +297,10 @@ export function useFileTree({
 			(left, right) => left.split(/[/\\]/).length - right.split(/[/\\]/).length,
 		);
 
-		await loadDirectory(rootPath, true);
+		await loadDirectory(rootPath, { force: true });
 		for (const absolutePath of expandedDirectories) {
 			if (absolutePath !== rootPath) {
-				await loadDirectory(absolutePath, true);
+				await loadDirectory(absolutePath, { force: true });
 			}
 		}
 	}, [loadDirectory, rootPath]);
@@ -347,11 +356,8 @@ export function useFileTree({
 
 	useEffect(() => {
 		updateState(() => createInitialState());
-		if (!rootPath) {
-			return;
-		}
-
-		void loadDirectory(rootPath, true);
+		if (!rootPath) return;
+		void loadDirectory(rootPath, { force: true });
 	}, [loadDirectory, rootPath, updateState]);
 
 	useWorkspaceEvent(
@@ -404,16 +410,16 @@ export function useFileTree({
 				});
 
 				if (stateRef.current.loadedDirectories.has(oldParentPath)) {
-					void loadDirectory(oldParentPath, true);
+					void loadDirectory(oldParentPath, { force: true });
 				}
 				if (stateRef.current.loadedDirectories.has(newParentPath)) {
-					void loadDirectory(newParentPath, true);
+					void loadDirectory(newParentPath, { force: true });
 				}
 				if (
 					event.isDirectory &&
 					stateRef.current.expandedDirectories.has(event.absolutePath)
 				) {
-					void loadDirectory(event.absolutePath, true);
+					void loadDirectory(event.absolutePath, { force: true });
 				}
 				return;
 			}
@@ -438,7 +444,7 @@ export function useFileTree({
 			});
 
 			if (stateRef.current.loadedDirectories.has(parentPath)) {
-				void loadDirectory(parentPath, true);
+				void loadDirectory(parentPath, { force: true });
 			}
 		},
 		Boolean(workspaceId && rootPath),

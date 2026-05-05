@@ -20,7 +20,8 @@
 
 		"module": "Preserve",
 		"moduleResolution": "Bundler",
-		"noEmit": true
+		"noEmit": true,
+		"allowImportingTsExtensions": true
 	},
 	"exclude": ["node_modules", "build", "dist", ".next"]
 }

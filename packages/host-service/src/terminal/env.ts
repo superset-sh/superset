@@ -5,23 +5,26 @@
  * at startup — never from desktop main or the live host-service process.env.
  */
 
-export { stripTerminalRuntimeEnv } from "./env-strip";
-export type { ShellBootstrapParams, ShellLaunchParams } from "./shell-launch";
+export { stripTerminalRuntimeEnv } from "./env-strip.ts";
+export type {
+	ShellBootstrapParams,
+	ShellLaunchParams,
+} from "./shell-launch.ts";
 export {
 	getShellBootstrapEnv,
 	getShellLaunchArgs,
 	getSupersetShellPaths,
 	resolveLaunchShell,
-} from "./shell-launch";
+} from "./shell-launch.ts";
 
 import fs from "node:fs";
 import os from "node:os";
 import {
 	clearStrictShellEnvCache,
 	getStrictShellEnvironment,
-} from "./clean-shell-env";
-import { stripTerminalRuntimeEnv } from "./env-strip";
-import { getShellBootstrapEnv } from "./shell-launch";
+} from "./clean-shell-env.ts";
+import { stripTerminalRuntimeEnv } from "./env-strip.ts";
+import { getShellBootstrapEnv } from "./shell-launch.ts";
 
 const MACOS_SYSTEM_CERT_FILE = "/etc/ssl/cert.pem";
 let cachedMacosSystemCertAvailable: boolean | null = null;

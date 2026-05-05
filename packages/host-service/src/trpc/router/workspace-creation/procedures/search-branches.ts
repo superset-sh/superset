@@ -50,11 +50,7 @@ export const searchBranches = protectedProcedure
 		}
 
 		const defaultBranch = await resolveDefaultBranchName(git);
-		const { worktreeMap, checkedOutBranches } = await listWorktreeBranches(
-			ctx,
-			git,
-			input.projectId,
-		);
+		const { worktreeMap, checkedOutBranches } = await listWorktreeBranches(git);
 		const recencyMap = await getRecentBranchOrder(git, 30);
 
 		// Branches that already have a workspace row on this host. The
@@ -125,10 +121,9 @@ export const searchBranches = protectedProcedure
 
 		if (input.filter === "worktree") {
 			branches = branches.filter((branch) => worktreeMap.has(branch.name));
-		} else {
-			// default "branch": any branch (local or remote) without a worktree
-			branches = branches.filter((branch) => !worktreeMap.has(branch.name));
 		}
+		// "all" (and undefined) — include every branch, worktree or not.
+		// The picker tags worktree rows so the user can still tell them apart.
 
 		if (input.query) {
 			const query = input.query.toLowerCase();

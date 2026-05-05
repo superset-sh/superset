@@ -1,1 +1,5 @@
-export { useWorkspaceHostUrl } from "./useWorkspaceHostUrl";
+export {
+	useWorkspaceHostTarget,
+	useWorkspaceHostUrl,
+	type WorkspaceHostTarget,
+} from "./useWorkspaceHostUrl";

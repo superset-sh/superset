@@ -592,19 +592,11 @@ export class DaemonTerminalManager extends EventEmitter {
 			rawScrollbackBytes > MAX_SCROLLBACK_BYTES
 				? truncateUtf8ToLastBytes(rawScrollback, MAX_SCROLLBACK_BYTES)
 				: rawScrollback;
-		const scrollbackBytes = Buffer.byteLength(scrollback, "utf8");
-
 		this.coldRestoreInfo.set(paneId, {
 			scrollback,
 			previousCwd: metadata.cwd,
 			cols: metadata.cols || cols,
 			rows: metadata.rows || rows,
-		});
-
-		track("terminal_cold_restored", {
-			workspace_id: workspaceId,
-			pane_id: paneId,
-			scrollback_bytes: scrollbackBytes,
 		});
 
 		return {

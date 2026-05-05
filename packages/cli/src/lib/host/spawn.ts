@@ -106,7 +106,7 @@ export async function spawnHostService(
 			...process.env,
 			ORGANIZATION_ID: options.organizationId,
 			AUTH_TOKEN: options.sessionToken,
-			CLOUD_API_URL: env.CLOUD_API_URL,
+			SUPERSET_API_URL: env.SUPERSET_API_URL,
 			RELAY_URL: env.RELAY_URL,
 			PORT: String(port),
 			HOST_SERVICE_PORT: String(port),

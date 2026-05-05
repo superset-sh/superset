@@ -17,7 +17,6 @@ import { useEnabledAgents } from "renderer/hooks/useEnabledAgents";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { DevicePicker } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/components/DevicePicker";
 import { useWorkspaceHostOptions } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/components/DevicePicker/hooks/useWorkspaceHostOptions/useWorkspaceHostOptions";
-import type { WorkspaceHostTarget } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/components/DevicePicker/types";
 import { hideAll as hideAllTippy } from "tippy.js";
 import { useProjectFileSearch } from "../../hooks/useProjectFileSearch";
 import { useRecentProjects } from "../../hooks/useRecentProjects";
@@ -51,9 +50,7 @@ export function CreateAutomationDialog({
 	const [view, setView] = useState<"compose" | "gallery">("compose");
 	const [name, setName] = useState("");
 	const [prompt, setPrompt] = useState("");
-	const [hostTarget, setHostTarget] = useState<WorkspaceHostTarget>({
-		kind: "local",
-	});
+	const [hostId, setHostId] = useState<string | null>(null);
 	const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
 		null,
 	);
@@ -65,7 +62,7 @@ export function CreateAutomationDialog({
 	const recentProjects = useRecentProjects();
 	const { agents: enabledAgents } = useEnabledAgents();
 	const searchFiles = useProjectFileSearch({
-		hostTarget,
+		hostId,
 		projectId: selectedProjectId,
 	});
 	const selectedProject = recentProjects.find(
@@ -102,7 +99,7 @@ export function CreateAutomationDialog({
 			setView("compose");
 			setName("");
 			setPrompt("");
-			setHostTarget({ kind: "local" });
+			setHostId(null);
 			setSelectedProjectId(null);
 			setAgentType("claude");
 			setRrule(DEFAULT_RRULE);
@@ -110,8 +107,7 @@ export function CreateAutomationDialog({
 		}
 	}, [open]);
 
-	const targetHostId =
-		hostTarget.kind === "host" ? hostTarget.hostId : localHostId;
+	const targetHostId = hostId ?? localHostId;
 
 	const createMutation = useMutation({
 		mutationFn: () => {
@@ -233,9 +229,9 @@ export function CreateAutomationDialog({
 								<div className="flex items-center gap-2">
 									<DevicePicker
 										className="w-[160px]"
-										hostTarget={hostTarget}
-										onSelectHostTarget={(next) => {
-											setHostTarget(next);
+										hostId={hostId}
+										onSelectHostId={(next) => {
+											setHostId(next);
 											setV2WorkspaceId(null);
 										}}
 									/>

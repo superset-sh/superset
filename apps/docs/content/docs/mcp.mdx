@@ -3,43 +3,42 @@ title: MCP Server
 description: Connect AI agents directly to Superset via MCP
 ---
 
+<Callout type="info">
+This document covers **MCP v2**. The v1 server is deprecated but still available at `https://api.superset.sh/api/agent/mcp` for existing integrations.
+</Callout>
+
 ## Overview
 
 Superset provides an [MCP (Model Context Protocol)](https://modelcontextprotocol.io) server that lets AI agents interact with your tasks, workspaces, and devices programmatically.
 
 ## Capabilities
 
-| Category | Tools |
-|----------|-------|
-| **Tasks** | Create, update, list, get, delete tasks |
-| **Workspaces** | Create, update, switch, delete, list, navigate workspaces |
-| **Devices** | List devices, projects, and app context |
-| **Organization** | List members and task statuses |
-| **AI Sessions** | Start autonomous AI agent sessions (Amp, Claude, Codex, Gemini, OpenCode, Pi, Copilot, Cursor Agent) and subagents |
+| Category | Operations |
+|----------|------------|
+| **Tasks** | list, get (by id or slug), create, update, delete |
+| **Workspaces** | list (filterable by host), create on a host, delete |
+| **Automations** | list, get metadata, get/set prompt body, create, update metadata, pause, resume, run on demand, list runs, delete |
+| **Projects** | list projects, create from a Git URL or local repo path |
+| **Hosts** | list hosts (registered machines) you have access to |
 
 ## Setup
 
 ### CLI Options
 
-<Tabs items={["Amp CLI", "Claude Code", "Codex", "Gemini CLI", "Open Code"]}>
-<Tab value="Amp CLI">
-```bash title="terminal"
-amp mcp add --workspace superset https://api.superset.sh/api/agent/mcp
-```
-</Tab>
+<Tabs items={["Claude Code", "Codex", "Gemini CLI", "Open Code", "Amp CLI"]}>
 <Tab value="Claude Code">
 ```bash title="terminal"
-claude mcp add superset --transport http https://api.superset.sh/api/agent/mcp
+claude mcp add superset --transport http https://api.superset.sh/api/v2/agent/mcp
 ```
 </Tab>
 <Tab value="Codex">
 ```bash title="terminal"
-codex mcp add superset --url https://api.superset.sh/api/agent/mcp
+codex mcp add superset --url https://api.superset.sh/api/v2/agent/mcp
 ```
 </Tab>
 <Tab value="Gemini CLI">
 ```bash title="terminal"
-gemini mcp add --transport http superset https://api.superset.sh/api/agent/mcp
+gemini mcp add --transport http superset https://api.superset.sh/api/v2/agent/mcp
 ```
 </Tab>
 <Tab value="Open Code">
@@ -60,7 +59,7 @@ opencode mcp add
 [2m│[0m  [36mRemote[0m
 [2m│[0m
 [2m◇[0m  Enter MCP server URL
-[2m│[0m  [36mhttps://api.superset.sh/api/agent/mcp[0m
+[2m│[0m  [36mhttps://api.superset.sh/api/v2/agent/mcp[0m
 [2m│[0m
 [2m◇[0m  Does this server require OAuth authentication?
 [2m│[0m  [36mYes[0m
@@ -71,26 +70,18 @@ opencode mcp add
 [2m└[0m  [32mMCP server added successfully[0m
 ```
 </Tab>
+<Tab value="Amp CLI">
+```bash title="terminal"
+amp mcp add --workspace superset https://api.superset.sh/api/v2/agent/mcp
+```
+</Tab>
 </Tabs>
 
 ### Manual Configuration
 
 Alternatively, you can manually configure the MCP server for each client:
 
-<Tabs items={["Amp CLI", "Claude Code", "Claude Desktop", "Cursor", "Codex", "Gemini CLI", "Open Code"]}>
-<Tab value="Amp CLI">
-Add to `.amp/settings.json` in your project root:
-
-```json title=".amp/settings.json"
-{
-  "amp.mcpServers": {
-    "superset": {
-      "url": "https://api.superset.sh/api/agent/mcp"
-    }
-  }
-}
-```
-</Tab>
+<Tabs items={["Claude Code", "Claude Desktop", "Cursor", "Codex", "Gemini CLI", "Open Code", "Amp CLI"]}>
 <Tab value="Claude Code">
 Add a `.mcp.json` to your project root. Claude Code auto-discovers this file and handles OAuth authentication.
 
@@ -99,7 +90,7 @@ Add a `.mcp.json` to your project root. Claude Code auto-discovers this file and
   "mcpServers": {
     "superset": {
       "type": "http",
-      "url": "https://api.superset.sh/api/agent/mcp"
+      "url": "https://api.superset.sh/api/v2/agent/mcp"
     }
   }
 }
@@ -113,7 +104,7 @@ Add to your `claude_desktop_config.json`:
   "mcpServers": {
     "superset": {
       "type": "http",
-      "url": "https://api.superset.sh/api/agent/mcp"
+      "url": "https://api.superset.sh/api/v2/agent/mcp"
     }
   }
 }
@@ -126,7 +117,7 @@ Add to `.cursor/mcp.json` in your project root:
 {
   "mcpServers": {
     "superset": {
-      "url": "https://api.superset.sh/api/agent/mcp"
+      "url": "https://api.superset.sh/api/v2/agent/mcp"
     }
   }
 }
@@ -137,7 +128,7 @@ Add to your `~/.codex/config.toml`:
 
 ```toml title="config.toml"
 [mcp_servers.superset]
-url = "https://api.superset.sh/api/agent/mcp"
+url = "https://api.superset.sh/api/v2/agent/mcp"
 ```
 </Tab>
 <Tab value="Gemini CLI">
@@ -147,7 +138,7 @@ Add to your `.gemini/settings.json`:
 {
   "mcpServers": {
     "superset": {
-      "httpUrl": "https://api.superset.sh/api/agent/mcp"
+      "httpUrl": "https://api.superset.sh/api/v2/agent/mcp"
     }
   }
 }
@@ -162,7 +153,20 @@ Add to your `opencode.json`:
   "mcp": {
     "superset": {
       "type": "remote",
-      "url": "https://api.superset.sh/api/agent/mcp"
+      "url": "https://api.superset.sh/api/v2/agent/mcp"
+    }
+  }
+}
+```
+</Tab>
+<Tab value="Amp CLI">
+Add to `.amp/settings.json` in your project root:
+
+```json title=".amp/settings.json"
+{
+  "amp.mcpServers": {
+    "superset": {
+      "url": "https://api.superset.sh/api/v2/agent/mcp"
     }
   }
 }
@@ -200,7 +204,7 @@ MCP clients that support custom headers can use this directly. For Claude Code, 
   "mcpServers": {
     "superset": {
       "type": "http",
-      "url": "https://api.superset.sh/api/agent/mcp",
+      "url": "https://api.superset.sh/api/v2/agent/mcp",
       "headers": {
         "Authorization": "Bearer sk_live_your_api_key_here"
       }
@@ -222,43 +226,52 @@ API keys grant full access to your organization. Keep them secret and never comm
 
 ## Available Tools
 
-### Task Management
+### Tasks
 
 | Tool | Description |
 |------|-------------|
-| `create_task` | Create one or more tasks (batch up to 25) |
-| `update_task` | Update existing tasks |
-| `list_tasks` | List tasks with filters (status, assignee, priority, labels) |
-| `get_task` | Get a single task by ID or slug |
-| `delete_task` | Soft delete tasks |
-| `list_task_statuses` | List available status options |
+| `tasks_list` | List tasks with optional filters (status, priority, assignee, free-text search) |
+| `tasks_get` | Get one task by UUID or slug |
+| `tasks_create` | Create a task in the active organization |
+| `tasks_update` | Update fields on an existing task |
+| `tasks_delete` | Hard-delete a task by UUID |
 
-### Workspace Management
-
-| Tool | Description |
-|------|-------------|
-| `create_workspace` | Create a new git worktree workspace. Pass `sourceWorkspaceId` to branch from an existing workspace instead of `main`. |
-| `update_workspace` | Update workspaces (rename) |
-| `switch_workspace` | Switch to a different workspace |
-| `delete_workspace` | Delete a workspace |
-| `list_workspaces` | List all workspaces on a device |
-| `get_workspace_details` | Get detailed information about a workspace on a device, including its tabs and panes. Use this to discover pane IDs. |
-
-### Device & Organization
+### Workspaces
 
 | Tool | Description |
 |------|-------------|
-| `list_devices` | List registered devices in your organization |
-| `list_projects` | List all projects on a device |
-| `get_app_context` | Get current app state (active workspace, pathname) |
-| `list_members` | List organization members |
+| `workspaces_list` | List workspaces, optionally filtered by host |
+| `workspaces_create` | Create a workspace on a host (branch-scoped git worktree) |
+| `workspaces_delete` | Delete a workspace by UUID; idempotent |
 
-### AI Sessions
+### Automations
 
 | Tool | Description |
 |------|-------------|
-| `start_agent_session` | Start an autonomous AI agent session for a task in an existing workspace. Requires `taskId`. Supports Amp, Claude, Codex, Gemini, OpenCode, Pi, Copilot, Cursor Agent, and Superset Chat (defaults to Claude). When `paneId` is provided, adds a new pane to the tab containing that pane instead of initializing a new tab. |
-| `start_agent_session_with_prompt` | Start an autonomous AI agent session in an existing workspace using a direct `prompt` instead of a task. Supports Amp, Claude, Codex, Gemini, OpenCode, Pi, Copilot, Cursor Agent, and Superset Chat (defaults to Claude). When `paneId` is provided, adds a new pane to the tab containing that pane instead of initializing a new tab. |
+| `automations_list` | List automations the calling user owns |
+| `automations_get` | Get one automation's metadata (prompt body omitted) |
+| `automations_get_prompt` | Fetch the full markdown prompt for one automation |
+| `automations_create` | Schedule a recurring agent run with an RFC 5545 RRULE |
+| `automations_update` | Update metadata (name, schedule, agent, host); use `automations_set_prompt` to change the prompt |
+| `automations_set_prompt` | Replace the full markdown prompt body |
+| `automations_pause` | Pause an automation (schedule stops firing) |
+| `automations_resume` | Resume a paused automation |
+| `automations_run` | Dispatch an automation immediately, outside its schedule |
+| `automations_logs` | List recent runs for an automation |
+| `automations_delete` | Delete an automation |
+
+### Projects
+
+| Tool | Description |
+|------|-------------|
+| `projects_list` | List projects (checked-out repos) in the active organization |
+| `projects_create` | Register a project on a host: clone a Git URL or import an existing local repo |
+
+### Hosts
+
+| Tool | Description |
+|------|-------------|
+| `hosts_list` | List the hosts (registered machines) you have access to |
 
 ## Chat Integration
 
@@ -270,8 +283,7 @@ Once connected, you can ask your AI agent to:
 
 - "Create a task for fixing the login bug"
 - "List all my assigned tasks"
-- "Create a new workspace for the auth feature"
-- "Show me who's online in my team"
-- "Start a Claude session on my MacBook to work on the auth task"
-- "Start a Codex session in my auth workspace with the prompt 'fix the failing tests'"
-- "Spin up a subagent to fix the failing tests"
+- "Create a workspace for the auth feature on my MacBook"
+- "Schedule a daily automation that triages new Linear issues at 9am"
+- "Pause the nightly cleanup automation"
+- "Show me the last 10 runs of my Linear triage automation"

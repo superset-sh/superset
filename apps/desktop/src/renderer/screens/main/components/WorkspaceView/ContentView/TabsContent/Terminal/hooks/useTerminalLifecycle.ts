@@ -10,6 +10,7 @@ import {
 	markTerminalSessionReady,
 	rejectTerminalSessionReady,
 } from "renderer/lib/terminal/session-readiness";
+import { installTerminalKeyEventHandler } from "renderer/lib/terminal/terminal-key-event-handler";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { killTerminalForPane } from "renderer/stores/tabs/utils/terminal-cleanup";
@@ -24,7 +25,6 @@ import {
 } from "../helpers";
 import { isPaneDestroyed } from "../pane-guards";
 import { coldRestoreState, pendingDetaches } from "../state";
-import { setupKeyboardHandler } from "../terminalKeyboardHandler";
 import type {
 	CreateOrAttachMutate,
 	CreateOrAttachResult,
@@ -755,10 +755,7 @@ export function useTerminalLifecycle({
 			writeRef.current({ paneId, data });
 		};
 
-		const cleanupKeyboard = setupKeyboardHandler(xterm, {
-			onShiftEnter: () => handleWrite("\x1b\r"),
-			onWrite: handleWrite,
-		});
+		const cleanupKeyboard = installTerminalKeyEventHandler(xterm);
 		const cleanupClickToMove = setupClickToMoveCursor(xterm, {
 			onWrite: handleWrite,
 		});

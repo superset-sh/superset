@@ -11,7 +11,7 @@ import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { protectedProcedure } from "../../../trpc";
 import { verifyOrgAdmin, verifyOrgMembership } from "../utils";
-import { getLinearClient } from "./utils";
+import { callLinear } from "./refresh";
 
 export const linearRouter = {
 	getConnection: protectedProcedure
@@ -23,10 +23,19 @@ export const linearRouter = {
 					eq(integrationConnections.organizationId, input.organizationId),
 					eq(integrationConnections.provider, "linear"),
 				),
-				columns: { id: true, config: true },
+				columns: {
+					id: true,
+					config: true,
+					disconnectedAt: true,
+					disconnectReason: true,
+				},
 			});
 			if (!connection) return null;
-			return { config: connection.config as LinearConfig | null };
+			return {
+				config: connection.config as LinearConfig | null,
+				needsReconnect: !!connection.disconnectedAt,
+				disconnectReason: connection.disconnectReason,
+			};
 		}),
 
 	disconnect: protectedProcedure
@@ -34,12 +43,9 @@ export const linearRouter = {
 		.mutation(async ({ ctx, input }) => {
 			await verifyOrgAdmin(ctx.session.user.id, input.organizationId);
 
-			const client = await getLinearClient(input.organizationId);
-			if (client) {
-				try {
-					await client.logout();
-				} catch {}
-			}
+			try {
+				await callLinear(input.organizationId, (client) => client.logout());
+			} catch {}
 
 			const result = await dbWs.transaction(async (tx) => {
 				// 1. Delete Linear-synced tasks
@@ -122,9 +128,10 @@ export const linearRouter = {
 		.input(z.object({ organizationId: z.uuid() }))
 		.query(async ({ ctx, input }) => {
 			await verifyOrgMembership(ctx.session.user.id, input.organizationId);
-			const client = await getLinearClient(input.organizationId);
-			if (!client) return [];
-			const teams = await client.teams();
+			const teams = await callLinear(input.organizationId, (client) =>
+				client.teams(),
+			);
+			if (!teams) return [];
 			return teams.nodes.map((t) => ({ id: t.id, name: t.name, key: t.key }));
 		}),
 

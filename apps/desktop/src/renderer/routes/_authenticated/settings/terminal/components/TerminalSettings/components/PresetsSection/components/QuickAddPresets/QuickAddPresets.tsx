@@ -1,6 +1,6 @@
-import { Button } from "@superset/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
-import { HiOutlineCheck } from "react-icons/hi2";
+import { cn } from "@superset/ui/utils";
+import { HiOutlineCheck, HiOutlinePlus } from "react-icons/hi2";
 import { getPresetIcon } from "renderer/assets/app-icons/preset-icons";
 import type { PresetTemplate } from "../../constants";
 
@@ -20,34 +20,39 @@ export function QuickAddPresets({
 	onAddTemplate,
 }: QuickAddPresetsProps) {
 	return (
-		<div className="flex flex-wrap gap-2">
-			<span className="text-xs text-muted-foreground mr-1 self-center">
-				Quick add:
-			</span>
+		<div className="flex flex-wrap items-center gap-1.5">
+			<span className="text-xs text-muted-foreground mr-1">Quick add</span>
 			{templates.map((template) => {
 				const alreadyAdded = isTemplateAdded(template);
 				const presetIcon = getPresetIcon(template.name, isDark);
+				const disabled = alreadyAdded || isCreatePending;
 				return (
 					<Tooltip key={template.name}>
 						<TooltipTrigger asChild>
-							<Button
-								variant="outline"
-								size="sm"
-								className="gap-1.5 text-xs h-7"
+							<button
+								type="button"
 								onClick={() => onAddTemplate(template)}
-								disabled={alreadyAdded || isCreatePending}
+								disabled={disabled}
+								className={cn(
+									"inline-flex items-center gap-1.5 rounded-full border border-border bg-background px-2.5 py-1 text-xs font-medium transition-colors",
+									"hover:bg-accent hover:text-accent-foreground",
+									"disabled:cursor-not-allowed disabled:opacity-50",
+									alreadyAdded && "text-muted-foreground",
+								)}
 							>
 								{alreadyAdded ? (
-									<HiOutlineCheck className="h-3 w-3" />
+									<HiOutlineCheck className="size-3" />
 								) : presetIcon ? (
 									<img
 										src={presetIcon}
 										alt=""
-										className="h-3 w-3 object-contain"
+										className="size-3 object-contain"
 									/>
-								) : null}
+								) : (
+									<HiOutlinePlus className="size-3" />
+								)}
 								{template.name}
-							</Button>
+							</button>
 						</TooltipTrigger>
 						<TooltipContent side="bottom" showArrow={false}>
 							{alreadyAdded ? "Already added" : template.preset.description}

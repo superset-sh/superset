@@ -41,8 +41,12 @@ export function asRemoteRef(
 
 async function refExists(git: SimpleGit, fullRef: string): Promise<boolean> {
 	try {
-		await git.raw(["rev-parse", "--verify", "--quiet", `${fullRef}^{commit}`]);
-		return true;
+		// Don't use `--quiet` — simple-git's `raw` mis-resolves on empty
+		// stderr and reports the missing ref as a success with empty stdout.
+		// Without `--quiet`, git writes the error to stderr and simple-git
+		// rejects as expected. We then verify a sha was actually printed.
+		const out = await git.raw(["rev-parse", "--verify", `${fullRef}^{commit}`]);
+		return /^[0-9a-f]{40,}/.test(out.trim());
 	} catch {
 		return false;
 	}

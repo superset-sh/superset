@@ -66,12 +66,12 @@ export function SettingsSection({
 	return (
 		<div className="space-y-3">
 			<div>
-				<h3 className="text-base font-semibold text-foreground flex items-center gap-2">
+				<h3 className="text-sm font-medium text-foreground flex items-center gap-2">
 					{icon}
 					{title}
 				</h3>
 				{description && (
-					<p className="text-xs text-muted-foreground mt-1">{description}</p>
+					<p className="text-sm text-muted-foreground mt-0.5">{description}</p>
 				)}
 			</div>
 			{children}
@@ -289,7 +289,7 @@ export function ProjectSettings({
 		);
 
 	return (
-		<div className="p-6 max-w-4xl w-full select-text">
+		<div className="p-6 max-w-4xl w-full mx-auto select-text">
 			<ProjectSettingsHeader title={project.name}>
 				<ClickablePath
 					path={project.mainRepoPath}

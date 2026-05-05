@@ -19,8 +19,11 @@ interface DestroyConfirmPaneProps {
 	onDeleteBranchChange: (next: boolean) => void;
 	hasChanges: boolean;
 	hasUnpushedCommits: boolean;
+	canConfirm: boolean;
+	blockingReason: string | null;
 	isCheckingStatus: boolean;
 	onConfirm: () => void;
+	confirmLabel: string;
 }
 
 export function DestroyConfirmPane({
@@ -31,8 +34,11 @@ export function DestroyConfirmPane({
 	onDeleteBranchChange,
 	hasChanges,
 	hasUnpushedCommits,
+	canConfirm,
+	blockingReason,
 	isCheckingStatus,
 	onConfirm,
+	confirmLabel,
 }: DestroyConfirmPaneProps) {
 	const checkboxId = useId();
 	const hasWarnings = hasChanges || hasUnpushedCommits;
@@ -48,6 +54,11 @@ export function DestroyConfirmPane({
 						also be removed.
 					</AlertDialogDescription>
 				</AlertDialogHeader>
+				{isCheckingStatus && !hasWarnings && (
+					<div className="px-4 pb-2 text-xs text-muted-foreground">
+						Checking delete status…
+					</div>
+				)}
 				{hasWarnings && (
 					<div className="px-4 pb-2">
 						<div className="text-xs text-yellow-700 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-500/10 border border-yellow-200 dark:border-yellow-500/20 rounded-md px-2.5 py-1.5">
@@ -56,6 +67,13 @@ export function DestroyConfirmPane({
 								: hasChanges
 									? "Has uncommitted changes"
 									: "Has unpushed commits"}
+						</div>
+					</div>
+				)}
+				{blockingReason && (
+					<div className="px-4 pb-2">
+						<div className="text-xs text-destructive bg-destructive/10 border border-destructive/20 rounded-md px-2.5 py-1.5">
+							{blockingReason}
 						</div>
 					</div>
 				)}
@@ -90,9 +108,9 @@ export function DestroyConfirmPane({
 						size="sm"
 						className="h-7 px-3 text-xs"
 						onClick={onConfirm}
-						disabled={isCheckingStatus}
+						disabled={!canConfirm}
 					>
-						Delete
+						{confirmLabel}
 					</Button>
 				</AlertDialogFooter>
 			</AlertDialogContent>

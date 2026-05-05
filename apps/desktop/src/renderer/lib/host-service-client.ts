@@ -1,5 +1,5 @@
 import type { AppRouter } from "@superset/host-service";
-import { createTRPCClient, httpBatchLink } from "@trpc/client";
+import { createTRPCClient, httpLink } from "@trpc/client";
 import superjson from "superjson";
 import { getHostServiceHeaders } from "./host-service-auth";
 
@@ -20,7 +20,7 @@ export function getHostServiceClientByUrl(hostUrl: string): HostServiceClient {
 
 	const client = createTRPCClient<AppRouter>({
 		links: [
-			httpBatchLink({
+			httpLink({
 				url: `${hostUrl}/trpc`,
 				transformer: superjson,
 				headers: () => getHostServiceHeaders(hostUrl),

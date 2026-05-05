@@ -37,6 +37,7 @@ export function useRecentProjects(): ProjectOption[] {
 				name: project.name,
 				githubOwner: repo?.owner ?? null,
 				githubRepoName: repo?.name ?? null,
+				iconUrl: project.iconUrl,
 				needsSetup: null,
 			};
 		});

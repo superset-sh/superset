@@ -109,7 +109,7 @@ export interface ComparisonRow {
 		string | boolean | null,
 		string | boolean | null,
 	];
-	comingSoon?: boolean;
+	badge?: { label: string; variant: "default" | "secondary" };
 }
 
 export interface ComparisonSection {
@@ -134,22 +134,18 @@ export const COMPARISON_SECTIONS: ComparisonSection[] = [
 		rows: [
 			{ label: "Desktop app", values: [true, true, true] },
 			{ label: "Local workspaces", values: [true, true, true] },
-			{ label: "GitHub integration", values: [true, true, true] },
-			{
-				label: "CLI",
-				values: [true, true, true],
-				comingSoon: true,
-			},
 			{
 				label: "Remote workspaces",
 				values: [null, true, true],
-				comingSoon: true,
+				badge: { label: "Beta", variant: "default" },
 			},
+			{ label: "Automations", values: [null, true, true] },
 			{
-				label: "Mobile",
+				label: "Mobile app",
 				values: [null, true, true],
-				comingSoon: true,
+				badge: { label: "Coming soon", variant: "secondary" },
 			},
+			{ label: "GitHub integration", values: [true, true, true] },
 			{ label: "Linear integration", values: [null, true, true] },
 			{ label: "Slack integration", values: [null, true, true] },
 			{ label: "Team collaboration", values: [null, true, true] },

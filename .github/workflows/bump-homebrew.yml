@@ -39,7 +39,7 @@ jobs:
           TAG: ${{ steps.version.outputs.tag }}
         run: |
           set -euo pipefail
-          for target in darwin-arm64 linux-x64; do
+          for target in darwin-arm64 linux-x64 linux-arm64; do
             url="https://github.com/superset-sh/superset/releases/download/${TAG}/superset-${target}.tar.gz"
             echo "Fetching SHA for $url"
             tmp=$(mktemp)
@@ -65,6 +65,7 @@ jobs:
           VERSION: ${{ steps.version.outputs.version }}
           DARWIN_ARM64_SHA: ${{ steps.shas.outputs.darwin_arm64_sha }}
           LINUX_X64_SHA: ${{ steps.shas.outputs.linux_x64_sha }}
+          LINUX_ARM64_SHA: ${{ steps.shas.outputs.linux_arm64_sha }}
         run: |
           set -euo pipefail
           python3 - <<'PYEOF' > homebrew-tap/Formula/superset.rb
@@ -87,6 +88,10 @@ jobs:
                 url "https://github.com/superset-sh/superset/releases/download/cli-v#{{version}}/superset-linux-x64.tar.gz"
                 sha256 "{linux_x64}"
               end
+              on_arm do
+                url "https://github.com/superset-sh/superset/releases/download/cli-v#{{version}}/superset-linux-arm64.tar.gz"
+                sha256 "{linux_arm64}"
+              end
             end
 
             def install
@@ -104,6 +109,7 @@ jobs:
               version=os.environ["VERSION"],
               darwin_arm64=os.environ["DARWIN_ARM64_SHA"],
               linux_x64=os.environ["LINUX_X64_SHA"],
+              linux_arm64=os.environ["LINUX_ARM64_SHA"],
           ), end="")
           PYEOF
 

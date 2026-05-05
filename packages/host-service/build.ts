@@ -17,7 +17,18 @@ const result = await Bun.build({
 	outdir,
 	naming: "host-service.js",
 	format: "esm",
-	external: ["better-sqlite3", "node-pty", "@parcel/watcher"],
+	external: [
+		"better-sqlite3",
+		"node-pty",
+		"@parcel/watcher",
+		"libsql",
+		"onnxruntime-node",
+		"@anush008/tokenizers",
+		"@anush008/tokenizers-darwin-universal",
+		"@anush008/tokenizers-linux-x64-gnu",
+		"@anush008/tokenizers-linux-arm64-gnu",
+		"@anush008/tokenizers-win32-x64-msvc",
+	],
 });
 
 if (!result.success) {

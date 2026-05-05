@@ -4,6 +4,7 @@ import { and, eq, ne, or } from "drizzle-orm";
 import { workspaces } from "../../../../db/schema";
 import type { HostServiceContext } from "../../../../types";
 import { protectedProcedure } from "../../../index";
+import { gitConfigWrite } from "../../git/utils/config-write";
 import { ensureMainWorkspace } from "../../project/utils/ensure-main-workspace";
 import { adoptInputSchema } from "../schemas";
 import {
@@ -102,14 +103,16 @@ async function recordBaseBranch(
 	baseBranch: string | undefined,
 ): Promise<void> {
 	if (!baseBranch) return;
-	await git
-		.raw(["config", `branch.${branch}.base`, baseBranch])
-		.catch((err) => {
-			console.warn(
-				`[workspaceCreation.adopt] failed to record base branch ${baseBranch}:`,
-				err,
-			);
-		});
+	await gitConfigWrite(git as Parameters<typeof gitConfigWrite>[0], [
+		"config",
+		`branch.${branch}.base`,
+		baseBranch,
+	]).catch((err) => {
+		console.warn(
+			`[workspaceCreation.adopt] failed to record base branch ${baseBranch}:`,
+			err,
+		);
+	});
 }
 
 export const adopt = protectedProcedure
@@ -146,11 +149,7 @@ export const adopt = protectedProcedure
 			branch = actualBranch;
 			worktreePath = input.worktreePath;
 		} else {
-			const { worktreeMap } = await listWorktreeBranches(
-				ctx,
-				git,
-				input.projectId,
-			);
+			const { worktreeMap } = await listWorktreeBranches(git);
 			const found = worktreeMap.get(branch);
 			if (!found) {
 				throw new TRPCError({

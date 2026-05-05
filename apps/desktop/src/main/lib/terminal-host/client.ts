@@ -1185,11 +1185,13 @@ export class TerminalHostClient extends EventEmitter {
 				logFd = -1;
 			}
 
-			// Spawn daemon as detached process
+			// Prod: detached so terminal sessions survive Electron restarts.
+			// Dev: attached so it dies with Electron on `bun dev` kill.
+			const isDev = !app.isPackaged;
 			let child: ReturnType<typeof spawn> | null = null;
 			try {
 				child = spawn(process.execPath, [daemonScript], {
-					detached: true,
+					detached: !isDev,
 					stdio: logFd >= 0 ? ["ignore", logFd, logFd] : "ignore",
 					env: {
 						...process.env,
@@ -1217,8 +1219,7 @@ export class TerminalHostClient extends EventEmitter {
 				);
 			}
 
-			// Unref to allow parent to exit independently
-			child.unref();
+			if (!isDev) child.unref();
 
 			// Wait for daemon to start
 			if (DEBUG_CLIENT) {

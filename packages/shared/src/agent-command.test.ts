@@ -13,7 +13,7 @@ describe("buildAgentPromptCommand", () => {
 		});
 
 		expect(command).toContain(
-			"model_supports_reasoning_summaries=true --full-auto -- \"$(cat <<'SUPERSET_PROMPT_12345678'",
+			"model_supports_reasoning_summaries=true --sandbox workspace-write --ask-for-approval never -- \"$(cat <<'SUPERSET_PROMPT_12345678'",
 		);
 		expect(command).toContain("- Only modified file: runtime.ts");
 	});

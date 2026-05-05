@@ -8,6 +8,7 @@ const publicRoutes = [
 	"/auth/desktop",
 	"/api/auth/desktop",
 	"/accept-invitation",
+	"/cli/auth/code",
 ];
 
 function isPublicRoute(pathname: string): boolean {
@@ -29,7 +30,9 @@ export default async function proxy(req: NextRequest) {
 	}
 
 	if (!session && !isPublicRoute(pathname)) {
-		return NextResponse.redirect(new URL("/sign-in", req.url));
+		const signInUrl = new URL("/sign-in", req.url);
+		signInUrl.searchParams.set("redirect", pathname + req.nextUrl.search);
+		return NextResponse.redirect(signInUrl);
 	}
 
 	return NextResponse.next();

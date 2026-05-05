@@ -88,7 +88,7 @@ function DesktopRow({ row }: { row: ComparisonRow }) {
 			<td className="py-4 pr-4 text-sm text-foreground">
 				<div className="flex items-center gap-2">
 					<span>{row.label}</span>
-					{row.comingSoon && <ComingSoonBadge />}
+					{row.badge && <RowBadge badge={row.badge} />}
 				</div>
 			</td>
 			{row.values.map((value, index) => (
@@ -143,7 +143,7 @@ function MobileTable() {
 								>
 									<div className="flex items-center gap-2 text-sm text-foreground">
 										<span>{row.label}</span>
-										{row.comingSoon && <ComingSoonBadge />}
+										{row.badge && <RowBadge badge={row.badge} />}
 									</div>
 									<div className="shrink-0 text-sm text-foreground">
 										<Cell value={row.values[selectedIndex] ?? null} />
@@ -173,14 +173,18 @@ function Cell({ value }: { value: ComparisonRow["values"][number] }) {
 	return <span>{value}</span>;
 }
 
-function ComingSoonBadge() {
+function RowBadge({ badge }: { badge: NonNullable<ComparisonRow["badge"]> }) {
+	const isPrimary = badge.variant === "default";
 	return (
 		<span
 			className={cn(
-				"rounded-sm bg-accent/40 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground",
+				"rounded-sm px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide",
+				isPrimary
+					? "bg-foreground text-background"
+					: "bg-accent/40 text-muted-foreground",
 			)}
 		>
-			Coming soon
+			{badge.label}
 		</span>
 	);
 }

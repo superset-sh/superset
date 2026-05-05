@@ -6,7 +6,7 @@ export default command({
 	args: [positional("idOrSlug").required().desc("Task ID or slug")],
 	run: async ({ ctx, args }) => {
 		const idOrSlug = args.idOrSlug as string;
-		const task = await ctx.api.task.bySlug.query(idOrSlug);
+		const task = await ctx.api.task.byIdOrSlug.query(idOrSlug);
 		if (!task) throw new CLIError(`Task not found: ${idOrSlug}`);
 
 		return {

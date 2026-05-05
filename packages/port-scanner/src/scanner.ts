@@ -2,7 +2,7 @@ import { execFile } from "node:child_process";
 import os from "node:os";
 import { promisify } from "node:util";
 import pidtree from "pidtree";
-import { getListeningPortsLinuxProcfs } from "./procfs";
+import { getListeningPortsLinuxProcfs } from "./procfs.ts";
 
 const execFileAsync = promisify(execFile);
 

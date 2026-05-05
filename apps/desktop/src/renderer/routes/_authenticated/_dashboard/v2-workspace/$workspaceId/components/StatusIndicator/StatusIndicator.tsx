@@ -26,8 +26,7 @@ const STATUS_COLORS: Record<FileStatus, string> = {
 	untracked: "text-green-700 dark:text-green-400",
 };
 
-function getStatusIcon(status: FileStatus): ReactNode {
-	const iconClass = "w-3 h-3";
+function getStatusIcon(status: FileStatus, iconClass: string): ReactNode {
 	switch (status) {
 		case "added":
 		case "untracked":
@@ -49,15 +48,17 @@ function getStatusIcon(status: FileStatus): ReactNode {
 export function StatusIndicator({
 	status,
 	className,
+	iconClassName = "w-3 h-3",
 }: {
 	status: string;
 	className?: string;
+	iconClassName?: string;
 }) {
 	return (
 		<span
 			className={`flex shrink-0 items-center ${STATUS_COLORS[status as FileStatus] ?? ""} ${className ?? ""}`}
 		>
-			{getStatusIcon(status as FileStatus)}
+			{getStatusIcon(status as FileStatus, iconClassName)}
 		</span>
 	);
 }

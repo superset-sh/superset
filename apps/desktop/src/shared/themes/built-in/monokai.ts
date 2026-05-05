@@ -23,7 +23,7 @@ export const monokaiTheme: Theme = {
 		secondary: "#3e3d32",
 		secondaryForeground: "#f8f8f2",
 		muted: "#3e3d32",
-		mutedForeground: "#75715e",
+		mutedForeground: "#b8b3a4",
 		accent: "#49483e",
 		accentForeground: "#f8f8f2",
 		tertiary: "#1e1f1c",
@@ -50,6 +50,10 @@ export const monokaiTheme: Theme = {
 		// Search highlights - warm yellow matching monokai's palette
 		highlightMatch: "rgba(244, 191, 117, 0.25)",
 		highlightActive: "rgba(244, 191, 117, 0.55)",
+
+		// Brand highlight - monokai's signature green-yellow
+		highlight: "#a6e22e",
+		highlightForeground: "#272822",
 	},
 
 	terminal: {

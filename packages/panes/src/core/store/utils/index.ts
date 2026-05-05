@@ -9,6 +9,7 @@ export {
 	getNodeAtPath,
 	getOtherBranch,
 	getPaneIdsInLayout,
+	getPaneParentDirection,
 	getSpatialNeighborPaneId,
 	positionToDirection,
 	removePaneFromLayout,

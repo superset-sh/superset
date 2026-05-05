@@ -111,4 +111,15 @@ describe("derivePrLocalBranchName", () => {
 			}),
 		).toThrow("headRepositoryOwner is required");
 	});
+
+	test("cross-repo with empty owner falls back to pr number when available", () => {
+		expect(
+			derivePrLocalBranchName({
+				number: 3711,
+				headRefName: "foo",
+				headRepositoryOwner: "",
+				isCrossRepository: true,
+			}),
+		).toBe("pr/3711");
+	});
 });

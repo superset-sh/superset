@@ -11,6 +11,7 @@ import { createChangesRouter } from "./changes";
 import { createChatRuntimeServiceRouter } from "./chat-runtime-service";
 import { createChatServiceRouter } from "./chat-service";
 import { createConfigRouter } from "./config";
+import { createDeviceRouter } from "./device";
 import { createExternalRouter } from "./external";
 import { createFilesystemRouter } from "./filesystem";
 import { createHostServiceCoordinatorRouter } from "./host-service-coordinator";
@@ -57,6 +58,7 @@ export const createAppRouter = (
 		external: createExternalRouter(),
 		settings: createSettingsRouter(),
 		config: createConfigRouter(),
+		device: createDeviceRouter(),
 		uiState: createUiStateRouter(),
 		ringtone: createRingtoneRouter(getWindow),
 		hostServiceCoordinator: createHostServiceCoordinatorRouter(),

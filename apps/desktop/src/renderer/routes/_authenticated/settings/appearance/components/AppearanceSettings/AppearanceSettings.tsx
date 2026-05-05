@@ -16,14 +16,9 @@ import { ThemeSection } from "./components/ThemeSection";
 function SectionList({ children }: { children: ReactNode[] }) {
 	const visibleChildren = children.filter(Boolean);
 	return (
-		<div>
+		<div className="space-y-6">
 			{visibleChildren.map((child, i) => (
-				<div
-					key={(child as React.ReactElement).key ?? i}
-					className={i > 0 ? "pt-6 border-t mt-6" : ""}
-				>
-					{child}
-				</div>
+				<div key={(child as React.ReactElement).key ?? i}>{child}</div>
 			))}
 		</div>
 	);

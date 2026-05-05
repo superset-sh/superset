@@ -4,12 +4,13 @@
 # Based on apps/desktop/RELEASE.md
 #
 # Usage:
-#   ./create-release.sh [version] [--publish] [--merge]
-#   Example: ./create-release.sh              # Interactive version selection
-#   Example: ./create-release.sh 0.0.1        # Explicit version
+#   ./create-release.sh [version] [commit] [--publish] [--merge]
+#   Example: ./create-release.sh                       # Interactive version selection
+#   Example: ./create-release.sh 0.0.1                 # Explicit version, current HEAD
+#   Example: ./create-release.sh 0.0.1 58a3f7e8        # Release commit 58a3f7e8 as 0.0.1
 #   Example: ./create-release.sh 0.0.1 --publish
-#   Example: ./create-release.sh --publish    # Interactive + auto-publish
-#   Example: ./create-release.sh --publish --merge  # Auto-publish and merge PR
+#   Example: ./create-release.sh --publish             # Interactive + auto-publish
+#   Example: ./create-release.sh --publish --merge     # Auto-publish and merge PR
 #
 # This script will:
 # 1. Prompt for version if not provided (patch/minor/major/custom)
@@ -28,6 +29,9 @@
 # - Draft by default for review before publishing
 # - Use --publish flag to auto-publish when build completes
 # - Use --merge flag to merge the PR and delete the branch after publishing
+# - Pass an optional commit SHA (canary-style) to release a specific commit
+#   without touching the current branch — the script provisions a temp release
+#   branch from that commit, applies the version bump there, and tags it.
 #
 # Requirements:
 # - GitHub CLI (gh) installed and authenticated
@@ -85,6 +89,7 @@ increment_major() {
 
 # Parse arguments
 VERSION=""
+COMMIT_INPUT=""
 AUTO_PUBLISH=false
 AUTO_MERGE=false
 
@@ -97,13 +102,15 @@ for arg in "$@"; do
             AUTO_MERGE=true
             ;;
         -*)
-            error "Unknown option: $arg\nUsage: $0 [version] [--publish] [--merge]"
+            error "Unknown option: $arg\nUsage: $0 [version] [commit] [--publish] [--merge]"
             ;;
         *)
             if [ -z "$VERSION" ]; then
                 VERSION="$arg"
+            elif [ -z "$COMMIT_INPUT" ]; then
+                COMMIT_INPUT="$arg"
             else
-                error "Unexpected argument: $arg\nUsage: $0 [version] [--publish] [--merge]"
+                error "Unexpected argument: $arg\nUsage: $0 [version] [commit] [--publish] [--merge]"
             fi
             ;;
     esac
@@ -169,6 +176,17 @@ if [ -z "$VERSION" ]; then
 
     echo ""
     info "Selected version: ${VERSION}"
+fi
+
+# Reject a non-semver positional VERSION (e.g. someone passed only a commit SHA).
+# Without this guard a call like `./create-release.sh 58a3f7e8` would tag
+# desktop-v58a3f7e8 and write that string into package.json.
+if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+    error "Invalid version format: ${VERSION}\nExpected: MAJOR.MINOR.PATCH (e.g., 1.2.3). To release a specific commit, pass version first: $0 <version> <commit>"
+fi
+
+if [ "$AUTO_MERGE" = true ] && [ -n "$COMMIT_INPUT" ]; then
+    warn "--merge has no effect with a commit SHA (no PR is created); the temp release branch will remain on origin until you delete it."
 fi
 
 TAG_NAME="desktop-v${VERSION}"
@@ -251,80 +269,136 @@ if git rev-parse "${TAG_NAME}" >/dev/null 2>&1; then
 fi
 success "Tag ${TAG_NAME} is available"
 
-# 3. Update version in package.json
-info "Updating version in package.json..."
-CURRENT_VERSION=$(node -p "require('./package.json').version")
-if [ "${CURRENT_VERSION}" == "${VERSION}" ]; then
-    warn "package.json already has version ${VERSION}"
-else
-    # Update the version using jq to handle workspace dependencies
-    TMP_FILE=$(mktemp)
-    jq ".version = \"${VERSION}\"" package.json > "${TMP_FILE}" && mv "${TMP_FILE}" package.json
-    # Format package.json to match project conventions (jq reformats the JSON)
-    bunx biome format --write package.json
-    success "Updated package.json from ${CURRENT_VERSION} to ${VERSION}"
+if [ -n "$COMMIT_INPUT" ]; then
+    # Commit-based release (canary-style): build the release commit in a
+    # temp worktree off the specified commit, push as a release branch,
+    # then tag and push. Leaves the caller's working tree untouched.
+    REPO_ROOT=$(git rev-parse --show-toplevel)
+    cd "${REPO_ROOT}"
+    if ! FULL_SHA=$(git rev-parse --verify "${COMMIT_INPUT}^{commit}" 2>/dev/null); then
+        error "Could not resolve commit: ${COMMIT_INPUT}"
+    fi
+    SHORT_SHA="${FULL_SHA:0:9}"
+    TEMP_BRANCH="release-desktop-v${VERSION}-${SHORT_SHA}"
 
-    # Commit the version change
-    git add package.json
-    git commit -m "chore(desktop): bump version to ${VERSION}"
-    success "Committed version change"
-fi
+    info "Releasing from commit ${SHORT_SHA} via temp branch ${TEMP_BRANCH}"
 
-# 4. Push changes and create PR if needed
-info "Pushing changes to remote..."
-CURRENT_BRANCH=$(git branch --show-current)
-git push -u origin "HEAD:${CURRENT_BRANCH}"
-success "Changes pushed to ${CURRENT_BRANCH}"
+    if git ls-remote --exit-code --heads origin "${TEMP_BRANCH}" >/dev/null 2>&1; then
+        info "Existing remote branch ${TEMP_BRANCH} found — deleting"
+        git push origin --delete "${TEMP_BRANCH}" >/dev/null 2>&1 || true
+    fi
 
-# Create PR if not on main branch
-MAIN_BRANCH="main"
-PR_NUMBER=""
-if [ "${CURRENT_BRANCH}" != "${MAIN_BRANCH}" ]; then
-    # Check if PR already exists for this branch
-    EXISTING_PR=$(gh pr list --head "${CURRENT_BRANCH}" --json number --jq '.[0].number' 2>/dev/null || echo "")
+    WORKTREE_DIR=$(mktemp -d -t superset-release-XXXXXX)
+    cleanup_release_worktree() {
+        git worktree remove --force "${WORKTREE_DIR}" >/dev/null 2>&1 || true
+        rm -rf "${WORKTREE_DIR}"
+    }
+    trap cleanup_release_worktree EXIT
+    git worktree add --detach "${WORKTREE_DIR}" "${FULL_SHA}" >/dev/null
+    success "Provisioned worktree at ${WORKTREE_DIR}"
 
-    if [ -n "$EXISTING_PR" ]; then
-        info "PR #${EXISTING_PR} already exists for branch ${CURRENT_BRANCH}"
-        PR_NUMBER="$EXISTING_PR"
+    pushd "${WORKTREE_DIR}" >/dev/null
+    WORKTREE_VERSION=$(node -p "require('./${DESKTOP_DIR}/package.json').version")
+    if [ "${WORKTREE_VERSION}" == "${VERSION}" ]; then
+        warn "Commit ${SHORT_SHA} already has version ${VERSION}; skipping bump"
     else
-        # Check if there are any commits ahead of main before trying to create PR
-        COMMITS_AHEAD=$(git rev-list --count "${MAIN_BRANCH}..HEAD" 2>/dev/null || echo "0")
-        if [ "$COMMITS_AHEAD" = "0" ]; then
-            warn "No commits ahead of ${MAIN_BRANCH}. Skipping PR creation."
-            warn "The tag will still be created and trigger the release workflow."
+        TMP_FILE=$(mktemp)
+        jq ".version = \"${VERSION}\"" "${DESKTOP_DIR}/package.json" > "${TMP_FILE}" && mv "${TMP_FILE}" "${DESKTOP_DIR}/package.json"
+        bunx biome format --write "${DESKTOP_DIR}/package.json"
+        git add "${DESKTOP_DIR}/package.json"
+        git commit -m "chore(desktop): bump version to ${VERSION}"
+        success "Committed version bump ${WORKTREE_VERSION} -> ${VERSION} on top of ${SHORT_SHA}"
+    fi
+
+    info "Pushing temp branch ${TEMP_BRANCH}..."
+    git push origin "HEAD:refs/heads/${TEMP_BRANCH}"
+    success "Temp branch pushed"
+
+    info "Creating tag ${TAG_NAME} on temp branch tip..."
+    git tag "${TAG_NAME}"
+    git push origin "${TAG_NAME}"
+    success "Tag ${TAG_NAME} pushed"
+    popd >/dev/null
+
+    cd "${REPO_ROOT}/${DESKTOP_DIR}"
+    PR_NUMBER=""
+    CURRENT_BRANCH="${TEMP_BRANCH}"
+else
+    # 3. Update version in package.json
+    info "Updating version in package.json..."
+    CURRENT_VERSION=$(node -p "require('./package.json').version")
+    if [ "${CURRENT_VERSION}" == "${VERSION}" ]; then
+        warn "package.json already has version ${VERSION}"
+    else
+        # Update the version using jq to handle workspace dependencies
+        TMP_FILE=$(mktemp)
+        jq ".version = \"${VERSION}\"" package.json > "${TMP_FILE}" && mv "${TMP_FILE}" package.json
+        # Format package.json to match project conventions (jq reformats the JSON)
+        bunx biome format --write package.json
+        success "Updated package.json from ${CURRENT_VERSION} to ${VERSION}"
+
+        # Commit the version change
+        git add package.json
+        git commit -m "chore(desktop): bump version to ${VERSION}"
+        success "Committed version change"
+    fi
+
+    # 4. Push changes and create PR if needed
+    info "Pushing changes to remote..."
+    CURRENT_BRANCH=$(git branch --show-current)
+    git push -u origin "HEAD:${CURRENT_BRANCH}"
+    success "Changes pushed to ${CURRENT_BRANCH}"
+
+    # Create PR if not on main branch
+    MAIN_BRANCH="main"
+    PR_NUMBER=""
+    if [ "${CURRENT_BRANCH}" != "${MAIN_BRANCH}" ]; then
+        # Check if PR already exists for this branch
+        EXISTING_PR=$(gh pr list --head "${CURRENT_BRANCH}" --json number --jq '.[0].number' 2>/dev/null || echo "")
+
+        if [ -n "$EXISTING_PR" ]; then
+            info "PR #${EXISTING_PR} already exists for branch ${CURRENT_BRANCH}"
+            PR_NUMBER="$EXISTING_PR"
         else
-            info "Creating pull request..."
-            # Disable set -e temporarily to capture exit code
-            set +e
-            PR_URL=$(gh pr create \
-                --title "chore(desktop): bump version to ${VERSION}" \
-                --body "Bumps desktop app version to ${VERSION}.
+            # Check if there are any commits ahead of main before trying to create PR
+            COMMITS_AHEAD=$(git rev-list --count "${MAIN_BRANCH}..HEAD" 2>/dev/null || echo "0")
+            if [ "$COMMITS_AHEAD" = "0" ]; then
+                warn "No commits ahead of ${MAIN_BRANCH}. Skipping PR creation."
+                warn "The tag will still be created and trigger the release workflow."
+            else
+                info "Creating pull request..."
+                # Disable set -e temporarily to capture exit code
+                set +e
+                PR_URL=$(gh pr create \
+                    --title "chore(desktop): bump version to ${VERSION}" \
+                    --body "Bumps desktop app version to ${VERSION}.
 
 This PR was automatically created by the release script." \
-                --base "${MAIN_BRANCH}" \
-                --head "${CURRENT_BRANCH}" 2>&1)
-            PR_EXIT_CODE=$?
-            set -e
+                    --base "${MAIN_BRANCH}" \
+                    --head "${CURRENT_BRANCH}" 2>&1)
+                PR_EXIT_CODE=$?
+                set -e
 
-            if [ $PR_EXIT_CODE -eq 0 ]; then
-                success "Pull request created: ${PR_URL}"
-                # Extract PR number from URL
-                PR_NUMBER=$(echo "$PR_URL" | grep -oE '[0-9]+$')
-            else
-                warn "Could not create PR: ${PR_URL}"
+                if [ $PR_EXIT_CODE -eq 0 ]; then
+                    success "Pull request created: ${PR_URL}"
+                    # Extract PR number from URL
+                    PR_NUMBER=$(echo "$PR_URL" | grep -oE '[0-9]+$')
+                else
+                    warn "Could not create PR: ${PR_URL}"
+                fi
             fi
         fi
     fi
+
+    # 5. Create and push tag
+    info "Creating tag ${TAG_NAME}..."
+    git tag "${TAG_NAME}"
+    success "Tag ${TAG_NAME} created"
+
+    info "Pushing tag to trigger release workflow..."
+    git push origin "${TAG_NAME}"
+    success "Tag pushed to remote"
 fi
-
-# 5. Create and push tag
-info "Creating tag ${TAG_NAME}..."
-git tag "${TAG_NAME}"
-success "Tag ${TAG_NAME} created"
-
-info "Pushing tag to trigger release workflow..."
-git push origin "${TAG_NAME}"
-success "Tag pushed to remote"
 
 echo ""
 echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"

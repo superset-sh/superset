@@ -34,23 +34,27 @@ const rruleBody = z
 	.max(500)
 	.describe("RFC 5545 RRULE body, no DTSTART prefix");
 
-export const createAutomationSchema = z.object({
-	name: z.string().min(1).max(200),
-	prompt: z.string().min(1).max(20_000),
-	agentConfig: agentConfigSchema,
-	targetHostId: z.string().min(1).nullish(),
-	v2ProjectId: z.string().uuid(),
-	v2WorkspaceId: z.string().uuid().nullish(),
-	rrule: rruleBody,
-	dtstart: z.coerce.date().optional(),
-	timezone: iana,
-	mcpScope: z.array(z.string()).default([]),
-});
+export const createAutomationSchema = z
+	.object({
+		name: z.string().min(1).max(200),
+		prompt: z.string().min(1).max(100_000),
+		agentConfig: agentConfigSchema,
+		targetHostId: z.string().min(1).nullish(),
+		v2ProjectId: z.string().uuid().optional(),
+		v2WorkspaceId: z.string().uuid().nullish(),
+		rrule: rruleBody,
+		dtstart: z.coerce.date().optional(),
+		timezone: iana,
+		mcpScope: z.array(z.string()).default([]),
+	})
+	.refine((input) => input.v2ProjectId || input.v2WorkspaceId, {
+		message: "Provide v2ProjectId or v2WorkspaceId",
+		path: ["v2ProjectId"],
+	});
 
 export const updateAutomationSchema = z.object({
 	id: z.string().uuid(),
 	name: z.string().min(1).max(200).optional(),
-	prompt: z.string().min(1).max(20_000).optional(),
 	agentConfig: agentConfigSchema.optional(),
 	targetHostId: z.string().min(1).nullish(),
 	v2ProjectId: z.string().uuid().optional(),
@@ -59,6 +63,11 @@ export const updateAutomationSchema = z.object({
 	dtstart: z.coerce.date().optional(),
 	timezone: iana.optional(),
 	mcpScope: z.array(z.string()).optional(),
+});
+
+export const setAutomationPromptSchema = z.object({
+	id: z.string().uuid(),
+	prompt: z.string().min(1).max(100_000),
 });
 
 export const listRunsSchema = z.object({

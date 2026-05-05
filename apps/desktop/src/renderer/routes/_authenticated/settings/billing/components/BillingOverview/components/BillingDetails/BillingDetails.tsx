@@ -1,5 +1,4 @@
 import { Button } from "@superset/ui/button";
-import { Card, CardContent } from "@superset/ui/card";
 import { useEffect, useState } from "react";
 import stripeLinkIcon from "renderer/assets/stripe-link.png";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
@@ -84,85 +83,86 @@ export function BillingDetails() {
 
 	return (
 		<div>
-			<h3 className="text-sm font-medium mb-3">Billing details</h3>
-			<div className="space-y-2">
-				<Card className="gap-0 rounded-lg border-border/60 py-0 shadow-none">
-					<CardContent className="px-5 py-4">
-						<div className="flex items-center justify-between">
-							<div className="min-w-0 flex-1">
-								<span className="text-sm font-medium">
-									{details.name ?? "No name on file"}
-								</span>
-								{addressStr && (
-									<p className="text-xs text-muted-foreground mt-0.5">
-										{addressStr}
-									</p>
-								)}
-								{details.email && (
-									<p className="text-xs text-muted-foreground mt-0.5">
-										{details.email}
-									</p>
-								)}
-							</div>
-							<Button
-								variant="ghost"
-								size="sm"
-								onClick={() => handleEdit("general")}
-								disabled={openingPortal !== null}
-							>
-								Edit
-							</Button>
-						</div>
-					</CardContent>
-				</Card>
-
-				<Card className="gap-0 rounded-lg border-border/60 py-0 shadow-none">
-					<CardContent className="px-5 py-4">
-						<div className="flex items-center justify-between">
-							<div className="min-w-0 flex-1">
-								<span className="text-sm font-medium">Payment method</span>
-								<p className="text-xs text-muted-foreground mt-0.5">
-									{details.paymentMethod ? (
-										<PaymentMethodLabel paymentMethod={details.paymentMethod} />
-									) : (
-										"No payment method on file"
-									)}
-								</p>
-							</div>
-							<Button
-								variant="ghost"
-								size="sm"
-								onClick={() => handleEdit("payment_method_update")}
-								disabled={openingPortal !== null}
-							>
-								Edit
-							</Button>
-						</div>
-					</CardContent>
-				</Card>
-
-				<Card className="gap-0 rounded-lg border-border/60 py-0 shadow-none">
-					<CardContent className="px-5 py-4">
-						<div className="flex items-center justify-between">
-							<div className="min-w-0 flex-1">
-								<p className="text-xs text-muted-foreground">
-									{details.taxId
-										? `${details.taxId.type.toUpperCase().replace("_", " ")} · ${details.taxId.value}`
-										: "No tax identifier on file"}
-								</p>
-							</div>
-							<Button
-								variant="ghost"
-								size="sm"
-								onClick={() => handleEdit("general")}
-								disabled={openingPortal !== null}
-							>
-								{details.taxId ? "Edit" : "Add tax ID"}
-							</Button>
-						</div>
-					</CardContent>
-				</Card>
+			<h3 className="text-sm font-medium mb-2">Billing details</h3>
+			<div>
+				<DetailRow
+					label={details.name ?? "No name on file"}
+					hint={
+						<>
+							{addressStr && <div>{addressStr}</div>}
+							{details.email && <div>{details.email}</div>}
+						</>
+					}
+					action={
+						<Button
+							variant="ghost"
+							size="sm"
+							onClick={() => handleEdit("general")}
+							disabled={openingPortal !== null}
+						>
+							Edit
+						</Button>
+					}
+				/>
+				<DetailRow
+					label="Payment method"
+					hint={
+						details.paymentMethod ? (
+							<PaymentMethodLabel paymentMethod={details.paymentMethod} />
+						) : (
+							"No payment method on file"
+						)
+					}
+					action={
+						<Button
+							variant="ghost"
+							size="sm"
+							onClick={() => handleEdit("payment_method_update")}
+							disabled={openingPortal !== null}
+						>
+							Edit
+						</Button>
+					}
+				/>
+				<DetailRow
+					label="Tax ID"
+					hint={
+						details.taxId
+							? `${details.taxId.type.toUpperCase().replace("_", " ")} · ${details.taxId.value}`
+							: "No tax identifier on file"
+					}
+					action={
+						<Button
+							variant="ghost"
+							size="sm"
+							onClick={() => handleEdit("general")}
+							disabled={openingPortal !== null}
+						>
+							{details.taxId ? "Edit" : "Add tax ID"}
+						</Button>
+					}
+				/>
 			</div>
+		</div>
+	);
+}
+
+interface DetailRowProps {
+	label: React.ReactNode;
+	hint?: React.ReactNode;
+	action: React.ReactNode;
+}
+
+function DetailRow({ label, hint, action }: DetailRowProps) {
+	return (
+		<div className="flex items-center justify-between gap-8 py-3">
+			<div className="min-w-0 flex-1">
+				<div className="text-sm font-medium">{label}</div>
+				{hint && (
+					<div className="text-xs text-muted-foreground mt-0.5">{hint}</div>
+				)}
+			</div>
+			<div className="shrink-0">{action}</div>
 		</div>
 	);
 }

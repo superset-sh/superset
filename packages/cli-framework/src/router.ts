@@ -93,12 +93,10 @@ export function routeCommand(
 					if (child.aliases) candidates.push(...child.aliases);
 				}
 				const suggestion = suggestSimilar(segment, candidates);
-				if (suggestion) {
-					throw new CLIError(
-						`Unknown command: ${segment}`,
-						`Did you mean "${suggestion}"?`,
-					);
-				}
+				throw new CLIError(
+					`Unknown command: ${segment}`,
+					suggestion ? `Did you mean "${suggestion}"?` : undefined,
+				);
 			}
 			break;
 		}

@@ -1,0 +1,60 @@
+.wcs-bar-track {
+	position: relative;
+	height: 1px;
+	width: 100%;
+	overflow: hidden;
+	background: hsl(var(--border) / 0.6);
+}
+
+.wcs-bar-fill {
+	position: absolute;
+	inset-block: 0;
+	left: 0;
+	background: hsl(var(--foreground) / 0.75);
+	transition: width 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.wcs-bar-sweep {
+	position: absolute;
+	inset: 0;
+	background: linear-gradient(
+		90deg,
+		transparent,
+		hsl(var(--foreground) / 0.25) 50%,
+		transparent
+	);
+	transform: translateX(-100%);
+	animation: wcs-sweep 2.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+@keyframes wcs-sweep {
+	0% {
+		transform: translateX(-100%);
+	}
+	100% {
+		transform: translateX(100%);
+	}
+}
+
+.wcs-active-ring {
+	animation: wcs-pulse 1.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+@keyframes wcs-pulse {
+	0%,
+	100% {
+		opacity: 0.35;
+		transform: scale(1);
+	}
+	50% {
+		opacity: 0.85;
+		transform: scale(1.4);
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.wcs-bar-sweep,
+	.wcs-active-ring {
+		animation: none;
+	}
+}

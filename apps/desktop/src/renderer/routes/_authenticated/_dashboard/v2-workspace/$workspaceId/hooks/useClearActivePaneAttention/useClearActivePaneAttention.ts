@@ -1,5 +1,6 @@
 import type { WorkspaceStore } from "@superset/panes";
 import { useEffect } from "react";
+import { useWorkspace } from "renderer/routes/_authenticated/_dashboard/v2-workspace/providers/WorkspaceProvider";
 import {
 	getV2NotificationSourcesForPane,
 	useV2NotificationStore,
@@ -10,19 +11,21 @@ import type { StoreApi } from "zustand/vanilla";
 import type { PaneViewerData } from "../../types";
 
 export function useClearActivePaneAttention({
-	workspaceId,
 	store,
 }: {
-	workspaceId: string;
 	store: StoreApi<WorkspaceStore<PaneViewerData>>;
 }): void {
+	const { workspace } = useWorkspace();
 	const activePane = useStore(store, (state) => {
 		const tab = state.tabs.find(
 			(candidate) => candidate.id === state.activeTabId,
 		);
 		return tab?.activePaneId ? tab.panes[tab.activePaneId] : undefined;
 	});
-	const activePaneStatus = useV2PaneNotificationStatus(workspaceId, activePane);
+	const activePaneStatus = useV2PaneNotificationStatus(
+		workspace.id,
+		activePane,
+	);
 	const clearSourceAttention = useV2NotificationStore(
 		(state) => state.clearSourceAttention,
 	);
@@ -30,7 +33,7 @@ export function useClearActivePaneAttention({
 	useEffect(() => {
 		if (activePaneStatus !== "review") return;
 		for (const source of getV2NotificationSourcesForPane(activePane)) {
-			clearSourceAttention(source, workspaceId);
+			clearSourceAttention(source, workspace.id);
 		}
-	}, [activePane, activePaneStatus, clearSourceAttention, workspaceId]);
+	}, [activePane, activePaneStatus, clearSourceAttention, workspace.id]);
 }

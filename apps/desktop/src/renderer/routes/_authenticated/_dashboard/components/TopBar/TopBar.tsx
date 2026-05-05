@@ -4,15 +4,15 @@ import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import { useOnlineStatus } from "renderer/hooks/useOnlineStatus";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { getWorkspaceDisplayName } from "renderer/lib/getWorkspaceDisplayName";
-import { NavigationControls } from "./components/NavigationControls";
+import { useWorkspaceSidebarStore } from "renderer/stores/workspace-sidebar-state";
+import { NavigationControls } from "../NavigationControls";
+import { SidebarToggle } from "../SidebarToggle";
 import { OpenInMenuButton } from "./components/OpenInMenuButton";
 import { OrganizationDropdown } from "./components/OrganizationDropdown";
 import { ResourceConsumption } from "./components/ResourceConsumption";
 import { RightSidebarToggle } from "./components/RightSidebarToggle";
 import { SearchBarTrigger } from "./components/SearchBarTrigger";
-import { SidebarToggle } from "./components/SidebarToggle";
 import { V2WorkspaceOpenInButton } from "./components/V2WorkspaceOpenInButton";
-import { V2WorkspaceSearchBarTrigger } from "./components/V2WorkspaceSearchBarTrigger";
 import { WindowControls } from "./components/WindowControls";
 
 export function TopBar() {
@@ -31,42 +31,50 @@ export function TopBar() {
 	);
 	const isOnline = useOnlineStatus();
 	const { isV2CloudEnabled } = useIsV2CloudEnabled();
+	const isSidebarOpen = useWorkspaceSidebarStore((s) => s.isOpen);
+	const isSidebarCollapsed = useWorkspaceSidebarStore((s) => s.isCollapsed());
 	// Default to Mac layout while loading to avoid overlap with traffic lights
 	const isMac = platform === undefined || platform === "darwin";
+	// In v2 the expanded sidebar lives outside the TopBar column, so the TopBar
+	// starts to the right of it and the sidebar header hosts the traffic-light
+	// pad + SidebarToggle. When the sidebar is closed or collapsed (too narrow
+	// for the pad), bring the toggle and pad back into the TopBar.
+	const sidebarHostsChrome =
+		isV2CloudEnabled && isSidebarOpen && !isSidebarCollapsed;
 
 	return (
 		<div className="drag gap-2 h-12 w-full flex items-center justify-between bg-muted/45 border-b border-border relative dark:bg-muted/35">
 			<div
 				className="flex items-center gap-1.5 h-full"
 				style={{
-					paddingLeft: isMac ? "88px" : "16px",
+					paddingLeft: isMac && !sidebarHostsChrome ? "80px" : "16px",
 				}}
 			>
-				<SidebarToggle />
-				<NavigationControls />
-				<ResourceConsumption />
+				{!sidebarHostsChrome && (
+					<>
+						<SidebarToggle />
+						<NavigationControls />
+					</>
+				)}
+				{!isV2CloudEnabled && <ResourceConsumption />}
 			</div>
 
-			{isV2WorkspaceRoute ? (
-				<V2WorkspaceSearchBarTrigger workspaceId={v2WorkspaceId} />
-			) : (
-				workspaceId && (
-					<div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-						<div className="pointer-events-auto">
-							<SearchBarTrigger
-								workspaceName={
-									workspace
-										? getWorkspaceDisplayName(
-												workspace.name,
-												workspace.type,
-												workspace.project?.name,
-											)
-										: undefined
-								}
-							/>
-						</div>
+			{!isV2WorkspaceRoute && workspaceId && (
+				<div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+					<div className="pointer-events-auto">
+						<SearchBarTrigger
+							workspaceName={
+								workspace
+									? getWorkspaceDisplayName(
+											workspace.name,
+											workspace.type,
+											workspace.project?.name,
+										)
+									: undefined
+							}
+						/>
 					</div>
-				)
+				</div>
 			)}
 
 			<div className="flex items-center gap-3 h-full pr-4 shrink-0">

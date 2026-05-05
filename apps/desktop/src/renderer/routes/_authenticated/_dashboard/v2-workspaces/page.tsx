@@ -13,20 +13,36 @@ export const Route = createFileRoute(
 
 function V2WorkspacesPage() {
 	const searchQuery = useV2WorkspacesFilterStore((state) => state.searchQuery);
-	const resetFilters = useV2WorkspacesFilterStore((state) => state.reset);
+	const deviceFilter = useV2WorkspacesFilterStore(
+		(state) => state.deviceFilter,
+	);
+	const projectFilter = useV2WorkspacesFilterStore(
+		(state) => state.projectFilter,
+	);
+	const setSearchQuery = useV2WorkspacesFilterStore(
+		(state) => state.setSearchQuery,
+	);
 
-	// Start with a fresh view every time the discovery page mounts — otherwise
-	// the zustand singleton would carry over a stale search/device filter from a
-	// previous visit with no visible indication that a filter is active.
 	useEffect(() => {
-		resetFilters();
-	}, [resetFilters]);
+		setSearchQuery("");
+	}, [setSearchQuery]);
 
-	const { all, counts } = useAccessibleV2Workspaces({ searchQuery });
+	const { all, counts, hostOptions, projectOptions, hostsById, projectsById } =
+		useAccessibleV2Workspaces({
+			searchQuery,
+			deviceFilter,
+			projectFilter,
+		});
 
 	return (
 		<div className="flex h-full w-full flex-1 flex-col overflow-hidden">
-			<V2WorkspacesHeader counts={counts} />
+			<V2WorkspacesHeader
+				counts={counts}
+				hostOptions={hostOptions}
+				projectOptions={projectOptions}
+				hostsById={hostsById}
+				projectsById={projectsById}
+			/>
 			<V2WorkspacesList workspaces={all} />
 		</div>
 	);

@@ -8,24 +8,37 @@ import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useMutation } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useState } from "react";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { AutomationBody } from "./components/AutomationBody";
 import { AutomationDetailHeader } from "./components/AutomationDetailHeader";
 import { AutomationDetailSidebar } from "./components/AutomationDetailSidebar";
+import { VersionHistorySheet } from "./components/VersionHistorySheet";
+
+type AutomationDetailSearch = {
+	history?: boolean;
+};
 
 export const Route = createFileRoute(
 	"/_authenticated/_dashboard/automations/$automationId/",
 )({
 	component: AutomationDetailPage,
+	validateSearch: (
+		search: Record<string, unknown>,
+	): AutomationDetailSearch => ({
+		history: search.history === true,
+	}),
 });
 
 const RECENT_RUNS_LIMIT = 10;
 
 function AutomationDetailPage() {
 	const { automationId } = Route.useParams();
+	const { history } = Route.useSearch();
 	const navigate = useNavigate();
 	const collections = useCollections();
+	const [historyOpen, setHistoryOpen] = useState(history ?? false);
 
 	const { data: automationRows } = useLiveQuery(
 		(q) =>
@@ -105,6 +118,7 @@ function AutomationDetailPage() {
 						});
 					}}
 					onRunNow={() => runNowMutation.mutate()}
+					onOpenHistory={() => setHistoryOpen(true)}
 					toggleDisabled={setEnabledMutation.isPending}
 					deleteDisabled={deleteMutation.isPending}
 					runNowDisabled={runNowMutation.isPending}
@@ -116,6 +130,15 @@ function AutomationDetailPage() {
 			<AutomationDetailSidebar
 				automation={automation}
 				recentRuns={recentRuns}
+			/>
+
+			<VersionHistorySheet
+				key={automation.id}
+				automationId={automation.id}
+				automationName={automation.name}
+				currentPrompt={automation.prompt}
+				open={historyOpen}
+				onOpenChange={setHistoryOpen}
 			/>
 		</div>
 	);

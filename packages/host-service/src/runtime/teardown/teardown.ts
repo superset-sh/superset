@@ -56,7 +56,7 @@ export async function runTeardown({
 	// Single-quoted so no shell interpolation is possible on the path.
 	const initialCommand = `bash ${singleQuote(scriptPath)} ; exit $?`;
 
-	const session = createTerminalSessionInternal({
+	const session = await createTerminalSessionInternal({
 		terminalId,
 		workspaceId,
 		db,

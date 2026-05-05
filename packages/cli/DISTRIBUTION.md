@@ -6,7 +6,7 @@ How we ship `superset` as a standalone, downloadable bundle.
 
 1. User downloads a single tarball for their platform
 2. `superset auth login` authenticates via browser (works headless too)
-3. `superset host start` runs the host service, connects to relay
+3. `superset start` runs the host service, connects to relay
 4. The host machine is now accessible from any Superset client (web, mobile, desktop)
 
 ## Architecture
@@ -34,19 +34,19 @@ superset-darwin-arm64/
 - **CLI** (`superset`): Pure JS — tRPC client, OAuth flow, config management. No native deps. Bun's `--compile` produces a single ~50MB binary.
 - **Host service** (`superset-host`): Depends on `better-sqlite3` (C++ SQLite) and `node-pty` (C++ PTY). These are native Node.js addons that don't work in Bun. Must run on Node.
 
-### How `host start` works
+### How `start` works
 
 ```
-superset host start
+superset start
   └─ reads ~/.superset/config.json (auth token, org ID, API URL)
   └─ resolves superset-host binary (sibling in bin/)
   └─ spawns: superset-host (which runs: lib/node lib/host-service.js)
-  └─ passes env: AUTH_TOKEN, CLOUD_API_URL, HOST_DB_PATH, RELAY_URL, etc.
+  └─ passes env: AUTH_TOKEN, SUPERSET_API_URL, HOST_DB_PATH, RELAY_URL, etc.
   └─ polls GET /trpc/health.check until ready
   └─ host service connects to relay via WebSocket tunnel
   └─ prints "Host service running on port XXXXX"
 
-superset host start --daemon
+superset start --daemon
   └─ same but detached, writes manifest to ~/.superset/host/<orgId>/manifest.json
   └─ manifest: { pid, port, secret, startedAt }
 ```
@@ -163,7 +163,7 @@ export PATH="$HOME/.superset/bin/bin:$PATH"
 superset auth login
 
 # Start host service
-superset host start --daemon
+superset start --daemon
 ```
 
 ### apt-get (stretch goal)
@@ -195,9 +195,9 @@ superset host install   # writes systemd unit or launchd plist
 
 - [ ] esbuild config for host service bundle (`packages/host-service/build.ts`)
 - [ ] Build/assembly script (`packages/cli/scripts/build-dist.ts`)
-- [ ] `host start` command — spawn host service, pass env, health check
-- [ ] `host stop` command — read manifest, SIGTERM, cleanup
-- [ ] `host status` command — read manifest, check PID, health check port
+- [ ] `start` command — spawn host service, pass env, health check
+- [ ] `stop` command — read manifest, SIGTERM, cleanup
+- [ ] `status` command — read manifest, check PID, health check port
 - [ ] Manifest write/read in standalone host service mode
 - [ ] Wire active org ID from CLI config → host service env
 - [ ] Native addon path resolution (host-service.js must find `.node` files in `../lib/native/`)

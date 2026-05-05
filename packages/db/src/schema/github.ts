@@ -168,10 +168,7 @@ export const githubPullRequests = pgTable(
 
 		// Record timestamps
 		createdAt: timestamp("created_at").notNull().defaultNow(),
-		updatedAt: timestamp("updated_at")
-			.notNull()
-			.defaultNow()
-			.$onUpdate(() => new Date()),
+		updatedAt: timestamp("updated_at").notNull().defaultNow(),
 	},
 	(table) => [
 		unique("github_pull_requests_repo_pr_unique").on(
