@@ -3,15 +3,20 @@ import {
 	normalizeExecutionMode,
 	type TerminalPreset,
 } from "@superset/local-db";
+import {
+	AGENT_PRESET_DESCRIPTIONS,
+	type AgentType,
+} from "@superset/shared/agent-command";
 import { Button } from "@superset/ui/button";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { HiOutlinePlus } from "react-icons/hi2";
 import { useIsDarkTheme } from "renderer/assets/app-icons/preset-icons";
-import { electronTrpc } from "renderer/lib/electron-trpc";
+import { useV2AgentConfigs } from "renderer/hooks/useV2AgentConfigs";
 import { useMigrateV1PresetsToV2 } from "renderer/routes/_authenticated/hooks/useMigrateV1PresetsToV2";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import type { V2TerminalPresetRow } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
+import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import type { PresetColumnKey } from "renderer/routes/_authenticated/settings/presets/types";
 import { PresetEditorDialog } from "../PresetsSection/components/PresetEditorDialog";
 
@@ -50,10 +55,11 @@ export function V2PresetsSection({
 	const collections = useCollections();
 	useMigrateV1PresetsToV2();
 
-	// Settings page is outside WorkspaceTrpcProvider, so the React-hook
-	// form of electronTrpc routes correctly to the main process.
-	const { data: agents = [] } =
-		electronTrpc.settings.getAgentPresets.useQuery();
+	// Read v2 agent configs from the host service — this is the same
+	// data source the v2 /settings/agents page reads and writes, so edits
+	// there propagate here. The query is invalidated by those mutations.
+	const { activeHostUrl } = useLocalHostService();
+	const { data: agents = [] } = useV2AgentConfigs(activeHostUrl);
 
 	const { data: v2Presets = [] } = useLiveQuery(
 		(query) =>
@@ -181,23 +187,22 @@ export function V2PresetsSection({
 		[serverPresets],
 	);
 
-	// Quick-add lists every enabled terminal agent with a non-empty command.
-	// Dedupe is by agentId so deleting a preset frees the pill again — name
-	// dedupe would leak when the user renames their imported preset.
+	// Quick-add lists every host-configured agent. We dedupe by presetId
+	// (= our preset's `agentId`) so a user with multiple Claude configs gets
+	// one pill and so deleting a preset frees the pill again.
 	const quickAddPills = useMemo<QuickAddAgentPill[]>(() => {
+		const seen = new Set<string>();
 		const pills: QuickAddAgentPill[] = [];
 		for (const agent of agents) {
-			if (
-				agent.kind !== "terminal" ||
-				!agent.enabled ||
-				agent.command.trim().length === 0
-			) {
+			if (seen.has(agent.presetId) || agent.command.trim().length === 0) {
 				continue;
 			}
+			seen.add(agent.presetId);
 			pills.push({
-				agentId: agent.id,
+				agentId: agent.presetId,
 				label: agent.label,
-				description: agent.description ?? "",
+				description:
+					AGENT_PRESET_DESCRIPTIONS[agent.presetId as AgentType] ?? "",
 				commands: [agent.command],
 			});
 		}

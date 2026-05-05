@@ -1,5 +1,5 @@
+import type { HostAgentConfigDto } from "@superset/host-service/settings";
 import type { ExecutionMode, TerminalPreset } from "@superset/local-db";
-import type { ResolvedAgentConfig } from "@superset/shared/agent-settings";
 import { Alert, AlertDescription } from "@superset/ui/alert";
 import { Button } from "@superset/ui/button";
 import {
@@ -44,12 +44,12 @@ interface PresetEditorDialogProps {
 	preset: TerminalPreset | null;
 	projects: PresetProjectOption[];
 	/**
-	 * Live agent definitions. When provided and `preset.agentId` matches an
-	 * enabled agent, the dialog renders the linked-agent branch (read-only
-	 * commands + Open in Agents settings link). v1 callers omit this — no
-	 * v1 row has agentId, so the linked branch stays dormant.
+	 * Host-service agent configs. When provided and `preset.agentId` matches
+	 * a config's `presetId`, the dialog renders the linked-agent branch
+	 * (read-only command + Open in Agents settings link). v1 callers omit
+	 * this — no v1 row has agentId, so the linked branch stays dormant.
 	 */
-	agents?: ResolvedAgentConfig[];
+	agents?: HostAgentConfigDto[];
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 	onDeletePreset: () => void;
@@ -189,21 +189,13 @@ export function PresetEditorDialog({
 	const linkedAgent = useMemo(() => {
 		const presetAgentId = (preset as PresetWithAgent | null)?.agentId;
 		if (!presetAgentId || !agents) return null;
-		return (
-			agents.find(
-				(agent) =>
-					agent.id === presetAgentId &&
-					agent.kind === "terminal" &&
-					agent.enabled,
-			) ?? null
-		);
+		return agents.find((agent) => agent.presetId === presetAgentId) ?? null;
 	}, [preset, agents]);
 	const linkedAgentId = (preset as PresetWithAgent | null)?.agentId;
 	const isLinked = !!linkedAgentId;
-	const liveCommands =
-		linkedAgent && "command" in linkedAgent
-			? [linkedAgent.command]
-			: (preset?.commands ?? []);
+	const liveCommands = linkedAgent
+		? [linkedAgent.command]
+		: (preset?.commands ?? []);
 	const selectDirectory = electronTrpc.window.selectDirectory.useMutation();
 	const originRoute = useSettingsOriginRoute();
 	const trimmedCwd = preset?.cwd.trim() ?? "";
@@ -334,14 +326,19 @@ export function PresetEditorDialog({
 										}
 										stacked
 									>
-										<div className="rounded-md border border-border bg-muted/30 px-3 py-2 font-mono text-xs">
-											{liveCommands.length > 0
-												? liveCommands.map((cmd) => (
-														<div key={cmd} className="truncate text-foreground">
-															{cmd || "—"}
-														</div>
-													))
-												: "—"}
+										<div className="min-w-0 rounded-md border border-border bg-muted/30 px-3 py-2 font-mono text-xs">
+											{liveCommands.length > 0 ? (
+												liveCommands.map((cmd) => (
+													<div
+														key={cmd}
+														className="break-all whitespace-pre-wrap text-foreground"
+													>
+														{cmd || "—"}
+													</div>
+												))
+											) : (
+												<div className="text-foreground">—</div>
+											)}
 										</div>
 									</DialogRow>
 								</>

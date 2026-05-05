@@ -3,6 +3,7 @@ import {
 	AGENT_PRESET_COMMANDS,
 	AGENT_PRESET_DESCRIPTIONS,
 	AGENT_TYPES,
+	type AgentType,
 } from "@superset/shared/agent-command";
 import { useEffect, useRef } from "react";
 import { env } from "renderer/env.renderer";
@@ -52,10 +53,20 @@ export function useMigrateV1PresetsToV2() {
 					await electronTrpcClient.settings.getTerminalPresets.query();
 
 				const now = new Date();
-				const rows: V2TerminalPresetRow[] = v1Presets.map(
-					(v1Preset, index) => ({
+				// v1 default presets are named after the agent id (lowercase
+				// "claude", "codex", …). Link those rows to the matching builtin
+				// instead of dropping them in unlinked, so the v2 user gets one
+				// row per builtin (not the v1 row + a separately-seeded v2 row).
+				const builtinIds = new Set<string>(AGENT_TYPES);
+				const linkedAgentIds = new Set<string>();
+				const rows: V2TerminalPresetRow[] = v1Presets.map((v1Preset, index) => {
+					const linkedAgentId = builtinIds.has(v1Preset.name)
+						? (v1Preset.name as AgentType)
+						: undefined;
+					if (linkedAgentId) linkedAgentIds.add(linkedAgentId);
+					return {
 						id: crypto.randomUUID(),
-						name: v1Preset.name,
+						name: linkedAgentId ? AGENT_LABELS[linkedAgentId] : v1Preset.name,
 						description: v1Preset.description,
 						cwd: v1Preset.cwd,
 						commands: v1Preset.commands,
@@ -66,20 +77,18 @@ export function useMigrateV1PresetsToV2() {
 						executionMode: v1Preset.executionMode ?? "new-tab",
 						tabOrder: index,
 						createdAt: now,
-					}),
-				);
+						agentId: linkedAgentId,
+					};
+				});
 
-				// Seed v2 with all builtin terminal agents linked. v1's defaults
-				// only cover a subset (DEFAULT_TERMINAL_PRESET_AGENT_TYPES); v2
-				// gets every builtin so the import dropdown starts populated.
-				const existingNames = new Set(rows.map((row) => row.name));
+				// Seed any remaining builtins that weren't already represented in
+				// v1 — v1 only ships defaults for a subset of agents.
 				let nextOrder = rows.length;
 				for (const agentId of AGENT_TYPES) {
-					const label = AGENT_LABELS[agentId];
-					if (existingNames.has(label)) continue;
+					if (linkedAgentIds.has(agentId)) continue;
 					rows.push({
 						id: crypto.randomUUID(),
-						name: label,
+						name: AGENT_LABELS[agentId],
 						description: AGENT_PRESET_DESCRIPTIONS[agentId],
 						cwd: "",
 						commands: [AGENT_PRESET_COMMANDS[agentId][0] ?? ""],
