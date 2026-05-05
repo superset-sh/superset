@@ -39,18 +39,24 @@ function OnboardingAdoptWorktreesPage() {
 		goTo("adopt-worktrees");
 	}, [goTo]);
 
-	// After onboarding, prefer the user's last-viewed (or first) workspace so
-	// they land in the workspace editor. Route to the v2 workspace view when v2
-	// is enabled, otherwise the v1 view. If no workspaces exist yet, fall back
-	// to the project page.
+	// After onboarding, prefer the user's last-viewed workspace (or any worktree-
+	// type workspace) so they land in the workspace editor with a real pane
+	// layout. Route to the v2 workspace view when v2 is enabled. In v2, skip
+	// `branch` type workspaces (they're auto-created by ensureMainWorkspace and
+	// have no pane layout) and prefer the project page instead so the user can
+	// create their first worktree via v2's flow. If no workspaces exist yet,
+	// fall back to the project page.
 	const navigateAfterFlow = useCallback(
 		async (replace: boolean) => {
 			try {
 				const grouped = await utils.workspaces.getAllGrouped.fetch();
 				const allWorkspaces = grouped.flatMap((g) => g.workspaces);
 				const lastViewedId = localStorage.getItem("lastViewedWorkspaceId");
+				const candidates = isV2CloudEnabled
+					? allWorkspaces.filter((w) => w.type === "worktree")
+					: allWorkspaces;
 				const target =
-					allWorkspaces.find((w) => w.id === lastViewedId) ?? allWorkspaces[0];
+					candidates.find((w) => w.id === lastViewedId) ?? candidates[0];
 				if (target) {
 					if (isV2CloudEnabled) {
 						navigate({

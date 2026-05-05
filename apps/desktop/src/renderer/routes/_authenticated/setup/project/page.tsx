@@ -73,31 +73,34 @@ function OnboardingProjectPage() {
 		}
 	}, [shouldAutoAdvance, markComplete, navigate]);
 
-	// After creating a new project, jump straight into its default workspace
-	// (created automatically by openNew → ensureMainWorkspace). Routes to v2
-	// or v1 workspace view based on which version is active.
+	// After creating a new project, route to the project page in v2 — that's
+	// where the user creates their first proper worktree workspace (which sets
+	// up the v2 pane layout). The default "branch" workspace auto-created by
+	// openNew → ensureMainWorkspace has no pane layout, so navigating there
+	// renders an empty workspace surface. In v1, navigate to the existing
+	// branch workspace as before.
 	const openProjectInWorkspace = async (projectId: string) => {
+		if (isV2CloudEnabled) {
+			navigate({
+				to: "/project/$projectId",
+				params: { projectId },
+			});
+			return;
+		}
 		try {
 			const grouped = await utils.workspaces.getAllGrouped.fetch();
 			const wsForProject = grouped
 				.flatMap((g) => g.workspaces)
 				.find((w) => w.projectId === projectId);
 			if (wsForProject) {
-				if (isV2CloudEnabled) {
-					navigate({
-						to: "/v2-workspace/$workspaceId",
-						params: { workspaceId: wsForProject.id },
-					});
-				} else {
-					navigate({
-						to: "/workspace/$workspaceId",
-						params: { workspaceId: wsForProject.id },
-					});
-				}
+				navigate({
+					to: "/workspace/$workspaceId",
+					params: { workspaceId: wsForProject.id },
+				});
 				return;
 			}
 		} catch {
-			// fall through to project page
+			// fall through
 		}
 		navigate({
 			to: "/project/$projectId",
