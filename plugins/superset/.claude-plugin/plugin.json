@@ -1,7 +1,7 @@
 {
 	"name": "superset",
 	"version": "0.1.0",
-	"description": "Drive Superset from Claude Code. Auto-wires the Superset MCP server and bundles the superset SKILL.md so an agent can drive workspaces, agents, and tasks via natural language. Adds /superset-automation for the editor round-trip on automation prompts.",
+	"description": "Use Superset workspaces, agents, tasks, and automations from Claude Code.",
 	"author": {
 		"name": "Superset",
 		"url": "https://superset.sh"
