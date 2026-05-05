@@ -1,12 +1,13 @@
-import type {
-	AgentPreset,
-	HostAgentConfigDto,
-} from "@superset/host-service/settings";
+import type { HostAgentConfig } from "@superset/host-service/settings";
+import {
+	HOST_AGENT_PRESETS,
+	type HostAgentPreset,
+} from "@superset/shared/host-agent-presets";
 import { Skeleton } from "@superset/ui/skeleton";
 import { toast } from "@superset/ui/sonner";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Bot } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import {
 	V2_AGENT_CONFIGS_QUERY_KEY as QUERY_KEY,
 	useV2AgentConfigs,
@@ -16,32 +17,33 @@ import { useLocalHostService } from "renderer/routes/_authenticated/providers/Lo
 import { AgentDetail } from "./components/AgentDetail";
 import { AgentsSettingsSidebar } from "./components/AgentsSettingsSidebar";
 
+const KNOWN_PRESETS: HostAgentPreset[] = HOST_AGENT_PRESETS.map((preset) => ({
+	...preset,
+	args: [...preset.args],
+	promptArgs: [...preset.promptArgs],
+	env: { ...preset.env },
+}));
+
+const DESCRIPTION_BY_PRESET_ID = new Map(
+	KNOWN_PRESETS.map((preset) => [preset.presetId, preset.description]),
+);
+
 export function V2AgentsSettings() {
 	const { activeHostUrl } = useLocalHostService();
 	const queryClient = useQueryClient();
 
 	const configsQuery = useV2AgentConfigs(activeHostUrl);
 
-	const presetsQuery = useQuery({
-		queryKey: [...QUERY_KEY, "presets", activeHostUrl] as const,
-		enabled: !!activeHostUrl,
-		queryFn: () => {
-			if (!activeHostUrl) return [] as AgentPreset[];
-			return getHostServiceClientByUrl(
-				activeHostUrl,
-			).settings.agentConfigs.listPresets.query();
-		},
-	});
-
 	const invalidate = () =>
 		queryClient.invalidateQueries({ queryKey: [...QUERY_KEY, activeHostUrl] });
 
 	const addMutation = useMutation({
-		mutationFn: (presetId: string) => {
+		mutationFn: (preset: HostAgentPreset) => {
 			if (!activeHostUrl) throw new Error("Host service is not available");
+			const { description: _description, ...body } = preset;
 			return getHostServiceClientByUrl(
 				activeHostUrl,
-			).settings.agentConfigs.add.mutate({ presetId });
+			).settings.agentConfigs.add.mutate(body);
 		},
 		onSuccess: (added) => {
 			invalidate();
@@ -62,7 +64,7 @@ export function V2AgentsSettings() {
 			await queryClient.cancelQueries({
 				queryKey: [...QUERY_KEY, activeHostUrl],
 			});
-			const previous = queryClient.getQueryData<HostAgentConfigDto[]>([
+			const previous = queryClient.getQueryData<HostAgentConfig[]>([
 				...QUERY_KEY,
 				activeHostUrl,
 			]);
@@ -73,7 +75,7 @@ export function V2AgentsSettings() {
 						const row = byId.get(id);
 						return row ? { ...row, order: index } : null;
 					})
-					.filter((row): row is HostAgentConfigDto => row !== null);
+					.filter((row): row is HostAgentConfig => row !== null);
 				queryClient.setQueryData([...QUERY_KEY, activeHostUrl], next);
 			}
 			return { previous };
@@ -103,11 +105,9 @@ export function V2AgentsSettings() {
 	});
 
 	const configs = configsQuery.data ?? [];
-	const presets = presetsQuery.data ?? [];
-	const descriptionByPresetId = useMemo(
-		() =>
-			new Map(presets.map((preset) => [preset.presetId, preset.description])),
-		[presets],
+	const installedPresetIds = new Set(configs.map((row) => row.presetId));
+	const addablePresets = KNOWN_PRESETS.filter(
+		(preset) => !installedPresetIds.has(preset.presetId),
 	);
 
 	const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
@@ -143,10 +143,10 @@ export function V2AgentsSettings() {
 			) : (
 				<AgentsSettingsSidebar
 					configs={configs}
-					presets={presets}
+					presets={addablePresets}
 					selectedAgentId={selectedAgentId}
 					onSelectAgent={setSelectedAgentId}
-					onAddAgent={(presetId) => addMutation.mutate(presetId)}
+					onAddAgent={(preset) => addMutation.mutate(preset)}
 					onReorder={(ids) => reorderMutation.mutate(ids)}
 					onResetToDefaults={() => resetMutation.mutate()}
 					isAdding={addMutation.isPending}
@@ -159,7 +159,7 @@ export function V2AgentsSettings() {
 						key={selectedAgent.id}
 						config={selectedAgent}
 						description={
-							descriptionByPresetId.get(selectedAgent.presetId) ??
+							DESCRIPTION_BY_PRESET_ID.get(selectedAgent.presetId) ??
 							"Terminal agent launch configuration"
 						}
 						onChanged={invalidate}

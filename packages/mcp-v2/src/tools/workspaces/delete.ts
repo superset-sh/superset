@@ -2,7 +2,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { createMcpCaller } from "../../caller";
 import { defineTool } from "../../define-tool";
-import { hostServiceMutation } from "../../host-service-client";
+import { hostServiceCall } from "../../host-service-client";
 
 export function register(server: McpServer): void {
 	defineTool(server, {
@@ -21,7 +21,7 @@ export function register(server: McpServer): void {
 			if (!workspace) {
 				return { success: true, alreadyGone: true };
 			}
-			return hostServiceMutation<{ id: string }, { success: boolean }>(
+			return hostServiceCall<{ success: boolean }>(
 				{
 					relayUrl: ctx.relayUrl,
 					organizationId: ctx.organizationId,
@@ -29,6 +29,7 @@ export function register(server: McpServer): void {
 					jwt: ctx.bearerToken,
 				},
 				"workspace.delete",
+				"mutation",
 				{ id: input.id },
 			);
 		},

@@ -1,12 +1,19 @@
 import { Database } from "bun:sqlite";
 import { describe, expect, it } from "bun:test";
 import { resolve } from "node:path";
+import { getPresetById } from "@superset/shared/host-agent-presets";
 import { drizzle } from "drizzle-orm/bun-sqlite";
 import { migrate } from "drizzle-orm/bun-sqlite/migrator";
 import * as schema from "../../../db/schema";
 import type { HostServiceContext } from "../../../types";
 import { agentConfigsRouter } from "./agent-configs";
-import { AGENT_PRESETS } from "./agent-presets";
+
+function presetBody(presetId: string) {
+	const preset = getPresetById(presetId);
+	if (!preset) throw new Error(`unknown test preset ${presetId}`);
+	const { description: _description, ...rest } = preset;
+	return rest;
+}
 
 const MIGRATIONS_FOLDER = resolve(import.meta.dir, "../../../../drizzle");
 
@@ -75,22 +82,12 @@ describe("agentConfigsRouter", () => {
 		});
 	});
 
-	describe("listPresets()", () => {
-		it("returns the full hardcoded preset catalog", async () => {
-			const caller = createCaller();
-			const presets = await caller.listPresets();
-			expect(presets.map((preset) => preset.presetId)).toEqual(
-				AGENT_PRESETS.map((preset) => preset.presetId),
-			);
-		});
-	});
-
 	describe("add()", () => {
-		it("copies preset fields and assigns a unique id and next order", async () => {
+		it("inserts a row with the supplied launch shape and next order", async () => {
 			const caller = createCaller();
 			await caller.list();
 
-			const created = await caller.add({ presetId: "pi" });
+			const created = await caller.add(presetBody("pi"));
 
 			expect(created.presetId).toBe("pi");
 			expect(created.command).toBe("pi");
@@ -101,12 +98,12 @@ describe("agentConfigsRouter", () => {
 			expect(new Set(all.map((row) => row.id)).size).toBe(6);
 		});
 
-		it("allows duplicate presetId entries with distinct ids", async () => {
+		it("allows duplicate presetId tags with distinct ids", async () => {
 			const caller = createCaller();
 			await caller.list();
 
-			const a = await caller.add({ presetId: "claude" });
-			const b = await caller.add({ presetId: "claude" });
+			const a = await caller.add(presetBody("claude"));
+			const b = await caller.add(presetBody("claude"));
 
 			expect(a.id).not.toBe(b.id);
 			const claudes = (await caller.list()).filter(
@@ -115,10 +112,64 @@ describe("agentConfigsRouter", () => {
 			expect(claudes).toHaveLength(3);
 		});
 
-		it("rejects unknown presetId", async () => {
+		it("accepts a fully custom row and defaults presetId to 'custom'", async () => {
+			const caller = createCaller();
+			await caller.list();
+
+			const created = await caller.add({
+				label: "My Agent",
+				command: "my-agent",
+				args: ["--flag"],
+				promptTransport: "argv",
+				promptArgs: [],
+				env: { FOO: "bar" },
+			});
+
+			expect(created.presetId).toBe("custom");
+			expect(created.label).toBe("My Agent");
+			expect(created.command).toBe("my-agent");
+			expect(created.args).toEqual(["--flag"]);
+			expect(created.env).toEqual({ FOO: "bar" });
+		});
+
+		it("preserves an arbitrary presetId tag verbatim", async () => {
+			const caller = createCaller();
+			await caller.list();
+
+			const created = await caller.add({
+				label: "Bespoke",
+				command: "bespoke",
+				args: [],
+				promptTransport: "argv",
+				promptArgs: [],
+				env: {},
+				presetId: "my-bespoke-tag",
+			});
+
+			expect(created.presetId).toBe("my-bespoke-tag");
+		});
+
+		it("rejects empty label or command", async () => {
 			const caller = createCaller();
 			await expect(
-				caller.add({ presetId: "nonexistent-preset" }),
+				caller.add({
+					label: "",
+					command: "x",
+					args: [],
+					promptTransport: "argv",
+					promptArgs: [],
+					env: {},
+				}),
+			).rejects.toThrow();
+			await expect(
+				caller.add({
+					label: "x",
+					command: "",
+					args: [],
+					promptTransport: "argv",
+					promptArgs: [],
+					env: {},
+				}),
 			).rejects.toThrow();
 		});
 	});
@@ -259,7 +310,7 @@ describe("agentConfigsRouter", () => {
 				id: seedFirst.id,
 				patch: { label: "Renamed" },
 			});
-			await caller.add({ presetId: "pi" });
+			await caller.add(presetBody("pi"));
 
 			const result = await caller.resetToDefaults();
 

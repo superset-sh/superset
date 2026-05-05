@@ -1,7 +1,5 @@
-import type {
-	HostAgentConfigDto,
-	PromptTransport,
-} from "@superset/host-service/settings";
+import type { HostAgentConfig } from "@superset/host-service/settings";
+import type { PromptTransport } from "@superset/shared/agent-prompt-launch";
 import { Button } from "@superset/ui/button";
 import { Input } from "@superset/ui/input";
 import { Label } from "@superset/ui/label";
@@ -24,7 +22,7 @@ import {
 } from "../../utils/argv";
 
 interface AgentDetailProps {
-	config: HostAgentConfigDto;
+	config: HostAgentConfig;
 	description: string;
 	onChanged: () => void;
 	onDeleted: () => void;
