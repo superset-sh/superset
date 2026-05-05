@@ -1,9 +1,8 @@
 "use client";
 
 import { Button } from "@superset/ui/button";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useEffect, useRef, useState } from "react";
-import { LuClipboard, LuClipboardCheck } from "react-icons/lu";
+import { LuCheck, LuClipboard } from "react-icons/lu";
 
 interface CliAuthCodeDisplayProps {
 	code: string;
@@ -36,9 +35,11 @@ async function copyToClipboard(value: string): Promise<boolean> {
 	}
 }
 
-function useCopiedFlag() {
+export function CliAuthCodeDisplay({ code, state }: CliAuthCodeDisplayProps) {
+	const value = `${code}#${state}`;
 	const [copied, setCopied] = useState(false);
 	const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+	const codeRef = useRef<HTMLElement>(null);
 
 	useEffect(() => {
 		return () => {
@@ -46,70 +47,62 @@ function useCopiedFlag() {
 		};
 	}, []);
 
-	const flash = () => {
+	const selectCode = () => {
+		const node = codeRef.current;
+		if (!node || typeof window === "undefined") return;
+		const selection = window.getSelection();
+		if (!selection) return;
+		const range = document.createRange();
+		range.selectNodeContents(node);
+		selection.removeAllRanges();
+		selection.addRange(range);
+	};
+
+	const handleCopy = async () => {
+		const ok = await copyToClipboard(value);
+		selectCode();
+		if (!ok) return;
 		setCopied(true);
 		if (timerRef.current) clearTimeout(timerRef.current);
 		timerRef.current = setTimeout(() => setCopied(false), 2000);
 	};
-	return [copied, flash] as const;
-}
-
-export function CliAuthCodeDisplay({ code, state }: CliAuthCodeDisplayProps) {
-	const value = `${code}#${state}`;
-	const [boxCopied, flashBox] = useCopiedFlag();
-	const [buttonCopied, flashButton] = useCopiedFlag();
-
-	const handleCopy = async (flash: () => void) => {
-		const ok = await copyToClipboard(value);
-		if (ok) flash();
-	};
 
 	return (
-		<div className="mx-auto flex w-full max-w-2xl flex-col items-center space-y-6 px-6 text-center">
+		<div className="flex w-full flex-col items-center space-y-6 px-6 text-center">
 			<h1 className="text-3xl font-semibold tracking-tight">
 				Authentication Code
 			</h1>
 			<p className="text-muted-foreground">Paste this into Superset CLI:</p>
 
-			<Tooltip>
-				<TooltipTrigger asChild>
-					<button
-						type="button"
-						onClick={() => handleCopy(flashBox)}
-						className="bg-muted/50 hover:bg-muted/70 focus-visible:ring-ring/50 w-full cursor-pointer overflow-x-auto rounded-lg border px-6 py-4 text-left transition-colors focus-visible:ring-[3px] focus-visible:outline-none"
-					>
-						<code className="font-mono text-sm break-all select-all">
-							{value}
-						</code>
-					</button>
-				</TooltipTrigger>
-				<TooltipContent>
-					{boxCopied ? "Copied!" : "Click to copy"}
-				</TooltipContent>
-			</Tooltip>
+			{/* biome-ignore lint/a11y/useSemanticElements: keep as div so the inner <code> stays selectable as a ctrl+c fallback if clipboard write fails — wrapping in a button disrupts selection focus */}
+			<div
+				role="button"
+				tabIndex={0}
+				onClick={handleCopy}
+				onKeyDown={(event) => {
+					if (event.key === "Enter" || event.key === " ") {
+						event.preventDefault();
+						void handleCopy();
+					}
+				}}
+				className="bg-muted/50 hover:bg-muted/70 focus-visible:ring-ring/50 w-fit max-w-full cursor-pointer overflow-x-auto rounded-lg border px-6 py-4 text-left transition-colors focus-visible:ring-[3px] focus-visible:outline-none"
+			>
+				<code ref={codeRef} className="font-mono text-sm whitespace-nowrap">
+					{value}
+				</code>
+			</div>
 
-			<Tooltip>
-				<TooltipTrigger asChild>
-					<Button onClick={() => handleCopy(flashButton)}>
-						{buttonCopied ? (
-							<>
-								<LuClipboardCheck /> Copied!
-							</>
-						) : (
-							<>
-								<LuClipboard /> Copy code
-							</>
-						)}
-					</Button>
-				</TooltipTrigger>
-				<TooltipContent>
-					{buttonCopied ? "Copied!" : "Copy to clipboard"}
-				</TooltipContent>
-			</Tooltip>
-
-			<p className="text-muted-foreground text-xs">
-				You can close this tab once the code is pasted.
-			</p>
+			<Button variant="ghost" onClick={handleCopy}>
+				{copied ? (
+					<>
+						<LuCheck /> Copied!
+					</>
+				) : (
+					<>
+						<LuClipboard /> Copy Code
+					</>
+				)}
+			</Button>
 		</div>
 	);
 }

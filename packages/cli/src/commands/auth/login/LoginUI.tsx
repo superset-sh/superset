@@ -47,6 +47,21 @@ export function LoginUI({
 			return;
 		}
 
+		if (key.ctrl && (input === "u" || input === "k")) {
+			setValue("");
+			setValidationError(null);
+			return;
+		}
+
+		if (
+			(key.meta && (key.backspace || key.delete)) ||
+			(key.ctrl && input === "w")
+		) {
+			setValue((v) => v.replace(/\S+\s*$/, ""));
+			setValidationError(null);
+			return;
+		}
+
 		if (key.backspace || key.delete) {
 			setValue((v) => v.slice(0, -1));
 			setValidationError(null);
