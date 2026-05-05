@@ -150,7 +150,7 @@ export const useOnboardingStore = create<OnboardingStore>()(
 						skipped: { ...STEP_FLAGS_INITIAL },
 						startedAt: null,
 						completedAt: null,
-						manualWalkthrough: true,
+						manualWalkthrough: false,
 					});
 				},
 				setManualWalkthrough: (value) => set({ manualWalkthrough: value }),
