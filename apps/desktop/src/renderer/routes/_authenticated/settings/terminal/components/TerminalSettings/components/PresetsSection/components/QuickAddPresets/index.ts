@@ -1,1 +1,4 @@
-export { QuickAddPresets } from "./QuickAddPresets";
+export {
+	type QuickAddAgentPill,
+	QuickAddPresets,
+} from "./QuickAddPresets";

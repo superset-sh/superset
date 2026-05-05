@@ -26,10 +26,10 @@ async function main(): Promise<void> {
 	// daemon takes time to come up or fails entirely.
 	startDaemonBootstrap(env.ORGANIZATION_ID);
 
-	const authProvider = new JwtApiAuthProvider(
-		env.AUTH_TOKEN,
-		env.SUPERSET_API_URL,
-	);
+	const authProvider = new JwtApiAuthProvider({
+		getSessionToken: async () => env.AUTH_TOKEN,
+		apiUrl: env.SUPERSET_API_URL,
+	});
 
 	const { app, injectWebSocket, api } = createApp({
 		config: {

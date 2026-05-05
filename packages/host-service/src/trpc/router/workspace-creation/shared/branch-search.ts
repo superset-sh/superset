@@ -41,8 +41,11 @@ export function markRefetchRemote(projectId: string): void {
 
 // No gating on managed root or workspaces table — foreign worktrees
 // (user ran `git worktree add` themselves) surface too, so the v2
-// picker shows everything git would. `checkedOutBranches` is used to
-// disable Checkout when a branch is already in use elsewhere.
+// picker shows everything git would. `checkedOutBranches` disables
+// Checkout when a branch is already in use elsewhere. Prunable entries
+// (dir deleted without `git worktree remove`) are filtered: not valid
+// adoption targets, and `workspaces.create` runs `git worktree prune`
+// before re-adding so the branch is freed.
 export async function listWorktreeBranches(git: GitClient): Promise<{
 	worktreeMap: Map<string, string>;
 	checkedOutBranches: Set<string>;
@@ -51,6 +54,7 @@ export async function listWorktreeBranches(git: GitClient): Promise<{
 	const checkedOutBranches = new Set<string>();
 	for (const wt of await listGitWorktrees(git)) {
 		if (!wt.branch) continue;
+		if (wt.prunable) continue;
 		checkedOutBranches.add(wt.branch);
 		worktreeMap.set(wt.branch, wt.path);
 	}

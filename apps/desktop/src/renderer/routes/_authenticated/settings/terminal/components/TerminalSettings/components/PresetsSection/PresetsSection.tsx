@@ -13,12 +13,11 @@ import { usePresets } from "renderer/react-query/presets";
 import type { PresetColumnKey } from "renderer/routes/_authenticated/settings/presets/types";
 import { PresetEditorDialog } from "./components/PresetEditorDialog";
 import { PresetsTable } from "./components/PresetsTable";
-import { QuickAddPresets } from "./components/QuickAddPresets";
 import {
-	type AutoApplyField,
-	PRESET_TEMPLATES,
-	type PresetTemplate,
-} from "./constants";
+	type QuickAddAgentPill,
+	QuickAddPresets,
+} from "./components/QuickAddPresets";
+import { type AutoApplyField, PRESET_TEMPLATES } from "./constants";
 import type { PresetProjectOption } from "./preset-project-options";
 
 interface PresetsSectionProps {
@@ -148,8 +147,19 @@ export function PresetsSection({
 		[serverPresets],
 	);
 
-	const isTemplateAdded = useCallback(
-		(template: PresetTemplate) => existingPresetNames.has(template.preset.name),
+	const quickAddPills = useMemo<QuickAddAgentPill[]>(
+		() =>
+			PRESET_TEMPLATES.map((template) => ({
+				agentId: template.name,
+				label: template.preset.name,
+				description: template.preset.description,
+				commands: template.preset.commands,
+			})),
+		[],
+	);
+
+	const isPillAdded = useCallback(
+		(pill: QuickAddAgentPill) => existingPresetNames.has(pill.label),
 		[existingPresetNames],
 	);
 
@@ -269,10 +279,15 @@ export function PresetsSection({
 		[createPreset],
 	);
 
-	const handleAddTemplate = useCallback(
-		(template: PresetTemplate) => {
-			if (existingPresetNames.has(template.preset.name)) return;
-			createPreset.mutate(template.preset);
+	const handleAddPill = useCallback(
+		(pill: QuickAddAgentPill) => {
+			if (existingPresetNames.has(pill.label)) return;
+			createPreset.mutate({
+				name: pill.label,
+				description: pill.description,
+				cwd: "",
+				commands: pill.commands,
+			});
 		},
 		[createPreset, existingPresetNames],
 	);
@@ -467,11 +482,11 @@ export function PresetsSection({
 
 			{showQuickAdd && (
 				<QuickAddPresets
-					templates={PRESET_TEMPLATES}
+					pills={quickAddPills}
 					isDark={isDark}
-					isCreatePending={createPreset.isPending}
-					isTemplateAdded={isTemplateAdded}
-					onAddTemplate={handleAddTemplate}
+					isAddDisabled={createPreset.isPending}
+					isPillAdded={isPillAdded}
+					onAddPill={handleAddPill}
 				/>
 			)}
 

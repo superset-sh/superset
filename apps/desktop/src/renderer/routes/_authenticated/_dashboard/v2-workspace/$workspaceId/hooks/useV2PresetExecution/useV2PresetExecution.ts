@@ -2,9 +2,11 @@ import type { CreatePaneInput, WorkspaceStore } from "@superset/panes";
 import { toast } from "@superset/ui/sonner";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useCallback, useMemo } from "react";
+import { useV2AgentConfigs } from "renderer/hooks/useV2AgentConfigs";
 import { useWorkspace } from "renderer/routes/_authenticated/_dashboard/v2-workspace/providers/WorkspaceProvider";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import type { V2TerminalPresetRow } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
+import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { getPresetLaunchPlan } from "renderer/stores/tabs/preset-launch";
 import { filterMatchingPresetsForProject } from "shared/preset-project-targeting";
 import type { StoreApi } from "zustand/vanilla";
@@ -43,9 +45,37 @@ export function useV2PresetExecution({ store }: UseV2PresetExecutionArgs) {
 		[collections],
 	);
 
+	// Read v2 agent configs from the host service — same data source as the
+	// /settings/agents page, so user edits there propagate here. The hook is
+	// already invalidated by mutations in the agents settings page.
+	const { activeHostUrl } = useLocalHostService();
+	const { data: agents = [] } = useV2AgentConfigs(activeHostUrl);
+
+	// Map presetId → command (first match wins if the user has multiple
+	// host configs for the same preset).
+	const agentCommandsById = useMemo(() => {
+		const map = new Map<string, string>();
+		for (const agent of agents) {
+			if (agent.command.trim().length === 0) continue;
+			if (map.has(agent.presetId)) continue;
+			map.set(agent.presetId, agent.command);
+		}
+		return map;
+	}, [agents]);
+
 	const matchedPresets = useMemo(
 		() => filterMatchingPresetsForProject(allPresets, projectId),
 		[allPresets, projectId],
+	);
+
+	const resolvePresetCommands = useCallback(
+		(preset: V2TerminalPresetRow): string[] => {
+			if (!preset.agentId) return preset.commands;
+			const live = agentCommandsById.get(preset.agentId);
+			if (live) return [live];
+			return preset.commands;
+		},
+		[agentCommandsById],
 	);
 
 	const executePreset = useCallback(
@@ -53,11 +83,12 @@ export function useV2PresetExecution({ store }: UseV2PresetExecutionArgs) {
 			const state = store.getState();
 			const activeTabId = state.activeTabId;
 			const target = resolveTarget(preset.executionMode);
+			const commands = resolvePresetCommands(preset);
 
 			const plan = getPresetLaunchPlan({
 				mode: preset.executionMode,
 				target,
-				commandCount: preset.commands.length,
+				commandCount: commands.length,
 				hasActiveTab: !!activeTabId,
 			});
 
@@ -67,18 +98,14 @@ export function useV2PresetExecution({ store }: UseV2PresetExecutionArgs) {
 						const id = crypto.randomUUID();
 						state.addTab({
 							panes: [
-								makeTerminalPane(
-									id,
-									preset.name || undefined,
-									preset.commands[0],
-								),
+								makeTerminalPane(id, preset.name || undefined, commands[0]),
 							],
 						});
 						break;
 					}
 
 					case "new-tab-multi-pane": {
-						const panes = preset.commands.map((command) =>
+						const panes = commands.map((command) =>
 							makeTerminalPane(
 								crypto.randomUUID(),
 								preset.name || undefined,
@@ -103,7 +130,7 @@ export function useV2PresetExecution({ store }: UseV2PresetExecutionArgs) {
 					}
 
 					case "new-tab-per-command": {
-						for (const command of preset.commands) {
+						for (const command of commands) {
 							state.addTab({
 								panes: [
 									makeTerminalPane(
@@ -122,7 +149,7 @@ export function useV2PresetExecution({ store }: UseV2PresetExecutionArgs) {
 						const pane = makeTerminalPane(
 							id,
 							preset.name || undefined,
-							preset.commands[0],
+							commands[0],
 						);
 						if (!activeTabId) {
 							state.addTab({
@@ -138,7 +165,7 @@ export function useV2PresetExecution({ store }: UseV2PresetExecutionArgs) {
 					}
 
 					case "active-tab-multi-pane": {
-						const panes = preset.commands.map((command) =>
+						const panes = commands.map((command) =>
 							makeTerminalPane(
 								crypto.randomUUID(),
 								preset.name || undefined,
@@ -181,7 +208,7 @@ export function useV2PresetExecution({ store }: UseV2PresetExecutionArgs) {
 				});
 			}
 		},
-		[store],
+		[store, resolvePresetCommands],
 	);
 
 	return { matchedPresets, executePreset };

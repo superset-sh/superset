@@ -19,6 +19,7 @@ import {
 	resolveTerminalBaseEnv,
 } from "@superset/host-service/terminal-env";
 import { connectRelay } from "@superset/host-service/tunnel";
+import { loadToken } from "lib/trpc/routers/auth/utils/auth-functions";
 import { writeManifest } from "main/lib/host-service-manifest";
 import { env } from "./env";
 
@@ -26,10 +27,17 @@ async function main(): Promise<void> {
 	const terminalBaseEnv = await resolveTerminalBaseEnv();
 	initTerminalBaseEnv(terminalBaseEnv);
 
-	const authProvider = new JwtApiAuthProvider(
-		env.AUTH_TOKEN,
-		env.SUPERSET_API_URL,
-	);
+	const authProvider = new JwtApiAuthProvider({
+		// Read fresh from disk every time we need to mint a new JWT, so that
+		// re-logins in the desktop renderer (which rewrites auth-token.enc)
+		// are picked up without restarting the host-service child. Falls back
+		// to the boot-time token if the file is missing for any reason.
+		getSessionToken: async () => {
+			const { token } = await loadToken();
+			return token ?? env.AUTH_TOKEN;
+		},
+		apiUrl: env.SUPERSET_API_URL,
+	});
 
 	const { app, injectWebSocket, api } = createApp({
 		config: {
