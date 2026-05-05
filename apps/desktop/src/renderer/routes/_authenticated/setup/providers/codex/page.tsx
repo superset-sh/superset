@@ -3,6 +3,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef } from "react";
 import { OpenAIOAuthDialog } from "renderer/components/Chat/ChatInterface/components/ModelPicker/components/OpenAIOAuthDialog";
 import { useOpenAIOAuth } from "renderer/components/Chat/ChatInterface/components/ModelPicker/hooks/useOpenAIOAuth";
+import { track } from "renderer/lib/analytics";
 import { useOnboardingStore } from "renderer/stores/onboarding";
 import { SetupButton } from "../../components/SetupButton";
 import {
@@ -42,6 +43,10 @@ function ConnectCodexPage() {
 
 	useEffect(() => {
 		if (wasAuthedOnMount.current === false && isAuthenticated) {
+			track("onboarding_provider_connected", {
+				provider: "openai",
+				method: "oauth",
+			});
 			navigate({ to: "/setup/providers", replace: true });
 		}
 	}, [isAuthenticated, navigate]);

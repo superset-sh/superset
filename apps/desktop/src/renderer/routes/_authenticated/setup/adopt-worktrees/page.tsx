@@ -4,6 +4,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { GoGitBranch } from "react-icons/go";
 import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
+import { track } from "renderer/lib/analytics";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useImportAllWorktrees } from "renderer/react-query/workspaces/useImportAllWorktrees";
 import { STEP_ROUTES, useOnboardingStore } from "renderer/stores/onboarding";
@@ -80,14 +81,24 @@ function OnboardingAdoptWorktreesPage() {
 		navigate({ to: "/welcome", replace });
 	};
 
+	const finishOnboarding = (outcome: "completed" | "skipped") => {
+		const startedAt = useOnboardingStore.getState().startedAt;
+		track("onboarding_finished", {
+			outcome,
+			duration_ms: startedAt ? Date.now() - startedAt : null,
+		});
+	};
+
 	const finishFlow = () => {
 		markComplete("adopt-worktrees");
+		finishOnboarding("completed");
 		setManualWalkthrough(false);
 		void navigateAfterFlow(true);
 	};
 
 	const skipFlow = () => {
 		markSkipped("adopt-worktrees");
+		finishOnboarding("skipped");
 		setManualWalkthrough(false);
 		void navigateAfterFlow(true);
 	};

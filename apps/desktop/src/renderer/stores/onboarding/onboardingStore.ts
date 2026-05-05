@@ -1,3 +1,4 @@
+import { track } from "renderer/lib/analytics";
 import { create } from "zustand";
 import { devtools, persist } from "zustand/middleware";
 
@@ -89,28 +90,43 @@ export const useOnboardingStore = create<OnboardingStore>()(
 		persist(
 			(set, get) => ({
 				...initialState,
-				markComplete: (step) =>
-					set((state) => {
-						const completed = { ...state.completed, [step]: true };
-						const allDone = ONBOARDING_STEP_ORDER.every(
-							(s) => completed[s] || state.skipped[s],
-						);
-						return {
-							completed,
-							startedAt: state.startedAt ?? Date.now(),
-							completedAt: allDone ? Date.now() : state.completedAt,
-						};
-					}),
-				markSkipped: (step) =>
-					set((state) => ({
-						skipped: { ...state.skipped, [step]: true },
-						startedAt: state.startedAt ?? Date.now(),
-					})),
-				goTo: (step) =>
-					set((state) => ({
+				markComplete: (step) => {
+					const prev = get();
+					if (prev.completed[step]) return; // idempotent
+					track("onboarding_step_completed", { step });
+					const completed = { ...prev.completed, [step]: true };
+					const allDone = ONBOARDING_STEP_ORDER.every(
+						(s) => completed[s] || prev.skipped[s],
+					);
+					set({
+						completed,
+						startedAt: prev.startedAt ?? Date.now(),
+						completedAt: allDone ? Date.now() : prev.completedAt,
+					});
+				},
+				markSkipped: (step) => {
+					const prev = get();
+					if (prev.skipped[step]) return;
+					track("onboarding_step_skipped", { step });
+					set({
+						skipped: { ...prev.skipped, [step]: true },
+						startedAt: prev.startedAt ?? Date.now(),
+					});
+				},
+				goTo: (step) => {
+					const prev = get();
+					if (prev.currentStep === step && prev.startedAt !== null) return;
+					if (prev.startedAt === null) {
+						track("onboarding_started", { entryStep: step });
+					}
+					if (prev.currentStep !== step) {
+						track("onboarding_step_started", { step });
+					}
+					set({
 						currentStep: step,
-						startedAt: state.startedAt ?? Date.now(),
-					})),
+						startedAt: prev.startedAt ?? Date.now(),
+					});
+				},
 				next: () => {
 					const target = getNextStep(get().currentStep);
 					if (target) set({ currentStep: target });
@@ -121,7 +137,8 @@ export const useOnboardingStore = create<OnboardingStore>()(
 					if (target) set({ currentStep: target });
 					return target;
 				},
-				reset: () =>
+				reset: () => {
+					track("onboarding_restarted");
 					set({
 						currentStep: "providers",
 						completed: { ...STEP_FLAGS_INITIAL },
@@ -129,7 +146,8 @@ export const useOnboardingStore = create<OnboardingStore>()(
 						startedAt: null,
 						completedAt: null,
 						manualWalkthrough: true,
-					}),
+					});
+				},
 				setManualWalkthrough: (value) => set({ manualWalkthrough: value }),
 			}),
 			{ name: "superset-onboarding-v1" },
