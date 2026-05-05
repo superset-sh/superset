@@ -49,8 +49,19 @@ const authMiddleware: MiddlewareHandler<AppContext> = async (c, next) => {
 	const hostId = c.req.param("hostId");
 	if (!hostId) return c.json({ error: "Missing hostId" }, 400);
 
-	const hasAccess = await checkHostAccess(token, hostId);
-	if (!hasAccess) return c.json({ error: "Forbidden" }, 403);
+	const access = await checkHostAccess(token, hostId);
+	if (!access.ok) {
+		if (access.reason === "paid_plan_required") {
+			return c.json(
+				{
+					error:
+						"Remote host operations require a paid plan. Upgrade your organization plan or run the operation locally on the host.",
+				},
+				402,
+			);
+		}
+		return c.json({ error: "Forbidden" }, 403);
+	}
 
 	if (!tunnelManager.hasTunnel(hostId))
 		return c.json({ error: "Host not connected" }, 503);
@@ -83,9 +94,14 @@ app.get(
 					return;
 				}
 
-				const hasAccess = await checkHostAccess(token, hostId);
-				if (!hasAccess) {
-					ws.close(1008, "Forbidden");
+				const access = await checkHostAccess(token, hostId);
+				if (!access.ok) {
+					ws.close(
+						1008,
+						access.reason === "paid_plan_required"
+							? "Paid plan required"
+							: "Forbidden",
+					);
 					return;
 				}
 
