@@ -154,10 +154,13 @@ export function getProjectConfigPath(repoPath: string): string {
 	return join(repoPath, PROJECT_SUPERSET_DIR_NAME, CONFIG_FILE_NAME);
 }
 
-function getUserOverridePath(projectId: string): string | null {
+function getUserOverridePath(
+	projectId: string,
+	homeDir: string,
+): string | null {
 	if (projectId.includes("/") || projectId.includes("\\")) return null;
 	return join(
-		homedir(),
+		homeDir,
 		SUPERSET_DIR_NAME,
 		PROJECTS_DIR_NAME,
 		projectId,
@@ -182,10 +185,15 @@ function getLocalOverlayPath(repoPath: string): string {
 export function loadSetupConfig(args: {
 	repoPath: string;
 	projectId: string;
+	/** Override $HOME for tests. Defaults to `os.homedir()`. */
+	homeDir?: string;
 }): SetupConfig | null {
 	const projectConfig = readSetupConfigAt(getProjectConfigPath(args.repoPath));
 
-	const userOverridePath = getUserOverridePath(args.projectId);
+	const userOverridePath = getUserOverridePath(
+		args.projectId,
+		args.homeDir ?? homedir(),
+	);
 	const userConfig = userOverridePath
 		? readSetupConfigAt(userOverridePath)
 		: null;

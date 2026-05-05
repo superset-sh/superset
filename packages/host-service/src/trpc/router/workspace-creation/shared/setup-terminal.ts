@@ -85,9 +85,12 @@ export async function startSetupTerminalIfPresent(
 	};
 }
 
-function resolveInitialCommand(args: {
+/** Exported for tests. Resolves the initial command for the setup terminal. */
+export function resolveInitialCommand(args: {
 	repoPath: string;
 	projectId: string;
+	/** Override $HOME for tests. */
+	homeDir?: string;
 }): string | null {
 	const config = loadSetupConfig(args);
 	const commands = getResolvedSetupCommands(config);
