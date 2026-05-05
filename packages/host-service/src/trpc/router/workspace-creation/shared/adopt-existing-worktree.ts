@@ -19,17 +19,11 @@ export interface AdoptExistingWorktreeArgs {
 	worktreePath: string;
 	workspaceName: string;
 	baseBranch?: string;
-	/**
-	 * v1→v2 migration passes a known cloud workspace id to relink rather
-	 * than re-create. Callers that don't already know the id (the v2
-	 * picker, MCP, agent spawn) leave it undefined.
-	 */
+	/** v1→v2 migration relinks to a known cloud id; other callers leave undefined. */
 	existingWorkspaceId?: string;
-	/** Optional client-supplied UUID forwarded to v2Workspace.create for
-	 *  optimistic-UI idempotency. Ignored on relink paths. */
+	/** Optimistic-UI idempotency key for v2Workspace.create; ignored on relink. */
 	idempotencyId?: string;
-	/** Optional task linkage forwarded to v2Workspace.create. Ignored on
-	 *  relink paths. */
+	/** Task link for v2Workspace.create; ignored on relink. */
 	taskId?: string;
 	hostPromise: Promise<{ machineId: string }>;
 }

@@ -514,10 +514,9 @@ export const workspacesRouter = router({
 
 			const git = await ctx.git(localProject.repoPath);
 
-			// Drop stale worktree registrations whose directories no longer
-			// exist. Without this, `git worktree add` would fail with
-			// "branch is already used by worktree at <missing-path>" — git
-			// still claims the branch until prune runs. Idempotent and fast.
+			// Free branches still claimed by registrations whose dirs are
+			// gone — without this, `git worktree add` later fails with
+			// "branch is already used by worktree at <missing-path>".
 			await git
 				.raw(["worktree", "prune"])
 				.catch((err) =>
@@ -758,14 +757,11 @@ export const workspacesRouter = router({
 					workspaceRow = existing;
 					alreadyExists = true;
 				} else {
-					// Adopt: a worktree already exists for this branch (at the
-					// standard path, or anywhere else git has registered it — e.g.
-					// left behind by a prior session, created outside Superset, or
-					// renamed in place). Skip `git worktree add`; git refuses to
-					// check out a branch into a second worktree, so failing here
-					// would block the user from re-entering their own work. Only
-					// meaningful when the user supplied the branch — auto-gen
-					// names are deduped and can't collide with anything pre-existing.
+					// Adopt at any path git already knows for this branch — git
+					// refuses a second checkout of the same branch, so falling
+					// through to `git worktree add` would block re-entry. Auto-gen
+					// names are deduped against the branch list, so only typed
+					// branches can collide here.
 					const existingWorktreePath = typedBranch
 						? (await listWorktreeBranches(git)).worktreeMap.get(resolvedBranch)
 						: undefined;
