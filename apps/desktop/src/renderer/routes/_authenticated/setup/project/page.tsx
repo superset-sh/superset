@@ -30,6 +30,7 @@ function OnboardingProjectPage() {
 	const navigate = useNavigate();
 	const goTo = useOnboardingStore((s) => s.goTo);
 	const markComplete = useOnboardingStore((s) => s.markComplete);
+	const markSkipped = useOnboardingStore((s) => s.markSkipped);
 	const completed = useOnboardingStore((s) => s.completed.project);
 	const manualWalkthrough = useOnboardingStore((s) => s.manualWalkthrough);
 	const setManualWalkthrough = useOnboardingStore(
@@ -120,6 +121,11 @@ function OnboardingProjectPage() {
 
 	const handleContinueWithCurrent = () => {
 		markComplete("project");
+		navigate({ to: STEP_ROUTES["adopt-worktrees"] });
+	};
+
+	const handleSkipStep = () => {
+		markSkipped("project");
 		navigate({ to: STEP_ROUTES["adopt-worktrees"] });
 	};
 
@@ -221,6 +227,9 @@ function OnboardingProjectPage() {
 					>
 						Clone from GitHub
 					</SetupButton>
+					<SetupButton variant="link" onClick={handleSkipStep}>
+						Skip for now
+					</SetupButton>
 				</div>
 			</StepShell>
 		);
@@ -243,6 +252,9 @@ function OnboardingProjectPage() {
 					onClick={() => navigate({ to: "/new-project" })}
 				>
 					Clone from GitHub
+				</SetupButton>
+				<SetupButton variant="link" onClick={handleSkipStep}>
+					Skip for now
 				</SetupButton>
 			</div>
 		</StepShell>
