@@ -127,4 +127,4 @@ superset automations get <id> --json
 ## Troubleshooting
 
 - **"No active organization"**: run `superset organization list && superset organization switch <id>`.
-- **"Host is offline / error conneting to host"**: the host's relay tunnel is not connected. Check to make sure both the cli and the target machine are on the latest versions of Superset.
+- **"Host is offline / error connecting to host"**: the host's relay tunnel is not connected. Check to make sure both the cli and the target machine are on the latest versions of Superset.
