@@ -57,6 +57,15 @@ async function maybeReplay(hostId: string): Promise<{
 		return null;
 	});
 	if (!owner) return null;
+	// Guard against directory thinking we own a tunnel we don't have locally
+	// (sweep race window, or a register write that hasn't landed yet). Without
+	// this, fly would replay the request right back to us → infinite loop.
+	if (
+		owner.region === env.FLY_REGION &&
+		owner.machineId === env.FLY_MACHINE_ID
+	) {
+		return null;
+	}
 	if (owner.region === env.FLY_REGION) {
 		return {
 			header: { "fly-replay": `instance=${owner.machineId}` },
@@ -126,8 +135,10 @@ app.get(
 					return;
 				}
 
-				tunnelManager.register(hostId, token, ws);
-				registeredWs = ws;
+				await tunnelManager.register(hostId, token, ws);
+				// register closes ws itself on directory failure; only mark
+				// authorized if the socket is still usable.
+				if (ws.readyState === 1) registeredWs = ws;
 			},
 			onMessage: (event) => {
 				if (registeredWs && hostId)

@@ -53,7 +53,7 @@ export class TunnelManager {
 		this.requestTimeoutMs = requestTimeoutMs;
 	}
 
-	register(hostId: string, token: string, ws: WsSocket): void {
+	async register(hostId: string, token: string, ws: WsSocket): Promise<void> {
 		// Last-write-wins: close the old socket so flaky clients don't get
 		// stuck behind a dead-but-not-yet-detected WS.
 		const existing = this.tunnels.get(hostId);
@@ -63,6 +63,15 @@ export class TunnelManager {
 			);
 			this.disposeTunnel(existing, "Replaced by new tunnel");
 			this.tunnels.delete(hostId);
+		}
+
+		// Write directory FIRST (with bounded retries) so we never have a
+		// local tunnel that's invisible to other machines. If we can't reach
+		// Upstash, refuse the connection — host will reconnect.
+		const directoryWritten = await this.registerDirectoryWithRetry(hostId);
+		if (!directoryWritten) {
+			ws.close(1011, "Directory write failed");
+			return;
 		}
 
 		const now = Date.now();
@@ -88,13 +97,28 @@ export class TunnelManager {
 			this.send(ws, { type: "ping" });
 		}, PING_INTERVAL_MS);
 
-		void directory
-			.register(hostId, env.FLY_REGION, env.FLY_MACHINE_ID)
-			.catch((err) => {
-				console.error("[relay] directory.register failed", err);
-			});
 		this.scheduleOnlineWrite(hostId, token, true);
 		console.log(`[relay] tunnel registered: ${hostId}`);
+	}
+
+	private async registerDirectoryWithRetry(hostId: string): Promise<boolean> {
+		const attempts = 3;
+		for (let i = 0; i < attempts; i++) {
+			try {
+				await directory.register(hostId, env.FLY_REGION, env.FLY_MACHINE_ID);
+				return true;
+			} catch (err) {
+				if (i === attempts - 1) {
+					console.error(
+						`[relay] directory.register failed after ${attempts} attempts`,
+						err,
+					);
+					return false;
+				}
+				await new Promise((r) => setTimeout(r, 100 * 2 ** i));
+			}
+		}
+		return false;
 	}
 
 	unregister(hostId: string, ws?: WsSocket): void {

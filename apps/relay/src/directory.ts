@@ -33,6 +33,16 @@ function decodeOwner(value: string): TunnelOwner | null {
 	return { region: value.slice(0, idx), machineId: value.slice(idx + 1) };
 }
 
+// Atomic three-write register. If a partial Promise.all failure left
+// OWNER/META set but TTL absent, sweepStale could never reclaim it. Lua
+// gives us all-or-nothing.
+const REGISTER_SCRIPT = `
+redis.call('HSET', KEYS[1], ARGV[1], ARGV[2])
+redis.call('HSET', KEYS[2], ARGV[1], ARGV[3])
+redis.call('ZADD', KEYS[3], ARGV[4], ARGV[1])
+return 1
+`;
+
 export async function register(
 	hostId: string,
 	region: string,
@@ -40,12 +50,16 @@ export async function register(
 ): Promise<void> {
 	const now = Date.now();
 	const meta: TunnelMeta = { registeredAt: now, lastPongAt: now };
-	// Upstash auto-stringifies objects on write and auto-parses on read.
-	await Promise.all([
-		redis.hset(OWNER_KEY, { [hostId]: encodeOwner(region, machineId) }),
-		redis.hset(META_KEY, { [hostId]: meta }),
-		redis.zadd(TTL_KEY, { score: now + TTL_GRACE_MS, member: hostId }),
-	]);
+	await redis.eval(
+		REGISTER_SCRIPT,
+		[OWNER_KEY, META_KEY, TTL_KEY],
+		[
+			hostId,
+			encodeOwner(region, machineId),
+			JSON.stringify(meta),
+			String(now + TTL_GRACE_MS),
+		],
+	);
 }
 
 // Compare-and-delete: only remove the directory entry if the current owner
@@ -82,6 +96,11 @@ export async function lookup(hostId: string): Promise<TunnelOwner | null> {
 }
 
 export async function heartbeat(hostId: string): Promise<void> {
+	// Skip refresh if OWNER was already torn down — prevents META/TTL
+	// resurrection after a concurrent unregister/sweep. There's a residual
+	// race between this check and the writes below, but the worst case is
+	// ~90s of zombie META/TTL until sweepStale reclaims it.
+	if (!(await redis.hexists(OWNER_KEY, hostId))) return;
 	const now = Date.now();
 	const existing = await redis.hget<TunnelMeta>(META_KEY, hostId);
 	const meta: TunnelMeta = existing
