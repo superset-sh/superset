@@ -45,7 +45,7 @@ export class BootErrorBoundary extends Component<
 					textAlign: "center",
 				}}
 			>
-				<div style={{ maxWidth: "520px", userSelect: "text" }}>
+				<div className="select-text" style={{ maxWidth: "520px" }}>
 					<h1 style={{ fontSize: "18px", marginBottom: "8px" }}>
 						Superset failed to start
 					</h1>
@@ -54,6 +54,7 @@ export class BootErrorBoundary extends Component<
 					</p>
 					{this.state.error?.message && (
 						<pre
+							className="select-text cursor-text"
 							style={{
 								marginTop: "12px",
 								padding: "10px 12px",
@@ -67,7 +68,6 @@ export class BootErrorBoundary extends Component<
 								textAlign: "left",
 								whiteSpace: "pre-wrap",
 								wordBreak: "break-word",
-								cursor: "text",
 							}}
 						>
 							{this.state.error.message}

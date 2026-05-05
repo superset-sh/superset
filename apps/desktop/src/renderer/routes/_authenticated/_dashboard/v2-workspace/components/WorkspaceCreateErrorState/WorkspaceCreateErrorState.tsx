@@ -26,7 +26,11 @@ export function WorkspaceCreateErrorState({
 
 	return (
 		<div className="flex h-full w-full items-center justify-center p-6">
-			<div className="flex w-full max-w-sm flex-col items-start gap-5">
+			<div
+				role="alert"
+				aria-live="assertive"
+				className="flex w-full max-w-sm flex-col items-start gap-5"
+			>
 				<AlertCircle
 					className="size-5 text-destructive"
 					strokeWidth={1.5}
