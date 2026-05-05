@@ -1,7 +1,9 @@
 import type { CreatePaneInput, WorkspaceStore } from "@superset/panes";
 import { toast } from "@superset/ui/sonner";
 import { useLiveQuery } from "@tanstack/react-db";
+import { useQuery } from "@tanstack/react-query";
 import { useCallback, useMemo } from "react";
+import { electronTrpcClient } from "renderer/lib/trpc-client";
 import { useWorkspace } from "renderer/routes/_authenticated/_dashboard/v2-workspace/providers/WorkspaceProvider";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import type { V2TerminalPresetRow } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
@@ -43,9 +45,42 @@ export function useV2PresetExecution({ store }: UseV2PresetExecutionArgs) {
 		[collections],
 	);
 
+	// Use the vanilla electron client (not the React-hook electronTrpc) because
+	// this hook runs inside WorkspaceTrpcProvider, which routes the React-hook
+	// form to the workspace HTTP server (404 for the settings router).
+	const { data: agents = [] } = useQuery({
+		queryKey: ["v2-preset-execution", "agent-presets"],
+		queryFn: () => electronTrpcClient.settings.getAgentPresets.query(),
+		staleTime: 30_000,
+	});
+
+	const agentCommandsById = useMemo(() => {
+		const map = new Map<string, string>();
+		for (const agent of agents) {
+			if (
+				agent.kind === "terminal" &&
+				agent.enabled &&
+				agent.command.trim().length > 0
+			) {
+				map.set(agent.id, agent.command);
+			}
+		}
+		return map;
+	}, [agents]);
+
 	const matchedPresets = useMemo(
 		() => filterMatchingPresetsForProject(allPresets, projectId),
 		[allPresets, projectId],
+	);
+
+	const resolvePresetCommands = useCallback(
+		(preset: V2TerminalPresetRow): string[] => {
+			if (!preset.agentId) return preset.commands;
+			const live = agentCommandsById.get(preset.agentId);
+			if (live) return [live];
+			return preset.commands;
+		},
+		[agentCommandsById],
 	);
 
 	const executePreset = useCallback(
@@ -53,11 +88,12 @@ export function useV2PresetExecution({ store }: UseV2PresetExecutionArgs) {
 			const state = store.getState();
 			const activeTabId = state.activeTabId;
 			const target = resolveTarget(preset.executionMode);
+			const commands = resolvePresetCommands(preset);
 
 			const plan = getPresetLaunchPlan({
 				mode: preset.executionMode,
 				target,
-				commandCount: preset.commands.length,
+				commandCount: commands.length,
 				hasActiveTab: !!activeTabId,
 			});
 
@@ -67,18 +103,14 @@ export function useV2PresetExecution({ store }: UseV2PresetExecutionArgs) {
 						const id = crypto.randomUUID();
 						state.addTab({
 							panes: [
-								makeTerminalPane(
-									id,
-									preset.name || undefined,
-									preset.commands[0],
-								),
+								makeTerminalPane(id, preset.name || undefined, commands[0]),
 							],
 						});
 						break;
 					}
 
 					case "new-tab-multi-pane": {
-						const panes = preset.commands.map((command) =>
+						const panes = commands.map((command) =>
 							makeTerminalPane(
 								crypto.randomUUID(),
 								preset.name || undefined,
@@ -103,7 +135,7 @@ export function useV2PresetExecution({ store }: UseV2PresetExecutionArgs) {
 					}
 
 					case "new-tab-per-command": {
-						for (const command of preset.commands) {
+						for (const command of commands) {
 							state.addTab({
 								panes: [
 									makeTerminalPane(
@@ -122,7 +154,7 @@ export function useV2PresetExecution({ store }: UseV2PresetExecutionArgs) {
 						const pane = makeTerminalPane(
 							id,
 							preset.name || undefined,
-							preset.commands[0],
+							commands[0],
 						);
 						if (!activeTabId) {
 							state.addTab({
@@ -138,7 +170,7 @@ export function useV2PresetExecution({ store }: UseV2PresetExecutionArgs) {
 					}
 
 					case "active-tab-multi-pane": {
-						const panes = preset.commands.map((command) =>
+						const panes = commands.map((command) =>
 							makeTerminalPane(
 								crypto.randomUUID(),
 								preset.name || undefined,
@@ -181,7 +213,7 @@ export function useV2PresetExecution({ store }: UseV2PresetExecutionArgs) {
 				});
 			}
 		},
-		[store],
+		[store, resolvePresetCommands],
 	);
 
 	return { matchedPresets, executePreset };

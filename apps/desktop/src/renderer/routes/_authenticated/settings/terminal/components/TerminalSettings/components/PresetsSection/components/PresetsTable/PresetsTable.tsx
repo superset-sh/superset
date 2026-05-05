@@ -32,7 +32,7 @@ export function PresetsTable({
 		<div
 			ref={presetsContainerRef}
 			className={cn(
-				"divide-y divide-border max-h-[420px] overflow-y-auto",
+				"divide-y divide-border",
 				bordered && "rounded-lg border border-border overflow-hidden",
 			)}
 		>

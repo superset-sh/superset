@@ -1,4 +1,5 @@
 import type { ExecutionMode, TerminalPreset } from "@superset/local-db";
+import type { ResolvedAgentConfig } from "@superset/shared/agent-settings";
 import { Alert, AlertDescription } from "@superset/ui/alert";
 import { Button } from "@superset/ui/button";
 import {
@@ -18,7 +19,8 @@ import {
 	SelectValue,
 } from "@superset/ui/select";
 import { Switch } from "@superset/ui/switch";
-import { Trash2 } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { ExternalLink, Trash2 } from "lucide-react";
 import { useMemo } from "react";
 import { HiExclamationTriangle, HiOutlineFolderOpen } from "react-icons/hi2";
 import { electronTrpc } from "renderer/lib/electron-trpc";
@@ -34,9 +36,20 @@ import type { AutoApplyField } from "../../constants";
 import type { PresetProjectOption } from "../../preset-project-options";
 import { ProjectTargetingField } from "./components/ProjectTargetingField";
 
+interface PresetWithAgent extends TerminalPreset {
+	agentId?: string;
+}
+
 interface PresetEditorDialogProps {
 	preset: TerminalPreset | null;
 	projects: PresetProjectOption[];
+	/**
+	 * Live agent definitions. When provided and `preset.agentId` matches an
+	 * enabled agent, the dialog renders the linked-agent branch (read-only
+	 * commands + Open in Agents settings link). v1 callers omit this — no
+	 * v1 row has agentId, so the linked branch stays dormant.
+	 */
+	agents?: ResolvedAgentConfig[];
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 	onDeletePreset: () => void;
@@ -156,6 +169,7 @@ function Segmented<T extends string>({
 export function PresetEditorDialog({
 	preset,
 	projects,
+	agents,
 	open,
 	onOpenChange,
 	onDeletePreset,
@@ -172,6 +186,24 @@ export function PresetEditorDialog({
 	isWorkspaceCreation,
 	isNewTab,
 }: PresetEditorDialogProps) {
+	const linkedAgent = useMemo(() => {
+		const presetAgentId = (preset as PresetWithAgent | null)?.agentId;
+		if (!presetAgentId || !agents) return null;
+		return (
+			agents.find(
+				(agent) =>
+					agent.id === presetAgentId &&
+					agent.kind === "terminal" &&
+					agent.enabled,
+			) ?? null
+		);
+	}, [preset, agents]);
+	const linkedAgentId = (preset as PresetWithAgent | null)?.agentId;
+	const isLinked = !!linkedAgentId;
+	const liveCommands =
+		linkedAgent && "command" in linkedAgent
+			? [linkedAgent.command]
+			: (preset?.commands ?? []);
 	const selectDirectory = electronTrpc.window.selectDirectory.useMutation();
 	const originRoute = useSettingsOriginRoute();
 	const trimmedCwd = preset?.cwd.trim() ?? "";
@@ -262,46 +294,98 @@ export function PresetEditorDialog({
 				{preset ? (
 					<>
 						<DialogHeader>
-							<DialogTitle>{preset.name.trim() || "Edit preset"}</DialogTitle>
+							<DialogTitle>
+								{(linkedAgent?.label ?? preset.name).trim() || "Edit preset"}
+							</DialogTitle>
 						</DialogHeader>
 
 						<div className="space-y-3">
-							<DialogRow label="Name" htmlFor="preset-name">
-								<Input
-									id="preset-name"
-									value={preset.name}
-									onChange={(e) => onFieldChange("name", e.target.value)}
-									onBlur={() => onFieldBlur("name")}
-									placeholder="e.g. Dev server"
-								/>
-							</DialogRow>
+							{isLinked ? (
+								<>
+									<Alert>
+										<AlertDescription className="flex items-center justify-between gap-3">
+											<span className="min-w-0 truncate">
+												Linked to{" "}
+												<span className="font-medium">
+													{linkedAgent?.label ?? linkedAgentId}
+												</span>
+												. Edit the command in Agents settings.
+											</span>
+											<Link
+												to="/settings/agents"
+												className="shrink-0"
+												onClick={() => onOpenChange(false)}
+											>
+												<Button type="button" size="sm" variant="outline">
+													Open
+													<ExternalLink className="size-3.5" />
+												</Button>
+											</Link>
+										</AlertDescription>
+									</Alert>
 
-							<DialogRow
-								label="Description"
-								htmlFor="preset-description"
-								hint="Optional context shown in the presets list."
-							>
-								<Input
-									id="preset-description"
-									value={preset.description ?? ""}
-									onChange={(e) => onFieldChange("description", e.target.value)}
-									onBlur={() => onFieldBlur("description")}
-									placeholder="Optional"
-								/>
-							</DialogRow>
+									<DialogRow
+										label="Command"
+										hint={
+											linkedAgent
+												? "Read-only — managed in Agents settings."
+												: "The linked agent is missing or disabled. Showing the snapshot."
+										}
+										stacked
+									>
+										<div className="rounded-md border border-border bg-muted/30 px-3 py-2 font-mono text-xs">
+											{liveCommands.length > 0
+												? liveCommands.map((cmd) => (
+														<div key={cmd} className="truncate text-foreground">
+															{cmd || "—"}
+														</div>
+													))
+												: "—"}
+										</div>
+									</DialogRow>
+								</>
+							) : (
+								<>
+									<DialogRow label="Name" htmlFor="preset-name">
+										<Input
+											id="preset-name"
+											value={preset.name}
+											onChange={(e) => onFieldChange("name", e.target.value)}
+											onBlur={() => onFieldBlur("name")}
+											placeholder="e.g. Dev server"
+										/>
+									</DialogRow>
 
-							<DialogRow
-								label="Commands"
-								hint="One command per row. Add multiple to launch a grouped preset."
-								stacked
-							>
-								<CommandsEditor
-									commands={preset.commands}
-									onChange={onCommandsChange}
-									onBlur={onCommandsBlur}
-									placeholder="e.g. bun run dev"
-								/>
-							</DialogRow>
+									<DialogRow
+										label="Description"
+										htmlFor="preset-description"
+										hint="Optional context shown in the presets list."
+									>
+										<Input
+											id="preset-description"
+											value={preset.description ?? ""}
+											onChange={(e) =>
+												onFieldChange("description", e.target.value)
+											}
+											onBlur={() => onFieldBlur("description")}
+											placeholder="Optional"
+										/>
+									</DialogRow>
+
+									<DialogRow
+										label="Commands"
+										hint="One command per row. Add multiple to launch a grouped preset."
+										stacked
+									>
+										<CommandsEditor
+											commands={preset.commands}
+											onChange={onCommandsChange}
+											onBlur={onCommandsBlur}
+											placeholder="e.g. bun run dev"
+										/>
+									</DialogRow>
+								</>
+							)}
 
 							<DialogRow
 								label="Applies to"
