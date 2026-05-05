@@ -6,6 +6,7 @@ import {
 	DropdownMenuItem,
 	DropdownMenuLabel,
 	DropdownMenuSeparator,
+	DropdownMenuShortcut,
 	DropdownMenuSub,
 	DropdownMenuSubContent,
 	DropdownMenuSubTrigger,
@@ -18,8 +19,10 @@ import {
 	HiCheck,
 	HiChevronUpDown,
 	HiOutlineArrowRightOnRectangle,
+	HiOutlineCog6Tooth,
 } from "react-icons/hi2";
 import { useCurrentPlan } from "renderer/hooks/useCurrentPlan";
+import { useHotkeyDisplay } from "renderer/hotkeys";
 import { authClient } from "renderer/lib/auth-client";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
@@ -33,6 +36,7 @@ export function OrganizationDropdown({
 	const collections = useCollections();
 	const signOutMutation = electronTrpc.auth.signOut.useMutation();
 	const navigate = useNavigate();
+	const settingsHotkey = useHotkeyDisplay("OPEN_SETTINGS").text;
 
 	const activeOrganizationId = session?.session?.activeOrganizationId;
 
@@ -131,6 +135,16 @@ export function OrganizationDropdown({
 				}
 			>
 				{/* Organization */}
+				{/* TODO(v1): Settings lives in the sidebar footer in v2; kept here for v1. Remove once v1 is gone. */}
+				<DropdownMenuItem
+					onSelect={() => navigate({ to: "/settings/account" })}
+				>
+					<HiOutlineCog6Tooth className="h-4 w-4" />
+					<span>Settings</span>
+					{settingsHotkey !== "Unassigned" && (
+						<DropdownMenuShortcut>{settingsHotkey}</DropdownMenuShortcut>
+					)}
+				</DropdownMenuItem>
 				<DropdownMenuItem
 					onSelect={() => navigate({ to: "/settings/organization" })}
 				>
