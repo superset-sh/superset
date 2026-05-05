@@ -45,7 +45,6 @@ export function ChatPaneTitle({ context, workspaceId }: ChatPaneTitleProps) {
 				onDeleteSession={handleDeleteSession}
 			/>
 			<V2NotificationStatusIndicator
-				workspaceId={workspaceId}
 				sources={getV2NotificationSourcesForPane(context.pane)}
 			/>
 		</div>

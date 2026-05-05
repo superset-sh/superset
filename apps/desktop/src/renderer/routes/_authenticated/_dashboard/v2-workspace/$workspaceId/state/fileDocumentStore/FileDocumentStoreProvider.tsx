@@ -1,18 +1,16 @@
 import type { ReactNode } from "react";
 import { useWorkspaceEvent } from "renderer/hooks/host-service/useWorkspaceEvent";
+import { useWorkspace } from "renderer/routes/_authenticated/_dashboard/v2-workspace/providers/WorkspaceProvider";
 import { dispatchFsEvent } from "./fileDocumentStore";
 
-interface FileDocumentStoreProviderProps {
-	workspaceId: string;
-	children: ReactNode;
-}
-
 export function FileDocumentStoreProvider({
-	workspaceId,
 	children,
-}: FileDocumentStoreProviderProps) {
-	useWorkspaceEvent("fs:events", workspaceId, (event) => {
-		dispatchFsEvent(workspaceId, event);
+}: {
+	children: ReactNode;
+}) {
+	const { workspace } = useWorkspace();
+	useWorkspaceEvent("fs:events", workspace.id, (event) => {
+		dispatchFsEvent(workspace.id, event);
 	});
 
 	return <>{children}</>;

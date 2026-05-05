@@ -1,17 +1,14 @@
-import { buildHostRoutingKey } from "@superset/shared/host-routing";
 import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { createFileRoute, Outlet, useMatchRoute } from "@tanstack/react-router";
 import { useEffect, useRef } from "react";
-import { env } from "renderer/env.renderer";
-import {
-	getHostServiceHeaders,
-	getHostServiceWsToken,
-} from "renderer/lib/host-service-auth";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
-import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
-import { WorkspaceTrpcProvider } from "./providers/WorkspaceTrpcProvider";
+import { useWorkspaceCreatesStore } from "renderer/stores/workspace-creates";
+import { WorkspaceCreateErrorState } from "./components/WorkspaceCreateErrorState";
+import { WorkspaceCreatingState } from "./components/WorkspaceCreatingState";
+import { WorkspaceNotFoundState } from "./components/WorkspaceNotFoundState";
+import { WorkspaceProvider } from "./providers/WorkspaceProvider";
 
 export const Route = createFileRoute("/_authenticated/_dashboard/v2-workspace")(
 	{
@@ -27,34 +24,23 @@ function V2WorkspaceLayout() {
 	const workspaceId =
 		workspaceMatch !== false ? workspaceMatch.workspaceId : null;
 	const collections = useCollections();
-	const { machineId, activeHostUrl } = useLocalHostService();
 	const { ensureWorkspaceInSidebar } = useDashboardSidebarState();
 
-	const { data: workspaces = [], isReady } = useLiveQuery(
+	const { data: workspaces, isReady } = useLiveQuery(
 		(q) =>
 			q
 				.from({ v2Workspaces: collections.v2Workspaces })
-				.where(({ v2Workspaces }) => eq(v2Workspaces.id, workspaceId ?? ""))
-				.select(({ v2Workspaces }) => ({
-					id: v2Workspaces.id,
-					organizationId: v2Workspaces.organizationId,
-					hostId: v2Workspaces.hostId,
-					projectId: v2Workspaces.projectId,
-					branch: v2Workspaces.branch,
-				})),
+				.where(({ v2Workspaces }) => eq(v2Workspaces.id, workspaceId ?? "")),
 		[collections, workspaceId],
 	);
-	const workspace = workspaces[0] ?? null;
-
-	const isLocal = workspace?.hostId === machineId;
-	const hostUrl = !workspace
-		? null
-		: isLocal
-			? activeHostUrl
-			: `${env.RELAY_URL}/hosts/${buildHostRoutingKey(workspace.organizationId, workspace.hostId)}`;
+	const workspace = workspaces?.[0] ?? null;
+	const inFlight = useWorkspaceCreatesStore((store) =>
+		workspaceId
+			? store.entries.find((entry) => entry.snapshot.id === workspaceId)
+			: undefined,
+	);
 
 	const lastEnsuredWorkspaceIdRef = useRef<string | null>(null);
-
 	useEffect(() => {
 		if (!workspace || lastEnsuredWorkspaceIdRef.current === workspace.id)
 			return;
@@ -62,23 +48,35 @@ function V2WorkspaceLayout() {
 		ensureWorkspaceInSidebar(workspace.id, workspace.projectId);
 	}, [ensureWorkspaceInSidebar, workspace]);
 
-	if (!workspaceId || !isReady) {
-		return null;
+	if (!workspaceId || !isReady || !workspaces) {
+		return <div className="flex h-full w-full" />;
 	}
 
-	if (!workspace || !hostUrl) {
-		return <Outlet />;
+	if (!workspace) {
+		if (inFlight?.state === "creating") {
+			return (
+				<WorkspaceCreatingState
+					name={inFlight.snapshot.name}
+					branch={inFlight.snapshot.branch}
+					startedAt={inFlight.startedAt}
+				/>
+			);
+		}
+		if (inFlight?.state === "error") {
+			return (
+				<WorkspaceCreateErrorState
+					workspaceId={workspaceId}
+					name={inFlight.snapshot.name}
+					error={inFlight.error ?? "Unknown error"}
+				/>
+			);
+		}
+		return <WorkspaceNotFoundState workspaceId={workspaceId} />;
 	}
 
 	return (
-		<WorkspaceTrpcProvider
-			cacheKey={workspace.id}
-			key={`${workspace.id}:${hostUrl}`}
-			hostUrl={hostUrl}
-			headers={() => getHostServiceHeaders(hostUrl)}
-			wsToken={() => getHostServiceWsToken(hostUrl)}
-		>
+		<WorkspaceProvider workspace={workspace}>
 			<Outlet />
-		</WorkspaceTrpcProvider>
+		</WorkspaceProvider>
 	);
 }
