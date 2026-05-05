@@ -64,14 +64,21 @@ export class ThrottledWorker<T> {
 
 	private doWork(): void {
 		const chunk = this.pending.splice(0, this.options.maxWorkChunkSize);
-		if (chunk.length > 0) this.handler(chunk);
-
-		if (this.pending.length > 0) {
-			this.throttleTimer = setTimeout(() => {
-				this.throttleTimer = null;
-				this.doWork();
-			}, this.options.throttleDelay);
-			this.throttleTimer.unref?.();
+		// Drain remaining work even if a handler throws. Without this,
+		// one bad listener batch wedges the worker until the next work()
+		// call happens to fire. (VS Code's ThrottledWorker has the same
+		// bug — async.ts:1351 — relying on process-level uncaughtException
+		// handlers to contain the throw, which doesn't unstick the buffer.)
+		try {
+			if (chunk.length > 0) this.handler(chunk);
+		} finally {
+			if (!this.disposed && this.pending.length > 0) {
+				this.throttleTimer = setTimeout(() => {
+					this.throttleTimer = null;
+					this.doWork();
+				}, this.options.throttleDelay);
+				this.throttleTimer.unref?.();
+			}
 		}
 	}
 

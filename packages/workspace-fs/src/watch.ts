@@ -54,10 +54,14 @@ interface WatcherState {
 	 * `absolutePath` when the requested path includes a symlinked component;
 	 * we map kernel-reported paths back to `absolutePath` form before emit.
 	 * Mirrors VS Code's parcelWatcher.ts `realPath` handling (lines 488-516).
+	 *
+	 * `realPathNormalized` carries the same NFC normalization we apply to
+	 * incoming event paths on darwin, so the path.relative rebase in
+	 * normalizeEvents is length-stable across composed/decomposed forms.
 	 */
 	realPath: string;
+	realPathNormalized: string;
 	realPathDiffers: boolean;
-	realPathLength: number;
 	subscription: AsyncSubscription;
 	listeners: Set<WatchListener>;
 	filePaths: Map<string, true>;
@@ -423,16 +427,18 @@ export class FsWatcherManager {
 	 */
 	private async normalizePath(absolutePath: string): Promise<{
 		realPath: string;
+		realPathNormalized: string;
 		realPathDiffers: boolean;
-		realPathLength: number;
 	}> {
+		const normalize = (input: string) =>
+			process.platform === "darwin" ? input.normalize("NFC") : input;
 		try {
 			const resolved = await realpath(absolutePath);
 			if (resolved !== absolutePath) {
 				return {
 					realPath: resolved,
+					realPathNormalized: normalize(resolved),
 					realPathDiffers: true,
-					realPathLength: resolved.length,
 				};
 			}
 		} catch {
@@ -442,8 +448,8 @@ export class FsWatcherManager {
 		}
 		return {
 			realPath: absolutePath,
+			realPathNormalized: normalize(absolutePath),
 			realPathDiffers: false,
-			realPathLength: absolutePath.length,
 		};
 	}
 
@@ -458,13 +464,23 @@ export class FsWatcherManager {
 		events: ParcelWatcherEvent[],
 		state: WatcherState,
 	): void {
+		// VS Code (parcelWatcher.ts:534-537) slices by `realPathLength`
+		// computed pre-NFC, which corrupts paths when NFC changes string
+		// length AND the requested path was a symlink. We use path.relative
+		// against the same-normalized realPath so the rebase works regardless
+		// of NFC length changes.
 		for (const event of events) {
-			if (process.platform === "darwin") {
-				event.path = event.path.normalize("NFC");
-			}
+			const eventPath =
+				process.platform === "darwin"
+					? event.path.normalize("NFC")
+					: event.path;
 			if (state.realPathDiffers) {
-				event.path =
-					state.absolutePath + event.path.slice(state.realPathLength);
+				event.path = path.join(
+					state.absolutePath,
+					path.relative(state.realPathNormalized, eventPath),
+				);
+			} else {
+				event.path = eventPath;
 			}
 		}
 	}
@@ -537,14 +553,14 @@ export class FsWatcherManager {
 			throw error;
 		}
 
-		const { realPath, realPathDiffers, realPathLength } =
+		const { realPath, realPathNormalized, realPathDiffers } =
 			await this.normalizePath(normalizedPath);
 
 		const state: WatcherState = {
 			absolutePath: normalizedPath,
 			realPath,
+			realPathNormalized,
 			realPathDiffers,
-			realPathLength,
 			subscription: null as unknown as AsyncSubscription,
 			listeners: new Set<WatchListener>(),
 			filePaths: new Map<string, true>(),
