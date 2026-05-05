@@ -1,2 +1,6 @@
 export { useHotkeyOverridesStore } from "./hotkeyOverridesStore";
-export { useKeyboardPreferencesStore } from "./keyboardPreferencesStore";
+export {
+	getEffectiveLayoutMap,
+	useEffectiveLayoutMap,
+	useKeyboardPreferencesStore,
+} from "./keyboardPreferencesStore";
