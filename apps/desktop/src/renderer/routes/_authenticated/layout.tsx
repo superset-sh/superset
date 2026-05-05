@@ -25,6 +25,12 @@ import { InitGitDialog } from "renderer/react-query/projects/InitGitDialog";
 import { DashboardNewWorkspaceModal } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal";
 import { V1MigrationSummaryModal } from "renderer/routes/_authenticated/components/V1MigrationSummaryModal";
 import { WorkspaceInitEffects } from "renderer/screens/main/components/WorkspaceInitEffects";
+import {
+	STEP_ROUTES,
+	selectFirstIncompleteStep,
+	selectRequiredStepsComplete,
+	useOnboardingStore,
+} from "renderer/stores/onboarding";
 import { useSettingsStore } from "renderer/stores/settings-state";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { useAgentHookListener } from "renderer/stores/tabs/useAgentHookListener";
@@ -194,6 +200,14 @@ function AuthenticatedLayout() {
 
 	if (!activeOrganizationId) {
 		return <Navigate to="/create-organization" replace />;
+	}
+
+	const onboardingState = useOnboardingStore.getState();
+	const requiredComplete = selectRequiredStepsComplete(onboardingState);
+	const isOnSetupRoute = location.pathname.startsWith("/setup");
+	if (isV2CloudEnabled && !requiredComplete && !isOnSetupRoute) {
+		const target = STEP_ROUTES[selectFirstIncompleteStep(onboardingState)];
+		return <Navigate to={target} replace />;
 	}
 
 	return (

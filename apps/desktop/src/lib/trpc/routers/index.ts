@@ -24,6 +24,7 @@ import { createProjectsRouter } from "./projects";
 import { createResourceMetricsRouter } from "./resource-metrics";
 import { createRingtoneRouter } from "./ringtone";
 import { createSettingsRouter } from "./settings";
+import { createSystemRouter } from "./system";
 import { createTerminalRouter } from "./terminal";
 import { createUiStateRouter } from "./ui-state";
 import { createWindowRouter } from "./window";
@@ -52,6 +53,7 @@ export const createAppRouter = (getWindow: () => BrowserWindow | null) => {
 		menu: createMenuRouter(),
 		external: createExternalRouter(),
 		settings: createSettingsRouter(),
+		system: createSystemRouter(),
 		config: createConfigRouter(),
 		device: createDeviceRouter(),
 		uiState: createUiStateRouter(),
