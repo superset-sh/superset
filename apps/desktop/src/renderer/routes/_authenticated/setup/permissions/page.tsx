@@ -25,6 +25,7 @@ function OnboardingPermissionsPage() {
 	const navigate = useNavigate();
 	const goTo = useOnboardingStore((s) => s.goTo);
 	const markComplete = useOnboardingStore((s) => s.markComplete);
+	const markSkipped = useOnboardingStore((s) => s.markSkipped);
 
 	const { data: status, isPending } =
 		electronTrpc.permissions.getStatus.useQuery(undefined, {
@@ -49,6 +50,11 @@ function OnboardingPermissionsPage() {
 	const handleContinue = () => {
 		if (!requiredSatisfied) return;
 		markComplete("permissions");
+		navigate({ to: STEP_ROUTES.project });
+	};
+
+	const handleSkip = () => {
+		markSkipped("permissions");
 		navigate({ to: STEP_ROUTES.project });
 	};
 
@@ -99,6 +105,9 @@ function OnboardingPermissionsPage() {
 			<div className="flex w-[273px] flex-col gap-2 self-center">
 				<SetupButton onClick={handleContinue} disabled={!requiredSatisfied}>
 					Continue
+				</SetupButton>
+				<SetupButton variant="link" onClick={handleSkip}>
+					Skip for now
 				</SetupButton>
 			</div>
 		</StepShell>

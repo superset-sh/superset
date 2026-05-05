@@ -1,6 +1,6 @@
-export type PromptTransport = "argv" | "stdin";
+import type { PromptTransport } from "./agent-prompt-launch";
 
-export interface AgentPreset {
+export interface HostAgentPreset {
 	presetId: string;
 	label: string;
 	description: string;
@@ -12,8 +12,10 @@ export interface AgentPreset {
 }
 
 /**
- * Hardcoded terminal agent presets. Used as add templates and as the seed
- * for first `list()` / `resetToDefaults()`.
+ * Hardcoded terminal agent presets. Used as the seed list when a host's
+ * agent table is empty, and as the install catalog the desktop picker
+ * renders. Lives here (not on the host service) because it's static
+ * configuration that ships with the binary, not data the API owns.
  *
  * Launch resolution:
  *   prompt
@@ -28,7 +30,7 @@ export interface AgentPreset {
  * Superset Chat is intentionally excluded — its model/provider config
  * lives in chat settings, not in terminal-agent configs.
  */
-export const AGENT_PRESETS = [
+export const HOST_AGENT_PRESETS = [
 	{
 		presetId: "claude",
 		label: "Claude",
@@ -138,7 +140,7 @@ export const AGENT_PRESETS = [
 		promptArgs: [],
 		env: {},
 	},
-] as const satisfies readonly AgentPreset[];
+] as const satisfies readonly HostAgentPreset[];
 
 const DEFAULT_PRESET_IDS = new Set([
 	"claude",
@@ -148,8 +150,8 @@ const DEFAULT_PRESET_IDS = new Set([
 	"copilot",
 ]);
 
-export function getDefaultSeedPresets(): AgentPreset[] {
-	return AGENT_PRESETS.filter((preset) =>
+export function getDefaultSeedPresets(): HostAgentPreset[] {
+	return HOST_AGENT_PRESETS.filter((preset) =>
 		DEFAULT_PRESET_IDS.has(preset.presetId),
 	).map((preset) => ({
 		...preset,
@@ -159,8 +161,8 @@ export function getDefaultSeedPresets(): AgentPreset[] {
 	}));
 }
 
-export function getPresetById(presetId: string): AgentPreset | undefined {
-	const preset = AGENT_PRESETS.find((item) => item.presetId === presetId);
+export function getPresetById(presetId: string): HostAgentPreset | undefined {
+	const preset = HOST_AGENT_PRESETS.find((item) => item.presetId === presetId);
 	if (!preset) return undefined;
 	return {
 		...preset,

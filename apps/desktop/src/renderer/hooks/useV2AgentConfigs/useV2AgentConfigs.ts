@@ -1,4 +1,4 @@
-import type { HostAgentConfigDto } from "@superset/host-service/settings";
+import type { HostAgentConfig } from "@superset/host-service/settings";
 import { useQuery } from "@tanstack/react-query";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 
@@ -17,7 +17,7 @@ export function useV2AgentConfigs(hostUrl: string | null) {
 		queryKey: [...V2_AGENT_CONFIGS_QUERY_KEY, hostUrl] as const,
 		enabled: !!hostUrl,
 		queryFn: () => {
-			if (!hostUrl) return [] as HostAgentConfigDto[];
+			if (!hostUrl) return [] as HostAgentConfig[];
 			return getHostServiceClientByUrl(
 				hostUrl,
 			).settings.agentConfigs.list.query();

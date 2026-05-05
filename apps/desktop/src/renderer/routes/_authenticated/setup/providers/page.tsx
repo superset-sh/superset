@@ -22,6 +22,7 @@ function OnboardingProvidersPage() {
 	const navigate = useNavigate();
 	const goTo = useOnboardingStore((s) => s.goTo);
 	const markComplete = useOnboardingStore((s) => s.markComplete);
+	const markSkipped = useOnboardingStore((s) => s.markSkipped);
 	const completed = useOnboardingStore((s) => s.completed.providers);
 	const manualWalkthrough = useOnboardingStore((s) => s.manualWalkthrough);
 
@@ -74,6 +75,11 @@ function OnboardingProvidersPage() {
 
 	const handleContinueToNextStep = () => {
 		markComplete("providers");
+		navigate({ to: STEP_ROUTES["gh-cli"] });
+	};
+
+	const handleSkipStep = () => {
+		markSkipped("providers");
 		navigate({ to: STEP_ROUTES["gh-cli"] });
 	};
 
@@ -252,24 +258,26 @@ function OnboardingProvidersPage() {
 									? `Reconfigure ${providerLabel}`
 									: `Connect ${providerLabel}`}
 							</SetupButton>
-							{(atLeastOneConnected || isReconfiguring) && (
-								<SetupButton
-									variant="link"
-									onClick={() => {
-										if (isReconfiguring) {
-											if (provider === "claude-code")
-												setReconfiguringClaude(false);
-											else setReconfiguringCodex(false);
-										} else {
-											handleContinueToNextStep();
-										}
-									}}
-								>
-									{isReconfiguring
-										? "Cancel — keep current"
-										: "Skip — continue to next step"}
-								</SetupButton>
-							)}
+							<SetupButton
+								variant="link"
+								onClick={() => {
+									if (isReconfiguring) {
+										if (provider === "claude-code")
+											setReconfiguringClaude(false);
+										else setReconfiguringCodex(false);
+									} else if (atLeastOneConnected) {
+										handleContinueToNextStep();
+									} else {
+										handleSkipStep();
+									}
+								}}
+							>
+								{isReconfiguring
+									? "Cancel — keep current"
+									: atLeastOneConnected
+										? "Continue to next step"
+										: "Skip for now"}
+							</SetupButton>
 						</>
 					);
 				})()}

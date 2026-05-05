@@ -2,7 +2,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { createMcpCaller } from "../../caller";
 import { defineTool } from "../../define-tool";
-import { hostServiceMutation } from "../../host-service-client";
+import { hostServiceCall } from "../../host-service-client";
 
 export function register(server: McpServer): void {
 	defineTool(server, {
@@ -38,15 +38,7 @@ export function register(server: McpServer): void {
 				throw new Error(`Workspace not found: ${input.workspaceId}`);
 			}
 
-			return hostServiceMutation<
-				{
-					workspaceId: string;
-					agent: string;
-					prompt: string;
-					attachmentIds?: string[];
-				},
-				{ sessionId: string; label: string }
-			>(
+			return hostServiceCall<{ sessionId: string; label: string }>(
 				{
 					relayUrl: ctx.relayUrl,
 					organizationId: ctx.organizationId,
@@ -54,6 +46,7 @@ export function register(server: McpServer): void {
 					jwt: ctx.bearerToken,
 				},
 				"agents.run",
+				"mutation",
 				{
 					workspaceId: input.workspaceId,
 					agent: input.agent,

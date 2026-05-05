@@ -1,4 +1,4 @@
-import type { HostAgentConfigDto } from "@superset/host-service/settings";
+import type { HostAgentConfig } from "@superset/host-service/settings";
 import type { ExecutionMode, TerminalPreset } from "@superset/local-db";
 import { Alert, AlertDescription } from "@superset/ui/alert";
 import { Button } from "@superset/ui/button";
@@ -49,7 +49,7 @@ interface PresetEditorDialogProps {
 	 * (read-only command + Open in Agents settings link). v1 callers omit
 	 * this — no v1 row has agentId, so the linked branch stays dormant.
 	 */
-	agents?: HostAgentConfigDto[];
+	agents?: HostAgentConfig[];
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 	onDeletePreset: () => void;

@@ -1,4 +1,13 @@
 export {
+	type AgentListParams,
+	type AgentListResponse,
+	type AgentRunParams,
+	type AgentRunResult,
+	Agents,
+	type HostAgentConfig,
+	type PromptTransport,
+} from "./agents";
+export {
 	type AgentConfig,
 	type Automation,
 	type AutomationCreateParams,
