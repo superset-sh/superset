@@ -1,0 +1,1 @@
+export { configRouter } from "./config";
