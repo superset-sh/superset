@@ -297,7 +297,7 @@ export async function login(
 	const loopbackRedirectUri = loopback
 		? `http://127.0.0.1:${loopback.port}/callback`
 		: null;
-	const pasteRedirectUri = `${webUrl}${PASTE_REDIRECT_PATH}`;
+	const pasteRedirectUri = new URL(PASTE_REDIRECT_PATH, webUrl).toString();
 
 	const pasteAuthorizeUrl = buildAuthorizeUrl({
 		apiUrl,
@@ -328,13 +328,9 @@ export async function login(
 
 	const callbackController = new AbortController();
 	const pasteController = new AbortController();
-	const onOuterAbort = () => {
-		callbackController.abort();
-		pasteController.abort();
-	};
-	signal.addEventListener("abort", onOuterAbort);
 
 	type Winner = { code: string; redirectUri: string };
+	let onOuterAbort: (() => void) | null = null;
 
 	try {
 		const winner = await new Promise<Winner>((resolve, reject) => {
@@ -344,6 +340,15 @@ export async function login(
 				settled = true;
 				fn();
 			};
+
+			onOuterAbort = () => {
+				settle(() => {
+					callbackController.abort();
+					pasteController.abort();
+					reject(new CLIError("Login cancelled"));
+				});
+			};
+			signal.addEventListener("abort", onOuterAbort);
 
 			if (loopback && loopbackRedirectUri) {
 				waitForCallback({
@@ -404,7 +409,7 @@ export async function login(
 			redirectUri: winner.redirectUri,
 		});
 	} finally {
-		signal.removeEventListener("abort", onOuterAbort);
+		if (onOuterAbort) signal.removeEventListener("abort", onOuterAbort);
 		callbackController.abort();
 		pasteController.abort();
 		loopback?.server.close();

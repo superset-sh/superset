@@ -101,7 +101,7 @@ export function LoginUI({
 			)}
 			<Text> </Text>
 			<Text dimColor italic>
-				Esc to cancel
+				Esc / Ctrl+C to cancel
 			</Text>
 			{status === "exchanging" ? <Text dimColor>Signing in…</Text> : null}
 		</Box>

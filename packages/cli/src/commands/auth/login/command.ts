@@ -19,7 +19,8 @@ export default command({
 	},
 	run: async (opts) => {
 		const config = readConfig();
-		const useInk = process.stdout.isTTY && process.stdin.isTTY;
+		const useInk =
+			process.stdout.isTTY && process.stdin.isTTY && !process.env.CI;
 
 		let pasteResolve: ((code: string) => void) | null = null;
 		let pasteReject: ((err: Error) => void) | null = null;
@@ -116,12 +117,7 @@ export default command({
 		};
 		writeConfig(config);
 
-		if (!inkInstance) {
-			p.log.success("Authorized!");
-		} else {
-			p.intro("superset auth login");
-			p.log.success("Authorized!");
-		}
+		p.log.success("Authorized!");
 
 		const api = createApiClient({ bearer: result.accessToken });
 
