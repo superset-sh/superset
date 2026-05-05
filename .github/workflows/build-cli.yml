@@ -10,6 +10,11 @@ on:
         description: 'JSON array of {os, target} build matrix entries'
         required: true
         type: string
+      upload:
+        description: 'Upload built tarballs as artifacts (release pipeline needs them; PR CI does not)'
+        required: false
+        type: boolean
+        default: true
 
 jobs:
   build:
@@ -126,6 +131,7 @@ jobs:
           '
 
       - name: Upload tarball
+        if: inputs.upload
         uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
         with:
           name: superset-${{ matrix.target }}
