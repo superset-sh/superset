@@ -244,7 +244,12 @@ function AdoptWorktreesContent({
 
 			<div className="flex w-[273px] flex-col gap-2 self-center">
 				{nothingToAdopt ? (
-					<SetupButton onClick={onFinish}>Continue</SetupButton>
+					<>
+						<SetupButton onClick={onFinish}>Continue</SetupButton>
+						<SetupButton variant="link" onClick={onSkip}>
+							Skip for now
+						</SetupButton>
+					</>
 				) : (
 					<>
 						<SetupButton

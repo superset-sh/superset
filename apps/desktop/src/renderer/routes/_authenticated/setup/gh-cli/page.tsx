@@ -92,6 +92,9 @@ function OnboardingGhCliPage() {
 
 				<div className="flex w-[273px] flex-col gap-2 self-center">
 					<SetupButton onClick={handleContinue}>Continue</SetupButton>
+					<SetupButton variant="link" onClick={handleSkip}>
+						Skip for now
+					</SetupButton>
 				</div>
 			</StepShell>
 		);
