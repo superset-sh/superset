@@ -173,12 +173,13 @@ export class TunnelManager {
 				pending.resolve(msg as unknown as TunnelHttpResponse);
 			}
 		} else if (msg.type === "ws:frame") {
+			if (typeof msg.data !== "string") return;
 			const clientWs = tunnel.activeChannels.get(msg.id as string);
 			if (clientWs?.readyState === 1) {
 				if (msg.encoding === "base64") {
-					clientWs.send(Buffer.from(msg.data as string, "base64"));
+					clientWs.send(Buffer.from(msg.data, "base64"));
 				} else {
-					clientWs.send(msg.data as string);
+					clientWs.send(msg.data);
 				}
 			}
 		} else if (msg.type === "ws:close") {
