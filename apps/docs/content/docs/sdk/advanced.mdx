@@ -11,10 +11,6 @@ The SDK's individual methods are simple. The interesting part is what you compos
 
 ## Sentry webhook → agent on the bug
 
-<Callout type="info">
-**TODO** — the `agents: [{ prompt }]` shorthand below is the API we're aiming for. Today the SDK sends a minimal `agentConfig: { id: 'claude', kind: 'terminal' }`; the host service still needs full launch info (`command`, `promptCommand`, …) to actually start the agent. We'll bake in defaults for built-in presets in a follow-up. Until then you can pass a full `agentConfig` per agent — crib one from `(await client.automations.list())[0].agentConfig`.
-</Callout>
-
 When Sentry fires an alert, file a task and spawn an agent to investigate — all in two SDK calls. (In production, verify the Sentry signature header before trusting any payload — that part is omitted here for clarity.)
 
 ```ts title="sentry-webhook.ts"
