@@ -136,9 +136,13 @@ describe("collectWorktreesFromGit vs raw git worktree list", () => {
 			["foreign-feat", "main", "managed-feat"].sort(),
 		);
 
-		// And the worktreeMap should include every branch that has a
-		// worktree on this machine, not just the ones under managedRoot.
-		// This is the user-reported bug: foreign worktrees go missing.
-		expect([...worktreeMap.keys()].sort()).toEqual([...fromGit.keys()].sort());
+		// And the worktreeMap should mirror git's view exactly — same
+		// branches AND same paths. Comparing full entries (not just
+		// keys) catches the case where a branch is present but the
+		// path got mangled, which would still let stale or wrong paths
+		// surface in the picker.
+		const sortEntries = (m: Map<string, string>) =>
+			[...m.entries()].sort(([a], [b]) => a.localeCompare(b));
+		expect(sortEntries(worktreeMap)).toEqual(sortEntries(fromGit));
 	});
 });
