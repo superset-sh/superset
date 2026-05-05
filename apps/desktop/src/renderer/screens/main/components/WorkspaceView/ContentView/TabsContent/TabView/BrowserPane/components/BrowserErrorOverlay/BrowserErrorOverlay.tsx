@@ -88,7 +88,7 @@ export function BrowserErrorOverlay({
 				</div>
 				{showDetails && (
 					<div className="flex items-center gap-2 w-full rounded-md border border-muted-foreground/20 px-3 py-2">
-						<span className="flex-1 text-sm text-muted-foreground/50 truncate">
+						<span className="flex-1 text-sm text-muted-foreground/50 truncate select-text cursor-text">
 							{detailsText}
 						</span>
 						<button

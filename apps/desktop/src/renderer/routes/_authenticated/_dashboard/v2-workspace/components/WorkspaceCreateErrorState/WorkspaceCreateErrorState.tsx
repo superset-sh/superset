@@ -56,7 +56,7 @@ export function WorkspaceCreateErrorState({
 				)}
 
 				<div className="w-full rounded-md border border-destructive/20 bg-destructive/[0.04] px-3 py-2.5">
-					<p className="font-mono text-[11px] leading-relaxed text-destructive/90 break-words whitespace-pre-wrap">
+					<p className="select-text font-mono text-[11px] leading-relaxed text-destructive/90 break-words whitespace-pre-wrap cursor-text">
 						{error}
 					</p>
 				</div>

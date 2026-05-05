@@ -30,7 +30,9 @@ export function ErrorState({
 }: ErrorStateProps) {
 	return (
 		<div className="flex h-full w-full flex-col items-center justify-center gap-3 text-sm text-muted-foreground">
-			<span>{message ?? MESSAGES[reason]}</span>
+			<span className="select-text cursor-text">
+				{message ?? MESSAGES[reason]}
+			</span>
 			{reason === "too-large" && onOpenAnyway && (
 				<Button variant="outline" size="sm" onClick={onOpenAnyway}>
 					Open anyway
