@@ -1,9 +1,19 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import {
+	existsSync,
+	mkdirSync,
+	readFileSync,
+	rmSync,
+	writeFileSync,
+} from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 import { PROJECTS_DIR_NAME, SUPERSET_DIR_NAME } from "shared/constants";
-import { loadSetupConfig, mergeConfigs } from "./setup";
+import {
+	copyConfiguredFilesToWorktree,
+	loadSetupConfig,
+	mergeConfigs,
+} from "./setup";
 
 const TEST_DIR = join(tmpdir(), `superset-test-setup-${process.pid}`);
 const MAIN_REPO = join(TEST_DIR, "main-repo");
@@ -164,6 +174,7 @@ describe("loadSetupConfig", () => {
 			join(MAIN_REPO, ".superset", "config.json"),
 			JSON.stringify({
 				setup: ["npm install"],
+				copyFiles: [".env"],
 				run: ["bun dev"],
 			}),
 		);
@@ -182,8 +193,21 @@ describe("loadSetupConfig", () => {
 		});
 		expect(config).toEqual({
 			setup: ["custom-setup.sh"],
+			copyFiles: [".env"],
 			run: ["bun dev"],
 		});
+	});
+
+	test("loads copyFiles from config", () => {
+		writeFileSync(
+			join(MAIN_REPO, ".superset", "config.json"),
+			JSON.stringify({
+				copyFiles: [".env", ".vscode/settings.json"],
+			}),
+		);
+
+		const config = loadSetupConfig({ mainRepoPath: MAIN_REPO });
+		expect(config?.copyFiles).toEqual([".env", ".vscode/settings.json"]);
 	});
 
 	test("user override takes priority over worktree config", () => {
@@ -609,6 +633,24 @@ describe("mergeConfigs", () => {
 		);
 		expect(result).toEqual({ setup: ["custom-install"], run: ["dev"] });
 	});
+
+	test("copyFiles key merge with before/after", () => {
+		const result = mergeConfigs(
+			{ copyFiles: [".env"] },
+			{ copyFiles: { before: [".env.local"], after: [".tool-versions"] } },
+		);
+		expect(result).toEqual({
+			copyFiles: [".env.local", ".env", ".tool-versions"],
+		});
+	});
+
+	test("copyFiles key override with array", () => {
+		const result = mergeConfigs(
+			{ copyFiles: [".env"] },
+			{ copyFiles: [".env.production"] },
+		);
+		expect(result).toEqual({ copyFiles: [".env.production"] });
+	});
 });
 
 describe("run config", () => {
@@ -655,6 +697,16 @@ describe("run config", () => {
 		expect(config).toBeNull();
 	});
 
+	test("validates copyFiles field must be an array", () => {
+		writeFileSync(
+			join(MAIN_REPO, ".superset", "config.json"),
+			JSON.stringify({ copyFiles: "not-an-array" }),
+		);
+
+		const config = loadSetupConfig({ mainRepoPath: MAIN_REPO });
+		expect(config).toBeNull();
+	});
+
 	test("local config can override run commands", () => {
 		writeFileSync(
 			join(MAIN_REPO, ".superset", "config.json"),
@@ -681,5 +733,94 @@ describe("run config", () => {
 
 		const config = loadSetupConfig({ mainRepoPath: MAIN_REPO });
 		expect(config?.run).toEqual(["export DEBUG=1", "npm run dev"]);
+	});
+
+	test("local config can merge copyFiles with before/after", () => {
+		writeFileSync(
+			join(MAIN_REPO, ".superset", "config.json"),
+			JSON.stringify({ copyFiles: [".env"] }),
+		);
+		writeFileSync(
+			join(MAIN_REPO, ".superset", "config.local.json"),
+			JSON.stringify({ copyFiles: { before: [".env.local"] } }),
+		);
+
+		const config = loadSetupConfig({ mainRepoPath: MAIN_REPO });
+		expect(config?.copyFiles).toEqual([".env.local", ".env"]);
+	});
+});
+
+describe("copyConfiguredFilesToWorktree", () => {
+	beforeEach(() => {
+		mkdirSync(MAIN_REPO, { recursive: true });
+		mkdirSync(WORKTREE, { recursive: true });
+	});
+
+	afterEach(() => {
+		if (existsSync(TEST_DIR)) {
+			rmSync(TEST_DIR, { recursive: true, force: true });
+		}
+	});
+
+	test("copies configured files that exist", () => {
+		writeFileSync(join(MAIN_REPO, ".env"), "API_URL=from-main\n");
+
+		copyConfiguredFilesToWorktree({
+			mainRepoPath: MAIN_REPO,
+			worktreePath: WORKTREE,
+			copyFiles: [".env"],
+		});
+
+		expect(readFileSync(join(WORKTREE, ".env"), "utf-8")).toBe(
+			"API_URL=from-main\n",
+		);
+	});
+
+	test("does not overwrite existing files in worktree", () => {
+		writeFileSync(join(MAIN_REPO, ".env"), "API_URL=from-main\n");
+		writeFileSync(join(WORKTREE, ".env"), "API_URL=from-worktree\n");
+
+		copyConfiguredFilesToWorktree({
+			mainRepoPath: MAIN_REPO,
+			worktreePath: WORKTREE,
+			copyFiles: [".env"],
+		});
+
+		expect(readFileSync(join(WORKTREE, ".env"), "utf-8")).toBe(
+			"API_URL=from-worktree\n",
+		);
+	});
+
+	test("skips invalid absolute and traversal paths", () => {
+		writeFileSync(join(MAIN_REPO, ".env"), "API_URL=from-main\n");
+
+		copyConfiguredFilesToWorktree({
+			mainRepoPath: MAIN_REPO,
+			worktreePath: WORKTREE,
+			copyFiles: ["/tmp/secret", "../outside", ".env"],
+		});
+
+		expect(existsSync(join(WORKTREE, "tmp", "secret"))).toBeFalse();
+		expect(readFileSync(join(WORKTREE, ".env"), "utf-8")).toBe(
+			"API_URL=from-main\n",
+		);
+	});
+
+	test("copies directories when explicitly configured", () => {
+		mkdirSync(join(MAIN_REPO, ".vscode"), { recursive: true });
+		writeFileSync(
+			join(MAIN_REPO, ".vscode", "settings.json"),
+			'{"editor.tabSize":2}\n',
+		);
+
+		copyConfiguredFilesToWorktree({
+			mainRepoPath: MAIN_REPO,
+			worktreePath: WORKTREE,
+			copyFiles: [".vscode"],
+		});
+
+		expect(
+			readFileSync(join(WORKTREE, ".vscode", "settings.json"), "utf-8"),
+		).toBe('{"editor.tabSize":2}\n');
 	});
 });

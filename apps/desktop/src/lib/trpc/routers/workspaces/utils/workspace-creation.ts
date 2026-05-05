@@ -14,7 +14,7 @@ import {
 } from "./db-helpers";
 import { listExternalWorktrees, worktreeExists } from "./git";
 import { resolveWorktreePath } from "./resolve-worktree-path";
-import { copySupersetConfigToWorktree, loadSetupConfig } from "./setup";
+import { copyBootstrapFilesToWorktree } from "./setup";
 
 interface CreateWorkspaceFromWorktreeParams {
 	projectId: string;
@@ -195,19 +195,17 @@ export async function createWorkspaceFromExternalWorktree({
 
 		activateProject(project);
 
-		copySupersetConfigToWorktree(project.mainRepoPath, externalMatch.path);
+		const setupConfig = copyBootstrapFilesToWorktree({
+			mainRepoPath: project.mainRepoPath,
+			worktreePath: externalMatch.path,
+			projectId: project.id,
+		});
 
 		await setBranchBaseConfig({
 			repoPath: project.mainRepoPath,
 			branch,
 			compareBaseBranch,
 			isExplicit: false,
-		});
-
-		const setupConfig = loadSetupConfig({
-			mainRepoPath: project.mainRepoPath,
-			worktreePath: externalMatch.path,
-			projectId: project.id,
 		});
 
 		track("workspace_created", {
@@ -360,8 +358,7 @@ export async function openExternalWorktree({
 		setLastActiveWorkspace(workspace.id);
 		activateProject(project);
 
-		copySupersetConfigToWorktree(project.mainRepoPath, existingWorktree.path);
-		const setupConfig = loadSetupConfig({
+		const setupConfig = copyBootstrapFilesToWorktree({
 			mainRepoPath: project.mainRepoPath,
 			worktreePath: existingWorktree.path,
 			projectId: project.id,
@@ -426,8 +423,7 @@ export async function openExternalWorktree({
 	setLastActiveWorkspace(workspace.id);
 	activateProject(project);
 
-	copySupersetConfigToWorktree(project.mainRepoPath, worktreePath);
-	const setupConfig = loadSetupConfig({
+	const setupConfig = copyBootstrapFilesToWorktree({
 		mainRepoPath: project.mainRepoPath,
 		worktreePath,
 		projectId: project.id,

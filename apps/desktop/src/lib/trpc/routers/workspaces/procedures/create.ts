@@ -37,7 +37,7 @@ import {
 	worktreeExists,
 } from "../utils/git";
 import { resolveWorktreePath } from "../utils/resolve-worktree-path";
-import { copySupersetConfigToWorktree, loadSetupConfig } from "../utils/setup";
+import { copyBootstrapFilesToWorktree, loadSetupConfig } from "../utils/setup";
 import {
 	createWorkspaceFromExternalWorktree,
 	createWorkspaceFromWorktree,
@@ -921,7 +921,11 @@ export const createCreateProcedures = () => {
 						isExplicit: false,
 					});
 
-					copySupersetConfigToWorktree(project.mainRepoPath, ext.path);
+					copyBootstrapFilesToWorktree({
+						mainRepoPath: project.mainRepoPath,
+						worktreePath: ext.path,
+						projectId: project.id,
+					});
 					imported++;
 				}
 

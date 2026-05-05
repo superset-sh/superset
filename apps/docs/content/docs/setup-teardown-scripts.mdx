@@ -13,7 +13,8 @@ Create `.superset/config.json` in your project:
 {
   "setup": ["bun install", "cp \"$SUPERSET_ROOT_PATH/.env\" .env"],
   "teardown": ["docker-compose down"],
-  "run": ["./.superset/run.sh"]
+  "run": ["./.superset/run.sh"],
+  "copyFiles": [".env", ".vscode/settings.json"]
 }
 ```
 
@@ -39,6 +40,14 @@ The `run` field defines commands that start your dev server or other long-runnin
   "run": ["./.superset/run.sh"]
 }
 ```
+
+`copyFiles` runs during workspace bootstrap and copies matching relative paths from the main repository into the new worktree.
+
+Copy behavior:
+- Only explicit relative paths are supported
+- Existing files in the worktree are preserved (no overwrite)
+- Missing paths are skipped
+- Absolute and traversal paths are rejected
 
 ## Environment Variables
 
@@ -84,12 +93,12 @@ Where `<project-id>` is your project's unique ID in Superset (visible in the app
 
 ### Priority Order
 
-Config is resolved in this order (first found wins, for setup, teardown, and run):
+Config is resolved in this order (first found wins, for setup, teardown, run and copyFiles):
 1. `~/.superset/projects/<project-id>/config.json` — user override
 2. `<worktree>/.superset/config.json` — worktree-specific
 3. `<repo>/.superset/config.json` — project default
 
-No merging occurs between levels—the first config found is used entirely.
+Higher-priority configs override only the keys they define. Missing keys inherit from lower-priority configs.
 
 ### Examples
 
@@ -110,6 +119,8 @@ No merging occurs between levels—the first config found is used entirely.
 
 Extend or override your team's committed scripts without modifying the repo. Create `.superset/config.local.json` alongside `config.json` — it's gitignored automatically.
 
+The same merge behavior applies to `copyFiles`.
+
 ### Prepend and/or append
 
 Add steps before or after the team's scripts:
@@ -119,6 +130,9 @@ Add steps before or after the team's scripts:
   "setup": {
     "before": ["echo 'running pre-setup'"],
     "after": ["./.superset/my-post-setup.sh"]
+  },
+  "copyFiles": {
+    "after": [".env.local"]
   },
   "teardown": {
     "after": ["./.superset/my-cleanup.sh"]

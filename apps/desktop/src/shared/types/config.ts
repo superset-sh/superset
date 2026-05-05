@@ -2,17 +2,19 @@ export interface SetupConfig {
 	setup?: string[];
 	teardown?: string[];
 	run?: string[];
+	copyFiles?: string[];
 }
 
-export interface LocalScriptMerge {
+export interface LocalArrayMerge {
 	before?: string[];
 	after?: string[];
 }
 
 export interface LocalSetupConfig {
-	setup?: string[] | LocalScriptMerge;
-	teardown?: string[] | LocalScriptMerge;
-	run?: string[] | LocalScriptMerge;
+	setup?: string[] | LocalArrayMerge;
+	teardown?: string[] | LocalArrayMerge;
+	run?: string[] | LocalArrayMerge;
+	copyFiles?: string[] | LocalArrayMerge;
 }
 
 export interface SetupAction {

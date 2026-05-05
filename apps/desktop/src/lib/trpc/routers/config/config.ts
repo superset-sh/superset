@@ -37,7 +37,8 @@ function hasConfiguredScripts(
 const CONFIG_TEMPLATE = `{
   "setup": [],
   "teardown": [],
-  "run": []
+	"run": [],
+	"copyFiles": []
 }
 `;
 
