@@ -313,6 +313,7 @@ export function PresetEditorDialog({
 											</span>
 											<Link
 												to="/settings/agents"
+												search={{ agent: linkedAgentId }}
 												className="shrink-0"
 												onClick={() => onOpenChange(false)}
 											>
