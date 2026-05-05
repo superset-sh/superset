@@ -275,7 +275,7 @@ function OnboardingProvidersPage() {
 								{isReconfiguring
 									? "Cancel — keep current"
 									: atLeastOneConnected
-										? "Skip — continue to next step"
+										? "Continue to next step"
 										: "Skip for now"}
 							</SetupButton>
 						</>
