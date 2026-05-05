@@ -467,6 +467,7 @@ export function useDashboardSidebarData() {
 		// Inject in-flight workspaces (creating / failed) from the renderer-side
 		// in-flight store.
 		for (const pw of inFlightSidebarRows) {
+			if (localStateWorkspaceIds.has(pw.id)) continue;
 			const project = projectsById.get(pw.projectId);
 			if (!project) continue;
 
@@ -542,6 +543,7 @@ export function useDashboardSidebarData() {
 		machineId,
 		pullRequestsByWorkspaceId,
 		inFlightSidebarRows,
+		localStateWorkspaceIds,
 		sidebarProjects,
 		sidebarSections,
 		visibleSidebarWorkspaces,

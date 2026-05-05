@@ -1,4 +1,4 @@
-import { stat } from "node:fs/promises";
+import { realpath, stat } from "node:fs/promises";
 import path from "node:path";
 import {
 	type AsyncSubscription,
@@ -9,10 +9,10 @@ import { toErrorMessage } from "./error-message";
 import { normalizeAbsolutePath } from "./paths";
 import {
 	DEFAULT_IGNORE_PATTERNS,
-	invalidateSearchIndexesForRoot,
 	patchSearchIndexesForRoot,
 	type SearchPatchEvent,
 } from "./search";
+import { ThrottledWorker } from "./throttled-worker";
 import type { FsWatchEvent } from "./types";
 
 // Cap per-watcher file-path memory so a monotonic stream of unique paths
@@ -23,6 +23,14 @@ import type { FsWatchEvent } from "./types";
 // search-index pruning, leaving stale descendant entries until the next
 // full rebuild.
 const FILE_PATHS_MAX = 10_000;
+
+// Throttler bounds (mirror VS Code's parcelWatcher.ts:181-188 — same algorithm,
+// same numbers). Bounds the rate at which events fan out to listeners so a
+// legitimate burst (mass refactor, branch checkout) can't pin a CPU draining
+// downstream consumers, and a runaway producer can't grow the JS heap unbounded.
+const MAX_WORK_CHUNK_SIZE = 500;
+const THROTTLE_DELAY_MS = 200;
+const MAX_BUFFERED_EVENTS = 30_000;
 
 export interface WatchPathOptions {
 	absolutePath: string;
@@ -39,13 +47,35 @@ export interface InternalWatchEvent {
 type WatchListener = (batch: { events: FsWatchEvent[] }) => void;
 
 interface WatcherState {
+	/** Path as the caller asked us to watch, used in events emitted to listeners. */
 	absolutePath: string;
+	/**
+	 * Resolved-symlink path actually handed to @parcel/watcher. Differs from
+	 * `absolutePath` when the requested path includes a symlinked component;
+	 * we map kernel-reported paths back to `absolutePath` form before emit.
+	 * Mirrors VS Code's parcelWatcher.ts `realPath` handling (lines 488-516).
+	 *
+	 * `realPathNormalized` carries the same NFC normalization we apply to
+	 * incoming event paths on darwin, so the path.relative rebase in
+	 * normalizeEvents is length-stable across composed/decomposed forms.
+	 */
+	realPath: string;
+	realPathNormalized: string;
+	realPathDiffers: boolean;
 	subscription: AsyncSubscription;
 	listeners: Set<WatchListener>;
 	filePaths: Map<string, true>;
 	directoryPaths: Set<string>;
 	pendingEvents: ParcelWatcherEvent[];
 	flushTimer: ReturnType<typeof setTimeout> | null;
+	/**
+	 * Per-state throttler. VS Code (parcelWatcher.ts:181-188) uses a single
+	 * shared throttler at the watcher class level; ours is per-state because
+	 * each FsWatcherManager subscriber consumes events for its own watch root
+	 * independently — sharing one buffer would let a noisy worktree starve
+	 * a quiet one's listeners.
+	 */
+	throttler: ThrottledWorker<FsWatchEvent>;
 }
 
 function coalesceWatchEvent(
@@ -322,6 +352,14 @@ export class FsWatcherManager {
 	private readonly ignore: string[];
 	private readonly filePathsMax: number;
 	private readonly watchers = new Map<string, WatcherState>();
+	/**
+	 * One-shot dedup so a single ENOSPC report doesn't spam logs across every
+	 * watcher creation that follows it. Mirrors VS Code's `enospcErrorLogged`
+	 * (parcelWatcher.ts:190). Intentionally never reset — once a process hits
+	 * the inotify limit, surfacing it again per error doesn't help; the user
+	 * needs to bump `fs.inotify.max_user_watches` and restart.
+	 */
+	private enospcErrorLogged = false;
 
 	constructor(options: FsWatcherManagerOptions = {}) {
 		this.debounceMs = options.debounceMs ?? 75;
@@ -359,6 +397,7 @@ export class FsWatcherManager {
 				currentState.flushTimer = null;
 			}
 
+			currentState.throttler.dispose();
 			await currentState.subscription.unsubscribe();
 			this.watchers.delete(absolutePath);
 		};
@@ -371,28 +410,133 @@ export class FsWatcherManager {
 					clearTimeout(state.flushTimer);
 					state.flushTimer = null;
 				}
+				state.throttler.dispose();
 				await state.subscription.unsubscribe();
 			}),
 		);
 		this.watchers.clear();
 	}
 
-	private async createWatcher(absolutePath: string): Promise<WatcherState> {
-		const state: WatcherState = {
-			absolutePath: normalizeAbsolutePath(absolutePath),
-			subscription: null as unknown as AsyncSubscription,
-			listeners: new Set<WatchListener>(),
-			filePaths: new Map<string, true>(),
-			directoryPaths: new Set<string>(),
-			pendingEvents: [],
-			flushTimer: null,
+	/**
+	 * Resolve symlinks once at watch start and record the deltas needed to
+	 * map kernel-reported event paths back to the caller's requested form.
+	 * Port of VS Code parcelWatcher.ts `normalizePath` (lines 488-516). Casing
+	 * normalization (`realcase`) is intentionally skipped — that's macOS-only
+	 * and requires a non-trivial helper from VS Code's pfs module; symlink
+	 * resolution alone covers our use cases.
+	 */
+	private async normalizePath(absolutePath: string): Promise<{
+		realPath: string;
+		realPathNormalized: string;
+		realPathDiffers: boolean;
+	}> {
+		const normalize = (input: string) =>
+			process.platform === "darwin" ? input.normalize("NFC") : input;
+		try {
+			const resolved = await realpath(absolutePath);
+			if (resolved !== absolutePath) {
+				return {
+					realPath: resolved,
+					realPathNormalized: normalize(resolved),
+					realPathDiffers: true,
+				};
+			}
+		} catch {
+			// realpath fails on non-existent paths; the caller already
+			// validated via stat() above, so any failure here is benign —
+			// fall through to using the original path.
+		}
+		return {
+			realPath: absolutePath,
+			realPathNormalized: normalize(absolutePath),
+			realPathDiffers: false,
 		};
+	}
+
+	/**
+	 * Mutate parcel events in place: NFC-normalize on darwin (HFS+/APFS stores
+	 * filenames in NFD; consumers compare against NFC) and map paths back from
+	 * the resolved-symlink form to the caller's requested form. Port of VS Code
+	 * parcelWatcher.ts `normalizeEvents` (lines 518-539). Windows root-drive
+	 * workaround is omitted — desktop doesn't ship on Windows yet.
+	 */
+	private normalizeEvents(
+		events: ParcelWatcherEvent[],
+		state: WatcherState,
+	): void {
+		// VS Code (parcelWatcher.ts:534-537) slices by `realPathLength`
+		// computed pre-NFC, which corrupts paths when NFC changes string
+		// length AND the requested path was a symlink. We use path.relative
+		// against the same-normalized realPath so the rebase works regardless
+		// of NFC length changes.
+		for (const event of events) {
+			const eventPath =
+				process.platform === "darwin"
+					? event.path.normalize("NFC")
+					: event.path;
+			if (state.realPathDiffers) {
+				event.path = path.join(
+					state.absolutePath,
+					path.relative(state.realPathNormalized, eventPath),
+				);
+			} else {
+				event.path = eventPath;
+			}
+		}
+	}
+
+	/**
+	 * Surface watcher errors with platform-specific guidance. Port of VS Code
+	 * parcelWatcher.ts `onUnexpectedError` (lines 579-609). Two specific
+	 * errors get dedicated branches:
+	 *
+	 * - `'No space left on device'` (ENOSPC): Linux inotify watch limit
+	 *   exhausted. Log once with a remediation hint; spamming repeats doesn't
+	 *   help — user has to bump the system limit and restart.
+	 * - `'File system must be re-scanned'`: macOS FSEvents kernel queue
+	 *   overflowed. Just log. Crucially, do NOT emit a synthetic event to
+	 *   listeners — overflow means "some events were dropped," not "git state
+	 *   changed," and downstream consumers (git-watcher → renderer's
+	 *   useGitStatus → host-service git.getStatus) would interpret it as the
+	 *   latter and storm the host-service with git subprocess spawns.
+	 */
+	private onUnexpectedError(error: unknown, state: WatcherState): void {
+		const msg = toErrorMessage(error);
+
+		if (msg.indexOf("No space left on device") !== -1) {
+			if (!this.enospcErrorLogged) {
+				console.error(
+					"[workspace-fs/watch] inotify watch limit reached (ENOSPC). " +
+						"Increase via: echo fs.inotify.max_user_watches=524288 | sudo tee -a /etc/sysctl.conf && sudo sysctl -p",
+					{ absolutePath: state.absolutePath },
+				);
+				this.enospcErrorLogged = true;
+			}
+			return;
+		}
+
+		if (msg.indexOf("File system must be re-scanned") !== -1) {
+			console.error("[workspace-fs/watch] FSEvents overflow:", {
+				absolutePath: state.absolutePath,
+				error: msg,
+			});
+			return;
+		}
+
+		console.error("[workspace-fs/watch] Watcher error:", {
+			absolutePath: state.absolutePath,
+			error: msg,
+		});
+	}
+
+	private async createWatcher(absolutePath: string): Promise<WatcherState> {
+		const normalizedPath = normalizeAbsolutePath(absolutePath);
 
 		try {
-			const rootStats = await stat(state.absolutePath);
+			const rootStats = await stat(normalizedPath);
 			if (!rootStats.isDirectory()) {
 				throw new Error(
-					`Cannot watch path: path is not a directory: ${state.absolutePath}`,
+					`Cannot watch path: path is not a directory: ${normalizedPath}`,
 				);
 			}
 		} catch (error) {
@@ -403,31 +547,58 @@ export class FsWatcherManager {
 					(error as NodeJS.ErrnoException).code === "ENOTDIR")
 			) {
 				throw new Error(
-					`Cannot watch path: path does not exist: ${state.absolutePath}`,
+					`Cannot watch path: path does not exist: ${normalizedPath}`,
 				);
 			}
 			throw error;
 		}
 
+		const { realPath, realPathNormalized, realPathDiffers } =
+			await this.normalizePath(normalizedPath);
+
+		const state: WatcherState = {
+			absolutePath: normalizedPath,
+			realPath,
+			realPathNormalized,
+			realPathDiffers,
+			subscription: null as unknown as AsyncSubscription,
+			listeners: new Set<WatchListener>(),
+			filePaths: new Map<string, true>(),
+			directoryPaths: new Set<string>(),
+			pendingEvents: [],
+			flushTimer: null,
+			throttler: new ThrottledWorker<FsWatchEvent>(
+				{
+					maxWorkChunkSize: MAX_WORK_CHUNK_SIZE,
+					throttleDelay: THROTTLE_DELAY_MS,
+					maxBufferedWork: MAX_BUFFERED_EVENTS,
+				},
+				(eventChunk) => {
+					for (const listener of state.listeners) {
+						listener({ events: eventChunk });
+					}
+				},
+			),
+		};
+
+		// Subscribe to the resolved real path so kernel paths come back in a
+		// consistent form; we map them back to `state.absolutePath` in
+		// `normalizeEvents`. Mirrors VS Code's parcelWatcher.ts:364.
 		state.subscription = await subscribeToFilesystem(
-			state.absolutePath,
+			realPath,
 			(error, events) => {
 				if (error) {
-					console.error("[workspace-fs/watch] Watcher error:", {
-						absolutePath: state.absolutePath,
-						error: toErrorMessage(error),
-					});
-					this.emit(state, {
-						events: [{ kind: "overflow", absolutePath: state.absolutePath }],
-					});
-					invalidateSearchIndexesForRoot(state.absolutePath);
-					return;
+					this.onUnexpectedError(error, state);
+					// Continue: process whatever events did arrive alongside
+					// the error. Mirrors VS Code's parcelWatcher.ts:373-378
+					// pattern (log error, then onParcelEvents anyway).
 				}
 
 				if (events.length === 0) {
 					return;
 				}
 
+				this.normalizeEvents(events, state);
 				state.pendingEvents.push(...events);
 				if (state.flushTimer) {
 					return;
@@ -525,8 +696,20 @@ export class FsWatcherManager {
 	}
 
 	private emit(state: WatcherState, batch: { events: FsWatchEvent[] }): void {
-		for (const listener of state.listeners) {
-			listener(batch);
+		// Route through ThrottledWorker so a legitimate event burst (mass
+		// refactor, branch checkout) can't pin a CPU draining listeners or
+		// grow the JS heap unbounded. Past MAX_BUFFERED_EVENTS, work() returns
+		// false; we drop with a one-shot warning per state.
+		const accepted = state.throttler.work(batch.events);
+		if (!accepted) {
+			console.warn(
+				"[workspace-fs/watch] throttler buffer full — dropping events",
+				{
+					absolutePath: state.absolutePath,
+					droppedBatchSize: batch.events.length,
+					pending: state.throttler.pendingCount,
+				},
+			);
 		}
 	}
 }

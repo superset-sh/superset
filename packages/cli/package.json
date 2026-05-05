@@ -1,6 +1,6 @@
 {
 	"name": "@superset/cli",
-	"version": "0.2.6",
+	"version": "0.2.7",
 	"private": true,
 	"type": "module",
 	"scripts": {
@@ -20,10 +20,13 @@
 		"@superset/trpc": "workspace:*",
 		"@trpc/client": "^11.7.1",
 		"date-fns": "^4.1.0",
+		"ink": "^7.0.1",
+		"react": "19.2.0",
 		"superjson": "^2.2.5"
 	},
 	"devDependencies": {
 		"@superset/typescript": "workspace:*",
+		"@types/react": "~19.2.2",
 		"bun-types": "^1.3.1",
 		"typescript": "^5.9.3"
 	}

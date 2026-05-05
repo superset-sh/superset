@@ -3,11 +3,27 @@ import { z } from "zod";
 import { defineTool } from "../../define-tool";
 import { hostServiceMutation } from "../../host-service-client";
 
+const agentLaunchSchema = z.object({
+	agent: z
+		.string()
+		.min(1)
+		.describe(
+			"Agent preset id (e.g. `claude`, `codex`) or HostAgentConfig instance UUID.",
+		),
+	prompt: z.string().min(1).describe("Initial prompt the agent starts with."),
+	attachmentIds: z
+		.array(z.string().uuid())
+		.optional()
+		.describe(
+			"Host-scoped attachment UUIDs. The host resolves these to absolute paths and appends them to the prompt.",
+		),
+});
+
 export function register(server: McpServer): void {
 	defineTool(server, {
 		name: "workspaces_create",
 		description:
-			"Create a workspace on a host. A workspace is a branch-scoped working copy of a project. The host service materializes the git worktree on disk before returning. Provide exactly one of `branch` or `pr`. Use projects_list and hosts_list first to get the projectId and hostId.",
+			"Create a workspace on a host. A workspace is a branch-scoped working copy of a project. The host service materializes the git worktree on disk before returning. Provide exactly one of `branch` or `pr`. Optionally pass `agents` to spawn one or more agents in the workspace as soon as it is ready (each entry runs the equivalent of `agents_run` against the new workspace). Use projects_list and hosts_list first to get the projectId and hostId.",
 		inputSchema: {
 			projectId: z.string().uuid().describe("Project UUID."),
 			name: z.string().min(1).describe("Workspace name (display)."),
@@ -41,6 +57,12 @@ export function register(server: McpServer): void {
 				.uuid()
 				.optional()
 				.describe("Optional Superset task id to link to the new workspace."),
+			agents: z
+				.array(agentLaunchSchema)
+				.optional()
+				.describe(
+					"Agents to spawn in the workspace immediately after creation.",
+				),
 		},
 		handler: async (input, ctx) => {
 			return hostServiceMutation<
@@ -51,6 +73,11 @@ export function register(server: McpServer): void {
 					pr?: number;
 					baseBranch?: string;
 					taskId?: string;
+					agents?: Array<{
+						agent: string;
+						prompt: string;
+						attachmentIds?: string[];
+					}>;
 				},
 				{
 					workspace: {
@@ -60,7 +87,10 @@ export function register(server: McpServer): void {
 						branch: string;
 					};
 					terminals: Array<{ terminalId: string; label?: string }>;
-					agents: Array<unknown>;
+					agents: Array<
+						| { ok: true; sessionId: string; label: string }
+						| { ok: false; error: string }
+					>;
 					alreadyExists: boolean;
 				}
 			>(
@@ -78,6 +108,7 @@ export function register(server: McpServer): void {
 					pr: input.pr,
 					baseBranch: input.baseBranch,
 					taskId: input.taskId,
+					agents: input.agents,
 				},
 			);
 		},

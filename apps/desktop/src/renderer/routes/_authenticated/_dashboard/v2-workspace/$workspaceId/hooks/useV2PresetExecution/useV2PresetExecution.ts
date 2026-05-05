@@ -2,6 +2,7 @@ import type { CreatePaneInput, WorkspaceStore } from "@superset/panes";
 import { toast } from "@superset/ui/sonner";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useCallback, useMemo } from "react";
+import { useWorkspace } from "renderer/routes/_authenticated/_dashboard/v2-workspace/providers/WorkspaceProvider";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import type { V2TerminalPresetRow } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
 import { getPresetLaunchPlan } from "renderer/stores/tabs/preset-launch";
@@ -27,14 +28,11 @@ function resolveTarget(executionMode: V2TerminalPresetRow["executionMode"]) {
 
 interface UseV2PresetExecutionArgs {
 	store: StoreApi<WorkspaceStore<PaneViewerData>>;
-	workspaceId: string;
-	projectId: string;
 }
 
-export function useV2PresetExecution({
-	store,
-	projectId,
-}: UseV2PresetExecutionArgs) {
+export function useV2PresetExecution({ store }: UseV2PresetExecutionArgs) {
+	const { workspace } = useWorkspace();
+	const projectId = workspace.projectId;
 	const collections = useCollections();
 
 	const { data: allPresets = [] } = useLiveQuery(

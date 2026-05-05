@@ -191,9 +191,22 @@ export class TunnelClient {
 		}
 
 		const localWs = new WebSocket(wsUrl.toString());
+		localWs.binaryType = "arraybuffer";
 
 		localWs.onmessage = (event) => {
-			this.send({ type: "ws:frame", id: request.id, data: String(event.data) });
+			const data = event.data;
+			if (typeof data === "string") {
+				this.send({ type: "ws:frame", id: request.id, data });
+				return;
+			}
+			if (data instanceof ArrayBuffer) {
+				this.send({
+					type: "ws:frame",
+					id: request.id,
+					data: Buffer.from(data).toString("base64"),
+					encoding: "base64",
+				});
+			}
 		};
 
 		localWs.onclose = (event) => {

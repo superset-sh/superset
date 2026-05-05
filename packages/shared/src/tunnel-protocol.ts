@@ -20,6 +20,7 @@ export interface TunnelWsFrame {
 	type: "ws:frame";
 	id: string;
 	data: string;
+	encoding?: "base64";
 }
 
 export interface TunnelWsClose {
