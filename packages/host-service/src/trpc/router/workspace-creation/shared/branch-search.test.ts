@@ -4,7 +4,11 @@ import { writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import simpleGit, { type SimpleGit } from "simple-git";
-import { findWorktreeAtPath, getWorktreeBranchAtPath } from "./branch-search";
+import {
+	collectWorktreesFromGit,
+	findWorktreeAtPath,
+	getWorktreeBranchAtPath,
+} from "./branch-search";
 
 async function initRepo(path: string): Promise<SimpleGit> {
 	const git = simpleGit(path);
@@ -51,5 +55,90 @@ describe("worktree branch lookup", () => {
 		await expect(
 			findWorktreeAtPath(git, worktreePath, "renamed"),
 		).resolves.toBe(true);
+	});
+});
+
+// Parses `git worktree list --porcelain` into (branch -> path) pairs so the
+// tests can assert against git's own view of reality. Skips entries with no
+// `branch refs/heads/...` line (detached HEAD).
+function parsePorcelain(raw: string): Map<string, string> {
+	const out = new Map<string, string>();
+	let currentPath: string | null = null;
+	for (const line of raw.split("\n")) {
+		if (line.startsWith("worktree ")) {
+			currentPath = line.slice("worktree ".length).trim();
+		} else if (line.startsWith("branch refs/heads/") && currentPath) {
+			const branch = line.slice("branch refs/heads/".length).trim();
+			if (branch) out.set(branch, currentPath);
+		} else if (line === "") {
+			currentPath = null;
+		}
+	}
+	return out;
+}
+
+describe("collectWorktreesFromGit vs raw git worktree list", () => {
+	let root: string;
+	let repo: string;
+	let managedRoot: string;
+	let foreignRoot: string;
+	let git: SimpleGit;
+
+	beforeEach(async () => {
+		root = mkdtempSync(join(tmpdir(), "superset-collect-worktrees-"));
+		repo = join(root, "repo");
+		managedRoot = join(root, "managed", "project-id");
+		foreignRoot = join(root, "elsewhere");
+		mkdirSync(repo);
+		mkdirSync(managedRoot, { recursive: true });
+		mkdirSync(foreignRoot, { recursive: true });
+		git = await initRepo(repo);
+	});
+
+	afterEach(() => {
+		rmSync(root, { recursive: true, force: true });
+	});
+
+	test("includes every branch git worktree list reports", async () => {
+		// One worktree under the managed root, one outside it.
+		await git.raw([
+			"worktree",
+			"add",
+			"-b",
+			"managed-feat",
+			join(managedRoot, "managed-feat"),
+			"main",
+		]);
+		await git.raw([
+			"worktree",
+			"add",
+			"-b",
+			"foreign-feat",
+			join(foreignRoot, "foreign-feat"),
+			"main",
+		]);
+
+		const raw = await git.raw(["worktree", "list", "--porcelain"]);
+		const fromGit = parsePorcelain(raw);
+
+		const { worktreeMap, checkedOutBranches } =
+			await collectWorktreesFromGit(git);
+
+		// Sanity: git itself sees all three branches (main + both worktrees).
+		expect([...fromGit.keys()].sort()).toEqual(
+			["foreign-feat", "main", "managed-feat"].sort(),
+		);
+
+		// `checkedOutBranches` is supposed to mirror git's view — used to
+		// gate the Checkout action — so it must include every branch that
+		// has a worktree, regardless of where the worktree lives.
+		expect([...checkedOutBranches].sort()).toEqual(
+			["foreign-feat", "main", "managed-feat"].sort(),
+		);
+
+		// And the worktreeMap should include every branch that has a
+		// worktree on this machine, not just the ones under managedRoot.
+		// This is the user-reported bug: foreign worktrees go missing.
+		expect([...worktreeMap.keys()].sort()).toEqual([...fromGit.keys()].sort());
 	});
 });
