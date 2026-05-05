@@ -1,30 +1,44 @@
 ---
-title: Superset 2.0 in public beta!
+title: Superset 2.0 is in open beta!
 date: 2026-04-27
 image: /changelog/v2-public-beta.png
 ---
 
-{/* TODO(lead): Replace this paragraph with the launch lede. */}
+For the past few weeks, we've been hitting physical limits on using Superset — my laptop starts to melt down running 20+ worktrees, and many of you are running 50+. Since we're 3 ex-CTOs, the logical next step is to rewrite the whole app to enable cloud workspaces. Today, **Superset 2.0** is available to the public.
 
-**Superset 2.0 is in public beta** — a ground-up rebuild, cloud-enabled and shaped like a real IDE. Enable it under **Settings → Experimental**. <PRBadge url="https://github.com/superset-sh/superset/pull/3748" />
+Enable it under **Settings → Experimental** <PRBadge url="https://github.com/superset-sh/superset/pull/3748" />. It's a 2-way door — your v1 workspaces and sessions stay put when you flip back.
 
 ![Settings → Experimental — Try Superset v2 toggle and v1 → v2 migration](/changelog/v2-enable-flag.png)
 
 ## Remote workspaces
 
-Run workspaces on a remote machine — a linux box across the room, a cloud VM, a teammate's host — and drive them from your local app. Ports running on the remote surface in your sidebar so your local browser can hit them <PRBadge url="https://github.com/superset-sh/superset/pull/3676" />, and projects can be created or imported end-to-end without leaving 2.0 <PRBadge url="https://github.com/superset-sh/superset/pull/3566" /> <PRBadge url="https://github.com/superset-sh/superset/pull/3606" />.
+Every workspace in 2.0 is a "cloud" workspace. Any Superset device on the same network can talk to any other — point your local app at a beefier box across the room, a cloud VM, or a teammate's host, and drive workspaces on it as if they were local. Terminal, file editor, and chat all behave the same way <PRBadge url="https://github.com/superset-sh/superset/pull/3566" /> <PRBadge url="https://github.com/superset-sh/superset/pull/3606" />. Ports running on the remote even surface in your sidebar so your local browser can hit them <PRBadge url="https://github.com/superset-sh/superset/pull/3676" />.
 
-## Rebuilt from scratch
+![Sidebar with a Cloud workspace group and a remote workspace hover card](/changelog/v2-remote-workspaces.png)
 
-Fresh terminal (XTerm.js + WebGL, kitty keyboard, OSC links, search), pre-warmed path-aware file search, lazy multi-file diff, and Electric collections with optimistic updates <PRBadge url="https://github.com/superset-sh/superset/pull/3722" />. Faster on every interaction.
+Port-forwarding and more to come.
+
+## Reimagined diff view
+
+We took the rewrite as a chance to redesign the diff viewer to feel like reviewing a PR — just on your machine. One infinite-scroll diff with a compact sidebar of changed files, per-file viewed state <PRBadge url="https://github.com/superset-sh/superset/pull/3715" /> <PRBadge url="https://github.com/superset-sh/superset/pull/3776" />, and shift/cmd-click selection across the file list <PRBadge url="https://github.com/superset-sh/superset/pull/3683" />.
+
+![v2 Changes pane — infinite-scroll diff with compact file sidebar and review tab](/changelog/v2-changes-pane.png)
+
+AI review coming next.
+
+## Superset CLI
+
+The missing piece for full agent automation. The CLI lets you (and your agent) drive Superset from anywhere — read and write workspaces, terminals, and automations end-to-end <PRBadge url="https://github.com/superset-sh/superset/pull/3638" /> <PRBadge url="https://github.com/superset-sh/superset/pull/3640" />. Drop the Superset CLI skill into your agent and let it do the orchestration.
 
 ## A real IDE shell
 
-**Tab → Split → Pane** with drag-and-drop everywhere — drop panes onto the tab strip to spawn tabs <PRBadge url="https://github.com/superset-sh/superset/pull/3809" />. File tree with git decorations, multi-file diff with per-file viewed state, file editor, review tab, and a browser pane that keeps state across switches — one window.
+**Tab → Split → Pane** with drag-and-drop everywhere — drop panes onto the tab strip to spawn tabs <PRBadge url="https://github.com/superset-sh/superset/pull/3809" />. File tree with git decorations, file editor, browser pane that keeps state across switches, fresh terminal (XTerm.js + WebGL, kitty keyboard, OSC links, search), and Electric collections with optimistic updates <PRBadge url="https://github.com/superset-sh/superset/pull/3722" /> — all one window, faster on every interaction.
 
 ## Migration in place
 
 1.x projects and workspaces port directly into 2.0 <PRBadge url="https://github.com/superset-sh/superset/pull/3670" />. Org-idempotent <PRBadge url="https://github.com/superset-sh/superset/pull/3775" /> <PRBadge url="https://github.com/superset-sh/superset/pull/3781" /> <PRBadge url="https://github.com/superset-sh/superset/pull/3783" />, modal only on first onboard <PRBadge url="https://github.com/superset-sh/superset/pull/3816" />.
+
+Many features are subject to change based on your feedback while we're in open beta. Thank you to the early users who helped test-drive 2.0 and made this impossible timeline happen.
 
 ---
 
