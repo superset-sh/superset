@@ -11,16 +11,16 @@ import { getPresetLaunchPlan } from "renderer/stores/tabs/preset-launch";
 import { filterMatchingPresetsForProject } from "shared/preset-project-targeting";
 import type { StoreApi } from "zustand/vanilla";
 import type { PaneViewerData, TerminalPaneData } from "../../types";
+import type { TerminalLauncher } from "../useV2TerminalLauncher";
 
 function makeTerminalPane(
 	terminalId: string,
 	titleOverride?: string,
-	initialCommand?: string,
 ): CreatePaneInput<PaneViewerData> {
 	return {
 		kind: "terminal",
 		titleOverride,
-		data: { terminalId, initialCommand } as TerminalPaneData,
+		data: { terminalId } as TerminalPaneData,
 	};
 }
 
@@ -30,9 +30,13 @@ function resolveTarget(executionMode: V2TerminalPresetRow["executionMode"]) {
 
 interface UseV2PresetExecutionArgs {
 	store: StoreApi<WorkspaceStore<PaneViewerData>>;
+	launcher: TerminalLauncher;
 }
 
-export function useV2PresetExecution({ store }: UseV2PresetExecutionArgs) {
+export function useV2PresetExecution({
+	store,
+	launcher,
+}: UseV2PresetExecutionArgs) {
 	const { workspace } = useWorkspace();
 	const projectId = workspace.projectId;
 	const collections = useCollections();
@@ -79,10 +83,11 @@ export function useV2PresetExecution({ store }: UseV2PresetExecutionArgs) {
 	);
 
 	const executePreset = useCallback(
-		(preset: V2TerminalPresetRow) => {
+		async (preset: V2TerminalPresetRow) => {
 			const state = store.getState();
 			const activeTabId = state.activeTabId;
 			const target = resolveTarget(preset.executionMode);
+			const title = preset.name || undefined;
 			const commands = resolvePresetCommands(preset);
 
 			const plan = getPresetLaunchPlan({
@@ -92,108 +97,74 @@ export function useV2PresetExecution({ store }: UseV2PresetExecutionArgs) {
 				hasActiveTab: !!activeTabId,
 			});
 
+			// Sessions for every pane this plan creates are spun up in parallel
+			// before any of them land in the store, so background tabs (e.g.
+			// new-tab-per-command, where each addTab flips activeTabId and only
+			// the last tab ever mounts) still get their PTY + initial command —
+			// host-service buffers PTY output until the user clicks the tab and
+			// the pane finally mounts and attaches the WS.
 			try {
 				switch (plan) {
 					case "new-tab-single": {
-						const id = crypto.randomUUID();
+						const terminalId = await launcher.create({ command: commands[0] });
+						state.addTab({ panes: [makeTerminalPane(terminalId, title)] });
+						break;
+					}
+
+					case "new-tab-multi-pane": {
+						const ids = await Promise.all(
+							commands.length > 0
+								? commands.map((command) => launcher.create({ command }))
+								: [launcher.create()],
+						);
 						state.addTab({
-							panes: [
-								makeTerminalPane(id, preset.name || undefined, commands[0]),
+							panes: ids.map((id) => makeTerminalPane(id, title)) as [
+								CreatePaneInput<PaneViewerData>,
+								...CreatePaneInput<PaneViewerData>[],
 							],
 						});
 						break;
 					}
 
-					case "new-tab-multi-pane": {
-						const panes = commands.map((command) =>
-							makeTerminalPane(
-								crypto.randomUUID(),
-								preset.name || undefined,
-								command,
-							),
-						);
-						state.addTab({
-							panes:
-								panes.length > 0
-									? (panes as [
-											CreatePaneInput<PaneViewerData>,
-											...CreatePaneInput<PaneViewerData>[],
-										])
-									: [
-											makeTerminalPane(
-												crypto.randomUUID(),
-												preset.name || undefined,
-											),
-										],
-						});
-						break;
-					}
-
 					case "new-tab-per-command": {
-						for (const command of commands) {
-							state.addTab({
-								panes: [
-									makeTerminalPane(
-										crypto.randomUUID(),
-										preset.name || undefined,
-										command,
-									),
-								],
-							});
+						const ids = await Promise.all(
+							commands.map((command) => launcher.create({ command })),
+						);
+						for (const terminalId of ids) {
+							state.addTab({ panes: [makeTerminalPane(terminalId, title)] });
 						}
 						break;
 					}
 
 					case "active-tab-single": {
-						const id = crypto.randomUUID();
-						const pane = makeTerminalPane(
-							id,
-							preset.name || undefined,
-							commands[0],
-						);
+						const terminalId = await launcher.create({ command: commands[0] });
+						const pane = makeTerminalPane(terminalId, title);
 						if (!activeTabId) {
-							state.addTab({
-								panes: [pane],
-							});
+							state.addTab({ panes: [pane] });
 							break;
 						}
-						state.addPane({
-							tabId: activeTabId,
-							pane,
-						});
+						state.addPane({ tabId: activeTabId, pane });
 						break;
 					}
 
 					case "active-tab-multi-pane": {
-						const panes = commands.map((command) =>
-							makeTerminalPane(
-								crypto.randomUUID(),
-								preset.name || undefined,
-								command,
-							),
+						const ids = await Promise.all(
+							commands.length > 0
+								? commands.map((command) => launcher.create({ command }))
+								: [launcher.create()],
 						);
+						const panes = ids.map((id) => makeTerminalPane(id, title));
 						if (!activeTabId) {
 							state.addTab({
-								panes:
-									panes.length > 0
-										? (panes as [
-												CreatePaneInput<PaneViewerData>,
-												...CreatePaneInput<PaneViewerData>[],
-											])
-										: [
-												makeTerminalPane(
-													crypto.randomUUID(),
-													preset.name || undefined,
-												),
-											],
+								panes: panes as [
+									CreatePaneInput<PaneViewerData>,
+									...CreatePaneInput<PaneViewerData>[],
+								],
 							});
 							break;
 						}
 						for (const pane of panes) {
-							state.addPane({
-								tabId: activeTabId,
-								pane,
-							});
+							state.addPane({ tabId: activeTabId, pane });
 						}
 						break;
 					}
@@ -208,7 +179,7 @@ export function useV2PresetExecution({ store }: UseV2PresetExecutionArgs) {
 				});
 			}
 		},
-		[store, resolvePresetCommands],
+		[store, launcher, resolvePresetCommands],
 	);
 
 	return { matchedPresets, executePreset };

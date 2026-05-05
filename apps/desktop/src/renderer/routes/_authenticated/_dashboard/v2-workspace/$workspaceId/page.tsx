@@ -23,6 +23,7 @@ import { useDirtyTabCloseGuard } from "./hooks/useDirtyTabCloseGuard";
 import { usePaneRegistry } from "./hooks/usePaneRegistry";
 import { renderBrowserTabIcon } from "./hooks/usePaneRegistry/components/BrowserPane";
 import { useV2PresetExecution } from "./hooks/useV2PresetExecution";
+import { useV2TerminalLauncher } from "./hooks/useV2TerminalLauncher";
 import { useV2WorkspacePaneLayout } from "./hooks/useV2WorkspacePaneLayout";
 import { useWorkspaceFileNavigation } from "./hooks/useWorkspaceFileNavigation";
 import { useWorkspaceHotkeys } from "./hooks/useWorkspaceHotkeys";
@@ -85,7 +86,11 @@ function V2WorkspacePage() {
 	} = useV2UserPreferences();
 	const { store } = useV2WorkspacePaneLayout();
 	useClearActivePaneAttention({ store });
-	const { matchedPresets, executePreset } = useV2PresetExecution({ store });
+	const launcher = useV2TerminalLauncher();
+	const { matchedPresets, executePreset } = useV2PresetExecution({
+		store,
+		launcher,
+	});
 	useConsumeAutomationRunLink({
 		store,
 		terminalId,
@@ -116,18 +121,21 @@ function V2WorkspacePage() {
 		onOpenFile: openFilePane,
 		onRevealPath: revealPath,
 	});
-	const defaultContextMenuActions = useDefaultContextMenuActions(paneRegistry);
+	const defaultContextMenuActions = useDefaultContextMenuActions({
+		paneRegistry,
+		launcher,
+	});
 	const {
 		openDiffPane,
 		addTerminalTab,
 		addChatTab,
 		addBrowserTab,
 		openCommentPane,
-	} = useWorkspacePaneOpeners({ store });
+	} = useWorkspacePaneOpeners({ store, launcher });
 
 	const [quickOpenOpen, setQuickOpenOpen] = useState(false);
 	const handleQuickOpen = useCallback(() => setQuickOpenOpen(true), []);
-	const defaultPaneActions = useDefaultPaneActions();
+	const defaultPaneActions = useDefaultPaneActions({ launcher });
 	const onBeforeCloseTab = useDirtyTabCloseGuard();
 
 	const sidebarOpen = v2UserPreferences.rightSidebarOpen;
@@ -166,6 +174,7 @@ function V2WorkspacePage() {
 		matchedPresets,
 		executePreset,
 		paneRegistry,
+		launcher,
 	});
 	useHotkey("QUICK_OPEN", handleQuickOpen);
 

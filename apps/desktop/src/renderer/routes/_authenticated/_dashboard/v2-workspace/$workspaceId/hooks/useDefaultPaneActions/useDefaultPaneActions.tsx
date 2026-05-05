@@ -4,8 +4,13 @@ import { HiMiniXMark } from "react-icons/hi2";
 import { TbLayoutColumns, TbLayoutRows } from "react-icons/tb";
 import { HotkeyLabel } from "renderer/hotkeys";
 import type { PaneViewerData, TerminalPaneData } from "../../types";
+import type { TerminalLauncher } from "../useV2TerminalLauncher";
 
-export function useDefaultPaneActions(): PaneActionConfig<PaneViewerData>[] {
+export function useDefaultPaneActions({
+	launcher,
+}: {
+	launcher: TerminalLauncher;
+}): PaneActionConfig<PaneViewerData>[] {
 	return useMemo<PaneActionConfig<PaneViewerData>[]>(
 		() => [
 			{
@@ -17,14 +22,13 @@ export function useDefaultPaneActions(): PaneActionConfig<PaneViewerData>[] {
 						<TbLayoutColumns className="size-3.5" />
 					),
 				tooltip: <HotkeyLabel label="Split pane" id="SPLIT_AUTO" />,
-				onClick: (ctx) => {
+				onClick: async (ctx) => {
 					const position =
 						ctx.pane.parentDirection === "horizontal" ? "down" : "right";
+					const terminalId = await launcher.create();
 					ctx.actions.split(position, {
 						kind: "terminal",
-						data: {
-							terminalId: crypto.randomUUID(),
-						} as TerminalPaneData,
+						data: { terminalId } as TerminalPaneData,
 					});
 				},
 			},
@@ -35,6 +39,6 @@ export function useDefaultPaneActions(): PaneActionConfig<PaneViewerData>[] {
 				onClick: (ctx) => ctx.actions.close(),
 			},
 		],
-		[],
+		[launcher],
 	);
 }
