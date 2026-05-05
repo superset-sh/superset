@@ -228,7 +228,7 @@ export function createRuntime(
 	// Click-to-move-cursor (parity with v1 Terminal). Skipped when no
 	// onUserInput is provided since the helper has nowhere to send the
 	// synthesized arrow keys.
-	const disposeMouseHandlers = options.onUserInput
+	const disposeClickToMove = options.onUserInput
 		? setupClickToMoveCursor(terminal, { onWrite: options.onUserInput })
 		: null;
 
@@ -246,7 +246,7 @@ export function createRuntime(
 		lastCols: cols,
 		lastRows: rows,
 		_disposeAddons: addonsResult.dispose,
-		_disposeMouseHandlers: disposeMouseHandlers,
+		_disposeMouseHandlers: disposeClickToMove,
 	};
 }
 
