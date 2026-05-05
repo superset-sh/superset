@@ -79,14 +79,17 @@ const authMiddleware: MiddlewareHandler<AppContext> = async (c, next) => {
 	const hostId = c.req.param("hostId");
 	if (!hostId) return c.json({ error: "Missing hostId" }, 400);
 
-	const hasAccess = await checkHostAccess(token, hostId);
-	if (!hasAccess) return c.json({ error: "Forbidden" }, 403);
-
+	// Replay BEFORE the access check: if this machine doesn't own the
+	// tunnel, the destination machine will authorize the request — no need
+	// to double-bill the API for checkHostAccess on every cross-machine hop.
 	if (!tunnelManager.hasTunnel(hostId)) {
 		const replay = await maybeReplay(hostId);
 		if (replay) return c.body(null, 200, replay.header);
 		return c.json({ error: "Host not connected" }, 503);
 	}
+
+	const hasAccess = await checkHostAccess(token, hostId);
+	if (!hasAccess) return c.json({ error: "Forbidden" }, 403);
 
 	c.set("auth", auth);
 	c.set("token", token);

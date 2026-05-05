@@ -40,9 +40,10 @@ export async function register(
 ): Promise<void> {
 	const now = Date.now();
 	const meta: TunnelMeta = { registeredAt: now, lastPongAt: now };
+	// Upstash auto-stringifies objects on write and auto-parses on read.
 	await Promise.all([
 		redis.hset(OWNER_KEY, { [hostId]: encodeOwner(region, machineId) }),
-		redis.hset(META_KEY, { [hostId]: JSON.stringify(meta) }),
+		redis.hset(META_KEY, { [hostId]: meta }),
 		redis.zadd(TTL_KEY, { score: now + TTL_GRACE_MS, member: hostId }),
 	]);
 }
@@ -63,12 +64,12 @@ export async function lookup(hostId: string): Promise<TunnelOwner | null> {
 
 export async function heartbeat(hostId: string): Promise<void> {
 	const now = Date.now();
-	const existing = await redis.hget<string>(META_KEY, hostId);
+	const existing = await redis.hget<TunnelMeta>(META_KEY, hostId);
 	const meta: TunnelMeta = existing
-		? { ...(JSON.parse(existing) as TunnelMeta), lastPongAt: now }
+		? { ...existing, lastPongAt: now }
 		: { registeredAt: now, lastPongAt: now };
 	await Promise.all([
-		redis.hset(META_KEY, { [hostId]: JSON.stringify(meta) }),
+		redis.hset(META_KEY, { [hostId]: meta }),
 		redis.zadd(TTL_KEY, { score: now + TTL_GRACE_MS, member: hostId }),
 	]);
 }
@@ -92,7 +93,7 @@ export async function getAllOwners(): Promise<
 > {
 	const [owners, metas] = await Promise.all([
 		redis.hgetall<Record<string, string>>(OWNER_KEY),
-		redis.hgetall<Record<string, string>>(META_KEY),
+		redis.hgetall<Record<string, TunnelMeta>>(META_KEY),
 	]);
 	if (!owners) return [];
 	const result: {
@@ -103,9 +104,7 @@ export async function getAllOwners(): Promise<
 	for (const [hostId, value] of Object.entries(owners)) {
 		const owner = decodeOwner(value);
 		if (!owner) continue;
-		const metaRaw = metas?.[hostId];
-		const meta = metaRaw ? (JSON.parse(metaRaw) as TunnelMeta) : null;
-		result.push({ hostId, owner, meta });
+		result.push({ hostId, owner, meta: metas?.[hostId] ?? null });
 	}
 	return result;
 }
