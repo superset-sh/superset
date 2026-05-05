@@ -133,9 +133,9 @@ export function V2AgentsSettings({
 			return;
 		}
 		if (initialAgentPresetId && !consumedInitialPresetIdRef.current) {
-			consumedInitialPresetIdRef.current = true;
 			const match = configs.find((c) => c.presetId === initialAgentPresetId);
 			if (match) {
+				consumedInitialPresetIdRef.current = true;
 				setSelectedAgentId(match.id);
 				return;
 			}
