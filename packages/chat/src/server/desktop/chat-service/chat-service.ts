@@ -36,6 +36,7 @@ import {
 	OAuthFlowController,
 	type OAuthFlowOptions,
 } from "./oauth-flow-controller";
+import { assertOpenAIOAuthCallbackPortAvailable } from "./openai-oauth-port";
 
 type OpenAIAuthStorage = ReturnType<typeof createAuthStorage>;
 
@@ -371,6 +372,7 @@ export class ChatService {
 	}
 
 	async startOpenAIOAuth(): Promise<{ url: string; instructions: string }> {
+		await assertOpenAIOAuthCallbackPortAvailable();
 		return this.oauthFlowController.start(this.getOpenAIOAuthFlowOptions());
 	}
 

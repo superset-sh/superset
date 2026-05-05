@@ -1,7 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
 import { mkdtempSync, rmSync } from "node:fs";
+import { createServer, type Server } from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { OPENAI_OAUTH_CALLBACK_PORT } from "./openai-oauth-port";
 
 type Credential =
 	| { type: "api_key"; key: string }
@@ -822,6 +824,29 @@ describe("ChatService OpenAI auth storage", () => {
 			expect(unhandledRejections).toHaveLength(0);
 		} finally {
 			process.off("unhandledRejection", onUnhandledRejection);
+		}
+	});
+
+	it("rejects OpenAI OAuth start when callback port is already in use", async () => {
+		const occupier: Server = createServer((_, res) => {
+			res.statusCode = 200;
+			res.end("ok");
+		});
+		await new Promise<void>((resolve, reject) => {
+			occupier.once("error", reject);
+			occupier.listen(OPENAI_OAUTH_CALLBACK_PORT, "127.0.0.1", () => resolve());
+		});
+
+		try {
+			const chatService = new ChatService();
+			await expect(chatService.startOpenAIOAuth()).rejects.toThrow(
+				new RegExp(
+					`OpenAI OAuth callback port ${OPENAI_OAUTH_CALLBACK_PORT} is already in use`,
+				),
+			);
+			expect(fakeAuthStorage.login).not.toHaveBeenCalled();
+		} finally {
+			await new Promise<void>((resolve) => occupier.close(() => resolve()));
 		}
 	});
 
