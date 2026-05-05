@@ -1,5 +1,5 @@
 import { useWorkspaceClient } from "@superset/workspace-client";
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import { useWorkspace } from "renderer/routes/_authenticated/_dashboard/v2-workspace/providers/WorkspaceProvider";
 import { useTheme } from "renderer/stores/theme";
 import { resolveTerminalThemeType } from "renderer/stores/theme/utils";
@@ -49,5 +49,9 @@ export function useV2TerminalLauncher(): TerminalLauncher {
 		[trpcClient, workspaceId, themeType],
 	);
 
-	return { create };
+	// Memoize so the launcher reference is stable across renders — every
+	// consumer lists `launcher` in a deps array (preset hook, hotkeys, pane
+	// actions, context menu, openers), and a fresh object literal each render
+	// would needlessly invalidate all those memos.
+	return useMemo<TerminalLauncher>(() => ({ create }), [create]);
 }
