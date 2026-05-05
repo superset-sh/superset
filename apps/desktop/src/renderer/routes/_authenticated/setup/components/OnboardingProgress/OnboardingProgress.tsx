@@ -23,14 +23,8 @@ export function OnboardingProgress() {
 	const currentStep = useOnboardingStore((s) => s.currentStep);
 	const completed = useOnboardingStore((s) => s.completed);
 	const skipped = useOnboardingStore((s) => s.skipped);
-	const skipAll = useOnboardingStore((s) => s.skipAll);
 	const backTo = useSetupChromeStore((s) => s.backTo);
 	const currentIdx = ONBOARDING_STEP_ORDER.indexOf(currentStep);
-
-	const handleSkipAll = () => {
-		skipAll();
-		navigate({ to: "/welcome", replace: true });
-	};
 
 	const pillBase =
 		"inline-flex h-7 items-center gap-1.5 rounded-full border px-3 text-[12px] font-medium transition-colors";
@@ -106,18 +100,7 @@ export function OnboardingProgress() {
 				})}
 			</div>
 
-			<div className="flex items-center justify-end">
-				<button
-					type="button"
-					onClick={handleSkipAll}
-					className={cn(
-						pillBase,
-						"border-transparent text-[#a8a5a3] hover:bg-white/5 hover:text-[#eae8e6]",
-					)}
-				>
-					Skip onboarding
-				</button>
-			</div>
+			<div className="flex items-center justify-end" />
 		</div>
 	);
 }

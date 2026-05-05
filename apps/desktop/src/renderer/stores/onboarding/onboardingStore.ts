@@ -55,7 +55,6 @@ interface OnboardingState {
 interface OnboardingActions {
 	markComplete: (step: OnboardingStep) => void;
 	markSkipped: (step: OnboardingStep) => void;
-	skipAll: () => void;
 	goTo: (step: OnboardingStep) => void;
 	next: () => OnboardingStep | null;
 	back: () => OnboardingStep | null;
@@ -117,29 +116,6 @@ export const useOnboardingStore = create<OnboardingStore>()(
 						skipped,
 						startedAt: prev.startedAt ?? Date.now(),
 						completedAt: allDone ? Date.now() : prev.completedAt,
-					});
-				},
-				skipAll: () => {
-					const prev = get();
-					const startedAt = prev.startedAt ?? Date.now();
-					track("onboarding_finished", {
-						outcome: "skipped_all",
-						duration_ms: prev.startedAt ? Date.now() - prev.startedAt : null,
-					});
-					const skipped = { ...prev.skipped };
-					for (const step of ONBOARDING_STEP_ORDER) {
-						if (!prev.completed[step]) {
-							if (!skipped[step]) {
-								track("onboarding_step_skipped", { step });
-							}
-							skipped[step] = true;
-						}
-					}
-					set({
-						skipped,
-						startedAt,
-						completedAt: Date.now(),
-						manualWalkthrough: false,
 					});
 				},
 				goTo: (step) => {
