@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { randomUUID } from "node:crypto";
-import { existsSync } from "node:fs";
+import { existsSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { TRPCClientError } from "@trpc/client";
 import { eq } from "drizzle-orm";
@@ -89,6 +89,45 @@ describe("workspace.create + workspace.delete integration", () => {
 			.get();
 		expect(persisted?.worktreePath).toBe(nonCanonicalPath);
 		expect(existsSync(nonCanonicalPath)).toBe(true);
+	});
+
+	test("create() prunes a stale worktree (rm-ed dir) before adding a new one", async () => {
+		// Regress: when a worktree's directory was deleted without
+		// `git worktree remove`, git still lists it (prunable) and claims
+		// the branch. `workspaces.create` used to either adopt the missing
+		// path or fail on `git worktree add`. It should now prune first
+		// and check the branch out at the canonical path.
+		const scenario = await createProjectScenario({
+			hostOptions: { apiOverrides: cloudFlows.workspaceCreateOk() },
+		});
+		dispose = scenario.dispose;
+
+		const branch = "stale-feature";
+		const stalePath = join(
+			scenario.repo.repoPath,
+			".worktrees",
+			"stale-feature",
+		);
+		await scenario.repo.git.raw(["worktree", "add", "-b", branch, stalePath]);
+		// Simulate the user `rm -rf`-ing the worktree without git's blessing.
+		rmSync(stalePath, { recursive: true, force: true });
+
+		const result = await scenario.host.trpc.workspaces.create.mutate({
+			projectId: scenario.projectId,
+			name: "fresh",
+			branch,
+		});
+
+		expect(result?.workspace?.branch).toBe(branch);
+		const persisted = scenario.host.db
+			.select()
+			.from(workspaces)
+			.where(eq(workspaces.id, result?.workspace?.id ?? ""))
+			.get();
+		// Should land at the canonical path, not the missing one.
+		expect(persisted?.worktreePath).not.toBe(stalePath);
+		expect(persisted?.worktreePath).toMatch(/stale-feature$/);
+		expect(existsSync(persisted?.worktreePath ?? "")).toBe(true);
 	});
 
 	test("create() rolls back the worktree if cloud v2Workspace.create fails", async () => {

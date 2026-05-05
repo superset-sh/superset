@@ -514,6 +514,16 @@ export const workspacesRouter = router({
 
 			const git = await ctx.git(localProject.repoPath);
 
+			// Drop stale worktree registrations whose directories no longer
+			// exist. Without this, `git worktree add` would fail with
+			// "branch is already used by worktree at <missing-path>" — git
+			// still claims the branch until prune runs. Idempotent and fast.
+			await git
+				.raw(["worktree", "prune"])
+				.catch((err) =>
+					console.warn("[workspaces.create] worktree prune failed:", err),
+				);
+
 			let resolvedBranch: string;
 			let worktreePath: string;
 			let alreadyExists = false;
