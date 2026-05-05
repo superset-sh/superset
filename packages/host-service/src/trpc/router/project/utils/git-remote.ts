@@ -9,10 +9,9 @@ export type { ParsedGitHubRemote };
 /**
  * Map of remote name → URL, read from git config.
  *
- * Reads config directly instead of parsing `git remote -v` because `-v` output
- * appends partial-clone markers like `[blob:none]` after `(fetch)` when
- * `remote.<name>.promisor` is set, and is otherwise human-readable rather than
- * machine-stable.
+ * Avoids `git remote -v`: that output appends partial-clone markers like
+ * `[blob:none]` after `(fetch)` when `remote.<name>.promisor` is set, and is
+ * otherwise human-readable rather than machine-stable.
  */
 export async function getAllRemoteUrls(
 	git: SimpleGit,
@@ -21,7 +20,6 @@ export async function getAllRemoteUrls(
 	const output = await git
 		.raw(["config", "--get-regexp", "^remote\\..*\\.url$"])
 		.catch(() => "");
-	if (!output) return remotes;
 
 	for (const line of output.split(/\r?\n/)) {
 		const spaceIdx = line.indexOf(" ");
@@ -30,9 +28,9 @@ export async function getAllRemoteUrls(
 		const url = line.slice(spaceIdx + 1);
 		// Greedy `.+` so a remote literally named `foo.url` resolves to
 		// `foo.url`, not `foo`.
-		const match = key.match(/^remote\.(.+)\.url$/);
-		if (match?.[1] && url) {
-			remotes.set(match[1], url);
+		const remoteName = key.match(/^remote\.(.+)\.url$/)?.[1];
+		if (remoteName && url) {
+			remotes.set(remoteName, url);
 		}
 	}
 
