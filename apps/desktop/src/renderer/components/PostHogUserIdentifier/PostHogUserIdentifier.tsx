@@ -19,6 +19,7 @@ export function PostHogUserIdentifier() {
 				email: user.email,
 				name: user.name,
 				desktop_version: window.App.appVersion,
+				user_created_at: user.createdAt,
 			});
 			posthog.reloadFeatureFlags();
 			setUserId({ userId: user.id });

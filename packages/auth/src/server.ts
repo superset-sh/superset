@@ -608,8 +608,17 @@ export const auth = betterAuth({
 				plan = subscription?.plan ?? null;
 			}
 
+			const userCreatedAt = (user as { createdAt?: Date | string | null })
+				.createdAt;
+
 			return {
-				user,
+				user: {
+					...user,
+					createdAt:
+						userCreatedAt instanceof Date
+							? userCreatedAt.toISOString()
+							: (userCreatedAt ?? null),
+				},
 				session: {
 					...session,
 					activeOrganizationId,

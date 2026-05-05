@@ -74,6 +74,13 @@ export const FEATURE_FLAGS = {
 	/** Gates access to V2 Cloud features (host-service, cloud sprites). */
 	V2_CLOUD: "v2-cloud",
 	/**
+	 * When enabled for a user, v2 is the default surface for them (used when
+	 * they have not explicitly toggled the setting). Targeted via PostHog
+	 * release conditions on the `user_created_at` person property so the
+	 * cutoff for "new users" can be adjusted without a desktop release.
+	 */
+	V2_DEFAULT_ON: "v2-default-on",
+	/**
 	 * Gates the Automations feature in the UI (sidebar entry, routes, create
 	 * flow). Complementary to the subscriptions.plan paid-tier check —
 	 * server-side procedures still enforce paid plan; this flag controls

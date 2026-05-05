@@ -11,9 +11,11 @@ export function PostHogSurfaceTagger() {
 		const surface = isV2CloudEnabled ? "v2" : "v1";
 		const surface_source = !isRemoteV2Enabled
 			? "v2-flag-off"
-			: optInV2
+			: optInV2 === true
 				? "opted-in"
-				: "opted-out";
+				: optInV2 === false
+					? "opted-out"
+					: "default";
 
 		posthog.register({ surface, surface_source });
 
