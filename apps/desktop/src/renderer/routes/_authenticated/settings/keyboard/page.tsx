@@ -24,9 +24,9 @@ import {
 	useFormatBinding,
 	useHotkeyDisplay,
 	useHotkeyOverridesStore,
+	useKeyboardPreferencesStore,
 	useRecordHotkeys,
 } from "renderer/hotkeys";
-import { useKeyboardPreferencesStore } from "renderer/hotkeys/stores/keyboardPreferencesStore";
 
 const CATEGORY_ORDER: HotkeyCategory[] = [
 	"Navigation",

@@ -10,7 +10,10 @@ export {
 	useRecordHotkeys,
 } from "./hooks";
 export { HOTKEYS, type HotkeyId, PLATFORM } from "./registry";
-export { useHotkeyOverridesStore } from "./stores";
+export {
+	useHotkeyOverridesStore,
+	useKeyboardPreferencesStore,
+} from "./stores";
 export type {
 	BindingMode,
 	HotkeyCategory,
