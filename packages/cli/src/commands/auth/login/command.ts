@@ -55,6 +55,7 @@ export default command({
 
 		config.auth = {
 			accessToken: result.accessToken,
+			refreshToken: result.refreshToken,
 			expiresAt: result.expiresAt,
 		};
 		writeConfig(config);

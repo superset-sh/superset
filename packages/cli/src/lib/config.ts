@@ -13,6 +13,7 @@ import { env } from "./env";
 export type SupersetConfig = {
 	auth?: {
 		accessToken: string;
+		refreshToken?: string;
 		expiresAt: number;
 	};
 	organizationId?: string;
