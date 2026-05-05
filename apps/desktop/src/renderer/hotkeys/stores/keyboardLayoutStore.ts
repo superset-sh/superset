@@ -8,6 +8,13 @@ import { create } from "zustand";
 // native-keymap hooks the OS-level
 // kTISNotifySelectedKeyboardInputSourceChanged distributed notification,
 // which fires for every input-source change.
+//
+// Do not import this store directly from dispatch / display / recorder
+// code. Use `useEffectiveLayoutMap` / `getEffectiveLayoutMap` from
+// `./keyboardPreferencesStore` instead — that's the single chokepoint
+// that gates by `adaptiveLayoutEnabled`. Reading the map raw silently
+// bypasses the user's preference (this was the root cause of #4078's
+// "toggle does nothing" bug).
 
 interface State {
 	/** Map<event.code, unshifted glyph>. Null until the first tRPC payload
