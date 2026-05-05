@@ -98,6 +98,9 @@ function describeRelayFailure(
 		return `Host ${hostId} has not enabled remote access. Toggle "Allow remote workspaces to access this device" in Settings → Security on that machine.`;
 	}
 	if (status === 401) return "You are not authenticated";
+	if (status === 402) {
+		return `Remote host operations on ${hostId} require a paid plan. Upgrade your organization plan, or run this operation locally on the host (e.g. via the Superset CLI).`;
+	}
 	if (status === 403) return `You don't have access to host ${hostId}`;
 	if (status === 404) return `Host ${hostId} not found`;
 	return `Host ${hostId} returned ${status} for ${procedure}: ${trimmed}`;
