@@ -4,9 +4,9 @@ import type { SearchAddon } from "@xterm/addon-search";
 import { SerializeAddon } from "@xterm/addon-serialize";
 import { Terminal as XTerm } from "@xterm/xterm";
 import { DEFAULT_TERMINAL_SCROLLBACK } from "shared/constants";
-import { setupClickToMoveCursor } from "../../screens/main/components/WorkspaceView/ContentView/TabsContent/Terminal/helpers";
 import type { TerminalAppearance } from "./appearance";
 import { loadAddons } from "./terminal-addons";
+import { setupClickToMoveCursor } from "./terminal-click-to-move-cursor";
 import { installTerminalKeyEventHandler } from "./terminal-key-event-handler";
 import { getTerminalParkingContainer } from "./terminal-parking";
 
@@ -228,33 +228,9 @@ export function createRuntime(
 	// Click-to-move-cursor (parity with v1 Terminal). Skipped when no
 	// onUserInput is provided since the helper has nowhere to send the
 	// synthesized arrow keys.
-	const disposeClickToMove = options.onUserInput
+	const disposeMouseHandlers = options.onUserInput
 		? setupClickToMoveCursor(terminal, { onWrite: options.onUserInput })
 		: null;
-
-	// Block xterm's built-in right-click primary-selection paste (which
-	// silently injects the last clipboard into the PTY) and the OS context
-	// menu, matching v1 behavior. Capture phase runs before xterm's own
-	// mousedown handler; we still focus the terminal so right-click feels
-	// like a focus action without the paste side-effect.
-	const onMouseDown = (event: MouseEvent) => {
-		if (event.button !== 2) return;
-		event.preventDefault();
-		event.stopImmediatePropagation();
-		terminal.focus();
-	};
-	const onContextMenu = (event: MouseEvent) => event.preventDefault();
-	terminal.element?.addEventListener("mousedown", onMouseDown, {
-		capture: true,
-	});
-	terminal.element?.addEventListener("contextmenu", onContextMenu);
-	const disposeMouseHandlers = () => {
-		disposeClickToMove?.();
-		terminal.element?.removeEventListener("mousedown", onMouseDown, {
-			capture: true,
-		});
-		terminal.element?.removeEventListener("contextmenu", onContextMenu);
-	};
 
 	return {
 		terminalId,
