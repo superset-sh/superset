@@ -59,11 +59,12 @@ export function CliAuthCodeDisplay({ code, state }: CliAuthCodeDisplayProps) {
 	};
 
 	const handleCopy = async () => {
+		const ok = await copyToClipboard(value);
+		selectCode();
+		if (!ok) return;
 		setCopied(true);
 		if (timerRef.current) clearTimeout(timerRef.current);
 		timerRef.current = setTimeout(() => setCopied(false), 2000);
-		await copyToClipboard(value);
-		selectCode();
 	};
 
 	return (

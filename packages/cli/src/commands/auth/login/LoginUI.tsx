@@ -57,7 +57,7 @@ export function LoginUI({
 			(key.meta && (key.backspace || key.delete)) ||
 			(key.ctrl && input === "w")
 		) {
-			setValue((v) => v.replace(/\s*\S+\s*$/, ""));
+			setValue((v) => v.replace(/\S+\s*$/, ""));
 			setValidationError(null);
 			return;
 		}
