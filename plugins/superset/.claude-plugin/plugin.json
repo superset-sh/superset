@@ -1,7 +1,7 @@
 {
 	"name": "superset",
 	"version": "0.1.0",
-	"description": "Use Superset workspaces, agents, tasks, and automations from Claude Code.",
+	"description": "Spawn Superset agents, create workspaces, manage tasks, and edit automation prompts from Claude Code.",
 	"author": {
 		"name": "Superset",
 		"url": "https://superset.sh"

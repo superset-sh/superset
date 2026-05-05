@@ -8,7 +8,7 @@
 		{
 			"name": "superset",
 			"source": "./plugins/superset",
-			"description": "Use Superset workspaces, agents, tasks, and automations from Claude Code."
+			"description": "Spawn Superset agents, create workspaces, manage tasks, and edit automation prompts from Claude Code."
 		}
 	]
 }
