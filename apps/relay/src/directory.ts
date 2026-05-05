@@ -48,12 +48,31 @@ export async function register(
 	]);
 }
 
-export async function unregister(hostId: string): Promise<void> {
-	await Promise.all([
-		redis.hdel(OWNER_KEY, hostId),
-		redis.hdel(META_KEY, hostId),
-		redis.zrem(TTL_KEY, hostId),
-	]);
+// Compare-and-delete: only remove the directory entry if the current owner
+// matches the caller's identity. Prevents the case where machine A's stale
+// pong-timeout unregister wipes a directory entry that has since been
+// rewritten by machine B.
+const UNREGISTER_SCRIPT = `
+local current = redis.call('HGET', KEYS[1], ARGV[1])
+if current == ARGV[2] then
+  redis.call('HDEL', KEYS[1], ARGV[1])
+  redis.call('HDEL', KEYS[2], ARGV[1])
+  redis.call('ZREM', KEYS[3], ARGV[1])
+  return 1
+end
+return 0
+`;
+
+export async function unregister(
+	hostId: string,
+	region: string,
+	machineId: string,
+): Promise<void> {
+	await redis.eval(
+		UNREGISTER_SCRIPT,
+		[OWNER_KEY, META_KEY, TTL_KEY],
+		[hostId, encodeOwner(region, machineId)],
+	);
 }
 
 export async function lookup(hostId: string): Promise<TunnelOwner | null> {
@@ -74,18 +93,33 @@ export async function heartbeat(hostId: string): Promise<void> {
 	]);
 }
 
+// Atomic check-and-delete per stale member: re-checks the score inside the
+// script so a heartbeat that races between zrange (read) and zrem (write)
+// can't have its live tunnel evicted by a stale snapshot.
+const SWEEP_SCRIPT = `
+local now = tonumber(ARGV[1])
+local stale = redis.call('ZRANGEBYSCORE', KEYS[3], 0, now)
+local removed = 0
+for _, member in ipairs(stale) do
+  local score = redis.call('ZSCORE', KEYS[3], member)
+  if score and tonumber(score) <= now then
+    redis.call('HDEL', KEYS[1], member)
+    redis.call('HDEL', KEYS[2], member)
+    redis.call('ZREM', KEYS[3], member)
+    removed = removed + 1
+  end
+end
+return removed
+`;
+
 export async function sweepStale(): Promise<number> {
 	const now = Date.now();
-	const stale = await redis.zrange<string[]>(TTL_KEY, 0, now, {
-		byScore: true,
-	});
-	if (stale.length === 0) return 0;
-	await Promise.all([
-		redis.hdel(OWNER_KEY, ...stale),
-		redis.hdel(META_KEY, ...stale),
-		redis.zrem(TTL_KEY, ...stale),
-	]);
-	return stale.length;
+	const result = await redis.eval(
+		SWEEP_SCRIPT,
+		[OWNER_KEY, META_KEY, TTL_KEY],
+		[String(now)],
+	);
+	return typeof result === "number" ? result : 0;
 }
 
 export async function getAllOwners(): Promise<

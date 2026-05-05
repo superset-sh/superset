@@ -97,9 +97,13 @@ export class TunnelManager {
 		console.log(`[relay] tunnel registered: ${hostId}`);
 	}
 
-	unregister(hostId: string): void {
+	unregister(hostId: string, ws?: WsSocket): void {
 		const tunnel = this.tunnels.get(hostId);
 		if (!tunnel) return;
+		// If a specific socket was passed, only unregister when it's still the
+		// active one. Prevents the close handler of a just-disposed old socket
+		// from tearing down a freshly-registered new tunnel.
+		if (ws && tunnel.ws !== ws) return;
 
 		const lifetimeMs = Date.now() - tunnel.registeredAt;
 		if (lifetimeMs < FLAP_THRESHOLD_MS) {
@@ -114,9 +118,11 @@ export class TunnelManager {
 		this.disposeTunnel(tunnel, "Tunnel disconnected");
 		this.tunnels.delete(hostId);
 
-		void directory.unregister(hostId).catch((err) => {
-			console.error("[relay] directory.unregister failed", err);
-		});
+		void directory
+			.unregister(hostId, env.FLY_REGION, env.FLY_MACHINE_ID)
+			.catch((err) => {
+				console.error("[relay] directory.unregister failed", err);
+			});
 		this.scheduleOnlineWrite(hostId, tunnel.token, false);
 		console.log(`[relay] tunnel unregistered: ${hostId}`);
 	}
@@ -165,6 +171,9 @@ export class TunnelManager {
 				.catch((err) => {
 					console.error("[relay] setOnline mutate failed", err);
 				});
+			// Drop the entry after a definitive offline write so onlineState
+			// doesn't accumulate one boolean per historical hostId.
+			if (!isOnline) this.onlineState.delete(hostId);
 		}, ONLINE_DEBOUNCE_MS);
 		this.onlineDebounce.set(hostId, timer);
 	}

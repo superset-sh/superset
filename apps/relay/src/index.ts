@@ -104,7 +104,8 @@ app.get(
 	upgradeWebSocket((c) => {
 		const hostId = c.req.query("hostId");
 		const token = extractToken(c);
-		let authorized = false;
+		let registeredWs: Parameters<typeof tunnelManager.register>[2] | null =
+			null;
 
 		return {
 			onOpen: async (_event, ws) => {
@@ -126,17 +127,19 @@ app.get(
 				}
 
 				tunnelManager.register(hostId, token, ws);
-				authorized = true;
+				registeredWs = ws;
 			},
 			onMessage: (event) => {
-				if (authorized && hostId)
+				if (registeredWs && hostId)
 					tunnelManager.handleMessage(hostId, event.data);
 			},
 			onClose: () => {
-				if (authorized && hostId) tunnelManager.unregister(hostId);
+				if (registeredWs && hostId)
+					tunnelManager.unregister(hostId, registeredWs);
 			},
 			onError: () => {
-				if (authorized && hostId) tunnelManager.unregister(hostId);
+				if (registeredWs && hostId)
+					tunnelManager.unregister(hostId, registeredWs);
 			},
 		};
 	}),
@@ -144,7 +147,15 @@ app.get(
 
 // ── Pre-flight for WS replay (host hits this once before opening WS to a host) ─
 
+// Pre-flight for WS upgrade routing. Requires a valid JWT (no checkHostAccess —
+// the destination machine still authorizes) so we don't leak tunnel-presence
+// or fly topology to unauthenticated probers.
 app.get("/hosts/:hostId/_whoowns", async (c) => {
+	const token = extractToken(c);
+	if (!token) return c.json({ error: "Unauthorized" }, 401);
+	const auth = await verifyJWT(token, env.NEXT_PUBLIC_API_URL);
+	if (!auth) return c.json({ error: "Unauthorized" }, 401);
+
 	const hostId = c.req.param("hostId");
 	const replay = await maybeReplay(hostId);
 	if (!replay) {
