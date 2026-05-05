@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
+import { join } from "node:path";
 import { TRPCClientError } from "@trpc/client";
 import { eq } from "drizzle-orm";
 import { workspaces } from "../../src/db/schema";
@@ -47,6 +48,47 @@ describe("workspace.create + workspace.delete integration", () => {
 		// HOME-dependent.
 		expect(persisted?.worktreePath).toMatch(/feature\/new$/);
 		expect(existsSync(persisted?.worktreePath ?? "")).toBe(true);
+	});
+
+	test("create() adopts an existing worktree at a non-canonical path instead of failing on `git worktree add`", async () => {
+		// Regress: when the user typed a branch that already has a worktree
+		// somewhere outside `~/.superset/worktrees/<projectId>/<branch>`,
+		// `workspaces.create` used to call `git worktree add` and crash with
+		// `fatal: '<branch>' is already used by worktree at ...`. Adopt the
+		// existing path instead.
+		const scenario = await createProjectScenario({
+			hostOptions: { apiOverrides: cloudFlows.workspaceCreateOk() },
+		});
+		dispose = scenario.dispose;
+
+		const branch = "new-workspace-9";
+		const nonCanonicalPath = join(
+			scenario.repo.repoPath,
+			".worktrees",
+			"glorious-ground",
+		);
+		await scenario.repo.git.raw([
+			"worktree",
+			"add",
+			"-b",
+			branch,
+			nonCanonicalPath,
+		]);
+
+		const result = await scenario.host.trpc.workspaces.create.mutate({
+			projectId: scenario.projectId,
+			name: "adopted",
+			branch,
+		});
+
+		expect(result?.workspace?.branch).toBe(branch);
+		const persisted = scenario.host.db
+			.select()
+			.from(workspaces)
+			.where(eq(workspaces.id, result?.workspace?.id ?? ""))
+			.get();
+		expect(persisted?.worktreePath).toBe(nonCanonicalPath);
+		expect(existsSync(nonCanonicalPath)).toBe(true);
 	});
 
 	test("create() rolls back the worktree if cloud v2Workspace.create fails", async () => {

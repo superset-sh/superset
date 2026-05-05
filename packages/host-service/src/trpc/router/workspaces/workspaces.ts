@@ -16,7 +16,7 @@ import type { HostServiceContext } from "../../../types";
 import { protectedProcedure, router } from "../../index";
 import { type AgentRunResult, runAgentInWorkspace } from "../agents";
 import { ensureMainWorkspace } from "../project/utils/ensure-main-workspace";
-import { getWorktreeBranchAtPath } from "../workspace-creation/shared/branch-search";
+import { listWorktreeBranches } from "../workspace-creation/shared/branch-search";
 import { enablePushAutoSetupRemote } from "../workspace-creation/shared/git-config";
 import { requireLocalProject } from "../workspace-creation/shared/local-project";
 import { startSetupTerminalIfPresent } from "../workspace-creation/shared/setup-terminal";
@@ -708,21 +708,23 @@ export const workspacesRouter = router({
 					workspaceRow = existing;
 					alreadyExists = true;
 				} else {
-					worktreePath = safeResolveWorktreePath(
-						localProject.id,
-						resolvedBranch,
-					);
-
-					// Adopt: a worktree already exists at the standard path with the
-					// matching branch checked out (e.g. left behind by a prior session
-					// or registered outside Superset). Skip `git worktree add` and
-					// proceed straight to register. Only meaningful when the user
-					// supplied the branch — auto-gen names are deduped and can't
-					// collide with anything pre-existing.
-					const adopted =
-						!!typedBranch &&
-						(await getWorktreeBranchAtPath(git, worktreePath)) ===
-							resolvedBranch;
+					// Adopt: a worktree already exists for this branch (at the
+					// standard path, or anywhere else git has registered it — e.g.
+					// left behind by a prior session, created outside Superset, or
+					// renamed in place). Skip `git worktree add`; git refuses to
+					// check out a branch into a second worktree, so failing here
+					// would block the user from re-entering their own work. Only
+					// meaningful when the user supplied the branch — auto-gen
+					// names are deduped and can't collide with anything pre-existing.
+					const existingWorktreePath = typedBranch
+						? (await listWorktreeBranches(git)).worktreeMap.get(
+								resolvedBranch,
+							)
+						: undefined;
+					const adopted = !!existingWorktreePath;
+					worktreePath =
+						existingWorktreePath ??
+						safeResolveWorktreePath(localProject.id, resolvedBranch);
 
 					mkdirSync(dirname(worktreePath), { recursive: true });
 
