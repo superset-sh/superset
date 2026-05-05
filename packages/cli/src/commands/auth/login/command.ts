@@ -1,9 +1,13 @@
 import * as p from "@clack/prompts";
 import { CLIError, string } from "@superset/cli-framework";
+import { render } from "ink";
+import { createElement } from "react";
 import { createApiClient } from "../../../lib/api-client";
 import { login } from "../../../lib/auth";
 import { command } from "../../../lib/command";
 import { readConfig, writeConfig } from "../../../lib/config";
+import { copyToClipboard } from "./copyToClipboard";
+import { LoginUI, type LoginUIProps } from "./LoginUI";
 
 export default command({
 	description: "Authenticate with Superset. Re-run to switch organizations.",
@@ -15,42 +19,94 @@ export default command({
 	},
 	run: async (opts) => {
 		const config = readConfig();
+		const useInk = process.stdout.isTTY && process.stdin.isTTY;
 
-		p.intro("superset auth login");
-
-		const spinner = process.stdout.isTTY ? p.spinner() : null;
-		let spinnerActive = false;
-
-		const result = await login(opts.signal, {
-			onAuthorizationUrl: (url, mode) => {
-				p.log.step("Opening browser to authorize…");
-				p.log.message("If the browser didn't open, visit:");
-				p.log.message(url);
-				if (mode === "loopback") {
-					if (spinner) {
-						spinner.start("Waiting for browser callback…");
-						spinnerActive = true;
-					} else {
-						p.log.info("Waiting for browser callback…");
-					}
-				}
-			},
-			promptForPastedCode: async () => {
-				const pasted = await p.text({
-					message: "Paste the code from the browser",
-					validate: (value) =>
-						value.includes("#") ? undefined : "Paste the entire value",
-				});
-				if (p.isCancel(pasted)) {
-					throw new CLIError("Login cancelled");
-				}
-				return pasted;
-			},
+		let pasteResolve: ((code: string) => void) | null = null;
+		let pasteReject: ((err: Error) => void) | null = null;
+		const pastePromise = new Promise<string>((resolve, reject) => {
+			pasteResolve = resolve;
+			pasteReject = reject;
 		});
 
-		if (spinnerActive) {
-			spinner?.stop();
-			spinnerActive = false;
+		let currentProps: LoginUIProps = {
+			url: null,
+			status: "starting",
+			onSubmit: (code) => pasteResolve?.(code),
+			onCancel: () => pasteReject?.(new CLIError("Login cancelled")),
+			onCopy: async () => false,
+		};
+
+		const inkInstance = useInk
+			? render(createElement(LoginUI, currentProps), { exitOnCtrlC: false })
+			: null;
+
+		const update = (patch: Partial<LoginUIProps>) => {
+			currentProps = { ...currentProps, ...patch };
+			inkInstance?.rerender(createElement(LoginUI, currentProps));
+		};
+
+		if (!inkInstance) {
+			p.intro("superset auth login");
+		}
+
+		let result: Awaited<ReturnType<typeof login>> | null = null;
+		let cancelled = false;
+		try {
+			result = await login(opts.signal, {
+				onAuthorizationUrl: (url) => {
+					if (inkInstance) {
+						update({
+							url,
+							status: "waiting",
+							onCopy: () => copyToClipboard(url),
+						});
+					} else {
+						p.log.message("Browser didn't open? Use the url below to sign in");
+						p.log.message(url);
+					}
+				},
+				promptForPastedCode: async (signal) => {
+					if (!inkInstance) {
+						const pasted = await p.text({
+							message: "Paste code here if prompted",
+							validate: (value) =>
+								value.includes("#") ? undefined : "Paste the entire value",
+						});
+						if (signal.aborted) return "";
+						if (p.isCancel(pasted)) {
+							throw new CLIError("Login cancelled");
+						}
+						return pasted;
+					}
+					const onAbort = () => pasteResolve?.("");
+					signal.addEventListener("abort", onAbort);
+					try {
+						const code = await pastePromise;
+						if (signal.aborted) return "";
+						update({ status: "exchanging" });
+						return code;
+					} finally {
+						signal.removeEventListener("abort", onAbort);
+					}
+				},
+			});
+			if (inkInstance) update({ status: "done" });
+		} catch (err) {
+			if (err instanceof CLIError && err.message === "Login cancelled") {
+				cancelled = true;
+			} else {
+				throw err;
+			}
+		} finally {
+			if (inkInstance) {
+				inkInstance.unmount();
+				await inkInstance.waitUntilExit().catch(() => {});
+			}
+		}
+
+		if (cancelled || !result) {
+			p.cancel("Login interrupted");
+			return { data: { loggedIn: false } };
 		}
 
 		config.auth = {
@@ -60,7 +116,12 @@ export default command({
 		};
 		writeConfig(config);
 
-		p.log.success("Authorized!");
+		if (!inkInstance) {
+			p.log.success("Authorized!");
+		} else {
+			p.intro("superset auth login");
+			p.log.success("Authorized!");
+		}
 
 		const api = createApiClient({ bearer: result.accessToken });
 

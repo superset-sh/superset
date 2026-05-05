@@ -20,10 +20,13 @@
 		"@superset/trpc": "workspace:*",
 		"@trpc/client": "^11.7.1",
 		"date-fns": "^4.1.0",
+		"ink": "^7.0.1",
+		"react": "^19.2.5",
 		"superjson": "^2.2.5"
 	},
 	"devDependencies": {
 		"@superset/typescript": "workspace:*",
+		"@types/react": "^19.2.14",
 		"bun-types": "^1.3.1",
 		"typescript": "^5.9.3"
 	}

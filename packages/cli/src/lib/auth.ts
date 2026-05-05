@@ -16,8 +16,8 @@ export interface LoginResult {
 }
 
 export interface LoginCallbacks {
-	onAuthorizationUrl?: (url: string, mode: "loopback" | "paste") => void;
-	promptForPastedCode: () => Promise<string>;
+	onAuthorizationUrl?: (url: string) => void;
+	promptForPastedCode: (signal: AbortSignal) => Promise<string>;
 }
 
 function base64url(buffer: Buffer): string {
@@ -56,12 +56,6 @@ export function getWebUrl(): string {
 
 function shouldOpenBrowser(): boolean {
 	if (!process.stdout.isTTY) return false;
-	if (process.env.CI) return false;
-	if (process.env.SSH_CONNECTION || process.env.SSH_TTY) return false;
-	return true;
-}
-
-function shouldTryLoopback(): boolean {
 	if (process.env.CI) return false;
 	if (process.env.SSH_CONNECTION || process.env.SSH_TTY) return false;
 	return true;
@@ -293,62 +287,126 @@ export async function login(
 	callbacks: LoginCallbacks,
 ): Promise<LoginResult> {
 	const apiUrl = env.SUPERSET_API_URL;
+	const webUrl = getWebUrl();
 
 	const codeVerifier = generateCodeVerifier();
 	const codeChallenge = generateCodeChallenge(codeVerifier);
 	const state = generateState();
 
-	const loopback = shouldTryLoopback() ? await bindLoopbackServer() : null;
+	const loopback = await bindLoopbackServer();
+	const loopbackRedirectUri = loopback
+		? `http://127.0.0.1:${loopback.port}/callback`
+		: null;
+	const pasteRedirectUri = `${webUrl}${PASTE_REDIRECT_PATH}`;
 
-	if (loopback) {
-		const redirectUri = `http://127.0.0.1:${loopback.port}/callback`;
-		const authorizeUrl = buildAuthorizeUrl({
-			apiUrl,
-			redirectUri,
-			codeChallenge,
-			state,
-		});
-
-		callbacks.onAuthorizationUrl?.(authorizeUrl.toString(), "loopback");
-		if (shouldOpenBrowser()) {
-			void openBrowser(authorizeUrl.toString());
-		}
-
-		const code = await waitForCallback({
-			server: loopback.server,
-			port: loopback.port,
-			expectedState: state,
-			signal,
-		});
-
-		return exchangeCodeForToken({ apiUrl, code, codeVerifier, redirectUri });
-	}
-
-	const webUrl = getWebUrl();
-	const redirectUri = `${webUrl}${PASTE_REDIRECT_PATH}`;
-	const authorizeUrl = buildAuthorizeUrl({
+	const pasteAuthorizeUrl = buildAuthorizeUrl({
 		apiUrl,
-		redirectUri,
+		redirectUri: pasteRedirectUri,
 		codeChallenge,
 		state,
-	});
+	}).toString();
 
-	callbacks.onAuthorizationUrl?.(authorizeUrl.toString(), "paste");
+	const browserAuthorizeUrl = loopbackRedirectUri
+		? buildAuthorizeUrl({
+				apiUrl,
+				redirectUri: loopbackRedirectUri,
+				codeChallenge,
+				state,
+			}).toString()
+		: pasteAuthorizeUrl;
+
+	callbacks.onAuthorizationUrl?.(pasteAuthorizeUrl);
+
 	if (shouldOpenBrowser()) {
-		void openBrowser(authorizeUrl.toString());
+		void openBrowser(browserAuthorizeUrl);
 	}
 
-	if (signal.aborted) throw new CLIError("Login cancelled");
-
-	const pasted = await callbacks.promptForPastedCode();
-	const { code, state: returnedState } = parsePastedCode(pasted);
-
-	if (returnedState !== state) {
-		throw new CLIError(
-			"State mismatch",
-			"The pasted code does not match this login attempt. Run `superset auth login` again.",
-		);
+	if (signal.aborted) {
+		loopback?.server.close();
+		throw new CLIError("Login cancelled");
 	}
 
-	return exchangeCodeForToken({ apiUrl, code, codeVerifier, redirectUri });
+	const callbackController = new AbortController();
+	const pasteController = new AbortController();
+	const onOuterAbort = () => {
+		callbackController.abort();
+		pasteController.abort();
+	};
+	signal.addEventListener("abort", onOuterAbort);
+
+	type Winner = { code: string; redirectUri: string };
+
+	try {
+		const winner = await new Promise<Winner>((resolve, reject) => {
+			let settled = false;
+			const settle = (fn: () => void) => {
+				if (settled) return;
+				settled = true;
+				fn();
+			};
+
+			if (loopback && loopbackRedirectUri) {
+				waitForCallback({
+					server: loopback.server,
+					port: loopback.port,
+					expectedState: state,
+					signal: callbackController.signal,
+				})
+					.then((code) => {
+						settle(() => {
+							pasteController.abort();
+							resolve({ code, redirectUri: loopbackRedirectUri });
+						});
+					})
+					.catch(() => {
+						// Loopback failed (timeout, CSRF, our own cancel). Don't take
+						// down the paste flow — the user can still complete login by
+						// pasting. If paste also fails, that error will surface instead.
+					});
+			}
+
+			callbacks
+				.promptForPastedCode(pasteController.signal)
+				.then((pasted) => {
+					if (pasteController.signal.aborted) return;
+					try {
+						const { code, state: returnedState } = parsePastedCode(pasted);
+						if (returnedState !== state) {
+							throw new CLIError(
+								"State mismatch",
+								"The pasted code does not match this login attempt. Run `superset auth login` again.",
+							);
+						}
+						settle(() => {
+							callbackController.abort();
+							resolve({ code, redirectUri: pasteRedirectUri });
+						});
+					} catch (err) {
+						settle(() => {
+							callbackController.abort();
+							reject(err);
+						});
+					}
+				})
+				.catch((err) => {
+					if (pasteController.signal.aborted) return;
+					settle(() => {
+						callbackController.abort();
+						reject(err);
+					});
+				});
+		});
+
+		return await exchangeCodeForToken({
+			apiUrl,
+			code: winner.code,
+			codeVerifier,
+			redirectUri: winner.redirectUri,
+		});
+	} finally {
+		signal.removeEventListener("abort", onOuterAbort);
+		callbackController.abort();
+		pasteController.abort();
+		loopback?.server.close();
+	}
 }
