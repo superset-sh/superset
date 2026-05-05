@@ -1,7 +1,7 @@
 import { toast } from "@superset/ui/sonner";
 import { Spinner } from "@superset/ui/spinner";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { GoGitBranch } from "react-icons/go";
 import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import { track } from "renderer/lib/analytics";
@@ -43,65 +43,68 @@ function OnboardingAdoptWorktreesPage() {
 	// they land in the workspace editor. Route to the v2 workspace view when v2
 	// is enabled, otherwise the v1 view. If no workspaces exist yet, fall back
 	// to the project page.
-	const navigateAfterFlow = async (replace: boolean) => {
-		try {
-			const grouped = await utils.workspaces.getAllGrouped.fetch();
-			const allWorkspaces = grouped.flatMap((g) => g.workspaces);
-			const lastViewedId = localStorage.getItem("lastViewedWorkspaceId");
-			const target =
-				allWorkspaces.find((w) => w.id === lastViewedId) ?? allWorkspaces[0];
-			if (target) {
-				if (isV2CloudEnabled) {
-					navigate({
-						to: "/v2-workspace/$workspaceId",
-						params: { workspaceId: target.id },
-						replace,
-					});
-				} else {
-					navigate({
-						to: "/workspace/$workspaceId",
-						params: { workspaceId: target.id },
-						replace,
-					});
+	const navigateAfterFlow = useCallback(
+		async (replace: boolean) => {
+			try {
+				const grouped = await utils.workspaces.getAllGrouped.fetch();
+				const allWorkspaces = grouped.flatMap((g) => g.workspaces);
+				const lastViewedId = localStorage.getItem("lastViewedWorkspaceId");
+				const target =
+					allWorkspaces.find((w) => w.id === lastViewedId) ?? allWorkspaces[0];
+				if (target) {
+					if (isV2CloudEnabled) {
+						navigate({
+							to: "/v2-workspace/$workspaceId",
+							params: { workspaceId: target.id },
+							replace,
+						});
+					} else {
+						navigate({
+							to: "/workspace/$workspaceId",
+							params: { workspaceId: target.id },
+							replace,
+						});
+					}
+					return;
 				}
+			} catch {
+				// fall through to project / welcome routing
+			}
+			const project = projects?.[0];
+			if (project) {
+				navigate({
+					to: "/project/$projectId",
+					params: { projectId: project.id },
+					replace,
+				});
 				return;
 			}
-		} catch {
-			// fall through to project / welcome routing
-		}
-		const project = projects?.[0];
-		if (project) {
-			navigate({
-				to: "/project/$projectId",
-				params: { projectId: project.id },
-				replace,
-			});
-			return;
-		}
-		navigate({ to: "/welcome", replace });
-	};
+			navigate({ to: "/welcome", replace });
+		},
+		[utils, isV2CloudEnabled, navigate, projects],
+	);
 
-	const finishOnboarding = (outcome: "completed" | "skipped") => {
+	const finishFlow = useCallback(() => {
 		const startedAt = useOnboardingStore.getState().startedAt;
 		track("onboarding_finished", {
-			outcome,
+			outcome: "completed",
 			duration_ms: startedAt ? Date.now() - startedAt : null,
 		});
-	};
-
-	const finishFlow = () => {
 		markComplete("adopt-worktrees");
-		finishOnboarding("completed");
 		setManualWalkthrough(false);
 		void navigateAfterFlow(true);
-	};
+	}, [markComplete, setManualWalkthrough, navigateAfterFlow]);
 
-	const skipFlow = () => {
+	const skipFlow = useCallback(() => {
+		const startedAt = useOnboardingStore.getState().startedAt;
+		track("onboarding_finished", {
+			outcome: "skipped",
+			duration_ms: startedAt ? Date.now() - startedAt : null,
+		});
 		markSkipped("adopt-worktrees");
-		finishOnboarding("skipped");
 		setManualWalkthrough(false);
 		void navigateAfterFlow(true);
-	};
+	}, [markSkipped, setManualWalkthrough, navigateAfterFlow]);
 
 	if (isPending) {
 		return (

@@ -105,17 +105,7 @@ function OnboardingProjectPage() {
 		});
 	};
 
-	const handleSelectFolder = async () => {
-		const created = await openNew();
-		const project = created[0];
-		if (project) {
-			markComplete("project");
-			setManualWalkthrough(false);
-			await openProjectInWorkspace(project.id);
-		}
-	};
-
-	const handleAddAnother = async () => {
+	const handleSelectNewRepo = async () => {
 		const created = await openNew();
 		const project = created[0];
 		if (project) {
@@ -217,7 +207,7 @@ function OnboardingProjectPage() {
 					</SetupButton>
 					<SetupButton
 						variant="secondary"
-						onClick={handleAddAnother}
+						onClick={handleSelectNewRepo}
 						disabled={isOpenPending}
 					>
 						{isOpenPending ? "Opening…" : "Select new repo"}
@@ -242,7 +232,7 @@ function OnboardingProjectPage() {
 			/>
 
 			<div className="flex w-[273px] flex-col gap-2 self-center">
-				<SetupButton onClick={handleSelectFolder} disabled={isOpenPending}>
+				<SetupButton onClick={handleSelectNewRepo} disabled={isOpenPending}>
 					{isOpenPending ? "Opening…" : "Select new repo"}
 				</SetupButton>
 				<SetupButton

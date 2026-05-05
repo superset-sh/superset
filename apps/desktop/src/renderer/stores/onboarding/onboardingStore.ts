@@ -108,9 +108,14 @@ export const useOnboardingStore = create<OnboardingStore>()(
 					const prev = get();
 					if (prev.skipped[step]) return;
 					track("onboarding_step_skipped", { step });
+					const skipped = { ...prev.skipped, [step]: true };
+					const allDone = ONBOARDING_STEP_ORDER.every(
+						(s) => prev.completed[s] || skipped[s],
+					);
 					set({
-						skipped: { ...prev.skipped, [step]: true },
+						skipped,
 						startedAt: prev.startedAt ?? Date.now(),
+						completedAt: allDone ? Date.now() : prev.completedAt,
 					});
 				},
 				goTo: (step) => {
@@ -157,7 +162,10 @@ export const useOnboardingStore = create<OnboardingStore>()(
 );
 
 export function selectRequiredStepsComplete(state: OnboardingState): boolean {
-	return REQUIRED_STEPS.every((s) => state.completed[s] || state.skipped[s]);
+	// Required steps must be explicitly completed — skipping is not enough.
+	// This prevents a stray markSkipped("providers") or markSkipped("project")
+	// from bypassing the dashboard gate.
+	return REQUIRED_STEPS.every((s) => state.completed[s]);
 }
 
 export function selectFirstIncompleteStep(

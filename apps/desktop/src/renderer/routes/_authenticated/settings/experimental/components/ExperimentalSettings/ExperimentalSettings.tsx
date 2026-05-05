@@ -161,8 +161,7 @@ export function ExperimentalSettings({
 						<div className="min-w-0 flex-1 space-y-0.5">
 							<Label className="text-sm font-medium">Restart onboarding</Label>
 							<p className="text-xs text-muted-foreground">
-								Walk through the v2 setup flow again. Already-completed steps
-								are skipped automatically.
+								Walk through the v2 setup flow again from the beginning.
 							</p>
 							{!isV2CloudEnabled && (
 								<p className="text-xs text-muted-foreground">
@@ -187,9 +186,10 @@ export function ExperimentalSettings({
 									<AlertDialogTitle>Restart onboarding?</AlertDialogTitle>
 									<AlertDialogDescription>
 										This clears your onboarding progress and reopens the setup
-										flow at the first step. Steps you've already satisfied —
-										such as sign-in, providers, and projects — will
-										auto-advance.
+										flow. You'll walk through each step again — for steps you're
+										already configured for (provider connected, project
+										attached), you'll see the current status with a Continue
+										button.
 									</AlertDialogDescription>
 								</AlertDialogHeader>
 								<AlertDialogFooter>

@@ -65,6 +65,8 @@ function AuthenticatedLayout() {
 	const utils = electronTrpc.useUtils();
 	const shownWorkspaceInitWarningsRef = useRef(new Set<string>());
 	const { isV2CloudEnabled } = useIsV2CloudEnabled();
+	const requiredComplete = useOnboardingStore(selectRequiredStepsComplete);
+	const firstIncompleteStep = useOnboardingStore(selectFirstIncompleteStep);
 
 	const isSignedIn = env.SKIP_ENV_VALIDATION || !!session?.user;
 	const activeOrganizationId = env.SKIP_ENV_VALIDATION
@@ -202,12 +204,9 @@ function AuthenticatedLayout() {
 		return <Navigate to="/create-organization" replace />;
 	}
 
-	const onboardingState = useOnboardingStore.getState();
-	const requiredComplete = selectRequiredStepsComplete(onboardingState);
 	const isOnSetupRoute = location.pathname.startsWith("/setup");
 	if (isV2CloudEnabled && !requiredComplete && !isOnSetupRoute) {
-		const target = STEP_ROUTES[selectFirstIncompleteStep(onboardingState)];
-		return <Navigate to={target} replace />;
+		return <Navigate to={STEP_ROUTES[firstIncompleteStep]} replace />;
 	}
 
 	return (
