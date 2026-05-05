@@ -1,8 +1,18 @@
 import { HOTKEYS, type HotkeyId } from "../registry";
 import { useHotkeyOverridesStore } from "../stores/hotkeyOverridesStore";
 import { useKeyboardLayoutStore } from "../stores/keyboardLayoutStore";
+import { useKeyboardPreferencesStore } from "../stores/keyboardPreferencesStore";
 import type { ShortcutBinding } from "../types";
 import { bindingToDispatchChord } from "./binding";
+
+/** Layout map for the resolver — null when the user has disabled adaptive
+ *  layout mapping, so logical bindings keep their authored chord. */
+function activeLayoutMap(): ReadonlyMap<string, string> | null {
+	if (!useKeyboardPreferencesStore.getState().adaptiveLayoutEnabled) {
+		return null;
+	}
+	return useKeyboardLayoutStore.getState().map;
+}
 
 /**
  * KeyboardEvent → registered {@link HotkeyId}, or `null` if unbound. Uses the
@@ -134,21 +144,28 @@ function buildRegisteredAppChords(
 	return map;
 }
 
-// Reassigned on each override OR layout change; `let` is required so the
-// subscribe callbacks can replace the reference the resolver reads.
+// Reassigned on each override, layout, OR adaptive-layout-toggle change;
+// `let` is required so the subscribe callbacks can replace the reference
+// the resolver reads.
 let registeredAppChords = buildRegisteredAppChords(
 	useHotkeyOverridesStore.getState().overrides,
-	useKeyboardLayoutStore.getState().map,
+	activeLayoutMap(),
 );
 useHotkeyOverridesStore.subscribe((state) => {
 	registeredAppChords = buildRegisteredAppChords(
 		state.overrides,
-		useKeyboardLayoutStore.getState().map,
+		activeLayoutMap(),
 	);
 });
-useKeyboardLayoutStore.subscribe((state) => {
+useKeyboardLayoutStore.subscribe(() => {
 	registeredAppChords = buildRegisteredAppChords(
 		useHotkeyOverridesStore.getState().overrides,
-		state.map,
+		activeLayoutMap(),
+	);
+});
+useKeyboardPreferencesStore.subscribe(() => {
+	registeredAppChords = buildRegisteredAppChords(
+		useHotkeyOverridesStore.getState().overrides,
+		activeLayoutMap(),
 	);
 });
