@@ -66,6 +66,7 @@ const {
 	createDroidSettingsJson,
 	createDroidWrapper,
 	createMastraWrapper,
+	createPiExtension,
 	getClaudeGlobalSettingsJsonContent,
 	getClaudeManagedHookCommand,
 	getCodexGlobalHooksJsonContent,
@@ -74,6 +75,9 @@ const {
 	getDroidSettingsJsonContent,
 	getGeminiSettingsJsonContent,
 	getMastraHooksJsonContent,
+	getPiExtensionContent,
+	getPiExtensionPath,
+	PI_EXTENSION_MARKER,
 } = await import("./agent-wrappers");
 const { reconcileManagedEntries } = await import("./agent-wrappers-common");
 
@@ -1281,5 +1285,47 @@ describe("agent-wrappers codex hooks.json", () => {
 		expect(
 			getCodexGlobalHooksJsonContent("/tmp/.superset/hooks/notify.sh"),
 		).toBeNull();
+	});
+});
+
+describe("agent-wrappers pi", () => {
+	beforeEach(() => {
+		mockedHomeDir = path.join(TEST_ROOT, "home");
+		mkdirSync(TEST_BIN_DIR, { recursive: true });
+		mkdirSync(TEST_HOOKS_DIR, { recursive: true });
+	});
+
+	afterEach(() => {
+		rmSync(TEST_ROOT, { recursive: true, force: true });
+	});
+
+	it("renders pi extension content with the marker substituted", () => {
+		const content = getPiExtensionContent();
+		expect(content).toContain(PI_EXTENSION_MARKER);
+		expect(content).not.toContain("{{MARKER}}");
+	});
+
+	it("renders pi extension content as a valid extension default-export shape", () => {
+		const content = getPiExtensionContent();
+		expect(content).toContain("export default function");
+	});
+
+	it("installs the pi extension into the global ~/.pi/agent/extensions directory", () => {
+		const extensionPath = getPiExtensionPath();
+		expect(extensionPath).toBe(
+			path.join(
+				mockedHomeDir,
+				".pi",
+				"agent",
+				"extensions",
+				"superset-hooks.ts",
+			),
+		);
+
+		createPiExtension();
+
+		const installed = readFileSync(extensionPath, "utf-8");
+		expect(installed).toContain(PI_EXTENSION_MARKER);
+		expect(installed).toContain("export default function");
 	});
 });
