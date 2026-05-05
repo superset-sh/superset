@@ -850,27 +850,18 @@ export const workspacesRouter = router({
 			const terminalsResult: Array<{ terminalId: string; label?: string }> = [];
 
 			if (!alreadyExists) {
-				// worktreePath is set in the !alreadyExists branches above.
-				const setupWorktreePath = ctx.db.query.workspaces
-					.findFirst({
-						where: eq(workspaces.id, workspaceRow.id),
-					})
-					.sync()?.worktreePath;
-				if (setupWorktreePath) {
-					const { terminal, warning } = await startSetupTerminalIfPresent({
-						ctx,
-						workspaceId: workspaceRow.id,
-						worktreePath: setupWorktreePath,
+				const { terminal, warning } = await startSetupTerminalIfPresent({
+					ctx,
+					workspaceId: workspaceRow.id,
+				});
+				if (warning) {
+					console.warn(`[workspaces.create] setup warning: ${warning}`);
+				}
+				if (terminal) {
+					terminalsResult.push({
+						terminalId: terminal.id,
+						label: terminal.label,
 					});
-					if (warning) {
-						console.warn(`[workspaces.create] setup warning: ${warning}`);
-					}
-					if (terminal) {
-						terminalsResult.push({
-							terminalId: terminal.id,
-							label: terminal.label,
-						});
-					}
 				}
 			}
 

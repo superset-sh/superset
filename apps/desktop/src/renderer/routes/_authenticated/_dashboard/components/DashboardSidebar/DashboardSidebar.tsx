@@ -26,12 +26,14 @@ import { createPortal } from "react-dom";
 import { HiOutlineCog6Tooth } from "react-icons/hi2";
 import { useHotkeyDisplay } from "renderer/hotkeys";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
+import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { DashboardSidebarHeader } from "./components/DashboardSidebarHeader";
 import { DashboardSidebarHelpMenu } from "./components/DashboardSidebarHelpMenu";
 import { DashboardSidebarHoverCardOverlay } from "./components/DashboardSidebarHoverCardOverlay";
 import { DashboardSidebarPortsList } from "./components/DashboardSidebarPortsList";
 import { DashboardSidebarProjectSection } from "./components/DashboardSidebarProjectSection";
 import { DashboardSidebarSectionRenameProvider } from "./components/DashboardSidebarSectionRenameContext";
+import { V2SetupScriptCard } from "./components/V2SetupScriptCard";
 import { useDashboardSidebarData } from "./hooks/useDashboardSidebarData";
 import { useDashboardSidebarShortcuts } from "./hooks/useDashboardSidebarShortcuts";
 import { DashboardSidebarHoverProvider } from "./providers/DashboardSidebarHoverProvider";
@@ -101,6 +103,9 @@ export function DashboardSidebar({
 	const matchRoute = useMatchRoute();
 	const settingsHotkey = useHotkeyDisplay("OPEN_SETTINGS").text;
 	const isSettingsOpen = !!matchRoute({ to: "/settings", fuzzy: true });
+	const { activeHostUrl } = useLocalHostService();
+	const v2RouteMatch = matchRoute({ to: "/v2-workspace/$workspaceId" });
+	const activeV2WorkspaceId = v2RouteMatch ? v2RouteMatch.workspaceId : null;
 
 	const sensors = useSensors(
 		useSensor(MouseSensor, { activationConstraint: { distance: 8 } }),
@@ -129,6 +134,26 @@ export function DashboardSidebar({
 			.map((id) => byId.get(id))
 			.filter((g): g is DashboardSidebarProject => g != null);
 	}, [groups, projectOrder]);
+
+	const activeV2Project = useMemo(() => {
+		if (!activeV2WorkspaceId) return null;
+		for (const project of groups) {
+			for (const child of project.children) {
+				if (
+					child.type === "workspace" &&
+					child.workspace.id === activeV2WorkspaceId
+				) {
+					return project;
+				}
+				if (child.type === "section") {
+					for (const ws of child.section.workspaces) {
+						if (ws.id === activeV2WorkspaceId) return project;
+					}
+				}
+			}
+		}
+		return null;
+	}, [groups, activeV2WorkspaceId]);
 
 	const handleDragEnd = useCallback(
 		({ active, over }: DragEndEvent) => {
@@ -204,6 +229,13 @@ export function DashboardSidebar({
 							</DndContext>
 						</div>
 						{!isCollapsed && <DashboardSidebarPortsList />}
+						{!isCollapsed && activeV2Project && activeHostUrl && (
+							<V2SetupScriptCard
+								hostUrl={activeHostUrl}
+								projectId={activeV2Project.id}
+								projectName={activeV2Project.name}
+							/>
+						)}
 						<div
 							className={cn(
 								"border-t border-border",
