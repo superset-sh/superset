@@ -237,7 +237,7 @@ export function useAccessibleV2Workspaces(
 					{ userHosts: collections.v2UsersHosts },
 					({ hosts, userHosts }) => eq(userHosts.hostId, hosts.machineId),
 				)
-				.innerJoin(
+				.leftJoin(
 					{ projects: collections.v2Projects },
 					({ workspaces, projects }) => eq(workspaces.projectId, projects.id),
 				)
@@ -282,9 +282,9 @@ export function useAccessibleV2Workspaces(
 						createdByUserId: workspaces.createdByUserId,
 						createdByName: creators?.name ?? null,
 						createdByImage: creators?.image ?? null,
-						projectId: projects.id,
-						projectName: projects.name,
-						projectRepoId: projects.githubRepositoryId,
+						projectId: projects?.id ?? workspaces.projectId,
+						projectName: projects?.name ?? null,
+						projectRepoId: projects?.githubRepositoryId ?? null,
 						projectGithubOwner: repos?.owner ?? null,
 						hostId: workspaces.hostId,
 						hostName: hosts.name,
@@ -390,9 +390,9 @@ export function useAccessibleV2Workspaces(
 				createdByImage: row.createdByImage ?? null,
 				isCreatedByCurrentUser:
 					currentUserId != null && row.createdByUserId === currentUserId,
-				projectId: row.projectId,
-				projectName: row.projectName,
-				projectRepoId: row.projectRepoId,
+				projectId: row.projectId ?? "",
+				projectName: row.projectName ?? "",
+				projectRepoId: row.projectRepoId ?? null,
 				projectGithubOwner: row.projectGithubOwner ?? null,
 				hostId: row.hostId,
 				hostName: row.hostName,
