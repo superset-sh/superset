@@ -5,9 +5,15 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 import { checkHostAccess } from "./access";
+import { createAdminApp } from "./admin";
 import { type AuthContext, verifyJWT } from "./auth";
+import * as directory from "./directory";
 import { env } from "./env";
+import { captureSentryException, initSentry } from "./sentry";
+import { startSyntheticCheck } from "./synthetic";
 import { TunnelManager } from "./tunnel";
+
+initSentry();
 
 type AppContext = {
 	Variables: {
@@ -24,7 +30,9 @@ const { injectWebSocket, upgradeWebSocket } = createNodeWebSocket({ app });
 app.use("*", logger());
 app.use("*", cors());
 
-app.get("/health", (c) => c.json({ ok: true }));
+app.get("/health", (c) => c.json({ ok: true, region: env.FLY_REGION }));
+
+app.route("/admin", createAdminApp(tunnelManager));
 
 // ── Auth ────────────────────────────────────────────────────────────
 
@@ -37,6 +45,28 @@ function extractToken(c: {
 	const header = c.req.header("Authorization");
 	if (header?.startsWith("Bearer ")) return header.slice(7);
 	return c.req.query("token") ?? null;
+}
+
+async function maybeReplay(hostId: string): Promise<{
+	header: Record<string, string>;
+	kind: "instance" | "region";
+} | null> {
+	if (tunnelManager.hasTunnel(hostId)) return null;
+	const owner = await directory.lookup(hostId).catch((err) => {
+		captureSentryException(err, { op: "directory.lookup", hostId });
+		return null;
+	});
+	if (!owner) return null;
+	if (owner.region === env.FLY_REGION) {
+		return {
+			header: { "fly-replay": `instance=${owner.machineId}` },
+			kind: "instance",
+		};
+	}
+	return {
+		header: { "fly-replay": `region=${owner.region}` },
+		kind: "region",
+	};
 }
 
 const authMiddleware: MiddlewareHandler<AppContext> = async (c, next) => {
@@ -52,8 +82,11 @@ const authMiddleware: MiddlewareHandler<AppContext> = async (c, next) => {
 	const hasAccess = await checkHostAccess(token, hostId);
 	if (!hasAccess) return c.json({ error: "Forbidden" }, 403);
 
-	if (!tunnelManager.hasTunnel(hostId))
+	if (!tunnelManager.hasTunnel(hostId)) {
+		const replay = await maybeReplay(hostId);
+		if (replay) return c.body(null, 200, replay.header);
 		return c.json({ error: "Host not connected" }, 503);
+	}
 
 	c.set("auth", auth);
 	c.set("token", token);
@@ -106,6 +139,19 @@ app.get(
 	}),
 );
 
+// ── Pre-flight for WS replay (host hits this once before opening WS to a host) ─
+
+app.get("/hosts/:hostId/_whoowns", async (c) => {
+	const hostId = c.req.param("hostId");
+	const replay = await maybeReplay(hostId);
+	if (!replay) {
+		return tunnelManager.hasTunnel(hostId)
+			? c.json({ ok: true, region: env.FLY_REGION })
+			: c.json({ error: "Host not connected" }, 503);
+	}
+	return c.body(null, 200, replay.header);
+});
+
 // ── Host proxy (auth required) ──────────────────────────────────────
 
 app.use("/hosts/:hostId/*", authMiddleware);
@@ -134,6 +180,7 @@ app.all("/hosts/:hostId/trpc/*", async (c) => {
 			headers: res.headers,
 		});
 	} catch (error) {
+		captureSentryException(error, { hostId, path });
 		return c.json(
 			{ error: error instanceof Error ? error.message : "Proxy error" },
 			502,
@@ -173,9 +220,30 @@ app.get(
 	}),
 );
 
+// ── Periodic directory sweeper ──────────────────────────────────────
+
+setInterval(() => {
+	void directory.sweepStale().catch((err) => {
+		captureSentryException(err, { op: "directory.sweepStale" });
+	});
+}, 30_000);
+
+// ── Synthetic check ─────────────────────────────────────────────────
+
+if (env.RELAY_SYNTHETIC_JWT) {
+	startSyntheticCheck({
+		relayUrl: env.RELAY_PUBLIC_URL,
+		jwt: env.RELAY_SYNTHETIC_JWT,
+		region: env.FLY_REGION,
+		machineId: env.FLY_MACHINE_ID,
+	});
+}
+
 // ── Start ───────────────────────────────────────────────────────────
 
 const server = serve({ fetch: app.fetch, port: env.RELAY_PORT }, (info) => {
-	console.log(`[relay] listening on http://localhost:${info.port}`);
+	console.log(
+		`[relay] listening on http://localhost:${info.port} (region=${env.FLY_REGION} machine=${env.FLY_MACHINE_ID})`,
+	);
 });
 injectWebSocket(server);

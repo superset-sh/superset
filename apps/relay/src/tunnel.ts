@@ -1,4 +1,6 @@
 import { createApiClient } from "./api-client";
+import * as directory from "./directory";
+import { env } from "./env";
 import type { TunnelHttpResponse, TunnelRequest } from "./types";
 
 type WsSocket = {
@@ -9,6 +11,16 @@ type WsSocket = {
 
 const PING_INTERVAL_MS = 30_000;
 const PING_TIMEOUT_MISSED = 3;
+const ONLINE_DEBOUNCE_MS = 250;
+const FLAP_THRESHOLD_MS = 5_000;
+const FLAP_BUFFER_MAX = 200;
+
+interface FlapEvent {
+	hostId: string;
+	registeredAt: number;
+	unregisteredAt: number;
+	lifetimeMs: number;
+}
 
 interface PendingRequest {
 	resolve: (response: TunnelHttpResponse) => void;
@@ -24,22 +36,36 @@ interface TunnelState {
 	activeChannels: Map<string, WsSocket>;
 	pingTimer: ReturnType<typeof setInterval> | null;
 	missedPings: number;
+	registeredAt: number;
 }
 
 export class TunnelManager {
 	private readonly tunnels = new Map<string, TunnelState>();
 	private readonly requestTimeoutMs: number;
+	private readonly onlineState = new Map<string, boolean>();
+	private readonly onlineDebounce = new Map<
+		string,
+		ReturnType<typeof setTimeout>
+	>();
+	private readonly flapBuffer: FlapEvent[] = [];
 
 	constructor(requestTimeoutMs = 30_000) {
 		this.requestTimeoutMs = requestTimeoutMs;
 	}
 
 	register(hostId: string, token: string, ws: WsSocket): void {
-		if (this.tunnels.has(hostId)) {
-			ws.close(1000, "Tunnel already registered");
-			return;
+		// Last-write-wins: close the old socket so flaky clients don't get
+		// stuck behind a dead-but-not-yet-detected WS.
+		const existing = this.tunnels.get(hostId);
+		if (existing) {
+			console.log(
+				`[relay] tunnel re-register: closing old socket for ${hostId}`,
+			);
+			this.disposeTunnel(existing, "Replaced by new tunnel");
+			this.tunnels.delete(hostId);
 		}
 
+		const now = Date.now();
 		const tunnel: TunnelState = {
 			hostId,
 			token,
@@ -48,6 +74,7 @@ export class TunnelManager {
 			activeChannels: new Map(),
 			pingTimer: null,
 			missedPings: 0,
+			registeredAt: now,
 		};
 
 		this.tunnels.set(hostId, tunnel);
@@ -61,9 +88,12 @@ export class TunnelManager {
 			this.send(ws, { type: "ping" });
 		}, PING_INTERVAL_MS);
 
-		void createApiClient(token)
-			.host.setOnline.mutate({ hostId, isOnline: true })
-			.catch(() => {});
+		void directory
+			.register(hostId, env.FLY_REGION, env.FLY_MACHINE_ID)
+			.catch((err) => {
+				console.error("[relay] directory.register failed", err);
+			});
+		this.scheduleOnlineWrite(hostId, token, true);
 		console.log(`[relay] tunnel registered: ${hostId}`);
 	}
 
@@ -71,22 +101,98 @@ export class TunnelManager {
 		const tunnel = this.tunnels.get(hostId);
 		if (!tunnel) return;
 
+		const lifetimeMs = Date.now() - tunnel.registeredAt;
+		if (lifetimeMs < FLAP_THRESHOLD_MS) {
+			this.recordFlap({
+				hostId,
+				registeredAt: tunnel.registeredAt,
+				unregisteredAt: Date.now(),
+				lifetimeMs,
+			});
+		}
+
+		this.disposeTunnel(tunnel, "Tunnel disconnected");
+		this.tunnels.delete(hostId);
+
+		void directory.unregister(hostId).catch((err) => {
+			console.error("[relay] directory.unregister failed", err);
+		});
+		this.scheduleOnlineWrite(hostId, tunnel.token, false);
+		console.log(`[relay] tunnel unregistered: ${hostId}`);
+	}
+
+	private disposeTunnel(tunnel: TunnelState, reason: string): void {
 		if (tunnel.pingTimer) clearInterval(tunnel.pingTimer);
 
 		for (const [, pending] of tunnel.pendingRequests) {
 			clearTimeout(pending.timer);
-			pending.reject(new Error("Tunnel disconnected"));
+			pending.reject(new Error(reason));
 		}
 
 		for (const [, clientWs] of tunnel.activeChannels) {
-			clientWs.close(1001, "Tunnel disconnected");
+			clientWs.close(1001, reason);
 		}
 
-		void createApiClient(tunnel.token)
-			.host.setOnline.mutate({ hostId, isOnline: false })
-			.catch(() => {});
-		this.tunnels.delete(hostId);
-		console.log(`[relay] tunnel unregistered: ${hostId}`);
+		try {
+			tunnel.ws.close(1000, reason);
+		} catch {
+			// already closed
+		}
+	}
+
+	private scheduleOnlineWrite(
+		hostId: string,
+		token: string,
+		isOnline: boolean,
+	): void {
+		// Debounce + drop redundant writes so flapping reconnects don't spam the API.
+		if (this.onlineState.get(hostId) === isOnline) {
+			const pending = this.onlineDebounce.get(hostId);
+			if (pending) {
+				clearTimeout(pending);
+				this.onlineDebounce.delete(hostId);
+			}
+			return;
+		}
+		const pending = this.onlineDebounce.get(hostId);
+		if (pending) clearTimeout(pending);
+		const timer = setTimeout(() => {
+			this.onlineDebounce.delete(hostId);
+			if (this.onlineState.get(hostId) === isOnline) return;
+			this.onlineState.set(hostId, isOnline);
+			void createApiClient(token)
+				.host.setOnline.mutate({ hostId, isOnline })
+				.catch((err) => {
+					console.error("[relay] setOnline mutate failed", err);
+				});
+		}, ONLINE_DEBOUNCE_MS);
+		this.onlineDebounce.set(hostId, timer);
+	}
+
+	private recordFlap(flap: FlapEvent): void {
+		this.flapBuffer.push(flap);
+		if (this.flapBuffer.length > FLAP_BUFFER_MAX) {
+			this.flapBuffer.splice(0, this.flapBuffer.length - FLAP_BUFFER_MAX);
+		}
+	}
+
+	getRecentFlaps(sinceMs: number): FlapEvent[] {
+		const cutoff = Date.now() - sinceMs;
+		return this.flapBuffer.filter((f) => f.unregisteredAt >= cutoff);
+	}
+
+	getActiveTunnels(): {
+		hostId: string;
+		registeredAt: number;
+		pendingRequests: number;
+		activeChannels: number;
+	}[] {
+		return Array.from(this.tunnels.values()).map((t) => ({
+			hostId: t.hostId,
+			registeredAt: t.registeredAt,
+			pendingRequests: t.pendingRequests.size,
+			activeChannels: t.activeChannels.size,
+		}));
 	}
 
 	hasTunnel(hostId: string): boolean {
@@ -165,6 +271,7 @@ export class TunnelManager {
 
 		if (msg.type === "pong") {
 			tunnel.missedPings = 0;
+			void directory.heartbeat(hostId).catch(() => {});
 		} else if (msg.type === "http:response") {
 			const pending = tunnel.pendingRequests.get(msg.id as string);
 			if (pending) {
