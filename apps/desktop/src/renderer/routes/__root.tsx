@@ -12,12 +12,6 @@ export const Route = createRootRouteWithContext<RouterContext>()({
 	component: RootComponent,
 	notFoundComponent: NotFound,
 	errorComponent: ErrorPage,
-	onCatch: (error) => {
-		console.error("[renderer] Route error caught:", error);
-		void import("@sentry/electron/renderer")
-			.then((Sentry) => Sentry.captureException(error))
-			.catch(() => {});
-	},
 });
 
 function RootComponent() {

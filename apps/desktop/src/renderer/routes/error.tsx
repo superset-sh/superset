@@ -1,7 +1,7 @@
 import { Button } from "@superset/ui/button";
 import type { ErrorComponentProps } from "@tanstack/react-router";
 import { Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
 	HiCheck,
 	HiExclamationTriangle,
@@ -10,15 +10,28 @@ import {
 import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
 
 const IS_DEV = process.env.NODE_ENV === "development";
+const ERROR_DETAILS_ID = "error-details";
 
-export function ErrorPage({ error }: ErrorComponentProps) {
+export function ErrorPage({ error, info }: ErrorComponentProps) {
 	const message =
 		error instanceof Error ? error.message : String(error ?? "Unknown error");
 	const stack = error instanceof Error ? error.stack : undefined;
 	const details = stack ?? message;
+	const componentStack = info?.componentStack;
 
 	const [showDetails, setShowDetails] = useState(IS_DEV);
 	const { copyToClipboard, copied } = useCopyToClipboard();
+
+	useEffect(() => {
+		console.error("[renderer] Route error caught:", error, componentStack);
+		void import("@sentry/electron/renderer")
+			.then((Sentry) =>
+				Sentry.captureException(error, {
+					extra: componentStack ? { componentStack } : undefined,
+				}),
+			)
+			.catch(() => {});
+	}, [error, componentStack]);
 
 	return (
 		<div className="flex flex-col h-full w-full bg-background">
@@ -47,16 +60,20 @@ export function ErrorPage({ error }: ErrorComponentProps) {
 					<button
 						type="button"
 						onClick={() => setShowDetails((value) => !value)}
+						aria-expanded={showDetails}
+						aria-controls={ERROR_DETAILS_ID}
 						className="text-xs text-muted-foreground hover:text-foreground transition-colors"
 					>
 						{showDetails ? "Hide details" : "Show details"}
 					</button>
 
 					{showDetails && (
-						<div className="relative w-full">
+						<div id={ERROR_DETAILS_ID} className="relative w-full">
 							<button
 								type="button"
-								onClick={() => copyToClipboard(details)}
+								onClick={() => {
+									void copyToClipboard(details).catch(() => {});
+								}}
 								className="absolute top-2 right-2 flex items-center justify-center h-6 w-6 bg-background/80 backdrop-blur border border-border rounded hover:bg-accent transition-colors"
 								aria-label="Copy error details"
 							>
