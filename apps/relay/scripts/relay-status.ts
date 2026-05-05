@@ -118,19 +118,25 @@ async function fetchMachines(): Promise<FlyMachine[]> {
 
 async function probeMachine(m: FlyMachine): Promise<MachineTunnels | null> {
 	if (m.state !== "started") return null;
-	// flycast resolves <machine-id>.vm.<app>.internal — but that's only reachable
-	// from inside the fly network. From outside we hit the public hostname with a
-	// fly-prefer-instance header so the LB pins us to this machine.
+	// fly-prefer-instance-id only routes within a region — cross-region it
+	// silently falls back to the nearest machine. Use fly-force-instance-id
+	// + a region pin so we always hit the right box.
 	const url = `https://${APP}.fly.dev/admin/tunnels`;
 	try {
 		const res = await fetch(url, {
 			headers: {
 				Authorization: `Bearer ${ADMIN_SECRET}`,
-				"fly-prefer-instance-id": m.id,
+				"fly-force-instance-id": m.id,
+				"fly-prefer-region": m.region,
 			},
 		});
 		if (!res.ok) return null;
-		return (await res.json()) as MachineTunnels;
+		const body = (await res.json()) as MachineTunnels;
+		// Sanity: if fly routed us to a different machine, drop the result so
+		// we don't double-count. (Reproducible if fly-force returns a 502 or
+		// the targeted machine is mid-restart.)
+		if (body.machineId !== m.id) return null;
+		return body;
 	} catch {
 		return null;
 	}
