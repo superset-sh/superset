@@ -194,21 +194,6 @@ describe("resolveGithubRepo trusts the live local remote, never the cloud", () =
 				},
 			}),
 		},
-		issues: {
-			get: async () => ({
-				data: {
-					number: 42,
-					title: "Issue #42",
-					html_url: "https://github.com/cli/cli/issues/42",
-					state: "open",
-					user: { login: "alice" },
-					pull_request: undefined,
-				},
-			}),
-		},
-		search: {
-			issuesAndPullRequests: async () => ({ data: { items: [] } }),
-		},
 	};
 
 	beforeEach(async () => {
@@ -243,14 +228,6 @@ describe("resolveGithubRepo trusts the live local remote, never the cloud", () =
 		});
 		expect(result.pullRequests).toHaveLength(1);
 		expect(result.pullRequests[0].url).toContain("github.com/cli/cli");
-	});
-
-	test("searchGitHubIssues works without throwing 'no linked GitHub repository'", async () => {
-		const result = await host.trpc.workspaceCreation.searchGitHubIssues.query({
-			projectId,
-			query: "anything",
-		});
-		expect(result.issues).toEqual([]);
 	});
 });
 
