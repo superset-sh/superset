@@ -1,6 +1,7 @@
 import { createServer, type Server } from "node:http";
 
 interface LoopbackOptions {
+	host: string;
 	port: number;
 	path: string;
 	onCallback: (callbackUrl: string) => void;
@@ -8,6 +9,7 @@ interface LoopbackOptions {
 }
 
 export interface LoopbackTarget {
+	host: string;
 	port: number;
 	path: string;
 }
@@ -20,14 +22,19 @@ export function parseLoopbackTargetFromAuthUrl(
 		const redirectUriRaw = parsed.searchParams.get("redirect_uri");
 		if (!redirectUriRaw) return null;
 		const redirectUri = new URL(redirectUriRaw);
+		// `URL.hostname` keeps the brackets on IPv6 literals (e.g. "[::1]");
+		// strip them for `server.listen`, which expects the bare address.
+		const rawHostname = redirectUri.hostname;
+		const host =
+			rawHostname.startsWith("[") && rawHostname.endsWith("]")
+				? rawHostname.slice(1, -1)
+				: rawHostname;
 		const isLoopback =
-			redirectUri.hostname === "localhost" ||
-			redirectUri.hostname === "127.0.0.1" ||
-			redirectUri.hostname === "[::1]";
+			host === "localhost" || host === "127.0.0.1" || host === "::1";
 		if (!isLoopback) return null;
 		const port = Number(redirectUri.port);
 		if (!Number.isFinite(port) || port <= 0) return null;
-		return { port, path: redirectUri.pathname || "/" };
+		return { host, port, path: redirectUri.pathname || "/" };
 	} catch {
 		return null;
 	}
@@ -38,11 +45,16 @@ export class OpenAIOAuthLoopback {
 
 	async start(options: LoopbackOptions): Promise<void> {
 		return new Promise<void>((resolve, reject) => {
+			// Bracket IPv6 literals when building the URL base so the parser
+			// accepts them; the bare `options.host` may be "::1".
+			const urlHost = options.host.includes(":")
+				? `[${options.host}]`
+				: options.host;
 			const server = createServer((req, res) => {
 				try {
 					const requestUrl = new URL(
 						req.url ?? "/",
-						`http://127.0.0.1:${options.port}`,
+						`http://${urlHost}:${options.port}`,
 					);
 					if (requestUrl.pathname !== options.path) {
 						res.writeHead(404, { "content-type": "text/plain" });
@@ -77,7 +89,7 @@ export class OpenAIOAuthLoopback {
 
 			const onListenError = (err: Error) => reject(err);
 			server.once("error", onListenError);
-			server.listen(options.port, "127.0.0.1", () => {
+			server.listen(options.port, options.host, () => {
 				server.off("error", onListenError);
 				this.server = server;
 				resolve();

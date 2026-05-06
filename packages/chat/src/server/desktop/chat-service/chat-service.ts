@@ -388,6 +388,7 @@ export class ChatService {
 			const loopback = new OpenAIOAuthLoopback();
 			try {
 				await loopback.start({
+					host: target.host,
 					port: target.port,
 					path: target.path,
 					onCallback: (callbackUrl) => {
