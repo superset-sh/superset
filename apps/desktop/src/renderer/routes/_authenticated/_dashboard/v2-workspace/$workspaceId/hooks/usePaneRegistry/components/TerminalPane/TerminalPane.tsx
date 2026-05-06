@@ -33,6 +33,8 @@ import { openUrlInV2Workspace } from "renderer/routes/_authenticated/_dashboard/
 import { useWorkspaceWsUrl } from "renderer/routes/_authenticated/_dashboard/v2-workspace/providers/WorkspaceTrpcProvider/WorkspaceTrpcProvider";
 import { ScrollToBottomButton } from "renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/Terminal/ScrollToBottomButton";
 import { TerminalSearch } from "renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/Terminal/TerminalSearch";
+import { useTheme } from "renderer/stores/theme";
+import { resolveTerminalThemeType } from "renderer/stores/theme/utils";
 import { useLinkClickHint } from "./hooks/useLinkClickHint";
 import { type HoveredLink, useLinkHoverState } from "./hooks/useLinkHoverState";
 import { useTerminalAppearance } from "./hooks/useTerminalAppearance";
@@ -71,7 +73,17 @@ export function TerminalPane({
 	const appearanceRef = useRef(appearance);
 	appearanceRef.current = appearance;
 
-	const websocketUrl = useWorkspaceWsUrl(`/terminal/${terminalId}`);
+	// themeType is forwarded so a respawn (host-side fallback when an
+	// "active" DB row's daemon PTY is gone) spawns the new shell with the
+	// correct COLORFGBG env var. The PTY env is set at spawn time only —
+	// changing the renderer theme afterwards won't reach the shell.
+	const activeTheme = useTheme();
+	const themeType = resolveTerminalThemeType({
+		activeThemeType: activeTheme?.type,
+	});
+	const websocketUrl = useWorkspaceWsUrl(
+		`/terminal/${terminalId}?themeType=${themeType}`,
+	);
 	const websocketUrlRef = useRef(websocketUrl);
 	websocketUrlRef.current = websocketUrl;
 	const workspaceIdRef = useRef(workspaceId);

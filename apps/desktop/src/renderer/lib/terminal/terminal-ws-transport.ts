@@ -48,6 +48,12 @@ export interface TerminalTransport {
 	/** Set when the server sends an exit message — no reconnect after this. */
 	_exited: boolean;
 	/**
+	 * Set when the server rejects attach with an `error` frame. Distinct from
+	 * `_exited` (which means the PTY itself died) so future consumers can tell
+	 * "shell finished" apart from "server refused us"; both suppress reconnect.
+	 */
+	_fatalError: boolean;
+	/**
 	 * Flips true after the first PTY-output frame lands in xterm. Subsequent
 	 * connects send `?replay=0` so the server doesn't re-deliver scrollback.
 	 * Tracked on first bytes (not first open) so a WS that opens-and-closes
@@ -133,12 +139,13 @@ export function createTransport(): TerminalTransport {
 		_terminal: null,
 		_hasReceivedBytes: false,
 		_exited: false,
+		_fatalError: false,
 	};
 }
 
 function scheduleReconnect(transport: TerminalTransport) {
 	if (transport._reconnectTimer) return;
-	if (transport._exited) return;
+	if (transport._exited || transport._fatalError) return;
 	if (!transport.currentUrl || !transport._terminal) return;
 	if (transport._reconnectAttempt >= MAX_RECONNECT_ATTEMPTS) return;
 
@@ -215,6 +222,7 @@ export function connect(
 	transport.currentUrl = wsUrl;
 	transport._terminal = terminal;
 	transport._exited = false;
+	transport._fatalError = false;
 	setConnectionState(transport, "connecting");
 	const actualUrl = transport._hasReceivedBytes
 		? appendQueryParam(wsUrl, "replay", "0")
@@ -314,8 +322,9 @@ function attachSocketListeners(
 		if (message.type === "error") {
 			pushLog(transport, "error", message.message);
 			// Server closes after this; reconnecting would just hit the same
-			// error, so flag the transport done to suppress the retry loop.
-			transport._exited = true;
+			// error. _fatalError suppresses the retry loop without overloading
+			// _exited's "PTY exited normally" semantic.
+			transport._fatalError = true;
 			cancelReconnect(transport);
 			return;
 		}
@@ -333,7 +342,7 @@ function attachSocketListeners(
 		if (transport.socket !== socket) return;
 		setConnectionState(transport, "closed");
 		transport.socket = null;
-		if (!transport._exited && event.code !== 1000) {
+		if (!transport._exited && !transport._fatalError && event.code !== 1000) {
 			const willReconnect =
 				!transport._reconnectTimer &&
 				Boolean(transport.currentUrl && transport._terminal) &&
