@@ -1,8 +1,4 @@
 import { boolean, CLIError, string, table } from "@superset/cli-framework";
-import {
-	BUILTIN_AGENT_DEFINITIONS,
-	isChatAgentDefinition,
-} from "@superset/shared/agent-catalog";
 import { command } from "../../../lib/command";
 import { requireHostTarget, resolveHostTarget } from "../../../lib/host-target";
 
@@ -37,14 +33,14 @@ export default command({
 
 		const terminalConfigs =
 			await target.client.settings.agentConfigs.list.query();
-		const chatBuiltins = BUILTIN_AGENT_DEFINITIONS.filter(
-			isChatAgentDefinition,
-		).map((definition) => ({
-			id: definition.id,
-			presetId: definition.id,
-			label: definition.label,
-			command: "(superset runtime)",
-		}));
-		return [...terminalConfigs, ...chatBuiltins];
+		return [
+			...terminalConfigs,
+			{
+				id: "superset",
+				presetId: "superset",
+				label: "Superset",
+				command: "(superset runtime)",
+			},
+		];
 	},
 });

@@ -1,8 +1,4 @@
 import { readFileSync } from "node:fs";
-import {
-	BUILTIN_AGENT_DEFINITIONS,
-	isChatAgentDefinition,
-} from "@superset/shared/agent-catalog";
 import { TRPCError } from "@trpc/server";
 import { asc, eq } from "drizzle-orm";
 import { z } from "zod";
@@ -167,12 +163,8 @@ export type AgentRunResult =
 	| { kind: "terminal"; sessionId: string; label: string }
 	| { kind: "chat"; sessionId: string; label: string };
 
-function resolveChatBuiltin(agent: string) {
-	const definition = BUILTIN_AGENT_DEFINITIONS.find(
-		(item) => item.id === agent,
-	);
-	return definition && isChatAgentDefinition(definition) ? definition : null;
-}
+const SUPERSET_AGENT_ID = "superset";
+const SUPERSET_AGENT_LABEL = "Superset";
 
 async function resolveAttachmentsAsFiles(
 	attachmentIds: string[],
@@ -287,9 +279,8 @@ export async function runAgentInWorkspace(
 	ctx: HostServiceContext,
 	input: AgentRunInput,
 ): Promise<AgentRunResult> {
-	const chatBuiltin = resolveChatBuiltin(input.agent);
-	if (chatBuiltin) {
-		return runChatAgent(ctx, input, chatBuiltin.label);
+	if (input.agent === SUPERSET_AGENT_ID) {
+		return runChatAgent(ctx, input, SUPERSET_AGENT_LABEL);
 	}
 	return runTerminalAgent(ctx, input);
 }
