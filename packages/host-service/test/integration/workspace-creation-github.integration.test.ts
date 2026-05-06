@@ -1,9 +1,46 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { randomUUID } from "node:crypto";
+import { mkdtempSync, realpathSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import simpleGit from "simple-git";
+import { projects } from "../../src/db/schema";
 import { createTestHost, type TestHost } from "../helpers/createTestHost";
+
+/**
+ * Set up a real temp git working tree with a configured GitHub remote and
+ * insert a host-side `projects` row pointing at it. The PR/issue search
+ * procedures resolve owner/name by reading the live remote of this clone,
+ * so tests need a real `.git` here — no fakery substitutes for the actual
+ * `git remote get-url`.
+ */
+async function seedRepoFixture(
+	host: TestHost,
+	projectId: string,
+	remoteUrl: string,
+): Promise<string> {
+	const dir = mkdtempSync(join(tmpdir(), "ws-creation-github-test-"));
+	const git = simpleGit(dir);
+	await git.init(["--initial-branch=main"]);
+	await git.addRemote("origin", remoteUrl);
+	host.db
+		.insert(projects)
+		.values({
+			id: projectId,
+			repoPath: dir,
+			repoProvider: "github",
+			repoOwner: null,
+			repoName: null,
+			repoUrl: null,
+			remoteName: "origin",
+		})
+		.run();
+	return dir;
+}
 
 describe("workspaceCreation github procedures with mocked Octokit", () => {
 	let host: TestHost;
+	let repoDir: string;
 	const calls: Array<{ method: string; args: unknown }> = [];
 
 	const fakeOctokit = {
@@ -66,20 +103,17 @@ describe("workspaceCreation github procedures with mocked Octokit", () => {
 
 	beforeEach(async () => {
 		calls.length = 0;
-		host = await createTestHost({
-			githubFactory: async () => fakeOctokit,
-			apiOverrides: {
-				"v2Project.get.query": () => ({
-					id: projectId,
-					githubRepository: { owner: "octocat", name: "hello" },
-					repoCloneUrl: "https://github.com/octocat/hello.git",
-				}),
-			},
-		});
+		host = await createTestHost({ githubFactory: async () => fakeOctokit });
+		repoDir = await seedRepoFixture(
+			host,
+			projectId,
+			"https://github.com/octocat/hello.git",
+		);
 	});
 
 	afterEach(async () => {
 		await host.dispose();
+		rmSync(repoDir, { recursive: true, force: true });
 	});
 
 	test("searchGitHubIssues handles direct #123 lookup via issues.get", async () => {
@@ -143,8 +177,9 @@ describe("workspaceCreation github procedures with mocked Octokit", () => {
 	});
 });
 
-describe("project has repoCloneUrl but no linked githubRepository (cloud-dep regression)", () => {
+describe("resolveGithubRepo trusts the live local remote, never the cloud", () => {
 	let host: TestHost;
+	let repoDir: string;
 	const projectId = randomUUID();
 
 	const fakeOctokit = {
@@ -153,7 +188,7 @@ describe("project has repoCloneUrl but no linked githubRepository (cloud-dep reg
 				data: {
 					number: 33,
 					title: "PR #33",
-					html_url: "https://github.com/octocat/hello/pull/33",
+					html_url: "https://github.com/cli/cli/pull/33",
 					state: "open",
 					user: { login: "bob" },
 					draft: false,
@@ -166,7 +201,7 @@ describe("project has repoCloneUrl but no linked githubRepository (cloud-dep reg
 				data: {
 					number: 42,
 					title: "Issue #42",
-					html_url: "https://github.com/octocat/hello/issues/42",
+					html_url: "https://github.com/cli/cli/issues/42",
 					state: "open",
 					user: { login: "alice" },
 					pull_request: undefined,
@@ -179,16 +214,63 @@ describe("project has repoCloneUrl but no linked githubRepository (cloud-dep reg
 	};
 
 	beforeEach(async () => {
-		// Cloud project has repoCloneUrl but githubRepositoryId is NULL —
-		// matches the prod failure mode that prompted this fix. Resolver must
-		// parse repoCloneUrl rather than depending on the github_repositories
-		// join.
 		host = await createTestHost({
 			githubFactory: async () => fakeOctokit,
+			// Cloud says one repo (`somewhere/else`)…
 			apiOverrides: {
 				"v2Project.get.query": () => ({
 					id: projectId,
 					githubRepository: null,
+					repoCloneUrl: "https://github.com/somewhere/else.git",
+				}),
+			},
+		});
+		// …but the local remote points at `cli/cli`. Resolver MUST follow the
+		// local remote, not the cloud value.
+		repoDir = await seedRepoFixture(
+			host,
+			projectId,
+			"https://github.com/cli/cli.git",
+		);
+	});
+
+	afterEach(async () => {
+		await host.dispose();
+		rmSync(repoDir, { recursive: true, force: true });
+	});
+
+	test("searchPullRequests routes the call against the local remote's owner/name", async () => {
+		const result = await host.trpc.workspaceCreation.searchPullRequests.query({
+			projectId,
+			query: "#33",
+		});
+		expect(result.pullRequests).toHaveLength(1);
+		// repoMismatch detection runs on the resolved repo. If the resolver
+		// were trusting cloud `repoCloneUrl`, the cli/cli URL we'd construct
+		// for the result would mismatch `somewhere/else` and return no PRs.
+		expect(result.pullRequests[0].url).toContain("github.com/cli/cli");
+	});
+
+	test("searchGitHubIssues works without throwing 'no linked GitHub repository'", async () => {
+		const result = await host.trpc.workspaceCreation.searchGitHubIssues.query({
+			projectId,
+			query: "anything",
+		});
+		expect(result.issues).toEqual([]);
+	});
+});
+
+describe("resolveGithubRepo throws PROJECT_NOT_SETUP when no local clone", () => {
+	let host: TestHost;
+	const projectId = randomUUID();
+
+	beforeEach(async () => {
+		// No projects row, no local clone — but cloud has the project.
+		host = await createTestHost({
+			apiOverrides: {
+				"v2Project.get.query": () => ({
+					id: projectId,
+					githubRepository: { owner: "octocat", name: "hello" },
 					repoCloneUrl: "https://github.com/octocat/hello.git",
 				}),
 			},
@@ -199,26 +281,19 @@ describe("project has repoCloneUrl but no linked githubRepository (cloud-dep reg
 		await host.dispose();
 	});
 
-	test("searchPullRequests resolves owner/name from repoCloneUrl and returns a result", async () => {
-		const result = await host.trpc.workspaceCreation.searchPullRequests.query({
-			projectId,
-			query: "#33",
-		});
-		expect(result.pullRequests).toHaveLength(1);
-		expect(result.pullRequests[0].prNumber).toBe(33);
-	});
-
-	test("searchGitHubIssues resolves owner/name from repoCloneUrl without throwing", async () => {
-		const result = await host.trpc.workspaceCreation.searchGitHubIssues.query({
-			projectId,
-			query: "anything",
-		});
-		expect(result.issues).toEqual([]);
+	test("searchPullRequests refuses to query GitHub without a local clone", async () => {
+		await expect(
+			host.trpc.workspaceCreation.searchPullRequests.query({
+				projectId,
+				query: "#1",
+			}),
+		).rejects.toThrow(/Project is not set up on this host/);
 	});
 });
 
 describe("gh CLI is first-class when execGh succeeds", () => {
 	let host: TestHost;
+	let repoDir: string;
 	const projectId = randomUUID();
 	const ghCalls: Array<{ args: string[]; cwd?: string }> = [];
 
@@ -247,8 +322,6 @@ describe("gh CLI is first-class when execGh succeeds", () => {
 		options?: { cwd?: string },
 	): Promise<unknown> => {
 		ghCalls.push({ args, cwd: options?.cwd });
-		// `pr view <n>` returns a single object, `pr list` returns an array;
-		// match against the verb to pick the right shape.
 		const verb = args[1];
 		if (verb === "view" && args[0] === "pr") {
 			return {
@@ -293,21 +366,20 @@ describe("gh CLI is first-class when execGh succeeds", () => {
 		host = await createTestHost({
 			githubFactory: async () => fakeOctokit,
 			execGh: fakeExecGh,
-			apiOverrides: {
-				"v2Project.get.query": () => ({
-					id: projectId,
-					githubRepository: null,
-					repoCloneUrl: "https://github.com/octocat/hello.git",
-				}),
-			},
 		});
+		repoDir = await seedRepoFixture(
+			host,
+			projectId,
+			"https://github.com/octocat/hello.git",
+		);
 	});
 
 	afterEach(async () => {
 		await host.dispose();
+		rmSync(repoDir, { recursive: true, force: true });
 	});
 
-	test("searchPullRequests #N invokes `gh pr view` against the resolved repo", async () => {
+	test("searchPullRequests #N invokes `gh pr view` with cwd=repoPath", async () => {
 		const result = await host.trpc.workspaceCreation.searchPullRequests.query({
 			projectId,
 			query: "#33",
@@ -323,6 +395,10 @@ describe("gh CLI is first-class when execGh succeeds", () => {
 			"--repo",
 			"octocat/hello",
 		]);
+		// `simpleGit.revparse(--show-toplevel)` canonicalizes through
+		// /private on macOS (where /var is a symlink), so compare against
+		// the realpath rather than the raw mkdtemp result.
+		expect(ghCalls[0].cwd).toBe(realpathSync(repoDir));
 	});
 
 	test("searchPullRequests free-text invokes `gh pr list --search`", async () => {
