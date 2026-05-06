@@ -14,6 +14,7 @@ interface ImportProjectsPageProps {
 }
 
 const FIND_BY_PATH_KEY_PREFIX = ["v1-import", "findByPath"] as const;
+const HOST_PROJECT_LIST_KEY_PREFIX = ["v1-import", "hostProjectList"] as const;
 
 export function ImportProjectsPage({
 	organizationId,
@@ -201,9 +202,14 @@ function ProjectRow({
 			});
 
 			setLinkedV2Id(v2ProjectId);
-			await queryClient.invalidateQueries({
-				queryKey: [...FIND_BY_PATH_KEY_PREFIX, project.mainRepoPath],
-			});
+			await Promise.all([
+				queryClient.invalidateQueries({
+					queryKey: [...FIND_BY_PATH_KEY_PREFIX, project.mainRepoPath],
+				}),
+				queryClient.invalidateQueries({
+					queryKey: HOST_PROJECT_LIST_KEY_PREFIX,
+				}),
+			]);
 		} catch (err) {
 			const message = err instanceof Error ? err.message : String(err);
 			setErrorMessage(message);

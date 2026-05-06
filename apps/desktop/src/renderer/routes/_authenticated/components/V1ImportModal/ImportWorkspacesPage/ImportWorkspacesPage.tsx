@@ -14,7 +14,7 @@ interface ImportWorkspacesPageProps {
 
 const WORKTREE_LIST_KEY_PREFIX = ["v1-import", "projectWorktrees"] as const;
 const WORKSPACE_CLOUD_LIST_KEY = ["v1-import", "workspaceCloudList"] as const;
-const HOST_PROJECT_LIST_KEY = ["v1-import", "hostProjectList"] as const;
+const HOST_PROJECT_LIST_KEY_PREFIX = ["v1-import", "hostProjectList"] as const;
 
 function trpcCode(err: unknown): string | null {
 	if (typeof err !== "object" || err === null) return null;
@@ -34,7 +34,7 @@ export function ImportWorkspacesPage({
 	const worktreesQuery = electronTrpc.migration.readV1Worktrees.useQuery();
 
 	const hostProjectListQuery = useQuery({
-		queryKey: [...HOST_PROJECT_LIST_KEY, activeHostUrl],
+		queryKey: [...HOST_PROJECT_LIST_KEY_PREFIX, activeHostUrl],
 		queryFn: async () => {
 			const client = getHostServiceClientByUrl(activeHostUrl);
 			return client.project.list.query();
@@ -137,7 +137,12 @@ export function ImportWorkspacesPage({
 	);
 	const allWorkspaces = workspacesQuery.data ?? [];
 
-	const visibleWorkspaces: typeof allWorkspaces = [];
+	type VisibleWorkspace = {
+		workspace: (typeof allWorkspaces)[number];
+		v2ProjectId: string;
+		alreadyImported: boolean;
+	};
+	const visibleWorkspaces: VisibleWorkspace[] = [];
 	for (const workspace of allWorkspaces) {
 		const v2ProjectId = v2ProjectIdByV1Id.get(workspace.projectId);
 		if (!v2ProjectId) continue;
@@ -151,25 +156,25 @@ export function ImportWorkspacesPage({
 				continue;
 			}
 		}
-		visibleWorkspaces.push(workspace);
+		visibleWorkspaces.push({ workspace, v2ProjectId, alreadyImported });
 	}
 
 	const grouped = new Map<
 		string,
 		{
 			projectName: string;
-			items: typeof visibleWorkspaces;
+			items: VisibleWorkspace[];
 		}
 	>();
-	for (const workspace of visibleWorkspaces) {
-		const project = projectsById.get(workspace.projectId);
+	for (const entry of visibleWorkspaces) {
+		const project = projectsById.get(entry.workspace.projectId);
 		if (!project) continue;
-		const bucket = grouped.get(workspace.projectId) ?? {
+		const bucket = grouped.get(entry.workspace.projectId) ?? {
 			projectName: project.name,
 			items: [],
 		};
-		bucket.items.push(workspace);
-		grouped.set(workspace.projectId, bucket);
+		bucket.items.push(entry);
+		grouped.set(entry.workspace.projectId, bucket);
 	}
 
 	return (
@@ -191,7 +196,7 @@ export function ImportWorkspacesPage({
 					<div className="px-3 pt-2 pb-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
 						{group.projectName}
 					</div>
-					{group.items.map((workspace) => (
+					{group.items.map(({ workspace, v2ProjectId, alreadyImported }) => (
 						<WorkspaceRow
 							key={workspace.id}
 							workspace={workspace}
@@ -206,14 +211,8 @@ export function ImportWorkspacesPage({
 										null)
 									: null
 							}
-							v2ProjectId={v2ProjectIdByV1Id.get(workspace.projectId) ?? null}
-							alreadyImported={(() => {
-								const v2ProjectId = v2ProjectIdByV1Id.get(workspace.projectId);
-								if (!v2ProjectId) return false;
-								return cloudWorkspaceKeys.has(
-									`${v2ProjectId}\0${workspace.branch}`,
-								);
-							})()}
+							v2ProjectId={v2ProjectId}
+							alreadyImported={alreadyImported}
 							organizationId={organizationId}
 							activeHostUrl={activeHostUrl}
 						/>
@@ -233,7 +232,7 @@ interface WorkspaceRowProps {
 	};
 	worktreePath: string | undefined;
 	baseBranch: string | null;
-	v2ProjectId: string | null;
+	v2ProjectId: string;
 	alreadyImported: boolean;
 	organizationId: string;
 	activeHostUrl: string;
@@ -257,7 +256,6 @@ function WorkspaceRow({
 	const isImported = alreadyImported || !!adoptedV2Id;
 
 	const runImport = async () => {
-		if (!v2ProjectId) return;
 		setRunning(true);
 		setErrorMessage(null);
 		try {
@@ -267,6 +265,7 @@ function WorkspaceRow({
 				workspaceName: workspace.name,
 				branch: workspace.branch,
 				baseBranch: baseBranch ?? undefined,
+				existingWorkspaceId: adoptedV2Id ?? undefined,
 			};
 			let result: Awaited<
 				ReturnType<typeof client.workspaceCreation.adopt.mutate>
@@ -307,12 +306,6 @@ function WorkspaceRow({
 	const action: RowAction = (() => {
 		if (running) return { kind: "running" };
 		if (isImported) return { kind: "imported" };
-		if (!v2ProjectId) {
-			return {
-				kind: "blocked",
-				reason: "Import the project on the Projects tab first.",
-			};
-		}
 		if (errorMessage) {
 			return { kind: "error", message: errorMessage, onRetry: runImport };
 		}
