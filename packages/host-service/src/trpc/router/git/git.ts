@@ -3,8 +3,9 @@ import { isAbsolute, join, normalize, sep } from "node:path";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
-import { projects, pullRequests, workspaces } from "../../../db/schema";
+import { pullRequests, workspaces } from "../../../db/schema";
 import { protectedProcedure, queryProcedure, router } from "../../index";
+import { resolveGithubRepo } from "../workspace-creation/shared/project-helpers";
 import type {
 	ChangedFile,
 	CheckConclusionState,
@@ -721,16 +722,13 @@ export const gitRouter = router({
 				});
 			}
 
-			const project = ctx.db.query.projects
-				.findFirst({ where: eq(projects.id, workspace.projectId) })
-				.sync();
-			if (!project) {
-				throw new TRPCError({
-					code: "INTERNAL_SERVER_ERROR",
-					message: `Project ${workspace.projectId} not found in database`,
-				});
-			}
-			if (!project.repoOwner || !project.repoName) {
+			let repo: { owner: string; name: string };
+			try {
+				repo = await resolveGithubRepo(ctx, workspace.projectId);
+			} catch {
+				// Project isn't set up locally on this host or has no GitHub
+				// remote — degrade silently like the previous implementation
+				// rather than throwing into the review tab.
 				return { reviewThreads: [], conversationComments: [] };
 			}
 
@@ -741,8 +739,8 @@ export const gitRouter = router({
 				const result: GraphQLThreadsResult = await octokit.graphql(
 					REVIEW_THREADS_QUERY,
 					{
-						owner: project.repoOwner,
-						name: project.repoName,
+						owner: repo.owner,
+						name: repo.name,
 						prNumber: pr.prNumber,
 					},
 				);
@@ -760,8 +758,8 @@ export const gitRouter = router({
 				let hasMore = true;
 				while (hasMore) {
 					const { data: comments } = await octokit.issues.listComments({
-						owner: project.repoOwner,
-						repo: project.repoName,
+						owner: repo.owner,
+						repo: repo.name,
 						issue_number: pr.prNumber,
 						per_page: 100,
 						page,
