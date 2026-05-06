@@ -1,3 +1,4 @@
+import { Checkbox } from "@superset/ui/checkbox";
 import { toast } from "@superset/ui/sonner";
 import { Spinner } from "@superset/ui/spinner";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
@@ -6,10 +7,17 @@ import { GoGitBranch } from "react-icons/go";
 import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import { track } from "renderer/lib/analytics";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import { useImportAllWorktrees } from "renderer/react-query/workspaces/useImportAllWorktrees";
+import { useImportExternalWorktrees } from "renderer/react-query/workspaces/useImportExternalWorktrees";
 import { STEP_ROUTES, useOnboardingStore } from "renderer/stores/onboarding";
 import { SetupButton } from "../components/SetupButton";
 import { StepHeader, StepShell } from "../components/StepShell";
+import {
+	countSelected,
+	initializeProjectSelection,
+	type SelectionState,
+	togglePathInSelection,
+	toggleProjectInSelection,
+} from "./utils/selection";
 
 export const Route = createFileRoute("/_authenticated/setup/adopt-worktrees/")({
 	component: OnboardingAdoptWorktreesPage,
@@ -39,13 +47,6 @@ function OnboardingAdoptWorktreesPage() {
 		goTo("adopt-worktrees");
 	}, [goTo]);
 
-	// After onboarding, prefer the user's last-viewed workspace (or any worktree-
-	// type workspace) so they land in the workspace editor with a real pane
-	// layout. Route to the v2 workspace view when v2 is enabled. In v2, skip
-	// `branch` type workspaces (they're auto-created by ensureMainWorkspace and
-	// have no pane layout) and prefer the project page instead so the user can
-	// create their first worktree via v2's flow. If no workspaces exist yet,
-	// fall back to the project page.
 	const navigateAfterFlow = useCallback(
 		async (replace: boolean) => {
 			try {
@@ -121,8 +122,6 @@ function OnboardingAdoptWorktreesPage() {
 	}
 
 	if (!projects || projects.length === 0) {
-		// No projects → nothing to adopt. Skip this step entirely (even in walkthrough)
-		// since the page has no actionable content.
 		return <AutoAdvance onAdvance={finishFlow} />;
 	}
 
@@ -147,6 +146,11 @@ function AutoAdvance({ onAdvance }: { onAdvance: () => void }) {
 	);
 }
 
+interface ProjectResult {
+	worktrees: ExternalWorktree[];
+	loaded: boolean;
+}
+
 interface AdoptWorktreesContentProps {
 	projects: { id: string; name: string }[];
 	onSkip: () => void;
@@ -160,10 +164,9 @@ function AdoptWorktreesContent({
 	onFinish,
 	manualWalkthrough,
 }: AdoptWorktreesContentProps) {
-	const importAllWorktrees = useImportAllWorktrees();
-	const [results, setResults] = useState<
-		Record<string, { worktrees: ExternalWorktree[]; loaded: boolean }>
-	>({});
+	const importExternalWorktrees = useImportExternalWorktrees();
+	const [results, setResults] = useState<Record<string, ProjectResult>>({});
+	const [selected, setSelected] = useState<SelectionState>({});
 
 	const allLoaded = projects.every((p) => results[p.id]?.loaded);
 	const total = useMemo(
@@ -174,21 +177,57 @@ function AdoptWorktreesContent({
 			),
 		[results],
 	);
+	const totalSelected = useMemo(() => countSelected(selected), [selected]);
 
 	useEffect(() => {
-		// In walkthrough mode the user wants to see every step, including a
-		// "nothing to adopt" confirmation. Otherwise auto-advance when empty.
 		if (allLoaded && total === 0 && !manualWalkthrough) onFinish();
 	}, [allLoaded, total, manualWalkthrough, onFinish]);
 
-	const handleImportAll = async () => {
+	const handleResult = useCallback(
+		(projectId: string, worktrees: ExternalWorktree[]) => {
+			setResults((prev) => ({
+				...prev,
+				[projectId]: { worktrees, loaded: true },
+			}));
+			setSelected((prev) =>
+				initializeProjectSelection(
+					prev,
+					projectId,
+					worktrees.map((wt) => wt.path),
+				),
+			);
+		},
+		[],
+	);
+
+	const togglePath = useCallback((projectId: string, path: string) => {
+		setSelected((prev) => togglePathInSelection(prev, projectId, path));
+	}, []);
+
+	const toggleProject = useCallback(
+		(projectId: string) => {
+			setSelected((prev) => {
+				const projectResult = results[projectId];
+				if (!projectResult) return prev;
+				return toggleProjectInSelection(
+					prev,
+					projectId,
+					projectResult.worktrees.map((wt) => wt.path),
+				);
+			});
+		},
+		[results],
+	);
+
+	const handleImportSelected = async () => {
 		let totalImported = 0;
 		for (const project of projects) {
-			const projectResult = results[project.id];
-			if (!projectResult || projectResult.worktrees.length === 0) continue;
+			const paths = Array.from(selected[project.id] ?? []);
+			if (paths.length === 0) continue;
 			try {
-				const result = await importAllWorktrees.mutateAsync({
+				const result = await importExternalWorktrees.mutateAsync({
 					projectId: project.id,
+					paths,
 				});
 				totalImported += result.imported;
 			} catch (err) {
@@ -230,12 +269,10 @@ function AdoptWorktreesContent({
 								key={project.id}
 								projectId={project.id}
 								projectName={project.name}
-								onResult={(worktrees) => {
-									setResults((prev) => ({
-										...prev,
-										[project.id]: { worktrees, loaded: true },
-									}));
-								}}
+								selectedPaths={selected[project.id]}
+								onResult={(worktrees) => handleResult(project.id, worktrees)}
+								onTogglePath={(path) => togglePath(project.id, path)}
+								onToggleAll={() => toggleProject(project.id)}
 							/>
 						))}
 					</div>
@@ -253,15 +290,23 @@ function AdoptWorktreesContent({
 				) : (
 					<>
 						<SetupButton
-							onClick={handleImportAll}
-							disabled={!allLoaded || importAllWorktrees.isPending}
+							onClick={handleImportSelected}
+							disabled={
+								!allLoaded ||
+								totalSelected === 0 ||
+								importExternalWorktrees.isPending
+							}
 						>
-							{importAllWorktrees.isPending ? "Importing…" : "Import all"}
+							{importExternalWorktrees.isPending
+								? "Importing…"
+								: totalSelected === 0
+									? "Select worktrees"
+									: `Import ${totalSelected} selected`}
 						</SetupButton>
 						<SetupButton
 							variant="link"
 							onClick={onSkip}
-							disabled={importAllWorktrees.isPending}
+							disabled={importExternalWorktrees.isPending}
 						>
 							Skip for now
 						</SetupButton>
@@ -275,19 +320,23 @@ function AdoptWorktreesContent({
 interface ProjectWorktreesProps {
 	projectId: string;
 	projectName: string;
+	selectedPaths: Set<string> | undefined;
 	onResult: (worktrees: ExternalWorktree[]) => void;
+	onTogglePath: (path: string) => void;
+	onToggleAll: () => void;
 }
 
 function ProjectWorktrees({
 	projectId,
 	projectName,
+	selectedPaths,
 	onResult,
+	onTogglePath,
+	onToggleAll,
 }: ProjectWorktreesProps) {
 	const { data, isPending, isError, error } =
 		electronTrpc.workspaces.getExternalWorktrees.useQuery({ projectId });
 
-	// Keep the latest callback in a ref so we don't refire the effect when the
-	// parent passes a fresh inline closure each render.
 	const onResultRef = useRef(onResult);
 	useEffect(() => {
 		onResultRef.current = onResult;
@@ -318,26 +367,47 @@ function ProjectWorktrees({
 
 	if (!data || data.length === 0) return null;
 
+	const selectedCount = data.filter((wt) => selectedPaths?.has(wt.path)).length;
+	const allSelected = selectedCount === data.length;
+
 	return (
 		<div className="space-y-2 px-4 py-3">
 			<div className="flex items-baseline justify-between gap-3">
 				<p className="text-[12px] font-semibold text-[#eae8e6]">
 					{projectName}
 				</p>
-				<p className="text-[11px] text-[#a8a5a3]">
-					{data.length} worktree{data.length === 1 ? "" : "s"}
-				</p>
+				<button
+					type="button"
+					onClick={onToggleAll}
+					className="text-[11px] text-[#a8a5a3] transition-colors hover:text-[#eae8e6]"
+				>
+					{allSelected ? "Deselect all" : "Select all"} ({selectedCount}/
+					{data.length})
+				</button>
 			</div>
-			<div className="flex flex-wrap gap-1.5">
-				{data.map((wt) => (
-					<span
-						key={wt.path}
-						className="inline-flex items-center gap-1 rounded-md bg-[#151110] px-2 py-0.5 font-mono text-[11px] text-[#a8a5a3]"
-					>
-						<GoGitBranch className="size-3 shrink-0" />
-						<span className="max-w-[180px] truncate">{wt.branch}</span>
-					</span>
-				))}
+			<div className="flex flex-col gap-1">
+				{data.map((wt) => {
+					const isSelected = selectedPaths?.has(wt.path) ?? false;
+					const checkboxId = `worktree-${projectId}-${wt.path}`;
+					return (
+						<label
+							key={wt.path}
+							htmlFor={checkboxId}
+							className="group flex cursor-pointer items-center gap-2 rounded-md px-1.5 py-1 hover:bg-white/5"
+						>
+							<Checkbox
+								id={checkboxId}
+								checked={isSelected}
+								onCheckedChange={() => onTogglePath(wt.path)}
+								className="border-[#3a3836] data-[state=checked]:border-[#D97757] data-[state=checked]:bg-[#D97757]"
+							/>
+							<GoGitBranch className="size-3 shrink-0 text-[#a8a5a3]" />
+							<span className="truncate font-mono text-[11px] text-[#eae8e6]">
+								{wt.branch}
+							</span>
+						</label>
+					);
+				})}
 			</div>
 		</div>
 	);
