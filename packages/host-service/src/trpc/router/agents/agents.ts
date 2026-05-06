@@ -202,9 +202,8 @@ async function runChatAgent(
 		v2WorkspaceId: input.workspaceId,
 	});
 
-	// Fire and forget: the caller gets the sessionId without waiting for the
-	// runtime boot or assistant stream. A chat pane attaching later surfaces
-	// any error via `getSnapshot.displayState.errorMessage`.
+	// Errors surface via `getSnapshot.displayState.errorMessage` when a
+	// chat pane attaches.
 	void ctx.runtime.chat
 		.sendMessage({
 			sessionId,
