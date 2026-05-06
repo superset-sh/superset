@@ -17,9 +17,6 @@ function OnboardingGhCliPage() {
 	const goTo = useOnboardingStore((s) => s.goTo);
 	const markComplete = useOnboardingStore((s) => s.markComplete);
 	const markSkipped = useOnboardingStore((s) => s.markSkipped);
-	const completed = useOnboardingStore((s) => s.completed["gh-cli"]);
-	const skipped = useOnboardingStore((s) => s.skipped["gh-cli"]);
-	const manualWalkthrough = useOnboardingStore((s) => s.manualWalkthrough);
 
 	const {
 		data: ghStatus,
@@ -32,19 +29,6 @@ function OnboardingGhCliPage() {
 		goTo("gh-cli");
 	}, [goTo]);
 
-	const shouldAutoAdvance =
-		!completed &&
-		!skipped &&
-		!manualWalkthrough &&
-		ghStatus?.installed === true;
-
-	useEffect(() => {
-		if (shouldAutoAdvance) {
-			markComplete("gh-cli");
-			navigate({ to: STEP_ROUTES.permissions, replace: true });
-		}
-	}, [shouldAutoAdvance, markComplete, navigate]);
-
 	const handleSkip = () => {
 		markSkipped("gh-cli");
 		navigate({ to: STEP_ROUTES.permissions });
@@ -54,7 +38,7 @@ function OnboardingGhCliPage() {
 		navigate({ to: STEP_ROUTES.permissions });
 	};
 
-	if (isPending || shouldAutoAdvance) {
+	if (isPending) {
 		return (
 			<div className="flex h-full w-full items-center justify-center bg-[#151110]">
 				<Spinner className="size-6 text-[#a8a5a3]" />

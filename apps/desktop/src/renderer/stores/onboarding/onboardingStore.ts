@@ -44,12 +44,6 @@ interface OnboardingState {
 	skipped: Record<OnboardingStep, boolean>;
 	startedAt: number | null;
 	completedAt: number | null;
-	/**
-	 * When true, the user explicitly restarted onboarding from Settings.
-	 * Steps must NOT auto-advance based on already-satisfied prerequisites —
-	 * the user wants to walk through. Cleared when the flow finishes.
-	 */
-	manualWalkthrough: boolean;
 }
 
 interface OnboardingActions {
@@ -59,7 +53,6 @@ interface OnboardingActions {
 	next: () => OnboardingStep | null;
 	back: () => OnboardingStep | null;
 	reset: () => void;
-	setManualWalkthrough: (value: boolean) => void;
 }
 
 type OnboardingStore = OnboardingState & OnboardingActions;
@@ -70,7 +63,6 @@ const initialState: OnboardingState = {
 	skipped: { ...STEP_FLAGS_INITIAL },
 	startedAt: null,
 	completedAt: null,
-	manualWalkthrough: false,
 };
 
 function getNextStep(step: OnboardingStep): OnboardingStep | null {
@@ -150,10 +142,8 @@ export const useOnboardingStore = create<OnboardingStore>()(
 						skipped: { ...STEP_FLAGS_INITIAL },
 						startedAt: null,
 						completedAt: null,
-						manualWalkthrough: false,
 					});
 				},
-				setManualWalkthrough: (value) => set({ manualWalkthrough: value }),
 			}),
 			{ name: "superset-onboarding-v1" },
 		),

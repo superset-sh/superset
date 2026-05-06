@@ -33,10 +33,6 @@ function OnboardingAdoptWorktreesPage() {
 	const goTo = useOnboardingStore((s) => s.goTo);
 	const markComplete = useOnboardingStore((s) => s.markComplete);
 	const markSkipped = useOnboardingStore((s) => s.markSkipped);
-	const manualWalkthrough = useOnboardingStore((s) => s.manualWalkthrough);
-	const setManualWalkthrough = useOnboardingStore(
-		(s) => s.setManualWalkthrough,
-	);
 
 	const utils = electronTrpc.useUtils();
 	const isV2CloudEnabled = useIsV2CloudEnabled();
@@ -98,9 +94,8 @@ function OnboardingAdoptWorktreesPage() {
 			duration_ms: startedAt ? Date.now() - startedAt : null,
 		});
 		markComplete("adopt-worktrees");
-		setManualWalkthrough(false);
 		void navigateAfterFlow(true);
-	}, [markComplete, setManualWalkthrough, navigateAfterFlow]);
+	}, [markComplete, navigateAfterFlow]);
 
 	const skipFlow = useCallback(() => {
 		const startedAt = useOnboardingStore.getState().startedAt;
@@ -109,9 +104,8 @@ function OnboardingAdoptWorktreesPage() {
 			duration_ms: startedAt ? Date.now() - startedAt : null,
 		});
 		markSkipped("adopt-worktrees");
-		setManualWalkthrough(false);
 		void navigateAfterFlow(true);
-	}, [markSkipped, setManualWalkthrough, navigateAfterFlow]);
+	}, [markSkipped, navigateAfterFlow]);
 
 	if (isPending) {
 		return (
@@ -121,28 +115,12 @@ function OnboardingAdoptWorktreesPage() {
 		);
 	}
 
-	if (!projects || projects.length === 0) {
-		return <AutoAdvance onAdvance={finishFlow} />;
-	}
-
 	return (
 		<AdoptWorktreesContent
-			projects={projects.map((p) => ({ id: p.id, name: p.name }))}
+			projects={(projects ?? []).map((p) => ({ id: p.id, name: p.name }))}
 			onSkip={skipFlow}
 			onFinish={finishFlow}
-			manualWalkthrough={manualWalkthrough}
 		/>
-	);
-}
-
-function AutoAdvance({ onAdvance }: { onAdvance: () => void }) {
-	useEffect(() => {
-		onAdvance();
-	}, [onAdvance]);
-	return (
-		<div className="flex h-full w-full items-center justify-center bg-[#151110]">
-			<Spinner className="size-6 text-[#a8a5a3]" />
-		</div>
 	);
 }
 
@@ -155,14 +133,12 @@ interface AdoptWorktreesContentProps {
 	projects: { id: string; name: string }[];
 	onSkip: () => void;
 	onFinish: () => void;
-	manualWalkthrough: boolean;
 }
 
 function AdoptWorktreesContent({
 	projects,
 	onSkip,
 	onFinish,
-	manualWalkthrough,
 }: AdoptWorktreesContentProps) {
 	const importExternalWorktrees = useImportExternalWorktrees();
 	const [results, setResults] = useState<Record<string, ProjectResult>>({});
@@ -178,10 +154,6 @@ function AdoptWorktreesContent({
 		[results],
 	);
 	const totalSelected = useMemo(() => countSelected(selected), [selected]);
-
-	useEffect(() => {
-		if (allLoaded && total === 0 && !manualWalkthrough) onFinish();
-	}, [allLoaded, total, manualWalkthrough, onFinish]);
 
 	const handleResult = useCallback(
 		(projectId: string, worktrees: ExternalWorktree[]) => {

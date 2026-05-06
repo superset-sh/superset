@@ -31,11 +31,6 @@ function OnboardingProjectPage() {
 	const goTo = useOnboardingStore((s) => s.goTo);
 	const markComplete = useOnboardingStore((s) => s.markComplete);
 	const markSkipped = useOnboardingStore((s) => s.markSkipped);
-	const completed = useOnboardingStore((s) => s.completed.project);
-	const manualWalkthrough = useOnboardingStore((s) => s.manualWalkthrough);
-	const setManualWalkthrough = useOnboardingStore(
-		(s) => s.setManualWalkthrough,
-	);
 
 	const { data: projects, isPending } =
 		electronTrpc.projects.getRecents.useQuery();
@@ -65,14 +60,6 @@ function OnboardingProjectPage() {
 
 	const projectCount = projects?.length ?? 0;
 	const hasProjects = projectCount > 0;
-	const shouldAutoAdvance = !completed && !manualWalkthrough && hasProjects;
-
-	useEffect(() => {
-		if (shouldAutoAdvance) {
-			markComplete("project");
-			navigate({ to: STEP_ROUTES["adopt-worktrees"], replace: true });
-		}
-	}, [shouldAutoAdvance, markComplete, navigate]);
 
 	// After creating a new project, route to the project page in v2 — that's
 	// where the user creates their first proper worktree workspace (which sets
@@ -114,7 +101,6 @@ function OnboardingProjectPage() {
 		const project = created[0];
 		if (project) {
 			markComplete("project");
-			setManualWalkthrough(false);
 			await openProjectInWorkspace(project.id);
 		}
 	};
@@ -129,7 +115,7 @@ function OnboardingProjectPage() {
 		navigate({ to: STEP_ROUTES["adopt-worktrees"] });
 	};
 
-	if (isPending || shouldAutoAdvance) {
+	if (isPending) {
 		return (
 			<div className="flex h-full w-full items-center justify-center bg-[#151110]">
 				<Spinner className="size-6 text-[#a8a5a3]" />

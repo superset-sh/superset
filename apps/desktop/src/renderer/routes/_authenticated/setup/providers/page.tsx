@@ -1,7 +1,7 @@
 import { chatServiceTrpc } from "@superset/chat/client";
 import { Spinner } from "@superset/ui/spinner";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { type ReactNode, useEffect, useRef, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { LuKeyRound, LuSettings } from "react-icons/lu";
 import { STEP_ROUTES, useOnboardingStore } from "renderer/stores/onboarding";
 import { SetupButton } from "../components/SetupButton";
@@ -21,8 +21,6 @@ function OnboardingProvidersPage() {
 	const goTo = useOnboardingStore((s) => s.goTo);
 	const markComplete = useOnboardingStore((s) => s.markComplete);
 	const markSkipped = useOnboardingStore((s) => s.markSkipped);
-	const completed = useOnboardingStore((s) => s.completed.providers);
-	const manualWalkthrough = useOnboardingStore((s) => s.manualWalkthrough);
 
 	const { data: anthropicAuthStatus, isPending: isAnthropicPending } =
 		chatServiceTrpc.auth.getAnthropicStatus.useQuery();
@@ -36,13 +34,6 @@ function OnboardingProvidersPage() {
 	const isStatusPending = isAnthropicPending || isOpenAIPending;
 	const atLeastOneConnected = claudeConnected || codexConnected;
 
-	const wasConfiguredOnMount = useRef<boolean | null>(null);
-	useEffect(() => {
-		if (!isStatusPending && wasConfiguredOnMount.current === null) {
-			wasConfiguredOnMount.current = atLeastOneConnected;
-		}
-	}, [isStatusPending, atLeastOneConnected]);
-
 	const [claudeMethod, setClaudeMethod] = useState<ConnectionMethod>("oauth");
 	const [codexMethod, setCodexMethod] = useState<ConnectionMethod>("oauth");
 	const [reconfiguringClaude, setReconfiguringClaude] = useState(false);
@@ -52,17 +43,7 @@ function OnboardingProvidersPage() {
 		goTo("providers");
 	}, [goTo]);
 
-	const shouldAutoAdvance =
-		!completed && !manualWalkthrough && wasConfiguredOnMount.current === true;
-
-	useEffect(() => {
-		if (shouldAutoAdvance) {
-			markComplete("providers");
-			navigate({ to: STEP_ROUTES["gh-cli"], replace: true });
-		}
-	}, [shouldAutoAdvance, markComplete, navigate]);
-
-	if (isStatusPending || shouldAutoAdvance) {
+	if (isStatusPending) {
 		return (
 			<div className="flex h-full w-full items-center justify-center bg-[#151110]">
 				<Spinner className="size-6 text-[#a8a5a3]" />
