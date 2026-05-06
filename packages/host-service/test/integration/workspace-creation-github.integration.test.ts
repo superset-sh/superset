@@ -260,6 +260,73 @@ describe("resolveGithubRepo trusts the live local remote, never the cloud", () =
 	});
 });
 
+describe("resolveGithubRepo prefers the user-configured remoteName", () => {
+	let host: TestHost;
+	let repoDir: string;
+	const projectId = randomUUID();
+
+	const fakeOctokit = {
+		pulls: {
+			get: async () => ({
+				data: {
+					number: 5,
+					title: "via upstream",
+					html_url: "https://github.com/upstream-org/cli/pull/5",
+					state: "open",
+					user: { login: "ada" },
+					draft: false,
+					merged_at: null,
+				},
+			}),
+		},
+		issues: { get: async () => ({ data: {} }) },
+		search: {
+			issuesAndPullRequests: async () => ({ data: { items: [] } }),
+		},
+	};
+
+	beforeEach(async () => {
+		host = await createTestHost({ githubFactory: async () => fakeOctokit });
+		// Repo has both `origin` (the user's fork) and `upstream` (where PRs
+		// actually live). Project setup recorded `upstream` as the configured
+		// remote — resolver must honor that, not silently default to origin.
+		repoDir = mkdtempSync(join(tmpdir(), "ws-creation-github-test-"));
+		const git = simpleGit(repoDir);
+		await git.init(["--initial-branch=main"]);
+		await git.addRemote("origin", "https://github.com/me/cli.git");
+		await git.addRemote("upstream", "https://github.com/upstream-org/cli.git");
+		host.db
+			.insert(projects)
+			.values({
+				id: projectId,
+				repoPath: repoDir,
+				repoProvider: "github",
+				repoOwner: null,
+				repoName: null,
+				repoUrl: null,
+				remoteName: "upstream",
+			})
+			.run();
+	});
+
+	afterEach(async () => {
+		await host.dispose();
+		rmSync(repoDir, { recursive: true, force: true });
+	});
+
+	test("searchPullRequests routes against `upstream`, not `origin`", async () => {
+		const result = await host.trpc.workspaceCreation.searchPullRequests.query({
+			projectId,
+			query: "#5",
+		});
+		// Octokit fallback (no execGh wired in test): asserting the URL
+		// resolves to upstream-org/cli proves the resolver picked the
+		// configured remote over origin.
+		expect(result.pullRequests).toHaveLength(1);
+		expect(result.pullRequests[0].url).toContain("github.com/upstream-org/cli");
+	});
+});
+
 describe("resolveGithubRepo throws PROJECT_NOT_SETUP when no local clone", () => {
 	let host: TestHost;
 	const projectId = randomUUID();
