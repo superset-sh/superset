@@ -1,4 +1,8 @@
 import { boolean, CLIError, string, table } from "@superset/cli-framework";
+import {
+	BUILTIN_AGENT_DEFINITIONS,
+	isChatAgentDefinition,
+} from "@superset/shared/agent-catalog";
 import { command } from "../../../lib/command";
 import { requireHostTarget, resolveHostTarget } from "../../../lib/host-target";
 
@@ -31,6 +35,16 @@ export default command({
 			userJwt: ctx.bearer,
 		});
 
-		return target.client.settings.agentConfigs.list.query();
+		const terminalConfigs =
+			await target.client.settings.agentConfigs.list.query();
+		const chatBuiltins = BUILTIN_AGENT_DEFINITIONS.filter(
+			isChatAgentDefinition,
+		).map((definition) => ({
+			id: definition.id,
+			presetId: definition.id,
+			label: definition.label,
+			command: "(superset chat runtime)",
+		}));
+		return [...terminalConfigs, ...chatBuiltins];
 	},
 });

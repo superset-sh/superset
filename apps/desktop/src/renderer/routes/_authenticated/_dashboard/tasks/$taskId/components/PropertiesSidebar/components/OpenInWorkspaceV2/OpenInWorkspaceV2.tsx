@@ -14,7 +14,7 @@ import { HiArrowRight, HiChevronDown } from "react-icons/hi2";
 import { AgentSelect } from "renderer/components/AgentSelect";
 import { env } from "renderer/env.renderer";
 import { useHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
-import { useV2AgentConfigs } from "renderer/hooks/useV2AgentConfigs";
+import { useV2AgentChoices } from "renderer/hooks/useV2AgentChoices";
 import { authClient } from "renderer/lib/auth-client";
 import { DevicePicker } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/components/DevicePicker";
 import { useWorkspaceHostOptions } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/components/DevicePicker/hooks/useWorkspaceHostOptions";
@@ -118,16 +118,8 @@ export function OpenInWorkspaceV2({ task }: OpenInWorkspaceV2Props) {
 	}, [v2Projects, githubRepositories, setUpProjectIds]);
 
 	const launchHostUrl = useHostUrl(hostId);
-	const v2AgentConfigsQuery = useV2AgentConfigs(launchHostUrl);
-	const v2Agents = useMemo(
-		() =>
-			(v2AgentConfigsQuery.data ?? []).map((config) => ({
-				id: config.id,
-				label: config.label,
-				iconId: config.presetId,
-			})),
-		[v2AgentConfigsQuery.data],
-	);
+	const { agents: v2Agents, isFetched: v2AgentsFetched } =
+		useV2AgentChoices(launchHostUrl);
 	const validAgentIds = useMemo(
 		() => new Set(v2Agents.map((agent) => agent.id)),
 		[v2Agents],
@@ -154,7 +146,7 @@ export function OpenInWorkspaceV2({ task }: OpenInWorkspaceV2Props) {
 	const [selectedAgent, setSelectedAgentState] =
 		useState<SelectedAgent>(readStoredAgent);
 	useEffect(() => {
-		if (!v2AgentConfigsQuery.isFetched) return;
+		if (!v2AgentsFetched) return;
 		if (selectedAgent !== NONE && validAgentIds.has(selectedAgent)) return;
 		const stored = readStoredAgent();
 		if (stored !== NONE && validAgentIds.has(stored)) {
@@ -162,7 +154,7 @@ export function OpenInWorkspaceV2({ task }: OpenInWorkspaceV2Props) {
 		} else if (selectedAgent !== NONE) {
 			setSelectedAgentState(NONE);
 		}
-	}, [v2AgentConfigsQuery.isFetched, validAgentIds, selectedAgent]);
+	}, [v2AgentsFetched, validAgentIds, selectedAgent]);
 	const setSelectedAgent = (next: SelectedAgent) => {
 		setSelectedAgentState(next);
 		if (typeof window !== "undefined") {
@@ -200,7 +192,7 @@ export function OpenInWorkspaceV2({ task }: OpenInWorkspaceV2Props) {
 		// query resolves and the corrective effect runs — block submission so
 		// we don't send an id this host doesn't recognize.
 		if (selectedAgent !== NONE) {
-			if (!v2AgentConfigsQuery.isFetched) return "Checking agents…";
+			if (!v2AgentsFetched) return "Checking agents…";
 			if (!validAgentIds.has(selectedAgent)) {
 				return "Selected agent is not available on this host";
 			}
@@ -211,7 +203,7 @@ export function OpenInWorkspaceV2({ task }: OpenInWorkspaceV2Props) {
 		selectedProject?.needsSetup,
 		setUpProjectIds,
 		selectedAgent,
-		v2AgentConfigsQuery.isFetched,
+		v2AgentsFetched,
 		validAgentIds,
 		hostId,
 		machineId,

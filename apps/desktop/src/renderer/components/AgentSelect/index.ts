@@ -1,1 +1,1 @@
-export { AgentSelect } from "./AgentSelect";
+export { AgentSelect, type AgentSelectAgent } from "./AgentSelect";

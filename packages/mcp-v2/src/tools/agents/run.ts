@@ -8,7 +8,7 @@ export function register(server: McpServer): void {
 	defineTool(server, {
 		name: "agents_run",
 		description:
-			"Launch an agent inside an existing workspace. Resolves the host that owns the workspace, then runs the named agent preset (or HostAgentConfig instance) with the given prompt in a fresh terminal session. Use this to start a second agent in a workspace that already exists; for create-and-spawn in a single call, pass `agents` to workspaces_create instead.",
+			"Launch an agent inside an existing workspace. Resolves the host that owns the workspace, then runs the named agent preset (or HostAgentConfig instance) with the given prompt. Terminal agents spawn a fresh PTY session; `superset-chat` spawns a Superset Chat session (mastracode runtime) instead. The result's `kind` field discriminates. Use this to start a second agent in a workspace that already exists; for create-and-spawn in a single call, pass `agents` to workspaces_create instead.",
 		inputSchema: {
 			workspaceId: z
 				.string()
@@ -18,14 +18,14 @@ export function register(server: McpServer): void {
 				.string()
 				.min(1)
 				.describe(
-					"Agent preset id (e.g. `claude`, `codex`) or HostAgentConfig instance UUID.",
+					"Agent preset id (e.g. `claude`, `codex`), HostAgentConfig instance UUID, or `superset-chat` for a Superset Chat session.",
 				),
 			prompt: z.string().min(1).describe("Prompt sent to the agent."),
 			attachmentIds: z
 				.array(z.string().uuid())
 				.optional()
 				.describe(
-					"Host-scoped attachment UUIDs. The host resolves these to absolute paths and appends them to the prompt.",
+					"Host-scoped attachment UUIDs. For terminal agents the host appends a paths block to the prompt; for `superset-chat` the host inlines the file bytes as base64 data URLs on the chat message.",
 				),
 		},
 		handler: async (input, ctx) => {
@@ -38,7 +38,10 @@ export function register(server: McpServer): void {
 				throw new Error(`Workspace not found: ${input.workspaceId}`);
 			}
 
-			return hostServiceCall<{ sessionId: string; label: string }>(
+			return hostServiceCall<
+				| { kind: "terminal"; sessionId: string; label: string }
+				| { kind: "chat"; sessionId: string; label: string }
+			>(
 				{
 					relayUrl: ctx.relayUrl,
 					organizationId: ctx.organizationId,

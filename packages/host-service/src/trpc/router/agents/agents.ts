@@ -1,9 +1,15 @@
+import { readFileSync } from "node:fs";
+import {
+	BUILTIN_AGENT_DEFINITIONS,
+	isChatAgentDefinition,
+} from "@superset/shared/agent-catalog";
 import { TRPCError } from "@trpc/server";
 import { asc, eq } from "drizzle-orm";
 import { z } from "zod";
 import type { HostDb } from "../../../db";
 import { hostAgentConfigs } from "../../../db/schema";
 import { createTerminalSessionInternal } from "../../../terminal/terminal";
+import type { HostServiceContext } from "../../../types";
 import { protectedProcedure, router } from "../../index";
 import { resolveAttachmentPath } from "../attachments/storage";
 
@@ -157,17 +163,70 @@ export interface AgentRunInput {
 	attachmentIds?: string[];
 }
 
-export interface AgentRunResult {
-	sessionId: string;
-	label: string;
+export type AgentRunResult =
+	| { kind: "terminal"; sessionId: string; label: string }
+	| { kind: "chat"; sessionId: string; label: string };
+
+function resolveChatBuiltin(agent: string) {
+	const definition = BUILTIN_AGENT_DEFINITIONS.find(
+		(item) => item.id === agent,
+	);
+	return definition && isChatAgentDefinition(definition) ? definition : null;
 }
 
-/**
- * Launch an agent against a workspace. Pure function over (db, eventBus,
- * input) so `workspaces.create` can invoke it directly for the `agents`
- * sugar without going back through tRPC.
- */
-export async function runAgentInWorkspace(
+async function resolveAttachmentsAsFiles(
+	attachmentIds: string[],
+): Promise<Array<{ data: string; mediaType: string; filename?: string }>> {
+	return attachmentIds.map((attachmentId) => {
+		const resolved = resolveAttachmentPath(attachmentId);
+		if (!resolved) {
+			throw new TRPCError({
+				code: "NOT_FOUND",
+				message: `Attachment not found: ${attachmentId}`,
+			});
+		}
+		const bytes = readFileSync(resolved.path);
+		const data = `data:${resolved.metadata.mediaType};base64,${bytes.toString("base64")}`;
+		return {
+			data,
+			mediaType: resolved.metadata.mediaType,
+			...(resolved.metadata.originalFilename
+				? { filename: resolved.metadata.originalFilename }
+				: {}),
+		};
+	});
+}
+
+async function runChatAgent(
+	ctx: HostServiceContext,
+	input: AgentRunInput,
+	label: string,
+): Promise<AgentRunResult> {
+	const sessionId = crypto.randomUUID();
+	const files = await resolveAttachmentsAsFiles(input.attachmentIds ?? []);
+
+	await ctx.api.chat.createSession.mutate({
+		sessionId,
+		v2WorkspaceId: input.workspaceId,
+	});
+
+	// Fire-and-forget the turn: the caller (CLI/SDK/MCP) gets the sessionId
+	// back as soon as the runtime is ready, instead of waiting ~30s for the
+	// assistant stream to finish. The renderer materializes the streaming
+	// state via `chat.getSnapshot` when a chat pane opens.
+	await ctx.runtime.chat.startTurn({
+		sessionId,
+		workspaceId: input.workspaceId,
+		payload: {
+			content: input.prompt,
+			...(files.length > 0 ? { files } : {}),
+		},
+	});
+
+	return { kind: "chat", sessionId, label };
+}
+
+async function runTerminalAgent(
 	ctx: { db: HostDb; eventBus: import("../../../events").EventBus },
 	input: AgentRunInput,
 ): Promise<AgentRunResult> {
@@ -212,9 +271,27 @@ export async function runAgentInWorkspace(
 	}
 
 	return {
+		kind: "terminal",
 		sessionId: result.terminalId,
 		label: config.label,
 	};
+}
+
+/**
+ * Launch an agent against a workspace. Routes by agent kind: chat-builtin
+ * ids fire a first message through the host's ChatRuntimeManager (no PTY);
+ * everything else resolves to a terminal preset and spawns a PTY. Both
+ * return a `kind`-tagged result so callers materialize the right pane.
+ */
+export async function runAgentInWorkspace(
+	ctx: HostServiceContext,
+	input: AgentRunInput,
+): Promise<AgentRunResult> {
+	const chatBuiltin = resolveChatBuiltin(input.agent);
+	if (chatBuiltin) {
+		return runChatAgent(ctx, input, chatBuiltin.label);
+	}
+	return runTerminalAgent(ctx, input);
 }
 
 export const agentsRouter = router({
