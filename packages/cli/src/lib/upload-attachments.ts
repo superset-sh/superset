@@ -4,12 +4,6 @@ import { CLIError } from "@superset/cli-framework";
 import mimeTypes from "mime-types";
 import type { HostServiceClient } from "./host-target";
 
-/**
- * Upload local files to the target host's attachment store and return the
- * resulting attachment ids in the same order. The host stores bytes per
- * org and returns opaque UUIDs the agent runner resolves on the host
- * side. CLI never sees the on-disk path.
- */
 export async function uploadAttachments(
 	client: HostServiceClient,
 	paths: string[],

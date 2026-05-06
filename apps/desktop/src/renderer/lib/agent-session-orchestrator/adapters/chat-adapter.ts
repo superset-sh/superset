@@ -75,7 +75,7 @@ export async function launchChatAdapter(
 		paneId = created.paneId;
 	}
 
-	tabs.setTabAutoTitle(tabId, "Superset Chat");
+	tabs.setTabAutoTitle(tabId, "Superset");
 
 	const pane = tabs.getPane(paneId);
 	let sessionId = request.chat.sessionId ?? pane?.chat?.sessionId ?? null;

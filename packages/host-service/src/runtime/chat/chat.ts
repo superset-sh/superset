@@ -556,36 +556,6 @@ When you need to ask the user ANY question — including simple yes/no, confirma
 	}
 
 	/**
-	 * Returns the in-memory runtime if one exists, otherwise null. Kicks off
-	 * creation in the background as a side-effect so the next call (typically
-	 * the next snapshot poll) finds it warm. Used by read-only paths that
-	 * shouldn't block on the 3–8s harness boot — chat panes mounting against
-	 * an evicted session, or sessions spawned from CLI/SDK/MCP whose harness
-	 * isn't yet booted on this host.
-	 */
-	private peekRuntime(
-		sessionId: string,
-		workspaceId: string,
-	): RuntimeSession | null {
-		const existing = this.runtimes.get(sessionId);
-		if (existing) {
-			if (existing.workspaceId !== workspaceId) {
-				throw new Error(
-					`Session ${sessionId} is already bound to workspace ${existing.workspaceId}`,
-				);
-			}
-			return existing;
-		}
-
-		// Trigger background creation but don't await it. The inflight map
-		// dedupes concurrent peeks, so we won't create multiple runtimes.
-		void this.getOrCreateRuntime(sessionId, workspaceId).catch(() => {
-			// Errors surface on the next read path that awaits the promise.
-		});
-		return null;
-	}
-
-	/**
 	 * Tear down the in-memory runtime for a session. Aborts any in-flight
 	 * work, disconnects MCP servers, removes the runtime from the manager's
 	 * map, and is a no-op for unknown session ids. Should be called after
@@ -716,13 +686,6 @@ When you need to ask the user ANY question — including simple yes/no, confirma
 	 * harness state can change between the displayState read and the messages
 	 * read. This still removes the *client-side* two-query race, which is the
 	 * one that caused mismatched message/display state.
-	 *
-	 * Cold-start fast path: if the runtime isn't yet booted (chat pane
-	 * mounting against a freshly-loaded host, or a session spawned via
-	 * `agents.run` whose harness was evicted) return an empty skeleton
-	 * snapshot immediately and kick off creation in the background. The
-	 * renderer's loading spinner clears after one poll instead of blocking
-	 * on the 3–8s harness boot. The next poll picks up the warm runtime.
 	 */
 	async getSnapshot(input: {
 		sessionId: string;
@@ -731,19 +694,10 @@ When you need to ask the user ANY question — including simple yes/no, confirma
 		displayState: ChatDisplayState;
 		messages: RuntimeMessages;
 	}> {
-		const runtime = this.peekRuntime(input.sessionId, input.workspaceId);
-		if (!runtime) {
-			return {
-				displayState: {
-					isRunning: false,
-					currentMessage: null,
-					pendingQuestion: null,
-					errorMessage: null,
-				} as unknown as ChatDisplayState,
-				messages: [] as unknown as RuntimeMessages,
-			};
-		}
-
+		const runtime = await this.getOrCreateRuntime(
+			input.sessionId,
+			input.workspaceId,
+		);
 		const displayState = this.buildDisplayState(runtime);
 		const messages = await runtime.harness.listMessages();
 		// Intentionally no observedAt: when the harness state hasn't changed,
@@ -776,42 +730,6 @@ When you need to ask the user ANY question — including simple yes/no, confirma
 		}
 
 		return runtime.harness.sendMessage(input.payload);
-	}
-
-	/**
-	 * Boot the runtime and start the turn, but resolve as soon as streaming
-	 * has begun — don't block on the assistant finishing. Used by headless
-	 * launches (`agents.run` from CLI/SDK/MCP) where the caller doesn't have
-	 * a UI to consume the stream and waiting 30s for the turn to end is just
-	 * dead time. The harness keeps streaming in the background; the renderer
-	 * picks up state via the next `getSnapshot` poll when a chat pane opens.
-	 */
-	async startTurn(input: ChatSendMessageInput): Promise<void> {
-		const runtime = await this.getOrCreateRuntime(
-			input.sessionId,
-			input.workspaceId,
-		);
-		runtime.lastErrorMessage = null;
-
-		const selectedModel = input.metadata?.model?.trim();
-		if (selectedModel) {
-			await runtime.harness.switchModel({
-				modelId: selectedModel,
-				scope: "thread",
-			});
-		}
-
-		const thinkingLevel = input.metadata?.thinkingLevel;
-		if (thinkingLevel) {
-			await runtime.harness.setState({ thinkingLevel });
-		}
-
-		// Fire and forget: surface the error onto the runtime so the next
-		// snapshot reports it via `displayState.errorMessage`, but don't
-		// reject the calling promise.
-		void runtime.harness.sendMessage(input.payload).catch((error) => {
-			runtime.lastErrorMessage = toRuntimeErrorMessage(error);
-		});
 	}
 
 	async restartFromMessage(input: RestartPayload): Promise<void> {

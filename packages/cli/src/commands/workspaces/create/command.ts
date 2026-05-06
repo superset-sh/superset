@@ -16,7 +16,7 @@ export default command({
 			"Branch to fork from when `branch` does not exist (defaults to project default)",
 		),
 		agent: string().desc(
-			"Agent to spawn after creation. Preset id (`claude`, `codex`, …), HostAgentConfig instance UUID, or `superset-chat`",
+			"Agent to spawn after creation. Preset id (`claude`, `codex`, …), HostAgentConfig instance UUID, or `superset`",
 		),
 		prompt: string().desc(
 			"Initial prompt the agent starts with. Required when --agent is set",

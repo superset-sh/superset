@@ -10,7 +10,7 @@ export default command({
 		agent: string()
 			.required()
 			.desc(
-				"Agent preset id (e.g. `claude`), HostAgentConfig instance UUID, or `superset-chat` for a Superset Chat session",
+				"Agent preset id (e.g. `claude`), HostAgentConfig instance UUID, or `superset` for a Superset session",
 			),
 		prompt: string().required().desc("Prompt sent to the agent"),
 		attachmentId: string()

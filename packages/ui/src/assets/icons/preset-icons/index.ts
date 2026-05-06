@@ -27,7 +27,6 @@ export const PRESET_ICONS: Record<string, PresetIconSet> = {
 	gemini: { light: geminiIcon, dark: geminiIcon },
 	pi: { light: piIcon, dark: piWhiteIcon },
 	superset: { light: supersetIcon, dark: supersetIcon },
-	"superset-chat": { light: supersetIcon, dark: supersetIcon },
 	"cursor-agent": { light: cursorAgentIcon, dark: cursorAgentIcon },
 	mastracode: { light: mastracodeIcon, dark: mastracodeWhiteIcon },
 	opencode: { light: opencodeIcon, dark: opencodeWhiteIcon },

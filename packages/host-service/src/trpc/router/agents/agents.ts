@@ -210,18 +210,24 @@ async function runChatAgent(
 		v2WorkspaceId: input.workspaceId,
 	});
 
-	// Fire-and-forget the turn: the caller (CLI/SDK/MCP) gets the sessionId
-	// back as soon as the runtime is ready, instead of waiting ~30s for the
-	// assistant stream to finish. The renderer materializes the streaming
-	// state via `chat.getSnapshot` when a chat pane opens.
-	await ctx.runtime.chat.startTurn({
-		sessionId,
-		workspaceId: input.workspaceId,
-		payload: {
-			content: input.prompt,
-			...(files.length > 0 ? { files } : {}),
-		},
-	});
+	// Fire and forget: the caller gets the sessionId without waiting for the
+	// runtime boot or assistant stream. A chat pane attaching later surfaces
+	// any error via `getSnapshot.displayState.errorMessage`.
+	void ctx.runtime.chat
+		.sendMessage({
+			sessionId,
+			workspaceId: input.workspaceId,
+			payload: {
+				content: input.prompt,
+				...(files.length > 0 ? { files } : {}),
+			},
+		})
+		.catch((error) => {
+			console.error(
+				`[runChatAgent] sendMessage failed for ${sessionId}:`,
+				error,
+			);
+		});
 
 	return { kind: "chat", sessionId, label };
 }
@@ -277,12 +283,6 @@ async function runTerminalAgent(
 	};
 }
 
-/**
- * Launch an agent against a workspace. Routes by agent kind: chat-builtin
- * ids fire a first message through the host's ChatRuntimeManager (no PTY);
- * everything else resolves to a terminal preset and spawns a PTY. Both
- * return a `kind`-tagged result so callers materialize the right pane.
- */
 export async function runAgentInWorkspace(
 	ctx: HostServiceContext,
 	input: AgentRunInput,

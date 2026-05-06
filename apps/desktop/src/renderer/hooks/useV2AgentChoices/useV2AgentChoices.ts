@@ -11,14 +11,10 @@ interface UseV2AgentChoicesResult {
 	isFetched: boolean;
 }
 
-/**
- * Combines the host's configured terminal-agent rows with built-in chat
- * agents (e.g. Superset Chat) into a single picker list. Chat agents are
- * defined in shared (`BUILTIN_AGENT_DEFINITIONS`) and don't live in the
- * host's `host_agent_configs` table — they're routed by id inside
- * `runAgentInWorkspace`. Appended after the host's configured terminal
- * rows so the user's preferred terminal agents stay at the top.
- */
+// Built-in chat agents aren't in the host's `host_agent_configs` table —
+// they're routed by id inside `runAgentInWorkspace`. Append after the
+// host's terminal rows so the user's preferred terminal agents stay on
+// top of the picker.
 export function useV2AgentChoices(
 	hostUrl: string | null,
 ): UseV2AgentChoicesResult {

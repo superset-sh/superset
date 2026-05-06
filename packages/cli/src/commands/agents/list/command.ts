@@ -43,7 +43,7 @@ export default command({
 			id: definition.id,
 			presetId: definition.id,
 			label: definition.label,
-			command: "(superset chat runtime)",
+			command: "(superset runtime)",
 		}));
 		return [...terminalConfigs, ...chatBuiltins];
 	},

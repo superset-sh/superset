@@ -8,7 +8,7 @@ export function register(server: McpServer): void {
 	defineTool(server, {
 		name: "agents_run",
 		description:
-			"Launch an agent inside an existing workspace. Resolves the host that owns the workspace, then runs the named agent preset (or HostAgentConfig instance) with the given prompt. Terminal agents spawn a fresh PTY session; `superset-chat` spawns a Superset Chat session (mastracode runtime) instead. The result's `kind` field discriminates. Use this to start a second agent in a workspace that already exists; for create-and-spawn in a single call, pass `agents` to workspaces_create instead.",
+			"Launch an agent inside an existing workspace. Resolves the host that owns the workspace, then runs the named agent preset (or HostAgentConfig instance) with the given prompt. Terminal agents spawn a fresh PTY session; `superset` spawns a Superset session (mastracode runtime) instead. The result's `kind` field discriminates. Use this to start a second agent in a workspace that already exists; for create-and-spawn in a single call, pass `agents` to workspaces_create instead.",
 		inputSchema: {
 			workspaceId: z
 				.string()
@@ -18,14 +18,14 @@ export function register(server: McpServer): void {
 				.string()
 				.min(1)
 				.describe(
-					"Agent preset id (e.g. `claude`, `codex`), HostAgentConfig instance UUID, or `superset-chat` for a Superset Chat session.",
+					"Agent preset id (e.g. `claude`, `codex`), HostAgentConfig instance UUID, or `superset` for a Superset session.",
 				),
 			prompt: z.string().min(1).describe("Prompt sent to the agent."),
 			attachmentIds: z
 				.array(z.string().uuid())
 				.optional()
 				.describe(
-					"Host-scoped attachment UUIDs. For terminal agents the host appends a paths block to the prompt; for `superset-chat` the host inlines the file bytes as base64 data URLs on the chat message.",
+					"Host-scoped attachment UUIDs. For terminal agents the host appends a paths block to the prompt; for `superset` the host inlines the file bytes as base64 data URLs on the chat message.",
 				),
 		},
 		handler: async (input, ctx) => {
