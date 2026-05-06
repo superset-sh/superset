@@ -69,6 +69,7 @@ export class ChatService {
 		this.getAuthStorage(),
 	);
 	private openAIOAuthLoopback: OpenAIOAuthLoopback | null = null;
+	private pendingOpenAIOAuthCallbackUrl: string | null = null;
 	private readonly anthropicEnvConfigPath: string | undefined;
 	private currentAnthropicRuntimeEnv: AnthropicRuntimeEnv = {};
 	private static readonly ANTHROPIC_AUTH_SESSION_TTL_MS = 10 * 60 * 1000;
@@ -377,6 +378,7 @@ export class ChatService {
 
 	async startOpenAIOAuth(): Promise<{ url: string; instructions: string }> {
 		this.stopOpenAIOAuthLoopback();
+		this.pendingOpenAIOAuthCallbackUrl = null;
 		const result = await this.oauthFlowController.start(
 			this.getOpenAIOAuthFlowOptions(),
 		);
@@ -389,10 +391,11 @@ export class ChatService {
 					port: target.port,
 					path: target.path,
 					onCallback: (callbackUrl) => {
-						void this.completeOpenAIOAuth({ code: callbackUrl }).catch(() => {
-							// Ignore — the session may have been cancelled or already
-							// completed via manual paste.
-						});
+						// Stash the callback URL so the renderer can consume it on its
+						// next poll. The renderer drives completion through the same
+						// completeOpenAIOAuth mutation as the manual-paste flow, so
+						// the dialog dismissal + navigation behavior stays consistent.
+						this.pendingOpenAIOAuthCallbackUrl = callbackUrl;
 					},
 				});
 				this.openAIOAuthLoopback = loopback;
@@ -405,8 +408,15 @@ export class ChatService {
 		return result;
 	}
 
+	consumeOpenAIOAuthCallback(): { callbackUrl: string | null } {
+		const callbackUrl = this.pendingOpenAIOAuthCallbackUrl;
+		this.pendingOpenAIOAuthCallbackUrl = null;
+		return { callbackUrl };
+	}
+
 	cancelOpenAIOAuth(): { success: true } {
 		this.stopOpenAIOAuthLoopback();
+		this.pendingOpenAIOAuthCallbackUrl = null;
 		return this.oauthFlowController.cancel(this.getOpenAIOAuthFlowOptions());
 	}
 
@@ -452,6 +462,7 @@ export class ChatService {
 			);
 		} finally {
 			this.stopOpenAIOAuthLoopback();
+			this.pendingOpenAIOAuthCallbackUrl = null;
 		}
 		return { success: true };
 	}

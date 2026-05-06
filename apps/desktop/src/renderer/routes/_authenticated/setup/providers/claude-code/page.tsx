@@ -1,6 +1,6 @@
 import { chatServiceTrpc } from "@superset/chat/client";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { AnthropicOAuthDialog } from "renderer/components/Chat/ChatInterface/components/ModelPicker/components/AnthropicOAuthDialog";
 import { useAnthropicOAuth } from "renderer/components/Chat/ChatInterface/components/ModelPicker/hooks/useAnthropicOAuth";
 import { track } from "renderer/lib/analytics";
@@ -32,32 +32,22 @@ function ConnectClaudeCodePage() {
 			isModelSelectorOpen: true,
 			onModelSelectorOpenChange: () => {},
 			onAuthStateChange: async () => {
-				await refetch();
+				const result = await refetch();
+				if (result.data?.authenticated && !result.data.issue) {
+					track("onboarding_provider_connected", {
+						provider: "anthropic",
+						method: "oauth",
+					});
+					navigate({ to: "/setup/providers", replace: true });
+				}
 			},
 		});
 
 	const isAuthenticated = !!status?.authenticated && !status.issue;
 
-	const wasAuthedOnMount = useRef<boolean | null>(null);
-	useEffect(() => {
-		if (status !== undefined && wasAuthedOnMount.current === null) {
-			wasAuthedOnMount.current = isAuthenticated;
-		}
-	}, [status, isAuthenticated]);
-
 	useEffect(() => {
 		goTo("providers");
 	}, [goTo]);
-
-	useEffect(() => {
-		if (wasAuthedOnMount.current === false && isAuthenticated) {
-			track("onboarding_provider_connected", {
-				provider: "anthropic",
-				method: "oauth",
-			});
-			navigate({ to: "/setup/providers", replace: true });
-		}
-	}, [isAuthenticated, navigate]);
 
 	const handleConnect = () => {
 		void startAnthropicOAuth();

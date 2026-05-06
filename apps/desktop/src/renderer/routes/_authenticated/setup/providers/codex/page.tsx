@@ -1,6 +1,6 @@
 import { chatServiceTrpc } from "@superset/chat/client";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { OpenAIOAuthDialog } from "renderer/components/Chat/ChatInterface/components/ModelPicker/components/OpenAIOAuthDialog";
 import { useOpenAIOAuth } from "renderer/components/Chat/ChatInterface/components/ModelPicker/hooks/useOpenAIOAuth";
 import { track } from "renderer/lib/analytics";
@@ -22,34 +22,28 @@ function ConnectCodexPage() {
 	const navigate = useNavigate();
 	const goTo = useOnboardingStore((s) => s.goTo);
 
-	const { data: status } = chatServiceTrpc.auth.getOpenAIStatus.useQuery();
+	const { data: status, refetch } =
+		chatServiceTrpc.auth.getOpenAIStatus.useQuery();
 	const { isStartingOAuth, startOpenAIOAuth, oauthDialog } = useOpenAIOAuth({
 		isModelSelectorOpen: true,
 		onModelSelectorOpenChange: () => {},
+		onAuthStateChange: async () => {
+			const result = await refetch();
+			if (result.data?.authenticated && !result.data.issue) {
+				track("onboarding_provider_connected", {
+					provider: "openai",
+					method: "oauth",
+				});
+				navigate({ to: "/setup/providers", replace: true });
+			}
+		},
 	});
 
 	const isAuthenticated = !!status?.authenticated && !status.issue;
 
-	const wasAuthedOnMount = useRef<boolean | null>(null);
-	useEffect(() => {
-		if (status !== undefined && wasAuthedOnMount.current === null) {
-			wasAuthedOnMount.current = isAuthenticated;
-		}
-	}, [status, isAuthenticated]);
-
 	useEffect(() => {
 		goTo("providers");
 	}, [goTo]);
-
-	useEffect(() => {
-		if (wasAuthedOnMount.current === false && isAuthenticated) {
-			track("onboarding_provider_connected", {
-				provider: "openai",
-				method: "oauth",
-			});
-			navigate({ to: "/setup/providers", replace: true });
-		}
-	}, [isAuthenticated, navigate]);
 
 	const handleConnect = () => {
 		void startOpenAIOAuth();
