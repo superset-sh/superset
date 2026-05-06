@@ -47,6 +47,14 @@ function OnboardingProvidersPage() {
 	const [codexMethod, setCodexMethod] = useState<ConnectionMethod>("oauth");
 	const [reconfiguringClaude, setReconfiguringClaude] = useState(false);
 	const [reconfiguringCodex, setReconfiguringCodex] = useState(false);
+	const [activeProvider, setActiveProvider] = useState<"claude" | "codex">(
+		"claude",
+	);
+
+	useEffect(() => {
+		if (claudeConnected && !codexConnected) setActiveProvider("codex");
+		else if (!claudeConnected && codexConnected) setActiveProvider("claude");
+	}, [claudeConnected, codexConnected]);
 
 	useEffect(() => {
 		goTo("providers");
@@ -93,114 +101,150 @@ function OnboardingProvidersPage() {
 		? "Add another provider or continue to the next step."
 		: "Connect Claude Code, Codex, or both to get started.";
 
+	const inAnyStep =
+		!claudeConnected ||
+		!codexConnected ||
+		reconfiguringClaude ||
+		reconfiguringCodex;
+	const effectiveProvider: "claude" | "codex" = reconfiguringClaude
+		? "claude"
+		: reconfiguringCodex
+			? "codex"
+			: activeProvider;
+	const showBothCompact = !inAnyStep;
+	const showClaude = showBothCompact || effectiveProvider === "claude";
+	const showCodex = showBothCompact || effectiveProvider === "codex";
+	const showSwitcher =
+		!showBothCompact && !reconfiguringClaude && !reconfiguringCodex;
+	const otherLabel = effectiveProvider === "claude" ? "Codex" : "Claude Code";
+
 	return (
 		<StepShell maxWidth="lg">
 			<StepHeader title="Connect AI Provider" subtitle={subtitle} />
 
-			<ProviderSection
-				label="Claude Code"
-				connected={claudeConnected}
-				reconfiguring={reconfiguringClaude}
-				onConnect={() =>
-					handleConnect("/setup/providers/claude-code", claudeMethod)
-				}
-				onReconfigure={() => setReconfiguringClaude(true)}
-				onCancelReconfigure={() => setReconfiguringClaude(false)}
-				connectedPanel={
-					<ConnectedPanel
-						icon={
-							<ClaudeBrandIcon
-								className="size-11 rounded-lg"
-								iconClassName="size-6"
-							/>
-						}
-						title="Claude Code is connected"
-					/>
-				}
-				options={
-					<>
-						<ProviderOptionCard
+			{showClaude && (
+				<ProviderSection
+					label="Claude Code"
+					connected={claudeConnected}
+					reconfiguring={reconfiguringClaude}
+					onConnect={() =>
+						handleConnect("/setup/providers/claude-code", claudeMethod)
+					}
+					onReconfigure={() => setReconfiguringClaude(true)}
+					onCancelReconfigure={() => setReconfiguringClaude(false)}
+					connectedPanel={
+						<ConnectedPanel
 							icon={
-								<ClaudeBrandIcon className="size-full" iconClassName="size-6" />
+								<ClaudeBrandIcon
+									className="size-11 rounded-lg"
+									iconClassName="size-6"
+								/>
 							}
-							title="Claude Pro/Max"
-							description="Use your Claude subscription for unlimited access."
-							recommended
-							selected={claudeMethod === "oauth"}
-							onSelect={() => setClaudeMethod("oauth")}
+							title="Claude Code is connected"
 						/>
-						<ProviderOptionCard
-							icon={<MutedIcon icon={<LuKeyRound className="size-5" />} />}
-							title="Anthropic API Key"
-							description="Pay-as-you-go with your own API key."
-							selected={claudeMethod === "api-key"}
-							onSelect={() => setClaudeMethod("api-key")}
-						/>
-						<ProviderOptionCard
-							icon={<MutedIcon icon={<LuSettings className="size-5" />} />}
-							title="Custom Model"
-							description="Use a custom base URL and model."
-							selected={claudeMethod === "custom"}
-							onSelect={() => setClaudeMethod("custom")}
-						/>
-					</>
-				}
-			/>
-
-			<ProviderSection
-				label="Codex"
-				connected={codexConnected}
-				reconfiguring={reconfiguringCodex}
-				onConnect={() => handleConnect("/setup/providers/codex", codexMethod)}
-				onReconfigure={() => setReconfiguringCodex(true)}
-				onCancelReconfigure={() => setReconfiguringCodex(false)}
-				connectedPanel={
-					<ConnectedPanel
-						icon={
-							<CodexBrandIcon
-								className="size-11 rounded-lg bg-[#eae8e6]"
-								iconClassName="size-6 text-[#151110]"
+					}
+					options={
+						<>
+							<ProviderOptionCard
+								icon={
+									<ClaudeBrandIcon
+										className="size-full"
+										iconClassName="size-6"
+									/>
+								}
+								title="Claude Pro/Max"
+								description="Use your Claude subscription for unlimited access."
+								recommended
+								selected={claudeMethod === "oauth"}
+								onSelect={() => setClaudeMethod("oauth")}
 							/>
-						}
-						title="Codex is connected"
-					/>
-				}
-				options={
-					<>
-						<ProviderOptionCard
+							<ProviderOptionCard
+								icon={<MutedIcon icon={<LuKeyRound className="size-5" />} />}
+								title="Anthropic API Key"
+								description="Pay-as-you-go with your own API key."
+								selected={claudeMethod === "api-key"}
+								onSelect={() => setClaudeMethod("api-key")}
+							/>
+							<ProviderOptionCard
+								icon={<MutedIcon icon={<LuSettings className="size-5" />} />}
+								title="Custom Model"
+								description="Use a custom base URL and model."
+								selected={claudeMethod === "custom"}
+								onSelect={() => setClaudeMethod("custom")}
+							/>
+						</>
+					}
+				/>
+			)}
+
+			{showCodex && (
+				<ProviderSection
+					label="Codex"
+					connected={codexConnected}
+					reconfiguring={reconfiguringCodex}
+					onConnect={() => handleConnect("/setup/providers/codex", codexMethod)}
+					onReconfigure={() => setReconfiguringCodex(true)}
+					onCancelReconfigure={() => setReconfiguringCodex(false)}
+					connectedPanel={
+						<ConnectedPanel
 							icon={
 								<CodexBrandIcon
-									className="size-full bg-[#eae8e6]"
+									className="size-11 rounded-lg bg-[#eae8e6]"
 									iconClassName="size-6 text-[#151110]"
 								/>
 							}
-							title="ChatGPT Plus/Pro"
-							description="Use your ChatGPT subscription via Codex."
-							recommended
-							selected={codexMethod === "oauth"}
-							onSelect={() => setCodexMethod("oauth")}
+							title="Codex is connected"
 						/>
-						<ProviderOptionCard
-							icon={<MutedIcon icon={<LuKeyRound className="size-5" />} />}
-							title="OpenAI API Key"
-							description="Pay-as-you-go with your own API key."
-							selected={codexMethod === "api-key"}
-							onSelect={() => setCodexMethod("api-key")}
-						/>
-						<ProviderOptionCard
-							icon={<MutedIcon icon={<LuSettings className="size-5" />} />}
-							title="Custom Model"
-							description="Use a custom base URL and model."
-							selected={codexMethod === "custom"}
-							onSelect={() => setCodexMethod("custom")}
-						/>
-					</>
-				}
-			/>
+					}
+					options={
+						<>
+							<ProviderOptionCard
+								icon={
+									<CodexBrandIcon
+										className="size-full bg-[#eae8e6]"
+										iconClassName="size-6 text-[#151110]"
+									/>
+								}
+								title="ChatGPT Plus/Pro"
+								description="Use your ChatGPT subscription via Codex."
+								recommended
+								selected={codexMethod === "oauth"}
+								onSelect={() => setCodexMethod("oauth")}
+							/>
+							<ProviderOptionCard
+								icon={<MutedIcon icon={<LuKeyRound className="size-5" />} />}
+								title="OpenAI API Key"
+								description="Pay-as-you-go with your own API key."
+								selected={codexMethod === "api-key"}
+								onSelect={() => setCodexMethod("api-key")}
+							/>
+							<ProviderOptionCard
+								icon={<MutedIcon icon={<LuSettings className="size-5" />} />}
+								title="Custom Model"
+								description="Use a custom base URL and model."
+								selected={codexMethod === "custom"}
+								onSelect={() => setCodexMethod("custom")}
+							/>
+						</>
+					}
+				/>
+			)}
 
 			<div className="flex w-[273px] flex-col gap-2 self-center">
-				{atLeastOneConnected && (
+				{atLeastOneConnected && !inAnyStep && (
 					<SetupButton onClick={handleContinueToNextStep}>Continue</SetupButton>
+				)}
+				{showSwitcher && (
+					<SetupButton
+						variant="link"
+						onClick={() =>
+							setActiveProvider(
+								effectiveProvider === "claude" ? "codex" : "claude",
+							)
+						}
+					>
+						Set up {otherLabel} instead
+					</SetupButton>
 				)}
 				<SetupButton variant="link" onClick={handleSkipStep}>
 					Skip for now
