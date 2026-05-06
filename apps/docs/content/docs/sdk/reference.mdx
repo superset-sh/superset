@@ -119,9 +119,7 @@ Returns `Array<Workspace>`.
 
 Create a worktree on a specific host. Optionally spawn one or more agents inside it as soon as the worktree is ready. Goes through the relay tunnel — the host must be online.
 
-<Callout type="info">
-**TODO** — the `agents` shorthand is the surface we're aiming for. The SDK currently sends a minimal `agentConfig: { id: 'claude', kind: 'terminal' }`; the host service still needs full launch info (`command`, `promptCommand`, …) to actually start the agent. We'll bake in defaults for built-in presets in a follow-up. Until then, pass a full `agentConfig` (crib one from `(await client.automations.list())[0].agentConfig`).
-</Callout>
+Each entry in `agents` takes a preset id (e.g. `"claude"`) or a `HostAgentConfig` instance UUID — the host service resolves it against its configured rows and copies their stored `command`, `args`, and `env`. Use [`agents.list({ hostId })`](#agentslist-hostid-) to enumerate what's installed.
 
 ```ts
 const ws = await client.workspaces.create({
@@ -173,6 +171,42 @@ List developer machines registered in the org. Returns `Array<Host>` with `id` (
 ```ts
 const hosts = await client.hosts.list();
 const online = hosts.filter((h) => h.online);
+```
+
+---
+
+## agents
+
+Terminal-agent rows configured on a specific host (the same rows shown in
+Settings → Agents on that machine). Reads route through the relay tunnel —
+the target host must be online.
+
+### `agents.list({ hostId })`
+
+List configured agents on a host in persisted display order. First call on a
+fresh host seeds the bundled defaults. Returns `Array<HostAgentConfig>` —
+each row carries `id`, `presetId`, `label`, `command`, `args`, `env`, and
+prompt-transport fields used to launch the agent.
+
+```ts
+const agents = await client.agents.list({ hostId: '<machineId>' });
+```
+
+### `agents.run({ workspaceId, agent, prompt, attachmentIds? }, { hostId? })`
+
+Launch an agent inside an existing workspace. By default looks up the host
+that owns the workspace via the cloud index; pass an explicit `hostId` to
+skip the lookup.
+
+`agent` accepts either a preset id (e.g. `"claude"`) or a `HostAgentConfig`
+instance UUID. Returns `{ sessionId, label }`.
+
+```ts
+const { sessionId } = await client.agents.run({
+  workspaceId: '<uuid>',
+  agent: 'claude',
+  prompt: 'Audit the login flow for race conditions.',
+});
 ```
 
 ---

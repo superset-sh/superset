@@ -13,6 +13,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { HiOutlinePlus } from "react-icons/hi2";
 import { useIsDarkTheme } from "renderer/assets/app-icons/preset-icons";
 import { useV2AgentConfigs } from "renderer/hooks/useV2AgentConfigs";
+import { buildAgentLaunchCommand } from "renderer/lib/agent-launch-command";
 import { useMigrateV1PresetsToV2 } from "renderer/routes/_authenticated/hooks/useMigrateV1PresetsToV2";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import type { V2TerminalPresetRow } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
@@ -203,7 +204,7 @@ export function V2PresetsSection({
 				label: agent.label,
 				description:
 					AGENT_PRESET_DESCRIPTIONS[agent.presetId as AgentType] ?? "",
-				commands: [agent.command],
+				commands: [buildAgentLaunchCommand(agent)],
 			});
 		}
 		return pills;

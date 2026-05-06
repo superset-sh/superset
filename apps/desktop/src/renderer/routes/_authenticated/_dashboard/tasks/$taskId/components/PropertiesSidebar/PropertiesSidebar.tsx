@@ -14,7 +14,7 @@ interface PropertiesSidebarProps {
 
 export function PropertiesSidebar({ task }: PropertiesSidebarProps) {
 	const labels = task.labels ?? [];
-	const { isV2CloudEnabled } = useIsV2CloudEnabled();
+	const isV2CloudEnabled = useIsV2CloudEnabled();
 
 	return (
 		<div className="w-64 border-l border-border shrink-0">

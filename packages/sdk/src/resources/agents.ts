@@ -99,7 +99,7 @@ export interface AgentListParams {
 export interface AgentRunParams {
 	/** Workspace UUID to run the agent in. */
 	workspaceId: string;
-	/** Agent preset id (e.g. `"claude"`) or HostAgentConfig instance UUID. */
+	/** Agent preset id (e.g. `"claude"`, `"superset"`) or HostAgentConfig instance UUID. */
 	agent: string;
 	/** Prompt sent to the agent. */
 	prompt: string;
@@ -111,10 +111,9 @@ interface HostLookup {
 	hostId: string;
 }
 
-export interface AgentRunResult {
-	sessionId: string;
-	label: string;
-}
+export type AgentRunResult =
+	| { kind: "terminal"; sessionId: string; label: string }
+	| { kind: "chat"; sessionId: string; label: string };
 
 export declare namespace Agents {
 	export type {

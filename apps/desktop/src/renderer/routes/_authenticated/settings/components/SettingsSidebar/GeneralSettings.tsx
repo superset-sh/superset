@@ -205,7 +205,7 @@ export function GeneralSettings({ matchCounts }: GeneralSettingsProps) {
 	const matchRoute = useMatchRoute();
 	const { data: platform } = electronTrpc.window.getPlatform.useQuery();
 	const isMac = platform === "darwin";
-	const { isV2CloudEnabled } = useIsV2CloudEnabled();
+	const isV2CloudEnabled = useIsV2CloudEnabled();
 	const allowedSections = useMemo(
 		() => getAllowedSectionsForVariant(isV2CloudEnabled),
 		[isV2CloudEnabled],

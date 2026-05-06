@@ -12,14 +12,14 @@ import {
 	getPresetIcon,
 	useIsDarkTheme,
 } from "renderer/assets/app-icons/preset-icons";
-import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
-import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import {
 	joinArgs,
 	joinCommandArgs,
 	parseArgs,
 	parseCommandString,
-} from "../../utils/argv";
+} from "renderer/lib/argv";
+import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
+import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 
 interface AgentDetailProps {
 	config: HostAgentConfig;

@@ -11,7 +11,7 @@ export const Route = createFileRoute("/_authenticated/settings/git/")({
 
 function GitSettingsPage() {
 	const searchQuery = useSettingsSearchQuery();
-	const { isV2CloudEnabled } = useIsV2CloudEnabled();
+	const isV2CloudEnabled = useIsV2CloudEnabled();
 
 	const visibleItems = useMemo(
 		() =>

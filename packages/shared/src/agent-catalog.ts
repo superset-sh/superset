@@ -17,7 +17,7 @@ import {
 
 export const BUILTIN_AGENT_IDS = [
 	...BUILTIN_TERMINAL_AGENT_TYPES,
-	"superset-chat",
+	"superset",
 ] as const;
 
 export type BuiltinAgentId = (typeof BUILTIN_AGENT_IDS)[number];
@@ -35,14 +35,14 @@ export const BUILTIN_AGENT_LABELS: Record<BuiltinAgentId, string> = {
 	...Object.fromEntries(
 		BUILTIN_TERMINAL_AGENTS.map((agent) => [agent.id, agent.label]),
 	),
-	"superset-chat": "Superset Chat",
+	superset: "Superset",
 } as Record<BuiltinAgentId, string>;
 
 const BUILTIN_CHAT_AGENT: ChatAgentDefinition = {
-	id: "superset-chat",
+	id: "superset",
 	source: "builtin",
 	kind: "chat",
-	label: "Superset Chat",
+	label: "Superset",
 	description:
 		"Superset's built-in workspace chat for project-aware help and task launches.",
 	enabled: true,

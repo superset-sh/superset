@@ -23,6 +23,7 @@ import { Link } from "@tanstack/react-router";
 import { ExternalLink, Trash2 } from "lucide-react";
 import { useMemo } from "react";
 import { HiExclamationTriangle, HiOutlineFolderOpen } from "react-icons/hi2";
+import { buildAgentLaunchCommand } from "renderer/lib/agent-launch-command";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import type { PresetColumnKey } from "renderer/routes/_authenticated/settings/presets/types";
 import { useSettingsOriginRoute } from "renderer/stores/settings-state";
@@ -194,7 +195,7 @@ export function PresetEditorDialog({
 	const linkedAgentId = (preset as PresetWithAgent | null)?.agentId;
 	const isLinked = !!linkedAgentId;
 	const liveCommands = linkedAgent
-		? [linkedAgent.command]
+		? [buildAgentLaunchCommand(linkedAgent)]
 		: (preset?.commands ?? []);
 	const selectDirectory = electronTrpc.window.selectDirectory.useMutation();
 	const originRoute = useSettingsOriginRoute();

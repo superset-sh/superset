@@ -31,7 +31,7 @@ function OnboardingAdoptWorktreesPage() {
 	);
 
 	const utils = electronTrpc.useUtils();
-	const { isV2CloudEnabled } = useIsV2CloudEnabled();
+	const isV2CloudEnabled = useIsV2CloudEnabled();
 	const { data: projects, isPending } =
 		electronTrpc.projects.getRecents.useQuery();
 

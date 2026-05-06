@@ -56,7 +56,7 @@ describe("buildPromptAgentLaunchRequest", () => {
 		const request = buildPromptAgentLaunchRequest({
 			workspaceId: "workspace-1",
 			source: "new-workspace",
-			selectedAgent: "superset-chat",
+			selectedAgent: "superset",
 			prompt: "hello",
 			initialFiles: [
 				{
@@ -71,7 +71,7 @@ describe("buildPromptAgentLaunchRequest", () => {
 
 		expect(request).toMatchObject({
 			kind: "chat",
-			agentType: "superset-chat",
+			agentType: "superset",
 			chat: {
 				initialPrompt: "hello",
 				initialFiles: [
@@ -130,7 +130,7 @@ describe("buildTaskAgentLaunchRequest", () => {
 					version: 1,
 					presets: [
 						{
-							id: "superset-chat",
+							id: "superset",
 							taskPromptTemplate: "Chat {{title}} / {{slug}}",
 						},
 					],
@@ -140,7 +140,7 @@ describe("buildTaskAgentLaunchRequest", () => {
 		const request = buildTaskAgentLaunchRequest({
 			workspaceId: "workspace-1",
 			source: "open-in-workspace",
-			selectedAgent: "superset-chat",
+			selectedAgent: "superset",
 			task: TASK,
 			autoRun: true,
 			configsById,

@@ -137,7 +137,7 @@ function normalizeLegacyLaunchRequest(
 ): AgentLaunchRequest {
 	const chatConfig = legacy.chatLaunchConfig;
 	const shouldLaunchChat =
-		legacy.agentType === "superset-chat" ||
+		legacy.agentType === "superset" ||
 		legacy.openChatPane === true ||
 		chatConfig !== undefined;
 
@@ -146,7 +146,7 @@ function normalizeLegacyLaunchRequest(
 			kind: "chat",
 			workspaceId: legacy.workspaceId,
 			idempotencyKey: legacy.idempotencyKey,
-			agentType: "superset-chat",
+			agentType: "superset",
 			source: legacy.source,
 			chat: {
 				paneId: chatConfig?.paneId ?? legacy.paneId,
@@ -211,11 +211,11 @@ export function buildTaskLaunchRequest({
 	source: AgentLaunchSource;
 	autoExecute?: boolean;
 }): AgentLaunchRequest {
-	if (agentType === "superset-chat") {
+	if (agentType === "superset") {
 		return {
 			kind: "chat",
 			workspaceId,
-			agentType: "superset-chat",
+			agentType: "superset",
 			source,
 			chat: {
 				initialPrompt: renderTaskPromptTemplate(

@@ -1,6 +1,6 @@
 import type { RendererContext } from "@superset/panes";
 import { cn } from "@superset/ui/utils";
-import { useWorkspaceClient, workspaceTrpc } from "@superset/workspace-client";
+import { workspaceTrpc } from "@superset/workspace-client";
 import "@xterm/xterm/css/xterm.css";
 import {
 	useCallback,
@@ -33,8 +33,6 @@ import { openUrlInV2Workspace } from "renderer/routes/_authenticated/_dashboard/
 import { useWorkspaceWsUrl } from "renderer/routes/_authenticated/_dashboard/v2-workspace/providers/WorkspaceTrpcProvider/WorkspaceTrpcProvider";
 import { ScrollToBottomButton } from "renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/Terminal/ScrollToBottomButton";
 import { TerminalSearch } from "renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/Terminal/TerminalSearch";
-import { useTheme } from "renderer/stores/theme";
-import { resolveTerminalThemeType } from "renderer/stores/theme/utils";
 import { useLinkClickHint } from "./hooks/useLinkClickHint";
 import { type HoveredLink, useLinkHoverState } from "./hooks/useLinkHoverState";
 import { useTerminalAppearance } from "./hooks/useTerminalAppearance";
@@ -64,45 +62,20 @@ export function TerminalPane({
 	const { hint, showHint } = useLinkClickHint();
 	const openInExternalEditor = useOpenInExternalEditor(workspaceId);
 	const paneData = ctx.pane.data as TerminalPaneData;
-	const paneDataRef = useRef(paneData);
-	paneDataRef.current = paneData;
-	const paneActionsRef = useRef(ctx.actions);
-	paneActionsRef.current = ctx.actions;
 	const { terminalId } = paneData;
-	const initialCommandRef = useRef(paneData.initialCommand);
 	const terminalInstanceId = ctx.pane.id;
 	const containerRef = useRef<HTMLDivElement | null>(null);
-	const activeTheme = useTheme();
 	const [isSearchOpen, setIsSearchOpen] = useState(false);
 
 	const appearance = useTerminalAppearance();
 	const appearanceRef = useRef(appearance);
 	appearanceRef.current = appearance;
-	const initialThemeTypeRef = useRef<
-		ReturnType<typeof resolveTerminalThemeType>
-	>(
-		resolveTerminalThemeType({
-			activeThemeType: activeTheme?.type,
-		}),
-	);
-	const { trpcClient } = useWorkspaceClient();
-	const trpcClientRef = useRef(trpcClient);
-	trpcClientRef.current = trpcClient;
 
 	const websocketUrl = useWorkspaceWsUrl(`/terminal/${terminalId}`);
 	const websocketUrlRef = useRef(websocketUrl);
 	websocketUrlRef.current = websocketUrl;
 	const workspaceIdRef = useRef(workspaceId);
 	workspaceIdRef.current = workspaceId;
-	const markInitialCommandAccepted = useCallback(() => {
-		initialCommandRef.current = undefined;
-		const currentPaneData = paneDataRef.current;
-		if (currentPaneData.initialCommand === undefined) return;
-		paneActionsRef.current.updateData({
-			...currentPaneData,
-			initialCommand: undefined,
-		} as PaneViewerData);
-	}, []);
 
 	const workspaceTrpcUtils = workspaceTrpc.useUtils();
 	const invalidateTerminalSessionsRef = useRef(
@@ -139,17 +112,17 @@ export function TerminalPane({
 	//      is visible immediately, even on cold start. For a warm return
 	//      (workspace switch) this reparents the wrapper from the parking
 	//      container back into the live tree, preserving the buffer.
-	//   2. createSession() starts or adopts the server terminal using the
-	//      measured dimensions and optional initial command.
-	//   3. connect() attaches the WebSocket to that terminalId. The socket is
+	//   2. connect() attaches the WebSocket to that terminalId. The socket is
 	//      transport only; it does not carry creation-time intent.
+	// The pane never calls createSession — that's useV2TerminalLauncher's job,
+	// awaited at the call site before the pane is added to the store. By the
+	// time this effect runs, the host-service session already exists.
 	// Deps narrowed to the terminal identity so provider key remount churn
 	// (workspaceId/client briefly flipping while pane data catches up) doesn't
 	// re-run this effect. Mutable inputs are read through refs.
 	useEffect(() => {
 		const container = containerRef.current;
 		if (!container) return;
-		let cancelled = false;
 
 		terminalRuntimeRegistry.mount(
 			terminalId,
@@ -158,51 +131,16 @@ export function TerminalPane({
 			terminalInstanceId,
 		);
 
-		const dimensions = terminalRuntimeRegistry.getDimensions(
+		terminalRuntimeRegistry.connect(
 			terminalId,
+			websocketUrlRef.current,
 			terminalInstanceId,
 		);
-		const pendingInitialCommand = initialCommandRef.current?.trim()
-			? initialCommandRef.current
-			: undefined;
-
-		void (async () => {
-			try {
-				await trpcClientRef.current.terminal.createSession.mutate({
-					terminalId,
-					workspaceId: workspaceIdRef.current,
-					themeType: initialThemeTypeRef.current,
-					initialCommand: pendingInitialCommand,
-					cols: dimensions?.cols,
-					rows: dimensions?.rows,
-				});
-				if (cancelled) return;
-				if (pendingInitialCommand) markInitialCommandAccepted();
-			} catch (error) {
-				if (cancelled) return;
-				const message =
-					error instanceof Error
-						? error.message
-						: "Failed to create terminal session";
-				terminalRuntimeRegistry
-					.getTerminal(terminalId, terminalInstanceId)
-					?.writeln(`\r\n[terminal] ${message}`);
-				return;
-			}
-
-			if (cancelled) return;
-			terminalRuntimeRegistry.connect(
-				terminalId,
-				websocketUrlRef.current,
-				terminalInstanceId,
-			);
-		})();
 
 		return () => {
-			cancelled = true;
 			terminalRuntimeRegistry.detach(terminalId, terminalInstanceId);
 		};
-	}, [terminalId, terminalInstanceId, markInitialCommandAccepted]);
+	}, [terminalId, terminalInstanceId]);
 
 	const lastInvalidatedOpenSessionRef = useRef<string | null>(null);
 	useEffect(() => {

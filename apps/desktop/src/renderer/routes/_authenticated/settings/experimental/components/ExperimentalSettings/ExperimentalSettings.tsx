@@ -55,7 +55,7 @@ export function ExperimentalSettings({
 		SETTING_ITEM_ID.EXPERIMENTAL_RESTART_ONBOARDING,
 		visibleItems,
 	);
-	const { isV2CloudEnabled, isRemoteV2Enabled } = useIsV2CloudEnabled();
+	const isV2CloudEnabled = useIsV2CloudEnabled();
 	const { rerun, isRunning } = useMigrateV1DataToV2({ autoRun: false });
 	const setOptInV2 = useV2LocalOverrideStore((state) => state.setOptInV2);
 	const resetOnboarding = useOnboardingStore((state) => state.reset);
@@ -98,13 +98,8 @@ export function ExperimentalSettings({
 								Try Superset v2
 							</Label>
 							<p className="text-xs text-muted-foreground">
-								Use the new workspace experience when early access is available.
+								Use the new workspace experience.
 							</p>
-							{!isRemoteV2Enabled && (
-								<p className="text-xs text-muted-foreground">
-									Early access is not enabled for this account.
-								</p>
-							)}
 						</div>
 						<Switch
 							id="superset-v2"
@@ -112,11 +107,10 @@ export function ExperimentalSettings({
 							onCheckedChange={(enabled) => {
 								track("surface_toggled", {
 									from: isV2CloudEnabled ? "v2" : "v1",
-									to: enabled && isRemoteV2Enabled ? "v2" : "v1",
+									to: enabled ? "v2" : "v1",
 								});
 								setOptInV2(enabled);
 							}}
-							disabled={!isRemoteV2Enabled}
 						/>
 					</div>
 				)}

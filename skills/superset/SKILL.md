@@ -42,7 +42,6 @@ Provide exactly one of `--branch` or `--pr`. With `--pr`, the host runs `gh pr c
 ```bash
 superset agents list --host <id>                 # Configured agents on a host (LABEL, PRESET, COMMAND, ID)
 superset agents list --local                     # Same, for this machine
-superset agents list --local --presets           # Available presets you could add
 superset agents run --workspace <id> --agent claude --prompt "..."
 ```
 

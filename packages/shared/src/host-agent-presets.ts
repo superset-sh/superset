@@ -27,7 +27,7 @@ export interface HostAgentPreset {
  * not appear in promptless launches. Stdin transport pipes the prompt to
  * the spawned process's stdin instead of pushing it to argv.
  *
- * Superset Chat is intentionally excluded — its model/provider config
+ * Superset is intentionally excluded — its model/provider config
  * lives in chat settings, not in terminal-agent configs.
  */
 export const HOST_AGENT_PRESETS = [

@@ -19,7 +19,7 @@ export function SettingsSidebar() {
 	const searchQuery = useSettingsSearchQuery();
 	const setSearchQuery = useSetSettingsSearchQuery();
 	const originRoute = useSettingsOriginRoute();
-	const { isV2CloudEnabled } = useIsV2CloudEnabled();
+	const isV2CloudEnabled = useIsV2CloudEnabled();
 	const normalizedSearchQuery = searchQuery.trim();
 	const matchCounts = normalizedSearchQuery
 		? getVisibleMatchCountBySection(normalizedSearchQuery, isV2CloudEnabled)

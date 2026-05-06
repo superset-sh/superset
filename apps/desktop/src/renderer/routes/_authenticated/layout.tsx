@@ -64,7 +64,7 @@ function AuthenticatedLayout() {
 	const setOriginRoute = useSettingsStore((s) => s.setOriginRoute);
 	const utils = electronTrpc.useUtils();
 	const shownWorkspaceInitWarningsRef = useRef(new Set<string>());
-	const { isV2CloudEnabled } = useIsV2CloudEnabled();
+	const isV2CloudEnabled = useIsV2CloudEnabled();
 	const requiredComplete = useOnboardingStore(selectRequiredStepsComplete);
 	const firstIncompleteStep = useOnboardingStore(selectFirstIncompleteStep);
 

@@ -18,7 +18,7 @@ export function AgentsSettings({
 	visibleItems,
 	initialAgentPresetId,
 }: AgentsSettingsProps) {
-	const { isV2CloudEnabled } = useIsV2CloudEnabled();
+	const isV2CloudEnabled = useIsV2CloudEnabled();
 	if (isV2CloudEnabled) {
 		return <V2AgentsSettings initialAgentPresetId={initialAgentPresetId} />;
 	}
