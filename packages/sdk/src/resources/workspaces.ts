@@ -147,7 +147,7 @@ export interface WorkspaceCreateParams {
 }
 
 export interface WorkspaceAgentLaunch {
-	/** Agent preset id (e.g. `"claude"`) or HostAgentConfig instance id. */
+	/** Agent preset id (e.g. `"claude"`, `"superset"`) or HostAgentConfig instance id. */
 	agent: string;
 	/** What to tell the agent. */
 	prompt: string;
@@ -156,7 +156,8 @@ export interface WorkspaceAgentLaunch {
 }
 
 export type WorkspaceCreateAgentResult =
-	| { ok: true; sessionId: string; label: string }
+	| { ok: true; kind: "terminal"; sessionId: string; label: string }
+	| { ok: true; kind: "chat"; sessionId: string; label: string }
 	| { ok: false; error: string };
 
 export interface WorkspaceCreateResult {

@@ -1,3 +1,4 @@
+import { ORGANIZATION_HEADER } from "@superset/shared/constants";
 import type { AppRouter } from "@superset/trpc";
 import { createTRPCClient, httpBatchLink, type TRPCLink } from "@trpc/client";
 import { observable } from "@trpc/server/observable";
@@ -53,6 +54,7 @@ function retryOnUnauthorizedLink(
 export function createApiClient(
 	baseUrl: string,
 	authProvider: ApiAuthProvider,
+	organizationId: string,
 ): ApiClient {
 	return createTRPCClient<AppRouter>({
 		links: [
@@ -61,7 +63,16 @@ export function createApiClient(
 				url: `${baseUrl}/api/trpc`,
 				transformer: SuperJSON,
 				async headers() {
-					return authProvider.getHeaders();
+					// Pin every host→cloud request to this host's bound org. The
+					// host's session-exchanged JWT (better-auth jwt plugin) only
+					// carries `organizationIds`, not a singular active org, so
+					// `protectedProcedure` would otherwise reject any call that
+					// reads `ctx.activeOrganizationId`. The cloud middleware
+					// validates membership before honoring this header.
+					return {
+						...(await authProvider.getHeaders()),
+						[ORGANIZATION_HEADER]: organizationId,
+					};
 				},
 			}),
 		],

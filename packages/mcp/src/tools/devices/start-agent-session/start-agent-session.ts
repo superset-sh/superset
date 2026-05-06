@@ -16,7 +16,7 @@ export function registerTaskLaunchTool(server: McpServer) {
 		START_AGENT_SESSION_TOOL_NAME,
 		{
 			description:
-				"Start an autonomous AI session for a task in an existing workspace. Supports terminal agents and Superset Chat. When paneId is provided, launch behavior is scoped to the tab containing that pane.",
+				"Start an autonomous AI session for a task in an existing workspace. Supports terminal agents and Superset. When paneId is provided, launch behavior is scoped to the tab containing that pane.",
 			inputSchema: taskInputSchemaShape,
 		},
 		async (args, extra) => {

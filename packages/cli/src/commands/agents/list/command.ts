@@ -31,6 +31,16 @@ export default command({
 			userJwt: ctx.bearer,
 		});
 
-		return target.client.settings.agentConfigs.list.query();
+		const terminalConfigs =
+			await target.client.settings.agentConfigs.list.query();
+		return [
+			...terminalConfigs,
+			{
+				id: "superset",
+				presetId: "superset",
+				label: "Superset",
+				command: "(superset runtime)",
+			},
+		];
 	},
 });

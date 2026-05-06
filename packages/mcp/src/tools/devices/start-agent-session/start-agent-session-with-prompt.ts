@@ -14,7 +14,7 @@ export function registerPromptLaunchTool(server: McpServer) {
 		START_AGENT_SESSION_WITH_PROMPT_TOOL_NAME,
 		{
 			description:
-				"Start an autonomous AI session in an existing workspace using a direct prompt instead of a task. Supports terminal agents and Superset Chat. When paneId is provided, launch behavior is scoped to the tab containing that pane.",
+				"Start an autonomous AI session in an existing workspace using a direct prompt instead of a task. Supports terminal agents and Superset. When paneId is provided, launch behavior is scoped to the tab containing that pane.",
 			inputSchema: promptInputSchemaShape,
 		},
 		async (args, extra) => {

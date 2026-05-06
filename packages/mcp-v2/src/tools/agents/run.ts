@@ -18,7 +18,7 @@ export function register(server: McpServer): void {
 				.string()
 				.min(1)
 				.describe(
-					"Agent preset id (e.g. `claude`, `codex`) or HostAgentConfig instance UUID.",
+					"Agent preset id (e.g. `claude`, `codex`, `superset`) or HostAgentConfig instance UUID.",
 				),
 			prompt: z.string().min(1).describe("Prompt sent to the agent."),
 			attachmentIds: z
@@ -38,7 +38,10 @@ export function register(server: McpServer): void {
 				throw new Error(`Workspace not found: ${input.workspaceId}`);
 			}
 
-			return hostServiceCall<{ sessionId: string; label: string }>(
+			return hostServiceCall<
+				| { kind: "terminal"; sessionId: string; label: string }
+				| { kind: "chat"; sessionId: string; label: string }
+			>(
 				{
 					relayUrl: ctx.relayUrl,
 					organizationId: ctx.organizationId,

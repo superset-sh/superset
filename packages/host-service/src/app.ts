@@ -61,7 +61,8 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 	const { config, providers } = options;
 
 	const api =
-		options.api ?? createApiClient(config.cloudApiUrl, providers.auth);
+		options.api ??
+		createApiClient(config.cloudApiUrl, providers.auth, config.organizationId);
 	const db = options.db ?? createDb(config.dbPath, config.migrationsFolder);
 	const git = createGitFactory(providers.credentials);
 	const github =

@@ -8,7 +8,7 @@ const agentLaunchSchema = z.object({
 		.string()
 		.min(1)
 		.describe(
-			"Agent preset id (e.g. `claude`, `codex`) or HostAgentConfig instance UUID.",
+			"Agent preset id (e.g. `claude`, `codex`, `superset`) or HostAgentConfig instance UUID.",
 		),
 	prompt: z.string().min(1).describe("Initial prompt the agent starts with."),
 	attachmentIds: z
@@ -74,7 +74,8 @@ export function register(server: McpServer): void {
 				};
 				terminals: Array<{ terminalId: string; label?: string }>;
 				agents: Array<
-					| { ok: true; sessionId: string; label: string }
+					| { ok: true; kind: "terminal"; sessionId: string; label: string }
+					| { ok: true; kind: "chat"; sessionId: string; label: string }
 					| { ok: false; error: string }
 				>;
 				alreadyExists: boolean;

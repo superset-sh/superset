@@ -52,12 +52,10 @@ describe("agentConfigsRouter", () => {
 			expect(result.map((row) => row.order)).toEqual([0, 1, 2, 3, 4]);
 		});
 
-		it("does not seed Superset Chat", async () => {
+		it("does not seed Superset", async () => {
 			const caller = createCaller();
 			const result = await caller.list();
-			expect(
-				result.find((row) => row.presetId === "superset-chat"),
-			).toBeUndefined();
+			expect(result.find((row) => row.presetId === "superset")).toBeUndefined();
 		});
 
 		it("returns existing rows on subsequent calls without re-seeding", async () => {
