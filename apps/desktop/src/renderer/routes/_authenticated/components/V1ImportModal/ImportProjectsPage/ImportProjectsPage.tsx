@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import { LuFolder } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
+import { getBaseName } from "renderer/lib/pathBasename";
 import { useFinalizeProjectSetup } from "renderer/react-query/projects";
 import { ImportPageShell } from "../components/ImportPageShell";
 import { ImportRow, type RowAction } from "../components/ImportRow";
@@ -47,8 +48,11 @@ export function ImportProjectsPage({
 		return new Set(cloudProjectsQuery.data.map((p) => p.id));
 	}, [cloudProjectsQuery.data]);
 
-	const isLoading =
-		projectsQuery.isPending || auditQuery.isPending || !projectsQuery.data;
+	// Note: don't gate on `!projectsQuery.data`. If readV1Projects errors,
+	// `isPending` flips to false but `data` stays undefined, which would
+	// trap us in a permanent loading spinner. Falling through to itemCount=0
+	// shows the empty-state message instead of a dead-end loader.
+	const isLoading = projectsQuery.isPending || auditQuery.isPending;
 
 	const auditByV1Id = new Map<string, AuditLogEntry>();
 	for (const row of auditQuery.data ?? []) {
@@ -140,12 +144,10 @@ function expectedRemoteUrlFor(project: {
 }): string | undefined {
 	if (!project.githubOwner) return undefined;
 	// v1 doesn't store the repo name explicitly. Use the basename of the
-	// repo path (which is `git rev-parse --show-toplevel`'s last segment
-	// for any clone) — more reliable than the project's display name,
-	// which users can rename.
-	// Split on both separators so a Windows-style v1 path doesn't silently
-	// produce undefined and skip the matchesExpected hint.
-	const repoName = project.mainRepoPath.split(/[\\/]/).filter(Boolean).pop();
+	// repo path — more reliable than the project's display name (which
+	// users can rename) and `getBaseName` already handles POSIX, Windows,
+	// and UNC/mixed separators.
+	const repoName = getBaseName(project.mainRepoPath);
 	if (!repoName) return undefined;
 	return `https://github.com/${project.githubOwner}/${repoName}`;
 }

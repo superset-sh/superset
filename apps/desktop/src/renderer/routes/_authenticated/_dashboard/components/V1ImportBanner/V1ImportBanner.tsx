@@ -1,5 +1,5 @@
 import { Button } from "@superset/ui/button";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { LuArrowRight, LuX } from "react-icons/lu";
 import { env } from "renderer/env.renderer";
 import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
@@ -8,7 +8,16 @@ import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useOpenV1ImportModal } from "renderer/stores/v1-import-modal";
 import { MOCK_ORG_ID } from "shared/constants";
 
-const DISMISS_SESSION_KEY = "v1-import-banner-dismissed";
+const DISMISS_SESSION_KEY_PREFIX = "v1-import-banner-dismissed";
+
+function dismissKey(organizationId: string): string {
+	return `${DISMISS_SESSION_KEY_PREFIX}:${organizationId}`;
+}
+
+function readDismissed(organizationId: string | null): boolean {
+	if (!organizationId || typeof window === "undefined") return false;
+	return sessionStorage.getItem(dismissKey(organizationId)) === "1";
+}
 
 export function V1ImportBanner() {
 	const { data: session } = authClient.useSession();
@@ -17,10 +26,16 @@ export function V1ImportBanner() {
 		? MOCK_ORG_ID
 		: (session?.session?.activeOrganizationId ?? null);
 	const openModal = useOpenV1ImportModal();
-	const [dismissed, setDismissed] = useState(() => {
-		if (typeof window === "undefined") return false;
-		return sessionStorage.getItem(DISMISS_SESSION_KEY) === "1";
-	});
+	const [dismissed, setDismissed] = useState(() =>
+		readDismissed(organizationId),
+	);
+
+	// Re-sync local state when the active org changes — dismissal is per
+	// org, so flipping orgs should reveal the banner again if it hasn't
+	// been dismissed there yet.
+	useEffect(() => {
+		setDismissed(readDismissed(organizationId));
+	}, [organizationId]);
 
 	const projectsQuery = electronTrpc.migration.readV1Projects.useQuery(
 		undefined,
@@ -48,7 +63,9 @@ export function V1ImportBanner() {
 	if (remaining === 0) return null;
 
 	const dismiss = () => {
-		sessionStorage.setItem(DISMISS_SESSION_KEY, "1");
+		if (organizationId) {
+			sessionStorage.setItem(dismissKey(organizationId), "1");
+		}
 		setDismissed(true);
 	};
 
