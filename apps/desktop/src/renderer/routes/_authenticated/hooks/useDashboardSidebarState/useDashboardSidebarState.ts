@@ -8,25 +8,12 @@ import {
 } from "renderer/routes/_authenticated/components/utils/paneLifecycleRows";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import type { AppCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider/collections";
-import { isSidebarWorkspaceVisible } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
+import {
+	getNextTabOrder,
+	getPrependTabOrder,
+	isSidebarWorkspaceVisible,
+} from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
 import { PROJECT_CUSTOM_COLORS } from "shared/constants/project-colors";
-
-function getNextTabOrder(items: Array<{ tabOrder: number }>): number {
-	const maxTabOrder = items.reduce(
-		(maxValue, item) => Math.max(maxValue, item.tabOrder),
-		0,
-	);
-	return maxTabOrder + 1;
-}
-
-function getPrependTabOrder(items: Array<{ tabOrder: number }>): number {
-	if (items.length === 0) return 1;
-	const minTabOrder = items.reduce(
-		(minValue, item) => Math.min(minValue, item.tabOrder),
-		Number.POSITIVE_INFINITY,
-	);
-	return minTabOrder - 1;
-}
 
 type ProjectTopLevelItem = {
 	type: "workspace" | "section";
