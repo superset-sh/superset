@@ -64,7 +64,7 @@ function ConnectCodexPage() {
 								className="size-[42px]"
 							/>
 							<CodexBrandIcon
-								className="size-[42px] rounded-full bg-[#eae8e6]"
+								className="size-[42px] rounded-[10px] bg-[#eae8e6]"
 								iconClassName="size-7 text-[#151110]"
 							/>
 						</SupersetPill>

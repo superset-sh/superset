@@ -68,7 +68,7 @@ function ConnectClaudeCodePage() {
 								className="size-[42px]"
 							/>
 							<ClaudeBrandIcon
-								className="size-[42px] rounded-full"
+								className="size-[42px] rounded-[10px]"
 								iconClassName="size-6"
 							/>
 						</SupersetPill>
