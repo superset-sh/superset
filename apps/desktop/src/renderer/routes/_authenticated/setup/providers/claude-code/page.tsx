@@ -65,7 +65,7 @@ function ConnectClaudeCodePage() {
 							<img
 								src={supersetIconUrl}
 								alt="Superset"
-								className="size-[42px]"
+								className="size-[42px] rounded-full"
 							/>
 							<ClaudeBrandIcon
 								className="size-[42px] rounded-full"

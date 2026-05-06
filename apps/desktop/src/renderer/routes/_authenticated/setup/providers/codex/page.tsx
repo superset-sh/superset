@@ -61,7 +61,7 @@ function ConnectCodexPage() {
 							<img
 								src={supersetIconUrl}
 								alt="Superset"
-								className="size-[42px]"
+								className="size-[42px] rounded-full"
 							/>
 							<CodexBrandIcon
 								className="size-[42px] rounded-full bg-[#eae8e6]"
