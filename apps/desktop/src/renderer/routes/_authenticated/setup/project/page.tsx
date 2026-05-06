@@ -9,6 +9,7 @@ import { env } from "renderer/env.renderer";
 import { authClient } from "renderer/lib/auth-client";
 import { useFolderFirstImport } from "renderer/routes/_authenticated/_dashboard/components/AddRepositoryModals/hooks/useFolderFirstImport";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { STEP_ROUTES, useOnboardingStore } from "renderer/stores/onboarding";
 import { MOCK_ORG_ID } from "shared/constants";
 import { SetupButton } from "../components/SetupButton";
@@ -49,6 +50,8 @@ function OnboardingProjectPage() {
 	const folderImport = useFolderFirstImport({
 		onError: (message) => toast.error(message),
 	});
+	const { activeHostUrl } = useLocalHostService();
+	const hostReady = activeHostUrl !== null;
 
 	useEffect(() => {
 		goTo("project");
@@ -128,8 +131,12 @@ function OnboardingProjectPage() {
 					<SetupButton onClick={handleContinueWithCurrent}>
 						Continue with current
 					</SetupButton>
-					<SetupButton variant="secondary" onClick={handleSelectNewRepo}>
-						Select new repo
+					<SetupButton
+						variant="secondary"
+						onClick={handleSelectNewRepo}
+						disabled={!hostReady}
+					>
+						{hostReady ? "Select new repo" : "Connecting…"}
 					</SetupButton>
 					<SetupButton variant="link" onClick={handleSkipStep}>
 						Skip for now
@@ -148,7 +155,9 @@ function OnboardingProjectPage() {
 			/>
 
 			<div className="flex w-[273px] flex-col gap-2 self-center">
-				<SetupButton onClick={handleSelectNewRepo}>Select new repo</SetupButton>
+				<SetupButton onClick={handleSelectNewRepo} disabled={!hostReady}>
+					{hostReady ? "Select new repo" : "Connecting…"}
+				</SetupButton>
 				<SetupButton variant="link" onClick={handleSkipStep}>
 					Skip for now
 				</SetupButton>

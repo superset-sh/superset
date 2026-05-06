@@ -1,25 +1,27 @@
 import { SidebarCard } from "@superset/ui/sidebar-card";
+import { useNavigate } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "framer-motion";
 import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import { track } from "renderer/lib/analytics";
 import { useV2AvailableBannerStore } from "renderer/stores/v2-available-banner";
-import { useV2LocalOverrideStore } from "renderer/stores/v2-local-override";
 
 export function V2AvailableBanner() {
 	const isV2CloudEnabled = useIsV2CloudEnabled();
 	const dismissed = useV2AvailableBannerStore((s) => s.dismissed);
 	const dismiss = useV2AvailableBannerStore((s) => s.dismiss);
-	const setOptInV2 = useV2LocalOverrideStore((s) => s.setOptInV2);
+	const navigate = useNavigate();
 
-	function handleSwitch() {
-		track("surface_toggled", { from: "v1", to: "v2", source: "v1_banner" });
-		setOptInV2(true);
+	function handleManage() {
+		track("v2_banner_manage_clicked");
+		navigate({ to: "/settings/experimental" });
 	}
 
 	function handleDismiss() {
 		track("v2_banner_dismissed");
 		dismiss();
 	}
+
+	if (isV2CloudEnabled) return null;
 
 	return (
 		<AnimatePresence>
@@ -34,9 +36,9 @@ export function V2AvailableBanner() {
 					<SidebarCard
 						badge="New"
 						title="Superset v2 is here"
-						description="The new cloud workspace experience is now available."
-						actionLabel={isV2CloudEnabled ? undefined : "Switch to v2"}
-						onAction={isV2CloudEnabled ? undefined : handleSwitch}
+						description="Try the new cloud workspace experience."
+						actionLabel="Try new version of Superset"
+						onAction={handleManage}
 						onDismiss={handleDismiss}
 					/>
 				</motion.div>
