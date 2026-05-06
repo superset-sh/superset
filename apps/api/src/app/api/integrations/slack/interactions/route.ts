@@ -29,7 +29,12 @@ export async function POST(request: Request) {
 		return new Response("ok", { status: 200 });
 	}
 
-	const payload = JSON.parse(payloadRaw);
+	let payload: Record<string, unknown>;
+	try {
+		payload = JSON.parse(payloadRaw);
+	} catch {
+		return Response.json({ error: "Invalid JSON payload" }, { status: 400 });
+	}
 
 	if (payload.type === "block_actions") {
 		const teamId: string = payload.team?.id;
