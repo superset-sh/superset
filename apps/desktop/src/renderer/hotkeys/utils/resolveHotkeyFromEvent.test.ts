@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { HOTKEYS, type HotkeyId } from "../registry";
 import { useHotkeyOverridesStore } from "../stores/hotkeyOverridesStore";
 import type { HotkeyDefinition, ShortcutBinding } from "../types";
+import { parseBinding } from "./binding";
 import {
 	canonicalizeChord,
 	eventToChord,
@@ -156,18 +157,19 @@ describe("resolveHotkeyFromEvent — live override index", () => {
 	});
 
 	// Resolve once so registry reorders / removals surface as a test failure
-	// here instead of silently skipping the cases below. The type predicate
-	// narrows to a HotkeyDefinition whose .key is guaranteed non-null after
-	// the filter, so sampleDef.key can be passed to string-only helpers below.
+	// here instead of silently skipping the cases below. Defaults can be
+	// stored as bare strings (named/legacy) or v2 objects (logical) — extract
+	// the canonical chord via parseBinding so test helpers stay string-shaped.
 	const sampleEntry = Object.entries(HOTKEYS).find(
-		(entry): entry is [HotkeyId, HotkeyDefinition & { key: string }] =>
+		(entry): entry is [HotkeyId, HotkeyDefinition & { key: ShortcutBinding }] =>
 			entry[1].key !== null,
 	);
 	if (!sampleEntry) throw new Error("HOTKEYS has no bound default");
 	const [sampleId, sampleDef] = sampleEntry;
+	const sampleChord = parseBinding(sampleDef.key).chord;
 
 	it("resolves a default binding when no override is set", () => {
-		const event = buildEventFromChord(sampleDef.key);
+		const event = buildEventFromChord(sampleChord);
 		expect(resolveHotkeyFromEvent(event)).toBe(sampleId);
 	});
 
@@ -183,7 +185,7 @@ describe("resolveHotkeyFromEvent — live override index", () => {
 		useHotkeyOverridesStore.setState({
 			overrides: { [sampleId]: "meta+shift+f10" },
 		});
-		const event = buildEventFromChord(sampleDef.key);
+		const event = buildEventFromChord(sampleChord);
 		expect(resolveHotkeyFromEvent(event)).toBeNull();
 	});
 
@@ -191,7 +193,7 @@ describe("resolveHotkeyFromEvent — live override index", () => {
 		useHotkeyOverridesStore.setState({
 			overrides: { [sampleId]: null },
 		});
-		const event = buildEventFromChord(sampleDef.key);
+		const event = buildEventFromChord(sampleChord);
 		expect(resolveHotkeyFromEvent(event)).toBeNull();
 	});
 });

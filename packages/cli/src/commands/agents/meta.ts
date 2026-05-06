@@ -1,3 +1,3 @@
 export default {
-	description: "Run agents inside workspaces",
+	description: "Manage and run agents",
 };

@@ -25,7 +25,7 @@ import { LinkedIssuePill } from "renderer/components/Chat/ChatInterface/componen
 import { IssueLinkCommand } from "renderer/components/Chat/ChatInterface/components/IssueLinkCommand";
 import { resolveHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
 import { useAgentLaunchPreferences } from "renderer/hooks/useAgentLaunchPreferences";
-import { useEnabledAgents } from "renderer/hooks/useEnabledAgents";
+import { useV2AgentConfigs } from "renderer/hooks/useV2AgentConfigs";
 import { PLATFORM } from "renderer/hotkeys";
 import { authClient } from "renderer/lib/auth-client";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
@@ -112,21 +112,69 @@ export function PromptGroup({
 		linkedPR,
 	} = draft;
 
-	// ── Agent presets ────────────────────────────────────────────────
-	const { agents: enabledAgentPresets, isFetched: agentsFetched } =
-		useEnabledAgents();
+	// ── Agent configs (v2 host_agent_configs) ───────────────────────
+	// Scoped to the launch host, not the local active host: agent UUIDs only
+	// exist on the host that owns them, so picking from the local list while
+	// submitting to a remote host would send a config id the target doesn't
+	// recognize.
+	const launchHostUrl = useMemo(() => {
+		const id = draft.hostId ?? machineId;
+		if (!id || !activeOrganizationId) return null;
+		return (
+			resolveHostUrl({
+				hostId: id,
+				machineId,
+				activeHostUrl,
+				organizationId: activeOrganizationId,
+			}) ?? null
+		);
+	}, [draft.hostId, machineId, activeHostUrl, activeOrganizationId]);
+	const v2AgentConfigsQuery = useV2AgentConfigs(launchHostUrl);
+	const v2Agents = useMemo(
+		() =>
+			(v2AgentConfigsQuery.data ?? []).map((config) => ({
+				id: config.id,
+				label: config.label,
+				iconId: config.presetId,
+			})),
+		[v2AgentConfigsQuery.data],
+	);
 	const selectableAgentIds = useMemo(
-		() => enabledAgentPresets.map((preset) => preset.id),
-		[enabledAgentPresets],
+		() => v2Agents.map((agent) => agent.id),
+		[v2Agents],
 	);
 	const { selectedAgent, setSelectedAgent } =
 		useAgentLaunchPreferences<WorkspaceCreateAgent>({
 			agentStorageKey: AGENT_STORAGE_KEY,
-			defaultAgent: "claude",
+			defaultAgent: "none",
 			fallbackAgent: "none",
 			validAgents: ["none", ...selectableAgentIds],
-			agentsReady: agentsFetched,
+			agentsReady: v2AgentConfigsQuery.isFetched,
 		});
+
+	// Promote the placeholder "none" → first configured agent whenever the
+	// current selection isn't a real agent and the user hasn't explicitly
+	// chosen "none". Fires on initial open (where useState init captured
+	// "none" before the query resolved) AND on host switch (where the
+	// previous host's UUID isn't valid here, so the corrective effect inside
+	// useAgentLaunchPreferences resets to "none"). The corrective effect
+	// can't rescue these on its own because "none" is always in validAgents.
+	useEffect(() => {
+		if (!v2AgentConfigsQuery.isFetched) return;
+		if (selectedAgent !== "none") return;
+		const stored =
+			typeof window !== "undefined"
+				? window.localStorage.getItem(AGENT_STORAGE_KEY)
+				: null;
+		if (stored === "none") return;
+		const first = selectableAgentIds[0];
+		if (first) setSelectedAgent(first);
+	}, [
+		v2AgentConfigsQuery.isFetched,
+		selectableAgentIds,
+		selectedAgent,
+		setSelectedAgent,
+	]);
 
 	const branchPreview = branchNameEdited
 		? sanitizeUserBranchName(branchName)
@@ -383,7 +431,7 @@ export function PromptGroup({
 				<PromptInputFooter>
 					<PromptInputTools className="gap-1.5">
 						<AgentSelect<WorkspaceCreateAgent>
-							agents={enabledAgentPresets}
+							agents={v2Agents}
 							value={selectedAgent}
 							placeholder="No agent"
 							onValueChange={setSelectedAgent}

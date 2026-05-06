@@ -9,7 +9,49 @@ import {
 	listTerminalSessions,
 	parseThemeType,
 } from "../../../terminal/terminal";
+import type { HostServiceContext } from "../../../types";
 import { protectedProcedure, router } from "../../index";
+
+const createSessionInputSchema = z.object({
+	workspaceId: z.string(),
+	terminalId: z.string().optional(),
+	initialCommand: z.string().trim().min(1).optional(),
+	themeType: z.string().optional(),
+	cols: z.number().int().positive().optional(),
+	rows: z.number().int().positive().optional(),
+});
+
+async function createTerminalSessionFromInput({
+	ctx,
+	input,
+}: {
+	ctx: HostServiceContext;
+	input: z.infer<typeof createSessionInputSchema>;
+}) {
+	const terminalId = input.terminalId ?? crypto.randomUUID();
+	const result = await createTerminalSessionInternal({
+		terminalId,
+		workspaceId: input.workspaceId,
+		themeType: parseThemeType(input.themeType),
+		db: ctx.db,
+		eventBus: ctx.eventBus,
+		initialCommand: input.initialCommand,
+		cols: input.cols,
+		rows: input.rows,
+	});
+
+	if ("error" in result) {
+		throw new TRPCError({
+			code: "INTERNAL_SERVER_ERROR",
+			message: result.error,
+		});
+	}
+
+	return {
+		terminalId: result.terminalId,
+		status: "active" as const,
+	};
+}
 
 // Daemon control surface — sibling to the per-workspace terminal ops above.
 // Org-scoped (one daemon per host-service); org id comes from request ctx
@@ -48,35 +90,17 @@ const daemonRouter = router({
 });
 
 export const terminalRouter = router({
+	createSession: protectedProcedure
+		.input(createSessionInputSchema)
+		.mutation(createTerminalSessionFromInput),
+
 	launchSession: protectedProcedure
 		.input(
-			z.object({
-				workspaceId: z.string(),
-				terminalId: z.string().optional(),
-				initialCommand: z.string().min(1),
-				themeType: z.string().optional(),
+			createSessionInputSchema.extend({
+				initialCommand: z.string().trim().min(1),
 			}),
 		)
-		.mutation(async ({ ctx, input }) => {
-			const terminalId = input.terminalId ?? crypto.randomUUID();
-			const result = await createTerminalSessionInternal({
-				terminalId,
-				workspaceId: input.workspaceId,
-				themeType: parseThemeType(input.themeType),
-				db: ctx.db,
-				eventBus: ctx.eventBus,
-				initialCommand: input.initialCommand,
-			});
-
-			if ("error" in result) {
-				throw new TRPCError({
-					code: "INTERNAL_SERVER_ERROR",
-					message: result.error,
-				});
-			}
-
-			return { terminalId: result.terminalId, status: "active" as const };
-		}),
+		.mutation(createTerminalSessionFromInput),
 
 	listSessions: protectedProcedure
 		.input(

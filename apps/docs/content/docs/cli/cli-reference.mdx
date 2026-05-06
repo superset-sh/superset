@@ -489,6 +489,63 @@ superset workspaces delete ws_a ws_b ws_c
 
 ---
 
+### agents
+
+Agents are terminal-agent rows configured on a host (the same rows shown in
+Settings → Agents on that machine). Each row stores a `command`, `args`,
+prompt-transport mode, and environment used to launch the agent in a fresh
+terminal session inside a workspace.
+
+<Command
+	name="superset agents list"
+	options={[
+		{ flag: "--host <id>", description: "Target host machineId." },
+		{ flag: "--local", description: "Target this machine. Mutually exclusive with --host; exactly one is required." },
+	]}
+	output={`Array<{
+  id: string;
+  presetId: string;
+  label: string;
+  command: string;
+  args: string[];
+  promptTransport: "argv" | "stdin";
+  promptArgs: string[];
+  env: Record<string, string>;
+  order: number;
+}>`}
+	humanColumns={["LABEL", "PRESET", "COMMAND", "ID"]}
+	quiet="agent instance IDs"
+>
+List agents configured on a host. First call on a fresh host seeds the
+bundled defaults.
+
+```bash
+superset agents list --local
+superset agents list --host host_…
+```
+</Command>
+
+<Command
+	name="superset agents run"
+	options={[
+		{ flag: "--workspace <id>", required: true, description: "Workspace UUID to run the agent in." },
+		{ flag: "--agent <preset|uuid>", required: true, description: "Agent preset id (e.g. `claude`, `codex`) or HostAgentConfig instance UUID." },
+		{ flag: "--prompt <text>", required: true, description: "Prompt sent to the agent." },
+		{ flag: "--attachment-id <uuid>", description: "Host-scoped attachment UUID; pass repeatedly for multiple attachments." },
+	]}
+	output={`{ sessionId: string; label: string }`}
+>
+Launch an agent inside an existing workspace. Resolves the host that owns the
+workspace and starts the named preset (or HostAgentConfig instance) in a
+fresh terminal session on that host.
+
+```bash
+superset agents run --workspace ws_… --agent claude --prompt "Audit the login flow"
+```
+</Command>
+
+---
+
 ### tasks (alias: `t`)
 
 Tasks are units of work in your organization's task tracker.

@@ -51,8 +51,17 @@ import { HOOK_PROTOCOL_VERSION } from "./terminal/env";
  * line ~308) to SIGTERM old host-services on first launch and
  * respawn with the new bundle. One-time terminal-session loss for
  * users on upgrade — accepted per release-notes guidance.
+ *
+ * 0.7.0 — canonical `workspaces.create` flow + `settings.hostAgentConfigs`
+ * router (PR1, #3893). Older 0.6.x host-services don't expose either,
+ * so adopting one in place would break new-project creation and the
+ * agent-config settings UI. Force respawn on first launch.
+ *
+ * 0.8.0 — v2 terminal creation moved to `terminal.createSession`; the
+ * WebSocket route is attach-only by `terminalId`. Older host-services would
+ * reject the renderer's creation call and still expect socket-side startup.
  */
-const MIN_HOST_SERVICE_VERSION = "0.6.0";
+const MIN_HOST_SERVICE_VERSION = "0.8.0";
 
 export type HostServiceStatus = "starting" | "running" | "stopped";
 

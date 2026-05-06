@@ -24,7 +24,7 @@ import { V2PresetBarItem } from "./components/V2PresetBarItem";
 
 interface V2PresetsBarProps {
 	matchedPresets: V2TerminalPresetRow[];
-	executePreset: (preset: V2TerminalPresetRow) => void;
+	executePreset: (preset: V2TerminalPresetRow) => void | Promise<void>;
 }
 
 // Co-located to keep v2 self-contained. Mirrors the v1 array in

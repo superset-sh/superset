@@ -1,14 +1,14 @@
 import { useMemo } from "react";
 import { formatHotkeyDisplay } from "../../display";
 import { PLATFORM } from "../../registry";
-import { useKeyboardLayoutStore } from "../../stores/keyboardLayoutStore";
+import { useEffectiveLayoutMap } from "../../stores/keyboardPreferencesStore";
 import type { HotkeyDisplay, ShortcutBinding } from "../../types";
 import { bindingToDispatchChord } from "../../utils/binding";
 import { useBinding } from "../useBinding";
 
 export function useHotkeyDisplay(id: string): HotkeyDisplay {
 	const binding = useBinding(id as Parameters<typeof useBinding>[0]);
-	const layoutMap = useKeyboardLayoutStore((s) => s.map);
+	const layoutMap = useEffectiveLayoutMap();
 	const chord = bindingToDispatchChord(binding, layoutMap);
 	return useMemo(
 		() => formatHotkeyDisplay(chord, PLATFORM, layoutMap),
@@ -25,7 +25,7 @@ export function useHotkeyDisplay(id: string): HotkeyDisplay {
 export function useFormatBinding(
 	binding: ShortcutBinding | null,
 ): HotkeyDisplay {
-	const layoutMap = useKeyboardLayoutStore((s) => s.map);
+	const layoutMap = useEffectiveLayoutMap();
 	const chord = bindingToDispatchChord(binding, layoutMap);
 	return useMemo(
 		() => formatHotkeyDisplay(chord, PLATFORM, layoutMap),

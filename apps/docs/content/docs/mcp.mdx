@@ -244,6 +244,13 @@ API keys grant full access to your organization. Keep them secret and never comm
 | `workspaces_create` | Create a workspace on a host (branch-scoped git worktree) |
 | `workspaces_delete` | Delete a workspace by UUID; idempotent |
 
+### Agents
+
+| Tool | Description |
+|------|-------------|
+| `agents_list` | List agents configured on a host |
+| `agents_run` | Launch an agent inside an existing workspace |
+
 ### Automations
 
 | Tool | Description |
@@ -265,7 +272,6 @@ API keys grant full access to your organization. Keep them secret and never comm
 | Tool | Description |
 |------|-------------|
 | `projects_list` | List projects (checked-out repos) in the active organization |
-| `projects_create` | Register a project on a host: clone a Git URL or import an existing local repo |
 
 ### Hosts
 

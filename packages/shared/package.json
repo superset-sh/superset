@@ -36,6 +36,10 @@
 			"types": "./src/agent-catalog.ts",
 			"default": "./src/agent-catalog.ts"
 		},
+		"./host-agent-presets": {
+			"types": "./src/host-agent-presets.ts",
+			"default": "./src/host-agent-presets.ts"
+		},
 		"./agent-launch": {
 			"types": "./src/agent-launch.ts",
 			"default": "./src/agent-launch.ts"

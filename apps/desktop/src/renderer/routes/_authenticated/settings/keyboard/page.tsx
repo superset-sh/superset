@@ -9,7 +9,9 @@ import {
 import { Button } from "@superset/ui/button";
 import { Input } from "@superset/ui/input";
 import { Kbd, KbdGroup } from "@superset/ui/kbd";
+import { Label } from "@superset/ui/label";
 import { toast } from "@superset/ui/sonner";
+import { Switch } from "@superset/ui/switch";
 import { cn } from "@superset/ui/utils";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
@@ -22,6 +24,7 @@ import {
 	useFormatBinding,
 	useHotkeyDisplay,
 	useHotkeyOverridesStore,
+	useKeyboardPreferencesStore,
 	useRecordHotkeys,
 } from "renderer/hotkeys";
 
@@ -137,6 +140,13 @@ function KeyboardShortcutsPage() {
 	const resetAll = useHotkeyOverridesStore((s) => s.resetAll);
 	const setOverride = useHotkeyOverridesStore((s) => s.setOverride);
 
+	const adaptiveLayoutEnabled = useKeyboardPreferencesStore(
+		(s) => s.adaptiveLayoutEnabled,
+	);
+	const setAdaptiveLayoutEnabled = useKeyboardPreferencesStore(
+		(s) => s.setAdaptiveLayoutEnabled,
+	);
+
 	useRecordHotkeys(recordingId, {
 		// New printable bindings follow the printed character (matches what the
 		// user sees on their keyboard). F-keys / named keys are forced to
@@ -213,6 +223,26 @@ function KeyboardShortcutsPage() {
 				>
 					Reset all
 				</Button>
+			</div>
+
+			{/* Preferences */}
+			<div className="mb-8 flex items-center justify-between gap-4">
+				<div className="space-y-0.5">
+					<Label htmlFor="adaptive-layout" className="text-sm font-medium">
+						Adaptive layout mapping
+					</Label>
+					<p className="text-xs text-muted-foreground">
+						Match shortcuts to the labels on your keyboard (e.g. ⌘Z always fires
+						on the key labeled "Z" — physical KeyY on QWERTZ). When off,
+						shortcuts are anchored to physical key positions and ignore the
+						current input source.
+					</p>
+				</div>
+				<Switch
+					id="adaptive-layout"
+					checked={adaptiveLayoutEnabled}
+					onCheckedChange={setAdaptiveLayoutEnabled}
+				/>
 			</div>
 
 			{/* Search */}

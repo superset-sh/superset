@@ -102,7 +102,7 @@ export function useMigrateV1DataToV2({
 } = {}) {
 	const { data: session } = authClient.useSession();
 	const { activeHostUrl } = useLocalHostService();
-	const { isV2CloudEnabled } = useIsV2CloudEnabled();
+	const isV2CloudEnabled = useIsV2CloudEnabled();
 	const collections = useCollections();
 	const isRunning = useSyncExternalStore(
 		subscribeMigrationRunning,

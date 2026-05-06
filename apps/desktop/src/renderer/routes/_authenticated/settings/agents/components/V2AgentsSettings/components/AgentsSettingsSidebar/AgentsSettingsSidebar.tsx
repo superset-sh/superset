@@ -15,10 +15,8 @@ import {
 	verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import type {
-	AgentPreset,
-	HostAgentConfigDto,
-} from "@superset/host-service/settings";
+import type { HostAgentConfig } from "@superset/host-service/settings";
+import type { HostAgentPreset } from "@superset/shared/host-agent-presets";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -40,11 +38,11 @@ import {
 } from "../../../../../components/SettingsListSidebar";
 
 interface AgentsSettingsSidebarProps {
-	configs: HostAgentConfigDto[];
-	presets: AgentPreset[];
+	configs: HostAgentConfig[];
+	presets: HostAgentPreset[];
 	selectedAgentId: string | null;
 	onSelectAgent: (id: string) => void;
-	onAddAgent: (presetId: string) => void;
+	onAddAgent: (preset: HostAgentPreset) => void;
 	onReorder: (orderedIds: string[]) => void;
 	onResetToDefaults: () => void;
 	isAdding: boolean;
@@ -100,7 +98,7 @@ export function AgentsSettingsSidebar({
 					return (
 						<DropdownMenuItem
 							key={preset.presetId}
-							onSelect={() => onAddAgent(preset.presetId)}
+							onSelect={() => onAddAgent(preset)}
 							className="gap-2"
 						>
 							{icon ? (
@@ -161,7 +159,7 @@ export function AgentsSettingsSidebar({
 }
 
 interface AgentSidebarRowProps {
-	row: HostAgentConfigDto;
+	row: HostAgentConfig;
 	isActive: boolean;
 	onSelect: () => void;
 	isDark: boolean;

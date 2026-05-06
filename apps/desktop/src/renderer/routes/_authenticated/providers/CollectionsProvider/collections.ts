@@ -47,6 +47,8 @@ import {
 	type DashboardSidebarSectionRow,
 	dashboardSidebarProjectSchema,
 	dashboardSidebarSectionSchema,
+	healV2UserPreferences,
+	healWorkspaceLocalState,
 	type V2TerminalPresetRow,
 	type V2UserPreferencesRow,
 	v2TerminalPresetSchema,
@@ -54,6 +56,7 @@ import {
 	type WorkspaceLocalStateRow,
 	workspaceLocalStateSchema,
 } from "./dashboardSidebarLocal";
+import { withReadHeal } from "./withReadHeal";
 
 const columnMapper = snakeCamelMapper();
 
@@ -641,12 +644,19 @@ function createOrgCollections(organizationId: string): OrgCollections {
 	);
 
 	const v2WorkspaceLocalState = createIndexedCollection(
-		localStorageCollectionOptions({
-			id: `v2_workspace_local_state-${organizationId}`,
-			storageKey: `v2-workspace-local-state-${organizationId}`,
-			schema: workspaceLocalStateSchema,
-			getKey: (item) => item.workspaceId,
-		}),
+		localStorageCollectionOptions(
+			withReadHeal(
+				{
+					id: `v2_workspace_local_state-${organizationId}`,
+					storageKey: `v2-workspace-local-state-${organizationId}`,
+					schema: workspaceLocalStateSchema,
+					// Explicit type so `withReadHeal`'s passthrough generic keeps the
+					// linkage between schema and getKey for downstream inference.
+					getKey: (item: WorkspaceLocalStateRow) => item.workspaceId,
+				},
+				healWorkspaceLocalState,
+			),
+		),
 	);
 
 	const v2SidebarSections = createIndexedCollection(
@@ -668,15 +678,21 @@ function createOrgCollections(organizationId: string): OrgCollections {
 	);
 
 	const v2UserPreferences = createCollection(
-		localStorageCollectionOptions({
-			id: `v2_user_preferences-${organizationId}`,
-			storageKey: `v2-user-preferences-${organizationId}`,
-			schema: v2UserPreferencesSchema,
-			// Cast widens the inferred literal "preferences" key to string so
-			// the collection slots into the shared OrgCollections.{...<TKey=string>}
-			// shape alongside the other v2 collections.
-			getKey: (item) => item.id as string,
-		}),
+		localStorageCollectionOptions(
+			withReadHeal(
+				{
+					id: `v2_user_preferences-${organizationId}`,
+					storageKey: `v2-user-preferences-${organizationId}`,
+					schema: v2UserPreferencesSchema,
+					// Cast widens the inferred literal "preferences" key to string so
+					// the collection slots into the shared OrgCollections.{...<TKey=string>}
+					// shape alongside the other v2 collections. Explicit `item` type so
+					// `withReadHeal`'s passthrough generic keeps schema/getKey linkage.
+					getKey: (item: V2UserPreferencesRow) => item.id as string,
+				},
+				healV2UserPreferences,
+			),
+		),
 	);
 
 	return {

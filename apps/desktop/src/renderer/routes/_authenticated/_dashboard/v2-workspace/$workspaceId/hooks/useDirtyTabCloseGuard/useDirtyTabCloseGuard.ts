@@ -2,6 +2,7 @@ import type { WorkspaceProps } from "@superset/panes";
 import { alert } from "@superset/ui/atoms/Alert";
 import { useCallback } from "react";
 import { getBaseName } from "renderer/lib/pathBasename";
+import { useWorkspace } from "renderer/routes/_authenticated/_dashboard/v2-workspace/providers/WorkspaceProvider";
 import { getDocument } from "../../state/fileDocumentStore";
 import type { FilePaneData, PaneViewerData } from "../../types";
 
@@ -9,11 +10,9 @@ type OnBeforeCloseTab = NonNullable<
 	WorkspaceProps<PaneViewerData>["onBeforeCloseTab"]
 >;
 
-export function useDirtyTabCloseGuard({
-	workspaceId,
-}: {
-	workspaceId: string;
-}): OnBeforeCloseTab {
+export function useDirtyTabCloseGuard(): OnBeforeCloseTab {
+	const { workspace } = useWorkspace();
+	const workspaceId = workspace.id;
 	return useCallback<OnBeforeCloseTab>(
 		(tab) => {
 			const dirtyPanes = Object.values(tab.panes).filter((pane) => {

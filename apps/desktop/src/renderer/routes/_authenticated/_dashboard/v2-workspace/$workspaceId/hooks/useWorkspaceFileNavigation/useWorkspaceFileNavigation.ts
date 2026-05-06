@@ -2,6 +2,7 @@ import type { WorkspaceStore } from "@superset/panes";
 import { workspaceTrpc } from "@superset/workspace-client";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { V2UserPreferencesApi } from "renderer/hooks/useV2UserPreferences";
+import { useWorkspace } from "renderer/routes/_authenticated/_dashboard/v2-workspace/providers/WorkspaceProvider";
 import {
 	toAbsoluteWorkspacePath,
 	toRelativeWorkspacePath,
@@ -20,12 +21,10 @@ interface PendingReveal {
 }
 
 export function useWorkspaceFileNavigation({
-	workspaceId,
 	store,
 	setRightSidebarOpen,
 	setRightSidebarTab,
 }: {
-	workspaceId: string;
 	store: StoreApi<WorkspaceStore<PaneViewerData>>;
 	setRightSidebarOpen: V2UserPreferencesApi["setRightSidebarOpen"];
 	setRightSidebarTab: V2UserPreferencesApi["setRightSidebarTab"];
@@ -42,12 +41,13 @@ export function useWorkspaceFileNavigation({
 	recentFiles: RecentFile[];
 	openFilePaths: Set<string>;
 } {
+	const { workspace } = useWorkspace();
 	const workspaceQuery = workspaceTrpc.workspace.get.useQuery({
-		id: workspaceId,
+		id: workspace.id,
 	});
 	const worktreePath = workspaceQuery.data?.worktreePath ?? "";
 
-	const { recentFiles, recordView } = useRecentlyViewedFiles(workspaceId);
+	const { recentFiles, recordView } = useRecentlyViewedFiles(workspace.id);
 
 	const activeFilePanePath = useStore(store, (state) => {
 		const tab = state.tabs.find(
