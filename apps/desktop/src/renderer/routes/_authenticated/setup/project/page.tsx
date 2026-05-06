@@ -17,6 +17,7 @@ import { LuFolder, LuX } from "react-icons/lu";
 import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useOpenProject } from "renderer/react-query/projects/useOpenProject";
+import { useFolderFirstImport } from "renderer/routes/_authenticated/_dashboard/components/AddRepositoryModals/hooks/useFolderFirstImport";
 import { STEP_ROUTES, useOnboardingStore } from "renderer/stores/onboarding";
 import { SetupButton } from "../components/SetupButton";
 import { StepHeader, StepShell, SupersetPill } from "../components/StepShell";
@@ -37,6 +38,9 @@ function OnboardingProjectPage() {
 	const { openNew, isPending: isOpenPending } = useOpenProject();
 	const utils = electronTrpc.useUtils();
 	const isV2CloudEnabled = useIsV2CloudEnabled();
+	const folderImport = useFolderFirstImport({
+		onError: (message) => toast.error(message),
+	});
 	const closeProject = electronTrpc.projects.close.useMutation({
 		onSuccess: async () => {
 			await utils.projects.getRecents.invalidate();
@@ -61,20 +65,7 @@ function OnboardingProjectPage() {
 	const projectCount = projects?.length ?? 0;
 	const hasProjects = projectCount > 0;
 
-	// After creating a new project, route to the project page in v2 — that's
-	// where the user creates their first proper worktree workspace (which sets
-	// up the v2 pane layout). The default "branch" workspace auto-created by
-	// openNew → ensureMainWorkspace has no pane layout, so navigating there
-	// renders an empty workspace surface. In v1, navigate to the existing
-	// branch workspace as before.
-	const openProjectInWorkspace = async (projectId: string) => {
-		if (isV2CloudEnabled) {
-			navigate({
-				to: "/project/$projectId",
-				params: { projectId },
-			});
-			return;
-		}
+	const openV1ProjectInWorkspace = async (projectId: string) => {
 		try {
 			const grouped = await utils.workspaces.getAllGrouped.fetch();
 			const wsForProject = grouped
@@ -97,11 +88,23 @@ function OnboardingProjectPage() {
 	};
 
 	const handleSelectNewRepo = async () => {
+		if (isV2CloudEnabled) {
+			const result = await folderImport.start();
+			if (result) {
+				markComplete("project");
+				navigate({
+					to: "/project/$projectId",
+					params: { projectId: result.projectId },
+				});
+			}
+			return;
+		}
+
 		const created = await openNew();
 		const project = created[0];
 		if (project) {
 			markComplete("project");
-			await openProjectInWorkspace(project.id);
+			await openV1ProjectInWorkspace(project.id);
 		}
 	};
 
