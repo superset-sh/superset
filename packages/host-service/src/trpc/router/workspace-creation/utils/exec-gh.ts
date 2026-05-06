@@ -4,20 +4,23 @@ import { getStrictShellEnvironment } from "../../../../terminal/clean-shell-env"
 
 const execFileAsync = promisify(execFile);
 
+export interface ExecGhOptions {
+	cwd?: string;
+	timeout?: number;
+}
+
 /**
- * Shell out to the user's `gh` CLI. Uses the user's existing gh
- * authentication (`gh auth login`), which is simpler than octokit +
- * credential-manager plumbing and matches V1's behavior for
- * getIssueContent.
- *
- * Returns parsed JSON output if stdout is JSON (typical for `--json`
- * queries). For commands that don't return JSON (e.g., `gh pr checkout`),
- * returns the trimmed stdout string. Throws on non-zero exit.
+ * Shell out to the user's `gh` CLI. Uses the user's existing `gh auth login`,
+ * which avoids credential-manager plumbing and matches V1's behavior. Returns
+ * parsed JSON when stdout looks like JSON, otherwise the trimmed string.
+ * Throws on non-zero exit (caller treats that as an opportunity to fall back).
  */
-export async function execGh(
+export type ExecGh = (
 	args: string[],
-	options?: { cwd?: string; timeout?: number },
-): Promise<unknown> {
+	options?: ExecGhOptions,
+) => Promise<unknown>;
+
+export const execGh: ExecGh = async (args, options) => {
 	const env = await getStrictShellEnvironment().catch(
 		() => process.env as Record<string, string>,
 	);
@@ -34,4 +37,4 @@ export async function execGh(
 	} catch {
 		return trimmed;
 	}
-}
+};
