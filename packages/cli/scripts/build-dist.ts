@@ -4,6 +4,7 @@
  * Bundle layout (extracts into ~/superset/):
  *   bin/superset                 — Bun-compiled CLI binary
  *   bin/superset-host            — Shell wrapper to run the host-service
+ *   bin/superset-host-supervisor — Bun-compiled remote-update supervisor
  *   lib/node                     — Standalone Node.js runtime
  *   lib/host-service.js          — Bundled host-service entry
  *   lib/node_modules/            — Full native addon packages (JS wrappers + bindings)
@@ -380,6 +381,25 @@ async function buildCli(target: Target, outputPath: string): Promise<void> {
 	);
 }
 
+async function buildSupervisor(
+	target: Target,
+	outputPath: string,
+): Promise<void> {
+	const cliDir = resolve(import.meta.dir, "..");
+	await exec(
+		"bun",
+		[
+			"build",
+			"--compile",
+			`--target=bun-${target}`,
+			"--outfile",
+			outputPath,
+			"src/supervisor/main.ts",
+		],
+		cliDir,
+	);
+}
+
 async function buildHostService(): Promise<string> {
 	const hostServiceDir = resolve(import.meta.dir, "../../host-service");
 	await exec("bun", ["run", "build:host"], hostServiceDir);
@@ -418,6 +438,12 @@ async function main(): Promise<void> {
 
 	console.log("[build-dist] building CLI binary");
 	await buildCli(target, join(stagingRoot, "bin", "superset"));
+
+	console.log("[build-dist] building supervisor binary");
+	await buildSupervisor(
+		target,
+		join(stagingRoot, "bin", "superset-host-supervisor"),
+	);
 
 	console.log("[build-dist] building host-service bundle");
 	const hostServiceBundle = await buildHostService();

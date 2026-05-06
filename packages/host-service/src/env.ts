@@ -19,6 +19,7 @@ export const env = createEnv({
 			.optional(),
 		PORT: z.coerce.number().int().positive().default(4879),
 		RELAY_URL: z.string().url().optional(),
+		SUPERSET_VERSION: z.string().default("0.0.0-dev"),
 	},
 	runtimeEnv: process.env,
 	emptyStringAsUndefined: true,
