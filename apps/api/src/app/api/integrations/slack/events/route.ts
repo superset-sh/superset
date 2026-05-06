@@ -25,7 +25,8 @@ export async function POST(request: Request) {
 		return Response.json({ error: "Invalid signature" }, { status: 401 });
 	}
 
-	let payload: Record<string, unknown>;
+	// biome-ignore lint/suspicious/noExplicitAny: Slack payload shape varies by event type
+	let payload: any;
 	try {
 		payload = JSON.parse(body);
 	} catch {

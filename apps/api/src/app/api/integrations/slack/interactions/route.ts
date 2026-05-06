@@ -29,7 +29,8 @@ export async function POST(request: Request) {
 		return new Response("ok", { status: 200 });
 	}
 
-	let payload: Record<string, unknown>;
+	// biome-ignore lint/suspicious/noExplicitAny: Slack payload shape varies by event type
+	let payload: any;
 	try {
 		payload = JSON.parse(payloadRaw);
 	} catch {
