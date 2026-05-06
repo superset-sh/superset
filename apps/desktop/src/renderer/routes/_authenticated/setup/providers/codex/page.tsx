@@ -58,11 +58,13 @@ function ConnectCodexPage() {
 				<StepHeader
 					icon={
 						<SupersetPill>
-							<img
-								src={supersetLogoUrl}
-								alt="Superset"
-								className="size-[42px]"
-							/>
+							<div className="size-[42px] overflow-hidden rounded-[10px]">
+								<img
+									src={supersetLogoUrl}
+									alt="Superset"
+									className="size-full scale-125"
+								/>
+							</div>
 							<CodexBrandIcon
 								className="size-[42px] rounded-[10px] bg-[#eae8e6]"
 								iconClassName="size-7 text-[#151110]"

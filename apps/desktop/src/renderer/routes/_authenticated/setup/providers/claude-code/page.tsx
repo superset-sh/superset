@@ -62,11 +62,13 @@ function ConnectClaudeCodePage() {
 				<StepHeader
 					icon={
 						<SupersetPill>
-							<img
-								src={supersetLogoUrl}
-								alt="Superset"
-								className="size-[42px]"
-							/>
+							<div className="size-[42px] overflow-hidden rounded-[10px]">
+								<img
+									src={supersetLogoUrl}
+									alt="Superset"
+									className="size-full scale-125"
+								/>
+							</div>
 							<ClaudeBrandIcon
 								className="size-[42px] rounded-[10px]"
 								iconClassName="size-6"

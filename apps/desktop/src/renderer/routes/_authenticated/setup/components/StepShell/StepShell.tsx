@@ -78,7 +78,7 @@ interface SupersetPillProps {
 
 export function SupersetPill({ children }: SupersetPillProps) {
 	return (
-		<div className="flex items-center justify-center gap-2 rounded-full border border-[#2a2827] bg-[#201e1c] p-2">
+		<div className="flex items-center justify-center gap-2 rounded-2xl border border-[#2a2827] bg-[#201e1c] p-2">
 			{children}
 		</div>
 	);
