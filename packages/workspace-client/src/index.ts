@@ -8,6 +8,7 @@ export {
 	type PortChangedPayload,
 	type TerminalLifecyclePayload,
 } from "./lib/eventBus";
+export { primeRelayAffinity } from "./lib/primeRelayAffinity";
 export {
 	useWorkspaceClient,
 	useWorkspaceHostUrl,
