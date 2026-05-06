@@ -52,10 +52,11 @@ export async function resolveGithubRepo(
 		gitRoot = (
 			await simpleGit(local.repoPath).revparse(["--show-toplevel"])
 		).trim();
-	} catch {
+	} catch (err) {
 		throw new TRPCError({
 			code: "BAD_REQUEST",
-			message: `Not a git repository: ${local.repoPath}`,
+			message: `Failed to inspect git repository at ${local.repoPath}`,
+			cause: err,
 		});
 	}
 

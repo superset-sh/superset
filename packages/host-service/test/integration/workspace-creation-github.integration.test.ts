@@ -317,6 +317,68 @@ describe("resolveGithubRepo prefers the user-configured remoteName", () => {
 	});
 });
 
+describe("both backends failing rethrows so the renderer toast fires", () => {
+	let host: TestHost;
+	let repoDir: string;
+	const projectId = randomUUID();
+
+	const failingOctokit = {
+		pulls: {
+			get: async () => {
+				throw new Error("octokit pulls.get failed");
+			},
+		},
+		issues: {
+			get: async () => {
+				throw new Error("octokit issues.get failed");
+			},
+		},
+		search: {
+			issuesAndPullRequests: async () => {
+				throw new Error("octokit search failed");
+			},
+		},
+	};
+	const failingExecGh = async (): Promise<unknown> => {
+		throw new Error("gh exec failed");
+	};
+
+	beforeEach(async () => {
+		host = await createTestHost({
+			githubFactory: async () => failingOctokit,
+			execGh: failingExecGh,
+		});
+		repoDir = await seedRepoFixture(
+			host,
+			projectId,
+			"https://github.com/octocat/hello.git",
+		);
+	});
+
+	afterEach(async () => {
+		await host.dispose();
+		rmSync(repoDir, { recursive: true, force: true });
+	});
+
+	test("searchPullRequests rethrows when both gh and Octokit fail", async () => {
+		await expect(
+			host.trpc.workspaceCreation.searchPullRequests.query({
+				projectId,
+				query: "anything",
+			}),
+		).rejects.toThrow();
+	});
+
+	test("searchGitHubIssues rethrows when both gh and Octokit fail", async () => {
+		await expect(
+			host.trpc.workspaceCreation.searchGitHubIssues.query({
+				projectId,
+				query: "anything",
+			}),
+		).rejects.toThrow();
+	});
+});
+
 describe("resolveGithubRepo throws PROJECT_NOT_SETUP when no local clone", () => {
 	let host: TestHost;
 	const projectId = randomUUID();
@@ -470,6 +532,39 @@ describe("gh CLI is first-class when execGh succeeds", () => {
 		expect(args).toContain("octocat/hello");
 		expect(args).toContain("--search");
 		expect(args).toContain("find me");
+	});
+
+	test("searchGitHubIssues #N filters out PRs leaked by `gh issue view`", async () => {
+		// gh CLI happily returns a PR when `gh issue view <pr-number>` is
+		// called — the URL is the only signal we have to detect it.
+		const localHost = await createTestHost({
+			githubFactory: async () => fakeOctokit,
+			execGh: async (args) => {
+				if (args[0] === "issue" && args[1] === "view") {
+					return {
+						number: Number(args[2]),
+						title: "Should be filtered",
+						url: `https://github.com/octocat/hello/pull/${args[2]}`,
+						state: "OPEN",
+						author: { login: "x" },
+					};
+				}
+				return {};
+			},
+		});
+		const localRepo = await seedRepoFixture(
+			localHost,
+			projectId,
+			"https://github.com/octocat/hello.git",
+		);
+		const result =
+			await localHost.trpc.workspaceCreation.searchGitHubIssues.query({
+				projectId,
+				query: "#13353",
+			});
+		expect(result.issues).toEqual([]);
+		await localHost.dispose();
+		rmSync(localRepo, { recursive: true, force: true });
 	});
 
 	test("searchGitHubIssues free-text invokes `gh issue list --search`", async () => {

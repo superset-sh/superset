@@ -55,8 +55,16 @@ test("snapshot fields aren't read for GitHub queries outside the allowlist", asy
 		for (let i = 0; i < lines.length; i++) {
 			const line = lines[i];
 			// Skip comments so JSDoc explaining the rule doesn't self-trip.
+			// Block comments tracked by leading delimiter; doesn't perfectly
+			// cover mid-line `/* */` but that's vanishingly rare here.
 			const trimmed = line.trimStart();
-			if (trimmed.startsWith("//") || trimmed.startsWith("*")) continue;
+			if (
+				trimmed.startsWith("//") ||
+				trimmed.startsWith("*") ||
+				trimmed.startsWith("/*")
+			) {
+				continue;
+			}
 			if (FORBIDDEN.test(line)) {
 				violations.push({ file: rel, line: i + 1, text: line.trim() });
 			}

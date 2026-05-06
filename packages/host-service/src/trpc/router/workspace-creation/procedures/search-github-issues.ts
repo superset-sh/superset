@@ -105,6 +105,13 @@ export const searchGitHubIssues = protectedProcedure
 			if (normalized.isDirectLookup) {
 				const issueNumber = Number.parseInt(effectiveQuery, 10);
 				const issue = await ghDirectLookup(ctx.execGh, repo, issueNumber);
+				// `gh issue view <n>` happily returns a PR when N is a PR
+				// number — GitHub's API surface treats PRs as a kind of issue.
+				// Octokit's path filters via `issue.pull_request`; we don't
+				// have that field over `gh`, so detect via the canonical URL.
+				if (issue.url.includes("/pull/")) {
+					return { issues: [] };
+				}
 				if (!input.includeClosed && issue.state !== "open") {
 					return { issues: [] };
 				}
@@ -179,6 +186,6 @@ export const searchGitHubIssues = protectedProcedure
 				"[workspaceCreation.searchGitHubIssues] octokit fallback failed",
 				err,
 			);
-			return { issues: [] };
+			throw err;
 		}
 	});

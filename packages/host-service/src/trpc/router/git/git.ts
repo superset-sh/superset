@@ -725,11 +725,14 @@ export const gitRouter = router({
 			let repo: { owner: string; name: string };
 			try {
 				repo = await resolveGithubRepo(ctx, workspace.projectId);
-			} catch {
-				// Project isn't set up locally on this host or has no GitHub
-				// remote — degrade silently like the previous implementation
-				// rather than throwing into the review tab.
-				return { reviewThreads: [], conversationComments: [] };
+			} catch (err) {
+				// Expected resolver failures (project not set up locally, no
+				// GitHub remote) degrade silently — the review tab just stays
+				// empty. Anything else is a real bug; propagate it.
+				if (err instanceof TRPCError) {
+					return { reviewThreads: [], conversationComments: [] };
+				}
+				throw err;
 			}
 
 			const octokit = await ctx.github();
