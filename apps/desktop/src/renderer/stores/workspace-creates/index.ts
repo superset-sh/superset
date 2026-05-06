@@ -6,6 +6,5 @@ export {
 export {
 	type SubmitArgs,
 	type SubmitResult,
-	type UseWorkspaceCreatesApi,
 	useWorkspaceCreates,
 } from "./useWorkspaceCreates";

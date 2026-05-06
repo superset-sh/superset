@@ -1,7 +1,10 @@
 import { Button } from "@superset/ui/button";
-import { useNavigate } from "@tanstack/react-router";
 import { AlertCircle, GitBranch } from "lucide-react";
-import { useWorkspaceCreates } from "renderer/stores/workspace-creates";
+import { useNavigateAwayFromWorkspace } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/hooks/useNavigateAwayFromWorkspace";
+import {
+	useWorkspaceCreateFailuresStore,
+	useWorkspaceCreates,
+} from "renderer/stores/workspace-creates";
 
 interface WorkspaceCreateErrorStateProps {
 	workspaceId: string;
@@ -16,12 +19,22 @@ export function WorkspaceCreateErrorState({
 	branch,
 	error,
 }: WorkspaceCreateErrorStateProps) {
-	const navigate = useNavigate();
-	const { retry, dismiss } = useWorkspaceCreates();
+	const { submit } = useWorkspaceCreates();
+	const navigateAway = useNavigateAwayFromWorkspace();
+
+	const handleRetry = () => {
+		const failure =
+			useWorkspaceCreateFailuresStore.getState().failures[workspaceId];
+		if (!failure) return;
+		void submit({ hostId: failure.hostId, snapshot: failure.snapshot });
+	};
 
 	const handleDismiss = () => {
-		dismiss(workspaceId);
-		void navigate({ to: "/v2-workspaces" });
+		useWorkspaceCreateFailuresStore.getState().clear(workspaceId);
+		// `navigateAway` jumps to the next sidebar workspace when we're viewing
+		// the one being dismissed — falls back to the top sidebar entry since
+		// the failed id was never in the sidebar list, then to "/" if empty.
+		navigateAway(workspaceId);
 	};
 
 	return (
@@ -66,7 +79,7 @@ export function WorkspaceCreateErrorState({
 				</div>
 
 				<div className="flex items-center gap-2">
-					<Button size="sm" onClick={() => void retry(workspaceId)}>
+					<Button size="sm" onClick={handleRetry}>
 						Try again
 					</Button>
 					<Button size="sm" variant="ghost" onClick={handleDismiss}>
