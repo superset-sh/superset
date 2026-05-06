@@ -62,7 +62,7 @@ function ConnectCodexPage() {
 								<img
 									src={supersetLogoUrl}
 									alt="Superset"
-									className="size-full scale-125"
+									className="size-full scale-150"
 								/>
 							</div>
 							<CodexBrandIcon
