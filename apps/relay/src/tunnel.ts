@@ -77,6 +77,18 @@ export class TunnelManager {
 			return;
 		}
 
+		// Another register() for the same hostId may have completed while we
+		// were awaiting the directory write — dispose the racer so its
+		// pingTimer/ws don't dangle for ~90s until missed-ping cleanup.
+		const raced = this.tunnels.get(hostId);
+		if (raced) {
+			console.log(
+				`[relay] concurrent re-register: closing raced socket for ${hostId}`,
+			);
+			this.disposeTunnel(raced, "Replaced by new tunnel");
+			this.tunnels.delete(hostId);
+		}
+
 		const tunnel: TunnelState = {
 			hostId,
 			token,
