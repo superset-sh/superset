@@ -147,10 +147,7 @@ export interface WorkspaceCreateParams {
 }
 
 export interface WorkspaceAgentLaunch {
-	/**
-	 * Agent preset id (e.g. `"claude"`), HostAgentConfig instance id, or
-	 * `"superset"` for a Superset chat session.
-	 */
+	/** Agent preset id (e.g. `"claude"`, `"superset"`) or HostAgentConfig instance id. */
 	agent: string;
 	/** What to tell the agent. */
 	prompt: string;

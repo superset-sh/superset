@@ -8,14 +8,14 @@ const agentLaunchSchema = z.object({
 		.string()
 		.min(1)
 		.describe(
-			"Agent preset id (e.g. `claude`, `codex`), HostAgentConfig instance UUID, or `superset` to spawn a Superset session instead of a terminal.",
+			"Agent preset id (e.g. `claude`, `codex`, `superset`) or HostAgentConfig instance UUID.",
 		),
 	prompt: z.string().min(1).describe("Initial prompt the agent starts with."),
 	attachmentIds: z
 		.array(z.string().uuid())
 		.optional()
 		.describe(
-			"Host-scoped attachment UUIDs. For terminal agents the host appends a paths block to the prompt; for `superset` the host inlines the file bytes as base64 data URLs on the chat message.",
+			"Host-scoped attachment UUIDs. The host resolves these to absolute paths and appends them to the prompt.",
 		),
 });
 

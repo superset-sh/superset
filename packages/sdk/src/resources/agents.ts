@@ -99,20 +99,11 @@ export interface AgentListParams {
 export interface AgentRunParams {
 	/** Workspace UUID to run the agent in. */
 	workspaceId: string;
-	/**
-	 * Agent preset id (e.g. `"claude"`), HostAgentConfig instance UUID, or
-	 * `"superset"` to spawn a Superset session instead of a
-	 * terminal. Chat sessions live as a host-side mastracode runtime; the
-	 * caller materializes a chat pane against the returned `sessionId`.
-	 */
+	/** Agent preset id (e.g. `"claude"`, `"superset"`) or HostAgentConfig instance UUID. */
 	agent: string;
 	/** Prompt sent to the agent. */
 	prompt: string;
-	/**
-	 * Host-scoped attachment ids. For terminal agents the host appends a
-	 * paths block to the prompt; for `superset` the host inlines the
-	 * file bytes as base64 data URLs on the chat message.
-	 */
+	/** Host-scoped attachment ids; host resolves to absolute paths in the prompt. */
 	attachmentIds?: string[];
 }
 
@@ -120,11 +111,6 @@ interface HostLookup {
 	hostId: string;
 }
 
-/**
- * Tagged with `kind` so callers know whether they got a terminal session
- * (sessionId addresses a PTY on the host) or a chat session (sessionId
- * addresses a mastracode runtime in `ChatRuntimeManager`).
- */
 export type AgentRunResult =
 	| { kind: "terminal"; sessionId: string; label: string }
 	| { kind: "chat"; sessionId: string; label: string };
