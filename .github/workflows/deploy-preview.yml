@@ -18,7 +18,6 @@ env:
   MARKETING_ALIAS: marketing-pr-${{ github.event.pull_request.number }}-superset.vercel.app
   ADMIN_ALIAS: admin-pr-${{ github.event.pull_request.number }}-superset.vercel.app
   DOCS_ALIAS: docs-pr-${{ github.event.pull_request.number }}-superset.vercel.app
-  ELECTRIC_URL: https://superset-electric-pr-${{ github.event.pull_request.number }}.fly.dev/v1/shape
 
 jobs:
   deploy-database:
@@ -28,16 +27,16 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
 
       - name: Setup Bun
         id: setup-bun
-        uses: oven-sh/setup-bun@v2
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
-          bun-version: 1.3.3
+          bun-version-file: .bun-version
 
       - name: Cache dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: ~/.bun/install/cache
           key: ${{ runner.os }}-bun-${{ steps.setup-bun.outputs.bun-revision }}-${{ hashFiles('bun.lock') }}
@@ -47,7 +46,7 @@ jobs:
 
       - name: Create Neon branch
         id: create-branch
-        uses: neondatabase/create-branch-action@v6
+        uses: neondatabase/create-branch-action@fb620d43d4c565abaf088b848a4e28e5c4ea4d9c # 6.3.1
         with:
           project_id: ${{ vars.NEON_PROJECT_ID }}
           branch_name: ${{ github.head_ref }}
@@ -73,55 +72,10 @@ jobs:
           EOF
 
       - name: Upload database status
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: database-status
           path: database-status.env
-
-  deploy-electric:
-    name: Deploy Electric (Fly.io)
-    runs-on: ubuntu-latest
-    needs: deploy-database
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Download database info
-        uses: actions/download-artifact@v4
-        with:
-          name: database-status
-
-      - name: Load database URL
-        run: |
-          source database-status.env
-          echo "DATABASE_URL_UNPOOLED=$DATABASE_URL_UNPOOLED" >> $GITHUB_ENV
-
-      - name: Deploy Electric to Fly.io
-        uses: superfly/fly-pr-review-apps@1.3.0
-        with:
-          name: superset-electric-pr-${{ github.event.pull_request.number }}
-          region: iad
-          org: ${{ vars.FLY_ORG }}
-          config: fly.toml
-          secrets: |
-            DATABASE_URL=${{ env.DATABASE_URL_UNPOOLED }}
-            ELECTRIC_SECRET=${{ secrets.ELECTRIC_SECRET_PREVIEW }}
-        env:
-          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
-
-      - name: Save Electric status
-        run: |
-          cat > electric-status.env << EOF
-          ELECTRIC_STATUS="✅"
-          ELECTRIC_LINK="<a href=\"https://fly.io/apps/superset-electric-pr-${{ github.event.pull_request.number }}\">View App</a>"
-          EOF
-
-      - name: Upload Electric status
-        uses: actions/upload-artifact@v4
-        with:
-          name: electric-status
-          path: electric-status.env
 
   deploy-api:
     name: Deploy API
@@ -131,16 +85,16 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
 
       - name: Setup Bun
         id: setup-bun
-        uses: oven-sh/setup-bun@v2
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
-          bun-version: 1.3.3
+          bun-version-file: .bun-version
 
       - name: Download database info
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: database-status
 
@@ -151,7 +105,7 @@ jobs:
           echo "DATABASE_URL_UNPOOLED=$DATABASE_URL_UNPOOLED" >> $GITHUB_ENV
 
       - name: Cache dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: ~/.bun/install/cache
           key: ${{ runner.os }}-bun-${{ steps.setup-bun.outputs.bun-revision }}-${{ hashFiles('bun.lock') }}
@@ -203,10 +157,9 @@ jobs:
           GH_APP_PRIVATE_KEY: ${{ secrets.GH_APP_PRIVATE_KEY }}
           GH_WEBHOOK_SECRET: ${{ secrets.GH_WEBHOOK_SECRET }}
           QSTASH_TOKEN: ${{ secrets.QSTASH_TOKEN }}
+          QSTASH_URL: ${{ secrets.QSTASH_URL }}
           QSTASH_CURRENT_SIGNING_KEY: ${{ secrets.QSTASH_CURRENT_SIGNING_KEY }}
           QSTASH_NEXT_SIGNING_KEY: ${{ secrets.QSTASH_NEXT_SIGNING_KEY }}
-          ELECTRIC_URL: ${{ env.ELECTRIC_URL }}
-          ELECTRIC_SECRET: ${{ secrets.ELECTRIC_SECRET_PREVIEW }}
           DURABLE_STREAMS_URL: ${{ secrets.DURABLE_STREAMS_URL }}
           DURABLE_STREAMS_SECRET: ${{ secrets.DURABLE_STREAMS_SECRET }}
           STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
@@ -217,6 +170,7 @@ jobs:
           SLACK_BILLING_WEBHOOK_URL: ${{ secrets.SLACK_BILLING_WEBHOOK_URL }}
           SECRETS_ENCRYPTION_KEY: ${{ secrets.SECRETS_ENCRYPTION_KEY }}
           TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
+          RELAY_URL: ${{ secrets.RELAY_URL }}
         run: |
           vercel pull --yes --environment=preview --token=$VERCEL_TOKEN
           vercel build --token=$VERCEL_TOKEN
@@ -255,10 +209,9 @@ jobs:
             --env GH_APP_PRIVATE_KEY="$GH_APP_PRIVATE_KEY" \
             --env GH_WEBHOOK_SECRET="$GH_WEBHOOK_SECRET" \
             --env QSTASH_TOKEN=$QSTASH_TOKEN \
+            --env QSTASH_URL=$QSTASH_URL \
             --env QSTASH_CURRENT_SIGNING_KEY=$QSTASH_CURRENT_SIGNING_KEY \
             --env QSTASH_NEXT_SIGNING_KEY=$QSTASH_NEXT_SIGNING_KEY \
-            --env ELECTRIC_URL=$ELECTRIC_URL \
-            --env ELECTRIC_SECRET=$ELECTRIC_SECRET \
             --env DURABLE_STREAMS_URL=$DURABLE_STREAMS_URL \
             --env DURABLE_STREAMS_SECRET=$DURABLE_STREAMS_SECRET \
             --env STRIPE_SECRET_KEY=$STRIPE_SECRET_KEY \
@@ -268,7 +221,8 @@ jobs:
             --env STRIPE_ENTERPRISE_YEARLY_PRICE_ID=$STRIPE_ENTERPRISE_YEARLY_PRICE_ID \
             --env SLACK_BILLING_WEBHOOK_URL=$SLACK_BILLING_WEBHOOK_URL \
             --env SECRETS_ENCRYPTION_KEY=$SECRETS_ENCRYPTION_KEY \
-            --env TAVILY_API_KEY=$TAVILY_API_KEY)
+            --env TAVILY_API_KEY=$TAVILY_API_KEY \
+            --env RELAY_URL=$RELAY_URL)
           vercel alias $VERCEL_URL ${{ env.API_ALIAS }} --scope=$VERCEL_ORG_ID --token=$VERCEL_TOKEN
           echo "vercel_url=$VERCEL_URL" >> $GITHUB_OUTPUT
 
@@ -281,7 +235,7 @@ jobs:
           EOF
 
       - name: Upload API status
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: api-status
           path: api-status.env
@@ -296,22 +250,22 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
 
       - name: Setup Bun
         id: setup-bun
-        uses: oven-sh/setup-bun@v2
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
-          bun-version: 1.3.3
+          bun-version-file: .bun-version
 
       - name: Cache dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: ~/.bun/install/cache
           key: ${{ runner.os }}-bun-${{ steps.setup-bun.outputs.bun-revision }}-${{ hashFiles('bun.lock') }}
 
       - name: Download database info
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: database-status
 
@@ -399,7 +353,7 @@ jobs:
           EOF
 
       - name: Upload web status
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: web-status
           path: web-status.env
@@ -412,16 +366,27 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
 
       - name: Setup Bun
         id: setup-bun
-        uses: oven-sh/setup-bun@v2
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
-          bun-version: 1.3.3
+          bun-version-file: .bun-version
+
+      - name: Download database info
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: database-status
+
+      - name: Load database URL
+        run: |
+          source database-status.env
+          echo "DATABASE_URL=$DATABASE_URL" >> $GITHUB_ENV
+          echo "DATABASE_URL_UNPOOLED=$DATABASE_URL_UNPOOLED" >> $GITHUB_ENV
 
       - name: Cache dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: ~/.bun/install/cache
           key: ${{ runner.os }}-bun-${{ steps.setup-bun.outputs.bun-revision }}-${{ hashFiles('bun.lock') }}
@@ -438,6 +403,8 @@ jobs:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_MARKETING_PROJECT_ID }}
+          DATABASE_URL: ${{ env.DATABASE_URL }}
+          DATABASE_URL_UNPOOLED: ${{ env.DATABASE_URL_UNPOOLED }}
           NEXT_PUBLIC_API_URL: https://${{ env.API_ALIAS }}
           NEXT_PUBLIC_WEB_URL: https://${{ env.WEB_ALIAS }}
           NEXT_PUBLIC_MARKETING_URL: https://${{ env.MARKETING_ALIAS }}
@@ -465,6 +432,8 @@ jobs:
           vercel pull --yes --environment=preview --token=$VERCEL_TOKEN
           vercel build --token=$VERCEL_TOKEN
           VERCEL_URL=$(vercel deploy --prebuilt --archive=tgz --token=$VERCEL_TOKEN \
+            --env DATABASE_URL=$DATABASE_URL \
+            --env DATABASE_URL_UNPOOLED=$DATABASE_URL_UNPOOLED \
             --env BETTER_AUTH_SECRET=$BETTER_AUTH_SECRET \
             --env NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL \
             --env NEXT_PUBLIC_WEB_URL=$NEXT_PUBLIC_WEB_URL \
@@ -498,7 +467,7 @@ jobs:
           EOF
 
       - name: Upload marketing status
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: marketing-status
           path: marketing-status.env
@@ -511,16 +480,16 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
 
       - name: Setup Bun
         id: setup-bun
-        uses: oven-sh/setup-bun@v2
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
-          bun-version: 1.3.3
+          bun-version-file: .bun-version
 
       - name: Download database info
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: database-status
 
@@ -531,7 +500,7 @@ jobs:
           echo "DATABASE_URL_UNPOOLED=$DATABASE_URL_UNPOOLED" >> $GITHUB_ENV
 
       - name: Cache dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: ~/.bun/install/cache
           key: ${{ runner.os }}-bun-${{ steps.setup-bun.outputs.bun-revision }}-${{ hashFiles('bun.lock') }}
@@ -616,7 +585,7 @@ jobs:
           EOF
 
       - name: Upload admin status
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: admin-status
           path: admin-status.env
@@ -629,16 +598,27 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
 
       - name: Setup Bun
         id: setup-bun
-        uses: oven-sh/setup-bun@v2
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
-          bun-version: 1.3.3
+          bun-version-file: .bun-version
+
+      - name: Download database info
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: database-status
+
+      - name: Load database URL
+        run: |
+          source database-status.env
+          echo "DATABASE_URL=$DATABASE_URL" >> $GITHUB_ENV
+          echo "DATABASE_URL_UNPOOLED=$DATABASE_URL_UNPOOLED" >> $GITHUB_ENV
 
       - name: Cache dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: ~/.bun/install/cache
           key: ${{ runner.os }}-bun-${{ steps.setup-bun.outputs.bun-revision }}-${{ hashFiles('bun.lock') }}
@@ -655,6 +635,8 @@ jobs:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_DOCS_PROJECT_ID }}
+          DATABASE_URL: ${{ env.DATABASE_URL }}
+          DATABASE_URL_UNPOOLED: ${{ env.DATABASE_URL_UNPOOLED }}
           NEXT_PUBLIC_API_URL: https://${{ env.API_ALIAS }}
           NEXT_PUBLIC_WEB_URL: https://${{ env.WEB_ALIAS }}
           NEXT_PUBLIC_MARKETING_URL: https://${{ env.MARKETING_ALIAS }}
@@ -668,6 +650,8 @@ jobs:
           vercel pull --yes --environment=preview --token=$VERCEL_TOKEN
           vercel build --token=$VERCEL_TOKEN
           VERCEL_URL=$(vercel deploy --prebuilt --archive=tgz --token=$VERCEL_TOKEN \
+            --env DATABASE_URL=$DATABASE_URL \
+            --env DATABASE_URL_UNPOOLED=$DATABASE_URL_UNPOOLED \
             --env NEXT_PUBLIC_POSTHOG_KEY=$NEXT_PUBLIC_POSTHOG_KEY \
             --env NEXT_PUBLIC_POSTHOG_HOST=$NEXT_PUBLIC_POSTHOG_HOST \
             --env NEXT_PUBLIC_SENTRY_DSN_DOCS=$NEXT_PUBLIC_SENTRY_DSN_DOCS \
@@ -684,7 +668,7 @@ jobs:
           EOF
 
       - name: Upload docs status
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: docs-status
           path: docs-status.env
@@ -693,17 +677,17 @@ jobs:
     name: Post Deployment Comment
     runs-on: ubuntu-latest
     if: always()
-    needs: [deploy-database, deploy-electric, deploy-api, deploy-web, deploy-marketing, deploy-admin, deploy-docs]
+    needs: [deploy-database, deploy-api, deploy-web, deploy-marketing, deploy-admin, deploy-docs]
     permissions:
       contents: read
       pull-requests: write
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
 
       - name: Download all status artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           pattern: "*-status"
           merge-multiple: true
@@ -712,8 +696,6 @@ jobs:
         run: |
           DATABASE_STATUS="❌"
           DATABASE_LINK="Failed to create"
-          ELECTRIC_STATUS="❌"
-          ELECTRIC_LINK="Failed to deploy"
           API_STATUS="❌"
           API_LINK="Failed to deploy"
           WEB_STATUS="❌"
@@ -727,10 +709,6 @@ jobs:
 
           if [[ "${{ needs.deploy-database.result }}" == "success" ]]; then
             source database-status.env
-          fi
-
-          if [[ "${{ needs.deploy-electric.result }}" == "success" ]]; then
-            source electric-status.env
           fi
 
           if [[ "${{ needs.deploy-api.result }}" == "success" ]]; then
@@ -753,11 +731,11 @@ jobs:
             source docs-status.env
           fi
 
-          export DATABASE_STATUS DATABASE_LINK ELECTRIC_STATUS ELECTRIC_LINK API_STATUS API_LINK WEB_STATUS WEB_LINK MARKETING_STATUS MARKETING_LINK ADMIN_STATUS ADMIN_LINK DOCS_STATUS DOCS_LINK
+          export DATABASE_STATUS DATABASE_LINK API_STATUS API_LINK WEB_STATUS WEB_LINK MARKETING_STATUS MARKETING_LINK ADMIN_STATUS ADMIN_LINK DOCS_STATUS DOCS_LINK
           envsubst < .github/templates/preview-comment.md > final-comment.md
 
       - name: Post final deployment comment
-        uses: thollander/actions-comment-pull-request@v3
+        uses: thollander/actions-comment-pull-request@24bffb9b452ba05a4f3f77933840a6a841d1b32b # v3.0.1
         with:
           file-path: final-comment.md
           comment-tag: "🚀-preview-deployment"

@@ -13,6 +13,7 @@ export function createGitFactory(provider: GitCredentialProvider): GitFactory {
 		return git.env({
 			...initialCredentials.env,
 			...credentials.env,
+			GIT_OPTIONAL_LOCKS: "0",
 		});
 	};
 }

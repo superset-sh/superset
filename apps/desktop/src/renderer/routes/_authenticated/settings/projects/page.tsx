@@ -1,64 +1,78 @@
-import { cn } from "@superset/ui/utils";
+import { eq } from "@tanstack/db";
+import { useLiveQuery } from "@tanstack/react-db";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { HiChevronRight } from "react-icons/hi2";
+import { useEffect, useMemo } from "react";
+import { env } from "renderer/env.renderer";
+import { authClient } from "renderer/lib/auth-client";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { MOCK_ORG_ID } from "shared/constants";
 
 export const Route = createFileRoute("/_authenticated/settings/projects/")({
-	component: ProjectsListPage,
+	component: ProjectsIndexPage,
 });
 
-function ProjectsListPage() {
-	const { data: groups = [] } =
-		electronTrpc.workspaces.getAllGrouped.useQuery();
+function ProjectsIndexPage() {
+	const collections = useCollections();
+	const { data: session } = authClient.useSession();
 	const navigate = useNavigate();
 
-	return (
-		<div className="p-6 max-w-4xl w-full">
-			<div className="mb-8">
-				<h2 className="text-xl font-semibold">Projects</h2>
-				<p className="text-sm text-muted-foreground mt-1">
-					Select a project to configure its settings
-				</p>
-			</div>
+	const activeOrganizationId = env.SKIP_ENV_VALIDATION
+		? MOCK_ORG_ID
+		: (session?.session?.activeOrganizationId ?? null);
 
-			{groups.length === 0 ? (
-				<p className="text-sm text-muted-foreground">
-					No projects yet. Import a repository to get started.
-				</p>
-			) : (
-				<div className="space-y-1">
-					{groups.map((group) => (
-						<button
-							key={group.project.id}
-							type="button"
-							onClick={() =>
-								navigate({
-									to: "/settings/project/$projectId/general",
-									params: { projectId: group.project.id },
-								})
-							}
-							className={cn(
-								"flex items-center gap-3 w-full px-4 py-3 rounded-lg transition-colors text-left",
-								"hover:bg-accent/50 group",
-							)}
-						>
-							<div
-								className="w-3 h-3 rounded-full shrink-0"
-								style={{ backgroundColor: group.project.color }}
-							/>
-							<div className="flex-1 min-w-0">
-								<p className="text-sm font-medium truncate">
-									{group.project.name}
-								</p>
-								<p className="text-xs text-muted-foreground truncate">
-									{group.project.mainRepoPath}
-								</p>
-							</div>
-							<HiChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
-						</button>
-					))}
-				</div>
-			)}
-		</div>
+	const { data: groups = [] } =
+		electronTrpc.workspaces.getAllGrouped.useQuery();
+
+	const { data: v2Projects = [] } = useLiveQuery(
+		(q) =>
+			q
+				.from({ projects: collections.v2Projects })
+				.where(({ projects }) =>
+					eq(projects.organizationId, activeOrganizationId ?? ""),
+				)
+				.select(({ projects }) => ({
+					id: projects.id,
+					name: projects.name,
+				})),
+		[collections, activeOrganizationId],
 	);
+
+	const firstProjectId = useMemo(() => {
+		const v2Sorted = [...v2Projects].sort((a, b) =>
+			a.name.localeCompare(b.name),
+		);
+		if (v2Sorted[0]) return v2Sorted[0].id;
+
+		const loadedV2Ids = new Set(v2Projects.map((p) => p.id));
+		const v1Sorted = groups
+			.filter(
+				(g) =>
+					!g.project.neonProjectId || !loadedV2Ids.has(g.project.neonProjectId),
+			)
+			.map((g) => g.project)
+			.sort((a, b) => a.name.localeCompare(b.name));
+		return v1Sorted[0]?.id ?? null;
+	}, [v2Projects, groups]);
+
+	useEffect(() => {
+		if (firstProjectId) {
+			navigate({
+				to: "/settings/projects/$projectId",
+				params: { projectId: firstProjectId },
+				replace: true,
+			});
+		}
+	}, [firstProjectId, navigate]);
+
+	const isEmpty = v2Projects.length === 0 && groups.length === 0;
+	if (isEmpty) {
+		return (
+			<div className="flex items-center justify-center h-full p-6 text-sm text-muted-foreground">
+				No projects yet.
+			</div>
+		);
+	}
+
+	return null;
 }

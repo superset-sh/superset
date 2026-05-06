@@ -1,5 +1,6 @@
-export const PLAN_TIERS = ["free", "pro", "enterprise"] as const;
-export type PlanTier = (typeof PLAN_TIERS)[number];
+import { PLAN_TIERS, type PlanTier } from "@superset/shared/billing";
+
+export { PLAN_TIERS, type PlanTier };
 
 export interface PlanFeature {
 	id: string;
@@ -48,6 +49,7 @@ export const PLANS: Record<PlanTier, Plan> = {
 			{ id: "workspaces", name: "Up to 5 workspaces", included: true },
 			{ id: "local-only", name: "Local workspaces only", included: true },
 			{ id: "desktop-app", name: "Desktop app", included: true },
+			{ id: "github", name: "GitHub integration", included: true },
 		],
 		cta: { text: "Current plan", action: "current", disabled: true },
 	},

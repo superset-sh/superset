@@ -9,7 +9,7 @@ import { DashboardSidebarWorkspaceItem } from "../../../DashboardSidebarWorkspac
 interface DashboardSidebarCollapsedProjectContentProps
 	extends ComponentPropsWithoutRef<"div"> {
 	projectName: string;
-	githubOwner: string | null;
+	iconUrl: string | null;
 	isCollapsed: boolean;
 	totalWorkspaceCount: number;
 	workspaces: DashboardSidebarWorkspace[];
@@ -25,7 +25,7 @@ export const DashboardSidebarCollapsedProjectContent = forwardRef<
 	(
 		{
 			projectName,
-			githubOwner,
+			iconUrl,
 			isCollapsed,
 			totalWorkspaceCount,
 			workspaces,
@@ -56,10 +56,7 @@ export const DashboardSidebarCollapsedProjectContent = forwardRef<
 								"hover:bg-muted/50 transition-colors",
 							)}
 						>
-							<ProjectThumbnail
-								projectName={projectName}
-								githubOwner={githubOwner}
-							/>
+							<ProjectThumbnail projectName={projectName} iconUrl={iconUrl} />
 						</button>
 					</TooltipTrigger>
 					<TooltipContent side="right" className="flex flex-col gap-0.5">

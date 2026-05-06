@@ -11,6 +11,7 @@ import {
 	getRuntimeMcpOverview,
 	type LifecycleEvent,
 	onUserPromptSubmit,
+	type RuntimeQuestionResponse,
 	type RuntimeSession,
 	reloadHookConfig,
 	restartRuntimeFromUserMessage,
@@ -34,6 +35,55 @@ import {
 } from "./zod";
 
 const ENABLE_MASTRA_MCP_SERVERS = false;
+
+type RuntimeQuestionPayload = Parameters<
+	RuntimeSession["harness"]["respondToQuestion"]
+>[0];
+
+function respondToQuestionWithOptimisticState(
+	runtime: RuntimeSession,
+	payload: RuntimeQuestionPayload,
+): Promise<RuntimeQuestionResponse> {
+	const questionId = payload.questionId;
+	const pendingResponse = runtime.pendingQuestionResponses.get(questionId);
+	if (pendingResponse) return pendingResponse;
+
+	const wasAlreadyAnswered = runtime.answeredQuestionIds.has(questionId);
+	const previousSandboxQuestion = runtime.pendingSandboxQuestion;
+	const clearsSandboxQuestion =
+		previousSandboxQuestion?.questionId === questionId;
+
+	runtime.answeredQuestionIds.add(questionId);
+	if (clearsSandboxQuestion) {
+		runtime.pendingSandboxQuestion = null;
+	}
+
+	let responsePromise: Promise<RuntimeQuestionResponse>;
+	responsePromise = Promise.resolve()
+		.then(() => runtime.harness.respondToQuestion(payload))
+		.catch((error) => {
+			if (
+				runtime.pendingQuestionResponses.get(questionId) === responsePromise
+			) {
+				if (!wasAlreadyAnswered) {
+					runtime.answeredQuestionIds.delete(questionId);
+				}
+				if (clearsSandboxQuestion && runtime.pendingSandboxQuestion === null) {
+					runtime.pendingSandboxQuestion = previousSandboxQuestion;
+				}
+			}
+			throw error;
+		})
+		.finally(() => {
+			if (
+				runtime.pendingQuestionResponses.get(questionId) === responsePromise
+			) {
+				runtime.pendingQuestionResponses.delete(questionId);
+			}
+		});
+	runtime.pendingQuestionResponses.set(questionId, responsePromise);
+	return responsePromise;
+}
 
 function resolveOmModelFromAuth(): string | undefined {
 	if (process.env.GOOGLE_GENERATIVE_AI_API_KEY)
@@ -141,6 +191,8 @@ export class ChatRuntimeService {
 					mcpManualStatuses: new Map(),
 					lastErrorMessage: null,
 					pendingSandboxQuestion: null,
+					answeredQuestionIds: new Set(),
+					pendingQuestionResponses: new Map(),
 					cwd: runtimeCwd,
 				};
 				syncRuntimeHookSessionId(sessionRuntime);
@@ -225,22 +277,30 @@ export class ChatRuntimeService {
 							? {
 									questionId: runtime.pendingSandboxQuestion.questionId,
 									question: `Grant sandbox access to "${runtime.pendingSandboxQuestion.path}"?`,
+									description: runtime.pendingSandboxQuestion.reason,
 									options: [
 										{
 											label: "Yes",
-											description: `Allow access. Reason: ${runtime.pendingSandboxQuestion.reason}`,
+											description: "Allow access.",
 										},
-										{
-											label: "No",
-											description: "Deny access.",
-										},
+										{ label: "No", description: "Deny access." },
 									],
 								}
 							: null;
+						// Skip any pending question whose ID was already answered this turn.
+						// The harness only clears pendingQuestion on agent_end, so without this
+						// filter an answered ask_user question would permanently shadow the
+						// sandbox question that fired in the same turn.
+						const harnessPendingQuestion =
+							displayState.pendingQuestion &&
+							!runtime.answeredQuestionIds.has(
+								displayState.pendingQuestion.questionId,
+							)
+								? displayState.pendingQuestion
+								: null;
 						return {
 							...displayState,
-							pendingQuestion:
-								displayState.pendingQuestion ?? sandboxPendingQuestion,
+							pendingQuestion: harnessPendingQuestion ?? sandboxPendingQuestion,
 							errorMessage: currentMessageError ?? runtime.lastErrorMessage,
 						};
 					}),
@@ -348,13 +408,10 @@ export class ChatRuntimeService {
 								input.sessionId,
 								input.cwd,
 							);
-							if (
-								runtime.pendingSandboxQuestion?.questionId ===
-								input.payload.questionId
-							) {
-								runtime.pendingSandboxQuestion = null;
-							}
-							return runtime.harness.respondToQuestion(input.payload);
+							return respondToQuestionWithOptimisticState(
+								runtime,
+								input.payload,
+							);
 						}),
 				}),
 

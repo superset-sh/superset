@@ -149,7 +149,7 @@ function generateLinkSuffixRegex(eolOnly: boolean) {
 		// foo: (339, 12)
 		// foo(339:12)                             [#229842]
 		// foo (339:12)                            [#229842]
-		`:? ?[[(]${r()}(?:(?:, ?|:)${c()})?[\\])]${eolSuffix}`,
+		`:? ?[\\[\\(]${r()}(?:(?:, ?|:)${c()})?[\\]\\)]${eolSuffix}`,
 	];
 
 	const suffixClause = lineAndColumnRegexClauses
@@ -415,7 +415,7 @@ function detectLinksViaSuffix(line: string): IParsedLink[] {
 
 			// If the path contains an opening bracket, provide the path starting immediately after
 			// the opening bracket as an additional result
-			const openingBracketMatch = path.matchAll(/(?<bracket>[[({])(?![\])])/g);
+			const openingBracketMatch = path.matchAll(/(?<bracket>[[(])(?![\])])/g);
 			for (const match of openingBracketMatch) {
 				const bracket = match.groups?.bracket;
 				if (bracket) {
@@ -440,7 +440,7 @@ enum RegexPathConstants {
 	PathPrefix = "(?:\\.\\.?|\\~|file:\\/\\/)",
 	PathSeparatorClause = "\\/",
 	// '":; are allowed in paths but they are often separators so ignore them
-	// Also disallow \\ to prevent a catastropic backtracking case #24795
+	// Also disallow \\ to prevent a catastrophic backtracking case #24795
 	ExcludedPathCharactersClause = "[^\\0<>\\?\\s!`&*()'\";:\\\\]",
 	ExcludedStartPathCharactersClause = "[^\\0<>\\?\\s!`&*()\\[\\]'\";:\\\\]",
 

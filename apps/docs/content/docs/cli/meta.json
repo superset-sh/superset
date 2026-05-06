@@ -1,0 +1,5 @@
+{
+	"title": "CLI",
+	"icon": "Terminal",
+	"pages": ["getting-started", "cli-reference", "host-server", "env-vars"]
+}

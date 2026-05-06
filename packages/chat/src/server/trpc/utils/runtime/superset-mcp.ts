@@ -1,9 +1,14 @@
 import { MCPClient } from "@mastra/mcp";
 
+type MastraExtraTool = {
+	execute?: (input: unknown, context?: unknown) => Promise<unknown> | unknown;
+	[key: string]: unknown;
+};
+
 export async function getSupersetMcpTools(
 	headers: () => Promise<Record<string, string>>,
 	apiUrl: string,
-): Promise<Record<string, unknown>> {
+): Promise<Record<string, MastraExtraTool>> {
 	try {
 		const h = await headers();
 		if (!h.Authorization && !h.authorization) return {};
@@ -24,7 +29,10 @@ export async function getSupersetMcpTools(
 			},
 		});
 
-		return await client.listTools();
+		return (await client.listTools()) as unknown as Record<
+			string,
+			MastraExtraTool
+		>;
 	} catch (error) {
 		console.warn(
 			"[superset-mcp] failed to load tools",

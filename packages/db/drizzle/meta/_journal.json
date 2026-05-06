@@ -211,6 +211,125 @@
       "when": 1774280966321,
       "tag": "0029_use_v2_workspace_id",
       "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1775419931545,
+      "tag": "0030_better_auth_1_5_upgrade",
+      "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1775535603220,
+      "tag": "0031_v2_hosts_and_clients",
+      "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1775707832252,
+      "tag": "0032_add_is_online_hosts",
+      "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1775788950626,
+      "tag": "0033_add_oauth_refresh_token_auth_time",
+      "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1776647783826,
+      "tag": "0034_v2_projects_decouple_github_install_add_clone_url",
+      "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1776661088164,
+      "tag": "0035_add_automations",
+      "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1776661543389,
+      "tag": "0036_drop_pending_automation_status",
+      "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1777226062658,
+      "tag": "0037_drop_v2_project_repo_clone_url_unique",
+      "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1777259447556,
+      "tag": "0038_v2_workspaces_main_type",
+      "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1777266747895,
+      "tag": "0039_consolidate_host_client_machine_id",
+      "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1777575539318,
+      "tag": "0040_better_auth_165_columns",
+      "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1777766170049,
+      "tag": "0041_add_automation_prompt_versions",
+      "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "7",
+      "when": 1777771854049,
+      "tag": "0042_linear_disconnect_state",
+      "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "7",
+      "when": 1777854769892,
+      "tag": "0043_submitted_prompts",
+      "breakpoints": true
+    },
+    {
+      "idx": 44,
+      "version": "7",
+      "when": 1777874337162,
+      "tag": "0044_add_task_id_to_v2_workspaces",
+      "breakpoints": true
+    },
+    {
+      "idx": 45,
+      "version": "7",
+      "when": 1777881871315,
+      "tag": "0045_v2_projects_icon_url",
+      "breakpoints": true
+    },
+    {
+      "idx": 46,
+      "version": "7",
+      "when": 1777885504135,
+      "tag": "0046_add_chat_attachments",
+      "breakpoints": true
     }
   ]
 }

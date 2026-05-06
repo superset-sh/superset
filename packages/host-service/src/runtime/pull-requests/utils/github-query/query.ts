@@ -10,6 +10,9 @@ export const PULL_REQUESTS_QUERY = `
 					isDraft
 					headRefName
 					headRefOid
+					isCrossRepository
+					headRepositoryOwner { login }
+					headRepository { name }
 					reviewDecision
 					updatedAt
 					statusCheckRollup {

@@ -28,8 +28,8 @@ export function SlashCommandMenu({
 		<PopoverContent
 			side="top"
 			align="start"
-			sideOffset={0}
-			className="w-[min(44rem,calc(100vw-2rem))] p-0 text-xs"
+			sideOffset={4}
+			className="w-[var(--radix-popover-trigger-width)] p-0 text-xs"
 			onOpenAutoFocus={(e) => e.preventDefault()}
 			onCloseAutoFocus={(e) => e.preventDefault()}
 		>

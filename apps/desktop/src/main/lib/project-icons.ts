@@ -2,12 +2,17 @@ import { randomUUID } from "node:crypto";
 import { existsSync, mkdirSync, readdirSync, unlinkSync } from "node:fs";
 import { copyFile, writeFile } from "node:fs/promises";
 import { extname, join } from "node:path";
+import {
+	getImageExtensionFromMimeType,
+	parseBase64DataUrl,
+} from "shared/file-types";
 import { SUPERSET_HOME_DIR } from "./app-environment";
 
 export const PROJECT_ICONS_DIR = join(SUPERSET_HOME_DIR, "project-icons");
 
 /** Max icon file size: 512KB */
 const MAX_ICON_SIZE = 512 * 1024;
+const PROJECT_ICON_EXTENSIONS = new Set(["png", "jpg", "svg", "ico"]);
 
 /**
  * Ensures the project icons directory exists.
@@ -52,6 +57,25 @@ export function getProjectIconProtocolUrl(projectId: string): string {
 	return `superset-icon://projects/${projectId}?v=${encodeURIComponent(randomUUID())}`;
 }
 
+export function parseProjectIconDataUrl(dataUrl: string): {
+	buffer: Buffer;
+	ext: string;
+} {
+	const { base64Data, mimeType } = parseBase64DataUrl(dataUrl);
+	const ext = getImageExtensionFromMimeType(mimeType);
+
+	if (!ext || !PROJECT_ICON_EXTENSIONS.has(ext)) {
+		throw new Error(
+			"Unsupported icon format. Supported formats are PNG, JPEG, SVG, and ICO.",
+		);
+	}
+
+	return {
+		buffer: Buffer.from(base64Data, "base64"),
+		ext,
+	};
+}
+
 /**
  * Saves an icon file for a project from a local file path.
  * Copies the file to PROJECT_ICONS_DIR/{projectId}.{ext}.
@@ -89,14 +113,7 @@ export async function saveProjectIconFromDataUrl({
 	ensureProjectIconsDir();
 	removeExistingIcon(projectId);
 
-	// Parse data URL: data:image/png;base64,<data>
-	const match = dataUrl.match(/^data:image\/(\w+);base64,(.+)$/);
-	if (!match) {
-		throw new Error("Invalid data URL format");
-	}
-
-	const ext = match[1] === "jpeg" ? "jpg" : match[1];
-	const buffer = Buffer.from(match[2], "base64");
+	const { buffer, ext } = parseProjectIconDataUrl(dataUrl);
 
 	if (buffer.length > MAX_ICON_SIZE) {
 		throw new Error(

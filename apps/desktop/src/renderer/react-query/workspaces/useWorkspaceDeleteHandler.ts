@@ -53,7 +53,7 @@ export function scheduleDeleteDialogOpen({
 /**
  * Coordinates opening the delete dialog from a ContextMenu item selection.
  *
- * When "Close Worktree" is selected, we wait for ContextMenu close and then:
+ * When "Close Workspace" is selected, we wait for ContextMenu close and then:
  * 1) prevent Radix auto-focus from returning to the trigger
  * 2) open the delete dialog
  */

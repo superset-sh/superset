@@ -1,20 +1,20 @@
 import { Badge } from "@superset/ui/badge";
-import { MeshGradient } from "@superset/ui/mesh-gradient";
 import { cn } from "@superset/ui/utils";
 import type { ComponentType } from "react";
 import type { ProFeature } from "../../constants";
 import { PRO_FEATURES } from "../../constants";
-import { CloudWorkspacesDemo } from "./components/CloudWorkspacesDemo";
-import { IntegrationsDemo } from "./components/IntegrationsDemo";
+import { AutomationsDemo } from "./components/AutomationsDemo";
+import { DitheredBackground } from "./components/DitheredBackground";
 import { MobileAppDemo } from "./components/MobileAppDemo";
+import { RemoteWorkspacesDemo } from "./components/RemoteWorkspacesDemo";
 import { TasksDemo } from "./components/TasksDemo";
 import { TeamCollaborationDemo } from "./components/TeamCollaborationDemo";
 
 const DEMO_COMPONENTS: Record<string, ComponentType> = {
 	"team-collaboration": TeamCollaborationDemo,
-	integrations: IntegrationsDemo,
 	tasks: TasksDemo,
-	"cloud-workspaces": CloudWorkspacesDemo,
+	automations: AutomationsDemo,
+	"remote-workspaces": RemoteWorkspacesDemo,
 	"mobile-app": MobileAppDemo,
 };
 
@@ -27,7 +27,7 @@ export function FeaturePreview({ selectedFeature }: FeaturePreviewProps) {
 
 	return (
 		<div className="flex w-[495px] flex-col">
-			<div className="relative h-[346px] overflow-hidden">
+			<div className="relative h-[346px] overflow-hidden bg-[#0a0a0f]">
 				{PRO_FEATURES.map((proFeature) => (
 					<div
 						key={`gradient-${proFeature.id}`}
@@ -38,7 +38,7 @@ export function FeaturePreview({ selectedFeature }: FeaturePreviewProps) {
 								: "opacity-0",
 						)}
 					>
-						<MeshGradient
+						<DitheredBackground
 							colors={proFeature.gradientColors}
 							className="absolute inset-0 w-full h-full"
 						/>

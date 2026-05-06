@@ -71,7 +71,6 @@ export function useTasksTable({
 	assigneeFilter,
 }: UseTasksTableParams): {
 	table: Table<TaskWithStatus>;
-	isLoading: boolean;
 	slugColumnWidth: string;
 	rowSelection: RowSelectionState;
 	setRowSelection: (
@@ -87,7 +86,7 @@ export function useTasksTable({
 	const rowSelection = useRowSelectionStore((s) => s.rowSelection);
 	const setRowSelection = useRowSelectionStore((s) => s.setRowSelection);
 
-	const { data: allData, isLoading } = useLiveQuery(
+	const { data: allData } = useLiveQuery(
 		(q) =>
 			q
 				.from({ tasks: collections.tasks })
@@ -348,5 +347,5 @@ export function useTasksTable({
 		autoResetExpanded: false,
 	});
 
-	return { table, isLoading, slugColumnWidth, rowSelection, setRowSelection };
+	return { table, slugColumnWidth, rowSelection, setRowSelection };
 }

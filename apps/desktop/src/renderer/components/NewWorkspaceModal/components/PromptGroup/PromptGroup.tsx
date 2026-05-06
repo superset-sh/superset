@@ -1,4 +1,11 @@
 import type { AgentLaunchRequest } from "@superset/shared/agent-launch";
+import { buildPromptAgentLaunchRequest } from "@superset/shared/agent-launch-request";
+import {
+	type AgentDefinitionId,
+	getEnabledAgentConfigs,
+	indexResolvedAgentConfigs,
+} from "@superset/shared/agent-settings";
+import { sanitizeBranchNameWithMaxLength } from "@superset/shared/workspace-launch";
 import {
 	PromptInput,
 	PromptInputAttachment,
@@ -21,15 +28,11 @@ import {
 	CommandList,
 	CommandSeparator,
 } from "@superset/ui/command";
-import {
-	DropdownMenu,
-	DropdownMenuContent,
-	DropdownMenuItem,
-	DropdownMenuTrigger,
-} from "@superset/ui/dropdown-menu";
 import { Input } from "@superset/ui/input";
+import { isEnterSubmit } from "@superset/ui/lib/keyboard";
 import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
 import { toast } from "@superset/ui/sonner";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { useNavigate } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "framer-motion";
@@ -39,14 +42,7 @@ import {
 	PaperclipIcon,
 	PlusIcon,
 } from "lucide-react";
-import {
-	forwardRef,
-	useCallback,
-	useEffect,
-	useMemo,
-	useRef,
-	useState,
-} from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
 	GoArrowUpRight,
 	GoGitBranch,
@@ -55,30 +51,21 @@ import {
 } from "react-icons/go";
 import { HiCheck, HiChevronUpDown } from "react-icons/hi2";
 import { LuFolderGit, LuFolderOpen, LuGitPullRequest } from "react-icons/lu";
-import { SiLinear } from "react-icons/si";
 import { AgentSelect } from "renderer/components/AgentSelect";
 import { LinkedIssuePill } from "renderer/components/Chat/ChatInterface/components/ChatInputFooter/components/LinkedIssuePill";
-import { IssueLinkCommand } from "renderer/components/Chat/ChatInterface/components/IssueLinkCommand";
 import { useAgentLaunchPreferences } from "renderer/hooks/useAgentLaunchPreferences";
+import { PLATFORM } from "renderer/hotkeys";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { formatRelativeTime } from "renderer/lib/formatRelativeTime";
 import { resolveEffectiveWorkspaceBaseBranch } from "renderer/lib/workspaceBaseBranch";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { ProjectThumbnail } from "renderer/screens/main/components/WorkspaceSidebar/ProjectSection/ProjectThumbnail";
-import { useHotkeysStore } from "renderer/stores/hotkeys/store";
 import {
 	useClearPendingWorkspace,
 	useNewWorkspaceModalOpen,
 	useSetPendingWorkspace,
 	useSetPendingWorkspaceStatus,
 } from "renderer/stores/new-workspace-modal";
-import { buildPromptAgentLaunchRequest } from "shared/utils/agent-launch-request";
-import {
-	type AgentDefinitionId,
-	getEnabledAgentConfigs,
-	indexResolvedAgentConfigs,
-} from "shared/utils/agent-settings";
-import { sanitizeBranchNameWithMaxLength } from "shared/utils/branch";
 import type { LinkedPR } from "../../NewWorkspaceModalDraftContext";
 import { useNewWorkspaceModalDraft } from "../../NewWorkspaceModalDraftContext";
 import { GitHubIssueLinkCommand } from "./components/GitHubIssueLinkCommand";
@@ -123,46 +110,55 @@ export function PromptGroup(props: PromptGroupProps) {
 	return <PromptGroupInner {...props} />;
 }
 
-const PlusMenu = forwardRef<
-	HTMLDivElement,
-	{
-		onOpenIssueLink: () => void;
-		onOpenGitHubIssue: () => void;
-		onOpenPRLink: () => void;
-	}
->(function PlusMenu({ onOpenIssueLink, onOpenGitHubIssue, onOpenPRLink }, ref) {
+function AttachmentButtons({
+	anchorRef,
+	onOpenGitHubIssue,
+	onOpenPRLink,
+}: {
+	anchorRef: React.RefObject<HTMLDivElement | null>;
+	onOpenGitHubIssue: () => void;
+	onOpenPRLink: () => void;
+}) {
 	const attachments = usePromptInputAttachments();
 
 	return (
-		<div ref={ref}>
-			<DropdownMenu>
-				<DropdownMenuTrigger asChild>
-					<PromptInputButton className={`${PILL_BUTTON_CLASS} w-[22px]`}>
-						<PlusIcon className="size-3.5" />
+		<div ref={anchorRef} className="flex items-center gap-1">
+			<Tooltip>
+				<TooltipTrigger asChild>
+					<PromptInputButton
+						className={`${PILL_BUTTON_CLASS} w-[22px]`}
+						onClick={() => attachments.openFileDialog()}
+					>
+						<PaperclipIcon className="size-3.5" />
 					</PromptInputButton>
-				</DropdownMenuTrigger>
-				<DropdownMenuContent side="bottom" align="start" className="w-52">
-					<DropdownMenuItem onSelect={() => attachments.openFileDialog()}>
-						<PaperclipIcon className="size-4" />
-						Add attachment
-					</DropdownMenuItem>
-					<DropdownMenuItem onSelect={onOpenIssueLink}>
-						<SiLinear className="size-4" />
-						Link issue
-					</DropdownMenuItem>
-					<DropdownMenuItem onSelect={onOpenGitHubIssue}>
-						<GoIssueOpened className="size-4" />
-						Link GitHub issue
-					</DropdownMenuItem>
-					<DropdownMenuItem onSelect={onOpenPRLink}>
-						<LuGitPullRequest className="size-4" />
-						Link pull request
-					</DropdownMenuItem>
-				</DropdownMenuContent>
-			</DropdownMenu>
+				</TooltipTrigger>
+				<TooltipContent side="bottom">Add attachment</TooltipContent>
+			</Tooltip>
+			<Tooltip>
+				<TooltipTrigger asChild>
+					<PromptInputButton
+						className={`${PILL_BUTTON_CLASS} w-[22px]`}
+						onClick={onOpenGitHubIssue}
+					>
+						<GoIssueOpened className="size-3.5" />
+					</PromptInputButton>
+				</TooltipTrigger>
+				<TooltipContent side="bottom">Link GitHub issue</TooltipContent>
+			</Tooltip>
+			<Tooltip>
+				<TooltipTrigger asChild>
+					<PromptInputButton
+						className={`${PILL_BUTTON_CLASS} w-[22px]`}
+						onClick={onOpenPRLink}
+					>
+						<LuGitPullRequest className="size-3.5" />
+					</PromptInputButton>
+				</TooltipTrigger>
+				<TooltipContent side="bottom">Link pull request</TooltipContent>
+			</Tooltip>
 		</div>
 	);
-});
+}
 
 function ProjectPickerPill({
 	selectedProject,
@@ -528,8 +524,7 @@ function PromptGroupInner({
 	onNewProject,
 }: PromptGroupProps) {
 	const navigate = useNavigate();
-	const platform = useHotkeysStore((state) => state.platform);
-	const modKey = platform === "darwin" ? "⌘" : "Ctrl";
+	const modKey = PLATFORM === "mac" ? "⌘" : "Ctrl";
 	const isNewWorkspaceModalOpen = useNewWorkspaceModalOpen();
 	const utils = electronTrpc.useUtils();
 	const {
@@ -580,7 +575,6 @@ function PromptGroupInner({
 			validAgents: ["none", ...selectableAgentIds],
 			agentsReady: agentPresetsQuery.isFetched,
 		});
-	const [issueLinkOpen, setIssueLinkOpen] = useState(false);
 	const [gitHubIssueLinkOpen, setGitHubIssueLinkOpen] = useState(false);
 	const [prLinkOpen, setPRLinkOpen] = useState(false);
 	const plusMenuRef = useRef<HTMLDivElement>(null);
@@ -717,174 +711,177 @@ function PromptGroupInner({
 		[],
 	);
 
-	const handleCreate = useCallback(async () => {
-		if (!projectId) {
-			toast.error("Select a project first");
-			return;
-		}
-
-		if (submitStartedRef.current) {
-			return;
-		}
-		submitStartedRef.current = true;
-
-		const displayName =
-			workspaceNameEdited && workspaceName.trim()
-				? workspaceName.trim()
-				: trimmedPrompt || "New workspace";
-		const willGenerateAIName =
-			!branchNameEdited && !!trimmedPrompt && !linkedPR;
-		const pendingWorkspaceId = crypto.randomUUID();
-		const detachedFiles = attachments.takeFiles();
-
-		setPendingWorkspace({
-			id: pendingWorkspaceId,
-			projectId,
-			name: displayName,
-			status: willGenerateAIName ? "generating-branch" : "preparing",
-		});
-		closeAndResetDraft();
-
-		try {
-			let aiBranchName: string | null = null;
-			if (willGenerateAIName) {
-				let timeoutId: NodeJS.Timeout | null = null;
-				try {
-					const AI_GENERATION_TIMEOUT_MS = 30000;
-					const timeoutPromise = new Promise<never>((_, reject) => {
-						timeoutId = setTimeout(
-							() => reject(new Error("AI generation timeout")),
-							AI_GENERATION_TIMEOUT_MS,
-						);
-					});
-
-					const result = await Promise.race([
-						generateBranchNameMutation.mutateAsync({
-							prompt: trimmedPrompt,
-							projectId,
-						}),
-						timeoutPromise,
-					]);
-
-					if (timeoutId) clearTimeout(timeoutId);
-					aiBranchName = result.branchName;
-				} catch (error) {
-					if (timeoutId) clearTimeout(timeoutId);
-
-					const errorMessage =
-						error instanceof Error ? error.message : String(error);
-					if (errorMessage.includes("timeout")) {
-						console.warn("[PromptGroup] AI generation timeout");
-						toast.info("Using random branch name (AI generation timed out)");
-					} else if (
-						errorMessage.toLowerCase().includes("auth") ||
-						errorMessage.includes("401") ||
-						errorMessage.includes("403")
-					) {
-						console.error("[PromptGroup] AI auth error:", error);
-						toast.error(
-							"AI authentication failed. Please check your AI settings.",
-						);
-						clearPendingWorkspace(pendingWorkspaceId);
-						return;
-					} else {
-						console.warn("[PromptGroup] AI generation failed:", error);
-						toast.info("Using random branch name (AI generation unavailable)");
-					}
-				} finally {
-					setPendingWorkspaceStatus(pendingWorkspaceId, "preparing");
-				}
+	const handleCreate = useCallback(
+		async (preConvertedFiles?: ConvertedFile[]) => {
+			if (!projectId) {
+				toast.error("Select a project first");
+				return;
 			}
 
-			let convertedFiles: ConvertedFile[] = [];
-			if (detachedFiles.length > 0) {
-				try {
-					convertedFiles = await Promise.all(
-						detachedFiles.map(async (file) => ({
-							data: await convertBlobUrlToDataUrl(file.url),
-							mediaType: file.mediaType,
-							filename: file.filename,
-						})),
-					);
-				} catch (err) {
-					clearPendingWorkspace(pendingWorkspaceId);
-					toast.error(
-						err instanceof Error
-							? err.message
-							: "Failed to process attachments",
-					);
-					return;
-				}
+			if (submitStartedRef.current) {
+				return;
 			}
+			submitStartedRef.current = true;
 
-			// Fetch and attach GitHub issue content
-			const githubIssues = linkedIssues.filter(
-				(issue): issue is typeof issue & { number: number } =>
-					issue.source === "github" && typeof issue.number === "number",
-			);
-			if (githubIssues.length > 0 && projectId) {
-				try {
-					// Helper to add timeout to promises
-					const fetchWithTimeout = <T,>(
-						promise: Promise<T>,
-						timeoutMs: number,
-					): Promise<T> => {
-						return Promise.race([
-							promise,
-							new Promise<T>((_, reject) =>
-								setTimeout(
-									() => reject(new Error("Request timeout")),
-									timeoutMs,
-								),
-							),
+			const displayName =
+				workspaceNameEdited && workspaceName.trim()
+					? workspaceName.trim()
+					: trimmedPrompt || "New workspace";
+			const willGenerateAIName =
+				!branchNameEdited && !!trimmedPrompt && !linkedPR;
+			const pendingWorkspaceId = crypto.randomUUID();
+			const detachedFiles = preConvertedFiles ? [] : attachments.takeFiles();
+
+			setPendingWorkspace({
+				id: pendingWorkspaceId,
+				projectId,
+				name: displayName,
+				status: willGenerateAIName ? "generating-branch" : "preparing",
+			});
+			closeAndResetDraft();
+
+			try {
+				let aiBranchName: string | null = null;
+				if (willGenerateAIName) {
+					let timeoutId: NodeJS.Timeout | null = null;
+					try {
+						const AI_GENERATION_TIMEOUT_MS = 30000;
+						const timeoutPromise = new Promise<never>((_, reject) => {
+							timeoutId = setTimeout(
+								() => reject(new Error("AI generation timeout")),
+								AI_GENERATION_TIMEOUT_MS,
+							);
+						});
+
+						const result = await Promise.race([
+							generateBranchNameMutation.mutateAsync({
+								prompt: trimmedPrompt,
+								projectId,
+							}),
+							timeoutPromise,
 						]);
-					};
 
-					const issueContents = await Promise.all(
-						githubIssues.map(async (issue) => {
-							try {
-								const content = await fetchWithTimeout(
-									utils.client.projects.getIssueContent.query({
-										projectId,
-										issueNumber: issue.number,
-									}),
-									10000, // 10 second timeout per issue
-								);
+						if (timeoutId) clearTimeout(timeoutId);
+						aiBranchName = result.branchName;
+					} catch (error) {
+						if (timeoutId) clearTimeout(timeoutId);
 
-								// Sanitize user-generated content to prevent injection
-								const sanitizeText = (str: string) =>
-									str.replace(/[&<>"']/g, (char) => {
-										const entities: Record<string, string> = {
-											"&": "&amp;",
-											"<": "&lt;",
-											">": "&gt;",
-											'"': "&quot;",
-											"'": "&#39;",
-										};
-										return entities[char] || char;
-									});
+						const errorMessage =
+							error instanceof Error ? error.message : String(error);
+						if (errorMessage.includes("timeout")) {
+							console.warn("[PromptGroup] AI generation timeout");
+							toast.info("Using random branch name (AI generation timed out)");
+						} else if (
+							errorMessage.toLowerCase().includes("auth") ||
+							errorMessage.includes("401") ||
+							errorMessage.includes("403")
+						) {
+							console.error("[PromptGroup] AI auth error:", error);
+							toast.error(
+								"AI authentication failed. Please check your AI settings.",
+							);
+							clearPendingWorkspace(pendingWorkspaceId);
+							return;
+						} else {
+							console.warn("[PromptGroup] AI generation failed:", error);
+							toast.info(
+								"Using random branch name (AI generation unavailable)",
+							);
+						}
+					} finally {
+						setPendingWorkspaceStatus(pendingWorkspaceId, "preparing");
+					}
+				}
 
-								const sanitizeUrl = (url: string) => {
-									try {
-										const parsed = new URL(url);
-										// Only allow http/https protocols
-										if (!["http:", "https:"].includes(parsed.protocol)) {
+				let convertedFiles: ConvertedFile[] = preConvertedFiles ?? [];
+				if (!preConvertedFiles && detachedFiles.length > 0) {
+					try {
+						convertedFiles = await Promise.all(
+							detachedFiles.map(async (file) => ({
+								data: await convertBlobUrlToDataUrl(file.url),
+								mediaType: file.mediaType,
+								filename: file.filename,
+							})),
+						);
+					} catch (err) {
+						clearPendingWorkspace(pendingWorkspaceId);
+						toast.error(
+							err instanceof Error
+								? err.message
+								: "Failed to process attachments",
+						);
+						return;
+					}
+				}
+
+				// Fetch and attach GitHub issue content
+				const githubIssues = linkedIssues.filter(
+					(issue): issue is typeof issue & { number: number } =>
+						issue.source === "github" && typeof issue.number === "number",
+				);
+				if (githubIssues.length > 0 && projectId) {
+					try {
+						// Helper to add timeout to promises
+						const fetchWithTimeout = <T,>(
+							promise: Promise<T>,
+							timeoutMs: number,
+						): Promise<T> => {
+							return Promise.race([
+								promise,
+								new Promise<T>((_, reject) =>
+									setTimeout(
+										() => reject(new Error("Request timeout")),
+										timeoutMs,
+									),
+								),
+							]);
+						};
+
+						const issueContents = await Promise.all(
+							githubIssues.map(async (issue) => {
+								try {
+									const content = await fetchWithTimeout(
+										utils.client.projects.getIssueContent.query({
+											projectId,
+											issueNumber: issue.number,
+										}),
+										10000, // 10 second timeout per issue
+									);
+
+									// Sanitize user-generated content to prevent injection
+									const sanitizeText = (str: string) =>
+										str.replace(/[&<>"']/g, (char) => {
+											const entities: Record<string, string> = {
+												"&": "&amp;",
+												"<": "&lt;",
+												">": "&gt;",
+												'"': "&quot;",
+												"'": "&#39;",
+											};
+											return entities[char] || char;
+										});
+
+									const sanitizeUrl = (url: string) => {
+										try {
+											const parsed = new URL(url);
+											// Only allow http/https protocols
+											if (!["http:", "https:"].includes(parsed.protocol)) {
+												return "#invalid-url";
+											}
+											return url;
+										} catch {
 											return "#invalid-url";
 										}
-										return url;
-									} catch {
-										return "#invalid-url";
-									}
-								};
+									};
 
-								// Limit body size to prevent memory issues
-								const MAX_BODY_LENGTH = 50000; // 50KB
-								const truncatedBody =
-									content.body.length > MAX_BODY_LENGTH
-										? `${content.body.slice(0, MAX_BODY_LENGTH)}\n\n[... content truncated due to length ...]`
-										: content.body;
+									// Limit body size to prevent memory issues
+									const MAX_BODY_LENGTH = 50000; // 50KB
+									const truncatedBody =
+										content.body.length > MAX_BODY_LENGTH
+											? `${content.body.slice(0, MAX_BODY_LENGTH)}\n\n[... content truncated due to length ...]`
+											: content.body;
 
-								const markdown = `# GitHub Issue #${content.number}: ${sanitizeText(content.title)}
+									const markdown = `# GitHub Issue #${content.number}: ${sanitizeText(content.title)}
 
 **URL:** ${sanitizeUrl(content.url)}
 **State:** ${content.state}
@@ -896,152 +893,177 @@ function PromptGroupInner({
 
 ${sanitizeText(truncatedBody)}`;
 
-								// Convert markdown to base64 data URL
-								const base64 = btoa(
-									encodeURIComponent(markdown).replace(
-										/%([0-9A-F]{2})/g,
-										(_, p1) => String.fromCharCode(Number.parseInt(p1, 16)),
-									),
-								);
+									// Convert markdown to base64 data URL
+									const base64 = btoa(
+										encodeURIComponent(markdown).replace(
+											/%([0-9A-F]{2})/g,
+											(_, p1) => String.fromCharCode(Number.parseInt(p1, 16)),
+										),
+									);
 
-								return {
-									data: `data:text/markdown;base64,${base64}`,
-									mediaType: "text/markdown",
-									filename: `github-issue-${content.number}.md`,
-								};
-							} catch (err) {
-								console.warn(
-									`Failed to fetch GitHub issue #${issue.number}:`,
-									err,
-								);
-								return null;
-							}
-						}),
-					);
+									return {
+										data: `data:text/markdown;base64,${base64}`,
+										mediaType: "text/markdown",
+										filename: `github-issue-${content.number}.md`,
+									};
+								} catch (err) {
+									console.warn(
+										`Failed to fetch GitHub issue #${issue.number}:`,
+										err,
+									);
+									return null;
+								}
+							}),
+						);
 
-					// Add successfully fetched issues to convertedFiles
-					const validIssueFiles = issueContents.filter(
-						(file) => file !== null,
-					) as ConvertedFile[];
-					convertedFiles = [...convertedFiles, ...validIssueFiles];
-				} catch (err) {
-					console.warn("Failed to fetch GitHub issue contents:", err);
-					// Don't block workspace creation if issue fetching fails
+						// Add successfully fetched issues to convertedFiles
+						const validIssueFiles = issueContents.filter(
+							(file) => file !== null,
+						) as ConvertedFile[];
+						convertedFiles = [...convertedFiles, ...validIssueFiles];
+					} catch (err) {
+						console.warn("Failed to fetch GitHub issue contents:", err);
+						// Don't block workspace creation if issue fetching fails
+					}
 				}
-			}
 
-			let launchRequest: AgentLaunchRequest | null = null;
-			try {
-				launchRequest = buildLaunchRequest(
-					trimmedPrompt,
-					convertedFiles.length > 0 ? convertedFiles : undefined,
-				);
-			} catch (error) {
-				clearPendingWorkspace(pendingWorkspaceId);
-				toast.error(
-					error instanceof Error
-						? error.message
-						: "Failed to prepare agent launch",
-				);
-				return;
-			}
+				let launchRequest: AgentLaunchRequest | null = null;
+				try {
+					launchRequest = buildLaunchRequest(
+						trimmedPrompt,
+						convertedFiles.length > 0 ? convertedFiles : undefined,
+					);
+				} catch (error) {
+					clearPendingWorkspace(pendingWorkspaceId);
+					toast.error(
+						error instanceof Error
+							? error.message
+							: "Failed to prepare agent launch",
+					);
+					return;
+				}
 
-			setPendingWorkspaceStatus(pendingWorkspaceId, "creating");
+				setPendingWorkspaceStatus(pendingWorkspaceId, "creating");
 
-			if (linkedPR) {
+				if (linkedPR) {
+					void runAsyncAction(
+						createFromPr.mutateAsyncWithSetup(
+							{ projectId, prUrl: linkedPR.url },
+							launchRequest ?? undefined,
+						),
+						{
+							loading: `Creating workspace from PR #${linkedPR.prNumber}...`,
+							success: "Workspace created from PR",
+							error: (err) =>
+								err instanceof Error
+									? err.message
+									: "Failed to create workspace from PR",
+						},
+						{ closeAndReset: false },
+					).finally(() => {
+						clearPendingWorkspace(pendingWorkspaceId);
+					});
+					return;
+				}
+
 				void runAsyncAction(
-					createFromPr.mutateAsyncWithSetup(
-						{ projectId, prUrl: linkedPR.url },
-						launchRequest ?? undefined,
+					createWorkspace.mutateAsyncWithPendingSetup(
+						{
+							projectId,
+							name:
+								workspaceNameEdited && workspaceName.trim()
+									? workspaceName.trim()
+									: undefined,
+							prompt: trimmedPrompt || undefined,
+							branchName:
+								(branchNameEdited && branchName.trim()
+									? sanitizeBranchNameWithMaxLength(
+											branchName.trim(),
+											undefined,
+											{
+												preserveCase: true,
+											},
+										)
+									: aiBranchName) || undefined,
+							compareBaseBranch: compareBaseBranch || undefined,
+						},
+						{
+							agentLaunchRequest: launchRequest ?? undefined,
+							resolveInitialCommands: runSetupScript
+								? (commands) => commands
+								: () => null,
+						},
 					),
 					{
-						loading: `Creating workspace from PR #${linkedPR.prNumber}...`,
-						success: "Workspace created from PR",
+						loading: "Creating workspace...",
+						success: "Workspace created",
 						error: (err) =>
-							err instanceof Error
-								? err.message
-								: "Failed to create workspace from PR",
+							err instanceof Error ? err.message : "Failed to create workspace",
 					},
 					{ closeAndReset: false },
 				).finally(() => {
 					clearPendingWorkspace(pendingWorkspaceId);
 				});
-				return;
-			}
-
-			void runAsyncAction(
-				createWorkspace.mutateAsyncWithPendingSetup(
-					{
-						projectId,
-						name:
-							workspaceNameEdited && workspaceName.trim()
-								? workspaceName.trim()
-								: undefined,
-						prompt: trimmedPrompt || undefined,
-						branchName:
-							(branchNameEdited && branchName.trim()
-								? sanitizeBranchNameWithMaxLength(
-										branchName.trim(),
-										undefined,
-										{
-											preserveCase: true,
-										},
-									)
-								: aiBranchName) || undefined,
-						compareBaseBranch: compareBaseBranch || undefined,
-					},
-					{
-						agentLaunchRequest: launchRequest ?? undefined,
-						resolveInitialCommands: runSetupScript
-							? (commands) => commands
-							: () => null,
-					},
-				),
-				{
-					loading: "Creating workspace...",
-					success: "Workspace created",
-					error: (err) =>
-						err instanceof Error ? err.message : "Failed to create workspace",
-				},
-				{ closeAndReset: false },
-			).finally(() => {
-				clearPendingWorkspace(pendingWorkspaceId);
-			});
-		} finally {
-			for (const file of detachedFiles) {
-				if (file.url?.startsWith("blob:")) {
-					URL.revokeObjectURL(file.url);
+			} finally {
+				for (const file of detachedFiles) {
+					if (file.url?.startsWith("blob:")) {
+						URL.revokeObjectURL(file.url);
+					}
 				}
 			}
-		}
-	}, [
-		attachments,
-		compareBaseBranch,
-		branchName,
-		branchNameEdited,
-		buildLaunchRequest,
-		closeAndResetDraft,
-		clearPendingWorkspace,
-		convertBlobUrlToDataUrl,
-		createFromPr,
-		createWorkspace,
-		generateBranchNameMutation,
-		linkedIssues,
-		linkedPR,
-		projectId,
-		runAsyncAction,
-		runSetupScript,
-		setPendingWorkspace,
-		setPendingWorkspaceStatus,
-		trimmedPrompt,
-		utils,
-		workspaceName,
-		workspaceNameEdited,
-	]);
+		},
+		[
+			attachments,
+			compareBaseBranch,
+			branchName,
+			branchNameEdited,
+			buildLaunchRequest,
+			closeAndResetDraft,
+			clearPendingWorkspace,
+			convertBlobUrlToDataUrl,
+			createFromPr,
+			createWorkspace,
+			generateBranchNameMutation,
+			linkedIssues,
+			linkedPR,
+			projectId,
+			runAsyncAction,
+			runSetupScript,
+			setPendingWorkspace,
+			setPendingWorkspaceStatus,
+			trimmedPrompt,
+			utils,
+			workspaceName,
+			workspaceNameEdited,
+		],
+	);
 
-	const handlePromptSubmit = useCallback(() => {
-		void handleCreate();
-	}, [handleCreate]);
+	const handlePromptSubmit = useCallback(
+		(message: {
+			files: Array<{ url: string; mediaType: string; filename?: string }>;
+		}) => {
+			const converted: ConvertedFile[] = message.files
+				.filter((f) => f.url)
+				.map((f) => ({
+					data: f.url,
+					mediaType: f.mediaType,
+					filename: f.filename,
+				}));
+			void handleCreate(converted.length > 0 ? converted : undefined);
+		},
+		[handleCreate],
+	);
+
+	useEffect(() => {
+		if (!isNewWorkspaceModalOpen) return;
+		const handler = (e: KeyboardEvent) => {
+			if (!isEnterSubmit(e, { requireMod: true })) return;
+			e.preventDefault();
+			void handleCreate();
+		};
+		window.addEventListener("keydown", handler);
+		return () => window.removeEventListener("keydown", handler);
+	}, [isNewWorkspaceModalOpen, handleCreate]);
 
 	const handleCompareBaseBranchSelect = (selectedBaseBranch: string) => {
 		updateDraft({ compareBaseBranch: selectedBaseBranch });
@@ -1094,21 +1116,6 @@ ${sanitizeText(truncatedBody)}`;
 		},
 		[closeModal, navigate],
 	);
-
-	const addLinkedIssue = (
-		slug: string,
-		title: string,
-		taskId: string | undefined,
-		url?: string,
-	) => {
-		if (linkedIssues.some((issue) => issue.slug === slug)) return;
-		updateDraft({
-			linkedIssues: [
-				...linkedIssues,
-				{ slug, title, source: "internal", taskId, url },
-			],
-		});
-	};
 
 	const addLinkedGitHubIssue = (
 		issueNumber: number,
@@ -1165,12 +1172,6 @@ ${sanitizeText(truncatedBody)}`;
 							updateDraft({ workspaceName: "", workspaceNameEdited: false });
 						}
 					}}
-					onKeyDown={(e) => {
-						if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-							e.preventDefault();
-							void handleCreate();
-						}
-					}}
 				/>
 				<div className="shrink min-w-0 ml-auto max-w-[50%]">
 					<Input
@@ -1195,12 +1196,6 @@ ${sanitizeText(truncatedBody)}`;
 								updateDraft({ branchName: "", branchNameEdited: false });
 							} else {
 								updateDraft({ branchName: sanitized });
-							}
-						}}
-						onKeyDown={(e) => {
-							if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-								e.preventDefault();
-								void handleCreate();
 							}
 						}}
 					/>
@@ -1273,12 +1268,6 @@ ${sanitizeText(truncatedBody)}`;
 					className="min-h-10"
 					value={prompt}
 					onChange={(e) => updateDraft({ prompt: e.target.value })}
-					onKeyDown={(e) => {
-						if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-							e.preventDefault();
-							void handleCreate();
-						}
-					}}
 				/>
 				<PromptInputFooter>
 					<PromptInputTools className="gap-1.5">
@@ -1296,24 +1285,14 @@ ${sanitizeText(truncatedBody)}`;
 						/>
 					</PromptInputTools>
 					<div className="flex items-center gap-2">
-						<PlusMenu
-							ref={plusMenuRef}
-							onOpenIssueLink={() =>
-								requestAnimationFrame(() => setIssueLinkOpen(true))
-							}
+						<AttachmentButtons
+							anchorRef={plusMenuRef}
 							onOpenGitHubIssue={() =>
 								requestAnimationFrame(() => setGitHubIssueLinkOpen(true))
 							}
 							onOpenPRLink={() =>
 								requestAnimationFrame(() => setPRLinkOpen(true))
 							}
-						/>
-						<IssueLinkCommand
-							variant="popover"
-							anchorRef={plusMenuRef}
-							open={issueLinkOpen}
-							onOpenChange={setIssueLinkOpen}
-							onSelect={addLinkedIssue}
 						/>
 						<GitHubIssueLinkCommand
 							open={gitHubIssueLinkOpen}
@@ -1334,6 +1313,8 @@ ${sanitizeText(truncatedBody)}`;
 							onOpenChange={setPRLinkOpen}
 							onSelect={setLinkedPR}
 							projectId={projectId}
+							githubOwner={project?.githubOwner ?? null}
+							repoName={project?.mainRepoPath.split("/").pop() ?? null}
 							anchorRef={plusMenuRef}
 						/>
 						<PromptInputSubmit
@@ -1400,7 +1381,7 @@ ${sanitizeText(truncatedBody)}`;
 					</AnimatePresence>
 				</div>
 				<span className="text-[11px] text-muted-foreground/50">
-					{modKey}+↵ to create
+					{modKey}↵ to create
 				</span>
 			</div>
 		</div>

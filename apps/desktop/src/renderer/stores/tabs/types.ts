@@ -5,6 +5,7 @@ import type {
 	BaseTabsState,
 	BrowserLoadError,
 	ChatLaunchConfig,
+	CommentPaneState,
 	FileViewerMode,
 	Pane,
 	PaneStatus,
@@ -14,6 +15,11 @@ import type {
 
 // Re-export shared types
 export type { Pane, PaneStatus, PaneType };
+
+/**
+ * Data required to open a comment pane
+ */
+export type CommentPaneData = CommentPaneState;
 
 /**
  * Snapshot of a closed tab + its panes, used for "reopen closed tab".
@@ -196,6 +202,17 @@ export interface TabsStore extends TabsState {
 		destinationPath: MosaicBranch[],
 		position: MosaicDropPosition,
 	) => void;
+
+	// Comment operations
+	/**
+	 * Open a PR/review comment in a pane. Reuses an existing comment pane in
+	 * the workspace if one is found; otherwise creates a new tab with a
+	 * comment pane.
+	 */
+	openCommentPane: (
+		workspaceId: string,
+		comment: CommentPaneData,
+	) => { tabId: string; paneId: string };
 
 	// Browser operations
 	addBrowserTab: (

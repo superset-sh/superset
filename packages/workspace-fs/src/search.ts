@@ -3,13 +3,20 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { promisify } from "node:util";
 import fg from "fast-glob";
-import Fuse from "fuse.js";
+import {
+	compareItemsByFuzzyScore,
+	type FuzzyScorerCache,
+	type IItemAccessor,
+	prepareQuery,
+	scoreFuzzy,
+	scoreItemFuzzy,
+} from "./fuzzy-scorer";
 import { normalizeAbsolutePath, toRelativePath } from "./paths";
 import type { FsContentMatch, FsSearchMatch } from "./types";
 
 const execFileAsync = promisify(execFile);
 
-const SEARCH_INDEX_TTL_MS = 30_000;
+// No TTL — index is kept current via patchSearchIndexesForRoot from file watcher
 const MAX_SEARCH_RESULTS = 500;
 const MAX_KEYWORD_FILE_SIZE_BYTES = 1024 * 1024;
 const BINARY_CHECK_SIZE = 8192;
@@ -18,6 +25,13 @@ const KEYWORD_SEARCH_CANDIDATE_MULTIPLIER = 4;
 const KEYWORD_SEARCH_MAX_COUNT_PER_FILE = 3;
 const KEYWORD_SEARCH_RIPGREP_BUFFER_BYTES = 10 * 1024 * 1024;
 
+// Both the FsWatcherManager and the search-index `fast-glob` walk consume this
+// list. Patterns matched here are not just hidden from consumers — on Linux
+// they're applied at watch-creation time by @parcel/watcher, so no inotify
+// watches are installed for matched dirs. That's the main lever against
+// ENOSPC (inotify watch limit). On macOS FSEvents these are userspace-only
+// filters; the kernel still queues events for ignored paths but consumers
+// never see them.
 export const DEFAULT_IGNORE_PATTERNS = [
 	"**/node_modules/**",
 	"**/.git/**",
@@ -26,22 +40,22 @@ export const DEFAULT_IGNORE_PATTERNS = [
 	"**/.next/**",
 	"**/.turbo/**",
 	"**/coverage/**",
+	"**/.cache/**",
+	"**/.parcel-cache/**",
+	"**/.vite/**",
+	"**/.svelte-kit/**",
+	"**/.vercel/**",
+	"**/target/**",
+	"**/out/**",
+	"**/*.tsbuildinfo",
 ];
 
 interface SearchIndexEntry {
 	absolutePath: string;
 	relativePath: string;
 	name: string;
-}
-
-interface FileSearchIndex {
-	items: SearchIndexEntry[];
-	fuse: Fuse<SearchIndexEntry>;
-}
-
-interface FileSearchCacheEntry {
-	index: FileSearchIndex;
-	builtAt: number;
+	/** Parent directory path (pre-computed for scorer). */
+	description: string | undefined;
 }
 
 interface PathFilterMatcher {
@@ -98,22 +112,46 @@ export interface SearchContentOptions {
 	) => Promise<{ stdout: string }>;
 }
 
-const searchIndexCache = new Map<string, FileSearchCacheEntry>();
-const searchIndexBuilds = new Map<string, Promise<FileSearchIndex>>();
-const searchIndexVersions = new Map<string, number>();
+// LRU + idle-TTL on the index cache: bound JS heap as worktree count grows.
+// Inactive worktrees pay a fresh fast-glob walk on next search (~50–200 ms
+// for a 5k-file repo) — cheap relative to keeping every index resident.
+const SEARCH_INDEX_CACHE_MAX = 12;
+const SEARCH_INDEX_CACHE_TTL_MS = 30 * 60_000;
 
-function createFileSearchFuse(
-	items: SearchIndexEntry[],
-): Fuse<SearchIndexEntry> {
-	return new Fuse(items, {
-		keys: [
-			{ name: "name", weight: 2 },
-			{ name: "relativePath", weight: 1 },
-		],
-		threshold: 0.4,
-		includeScore: true,
-		ignoreLocation: true,
-	});
+interface CachedIndex {
+	items: SearchIndexEntry[];
+	lastAccessedAt: number;
+}
+
+const searchIndexCache = new Map<string, CachedIndex>();
+const searchIndexBuilds = new Map<string, Promise<SearchIndexEntry[]>>();
+
+function evictLruSearchIndexEntries(): void {
+	// Map iteration is insertion-order; re-inserting on hit moves an entry to
+	// the end, so the first key is least-recently-used.
+	while (searchIndexCache.size >= SEARCH_INDEX_CACHE_MAX) {
+		const oldestKey = searchIndexCache.keys().next().value;
+		if (!oldestKey) break;
+		searchIndexCache.delete(oldestKey);
+	}
+}
+
+function createSearchIndexEntry(
+	rootPath: string,
+	relativePath: string,
+): SearchIndexEntry {
+	const normalizedRelativePath = normalizePathForGlob(relativePath);
+	const absolutePath = normalizeAbsolutePath(
+		path.join(rootPath, normalizedRelativePath),
+	);
+	const name = path.basename(normalizedRelativePath);
+	const dir = normalizedRelativePath.slice(0, -(name.length + 1));
+	return {
+		absolutePath,
+		relativePath: normalizedRelativePath,
+		name,
+		description: dir || undefined,
+	};
 }
 
 function getSearchCacheKey({
@@ -121,16 +159,6 @@ function getSearchCacheKey({
 	includeHidden,
 }: SearchIndexKeyOptions): string {
 	return `${normalizeAbsolutePath(rootPath)}::${includeHidden ? "hidden" : "visible"}`;
-}
-
-function getSearchIndexVersion(cacheKey: string): number {
-	return searchIndexVersions.get(cacheKey) ?? 0;
-}
-
-function advanceSearchIndexVersion(cacheKey: string): number {
-	const nextVersion = getSearchIndexVersion(cacheKey) + 1;
-	searchIndexVersions.set(cacheKey, nextVersion);
-	return nextVersion;
 }
 
 function parseGlobPatterns(input: string): string[] {
@@ -260,7 +288,7 @@ function matchesPathFilters(
 async function buildSearchIndex({
 	rootPath,
 	includeHidden,
-}: SearchIndexKeyOptions): Promise<FileSearchIndex> {
+}: SearchIndexKeyOptions): Promise<SearchIndexEntry[]> {
 	const normalizedRootPath = normalizeAbsolutePath(rootPath);
 	const entries = await fg("**/*", {
 		cwd: normalizedRootPath,
@@ -272,64 +300,42 @@ async function buildSearchIndex({
 		ignore: DEFAULT_IGNORE_PATTERNS,
 	});
 
-	const items: SearchIndexEntry[] = entries.map((relativePath) => ({
-		absolutePath: path.join(normalizedRootPath, relativePath),
-		relativePath,
-		name: path.basename(relativePath),
-	}));
-
-	return {
-		items,
-		fuse: createFileSearchFuse(items),
-	};
+	return entries.map((relativePath) =>
+		createSearchIndexEntry(normalizedRootPath, relativePath),
+	);
 }
 
-async function getSearchIndex(
+export async function getSearchIndex(
 	options: SearchIndexKeyOptions,
-): Promise<FileSearchIndex> {
+): Promise<SearchIndexEntry[]> {
 	const cacheKey = getSearchCacheKey(options);
+
 	const cached = searchIndexCache.get(cacheKey);
-	const now = Date.now();
-	const inFlight = searchIndexBuilds.get(cacheKey);
-
-	if (cached && now - cached.builtAt < SEARCH_INDEX_TTL_MS) {
-		return cached.index;
-	}
-
-	if (cached && !inFlight) {
-		const buildVersion = getSearchIndexVersion(cacheKey);
-		const buildPromise = buildSearchIndex(options)
-			.then((index) => {
-				if (getSearchIndexVersion(cacheKey) === buildVersion) {
-					searchIndexCache.set(cacheKey, { index, builtAt: Date.now() });
-				}
-				searchIndexBuilds.delete(cacheKey);
-				return index;
-			})
-			.catch((error) => {
-				searchIndexBuilds.delete(cacheKey);
-				throw error;
-			});
-		searchIndexBuilds.set(cacheKey, buildPromise);
-		return cached.index;
-	}
-
 	if (cached) {
-		return cached.index;
+		// TTL is the freshness contract — bypassing it on hits would let a hot
+		// key serve indefinitely-stale data. Memory is already bounded by LRU.
+		searchIndexCache.delete(cacheKey);
+		if (Date.now() - cached.lastAccessedAt <= SEARCH_INDEX_CACHE_TTL_MS) {
+			cached.lastAccessedAt = Date.now();
+			searchIndexCache.set(cacheKey, cached); // re-insert at MRU position
+			return cached.items;
+		}
 	}
 
+	const inFlight = searchIndexBuilds.get(cacheKey);
 	if (inFlight) {
 		return await inFlight;
 	}
 
-	const buildVersion = getSearchIndexVersion(cacheKey);
 	const buildPromise = buildSearchIndex(options)
-		.then((index) => {
-			if (getSearchIndexVersion(cacheKey) === buildVersion) {
-				searchIndexCache.set(cacheKey, { index, builtAt: Date.now() });
-			}
+		.then((items) => {
+			evictLruSearchIndexEntries();
+			searchIndexCache.set(cacheKey, {
+				items,
+				lastAccessedAt: Date.now(),
+			});
 			searchIndexBuilds.delete(cacheKey);
-			return index;
+			return items;
 		})
 		.catch((error) => {
 			searchIndexBuilds.delete(cacheKey);
@@ -375,20 +381,17 @@ function rankContentMatches(
 	}
 
 	const safeLimit = safeSearchLimit(limit);
-	const fuse = new Fuse(matches, {
-		keys: [
-			{ name: "preview", weight: 2 },
-			{ name: "name", weight: 1.2 },
-			{ name: "relativePath", weight: 1 },
-		],
-		threshold: 0.45,
-		includeScore: true,
-		ignoreLocation: true,
+	const queryLower = query.toLowerCase();
+
+	const scored = matches.map((match) => {
+		const target = `${match.name} ${match.preview}`;
+		const [score] = scoreFuzzy(target, query, queryLower, true);
+		return { match, score };
 	});
 
-	const ranked = fuse
-		.search(query, { limit: safeLimit })
-		.map((result) => result.item);
+	scored.sort((a, b) => b.score - a.score);
+
+	const ranked = scored.slice(0, safeLimit).map((s) => s.match);
 	return ranked.length > 0 ? ranked : matches.slice(0, safeLimit);
 }
 
@@ -571,7 +574,7 @@ async function searchContentWithScan({
 	pathMatcher,
 	limit,
 }: {
-	index: FileSearchIndex;
+	index: SearchIndexEntry[];
 	query: string;
 	pathMatcher: PathFilterMatcher;
 	limit: number;
@@ -581,7 +584,7 @@ async function searchContentWithScan({
 	const lowerNeedle = query.toLowerCase();
 	const matches: InternalContentMatch[] = [];
 
-	for (const item of index.items) {
+	for (const item of index) {
 		if (matches.length >= maxCandidates) {
 			break;
 		}
@@ -678,11 +681,10 @@ function applySearchPatchEvent({
 		}
 
 		const nextAbsolutePath = normalizeAbsolutePath(event.absolutePath);
-		itemsByPath.set(nextAbsolutePath, {
-			absolutePath: nextAbsolutePath,
-			relativePath: nextRelativePath,
-			name: path.basename(nextAbsolutePath),
-		});
+		itemsByPath.set(
+			nextAbsolutePath,
+			createSearchIndexEntry(rootPath, nextRelativePath),
+		);
 		return;
 	}
 
@@ -698,16 +700,11 @@ function applySearchPatchEvent({
 		return;
 	}
 
-	itemsByPath.set(absolutePath, {
-		absolutePath,
-		relativePath,
-		name: path.basename(absolutePath),
-	});
+	itemsByPath.set(absolutePath, createSearchIndexEntry(rootPath, relativePath));
 }
 
 export function invalidateSearchIndex(options: SearchIndexKeyOptions): void {
 	const cacheKey = getSearchCacheKey(options);
-	advanceSearchIndexVersion(cacheKey);
 	searchIndexCache.delete(cacheKey);
 	searchIndexBuilds.delete(cacheKey);
 }
@@ -719,13 +716,6 @@ export function invalidateSearchIndexesForRoot(rootPath: string): void {
 }
 
 export function invalidateAllSearchIndexes(): void {
-	for (const cacheKey of new Set([
-		...searchIndexCache.keys(),
-		...searchIndexBuilds.keys(),
-		...searchIndexVersions.keys(),
-	])) {
-		advanceSearchIndexVersion(cacheKey);
-	}
 	searchIndexCache.clear();
 	searchIndexBuilds.clear();
 }
@@ -738,6 +728,11 @@ export function patchSearchIndexesForRoot(
 		return;
 	}
 
+	if (events.some((event) => event.isDirectory)) {
+		invalidateSearchIndexesForRoot(rootPath);
+		return;
+	}
+
 	const normalizedRootPath = normalizeAbsolutePath(rootPath);
 
 	for (const includeHidden of [true, false]) {
@@ -746,20 +741,14 @@ export function patchSearchIndexesForRoot(
 			includeHidden,
 		});
 		const cached = searchIndexCache.get(cacheKey);
-		const hasInFlightBuild = searchIndexBuilds.has(cacheKey);
-		if (!cached && !hasInFlightBuild) {
-			continue;
-		}
-
-		advanceSearchIndexVersion(cacheKey);
-		searchIndexBuilds.delete(cacheKey);
-
 		if (!cached) {
+			// No cached index — also cancel any in-flight build since it'll be stale
+			searchIndexBuilds.delete(cacheKey);
 			continue;
 		}
 
 		const nextItemsByPath = new Map(
-			cached.index.items.map((item) => [item.absolutePath, item]),
+			cached.items.map((item) => [item.absolutePath, item]),
 		);
 		for (const event of events) {
 			applySearchPatchEvent({
@@ -769,17 +758,31 @@ export function patchSearchIndexesForRoot(
 				event,
 			});
 		}
-		const nextItems = Array.from(nextItemsByPath.values());
 
+		// Patches imply the worktree is alive — bump to MRU and refresh access time.
+		searchIndexCache.delete(cacheKey);
 		searchIndexCache.set(cacheKey, {
-			index: {
-				items: nextItems,
-				fuse: createFileSearchFuse(nextItems),
-			},
-			builtAt: Date.now(),
+			items: Array.from(nextItemsByPath.values()),
+			lastAccessedAt: Date.now(),
 		});
 	}
 }
+
+/**
+ * IItemAccessor for SearchIndexEntry — maps to VS Code's label/description/path model.
+ * label = filename, description = parent directory path, path = full relative path.
+ */
+const searchEntryAccessor: IItemAccessor<SearchIndexEntry> = {
+	getItemLabel(item) {
+		return item.name;
+	},
+	getItemDescription(item) {
+		return item.description;
+	},
+	getItemPath(item) {
+		return item.relativePath;
+	},
+};
 
 export async function searchFiles({
 	rootPath,
@@ -789,7 +792,7 @@ export async function searchFiles({
 	excludePattern = "",
 	limit = 20,
 }: SearchFilesOptions): Promise<FsSearchMatch[]> {
-	const trimmedQuery = query.trim();
+	const trimmedQuery = normalizePathForGlob(query.trim());
 	if (!trimmedQuery) {
 		return [];
 	}
@@ -802,29 +805,47 @@ export async function searchFiles({
 		includePattern,
 		excludePattern,
 	});
-	const searchableItems = pathMatcher.hasFilters
-		? index.items.filter((item) =>
-				matchesPathFilters(item.relativePath, pathMatcher),
-			)
-		: index.items;
+	const safeLimit = safeSearchLimit(limit);
+	const prepared = prepareQuery(trimmedQuery);
+	const cache: FuzzyScorerCache = {};
 
-	if (searchableItems.length === 0) {
-		return [];
+	const searchableItems = pathMatcher.hasFilters
+		? index.filter((item) => matchesPathFilters(item.relativePath, pathMatcher))
+		: index;
+
+	// Score all items using VS Code's item scorer, then filter non-matches
+	const scored: Array<{ item: SearchIndexEntry; score: number }> = [];
+	for (const item of searchableItems) {
+		const itemScore = scoreItemFuzzy(
+			item,
+			prepared,
+			true,
+			searchEntryAccessor,
+			cache,
+		);
+		if (itemScore.score > 0) {
+			scored.push({ item, score: itemScore.score });
+		}
 	}
 
-	const fuse = pathMatcher.hasFilters
-		? createFileSearchFuse(searchableItems)
-		: index.fuse;
-	const results = fuse.search(trimmedQuery, {
-		limit: safeSearchLimit(limit),
-	});
+	// Sort using VS Code's full comparator
+	scored.sort((a, b) =>
+		compareItemsByFuzzyScore(
+			a.item,
+			b.item,
+			prepared,
+			true,
+			searchEntryAccessor,
+			cache,
+		),
+	);
 
-	return results.map((result) => ({
+	return scored.slice(0, safeLimit).map((result) => ({
 		absolutePath: result.item.absolutePath,
 		relativePath: result.item.relativePath,
 		name: result.item.name,
 		kind: "file" as const,
-		score: 1 - (result.score ?? 0),
+		score: result.score,
 	}));
 }
 

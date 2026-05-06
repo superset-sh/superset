@@ -1,12 +1,11 @@
-import { ShimmerLabel } from "@superset/ui/ai-elements/shimmer-label";
 import {
-	Collapsible,
-	CollapsibleContent,
-	CollapsibleTrigger,
-} from "@superset/ui/collapsible";
-import { CheckIcon, Loader2Icon, WrenchIcon, XIcon } from "lucide-react";
+	MessageResponse,
+	TOOL_CALL_MD_CLASSNAME,
+} from "@superset/ui/ai-elements/message";
+import { ToolCallRow } from "@superset/ui/ai-elements/tool-call-row";
+import { WrenchIcon } from "lucide-react";
 import type { ComponentType, ReactNode } from "react";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import type { ToolPart } from "../../../../utils/tool-helpers";
 
 type SupersetToolCallProps = {
@@ -14,6 +13,7 @@ type SupersetToolCallProps = {
 	toolName: string;
 	icon?: ComponentType<{ className?: string }>;
 	details?: ReactNode;
+	subtitle?: string;
 };
 
 function stringifyValue(value: unknown): string {
@@ -30,8 +30,8 @@ export function SupersetToolCall({
 	toolName,
 	icon: Icon = WrenchIcon,
 	details,
+	subtitle,
 }: SupersetToolCallProps) {
-	const [isOpen, setIsOpen] = useState(false);
 	const output =
 		"output" in part ? (part as { output?: unknown }).output : undefined;
 	const outputObject =
@@ -52,60 +52,48 @@ export function SupersetToolCall({
 		return "Tool failed";
 	}, [isError, output, outputError, outputObject?.message]);
 
-	const hasDetails = Boolean(details) || isError;
+	const contentText = (() => {
+		if (isPending || isError) return null;
+		if (typeof output === "string" && output.trim()) return output.trim();
+		if (outputObject) {
+			const c = outputObject.content ?? outputObject.text;
+			if (typeof c === "string" && c.trim()) return c.trim();
+		}
+		return null;
+	})();
+
+	const hasDetails = Boolean(details) || isError || contentText != null;
 
 	return (
-		<Collapsible
-			className="overflow-hidden rounded-md"
-			onOpenChange={(open) => hasDetails && setIsOpen(open)}
-			open={hasDetails ? isOpen : false}
+		<ToolCallRow
+			icon={Icon}
+			isError={isError}
+			isPending={isPending}
+			title={toolName}
+			description={subtitle}
 		>
-			<CollapsibleTrigger asChild>
-				<button
-					className={
-						hasDetails
-							? "flex h-7 w-full items-center justify-between px-2.5 text-left transition-colors duration-150 hover:bg-muted/30"
-							: "flex h-7 w-full items-center justify-between px-2.5 text-left"
-					}
-					disabled={!hasDetails}
-					type="button"
-				>
-					<div className="flex min-w-0 flex-1 items-center gap-1.5 text-xs">
-						<Icon className="h-3 w-3 shrink-0 text-muted-foreground" />
-						<ShimmerLabel
-							className="truncate text-xs text-muted-foreground"
-							isShimmering={isPending}
-						>
-							{toolName}
-						</ShimmerLabel>
-					</div>
-					<div className="ml-2 flex h-6 w-6 items-center justify-center text-muted-foreground">
-						{isPending ? (
-							<Loader2Icon className="h-3 w-3 animate-spin" />
-						) : isError ? (
-							<XIcon className="h-3 w-3" />
-						) : (
-							<CheckIcon className="h-3 w-3" />
-						)}
-					</div>
-				</button>
-			</CollapsibleTrigger>
 			{hasDetails ? (
-				<CollapsibleContent className="data-[state=closed]:fade-out-0 data-[state=closed]:slide-out-to-top-2 data-[state=open]:slide-in-from-top-2 outline-none data-[state=closed]:animate-out data-[state=open]:animate-in">
-					<div className="mt-0.5 space-y-1">
-						{details ? (
-							<div className="rounded border bg-muted/20 p-2.5 text-xs">
-								{details}
-							</div>
-						) : null}
-						{isError && errorText ? (
-							<div className="rounded border border-destructive/40 bg-destructive/10 p-2.5 text-xs text-destructive">
-								{errorText}
-							</div>
-						) : null}
-					</div>
-				</CollapsibleContent>
-			) : null}
-		</Collapsible>
+				<div className="space-y-1 pl-2">
+					{details ? (
+						<div className="rounded border bg-muted/20 ps-2 text-xs">
+							{details}
+						</div>
+					) : null}
+					{isError && errorText ? (
+						<div className="rounded border border-destructive/40 bg-destructive/10 ps-2 text-xs text-destructive">
+							{errorText}
+						</div>
+					) : contentText != null ? (
+						<MessageResponse
+							animated={false}
+							className={TOOL_CALL_MD_CLASSNAME}
+							isAnimating={false}
+						>
+							{contentText}
+						</MessageResponse>
+					) : null}
+				</div>
+			) : undefined}
+		</ToolCallRow>
 	);
 }

@@ -259,6 +259,7 @@ step_start_electric() {
 
   if ! docker run -d \
       --name "$ELECTRIC_CONTAINER" \
+      --restart on-failure:5 \
       $port_flag \
       -e DATABASE_URL="$DIRECT_URL" \
       -e ELECTRIC_SECRET="$ELECTRIC_SECRET" \
@@ -306,6 +307,38 @@ step_start_electric() {
   return 0
 }
 
+# Ports we must avoid because the OS (or commonly-installed services) listen on
+# them, OR because Node/Next.js refuses to bind them. Bases whose
+# [base, base+range) window contains any of these are skipped during allocation.
+#
+# - 5000, 7000: macOS Control Center / AirPlay Receiver (Sonoma+). Cannot be
+#   freed without disabling AirPlay Receiver in System Settings, so we just
+#   route around them.
+# - Node/Next.js "unsafe ports" in our [3000, ...) allocation range. Next.js
+#   refuses to start on these with errors like "Bad port: '5060' is reserved
+#   for sip" (see https://nextjs.org/docs/messages/reserved-port).
+#     3659  apple-sasl
+#     4045  lockd / npp
+#     5060  sip
+#     5061  sips
+#     6000  X11
+#     6566  sane-port
+#     6665-6669, 6697  IRC / IRC+TLS
+SUPERSET_RESERVED_PORTS="3659 4045 5000 5060 5061 6000 6566 6665 6666 6667 6668 6669 6697 7000"
+
+# Returns 0 if the [base, base+range) window contains no reserved port.
+port_base_is_safe() {
+  local base=$1
+  local range=$2
+  local reserved
+  for reserved in $SUPERSET_RESERVED_PORTS; do
+    if [ "$reserved" -ge "$base" ] && [ "$reserved" -lt "$((base + range))" ]; then
+      return 1
+    fi
+  done
+  return 0
+}
+
 allocate_port_base() {
   local alloc_file="$HOME/.superset/port-allocations.json"
   local lock_dir="$HOME/.superset/port-allocations.lock"
@@ -331,9 +364,25 @@ allocate_port_base() {
   fi
 
   if [ -n "$existing" ]; then
-    export SUPERSET_PORT_BASE="$existing"
-    release_port_alloc_lock "$lock_dir"
-    return 0
+    if port_base_is_safe "$existing" "$range"; then
+      export SUPERSET_PORT_BASE="$existing"
+      release_port_alloc_lock "$lock_dir"
+      return 0
+    fi
+    echo "  Existing port base $existing overlaps a reserved port (${SUPERSET_RESERVED_PORTS}); reallocating..."
+    local tmp_file="${alloc_file}.tmp.$$"
+    if ! jq --arg k "$key" 'del(.[$k])' "$alloc_file" > "$tmp_file"; then
+      error "Failed to release stale port allocation"
+      rm -f "$tmp_file"
+      release_port_alloc_lock "$lock_dir"
+      return 1
+    fi
+    if ! mv "$tmp_file" "$alloc_file"; then
+      error "Failed to persist port allocation cleanup"
+      rm -f "$tmp_file"
+      release_port_alloc_lock "$lock_dir"
+      return 1
+    fi
   fi
 
   # Collect used port bases
@@ -344,9 +393,10 @@ allocate_port_base() {
     return 1
   fi
 
-  # Find first available slot
+  # Find first available slot, skipping any window that overlaps a reserved port
   local candidate=$start
-  while echo "$used" | grep -qx "$candidate" 2>/dev/null; do
+  while echo "$used" | grep -qx "$candidate" 2>/dev/null \
+    || ! port_base_is_safe "$candidate" "$range"; do
     candidate=$((candidate + range))
   done
 
@@ -440,6 +490,7 @@ step_write_env() {
     local CODE_INSPECTOR_PORT=$((BASE + 11))
     local DESKTOP_AUTOMATION_PORT=$((BASE + 12))
     local WRANGLER_PORT=$((BASE + 13))
+    local RELAY_PORT=$((BASE + 14))
 
     echo ""
     echo "# Workspace Ports (allocated from SUPERSET_PORT_BASE=$BASE, range=20)"
@@ -458,6 +509,7 @@ step_write_env() {
     write_env_var "CODE_INSPECTOR_PORT" "$CODE_INSPECTOR_PORT"
     write_env_var "DESKTOP_AUTOMATION_PORT" "$DESKTOP_AUTOMATION_PORT"
     write_env_var "WRANGLER_PORT" "$WRANGLER_PORT"
+    write_env_var "RELAY_PORT" "$RELAY_PORT"
     echo ""
     echo "# Cross-app URLs (overrides from root .env)"
     write_env_var "NEXT_PUBLIC_API_URL" "http://localhost:$API_PORT"
@@ -468,6 +520,8 @@ step_write_env() {
     write_env_var "NEXT_PUBLIC_DESKTOP_URL" "http://localhost:$DESKTOP_VITE_PORT"
     write_env_var "EXPO_PUBLIC_WEB_URL" "http://localhost:$WEB_PORT"
     write_env_var "EXPO_PUBLIC_API_URL" "http://localhost:$API_PORT"
+    write_env_var "RELAY_URL" "http://localhost:$RELAY_PORT"
+    write_env_var "SUPERSET_WEB_URL" "http://localhost:$WEB_PORT"
     echo ""
     echo "# Streams URLs (overrides from root .env)"
     write_env_var "PORT" "$STREAMS_PORT"
@@ -487,7 +541,12 @@ step_write_env() {
 
   # Generate Caddyfile for HTTP/2 reverse proxy (avoids browser 6-connection limit with Electric SSE streams)
   # Caddy proxies to the local Wrangler worker, which handles auth and forwards upstream appropriately.
+  # auto_https disable_redirects keeps Caddy off port 80 — we only need HTTPS on the allocated port.
   cat > Caddyfile <<-CADDYEOF
+	{
+		auto_https disable_redirects
+	}
+
 	https://localhost:{\$CADDY_ELECTRIC_PORT} {
 		reverse_proxy localhost:{\$WRANGLER_PORT} {
 			flush_interval -1
@@ -596,6 +655,96 @@ step_seed_auth_token() {
   chmod 600 "$dest_token"
 
   success "Auth token seeded from $source_token"
+  return 0
+}
+
+step_seed_host_dbs() {
+  echo "🛰️  Seeding host-service DBs into superset-dev-data/host/..."
+
+  local source_root="$HOME/.superset/host"
+  local dev_data_dir="superset-dev-data"
+  local dest_root="$dev_data_dir/host"
+  local force_overwrite="$FORCE_OVERWRITE_DATA"
+
+  if [ ! -d "$source_root" ]; then
+    warn "No host-service DBs found at $source_root — skipping (host-service will create fresh DBs per org)"
+    step_skipped "Seed host-service DBs (no source dir)"
+    return 0
+  fi
+
+  local org_dirs=()
+  for org_dir in "$source_root"/*/; do
+    [ -d "$org_dir" ] || continue
+    local org_id
+    org_id="$(basename "$org_dir")"
+    if [ -f "${org_dir}host.db" ]; then
+      org_dirs+=("$org_id")
+    fi
+  done
+
+  if [ ${#org_dirs[@]} -eq 0 ]; then
+    warn "No host.db files under $source_root — skipping"
+    step_skipped "Seed host-service DBs (no host.db files)"
+    return 0
+  fi
+
+  mkdir -p "$dest_root"
+  chmod 700 "$dev_data_dir" "$dest_root"
+
+  local seeded=0
+  local skipped=0
+  for org_id in "${org_dirs[@]}"; do
+    local source_db="$source_root/$org_id/host.db"
+    local dest_org_dir="$dest_root/$org_id"
+    local dest_db="$dest_org_dir/host.db"
+
+    if [ -f "$dest_db" ] && [ "$force_overwrite" != "1" ]; then
+      warn "Host DB already exists at $dest_db — skipping (use -f/--force)"
+      skipped=$((skipped + 1))
+      continue
+    fi
+
+    mkdir -p "$dest_org_dir"
+    chmod 700 "$dest_org_dir"
+
+    # Clear stale WAL siblings when overwriting so we don't mix old WAL
+    # data with a freshly-copied DB (their page pointers won't match).
+    if [ "$force_overwrite" = "1" ]; then
+      rm -f "$dest_db" "${dest_db}-shm" "${dest_db}-wal"
+    fi
+
+    # Copy all SQLite files so WAL data isn't lost when source is held open.
+    local copy_failed=0
+    for ext in "" "-shm" "-wal"; do
+      local source_file="${source_db}${ext}"
+      local dest_file="${dest_db}${ext}"
+
+      if [ -f "$source_file" ]; then
+        if ! cp "$source_file" "$dest_file"; then
+          error "Failed to copy $source_file to $dest_file"
+          copy_failed=1
+          break
+        fi
+        chmod 600 "$dest_file"
+      fi
+    done
+
+    if [ "$copy_failed" = "1" ]; then
+      # A lone host.db without its -wal/-shm siblings would make the next
+      # non-force run think this org is already seeded and skip it.
+      rm -f "$dest_db" "${dest_db}-shm" "${dest_db}-wal"
+      return 1
+    fi
+
+    # Checkpoint the copy's WAL (no lock contention since nothing else has it open).
+    if command -v sqlite3 &> /dev/null; then
+      sqlite3 "$dest_db" "PRAGMA wal_checkpoint(TRUNCATE);" &> /dev/null || true
+    fi
+
+    seeded=$((seeded + 1))
+  done
+
+  success "Host-service DBs seeded ($seeded copied, $skipped skipped) from $source_root"
   return 0
 }
 

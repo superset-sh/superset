@@ -10,6 +10,10 @@ const verifyOrgAdminMock = mock(async () => ({
 const verifyOrgMembershipMock = mock(async () => ({
 	membership: { role: "member" },
 }));
+const verifyOrgMembershipWithSubscriptionMock = mock(async () => ({
+	membership: { role: "member" },
+	subscription: null,
+}));
 
 let dbSelectResults: unknown[][] = [];
 let selectResults: unknown[][] = [];
@@ -109,6 +113,27 @@ mock.module("@superset/db/schema", () => ({
 		organizationId: "members.organizationId",
 		userId: "members.userId",
 	},
+	v2Projects: {
+		id: "v2_projects.id",
+		organizationId: "v2_projects.organization_id",
+		name: "v2_projects.name",
+		slug: "v2_projects.slug",
+		repoCloneUrl: "v2_projects.repo_clone_url",
+		githubRepositoryId: "v2_projects.github_repository_id",
+		iconUrl: "v2_projects.icon_url",
+	},
+	githubRepositories: {
+		id: "github_repositories.id",
+		organizationId: "github_repositories.organization_id",
+		fullName: "github_repositories.full_name",
+	},
+	organizations: {
+		id: "organizations.id",
+		name: "organizations.name",
+	},
+	subscriptions: {
+		referenceId: "subscriptions.referenceId",
+	},
 	taskStatuses: {
 		id: "task_statuses.id",
 		organizationId: "task_statuses.organizationId",
@@ -150,6 +175,14 @@ mock.module("drizzle-orm", () => ({
 	eq: (left: unknown, right: unknown) => ({ type: "eq", left, right }),
 	ilike: (left: unknown, right: unknown) => ({ type: "ilike", left, right }),
 	isNull: (value: unknown) => ({ type: "isNull", value }),
+	sql: Object.assign(
+		(strings: TemplateStringsArray, ...values: unknown[]) => ({
+			type: "sql",
+			strings,
+			values,
+		}),
+		{ raw: (s: string) => ({ type: "raw", s }) },
+	),
 }));
 
 mock.module("drizzle-orm/pg-core", () => ({
@@ -163,6 +196,7 @@ mock.module("../../lib/integrations/sync", () => ({
 mock.module("../integration/utils", () => ({
 	verifyOrgAdmin: verifyOrgAdminMock,
 	verifyOrgMembership: verifyOrgMembershipMock,
+	verifyOrgMembershipWithSubscription: verifyOrgMembershipWithSubscriptionMock,
 }));
 
 const { createCallerFactory, createTRPCRouter } = await import("../../trpc");

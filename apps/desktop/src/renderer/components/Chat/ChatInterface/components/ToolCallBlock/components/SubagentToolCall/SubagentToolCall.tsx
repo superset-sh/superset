@@ -1,13 +1,11 @@
-import { ShimmerLabel } from "@superset/ui/ai-elements/shimmer-label";
 import {
-	Collapsible,
-	CollapsibleContent,
-	CollapsibleTrigger,
-} from "@superset/ui/collapsible";
-import { cn } from "@superset/ui/lib/utils";
-import { BotIcon, CheckIcon, Loader2Icon, XIcon } from "lucide-react";
-import { useId, useMemo, useState } from "react";
-import { MarkdownToggleContent } from "renderer/components/Chat/components/MarkdownToggleContent";
+	MessageResponse,
+	TOOL_CALL_MD_CLASSNAME,
+} from "@superset/ui/ai-elements/message";
+import { ToolCallRow } from "@superset/ui/ai-elements/tool-call-row";
+import { BotIcon } from "lucide-react";
+import { useMemo } from "react";
+import { SubagentInnerToolCall } from "renderer/components/Chat/components/SubagentInnerToolCall";
 import type { ToolPart } from "../../../../utils/tool-helpers";
 import { parseSubagentToolResult } from "./utils/parseSubagentToolResult";
 
@@ -15,6 +13,9 @@ interface SubagentToolCallProps {
 	part: ToolPart;
 	args: Record<string, unknown>;
 	result: Record<string, unknown>;
+	workspaceId?: string;
+	workspaceCwd?: string;
+	onOpenFileInPane?: (filePath: string) => void;
 }
 
 function asString(value: unknown): string | null {
@@ -27,10 +28,10 @@ export function SubagentToolCall({
 	part,
 	args,
 	result,
+	workspaceId,
+	workspaceCwd,
+	onOpenFileInPane,
 }: SubagentToolCallProps) {
-	const [isOpen, setIsOpen] = useState(false);
-	const [renderMarkdown, setRenderMarkdown] = useState(true);
-	const markdownToggleId = useId();
 	const isPending =
 		part.state !== "output-available" && part.state !== "output-error";
 	const isError =
@@ -42,89 +43,61 @@ export function SubagentToolCall({
 	const parsed = useMemo(() => parseSubagentToolResult(result), [result]);
 
 	const hasDetails =
-		task.length > 0 ||
-		parsed.text.length > 0 ||
-		parsed.tools.length > 0 ||
-		Boolean(parsed.modelId) ||
-		parsed.durationMs !== undefined;
+		task.length > 0 || parsed.text.length > 0 || parsed.tools.length > 0;
+
+	// Title: "Agent" (foreground) — agentType goes in description (muted)
+	const titleNode = (
+		<span className="shrink-0 font-medium text-xs">
+			<span className="text-foreground">Agent</span>{" "}
+			<span className="text-muted-foreground">{agentType}</span>
+		</span>
+	);
 
 	return (
-		<Collapsible
-			className="overflow-hidden rounded-md"
-			onOpenChange={(open) => hasDetails && setIsOpen(open)}
-			open={hasDetails ? isOpen : false}
+		<ToolCallRow
+			icon={BotIcon}
+			isError={isError}
+			isPending={isPending}
+			title={titleNode}
 		>
-			<CollapsibleTrigger asChild>
-				<button
-					className={
-						hasDetails
-							? "flex h-7 w-full items-center justify-between px-2.5 text-left transition-colors duration-150 hover:bg-muted/30"
-							: "flex h-7 w-full items-center justify-between px-2.5 text-left"
-					}
-					disabled={!hasDetails}
-					type="button"
-				>
-					<div className="flex min-w-0 flex-1 items-center gap-1.5 text-xs">
-						<BotIcon className="h-3 w-3 shrink-0 text-muted-foreground" />
-						<ShimmerLabel
-							className="truncate text-xs text-muted-foreground"
-							isShimmering={isPending}
-						>
-							{`Subagent (${agentType})`}
-						</ShimmerLabel>
-					</div>
-					<div className="ml-2 flex h-6 w-6 items-center justify-center text-muted-foreground">
-						{isPending ? (
-							<Loader2Icon className="h-3 w-3 animate-spin" />
-						) : isError ? (
-							<XIcon className="h-3 w-3" />
-						) : (
-							<CheckIcon className="h-3 w-3" />
-						)}
-					</div>
-				</button>
-			</CollapsibleTrigger>
-			{hasDetails && (
-				<CollapsibleContent className="data-[state=closed]:fade-out-0 data-[state=closed]:slide-out-to-top-2 data-[state=open]:slide-in-from-top-2 outline-none data-[state=closed]:animate-out data-[state=open]:animate-in">
-					<div className="mt-0.5 space-y-2 rounded border bg-muted/20 p-2.5 text-xs">
-						<div className="font-medium text-foreground">{task}</div>
-						<div className="text-muted-foreground">
-							{agentType}
-							{parsed.modelId ? ` • ${parsed.modelId}` : ""}
-							{parsed.durationMs !== undefined
-								? ` • ${Math.round(parsed.durationMs)} ms`
-								: ""}
+			{hasDetails ? (
+				<div className="space-y-2 pl-2 text-xs">
+					<MessageResponse
+						animated={false}
+						className={`font-medium ${TOOL_CALL_MD_CLASSNAME}`}
+						isAnimating={false}
+						mermaid={{ config: { theme: "default" } }}
+					>
+						{task}
+					</MessageResponse>
+					{parsed.tools.length > 0 ? (
+						<div className="space-y-1">
+							{parsed.tools.map((tool, index) => (
+								<SubagentInnerToolCall
+									key={`${tool.name}-${index}`}
+									name={tool.name}
+									isError={tool.isError}
+									args={tool.args}
+									result={tool.result}
+									workspaceId={workspaceId}
+									workspaceCwd={workspaceCwd}
+									onOpenFileInPane={onOpenFileInPane}
+								/>
+							))}
 						</div>
-						{parsed.tools.length > 0 ? (
-							<div className="flex flex-wrap gap-1.5">
-								{parsed.tools.map((tool, index) => (
-									<span
-										key={`${tool.name}-${index}`}
-										className={cn(
-											"rounded-full border px-2 py-0.5",
-											tool.isError
-												? "border-destructive/40 bg-destructive/10 text-destructive"
-												: "border-muted-foreground/30 bg-background/80 text-muted-foreground",
-										)}
-									>
-										{tool.name}
-									</span>
-								))}
-							</div>
-						) : null}
-						{parsed.text ? (
-							<MarkdownToggleContent
-								toggleId={markdownToggleId}
-								checked={renderMarkdown}
-								onCheckedChange={setRenderMarkdown}
-								content={parsed.text}
-								markdownContainerClassName="max-h-[32rem] overflow-auto rounded border bg-background/80 p-2"
-								plainContainerClassName="max-h-[32rem] overflow-auto rounded border bg-background/80 p-2 text-xs whitespace-pre-wrap break-words"
-							/>
-						) : null}
-					</div>
-				</CollapsibleContent>
-			)}
-		</Collapsible>
+					) : null}
+					{parsed.text ? (
+						<MessageResponse
+							animated={false}
+							className={`${TOOL_CALL_MD_CLASSNAME} [&_[data-streamdown=table-header-cell]]:px-2.5 [&_[data-streamdown=table-header-cell]]:py-1.5 [&_[data-streamdown=table-header-cell]]:text-xs [&_[data-streamdown=table-cell]]:px-2.5 [&_[data-streamdown=table-cell]]:py-1.5 [&_[data-streamdown=table-cell]]:text-xs`}
+							isAnimating={false}
+							mermaid={{ config: { theme: "default" } }}
+						>
+							{parsed.text}
+						</MessageResponse>
+					) : null}
+				</div>
+			) : undefined}
+		</ToolCallRow>
 	);
 }

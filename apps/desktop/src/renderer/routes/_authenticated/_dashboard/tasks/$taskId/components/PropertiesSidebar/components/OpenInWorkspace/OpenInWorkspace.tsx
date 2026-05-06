@@ -1,4 +1,11 @@
 import type { AgentLaunchRequest } from "@superset/shared/agent-launch";
+import { buildTaskAgentLaunchRequest } from "@superset/shared/agent-launch-request";
+import {
+	type AgentDefinitionId,
+	getEnabledAgentConfigs,
+	getFallbackAgentId,
+	indexResolvedAgentConfigs,
+} from "@superset/shared/agent-settings";
 import { Button } from "@superset/ui/button";
 import {
 	DropdownMenu,
@@ -17,13 +24,6 @@ import { launchAgentSession } from "renderer/lib/agent-session-orchestrator";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useCreateWorkspace } from "renderer/react-query/workspaces";
 import { ProjectThumbnail } from "renderer/screens/main/components/WorkspaceSidebar/ProjectSection/ProjectThumbnail";
-import { buildTaskAgentLaunchRequest } from "shared/utils/agent-launch-request";
-import {
-	type AgentDefinitionId,
-	getEnabledAgentConfigs,
-	getFallbackAgentId,
-	indexResolvedAgentConfigs,
-} from "shared/utils/agent-settings";
 import type { TaskWithStatus } from "../../../../../components/TasksView/hooks/useTasksTable";
 import { deriveBranchName } from "../../../../utils/deriveBranchName";
 
@@ -121,7 +121,7 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 			const result = await createWorkspace.mutateAsyncWithPendingSetup(
 				{
 					projectId,
-					name: task.slug,
+					name: task.title,
 					branchName,
 				},
 				{ agentLaunchRequest: launchRequestTemplate ?? undefined },

@@ -1,10 +1,10 @@
 import type { ExternalApp } from "@superset/local-db";
 import { createFileRoute, notFound, useNavigate } from "@tanstack/react-router";
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
 import { useFileOpenMode } from "renderer/hooks/useFileOpenMode";
+import { useHotkey } from "renderer/hotkeys";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import { getWorkspaceDisplayName } from "renderer/lib/getWorkspaceDisplayName";
 import { electronTrpcClient as trpcClient } from "renderer/lib/trpc-client";
 import { usePresets } from "renderer/react-query/presets";
 import type { WorkspaceSearchParams } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
@@ -12,14 +12,7 @@ import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/u
 import { usePresetHotkeys } from "renderer/routes/_authenticated/_dashboard/workspace/$workspaceId/hooks/usePresetHotkeys";
 import { useWorkspaceRunCommand } from "renderer/routes/_authenticated/_dashboard/workspace/$workspaceId/hooks/useWorkspaceRunCommand";
 import { NotFound } from "renderer/routes/not-found";
-import {
-	CommandPalette,
-	useCommandPalette,
-} from "renderer/screens/main/components/CommandPalette";
-import {
-	KeywordSearch,
-	useKeywordSearch,
-} from "renderer/screens/main/components/KeywordSearch";
+import { CommandPalette } from "renderer/screens/main/components/CommandPalette";
 import { UnsavedChangesDialog } from "renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/TabView/FileViewerPane/UnsavedChangesDialog";
 import { useWorkspaceFileEventBridge } from "renderer/screens/main/components/WorkspaceView/hooks/useWorkspaceFileEvents";
 import { useWorkspaceRenameReconciliation } from "renderer/screens/main/components/WorkspaceView/hooks/useWorkspaceRenameReconciliation";
@@ -34,20 +27,20 @@ import {
 	saveAndClosePendingTab,
 } from "renderer/stores/editor-state/editorCoordinator";
 import { useEditorSessionsStore } from "renderer/stores/editor-state/useEditorSessionsStore";
-import { useAppHotkey } from "renderer/stores/hotkeys";
 import { SidebarMode, useSidebarStore } from "renderer/stores/sidebar-state";
 import { getPaneDimensions } from "renderer/stores/tabs/pane-refs";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import type { Tab } from "renderer/stores/tabs/types";
 import { useTabsWithPresets } from "renderer/stores/tabs/useTabsWithPresets";
 import {
+	type FocusDirection,
 	findPanePath,
 	getFirstPaneId,
-	getNextPaneId,
-	getPreviousPaneId,
+	getSpatialNeighborMosaicPaneId,
 	resolveActiveTabIdForWorkspace,
 } from "renderer/stores/tabs/utils";
 import {
+	useHasCompletedInitThisSession,
 	useHasWorkspaceFailed,
 	useIsWorkspaceInitializing,
 } from "renderer/stores/workspace-init";
@@ -130,12 +123,18 @@ function WorkspacePage() {
 	// Check if workspace is initializing or failed
 	const isInitializing = useIsWorkspaceInitializing(workspaceId);
 	const hasFailed = useHasWorkspaceFailed(workspaceId);
+	// If we witnessed this workspace reach "ready" in the current app session,
+	// never misidentify it as mid-init even if the workspace query momentarily
+	// returns a null gitStatus (happens on the first navigation after create,
+	// because WorkspaceInitEffects clears the progress entry post-setup).
+	const completedThisSession = useHasCompletedInitThisSession(workspaceId);
 
 	// Check for incomplete init after app restart
 	const gitStatus = workspace?.worktree?.gitStatus;
 	const hasIncompleteInit =
+		!completedThisSession &&
 		workspace?.type === "worktree" &&
-		(gitStatus === null || gitStatus === undefined);
+		gitStatus === null;
 
 	// Show full-screen initialization view for:
 	// - Actively initializing workspaces (shows progress)
@@ -213,104 +212,56 @@ function WorkspacePage() {
 		[presets, workspaceId, addTab, openPreset],
 	);
 
-	useAppHotkey("NEW_GROUP", () => addTab(workspaceId), undefined, [
-		workspaceId,
-		addTab,
-	]);
-	useAppHotkey("NEW_CHAT", () => addChatTab(workspaceId), undefined, [
-		workspaceId,
-		addChatTab,
-	]);
-	useAppHotkey(
-		"REOPEN_TAB",
-		() => {
-			if (!reopenClosedTab(workspaceId)) {
-				addChatTab(workspaceId);
-			}
-		},
-		undefined,
-		[workspaceId, reopenClosedTab, addChatTab],
-	);
-	useAppHotkey("NEW_BROWSER", () => addBrowserTab(workspaceId), undefined, [
-		workspaceId,
-		addBrowserTab,
-	]);
+	useHotkey("NEW_GROUP", () => addTab(workspaceId));
+	useHotkey("NEW_CHAT", () => addChatTab(workspaceId));
+	useHotkey("REOPEN_TAB", () => {
+		if (!reopenClosedTab(workspaceId)) {
+			addChatTab(workspaceId);
+		}
+	});
+	useHotkey("NEW_BROWSER", () => addBrowserTab(workspaceId));
 	usePresetHotkeys(openTabWithPreset);
 
-	useAppHotkey("RUN_WORKSPACE_COMMAND", () => toggleWorkspaceRun(), undefined, [
-		toggleWorkspaceRun,
-	]);
+	useHotkey("RUN_WORKSPACE_COMMAND", () => toggleWorkspaceRun());
 
-	useAppHotkey(
-		"CLOSE_TERMINAL",
-		() => {
-			if (focusedPaneId) {
-				requestPaneClose(focusedPaneId);
-			}
-		},
-		undefined,
-		[focusedPaneId],
-	);
-	useAppHotkey(
-		"CLOSE_TAB",
-		() => {
-			if (activeTabId) {
-				requestTabClose(activeTabId);
-			}
-		},
-		undefined,
-		[activeTabId],
-	);
+	useHotkey("CLOSE_TERMINAL", () => {
+		if (focusedPaneId) {
+			requestPaneClose(focusedPaneId);
+		}
+	});
+	useHotkey("CLOSE_TAB", () => {
+		if (activeTabId) {
+			requestTabClose(activeTabId);
+		}
+	});
 
-	useAppHotkey(
-		"PREV_TAB",
-		() => {
-			if (!activeTabId || tabs.length === 0) return;
-			const index = tabs.findIndex((t) => t.id === activeTabId);
-			const prevIndex = index <= 0 ? tabs.length - 1 : index - 1;
-			setActiveTab(workspaceId, tabs[prevIndex].id);
-		},
-		undefined,
-		[workspaceId, activeTabId, tabs, setActiveTab],
-	);
+	useHotkey("PREV_TAB", () => {
+		if (!activeTabId || tabs.length === 0) return;
+		const index = tabs.findIndex((t) => t.id === activeTabId);
+		const prevIndex = index <= 0 ? tabs.length - 1 : index - 1;
+		setActiveTab(workspaceId, tabs[prevIndex].id);
+	});
 
-	useAppHotkey(
-		"NEXT_TAB",
-		() => {
-			if (!activeTabId || tabs.length === 0) return;
-			const index = tabs.findIndex((t) => t.id === activeTabId);
-			const nextIndex =
-				index >= tabs.length - 1 || index === -1 ? 0 : index + 1;
-			setActiveTab(workspaceId, tabs[nextIndex].id);
-		},
-		undefined,
-		[workspaceId, activeTabId, tabs, setActiveTab],
-	);
+	useHotkey("NEXT_TAB", () => {
+		if (!activeTabId || tabs.length === 0) return;
+		const index = tabs.findIndex((t) => t.id === activeTabId);
+		const nextIndex = index >= tabs.length - 1 || index === -1 ? 0 : index + 1;
+		setActiveTab(workspaceId, tabs[nextIndex].id);
+	});
 
-	useAppHotkey(
-		"PREV_TAB_ALT",
-		() => {
-			if (!activeTabId || tabs.length === 0) return;
-			const index = tabs.findIndex((t) => t.id === activeTabId);
-			const prevIndex = index <= 0 ? tabs.length - 1 : index - 1;
-			setActiveTab(workspaceId, tabs[prevIndex].id);
-		},
-		undefined,
-		[workspaceId, activeTabId, tabs, setActiveTab],
-	);
+	useHotkey("PREV_TAB_ALT", () => {
+		if (!activeTabId || tabs.length === 0) return;
+		const index = tabs.findIndex((t) => t.id === activeTabId);
+		const prevIndex = index <= 0 ? tabs.length - 1 : index - 1;
+		setActiveTab(workspaceId, tabs[prevIndex].id);
+	});
 
-	useAppHotkey(
-		"NEXT_TAB_ALT",
-		() => {
-			if (!activeTabId || tabs.length === 0) return;
-			const index = tabs.findIndex((t) => t.id === activeTabId);
-			const nextIndex =
-				index >= tabs.length - 1 || index === -1 ? 0 : index + 1;
-			setActiveTab(workspaceId, tabs[nextIndex].id);
-		},
-		undefined,
-		[workspaceId, activeTabId, tabs, setActiveTab],
-	);
+	useHotkey("NEXT_TAB_ALT", () => {
+		if (!activeTabId || tabs.length === 0) return;
+		const index = tabs.findIndex((t) => t.id === activeTabId);
+		const nextIndex = index >= tabs.length - 1 || index === -1 ? 0 : index + 1;
+		setActiveTab(workspaceId, tabs[nextIndex].id);
+	});
 
 	const switchToTab = useCallback(
 		(index: number) => {
@@ -322,41 +273,15 @@ function WorkspacePage() {
 		[tabs, workspaceId, setActiveTab],
 	);
 
-	useAppHotkey("JUMP_TO_TAB_1", () => switchToTab(0), undefined, [switchToTab]);
-	useAppHotkey("JUMP_TO_TAB_2", () => switchToTab(1), undefined, [switchToTab]);
-	useAppHotkey("JUMP_TO_TAB_3", () => switchToTab(2), undefined, [switchToTab]);
-	useAppHotkey("JUMP_TO_TAB_4", () => switchToTab(3), undefined, [switchToTab]);
-	useAppHotkey("JUMP_TO_TAB_5", () => switchToTab(4), undefined, [switchToTab]);
-	useAppHotkey("JUMP_TO_TAB_6", () => switchToTab(5), undefined, [switchToTab]);
-	useAppHotkey("JUMP_TO_TAB_7", () => switchToTab(6), undefined, [switchToTab]);
-	useAppHotkey("JUMP_TO_TAB_8", () => switchToTab(7), undefined, [switchToTab]);
-	useAppHotkey("JUMP_TO_TAB_9", () => switchToTab(8), undefined, [switchToTab]);
-
-	useAppHotkey(
-		"PREV_PANE",
-		() => {
-			if (!activeTabId || !activeTab?.layout || !focusedPaneId) return;
-			const prevPaneId = getPreviousPaneId(activeTab.layout, focusedPaneId);
-			if (prevPaneId) {
-				setFocusedPane(activeTabId, prevPaneId);
-			}
-		},
-		undefined,
-		[activeTabId, activeTab?.layout, focusedPaneId, setFocusedPane],
-	);
-
-	useAppHotkey(
-		"NEXT_PANE",
-		() => {
-			if (!activeTabId || !activeTab?.layout || !focusedPaneId) return;
-			const nextPaneId = getNextPaneId(activeTab.layout, focusedPaneId);
-			if (nextPaneId) {
-				setFocusedPane(activeTabId, nextPaneId);
-			}
-		},
-		undefined,
-		[activeTabId, activeTab?.layout, focusedPaneId, setFocusedPane],
-	);
+	useHotkey("JUMP_TO_TAB_1", () => switchToTab(0));
+	useHotkey("JUMP_TO_TAB_2", () => switchToTab(1));
+	useHotkey("JUMP_TO_TAB_3", () => switchToTab(2));
+	useHotkey("JUMP_TO_TAB_4", () => switchToTab(3));
+	useHotkey("JUMP_TO_TAB_5", () => switchToTab(4));
+	useHotkey("JUMP_TO_TAB_6", () => switchToTab(5));
+	useHotkey("JUMP_TO_TAB_7", () => switchToTab(6));
+	useHotkey("JUMP_TO_TAB_8", () => switchToTab(7));
+	useHotkey("JUMP_TO_TAB_9", () => switchToTab(8));
 
 	// Open in last used app shortcut
 	const projectId = workspace?.projectId;
@@ -383,79 +308,45 @@ function WorkspacePage() {
 			});
 		}
 	}, [workspace?.worktreePath, resolvedDefaultApp, mutateOpenInApp, projectId]);
-	useAppHotkey("OPEN_IN_APP", handleOpenInApp, undefined, [handleOpenInApp]);
 
 	// Copy path shortcut
 	const { copyToClipboard } = useCopyToClipboard();
-	useAppHotkey(
-		"COPY_PATH",
-		() => {
-			if (workspace?.worktreePath) {
-				copyToClipboard(workspace.worktreePath);
-			}
-		},
-		undefined,
-		[workspace?.worktreePath],
-	);
+	useHotkey("COPY_PATH", () => {
+		if (workspace?.worktreePath) {
+			copyToClipboard(workspace.worktreePath);
+		}
+	});
 
 	// Open PR shortcut (⌘⇧P)
 	const { pr } = usePRStatus({ workspaceId, surface: "workspace-page" });
 	const { createOrOpenPR } = useCreateOrOpenPR({
 		worktreePath: workspace?.worktreePath,
 	});
-	useAppHotkey(
-		"OPEN_PR",
-		() => {
-			if (pr?.url) {
-				window.open(pr.url, "_blank");
-			} else {
-				createOrOpenPR();
-			}
-		},
-		undefined,
-		[pr?.url, createOrOpenPR],
-	);
+	useHotkey("OPEN_PR", () => {
+		if (pr?.url) {
+			window.open(pr.url, "_blank");
+		} else {
+			createOrOpenPR();
+		}
+	});
 
-	const commandPalette = useCommandPalette({
-		workspaceId,
-		navigate,
-	});
-	const keywordSearch = useKeywordSearch({
-		workspaceId,
-	});
-	const handleQuickOpen = useCallback(() => {
-		keywordSearch.handleOpenChange(false);
-		commandPalette.toggle();
-	}, [commandPalette.toggle, keywordSearch.handleOpenChange]);
-	const handleKeywordSearch = useCallback(() => {
-		commandPalette.handleOpenChange(false);
-		keywordSearch.toggle();
-	}, [commandPalette.handleOpenChange, keywordSearch.toggle]);
-	useAppHotkey("QUICK_OPEN", handleQuickOpen, undefined, [handleQuickOpen]);
-	useAppHotkey("KEYWORD_SEARCH", handleKeywordSearch, undefined, [
-		handleKeywordSearch,
-	]);
+	const [quickOpenOpen, setQuickOpenOpen] = useState(false);
+	const handleQuickOpen = useCallback(() => setQuickOpenOpen(true), []);
+	useHotkey("QUICK_OPEN", handleQuickOpen);
 
 	// Toggle changes sidebar (⌘L)
-	useAppHotkey("TOGGLE_SIDEBAR", () => toggleSidebar(), undefined, [
-		toggleSidebar,
-	]);
+	useHotkey("TOGGLE_SIDEBAR", () => toggleSidebar());
 
-	// Toggle expand/collapse sidebar (⌘⇧L)
-	useAppHotkey(
-		"TOGGLE_EXPAND_SIDEBAR",
-		() => {
-			if (!isSidebarOpen) {
-				setSidebarOpen(true);
-				setSidebarMode(SidebarMode.Changes);
-			} else {
-				const isExpanded = currentSidebarMode === SidebarMode.Changes;
-				setSidebarMode(isExpanded ? SidebarMode.Tabs : SidebarMode.Changes);
-			}
-		},
-		undefined,
-		[isSidebarOpen, setSidebarOpen, setSidebarMode, currentSidebarMode],
-	);
+	// Open diff viewer (⌘⇧L)
+	useHotkey("OPEN_DIFF_VIEWER", () => {
+		if (!isSidebarOpen) {
+			setSidebarOpen(true);
+			setSidebarMode(SidebarMode.Changes);
+		} else {
+			const isExpanded = currentSidebarMode === SidebarMode.Changes;
+			setSidebarMode(isExpanded ? SidebarMode.Tabs : SidebarMode.Changes);
+		}
+	});
 
 	// Pane splitting helper - resolves target pane for split operations
 	const resolveSplitTarget = useCallback(
@@ -472,168 +363,99 @@ function WorkspacePage() {
 	);
 
 	// Pane splitting shortcuts
-	useAppHotkey(
-		"SPLIT_AUTO",
-		() => {
-			if (activeTabId && focusedPaneId && activeTab) {
-				const target = resolveSplitTarget(
-					focusedPaneId,
-					activeTabId,
-					activeTab,
-				);
-				if (!target) return;
-				const dimensions = getPaneDimensions(target.paneId);
-				if (dimensions) {
-					splitPaneAuto(activeTabId, target.paneId, dimensions, target.path);
-				}
+	useHotkey("SPLIT_AUTO", () => {
+		if (activeTabId && focusedPaneId && activeTab) {
+			const target = resolveSplitTarget(focusedPaneId, activeTabId, activeTab);
+			if (!target) return;
+			const dimensions = getPaneDimensions(target.paneId);
+			if (dimensions) {
+				splitPaneAuto(activeTabId, target.paneId, dimensions, target.path);
 			}
-		},
-		undefined,
-		[activeTabId, focusedPaneId, activeTab, splitPaneAuto, resolveSplitTarget],
-	);
+		}
+	});
 
-	useAppHotkey(
-		"SPLIT_RIGHT",
-		() => {
-			if (activeTabId && focusedPaneId && activeTab) {
-				const target = resolveSplitTarget(
-					focusedPaneId,
-					activeTabId,
-					activeTab,
-				);
-				if (!target) return;
-				splitPaneVertical(activeTabId, target.paneId, target.path);
-			}
-		},
-		undefined,
-		[
-			activeTabId,
-			focusedPaneId,
-			activeTab,
-			splitPaneVertical,
-			resolveSplitTarget,
-		],
-	);
+	useHotkey("SPLIT_RIGHT", () => {
+		if (activeTabId && focusedPaneId && activeTab) {
+			const target = resolveSplitTarget(focusedPaneId, activeTabId, activeTab);
+			if (!target) return;
+			splitPaneVertical(activeTabId, target.paneId, target.path);
+		}
+	});
 
-	useAppHotkey(
-		"SPLIT_DOWN",
-		() => {
-			if (activeTabId && focusedPaneId && activeTab) {
-				const target = resolveSplitTarget(
-					focusedPaneId,
-					activeTabId,
-					activeTab,
-				);
-				if (!target) return;
-				splitPaneHorizontal(activeTabId, target.paneId, target.path);
-			}
-		},
-		undefined,
-		[
-			activeTabId,
-			focusedPaneId,
-			activeTab,
-			splitPaneHorizontal,
-			resolveSplitTarget,
-		],
-	);
+	useHotkey("SPLIT_DOWN", () => {
+		if (activeTabId && focusedPaneId && activeTab) {
+			const target = resolveSplitTarget(focusedPaneId, activeTabId, activeTab);
+			if (!target) return;
+			splitPaneHorizontal(activeTabId, target.paneId, target.path);
+		}
+	});
 
-	useAppHotkey(
-		"SPLIT_WITH_CHAT",
-		() => {
-			if (activeTabId && focusedPaneId && activeTab) {
-				const target = resolveSplitTarget(
-					focusedPaneId,
-					activeTabId,
-					activeTab,
-				);
-				if (!target) return;
-				splitPaneVertical(activeTabId, target.paneId, target.path, {
-					paneType: "chat",
-				});
-			}
-		},
-		undefined,
-		[
-			activeTabId,
-			focusedPaneId,
-			activeTab,
-			splitPaneVertical,
-			resolveSplitTarget,
-		],
-	);
+	useHotkey("SPLIT_WITH_CHAT", () => {
+		if (activeTabId && focusedPaneId && activeTab) {
+			const target = resolveSplitTarget(focusedPaneId, activeTabId, activeTab);
+			if (!target) return;
+			splitPaneVertical(activeTabId, target.paneId, target.path, {
+				paneType: "chat",
+			});
+		}
+	});
 
-	useAppHotkey(
-		"SPLIT_WITH_BROWSER",
-		() => {
-			if (activeTabId && focusedPaneId && activeTab) {
-				const target = resolveSplitTarget(
-					focusedPaneId,
-					activeTabId,
-					activeTab,
-				);
-				if (!target) return;
-				splitPaneVertical(activeTabId, target.paneId, target.path, {
-					paneType: "webview",
-				});
-			}
-		},
-		undefined,
-		[
-			activeTabId,
-			focusedPaneId,
-			activeTab,
-			splitPaneVertical,
-			resolveSplitTarget,
-		],
-	);
+	useHotkey("SPLIT_WITH_BROWSER", () => {
+		if (activeTabId && focusedPaneId && activeTab) {
+			const target = resolveSplitTarget(focusedPaneId, activeTabId, activeTab);
+			if (!target) return;
+			splitPaneVertical(activeTabId, target.paneId, target.path, {
+				paneType: "webview",
+			});
+		}
+	});
 
 	const equalizePaneSplits = useTabsStore((s) => s.equalizePaneSplits);
-	useAppHotkey(
-		"EQUALIZE_PANE_SPLITS",
-		() => {
-			if (activeTabId) {
-				equalizePaneSplits(activeTabId);
-			}
-		},
-		undefined,
-		[activeTabId, equalizePaneSplits],
-	);
+	useHotkey("EQUALIZE_PANE_SPLITS", () => {
+		if (activeTabId) {
+			equalizePaneSplits(activeTabId);
+		}
+	});
 
-	// Navigate to previous workspace (⌘↑)
+	const moveFocusDirectional = useCallback(
+		(dir: FocusDirection) => {
+			if (!activeTabId || !activeTab?.layout || !focusedPaneId) return;
+			const neighbor = getSpatialNeighborMosaicPaneId(
+				activeTab.layout,
+				focusedPaneId,
+				dir,
+			);
+			if (neighbor) setFocusedPane(activeTabId, neighbor);
+		},
+		[activeTabId, activeTab?.layout, focusedPaneId, setFocusedPane],
+	);
+	useHotkey("FOCUS_PANE_LEFT", () => moveFocusDirectional("left"));
+	useHotkey("FOCUS_PANE_RIGHT", () => moveFocusDirectional("right"));
+	useHotkey("FOCUS_PANE_UP", () => moveFocusDirectional("up"));
+	useHotkey("FOCUS_PANE_DOWN", () => moveFocusDirectional("down"));
+
 	const getPreviousWorkspace =
 		electronTrpc.workspaces.getPreviousWorkspace.useQuery(
 			{ id: workspaceId },
 			{ enabled: !!workspaceId },
 		);
-	useAppHotkey(
-		"PREV_WORKSPACE",
-		() => {
-			const prevWorkspaceId = getPreviousWorkspace.data;
-			if (prevWorkspaceId) {
-				navigateToWorkspace(prevWorkspaceId, navigate);
-			}
-		},
-		undefined,
-		[getPreviousWorkspace.data, navigate],
-	);
+	useHotkey("PREV_WORKSPACE", () => {
+		const prevWorkspaceId = getPreviousWorkspace.data;
+		if (prevWorkspaceId) {
+			navigateToWorkspace(prevWorkspaceId, navigate);
+		}
+	});
 
-	// Navigate to next workspace (⌘↓)
 	const getNextWorkspace = electronTrpc.workspaces.getNextWorkspace.useQuery(
 		{ id: workspaceId },
 		{ enabled: !!workspaceId },
 	);
-	useAppHotkey(
-		"NEXT_WORKSPACE",
-		() => {
-			const nextWorkspaceId = getNextWorkspace.data;
-			if (nextWorkspaceId) {
-				navigateToWorkspace(nextWorkspaceId, navigate);
-			}
-		},
-		undefined,
-		[getNextWorkspace.data, navigate],
-	);
+	useHotkey("NEXT_WORKSPACE", () => {
+		const nextWorkspaceId = getNextWorkspace.data;
+		if (nextWorkspaceId) {
+			navigateToWorkspace(nextWorkspaceId, navigate);
+		}
+	});
 
 	return (
 		<div className="flex-1 h-full flex flex-col overflow-hidden">
@@ -653,45 +475,12 @@ function WorkspacePage() {
 				)}
 			</div>
 			<CommandPalette
-				open={commandPalette.open}
-				onOpenChange={commandPalette.handleOpenChange}
-				query={commandPalette.query}
-				onQueryChange={commandPalette.setQuery}
-				filtersOpen={commandPalette.filtersOpen}
-				onFiltersOpenChange={commandPalette.setFiltersOpen}
-				includePattern={commandPalette.includePattern}
-				onIncludePatternChange={commandPalette.setIncludePattern}
-				excludePattern={commandPalette.excludePattern}
-				onExcludePatternChange={commandPalette.setExcludePattern}
-				isLoading={commandPalette.isFetching}
-				searchResults={commandPalette.searchResults}
-				onSelectFile={commandPalette.selectFile}
-				scope={commandPalette.scope}
-				onScopeChange={commandPalette.setScope}
-				workspaceName={
-					workspace
-						? getWorkspaceDisplayName(
-								workspace.name,
-								workspace.type,
-								workspace.project?.name,
-							)
-						: undefined
+				workspaceId={workspaceId}
+				open={quickOpenOpen}
+				onOpenChange={setQuickOpenOpen}
+				onSelectFile={(filePath) =>
+					useTabsStore.getState().addFileViewerPane(workspaceId, { filePath })
 				}
-			/>
-			<KeywordSearch
-				open={keywordSearch.open}
-				onOpenChange={keywordSearch.handleOpenChange}
-				query={keywordSearch.query}
-				onQueryChange={keywordSearch.setQuery}
-				filtersOpen={keywordSearch.filtersOpen}
-				onFiltersOpenChange={keywordSearch.setFiltersOpen}
-				includePattern={keywordSearch.includePattern}
-				onIncludePatternChange={keywordSearch.setIncludePattern}
-				excludePattern={keywordSearch.excludePattern}
-				onExcludePatternChange={keywordSearch.setExcludePattern}
-				isLoading={keywordSearch.isFetching}
-				searchResults={keywordSearch.searchResults}
-				onSelectMatch={keywordSearch.selectMatch}
 			/>
 			<UnsavedChangesDialog
 				open={pendingTabClose !== null}

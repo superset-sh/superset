@@ -23,7 +23,10 @@ import {
 	fetchGitHubPRComments,
 	fetchGitHubPRStatus,
 	type PullRequestCommentsTarget,
+	resolveReviewThread,
 } from "../utils/github";
+import { selectExternalWorktreesForImport } from "../utils/select-external-worktrees-for-import";
+import { getWorkspacePath } from "../utils/worktree";
 
 const gitHubPRCommentsInputSchema = z.object({
 	workspaceId: z.string(),
@@ -100,12 +103,10 @@ export const createGitStatusProcedures = () => {
 					throw new Error(`Workspace ${input.workspaceId} not found`);
 				}
 
-				const worktree = workspace.worktreeId
-					? getWorktree(workspace.worktreeId)
-					: null;
-				if (!worktree) {
+				const repoPath = getWorkspacePath(workspace);
+				if (!repoPath) {
 					throw new Error(
-						`Worktree for workspace ${input.workspaceId} not found`,
+						`Could not resolve path for workspace ${input.workspaceId}`,
 					);
 				}
 
@@ -133,23 +134,25 @@ export const createGitStatusProcedures = () => {
 				await fetchDefaultBranch(project.mainRepoPath, defaultBranch);
 
 				const { ahead, behind } = await getAheadBehindCount({
-					repoPath: worktree.path,
+					repoPath,
 					defaultBranch,
 				});
 
 				const gitStatus = {
-					branch: worktree.branch,
+					branch: workspace.branch,
 					needsRebase: behind > 0,
 					ahead,
 					behind,
 					lastRefreshed: Date.now(),
 				};
 
-				localDb
-					.update(worktrees)
-					.set({ gitStatus })
-					.where(eq(worktrees.id, worktree.id))
-					.run();
+				if (workspace.worktreeId) {
+					localDb
+						.update(worktrees)
+						.set({ gitStatus })
+						.where(eq(worktrees.id, workspace.worktreeId))
+						.run();
+				}
 
 				return { gitStatus, defaultBranch };
 			}),
@@ -181,27 +184,31 @@ export const createGitStatusProcedures = () => {
 					return null;
 				}
 
-				const worktree = workspace.worktreeId
-					? getWorktree(workspace.worktreeId)
-					: null;
-				if (!worktree) {
+				const repoPath = getWorkspacePath(workspace);
+				if (!repoPath) {
 					return null;
 				}
 
-				const freshStatus = await fetchGitHubPRStatus(worktree.path);
+				const branchOverride =
+					workspace.type === "branch" ? workspace.branch : null;
 
-				if (
-					freshStatus &&
-					hasMeaningfulGitHubStatusChange({
-						current: worktree.githubStatus,
-						next: freshStatus,
-					})
-				) {
-					localDb
-						.update(worktrees)
-						.set({ githubStatus: freshStatus })
-						.where(eq(worktrees.id, worktree.id))
-						.run();
+				const freshStatus = await fetchGitHubPRStatus(repoPath, branchOverride);
+
+				if (freshStatus && workspace.worktreeId) {
+					const worktree = getWorktree(workspace.worktreeId);
+					if (
+						worktree &&
+						hasMeaningfulGitHubStatusChange({
+							current: worktree.githubStatus,
+							next: freshStatus,
+						})
+					) {
+						localDb
+							.update(worktrees)
+							.set({ githubStatus: freshStatus })
+							.where(eq(worktrees.id, workspace.worktreeId))
+							.run();
+					}
 				}
 
 				return freshStatus;
@@ -277,22 +284,54 @@ export const createGitStatusProcedures = () => {
 					return [];
 				}
 
-				const worktree = workspace.worktreeId
-					? getWorktree(workspace.worktreeId)
-					: null;
-				if (!worktree) {
+				const repoPath = getWorkspacePath(workspace);
+				if (!repoPath) {
 					return [];
 				}
 
-				const cachedGitHubStatus = worktree.githubStatus ?? null;
+				const worktree = workspace.worktreeId
+					? getWorktree(workspace.worktreeId)
+					: null;
+				const cachedGitHubStatus = worktree?.githubStatus ?? null;
 
 				return fetchGitHubPRComments({
-					worktreePath: worktree.path,
+					worktreePath: repoPath,
 					pullRequest: resolveCommentsPullRequestTarget({
 						input,
 						githubStatus: cachedGitHubStatus,
 					}),
+					branchName: workspace.type === "branch" ? workspace.branch : null,
 				});
+			}),
+
+		resolveReviewThread: publicProcedure
+			.input(
+				z.object({
+					workspaceId: z.string(),
+					threadId: z.string(),
+					resolve: z.boolean(),
+				}),
+			)
+			.mutation(async ({ input }) => {
+				const workspace = getWorkspace(input.workspaceId);
+				if (!workspace) {
+					throw new Error(`Workspace ${input.workspaceId} not found`);
+				}
+
+				const repoPath = getWorkspacePath(workspace);
+				if (!repoPath) {
+					throw new Error(
+						`Could not resolve path for workspace ${input.workspaceId}`,
+					);
+				}
+
+				await resolveReviewThread({
+					worktreePath: repoPath,
+					threadId: input.threadId,
+					resolve: input.resolve,
+				});
+
+				clearGitHubCachesForWorktree(repoPath);
 			}),
 
 		getWorktreeInfo: publicProcedure
@@ -301,6 +340,16 @@ export const createGitStatusProcedures = () => {
 				const workspace = getWorkspace(input.workspaceId);
 				if (!workspace) {
 					return null;
+				}
+
+				if (workspace.type === "branch") {
+					return {
+						worktreeName: workspace.name,
+						branchName: workspace.branch,
+						createdAt: workspace.createdAt,
+						gitStatus: null,
+						githubStatus: null,
+					};
 				}
 
 				const worktree = workspace.worktreeId
@@ -368,20 +417,14 @@ export const createGitStatusProcedures = () => {
 					.all();
 				const trackedPaths = new Set(trackedWorktrees.map((wt) => wt.path));
 
-				return allWorktrees
-					.filter((wt) => {
-						if (wt.path === project.mainRepoPath) return false;
-						if (wt.isBare) return false;
-						if (wt.isDetached) return false;
-						if (!wt.branch) return false;
-						if (trackedPaths.has(wt.path)) return false;
-						return true;
-					})
-					.map((wt) => ({
-						path: wt.path,
-						// biome-ignore lint/style/noNonNullAssertion: filtered above
-						branch: wt.branch!,
-					}));
+				return selectExternalWorktreesForImport(allWorktrees, {
+					mainRepoPath: project.mainRepoPath,
+					trackedPaths,
+				}).map((wt) => ({
+					path: wt.path,
+					// biome-ignore lint/style/noNonNullAssertion: filtered above
+					branch: wt.branch!,
+				}));
 			}),
 	});
 };

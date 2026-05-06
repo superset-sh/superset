@@ -36,6 +36,7 @@ export const pullRequestCommentSchema = z.object({
 	path: z.string().optional(),
 	line: z.number().optional(),
 	isResolved: z.boolean().optional(),
+	threadId: z.string().optional(),
 });
 
 export type PullRequestComment = z.infer<typeof pullRequestCommentSchema>;
@@ -116,55 +117,20 @@ export const terminalPresetSchema = z.object({
 
 export type TerminalPreset = z.infer<typeof terminalPresetSchema>;
 
-export const AGENT_PRESET_FIELDS = [
-	"enabled",
-	"label",
-	"description",
-	"command",
-	"promptCommand",
-	"promptCommandSuffix",
-	"taskPromptTemplate",
-	"model",
-] as const;
-
-export type AgentPresetField = (typeof AGENT_PRESET_FIELDS)[number];
-
-export const agentPresetOverrideSchema = z.object({
-	id: z.string(),
-	enabled: z.boolean().optional(),
-	label: z.string().optional(),
-	description: z.string().nullable().optional(),
-	command: z.string().optional(),
-	promptCommand: z.string().optional(),
-	promptCommandSuffix: z.string().nullable().optional(),
-	taskPromptTemplate: z.string().optional(),
-	model: z.string().optional(),
-});
-
-export type AgentPresetOverride = z.infer<typeof agentPresetOverrideSchema>;
-
-export const agentPresetOverrideEnvelopeSchema = z.object({
-	version: z.literal(1),
-	presets: z.array(agentPresetOverrideSchema),
-});
-
-export type AgentPresetOverrideEnvelope = z.infer<
-	typeof agentPresetOverrideEnvelopeSchema
->;
-
-export const agentCustomDefinitionSchema = z.object({
-	id: z.string().regex(/^custom:/),
-	kind: z.literal("terminal"),
-	label: z.string(),
-	description: z.string().optional(),
-	command: z.string(),
-	promptCommand: z.string(),
-	promptCommandSuffix: z.string().optional(),
-	taskPromptTemplate: z.string(),
-	enabled: z.boolean().optional(),
-});
-
-export type AgentCustomDefinition = z.infer<typeof agentCustomDefinitionSchema>;
+export {
+	AGENT_PRESET_FIELDS,
+	type AgentCustomDefinition,
+	type AgentPresetField,
+	type AgentPresetOverride,
+	type AgentPresetOverrideEnvelope,
+	agentCustomDefinitionSchema,
+	agentPresetOverrideEnvelopeSchema,
+	agentPresetOverrideSchema,
+} from "@superset/shared/agent-custom";
+export {
+	PROMPT_TRANSPORTS,
+	type PromptTransport,
+} from "@superset/shared/agent-prompt-launch";
 
 /**
  * Workspace type

@@ -22,10 +22,10 @@ const CLIENT_LOGOS = [
 		height: 20,
 	},
 	{
-		name: "doordash",
-		label: "DoorDash",
-		logo: "/logos/doordash-wordmark.svg",
-		height: 14,
+		name: "wordware",
+		label: "Wordware",
+		logo: "/logos/wordware-wordmark.svg",
+		height: 16,
 	},
 	{
 		name: "salesforce",
@@ -59,10 +59,10 @@ const CLIENT_LOGOS = [
 		height: 18,
 	},
 	{
-		name: "ramp",
-		label: "Ramp",
-		logo: "/logos/ramp-wordmark.svg",
-		height: 22,
+		name: "toss",
+		label: "Toss",
+		logo: "/logos/toss-wordmark.svg",
+		height: 18,
 	},
 	{
 		name: "google",
@@ -110,7 +110,7 @@ export function TrustedBySection() {
 		<section className="py-6 sm:py-12 md:py-18 bg-background overflow-hidden">
 			<div className="max-w-7xl mx-auto">
 				<div>
-					<h2 className="text-base sm:text-xl font-mono font-normal text-center mb-4 sm:mb-8 text-foreground px-4">
+					<h2 className="text-base sm:text-xl font-semibold text-center mb-4 sm:mb-8 text-foreground px-4">
 						Trusted by builders from
 					</h2>
 				</div>
@@ -120,7 +120,7 @@ export function TrustedBySection() {
 					{CLIENT_LOGOS.map((client) => (
 						<div
 							key={client.name}
-							className="flex items-center justify-center min-w-0 whitespace-nowrap h-16 sm:h-18 rounded-[2px] border border-foreground/[0.1] bg-foreground/[0.03] opacity-90 hover:opacity-100 transition-opacity"
+							className="flex items-center justify-center min-w-0 whitespace-nowrap h-16 sm:h-18 rounded-[2px] border border-foreground/[0.1] bg-foreground/[0.03] opacity-90 transition-all duration-200 hover:opacity-100 hover:border-foreground/[0.2] hover:bg-foreground/[0.06]"
 						>
 							<Image
 								src={client.logo}
@@ -150,7 +150,7 @@ export function TrustedBySection() {
 							{row.map((client) => (
 								<div
 									key={client.name}
-									className="flex items-center justify-center whitespace-nowrap h-24 w-[168px] rounded-[2px] border border-foreground/[0.1] bg-foreground/[0.03] opacity-90 hover:opacity-100 transition-opacity"
+									className="flex items-center justify-center whitespace-nowrap h-24 w-[168px] rounded-[2px] border border-foreground/[0.1] bg-foreground/[0.03] opacity-90 transition-all duration-200 hover:opacity-100 hover:border-foreground/[0.2] hover:bg-foreground/[0.06]"
 								>
 									<Image
 										src={client.logo}

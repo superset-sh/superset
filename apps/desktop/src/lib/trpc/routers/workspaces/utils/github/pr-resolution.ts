@@ -1,3 +1,8 @@
+// v1-only. Dies with the v1 UI sunset. Don't evolve this module — v2 already
+// resolves PRs via host-service (`packages/host-service/src/runtime/pull-requests`
+// backing `git.getPullRequest` + `pullRequests.getByWorkspaces`). Everything
+// under `renderer/screens/main/` + `routes/_authenticated/_dashboard/workspace/`
+// gets deleted together; no port needed.
 import type { CheckItem, GitHubStatus } from "@superset/local-db";
 import { execGitWithShellPath } from "../git-client";
 import { execWithShellEnv } from "../shell-env";
@@ -80,7 +85,10 @@ function getForkOwnerPrefix(
 
 export function prMatchesLocalBranch(
 	localBranch: string,
-	pr: Pick<GHPRResponse, "headRefName" | "headRepositoryOwner">,
+	pr: Pick<
+		GHPRResponse,
+		"headRefName" | "headRepositoryOwner" | "isCrossRepository"
+	>,
 ): boolean {
 	if (!branchMatchesPR(localBranch, pr.headRefName)) {
 		return false;
@@ -88,6 +96,9 @@ export function prMatchesLocalBranch(
 
 	const ownerPrefix = getForkOwnerPrefix(localBranch, pr.headRefName);
 	if (!ownerPrefix) {
+		// Without a fork-owner prefix in the local branch, a cross-fork PR whose
+		// headRefName collides (e.g. fork:main → base:main) would misattribute.
+		if (pr.isCrossRepository) return false;
 		return localBranch === pr.headRefName;
 	}
 

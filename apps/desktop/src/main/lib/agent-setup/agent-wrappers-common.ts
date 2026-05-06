@@ -1,19 +1,16 @@
 import fs from "node:fs";
 import path from "node:path";
+import { SUPERSET_MANAGED_BINARIES } from "./desktop-agent-capabilities";
 import { BIN_DIR } from "./paths";
 
 export const WRAPPER_MARKER = "# Superset agent-wrapper v1";
-export const SUPERSET_MANAGED_BINARIES = [
-	"claude",
-	"codex",
-	"droid",
-	"opencode",
-	"gemini",
-	"copilot",
-	"mastracode",
-] as const;
+export { SUPERSET_MANAGED_BINARIES };
 
-const SUPERSET_MANAGED_HOOK_PATH_PATTERN = /\/\.superset(?:-[^/'"\s\\]+)?\//;
+// Dev setup (.superset/lib/setup/steps.sh) points SUPERSET_HOME_DIR at
+// $PWD/superset-dev-data — without a leading dot — so we must recognize that
+// variant to reap stale notify.sh paths from deleted worktrees.
+const SUPERSET_MANAGED_HOOK_PATH_PATTERN =
+	/\/(?:\.superset(?:-[^/'"\s\\]+)?|superset-dev-data)\//;
 
 export function writeFileIfChanged(
 	filePath: string,

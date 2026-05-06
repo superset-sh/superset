@@ -6,6 +6,11 @@ import type { StartFreshSessionResult } from "renderer/components/Chat/ChatInter
 import { env } from "renderer/env.renderer";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { authClient, getAuthToken } from "renderer/lib/auth-client";
+import {
+	isDesktopChatDevMode,
+	isDesktopChatSessionReady,
+	resolveDesktopChatOrganizationId,
+} from "renderer/lib/dev-chat";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { posthog } from "renderer/lib/posthog";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
@@ -80,6 +85,7 @@ async function createSessionRecord(input: {
 	organizationId: string;
 	workspaceId: string;
 }): Promise<void> {
+	if (isDesktopChatDevMode()) return;
 	const token = getAuthToken();
 	const response = await fetch(`${apiUrl}/api/chat/${input.sessionId}`, {
 		method: "PUT",
@@ -106,6 +112,7 @@ async function createSessionRecord(input: {
 }
 
 async function deleteSessionRecord(sessionId: string): Promise<void> {
+	if (isDesktopChatDevMode()) return;
 	const token = getAuthToken();
 	const response = await fetch(`${apiUrl}/api/chat/${sessionId}/stream`, {
 		method: "DELETE",
@@ -131,7 +138,9 @@ export function useChatPaneController({
 	const launchConfig = pane?.chat?.launchConfig ?? null;
 	const needsLegacySessionBootstrap = sessionId === null;
 	const { data: session } = authClient.useSession();
-	const organizationId = session?.session?.activeOrganizationId ?? null;
+	const organizationId = resolveDesktopChatOrganizationId(
+		session?.session?.activeOrganizationId,
+	);
 	const collections = useCollections();
 	const legacySessionBootstrapRef = useRef(false);
 	const ensuredRef = useRef<string | null>(null);
@@ -154,6 +163,7 @@ export function useChatPaneController({
 	);
 
 	useEffect(() => {
+		if (isDesktopChatDevMode()) return;
 		if (existsRemotely) return;
 		if (!workspace?.project || !organizationId) return;
 		if (ensuredRef.current === workspaceId) return;
@@ -213,9 +223,12 @@ export function useChatPaneController({
 		);
 		return scopedOrUnscoped.length > 0 ? scopedOrUnscoped : allSessions;
 	}, [allSessions, workspaceId]);
-	const hasCurrentSessionRecord = Boolean(
-		sessionId && sessions.some((item) => item.id === sessionId),
-	);
+	const hasCurrentSessionRecord = isDesktopChatSessionReady({
+		sessionId,
+		hasPersistedSession: Boolean(
+			sessionId && sessions.some((item) => item.id === sessionId),
+		),
+	});
 	const [isSessionInitializing, setIsSessionInitializing] = useState(false);
 	const hasCurrentSessionRecordRef = useRef(hasCurrentSessionRecord);
 	const sessionInitScopeRef = useRef<string | null>(null);
@@ -429,10 +442,24 @@ export function useChatPaneController({
 			});
 	}, [handleNewChat, needsLegacySessionBootstrap, organizationId]);
 
-	const sessionItems = useMemo(
-		() => sessions.map((item) => toSessionSelectorItem(item)),
-		[sessions],
-	);
+	const sessionItems = useMemo(() => {
+		const nextItems = sessions.map((item) => toSessionSelectorItem(item));
+		if (
+			!isDesktopChatDevMode() ||
+			!sessionId ||
+			nextItems.some((item) => item.sessionId === sessionId)
+		) {
+			return nextItems;
+		}
+		return [
+			{
+				sessionId,
+				title: "",
+				updatedAt: new Date(),
+			},
+			...nextItems,
+		];
+	}, [sessionId, sessions]);
 
 	const consumeLaunchConfig = useCallback(() => {
 		setChatLaunchConfig(paneId, null);

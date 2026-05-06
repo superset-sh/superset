@@ -1,4 +1,5 @@
 import type { TerminalPreset } from "@superset/local-db";
+import { cn } from "@superset/ui/utils";
 import type { RefObject } from "react";
 import { PresetRow } from "../../../PresetRow";
 import type { PresetProjectOption } from "../../preset-project-options";
@@ -11,7 +12,9 @@ interface PresetsTableProps {
 	onEdit: (presetId: string) => void;
 	onLocalReorder: (fromIndex: number, toIndex: number) => void;
 	onPersistReorder: (presetId: string, targetIndex: number) => void;
-	onTogglePin: (presetId: string, pinned: boolean) => void;
+	onToggleVisibility: (presetId: string, visible: boolean) => void;
+	/** When false, the parent supplies the border. Defaults to true. */
+	bordered?: boolean;
 }
 
 export function PresetsTable({
@@ -22,48 +25,39 @@ export function PresetsTable({
 	onEdit,
 	onLocalReorder,
 	onPersistReorder,
-	onTogglePin,
+	onToggleVisibility,
+	bordered = true,
 }: PresetsTableProps) {
 	return (
-		<div className="rounded-lg border border-border overflow-hidden">
-			<div className="flex items-center gap-4 py-2 px-4 bg-accent/10 border-b border-border text-xs font-medium text-muted-foreground uppercase tracking-wider">
-				<div className="w-6 shrink-0" />
-				<div className="flex-1 min-w-0">Preset</div>
-				<div className="flex-[1.2] min-w-0">Commands</div>
-				<div className="w-40 shrink-0">Applies to</div>
-				<div className="w-32 shrink-0">Mode</div>
-				<div className="w-36 shrink-0">Auto-run</div>
-				<div className="w-16 shrink-0 text-center">Pinned</div>
-			</div>
-
-			<div
-				ref={presetsContainerRef}
-				className="max-h-[320px] overflow-y-auto overflow-x-auto"
-			>
-				{isLoading ? (
-					<div className="py-8 text-center text-sm text-muted-foreground">
-						Loading presets...
-					</div>
-				) : presets.length > 0 ? (
-					presets.map((preset, index) => (
-						<PresetRow
-							key={preset.id}
-							preset={preset}
-							rowIndex={index}
-							isEven={index % 2 === 0}
-							projectOptionsById={projectOptionsById}
-							onEdit={onEdit}
-							onLocalReorder={onLocalReorder}
-							onPersistReorder={onPersistReorder}
-							onTogglePin={onTogglePin}
-						/>
-					))
-				) : (
-					<div className="py-8 text-center text-sm text-muted-foreground">
-						No presets yet. Click "Add Preset" to create your first preset.
-					</div>
-				)}
-			</div>
+		<div
+			ref={presetsContainerRef}
+			className={cn(
+				"divide-y divide-border",
+				bordered && "rounded-lg border border-border overflow-hidden",
+			)}
+		>
+			{isLoading ? (
+				<div className="py-8 text-center text-sm text-muted-foreground">
+					Loading presets...
+				</div>
+			) : presets.length > 0 ? (
+				presets.map((preset, index) => (
+					<PresetRow
+						key={preset.id}
+						preset={preset}
+						rowIndex={index}
+						projectOptionsById={projectOptionsById}
+						onEdit={onEdit}
+						onLocalReorder={onLocalReorder}
+						onPersistReorder={onPersistReorder}
+						onToggleVisibility={onToggleVisibility}
+					/>
+				))
+			) : (
+				<div className="py-10 text-center text-sm text-muted-foreground">
+					No presets yet. Click "Add preset" to create your first one.
+				</div>
+			)}
 		</div>
 	);
 }

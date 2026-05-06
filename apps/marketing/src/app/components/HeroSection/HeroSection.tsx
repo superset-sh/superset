@@ -26,7 +26,9 @@ export function HeroSection() {
 						<div className="space-y-4 sm:space-y-6">
 							<h1
 								className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-medium tracking-tight leading-[1.1] text-foreground relative"
-								style={{ fontFamily: "var(--font-ibm-plex-mono)" }}
+								style={{
+									fontFamily: "var(--font-ibm-plex-mono), monospace",
+								}}
 							>
 								<span className="invisible" aria-hidden="true">
 									The Code Editor for AI Agents.
@@ -48,8 +50,8 @@ export function HeroSection() {
 								</span>
 							</h1>
 							<p className="text-base sm:text-xl font-light text-muted-foreground max-w-4xl mx-auto">
-								Orchestrate swarms of Claude Code, Codex, etc. in parallel.
-								Works for any agents. Built for the AI era.
+								Orchestrate 100+ coding agents in parallel. Works for any
+								agents. Built for the AI era.
 							</p>
 						</div>
 

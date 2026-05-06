@@ -1,8 +1,9 @@
 import { stripeClient } from "@superset/auth/stripe";
 import { db } from "@superset/db/client";
 import { members, subscriptions } from "@superset/db/schema";
+import { ACTIVE_SUBSCRIPTION_STATUSES } from "@superset/shared/billing";
 import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
-import { and, eq } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import type Stripe from "stripe";
 import { z } from "zod";
 import { env } from "../../env";
@@ -27,12 +28,10 @@ function subtractMonthsClamped(date: Date, months: number) {
 }
 
 async function requireOwnerWithCustomer(ctx: {
-	session: {
-		session: { activeOrganizationId: string | null };
-		user: { id: string };
-	};
+	session: { user: { id: string } };
+	activeOrganizationId: string | null;
 }) {
-	const activeOrgId = ctx.session.session.activeOrganizationId;
+	const activeOrgId = ctx.activeOrganizationId;
 	if (!activeOrgId) {
 		throw new TRPCError({
 			code: "BAD_REQUEST",
@@ -67,8 +66,27 @@ async function requireOwnerWithCustomer(ctx: {
 }
 
 export const billingRouter = {
+	activePlan: protectedProcedure.query(async ({ ctx }) => {
+		const activeOrgId = ctx.activeOrganizationId;
+		if (!activeOrgId) return { plan: "free" as const, status: null };
+
+		const subscription = await db.query.subscriptions.findFirst({
+			where: and(
+				eq(subscriptions.referenceId, activeOrgId),
+				inArray(subscriptions.status, ACTIVE_SUBSCRIPTION_STATUSES),
+			),
+			orderBy: desc(subscriptions.createdAt),
+		});
+
+		if (!subscription) {
+			return { plan: "free" as const, status: null };
+		}
+
+		return { plan: subscription.plan, status: subscription.status };
+	}),
+
 	invoices: protectedProcedure.query(async ({ ctx }) => {
-		const activeOrgId = ctx.session.session.activeOrganizationId;
+		const activeOrgId = ctx.activeOrganizationId;
 		if (!activeOrgId) {
 			throw new TRPCError({
 				code: "BAD_REQUEST",

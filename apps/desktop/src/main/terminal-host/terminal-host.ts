@@ -1,13 +1,3 @@
-/**
- * Terminal Host Manager
- *
- * Manages all terminal sessions in the daemon.
- * Responsible for:
- * - Session lifecycle (create, attach, detach, kill)
- * - Session lookup and listing
- * - Cleanup on shutdown
- */
-
 import type { Socket } from "node:net";
 import { TerminalAttachCanceledError } from "../lib/terminal/errors";
 import type {
@@ -26,11 +16,6 @@ import type {
 } from "../lib/terminal-host/types";
 import { createSession, type Session } from "./session";
 
-// =============================================================================
-// TerminalHost Class
-// =============================================================================
-
-/** Timeout for force-disposing sessions that don't exit after kill */
 const KILL_TIMEOUT_MS = 5000;
 const MAX_CONCURRENT_SPAWNS = 3;
 const SPAWN_READY_TIMEOUT_MS = 5000;
@@ -90,9 +75,6 @@ export class TerminalHost {
 		this.onUnattachedExit = onUnattachedExit;
 	}
 
-	/**
-	 * Create or attach to a terminal session
-	 */
 	async createOrAttach(
 		socket: Socket,
 		request: CreateOrAttachRequest,
@@ -174,7 +156,7 @@ export class TerminalHost {
 
 				throwIfAborted(pendingAttach.abortController.signal);
 
-				if (!session.isAlive) {
+				if (!session.isAlive || session.pid === null) {
 					void session.dispose();
 					throw new Error(
 						"Session spawn failed: PTY process exited immediately",
@@ -233,20 +215,12 @@ export class TerminalHost {
 		return { success: true };
 	}
 
-	/**
-	 * Write data to a terminal session.
-	 * Throws if session is not found or is terminating.
-	 */
 	write(request: WriteRequest): EmptyResponse {
 		const session = this.getActiveSession(request.sessionId);
 		session.write(request.data);
 		return { success: true };
 	}
 
-	/**
-	 * Resize a terminal session.
-	 * No-op if session is not found or is terminating (prevents race condition errors).
-	 */
 	resize(request: ResizeRequest): EmptyResponse {
 		const session = this.sessions.get(request.sessionId);
 		if (!session || !session.isAttachable) {
@@ -256,9 +230,6 @@ export class TerminalHost {
 		return { success: true };
 	}
 
-	/**
-	 * Detach a client from a session
-	 */
 	detach(socket: Socket, request: DetachRequest): EmptyResponse {
 		const session = this.sessions.get(request.sessionId);
 		if (session) {
@@ -419,9 +390,6 @@ export class TerminalHost {
 		return session;
 	}
 
-	/**
-	 * Handle session exit
-	 */
 	private handleSessionExit(
 		sessionId: string,
 		exitCode: number,
@@ -437,9 +405,6 @@ export class TerminalHost {
 		this.scheduleSessionCleanup(sessionId);
 	}
 
-	/**
-	 * Clear the kill timeout for a session
-	 */
 	private clearKillTimer(sessionId: string): void {
 		const timer = this.killTimers.get(sessionId);
 		if (timer) {

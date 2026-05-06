@@ -29,12 +29,12 @@ const config = {
 		return [
 			{
 				source: "/",
-				destination: "/installation",
+				destination: "/overview",
 				permanent: false,
 			},
 			{
 				source: "/docs",
-				destination: "/installation",
+				destination: "/overview",
 				permanent: false,
 			},
 		];

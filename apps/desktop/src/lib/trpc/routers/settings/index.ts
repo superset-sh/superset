@@ -13,15 +13,36 @@ import {
 import {
 	AGENT_PRESET_COMMANDS,
 	AGENT_PRESET_DESCRIPTIONS,
+	DEFAULT_TERMINAL_PRESET_AGENT_TYPES,
 } from "@superset/shared/agent-command";
+import {
+	applyLegacyPermissionsOverrides,
+	terminalPresetsMatchPre3546Seed,
+} from "@superset/shared/agent-permissions-migration";
+import {
+	type AgentDefinitionId,
+	applyCustomAgentDefinitionPatch,
+	createOverrideEnvelopeWithPatch,
+	deleteCustomAgentDefinition,
+	getAgentDefinitionById,
+	getCustomAgentDefinitionById,
+	readAgentPresetOverrides,
+	resetAgentPresetOverride,
+	resetAllAgentPresetOverrides,
+	resolveAgentConfigs,
+	upsertCustomAgentDefinition,
+} from "@superset/shared/agent-settings";
 import { TRPCError } from "@trpc/server";
 import { app } from "electron";
-import { quitWithoutConfirmation } from "main/index";
+import { env } from "main/env.main";
+import { exitImmediately } from "main/index";
 import { hasCustomRingtone } from "main/lib/custom-ringtones";
+import { getHostServiceCoordinator } from "main/lib/host-service-coordinator";
 import { localDb } from "main/lib/local-db";
 import {
 	DEFAULT_AUTO_APPLY_DEFAULT_PRESET,
 	DEFAULT_CONFIRM_ON_QUIT,
+	DEFAULT_EXPOSE_HOST_SERVICE_VIA_RELAY,
 	DEFAULT_FILE_OPEN_MODE,
 	DEFAULT_OPEN_LINKS_IN_APP,
 	DEFAULT_SHOW_PRESETS_BAR,
@@ -35,20 +56,17 @@ import {
 	DEFAULT_RINGTONE_ID,
 	isBuiltInRingtoneId,
 } from "shared/ringtones";
-import {
-	type AgentDefinitionId,
-	createOverrideEnvelopeWithPatch,
-	getAgentDefinitionById,
-	readAgentPresetOverrides,
-	resetAgentPresetOverride,
-	resolveAgentConfigs,
-} from "shared/utils/agent-settings";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
+import { loadToken } from "../auth/utils/auth-functions";
 import { getGitAuthorName, getGitHubUsername } from "../workspaces/utils/git";
 import {
+	createCustomAgentInputSchema,
 	normalizeAgentPresetPatch,
+	normalizeCreateCustomAgentInput,
+	normalizeCustomAgentPatch,
 	updateAgentPresetInputSchema,
+	updateCustomAgentInputSchema,
 } from "./agent-preset-router.utils";
 import {
 	setFontSettingsSchema,
@@ -112,7 +130,42 @@ function saveTerminalPresets(
 		.run();
 }
 
+let agentPresetPermissionsMigrationChecked = false;
+
+function runAgentPresetPermissionsMigration() {
+	if (agentPresetPermissionsMigrationChecked) return;
+	const row = getSettings();
+	if (row.agentPresetPermissionsMigratedAt) {
+		agentPresetPermissionsMigrationChecked = true;
+		return;
+	}
+
+	const isExistingUser =
+		row.terminalPresetsInitialized === true &&
+		terminalPresetsMatchPre3546Seed(row.terminalPresets);
+
+	const nextOverrides = isExistingUser
+		? applyLegacyPermissionsOverrides(
+				readAgentPresetOverrides(row.agentPresetOverrides),
+			)
+		: undefined;
+
+	const now = Date.now();
+	const setFields = {
+		agentPresetPermissionsMigratedAt: now,
+		...(nextOverrides ? { agentPresetOverrides: nextOverrides } : {}),
+	};
+	localDb
+		.insert(settings)
+		.values({ id: 1, ...setFields })
+		.onConflictDoUpdate({ target: settings.id, set: setFields })
+		.run();
+
+	agentPresetPermissionsMigrationChecked = true;
+}
+
 function readRawAgentPresetOverrides(): AgentPresetOverrideEnvelope {
+	runAgentPresetPermissionsMigration();
 	const row = getSettings();
 	return readAgentPresetOverrides(row.agentPresetOverrides);
 }
@@ -136,6 +189,29 @@ function saveAgentPresetOverrides(overrides: AgentPresetOverrideEnvelope) {
 		.run();
 }
 
+function saveAgentCustomDefinitions(definitions: AgentCustomDefinition[]) {
+	localDb
+		.insert(settings)
+		.values({
+			id: 1,
+			agentCustomDefinitions: definitions,
+		})
+		.onConflictDoUpdate({
+			target: settings.id,
+			set: { agentCustomDefinitions: definitions },
+		})
+		.run();
+}
+
+function clearCustomAgentPresetOverride(id: `custom:${string}`) {
+	saveAgentPresetOverrides(
+		resetAgentPresetOverride({
+			currentOverrides: readRawAgentPresetOverrides(),
+			id,
+		}),
+	);
+}
+
 function getResolvedAgentPresets() {
 	return resolveAgentConfigs({
 		customDefinitions: readRawAgentCustomDefinitions(),
@@ -143,24 +219,13 @@ function getResolvedAgentPresets() {
 	});
 }
 
-const DEFAULT_PRESET_AGENTS = [
-	"claude",
-	"codex",
-	"copilot",
-	"mastracode",
-	"opencode",
-	"pi",
-	"gemini",
-] as const;
-
-const DEFAULT_PRESETS: Omit<TerminalPreset, "id">[] = DEFAULT_PRESET_AGENTS.map(
-	(name) => ({
+const DEFAULT_PRESETS: Omit<TerminalPreset, "id">[] =
+	DEFAULT_TERMINAL_PRESET_AGENT_TYPES.map((name) => ({
 		name,
 		description: AGENT_PRESET_DESCRIPTIONS[name],
 		cwd: "",
 		commands: AGENT_PRESET_COMMANDS[name],
-	}),
-);
+	}));
 
 function initializeDefaultPresets() {
 	const row = getSettings();
@@ -204,6 +269,84 @@ export const createSettingsRouter = () => {
 			return getNormalizedTerminalPresets();
 		}),
 		getAgentPresets: publicProcedure.query(() => getResolvedAgentPresets()),
+		createCustomAgent: publicProcedure
+			.input(createCustomAgentInputSchema)
+			.mutation(({ input }) => {
+				const definition = {
+					id: `custom:${crypto.randomUUID()}` as const,
+					kind: "terminal" as const,
+					...normalizeCreateCustomAgentInput(input),
+				};
+				const nextDefinitions = upsertCustomAgentDefinition({
+					currentDefinitions: readRawAgentCustomDefinitions(),
+					definition,
+				});
+
+				saveAgentCustomDefinitions(nextDefinitions);
+				clearCustomAgentPresetOverride(definition.id);
+
+				return getResolvedAgentPresets().find(
+					(preset) => preset.id === definition.id,
+				);
+			}),
+		updateCustomAgent: publicProcedure
+			.input(updateCustomAgentInputSchema)
+			.mutation(({ input }) => {
+				const definition = getCustomAgentDefinitionById({
+					customDefinitions: readRawAgentCustomDefinitions(),
+					id: input.id as `custom:${string}`,
+				});
+				if (!definition) {
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: `Custom agent ${input.id} not found`,
+					});
+				}
+
+				const nextDefinitions = upsertCustomAgentDefinition({
+					currentDefinitions: readRawAgentCustomDefinitions(),
+					definition: applyCustomAgentDefinitionPatch({
+						definition,
+						patch: normalizeCustomAgentPatch(input.patch),
+					}),
+				});
+
+				saveAgentCustomDefinitions(nextDefinitions);
+				clearCustomAgentPresetOverride(input.id as `custom:${string}`);
+
+				return getResolvedAgentPresets().find(
+					(preset) => preset.id === input.id,
+				);
+			}),
+		deleteCustomAgent: publicProcedure
+			.input(z.object({ id: z.string().regex(/^custom:/) }))
+			.mutation(({ input }) => {
+				const existingDefinition = getCustomAgentDefinitionById({
+					customDefinitions: readRawAgentCustomDefinitions(),
+					id: input.id as `custom:${string}`,
+				});
+				if (!existingDefinition) {
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: `Custom agent ${input.id} not found`,
+					});
+				}
+
+				saveAgentCustomDefinitions(
+					deleteCustomAgentDefinition({
+						currentDefinitions: readRawAgentCustomDefinitions(),
+						id: input.id as `custom:${string}`,
+					}),
+				);
+				saveAgentPresetOverrides(
+					resetAgentPresetOverride({
+						currentOverrides: readRawAgentPresetOverrides(),
+						id: input.id as AgentDefinitionId,
+					}),
+				);
+
+				return { success: true };
+			}),
 		updateAgentPreset: publicProcedure
 			.input(updateAgentPresetInputSchema)
 			.mutation(({ input }) => {
@@ -215,6 +358,12 @@ export const createSettingsRouter = () => {
 					throw new TRPCError({
 						code: "NOT_FOUND",
 						message: `Agent preset ${input.id} not found`,
+					});
+				}
+				if (definition.source === "user") {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: `Custom agent ${input.id} must be edited through custom-agent settings`,
 					});
 				}
 
@@ -246,7 +395,7 @@ export const createSettingsRouter = () => {
 				return { success: true };
 			}),
 		resetAllAgentPresets: publicProcedure.mutation(() => {
-			saveAgentPresetOverrides({ version: 1, presets: [] });
+			saveAgentPresetOverrides(resetAllAgentPresetOverrides());
 			return { success: true };
 		}),
 		createTerminalPreset: publicProcedure
@@ -485,6 +634,42 @@ export const createSettingsRouter = () => {
 				return { success: true };
 			}),
 
+		getExposeHostServiceViaRelay: publicProcedure.query(() => {
+			const row = getSettings();
+			return (
+				row.exposeHostServiceViaRelay ?? DEFAULT_EXPOSE_HOST_SERVICE_VIA_RELAY
+			);
+		}),
+
+		setExposeHostServiceViaRelay: publicProcedure
+			.input(z.object({ enabled: z.boolean() }))
+			.mutation(async ({ input }) => {
+				localDb
+					.insert(settings)
+					.values({ id: 1, exposeHostServiceViaRelay: input.enabled })
+					.onConflictDoUpdate({
+						target: settings.id,
+						set: { exposeHostServiceViaRelay: input.enabled },
+					})
+					.run();
+
+				// Restart active host-service children so they pick up the new
+				// RELAY_URL from buildEnv(). No-op if the user isn't signed in.
+				const { token } = await loadToken();
+				if (!token) {
+					return { restartedOrgCount: 0 };
+				}
+
+				const coordinator = getHostServiceCoordinator();
+				const restartedOrgCount = coordinator.getActiveOrganizationIds().length;
+				await coordinator.restartAll({
+					authToken: token,
+					cloudApiUrl: env.NEXT_PUBLIC_API_URL,
+				});
+
+				return { restartedOrgCount };
+			}),
+
 		getShowPresetsBar: publicProcedure.query(() => {
 			const row = getSettings();
 			return row.showPresetsBar ?? DEFAULT_SHOW_PRESETS_BAR;
@@ -590,7 +775,7 @@ export const createSettingsRouter = () => {
 
 		restartApp: publicProcedure.mutation(() => {
 			app.relaunch();
-			quitWithoutConfirmation();
+			exitImmediately();
 			return { success: true };
 		}),
 
@@ -673,6 +858,26 @@ export const createSettingsRouter = () => {
 					.onConflictDoUpdate({
 						target: settings.id,
 						set: { notificationSoundsMuted: input.muted },
+					})
+					.run();
+
+				return { success: true };
+			}),
+
+		getNotificationVolume: publicProcedure.query(() => {
+			const row = getSettings();
+			return row.notificationVolume ?? 100;
+		}),
+
+		setNotificationVolume: publicProcedure
+			.input(z.object({ volume: z.number().min(0).max(100) }))
+			.mutation(({ input }) => {
+				localDb
+					.insert(settings)
+					.values({ id: 1, notificationVolume: input.volume })
+					.onConflictDoUpdate({
+						target: settings.id,
+						set: { notificationVolume: input.volume },
 					})
 					.run();
 

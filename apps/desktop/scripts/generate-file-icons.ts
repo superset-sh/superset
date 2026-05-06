@@ -33,15 +33,24 @@ function run() {
 	addIcon(manifest.file);
 	addIcon(manifest.folder);
 	addIcon(manifest.folderExpanded);
+	addIcon(manifest.rootFolder);
+	addIcon(manifest.rootFolderExpanded);
 
 	// File mappings
 	for (const icon of Object.values(manifest.fileNames ?? {})) addIcon(icon);
 	for (const icon of Object.values(manifest.fileExtensions ?? {}))
 		addIcon(icon);
 
+	// Language ID mappings (VS Code languageId → icon, not covered by extensions)
+	for (const icon of Object.values(manifest.languageIds ?? {})) addIcon(icon);
+
 	// Folder mappings
 	for (const icon of Object.values(manifest.folderNames ?? {})) addIcon(icon);
 	for (const icon of Object.values(manifest.folderNamesExpanded ?? {}))
+		addIcon(icon);
+	for (const icon of Object.values(manifest.rootFolderNames ?? {}))
+		addIcon(icon);
+	for (const icon of Object.values(manifest.rootFolderNamesExpanded ?? {}))
 		addIcon(icon);
 
 	// Build condensed manifest
@@ -56,13 +65,19 @@ function run() {
 	};
 
 	// material-icon-theme relies on VS Code's languageIds for base extensions.
-	// Since Electron has no languageId system, add them explicitly.
-	const baseExtensionDefaults: Record<string, string> = {
+	// Since Electron has no languageId system, fold languageIds where the
+	// language name matches a common file extension so they resolve at runtime.
+	const languageIdExtensionMap: Record<string, string> = {
 		ts: "typescript",
 		js: "javascript",
+		php: "php",
+		tex: "tex",
+		m: "matlab",
+		diff: "diff",
+		patch: "diff",
 	};
 
-	for (const [ext, icon] of Object.entries(baseExtensionDefaults)) {
+	for (const [ext, icon] of Object.entries(languageIdExtensionMap)) {
 		if (!condensed.fileExtensions[ext]) {
 			condensed.fileExtensions[ext] = icon;
 			referencedIcons.add(icon);

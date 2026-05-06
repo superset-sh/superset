@@ -42,7 +42,7 @@ function TestimonialCard({ testimonial }: { testimonial: Testimonial }) {
 			href={testimonial.url}
 			target="_blank"
 			rel="noopener noreferrer"
-			className="block p-4 bg-card border border-border rounded-xl hover:border-muted-foreground/50 transition-colors"
+			className="block p-4 bg-card border border-border hover:border-muted-foreground/50 transition-colors"
 		>
 			<div className="flex items-start gap-3">
 				<Avatar src={testimonial.avatar} name={testimonial.author} />
@@ -53,7 +53,7 @@ function TestimonialCard({ testimonial }: { testimonial: Testimonial }) {
 						</span>
 					</div>
 					<span className="text-muted-foreground text-sm">
-						{testimonial.handle}
+						{testimonial.role ?? testimonial.handle}
 					</span>
 				</div>
 			</div>

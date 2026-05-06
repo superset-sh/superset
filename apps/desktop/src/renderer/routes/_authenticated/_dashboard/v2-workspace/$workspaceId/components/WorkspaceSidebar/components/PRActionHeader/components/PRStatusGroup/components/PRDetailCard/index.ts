@@ -1,0 +1,1 @@
+export { PRDetailCard } from "./PRDetailCard";

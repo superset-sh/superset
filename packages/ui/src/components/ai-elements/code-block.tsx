@@ -17,6 +17,10 @@ type CodeBlockProps = HTMLAttributes<HTMLDivElement> & {
 	code: string;
 	language: BundledLanguage;
 	showLineNumbers?: boolean;
+	/** Starting line number offset (for partial file display). Default: 1 */
+	startLine?: number;
+	/** When false, suppresses syntax-highlight colors — all tokens render in the foreground color. */
+	colorize?: boolean;
 };
 
 type CodeBlockContextType = {
@@ -27,54 +31,78 @@ const CodeBlockContext = createContext<CodeBlockContextType>({
 	code: "",
 });
 
-const lineNumberTransformer: ShikiTransformer = {
-	name: "line-numbers",
-	line(node, line) {
-		node.children.unshift({
-			type: "element",
-			tagName: "span",
-			properties: {
-				className: [
-					"inline-block",
-					"min-w-10",
-					"mr-4",
-					"text-right",
-					"select-none",
-					"text-muted-foreground",
-				],
-			},
-			children: [{ type: "text", value: String(line) }],
-		});
-	},
-};
+function createLineNumberTransformer(startLine = 1): ShikiTransformer {
+	return {
+		name: "line-numbers",
+		line(node, line) {
+			node.children.unshift({
+				type: "element",
+				tagName: "span",
+				properties: {
+					className: [
+						"shiki-line-number",
+						"inline-block",
+						"min-w-10",
+						"mr-4",
+						"text-right",
+						"select-none",
+						"text-muted-foreground",
+					],
+				},
+				children: [{ type: "text", value: String(line + startLine - 1) }],
+			});
+		},
+	};
+}
 
 export async function highlightCode(
 	code: string,
 	language: BundledLanguage,
 	showLineNumbers = false,
-) {
+	startLine = 1,
+): Promise<[string, string]> {
 	const transformers: ShikiTransformer[] = showLineNumbers
-		? [lineNumberTransformer]
+		? [createLineNumberTransformer(startLine)]
 		: [];
 
-	return await Promise.all([
-		codeToHtml(code, {
-			lang: language,
-			theme: "one-light",
-			transformers,
-		}),
-		codeToHtml(code, {
-			lang: language,
-			theme: "one-dark-pro",
-			transformers,
-		}),
-	]);
+	try {
+		return await Promise.all([
+			codeToHtml(code, {
+				lang: language,
+				theme: "one-light",
+				transformers,
+			}),
+			codeToHtml(code, {
+				lang: language,
+				theme: "one-dark-pro",
+				transformers,
+			}),
+		]);
+	} catch {
+		if (language === ("text" as BundledLanguage)) {
+			const escaped = code
+				.replace(/&/g, "&amp;")
+				.replace(/</g, "&lt;")
+				.replace(/>/g, "&gt;");
+			const html = `<pre><code>${escaped}</code></pre>`;
+			return [html, html];
+		}
+		// Unknown/unsupported language — fall back to plain text
+		return highlightCode(
+			code,
+			"text" as BundledLanguage,
+			showLineNumbers,
+			startLine,
+		);
+	}
 }
 
 export const CodeBlock = ({
 	code,
 	language,
 	showLineNumbers = false,
+	startLine = 1,
+	colorize = true,
 	className,
 	children,
 	...props
@@ -84,16 +112,18 @@ export const CodeBlock = ({
 
 	useEffect(() => {
 		let cancelled = false;
-		highlightCode(code, language, showLineNumbers).then(([light, dark]) => {
-			if (!cancelled) {
-				setHtml(light);
-				setDarkHtml(dark);
-			}
-		});
+		highlightCode(code, language, showLineNumbers, startLine).then(
+			([light, dark]) => {
+				if (!cancelled) {
+					setHtml(light);
+					setDarkHtml(dark);
+				}
+			},
+		);
 		return () => {
 			cancelled = true;
 		};
-	}, [code, language, showLineNumbers]);
+	}, [code, language, showLineNumbers, startLine]);
 
 	return (
 		<CodeBlockContext.Provider value={{ code }}>
@@ -106,12 +136,20 @@ export const CodeBlock = ({
 			>
 				<div className="relative">
 					<div
-						className="overflow-auto dark:hidden [&>pre]:m-0 [&>pre]:bg-background! [&>pre]:p-4 [&>pre]:text-foreground! [&>pre]:text-sm [&_code]:font-mono [&_code]:text-sm"
+						className={cn(
+							"overflow-auto dark:hidden [&>pre]:m-0 [&>pre]:bg-background! [&>pre]:p-4 [&>pre]:text-foreground! [&>pre]:text-sm [&_code]:font-mono [&_code]:text-sm",
+							!colorize &&
+								"[&_span[style]]:!text-foreground [&_.line>.shiki-line-number]:!opacity-50",
+						)}
 						// biome-ignore lint/security/noDangerouslySetInnerHtml: "this is needed."
 						dangerouslySetInnerHTML={{ __html: html }}
 					/>
 					<div
-						className="hidden overflow-auto dark:block [&>pre]:m-0 [&>pre]:bg-background! [&>pre]:p-4 [&>pre]:text-foreground! [&>pre]:text-sm [&_code]:font-mono [&_code]:text-sm"
+						className={cn(
+							"hidden overflow-auto dark:block [&>pre]:m-0 [&>pre]:bg-background! [&>pre]:p-4 [&>pre]:text-foreground! [&>pre]:text-sm [&_code]:font-mono [&_code]:text-sm",
+							!colorize &&
+								"[&_span[style]]:!text-foreground [&_.line>.shiki-line-number]:!opacity-50",
+						)}
 						// biome-ignore lint/security/noDangerouslySetInnerHtml: "this is needed."
 						dangerouslySetInnerHTML={{ __html: darkHtml }}
 					/>

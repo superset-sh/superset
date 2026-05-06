@@ -16,11 +16,18 @@ describe("formatRelativeTime", () => {
 		Date.now = originalDateNow;
 	};
 
-	it('returns "now" for timestamps less than 1 minute ago', () => {
+	it('returns "now" for timestamps less than 5 seconds ago', () => {
 		mockNow();
 		expect(formatRelativeTime(NOW)).toBe("now");
-		expect(formatRelativeTime(NOW - 30 * 1000)).toBe("now"); // 30 seconds ago
-		expect(formatRelativeTime(NOW - 59 * 1000)).toBe("now"); // 59 seconds ago
+		expect(formatRelativeTime(NOW - 4 * 1000)).toBe("now");
+		restoreNow();
+	});
+
+	it("returns seconds for timestamps between 5-59 seconds ago", () => {
+		mockNow();
+		expect(formatRelativeTime(NOW - 5 * 1000)).toBe("5s");
+		expect(formatRelativeTime(NOW - 30 * 1000)).toBe("30s");
+		expect(formatRelativeTime(NOW - 59 * 1000)).toBe("59s");
 		restoreNow();
 	});
 

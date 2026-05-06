@@ -1,4 +1,8 @@
 import type { BranchPrefixMode } from "@superset/local-db";
+import {
+	resolveBranchPrefix,
+	sanitizeSegment,
+} from "@superset/shared/workspace-launch";
 import { Input } from "@superset/ui/input";
 import { Label } from "@superset/ui/label";
 import {
@@ -11,7 +15,6 @@ import {
 import { Switch } from "@superset/ui/switch";
 import { useEffect, useState } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import { resolveBranchPrefix, sanitizeSegment } from "shared/utils/branch";
 import {
 	useDefaultWorktreePath,
 	WorktreeLocationPicker,
@@ -147,7 +150,7 @@ export function GitSettings({ visibleItems }: GitSettingsProps) {
 	return (
 		<div className="p-6 max-w-4xl w-full">
 			<div className="mb-8">
-				<h2 className="text-xl font-semibold">Git & Worktrees</h2>
+				<h2 className="text-xl font-semibold">Git & worktrees</h2>
 				<p className="text-sm text-muted-foreground mt-1">
 					Configure git branch and worktree behavior
 				</p>
@@ -180,9 +183,9 @@ export function GitSettings({ visibleItems }: GitSettingsProps) {
 				{showBranchPrefix && (
 					<div className="flex items-center justify-between">
 						<div className="space-y-0.5">
-							<Label className="text-sm font-medium">Branch Prefix</Label>
+							<Label className="text-sm font-medium">Branch prefix</Label>
 							<p className="text-xs text-muted-foreground">
-								Preview:{" "}
+								Group new branches under a folder.{" "}
 								<code className="bg-muted px-1.5 py-0.5 rounded text-foreground">
 									{previewPrefix
 										? `${previewPrefix}/branch-name`

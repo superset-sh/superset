@@ -1,0 +1,143 @@
+---
+title: Getting Started
+description: Install the Superset CLI, sign in, and run your first commands.
+---
+
+<Callout type="warn">
+The CLI is currently in Beta — commands and flags are still evolving. Make sure you're on the latest version of the CLI if you run into issues.
+</Callout>
+
+The Superset CLI (`superset`) is a single static binary that drives the same
+backend as the desktop app. Use it to manage workspaces, tasks, automations,
+and the local host server from your terminal or from CI.
+
+## Install
+
+```bash
+curl -fsSL https://superset.sh/cli/install.sh | sh
+```
+
+The script auto-detects your platform (macOS Apple Silicon or Linux x86_64) and installs the binary at `/usr/local/bin/superset`.
+
+### Homebrew
+
+```bash
+brew install superset-sh/tap/superset
+```
+
+## Sign in
+
+```bash
+superset auth login
+```
+
+The CLI starts a loopback callback server on `127.0.0.1:51789` (or `51790`
+if busy), opens your browser to the consent page, and stores a session
+token at `~/.superset/config.json`.
+
+If you belong to multiple organizations, you'll be prompted to pick one. To
+skip the prompt and pick directly:
+
+```bash
+superset auth login --organization acme
+```
+
+For CI or other non-interactive environments — where there's no browser to
+complete the OAuth flow — use an API key instead:
+
+```bash
+export SUPERSET_API_KEY=sk_live_…
+superset auth whoami
+```
+
+API keys are issued from the **Settings → API Keys** page in the desktop app.
+
+## Verify your session
+
+```bash
+superset auth whoami
+```
+
+```text
+Signed in as Satya Patel (you@example.com)
+Organization: Acme
+Auth: Session (expires in 32 min)
+```
+
+## Run your first commands
+
+List workspaces on the local machine:
+
+```bash
+superset workspaces list
+```
+
+Create one against an existing project:
+
+```bash
+superset projects list
+superset workspaces create \
+  --project prj_… \
+  --name "fix-login-bug" \
+  --branch fix/login-bug
+```
+
+Trigger an automation immediately:
+
+```bash
+superset automations list
+superset automations run aut_…
+superset automations logs aut_… --follow
+```
+
+## Output modes
+
+Every command prints a TTY-friendly view by default. Two flags switch the
+shape of the output for scripting:
+
+| Flag | Output |
+| --- | --- |
+| `--json` | The data payload as formatted JSON. No envelope. |
+| `--quiet` | One ID per line for arrays of objects with `id`; the ID for single objects; JSON otherwise. |
+
+```bash
+superset tasks list --status in_progress --json | jq '.[].title'
+superset workspaces list --quiet | xargs -L1 superset workspaces delete
+```
+
+When the CLI detects an agent or CI environment (`CLAUDE_CODE`,
+`CLAUDECODE`, `CLAUDE_CODE_ENTRYPOINT`, `CODEX_CLI`, `GEMINI_CLI`,
+`SUPERSET_AGENT`, or `CI` set to a non-empty value), it defaults to JSON
+output unless you pass `--quiet`.
+
+## Local vs. remote hosts
+
+`workspaces`, `projects`, and `automations create/update` accept a
+`--host <id>` flag to pick which host handles the request. When omitted,
+the CLI targets the local machine, talks directly to the host server over
+loopback, and works offline.
+
+To target a different host:
+
+```bash
+superset hosts list
+superset workspaces list --host h_…
+```
+
+Remote calls go through the cloud API and the relay; behavior is otherwise
+identical.
+
+## Where state lives
+
+```text
+~/.superset/config.json                            # auth, active organization
+~/.superset/host/<organizationId>/manifest.json    # host server endpoint + token
+~/.superset/host/<organizationId>/host.db          # local host server DB
+```
+
+`SUPERSET_HOME_DIR` relocates the whole tree, matching the desktop app.
+
+## Next steps
+
+Continue to the [CLI reference](/cli/cli-reference) for every command,
+flag, and output shape.

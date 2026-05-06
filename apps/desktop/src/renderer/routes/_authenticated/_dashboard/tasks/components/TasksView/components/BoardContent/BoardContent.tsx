@@ -1,4 +1,3 @@
-import { Spinner } from "@superset/ui/spinner";
 import { HiCheckCircle } from "react-icons/hi2";
 import type { TaskWithStatus } from "../../hooks/useTasksData";
 import { useTasksData } from "../../hooks/useTasksData";
@@ -18,19 +17,11 @@ export function BoardContent({
 	assigneeFilter,
 	onTaskClick,
 }: BoardContentProps) {
-	const { data, allStatuses, isLoading } = useTasksData({
+	const { data, allStatuses } = useTasksData({
 		filterTab,
 		searchQuery,
 		assigneeFilter,
 	});
-
-	if (isLoading) {
-		return (
-			<div className="flex-1 flex items-center justify-center">
-				<Spinner className="size-5" />
-			</div>
-		);
-	}
 
 	if (data.length === 0) {
 		return (

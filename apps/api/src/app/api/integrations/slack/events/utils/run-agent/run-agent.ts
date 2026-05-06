@@ -370,7 +370,7 @@ async function fetchAgentContext({
 		mcpClient.callTool({ name: "list_task_statuses", arguments: {} }),
 		mcpClient.callTool({
 			name: "list_devices",
-			arguments: { includeOffline: true },
+			arguments: {},
 		}),
 	]);
 
@@ -409,13 +409,12 @@ async function fetchAgentContext({
 			deviceName: string | null;
 			ownerName: string | null;
 			ownerEmail: string;
-			isOnline: boolean;
 		}[];
 	} | null;
 	if (devicesData?.devices?.length) {
 		const lines = devicesData.devices.map(
 			(d) =>
-				`- ${d.deviceName ?? "Unknown"} (id: ${d.deviceId}, owner: ${d.ownerName ?? d.ownerEmail}, status: ${d.isOnline ? "online" : "offline"})`,
+				`- ${d.deviceName ?? "Unknown"} (id: ${d.deviceId}, owner: ${d.ownerName ?? d.ownerEmail})`,
 		);
 		sections.push(`Devices:\n${lines.join("\n")}`);
 	}

@@ -9,6 +9,16 @@ export interface GitRemoteInfo {
 	pushUrl?: string;
 }
 
+export interface GitTrackingRefInfo {
+	remoteName: string;
+	branchName: string;
+}
+
+export interface ExistingPullRequestPushTargetInfo {
+	remote: string;
+	targetBranch: string;
+}
+
 export function isOpenPullRequestState(
 	state: ExistingPullRequest["state"],
 ): boolean {
@@ -74,4 +84,21 @@ export function resolveRemoteNameForExistingPRHead({
 	}
 
 	return null;
+}
+
+export function shouldRetargetPushToExistingPRHead({
+	trackingRef,
+	target,
+}: {
+	trackingRef: GitTrackingRefInfo | null;
+	target: ExistingPullRequestPushTargetInfo;
+}): boolean {
+	if (!trackingRef) {
+		return true;
+	}
+
+	return (
+		trackingRef.remoteName !== target.remote ||
+		trackingRef.branchName !== target.targetBranch
+	);
 }

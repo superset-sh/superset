@@ -1,9 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import {
-	PROJECT_COLOR_DEFAULT,
-	PROJECT_COLORS,
-	PROJECT_CUSTOM_COLORS,
-} from "./project-colors";
+import { PROJECT_COLORS, PROJECT_CUSTOM_COLORS } from "./project-colors";
 
 function hexToRgb(hex: string) {
 	const normalizedHex = hex.replace("#", "");
@@ -32,7 +28,7 @@ describe("PROJECT_COLORS", () => {
 
 		expect(new Set(colorNames).size).toBe(colorNames.length);
 		expect(new Set(colorValues).size).toBe(colorValues.length);
-		expect(PROJECT_COLORS[0]?.value).toBe(PROJECT_COLOR_DEFAULT);
+		expect(PROJECT_COLORS.length).toBeGreaterThan(0);
 	});
 
 	it("keeps custom swatches visually distinct", () => {

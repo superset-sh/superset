@@ -4,12 +4,12 @@ import { mkdir, rename } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { promisify } from "node:util";
 import type { BranchPrefixMode } from "@superset/local-db";
-import friendlyWords from "friendly-words";
 import {
 	sanitizeAuthorPrefix,
 	sanitizeBranchName,
 	sanitizeBranchNameWithMaxLength,
-} from "shared/utils/branch";
+} from "@superset/shared/workspace-launch";
+import friendlyWords from "friendly-words";
 import type { StatusResult } from "simple-git";
 import { runWithPostCheckoutHookTolerance } from "../../utils/git-hook-tolerance";
 import { execGitWithShellPath, getSimpleGitWithShellPath } from "./git-client";
@@ -555,13 +555,13 @@ export async function createWorktree(
 				mainRepoPath,
 				"worktree",
 				"add",
-				worktreePath,
+				// --no-track prevents the new branch from tracking the remote ref
+				// (e.g. origin/main); push.autoSetupRemote handles first-push tracking.
+				"--no-track",
 				"-b",
 				branch,
-				// Append ^{commit} to force Git to treat the startPoint as a commit,
-				// not a branch ref. This prevents implicit upstream tracking when
-				// creating a new branch from a remote branch like origin/main.
-				`${startPoint}^{commit}`,
+				worktreePath,
+				startPoint,
 			],
 			worktreePath,
 		});
@@ -1777,18 +1777,46 @@ export async function createWorktreeFromPr({
 			});
 		}
 
-		await execWithShellEnv(
-			"gh",
-			[
-				"pr",
-				"checkout",
-				String(prInfo.number),
-				"--branch",
-				localBranchName,
-				"--force",
-			],
-			{ cwd: worktreePath, timeout: 120_000 },
-		);
+		try {
+			await execWithShellEnv(
+				"gh",
+				[
+					"pr",
+					"checkout",
+					String(prInfo.number),
+					"--branch",
+					localBranchName,
+					"--force",
+				],
+				{ cwd: worktreePath, timeout: 120_000 },
+			);
+		} catch (ghError) {
+			const ghMsg =
+				ghError instanceof Error ? ghError.message : String(ghError);
+			// `gh pr checkout` can fail with "is not a branch" when the branch name
+			// contains '/' (e.g. "user/feature-branch"). Git has trouble resolving
+			// "origin/user/feature-branch" as a tracking ref inside a worktree.
+			// gh already fetched the remote successfully, so FETCH_HEAD points to
+			// the right commit — fall back to creating the branch without tracking.
+			if (!ghMsg.includes("is not a branch")) {
+				throw ghError;
+			}
+			console.log(
+				`[git] gh pr checkout failed with tracking error for PR #${prInfo.number}, falling back to FETCH_HEAD checkout`,
+			);
+			await execGitWithShellPath(
+				[
+					"-C",
+					worktreePath,
+					"checkout",
+					"-B",
+					localBranchName,
+					"--no-track",
+					"FETCH_HEAD",
+				],
+				{ timeout: 30_000 },
+			);
+		}
 
 		// Enable autoSetupRemote so `git push` just works without -u flag.
 		await execGitWithShellPath(

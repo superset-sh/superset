@@ -1,0 +1,1 @@
+export { useWorkspaceHotkeys } from "./useWorkspaceHotkeys";

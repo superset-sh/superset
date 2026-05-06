@@ -108,50 +108,17 @@ describe("getGitHubStatusQueryPolicy", () => {
 });
 
 describe("getGitHubPRCommentsQueryPolicy", () => {
-	test("fetches review comments without polling when changes is open on diffs", () => {
+	test("polls every 30s when active with a pull request", () => {
 		expect(
 			getGitHubPRCommentsQueryPolicy({
 				hasWorkspaceId: true,
 				hasActivePullRequest: true,
 				isActive: true,
-				isReviewTabActive: false,
-			}),
-		).toEqual({
-			enabled: true,
-			refetchInterval: false,
-			refetchOnWindowFocus: false,
-			staleTime: 30_000,
-		});
-	});
-
-	test("polls review comments while the review tab is active", () => {
-		expect(
-			getGitHubPRCommentsQueryPolicy({
-				hasWorkspaceId: true,
-				hasActivePullRequest: true,
-				isActive: true,
-				isReviewTabActive: true,
 			}),
 		).toEqual({
 			enabled: true,
 			refetchInterval: 30_000,
 			refetchOnWindowFocus: true,
-			staleTime: 30_000,
-		});
-	});
-
-	test("disables comments when there is no active pull request", () => {
-		expect(
-			getGitHubPRCommentsQueryPolicy({
-				hasWorkspaceId: true,
-				hasActivePullRequest: false,
-				isActive: true,
-				isReviewTabActive: true,
-			}),
-		).toEqual({
-			enabled: false,
-			refetchInterval: false,
-			refetchOnWindowFocus: false,
 			staleTime: 30_000,
 		});
 	});

@@ -22,6 +22,7 @@ import {
 import type {
 	AddFileViewerPaneOptions,
 	AddTabWithMultiplePanesOptions,
+	CommentPaneData,
 	TabsState,
 	TabsStore,
 } from "./types";
@@ -34,6 +35,7 @@ import {
 	createBrowserTabWithPane,
 	createChatPane,
 	createChatTabWithPane,
+	createCommentTabWithPane,
 	createDevToolsPane,
 	createFileViewerPane,
 	createPane,
@@ -756,19 +758,18 @@ export const useTabsStore = create<TabsStore>()(
 
 					const tabPaneIds = extractPaneIdsFromLayout(activeTab.layout);
 					const reuseExisting = options.reuseExisting ?? "workspace";
-					const canReuseExistingPane =
-						!options.openInNewTab && reuseExisting !== "none";
-					const existingFileViewerPane = canReuseExistingPane
-						? findReusableFileViewerPane({
-								workspaceId,
-								activeTabId: activeTab.id,
-								tabs: state.tabs,
-								panes: state.panes,
-								tabHistoryStacks: state.tabHistoryStacks,
-								reuseExisting,
-								options,
-							})
-						: null;
+					const existingFileViewerPane =
+						reuseExisting !== "none"
+							? findReusableFileViewerPane({
+									workspaceId,
+									activeTabId: activeTab.id,
+									tabs: state.tabs,
+									panes: state.panes,
+									tabHistoryStacks: state.tabHistoryStacks,
+									reuseExisting,
+									options,
+								})
+							: null;
 
 					if (existingFileViewerPane) {
 						const nextPane = applyFileViewerOpenOptionsToPane(
@@ -828,7 +829,11 @@ export const useTabsStore = create<TabsStore>()(
 
 					// If we found an unpinned (preview) file-viewer pane, reuse it
 					// (skip reuse when explicitly requesting a new tab, e.g. cmd+click)
-					if (fileViewerPanes.length > 0 && canReuseExistingPane) {
+					if (
+						fileViewerPanes.length > 0 &&
+						!options.openInNewTab &&
+						reuseExisting !== "none"
+					) {
 						const paneToReuse = fileViewerPanes[0];
 						const existingFileViewer = paneToReuse.fileViewer;
 						if (!existingFileViewer) {
@@ -1596,6 +1601,89 @@ export const useTabsStore = create<TabsStore>()(
 					if (!result) return;
 
 					set(withDerivedTabNames(result, [targetTabId]));
+				},
+
+				// Comment operations
+				openCommentPane: (workspaceId: string, comment: CommentPaneData) => {
+					const state = get();
+
+					// Reuse an existing comment pane in this workspace if one exists
+					const workspaceTabIds = new Set(
+						state.tabs
+							.filter((t) => t.workspaceId === workspaceId)
+							.map((t) => t.id),
+					);
+					const existingPane = Object.values(state.panes).find(
+						(p) => p.type === "comment" && workspaceTabIds.has(p.tabId),
+					);
+
+					if (existingPane) {
+						const newPanes = {
+							...state.panes,
+							[existingPane.id]: {
+								...existingPane,
+								name: `@${comment.authorLogin}`,
+								comment,
+							},
+						};
+						const tabName = deriveTabName(newPanes, existingPane.tabId);
+						const nextTabs = state.tabs.map((t) =>
+							t.id === existingPane.tabId ? { ...t, name: tabName } : t,
+						);
+						const activationState = activatePaneInWorkspace({
+							workspaceId,
+							paneId: existingPane.id,
+							tabs: nextTabs,
+							panes: newPanes,
+							activeTabIds: state.activeTabIds,
+							focusedPaneIds: state.focusedPaneIds,
+							tabHistoryStacks: state.tabHistoryStacks,
+						});
+
+						if (!activationState) {
+							set({ panes: newPanes, tabs: nextTabs });
+							return { tabId: existingPane.tabId, paneId: existingPane.id };
+						}
+
+						set({ ...activationState, tabs: nextTabs });
+						return { tabId: existingPane.tabId, paneId: existingPane.id };
+					}
+
+					const { tab, pane } = createCommentTabWithPane(workspaceId, comment);
+
+					const currentActiveId = state.activeTabIds[workspaceId];
+					const historyStack = state.tabHistoryStacks[workspaceId] || [];
+					const newHistoryStack = currentActiveId
+						? [
+								currentActiveId,
+								...historyStack.filter((id) => id !== currentActiveId),
+							]
+						: historyStack;
+
+					set({
+						tabs: [...state.tabs, tab],
+						panes: { ...state.panes, [pane.id]: pane },
+						activeTabIds: {
+							...state.activeTabIds,
+							[workspaceId]: tab.id,
+						},
+						focusedPaneIds: {
+							...state.focusedPaneIds,
+							[tab.id]: pane.id,
+						},
+						tabHistoryStacks: {
+							...state.tabHistoryStacks,
+							[workspaceId]: newHistoryStack,
+						},
+					});
+
+					posthog.capture("panel_opened", {
+						panel_type: "comment",
+						workspace_id: workspaceId,
+						pane_id: pane.id,
+					});
+
+					return { tabId: tab.id, paneId: pane.id };
 				},
 
 				// Browser operations

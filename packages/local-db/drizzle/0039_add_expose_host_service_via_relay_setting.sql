@@ -1,0 +1,1 @@
+ALTER TABLE `settings` ADD `expose_host_service_via_relay` integer;

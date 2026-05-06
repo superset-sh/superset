@@ -11,6 +11,10 @@
 		"./integrations/*": {
 			"types": "./src/lib/integrations/*/index.ts",
 			"default": "./src/lib/integrations/*/index.ts"
+		},
+		"./automation-dispatch": {
+			"types": "./src/router/automation/dispatch.ts",
+			"default": "./src/router/automation/dispatch.ts"
 		}
 	},
 	"scripts": {
@@ -26,9 +30,13 @@
 		"@t3-oss/env-core": "^0.13.8",
 		"@trpc/server": "^11.7.1",
 		"@upstash/qstash": "^2.8.4",
+		"@upstash/ratelimit": "^2.0.4",
+		"@upstash/redis": "^1.34.3",
 		"@vercel/blob": "^2.0.0",
 		"@vercel/kv": "^3.0.0",
-		"drizzle-orm": "0.45.1",
+		"drizzle-orm": "0.45.2",
+		"posthog-node": "^5.24.7",
+		"resend": "^4.0.1",
 		"superjson": "^2.2.5",
 		"zod": "^4.3.5"
 	},

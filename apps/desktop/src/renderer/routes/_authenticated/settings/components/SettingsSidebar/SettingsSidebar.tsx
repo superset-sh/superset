@@ -6,20 +6,24 @@ import {
 	HiMagnifyingGlass,
 	HiXMark,
 } from "react-icons/hi2";
+import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import {
 	useSetSettingsSearchQuery,
 	useSettingsOriginRoute,
 	useSettingsSearchQuery,
 } from "renderer/stores/settings-state";
-import { getMatchCountBySection } from "../../utils/settings-search";
+import { getVisibleMatchCountBySection } from "../../utils/settings-search";
 import { GeneralSettings } from "./GeneralSettings";
-import { ProjectsSettings } from "./ProjectsSettings";
 
 export function SettingsSidebar() {
 	const searchQuery = useSettingsSearchQuery();
 	const setSearchQuery = useSetSettingsSearchQuery();
 	const originRoute = useSettingsOriginRoute();
-	const matchCounts = searchQuery ? getMatchCountBySection(searchQuery) : null;
+	const isV2CloudEnabled = useIsV2CloudEnabled();
+	const normalizedSearchQuery = searchQuery.trim();
+	const matchCounts = normalizedSearchQuery
+		? getVisibleMatchCountBySection(normalizedSearchQuery, isV2CloudEnabled)
+		: null;
 
 	return (
 		<div className="w-56 flex flex-col p-3 overflow-hidden">
@@ -58,7 +62,6 @@ export function SettingsSidebar() {
 
 			<div className="flex-1 overflow-y-auto min-h-0">
 				<GeneralSettings matchCounts={matchCounts} />
-				<ProjectsSettings searchQuery={searchQuery} matchCounts={matchCounts} />
 			</div>
 
 			<div className="pt-3 mt-3 border-t border-border">

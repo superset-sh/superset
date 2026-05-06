@@ -1,11 +1,12 @@
 import type { Terminal as XTerm } from "@xterm/xterm";
 import type { Dispatch, MutableRefObject, SetStateAction } from "react";
 import { useEffect, useState } from "react";
-import { useAppHotkey } from "renderer/stores/hotkeys";
+import { useHotkey } from "renderer/hotkeys";
 import { scrollToBottom } from "../utils";
 
 export interface UseTerminalHotkeysOptions {
 	isFocused: boolean;
+	onClear: () => void;
 	xtermRef: MutableRefObject<XTerm | null>;
 }
 
@@ -16,6 +17,7 @@ export interface UseTerminalHotkeysReturn {
 
 export function useTerminalHotkeys({
 	isFocused,
+	onClear,
 	xtermRef,
 }: UseTerminalHotkeysOptions): UseTerminalHotkeysReturn {
 	const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -34,14 +36,17 @@ export function useTerminalHotkeys({
 		}
 	}, [isFocused, xtermRef]);
 
-	useAppHotkey(
-		"FIND_IN_TERMINAL",
-		() => setIsSearchOpen((prev) => !prev),
-		{ enabled: isFocused, preventDefault: true },
-		[isFocused],
-	);
+	useHotkey("FIND_IN_TERMINAL", () => setIsSearchOpen((prev) => !prev), {
+		enabled: isFocused,
+		preventDefault: true,
+	});
 
-	useAppHotkey(
+	useHotkey("CLEAR_TERMINAL", onClear, {
+		enabled: isFocused,
+		preventDefault: true,
+	});
+
+	useHotkey(
 		"SCROLL_TO_BOTTOM",
 		() => {
 			if (xtermRef.current) {
@@ -49,7 +54,6 @@ export function useTerminalHotkeys({
 			}
 		},
 		{ enabled: isFocused, preventDefault: true },
-		[isFocused],
 	);
 
 	return { isSearchOpen, setIsSearchOpen };

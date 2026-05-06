@@ -73,7 +73,11 @@ export function NewWorkspaceModal() {
 		<NewWorkspaceModalDraftProvider onClose={closeModal}>
 			<PromptInputProvider>
 				<PromptInputResetSync />
-				<Dialog open={isOpen} onOpenChange={(open) => !open && closeModal()}>
+				<Dialog
+					modal
+					open={isOpen}
+					onOpenChange={(open) => !open && closeModal()}
+				>
 					<DialogHeader className="sr-only">
 						<DialogTitle>New Workspace</DialogTitle>
 						<DialogDescription>Create a new workspace</DialogDescription>

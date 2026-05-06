@@ -1,0 +1,1 @@
+export { FilePaneHeaderExtras } from "./FilePaneHeaderExtras";

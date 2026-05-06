@@ -2,6 +2,8 @@
 export const AUTH_PROVIDERS = ["github", "google"] as const;
 export type AuthProvider = (typeof AUTH_PROVIDERS)[number];
 
+export const ORGANIZATION_HEADER = "x-superset-organization-id";
+
 // Deep link protocol schemes (used for desktop OAuth callbacks)
 export const PROTOCOL_SCHEMES = {
 	DEV: "superset-dev",
@@ -24,9 +26,14 @@ export const COMPANY = {
 		(process.env.NEXT_PUBLIC_MARKETING_URL || "https://superset.sh") +
 		"/changelog",
 	X_URL: "https://x.com/superset_sh",
+	LINKEDIN_URL: "https://www.linkedin.com/company/superset-sh",
+	YOUTUBE_URL: "https://www.youtube.com/@superset-sh",
 	MAIL_TO: "mailto:founders@superset.sh",
 	REPORT_ISSUE_URL: "https://github.com/superset-sh/superset/issues/new",
 	DISCORD_URL: "https://discord.gg/cZeD9WYcV7",
+	STATUS_URL: "https://status.superset.sh",
+	TRUST_URL: "https://trust.superset.sh",
+	CAREERS_URL: "https://www.ycombinator.com/companies/superset/jobs",
 } as const;
 
 // Theme
@@ -45,12 +52,17 @@ export const TOKEN_CONFIG = {
 	REFRESH_THRESHOLD: 5 * 60,
 } as const;
 
+// Workspace teardown
+export const TEARDOWN_TIMEOUT_MS = 60_000;
+
 // PostHog
 export const POSTHOG_COOKIE_NAME = "superset";
 
 export const FEATURE_FLAGS = {
 	/** Gates access to experimental Electric SQL tasks feature. */
 	ELECTRIC_TASKS_ACCESS: "electric-tasks-access",
+	/** Gates access to the experimental mobile-first agents UI on web. */
+	WEB_AGENTS_UI_ACCESS: "web-agents-ui-access",
 	/** Gates access to GitHub integration (currently buggy, internal only). */
 	GITHUB_INTEGRATION_ACCESS: "github-integration-access",
 	/** Gates access to Slack integration (internal only). */
@@ -59,6 +71,11 @@ export const FEATURE_FLAGS = {
 	CLOUD_ACCESS: "cloud-access",
 	/** When enabled, blocks remote agent execution on the desktop (e.g., for enterprise orgs). */
 	DISABLE_REMOTE_AGENT: "disable-remote-agent",
-	/** Gates access to V2 Cloud features (host-service, cloud sprites). */
-	V2_CLOUD: "v2-cloud",
+	/**
+	 * Gates the Automations feature in the UI (sidebar entry, routes, create
+	 * flow). Complementary to the subscriptions.plan paid-tier check —
+	 * server-side procedures still enforce paid plan; this flag controls
+	 * UI visibility and staged rollout.
+	 */
+	AUTOMATIONS_ACCESS: "automations-access",
 } as const;

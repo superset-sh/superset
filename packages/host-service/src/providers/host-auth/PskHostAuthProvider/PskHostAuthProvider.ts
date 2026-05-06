@@ -11,7 +11,7 @@ export class PskHostAuthProvider implements HostAuthProvider {
 	validate(request: Request): boolean {
 		const header = request.headers.get("authorization");
 		const token = header?.startsWith("Bearer ") ? header.slice(7) : null;
-		return !!token && this.safeEqual(token);
+		return token !== null && this.safeEqual(token);
 	}
 
 	validateToken(token: string): boolean {

@@ -55,6 +55,7 @@ Superset works with any CLI-based coding agent, including:
 
 | Agent | Status |
 |:------|:-------|
+| [Amp Code](https://ampcode.com/) | Fully supported |
 | [Claude Code](https://github.com/anthropics/claude-code) | Fully supported |
 | [OpenAI Codex CLI](https://github.com/openai/codex) | Fully supported |
 | [Cursor Agent](https://docs.cursor.com/agent) | Fully supported |
@@ -113,6 +114,10 @@ echo 'SKIP_ENV_VALIDATION=1' >> .env
 ```bash
 # Install caddy: brew install caddy (macOS) or see https://caddyserver.com/docs/install
 cp Caddyfile.example Caddyfile
+
+# Without this, Chromium rejects https://localhost:* with ERR_CERT_AUTHORITY_INVALID.
+# Prompts for sudo once.
+caddy trust
 ```
 
 **4. Install dependencies and run**
@@ -203,9 +208,9 @@ Scripts have access to environment variables:
 - `SUPERSET_WORKSPACE_NAME` — Name of the workspace
 - `SUPERSET_ROOT_PATH` — Path to the main repository
 
-## Internal Dependency Overrides
+## Mastra Dependencies
 
-For the internal `mastracode` fork/bundle workflow used by this repo, see [docs/mastracode-fork-workflow.md](docs/mastracode-fork-workflow.md).
+This repo uses the published upstream `mastracode` and `@mastra/*` packages directly. Avoid adding custom tarball overrides unless there is a repo-specific blocker.
 
 ## Tech Stack
 

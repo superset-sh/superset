@@ -84,7 +84,7 @@ export function getProviderSubtitle(
 		return status.issue.message;
 	}
 	if (!status || status.connectionState === "disconnected") {
-		return "No account connected";
+		return "";
 	}
 	if (status.source === "external" && status.authMethod === "oauth") {
 		return EXTERNAL_OAUTH_LABELS[providerId];
@@ -101,8 +101,8 @@ export function getProviderSubtitle(
 export function getStatusBadge(
 	status: ModelProviderStatus | undefined,
 ): { label: string; variant: "secondary" | "outline" | "destructive" } | null {
-	if (!status) {
-		return null;
+	if (!status || status.connectionState === "disconnected") {
+		return { label: "Not connected", variant: "outline" };
 	}
 	if (status.issue?.code === "expired") {
 		return { label: "Expired", variant: "destructive" };
@@ -119,22 +119,32 @@ export function getStatusBadge(
 export function resolveProviderStatus(params: {
 	providerId: ProviderId;
 	authStatus?: AuthStatusLike;
-	diagnosticStatus?: ModelProviderStatus;
 }): ModelProviderStatus | undefined {
-	const { providerId, authStatus, diagnosticStatus } = params;
-	if (!authStatus) {
-		return diagnosticStatus;
-	}
+	const { providerId, authStatus } = params;
+	if (!authStatus) return undefined;
+	return deriveModelProviderStatus({ providerId, authStatus });
+}
 
-	return deriveModelProviderStatus({
-		providerId,
-		authStatus,
-		diagnostic: {
-			providerId,
-			issue: authStatus.authenticated
-				? (diagnosticStatus?.issue ?? null)
-				: null,
-			updatedAt: null,
-		},
-	});
+export type ProviderAction =
+	| { kind: "connect" }
+	| { kind: "reconnect" }
+	| { kind: "logout" }
+	| null;
+
+/**
+ * Single source of truth for the provider action button.
+ */
+export function getProviderAction(
+	status: ModelProviderStatus | undefined,
+): ProviderAction {
+	if (!status || status.connectionState === "disconnected") {
+		return { kind: "connect" };
+	}
+	if (status.issue?.remediation === "reconnect") {
+		return { kind: "reconnect" };
+	}
+	if (status.connectionState === "connected") {
+		return { kind: "logout" };
+	}
+	return { kind: "connect" };
 }

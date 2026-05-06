@@ -56,14 +56,14 @@ export function ClickablePath({ path, className }: ClickablePathProps) {
 				<button
 					type="button"
 					className={cn(
-						"group inline-flex items-center gap-2 text-sm font-mono break-all text-left",
-						"text-primary underline decoration-primary/40 underline-offset-2",
-						"hover:decoration-primary transition-colors cursor-pointer",
+						"group inline-flex items-center gap-1.5 text-sm font-mono break-all text-left",
+						"hover:underline decoration-current/40 underline-offset-2",
+						"transition-colors cursor-pointer",
 						className,
 					)}
 				>
 					<span>{path}</span>
-					<LuExternalLink className="size-3.5 shrink-0 opacity-50 group-hover:opacity-100 transition-opacity" />
+					<LuExternalLink className="size-3.5 shrink-0 opacity-0 group-hover:opacity-60 transition-opacity" />
 				</button>
 			</DropdownMenuTrigger>
 			<DropdownMenuContent align="start" className="w-48">

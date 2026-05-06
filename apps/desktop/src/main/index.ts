@@ -13,9 +13,11 @@ import {
 import { makeAppSetup } from "lib/electron-app/factories/app/setup";
 import {
 	handleAuthCallback,
+	loadToken,
 	parseAuthDeepLink,
 } from "lib/trpc/routers/auth/utils/auth-functions";
 import { applyShellEnvToProcess } from "lib/trpc/routers/workspaces/utils/shell-env";
+import { env as mainEnv } from "main/env.main";
 import {
 	DEFAULT_CONFIRM_ON_QUIT,
 	PLATFORM,
@@ -28,14 +30,23 @@ import { setupAutoUpdater } from "./lib/auto-updater";
 import { resolveDevWorkspaceName } from "./lib/dev-workspace-name";
 import { setWorkspaceDockIcon } from "./lib/dock-icon";
 import { loadWebviewBrowserExtension } from "./lib/extensions";
-import { getHostServiceManager } from "./lib/host-service-manager";
+import { getHostServiceCoordinator } from "./lib/host-service-coordinator";
 import { localDb } from "./lib/local-db";
+import { requestLocalNetworkAccess } from "./lib/local-network-permission";
+import {
+	initTanstackDbPersistence,
+	shutdownTanstackDbPersistence,
+} from "./lib/persistence/persistence";
 import { ensureProjectIconsDir, getProjectIconPath } from "./lib/project-icons";
 import { initSentry } from "./lib/sentry";
 import {
 	prewarmTerminalRuntime,
 	reconcileDaemonSessions,
 } from "./lib/terminal";
+import {
+	disposeTerminalHostClient,
+	getTerminalHostClient,
+} from "./lib/terminal-host/client";
 import { disposeTray, initTray } from "./lib/tray";
 import { MainWindow } from "./windows/main";
 
@@ -94,7 +105,7 @@ function findDeepLinkInArgv(argv: string[]): string | undefined {
 	return argv.find((arg) => arg.startsWith(`${PROTOCOL_SCHEME}://`));
 }
 
-function focusMainWindow(): void {
+export function focusMainWindow(): void {
 	const windows = BrowserWindow.getAllWindows();
 	if (windows.length > 0) {
 		const mainWindow = windows[0];
@@ -103,6 +114,9 @@ function focusMainWindow(): void {
 		}
 		mainWindow.show();
 		mainWindow.focus();
+	} else {
+		// Triggers window creation via makeAppSetup's activate handler
+		app.emit("activate");
 	}
 }
 
@@ -148,7 +162,21 @@ app.on("open-url", async (event, url) => {
 });
 
 let isQuitting = false;
-let skipConfirmation = false;
+let skipQuitConfirmation = false;
+
+export function setSkipQuitConfirmation(): void {
+	skipQuitConfirmation = true;
+}
+
+export function quitApp(): void {
+	setSkipQuitConfirmation();
+	app.quit();
+}
+
+/** Bypasses before-quit — services are left running for re-adoption on next launch. */
+export function exitImmediately(): void {
+	app.exit(0);
+}
 
 function getConfirmOnQuitSetting(): boolean {
 	try {
@@ -159,23 +187,11 @@ function getConfirmOnQuitSetting(): boolean {
 	}
 }
 
-export function setSkipQuitConfirmation(): void {
-	skipConfirmation = true;
-}
-
-export function quitWithoutConfirmation(): void {
-	skipConfirmation = true;
-	app.exit(0);
-}
-
 app.on("before-quit", async (event) => {
 	if (isQuitting) return;
 
 	const isDev = process.env.NODE_ENV === "development";
-	const shouldConfirm =
-		!skipConfirmation && !isDev && getConfirmOnQuitSetting();
-
-	if (shouldConfirm) {
+	if (!skipQuitConfirmation && !isDev && getConfirmOnQuitSetting()) {
 		event.preventDefault();
 
 		try {
@@ -188,19 +204,43 @@ app.on("before-quit", async (event) => {
 				message: "Are you sure you want to quit?",
 			});
 
-			if (response === 1) return;
+			if (response === 1) {
+				return;
+			}
 		} catch (error) {
 			console.error("[main] Quit confirmation dialog failed:", error);
 		}
 	}
 
-	// Quit confirmed or no confirmation needed - exit immediately
-	// Let OS clean up child processes, tray, etc.
 	isQuitting = true;
-	getHostServiceManager().stopAll();
-	disposeTray();
+	try {
+		if (isDev) {
+			await runDevQuitCleanup();
+		} else {
+			// Prod: leave services running so the next launch re-adopts via manifest.
+			getHostServiceCoordinator().releaseAll();
+		}
+		shutdownTanstackDbPersistence();
+		disposeTray();
+	} catch (error) {
+		console.error("[main] Cleanup during quit failed:", error);
+	}
 	app.exit(0);
 });
+
+/**
+ * Dev only — kill host-service + terminal-host children. They're spawned
+ * attached + ref'd in dev, so they'd reparent to init without an explicit stop.
+ */
+async function runDevQuitCleanup(): Promise<void> {
+	getHostServiceCoordinator().stopAll();
+	try {
+		await getTerminalHostClient().shutdownIfRunning({ killSessions: true });
+	} catch (err) {
+		console.warn("[main] terminal-host dev shutdown failed:", err);
+	}
+	disposeTerminalHostClient();
+}
 
 process.on("uncaughtException", (error) => {
 	if (isQuitting) return;
@@ -214,9 +254,12 @@ process.on("unhandledRejection", (reason) => {
 
 // Without these handlers, Electron may not quit when electron-vite sends SIGTERM
 if (process.env.NODE_ENV === "development") {
+	let signalHandled = false;
 	const handleTerminationSignal = (signal: string) => {
+		if (signalHandled) return;
+		signalHandled = true;
 		console.log(`[main] Received ${signal}, quitting...`);
-		app.exit(0);
+		void runDevQuitCleanup().finally(() => app.exit(0));
 	};
 
 	process.on("SIGTERM", () => handleTerminationSignal("SIGTERM"));
@@ -237,7 +280,7 @@ if (process.env.NODE_ENV === "development") {
 		if (!isParentAlive()) {
 			console.log("[main] Parent process exited, quitting...");
 			clearInterval(parentCheckInterval);
-			app.exit(0);
+			handleTerminationSignal("parent-exit");
 		}
 	}, 1000);
 	parentCheckInterval.unref();
@@ -282,6 +325,7 @@ if (!gotTheLock) {
 		await app.whenReady();
 		registerWithMacOSNotificationCenter();
 		requestAppleEventsAccess();
+		requestLocalNetworkAccess();
 
 		// Must register on both default session and the app's custom partition
 		const iconProtocolHandler = (request: Request) => {
@@ -317,7 +361,7 @@ if (!gotTheLock) {
 					try {
 						return await net.fetch(pathToFileURL(fontPath).toString());
 					} catch {
-						// Font not in this directory, try next
+						// Not in this directory
 					}
 				}
 				return new Response("Not found", { status: 404 });
@@ -332,6 +376,7 @@ if (!gotTheLock) {
 		setWorkspaceDockIcon();
 		initSentry();
 		await initAppState();
+		initTanstackDbPersistence();
 
 		await loadWebviewBrowserExtension();
 
@@ -345,11 +390,22 @@ if (!gotTheLock) {
 			console.error("[main] Failed to set up agent hooks:", error);
 		}
 
+		// Discover and adopt host-services that survived a previous quit
+		// before the tray initializes, so it shows accurate status immediately.
+		await getHostServiceCoordinator().discoverAll();
+
+		if (IS_DEV) {
+			getHostServiceCoordinator().enableDevReload(async () => {
+				const { token } = await loadToken();
+				if (!token) return null;
+				return { authToken: token, cloudApiUrl: mainEnv.NEXT_PUBLIC_API_URL };
+			});
+		}
+
 		await makeAppSetup(() => MainWindow());
 		setupAutoUpdater();
 		initTray();
 
-		// Process any deep links from cold start
 		const coldStartUrl = findDeepLinkInArgv(process.argv);
 		if (coldStartUrl) {
 			await processDeepLink(coldStartUrl);

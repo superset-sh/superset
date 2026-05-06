@@ -1,0 +1,80 @@
+---
+title: Automations
+description: Schedule agent sessions to run on a recurring basis
+pro: true
+---
+
+## Overview
+
+Automations run an agent session against a project on a schedule — like a cron job, but the output is a live workspace you (or a teammate) can open, review, and continue interactively.
+
+Typical uses:
+
+- **Standups** — a nightly summary of PRs, issues, and activity
+- **Release notes** — generate a draft from merged commits
+- **Audits** — scan for security issues or deprecated APIs each morning
+- **Dependency sweeps** — check for outdated packages weekly
+
+## Requirements
+
+- **Paid plan** — Automations are only available on paid plans. The sidebar entry is hidden for free-plan orgs.
+- **A v2 project** — Automations run against a project that's already linked to a GitHub repo.
+- **A target device** — The run fires on the device you pick when creating the automation.
+
+## Create an Automation
+
+Click **Automations → New automation** and fill in:
+
+- **Title** — how the automation appears in the list
+- **Prompt** — the instructions the agent will receive at dispatch time. Supports markdown, `@file/path` mentions (scoped to the selected project), `:emoji:` shortcodes, and `/` slash commands.
+- **Device** — which host runs the session. Defaults to this device.
+- **Project** — the v2 project the session runs against.
+- **Schedule** — pick a preset or enter a custom RRule. All times are in your local timezone.
+- **Agent** — Claude, Codex, Amp, etc. — anything you've set up under **Settings → Agents**.
+
+## Schedules
+
+Schedules are stored as [RFC 5545 RRules](https://datatracker.ietf.org/doc/html/rfc5545#section-3.8.5). The schedule picker has presets for common cadences; use **Custom RRule…** for anything else.
+
+Examples:
+
+- `FREQ=DAILY;BYHOUR=9;BYMINUTE=0` — every day at 9:00 AM
+- `FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR;BYHOUR=9;BYMINUTE=0` — weekdays at 9:00 AM
+- `FREQ=WEEKLY;BYDAY=FR;BYHOUR=17;BYMINUTE=0` — every Friday at 5:00 PM
+
+## Runs
+
+Each time an automation fires, a **run** is recorded. Runs show up on the automation's detail page with status:
+
+- **dispatched** — the session was successfully handed off to the target device
+- **skipped (offline)** — the target device wasn't online at fire time; the run was skipped and the schedule advanced
+- **dispatch failed** — something broke during handoff; check the error message
+
+When a run dispatches in "new workspace" mode, a fresh workspace is created from the project's repo for that run. Open it from the run row to see the agent's work.
+
+## Pause, Run Now, Delete
+
+From the automation's detail page:
+
+- **Pause** — stops scheduling until you resume. Existing runs are kept.
+- **Run now** — dispatches immediately. The run appears in **Previous runs** within seconds.
+- **Delete** — removes the automation and its run history.
+
+## Limits
+
+- **At-least-once delivery** — Automations may dispatch more than once in rare cases (e.g. dispatcher retries). Design prompts that are safe to re-run.
+- **No completion tracking (v1)** — Runs land at `dispatched`; the detail page doesn't show success/failure of the agent itself. Open the workspace to see what happened.
+- **Offline hosts skip silently** — If your device is offline at fire time, the run is marked `skipped_offline` and the next occurrence is scheduled normally.
+- **One prompt per automation** — Each automation has one prompt. To run multiple prompts on a schedule, create multiple automations.
+
+## CLI
+
+```bash
+superset automations list
+superset automations create --name "Nightly audit" --rrule "FREQ=DAILY;BYHOUR=3;BYMINUTE=0" --project <projectId> --prompt-file prompt.md --agent claude
+superset automations get <id>
+superset automations run <id>
+superset automations pause <id>
+superset automations resume <id>
+superset automations delete <id>
+```

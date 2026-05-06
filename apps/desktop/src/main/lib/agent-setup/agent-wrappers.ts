@@ -1,3 +1,4 @@
+export { createAmpWrapper } from "./agent-wrappers-amp";
 export {
 	buildCodexWrapperExecLine,
 	cleanupGlobalOpenCodePlugin,
@@ -67,3 +68,10 @@ export {
 	getMastraGlobalHooksJsonPath,
 	getMastraHooksJsonContent,
 } from "./agent-wrappers-mastra";
+export {
+	createPiExtension,
+	getPiExtensionContent,
+	getPiExtensionPath,
+	PI_EXTENSION_FILE,
+	PI_EXTENSION_MARKER,
+} from "./agent-wrappers-pi";

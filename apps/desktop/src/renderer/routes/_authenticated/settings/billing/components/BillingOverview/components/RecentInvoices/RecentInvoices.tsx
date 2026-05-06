@@ -42,18 +42,20 @@ export function RecentInvoices() {
 
 	return (
 		<div>
-			<h3 className="text-sm font-medium mb-3">Recent invoices</h3>
-			<div className="space-y-2">
+			<h3 className="text-sm font-medium mb-2">Recent invoices</h3>
+			<div className="divide-y divide-border">
 				{invoices.map((invoice) => (
 					<div
 						key={invoice.id}
-						className="group flex items-center justify-between rounded-lg border bg-card px-4 py-5"
+						className="flex items-center justify-between gap-8 py-3"
 					>
 						<div className="flex items-center gap-6 text-sm">
-							<span className="text-muted-foreground">
+							<span className="text-muted-foreground tabular-nums">
 								{formatDate(invoice.date)}
 							</span>
-							<span>{formatAmount(invoice.amount, invoice.currency)}</span>
+							<span className="tabular-nums">
+								{formatAmount(invoice.amount, invoice.currency)}
+							</span>
 						</div>
 						{invoice.hostedInvoiceUrl ? (
 							<button
@@ -61,7 +63,7 @@ export function RecentInvoices() {
 								onClick={() =>
 									openUrl.mutate(invoice.hostedInvoiceUrl as string)
 								}
-								className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+								className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
 							>
 								View
 								<HiArrowTopRightOnSquare className="h-3 w-3" />

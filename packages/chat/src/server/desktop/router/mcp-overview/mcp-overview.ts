@@ -2,11 +2,37 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { z } from "zod";
 
-const MCP_SETTINGS_FILES = [".mastracode/mcp.json", ".mcp.json"] as const;
-
 const mcpSettingsSchema = z.object({
 	mcpServers: z.record(z.string(), z.unknown()),
 });
+
+const ampMcpSettingsSchema = z.object({
+	"amp.mcpServers": z.record(z.string(), z.unknown()),
+});
+
+const MCP_SETTINGS_FILES = [
+	{
+		relativePath: ".mastracode/mcp.json",
+		readServers: (parsed: unknown) => {
+			const result = mcpSettingsSchema.safeParse(parsed);
+			return result.success ? result.data.mcpServers : null;
+		},
+	},
+	{
+		relativePath: ".mcp.json",
+		readServers: (parsed: unknown) => {
+			const result = mcpSettingsSchema.safeParse(parsed);
+			return result.success ? result.data.mcpServers : null;
+		},
+	},
+	{
+		relativePath: ".amp/settings.json",
+		readServers: (parsed: unknown) => {
+			const result = ampMcpSettingsSchema.safeParse(parsed);
+			return result.success ? result.data["amp.mcpServers"] : null;
+		},
+	},
+] as const;
 
 export type McpServerState = "enabled" | "disabled" | "invalid";
 export type McpServerTransport = "remote" | "local" | "unknown";
@@ -29,7 +55,7 @@ function resolveMcpServers(cwd: string): {
 } {
 	let firstExistingPath: string | null = null;
 
-	for (const relativePath of MCP_SETTINGS_FILES) {
+	for (const { relativePath, readServers } of MCP_SETTINGS_FILES) {
 		const sourcePath = join(cwd, relativePath);
 		if (!existsSync(sourcePath)) {
 			continue;
@@ -46,14 +72,14 @@ function resolveMcpServers(cwd: string): {
 			continue;
 		}
 
-		const result = mcpSettingsSchema.safeParse(parsed);
-		if (!result.success) {
+		const servers = readServers(parsed);
+		if (!servers) {
 			continue;
 		}
 
 		return {
 			sourcePath,
-			servers: result.data.mcpServers,
+			servers,
 		};
 	}
 

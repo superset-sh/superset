@@ -1,7 +1,5 @@
-"use client";
-
-import { MeshGradient } from "@superset/ui/mesh-gradient";
 import type { ReactNode } from "react";
+import { DitheredBackground } from "./components/DitheredBackground";
 
 interface FeatureDemoProps {
 	children: ReactNode;
@@ -16,12 +14,12 @@ export function FeatureDemo({
 }: FeatureDemoProps) {
 	return (
 		<div
-			className={`relative w-full min-h-[300px] lg:aspect-4/3 rounded overflow-hidden ${className}`}
+			className={`relative w-full min-h-[300px] lg:aspect-4/3 overflow-hidden ${className}`}
 		>
 			{/* Background gradient */}
-			<MeshGradient
+			<DitheredBackground
 				colors={colors}
-				className="absolute inset-0 w-full h-full rounded"
+				className="absolute inset-0 w-full h-full"
 			/>
 
 			{/* Content overlay */}

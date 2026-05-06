@@ -138,7 +138,7 @@ export class DaemonTerminalManager extends EventEmitter {
 
 			// Enable port scanning before user opens terminal tabs
 			for (const session of preservedSessions) {
-				portManager.upsertDaemonSession(
+				portManager.upsertSession(
 					session.paneId,
 					session.workspaceId,
 					session.pid,
@@ -191,7 +191,7 @@ export class DaemonTerminalManager extends EventEmitter {
 				session.lastActive = Date.now();
 			}
 
-			portManager.checkOutputForHint(data, paneId);
+			portManager.checkOutputForHint(data);
 			this.historyManager.writeToHistory(paneId, data, () =>
 				this.sessions.get(paneId),
 			);
@@ -210,7 +210,7 @@ export class DaemonTerminalManager extends EventEmitter {
 					session.pid = null;
 				}
 
-				portManager.unregisterDaemonSession(paneId);
+				portManager.unregisterSession(paneId);
 				this.historyManager.closeHistoryWriter(paneId, exitCode);
 				const reason =
 					session?.exitReason ??
@@ -511,7 +511,7 @@ export class DaemonTerminalManager extends EventEmitter {
 				rows: effectiveRows,
 			});
 
-			portManager.upsertDaemonSession(paneId, workspaceId, response.pid);
+			portManager.upsertSession(paneId, workspaceId, response.pid);
 
 			const snapshotAnsi = response.snapshot.snapshotAnsi || "";
 			const snapshotAnsiBytes = Buffer.byteLength(snapshotAnsi, "utf8");
@@ -592,19 +592,11 @@ export class DaemonTerminalManager extends EventEmitter {
 			rawScrollbackBytes > MAX_SCROLLBACK_BYTES
 				? truncateUtf8ToLastBytes(rawScrollback, MAX_SCROLLBACK_BYTES)
 				: rawScrollback;
-		const scrollbackBytes = Buffer.byteLength(scrollback, "utf8");
-
 		this.coldRestoreInfo.set(paneId, {
 			scrollback,
 			previousCwd: metadata.cwd,
 			cols: metadata.cols || cols,
 			rows: metadata.rows || rows,
-		});
-
-		track("terminal_cold_restored", {
-			workspace_id: workspaceId,
-			pane_id: paneId,
-			scrollback_bytes: scrollbackBytes,
 		});
 
 		return {
@@ -722,7 +714,7 @@ export class DaemonTerminalManager extends EventEmitter {
 			session.pid = null;
 		}
 
-		portManager.unregisterDaemonSession(paneId);
+		portManager.unregisterSession(paneId);
 
 		if (deleteHistory && session) {
 			await this.historyManager.cleanupHistory(paneId, session.workspaceId);
@@ -855,7 +847,7 @@ export class DaemonTerminalManager extends EventEmitter {
 					session.pid = null;
 				}
 
-				portManager.unregisterDaemonSession(paneId);
+				portManager.unregisterSession(paneId);
 				await this.historyManager.cleanupHistory(paneId, workspaceId);
 				await this.client.kill({ sessionId: paneId, deleteHistory: true });
 			}),
@@ -974,7 +966,7 @@ export class DaemonTerminalManager extends EventEmitter {
 			await this.client.killAll({});
 		}
 		for (const paneId of sessionIds) {
-			portManager.unregisterDaemonSession(paneId);
+			portManager.unregisterSession(paneId);
 		}
 		this.daemonAliveSessionIds.clear();
 		this.daemonSessionIdsHydrated = true;

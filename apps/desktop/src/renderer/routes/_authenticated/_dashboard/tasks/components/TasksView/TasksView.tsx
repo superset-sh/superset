@@ -1,4 +1,3 @@
-import { Spinner } from "@superset/ui/spinner";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -78,7 +77,7 @@ export function TasksView({
 		storeSetSearch(searchQuery);
 	}, [searchQuery, storeSetSearch]);
 
-	const { data: integrations, isLoading: isCheckingLinear } = useLiveQuery(
+	const { data: integrations } = useLiveQuery(
 		(q) =>
 			q
 				.from({ integrationConnections: collections.integrationConnections })
@@ -134,7 +133,7 @@ export function TasksView({
 		});
 	};
 
-	const showLinearCTA = !isCheckingLinear && !isLinearConnected;
+	const showLinearCTA = integrations !== undefined && !isLinearConnected;
 
 	return (
 		<div className="flex-1 flex flex-col min-h-0 min-w-0 overflow-hidden">
@@ -153,11 +152,7 @@ export function TasksView({
 				/>
 			)}
 
-			{isCheckingLinear ? (
-				<div className="flex-1 flex items-center justify-center">
-					<Spinner className="size-5" />
-				</div>
-			) : showLinearCTA ? (
+			{showLinearCTA ? (
 				<LinearCTA />
 			) : viewMode === "board" ? (
 				<BoardContent

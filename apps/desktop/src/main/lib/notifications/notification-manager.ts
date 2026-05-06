@@ -64,13 +64,16 @@ export class NotificationManager {
 		const title = this.deps.getNotificationTitle(event);
 
 		const isPermissionRequest = event.eventType === "PermissionRequest";
+		const isPendingQuestion = event.eventType === "PendingQuestion";
 		const notification = this.deps.createNotification({
-			title: isPermissionRequest
-				? `Input Needed — ${workspaceName}`
-				: `Agent Complete — ${workspaceName}`,
-			body: isPermissionRequest
-				? `"${title}" needs your attention`
-				: `"${title}" has finished its task`,
+			title:
+				isPermissionRequest || isPendingQuestion
+					? `Awaiting Response — ${workspaceName}`
+					: `Agent Complete — ${workspaceName}`,
+			body:
+				isPermissionRequest || isPendingQuestion
+					? `"${title}" is waiting for your reply`
+					: `"${title}" has finished its task`,
 			silent: true,
 		});
 

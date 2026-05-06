@@ -117,6 +117,8 @@ export function WorkspaceSidebar({
 				projectName={activeProjectName}
 			/>
 
+			{!isCollapsed && <V2AvailableBanner />}
+
 			<WorkspaceSidebarFooter isCollapsed={isCollapsed} />
 			<MultiDragPreview />
 		</SidebarDropZone>

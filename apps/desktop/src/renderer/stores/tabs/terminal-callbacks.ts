@@ -5,10 +5,6 @@ interface TerminalCallbacksState {
 	scrollToBottomCallbacks: Map<string, () => void>;
 	getSelectionCallbacks: Map<string, () => string>;
 	pasteCallbacks: Map<string, (text: string) => void>;
-	restartCallbacks: Map<
-		string,
-		(options?: { command?: string; forceRestart?: boolean }) => Promise<void>
-	>;
 	registerClearCallback: (paneId: string, callback: () => void) => void;
 	unregisterClearCallback: (paneId: string) => void;
 	getClearCallback: (paneId: string) => (() => void) | undefined;
@@ -30,22 +26,6 @@ interface TerminalCallbacksState {
 	) => void;
 	unregisterPasteCallback: (paneId: string) => void;
 	getPasteCallback: (paneId: string) => ((text: string) => void) | undefined;
-	registerRestartCallback: (
-		paneId: string,
-		callback: (options?: {
-			command?: string;
-			forceRestart?: boolean;
-		}) => Promise<void>,
-	) => void;
-	unregisterRestartCallback: (paneId: string) => void;
-	getRestartCallback: (
-		paneId: string,
-	) =>
-		| ((options?: {
-				command?: string;
-				forceRestart?: boolean;
-		  }) => Promise<void>)
-		| undefined;
 }
 
 export const useTerminalCallbacksStore = create<TerminalCallbacksState>()(
@@ -54,7 +34,6 @@ export const useTerminalCallbacksStore = create<TerminalCallbacksState>()(
 		scrollToBottomCallbacks: new Map(),
 		getSelectionCallbacks: new Map(),
 		pasteCallbacks: new Map(),
-		restartCallbacks: new Map(),
 
 		registerClearCallback: (paneId, callback) => {
 			set((state) => {
@@ -134,26 +113,6 @@ export const useTerminalCallbacksStore = create<TerminalCallbacksState>()(
 
 		getPasteCallback: (paneId) => {
 			return get().pasteCallbacks.get(paneId);
-		},
-
-		registerRestartCallback: (paneId, callback) => {
-			set((state) => {
-				const newCallbacks = new Map(state.restartCallbacks);
-				newCallbacks.set(paneId, callback);
-				return { restartCallbacks: newCallbacks };
-			});
-		},
-
-		unregisterRestartCallback: (paneId) => {
-			set((state) => {
-				const newCallbacks = new Map(state.restartCallbacks);
-				newCallbacks.delete(paneId);
-				return { restartCallbacks: newCallbacks };
-			});
-		},
-
-		getRestartCallback: (paneId) => {
-			return get().restartCallbacks.get(paneId);
 		},
 	}),
 );

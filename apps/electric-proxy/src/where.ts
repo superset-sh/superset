@@ -1,5 +1,7 @@
 import {
 	agentCommands,
+	automationRuns,
+	automations,
 	chatSessions,
 	devicePresence,
 	githubPullRequests,
@@ -9,14 +11,13 @@ import {
 	members,
 	organizations,
 	projects,
-	sessionHosts,
 	subscriptions,
 	taskStatuses,
 	tasks,
-	v2DevicePresence,
-	v2Devices,
+	v2Clients,
+	v2Hosts,
 	v2Projects,
-	v2UsersDevices,
+	v2UsersHosts,
 	v2Workspaces,
 	workspaces,
 } from "@superset/db/schema";
@@ -55,22 +56,14 @@ export function buildWhereClause(
 		case "v2_projects":
 			return build(v2Projects, v2Projects.organizationId, organizationId);
 
-		case "v2_devices":
-			return build(v2Devices, v2Devices.organizationId, organizationId);
+		case "v2_hosts":
+			return build(v2Hosts, v2Hosts.organizationId, organizationId);
 
-		case "v2_device_presence":
-			return build(
-				v2DevicePresence,
-				v2DevicePresence.organizationId,
-				organizationId,
-			);
+		case "v2_clients":
+			return build(v2Clients, v2Clients.organizationId, organizationId);
 
-		case "v2_users_devices":
-			return build(
-				v2UsersDevices,
-				v2UsersDevices.organizationId,
-				organizationId,
-			);
+		case "v2_users_hosts":
+			return build(v2UsersHosts, v2UsersHosts.organizationId, organizationId);
 
 		case "v2_workspaces":
 			return build(v2Workspaces, v2Workspaces.organizationId, organizationId);
@@ -135,9 +128,6 @@ export function buildWhereClause(
 		case "chat_sessions":
 			return build(chatSessions, chatSessions.organizationId, organizationId);
 
-		case "session_hosts":
-			return build(sessionHosts, sessionHosts.organizationId, organizationId);
-
 		case "github_repositories":
 			return build(
 				githubRepositories,
@@ -149,6 +139,16 @@ export function buildWhereClause(
 			return build(
 				githubPullRequests,
 				githubPullRequests.organizationId,
+				organizationId,
+			);
+
+		case "automations":
+			return build(automations, automations.organizationId, organizationId);
+
+		case "automation_runs":
+			return build(
+				automationRuns,
+				automationRuns.organizationId,
 				organizationId,
 			);
 

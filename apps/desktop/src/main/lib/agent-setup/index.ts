@@ -1,26 +1,5 @@
 import fs from "node:fs";
-import {
-	cleanupGlobalOpenCodePlugin,
-	createClaudeSettingsJson,
-	createClaudeWrapper,
-	createCodexHooksJson,
-	createCodexWrapper,
-	createCopilotHookScript,
-	createCopilotWrapper,
-	createCursorAgentWrapper,
-	createCursorHookScript,
-	createCursorHooksJson,
-	createDroidSettingsJson,
-	createDroidWrapper,
-	createGeminiHookScript,
-	createGeminiSettingsJson,
-	createGeminiWrapper,
-	createMastraHooksJson,
-	createMastraWrapper,
-	createOpenCodePlugin,
-	createOpenCodeWrapper,
-} from "./agent-wrappers";
-import { createNotifyScript } from "./notify-hook";
+import { setupDesktopAgentCapabilities } from "./desktop-agent-setup";
 import {
 	BASH_DIR,
 	BIN_DIR,
@@ -45,27 +24,7 @@ export function setupAgentHooks(): void {
 	fs.mkdirSync(BASH_DIR, { recursive: true });
 	fs.mkdirSync(OPENCODE_PLUGIN_DIR, { recursive: true });
 
-	cleanupGlobalOpenCodePlugin();
-
-	createNotifyScript();
-	createClaudeSettingsJson();
-	createClaudeWrapper();
-	createCodexHooksJson();
-	createCodexWrapper();
-	createDroidWrapper();
-	createDroidSettingsJson();
-	createOpenCodePlugin();
-	createOpenCodeWrapper();
-	createCursorHookScript();
-	createCursorAgentWrapper();
-	createCursorHooksJson();
-	createGeminiHookScript();
-	createGeminiWrapper();
-	createGeminiSettingsJson();
-	createMastraWrapper();
-	createMastraHooksJson();
-	createCopilotHookScript();
-	createCopilotWrapper();
+	setupDesktopAgentCapabilities();
 
 	createZshWrapper();
 	createBashWrapper();

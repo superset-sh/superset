@@ -1,0 +1,1 @@
+export { TemplateGalleryPanel } from "./TemplateGalleryPanel";

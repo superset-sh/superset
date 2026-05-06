@@ -45,13 +45,34 @@ export class BootErrorBoundary extends Component<
 					textAlign: "center",
 				}}
 			>
-				<div style={{ maxWidth: "520px" }}>
+				<div className="select-text" style={{ maxWidth: "520px" }}>
 					<h1 style={{ fontSize: "18px", marginBottom: "8px" }}>
 						Superset failed to start
 					</h1>
 					<p style={{ fontSize: "14px", opacity: 0.8 }}>
 						The renderer crashed during startup. Please check logs for details.
 					</p>
+					{this.state.error?.message && (
+						<pre
+							className="select-text cursor-text"
+							style={{
+								marginTop: "12px",
+								padding: "10px 12px",
+								fontSize: "12px",
+								fontFamily:
+									"ui-monospace, SFMono-Regular, Menlo, Monaco, monospace",
+								background: "#1a1a1a",
+								border: "1px solid #2a2a2a",
+								borderRadius: "6px",
+								color: "#f87171",
+								textAlign: "left",
+								whiteSpace: "pre-wrap",
+								wordBreak: "break-word",
+							}}
+						>
+							{this.state.error.message}
+						</pre>
+					)}
 
 					<button
 						type="button"

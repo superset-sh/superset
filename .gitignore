@@ -1,5 +1,6 @@
 # Logs
 logs
+!packages/cli/src/commands/automations/logs
 *.log
 npm-debug.log*
 yarn-debug.log*
@@ -35,6 +36,7 @@ yarn.lock
 # Env variables
 .env
 .env.*
+!.bun-version
 
 mise.toml
 
@@ -84,3 +86,11 @@ superset-dev-data/
 !.codex/config.toml
 !.codex/commands
 !.codex/prompts
+.amp/*
+
+# MCP config (contains per-user server URLs/tokens)
+.mcp.json
+.cursor/mcp.json
+
+# Local-only plans (not tracked)
+plans/local/

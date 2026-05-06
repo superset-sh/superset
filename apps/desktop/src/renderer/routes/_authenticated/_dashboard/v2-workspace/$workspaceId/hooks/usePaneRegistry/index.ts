@@ -1,0 +1,1 @@
+export { usePaneRegistry } from "./usePaneRegistry";

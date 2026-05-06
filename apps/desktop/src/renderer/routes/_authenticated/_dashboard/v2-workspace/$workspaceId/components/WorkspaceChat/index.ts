@@ -1,1 +1,0 @@
-export { WorkspaceChat } from "./WorkspaceChat";

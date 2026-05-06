@@ -1,0 +1,139 @@
+name: Build CLI
+
+# Reusable build workflow. Callers (ci-cli.yml, release-cli.yml) pass a
+# matrix as JSON to control which targets to build.
+
+on:
+  workflow_call:
+    inputs:
+      targets:
+        description: 'JSON array of {os, target} build matrix entries'
+        required: true
+        type: string
+      upload:
+        description: 'Upload built tarballs as artifacts (release pipeline needs them; PR CI does not)'
+        required: false
+        type: boolean
+        default: true
+
+jobs:
+  build:
+    name: Build ${{ matrix.target }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(inputs.targets) }}
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: .bun-version
+
+      - name: Setup Node.js (for native addon compilation)
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+        with:
+          node-version: 22
+
+      - name: Install dependencies (Linux — skip scripts, rebuild manually)
+        if: startsWith(matrix.target, 'linux-')
+        run: |
+          # Bun's install-script runner has a cache materialization race
+          # against node-pty's compile-from-source path on Linux (node-pty
+          # ships no Linux prebuilds). Skip scripts at install, then rebuild
+          # native deps explicitly via npm/node-gyp.
+          #
+          # better-sqlite3 is intentionally NOT rebuilt here: build-dist.ts's
+          # fixNativeBinariesForNode() unconditionally downloads the matching
+          # Node-ABI prebuild from GitHub releases and overwrites the .node
+          # file. Running `npm rebuild better-sqlite3` here is redundant work
+          # and a CI flake source — its `prebuild-install || node-gyp rebuild`
+          # install script intermittently truncates the prebuild download or
+          # leaves partial state that breaks the gyp fallback on linux-x64.
+          set -euo pipefail
+          bun install --frozen --ignore-scripts
+          PTY_DIR=$(ls -d node_modules/.bun/node-pty@*/node_modules/node-pty)
+          (cd "$PTY_DIR" && npx --yes node-gyp rebuild)
+          npm rebuild @parcel/watcher
+
+      - name: Install dependencies (macOS)
+        if: startsWith(matrix.target, 'darwin-')
+        run: bun install --frozen
+
+      - name: Build distribution
+        working-directory: packages/cli
+        env:
+          RELAY_URL: ${{ secrets.RELAY_URL }}
+          SUPERSET_API_URL: ${{ vars.SUPERSET_API_URL }}
+          SUPERSET_WEB_URL: ${{ vars.SUPERSET_WEB_URL }}
+        run: bun run build:dist --target=${{ matrix.target }}
+
+      - name: Smoke test binary
+        run: |
+          # Resolve dist as an absolute path before changing cwd. The smoke
+          # tests below run from /tmp instead of the workspace because
+          # Node's module resolution walks up from cwd before consulting
+          # NODE_PATH — staying in $GITHUB_WORKSPACE leaks into the host
+          # repo's node_modules and silently masks bundle issues.
+          DIST="$(pwd)/packages/cli/dist/superset-${{ matrix.target }}"
+          "$DIST/bin/superset" --version
+          "$DIST/bin/superset" --help
+          "$DIST/lib/node" --version
+          test -f "$DIST/lib/host-service.js" || (echo "missing host-service.js" >&2; exit 1)
+          test -f "$DIST/lib/pty-daemon.js" || (echo "missing pty-daemon.js" >&2; exit 1)
+          if [[ "${{ matrix.target }}" == darwin-* ]]; then
+            ARCH="${{ matrix.target }}"
+            ARCH="${ARCH#darwin-}"
+            HELPER="$DIST/lib/node_modules/node-pty/prebuilds/darwin-$ARCH/spawn-helper"
+            test -x "$HELPER" || (echo "spawn-helper not executable: $HELPER" >&2; exit 1)
+          fi
+          cd /tmp
+          NODE_PATH="$DIST/lib/node_modules" "$DIST/lib/node" -e '
+            for (const m of ["better-sqlite3", "node-pty", "@parcel/watcher", "libsql"]) {
+              require(m);
+              console.log(m, "OK");
+            }
+          '
+          # Actually spawn a PTY against the bundled Node + bundled prebuild.
+          # Catches the runtime failures `require()` can't see — spawn-helper
+          # exec bit, pty.node ABI mismatch, arch mismatch, etc. Asserts
+          # node-pty resolves to the bundled copy so a host-tree leak
+          # (described above) doesn't silently make this pass.
+          NODE_PATH="$DIST/lib/node_modules" DIST="$DIST" "$DIST/lib/node" -e '
+            const resolved = require.resolve("node-pty/lib/unixTerminal");
+            if (!resolved.startsWith(process.env.DIST)) {
+              console.error("node-pty leaked from non-bundled tree:", resolved);
+              process.exit(1);
+            }
+            const pty = require("node-pty");
+            const term = pty.spawn("/bin/sh", ["-c", "echo SPAWN_OK"], {
+              name: "xterm", cols: 80, rows: 24,
+              cwd: process.env.HOME || "/", env: process.env,
+            });
+            let got = "";
+            let exited = null;
+            const check = () => {
+              if (got.includes("SPAWN_OK") && exited && exited.exitCode === 0) {
+                console.log("pty spawn OK"); process.exit(0);
+              }
+              console.error("pty spawn FAIL exit=" + (exited && exited.exitCode) + " got=" + JSON.stringify(got));
+              process.exit(1);
+            };
+            term.onData((d) => { got += d.toString(); });
+            // onExit can fire before the final onData chunk is delivered
+            // (SIGCHLD and EOF on the pty master are independent events).
+            // Defer the assertion one tick so any in-flight onData runs first.
+            term.onExit((e) => { exited = e; setTimeout(check, 100); });
+            setTimeout(() => { console.error("pty spawn timeout"); process.exit(1); }, 5000);
+          '
+
+      - name: Upload tarball
+        if: inputs.upload
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
+        with:
+          name: superset-${{ matrix.target }}
+          path: packages/cli/dist/superset-${{ matrix.target }}.tar.gz
+          if-no-files-found: error

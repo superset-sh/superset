@@ -1,6 +1,10 @@
 import { useNavigate, useParams } from "@tanstack/react-router";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
+import {
+	getWorkspaceFocusTargetAfterRemoval,
+	removeWorkspaceFromGroups,
+} from "./utils/workspace-removal";
 
 type CloseContext = {
 	previousGrouped: ReturnType<
@@ -13,6 +17,7 @@ type CloseContext = {
 	>["workspaces"]["getAll"]["getData"] extends () => infer R
 		? R
 		: never;
+	wasViewingClosed: boolean;
 };
 
 /**
@@ -31,6 +36,8 @@ export function useCloseWorkspace(
 	return electronTrpc.workspaces.close.useMutation({
 		...options,
 		onMutate: async ({ id }) => {
+			const wasViewingClosed = params.workspaceId === id;
+
 			// Cancel outgoing refetches to avoid overwriting optimistic update
 			await Promise.all([
 				utils.workspaces.getAll.cancel(),
@@ -38,42 +45,38 @@ export function useCloseWorkspace(
 			]);
 
 			// Snapshot previous values for rollback
-			const previousGrouped = utils.workspaces.getAllGrouped.getData();
+			const previousGrouped =
+				utils.workspaces.getAllGrouped.getData() ??
+				(wasViewingClosed
+					? await utils.workspaces.getAllGrouped.fetch().catch((error) => {
+							console.warn(
+								"Failed to fetch grouped workspaces during close",
+								error,
+							);
+							return undefined;
+						})
+					: undefined);
 			const previousAll = utils.workspaces.getAll.getData();
+
+			// If the closed workspace is currently being viewed, navigate away using
+			// the pre-removal order.
+			if (wasViewingClosed) {
+				const targetWorkspaceId = getWorkspaceFocusTargetAfterRemoval(
+					previousGrouped,
+					id,
+				);
+				if (targetWorkspaceId) {
+					navigateToWorkspace(targetWorkspaceId, navigate);
+				} else {
+					navigate({ to: "/workspace" });
+				}
+			}
 
 			// Optimistically remove workspace from getAllGrouped cache
 			if (previousGrouped) {
 				utils.workspaces.getAllGrouped.setData(
 					undefined,
-					previousGrouped
-						.map((group) => {
-							const isTopLevelWorkspace = group.workspaces.some(
-								(w) => w.id === id,
-							);
-							const workspaces = group.workspaces.filter((w) => w.id !== id);
-							const sections = group.sections.map((section) => ({
-								...section,
-								workspaces: section.workspaces.filter((w) => w.id !== id),
-							}));
-
-							return {
-								...group,
-								workspaces,
-								sections,
-								topLevelItems: isTopLevelWorkspace
-									? group.topLevelItems.filter((item) => item.id !== id)
-									: group.topLevelItems,
-							};
-						})
-						.filter(
-							(group) =>
-								group.workspaces.length +
-									group.sections.reduce(
-										(sum, section) => sum + section.workspaces.length,
-										0,
-									) >
-								0,
-						),
+					removeWorkspaceFromGroups(previousGrouped, id),
 				);
 			}
 
@@ -86,9 +89,9 @@ export function useCloseWorkspace(
 			}
 
 			// Return context for rollback
-			return { previousGrouped, previousAll } as CloseContext;
+			return { previousGrouped, previousAll, wasViewingClosed } as CloseContext;
 		},
-		onError: (_err, _variables, context) => {
+		onError: async (err, variables, context, ...rest) => {
 			// Rollback to previous state on error
 			if (context?.previousGrouped !== undefined) {
 				utils.workspaces.getAllGrouped.setData(
@@ -99,33 +102,16 @@ export function useCloseWorkspace(
 			if (context?.previousAll !== undefined) {
 				utils.workspaces.getAll.setData(undefined, context.previousAll);
 			}
+			if (context?.wasViewingClosed) {
+				navigateToWorkspace(variables.id, navigate);
+			}
+			await options?.onError?.(err, variables, context, ...rest);
 		},
 		onSuccess: async (data, variables, ...rest) => {
 			// Invalidate to ensure consistency with backend state
 			await utils.workspaces.invalidate();
 			// Invalidate project queries since close updates project metadata
 			await utils.projects.getRecents.invalidate();
-
-			// If the closed workspace is currently being viewed, navigate away
-			if (params.workspaceId === variables.id) {
-				// Try to navigate to previous workspace first, then next
-				const prevWorkspaceId =
-					await utils.workspaces.getPreviousWorkspace.fetch({
-						id: variables.id,
-					});
-				const nextWorkspaceId = await utils.workspaces.getNextWorkspace.fetch({
-					id: variables.id,
-				});
-
-				const targetWorkspaceId = prevWorkspaceId ?? nextWorkspaceId;
-
-				if (targetWorkspaceId) {
-					navigateToWorkspace(targetWorkspaceId, navigate);
-				} else {
-					// No other workspaces, navigate to workspace index (shows StartView)
-					navigate({ to: "/workspace" });
-				}
-			}
 
 			// Call user's onSuccess if provided
 			await options?.onSuccess?.(data, variables, ...rest);

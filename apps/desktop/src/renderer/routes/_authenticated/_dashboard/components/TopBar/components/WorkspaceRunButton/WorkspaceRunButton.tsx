@@ -15,9 +15,9 @@ import {
 	HiMiniStop,
 	HiMiniXMark,
 } from "react-icons/hi2";
+import { useHotkeyDisplay } from "renderer/hotkeys";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useWorkspaceRunCommand } from "renderer/routes/_authenticated/_dashboard/workspace/$workspaceId/hooks/useWorkspaceRunCommand";
-import { useHotkeyText } from "renderer/stores/hotkeys";
 import { useSetSettingsSearchQuery } from "renderer/stores/settings-state";
 
 interface WorkspaceRunButtonProps {
@@ -33,7 +33,7 @@ export const WorkspaceRunButton = memo(function WorkspaceRunButton({
 }: WorkspaceRunButtonProps) {
 	const navigate = useNavigate();
 	const setSettingsSearchQuery = useSetSettingsSearchQuery();
-	const hotkeyText = useHotkeyText("RUN_WORKSPACE_COMMAND");
+	const hotkeyText = useHotkeyDisplay("RUN_WORKSPACE_COMMAND").text;
 	const {
 		canForceStop,
 		forceStopWorkspaceRun,
@@ -57,7 +57,7 @@ export const WorkspaceRunButton = memo(function WorkspaceRunButton({
 		if (!hasRunCommand && projectId) {
 			setSettingsSearchQuery("scripts");
 			void navigate({
-				to: "/settings/project/$projectId/general",
+				to: "/settings/projects/$projectId",
 				params: { projectId },
 			});
 			return;
@@ -76,7 +76,7 @@ export const WorkspaceRunButton = memo(function WorkspaceRunButton({
 		if (!projectId) return;
 		setSettingsSearchQuery("scripts");
 		void navigate({
-			to: "/settings/project/$projectId/general",
+			to: "/settings/projects/$projectId",
 			params: { projectId },
 		});
 	}, [navigate, projectId, setSettingsSearchQuery]);
@@ -142,6 +142,10 @@ export const WorkspaceRunButton = memo(function WorkspaceRunButton({
 							"focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
 							"active:scale-[0.98]",
 							isPending && "opacity-50 pointer-events-none",
+							isRunning
+								? "text-emerald-300 border-emerald-500/25 bg-emerald-500/10 hover:bg-emerald-500/20"
+								: !hasRunCommand &&
+										"text-muted-foreground/80 border-border/40 bg-secondary/40",
 						)}
 					>
 						<HiChevronDown className="size-3.5" />

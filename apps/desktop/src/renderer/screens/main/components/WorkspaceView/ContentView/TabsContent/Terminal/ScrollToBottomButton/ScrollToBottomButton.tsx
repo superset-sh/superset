@@ -3,7 +3,7 @@ import { cn } from "@superset/ui/utils";
 import type { Terminal } from "@xterm/xterm";
 import { useCallback, useEffect, useState } from "react";
 import { HiArrowDown } from "react-icons/hi2";
-import { useHotkeyText } from "renderer/stores/hotkeys";
+import { useHotkeyDisplay } from "renderer/hotkeys";
 import { scrollToBottom } from "../utils";
 
 interface ScrollToBottomButtonProps {
@@ -12,7 +12,7 @@ interface ScrollToBottomButtonProps {
 
 export function ScrollToBottomButton({ terminal }: ScrollToBottomButtonProps) {
 	const [isVisible, setIsVisible] = useState(false);
-	const shortcutText = useHotkeyText("SCROLL_TO_BOTTOM");
+	const shortcutText = useHotkeyDisplay("SCROLL_TO_BOTTOM").text;
 	const showShortcut = shortcutText !== "Unassigned";
 
 	const checkScrollPosition = useCallback(() => {

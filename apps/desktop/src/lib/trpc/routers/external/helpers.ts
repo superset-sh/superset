@@ -267,10 +267,28 @@ export function stripPathWrappers(filePath: string): string {
 	return result;
 }
 
+export class RelativePathWithoutCwdError extends Error {
+	readonly originalPath: string;
+	constructor(originalPath: string) {
+		super(
+			`resolvePath received a relative path (${JSON.stringify(originalPath)}) without a cwd. ` +
+				"Pass an absolute path, or supply cwd (e.g. the workspace worktreePath). " +
+				"Falling back to process.cwd() would resolve against Electron's working directory and silently produce wrong paths.",
+		);
+		this.name = "RelativePathWithoutCwdError";
+		this.originalPath = originalPath;
+	}
+}
+
 /**
  * Resolve a path by expanding ~ and converting relative paths to absolute.
  * Also handles file:// URLs by converting them to regular file paths.
  * Strips wrapping characters like quotes, parentheses, brackets, etc.
+ *
+ * Throws `RelativePathWithoutCwdError` if the input resolves to a relative
+ * path and no `cwd` was supplied — callers must be explicit about what
+ * relative paths are relative to. (A silent `process.cwd()` fallback would
+ * point at Electron's working directory, not the workspace.)
  */
 export function resolvePath(filePath: string, cwd?: string): string {
 	let resolved = stripPathWrappers(filePath);
@@ -293,9 +311,8 @@ export function resolvePath(filePath: string, cwd?: string): string {
 	}
 
 	if (!nodePath.isAbsolute(resolved)) {
-		resolved = cwd
-			? nodePath.resolve(cwd, resolved)
-			: nodePath.resolve(resolved);
+		if (!cwd) throw new RelativePathWithoutCwdError(filePath);
+		resolved = nodePath.resolve(cwd, resolved);
 	}
 
 	return resolved;

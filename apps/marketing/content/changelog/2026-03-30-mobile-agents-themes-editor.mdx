@@ -1,0 +1,41 @@
+---
+title: Mobile agents, SOC 2 pen test passed, and theme marketplace
+date: 2026-03-30
+image: /changelog/mobile-agents.png
+---
+
+## Mobile Agents Experience (WIP) <PRBadge url="https://github.com/superset-sh/superset/pull/2595" />
+
+We're building out a mobile-first agents experience in the web app. This is still a work in progress, but you can already browse, start, and monitor agents from your phone with an interface designed for smaller screens. More to come here.
+
+## SOC 2 Compliance & Pen Test Passed
+
+The big news this week: Superset now passes its independent penetration test and meets SOC 2 compliance requirements. We shipped a round of security hardening based on findings from the pen test. This is a major milestone for teams that need enterprise-grade security assurances.
+
+## Theme Marketplace <PRBadge url="https://github.com/superset-sh/superset/pull/2966" />
+
+![Theme Marketplace](/changelog/marketplace.png)
+
+Browse and install themes from the new theme marketplace. When your system is set to auto mode, you can now independently configure which theme is used for light and dark <PRBadge url="https://github.com/superset-sh/superset/pull/2557" />.
+
+## Improvements
+- **Open in editor from worktrees** - Jump straight from a worktree into your external editor <PRBadge url="https://github.com/superset-sh/superset/pull/2999" />
+- **Cmd-click file paths** - File paths in chat or output can be Cmd-clicked to open in your editor <PRBadge url="https://github.com/superset-sh/superset/pull/2903" />
+- **New workspace modal UX** - Cleaner layout with icon buttons and server-side PR search <PRBadge url="https://github.com/superset-sh/superset/pull/2980" /> <PRBadge url="https://github.com/superset-sh/superset/pull/2909" />
+- **Close workspace hotkey** - `Cmd+W` to close a workspace <PRBadge url="https://github.com/superset-sh/superset/pull/2907" />
+- **Settings search indicator** - Visual indicator when a search filter is active in settings <PRBadge url="https://github.com/superset-sh/superset/pull/2997" />
+- **Terminal flow control** - Hardened backlog and flow control to prevent output drops under heavy load <PRBadge url="https://github.com/superset-sh/superset/pull/3006" />
+
+---
+
+**Bug fixes**
+
+- Fixed PTY spawn failure leaving zombie sessions that blocked new terminals <PRBadge url="https://github.com/superset-sh/superset/pull/2963" />
+- Batched PTY output to prevent bun dev crashes in terminal <PRBadge url="https://github.com/superset-sh/superset/pull/3001" />
+- Preserved chat cursor position <PRBadge url="https://github.com/superset-sh/superset/pull/2993" />
+- Restored Codex loading state <PRBadge url="https://github.com/superset-sh/superset/pull/2998" />
+- Fixed workspace search regressions <PRBadge url="https://github.com/superset-sh/superset/pull/2979" />
+- Honored linked PR push targets <PRBadge url="https://github.com/superset-sh/superset/pull/2977" />
+- Fixed worktree deletion <PRBadge url="https://github.com/superset-sh/superset/pull/2929" />
+- Removed spurious terminal backpressure warning <PRBadge url="https://github.com/superset-sh/superset/pull/2996" />
+- Restored native text editing shortcuts in chat <PRBadge url="https://github.com/superset-sh/superset/pull/2676" />
