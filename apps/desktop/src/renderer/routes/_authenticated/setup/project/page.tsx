@@ -17,6 +17,7 @@ import { LuFolder, LuX } from "react-icons/lu";
 import { useEnsureV2Project } from "renderer/hooks/useEnsureV2Project";
 import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { useFinalizeProjectSetup } from "renderer/react-query/projects/useFinalizeProjectSetup";
 import { useOpenProject } from "renderer/react-query/projects/useOpenProject";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { STEP_ROUTES, useOnboardingStore } from "renderer/stores/onboarding";
@@ -44,6 +45,7 @@ function OnboardingProjectPage() {
 	const isV2CloudEnabled = useIsV2CloudEnabled();
 	const { activeHostUrl } = useLocalHostService();
 	const ensureV2Project = useEnsureV2Project();
+	const finalizeProjectSetup = useFinalizeProjectSetup();
 	const [isContinuing, setIsContinuing] = useState(false);
 	const v2NeedsHost = isV2CloudEnabled && !activeHostUrl;
 	const closeProject = electronTrpc.projects.close.useMutation({
@@ -113,10 +115,16 @@ function OnboardingProjectPage() {
 		let navigateProjectId = project.id;
 		if (isV2CloudEnabled) {
 			try {
-				navigateProjectId = await ensureV2Project({
+				const result = await ensureV2Project({
 					repoPath: project.mainRepoPath,
 					name: project.name,
 				});
+				finalizeProjectSetup(result.hostUrl, {
+					projectId: result.projectId,
+					repoPath: result.repoPath,
+					mainWorkspaceId: result.mainWorkspaceId,
+				});
+				navigateProjectId = result.projectId;
 				await utils.projects.getRecents.invalidate();
 			} catch (err) {
 				toast.error(
@@ -138,9 +146,14 @@ function OnboardingProjectPage() {
 			setIsContinuing(true);
 			try {
 				for (const project of projects) {
-					await ensureV2Project({
+					const result = await ensureV2Project({
 						repoPath: project.mainRepoPath,
 						name: project.name,
+					});
+					finalizeProjectSetup(result.hostUrl, {
+						projectId: result.projectId,
+						repoPath: result.repoPath,
+						mainWorkspaceId: result.mainWorkspaceId,
 					});
 				}
 				await utils.projects.getRecents.invalidate();

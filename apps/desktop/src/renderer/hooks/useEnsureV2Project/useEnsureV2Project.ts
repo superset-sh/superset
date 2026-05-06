@@ -2,10 +2,18 @@ import { useCallback } from "react";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 
+export interface EnsureV2ProjectResult {
+	hostUrl: string;
+	projectId: string;
+	repoPath: string;
+	mainWorkspaceId: string | null;
+}
+
 /**
- * Ensures a v2 cloud project exists for `repoPath`, returning the v2 project
- * id. Used during onboarding to mint the v2_projects row that v2 workspace
- * creation FK-depends on.
+ * Ensures a v2 cloud project exists for `repoPath`, returning the resolved
+ * project id (and main workspace id when the host can produce one). Used
+ * during onboarding to mint the v2_projects row that v2 workspace creation
+ * FK-depends on.
  *
  * Strategy:
  *  1. `findByPath` — returns either an existing local sqlite row OR a cloud
@@ -18,12 +26,13 @@ import { useLocalHostService } from "renderer/routes/_authenticated/providers/Lo
  *     and a local sqlite row sharing the same id.
  *
  * Net effect: always returns a v2 cloud project id whose v2_workspaces FK is
- * satisfiable.
+ * satisfiable. Callers can pass the result straight to `useFinalizeProjectSetup`
+ * to pin the project (and main workspace, if any) to the sidebar.
  */
 export function useEnsureV2Project(): (args: {
 	repoPath: string;
 	name: string;
-}) => Promise<string> {
+}) => Promise<EnsureV2ProjectResult> {
 	const { activeHostUrl } = useLocalHostService();
 
 	return useCallback(
@@ -37,11 +46,16 @@ export function useEnsureV2Project(): (args: {
 			const candidate = found.candidates[0];
 			if (candidate) {
 				try {
-					await hostService.project.setup.mutate({
+					const setupResult = await hostService.project.setup.mutate({
 						projectId: candidate.id,
 						mode: { kind: "import", repoPath },
 					});
-					return candidate.id;
+					return {
+						hostUrl: activeHostUrl,
+						projectId: candidate.id,
+						repoPath: setupResult.repoPath,
+						mainWorkspaceId: setupResult.mainWorkspaceId,
+					};
 				} catch (err) {
 					// `findByPath` returns local sqlite rows even when no cloud v2
 					// project exists for that id; setup → v2Project.get → NOT_FOUND in
@@ -57,7 +71,12 @@ export function useEnsureV2Project(): (args: {
 				name,
 				mode: { kind: "importLocal", repoPath },
 			});
-			return created.projectId;
+			return {
+				hostUrl: activeHostUrl,
+				projectId: created.projectId,
+				repoPath: created.repoPath,
+				mainWorkspaceId: created.mainWorkspaceId,
+			};
 		},
 		[activeHostUrl],
 	);

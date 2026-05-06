@@ -8,7 +8,9 @@ import { useEnsureV2Project } from "renderer/hooks/useEnsureV2Project";
 import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import { track } from "renderer/lib/analytics";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { useFinalizeProjectSetup } from "renderer/react-query/projects/useFinalizeProjectSetup";
 import { useImportExternalWorktrees } from "renderer/react-query/workspaces/useImportExternalWorktrees";
+import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { STEP_ROUTES, useOnboardingStore } from "renderer/stores/onboarding";
 import { useWorkspaceCreates } from "renderer/stores/workspace-creates";
@@ -189,9 +191,15 @@ function AdoptWorktreesContent({
 	const { submit } = useWorkspaceCreates();
 	const { machineId, activeHostUrl } = useLocalHostService();
 	const ensureV2Project = useEnsureV2Project();
+	const finalizeProjectSetup = useFinalizeProjectSetup();
+	const { ensureWorkspaceInSidebar } = useDashboardSidebarState();
 	const [results, setResults] = useState<Record<string, ProjectResult>>({});
 	const [selected, setSelected] = useState<SelectionState>({});
 	const [isV2Importing, setIsV2Importing] = useState(false);
+	const [v2Progress, setV2Progress] = useState<{
+		current: number;
+		total: number;
+	} | null>(null);
 	const v2NeedsHost = isV2CloudEnabled && !activeHostUrl;
 
 	const allLoaded = projects.every((p) => results[p.id]?.loaded);
@@ -254,7 +262,9 @@ function AdoptWorktreesContent({
 				toast.error("No active host");
 				return;
 			}
+			const totalToImport = totalSelected;
 			setIsV2Importing(true);
+			setV2Progress({ current: 0, total: totalToImport });
 			try {
 				for (const project of projects) {
 					const paths = Array.from(selected[project.id] ?? []);
@@ -264,9 +274,15 @@ function AdoptWorktreesContent({
 
 					let v2ProjectId: string;
 					try {
-						v2ProjectId = await ensureV2Project({
+						const ensureResult = await ensureV2Project({
 							repoPath: project.mainRepoPath,
 							name: project.name,
+						});
+						v2ProjectId = ensureResult.projectId;
+						finalizeProjectSetup(ensureResult.hostUrl, {
+							projectId: ensureResult.projectId,
+							repoPath: ensureResult.repoPath,
+							mainWorkspaceId: ensureResult.mainWorkspaceId,
 						});
 					} catch (err) {
 						toast.error(
@@ -292,13 +308,16 @@ function AdoptWorktreesContent({
 						if (result.ok) {
 							totalImported++;
 							firstImportedV2Id = firstImportedV2Id ?? result.workspaceId;
+							ensureWorkspaceInSidebar(result.workspaceId, v2ProjectId);
 						} else {
 							toast.error(`Failed to import ${wt.branch}: ${result.error}`);
 						}
+						setV2Progress({ current: totalImported, total: totalToImport });
 					}
 				}
 			} finally {
 				setIsV2Importing(false);
+				setV2Progress(null);
 			}
 		} else {
 			for (const project of projects) {
@@ -335,11 +354,13 @@ function AdoptWorktreesContent({
 			<StepHeader
 				title="Adopt existing worktrees"
 				subtitle={
-					!allLoaded
-						? "Scanning your projects for unadopted worktrees…"
-						: nothingToAdopt
-							? "All worktrees on disk are already tracked."
-							: `Found ${total} worktree${total === 1 ? "" : "s"} on disk that aren't yet tracked.`
+					isV2Importing && v2Progress
+						? `Creating ${v2Progress.current} of ${v2Progress.total} workspace${v2Progress.total === 1 ? "" : "s"} in v2…`
+						: !allLoaded
+							? "Scanning your projects for unadopted worktrees…"
+							: nothingToAdopt
+								? "All worktrees on disk are already tracked."
+								: `Found ${total} worktree${total === 1 ? "" : "s"} on disk that aren't yet tracked.`
 				}
 			/>
 
@@ -381,13 +402,15 @@ function AdoptWorktreesContent({
 								v2NeedsHost
 							}
 						>
-							{importExternalWorktrees.isPending || isV2Importing
-								? "Importing…"
-								: v2NeedsHost
-									? "Connecting…"
-									: totalSelected === 0
-										? "Select worktrees"
-										: `Import ${totalSelected} selected`}
+							{isV2Importing && v2Progress
+								? `Importing ${v2Progress.current} of ${v2Progress.total}…`
+								: importExternalWorktrees.isPending || isV2Importing
+									? "Importing…"
+									: v2NeedsHost
+										? "Connecting…"
+										: totalSelected === 0
+											? "Select worktrees"
+											: `Import ${totalSelected} selected`}
 						</SetupButton>
 						<SetupButton
 							variant="link"
