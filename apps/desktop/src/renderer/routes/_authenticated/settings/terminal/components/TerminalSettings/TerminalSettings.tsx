@@ -47,7 +47,7 @@ export function TerminalSettings({
 	pendingCreateProjectId,
 	onPendingCreateProjectIdChange,
 }: TerminalSettingsProps) {
-	const { isV2CloudEnabled } = useIsV2CloudEnabled();
+	const isV2CloudEnabled = useIsV2CloudEnabled();
 	const showPresets = isItemVisible(
 		SETTING_ITEM_ID.TERMINAL_PRESETS,
 		visibleItems,

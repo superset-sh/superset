@@ -11,7 +11,7 @@ export const Route = createFileRoute("/_authenticated/settings/links/")({
 
 function LinksSettingsPage() {
 	const searchQuery = useSettingsSearchQuery();
-	const { isV2CloudEnabled } = useIsV2CloudEnabled();
+	const isV2CloudEnabled = useIsV2CloudEnabled();
 
 	const visibleItems = useMemo(
 		() =>

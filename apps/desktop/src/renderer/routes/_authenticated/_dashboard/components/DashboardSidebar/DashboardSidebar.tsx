@@ -24,6 +24,7 @@ import { useMatchRoute, useNavigate } from "@tanstack/react-router";
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { HiOutlineCog6Tooth } from "react-icons/hi2";
+import { V2AvailableBanner } from "renderer/components/V2AvailableBanner";
 import { useHotkeyDisplay } from "renderer/hotkeys";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
@@ -236,6 +237,7 @@ export function DashboardSidebar({
 								projectName={activeV2Project.name}
 							/>
 						)}
+						{!isCollapsed && <V2AvailableBanner />}
 						<div
 							className={cn(
 								"border-t border-border",

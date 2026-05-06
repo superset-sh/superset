@@ -1,19 +1,13 @@
 import { useEffect } from "react";
 import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import { posthog } from "renderer/lib/posthog";
-import { useV2LocalOverrideStore } from "renderer/stores/v2-local-override";
 
 export function PostHogSurfaceTagger() {
-	const { isV2CloudEnabled, isRemoteV2Enabled } = useIsV2CloudEnabled();
-	const optInV2 = useV2LocalOverrideStore((s) => s.optInV2);
+	const isV2CloudEnabled = useIsV2CloudEnabled();
 
 	useEffect(() => {
 		const surface = isV2CloudEnabled ? "v2" : "v1";
-		const surface_source = !isRemoteV2Enabled
-			? "v2-flag-off"
-			: optInV2
-				? "opted-in"
-				: "opted-out";
+		const surface_source = isV2CloudEnabled ? "opted-in" : "opted-out";
 
 		posthog.register({ surface, surface_source });
 
@@ -24,7 +18,7 @@ export function PostHogSurfaceTagger() {
 				surface_ever_v2: true,
 			});
 		}
-	}, [isV2CloudEnabled, isRemoteV2Enabled, optInV2]);
+	}, [isV2CloudEnabled]);
 
 	return null;
 }

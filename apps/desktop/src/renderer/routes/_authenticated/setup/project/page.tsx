@@ -41,7 +41,7 @@ function OnboardingProjectPage() {
 		electronTrpc.projects.getRecents.useQuery();
 	const { openNew, isPending: isOpenPending } = useOpenProject();
 	const utils = electronTrpc.useUtils();
-	const { isV2CloudEnabled } = useIsV2CloudEnabled();
+	const isV2CloudEnabled = useIsV2CloudEnabled();
 	const closeProject = electronTrpc.projects.close.useMutation({
 		onSuccess: async () => {
 			await utils.projects.getRecents.invalidate();
