@@ -28,7 +28,14 @@ AI review coming next.
 
 ## Superset CLI
 
-The missing piece for full agent automation. The CLI lets you (and your agent) drive Superset from anywhere — read and write workspaces, terminals, and automations end-to-end <PRBadge url="https://github.com/superset-sh/superset/pull/3638" /> <PRBadge url="https://github.com/superset-sh/superset/pull/3640" />. Drop the Superset CLI skill into your agent and let it do the orchestration.
+The missing piece for full agent automation. The `superset` CLI is a single static binary that drives the same backend as the desktop app — sign in with `superset auth login`, then create workspaces, tail terminals, and trigger automations from anywhere <PRBadge url="https://github.com/superset-sh/superset/pull/3638" /> <PRBadge url="https://github.com/superset-sh/superset/pull/3640" />. Hand the Superset CLI skill to your agent and let it do the orchestration.
+
+```bash
+curl -fsSL https://superset.sh/cli/install.sh | sh
+superset auth login
+```
+
+[CLI docs →](https://docs.superset.sh/cli/getting-started)
 
 ## A real IDE shell
 
