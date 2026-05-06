@@ -113,9 +113,8 @@ export const searchPullRequests = protectedProcedure
 
 		const effectiveQuery = normalized.query;
 
-		// First-class: shell to user's `gh` — no cloud dep, picks up local
-		// `gh auth login`. Falls back to Octokit if gh isn't installed,
-		// isn't authenticated, or otherwise errors.
+		// gh-first uses the user's local `gh auth login`; falls back to
+		// Octokit when gh is missing, unauthed, or errors.
 		try {
 			if (normalized.isDirectLookup) {
 				const prNumber = Number.parseInt(effectiveQuery, 10);

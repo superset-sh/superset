@@ -25,23 +25,16 @@ export interface ResolvedGithubRepo {
 }
 
 /**
- * Resolve `{owner, name, repoPath}` for a project by reading the **live**
- * GitHub remote of the local clone. Both the cloud `repoCloneUrl` and the
- * cached `projects.repoOwner`/`repoName` columns are setup-time snapshots
- * that drift (rename, fork, manual remote re-point); GitHub queries must
- * always target wherever the user's actual remote points right now.
+ * Resolve `{owner, name, repoPath}` for a project from the **live** local
+ * git remote. Cloud `repoCloneUrl` and cached `projects.repoOwner`/`repoName`
+ * are setup-time snapshots that drift on rename/fork/remote re-point;
+ * GitHub queries must target wherever the remote points right now.
  *
- * Two layers of canonicalization here, both intentional:
+ * `rev-parse --show-toplevel` validates the path is a git repo.
+ * `getGitHubRemotes` reads via `git config --get-regexp ^remote\..*\.url$`
+ * to avoid `git remote -v`'s `[blob:none]` partial-clone markers.
  *
- *   1. `git rev-parse --show-toplevel` resolves the stored repoPath to its
- *      canonical git working-tree root and confirms it's a git repo.
- *   2. `getGitHubRemotes` reads remote URLs via
- *      `git config --get-regexp ^remote\..*\.url$` — the machine-stable
- *      path. We avoid `git remote -v` because it appends partial-clone
- *      markers (`[blob:none]`) when `remote.<name>.promisor` is set.
- *
- * Prefers the user-configured `remoteName` from project setup, then
- * `origin`, then the first GitHub remote on the repo.
+ * Remote preference: configured `remoteName` → `origin` → first GitHub remote.
  */
 export async function resolveGithubRepo(
 	ctx: HostServiceContext,

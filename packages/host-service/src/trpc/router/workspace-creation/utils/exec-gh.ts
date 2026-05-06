@@ -10,10 +10,10 @@ export interface ExecGhOptions {
 }
 
 /**
- * Shell out to the user's `gh` CLI. Uses the user's existing `gh auth login`,
- * which avoids credential-manager plumbing and matches V1's behavior. Returns
- * parsed JSON when stdout looks like JSON, otherwise the trimmed string.
- * Throws on non-zero exit (caller treats that as an opportunity to fall back).
+ * Shell to `gh`. Relies on the user's existing `gh auth login` rather than
+ * the git credential manager, matching V1. Returns parsed JSON when stdout
+ * is JSON, else the trimmed string. Throws on non-zero exit so callers can
+ * fall back.
  */
 export type ExecGh = (
 	args: string[],

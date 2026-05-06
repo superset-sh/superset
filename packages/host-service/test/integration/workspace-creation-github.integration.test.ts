@@ -8,11 +8,9 @@ import { projects } from "../../src/db/schema";
 import { createTestHost, type TestHost } from "../helpers/createTestHost";
 
 /**
- * Set up a real temp git working tree with a configured GitHub remote and
- * insert a host-side `projects` row pointing at it. The PR/issue search
- * procedures resolve owner/name by reading the live remote of this clone,
- * so tests need a real `.git` here — no fakery substitutes for the actual
- * `git remote get-url`.
+ * Real temp git working tree with a remote, plus a `projects` row pointing
+ * at it. Procedures resolve owner/name from the live remote, so tests need
+ * a real `.git` — no fake substitutes for `git remote get-url`.
  */
 async function seedRepoFixture(
 	host: TestHost,
@@ -214,9 +212,10 @@ describe("resolveGithubRepo trusts the live local remote, never the cloud", () =
 	};
 
 	beforeEach(async () => {
+		// Cloud says `somewhere/else`; local remote is `cli/cli`. The
+		// resolver MUST follow the local remote.
 		host = await createTestHost({
 			githubFactory: async () => fakeOctokit,
-			// Cloud says one repo (`somewhere/else`)…
 			apiOverrides: {
 				"v2Project.get.query": () => ({
 					id: projectId,
@@ -225,8 +224,6 @@ describe("resolveGithubRepo trusts the live local remote, never the cloud", () =
 				}),
 			},
 		});
-		// …but the local remote points at `cli/cli`. Resolver MUST follow the
-		// local remote, not the cloud value.
 		repoDir = await seedRepoFixture(
 			host,
 			projectId,
@@ -245,9 +242,6 @@ describe("resolveGithubRepo trusts the live local remote, never the cloud", () =
 			query: "#33",
 		});
 		expect(result.pullRequests).toHaveLength(1);
-		// repoMismatch detection runs on the resolved repo. If the resolver
-		// were trusting cloud `repoCloneUrl`, the cli/cli URL we'd construct
-		// for the result would mismatch `somewhere/else` and return no PRs.
 		expect(result.pullRequests[0].url).toContain("github.com/cli/cli");
 	});
 
@@ -287,9 +281,8 @@ describe("resolveGithubRepo prefers the user-configured remoteName", () => {
 
 	beforeEach(async () => {
 		host = await createTestHost({ githubFactory: async () => fakeOctokit });
-		// Repo has both `origin` (the user's fork) and `upstream` (where PRs
-		// actually live). Project setup recorded `upstream` as the configured
-		// remote — resolver must honor that, not silently default to origin.
+		// origin → user's fork, upstream → real source, configured = upstream.
+		// Resolver must honor `remoteName=upstream`, not default to origin.
 		repoDir = mkdtempSync(join(tmpdir(), "ws-creation-github-test-"));
 		const git = simpleGit(repoDir);
 		await git.init(["--initial-branch=main"]);
@@ -319,9 +312,6 @@ describe("resolveGithubRepo prefers the user-configured remoteName", () => {
 			projectId,
 			query: "#5",
 		});
-		// Octokit fallback (no execGh wired in test): asserting the URL
-		// resolves to upstream-org/cli proves the resolver picked the
-		// configured remote over origin.
 		expect(result.pullRequests).toHaveLength(1);
 		expect(result.pullRequests[0].url).toContain("github.com/upstream-org/cli");
 	});
@@ -332,7 +322,6 @@ describe("resolveGithubRepo throws PROJECT_NOT_SETUP when no local clone", () =>
 	const projectId = randomUUID();
 
 	beforeEach(async () => {
-		// No projects row, no local clone — but cloud has the project.
 		host = await createTestHost({
 			apiOverrides: {
 				"v2Project.get.query": () => ({
@@ -364,9 +353,9 @@ describe("gh CLI is first-class when execGh succeeds", () => {
 	const projectId = randomUUID();
 	const ghCalls: Array<{ args: string[]; cwd?: string }> = [];
 
+	// Octokit must NOT be hit when gh succeeds — throws turn accidental
+	// fallbacks into loud failures.
 	const fakeOctokit = {
-		// Octokit must NOT be hit when gh succeeds. Throwing here makes any
-		// accidental fallback fail the test loudly.
 		pulls: {
 			get: async () => {
 				throw new Error("octokit must not be called when gh succeeds");
@@ -462,9 +451,7 @@ describe("gh CLI is first-class when execGh succeeds", () => {
 			"--repo",
 			"octocat/hello",
 		]);
-		// `simpleGit.revparse(--show-toplevel)` canonicalizes through
-		// /private on macOS (where /var is a symlink), so compare against
-		// the realpath rather than the raw mkdtemp result.
+		// `rev-parse --show-toplevel` canonicalizes /var → /private/var on macOS.
 		expect(ghCalls[0].cwd).toBe(realpathSync(repoDir));
 	});
 

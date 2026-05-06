@@ -111,9 +111,8 @@ export async function createTestHost(
 			: undefined,
 		execGh: options.execGh
 			? (options.execGh as CreateAppOptions["execGh"])
-			: // Default to a stub that always rejects, so tests that don't set
-				// up `execGh` exercise the Octokit fallback instead of accidentally
-				// shelling out to a real `gh` on the host.
+			: // Reject by default so unconfigured tests exercise the Octokit
+				// fallback rather than shelling to a real `gh` on the host.
 				async () => {
 					throw new Error("execGh not configured in test");
 				},

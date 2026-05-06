@@ -82,9 +82,8 @@ export function PRLinkCommand({
 		retry: false,
 	});
 
-	// Toast once per error transition. Previously the dropdown's empty-state
-	// hid PR-search failures behind "No open pull requests", which made
-	// upstream tRPC errors invisible to users.
+	// One toast per error transition — without this, the dropdown's
+	// empty-state silently hides upstream tRPC failures.
 	const lastToastedError = useRef<string | null>(null);
 	useEffect(() => {
 		const msg = error instanceof Error ? error.message : null;
