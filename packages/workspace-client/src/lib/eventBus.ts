@@ -4,6 +4,7 @@ import type {
 	ServerMessage,
 } from "@superset/host-service/events";
 import type { FsWatchEvent } from "@superset/workspace-fs/host";
+import { primeRelayAffinity } from "./primeRelayAffinity";
 
 type EventType =
 	| "fs:events"
@@ -173,31 +174,44 @@ function connect(
 	if (state.disposed) return;
 
 	const wsUrl = buildEventBusUrl(hostUrl, getWsToken());
-	const socket = new WebSocket(wsUrl);
-	state.socket = socket;
-
-	socket.onopen = () => {
-		state.reconnectAttempts = 0;
-
-		// Re-send all active fs:watch commands
-		for (const workspaceId of state.fsWatchedWorkspaces.keys()) {
-			sendCommand(state, { type: "fs:watch", workspaceId });
+	// Pre-flight an HTTP request to lock fly's edge affinity to the owning
+	// machine before the WS upgrade. fly-replay isn't transparent to all WS
+	// clients on the upgrade itself, but is on plain HTTP, so a quick GET
+	// avoids the connect → 1006 close → reconnect flicker.
+	void primeRelayAffinity(wsUrl).then(() => {
+		if (state.disposed || state.socket) return;
+		let socket: WebSocket;
+		try {
+			socket = new WebSocket(wsUrl);
+		} catch {
+			scheduleReconnect(state, hostUrl, getWsToken);
+			return;
 		}
-	};
+		state.socket = socket;
 
-	socket.onmessage = (event) => {
-		handleMessage(state, event.data);
-	};
+		socket.onopen = () => {
+			state.reconnectAttempts = 0;
 
-	socket.onclose = () => {
-		if (state.disposed) return;
-		state.socket = null;
-		scheduleReconnect(state, hostUrl, getWsToken);
-	};
+			// Re-send all active fs:watch commands
+			for (const workspaceId of state.fsWatchedWorkspaces.keys()) {
+				sendCommand(state, { type: "fs:watch", workspaceId });
+			}
+		};
 
-	socket.onerror = () => {
-		// onclose will fire after onerror
-	};
+		socket.onmessage = (event) => {
+			handleMessage(state, event.data);
+		};
+
+		socket.onclose = () => {
+			if (state.disposed) return;
+			state.socket = null;
+			scheduleReconnect(state, hostUrl, getWsToken);
+		};
+
+		socket.onerror = () => {
+			// onclose will fire after onerror
+		};
+	});
 }
 
 function scheduleReconnect(

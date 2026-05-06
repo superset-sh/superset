@@ -1,3 +1,4 @@
+import { primeRelayAffinity } from "@superset/workspace-client";
 import type { Terminal as XTerm } from "@xterm/xterm";
 
 export type ConnectionState = "disconnected" | "connecting" | "open" | "closed";
@@ -218,13 +219,62 @@ export function connect(
 	const actualUrl = transport._hasReceivedBytes
 		? appendQueryParam(wsUrl, "replay", "0")
 		: wsUrl;
-	const socket = new WebSocket(actualUrl);
-	// Receive PTY bytes as ArrayBuffer (the default would be Blob, which
-	// forces an async read); we want to feed bytes synchronously into
-	// xterm.write to keep render order strict.
-	socket.binaryType = "arraybuffer";
-	transport.socket = socket;
 
+	const openSocket = () => {
+		// Bail if the transport raced into a different URL or was disconnected
+		// while the pre-flight was in flight.
+		if (
+			transport.currentUrl !== wsUrl ||
+			transport.connectionState !== "connecting"
+		) {
+			return;
+		}
+		let socket: WebSocket;
+		try {
+			socket = new WebSocket(actualUrl);
+		} catch (err) {
+			pushLog(
+				transport,
+				"error",
+				`WebSocket construction failed for ${formatWsEndpoint(actualUrl)}: ${
+					err instanceof Error ? err.message : String(err)
+				}`,
+			);
+			setConnectionState(transport, "closed");
+			scheduleReconnect(transport);
+			return;
+		}
+		// Receive PTY bytes as ArrayBuffer (the default would be Blob, which
+		// forces an async read); we want to feed bytes synchronously into
+		// xterm.write to keep render order strict.
+		socket.binaryType = "arraybuffer";
+		transport.socket = socket;
+		attachSocketListeners(transport, terminal, socket);
+	};
+
+	// Pre-flight an HTTP request to lock fly's edge affinity to the owning
+	// machine before the WS upgrade. fly-replay isn't transparent on the
+	// upgrade itself (browser sees 200 → 1006 close), but is on plain HTTP,
+	// so a quick GET avoids the connect → 1006 → reconnect flicker. Skip
+	// for non-/hosts URLs (tests, local dev) so connect stays synchronous.
+	let needsPreFlight = false;
+	try {
+		needsPreFlight = new URL(actualUrl).pathname.startsWith("/hosts/");
+	} catch {
+		needsPreFlight = false;
+	}
+	if (needsPreFlight) {
+		void primeRelayAffinity(actualUrl).then(openSocket);
+	} else {
+		openSocket();
+	}
+}
+
+function attachSocketListeners(
+	transport: TerminalTransport,
+	terminal: XTerm,
+	socket: WebSocket,
+): void {
 	socket.addEventListener("open", () => {
 		if (transport.socket !== socket) return;
 		transport._reconnectAttempt = 0;
