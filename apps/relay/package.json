@@ -6,7 +6,6 @@
 	"scripts": {
 		"dev": "bun run --env-file=../../.env --hot src/index.ts",
 		"start": "bun run src/index.ts",
-		"status": "bun run --env-file=../../.env scripts/relay-status.ts",
 		"typecheck": "tsc --noEmit --emitDeclarationOnly false"
 	},
 	"dependencies": {

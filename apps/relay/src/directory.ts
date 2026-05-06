@@ -140,24 +140,3 @@ export async function sweepStale(): Promise<number> {
 	);
 	return typeof result === "number" ? result : 0;
 }
-
-export async function getAllOwners(): Promise<
-	{ hostId: string; owner: TunnelOwner; meta: TunnelMeta | null }[]
-> {
-	const [owners, metas] = await Promise.all([
-		redis.hgetall<Record<string, string>>(OWNER_KEY),
-		redis.hgetall<Record<string, TunnelMeta>>(META_KEY),
-	]);
-	if (!owners) return [];
-	const result: {
-		hostId: string;
-		owner: TunnelOwner;
-		meta: TunnelMeta | null;
-	}[] = [];
-	for (const [hostId, value] of Object.entries(owners)) {
-		const owner = decodeOwner(value);
-		if (!owner) continue;
-		result.push({ hostId, owner, meta: metas?.[hostId] ?? null });
-	}
-	return result;
-}

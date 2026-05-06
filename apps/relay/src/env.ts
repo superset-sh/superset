@@ -9,7 +9,6 @@ export const env = createEnv({
 		KV_REST_API_TOKEN: z.string().min(1),
 		FLY_REGION: z.string().default("local"),
 		FLY_MACHINE_ID: z.string().default("local"),
-		RELAY_ADMIN_SECRET: z.string().min(16).optional(),
 		RELAY_SENTRY_DSN: z.string().url().optional(),
 		RELAY_SYNTHETIC_JWT: z.string().min(1).optional(),
 		RELAY_PUBLIC_URL: z.url().default("https://relay.superset.sh"),

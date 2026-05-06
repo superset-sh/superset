@@ -12,15 +12,6 @@ type WsSocket = {
 const PING_INTERVAL_MS = 30_000;
 const PING_TIMEOUT_MISSED = 3;
 const ONLINE_DEBOUNCE_MS = 250;
-const FLAP_THRESHOLD_MS = 5_000;
-const FLAP_BUFFER_MAX = 200;
-
-interface FlapEvent {
-	hostId: string;
-	registeredAt: number;
-	unregisteredAt: number;
-	lifetimeMs: number;
-}
 
 interface PendingRequest {
 	resolve: (response: TunnelHttpResponse) => void;
@@ -36,7 +27,6 @@ interface TunnelState {
 	activeChannels: Map<string, WsSocket>;
 	pingTimer: ReturnType<typeof setInterval> | null;
 	missedPings: number;
-	registeredAt: number;
 }
 
 export class TunnelManager {
@@ -47,7 +37,6 @@ export class TunnelManager {
 		string,
 		ReturnType<typeof setTimeout>
 	>();
-	private readonly flapBuffer: FlapEvent[] = [];
 
 	constructor(requestTimeoutMs = 30_000) {
 		this.requestTimeoutMs = requestTimeoutMs;
@@ -74,7 +63,20 @@ export class TunnelManager {
 			return;
 		}
 
-		const now = Date.now();
+		// The WS may have closed during the directory-write await. The
+		// onClose handler in index.ts ran with registeredWs===null (since we
+		// hadn't returned yet), so it skipped unregister. Roll the directory
+		// entry back ourselves; otherwise other machines fly-replay traffic
+		// to a dead local tunnel for ~90s until the TTL ages out.
+		if (ws.readyState !== 1) {
+			await directory
+				.unregister(hostId, env.FLY_REGION, env.FLY_MACHINE_ID)
+				.catch((err) => {
+					console.error("[relay] directory.unregister rollback failed", err);
+				});
+			return;
+		}
+
 		const tunnel: TunnelState = {
 			hostId,
 			token,
@@ -83,7 +85,6 @@ export class TunnelManager {
 			activeChannels: new Map(),
 			pingTimer: null,
 			missedPings: 0,
-			registeredAt: now,
 		};
 
 		this.tunnels.set(hostId, tunnel);
@@ -128,16 +129,6 @@ export class TunnelManager {
 		// active one. Prevents the close handler of a just-disposed old socket
 		// from tearing down a freshly-registered new tunnel.
 		if (ws && tunnel.ws !== ws) return;
-
-		const lifetimeMs = Date.now() - tunnel.registeredAt;
-		if (lifetimeMs < FLAP_THRESHOLD_MS) {
-			this.recordFlap({
-				hostId,
-				registeredAt: tunnel.registeredAt,
-				unregisteredAt: Date.now(),
-				lifetimeMs,
-			});
-		}
 
 		this.disposeTunnel(tunnel, "Tunnel disconnected");
 		this.tunnels.delete(hostId);
@@ -200,32 +191,6 @@ export class TunnelManager {
 			if (!isOnline) this.onlineState.delete(hostId);
 		}, ONLINE_DEBOUNCE_MS);
 		this.onlineDebounce.set(hostId, timer);
-	}
-
-	private recordFlap(flap: FlapEvent): void {
-		this.flapBuffer.push(flap);
-		if (this.flapBuffer.length > FLAP_BUFFER_MAX) {
-			this.flapBuffer.splice(0, this.flapBuffer.length - FLAP_BUFFER_MAX);
-		}
-	}
-
-	getRecentFlaps(sinceMs: number): FlapEvent[] {
-		const cutoff = Date.now() - sinceMs;
-		return this.flapBuffer.filter((f) => f.unregisteredAt >= cutoff);
-	}
-
-	getActiveTunnels(): {
-		hostId: string;
-		registeredAt: number;
-		pendingRequests: number;
-		activeChannels: number;
-	}[] {
-		return Array.from(this.tunnels.values()).map((t) => ({
-			hostId: t.hostId,
-			registeredAt: t.registeredAt,
-			pendingRequests: t.pendingRequests.size,
-			activeChannels: t.activeChannels.size,
-		}));
 	}
 
 	hasTunnel(hostId: string): boolean {

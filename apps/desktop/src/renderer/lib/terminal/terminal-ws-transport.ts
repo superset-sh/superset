@@ -229,7 +229,21 @@ export function connect(
 		) {
 			return;
 		}
-		const socket = new WebSocket(actualUrl);
+		let socket: WebSocket;
+		try {
+			socket = new WebSocket(actualUrl);
+		} catch (err) {
+			pushLog(
+				transport,
+				"error",
+				`WebSocket construction failed for ${formatWsEndpoint(actualUrl)}: ${
+					err instanceof Error ? err.message : String(err)
+				}`,
+			);
+			setConnectionState(transport, "closed");
+			scheduleReconnect(transport);
+			return;
+		}
 		// Receive PTY bytes as ArrayBuffer (the default would be Blob, which
 		// forces an async read); we want to feed bytes synchronously into
 		// xterm.write to keep render order strict.

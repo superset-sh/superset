@@ -180,7 +180,13 @@ function connect(
 	// avoids the connect → 1006 close → reconnect flicker.
 	void primeRelayAffinity(wsUrl).then(() => {
 		if (state.disposed || state.socket) return;
-		const socket = new WebSocket(wsUrl);
+		let socket: WebSocket;
+		try {
+			socket = new WebSocket(wsUrl);
+		} catch {
+			scheduleReconnect(state, hostUrl, getWsToken);
+			return;
+		}
 		state.socket = socket;
 
 		socket.onopen = () => {

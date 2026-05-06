@@ -5,7 +5,6 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 import { checkHostAccess } from "./access";
-import { createAdminApp } from "./admin";
 import { type AuthContext, verifyJWT } from "./auth";
 import * as directory from "./directory";
 import { env } from "./env";
@@ -31,8 +30,6 @@ app.use("*", logger());
 app.use("*", cors());
 
 app.get("/health", (c) => c.json({ ok: true, region: env.FLY_REGION }));
-
-app.route("/admin", createAdminApp(tunnelManager));
 
 // ── Auth ────────────────────────────────────────────────────────────
 
