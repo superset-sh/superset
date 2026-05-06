@@ -312,7 +312,11 @@ function attachSocketListeners(
 		}
 
 		if (message.type === "error") {
-			terminal.writeln(`\r\n[terminal] ${message.message}`);
+			pushLog(transport, "error", message.message);
+			// Server closes after this; reconnecting would just hit the same
+			// error, so flag the transport done to suppress the retry loop.
+			transport._exited = true;
+			cancelReconnect(transport);
 			return;
 		}
 
