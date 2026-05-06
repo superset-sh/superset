@@ -976,9 +976,8 @@ export function registerWorkspaceTerminalRoute({
 					};
 				}
 
-				// `c.req.query()` returns `string | undefined`; parseThemeType is
-				// pure and rejects anything other than "dark" | "light", so no
-				// try/catch is needed for malformed input.
+				// parseThemeType narrows string | undefined to "dark" | "light" |
+				// undefined without throwing — safe to use unwrapped.
 				const themeType = parseThemeType(c.req.query("themeType"));
 
 				// Prefer adoption: if the daemon still owns the PTY across a
@@ -998,8 +997,6 @@ export function registerWorkspaceTerminalRoute({
 				// Active row but daemon no longer owns the PTY (laptop sleep,
 				// daemon restart, machine reboot). Respawn rather than dead-end
 				// the pane — the renderer's xterm scrollback stays painted above.
-				// themeType is forwarded so the new PTY's COLORFGBG matches the
-				// renderer's current theme (env vars are only set at spawn).
 				console.log(`[terminal] respawning lost session ${terminalId}`);
 				return createTerminalSessionInternal({
 					terminalId,

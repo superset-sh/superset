@@ -47,11 +47,9 @@ export interface TerminalTransport {
 	_terminal: XTerm | null;
 	/** Set when the server sends an exit message — no reconnect after this. */
 	_exited: boolean;
-	/**
-	 * Set when the server rejects attach with an `error` frame. Distinct from
-	 * `_exited` (which means the PTY itself died) so future consumers can tell
-	 * "shell finished" apart from "server refused us"; both suppress reconnect.
-	 */
+	/** Set when the server rejects attach with an `error` frame — kept separate
+	 * from `_exited` (PTY died) since both suppress reconnect but mean
+	 * different things to consumers. */
 	_fatalError: boolean;
 	/**
 	 * Flips true after the first PTY-output frame lands in xterm. Subsequent
@@ -321,9 +319,7 @@ function attachSocketListeners(
 
 		if (message.type === "error") {
 			pushLog(transport, "error", message.message);
-			// Server closes after this; reconnecting would just hit the same
-			// error. _fatalError suppresses the retry loop without overloading
-			// _exited's "PTY exited normally" semantic.
+			// Server closes after this; reconnecting would just hit the same error.
 			transport._fatalError = true;
 			cancelReconnect(transport);
 			return;

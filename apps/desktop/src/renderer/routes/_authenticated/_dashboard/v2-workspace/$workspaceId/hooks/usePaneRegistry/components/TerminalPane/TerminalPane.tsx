@@ -73,11 +73,8 @@ export function TerminalPane({
 	const appearanceRef = useRef(appearance);
 	appearanceRef.current = appearance;
 
-	// themeType is forwarded so a respawn (host-side fallback when an
-	// "active" DB row's daemon PTY is gone) spawns the new shell with the
-	// correct COLORFGBG env var. PTY env is set at spawn time only — the
-	// reconnect effect uses `baseWebsocketUrl` as its trigger so a theme
-	// toggle doesn't tear down the live shell for a purely visual change.
+	// themeType reaches the host-side respawn fallback so a restored shell
+	// gets the right COLORFGBG; PTY env is set at spawn time only.
 	const activeTheme = useTheme();
 	const themeType = resolveTerminalThemeType({
 		activeThemeType: activeTheme?.type,
@@ -189,9 +186,8 @@ export function TerminalPane({
 	// URL re-resolution on provider remount). Reconnect only if the transport
 	// is already live — on initial mount the transport is "disconnected" and
 	// we let the mount path above open it.
-	// baseWebsocketUrl is the intentional reconnect trigger; the full URL
-	// (including themeType) is read from a ref so a theme toggle doesn't
-	// tear down the live shell for a purely visual change.
+	// Reconnect on base-URL change only; themeType lives on the ref so a
+	// theme toggle doesn't tear down a live shell for a visual-only change.
 	// biome-ignore lint/correctness/useExhaustiveDependencies: see comment above
 	useEffect(() => {
 		terminalRuntimeRegistry.reconnect(
