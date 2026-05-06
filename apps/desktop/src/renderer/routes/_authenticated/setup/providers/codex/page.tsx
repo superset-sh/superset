@@ -1,7 +1,6 @@
 import { chatServiceTrpc } from "@superset/chat/client";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
-import supersetIconUrl from "renderer/assets/superset-icon.png";
 import { OpenAIOAuthDialog } from "renderer/components/Chat/ChatInterface/components/ModelPicker/components/OpenAIOAuthDialog";
 import { useOpenAIOAuth } from "renderer/components/Chat/ChatInterface/components/ModelPicker/hooks/useOpenAIOAuth";
 import { track } from "renderer/lib/analytics";
@@ -13,6 +12,7 @@ import {
 	SupersetPill,
 } from "../../components/StepShell";
 import { CodexBrandIcon } from "../components/CodexBrandIcon";
+import { SupersetIcon } from "../components/SupersetIcon";
 
 export const Route = createFileRoute("/_authenticated/setup/providers/codex/")({
 	component: ConnectCodexPage,
@@ -58,12 +58,8 @@ function ConnectCodexPage() {
 				<StepHeader
 					icon={
 						<SupersetPill>
-							<div className="size-[42px] overflow-hidden rounded-full bg-[#151110]">
-								<img
-									src={supersetIconUrl}
-									alt="Superset"
-									className="size-full scale-125"
-								/>
+							<div className="flex size-[42px] items-center justify-center rounded-full bg-[#151110]">
+								<SupersetIcon className="size-5 text-[#eae8e6]" />
 							</div>
 							<CodexBrandIcon
 								className="size-[42px] rounded-full bg-[#eae8e6]"

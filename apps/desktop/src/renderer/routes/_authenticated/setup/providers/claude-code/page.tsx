@@ -1,7 +1,6 @@
 import { chatServiceTrpc } from "@superset/chat/client";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
-import supersetIconUrl from "renderer/assets/superset-icon.png";
 import { AnthropicOAuthDialog } from "renderer/components/Chat/ChatInterface/components/ModelPicker/components/AnthropicOAuthDialog";
 import { useAnthropicOAuth } from "renderer/components/Chat/ChatInterface/components/ModelPicker/hooks/useAnthropicOAuth";
 import { track } from "renderer/lib/analytics";
@@ -13,6 +12,7 @@ import {
 	SupersetPill,
 } from "../../components/StepShell";
 import { ClaudeBrandIcon } from "../components/ClaudeBrandIcon";
+import { SupersetIcon } from "../components/SupersetIcon";
 
 export const Route = createFileRoute(
 	"/_authenticated/setup/providers/claude-code/",
@@ -62,12 +62,8 @@ function ConnectClaudeCodePage() {
 				<StepHeader
 					icon={
 						<SupersetPill>
-							<div className="size-[42px] overflow-hidden rounded-full bg-[#151110]">
-								<img
-									src={supersetIconUrl}
-									alt="Superset"
-									className="size-full scale-125"
-								/>
+							<div className="flex size-[42px] items-center justify-center rounded-full bg-[#151110]">
+								<SupersetIcon className="size-5 text-[#eae8e6]" />
 							</div>
 							<ClaudeBrandIcon
 								className="size-[42px] rounded-full"
