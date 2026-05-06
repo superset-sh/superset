@@ -4,31 +4,25 @@ date: 2026-04-27
 image: /changelog/v2-public-beta.png
 ---
 
-For the past few weeks, we've been hitting physical limits on using Superset — my laptop starts to melt down running 20+ worktrees, and many of you are running 50+. Since we're 3 ex-CTOs, the logical next step is to rewrite the whole app to enable cloud workspaces. Today, **Superset 2.0** is available to the public.
-
-Enable it under **Settings → Experimental** <PRBadge url="https://github.com/superset-sh/superset/pull/3748" />. It's a 2-way door — your v1 workspaces and sessions stay put when you flip back.
+**Superset 2.0 is in open beta.** Enable it under **Settings → Experimental** <PRBadge url="https://github.com/superset-sh/superset/pull/3748" /> — it's a 2-way door, and your v1 workspaces and sessions stay put when you flip back.
 
 ![Settings → Experimental — Try Superset v2 toggle and v1 → v2 migration](/changelog/v2-enable-flag.png)
 
 ## Remote workspaces
 
-Every workspace in 2.0 is a "cloud" workspace. Any Superset device on the same network can talk to any other — point your local app at a beefier box across the room, a cloud VM, or a teammate's host, and drive workspaces on it as if they were local. Terminal, file editor, and chat all behave the same way <PRBadge url="https://github.com/superset-sh/superset/pull/3566" /> <PRBadge url="https://github.com/superset-sh/superset/pull/3606" />. Ports running on the remote even surface in your sidebar so your local browser can hit them <PRBadge url="https://github.com/superset-sh/superset/pull/3676" />.
+Every workspace in 2.0 is a cloud workspace. Point your local app at any Superset device on the same network — a beefier box across the room, a cloud VM, a teammate's host — and run workspaces on it as if they were local. Terminal, file editor, and chat all behave the same way <PRBadge url="https://github.com/superset-sh/superset/pull/3566" /> <PRBadge url="https://github.com/superset-sh/superset/pull/3606" />, and ports running on the remote surface in your sidebar so your local browser can hit them <PRBadge url="https://github.com/superset-sh/superset/pull/3676" />.
 
 ![Sidebar with a Cloud workspace group and a remote workspace hover card](/changelog/v2-remote-workspaces.png)
 
-Port-forwarding and more to come.
-
 ## Reimagined diff view
 
-We took the rewrite as a chance to redesign the diff viewer to feel like reviewing a PR — just on your machine. One infinite-scroll diff with a compact sidebar of changed files, per-file viewed state <PRBadge url="https://github.com/superset-sh/superset/pull/3715" /> <PRBadge url="https://github.com/superset-sh/superset/pull/3776" />, and shift/cmd-click selection across the file list <PRBadge url="https://github.com/superset-sh/superset/pull/3683" />.
+The diff viewer is rebuilt to feel like reviewing a PR on your machine — one infinite-scroll diff with a compact sidebar of changed files, per-file viewed state <PRBadge url="https://github.com/superset-sh/superset/pull/3715" /> <PRBadge url="https://github.com/superset-sh/superset/pull/3776" />, and shift/cmd-click selection across the file list <PRBadge url="https://github.com/superset-sh/superset/pull/3683" />.
 
 ![v2 Changes pane — infinite-scroll diff with compact file sidebar and review tab](/changelog/v2-changes-pane.png)
 
-AI review coming next.
-
 ## Superset CLI
 
-The missing piece for full agent automation. The `superset` CLI is a single static binary that drives the same backend as the desktop app — sign in with `superset auth login`, then create workspaces, tail terminals, and trigger automations from anywhere <PRBadge url="https://github.com/superset-sh/superset/pull/3638" /> <PRBadge url="https://github.com/superset-sh/superset/pull/3640" />. Hand the Superset CLI skill to your agent and let it do the orchestration.
+The `superset` CLI is a single static binary that drives the same backend as the desktop app. Sign in with `superset auth login`, then create workspaces, tail terminals, and trigger automations from your shell or CI <PRBadge url="https://github.com/superset-sh/superset/pull/3638" /> <PRBadge url="https://github.com/superset-sh/superset/pull/3640" />.
 
 ```bash
 curl -fsSL https://superset.sh/cli/install.sh | sh
@@ -39,13 +33,11 @@ superset auth login
 
 ## A real IDE shell
 
-**Tab → Split → Pane** with drag-and-drop everywhere — drop panes onto the tab strip to spawn tabs <PRBadge url="https://github.com/superset-sh/superset/pull/3809" />. File tree with git decorations, file editor, browser pane that keeps state across switches, fresh terminal (XTerm.js + WebGL, kitty keyboard, OSC links, search), and Electric collections with optimistic updates <PRBadge url="https://github.com/superset-sh/superset/pull/3722" /> — all one window, faster on every interaction.
+**Tab → Split → Pane** with drag-and-drop everywhere — drop panes onto the tab strip to spawn tabs <PRBadge url="https://github.com/superset-sh/superset/pull/3809" />. File tree with git decorations, file editor, a browser pane that keeps state across switches, a fresh terminal (XTerm.js + WebGL, kitty keyboard, OSC links, search), and Electric collections with optimistic updates <PRBadge url="https://github.com/superset-sh/superset/pull/3722" /> — all in one window.
 
 ## Migration in place
 
-1.x projects and workspaces port directly into 2.0 <PRBadge url="https://github.com/superset-sh/superset/pull/3670" />. Org-idempotent <PRBadge url="https://github.com/superset-sh/superset/pull/3775" /> <PRBadge url="https://github.com/superset-sh/superset/pull/3781" /> <PRBadge url="https://github.com/superset-sh/superset/pull/3783" />, modal only on first onboard <PRBadge url="https://github.com/superset-sh/superset/pull/3816" />.
-
-Many features are subject to change based on your feedback while we're in open beta. Thank you to the early users who helped test-drive 2.0 and made this impossible timeline happen.
+1.x projects and workspaces port directly into 2.0 <PRBadge url="https://github.com/superset-sh/superset/pull/3670" />. The migration is org-idempotent <PRBadge url="https://github.com/superset-sh/superset/pull/3775" /> <PRBadge url="https://github.com/superset-sh/superset/pull/3781" /> <PRBadge url="https://github.com/superset-sh/superset/pull/3783" />, and the migration modal only shows on first onboard <PRBadge url="https://github.com/superset-sh/superset/pull/3816" />.
 
 ---
 
