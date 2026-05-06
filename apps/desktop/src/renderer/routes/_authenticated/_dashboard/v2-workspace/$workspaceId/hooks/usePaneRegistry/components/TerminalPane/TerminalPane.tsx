@@ -205,7 +205,8 @@ export function TerminalPane({
 				terminalId,
 				terminalInstanceId,
 			);
-			const normalized = nextTitle?.trim() ? nextTitle : undefined;
+			const trimmed = nextTitle?.trim();
+			const normalized = trimmed ? trimmed : undefined;
 			const current = paneDataRef.current as TerminalPaneData;
 			if (current.title === normalized) return;
 			updatePaneDataRef.current({
