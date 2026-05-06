@@ -1,4 +1,5 @@
 import { serve } from "@hono/node-server";
+import { getHostId } from "@superset/shared/host-info";
 import { createApp } from "./app";
 import { getSupervisor, startDaemonBootstrap } from "./daemon";
 import { env } from "./env";
@@ -6,6 +7,7 @@ import { JwtApiAuthProvider } from "./providers/auth";
 import { LocalGitCredentialProvider } from "./providers/git";
 import { PskHostAuthProvider } from "./providers/host-auth";
 import { LocalModelProvider } from "./providers/model-providers";
+import { reportPendingUpdate } from "./runtime/update";
 import { installProcessSafetyNet } from "./safety";
 import { initTerminalBaseEnv, resolveTerminalBaseEnv } from "./terminal/env";
 import { connectRelay } from "./tunnel";
@@ -91,6 +93,10 @@ async function main(): Promise<void> {
 				hostServiceSecret: env.HOST_SERVICE_SECRET,
 			});
 		}
+
+		// If we just respawned from a remote update, the supervisor left a
+		// `last-update.json` for us to relay back to the cloud. Fire-and-forget.
+		void reportPendingUpdate(api, env.ORGANIZATION_ID, getHostId());
 	});
 	injectWebSocket(server);
 }

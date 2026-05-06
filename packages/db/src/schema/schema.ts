@@ -23,6 +23,7 @@ import {
 	automationSessionKindValues,
 	commandStatusValues,
 	deviceTypeValues,
+	hostUpdateOutcomeValues,
 	integrationProviderValues,
 	taskPriorityValues,
 	taskStatusEnumValues,
@@ -51,6 +52,10 @@ export const v2UsersHostRole = pgEnum(
 export const v2WorkspaceType = pgEnum(
 	"v2_workspace_type",
 	v2WorkspaceTypeValues,
+);
+export const hostUpdateOutcome = pgEnum(
+	"host_update_outcome",
+	hostUpdateOutcomeValues,
 );
 
 export const taskStatuses = pgTable(
@@ -902,3 +907,40 @@ export const submittedPrompts = pgTable(
 
 export type InsertSubmittedPrompt = typeof submittedPrompts.$inferInsert;
 export type SelectSubmittedPrompt = typeof submittedPrompts.$inferSelect;
+
+export const hostUpdateAudit = pgTable(
+	"host_update_audit",
+	{
+		id: uuid().primaryKey().defaultRandom(),
+		organizationId: uuid("organization_id")
+			.notNull()
+			.references(() => organizations.id, { onDelete: "cascade" }),
+		machineId: text("machine_id").notNull(),
+		triggeredByUserId: uuid("triggered_by_user_id").references(() => users.id, {
+			onDelete: "set null",
+		}),
+		requestedAt: timestamp("requested_at", { withTimezone: true })
+			.notNull()
+			.defaultNow(),
+		targetVersion: text("target_version"),
+		previousVersion: text("previous_version"),
+		newVersion: text("new_version"),
+		outcome: hostUpdateOutcome().notNull().default("dispatched"),
+		errorMessage: text("error_message"),
+	},
+	(table) => [
+		foreignKey({
+			columns: [table.organizationId, table.machineId],
+			foreignColumns: [v2Hosts.organizationId, v2Hosts.machineId],
+			name: "host_update_audit_host_fk",
+		}).onDelete("cascade"),
+		index("host_update_audit_machine_requested_idx").on(
+			table.machineId,
+			table.requestedAt.desc(),
+		),
+		index("host_update_audit_organization_id_idx").on(table.organizationId),
+	],
+);
+
+export type InsertHostUpdateAudit = typeof hostUpdateAudit.$inferInsert;
+export type SelectHostUpdateAudit = typeof hostUpdateAudit.$inferSelect;

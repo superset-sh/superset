@@ -92,3 +92,12 @@ export const automationPromptSourceValues = [
 ] as const;
 export const automationPromptSourceEnum = z.enum(automationPromptSourceValues);
 export type AutomationPromptSource = z.infer<typeof automationPromptSourceEnum>;
+
+export const hostUpdateOutcomeValues = [
+	"dispatched",
+	"satisfied",
+	"updated",
+	"failed",
+] as const;
+export const hostUpdateOutcomeEnum = z.enum(hostUpdateOutcomeValues);
+export type HostUpdateOutcome = z.infer<typeof hostUpdateOutcomeEnum>;

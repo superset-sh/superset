@@ -13,6 +13,7 @@ import { AddMemberDropdown } from "./components/AddMemberDropdown";
 import { HostHeader } from "./components/HostHeader";
 import type { MemberRowData } from "./components/MembersTable";
 import { MembersTable } from "./components/MembersTable";
+import { UpdateHostSection } from "./components/UpdateHostSection";
 
 function notifyOnPersist(
 	tx: PersistableTransaction | null,
@@ -159,6 +160,13 @@ export function HostSettings({ hostId }: HostSettingsProps) {
 				name={host.name}
 				isOnline={host.isOnline}
 				machineId={host.machineId}
+			/>
+
+			<UpdateHostSection
+				organizationId={host.organizationId}
+				machineId={host.machineId}
+				isOnline={host.isOnline}
+				isOwner={isOwner}
 			/>
 
 			<section className="space-y-3">

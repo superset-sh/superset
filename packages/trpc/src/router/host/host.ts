@@ -1,3 +1,4 @@
+import { mintUserJwt } from "@superset/auth/server";
 import { db, dbWs } from "@superset/db/client";
 import {
 	subscriptions,
@@ -11,11 +12,17 @@ import {
 	isActiveSubscriptionStatus,
 	isPaidPlan,
 } from "@superset/shared/billing";
-import { parseHostRoutingKey } from "@superset/shared/host-routing";
+import {
+	buildHostRoutingKey,
+	parseHostRoutingKey,
+} from "@superset/shared/host-routing";
 import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
 import { and, desc, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
+import { env } from "../../env";
 import { jwtProcedure, protectedProcedure } from "../../trpc";
+import { RelayDispatchError, relayQuery } from "../automation/relay-client";
+import { hostUpdateProcedures } from "./update";
 
 export const hostRouter = {
 	list: jwtProcedure
@@ -204,6 +211,90 @@ export const hostRouter = {
 				isPaidPlan(row.subscriptionPlan) &&
 				isActiveSubscriptionStatus(row.subscriptionStatus);
 			return { allowed, paidPlan };
+		}),
+
+	update: hostUpdateProcedures.update,
+	reportUpdate: hostUpdateProcedures.reportUpdate,
+
+	info: jwtProcedure
+		.input(
+			z.object({
+				organizationId: z.string().uuid(),
+				machineId: z.string().min(1),
+			}),
+		)
+		.query(async ({ ctx, input }) => {
+			if (!ctx.organizationIds.includes(input.organizationId)) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "Not a member of this organization",
+				});
+			}
+
+			const [link] = await db
+				.select({ hostId: v2UsersHosts.hostId })
+				.from(v2UsersHosts)
+				.where(
+					and(
+						eq(v2UsersHosts.userId, ctx.userId),
+						eq(v2UsersHosts.organizationId, input.organizationId),
+						eq(v2UsersHosts.hostId, input.machineId),
+					),
+				)
+				.limit(1);
+			if (!link) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "No access to this host",
+				});
+			}
+
+			const jwt = await mintUserJwt({
+				userId: ctx.userId,
+				email: ctx.email,
+				organizationIds: [input.organizationId],
+				scope: "host-info",
+				ttlSeconds: 60,
+			});
+
+			const routingKey = buildHostRoutingKey(
+				input.organizationId,
+				input.machineId,
+			);
+
+			try {
+				return await relayQuery<
+					Record<string, never>,
+					{
+						hostId: string;
+						hostName: string;
+						version: string;
+						binaryVersion: string;
+						supportsRemoteUpdate: boolean;
+						organization: { id: string; name: string; slug: string };
+						platform: string;
+						uptime: number;
+					}
+				>(
+					{
+						relayUrl: env.RELAY_URL,
+						hostId: routingKey,
+						jwt,
+						timeoutMs: 8_000,
+					},
+					"host.info",
+					{},
+				);
+			} catch (error) {
+				if (error instanceof RelayDispatchError) {
+					throw new TRPCError({
+						code: "BAD_GATEWAY",
+						message: `Host did not respond: ${error.message}`,
+						cause: error,
+					});
+				}
+				throw error;
+			}
 		}),
 
 	setOnline: jwtProcedure

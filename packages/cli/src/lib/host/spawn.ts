@@ -113,6 +113,7 @@ export async function spawnHostService(
 			HOST_SERVICE_SECRET: secret,
 			HOST_DB_PATH: hostDbPath(options.organizationId),
 			HOST_MIGRATIONS_FOLDER: migrationsFolder,
+			SUPERSET_VERSION: env.VERSION,
 		},
 	});
 
@@ -134,6 +135,7 @@ export async function spawnHostService(
 		authToken: secret,
 		startedAt: Date.now(),
 		organizationId: options.organizationId,
+		version: env.VERSION,
 	};
 	writeManifest(manifest);
 

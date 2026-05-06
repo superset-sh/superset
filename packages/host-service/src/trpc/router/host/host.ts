@@ -1,8 +1,12 @@
+import { existsSync } from "node:fs";
 import os from "node:os";
 import { getHostId, getHostName } from "@superset/shared/host-info";
 import { TRPCError } from "@trpc/server";
+import { env } from "../../../env";
+import { resolveSupervisorBinary } from "../../../runtime/update";
 import type { ApiClient } from "../../../types";
 import { protectedProcedure, router } from "../../index";
+import { hostUpdateRouter } from "./update";
 
 // 0.4.0: terminal launch moved from `terminal.ensureSession` to
 // `terminal.launchSession` plus WebSocket attach params.
@@ -24,7 +28,11 @@ import { protectedProcedure, router } from "../../index";
 // agent-config settings UI.
 // 0.8.0: terminal creation moved to `terminal.createSession`; WebSocket
 // `/terminal/:terminalId` is attach-only.
-const HOST_SERVICE_VERSION = "0.8.0";
+// 0.9.0: `host.update.start` procedure added. `host.info` now returns
+// `binaryVersion` and `supportsRemoteUpdate`. 0.8.x daemons don't expose
+// the namespace, so the cloud's `host.update` mutation BAD_GATEWAYs against
+// them and the desktop UI shows "remote update not available."
+const HOST_SERVICE_VERSION = "0.9.0";
 const ORGANIZATION_CACHE_TTL_MS = 60 * 60 * 1000;
 
 let cachedOrganization: {
@@ -58,6 +66,14 @@ async function getOrganization(
 	return organization;
 }
 
+function computeSupportsRemoteUpdate(): boolean {
+	try {
+		return existsSync(resolveSupervisorBinary());
+	} catch {
+		return false;
+	}
+}
+
 export const hostRouter = router({
 	info: protectedProcedure.query(async ({ ctx }) => {
 		const organization = await getOrganization(ctx.api, ctx.organizationId);
@@ -66,9 +82,12 @@ export const hostRouter = router({
 			hostId: getHostId(),
 			hostName: getHostName(),
 			version: HOST_SERVICE_VERSION,
+			binaryVersion: env.SUPERSET_VERSION,
+			supportsRemoteUpdate: computeSupportsRemoteUpdate(),
 			organization,
 			platform: os.platform(),
 			uptime: process.uptime(),
 		};
 	}),
+	update: hostUpdateRouter,
 });
