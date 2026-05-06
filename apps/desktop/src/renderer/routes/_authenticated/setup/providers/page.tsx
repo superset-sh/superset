@@ -115,7 +115,6 @@ function OnboardingProvidersPage() {
 							/>
 						}
 						title="Claude Code is connected"
-						onReconfigure={() => setReconfiguringClaude(true)}
 					/>
 				}
 				options={
@@ -164,7 +163,6 @@ function OnboardingProvidersPage() {
 							/>
 						}
 						title="Codex is connected"
-						onReconfigure={() => setReconfiguringCodex(true)}
 					/>
 				}
 				options={
@@ -228,21 +226,38 @@ function ProviderSection({
 	connected,
 	reconfiguring,
 	onConnect,
+	onReconfigure,
 	onCancelReconfigure,
 	connectedPanel,
 	options,
 }: ProviderSectionProps) {
 	const showConnectedPanel = connected && !reconfiguring;
 
+	const headerAction = connected ? (
+		<button
+			type="button"
+			onClick={reconfiguring ? onCancelReconfigure : onReconfigure}
+			className="text-[11px] font-medium text-[#a8a5a3] underline-offset-4 transition-colors hover:text-[#eae8e6] hover:underline"
+		>
+			{reconfiguring ? "Cancel" : "Reconfigure"}
+		</button>
+	) : null;
+
 	return (
 		<section className="space-y-3">
-			<div className="flex items-center gap-2">
-				<h2 className="text-[12px] font-semibold uppercase tracking-wide text-[#a8a5a3]">
-					{label}
-				</h2>
-				{connected && (
-					<span aria-hidden className="size-1.5 rounded-full bg-emerald-500" />
-				)}
+			<div className="flex items-center justify-between gap-2">
+				<div className="flex items-center gap-2">
+					<h2 className="text-[12px] font-semibold uppercase tracking-wide text-[#a8a5a3]">
+						{label}
+					</h2>
+					{connected && (
+						<span
+							aria-hidden
+							className="size-1.5 rounded-full bg-emerald-500"
+						/>
+					)}
+				</div>
+				{headerAction}
 			</div>
 
 			{showConnectedPanel ? (
@@ -250,15 +265,10 @@ function ProviderSection({
 			) : (
 				<>
 					<div className="space-y-3">{options}</div>
-					<div className="mx-auto flex w-[273px] flex-col gap-2 pt-1">
+					<div className="mx-auto w-[273px] pt-1">
 						<SetupButton onClick={onConnect}>
 							{reconfiguring ? `Reconfigure ${label}` : `Connect ${label}`}
 						</SetupButton>
-						{reconfiguring && (
-							<SetupButton variant="link" onClick={onCancelReconfigure}>
-								Cancel — keep current
-							</SetupButton>
-						)}
 					</div>
 				</>
 			)}
@@ -277,31 +287,19 @@ function MutedIcon({ icon }: { icon: React.ReactNode }) {
 function ConnectedPanel({
 	icon,
 	title,
-	onReconfigure,
+	subtitle,
 }: {
 	icon: React.ReactNode;
 	title: string;
-	onReconfigure: () => void;
+	subtitle?: string;
 }) {
 	return (
 		<div className="flex items-center gap-4 rounded-xl border border-[#2a2827] bg-[#201e1c] p-4">
 			<div className="size-11 shrink-0 overflow-hidden rounded-lg">{icon}</div>
 			<div className="min-w-0 flex-1">
-				<div className="flex items-center gap-2">
-					<p className="text-[13px] font-semibold text-[#eae8e6]">{title}</p>
-					<span aria-hidden className="size-1.5 rounded-full bg-emerald-500" />
-				</div>
-				<p className="text-[11px] text-[#a8a5a3]">
-					You can also reconfigure this provider.
-				</p>
+				<p className="text-[13px] font-semibold text-[#eae8e6]">{title}</p>
+				{subtitle && <p className="text-[11px] text-[#a8a5a3]">{subtitle}</p>}
 			</div>
-			<button
-				type="button"
-				onClick={onReconfigure}
-				className="shrink-0 rounded px-2 py-1 text-[11px] font-medium text-[#a8a5a3] transition-colors hover:bg-white/5 hover:text-[#eae8e6]"
-			>
-				Reconfigure
-			</button>
 		</div>
 	);
 }

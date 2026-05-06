@@ -36,6 +36,10 @@ import {
 	OAuthFlowController,
 	type OAuthFlowOptions,
 } from "./oauth-flow-controller";
+import {
+	OpenAIOAuthLoopback,
+	parseLoopbackTargetFromAuthUrl,
+} from "./openai-oauth-loopback";
 
 type OpenAIAuthStorage = ReturnType<typeof createAuthStorage>;
 
@@ -64,6 +68,7 @@ export class ChatService {
 	private readonly oauthFlowController = new OAuthFlowController(() =>
 		this.getAuthStorage(),
 	);
+	private openAIOAuthLoopback: OpenAIOAuthLoopback | null = null;
 	private readonly anthropicEnvConfigPath: string | undefined;
 	private currentAnthropicRuntimeEnv: AnthropicRuntimeEnv = {};
 	private static readonly ANTHROPIC_AUTH_SESSION_TTL_MS = 10 * 60 * 1000;
@@ -371,11 +376,45 @@ export class ChatService {
 	}
 
 	async startOpenAIOAuth(): Promise<{ url: string; instructions: string }> {
-		return this.oauthFlowController.start(this.getOpenAIOAuthFlowOptions());
+		this.stopOpenAIOAuthLoopback();
+		const result = await this.oauthFlowController.start(
+			this.getOpenAIOAuthFlowOptions(),
+		);
+
+		const target = parseLoopbackTargetFromAuthUrl(result.url);
+		if (target) {
+			const loopback = new OpenAIOAuthLoopback();
+			try {
+				await loopback.start({
+					port: target.port,
+					path: target.path,
+					onCallback: (callbackUrl) => {
+						void this.completeOpenAIOAuth({ code: callbackUrl }).catch(() => {
+							// Ignore — the session may have been cancelled or already
+							// completed via manual paste.
+						});
+					},
+				});
+				this.openAIOAuthLoopback = loopback;
+			} catch {
+				// Port unavailable or other bind failure — fall back to manual paste.
+				loopback.stop();
+			}
+		}
+
+		return result;
 	}
 
 	cancelOpenAIOAuth(): { success: true } {
+		this.stopOpenAIOAuthLoopback();
 		return this.oauthFlowController.cancel(this.getOpenAIOAuthFlowOptions());
+	}
+
+	private stopOpenAIOAuthLoopback(): void {
+		if (this.openAIOAuthLoopback) {
+			this.openAIOAuthLoopback.stop();
+			this.openAIOAuthLoopback = null;
+		}
 	}
 
 	async disconnectOpenAIOAuth(): Promise<{ success: true }> {
@@ -406,10 +445,14 @@ export class ChatService {
 		for (const providerId of OPENAI_AUTH_PROVIDER_IDS) {
 			backupApiKeyBeforeOAuth(this.getAuthStorage(), providerId);
 		}
-		await this.oauthFlowController.complete(
-			this.getOpenAIOAuthFlowOptions(),
-			input.code,
-		);
+		try {
+			await this.oauthFlowController.complete(
+				this.getOpenAIOAuthFlowOptions(),
+				input.code,
+			);
+		} finally {
+			this.stopOpenAIOAuthLoopback();
+		}
 		return { success: true };
 	}
 
