@@ -8,6 +8,8 @@ export interface FilePaneData {
 
 export interface TerminalPaneData {
 	terminalId: string;
+	/** Last-seen xterm title — kept here so getTitle can elevate it to the tab. */
+	title?: string;
 }
 
 export interface ChatPaneData {

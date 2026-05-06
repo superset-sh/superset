@@ -193,6 +193,34 @@ export function TerminalPane({
 		);
 	}, [terminalId, terminalInstanceId, appearance]);
 
+	// Mirror the live xterm title into pane.data so resolveTabTitle can
+	// elevate it to the tab name (single-pane and active-pane cases).
+	const paneDataRef = useRef(ctx.pane.data);
+	paneDataRef.current = ctx.pane.data;
+	const updatePaneDataRef = useRef(ctx.actions.updateData);
+	updatePaneDataRef.current = ctx.actions.updateData;
+	useEffect(() => {
+		const syncTitle = () => {
+			const nextTitle = terminalRuntimeRegistry.getTitle(
+				terminalId,
+				terminalInstanceId,
+			);
+			const normalized = nextTitle?.trim() ? nextTitle : undefined;
+			const current = paneDataRef.current as TerminalPaneData;
+			if (current.title === normalized) return;
+			updatePaneDataRef.current({
+				...current,
+				title: normalized,
+			} as PaneViewerData);
+		};
+		syncTitle();
+		return terminalRuntimeRegistry.onTitleChange(
+			terminalId,
+			syncTitle,
+			terminalInstanceId,
+		);
+	}, [terminalId, terminalInstanceId]);
+
 	// --- Link handlers ---
 	// All filesystem operations go through the host service.
 	// statPath is a mutation (POST) to avoid tRPC GET URL encoding issues

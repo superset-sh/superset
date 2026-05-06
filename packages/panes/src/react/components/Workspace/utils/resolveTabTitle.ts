@@ -1,5 +1,13 @@
-import type { Tab } from "../../../../types";
+import type { Pane, Tab } from "../../../../types";
 import type { PaneRegistry } from "../../../types";
+
+function paneTitle<TData>(
+	pane: Pane<TData> | undefined,
+	registry: PaneRegistry<TData>,
+): string | undefined {
+	if (!pane) return undefined;
+	return pane.titleOverride ?? registry[pane.kind]?.getTitle?.(pane);
+}
 
 export function resolveTabTitle<TData>(
 	tab: Tab<TData>,
@@ -8,11 +16,15 @@ export function resolveTabTitle<TData>(
 ): string {
 	if (tab.titleOverride) return tab.titleOverride;
 	const panes = Object.values(tab.panes);
-	const onlyPane = panes.length === 1 ? panes[0] : undefined;
-	if (onlyPane) {
-		const fromPane =
-			onlyPane.titleOverride ?? registry[onlyPane.kind]?.getTitle?.(onlyPane);
-		if (fromPane) return fromPane;
+	if (panes.length === 1) {
+		const fromOnlyPane = paneTitle(panes[0], registry);
+		if (fromOnlyPane) return fromOnlyPane;
+	} else if (panes.length > 1) {
+		const activePane = tab.activePaneId
+			? tab.panes[tab.activePaneId]
+			: undefined;
+		const fromActivePane = paneTitle(activePane, registry);
+		if (fromActivePane) return fromActivePane;
 	}
 	return `Tab ${tabs.indexOf(tab) + 1}`;
 }

@@ -242,7 +242,10 @@ export function usePaneRegistry({
 			},
 			terminal: {
 				getIcon: () => <TerminalSquare className="size-3.5" />,
-				getTitle: () => "Terminal",
+				getTitle: (pane) => {
+					const data = pane.data as TerminalPaneData;
+					return data.title?.trim() || "Terminal";
+				},
 				onAfterClose: (pane) => {
 					const { terminalId } = pane.data as TerminalPaneData;
 					if (consumeTerminalBackgroundIntent(terminalId)) {
