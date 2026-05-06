@@ -139,8 +139,8 @@ function OnboardingProjectPage() {
 
 	const supersetIcon = (
 		<SupersetPill>
-			<div className="flex size-[46px] items-center justify-center rounded-full bg-[#151110]">
-				<SupersetIcon className="size-5 text-[#eae8e6]" />
+			<div className="flex size-[48px] items-center justify-center rounded-[12px] bg-[#151110]">
+				<SupersetIcon className="w-8" />
 			</div>
 		</SupersetPill>
 	);
