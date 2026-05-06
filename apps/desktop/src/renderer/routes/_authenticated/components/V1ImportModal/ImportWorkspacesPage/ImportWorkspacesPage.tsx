@@ -52,9 +52,19 @@ export function ImportWorkspacesPage({
 	});
 
 	const v2ProjectIdByV1Id = useMemo(() => {
+		const projectIdsInCloud = new Set(
+			(cloudWorkspacesQuery.data ?? []).map((w) => w.projectId),
+		);
 		const v2ByPath = new Map<string, string>();
 		for (const v2 of hostProjectListQuery.data ?? []) {
-			v2ByPath.set(v2.repoPath, v2.id);
+			const existing = v2ByPath.get(v2.repoPath);
+			if (!existing) {
+				v2ByPath.set(v2.repoPath, v2.id);
+				continue;
+			}
+			if (projectIdsInCloud.has(v2.id) && !projectIdsInCloud.has(existing)) {
+				v2ByPath.set(v2.repoPath, v2.id);
+			}
 		}
 		const map = new Map<string, string>();
 		for (const v1 of projectsQuery.data ?? []) {
@@ -62,7 +72,11 @@ export function ImportWorkspacesPage({
 			if (v2Id) map.set(v1.id, v2Id);
 		}
 		return map;
-	}, [hostProjectListQuery.data, projectsQuery.data]);
+	}, [
+		hostProjectListQuery.data,
+		projectsQuery.data,
+		cloudWorkspacesQuery.data,
+	]);
 
 	const cloudWorkspaceKeys = useMemo(() => {
 		const set = new Set<string>();
