@@ -1,12 +1,15 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@superset/ui/avatar";
+import { Button } from "@superset/ui/button";
 import {
 	Collapsible,
 	CollapsibleContent,
 	CollapsibleTrigger,
 } from "@superset/ui/collapsible";
+import { toast } from "@superset/ui/sonner";
 import { cn } from "@superset/ui/utils";
+import { workspaceTrpc } from "@superset/workspace-client";
 import { useState } from "react";
-import { LuChevronRight, LuExternalLink } from "react-icons/lu";
+import { LuChevronRight, LuExternalLink, LuLoaderCircle } from "react-icons/lu";
 import ReactMarkdown from "react-markdown";
 import rehypeRaw from "rehype-raw";
 import rehypeSanitize from "rehype-sanitize";
@@ -58,6 +61,7 @@ interface Comment {
 }
 
 interface CommentThreadProps {
+	workspaceId: string;
 	threadId: string;
 	isResolved: boolean;
 	isOutdated?: boolean;
@@ -66,12 +70,27 @@ interface CommentThreadProps {
 }
 
 export function CommentThread({
+	workspaceId,
+	threadId,
 	isResolved,
 	isOutdated,
 	url,
 	comments,
 }: CommentThreadProps) {
 	const [open, setOpen] = useState(!isResolved && !isOutdated);
+	const utils = workspaceTrpc.useUtils();
+	const setResolution = workspaceTrpc.git.setReviewThreadResolution.useMutation(
+		{
+			onSuccess: () => {
+				void utils.git.getPullRequestThreads.invalidate({ workspaceId });
+			},
+			onError: (error) => {
+				toast.error("Couldn't update thread", {
+					description: error.message,
+				});
+			},
+		},
+	);
 
 	return (
 		<Collapsible
@@ -128,6 +147,26 @@ export function CommentThread({
 						<CommentRow key={comment.id} comment={comment} />
 					))}
 				</ul>
+				<div className="flex items-center justify-end border-t border-border bg-muted/30 px-2.5 py-1.5">
+					<Button
+						type="button"
+						size="xs"
+						variant="outline"
+						disabled={setResolution.isPending}
+						onClick={() =>
+							setResolution.mutate({
+								workspaceId,
+								threadId,
+								resolved: !isResolved,
+							})
+						}
+					>
+						{setResolution.isPending && (
+							<LuLoaderCircle className="size-3 animate-spin" />
+						)}
+						{isResolved ? "Unresolve" : "Resolve conversation"}
+					</Button>
+				</div>
 			</CollapsibleContent>
 		</Collapsible>
 	);

@@ -110,6 +110,7 @@ export const WorkspaceDiff = memo(function WorkspaceDiff({
 	const renderAnnotation = useCallback(
 		(annotation: { metadata: DiffCommentThread }) => (
 			<CommentThread
+				workspaceId={workspaceId}
 				threadId={annotation.metadata.threadId}
 				isResolved={annotation.metadata.isResolved}
 				isOutdated={annotation.metadata.isOutdated}
@@ -117,7 +118,7 @@ export const WorkspaceDiff = memo(function WorkspaceDiff({
 				comments={annotation.metadata.comments}
 			/>
 		),
-		[],
+		[workspaceId],
 	);
 
 	return (
