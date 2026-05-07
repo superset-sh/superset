@@ -22,7 +22,23 @@
 	word-break: break-word;
 }
 
-.diff-comment-body > * {
+/* Reset every descendant's margin so we control vertical rhythm
+   ourselves — fixes huge gaps between paragraphs/list items where
+   loose-list <li><p>…</p></li> kept default 1em browser margins. */
+.diff-comment-body p,
+.diff-comment-body ul,
+.diff-comment-body ol,
+.diff-comment-body pre,
+.diff-comment-body blockquote,
+.diff-comment-body h1,
+.diff-comment-body h2,
+.diff-comment-body h3,
+.diff-comment-body h4,
+.diff-comment-body h5,
+.diff-comment-body h6,
+.diff-comment-body details,
+.diff-comment-body table,
+.diff-comment-body hr {
 	margin: 0;
 }
 
@@ -30,8 +46,8 @@
 	margin-top: 0.5rem;
 }
 
-.diff-comment-body p {
-	white-space: pre-wrap;
+.diff-comment-body li > p + p {
+	margin-top: 0.25rem;
 }
 
 .diff-comment-body a {
@@ -97,7 +113,7 @@
 }
 
 .diff-comment-body li + li {
-	margin-top: 0.2rem;
+	margin-top: 0.15rem;
 }
 
 .diff-comment-body blockquote {
