@@ -343,6 +343,27 @@ async function fixNativeBinariesForNode(
 		);
 		rmSync(nodePtyBuild, { recursive: true, force: true });
 	}
+
+	// node-pty's `prebuilds/darwin-{arch}/spawn-helper` ships from npm with
+	// mode 0644. node-pty posix_spawnp's it as the actual fork helper at
+	// terminal-open time — without +x the kernel returns EACCES and the
+	// failure surfaces only as the cryptic "posix_spawnp failed" with no
+	// errno. The normal install path runs `npm rebuild` which fixes the
+	// mode; we ship raw prebuilds so we have to fix it ourselves.
+	if (platform === "darwin") {
+		const { arch } = targetParts(target);
+		const spawnHelper = join(
+			destModules,
+			"node-pty",
+			"prebuilds",
+			`darwin-${arch}`,
+			"spawn-helper",
+		);
+		if (existsSync(spawnHelper)) {
+			console.log(`[build-dist] chmod +x ${spawnHelper}`);
+			chmodSync(spawnHelper, 0o755);
+		}
+	}
 }
 
 async function buildCli(target: Target, outputPath: string): Promise<void> {
@@ -363,6 +384,12 @@ async function buildHostService(): Promise<string> {
 	const hostServiceDir = resolve(import.meta.dir, "../../host-service");
 	await exec("bun", ["run", "build:host"], hostServiceDir);
 	return join(hostServiceDir, "dist", "host-service.js");
+}
+
+async function buildPtyDaemon(): Promise<string> {
+	const ptyDaemonDir = resolve(import.meta.dir, "../../pty-daemon");
+	await exec("bun", ["run", "build:daemon"], ptyDaemonDir);
+	return join(ptyDaemonDir, "dist", "pty-daemon.js");
 }
 
 function writeHostWrapper(binDir: string): void {
@@ -395,6 +422,14 @@ async function main(): Promise<void> {
 	console.log("[build-dist] building host-service bundle");
 	const hostServiceBundle = await buildHostService();
 	cpSync(hostServiceBundle, join(stagingRoot, "lib", "host-service.js"));
+
+	// pty-daemon ships side-by-side with host-service.js. The host-service
+	// resolves the script path via `resolveSupervisorScriptPath()` which
+	// looks for `pty-daemon.js` next to itself first; without this copy the
+	// supervisor falls back to the workspace path and bricks at spawn time.
+	console.log("[build-dist] building pty-daemon bundle");
+	const ptyDaemonBundle = await buildPtyDaemon();
+	cpSync(ptyDaemonBundle, join(stagingRoot, "lib", "pty-daemon.js"));
 
 	console.log("[build-dist] fetching Node.js");
 	await downloadAndExtractNode(target, join(stagingRoot, "lib"));

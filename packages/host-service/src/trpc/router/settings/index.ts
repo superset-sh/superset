@@ -5,5 +5,4 @@ export const settingsRouter = router({
 	agentConfigs: agentConfigsRouter,
 });
 
-export type { HostAgentConfigDto } from "./agent-configs";
-export type { AgentPreset, PromptTransport } from "./agent-presets";
+export type { HostAgentConfig } from "./agent-configs";

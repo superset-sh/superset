@@ -16,7 +16,27 @@ type ListRowWire = {
 	statusName: string | null;
 };
 
+export class TaskStatuses extends APIResource {
+	/**
+	 * List the task statuses configured for the active organization.
+	 *
+	 * Mirrors `superset tasks statuses list`.
+	 */
+	list(options?: RequestOptions): APIPromise<TaskStatusListResponse> {
+		return this._client.query<TaskStatusListResponse>(
+			"task.statuses.list",
+			undefined,
+			options,
+		);
+	}
+}
+
 export class Tasks extends APIResource {
+	/**
+	 * Status configuration (workflow states) for the active organization's tasks.
+	 */
+	statuses: TaskStatuses = new TaskStatuses(this._client);
+
 	/**
 	 * Create a task.
 	 *
@@ -179,6 +199,16 @@ export interface TaskListParams {
 	offset?: number;
 }
 
+export interface TaskStatus {
+	id: string;
+	name: string;
+	color: string;
+	type: string;
+	position: number;
+}
+
+export type TaskStatusListResponse = Array<TaskStatus>;
+
 export declare namespace Tasks {
 	export type {
 		Task,
@@ -187,5 +217,7 @@ export declare namespace Tasks {
 		TaskCreateParams,
 		TaskUpdateParams,
 		TaskListParams,
+		TaskStatus,
+		TaskStatusListResponse,
 	};
 }

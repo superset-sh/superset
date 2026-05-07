@@ -1,6 +1,7 @@
 import { Button } from "@superset/ui/button";
 import {
 	DropdownMenu,
+	DropdownMenuCheckboxItem,
 	DropdownMenuContent,
 	DropdownMenuItem,
 	DropdownMenuSeparator,
@@ -17,14 +18,15 @@ import {
 } from "renderer/assets/app-icons/preset-icons";
 import { HotkeyMenuShortcut } from "renderer/components/HotkeyMenuShortcut";
 import type { HotkeyId } from "renderer/hotkeys";
-import { useMigrateV1PresetsToV2 } from "renderer/routes/_authenticated/hooks/useMigrateV1PresetsToV2";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import type { V2TerminalPresetRow } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
 import { V2PresetBarItem } from "./components/V2PresetBarItem";
 
 interface V2PresetsBarProps {
 	matchedPresets: V2TerminalPresetRow[];
-	executePreset: (preset: V2TerminalPresetRow) => void;
+	executePreset: (preset: V2TerminalPresetRow) => void | Promise<void>;
+	showPresetsBar: boolean;
+	onToggleShowPresetsBar: (enabled: boolean) => void;
 }
 
 // Co-located to keep v2 self-contained. Mirrors the v1 array in
@@ -64,11 +66,12 @@ function getVisiblePresetOrder(
 export function V2PresetsBar({
 	matchedPresets,
 	executePreset,
+	showPresetsBar,
+	onToggleShowPresetsBar,
 }: V2PresetsBarProps) {
 	const navigate = useNavigate();
 	const isDark = useIsDarkTheme();
 	const collections = useCollections();
-	useMigrateV1PresetsToV2();
 
 	const [localVisiblePresetIds, setLocalVisiblePresetIds] = useState<string[]>(
 		() => getVisiblePresetOrder(matchedPresets),
@@ -244,6 +247,16 @@ export function V2PresetsBar({
 							</DropdownMenuItem>
 						);
 					})}
+					<DropdownMenuSeparator />
+					<DropdownMenuCheckboxItem
+						checked={showPresetsBar}
+						onCheckedChange={(checked) =>
+							onToggleShowPresetsBar(checked === true)
+						}
+						onSelect={(event) => event.preventDefault()}
+					>
+						Show Preset Bar
+					</DropdownMenuCheckboxItem>
 					<DropdownMenuSeparator />
 					<DropdownMenuItem
 						className="gap-2"

@@ -73,14 +73,13 @@ export const createPermissionsRouter = () => {
 
 		requestAppleEvents: publicProcedure.mutation(async () => {
 			await shell.openExternal(
-				"x-apple.systempreferences:com.apple.preference.security?Privacy_Automation",
+				"x-apple.systempreferences:com.apple.settings.PrivacySecurity.extension?Privacy_Automation",
 			);
 		}),
 
-		// No deep link exists for Local Network — open the general Privacy & Security pane
 		requestLocalNetwork: publicProcedure.mutation(async () => {
 			await shell.openExternal(
-				"x-apple.systempreferences:com.apple.settings.PrivacySecurity.extension",
+				"x-apple.systempreferences:com.apple.settings.PrivacySecurity.extension?Privacy_LocalNetwork",
 			);
 		}),
 	});

@@ -22,10 +22,15 @@ import type {
 	PaneViewerData,
 	TerminalPaneData,
 } from "../../types";
+import type { TerminalLauncher } from "../useV2TerminalLauncher";
 
-export function useDefaultContextMenuActions(
-	paneRegistry: PaneRegistry<PaneViewerData>,
-): ContextMenuActionConfig<PaneViewerData>[] {
+export function useDefaultContextMenuActions({
+	paneRegistry,
+	launcher,
+}: {
+	paneRegistry: PaneRegistry<PaneViewerData>;
+	launcher: TerminalLauncher;
+}): ContextMenuActionConfig<PaneViewerData>[] {
 	const splitDownShortcut = useHotkeyDisplay("SPLIT_DOWN").text;
 	const splitRightShortcut = useHotkeyDisplay("SPLIT_RIGHT").text;
 	const splitWithChatShortcut = useHotkeyDisplay("SPLIT_WITH_CHAT").text;
@@ -43,12 +48,11 @@ export function useDefaultContextMenuActions(
 				icon: <LuRows2 />,
 				shortcut:
 					splitDownShortcut !== "Unassigned" ? splitDownShortcut : undefined,
-				onSelect: (ctx) => {
+				onSelect: async (ctx) => {
+					const terminalId = await launcher.create();
 					ctx.actions.split("down", {
 						kind: "terminal",
-						data: {
-							terminalId: crypto.randomUUID(),
-						} as TerminalPaneData,
+						data: { terminalId } as TerminalPaneData,
 					});
 				},
 			},
@@ -58,12 +62,11 @@ export function useDefaultContextMenuActions(
 				icon: <LuColumns2 />,
 				shortcut:
 					splitRightShortcut !== "Unassigned" ? splitRightShortcut : undefined,
-				onSelect: (ctx) => {
+				onSelect: async (ctx) => {
+					const terminalId = await launcher.create();
 					ctx.actions.split("right", {
 						kind: "terminal",
-						data: {
-							terminalId: crypto.randomUUID(),
-						} as TerminalPaneData,
+						data: { terminalId } as TerminalPaneData,
 					});
 				},
 			},
@@ -162,6 +165,7 @@ export function useDefaultContextMenuActions(
 			equalizePaneSplitsShortcut,
 			closePaneShortcut,
 			paneRegistry,
+			launcher,
 		],
 	);
 }

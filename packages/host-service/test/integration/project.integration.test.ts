@@ -89,7 +89,7 @@ describe("project router integration", () => {
 			repoPath: repo.repoPath,
 		});
 		expect(result.candidates).toHaveLength(1);
-		expect(result.candidates[0]).toEqual({ id, name: "local-name" });
+		expect(result.candidates[0]).toMatchObject({ id, name: "local-name" });
 		expect(
 			host.apiCalls.some(
 				(c) => c.path === "v2Project.findByGitHubRemote.query",
@@ -130,9 +130,11 @@ describe("project router integration", () => {
 		const result = await host.trpc.project.findByPath.query({
 			repoPath: repo.repoPath,
 		});
-		expect(result.candidates).toEqual([
-			{ id: "cloud-project-id", name: "octocat/hello" },
-		]);
+		expect(result.candidates).toHaveLength(1);
+		expect(result.candidates[0]).toMatchObject({
+			id: "cloud-project-id",
+			name: "octocat/hello",
+		});
 		expect(
 			host.apiCalls.some(
 				(c) => c.path === "v2Project.findByGitHubRemote.query",

@@ -20,6 +20,7 @@ export {
 import fs from "node:fs";
 import os from "node:os";
 import {
+	augmentPathForMacOS,
 	clearStrictShellEnvCache,
 	getStrictShellEnvironment,
 } from "./clean-shell-env.ts";
@@ -56,11 +57,25 @@ function snapshotStringEnv(
 /**
  * Resolve the shell-derived terminal base env inside the host-service process.
  * Desktop main should not construct or own this snapshot.
+ *
+ * Falls back to a process.env snapshot if the user's login shell can't be
+ * probed — crashing host-service startup over a degraded PTY env strands
+ * users on v2. v1 desktop main does the same in apps/desktop shell-env.ts.
  */
 export async function resolveTerminalBaseEnv(): Promise<
 	Record<string, string>
 > {
-	return getStrictShellEnvironment();
+	try {
+		return await getStrictShellEnvironment();
+	} catch (error) {
+		const message = error instanceof Error ? error.message : String(error);
+		console.warn(
+			`[host-service] Shell env snapshot failed, falling back to process.env: ${message}`,
+		);
+		const fallback = snapshotStringEnv(process.env);
+		augmentPathForMacOS(fallback);
+		return fallback;
+	}
 }
 
 /**

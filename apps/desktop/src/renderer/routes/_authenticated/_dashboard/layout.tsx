@@ -10,7 +10,6 @@ import { useHotkey } from "renderer/hotkeys";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { DashboardSidebar } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar";
 import { useDevSeedV2Sidebar } from "renderer/routes/_authenticated/hooks/useDevSeedV2Sidebar";
-import { useMigrateV1DataToV2 } from "renderer/routes/_authenticated/hooks/useMigrateV1DataToV2";
 import { ResizablePanel } from "renderer/screens/main/components/ResizablePanel";
 import { WorkspaceSidebar } from "renderer/screens/main/components/WorkspaceSidebar";
 import { DeleteWorkspaceDialog } from "renderer/screens/main/components/WorkspaceSidebar/WorkspaceListItem/components";
@@ -32,9 +31,8 @@ export const Route = createFileRoute("/_authenticated/_dashboard")({
 function DashboardLayout() {
 	const navigate = useNavigate();
 	const openNewWorkspaceModal = useOpenNewWorkspaceModal();
-	const { isV2CloudEnabled } = useIsV2CloudEnabled();
+	const isV2CloudEnabled = useIsV2CloudEnabled();
 	useDevSeedV2Sidebar();
-	useMigrateV1DataToV2();
 	// Get current workspace from route to pre-select project in new workspace modal
 	const matchRoute = useMatchRoute();
 	const currentWorkspaceMatch = matchRoute({

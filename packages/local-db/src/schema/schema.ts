@@ -239,7 +239,7 @@ export const settings = sqliteTable("settings", {
 export type InsertSettings = typeof settings.$inferInsert;
 export type SelectSettings = typeof settings.$inferSelect;
 
-export type V1MigrationKind = "project" | "workspace";
+export type V1MigrationKind = "project" | "workspace" | "preset";
 export type V1MigrationStatus = "success" | "linked" | "error" | "skipped";
 
 export const v1MigrationState = sqliteTable(

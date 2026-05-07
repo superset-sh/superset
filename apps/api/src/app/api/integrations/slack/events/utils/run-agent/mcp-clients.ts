@@ -1,7 +1,9 @@
 import type Anthropic from "@anthropic-ai/sdk";
 import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import type { McpContext } from "@superset/mcp/auth";
-import { createInMemoryMcpClient } from "@superset/mcp/in-memory";
+import { createInMemoryMcpClient as createV1Client } from "@superset/mcp/in-memory";
+import { createInMemoryMcpClient as createV2Client } from "@superset/mcp-v2/in-memory";
+import { env } from "@/env";
 import { posthog } from "@/lib/analytics";
 
 interface McpTool {
@@ -9,6 +11,8 @@ interface McpTool {
 	description?: string;
 	inputSchema: unknown;
 }
+
+const SLACK_CLIENT_LABEL = "slack-agent";
 
 // Uses InMemoryTransport — no HTTP, no forgeable headers.
 export async function createSupersetMcpClient({
@@ -18,7 +22,7 @@ export async function createSupersetMcpClient({
 	organizationId: string;
 	userId: string;
 }): Promise<{ client: Client; cleanup: () => Promise<void> }> {
-	return createInMemoryMcpClient({
+	return createV1Client({
 		organizationId,
 		userId,
 		source: "slack",
@@ -31,6 +35,38 @@ export async function createSupersetMcpClient({
 					source: ctx.source,
 					org_id: ctx.organizationId,
 				},
+			});
+		},
+	});
+}
+
+export async function createSupersetMcpV2Client({
+	organizationId,
+	userId,
+}: {
+	organizationId: string;
+	userId: string;
+}): Promise<{ client: Client; cleanup: () => Promise<void> }> {
+	return createV2Client({
+		organizationId,
+		userId,
+		clientLabel: SLACK_CLIENT_LABEL,
+		relayUrl: env.RELAY_URL,
+		onToolCall: (event) => {
+			posthog.capture({
+				distinctId: event.userId,
+				event: "mcp_tool_called",
+				properties: {
+					tool: event.toolName,
+					organization_id: event.organizationId,
+					auth_source: event.source,
+					client_label: event.clientLabel,
+					duration_ms: event.durationMs,
+					success: event.success,
+					error_message: event.errorMessage,
+					mcp_server: "superset-v2",
+				},
+				groups: { organization: event.organizationId },
 			});
 		},
 	});

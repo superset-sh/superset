@@ -1,6 +1,7 @@
 import { boolean, CLIError, number, string } from "@superset/cli-framework";
 import { command } from "../../../lib/command";
 import { requireHostTarget, resolveHostTarget } from "../../../lib/host-target";
+import { uploadAttachments } from "../../../lib/upload-attachments";
 
 export default command({
 	description: "Create a workspace on a host",
@@ -14,6 +15,17 @@ export default command({
 		baseBranch: string().desc(
 			"Branch to fork from when `branch` does not exist (defaults to project default)",
 		),
+		agent: string().desc(
+			"Agent to spawn after creation. Preset id (`claude`, `codex`, …), HostAgentConfig instance UUID, or `superset`",
+		),
+		prompt: string().desc(
+			"Initial prompt the agent starts with. Required when --agent is set",
+		),
+		attachment: string()
+			.variadic()
+			.desc(
+				"Local file path to upload as an attachment to the host. Repeatable. Only used when --agent is set",
+			),
 	},
 	run: async ({ ctx, options }) => {
 		const organizationId = ctx.config.organizationId;
@@ -28,6 +40,25 @@ export default command({
 			);
 		}
 
+		if (options.prompt && !options.agent) {
+			throw new CLIError(
+				"--prompt requires --agent",
+				"Pass --agent <id> alongside --prompt",
+			);
+		}
+		if (options.agent && !options.prompt) {
+			throw new CLIError(
+				"--agent requires --prompt",
+				"Pass --prompt <text> alongside --agent",
+			);
+		}
+		if (options.attachment && options.attachment.length > 0 && !options.agent) {
+			throw new CLIError(
+				"--attachment requires --agent",
+				"Attachments are only meaningful when launching an agent",
+			);
+		}
+
 		const hostId = requireHostTarget({
 			host: options.host ?? undefined,
 			local: options.local ?? undefined,
@@ -39,12 +70,28 @@ export default command({
 			userJwt: ctx.bearer,
 		});
 
+		const attachmentIds = options.attachment
+			? await uploadAttachments(target.client, options.attachment)
+			: [];
+
+		const agents =
+			options.agent && options.prompt
+				? [
+						{
+							agent: options.agent,
+							prompt: options.prompt,
+							...(attachmentIds.length > 0 ? { attachmentIds } : {}),
+						},
+					]
+				: undefined;
+
 		const result = await target.client.workspaces.create.mutate({
 			projectId: options.project,
 			name: options.name,
 			branch: options.branch,
 			pr: options.pr,
 			baseBranch: options.baseBranch,
+			agents,
 		});
 
 		return {

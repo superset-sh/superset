@@ -65,29 +65,24 @@ export function TerminalPane({
 	const openInExternalEditor = useOpenInExternalEditor(workspaceId);
 	const paneData = ctx.pane.data as TerminalPaneData;
 	const { terminalId } = paneData;
-	const initialCommandRef = useRef(paneData.initialCommand);
 	const terminalInstanceId = ctx.pane.id;
 	const containerRef = useRef<HTMLDivElement | null>(null);
-	const activeTheme = useTheme();
 	const [isSearchOpen, setIsSearchOpen] = useState(false);
 
 	const appearance = useTerminalAppearance();
 	const appearanceRef = useRef(appearance);
 	appearanceRef.current = appearance;
-	const initialThemeTypeRef = useRef<
-		ReturnType<typeof resolveTerminalThemeType>
-	>(
-		resolveTerminalThemeType({
-			activeThemeType: activeTheme?.type,
-		}),
-	);
 
-	// Include workspaceId/themeType so the WebSocket route can create the
-	// session on open. Terminal attach should not wait behind workspace tRPC.
-	const websocketUrl = useWorkspaceWsUrl(`/terminal/${terminalId}`, {
-		workspaceId,
-		themeType: initialThemeTypeRef.current,
+	// themeType reaches the host-side respawn fallback so a restored shell
+	// gets the right COLORFGBG; PTY env is set at spawn time only.
+	const activeTheme = useTheme();
+	const themeType = resolveTerminalThemeType({
+		activeThemeType: activeTheme?.type,
 	});
+	const baseWebsocketUrl = useWorkspaceWsUrl(`/terminal/${terminalId}`);
+	const themedUrl = new URL(baseWebsocketUrl);
+	themedUrl.searchParams.set("themeType", themeType);
+	const websocketUrl = themedUrl.toString();
 	const websocketUrlRef = useRef(websocketUrl);
 	websocketUrlRef.current = websocketUrl;
 	const workspaceIdRef = useRef(workspaceId);
@@ -128,12 +123,14 @@ export function TerminalPane({
 	//      is visible immediately, even on cold start. For a warm return
 	//      (workspace switch) this reparents the wrapper from the parking
 	//      container back into the live tree, preserving the buffer.
-	//   2. connect() opens the WebSocket immediately. The host-service terminal
-	//      route creates the session from the URL workspaceId if needed, avoiding
-	//      tRPC head-of-line blocking during workspace switches.
+	//   2. connect() attaches the WebSocket to that terminalId. The socket is
+	//      transport only; it does not carry creation-time intent.
+	// The pane never calls createSession — that's useV2TerminalLauncher's job,
+	// awaited at the call site before the pane is added to the store. By the
+	// time this effect runs, the host-service session already exists.
 	// Deps narrowed to the terminal identity so provider key remount churn
-	// (workspaceId briefly flipping while pane data catches up) doesn't re-run
-	// this effect. workspaceId / websocketUrl are read through refs.
+	// (workspaceId/client briefly flipping while pane data catches up) doesn't
+	// re-run this effect. Mutable inputs are read through refs.
 	useEffect(() => {
 		const container = containerRef.current;
 		if (!container) return;
@@ -149,25 +146,12 @@ export function TerminalPane({
 			terminalId,
 			websocketUrlRef.current,
 			terminalInstanceId,
-			{ initialCommand: initialCommandRef.current },
 		);
 
 		return () => {
 			terminalRuntimeRegistry.detach(terminalId, terminalInstanceId);
 		};
 	}, [terminalId, terminalInstanceId]);
-
-	useEffect(() => {
-		if (connectionState !== "open" || !initialCommandRef.current) return;
-
-		initialCommandRef.current = undefined;
-		if (paneData.initialCommand === undefined) return;
-
-		ctx.actions.updateData({
-			...paneData,
-			initialCommand: undefined,
-		} as PaneViewerData);
-	}, [connectionState, ctx.actions, paneData]);
 
 	const lastInvalidatedOpenSessionRef = useRef<string | null>(null);
 	useEffect(() => {
@@ -204,13 +188,16 @@ export function TerminalPane({
 	// URL re-resolution on provider remount). Reconnect only if the transport
 	// is already live — on initial mount the transport is "disconnected" and
 	// we let the mount path above open it.
+	// Reconnect on base-URL change only; themeType lives on the ref so a
+	// theme toggle doesn't tear down a live shell for a visual-only change.
+	// biome-ignore lint/correctness/useExhaustiveDependencies: see comment above
 	useEffect(() => {
 		terminalRuntimeRegistry.reconnect(
 			terminalId,
-			websocketUrl,
+			websocketUrlRef.current,
 			terminalInstanceId,
 		);
-	}, [terminalId, terminalInstanceId, websocketUrl]);
+	}, [terminalId, terminalInstanceId, baseWebsocketUrl]);
 
 	useEffect(() => {
 		terminalRuntimeRegistry.updateAppearance(

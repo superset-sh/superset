@@ -59,6 +59,25 @@ export class Workspaces extends APIResource {
 	}
 
 	/**
+	 * Update fields on a workspace. At least one field is required. Currently
+	 * only `name` is exposed — branch and host moves require host-side
+	 * orchestration and aren't safe to set directly.
+	 *
+	 * Mirrors `superset workspaces update`.
+	 */
+	update(
+		id: string,
+		params: WorkspaceUpdateParams,
+		options?: RequestOptions,
+	): APIPromise<WorkspaceUpdateResult> {
+		return this._client.mutation<WorkspaceUpdateResult>(
+			"v2Workspace.update",
+			{ id, ...params },
+			options,
+		);
+	}
+
+	/**
 	 * Delete a workspace by id. Looks up the host the workspace lives on (via
 	 * the cloud index) and routes the delete to that host's service through
 	 * the relay. Pass an explicit `hostId` to skip the lookup.
@@ -147,7 +166,7 @@ export interface WorkspaceCreateParams {
 }
 
 export interface WorkspaceAgentLaunch {
-	/** Agent preset id (e.g. `"claude"`) or HostAgentConfig instance id. */
+	/** Agent preset id (e.g. `"claude"`, `"superset"`) or HostAgentConfig instance id. */
 	agent: string;
 	/** What to tell the agent. */
 	prompt: string;
@@ -156,19 +175,47 @@ export interface WorkspaceAgentLaunch {
 }
 
 export type WorkspaceCreateAgentResult =
-	| { ok: true; sessionId: string; label: string }
+	| { ok: true; kind: "terminal"; sessionId: string; label: string }
+	| { ok: true; kind: "chat"; sessionId: string; label: string }
 	| { ok: false; error: string };
 
 export interface WorkspaceCreateResult {
 	workspace: {
 		id: string;
+		organizationId: string;
 		projectId: string;
+		hostId: string;
 		name: string;
 		branch: string;
+		type: "main" | "worktree";
+		createdByUserId: string | null;
+		taskId: string | null;
+		createdAt: Date;
+		updatedAt: Date;
 	};
 	terminals: Array<{ terminalId: string; label?: string }>;
 	agents: WorkspaceCreateAgentResult[];
 	alreadyExists: boolean;
+}
+
+export interface WorkspaceUpdateParams {
+	/** New workspace name. */
+	name?: string;
+}
+
+export interface WorkspaceUpdateResult {
+	id: string;
+	name: string;
+	branch: string;
+	organizationId: string;
+	projectId: string;
+	hostId: string;
+	type: "main" | "worktree";
+	createdByUserId: string | null;
+	taskId: string | null;
+	createdAt: Date;
+	updatedAt: Date;
+	txid: number;
 }
 
 export interface WorkspaceDeleteResult {
@@ -185,6 +232,8 @@ export declare namespace Workspaces {
 		WorkspaceAgentLaunch,
 		WorkspaceCreateAgentResult,
 		WorkspaceCreateResult,
+		WorkspaceUpdateParams,
+		WorkspaceUpdateResult,
 		WorkspaceDeleteResult,
 	};
 }

@@ -1,9 +1,11 @@
+import { readFileSync } from "node:fs";
 import { TRPCError } from "@trpc/server";
 import { asc, eq } from "drizzle-orm";
 import { z } from "zod";
 import type { HostDb } from "../../../db";
 import { hostAgentConfigs } from "../../../db/schema";
 import { createTerminalSessionInternal } from "../../../terminal/terminal";
+import type { HostServiceContext } from "../../../types";
 import { protectedProcedure, router } from "../../index";
 import { resolveAttachmentPath } from "../attachments/storage";
 
@@ -157,17 +159,71 @@ export interface AgentRunInput {
 	attachmentIds?: string[];
 }
 
-export interface AgentRunResult {
-	sessionId: string;
-	label: string;
+export type AgentRunResult =
+	| { kind: "terminal"; sessionId: string; label: string }
+	| { kind: "chat"; sessionId: string; label: string };
+
+const SUPERSET_AGENT_ID = "superset";
+const SUPERSET_AGENT_LABEL = "Superset";
+
+async function resolveAttachmentsAsFiles(
+	attachmentIds: string[],
+): Promise<Array<{ data: string; mediaType: string; filename?: string }>> {
+	return attachmentIds.map((attachmentId) => {
+		const resolved = resolveAttachmentPath(attachmentId);
+		if (!resolved) {
+			throw new TRPCError({
+				code: "NOT_FOUND",
+				message: `Attachment not found: ${attachmentId}`,
+			});
+		}
+		const bytes = readFileSync(resolved.path);
+		const data = `data:${resolved.metadata.mediaType};base64,${bytes.toString("base64")}`;
+		return {
+			data,
+			mediaType: resolved.metadata.mediaType,
+			...(resolved.metadata.originalFilename
+				? { filename: resolved.metadata.originalFilename }
+				: {}),
+		};
+	});
 }
 
-/**
- * Launch an agent against a workspace. Pure function over (db, eventBus,
- * input) so `workspaces.create` can invoke it directly for the `agents`
- * sugar without going back through tRPC.
- */
-export async function runAgentInWorkspace(
+async function runChatAgent(
+	ctx: HostServiceContext,
+	input: AgentRunInput,
+	label: string,
+): Promise<AgentRunResult> {
+	const sessionId = crypto.randomUUID();
+	const files = await resolveAttachmentsAsFiles(input.attachmentIds ?? []);
+
+	await ctx.api.chat.createSession.mutate({
+		sessionId,
+		v2WorkspaceId: input.workspaceId,
+	});
+
+	// Errors surface via `getSnapshot.displayState.errorMessage` when a
+	// chat pane attaches.
+	void ctx.runtime.chat
+		.sendMessage({
+			sessionId,
+			workspaceId: input.workspaceId,
+			payload: {
+				content: input.prompt,
+				...(files.length > 0 ? { files } : {}),
+			},
+		})
+		.catch((error) => {
+			console.error(
+				`[runChatAgent] sendMessage failed for ${sessionId}:`,
+				error,
+			);
+		});
+
+	return { kind: "chat", sessionId, label };
+}
+
+async function runTerminalAgent(
 	ctx: { db: HostDb; eventBus: import("../../../events").EventBus },
 	input: AgentRunInput,
 ): Promise<AgentRunResult> {
@@ -212,9 +268,20 @@ export async function runAgentInWorkspace(
 	}
 
 	return {
+		kind: "terminal",
 		sessionId: result.terminalId,
 		label: config.label,
 	};
+}
+
+export async function runAgentInWorkspace(
+	ctx: HostServiceContext,
+	input: AgentRunInput,
+): Promise<AgentRunResult> {
+	if (input.agent === SUPERSET_AGENT_ID) {
+		return runChatAgent(ctx, input, SUPERSET_AGENT_LABEL);
+	}
+	return runTerminalAgent(ctx, input);
 }
 
 export const agentsRouter = router({

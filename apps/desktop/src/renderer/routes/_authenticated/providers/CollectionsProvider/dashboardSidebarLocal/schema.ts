@@ -103,6 +103,11 @@ export const v2TerminalPresetSchema = z.object({
 	executionMode: v2ExecutionModeSchema.default("new-tab"),
 	tabOrder: z.number().int().default(0),
 	createdAt: persistedDateSchema,
+	// When set, the preset is live-linked to a builtin/custom agent definition.
+	// The launcher and editor look up the agent's current command via
+	// settings.getAgentPresets; the stored `commands` array is a snapshot
+	// fallback for when the agent is missing or disabled.
+	agentId: z.string().optional(),
 });
 
 export type DashboardSidebarProjectRow = z.infer<
@@ -170,6 +175,7 @@ export const v2UserPreferencesSchema = z.object({
 	rightSidebarTab: z.enum(["changes", "files"]).default("changes"),
 	rightSidebarWidth: z.number().default(340),
 	deleteLocalBranch: z.boolean().default(false),
+	showPresetsBar: z.boolean().default(true),
 });
 
 export type V2UserPreferencesRow = z.infer<typeof v2UserPreferencesSchema>;
@@ -185,6 +191,7 @@ export const DEFAULT_V2_USER_PREFERENCES: V2UserPreferencesRow = {
 	rightSidebarTab: "changes",
 	rightSidebarWidth: 340,
 	deleteLocalBranch: false,
+	showPresetsBar: true,
 };
 
 /**

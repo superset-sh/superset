@@ -147,11 +147,11 @@ export function buildTaskLaunchRequest({
 	agent: (typeof STARTABLE_AGENT_TYPES)[number];
 	task: TaskRecord;
 }): AgentLaunchRequest {
-	if (agent === "superset-chat") {
+	if (agent === "superset") {
 		return {
 			kind: "chat",
 			workspaceId,
-			agentType: "superset-chat",
+			agentType: "superset",
 			source: "mcp",
 			chat: {
 				...(paneId ? { paneId } : {}),
@@ -189,11 +189,11 @@ export function buildPromptLaunchRequest({
 	agent: (typeof STARTABLE_AGENT_TYPES)[number];
 	prompt: string;
 }): AgentLaunchRequest {
-	if (agent === "superset-chat") {
+	if (agent === "superset") {
 		return {
 			kind: "chat",
 			workspaceId,
-			agentType: "superset-chat",
+			agentType: "superset",
 			source: "mcp",
 			chat: {
 				...(paneId ? { paneId } : {}),

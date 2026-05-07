@@ -3,8 +3,9 @@ import { isAbsolute, join, normalize, sep } from "node:path";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
-import { projects, pullRequests, workspaces } from "../../../db/schema";
+import { pullRequests, workspaces } from "../../../db/schema";
 import { protectedProcedure, queryProcedure, router } from "../../index";
+import { resolveGithubRepo } from "../workspace-creation/shared/project-helpers";
 import type {
 	ChangedFile,
 	CheckConclusionState,
@@ -64,26 +65,31 @@ export const gitRouter = router({
 			const worktreePath = resolveWorktreePath(ctx, input.workspaceId);
 			const git = await ctx.git(worktreePath);
 
-			const currentBranchName = (
-				await git.revparse(["--abbrev-ref", "HEAD"]).catch(() => "")
-			).trim();
-			const base = await resolveBaseComparison(git);
-
-			let branchNames: string[] = [];
+			// `%(HEAD)` emits "*" for the checked-out branch, " " otherwise.
+			// Single spawn — independent of branch count. Only `name`/`isHead`
+			// are read by the v2 sidebar's BaseBranchSelector; the other
+			// per-branch fields the previous implementation computed (upstream,
+			// ahead/behind, last-commit) cost 4 spawns each and were unused.
+			let branches: { name: string; isHead: boolean }[] = [];
 			try {
 				const raw = await git.raw([
-					"branch",
-					"--list",
-					"--format=%(refname:short)",
+					"for-each-ref",
+					"refs/heads/",
+					"--format=%(HEAD)\t%(refname:short)",
 				]);
-				branchNames = raw.trim().split("\n").filter(Boolean);
+				branches = raw
+					.trim()
+					.split("\n")
+					.filter(Boolean)
+					.map((line) => {
+						const tab = line.indexOf("\t");
+						if (tab < 0) return { name: line, isHead: false };
+						return {
+							isHead: line.slice(0, tab) === "*",
+							name: line.slice(tab + 1),
+						};
+					});
 			} catch {}
-
-			const branches = await Promise.all(
-				branchNames.map((name) =>
-					buildBranch(git, name, name === currentBranchName, base?.baseRef),
-				),
-			);
 
 			return { branches };
 		}),
@@ -721,17 +727,17 @@ export const gitRouter = router({
 				});
 			}
 
-			const project = ctx.db.query.projects
-				.findFirst({ where: eq(projects.id, workspace.projectId) })
-				.sync();
-			if (!project) {
-				throw new TRPCError({
-					code: "INTERNAL_SERVER_ERROR",
-					message: `Project ${workspace.projectId} not found in database`,
-				});
-			}
-			if (!project.repoOwner || !project.repoName) {
-				return { reviewThreads: [], conversationComments: [] };
+			let repo: { owner: string; name: string };
+			try {
+				repo = await resolveGithubRepo(ctx, workspace.projectId);
+			} catch (err) {
+				// Expected resolver failures (project not set up locally, no
+				// GitHub remote) degrade silently — the review tab just stays
+				// empty. Anything else is a real bug; propagate it.
+				if (err instanceof TRPCError) {
+					return { reviewThreads: [], conversationComments: [] };
+				}
+				throw err;
 			}
 
 			const octokit = await ctx.github();
@@ -741,8 +747,8 @@ export const gitRouter = router({
 				const result: GraphQLThreadsResult = await octokit.graphql(
 					REVIEW_THREADS_QUERY,
 					{
-						owner: project.repoOwner,
-						name: project.repoName,
+						owner: repo.owner,
+						name: repo.name,
 						prNumber: pr.prNumber,
 					},
 				);
@@ -760,8 +766,8 @@ export const gitRouter = router({
 				let hasMore = true;
 				while (hasMore) {
 					const { data: comments } = await octokit.issues.listComments({
-						owner: project.repoOwner,
-						repo: project.repoName,
+						owner: repo.owner,
+						repo: repo.name,
 						issue_number: pr.prNumber,
 						per_page: 100,
 						page,

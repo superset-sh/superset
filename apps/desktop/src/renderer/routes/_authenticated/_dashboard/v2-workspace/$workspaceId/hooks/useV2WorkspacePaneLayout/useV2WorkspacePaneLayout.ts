@@ -2,7 +2,7 @@ import { createWorkspaceStore, type WorkspaceState } from "@superset/panes";
 import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
+import { useWorkspace } from "renderer/routes/_authenticated/_dashboard/v2-workspace/providers/WorkspaceProvider";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import type { PaneViewerData } from "../../types";
 
@@ -16,17 +16,10 @@ function getSnapshot(state: WorkspaceState<PaneViewerData>): string {
 	return JSON.stringify(state);
 }
 
-interface UseV2WorkspacePaneLayoutParams {
-	projectId: string;
-	workspaceId: string;
-}
-
-export function useV2WorkspacePaneLayout({
-	projectId,
-	workspaceId,
-}: UseV2WorkspacePaneLayoutParams) {
+export function useV2WorkspacePaneLayout() {
+	const { workspace } = useWorkspace();
+	const workspaceId = workspace.id;
 	const collections = useCollections();
-	const { ensureWorkspaceInSidebar } = useDashboardSidebarState();
 	const [store] = useState(() =>
 		createWorkspaceStore<PaneViewerData>({
 			initialState: EMPTY_STATE,
@@ -51,10 +44,6 @@ export function useV2WorkspacePaneLayout({
 				| undefined) ?? EMPTY_STATE,
 		[localWorkspaceState],
 	);
-
-	useEffect(() => {
-		ensureWorkspaceInSidebar(workspaceId, projectId);
-	}, [ensureWorkspaceInSidebar, projectId, workspaceId]);
 
 	useEffect(() => {
 		const nextSnapshot = getSnapshot(persistedPaneLayout);

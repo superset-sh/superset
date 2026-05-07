@@ -5,6 +5,7 @@ import { db } from "@superset/db/client";
 import { members, users } from "@superset/db/schema";
 import { eq } from "drizzle-orm";
 import type { McpContext } from "./auth";
+import type { McpToolCallEmitter } from "./define-tool";
 import { createMcpServer } from "./server";
 
 export interface InMemoryClientOptions {
@@ -12,6 +13,7 @@ export interface InMemoryClientOptions {
 	organizationId: string;
 	clientLabel: string;
 	relayUrl: string;
+	onToolCall?: McpToolCallEmitter;
 }
 
 /**
@@ -28,6 +30,7 @@ export async function createInMemoryMcpClient({
 	organizationId,
 	clientLabel,
 	relayUrl,
+	onToolCall,
 }: InMemoryClientOptions): Promise<{
 	client: Client;
 	cleanup: () => Promise<void>;
@@ -72,7 +75,7 @@ export async function createInMemoryMcpClient({
 		relayUrl,
 	};
 
-	const server = createMcpServer();
+	const server = createMcpServer({ onToolCall });
 	const [serverTransport, clientTransport] =
 		InMemoryTransport.createLinkedPair();
 

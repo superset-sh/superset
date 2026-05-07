@@ -1,7 +1,6 @@
-import { useCallback, useEffect, useState } from "react";
-import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
+import { workspaceTrpc } from "@superset/workspace-client";
+import { useCallback, useMemo } from "react";
 import { useWorkspaceEvent } from "../useWorkspaceEvent";
-import { useWorkspaceHostUrl } from "../useWorkspaceHostUrl";
 
 export interface DiffStats {
 	additions: number;
@@ -9,54 +8,46 @@ export interface DiffStats {
 }
 
 /**
- * Fetches diff stats for a single workspace, auto-updates on git changes.
- * Just pass the workspaceId — host resolution is handled internally.
+ * Diff stats for a single workspace, derived from the shared `git.getStatus`
+ * query cache. Subscribes to `git:changed` and invalidates the query — React
+ * Query collapses concurrent invalidations from sibling consumers (e.g.
+ * `useGitStatus`, multiple sidebar tiles) into a single refetch.
  */
 export function useDiffStats(workspaceId: string): DiffStats | null {
-	const [stats, setStats] = useState<DiffStats | null>(null);
-	const hostUrl = useWorkspaceHostUrl(workspaceId);
+	const utils = workspaceTrpc.useUtils();
+	const { data: status } = workspaceTrpc.git.getStatus.useQuery(
+		{ workspaceId },
+		{
+			enabled: Boolean(workspaceId),
+			// Match the pre-RQ behavior: only update on `git:changed`, never
+			// on focus. Multiple sidebar tiles each have their own query key,
+			// so focus refetch would re-fan out the very work this hook is
+			// supposed to consolidate.
+			refetchOnWindowFocus: false,
+		},
+	);
 
-	const fetchStats = useCallback(async () => {
-		if (!hostUrl) return;
-		try {
-			const client = getHostServiceClientByUrl(hostUrl);
-			const status = await client.git.getStatus.query({ workspaceId });
+	const invalidate = useCallback(() => {
+		void utils.git.getStatus.invalidate({ workspaceId });
+	}, [utils, workspaceId]);
 
-			// Deduplicate by path — a file can appear in multiple categories
-			const byPath = new Map<
-				string,
-				{ additions: number; deletions: number }
-			>();
-			for (const file of status.againstBase) {
-				byPath.set(file.path, file);
-			}
-			for (const file of status.staged) {
-				byPath.set(file.path, file);
-			}
-			for (const file of status.unstaged) {
-				byPath.set(file.path, file);
-			}
+	useWorkspaceEvent("git:changed", workspaceId, invalidate);
 
-			let additions = 0;
-			let deletions = 0;
-			for (const file of byPath.values()) {
-				additions += file.additions;
-				deletions += file.deletions;
-			}
+	return useMemo<DiffStats | null>(() => {
+		if (!status) return null;
 
-			setStats({ additions, deletions });
-		} catch {
-			// Host unavailable or workspace deleted
+		// Deduplicate by path — a file can appear in multiple categories.
+		const byPath = new Map<string, { additions: number; deletions: number }>();
+		for (const file of status.againstBase) byPath.set(file.path, file);
+		for (const file of status.staged) byPath.set(file.path, file);
+		for (const file of status.unstaged) byPath.set(file.path, file);
+
+		let additions = 0;
+		let deletions = 0;
+		for (const file of byPath.values()) {
+			additions += file.additions;
+			deletions += file.deletions;
 		}
-	}, [hostUrl, workspaceId]);
-
-	useEffect(() => {
-		void fetchStats();
-	}, [fetchStats]);
-
-	useWorkspaceEvent("git:changed", workspaceId, () => {
-		void fetchStats();
-	});
-
-	return stats;
+		return { additions, deletions };
+	}, [status]);
 }

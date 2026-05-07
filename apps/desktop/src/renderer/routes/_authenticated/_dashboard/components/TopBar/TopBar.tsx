@@ -30,7 +30,7 @@ export function TopBar() {
 		{ enabled: !!workspaceId && !isV2WorkspaceRoute },
 	);
 	const isOnline = useOnlineStatus();
-	const { isV2CloudEnabled } = useIsV2CloudEnabled();
+	const isV2CloudEnabled = useIsV2CloudEnabled();
 	const isSidebarOpen = useWorkspaceSidebarStore((s) => s.isOpen);
 	const isSidebarCollapsed = useWorkspaceSidebarStore((s) => s.isCollapsed());
 	// Default to Mac layout while loading to avoid overlap with traffic lights
