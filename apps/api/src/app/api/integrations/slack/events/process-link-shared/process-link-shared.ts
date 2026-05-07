@@ -1,7 +1,7 @@
 import type { EntityMetadata, LinkSharedEvent } from "@slack/types";
 import { db } from "@superset/db/client";
 import { integrationConnections, tasks } from "@superset/db/schema";
-import { decryptSecret } from "@superset/shared/crypto";
+import { decryptSecret, tryDecryptSecret } from "@superset/shared/crypto";
 import { and, eq } from "drizzle-orm";
 import { createSlackClient } from "../utils/slack-client";
 import {
@@ -41,7 +41,7 @@ export async function processLinkShared({
 		return;
 	}
 
-	const slack = createSlackClient(decryptSecret(connection.accessToken));
+	const slack = createSlackClient(tryDecryptSecret(connection.accessToken));
 
 	const entities: EntityMetadata[] = [];
 

@@ -59,11 +59,11 @@ export async function requireChatSessionAccess(
 	if (!session) return null;
 
 	const isCreator = session.createdBy === sessionData.user.id;
-	const isOrgMember = session.organizationId === sessionData.organizationId;
+	const isOrgMember = session.organizationId === sessionData.session.activeOrganizationId;
 
 	if (!isCreator && !isOrgMember) {
-		// Log unauthorized attempts for security auditing
-		console.warn(`[auth] Unauthorized session access attempt: user=${sessionData.user.id} session=${sessionId}`);
+		// Log unauthorized attempts for security auditing (excluding PII)
+		console.warn(`[auth] Unauthorized session access attempt for session=${sessionId}`);
 		return null;
 	}
 

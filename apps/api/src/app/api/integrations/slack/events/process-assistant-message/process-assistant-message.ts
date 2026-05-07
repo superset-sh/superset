@@ -1,4 +1,5 @@
 import { db } from "@superset/db/client";
+import { decryptSecret, tryDecryptSecret } from "@superset/shared/crypto";
 import {
 	integrationConnections,
 	subscriptions,
@@ -74,7 +75,7 @@ export async function processAssistantMessage({
 		return;
 	}
 
-	const decryptedToken = decryptSecret(connection.accessToken);
+	const decryptedToken = tryDecryptSecret(connection.accessToken);
 	const slack = createSlackClient(decryptedToken);
 
 	const [slackUserLink, activeSubscription] = await Promise.all([

@@ -4,7 +4,7 @@ import { integrationConnections } from "@superset/db/schema";
 import { withConnectionLock } from "@superset/db/utils";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
-import { decryptSecret, encryptSecret } from "@superset/shared/crypto";
+import { decryptSecret, encryptSecret, tryDecryptSecret } from "@superset/shared/crypto";
 import { env } from "../../../env";
 import { REFRESH_BUFFER_MS, REFRESH_TOKEN_TIMEOUT_MS } from "./constants";
 import { getLinearClient, markConnectionDisconnected } from "./utils";
@@ -46,8 +46,8 @@ export async function refreshLinearToken(
 		if (connection.disconnectedAt) return { disconnected: true };
 
 		// Always decrypt tokens coming out of the DB
-		const decryptedAccessToken = decryptSecret(connection.accessToken);
-		const decryptedRefreshToken = decryptSecret(connection.refreshToken);
+		const decryptedAccessToken = tryDecryptSecret(connection.accessToken);
+		const decryptedRefreshToken = tryDecryptSecret(connection.refreshToken);
 
 		// If the token is still valid (with a buffer), just return the existing one
 		if (

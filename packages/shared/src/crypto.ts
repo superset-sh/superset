@@ -52,6 +52,11 @@ export function decryptSecret(encrypted: string): string {
 	const key = getEncryptionKey();
 	const buf = Buffer.from(encrypted, "base64");
 
+	// GCM standard overhead is IV (12B) + Tag (16B) = 28B
+	if (buf.length < IV_LENGTH + AUTH_TAG_LENGTH) {
+		throw new Error("Invalid encrypted data format");
+	}
+
 	// Extract the components from the combined buffer
 	const iv = buf.subarray(0, IV_LENGTH);
 	const tag = buf.subarray(IV_LENGTH, IV_LENGTH + AUTH_TAG_LENGTH);
@@ -62,5 +67,23 @@ export function decryptSecret(encrypted: string): string {
 	});
 	decipher.setAuthTag(tag);
 
-	return decipher.update(ciphertext) + decipher.final("utf8");
+	return Buffer.concat([
+		decipher.update(ciphertext),
+		decipher.final(),
+	]).toString("utf8");
+}
+
+/**
+ * Attempts to decrypt a secret, but falls back to the original string if 
+ * decryption fails (e.g., legacy plaintext data).
+ */
+export function tryDecryptSecret(value: string | null | undefined): string {
+	if (!value) return "";
+	try {
+		return decryptSecret(value);
+	} catch (err) {
+		// If it's not a valid base64 or doesn't match our format, 
+		// assume it's legacy plaintext for now.
+		return value;
+	}
 }

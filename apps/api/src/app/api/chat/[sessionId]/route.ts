@@ -1,7 +1,7 @@
 import { db } from "@superset/db/client";
 import { chatSessions } from "@superset/db/schema";
 import { and, eq, isNull } from "drizzle-orm";
-import { getDurableStream, requireChatSessionAccess } from "../lib";
+import { getDurableStream, requireAuth, requireChatSessionAccess } from "../lib";
 
 function errorMessage(error: unknown): string {
 	if (error instanceof Error) return error.message;
@@ -28,18 +28,20 @@ export async function PUT(
 	{ params }: { params: Promise<{ sessionId: string }> },
 ): Promise<Response> {
 	const { sessionId } = await params;
-	const access = await requireChatSessionAccess(sessionId, request);
-	if (!access) return new Response("Unauthorized", { status: 401 });
-	const { sessionData: session } = access;
+	const sessionData = await requireAuth(request);
+	if (!sessionData) return new Response("Unauthorized", { status: 401 });
 
 	const body = (await request.json()) as {
 		organizationId: string;
 		workspaceId?: string;
 	};
 
-	if (!body.organizationId) {
+	if (
+		!body.organizationId ||
+		body.organizationId !== sessionData.session.activeOrganizationId
+	) {
 		return Response.json(
-			{ error: "organizationId is required" },
+			{ error: "Invalid organizationId" },
 			{ status: 400 },
 		);
 	}
@@ -65,7 +67,7 @@ export async function PUT(
 	const baseValues = {
 		id: sessionId,
 		organizationId: body.organizationId,
-		createdBy: session.user.id,
+		createdBy: sessionData.user.id,
 	};
 
 	try {
@@ -105,7 +107,7 @@ export async function PUT(
 				.where(
 					and(
 						eq(chatSessions.id, sessionId),
-						eq(chatSessions.createdBy, session.user.id),
+						eq(chatSessions.createdBy, sessionData.user.id),
 						isNull(chatSessions.workspaceId),
 					),
 				)
