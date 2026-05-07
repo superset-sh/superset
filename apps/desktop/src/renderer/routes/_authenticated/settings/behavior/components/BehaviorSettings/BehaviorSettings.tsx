@@ -325,36 +325,7 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 							/>
 						</div>
 					)}
-
-					{false && showTelemetry && (
-						<div className="flex items-center justify-between">
-							<div className="space-y-0.5">
-								<Label htmlFor="telemetry" className="text-sm font-medium">
-									Send anonymous usage data
-								</Label>
-								<p className="text-xs text-muted-foreground">
-									Help improve Superset by sending anonymous usage data
-								</p>
-							</div>
-							<Switch
-								id="telemetry"
-								checked={telemetryEnabled ?? true}
-								onCheckedChange={handleTelemetryToggle}
-								disabled={isTelemetryLoading || setTelemetryEnabled.isPending}
-							/>
-						</div>
-					)}
 				</div>
-						<Switch
-							id="open-links-in-app"
-							checked={openLinksInApp ?? false}
-							onCheckedChange={(enabled) =>
-								setOpenLinksInApp.mutate({ enabled })
-							}
-							disabled={isOpenLinksInAppLoading || setOpenLinksInApp.isPending}
-						/>
-					</div>
-				)}
 			</div>
 
 			<VscodeDisableConfirmDialog
