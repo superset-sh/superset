@@ -130,14 +130,18 @@ function parseTitlePayload(payload: string): string | null | undefined {
 	const command = payload.slice(0, firstSeparator);
 	const value = payload.slice(firstSeparator + 1);
 
+	// A title that normalizes to null (all-Braille, all-U+FFFD, or whitespace
+	// after stripping) is treated as "no meaningful update" — return undefined
+	// so the scanner skips it and the previous title stays in place. The
+	// explicit OSC 9;3; reset path below still returns null to clear.
 	if (command === "0" || command === "2") {
-		return normalizeTerminalTitle(value);
+		return normalizeTerminalTitle(value) ?? undefined;
 	}
 
 	if (command !== "9") return undefined;
 	if (value === "3;") return null;
 	if (!value.startsWith("3;")) return undefined;
-	return normalizeTerminalTitle(value.slice(2));
+	return normalizeTerminalTitle(value.slice(2)) ?? undefined;
 }
 
 /**
