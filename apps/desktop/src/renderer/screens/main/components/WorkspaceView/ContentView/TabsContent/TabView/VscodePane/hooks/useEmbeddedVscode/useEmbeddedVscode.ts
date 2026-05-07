@@ -252,10 +252,18 @@ export function useEmbeddedVscode({
 		focusMutation.mutate({ paneId });
 	}, [paneId, phase, isPaneFocused, focusMutation.mutate]);
 
-	// Mirror the WebContentsView's OS-level focus into renderer state. The
-	// tabs-store `setFocusedPane` handles mosaic focus (so pane-switch hotkeys
-	// target the right pane); `useVscodeFocusStore` is read by `useHotkey` to
-	// gate Superset shortcuts while the IDE owns keyboard input.
+	electronTrpc.vscode.onStatus.useSubscription(
+		{ paneId },
+		{
+			onData: (event) => {
+				if (event.status === "exited" || event.status === "error") {
+					setPhase("failed");
+					setErrorMessage(event.error ?? "VS Code server exited unexpectedly");
+				}
+			},
+		},
+	);
+
 	const setFocusedPane = useTabsStore((s) => s.setFocusedPane);
 	const setVscodeFocused = useVscodeFocusStore((s) => s.setFocused);
 	const clearVscodeFocused = useVscodeFocusStore((s) => s.clearPane);
