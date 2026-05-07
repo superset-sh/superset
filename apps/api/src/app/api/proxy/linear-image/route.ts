@@ -2,6 +2,7 @@ import { auth } from "@superset/auth/server";
 import { db } from "@superset/db/client";
 import { integrationConnections } from "@superset/db/schema";
 import { and, eq } from "drizzle-orm";
+import { decryptSecret } from "@superset/shared/crypto";
 
 const LINEAR_IMAGE_HOST = "uploads.linear.app";
 const CACHE_MAX_AGE = 31536000; // 1 year (Linear URLs are content-addressed)
@@ -56,7 +57,7 @@ export async function GET(request: Request): Promise<Response> {
 	// Fetch the image from Linear with auth
 	const linearResponse = await fetch(linearUrl, {
 		headers: {
-			Authorization: `Bearer ${connection.accessToken}`,
+			Authorization: `Bearer ${decryptSecret(connection.accessToken)}`,
 		},
 	});
 

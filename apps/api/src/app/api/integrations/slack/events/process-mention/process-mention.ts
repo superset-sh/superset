@@ -73,7 +73,8 @@ export async function processSlackMention({
 		return;
 	}
 
-	const slack = createSlackClient(connection.accessToken);
+	const decryptedToken = decryptSecret(connection.accessToken);
+	const slack = createSlackClient(decryptedToken);
 
 	const [slackUserLink, activeSubscription] = await Promise.all([
 		event.user
@@ -211,7 +212,7 @@ export async function processSlackMention({
 		const imageAssets = await extractSlackImageAssets({
 			eventFiles: event.files,
 			slack,
-			slackToken: connection.accessToken,
+			slackToken: decryptedToken,
 		});
 
 		const resolve = await resolveUserMentions({
@@ -225,7 +226,7 @@ export async function processSlackMention({
 			threadTs,
 			organizationId: connection.organizationId,
 			userId: slackUserLink.userId,
-			slackToken: connection.accessToken,
+			slackToken: decryptedToken,
 			model: slackUserLink.modelPreference ?? undefined,
 			images: imageAssets,
 			onProgress: messageTs

@@ -4,6 +4,7 @@ import { integrationConnections } from "@superset/db/schema";
 import { withConnectionLock } from "@superset/db/utils";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
+import { decryptSecret, encryptSecret } from "@superset/shared/crypto";
 import { env } from "../../../env";
 import { REFRESH_BUFFER_MS, REFRESH_TOKEN_TIMEOUT_MS } from "./constants";
 import { getLinearClient, markConnectionDisconnected } from "./utils";
@@ -22,6 +23,10 @@ type RefreshResult =
 	| { disconnected: true }
 	| { disconnected: false; accessToken: string };
 
+/**
+ * Refreshes a Linear OAuth token if it's expired or about to expire.
+ * We use a mutex (withConnectionLock) to prevent race conditions during refresh.
+ */
 export async function refreshLinearToken(
 	connectionId: string,
 ): Promise<RefreshResult> {
@@ -40,11 +45,16 @@ export async function refreshLinearToken(
 		if (!connection?.refreshToken) return { disconnected: true };
 		if (connection.disconnectedAt) return { disconnected: true };
 
+		// Always decrypt tokens coming out of the DB
+		const decryptedAccessToken = decryptSecret(connection.accessToken);
+		const decryptedRefreshToken = decryptSecret(connection.refreshToken);
+
+		// If the token is still valid (with a buffer), just return the existing one
 		if (
 			connection.tokenExpiresAt &&
 			connection.tokenExpiresAt.getTime() > Date.now() + REFRESH_BUFFER_MS
 		) {
-			return { disconnected: false, accessToken: connection.accessToken };
+			return { disconnected: false, accessToken: decryptedAccessToken };
 		}
 
 		const controller = new AbortController();
@@ -52,57 +62,61 @@ export async function refreshLinearToken(
 			() => controller.abort(),
 			REFRESH_TOKEN_TIMEOUT_MS,
 		);
-		let response: Response;
+
 		try {
-			response = await fetch("https://api.linear.app/oauth/token", {
+			const response = await fetch("https://api.linear.app/oauth/token", {
 				method: "POST",
 				headers: { "Content-Type": "application/x-www-form-urlencoded" },
 				signal: controller.signal,
 				body: new URLSearchParams({
 					grant_type: "refresh_token",
-					refresh_token: connection.refreshToken,
+					refresh_token: decryptedRefreshToken,
 					client_id: env.LINEAR_CLIENT_ID,
 					client_secret: env.LINEAR_CLIENT_SECRET,
 				}),
 			});
+
+			if (!response.ok) {
+				const body = (await response.json().catch(() => ({}))) as {
+					error?: string;
+				};
+
+				// If the refresh token is revoked or invalid, mark the connection as disconnected
+				if (body?.error === "invalid_grant") {
+					await tx
+						.update(integrationConnections)
+						.set({
+							disconnectedAt: new Date(),
+							disconnectReason: "invalid_grant",
+						})
+						.where(eq(integrationConnections.id, connectionId));
+					return { disconnected: true };
+				}
+				
+				throw new Error(
+					`Linear token refresh failed: ${response.status} ${response.statusText}`,
+				);
+			}
+
+			const data = linearTokenResponseSchema.parse(await response.json());
+			const tokenExpiresAt = new Date(Date.now() + data.expires_in * 1000);
+
+			// Encrypt new tokens before persisting
+			await tx
+				.update(integrationConnections)
+				.set({
+					accessToken: encryptSecret(data.access_token),
+					refreshToken: encryptSecret(data.refresh_token),
+					tokenExpiresAt,
+					disconnectedAt: null,
+					disconnectReason: null,
+				})
+				.where(eq(integrationConnections.id, connectionId));
+
+			return { disconnected: false, accessToken: data.access_token };
 		} finally {
 			clearTimeout(timeout);
 		}
-
-		if (!response.ok) {
-			const body = (await response.json().catch(() => ({}))) as {
-				error?: string;
-			};
-			if (body?.error === "invalid_grant") {
-				await tx
-					.update(integrationConnections)
-					.set({
-						disconnectedAt: new Date(),
-						disconnectReason: "invalid_grant",
-					})
-					.where(eq(integrationConnections.id, connectionId));
-				return { disconnected: true };
-			}
-			throw new Error(
-				`Linear token refresh failed: ${response.status} ${response.statusText}`,
-			);
-		}
-
-		const data = linearTokenResponseSchema.parse(await response.json());
-		const tokenExpiresAt = new Date(Date.now() + data.expires_in * 1000);
-
-		await tx
-			.update(integrationConnections)
-			.set({
-				accessToken: data.access_token,
-				refreshToken: data.refresh_token,
-				tokenExpiresAt,
-				disconnectedAt: null,
-				disconnectReason: null,
-			})
-			.where(eq(integrationConnections.id, connectionId));
-
-		return { disconnected: false, accessToken: data.access_token };
 	});
 }
 

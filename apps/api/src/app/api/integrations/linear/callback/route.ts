@@ -7,6 +7,10 @@ import { and, eq } from "drizzle-orm";
 
 import { env } from "@/env";
 import { verifySignedState } from "@/lib/oauth-state";
+import { encryptSecret } from "@superset/shared/crypto";
+
+// This callback is triggered by Linear after the user approves the OAuth flow.
+// We handle token exchange and store the credentials securely (encrypted at rest).
 
 const qstash = new Client({ token: env.QSTASH_TOKEN });
 
@@ -90,8 +94,10 @@ export async function GET(request: Request) {
 			organizationId,
 			connectedByUserId: userId,
 			provider: "linear",
-			accessToken: tokenData.access_token,
-			refreshToken: tokenData.refresh_token,
+			accessToken: encryptSecret(tokenData.access_token),
+			refreshToken: tokenData.refresh_token
+				? encryptSecret(tokenData.refresh_token)
+				: null,
 			tokenExpiresAt,
 			externalOrgId: linearOrg.id,
 			externalOrgName: linearOrg.name,
@@ -102,8 +108,10 @@ export async function GET(request: Request) {
 				integrationConnections.provider,
 			],
 			set: {
-				accessToken: tokenData.access_token,
-				refreshToken: tokenData.refresh_token,
+				accessToken: encryptSecret(tokenData.access_token),
+				refreshToken: tokenData.refresh_token
+					? encryptSecret(tokenData.refresh_token)
+					: null,
 				tokenExpiresAt,
 				disconnectedAt: null,
 				disconnectReason: null,

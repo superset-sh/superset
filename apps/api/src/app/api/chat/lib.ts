@@ -1,5 +1,8 @@
 import { DurableStream } from "@durable-streams/client";
 import { auth } from "@superset/auth/server";
+import { db } from "@superset/db/client";
+import { chatSessions } from "@superset/db/schema";
+import { eq } from "drizzle-orm";
 import { env } from "@/env";
 
 export const PROTOCOL_QUERY_PARAMS = ["offset", "live", "cursor"];
@@ -34,6 +37,37 @@ export async function requireAuth(request: Request) {
 	});
 	if (!sessionData?.user) return null;
 	return sessionData;
+}
+
+/**
+ * Ensures the authenticated user has access to a specific chat session.
+ * We authorize access if the user is the original creator OR if the session 
+ * belongs to their current organization.
+ */
+export async function requireChatSessionAccess(
+	sessionId: string,
+	request: Request,
+) {
+	const sessionData = await requireAuth(request);
+	if (!sessionData) return null;
+
+	const session = await db.query.chatSessions.findFirst({
+		where: eq(chatSessions.id, sessionId),
+	});
+
+	// Treat non-existent sessions as unauthorized
+	if (!session) return null;
+
+	const isCreator = session.createdBy === sessionData.user.id;
+	const isOrgMember = session.organizationId === sessionData.organizationId;
+
+	if (!isCreator && !isOrgMember) {
+		// Log unauthorized attempts for security auditing
+		console.warn(`[auth] Unauthorized session access attempt: user=${sessionData.user.id} session=${sessionId}`);
+		return null;
+	}
+
+	return { sessionData, chatSession: session };
 }
 
 export function streamUrl(sessionId: string) {

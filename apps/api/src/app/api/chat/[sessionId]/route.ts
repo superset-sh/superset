@@ -1,7 +1,7 @@
 import { db } from "@superset/db/client";
 import { chatSessions } from "@superset/db/schema";
 import { and, eq, isNull } from "drizzle-orm";
-import { getDurableStream, requireAuth } from "../lib";
+import { getDurableStream, requireChatSessionAccess } from "../lib";
 
 function errorMessage(error: unknown): string {
 	if (error instanceof Error) return error.message;
@@ -27,10 +27,10 @@ export async function PUT(
 	request: Request,
 	{ params }: { params: Promise<{ sessionId: string }> },
 ): Promise<Response> {
-	const session = await requireAuth(request);
-	if (!session) return new Response("Unauthorized", { status: 401 });
-
 	const { sessionId } = await params;
+	const access = await requireChatSessionAccess(sessionId, request);
+	if (!access) return new Response("Unauthorized", { status: 401 });
+	const { sessionData: session } = access;
 
 	const body = (await request.json()) as {
 		organizationId: string;
@@ -132,10 +132,9 @@ export async function PATCH(
 	request: Request,
 	{ params }: { params: Promise<{ sessionId: string }> },
 ): Promise<Response> {
-	const session = await requireAuth(request);
-	if (!session) return new Response("Unauthorized", { status: 401 });
-
 	const { sessionId } = await params;
+	const access = await requireChatSessionAccess(sessionId, request);
+	if (!access) return new Response("Unauthorized", { status: 401 });
 	const body = (await request.json()) as { title?: string };
 
 	if (body.title !== undefined) {

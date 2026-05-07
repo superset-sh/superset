@@ -42,7 +42,11 @@ export async function GET(
 		.where(eq(chatAttachments.id, id))
 		.limit(1);
 
-	if (!attachment || attachment.ownerId !== sessionData.user.id) {
+	if (
+		!attachment ||
+		(attachment.ownerId !== sessionData.user.id &&
+			attachment.organizationId !== sessionData.organizationId)
+	) {
 		return new Response("Not found", { status: 404 });
 	}
 

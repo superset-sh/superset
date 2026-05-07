@@ -81,7 +81,7 @@ export async function GET(request: Request) {
 				organizationId,
 				connectedByUserId: userId,
 				provider: "slack",
-				accessToken: tokenData.access_token,
+				accessToken: encryptSecret(tokenData.access_token),
 				externalOrgId: tokenData.team.id,
 				externalOrgName: tokenData.team.name,
 				config,
@@ -92,7 +92,7 @@ export async function GET(request: Request) {
 					integrationConnections.provider,
 				],
 				set: {
-					accessToken: tokenData.access_token,
+					accessToken: encryptSecret(tokenData.access_token),
 					externalOrgId: tokenData.team.id,
 					externalOrgName: tokenData.team.name,
 					connectedByUserId: userId,

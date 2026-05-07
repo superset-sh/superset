@@ -45,7 +45,7 @@ export async function processAppHomeOpened({
 		? undefined
 		: generateConnectUrl({ slackUserId: event.user, teamId });
 
-	const slack = createSlackClient(connection.accessToken);
+	const slack = createSlackClient(decryptSecret(connection.accessToken));
 
 	await slack.views.publish({
 		user_id: event.user,

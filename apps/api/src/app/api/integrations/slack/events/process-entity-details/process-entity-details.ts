@@ -47,7 +47,7 @@ export async function processEntityDetails({
 		return;
 	}
 
-	const slack = createSlackClient(connection.accessToken);
+	const slack = createSlackClient(decryptSecret(connection.accessToken));
 
 	const taskSlug = parseTaskSlugFromUrl(event.entity_url);
 
