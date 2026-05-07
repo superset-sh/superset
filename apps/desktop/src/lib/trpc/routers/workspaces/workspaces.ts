@@ -7,6 +7,7 @@ import { createInitProcedures } from "./procedures/init";
 import { createQueryProcedures } from "./procedures/query";
 import { createSectionsProcedures } from "./procedures/sections";
 import { createStatusProcedures } from "./procedures/status";
+import { createSyncProcedures } from "./procedures/sync";
 
 export const createWorkspacesRouter = () => {
 	return mergeRouters(
@@ -18,6 +19,7 @@ export const createWorkspacesRouter = () => {
 		createInitProcedures(),
 		createSectionsProcedures(),
 		createGenerateBranchNameProcedures(),
+		createSyncProcedures(),
 	);
 };
 
