@@ -2,10 +2,15 @@ import { FitAddon } from "@xterm/addon-fit";
 import type { ProgressAddon } from "@xterm/addon-progress";
 import type { SearchAddon } from "@xterm/addon-search";
 import { SerializeAddon } from "@xterm/addon-serialize";
+import type { WebglAddon } from "@xterm/addon-webgl";
 import { Terminal as XTerm } from "@xterm/xterm";
 import { DEFAULT_TERMINAL_SCROLLBACK } from "shared/constants";
 import type { TerminalAppearance } from "./appearance";
-import { loadAddons } from "./terminal-addons";
+import {
+	attachWebglRenderer,
+	detachWebglRenderer,
+	loadAddons,
+} from "./terminal-addons";
 import { installTerminalKeyEventHandler } from "./terminal-key-event-handler";
 import { getTerminalParkingContainer } from "./terminal-parking";
 
@@ -23,6 +28,7 @@ export interface TerminalRuntime {
 	serializeAddon: SerializeAddon;
 	searchAddon: SearchAddon | null;
 	progressAddon: ProgressAddon | null;
+	webglAddon: WebglAddon | null;
 	wrapper: HTMLDivElement;
 	container: HTMLDivElement | null;
 	resizeObserver: ResizeObserver | null;
@@ -223,6 +229,7 @@ export function createRuntime(
 		serializeAddon,
 		searchAddon: addonsResult.searchAddon,
 		progressAddon: addonsResult.progressAddon,
+		webglAddon: null,
 		wrapper,
 		container: null,
 		resizeObserver: null,
@@ -250,6 +257,17 @@ export function attachToContainer(
 
 	runtime.container = container;
 	container.appendChild(runtime.wrapper);
+
+	// WebGL is gated to the active tab: only terminals in the live tree hold a
+	// GPU context. Parked terminals release theirs to keep the per-renderer
+	// context count low and avoid the "all panes lose context at once"
+	// cascade under heavy redraw bursts.
+	if (runtime.webglAddon === null) {
+		runtime.webglAddon = attachWebglRenderer(runtime.terminal, () => {
+			runtime.webglAddon = null;
+		});
+	}
+
 	if (measureAndResize(runtime)) onResize?.();
 
 	runtime._disposeResizeObserver?.();
@@ -271,6 +289,10 @@ export function detachFromContainer(runtime: TerminalRuntime) {
 	runtime._disposeResizeObserver = null;
 	runtime.resizeObserver?.disconnect();
 	runtime.resizeObserver = null;
+	if (runtime.webglAddon !== null) {
+		detachWebglRenderer(runtime.webglAddon);
+		runtime.webglAddon = null;
+	}
 	// Park instead of .remove() so xterm survives the React unmount —
 	// see getTerminalParkingContainer.
 	getTerminalParkingContainer().appendChild(runtime.wrapper);
@@ -312,6 +334,10 @@ export function disposeRuntime(
 	runtime._disposeResizeObserver = null;
 	runtime.resizeObserver?.disconnect();
 	runtime.resizeObserver = null;
+	if (runtime.webglAddon !== null) {
+		detachWebglRenderer(runtime.webglAddon);
+		runtime.webglAddon = null;
+	}
 	runtime.wrapper.remove();
 	runtime.terminal.dispose();
 	if (clearPersistedState) {

@@ -13,18 +13,17 @@ export interface LoadAddonsResult {
 	dispose: () => void;
 }
 
-// Once WebGL fails, skip it for all subsequent runtimes (VS Code pattern).
+// Once WebGL fails (construction throw or runtime context loss), skip it for
+// the rest of the session. Both signals indicate the GPU path is unhealthy
+// in this renderer process — VS Code does the same.
 let suggestedRendererType: "webgl" | "dom" | undefined;
 
 /**
- * Load optional addons onto an already-opened terminal. Returns a cleanup
- * function and addon instances. WebGL is deferred to rAF to avoid
- * racing with xterm's post-open viewport sync.
+ * Load non-renderer addons onto an already-opened terminal. The WebGL renderer
+ * is intentionally not attached here — it's tied to container lifecycle by
+ * `attachWebglRenderer` so parked terminals don't hold GPU contexts.
  */
 export function loadAddons(terminal: XTerm): LoadAddonsResult {
-	let disposed = false;
-	let webglAddon: WebglAddon | null = null;
-
 	terminal.loadAddon(new ClipboardAddon());
 
 	const unicode11 = new Unicode11Addon();
@@ -43,33 +42,60 @@ export function loadAddons(terminal: XTerm): LoadAddonsResult {
 		terminal.loadAddon(new LigaturesAddon());
 	} catch {}
 
-	const rafId = requestAnimationFrame(() => {
-		if (disposed || suggestedRendererType === "dom") return;
-
-		try {
-			webglAddon = new WebglAddon();
-			webglAddon.onContextLoss(() => {
-				webglAddon?.dispose();
-				webglAddon = null;
-				terminal.refresh(0, terminal.rows - 1);
-			});
-			terminal.loadAddon(webglAddon);
-		} catch {
-			suggestedRendererType = "dom";
-			webglAddon = null;
-		}
-	});
-
 	return {
 		searchAddon,
 		progressAddon,
-		dispose: () => {
-			disposed = true;
-			cancelAnimationFrame(rafId);
-			try {
-				webglAddon?.dispose();
-			} catch {}
-			webglAddon = null;
-		},
+		dispose: () => {},
 	};
+}
+
+/**
+ * Attach the WebGL renderer to a terminal whose wrapper is in the live DOM.
+ * Returns null when WebGL is unavailable (construction failed or a prior
+ * context loss flipped the session to DOM-only). On context loss, the addon
+ * disposes itself and the session falls back to DOM rendering. The caller
+ * supplies `onLost` so it can clear its own reference to the now-disposed
+ * addon (the runtime keeps a `webglAddon` field that would otherwise hold a
+ * stale handle until the next attach/detach cycle).
+ */
+export function attachWebglRenderer(
+	terminal: XTerm,
+	onLost?: () => void,
+): WebglAddon | null {
+	if (suggestedRendererType === "dom") return null;
+
+	let addon: WebglAddon;
+	try {
+		addon = new WebglAddon();
+	} catch {
+		suggestedRendererType = "dom";
+		return null;
+	}
+
+	addon.onContextLoss(() => {
+		suggestedRendererType = "dom";
+		try {
+			addon.dispose();
+		} catch {}
+		onLost?.();
+		terminal.refresh(0, terminal.rows - 1);
+	});
+
+	try {
+		terminal.loadAddon(addon);
+	} catch {
+		suggestedRendererType = "dom";
+		try {
+			addon.dispose();
+		} catch {}
+		return null;
+	}
+
+	return addon;
+}
+
+export function detachWebglRenderer(addon: WebglAddon): void {
+	try {
+		addon.dispose();
+	} catch {}
 }
