@@ -2,6 +2,7 @@ import { existsSync } from "node:fs";
 import { join } from "node:path";
 import {
 	app,
+	dialog,
 	Menu,
 	type MenuItemConstructorOptions,
 	nativeImage,
@@ -81,6 +82,22 @@ function createTrayIcon(): Electron.NativeImage | null {
 function openSettings(): void {
 	focusMainWindow();
 	menuEmitter.emit("open-settings");
+}
+
+async function confirmAndQuitCompletely(): Promise<void> {
+	const { response } = await dialog.showMessageBox({
+		type: "warning",
+		buttons: ["Quit Completely", "Cancel"],
+		defaultId: 1,
+		cancelId: 1,
+		title: "Quit Superset Completely",
+		message: "Quit Superset and stop all background services?",
+		detail:
+			"All open terminal sessions will be killed and any running host-services will be stopped. Use “Close Superset” instead if you want services to keep running for the next launch.",
+	});
+	if (response === 0) {
+		quitAppCompletely();
+	}
 }
 
 interface HostInfo {
@@ -229,13 +246,15 @@ async function updateTrayMenu(): Promise<void> {
 		},
 		{ type: "separator" },
 		{
-			label: "Quit Superset",
+			label: "Close Superset",
 			click: () => quitApp(),
 		},
 		{
 			label: "Quit Superset Completely",
 			toolTip: "Quit and stop all background services (host-service, daemon)",
-			click: () => quitAppCompletely(),
+			click: () => {
+				void confirmAndQuitCompletely();
+			},
 		},
 	]);
 
