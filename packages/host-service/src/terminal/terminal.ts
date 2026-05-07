@@ -976,8 +976,6 @@ export function registerWorkspaceTerminalRoute({
 					};
 				}
 
-				// parseThemeType narrows string | undefined to "dark" | "light" |
-				// undefined without throwing — safe to use unwrapped.
 				const themeType = parseThemeType(c.req.query("themeType"));
 
 				// Prefer adoption: if the daemon still owns the PTY across a
