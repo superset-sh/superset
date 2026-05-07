@@ -1,6 +1,7 @@
 import type { DiffLineAnnotation } from "@pierre/diffs/react";
 import { workspaceTrpc } from "@superset/workspace-client";
 import { useMemo } from "react";
+import { useSettings } from "renderer/stores/settings";
 
 export interface DiffThreadComment {
 	id: string;
@@ -35,10 +36,11 @@ export function useDiffAnnotations({
 	workspaceId,
 	path,
 }: UseDiffAnnotationsOptions): DiffLineAnnotation<DiffCommentThread>[] {
+	const showDiffComments = useSettings((s) => s.showDiffComments);
 	const prQuery = workspaceTrpc.git.getPullRequest.useQuery(
 		{ workspaceId },
 		{
-			enabled: !!workspaceId,
+			enabled: !!workspaceId && showDiffComments,
 			refetchInterval: 10_000,
 			refetchOnWindowFocus: true,
 			staleTime: 10_000,
@@ -48,7 +50,7 @@ export function useDiffAnnotations({
 	const threadsQuery = workspaceTrpc.git.getPullRequestThreads.useQuery(
 		{ workspaceId },
 		{
-			enabled: !!workspaceId && hasPR,
+			enabled: !!workspaceId && hasPR && showDiffComments,
 			refetchInterval: 30_000,
 			refetchOnWindowFocus: true,
 		},
@@ -57,6 +59,9 @@ export function useDiffAnnotations({
 	const prUrl = prQuery.data?.url ?? undefined;
 
 	return useMemo(() => {
+		if (!showDiffComments) {
+			return EMPTY_ANNOTATIONS;
+		}
 		const threads = threadsQuery.data?.reviewThreads ?? [];
 		if (threads.length === 0) {
 			return EMPTY_ANNOTATIONS;
@@ -95,5 +100,5 @@ export function useDiffAnnotations({
 		}
 
 		return annotations;
-	}, [threadsQuery.data, path, prUrl]);
+	}, [showDiffComments, threadsQuery.data, path, prUrl]);
 }

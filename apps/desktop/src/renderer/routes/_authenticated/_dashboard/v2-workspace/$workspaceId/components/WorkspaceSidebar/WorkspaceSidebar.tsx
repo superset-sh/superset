@@ -35,7 +35,11 @@ export interface PendingReveal {
 
 interface WorkspaceSidebarProps {
 	onSelectFile: (absolutePath: string, openInNewTab?: boolean) => void;
-	onSelectDiffFile?: (path: string, openInNewTab?: boolean) => void;
+	onSelectDiffFile?: (
+		path: string,
+		openInNewTab?: boolean,
+		line?: number,
+	) => void;
 	onOpenComment?: (comment: CommentPaneData) => void;
 	onOpenChat?: OpenChatFn;
 	onSearch?: () => void;
@@ -123,7 +127,13 @@ export function WorkspaceSidebar({
 		icon: LuGitCompareArrows,
 	};
 
-	const reviewTab = useReviewTab({ workspaceId, onOpenComment });
+	const reviewTab = useReviewTab({
+		workspaceId,
+		onOpenComment,
+		onOpenInDiff: onSelectDiffFile
+			? (path, line) => onSelectDiffFile(path, false, line)
+			: undefined,
+	});
 
 	const { flowState, onRetry } = usePRFlowState(workspaceId);
 	const dispatch = usePRFlowDispatch({

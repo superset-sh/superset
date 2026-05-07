@@ -9,12 +9,25 @@ import { useSidebarDiffRef } from "../../../useSidebarDiffRef";
 import { useViewedFiles } from "../../../useViewedFiles";
 import { DiffFileEntry } from "./components/DiffFileEntry";
 
-function ScrollToFile({ path }: { path: string }) {
+function ScrollToFile({
+	path,
+	focusLine,
+	focusTick,
+}: {
+	path: string;
+	focusLine?: number;
+	focusTick?: number;
+}) {
 	const virtualizer = useVirtualizer();
 	const lastScrolledPath = useRef<string | null>(null);
+	const lastFocusTick = useRef<number | null>(null);
 
 	useEffect(() => {
-		if (!path || path === lastScrolledPath.current || !virtualizer) return;
+		if (!path || !virtualizer) return;
+		const tickChanged =
+			focusTick != null && focusTick !== lastFocusTick.current;
+		const pathChanged = path !== lastScrolledPath.current;
+		if (!pathChanged && !tickChanged) return;
 
 		requestAnimationFrame(() => {
 			const v = virtualizer as unknown as {
@@ -32,9 +45,43 @@ function ScrollToFile({ path }: { path: string }) {
 			const offset = v.getOffsetInScrollContainer(target as HTMLElement);
 			scrollContainer.scrollTo({ top: offset });
 			lastScrolledPath.current = path;
-		});
-	}, [path, virtualizer]);
+			if (focusTick != null) lastFocusTick.current = focusTick;
 
+			if (focusLine != null) {
+				// Pierre renders into a shadow DOM, so a normal querySelector
+				// won't find the line. Walk into known shadow roots and look for
+				// the gutter element with the matching line number.
+				requestAnimationFrame(() => {
+					const lineEl = findLineElement(target as HTMLElement, focusLine);
+					if (lineEl) {
+						lineEl.scrollIntoView({ block: "center" });
+					}
+				});
+			}
+		});
+	}, [path, focusLine, focusTick, virtualizer]);
+
+	return null;
+}
+
+function findLineElement(
+	root: HTMLElement,
+	lineNumber: number,
+): HTMLElement | null {
+	const queue: (Element | ShadowRoot)[] = [root];
+	while (queue.length > 0) {
+		const node = queue.shift();
+		if (!node) continue;
+		const candidate = node.querySelector(
+			`[data-line-number="${lineNumber}"]`,
+		) as HTMLElement | null;
+		if (candidate) return candidate;
+		const children = node.querySelectorAll("*");
+		for (const child of children) {
+			const sr = (child as HTMLElement).shadowRoot;
+			if (sr) queue.push(sr);
+		}
+	}
 	return null;
 }
 
@@ -108,7 +155,11 @@ export function DiffPane({ context, workspaceId, onOpenFile }: DiffPaneProps) {
 
 	return (
 		<Virtualizer className="h-full w-full overflow-auto">
-			<ScrollToFile path={data.path} />
+			<ScrollToFile
+				path={data.path}
+				focusLine={data.focusLine}
+				focusTick={data.focusTick}
+			/>
 			{files.map((file) => (
 				<DiffFileEntry
 					key={`${file.source.kind}:${file.path}`}

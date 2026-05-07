@@ -44,6 +44,14 @@ export interface DiffPaneData {
 	path: string;
 	collapsedFiles: string[];
 	expandedFiles?: string[];
+	/**
+	 * Line number to scroll the diff to within the active file. Used by
+	 * "open in diff" affordances (e.g. review-tab comment buttons) to
+	 * jump directly to the line a thread is anchored on. Bumps a tick
+	 * each time the same line is requested so the diff re-scrolls.
+	 */
+	focusLine?: number;
+	focusTick?: number;
 }
 
 export interface CommentPaneData {

@@ -7,7 +7,7 @@ import {
 import { Skeleton } from "@superset/ui/skeleton";
 import { cn } from "@superset/ui/utils";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { LuArrowUpRight, LuCheck, LuCopy } from "react-icons/lu";
+import { LuArrowUpRight, LuCheck, LuCopy, LuFileDiff } from "react-icons/lu";
 import { VscChevronRight } from "react-icons/vsc";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import type { CommentPaneData } from "../../../../../../types";
@@ -17,12 +17,14 @@ interface CommentsSectionProps {
 	comments: NormalizedComment[];
 	isLoading: boolean;
 	onOpenComment?: (comment: CommentPaneData) => void;
+	onOpenInDiff?: (path: string, line?: number) => void;
 }
 
 export function CommentsSection({
 	comments,
 	isLoading,
 	onOpenComment,
+	onOpenInDiff,
 }: CommentsSectionProps) {
 	const [commentsOpen, setCommentsOpen] = useState(true);
 	const [resolvedOpen, setResolvedOpen] = useState(false);
@@ -171,6 +173,7 @@ export function CommentsSection({
 								copiedActionKey={copiedActionKey}
 								onCopy={handleCopySingle}
 								onOpen={onOpenComment}
+								onOpenInDiff={onOpenInDiff}
 							/>
 						))
 					)}
@@ -208,6 +211,7 @@ export function CommentsSection({
 								copiedActionKey={copiedActionKey}
 								onCopy={handleCopySingle}
 								onOpen={onOpenComment}
+								onOpenInDiff={onOpenInDiff}
 							/>
 						))}
 					</CollapsibleContent>
@@ -255,6 +259,7 @@ interface CommentRowProps {
 	copiedActionKey: string | null;
 	onCopy: (comment: NormalizedComment) => void;
 	onOpen?: (comment: CommentPaneData) => void;
+	onOpenInDiff?: (path: string, line?: number) => void;
 }
 
 function CommentRow({
@@ -262,6 +267,7 @@ function CommentRow({
 	copiedActionKey,
 	onCopy,
 	onOpen,
+	onOpenInDiff,
 }: CommentRowProps) {
 	const age = formatShortAge(comment.createdAt);
 	const isCopied = copiedActionKey === `comment:${comment.id}`;
@@ -321,6 +327,20 @@ function CommentRow({
 				{content}
 			</button>
 			<div className="absolute right-0.5 top-0.5 flex items-center gap-0.5 rounded-sm bg-background/90 px-0.5 py-0.5 shadow-sm opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+				{comment.kind === "review" && comment.path && onOpenInDiff ? (
+					<button
+						type="button"
+						className="inline-flex size-5 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+						onClick={(e) => {
+							e.preventDefault();
+							e.stopPropagation();
+							onOpenInDiff(comment.path as string, comment.line);
+						}}
+						aria-label="Open in diff pane"
+					>
+						<LuFileDiff className="size-3" />
+					</button>
+				) : null}
 				<button
 					type="button"
 					className="inline-flex size-5 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
