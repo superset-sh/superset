@@ -253,9 +253,9 @@ async function updateTrayMenu(): Promise<void> {
 			label: "Close Superset",
 			click: () => quitApp(),
 		},
+		{ type: "separator" },
 		{
 			label: "Quit Superset Completely",
-			toolTip: "Quit and stop all background services (host-service, daemon)",
 			click: () => {
 				void confirmAndQuitCompletely();
 			},
