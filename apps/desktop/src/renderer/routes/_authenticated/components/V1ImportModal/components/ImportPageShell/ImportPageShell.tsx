@@ -25,12 +25,16 @@ export function ImportPageShell({
 	children,
 }: ImportPageShellProps) {
 	return (
-		<div className="flex h-[454px] flex-col bg-background">
-			<div className="flex items-start gap-3 border-b px-8 py-5">
+		<div className="flex min-h-0 min-w-0 flex-1 flex-col bg-background">
+			<div className="flex items-start gap-3 border-b px-8 py-5 pr-20">
 				<div className="min-w-0 flex-1">
-					<div className="text-lg font-semibold text-foreground">{title}</div>
+					<div className="truncate text-lg font-semibold text-foreground">
+						{title}
+					</div>
 					{description && (
-						<p className="mt-1 text-xs text-muted-foreground">{description}</p>
+						<p className="mt-1 truncate text-xs text-muted-foreground">
+							{description}
+						</p>
 					)}
 				</div>
 				{onRefresh && (
@@ -50,7 +54,7 @@ export function ImportPageShell({
 					</Button>
 				)}
 			</div>
-			<div className="flex min-h-0 min-w-0 flex-1 flex-col gap-0.5 overflow-y-auto px-3 py-3">
+			<div className="flex min-h-0 min-w-0 flex-1 flex-col gap-0.5 overflow-x-hidden overflow-y-auto overscroll-contain px-3 py-3">
 				{isLoading ? (
 					<div className="flex flex-1 items-center justify-center">
 						<Spinner className="size-5" />

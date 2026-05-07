@@ -52,33 +52,45 @@ export function ImportRow({
 	action,
 }: ImportRowProps) {
 	return (
-		<div className="flex min-w-0 items-center gap-3 px-3 py-2">
+		<div className="flex w-full min-w-0 max-w-full items-center gap-3 overflow-hidden px-3 py-2">
 			{icon && (
 				<div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
 					{icon}
 				</div>
 			)}
 			<div className="flex min-w-0 flex-1 flex-col">
-				<span className="truncate text-sm font-medium text-foreground">
+				<span
+					className="truncate text-sm font-medium text-foreground"
+					title={primary}
+				>
 					{primary}
 				</span>
 				{secondary && (
-					<span className="truncate font-mono text-[11px] text-muted-foreground">
+					<span
+						className="truncate font-mono text-[11px] text-muted-foreground"
+						title={secondary}
+					>
 						{secondary}
 					</span>
 				)}
 				{action.kind === "error" && (
-					<span className="select-text cursor-text truncate text-[11px] text-destructive">
+					<span
+						className="select-text cursor-text truncate text-[11px] text-destructive"
+						title={action.message}
+					>
 						{action.message}
 					</span>
 				)}
 				{action.kind === "blocked" && (
-					<span className="truncate text-[11px] text-muted-foreground">
+					<span
+						className="truncate text-[11px] text-muted-foreground"
+						title={action.reason}
+					>
 						{action.reason}
 					</span>
 				)}
 				{action.kind === "confirm" && (
-					<span className="select-text cursor-text text-[11px] text-muted-foreground">
+					<span className="select-text cursor-text text-[11px] text-muted-foreground [overflow-wrap:anywhere]">
 						{action.message}
 					</span>
 				)}

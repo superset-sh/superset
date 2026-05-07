@@ -16,7 +16,7 @@ const GRADIENT_COLORS = [
 
 export function WelcomePage() {
 	return (
-		<div className="relative h-[454px] overflow-hidden bg-[#080a12]">
+		<div className="relative flex min-h-0 flex-1 overflow-hidden bg-[#080a12]">
 			<DitheredBackground
 				colors={GRADIENT_COLORS}
 				className="absolute inset-0 h-full w-full"

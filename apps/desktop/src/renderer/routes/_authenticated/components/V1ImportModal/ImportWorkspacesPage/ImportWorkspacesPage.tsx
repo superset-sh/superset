@@ -208,7 +208,10 @@ export function ImportWorkspacesPage({
 		>
 			{Array.from(grouped.entries()).map(([projectV1Id, group]) => (
 				<div key={projectV1Id} className="mb-2 flex min-w-0 flex-col">
-					<div className="px-3 pt-2 pb-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+					<div
+						className="truncate px-3 pt-2 pb-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground"
+						title={group.projectName}
+					>
 						{group.projectName}
 					</div>
 					{group.items.map(({ workspace, v2ProjectId, alreadyImported }) => (

@@ -45,8 +45,7 @@ export function V1ImportModal() {
 			}}
 		>
 			<DialogContent
-				className="!w-[744px] !max-w-[744px] p-0 gap-0 overflow-hidden !rounded-none"
-				showCloseButton={false}
+				className="flex flex-col w-[min(744px,calc(100vw-2rem))] !max-w-[744px] h-[min(540px,calc(100vh-2rem))] max-h-[calc(100vh-2rem)] p-0 gap-0 overflow-hidden !rounded-none [&>[data-slot=dialog-close]]:top-5 [&>[data-slot=dialog-close]]:right-5 [&>[data-slot=dialog-close]]:z-10 [&>[data-slot=dialog-close]]:opacity-100 [&>[data-slot=dialog-close]]:text-muted-foreground hover:[&>[data-slot=dialog-close]]:text-foreground"
 				onEscapeKeyDown={(event) => event.preventDefault()}
 				onPointerDownOutside={(event) => event.preventDefault()}
 				onInteractOutside={(event) => event.preventDefault()}
@@ -63,11 +62,14 @@ export function V1ImportModal() {
 					won't be carried over, but you can still access v1 at any time.
 				</DialogDescription>
 
-				<div key={page} className="animate-in fade-in duration-200">
+				<div
+					key={page}
+					className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden animate-in fade-in duration-200"
+				>
 					{page === "welcome" && <WelcomePage />}
 					{page === "intro" && <IntroPage />}
 					{(page === "projects" || page === "workspaces") && !activeHostUrl && (
-						<div className="flex h-[454px] items-center justify-center bg-background px-6 text-center text-sm text-muted-foreground">
+						<div className="flex flex-1 items-center justify-center bg-background px-6 text-center text-sm text-muted-foreground">
 							Host service is not ready yet. This window will populate as soon
 							as the local host service comes online.
 						</div>
@@ -89,20 +91,26 @@ export function V1ImportModal() {
 					)}
 				</div>
 
-				<div className="box-border flex items-center justify-between border-t bg-background px-5 py-4">
+				<div className="box-border flex shrink-0 items-center justify-between gap-3 border-t bg-background px-5 py-4">
 					{previousPage ? (
-						<Button variant="outline" onClick={() => setPage(previousPage)}>
+						<Button
+							variant="outline"
+							onClick={() => setPage(previousPage)}
+							className="shrink-0"
+						>
 							Back
 						</Button>
 					) : (
 						<div />
 					)}
 					{nextPage ? (
-						<Button onClick={() => setPage(nextPage)}>
+						<Button onClick={() => setPage(nextPage)} className="shrink-0">
 							{page === "welcome" ? "Get started" : "Next"}
 						</Button>
 					) : (
-						<Button onClick={close}>Done</Button>
+						<Button onClick={close} className="shrink-0">
+							Done
+						</Button>
 					)}
 				</div>
 			</DialogContent>
