@@ -19,7 +19,7 @@ export interface PickCandidate {
 
 export type RowAction =
 	| { kind: "ready"; label: string; onClick: () => void; disabled?: boolean }
-	| { kind: "running" }
+	| { kind: "running"; label?: string }
 	| { kind: "imported"; label?: string }
 	| { kind: "blocked"; reason: string }
 	| { kind: "error"; message: string; onRetry: () => void }
@@ -117,9 +117,16 @@ function RowActionView({ action }: { action: RowAction }) {
 			);
 		case "running":
 			return (
-				<div className="flex h-8 w-[68px] shrink-0 items-center justify-center text-muted-foreground">
+				<Button
+					type="button"
+					size="sm"
+					variant="outline"
+					disabled
+					className="shrink-0 gap-1.5"
+				>
 					<Spinner className="size-3.5" />
-				</div>
+					{action.label ?? null}
+				</Button>
 			);
 		case "imported":
 			return (

@@ -11,6 +11,7 @@ interface ImportPageShellProps {
 	itemCount: number;
 	onRefresh?: () => void;
 	isRefreshing?: boolean;
+	headerAction?: ReactNode;
 	children: ReactNode;
 }
 
@@ -22,6 +23,7 @@ export function ImportPageShell({
 	itemCount,
 	onRefresh,
 	isRefreshing,
+	headerAction,
 	children,
 }: ImportPageShellProps) {
 	return (
@@ -37,22 +39,25 @@ export function ImportPageShell({
 						</p>
 					)}
 				</div>
-				{onRefresh && (
-					<Button
-						type="button"
-						variant="ghost"
-						size="icon"
-						onClick={onRefresh}
-						disabled={isRefreshing}
-						aria-label="Refresh"
-						className="h-7 w-7 shrink-0"
-					>
-						<LuRefreshCw
-							className={`size-3.5${isRefreshing ? " animate-spin" : ""}`}
-							strokeWidth={2}
-						/>
-					</Button>
-				)}
+				<div className="flex shrink-0 items-center gap-2">
+					{headerAction}
+					{onRefresh && (
+						<Button
+							type="button"
+							variant="ghost"
+							size="icon"
+							onClick={onRefresh}
+							disabled={isRefreshing}
+							aria-label="Refresh"
+							className="h-7 w-7 shrink-0"
+						>
+							<LuRefreshCw
+								className={`size-3.5${isRefreshing ? " animate-spin" : ""}`}
+								strokeWidth={2}
+							/>
+						</Button>
+					)}
+				</div>
 			</div>
 			<div className="flex min-h-0 min-w-0 flex-1 flex-col gap-0.5 overflow-x-hidden overflow-y-auto overscroll-contain px-3 py-3">
 				{isLoading ? (
