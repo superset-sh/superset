@@ -43,6 +43,12 @@ export interface TerminalTransport {
 	_reconnectTimer: ReturnType<typeof setTimeout> | null;
 	/** Internal: reconnect attempt count for backoff. */
 	_reconnectAttempt: number;
+	/**
+	 * Internal: pending notify timer for title changes. Coalesces rapid xterm
+	 * title updates (e.g. shells that retitle on every prompt) so subscribers
+	 * see at most one change per window. Mirrors ghostty's 75ms title timer.
+	 */
+	_titleNotifyTimer: ReturnType<typeof setTimeout> | null;
 	/** The xterm instance used for reconnection. */
 	_terminal: XTerm | null;
 	/** Set when the server sends an exit message — no reconnect after this. */
@@ -69,15 +75,32 @@ function setConnectionState(
 	}
 }
 
+/**
+ * Coalesce window for title-change notifications. Prevents flicker when shells
+ * retitle rapidly (e.g. PROMPT_COMMAND fan-out). The stored title updates
+ * immediately so getTitle() callers see the latest value; only listener
+ * notifications are deferred. Picked to match ghostty's 75ms.
+ */
+const TITLE_COALESCE_MS = 75;
+
+function notifyTitleListeners(transport: TerminalTransport) {
+	transport._titleNotifyTimer = null;
+	for (const listener of transport.titleListeners) {
+		listener();
+	}
+}
+
 function setTerminalTitle(
 	transport: TerminalTransport,
 	title: string | null | undefined,
 ) {
 	if (transport.title === title) return;
 	transport.title = title;
-	for (const listener of transport.titleListeners) {
-		listener();
-	}
+	if (transport._titleNotifyTimer !== null) return;
+	transport._titleNotifyTimer = setTimeout(
+		() => notifyTitleListeners(transport),
+		TITLE_COALESCE_MS,
+	);
 }
 
 function pushLog(
@@ -129,6 +152,7 @@ export function createTransport(): TerminalTransport {
 		logs: [],
 		logListeners: new Set(),
 		_reconnectTimer: null,
+		_titleNotifyTimer: null,
 		_reconnectAttempt: 0,
 		_terminal: null,
 		_hasReceivedBytes: false,
@@ -413,6 +437,10 @@ export function disposeTransport(transport: TerminalTransport) {
 	transport.onDataDisposable?.dispose();
 	transport.onDataDisposable = null;
 	transport.stateListeners.clear();
+	if (transport._titleNotifyTimer !== null) {
+		clearTimeout(transport._titleNotifyTimer);
+		transport._titleNotifyTimer = null;
+	}
 	transport.titleListeners.clear();
 	transport.logs = [];
 	transport.logListeners.clear();
