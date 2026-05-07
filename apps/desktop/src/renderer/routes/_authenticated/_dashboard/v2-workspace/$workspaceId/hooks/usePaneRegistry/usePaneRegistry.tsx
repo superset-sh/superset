@@ -242,9 +242,22 @@ export function usePaneRegistry({
 			},
 			terminal: {
 				getIcon: () => <TerminalSquare className="size-3.5" />,
-				getTitle: (pane) => {
-					const data = pane.data as TerminalPaneData;
-					return data.title?.trim() || "Terminal";
+				getTitle: () => "Terminal",
+				titleSource: (pane) => {
+					const { terminalId } = pane.data as TerminalPaneData;
+					const instanceId = pane.id;
+					return {
+						subscribe: (callback) =>
+							terminalRuntimeRegistry.onTitleChange(
+								terminalId,
+								callback,
+								instanceId,
+							),
+						getSnapshot: () =>
+							terminalRuntimeRegistry
+								.getTitle(terminalId, instanceId)
+								?.trim() || undefined,
+					};
 				},
 				onAfterClose: (pane) => {
 					const { terminalId } = pane.data as TerminalPaneData;

@@ -13,6 +13,8 @@ import { PencilIcon, XIcon } from "lucide-react";
 import { type ReactNode, useCallback, useRef, useState } from "react";
 import { useDrag, useDrop } from "react-dnd";
 import type { Tab } from "../../../../../../../types";
+import type { PaneRegistry } from "../../../../../../types";
+import { useTabTitle } from "../../../../utils/useTabTitle";
 import { PANE_DRAG_TYPE } from "../../../Tab/components/Pane/components/PaneHeader";
 import { TabRenameInput } from "./components/TabRenameInput";
 
@@ -20,6 +22,8 @@ export const TAB_DRAG_TYPE = "tab";
 
 interface TabItemProps<TData> {
 	tab: Tab<TData>;
+	tabs: Tab<TData>[];
+	registry: PaneRegistry<TData>;
 	index: number;
 	isActive: boolean;
 	onSelect: () => void;
@@ -27,13 +31,14 @@ interface TabItemProps<TData> {
 	onCloseOthers: () => void;
 	onCloseAll: () => void;
 	onRename: (title: string | undefined) => void;
-	getTitle: (tab: Tab<TData>) => string;
 	icon?: ReactNode;
 	accessory?: ReactNode;
 }
 
 export function TabItem<TData>({
 	tab,
+	tabs,
+	registry,
 	index,
 	isActive,
 	onSelect,
@@ -41,13 +46,12 @@ export function TabItem<TData>({
 	onCloseOthers,
 	onCloseAll,
 	onRename,
-	getTitle,
 	icon,
 	accessory,
 }: TabItemProps<TData>) {
 	const [isEditing, setIsEditing] = useState(false);
 	const [editValue, setEditValue] = useState("");
-	const title = getTitle(tab);
+	const title = useTabTitle(tab, tabs, registry);
 
 	const startEditing = () => {
 		setEditValue(title);
