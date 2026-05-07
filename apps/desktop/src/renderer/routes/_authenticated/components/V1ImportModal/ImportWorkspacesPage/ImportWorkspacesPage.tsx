@@ -322,12 +322,12 @@ export function ImportWorkspacesPage({
 				void adoptAll();
 			}}
 			disabled={isAdoptingAll || pendingEntries.length === 0}
-			className="shrink-0 gap-1.5"
+			className="h-7 shrink-0 gap-1.5 px-2.5 text-[12px] font-medium tabular-nums"
 		>
-			{isAdoptingAll && <Spinner className="size-3.5" />}
+			{isAdoptingAll && <Spinner className="size-3" />}
 			{isAdoptingAll && adoptAllProgress
 				? `Adopting ${adoptAllProgress.current + 1}/${adoptAllProgress.total}`
-				: `Adopt all (${pendingEntries.length})`}
+				: `Adopt all · ${pendingEntries.length}`}
 		</Button>
 	) : null;
 
@@ -365,9 +365,9 @@ export function ImportWorkspacesPage({
 			headerAction={headerAction}
 		>
 			{Array.from(grouped.entries()).map(([projectV1Id, group]) => (
-				<div key={projectV1Id} className="mb-2 flex min-w-0 flex-col">
+				<div key={projectV1Id} className="mb-1.5 flex min-w-0 flex-col">
 					<div
-						className="truncate px-3 pt-2 pb-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground"
+						className="truncate px-2.5 pt-2.5 pb-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/70"
 						title={group.projectName}
 					>
 						{group.projectName}
