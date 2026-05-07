@@ -9,7 +9,7 @@ import {
 } from "electron";
 import { loadToken } from "lib/trpc/routers/auth/utils/auth-functions";
 import { env } from "main/env.main";
-import { focusMainWindow, quitApp } from "main/index";
+import { focusMainWindow, quitApp, quitAppCompletely } from "main/index";
 import {
 	getHostServiceCoordinator,
 	type HostServiceStatusEvent,
@@ -231,6 +231,11 @@ async function updateTrayMenu(): Promise<void> {
 		{
 			label: "Quit Superset",
 			click: () => quitApp(),
+		},
+		{
+			label: "Quit Superset Completely",
+			toolTip: "Quit and stop all background services (host-service, daemon)",
+			click: () => quitAppCompletely(),
 		},
 	]);
 
