@@ -15,7 +15,6 @@ import { NewWorkspaceModal } from "renderer/components/NewWorkspaceModal";
 import { Paywall } from "renderer/components/Paywall";
 import { useUpdateListener } from "renderer/components/UpdateToast";
 import { env } from "renderer/env.renderer";
-import { useIsFreshInstall } from "renderer/hooks/useIsFreshInstall";
 import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import { useOnlineStatus } from "renderer/hooks/useOnlineStatus";
 import { authClient, getAuthToken } from "renderer/lib/auth-client";
@@ -26,12 +25,6 @@ import { InitGitDialog } from "renderer/react-query/projects/InitGitDialog";
 import { DashboardNewWorkspaceModal } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal";
 import { V1ImportModal } from "renderer/routes/_authenticated/components/V1ImportModal";
 import { WorkspaceInitEffects } from "renderer/screens/main/components/WorkspaceInitEffects";
-import {
-	STEP_ROUTES,
-	selectFirstIncompleteStep,
-	selectRequiredStepsComplete,
-	useOnboardingStore,
-} from "renderer/stores/onboarding";
 import { useSettingsStore } from "renderer/stores/settings-state";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { useAgentHookListener } from "renderer/stores/tabs/useAgentHookListener";
@@ -66,9 +59,6 @@ function AuthenticatedLayout() {
 	const utils = electronTrpc.useUtils();
 	const shownWorkspaceInitWarningsRef = useRef(new Set<string>());
 	const isV2CloudEnabled = useIsV2CloudEnabled();
-	const isFreshInstall = useIsFreshInstall();
-	const requiredComplete = useOnboardingStore(selectRequiredStepsComplete);
-	const firstIncompleteStep = useOnboardingStore(selectFirstIncompleteStep);
 
 	const isSignedIn = env.SKIP_ENV_VALIDATION || !!session?.user;
 	const activeOrganizationId = env.SKIP_ENV_VALIDATION
@@ -204,16 +194,6 @@ function AuthenticatedLayout() {
 
 	if (!activeOrganizationId) {
 		return <Navigate to="/create-organization" replace />;
-	}
-
-	const isOnSetupRoute = location.pathname.startsWith("/setup");
-	if (
-		isV2CloudEnabled &&
-		isFreshInstall === true &&
-		!requiredComplete &&
-		!isOnSetupRoute
-	) {
-		return <Navigate to={STEP_ROUTES[firstIncompleteStep]} replace />;
 	}
 
 	return (
