@@ -156,7 +156,7 @@ type TerminalServerMessage =
 	| { type: "exit"; exitCode: number; signal: number }
 	| { type: "title"; title: string | null };
 
-const MAX_BUFFER_BYTES = 64 * 1024;
+const MAX_BUFFER_BYTES = 256 * 1024;
 
 /**
  * How long an exited (naturally or via killSession) terminal lingers in the
@@ -948,9 +948,13 @@ export async function createTerminalSessionInternal({
 				);
 				if (hintText.length > 0) portManager.checkOutputForHint(hintText);
 
-				if (broadcastBytes(session, bytes) === 0) {
-					bufferOutput(session, bytes);
-				}
+				// Always buffer — the ring is bounded and acts as scrollback for
+				// kill→resurrect (it'd be empty here on attached sessions if we
+				// only buffered on detach, leaving nothing to carry over).
+				// Renderer reconnects pass `?replay=0` to suppress server-side
+				// replay; see attachSocketToSession.
+				bufferOutput(session, bytes);
+				broadcastBytes(session, bytes);
 			},
 			onExit({ code, signal }) {
 				session.exited = true;
@@ -1080,7 +1084,11 @@ export function registerWorkspaceTerminalRoute({
 					.run();
 
 				sendMessage(ws, { type: "title", title: session.title });
-				replayBuffer(session, ws);
+				// Skip replay when the renderer says it already has the recent
+				// bytes (its xterm scrollback is intact across the WS reconnect).
+				// Without this, always-buffer would double-render on every blip.
+				const skipReplay = c.req.query("replay") === "0";
+				if (!skipReplay) replayBuffer(session, ws);
 				if (session.exited) {
 					sendMessage(ws, {
 						type: "exit",
