@@ -7,14 +7,12 @@ import { useEffectiveLayoutMap } from "../../stores/keyboardPreferencesStore";
 import type { HotkeyDisplay } from "../../types";
 import { bindingToDispatchChord } from "../../utils/binding";
 import { useBinding } from "../useBinding";
+import { useVscodeFocusStore } from "renderer/stores/vscode-focus";
 
-// react-hotkeys-hook doesn't check AltGraph or IME composition. Use its
-// `ignoreEventWhen` option (runs after match, before preventDefault) to
-// suppress those events so AltGr-typed printables and IME keystrokes pass
-// through to the focused element.
 function shouldIgnoreEvent(e: KeyboardEvent): boolean {
 	if (e.isComposing || e.keyCode === 229) return true;
 	if (e.getModifierState?.("AltGraph") === true) return true;
+	if (useVscodeFocusStore.getState().focusedPaneId !== null) return true;
 	return false;
 }
 
