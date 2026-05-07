@@ -30,7 +30,9 @@ interface FakeView {
 		close: ReturnType<typeof mock>;
 		focus: ReturnType<typeof mock>;
 		on: ReturnType<typeof mock>;
+		setWindowOpenHandler: ReturnType<typeof mock>;
 		capturePage: ReturnType<typeof mock>;
+		_listeners: Map<string, ((...args: unknown[]) => void)[]>;
 	};
 	setBounds: ReturnType<typeof mock>;
 	setVisible: ReturnType<typeof mock>;
@@ -43,16 +45,22 @@ function makeFakeView(
 		toDataURL: () => "data:image/png;base64,FAKE",
 	},
 ): FakeView {
+	const listeners = new Map<string, ((...args: unknown[]) => void)[]>();
 	return {
 		webContents: {
 			loadURL: mock(() => {}),
 			close: mock(() => {}),
 			focus: mock(() => {}),
-			on: mock(() => {}),
+			on: mock((event: string, handler: (...args: unknown[]) => void) => {
+				if (!listeners.has(event)) listeners.set(event, []);
+				listeners.get(event)!.push(handler);
+			}),
+			setWindowOpenHandler: mock(() => {}),
 			capturePage: mock(async () => {
 				if (captureResult instanceof Error) throw captureResult;
 				return captureResult;
 			}),
+			_listeners: listeners,
 		},
 		setBounds: mock(() => {}),
 		setVisible: mock(() => {}),
@@ -324,6 +332,47 @@ describe("VscodeManager", () => {
 		// addChildView fires once before the await, then stop() fires
 		// removeChildView. No extra attach after cancellation.
 		expect(window.contentView.addChildView).toHaveBeenCalledTimes(1);
+	});
+
+	it("registers will-navigate handler that blocks non-localhost origins", async () => {
+		const views: FakeView[] = [];
+		const { manager } = makeManager({
+			createView: () => {
+				const v = makeFakeView();
+				views.push(v);
+				return v as never;
+			},
+		});
+		await manager.start({ paneId: "p1", worktreePath: "/tmp/repo" });
+		const view = views[0]!;
+		const navigateHandlers = view.webContents._listeners.get("will-navigate");
+		expect(navigateHandlers).toBeDefined();
+		expect(navigateHandlers!.length).toBeGreaterThan(0);
+
+		const prevented: boolean[] = [];
+		const fakeEvent = {
+			preventDefault: () => prevented.push(true),
+		};
+
+		navigateHandlers![0]!(fakeEvent, "http://evil.com/steal");
+		expect(prevented.length).toBe(1);
+
+		navigateHandlers![0]!(fakeEvent, "http://127.0.0.1:40000/some-path");
+		expect(prevented.length).toBe(1);
+	});
+
+	it("registers setWindowOpenHandler that denies all new windows", async () => {
+		const views: FakeView[] = [];
+		const { manager } = makeManager({
+			createView: () => {
+				const v = makeFakeView();
+				views.push(v);
+				return v as never;
+			},
+		});
+		await manager.start({ paneId: "p1", worktreePath: "/tmp/repo" });
+		const view = views[0]!;
+		expect(view.webContents.setWindowOpenHandler).toHaveBeenCalledTimes(1);
 	});
 
 	it("retries doStart when the captured shared server dies mid-start", async () => {

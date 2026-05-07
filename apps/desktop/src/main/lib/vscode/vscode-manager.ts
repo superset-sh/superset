@@ -22,6 +22,9 @@ async function createDefaultView(
 		webPreferences: {
 			backgroundThrottling: false,
 			session: vscodeSession,
+			nodeIntegration: false,
+			sandbox: true,
+			contextIsolation: true,
 		},
 	});
 }
@@ -252,12 +255,32 @@ export class VscodeManager extends EventEmitter {
 			}
 			view.setVisible(false);
 			view.setBounds({ x: 0, y: 0, width: 0, height: 0 });
+
+			const expectedOrigin = `http://127.0.0.1:${shared.port}`;
+			view.webContents.on("will-navigate", (event, url) => {
+				try {
+					const parsed = new URL(url);
+					if (parsed.origin !== expectedOrigin) {
+						event.preventDefault();
+					}
+				} catch {
+					event.preventDefault();
+				}
+			});
+			view.webContents.setWindowOpenHandler(({ url }) => {
+				try {
+					const parsed = new URL(url);
+					if (parsed.origin !== expectedOrigin) {
+						return { action: "deny" } as const;
+					}
+				} catch {
+					return { action: "deny" } as const;
+				}
+				return { action: "deny" } as const;
+			});
+
 			window.contentView.addChildView(view);
 
-			// Forward OS-level focus/blur to the renderer so `useHotkey` can skip
-			// Superset hotkeys while the embedded IDE owns keyboard input. Without
-			// this, `react-hotkeys-hook`'s document listener fires even though the
-			// WebContentsView has focus, intercepting Cmd+P before VS Code sees it.
 			view.webContents.on("focus", () => {
 				this.emitFocus({ paneId, focused: true });
 			});
