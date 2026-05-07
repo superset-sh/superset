@@ -1,6 +1,20 @@
 import type { Pane, Tab } from "../../../../types";
 import type { PaneRegistry } from "../../../types";
 
+/**
+ * The pane that drives the tab title: the only pane (single-pane tab) or
+ * the active pane (multi-pane tab). Undefined for empty tabs or stale
+ * activePaneId references.
+ */
+export function pickTabTitlePane<TData>(
+	tab: Tab<TData>,
+): Pane<TData> | undefined {
+	const panes = Object.values(tab.panes);
+	if (panes.length === 1) return panes[0];
+	if (panes.length > 1 && tab.activePaneId) return tab.panes[tab.activePaneId];
+	return undefined;
+}
+
 function paneTitle<TData>(
 	pane: Pane<TData> | undefined,
 	registry: PaneRegistry<TData>,
@@ -15,16 +29,7 @@ export function resolveTabTitle<TData>(
 	registry: PaneRegistry<TData>,
 ): string {
 	if (tab.titleOverride) return tab.titleOverride;
-	const panes = Object.values(tab.panes);
-	if (panes.length === 1) {
-		const fromOnlyPane = paneTitle(panes[0], registry);
-		if (fromOnlyPane) return fromOnlyPane;
-	} else if (panes.length > 1) {
-		const activePane = tab.activePaneId
-			? tab.panes[tab.activePaneId]
-			: undefined;
-		const fromActivePane = paneTitle(activePane, registry);
-		if (fromActivePane) return fromActivePane;
-	}
+	const fromPane = paneTitle(pickTabTitlePane(tab), registry);
+	if (fromPane) return fromPane;
 	return `Tab ${tabs.indexOf(tab) + 1}`;
 }

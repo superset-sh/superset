@@ -1,52 +1,43 @@
-import { useCallback, useSyncExternalStore } from "react";
+import { useCallback, useMemo, useSyncExternalStore } from "react";
 import type { Pane, Tab } from "../../../../types";
-import type { PaneRegistry } from "../../../types";
-import { resolveTabTitle } from "./resolveTabTitle";
+import type { PaneRegistry, PaneTitleSource } from "../../../types";
+import { pickTabTitlePane } from "./resolveTabTitle";
 
 const noopUnsubscribe = () => {};
+const noopSubscribe = () => noopUnsubscribe;
 const undefinedSnapshot = () => undefined;
 
 /**
- * Subscribe to a pane's runtime-driven title via its registry definition.
- * Always calls a single useSyncExternalStore, so kind changes don't break
- * the rules of hooks. Returns the live title or undefined if no source.
+ * Live title from a pane's registry-defined titleSource. Always calls a
+ * single useSyncExternalStore so kind changes (active-pane swap, replacePane)
+ * don't violate rules of hooks.
  */
 function useReactivePaneTitle<TData>(
 	pane: Pane<TData> | undefined,
 	registry: PaneRegistry<TData>,
 ): string | undefined {
-	const subscribe = useCallback(
-		(callback: () => void) => {
-			if (!pane) return noopUnsubscribe;
-			const source = registry[pane.kind]?.titleSource?.(pane);
-			return source?.subscribe(callback) ?? noopUnsubscribe;
-		},
+	const source: PaneTitleSource | undefined = useMemo(
+		() => (pane ? registry[pane.kind]?.titleSource?.(pane) : undefined),
 		[pane, registry],
 	);
-	const getSnapshot = useCallback(() => {
-		if (!pane) return undefined;
-		const source = registry[pane.kind]?.titleSource?.(pane);
-		return source?.getSnapshot();
-	}, [pane, registry]);
-	return useSyncExternalStore(subscribe, getSnapshot, undefinedSnapshot);
-}
-
-function pickTitlePane<TData>(tab: Tab<TData>): Pane<TData> | undefined {
-	const panes = Object.values(tab.panes);
-	if (panes.length === 1) return panes[0];
-	if (panes.length > 1 && tab.activePaneId) return tab.panes[tab.activePaneId];
-	return undefined;
+	const subscribe = useCallback(
+		(callback: () => void) => source?.subscribe(callback) ?? noopUnsubscribe,
+		[source],
+	);
+	const getSnapshot = useCallback(() => source?.getSnapshot(), [source]);
+	return useSyncExternalStore(
+		source ? subscribe : noopSubscribe,
+		source ? getSnapshot : undefinedSnapshot,
+	);
 }
 
 /**
- * Reactive tab title. Same precedence as `resolveTabTitle`, plus a runtime
- * title source layered between `pane.titleOverride` and `registry.getTitle`.
+ * Reactive tab title. Precedence:
  *
- * Precedence:
  *   tab.titleOverride
- *   pane.titleOverride
- *   pane titleSource (live)
- *   registry.getTitle(pane)
+ *   pane.titleOverride           (only/active pane)
+ *   pane.titleSource (live)      (only/active pane)
+ *   registry.getTitle(pane)      (only/active pane)
  *   "Tab N"
  */
 export function useTabTitle<TData>(
@@ -54,12 +45,15 @@ export function useTabTitle<TData>(
 	tabs: Tab<TData>[],
 	registry: PaneRegistry<TData>,
 ): string {
-	const titlePane = pickTitlePane(tab);
-	const reactiveTitle = useReactivePaneTitle(titlePane, registry);
+	const titlePane = pickTabTitlePane(tab);
+	const reactiveTitle = useReactivePaneTitle(titlePane, registry)?.trim();
 
 	if (tab.titleOverride) return tab.titleOverride;
 	if (titlePane?.titleOverride) return titlePane.titleOverride;
-	const trimmed = reactiveTitle?.trim();
-	if (trimmed) return trimmed;
-	return resolveTabTitle(tab, tabs, registry);
+	if (reactiveTitle) return reactiveTitle;
+	const staticTitle = titlePane
+		? registry[titlePane.kind]?.getTitle?.(titlePane)
+		: undefined;
+	if (staticTitle) return staticTitle;
+	return `Tab ${tabs.indexOf(tab) + 1}`;
 }
