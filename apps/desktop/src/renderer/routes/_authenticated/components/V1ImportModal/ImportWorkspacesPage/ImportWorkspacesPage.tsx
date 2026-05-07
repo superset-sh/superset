@@ -296,6 +296,10 @@ export function ImportWorkspacesPage({
 			for (let i = 0; i < queue.length; i++) {
 				const entry = queue[i];
 				if (!entry) continue;
+				const current = adoptStatesRef.current.get(entry.workspace.id) ?? IDLE;
+				if (current.kind === "running" || current.kind === "imported") {
+					continue;
+				}
 				setAdoptAllProgress({ current: i, total: queue.length });
 				await adoptWorkspace(entry);
 			}
@@ -318,8 +322,8 @@ export function ImportWorkspacesPage({
 			disabled={isAdoptingAll || pendingEntries.length === 0}
 			className="h-7 shrink-0 gap-1.5 px-2.5 text-[12px] font-medium tabular-nums"
 		>
-			{isAdoptingAll && <Spinner className="size-3" />}
-			{isAdoptingAll && adoptAllProgress
+			{adoptAllProgress && <Spinner className="size-3" />}
+			{adoptAllProgress
 				? `Adopting ${adoptAllProgress.current + 1}/${adoptAllProgress.total}`
 				: `Adopt all · ${pendingEntries.length}`}
 		</Button>
@@ -404,7 +408,9 @@ function WorkspaceRow({ entry, status, disabled, onAdopt }: WorkspaceRowProps) {
 			return { kind: "imported" };
 		}
 		if (status.kind === "error") {
-			return { kind: "error", message: status.message, onRetry: onAdopt };
+			return disabled
+				? { kind: "running", label: "Queued" }
+				: { kind: "error", message: status.message, onRetry: onAdopt };
 		}
 		return {
 			kind: "ready",
