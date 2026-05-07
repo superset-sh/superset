@@ -50,7 +50,6 @@ jobs:
             release-artifacts/*.tar.gz \
             --title "Superset CLI ${{ github.ref_name }}" \
             --generate-notes \
-            --draft \
             --prerelease
 
       - name: Publish version manifest

@@ -1,9 +1,44 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { randomUUID } from "node:crypto";
+import { mkdtempSync, realpathSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import simpleGit from "simple-git";
+import { projects } from "../../src/db/schema";
 import { createTestHost, type TestHost } from "../helpers/createTestHost";
+
+/**
+ * Real temp git working tree with a remote, plus a `projects` row pointing
+ * at it. Procedures resolve owner/name from the live remote, so tests need
+ * a real `.git` — no fake substitutes for `git remote get-url`.
+ */
+async function seedRepoFixture(
+	host: TestHost,
+	projectId: string,
+	remoteUrl: string,
+): Promise<string> {
+	const dir = mkdtempSync(join(tmpdir(), "ws-creation-github-test-"));
+	const git = simpleGit(dir);
+	await git.init(["--initial-branch=main"]);
+	await git.addRemote("origin", remoteUrl);
+	host.db
+		.insert(projects)
+		.values({
+			id: projectId,
+			repoPath: dir,
+			repoProvider: "github",
+			repoOwner: null,
+			repoName: null,
+			repoUrl: null,
+			remoteName: "origin",
+		})
+		.run();
+	return dir;
+}
 
 describe("workspaceCreation github procedures with mocked Octokit", () => {
 	let host: TestHost;
+	let repoDir: string;
 	const calls: Array<{ method: string; args: unknown }> = [];
 
 	const fakeOctokit = {
@@ -66,19 +101,17 @@ describe("workspaceCreation github procedures with mocked Octokit", () => {
 
 	beforeEach(async () => {
 		calls.length = 0;
-		host = await createTestHost({
-			githubFactory: async () => fakeOctokit,
-			apiOverrides: {
-				"v2Project.get.query": () => ({
-					id: projectId,
-					githubRepository: { owner: "octocat", name: "hello" },
-				}),
-			},
-		});
+		host = await createTestHost({ githubFactory: async () => fakeOctokit });
+		repoDir = await seedRepoFixture(
+			host,
+			projectId,
+			"https://github.com/octocat/hello.git",
+		);
 	});
 
 	afterEach(async () => {
 		await host.dispose();
+		rmSync(repoDir, { recursive: true, force: true });
 	});
 
 	test("searchGitHubIssues handles direct #123 lookup via issues.get", async () => {
@@ -139,5 +172,387 @@ describe("workspaceCreation github procedures with mocked Octokit", () => {
 		// Our fake search returns one issue (no `pull_request`), so no PRs.
 		expect(result.pullRequests).toEqual([]);
 		expect(calls[0].method).toBe("search.issuesAndPullRequests");
+	});
+});
+
+describe("resolveGithubRepo trusts the live local remote, never the cloud", () => {
+	let host: TestHost;
+	let repoDir: string;
+	const projectId = randomUUID();
+
+	const fakeOctokit = {
+		pulls: {
+			get: async () => ({
+				data: {
+					number: 33,
+					title: "PR #33",
+					html_url: "https://github.com/cli/cli/pull/33",
+					state: "open",
+					user: { login: "bob" },
+					draft: false,
+					merged_at: null,
+				},
+			}),
+		},
+	};
+
+	beforeEach(async () => {
+		// Cloud says `somewhere/else`; local remote is `cli/cli`. The
+		// resolver MUST follow the local remote.
+		host = await createTestHost({
+			githubFactory: async () => fakeOctokit,
+			apiOverrides: {
+				"v2Project.get.query": () => ({
+					id: projectId,
+					githubRepository: null,
+					repoCloneUrl: "https://github.com/somewhere/else.git",
+				}),
+			},
+		});
+		repoDir = await seedRepoFixture(
+			host,
+			projectId,
+			"https://github.com/cli/cli.git",
+		);
+	});
+
+	afterEach(async () => {
+		await host.dispose();
+		rmSync(repoDir, { recursive: true, force: true });
+	});
+
+	test("searchPullRequests routes the call against the local remote's owner/name", async () => {
+		const result = await host.trpc.workspaceCreation.searchPullRequests.query({
+			projectId,
+			query: "#33",
+		});
+		expect(result.pullRequests).toHaveLength(1);
+		expect(result.pullRequests[0].url).toContain("github.com/cli/cli");
+	});
+});
+
+describe("resolveGithubRepo prefers the user-configured remoteName", () => {
+	let host: TestHost;
+	let repoDir: string;
+	const projectId = randomUUID();
+
+	const fakeOctokit = {
+		pulls: {
+			get: async () => ({
+				data: {
+					number: 5,
+					title: "via upstream",
+					html_url: "https://github.com/upstream-org/cli/pull/5",
+					state: "open",
+					user: { login: "ada" },
+					draft: false,
+					merged_at: null,
+				},
+			}),
+		},
+		issues: { get: async () => ({ data: {} }) },
+		search: {
+			issuesAndPullRequests: async () => ({ data: { items: [] } }),
+		},
+	};
+
+	beforeEach(async () => {
+		host = await createTestHost({ githubFactory: async () => fakeOctokit });
+		// origin → user's fork, upstream → real source, configured = upstream.
+		// Resolver must honor `remoteName=upstream`, not default to origin.
+		repoDir = mkdtempSync(join(tmpdir(), "ws-creation-github-test-"));
+		const git = simpleGit(repoDir);
+		await git.init(["--initial-branch=main"]);
+		await git.addRemote("origin", "https://github.com/me/cli.git");
+		await git.addRemote("upstream", "https://github.com/upstream-org/cli.git");
+		host.db
+			.insert(projects)
+			.values({
+				id: projectId,
+				repoPath: repoDir,
+				repoProvider: "github",
+				repoOwner: null,
+				repoName: null,
+				repoUrl: null,
+				remoteName: "upstream",
+			})
+			.run();
+	});
+
+	afterEach(async () => {
+		await host.dispose();
+		rmSync(repoDir, { recursive: true, force: true });
+	});
+
+	test("searchPullRequests routes against `upstream`, not `origin`", async () => {
+		const result = await host.trpc.workspaceCreation.searchPullRequests.query({
+			projectId,
+			query: "#5",
+		});
+		expect(result.pullRequests).toHaveLength(1);
+		expect(result.pullRequests[0].url).toContain("github.com/upstream-org/cli");
+	});
+});
+
+describe("both backends failing rethrows so the renderer toast fires", () => {
+	let host: TestHost;
+	let repoDir: string;
+	const projectId = randomUUID();
+
+	const failingOctokit = {
+		pulls: {
+			get: async () => {
+				throw new Error("octokit pulls.get failed");
+			},
+		},
+		issues: {
+			get: async () => {
+				throw new Error("octokit issues.get failed");
+			},
+		},
+		search: {
+			issuesAndPullRequests: async () => {
+				throw new Error("octokit search failed");
+			},
+		},
+	};
+	const failingExecGh = async (): Promise<unknown> => {
+		throw new Error("gh exec failed");
+	};
+
+	beforeEach(async () => {
+		host = await createTestHost({
+			githubFactory: async () => failingOctokit,
+			execGh: failingExecGh,
+		});
+		repoDir = await seedRepoFixture(
+			host,
+			projectId,
+			"https://github.com/octocat/hello.git",
+		);
+	});
+
+	afterEach(async () => {
+		await host.dispose();
+		rmSync(repoDir, { recursive: true, force: true });
+	});
+
+	test("searchPullRequests rethrows when both gh and Octokit fail", async () => {
+		await expect(
+			host.trpc.workspaceCreation.searchPullRequests.query({
+				projectId,
+				query: "anything",
+			}),
+		).rejects.toThrow();
+	});
+
+	test("searchGitHubIssues rethrows when both gh and Octokit fail", async () => {
+		await expect(
+			host.trpc.workspaceCreation.searchGitHubIssues.query({
+				projectId,
+				query: "anything",
+			}),
+		).rejects.toThrow();
+	});
+});
+
+describe("resolveGithubRepo throws PROJECT_NOT_SETUP when no local clone", () => {
+	let host: TestHost;
+	const projectId = randomUUID();
+
+	beforeEach(async () => {
+		host = await createTestHost({
+			apiOverrides: {
+				"v2Project.get.query": () => ({
+					id: projectId,
+					githubRepository: { owner: "octocat", name: "hello" },
+					repoCloneUrl: "https://github.com/octocat/hello.git",
+				}),
+			},
+		});
+	});
+
+	afterEach(async () => {
+		await host.dispose();
+	});
+
+	test("searchPullRequests refuses to query GitHub without a local clone", async () => {
+		await expect(
+			host.trpc.workspaceCreation.searchPullRequests.query({
+				projectId,
+				query: "#1",
+			}),
+		).rejects.toThrow(/Project is not set up on this host/);
+	});
+});
+
+describe("gh CLI is first-class when execGh succeeds", () => {
+	let host: TestHost;
+	let repoDir: string;
+	const projectId = randomUUID();
+	const ghCalls: Array<{ args: string[]; cwd?: string }> = [];
+
+	// Octokit must NOT be hit when gh succeeds — throws turn accidental
+	// fallbacks into loud failures.
+	const fakeOctokit = {
+		pulls: {
+			get: async () => {
+				throw new Error("octokit must not be called when gh succeeds");
+			},
+		},
+		issues: {
+			get: async () => {
+				throw new Error("octokit must not be called when gh succeeds");
+			},
+		},
+		search: {
+			issuesAndPullRequests: async () => {
+				throw new Error("octokit must not be called when gh succeeds");
+			},
+		},
+	};
+
+	const fakeExecGh = async (
+		args: string[],
+		options?: { cwd?: string },
+	): Promise<unknown> => {
+		ghCalls.push({ args, cwd: options?.cwd });
+		const verb = args[1];
+		if (verb === "view" && args[0] === "pr") {
+			return {
+				number: Number(args[2]),
+				title: "PR via gh",
+				url: `https://github.com/octocat/hello/pull/${args[2]}`,
+				state: "OPEN",
+				isDraft: false,
+				author: { login: "bob" },
+				mergedAt: null,
+			};
+		}
+		if (verb === "list" && args[0] === "pr") {
+			return [
+				{
+					number: 101,
+					title: "search result",
+					url: "https://github.com/octocat/hello/pull/101",
+					state: "OPEN",
+					isDraft: false,
+					author: { login: "carol" },
+					mergedAt: null,
+				},
+			];
+		}
+		if (verb === "list" && args[0] === "issue") {
+			return [
+				{
+					number: 7,
+					title: "issue search result",
+					url: "https://github.com/octocat/hello/issues/7",
+					state: "OPEN",
+					author: { login: "dave" },
+				},
+			];
+		}
+		return {};
+	};
+
+	beforeEach(async () => {
+		ghCalls.length = 0;
+		host = await createTestHost({
+			githubFactory: async () => fakeOctokit,
+			execGh: fakeExecGh,
+		});
+		repoDir = await seedRepoFixture(
+			host,
+			projectId,
+			"https://github.com/octocat/hello.git",
+		);
+	});
+
+	afterEach(async () => {
+		await host.dispose();
+		rmSync(repoDir, { recursive: true, force: true });
+	});
+
+	test("searchPullRequests #N invokes `gh pr view` with cwd=repoPath", async () => {
+		const result = await host.trpc.workspaceCreation.searchPullRequests.query({
+			projectId,
+			query: "#33",
+		});
+		expect(result.pullRequests).toHaveLength(1);
+		expect(result.pullRequests[0].prNumber).toBe(33);
+		expect(result.pullRequests[0].title).toBe("PR via gh");
+		expect(ghCalls).toHaveLength(1);
+		expect(ghCalls[0].args.slice(0, 5)).toEqual([
+			"pr",
+			"view",
+			"33",
+			"--repo",
+			"octocat/hello",
+		]);
+		// `rev-parse --show-toplevel` canonicalizes /var → /private/var on macOS.
+		expect(ghCalls[0].cwd).toBe(realpathSync(repoDir));
+	});
+
+	test("searchPullRequests free-text invokes `gh pr list --search`", async () => {
+		const result = await host.trpc.workspaceCreation.searchPullRequests.query({
+			projectId,
+			query: "find me",
+		});
+		expect(result.pullRequests).toHaveLength(1);
+		expect(result.pullRequests[0].prNumber).toBe(101);
+		expect(ghCalls).toHaveLength(1);
+		const args = ghCalls[0].args;
+		expect(args[0]).toBe("pr");
+		expect(args[1]).toBe("list");
+		expect(args).toContain("--repo");
+		expect(args).toContain("octocat/hello");
+		expect(args).toContain("--search");
+		expect(args).toContain("find me");
+	});
+
+	test("searchGitHubIssues #N filters out PRs leaked by `gh issue view`", async () => {
+		// gh CLI happily returns a PR when `gh issue view <pr-number>` is
+		// called — the URL is the only signal we have to detect it.
+		const localHost = await createTestHost({
+			githubFactory: async () => fakeOctokit,
+			execGh: async (args) => {
+				if (args[0] === "issue" && args[1] === "view") {
+					return {
+						number: Number(args[2]),
+						title: "Should be filtered",
+						url: `https://github.com/octocat/hello/pull/${args[2]}`,
+						state: "OPEN",
+						author: { login: "x" },
+					};
+				}
+				return {};
+			},
+		});
+		const localRepo = await seedRepoFixture(
+			localHost,
+			projectId,
+			"https://github.com/octocat/hello.git",
+		);
+		const result =
+			await localHost.trpc.workspaceCreation.searchGitHubIssues.query({
+				projectId,
+				query: "#13353",
+			});
+		expect(result.issues).toEqual([]);
+		await localHost.dispose();
+		rmSync(localRepo, { recursive: true, force: true });
+	});
+
+	test("searchGitHubIssues free-text invokes `gh issue list --search`", async () => {
+		const result = await host.trpc.workspaceCreation.searchGitHubIssues.query({
+			projectId,
+			query: "bug",
+		});
+		expect(result.issues).toHaveLength(1);
+		expect(result.issues[0].issueNumber).toBe(7);
+		expect(ghCalls).toHaveLength(1);
+		expect(ghCalls[0].args[0]).toBe("issue");
+		expect(ghCalls[0].args[1]).toBe("list");
 	});
 });

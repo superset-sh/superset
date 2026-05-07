@@ -38,6 +38,7 @@ export interface TestHostOptions {
 	 * ChatRuntimeManager, ChatService) are far too large to stub fully.
 	 */
 	githubFactory?: () => Promise<unknown>;
+	execGh?: (args: string[], options?: unknown) => Promise<unknown>;
 	chatRuntime?: unknown;
 	chatService?: unknown;
 }
@@ -108,6 +109,13 @@ export async function createTestHost(
 		github: options.githubFactory
 			? (options.githubFactory as CreateAppOptions["github"])
 			: undefined,
+		execGh: options.execGh
+			? (options.execGh as CreateAppOptions["execGh"])
+			: // Reject by default so unconfigured tests exercise the Octokit
+				// fallback rather than shelling to a real `gh` on the host.
+				async () => {
+					throw new Error("execGh not configured in test");
+				},
 		chatRuntime: options.chatRuntime as CreateAppOptions["chatRuntime"],
 		chatService: options.chatService as CreateAppOptions["chatService"],
 	};

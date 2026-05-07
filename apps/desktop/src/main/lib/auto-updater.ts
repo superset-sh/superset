@@ -4,7 +4,7 @@ import log from "electron-log/main";
 import { autoUpdater } from "electron-updater";
 import { env } from "main/env.main";
 import { setSkipQuitConfirmation } from "main/index";
-import { prerelease } from "semver";
+import { gte, prerelease } from "semver";
 import { AUTO_UPDATE_STATUS, type AutoUpdateStatus } from "shared/auto-update";
 import { PLATFORM } from "shared/constants";
 
@@ -183,7 +183,7 @@ export function checkForUpdatesInteractive(): void {
 		.then((result) => {
 			if (
 				!result?.updateInfo ||
-				result.updateInfo.version === app.getVersion()
+				gte(app.getVersion(), result.updateInfo.version)
 			) {
 				emitStatus(AUTO_UPDATE_STATUS.IDLE);
 				dialog.showMessageBox({

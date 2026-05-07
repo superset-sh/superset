@@ -23,6 +23,18 @@ export const workspaceRouter = router({
 			return localWorkspace;
 		}),
 
+	cloudList: protectedProcedure.query(async ({ ctx }) => {
+		const rows = await ctx.api.v2Workspace.list.query({
+			organizationId: ctx.organizationId,
+		});
+		return rows.map((row) => ({
+			id: row.id,
+			projectId: row.projectId,
+			branch: row.branch,
+			hostId: row.hostId,
+		}));
+	}),
+
 	gitStatus: protectedProcedure
 		.input(z.object({ id: z.string() }))
 		.query(async ({ ctx, input }) => {

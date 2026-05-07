@@ -28,7 +28,7 @@ function TerminalSettingsPage() {
 	const navigate = Route.useNavigate();
 	const { editPresetId, createProjectId } = Route.useSearch();
 	const searchQuery = useSettingsSearchQuery();
-	const { isV2CloudEnabled } = useIsV2CloudEnabled();
+	const isV2CloudEnabled = useIsV2CloudEnabled();
 
 	const visibleItems = useMemo(
 		() =>

@@ -976,18 +976,32 @@ export function registerWorkspaceTerminalRoute({
 					};
 				}
 
-				// Attach is by terminal id only. If host-service lost in-memory
-				// state during a restart, recover from the server-owned session row
-				// and let createTerminalSessionInternal adopt the daemon PTY when it
-				// still exists.
-				return createTerminalSessionInternal({
+				const themeType = parseThemeType(c.req.query("themeType"));
+
+				// Prefer adoption: if the daemon still owns the PTY across a
+				// host-service restart, we keep the live shell + ring buffer.
+				const adopted = await createTerminalSessionInternal({
 					terminalId,
 					workspaceId: record.originWorkspaceId,
+					themeType,
 					db,
 					eventBus,
 					adoptOnly: true,
 					// Renderer passes `?replay=0` on reconnect; see replayOnAdoption.
 					replayOnAdoption: c.req.query("replay") !== "0",
+				});
+				if (!("error" in adopted)) return adopted;
+
+				// Active row but daemon no longer owns the PTY (laptop sleep,
+				// daemon restart, machine reboot). Respawn rather than dead-end
+				// the pane — the renderer's xterm scrollback stays painted above.
+				console.log(`[terminal] respawning lost session ${terminalId}`);
+				return createTerminalSessionInternal({
+					terminalId,
+					workspaceId: record.originWorkspaceId,
+					themeType,
+					db,
+					eventBus,
 				});
 			};
 

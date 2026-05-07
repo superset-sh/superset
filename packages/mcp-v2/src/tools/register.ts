@@ -4,6 +4,7 @@ import {
 	setServerToolCallEmitter,
 } from "../define-tool";
 
+import * as agentsList from "./agents/list";
 import * as agentsRun from "./agents/run";
 import * as automationsCreate from "./automations/create";
 import * as automationsDelete from "./automations/delete";
@@ -48,6 +49,7 @@ const REGISTRARS = [
 	workspacesCreate,
 	workspacesDelete,
 	agentsRun,
+	agentsList,
 	projectsList,
 	hostsList,
 ];

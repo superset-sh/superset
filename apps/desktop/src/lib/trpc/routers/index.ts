@@ -25,6 +25,7 @@ import { createProjectsRouter } from "./projects";
 import { createResourceMetricsRouter } from "./resource-metrics";
 import { createRingtoneRouter } from "./ringtone";
 import { createSettingsRouter } from "./settings";
+import { createSystemRouter } from "./system";
 import { createTerminalRouter } from "./terminal";
 import { createUiStateRouter } from "./ui-state";
 import { createVscodeRouter } from "./vscode";
@@ -57,6 +58,7 @@ export const createAppRouter = (
 		menu: createMenuRouter(),
 		external: createExternalRouter(),
 		settings: createSettingsRouter(),
+		system: createSystemRouter(),
 		config: createConfigRouter(),
 		device: createDeviceRouter(),
 		uiState: createUiStateRouter(),

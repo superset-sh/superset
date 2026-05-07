@@ -13,6 +13,7 @@ function getErrorMessage(error: unknown, fallback: string): string {
 interface UseOpenAIOAuthParams {
 	isModelSelectorOpen: boolean;
 	onModelSelectorOpenChange: (open: boolean) => void;
+	onAuthStateChange?: () => Promise<void> | void;
 }
 
 interface OpenAIOAuthDialogState {
@@ -40,6 +41,7 @@ interface UseOpenAIOAuthResult {
 export function useOpenAIOAuth({
 	isModelSelectorOpen,
 	onModelSelectorOpenChange,
+	onAuthStateChange,
 }: UseOpenAIOAuthParams): UseOpenAIOAuthResult {
 	const [oauthDialogOpen, setOauthDialogOpen] = useState(false);
 	const [oauthUrl, setOauthUrl] = useState<string | null>(null);
@@ -110,6 +112,7 @@ export function useOpenAIOAuth({
 		async (action: "complete" | "disconnect") => {
 			try {
 				await refetchOpenAIStatus();
+				await onAuthStateChange?.();
 			} catch (error) {
 				console.error(
 					`[model-picker] OpenAI OAuth ${action} follow-up refresh failed:`,
@@ -117,31 +120,57 @@ export function useOpenAIOAuth({
 				);
 			}
 		},
-		[refetchOpenAIStatus],
+		[onAuthStateChange, refetchOpenAIStatus],
 	);
 
-	const completeOpenAIOAuth = useCallback(async () => {
-		setOauthError(null);
-		try {
-			const code = oauthCode.trim();
-			await completeOpenAIOAuthMutation.mutateAsync({
-				code: code.length > 0 ? code : undefined,
-			});
-			setHasPendingOAuthSession(false);
-			setOauthDialogOpen(false);
-			setOauthUrl(null);
-			setOauthCode("");
-			onModelSelectorOpenChange(true);
-		} catch (error) {
-			setOauthError(getErrorMessage(error, "Failed to complete OpenAI OAuth"));
-			return;
-		}
-		await syncOpenAIAuthUi("complete");
+	const completeOpenAIOAuth = useCallback(
+		async (codeOverride?: string) => {
+			setOauthError(null);
+			try {
+				const code = (codeOverride ?? oauthCode).trim();
+				await completeOpenAIOAuthMutation.mutateAsync({
+					code: code.length > 0 ? code : undefined,
+				});
+				setHasPendingOAuthSession(false);
+				setOauthDialogOpen(false);
+				setOauthUrl(null);
+				setOauthCode("");
+				onModelSelectorOpenChange(true);
+			} catch (error) {
+				setOauthError(
+					getErrorMessage(error, "Failed to complete OpenAI OAuth"),
+				);
+				return;
+			}
+			await syncOpenAIAuthUi("complete");
+		},
+		[
+			completeOpenAIOAuthMutation,
+			oauthCode,
+			onModelSelectorOpenChange,
+			syncOpenAIAuthUi,
+		],
+	);
+
+	const { data: pendingLoopbackCallback } =
+		chatServiceTrpc.auth.consumeOpenAIOAuthCallback.useQuery(undefined, {
+			enabled: oauthDialogOpen && hasPendingOAuthSession,
+			refetchInterval: oauthDialogOpen && hasPendingOAuthSession ? 1500 : false,
+			refetchOnWindowFocus: false,
+		});
+
+	useEffect(() => {
+		const callbackUrl = pendingLoopbackCallback?.callbackUrl;
+		if (!callbackUrl) return;
+		if (!oauthDialogOpen || !hasPendingOAuthSession) return;
+		if (completeOpenAIOAuthMutation.isPending) return;
+		void completeOpenAIOAuth(callbackUrl);
 	}, [
-		completeOpenAIOAuthMutation,
-		oauthCode,
-		onModelSelectorOpenChange,
-		syncOpenAIAuthUi,
+		pendingLoopbackCallback?.callbackUrl,
+		oauthDialogOpen,
+		hasPendingOAuthSession,
+		completeOpenAIOAuthMutation.isPending,
+		completeOpenAIOAuth,
 	]);
 
 	const disconnectOpenAIOAuth = useCallback(async () => {

@@ -5,6 +5,10 @@ import { authClient } from "renderer/lib/auth-client";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import type { PaneViewerData } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/types";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import {
+	getPrependTabOrder,
+	isSidebarWorkspaceVisible,
+} from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { appendLaunchesToPaneLayout } from "./appendLaunchesToPaneLayout";
 import {
@@ -64,6 +68,14 @@ export function useWorkspaceCreates(): UseWorkspaceCreatesApi {
 				const client = getHostServiceClientByUrl(hostUrl);
 				const result = await client.workspaces.create.mutate(args.snapshot);
 
+				// Cache the cloud row on the in-flight entry so the workspace
+				// detail layout can render the workspace immediately, without
+				// waiting for Electric to deliver the synced row. Manager.tsx
+				// removes the entry once the row appears in collections.
+				useWorkspaceCreatesStore
+					.getState()
+					.markCloudRow(result.workspace.id, result.workspace);
+
 				const existing = collections.v2WorkspaceLocalState.get(
 					result.workspace.id,
 				);
@@ -82,12 +94,26 @@ export function useWorkspaceCreates(): UseWorkspaceCreatesApi {
 						},
 					);
 				} else {
+					const projectId = result.workspace.projectId;
+					const topLevelItems = [
+						...Array.from(collections.v2WorkspaceLocalState.state.values())
+							.filter(
+								(item) =>
+									item.sidebarState.projectId === projectId &&
+									item.sidebarState.sectionId === null &&
+									isSidebarWorkspaceVisible(item),
+							)
+							.map((item) => ({ tabOrder: item.sidebarState.tabOrder })),
+						...Array.from(collections.v2SidebarSections.state.values())
+							.filter((item) => item.projectId === projectId)
+							.map((item) => ({ tabOrder: item.tabOrder })),
+					];
 					collections.v2WorkspaceLocalState.insert({
 						workspaceId: result.workspace.id,
 						createdAt: new Date(),
 						sidebarState: {
-							projectId: result.workspace.projectId,
-							tabOrder: 0,
+							projectId,
+							tabOrder: getPrependTabOrder(topLevelItems),
 							sectionId: null,
 							changesFilter: { kind: "all" },
 							activeTab: "changes",

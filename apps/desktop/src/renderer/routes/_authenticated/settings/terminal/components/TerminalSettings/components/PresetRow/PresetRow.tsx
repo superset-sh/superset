@@ -4,12 +4,21 @@ import { cn } from "@superset/ui/utils";
 import { Eye, EyeOff } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { useDrag, useDrop } from "react-dnd";
+import { HiMiniCommandLine } from "react-icons/hi2";
 import { LuGripVertical } from "react-icons/lu";
+import {
+	getPresetIcon,
+	useIsDarkTheme,
+} from "renderer/assets/app-icons/preset-icons";
 import type { TerminalPreset } from "renderer/routes/_authenticated/settings/presets/types";
 import {
 	getPresetProjectTargetLabel,
 	type PresetProjectOption,
 } from "../PresetsSection/preset-project-options";
+
+interface PresetWithAgent extends TerminalPreset {
+	agentId?: string;
+}
 
 const PRESET_TYPE = "TERMINAL_PRESET";
 
@@ -66,6 +75,15 @@ export function PresetRow({
 		drag(dragHandleRef);
 	}, [preview, drop, drag]);
 
+	const isDark = useIsDarkTheme();
+	const presetAgentId = (preset as PresetWithAgent).agentId;
+	// Try the preset's display name first (covers v1 builtins named after the
+	// agent and any user preset named "Claude"). Fall back to the linked
+	// agent id for v2 presets imported via the Import-agent dropdown.
+	const presetIcon =
+		getPresetIcon(preset.name, isDark) ??
+		(presetAgentId ? getPresetIcon(presetAgentId, isDark) : undefined);
+
 	const isWorkspaceCreation = !!preset.applyOnWorkspaceCreated;
 	const isNewTab = !!preset.applyOnNewTab;
 	const isVisibleInBar = preset.pinnedToBar !== false;
@@ -113,6 +131,14 @@ export function PresetRow({
 				isDragging && "opacity-30",
 			)}
 		>
+			<div className="flex size-7 shrink-0 items-center justify-center rounded-md border border-border bg-background">
+				{presetIcon ? (
+					<img src={presetIcon} alt="" className="size-4 object-contain" />
+				) : (
+					<HiMiniCommandLine className="size-4 text-muted-foreground" />
+				)}
+			</div>
+
 			<div className="min-w-0 flex-1">
 				<div className="flex items-center gap-2 min-w-0">
 					<span className="text-sm font-medium truncate">

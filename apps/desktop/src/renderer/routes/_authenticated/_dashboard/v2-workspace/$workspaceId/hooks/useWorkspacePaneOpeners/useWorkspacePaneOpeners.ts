@@ -9,14 +9,17 @@ import type {
 	PaneViewerData,
 	TerminalPaneData,
 } from "../../types";
+import type { TerminalLauncher } from "../useV2TerminalLauncher";
 
 export function useWorkspacePaneOpeners({
 	store,
+	launcher,
 }: {
 	store: StoreApi<WorkspaceStore<PaneViewerData>>;
+	launcher: TerminalLauncher;
 }): {
 	openDiffPane: (filePath: string, openInNewTab?: boolean) => void;
-	addTerminalTab: () => void;
+	addTerminalTab: () => Promise<void>;
 	addChatTab: () => void;
 	addBrowserTab: () => void;
 	openCommentPane: (comment: CommentPaneData) => void;
@@ -76,18 +79,17 @@ export function useWorkspacePaneOpeners({
 		[store],
 	);
 
-	const addTerminalTab = useCallback(() => {
+	const addTerminalTab = useCallback(async () => {
+		const terminalId = await launcher.create();
 		store.getState().addTab({
 			panes: [
 				{
 					kind: "terminal",
-					data: {
-						terminalId: crypto.randomUUID(),
-					} as TerminalPaneData,
+					data: { terminalId } as TerminalPaneData,
 				},
 			],
 		});
-	}, [store]);
+	}, [store, launcher]);
 
 	const addChatTab = useCallback(() => {
 		store.getState().addTab({

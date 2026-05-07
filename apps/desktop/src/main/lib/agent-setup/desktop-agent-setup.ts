@@ -19,6 +19,7 @@ import {
 	createMastraWrapper,
 	createOpenCodePlugin,
 	createOpenCodeWrapper,
+	createPiExtension,
 } from "./agent-wrappers";
 import {
 	DESKTOP_AGENT_SETUP_BOOTSTRAP_ACTIONS,
@@ -40,6 +41,7 @@ const DESKTOP_AGENT_SETUP_RUNNERS: Record<DesktopAgentSetupAction, () => void> =
 		"droid-settings-json": createDroidSettingsJson,
 		"opencode-plugin": createOpenCodePlugin,
 		"opencode-wrapper": createOpenCodeWrapper,
+		"pi-extension": createPiExtension,
 		"cursor-hook-script": createCursorHookScript,
 		"cursor-agent-wrapper": createCursorAgentWrapper,
 		"cursor-hooks-json": createCursorHooksJson,

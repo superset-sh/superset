@@ -40,9 +40,9 @@ class MockWebSocket {
 		this.sent.push(data);
 	}
 
-	close() {
+	close(code = 1000, reason = "") {
 		this.readyState = MockWebSocket.CLOSED;
-		this.dispatch("close", { code: 1000, reason: "" });
+		this.dispatch("close", { code, reason });
 	}
 
 	open() {
@@ -93,6 +93,40 @@ afterEach(() => {
 });
 
 describe("terminal-ws-transport", () => {
+	test("server-sent error routes to logs, not xterm, and stops reconnect", () => {
+		const transport = createTransport();
+		const writelnCalls: string[] = [];
+		const terminal = createMockTerminal();
+		(terminal as unknown as { writeln: (s: string) => void }).writeln = (
+			s: string,
+		) => {
+			writelnCalls.push(s);
+		};
+
+		connect(transport, terminal, "ws://host/terminal/t1");
+		const socket = MockWebSocket.instances[0];
+		if (!socket) throw new Error("expected websocket instance");
+		socket.open();
+
+		socket.message(
+			JSON.stringify({
+				type: "error",
+				message:
+					'Terminal session "t1" is not active; create it before connecting.',
+			}),
+		);
+
+		expect(writelnCalls).toEqual([]);
+		expect(transport.logs).toHaveLength(1);
+		expect(transport.logs[0]?.level).toBe("error");
+		expect(transport.logs[0]?.message).toContain("is not active");
+
+		// 1011 is what host-service sends after an attach error; the close
+		// handler would otherwise schedule a reconnect.
+		socket.close(1011, "session not active");
+		expect(transport._reconnectTimer).toBeNull();
+	});
+
 	test("waits for server attach before sending resize or input", () => {
 		const transport = createTransport();
 		const terminal = createMockTerminal();

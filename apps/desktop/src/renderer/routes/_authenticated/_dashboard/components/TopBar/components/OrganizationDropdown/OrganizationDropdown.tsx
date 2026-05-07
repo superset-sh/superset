@@ -18,7 +18,9 @@ import {
 	HiCheck,
 	HiChevronUpDown,
 	HiOutlineArrowRightOnRectangle,
+	HiOutlineCog6Tooth,
 } from "react-icons/hi2";
+import { HotkeyMenuShortcut } from "renderer/components/HotkeyMenuShortcut";
 import { useCurrentPlan } from "renderer/hooks/useCurrentPlan";
 import { authClient } from "renderer/lib/auth-client";
 import { electronTrpc } from "renderer/lib/electron-trpc";
@@ -131,6 +133,14 @@ export function OrganizationDropdown({
 				}
 			>
 				{/* Organization */}
+				{/* TODO(v1): Settings lives in the sidebar footer in v2; kept here for v1. Remove once v1 is gone. */}
+				<DropdownMenuItem
+					onSelect={() => navigate({ to: "/settings/account" })}
+				>
+					<HiOutlineCog6Tooth className="h-4 w-4" />
+					<span>Settings</span>
+					<HotkeyMenuShortcut hotkeyId="OPEN_SETTINGS" />
+				</DropdownMenuItem>
 				<DropdownMenuItem
 					onSelect={() => navigate({ to: "/settings/organization" })}
 				>

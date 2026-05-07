@@ -19,6 +19,10 @@ import { runMainWorkspaceSweep } from "./runtime/main-workspace-sweep";
 import { PullRequestRuntimeManager } from "./runtime/pull-requests";
 import { registerWorkspaceTerminalRoute } from "./terminal/terminal";
 import { appRouter } from "./trpc/router";
+import {
+	execGh as defaultExecGh,
+	type ExecGh,
+} from "./trpc/router/workspace-creation/utils/exec-gh";
 import type { ApiClient } from "./types";
 
 export interface CreateAppOptions {
@@ -46,6 +50,7 @@ export interface CreateAppOptions {
 	db?: HostDb;
 	api?: ApiClient;
 	github?: () => Promise<Octokit>;
+	execGh?: ExecGh;
 	chatRuntime?: ChatRuntimeManager;
 	chatService?: ChatService;
 }
@@ -61,7 +66,8 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 	const { config, providers } = options;
 
 	const api =
-		options.api ?? createApiClient(config.cloudApiUrl, providers.auth);
+		options.api ??
+		createApiClient(config.cloudApiUrl, providers.auth, config.organizationId);
 	const db = options.db ?? createDb(config.dbPath, config.migrationsFolder);
 	const git = createGitFactory(providers.credentials);
 	const github =
@@ -75,6 +81,7 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 			}
 			return new Octokit({ auth: token });
 		});
+	const execGh: ExecGh = options.execGh ?? defaultExecGh;
 
 	const filesystem = new WorkspaceFilesystemManager({ db });
 	// GitWatcher is the single source of truth for `.git/` and worktree fs
@@ -160,6 +167,7 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 				return {
 					git,
 					github,
+					execGh,
 					api,
 					db,
 					runtime,

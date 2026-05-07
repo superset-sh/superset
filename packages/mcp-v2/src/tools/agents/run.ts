@@ -2,7 +2,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { createMcpCaller } from "../../caller";
 import { defineTool } from "../../define-tool";
-import { hostServiceMutation } from "../../host-service-client";
+import { hostServiceCall } from "../../host-service-client";
 
 export function register(server: McpServer): void {
 	defineTool(server, {
@@ -18,7 +18,7 @@ export function register(server: McpServer): void {
 				.string()
 				.min(1)
 				.describe(
-					"Agent preset id (e.g. `claude`, `codex`) or HostAgentConfig instance UUID.",
+					"Agent preset id (e.g. `claude`, `codex`, `superset`) or HostAgentConfig instance UUID.",
 				),
 			prompt: z.string().min(1).describe("Prompt sent to the agent."),
 			attachmentIds: z
@@ -38,14 +38,9 @@ export function register(server: McpServer): void {
 				throw new Error(`Workspace not found: ${input.workspaceId}`);
 			}
 
-			return hostServiceMutation<
-				{
-					workspaceId: string;
-					agent: string;
-					prompt: string;
-					attachmentIds?: string[];
-				},
-				{ sessionId: string; label: string }
+			return hostServiceCall<
+				| { kind: "terminal"; sessionId: string; label: string }
+				| { kind: "chat"; sessionId: string; label: string }
 			>(
 				{
 					relayUrl: ctx.relayUrl,
@@ -54,6 +49,7 @@ export function register(server: McpServer): void {
 					jwt: ctx.bearerToken,
 				},
 				"agents.run",
+				"mutation",
 				{
 					workspaceId: input.workspaceId,
 					agent: input.agent,

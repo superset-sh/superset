@@ -17,14 +17,13 @@ import {
 } from "renderer/assets/app-icons/preset-icons";
 import { HotkeyMenuShortcut } from "renderer/components/HotkeyMenuShortcut";
 import type { HotkeyId } from "renderer/hotkeys";
-import { useMigrateV1PresetsToV2 } from "renderer/routes/_authenticated/hooks/useMigrateV1PresetsToV2";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import type { V2TerminalPresetRow } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
 import { V2PresetBarItem } from "./components/V2PresetBarItem";
 
 interface V2PresetsBarProps {
 	matchedPresets: V2TerminalPresetRow[];
-	executePreset: (preset: V2TerminalPresetRow) => void;
+	executePreset: (preset: V2TerminalPresetRow) => void | Promise<void>;
 }
 
 // Co-located to keep v2 self-contained. Mirrors the v1 array in
@@ -68,7 +67,6 @@ export function V2PresetsBar({
 	const navigate = useNavigate();
 	const isDark = useIsDarkTheme();
 	const collections = useCollections();
-	useMigrateV1PresetsToV2();
 
 	const [localVisiblePresetIds, setLocalVisiblePresetIds] = useState<string[]>(
 		() => getVisiblePresetOrder(matchedPresets),

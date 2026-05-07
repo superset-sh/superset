@@ -232,9 +232,10 @@ function KeyboardShortcutsPage() {
 						Adaptive layout mapping
 					</Label>
 					<p className="text-xs text-muted-foreground">
-						Remap shortcuts to your current keyboard layout (e.g. ⌘Z dispatches
-						to physical KeyY on QWERTZ). When off, shortcuts always match the
-						keys you bound.
+						Match shortcuts to the labels on your keyboard (e.g. ⌘Z always fires
+						on the key labeled "Z" — physical KeyY on QWERTZ). When off,
+						shortcuts are anchored to physical key positions and ignore the
+						current input source.
 					</p>
 				</div>
 				<Switch

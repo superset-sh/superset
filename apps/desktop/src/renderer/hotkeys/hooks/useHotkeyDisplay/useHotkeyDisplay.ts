@@ -1,23 +1,14 @@
 import { useMemo } from "react";
 import { formatHotkeyDisplay } from "../../display";
 import { PLATFORM } from "../../registry";
-import { useKeyboardLayoutStore } from "../../stores/keyboardLayoutStore";
-import { useKeyboardPreferencesStore } from "../../stores/keyboardPreferencesStore";
+import { useEffectiveLayoutMap } from "../../stores/keyboardPreferencesStore";
 import type { HotkeyDisplay, ShortcutBinding } from "../../types";
 import { bindingToDispatchChord } from "../../utils/binding";
 import { useBinding } from "../useBinding";
 
-/** Effective layout map for display: null when the user has disabled
- *  adaptive layout mapping, so glyphs match the authored chord. */
-function useActiveLayoutMap(): ReadonlyMap<string, string> | null {
-	const layoutMap = useKeyboardLayoutStore((s) => s.map);
-	const adaptive = useKeyboardPreferencesStore((s) => s.adaptiveLayoutEnabled);
-	return adaptive ? layoutMap : null;
-}
-
 export function useHotkeyDisplay(id: string): HotkeyDisplay {
 	const binding = useBinding(id as Parameters<typeof useBinding>[0]);
-	const layoutMap = useActiveLayoutMap();
+	const layoutMap = useEffectiveLayoutMap();
 	const chord = bindingToDispatchChord(binding, layoutMap);
 	return useMemo(
 		() => formatHotkeyDisplay(chord, PLATFORM, layoutMap),
@@ -34,7 +25,7 @@ export function useHotkeyDisplay(id: string): HotkeyDisplay {
 export function useFormatBinding(
 	binding: ShortcutBinding | null,
 ): HotkeyDisplay {
-	const layoutMap = useActiveLayoutMap();
+	const layoutMap = useEffectiveLayoutMap();
 	const chord = bindingToDispatchChord(binding, layoutMap);
 	return useMemo(
 		() => formatHotkeyDisplay(chord, PLATFORM, layoutMap),

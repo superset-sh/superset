@@ -17,17 +17,20 @@ import type {
 	PaneViewerData,
 	TerminalPaneData,
 } from "../../types";
+import type { TerminalLauncher } from "../useV2TerminalLauncher";
 
 export function useWorkspaceHotkeys({
 	store,
 	matchedPresets,
 	executePreset,
 	paneRegistry,
+	launcher,
 }: {
 	store: StoreApi<WorkspaceStore<PaneViewerData>>;
 	matchedPresets: V2TerminalPresetRow[];
-	executePreset: (preset: V2TerminalPresetRow) => void;
+	executePreset: (preset: V2TerminalPresetRow) => void | Promise<void>;
 	paneRegistry: PaneRegistry<PaneViewerData>;
+	launcher: TerminalLauncher;
 }) {
 	const { setRightSidebarOpen, setRightSidebarTab } = useV2UserPreferences();
 	const visiblePresets = useMemo(
@@ -41,12 +44,13 @@ export function useWorkspaceHotkeys({
 
 	// --- Tab creation ---
 
-	useHotkey("NEW_GROUP", () => {
+	useHotkey("NEW_GROUP", async () => {
+		const terminalId = await launcher.create();
 		store.getState().addTab({
 			panes: [
 				{
 					kind: "terminal",
-					data: { terminalId: crypto.randomUUID() } as TerminalPaneData,
+					data: { terminalId } as TerminalPaneData,
 				},
 			],
 		});
@@ -197,7 +201,7 @@ export function useWorkspaceHotkeys({
 	useHotkey("FOCUS_PANE_UP", () => moveFocusDirectional("up"));
 	useHotkey("FOCUS_PANE_DOWN", () => moveFocusDirectional("down"));
 
-	useHotkey("SPLIT_AUTO", () => {
+	useHotkey("SPLIT_AUTO", async () => {
 		const state = store.getState();
 		const active = state.getActivePane();
 		if (!active) return;
@@ -206,43 +210,46 @@ export function useWorkspaceHotkeys({
 			? getPaneParentDirection(tab.layout, active.pane.id)
 			: null;
 		const position = parentDirection === "horizontal" ? "bottom" : "right";
+		const terminalId = await launcher.create();
 		state.splitPane({
 			tabId: active.tabId,
 			paneId: active.pane.id,
 			position,
 			newPane: {
 				kind: "terminal",
-				data: { terminalId: crypto.randomUUID() } as TerminalPaneData,
+				data: { terminalId } as TerminalPaneData,
 			},
 		});
 	});
 
-	useHotkey("SPLIT_RIGHT", () => {
+	useHotkey("SPLIT_RIGHT", async () => {
 		const state = store.getState();
 		const active = state.getActivePane();
 		if (!active) return;
+		const terminalId = await launcher.create();
 		state.splitPane({
 			tabId: active.tabId,
 			paneId: active.pane.id,
 			position: "right",
 			newPane: {
 				kind: "terminal",
-				data: { terminalId: crypto.randomUUID() } as TerminalPaneData,
+				data: { terminalId } as TerminalPaneData,
 			},
 		});
 	});
 
-	useHotkey("SPLIT_DOWN", () => {
+	useHotkey("SPLIT_DOWN", async () => {
 		const state = store.getState();
 		const active = state.getActivePane();
 		if (!active) return;
+		const terminalId = await launcher.create();
 		state.splitPane({
 			tabId: active.tabId,
 			paneId: active.pane.id,
 			position: "bottom",
 			newPane: {
 				kind: "terminal",
-				data: { terminalId: crypto.randomUUID() } as TerminalPaneData,
+				data: { terminalId } as TerminalPaneData,
 			},
 		});
 	});

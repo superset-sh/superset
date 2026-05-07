@@ -16,7 +16,8 @@ import type { HostServiceContext } from "../../../types";
 import { protectedProcedure, router } from "../../index";
 import { type AgentRunResult, runAgentInWorkspace } from "../agents";
 import { ensureMainWorkspace } from "../project/utils/ensure-main-workspace";
-import { getWorktreeBranchAtPath } from "../workspace-creation/shared/branch-search";
+import { adoptExistingWorktree } from "../workspace-creation/shared/adopt-existing-worktree";
+import { listWorktreeBranches } from "../workspace-creation/shared/branch-search";
 import { enablePushAutoSetupRemote } from "../workspace-creation/shared/git-config";
 import { requireLocalProject } from "../workspace-creation/shared/local-project";
 import { startSetupTerminalIfPresent } from "../workspace-creation/shared/setup-terminal";
@@ -73,18 +74,17 @@ type AgentLaunchResult =
 	| ({ ok: true } & AgentRunResult)
 	| { ok: false; error: string };
 
-interface ResolvedWorkspace {
-	id: string;
-	projectId: string;
-	name: string;
-	branch: string;
-}
+type CloudWorkspace = NonNullable<
+	Awaited<
+		ReturnType<HostServiceContext["api"]["v2Workspace"]["getFromHost"]["query"]>
+	>
+>;
 
 async function findExistingWorkspaceByBranch(
 	ctx: HostServiceContext,
 	projectId: string,
 	branch: string,
-): Promise<ResolvedWorkspace | null> {
+): Promise<CloudWorkspace | null> {
 	const local = ctx.db.query.workspaces
 		.findFirst({
 			where: and(
@@ -99,13 +99,7 @@ async function findExistingWorkspaceByBranch(
 		organizationId: ctx.organizationId,
 		id: local.id,
 	});
-	if (!cloud) return null;
-	return {
-		id: cloud.id,
-		projectId: cloud.projectId,
-		name: cloud.name,
-		branch: cloud.branch,
-	};
+	return cloud ?? null;
 }
 
 interface PrMetadata {
@@ -380,7 +374,7 @@ async function registerCloudAndLocal(args: {
 	taskId: string | undefined;
 	rollbackWorktree: () => Promise<void>;
 	hostPromise: Promise<{ machineId: string }>;
-}): Promise<{ id: string; projectId: string; name: string; branch: string }> {
+}): Promise<CloudWorkspace> {
 	const { ctx } = args;
 	let host: { machineId: string };
 	try {
@@ -442,12 +436,7 @@ async function registerCloudAndLocal(args: {
 		});
 	}
 
-	return {
-		id: cloudRow.id,
-		projectId: cloudRow.projectId,
-		name: cloudRow.name,
-		branch: cloudRow.branch,
-	};
+	return cloudRow;
 }
 
 async function dispatchSugarAgents(
@@ -513,15 +502,19 @@ export const workspacesRouter = router({
 
 			const git = await ctx.git(localProject.repoPath);
 
+			// Free branches still claimed by registrations whose dirs are
+			// gone — without this, `git worktree add` later fails with
+			// "branch is already used by worktree at <missing-path>".
+			await git
+				.raw(["worktree", "prune"])
+				.catch((err) =>
+					console.warn("[workspaces.create] worktree prune failed:", err),
+				);
+
 			let resolvedBranch: string;
 			let worktreePath: string;
 			let alreadyExists = false;
-			let workspaceRow: {
-				id: string;
-				projectId: string;
-				name: string;
-				branch: string;
-			};
+			let workspaceRow: CloudWorkspace;
 			let prMetadata: PrMetadata | null = null;
 
 			if (input.pr !== undefined) {
@@ -545,122 +538,161 @@ export const workspacesRouter = router({
 						localOid !== null &&
 						localOid.toLowerCase() ===
 							prMetadata.headRefOid.trim().toLowerCase();
+					// If the local branch already lives in a worktree somewhere,
+					// `git worktree add` will refuse. Look it up first so the
+					// OID-mismatch error can point at the actual worktree, and
+					// the matching-OID case can adopt instead of duplicating.
+					const existingWorktreePath = (
+						await listWorktreeBranches(git)
+					).worktreeMap.get(resolvedBranch);
+
 					if (localOid !== null && !adoptLocalBranch) {
+						const cleanupHint = existingWorktreePath
+							? `Inspect with \`git log ${resolvedBranch}\`, then \`git worktree remove ${existingWorktreePath}\` and \`git branch -D ${resolvedBranch}\` if safe.`
+							: `Inspect with \`git log ${resolvedBranch}\`, then \`git branch -D ${resolvedBranch}\` if safe.`;
 						throw new TRPCError({
 							code: "CONFLICT",
-							message: `Local branch "${resolvedBranch}" exists outside Superset and points at a different commit than PR #${input.pr} (local ${localOid.slice(0, 7)}, PR ${prMetadata.headRefOid.slice(0, 7)}). Inspect with \`git log ${resolvedBranch}\`, then \`git branch -D ${resolvedBranch}\` if safe.`,
+							message: `Local branch "${resolvedBranch}" exists outside Superset and points at a different commit than PR #${input.pr} (local ${localOid.slice(0, 7)}, PR ${prMetadata.headRefOid.slice(0, 7)}). ${cleanupHint}`,
 						});
 					}
 
-					worktreePath = safeResolveWorktreePath(
-						localProject.id,
-						resolvedBranch,
-					);
-					mkdirSync(dirname(worktreePath), { recursive: true });
-
-					const rollbackWorktree = async () => {
-						try {
-							await git.raw(["worktree", "remove", "--force", worktreePath]);
-						} catch (err) {
-							console.warn(
-								"[workspaces.create] failed to rollback PR worktree",
-								{ worktreePath, err },
-							);
-						}
-					};
-
-					if (adoptLocalBranch) {
-						try {
-							await git.raw(["worktree", "add", worktreePath, resolvedBranch]);
-						} catch (err) {
-							throw new TRPCError({
-								code: "CONFLICT",
-								message:
-									err instanceof Error
-										? err.message
-										: "Failed to add worktree for existing branch",
-							});
-						}
-					} else {
-						try {
-							await git.raw(["worktree", "add", "--detach", worktreePath]);
-						} catch (err) {
-							throw new TRPCError({
-								code: "CONFLICT",
-								message:
-									err instanceof Error
-										? err.message
-										: "Failed to add detached worktree",
-							});
-						}
-
-						try {
-							await execGh(
-								[
-									"pr",
-									"checkout",
-									String(input.pr),
-									"--branch",
-									resolvedBranch,
-									"--force",
-								],
-								{ cwd: worktreePath, timeout: 120_000 },
-							);
-						} catch (err) {
-							let recoveryError: unknown = null;
-							let recovered = false;
-							try {
-								const recovery = await recoverPrCheckoutAfterGhFailure({
-									git,
-									worktreePath,
-									branch: resolvedBranch,
-									prNumber: input.pr,
-									remoteName: localProject.remoteName ?? "origin",
-									expectedHeadOid: prMetadata.headRefOid,
-									error: err,
-								});
-								recovered = recovery.recovered;
-							} catch (e) {
-								recoveryError = e;
-							}
-							if (!recovered) {
-								await rollbackWorktree();
-								const recoveryMessage = recoveryError
-									? ` Recovery via refs/pull/${input.pr}/head also failed: ${getErrorMessage(recoveryError)}`
-									: "";
-								throw new TRPCError({
-									code: "INTERNAL_SERVER_ERROR",
-									message: `gh pr checkout failed: ${err instanceof Error ? err.message : String(err)}${recoveryMessage}`,
-								});
-							}
-						}
-					}
-
-					await enablePushAutoSetupRemote(
-						git,
-						worktreePath,
-						"[workspaces.create]",
-					);
-
-					workspaceRow = await registerCloudAndLocal({
-						ctx,
-						id: input.id,
-						projectId: input.projectId,
-						name: input.name ?? prMetadata.title ?? resolvedBranch,
-						branch: resolvedBranch,
-						worktreePath,
-						taskId: input.taskId,
-						rollbackWorktree,
-						hostPromise,
-					});
-
-					if (prMetadata.baseRefName) {
-						await recordBaseBranchConfig({
+					if (adoptLocalBranch && existingWorktreePath) {
+						worktreePath = existingWorktreePath;
+						const result = await adoptExistingWorktree({
+							ctx,
+							git,
+							projectId: input.projectId,
+							branch: resolvedBranch,
+							worktreePath,
+							workspaceName: input.name ?? prMetadata.title ?? resolvedBranch,
+							baseBranch: prMetadata.baseRefName,
+							idempotencyId: input.id,
+							taskId: input.taskId,
+							hostPromise,
+						});
+						workspaceRow = result.workspace;
+						alreadyExists = result.alreadyExists;
+						await enablePushAutoSetupRemote(
 							git,
 							worktreePath,
+							"[workspaces.create]",
+						);
+					} else {
+						worktreePath = safeResolveWorktreePath(
+							localProject.id,
+							resolvedBranch,
+						);
+						mkdirSync(dirname(worktreePath), { recursive: true });
+
+						const rollbackWorktree = async () => {
+							try {
+								await git.raw(["worktree", "remove", "--force", worktreePath]);
+							} catch (err) {
+								console.warn(
+									"[workspaces.create] failed to rollback PR worktree",
+									{ worktreePath, err },
+								);
+							}
+						};
+
+						if (adoptLocalBranch) {
+							try {
+								await git.raw([
+									"worktree",
+									"add",
+									worktreePath,
+									resolvedBranch,
+								]);
+							} catch (err) {
+								throw new TRPCError({
+									code: "CONFLICT",
+									message:
+										err instanceof Error
+											? err.message
+											: "Failed to add worktree for existing branch",
+								});
+							}
+						} else {
+							try {
+								await git.raw(["worktree", "add", "--detach", worktreePath]);
+							} catch (err) {
+								throw new TRPCError({
+									code: "CONFLICT",
+									message:
+										err instanceof Error
+											? err.message
+											: "Failed to add detached worktree",
+								});
+							}
+
+							try {
+								await execGh(
+									[
+										"pr",
+										"checkout",
+										String(input.pr),
+										"--branch",
+										resolvedBranch,
+										"--force",
+									],
+									{ cwd: worktreePath, timeout: 120_000 },
+								);
+							} catch (err) {
+								let recoveryError: unknown = null;
+								let recovered = false;
+								try {
+									const recovery = await recoverPrCheckoutAfterGhFailure({
+										git,
+										worktreePath,
+										branch: resolvedBranch,
+										prNumber: input.pr,
+										remoteName: localProject.remoteName ?? "origin",
+										expectedHeadOid: prMetadata.headRefOid,
+										error: err,
+									});
+									recovered = recovery.recovered;
+								} catch (e) {
+									recoveryError = e;
+								}
+								if (!recovered) {
+									await rollbackWorktree();
+									const recoveryMessage = recoveryError
+										? ` Recovery via refs/pull/${input.pr}/head also failed: ${getErrorMessage(recoveryError)}`
+										: "";
+									throw new TRPCError({
+										code: "INTERNAL_SERVER_ERROR",
+										message: `gh pr checkout failed: ${err instanceof Error ? err.message : String(err)}${recoveryMessage}`,
+									});
+								}
+							}
+						}
+
+						await enablePushAutoSetupRemote(
+							git,
+							worktreePath,
+							"[workspaces.create]",
+						);
+
+						workspaceRow = await registerCloudAndLocal({
+							ctx,
+							id: input.id,
+							projectId: input.projectId,
+							name: input.name ?? prMetadata.title ?? resolvedBranch,
 							branch: resolvedBranch,
-							baseBranch: prMetadata.baseRefName,
+							worktreePath,
+							taskId: input.taskId,
+							rollbackWorktree,
+							hostPromise,
 						});
+
+						if (prMetadata.baseRefName) {
+							await recordBaseBranchConfig({
+								git,
+								worktreePath,
+								branch: resolvedBranch,
+								baseBranch: prMetadata.baseRefName,
+							});
+						}
 					}
 				}
 			} else {
@@ -708,37 +740,53 @@ export const workspacesRouter = router({
 					workspaceRow = existing;
 					alreadyExists = true;
 				} else {
-					worktreePath = safeResolveWorktreePath(
-						localProject.id,
-						resolvedBranch,
-					);
+					// Adopt at any path git already knows for this branch — git
+					// refuses a second checkout of the same branch, so falling
+					// through to `git worktree add` would block re-entry. Auto-gen
+					// names are deduped against the branch list, so only typed
+					// branches can collide here.
+					const existingWorktreePath = typedBranch
+						? (await listWorktreeBranches(git)).worktreeMap.get(resolvedBranch)
+						: undefined;
 
-					// Adopt: a worktree already exists at the standard path with the
-					// matching branch checked out (e.g. left behind by a prior session
-					// or registered outside Superset). Skip `git worktree add` and
-					// proceed straight to register. Only meaningful when the user
-					// supplied the branch — auto-gen names are deduped and can't
-					// collide with anything pre-existing.
-					const adopted =
-						!!typedBranch &&
-						(await getWorktreeBranchAtPath(git, worktreePath)) ===
-							resolvedBranch;
+					if (existingWorktreePath) {
+						worktreePath = existingWorktreePath;
+						const baseShortName =
+							!plan.usedExistingBranch && plan.startPoint.kind !== "head"
+								? plan.startPoint.shortName
+								: undefined;
+						const result = await adoptExistingWorktree({
+							ctx,
+							git,
+							projectId: input.projectId,
+							branch: resolvedBranch,
+							worktreePath,
+							workspaceName: input.name ?? aiTitle ?? resolvedBranch,
+							baseBranch: baseShortName,
+							idempotencyId: input.id,
+							taskId: input.taskId,
+							hostPromise,
+						});
+						workspaceRow = result.workspace;
+						alreadyExists = result.alreadyExists;
+					} else {
+						worktreePath = safeResolveWorktreePath(
+							localProject.id,
+							resolvedBranch,
+						);
+						mkdirSync(dirname(worktreePath), { recursive: true });
 
-					mkdirSync(dirname(worktreePath), { recursive: true });
+						const rollbackWorktree = async () => {
+							try {
+								await git.raw(["worktree", "remove", "--force", worktreePath]);
+							} catch (err) {
+								console.warn(
+									"[workspaces.create] failed to rollback worktree",
+									{ worktreePath, err },
+								);
+							}
+						};
 
-					const rollbackWorktree = async () => {
-						if (adopted) return;
-						try {
-							await git.raw(["worktree", "remove", "--force", worktreePath]);
-						} catch (err) {
-							console.warn("[workspaces.create] failed to rollback worktree", {
-								worktreePath,
-								err,
-							});
-						}
-					};
-
-					if (!adopted) {
 						try {
 							await addBranchWorktree({ git, plan, worktreePath });
 						} catch (err) {
@@ -748,64 +796,55 @@ export const workspacesRouter = router({
 									err instanceof Error ? err.message : "Failed to add worktree",
 							});
 						}
+
+						await enablePushAutoSetupRemote(
+							git,
+							worktreePath,
+							"[workspaces.create]",
+						);
+
+						if (!plan.usedExistingBranch && plan.startPoint.kind !== "head") {
+							const baseShortName = plan.startPoint.shortName;
+							await git
+								.raw(["config", `branch.${resolvedBranch}.base`, baseShortName])
+								.catch((err) => {
+									console.warn(
+										`[workspaces.create] failed to record base branch ${baseShortName}:`,
+										err,
+									);
+								});
+						}
+
+						workspaceRow = await registerCloudAndLocal({
+							ctx,
+							id: input.id,
+							projectId: input.projectId,
+							name: input.name ?? aiTitle ?? resolvedBranch,
+							branch: resolvedBranch,
+							worktreePath,
+							taskId: input.taskId,
+							rollbackWorktree,
+							hostPromise,
+						});
 					}
-
-					await enablePushAutoSetupRemote(
-						git,
-						worktreePath,
-						"[workspaces.create]",
-					);
-
-					if (!plan.usedExistingBranch && plan.startPoint.kind !== "head") {
-						const baseShortName = plan.startPoint.shortName;
-						await git
-							.raw(["config", `branch.${resolvedBranch}.base`, baseShortName])
-							.catch((err) => {
-								console.warn(
-									`[workspaces.create] failed to record base branch ${baseShortName}:`,
-									err,
-								);
-							});
-					}
-
-					workspaceRow = await registerCloudAndLocal({
-						ctx,
-						id: input.id,
-						projectId: input.projectId,
-						name: input.name ?? aiTitle ?? resolvedBranch,
-						branch: resolvedBranch,
-						worktreePath,
-						taskId: input.taskId,
-						rollbackWorktree,
-						hostPromise,
-					});
 				}
 			}
 
 			const terminalsResult: Array<{ terminalId: string; label?: string }> = [];
 
 			if (!alreadyExists) {
-				// worktreePath is set in the !alreadyExists branches above.
-				const setupWorktreePath = ctx.db.query.workspaces
-					.findFirst({
-						where: eq(workspaces.id, workspaceRow.id),
-					})
-					.sync()?.worktreePath;
-				if (setupWorktreePath) {
-					const { terminal, warning } = await startSetupTerminalIfPresent({
-						ctx,
-						workspaceId: workspaceRow.id,
-						worktreePath: setupWorktreePath,
+				const { terminal, warning } = await startSetupTerminalIfPresent({
+					ctx,
+					workspaceId: workspaceRow.id,
+				});
+				if (warning) {
+					console.warn(`[workspaces.create] setup warning: ${warning}`);
+				}
+				if (terminal) {
+					terminalsResult.push({
+						terminalId: terminal.id,
+						label: terminal.label,
 					});
-					if (warning) {
-						console.warn(`[workspaces.create] setup warning: ${warning}`);
-					}
-					if (terminal) {
-						terminalsResult.push({
-							terminalId: terminal.id,
-							label: terminal.label,
-						});
-					}
 				}
 			}
 
@@ -816,12 +855,7 @@ export const workspacesRouter = router({
 			);
 
 			return {
-				workspace: {
-					id: workspaceRow.id,
-					projectId: workspaceRow.projectId,
-					name: workspaceRow.name,
-					branch: workspaceRow.branch,
-				},
+				workspace: workspaceRow,
 				terminals: terminalsResult,
 				agents: agentsResult,
 				alreadyExists,

@@ -71,8 +71,6 @@ export const FEATURE_FLAGS = {
 	CLOUD_ACCESS: "cloud-access",
 	/** When enabled, blocks remote agent execution on the desktop (e.g., for enterprise orgs). */
 	DISABLE_REMOTE_AGENT: "disable-remote-agent",
-	/** Gates access to V2 Cloud features (host-service, cloud sprites). */
-	V2_CLOUD: "v2-cloud",
 	/**
 	 * Gates the Automations feature in the UI (sidebar entry, routes, create
 	 * flow). Complementary to the subscriptions.plan paid-tier check —

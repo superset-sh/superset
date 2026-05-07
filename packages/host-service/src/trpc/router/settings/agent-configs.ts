@@ -1,30 +1,22 @@
 import { randomUUID } from "node:crypto";
+import type { PromptTransport } from "@superset/shared/agent-prompt-launch";
+import {
+	getDefaultSeedPresets,
+	type HostAgentPreset,
+} from "@superset/shared/host-agent-presets";
 import { TRPCError } from "@trpc/server";
 import { asc, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import type { HostDb } from "../../../db";
 import { hostAgentConfigs } from "../../../db/schema";
 import { protectedProcedure, router } from "../../index";
-import {
-	AGENT_PRESETS,
-	type AgentPreset,
-	getDefaultSeedPresets,
-	getPresetById,
-	type PromptTransport,
-} from "./agent-presets";
 
 const promptTransportSchema = z.enum(["argv", "stdin"]);
-
-const presetIdSchema = z
-	.string()
-	.refine((value) => getPresetById(value) !== undefined, {
-		message: "Unknown presetId",
-	});
 
 const argvSchema = z.array(z.string());
 const envSchema = z.record(z.string(), z.string());
 
-interface HostAgentConfigOutput {
+export interface HostAgentConfig {
 	id: string;
 	presetId: string;
 	label: string;
@@ -82,7 +74,7 @@ function parseEnv(value: string): Record<string, string> {
 	return parsed as Record<string, string>;
 }
 
-function toOutput(row: HostAgentConfigRow): HostAgentConfigOutput {
+function toOutput(row: HostAgentConfigRow): HostAgentConfig {
 	return {
 		id: row.id,
 		presetId: row.presetId,
@@ -97,7 +89,7 @@ function toOutput(row: HostAgentConfigRow): HostAgentConfigOutput {
 }
 
 function rowFromPreset(
-	preset: AgentPreset,
+	preset: HostAgentPreset,
 	displayOrder: number,
 ): typeof hostAgentConfigs.$inferInsert {
 	return {
@@ -152,6 +144,16 @@ const updatePatchSchema = z
 		{ message: "Patch must update at least one field" },
 	);
 
+const addInputSchema = z.object({
+	label: z.string().trim().min(1),
+	command: z.string().trim().min(1),
+	args: argvSchema,
+	promptTransport: promptTransportSchema,
+	promptArgs: argvSchema,
+	env: envSchema,
+	presetId: z.string().trim().min(1).optional(),
+});
+
 export const agentConfigsRouter = router({
 	/**
 	 * List configured host agents in persisted order. Seeds bundled defaults
@@ -163,52 +165,45 @@ export const agentConfigsRouter = router({
 	}),
 
 	/**
-	 * Available add templates. Returns the hardcoded preset list — the UI
-	 * uses this to render the "add agent" picker.
+	 * Insert a configured host-agent row. Callers pass the full launch shape;
+	 * `presetId` is a free-form metadata tag the client uses for icon and
+	 * description lookup, defaulting to `"custom"` when omitted. Duplicate
+	 * `presetId` values are allowed — each row gets a fresh `id`.
 	 */
-	listPresets: protectedProcedure.query(() =>
-		AGENT_PRESETS.map((preset) => ({
-			...preset,
-			args: [...preset.args],
-			promptArgs: [...preset.promptArgs],
-			env: { ...preset.env },
-		})),
-	),
-
-	/**
-	 * Create a new host agent config from a hardcoded preset. Allows
-	 * duplicate `presetId` entries — each gets a fresh `id`.
-	 */
-	add: protectedProcedure
-		.input(z.object({ presetId: presetIdSchema }))
-		.mutation(({ ctx, input }) => {
-			const preset = getPresetById(input.presetId);
-			if (!preset) {
-				throw new TRPCError({
-					code: "BAD_REQUEST",
-					message: `Unknown presetId: ${input.presetId}`,
-				});
-			}
-			const existing = listOrdered(ctx.db);
-			const nextOrder =
-				existing.length === 0
-					? 0
-					: Math.max(...existing.map((row) => row.displayOrder)) + 1;
-			const insert = rowFromPreset(preset, nextOrder);
-			ctx.db.insert(hostAgentConfigs).values(insert).run();
-			const created = ctx.db
-				.select()
-				.from(hostAgentConfigs)
-				.where(eq(hostAgentConfigs.id, insert.id))
-				.get();
-			if (!created) {
-				throw new TRPCError({
-					code: "INTERNAL_SERVER_ERROR",
-					message: "Failed to read back inserted host agent config",
-				});
-			}
-			return toOutput(created);
-		}),
+	add: protectedProcedure.input(addInputSchema).mutation(({ ctx, input }) => {
+		const existing = listOrdered(ctx.db);
+		const nextOrder =
+			existing.length === 0
+				? 0
+				: Math.max(...existing.map((row) => row.displayOrder)) + 1;
+		const id = randomUUID();
+		ctx.db
+			.insert(hostAgentConfigs)
+			.values({
+				id,
+				presetId: input.presetId ?? "custom",
+				label: input.label,
+				command: input.command,
+				argsJson: JSON.stringify(input.args),
+				promptTransport: input.promptTransport,
+				promptArgsJson: JSON.stringify(input.promptArgs),
+				envJson: JSON.stringify(input.env),
+				displayOrder: nextOrder,
+			})
+			.run();
+		const created = ctx.db
+			.select()
+			.from(hostAgentConfigs)
+			.where(eq(hostAgentConfigs.id, id))
+			.get();
+		if (!created) {
+			throw new TRPCError({
+				code: "INTERNAL_SERVER_ERROR",
+				message: "Failed to read back inserted host agent config",
+			});
+		}
+		return toOutput(created);
+	}),
 
 	/**
 	 * Update editable fields on an existing config. `presetId` and `order`
@@ -358,5 +353,3 @@ export const agentConfigsRouter = router({
 		return listOrdered(ctx.db).map(toOutput);
 	}),
 });
-
-export type HostAgentConfigDto = HostAgentConfigOutput;

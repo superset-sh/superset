@@ -8,10 +8,11 @@ import {
 	CommandList,
 } from "@superset/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
+import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useQuery } from "@tanstack/react-query";
 import type { ReactNode } from "react";
-import { useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { useHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
 import { useDebouncedValue } from "renderer/hooks/useDebouncedValue";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
@@ -58,7 +59,7 @@ export function GitHubIssueLinkCommand({
 	const debouncedTrimmed = debouncedQuery.trim();
 	const isPendingDebounce = trimmedQuery !== debouncedTrimmed;
 
-	const { data, isFetching } = useQuery({
+	const { data, isFetching, error } = useQuery({
 		queryKey: [
 			"workspaceCreation",
 			"searchGitHubIssues",
@@ -78,7 +79,20 @@ export function GitHubIssueLinkCommand({
 			});
 		},
 		enabled: !!projectId && !!hostUrl && open,
+		retry: false,
 	});
+
+	const lastToastedError = useRef<string | null>(null);
+	useEffect(() => {
+		const msg = error instanceof Error ? error.message : null;
+		if (!msg) {
+			lastToastedError.current = null;
+			return;
+		}
+		if (lastToastedError.current === msg) return;
+		lastToastedError.current = msg;
+		toast.error(`Couldn't load issues: ${msg}`);
+	}, [error]);
 
 	const searchResults = data?.issues ?? [];
 	const repoMismatch =
@@ -142,19 +156,29 @@ export function GitHubIssueLinkCommand({
 					<CommandList className="max-h-[280px]">
 						{searchResults.length === 0 && (
 							<CommandEmpty>
-								{isLoading
-									? debouncedTrimmed
-										? "Searching..."
-										: "Loading..."
-									: repoMismatch
-										? `Issue URL must match ${repoMismatch}.`
-										: debouncedTrimmed
-											? showClosed
-												? "No issues found."
-												: "No open issues found."
-											: showClosed
-												? "No issues found."
-												: "No open issues found."}
+								{isLoading ? (
+									debouncedTrimmed ? (
+										"Searching..."
+									) : (
+										"Loading..."
+									)
+								) : error instanceof Error ? (
+									<span className="select-text cursor-text text-destructive">
+										{error.message}
+									</span>
+								) : repoMismatch ? (
+									`Issue URL must match ${repoMismatch}.`
+								) : debouncedTrimmed ? (
+									showClosed ? (
+										"No issues found."
+									) : (
+										"No open issues found."
+									)
+								) : showClosed ? (
+									"No issues found."
+								) : (
+									"No open issues found."
+								)}
 							</CommandEmpty>
 						)}
 						{searchResults.length > 0 && (

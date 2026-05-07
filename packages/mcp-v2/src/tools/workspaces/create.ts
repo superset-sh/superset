@@ -1,14 +1,14 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { defineTool } from "../../define-tool";
-import { hostServiceMutation } from "../../host-service-client";
+import { hostServiceCall } from "../../host-service-client";
 
 const agentLaunchSchema = z.object({
 	agent: z
 		.string()
 		.min(1)
 		.describe(
-			"Agent preset id (e.g. `claude`, `codex`) or HostAgentConfig instance UUID.",
+			"Agent preset id (e.g. `claude`, `codex`, `superset`) or HostAgentConfig instance UUID.",
 		),
 	prompt: z.string().min(1).describe("Initial prompt the agent starts with."),
 	attachmentIds: z
@@ -65,35 +65,21 @@ export function register(server: McpServer): void {
 				),
 		},
 		handler: async (input, ctx) => {
-			return hostServiceMutation<
-				{
+			return hostServiceCall<{
+				workspace: {
+					id: string;
 					projectId: string;
 					name: string;
-					branch?: string;
-					pr?: number;
-					baseBranch?: string;
-					taskId?: string;
-					agents?: Array<{
-						agent: string;
-						prompt: string;
-						attachmentIds?: string[];
-					}>;
-				},
-				{
-					workspace: {
-						id: string;
-						projectId: string;
-						name: string;
-						branch: string;
-					};
-					terminals: Array<{ terminalId: string; label?: string }>;
-					agents: Array<
-						| { ok: true; sessionId: string; label: string }
-						| { ok: false; error: string }
-					>;
-					alreadyExists: boolean;
-				}
-			>(
+					branch: string;
+				};
+				terminals: Array<{ terminalId: string; label?: string }>;
+				agents: Array<
+					| { ok: true; kind: "terminal"; sessionId: string; label: string }
+					| { ok: true; kind: "chat"; sessionId: string; label: string }
+					| { ok: false; error: string }
+				>;
+				alreadyExists: boolean;
+			}>(
 				{
 					relayUrl: ctx.relayUrl,
 					organizationId: ctx.organizationId,
@@ -101,6 +87,7 @@ export function register(server: McpServer): void {
 					jwt: ctx.bearerToken,
 				},
 				"workspaces.create",
+				"mutation",
 				{
 					projectId: input.projectId,
 					name: input.name,

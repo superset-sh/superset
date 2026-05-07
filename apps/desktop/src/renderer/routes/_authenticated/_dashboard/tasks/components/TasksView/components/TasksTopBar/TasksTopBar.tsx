@@ -70,7 +70,7 @@ export function TasksTopBar({
 	const selectedCount = selectedTasks.length;
 	const searchInputRef = useRef<HTMLInputElement>(null);
 	const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false);
-	const { isV2CloudEnabled } = useIsV2CloudEnabled();
+	const isV2CloudEnabled = useIsV2CloudEnabled();
 
 	useHotkey(
 		"FOCUS_TASK_SEARCH",

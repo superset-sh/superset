@@ -50,6 +50,15 @@ import {
 import { stringifyQuery } from "./internal/utils/query";
 import { isEmptyObj } from "./internal/utils/values";
 import {
+	AgentListParams,
+	AgentListResponse,
+	AgentRunParams,
+	AgentRunResult,
+	Agents,
+	HostAgentConfig,
+	PromptTransport,
+} from "./resources/agents";
+import {
 	AgentConfig,
 	Automation,
 	AutomationCreateParams,
@@ -1100,6 +1109,8 @@ export class Superset {
 	hosts: API.Hosts = new API.Hosts(this);
 	/** Recurring automations: full CRUD plus run/pause/resume/logs/prompt. */
 	automations: API.Automations = new API.Automations(this);
+	/** Agents (per-host terminal-agent rows): list, run. */
+	agents: API.Agents = new API.Agents(this);
 }
 
 Superset.Tasks = Tasks;
@@ -1107,6 +1118,7 @@ Superset.Workspaces = Workspaces;
 Superset.Projects = Projects;
 Superset.Hosts = Hosts;
 Superset.Automations = Automations;
+Superset.Agents = Agents;
 
 export declare namespace Superset {
 	export type RequestOptions = Opts.RequestOptions;
@@ -1150,5 +1162,15 @@ export declare namespace Superset {
 		AutomationLogsParams,
 		AutomationLogsResponse,
 		AgentConfig,
+	};
+
+	export {
+		Agents,
+		HostAgentConfig,
+		AgentListResponse,
+		AgentListParams,
+		AgentRunParams,
+		AgentRunResult,
+		PromptTransport,
 	};
 }
