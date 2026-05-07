@@ -27,6 +27,7 @@ import * as tasksUpdate from "./tasks/update";
 import * as workspacesCreate from "./workspaces/create";
 import * as workspacesDelete from "./workspaces/delete";
 import * as workspacesList from "./workspaces/list";
+import * as workspacesUpdate from "./workspaces/update";
 
 const REGISTRARS = [
 	tasksList,
@@ -47,6 +48,7 @@ const REGISTRARS = [
 	automationsLogs,
 	workspacesList,
 	workspacesCreate,
+	workspacesUpdate,
 	workspacesDelete,
 	agentsRun,
 	agentsList,
