@@ -6,6 +6,7 @@ import { Terminal as XTerm } from "@xterm/xterm";
 import { DEFAULT_TERMINAL_SCROLLBACK } from "shared/constants";
 import type { TerminalAppearance } from "./appearance";
 import { loadAddons } from "./terminal-addons";
+import { setupClickToMoveCursor } from "./terminal-click-to-move-cursor";
 import { installTerminalKeyEventHandler } from "./terminal-key-event-handler";
 import { getTerminalParkingContainer } from "./terminal-parking";
 
@@ -30,6 +31,7 @@ export interface TerminalRuntime {
 	lastCols: number;
 	lastRows: number;
 	_disposeAddons: (() => void) | null;
+	_disposeMouseHandlers: (() => void) | null;
 }
 
 function createTerminal(
@@ -188,7 +190,14 @@ function createResizeScheduler(
 export function createRuntime(
 	terminalId: string,
 	appearance: TerminalAppearance,
-	options: { initialBuffer?: string } = {},
+	options: {
+		initialBuffer?: string;
+		/**
+		 * Send synthesized user input (e.g. arrow-key sequences from
+		 * click-to-move-cursor) to the PTY via the same path as keystrokes.
+		 */
+		onUserInput?: (data: string) => void;
+	} = {},
 ): TerminalRuntime {
 	const savedDims = loadSavedDimensions(terminalId);
 	const cols = savedDims?.cols ?? DEFAULT_COLS;
@@ -216,6 +225,13 @@ export function createRuntime(
 		restoreBuffer(terminalId, terminal);
 	}
 
+	// Click-to-move-cursor (parity with v1 Terminal). Skipped when no
+	// onUserInput is provided since the helper has nowhere to send the
+	// synthesized arrow keys.
+	const disposeClickToMove = options.onUserInput
+		? setupClickToMoveCursor(terminal, { onWrite: options.onUserInput })
+		: null;
+
 	return {
 		terminalId,
 		terminal,
@@ -230,6 +246,7 @@ export function createRuntime(
 		lastCols: cols,
 		lastRows: rows,
 		_disposeAddons: addonsResult.dispose,
+		_disposeMouseHandlers: disposeClickToMove,
 	};
 }
 
@@ -308,6 +325,8 @@ export function disposeRuntime(
 	}
 	runtime._disposeAddons?.();
 	runtime._disposeAddons = null;
+	runtime._disposeMouseHandlers?.();
+	runtime._disposeMouseHandlers = null;
 	runtime._disposeResizeObserver?.();
 	runtime._disposeResizeObserver = null;
 	runtime.resizeObserver?.disconnect();
