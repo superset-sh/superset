@@ -39,12 +39,22 @@ export function useEmbeddedVscode({
 	const focusMutation = electronTrpc.vscode.focus.useMutation();
 	const captureMutation = electronTrpc.vscode.capture.useMutation();
 
+	const startRef = useRef(startMutation.mutateAsync);
+	startRef.current = startMutation.mutateAsync;
+	const setBoundsRef = useRef(setBoundsMutation.mutate);
+	setBoundsRef.current = setBoundsMutation.mutate;
+	const setVisibleRef = useRef(setVisibleMutation.mutate);
+	setVisibleRef.current = setVisibleMutation.mutate;
+	const focusRef = useRef(focusMutation.mutate);
+	focusRef.current = focusMutation.mutate;
+	const captureRef = useRef(captureMutation.mutateAsync);
+	captureRef.current = captureMutation.mutateAsync;
+
 	useEffect(() => {
 		let cancelled = false;
 		setPhase("starting");
 		setErrorMessage(null);
-		startMutation
-			.mutateAsync({ paneId, worktreePath })
+		startRef.current({ paneId, worktreePath })
 			.then((result) => {
 				if (cancelled) return;
 				if (result.status === "ready") {
@@ -63,14 +73,9 @@ export function useEmbeddedVscode({
 			});
 		return () => {
 			cancelled = true;
-			setVisibleMutation.mutate({ paneId, visible: false });
+			setVisibleRef.current({ paneId, visible: false });
 		};
-	}, [
-		paneId,
-		worktreePath,
-		setVisibleMutation.mutate,
-		startMutation.mutateAsync,
-	]);
+	}, [paneId, worktreePath]);
 
 	useEffect(() => {
 		const el = containerRef.current;
@@ -79,7 +84,7 @@ export function useEmbeddedVscode({
 
 		const push = () => {
 			const rect = el.getBoundingClientRect();
-			setBoundsMutation.mutate({
+			setBoundsRef.current({
 				paneId,
 				x: rect.x,
 				y: rect.y,
@@ -124,20 +129,19 @@ export function useEmbeddedVscode({
 			const nextVisible = pendingVisible;
 			currentVisible = nextVisible;
 			if (!nextVisible) {
-				captureMutation
-					.mutateAsync({ paneId })
+				captureRef.current({ paneId })
 					.then((result) => {
 						if (myGen !== flushGeneration) return;
 						if (result?.dataUrl) paintBackdrop(result.dataUrl);
-						setVisibleMutation.mutate({ paneId, visible: false });
+						setVisibleRef.current({ paneId, visible: false });
 					})
 					.catch(() => {
 						if (myGen !== flushGeneration) return;
-						setVisibleMutation.mutate({ paneId, visible: false });
+						setVisibleRef.current({ paneId, visible: false });
 					});
 				return;
 			}
-			setVisibleMutation.mutate({ paneId, visible: true });
+			setVisibleRef.current({ paneId, visible: true });
 			requestAnimationFrame(() => {
 				if (myGen !== flushGeneration) return;
 				clearBackdrop();
@@ -235,22 +239,13 @@ export function useEmbeddedVscode({
 			flushGeneration++;
 			clearBackdrop();
 		};
-	}, [
-		paneId,
-		phase,
-		setBoundsMutation.mutate,
-		setVisibleMutation.mutate,
-		captureMutation.mutateAsync,
-	]);
+	}, [paneId, phase]);
 
-	// Whenever the mosaic marks this pane as focused (e.g. via a click on the
-	// pane chrome or a keyboard pane-switch), hand keyboard focus back to the
-	// embedded webContents so VS Code receives shortcuts.
 	useEffect(() => {
 		if (phase !== "ready") return;
 		if (!isPaneFocused) return;
-		focusMutation.mutate({ paneId });
-	}, [paneId, phase, isPaneFocused, focusMutation.mutate]);
+		focusRef.current({ paneId });
+	}, [paneId, phase, isPaneFocused]);
 
 	electronTrpc.vscode.onStatus.useSubscription(
 		{ paneId },
