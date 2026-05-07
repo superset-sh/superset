@@ -119,9 +119,6 @@ export const searchPullRequests = protectedProcedure
 			if (normalized.isDirectLookup) {
 				const prNumber = Number.parseInt(effectiveQuery, 10);
 				const pr = await ghDirectLookup(ctx.execGh, repo, prNumber);
-				if (!input.includeClosed && pr.state !== "open") {
-					return { pullRequests: [] };
-				}
 				return { pullRequests: [pr] };
 			}
 			const pullRequests = await ghSearch(
@@ -150,9 +147,6 @@ export const searchPullRequests = protectedProcedure
 					pull_number: prNumber,
 				});
 				const state = normalizePullRequestState(pr.state, pr.merged_at);
-				if (!input.includeClosed && state !== "open") {
-					return { pullRequests: [] };
-				}
 				return {
 					pullRequests: [
 						{

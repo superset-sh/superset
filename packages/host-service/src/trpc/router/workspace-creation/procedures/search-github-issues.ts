@@ -112,9 +112,6 @@ export const searchGitHubIssues = protectedProcedure
 				if (issue.url.includes("/pull/")) {
 					return { issues: [] };
 				}
-				if (!input.includeClosed && issue.state !== "open") {
-					return { issues: [] };
-				}
 				return { issues: [issue] };
 			}
 			const issues = await ghSearch(
@@ -143,9 +140,6 @@ export const searchGitHubIssues = protectedProcedure
 					issue_number: issueNumber,
 				});
 				if (issue.pull_request) {
-					return { issues: [] };
-				}
-				if (!input.includeClosed && issue.state !== "open") {
 					return { issues: [] };
 				}
 				return {
