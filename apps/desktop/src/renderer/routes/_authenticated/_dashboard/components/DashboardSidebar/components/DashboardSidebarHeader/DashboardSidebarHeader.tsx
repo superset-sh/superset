@@ -13,6 +13,7 @@ import { useFeatureFlagEnabled } from "posthog-js/react";
 import { HiMiniPlus, HiOutlineClipboardDocumentList } from "react-icons/hi2";
 import {
 	LuClock,
+	LuFolderGit2,
 	LuFolderInput,
 	LuFolderPlus,
 	LuLayers,
@@ -68,6 +69,7 @@ export function DashboardSidebarHeader({
 	const matchRoute = useMatchRoute();
 	const { gateFeature } = usePaywall();
 	const isWorkspacesListOpen = !!matchRoute({ to: "/v2-workspaces" });
+	const isProjectsListOpen = !!matchRoute({ to: "/v2-projects" });
 	const isTasksOpen = !!matchRoute({ to: "/tasks", fuzzy: true });
 	const isAutomationsOpen = !!matchRoute({ to: "/automations", fuzzy: true });
 
@@ -83,6 +85,10 @@ export function DashboardSidebarHeader({
 
 	const handleWorkspacesClick = () => {
 		navigate({ to: "/v2-workspaces" });
+	};
+
+	const handleProjectsClick = () => {
+		navigate({ to: "/v2-projects" });
 	};
 
 	const handleAutomationsClick = () => {
@@ -122,6 +128,24 @@ export function DashboardSidebarHeader({
 						</button>
 					</TooltipTrigger>
 					<TooltipContent side="right">Workspaces</TooltipContent>
+				</Tooltip>
+
+				<Tooltip delayDuration={300}>
+					<TooltipTrigger asChild>
+						<button
+							type="button"
+							onClick={handleProjectsClick}
+							className={cn(
+								"flex size-8 items-center justify-center rounded-md transition-colors",
+								isProjectsListOpen
+									? "bg-accent text-foreground"
+									: "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
+							)}
+						>
+							<LuFolderGit2 className="size-4" />
+						</button>
+					</TooltipTrigger>
+					<TooltipContent side="right">Projects</TooltipContent>
 				</Tooltip>
 
 				<Tooltip delayDuration={300}>
@@ -233,6 +257,20 @@ export function DashboardSidebarHeader({
 			>
 				<LuLayers className="size-4 shrink-0" />
 				<span className="flex-1 text-left">Workspaces</span>
+			</button>
+
+			<button
+				type="button"
+				onClick={handleProjectsClick}
+				className={cn(
+					"flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium transition-colors",
+					isProjectsListOpen
+						? "bg-accent text-foreground"
+						: "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
+				)}
+			>
+				<LuFolderGit2 className="size-4 shrink-0" />
+				<span className="flex-1 text-left">Projects</span>
 			</button>
 
 			{showAutomations && (
