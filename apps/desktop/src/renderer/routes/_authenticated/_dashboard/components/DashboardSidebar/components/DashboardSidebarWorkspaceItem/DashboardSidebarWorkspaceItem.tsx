@@ -39,7 +39,10 @@ export function DashboardSidebarWorkspaceItem({
 		creationStatus,
 	} = workspace;
 	const isMainWorkspace = workspace.type === "main";
-	const diffStats = useDiffStats(id);
+	// Icon-only tiles never render diff counts — gating here avoids fanning
+	// out git.getStatus across every visible workspace (#4198). The hover
+	// card opens its own gated query for the hovered tile.
+	const diffStats = useDiffStats(id, { enabled: !isCollapsed });
 	const workspaceStatus = useV2WorkspaceNotificationStatus(id);
 	const {
 		cancelRename,
