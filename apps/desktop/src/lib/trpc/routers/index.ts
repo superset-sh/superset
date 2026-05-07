@@ -65,7 +65,7 @@ export const createAppRouter = (
 		ringtone: createRingtoneRouter(getWindow),
 		hostServiceCoordinator: createHostServiceCoordinatorRouter(),
 		keyboardLayout: createKeyboardLayoutRouter(),
-    migration: createMigrationRouter(),
+		migration: createMigrationRouter(),
 		vscode: createVscodeRouter(vscodeManager),
 	});
 };

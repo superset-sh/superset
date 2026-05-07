@@ -1,5 +1,6 @@
 import { useRef } from "react";
 import { type Options, useHotkeys } from "react-hotkeys-hook";
+import { useVscodeFocusStore } from "renderer/stores/vscode-focus";
 import { formatHotkeyDisplay } from "../../display";
 import type { HotkeyId } from "../../registry";
 import { PLATFORM } from "../../registry";
@@ -7,7 +8,6 @@ import { useEffectiveLayoutMap } from "../../stores/keyboardPreferencesStore";
 import type { HotkeyDisplay } from "../../types";
 import { bindingToDispatchChord } from "../../utils/binding";
 import { useBinding } from "../useBinding";
-import { useVscodeFocusStore } from "renderer/stores/vscode-focus";
 
 function shouldIgnoreEvent(e: KeyboardEvent): boolean {
 	if (e.isComposing || e.keyCode === 229) return true;

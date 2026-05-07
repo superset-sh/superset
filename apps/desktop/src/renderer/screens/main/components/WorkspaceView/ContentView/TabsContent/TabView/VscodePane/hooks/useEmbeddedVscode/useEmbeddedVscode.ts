@@ -57,7 +57,8 @@ export function useEmbeddedVscode({
 		let cancelled = false;
 		setPhase("starting");
 		setErrorMessage(null);
-		startRef.current({ paneId, worktreePath })
+		startRef
+			.current({ paneId, worktreePath })
 			.then((result) => {
 				if (cancelled) return;
 				if (result.status === "ready") {
@@ -132,7 +133,8 @@ export function useEmbeddedVscode({
 			const nextVisible = pendingVisible;
 			currentVisible = nextVisible;
 			if (!nextVisible) {
-				captureRef.current({ paneId })
+				captureRef
+					.current({ paneId })
 					.then((result) => {
 						if (myGen !== flushGeneration) return;
 						if (result?.dataUrl) paintBackdrop(result.dataUrl);

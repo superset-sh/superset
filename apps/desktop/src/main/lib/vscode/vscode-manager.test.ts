@@ -53,7 +53,7 @@ function makeFakeView(
 			focus: mock(() => {}),
 			on: mock((event: string, handler: (...args: unknown[]) => void) => {
 				if (!listeners.has(event)) listeners.set(event, []);
-				listeners.get(event)!.push(handler);
+				listeners.get(event)?.push(handler);
 			}),
 			setWindowOpenHandler: mock(() => {}),
 			capturePage: mock(async () => {
@@ -344,20 +344,21 @@ describe("VscodeManager", () => {
 			},
 		});
 		await manager.start({ paneId: "p1", worktreePath: "/tmp/repo" });
-		const view = views[0]!;
-		const navigateHandlers = view.webContents._listeners.get("will-navigate");
+		const view = views[0];
+		expect(view).toBeDefined();
+		const navigateHandlers = view?.webContents._listeners.get("will-navigate");
 		expect(navigateHandlers).toBeDefined();
-		expect(navigateHandlers!.length).toBeGreaterThan(0);
+		expect(navigateHandlers?.length).toBeGreaterThan(0);
 
 		const prevented: boolean[] = [];
 		const fakeEvent = {
 			preventDefault: () => prevented.push(true),
 		};
 
-		navigateHandlers![0]!(fakeEvent, "http://evil.com/steal");
+		navigateHandlers?.[0]?.(fakeEvent, "http://evil.com/steal");
 		expect(prevented.length).toBe(1);
 
-		navigateHandlers![0]!(fakeEvent, "http://127.0.0.1:40000/some-path");
+		navigateHandlers?.[0]?.(fakeEvent, "http://127.0.0.1:40000/some-path");
 		expect(prevented.length).toBe(1);
 	});
 
@@ -371,8 +372,9 @@ describe("VscodeManager", () => {
 			},
 		});
 		await manager.start({ paneId: "p1", worktreePath: "/tmp/repo" });
-		const view = views[0]!;
-		expect(view.webContents.setWindowOpenHandler).toHaveBeenCalledTimes(1);
+		const view = views[0];
+		expect(view).toBeDefined();
+		expect(view?.webContents.setWindowOpenHandler).toHaveBeenCalledTimes(1);
 	});
 
 	it("retries doStart when the captured shared server dies mid-start", async () => {
