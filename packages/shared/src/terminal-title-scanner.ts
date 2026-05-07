@@ -38,11 +38,23 @@ export function normalizeTerminalTitle(title: string): string | null {
 	const normalized = Array.from(title)
 		.filter((char) => {
 			const codePoint = char.codePointAt(0) ?? 0;
-			return !(
+			// Strip C0 controls, DEL, C1 controls.
+			if (
 				codePoint <= 0x1f ||
 				codePoint === 0x7f ||
 				(codePoint >= 0x80 && codePoint <= 0x9f)
-			);
+			) {
+				return false;
+			}
+			// Strip the UTF-8 replacement character — only ever appears when
+			// some upstream layer mis-decoded a byte sequence.
+			if (codePoint === 0xfffd) return false;
+			// Strip Braille block. CLIs (Claude Code, ora, oclif, etc.) animate
+			// progress spinners with these glyphs via OSC title updates; left
+			// in place they freeze on the last frame in the tab title once the
+			// spinner stops.
+			if (codePoint >= 0x2800 && codePoint <= 0x28ff) return false;
+			return true;
 		})
 		.join("")
 		.trim();
@@ -118,14 +130,18 @@ function parseTitlePayload(payload: string): string | null | undefined {
 	const command = payload.slice(0, firstSeparator);
 	const value = payload.slice(firstSeparator + 1);
 
+	// A title that normalizes to null (all-Braille, all-U+FFFD, or whitespace
+	// after stripping) is treated as "no meaningful update" — return undefined
+	// so the scanner skips it and the previous title stays in place. The
+	// explicit OSC 9;3; reset path below still returns null to clear.
 	if (command === "0" || command === "2") {
-		return normalizeTerminalTitle(value);
+		return normalizeTerminalTitle(value) ?? undefined;
 	}
 
 	if (command !== "9") return undefined;
 	if (value === "3;") return null;
 	if (!value.startsWith("3;")) return undefined;
-	return normalizeTerminalTitle(value.slice(2));
+	return normalizeTerminalTitle(value.slice(2)) ?? undefined;
 }
 
 /**
