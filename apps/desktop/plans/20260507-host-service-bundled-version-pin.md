@@ -25,11 +25,11 @@ Replace the floor check with an equality check against the host-service bundled 
    ```ts
    !semver.satisfies(version, `>=${MIN_HOST_SERVICE_VERSION}`)
    ```
-   with
+   with strict equality:
    ```ts
    version !== BUNDLED_HOST_SERVICE_VERSION
    ```
-   (or `!semver.gte(version, BUNDLED_HOST_SERVICE_VERSION)` if we want a newer dev daemon to win — see open question).
+   The Electron build is the source of truth for which host-service runs against it. Any drift — older or newer — gets killed and respawned from the bundled binary. This keeps the cloud/desktop deploy contract tight (only one host-service version is ever live alongside a given desktop) and avoids the "hand-rolled newer daemon sticks around indefinitely" failure mode.
 3. Keep `MIN_HOST_SERVICE_VERSION` only for the renderer-side **remote** host gate at `apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/hooks/useRemoteHostStatus/useRemoteHostStatus.ts:91`. We can't kill remote hosts — a floor is still the right shape there.
 
 Everything else is unchanged: `detached: true` spawn, manifest re-adoption on next start, crash circuit breaker, daemon lifecycle.
@@ -38,11 +38,11 @@ Everything else is unchanged: `detached: true` spawn, manifest re-adoption on ne
 
 - **Auto-update ships new host-service version** → next Electron launch: adoption check fails, manifest PID gets SIGTERM, fresh host-service spawns from the bundled binary. One brief tunnel reconnect.
 - **Auto-update ships same host-service version** → adoption succeeds, no respawn.
+- **Dev: locally newer host-service** → killed and replaced with the bundled version. If you need to test against a newer daemon in dev, point the desktop at a build that bundles it; don't hand-roll the running process.
 - **Pty-daemon** → never killed by this path; survives across host-service swaps as designed.
 
 ## Open questions
 
-- **Strict equality vs `>=bundled`?** Strict equality means a dev build pointing at a locally newer host-service would get killed on Electron start. `>=bundled` avoids that but lets a hand-rolled newer daemon stick around indefinitely. Default to strict equality unless dev-flow friction shows up.
 - **Drain before SIGTERM?** Today line 304 is a hard kill. If respawn cadence becomes user-visible (tunnel reconnect storms), add a short drain — stop accepting new connections, wait N seconds — before SIGTERM. Not needed in v1.
 
 ## Out of scope
