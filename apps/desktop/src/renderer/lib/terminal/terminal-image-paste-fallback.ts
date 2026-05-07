@@ -1,14 +1,20 @@
 import type { Terminal as XTerm } from "@xterm/xterm";
 
-// For non-text clipboard payloads (image / file / screenshot), xterm.js's
-// built-in paste handler reads an empty string from
+// For file/image clipboard payloads (screenshot, copied file, web image),
+// xterm.js's built-in paste handler reads an empty string from
 // `clipboardData.getData("text/plain")` and still emits empty bracketed-paste
 // markers (`\x1b[200~\x1b[201~`). TUIs that key off `^V` to attach the image
-// (Codex, Claude Code) never see the signal.
+// (Codex, Claude Code, opencode) never see the signal.
 //
 // Forward `\x16` (Ctrl+V) instead, mirroring iTerm's "Paste or send ^V".
 // Restores the fallback that was removed alongside the rest of
 // `setupPasteHandler` in #3582.
+//
+// Trigger only on `data.files.length > 0` (W3C `DataTransfer.files`):
+// Chromium synthesizes a File entry for any image/file clipboard payload, so
+// this matches Codex's `arboard.file_list()` primary path. A broader
+// "any non-text/plain MIME" heuristic over-fires on `text/html`-only
+// clipboards and triggers a "Failed to paste image" error toast in Codex.
 //
 // Capture phase on the wrapper runs before xterm's textarea/element paste
 // listeners, so `stopImmediatePropagation` cleanly preempts the bracketed-paste
@@ -17,18 +23,8 @@ import type { Terminal as XTerm } from "@xterm/xterm";
 export function isNonTextPaste(event: ClipboardEvent): boolean {
 	const data = event.clipboardData;
 	if (!data) return false;
-	const text = data.getData("text/plain");
-	if (text) return false;
-	// Some browsers leave `types` empty for direct file payloads — check
-	// `files` independently so we don't miss them.
-	if ((data.files?.length ?? 0) > 0) return true;
-	const types = Array.from(data.types);
-	// Trade-off: any non-text/plain type (including a rare `text/html`-only
-	// clipboard from some rich-text editors) triggers `^V`. Matches the
-	// pre-#3582 behavior. In a plain shell readline interprets `^V` as
-	// "verbatim-next" and stalls one keystroke; we accept that to avoid
-	// false negatives on image/file payloads where `types` is non-standard.
-	return types.length > 0 && types.some((t) => t !== "text/plain");
+	if (data.getData("text/plain")) return false;
+	return (data.files?.length ?? 0) > 0;
 }
 
 export function handleImagePasteFallback(

@@ -33,18 +33,14 @@ function makeFakeTerminal() {
 }
 
 describe("isNonTextPaste", () => {
-	it("returns true for clipboard with files only", () => {
+	it("returns true when files are present (screenshot, copied file, web image)", () => {
+		// Chromium synthesizes a File entry for any image/file clipboard payload,
+		// so files.length is the universal signal across all source types
+		// (Cmd+Shift+Ctrl+4, Finder copy, right-click Copy Image, drag-drop).
 		const { event } = clipboardEvent({
 			types: ["Files"],
 			getData: () => "",
-		});
-		expect(isNonTextPaste(event)).toBe(true);
-	});
-
-	it("returns true for image MIME types only", () => {
-		const { event } = clipboardEvent({
-			types: ["image/png"],
-			getData: () => "",
+			files: { length: 1 },
 		});
 		expect(isNonTextPaste(event)).toBe(true);
 	});
@@ -58,50 +54,47 @@ describe("isNonTextPaste", () => {
 	});
 
 	it("returns false when text/plain has content alongside image", () => {
+		// Mixed payloads (e.g. image with alt text, labeled file URL) prefer
+		// the text path so users can still paste URLs into the shell.
 		const { event } = clipboardEvent({
 			types: ["text/plain", "image/png"],
 			getData: (t) => (t === "text/plain" ? "url" : ""),
-		});
-		expect(isNonTextPaste(event)).toBe(false);
-	});
-
-	it("returns false when types is empty", () => {
-		const { event } = clipboardEvent({ types: [], getData: () => "" });
-		expect(isNonTextPaste(event)).toBe(false);
-	});
-
-	it("returns true when files is populated but types is empty (browser quirk)", () => {
-		const { event } = clipboardEvent({
-			types: [],
-			getData: () => "",
 			files: { length: 1 },
 		});
-		expect(isNonTextPaste(event)).toBe(true);
-	});
-
-	it.each([
-		["Files"],
-		["image/png"],
-		["image/jpeg"],
-		["image/gif"],
-		["image/webp"],
-		["image/svg+xml"],
-		["application/x-moz-file"],
-		["text/uri-list"],
-		["DownloadURL"],
-		["text/html"],
-	])("returns true for non-text type %j with no text/plain", (type) => {
-		const { event } = clipboardEvent({ types: [type], getData: () => "" });
-		expect(isNonTextPaste(event)).toBe(true);
+		expect(isNonTextPaste(event)).toBe(false);
 	});
 
 	it("returns false when only text/plain is present but empty", () => {
-		// Nothing to attach — let xterm emit its empty bracketed paste rather
-		// than firing a misleading ^V.
 		const { event } = clipboardEvent({
 			types: ["text/plain"],
 			getData: () => "",
 		});
+		expect(isNonTextPaste(event)).toBe(false);
+	});
+
+	it("returns false for text/html-only rich text (no file payload)", () => {
+		// Rare edge case: some rich-text editors put only text/html on the
+		// clipboard. The TUI's clipboard reader will find no image, so firing
+		// ^V would surface a "Failed to paste image" error in Codex.
+		const { event } = clipboardEvent({
+			types: ["text/html"],
+			getData: () => "",
+		});
+		expect(isNonTextPaste(event)).toBe(false);
+	});
+
+	it("returns false when types lists image but no File entry exists", () => {
+		// Synthetic case (e.g. setData("image/png", "...")) — no real file
+		// to attach, the TUI's OS-clipboard read will fail.
+		const { event } = clipboardEvent({
+			types: ["image/png"],
+			getData: () => "",
+		});
+		expect(isNonTextPaste(event)).toBe(false);
+	});
+
+	it("returns false when clipboard is empty", () => {
+		const { event } = clipboardEvent({ types: [], getData: () => "" });
 		expect(isNonTextPaste(event)).toBe(false);
 	});
 });
@@ -111,6 +104,7 @@ describe("handleImagePasteFallback", () => {
 		const { event, flags } = clipboardEvent({
 			types: ["Files"],
 			getData: () => "",
+			files: { length: 1 },
 		});
 		const { terminal, input } = makeFakeTerminal();
 
@@ -137,11 +131,10 @@ describe("handleImagePasteFallback", () => {
 	});
 
 	it("does not call terminal.input for mixed text+image paste", () => {
-		// Mixed payloads (e.g. image with alt text, labeled file URL) prefer
-		// the text path so users can still paste URLs into the shell.
 		const { event } = clipboardEvent({
 			types: ["text/plain", "image/png"],
 			getData: (t) => (t === "text/plain" ? "url-as-text" : ""),
+			files: { length: 1 },
 		});
 		const { terminal, input } = makeFakeTerminal();
 
@@ -211,7 +204,7 @@ describe("installImagePasteFallback", () => {
 		expect(handlers).toHaveLength(0);
 	});
 
-	it("registered handler forwards Ctrl+V on non-text paste", () => {
+	it("registered handler forwards Ctrl+V on file paste", () => {
 		const { wrapper, handlers } = makeFakeWrapper();
 		const { terminal, input } = makeFakeTerminal();
 		installImagePasteFallback(terminal, wrapper);
@@ -219,6 +212,7 @@ describe("installImagePasteFallback", () => {
 		const { event } = clipboardEvent({
 			types: ["Files"],
 			getData: () => "",
+			files: { length: 1 },
 		});
 		handlers[0]?.handler(event);
 
