@@ -126,10 +126,51 @@
 	font-size: 14px;
 }
 
-.diff-comment-body img {
+.diff-comment-body img,
+.diff-comment-body .diff-comment-img {
 	max-width: 100%;
 	height: auto;
 	border-radius: 4px;
+	display: inline-block;
+	vertical-align: middle;
+}
+
+.diff-comment-body details {
+	border: 1px solid var(--border);
+	border-radius: 6px;
+	padding: 0.4rem 0.6rem;
+	background: var(--muted);
+}
+
+.diff-comment-body details[open] {
+	padding-bottom: 0.6rem;
+}
+
+.diff-comment-body summary {
+	cursor: pointer;
+	font-weight: 500;
+	color: var(--muted-foreground);
+	list-style: none;
+}
+
+.diff-comment-body summary::-webkit-details-marker {
+	display: none;
+}
+
+.diff-comment-body summary::before {
+	content: "▸";
+	display: inline-block;
+	margin-right: 0.4rem;
+	font-size: 0.75em;
+	transition: transform 0.15s;
+}
+
+.diff-comment-body details[open] > summary::before {
+	transform: rotate(90deg);
+}
+
+.diff-comment-body details > *:not(summary) {
+	margin-top: 0.5rem;
 }
 
 .diff-comment-body table {
