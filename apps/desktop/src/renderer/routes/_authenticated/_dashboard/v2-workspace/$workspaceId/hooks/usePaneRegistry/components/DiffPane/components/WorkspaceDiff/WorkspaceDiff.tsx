@@ -112,6 +112,7 @@ export const WorkspaceDiff = memo(function WorkspaceDiff({
 			<CommentThread
 				threadId={annotation.metadata.threadId}
 				isResolved={annotation.metadata.isResolved}
+				isOutdated={annotation.metadata.isOutdated}
 				url={annotation.metadata.url}
 				comments={annotation.metadata.comments}
 			/>

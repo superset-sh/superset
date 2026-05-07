@@ -60,16 +60,18 @@ interface Comment {
 interface CommentThreadProps {
 	threadId: string;
 	isResolved: boolean;
+	isOutdated?: boolean;
 	url?: string;
 	comments: Comment[];
 }
 
 export function CommentThread({
 	isResolved,
+	isOutdated,
 	url,
 	comments,
 }: CommentThreadProps) {
-	const [open, setOpen] = useState(!isResolved);
+	const [open, setOpen] = useState(!isResolved && !isOutdated);
 
 	return (
 		<Collapsible
@@ -96,6 +98,11 @@ export function CommentThread({
 							? "1 comment"
 							: `${comments.length} comments`}
 					</span>
+					{isOutdated && (
+						<span className="shrink-0 rounded-sm border border-border px-1 py-px text-[10px] font-medium uppercase tracking-wide">
+							Outdated
+						</span>
+					)}
 					{isResolved && (
 						<span className="shrink-0 rounded-sm border border-border px-1 py-px text-[10px] font-medium uppercase tracking-wide">
 							Resolved

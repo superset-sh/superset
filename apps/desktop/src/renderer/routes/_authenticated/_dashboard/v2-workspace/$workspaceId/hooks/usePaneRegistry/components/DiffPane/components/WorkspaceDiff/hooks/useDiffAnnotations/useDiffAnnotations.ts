@@ -14,6 +14,7 @@ export interface DiffCommentThread {
 	threadId: string;
 	comments: DiffThreadComment[];
 	isResolved: boolean;
+	isOutdated: boolean;
 	url?: string;
 }
 
@@ -78,6 +79,7 @@ export function useDiffAnnotations({
 				metadata: {
 					threadId: thread.id,
 					isResolved: thread.isResolved,
+					isOutdated: thread.isOutdated,
 					...(url ? { url } : {}),
 					comments: thread.comments.map((c) => ({
 						id: c.id,
