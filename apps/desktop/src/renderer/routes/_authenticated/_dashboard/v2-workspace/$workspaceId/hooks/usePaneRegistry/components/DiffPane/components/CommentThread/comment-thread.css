@@ -16,7 +16,7 @@
 
 .diff-comment-body {
 	font-size: 13px;
-	line-height: 1.45;
+	line-height: 1.4;
 	color: var(--foreground);
 	overflow-wrap: anywhere;
 	word-break: break-word;
@@ -43,11 +43,11 @@
 }
 
 .diff-comment-body > * + * {
-	margin-top: 0.3rem;
+	margin-top: 0.15rem;
 }
 
 .diff-comment-body li > p + p {
-	margin-top: 0.2rem;
+	margin-top: 0.1rem;
 }
 
 .diff-comment-body a {
