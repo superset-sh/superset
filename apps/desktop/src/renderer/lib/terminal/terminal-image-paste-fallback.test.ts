@@ -2,6 +2,7 @@ import { describe, expect, it, mock } from "bun:test";
 import type { Terminal as XTerm } from "@xterm/xterm";
 import {
 	handleImagePasteFallback,
+	installImagePasteFallback,
 	isNonTextPaste,
 } from "./terminal-image-paste-fallback";
 
@@ -145,6 +146,95 @@ describe("handleImagePasteFallback", () => {
 		const { terminal, input } = makeFakeTerminal();
 
 		handleImagePasteFallback(event, terminal);
+
+		expect(input).not.toHaveBeenCalled();
+	});
+});
+
+describe("installImagePasteFallback", () => {
+	function makeFakeWrapper() {
+		const handlers: Array<{
+			type: string;
+			handler: EventListener;
+			options: AddEventListenerOptions | boolean | undefined;
+		}> = [];
+		const wrapper = {
+			addEventListener: mock(
+				(
+					type: string,
+					handler: EventListener,
+					options?: AddEventListenerOptions | boolean,
+				) => {
+					handlers.push({ type, handler, options });
+				},
+			),
+			removeEventListener: mock(
+				(
+					type: string,
+					handler: EventListener,
+					options?: AddEventListenerOptions | boolean,
+				) => {
+					const idx = handlers.findIndex(
+						(h) =>
+							h.type === type &&
+							h.handler === handler &&
+							JSON.stringify(h.options) === JSON.stringify(options),
+					);
+					if (idx >= 0) handlers.splice(idx, 1);
+				},
+			),
+		};
+		return { wrapper: wrapper as unknown as HTMLElement, handlers };
+	}
+
+	it("registers a capture-phase paste listener on the wrapper", () => {
+		const { wrapper, handlers } = makeFakeWrapper();
+		const { terminal } = makeFakeTerminal();
+
+		installImagePasteFallback(terminal, wrapper);
+
+		expect(handlers).toHaveLength(1);
+		expect(handlers[0]?.type).toBe("paste");
+		expect(handlers[0]?.options).toEqual({ capture: true });
+	});
+
+	it("dispose removes the listener with matching capture option", () => {
+		// Regression guard: removeEventListener silently no-ops if `capture`
+		// doesn't match the registration. A leaked listener would survive
+		// terminal disposal and fire on a stale runtime.
+		const { wrapper, handlers } = makeFakeWrapper();
+		const { terminal } = makeFakeTerminal();
+
+		const dispose = installImagePasteFallback(terminal, wrapper);
+		expect(handlers).toHaveLength(1);
+		dispose();
+		expect(handlers).toHaveLength(0);
+	});
+
+	it("registered handler forwards Ctrl+V on non-text paste", () => {
+		const { wrapper, handlers } = makeFakeWrapper();
+		const { terminal, input } = makeFakeTerminal();
+		installImagePasteFallback(terminal, wrapper);
+
+		const { event } = clipboardEvent({
+			types: ["Files"],
+			getData: () => "",
+		});
+		handlers[0]?.handler(event);
+
+		expect(input).toHaveBeenCalledWith("\x16", true);
+	});
+
+	it("registered handler ignores text paste", () => {
+		const { wrapper, handlers } = makeFakeWrapper();
+		const { terminal, input } = makeFakeTerminal();
+		installImagePasteFallback(terminal, wrapper);
+
+		const { event } = clipboardEvent({
+			types: ["text/plain"],
+			getData: (t) => (t === "text/plain" ? "hello" : ""),
+		});
+		handlers[0]?.handler(event);
 
 		expect(input).not.toHaveBeenCalled();
 	});

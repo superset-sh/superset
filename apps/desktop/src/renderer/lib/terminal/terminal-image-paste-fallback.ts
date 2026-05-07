@@ -23,6 +23,11 @@ export function isNonTextPaste(event: ClipboardEvent): boolean {
 	// `files` independently so we don't miss them.
 	if ((data.files?.length ?? 0) > 0) return true;
 	const types = Array.from(data.types);
+	// Trade-off: any non-text/plain type (including a rare `text/html`-only
+	// clipboard from some rich-text editors) triggers `^V`. Matches the
+	// pre-#3582 behavior. In a plain shell readline interprets `^V` as
+	// "verbatim-next" and stalls one keystroke; we accept that to avoid
+	// false negatives on image/file payloads where `types` is non-standard.
 	return types.length > 0 && types.some((t) => t !== "text/plain");
 }
 
