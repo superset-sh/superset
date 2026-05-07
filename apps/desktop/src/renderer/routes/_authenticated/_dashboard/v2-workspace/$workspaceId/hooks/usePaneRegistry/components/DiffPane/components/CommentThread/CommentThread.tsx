@@ -38,7 +38,7 @@ export function CommentThread({
 			open={open}
 			onOpenChange={setOpen}
 			className={cn(
-				"my-1 w-full overflow-hidden rounded-md border border-border bg-card text-card-foreground",
+				"diff-comment my-1 overflow-hidden rounded-md border border-border bg-card text-card-foreground",
 				isResolved && "opacity-70",
 			)}
 		>

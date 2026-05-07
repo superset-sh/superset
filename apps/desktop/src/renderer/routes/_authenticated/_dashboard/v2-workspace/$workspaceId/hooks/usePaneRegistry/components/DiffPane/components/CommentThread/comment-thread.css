@@ -1,3 +1,19 @@
+.diff-comment {
+	display: block;
+	width: 100%;
+	max-width: 100%;
+	min-width: 0;
+	box-sizing: border-box;
+	overflow-wrap: anywhere;
+	word-break: break-word;
+}
+
+.diff-comment * {
+	min-width: 0;
+	max-width: 100%;
+	box-sizing: border-box;
+}
+
 .diff-comment-body {
 	font-size: 13px;
 	line-height: 1.55;
@@ -56,8 +72,9 @@
 	border-radius: 6px;
 	background: var(--muted);
 	color: var(--foreground);
-	overflow-x: auto;
-	white-space: pre;
+	white-space: pre-wrap;
+	overflow-wrap: anywhere;
+	word-break: break-word;
 }
 
 .diff-comment-body pre code {
