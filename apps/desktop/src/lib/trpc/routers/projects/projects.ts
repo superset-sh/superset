@@ -330,6 +330,15 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 				return resolveDefaultEditor(input.projectId);
 			}),
 
+		hasAny: publicProcedure.query(() => {
+			const row = localDb
+				.select({ id: projects.id })
+				.from(projects)
+				.limit(1)
+				.all();
+			return row.length > 0;
+		}),
+
 		getRecents: publicProcedure.query((): Project[] => {
 			return localDb
 				.select()
