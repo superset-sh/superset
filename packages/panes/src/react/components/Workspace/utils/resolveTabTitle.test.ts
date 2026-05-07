@@ -89,13 +89,11 @@ describe("resolveTabTitle", () => {
 
 	it("multi-pane: falls back to Tab N when active pane has no title", () => {
 		const t = tab({
-			id: "t2",
+			id: "t1",
 			activePaneId: "p2",
 			panes: [pane("p1", "titled", "first"), pane("p2", "untitled")],
 		});
-		expect(resolveTabTitle(t, [t, t], registry)).toBe(
-			`Tab ${[t, t].indexOf(t) + 1}`,
-		);
+		expect(resolveTabTitle(t, [t], registry)).toBe("Tab 1");
 	});
 
 	it("multi-pane: falls back to Tab N when activePaneId references missing pane", () => {

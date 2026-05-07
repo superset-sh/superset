@@ -43,11 +43,7 @@ export interface TerminalTransport {
 	_reconnectTimer: ReturnType<typeof setTimeout> | null;
 	/** Internal: reconnect attempt count for backoff. */
 	_reconnectAttempt: number;
-	/**
-	 * Internal: pending notify timer for title changes. Coalesces rapid xterm
-	 * title updates (e.g. shells that retitle on every prompt) so subscribers
-	 * see at most one change per window. Mirrors ghostty's 75ms title timer.
-	 */
+	/** Internal: title-change debounce timer; see TITLE_COALESCE_MS. */
 	_titleNotifyTimer: ReturnType<typeof setTimeout> | null;
 	/** The xterm instance used for reconnection. */
 	_terminal: XTerm | null;
@@ -75,12 +71,9 @@ function setConnectionState(
 	}
 }
 
-/**
- * Coalesce window for title-change notifications. Prevents flicker when shells
- * retitle rapidly (e.g. PROMPT_COMMAND fan-out). The stored title updates
- * immediately so getTitle() callers see the latest value; only listener
- * notifications are deferred. Picked to match ghostty's 75ms.
- */
+// Debounce window for title-change notifications. transport.title updates
+// immediately so getTitle() reads the latest; only listener notifications wait,
+// preventing flicker when shells retitle rapidly. Matches ghostty's 75ms.
 const TITLE_COALESCE_MS = 75;
 
 function notifyTitleListeners(transport: TerminalTransport) {
