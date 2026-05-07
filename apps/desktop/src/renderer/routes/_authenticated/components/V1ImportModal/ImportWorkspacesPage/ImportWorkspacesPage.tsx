@@ -29,7 +29,7 @@ function trpcCode(err: unknown): string | null {
 type AdoptStatus =
 	| { kind: "idle" }
 	| { kind: "running" }
-	| { kind: "imported"; v2WorkspaceId: string }
+	| { kind: "imported" }
 	| { kind: "error"; message: string };
 
 const IDLE: AdoptStatus = { kind: "idle" };
@@ -218,7 +218,7 @@ export function ImportWorkspacesPage({
 	);
 
 	const adoptWorkspace = useCallback(
-		async (entry: VisibleWorkspace): Promise<boolean> => {
+		async (entry: VisibleWorkspace) => {
 			const { workspace, v2ProjectId, worktreePath, baseBranch } = entry;
 			updateAdoptStatus(workspace.id, { kind: "running" });
 			try {
@@ -246,14 +246,10 @@ export function ImportWorkspacesPage({
 				}
 
 				ensureWorkspaceInSidebar(result.workspace.id, v2ProjectId);
-				updateAdoptStatus(workspace.id, {
-					kind: "imported",
-					v2WorkspaceId: result.workspace.id,
-				});
+				updateAdoptStatus(workspace.id, { kind: "imported" });
 				await queryClient.invalidateQueries({
 					queryKey: WORKSPACE_CLOUD_LIST_KEY,
 				});
-				return true;
 			} catch (err) {
 				const message = err instanceof Error ? err.message : String(err);
 				updateAdoptStatus(workspace.id, { kind: "error", message });
@@ -264,7 +260,6 @@ export function ImportWorkspacesPage({
 					organizationId,
 					err,
 				});
-				return false;
 			}
 		},
 		[
@@ -297,7 +292,6 @@ export function ImportWorkspacesPage({
 			return status.kind === "idle" || status.kind === "error";
 		});
 		if (queue.length === 0) return;
-		setAdoptAllProgress({ current: 0, total: queue.length });
 		try {
 			for (let i = 0; i < queue.length; i++) {
 				const entry = queue[i];
