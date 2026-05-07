@@ -1,7 +1,7 @@
 import { MultiFileDiff } from "@pierre/diffs/react";
 import { workspaceTrpc } from "@superset/workspace-client";
 import { useQuery } from "@tanstack/react-query";
-import { memo, useMemo } from "react";
+import { memo, useCallback, useMemo } from "react";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import {
 	getDiffsTheme,
@@ -9,7 +9,12 @@ import {
 } from "renderer/screens/main/components/WorkspaceView/utils/code-theme";
 import { useResolvedTheme, useTerminalTheme } from "renderer/stores/theme";
 import type { DiffFileSource } from "../../../../../useChangeset";
+import { CommentThread } from "../CommentThread";
 import { DiffFileHeader } from "../DiffFileHeader";
+import {
+	type DiffCommentThread,
+	useDiffAnnotations,
+} from "./hooks/useDiffAnnotations";
 
 interface WorkspaceDiffProps {
 	workspaceId: string;
@@ -101,6 +106,19 @@ export const WorkspaceDiff = memo(function WorkspaceDiff({
 		staleTime: Number.POSITIVE_INFINITY,
 	});
 
+	const lineAnnotations = useDiffAnnotations({ workspaceId, path });
+	const renderAnnotation = useCallback(
+		(annotation: { metadata: DiffCommentThread }) => (
+			<CommentThread
+				threadId={annotation.metadata.threadId}
+				isResolved={annotation.metadata.isResolved}
+				url={annotation.metadata.url}
+				comments={annotation.metadata.comments}
+			/>
+		),
+		[],
+	);
+
 	return (
 		<div className="flex flex-col">
 			<DiffFileHeader
@@ -119,10 +137,12 @@ export const WorkspaceDiff = memo(function WorkspaceDiff({
 				onDiscard={onDiscard}
 			/>
 			{diffQuery.data ? (
-				<MultiFileDiff
+				<MultiFileDiff<DiffCommentThread>
 					oldFile={diffQuery.data.oldFile}
 					newFile={diffQuery.data.newFile}
 					style={themeVars}
+					lineAnnotations={lineAnnotations}
+					renderAnnotation={renderAnnotation}
 					options={{
 						diffStyle,
 						expandUnchanged,

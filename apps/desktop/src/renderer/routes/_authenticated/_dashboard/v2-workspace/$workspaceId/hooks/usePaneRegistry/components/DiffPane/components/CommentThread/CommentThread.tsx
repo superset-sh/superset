@@ -1,3 +1,8 @@
+import { Avatar, AvatarFallback, AvatarImage } from "@superset/ui/avatar";
+import { LuExternalLink } from "react-icons/lu";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+
 interface Comment {
 	id: string;
 	authorLogin: string;
@@ -9,59 +14,80 @@ interface Comment {
 interface CommentThreadProps {
 	threadId: string;
 	isResolved: boolean;
+	url?: string;
 	comments: Comment[];
 }
 
-export function CommentThread({ isResolved, comments }: CommentThreadProps) {
+export function CommentThread({
+	isResolved,
+	url,
+	comments,
+}: CommentThreadProps) {
 	return (
 		<div
-			style={{
-				padding: 8,
-				margin: "4px 8px",
-				background: isResolved
-					? "rgba(128,128,128,0.08)"
-					: "rgba(255,200,0,0.1)",
-				border: `1px solid ${isResolved ? "rgba(128,128,128,0.2)" : "rgba(255,200,0,0.3)"}`,
-				borderRadius: 6,
-				fontSize: 12,
-				opacity: isResolved ? 0.6 : 1,
-			}}
+			className={`my-1 mx-2 rounded-md border border-border bg-background/95 text-foreground shadow-sm ${
+				isResolved ? "opacity-60" : ""
+			}`}
 		>
-			{isResolved && (
-				<div
-					style={{
-						fontSize: 10,
-						color: "rgba(128,128,128,0.8)",
-						marginBottom: 4,
-					}}
-				>
-					Resolved
-				</div>
-			)}
-			{comments.map((comment, i) => (
-				<div
-					key={comment.id}
-					style={{
-						paddingTop: i > 0 ? 6 : 0,
-						marginTop: i > 0 ? 6 : 0,
-						borderTop: i > 0 ? "1px solid rgba(128,128,128,0.15)" : "none",
-					}}
-				>
-					<div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-						{comment.avatarUrl && (
-							<img
-								src={comment.avatarUrl}
-								alt=""
-								style={{ width: 16, height: 16, borderRadius: "50%" }}
-							/>
-						)}
-						<strong>{comment.authorLogin}</strong>
-					</div>
-					<div style={{ marginTop: 3, whiteSpace: "pre-wrap" }}>
-						{comment.body}
-					</div>
-				</div>
-			))}
+			<div className="flex items-center gap-2 border-b border-border px-3 py-1.5 text-xs">
+				<span className="font-medium">
+					{comments.length === 1 ? "1 comment" : `${comments.length} comments`}
+				</span>
+				{isResolved && (
+					<span className="rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+						Resolved
+					</span>
+				)}
+				{url && (
+					<a
+						href={url}
+						target="_blank"
+						rel="noreferrer"
+						className="ml-auto flex items-center gap-1 text-muted-foreground hover:text-foreground"
+					>
+						<LuExternalLink className="size-3" />
+						Open on GitHub
+					</a>
+				)}
+			</div>
+			<ul className="divide-y divide-border">
+				{comments.map((comment) => (
+					<CommentRow key={comment.id} comment={comment} />
+				))}
+			</ul>
 		</div>
+	);
+}
+
+function CommentRow({ comment }: { comment: Comment }) {
+	return (
+		<li className="flex gap-2 px-3 py-2 text-sm">
+			<Avatar className="mt-0.5 size-5 shrink-0">
+				{comment.avatarUrl ? (
+					<AvatarImage src={comment.avatarUrl} alt={comment.authorLogin} />
+				) : null}
+				<AvatarFallback className="text-[10px]">
+					{comment.authorLogin.slice(0, 1).toUpperCase()}
+				</AvatarFallback>
+			</Avatar>
+			<div className="min-w-0 flex-1">
+				<div className="flex items-baseline gap-2 text-xs">
+					<span className="font-medium">{comment.authorLogin}</span>
+					{comment.createdAt != null && (
+						<time
+							className="text-muted-foreground"
+							dateTime={new Date(comment.createdAt).toISOString()}
+						>
+							{new Date(comment.createdAt).toLocaleString()}
+						</time>
+					)}
+				</div>
+				<div className="prose prose-sm dark:prose-invert max-w-none break-words">
+					<ReactMarkdown remarkPlugins={[remarkGfm]}>
+						{comment.body}
+					</ReactMarkdown>
+				</div>
+			</div>
+		</li>
 	);
 }
