@@ -96,7 +96,9 @@ function setTerminalTitle(
 ) {
 	if (transport.title === title) return;
 	transport.title = title;
-	if (transport._titleNotifyTimer !== null) return;
+	if (transport._titleNotifyTimer !== null) {
+		clearTimeout(transport._titleNotifyTimer);
+	}
 	transport._titleNotifyTimer = setTimeout(
 		() => notifyTitleListeners(transport),
 		TITLE_COALESCE_MS,

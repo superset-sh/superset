@@ -38,11 +38,23 @@ export function normalizeTerminalTitle(title: string): string | null {
 	const normalized = Array.from(title)
 		.filter((char) => {
 			const codePoint = char.codePointAt(0) ?? 0;
-			return !(
+			// Strip C0 controls, DEL, C1 controls.
+			if (
 				codePoint <= 0x1f ||
 				codePoint === 0x7f ||
 				(codePoint >= 0x80 && codePoint <= 0x9f)
-			);
+			) {
+				return false;
+			}
+			// Strip the UTF-8 replacement character — only ever appears when
+			// some upstream layer mis-decoded a byte sequence.
+			if (codePoint === 0xfffd) return false;
+			// Strip Braille block. CLIs (Claude Code, ora, oclif, etc.) animate
+			// progress spinners with these glyphs via OSC title updates; left
+			// in place they freeze on the last frame in the tab title once the
+			// spinner stops.
+			if (codePoint >= 0x2800 && codePoint <= 0x28ff) return false;
+			return true;
 		})
 		.join("")
 		.trim();

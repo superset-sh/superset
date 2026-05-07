@@ -156,4 +156,21 @@ describe("normalizeTerminalTitle", () => {
 
 		expect(Array.from(normalizeTerminalTitle(title) ?? "")).toHaveLength(200);
 	});
+
+	it("strips Braille spinner glyphs so spinner frames don't freeze the tab", () => {
+		// Claude Code and most CLI spinner libraries animate via the Braille
+		// block. Each frame collapses to the same stable text after stripping.
+		expect(normalizeTerminalTitle("⠂ Claude Code")).toBe("Claude Code");
+		expect(normalizeTerminalTitle("⠐ Claude Code")).toBe("Claude Code");
+		expect(normalizeTerminalTitle("⠇⠋⠙⠸ Loading")).toBe("Loading");
+	});
+
+	it("returns null when only Braille glyphs remain", () => {
+		expect(normalizeTerminalTitle("⠂⠐⠇")).toBeNull();
+	});
+
+	it("strips the UTF-8 replacement character from upstream decode failures", () => {
+		expect(normalizeTerminalTitle("Claude� Code")).toBe("Claude Code");
+		expect(normalizeTerminalTitle("�")).toBeNull();
+	});
 });
