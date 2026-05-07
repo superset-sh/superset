@@ -48,15 +48,20 @@ function ScrollToFile({
 			if (focusTick != null) lastFocusTick.current = focusTick;
 
 			if (focusLine != null) {
-				// Pierre renders into a shadow DOM, so a normal querySelector
-				// won't find the line. Walk into known shadow roots and look for
-				// the gutter element with the matching line number.
-				requestAnimationFrame(() => {
+				// Pierre's virtualizer mounts file contents lazily, so the
+				// annotation slot may not exist on the first frame. Retry a
+				// handful of frames before giving up — typical mount completes
+				// within 1–2 frames.
+				let attempts = 0;
+				const tryScroll = () => {
 					const lineEl = findLineElement(target as HTMLElement, focusLine);
 					if (lineEl) {
 						lineEl.scrollIntoView({ block: "center" });
+						return;
 					}
-				});
+					if (attempts++ < 20) requestAnimationFrame(tryScroll);
+				};
+				requestAnimationFrame(tryScroll);
 			}
 		});
 	}, [path, focusLine, focusTick, virtualizer]);
@@ -68,21 +73,20 @@ function findLineElement(
 	root: HTMLElement,
 	lineNumber: number,
 ): HTMLElement | null {
-	const queue: (Element | ShadowRoot)[] = [root];
-	while (queue.length > 0) {
-		const node = queue.shift();
-		if (!node) continue;
-		const candidate = node.querySelector(
-			`[data-line-number="${lineNumber}"]`,
-		) as HTMLElement | null;
-		if (candidate) return candidate;
-		const children = node.querySelectorAll("*");
-		for (const child of children) {
-			const sr = (child as HTMLElement).shadowRoot;
-			if (sr) queue.push(sr);
-		}
-	}
-	return null;
+	// Pierre slots its annotations into named slots in the light DOM
+	// (see getLineAnnotationName: `annotation-${side}-${line}`). That
+	// element sits exactly where the comment is rendered, which is the
+	// right scroll target — and crucially it's in light DOM, so a normal
+	// querySelector inside the file's wrapper finds it.
+	const slotted = root.querySelector(
+		`[slot$="-${lineNumber}"][slot^="annotation-"]`,
+	) as HTMLElement | null;
+	if (slotted) return slotted;
+	// Fall back to the diff line itself if no annotation slot exists at
+	// that line (e.g. comments are hidden via the toggle).
+	return root.querySelector(
+		`[data-line="${lineNumber}"]`,
+	) as HTMLElement | null;
 }
 
 interface DiffPaneProps {

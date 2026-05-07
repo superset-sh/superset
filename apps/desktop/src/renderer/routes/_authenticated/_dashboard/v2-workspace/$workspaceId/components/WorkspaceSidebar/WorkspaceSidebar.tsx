@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { LuFile, LuGitCompareArrows } from "react-icons/lu";
 import { useGitStatus } from "renderer/hooks/host-service/useGitStatus";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { useSettings } from "renderer/stores/settings";
 import type { CommentPaneData } from "../../types";
 import { FilesTab } from "./components/FilesTab";
 import { PRActionHeader } from "./components/PRActionHeader";
@@ -131,7 +132,12 @@ export function WorkspaceSidebar({
 		workspaceId,
 		onOpenComment,
 		onOpenInDiff: onSelectDiffFile
-			? (path, line) => onSelectDiffFile(path, false, line)
+			? (path, line, openInNewTab) => {
+					// Make sure annotations are visible — opening "in diff"
+					// without rendering them would land on an empty line.
+					useSettings.getState().update("showDiffComments", true);
+					onSelectDiffFile(path, openInNewTab ?? false, line);
+				}
 			: undefined,
 	});
 
