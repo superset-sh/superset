@@ -86,6 +86,8 @@ export function TerminalSessionDropdown({
 	const terminalInstanceId = context.pane.id;
 	const utils = workspaceTrpc.useUtils();
 	const killTerminalSession = workspaceTrpc.terminal.killSession.useMutation();
+	const purgeTerminalSession =
+		workspaceTrpc.terminal.purgeSession.useMutation();
 	const sessionsQuery = workspaceTrpc.terminal.listSessions.useQuery(
 		{ workspaceId },
 		{
@@ -99,6 +101,8 @@ export function TerminalSessionDropdown({
 		const ordered = [...liveSessions].sort((a, b) => {
 			if (a.terminalId === terminalId) return -1;
 			if (b.terminalId === terminalId) return 1;
+			// Live sessions ahead of killed; within each group, newest first.
+			if (a.exited !== b.exited) return a.exited ? 1 : -1;
 			return (b.createdAt ?? 0) - (a.createdAt ?? 0);
 		});
 		if (ordered.some((session) => session.terminalId === terminalId)) {
@@ -146,7 +150,13 @@ export function TerminalSessionDropdown({
 
 		const state = context.store.getState();
 		const terminalPaneLocations = getTerminalPaneLocations(context);
-		const existingLocation = terminalPaneLocations.get(nextTerminalId)?.[0];
+		// Killed sessions exist on the server only as metadata — they have no
+		// open pane to switch to. Always rebind the current pane and let the
+		// host-service's createTerminalSessionInternal spawn a fresh shell on
+		// the same terminalId.
+		const existingLocation = session.exited
+			? undefined
+			: terminalPaneLocations.get(nextTerminalId)?.[0];
 		if (existingLocation) {
 			state.setActiveTab(existingLocation.tabId);
 			state.setActivePane({
@@ -191,21 +201,31 @@ export function TerminalSessionDropdown({
 
 	const removeTerminalSession = async (session: VisibleTerminalSession) => {
 		try {
-			await killTerminalSession.mutateAsync({
-				terminalId: session.terminalId,
-				workspaceId,
-			});
-			closePanesForTerminal(session.terminalId);
+			if (session.exited) {
+				// Already killed — second click on the trash icon is the user
+				// asking to purge the entry from the dropdown.
+				await purgeTerminalSession.mutateAsync({
+					terminalId: session.terminalId,
+					workspaceId,
+				});
+			} else {
+				await killTerminalSession.mutateAsync({
+					terminalId: session.terminalId,
+					workspaceId,
+				});
+				closePanesForTerminal(session.terminalId);
+			}
 		} finally {
 			await utils.terminal.listSessions.invalidate({ workspaceId });
 		}
 	};
 
 	const handleRemoveTerminal = (session: VisibleTerminalSession) => {
+		const isKilled = session.exited;
 		toast.promise(removeTerminalSession(session), {
-			loading: "Removing terminal...",
-			success: "Terminal removed",
-			error: "Failed to remove terminal",
+			loading: isKilled ? "Removing terminal..." : "Killing terminal...",
+			success: isKilled ? "Terminal removed" : "Terminal killed",
+			error: isKilled ? "Failed to remove terminal" : "Failed to kill terminal",
 		});
 	};
 
@@ -287,9 +307,11 @@ export function TerminalSessionDropdown({
 								? "Current"
 								: session.pending
 									? "Starting"
-									: session.attached
-										? "Attached"
-										: "Detached";
+									: session.exited
+										? "Killed"
+										: session.attached
+											? "Attached"
+											: "Detached";
 							const title = isCurrent
 								? triggerTitle
 								: (session.title ?? location?.titleOverride ?? "Terminal");
@@ -317,7 +339,10 @@ export function TerminalSessionDropdown({
 									<button
 										type="button"
 										aria-label={`Remove terminal ${session.createdAt ? createdAtLabel : "session"}`}
-										disabled={killTerminalSession.isPending}
+										disabled={
+											killTerminalSession.isPending ||
+											purgeTerminalSession.isPending
+										}
 										className="shrink-0 rounded p-0.5 opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive disabled:pointer-events-none disabled:opacity-30 group-hover:opacity-100"
 										onClick={(event) => {
 											event.preventDefault();

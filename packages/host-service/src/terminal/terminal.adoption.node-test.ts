@@ -31,9 +31,11 @@ import {
 import { initTerminalBaseEnv } from "./env.ts";
 import {
 	__resetSessionsForTesting,
+	__testStripTerminalQueries,
 	createTerminalSessionInternal,
 	disposeSession,
 	listTerminalSessions,
+	markSessionKilled,
 } from "./terminal.ts";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -512,6 +514,188 @@ describe("createTerminalSessionInternal — host-service restart adoption", () =
 		);
 
 		disposeSession(terminalId, db);
+	});
+
+	test("markSessionKilled keeps the entry visible as exited; resurrect spawns a fresh shell", async () => {
+		const terminalId = `e2e-killed-${randomUUID().slice(0, 8)}`;
+
+		const first = await createTerminalSessionInternal({
+			terminalId,
+			workspaceId,
+			db,
+			listed: true,
+		});
+		assert.ok(
+			!("error" in first),
+			`first create failed: ${JSON.stringify(first)}`,
+		);
+		const firstPid = "error" in first ? -1 : first.pty.pid;
+		if ("error" in first) return;
+
+		// Seed scrollback + title so we can assert they carry across the
+		// kill→resurrect boundary.
+		first.pty.write("echo before-kill\n");
+		await waitForOutput(first.pty, "before-kill", 3000);
+		const seededTitle = "carry-me-across-kill";
+		first.title = seededTitle;
+		const seededScrollbackBytes = first.scrollbackBytes;
+		assert.ok(
+			seededScrollbackBytes > 0,
+			"expected scrollback ring populated before kill",
+		);
+
+		markSessionKilled(terminalId, db);
+
+		// Should still appear in the list, marked exited — that's what powers
+		// the dropdown's "Killed" status.
+		const afterKill = listTerminalSessions({ workspaceId });
+		const killedEntry = afterKill.find((s) => s.terminalId === terminalId);
+		assert.ok(
+			killedEntry,
+			"killed session should remain in listTerminalSessions",
+		);
+		assert.equal(
+			killedEntry?.exited,
+			true,
+			"killed session should report exited=true",
+		);
+		assert.equal(
+			killedEntry?.title,
+			seededTitle,
+			"killed entry should retain the title for the dropdown label",
+		);
+
+		// Resurrect: same terminalId → fresh PTY, different pid.
+		const second = await createTerminalSessionInternal({
+			terminalId,
+			workspaceId,
+			db,
+			listed: true,
+		});
+		assert.ok(
+			!("error" in second),
+			`resurrect after markSessionKilled failed: ${JSON.stringify(second)}`,
+		);
+		if ("error" in second) return;
+
+		assert.notEqual(
+			second.pty.pid,
+			firstPid,
+			"resurrect should spawn a fresh shell, not return the dead session",
+		);
+		assert.equal(
+			second.title,
+			seededTitle,
+			"resurrected session should inherit the killed session's title",
+		);
+		assert.ok(
+			second.bufferBytes > 0,
+			"resurrected session should have scrollback front-loaded into the replay buffer",
+		);
+		const buffered = Buffer.concat(
+			second.buffer.map((b) =>
+				Buffer.from(b.buffer, b.byteOffset, b.byteLength),
+			),
+		).toString("utf8");
+		assert.ok(
+			buffered.includes("before-kill"),
+			"resurrected replay buffer should contain pre-kill output",
+		);
+
+		const afterResurrect = listTerminalSessions({ workspaceId });
+		const liveEntry = afterResurrect.find((s) => s.terminalId === terminalId);
+		assert.ok(liveEntry, "resurrected session should be in the list");
+		assert.equal(
+			liveEntry?.exited,
+			false,
+			"resurrected session should not be marked exited",
+		);
+
+		disposeSession(terminalId, db);
+	});
+
+	test("markSessionKilled is idempotent on already-killed entries", async () => {
+		// The renderer's pane-close path fires both a ws "dispose" frame and a
+		// trpc killSession in quick succession. Both land on markSessionKilled,
+		// and the second call must NOT escalate to a hard dispose — otherwise
+		// the entry never reaches the dropdown as "Killed". Use disposeSession
+		// directly (or the purgeSession trpc) for an explicit hard-remove.
+		const terminalId = `e2e-killed-twice-${randomUUID().slice(0, 8)}`;
+
+		const created = await createTerminalSessionInternal({
+			terminalId,
+			workspaceId,
+			db,
+			listed: true,
+		});
+		assert.ok(!("error" in created));
+
+		markSessionKilled(terminalId, db);
+		markSessionKilled(terminalId, db);
+		assert.ok(
+			listTerminalSessions({ workspaceId }).some(
+				(s) => s.terminalId === terminalId,
+			),
+			"both calls should leave the entry retained",
+		);
+
+		disposeSession(terminalId, db);
+		assert.ok(
+			!listTerminalSessions({ workspaceId }).some(
+				(s) => s.terminalId === terminalId,
+			),
+			"explicit disposeSession should remove the entry",
+		);
+	});
+});
+
+describe("stripTerminalQueries", () => {
+	const enc = new TextEncoder();
+	const dec = new TextDecoder();
+
+	function strip(s: string): string {
+		return dec.decode(__testStripTerminalQueries(enc.encode(s)));
+	}
+
+	test("strips Primary DA query (CSI c)", () => {
+		assert.equal(strip("hello\x1b[cworld"), "helloworld");
+		assert.equal(strip("a\x1b[0cb"), "ab");
+	});
+
+	test("strips Secondary DA query (CSI > c)", () => {
+		assert.equal(strip("x\x1b[>cy"), "xy");
+		assert.equal(strip("x\x1b[>0cy"), "xy");
+	});
+
+	test("strips DECRQM (CSI ? Pn $ p)", () => {
+		assert.equal(strip("a\x1b[?2026$pb"), "ab");
+	});
+
+	test("strips DSR (CSI 6 n)", () => {
+		assert.equal(strip("a\x1b[6nb"), "ab");
+	});
+
+	test("strips OSC color queries (?-prefixed)", () => {
+		assert.equal(strip("a\x1b]10;?\x07b"), "ab");
+		assert.equal(strip("a\x1b]11;?\x1b\\b"), "ab");
+	});
+
+	test("strips DCS XTGETTCAP (+q ... ST)", () => {
+		assert.equal(strip("a\x1bP+q5453\x1b\\b"), "ab");
+	});
+
+	test("keeps cursor moves and SGR (no responses elicited)", () => {
+		assert.equal(strip("\x1b[31mred\x1b[0m"), "\x1b[31mred\x1b[0m");
+		assert.equal(strip("\x1b[H\x1b[2J"), "\x1b[H\x1b[2J");
+		assert.equal(strip("\x1b[?1049h"), "\x1b[?1049h"); // alt screen mode set
+	});
+
+	test("keeps non-query OSC sequences (e.g. set title)", () => {
+		assert.equal(strip("\x1b]0;my title\x07"), "\x1b]0;my title\x07");
+	});
+
+	test("keeps incomplete trailing sequences as-is", () => {
+		assert.equal(strip("ok\x1b[31"), "ok\x1b[31");
 	});
 });
 

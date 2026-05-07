@@ -156,7 +156,19 @@ type TerminalServerMessage =
 	| { type: "exit"; exitCode: number; signal: number }
 	| { type: "title"; title: string | null };
 
-const MAX_BUFFER_BYTES = 64 * 1024;
+// Replay buffer is sized to match the scrollback ring so a resurrect's
+// carry-over isn't immediately trimmed by the new shell's startup output.
+// Both cap memory growth on long-running detached sessions.
+const MAX_BUFFER_BYTES = 256 * 1024;
+const MAX_SCROLLBACK_BYTES = 256 * 1024;
+
+/**
+ * How long an exited (naturally or via killSession) terminal lingers in the
+ * sessions map before being fully disposed. Long enough that a user can pick
+ * it from the dropdown to start a fresh shell on the same terminalId; short
+ * enough that the map doesn't grow without bound.
+ */
+const KILLED_RETENTION_MS = 30 * 60 * 1000;
 const SOCKET_OPEN = 1;
 const SOCKET_CLOSING = 2;
 const SOCKET_CLOSED = 3;
@@ -207,6 +219,14 @@ interface TerminalSession {
 	 */
 	buffer: Uint8Array[];
 	bufferBytes: number;
+	/**
+	 * Rolling scrollback ring — a separate buffer from `buffer` that is
+	 * always populated (regardless of attach state) and never cleared by
+	 * `replayBuffer`. Only consulted on kill→resurrect to carry recent
+	 * output forward. Capped at MAX_SCROLLBACK_BYTES.
+	 */
+	scrollbackRing: Uint8Array[];
+	scrollbackBytes: number;
 	createdAt: number;
 	exited: boolean;
 	exitCode: number;
@@ -235,6 +255,21 @@ interface TerminalSession {
 
 /** PTY lifetime is independent of socket lifetime — sockets detach/reattach freely. */
 const sessions = new Map<string, TerminalSession>();
+
+/**
+ * Pending `disposeSession` timers for killed-but-retained sessions. Keyed by
+ * terminalId. Cleared when the session is resurrected, hard-disposed, or the
+ * timer fires.
+ */
+const killedRetentionTimers = new Map<string, ReturnType<typeof setTimeout>>();
+
+function clearKilledRetention(terminalId: string): void {
+	const timer = killedRetentionTimers.get(terminalId);
+	if (timer) {
+		clearTimeout(timer);
+		killedRetentionTimers.delete(terminalId);
+	}
+}
 
 // When the daemon disconnects, close every WS socket so the renderer's
 // existing exponential-backoff reconnect kicks in. On reconnect, host-service
@@ -269,6 +304,10 @@ onDaemonDisconnect((err) => {
 			session.unsubscribeDaemon = null;
 		}
 	}
+	for (const timer of killedRetentionTimers.values()) {
+		clearTimeout(timer);
+	}
+	killedRetentionTimers.clear();
 	sessions.clear();
 });
 
@@ -290,6 +329,10 @@ export function __resetSessionsForTesting(): void {
 			}
 		}
 	}
+	for (const timer of killedRetentionTimers.values()) {
+		clearTimeout(timer);
+	}
+	killedRetentionTimers.clear();
 	sessions.clear();
 }
 
@@ -386,6 +429,148 @@ function bufferOutput(session: TerminalSession, data: Uint8Array) {
 		if (removed) session.bufferBytes -= removed.byteLength;
 	}
 }
+
+function appendScrollback(session: TerminalSession, data: Uint8Array) {
+	session.scrollbackRing.push(data);
+	session.scrollbackBytes += data.byteLength;
+
+	while (
+		session.scrollbackBytes > MAX_SCROLLBACK_BYTES &&
+		session.scrollbackRing.length > 1
+	) {
+		const removed = session.scrollbackRing.shift();
+		if (removed) session.scrollbackBytes -= removed.byteLength;
+	}
+}
+
+/**
+ * Strip terminal-query escape sequences (CSI/OSC/DCS) that elicit a response
+ * from xterm. Replaying these into a fresh xterm during resurrect causes the
+ * new shell to receive unsolicited responses on stdin and echo them at its
+ * prompt (e.g. `xterm.js(...)` after a DA2 query). Stateful sequences
+ * (cursor, color, mode set/reset) are kept — they're what makes scrollback
+ * actually look right.
+ *
+ * Stripped:
+ * - CSI ending in `c`        → DA1/DA2/DA3 (Device Attributes)
+ * - CSI ending in `n`        → DSR / Cursor Position Report
+ * - CSI with `$` final-prefix and `p` final → DECRQM (Request Mode)
+ * - OSC containing `?`       → color/palette/etc. queries
+ * - DCS starting with `+q`   → XTGETTCAP
+ */
+function stripTerminalQueries(input: Uint8Array): Uint8Array {
+	const chunks: Uint8Array[] = [];
+	let total = 0;
+	const keep = (start: number, endExclusive: number) => {
+		if (endExclusive <= start) return;
+		const slice = input.subarray(start, endExclusive);
+		chunks.push(slice);
+		total += slice.byteLength;
+	};
+
+	let i = 0;
+	while (i < input.length) {
+		if (input[i] !== 0x1b /* ESC */ || i + 1 >= input.length) {
+			keep(i, i + 1);
+			i++;
+			continue;
+		}
+		const next = input[i + 1];
+		if (next === 0x5b /* [ */) {
+			// CSI: scan to final byte 0x40-0x7e
+			let j = i + 2;
+			while (j < input.length) {
+				const c = input[j] ?? 0;
+				if (c >= 0x40 && c <= 0x7e) break;
+				j++;
+			}
+			if (j >= input.length) {
+				keep(i, input.length);
+				i = input.length;
+				continue;
+			}
+			const final = input[j];
+			const lastParam = j > i + 2 ? (input[j - 1] ?? 0) : 0;
+			const isQuery =
+				final === 0x63 /* c */ ||
+				final === 0x6e /* n */ ||
+				(final === 0x70 /* p */ && lastParam === 0x24) /* $ */;
+			if (!isQuery) keep(i, j + 1);
+			i = j + 1;
+			continue;
+		}
+		if (next === 0x5d /* ] */) {
+			// OSC: terminator BEL (0x07) or ST (ESC \)
+			let j = i + 2;
+			let endLen = 0;
+			while (j < input.length) {
+				if (input[j] === 0x07) {
+					endLen = 1;
+					break;
+				}
+				if (
+					input[j] === 0x1b &&
+					j + 1 < input.length &&
+					input[j + 1] === 0x5c
+				) {
+					endLen = 2;
+					break;
+				}
+				j++;
+			}
+			if (j >= input.length) {
+				keep(i, input.length);
+				i = input.length;
+				continue;
+			}
+			const content = input.subarray(i + 2, j);
+			const isQuery = content.indexOf(0x3f /* ? */) !== -1;
+			if (!isQuery) keep(i, j + endLen);
+			i = j + endLen;
+			continue;
+		}
+		if (next === 0x50 /* P */) {
+			// DCS: terminator ST (ESC \)
+			let j = i + 2;
+			let endLen = 0;
+			while (j < input.length) {
+				if (
+					input[j] === 0x1b &&
+					j + 1 < input.length &&
+					input[j + 1] === 0x5c
+				) {
+					endLen = 2;
+					break;
+				}
+				j++;
+			}
+			if (j >= input.length) {
+				keep(i, input.length);
+				i = input.length;
+				continue;
+			}
+			const content = input.subarray(i + 2, j);
+			const isQuery =
+				content.length >= 2 &&
+				content[0] === 0x2b /* + */ &&
+				content[1] === 0x71 /* q */;
+			if (!isQuery) keep(i, j + endLen);
+			i = j + endLen;
+			continue;
+		}
+		keep(i, i + 1);
+		i++;
+	}
+	const out = new Uint8Array(total);
+	let offset = 0;
+	for (const chunk of chunks) {
+		out.set(chunk, offset);
+		offset += chunk.byteLength;
+	}
+	return out;
+}
+
+export const __testStripTerminalQueries = stripTerminalQueries;
 
 function normalizeTerminalDimension(
 	value: number | null | undefined,
@@ -491,6 +676,7 @@ function queueInitialCommand(
  */
 export function disposeSession(terminalId: string, db: HostDb) {
 	const session = sessions.get(terminalId);
+	clearKilledRetention(terminalId);
 
 	if (session) {
 		if (session.shellReadyTimeoutId) {
@@ -526,6 +712,82 @@ export function disposeSession(terminalId: string, db: HostDb) {
 		.set({ status: "disposed", endedAt: Date.now() })
 		.where(eq(terminalSessions.id, terminalId))
 		.run();
+}
+
+/**
+ * Kill the PTY but keep the session entry in memory so it remains visible in
+ * the dropdown as "Killed" until either (a) the user resurrects it by
+ * selecting it (which `createTerminalSessionInternal` translates into a fresh
+ * shell on the same terminalId) or (b) the retention TTL fires and we hard-
+ * dispose the entry.
+ *
+ * Sockets are closed and the daemon subscription is dropped right away — only
+ * the metadata (terminalId, workspaceId, title, createdAt, exit code) sticks
+ * around for the dropdown to render.
+ */
+export function markSessionKilled(terminalId: string, db: HostDb): void {
+	const session = sessions.get(terminalId);
+	if (!session) {
+		// No live entry — fall back to a normal dispose so the DB row gets
+		// updated and any zombie state is cleaned up.
+		disposeSession(terminalId, db);
+		return;
+	}
+
+	// Idempotent: pane-close fires both a ws "dispose" frame and a trpc
+	// killSession in quick succession; the second call lands on an already-
+	// exited entry. Don't re-tear-down or reset the TTL — just let the entry
+	// sit. Use `purgeKilledSession` for an explicit hard-remove.
+	if (session.exited) return;
+
+	if (session.shellReadyTimeoutId) {
+		clearTimeout(session.shellReadyTimeoutId);
+		session.shellReadyTimeoutId = null;
+	}
+	for (const socket of session.sockets) {
+		socket.close(1000, "Session killed");
+	}
+	session.sockets.clear();
+	if (!session.exited) {
+		try {
+			session.pty.kill();
+		} catch {
+			// PTY may already be dead
+		}
+	}
+	if (session.unsubscribeDaemon) {
+		try {
+			session.unsubscribeDaemon();
+		} catch {
+			// best-effort
+		}
+		session.unsubscribeDaemon = null;
+	}
+	// Mark exited synchronously — the daemon's onExit callback may not fire
+	// after we drop the subscription, so the dropdown would otherwise show
+	// the killed session as "Attached" until the natural exit raced through.
+	session.exited = true;
+	if (session.exitCode === 0 && session.exitSignal === 0) {
+		// Synthesize a SIGTERM signal so listeners can distinguish kill from
+		// clean exit. Real signal arrives later via daemon onExit if it fires.
+		session.exitSignal = 15;
+	}
+
+	portManager.unregisterSession(terminalId);
+
+	db.update(terminalSessions)
+		.set({ status: "exited", endedAt: Date.now() })
+		.where(eq(terminalSessions.id, terminalId))
+		.run();
+
+	clearKilledRetention(terminalId);
+	const timer = setTimeout(() => {
+		killedRetentionTimers.delete(terminalId);
+		disposeSession(terminalId, db);
+	}, KILLED_RETENTION_MS);
+	// Don't keep the host-service process alive just to fire this cleanup.
+	if (typeof timer.unref === "function") timer.unref();
+	killedRetentionTimers.set(terminalId, timer);
 }
 
 /**
@@ -597,10 +859,34 @@ export async function createTerminalSessionInternal({
 	replayOnAdoption = true,
 }: CreateTerminalSessionOptions): Promise<TerminalSession | { error: string }> {
 	const existing = sessions.get(terminalId);
+	let resurrectedTitle: string | null = null;
+	let resurrectedScrollback: Uint8Array | null = null;
 	if (existing) {
-		if (listed) existing.listed = true;
-		if (initialCommand) queueInitialCommand(existing, initialCommand);
-		return existing;
+		if (existing.exited) {
+			// Resurrect: keep the title (dropdown label) and the killed shell's
+			// scrollback. The scrollback is run through stripTerminalQueries to
+			// drop CSI/OSC/DCS sequences that would elicit a response from the
+			// new xterm — those are why the previous shell's queries used to
+			// echo at the new prompt. Stateful sequences (cursor, color, alt
+			// screen mode) pass through so the visible output looks right.
+			resurrectedTitle = existing.title;
+			if (existing.scrollbackBytes > 0) {
+				const total = existing.scrollbackBytes;
+				const combined = new Uint8Array(total);
+				let offset = 0;
+				for (const chunk of existing.scrollbackRing) {
+					combined.set(chunk, offset);
+					offset += chunk.byteLength;
+				}
+				resurrectedScrollback = stripTerminalQueries(combined);
+			}
+			clearKilledRetention(terminalId);
+			sessions.delete(terminalId);
+		} else {
+			if (listed) existing.listed = true;
+			if (initialCommand) queueInitialCommand(existing, initialCommand);
+			return existing;
+		}
 	}
 
 	const workspace = db.query.workspaces
@@ -750,12 +1036,14 @@ export async function createTerminalSessionInternal({
 		sockets: new Set(),
 		buffer: [],
 		bufferBytes: 0,
+		scrollbackRing: [],
+		scrollbackBytes: 0,
 		createdAt,
 		exited: false,
 		exitCode: 0,
 		exitSignal: 0,
 		listed,
-		title: null,
+		title: resurrectedTitle,
 		titleScanState: createTerminalTitleScanState(),
 		shellReadyState: shellSupportsReady
 			? "pending"
@@ -773,6 +1061,17 @@ export async function createTerminalSessionInternal({
 	};
 	sessions.set(terminalId, session);
 	portManager.upsertSession(terminalId, workspaceId, pty.pid);
+
+	// Front-load the carried-over scrollback into the replay buffer so the
+	// renderer sees prior output above the fresh shell prompt on first attach.
+	// Bypass bufferOutput's 64KB cap since the scrollback ring is sized to
+	// its own (larger) ceiling — we want the user to see real history, not a
+	// one-screen sliver. New shell startup output appended after will still
+	// trigger trimming via bufferOutput once the cap is exceeded.
+	if (resurrectedScrollback && resurrectedScrollback.byteLength > 0) {
+		session.buffer.push(resurrectedScrollback);
+		session.bufferBytes += resurrectedScrollback.byteLength;
+	}
 
 	// If the marker never arrives (broken wrapper, unsupported config),
 	// the timeout unblocks so the session degrades gracefully.
@@ -819,6 +1118,11 @@ export async function createTerminalSessionInternal({
 				);
 				if (hintText.length > 0) portManager.checkOutputForHint(hintText);
 
+				// Always feed the scrollback ring so kill→resurrect has
+				// something to carry over even when the session was actively
+				// attached at kill time. This is independent of the replay
+				// buffer below; replay still operates on detach-window output.
+				appendScrollback(session, bytes);
 				if (broadcastBytes(session, bytes) === 0) {
 					bufferOutput(session, bytes);
 				}
@@ -849,6 +1153,17 @@ export async function createTerminalSessionInternal({
 					signal: session.exitSignal,
 					occurredAt: Date.now(),
 				});
+
+				// Keep the entry around long enough for the user to spot it as
+				// "Killed" in the dropdown and resurrect it. After the TTL we
+				// hard-dispose so the map doesn't grow without bound.
+				clearKilledRetention(terminalId);
+				const timer = setTimeout(() => {
+					killedRetentionTimers.delete(terminalId);
+					disposeSession(terminalId, db);
+				}, KILLED_RETENTION_MS);
+				if (typeof timer.unref === "function") timer.unref();
+				killedRetentionTimers.set(terminalId, timer);
 			},
 		},
 	);
@@ -954,7 +1269,22 @@ export function registerWorkspaceTerminalRoute({
 				TerminalSession | { error: string }
 			> => {
 				const existing = sessions.get(terminalId);
-				if (existing) return existing;
+				if (existing && !existing.exited) return existing;
+				if (existing?.exited) {
+					// Killed entry retained for the dropdown — attaching to one
+					// means the user picked it to resurrect. Spawn a fresh shell
+					// on the same terminalId; createTerminalSessionInternal carries
+					// over the buffer + title from the killed entry.
+					console.log(`[terminal] resurrecting killed session ${terminalId}`);
+					return createTerminalSessionInternal({
+						terminalId,
+						workspaceId: existing.workspaceId,
+						themeType: parseThemeType(c.req.query("themeType")),
+						db,
+						eventBus,
+						replayOnAdoption: c.req.query("replay") !== "0",
+					});
+				}
 
 				const record = db.query.terminalSessions
 					.findFirst({ where: eq(terminalSessions.id, terminalId) })
@@ -1048,7 +1378,10 @@ export function registerWorkspaceTerminalRoute({
 					if (!session || !session.sockets.has(ws)) return;
 
 					if (message.type === "dispose") {
-						disposeSession(terminalId ?? "", db);
+						// Mark-killed (not hard-dispose) so the entry survives in the
+						// dropdown as "Killed" — the trpc killSession call from the
+						// pane-close path lands here too and is idempotent.
+						markSessionKilled(terminalId ?? "", db);
 						return;
 					}
 
