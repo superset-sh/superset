@@ -131,7 +131,7 @@ describe("handleImagePasteFallback", () => {
 	});
 
 	it("does not call terminal.input for mixed text+image paste", () => {
-		const { event } = clipboardEvent({
+		const { event, flags } = clipboardEvent({
 			types: ["text/plain", "image/png"],
 			getData: (t) => (t === "text/plain" ? "url-as-text" : ""),
 			files: { length: 1 },
@@ -141,6 +141,8 @@ describe("handleImagePasteFallback", () => {
 		handleImagePasteFallback(event, terminal);
 
 		expect(input).not.toHaveBeenCalled();
+		expect(flags.defaultPrevented).toBe(false);
+		expect(flags.immediateStopped).toBe(false);
 	});
 });
 
