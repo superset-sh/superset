@@ -21,7 +21,6 @@ interface DestroyConfirmPaneProps {
 	hasUnpushedCommits: boolean;
 	canConfirm: boolean;
 	blockingReason: string | null;
-	isCheckingStatus: boolean;
 	onConfirm: () => void;
 	confirmLabel: string;
 }
@@ -36,7 +35,6 @@ export function DestroyConfirmPane({
 	hasUnpushedCommits,
 	canConfirm,
 	blockingReason,
-	isCheckingStatus,
 	onConfirm,
 	confirmLabel,
 }: DestroyConfirmPaneProps) {
@@ -54,22 +52,24 @@ export function DestroyConfirmPane({
 						also be removed.
 					</AlertDialogDescription>
 				</AlertDialogHeader>
-				{isCheckingStatus && !hasWarnings && (
-					<div className="px-4 pb-2 text-xs text-muted-foreground">
-						Checking delete status…
-					</div>
-				)}
-				{hasWarnings && (
-					<div className="px-4 pb-2">
-						<div className="text-xs text-yellow-700 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-500/10 border border-yellow-200 dark:border-yellow-500/20 rounded-md px-2.5 py-1.5">
-							{hasChanges && hasUnpushedCommits
+				<div className="px-4 pb-2">
+					<div
+						className={
+							hasWarnings
+								? "text-xs rounded-md border px-2.5 py-1.5 text-yellow-700 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-500/10 border-yellow-200 dark:border-yellow-500/20"
+								: "text-xs rounded-md border border-transparent px-2.5 py-1.5"
+						}
+						aria-hidden={hasWarnings ? undefined : true}
+					>
+						{hasWarnings
+							? hasChanges && hasUnpushedCommits
 								? "Has uncommitted changes and unpushed commits"
 								: hasChanges
 									? "Has uncommitted changes"
-									: "Has unpushed commits"}
-						</div>
+									: "Has unpushed commits"
+							: " "}
 					</div>
-				)}
+				</div>
 				{blockingReason && (
 					<div className="px-4 pb-2">
 						<div className="text-xs text-destructive bg-destructive/10 border border-destructive/20 rounded-md px-2.5 py-1.5">

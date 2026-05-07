@@ -31,7 +31,6 @@ export function DashboardSidebarDeleteDialog({
 		hasUnpushedCommits,
 		canConfirm,
 		blockingReason,
-		isCheckingStatus,
 		error,
 		handleOpenChange,
 		run,
@@ -68,7 +67,6 @@ export function DashboardSidebarDeleteDialog({
 			hasUnpushedCommits={hasUnpushedCommits}
 			canConfirm={canConfirm}
 			blockingReason={blockingReason}
-			isCheckingStatus={isCheckingStatus}
 			onConfirm={() => run(hasWarnings)}
 			confirmLabel={confirmLabel}
 		/>
