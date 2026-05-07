@@ -3,6 +3,7 @@ import type { MosaicBranch } from "react-mosaic-component";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { BasePaneWindow, PaneTitle, PaneToolbarActions } from "../components";
+import { VscodeBetaDisabled } from "./components/VscodeBetaDisabled";
 import { VscodeMissingCli } from "./components/VscodeMissingCli";
 import { useEmbeddedVscode } from "./hooks/useEmbeddedVscode";
 
@@ -34,6 +35,10 @@ export function VscodePane({
 	const paneName = pane?.name;
 	const setPaneName = useTabsStore((s) => s.setPaneName);
 
+	const { data: vscodeBetaEnabled } =
+		electronTrpc.settings.getVscodeBetaEnabled.useQuery();
+	const betaOff = vscodeBetaEnabled === false;
+
 	const { data: workspace } = electronTrpc.workspaces.get.useQuery(
 		{ id: workspaceId },
 		{ enabled: !!workspaceId },
@@ -45,6 +50,7 @@ export function VscodePane({
 		paneId,
 		tabId,
 		worktreePath,
+		enabled: !betaOff,
 	});
 
 	const handleRename = useCallback(
@@ -77,7 +83,9 @@ export function VscodePane({
 			)}
 		>
 			<div className="relative flex-1 h-full w-full">
-				{phase === "cli-missing" ? (
+				{betaOff ? (
+					<VscodeBetaDisabled />
+				) : phase === "cli-missing" ? (
 					<VscodeMissingCli />
 				) : (
 					<>

@@ -15,6 +15,7 @@ interface Options {
 	paneId: string;
 	tabId: string;
 	worktreePath: string;
+	enabled?: boolean;
 }
 
 interface Result {
@@ -27,6 +28,7 @@ export function useEmbeddedVscode({
 	paneId,
 	tabId,
 	worktreePath,
+	enabled = true,
 }: Options): Result {
 	const containerRef = useRef<HTMLDivElement | null>(null);
 	const [phase, setPhase] = useState<VscodePhase>("idle");
@@ -51,6 +53,7 @@ export function useEmbeddedVscode({
 	captureRef.current = captureMutation.mutateAsync;
 
 	useEffect(() => {
+		if (!enabled) return;
 		let cancelled = false;
 		setPhase("starting");
 		setErrorMessage(null);
@@ -75,7 +78,7 @@ export function useEmbeddedVscode({
 			cancelled = true;
 			setVisibleRef.current({ paneId, visible: false });
 		};
-	}, [paneId, worktreePath]);
+	}, [paneId, worktreePath, enabled]);
 
 	useEffect(() => {
 		const el = containerRef.current;
