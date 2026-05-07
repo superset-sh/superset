@@ -83,7 +83,9 @@ function V2WorkspacePage() {
 		setRightSidebarOpen,
 		setRightSidebarTab,
 		setRightSidebarWidth,
+		setShowPresetsBar,
 	} = useV2UserPreferences();
+	const showPresetsBar = v2UserPreferences.showPresetsBar;
 	const { store } = useV2WorkspacePaneLayout();
 	useClearActivePaneAttention({ store });
 	const launcher = useV2TerminalLauncher();
@@ -195,17 +197,25 @@ function V2WorkspacePage() {
 								sources={getV2NotificationSourcesForTab(tab)}
 							/>
 						)}
-						renderBelowTabBar={() => (
-							<V2PresetsBar
-								matchedPresets={matchedPresets}
-								executePreset={executePreset}
-							/>
-						)}
+						renderBelowTabBar={
+							showPresetsBar
+								? () => (
+										<V2PresetsBar
+											matchedPresets={matchedPresets}
+											executePreset={executePreset}
+											showPresetsBar={showPresetsBar}
+											onToggleShowPresetsBar={setShowPresetsBar}
+										/>
+									)
+								: undefined
+						}
 						renderAddTabMenu={() => (
 							<AddTabMenu
 								onAddTerminal={addTerminalTab}
 								onAddChat={addChatTab}
 								onAddBrowser={addBrowserTab}
+								showPresetsBar={showPresetsBar}
+								onToggleShowPresetsBar={setShowPresetsBar}
 							/>
 						)}
 						renderEmptyState={() => (

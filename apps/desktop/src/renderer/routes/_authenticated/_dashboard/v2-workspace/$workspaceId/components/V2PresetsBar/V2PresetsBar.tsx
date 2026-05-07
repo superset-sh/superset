@@ -1,6 +1,7 @@
 import { Button } from "@superset/ui/button";
 import {
 	DropdownMenu,
+	DropdownMenuCheckboxItem,
 	DropdownMenuContent,
 	DropdownMenuItem,
 	DropdownMenuSeparator,
@@ -24,6 +25,8 @@ import { V2PresetBarItem } from "./components/V2PresetBarItem";
 interface V2PresetsBarProps {
 	matchedPresets: V2TerminalPresetRow[];
 	executePreset: (preset: V2TerminalPresetRow) => void | Promise<void>;
+	showPresetsBar: boolean;
+	onToggleShowPresetsBar: (enabled: boolean) => void;
 }
 
 // Co-located to keep v2 self-contained. Mirrors the v1 array in
@@ -63,6 +66,8 @@ function getVisiblePresetOrder(
 export function V2PresetsBar({
 	matchedPresets,
 	executePreset,
+	showPresetsBar,
+	onToggleShowPresetsBar,
 }: V2PresetsBarProps) {
 	const navigate = useNavigate();
 	const isDark = useIsDarkTheme();
@@ -242,6 +247,16 @@ export function V2PresetsBar({
 							</DropdownMenuItem>
 						);
 					})}
+					<DropdownMenuSeparator />
+					<DropdownMenuCheckboxItem
+						checked={showPresetsBar}
+						onCheckedChange={(checked) =>
+							onToggleShowPresetsBar(checked === true)
+						}
+						onSelect={(event) => event.preventDefault()}
+					>
+						Show Preset Bar
+					</DropdownMenuCheckboxItem>
 					<DropdownMenuSeparator />
 					<DropdownMenuItem
 						className="gap-2"
