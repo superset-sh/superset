@@ -15,10 +15,10 @@ import { parseHostRoutingKey } from "@superset/shared/host-routing";
 import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
 import { and, desc, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
-import { jwtProcedure, protectedProcedure } from "../../trpc";
+import { authenticatedProcedure } from "../../trpc";
 
 export const hostRouter = {
-	list: jwtProcedure
+	list: authenticatedProcedure
 		.input(z.object({ organizationId: z.string().uuid() }))
 		.query(async ({ ctx, input }) => {
 			if (!ctx.organizationIds.includes(input.organizationId)) {
@@ -58,7 +58,7 @@ export const hostRouter = {
 			}));
 		}),
 
-	ensure: jwtProcedure
+	ensure: authenticatedProcedure
 		.input(
 			z.object({
 				organizationId: z.string().uuid(),
@@ -118,7 +118,7 @@ export const hostRouter = {
 			return host;
 		}),
 
-	ensureClient: protectedProcedure
+	ensureClient: authenticatedProcedure
 		.input(
 			z.object({
 				machineId: z.string().min(1),
@@ -134,7 +134,7 @@ export const hostRouter = {
 				});
 			}
 
-			const userId = ctx.session.user.id;
+			const userId = ctx.userId;
 
 			const [client] = await dbWs
 				.insert(v2Clients)
@@ -166,7 +166,7 @@ export const hostRouter = {
 			return client;
 		}),
 
-	checkAccess: jwtProcedure
+	checkAccess: authenticatedProcedure
 		.input(z.object({ hostId: z.string().min(1) }))
 		.query(async ({ ctx, input }) => {
 			const parsed = parseHostRoutingKey(input.hostId);
@@ -206,7 +206,7 @@ export const hostRouter = {
 			return { allowed, paidPlan };
 		}),
 
-	setOnline: jwtProcedure
+	setOnline: authenticatedProcedure
 		.input(z.object({ hostId: z.string().min(1), isOnline: z.boolean() }))
 		.mutation(async ({ ctx, input }) => {
 			const parsed = parseHostRoutingKey(input.hostId);

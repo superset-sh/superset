@@ -1,13 +1,14 @@
 import { db } from "@superset/db/client";
-import { submittedPrompts } from "@superset/db/schema";
+import { submittedPrompts, users } from "@superset/db/schema";
 import { COMPANY } from "@superset/shared/constants";
 import { TRPCError } from "@trpc/server";
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
+import { eq } from "drizzle-orm";
 import { Resend } from "resend";
 import { z } from "zod";
 import { env } from "../../env";
-import { createTRPCRouter, protectedProcedure } from "../../trpc";
+import { authenticatedProcedure, createTRPCRouter } from "../../trpc";
 
 const resend = new Resend(env.RESEND_API_KEY);
 const SUPPORT_EMAIL = COMPANY.MAIL_TO.replace(/^mailto:/, "");
@@ -102,7 +103,7 @@ function sanitizeEmailBodyLine(value: string): string {
 }
 
 export const supportRouter = createTRPCRouter({
-	sendMigrationReport: protectedProcedure
+	sendMigrationReport: authenticatedProcedure
 		.input(
 			z.object({
 				report: z.string().min(1).max(20_000),
@@ -110,12 +111,22 @@ export const supportRouter = createTRPCRouter({
 		)
 		.mutation(async ({ ctx, input }) => {
 			const organizationId = ctx.activeOrganizationId;
-			const user = ctx.session.user;
-			const safeName = user.name ? sanitizeEmailBodyLine(user.name) : "";
-			const userLabel = safeName ? `${safeName} <${user.email}>` : user.email;
+			// Fetch from the DB rather than ctx — API-key callers don't
+			// carry an email claim, and we need a real address for replyTo.
+			const userRow = await db.query.users.findFirst({
+				where: eq(users.id, ctx.userId),
+				columns: { name: true, email: true },
+			});
+			const userEmail = userRow?.email || ctx.email || "";
+			const safeName = userRow?.name ? sanitizeEmailBodyLine(userRow.name) : "";
+			const userLabel = userEmail
+				? safeName
+					? `${safeName} <${userEmail}>`
+					: userEmail
+				: `userId:${ctx.userId}`;
 
 			await assertSupportReportRateLimit({
-				userId: user.id,
+				userId: ctx.userId,
 				organizationId,
 			});
 
@@ -123,11 +134,11 @@ export const supportRouter = createTRPCRouter({
 				await resend.emails.send({
 					from: "Superset <noreply@superset.sh>",
 					to: SUPPORT_EMAIL,
-					replyTo: user.email,
+					replyTo: userEmail || undefined,
 					subject: "Superset V1 to V2 migration issue",
 					text: [
 						`User: ${userLabel}`,
-						`User ID: ${user.id}`,
+						`User ID: ${ctx.userId}`,
 						`Organization ID: ${organizationId ?? "none"}`,
 						"",
 						input.report,
@@ -142,7 +153,7 @@ export const supportRouter = createTRPCRouter({
 			}
 		}),
 
-	submitPrompt: protectedProcedure
+	submitPrompt: authenticatedProcedure
 		.input(
 			z.object({
 				promptText: z.string().min(1).max(10_000),
@@ -150,7 +161,7 @@ export const supportRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			const userId = ctx.session.user.id;
+			const userId = ctx.userId;
 			const organizationId = ctx.activeOrganizationId ?? null;
 
 			await assertSubmitPromptRateLimit({ userId, organizationId });

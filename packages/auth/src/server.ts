@@ -27,6 +27,7 @@ import type Stripe from "stripe";
 import { env } from "./env";
 import { acceptInvitationEndpoint } from "./lib/accept-invitation-endpoint";
 import { generateMagicTokenForInvite } from "./lib/generate-magic-token";
+import { VALID_OAUTH_AUDIENCES } from "./lib/oauth-audiences";
 import { invitationRateLimit } from "./lib/rate-limit";
 import { resend } from "./lib/resend";
 import {
@@ -202,12 +203,7 @@ export const auth = betterAuth({
 			consentPage: `${env.NEXT_PUBLIC_WEB_URL}/oauth/consent`,
 			allowDynamicClientRegistration: true,
 			allowUnauthenticatedClientRegistration: true,
-			validAudiences: [
-				env.NEXT_PUBLIC_API_URL,
-				`${env.NEXT_PUBLIC_API_URL}/`,
-				`${env.NEXT_PUBLIC_API_URL}/api/agent/mcp`,
-				`${env.NEXT_PUBLIC_API_URL}/api/v2/agent/mcp`,
-			],
+			validAudiences: VALID_OAUTH_AUDIENCES,
 			silenceWarnings: {
 				oauthAuthServerConfig: true,
 				openidConfig: true,

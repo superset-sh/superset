@@ -19,6 +19,14 @@
 		"./stripe": {
 			"types": "./src/stripe.ts",
 			"default": "./src/stripe.ts"
+		},
+		"./resolve-bearer-auth": {
+			"types": "./src/lib/resolve-bearer-auth.ts",
+			"default": "./src/lib/resolve-bearer-auth.ts"
+		},
+		"./oauth-audiences": {
+			"types": "./src/lib/oauth-audiences.ts",
+			"default": "./src/lib/oauth-audiences.ts"
 		}
 	},
 	"scripts": {

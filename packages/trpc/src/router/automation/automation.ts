@@ -21,7 +21,7 @@ import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
 import { and, desc, eq, getTableColumns, ilike } from "drizzle-orm";
 import { z } from "zod";
 import { env } from "../../env";
-import { protectedProcedure } from "../../trpc";
+import { authenticatedProcedure } from "../../trpc";
 import {
 	requireActiveOrgMembership,
 	requireActiveOrgMembershipWithSubscription,
@@ -29,7 +29,7 @@ import {
 import { dispatchAutomation } from "./dispatch";
 import {
 	getAutomationForUser,
-	promptSourceFromSession,
+	promptSourceFromAuthKind,
 	recordPromptVersion,
 } from "./helpers";
 import {
@@ -146,7 +146,7 @@ export const automationRouter = {
 	 * List automations scoped to the caller's active organization. The
 	 * `prompt` body is omitted — call `getPrompt` to fetch it for one row.
 	 */
-	list: protectedProcedure
+	list: authenticatedProcedure
 		.input(
 			z
 				.object({
@@ -187,7 +187,7 @@ export const automationRouter = {
 	 * large markdown) — call `getPrompt` to fetch it. Use `listRuns` for
 	 * run history.
 	 */
-	get: protectedProcedure
+	get: authenticatedProcedure
 		.input(z.object({ id: z.string().uuid() }))
 		.query(async ({ ctx, input }) => {
 			const organizationId = await requireActiveOrgMembership(ctx);
@@ -204,7 +204,7 @@ export const automationRouter = {
 				)
 				.limit(1);
 
-			if (!row || row.ownerUserId !== ctx.session.user.id) {
+			if (!row || row.ownerUserId !== ctx.userId) {
 				throw new TRPCError({
 					code: "NOT_FOUND",
 					message: "Automation not found",
@@ -214,7 +214,7 @@ export const automationRouter = {
 			return { ...row, scheduleText: safeDescribeRrule(row) };
 		}),
 
-	create: protectedProcedure
+	create: authenticatedProcedure
 		.input(createAutomationSchema)
 		.mutation(async ({ ctx, input }) => {
 			const { organizationId, subscription } =
@@ -222,11 +222,7 @@ export const automationRouter = {
 			requirePaidSubscription(subscription);
 
 			if (input.targetHostId) {
-				await verifyHostAccess(
-					ctx.session.user.id,
-					organizationId,
-					input.targetHostId,
-				);
+				await verifyHostAccess(ctx.userId, organizationId, input.targetHostId);
 			}
 
 			let v2ProjectId = input.v2ProjectId;
@@ -265,7 +261,7 @@ export const automationRouter = {
 					.insert(automations)
 					.values({
 						organizationId,
-						ownerUserId: ctx.session.user.id,
+						ownerUserId: ctx.userId,
 						name: input.name,
 						prompt: input.prompt,
 						agentConfig: input.agentConfig,
@@ -290,9 +286,9 @@ export const automationRouter = {
 
 				await recordPromptVersion(tx, {
 					automationId: row.id,
-					authorUserId: ctx.session.user.id,
+					authorUserId: ctx.userId,
 					content: input.prompt,
-					source: promptSourceFromSession(ctx.session),
+					source: promptSourceFromAuthKind(ctx.authKind),
 				});
 
 				return row;
@@ -301,22 +297,18 @@ export const automationRouter = {
 			return { ...created, scheduleText: safeDescribeRrule(created) };
 		}),
 
-	update: protectedProcedure
+	update: authenticatedProcedure
 		.input(updateAutomationSchema)
 		.mutation(async ({ ctx, input }) => {
 			const organizationId = await requireActiveOrgMembership(ctx);
 			const existing = await getAutomationForUser(
-				ctx.session.user.id,
+				ctx.userId,
 				organizationId,
 				input.id,
 			);
 
 			if (input.targetHostId !== undefined && input.targetHostId !== null) {
-				await verifyHostAccess(
-					ctx.session.user.id,
-					organizationId,
-					input.targetHostId,
-				);
+				await verifyHostAccess(ctx.userId, organizationId, input.targetHostId);
 			}
 			if (input.v2WorkspaceId) {
 				await verifyWorkspaceInOrg(organizationId, input.v2WorkspaceId);
@@ -364,24 +356,24 @@ export const automationRouter = {
 			return { ...updated, scheduleText: safeDescribeRrule(updated) };
 		}),
 
-	getPrompt: protectedProcedure
+	getPrompt: authenticatedProcedure
 		.input(z.object({ id: z.string().uuid() }))
 		.query(async ({ ctx, input }) => {
 			const organizationId = await requireActiveOrgMembership(ctx);
 			const existing = await getAutomationForUser(
-				ctx.session.user.id,
+				ctx.userId,
 				organizationId,
 				input.id,
 			);
 			return { id: existing.id, prompt: existing.prompt };
 		}),
 
-	setPrompt: protectedProcedure
+	setPrompt: authenticatedProcedure
 		.input(setAutomationPromptSchema)
 		.mutation(async ({ ctx, input }) => {
 			const organizationId = await requireActiveOrgMembership(ctx);
 			const existing = await getAutomationForUser(
-				ctx.session.user.id,
+				ctx.userId,
 				organizationId,
 				input.id,
 			);
@@ -406,9 +398,9 @@ export const automationRouter = {
 
 				await recordPromptVersion(tx, {
 					automationId: input.id,
-					authorUserId: ctx.session.user.id,
+					authorUserId: ctx.userId,
 					content: input.prompt,
-					source: promptSourceFromSession(ctx.session),
+					source: promptSourceFromAuthKind(ctx.authKind),
 				});
 
 				return row;
@@ -417,18 +409,18 @@ export const automationRouter = {
 			return { ...updated, scheduleText: safeDescribeRrule(updated) };
 		}),
 
-	delete: protectedProcedure
+	delete: authenticatedProcedure
 		.input(z.object({ id: z.string().uuid() }))
 		.mutation(async ({ ctx, input }) => {
 			const organizationId = await requireActiveOrgMembership(ctx);
-			await getAutomationForUser(ctx.session.user.id, organizationId, input.id);
+			await getAutomationForUser(ctx.userId, organizationId, input.id);
 
 			await dbWs.delete(automations).where(eq(automations.id, input.id));
 
 			return { ok: true };
 		}),
 
-	setEnabled: protectedProcedure
+	setEnabled: authenticatedProcedure
 		.input(z.object({ id: z.string().uuid(), enabled: z.boolean() }))
 		.mutation(async ({ ctx, input }) => {
 			const { organizationId, subscription } =
@@ -437,7 +429,7 @@ export const automationRouter = {
 				requirePaidSubscription(subscription);
 			}
 			const existing = await getAutomationForUser(
-				ctx.session.user.id,
+				ctx.userId,
 				organizationId,
 				input.id,
 			);
@@ -465,14 +457,14 @@ export const automationRouter = {
 			return { ...updated, scheduleText: safeDescribeRrule(updated) };
 		}),
 
-	runNow: protectedProcedure
+	runNow: authenticatedProcedure
 		.input(z.object({ id: z.string().uuid() }))
 		.mutation(async ({ ctx, input }) => {
 			const { organizationId, subscription } =
 				await requireActiveOrgMembershipWithSubscription(ctx);
 			requirePaidSubscription(subscription);
 			const automation = await getAutomationForUser(
-				ctx.session.user.id,
+				ctx.userId,
 				organizationId,
 				input.id,
 			);
@@ -512,12 +504,12 @@ export const automationRouter = {
 		}),
 
 	/** Run history for a given automation (paginated). */
-	listRuns: protectedProcedure
+	listRuns: authenticatedProcedure
 		.input(listRunsSchema)
 		.query(async ({ ctx, input }) => {
 			const organizationId = await requireActiveOrgMembership(ctx);
 			await getAutomationForUser(
-				ctx.session.user.id,
+				ctx.userId,
 				organizationId,
 				input.automationId,
 			);
@@ -531,7 +523,7 @@ export const automationRouter = {
 		}),
 
 	/** Validate an RRule body + preview its next occurrences. */
-	validateRrule: protectedProcedure
+	validateRrule: authenticatedProcedure
 		.input(parseRruleSchema)
 		.mutation(async ({ input }) => {
 			const dtstart = input.dtstart ?? new Date();

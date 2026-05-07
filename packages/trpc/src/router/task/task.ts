@@ -11,7 +11,7 @@ import { and, desc, eq, ilike, isNull } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { z } from "zod";
 import { syncTask } from "../../lib/integrations/sync";
-import { protectedProcedure, type TRPCContext } from "../../trpc";
+import { authenticatedProcedure } from "../../trpc";
 import { verifyOrgMembership } from "../integration/utils";
 import { requireActiveOrgMembership } from "../utils/active-org";
 import {
@@ -173,7 +173,7 @@ async function getScopedAssigneeId(
 }
 
 type CreateTaskContext = {
-	session: NonNullable<TRPCContext["session"]>;
+	userId: string;
 	activeOrganizationId: string | null;
 };
 
@@ -228,7 +228,7 @@ async function createTask(
 						statusId,
 						priority: input.priority ?? "none",
 						organizationId,
-						creatorId: ctx.session.user.id,
+						creatorId: ctx.userId,
 						assigneeId,
 						estimate: input.estimate ?? null,
 						dueDate: input.dueDate ?? null,
@@ -270,7 +270,7 @@ export const taskRouter = {
 	 * shipped CLI on `main` keeps compiling against the new backend during
 	 * the CLI-v1 split rollout.
 	 */
-	all: protectedProcedure.query(async ({ ctx }) => {
+	all: authenticatedProcedure.query(async ({ ctx }) => {
 		const organizationId = await requireActiveOrgMembership(ctx);
 		const assignee = alias(users, "assignee");
 		const creator = alias(users, "creator");
@@ -297,7 +297,7 @@ export const taskRouter = {
 			.orderBy(desc(tasks.createdAt));
 	}),
 
-	list: protectedProcedure
+	list: authenticatedProcedure
 		.input(taskListInputSchema)
 		.query(async ({ ctx, input }) => {
 			const organizationId = await requireActiveOrgMembership(ctx);
@@ -313,12 +313,12 @@ export const taskRouter = {
 			if (input?.priority) filters.push(eq(tasks.priority, input.priority));
 			if (input?.statusId) filters.push(eq(tasks.statusId, input.statusId));
 			if (input?.assigneeMe) {
-				filters.push(eq(tasks.assigneeId, ctx.session.user.id));
+				filters.push(eq(tasks.assigneeId, ctx.userId));
 			} else if (input?.assigneeId) {
 				filters.push(eq(tasks.assigneeId, input.assigneeId));
 			}
 			if (input?.creatorMe) {
-				filters.push(eq(tasks.creatorId, ctx.session.user.id));
+				filters.push(eq(tasks.creatorId, ctx.userId));
 			}
 			if (input?.search) {
 				filters.push(
@@ -351,10 +351,10 @@ export const taskRouter = {
 				.offset(input?.offset ?? 0);
 		}),
 
-	byOrganization: protectedProcedure
+	byOrganization: authenticatedProcedure
 		.input(z.string().uuid())
 		.query(async ({ ctx, input }) => {
-			await verifyOrgMembership(ctx.session.user.id, input);
+			await verifyOrgMembership(ctx.userId, input);
 
 			return db
 				.select()
@@ -363,16 +363,18 @@ export const taskRouter = {
 				.orderBy(desc(tasks.createdAt));
 		}),
 
-	byId: protectedProcedure
+	byId: authenticatedProcedure
 		.input(z.string().uuid())
-		.query(({ ctx, input }) => getTaskById(ctx.session.user.id, input)),
+		.query(({ ctx, input }) => getTaskById(ctx.userId, input)),
 
-	bySlug: protectedProcedure.input(z.string()).query(async ({ ctx, input }) => {
-		const organizationId = await requireActiveOrgMembership(ctx);
-		return getTaskBySlug(ctx.session.user.id, organizationId, input);
-	}),
+	bySlug: authenticatedProcedure
+		.input(z.string())
+		.query(async ({ ctx, input }) => {
+			const organizationId = await requireActiveOrgMembership(ctx);
+			return getTaskBySlug(ctx.userId, organizationId, input);
+		}),
 
-	byIdOrSlug: protectedProcedure
+	byIdOrSlug: authenticatedProcedure
 		.input(z.string().min(1))
 		.query(async ({ ctx, input }) => {
 			const looksLikeUuid =
@@ -380,11 +382,11 @@ export const taskRouter = {
 					input,
 				);
 			if (looksLikeUuid) {
-				const task = await getTaskById(ctx.session.user.id, input);
+				const task = await getTaskById(ctx.userId, input);
 				if (task) return task;
 			}
 			const organizationId = await requireActiveOrgMembership(ctx);
-			return getTaskBySlug(ctx.session.user.id, organizationId, input);
+			return getTaskBySlug(ctx.userId, organizationId, input);
 		}),
 
 	/**
@@ -392,21 +394,21 @@ export const taskRouter = {
 	 * shipped renderer/CLI on `main` keep working during the CLI-v1 split
 	 * rollout.
 	 */
-	createFromUi: protectedProcedure
+	createFromUi: authenticatedProcedure
 		.input(createTaskSchema)
 		.mutation(({ ctx, input }) => createTask(ctx, input)),
 
-	create: protectedProcedure
+	create: authenticatedProcedure
 		.input(createTaskSchema)
 		.mutation(({ ctx, input }) => createTask(ctx, input)),
 
-	update: protectedProcedure
+	update: authenticatedProcedure
 		.input(updateTaskSchema)
 		.mutation(async ({ ctx, input }) => {
 			const { id, ...data } = input;
 
 			const result = await dbWs.transaction(async (tx) => {
-				const taskAccess = await getTaskAccess(tx, ctx.session.user.id, id);
+				const taskAccess = await getTaskAccess(tx, ctx.userId, id);
 
 				// Enforce assignee invariant: setting internal assignee clears external snapshot
 				const updateData: Record<string, unknown> = { ...data };
@@ -450,11 +452,11 @@ export const taskRouter = {
 			return result;
 		}),
 
-	delete: protectedProcedure
+	delete: authenticatedProcedure
 		.input(z.string().uuid())
 		.mutation(async ({ ctx, input }) => {
 			const result = await dbWs.transaction(async (tx) => {
-				await getTaskAccess(tx, ctx.session.user.id, input);
+				await getTaskAccess(tx, ctx.userId, input);
 
 				const [deleted] = await tx
 					.update(tasks)

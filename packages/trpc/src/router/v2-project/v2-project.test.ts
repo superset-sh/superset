@@ -176,6 +176,7 @@ mock.module("drizzle-orm", () => ({
 	and: (...conditions: unknown[]) => ({ type: "and", conditions }),
 	desc: (value: unknown) => ({ type: "desc", value }),
 	eq: (left: unknown, right: unknown) => ({ type: "eq", left, right }),
+	ne: (left: unknown, right: unknown) => ({ type: "ne", left, right }),
 	ilike: (left: unknown, right: unknown) => ({ type: "ilike", left, right }),
 	isNull: (value: unknown) => ({ type: "isNull", value }),
 	sql: Object.assign(
@@ -186,6 +187,43 @@ mock.module("drizzle-orm", () => ({
 		}),
 		{ raw: (s: string) => ({ type: "raw", s }) },
 	),
+}));
+
+// Stop trpc.ts → @superset/auth chain from loading the real Better Auth
+// (it transitively pulls @superset/db/schema and breaks the drizzle-orm
+// mock). The mock returns whatever the test set on `__nextAuth`, so
+// authedContext / unauthedContext can drive the procedure pipeline.
+type MockBearerAuth = {
+	kind: "session";
+	userId: string;
+	email: string;
+	activeOrganizationId: string | null;
+	organizationIds: string[];
+	scopes: string[];
+};
+let __nextAuth: MockBearerAuth | null = null;
+let __explicitOrgIds: string[] | null = null;
+function setAuth(value: MockBearerAuth | null) {
+	__nextAuth = value;
+	if (value && __explicitOrgIds) {
+		value.organizationIds = __explicitOrgIds;
+	}
+}
+
+mock.module("@superset/auth/resolve-bearer-auth", () => ({
+	resolveBearerAuth: async () => __nextAuth,
+	BearerAuthError: class BearerAuthError extends Error {
+		constructor(
+			public readonly reason: string,
+			message: string,
+		) {
+			super(message);
+		}
+	},
+}));
+
+mock.module("@superset/auth/server", () => ({
+	auth: { api: { getSession: async () => null } },
 }));
 
 const { createCallerFactory, createTRPCRouter } = await import("../../trpc");
@@ -210,20 +248,24 @@ function authedContext(
 		overrides.activeOrganizationId === undefined
 			? ORG_ID
 			: overrides.activeOrganizationId;
+	setAuth({
+		kind: "session",
+		userId: USER_ID,
+		email: "u@example.com",
+		activeOrganizationId,
+		organizationIds: activeOrganizationId ? [activeOrganizationId] : [],
+		scopes: [],
+	});
 	return {
-		session: {
-			user: { id: USER_ID, email: "u@example.com" },
-			session: { activeOrganizationId },
-		} as never,
-		auth: {} as never,
+		auth: { api: { getSession: async () => null } } as never,
 		headers: new Headers(),
 	};
 }
 
 function unauthedContext() {
+	setAuth(null);
 	return {
-		session: null as never,
-		auth: {} as never,
+		auth: { api: { getSession: async () => null } } as never,
 		headers: new Headers(),
 	};
 }
@@ -237,6 +279,11 @@ async function flushMicrotasks() {
 
 function setMembershipForJwt(organizationId = ORG_ID) {
 	membersFindManyResults.push([{ organizationId }]);
+	// Auth gate now lists memberships up-front; mirror the test's
+	// intended membership state on the bearer-auth mock so org-scope
+	// rejections still trigger. Recorded for future authedContext() too.
+	__explicitOrgIds = [organizationId];
+	if (__nextAuth) __nextAuth.organizationIds = [organizationId];
 }
 
 beforeEach(() => {
@@ -246,6 +293,8 @@ beforeEach(() => {
 	dbInsertReturningResults = [];
 	dbUpdateReturningResults = [];
 	txUpdateReturningResults = [];
+	__nextAuth = null;
+	__explicitOrgIds = null;
 
 	v2ProjectsFindFirst.mockClear();
 	githubReposFindFirst.mockClear();
@@ -737,7 +786,7 @@ describe("v2Project.create — GitHub avatar auto-hydration", () => {
 	});
 
 	it("rejects when caller is not a member of the target organization", async () => {
-		membersFindManyResults.push([{ organizationId: OTHER_ORG_ID }]);
+		setMembershipForJwt(OTHER_ORG_ID);
 
 		const caller = createCaller(authedContext());
 
@@ -833,7 +882,7 @@ describe("v2Project.linkRepoCloneUrl — GitHub avatar auto-hydration", () => {
 	};
 
 	it("rejects with FORBIDDEN when caller is not a member of the org", async () => {
-		membersFindManyResults.push([{ organizationId: OTHER_ORG_ID }]);
+		setMembershipForJwt(OTHER_ORG_ID);
 
 		const caller = createCaller(authedContext());
 

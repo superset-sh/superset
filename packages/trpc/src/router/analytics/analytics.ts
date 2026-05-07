@@ -14,7 +14,7 @@ import {
 	type InsightVizNode,
 	type RetentionCohort,
 } from "../../lib/posthog-client";
-import { adminProcedure, protectedProcedure } from "../../trpc";
+import { adminProcedure, authenticatedProcedure } from "../../trpc";
 
 export interface FunnelStepData {
 	name: string;
@@ -55,7 +55,7 @@ function formatWeekData(
 }
 
 export const analyticsRouter = {
-	captureEvent: protectedProcedure
+	captureEvent: authenticatedProcedure
 		.input(
 			z.object({
 				source: z.string().min(1).max(50),
@@ -64,16 +64,12 @@ export const analyticsRouter = {
 			}),
 		)
 		.mutation(({ ctx, input }) => {
-			const augmented = ctx.session.session as typeof ctx.session.session & {
-				plan?: string | null;
-			};
 			posthog.capture({
-				distinctId: ctx.session.user.id,
+				distinctId: ctx.userId,
 				event: input.event,
 				properties: {
 					...(input.properties ?? {}),
 					source: input.source,
-					plan: augmented.plan ?? null,
 					active_organization_id: ctx.activeOrganizationId,
 				},
 				groups: ctx.activeOrganizationId

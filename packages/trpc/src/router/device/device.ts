@@ -2,7 +2,7 @@ import { db } from "@superset/db/client";
 import { devicePresence, deviceTypeValues } from "@superset/db/schema";
 import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
 import { z } from "zod";
-import { protectedProcedure } from "../../trpc";
+import { authenticatedProcedure } from "../../trpc";
 
 /**
  * v1 device-presence procedures. Kept separate from the v2 host router so the
@@ -14,7 +14,7 @@ export const deviceRouter = {
 	 * @deprecated Kept for backwards compat with shipped desktop/mobile clients
 	 * that still call heartbeat on a 30s interval. Same logic as registerDevice.
 	 */
-	heartbeat: protectedProcedure
+	heartbeat: authenticatedProcedure
 		.input(
 			z.object({
 				deviceId: z.string().min(1),
@@ -31,7 +31,7 @@ export const deviceRouter = {
 				});
 			}
 
-			const userId = ctx.session.user.id;
+			const userId = ctx.userId;
 			const now = new Date();
 
 			await db
@@ -62,7 +62,7 @@ export const deviceRouter = {
 	 * Register device presence (called once on app startup).
 	 * Upserts a row so MCP can verify device ownership.
 	 */
-	registerDevice: protectedProcedure
+	registerDevice: authenticatedProcedure
 		.input(
 			z.object({
 				deviceId: z.string().min(1),
@@ -79,7 +79,7 @@ export const deviceRouter = {
 				});
 			}
 
-			const userId = ctx.session.user.id;
+			const userId = ctx.userId;
 			const now = new Date();
 
 			const [device] = await db

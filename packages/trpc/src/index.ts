@@ -5,9 +5,9 @@ export { appRouter, createCaller } from "./root";
 // tRPC utilities
 export {
 	adminProcedure,
+	authenticatedProcedure,
 	createCallerFactory,
 	createTRPCContext,
 	createTRPCRouter,
-	protectedProcedure,
 	publicProcedure,
 } from "./trpc";

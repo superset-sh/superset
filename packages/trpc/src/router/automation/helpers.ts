@@ -18,10 +18,15 @@ export function currentPromptWindowBucket(): number {
 	return Math.floor(Date.now() / 1000 / PROMPT_VERSION_BUCKET_SECONDS);
 }
 
-export function promptSourceFromSession(session: {
-	session: { userAgent: string | null };
-}): AutomationPromptSource {
-	return session.session.userAgent === "mcp-v2" ? "agent" : "human";
+/**
+ * Web cookie callers are humans. Bearer callers (CLI, SDK, MCP) are agents
+ * acting on behalf of a user — the prompt-version log distinguishes the two
+ * for audit/UI purposes.
+ */
+export function promptSourceFromAuthKind(
+	authKind: "session" | "jwt" | "apiKey",
+): AutomationPromptSource {
+	return authKind === "session" ? "human" : "agent";
 }
 
 export type AutomationDbExecutor =

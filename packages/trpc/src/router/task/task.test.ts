@@ -173,6 +173,7 @@ mock.module("drizzle-orm", () => ({
 	and: (...conditions: unknown[]) => ({ type: "and", conditions }),
 	desc: (value: unknown) => ({ type: "desc", value }),
 	eq: (left: unknown, right: unknown) => ({ type: "eq", left, right }),
+	ne: (left: unknown, right: unknown) => ({ type: "ne", left, right }),
 	ilike: (left: unknown, right: unknown) => ({ type: "ilike", left, right }),
 	isNull: (value: unknown) => ({ type: "isNull", value }),
 	sql: Object.assign(
@@ -199,6 +200,36 @@ mock.module("../integration/utils", () => ({
 	verifyOrgMembershipWithSubscription: verifyOrgMembershipWithSubscriptionMock,
 }));
 
+// Stop the trpc.ts → @superset/auth chain from loading the real Better Auth
+// instance (which transitively pulls @superset/db/schema and breaks bun's
+// pg-core mock). The procedure pipeline reads identity off the bearer
+// resolver — give it a result that matches the test context.
+const ACTOR_USER_ID = "11111111-1111-4111-8111-111111111111";
+const ORGANIZATION_ID = "33333333-3333-4333-8333-333333333333";
+
+mock.module("@superset/auth/resolve-bearer-auth", () => ({
+	resolveBearerAuth: async () => ({
+		kind: "session" as const,
+		userId: ACTOR_USER_ID,
+		email: "actor@example.com",
+		activeOrganizationId: ORGANIZATION_ID,
+		organizationIds: [ORGANIZATION_ID],
+		scopes: [],
+	}),
+	BearerAuthError: class BearerAuthError extends Error {
+		constructor(
+			public readonly reason: string,
+			message: string,
+		) {
+			super(message);
+		}
+	},
+}));
+
+mock.module("@superset/auth/server", () => ({
+	auth: { api: {} },
+}));
+
 const { createCallerFactory, createTRPCRouter } = await import("../../trpc");
 const { taskRouter } = await import("./task");
 
@@ -208,9 +239,7 @@ const createCaller = createCallerFactory(
 	} satisfies TRPCRouterRecord),
 );
 
-const ACTOR_USER_ID = "11111111-1111-4111-8111-111111111111";
 const ASSIGNEE_ID = "22222222-2222-4222-8222-222222222222";
-const ORGANIZATION_ID = "33333333-3333-4333-8333-333333333333";
 const STATUS_ID = "44444444-4444-4444-8444-444444444444";
 const TASK_ID = "55555555-5555-4555-8555-555555555555";
 

@@ -10,16 +10,16 @@ import { Client } from "@upstash/qstash";
 import { and, desc, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { env } from "../../../env";
-import { protectedProcedure } from "../../../trpc";
+import { authenticatedProcedure } from "../../../trpc";
 import { verifyOrgAdmin, verifyOrgMembership } from "../utils";
 
 const qstash = new Client({ token: env.QSTASH_TOKEN });
 
 export const githubRouter = {
-	getInstallation: protectedProcedure
+	getInstallation: authenticatedProcedure
 		.input(z.object({ organizationId: z.string().uuid() }))
 		.query(async ({ ctx, input }) => {
-			await verifyOrgMembership(ctx.session.user.id, input.organizationId);
+			await verifyOrgMembership(ctx.userId, input.organizationId);
 
 			const installation = await db.query.githubInstallations.findFirst({
 				where: eq(githubInstallations.organizationId, input.organizationId),
@@ -36,10 +36,10 @@ export const githubRouter = {
 			return installation ?? null;
 		}),
 
-	disconnect: protectedProcedure
+	disconnect: authenticatedProcedure
 		.input(z.object({ organizationId: z.string().uuid() }))
 		.mutation(async ({ ctx, input }) => {
-			await verifyOrgAdmin(ctx.session.user.id, input.organizationId);
+			await verifyOrgAdmin(ctx.userId, input.organizationId);
 
 			const result = await db
 				.delete(githubInstallations)
@@ -53,10 +53,10 @@ export const githubRouter = {
 			return { success: true };
 		}),
 
-	triggerSync: protectedProcedure
+	triggerSync: authenticatedProcedure
 		.input(z.object({ organizationId: z.string().uuid() }))
 		.mutation(async ({ ctx, input }) => {
-			await verifyOrgMembership(ctx.session.user.id, input.organizationId);
+			await verifyOrgMembership(ctx.userId, input.organizationId);
 
 			const installation = await db.query.githubInstallations.findFirst({
 				where: eq(githubInstallations.organizationId, input.organizationId),
@@ -96,10 +96,10 @@ export const githubRouter = {
 			return { success: true };
 		}),
 
-	listRepositories: protectedProcedure
+	listRepositories: authenticatedProcedure
 		.input(z.object({ organizationId: z.string().uuid() }))
 		.query(async ({ ctx, input }) => {
-			await verifyOrgMembership(ctx.session.user.id, input.organizationId);
+			await verifyOrgMembership(ctx.userId, input.organizationId);
 
 			const installation = await db.query.githubInstallations.findFirst({
 				where: eq(githubInstallations.organizationId, input.organizationId),
@@ -116,7 +116,7 @@ export const githubRouter = {
 			});
 		}),
 
-	listPullRequests: protectedProcedure
+	listPullRequests: authenticatedProcedure
 		.input(
 			z.object({
 				organizationId: z.string().uuid(),
@@ -125,7 +125,7 @@ export const githubRouter = {
 			}),
 		)
 		.query(async ({ ctx, input }) => {
-			await verifyOrgMembership(ctx.session.user.id, input.organizationId);
+			await verifyOrgMembership(ctx.userId, input.organizationId);
 
 			const installation = await db.query.githubInstallations.findFirst({
 				where: eq(githubInstallations.organizationId, input.organizationId),
@@ -180,10 +180,10 @@ export const githubRouter = {
 			});
 		}),
 
-	getStats: protectedProcedure
+	getStats: authenticatedProcedure
 		.input(z.object({ organizationId: z.string().uuid() }))
 		.query(async ({ ctx, input }) => {
-			await verifyOrgMembership(ctx.session.user.id, input.organizationId);
+			await verifyOrgMembership(ctx.userId, input.organizationId);
 
 			const installation = await db.query.githubInstallations.findFirst({
 				where: eq(githubInstallations.organizationId, input.organizationId),

@@ -3,14 +3,14 @@ import { integrationConnections } from "@superset/db/schema";
 import type { TRPCRouterRecord } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
-import { protectedProcedure } from "../../../trpc";
+import { authenticatedProcedure } from "../../../trpc";
 import { verifyOrgAdmin, verifyOrgMembership } from "../utils";
 
 export const slackRouter = {
-	getConnection: protectedProcedure
+	getConnection: authenticatedProcedure
 		.input(z.object({ organizationId: z.uuid() }))
 		.query(async ({ ctx, input }) => {
-			await verifyOrgMembership(ctx.session.user.id, input.organizationId);
+			await verifyOrgMembership(ctx.userId, input.organizationId);
 
 			const connection = await db.query.integrationConnections.findFirst({
 				where: and(
@@ -33,10 +33,10 @@ export const slackRouter = {
 			};
 		}),
 
-	disconnect: protectedProcedure
+	disconnect: authenticatedProcedure
 		.input(z.object({ organizationId: z.uuid() }))
 		.mutation(async ({ ctx, input }) => {
-			await verifyOrgAdmin(ctx.session.user.id, input.organizationId);
+			await verifyOrgAdmin(ctx.userId, input.organizationId);
 
 			const result = await db
 				.delete(integrationConnections)

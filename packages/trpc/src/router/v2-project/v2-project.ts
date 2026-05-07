@@ -13,7 +13,7 @@ import { and, eq, isNull, sql } from "drizzle-orm";
 import { z } from "zod";
 import { fetchAndStoreGitHubAvatar } from "../../lib/github-avatar";
 import { generateImagePathname, uploadImage } from "../../lib/upload";
-import { jwtProcedure, protectedProcedure } from "../../trpc";
+import { authenticatedProcedure } from "../../trpc";
 import { requireActiveOrgId } from "../utils/active-org";
 import {
 	requireOrgResourceAccess,
@@ -68,7 +68,7 @@ async function getProjectAccess(
 }
 
 export const v2ProjectRouter = {
-	list: jwtProcedure
+	list: authenticatedProcedure
 		.input(
 			z.object({
 				organizationId: z.string().uuid(),
@@ -93,7 +93,7 @@ export const v2ProjectRouter = {
 				.where(eq(v2Projects.organizationId, input.organizationId));
 		}),
 
-	get: jwtProcedure
+	get: authenticatedProcedure
 		.input(
 			z.object({
 				organizationId: z.string().uuid(),
@@ -121,7 +121,7 @@ export const v2ProjectRouter = {
 			return row;
 		}),
 
-	findByGitHubRemote: jwtProcedure
+	findByGitHubRemote: authenticatedProcedure
 		.input(
 			z.object({
 				organizationId: z.string().uuid(),
@@ -164,7 +164,7 @@ export const v2ProjectRouter = {
 			return { candidates: rows };
 		}),
 
-	create: jwtProcedure
+	create: authenticatedProcedure
 		.input(
 			z.object({
 				organizationId: z.string().uuid(),
@@ -291,7 +291,7 @@ export const v2ProjectRouter = {
 			return project;
 		}),
 
-	linkRepoCloneUrl: jwtProcedure
+	linkRepoCloneUrl: authenticatedProcedure
 		.input(
 			z.object({
 				organizationId: z.string().uuid(),
@@ -387,7 +387,7 @@ export const v2ProjectRouter = {
 			return updated;
 		}),
 
-	update: protectedProcedure
+	update: authenticatedProcedure
 		.input(
 			z.object({
 				id: z.string().uuid(),
@@ -399,7 +399,7 @@ export const v2ProjectRouter = {
 		)
 		.mutation(async ({ ctx, input }) => {
 			const organizationId = requireActiveOrgId(ctx, "No active organization");
-			const project = await getProjectAccess(ctx.session.user.id, input.id, {
+			const project = await getProjectAccess(ctx.userId, input.id, {
 				organizationId,
 			});
 
@@ -475,7 +475,7 @@ export const v2ProjectRouter = {
 			return { ...updated, txid };
 		}),
 
-	delete: jwtProcedure
+	delete: authenticatedProcedure
 		.input(
 			z.object({
 				organizationId: z.string().uuid(),
@@ -514,7 +514,7 @@ export const v2ProjectRouter = {
 			return { success: true };
 		}),
 
-	uploadIcon: protectedProcedure
+	uploadIcon: authenticatedProcedure
 		.input(
 			z.object({
 				id: z.string().uuid(),
@@ -525,7 +525,7 @@ export const v2ProjectRouter = {
 		)
 		.mutation(async ({ ctx, input }) => {
 			const organizationId = requireActiveOrgId(ctx, "No active organization");
-			await getProjectAccess(ctx.session.user.id, input.id, {
+			await getProjectAccess(ctx.userId, input.id, {
 				organizationId,
 			});
 
@@ -565,11 +565,11 @@ export const v2ProjectRouter = {
 			return { ...updated, txid };
 		}),
 
-	resetIconToGitHub: protectedProcedure
+	resetIconToGitHub: authenticatedProcedure
 		.input(z.object({ id: z.string().uuid() }))
 		.mutation(async ({ ctx, input }) => {
 			const organizationId = requireActiveOrgId(ctx, "No active organization");
-			await getProjectAccess(ctx.session.user.id, input.id, {
+			await getProjectAccess(ctx.userId, input.id, {
 				organizationId,
 			});
 
@@ -619,11 +619,11 @@ export const v2ProjectRouter = {
 			return { ...updated, txid };
 		}),
 
-	removeIcon: protectedProcedure
+	removeIcon: authenticatedProcedure
 		.input(z.object({ id: z.string().uuid() }))
 		.mutation(async ({ ctx, input }) => {
 			const organizationId = requireActiveOrgId(ctx, "No active organization");
-			await getProjectAccess(ctx.session.user.id, input.id, {
+			await getProjectAccess(ctx.userId, input.id, {
 				organizationId,
 			});
 

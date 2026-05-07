@@ -7,7 +7,7 @@ import {
 import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
 import { and, desc, eq } from "drizzle-orm";
 import { z } from "zod";
-import { protectedProcedure } from "../../trpc";
+import { authenticatedProcedure } from "../../trpc";
 import { requireActiveOrgMembership } from "../utils/active-org";
 import { getAutomationForUser, recordPromptVersion } from "./helpers";
 
@@ -15,7 +15,7 @@ const DEFAULT_VERSION_LIMIT = 100;
 const MAX_VERSION_LIMIT = 200;
 
 export const automationVersionsRouter = {
-	list: protectedProcedure
+	list: authenticatedProcedure
 		.input(
 			z.object({
 				automationId: z.string().uuid(),
@@ -30,7 +30,7 @@ export const automationVersionsRouter = {
 		.query(async ({ ctx, input }) => {
 			const organizationId = await requireActiveOrgMembership(ctx);
 			await getAutomationForUser(
-				ctx.session.user.id,
+				ctx.userId,
 				organizationId,
 				input.automationId,
 			);
@@ -57,7 +57,7 @@ export const automationVersionsRouter = {
 			return rows;
 		}),
 
-	getContent: protectedProcedure
+	getContent: authenticatedProcedure
 		.input(z.object({ versionId: z.string().uuid() }))
 		.query(async ({ ctx, input }) => {
 			const organizationId = await requireActiveOrgMembership(ctx);
@@ -77,7 +77,7 @@ export const automationVersionsRouter = {
 					and(
 						eq(automationPromptVersions.id, input.versionId),
 						eq(automations.organizationId, organizationId),
-						eq(automations.ownerUserId, ctx.session.user.id),
+						eq(automations.ownerUserId, ctx.userId),
 					),
 				)
 				.limit(1);
@@ -92,7 +92,7 @@ export const automationVersionsRouter = {
 			return row;
 		}),
 
-	restore: protectedProcedure
+	restore: authenticatedProcedure
 		.input(z.object({ versionId: z.string().uuid() }))
 		.mutation(async ({ ctx, input }) => {
 			const organizationId = await requireActiveOrgMembership(ctx);
@@ -112,7 +112,7 @@ export const automationVersionsRouter = {
 					and(
 						eq(automationPromptVersions.id, input.versionId),
 						eq(automations.organizationId, organizationId),
-						eq(automations.ownerUserId, ctx.session.user.id),
+						eq(automations.ownerUserId, ctx.userId),
 					),
 				)
 				.limit(1);
@@ -137,7 +137,7 @@ export const automationVersionsRouter = {
 
 				return recordPromptVersion(tx, {
 					automationId: version.automationId,
-					authorUserId: ctx.session.user.id,
+					authorUserId: ctx.userId,
 					content: version.content,
 					source: "restore",
 					restoredFromVersionId: version.id,

@@ -4,7 +4,7 @@ import type { TRPCRouterRecord } from "@trpc/server";
 import { TRPCError } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
-import { protectedProcedure } from "../../../trpc";
+import { authenticatedProcedure } from "../../../trpc";
 import { verifyOrgMembership } from "../../integration/utils";
 import {
 	requireOrgResourceAccess,
@@ -61,7 +61,7 @@ async function getSecretAccess(
 }
 
 export const secretsRouter = {
-	upsert: protectedProcedure
+	upsert: authenticatedProcedure
 		.input(
 			z.object({
 				projectId: z.string().uuid(),
@@ -72,7 +72,7 @@ export const secretsRouter = {
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			await verifyOrgMembership(ctx.session.user.id, input.organizationId);
+			await verifyOrgMembership(ctx.userId, input.organizationId);
 			const project = await getScopedProject(
 				input.organizationId,
 				input.projectId,
@@ -131,7 +131,7 @@ export const secretsRouter = {
 					key: input.key,
 					encryptedValue,
 					sensitive: input.sensitive ?? false,
-					createdByUserId: ctx.session.user.id,
+					createdByUserId: ctx.userId,
 				})
 				.onConflictDoUpdate({
 					target: [secrets.projectId, secrets.key],
@@ -144,13 +144,13 @@ export const secretsRouter = {
 			return result;
 		}),
 
-	delete: protectedProcedure
+	delete: authenticatedProcedure
 		.input(
 			z.object({ id: z.string().uuid(), organizationId: z.string().uuid() }),
 		)
 		.mutation(async ({ ctx, input }) => {
 			const secret = await getSecretAccess(
-				ctx.session.user.id,
+				ctx.userId,
 				input.id,
 				input.organizationId,
 			);
@@ -158,7 +158,7 @@ export const secretsRouter = {
 			return { success: true };
 		}),
 
-	getDecrypted: protectedProcedure
+	getDecrypted: authenticatedProcedure
 		.input(
 			z.object({
 				projectId: z.string().uuid(),
@@ -166,7 +166,7 @@ export const secretsRouter = {
 			}),
 		)
 		.query(async ({ ctx, input }) => {
-			await verifyOrgMembership(ctx.session.user.id, input.organizationId);
+			await verifyOrgMembership(ctx.userId, input.organizationId);
 			const project = await getScopedProject(
 				input.organizationId,
 				input.projectId,

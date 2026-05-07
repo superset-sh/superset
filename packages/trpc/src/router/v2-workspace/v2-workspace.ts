@@ -13,7 +13,7 @@ import { TRPCError } from "@trpc/server";
 import { and, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { posthog } from "../../lib/analytics";
-import { jwtProcedure, protectedProcedure } from "../../trpc";
+import { authenticatedProcedure } from "../../trpc";
 import { requireActiveOrgId } from "../utils/active-org";
 import {
 	requireOrgResourceAccess,
@@ -109,7 +109,7 @@ async function getWorkspaceAccess(
 }
 
 export const v2WorkspaceRouter = {
-	list: jwtProcedure
+	list: authenticatedProcedure
 		.input(
 			z.object({
 				organizationId: z.string().uuid(),
@@ -160,7 +160,7 @@ export const v2WorkspaceRouter = {
 			}));
 		}),
 
-	create: jwtProcedure
+	create: authenticatedProcedure
 		.input(
 			z.object({
 				organizationId: z.string().uuid(),
@@ -303,7 +303,7 @@ export const v2WorkspaceRouter = {
 			});
 		}),
 
-	setTask: protectedProcedure
+	setTask: authenticatedProcedure
 		.input(
 			z.object({
 				workspaceId: z.string().uuid(),
@@ -313,7 +313,7 @@ export const v2WorkspaceRouter = {
 		.mutation(async ({ ctx, input }) => {
 			const organizationId = requireActiveOrgId(ctx, "No active organization");
 			const workspace = await getWorkspaceAccess(
-				ctx.session.user.id,
+				ctx.userId,
 				input.workspaceId,
 				{ organizationId },
 			);
@@ -342,7 +342,7 @@ export const v2WorkspaceRouter = {
 			return { success: true as const };
 		}),
 
-	getFromHost: jwtProcedure
+	getFromHost: authenticatedProcedure
 		.input(
 			z.object({
 				organizationId: z.string().uuid(),
@@ -367,7 +367,7 @@ export const v2WorkspaceRouter = {
 			);
 		}),
 
-	update: protectedProcedure
+	update: authenticatedProcedure
 		.input(
 			z.object({
 				id: z.string().uuid(),
@@ -378,13 +378,9 @@ export const v2WorkspaceRouter = {
 		)
 		.mutation(async ({ ctx, input }) => {
 			const organizationId = requireActiveOrgId(ctx, "No active organization");
-			const workspace = await getWorkspaceAccess(
-				ctx.session.user.id,
-				input.id,
-				{
-					organizationId,
-				},
-			);
+			const workspace = await getWorkspaceAccess(ctx.userId, input.id, {
+				organizationId,
+			});
 
 			if (input.hostId !== undefined) {
 				await getScopedHost(workspace.organizationId, input.hostId);
@@ -432,7 +428,7 @@ export const v2WorkspaceRouter = {
 	// clobbered between check and write. `branch` is optional so the same
 	// entry point covers the AI rename (name + branch together) and any
 	// future name-only or branch-only updates.
-	updateNameFromHost: jwtProcedure
+	updateNameFromHost: authenticatedProcedure
 		.input(
 			z
 				.object({
@@ -488,9 +484,9 @@ export const v2WorkspaceRouter = {
 
 	// JWT-authed so host-service can orchestrate the full delete saga
 	// (terminals → teardown → worktree → branch → cloud → host sqlite) via
-	// its own JWT auth provider. The session-backed protectedProcedure
+	// its own JWT auth provider. The session-backed authenticatedProcedure
 	// would reject host-service callers with 401.
-	delete: jwtProcedure
+	delete: authenticatedProcedure
 		.input(z.object({ id: z.string().uuid() }))
 		.mutation(async ({ ctx, input }) => {
 			const workspace = await dbWs.query.v2Workspaces.findFirst({
@@ -541,7 +537,7 @@ export const v2WorkspaceRouter = {
 	// Main workspaces are not normal delete targets. This endpoint is reserved
 	// for host project removal, where the repo-root workspace must be detached
 	// from this host before the local project row disappears.
-	deleteMainForHost: jwtProcedure
+	deleteMainForHost: authenticatedProcedure
 		.input(z.object({ id: z.string().uuid(), projectId: z.string().uuid() }))
 		.mutation(async ({ ctx, input }) => {
 			const workspace = await dbWs.query.v2Workspaces.findFirst({

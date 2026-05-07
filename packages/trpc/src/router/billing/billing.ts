@@ -7,7 +7,7 @@ import { and, desc, eq, inArray } from "drizzle-orm";
 import type Stripe from "stripe";
 import { z } from "zod";
 import { env } from "../../env";
-import { protectedProcedure } from "../../trpc";
+import { authenticatedProcedure } from "../../trpc";
 
 function subtractMonthsClamped(date: Date, months: number) {
 	const result = new Date(date);
@@ -28,7 +28,7 @@ function subtractMonthsClamped(date: Date, months: number) {
 }
 
 async function requireOwnerWithCustomer(ctx: {
-	session: { user: { id: string } };
+	userId: string;
 	activeOrganizationId: string | null;
 }) {
 	const activeOrgId = ctx.activeOrganizationId;
@@ -42,7 +42,7 @@ async function requireOwnerWithCustomer(ctx: {
 	const [member, subscription] = await Promise.all([
 		db.query.members.findFirst({
 			where: and(
-				eq(members.userId, ctx.session.user.id),
+				eq(members.userId, ctx.userId),
 				eq(members.organizationId, activeOrgId),
 			),
 		}),
@@ -66,7 +66,7 @@ async function requireOwnerWithCustomer(ctx: {
 }
 
 export const billingRouter = {
-	activePlan: protectedProcedure.query(async ({ ctx }) => {
+	activePlan: authenticatedProcedure.query(async ({ ctx }) => {
 		const activeOrgId = ctx.activeOrganizationId;
 		if (!activeOrgId) return { plan: "free" as const, status: null };
 
@@ -85,7 +85,7 @@ export const billingRouter = {
 		return { plan: subscription.plan, status: subscription.status };
 	}),
 
-	invoices: protectedProcedure.query(async ({ ctx }) => {
+	invoices: authenticatedProcedure.query(async ({ ctx }) => {
 		const activeOrgId = ctx.activeOrganizationId;
 		if (!activeOrgId) {
 			throw new TRPCError({
@@ -120,7 +120,7 @@ export const billingRouter = {
 		}));
 	}),
 
-	details: protectedProcedure.query(async ({ ctx }) => {
+	details: authenticatedProcedure.query(async ({ ctx }) => {
 		const stripeCustomerId = await requireOwnerWithCustomer(ctx);
 		if (!stripeCustomerId) return null;
 
@@ -179,7 +179,7 @@ export const billingRouter = {
 		};
 	}),
 
-	portal: protectedProcedure
+	portal: authenticatedProcedure
 		.input(
 			z.object({
 				flowType: z

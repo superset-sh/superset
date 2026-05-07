@@ -5,7 +5,7 @@ import { getCurrentTxid } from "@superset/db/utils";
 import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
 import { and, eq, ne } from "drizzle-orm";
 import { z } from "zod";
-import { protectedProcedure } from "../../trpc";
+import { authenticatedProcedure } from "../../trpc";
 import { requireActiveOrgId } from "../utils/active-org";
 
 async function requireHostOwner(
@@ -65,7 +65,7 @@ async function requireOrgMember(userId: string, organizationId: string) {
 }
 
 export const v2HostRouter = {
-	addMember: protectedProcedure
+	addMember: authenticatedProcedure
 		.input(
 			z.object({
 				hostId: z.string().min(1),
@@ -75,7 +75,7 @@ export const v2HostRouter = {
 		)
 		.mutation(async ({ ctx, input }) => {
 			const organizationId = requireActiveOrgId(ctx);
-			await requireHostOwner(ctx.session.user.id, input.hostId, organizationId);
+			await requireHostOwner(ctx.userId, input.hostId, organizationId);
 			await requireOrgMember(input.userId, organizationId);
 
 			const result = await dbWs.transaction(async (tx) => {
@@ -109,7 +109,7 @@ export const v2HostRouter = {
 			return { ...result.inserted, txid: result.txid };
 		}),
 
-	removeMember: protectedProcedure
+	removeMember: authenticatedProcedure
 		.input(
 			z.object({
 				hostId: z.string().min(1),
@@ -119,7 +119,7 @@ export const v2HostRouter = {
 		.mutation(async ({ ctx, input }) => {
 			const organizationId = requireActiveOrgId(ctx);
 			const host = await requireHostOwner(
-				ctx.session.user.id,
+				ctx.userId,
 				input.hostId,
 				organizationId,
 			);
@@ -182,7 +182,7 @@ export const v2HostRouter = {
 			return { success: true, txid };
 		}),
 
-	setMemberRole: protectedProcedure
+	setMemberRole: authenticatedProcedure
 		.input(
 			z.object({
 				hostId: z.string().min(1),
@@ -193,7 +193,7 @@ export const v2HostRouter = {
 		.mutation(async ({ ctx, input }) => {
 			const organizationId = requireActiveOrgId(ctx);
 			const host = await requireHostOwner(
-				ctx.session.user.id,
+				ctx.userId,
 				input.hostId,
 				organizationId,
 			);

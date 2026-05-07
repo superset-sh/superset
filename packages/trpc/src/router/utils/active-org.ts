@@ -1,20 +1,17 @@
 import type { SelectSubscription } from "@superset/db/schema";
 import { TRPCError } from "@trpc/server";
-import type { TRPCContext } from "../../trpc";
 import {
 	verifyOrgMembership,
 	verifyOrgMembershipWithSubscription,
 } from "../integration/utils";
 
-type Session = NonNullable<TRPCContext["session"]>;
-
-type ProtectedContext = {
-	session: Session;
+type ActiveOrgContext = {
+	userId: string;
 	activeOrganizationId: string | null;
 };
 
 export function requireActiveOrgId(
-	ctx: ProtectedContext,
+	ctx: { activeOrganizationId: string | null },
 	message = "No active organization selected",
 ) {
 	const organizationId = ctx.activeOrganizationId;
@@ -30,11 +27,11 @@ export function requireActiveOrgId(
 }
 
 export async function requireActiveOrgMembership(
-	ctx: ProtectedContext,
+	ctx: ActiveOrgContext,
 	message?: string,
 ) {
 	const organizationId = requireActiveOrgId(ctx, message);
-	await verifyOrgMembership(ctx.session.user.id, organizationId);
+	await verifyOrgMembership(ctx.userId, organizationId);
 	return organizationId;
 }
 
@@ -44,7 +41,7 @@ export async function requireActiveOrgMembership(
  * is free vs. the basic call). Use when a procedure needs to gate on plan.
  */
 export async function requireActiveOrgMembershipWithSubscription(
-	ctx: ProtectedContext,
+	ctx: ActiveOrgContext,
 	message?: string,
 ): Promise<{
 	organizationId: string;
@@ -52,7 +49,7 @@ export async function requireActiveOrgMembershipWithSubscription(
 }> {
 	const organizationId = requireActiveOrgId(ctx, message);
 	const { subscription } = await verifyOrgMembershipWithSubscription(
-		ctx.session.user.id,
+		ctx.userId,
 		organizationId,
 	);
 	return { organizationId, subscription };
