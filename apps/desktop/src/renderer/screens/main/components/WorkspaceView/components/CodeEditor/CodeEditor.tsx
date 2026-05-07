@@ -25,6 +25,11 @@ import {
 import { cn } from "@superset/ui/utils";
 import { useQuery } from "@tanstack/react-query";
 import { type MutableRefObject, useEffect, useRef } from "react";
+import {
+	codeMirrorVimExtension,
+	registerCodeMirrorVimEditor,
+} from "renderer/lib/code-editor/vim";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import type { CodeEditorAdapter } from "renderer/screens/main/components/WorkspaceView/ContentView/components";
 import { getCodeSyntaxHighlighting } from "renderer/screens/main/components/WorkspaceView/utils/code-theme";
@@ -176,6 +181,7 @@ export function CodeEditor({
 	const languageCompartment = useRef(new Compartment()).current;
 	const themeCompartment = useRef(new Compartment()).current;
 	const editableCompartment = useRef(new Compartment()).current;
+	const vimCompartment = useRef(new Compartment()).current;
 	const onChangeRef = useRef(onChange);
 	const onSaveRef = useRef(onSave);
 	// Guards against re-entrant onChange calls triggered by the value-sync effect's own dispatch.
@@ -187,6 +193,8 @@ export function CodeEditor({
 	});
 	const editorFontFamily = fontSettings?.editorFontFamily ?? undefined;
 	const editorFontSize = fontSettings?.editorFontSize ?? undefined;
+	const { data: vimModeEnabled } = electronTrpc.settings.getVimMode.useQuery();
+	const vimMode = vimModeEnabled ?? false;
 	const activeTheme = useResolvedTheme();
 
 	onChangeRef.current = onChange;
@@ -235,6 +243,7 @@ export function CodeEditor({
 					"data-testid": "code-editor",
 					spellcheck: "false",
 				}),
+				vimCompartment.of(codeMirrorVimExtension(vimMode)),
 				keymap.of([
 					indentWithTab,
 					...defaultKeymap,
@@ -263,6 +272,9 @@ export function CodeEditor({
 			parent: containerRef.current,
 		});
 		const adapter = createCodeMirrorAdapter(view);
+		const disposeVimEditor = registerCodeMirrorVimEditor(view, {
+			onSave: () => onSaveRef.current?.(),
+		});
 
 		viewRef.current = view;
 		if (editorRef) {
@@ -273,10 +285,20 @@ export function CodeEditor({
 			if (editorRef?.current === adapter) {
 				editorRef.current = null;
 			}
+			disposeVimEditor();
 			adapter.dispose();
 			viewRef.current = null;
 		};
 	}, []);
+
+	useEffect(() => {
+		const view = viewRef.current;
+		if (!view) return;
+
+		view.dispatch({
+			effects: vimCompartment.reconfigure(codeMirrorVimExtension(vimMode)),
+		});
+	}, [vimCompartment, vimMode]);
 
 	useEffect(() => {
 		const view = viewRef.current;
