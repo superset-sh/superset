@@ -29,7 +29,14 @@ export async function POST(request: Request) {
 		return new Response("ok", { status: 200 });
 	}
 
-	const payload = JSON.parse(payloadRaw);
+	// biome-ignore lint/suspicious/noExplicitAny: matches JSON.parse return type for flexible Slack interaction payload access
+	let payload: any;
+	try {
+		payload = JSON.parse(payloadRaw);
+	} catch (error) {
+		console.error("[slack/interactions] Failed to parse JSON payload:", error);
+		return Response.json({ error: "Invalid JSON payload" }, { status: 400 });
+	}
 
 	if (payload.type === "block_actions") {
 		const teamId: string = payload.team?.id;

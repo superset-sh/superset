@@ -25,7 +25,14 @@ export async function POST(request: Request) {
 		return Response.json({ error: "Invalid signature" }, { status: 401 });
 	}
 
-	const payload = JSON.parse(body);
+	// biome-ignore lint/suspicious/noExplicitAny: matches JSON.parse return type for flexible Slack event payload access
+	let payload: any;
+	try {
+		payload = JSON.parse(body);
+	} catch (error) {
+		console.error("[slack/events] Failed to parse JSON body:", error);
+		return Response.json({ error: "Invalid JSON payload" }, { status: 400 });
+	}
 
 	// Slack sends this once when configuring the Events URL
 	if (payload.type === "url_verification") {
