@@ -164,48 +164,51 @@ export function CompareBaseBranchPicker({
 										);
 										setOpen(false);
 									}}
-									className="group h-11 flex items-center justify-between gap-3 px-3"
+									className="group items-start gap-3 rounded-md px-2.5 py-2"
 								>
-									<span className="flex items-center gap-2.5 truncate flex-1 min-w-0">
-										<GoGitBranch className="size-3.5 shrink-0 text-muted-foreground" />
-										<span className="truncate font-mono text-xs">
+									<GoGitBranch className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+									<div className="flex min-w-0 flex-1 flex-col gap-0.5">
+										<span className="truncate font-mono text-sm leading-snug">
 											{branch.name}
 										</span>
-										<span className="flex items-center gap-1.5 shrink-0">
-											{branch.name === defaultBranch && (
-												<span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
-													default
+										<span className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+											{branch.lastCommitDate > 0 && (
+												<span>
+													{formatRelativeTime(branch.lastCommitDate * 1000)}
 												</span>
+											)}
+											{branch.name === defaultBranch && (
+												<>
+													<span aria-hidden>·</span>
+													<span>default</span>
+												</>
 											)}
 											{isRemoteOnly && (
-												<span className="text-[10px] text-muted-foreground/60 bg-muted/60 px-1.5 py-0.5 rounded">
-													remote
-												</span>
+												<>
+													<span aria-hidden>·</span>
+													<span>remote</span>
+												</>
 											)}
 											{isWorktree && (
-												<span className="text-[10px] text-primary/80 bg-primary/10 px-1.5 py-0.5 rounded">
-													worktree
-												</span>
+												<>
+													<span aria-hidden>·</span>
+													<span className="text-primary/80">worktree</span>
+												</>
 											)}
 										</span>
-									</span>
-									<span className="flex items-center gap-2 shrink-0">
-										{branch.lastCommitDate > 0 && (
-											<span className="text-[11px] text-muted-foreground/70 group-hover:hidden">
-												{formatRelativeTime(branch.lastCommitDate * 1000)}
-											</span>
-										)}
+									</div>
+									<span className="ml-2 flex shrink-0 items-center gap-1.5 self-center">
 										{(() => {
 											// Authoritative check against the cloud-synced
 											// collection — a server `hasWorkspace:true` row
 											// may be stale after a delete.
 											const canOpen = hasWorkspaceForBranch(branch.name);
 											return (
-												<span className="hidden group-hover:inline-flex group-focus-within:inline-flex items-center gap-1.5">
+												<span className="hidden items-center gap-1.5 group-hover:inline-flex group-focus-within:inline-flex">
 													{canOpen ? (
 														<button
 															type="button"
-															className="inline-flex items-center rounded-sm bg-primary/10 hover:bg-primary/20 px-2 py-0.5 text-[11px] text-primary font-medium"
+															className="inline-flex items-center rounded-sm bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary hover:bg-primary/20"
 															onClick={(e) => {
 																e.stopPropagation();
 																onOpenExisting(branch.name);
@@ -216,7 +219,7 @@ export function CompareBaseBranchPicker({
 													) : (
 														<button
 															type="button"
-															className="inline-flex items-center rounded-sm bg-primary/10 hover:bg-primary/20 px-2 py-0.5 text-[11px] text-primary font-medium"
+															className="inline-flex items-center rounded-sm bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary hover:bg-primary/20"
 															onClick={(e) => {
 																e.stopPropagation();
 																onCheckoutBranch(branch.name);
@@ -229,7 +232,7 @@ export function CompareBaseBranchPicker({
 											);
 										})()}
 										{effectiveCompareBaseBranch === branch.name && (
-											<HiCheck className="size-4 text-primary" />
+											<HiCheck className="size-4 text-primary group-hover:hidden group-focus-within:hidden" />
 										)}
 									</span>
 								</CommandItem>
