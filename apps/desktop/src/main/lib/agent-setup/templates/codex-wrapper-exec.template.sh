@@ -1,7 +1,10 @@
 # Codex exposes completion notifications via notify.
 # For per-prompt Start notifications and permission requests, watch the TUI
 # session log for task_started/exec_command_begin and *_approval_request events.
-if [ -n "$SUPERSET_TAB_ID" ] && [ -f "{{NOTIFY_PATH}}" ]; then
+# Gate on either v1 (SUPERSET_TAB_ID) or v2 (SUPERSET_TERMINAL_ID) — host-service
+# v2 terminals don't set SUPERSET_TAB_ID, so v1-only gating leaves v2 panes
+# stuck on "idle" while codex is processing.
+if { [ -n "$SUPERSET_TAB_ID" ] || [ -n "$SUPERSET_TERMINAL_ID" ]; } && [ -f "{{NOTIFY_PATH}}" ]; then
   export CODEX_TUI_RECORD_SESSION=1
   if [ -z "$CODEX_TUI_SESSION_LOG_PATH" ]; then
     _superset_codex_ts="$(date +%s 2>/dev/null || echo "$$")"
@@ -72,7 +75,10 @@ if [ -n "$SUPERSET_TAB_ID" ] && [ -f "{{NOTIFY_PATH}}" ]; then
   SUPERSET_CODEX_START_WATCHER_PID=$!
 fi
 
-"$REAL_BIN" --enable codex_hooks -c 'notify=["bash","{{NOTIFY_PATH}}"]' "$@"
+# `hooks` (formerly `codex_hooks`) is stable and default-enabled in codex
+# >=0.129; passing the deprecated alias on the CLI prints a warning every
+# launch but still maps to the same feature. Use the canonical name.
+"$REAL_BIN" --enable hooks -c 'notify=["bash","{{NOTIFY_PATH}}"]' "$@"
 SUPERSET_CODEX_STATUS=$?
 
 if [ -n "$SUPERSET_CODEX_START_WATCHER_PID" ]; then

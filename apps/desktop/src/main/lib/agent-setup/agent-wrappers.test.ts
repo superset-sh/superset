@@ -202,10 +202,15 @@ describe("agent-wrappers copilot", () => {
 		expect(wrapper).toContain('_superset_emit_event "Start"');
 		expect(wrapper).toContain('_superset_emit_event "PermissionRequest"');
 		expect(wrapper).toContain(
-			`"$REAL_BIN" --enable codex_hooks -c 'notify=["bash","${path.join(TEST_HOOKS_DIR, "notify.sh")}"]' "$@"`,
+			`"$REAL_BIN" --enable hooks -c 'notify=["bash","${path.join(TEST_HOOKS_DIR, "notify.sh")}"]' "$@"`,
 		);
 		expect(wrapper).toContain("SUPERSET_CODEX_START_WATCHER_PID");
 		expect(wrapper).toContain('kill "$SUPERSET_CODEX_START_WATCHER_PID"');
+		// Watcher must run in v2 host-service terminals where SUPERSET_TAB_ID
+		// isn't set; gating on v1-only is a regression that hides "working".
+		expect(wrapper).toContain(
+			'{ [ -n "$SUPERSET_TAB_ID" ] || [ -n "$SUPERSET_TERMINAL_ID" ]; }',
+		);
 
 		const execLine = buildCodexWrapperExecLine(
 			path.join(TEST_HOOKS_DIR, "notify.sh"),
@@ -214,7 +219,7 @@ describe("agent-wrappers copilot", () => {
 		expect(wrapper).toContain(execLine);
 	});
 
-	it("forwards codex_hooks enablement through the codex wrapper for manual launches", () => {
+	it("forwards hooks enablement through the codex wrapper for manual launches", () => {
 		const realBinDir = path.join(TEST_ROOT, "real-bin");
 		const realCodex = path.join(realBinDir, "codex");
 		const wrapperPath = path.join(TEST_BIN_DIR, "codex");
@@ -245,7 +250,7 @@ exit 0
 		expect(readFileSync(argsFile, "utf-8")).toBe(
 			`${[
 				"--enable",
-				"codex_hooks",
+				"hooks",
 				"-c",
 				`notify=["bash","${path.join(TEST_HOOKS_DIR, "notify.sh")}"]`,
 				"exec",
