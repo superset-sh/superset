@@ -21,12 +21,18 @@ import {
 	MessageSquare,
 	SquarePlus,
 } from "lucide-react";
+import { toString as mdastToString } from "mdast-util-to-string";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { LuArrowUpRight, LuCheck, LuCopy } from "react-icons/lu";
 import { VscChevronRight } from "react-icons/vsc";
+import remarkGfm from "remark-gfm";
+import remarkParse from "remark-parse";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
+import { unified } from "unified";
 import type { CommentPaneData } from "../../../../../../types";
 import type { NormalizedComment } from "../../types";
+
+const previewProcessor = unified().use(remarkParse).use(remarkGfm);
 
 interface CommentsSectionProps {
 	comments: NormalizedComment[];
@@ -253,42 +259,34 @@ function formatShortAge(isoDate?: string): string | null {
 	return `${Math.round(hours / 24)}d`;
 }
 
-function stripPreviewMarkdown(line: string): string {
-	return (
-		line
-			// drop image markdown entirely (no useful preview text)
-			.replace(/!\[[^\]]*\]\([^)]*\)/g, "")
-			// link markdown → just the text
-			.replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
-			// raw HTML tags (badges, <details>, <summary>, etc.)
-			.replace(/<[^>]+>/g, "")
-			// inline markdown delimiters: ` * _ ~ #
-			.replace(/`+/g, "")
-			.replace(/[*_~]+/g, "")
-			.replace(/^#+\s*/, "")
-			// blockquote / list markers
-			.replace(/^[->]+\s*/, "")
-			.replace(/\s+/g, " ")
-			.trim()
+// Bot review tools (coderabbit, greptile, cubic) lead with a badge/severity
+// strip like "Potential issue | Minor | Quick win" — useless as a preview,
+// so skip ahead to the real first sentence.
+function isBotPrefixLine(line: string): boolean {
+	return /^(potential issue|nitpick|major|minor|quick win|suggestion)\b/i.test(
+		line,
 	);
 }
 
-function isJunkPreviewLine(line: string): boolean {
-	if (line.length === 0) return true;
-	// Bot prefix lines like "Potential issue | Minor | Quick win"
-	if (/^(potential issue|nitpick|major|minor|quick win|suggestion)/i.test(line))
-		return true;
-	// Lines without any meaningful word content (just emoji + separators).
-	const wordChars = line.match(/[A-Za-z0-9]/g)?.length ?? 0;
-	if (wordChars < 3) return true;
-	return false;
-}
-
+// Parse markdown → mdast, then walk the first real text node, paragraph, or
+// heading. mdast-util-to-string handles emphasis, links, code spans, etc.,
+// and `includeHtml: false` drops raw <a><img>...</a> badges entirely. We
+// scan top-level children rather than calling toString on the whole tree
+// so we don't concatenate the entire comment body into one preview line.
 function getPreviewText(body: string): string {
-	const cleaned = body.replace(/<!--[\s\S]*?-->/g, "\n");
-	for (const raw of cleaned.split(/\r?\n/)) {
-		const stripped = stripPreviewMarkdown(raw);
-		if (!isJunkPreviewLine(stripped)) return stripped;
+	if (!body.trim()) return "No preview available";
+	let tree: ReturnType<typeof previewProcessor.parse>;
+	try {
+		tree = previewProcessor.parse(body);
+	} catch {
+		return body.split(/\r?\n/).find(Boolean)?.trim() ?? "No preview available";
+	}
+
+	const root = tree as { children?: Array<unknown> };
+	for (const child of root.children ?? []) {
+		const text = mdastToString(child, { includeHtml: false }).trim();
+		if (!text || isBotPrefixLine(text)) continue;
+		return text.replace(/\s+/g, " ");
 	}
 	return "No preview available";
 }
