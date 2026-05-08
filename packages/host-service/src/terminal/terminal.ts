@@ -29,6 +29,10 @@ import {
 	getTerminalBaseEnv,
 	resolveLaunchShell,
 } from "./env.ts";
+import {
+	createModeTracker,
+	type ModeTracker,
+} from "./terminal-mode-tracker.ts";
 
 /**
  * Thin adapter exposing approximately the IPty surface that the rest of
@@ -231,6 +235,13 @@ interface TerminalSession {
 	 * actually broadcast to the renderer.
 	 */
 	portHintDecoder: StringDecoder;
+
+	/**
+	 * Mirrors PTY output through a headless xterm so a reattaching renderer
+	 * can be resynced via a mode preamble — covers kitty keyboard, bracketed
+	 * paste, focus, mouse, etc. that the FIFO can't restore on its own.
+	 */
+	modeTracker: ModeTracker;
 }
 
 /** PTY lifetime is independent of socket lifetime — sockets detach/reattach freely. */
@@ -268,6 +279,11 @@ onDaemonDisconnect((err) => {
 			}
 			session.unsubscribeDaemon = null;
 		}
+		try {
+			session.modeTracker.dispose();
+		} catch {
+			// best-effort
+		}
 	}
 	sessions.clear();
 });
@@ -288,6 +304,11 @@ export function __resetSessionsForTesting(): void {
 			} catch {
 				// best-effort
 			}
+		}
+		try {
+			session.modeTracker.dispose();
+		} catch {
+			// best-effort
 		}
 	}
 	sessions.clear();
@@ -427,11 +448,22 @@ function broadcastBytes(session: TerminalSession, bytes: Uint8Array): number {
 }
 
 function replayBuffer(session: TerminalSession, socket: TerminalSocket) {
-	if (session.buffer.length === 0) return;
-	let total = 0;
-	for (const b of session.buffer) total += b.byteLength;
-	const combined = new Uint8Array(total);
+	// Preamble first, then FIFO. Mode-setting escapes (kitty keyboard,
+	// bracketed paste, focus, …) are typically emitted once at startup and
+	// broadcast away rather than buffered, so a fresh xterm needs them
+	// re-asserted on every attach — even when the FIFO is empty.
+	const preamble = session.modeTracker.buildPreamble();
+	let bufferTotal = 0;
+	for (const b of session.buffer) bufferTotal += b.byteLength;
+	const preambleLen = preamble?.byteLength ?? 0;
+	if (preambleLen === 0 && bufferTotal === 0) return;
+
+	const combined = new Uint8Array(preambleLen + bufferTotal);
 	let offset = 0;
+	if (preamble) {
+		combined.set(preamble, offset);
+		offset += preamble.byteLength;
+	}
 	for (const b of session.buffer) {
 		combined.set(b, offset);
 		offset += b.byteLength;
@@ -457,7 +489,9 @@ function resolveShellReady(
 	}
 	// Flush held marker bytes — they weren't part of a full marker
 	if (session.scanState.heldBytes.length > 0) {
-		bufferOutput(session, Uint8Array.from(session.scanState.heldBytes));
+		const heldBytes = Uint8Array.from(session.scanState.heldBytes);
+		session.modeTracker.feed(heldBytes);
+		bufferOutput(session, heldBytes);
 		session.scanState.heldBytes.length = 0;
 	}
 	session.scanState.matchPos = 0;
@@ -516,6 +550,11 @@ export function disposeSession(terminalId: string, db: HostDb) {
 				// best-effort
 			}
 			session.unsubscribeDaemon = null;
+		}
+		try {
+			session.modeTracker.dispose();
+		} catch {
+			// best-effort
 		}
 		sessions.delete(terminalId);
 	}
@@ -770,6 +809,7 @@ export async function createTerminalSessionInternal({
 		// host-service lifetime — flag it as queued so we don't double-fire it.
 		initialCommandQueued: isAdopted,
 		portHintDecoder: new StringDecoder("utf8"),
+		modeTracker: createModeTracker(cols, rows),
 	};
 	sessions.set(terminalId, session);
 	portManager.upsertSession(terminalId, workspaceId, pty.pid);
@@ -818,6 +858,10 @@ export async function createTerminalSessionInternal({
 						: Buffer.from(bytes.buffer, bytes.byteOffset, bytes.byteLength),
 				);
 				if (hintText.length > 0) portManager.checkOutputForHint(hintText);
+
+				// Feed the tracker on every byte — broadcast skips the FIFO,
+				// so this is the only path that catches startup mode escapes.
+				session.modeTracker.feed(bytes);
 
 				if (broadcastBytes(session, bytes) === 0) {
 					bufferOutput(session, bytes);
@@ -1071,6 +1115,7 @@ export function registerWorkspaceTerminalRoute({
 							DEFAULT_TERMINAL_ROWS,
 						);
 						session.pty.resize(cols, rows);
+						session.modeTracker.resize(cols, rows);
 					}
 				},
 
