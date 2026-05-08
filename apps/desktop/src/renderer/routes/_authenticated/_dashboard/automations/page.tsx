@@ -24,16 +24,15 @@ import {
 	DropdownMenuItem,
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
-import { toast } from "@superset/ui/sonner";
 import {
-	Table,
-	TableBody,
-	TableCell,
-	TableHead,
-	TableHeader,
-	TableRow,
-} from "@superset/ui/table";
-import { ToggleGroup, ToggleGroupItem } from "@superset/ui/toggle-group";
+	Empty,
+	EmptyDescription,
+	EmptyHeader,
+	EmptyMedia,
+	EmptyTitle,
+} from "@superset/ui/empty";
+import { toast } from "@superset/ui/sonner";
+import { Tabs, TabsList, TabsTrigger } from "@superset/ui/tabs";
 import { cn } from "@superset/ui/utils";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useMutation } from "@tanstack/react-query";
@@ -47,8 +46,10 @@ import {
 	LuPencil,
 	LuPlay,
 	LuPlus,
+	LuSearchX,
 	LuSparkles,
 	LuTrash2,
+	LuZap,
 } from "react-icons/lu";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { authClient } from "renderer/lib/auth-client";
@@ -68,6 +69,12 @@ export const Route = createFileRoute("/_authenticated/_dashboard/automations/")(
 );
 
 type Scope = "mine" | "team";
+
+const ROW_GRID_MINE =
+	"grid grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.2fr)_2rem] items-center gap-4";
+
+const ROW_GRID_TEAM =
+	"grid grid-cols-[minmax(0,1.5fr)_minmax(0,0.8fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.2fr)_2rem] items-center gap-4";
 
 function AutomationsPage() {
 	const navigate = useNavigate();
@@ -202,254 +209,313 @@ function AutomationsPage() {
 		if (!next) setInitialTemplate(null);
 	};
 
+	const rowGrid = scope === "team" ? ROW_GRID_TEAM : ROW_GRID_MINE;
+
 	return (
 		<div className="flex h-full w-full flex-1 flex-col overflow-hidden">
-			<header className="flex items-start justify-between border-b px-8 py-6">
-				<div>
-					<h1 className="text-2xl font-semibold">Automations</h1>
-					<p className="mt-1 text-sm text-muted-foreground">
-						Run agents on a schedule to automate work.{" "}
-						<Button
-							asChild
-							variant="link"
-							size="sm"
-							className="p-0 h-auto align-baseline"
-						>
-							<a
-								href={`${COMPANY.DOCS_URL}/automations`}
-								target="_blank"
-								rel="noreferrer"
+			<header className="flex h-11 shrink-0 items-center justify-between border-b border-border px-4">
+				<div className="flex items-center gap-3">
+					<h1 className="text-sm font-semibold tracking-tight">Automations</h1>
+					<div className="h-4 w-px bg-border" />
+					<Tabs
+						value={scope}
+						onValueChange={(value) => {
+							if (value) setScope(value as Scope);
+						}}
+					>
+						<TabsList className="h-8 bg-transparent p-0 gap-1">
+							<TabsTrigger
+								value="mine"
+								className="h-8 rounded-md px-3 data-[state=active]:bg-accent data-[state=active]:text-foreground data-[state=inactive]:text-muted-foreground"
 							>
-								Learn more
-							</a>
-						</Button>
-					</p>
+								<span className="text-sm">Mine</span>
+								<span className="ml-1 tabular-nums text-xs text-muted-foreground">
+									{mineCount}
+								</span>
+							</TabsTrigger>
+							<TabsTrigger
+								value="team"
+								className="h-8 rounded-md px-3 data-[state=active]:bg-accent data-[state=active]:text-foreground data-[state=inactive]:text-muted-foreground"
+							>
+								<span className="text-sm">Team</span>
+								<span className="ml-1 tabular-nums text-xs text-muted-foreground">
+									{teamCount}
+								</span>
+							</TabsTrigger>
+						</TabsList>
+					</Tabs>
 				</div>
-				<Button type="button" onClick={() => setCreateOpen(true)}>
-					<LuPlus className="size-4" />
-					New automation
-				</Button>
+
+				<div className="flex items-center gap-2">
+					<Button
+						asChild
+						variant="ghost"
+						size="sm"
+						className="h-8 text-muted-foreground"
+					>
+						<a
+							href={`${COMPANY.DOCS_URL}/automations`}
+							target="_blank"
+							rel="noreferrer"
+						>
+							Learn more
+						</a>
+					</Button>
+					<Button
+						type="button"
+						variant="outline"
+						size="sm"
+						className="h-8 gap-1.5 px-3"
+						onClick={() => setCreateOpen(true)}
+					>
+						<LuPlus className="size-4" />
+						<span>New automation</span>
+					</Button>
+				</div>
 			</header>
 
-			<div className="flex-1 overflow-y-auto px-8 py-6">
+			<div className="flex min-h-0 flex-1 flex-col overflow-hidden">
 				{!automationsReady ? null : automations.length === 0 ? (
-					<AutomationsEmptyState onSelectTemplate={handleSelectTemplate} />
-				) : (
-					<>
-						<div className="mb-4 flex justify-end">
-							<ToggleGroup
-								type="single"
-								variant="outline"
-								size="sm"
-								value={scope}
-								onValueChange={(v) => {
-									if (v) setScope(v as Scope);
-								}}
+					<div className="flex-1 overflow-y-auto px-8 py-8">
+						<AutomationsEmptyState onSelectTemplate={handleSelectTemplate} />
+					</div>
+				) : visible.length === 0 ? (
+					<Empty className="flex-1">
+						<EmptyHeader>
+							<EmptyMedia
+								variant="icon"
+								className="size-14 [&_svg:not([class*='size-'])]:size-7"
 							>
-								<ToggleGroupItem value="mine">
-									Mine{" "}
-									<span className="ml-1 text-muted-foreground">
-										{mineCount}
-									</span>
-								</ToggleGroupItem>
-								<ToggleGroupItem value="team">
-									Team{" "}
-									<span className="ml-1 text-muted-foreground">
-										{teamCount}
-									</span>
-								</ToggleGroupItem>
-							</ToggleGroup>
+								{scope === "mine" ? <LuZap /> : <LuSearchX />}
+							</EmptyMedia>
+							<EmptyTitle>
+								{scope === "mine"
+									? "No automations yet"
+									: "No team automations"}
+							</EmptyTitle>
+							<EmptyDescription>
+								{scope === "mine"
+									? "Create one to run an agent on a schedule."
+									: "Nobody on your team has shared automations yet."}
+							</EmptyDescription>
+						</EmptyHeader>
+					</Empty>
+				) : (
+					<div className="flex min-h-0 flex-1 flex-col">
+						<div
+							className={cn(
+								rowGrid,
+								"sticky top-0 z-10 h-8 border-b border-border bg-background px-4 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/80",
+							)}
+						>
+							<span>Name</span>
+							{scope === "team" && <span>Owner</span>}
+							<span>Project</span>
+							<span>Workspace</span>
+							<span>Device</span>
+							<span>Agent</span>
+							<span>Schedule</span>
+							<span />
 						</div>
 
-						{visible.length === 0 ? (
-							<div className="rounded-md border border-dashed px-8 py-12 text-center text-sm text-muted-foreground">
-								{scope === "mine"
-									? "You haven't created any automations yet."
-									: "Nobody on your team has shared automations yet."}
-							</div>
-						) : (
-							<Table>
-								<TableHeader>
-									<TableRow>
-										<TableHead>Name</TableHead>
-										{scope === "team" && <TableHead>Owner</TableHead>}
-										<TableHead>Project</TableHead>
-										<TableHead>Workspace</TableHead>
-										<TableHead>Device</TableHead>
-										<TableHead>Agent</TableHead>
-										<TableHead>Schedule</TableHead>
-										<TableHead className="w-8" />
-									</TableRow>
-								</TableHeader>
-								<TableBody>
-									{visible.map((automation) => {
-										const owner = usersById.get(automation.ownerUserId);
-										const project = projectsById.get(automation.v2ProjectId);
-										const workspace = automation.v2WorkspaceId
-											? workspacesById.get(automation.v2WorkspaceId)
-											: null;
-										const workspaceLabel = !automation.v2WorkspaceId
-											? "New workspace"
-											: (workspace?.name ?? "Deleted");
-										const host = automation.targetHostId
-											? hostsById.get(automation.targetHostId)
-											: null;
-										return (
-											<TableRow
-												key={automation.id}
-												className="cursor-pointer"
-												onClick={() =>
-													navigate({
-														to: "/automations/$automationId",
-														params: { automationId: automation.id },
-													})
-												}
-											>
-												<TableCell
-													className={cn(
-														"font-medium",
-														!automation.enabled && "text-muted-foreground",
-													)}
-												>
-													<span className="inline-flex items-center gap-2">
-														<span
-															className={cn(
-																"inline-block size-2 rounded-full shrink-0",
-																automation.enabled
-																	? "bg-emerald-500"
-																	: "border border-muted-foreground/60",
-															)}
-														/>
-														<span className="truncate">{automation.name}</span>
-														{!automation.enabled && (
-															<Badge
-																variant="secondary"
-																className="text-[10px]"
-															>
-																paused
-															</Badge>
-														)}
-													</span>
-												</TableCell>
-												{scope === "team" && (
-													<TableCell className="text-muted-foreground">
-														{owner?.name ?? owner?.email ?? "—"}
-													</TableCell>
+						<div className="min-h-0 flex-1 overflow-y-auto">
+							{visible.map((automation) => {
+								const owner = usersById.get(automation.ownerUserId);
+								const project = projectsById.get(automation.v2ProjectId);
+								const workspace = automation.v2WorkspaceId
+									? workspacesById.get(automation.v2WorkspaceId)
+									: null;
+								const workspaceLabel = !automation.v2WorkspaceId
+									? "New workspace"
+									: (workspace?.name ?? "Deleted");
+								const host = automation.targetHostId
+									? hostsById.get(automation.targetHostId)
+									: null;
+								const isOwner = automation.ownerUserId === currentUserId;
+
+								return (
+									// biome-ignore lint/a11y/useSemanticElements: row needs nested interactive elements
+									<div
+										key={automation.id}
+										role="button"
+										tabIndex={0}
+										onClick={() =>
+											navigate({
+												to: "/automations/$automationId",
+												params: { automationId: automation.id },
+											})
+										}
+										onKeyDown={(event) => {
+											if (event.target !== event.currentTarget) return;
+											if (event.key === "Enter" || event.key === " ") {
+												event.preventDefault();
+												navigate({
+													to: "/automations/$automationId",
+													params: { automationId: automation.id },
+												});
+											}
+										}}
+										className={cn(
+											rowGrid,
+											"group/row min-w-0 cursor-pointer border-b border-border/50 px-4 py-2.5 text-sm outline-none transition-colors hover:bg-accent/50 focus-visible:bg-accent/50 focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-inset",
+										)}
+									>
+										<span className="flex min-w-0 items-center gap-2">
+											<span
+												className={cn(
+													"inline-block size-2 shrink-0 rounded-full",
+													automation.enabled
+														? "bg-emerald-500"
+														: "border border-muted-foreground/60",
 												)}
-												<TableCell className="text-muted-foreground">
-													<span className="inline-flex items-center gap-1.5">
-														{project ? (
-															<ProjectThumbnail
-																projectName={project.name}
-																iconUrl={project.iconUrl}
-																className="!size-4"
-															/>
-														) : null}
-														<span className="truncate">
-															{project?.name ?? "—"}
-														</span>
-													</span>
-												</TableCell>
-												<TableCell className="text-muted-foreground">
-													<CellWithIcon
-														icon={
-															automation.v2WorkspaceId ? (
-																<LuGitBranch className="size-3.5 shrink-0" />
-															) : (
-																<LuSparkles className="size-3.5 shrink-0" />
-															)
-														}
-														label={workspaceLabel}
-													/>
-												</TableCell>
-												<TableCell className="text-muted-foreground">
-													<CellWithIcon
-														icon={
-															<HiOutlineComputerDesktop className="size-3.5 shrink-0" />
-														}
-														label={host?.name ?? "Auto"}
-													/>
-												</TableCell>
-												<TableCell className="text-muted-foreground">
-													<AgentCell
-														agentId={automation.agentConfig.id}
-														label={automation.agentConfig.label}
-													/>
-												</TableCell>
-												<TableCell className="text-muted-foreground">
-													{describeSchedule(automation.rrule)}
-												</TableCell>
-												<TableCell>
-													{automation.ownerUserId === currentUserId && (
-														<DropdownMenu>
-															<DropdownMenuTrigger asChild>
-																<Button
-																	variant="ghost"
-																	size="icon-sm"
-																	onClick={(e) => e.stopPropagation()}
-																	aria-label="Row actions"
-																>
-																	<LuEllipsis className="size-4" />
-																</Button>
-															</DropdownMenuTrigger>
-															<DropdownMenuContent
-																align="end"
-																onClick={(e) => e.stopPropagation()}
-															>
-																<DropdownMenuItem
-																	onSelect={() =>
-																		navigate({
-																			to: "/automations/$automationId",
-																			params: {
-																				automationId: automation.id,
-																			},
-																		})
-																	}
-																>
-																	<LuPencil className="size-4" />
-																	Edit
-																</DropdownMenuItem>
-																<DropdownMenuItem
-																	onSelect={() =>
-																		runNowMutation.mutate({
-																			id: automation.id,
-																			name: automation.name,
-																		})
-																	}
-																>
-																	<LuPlay className="size-4" />
-																	Run now
-																</DropdownMenuItem>
-																<DropdownMenuItem
-																	onSelect={() =>
-																		navigate({
-																			to: "/automations/$automationId",
-																			params: { automationId: automation.id },
-																			search: { history: true },
-																		})
-																	}
-																>
-																	<LuClock className="size-4" />
-																	Version history
-																</DropdownMenuItem>
-																<DropdownMenuItem
-																	variant="destructive"
-																	onSelect={() => setPendingDelete(automation)}
-																>
-																	<LuTrash2 className="size-4" />
-																	Delete
-																</DropdownMenuItem>
-															</DropdownMenuContent>
-														</DropdownMenu>
-													)}
-												</TableCell>
-											</TableRow>
-										);
-									})}
-								</TableBody>
-							</Table>
-						)}
-					</>
+											/>
+											<span
+												className={cn(
+													"min-w-0 truncate font-medium",
+													!automation.enabled && "text-muted-foreground",
+												)}
+												title={automation.name}
+											>
+												{automation.name}
+											</span>
+											{!automation.enabled && (
+												<Badge
+													variant="secondary"
+													className="shrink-0 text-[10px]"
+												>
+													paused
+												</Badge>
+											)}
+										</span>
+
+										{scope === "team" && (
+											<span
+												className="min-w-0 truncate text-xs text-muted-foreground"
+												title={owner?.email ?? undefined}
+											>
+												{owner?.name ?? owner?.email ?? "—"}
+											</span>
+										)}
+
+										<span className="flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
+											{project ? (
+												<ProjectThumbnail
+													projectName={project.name}
+													iconUrl={project.iconUrl}
+													className="!size-3.5 shrink-0"
+												/>
+											) : null}
+											<span className="min-w-0 truncate">
+												{project?.name ?? "—"}
+											</span>
+										</span>
+
+										<span className="min-w-0 text-xs text-muted-foreground">
+											<CellWithIcon
+												icon={
+													automation.v2WorkspaceId ? (
+														<LuGitBranch className="size-3 shrink-0" />
+													) : (
+														<LuSparkles className="size-3 shrink-0" />
+													)
+												}
+												label={workspaceLabel}
+											/>
+										</span>
+
+										<span className="min-w-0 text-xs text-muted-foreground">
+											<CellWithIcon
+												icon={
+													<HiOutlineComputerDesktop className="size-3 shrink-0" />
+												}
+												label={host?.name ?? "Auto"}
+											/>
+										</span>
+
+										<span className="min-w-0 text-xs text-muted-foreground">
+											<AgentCell
+												agentId={automation.agentConfig.id}
+												label={automation.agentConfig.label}
+											/>
+										</span>
+
+										<span
+											className="min-w-0 truncate text-xs text-muted-foreground"
+											title={describeSchedule(automation.rrule)}
+										>
+											{describeSchedule(automation.rrule)}
+										</span>
+
+										<span className="flex items-center justify-end">
+											{isOwner && (
+												<DropdownMenu>
+													<DropdownMenuTrigger asChild>
+														<Button
+															variant="ghost"
+															size="icon-sm"
+															onClick={(e) => e.stopPropagation()}
+															aria-label="Row actions"
+															className="opacity-0 group-hover/row:opacity-100 data-[state=open]:opacity-100 focus-visible:opacity-100"
+														>
+															<LuEllipsis className="size-4" />
+														</Button>
+													</DropdownMenuTrigger>
+													<DropdownMenuContent
+														align="end"
+														onClick={(e) => e.stopPropagation()}
+													>
+														<DropdownMenuItem
+															onSelect={() =>
+																navigate({
+																	to: "/automations/$automationId",
+																	params: {
+																		automationId: automation.id,
+																	},
+																})
+															}
+														>
+															<LuPencil className="size-4" />
+															Edit
+														</DropdownMenuItem>
+														<DropdownMenuItem
+															onSelect={() =>
+																runNowMutation.mutate({
+																	id: automation.id,
+																	name: automation.name,
+																})
+															}
+														>
+															<LuPlay className="size-4" />
+															Run now
+														</DropdownMenuItem>
+														<DropdownMenuItem
+															onSelect={() =>
+																navigate({
+																	to: "/automations/$automationId",
+																	params: { automationId: automation.id },
+																	search: { history: true },
+																})
+															}
+														>
+															<LuClock className="size-4" />
+															Version history
+														</DropdownMenuItem>
+														<DropdownMenuItem
+															variant="destructive"
+															onSelect={() => setPendingDelete(automation)}
+														>
+															<LuTrash2 className="size-4" />
+															Delete
+														</DropdownMenuItem>
+													</DropdownMenuContent>
+												</DropdownMenu>
+											)}
+										</span>
+									</div>
+								);
+							})}
+						</div>
+					</div>
 				)}
 			</div>
 

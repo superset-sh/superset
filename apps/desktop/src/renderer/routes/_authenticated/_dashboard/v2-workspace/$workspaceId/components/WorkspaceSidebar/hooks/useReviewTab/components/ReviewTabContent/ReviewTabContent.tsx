@@ -12,6 +12,7 @@ interface ReviewTabContentProps {
 	isError: boolean;
 	isCommentsLoading: boolean;
 	onOpenComment?: (comment: CommentPaneData) => void;
+	onOpenInDiff?: (path: string, line?: number, openInNewTab?: boolean) => void;
 }
 
 export const ReviewTabContent = memo(function ReviewTabContent({
@@ -21,6 +22,7 @@ export const ReviewTabContent = memo(function ReviewTabContent({
 	isError,
 	isCommentsLoading,
 	onOpenComment,
+	onOpenInDiff,
 }: ReviewTabContentProps) {
 	if (isError) {
 		return (
@@ -64,6 +66,7 @@ export const ReviewTabContent = memo(function ReviewTabContent({
 				comments={comments}
 				isLoading={isCommentsLoading}
 				onOpenComment={onOpenComment}
+				onOpenInDiff={onOpenInDiff}
 			/>
 		</div>
 	);

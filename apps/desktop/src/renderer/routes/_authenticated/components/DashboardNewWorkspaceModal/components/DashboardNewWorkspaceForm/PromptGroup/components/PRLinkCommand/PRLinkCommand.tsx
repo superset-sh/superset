@@ -131,7 +131,7 @@ export function PRLinkCommand({
 				<TooltipContent side="bottom">{tooltipLabel}</TooltipContent>
 			</Tooltip>
 			<PopoverContent
-				className="w-80 p-0"
+				className="w-[440px] p-0"
 				align="start"
 				side="bottom"
 				onWheel={(event) => event.stopPropagation()}
@@ -155,7 +155,7 @@ export function PRLinkCommand({
 							Show closed
 						</label>
 					</div>
-					<CommandList className="max-h-[280px]">
+					<CommandList className="max-h-[420px]">
 						{pullRequests.length === 0 && (
 							<CommandEmpty>
 								{isLoading ? (
@@ -193,28 +193,35 @@ export function PRLinkCommand({
 											: "Open PRs"
 								}
 							>
-								{pullRequests.map((pr) => (
-									<CommandItem
-										key={pr.prNumber}
-										value={`${pr.prNumber}-${pr.title}`}
-										onSelect={() => handleSelect(pr)}
-										className="group"
-									>
-										<PRIcon
-											state={normalizeState(pr.state, pr.isDraft) as PRState}
-											className="size-3.5 shrink-0"
-										/>
-										<span className="shrink-0 font-mono text-xs text-muted-foreground">
-											#{pr.prNumber}
-										</span>
-										<span className="min-w-0 flex-1 truncate text-xs">
-											{pr.title}
-										</span>
-										<span className="shrink-0 hidden text-xs text-muted-foreground group-data-[selected=true]:inline">
-											Link ↵
-										</span>
-									</CommandItem>
-								))}
+								{pullRequests.map((pr) => {
+									const state = normalizeState(pr.state, pr.isDraft) as PRState;
+									return (
+										<CommandItem
+											key={pr.prNumber}
+											value={`${pr.prNumber}-${pr.title}`}
+											onSelect={() => handleSelect(pr)}
+											className="group items-start gap-3 rounded-md px-2.5 py-2"
+										>
+											<PRIcon
+												state={state}
+												className="mt-0.5 size-4 shrink-0"
+											/>
+											<div className="flex min-w-0 flex-1 flex-col gap-0.5">
+												<span className="truncate text-sm leading-snug">
+													{pr.title}
+												</span>
+												<span className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+													<span className="font-mono">#{pr.prNumber}</span>
+													<span aria-hidden>·</span>
+													<span className="capitalize">{state}</span>
+												</span>
+											</div>
+											<span className="ml-2 hidden shrink-0 self-center text-[11px] text-muted-foreground group-data-[selected=true]:inline">
+												↵
+											</span>
+										</CommandItem>
+									);
+								})}
 							</CommandGroup>
 						)}
 					</CommandList>

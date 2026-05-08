@@ -1,6 +1,6 @@
 {
 	"name": "@superset/host-service",
-	"version": "0.1.0",
+	"version": "0.8.1",
 	"private": true,
 	"type": "module",
 	"exports": {
@@ -39,7 +39,8 @@
 		"./attachments": {
 			"types": "./src/trpc/router/attachments/index.ts",
 			"default": "./src/trpc/router/attachments/index.ts"
-		}
+		},
+		"./package.json": "./package.json"
 	},
 	"scripts": {
 		"clean": "git clean -xdf .cache .turbo dist node_modules",

@@ -1,11 +1,16 @@
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
-import { SquareSplitHorizontal } from "lucide-react";
+import {
+	MessageSquare,
+	MessageSquareOff,
+	SquareSplitHorizontal,
+} from "lucide-react";
 import { TbScan } from "react-icons/tb";
 import { useSettings } from "renderer/stores/settings";
 
 export function DiffPaneHeaderExtras() {
 	const diffStyle = useSettings((s) => s.diffStyle);
+	const showDiffComments = useSettings((s) => s.showDiffComments);
 	const updateSetting = useSettings((s) => s.update);
 
 	const buttonClass = (active: boolean) =>
@@ -48,6 +53,34 @@ export function DiffPaneHeaderExtras() {
 				</TooltipTrigger>
 				<TooltipContent side="bottom" showArrow={false}>
 					Split view
+				</TooltipContent>
+			</Tooltip>
+			<div
+				className="mx-1 h-3.5 w-px bg-muted-foreground/30"
+				aria-hidden="true"
+			/>
+			<Tooltip>
+				<TooltipTrigger asChild>
+					<button
+						type="button"
+						onClick={() => updateSetting("showDiffComments", !showDiffComments)}
+						aria-label={
+							showDiffComments
+								? "Hide PR review comments"
+								: "Show PR review comments"
+						}
+						aria-pressed={showDiffComments}
+						className={buttonClass(showDiffComments)}
+					>
+						{showDiffComments ? (
+							<MessageSquare className="size-3.5" />
+						) : (
+							<MessageSquareOff className="size-3.5" />
+						)}
+					</button>
+				</TooltipTrigger>
+				<TooltipContent side="bottom" showArrow={false}>
+					{showDiffComments ? "Hide review comments" : "Show review comments"}
 				</TooltipContent>
 			</Tooltip>
 			<div
