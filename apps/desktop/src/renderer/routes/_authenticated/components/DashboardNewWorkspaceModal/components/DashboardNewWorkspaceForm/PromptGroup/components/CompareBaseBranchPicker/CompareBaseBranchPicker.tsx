@@ -35,9 +35,8 @@ interface CompareBaseBranchPickerProps {
 		branchName: string,
 		source: "local" | "remote-tracking",
 	) => void;
-	// Single unified action: "go to a workspace for this branch". The server's
-	// `workspaces.create` resolves which path to take (open tracked / adopt
-	// foreign worktree / create fresh) so the client doesn't have to.
+	// Server's workspaces.create resolves between open-tracked, adopt-foreign-
+	// worktree, and fresh-create — the picker doesn't decide.
 	onOpenWorkspace: (branchName: string) => void;
 }
 
@@ -58,9 +57,7 @@ export function CompareBaseBranchPicker({
 	onOpenWorkspace,
 }: CompareBaseBranchPickerProps) {
 	const [open, setOpen] = useState(false);
-	// Mirror cmdk's selected-row value so a Mod+Enter keydown can resolve it
-	// to the branch name without traversing DOM. Without this, keyboard users
-	// have no path to `onOpenWorkspace`.
+	// Mirror cmdk's selected row so Mod+Enter can resolve it without DOM lookup.
 	const [selectedValue, setSelectedValue] = useState("");
 	const sentinelRef = useRef<HTMLDivElement | null>(null);
 
@@ -132,10 +129,8 @@ export function CompareBaseBranchPicker({
 					value={selectedValue}
 					onValueChange={setSelectedValue}
 					onKeyDown={(e) => {
-						// Keyboard parity with the hover-only "Open workspace" button.
-						// cmdk arrow-keys leave focus on the input, so the per-row
-						// button is unreachable; Mod+Enter on the active row routes to
-						// the same handler.
+						// cmdk leaves focus on the input, so the per-row button is
+						// pointer-only — Mod+Enter is the keyboard path to it.
 						if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
 							if (!selectedValue) return;
 							e.preventDefault();
@@ -224,24 +219,22 @@ export function CompareBaseBranchPicker({
 										</span>
 									</div>
 									<span className="ml-2 flex shrink-0 items-center gap-1.5 self-center">
-										<span className="hidden items-center gap-1.5 group-hover:inline-flex group-data-[selected=true]:inline-flex">
-											<button
-												type="button"
-												className="inline-flex items-center rounded-sm bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary hover:bg-primary/20"
-												onClick={(e) => {
-													e.stopPropagation();
-													onOpenWorkspace(branch.name);
-													setOpen(false);
-												}}
-											>
-												Open workspace
-												<span className="ml-1.5 text-[10px] opacity-70">
-													{MOD_KEY}↵
-												</span>
-											</button>
-										</span>
+										<button
+											type="button"
+											className="hidden items-center rounded-sm bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary hover:bg-primary/20 group-hover:inline-flex group-data-[selected=true]:inline-flex"
+											onClick={(e) => {
+												e.stopPropagation();
+												onOpenWorkspace(branch.name);
+												setOpen(false);
+											}}
+										>
+											Open workspace
+											<span className="ml-1.5 text-[10px] opacity-70">
+												{MOD_KEY}↵
+											</span>
+										</button>
 										{effectiveCompareBaseBranch === branch.name && (
-											<HiCheck className="size-4 text-primary group-hover:hidden group-focus-within:hidden" />
+											<HiCheck className="size-4 text-primary group-hover:hidden group-data-[selected=true]:hidden" />
 										)}
 									</span>
 								</CommandItem>

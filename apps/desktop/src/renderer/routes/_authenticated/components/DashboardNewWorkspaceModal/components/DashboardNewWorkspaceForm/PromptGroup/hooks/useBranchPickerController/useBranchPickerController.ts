@@ -25,12 +25,7 @@ export interface UseBranchPickerControllerArgs {
 	closeModal: () => void;
 }
 
-/**
- * Owns all state + handlers for the branch picker: the search/filter inputs,
- * the branch-context query, the host-id resolution that gates dispatch, and
- * the per-row action callbacks. Returns a single `pickerProps` object ready
- * to spread into `<CompareBaseBranchPicker />`.
- */
+/** Returns a `pickerProps` object ready to spread into `<CompareBaseBranchPicker />`. */
 export function useBranchPickerController(args: UseBranchPickerControllerArgs) {
 	const {
 		projectId,
@@ -45,8 +40,8 @@ export function useBranchPickerController(args: UseBranchPickerControllerArgs) {
 	const { machineId } = useLocalHostService();
 	const { submit } = useWorkspaceCreates();
 
-	// `null` means "local active machine" — pin to the device's own machineId
-	// so workspace lookups (which key by hostId) resolve against the right host.
+	// `null` hostId means "local active machine"; pin to the device's machineId
+	// so workspace lookups (keyed by hostId) hit the right host.
 	const resolvedHostId = hostId ?? machineId;
 
 	const [branchSearch, setBranchSearch] = useState("");
@@ -64,22 +59,17 @@ export function useBranchPickerController(args: UseBranchPickerControllerArgs) {
 
 	const effectiveCompareBaseBranch = baseBranch || defaultBranch || null;
 
-	// Picker actions bypass the modal's submit, so they don't get the
-	// `resolveNames` pass — fall back to the branch name when the user hasn't
-	// typed a workspace name.
+	// Picker actions bypass the modal's submit pipeline (and its `resolveNames`
+	// pass), so we mirror its branch-name fallback here.
 	const resolveActionWorkspaceName = useCallback(
 		(branchName: string) => typedWorkspaceName.trim() || branchName,
 		[typedWorkspaceName],
 	);
 
-	// Single "go to a workspace for this branch" path. The server's
-	// `workspaces.create` already covers all three cases:
-	//   - Tracked workspace exists       → returns canonical row (alreadyExists)
-	//   - Foreign worktree, no row yet   → adopts via adoptExistingWorktree
-	//   - No worktree at all             → fresh `git worktree add`
-	// Awaiting the result + navigating to the canonical id avoids the 404 you'd
-	// hit by optimistically navigating to the snapshot id (server can return a
-	// different id for the existing-row + adoption paths).
+	// Server's `workspaces.create` resolves all three cases (open tracked,
+	// adopt foreign worktree, fresh create). Await + navigate to the canonical
+	// id — the existing-row and adoption paths can return an id different from
+	// the optimistic snapshot id, which would otherwise 404.
 	const onOpenWorkspace = useCallback(
 		async (branchName: string) => {
 			if (!projectId) {
@@ -108,10 +98,8 @@ export function useBranchPickerController(args: UseBranchPickerControllerArgs) {
 					params: { workspaceId: result.workspaceId },
 				});
 			} else {
-				// `submit` tracks the failure via `markError`, but the in-flight
-				// manager doesn't toast — without this, a rejected open closes
-				// the modal silently and the user has no feedback that anything
-				// failed.
+				// `submit` records the failure for the in-flight tracker but
+				// doesn't toast; surface it here so the closed modal isn't silent.
 				toast.error(result.error || "Failed to open workspace");
 			}
 		},
