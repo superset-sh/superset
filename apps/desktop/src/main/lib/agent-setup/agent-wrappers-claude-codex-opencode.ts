@@ -174,9 +174,6 @@ export function getClaudeGlobalSettingsJsonContent(
 		existing.hooks = {};
 	}
 
-	// SessionStart/SessionEnd are the earliest/latest agent-attached signal —
-	// they bind the pane icon before the user submits anything. Per-turn
-	// UserPromptSubmit/Stop/PostToolUse drive the working indicator.
 	const managedEvents: Array<{
 		eventName:
 			| "SessionStart"
@@ -276,13 +273,11 @@ export function getOpenCodePluginContent(notifyPath: string): string {
 }
 
 /**
- * Creates the Claude wrapper that forwards SUPERSET_* env vars into the agent.
+ * Pass-through wrapper for Claude. Hooks live in ~/.claude/settings.json
+ * (createClaudeSettingsJson); the wrapper exists only to forward SUPERSET_*
+ * env vars into the agent process tree.
  */
 export function createClaudeWrapper(): void {
-	// Hooks are now written directly to ~/.claude/settings.json via
-	// createClaudeSettingsJson(), so the wrapper is a plain pass-through.
-	// We still create the wrapper so SUPERSET_* env vars flow through
-	// and the notify script can identify the Superset terminal context.
 	const script = buildWrapperScript("claude", `exec "$REAL_BIN" "$@"`, {
 		agentId: "claude",
 	});

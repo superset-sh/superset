@@ -31,10 +31,7 @@ export interface GitChangedPayload {
 export interface AgentLifecyclePayload {
 	eventType: AgentLifecycleEventType;
 	terminalId: string;
-	/**
-	 * Identity reported by the in-shell hook when it can detect the agent.
-	 * Absent when the hook ran without `SUPERSET_AGENT_ID` set.
-	 */
+	// Absent when the hook ran without `SUPERSET_AGENT_ID` set.
 	agent?: AgentIdentity;
 	occurredAt: number;
 }

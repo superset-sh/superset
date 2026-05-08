@@ -129,9 +129,6 @@ export function getDroidSettingsJsonContent(
 			| "PostToolUse";
 		definition: DroidHookDefinition;
 	}> = [
-		// SessionStart/SessionEnd give us the earliest "agent attached" / final
-		// "agent gone" signal for the pane icon. Per-prompt events still drive
-		// the working indicator.
 		{
 			eventName: "SessionStart",
 			definition: {

@@ -77,10 +77,7 @@ export function getGeminiSettingsJsonContent(hookScriptPath: string): string {
 		existing.hooks = {};
 	}
 
-	// SessionStart/SessionEnd are the canonical session-lifetime signals
-	// (gemini-cli HookEventName, packages/core/src/hooks/types.ts). Per-turn
-	// BeforeAgent/AfterAgent + AfterTool are kept as the working-indicator
-	// cadence and feed `Start`/`Stop` via mapEventType.
+	// HookEventName values from gemini-cli's packages/core/src/hooks/types.ts.
 	const eventNames = [
 		"SessionStart",
 		"SessionEnd",

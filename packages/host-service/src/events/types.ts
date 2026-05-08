@@ -28,11 +28,8 @@ export interface AgentLifecycleMessage {
 	workspaceId: string;
 	eventType: AgentLifecycleEventType;
 	terminalId: string;
-	/**
-	 * Identity of the agent process reporting the event, when the hook can
-	 * detect it. Absent for hooks that don't stamp `SUPERSET_AGENT_ID`
-	 * (legacy shells, third-party hook configs).
-	 */
+	// Absent when the hook ran without `SUPERSET_AGENT_ID` set (legacy shells
+	// or third-party hook configs that bypass our wrappers).
 	agent?: AgentIdentity;
 	occurredAt: number;
 }

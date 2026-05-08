@@ -1,15 +1,12 @@
 /**
  * Normalized lifecycle event types broadcast over the WS event bus.
  *
- * - `Start` / `Stop`: per-turn working-state cadence — agent is processing /
- *   has finished processing a single user prompt. Drives the pane working
+ * - `Start` / `Stop`: per-turn working-state cadence — drives the working
  *   indicator and the completion chime.
  * - `PermissionRequest`: agent is blocked waiting for a tool/exec decision.
- * - `Attached` / `Detached`: session-lifetime signal — the agent attached to
- *   the terminal (still idle, waiting for input) or cleanly disconnected.
- *   Drives the pane *icon* via the agent-binding store but explicitly does
- *   NOT change the working indicator or play any sound. SessionStart firing
- *   on `claude` startup must not show "working".
+ * - `Attached` / `Detached`: session-lifetime signal — drives the pane icon
+ *   binding only. NOT working state: SessionStart fires on agent boot when
+ *   the agent is still idle waiting for input.
  */
 export type AgentLifecycleEventType =
 	| "Start"

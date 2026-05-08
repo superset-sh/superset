@@ -17,17 +17,10 @@ export interface V2AgentBindingState {
 }
 
 /**
- * Live mapping from terminalId → the agent currently running in that
- * terminal, populated from `agent:lifecycle` host-service events.
- *
- * Entries are written on every lifecycle event that carries an
- * `AgentIdentity` (Start, Stop, PermissionRequest), retained until the
- * terminal exits, and replaced when the same terminal reports a different
- * `agentId` or `sessionId` (e.g. user runs `claude` then `/exit` then `codex`).
- *
- * Not persisted: a refresh rebuilds the map on the next agent event.
- * Acceptable because the binding only drives the optional pane-header
- * icon — no data is lost when it's briefly missing.
+ * Live `terminalId → AgentIdentity` map populated from `agent:lifecycle`
+ * events. Replaced on a different `agentId`/`sessionId` (e.g. `claude` →
+ * `/exit` → `codex`), cleared on terminal exit. Not persisted — the worst
+ * case is a brief icon flicker until the next event.
  */
 export const useV2AgentBindingStore = create<V2AgentBindingState>((set) => ({
 	byTerminalId: {},

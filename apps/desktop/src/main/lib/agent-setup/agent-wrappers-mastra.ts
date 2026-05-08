@@ -69,9 +69,7 @@ export function getMastraHooksJsonContent(notifyScriptPath: string): string {
 	}
 
 	const notifyCommand = `bash ${quoteShellPath(notifyScriptPath)}`;
-	// SessionStart/SessionEnd fire once per session — earliest/latest signal
-	// of agent liveness in the terminal, complementing the per-prompt
-	// UserPromptSubmit/Stop pair that drives the working indicator.
+	// Session lifecycle drives the pane icon binding; per-prompt drives status.
 	const managedEvents = [
 		"SessionStart",
 		"SessionEnd",

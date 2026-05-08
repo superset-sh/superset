@@ -72,9 +72,6 @@ export function getCursorHooksJsonContent(hookScriptPath: string): string {
 	}
 
 	const ourHooks: Record<string, CursorHookEntry> = {
-		// SessionStart/SessionEnd give the binding store its earliest/latest
-		// agent-attached signal. Per-prompt beforeSubmitPrompt/stop continues to
-		// drive the working indicator.
 		sessionStart: { command: `${hookScriptPath} SessionStart` },
 		sessionEnd: { command: `${hookScriptPath} SessionEnd` },
 		beforeSubmitPrompt: { command: `${hookScriptPath} Start` },
