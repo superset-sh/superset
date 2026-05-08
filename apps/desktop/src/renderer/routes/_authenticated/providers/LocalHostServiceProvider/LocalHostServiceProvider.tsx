@@ -7,6 +7,7 @@ import {
 	useMemo,
 } from "react";
 import { env } from "renderer/env.renderer";
+import { useV2HostAgentMirror } from "renderer/hooks/useV2HostAgentMirror";
 import { authClient } from "renderer/lib/auth-client";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { setHostServiceSecret } from "renderer/lib/host-service-auth";
@@ -77,6 +78,10 @@ export function LocalHostServiceProvider({
 
 		return { machineId, activeHostUrl };
 	}, [machineIdData, activeConnection]);
+
+	// Mirror legacy v1 agent-preset overrides into the v2 host-service store
+	// once the host URL is known. See useV2HostAgentMirror for details (#4195).
+	useV2HostAgentMirror(value?.activeHostUrl ?? null);
 
 	if (!value) return null;
 
