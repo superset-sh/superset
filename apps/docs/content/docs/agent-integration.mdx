@@ -68,6 +68,31 @@ Agents can pause and ask questions, request tool approval, and ask for plan revi
 
 When an agent needs access to files outside its workspace, it will prompt for permission in chat so you can approve or deny the request inline.
 
+## Claude Code Plugin
+
+Superset is available as a Claude Code plugin with built-in slash commands:
+
+- `/superset-spawn` - Create a new workspace and launch an agent
+- `/superset-tasks` - Browse and manage your tasks
+- `/superset-automation` - Create or trigger automations
+
+Install via the Claude Code plugin marketplace.
+
+## CLI Skill for External Agents
+
+Install the Superset skill to give Cursor, Codex, Cline, and other external agents access to Superset commands:
+
+```bash
+npx skills add superset-sh/superset
+```
+
+The skill injects two runtime environment variables into agent sessions:
+
+| Variable | Description |
+|----------|-------------|
+| `SUPERSET_WORKSPACE_ID` | ID of the current workspace |
+| `SUPERSET_TERMINAL_ID` | ID of the current terminal session |
+
 ## Notifications
 
 Get notified when agents finish. Configure sounds in Settings.
