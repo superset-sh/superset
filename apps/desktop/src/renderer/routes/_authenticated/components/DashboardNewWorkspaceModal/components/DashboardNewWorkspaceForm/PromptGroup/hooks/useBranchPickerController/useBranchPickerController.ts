@@ -1,8 +1,6 @@
 import { toast } from "@superset/ui/sonner";
-import { useLiveQuery } from "@tanstack/react-db";
 import { useNavigate } from "@tanstack/react-router";
-import { useCallback, useMemo, useState } from "react";
-import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { useCallback, useState } from "react";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { useWorkspaceCreates } from "renderer/stores/workspace-creates";
 import type { BaseBranchSource } from "../../../../../DashboardNewWorkspaceDraftContext";
@@ -27,12 +25,7 @@ export interface UseBranchPickerControllerArgs {
 	closeModal: () => void;
 }
 
-/**
- * Owns all state + handlers for the branch picker: the search/filter inputs,
- * the branch-context query, the host-id resolution that gates Open/Create
- * dispatch, and the per-row action callbacks. Returns a single `pickerProps`
- * object ready to spread into `<CompareBaseBranchPicker />`.
- */
+/** Returns a `pickerProps` object ready to spread into `<CompareBaseBranchPicker />`. */
 export function useBranchPickerController(args: UseBranchPickerControllerArgs) {
 	const {
 		projectId,
@@ -44,12 +37,11 @@ export function useBranchPickerController(args: UseBranchPickerControllerArgs) {
 	} = args;
 
 	const navigate = useNavigate();
-	const collections = useCollections();
 	const { machineId } = useLocalHostService();
 	const { submit } = useWorkspaceCreates();
 
-	// `null` means "local active machine" — pin to the device's own machineId
-	// so workspace lookups (which key by hostId) resolve against the right host.
+	// `null` hostId means "local active machine"; pin to the device's machineId
+	// so workspace lookups (keyed by hostId) hit the right host.
 	const resolvedHostId = hostId ?? machineId;
 
 	const [branchSearch, setBranchSearch] = useState("");
@@ -67,44 +59,19 @@ export function useBranchPickerController(args: UseBranchPickerControllerArgs) {
 
 	const effectiveCompareBaseBranch = baseBranch || defaultBranch || null;
 
-	// Authoritative "does a workspace already exist for this (project, branch,
-	// host)?" — driven by the cloud-synced collection rather than the server's
-	// per-row hasWorkspace snapshot, which can be stale after a delete.
-	const { data: projectWorkspaces } = useLiveQuery(
-		(q) => q.from({ workspaces: collections.v2Workspaces }),
-		[collections],
-	);
-
-	const workspaceByBranch = useMemo(() => {
-		const map = new Map<string, string>();
-		if (!projectId || !projectWorkspaces || !resolvedHostId) return map;
-		for (const w of projectWorkspaces) {
-			if (
-				w.projectId === projectId &&
-				w.hostId === resolvedHostId &&
-				w.branch
-			) {
-				map.set(w.branch, w.id);
-			}
-		}
-		return map;
-	}, [projectId, projectWorkspaces, resolvedHostId]);
-
-	const hasWorkspaceForBranch = useCallback(
-		(name: string) => workspaceByBranch.has(name),
-		[workspaceByBranch],
-	);
-
-	// Picker actions bypass the modal's submit, so they don't get the
-	// `resolveNames` pass — fall back to the branch name when the user hasn't
-	// typed a workspace name.
+	// Picker actions bypass the modal's submit pipeline (and its `resolveNames`
+	// pass), so we mirror its branch-name fallback here.
 	const resolveActionWorkspaceName = useCallback(
 		(branchName: string) => typedWorkspaceName.trim() || branchName,
 		[typedWorkspaceName],
 	);
 
-	const onCheckoutBranch = useCallback(
-		(branchName: string) => {
+	// Server's `workspaces.create` resolves all three cases (open tracked,
+	// adopt foreign worktree, fresh create). Await + navigate to the canonical
+	// id — the existing-row and adoption paths can return an id different from
+	// the optimistic snapshot id, which would otherwise 404.
+	const onOpenWorkspace = useCallback(
+		async (branchName: string) => {
 			if (!projectId) {
 				toast.error("Select a project first");
 				return;
@@ -113,19 +80,28 @@ export function useBranchPickerController(args: UseBranchPickerControllerArgs) {
 				toast.error("No active host");
 				return;
 			}
-			const workspaceId = crypto.randomUUID();
+			const snapshotId = crypto.randomUUID();
 			const workspaceName = resolveActionWorkspaceName(branchName);
 			closeModal();
-			void navigate({ to: `/v2-workspace/${workspaceId}` as string });
-			void submit({
+			const result = await submit({
 				hostId: resolvedHostId,
 				snapshot: {
-					id: workspaceId,
+					id: snapshotId,
 					projectId,
 					name: workspaceName,
 					branch: branchName,
 				},
 			});
+			if (result.ok) {
+				void navigate({
+					to: "/v2-workspace/$workspaceId",
+					params: { workspaceId: result.workspaceId },
+				});
+			} else {
+				// `submit` records the failure for the in-flight tracker but
+				// doesn't toast; surface it here so the closed modal isn't silent.
+				toast.error(result.error || "Failed to open workspace");
+			}
 		},
 		[
 			projectId,
@@ -135,22 +111,6 @@ export function useBranchPickerController(args: UseBranchPickerControllerArgs) {
 			closeModal,
 			navigate,
 		],
-	);
-
-	const onOpenExisting = useCallback(
-		(branchName: string) => {
-			const workspaceId = workspaceByBranch.get(branchName);
-			if (!workspaceId) {
-				toast.error("Could not find existing workspace for this branch");
-				return;
-			}
-			closeModal();
-			void navigate({
-				to: "/v2-workspace/$workspaceId",
-				params: { workspaceId },
-			});
-		},
-		[workspaceByBranch, closeModal, navigate],
 	);
 
 	const onSelectCompareBaseBranch = useCallback(
@@ -178,9 +138,7 @@ export function useBranchPickerController(args: UseBranchPickerControllerArgs) {
 		hasNextPage: hasNextPage ?? false,
 		onLoadMore,
 		onSelectCompareBaseBranch,
-		onCheckoutBranch,
-		onOpenExisting,
-		hasWorkspaceForBranch,
+		onOpenWorkspace,
 	};
 
 	return { pickerProps };

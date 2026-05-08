@@ -18,15 +18,26 @@ export function useWorkspacePaneOpeners({
 	store: StoreApi<WorkspaceStore<PaneViewerData>>;
 	launcher: TerminalLauncher;
 }): {
-	openDiffPane: (filePath: string, openInNewTab?: boolean) => void;
+	openDiffPane: (
+		filePath: string,
+		openInNewTab?: boolean,
+		line?: number,
+	) => void;
 	addTerminalTab: () => Promise<void>;
 	addChatTab: () => void;
 	addBrowserTab: () => void;
 	openCommentPane: (comment: CommentPaneData) => void;
 } {
 	const openDiffPane = useCallback(
-		(filePath: string, openInNewTab?: boolean) => {
+		(filePath: string, openInNewTab?: boolean, line?: number) => {
 			const state = store.getState();
+			// Bump tick on every request so ScrollToFile re-fires on repeat
+			// clicks; clear when no line is given so reused panes don't jump
+			// to a stale focus.
+			const focusFields =
+				line != null
+					? { focusLine: line, focusTick: Date.now() }
+					: { focusLine: undefined, focusTick: undefined };
 			if (openInNewTab) {
 				state.addTab({
 					panes: [
@@ -36,6 +47,7 @@ export function useWorkspacePaneOpeners({
 								path: filePath,
 								collapsedFiles: [],
 								expandedFiles: [filePath],
+								...focusFields,
 							} as DiffPaneData,
 						},
 					],
@@ -58,6 +70,7 @@ export function useWorkspacePaneOpeners({
 							expandedFiles: prevExpanded.includes(filePath)
 								? prevExpanded
 								: [...prevExpanded, filePath],
+							...focusFields,
 						} as PaneViewerData,
 					});
 					state.setActiveTab(tab.id);
@@ -72,6 +85,7 @@ export function useWorkspacePaneOpeners({
 						path: filePath,
 						collapsedFiles: [],
 						expandedFiles: [filePath],
+						...focusFields,
 					} as DiffPaneData,
 				},
 			});

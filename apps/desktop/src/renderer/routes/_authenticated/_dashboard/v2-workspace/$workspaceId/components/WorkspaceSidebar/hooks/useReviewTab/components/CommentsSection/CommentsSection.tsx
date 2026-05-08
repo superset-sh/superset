@@ -4,12 +4,28 @@ import {
 	CollapsibleContent,
 	CollapsibleTrigger,
 } from "@superset/ui/collapsible";
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuSeparator,
+	DropdownMenuTrigger,
+} from "@superset/ui/dropdown-menu";
 import { Skeleton } from "@superset/ui/skeleton";
 import { cn } from "@superset/ui/utils";
+import {
+	ChevronDown,
+	Copy as CopyIcon,
+	ExternalLink,
+	GitCompare,
+	MessageSquare,
+	SquarePlus,
+} from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { LuArrowUpRight, LuCheck, LuCopy } from "react-icons/lu";
 import { VscChevronRight } from "react-icons/vsc";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
+import { getMarkdownPreviewText } from "renderer/utils/markdownPreview";
 import type { CommentPaneData } from "../../../../../../types";
 import type { NormalizedComment } from "../../types";
 
@@ -17,12 +33,14 @@ interface CommentsSectionProps {
 	comments: NormalizedComment[];
 	isLoading: boolean;
 	onOpenComment?: (comment: CommentPaneData) => void;
+	onOpenInDiff?: (path: string, line?: number, openInNewTab?: boolean) => void;
 }
 
 export function CommentsSection({
 	comments,
 	isLoading,
 	onOpenComment,
+	onOpenInDiff,
 }: CommentsSectionProps) {
 	const [commentsOpen, setCommentsOpen] = useState(true);
 	const [resolvedOpen, setResolvedOpen] = useState(false);
@@ -171,6 +189,7 @@ export function CommentsSection({
 								copiedActionKey={copiedActionKey}
 								onCopy={handleCopySingle}
 								onOpen={onOpenComment}
+								onOpenInDiff={onOpenInDiff}
 							/>
 						))
 					)}
@@ -208,6 +227,7 @@ export function CommentsSection({
 								copiedActionKey={copiedActionKey}
 								onCopy={handleCopySingle}
 								onOpen={onOpenComment}
+								onOpenInDiff={onOpenInDiff}
 							/>
 						))}
 					</CollapsibleContent>
@@ -234,18 +254,6 @@ function formatShortAge(isoDate?: string): string | null {
 	return `${Math.round(hours / 24)}d`;
 }
 
-function getPreviewText(body: string): string {
-	return (
-		body
-			.replace(/<!--[\s\S]*?-->/g, "\n")
-			.split(/\r?\n/)
-			.map((line) => line.trim())
-			.find(Boolean)
-			?.replace(/^[-*+>]\s*/, "")
-			?.replace(/\s+/g, " ") ?? "No preview available"
-	);
-}
-
 // ---------------------------------------------------------------------------
 // CommentRow
 // ---------------------------------------------------------------------------
@@ -255,6 +263,7 @@ interface CommentRowProps {
 	copiedActionKey: string | null;
 	onCopy: (comment: NormalizedComment) => void;
 	onOpen?: (comment: CommentPaneData) => void;
+	onOpenInDiff?: (path: string, line?: number, openInNewTab?: boolean) => void;
 }
 
 function CommentRow({
@@ -262,11 +271,19 @@ function CommentRow({
 	copiedActionKey,
 	onCopy,
 	onOpen,
+	onOpenInDiff,
 }: CommentRowProps) {
 	const age = formatShortAge(comment.createdAt);
 	const isCopied = copiedActionKey === `comment:${comment.id}`;
 
 	const handleClick = () => {
+		// Default click jumps to the comment in the diff. Fall back to the
+		// standalone comment pane when there's no file anchor (conversation
+		// comments) or no diff handler wired up.
+		if (comment.kind === "review" && comment.path && onOpenInDiff) {
+			onOpenInDiff(comment.path, comment.line);
+			return;
+		}
 		onOpen?.({
 			commentId: comment.id,
 			authorLogin: comment.authorLogin,
@@ -304,7 +321,7 @@ function CommentRow({
 					) : null}
 				</div>
 				<p className="mt-0.5 line-clamp-1 text-xs leading-4 text-muted-foreground">
-					{getPreviewText(comment.body)}
+					{getMarkdownPreviewText(comment.body)}
 				</p>
 			</div>
 		</>
@@ -320,34 +337,84 @@ function CommentRow({
 			>
 				{content}
 			</button>
-			<div className="absolute right-0.5 top-0.5 flex items-center gap-0.5 rounded-sm bg-background/90 px-0.5 py-0.5 shadow-sm opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
-				<button
-					type="button"
-					className="inline-flex size-5 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-					onClick={(e) => {
-						e.preventDefault();
-						e.stopPropagation();
-						onCopy(comment);
-					}}
-					aria-label={isCopied ? "Copied comment" : "Copy comment"}
-				>
-					{isCopied ? (
-						<LuCheck className="size-3" />
-					) : (
-						<LuCopy className="size-3" />
-					)}
-				</button>
+			<div className="absolute right-0.5 top-0.5 flex items-center gap-0.5 rounded-sm bg-background/90 px-0.5 py-0.5 shadow-sm opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 has-[[data-state=open]]:opacity-100">
 				{comment.url ? (
 					<a
 						href={comment.url}
 						target="_blank"
 						rel="noopener noreferrer"
+						onClick={(e) => e.stopPropagation()}
 						className="inline-flex size-5 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
 						aria-label="Open comment on GitHub"
 					>
 						<LuArrowUpRight className="size-3" />
 					</a>
 				) : null}
+				<DropdownMenu>
+					<DropdownMenuTrigger asChild>
+						<button
+							type="button"
+							onClick={(e) => e.stopPropagation()}
+							aria-label="More actions"
+							className="inline-flex size-5 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground data-[state=open]:bg-accent data-[state=open]:text-foreground"
+						>
+							<ChevronDown className="size-3" />
+						</button>
+					</DropdownMenuTrigger>
+					<DropdownMenuContent align="end" className="w-56">
+						{comment.kind === "review" && comment.path && onOpenInDiff ? (
+							<>
+								<DropdownMenuItem
+									onSelect={() =>
+										onOpenInDiff(comment.path as string, comment.line)
+									}
+								>
+									<GitCompare />
+									Open in diff
+								</DropdownMenuItem>
+								<DropdownMenuItem
+									onSelect={() =>
+										onOpenInDiff(comment.path as string, comment.line, true)
+									}
+								>
+									<SquarePlus />
+									Open in diff in new tab
+								</DropdownMenuItem>
+								<DropdownMenuSeparator />
+							</>
+						) : null}
+						{onOpen ? (
+							<DropdownMenuItem
+								onSelect={() =>
+									onOpen({
+										commentId: comment.id,
+										authorLogin: comment.authorLogin,
+										avatarUrl: comment.avatarUrl,
+										body: comment.body,
+										url: comment.url,
+										path: comment.path,
+										line: comment.line,
+									})
+								}
+							>
+								<MessageSquare />
+								Open as comment pane
+							</DropdownMenuItem>
+						) : null}
+						<DropdownMenuItem onSelect={() => onCopy(comment)}>
+							{isCopied ? <LuCheck /> : <CopyIcon />}
+							{isCopied ? "Copied" : "Copy comment"}
+						</DropdownMenuItem>
+						{comment.url ? (
+							<DropdownMenuItem
+								onSelect={() => window.open(comment.url, "_blank", "noopener")}
+							>
+								<ExternalLink />
+								Open on GitHub
+							</DropdownMenuItem>
+						) : null}
+					</DropdownMenuContent>
+				</DropdownMenu>
 			</div>
 		</div>
 	);

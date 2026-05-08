@@ -44,6 +44,10 @@ export interface DiffPaneData {
 	path: string;
 	collapsedFiles: string[];
 	expandedFiles?: string[];
+	/** Line to scroll to within `path`. `focusTick` bumps on each request
+	 *  so repeated clicks of the same line still re-scroll. */
+	focusLine?: number;
+	focusTick?: number;
 }
 
 export interface CommentPaneData {

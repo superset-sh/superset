@@ -27,6 +27,8 @@ export interface NormalizedComment {
 	kind: "review" | "conversation";
 	path?: string;
 	line?: number;
+	/** "LEFT" = deletions side, "RIGHT" = additions. Only set for review threads. */
+	diffSide?: "LEFT" | "RIGHT";
 	isResolved: boolean;
 	threadId?: string;
 }
