@@ -449,3 +449,329 @@ function createMultiManager(
 		gitWatcher: { onChanged: () => () => {} } as never,
 	});
 }
+
+// ---------------------------------------------------------------------------
+// Task 7: per-branch routing & dedup
+// ---------------------------------------------------------------------------
+
+describe("PullRequestRuntimeManager per-branch PR fetch", () => {
+	test("fetches one PR per unique workspace branch and links each workspace", async () => {
+		const state = makeMultiState([
+			{
+				id: "ws-a",
+				branch: "feat/a",
+				upstreamOwner: "base-owner",
+				upstreamRepo: "base-repo",
+				upstreamBranch: "feat/a",
+			},
+			{
+				id: "ws-b",
+				branch: "feat/b",
+				upstreamOwner: "base-owner",
+				upstreamRepo: "base-repo",
+				upstreamBranch: "feat/b",
+			},
+		]);
+		const counter = { count: 0 };
+		const octokit = createMockOctokit(({ branch }) => {
+			if (branch === "feat/a") {
+				return makeNode({
+					number: 1,
+					headRefName: "feat/a",
+					headOwnerLogin: "base-owner",
+					headRepoName: "base-repo",
+				});
+			}
+			if (branch === "feat/b") {
+				return makeNode({
+					number: 2,
+					headRefName: "feat/b",
+					headOwnerLogin: "base-owner",
+					headRepoName: "base-repo",
+				});
+			}
+			return null;
+		}, counter);
+		const manager = createMultiManager(state, octokit);
+
+		await manager.refreshPullRequestsByWorkspaces(["ws-a", "ws-b"]);
+
+		expect(counter.count).toBe(2);
+		const wsA = state.workspaces.find((w) => w.id === "ws-a");
+		const wsB = state.workspaces.find((w) => w.id === "ws-b");
+		expect(wsA?.pullRequestId).toBeTruthy();
+		expect(wsB?.pullRequestId).toBeTruthy();
+		expect(wsA?.pullRequestId).not.toBe(wsB?.pullRequestId);
+	});
+
+	test("dedups when multiple workspaces share the same upstream branch", async () => {
+		const state = makeMultiState([
+			{
+				id: "ws-a",
+				branch: "shared",
+				upstreamOwner: "base-owner",
+				upstreamRepo: "base-repo",
+				upstreamBranch: "shared",
+			},
+			{
+				id: "ws-b",
+				branch: "shared",
+				upstreamOwner: "base-owner",
+				upstreamRepo: "base-repo",
+				upstreamBranch: "shared",
+			},
+		]);
+		const counter = { count: 0 };
+		const octokit = createMockOctokit(
+			() =>
+				makeNode({
+					number: 7,
+					headRefName: "shared",
+					headOwnerLogin: "base-owner",
+					headRepoName: "base-repo",
+				}),
+			counter,
+		);
+		const manager = createMultiManager(state, octokit);
+
+		await manager.refreshPullRequestsByWorkspaces(["ws-a", "ws-b"]);
+
+		expect(counter.count).toBe(1);
+		const ids = state.workspaces.map((w) => w.pullRequestId);
+		expect(ids[0]).toBeTruthy();
+		expect(ids[0]).toBe(ids[1]);
+	});
+
+	// ---------------------------------------------------------------------------
+	// Task 8: failure isolation
+	// ---------------------------------------------------------------------------
+
+	test("preserves existing pullRequestId when a single branch's fetch rejects", async () => {
+		const state = makeMultiState([
+			{
+				id: "ws-a",
+				branch: "feat/a",
+				upstreamOwner: "base-owner",
+				upstreamRepo: "base-repo",
+				upstreamBranch: "feat/a",
+			},
+			{
+				id: "ws-b",
+				branch: "feat/b",
+				upstreamOwner: "base-owner",
+				upstreamRepo: "base-repo",
+				upstreamBranch: "feat/b",
+				pullRequestId: "existing-pr-id-for-b",
+			},
+		]);
+		const octokit = createMockOctokit(({ branch }) => {
+			if (branch === "feat/a") {
+				return makeNode({
+					number: 1,
+					headRefName: "feat/a",
+					headOwnerLogin: "base-owner",
+					headRepoName: "base-repo",
+				});
+			}
+			throw new Error("simulated 504");
+		});
+		const manager = createMultiManager(state, octokit);
+
+		await manager.refreshPullRequestsByWorkspaces(["ws-a", "ws-b"]);
+
+		const wsA = state.workspaces.find((w) => w.id === "ws-a");
+		const wsB = state.workspaces.find((w) => w.id === "ws-b");
+		expect(wsA?.pullRequestId).toBeTruthy();
+		// B's fetch rejected — its existing link must NOT be blanked.
+		expect(wsB?.pullRequestId).toBe("existing-pr-id-for-b");
+	});
+
+	// ---------------------------------------------------------------------------
+	// Task 9: fork head-identity match
+	// ---------------------------------------------------------------------------
+
+	test("links a fork PR when head identity matches workspace upstream", async () => {
+		const state = makeMultiState([
+			{
+				id: "ws-fork",
+				branch: "feat/x",
+				upstreamOwner: "fork-owner",
+				upstreamRepo: "fork-repo",
+				upstreamBranch: "feat/x",
+			},
+		]);
+		const octokit = createMockOctokit(({ branch }) =>
+			makeNode({
+				number: 9,
+				headRefName: branch,
+				headOwnerLogin: "fork-owner",
+				headRepoName: "fork-repo",
+				isCrossRepository: true,
+			}),
+		);
+		const manager = createMultiManager(state, octokit);
+
+		await manager.refreshPullRequestsByWorkspaces(["ws-fork"]);
+
+		expect(state.workspaces[0]?.pullRequestId).toBeTruthy();
+	});
+
+	test("does NOT link a base-repo PR sharing branch name with a fork workspace", async () => {
+		const state = makeMultiState([
+			{
+				id: "ws-fork",
+				branch: "main",
+				upstreamOwner: "fork-owner",
+				upstreamRepo: "fork-repo",
+				upstreamBranch: "main",
+				pullRequestId: null,
+			},
+		]);
+		const octokit = createMockOctokit(({ branch }) =>
+			// Base repo has a PR with same branch name "main" but head is base, not fork.
+			makeNode({
+				number: 99,
+				headRefName: branch,
+				headOwnerLogin: "base-owner",
+				headRepoName: "base-repo",
+				isCrossRepository: false,
+			}),
+		);
+		const manager = createMultiManager(state, octokit);
+
+		await manager.refreshPullRequestsByWorkspaces(["ws-fork"]);
+
+		expect(state.workspaces[0]?.pullRequestId).toBeNull();
+	});
+
+	// ---------------------------------------------------------------------------
+	// Task 10: no matching PR & cache TTL
+	// ---------------------------------------------------------------------------
+
+	test("sets pullRequestId to null when no PR matches the branch", async () => {
+		const state = makeMultiState([
+			{
+				id: "ws-orphan",
+				branch: "no-pr-yet",
+				upstreamOwner: "base-owner",
+				upstreamRepo: "base-repo",
+				upstreamBranch: "no-pr-yet",
+				pullRequestId: "stale-id",
+			},
+		]);
+		const octokit = createMockOctokit(() => null);
+		const manager = createMultiManager(state, octokit);
+
+		await manager.refreshPullRequestsByWorkspaces(["ws-orphan"]);
+
+		expect(state.workspaces[0]?.pullRequestId).toBeNull();
+	});
+
+	test("caches per-branch results within TTL, re-fetches after", async () => {
+		const state = makeMultiState([
+			{
+				id: "ws-a",
+				branch: "feat/a",
+				upstreamOwner: "base-owner",
+				upstreamRepo: "base-repo",
+				upstreamBranch: "feat/a",
+			},
+		]);
+		const counter = { count: 0 };
+		const octokit = createMockOctokit(
+			() =>
+				makeNode({
+					number: 1,
+					headRefName: "feat/a",
+					headOwnerLogin: "base-owner",
+					headRepoName: "base-repo",
+				}),
+			counter,
+		);
+		const manager = createMultiManager(state, octokit);
+
+		// First refresh: bypassCache=true → fires graphql, populates cache.
+		await manager.refreshPullRequestsByWorkspaces(["ws-a"]);
+		expect(counter.count).toBe(1);
+
+		// Second refresh via the private non-bypass path. Reach in (test-only).
+		// `refreshProject` is private; calling it does NOT pass bypassCache, so
+		// the cached result must be reused.
+		const internal = manager as unknown as {
+			refreshProject: (projectId: string) => Promise<void>;
+		};
+		await internal.refreshProject(PROJECT_ID);
+		expect(counter.count).toBe(1); // cache hit, no new graphql call
+
+		// Force the cache entry stale, then refresh again — graphql must fire.
+		const cache = (manager as unknown as {
+			branchPullRequestCache: Map<
+				string,
+				{ promise: unknown; fetchedAt: number }
+			>;
+		}).branchPullRequestCache;
+		for (const [k, v] of cache) {
+			cache.set(k, { ...v, fetchedAt: 0 });
+		}
+		await internal.refreshProject(PROJECT_ID);
+		expect(counter.count).toBe(2); // cache miss, re-fetched
+	});
+
+	// ---------------------------------------------------------------------------
+	// Task 11: cache eviction
+	// ---------------------------------------------------------------------------
+
+	test("evicts stale cache entries for branches no longer wanted", async () => {
+		const state = makeMultiState([
+			{
+				id: "ws-a",
+				branch: "feat/a",
+				upstreamOwner: "base-owner",
+				upstreamRepo: "base-repo",
+				upstreamBranch: "feat/a",
+			},
+		]);
+		const counter = { count: 0 };
+		const octokit = createMockOctokit(
+			({ branch }) =>
+				makeNode({
+					number: branch === "feat/a" ? 1 : 2,
+					headRefName: branch,
+					headOwnerLogin: "base-owner",
+					headRepoName: "base-repo",
+				}),
+			counter,
+		);
+		const manager = createMultiManager(state, octokit);
+
+		// First refresh populates cache for feat/a.
+		await manager.refreshPullRequestsByWorkspaces(["ws-a"]);
+		expect(counter.count).toBe(1);
+
+		// Workspace switches branches.
+		const ws0 = state.workspaces[0];
+		if (ws0) {
+			ws0.upstreamBranch = "feat/b";
+			ws0.branch = "feat/b";
+		}
+
+		// Force time past TTL by directly poking the cache entry (test-side knob).
+		// We rely on the cache eviction logic running at the end of
+		// performProjectRefresh; to make feat/a's entry stale, mutate the
+		// cache's fetchedAt via a private accessor. Public API doesn't expose it,
+		// so we use `as never` to reach in for test purposes only.
+		const cache = (manager as unknown as {
+			branchPullRequestCache: Map<string, { promise: unknown; fetchedAt: number }>;
+		}).branchPullRequestCache;
+		for (const [k, v] of cache) {
+			cache.set(k, { ...v, fetchedAt: 0 });
+		}
+
+		await manager.refreshPullRequestsByWorkspaces(["ws-a"]);
+
+		// After eviction, feat/a's stale entry must be gone; feat/b's fresh entry remains.
+		const remainingKeys = [...cache.keys()];
+		expect(remainingKeys.some((k) => k.endsWith("#feat/a"))).toBe(false);
+		expect(remainingKeys.some((k) => k.endsWith("#feat/b"))).toBe(true);
+	});
+});
