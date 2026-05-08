@@ -46,7 +46,7 @@ export interface GraphQLPullRequestNode {
 	} | null;
 }
 
-export interface PullRequestsGraphQLResult {
+export interface PullRequestForBranchGraphQLResult {
 	repository?: {
 		pullRequests?: {
 			nodes?: Array<GraphQLPullRequestNode | null>;

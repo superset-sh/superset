@@ -1,26 +1,30 @@
 import type { Octokit } from "@octokit/rest";
-import { PULL_REQUESTS_QUERY } from "./query";
+import { PULL_REQUEST_FOR_BRANCH_QUERY } from "./query";
 import type {
 	GraphQLPullRequestNode,
-	PullRequestsGraphQLResult,
+	PullRequestForBranchGraphQLResult,
 } from "./types";
 
-export async function fetchRepositoryPullRequests(
+export async function fetchPullRequestForBranch(
 	octokit: Octokit,
-	repository: {
+	args: {
 		owner: string;
 		name: string;
+		branch: string;
 	},
-): Promise<GraphQLPullRequestNode[]> {
-	const result = await octokit.graphql<PullRequestsGraphQLResult>(
-		PULL_REQUESTS_QUERY,
+): Promise<GraphQLPullRequestNode | null> {
+	const result = await octokit.graphql<PullRequestForBranchGraphQLResult>(
+		PULL_REQUEST_FOR_BRANCH_QUERY,
 		{
-			owner: repository.owner,
-			repo: repository.name,
+			owner: args.owner,
+			repo: args.name,
+			branch: args.branch,
 		},
 	);
 
-	return (result.repository?.pullRequests?.nodes ?? []).filter(
+	const nodes = (result.repository?.pullRequests?.nodes ?? []).filter(
 		(node): node is GraphQLPullRequestNode => node !== null,
 	);
+
+	return nodes[0] ?? null;
 }

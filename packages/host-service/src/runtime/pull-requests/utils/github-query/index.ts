@@ -1,4 +1,4 @@
-export { fetchRepositoryPullRequests } from "./github-query";
+export { fetchPullRequestForBranch } from "./github-query";
 export type {
 	GraphQLCheckContextNode,
 	GraphQLPullRequestNode,

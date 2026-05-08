@@ -1,7 +1,12 @@
-export const PULL_REQUESTS_QUERY = `
-	query PullRequestsForSidebar($owner: String!, $repo: String!) {
+export const PULL_REQUEST_FOR_BRANCH_QUERY = `
+	query PullRequestForBranch($owner: String!, $repo: String!, $branch: String!) {
 		repository(owner: $owner, name: $repo) {
-			pullRequests(first: 100, states: [OPEN, CLOSED, MERGED], orderBy: { field: UPDATED_AT, direction: DESC }) {
+			pullRequests(
+				headRefName: $branch
+				first: 1
+				states: [OPEN, CLOSED, MERGED]
+				orderBy: { field: UPDATED_AT, direction: DESC }
+			) {
 				nodes {
 					number
 					title

@@ -6,7 +6,7 @@ import type { HostDb } from "../../db";
 import { projects, pullRequests, workspaces } from "../../db/schema";
 import type { GitWatcher } from "../../events/git-watcher";
 import type { GitFactory } from "../git";
-import { fetchRepositoryPullRequests } from "./utils/github-query";
+import { fetchPullRequestForBranch } from "./utils/github-query";
 import type { GraphQLPullRequestNode } from "./utils/github-query/types";
 import {
 	type ChecksStatus,
@@ -259,9 +259,9 @@ export class PullRequestRuntimeManager {
 		string,
 		{ running: Promise<void>; rerunPending: boolean }
 	>();
-	private readonly repoPullRequestCache = new Map<
+	private readonly branchPullRequestCache = new Map<
 		string,
-		{ promise: Promise<GraphQLPullRequestNode[]>; fetchedAt: number }
+		{ promise: Promise<GraphQLPullRequestNode | null>; fetchedAt: number }
 	>();
 
 	constructor(options: PullRequestRuntimeManagerOptions) {
@@ -610,21 +610,36 @@ export class PullRequestRuntimeManager {
 			.all();
 		if (projectWorkspaces.length === 0) return;
 
-		const wantedKeys = new Set<string>();
+		const targets = new Map<
+			string,
+			{ owner: string; name: string; branch: string }
+		>();
 		for (const workspace of projectWorkspaces) {
+			if (!workspace.upstreamOwner || !workspace.upstreamRepo) continue;
+			const branch = workspace.upstreamBranch ?? workspace.branch;
 			const key = upstreamKey(
 				workspace.upstreamOwner,
 				workspace.upstreamRepo,
-				workspace.upstreamBranch ?? workspace.branch,
+				branch,
 			);
-			if (key) wantedKeys.add(key);
+			if (!key) continue;
+			targets.set(key, {
+				owner: workspace.upstreamOwner,
+				name: workspace.upstreamRepo,
+				branch,
+			});
 		}
 
-		const keyToPullRequest = await this.fetchRepoPullRequests(
+		const { matched, failedKeys } = await this.fetchBranchPullRequests(
 			projectId,
 			repo,
-			wantedKeys,
+			targets,
 			options,
+		);
+
+		this.evictStaleBranchCacheEntries(
+			repo,
+			new Set([...targets.values()].map((t) => t.branch)),
 		);
 
 		for (const workspace of projectWorkspaces) {
@@ -654,12 +669,31 @@ export class PullRequestRuntimeManager {
 				}
 				continue;
 			}
-			const match = keyToPullRequest.get(key);
-			this.db
-				.update(workspaces)
-				.set({ pullRequestId: match?.id ?? null })
-				.where(eq(workspaces.id, workspace.id))
-				.run();
+
+			// Three-way semantics: matched / no-match / failed.
+			// - matched: set pullRequestId to the new id.
+			// - no-match (resolved-null OR head-identity mismatch): clear.
+			// - failed (fetch rejected): preserve existing pullRequestId — a
+			//   transient 504 must not blank the badge.
+			const match = matched.get(key);
+			if (match) {
+				this.db
+					.update(workspaces)
+					.set({ pullRequestId: match.id })
+					.where(eq(workspaces.id, workspace.id))
+					.run();
+				continue;
+			}
+
+			if (failedKeys.has(key)) continue;
+
+			if (workspace.pullRequestId) {
+				this.db
+					.update(workspaces)
+					.set({ pullRequestId: null })
+					.where(eq(workspaces.id, workspace.id))
+					.run();
+			}
 		}
 	}
 
@@ -828,13 +862,14 @@ export class PullRequestRuntimeManager {
 		return rowId;
 	}
 
-	private async getCachedRepoPullRequests(
+	private getCachedBranchPullRequest(
 		repo: NormalizedRepoIdentity,
+		branch: string,
 		options: { bypassCache?: boolean } = {},
-	): Promise<GraphQLPullRequestNode[]> {
-		const cacheKey = `${repo.owner.toLowerCase()}/${repo.name.toLowerCase()}`;
+	): Promise<GraphQLPullRequestNode | null> {
+		const cacheKey = `${repo.owner.toLowerCase()}/${repo.name.toLowerCase()}#${branch}`;
 		if (!options.bypassCache) {
-			const cached = this.repoPullRequestCache.get(cacheKey);
+			const cached = this.branchPullRequestCache.get(cacheKey);
 			if (
 				cached &&
 				Date.now() - cached.fetchedAt < REPO_PULL_REQUEST_CACHE_TTL_MS
@@ -846,58 +881,88 @@ export class PullRequestRuntimeManager {
 		const fetchedAt = Date.now();
 		const promise = (async () => {
 			const octokit = await this.github();
-			return fetchRepositoryPullRequests(octokit, {
+			return fetchPullRequestForBranch(octokit, {
 				owner: repo.owner,
 				name: repo.name,
+				branch,
 			});
 		})();
 		// Observer to silence unhandledRejection warnings; real consumers
 		// observe the rejection via their own await on the cached promise.
 		promise.catch(() => {});
 		// Keep failed promises cached for the full TTL so subsequent polls
-		// share the rejection without firing new GraphQL calls. Evicting on
-		// every error caused a self-perpetuating storm under rate-limit /
-		// abuse-detection responses: the failure invalidated the cache, the
-		// next 20s tick retried, hit the same 403, and re-evicted. Network
-		// blips heal at the next TTL boundary instead.
-		this.repoPullRequestCache.set(cacheKey, { promise, fetchedAt });
+		// share the rejection without firing new GraphQL calls. Per-branch
+		// keying ensures one failed branch doesn't poison resolution for
+		// the rest.
+		this.branchPullRequestCache.set(cacheKey, { promise, fetchedAt });
 		return promise;
 	}
 
-	private async fetchRepoPullRequests(
+	private async fetchBranchPullRequests(
 		projectId: string,
-		repo: NormalizedRepoIdentity,
-		wantedKeys: Set<string>,
+		projectRepo: NormalizedRepoIdentity,
+		targets: Map<
+			string,
+			{ owner: string; name: string; branch: string }
+		>,
 		options: { bypassCache?: boolean } = {},
-	): Promise<Map<string, { id: string }>> {
-		if (wantedKeys.size === 0) return new Map();
+	): Promise<{
+		matched: Map<string, { id: string }>;
+		failedKeys: Set<string>;
+	}> {
+		const matched = new Map<string, { id: string }>();
+		const failedKeys = new Set<string>();
+		if (targets.size === 0) return { matched, failedKeys };
 
-		const nodes = await this.getCachedRepoPullRequests(repo, options);
+		const entries = [...targets.entries()];
+		const results = await Promise.allSettled(
+			entries.map(async ([key, target]) => {
+				const node = await this.getCachedBranchPullRequest(
+					projectRepo,
+					target.branch,
+					options,
+				);
+				if (!node) return { key, node: null as GraphQLPullRequestNode | null };
+				// `pullRequests(headRefName: ...)` filters by branch name only on the
+				// base repo. Fork PRs share branch names with the base repo's
+				// branches, so verify head identity matches the workspace upstream.
+				if (
+					node.headRepositoryOwner?.login !== target.owner ||
+					node.headRepository?.name !== target.name
+				) {
+					return { key, node: null };
+				}
+				return { key, node };
+			}),
+		);
 
-		const latestByKey = new Map<string, (typeof nodes)[number]>();
-
-		for (const node of nodes) {
-			const key = upstreamKey(
-				node.headRepositoryOwner?.login ?? null,
-				node.headRepository?.name ?? null,
-				node.headRefName,
-			);
-			if (!key || !wantedKeys.has(key)) continue;
-			const existing = latestByKey.get(key);
-			if (
-				!existing ||
-				new Date(node.updatedAt).getTime() >
-					new Date(existing.updatedAt).getTime()
-			) {
-				latestByKey.set(key, node);
-			}
-		}
-
-		const keyToRow = new Map<string, { id: string }>();
 		const now = Date.now();
 
-		for (const [key, node] of latestByKey) {
-			const existing = this.findPullRequestRow(repo, node.number);
+		for (let i = 0; i < results.length; i++) {
+			const result = results[i];
+			const entry = entries[i];
+			if (!result || !entry) continue;
+			const [key, target] = entry;
+
+			if (result.status === "rejected") {
+				failedKeys.add(key);
+				console.warn(
+					"[host-service:pull-request-runtime] Branch PR fetch failed",
+					{
+						projectId,
+						owner: projectRepo.owner,
+						repo: projectRepo.name,
+						branch: target.branch,
+						error: result.reason,
+					},
+				);
+				continue;
+			}
+
+			const node = result.value.node;
+			if (!node) continue;
+
+			const existing = this.findPullRequestRow(projectRepo, node.number);
 			const checks = parseCheckContexts(
 				node.statusCheckRollup?.contexts?.nodes ?? [],
 			);
@@ -905,7 +970,7 @@ export class PullRequestRuntimeManager {
 				existing,
 				projectId,
 				prNumber: node.number,
-				repo,
+				repo: projectRepo,
 				url: node.url,
 				title: node.title,
 				state: mapPullRequestState(node.state, node.isDraft),
@@ -920,9 +985,32 @@ export class PullRequestRuntimeManager {
 				now,
 			});
 
-			keyToRow.set(key, { id: rowId });
+			matched.set(key, { id: rowId });
 		}
 
-		return keyToRow;
+		return { matched, failedKeys };
+	}
+
+	private evictStaleBranchCacheEntries(
+		projectRepo: NormalizedRepoIdentity,
+		activeBranches: Set<string>,
+	): void {
+		// Cache is shared across all projects. Scope eviction to this project's
+		// repo prefix so we don't evict entries belonging to other projects we
+		// haven't refreshed yet.
+		const prefix = `${projectRepo.owner.toLowerCase()}/${projectRepo.name.toLowerCase()}#`;
+		const activeKeys = new Set(
+			[...activeBranches].map((branch) => `${prefix}${branch}`),
+		);
+		const now = Date.now();
+		for (const [key, entry] of this.branchPullRequestCache) {
+			if (!key.startsWith(prefix)) continue;
+			if (
+				now - entry.fetchedAt >= REPO_PULL_REQUEST_CACHE_TTL_MS &&
+				!activeKeys.has(key)
+			) {
+				this.branchPullRequestCache.delete(key);
+			}
+		}
 	}
 }
