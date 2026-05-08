@@ -1,18 +1,11 @@
 #!/bin/bash
 {{MARKER}}
-# Called by GitHub Copilot CLI hooks. v2 host-service only.
-# Events:
-#   sessionStart           → SessionStart (server normalizes to Start)
-#   sessionEnd             → SessionEnd   (server normalizes to Stop)
-#   userPromptSubmitted    → Start
-#   postToolUse            → Start
-#   preToolUse             → PermissionRequest
-# Copilot CLI hooks receive JSON via stdin and MUST output valid JSON to stdout.
+# GitHub Copilot CLI lifecycle hook. JSON in via stdin; MUST print valid
+# JSON to stdout before exit so copilot doesn't block on the hook.
 
 INPUT=$(cat)
 HOOK_SESSION_ID=$(printf '%s' "$INPUT" | grep -oE '"session_id"[[:space:]]*:[[:space:]]*"[^"]*"' | grep -oE '"[^"]*"$' | tr -d '"')
 
-# Event name is passed as $1 from our hooks.json bash command.
 EVENT_TYPE="$1"
 
 case "$EVENT_TYPE" in
@@ -27,10 +20,8 @@ case "$EVENT_TYPE" in
     ;;
 esac
 
-# Must output valid JSON to avoid blocking the agent.
 printf '{}\n'
 
-# v2 only.
 [ -z "$SUPERSET_TERMINAL_ID" ] && exit 0
 [ -z "$SUPERSET_HOST_AGENT_HOOK_URL" ] && exit 0
 

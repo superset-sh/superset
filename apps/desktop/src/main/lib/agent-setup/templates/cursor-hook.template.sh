@@ -1,21 +1,12 @@
 #!/bin/bash
 {{MARKER}}
-# Called by cursor-agent hooks. v2 host-service only.
-# Events:
-#   SessionStart, SessionEnd        → pass through (server normalizes to Start/Stop)
-#   Start (beforeSubmitPrompt)      → per-prompt
-#   Stop (stop)                     → per-prompt
-#   PermissionRequest               → beforeShellExecution / beforeMCPExecution
+# cursor-agent lifecycle hook. Event name comes via argv from hooks.json.
 
-# Read stdin for optional session id parsing. Cursor passes JSON context we
-# mostly ignore, but the v2 payload carries sessionId when the hook payload
-# exposes one.
 INPUT=$(cat)
 HOOK_SESSION_ID=$(printf '%s' "$INPUT" | grep -oE '"session_id"[[:space:]]*:[[:space:]]*"[^"]*"' | grep -oE '"[^"]*"$' | tr -d '"')
 
 EVENT_TYPE="$1"
 
-# Map event type and determine if we need to respond with JSON.
 NEEDS_RESPONSE=false
 case "$EVENT_TYPE" in
   Start|Stop|SessionStart|SessionEnd) ;;
@@ -23,13 +14,12 @@ case "$EVENT_TYPE" in
   *) exit 0 ;;
 esac
 
-# For permission hooks, auto-approve by writing JSON to stdout.
-# This must happen before any exit to avoid blocking the agent.
+# Permission hooks auto-approve via JSON on stdout. Must print before any
+# exit path so cursor-agent isn't left blocked.
 if [ "$NEEDS_RESPONSE" = "true" ]; then
   printf '{"continue":true}\n'
 fi
 
-# v2 only.
 [ -z "$SUPERSET_TERMINAL_ID" ] && exit 0
 [ -z "$SUPERSET_HOST_AGENT_HOOK_URL" ] && exit 0
 

@@ -174,6 +174,9 @@ export function getClaudeGlobalSettingsJsonContent(
 		existing.hooks = {};
 	}
 
+	// SessionStart/SessionEnd are the earliest/latest agent-attached signal —
+	// they bind the pane icon before the user submits anything. Per-turn
+	// UserPromptSubmit/Stop/PostToolUse drive the working indicator.
 	const managedEvents: Array<{
 		eventName:
 			| "SessionStart"
@@ -185,32 +188,21 @@ export function getClaudeGlobalSettingsJsonContent(
 			| "PermissionRequest";
 		definition: ClaudeHookDefinition;
 	}> = [
-		// SessionStart fires once when Claude attaches to the terminal — earliest
-		// signal the agent is alive in this PTY, used to set the pane icon
-		// before the user submits their first prompt.
 		{
 			eventName: "SessionStart",
-			definition: {
-				hooks: [{ type: "command", command: managedHookCommand }],
-			},
+			definition: { hooks: [{ type: "command", command: managedHookCommand }] },
 		},
 		{
 			eventName: "SessionEnd",
-			definition: {
-				hooks: [{ type: "command", command: managedHookCommand }],
-			},
+			definition: { hooks: [{ type: "command", command: managedHookCommand }] },
 		},
 		{
 			eventName: "UserPromptSubmit",
-			definition: {
-				hooks: [{ type: "command", command: managedHookCommand }],
-			},
+			definition: { hooks: [{ type: "command", command: managedHookCommand }] },
 		},
 		{
 			eventName: "Stop",
-			definition: {
-				hooks: [{ type: "command", command: managedHookCommand }],
-			},
+			definition: { hooks: [{ type: "command", command: managedHookCommand }] },
 		},
 		{
 			eventName: "PostToolUse",
@@ -408,27 +400,25 @@ export function getCodexGlobalHooksJsonContent(
 		existing.hooks[eventName] = filtered;
 	}
 
+	// Inline SUPERSET_AGENT_ID like getClaudeManagedHookCommand so the v2
+	// payload carries identity even when codex is launched outside the wrapper.
+	const codexCommand = `SUPERSET_AGENT_ID=codex ${notifyScriptPath}`;
+
 	const managedEvents: Array<{
 		eventName: "SessionStart" | "UserPromptSubmit" | "Stop";
 		definition: ClaudeHookDefinition;
 	}> = [
 		{
 			eventName: "SessionStart",
-			definition: {
-				hooks: [{ type: "command", command: notifyScriptPath }],
-			},
+			definition: { hooks: [{ type: "command", command: codexCommand }] },
 		},
 		{
 			eventName: "UserPromptSubmit",
-			definition: {
-				hooks: [{ type: "command", command: notifyScriptPath }],
-			},
+			definition: { hooks: [{ type: "command", command: codexCommand }] },
 		},
 		{
 			eventName: "Stop",
-			definition: {
-				hooks: [{ type: "command", command: notifyScriptPath }],
-			},
+			definition: { hooks: [{ type: "command", command: codexCommand }] },
 		},
 	];
 

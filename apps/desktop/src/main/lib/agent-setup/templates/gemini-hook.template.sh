@@ -1,12 +1,7 @@
 #!/bin/bash
 {{MARKER}}
-# Called by Gemini CLI hooks. v2 host-service only.
-# Events:
-#   SessionStart, SessionEnd  → pass through (server normalizes to Start/Stop)
-#   BeforeAgent               → Start (per-turn)
-#   AfterAgent                → Stop  (per-turn)
-#   AfterTool                 → Start (keeps the working indicator hot)
-# Gemini hooks receive JSON via stdin and MUST output valid JSON to stdout.
+# Gemini CLI lifecycle hook. JSON in via stdin; MUST print valid JSON to
+# stdout before exit so gemini doesn't block on the hook.
 
 INPUT=$(cat)
 
@@ -24,10 +19,8 @@ case "$EVENT_TYPE" in
     ;;
 esac
 
-# Output required JSON response immediately to avoid blocking the agent.
 printf '{}\n'
 
-# v2 only.
 [ -z "$SUPERSET_TERMINAL_ID" ] && exit 0
 [ -z "$SUPERSET_HOST_AGENT_HOOK_URL" ] && exit 0
 

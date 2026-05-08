@@ -159,15 +159,25 @@ export const SupersetNotifyPlugin = async ({ $, client }) => {
       // subagent spawns don't change the pane icon.
       if (event.type === "session.created") {
         const isChild = Boolean(event.properties?.info?.parentID);
+        // Cache eagerly so session.deleted can resolve isChild synchronously
+        // — by the time deletion fires the session is gone from list().
+        if (sessionID) childSessionCache.set(sessionID, isChild);
         if (!isChild) {
           await notify("SessionStart");
         }
         return;
       }
       if (event.type === "session.deleted") {
-        if (!(await isChildSession(sessionID))) {
+        const cachedIsChild =
+          sessionID != null ? childSessionCache.get(sessionID) : undefined;
+        const isChild =
+          cachedIsChild !== undefined
+            ? cachedIsChild
+            : await isChildSession(sessionID);
+        if (!isChild) {
           await notify("SessionEnd");
         }
+        if (sessionID) childSessionCache.delete(sessionID);
         return;
       }
 

@@ -31,9 +31,8 @@ export function resolveV2AgentStatusTransition({
 	const terminalSource = getV2TerminalNotificationSource(payload.terminalId);
 	const terminalSourceKey = getV2NotificationSourceKey(terminalSource);
 
-	// Session lifecycle: agent attaching/detaching is idle, not working.
-	// The icon binding is set independently in HostNotificationSubscriber;
-	// here we explicitly preserve whatever pane status was already showing.
+	// Attach/detach are idle signals — they bind the pane icon (handled in
+	// HostNotificationSubscriber) but must not flip the pane to "working".
 	if (payload.eventType === "Attached" || payload.eventType === "Detached") {
 		return { clearSources: [], setStatus: null };
 	}

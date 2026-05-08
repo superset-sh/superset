@@ -911,6 +911,7 @@ describe("agent-wrappers codex hooks.json", () => {
 			>;
 		};
 
+		const expectedCommand = `SUPERSET_AGENT_ID=codex ${notifyPath}`;
 		for (const eventName of [
 			"SessionStart",
 			"UserPromptSubmit",
@@ -920,7 +921,7 @@ describe("agent-wrappers codex hooks.json", () => {
 			expect(Array.isArray(hooks)).toBe(true);
 			expect(
 				hooks.some((def) =>
-					def.hooks.some((hook) => hook.command === notifyPath),
+					def.hooks.some((hook) => hook.command === expectedCommand),
 				),
 			).toBe(true);
 		}
@@ -1025,13 +1026,15 @@ describe("agent-wrappers codex hooks.json", () => {
 			),
 		).toBe(true);
 
+		const expectedManagedCommand = `SUPERSET_AGENT_ID=codex ${notifyPath}`;
 		// Adds managed hooks for SessionStart, UserPromptSubmit, Stop
 		for (const eventName of ["SessionStart", "UserPromptSubmit", "Stop"]) {
 			expect(
 				parsed.hooks[eventName].some(
 					(def: { hooks: Array<{ command: string }> }) =>
 						def.hooks.some(
-							(hook: { command: string }) => hook.command === notifyPath,
+							(hook: { command: string }) =>
+								hook.command === expectedManagedCommand,
 						),
 				),
 			).toBe(true);
@@ -1042,7 +1045,8 @@ describe("agent-wrappers codex hooks.json", () => {
 			parsed.hooks.PreToolUse.some(
 				(def: { hooks: Array<{ command: string }> }) =>
 					def.hooks.some(
-						(hook: { command: string }) => hook.command === notifyPath,
+						(hook: { command: string }) =>
+							hook.command === expectedManagedCommand,
 					),
 			),
 		).toBe(false);
@@ -1050,7 +1054,8 @@ describe("agent-wrappers codex hooks.json", () => {
 			parsed.hooks.PostToolUse.some(
 				(def: { hooks: Array<{ command: string }> }) =>
 					def.hooks.some(
-						(hook: { command: string }) => hook.command === notifyPath,
+						(hook: { command: string }) =>
+							hook.command === expectedManagedCommand,
 					),
 			),
 		).toBe(false);
@@ -1105,6 +1110,7 @@ describe("agent-wrappers codex hooks.json", () => {
 			>;
 		};
 
+		const expectedManagedCommand = `SUPERSET_AGENT_ID=codex ${currentHookPath}`;
 		for (const eventName of [
 			"SessionStart",
 			"UserPromptSubmit",
@@ -1114,7 +1120,7 @@ describe("agent-wrappers codex hooks.json", () => {
 			expect(Array.isArray(hooks)).toBe(true);
 			expect(
 				hooks.some((def) =>
-					def.hooks.some((hook) => hook.command === currentHookPath),
+					def.hooks.some((hook) => hook.command === expectedManagedCommand),
 				),
 			).toBe(true);
 			expect(
@@ -1180,6 +1186,7 @@ describe("agent-wrappers codex hooks.json", () => {
 			>;
 		};
 
+		const expectedManagedCommand = `SUPERSET_AGENT_ID=codex ${currentHookPath}`;
 		expect(parsed.hooks.UserPromptSubmit).toBeDefined();
 		expect(
 			parsed.hooks.UserPromptSubmit?.some((def) =>
@@ -1195,7 +1202,7 @@ describe("agent-wrappers codex hooks.json", () => {
 		).toBe(false);
 		expect(
 			parsed.hooks.UserPromptSubmit?.some((def) =>
-				def.hooks.some((hook) => hook.command === currentHookPath),
+				def.hooks.some((hook) => hook.command === expectedManagedCommand),
 			),
 		).toBe(true);
 	});
@@ -1243,6 +1250,7 @@ describe("agent-wrappers codex hooks.json", () => {
 			>;
 		};
 
+		const expectedManagedCommand = `SUPERSET_AGENT_ID=codex ${currentHookPath}`;
 		for (const eventName of [
 			"SessionStart",
 			"UserPromptSubmit",
@@ -1252,7 +1260,7 @@ describe("agent-wrappers codex hooks.json", () => {
 			expect(Array.isArray(hooks)).toBe(true);
 			expect(
 				hooks.some((def) =>
-					def.hooks.some((hook) => hook.command === currentHookPath),
+					def.hooks.some((hook) => hook.command === expectedManagedCommand),
 				),
 			).toBe(true);
 			expect(
