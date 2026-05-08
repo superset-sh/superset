@@ -402,7 +402,9 @@ export function getCodexGlobalHooksJsonContent(
 
 	// Inline SUPERSET_AGENT_ID like getClaudeManagedHookCommand so the v2
 	// payload carries identity even when codex is launched outside the wrapper.
-	const codexCommand = `SUPERSET_AGENT_ID=codex ${notifyScriptPath}`;
+	// Quote the path: codex executes via /bin/sh -lc, so a space in $HOME
+	// (e.g. "/Users/Some User/...") would otherwise word-split.
+	const codexCommand = `SUPERSET_AGENT_ID=codex "${notifyScriptPath}"`;
 
 	const managedEvents: Array<{
 		eventName: "SessionStart" | "UserPromptSubmit" | "Stop";
