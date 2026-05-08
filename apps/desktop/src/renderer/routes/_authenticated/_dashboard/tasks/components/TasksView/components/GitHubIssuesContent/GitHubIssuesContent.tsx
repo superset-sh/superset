@@ -1,6 +1,6 @@
 import { Button } from "@superset/ui/button";
 import { Checkbox } from "@superset/ui/checkbox";
-import { useInfiniteQuery } from "@tanstack/react-query";
+import { keepPreviousData, useInfiniteQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { GoIssueClosed, GoIssueOpened } from "react-icons/go";
@@ -74,6 +74,9 @@ export function GitHubIssuesContent({
 		initialPageParam: 1,
 		getNextPageParam: (lastPage) =>
 			lastPage.hasNextPage ? lastPage.page + 1 : undefined,
+		staleTime: 30_000,
+		gcTime: 10 * 60_000,
+		placeholderData: keepPreviousData,
 		enabled: !!projectFilter && !!hostUrl,
 		retry: false,
 	});

@@ -66,6 +66,8 @@ function PullRequestDetailPage() {
 		},
 		enabled: !!hostUrl && !!projectId && Number.isFinite(prNumber),
 		retry: false,
+		staleTime: 30_000,
+		gcTime: 10 * 60_000,
 	});
 
 	const handleBack = () => {

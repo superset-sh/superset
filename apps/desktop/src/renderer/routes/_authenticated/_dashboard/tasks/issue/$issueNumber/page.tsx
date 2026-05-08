@@ -55,6 +55,8 @@ function IssueDetailPage() {
 		},
 		enabled: !!hostUrl && !!projectId && Number.isFinite(issueNumber),
 		retry: false,
+		staleTime: 30_000,
+		gcTime: 10 * 60_000,
 	});
 
 	const handleBack = () => {
