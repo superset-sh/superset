@@ -278,8 +278,9 @@ function isJunkPreviewLine(line: string): boolean {
 	// Bot prefix lines like "Potential issue | Minor | Quick win"
 	if (/^(potential issue|nitpick|major|minor|quick win|suggestion)/i.test(line))
 		return true;
-	// Just emoji + separators
-	if (/^[\s|·•—\-:🟡🟠🔴⚠️⚡🤖📝✅❌🔧💡]+$/u.test(line)) return true;
+	// Lines without any meaningful word content (just emoji + separators).
+	const wordChars = line.match(/[A-Za-z0-9]/g)?.length ?? 0;
+	if (wordChars < 3) return true;
 	return false;
 }
 
