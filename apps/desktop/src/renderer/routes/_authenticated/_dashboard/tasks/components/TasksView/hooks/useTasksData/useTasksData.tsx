@@ -72,10 +72,20 @@ export function useTasksData({
 		[collections, projectFilter],
 	);
 
+	const { data: linearConnections } = useLiveQuery(
+		(q) =>
+			q
+				.from({ conn: collections.integrationConnections })
+				.where(({ conn }) => eq(conn.provider, "linear"))
+				.select(({ conn }) => ({ id: conn.id })),
+		[collections],
+	);
+
 	const projectLinearConnectionId =
 		projectFilter && projectMatch?.[0]
 			? (projectMatch[0].linearConnectionId ?? null)
 			: null;
+	const linearConnectionCount = linearConnections?.length ?? 0;
 
 	const allStatuses = useMemo(() => statusData ?? [], [statusData]);
 
@@ -105,14 +115,21 @@ export function useTasksData({
 	const filteredData = useMemo(() => {
 		let result = searchedData;
 
-		// When the selected project is assigned to a Linear workspace, only
-		// show Linear-synced tasks for that workspace plus local (non-Linear)
-		// tasks. When the project has no assignment, show everything.
-		if (projectLinearConnectionId) {
-			result = result.filter((task) => {
-				if (task.externalProvider !== "linear") return true;
-				return task.linearConnectionId === projectLinearConnectionId;
-			});
+		// Linear filtering rules (per Decision Log):
+		// - Project assigned to a connection: show Linear tasks for that one only.
+		// - Project unassigned + 1 connection in org: auto-fall-through, show all.
+		// - Project unassigned + 0 or 2+ connections: hide Linear tasks (ambiguous).
+		// Local (non-Linear) tasks always pass through.
+		if (projectFilter) {
+			if (projectLinearConnectionId) {
+				result = result.filter(
+					(task) =>
+						task.externalProvider !== "linear" ||
+						task.linearConnectionId === projectLinearConnectionId,
+				);
+			} else if (linearConnectionCount !== 1) {
+				result = result.filter((task) => task.externalProvider !== "linear");
+			}
 		}
 
 		if (filterTab !== "all") {
@@ -141,7 +158,14 @@ export function useTasksData({
 		}
 
 		return result;
-	}, [searchedData, filterTab, assigneeFilter, projectLinearConnectionId]);
+	}, [
+		searchedData,
+		filterTab,
+		assigneeFilter,
+		projectFilter,
+		projectLinearConnectionId,
+		linearConnectionCount,
+	]);
 
 	return {
 		data: filteredData,

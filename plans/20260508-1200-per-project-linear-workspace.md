@@ -26,7 +26,7 @@ The two assignment surfaces — project settings and the tasks view — are equi
 These are temporary planning assumptions. Each is either resolved in the Decision Log or removed by implementation end.
 
 - We will keep the existing org-level `integrationConnections` table and the existing token-refresh code path. We are widening the table (relaxing a constraint) rather than introducing a parallel "workspace" table.
-- The `projects` table is the right place to store the project → workspace pointer. Tasks already carry an `externalProvider` ("linear") and `externalId`; they do not need their own workspace pointer because the project they belong to determines it.
+- The `v2Projects` table is the right place to store the project → workspace pointer (see Surprise #2 — the active desktop project model is `v2Projects`, not the v1 `projects` table). Tasks gain a `linearConnectionId` column in M6 to carry the workspace stamp directly.
 - Existing organizations that already have one Linear connection should continue working without manual intervention. Existing projects without a workspace assignment should fall back to the org's single connection until an admin sets it explicitly.
 - The Linear OAuth scope (`read,write,issues:create`) does not change.
 - The Linear-to-Superset initial sync job (`/api/integrations/linear/jobs/initial-sync`) currently keys off `organizationId`. After this change it must run **per-connection**, not per-org, because an org can have multiple connections.
@@ -107,7 +107,7 @@ This work spans four pieces of the Superset monorepo:
 Terms used in this plan:
 
 - **Linear workspace** — what Linear calls an "organization" in their API. Each Linear workspace has its own teams, issues, and labels. Distinct workspaces are isolated; an OAuth token is bound to the workspace the user picked at consent time. The fields `externalOrgId` and `externalOrgName` on `integrationConnections` capture the workspace's Linear ID and display name.
-- **Superset project** — a row in the `projects` table. Currently bound to a GitHub repo (`repoOwner`, `repoName`, `githubRepositoryId`). After this change, it will *optionally* also point at one Linear workspace via a new `linearConnectionId` foreign key.
+- **Superset project** — a row in the `v2Projects` table (the v2 desktop project model; the active surface in TasksTopBar's `ProjectFilter` and `V2ProjectSettings`). Currently bound to a GitHub repo (`repoCloneUrl`, `githubRepositoryId`). After this change, it will *optionally* also point at one Linear workspace via a new `linearConnectionId` foreign key.
 - **Connection** — a row in `integrationConnections`. Today, the unique constraint `integration_connections_unique` on `(organizationId, provider)` forbids more than one Linear connection per org. We will replace this with a constraint that allows multiple Linear connections per org but forbids the same Linear workspace being connected twice to the same org.
 - **tRPC procedure** — a named, typed RPC endpoint defined in `packages/trpc`, called from the web/desktop client via the generated tRPC client. Adding one is a matter of adding a `z.object(...)` input schema and a function to the router record.
 
@@ -128,9 +128,9 @@ Edits:
    - Replace it with `unique("integration_connections_org_provider_external_unique").on(table.organizationId, table.provider, table.externalOrgId)`. This permits N Linear connections per org but forbids reconnecting the *same* Linear workspace twice.
    - Keep the `integration_connections_org_idx` index.
 
-2. In `packages/db/src/schema/schema.ts`, modify the `projects` table block (currently 366-396):
+2. In `packages/db/src/schema/schema.ts`, modify the `v2Projects` table block (currently around lines 404-434) — **NOT** the v1 `projects` table; the desktop tasks view and project settings both use `v2Projects` (see Surprise #2):
    - Add a column: `linearConnectionId: uuid("linear_connection_id").references(() => integrationConnections.id, { onDelete: "set null" })`. Nullable on purpose — projects without an explicit workspace assignment fall through to the org-default resolver (see Decision Log entry for Q1).
-   - Add an index: `index("projects_linear_connection_idx").on(table.linearConnectionId)` so the reverse lookup ("which projects use this connection?") is cheap; we'll need it for the disconnect-block check in Milestone 4.
+   - Add an index: `index("v2_projects_linear_connection_idx").on(table.linearConnectionId)` so the reverse lookup ("which projects use this connection?") is cheap; we'll need it for the disconnect-block check in Milestone 4.
 
 3. Generate the migration. Per AGENTS.md, never hand-edit files in `packages/db/drizzle/`. Instead, after the schema edits above:
 
@@ -195,7 +195,7 @@ Edits:
 
 1. `apps/api/src/app/api/integrations/linear/callback/route.ts` lines 87-115: change the `onConflictDoUpdate` target from `[integrationConnections.organizationId, integrationConnections.provider]` to `[integrationConnections.organizationId, integrationConnections.provider, integrationConnections.externalOrgId]`. This matches the new unique constraint introduced in Milestone 1, so reconnecting the *same* Linear workspace updates the row, while connecting a *different* workspace inserts a new row.
 
-2. `apps/api/src/app/api/integrations/linear/connect/route.ts`: no required change. Optionally accept an extra `&projectId=` query parameter and embed it in the signed `state`. If present, the callback (after upserting the connection) also sets `projects.linearConnectionId = connection.id` on that project. This makes the "Connect Linear from a project's settings page" UX feel one-click.
+2. `apps/api/src/app/api/integrations/linear/connect/route.ts`: no required change. Optionally accept an extra `&projectId=` query parameter and embed it in the signed `state`. If present, the callback (after upserting the connection) also sets `v2Projects.linearConnectionId = connection.id` on that project. This makes the "Connect Linear from a project's settings page" UX feel one-click.
 
 3. The qstash initial-sync at lines 117-128 currently posts `{ organizationId, creatorUserId }`. After this milestone, **keep the immediate sync** (per the Decision Log) but post `{ organizationId, connectionId, creatorUserId }` so the job knows *which* workspace to pull issues from. If the optional `projectId` was passed through the OAuth `state` (the "Connect Linear from project settings" or "Connect another workspace from the tasks view" cases), the callback also assigns the new connection to that project (same DB write that `setProjectConnection` performs) before redirecting back to the originating page.
 
@@ -248,7 +248,7 @@ Edits in `packages/trpc/src/router/integration/linear/linear.ts`:
    - **First call (no `force`)**: count projects where `linearConnectionId = connectionId`. If that count is > 0, **do not delete**. Return `{ success: false, requiresConfirmation: true, linkedProjects: [{ id, name, slug }, ...] }` (cap the array at, say, 10 names; include `linkedProjectCount` for the rest). The UI shows a modal: "5 projects still use this workspace — reassign them first?" with two actions:
      - "Reassign first" — closes the modal and surfaces the project list (links to each project's settings).
      - "Disconnect anyway" — re-calls `disconnect({ connectionId, force: true })`.
-   - **Second call (`force: true`)**, or first call when there are zero linked projects: proceed with the existing transactional cleanup (logout, delete tasks, reseed statuses, remap orphaned tasks, delete the connection row). The FK on `projects.linearConnectionId` is `ON DELETE SET NULL`, so any still-linked projects are silently nulled out by Postgres when the connection row is deleted — the user has explicitly opted into this by clicking "Disconnect anyway."
+   - **Second call (`force: true`)**, or first call when there are zero linked projects: proceed with the existing transactional cleanup (logout, delete tasks, reseed statuses, remap orphaned tasks, delete the connection row). The FK on `v2Projects.linearConnectionId` is `ON DELETE SET NULL`, so any still-linked projects are silently nulled out by Postgres when the connection row is deleted — the user has explicitly opted into this by clicking "Disconnect anyway."
 
    The task-cleanup query must scope to *that connection's* synced tasks. If Milestone 6 (the `tasks.linearConnectionId` column) lands first, the cleanup is a single `WHERE linear_connection_id = ?` delete. If not, scope via `tasks.projectId IN (SELECT id FROM projects WHERE linear_connection_id = ?)` *before* nulling the projects (i.e., do the task cleanup inside the same transaction, before the `DELETE FROM integration_connections` triggers the FK cascade).
 
@@ -311,7 +311,7 @@ Edits:
 
 2. Optional but recommended: add a `linearConnectionId` column to `tasks` to make sync, disconnect, and reverse lookups O(1). If added:
    - Schema edit at `packages/db/src/schema/schema.ts` in the `tasks` table block.
-   - Backfill: every existing Linear-synced task has its project's `linearConnectionId` (which has been backfilled by the resolver decision in Q1), so the migration can populate `tasks.linearConnectionId` from `projects.linearConnectionId`.
+   - Backfill: every existing Linear-synced task has its project's `linearConnectionId` (which has been backfilled by the resolver decision in Q1), so the migration can populate `tasks.linearConnectionId` from `v2Projects.linearConnectionId`.
    - The unique constraint `tasks_external_unique` on `(organizationId, externalProvider, externalId)` becomes wrong if two workspaces happen to mint the same Linear issue ID. Replace with `(connectionId, externalProvider, externalId)` or `(organizationId, linearConnectionId, externalId)`.
 
 3. Every code path that calls `linearClient.createIssue(...)` or similar must source its connection from the task's project (now via `getLinearClient({ projectId })`). Find these via `Grep` for `createIssue` and `linearClient`.

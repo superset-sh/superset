@@ -9,7 +9,7 @@ import {
 import { seedDefaultStatuses } from "@superset/db/seed-default-statuses";
 import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
 import { Client as QstashClient } from "@upstash/qstash";
-import { and, eq, inArray, sql } from "drizzle-orm";
+import { and, eq, inArray, isNull, sql } from "drizzle-orm";
 import { z } from "zod";
 import { env } from "../../../env";
 import { protectedProcedure } from "../../../trpc";
@@ -211,70 +211,96 @@ export const linearRouter = {
 					})
 				).map((p) => p.id);
 
-				if (linkedProjectIds.length > 0) {
-					await tx
-						.delete(tasks)
-						.where(
-							and(
-								eq(tasks.organizationId, connection.organizationId),
-								eq(tasks.externalProvider, "linear"),
+				// Count remaining Linear connections in this org. If this is
+				// the LAST one, also clean up legacy NULL-connection rows
+				// (synced before tasks.linear_connection_id existed). Otherwise
+				// scope strictly to this connection's rows.
+				const remainingConnections =
+					await tx.query.integrationConnections.findMany({
+						where: and(
+							eq(
+								integrationConnections.organizationId,
+								connection.organizationId,
 							),
-						);
-				} else {
-					// No linked projects: still scope to the org's Linear-synced tasks.
-					await tx
-						.delete(tasks)
-						.where(
-							and(
-								eq(tasks.organizationId, connection.organizationId),
-								eq(tasks.externalProvider, "linear"),
-							),
-						);
-				}
-
-				const backlogStatusId = await seedDefaultStatuses(
-					connection.organizationId,
-					tx,
+							eq(integrationConnections.provider, "linear"),
+						),
+						columns: { id: true },
+					});
+				const isLastLinearConnection = remainingConnections.every(
+					(c) => c.id === connection.id,
 				);
 
-				const allStatuses = await tx.query.taskStatuses.findMany({
-					where: eq(taskStatuses.organizationId, connection.organizationId),
-				});
-
-				const defaultStatusByType = new Map<string, string>();
-				for (const status of allStatuses) {
-					if (!status.externalProvider && status.type) {
-						if (!defaultStatusByType.has(status.type)) {
-							defaultStatusByType.set(status.type, status.id);
-						}
-					}
-				}
-
-				for (const status of allStatuses) {
-					if (status.externalProvider === "linear") {
-						const defaultStatusId =
-							(status.type && defaultStatusByType.get(status.type)) ||
-							backlogStatusId;
-						await tx
-							.update(tasks)
-							.set({ statusId: defaultStatusId })
-							.where(
-								and(
-									eq(tasks.organizationId, connection.organizationId),
-									eq(tasks.statusId, status.id),
-								),
-							);
-					}
-				}
-
 				await tx
-					.delete(taskStatuses)
+					.delete(tasks)
 					.where(
 						and(
-							eq(taskStatuses.organizationId, connection.organizationId),
-							eq(taskStatuses.externalProvider, "linear"),
+							eq(tasks.organizationId, connection.organizationId),
+							eq(tasks.externalProvider, "linear"),
+							eq(tasks.linearConnectionId, connection.id),
 						),
 					);
+
+				if (isLastLinearConnection) {
+					// Sweep up unscoped legacy Linear rows (linear_connection_id IS NULL).
+					await tx
+						.delete(tasks)
+						.where(
+							and(
+								eq(tasks.organizationId, connection.organizationId),
+								eq(tasks.externalProvider, "linear"),
+								isNull(tasks.linearConnectionId),
+							),
+						);
+				}
+
+				// Only collapse Linear-synced statuses back to defaults when the
+				// last Linear connection is going away. Otherwise the remaining
+				// connections' tasks are still using these statuses.
+				if (isLastLinearConnection) {
+					const backlogStatusId = await seedDefaultStatuses(
+						connection.organizationId,
+						tx,
+					);
+
+					const allStatuses = await tx.query.taskStatuses.findMany({
+						where: eq(taskStatuses.organizationId, connection.organizationId),
+					});
+
+					const defaultStatusByType = new Map<string, string>();
+					for (const status of allStatuses) {
+						if (!status.externalProvider && status.type) {
+							if (!defaultStatusByType.has(status.type)) {
+								defaultStatusByType.set(status.type, status.id);
+							}
+						}
+					}
+
+					for (const status of allStatuses) {
+						if (status.externalProvider === "linear") {
+							const defaultStatusId =
+								(status.type && defaultStatusByType.get(status.type)) ||
+								backlogStatusId;
+							await tx
+								.update(tasks)
+								.set({ statusId: defaultStatusId })
+								.where(
+									and(
+										eq(tasks.organizationId, connection.organizationId),
+										eq(tasks.statusId, status.id),
+									),
+								);
+						}
+					}
+
+					await tx
+						.delete(taskStatuses)
+						.where(
+							and(
+								eq(taskStatuses.organizationId, connection.organizationId),
+								eq(taskStatuses.externalProvider, "linear"),
+							),
+						);
+				}
 
 				if (linkedProjectIds.length > 0) {
 					await tx

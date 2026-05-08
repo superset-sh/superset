@@ -118,20 +118,38 @@ export function useTasksTable({
 		[collections, projectFilter],
 	);
 
+	const { data: linearConnections } = useLiveQuery(
+		(q) =>
+			q
+				.from({ conn: collections.integrationConnections })
+				.where(({ conn }) => eq(conn.provider, "linear"))
+				.select(({ conn }) => ({ id: conn.id })),
+		[collections],
+	);
+
 	const projectLinearConnectionId =
 		projectFilter && projectMatch?.[0]
 			? (projectMatch[0].linearConnectionId ?? null)
 			: null;
+	const linearConnectionCount = linearConnections?.length ?? 0;
 
 	const sortedData = useMemo(() => {
 		if (!allData) return [];
-		const filtered = projectLinearConnectionId
-			? allData.filter(
+		// See useTasksData for the filtering rules — same logic mirrored here.
+		let filtered = allData;
+		if (projectFilter) {
+			if (projectLinearConnectionId) {
+				filtered = filtered.filter(
 					(task) =>
 						task.externalProvider !== "linear" ||
 						task.linearConnectionId === projectLinearConnectionId,
-				)
-			: allData;
+				);
+			} else if (linearConnectionCount !== 1) {
+				filtered = filtered.filter(
+					(task) => task.externalProvider !== "linear",
+				);
+			}
+		}
 		return filtered
 			.map((task) => ({
 				...task,
@@ -141,7 +159,12 @@ export function useTasksTable({
 						: null,
 			}))
 			.sort(compareTasks);
-	}, [allData, projectLinearConnectionId]);
+	}, [
+		allData,
+		projectFilter,
+		projectLinearConnectionId,
+		linearConnectionCount,
+	]);
 
 	const { search } = useHybridSearch(sortedData);
 
