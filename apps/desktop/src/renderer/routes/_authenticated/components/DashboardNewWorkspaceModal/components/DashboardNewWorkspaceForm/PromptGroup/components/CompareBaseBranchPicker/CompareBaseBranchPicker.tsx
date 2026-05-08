@@ -7,12 +7,6 @@ import {
 } from "@superset/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
 import { Tabs, TabsList, TabsTrigger } from "@superset/ui/tabs";
-import {
-	Tooltip,
-	TooltipContent,
-	TooltipProvider,
-	TooltipTrigger,
-} from "@superset/ui/tooltip";
 import { useEffect, useRef, useState } from "react";
 import { GoGitBranch } from "react-icons/go";
 import { HiCheck, HiChevronUpDown } from "react-icons/hi2";
@@ -113,16 +107,20 @@ export function CompareBaseBranchPicker({
 					<GoGitBranch className="size-3 shrink-0" />
 					{isBranchesLoading && branches.length === 0 ? (
 						<span className="h-2.5 w-14 rounded-sm bg-muted-foreground/15 animate-pulse" />
-					) : (
+					) : effectiveCompareBaseBranch ? (
 						<span className="font-mono truncate">
-							{effectiveCompareBaseBranch || "..."}
+							{effectiveCompareBaseBranch}
+						</span>
+					) : (
+						<span className="truncate text-muted-foreground/80">
+							Select base branch…
 						</span>
 					)}
 					<HiChevronUpDown className="size-3 shrink-0" />
 				</FormPickerTrigger>
 			</PopoverTrigger>
 			<PopoverContent
-				className="w-96 p-0"
+				className="w-[440px] p-0"
 				align="start"
 				onWheel={(event) => event.stopPropagation()}
 			>
@@ -146,134 +144,106 @@ export function CompareBaseBranchPicker({
 							</TabsTrigger>
 						</TabsList>
 					</Tabs>
-					<TooltipProvider delayDuration={300}>
-						<CommandList className="max-h-[400px]">
-							{!isBranchesLoading && branches.length === 0 && (
-								<CommandEmpty>No branches found</CommandEmpty>
-							)}
-							{branches.map((branch) => {
-								const isRemoteOnly = branch.isRemote && !branch.isLocal;
-								const isWorktree = Boolean(branch.worktreePath);
-								return (
-									<CommandItem
-										key={branch.name}
-										value={branch.name}
-										onSelect={() => {
-											// Carry the row's locality through so the server doesn't
-											// re-resolve and risk picking a stale cached remote ref.
-											onSelectCompareBaseBranch(
-												branch.name,
-												branch.isLocal ? "local" : "remote-tracking",
-											);
-											setOpen(false);
-										}}
-										className="group h-11 flex items-center justify-between gap-3 px-3"
-									>
-										<span className="flex items-center gap-2.5 truncate flex-1 min-w-0">
-											<GoGitBranch className="size-3.5 shrink-0 text-muted-foreground" />
-											<span className="truncate font-mono text-xs">
-												{branch.name}
-											</span>
-											<span className="flex items-center gap-1.5 shrink-0">
-												{branch.name === defaultBranch && (
-													<span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
-														default
-													</span>
-												)}
-												{isRemoteOnly && (
-													<span className="text-[10px] text-muted-foreground/60 bg-muted/60 px-1.5 py-0.5 rounded">
-														remote
-													</span>
-												)}
-												{isWorktree && (
-													<span className="text-[10px] text-primary/80 bg-primary/10 px-1.5 py-0.5 rounded">
-														worktree
-													</span>
-												)}
-											</span>
+					<CommandList className="max-h-[420px]">
+						{!isBranchesLoading && branches.length === 0 && (
+							<CommandEmpty>No branches found</CommandEmpty>
+						)}
+						{branches.map((branch) => {
+							const isRemoteOnly = branch.isRemote && !branch.isLocal;
+							const isWorktree = Boolean(branch.worktreePath);
+							return (
+								<CommandItem
+									key={branch.name}
+									value={branch.name}
+									onSelect={() => {
+										// Carry the row's locality through so the server doesn't
+										// re-resolve and risk picking a stale cached remote ref.
+										onSelectCompareBaseBranch(
+											branch.name,
+											branch.isLocal ? "local" : "remote-tracking",
+										);
+										setOpen(false);
+									}}
+									className="group h-11 flex items-center justify-between gap-3 px-3"
+								>
+									<span className="flex items-center gap-2.5 truncate flex-1 min-w-0">
+										<GoGitBranch className="size-3.5 shrink-0 text-muted-foreground" />
+										<span className="truncate font-mono text-xs">
+											{branch.name}
 										</span>
-										<span className="flex items-center gap-2 shrink-0">
-											{branch.lastCommitDate > 0 && (
-												<span className="text-[11px] text-muted-foreground/70 group-hover:hidden">
-													{formatRelativeTime(branch.lastCommitDate * 1000)}
+										<span className="flex items-center gap-1.5 shrink-0">
+											{branch.name === defaultBranch && (
+												<span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+													default
 												</span>
 											)}
-											{isWorktree ? (
-												(() => {
-													// Authoritative check against the cloud-synced
-													// collection — a `server hasWorkspace:true` row
-													// may be stale after a delete.
-													const hasWorkspace = hasWorkspaceForBranch(
-														branch.name,
-													);
-													return (
-														<button
-															type="button"
-															className="hidden group-hover:inline-flex group-focus-within:inline-flex items-center rounded-sm bg-primary/10 hover:bg-primary/20 px-2 py-0.5 text-[11px] text-primary font-medium"
-															onClick={(e) => {
-																e.stopPropagation();
-																if (hasWorkspace) {
-																	onOpenExisting(branch.name);
-																} else {
-																	onCheckoutBranch(branch.name);
-																}
-															}}
-														>
-															{hasWorkspace ? "Open" : "Create"}
-														</button>
-													);
-												})()
-											) : branch.isCheckedOut ? (
-												<Tooltip>
-													<TooltipTrigger asChild>
-														{/*
-															Use aria-disabled, NOT the native `disabled` attribute.
-															Native disabled buttons don't fire pointer events, so the
-															Tooltip never sees hover/focus and never opens — defeating
-															the purpose of explaining why the button is unavailable.
-														*/}
-														<button
-															type="button"
-															aria-disabled="true"
-															className="hidden group-hover:inline-flex group-focus-within:inline-flex items-center rounded-sm bg-muted px-2 py-0.5 text-[11px] text-muted-foreground/70 cursor-not-allowed"
-															onClick={(e) => e.stopPropagation()}
-														>
-															Check out
-														</button>
-													</TooltipTrigger>
-													<TooltipContent side="left">
-														Already checked out in another worktree
-													</TooltipContent>
-												</Tooltip>
-											) : (
-												<button
-													type="button"
-													className="hidden group-hover:inline-flex group-focus-within:inline-flex items-center rounded-sm bg-primary/10 hover:bg-primary/20 px-2 py-0.5 text-[11px] text-primary font-medium"
-													onClick={(e) => {
-														e.stopPropagation();
-														onCheckoutBranch(branch.name);
-													}}
-												>
-													Check out
-												</button>
+											{isRemoteOnly && (
+												<span className="text-[10px] text-muted-foreground/60 bg-muted/60 px-1.5 py-0.5 rounded">
+													remote
+												</span>
 											)}
-											{effectiveCompareBaseBranch === branch.name && (
-												<HiCheck className="size-4 text-primary" />
+											{isWorktree && (
+												<span className="text-[10px] text-primary/80 bg-primary/10 px-1.5 py-0.5 rounded">
+													worktree
+												</span>
 											)}
 										</span>
-									</CommandItem>
-								);
-							})}
-							{hasNextPage && (
-								<div
-									ref={sentinelRef}
-									className="py-2 text-center text-[11px] text-muted-foreground/60"
-								>
-									{isFetchingNextPage ? "Loading more..." : ""}
-								</div>
-							)}
-						</CommandList>
-					</TooltipProvider>
+									</span>
+									<span className="flex items-center gap-2 shrink-0">
+										{branch.lastCommitDate > 0 && (
+											<span className="text-[11px] text-muted-foreground/70 group-hover:hidden">
+												{formatRelativeTime(branch.lastCommitDate * 1000)}
+											</span>
+										)}
+										{(() => {
+											// Authoritative check against the cloud-synced
+											// collection — a server `hasWorkspace:true` row
+											// may be stale after a delete.
+											const canOpen = hasWorkspaceForBranch(branch.name);
+											return (
+												<span className="hidden group-hover:inline-flex group-focus-within:inline-flex items-center gap-1.5">
+													{canOpen ? (
+														<button
+															type="button"
+															className="inline-flex items-center rounded-sm bg-primary/10 hover:bg-primary/20 px-2 py-0.5 text-[11px] text-primary font-medium"
+															onClick={(e) => {
+																e.stopPropagation();
+																onOpenExisting(branch.name);
+															}}
+														>
+															Open workspace
+														</button>
+													) : (
+														<button
+															type="button"
+															className="inline-flex items-center rounded-sm bg-primary/10 hover:bg-primary/20 px-2 py-0.5 text-[11px] text-primary font-medium"
+															onClick={(e) => {
+																e.stopPropagation();
+																onCheckoutBranch(branch.name);
+															}}
+														>
+															Create workspace
+														</button>
+													)}
+												</span>
+											);
+										})()}
+										{effectiveCompareBaseBranch === branch.name && (
+											<HiCheck className="size-4 text-primary" />
+										)}
+									</span>
+								</CommandItem>
+							);
+						})}
+						{hasNextPage && (
+							<div
+								ref={sentinelRef}
+								className="py-2 text-center text-[11px] text-muted-foreground/60"
+							>
+								{isFetchingNextPage ? "Loading more..." : ""}
+							</div>
+						)}
+					</CommandList>
 				</Command>
 			</PopoverContent>
 		</Popover>
