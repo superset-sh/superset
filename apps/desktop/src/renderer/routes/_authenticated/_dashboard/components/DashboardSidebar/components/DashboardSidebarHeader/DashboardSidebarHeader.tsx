@@ -123,24 +123,6 @@ export function DashboardSidebarHeader({
 					<TooltipTrigger asChild>
 						<button
 							type="button"
-							onClick={handleTasksClick}
-							className={cn(
-								"flex size-8 items-center justify-center rounded-md transition-colors",
-								isTasksOpen
-									? "bg-accent text-foreground"
-									: "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
-							)}
-						>
-							<HiOutlineClipboardDocumentList className="size-4" />
-						</button>
-					</TooltipTrigger>
-					<TooltipContent side="right">Tasks</TooltipContent>
-				</Tooltip>
-
-				<Tooltip delayDuration={300}>
-					<TooltipTrigger asChild>
-						<button
-							type="button"
 							onClick={handleAutomationsClick}
 							className={cn(
 								"flex size-8 items-center justify-center rounded-md transition-colors",
@@ -153,6 +135,24 @@ export function DashboardSidebarHeader({
 						</button>
 					</TooltipTrigger>
 					<TooltipContent side="right">Automations</TooltipContent>
+				</Tooltip>
+
+				<Tooltip delayDuration={300}>
+					<TooltipTrigger asChild>
+						<button
+							type="button"
+							onClick={handleTasksClick}
+							className={cn(
+								"flex size-8 items-center justify-center rounded-md transition-colors",
+								isTasksOpen
+									? "bg-accent text-foreground"
+									: "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
+							)}
+						>
+							<HiOutlineClipboardDocumentList className="size-4" />
+						</button>
+					</TooltipTrigger>
+					<TooltipContent side="right">Tasks</TooltipContent>
 				</Tooltip>
 
 				<Tooltip delayDuration={300}>
