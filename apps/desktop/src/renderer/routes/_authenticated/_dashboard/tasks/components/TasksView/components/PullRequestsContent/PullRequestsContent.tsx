@@ -221,7 +221,12 @@ export function PullRequestsContent({
 					</div>
 				)}
 
-				{totalCount === 0 && !isFetching && !error ? (
+				{isInitialLoad ? (
+					<div className="flex h-full items-center justify-center gap-2 p-8 text-muted-foreground">
+						<LuRefreshCw className="size-4 animate-spin" />
+						<span className="text-sm">Loading pull requests…</span>
+					</div>
+				) : totalCount === 0 && !isFetching && !error ? (
 					<div className="flex h-full items-center justify-center p-8">
 						<span className="text-sm text-muted-foreground">
 							{showClosed
