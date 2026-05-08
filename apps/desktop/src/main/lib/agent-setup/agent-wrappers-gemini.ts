@@ -80,7 +80,17 @@ export function getGeminiSettingsJsonContent(hookScriptPath: string): string {
 		existing.hooks = {};
 	}
 
-	const eventNames = ["BeforeAgent", "AfterAgent", "AfterTool"];
+	// SessionStart/SessionEnd are the canonical session-lifetime signals
+	// (gemini-cli HookEventName, packages/core/src/hooks/types.ts). Per-turn
+	// BeforeAgent/AfterAgent + AfterTool are kept as the working-indicator
+	// cadence and feed `Start`/`Stop` via mapEventType.
+	const eventNames = [
+		"SessionStart",
+		"SessionEnd",
+		"BeforeAgent",
+		"AfterAgent",
+		"AfterTool",
+	];
 
 	for (const eventName of eventNames) {
 		const current = existing.hooks[eventName];
@@ -126,7 +136,9 @@ export function createGeminiHookScript(): void {
 }
 
 export function createGeminiWrapper(): void {
-	const script = buildWrapperScript("gemini", `exec "$REAL_BIN" "$@"`);
+	const script = buildWrapperScript("gemini", `exec "$REAL_BIN" "$@"`, {
+		agentId: "gemini",
+	});
 	createWrapper("gemini", script);
 }
 

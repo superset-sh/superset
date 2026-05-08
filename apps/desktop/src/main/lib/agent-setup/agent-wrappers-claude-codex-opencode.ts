@@ -76,9 +76,13 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
  * Returns the shell command written into Claude's global hook config.
  * The notify path is resolved at runtime from SUPERSET_HOME_DIR so one
  * shared ~/.claude/settings.json works for both dev and prod installs.
+ *
+ * `SUPERSET_AGENT_ID=claude` is inlined so the v2 hook payload carries the
+ * wrapper-level identity even when Claude is launched outside the Superset
+ * wrapper (system PATH resolves to the real binary directly).
  */
 export function getClaudeManagedHookCommand(): string {
-	return `[ -n "$SUPERSET_HOME_DIR" ] && [ -x "$SUPERSET_HOME_DIR/${CLAUDE_DYNAMIC_NOTIFY_RELATIVE_PATH}" ] && "$SUPERSET_HOME_DIR/${CLAUDE_DYNAMIC_NOTIFY_RELATIVE_PATH}" || true`;
+	return `[ -n "$SUPERSET_HOME_DIR" ] && [ -x "$SUPERSET_HOME_DIR/${CLAUDE_DYNAMIC_NOTIFY_RELATIVE_PATH}" ] && SUPERSET_AGENT_ID=claude "$SUPERSET_HOME_DIR/${CLAUDE_DYNAMIC_NOTIFY_RELATIVE_PATH}" || true`;
 }
 
 function isManagedClaudeHookCommand(
@@ -172,6 +176,8 @@ export function getClaudeGlobalSettingsJsonContent(
 
 	const managedEvents: Array<{
 		eventName:
+			| "SessionStart"
+			| "SessionEnd"
 			| "UserPromptSubmit"
 			| "Stop"
 			| "PostToolUse"
@@ -179,6 +185,21 @@ export function getClaudeGlobalSettingsJsonContent(
 			| "PermissionRequest";
 		definition: ClaudeHookDefinition;
 	}> = [
+		// SessionStart fires once when Claude attaches to the terminal — earliest
+		// signal the agent is alive in this PTY, used to set the pane icon
+		// before the user submits their first prompt.
+		{
+			eventName: "SessionStart",
+			definition: {
+				hooks: [{ type: "command", command: managedHookCommand }],
+			},
+		},
+		{
+			eventName: "SessionEnd",
+			definition: {
+				hooks: [{ type: "command", command: managedHookCommand }],
+			},
+		},
 		{
 			eventName: "UserPromptSubmit",
 			definition: {
@@ -270,7 +291,9 @@ export function createClaudeWrapper(): void {
 	// createClaudeSettingsJson(), so the wrapper is a plain pass-through.
 	// We still create the wrapper so SUPERSET_* env vars flow through
 	// and the notify script can identify the Superset terminal context.
-	const script = buildWrapperScript("claude", `exec "$REAL_BIN" "$@"`);
+	const script = buildWrapperScript("claude", `exec "$REAL_BIN" "$@"`, {
+		agentId: "claude",
+	});
 	createWrapper("claude", script);
 }
 
@@ -282,6 +305,7 @@ export function createCodexWrapper(): void {
 	const script = buildWrapperScript(
 		"codex",
 		buildCodexWrapperExecLine(notifyPath),
+		{ agentId: "codex" },
 	);
 	createWrapper("codex", script);
 }
@@ -491,6 +515,7 @@ export function createOpenCodeWrapper(): void {
 	const script = buildWrapperScript(
 		"opencode",
 		`export OPENCODE_CONFIG_DIR="${OPENCODE_CONFIG_DIR}"\nexec "$REAL_BIN" "$@"`,
+		{ agentId: "opencode" },
 	);
 	createWrapper("opencode", script);
 }

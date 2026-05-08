@@ -47,7 +47,7 @@ export default function (pi: ExtensionAPI) {
 			const child = spawn(notifyScript, [], {
 				stdio: ["pipe", "ignore", "ignore"],
 				detached: true,
-				env: process.env,
+				env: { ...process.env, SUPERSET_AGENT_ID: "pi" },
 			});
 			child.on("error", () => {
 				/* swallow — never let hook failures affect pi */
@@ -72,6 +72,14 @@ export default function (pi: ExtensionAPI) {
 	// fire hooks. On those older versions subagent flicker is possible, but
 	// that's a niche regression; on >=0.38.0 the gate works precisely.
 	const skip = (ctx: { hasUI?: boolean }) => ctx.hasUI === false;
+
+	// Earliest signal pi is alive in this terminal — pi-mono fires
+	// `session_start` once per session before any prompt arrives, which lets
+	// the host bind the pane icon before the user types.
+	pi.on("session_start", (_event, ctx) => {
+		if (skip(ctx)) return;
+		fire("SessionStart");
+	});
 
 	pi.on("before_agent_start", (_event, ctx) => {
 		if (skip(ctx)) return;

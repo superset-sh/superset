@@ -49,6 +49,9 @@ export const SupersetNotifyPlugin = async ({ $, client }) => {
     const payload = JSON.stringify({ hook_event_name: hookEventName });
     log('Sending notification:', hookEventName);
     try {
+      // SUPERSET_AGENT_ID=opencode is exported by the opencode wrapper and
+      // inherited by every child of the opencode process, so the notify
+      // script reads the right id from env without any explicit forwarding.
       await $`bash ${notifyPath} ${payload}`;
       log('Notification sent successfully');
     } catch (err) {
@@ -144,8 +147,29 @@ export const SupersetNotifyPlugin = async ({ $, client }) => {
 
   return {
     event: async ({ event }) => {
-      const sessionID = event.properties?.sessionID;
+      // session.created carries the new session info under `info`, not `sessionID`.
+      const sessionID =
+        event.properties?.sessionID ??
+        event.properties?.info?.id ??
+        null;
       log('Event:', event.type, 'sessionID:', sessionID);
+
+      // SessionStart/SessionEnd give the host binding store its earliest/latest
+      // signal — fired before any prompt arrives. Filter out child sessions so
+      // subagent spawns don't change the pane icon.
+      if (event.type === "session.created") {
+        const isChild = Boolean(event.properties?.info?.parentID);
+        if (!isChild) {
+          await notify("SessionStart");
+        }
+        return;
+      }
+      if (event.type === "session.deleted") {
+        if (!(await isChildSession(sessionID))) {
+          await notify("SessionEnd");
+        }
+        return;
+      }
 
       // Skip notifications for child/subagent sessions
       if (await isChildSession(sessionID)) {

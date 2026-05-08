@@ -120,9 +120,30 @@ export function getDroidSettingsJsonContent(
 	}
 
 	const managedEvents: Array<{
-		eventName: "UserPromptSubmit" | "Notification" | "Stop" | "PostToolUse";
+		eventName:
+			| "SessionStart"
+			| "SessionEnd"
+			| "UserPromptSubmit"
+			| "Notification"
+			| "Stop"
+			| "PostToolUse";
 		definition: DroidHookDefinition;
 	}> = [
+		// SessionStart/SessionEnd give us the earliest "agent attached" / final
+		// "agent gone" signal for the pane icon. Per-prompt events still drive
+		// the working indicator.
+		{
+			eventName: "SessionStart",
+			definition: {
+				hooks: [{ type: "command", command: notifyScriptPath }],
+			},
+		},
+		{
+			eventName: "SessionEnd",
+			definition: {
+				hooks: [{ type: "command", command: notifyScriptPath }],
+			},
+		},
 		{
 			eventName: "UserPromptSubmit",
 			definition: {

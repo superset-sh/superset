@@ -6,6 +6,8 @@ import { buildWrapperScript, createWrapper } from "./agent-wrappers-common";
  * pass-through binary shim only.
  */
 export function createAmpWrapper(): void {
-	const script = buildWrapperScript("amp", `exec "$REAL_BIN" "$@"`);
+	const script = buildWrapperScript("amp", `exec "$REAL_BIN" "$@"`, {
+		agentId: "amp",
+	});
 	createWrapper("amp", script);
 }

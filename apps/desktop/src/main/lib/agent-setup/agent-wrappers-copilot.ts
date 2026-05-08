@@ -103,6 +103,8 @@ exec "$REAL_BIN" "$@"`;
 }
 
 export function createCopilotWrapper(): void {
-	const script = buildWrapperScript("copilot", buildCopilotWrapperExecLine());
+	const script = buildWrapperScript("copilot", buildCopilotWrapperExecLine(), {
+		agentId: "copilot",
+	});
 	createWrapper("copilot", script);
 }

@@ -75,6 +75,11 @@ export function getCursorHooksJsonContent(hookScriptPath: string): string {
 	}
 
 	const ourHooks: Record<string, CursorHookEntry> = {
+		// SessionStart/SessionEnd give the binding store its earliest/latest
+		// agent-attached signal. Per-prompt beforeSubmitPrompt/stop continues to
+		// drive the working indicator.
+		sessionStart: { command: `${hookScriptPath} SessionStart` },
+		sessionEnd: { command: `${hookScriptPath} SessionEnd` },
 		beforeSubmitPrompt: { command: `${hookScriptPath} Start` },
 		stop: { command: `${hookScriptPath} Stop` },
 		beforeShellExecution: {
@@ -112,7 +117,9 @@ export function createCursorHookScript(): void {
 }
 
 export function createCursorAgentWrapper(): void {
-	const script = buildWrapperScript("cursor-agent", `exec "$REAL_BIN" "$@"`);
+	const script = buildWrapperScript("cursor-agent", `exec "$REAL_BIN" "$@"`, {
+		agentId: "cursor-agent",
+	});
 	createWrapper("cursor-agent", script);
 }
 

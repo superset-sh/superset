@@ -44,7 +44,9 @@ export function getMastraGlobalHooksJsonPath(): string {
 }
 
 export function createMastraWrapper(): void {
-	const script = buildWrapperScript("mastracode", `exec "$REAL_BIN" "$@"`);
+	const script = buildWrapperScript("mastracode", `exec "$REAL_BIN" "$@"`, {
+		agentId: "mastracode",
+	});
 	createWrapper("mastracode", script);
 }
 
@@ -67,7 +69,16 @@ export function getMastraHooksJsonContent(notifyScriptPath: string): string {
 	}
 
 	const notifyCommand = `bash ${quoteShellPath(notifyScriptPath)}`;
-	const managedEvents = ["UserPromptSubmit", "Stop", "PostToolUse"] as const;
+	// SessionStart/SessionEnd fire once per session — earliest/latest signal
+	// of agent liveness in the terminal, complementing the per-prompt
+	// UserPromptSubmit/Stop pair that drives the working indicator.
+	const managedEvents = [
+		"SessionStart",
+		"SessionEnd",
+		"UserPromptSubmit",
+		"Stop",
+		"PostToolUse",
+	] as const;
 
 	for (const eventName of managedEvents) {
 		const current = existing[eventName];

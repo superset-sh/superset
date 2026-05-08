@@ -14,14 +14,14 @@ describe("getNotifyScriptContent", () => {
 			"SESSION_ID=" + "\u0024{RESOURCE_ID:-$HOOK_SESSION_ID}",
 		);
 		expect(script).toContain(
-			'PAYLOAD="{\\"json\\":{\\"terminalId\\":\\"$(json_escape "$SUPERSET_TERMINAL_ID")\\",\\"eventType\\":\\"$(json_escape "$EVENT_TYPE")\\"}}"',
+			'PAYLOAD="{\\"json\\":{\\"terminalId\\":\\"$(json_escape "$SUPERSET_TERMINAL_ID")\\",\\"eventType\\":\\"$(json_escape "$EVENT_TYPE")\\",\\"agent\\":{\\"agentId\\":\\"$(json_escape "$SUPERSET_AGENT_ID")\\",\\"sessionId\\":\\"$(json_escape "$HOOK_SESSION_ID")\\"}}}"',
 		);
 		expect(script).toContain('--data-urlencode "resourceId=$RESOURCE_ID"');
 		expect(script).toContain(
 			'--data-urlencode "hookSessionId=$HOOK_SESSION_ID"',
 		);
 		expect(script).toContain(
-			"event=$EVENT_TYPE terminalId=$SUPERSET_TERMINAL_ID sessionId=$SESSION_ID hookSessionId=$HOOK_SESSION_ID resourceId=$RESOURCE_ID",
+			"event=$EVENT_TYPE terminalId=$SUPERSET_TERMINAL_ID agentId=$SUPERSET_AGENT_ID sessionId=$SESSION_ID hookSessionId=$HOOK_SESSION_ID resourceId=$RESOURCE_ID",
 		);
 	});
 
@@ -56,4 +56,27 @@ describe("getNotifyScriptContent", () => {
 		expect(script).toContain('--data-urlencode "tabId=$SUPERSET_TAB_ID"');
 		expect(script).toContain('--data-urlencode "sessionId=$SESSION_ID"');
 	});
+});
+
+describe("per-agent hook scripts dispatch to v2", () => {
+	const expectedV2Payload =
+		'PAYLOAD="{\\"json\\":{\\"terminalId\\":\\"$(json_escape "$SUPERSET_TERMINAL_ID")\\",\\"eventType\\":\\"$(json_escape "$EVENT_TYPE")\\",\\"agent\\":{\\"agentId\\":\\"$(json_escape "$SUPERSET_AGENT_ID")\\",\\"sessionId\\":\\"$(json_escape "$HOOK_SESSION_ID")\\"}}}"';
+
+	for (const template of [
+		"cursor-hook.template.sh",
+		"copilot-hook.template.sh",
+		"gemini-hook.template.sh",
+	]) {
+		it(`${template} posts the v2 agent identity payload`, () => {
+			const script = readFileSync(
+				path.join(import.meta.dir, "templates", template),
+				"utf-8",
+			);
+			expect(script).toContain(
+				'if [ -n "$SUPERSET_HOST_AGENT_HOOK_URL" ]; then',
+			);
+			expect(script).toContain(expectedV2Payload);
+			expect(script).toContain('curl -sX POST "$SUPERSET_HOST_AGENT_HOOK_URL"');
+		});
+	}
 });
