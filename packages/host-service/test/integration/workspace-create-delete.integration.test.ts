@@ -92,13 +92,9 @@ describe("workspace.create + workspace.delete integration", () => {
 	});
 
 	test("create() adopts a worktree created by another tool (e.g. `.watt-worktrees/`) instead of bubbling git's `is already used by worktree` fatal", async () => {
-		// Regress: Roshvan opened a europa/platform repo in Superset that
-		// already had `git worktree add` run by another tool at
-		// `.watt-worktrees/Roshvan/mcp-1013-trust-wattdata-xyz`. When he
-		// asked Superset to create a workspace for the same branch, the
-		// raw git fatal `'<branch>' is already used by worktree at ...`
-		// surfaced verbatim in the UI. Superset must adopt any worktree
-		// git knows about, regardless of where it lives.
+		// Regress: when another tool already ran `git worktree add` for the
+		// branch, `workspaces.create` surfaced git's raw `'<branch>' is
+		// already used by worktree at ...` fatal instead of adopting.
 		const scenario = await createProjectScenario({
 			hostOptions: { apiOverrides: cloudFlows.workspaceCreateOk() },
 		});

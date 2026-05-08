@@ -267,11 +267,9 @@ async function planBranchSource(
 	return { branch, startPoint, usedExistingBranch: false };
 }
 
-// Git refuses a second checkout of a branch already used by another
-// worktree — including worktrees the user (or another tool, e.g. a
-// sibling worktree manager) created outside Superset. We don't gate
-// adoption on path location: any worktree git knows about is a valid
-// adoption target.
+// Adopt any worktree git knows about, no matter where it lives —
+// tools other than Superset can also `git worktree add`, and their
+// worktrees are valid adoption targets.
 function isBranchInUseByWorktreeError(err: unknown): boolean {
 	const message = err instanceof Error ? err.message : String(err ?? "");
 	const lower = message.toLowerCase();
@@ -756,12 +754,10 @@ export const workspacesRouter = router({
 				} else {
 					// Adopt at any path git already knows for this branch — git
 					// refuses a second checkout of the same branch, so falling
-					// through to `git worktree add` would block re-entry. Auto-gen
-					// names are deduped against the branch list, so only typed
-					// branches can collide here.
-					const existingWorktreePath = typedBranch
-						? (await listWorktreeBranches(git)).worktreeMap.get(resolvedBranch)
-						: undefined;
+					// through to `git worktree add` would block re-entry.
+					const existingWorktreePath = (
+						await listWorktreeBranches(git)
+					).worktreeMap.get(resolvedBranch);
 
 					if (existingWorktreePath) {
 						worktreePath = existingWorktreePath;
@@ -790,13 +786,23 @@ export const workspacesRouter = router({
 						);
 						mkdirSync(dirname(worktreePath), { recursive: true });
 
+						// Bind the rollback target at definition. The outer
+						// `worktreePath` is reassigned to the existing path on
+						// adoption fallback below, but rollback must only ever
+						// touch the worktree we actually created.
+						const ourWorktreePath = worktreePath;
 						const rollbackWorktree = async () => {
 							try {
-								await git.raw(["worktree", "remove", "--force", worktreePath]);
+								await git.raw([
+									"worktree",
+									"remove",
+									"--force",
+									ourWorktreePath,
+								]);
 							} catch (err) {
 								console.warn(
 									"[workspaces.create] failed to rollback worktree",
-									{ worktreePath, err },
+									{ worktreePath: ourWorktreePath, err },
 								);
 							}
 						};
@@ -805,11 +811,9 @@ export const workspacesRouter = router({
 						try {
 							await addBranchWorktree({ git, plan, worktreePath });
 						} catch (err) {
-							// Race window: branch was free when we pre-checked, but
-							// something (another tool's worktree, a concurrent create)
-							// claimed it before our `worktree add` ran. Adopt at
-							// whatever path git now reports — same path-agnostic
-							// code the typed-branch pre-check uses.
+							// Branch is already claimed by another worktree that the
+							// pre-check missed (auto-gen path, or a race). Adopt at
+							// whatever path git reports.
 							if (isBranchInUseByWorktreeError(err)) {
 								const existingPath = (
 									await listWorktreeBranches(git)
