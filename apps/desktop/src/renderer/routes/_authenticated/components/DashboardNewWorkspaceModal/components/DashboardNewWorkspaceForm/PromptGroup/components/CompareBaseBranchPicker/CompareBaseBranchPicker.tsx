@@ -8,8 +8,9 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
 import { Tabs, TabsList, TabsTrigger } from "@superset/ui/tabs";
 import { useEffect, useRef, useState } from "react";
-import { GoGitBranch } from "react-icons/go";
+import { GoGitBranch, GoGlobe } from "react-icons/go";
 import { HiCheck, HiChevronUpDown } from "react-icons/hi2";
+import { LuFolderOpen } from "react-icons/lu";
 import { formatRelativeTime } from "renderer/lib/formatRelativeTime";
 import type { BranchFilter, BranchRow } from "../../../hooks/useBranchContext";
 import { FormPickerTrigger } from "../FormPickerTrigger";
@@ -166,7 +167,13 @@ export function CompareBaseBranchPicker({
 									}}
 									className="group items-start gap-3 rounded-md px-2.5 py-2"
 								>
-									<GoGitBranch className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+									{isWorktree ? (
+										<LuFolderOpen className="mt-0.5 size-4 shrink-0 text-primary/80" />
+									) : isRemoteOnly ? (
+										<GoGlobe className="mt-0.5 size-4 shrink-0 text-muted-foreground/60" />
+									) : (
+										<GoGitBranch className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+									)}
 									<div className="flex min-w-0 flex-1 flex-col gap-0.5">
 										<span className="truncate text-sm leading-snug">
 											{branch.name}
