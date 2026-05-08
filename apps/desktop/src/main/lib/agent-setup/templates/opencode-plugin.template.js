@@ -26,11 +26,8 @@ export const SupersetNotifyPlugin = async ({ $, client }) => {
   if (globalThis.__supersetOpencodeNotifyPluginV8) return {};
   globalThis.__supersetOpencodeNotifyPluginV8 = true;
 
-  // Only run inside a Superset terminal session. v2 host-service terminals
-  // only set SUPERSET_TERMINAL_ID; v1 still sets SUPERSET_TAB_ID.
-  if (!process?.env?.SUPERSET_TAB_ID && !process?.env?.SUPERSET_TERMINAL_ID) {
-    return {};
-  }
+  // Only run inside a v2 Superset terminal session.
+  if (!process?.env?.SUPERSET_TERMINAL_ID) return {};
 
   const notifyPath = "{{NOTIFY_PATH}}";
   const debug = process?.env?.SUPERSET_DEBUG === '1';

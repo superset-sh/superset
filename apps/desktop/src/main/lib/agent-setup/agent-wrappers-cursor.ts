@@ -1,7 +1,6 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { env } from "shared/env.shared";
 import {
 	buildWrapperScript,
 	createWrapper,
@@ -44,9 +43,7 @@ export function getCursorGlobalHooksJsonPath(): string {
 
 export function getCursorHookScriptContent(): string {
 	const template = fs.readFileSync(CURSOR_HOOK_TEMPLATE_PATH, "utf-8");
-	return template
-		.replace("{{MARKER}}", CURSOR_HOOK_MARKER)
-		.replace(/\{\{DEFAULT_PORT\}\}/g, String(env.DESKTOP_NOTIFICATIONS_PORT));
+	return template.replace("{{MARKER}}", CURSOR_HOOK_MARKER);
 }
 
 /**

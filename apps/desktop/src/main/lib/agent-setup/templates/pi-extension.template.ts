@@ -12,10 +12,9 @@
  *   pi `agent_end`           → Claude `Stop`              → completion / chime
  *   pi `session_shutdown`    → Claude `Stop`              → cleanup on quit/reload
  *
- * Activates only when running inside a Superset terminal (detected via
- * SUPERSET_TERMINAL_ID / SUPERSET_TAB_ID / SUPERSET_PANE_ID). Outside
- * Superset it's a complete no-op. If notify.sh is missing it's also a
- * no-op (Superset uninstalled / never installed).
+ * Activates only when running inside a v2 Superset terminal (detected via
+ * SUPERSET_TERMINAL_ID). Outside Superset it's a complete no-op. If notify.sh
+ * is missing it's also a no-op (Superset uninstalled / never installed).
  *
  * Hook dispatch is fire-and-forget: failures to spawn or curl never
  * affect the agent loop. notify.sh has its own connect/max timeouts.
@@ -28,14 +27,8 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 
 export default function (pi: ExtensionAPI) {
-	// Only activate inside a Superset terminal. Both v2 (host-service) and
-	// v1 (electron localhost) shells set at least one of these.
-	const insideSuperset = Boolean(
-		process.env.SUPERSET_TERMINAL_ID ||
-			process.env.SUPERSET_TAB_ID ||
-			process.env.SUPERSET_PANE_ID,
-	);
-	if (!insideSuperset) return;
+	// Only activate inside a v2 Superset terminal.
+	if (!process.env.SUPERSET_TERMINAL_ID) return;
 
 	const supersetHome =
 		process.env.SUPERSET_HOME_DIR || join(homedir(), ".superset");

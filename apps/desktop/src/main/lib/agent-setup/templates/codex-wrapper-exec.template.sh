@@ -1,10 +1,7 @@
 # Codex exposes completion notifications via notify.
 # For per-prompt Start notifications and permission requests, watch the TUI
 # session log for task_started/exec_command_begin and *_approval_request events.
-# Gate on either v1 (SUPERSET_TAB_ID) or v2 (SUPERSET_TERMINAL_ID) — host-service
-# v2 terminals don't set SUPERSET_TAB_ID, so v1-only gating leaves v2 panes
-# stuck on "idle" while codex is processing.
-if { [ -n "$SUPERSET_TAB_ID" ] || [ -n "$SUPERSET_TERMINAL_ID" ]; } && [ -f "{{NOTIFY_PATH}}" ]; then
+if [ -n "$SUPERSET_TERMINAL_ID" ] && [ -f "{{NOTIFY_PATH}}" ]; then
   export CODEX_TUI_RECORD_SESSION=1
   if [ -z "$CODEX_TUI_SESSION_LOG_PATH" ]; then
     _superset_codex_ts="$(date +%s 2>/dev/null || echo "$$")"

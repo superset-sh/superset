@@ -166,7 +166,7 @@ describe("agent-wrappers copilot", () => {
 			env: {
 				...process.env,
 				PATH: `${TEST_BIN_DIR}:${realBinDir}:${process.env.PATH || ""}`,
-				SUPERSET_TAB_ID: "tab-1",
+				SUPERSET_TERMINAL_ID: "terminal-1",
 			},
 			encoding: "utf-8",
 		});
@@ -206,11 +206,9 @@ describe("agent-wrappers copilot", () => {
 		);
 		expect(wrapper).toContain("SUPERSET_CODEX_START_WATCHER_PID");
 		expect(wrapper).toContain('kill "$SUPERSET_CODEX_START_WATCHER_PID"');
-		// Watcher must run in v2 host-service terminals where SUPERSET_TAB_ID
-		// isn't set; gating on v1-only is a regression that hides "working".
-		expect(wrapper).toContain(
-			'{ [ -n "$SUPERSET_TAB_ID" ] || [ -n "$SUPERSET_TERMINAL_ID" ]; }',
-		);
+		// Watcher gates strictly on v2's SUPERSET_TERMINAL_ID; v1's TAB_ID is gone.
+		expect(wrapper).toContain('if [ -n "$SUPERSET_TERMINAL_ID" ]');
+		expect(wrapper).not.toContain("SUPERSET_TAB_ID");
 
 		const execLine = buildCodexWrapperExecLine(
 			path.join(TEST_HOOKS_DIR, "notify.sh"),
@@ -242,7 +240,7 @@ exit 0
 			env: {
 				...process.env,
 				PATH: `${TEST_BIN_DIR}:${realBinDir}:${process.env.PATH || ""}`,
-				SUPERSET_TAB_ID: "tab-1",
+				SUPERSET_TERMINAL_ID: "terminal-1",
 			},
 			encoding: "utf-8",
 		});
