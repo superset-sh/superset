@@ -288,6 +288,14 @@ function CommentRow({
 	const isCopied = copiedActionKey === `comment:${comment.id}`;
 
 	const handleClick = () => {
+		// Default click takes you to the comment in the diff pane — that's
+		// the most common "I want to see this comment" path. Conversation
+		// comments without a file anchor fall back to the standalone
+		// comment pane.
+		if (comment.kind === "review" && comment.path && onOpenInDiff) {
+			onOpenInDiff(comment.path, comment.line);
+			return;
+		}
 		onOpen?.({
 			commentId: comment.id,
 			authorLogin: comment.authorLogin,
