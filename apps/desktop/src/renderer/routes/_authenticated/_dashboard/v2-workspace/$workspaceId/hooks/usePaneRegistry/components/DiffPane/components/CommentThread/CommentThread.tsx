@@ -28,6 +28,10 @@ interface CommentThreadProps {
 	isOutdated?: boolean;
 	url?: string;
 	comments: Comment[];
+	/** Monotonic tick from the parent — when it changes, force-expand the
+	 * bubble so jump-to-line from the review tab reveals collapsed
+	 * (resolved/outdated) threads. */
+	focusTick?: number;
 }
 
 export function CommentThread({
@@ -37,6 +41,7 @@ export function CommentThread({
 	isOutdated,
 	url,
 	comments,
+	focusTick,
 }: CommentThreadProps) {
 	const [open, setOpen] = useState(!isResolved && !isOutdated);
 	// When the thread becomes resolved or outdated (e.g. user clicks
@@ -45,6 +50,12 @@ export function CommentThread({
 	useEffect(() => {
 		if (isResolved || isOutdated) setOpen(false);
 	}, [isResolved, isOutdated]);
+	// Force open whenever the parent re-focuses this line, even if the bubble
+	// was collapsed because it's resolved or outdated. The reviewer asked to
+	// see this comment — show it.
+	useEffect(() => {
+		if (focusTick != null) setOpen(true);
+	}, [focusTick]);
 	const utils = workspaceTrpc.useUtils();
 	const setResolution = workspaceTrpc.git.setReviewThreadResolution.useMutation(
 		{

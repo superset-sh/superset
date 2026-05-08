@@ -182,6 +182,8 @@ export function DiffPane({ context, workspaceId, onOpenFile }: DiffPaneProps) {
 					onSetViewed={setViewed}
 					onOpenFile={onOpenFile}
 					onOpenInExternalEditor={openInExternalEditor}
+					focusLine={file.path === data.path ? data.focusLine : undefined}
+					focusTick={file.path === data.path ? data.focusTick : undefined}
 				/>
 			))}
 		</Virtualizer>
