@@ -922,7 +922,7 @@ export class PullRequestRuntimeManager {
 					target.branch,
 					options,
 				);
-				if (!node) return { key, node: null as GraphQLPullRequestNode | null };
+				if (!node) return { key, node };
 				// `pullRequests(headRefName: ...)` filters by branch name only on the
 				// base repo. Fork PRs share branch names with the base repo's
 				// branches, so verify head identity matches the workspace upstream.
