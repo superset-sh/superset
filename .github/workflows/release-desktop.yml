@@ -51,6 +51,25 @@ jobs:
           echo "Current tag: ${CURRENT_TAG}"
           echo "Previous tag: ${PREVIOUS_TAG:-none}"
 
+      - name: Verify host-service version was bumped
+        if: steps.prev_tag.outputs.previous_tag != ''
+        run: |
+          PREVIOUS_TAG="${{ steps.prev_tag.outputs.previous_tag }}"
+          CURRENT_TAG="${{ steps.prev_tag.outputs.current_tag }}"
+          PREV_HS=$(git show "${PREVIOUS_TAG}:packages/host-service/package.json" | jq -r .version)
+          CURR_HS=$(git show "${CURRENT_TAG}:packages/host-service/package.json" | jq -r .version)
+          echo "host-service @ ${PREVIOUS_TAG}: ${PREV_HS}"
+          echo "host-service @ ${CURRENT_TAG}: ${CURR_HS}"
+          if [ "${PREV_HS}" = "${CURR_HS}" ]; then
+            echo "::error::host-service version was not bumped between ${PREVIOUS_TAG} and ${CURRENT_TAG} (still ${CURR_HS}). Run apps/desktop/create-release.sh to bump both, or bump packages/host-service/package.json manually before re-tagging."
+            exit 1
+          fi
+          HIGHER=$(printf '%s\n%s\n' "${PREV_HS}" "${CURR_HS}" | sort -V | tail -1)
+          if [ "${HIGHER}" != "${CURR_HS}" ]; then
+            echo "::error::host-service version regressed: ${PREV_HS} -> ${CURR_HS}"
+            exit 1
+          fi
+
       - name: Download all artifacts
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
