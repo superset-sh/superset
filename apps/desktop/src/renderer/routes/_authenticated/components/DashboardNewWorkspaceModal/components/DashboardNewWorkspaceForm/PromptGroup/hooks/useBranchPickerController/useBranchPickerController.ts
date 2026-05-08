@@ -107,6 +107,12 @@ export function useBranchPickerController(args: UseBranchPickerControllerArgs) {
 					to: "/v2-workspace/$workspaceId",
 					params: { workspaceId: result.workspaceId },
 				});
+			} else {
+				// `submit` tracks the failure via `markError`, but the in-flight
+				// manager doesn't toast — without this, a rejected open closes
+				// the modal silently and the user has no feedback that anything
+				// failed.
+				toast.error(result.error || "Failed to open workspace");
 			}
 		},
 		[

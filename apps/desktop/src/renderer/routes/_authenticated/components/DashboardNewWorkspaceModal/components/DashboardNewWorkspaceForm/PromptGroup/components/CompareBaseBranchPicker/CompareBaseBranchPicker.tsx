@@ -11,9 +11,12 @@ import { useEffect, useRef, useState } from "react";
 import { GoGitBranch, GoGlobe } from "react-icons/go";
 import { HiCheck, HiChevronUpDown } from "react-icons/hi2";
 import { LuFolderOpen } from "react-icons/lu";
+import { PLATFORM } from "renderer/hotkeys";
 import { formatRelativeTime } from "renderer/lib/formatRelativeTime";
 import type { BranchFilter, BranchRow } from "../../../hooks/useBranchContext";
 import { FormPickerTrigger } from "../FormPickerTrigger";
+
+const MOD_KEY = PLATFORM === "mac" ? "⌘" : "Ctrl";
 
 interface CompareBaseBranchPickerProps {
 	effectiveCompareBaseBranch: string | null;
@@ -55,6 +58,10 @@ export function CompareBaseBranchPicker({
 	onOpenWorkspace,
 }: CompareBaseBranchPickerProps) {
 	const [open, setOpen] = useState(false);
+	// Mirror cmdk's selected-row value so a Mod+Enter keydown can resolve it
+	// to the branch name without traversing DOM. Without this, keyboard users
+	// have no path to `onOpenWorkspace`.
+	const [selectedValue, setSelectedValue] = useState("");
 	const sentinelRef = useRef<HTMLDivElement | null>(null);
 
 	useEffect(() => {
@@ -120,7 +127,24 @@ export function CompareBaseBranchPicker({
 				align="start"
 				onWheel={(event) => event.stopPropagation()}
 			>
-				<Command shouldFilter={false}>
+				<Command
+					shouldFilter={false}
+					value={selectedValue}
+					onValueChange={setSelectedValue}
+					onKeyDown={(e) => {
+						// Keyboard parity with the hover-only "Open workspace" button.
+						// cmdk arrow-keys leave focus on the input, so the per-row
+						// button is unreachable; Mod+Enter on the active row routes to
+						// the same handler.
+						if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+							if (!selectedValue) return;
+							e.preventDefault();
+							e.stopPropagation();
+							onOpenWorkspace(selectedValue);
+							setOpen(false);
+						}
+					}}
+				>
 					<CommandInput
 						placeholder="Search branches..."
 						value={branchSearch}
@@ -200,16 +224,20 @@ export function CompareBaseBranchPicker({
 										</span>
 									</div>
 									<span className="ml-2 flex shrink-0 items-center gap-1.5 self-center">
-										<span className="hidden items-center gap-1.5 group-hover:inline-flex group-focus-within:inline-flex">
+										<span className="hidden items-center gap-1.5 group-hover:inline-flex group-data-[selected=true]:inline-flex">
 											<button
 												type="button"
 												className="inline-flex items-center rounded-sm bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary hover:bg-primary/20"
 												onClick={(e) => {
 													e.stopPropagation();
 													onOpenWorkspace(branch.name);
+													setOpen(false);
 												}}
 											>
 												Open workspace
+												<span className="ml-1.5 text-[10px] opacity-70">
+													{MOD_KEY}↵
+												</span>
 											</button>
 										</span>
 										{effectiveCompareBaseBranch === branch.name && (
