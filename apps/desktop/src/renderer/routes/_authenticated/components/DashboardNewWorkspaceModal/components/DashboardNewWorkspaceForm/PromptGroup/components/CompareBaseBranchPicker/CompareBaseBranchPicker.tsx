@@ -168,7 +168,7 @@ export function CompareBaseBranchPicker({
 								>
 									<GoGitBranch className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
 									<div className="flex min-w-0 flex-1 flex-col gap-0.5">
-										<span className="truncate font-mono text-sm leading-snug">
+										<span className="truncate text-sm leading-snug">
 											{branch.name}
 										</span>
 										<span className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
