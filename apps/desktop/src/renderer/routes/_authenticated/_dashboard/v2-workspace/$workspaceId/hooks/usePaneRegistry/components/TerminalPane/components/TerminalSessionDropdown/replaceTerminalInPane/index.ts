@@ -1,0 +1,1 @@
+export { replaceTerminalInPane } from "./replaceTerminalInPane";

@@ -18,13 +18,13 @@ import {
 	Trash2,
 } from "lucide-react";
 import { useCallback, useMemo, useState, useSyncExternalStore } from "react";
-import { markTerminalForBackground } from "renderer/lib/terminal/terminal-background-intents";
 import { terminalRuntimeRegistry } from "renderer/lib/terminal/terminal-runtime-registry";
 import type {
 	PaneViewerData,
 	TerminalPaneData,
 } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/types";
 import { getRelativeTime } from "renderer/screens/main/components/WorkspacesListView/utils";
+import { replaceTerminalInPane } from "./replaceTerminalInPane";
 
 interface TerminalSessionDropdownProps {
 	context: RendererContext<PaneViewerData>;
@@ -157,20 +157,12 @@ export function TerminalSessionDropdown({
 			return;
 		}
 
-		if ((terminalPaneLocations.get(terminalId)?.length ?? 0) === 0) {
-			markTerminalForBackground(terminalId);
-		}
-
-		state.setPaneData({
-			paneId: context.pane.id,
-			data: {
-				terminalId: nextTerminalId,
-			} as PaneViewerData,
-		});
-		state.setPaneTitleOverride({
+		replaceTerminalInPane({
+			state,
 			tabId: context.tab.id,
 			paneId: context.pane.id,
-			titleOverride: undefined,
+			currentTerminalId: terminalId,
+			nextTerminalId,
 		});
 		setIsOpen(false);
 	};
@@ -210,21 +202,12 @@ export function TerminalSessionDropdown({
 	};
 
 	const handleNewTerminal = () => {
-		const state = context.store.getState();
-		const terminalPaneLocations = getTerminalPaneLocations(context);
-		if ((terminalPaneLocations.get(terminalId)?.length ?? 0) === 0) {
-			markTerminalForBackground(terminalId);
-		}
-		state.setPaneData({
-			paneId: context.pane.id,
-			data: {
-				terminalId: crypto.randomUUID(),
-			} as PaneViewerData,
-		});
-		state.setPaneTitleOverride({
+		replaceTerminalInPane({
+			state: context.store.getState(),
 			tabId: context.tab.id,
 			paneId: context.pane.id,
-			titleOverride: undefined,
+			currentTerminalId: terminalId,
+			nextTerminalId: crypto.randomUUID(),
 		});
 		void utils.terminal.listSessions.invalidate({ workspaceId });
 		setIsOpen(false);
