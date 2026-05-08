@@ -22,41 +22,31 @@ function openUrl(url: string): Promise<void> {
 
 export default command({
 	description: "Open a workspace in the Superset desktop app",
-	args: [positional("workspace").required().desc("Workspace ID or exact name")],
+	args: [positional("id").required().desc("Workspace ID")],
 	options: {
 		print: boolean().desc(
 			"Print the deep link URL instead of opening the desktop app",
 		),
 	},
 	run: async ({ ctx, args, options }) => {
-		const query = args.workspace as string;
+		const id = args.id as string;
 		const organizationId = ctx.config.organizationId;
 		if (!organizationId) {
 			throw new CLIError("No active organization", "Run: superset auth login");
 		}
 
-		const workspaces = await ctx.api.v2Workspace.list.query({
+		const workspace = await ctx.api.v2Workspace.getFromHost.query({
 			organizationId,
+			id,
 		});
-		const matches = workspaces.filter(
-			(w) => w.id === query || w.name === query,
-		);
-		if (matches.length === 0) {
+		if (!workspace) {
 			throw new CLIError(
-				`No workspace matched: ${query}`,
-				"Pass a workspace ID or exact name. List options with: superset workspaces list",
+				`Workspace not found: ${id}`,
+				"List workspaces with: superset workspaces list",
 			);
 		}
-		const exactById = matches.find((w) => w.id === query);
-		if (!exactById && matches.length > 1) {
-			throw new CLIError(
-				`Multiple workspaces named "${query}"`,
-				`Pass the workspace ID instead. Matches: ${matches.map((w) => w.id).join(", ")}`,
-			);
-		}
-		const { id, name } = exactById ?? matches[0]!;
 
-		const url = `superset://v2-workspace/${id}`;
+		const url = `superset://v2-workspace/${workspace.id}`;
 
 		if (!options.print) {
 			try {
@@ -70,8 +60,10 @@ export default command({
 		}
 
 		return {
-			data: { id, name, url },
-			message: options.print ? url : `Opening "${name}" in Superset desktop`,
+			data: { id: workspace.id, name: workspace.name, url },
+			message: options.print
+				? url
+				: `Opening "${workspace.name}" in Superset desktop`,
 		};
 	},
 });
