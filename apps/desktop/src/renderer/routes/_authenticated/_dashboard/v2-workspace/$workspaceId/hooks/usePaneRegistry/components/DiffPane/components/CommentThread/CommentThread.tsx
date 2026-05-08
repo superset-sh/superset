@@ -10,47 +10,8 @@ import { cn } from "@superset/ui/utils";
 import { workspaceTrpc } from "@superset/workspace-client";
 import { useEffect, useState } from "react";
 import { LuChevronRight, LuExternalLink, LuLoaderCircle } from "react-icons/lu";
-import ReactMarkdown from "react-markdown";
-import rehypeRaw from "rehype-raw";
-import rehypeSanitize from "rehype-sanitize";
-import remarkGfm from "remark-gfm";
-import {
-	CodeBlock,
-	SafeImage,
-} from "renderer/components/MarkdownRenderer/components";
+import { CommentMarkdown } from "renderer/components/CommentMarkdown";
 import "./comment-thread.css";
-
-const markdownComponents = {
-	code: ({
-		className,
-		children,
-		node,
-	}: {
-		className?: string;
-		children?: React.ReactNode;
-		node?: unknown;
-	}) => (
-		<CodeBlock
-			className={className}
-			node={node as Parameters<typeof CodeBlock>[0]["node"]}
-		>
-			{children}
-		</CodeBlock>
-	),
-	img: ({ src, alt }: { src?: string; alt?: string }) => (
-		<SafeImage src={src} alt={alt} className="diff-comment-img" />
-	),
-	a: ({ href, children }: { href?: string; children?: React.ReactNode }) => (
-		<a
-			href={href}
-			target="_blank"
-			rel="noopener noreferrer"
-			className="diff-comment-link"
-		>
-			{children}
-		</a>
-	),
-};
 
 interface Comment {
 	id: string;
@@ -204,13 +165,7 @@ function CommentRow({ comment }: { comment: Comment }) {
 					)}
 				</div>
 				<div className="diff-comment-body mt-1">
-					<ReactMarkdown
-						remarkPlugins={[remarkGfm]}
-						rehypePlugins={[rehypeRaw, rehypeSanitize]}
-						components={markdownComponents}
-					>
-						{comment.body}
-					</ReactMarkdown>
+					<CommentMarkdown body={comment.body} />
 				</div>
 			</div>
 		</li>
