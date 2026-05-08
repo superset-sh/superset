@@ -47,7 +47,11 @@ function ScrollToFile({
 			lastScrolledPath.current = path;
 			if (focusTick != null) lastFocusTick.current = focusTick;
 
-			if (focusLine != null) {
+			// Only run the line-level scroll when a *new* focus request came in
+			// (tickChanged). Without this guard, a path-only change (e.g.
+			// clicking another file in the sidebar) would scroll to a stale
+			// focusLine left over on the pane data.
+			if (focusLine != null && tickChanged) {
 				// Pierre's virtualizer mounts file contents lazily, so the
 				// annotation slot may not exist on the first frame. Retry a
 				// handful of frames before giving up — typical mount completes

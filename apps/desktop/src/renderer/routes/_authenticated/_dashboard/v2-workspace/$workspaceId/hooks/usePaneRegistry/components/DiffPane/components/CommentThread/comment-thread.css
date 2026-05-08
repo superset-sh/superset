@@ -6,6 +6,16 @@
 	box-sizing: border-box;
 	overflow-wrap: anywhere;
 	word-break: break-word;
+	/* The renderer sets user-select: none on body — bubble text needs to
+	 * opt back in so reviewers can copy snippets out of the comment. */
+	user-select: text;
+	-webkit-user-select: text;
+	cursor: text;
+}
+
+.diff-comment a,
+.diff-comment button {
+	cursor: pointer;
 }
 
 .diff-comment * {

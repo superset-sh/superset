@@ -59,7 +59,10 @@ export function useDiffAnnotations({
 	const prUrl = prQuery.data?.url ?? undefined;
 
 	return useMemo(() => {
-		if (!showDiffComments) {
+		// Gate on hasPR too: when the PR goes away the threads query disables
+		// itself but tanstack-query keeps the last data around in cache, so
+		// without this check stale threads could leak into a non-PR diff.
+		if (!showDiffComments || !hasPR) {
 			return EMPTY_ANNOTATIONS;
 		}
 		const threads = threadsQuery.data?.reviewThreads ?? [];
@@ -73,10 +76,12 @@ export function useDiffAnnotations({
 			if (thread.line == null) continue;
 
 			const firstDbId = thread.comments[0]?.databaseId;
+			// Only emit a deep link when we have an actual discussion anchor.
+			// Falling back to the PR root makes "Open on GitHub" misleading.
 			const url =
 				prUrl && firstDbId != null
 					? `${prUrl}#discussion_r${firstDbId}`
-					: prUrl;
+					: undefined;
 
 			annotations.push({
 				side: thread.diffSide === "LEFT" ? "deletions" : "additions",
@@ -86,19 +91,20 @@ export function useDiffAnnotations({
 					isResolved: thread.isResolved,
 					isOutdated: thread.isOutdated,
 					...(url ? { url } : {}),
-					comments: thread.comments.map((c) => ({
-						id: c.id,
-						authorLogin: c.author.login,
-						...(c.author.avatarUrl ? { avatarUrl: c.author.avatarUrl } : {}),
-						body: c.body,
-						...(parseTimestamp(c.createdAt) != null
-							? { createdAt: parseTimestamp(c.createdAt) }
-							: {}),
-					})),
+					comments: thread.comments.map((c) => {
+						const createdAt = parseTimestamp(c.createdAt);
+						return {
+							id: c.id,
+							authorLogin: c.author.login,
+							...(c.author.avatarUrl ? { avatarUrl: c.author.avatarUrl } : {}),
+							body: c.body,
+							...(createdAt != null ? { createdAt } : {}),
+						};
+					}),
 				},
 			});
 		}
 
 		return annotations;
-	}, [showDiffComments, threadsQuery.data, path, prUrl]);
+	}, [showDiffComments, hasPR, threadsQuery.data, path, prUrl]);
 }

@@ -8,7 +8,7 @@ import {
 import { toast } from "@superset/ui/sonner";
 import { cn } from "@superset/ui/utils";
 import { workspaceTrpc } from "@superset/workspace-client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { LuChevronRight, LuExternalLink, LuLoaderCircle } from "react-icons/lu";
 import ReactMarkdown from "react-markdown";
 import rehypeRaw from "rehype-raw";
@@ -78,6 +78,12 @@ export function CommentThread({
 	comments,
 }: CommentThreadProps) {
 	const [open, setOpen] = useState(!isResolved && !isOutdated);
+	// When the thread becomes resolved or outdated (e.g. user clicks
+	// "Resolve conversation" and the threads query refetches), auto-collapse
+	// to match GitHub's behavior. Active threads stay where the user put them.
+	useEffect(() => {
+		if (isResolved || isOutdated) setOpen(false);
+	}, [isResolved, isOutdated]);
 	const utils = workspaceTrpc.useUtils();
 	const setResolution = workspaceTrpc.git.setReviewThreadResolution.useMutation(
 		{
@@ -212,17 +218,20 @@ function CommentRow({ comment }: { comment: Comment }) {
 }
 
 function formatRelative(ms: number): string {
-	const delta = Date.now() - ms;
-	const seconds = Math.round(delta / 1000);
+	// Clamp to ≥0 so a server clock skew or future-dated comment doesn't
+	// render as "−5m ago". Floor (not round) so a 30-minute comment shows
+	// "30m ago" instead of jumping to "1h ago" prematurely.
+	const delta = Math.max(0, Date.now() - ms);
+	const seconds = Math.floor(delta / 1000);
 	if (seconds < 60) return `${seconds}s ago`;
-	const minutes = Math.round(seconds / 60);
+	const minutes = Math.floor(seconds / 60);
 	if (minutes < 60) return `${minutes}m ago`;
-	const hours = Math.round(minutes / 60);
+	const hours = Math.floor(minutes / 60);
 	if (hours < 24) return `${hours}h ago`;
-	const days = Math.round(hours / 24);
+	const days = Math.floor(hours / 24);
 	if (days < 30) return `${days}d ago`;
-	const months = Math.round(days / 30);
+	const months = Math.floor(days / 30);
 	if (months < 12) return `${months}mo ago`;
-	const years = Math.round(days / 365);
+	const years = Math.floor(days / 365);
 	return `${years}y ago`;
 }
