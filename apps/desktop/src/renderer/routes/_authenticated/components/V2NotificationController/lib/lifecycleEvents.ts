@@ -53,7 +53,17 @@ export function handleV2AgentLifecycleEvent({
 	});
 	updatePaneStatus(workspaceId, payload, target, paneLayout);
 
-	if (payload.eventType === "Start") return;
+	// Start → working indicator only, no chime.
+	// Attached/Detached → session-lifecycle signal that drives the pane icon
+	// only; never play sound or pop a native notification (they fire on agent
+	// startup and clean exit, not on completion).
+	if (
+		payload.eventType === "Start" ||
+		payload.eventType === "Attached" ||
+		payload.eventType === "Detached"
+	) {
+		return;
+	}
 	if (shouldSuppress(target, paneLayout)) return;
 
 	const ringtoneId = useRingtoneStore.getState().selectedRingtoneId;

@@ -1,4 +1,22 @@
-export type AgentLifecycleEventType = "Start" | "Stop" | "PermissionRequest";
+/**
+ * Normalized lifecycle event types broadcast over the WS event bus.
+ *
+ * - `Start` / `Stop`: per-turn working-state cadence — agent is processing /
+ *   has finished processing a single user prompt. Drives the pane working
+ *   indicator and the completion chime.
+ * - `PermissionRequest`: agent is blocked waiting for a tool/exec decision.
+ * - `Attached` / `Detached`: session-lifetime signal — the agent attached to
+ *   the terminal (still idle, waiting for input) or cleanly disconnected.
+ *   Drives the pane *icon* via the agent-binding store but explicitly does
+ *   NOT change the working indicator or play any sound. SessionStart firing
+ *   on `claude` startup must not show "working".
+ */
+export type AgentLifecycleEventType =
+	| "Start"
+	| "Stop"
+	| "PermissionRequest"
+	| "Attached"
+	| "Detached";
 
 export function mapEventType(
 	eventType: string | undefined,
@@ -7,15 +25,28 @@ export function mapEventType(
 		return null;
 	}
 	if (
-		eventType === "Start" ||
+		eventType === "Attached" ||
 		eventType === "SessionStart" ||
+		eventType === "sessionStart" ||
+		eventType === "session_start"
+	) {
+		return "Attached";
+	}
+	if (
+		eventType === "Detached" ||
+		eventType === "SessionEnd" ||
+		eventType === "sessionEnd" ||
+		eventType === "session_end"
+	) {
+		return "Detached";
+	}
+	if (
+		eventType === "Start" ||
 		eventType === "UserPromptSubmit" ||
 		eventType === "PostToolUse" ||
 		eventType === "PostToolUseFailure" ||
 		eventType === "BeforeAgent" ||
 		eventType === "AfterTool" ||
-		eventType === "sessionStart" ||
-		eventType === "session_start" ||
 		eventType === "userPromptSubmitted" ||
 		eventType === "user_prompt_submit" ||
 		eventType === "postToolUse" ||
@@ -41,8 +72,6 @@ export function mapEventType(
 		eventType === "stop" ||
 		eventType === "agent-turn-complete" ||
 		eventType === "AfterAgent" ||
-		eventType === "sessionEnd" ||
-		eventType === "session_end" ||
 		eventType === "task_complete"
 	) {
 		return "Stop";

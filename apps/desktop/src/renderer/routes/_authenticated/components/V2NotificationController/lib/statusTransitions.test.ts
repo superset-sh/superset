@@ -89,6 +89,19 @@ describe("resolveV2AgentStatusTransition", () => {
 		});
 	});
 
+	it("does not change pane status on session Attached/Detached", () => {
+		for (const eventType of ["Attached", "Detached"] as const) {
+			expect(
+				resolveV2AgentStatusTransition({
+					workspaceId: WORKSPACE_ID,
+					payload: payload({ eventType, terminalId: "terminal-1" }),
+					statuses: {},
+					targetVisible: false,
+				}),
+			).toEqual({ clearSources: [], setStatus: null });
+		}
+	});
+
 	it("ignores permission state from a different workspace", () => {
 		expect(
 			resolveV2AgentStatusTransition({
