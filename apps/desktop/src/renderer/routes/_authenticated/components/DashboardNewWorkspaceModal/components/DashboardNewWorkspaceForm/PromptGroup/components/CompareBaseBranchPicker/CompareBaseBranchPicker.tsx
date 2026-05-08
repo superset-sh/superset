@@ -34,6 +34,12 @@ interface CompareBaseBranchPickerProps {
 	) => void;
 	onCheckoutBranch: (branchName: string) => void;
 	onOpenExisting: (branchName: string) => void;
+	// Adopts a worktree git knows about but Superset doesn't yet track as a
+	// workspace (e.g. created outside Superset). The server-side
+	// `workspaces.create` already detects and adopts; this handler awaits the
+	// returned canonical workspace id before navigating, since the optimistic
+	// snapshot id won't match the existing row.
+	onAdoptForeignWorktree: (branchName: string) => void;
 	// Authoritative (cloud-synced) answer to "does a workspace row exist for
 	// this branch on this host?". Computed from the v2Workspaces collection
 	// so it stays in sync with soft-deletes. Trumps any server-side
@@ -57,6 +63,7 @@ export function CompareBaseBranchPicker({
 	onSelectCompareBaseBranch,
 	onCheckoutBranch,
 	onOpenExisting,
+	onAdoptForeignWorktree,
 	hasWorkspaceForBranch,
 }: CompareBaseBranchPickerProps) {
 	const [open, setOpen] = useState(false);
@@ -206,19 +213,40 @@ export function CompareBaseBranchPicker({
 									</div>
 									<span className="ml-2 flex shrink-0 items-center gap-1.5 self-center">
 										{(() => {
-											// Authoritative check against the cloud-synced
-											// collection — a server `hasWorkspace:true` row
-											// may be stale after a delete.
-											const canOpen = hasWorkspaceForBranch(branch.name);
+											// Three states drive the row's CTA, each named after
+											// what it actually does:
+											//   1. Tracked workspace exists  → "Open workspace"
+											//      (jump to it; cloud-collection lookup).
+											//   2. Foreign worktree but no   → "Open workspace"
+											//      tracked workspace yet         (server adopts the
+											//                                     existing worktree;
+											//                                     awaits canonical
+											//                                     id before nav).
+											//   3. No worktree at all         → "Create workspace"
+											//      (fresh `git worktree add`).
+											const canOpenTracked = hasWorkspaceForBranch(branch.name);
+											const isForeignWorktree =
+												!canOpenTracked && Boolean(branch.worktreePath);
 											return (
 												<span className="hidden items-center gap-1.5 group-hover:inline-flex group-focus-within:inline-flex">
-													{canOpen ? (
+													{canOpenTracked ? (
 														<button
 															type="button"
 															className="inline-flex items-center rounded-sm bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary hover:bg-primary/20"
 															onClick={(e) => {
 																e.stopPropagation();
 																onOpenExisting(branch.name);
+															}}
+														>
+															Open workspace
+														</button>
+													) : isForeignWorktree ? (
+														<button
+															type="button"
+															className="inline-flex items-center rounded-sm bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary hover:bg-primary/20"
+															onClick={(e) => {
+																e.stopPropagation();
+																onAdoptForeignWorktree(branch.name);
 															}}
 														>
 															Open workspace

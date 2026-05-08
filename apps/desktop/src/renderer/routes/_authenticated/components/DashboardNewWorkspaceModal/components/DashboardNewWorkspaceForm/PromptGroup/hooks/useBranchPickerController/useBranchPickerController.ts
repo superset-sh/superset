@@ -153,6 +153,52 @@ export function useBranchPickerController(args: UseBranchPickerControllerArgs) {
 		[workspaceByBranch, closeModal, navigate],
 	);
 
+	// Foreign worktree = git knows about the worktree (`branch.worktreePath` is
+	// set) but no v2 workspace row exists for it. The server's workspaces.create
+	// procedure already adopts in this case; the only client-side wrinkle is
+	// that adoption returns a *different* canonical id than our optimistic
+	// snapshot id, so we have to await the submit and navigate to the resolved
+	// id rather than the random UUID. (onCheckoutBranch's fast-path nav would
+	// land the user on a 404.)
+	const onAdoptForeignWorktree = useCallback(
+		async (branchName: string) => {
+			if (!projectId) {
+				toast.error("Select a project first");
+				return;
+			}
+			if (!resolvedHostId) {
+				toast.error("No active host");
+				return;
+			}
+			const snapshotId = crypto.randomUUID();
+			const workspaceName = resolveActionWorkspaceName(branchName);
+			closeModal();
+			const result = await submit({
+				hostId: resolvedHostId,
+				snapshot: {
+					id: snapshotId,
+					projectId,
+					name: workspaceName,
+					branch: branchName,
+				},
+			});
+			if (result.ok) {
+				void navigate({
+					to: "/v2-workspace/$workspaceId",
+					params: { workspaceId: result.workspaceId },
+				});
+			}
+		},
+		[
+			projectId,
+			resolvedHostId,
+			resolveActionWorkspaceName,
+			submit,
+			closeModal,
+			navigate,
+		],
+	);
+
 	const onSelectCompareBaseBranch = useCallback(
 		(branch: string, source: BaseBranchSource) => {
 			onBaseBranchChange(branch, source);
@@ -180,6 +226,7 @@ export function useBranchPickerController(args: UseBranchPickerControllerArgs) {
 		onSelectCompareBaseBranch,
 		onCheckoutBranch,
 		onOpenExisting,
+		onAdoptForeignWorktree,
 		hasWorkspaceForBranch,
 	};
 
