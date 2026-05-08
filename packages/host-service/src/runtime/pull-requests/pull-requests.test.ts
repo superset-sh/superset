@@ -289,10 +289,12 @@ function makeMultiState(
 }
 
 function extractEqRight(clause: unknown): string | null {
-	// Drizzle's `eq(column, value)` returns an SQL chunk whose `Param` payload
-	// holds the right-hand value. Column references have circular parent links,
-	// so we stringify with a circular-safe replacer and regex-extract the last
-	// `"value": "..."` occurrence (rightmost param — the id we want).
+	// FRAGILE: couples to drizzle's internal SQL chunk shape. eq(col, val)
+	// stringifies with the right-hand string value reachable as the rightmost
+	// `"value": "..."`. Column references have circular parent links, so we
+	// use a WeakSet replacer to break cycles. If a drizzle upgrade changes
+	// the shape, inspect JSON.stringify(eq(col, val)) and update the regex,
+	// or replace this helper with a real test-double for the DB layer.
 	try {
 		const seen = new WeakSet<object>();
 		const json = JSON.stringify(clause, (_key, value) => {
@@ -302,10 +304,7 @@ function extractEqRight(clause: unknown): string | null {
 			}
 			return value;
 		});
-		const matches = [...json.matchAll(/"value":"([^"]+)"/g)];
-		if (matches.length === 0) return null;
-		const last = matches[matches.length - 1];
-		return last !== undefined ? (last[1] ?? null) : null;
+		return [...json.matchAll(/"value":"([^"]+)"/g)].at(-1)?.[1] ?? null;
 	} catch {
 		return null;
 	}
@@ -318,8 +317,14 @@ function createMultiFakeDb(state: MultiState) {
 				findFirst: () => ({ sync: () => state.project }),
 			},
 			pullRequests: {
-				findFirst: ({ where: _where }: { where: unknown }) => ({
-					sync: () => state.pullRequests[state.pullRequests.length - 1],
+				// Tests using this harness start with state.pullRequests = [] and don't
+				// exercise the "update existing row" path. Returning undefined forces
+				// upsertPullRequestRow into the insert branch, so each PR upserted by
+				// production code lands as a distinct row keyed by its own UUID. If a
+				// future test needs update-existing semantics, harden this to filter
+				// state.pullRequests by the prNumber inside the where clause.
+				findFirst: (_args: { where: unknown }) => ({
+					sync: () => undefined,
 				}),
 			},
 		},
