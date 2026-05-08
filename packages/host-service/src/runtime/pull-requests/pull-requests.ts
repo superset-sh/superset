@@ -6,7 +6,10 @@ import type { HostDb } from "../../db";
 import { projects, pullRequests, workspaces } from "../../db/schema";
 import type { GitWatcher } from "../../events/git-watcher";
 import type { GitFactory } from "../git";
-import { fetchRepositoryPullRequests } from "./utils/github-query";
+import {
+	fetchPullRequestChecks,
+	fetchRepositoryPullRequests,
+} from "./utils/github-query";
 import type { GraphQLPullRequestNode } from "./utils/github-query/types";
 import {
 	type ChecksStatus,
@@ -896,10 +899,37 @@ export class PullRequestRuntimeManager {
 		const keyToRow = new Map<string, { id: string }>();
 		const now = Date.now();
 
+		// Fetch checks per-PR only for the PRs we care about. Issue #4246:
+		// bundling `statusCheckRollup` into the listing query 504s on busy
+		// repos. `wantedKeys.size` is bounded by distinct workspace upstreams
+		// in this project — typically a handful — so the fan-out stays small.
+		const octokit = await this.github();
+		const checksByPrNumber = new Map<
+			number,
+			Awaited<ReturnType<typeof fetchPullRequestChecks>>
+		>();
+		await Promise.all(
+			[...latestByKey.values()].map(async (node) => {
+				try {
+					const checks = await fetchPullRequestChecks(
+						octokit,
+						repo,
+						node.number,
+					);
+					checksByPrNumber.set(node.number, checks);
+				} catch (error) {
+					console.warn(
+						"[host-service:pull-request-runtime] Failed to fetch PR checks",
+						{ projectId, prNumber: node.number, error },
+					);
+				}
+			}),
+		);
+
 		for (const [key, node] of latestByKey) {
 			const existing = this.findPullRequestRow(repo, node.number);
 			const checks = parseCheckContexts(
-				node.statusCheckRollup?.contexts?.nodes ?? [],
+				checksByPrNumber.get(node.number) ?? [],
 			);
 			const rowId = this.upsertPullRequestRow({
 				existing,
