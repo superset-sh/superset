@@ -50,3 +50,14 @@ Everything else is unchanged: `detached: true` spawn, manifest re-adoption on ne
 - Pty-daemon version pinning (already handled by `DaemonSupervisor` + `EXPECTED_DAEMON_VERSION`).
 - Changing `MIN_HOST_SERVICE_VERSION` semantics for the remote-host renderer gate.
 - Any auto-update lifecycle changes — host-service and pty-daemon still must not be torn down by the auto-updater itself; the respawn happens on the *next* launch via the existing adoption path.
+
+## Outcomes & Retrospective
+
+**Shipped:**
+- Promoted the host-service version constant to `HOST_SERVICE_VERSION` in `packages/shared/src/host-version.ts` (single source of truth). `host.info` now reads from there, replacing the previously hardcoded `HOST_SERVICE_VERSION = "0.8.0"` in `packages/host-service/src/trpc/router/host/host.ts`.
+- Desktop coordinator (`apps/desktop/src/main/lib/host-service-coordinator.ts`) imports it as `BUNDLED_HOST_SERVICE_VERSION`. Adoption now requires strict equality — `version !== BUNDLED_HOST_SERVICE_VERSION` triggers kill + respawn.
+- `MIN_HOST_SERVICE_VERSION` retained for the **remote**-host renderer gate (`useRemoteHostStatus.ts`) where a floor is still the right shape.
+- `semver` import dropped from the coordinator — no longer needed there.
+
+**Deferred:**
+- Drain-before-SIGTERM. The hard kill is unchanged; revisit if respawn cadence becomes user-visible.

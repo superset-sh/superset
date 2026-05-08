@@ -1,8 +1,22 @@
 /**
- * Minimum host-service version this app can work with. Bumping this forces
- * the desktop coordinator to kill + respawn any adopted local service older
- * than this, and gates v2 workspace UIs from mounting against a remote host
- * whose CLI is still on an older version.
+ * Canonical version of host-service in this checkout. Reported by
+ * `host.info` at runtime, and bundled into the desktop main process as
+ * the version the Electron build expects to run against. Bump on every
+ * host-service change shipping a new build.
+ *
+ * The desktop coordinator pins adoption to this exact value: if a running
+ * host-service reports a different version (older or newer), it is killed
+ * and respawned from the bundled binary. Pty-daemon — which holds durable
+ * session state — has its own manifest + supervisor and survives the swap.
+ */
+export const HOST_SERVICE_VERSION = "0.8.0";
+
+/**
+ * Minimum host-service version a v2 workspace UI can work with against a
+ * **remote** host whose binary we don't control (gates renderer mounting
+ * via `useRemoteHostStatus`). For the local host-service we bundle, the
+ * desktop coordinator pins to `HOST_SERVICE_VERSION` exactly — this floor
+ * does not apply.
  *
  * 0.4.0: terminal launch moved from `terminal.ensureSession` to
  * `terminal.launchSession` plus WebSocket attach params.
@@ -13,17 +27,12 @@
  *
  * 0.5.0 — pty-daemon supervision migrated into host-service. New
  * `terminal.daemon` tRPC namespace; older 0.4.x host-services don't
- * expose it. Adopting one in place would leave the new desktop
- * talking to old code: Settings → Manage daemon would silently
- * fail, and the v2 PTY survival promise is broken.
+ * expose it.
  *
  * 0.7.0 — canonical `workspaces.create` flow + `settings.hostAgentConfigs`
- * router (PR1, #3893). Older 0.6.x host-services don't expose either,
- * so adopting one in place would break new-project creation and the
- * agent-config settings UI.
+ * router (PR1, #3893). Older 0.6.x host-services don't expose either.
  *
  * 0.8.0 — v2 terminal creation moved to `terminal.createSession`; the
- * WebSocket route is attach-only by `terminalId`. Older host-services would
- * reject the renderer's creation call and still expect socket-side startup.
+ * WebSocket route is attach-only by `terminalId`.
  */
 export const MIN_HOST_SERVICE_VERSION = "0.8.0";

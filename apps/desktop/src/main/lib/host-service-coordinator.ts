@@ -5,10 +5,9 @@ import * as fs from "node:fs";
 import path from "node:path";
 import { settings } from "@superset/local-db";
 import { getHostId, getHostName } from "@superset/shared/host-info";
-import { MIN_HOST_SERVICE_VERSION } from "@superset/shared/host-version";
+import { HOST_SERVICE_VERSION as BUNDLED_HOST_SERVICE_VERSION } from "@superset/shared/host-version";
 import { app } from "electron";
 import { env } from "main/env.main";
-import semver from "semver";
 import { env as sharedEnv } from "shared/env.shared";
 import { getProcessEnvWithShellPath } from "../../lib/trpc/routers/workspaces/utils/shell-env";
 import { SUPERSET_HOME_DIR } from "./app-environment";
@@ -290,12 +289,9 @@ export class HostServiceCoordinator extends EventEmitter {
 			manifest.endpoint,
 			manifest.authToken,
 		);
-		if (
-			!version ||
-			!semver.satisfies(version, `>=${MIN_HOST_SERVICE_VERSION}`)
-		) {
+		if (!version || version !== BUNDLED_HOST_SERVICE_VERSION) {
 			const reason = version
-				? `version ${version} < ${MIN_HOST_SERVICE_VERSION}`
+				? `version ${version} != bundled ${BUNDLED_HOST_SERVICE_VERSION}`
 				: "version unknown";
 			console.log(
 				`[host-service:${organizationId}] Adopted service ${reason}, killing`,
