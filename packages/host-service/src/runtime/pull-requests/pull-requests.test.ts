@@ -581,7 +581,10 @@ describe("PullRequestRuntimeManager per-branch PR fetch", () => {
 
 		const wsA = state.workspaces.find((w) => w.id === "ws-a");
 		const wsB = state.workspaces.find((w) => w.id === "ws-b");
-		expect(wsA?.pullRequestId).toBeTruthy();
+		// A succeeded — got a fresh row distinct from B's existing id.
+		expect(wsA?.pullRequestId).not.toBeNull();
+		expect(wsA?.pullRequestId).not.toBe("existing-pr-id-for-b");
+		expect(state.pullRequests).toHaveLength(1);
 		// B's fetch rejected — its existing link must NOT be blanked.
 		expect(wsB?.pullRequestId).toBe("existing-pr-id-for-b");
 	});
@@ -624,7 +627,9 @@ describe("PullRequestRuntimeManager per-branch PR fetch", () => {
 				upstreamOwner: "fork-owner",
 				upstreamRepo: "fork-repo",
 				upstreamBranch: "main",
-				pullRequestId: null,
+				// Stale link present so toBeNull() distinguishes "cleared by mismatch"
+				// from "never set".
+				pullRequestId: "stale-id",
 			},
 		]);
 		const octokit = createMockOctokit(({ branch }) =>
