@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { pullRequests, workspaces } from "../../db/schema";
 import { PullRequestRuntimeManager } from "./pull-requests";
+import type { GraphQLPullRequestNode } from "./utils/github-query/types";
 
 const PROJECT_ID = "project-1";
 const WORKSPACE_ID = "workspace-1";
@@ -240,3 +241,206 @@ describe("PullRequestRuntimeManager direct checkout PR linking", () => {
 		expect(state.workspace.pullRequestId).toBeNull();
 	});
 });
+
+// ---------------------------------------------------------------------------
+// Multi-workspace test harness
+// ---------------------------------------------------------------------------
+
+interface MultiState {
+	project: FakeProject;
+	workspaces: FakeWorkspace[];
+	pullRequests: FakePullRequest[];
+}
+
+function makeMultiState(
+	workspaceConfigs: Array<{
+		id: string;
+		branch: string;
+		upstreamOwner: string | null;
+		upstreamRepo: string | null;
+		upstreamBranch: string | null;
+		pullRequestId?: string | null;
+		headSha?: string | null;
+	}>,
+): MultiState {
+	return {
+		project: {
+			id: PROJECT_ID,
+			repoPath: "/repo",
+			repoProvider: "github",
+			repoOwner: "base-owner",
+			repoName: "base-repo",
+			repoUrl: "https://github.com/base-owner/base-repo.git",
+			remoteName: "origin",
+		},
+		workspaces: workspaceConfigs.map((cfg) => ({
+			id: cfg.id,
+			projectId: PROJECT_ID,
+			worktreePath: `/repo/.worktrees/${cfg.id}`,
+			branch: cfg.branch,
+			headSha: cfg.headSha ?? null,
+			upstreamOwner: cfg.upstreamOwner,
+			upstreamRepo: cfg.upstreamRepo,
+			upstreamBranch: cfg.upstreamBranch,
+			pullRequestId: cfg.pullRequestId ?? null,
+		})),
+		pullRequests: [],
+	};
+}
+
+function extractEqRight(clause: unknown): string | null {
+	// Drizzle's `eq(column, value)` returns an SQL chunk whose `Param` payload
+	// holds the right-hand value. Column references have circular parent links,
+	// so we stringify with a circular-safe replacer and regex-extract the last
+	// `"value": "..."` occurrence (rightmost param — the id we want).
+	try {
+		const seen = new WeakSet<object>();
+		const json = JSON.stringify(clause, (_key, value) => {
+			if (typeof value === "object" && value !== null) {
+				if (seen.has(value)) return undefined;
+				seen.add(value);
+			}
+			return value;
+		});
+		const matches = [...json.matchAll(/"value":"([^"]+)"/g)];
+		if (matches.length === 0) return null;
+		const last = matches[matches.length - 1];
+		return last !== undefined ? (last[1] ?? null) : null;
+	} catch {
+		return null;
+	}
+}
+
+function createMultiFakeDb(state: MultiState) {
+	return {
+		query: {
+			projects: {
+				findFirst: () => ({ sync: () => state.project }),
+			},
+			pullRequests: {
+				findFirst: ({ where: _where }: { where: unknown }) => ({
+					sync: () => state.pullRequests[state.pullRequests.length - 1],
+				}),
+			},
+		},
+		insert: (table: unknown) => ({
+			values: (values: FakePullRequest) => ({
+				run: () => {
+					if (table === pullRequests) {
+						state.pullRequests.push(values);
+					}
+				},
+			}),
+		}),
+		update: (table: unknown) => ({
+			set: (values: Partial<FakeWorkspace> | Partial<FakePullRequest>) => ({
+				where: (clause: unknown) => ({
+					run: () => {
+						const id = extractEqRight(clause);
+						if (!id) return;
+						if (table === workspaces) {
+							const idx = state.workspaces.findIndex((w) => w.id === id);
+							if (idx >= 0) {
+								state.workspaces[idx] = {
+									...state.workspaces[idx],
+									...(values as Partial<FakeWorkspace>),
+								} as FakeWorkspace;
+							}
+						}
+						if (table === pullRequests) {
+							const idx = state.pullRequests.findIndex((p) => p.id === id);
+							if (idx >= 0) {
+								state.pullRequests[idx] = {
+									...state.pullRequests[idx],
+									...(values as Partial<FakePullRequest>),
+								} as FakePullRequest;
+							}
+						}
+					},
+				}),
+			}),
+		}),
+		select: (shape?: unknown) => ({
+			from: (table: unknown) => ({
+				where: () => ({
+					all: () => {
+						if (table !== workspaces) return [];
+						if (shape) {
+							return state.workspaces.map((w) => ({ projectId: w.projectId }));
+						}
+						return state.workspaces;
+					},
+				}),
+				all: () => {
+					if (table !== workspaces) return [];
+					if (shape) {
+						return state.workspaces.map((w) => ({ projectId: w.projectId }));
+					}
+					return state.workspaces;
+				},
+			}),
+		}),
+	};
+}
+
+interface FakeOctokit {
+	graphql: <T>(query: string, vars: Record<string, unknown>) => Promise<T>;
+}
+
+function createMockOctokit(
+	handler: (
+		vars: { owner: string; repo: string; branch: string },
+	) => GraphQLPullRequestNode | null | Promise<GraphQLPullRequestNode | null>,
+	callCounter?: { count: number },
+): FakeOctokit {
+	return {
+		graphql: async <T,>(_q: string, vars: Record<string, unknown>): Promise<T> => {
+			if (callCounter) callCounter.count++;
+			const node = await handler(
+				vars as { owner: string; repo: string; branch: string },
+			);
+			return {
+				repository: {
+					pullRequests: { nodes: node ? [node] : [] },
+				},
+			} as T;
+		},
+	};
+}
+
+function makeNode(overrides: Partial<GraphQLPullRequestNode> & {
+	number: number;
+	headRefName: string;
+	headOwnerLogin: string;
+	headRepoName: string;
+}): GraphQLPullRequestNode {
+	return {
+		number: overrides.number,
+		title: overrides.title ?? `PR ${overrides.number}`,
+		url: overrides.url ?? `https://github.com/base-owner/base-repo/pull/${overrides.number}`,
+		state: overrides.state ?? "OPEN",
+		isDraft: overrides.isDraft ?? false,
+		headRefName: overrides.headRefName,
+		headRefOid: overrides.headRefOid ?? `sha-${overrides.number}`,
+		isCrossRepository: overrides.isCrossRepository ?? false,
+		headRepositoryOwner: { login: overrides.headOwnerLogin },
+		headRepository: { name: overrides.headRepoName },
+		reviewDecision: overrides.reviewDecision ?? null,
+		updatedAt: overrides.updatedAt ?? new Date().toISOString(),
+		statusCheckRollup: overrides.statusCheckRollup ?? null,
+	};
+}
+
+function createMultiManager(
+	state: MultiState,
+	octokit: FakeOctokit,
+): PullRequestRuntimeManager {
+	return new PullRequestRuntimeManager({
+		db: createMultiFakeDb(state) as never,
+		git: async () => {
+			throw new Error("git should not be used when project metadata is set");
+		},
+		github: async () => octokit as never,
+		gitWatcher: { onChanged: () => () => {} } as never,
+	});
+}
