@@ -63,20 +63,6 @@ export class TunnelManager {
 			return;
 		}
 
-		// The WS may have closed during the directory-write await. The
-		// onClose handler in index.ts ran with registeredWs===null (since we
-		// hadn't returned yet), so it skipped unregister. Roll the directory
-		// entry back ourselves; otherwise other machines fly-replay traffic
-		// to a dead local tunnel for ~90s until the TTL ages out.
-		if (ws.readyState !== 1) {
-			await directory
-				.unregister(hostId, env.FLY_REGION, env.FLY_MACHINE_ID)
-				.catch((err) => {
-					console.error("[relay] directory.unregister rollback failed", err);
-				});
-			return;
-		}
-
 		// Another register() for the same hostId may have completed while we
 		// were awaiting the directory write — dispose the racer so its
 		// pingTimer/ws don't dangle for ~90s until missed-ping cleanup.
@@ -111,6 +97,19 @@ export class TunnelManager {
 		}, PING_INTERVAL_MS);
 
 		this.scheduleOnlineWrite(hostId, token, true);
+
+		// If the WS happened to close during the directory-write await, we
+		// might still have a tunnel pointing at a dead socket. Run our own
+		// unregister (which is identity-checked) to tear it down. The 90s
+		// ping-timeout would catch this anyway, but cleaning up promptly is
+		// nicer for cross-machine routing.
+		if (ws.readyState !== 1) {
+			console.error(
+				`[relay] tunnel registered but ws already closed (state=${ws.readyState}) for ${hostId}; cleaning up`,
+			);
+			this.unregister(hostId, ws);
+			return;
+		}
 		console.log(`[relay] tunnel registered: ${hostId}`);
 	}
 
