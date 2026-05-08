@@ -176,39 +176,39 @@ describe("agent-wrappers copilot", () => {
 		expect(updated).not.toContain("/tmp/old-hook.sh");
 	});
 
-	it("injects codex start + permission watchers and completion notifications in wrapper", () => {
+	it("tails codex's session rollout to drive lifecycle events", () => {
 		createCodexWrapper();
 
 		const wrapperPath = path.join(TEST_BIN_DIR, "codex");
 		const wrapper = readFileSync(wrapperPath, "utf-8");
 
-		expect(wrapper).toContain("export CODEX_TUI_RECORD_SESSION=1");
-		expect(wrapper).toContain('"msg":{"type":"task_started"');
-		expect(wrapper).toContain('_superset_last_turn_id=""');
-		expect(wrapper).toContain('_superset_last_approval_id=""');
-		expect(wrapper).toContain('_superset_last_exec_call_id=""');
-		expect(wrapper).toContain("_superset_approval_fallback_seq=0");
-		expect(wrapper).toContain("_superset_emit_event()");
-		expect(wrapper).toContain("_superset_turn_id=$(printf");
-		expect(wrapper).toContain("_superset_approval_id=$(printf");
-		expect(wrapper).toContain("_superset_exec_call_id=$(printf");
-		expect(wrapper).toContain('awk -F\'"turn_id":"\'');
-		expect(wrapper).toContain('"msg":{"type":"exec_command_begin"');
-		expect(wrapper).toContain('_approval_request"');
+		// Watch the rollout JSONL — codex 0.129 stopped writing the legacy
+		// `kind:"codex_event"` lines we previously matched against.
 		expect(wrapper).toContain(
-			`approval_request_\${_superset_approval_fallback_seq}`,
+			`_superset_sessions_dir="\${HOME}/.codex/sessions"`,
 		);
-		expect(wrapper).toContain('awk -F\'"approval_id":"\'');
+		expect(wrapper).toContain('-name "rollout-*.jsonl"');
+		expect(wrapper).toContain('"type":"event_msg"');
+		expect(wrapper).toContain('"task_started"');
+		expect(wrapper).toContain('"task_complete"');
+		expect(wrapper).toContain('"user_message"');
+		expect(wrapper).toContain("_approval_request");
+
 		expect(wrapper).toContain('_superset_emit_event "Start"');
+		expect(wrapper).toContain('_superset_emit_event "Stop"');
 		expect(wrapper).toContain('_superset_emit_event "PermissionRequest"');
+
 		expect(wrapper).toContain(
 			`"$REAL_BIN" --enable hooks -c 'notify=["bash","${path.join(TEST_HOOKS_DIR, "notify.sh")}"]' "$@"`,
 		);
 		expect(wrapper).toContain("SUPERSET_CODEX_START_WATCHER_PID");
 		expect(wrapper).toContain('kill "$SUPERSET_CODEX_START_WATCHER_PID"');
-		// Watcher gates strictly on v2's SUPERSET_TERMINAL_ID; v1's TAB_ID is gone.
 		expect(wrapper).toContain('if [ -n "$SUPERSET_TERMINAL_ID" ]');
 		expect(wrapper).not.toContain("SUPERSET_TAB_ID");
+		// Old session-log shape — must stay gone or codex 0.129+ silently
+		// reverts to "agent never starts processing".
+		expect(wrapper).not.toContain('"kind":"codex_event"');
+		expect(wrapper).not.toContain("CODEX_TUI_RECORD_SESSION");
 
 		const execLine = buildCodexWrapperExecLine(
 			path.join(TEST_HOOKS_DIR, "notify.sh"),
