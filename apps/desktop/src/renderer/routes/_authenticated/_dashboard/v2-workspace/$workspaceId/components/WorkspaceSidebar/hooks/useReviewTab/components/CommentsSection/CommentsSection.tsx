@@ -253,16 +253,43 @@ function formatShortAge(isoDate?: string): string | null {
 	return `${Math.round(hours / 24)}d`;
 }
 
-function getPreviewText(body: string): string {
+function stripPreviewMarkdown(line: string): string {
 	return (
-		body
-			.replace(/<!--[\s\S]*?-->/g, "\n")
-			.split(/\r?\n/)
-			.map((line) => line.trim())
-			.find(Boolean)
-			?.replace(/^[-*+>]\s*/, "")
-			?.replace(/\s+/g, " ") ?? "No preview available"
+		line
+			// drop image markdown entirely (no useful preview text)
+			.replace(/!\[[^\]]*\]\([^)]*\)/g, "")
+			// link markdown → just the text
+			.replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
+			// raw HTML tags (badges, <details>, <summary>, etc.)
+			.replace(/<[^>]+>/g, "")
+			// inline markdown delimiters: ` * _ ~ #
+			.replace(/`+/g, "")
+			.replace(/[*_~]+/g, "")
+			.replace(/^#+\s*/, "")
+			// blockquote / list markers
+			.replace(/^[->]+\s*/, "")
+			.replace(/\s+/g, " ")
+			.trim()
 	);
+}
+
+function isJunkPreviewLine(line: string): boolean {
+	if (line.length === 0) return true;
+	// Bot prefix lines like "Potential issue | Minor | Quick win"
+	if (/^(potential issue|nitpick|major|minor|quick win|suggestion)/i.test(line))
+		return true;
+	// Just emoji + separators
+	if (/^[\s|·•—\-:🟡🟠🔴⚠️⚡🤖📝✅❌🔧💡]+$/u.test(line)) return true;
+	return false;
+}
+
+function getPreviewText(body: string): string {
+	const cleaned = body.replace(/<!--[\s\S]*?-->/g, "\n");
+	for (const raw of cleaned.split(/\r?\n/)) {
+		const stripped = stripPreviewMarkdown(raw);
+		if (!isJunkPreviewLine(stripped)) return stripped;
+	}
+	return "No preview available";
 }
 
 // ---------------------------------------------------------------------------
