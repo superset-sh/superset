@@ -6,7 +6,7 @@ import type { HostDb } from "../../db";
 import { projects, pullRequests, workspaces } from "../../db/schema";
 import type { GitWatcher } from "../../events/git-watcher";
 import type { GitFactory } from "../git";
-import { fetchPullRequestForBranch } from "./utils/github-query";
+import { fetchPullRequestsForBranch } from "./utils/github-query";
 import type { GraphQLPullRequestNode } from "./utils/github-query/types";
 import {
 	type ChecksStatus,
@@ -261,7 +261,7 @@ export class PullRequestRuntimeManager {
 	>();
 	private readonly branchPullRequestCache = new Map<
 		string,
-		{ promise: Promise<GraphQLPullRequestNode | null>; fetchedAt: number }
+		{ promise: Promise<GraphQLPullRequestNode[]>; fetchedAt: number }
 	>();
 
 	constructor(options: PullRequestRuntimeManagerOptions) {
@@ -866,7 +866,7 @@ export class PullRequestRuntimeManager {
 		repo: NormalizedRepoIdentity,
 		branch: string,
 		options: { bypassCache?: boolean } = {},
-	): Promise<GraphQLPullRequestNode | null> {
+	): Promise<GraphQLPullRequestNode[]> {
 		const cacheKey = `${repo.owner.toLowerCase()}/${repo.name.toLowerCase()}#${branch}`;
 		if (!options.bypassCache) {
 			const cached = this.branchPullRequestCache.get(cacheKey);
@@ -881,7 +881,7 @@ export class PullRequestRuntimeManager {
 		const fetchedAt = Date.now();
 		const promise = (async () => {
 			const octokit = await this.github();
-			return fetchPullRequestForBranch(octokit, {
+			return fetchPullRequestsForBranch(octokit, {
 				owner: repo.owner,
 				name: repo.name,
 				branch,
@@ -914,21 +914,24 @@ export class PullRequestRuntimeManager {
 		const entries = [...targets.entries()];
 		const results = await Promise.allSettled(
 			entries.map(async ([key, target]) => {
-				const node = await this.getCachedBranchPullRequest(
+				const nodes = await this.getCachedBranchPullRequest(
 					projectRepo,
 					target.branch,
 					options,
 				);
-				if (!node) return { key, node };
 				// `pullRequests(headRefName: ...)` filters by branch name only on the
-				// base repo. Fork PRs share branch names with the base repo's
-				// branches, so verify head identity matches the workspace upstream.
-				if (
-					node.headRepositoryOwner?.login !== target.owner ||
-					node.headRepository?.name !== target.name
-				) {
-					return { key, node: null };
-				}
+				// base repo. Fork PRs share branch names with the base repo's branches,
+				// so search candidates for one whose head identity matches the workspace
+				// upstream (case-insensitive — GitHub owner/repo names are
+				// case-insensitive and casing drift causes false negatives).
+				const targetOwnerLc = target.owner.toLowerCase();
+				const targetNameLc = target.name.toLowerCase();
+				const node =
+					nodes.find(
+						(n) =>
+							n.headRepositoryOwner?.login.toLowerCase() === targetOwnerLc &&
+							n.headRepository?.name.toLowerCase() === targetNameLc,
+					) ?? null;
 				return { key, node };
 			}),
 		);

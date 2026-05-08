@@ -734,6 +734,114 @@ describe("PullRequestRuntimeManager per-branch PR fetch", () => {
 	});
 
 	// ---------------------------------------------------------------------------
+	// Bug A: multi-fork branch collision
+	// ---------------------------------------------------------------------------
+
+	test("routes each fork workspace to its own PR when two forks share a branch name", async () => {
+		// Two workspaces in the same project both have a branch called "fix/issue".
+		// The GraphQL query returns up to 10 candidates; fork-a's PR has head owner
+		// "fork-a-owner" and fork-b's PR has head owner "fork-b-owner".
+		const state = makeMultiState([
+			{
+				id: "ws-fork-a",
+				branch: "fix/issue",
+				upstreamOwner: "fork-a-owner",
+				upstreamRepo: "fork-a-repo",
+				upstreamBranch: "fix/issue",
+			},
+			{
+				id: "ws-fork-b",
+				branch: "fix/issue",
+				upstreamOwner: "fork-b-owner",
+				upstreamRepo: "fork-b-repo",
+				upstreamBranch: "fix/issue",
+			},
+		]);
+
+		// The mock returns BOTH candidates for the shared branch name.
+		const nodeA = makeNode({
+			number: 101,
+			headRefName: "fix/issue",
+			headOwnerLogin: "fork-a-owner",
+			headRepoName: "fork-a-repo",
+			isCrossRepository: true,
+		});
+		const nodeB = makeNode({
+			number: 102,
+			headRefName: "fix/issue",
+			headOwnerLogin: "fork-b-owner",
+			headRepoName: "fork-b-repo",
+			isCrossRepository: true,
+		});
+
+		const octokit: FakeOctokit = {
+			graphql: async <T>(
+				_q: string,
+				_vars: Record<string, unknown>,
+			): Promise<T> => {
+				return {
+					repository: {
+						pullRequests: { nodes: [nodeA, nodeB] },
+					},
+				} as T;
+			},
+		};
+
+		const manager = createMultiManager(state, octokit);
+		await manager.refreshPullRequestsByWorkspaces(["ws-fork-a", "ws-fork-b"]);
+
+		const wsA = state.workspaces.find((w) => w.id === "ws-fork-a");
+		const wsB = state.workspaces.find((w) => w.id === "ws-fork-b");
+
+		// Each workspace gets its own PR id — not the same row.
+		expect(wsA?.pullRequestId).toBeTruthy();
+		expect(wsB?.pullRequestId).toBeTruthy();
+		expect(wsA?.pullRequestId).not.toBe(wsB?.pullRequestId);
+
+		// Verify the correct PR number was upserted for each workspace.
+		const prForA = state.pullRequests.find((p) => p.id === wsA?.pullRequestId);
+		const prForB = state.pullRequests.find((p) => p.id === wsB?.pullRequestId);
+		expect(prForA?.prNumber).toBe(101);
+		expect(prForB?.prNumber).toBe(102);
+	});
+
+	// ---------------------------------------------------------------------------
+	// Bug B: case-insensitive head-repo guard
+	// ---------------------------------------------------------------------------
+
+	test("matches a candidate with mixed-case owner/repo against a lowercase target", async () => {
+		// The workspace upstream is stored lowercase; the GraphQL node returns
+		// mixed-case owner/repo. The match must still succeed.
+		const state = makeMultiState([
+			{
+				id: "ws-casing",
+				branch: "feat/casing",
+				upstreamOwner: "myorg",
+				upstreamRepo: "myrepo",
+				upstreamBranch: "feat/casing",
+			},
+		]);
+
+		const octokit = createMockOctokit(() =>
+			makeNode({
+				number: 55,
+				headRefName: "feat/casing",
+				headOwnerLogin: "MyOrg", // mixed case
+				headRepoName: "MyRepo", // mixed case
+			}),
+		);
+
+		const manager = createMultiManager(state, octokit);
+		await manager.refreshPullRequestsByWorkspaces(["ws-casing"]);
+
+		expect(state.workspaces[0]?.pullRequestId).toBeTruthy();
+		const pr = state.pullRequests.find(
+			(p) => p.id === state.workspaces[0]?.pullRequestId,
+		);
+		expect(pr?.prNumber).toBe(55);
+	});
+
+	// ---------------------------------------------------------------------------
 	// Task 11: cache eviction
 	// ---------------------------------------------------------------------------
 

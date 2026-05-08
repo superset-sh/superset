@@ -5,14 +5,14 @@ import type {
 	PullRequestForBranchGraphQLResult,
 } from "./types";
 
-export async function fetchPullRequestForBranch(
+export async function fetchPullRequestsForBranch(
 	octokit: Octokit,
 	args: {
 		owner: string;
 		name: string;
 		branch: string;
 	},
-): Promise<GraphQLPullRequestNode | null> {
+): Promise<GraphQLPullRequestNode[]> {
 	const result = await octokit.graphql<PullRequestForBranchGraphQLResult>(
 		PULL_REQUEST_FOR_BRANCH_QUERY,
 		{
@@ -22,9 +22,7 @@ export async function fetchPullRequestForBranch(
 		},
 	);
 
-	const nodes = (result.repository?.pullRequests?.nodes ?? []).filter(
+	return (result.repository?.pullRequests?.nodes ?? []).filter(
 		(node): node is GraphQLPullRequestNode => node !== null,
 	);
-
-	return nodes[0] ?? null;
 }

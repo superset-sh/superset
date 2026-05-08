@@ -3,7 +3,7 @@ export const PULL_REQUEST_FOR_BRANCH_QUERY = `
 		repository(owner: $owner, name: $repo) {
 			pullRequests(
 				headRefName: $branch
-				first: 1
+				first: 10
 				states: [OPEN, CLOSED, MERGED]
 				orderBy: { field: UPDATED_AT, direction: DESC }
 			) {
