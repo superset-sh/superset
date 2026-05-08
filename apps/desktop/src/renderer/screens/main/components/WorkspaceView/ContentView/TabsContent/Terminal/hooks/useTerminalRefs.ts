@@ -24,6 +24,7 @@ export interface UseTerminalRefsOptions {
 	clearPaneInitialData: (paneId: string) => void;
 	handleFileLinkClick: (event: MouseEvent, link: DetectedLink) => void;
 	setPaneName: (paneId: string, name: string) => void;
+	setTabAutoTitle: (tabId: string, title: string) => void;
 	setFocusedPane: (tabId: string, paneId: string) => void;
 }
 
@@ -37,6 +38,7 @@ export interface UseTerminalRefsReturn {
 		(event: MouseEvent, link: DetectedLink) => void
 	>;
 	setPaneNameRef: MutableRefObject<(paneId: string, name: string) => void>;
+	setTabAutoTitleRef: MutableRefObject<(tabId: string, title: string) => void>;
 	handleTerminalFocusRef: MutableRefObject<() => void>;
 	registerClearCallbackRef: MutableRefObject<RegisterCallback>;
 	unregisterClearCallbackRef: MutableRefObject<UnregisterCallback>;
@@ -57,6 +59,7 @@ export function useTerminalRefs({
 	clearPaneInitialData,
 	handleFileLinkClick,
 	setPaneName,
+	setTabAutoTitle,
 	setFocusedPane,
 }: UseTerminalRefsOptions): UseTerminalRefsReturn {
 	const initialThemeRef = useRef(terminalTheme);
@@ -74,6 +77,9 @@ export function useTerminalRefs({
 
 	const setPaneNameRef = useRef(setPaneName);
 	setPaneNameRef.current = setPaneName;
+
+	const setTabAutoTitleRef = useRef(setTabAutoTitle);
+	setTabAutoTitleRef.current = setTabAutoTitle;
 
 	const handleTerminalFocusRef = useRef(() => {});
 	handleTerminalFocusRef.current = () => {
@@ -113,6 +119,7 @@ export function useTerminalRefs({
 		clearPaneInitialDataRef,
 		handleFileLinkClickRef,
 		setPaneNameRef,
+		setTabAutoTitleRef,
 		handleTerminalFocusRef,
 		registerClearCallbackRef,
 		unregisterClearCallbackRef,

@@ -35,6 +35,7 @@ import type {
 } from "../types";
 import { scrollToBottom } from "../utils";
 import * as v1TerminalCache from "../v1-terminal-cache";
+import { applyTerminalOscTitle } from "./applyTerminalOscTitle";
 import { createAttachRequestId } from "./attach-request-id";
 import {
 	getPaneWorkspaceRun,
@@ -128,6 +129,7 @@ export interface UseTerminalLifecycleOptions {
 	resetModes: () => void;
 	isAlternateScreenRef: MutableRefObject<boolean>;
 	setPaneNameRef: MutableRefObject<(paneId: string, name: string) => void>;
+	setTabAutoTitleRef: MutableRefObject<(tabId: string, title: string) => void>;
 	renameUnnamedWorkspaceRef: MutableRefObject<(title: string) => void>;
 	handleTerminalFocusRef: MutableRefObject<() => void>;
 	registerClearCallbackRef: MutableRefObject<RegisterCallback>;
@@ -189,6 +191,7 @@ export function useTerminalLifecycle({
 	resetModes,
 	isAlternateScreenRef,
 	setPaneNameRef,
+	setTabAutoTitleRef,
 	renameUnnamedWorkspaceRef,
 	handleTerminalFocusRef,
 	registerClearCallbackRef,
@@ -738,7 +741,13 @@ export function useTerminalLifecycle({
 		const keyDisposable = xterm.onKey(handleKeyPress);
 		const titleDisposable = xterm.onTitleChange((title) => {
 			if (title) {
-				setPaneNameRef.current(paneId, title);
+				applyTerminalOscTitle({
+					paneId,
+					tabId: tabIdRef.current,
+					title,
+					setPaneName: setPaneNameRef.current,
+					setTabAutoTitle: setTabAutoTitleRef.current,
+				});
 				renameUnnamedWorkspaceRef.current(title);
 			}
 		});
