@@ -35,26 +35,14 @@ const baseComponents = {
 
 interface CommentMarkdownProps {
 	body: string;
-	/**
-	 * Optional component overrides merged on top of the shared comment
-	 * renderer map. Useful for surface-specific affordances like a
-	 * copy-button table wrapper.
-	 */
+	/** Per-surface overrides merged on top of the base map (e.g. CommentPane's CopyableTable). */
 	components?: ReactMarkdownComponents;
 }
 
 /**
- * Shared markdown renderer for PR comment bodies — used by both the diff
- * pane comment thread bubble and the standalone comment pane so the same
- * comment renders identically across surfaces.
- *
- * Plugin set matches `MarkdownRenderer`: `remarkGfm` for tables/strikethrough/
- * task lists, `rehypeRaw` so review-bot HTML (badges, <details>) parses,
- * `rehypeSanitize` for XSS safety on PR-author-controlled markup.
- *
- * Sizing/spacing is delegated to wrapper-class CSS at each call site (e.g.
- * `.diff-comment-body` vs `.comment-pane-markdown`); the shared map only
- * dictates *what* renders, not how big.
+ * Shared markdown renderer for PR comment bodies. Sizing/spacing is owned
+ * by the wrapper-class CSS at each call site (`.diff-comment-body`,
+ * `.comment-pane-markdown`); this only dictates *what* renders.
  */
 export function CommentMarkdown({ body, components }: CommentMarkdownProps) {
 	return (

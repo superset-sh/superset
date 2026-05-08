@@ -59,9 +59,8 @@ export function useDiffAnnotations({
 	const prUrl = prQuery.data?.url ?? undefined;
 
 	return useMemo(() => {
-		// Gate on hasPR too: when the PR goes away the threads query disables
-		// itself but tanstack-query keeps the last data around in cache, so
-		// without this check stale threads could leak into a non-PR diff.
+		// Gate on hasPR too — tanstack-query holds last data when the threads
+		// query disables, so without this stale threads leak into non-PR diffs.
 		if (!showDiffComments || !hasPR) {
 			return EMPTY_ANNOTATIONS;
 		}
@@ -76,8 +75,8 @@ export function useDiffAnnotations({
 			if (thread.line == null) continue;
 
 			const firstDbId = thread.comments[0]?.databaseId;
-			// Only emit a deep link when we have an actual discussion anchor.
-			// Falling back to the PR root makes "Open on GitHub" misleading.
+			// Skip the link rather than fall back to the PR root — pointing
+			// "Open on GitHub" at the PR is misleading when there's no anchor.
 			const url =
 				prUrl && firstDbId != null
 					? `${prUrl}#discussion_r${firstDbId}`

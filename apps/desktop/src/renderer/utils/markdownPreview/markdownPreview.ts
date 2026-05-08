@@ -5,23 +5,17 @@ import { unified } from "unified";
 
 const previewProcessor = unified().use(remarkParse).use(remarkGfm);
 
-// Bot review tools (coderabbit, greptile, cubic) lead with a badge/severity
-// strip like "Potential issue | Minor | Quick win" — useless as a preview,
-// so skip ahead to the real first sentence.
+// Skip the badge/severity strip review bots (coderabbit, greptile, cubic)
+// lead with — "Potential issue | Minor | Quick win" makes a useless preview.
 function isBotPrefixLine(line: string): boolean {
 	return /^(potential issue|nitpick|major|minor|quick win|suggestion)\b/i.test(
 		line,
 	);
 }
 
-/**
- * Extract a single-line plain-text preview from a markdown body.
- *
- * Parses the body to mdast and walks top-level children, returning the first
- * non-empty, non-bot-prefix line. Raw HTML (`<a><img>` review badges,
- * `<details>` disclosure blocks) is dropped via `includeHtml: false` rather
- * than regex-stripped.
- */
+/** Single-line plain-text preview of a markdown body. Parses to mdast and
+ *  returns the first non-empty top-level child; raw HTML (review-bot badges,
+ *  `<details>` blocks) is dropped via `includeHtml: false`. */
 export function getMarkdownPreviewText(body: string): string {
 	if (!body.trim()) return "No preview available";
 	let tree: ReturnType<typeof previewProcessor.parse>;

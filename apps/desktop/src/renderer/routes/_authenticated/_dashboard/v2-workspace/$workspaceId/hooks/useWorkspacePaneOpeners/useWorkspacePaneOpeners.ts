@@ -31,10 +31,9 @@ export function useWorkspacePaneOpeners({
 	const openDiffPane = useCallback(
 		(filePath: string, openInNewTab?: boolean, line?: number) => {
 			const state = store.getState();
-			// When a line is requested, set focusLine + bump tick so ScrollToFile
-			// runs even on repeat clicks of the same line. When NO line is
-			// requested, explicitly clear both so a reused diff pane doesn't
-			// jump to a stale line from a prior request.
+			// Bump tick on every request so ScrollToFile re-fires on repeat
+			// clicks; clear when no line is given so reused panes don't jump
+			// to a stale focus.
 			const focusFields =
 				line != null
 					? { focusLine: line, focusTick: Date.now() }

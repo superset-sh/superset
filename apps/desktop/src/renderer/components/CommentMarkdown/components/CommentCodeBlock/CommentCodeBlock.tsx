@@ -46,10 +46,8 @@ interface CommentCodeBlockProps {
 }
 
 /**
- * Lightweight code renderer for PR comments. Inline `code` stays compact;
- * mermaid renders via Streamdown with project-tuned theme vars; everything
- * else uses Prism for syntax highlighting (no copy / line-number chrome —
- * `<ShowCode>` is too heavy for short inline review snippets).
+ * Lightweight code renderer for PR comments. Skips ShowCode's
+ * line-number/copy chrome — too heavy for short inline review snippets.
  */
 export function CommentCodeBlock({
 	className,

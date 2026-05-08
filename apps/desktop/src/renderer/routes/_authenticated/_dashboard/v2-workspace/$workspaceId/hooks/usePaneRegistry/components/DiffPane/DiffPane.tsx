@@ -47,15 +47,11 @@ function ScrollToFile({
 			lastScrolledPath.current = path;
 			if (focusTick != null) lastFocusTick.current = focusTick;
 
-			// Only run the line-level scroll when a *new* focus request came in
-			// (tickChanged). Without this guard, a path-only change (e.g.
-			// clicking another file in the sidebar) would scroll to a stale
-			// focusLine left over on the pane data.
+			// Only seek to the line on a *new* focus request — without this
+			// a path-only change would scroll to a stale focusLine.
 			if (focusLine != null && tickChanged) {
-				// Pierre's virtualizer mounts file contents lazily, so the
-				// annotation slot may not exist on the first frame. Retry a
-				// handful of frames before giving up — typical mount completes
-				// within 1–2 frames.
+				// Pierre's virtualizer mounts file content lazily; retry a
+				// few frames so the annotation slot has time to render.
 				let attempts = 0;
 				const tryScroll = () => {
 					const lineEl = findLineElement(target as HTMLElement, focusLine);
@@ -77,17 +73,13 @@ function findLineElement(
 	root: HTMLElement,
 	lineNumber: number,
 ): HTMLElement | null {
-	// Pierre slots its annotations into named slots in the light DOM
-	// (see getLineAnnotationName: `annotation-${side}-${line}`). That
-	// element sits exactly where the comment is rendered, which is the
-	// right scroll target — and crucially it's in light DOM, so a normal
-	// querySelector inside the file's wrapper finds it.
+	// Prefer the Pierre annotation slot (`annotation-${side}-${line}`) —
+	// it's in light DOM and sits exactly where the comment renders.
+	// Fall back to the diff line itself when comments are hidden.
 	const slotted = root.querySelector(
 		`[slot$="-${lineNumber}"][slot^="annotation-"]`,
 	) as HTMLElement | null;
 	if (slotted) return slotted;
-	// Fall back to the diff line itself if no annotation slot exists at
-	// that line (e.g. comments are hidden via the toggle).
 	return root.querySelector(
 		`[data-line="${lineNumber}"]`,
 	) as HTMLElement | null;

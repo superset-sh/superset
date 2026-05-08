@@ -42,8 +42,8 @@ interface DiffFileEntryProps {
 	onSetViewed: (path: string, next: boolean) => void;
 	onOpenFile: (path: string, openInNewTab?: boolean) => void;
 	onOpenInExternalEditor: (path: string) => void;
-	/** When the parent pane requested a focus on this file, the line + tick
-	 * are forwarded so the matching CommentThread bubble can auto-expand. */
+	/** Line + tick forwarded only to the focused file so the matching
+	 *  CommentThread bubble can auto-expand on jump-to-line. */
 	focusLine?: number;
 	focusTick?: number;
 }

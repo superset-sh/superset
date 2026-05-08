@@ -28,9 +28,8 @@ interface CommentThreadProps {
 	isOutdated?: boolean;
 	url?: string;
 	comments: Comment[];
-	/** Monotonic tick from the parent — when it changes, force-expand the
-	 * bubble so jump-to-line from the review tab reveals collapsed
-	 * (resolved/outdated) threads. */
+	/** Force-expand the bubble whenever this changes — lets jump-to-line
+	 *  reveal a collapsed (resolved/outdated) thread. */
 	focusTick?: number;
 }
 
@@ -44,15 +43,12 @@ export function CommentThread({
 	focusTick,
 }: CommentThreadProps) {
 	const [open, setOpen] = useState(!isResolved && !isOutdated);
-	// When the thread becomes resolved or outdated (e.g. user clicks
-	// "Resolve conversation" and the threads query refetches), auto-collapse
-	// to match GitHub's behavior. Active threads stay where the user put them.
+	// Auto-collapse on resolve/outdated (matches GitHub).
 	useEffect(() => {
 		if (isResolved || isOutdated) setOpen(false);
 	}, [isResolved, isOutdated]);
-	// Force open whenever the parent re-focuses this line, even if the bubble
-	// was collapsed because it's resolved or outdated. The reviewer asked to
-	// see this comment — show it.
+	// Force-expand when the reviewer jumps to this line, even if it was
+	// collapsed for being resolved or outdated.
 	useEffect(() => {
 		if (focusTick != null) setOpen(true);
 	}, [focusTick]);
@@ -184,9 +180,8 @@ function CommentRow({ comment }: { comment: Comment }) {
 }
 
 function formatRelative(ms: number): string {
-	// Clamp to ≥0 so a server clock skew or future-dated comment doesn't
-	// render as "−5m ago". Floor (not round) so a 30-minute comment shows
-	// "30m ago" instead of jumping to "1h ago" prematurely.
+	// Floor (not round) so a 30-minute comment doesn't read "1h ago".
+	// Clamp >=0 so future-dated timestamps from clock skew aren't negative.
 	const delta = Math.max(0, Date.now() - ms);
 	const seconds = Math.floor(delta / 1000);
 	if (seconds < 60) return `${seconds}s ago`;

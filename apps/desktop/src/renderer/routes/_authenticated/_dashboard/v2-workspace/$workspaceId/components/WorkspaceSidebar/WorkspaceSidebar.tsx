@@ -133,8 +133,7 @@ export function WorkspaceSidebar({
 		onOpenComment,
 		onOpenInDiff: onSelectDiffFile
 			? (path, line, openInNewTab) => {
-					// Make sure annotations are visible — opening "in diff"
-					// without rendering them would land on an empty line.
+					// Force annotations on so the user lands on the comment, not an empty line.
 					useSettings.getState().update("showDiffComments", true);
 					onSelectDiffFile(path, openInNewTab ?? false, line);
 				}

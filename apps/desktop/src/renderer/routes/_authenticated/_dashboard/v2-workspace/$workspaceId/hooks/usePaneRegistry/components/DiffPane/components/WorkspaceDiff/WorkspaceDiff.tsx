@@ -33,8 +33,6 @@ interface WorkspaceDiffProps {
 	onOpenFile?: (openInNewTab?: boolean) => void;
 	onOpenInExternalEditor?: () => void;
 	onDiscard?: () => void;
-	/** When the parent DiffPane requested focus on this file, the line +
-	 * tick — used to auto-expand the matching CommentThread bubble. */
 	focusLine?: number;
 	focusTick?: number;
 }
@@ -122,9 +120,6 @@ export const WorkspaceDiff = memo(function WorkspaceDiff({
 				isOutdated={annotation.metadata.isOutdated}
 				url={annotation.metadata.url}
 				comments={annotation.metadata.comments}
-				// Bump the bubble's "force open" tick when the parent pane
-				// focuses this exact line, so opening a resolved/outdated
-				// thread from the review tab actually expands it.
 				focusTick={
 					focusLine != null && annotation.lineNumber === focusLine
 						? focusTick
