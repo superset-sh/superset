@@ -393,13 +393,18 @@ interface FakeOctokit {
 }
 
 function createMockOctokit(
-	handler: (
-		vars: { owner: string; repo: string; branch: string },
-	) => GraphQLPullRequestNode | null | Promise<GraphQLPullRequestNode | null>,
+	handler: (vars: {
+		owner: string;
+		repo: string;
+		branch: string;
+	}) => GraphQLPullRequestNode | null | Promise<GraphQLPullRequestNode | null>,
 	callCounter?: { count: number },
 ): FakeOctokit {
 	return {
-		graphql: async <T,>(_q: string, vars: Record<string, unknown>): Promise<T> => {
+		graphql: async <T>(
+			_q: string,
+			vars: Record<string, unknown>,
+		): Promise<T> => {
 			if (callCounter) callCounter.count++;
 			const node = await handler(
 				vars as { owner: string; repo: string; branch: string },
@@ -413,16 +418,20 @@ function createMockOctokit(
 	};
 }
 
-function makeNode(overrides: Partial<GraphQLPullRequestNode> & {
-	number: number;
-	headRefName: string;
-	headOwnerLogin: string;
-	headRepoName: string;
-}): GraphQLPullRequestNode {
+function makeNode(
+	overrides: Partial<GraphQLPullRequestNode> & {
+		number: number;
+		headRefName: string;
+		headOwnerLogin: string;
+		headRepoName: string;
+	},
+): GraphQLPullRequestNode {
 	return {
 		number: overrides.number,
 		title: overrides.title ?? `PR ${overrides.number}`,
-		url: overrides.url ?? `https://github.com/base-owner/base-repo/pull/${overrides.number}`,
+		url:
+			overrides.url ??
+			`https://github.com/base-owner/base-repo/pull/${overrides.number}`,
 		state: overrides.state ?? "OPEN",
 		isDraft: overrides.isDraft ?? false,
 		headRefName: overrides.headRefName,
@@ -709,12 +718,14 @@ describe("PullRequestRuntimeManager per-branch PR fetch", () => {
 		expect(counter.count).toBe(1); // cache hit, no new graphql call
 
 		// Force the cache entry stale, then refresh again — graphql must fire.
-		const cache = (manager as unknown as {
-			branchPullRequestCache: Map<
-				string,
-				{ promise: unknown; fetchedAt: number }
-			>;
-		}).branchPullRequestCache;
+		const cache = (
+			manager as unknown as {
+				branchPullRequestCache: Map<
+					string,
+					{ promise: unknown; fetchedAt: number }
+				>;
+			}
+		).branchPullRequestCache;
 		for (const [k, v] of cache) {
 			cache.set(k, { ...v, fetchedAt: 0 });
 		}
@@ -765,9 +776,14 @@ describe("PullRequestRuntimeManager per-branch PR fetch", () => {
 		// performProjectRefresh; to make feat/a's entry stale, mutate the
 		// cache's fetchedAt via a private accessor. Public API doesn't expose it,
 		// so we use `as never` to reach in for test purposes only.
-		const cache = (manager as unknown as {
-			branchPullRequestCache: Map<string, { promise: unknown; fetchedAt: number }>;
-		}).branchPullRequestCache;
+		const cache = (
+			manager as unknown as {
+				branchPullRequestCache: Map<
+					string,
+					{ promise: unknown; fetchedAt: number }
+				>;
+			}
+		).branchPullRequestCache;
 		for (const [k, v] of cache) {
 			cache.set(k, { ...v, fetchedAt: 0 });
 		}

@@ -901,10 +901,7 @@ export class PullRequestRuntimeManager {
 	private async fetchBranchPullRequests(
 		projectId: string,
 		projectRepo: NormalizedRepoIdentity,
-		targets: Map<
-			string,
-			{ owner: string; name: string; branch: string }
-		>,
+		targets: Map<string, { owner: string; name: string; branch: string }>,
 		options: { bypassCache?: boolean } = {},
 	): Promise<{
 		matched: Map<string, { id: string }>;
