@@ -1,6 +1,13 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { randomUUID } from "node:crypto";
-import { existsSync, rmSync } from "node:fs";
+import {
+	appendFileSync,
+	existsSync,
+	mkdirSync,
+	readFileSync,
+	rmSync,
+	writeFileSync,
+} from "node:fs";
 import { join } from "node:path";
 import { TRPCClientError } from "@trpc/client";
 import { eq } from "drizzle-orm";
@@ -48,6 +55,53 @@ describe("workspace.create + workspace.delete integration", () => {
 		// HOME-dependent.
 		expect(persisted?.worktreePath).toMatch(/feature\/new$/);
 		expect(existsSync(persisted?.worktreePath ?? "")).toBe(true);
+	});
+
+	test("create() copies gitignored .superset/ from main repo into the new worktree (#4169)", async () => {
+		// Regress: v1 ran `copySupersetConfigToWorktree` after `git worktree
+		// add` so projects whose `.superset/` is gitignored still got their
+		// setup config inside the new worktree. v2's `workspaces.create`
+		// dropped that step, leaving the worktree without `.superset/` —
+		// `pnpm install` and other setup scripts that reference files in
+		// `./.superset/` (e.g. `bash ./.superset/setup.sh`) silently break.
+		const scenario = await createProjectScenario({
+			hostOptions: { apiOverrides: cloudFlows.workspaceCreateOk() },
+		});
+		dispose = scenario.dispose;
+
+		const supersetDir = join(scenario.repo.repoPath, ".superset");
+		mkdirSync(supersetDir, { recursive: true });
+		writeFileSync(
+			join(supersetDir, "config.json"),
+			JSON.stringify({ setup: [] }),
+			"utf-8",
+		);
+		// Local-only ignore (mirrors the user's `.git/info/exclude` setup).
+		appendFileSync(
+			join(scenario.repo.repoPath, ".git", "info", "exclude"),
+			"\n.superset/\n",
+			"utf-8",
+		);
+
+		const result = await scenario.host.trpc.workspaces.create.mutate({
+			projectId: scenario.projectId,
+			name: "with config",
+			branch: "feature/with-config",
+		});
+
+		const persisted = scenario.host.db
+			.select()
+			.from(workspaces)
+			.where(eq(workspaces.id, result?.workspace?.id ?? ""))
+			.get();
+		const worktreePath = persisted?.worktreePath ?? "";
+		expect(existsSync(worktreePath)).toBe(true);
+
+		const worktreeConfigPath = join(worktreePath, ".superset", "config.json");
+		expect(existsSync(worktreeConfigPath)).toBe(true);
+		expect(JSON.parse(readFileSync(worktreeConfigPath, "utf-8"))).toEqual({
+			setup: [],
+		});
 	});
 
 	test("create() adopts an existing worktree at a non-canonical path instead of failing on `git worktree add`", async () => {

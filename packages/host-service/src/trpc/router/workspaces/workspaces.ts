@@ -18,6 +18,7 @@ import { type AgentRunResult, runAgentInWorkspace } from "../agents";
 import { ensureMainWorkspace } from "../project/utils/ensure-main-workspace";
 import { adoptExistingWorktree } from "../workspace-creation/shared/adopt-existing-worktree";
 import { listWorktreeBranches } from "../workspace-creation/shared/branch-search";
+import { copySupersetDirToWorktree } from "../workspace-creation/shared/copy-superset-dir";
 import { enablePushAutoSetupRemote } from "../workspace-creation/shared/git-config";
 import { requireLocalProject } from "../workspace-creation/shared/local-project";
 import { startSetupTerminalIfPresent } from "../workspace-creation/shared/setup-terminal";
@@ -577,6 +578,7 @@ export const workspacesRouter = router({
 							worktreePath,
 							"[workspaces.create]",
 						);
+						copySupersetDirToWorktree(localProject.repoPath, worktreePath);
 					} else {
 						worktreePath = safeResolveWorktreePath(
 							localProject.id,
@@ -672,6 +674,7 @@ export const workspacesRouter = router({
 							worktreePath,
 							"[workspaces.create]",
 						);
+						copySupersetDirToWorktree(localProject.repoPath, worktreePath);
 
 						workspaceRow = await registerCloudAndLocal({
 							ctx,
@@ -769,6 +772,7 @@ export const workspacesRouter = router({
 						});
 						workspaceRow = result.workspace;
 						alreadyExists = result.alreadyExists;
+						copySupersetDirToWorktree(localProject.repoPath, worktreePath);
 					} else {
 						worktreePath = safeResolveWorktreePath(
 							localProject.id,
@@ -802,6 +806,7 @@ export const workspacesRouter = router({
 							worktreePath,
 							"[workspaces.create]",
 						);
+						copySupersetDirToWorktree(localProject.repoPath, worktreePath);
 
 						if (!plan.usedExistingBranch && plan.startPoint.kind !== "head") {
 							const baseShortName = plan.startPoint.shortName;
