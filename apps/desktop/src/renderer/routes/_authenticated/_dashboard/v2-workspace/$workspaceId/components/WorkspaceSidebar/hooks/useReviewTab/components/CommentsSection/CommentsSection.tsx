@@ -21,18 +21,13 @@ import {
 	MessageSquare,
 	SquarePlus,
 } from "lucide-react";
-import { toString as mdastToString } from "mdast-util-to-string";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { LuArrowUpRight, LuCheck, LuCopy } from "react-icons/lu";
 import { VscChevronRight } from "react-icons/vsc";
-import remarkGfm from "remark-gfm";
-import remarkParse from "remark-parse";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
-import { unified } from "unified";
+import { getMarkdownPreviewText } from "renderer/utils/markdownPreview";
 import type { CommentPaneData } from "../../../../../../types";
 import type { NormalizedComment } from "../../types";
-
-const previewProcessor = unified().use(remarkParse).use(remarkGfm);
 
 interface CommentsSectionProps {
 	comments: NormalizedComment[];
@@ -259,38 +254,6 @@ function formatShortAge(isoDate?: string): string | null {
 	return `${Math.round(hours / 24)}d`;
 }
 
-// Bot review tools (coderabbit, greptile, cubic) lead with a badge/severity
-// strip like "Potential issue | Minor | Quick win" — useless as a preview,
-// so skip ahead to the real first sentence.
-function isBotPrefixLine(line: string): boolean {
-	return /^(potential issue|nitpick|major|minor|quick win|suggestion)\b/i.test(
-		line,
-	);
-}
-
-// Parse markdown → mdast, then walk the first real text node, paragraph, or
-// heading. mdast-util-to-string handles emphasis, links, code spans, etc.,
-// and `includeHtml: false` drops raw <a><img>...</a> badges entirely. We
-// scan top-level children rather than calling toString on the whole tree
-// so we don't concatenate the entire comment body into one preview line.
-function getPreviewText(body: string): string {
-	if (!body.trim()) return "No preview available";
-	let tree: ReturnType<typeof previewProcessor.parse>;
-	try {
-		tree = previewProcessor.parse(body);
-	} catch {
-		return body.split(/\r?\n/).find(Boolean)?.trim() ?? "No preview available";
-	}
-
-	const root = tree as { children?: Array<unknown> };
-	for (const child of root.children ?? []) {
-		const text = mdastToString(child, { includeHtml: false }).trim();
-		if (!text || isBotPrefixLine(text)) continue;
-		return text.replace(/\s+/g, " ");
-	}
-	return "No preview available";
-}
-
 // ---------------------------------------------------------------------------
 // CommentRow
 // ---------------------------------------------------------------------------
@@ -359,7 +322,7 @@ function CommentRow({
 					) : null}
 				</div>
 				<p className="mt-0.5 line-clamp-1 text-xs leading-4 text-muted-foreground">
-					{getPreviewText(comment.body)}
+					{getMarkdownPreviewText(comment.body)}
 				</p>
 			</div>
 		</>
