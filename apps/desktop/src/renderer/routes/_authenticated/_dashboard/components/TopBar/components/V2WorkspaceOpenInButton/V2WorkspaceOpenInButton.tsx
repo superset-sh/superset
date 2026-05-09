@@ -23,7 +23,6 @@ export function V2WorkspaceOpenInButton({
 				.where(({ workspaces }) => eq(workspaces.id, workspaceId))
 				.select(({ workspaces }) => ({
 					id: workspaces.id,
-					branch: workspaces.branch,
 					projectId: workspaces.projectId,
 					hostId: workspaces.hostId,
 				})),
@@ -51,7 +50,6 @@ export function V2WorkspaceOpenInButton({
 
 	return (
 		<V2OpenInMenuButton
-			branch={workspace.branch}
 			worktreePath={workspaceQuery.data.worktreePath}
 			projectId={workspace.projectId}
 		/>

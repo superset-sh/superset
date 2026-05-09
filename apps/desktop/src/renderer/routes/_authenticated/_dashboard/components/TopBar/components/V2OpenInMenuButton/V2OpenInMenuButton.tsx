@@ -18,16 +18,15 @@ import { HotkeyLabel, useHotkey, useHotkeyDisplay } from "renderer/hotkeys";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useV2ProjectDefaultApp } from "renderer/routes/_authenticated/hooks/useV2ProjectDefaultApp";
 import { useThemeStore } from "renderer/stores";
+import { getV2WorktreeDisplayName } from "./utils/getV2WorktreeDisplayName";
 
 interface V2OpenInMenuButtonProps {
 	worktreePath: string;
-	branch: string;
 	projectId: string;
 }
 
 export function V2OpenInMenuButton({
 	worktreePath,
-	branch,
 	projectId,
 }: V2OpenInMenuButtonProps) {
 	const activeTheme = useThemeStore((state) => state.activeTheme);
@@ -57,6 +56,10 @@ export function V2OpenInMenuButton({
 	const showCopyPathShortcut = copyPathDisplay.text !== "Unassigned";
 	const isLoading = openInApp.isPending || copyPath.isPending;
 	const isDark = activeTheme?.type === "dark";
+	const displayName = useMemo(
+		() => getV2WorktreeDisplayName(worktreePath, projectId),
+		[worktreePath, projectId],
+	);
 
 	const handleOpenInEditor = useCallback(() => {
 		if (openInApp.isPending || copyPath.isPending) return;
@@ -107,9 +110,9 @@ export function V2OpenInMenuButton({
 								className="size-3.5 object-contain shrink-0"
 							/>
 						)}
-						{branch && (
+						{displayName && (
 							<span className="hidden lg:inline text-muted-foreground truncate max-w-[140px] tabular-nums">
-								/{branch}
+								/{displayName}
 							</span>
 						)}
 						<span className="hidden sm:inline text-foreground font-medium">
