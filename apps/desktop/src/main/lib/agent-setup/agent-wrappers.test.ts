@@ -176,39 +176,23 @@ describe("agent-wrappers copilot", () => {
 		expect(updated).not.toContain("/tmp/old-hook.sh");
 	});
 
-	it("tails codex's session rollout to drive lifecycle events", () => {
+	it("delegates codex lifecycle to native hooks; no session-log watcher", () => {
 		createCodexWrapper();
 
 		const wrapperPath = path.join(TEST_BIN_DIR, "codex");
 		const wrapper = readFileSync(wrapperPath, "utf-8");
 
-		// Watch the rollout JSONL — codex 0.129 stopped writing the legacy
-		// `kind:"codex_event"` lines we previously matched against.
-		expect(wrapper).toContain(
-			`_superset_sessions_dir="\${HOME}/.codex/sessions"`,
-		);
-		expect(wrapper).toContain('-name "rollout-*.jsonl"');
-		expect(wrapper).toContain('"type":"event_msg"');
-		expect(wrapper).toContain('"task_started"');
-		expect(wrapper).toContain('"task_complete"');
-		expect(wrapper).toContain('"user_message"');
-		expect(wrapper).toContain("_approval_request");
-
-		expect(wrapper).toContain('_superset_emit_event "Start"');
-		expect(wrapper).toContain('_superset_emit_event "Stop"');
-		expect(wrapper).toContain('_superset_emit_event "PermissionRequest"');
-
 		expect(wrapper).toContain(
 			`"$REAL_BIN" --enable hooks -c 'notify=["bash","${path.join(TEST_HOOKS_DIR, "notify.sh")}"]' "$@"`,
 		);
-		expect(wrapper).toContain("SUPERSET_CODEX_START_WATCHER_PID");
-		expect(wrapper).toContain('kill "$SUPERSET_CODEX_START_WATCHER_PID"');
-		expect(wrapper).toContain('if [ -n "$SUPERSET_TERMINAL_ID" ]');
-		expect(wrapper).not.toContain("SUPERSET_TAB_ID");
-		// Old session-log shape — must stay gone or codex 0.129+ silently
-		// reverts to "agent never starts processing".
-		expect(wrapper).not.toContain('"kind":"codex_event"');
+		expect(wrapper).toContain('export SUPERSET_AGENT_ID="codex"');
+
+		// Lifecycle flows through ~/.codex/hooks.json — no watcher subshell.
+		expect(wrapper).not.toContain("SUPERSET_CODEX_START_WATCHER_PID");
 		expect(wrapper).not.toContain("CODEX_TUI_RECORD_SESSION");
+		expect(wrapper).not.toContain('"kind":"codex_event"');
+		expect(wrapper).not.toContain("rollout-*.jsonl");
+		expect(wrapper).not.toContain("_superset_sessions_dir");
 
 		const execLine = buildCodexWrapperExecLine(
 			path.join(TEST_HOOKS_DIR, "notify.sh"),
@@ -287,6 +271,7 @@ exit 0
 
 		expect(wrapper).toContain("# Superset wrapper for droid");
 		expect(wrapper).toContain('REAL_BIN="$(find_real_binary "droid")"');
+		expect(wrapper).toContain('export SUPERSET_AGENT_ID="droid"');
 		expect(wrapper).toContain('exec "$REAL_BIN" "$@"');
 	});
 
@@ -590,7 +575,10 @@ exit 0
 			expect(Array.isArray(hooks)).toBe(true);
 			expect(
 				hooks.some((def) =>
-					def.hooks.some((hook) => hook.command === currentHookPath),
+					def.hooks.some(
+						(hook) =>
+							hook.command === `SUPERSET_AGENT_ID=droid '${currentHookPath}'`,
+					),
 				),
 			).toBe(true);
 			expect(
