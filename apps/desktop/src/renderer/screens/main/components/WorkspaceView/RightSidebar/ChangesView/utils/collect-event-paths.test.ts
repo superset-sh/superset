@@ -74,4 +74,12 @@ describe("collectEventPaths", () => {
 		expect(result.isOverflow).toBe(false);
 		expect(result.paths).toEqual(["/ws/src/gone.ts"]);
 	});
+
+	test("supports create events", () => {
+		const result = collectEventPaths(
+			makeEvent({ type: "create", absolutePath: "/ws/src/new.ts" }),
+		);
+		expect(result.isOverflow).toBe(false);
+		expect(result.paths).toEqual(["/ws/src/new.ts"]);
+	});
 });

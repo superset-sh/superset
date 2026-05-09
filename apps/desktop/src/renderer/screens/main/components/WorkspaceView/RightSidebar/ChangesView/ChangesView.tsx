@@ -323,6 +323,23 @@ export function ChangesView({
 		};
 	}, []);
 
+	// Reset the debounce buffer when the active workspace/worktree changes —
+	// otherwise paths queued for workspace A could be replayed against
+	// workspace B's `worktreePath` after a switch, triggering unnecessary
+	// invalidations in the new workspace.
+	// biome-ignore lint/correctness/useExhaustiveDependencies: reset on workspace change
+	useEffect(() => {
+		if (refreshTimerRef.current) {
+			clearTimeout(refreshTimerRef.current);
+			refreshTimerRef.current = null;
+		}
+		pendingRefreshRef.current = {
+			invalidateBranches: false,
+			invalidateAllDiffs: false,
+			changedAbsolutePaths: new Set<string>(),
+		};
+	}, [workspaceId, worktreePath]);
+
 	useWorkspaceFileEvents(
 		workspaceId ?? "",
 		(event) => {
@@ -384,6 +401,15 @@ export function ChangesView({
 					// the currently-selected one — so the inline diffs in the
 					// expanded `ChangesContent` view also refresh when an
 					// external process (e.g. an AI coding agent) edits a file.
+					//
+					// `oldAbsolutePath` is only threaded through for the selected
+					// file, where the rename's prior path is known. For non-
+					// selected renames it stays `undefined`; this still matches
+					// the cached query because React Query's `stableStringify`
+					// drops `undefined` fields from the cache key, so an entry
+					// stored with a concrete `oldAbsolutePath` is invalidated by
+					// our prefix-only call. `collectEventPaths` already returns
+					// both sides of a rename, so both diffs get refreshed.
 					const renamedSelectedOldPath = selectedFileState?.file.oldPath
 						? toAbsoluteWorkspacePath(
 								worktreePath,
