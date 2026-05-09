@@ -34,6 +34,7 @@ export interface GraphQLPullRequestNode {
 	isDraft: boolean;
 	headRefName: string;
 	headRefOid: string;
+	baseRefName: string;
 	isCrossRepository: boolean;
 	headRepositoryOwner: { login: string } | null;
 	headRepository: { name: string } | null;
@@ -48,8 +49,14 @@ export interface GraphQLPullRequestNode {
 
 export interface PullRequestsGraphQLResult {
 	repository?: {
+		defaultBranchRef?: { name: string } | null;
 		pullRequests?: {
 			nodes?: Array<GraphQLPullRequestNode | null>;
 		};
 	} | null;
+}
+
+export interface RepositoryPullRequestsResult {
+	defaultBranch: string | null;
+	nodes: GraphQLPullRequestNode[];
 }

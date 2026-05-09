@@ -3,6 +3,7 @@ import { PULL_REQUESTS_QUERY } from "./query";
 import type {
 	GraphQLPullRequestNode,
 	PullRequestsGraphQLResult,
+	RepositoryPullRequestsResult,
 } from "./types";
 
 export async function fetchRepositoryPullRequests(
@@ -11,7 +12,7 @@ export async function fetchRepositoryPullRequests(
 		owner: string;
 		name: string;
 	},
-): Promise<GraphQLPullRequestNode[]> {
+): Promise<RepositoryPullRequestsResult> {
 	const result = await octokit.graphql<PullRequestsGraphQLResult>(
 		PULL_REQUESTS_QUERY,
 		{
@@ -20,7 +21,12 @@ export async function fetchRepositoryPullRequests(
 		},
 	);
 
-	return (result.repository?.pullRequests?.nodes ?? []).filter(
+	const nodes = (result.repository?.pullRequests?.nodes ?? []).filter(
 		(node): node is GraphQLPullRequestNode => node !== null,
 	);
+
+	return {
+		defaultBranch: result.repository?.defaultBranchRef?.name ?? null,
+		nodes,
+	};
 }

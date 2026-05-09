@@ -1,6 +1,7 @@
 export const PULL_REQUESTS_QUERY = `
 	query PullRequestsForSidebar($owner: String!, $repo: String!) {
 		repository(owner: $owner, name: $repo) {
+			defaultBranchRef { name }
 			pullRequests(first: 100, states: [OPEN, CLOSED, MERGED], orderBy: { field: UPDATED_AT, direction: DESC }) {
 				nodes {
 					number
@@ -10,6 +11,7 @@ export const PULL_REQUESTS_QUERY = `
 					isDraft
 					headRefName
 					headRefOid
+					baseRefName
 					isCrossRepository
 					headRepositoryOwner { login }
 					headRepository { name }

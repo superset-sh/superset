@@ -7,7 +7,7 @@ import { projects, pullRequests, workspaces } from "../../db/schema";
 import type { GitWatcher } from "../../events/git-watcher";
 import type { GitFactory } from "../git";
 import { fetchRepositoryPullRequests } from "./utils/github-query";
-import type { GraphQLPullRequestNode } from "./utils/github-query/types";
+import type { RepositoryPullRequestsResult } from "./utils/github-query/types";
 import {
 	type ChecksStatus,
 	coerceChecksStatus,
@@ -22,6 +22,7 @@ import {
 	parseChecksJson,
 	type ReviewDecision,
 } from "./utils/pull-request-mappers";
+import { selectPullRequestMatches } from "./utils/select-pr-match";
 
 // Long-cadence sweep that catches anything `GitWatcher` might miss
 // (overflow, fs.watch errors, transient watcher failures). Steady-state
@@ -261,7 +262,7 @@ export class PullRequestRuntimeManager {
 	>();
 	private readonly repoPullRequestCache = new Map<
 		string,
-		{ promise: Promise<GraphQLPullRequestNode[]>; fetchedAt: number }
+		{ promise: Promise<RepositoryPullRequestsResult>; fetchedAt: number }
 	>();
 
 	constructor(options: PullRequestRuntimeManagerOptions) {
@@ -831,7 +832,7 @@ export class PullRequestRuntimeManager {
 	private async getCachedRepoPullRequests(
 		repo: NormalizedRepoIdentity,
 		options: { bypassCache?: boolean } = {},
-	): Promise<GraphQLPullRequestNode[]> {
+	): Promise<RepositoryPullRequestsResult> {
 		const cacheKey = `${repo.owner.toLowerCase()}/${repo.name.toLowerCase()}`;
 		if (!options.bypassCache) {
 			const cached = this.repoPullRequestCache.get(cacheKey);
@@ -872,26 +873,16 @@ export class PullRequestRuntimeManager {
 	): Promise<Map<string, { id: string }>> {
 		if (wantedKeys.size === 0) return new Map();
 
-		const nodes = await this.getCachedRepoPullRequests(repo, options);
+		const { defaultBranch, nodes } = await this.getCachedRepoPullRequests(
+			repo,
+			options,
+		);
 
-		const latestByKey = new Map<string, (typeof nodes)[number]>();
-
-		for (const node of nodes) {
-			const key = upstreamKey(
-				node.headRepositoryOwner?.login ?? null,
-				node.headRepository?.name ?? null,
-				node.headRefName,
-			);
-			if (!key || !wantedKeys.has(key)) continue;
-			const existing = latestByKey.get(key);
-			if (
-				!existing ||
-				new Date(node.updatedAt).getTime() >
-					new Date(existing.updatedAt).getTime()
-			) {
-				latestByKey.set(key, node);
-			}
-		}
+		const latestByKey = selectPullRequestMatches({
+			nodes,
+			wantedKeys,
+			defaultBranch,
+		});
 
 		const keyToRow = new Map<string, { id: string }>();
 		const now = Date.now();
