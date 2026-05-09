@@ -142,6 +142,9 @@ function createFakeDb(state: FakeState) {
 function createManager(state: FakeState) {
 	return new PullRequestRuntimeManager({
 		db: createFakeDb(state) as never,
+		execGh: async () => {
+			throw new Error("gh should not be used for direct PR linking");
+		},
 		git: async () => {
 			throw new Error("git should not be used when project metadata is set");
 		},

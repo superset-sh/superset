@@ -1,5 +1,14 @@
-export { fetchRepositoryPullRequests } from "./github-query";
+export {
+	fetchPullRequestByHead,
+	fetchPullRequestByHeadFromGh,
+	fetchPullRequestChecks,
+	fetchPullRequestChecksFromGh,
+	fetchPullRequestReviewDecision,
+	fetchPullRequestReviewDecisionFromGh,
+} from "./github-query";
 export type {
-	GraphQLCheckContextNode,
-	GraphQLPullRequestNode,
+	GitHubCheckContextNode,
+	GitHubPullRequestHeadRef,
+	GitHubPullRequestNode,
+	GitHubPullRequestReviewDecision,
 } from "./types";
