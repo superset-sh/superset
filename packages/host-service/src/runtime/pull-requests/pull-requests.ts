@@ -908,7 +908,7 @@ export class PullRequestRuntimeManager {
 				repo,
 				url: node.url,
 				title: node.title,
-				state: mapPullRequestState(node.state, node.isDraft),
+				state: mapPullRequestState(node.state, node.isDraft, node.mergeQueueEntry),
 				isDraft: node.isDraft,
 				headBranch: node.headRefName,
 				headSha: node.headRefOid,
