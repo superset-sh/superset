@@ -11,7 +11,7 @@ import { HOOKS_DIR } from "./paths";
 export const COPILOT_HOOK_SCRIPT_NAME = "copilot-hook.sh";
 
 const COPILOT_HOOK_SIGNATURE = "# Superset copilot hook";
-const COPILOT_HOOK_VERSION = "v1";
+const COPILOT_HOOK_VERSION = "v2";
 export const COPILOT_HOOK_MARKER = `${COPILOT_HOOK_SIGNATURE} ${COPILOT_HOOK_VERSION}`;
 
 const COPILOT_HOOK_TEMPLATE_PATH = path.join(
@@ -69,6 +69,13 @@ export function getCopilotHooksJsonContent(hookScriptPath: string): string {
 				{
 					type: "command",
 					bash: `${hookScriptPath} postToolUse`,
+					timeoutSec: 5,
+				},
+			],
+			preToolUse: [
+				{
+					type: "command",
+					bash: `${hookScriptPath} preToolUse`,
 					timeoutSec: 5,
 				},
 			],
