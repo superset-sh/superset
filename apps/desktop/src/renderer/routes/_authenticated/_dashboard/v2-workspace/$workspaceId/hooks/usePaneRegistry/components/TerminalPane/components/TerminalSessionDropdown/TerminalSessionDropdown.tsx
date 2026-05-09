@@ -9,14 +9,7 @@ import {
 } from "@superset/ui/dropdown-menu";
 import { toast } from "@superset/ui/sonner";
 import { workspaceTrpc } from "@superset/workspace-client";
-import {
-	Check,
-	ChevronDown,
-	LoaderCircle,
-	Plus,
-	TerminalSquare,
-	Trash2,
-} from "lucide-react";
+import { Check, ChevronDown, LoaderCircle, Plus, Trash2 } from "lucide-react";
 import { useCallback, useMemo, useState, useSyncExternalStore } from "react";
 import { markTerminalForBackground } from "renderer/lib/terminal/terminal-background-intents";
 import { terminalRuntimeRegistry } from "renderer/lib/terminal/terminal-runtime-registry";
@@ -25,6 +18,7 @@ import type {
 	TerminalPaneData,
 } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/types";
 import { getRelativeTime } from "renderer/screens/main/components/WorkspacesListView/utils";
+import { TerminalPaneIcon } from "../TerminalPaneIcon";
 
 interface TerminalSessionDropdownProps {
 	context: RendererContext<PaneViewerData>;
@@ -246,7 +240,7 @@ export function TerminalSessionDropdown({
 					onMouseDown={(event) => event.stopPropagation()}
 					onClick={(event) => event.stopPropagation()}
 				>
-					<TerminalSquare className="size-3.5 shrink-0" />
+					<TerminalPaneIcon terminalId={terminalId} />
 					<span className="min-w-0 flex-1 truncate text-left">
 						{triggerTitle}
 					</span>

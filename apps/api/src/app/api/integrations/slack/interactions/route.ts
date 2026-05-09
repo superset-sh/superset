@@ -6,6 +6,18 @@ import { DEFAULT_SLACK_MODEL } from "../constants";
 import { processAppHomeOpened } from "../events/process-app-home-opened";
 import { verifySlackSignature } from "../verify-signature";
 
+type SlackInteractionAction = {
+	action_id?: string;
+	selected_option?: { value?: string };
+};
+
+type SlackInteractionPayload = {
+	type?: string;
+	team?: { id?: string };
+	user?: { id?: string };
+	actions?: unknown;
+};
+
 export async function POST(request: Request) {
 	const body = await request.text();
 	const signature = request.headers.get("x-slack-signature");
@@ -29,24 +41,37 @@ export async function POST(request: Request) {
 		return new Response("ok", { status: 200 });
 	}
 
-	// biome-ignore lint/suspicious/noExplicitAny: Slack payload shape varies by event type
-	let payload: any;
+	let payload: SlackInteractionPayload;
 	try {
-		payload = JSON.parse(payloadRaw);
+		const parsed = JSON.parse(payloadRaw);
+		if (parsed === null || typeof parsed !== "object") {
+			console.error("[slack/interactions] Invalid JSON payload");
+			return Response.json({ error: "Invalid JSON payload" }, { status: 400 });
+		}
+		payload = parsed as SlackInteractionPayload;
 	} catch {
+		console.error("[slack/interactions] Failed to parse JSON payload");
 		return Response.json({ error: "Invalid JSON payload" }, { status: 400 });
 	}
 
 	if (payload.type === "block_actions") {
-		const teamId: string = payload.team?.id;
-		const slackUserId: string = payload.user?.id;
+		const teamId = payload.team?.id;
+		const slackUserId = payload.user?.id;
 
-		if (!teamId || !slackUserId) {
+		if (
+			typeof teamId !== "string" ||
+			teamId.length === 0 ||
+			typeof slackUserId !== "string" ||
+			slackUserId.length === 0
+		) {
 			console.error("[slack/interactions] Missing team or user ID");
 			return new Response("ok", { status: 200 });
 		}
 
-		for (const action of payload.actions ?? []) {
+		const actions = Array.isArray(payload.actions)
+			? payload.actions.filter(isSlackInteractionAction)
+			: [];
+		for (const action of actions) {
 			if (action.action_id === "model_select") {
 				const selectedModel =
 					action.selected_option?.value ?? DEFAULT_SLACK_MODEL;
@@ -138,4 +163,34 @@ async function handleDisconnectAccount({
 	}).catch((err: unknown) => {
 		console.error("[slack/interactions] Failed to republish home tab:", err);
 	});
+}
+
+function isSlackInteractionAction(
+	action: unknown,
+): action is SlackInteractionAction {
+	if (action === null || typeof action !== "object" || Array.isArray(action)) {
+		return false;
+	}
+
+	const candidate = action as Record<string, unknown>;
+	if ("action_id" in candidate && typeof candidate.action_id !== "string") {
+		return false;
+	}
+
+	if ("selected_option" in candidate) {
+		if (
+			candidate.selected_option === null ||
+			typeof candidate.selected_option !== "object" ||
+			Array.isArray(candidate.selected_option)
+		) {
+			return false;
+		}
+
+		const selectedOption = candidate.selected_option as Record<string, unknown>;
+		if ("value" in selectedOption && typeof selectedOption.value !== "string") {
+			return false;
+		}
+	}
+
+	return true;
 }

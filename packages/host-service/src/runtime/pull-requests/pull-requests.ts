@@ -5,9 +5,21 @@ import { and, eq, inArray } from "drizzle-orm";
 import type { HostDb } from "../../db";
 import { projects, pullRequests, workspaces } from "../../db/schema";
 import type { GitWatcher } from "../../events/git-watcher";
+import type { ExecGh } from "../../trpc/router/workspace-creation/utils/exec-gh";
 import type { GitFactory } from "../git";
-import { fetchRepositoryPullRequests } from "./utils/github-query";
-import type { GraphQLPullRequestNode } from "./utils/github-query/types";
+import {
+	fetchPullRequestByHead,
+	fetchPullRequestByHeadFromGh,
+	fetchPullRequestChecks,
+	fetchPullRequestChecksFromGh,
+	fetchPullRequestReviewDecision,
+	fetchPullRequestReviewDecisionFromGh,
+} from "./utils/github-query";
+import type {
+	GitHubPullRequestHeadRef,
+	GitHubPullRequestNode,
+	GitHubPullRequestReviewDecision,
+} from "./utils/github-query/types";
 import {
 	type ChecksStatus,
 	coerceChecksStatus,
@@ -35,9 +47,7 @@ const SAFETY_NET_INTERVAL_MS = 5 * 60_000;
 const PROJECT_REFRESH_INTERVAL_MS = 5 * 60_000;
 // Must exceed every polling interval that hits this cache (SAFETY_NET and
 // PROJECT_REFRESH). Otherwise the cache is always stale at poll time and
-// each tick fires a fresh GraphQL call per repo. Multiple projects can
-// target the same GitHub repo; this collapses them into one call per repo
-// per TTL window.
+// each tick fires fresh GitHub calls for the same upstream branch.
 const REPO_PULL_REQUEST_CACHE_TTL_MS = 60_000;
 const UNBORN_HEAD_ERROR_PATTERNS = [
 	"ambiguous argument 'head'",
@@ -194,6 +204,7 @@ export interface PullRequestWorkspaceSnapshot {
 
 export interface PullRequestRuntimeManagerOptions {
 	db: HostDb;
+	execGh: ExecGh;
 	git: GitFactory;
 	github: () => Promise<Octokit>;
 	gitWatcher: GitWatcher;
@@ -248,6 +259,7 @@ function deriveCheckoutPullRequestUpstream(
 
 export class PullRequestRuntimeManager {
 	private readonly db: HostDb;
+	private readonly execGh: ExecGh;
 	private readonly git: GitFactory;
 	private readonly github: () => Promise<Octokit>;
 	private readonly gitWatcher: GitWatcher;
@@ -259,13 +271,14 @@ export class PullRequestRuntimeManager {
 		string,
 		{ running: Promise<void>; rerunPending: boolean }
 	>();
-	private readonly repoPullRequestCache = new Map<
+	private readonly pullRequestHeadCache = new Map<
 		string,
-		{ promise: Promise<GraphQLPullRequestNode[]>; fetchedAt: number }
+		{ promise: Promise<GitHubPullRequestNode | null>; fetchedAt: number }
 	>();
 
 	constructor(options: PullRequestRuntimeManagerOptions) {
 		this.db = options.db;
+		this.execGh = options.execGh;
 		this.git = options.git;
 		this.github = options.github;
 		this.gitWatcher = options.gitWatcher;
@@ -610,20 +623,25 @@ export class PullRequestRuntimeManager {
 			.all();
 		if (projectWorkspaces.length === 0) return;
 
-		const wantedKeys = new Set<string>();
+		const wantedRefs = new Map<string, GitHubPullRequestHeadRef>();
 		for (const workspace of projectWorkspaces) {
-			const key = upstreamKey(
-				workspace.upstreamOwner,
-				workspace.upstreamRepo,
-				workspace.upstreamBranch ?? workspace.branch,
-			);
-			if (key) wantedKeys.add(key);
+			const upstreamOwner = workspace.upstreamOwner;
+			const upstreamRepo = workspace.upstreamRepo;
+			const upstreamBranch = workspace.upstreamBranch ?? workspace.branch;
+			const key = upstreamKey(upstreamOwner, upstreamRepo, upstreamBranch);
+			if (key && upstreamOwner && upstreamRepo) {
+				wantedRefs.set(key, {
+					owner: upstreamOwner,
+					repo: upstreamRepo,
+					branch: upstreamBranch,
+				});
+			}
 		}
 
 		const keyToPullRequest = await this.fetchRepoPullRequests(
 			projectId,
 			repo,
-			wantedKeys,
+			wantedRefs,
 			options,
 		);
 
@@ -828,13 +846,20 @@ export class PullRequestRuntimeManager {
 		return rowId;
 	}
 
-	private async getCachedRepoPullRequests(
+	private async getCachedPullRequestByHead(
 		repo: NormalizedRepoIdentity,
+		head: GitHubPullRequestHeadRef,
 		options: { bypassCache?: boolean } = {},
-	): Promise<GraphQLPullRequestNode[]> {
-		const cacheKey = `${repo.owner.toLowerCase()}/${repo.name.toLowerCase()}`;
+	): Promise<GitHubPullRequestNode | null> {
+		const cacheKey = [
+			repo.owner.toLowerCase(),
+			repo.name.toLowerCase(),
+			head.owner.toLowerCase(),
+			head.repo.toLowerCase(),
+			head.branch,
+		].join("/");
 		if (!options.bypassCache) {
-			const cached = this.repoPullRequestCache.get(cacheKey);
+			const cached = this.pullRequestHeadCache.get(cacheKey);
 			if (
 				cached &&
 				Date.now() - cached.fetchedAt < REPO_PULL_REQUEST_CACHE_TTL_MS
@@ -845,62 +870,155 @@ export class PullRequestRuntimeManager {
 
 		const fetchedAt = Date.now();
 		const promise = (async () => {
-			const octokit = await this.github();
-			return fetchRepositoryPullRequests(octokit, {
-				owner: repo.owner,
-				name: repo.name,
-			});
+			try {
+				return await fetchPullRequestByHeadFromGh(
+					this.execGh,
+					{
+						owner: repo.owner,
+						name: repo.name,
+					},
+					head,
+				);
+			} catch (ghError) {
+				console.warn(
+					"[host-service:pull-request-runtime] gh PR head lookup failed; falling back to Octokit",
+					{
+						owner: repo.owner,
+						name: repo.name,
+						head,
+						error: ghError,
+					},
+				);
+				const octokit = await this.github();
+				return fetchPullRequestByHead(
+					octokit,
+					{
+						owner: repo.owner,
+						name: repo.name,
+					},
+					head,
+				);
+			}
 		})();
 		// Observer to silence unhandledRejection warnings; real consumers
 		// observe the rejection via their own await on the cached promise.
 		promise.catch(() => {});
 		// Keep failed promises cached for the full TTL so subsequent polls
-		// share the rejection without firing new GraphQL calls. Evicting on
+		// share the rejection without firing new GitHub calls. Evicting on
 		// every error caused a self-perpetuating storm under rate-limit /
 		// abuse-detection responses: the failure invalidated the cache, the
 		// next 20s tick retried, hit the same 403, and re-evicted. Network
 		// blips heal at the next TTL boundary instead.
-		this.repoPullRequestCache.set(cacheKey, { promise, fetchedAt });
+		this.pullRequestHeadCache.set(cacheKey, { promise, fetchedAt });
 		return promise;
 	}
 
 	private async fetchRepoPullRequests(
 		projectId: string,
 		repo: NormalizedRepoIdentity,
-		wantedKeys: Set<string>,
+		wantedRefs: Map<string, GitHubPullRequestHeadRef>,
 		options: { bypassCache?: boolean } = {},
 	): Promise<Map<string, { id: string }>> {
-		if (wantedKeys.size === 0) return new Map();
+		if (wantedRefs.size === 0) return new Map();
 
-		const nodes = await this.getCachedRepoPullRequests(repo, options);
+		const latestByKey = new Map<string, GitHubPullRequestNode>();
+		await Promise.all(
+			Array.from(wantedRefs.entries()).map(async ([key, head]) => {
+				try {
+					const node = await this.getCachedPullRequestByHead(
+						repo,
+						head,
+						options,
+					);
+					if (!node) return;
 
-		const latestByKey = new Map<string, (typeof nodes)[number]>();
-
-		for (const node of nodes) {
-			const key = upstreamKey(
-				node.headRepositoryOwner?.login ?? null,
-				node.headRepository?.name ?? null,
-				node.headRefName,
-			);
-			if (!key || !wantedKeys.has(key)) continue;
-			const existing = latestByKey.get(key);
-			if (
-				!existing ||
-				new Date(node.updatedAt).getTime() >
-					new Date(existing.updatedAt).getTime()
-			) {
-				latestByKey.set(key, node);
-			}
-		}
+					const nodeKey = upstreamKey(
+						node.headRepositoryOwner?.login ?? null,
+						node.headRepository?.name ?? null,
+						node.headRefName,
+					);
+					if (nodeKey === key) latestByKey.set(key, node);
+				} catch (error) {
+					console.warn(
+						"[host-service:pull-request-runtime] Failed to fetch PR by head",
+						{
+							projectId,
+							owner: repo.owner,
+							name: repo.name,
+							head,
+							error,
+						},
+					);
+				}
+			}),
+		);
 
 		const keyToRow = new Map<string, { id: string }>();
 		const now = Date.now();
 
+		const checksByNumber = new Map<
+			number,
+			Awaited<ReturnType<typeof fetchPullRequestChecks>>
+		>();
+		const reviewDecisionByNumber = new Map<
+			number,
+			GitHubPullRequestReviewDecision
+		>();
+		let octokitPromise: Promise<Octokit> | null = null;
+		await Promise.all(
+			Array.from(latestByKey.values()).map(async (node) => {
+				try {
+					const [reviewDecision, checks] = await Promise.all([
+						fetchPullRequestReviewDecisionFromGh(
+							this.execGh,
+							repo,
+							node.number,
+							node.state,
+						),
+						fetchPullRequestChecksFromGh(this.execGh, repo, node.headRefOid),
+					]);
+					reviewDecisionByNumber.set(node.number, reviewDecision);
+					checksByNumber.set(node.number, checks);
+				} catch (ghError) {
+					try {
+						octokitPromise ??= this.github();
+						const octokit = await octokitPromise;
+						const [reviewDecision, checks] = await Promise.all([
+							fetchPullRequestReviewDecision(
+								octokit,
+								repo,
+								node.number,
+								node.state,
+							),
+							fetchPullRequestChecks(octokit, repo, node.headRefOid),
+						]);
+						reviewDecisionByNumber.set(node.number, reviewDecision);
+						checksByNumber.set(node.number, checks);
+					} catch (error) {
+						console.warn(
+							"[host-service:pull-request-runtime] Failed to fetch PR review/check state",
+							{
+								projectId,
+								owner: repo.owner,
+								name: repo.name,
+								prNumber: node.number,
+								ghError,
+								error,
+							},
+						);
+					}
+				}
+			}),
+		);
+
 		for (const [key, node] of latestByKey) {
 			const existing = this.findPullRequestRow(repo, node.number);
-			const checks = parseCheckContexts(
-				node.statusCheckRollup?.contexts?.nodes ?? [],
-			);
+			const checks = checksByNumber.has(node.number)
+				? parseCheckContexts(checksByNumber.get(node.number) ?? [])
+				: parseChecksJson(existing?.checksJson ?? null);
+			const reviewDecision = reviewDecisionByNumber.has(node.number)
+				? mapReviewDecision(reviewDecisionByNumber.get(node.number) ?? null)
+				: coerceReviewDecision(existing?.reviewDecision ?? null);
 			const rowId = this.upsertPullRequestRow({
 				existing,
 				projectId,
@@ -912,7 +1030,7 @@ export class PullRequestRuntimeManager {
 				isDraft: node.isDraft,
 				headBranch: node.headRefName,
 				headSha: node.headRefOid,
-				reviewDecision: mapReviewDecision(node.reviewDecision),
+				reviewDecision,
 				checksStatus: computeChecksStatus(checks),
 				checksJson: JSON.stringify(checks),
 				lastFetchedAt: now,

@@ -12,14 +12,14 @@ import { useNavigate } from "@tanstack/react-router";
 import { Eye, EyeOff, Settings } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { HiMiniCommandLine } from "react-icons/hi2";
-import {
-	getPresetIcon,
-	useIsDarkTheme,
-} from "renderer/assets/app-icons/preset-icons";
+import { useIsDarkTheme } from "renderer/assets/app-icons/preset-icons";
 import { HotkeyMenuShortcut } from "renderer/components/HotkeyMenuShortcut";
+import { useV2AgentConfigs } from "renderer/hooks/useV2AgentConfigs";
 import type { HotkeyId } from "renderer/hotkeys";
+import { resolveV2PresetIcon } from "renderer/lib/preset-icon";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import type { V2TerminalPresetRow } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
+import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { V2PresetBarItem } from "./components/V2PresetBarItem";
 
 interface V2PresetsBarProps {
@@ -72,6 +72,8 @@ export function V2PresetsBar({
 	const navigate = useNavigate();
 	const isDark = useIsDarkTheme();
 	const collections = useCollections();
+	const { activeHostUrl } = useLocalHostService();
+	const { data: agents } = useV2AgentConfigs(activeHostUrl);
 
 	const [localVisiblePresetIds, setLocalVisiblePresetIds] = useState<string[]>(
 		() => getVisiblePresetOrder(matchedPresets),
@@ -210,7 +212,7 @@ export function V2PresetsBar({
 				</Tooltip>
 				<DropdownMenuContent align="end" className="w-56">
 					{matchedPresets.map((preset) => {
-						const icon = getPresetIcon(preset.name, isDark);
+						const icon = resolveV2PresetIcon(preset, agents, isDark);
 						const isVisible = isPresetVisibleInBar(preset.pinnedToBar);
 						const visibleIndex = visiblePresetIndexById.get(preset.id);
 						const hotkeyId =
@@ -276,6 +278,7 @@ export function V2PresetsBar({
 						visibleIndex={visibleIndex}
 						hotkeyId={hotkeyId}
 						isDark={isDark}
+						agents={agents}
 						onExecutePreset={executePreset}
 						onEdit={(presetToEdit) => handleEditPreset(presetToEdit.id)}
 						onLocalReorder={handleLocalVisibleReorder}

@@ -1,4 +1,19 @@
-export type AgentLifecycleEventType = "Start" | "Stop" | "PermissionRequest";
+/**
+ * Normalized lifecycle event types broadcast over the WS event bus.
+ *
+ * - `Start` / `Stop`: per-turn working-state cadence — drives the working
+ *   indicator and the completion chime.
+ * - `PermissionRequest`: agent is blocked waiting for a tool/exec decision.
+ * - `Attached` / `Detached`: session-lifetime signal — drives the pane icon
+ *   binding only. NOT working state: SessionStart fires on agent boot when
+ *   the agent is still idle waiting for input.
+ */
+export type AgentLifecycleEventType =
+	| "Start"
+	| "Stop"
+	| "PermissionRequest"
+	| "Attached"
+	| "Detached";
 
 export function mapEventType(
 	eventType: string | undefined,
@@ -7,15 +22,30 @@ export function mapEventType(
 		return null;
 	}
 	if (
-		eventType === "Start" ||
+		eventType === "Attached" ||
+		eventType === "attached" ||
 		eventType === "SessionStart" ||
+		eventType === "sessionStart" ||
+		eventType === "session_start"
+	) {
+		return "Attached";
+	}
+	if (
+		eventType === "Detached" ||
+		eventType === "detached" ||
+		eventType === "SessionEnd" ||
+		eventType === "sessionEnd" ||
+		eventType === "session_end"
+	) {
+		return "Detached";
+	}
+	if (
+		eventType === "Start" ||
 		eventType === "UserPromptSubmit" ||
 		eventType === "PostToolUse" ||
 		eventType === "PostToolUseFailure" ||
 		eventType === "BeforeAgent" ||
 		eventType === "AfterTool" ||
-		eventType === "sessionStart" ||
-		eventType === "session_start" ||
 		eventType === "userPromptSubmitted" ||
 		eventType === "user_prompt_submit" ||
 		eventType === "postToolUse" ||
@@ -41,8 +71,6 @@ export function mapEventType(
 		eventType === "stop" ||
 		eventType === "agent-turn-complete" ||
 		eventType === "AfterAgent" ||
-		eventType === "sessionEnd" ||
-		eventType === "session_end" ||
 		eventType === "task_complete"
 	) {
 		return "Stop";

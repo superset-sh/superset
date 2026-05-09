@@ -7,13 +7,7 @@ import { alert } from "@superset/ui/atoms/Alert";
 import { toast } from "@superset/ui/sonner";
 import { cn } from "@superset/ui/utils";
 import { workspaceTrpc } from "@superset/workspace-client";
-import {
-	Circle,
-	GitCompareArrows,
-	Globe,
-	MessageSquare,
-	TerminalSquare,
-} from "lucide-react";
+import { Circle, GitCompareArrows, Globe, MessageSquare } from "lucide-react";
 import { useMemo } from "react";
 import {
 	LuArrowDownToLine,
@@ -58,6 +52,7 @@ import { FilePane } from "./components/FilePane";
 import { FilePaneHeaderExtras } from "./components/FilePane/components/FilePaneHeaderExtras";
 import { TerminalPane } from "./components/TerminalPane";
 import { TerminalHeaderExtras } from "./components/TerminalPane/components/TerminalHeaderExtras";
+import { TerminalPaneIcon } from "./components/TerminalPane/components/TerminalPaneIcon";
 import { TerminalSessionDropdown } from "./components/TerminalPane/components/TerminalSessionDropdown";
 
 function getFileName(filePath: string): string {
@@ -241,7 +236,10 @@ export function usePaneRegistry({
 					),
 			},
 			terminal: {
-				getIcon: () => <TerminalSquare className="size-3.5" />,
+				getIcon: (ctx) => {
+					const { terminalId } = ctx.pane.data as TerminalPaneData;
+					return <TerminalPaneIcon terminalId={terminalId} />;
+				},
 				getTitle: () => "Terminal",
 				titleSource: (pane) => {
 					const { terminalId } = pane.data as TerminalPaneData;
