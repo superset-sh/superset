@@ -303,55 +303,40 @@ export function PresetEditorDialog({
 
 						<div className="space-y-3">
 							{isLinked ? (
-								<>
-									<Alert>
-										<AlertDescription className="flex items-center justify-between gap-3">
-											<span className="min-w-0 truncate">
-												Linked to{" "}
-												<span className="font-medium">
-													{linkedAgent?.label ?? linkedAgentId}
-												</span>
-												. Edit the command in Agents settings.
-											</span>
-											<Link
-												to="/settings/agents"
-												search={{ agent: linkedAgentId }}
-												className="shrink-0"
-												onClick={() => onOpenChange(false)}
-											>
-												<Button type="button" size="sm" variant="outline">
-													Open
-													<ExternalLink className="size-3.5" />
-												</Button>
-											</Link>
-										</AlertDescription>
-									</Alert>
-
-									<DialogRow
-										label="Command"
-										hint={
-											linkedAgent
-												? "Read-only — managed in Agents settings."
-												: "The linked agent is missing or disabled. Showing the snapshot."
-										}
-										stacked
-									>
-										<div className="min-w-0 rounded-md border border-border bg-muted/30 px-3 py-2 font-mono text-xs">
-											{liveCommands.length > 0 ? (
-												liveCommands.map((cmd) => (
-													<div
-														key={cmd}
-														className="break-all whitespace-pre-wrap text-foreground"
-													>
-														{cmd || "—"}
-													</div>
-												))
-											) : (
-												<div className="text-foreground">—</div>
-											)}
-										</div>
-									</DialogRow>
-								</>
+								<div className="py-2.5 space-y-2">
+									<div className="flex items-center justify-between gap-3">
+										<Label className="text-sm font-medium">Command</Label>
+										<Link
+											to="/settings/agents"
+											search={{ agent: linkedAgentId }}
+											onClick={() => onOpenChange(false)}
+											className="inline-flex shrink-0 items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+										>
+											Edit in {linkedAgent?.label ?? "agent settings"}
+											<ExternalLink className="size-3" />
+										</Link>
+									</div>
+									<div className="min-w-0 rounded-md border border-border bg-muted/30 px-3 py-2 font-mono text-xs">
+										{liveCommands.length > 0 ? (
+											liveCommands.map((cmd) => (
+												<div
+													key={cmd}
+													className="break-all whitespace-pre-wrap text-foreground"
+												>
+													{cmd || "—"}
+												</div>
+											))
+										) : (
+											<div className="text-foreground">—</div>
+										)}
+									</div>
+									{!linkedAgent && (
+										<p className="text-xs text-muted-foreground">
+											The linked agent is missing or disabled. Showing the
+											snapshot.
+										</p>
+									)}
+								</div>
 							) : (
 								<>
 									<DialogRow label="Name" htmlFor="preset-name">
