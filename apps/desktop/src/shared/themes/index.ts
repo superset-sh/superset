@@ -10,7 +10,13 @@ export {
 	monokaiTheme,
 } from "./built-in";
 export { getEditorTheme } from "./editor-theme";
-export { parseThemeConfigFile, type ThemeConfigParseResult } from "./import";
+export {
+	parseThemeConfigFile,
+	parseThemeConfigFiles,
+	type ThemeConfigFileInput,
+	type ThemeConfigFilesParseResult,
+	type ThemeConfigParseResult,
+} from "./import";
 export type {
 	EditorColors,
 	EditorSyntaxColors,

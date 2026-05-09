@@ -31,7 +31,7 @@ import {
 	darkTheme as defaultDarkTheme,
 	lightTheme as defaultLightTheme,
 	getTerminalColors,
-	parseThemeConfigFile,
+	parseThemeConfigFiles,
 	type Theme,
 } from "shared/themes";
 
@@ -214,25 +214,43 @@ export function ThemeSection() {
 		allThemes.find((t) => t.id === activeThemeId) ?? systemDarkTheme;
 
 	const handleImport = async (event: ChangeEvent<HTMLInputElement>) => {
-		const file = event.target.files?.[0];
+		const fileList = event.target.files;
 		event.target.value = "";
-		if (!file) return;
-		if (file.size > MAX_THEME_FILE_SIZE) {
-			toast.error("Theme file too large", {
-				description: "Maximum size is 256 KB.",
-			});
+		if (!fileList || fileList.length === 0) return;
+
+		const files = Array.from(fileList);
+		const oversized = files.filter((file) => file.size > MAX_THEME_FILE_SIZE);
+		if (oversized.length > 0) {
+			toast.error(
+				oversized.length === 1
+					? `"${oversized[0]?.name}" is too large`
+					: `${oversized.length} files are too large`,
+				{ description: "Maximum size per file is 256 KB." },
+			);
 			return;
 		}
 
 		setIsImporting(true);
 		try {
-			const content = await file.text();
-			const parsed = parseThemeConfigFile(content);
+			const inputs = await Promise.all(
+				files.map(async (file) => ({
+					name: file.name,
+					content: await file.text(),
+				})),
+			);
+			const parsed = parseThemeConfigFiles(inputs);
 
-			if (!parsed.ok) {
-				toast.error("Failed to import theme file", {
-					description: parsed.error,
-				});
+			if (parsed.themes.length === 0) {
+				const firstError =
+					parsed.fileErrors[0]?.error ??
+					parsed.issues[0] ??
+					"No importable themes found.";
+				toast.error(
+					files.length === 1
+						? "Failed to import theme file"
+						: "Failed to import theme files",
+					{ description: firstError },
+				);
 				return;
 			}
 
@@ -244,7 +262,7 @@ export function ThemeSection() {
 					description:
 						summary.skipped > 0
 							? "All themes used reserved IDs (built-in or system)."
-							: "The file did not contain any importable themes.",
+							: "The selected files did not contain any importable themes.",
 				});
 				return;
 			}
@@ -261,7 +279,15 @@ export function ThemeSection() {
 				},
 			);
 
-			if (parsed.issues.length > 0) {
+			if (parsed.fileErrors.length > 0) {
+				const first = parsed.fileErrors[0];
+				toast.warning(
+					parsed.fileErrors.length === 1
+						? `Skipped "${first?.name}"`
+						: `Skipped ${parsed.fileErrors.length} files`,
+					{ description: first?.error },
+				);
+			} else if (parsed.issues.length > 0) {
 				toast.warning("Some themes were skipped", {
 					description: parsed.issues[0],
 				});
@@ -371,6 +397,7 @@ export function ThemeSection() {
 						ref={fileInputRef}
 						type="file"
 						accept=".json,application/json"
+						multiple
 						className="hidden"
 						onChange={handleImport}
 					/>
