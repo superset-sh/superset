@@ -23,7 +23,7 @@ interface ParsedConfig {
 	teardown: string;
 }
 
-function parseConfigContent(content: string | null): ParsedConfig {
+export function parseConfigContent(content: string | null): ParsedConfig {
 	if (!content) return { setup: "", teardown: "" };
 	try {
 		const parsed = JSON.parse(content);
@@ -44,7 +44,7 @@ function parseConfigContent(content: string | null): ParsedConfig {
 	}
 }
 
-function toCommandsArray(value: string): string[] {
+export function toCommandsArray(value: string): string[] {
 	return value
 		.split("\n")
 		.map((line) => line.trim())

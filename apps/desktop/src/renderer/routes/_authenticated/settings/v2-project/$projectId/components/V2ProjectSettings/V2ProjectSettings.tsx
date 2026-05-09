@@ -87,7 +87,13 @@ export function V2ProjectSettings({ projectId }: V2ProjectSettingsProps) {
 						title="Scripts"
 						description="Runs in a terminal when workspaces are created or deleted. Saved to .superset/config.json in the main repo."
 					>
-						<V2ScriptsEditor hostUrl={activeHostUrl} projectId={projectId} />
+						{/* key={projectId} forces a remount on project switch so local
+						state and focus tracking don't leak between projects. */}
+						<V2ScriptsEditor
+							key={projectId}
+							hostUrl={activeHostUrl}
+							projectId={projectId}
+						/>
 					</SettingsSection>
 				)}
 
