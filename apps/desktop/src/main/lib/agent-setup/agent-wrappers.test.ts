@@ -202,7 +202,7 @@ describe("agent-wrappers copilot", () => {
 		expect(wrapper).toContain('_superset_emit_event "Start"');
 		expect(wrapper).toContain('_superset_emit_event "PermissionRequest"');
 		expect(wrapper).toContain(
-			`"$REAL_BIN" --enable codex_hooks -c 'notify=["bash","${path.join(TEST_HOOKS_DIR, "notify.sh")}"]' "$@"`,
+			`"$REAL_BIN" -c 'notify=["bash","${path.join(TEST_HOOKS_DIR, "notify.sh")}"]' "$@"`,
 		);
 		expect(wrapper).toContain("SUPERSET_CODEX_START_WATCHER_PID");
 		expect(wrapper).toContain('kill "$SUPERSET_CODEX_START_WATCHER_PID"');
@@ -214,7 +214,7 @@ describe("agent-wrappers copilot", () => {
 		expect(wrapper).toContain(execLine);
 	});
 
-	it("forwards codex_hooks enablement through the codex wrapper for manual launches", () => {
+	it("forwards notify configuration through the codex wrapper for manual launches", () => {
 		const realBinDir = path.join(TEST_ROOT, "real-bin");
 		const realCodex = path.join(realBinDir, "codex");
 		const wrapperPath = path.join(TEST_BIN_DIR, "codex");
@@ -244,8 +244,6 @@ exit 0
 
 		expect(readFileSync(argsFile, "utf-8")).toBe(
 			`${[
-				"--enable",
-				"codex_hooks",
 				"-c",
 				`notify=["bash","${path.join(TEST_HOOKS_DIR, "notify.sh")}"]`,
 				"exec",
