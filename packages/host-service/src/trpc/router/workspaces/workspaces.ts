@@ -17,7 +17,10 @@ import { protectedProcedure, router } from "../../index";
 import { type AgentRunResult, runAgentInWorkspace } from "../agents";
 import { ensureMainWorkspace } from "../project/utils/ensure-main-workspace";
 import { adoptExistingWorktree } from "../workspace-creation/shared/adopt-existing-worktree";
-import { listWorktreeBranches } from "../workspace-creation/shared/branch-search";
+import {
+	getWorktreeBranchAtPath,
+	listWorktreeBranches,
+} from "../workspace-creation/shared/branch-search";
 import { enablePushAutoSetupRemote } from "../workspace-creation/shared/git-config";
 import { requireLocalProject } from "../workspace-creation/shared/local-project";
 import { startSetupTerminalIfPresent } from "../workspace-creation/shared/setup-terminal";
@@ -65,9 +68,21 @@ const createInputSchema = z
 		taskId: z.string().uuid().optional(),
 		agents: z.array(agentLaunchSchema).optional(),
 		id: z.string().uuid().optional(),
+		// Path-driven adoption: skip the branch→path inference (and its
+		// `git worktree add` fallback) and adopt the worktree git already
+		// has at this path. Used by the adopt-existing-worktrees onboarding
+		// flow, which discovers the path via `git worktree list` and
+		// shouldn't re-resolve it. Bypasses the failure mode where the
+		// pre-check misses a worktree (race with `worktree prune`, path
+		// canonicalization edges, …) and falls through to a doomed `git
+		// worktree add` for a branch already checked out elsewhere.
+		worktreePath: z.string().min(1).optional(),
 	})
 	.refine((value) => !(value.branch && value.pr), {
 		message: "`branch` and `pr` cannot both be set",
+	})
+	.refine((value) => !(value.worktreePath && value.pr), {
+		message: "`worktreePath` and `pr` cannot both be set",
 	});
 
 type AgentLaunchResult =
@@ -707,6 +722,40 @@ export const workspacesRouter = router({
 						}
 					}
 				}
+			} else if (input.worktreePath) {
+				// Caller already located the worktree (e.g. adopt-existing-worktrees
+				// onboarding listing `git worktree list`) — adopt at that path
+				// directly. Skips the branch→path lookup that occasionally misses
+				// entries and would fall through to `git worktree add` for a
+				// branch that's already checked out elsewhere. Reads back the
+				// actual checked-out branch so a stale typed branch doesn't
+				// mis-target.
+				const actualBranch = await getWorktreeBranchAtPath(
+					git,
+					input.worktreePath,
+				);
+				if (!actualBranch) {
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: `No git worktree registered at "${input.worktreePath}"`,
+					});
+				}
+				resolvedBranch = actualBranch;
+				worktreePath = input.worktreePath;
+				const result = await adoptExistingWorktree({
+					ctx,
+					git,
+					projectId: input.projectId,
+					branch: resolvedBranch,
+					worktreePath,
+					workspaceName: input.name ?? resolvedBranch,
+					baseBranch: input.baseBranch,
+					idempotencyId: input.id,
+					taskId: input.taskId,
+					hostPromise,
+				});
+				workspaceRow = result.workspace;
+				alreadyExists = result.alreadyExists;
 			} else {
 				const typedBranch = input.branch?.trim();
 				let plan: BranchSourcePlan;
