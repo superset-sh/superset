@@ -1,3 +1,4 @@
+import type { LinkSharedEvent, SlackEvent } from "@slack/types";
 import { Client } from "@upstash/qstash";
 
 import { env } from "@/env";
@@ -7,6 +8,27 @@ import { processEntityDetails } from "./process-entity-details";
 import { processLinkShared } from "./process-link-shared";
 
 const qstash = new Client({ token: env.QSTASH_TOKEN });
+
+type SlackEventEnvelope = {
+	type?: string;
+	challenge?: string;
+	team_id?: string;
+	event_id?: string;
+	event?: SlackEvent | null;
+};
+
+type SlackMessageEvent = {
+	type: "message";
+	channel_type?: string;
+	bot_id?: string;
+	subtype?: string;
+	user?: string;
+};
+
+type EntityDetailsRequestedEvent = Extract<
+	SlackEvent,
+	{ type: "entity_details_requested" }
+>;
 
 export async function POST(request: Request) {
 	const body = await request.text();
@@ -25,11 +47,9 @@ export async function POST(request: Request) {
 		return Response.json({ error: "Invalid signature" }, { status: 401 });
 	}
 
-	// biome-ignore lint/suspicious/noExplicitAny: Slack payload shape varies by event type
-	let payload: any;
-	try {
-		payload = JSON.parse(body);
-	} catch {
+	const payload = parseJson<SlackEventEnvelope>(body);
+	if (payload === undefined) {
+		console.error("[slack/events] Failed to parse JSON payload");
 		return Response.json({ error: "Invalid JSON payload" }, { status: 400 });
 	}
 
@@ -40,6 +60,10 @@ export async function POST(request: Request) {
 
 	if (payload.type === "event_callback") {
 		const { event, team_id, event_id } = payload;
+		if (!event || typeof event.type !== "string" || !team_id || !event_id) {
+			console.error("[slack/events] Invalid event payload shape");
+			return Response.json({ error: "Invalid payload shape" }, { status: 400 });
+		}
 
 		if (event.type === "app_mention") {
 			try {
@@ -57,9 +81,18 @@ export async function POST(request: Request) {
 			}
 		}
 
-		if (event.type === "message" && event.channel_type === "im") {
+		if (event.type === "message") {
+			const messageEvent = event as SlackMessageEvent;
+			if (messageEvent.channel_type !== "im") {
+				return new Response("ok", { status: 200 });
+			}
+
 			// Skip bot messages to prevent infinite loops
-			if (event.bot_id || event.subtype === "bot_message" || !event.user) {
+			if (
+				messageEvent.bot_id ||
+				messageEvent.subtype === "bot_message" ||
+				!messageEvent.user
+			) {
 				return new Response("ok", { status: 200 });
 			}
 
@@ -67,7 +100,7 @@ export async function POST(request: Request) {
 				await qstash.publishJSON({
 					url: `${env.NEXT_PUBLIC_API_URL}/api/integrations/slack/jobs/process-assistant-message`,
 					body: {
-						event,
+						event: messageEvent,
 						teamId: team_id,
 						eventId: event_id,
 					},
@@ -83,7 +116,7 @@ export async function POST(request: Request) {
 
 		if (event.type === "link_shared") {
 			processLinkShared({
-				event,
+				event: event as LinkSharedEvent,
 				teamId: team_id,
 				eventId: event_id,
 			}).catch((err: unknown) => {
@@ -93,7 +126,7 @@ export async function POST(request: Request) {
 
 		if (event.type === "entity_details_requested") {
 			processEntityDetails({
-				event,
+				event: event as EntityDetailsRequestedEvent,
 				teamId: team_id,
 				eventId: event_id,
 			}).catch((err: unknown) => {
@@ -102,8 +135,17 @@ export async function POST(request: Request) {
 		}
 
 		if (event.type === "app_home_opened") {
+			const appHomeEvent = event as { user?: string; tab?: string };
+			if (!appHomeEvent.user || !appHomeEvent.tab) {
+				console.error("[slack/events] Invalid app home opened payload shape");
+				return Response.json(
+					{ error: "Invalid payload shape" },
+					{ status: 400 },
+				);
+			}
+
 			processAppHomeOpened({
-				event,
+				event: { user: appHomeEvent.user, tab: appHomeEvent.tab },
 				teamId: team_id,
 				eventId: event_id,
 			}).catch((err: unknown) => {
@@ -114,4 +156,12 @@ export async function POST(request: Request) {
 
 	// Slack requires 200 within 3s regardless of event type
 	return new Response("ok", { status: 200 });
+}
+
+function parseJson<T>(s: string): T | undefined {
+	try {
+		return JSON.parse(s) as T;
+	} catch {
+		return undefined;
+	}
 }
