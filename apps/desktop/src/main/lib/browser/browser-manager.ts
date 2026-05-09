@@ -1,6 +1,7 @@
 import { EventEmitter } from "node:events";
 import { clipboard, Menu, webContents } from "electron";
 import { safeOpenExternal } from "main/lib/safe-url";
+import { decideWindowOpen } from "./decide-window-open";
 
 interface ConsoleEntry {
 	level: "log" | "warn" | "error" | "info" | "debug";
@@ -47,9 +48,12 @@ class BrowserManager extends EventEmitter {
 			// Keep throttling enabled so parked/offscreen persistent webviews don't
 			// run at full speed in the background.
 			wc.setBackgroundThrottling(true);
-			wc.setWindowOpenHandler(({ url }) => {
-				if (url && url !== "about:blank") {
-					this.emit(`new-window:${paneId}`, url);
+			wc.setWindowOpenHandler(({ url, disposition }) => {
+				const decision = decideWindowOpen(url, disposition);
+				if (decision.kind === "external") {
+					void safeOpenExternal(decision.url);
+				} else if (decision.kind === "in-app") {
+					this.emit(`new-window:${paneId}`, decision.url);
 				}
 				return { action: "deny" as const };
 			});
