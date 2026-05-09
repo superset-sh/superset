@@ -1,3 +1,4 @@
+import type { HostAgentConfig } from "@superset/host-service/settings";
 import { normalizeExecutionMode } from "@superset/local-db";
 import { Badge } from "@superset/ui/badge";
 import { cn } from "@superset/ui/utils";
@@ -6,10 +7,8 @@ import { useEffect, useRef } from "react";
 import { useDrag, useDrop } from "react-dnd";
 import { HiMiniCommandLine } from "react-icons/hi2";
 import { LuGripVertical } from "react-icons/lu";
-import {
-	getPresetIcon,
-	useIsDarkTheme,
-} from "renderer/assets/app-icons/preset-icons";
+import { useIsDarkTheme } from "renderer/assets/app-icons/preset-icons";
+import { resolveV2PresetIcon } from "renderer/lib/preset-icon";
 import type { TerminalPreset } from "renderer/routes/_authenticated/settings/presets/types";
 import {
 	getPresetProjectTargetLabel,
@@ -26,6 +25,13 @@ interface PresetRowProps {
 	preset: TerminalPreset;
 	rowIndex: number;
 	projectOptionsById: ReadonlyMap<string, PresetProjectOption>;
+	/**
+	 * v2 host-agent configs. When the preset's `agentId` matches a config,
+	 * its `presetId` (e.g. `"cursor-agent"`) is used to resolve the icon.
+	 * Older v2 rows that still store `presetId` in `agentId` resolve via the
+	 * `presetId` fallback. Omitted by v1 callers — no v1 row has `agentId`.
+	 */
+	agents?: HostAgentConfig[];
 	onEdit: (presetId: string) => void;
 	onLocalReorder: (fromIndex: number, toIndex: number) => void;
 	onPersistReorder: (presetId: string, targetIndex: number) => void;
@@ -36,6 +42,7 @@ export function PresetRow({
 	preset,
 	rowIndex,
 	projectOptionsById,
+	agents,
 	onEdit,
 	onLocalReorder,
 	onPersistReorder,
@@ -76,13 +83,11 @@ export function PresetRow({
 	}, [preview, drop, drag]);
 
 	const isDark = useIsDarkTheme();
-	const presetAgentId = (preset as PresetWithAgent).agentId;
-	// Try the preset's display name first (covers v1 builtins named after the
-	// agent and any user preset named "Claude"). Fall back to the linked
-	// agent id for v2 presets imported via the Import-agent dropdown.
-	const presetIcon =
-		getPresetIcon(preset.name, isDark) ??
-		(presetAgentId ? getPresetIcon(presetAgentId, isDark) : undefined);
+	const presetIcon = resolveV2PresetIcon(
+		preset as PresetWithAgent,
+		agents,
+		isDark,
+	);
 
 	const isWorkspaceCreation = !!preset.applyOnWorkspaceCreated;
 	const isNewTab = !!preset.applyOnNewTab;

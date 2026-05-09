@@ -43,9 +43,21 @@ export function V2AgentsSettings({
 	const queryClient = useQueryClient();
 
 	const configsQuery = useV2AgentConfigs(activeHostUrl);
+	const queryKey = [...QUERY_KEY, activeHostUrl] as const;
+	const queryFamily = { queryKey: QUERY_KEY };
 
-	const invalidate = () =>
-		queryClient.invalidateQueries({ queryKey: [...QUERY_KEY, activeHostUrl] });
+	const invalidate = () => {
+		void queryClient.invalidateQueries(queryFamily);
+		void queryClient.refetchQueries(queryFamily);
+	};
+
+	const updateCachedConfig = (updated: HostAgentConfig) => {
+		queryClient.setQueriesData<HostAgentConfig[]>(queryFamily, (current) =>
+			current?.map((config) =>
+				config.id === updated.id ? { ...config, ...updated } : config,
+			),
+		);
+	};
 
 	const addMutation = useMutation({
 		mutationFn: (preset: HostAgentPreset) => {
@@ -74,10 +86,7 @@ export function V2AgentsSettings({
 			await queryClient.cancelQueries({
 				queryKey: [...QUERY_KEY, activeHostUrl],
 			});
-			const previous = queryClient.getQueryData<HostAgentConfig[]>([
-				...QUERY_KEY,
-				activeHostUrl,
-			]);
+			const previous = queryClient.getQueryData<HostAgentConfig[]>(queryKey);
 			if (previous) {
 				const byId = new Map(previous.map((row) => [row.id, row]));
 				const next = ids
@@ -86,13 +95,13 @@ export function V2AgentsSettings({
 						return row ? { ...row, order: index } : null;
 					})
 					.filter((row): row is HostAgentConfig => row !== null);
-				queryClient.setQueryData([...QUERY_KEY, activeHostUrl], next);
+				queryClient.setQueryData(queryKey, next);
 			}
 			return { previous };
 		},
 		onError: (err, _ids, ctx) => {
 			if (ctx?.previous) {
-				queryClient.setQueryData([...QUERY_KEY, activeHostUrl], ctx.previous);
+				queryClient.setQueryData(queryKey, ctx.previous);
 			}
 			toast.error(err instanceof Error ? err.message : "Failed to reorder");
 		},
@@ -183,7 +192,10 @@ export function V2AgentsSettings({
 							DESCRIPTION_BY_PRESET_ID.get(selectedAgent.presetId) ??
 							"Terminal agent launch configuration"
 						}
-						onChanged={invalidate}
+						onChanged={(updated) => {
+							updateCachedConfig(updated);
+							invalidate();
+						}}
 						onDeleted={() => {
 							setSelectedAgentId(null);
 							invalidate();

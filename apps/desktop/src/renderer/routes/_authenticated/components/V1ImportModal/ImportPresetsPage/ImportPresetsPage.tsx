@@ -7,9 +7,11 @@ import {
 import { useLiveQuery } from "@tanstack/react-db";
 import { useMemo, useState } from "react";
 import { LuTerminal } from "react-icons/lu";
+import { useV2AgentConfigs } from "renderer/hooks/useV2AgentConfigs";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import type { V2TerminalPresetRow } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
+import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { ImportPageShell } from "../components/ImportPageShell";
 import { ImportRow, type RowAction } from "../components/ImportRow";
 
@@ -23,6 +25,8 @@ export function ImportPresetsPage({ organizationId }: ImportPresetsPageProps) {
 	const collections = useCollections();
 	const presetsQuery = electronTrpc.settings.getTerminalPresets.useQuery();
 	const [isRefreshing, setIsRefreshing] = useState(false);
+	const { activeHostUrl } = useLocalHostService();
+	const { data: agents = [] } = useV2AgentConfigs(activeHostUrl);
 
 	const { data: v2Presets = [] } = useLiveQuery(
 		(query) => query.from({ v2TerminalPresets: collections.v2TerminalPresets }),
@@ -40,6 +44,20 @@ export function ImportPresetsPage({ organizationId }: ImportPresetsPageProps) {
 
 	const isLoading = presetsQuery.isPending;
 	const presets = presetsQuery.data ?? [];
+	const agentConfigIdByPresetId = useMemo(() => {
+		const map = new Map<AgentType, string>();
+		for (const agent of agents) {
+			if (!BUILTIN_AGENT_IDS.has(agent.presetId)) {
+				continue;
+			}
+			const presetId = agent.presetId as AgentType;
+			if (map.has(presetId)) {
+				continue;
+			}
+			map.set(presetId, agent.id);
+		}
+		return map;
+	}, [agents]);
 
 	const refresh = async () => {
 		setIsRefreshing(true);
@@ -61,14 +79,18 @@ export function ImportPresetsPage({ organizationId }: ImportPresetsPageProps) {
 			isRefreshing={isRefreshing}
 		>
 			{presets.map((preset, index) => {
-				const linkedAgentId = BUILTIN_AGENT_IDS.has(preset.name)
+				const builtInAgentId = BUILTIN_AGENT_IDS.has(preset.name)
 					? (preset.name as AgentType)
 					: undefined;
-				const v2Name = linkedAgentId
-					? AGENT_LABELS[linkedAgentId]
+				const linkedAgentId = builtInAgentId
+					? (agentConfigIdByPresetId.get(builtInAgentId) ?? builtInAgentId)
+					: undefined;
+				const v2Name = builtInAgentId
+					? AGENT_LABELS[builtInAgentId]
 					: preset.name;
 				const alreadyImported = linkedAgentId
-					? importedAgentIds.has(linkedAgentId)
+					? importedAgentIds.has(linkedAgentId) ||
+						(!!builtInAgentId && importedAgentIds.has(builtInAgentId))
 					: importedNames.has(v2Name);
 				return (
 					<PresetRow
@@ -89,7 +111,7 @@ export function ImportPresetsPage({ organizationId }: ImportPresetsPageProps) {
 interface PresetRowProps {
 	preset: TerminalPreset;
 	tabOrder: number;
-	linkedAgentId: AgentType | undefined;
+	linkedAgentId: string | undefined;
 	v2Name: string;
 	alreadyImported: boolean;
 	organizationId: string;
