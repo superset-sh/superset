@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { env } from "shared/env.shared";
 import {
 	buildWrapperScript,
 	createWrapper,
@@ -25,7 +26,9 @@ export function getCopilotHookScriptPath(): string {
 
 export function getCopilotHookScriptContent(): string {
 	const template = fs.readFileSync(COPILOT_HOOK_TEMPLATE_PATH, "utf-8");
-	return template.replace("{{MARKER}}", COPILOT_HOOK_MARKER);
+	return template
+		.replace("{{MARKER}}", COPILOT_HOOK_MARKER)
+		.replaceAll("{{DEFAULT_PORT}}", String(env.DESKTOP_NOTIFICATIONS_PORT));
 }
 
 export function createCopilotHookScript(): void {

@@ -40,7 +40,9 @@ export function HostNotificationSubscriber({
 
 	const handleAgentLifecycle = useEffectEvent(
 		(workspaceId: string, payload: AgentLifecyclePayload) => {
-			if (payload.agent) {
+			if (payload.eventType === "Detached") {
+				useV2AgentBindingStore.getState().clearBinding(payload.terminalId);
+			} else if (payload.agent) {
 				useV2AgentBindingStore
 					.getState()
 					.setBinding(payload.terminalId, payload.agent, payload.occurredAt);

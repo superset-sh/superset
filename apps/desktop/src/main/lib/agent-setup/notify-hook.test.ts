@@ -11,10 +11,10 @@ describe("getNotifyScriptContent", () => {
 
 		expect(script).toContain('HOOK_SESSION_ID=$(echo "$INPUT"');
 		expect(script).toContain(
-			'PAYLOAD="{\\"json\\":{\\"terminalId\\":\\"$(json_escape "$SUPERSET_TERMINAL_ID")\\",\\"eventType\\":\\"$(json_escape "$EVENT_TYPE")\\",\\"agent\\":{\\"agentId\\":\\"$(json_escape "$SUPERSET_AGENT_ID")\\",\\"sessionId\\":\\"$(json_escape "$HOOK_SESSION_ID")\\"}}}"',
+			'PAYLOAD="{\\"json\\":{\\"terminalId\\":\\"$(json_escape "$SUPERSET_TERMINAL_ID")\\",\\"eventType\\":\\"$(json_escape "$EVENT_TYPE")\\",\\"agent\\":{\\"agentId\\":\\"$(json_escape "$SUPERSET_AGENT_ID")\\",\\"sessionId\\":\\"$(json_escape "$SESSION_ID")\\"}}}"',
 		);
 		expect(script).toContain(
-			"event=$EVENT_TYPE terminalId=$SUPERSET_TERMINAL_ID agentId=$SUPERSET_AGENT_ID hookSessionId=$HOOK_SESSION_ID workspaceId=$SUPERSET_WORKSPACE_ID",
+			"event=$EVENT_TYPE terminalId=$SUPERSET_TERMINAL_ID agentId=$SUPERSET_AGENT_ID hookSessionId=$HOOK_SESSION_ID resourceId=$RESOURCE_ID paneId=$SUPERSET_PANE_ID tabId=$SUPERSET_TAB_ID workspaceId=$SUPERSET_WORKSPACE_ID",
 		);
 	});
 
@@ -25,25 +25,25 @@ describe("getNotifyScriptContent", () => {
 		);
 
 		expect(script).toContain(
-			'curl -sX POST "$SUPERSET_HOST_AGENT_HOOK_URL" \\\n  --connect-timeout 2 --max-time 5',
+			'curl -sX POST "$SUPERSET_HOST_AGENT_HOOK_URL" \\\n    --connect-timeout 2 --max-time 5',
 		);
 	});
 
-	it("exits early outside a v2 Superset terminal", () => {
+	it("falls back to the v1 Electron hook when v2 is unavailable", () => {
 		const script = readFileSync(
 			path.join(import.meta.dir, "templates", "notify-hook.template.sh"),
 			"utf-8",
 		);
 
-		expect(script).toContain('[ -z "$SUPERSET_TERMINAL_ID" ] && exit 0');
 		expect(script).toContain(
-			'[ -z "$SUPERSET_HOST_AGENT_HOOK_URL" ] && exit 0',
+			'if [ -n "$SUPERSET_HOST_AGENT_HOOK_URL" ] && [ -n "$SUPERSET_TERMINAL_ID" ]; then',
 		);
-		// No v1 fallback path should remain — no /hook/complete, no SUPERSET_TAB_ID,
-		// no SUPERSET_PANE_ID. v1 is sunset.
-		expect(script).not.toContain("/hook/complete");
-		expect(script).not.toContain("SUPERSET_TAB_ID");
-		expect(script).not.toContain("SUPERSET_PANE_ID");
+		expect(script).toContain(
+			'[ -z "$SUPERSET_TAB_ID" ] && [ -z "$SESSION_ID" ] && exit 0',
+		);
+		expect(script).toContain("/hook/complete");
+		expect(script).toContain("SUPERSET_TAB_ID");
+		expect(script).toContain("SUPERSET_PANE_ID");
 	});
 });
 
@@ -56,17 +56,19 @@ describe("per-agent hook scripts dispatch to v2", () => {
 		"copilot-hook.template.sh",
 		"gemini-hook.template.sh",
 	]) {
-		it(`${template} posts the v2 agent identity payload and has no v1 fallback`, () => {
+		it(`${template} posts v2 first and falls back to v1`, () => {
 			const script = readFileSync(
 				path.join(import.meta.dir, "templates", template),
 				"utf-8",
 			);
 			expect(script).toContain(expectedV2Payload);
 			expect(script).toContain('curl -sX POST "$SUPERSET_HOST_AGENT_HOOK_URL"');
-			expect(script).toContain('[ -z "$SUPERSET_TERMINAL_ID" ] && exit 0');
-			expect(script).not.toContain("/hook/complete");
-			expect(script).not.toContain("SUPERSET_TAB_ID");
-			expect(script).not.toContain("SUPERSET_PANE_ID");
+			expect(script).toContain(
+				'if [ -n "$SUPERSET_HOST_AGENT_HOOK_URL" ] && [ -n "$SUPERSET_TERMINAL_ID" ]; then',
+			);
+			expect(script).toContain("/hook/complete");
+			expect(script).toContain("SUPERSET_TAB_ID");
+			expect(script).toContain("SUPERSET_PANE_ID");
 		});
 	}
 });

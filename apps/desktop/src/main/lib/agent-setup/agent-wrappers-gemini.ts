@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { env } from "shared/env.shared";
 import {
 	buildWrapperScript,
 	createWrapper,
@@ -49,7 +50,9 @@ export function getGeminiSettingsJsonPath(): string {
 
 export function getGeminiHookScriptContent(): string {
 	const template = fs.readFileSync(GEMINI_HOOK_TEMPLATE_PATH, "utf-8");
-	return template.replace("{{MARKER}}", GEMINI_HOOK_MARKER);
+	return template
+		.replace("{{MARKER}}", GEMINI_HOOK_MARKER)
+		.replaceAll("{{DEFAULT_PORT}}", String(env.DESKTOP_NOTIFICATIONS_PORT));
 }
 
 /**
