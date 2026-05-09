@@ -13,6 +13,7 @@ import { ResourceConsumption } from "./components/ResourceConsumption";
 import { RightSidebarToggle } from "./components/RightSidebarToggle";
 import { SearchBarTrigger } from "./components/SearchBarTrigger";
 import { V2WorkspaceOpenInButton } from "./components/V2WorkspaceOpenInButton";
+import { V2WorkspaceTitle } from "./components/V2WorkspaceTitle";
 import { WindowControls } from "./components/WindowControls";
 
 export function TopBar() {
@@ -57,6 +58,12 @@ export function TopBar() {
 					</>
 				)}
 				{!isV2CloudEnabled && <ResourceConsumption />}
+			</div>
+
+			<div className="flex min-w-0 flex-1 items-center justify-start">
+				{isV2WorkspaceRoute && v2WorkspaceId && (
+					<V2WorkspaceTitle workspaceId={v2WorkspaceId} />
+				)}
 			</div>
 
 			{!isV2WorkspaceRoute && workspaceId && (
