@@ -51,6 +51,7 @@ export {
 	getDroidSettingsJsonContent,
 	getDroidSettingsJsonPath,
 } from "./agent-wrappers-droid";
+export { createForgeWrapper } from "./agent-wrappers-forge";
 export {
 	createGeminiHookScript,
 	createGeminiSettingsJson,
