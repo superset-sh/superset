@@ -37,9 +37,12 @@ export async function getIgnoredEntries(
 			resolve(value);
 		};
 
+		// `-z` switches both stdin and stdout to NUL-terminated paths,
+		// preserving filenames with leading/trailing spaces or other
+		// characters that line-based parsing would mangle.
 		const child = spawn(
 			"git",
-			["-C", dirAbsolutePath, "check-ignore", "--stdin"],
+			["-C", dirAbsolutePath, "check-ignore", "-z", "--stdin"],
 			{
 				env,
 				windowsHide: true,
@@ -74,10 +77,7 @@ export async function getIgnoredEntries(
 			//   1  — no paths matched
 			//  128 — fatal (e.g. not a git repository)
 			if (code === 0) {
-				const matched = stdout
-					.split("\n")
-					.map((line) => line.trim())
-					.filter(Boolean);
+				const matched = stdout.split("\0").filter(Boolean);
 				settle(new Set(matched));
 				return;
 			}
@@ -86,7 +86,7 @@ export async function getIgnoredEntries(
 
 		for (const name of names) {
 			if (!child.stdin.writable) break;
-			child.stdin.write(`${name}\n`);
+			child.stdin.write(`${name}\0`);
 		}
 		child.stdin.end();
 	});

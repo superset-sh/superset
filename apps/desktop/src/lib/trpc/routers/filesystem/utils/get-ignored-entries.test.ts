@@ -77,6 +77,19 @@ describe("getIgnoredEntries", () => {
 		expect(result.size).toBe(0);
 	});
 
+	test("preserves filenames with leading whitespace", async () => {
+		const repo = makeRepo("space-names");
+		// gitignore strips trailing whitespace from patterns unless escaped,
+		// so we only assert leading-space round-trip via NUL-delimited I/O.
+		writeFileSync(join(repo, ".gitignore"), " spaced.log\n");
+		writeFileSync(join(repo, " spaced.log"), "");
+		writeFileSync(join(repo, "normal.log"), "");
+
+		const result = await getIgnoredEntries(repo, [" spaced.log", "normal.log"]);
+		expect(result.has(" spaced.log")).toBe(true);
+		expect(result.has("normal.log")).toBe(false);
+	});
+
 	test("respects nested .gitignore files", async () => {
 		const repo = makeRepo("nested-gitignore");
 		writeFileSync(join(repo, ".gitignore"), "*.tmp\n");
