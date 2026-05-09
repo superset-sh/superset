@@ -80,9 +80,9 @@ export const BUILTIN_TERMINAL_AGENTS = [
 		description:
 			"OpenAI's coding agent for reading, modifying, and running code across tasks.",
 		command:
-			'codex -c model_reasoning_effort="high" -c model_reasoning_summary="detailed" -c model_supports_reasoning_summaries=true --sandbox workspace-write --ask-for-approval never',
+			'codex -c model_reasoning_effort="high" --dangerously-bypass-approvals-and-sandbox -c model_reasoning_summary="detailed" -c model_supports_reasoning_summaries=true',
 		promptCommand:
-			'codex -c model_reasoning_effort="high" -c model_reasoning_summary="detailed" -c model_supports_reasoning_summaries=true --sandbox workspace-write --ask-for-approval never --',
+			'codex -c model_reasoning_effort="high" --dangerously-bypass-approvals-and-sandbox -c model_reasoning_summary="detailed" -c model_supports_reasoning_summaries=true --',
 		includeInDefaultTerminalPresets: true,
 	}),
 	createBuiltinTerminalAgent({
