@@ -5,6 +5,7 @@ import {
 	DropdownMenuShortcut,
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
+import { OverflowFadeText } from "@superset/ui/overflow-fade-text";
 import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
@@ -108,13 +109,13 @@ export function V2OpenInMenuButton({
 							/>
 						)}
 						{branch && (
-							<span className="hidden lg:inline text-muted-foreground truncate max-w-[140px] tabular-nums">
+							<OverflowFadeText
+								className="hidden lg:inline-block max-w-[140px] text-muted-foreground tabular-nums"
+								title={branch}
+							>
 								/{branch}
-							</span>
+							</OverflowFadeText>
 						)}
-						<span className="hidden sm:inline text-foreground font-medium">
-							Open
-						</span>
 					</button>
 				</TooltipTrigger>
 				<TooltipContent side="bottom" sideOffset={6}>

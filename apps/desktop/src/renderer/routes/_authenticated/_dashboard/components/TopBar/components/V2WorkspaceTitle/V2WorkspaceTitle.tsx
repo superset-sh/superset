@@ -1,7 +1,7 @@
 import { OverflowFadeText } from "@superset/ui/overflow-fade-text";
 import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
-import { GitBranch } from "lucide-react";
+import { ChevronRight, GitBranch } from "lucide-react";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useWorkspaceCreatesStore } from "renderer/stores/workspace-creates";
 
@@ -42,26 +42,22 @@ export function V2WorkspaceTitle({ workspaceId }: V2WorkspaceTitleProps) {
 	}
 
 	return (
-		<div className="flex min-w-0 max-w-full items-center gap-1.5">
+		<div className="flex min-w-0 max-w-full items-center gap-1.5 text-[13px] tracking-tight">
 			{name && (
-				<OverflowFadeText
-					className="text-[13px] font-medium text-foreground tracking-tight"
-					title={name}
-				>
+				<OverflowFadeText className="font-medium text-foreground" title={name}>
 					{name}
 				</OverflowFadeText>
 			)}
 			{name && branch && (
-				<span
-					className="shrink-0 text-muted-foreground/50 text-xs select-none"
+				<ChevronRight
+					className="size-3 shrink-0 text-muted-foreground/40"
+					strokeWidth={2}
 					aria-hidden="true"
-				>
-					/
-				</span>
+				/>
 			)}
 			{branch && (
 				<span
-					className="flex min-w-0 items-center gap-1 rounded-md bg-muted/60 px-1.5 py-0.5 text-muted-foreground ring-1 ring-inset ring-border/50"
+					className="flex min-w-0 items-center gap-1 text-muted-foreground"
 					title={branch}
 				>
 					<GitBranch
@@ -69,9 +65,7 @@ export function V2WorkspaceTitle({ workspaceId }: V2WorkspaceTitleProps) {
 						strokeWidth={2}
 						aria-hidden="true"
 					/>
-					<OverflowFadeText className="font-mono text-[11px] leading-none tracking-tight">
-						{branch}
-					</OverflowFadeText>
+					<OverflowFadeText>{branch}</OverflowFadeText>
 				</span>
 			)}
 		</div>
