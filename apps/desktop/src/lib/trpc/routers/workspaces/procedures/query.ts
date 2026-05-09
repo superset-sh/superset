@@ -344,9 +344,14 @@ export const createQueryProcedures = () => {
 					projectId: project.id,
 				});
 
-				return {
-					commands: config?.run ?? [],
-				};
+				const commands = Array.isArray(config?.run)
+					? config.run.filter(
+							(s): s is string =>
+								typeof s === "string" && s.trim().length > 0,
+						)
+					: [];
+
+				return { commands };
 			}),
 	});
 };
