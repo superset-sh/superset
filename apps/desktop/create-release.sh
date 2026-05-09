@@ -92,7 +92,7 @@ bump_host_service_patch() {
     local repo_root="$1"
     local pkg="${repo_root}/packages/host-service/package.json"
     local current new tmp
-    current=$(node -p "require('${pkg}').version")
+    current=$(jq -r .version "${pkg}")
     new=$(increment_patch "${current}")
     tmp=$(mktemp)
     jq ".version = \"${new}\"" "${pkg}" > "${tmp}" && mv "${tmp}" "${pkg}"
@@ -318,7 +318,7 @@ if [ -n "$COMMIT_INPUT" ]; then
         TMP_FILE=$(mktemp)
         jq ".version = \"${VERSION}\"" "${DESKTOP_DIR}/package.json" > "${TMP_FILE}" && mv "${TMP_FILE}" "${DESKTOP_DIR}/package.json"
         bunx biome format --write "${DESKTOP_DIR}/package.json"
-        HOST_SERVICE_OLD=$(node -p "require('./packages/host-service/package.json').version")
+        HOST_SERVICE_OLD=$(jq -r .version "packages/host-service/package.json")
         HOST_SERVICE_NEW=$(bump_host_service_patch "${WORKTREE_DIR}")
         git add "${DESKTOP_DIR}/package.json" "packages/host-service/package.json"
         git commit -m "chore(desktop): bump version to ${VERSION} (host-service ${HOST_SERVICE_OLD} -> ${HOST_SERVICE_NEW})"
@@ -355,7 +355,7 @@ else
         # Patch-bump host-service alongside the desktop bump so detached
         # host-service auto-updates ship with each desktop release.
         REPO_ROOT_FOR_HS=$(git rev-parse --show-toplevel)
-        HOST_SERVICE_OLD=$(node -p "require('${REPO_ROOT_FOR_HS}/packages/host-service/package.json').version")
+        HOST_SERVICE_OLD=$(jq -r .version "${REPO_ROOT_FOR_HS}/packages/host-service/package.json")
         HOST_SERVICE_NEW=$(bump_host_service_patch "${REPO_ROOT_FOR_HS}")
         success "Updated host-service from ${HOST_SERVICE_OLD} to ${HOST_SERVICE_NEW}"
 
