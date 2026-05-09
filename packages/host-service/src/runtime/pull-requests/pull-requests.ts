@@ -6,8 +6,14 @@ import type { HostDb } from "../../db";
 import { projects, pullRequests, workspaces } from "../../db/schema";
 import type { GitWatcher } from "../../events/git-watcher";
 import type { GitFactory } from "../git";
-import { fetchRepositoryPullRequests } from "./utils/github-query";
-import type { GraphQLPullRequestNode } from "./utils/github-query/types";
+import {
+	fetchPullRequestChecks,
+	fetchRepositoryPullRequests,
+} from "./utils/github-query";
+import type {
+	GraphQLCheckContextNode,
+	GraphQLPullRequestNode,
+} from "./utils/github-query/types";
 import {
 	type ChecksStatus,
 	coerceChecksStatus,
@@ -864,6 +870,36 @@ export class PullRequestRuntimeManager {
 		return promise;
 	}
 
+	private async fetchChecksForMatchedPullRequests(
+		repo: NormalizedRepoIdentity,
+		matched: Array<[string, GraphQLPullRequestNode]>,
+	): Promise<Map<string, GraphQLCheckContextNode[]>> {
+		const result = new Map<string, GraphQLCheckContextNode[]>();
+		if (matched.length === 0) return result;
+
+		const octokit = await this.github();
+		// Failures here keep the existing checks row (whatever was last seen)
+		// rather than dropping the whole project refresh, since the PR-list
+		// portion already succeeded.
+		const settled = await Promise.allSettled(
+			matched.map(([key, node]) =>
+				fetchPullRequestChecks(octokit, {
+					owner: repo.owner,
+					name: repo.name,
+					number: node.number,
+				}).then((contexts) => [key, contexts] as const),
+			),
+		);
+
+		for (const entry of settled) {
+			if (entry.status === "fulfilled") {
+				const [key, contexts] = entry.value;
+				result.set(key, contexts);
+			}
+		}
+		return result;
+	}
+
 	private async fetchRepoPullRequests(
 		projectId: string,
 		repo: NormalizedRepoIdentity,
@@ -896,11 +932,27 @@ export class PullRequestRuntimeManager {
 		const keyToRow = new Map<string, { id: string }>();
 		const now = Date.now();
 
-		for (const [key, node] of latestByKey) {
+		// Fetch checks per matched PR rather than materializing them across
+		// the whole PR backlog in the list query — that combined request was
+		// what was timing out (504) on large repos. Matched PRs are bounded
+		// by the number of workspaces, so this stays small.
+		const matched = [...latestByKey.entries()];
+		const checkContextsByKey = await this.fetchChecksForMatchedPullRequests(
+			repo,
+			matched,
+		);
+
+		for (const [key, node] of matched) {
 			const existing = this.findPullRequestRow(repo, node.number);
-			const checks = parseCheckContexts(
-				node.statusCheckRollup?.contexts?.nodes ?? [],
-			);
+			// Preserve previous checks if the per-PR fetch failed for this key
+			// — otherwise we'd flap the badge to "none" on transient errors.
+			const fetchedContexts = checkContextsByKey.get(key);
+			const checks = fetchedContexts
+				? parseCheckContexts(fetchedContexts)
+				: parseChecksJson(existing?.checksJson ?? null);
+			const checksStatus = fetchedContexts
+				? computeChecksStatus(checks)
+				: coerceChecksStatus(existing?.checksStatus ?? null);
 			const rowId = this.upsertPullRequestRow({
 				existing,
 				projectId,
@@ -913,7 +965,7 @@ export class PullRequestRuntimeManager {
 				headBranch: node.headRefName,
 				headSha: node.headRefOid,
 				reviewDecision: mapReviewDecision(node.reviewDecision),
-				checksStatus: computeChecksStatus(checks),
+				checksStatus,
 				checksJson: JSON.stringify(checks),
 				lastFetchedAt: now,
 				error: null,

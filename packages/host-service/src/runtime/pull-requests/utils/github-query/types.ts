@@ -39,11 +39,6 @@ export interface GraphQLPullRequestNode {
 	headRepository: { name: string } | null;
 	reviewDecision: "APPROVED" | "CHANGES_REQUESTED" | "REVIEW_REQUIRED" | null;
 	updatedAt: string;
-	statusCheckRollup: {
-		contexts: {
-			nodes: GraphQLCheckContextNode[];
-		} | null;
-	} | null;
 }
 
 export interface PullRequestsGraphQLResult {
@@ -51,5 +46,17 @@ export interface PullRequestsGraphQLResult {
 		pullRequests?: {
 			nodes?: Array<GraphQLPullRequestNode | null>;
 		};
+	} | null;
+}
+
+export interface PullRequestChecksGraphQLResult {
+	repository?: {
+		pullRequest?: {
+			statusCheckRollup?: {
+				contexts?: {
+					nodes?: GraphQLCheckContextNode[];
+				} | null;
+			} | null;
+		} | null;
 	} | null;
 }
