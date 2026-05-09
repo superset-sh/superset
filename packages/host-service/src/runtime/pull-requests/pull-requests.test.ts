@@ -224,13 +224,7 @@ describe("PullRequestRuntimeManager direct checkout PR linking", () => {
 		expect(state.workspace.upstreamRepo).toBeNull();
 		expect(state.workspace.upstreamBranch).toBeNull();
 
-		const originalWarn = console.warn;
-		console.warn = () => {};
-		try {
-			await manager.refreshPullRequestsByWorkspaces([WORKSPACE_ID]);
-		} finally {
-			console.warn = originalWarn;
-		}
+		await manager.refreshPullRequestsByWorkspaces([WORKSPACE_ID]);
 
 		expect(state.workspace.pullRequestId).toBe(prId);
 	});
@@ -256,13 +250,7 @@ describe("PullRequestRuntimeManager direct checkout PR linking", () => {
 		});
 		state.workspace.headSha = "def456";
 
-		const originalWarn = console.warn;
-		console.warn = () => {};
-		try {
-			await manager.refreshPullRequestsByWorkspaces([WORKSPACE_ID]);
-		} finally {
-			console.warn = originalWarn;
-		}
+		await manager.refreshPullRequestsByWorkspaces([WORKSPACE_ID]);
 
 		expect(state.workspace.pullRequestId).toBeNull();
 	});
