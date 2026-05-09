@@ -22,6 +22,7 @@ interface QuickAddPresetsProps {
 	pills: QuickAddAgentPill[];
 	isDark: boolean;
 	isAddDisabled?: boolean;
+	keepOpenOnAdd?: boolean;
 	isPillAdded: (pill: QuickAddAgentPill) => boolean;
 	onAddPill: (pill: QuickAddAgentPill) => void;
 }
@@ -30,6 +31,7 @@ export function QuickAddPresets({
 	pills,
 	isDark,
 	isAddDisabled,
+	keepOpenOnAdd,
 	isPillAdded,
 	onAddPill,
 }: QuickAddPresetsProps) {
@@ -58,6 +60,9 @@ export function QuickAddPresets({
 								if (alreadyAdded) {
 									event.preventDefault();
 									return;
+								}
+								if (keepOpenOnAdd) {
+									event.preventDefault();
 								}
 								onAddPill(pill);
 							}}

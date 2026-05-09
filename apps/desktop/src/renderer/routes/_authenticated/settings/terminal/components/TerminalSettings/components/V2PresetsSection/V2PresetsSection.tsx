@@ -594,6 +594,7 @@ export function V2PresetsSection({
 							<QuickAddPresets
 								pills={quickAddPills}
 								isDark={isDark}
+								keepOpenOnAdd
 								isPillAdded={isPillAdded}
 								onAddPill={handleAddPill}
 							/>
@@ -612,6 +613,7 @@ export function V2PresetsSection({
 						presets={localPresets}
 						isLoading={false}
 						projectOptionsById={projectOptionsById}
+						agents={agents}
 						presetsContainerRef={presetsContainerRef}
 						onEdit={setEditingPreset}
 						onLocalReorder={handleLocalReorder}
