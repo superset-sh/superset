@@ -57,6 +57,8 @@ mock.module("node:os", () => ({
 }));
 
 const {
+	AMP_PLUGIN_MARKER,
+	createAmpPlugin,
 	createAmpWrapper,
 	buildCodexWrapperExecLine,
 	buildCopilotWrapperExecLine,
@@ -76,6 +78,8 @@ const {
 	getCopilotHookScriptPath,
 	getDroidSettingsJsonContent,
 	GEMINI_HOOK_MARKER,
+	getAmpGlobalPluginPath,
+	getAmpPluginContent,
 	getGeminiSettingsJsonContent,
 	getMastraHooksJsonContent,
 	getPiExtensionContent,
@@ -445,7 +449,40 @@ exit 0
 
 		expect(wrapper).toContain("# Superset wrapper for amp");
 		expect(wrapper).toContain('REAL_BIN="$(find_real_binary "amp")"');
+		expect(wrapper).toContain('export SUPERSET_AGENT_ID="amp"');
 		expect(wrapper).toContain('exec "$REAL_BIN" "$@"');
+	});
+
+	it("creates Amp lifecycle plugin", () => {
+		createAmpPlugin();
+
+		const pluginPath = getAmpGlobalPluginPath();
+		const plugin = readFileSync(pluginPath, "utf-8");
+
+		expect(pluginPath).toBe(
+			path.join(
+				mockedHomeDir,
+				".config",
+				"amp",
+				"plugins",
+				"superset-lifecycle.ts",
+			),
+		);
+		expect(plugin).toBe(getAmpPluginContent());
+		expect(plugin).toContain(AMP_PLUGIN_MARKER);
+		expect(plugin).toContain(
+			"// @i-know-the-amp-plugin-api-is-wip-and-very-experimental-right-now",
+		);
+		expect(plugin).toContain('amp.on("session.start"');
+		expect(plugin).toContain('notify("SessionStart", event)');
+		expect(plugin).toContain('amp.on("agent.start"');
+		expect(plugin).toContain('notify("Start", event)');
+		expect(plugin).toContain('amp.on("agent.end"');
+		expect(plugin).toContain('notify("Stop", event)');
+		expect(plugin).toContain('import { spawn } from "node:child_process"');
+		expect(plugin).toContain('SUPERSET_AGENT_ID: "amp"');
+		expect(plugin).toContain("[superset-amp-plugin]");
+		expect(plugin).toContain("SUPERSET_HOME_DIR");
 	});
 
 	it("creates droid wrapper passthrough", () => {
