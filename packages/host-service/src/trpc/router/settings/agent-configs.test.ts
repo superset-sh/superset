@@ -300,6 +300,125 @@ describe("agentConfigsRouter", () => {
 		});
 	});
 
+	describe("mirrorLegacyOverrides()", () => {
+		it("rewrites a seed-default row whose v1 override differs", async () => {
+			const caller = createCaller();
+			await caller.list();
+
+			const result = await caller.mirrorLegacyOverrides({
+				overrides: [
+					{
+						presetId: "claude",
+						command: "claude",
+						args: ["--dangerously-skip-permissions"],
+					},
+				],
+			});
+
+			expect(result.applied).toEqual(["claude"]);
+			const claude = (await caller.list()).find(
+				(row) => row.presetId === "claude",
+			);
+			expect(claude?.command).toBe("claude");
+			expect(claude?.args).toEqual(["--dangerously-skip-permissions"]);
+		});
+
+		it("is idempotent — second call applies nothing", async () => {
+			const caller = createCaller();
+			await caller.list();
+
+			const overrides = [
+				{
+					presetId: "claude",
+					command: "claude",
+					args: ["--dangerously-skip-permissions"],
+				},
+			];
+			const first = await caller.mirrorLegacyOverrides({ overrides });
+			const second = await caller.mirrorLegacyOverrides({ overrides });
+
+			expect(first.applied).toEqual(["claude"]);
+			expect(second.applied).toEqual([]);
+			expect(second.skipped.find((s) => s.presetId === "claude")?.reason).toBe(
+				"user-customized",
+			);
+		});
+
+		it("does not clobber a v2-side customization", async () => {
+			const caller = createCaller();
+			const claude = (await caller.list()).find(
+				(row) => row.presetId === "claude",
+			);
+			if (!claude) throw new Error("expected claude row");
+			// User customizes the v2 row first.
+			await caller.update({
+				id: claude.id,
+				patch: { command: "claude", args: ["--my-flag"] },
+			});
+
+			const result = await caller.mirrorLegacyOverrides({
+				overrides: [
+					{
+						presetId: "claude",
+						command: "claude",
+						args: ["--dangerously-skip-permissions"],
+					},
+				],
+			});
+
+			expect(result.applied).toEqual([]);
+			const after = (await caller.list()).find(
+				(row) => row.presetId === "claude",
+			);
+			expect(after?.args).toEqual(["--my-flag"]);
+		});
+
+		it("seeds defaults if the table was empty", async () => {
+			const caller = createCaller();
+			// No prior list() — table is empty.
+			const result = await caller.mirrorLegacyOverrides({
+				overrides: [
+					{
+						presetId: "claude",
+						command: "claude",
+						args: ["--dangerously-skip-permissions"],
+					},
+				],
+			});
+			expect(result.applied).toEqual(["claude"]);
+			const rows = await caller.list();
+			expect(rows.map((r) => r.presetId)).toEqual(DEFAULT_PRESET_IDS);
+		});
+
+		it("skips presetIds that are not installed", async () => {
+			const caller = createCaller();
+			await caller.list();
+			const result = await caller.mirrorLegacyOverrides({
+				overrides: [{ presetId: "pi", command: "pi", args: ["--legacy"] }],
+			});
+			expect(result.applied).toEqual([]);
+			expect(result.skipped[0]?.reason).toBe("not-installed");
+		});
+
+		it("skips when the override matches the current row exactly", async () => {
+			const caller = createCaller();
+			const seeded = await caller.list();
+			const claude = seeded.find((r) => r.presetId === "claude");
+			if (!claude) throw new Error("expected claude row");
+			const result = await caller.mirrorLegacyOverrides({
+				overrides: [
+					{
+						presetId: "claude",
+						command: claude.command,
+						args: claude.args,
+					},
+				],
+			});
+			expect(result.applied).toEqual([]);
+			expect(result.skipped[0]?.reason).toBe("no-op");
+		});
+	});
+
 	describe("resetToDefaults()", () => {
 		it("replaces current configs with bundled defaults", async () => {
 			const caller = createCaller();

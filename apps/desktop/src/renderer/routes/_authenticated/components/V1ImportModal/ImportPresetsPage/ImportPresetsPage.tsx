@@ -10,6 +10,7 @@ import { LuTerminal } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import type { V2TerminalPresetRow } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
+import { parseCommandString } from "shared/argv";
 import { ImportPageShell } from "../components/ImportPageShell";
 import { ImportRow, type RowAction } from "../components/ImportRow";
 
@@ -18,6 +19,33 @@ interface ImportPresetsPageProps {
 }
 
 const BUILTIN_AGENT_IDS = new Set<string>(AGENT_TYPES);
+
+/**
+ * Resolve the v2 `agentId` for an imported v1 preset. We try (in order):
+ * 1. The preset's `name` directly — covers untouched builtin presets.
+ * 2. The basename of the first command's executable — covers renamed
+ *    presets (e.g. user changed name to "Yolo Claude") whose commands
+ *    still start with `claude` / `claude --dangerously-skip-permissions`.
+ *    Without this, the v2 row imports with `agentId: undefined`, the
+ *    `useV2PresetExecution` overlay short-circuits, and the launch is
+ *    permanently pinned to the v1 snapshot. See issue #4195.
+ */
+export function inferImportedAgentId(
+	preset: Pick<TerminalPreset, "name" | "commands">,
+): AgentType | undefined {
+	if (BUILTIN_AGENT_IDS.has(preset.name)) {
+		return preset.name as AgentType;
+	}
+	const firstCommand = preset.commands?.[0];
+	if (!firstCommand) return undefined;
+	const { command } = parseCommandString(firstCommand);
+	if (!command) return undefined;
+	const basename = command.split(/[\\/]/).pop() ?? command;
+	if (BUILTIN_AGENT_IDS.has(basename)) {
+		return basename as AgentType;
+	}
+	return undefined;
+}
 
 export function ImportPresetsPage({ organizationId }: ImportPresetsPageProps) {
 	const collections = useCollections();
@@ -61,9 +89,7 @@ export function ImportPresetsPage({ organizationId }: ImportPresetsPageProps) {
 			isRefreshing={isRefreshing}
 		>
 			{presets.map((preset, index) => {
-				const linkedAgentId = BUILTIN_AGENT_IDS.has(preset.name)
-					? (preset.name as AgentType)
-					: undefined;
+				const linkedAgentId = inferImportedAgentId(preset);
 				const v2Name = linkedAgentId
 					? AGENT_LABELS[linkedAgentId]
 					: preset.name;

@@ -154,6 +154,16 @@ const addInputSchema = z.object({
 	presetId: z.string().trim().min(1).optional(),
 });
 
+const mirrorLegacyOverrideEntrySchema = z.object({
+	presetId: z.string().trim().min(1),
+	command: z.string().trim().min(1),
+	args: argvSchema,
+});
+
+const mirrorLegacyOverridesInputSchema = z.object({
+	overrides: z.array(mirrorLegacyOverrideEntrySchema),
+});
+
 export const agentConfigsRouter = router({
 	/**
 	 * List configured host agents in persisted order. Seeds bundled defaults
@@ -320,6 +330,74 @@ export const agentConfigsRouter = router({
 				});
 			});
 			return listOrdered(ctx.db).map(toOutput);
+		}),
+
+	/**
+	 * Mirror legacy v1 agent-preset overrides into this host-service's
+	 * `host_agent_configs` table. For each override, the row matching
+	 * `presetId` is updated only when its `command + args` still match the
+	 * bundled seed default exactly — which means the user has not edited
+	 * the v2 row yet, so applying the legacy override can't clobber a v2-side
+	 * customization. Idempotent: a second call after the first is a no-op
+	 * because the row no longer matches the seed default. See issue #4195
+	 * and `runAgentPresetPermissionsMigration` in the desktop settings router.
+	 */
+	mirrorLegacyOverrides: protectedProcedure
+		.input(mirrorLegacyOverridesInputSchema)
+		.mutation(({ ctx, input }) => {
+			seedDefaultsIfEmpty(ctx.db);
+			const rows = listOrdered(ctx.db);
+			const rowsByPresetId = new Map(rows.map((row) => [row.presetId, row]));
+			const seedByPresetId = new Map(
+				getDefaultSeedPresets().map((preset) => [preset.presetId, preset]),
+			);
+
+			const applied: string[] = [];
+			const skipped: { presetId: string; reason: string }[] = [];
+			const now = Date.now();
+			for (const override of input.overrides) {
+				const row = rowsByPresetId.get(override.presetId);
+				if (!row) {
+					skipped.push({
+						presetId: override.presetId,
+						reason: "not-installed",
+					});
+					continue;
+				}
+				const seed = seedByPresetId.get(override.presetId);
+				if (!seed) {
+					skipped.push({ presetId: override.presetId, reason: "not-a-seed" });
+					continue;
+				}
+				const seedArgsJson = JSON.stringify(seed.args);
+				if (row.command !== seed.command || row.argsJson !== seedArgsJson) {
+					skipped.push({
+						presetId: override.presetId,
+						reason: "user-customized",
+					});
+					continue;
+				}
+				const overrideArgsJson = JSON.stringify(override.args);
+				if (
+					override.command === row.command &&
+					overrideArgsJson === row.argsJson
+				) {
+					skipped.push({ presetId: override.presetId, reason: "no-op" });
+					continue;
+				}
+				ctx.db
+					.update(hostAgentConfigs)
+					.set({
+						command: override.command,
+						argsJson: overrideArgsJson,
+						updatedAt: now,
+					})
+					.where(eq(hostAgentConfigs.id, row.id))
+					.run();
+				applied.push(override.presetId);
+			}
+
+			return { applied, skipped };
 		}),
 
 	/**

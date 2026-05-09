@@ -78,6 +78,7 @@ import {
 	shouldPersistNormalizedTerminalPresets,
 } from "./preset-execution-mode";
 import { getPresetsForTriggerField } from "./preset-trigger-selection";
+import { buildLegacyHostAgentMirrorPlan } from "./v2-host-agent-mirror";
 
 function isValidRingtoneId(ringtoneId: string): boolean {
 	if (isBuiltInRingtoneId(ringtoneId)) {
@@ -269,6 +270,24 @@ export const createSettingsRouter = () => {
 			return getNormalizedTerminalPresets();
 		}),
 		getAgentPresets: publicProcedure.query(() => getResolvedAgentPresets()),
+		/**
+		 * Returns the per-host-agent-row mirror plan derived from the v1
+		 * `agentPresetOverrides` envelope. Used once per host-service from the
+		 * renderer to call `agentConfigs.mirrorLegacyOverrides`, repairing the
+		 * v2 store for users who applied the pre-#3546 YOLO migration on v1
+		 * but never had it propagated to host-service `host_agent_configs`.
+		 * See issue #4195.
+		 *
+		 * Returns split `{ presetId, command, args }` entries — only for builtin
+		 * agent IDs that have an override `command` in the envelope. Idempotent
+		 * to compute (pure read).
+		 */
+		getV2HostAgentMirrorPlan: publicProcedure.query(() => {
+			runAgentPresetPermissionsMigration();
+			const row = getSettings();
+			const envelope = readAgentPresetOverrides(row.agentPresetOverrides);
+			return buildLegacyHostAgentMirrorPlan(envelope);
+		}),
 		createCustomAgent: publicProcedure
 			.input(createCustomAgentInputSchema)
 			.mutation(({ input }) => {

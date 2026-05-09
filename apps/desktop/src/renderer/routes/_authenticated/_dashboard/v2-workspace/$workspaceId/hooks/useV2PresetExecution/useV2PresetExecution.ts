@@ -9,6 +9,7 @@ import { useCollections } from "renderer/routes/_authenticated/providers/Collect
 import type { V2TerminalPresetRow } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { getPresetLaunchPlan } from "renderer/stores/tabs/preset-launch";
+import { parseCommandString } from "shared/argv";
 import { filterMatchingPresetsForProject } from "shared/preset-project-targeting";
 import type { StoreApi } from "zustand/vanilla";
 import type { PaneViewerData, TerminalPaneData } from "../../types";
@@ -54,7 +55,8 @@ export function useV2PresetExecution({
 	// /settings/agents page, so user edits there propagate here. The hook is
 	// already invalidated by mutations in the agents settings page.
 	const { activeHostUrl } = useLocalHostService();
-	const { data: agents = [] } = useV2AgentConfigs(activeHostUrl);
+	const configsQuery = useV2AgentConfigs(activeHostUrl);
+	const agents = configsQuery.data ?? [];
 
 	// Map presetId → command (first match wins if the user has multiple
 	// host configs for the same preset).
@@ -68,23 +70,82 @@ export function useV2PresetExecution({
 		return map;
 	}, [agents]);
 
+	// Map command-executable basename → presetId. Used as a fallback overlay
+	// key when a preset row has no `agentId` (e.g. it was imported from a
+	// renamed v1 builtin preset and `linkedAgentId` resolution missed it).
+	// First match wins. See issue #4195.
+	const presetIdByCommandBasename = useMemo(() => {
+		const map = new Map<string, string>();
+		for (const agent of agents) {
+			const command = agent.command.trim();
+			if (command.length === 0) continue;
+			const basename = command.split(/[\\/]/).pop() ?? command;
+			if (map.has(basename)) continue;
+			map.set(basename, agent.presetId);
+		}
+		return map;
+	}, [agents]);
+
 	const matchedPresets = useMemo(
 		() => filterMatchingPresetsForProject(allPresets, projectId),
 		[allPresets, projectId],
 	);
 
+	const inferAgentIdFromCommands = useCallback(
+		(commands: string[]): string | undefined => {
+			const first = commands[0];
+			if (!first) return undefined;
+			const { command } = parseCommandString(first);
+			if (!command) return undefined;
+			const basename = command.split(/[\\/]/).pop() ?? command;
+			return presetIdByCommandBasename.get(basename);
+		},
+		[presetIdByCommandBasename],
+	);
+
 	const resolvePresetCommands = useCallback(
 		(preset: V2TerminalPresetRow): string[] => {
-			if (!preset.agentId) return preset.commands;
-			const live = agentCommandsById.get(preset.agentId);
-			if (live) return [live];
+			const explicitId = preset.agentId;
+			if (explicitId) {
+				const live = agentCommandsById.get(explicitId);
+				if (live) return [live];
+				if (configsQuery.data) {
+					console.warn(
+						"[useV2PresetExecution] preset.agentId set but no live host-agent config found",
+						{ presetId: preset.id, agentId: explicitId },
+					);
+				}
+				return preset.commands;
+			}
+			// Fallback: snapshot's first command basename matches a known
+			// host-agent — overlay anyway so renamed v1-imported presets don't
+			// silently run a stranded snapshot. See issue #4195.
+			const inferredId = inferAgentIdFromCommands(preset.commands);
+			if (inferredId) {
+				const live = agentCommandsById.get(inferredId);
+				if (live) return [live];
+			}
 			return preset.commands;
 		},
-		[agentCommandsById],
+		[agentCommandsById, configsQuery.data, inferAgentIdFromCommands],
 	);
 
 	const executePreset = useCallback(
 		async (preset: V2TerminalPresetRow) => {
+			// Block launches before host-service is reachable or before the
+			// agent-configs query has resolved at least once. Without this guard
+			// `agents` is `[]` and any preset with `agentId` falls through to its
+			// stale `commands` snapshot — exactly the regression reported in #4195.
+			if (!activeHostUrl) {
+				toast.error("Host service is not ready yet — try again in a moment.");
+				return;
+			}
+			if (configsQuery.isLoading || configsQuery.isPending) {
+				toast.error(
+					"Agent configurations are still loading — try again in a moment.",
+				);
+				return;
+			}
 			const state = store.getState();
 			const activeTabId = state.activeTabId;
 			const target = resolveTarget(preset.executionMode);
@@ -180,7 +241,14 @@ export function useV2PresetExecution({
 				});
 			}
 		},
-		[store, launcher, resolvePresetCommands],
+		[
+			store,
+			launcher,
+			resolvePresetCommands,
+			activeHostUrl,
+			configsQuery.isLoading,
+			configsQuery.isPending,
+		],
 	);
 
 	return { matchedPresets, executePreset };
