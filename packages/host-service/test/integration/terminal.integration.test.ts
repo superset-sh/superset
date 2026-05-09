@@ -54,6 +54,7 @@ describe("terminal router integration", () => {
 		const disposedTerminalId = randomUUID();
 		const exitedTerminalId = randomUUID();
 		const orphanTerminalId = randomUUID();
+		const fractionalPidTerminalId = randomUUID();
 		const unknownTerminalId = randomUUID();
 		seedTerminalSession(scenario.host, {
 			id: activeTerminalId,
@@ -73,13 +74,17 @@ describe("terminal router integration", () => {
 			id: orphanTerminalId,
 			originWorkspaceId: null,
 		});
+		seedTerminalSession(scenario.host, {
+			id: fractionalPidTerminalId,
+			originWorkspaceId: scenario.workspaceId,
+		});
 
 		const sessions = listTerminalResourceSessions(
 			scenario.host.db,
 			[
 				{
 					id: activeTerminalId,
-					pid: 123.9,
+					pid: 123,
 					cols: 80,
 					rows: 24,
 					alive: true,
@@ -113,8 +118,15 @@ describe("terminal router integration", () => {
 					alive: true,
 				},
 				{
+					id: fractionalPidTerminalId,
+					pid: 128.5,
+					cols: 80,
+					rows: 24,
+					alive: true,
+				},
+				{
 					id: activeTerminalId,
-					pid: 128,
+					pid: 129,
 					cols: 80,
 					rows: 24,
 					alive: false,

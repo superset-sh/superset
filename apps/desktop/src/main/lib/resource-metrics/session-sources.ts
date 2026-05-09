@@ -3,17 +3,12 @@ import { eq } from "drizzle-orm";
 import { getHostServiceCoordinator } from "main/lib/host-service-coordinator";
 import { localDb } from "main/lib/local-db";
 import { getWorkspaceRuntimeRegistry } from "main/lib/workspace-runtime/registry";
+import {
+	parseV2ResourceSessions,
+	type WorkspaceSessionMap,
+} from "./session-normalization";
 
 export type ResourceMetricsSurface = "v1" | "v2";
-
-export interface WorkspaceSessionEntry {
-	sessionId: string;
-	paneId: string;
-	pid: number;
-	title: string | null;
-}
-
-export type WorkspaceSessionMap = Map<string, WorkspaceSessionEntry[]>;
 
 export interface WorkspaceMetadata {
 	workspaceName: string;
@@ -21,17 +16,15 @@ export interface WorkspaceMetadata {
 	projectName: string;
 }
 
-interface V2ResourceSessionPayload {
-	terminalId: unknown;
-	workspaceId: unknown;
-	pid: unknown;
-	title: unknown;
-}
+const RESOURCE_SESSIONS_FETCH_TIMEOUT_MS = 2500;
 
-function toPositiveInteger(value: unknown): number | null {
-	if (typeof value !== "number" || !Number.isFinite(value)) return null;
-	const integer = Math.floor(value);
-	return integer > 0 ? integer : null;
+function isAbortError(error: unknown): boolean {
+	return (
+		error !== null &&
+		typeof error === "object" &&
+		"name" in error &&
+		(error as { name?: unknown }).name === "AbortError"
+	);
 }
 
 async function collectV1WorkspaceSessionMap(): Promise<WorkspaceSessionMap> {
@@ -54,43 +47,6 @@ async function collectV1WorkspaceSessionMap(): Promise<WorkspaceSessionMap> {
 			paneId: session.paneId,
 			pid: session.pid,
 			title: null,
-		});
-	}
-
-	return workspaceSessionMap;
-}
-
-export function parseV2ResourceSessions(payload: unknown): WorkspaceSessionMap {
-	const workspaceSessionMap: WorkspaceSessionMap = new Map();
-	const rawSessions =
-		payload &&
-		typeof payload === "object" &&
-		Array.isArray((payload as { sessions?: unknown }).sessions)
-			? (payload as { sessions: unknown[] }).sessions
-			: [];
-
-	for (const rawSession of rawSessions) {
-		if (!rawSession || typeof rawSession !== "object") continue;
-		const session = rawSession as V2ResourceSessionPayload;
-		if (typeof session.terminalId !== "string" || !session.terminalId) {
-			continue;
-		}
-		if (typeof session.workspaceId !== "string" || !session.workspaceId) {
-			continue;
-		}
-		const pid = toPositiveInteger(session.pid);
-		if (pid === null) continue;
-
-		let entries = workspaceSessionMap.get(session.workspaceId);
-		if (!entries) {
-			entries = [];
-			workspaceSessionMap.set(session.workspaceId, entries);
-		}
-		entries.push({
-			sessionId: session.terminalId,
-			paneId: session.terminalId,
-			pid,
-			title: typeof session.title === "string" ? session.title : null,
 		});
 	}
 
@@ -125,6 +81,11 @@ async function collectV2WorkspaceSessionMap(
 			const connection = coordinator.getConnection(id);
 			if (!connection) return;
 
+			const controller = new AbortController();
+			const timeoutId = setTimeout(
+				() => controller.abort(),
+				RESOURCE_SESSIONS_FETCH_TIMEOUT_MS,
+			);
 			try {
 				const response = await fetch(
 					`http://127.0.0.1:${connection.port}/terminal/resource-sessions`,
@@ -132,6 +93,7 @@ async function collectV2WorkspaceSessionMap(
 						headers: {
 							Authorization: `Bearer ${connection.secret}`,
 						},
+						signal: controller.signal,
 					},
 				);
 				if (!response.ok) {
@@ -145,10 +107,18 @@ async function collectV2WorkspaceSessionMap(
 					parseV2ResourceSessions(await response.json()),
 				);
 			} catch (error) {
+				if (isAbortError(error)) {
+					console.warn(
+						`[resource-metrics] Timed out listing v2 terminal resource sessions for org ${id}`,
+					);
+					return;
+				}
 				console.warn(
 					`[resource-metrics] Failed to list v2 terminal resource sessions for org ${id}`,
 					error,
 				);
+			} finally {
+				clearTimeout(timeoutId);
 			}
 		}),
 	);

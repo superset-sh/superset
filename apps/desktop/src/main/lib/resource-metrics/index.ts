@@ -8,6 +8,7 @@ import {
 	getSubtreeResources,
 	type ProcessSnapshot,
 } from "./process-tree";
+import { normalizeOptionalTitle } from "./session-normalization";
 import {
 	collectWorkspaceSessionMap,
 	getWorkspaceMetadata,
@@ -138,7 +139,7 @@ function normalizeSnapshot(
 			sessionId: session.sessionId,
 			paneId: session.paneId,
 			pid: Math.max(0, Math.floor(normalizeFiniteNumber(session.pid))),
-			title: typeof session.title === "string" ? session.title : null,
+			title: normalizeOptionalTitle(session.title),
 			cpu: normalizeFiniteNumber(session.cpu),
 			memory: normalizeFiniteNumber(session.memory),
 		}));

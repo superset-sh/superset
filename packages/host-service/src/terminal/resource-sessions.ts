@@ -18,7 +18,7 @@ function isLiveDaemonSession(
 		typeof session.id === "string" &&
 		session.id.length > 0 &&
 		typeof session.pid === "number" &&
-		Number.isFinite(session.pid) &&
+		Number.isInteger(session.pid) &&
 		session.pid > 0
 	);
 }
@@ -63,7 +63,7 @@ export function listTerminalResourceSessions(
 			{
 				terminalId: session.id,
 				workspaceId: row.originWorkspaceId,
-				pid: Math.floor(session.pid),
+				pid: session.pid,
 				title: titlesByTerminalId.get(session.id) ?? null,
 			},
 		];
