@@ -3,7 +3,6 @@ import { toast } from "@superset/ui/sonner";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useCallback, useMemo } from "react";
 import { useV2AgentConfigs } from "renderer/hooks/useV2AgentConfigs";
-import { buildAgentLaunchCommand } from "renderer/lib/agent-launch-command";
 import { useWorkspace } from "renderer/routes/_authenticated/_dashboard/v2-workspace/providers/WorkspaceProvider";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import type { V2TerminalPresetRow } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
@@ -13,6 +12,10 @@ import { filterMatchingPresetsForProject } from "shared/preset-project-targeting
 import type { StoreApi } from "zustand/vanilla";
 import type { PaneViewerData, TerminalPaneData } from "../../types";
 import type { TerminalLauncher } from "../useV2TerminalLauncher";
+import {
+	buildAgentCommandsByPresetId,
+	resolveLivePresetCommands,
+} from "./resolveLivePresetCommands";
 
 function makeTerminalPane(
 	terminalId: string,
@@ -58,15 +61,10 @@ export function useV2PresetExecution({
 
 	// Map presetId → command (first match wins if the user has multiple
 	// host configs for the same preset).
-	const agentCommandsById = useMemo(() => {
-		const map = new Map<string, string>();
-		for (const agent of agents) {
-			if (agent.command.trim().length === 0) continue;
-			if (map.has(agent.presetId)) continue;
-			map.set(agent.presetId, buildAgentLaunchCommand(agent));
-		}
-		return map;
-	}, [agents]);
+	const agentCommandsById = useMemo(
+		() => buildAgentCommandsByPresetId(agents),
+		[agents],
+	);
 
 	const matchedPresets = useMemo(
 		() => filterMatchingPresetsForProject(allPresets, projectId),
@@ -74,13 +72,9 @@ export function useV2PresetExecution({
 	);
 
 	const resolvePresetCommands = useCallback(
-		(preset: V2TerminalPresetRow): string[] => {
-			if (!preset.agentId) return preset.commands;
-			const live = agentCommandsById.get(preset.agentId);
-			if (live) return [live];
-			return preset.commands;
-		},
-		[agentCommandsById],
+		(preset: V2TerminalPresetRow): string[] =>
+			resolveLivePresetCommands(preset, agents, agentCommandsById),
+		[agents, agentCommandsById],
 	);
 
 	const executePreset = useCallback(
