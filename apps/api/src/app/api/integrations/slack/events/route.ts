@@ -47,8 +47,10 @@ export async function POST(request: Request) {
 		return Response.json({ error: "Invalid signature" }, { status: 401 });
 	}
 
-	const payload = parseJson<SlackEventEnvelope>(body);
-	if (payload === undefined) {
+	let payload: SlackEventEnvelope;
+	try {
+		payload = JSON.parse(body) as SlackEventEnvelope;
+	} catch {
 		console.error("[slack/events] Failed to parse JSON payload");
 		return Response.json({ error: "Invalid JSON payload" }, { status: 400 });
 	}
@@ -138,10 +140,7 @@ export async function POST(request: Request) {
 			const appHomeEvent = event as { user?: string; tab?: string };
 			if (!appHomeEvent.user || !appHomeEvent.tab) {
 				console.error("[slack/events] Invalid app home opened payload shape");
-				return Response.json(
-					{ error: "Invalid payload shape" },
-					{ status: 400 },
-				);
+				return new Response("ok", { status: 200 });
 			}
 
 			processAppHomeOpened({
@@ -156,12 +155,4 @@ export async function POST(request: Request) {
 
 	// Slack requires 200 within 3s regardless of event type
 	return new Response("ok", { status: 200 });
-}
-
-function parseJson<T>(s: string): T | undefined {
-	try {
-		return JSON.parse(s) as T;
-	} catch {
-		return undefined;
-	}
 }

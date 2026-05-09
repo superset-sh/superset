@@ -92,6 +92,27 @@ describe("slack events route", () => {
 		expect(json.error).toBe("Invalid payload shape");
 	});
 
+	test("returns 200 when app_home_opened payload is missing optional fields", async () => {
+		const request = new Request(
+			"http://localhost/api/integrations/slack/events",
+			{
+				method: "POST",
+				headers: VALID_HEADERS,
+				body: JSON.stringify({
+					type: "event_callback",
+					team_id: "T123",
+					event_id: "E123",
+					event: { type: "app_home_opened", user: "U123" },
+				}),
+			},
+		);
+
+		const response = await POST(request);
+
+		expect(response.status).toBe(200);
+		expect(await response.text()).toBe("ok");
+	});
+
 	test("processes well-formed url_verification payload", async () => {
 		const request = new Request(
 			"http://localhost/api/integrations/slack/events",

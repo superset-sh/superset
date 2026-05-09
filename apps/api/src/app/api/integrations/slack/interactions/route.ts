@@ -41,8 +41,10 @@ export async function POST(request: Request) {
 		return new Response("ok", { status: 200 });
 	}
 
-	const payload = parseJson<SlackInteractionPayload>(payloadRaw);
-	if (payload === undefined) {
+	let payload: SlackInteractionPayload;
+	try {
+		payload = JSON.parse(payloadRaw) as SlackInteractionPayload;
+	} catch {
 		console.error("[slack/interactions] Failed to parse JSON payload");
 		return Response.json({ error: "Invalid JSON payload" }, { status: 400 });
 	}
@@ -151,14 +153,6 @@ async function handleDisconnectAccount({
 	}).catch((err: unknown) => {
 		console.error("[slack/interactions] Failed to republish home tab:", err);
 	});
-}
-
-function parseJson<T>(s: string): T | undefined {
-	try {
-		return JSON.parse(s) as T;
-	} catch {
-		return undefined;
-	}
 }
 
 function isSlackInteractionAction(
