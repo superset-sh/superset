@@ -46,9 +46,10 @@ interface PresetEditorDialogProps {
 	projects: PresetProjectOption[];
 	/**
 	 * Host-service agent configs. When provided and `preset.agentId` matches
-	 * a config's `presetId`, the dialog renders the linked-agent branch
-	 * (read-only command + Open in Agents settings link). v1 callers omit
-	 * this — no v1 row has agentId, so the linked branch stays dormant.
+	 * a config id, the dialog renders the linked-agent branch (read-only
+	 * command + Open in Agents settings link). Older v2 rows may store presetId,
+	 * so the resolver keeps a presetId fallback. v1 callers omit this — no v1
+	 * row has agentId, so the linked branch stays dormant.
 	 */
 	agents?: HostAgentConfig[];
 	open: boolean;
@@ -190,13 +191,21 @@ export function PresetEditorDialog({
 	const linkedAgent = useMemo(() => {
 		const presetAgentId = (preset as PresetWithAgent | null)?.agentId;
 		if (!presetAgentId || !agents) return null;
-		return agents.find((agent) => agent.presetId === presetAgentId) ?? null;
+		return (
+			agents.find((agent) => agent.id === presetAgentId) ??
+			agents.find((agent) => agent.presetId === presetAgentId) ??
+			null
+		);
 	}, [preset, agents]);
 	const linkedAgentId = (preset as PresetWithAgent | null)?.agentId;
 	const isLinked = !!linkedAgentId;
-	const liveCommands = linkedAgent
-		? [buildAgentLaunchCommand(linkedAgent)]
-		: (preset?.commands ?? []);
+	const liveCommands = useMemo(
+		() =>
+			linkedAgent
+				? [buildAgentLaunchCommand(linkedAgent)]
+				: (preset?.commands ?? []),
+		[linkedAgent, preset?.commands],
+	);
 	const selectDirectory = electronTrpc.window.selectDirectory.useMutation();
 	const originRoute = useSettingsOriginRoute();
 	const trimmedCwd = preset?.cwd.trim() ?? "";

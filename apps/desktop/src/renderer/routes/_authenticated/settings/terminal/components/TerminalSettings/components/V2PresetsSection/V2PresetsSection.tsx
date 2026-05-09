@@ -187,19 +187,18 @@ export function V2PresetsSection({
 		[serverPresets],
 	);
 
-	// Quick-add lists every host-configured agent. We dedupe by presetId
-	// (= our preset's `agentId`) so a user with multiple Claude configs gets
-	// one pill and so deleting a preset frees the pill again.
+	// Quick-add lists every configured host-agent row. New linked presets store
+	// the host-service config id; older rows may still store presetId and are
+	// resolved through the execution/editor fallback path.
 	const quickAddPills = useMemo<QuickAddAgentPill[]>(() => {
-		const seen = new Set<string>();
 		const pills: QuickAddAgentPill[] = [];
 		for (const agent of agents) {
-			if (seen.has(agent.presetId) || agent.command.trim().length === 0) {
+			if (agent.command.trim().length === 0) {
 				continue;
 			}
-			seen.add(agent.presetId);
 			pills.push({
-				agentId: agent.presetId,
+				agentId: agent.id,
+				iconId: agent.presetId,
 				label: agent.label,
 				description: DESCRIPTION_BY_PRESET_ID.get(agent.presetId) ?? "",
 				commands: [buildAgentLaunchCommand(agent)],
@@ -258,6 +257,25 @@ export function V2PresetsSection({
 		},
 		[collections.v2TerminalPresets],
 	);
+
+	useEffect(() => {
+		if (agents.length === 0 || serverPresets.length === 0) return;
+
+		for (const preset of serverPresets) {
+			const row = preset as V2TerminalPresetRow;
+			if (!row.agentId) continue;
+			if (agents.some((agent) => agent.id === row.agentId)) continue;
+
+			const legacyMatches = agents.filter(
+				(agent) => agent.presetId === row.agentId,
+			);
+			if (legacyMatches.length !== 1) continue;
+			const legacyMatch = legacyMatches[0];
+			if (!legacyMatch) continue;
+
+			updateV2Preset(row.id, { agentId: legacyMatch.id });
+		}
+	}, [agents, serverPresets, updateV2Preset]);
 
 	const deleteV2Preset = useCallback(
 		(id: string) => {
