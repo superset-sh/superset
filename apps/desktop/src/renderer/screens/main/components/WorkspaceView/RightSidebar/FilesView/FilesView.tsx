@@ -221,6 +221,7 @@ export function FilesView() {
 						path: entry.absolutePath,
 						relativePath: getEntryRelativePath(currentPath, entry.absolutePath),
 						isDirectory: entry.kind === "directory",
+						isIgnored: entry.isIgnored ?? false,
 					}));
 					for (const entry of nextEntries) {
 						entryCacheRef.current.set(entry.path, entry);

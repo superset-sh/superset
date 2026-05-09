@@ -55,6 +55,7 @@ export function FileTreeItem({
 	const isFolder = entry.isDirectory;
 	const isExpanded = item.isExpanded();
 	const level = item.getItemMeta().level;
+	const isIgnored = entry.isIgnored ?? false;
 
 	const parentPath = isFolder
 		? entry.path
@@ -123,6 +124,7 @@ export function FileTreeItem({
 				"flex items-center gap-1 px-1 cursor-pointer select-none",
 				"hover:bg-accent/50 transition-colors",
 				item.isSelected() && "bg-accent",
+				isIgnored && "opacity-50",
 			)}
 			onClick={handleClick}
 			onDoubleClick={handleDoubleClick}
