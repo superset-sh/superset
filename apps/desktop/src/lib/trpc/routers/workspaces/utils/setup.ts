@@ -1,6 +1,6 @@
 import { cpSync, existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
-import { join } from "node:path";
+import { isAbsolute, join, relative, resolve } from "node:path";
 import {
 	CONFIG_FILE_NAME,
 	LOCAL_CONFIG_FILE_NAME,
@@ -32,6 +32,76 @@ export function copySupersetConfigToWorktree(
 	}
 }
 
+export interface CopyFilesResult {
+	copied: string[];
+	missing: string[];
+	skipped: string[];
+}
+
+/**
+ * Copy the given project-relative paths from the main worktree into a newly
+ * created workspace. Intended for gitignored files required at runtime (for
+ * example `.env.development`), which `git worktree add` does not copy.
+ *
+ * Paths that escape the main repo, are absolute, or do not exist in the main
+ * worktree are skipped — reported back so callers can warn the user rather
+ * than silently producing a broken workspace.
+ */
+export function copyProjectFilesToWorktree(
+	mainRepoPath: string,
+	worktreePath: string,
+	files: readonly string[] | undefined,
+): CopyFilesResult {
+	const result: CopyFilesResult = { copied: [], missing: [], skipped: [] };
+	if (!files || files.length === 0) return result;
+
+	const resolvedMain = resolve(mainRepoPath);
+	const resolvedWorktree = resolve(worktreePath);
+
+	for (const raw of files) {
+		if (typeof raw !== "string" || raw.length === 0) {
+			result.skipped.push(String(raw));
+			continue;
+		}
+
+		if (isAbsolute(raw)) {
+			result.skipped.push(raw);
+			continue;
+		}
+
+		const source = resolve(resolvedMain, raw);
+		const rel = relative(resolvedMain, source);
+		if (rel.startsWith("..") || isAbsolute(rel)) {
+			result.skipped.push(raw);
+			continue;
+		}
+
+		if (!existsSync(source)) {
+			result.missing.push(raw);
+			continue;
+		}
+
+		const destination = resolve(resolvedWorktree, raw);
+		const destRel = relative(resolvedWorktree, destination);
+		if (destRel.startsWith("..") || isAbsolute(destRel)) {
+			result.skipped.push(raw);
+			continue;
+		}
+
+		try {
+			cpSync(source, destination, { recursive: true, errorOnExist: false });
+			result.copied.push(raw);
+		} catch (error) {
+			console.error(
+				`Failed to copy ${raw} to worktree: ${error instanceof Error ? error.message : String(error)}`,
+			);
+			result.skipped.push(raw);
+		}
+	}
+
+	return result;
+}
+
 function readConfigFile(configPath: string): SetupConfig | null {
 	if (!existsSync(configPath)) {
 		return null;
@@ -51,6 +121,10 @@ function readConfigFile(configPath: string): SetupConfig | null {
 
 		if (parsed.run && !Array.isArray(parsed.run)) {
 			throw new Error("'run' field must be an array of strings");
+		}
+
+		if (parsed.copyFiles && !Array.isArray(parsed.copyFiles)) {
+			throw new Error("'copyFiles' field must be an array of strings");
 		}
 
 		return parsed;
@@ -77,7 +151,7 @@ function readLocalConfigFile(filePath: string): LocalSetupConfig | null {
 		const content = readFileSync(filePath, "utf-8");
 		const parsed = JSON.parse(content) as LocalSetupConfig;
 
-		for (const key of ["setup", "teardown", "run"] as const) {
+		for (const key of ["setup", "teardown", "run", "copyFiles"] as const) {
 			const value = parsed[key];
 			if (value === undefined) continue;
 
@@ -124,6 +198,7 @@ function mergeBaseConfigs(
 		setup: override.setup ?? base.setup,
 		teardown: override.teardown ?? base.teardown,
 		run: override.run ?? base.run,
+		copyFiles: override.copyFiles ?? base.copyFiles,
 	};
 }
 
@@ -141,7 +216,7 @@ export function mergeConfigs(
 ): SetupConfig {
 	const result: SetupConfig = { ...base };
 
-	for (const key of ["setup", "teardown", "run"] as const) {
+	for (const key of ["setup", "teardown", "run", "copyFiles"] as const) {
 		const localValue = local[key];
 		if (localValue === undefined) continue;
 

@@ -1,9 +1,19 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import {
+	existsSync,
+	mkdirSync,
+	readFileSync,
+	rmSync,
+	writeFileSync,
+} from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 import { PROJECTS_DIR_NAME, SUPERSET_DIR_NAME } from "shared/constants";
-import { loadSetupConfig, mergeConfigs } from "./setup";
+import {
+	copyProjectFilesToWorktree,
+	loadSetupConfig,
+	mergeConfigs,
+} from "./setup";
 
 const TEST_DIR = join(tmpdir(), `superset-test-setup-${process.pid}`);
 const MAIN_REPO = join(TEST_DIR, "main-repo");
@@ -681,5 +691,203 @@ describe("run config", () => {
 
 		const config = loadSetupConfig({ mainRepoPath: MAIN_REPO });
 		expect(config?.run).toEqual(["export DEBUG=1", "npm run dev"]);
+	});
+});
+
+describe("copyFiles config", () => {
+	beforeEach(() => {
+		mkdirSync(join(MAIN_REPO, ".superset"), { recursive: true });
+	});
+
+	afterEach(() => {
+		if (existsSync(TEST_DIR)) {
+			rmSync(TEST_DIR, { recursive: true, force: true });
+		}
+	});
+
+	test("loads copyFiles from config", () => {
+		writeFileSync(
+			join(MAIN_REPO, ".superset", "config.json"),
+			JSON.stringify({
+				setup: ["bun install"],
+				copyFiles: [".env.development"],
+			}),
+		);
+
+		const config = loadSetupConfig({ mainRepoPath: MAIN_REPO });
+		expect(config?.copyFiles).toEqual([".env.development"]);
+	});
+
+	test("validates copyFiles must be an array", () => {
+		writeFileSync(
+			join(MAIN_REPO, ".superset", "config.json"),
+			JSON.stringify({ copyFiles: "not-an-array" }),
+		);
+
+		const config = loadSetupConfig({ mainRepoPath: MAIN_REPO });
+		expect(config).toBeNull();
+	});
+
+	test("worktree config inherits copyFiles from main repo", () => {
+		writeFileSync(
+			join(MAIN_REPO, ".superset", "config.json"),
+			JSON.stringify({
+				setup: ["bun install"],
+				copyFiles: [".env.development"],
+			}),
+		);
+		mkdirSync(join(WORKTREE, ".superset"), { recursive: true });
+		writeFileSync(
+			join(WORKTREE, ".superset", "config.json"),
+			JSON.stringify({ setup: ["bun install --frozen-lockfile"] }),
+		);
+
+		const config = loadSetupConfig({
+			mainRepoPath: MAIN_REPO,
+			worktreePath: WORKTREE,
+		});
+		expect(config?.copyFiles).toEqual([".env.development"]);
+	});
+
+	test("local config can merge copyFiles with before/after", () => {
+		writeFileSync(
+			join(MAIN_REPO, ".superset", "config.json"),
+			JSON.stringify({ copyFiles: [".env.development"] }),
+		);
+		writeFileSync(
+			join(MAIN_REPO, ".superset", "config.local.json"),
+			JSON.stringify({ copyFiles: { after: [".secrets.local"] } }),
+		);
+
+		const config = loadSetupConfig({ mainRepoPath: MAIN_REPO });
+		expect(config?.copyFiles).toEqual([".env.development", ".secrets.local"]);
+	});
+});
+
+describe("copyProjectFilesToWorktree", () => {
+	beforeEach(() => {
+		mkdirSync(MAIN_REPO, { recursive: true });
+		mkdirSync(WORKTREE, { recursive: true });
+	});
+
+	afterEach(() => {
+		if (existsSync(TEST_DIR)) {
+			rmSync(TEST_DIR, { recursive: true, force: true });
+		}
+	});
+
+	// Reproduction for issue #3633: gitignored files like .env.development
+	// exist in the main worktree but are absent from a freshly created
+	// workspace, leaving the app broken at runtime.
+	test("reproduces issue #3633: gitignored env files are not in a new worktree", () => {
+		writeFileSync(
+			join(MAIN_REPO, ".env.development"),
+			"VITE_PLATFORM_API_URL=https://api.example.com\n",
+		);
+
+		// Simulates the state after `git worktree add`: the worktree exists
+		// but gitignored files were not copied.
+		expect(existsSync(join(MAIN_REPO, ".env.development"))).toBe(true);
+		expect(existsSync(join(WORKTREE, ".env.development"))).toBe(false);
+
+		// With no copyFiles configured, copyProjectFilesToWorktree does nothing
+		// — matching the reported behavior where the workspace is "successful"
+		// but the env file is missing.
+		const result = copyProjectFilesToWorktree(MAIN_REPO, WORKTREE, undefined);
+		expect(result.copied).toEqual([]);
+		expect(existsSync(join(WORKTREE, ".env.development"))).toBe(false);
+	});
+
+	test("copies files listed in copyFiles from main repo to worktree", () => {
+		writeFileSync(
+			join(MAIN_REPO, ".env.development"),
+			"VITE_PLATFORM_API_URL=https://api.example.com\n",
+		);
+
+		const result = copyProjectFilesToWorktree(MAIN_REPO, WORKTREE, [
+			".env.development",
+		]);
+
+		expect(result.copied).toEqual([".env.development"]);
+		expect(result.missing).toEqual([]);
+		expect(existsSync(join(WORKTREE, ".env.development"))).toBe(true);
+		expect(readFileSync(join(WORKTREE, ".env.development"), "utf-8")).toBe(
+			"VITE_PLATFORM_API_URL=https://api.example.com\n",
+		);
+	});
+
+	test("copies directories recursively", () => {
+		mkdirSync(join(MAIN_REPO, "config", "secrets"), { recursive: true });
+		writeFileSync(join(MAIN_REPO, "config", "secrets", "key.pem"), "SECRET");
+
+		const result = copyProjectFilesToWorktree(MAIN_REPO, WORKTREE, [
+			"config/secrets",
+		]);
+
+		expect(result.copied).toEqual(["config/secrets"]);
+		expect(
+			readFileSync(join(WORKTREE, "config", "secrets", "key.pem"), "utf-8"),
+		).toBe("SECRET");
+	});
+
+	test("creates missing parent directories in the worktree", () => {
+		mkdirSync(join(MAIN_REPO, "apps", "web"), { recursive: true });
+		writeFileSync(join(MAIN_REPO, "apps", "web", ".env.local"), "KEY=value");
+
+		const result = copyProjectFilesToWorktree(MAIN_REPO, WORKTREE, [
+			"apps/web/.env.local",
+		]);
+
+		expect(result.copied).toEqual(["apps/web/.env.local"]);
+		expect(existsSync(join(WORKTREE, "apps", "web", ".env.local"))).toBe(true);
+	});
+
+	test("reports missing files without throwing", () => {
+		writeFileSync(join(MAIN_REPO, ".env.development"), "A=1");
+
+		const result = copyProjectFilesToWorktree(MAIN_REPO, WORKTREE, [
+			".env.development",
+			".env.missing",
+		]);
+
+		expect(result.copied).toEqual([".env.development"]);
+		expect(result.missing).toEqual([".env.missing"]);
+	});
+
+	test("refuses to copy paths that escape the main repo", () => {
+		// Sibling dir with a sensitive file
+		mkdirSync(join(TEST_DIR, "outside"), { recursive: true });
+		writeFileSync(join(TEST_DIR, "outside", "leaked.txt"), "secret");
+
+		const result = copyProjectFilesToWorktree(MAIN_REPO, WORKTREE, [
+			"../outside/leaked.txt",
+		]);
+
+		expect(result.copied).toEqual([]);
+		expect(result.skipped).toEqual(["../outside/leaked.txt"]);
+		expect(existsSync(join(WORKTREE, "..", "outside", "leaked.txt"))).toBe(
+			true,
+		);
+		// Worktree should not contain anything outside its own tree
+		expect(existsSync(join(WORKTREE, "leaked.txt"))).toBe(false);
+	});
+
+	test("refuses absolute paths", () => {
+		writeFileSync(join(MAIN_REPO, ".env.development"), "A=1");
+
+		const result = copyProjectFilesToWorktree(MAIN_REPO, WORKTREE, [
+			join(MAIN_REPO, ".env.development"),
+		]);
+
+		expect(result.copied).toEqual([]);
+		expect(result.skipped).toHaveLength(1);
+	});
+
+	test("is a no-op when copyFiles is empty or undefined", () => {
+		const empty = copyProjectFilesToWorktree(MAIN_REPO, WORKTREE, []);
+		const undef = copyProjectFilesToWorktree(MAIN_REPO, WORKTREE, undefined);
+
+		expect(empty).toEqual({ copied: [], missing: [], skipped: [] });
+		expect(undef).toEqual({ copied: [], missing: [], skipped: [] });
 	});
 });

@@ -18,7 +18,11 @@ import {
 	removeWorktree,
 	sanitizeGitError,
 } from "./git";
-import { copySupersetConfigToWorktree } from "./setup";
+import {
+	copyProjectFilesToWorktree,
+	copySupersetConfigToWorktree,
+	loadSetupConfig,
+} from "./setup";
 
 export interface WorkspaceInitParams {
 	workspaceId: string;
@@ -54,6 +58,24 @@ export async function initializeWorkspaceWorktree({
 	skipWorktreeCreation,
 }: WorkspaceInitParams): Promise<void> {
 	const manager = workspaceInitManager;
+	let copyFilesWarning: string | undefined;
+	const syncWorktreeFiles = (): void => {
+		copySupersetConfigToWorktree(mainRepoPath, worktreePath);
+
+		const config = loadSetupConfig({
+			mainRepoPath,
+			worktreePath,
+			projectId,
+		});
+		const result = copyProjectFilesToWorktree(
+			mainRepoPath,
+			worktreePath,
+			config?.copyFiles,
+		);
+		if (result.missing.length > 0) {
+			copyFilesWarning = `Couldn't copy ${result.missing.join(", ")} into this workspace — missing from the main worktree.`;
+		}
+	};
 	const completeReadyState = async (): Promise<void> => {
 		let warning: string | undefined;
 		try {
@@ -74,7 +96,14 @@ export async function initializeWorkspaceWorktree({
 			return;
 		}
 
-		manager.updateProgress(workspaceId, "ready", "Ready", undefined, warning);
+		const combined = [warning, copyFilesWarning].filter(Boolean).join(" ");
+		manager.updateProgress(
+			workspaceId,
+			"ready",
+			"Ready",
+			undefined,
+			combined || undefined,
+		);
 	};
 
 	try {
@@ -143,7 +172,7 @@ export async function initializeWorkspaceWorktree({
 				"copying_config",
 				"Copying configuration...",
 			);
-			copySupersetConfigToWorktree(mainRepoPath, worktreePath);
+			syncWorktreeFiles();
 
 			if (manager.isCancellationRequested(workspaceId)) {
 				try {
