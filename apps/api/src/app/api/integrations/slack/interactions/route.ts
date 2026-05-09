@@ -43,7 +43,12 @@ export async function POST(request: Request) {
 
 	let payload: SlackInteractionPayload;
 	try {
-		payload = JSON.parse(payloadRaw) as SlackInteractionPayload;
+		const parsed = JSON.parse(payloadRaw);
+		if (parsed === null || typeof parsed !== "object") {
+			console.error("[slack/interactions] Invalid JSON payload");
+			return Response.json({ error: "Invalid JSON payload" }, { status: 400 });
+		}
+		payload = parsed as SlackInteractionPayload;
 	} catch {
 		console.error("[slack/interactions] Failed to parse JSON payload");
 		return Response.json({ error: "Invalid JSON payload" }, { status: 400 });
@@ -53,7 +58,12 @@ export async function POST(request: Request) {
 		const teamId = payload.team?.id;
 		const slackUserId = payload.user?.id;
 
-		if (!teamId || !slackUserId) {
+		if (
+			typeof teamId !== "string" ||
+			teamId.length === 0 ||
+			typeof slackUserId !== "string" ||
+			slackUserId.length === 0
+		) {
 			console.error("[slack/interactions] Missing team or user ID");
 			return new Response("ok", { status: 200 });
 		}
@@ -158,5 +168,29 @@ async function handleDisconnectAccount({
 function isSlackInteractionAction(
 	action: unknown,
 ): action is SlackInteractionAction {
-	return action !== null && typeof action === "object";
+	if (action === null || typeof action !== "object" || Array.isArray(action)) {
+		return false;
+	}
+
+	const candidate = action as Record<string, unknown>;
+	if ("action_id" in candidate && typeof candidate.action_id !== "string") {
+		return false;
+	}
+
+	if ("selected_option" in candidate) {
+		if (
+			candidate.selected_option === null ||
+			typeof candidate.selected_option !== "object" ||
+			Array.isArray(candidate.selected_option)
+		) {
+			return false;
+		}
+
+		const selectedOption = candidate.selected_option as Record<string, unknown>;
+		if ("value" in selectedOption && typeof selectedOption.value !== "string") {
+			return false;
+		}
+	}
+
+	return true;
 }

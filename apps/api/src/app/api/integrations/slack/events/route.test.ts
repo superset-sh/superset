@@ -70,6 +70,23 @@ describe("slack events route", () => {
 		expect(response.status).toBe(400);
 	});
 
+	test("returns 400 when body is JSON null", async () => {
+		const request = new Request(
+			"http://localhost/api/integrations/slack/events",
+			{
+				method: "POST",
+				headers: VALID_HEADERS,
+				body: "null",
+			},
+		);
+
+		const response = await POST(request);
+
+		expect(response.status).toBe(400);
+		const json = (await response.json()) as { error: string };
+		expect(json.error).toBe("Invalid JSON payload");
+	});
+
 	test("returns 400 when event_callback envelope is malformed", async () => {
 		const request = new Request(
 			"http://localhost/api/integrations/slack/events",

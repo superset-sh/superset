@@ -1,5 +1,7 @@
 import { describe, expect, mock, test } from "bun:test";
 
+const findSlackUser = mock(async () => undefined);
+
 mock.module("@/env", () => ({
 	env: {
 		SLACK_SIGNING_SECRET: "test-secret",
@@ -12,7 +14,7 @@ mock.module("@/lib/analytics", () => ({
 
 mock.module("@superset/db/client", () => ({
 	db: {
-		query: { usersSlackUsers: { findFirst: async () => undefined } },
+		query: { usersSlackUsers: { findFirst: findSlackUser } },
 		update: () => ({ set: () => ({ where: async () => undefined }) }),
 		delete: () => ({ where: async () => undefined }),
 	},
@@ -44,6 +46,27 @@ const VALID_HEADERS = {
 describe("slack interactions route", () => {
 	test("returns 400 (not 500) when payload is malformed JSON", async () => {
 		const body = `payload=${encodeURIComponent("{not valid json")}`;
+		const request = new Request(
+			"http://localhost/api/integrations/slack/interactions",
+			{
+				method: "POST",
+				headers: {
+					...VALID_HEADERS,
+					"content-type": "application/x-www-form-urlencoded",
+				},
+				body,
+			},
+		);
+
+		const response = await POST(request);
+
+		expect(response.status).toBe(400);
+		const json = (await response.json()) as { error: string };
+		expect(json.error).toBe("Invalid JSON payload");
+	});
+
+	test("returns 400 when payload is JSON null", async () => {
+		const body = `payload=${encodeURIComponent("null")}`;
 		const request = new Request(
 			"http://localhost/api/integrations/slack/interactions",
 			{
@@ -124,5 +147,38 @@ describe("slack interactions route", () => {
 		const response = await POST(request);
 
 		expect(response.status).toBe(200);
+	});
+
+	test("ignores model select actions with malformed selected option values", async () => {
+		const callsBefore = findSlackUser.mock.calls.length;
+		const body = `payload=${encodeURIComponent(
+			JSON.stringify({
+				type: "block_actions",
+				team: { id: "T123" },
+				user: { id: "U123" },
+				actions: [
+					{
+						action_id: "model_select",
+						selected_option: { value: 123 },
+					},
+				],
+			}),
+		)}`;
+		const request = new Request(
+			"http://localhost/api/integrations/slack/interactions",
+			{
+				method: "POST",
+				headers: {
+					...VALID_HEADERS,
+					"content-type": "application/x-www-form-urlencoded",
+				},
+				body,
+			},
+		);
+
+		const response = await POST(request);
+
+		expect(response.status).toBe(200);
+		expect(findSlackUser.mock.calls).toHaveLength(callsBefore);
 	});
 });

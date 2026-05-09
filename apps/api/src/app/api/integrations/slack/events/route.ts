@@ -49,7 +49,12 @@ export async function POST(request: Request) {
 
 	let payload: SlackEventEnvelope;
 	try {
-		payload = JSON.parse(body) as SlackEventEnvelope;
+		const parsed = JSON.parse(body);
+		if (parsed === null || typeof parsed !== "object") {
+			console.error("[slack/events] Invalid JSON payload");
+			return Response.json({ error: "Invalid JSON payload" }, { status: 400 });
+		}
+		payload = parsed as SlackEventEnvelope;
 	} catch {
 		console.error("[slack/events] Failed to parse JSON payload");
 		return Response.json({ error: "Invalid JSON payload" }, { status: 400 });
@@ -62,7 +67,12 @@ export async function POST(request: Request) {
 
 	if (payload.type === "event_callback") {
 		const { event, team_id, event_id } = payload;
-		if (!event || typeof event.type !== "string" || !team_id || !event_id) {
+		if (
+			!event ||
+			typeof event.type !== "string" ||
+			typeof team_id !== "string" ||
+			typeof event_id !== "string"
+		) {
 			console.error("[slack/events] Invalid event payload shape");
 			return Response.json({ error: "Invalid payload shape" }, { status: 400 });
 		}
@@ -138,7 +148,10 @@ export async function POST(request: Request) {
 
 		if (event.type === "app_home_opened") {
 			const appHomeEvent = event as { user?: string; tab?: string };
-			if (!appHomeEvent.user || !appHomeEvent.tab) {
+			if (
+				typeof appHomeEvent.user !== "string" ||
+				typeof appHomeEvent.tab !== "string"
+			) {
 				console.error("[slack/events] Invalid app home opened payload shape");
 				return new Response("ok", { status: 200 });
 			}
