@@ -108,6 +108,36 @@ function normalizePullRequest(raw: unknown): GitHubPullRequestNode | null {
 	};
 }
 
+function headKey(
+	owner: string | null | undefined,
+	repo: string | null | undefined,
+	branch: string,
+): string | null {
+	if (!owner || !repo) return null;
+	// GitHub owner/repo names are case-insensitive; branch names are not.
+	return `${owner.toLowerCase()}/${repo.toLowerCase()}#${branch}`;
+}
+
+function normalizePullRequestCandidates(
+	raw: unknown,
+	head: GitHubPullRequestHeadRef,
+): GitHubPullRequestNode | null {
+	const requestedKey = headKey(head.owner, head.repo, head.branch);
+	return (
+		asArray(raw)
+			.map((item) => normalizePullRequest(item))
+			.find(
+				(node) =>
+					node &&
+					headKey(
+						node.headRepositoryOwner?.login,
+						node.headRepository?.name,
+						node.headRefName,
+					) === requestedKey,
+			) ?? null
+	);
+}
+
 function mapReviewDecision(
 	rawReviews: unknown,
 	prState: PullRequestState,
@@ -194,10 +224,10 @@ export async function fetchPullRequestByHeadFromGh(
 		"-f",
 		"direction=desc",
 		"-f",
-		"per_page=1",
+		"per_page=10",
 	]);
 
-	return normalizePullRequest(asArray(raw)[0]);
+	return normalizePullRequestCandidates(raw, head);
 }
 
 export async function fetchPullRequestByHead(
@@ -215,10 +245,10 @@ export async function fetchPullRequestByHead(
 		head: `${head.owner}:${head.branch}`,
 		sort: "updated",
 		direction: "desc",
-		per_page: 1,
+		per_page: 10,
 	});
 
-	return normalizePullRequest(response.data[0]);
+	return normalizePullRequestCandidates(response.data, head);
 }
 
 export async function fetchPullRequestReviewDecisionFromGh(

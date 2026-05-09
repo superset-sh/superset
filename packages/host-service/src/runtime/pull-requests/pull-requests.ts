@@ -1006,7 +1006,6 @@ export class PullRequestRuntimeManager {
 								error,
 							},
 						);
-						checksByNumber.set(node.number, []);
 					}
 				}
 			}),
@@ -1014,7 +1013,12 @@ export class PullRequestRuntimeManager {
 
 		for (const [key, node] of latestByKey) {
 			const existing = this.findPullRequestRow(repo, node.number);
-			const checks = parseCheckContexts(checksByNumber.get(node.number) ?? []);
+			const checks = checksByNumber.has(node.number)
+				? parseCheckContexts(checksByNumber.get(node.number) ?? [])
+				: parseChecksJson(existing?.checksJson ?? null);
+			const reviewDecision = reviewDecisionByNumber.has(node.number)
+				? mapReviewDecision(reviewDecisionByNumber.get(node.number) ?? null)
+				: coerceReviewDecision(existing?.reviewDecision ?? null);
 			const rowId = this.upsertPullRequestRow({
 				existing,
 				projectId,
@@ -1026,9 +1030,7 @@ export class PullRequestRuntimeManager {
 				isDraft: node.isDraft,
 				headBranch: node.headRefName,
 				headSha: node.headRefOid,
-				reviewDecision: mapReviewDecision(
-					reviewDecisionByNumber.get(node.number) ?? null,
-				),
+				reviewDecision,
 				checksStatus: computeChecksStatus(checks),
 				checksJson: JSON.stringify(checks),
 				lastFetchedAt: now,

@@ -85,10 +85,71 @@ describe("GitHub pull request REST queries", () => {
 					"-f",
 					"direction=desc",
 					"-f",
-					"per_page=1",
+					"per_page=10",
 				],
 			},
 		]);
+	});
+
+	test("filters REST head candidates by exact upstream repository", async () => {
+		const { execGh } = createExecGh([
+			[
+				{
+					number: 41,
+					title: "Wrong fork",
+					html_url: "https://github.com/superset-sh/superset/pull/41",
+					state: "open",
+					draft: false,
+					merged_at: null,
+					updated_at: "2026-05-08T12:05:00Z",
+					head: {
+						ref: "fix/sidebar",
+						sha: "wrong",
+						repo: {
+							name: "other-repo",
+							owner: { login: "fork-owner" },
+						},
+					},
+					base: {
+						repo: {
+							full_name: "superset-sh/superset",
+						},
+					},
+				},
+				{
+					number: 42,
+					title: "Right fork",
+					html_url: "https://github.com/superset-sh/superset/pull/42",
+					state: "open",
+					draft: false,
+					merged_at: null,
+					updated_at: "2026-05-08T12:00:00Z",
+					head: {
+						ref: "fix/sidebar",
+						sha: "abc123",
+						repo: {
+							name: "fork-repo",
+							owner: { login: "Fork-Owner" },
+						},
+					},
+					base: {
+						repo: {
+							full_name: "superset-sh/superset",
+						},
+					},
+				},
+			],
+		]);
+
+		const result = await fetchPullRequestByHeadFromGh(
+			execGh,
+			{ owner: "superset-sh", name: "superset" },
+			{ owner: "fork-owner", repo: "fork-repo", branch: "fix/sidebar" },
+		);
+
+		expect(result?.number).toBe(42);
+		expect(result?.headRepositoryOwner?.login).toBe("Fork-Owner");
+		expect(result?.headRepository?.name).toBe("fork-repo");
 	});
 
 	test("derives review decision from latest REST reviews by author", async () => {
