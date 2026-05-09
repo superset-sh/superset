@@ -187,9 +187,8 @@ export function V2PresetsSection({
 		[serverPresets],
 	);
 
-	// Quick-add lists every configured host-agent row. New linked presets store
-	// the host-service config id; older rows may still store presetId and are
-	// resolved through the execution/editor fallback path.
+	// One pill per host-agent config — agent.id is unique, so multiple
+	// Claude/Codex configs each get their own pill.
 	const quickAddPills = useMemo<QuickAddAgentPill[]>(() => {
 		const pills: QuickAddAgentPill[] = [];
 		for (const agent of agents) {
@@ -258,6 +257,8 @@ export function V2PresetsSection({
 		[collections.v2TerminalPresets],
 	);
 
+	// Migrate legacy rows whose agentId still holds a presetId. Skip when the
+	// presetId resolves to multiple configs — we can't pick one safely.
 	useEffect(() => {
 		if (agents.length === 0 || serverPresets.length === 0) return;
 
