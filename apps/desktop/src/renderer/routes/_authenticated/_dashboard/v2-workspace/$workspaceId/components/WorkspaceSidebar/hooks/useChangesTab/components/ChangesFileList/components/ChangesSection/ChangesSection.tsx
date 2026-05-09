@@ -1,35 +1,29 @@
-import {
-	Collapsible,
-	CollapsibleContent,
-	CollapsibleTrigger,
-} from "@superset/ui/collapsible";
 import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { workspaceTrpc } from "@superset/workspace-client";
 import { ChevronRight, Minus, Plus } from "lucide-react";
-import { type ReactNode, useState } from "react";
+import { useState } from "react";
 import { LuUndo2 } from "react-icons/lu";
 import { DiscardConfirmDialog } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/DiscardConfirmDialog";
 
 type SectionKind = "unstaged" | "staged";
 
-interface ChangesSectionProps {
+interface ChangesSectionHeaderProps {
 	title: string;
 	count: number;
-	defaultOpen?: boolean;
+	open: boolean;
+	onOpenChange: (open: boolean) => void;
 	stagingActions?: { kind: SectionKind; workspaceId: string };
-	children: ReactNode;
 }
 
-export function ChangesSection({
+export function ChangesSectionHeader({
 	title,
 	count,
-	defaultOpen = true,
+	open,
+	onOpenChange,
 	stagingActions,
-	children,
-}: ChangesSectionProps) {
-	const [open, setOpen] = useState(defaultOpen);
+}: ChangesSectionHeaderProps) {
 	const [showConfirm, setShowConfirm] = useState(false);
 	const utils = workspaceTrpc.useUtils();
 
@@ -112,9 +106,14 @@ export function ChangesSection({
 	const StagingToggleIcon = isUnstaged ? Plus : Minus;
 
 	return (
-		<Collapsible open={open} onOpenChange={setOpen}>
+		<>
 			<div className="flex items-center">
-				<CollapsibleTrigger className="flex min-w-0 flex-1 items-center gap-1.5 px-2 py-1 text-left text-xs hover:bg-accent/30">
+				<button
+					type="button"
+					aria-expanded={open}
+					onClick={() => onOpenChange(!open)}
+					className="flex min-w-0 flex-1 items-center gap-1.5 px-2 py-1 text-left text-xs hover:bg-accent/30"
+				>
 					<ChevronRight
 						className={cn(
 							"size-3 shrink-0 text-muted-foreground transition-transform duration-150",
@@ -125,7 +124,7 @@ export function ChangesSection({
 					<span className="shrink-0 text-[10px] text-muted-foreground">
 						{count}
 					</span>
-				</CollapsibleTrigger>
+				</button>
 				{stagingActions && (
 					<div className="flex shrink-0 items-center gap-0.5 pr-1.5">
 						<Tooltip>
@@ -161,7 +160,6 @@ export function ChangesSection({
 					</div>
 				)}
 			</div>
-			<CollapsibleContent>{children}</CollapsibleContent>
 			{stagingActions && (
 				<DiscardConfirmDialog
 					open={showConfirm}
@@ -174,6 +172,6 @@ export function ChangesSection({
 					}}
 				/>
 			)}
-		</Collapsible>
+		</>
 	);
 }

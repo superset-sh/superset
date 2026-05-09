@@ -1,1 +1,1 @@
-export { ChangesSection } from "./ChangesSection";
+export { ChangesSectionHeader } from "./ChangesSection";

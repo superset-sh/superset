@@ -1,7 +1,16 @@
-import { memo, useMemo } from "react";
+import { useVirtualizer } from "@tanstack/react-virtual";
+import { memo, useMemo, useRef, useState } from "react";
 import type { ChangesetFile } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/useChangeset";
-import { ChangesSection } from "./components/ChangesSection";
+import { ChangesSectionHeader } from "./components/ChangesSection";
 import { FileRow } from "./components/FileRow";
+import {
+	buildChangesRows,
+	type GroupKey,
+	groupChangesetFiles,
+} from "./utils/buildChangesRows";
+
+const ESTIMATED_ROW_HEIGHT = 28;
+const OVERSCAN = 8;
 
 interface ChangesFileListProps {
 	files: ChangesetFile[];
@@ -13,20 +22,11 @@ interface ChangesFileListProps {
 	onOpenInEditor?: (path: string) => void;
 }
 
-type GroupKey = "unstaged" | "staged" | "against-base" | "commit";
-
-const GROUP_ORDER: GroupKey[] = [
-	"unstaged",
-	"staged",
-	"against-base",
-	"commit",
-];
-
-const GROUP_TITLES: Record<GroupKey, string> = {
-	unstaged: "Unstaged",
-	staged: "Staged",
-	"against-base": "Against base",
-	commit: "Committed",
+const DEFAULT_OPEN_GROUPS: Record<GroupKey, boolean> = {
+	unstaged: true,
+	staged: true,
+	"against-base": true,
+	commit: true,
 };
 
 export const ChangesFileList = memo(function ChangesFileList({
@@ -38,18 +38,22 @@ export const ChangesFileList = memo(function ChangesFileList({
 	onOpenFile,
 	onOpenInEditor,
 }: ChangesFileListProps) {
-	const grouped = useMemo(() => {
-		const groups: Record<GroupKey, ChangesetFile[]> = {
-			unstaged: [],
-			staged: [],
-			"against-base": [],
-			commit: [],
-		};
-		for (const file of files) {
-			groups[file.source.kind].push(file);
-		}
-		return groups;
-	}, [files]);
+	const scrollRef = useRef<HTMLDivElement>(null);
+	const [openGroups, setOpenGroups] =
+		useState<Record<GroupKey, boolean>>(DEFAULT_OPEN_GROUPS);
+
+	const grouped = useMemo(() => groupChangesetFiles(files), [files]);
+	const rows = useMemo(
+		() => buildChangesRows(grouped, openGroups),
+		[grouped, openGroups],
+	);
+
+	const virtualizer = useVirtualizer({
+		count: rows.length,
+		getScrollElement: () => scrollRef.current,
+		estimateSize: () => ESTIMATED_ROW_HEIGHT,
+		overscan: OVERSCAN,
+	});
 
 	if (isLoading) {
 		return (
@@ -67,37 +71,58 @@ export const ChangesFileList = memo(function ChangesFileList({
 		);
 	}
 
+	const virtualItems = virtualizer.getVirtualItems();
+
 	return (
-		<div className="min-h-0 flex-1 overflow-y-auto">
-			{GROUP_ORDER.map((key) => {
-				const groupFiles = grouped[key];
-				if (groupFiles.length === 0) return null;
-				const hasStagingActions = key === "unstaged" || key === "staged";
-				return (
-					<ChangesSection
-						key={key}
-						title={GROUP_TITLES[key]}
-						count={groupFiles.length}
-						stagingActions={
-							hasStagingActions
-								? { kind: key as "unstaged" | "staged", workspaceId }
-								: undefined
-						}
-					>
-						{groupFiles.map((file) => (
-							<FileRow
-								key={`${file.source.kind}:${file.path}`}
-								file={file}
-								workspaceId={workspaceId}
-								worktreePath={worktreePath}
-								onSelect={onSelectFile}
-								onOpenFile={onOpenFile}
-								onOpenInEditor={onOpenInEditor}
-							/>
-						))}
-					</ChangesSection>
-				);
-			})}
+		<div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto">
+			<div
+				className="relative w-full"
+				style={{ height: virtualizer.getTotalSize() }}
+			>
+				{virtualItems.map((virtualRow) => {
+					const row = rows[virtualRow.index];
+					if (!row) return null;
+					const hasStagingActions =
+						row.groupKey === "unstaged" || row.groupKey === "staged";
+					return (
+						<div
+							key={row.key}
+							data-index={virtualRow.index}
+							ref={virtualizer.measureElement}
+							className="absolute left-0 w-full"
+							style={{ top: virtualRow.start }}
+						>
+							{row.kind === "header" ? (
+								<ChangesSectionHeader
+									title={row.title}
+									count={row.count}
+									open={row.open}
+									onOpenChange={(open) =>
+										setOpenGroups((prev) => ({ ...prev, [row.groupKey]: open }))
+									}
+									stagingActions={
+										hasStagingActions
+											? {
+													kind: row.groupKey as "unstaged" | "staged",
+													workspaceId,
+												}
+											: undefined
+									}
+								/>
+							) : (
+								<FileRow
+									file={row.file}
+									workspaceId={workspaceId}
+									worktreePath={worktreePath}
+									onSelect={onSelectFile}
+									onOpenFile={onOpenFile}
+									onOpenInEditor={onOpenInEditor}
+								/>
+							)}
+						</div>
+					);
+				})}
+			</div>
 		</div>
 	);
 });
