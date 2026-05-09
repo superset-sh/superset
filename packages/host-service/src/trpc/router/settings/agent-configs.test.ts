@@ -66,6 +66,9 @@ describe("agentConfigsRouter", () => {
 			expect(codex?.args).toContain(
 				"--dangerously-bypass-approvals-and-sandbox",
 			);
+			expect(codex?.args).toEqual([
+				"--dangerously-bypass-approvals-and-sandbox",
+			]);
 			expect(codex?.args).not.toContain("--sandbox");
 			expect(codex?.args).not.toContain("--ask-for-approval");
 		});

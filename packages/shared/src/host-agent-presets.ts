@@ -59,15 +59,7 @@ export const HOST_AGENT_PRESETS = [
 		description:
 			"OpenAI's coding agent for reading, modifying, and running code across tasks.",
 		command: "codex",
-		args: [
-			"-c",
-			'model_reasoning_effort="high"',
-			"--dangerously-bypass-approvals-and-sandbox",
-			"-c",
-			'model_reasoning_summary="detailed"',
-			"-c",
-			"model_supports_reasoning_summaries=true",
-		],
+		args: ["--dangerously-bypass-approvals-and-sandbox"],
 		promptTransport: "argv",
 		promptArgs: ["--"],
 		env: {},
