@@ -16,6 +16,8 @@ describe("getNotifyScriptContent", () => {
 		expect(script).toContain(
 			"event=$EVENT_TYPE terminalId=$SUPERSET_TERMINAL_ID agentId=$SUPERSET_AGENT_ID hookSessionId=$HOOK_SESSION_ID resourceId=$RESOURCE_ID paneId=$SUPERSET_PANE_ID tabId=$SUPERSET_TAB_ID workspaceId=$SUPERSET_WORKSPACE_ID",
 		);
+		expect(script).toContain('V1_EVENT_TYPE="$EVENT_TYPE"');
+		expect(script).toContain('V1_EVENT_TYPE="Stop"');
 	});
 
 	it("gives the v2 host-service hook enough time to deliver", () => {
@@ -67,6 +69,8 @@ describe("per-agent hook scripts dispatch to v2", () => {
 				'if [ -n "$SUPERSET_HOST_AGENT_HOOK_URL" ] && [ -n "$SUPERSET_TERMINAL_ID" ]; then',
 			);
 			expect(script).toContain("/hook/complete");
+			expect(script).toContain('V1_EVENT_TYPE="$EVENT_TYPE"');
+			expect(script).toContain("eventType=$V1_EVENT_TYPE");
 			expect(script).toContain("SUPERSET_TAB_ID");
 			expect(script).toContain("SUPERSET_PANE_ID");
 		});

@@ -46,6 +46,8 @@ export function HostNotificationSubscriber({
 				useV2AgentBindingStore
 					.getState()
 					.setBinding(payload.terminalId, payload.agent, payload.occurredAt);
+			} else {
+				useV2AgentBindingStore.getState().clearBinding(payload.terminalId);
 			}
 			const workspace = workspacesById.get(workspaceId);
 			if (!workspace) return;

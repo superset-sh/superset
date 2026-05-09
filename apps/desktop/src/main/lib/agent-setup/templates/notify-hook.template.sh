@@ -52,6 +52,23 @@ if [ "$DEBUG_HOOKS_ENABLED" = "1" ]; then
   echo "[notify-hook] event=$EVENT_TYPE terminalId=$SUPERSET_TERMINAL_ID agentId=$SUPERSET_AGENT_ID hookSessionId=$HOOK_SESSION_ID resourceId=$RESOURCE_ID paneId=$SUPERSET_PANE_ID tabId=$SUPERSET_TAB_ID workspaceId=$SUPERSET_WORKSPACE_ID" >&2
 fi
 
+debug_log() {
+  [ "$DEBUG_HOOKS_ENABLED" = "1" ] || return 0
+  printf '%s [notify-hook] %s\n' "$(date -u '+%Y-%m-%dT%H:%M:%SZ' 2>/dev/null || date)" "$*" >> "${SUPERSET_HOOK_DEBUG_LOG:-/tmp/superset-agent-hooks.log}" 2>/dev/null || true
+}
+
+debug_log "event=$EVENT_TYPE terminalId=$SUPERSET_TERMINAL_ID agentId=$SUPERSET_AGENT_ID sessionId=$SESSION_ID hookSessionId=$HOOK_SESSION_ID resourceId=$RESOURCE_ID tabId=$SUPERSET_TAB_ID"
+
+V1_EVENT_TYPE="$EVENT_TYPE"
+case "$V1_EVENT_TYPE" in
+  Attached|attached|SessionStart|sessionStart|session_start)
+    V1_EVENT_TYPE="Start"
+    ;;
+  Detached|detached|SessionEnd|sessionEnd|session_end)
+    V1_EVENT_TYPE="Stop"
+    ;;
+esac
+
 json_escape() {
   printf '%s' "$1" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g'
 }
@@ -68,6 +85,7 @@ if [ -n "$SUPERSET_HOST_AGENT_HOOK_URL" ] && [ -n "$SUPERSET_TERMINAL_ID" ]; the
   if [ "$DEBUG_HOOKS_ENABLED" = "1" ]; then
     echo "[notify-hook] host-service dispatched status=$STATUS_CODE" >&2
   fi
+  debug_log "host-service status=$STATUS_CODE url=$SUPERSET_HOST_AGENT_HOOK_URL"
 
   case "$STATUS_CODE" in
     2*) exit 0 ;;
@@ -86,12 +104,14 @@ if [ "$DEBUG_HOOKS_ENABLED" = "1" ]; then
     --data-urlencode "sessionId=$SESSION_ID" \
     --data-urlencode "hookSessionId=$HOOK_SESSION_ID" \
     --data-urlencode "resourceId=$RESOURCE_ID" \
-    --data-urlencode "eventType=$EVENT_TYPE" \
+    --data-urlencode "eventType=$V1_EVENT_TYPE" \
     --data-urlencode "env=$SUPERSET_ENV" \
     --data-urlencode "version=$SUPERSET_HOOK_VERSION" \
     -o /dev/null -w "%{http_code}" 2>/dev/null)
   echo "[notify-hook] v1 dispatched status=$STATUS_CODE" >&2
+  debug_log "v1 status=$STATUS_CODE port=${SUPERSET_PORT:-{{DEFAULT_PORT}}}"
 else
+  debug_log "v1 dispatch port=${SUPERSET_PORT:-{{DEFAULT_PORT}}}"
   curl -sG "http://127.0.0.1:${SUPERSET_PORT:-{{DEFAULT_PORT}}}/hook/complete" \
     --connect-timeout 1 --max-time 2 \
     --data-urlencode "paneId=$SUPERSET_PANE_ID" \
@@ -100,7 +120,7 @@ else
     --data-urlencode "sessionId=$SESSION_ID" \
     --data-urlencode "hookSessionId=$HOOK_SESSION_ID" \
     --data-urlencode "resourceId=$RESOURCE_ID" \
-    --data-urlencode "eventType=$EVENT_TYPE" \
+    --data-urlencode "eventType=$V1_EVENT_TYPE" \
     --data-urlencode "env=$SUPERSET_ENV" \
     --data-urlencode "version=$SUPERSET_HOOK_VERSION" \
     > /dev/null 2>&1

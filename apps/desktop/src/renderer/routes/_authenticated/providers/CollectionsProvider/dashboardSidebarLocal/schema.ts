@@ -105,7 +105,7 @@ export const v2TerminalPresetSchema = z.object({
 	createdAt: persistedDateSchema,
 	// When set, the preset is live-linked to a builtin/custom agent definition.
 	// The launcher and editor look up the agent's current command via
-	// settings.getAgentPresets; the stored `commands` array is a snapshot
+	// host-service settings.agentConfigs; the stored `commands` array is a snapshot
 	// fallback for when the agent is missing or disabled.
 	agentId: z.string().optional(),
 });

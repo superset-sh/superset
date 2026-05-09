@@ -3,10 +3,7 @@ import {
 	normalizeExecutionMode,
 	type TerminalPreset,
 } from "@superset/local-db";
-import {
-	AGENT_PRESET_DESCRIPTIONS,
-	type AgentType,
-} from "@superset/shared/agent-command";
+import { HOST_AGENT_PRESETS } from "@superset/shared/host-agent-presets";
 import { Button } from "@superset/ui/button";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -27,6 +24,10 @@ import {
 } from "../PresetsSection/components/QuickAddPresets";
 import type { AutoApplyField } from "../PresetsSection/constants";
 import type { PresetProjectOption } from "../PresetsSection/preset-project-options";
+
+const DESCRIPTION_BY_PRESET_ID = new Map<string, string>(
+	HOST_AGENT_PRESETS.map((preset) => [preset.presetId, preset.description]),
+);
 
 interface V2PresetsSectionProps {
 	showPresets: boolean;
@@ -200,8 +201,7 @@ export function V2PresetsSection({
 			pills.push({
 				agentId: agent.presetId,
 				label: agent.label,
-				description:
-					AGENT_PRESET_DESCRIPTIONS[agent.presetId as AgentType] ?? "",
+				description: DESCRIPTION_BY_PRESET_ID.get(agent.presetId) ?? "",
 				commands: [buildAgentLaunchCommand(agent)],
 			});
 		}

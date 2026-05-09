@@ -68,7 +68,7 @@ export function getMastraHooksJsonContent(notifyScriptPath: string): string {
 		);
 	}
 
-	const notifyCommand = `bash ${quoteShellPath(notifyScriptPath)}`;
+	const notifyCommand = `SUPERSET_AGENT_ID=mastracode bash ${quoteShellPath(notifyScriptPath)}`;
 	// Session lifecycle drives the pane icon binding; per-prompt drives status.
 	const managedEvents = [
 		"SessionStart",

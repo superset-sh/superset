@@ -31,10 +31,19 @@ export function resolveV2AgentStatusTransition({
 	const terminalSource = getV2TerminalNotificationSource(payload.terminalId);
 	const terminalSourceKey = getV2NotificationSourceKey(terminalSource);
 
-	// Attach/detach are idle signals — they bind the pane icon (handled in
+	// Attach is an idle signal — it binds the pane icon (handled in
 	// HostNotificationSubscriber) but must not flip the pane to "working".
-	if (payload.eventType === "Attached" || payload.eventType === "Detached") {
+	if (payload.eventType === "Attached") {
 		return { clearSources: [], setStatus: null };
+	}
+	if (payload.eventType === "Detached") {
+		const entry = statuses[terminalSourceKey];
+		const shouldClearTransient =
+			entry?.workspaceId === workspaceId &&
+			(entry.status === "working" || entry.status === "permission");
+		return shouldClearTransient
+			? { clearSources: [terminalSource], setStatus: null }
+			: { clearSources: [], setStatus: null };
 	}
 
 	if (payload.eventType === "Start") {

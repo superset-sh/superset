@@ -23,6 +23,7 @@ export function mapEventType(
 	}
 	if (
 		eventType === "Attached" ||
+		eventType === "attached" ||
 		eventType === "SessionStart" ||
 		eventType === "sessionStart" ||
 		eventType === "session_start"
@@ -31,6 +32,7 @@ export function mapEventType(
 	}
 	if (
 		eventType === "Detached" ||
+		eventType === "detached" ||
 		eventType === "SessionEnd" ||
 		eventType === "sessionEnd" ||
 		eventType === "session_end"

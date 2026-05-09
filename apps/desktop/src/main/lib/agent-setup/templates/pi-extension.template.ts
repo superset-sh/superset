@@ -10,6 +10,7 @@
  *   pi `before_agent_start`  → Claude `UserPromptSubmit`  → Superset `Start`
  *   pi `tool_execution_end`  → Claude `PostToolUse`       → progress signal
  *   pi `agent_end`           → Claude `Stop`              → completion / chime
+ *   pi `session_end`         → Claude `SessionEnd`        → pane icon detach
  *   pi `session_shutdown`    → Claude `Stop`              → cleanup on quit/reload
  *
  * Activates only when running inside a v2 Superset terminal (detected via
@@ -72,6 +73,11 @@ export default function (pi: ExtensionAPI) {
 	pi.on("session_start", (_event, ctx) => {
 		if (skip(ctx)) return;
 		fire("SessionStart");
+	});
+
+	pi.on("session_end", (_event, ctx) => {
+		if (skip(ctx)) return;
+		fire("SessionEnd");
 	});
 
 	pi.on("before_agent_start", (_event, ctx) => {

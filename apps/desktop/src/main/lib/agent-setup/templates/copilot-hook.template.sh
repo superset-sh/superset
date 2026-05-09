@@ -22,6 +22,12 @@ esac
 
 printf '{}\n'
 
+V1_EVENT_TYPE="$EVENT_TYPE"
+case "$V1_EVENT_TYPE" in
+  SessionStart) V1_EVENT_TYPE="Start" ;;
+  SessionEnd)   V1_EVENT_TYPE="Stop" ;;
+esac
+
 json_escape() {
   printf '%s' "$1" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g'
 }
@@ -49,7 +55,7 @@ curl -sG "http://127.0.0.1:${SUPERSET_PORT:-{{DEFAULT_PORT}}}/hook/complete" \
   --data-urlencode "workspaceId=$SUPERSET_WORKSPACE_ID" \
   --data-urlencode "sessionId=$HOOK_SESSION_ID" \
   --data-urlencode "hookSessionId=$HOOK_SESSION_ID" \
-  --data-urlencode "eventType=$EVENT_TYPE" \
+  --data-urlencode "eventType=$V1_EVENT_TYPE" \
   --data-urlencode "env=$SUPERSET_ENV" \
   --data-urlencode "version=$SUPERSET_HOOK_VERSION" \
   > /dev/null 2>&1

@@ -4,10 +4,12 @@ import { mapEventType } from "./map-event-type";
 describe("mapEventType", () => {
 	it("routes session lifecycle to Attached/Detached, not Start/Stop", () => {
 		expect(mapEventType("SessionStart")).toBe("Attached");
+		expect(mapEventType("attached")).toBe("Attached");
 		expect(mapEventType("sessionStart")).toBe("Attached");
 		expect(mapEventType("session_start")).toBe("Attached");
 
 		expect(mapEventType("SessionEnd")).toBe("Detached");
+		expect(mapEventType("detached")).toBe("Detached");
 		expect(mapEventType("sessionEnd")).toBe("Detached");
 		expect(mapEventType("session_end")).toBe("Detached");
 	});

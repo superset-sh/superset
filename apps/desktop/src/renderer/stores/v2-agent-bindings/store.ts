@@ -27,12 +27,14 @@ export const useV2AgentBindingStore = create<V2AgentBindingState>((set) => ({
 	setBinding: (terminalId, identity, occurredAt) =>
 		set((state) => {
 			const existing = state.byTerminalId[terminalId];
+			if (existing && existing.lastEventAt > occurredAt) {
+				return state;
+			}
 			if (
 				existing &&
 				existing.identity.agentId === identity.agentId &&
 				existing.identity.sessionId === identity.sessionId &&
-				existing.identity.definitionId === identity.definitionId &&
-				existing.lastEventAt >= occurredAt
+				existing.identity.definitionId === identity.definitionId
 			) {
 				return state;
 			}

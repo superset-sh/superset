@@ -23,14 +23,15 @@ describe("useV2AgentBindingStore", () => {
 		).toBeUndefined();
 	});
 
-	it("retains the binding across Stop events for the same session", () => {
+	it("retains the binding across repeated events for the same session", () => {
 		const { setBinding } = useV2AgentBindingStore.getState();
 
 		setBinding("term-1", { agentId: "claude", sessionId: "s1" }, 100);
 		const firstRef = useV2AgentBindingStore.getState().byTerminalId["term-1"];
 		setBinding("term-1", { agentId: "claude", sessionId: "s1" }, 50);
+		setBinding("term-1", { agentId: "claude", sessionId: "s1" }, 200);
 
-		// Older occurredAt for an identical identity is a no-op (no churn).
+		// Identical identity events are no-ops; the icon does not need churn.
 		expect(useV2AgentBindingStore.getState().byTerminalId["term-1"]).toBe(
 			firstRef,
 		);
@@ -57,6 +58,18 @@ describe("useV2AgentBindingStore", () => {
 			useV2AgentBindingStore.getState().byTerminalId["term-1"]?.identity
 				.agentId,
 		).toBe("codex");
+	});
+
+	it("ignores stale events for a different identity", () => {
+		const { setBinding } = useV2AgentBindingStore.getState();
+
+		setBinding("term-1", { agentId: "claude", sessionId: "s1" }, 100);
+		setBinding("term-1", { agentId: "codex", sessionId: "s2" }, 200);
+		setBinding("term-1", { agentId: "claude", sessionId: "s1" }, 150);
+
+		expect(
+			useV2AgentBindingStore.getState().byTerminalId["term-1"]?.identity,
+		).toEqual({ agentId: "codex", sessionId: "s2" });
 	});
 
 	it("isolates bindings per terminal", () => {

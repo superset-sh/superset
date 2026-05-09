@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
 import { execFileSync } from "node:child_process";
 import {
 	chmodSync,
+	existsSync,
 	mkdirSync,
 	readFileSync,
 	rmSync,
@@ -176,7 +177,7 @@ describe("agent-wrappers copilot", () => {
 		expect(updated).not.toContain("/tmp/old-hook.sh");
 	});
 
-	it("delegates codex lifecycle to native hooks; no session-log watcher", () => {
+	it("tails codex's process-scoped TUI session log to drive Start events", () => {
 		createCodexWrapper();
 
 		const wrapperPath = path.join(TEST_BIN_DIR, "codex");
@@ -187,12 +188,21 @@ describe("agent-wrappers copilot", () => {
 		);
 		expect(wrapper).toContain('export SUPERSET_AGENT_ID="codex"');
 
-		// Lifecycle flows through ~/.codex/hooks.json — no watcher subshell.
-		expect(wrapper).not.toContain("SUPERSET_CODEX_START_WATCHER_PID");
-		expect(wrapper).not.toContain("CODEX_TUI_RECORD_SESSION");
-		expect(wrapper).not.toContain('"kind":"codex_event"');
+		expect(wrapper).toContain("# Superset agent-wrapper v2");
+
+		// Native hooks remain enabled, but the process-scoped TUI session log is
+		// the reliable Start signal for installed Codex TUI builds.
+		expect(wrapper).toContain("SUPERSET_CODEX_SESSION_WATCHER_PID");
+		expect(wrapper).toContain("CODEX_TUI_RECORD_SESSION");
+		expect(wrapper).toContain("CODEX_TUI_SESSION_LOG_PATH");
+		expect(wrapper).toContain("SUPERSET_TERMINAL_ID$SUPERSET_TAB_ID");
 		expect(wrapper).not.toContain("rollout-*.jsonl");
 		expect(wrapper).not.toContain("_superset_sessions_dir");
+		expect(wrapper).not.toContain("$" + "{CODEX_HOME:-$HOME/.codex}");
+		expect(wrapper).toContain("SUPERSET_HOOK_DEBUG_LOG");
+		expect(wrapper).toContain("tail -n +1 -F");
+		expect(wrapper).toContain('"UserTurn"');
+		expect(wrapper).toContain("_approval_request");
 
 		const execLine = buildCodexWrapperExecLine(
 			path.join(TEST_HOOKS_DIR, "notify.sh"),
@@ -239,6 +249,179 @@ exit 0
 				"Reply with exactly OK.",
 			].join("\n")}\n`,
 		);
+	});
+
+	it("emits codex Start from the wrapper-owned TUI session log", () => {
+		const realBinDir = path.join(TEST_ROOT, "real-bin");
+		const realCodex = path.join(realBinDir, "codex");
+		const wrapperPath = path.join(TEST_BIN_DIR, "codex");
+		const notifyPath = path.join(TEST_HOOKS_DIR, "notify.sh");
+		const notifyCapturePath = path.join(TEST_ROOT, "codex-notify-events.txt");
+		const debugLogPath = path.join(TEST_ROOT, "codex-debug.log");
+
+		mkdirSync(realBinDir, { recursive: true });
+		mkdirSync(TEST_HOOKS_DIR, { recursive: true });
+		writeFileSync(
+			notifyPath,
+			`#!/bin/bash
+printf '%s\n' "$1" >> "$NOTIFY_CAPTURE_PATH"
+exit 0
+`,
+			{ mode: 0o755 },
+		);
+		chmodSync(notifyPath, 0o755);
+		writeFileSync(
+			realCodex,
+			`#!/bin/bash
+set -eu
+: > "$CODEX_TUI_SESSION_LOG_PATH"
+sleep 0.3
+printf '{"dir":"from_tui","kind":"op","payload":{"UserTurn":{"items":[]}}}\n' >> "$CODEX_TUI_SESSION_LOG_PATH"
+sleep 0.3
+exit 0
+`,
+			{ mode: 0o755 },
+		);
+		chmodSync(realCodex, 0o755);
+
+		createCodexWrapper();
+
+		execFileSync(wrapperPath, [], {
+			env: {
+				...process.env,
+				NOTIFY_CAPTURE_PATH: notifyCapturePath,
+				PATH: `${TEST_BIN_DIR}:${realBinDir}:${process.env.PATH || ""}`,
+				SUPERSET_DEBUG_HOOKS: "1",
+				SUPERSET_HOOK_DEBUG_LOG: debugLogPath,
+				SUPERSET_TERMINAL_ID: "terminal-1",
+			},
+			encoding: "utf-8",
+		});
+
+		const notifications = readFileSync(notifyCapturePath, "utf-8");
+		expect(notifications).toContain('{"hook_event_name":"Start"}');
+		expect(notifications).not.toContain('{"hook_event_name":"Stop"}');
+
+		const debugLog = readFileSync(debugLogPath, "utf-8");
+		expect(debugLog).toContain("watching session=");
+		expect(debugLog).toContain("emitting Start");
+	});
+
+	it("emits codex Start from legacy TUI session logs with v1 tab context", () => {
+		const realBinDir = path.join(TEST_ROOT, "real-bin");
+		const realCodex = path.join(realBinDir, "codex");
+		const wrapperPath = path.join(TEST_BIN_DIR, "codex");
+		const notifyPath = path.join(TEST_HOOKS_DIR, "notify.sh");
+		const notifyCapturePath = path.join(
+			TEST_ROOT,
+			"codex-legacy-notify-events.txt",
+		);
+		const debugLogPath = path.join(TEST_ROOT, "codex-legacy-debug.log");
+
+		mkdirSync(realBinDir, { recursive: true });
+		mkdirSync(TEST_HOOKS_DIR, { recursive: true });
+		writeFileSync(
+			notifyPath,
+			`#!/bin/bash
+printf '%s\n' "$1" >> "$NOTIFY_CAPTURE_PATH"
+exit 0
+`,
+			{ mode: 0o755 },
+		);
+		chmodSync(notifyPath, 0o755);
+		writeFileSync(
+			realCodex,
+			`#!/bin/bash
+set -eu
+: > "$CODEX_TUI_SESSION_LOG_PATH"
+sleep 0.3
+printf '{"dir":"from_tui","kind":"op","payload":{"UserTurn":{"items":[]}}}\n' >> "$CODEX_TUI_SESSION_LOG_PATH"
+sleep 0.3
+exit 0
+`,
+			{ mode: 0o755 },
+		);
+		chmodSync(realCodex, 0o755);
+
+		createCodexWrapper();
+
+		execFileSync(wrapperPath, [], {
+			env: {
+				...process.env,
+				NOTIFY_CAPTURE_PATH: notifyCapturePath,
+				PATH: `${TEST_BIN_DIR}:${realBinDir}:${process.env.PATH || ""}`,
+				SUPERSET_DEBUG_HOOKS: "1",
+				SUPERSET_HOOK_DEBUG_LOG: debugLogPath,
+				SUPERSET_TAB_ID: "tab-1",
+			},
+			encoding: "utf-8",
+		});
+
+		const notifications = readFileSync(notifyCapturePath, "utf-8");
+		expect(notifications).toContain('{"hook_event_name":"Start"}');
+		expect(notifications).not.toContain('{"hook_event_name":"Stop"}');
+
+		const debugLog = readFileSync(debugLogPath, "utf-8");
+		expect(debugLog).toContain("watching session=");
+		expect(debugLog).toContain("emitting Start");
+		expect(debugLog).toContain("tabId=tab-1");
+	});
+
+	it("does not emit codex events from unrelated rollout files", () => {
+		const realBinDir = path.join(TEST_ROOT, "real-bin");
+		const realCodex = path.join(realBinDir, "codex");
+		const wrapperPath = path.join(TEST_BIN_DIR, "codex");
+		const notifyPath = path.join(TEST_HOOKS_DIR, "notify.sh");
+		const notifyCapturePath = path.join(
+			TEST_ROOT,
+			"codex-rollout-notify-events.txt",
+		);
+		const debugLogPath = path.join(TEST_ROOT, "codex-rollout-debug.log");
+		const codexHome = path.join(TEST_ROOT, "custom-codex-home");
+
+		mkdirSync(realBinDir, { recursive: true });
+		mkdirSync(TEST_HOOKS_DIR, { recursive: true });
+		writeFileSync(
+			notifyPath,
+			`#!/bin/bash
+printf '%s\n' "$1" >> "$NOTIFY_CAPTURE_PATH"
+exit 0
+`,
+			{ mode: 0o755 },
+		);
+		chmodSync(notifyPath, 0o755);
+		writeFileSync(
+			realCodex,
+			`#!/bin/bash
+set -eu
+rollout_dir="$CODEX_HOME/sessions/2026/05/09"
+mkdir -p "$rollout_dir"
+: > "$CODEX_TUI_SESSION_LOG_PATH"
+printf '{"type":"event_msg","payload":{"type":"task_started"}}\n' >> "$rollout_dir/rollout-other.jsonl"
+sleep 0.3
+exit 0
+`,
+			{ mode: 0o755 },
+		);
+		chmodSync(realCodex, 0o755);
+
+		createCodexWrapper();
+
+		execFileSync(wrapperPath, [], {
+			env: {
+				...process.env,
+				CODEX_HOME: codexHome,
+				NOTIFY_CAPTURE_PATH: notifyCapturePath,
+				PATH: `${TEST_BIN_DIR}:${realBinDir}:${process.env.PATH || ""}`,
+				SUPERSET_DEBUG_HOOKS: "1",
+				SUPERSET_HOOK_DEBUG_LOG: debugLogPath,
+				SUPERSET_TERMINAL_ID: "terminal-1",
+			},
+			encoding: "utf-8",
+		});
+
+		expect(existsSync(notifyCapturePath)).toBe(false);
+		expect(readFileSync(debugLogPath, "utf-8")).toContain("watching session=");
 	});
 
 	it("creates mastracode wrapper passthrough", () => {
@@ -321,6 +504,16 @@ exit 0
 			),
 		).toBe(true);
 		expect(Array.isArray(parsed.hooks.stop)).toBe(true);
+		expect(
+			parsed.hooks.sessionStart.some(
+				(entry) => entry.command === `${currentHookPath} SessionStart`,
+			),
+		).toBe(true);
+		expect(
+			parsed.hooks.sessionEnd.some(
+				(entry) => entry.command === `${currentHookPath} SessionEnd`,
+			),
+		).toBe(true);
 		expect(Array.isArray(parsed.hooks.beforeShellExecution)).toBe(true);
 		expect(Array.isArray(parsed.hooks.beforeMCPExecution)).toBe(true);
 		expect(JSON.parse(content2)).toEqual(JSON.parse(content));
@@ -469,7 +662,13 @@ exit 0
 			string,
 			Array<{ type: string; command: string }>
 		>;
-		const managedEvents = ["UserPromptSubmit", "Stop", "PostToolUse"] as const;
+		const managedEvents = [
+			"SessionStart",
+			"SessionEnd",
+			"UserPromptSubmit",
+			"Stop",
+			"PostToolUse",
+		] as const;
 
 		for (const eventName of managedEvents) {
 			const hooks = parsed[eventName];
@@ -478,7 +677,8 @@ exit 0
 				hooks.some(
 					(entry) =>
 						entry.type === "command" &&
-						entry.command === `bash '${currentHookPath}'`,
+						entry.command ===
+							`SUPERSET_AGENT_ID=mastracode bash '${currentHookPath}'`,
 				),
 			).toBe(true);
 			expect(hooks.some((entry) => entry.command.includes(staleHookPath))).toBe(
