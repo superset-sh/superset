@@ -14,7 +14,7 @@ describe("getNotifyScriptContent", () => {
 			"SESSION_ID=" + "\u0024{RESOURCE_ID:-$HOOK_SESSION_ID}",
 		);
 		expect(script).toContain(
-			'PAYLOAD="{\\"json\\":{\\"terminalId\\":\\"$(json_escape "$SUPERSET_TERMINAL_ID")\\",\\"eventType\\":\\"$(json_escape "$EVENT_TYPE")\\"}}"',
+			'PAYLOAD="{\\"json\\":{\\"terminalId\\":\\"$(json_escape "$SUPERSET_TERMINAL_ID")\\",\\"workspaceId\\":\\"$(json_escape "$SUPERSET_WORKSPACE_ID")\\",\\"eventType\\":\\"$(json_escape "$EVENT_TYPE")\\"}}"',
 		);
 		expect(script).toContain('--data-urlencode "resourceId=$RESOURCE_ID"');
 		expect(script).toContain(
@@ -25,15 +25,24 @@ describe("getNotifyScriptContent", () => {
 		);
 	});
 
-	it("gives the v2 host-service hook enough time to avoid false fallback", () => {
+	it("keeps the legacy hook after the v2 host-service hook", () => {
 		const script = readFileSync(
 			path.join(import.meta.dir, "templates", "notify-hook.template.sh"),
 			"utf-8",
 		);
 
-		expect(script).toContain(
-			'curl -sX POST "$SUPERSET_HOST_AGENT_HOOK_URL" \\\n    --connect-timeout 2 --max-time 5',
+		const hostServiceCurlIndex = script.indexOf(
+			'curl -sX POST "$SUPERSET_HOST_AGENT_HOOK_URL"',
 		);
+		const legacyCurlIndex = script.indexOf(
+			'curl -sG "http://127.0.0.1:' +
+				"$" +
+				'{SUPERSET_PORT:-{{DEFAULT_PORT}}}/hook/complete"',
+		);
+
+		expect(hostServiceCurlIndex).toBeGreaterThanOrEqual(0);
+		expect(legacyCurlIndex).toBeGreaterThanOrEqual(0);
+		expect(hostServiceCurlIndex).toBeLessThan(legacyCurlIndex);
 	});
 
 	it("keeps the legacy v1 fallback path when no host-service hook URL exists", () => {

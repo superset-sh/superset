@@ -5,11 +5,14 @@ import { mapEventType } from "../../../events";
 import { publicProcedure, router } from "../../index";
 
 /**
- * v2 terminal hook payload. The shell hook sends only stable runtime identity;
- * host-service derives workspace identity from its terminal session table.
+ * v2 terminal hook payload. The shell hook sends stable runtime identity.
+ * Host-service prefers the terminal session table for workspace identity, but
+ * falls back to the terminal env's workspaceId so lifecycle events are not lost
+ * if a hook arrives while a new workspace/terminal is still settling.
  */
 const hookInput = z.object({
 	terminalId: z.string().optional(),
+	workspaceId: z.string().optional(),
 	eventType: z.string().optional(),
 });
 
@@ -44,12 +47,13 @@ export const notificationsRouter = router({
 				columns: { originWorkspaceId: true },
 			})
 			.sync();
-		if (!terminalSession?.originWorkspaceId) {
+		const workspaceId = terminalSession?.originWorkspaceId ?? input.workspaceId;
+		if (!workspaceId) {
 			return { success: true, ignored: true as const };
 		}
 
 		ctx.eventBus.broadcastAgentLifecycle({
-			workspaceId: terminalSession.originWorkspaceId,
+			workspaceId,
 			eventType,
 			terminalId: input.terminalId,
 			occurredAt: Date.now(),

@@ -89,6 +89,26 @@ describe("notificationsRouter.hook", () => {
 		expect(unknownTerminal.broadcastAgentLifecycle).not.toHaveBeenCalled();
 	});
 
+	it("falls back to payload workspaceId when the terminal row is not visible yet", async () => {
+		const { ctx, broadcastAgentLifecycle, findFirst } = createContext(null);
+		const caller = notificationsRouter.createCaller(ctx);
+
+		const result = await caller.hook({
+			terminalId: "terminal-1",
+			workspaceId: "workspace-1",
+			eventType: "Stop",
+		});
+
+		expect(result).toEqual({ success: true, ignored: false });
+		expect(findFirst).toHaveBeenCalledTimes(1);
+		expect(broadcastAgentLifecycle).toHaveBeenCalledTimes(1);
+		expect(broadcastAgentLifecycle.mock.calls[0]?.[0]).toMatchObject({
+			workspaceId: "workspace-1",
+			eventType: "Stop",
+			terminalId: "terminal-1",
+		});
+	});
+
 	it("ignores unknown event types before looking up the terminal", async () => {
 		const { ctx, broadcastAgentLifecycle, findFirst } =
 			createContext("workspace-1");

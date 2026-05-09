@@ -85,11 +85,10 @@ json_escape() {
 # v2: host-service tRPC endpoint. The renderer subscribes over the event
 # bus and plays the ringtone. Preferred when the URL is provided by
 # host-service's terminal env. Endpoint is unauthenticated — it only
-# broadcasts chimes, no auth header needed. Always captures the status
-# so we can fall back to v1 when host-service is unreachable or the
-# mutation returns non-2xx (restarts, crashes, transient errors).
+# broadcasts chimes, no auth header needed. We still continue to the legacy
+# desktop hook below so existing v1 listeners also receive lifecycle events.
 if [ -n "$SUPERSET_HOST_AGENT_HOOK_URL" ]; then
-  PAYLOAD="{\"json\":{\"terminalId\":\"$(json_escape "$SUPERSET_TERMINAL_ID")\",\"eventType\":\"$(json_escape "$EVENT_TYPE")\"}}"
+  PAYLOAD="{\"json\":{\"terminalId\":\"$(json_escape "$SUPERSET_TERMINAL_ID")\",\"workspaceId\":\"$(json_escape "$SUPERSET_WORKSPACE_ID")\",\"eventType\":\"$(json_escape "$EVENT_TYPE")\"}}"
 
   STATUS_CODE=$(curl -sX POST "$SUPERSET_HOST_AGENT_HOOK_URL" \
     --connect-timeout 2 --max-time 5 \
@@ -100,14 +99,17 @@ if [ -n "$SUPERSET_HOST_AGENT_HOOK_URL" ]; then
   if [ "$DEBUG_HOOKS_ENABLED" = "1" ]; then
     echo "[notify-hook] host-service dispatched status=$STATUS_CODE" >&2
   fi
-
-  case "$STATUS_CODE" in
-    2*) exit 0 ;;
-  esac
 fi
 
-# v1 fallback: electron localhost server. Used by v1 terminals and when
-# host-service is unreachable from the agent's shell.
+# Pure v2 terminals only have terminal/workspace ids, so host-service is the
+# notification path. Continue to the legacy desktop hook only when the shell
+# also has legacy pane/tab identity; otherwise v2 users would get duplicates.
+if [ -n "$SUPERSET_HOST_AGENT_HOOK_URL" ] && [ -z "$SUPERSET_PANE_ID" ] && [ -z "$SUPERSET_TAB_ID" ]; then
+  exit 0
+fi
+
+# v1/legacy: electron localhost server. Used by v1 terminals and by hybrid
+# environments that still expose legacy pane/tab identity.
 # Timeouts prevent blocking agent completion if notification server is unresponsive
 if [ "$DEBUG_HOOKS_ENABLED" = "1" ]; then
   STATUS_CODE=$(curl -sG "http://127.0.0.1:${SUPERSET_PORT:-{{DEFAULT_PORT}}}/hook/complete" \
