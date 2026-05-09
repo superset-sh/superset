@@ -29,7 +29,13 @@ export async function POST(request: Request) {
 		return new Response("ok", { status: 200 });
 	}
 
-	const payload = JSON.parse(payloadRaw);
+	let payload: ReturnType<typeof JSON.parse>;
+	try {
+		payload = JSON.parse(payloadRaw);
+	} catch {
+		console.error("[slack/interactions] Invalid JSON payload");
+		return Response.json({ error: "Invalid JSON payload" }, { status: 400 });
+	}
 
 	if (payload.type === "block_actions") {
 		const teamId: string = payload.team?.id;
