@@ -28,7 +28,7 @@ export function getCopilotHookScriptContent(): string {
 	const template = fs.readFileSync(COPILOT_HOOK_TEMPLATE_PATH, "utf-8");
 	return template
 		.replace("{{MARKER}}", COPILOT_HOOK_MARKER)
-		.replace(/\{\{DEFAULT_PORT\}\}/g, String(env.DESKTOP_NOTIFICATIONS_PORT));
+		.replaceAll("{{DEFAULT_PORT}}", String(env.DESKTOP_NOTIFICATIONS_PORT));
 }
 
 export function createCopilotHookScript(): void {
@@ -83,8 +83,8 @@ export function buildCopilotWrapperExecLine(): string {
 	const escapedJson = hooksJson.replace(/'/g, "'\\''");
 
 	return `# Copilot CLI only supports project-level hooks (.github/hooks/*.json in CWD).
-# Auto-inject Superset notification hooks when running inside a Superset terminal.
-if [ -n "$SUPERSET_TAB_ID" ] && [ -f "${hookScriptPath}" ]; then
+# Auto-inject Superset notification hooks when running inside a v2 Superset terminal.
+if [ -n "$SUPERSET_TERMINAL_ID" ] && [ -f "${hookScriptPath}" ]; then
   COPILOT_HOOKS_DIR=".github/hooks"
   COPILOT_HOOK_FILE="$COPILOT_HOOKS_DIR/superset-notify.json"
 
@@ -103,6 +103,8 @@ exec "$REAL_BIN" "$@"`;
 }
 
 export function createCopilotWrapper(): void {
-	const script = buildWrapperScript("copilot", buildCopilotWrapperExecLine());
+	const script = buildWrapperScript("copilot", buildCopilotWrapperExecLine(), {
+		agentId: "copilot",
+	});
 	createWrapper("copilot", script);
 }

@@ -103,9 +103,9 @@ export const v2TerminalPresetSchema = z.object({
 	executionMode: v2ExecutionModeSchema.default("new-tab"),
 	tabOrder: z.number().int().default(0),
 	createdAt: persistedDateSchema,
-	// When set, the preset is live-linked to a builtin/custom agent definition.
-	// The launcher and editor look up the agent's current command via
-	// settings.getAgentPresets; the stored `commands` array is a snapshot
+	// When set, the preset is live-linked to a host-service agent config id.
+	// Older rows may still contain a builtin preset id; the launcher/editor
+	// support that as a fallback. The stored `commands` array is a snapshot
 	// fallback for when the agent is missing or disabled.
 	agentId: z.string().optional(),
 });

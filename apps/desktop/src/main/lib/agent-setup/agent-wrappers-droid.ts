@@ -92,12 +92,18 @@ function removeManagedHooksFromDefinition(
 	};
 }
 
+function quoteShellPath(filePath: string): string {
+	return `'${filePath.replaceAll("'", "'\\''")}'`;
+}
+
 export function getDroidSettingsJsonPath(): string {
 	return path.join(os.homedir(), ".factory", "settings.json");
 }
 
 export function createDroidWrapper(): void {
-	const script = buildWrapperScript("droid", `exec "$REAL_BIN" "$@"`);
+	const script = buildWrapperScript("droid", `exec "$REAL_BIN" "$@"`, {
+		agentId: "droid",
+	});
 	createWrapper("droid", script);
 }
 
@@ -119,33 +125,53 @@ export function getDroidSettingsJsonContent(
 		existing.hooks = {};
 	}
 
+	const managedHookCommand = `SUPERSET_AGENT_ID=droid ${quoteShellPath(notifyScriptPath)}`;
+
 	const managedEvents: Array<{
-		eventName: "UserPromptSubmit" | "Notification" | "Stop" | "PostToolUse";
+		eventName:
+			| "SessionStart"
+			| "SessionEnd"
+			| "UserPromptSubmit"
+			| "Notification"
+			| "Stop"
+			| "PostToolUse";
 		definition: DroidHookDefinition;
 	}> = [
 		{
+			eventName: "SessionStart",
+			definition: {
+				hooks: [{ type: "command", command: managedHookCommand }],
+			},
+		},
+		{
+			eventName: "SessionEnd",
+			definition: {
+				hooks: [{ type: "command", command: managedHookCommand }],
+			},
+		},
+		{
 			eventName: "UserPromptSubmit",
 			definition: {
-				hooks: [{ type: "command", command: notifyScriptPath }],
+				hooks: [{ type: "command", command: managedHookCommand }],
 			},
 		},
 		{
 			eventName: "Notification",
 			definition: {
-				hooks: [{ type: "command", command: notifyScriptPath }],
+				hooks: [{ type: "command", command: managedHookCommand }],
 			},
 		},
 		{
 			eventName: "Stop",
 			definition: {
-				hooks: [{ type: "command", command: notifyScriptPath }],
+				hooks: [{ type: "command", command: managedHookCommand }],
 			},
 		},
 		{
 			eventName: "PostToolUse",
 			definition: {
 				matcher: "*",
-				hooks: [{ type: "command", command: notifyScriptPath }],
+				hooks: [{ type: "command", command: managedHookCommand }],
 			},
 		},
 	];

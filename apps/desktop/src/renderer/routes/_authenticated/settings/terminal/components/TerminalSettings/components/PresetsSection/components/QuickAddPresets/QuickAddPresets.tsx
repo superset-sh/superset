@@ -12,6 +12,7 @@ import { getPresetIcon } from "renderer/assets/app-icons/preset-icons";
 
 export interface QuickAddAgentPill {
 	agentId: string;
+	iconId?: string;
 	label: string;
 	description: string;
 	commands: string[];
@@ -21,6 +22,7 @@ interface QuickAddPresetsProps {
 	pills: QuickAddAgentPill[];
 	isDark: boolean;
 	isAddDisabled?: boolean;
+	keepOpenOnAdd?: boolean;
 	isPillAdded: (pill: QuickAddAgentPill) => boolean;
 	onAddPill: (pill: QuickAddAgentPill) => void;
 }
@@ -29,6 +31,7 @@ export function QuickAddPresets({
 	pills,
 	isDark,
 	isAddDisabled,
+	keepOpenOnAdd,
 	isPillAdded,
 	onAddPill,
 }: QuickAddPresetsProps) {
@@ -48,7 +51,7 @@ export function QuickAddPresets({
 			<DropdownMenuContent align="end" className="w-80">
 				{pills.map((pill) => {
 					const alreadyAdded = isPillAdded(pill);
-					const icon = getPresetIcon(pill.agentId, isDark);
+					const icon = getPresetIcon(pill.iconId ?? pill.agentId, isDark);
 					return (
 						<DropdownMenuItem
 							key={pill.agentId}
@@ -57,6 +60,9 @@ export function QuickAddPresets({
 								if (alreadyAdded) {
 									event.preventDefault();
 									return;
+								}
+								if (keepOpenOnAdd) {
+									event.preventDefault();
 								}
 								onAddPill(pill);
 							}}

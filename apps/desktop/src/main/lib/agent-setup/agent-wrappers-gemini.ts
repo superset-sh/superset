@@ -14,7 +14,7 @@ import { HOOKS_DIR } from "./paths";
 export const GEMINI_HOOK_SCRIPT_NAME = "gemini-hook.sh";
 
 const GEMINI_HOOK_SIGNATURE = "# Superset gemini hook";
-const GEMINI_HOOK_VERSION = "v1";
+const GEMINI_HOOK_VERSION = "v2";
 export const GEMINI_HOOK_MARKER = `${GEMINI_HOOK_SIGNATURE} ${GEMINI_HOOK_VERSION}`;
 
 const GEMINI_HOOK_TEMPLATE_PATH = path.join(
@@ -31,6 +31,7 @@ interface GeminiHookConfig {
 
 interface GeminiHookDefinition {
 	matcher?: string;
+	command?: string;
 	hooks?: GeminiHookConfig[];
 	[key: string]: unknown;
 }
@@ -52,7 +53,7 @@ export function getGeminiHookScriptContent(): string {
 	const template = fs.readFileSync(GEMINI_HOOK_TEMPLATE_PATH, "utf-8");
 	return template
 		.replace("{{MARKER}}", GEMINI_HOOK_MARKER)
-		.replace(/\{\{DEFAULT_PORT\}\}/g, String(env.DESKTOP_NOTIFICATIONS_PORT));
+		.replaceAll("{{DEFAULT_PORT}}", String(env.DESKTOP_NOTIFICATIONS_PORT));
 }
 
 /**
@@ -80,7 +81,14 @@ export function getGeminiSettingsJsonContent(hookScriptPath: string): string {
 		existing.hooks = {};
 	}
 
-	const eventNames = ["BeforeAgent", "AfterAgent", "AfterTool"];
+	// HookEventName values from gemini-cli's packages/core/src/hooks/types.ts.
+	const eventNames = [
+		"SessionStart",
+		"SessionEnd",
+		"BeforeAgent",
+		"AfterAgent",
+		"AfterTool",
+	];
 
 	for (const eventName of eventNames) {
 		const current = existing.hooks[eventName];
@@ -93,6 +101,10 @@ export function getGeminiSettingsJsonContent(hookScriptPath: string): string {
 			current,
 			desired: desiredEntries,
 			isManaged: (definition: GeminiHookDefinition) =>
+				isSupersetManagedHookCommand(
+					definition.command,
+					GEMINI_HOOK_SCRIPT_NAME,
+				) ||
 				Boolean(
 					definition.hooks?.some(
 						(hook) =>
@@ -126,7 +138,9 @@ export function createGeminiHookScript(): void {
 }
 
 export function createGeminiWrapper(): void {
-	const script = buildWrapperScript("gemini", `exec "$REAL_BIN" "$@"`);
+	const script = buildWrapperScript("gemini", `exec "$REAL_BIN" "$@"`, {
+		agentId: "gemini",
+	});
 	createWrapper("gemini", script);
 }
 
