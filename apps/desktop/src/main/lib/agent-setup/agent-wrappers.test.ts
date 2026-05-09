@@ -64,6 +64,7 @@ const {
 	createClaudeSettingsJson,
 	createCodexHooksJson,
 	createCodexWrapper,
+	CURSOR_HOOK_MARKER,
 	createDroidSettingsJson,
 	createDroidWrapper,
 	createMastraWrapper,
@@ -74,6 +75,7 @@ const {
 	getCursorHooksJsonContent,
 	getCopilotHookScriptPath,
 	getDroidSettingsJsonContent,
+	GEMINI_HOOK_MARKER,
 	getGeminiSettingsJsonContent,
 	getMastraHooksJsonContent,
 	getPiExtensionContent,
@@ -460,7 +462,8 @@ exit 0
 
 	it("replaces stale Cursor hook commands from old superset paths", () => {
 		const cursorHooksPath = path.join(mockedHomeDir, ".cursor", "hooks.json");
-		const staleHookPath = "/tmp/.superset-old/hooks/cursor-hook.sh";
+		const staleHookPath =
+			"/tmp/worktree/superset-dev-data/hooks/cursor-hook.sh";
 		const currentHookPath = "/tmp/.superset-new/hooks/cursor-hook.sh";
 
 		mkdirSync(path.dirname(cursorHooksPath), { recursive: true });
@@ -525,7 +528,8 @@ exit 0
 			".gemini",
 			"settings.json",
 		);
-		const staleHookPath = "/tmp/.superset-old/hooks/gemini-hook.sh";
+		const staleHookPath =
+			"/tmp/worktree/superset-dev-data/hooks/gemini-hook.sh";
 		const currentHookPath = "/tmp/.superset-new/hooks/gemini-hook.sh";
 
 		mkdirSync(path.dirname(geminiSettingsPath), { recursive: true });
@@ -535,6 +539,9 @@ exit 0
 				{
 					hooks: {
 						BeforeAgent: [
+							{
+								command: staleHookPath,
+							},
 							{
 								hooks: [{ type: "command", command: staleHookPath }],
 							},
@@ -566,13 +573,19 @@ exit 0
 		const parsed = JSON.parse(content) as {
 			hooks: Record<
 				string,
-				Array<{ hooks: Array<{ type: string; command: string }> }>
+				Array<{
+					command?: string;
+					hooks?: Array<{ type: string; command: string }>;
+				}>
 			>;
 		};
 		const parsed2 = JSON.parse(content2) as {
 			hooks: Record<
 				string,
-				Array<{ hooks: Array<{ type: string; command: string }> }>
+				Array<{
+					command?: string;
+					hooks?: Array<{ type: string; command: string }>;
+				}>
 			>;
 		};
 
@@ -589,8 +602,10 @@ exit 0
 				),
 			).toBe(true);
 			expect(
-				hooks.some((def) =>
-					def.hooks.some((hook) => hook.command.includes(staleHookPath)),
+				hooks.some(
+					(def) =>
+						def.command?.includes(staleHookPath) ||
+						def.hooks?.some((hook) => hook.command.includes(staleHookPath)),
 				),
 			).toBe(false);
 		}
@@ -598,7 +613,7 @@ exit 0
 		const beforeAgent = parsed.hooks.BeforeAgent;
 		expect(
 			beforeAgent.some((def) =>
-				def.hooks.some((hook) => hook.command === "/opt/custom-hook.sh"),
+				def.hooks?.some((hook) => hook.command === "/opt/custom-hook.sh"),
 			),
 		).toBe(true);
 
@@ -613,17 +628,24 @@ exit 0
 				),
 			).toBe(true);
 			expect(
-				hooks.some((def) =>
-					def.hooks.some((hook) => hook.command.includes(staleHookPath)),
+				hooks.some(
+					(def) =>
+						def.command?.includes(staleHookPath) ||
+						def.hooks?.some((hook) => hook.command.includes(staleHookPath)),
 				),
 			).toBe(false);
 		}
 		expect(
 			parsed2.hooks.BeforeAgent.some((def) =>
-				def.hooks.some((hook) => hook.command === "/opt/custom-hook.sh"),
+				def.hooks?.some((hook) => hook.command === "/opt/custom-hook.sh"),
 			),
 		).toBe(true);
 		expect(JSON.parse(content2)).toEqual(JSON.parse(content));
+	});
+
+	it("bumps Cursor and Gemini hook script markers when hook semantics change", () => {
+		expect(CURSOR_HOOK_MARKER).toBe("# Superset cursor hook v2");
+		expect(GEMINI_HOOK_MARKER).toBe("# Superset gemini hook v2");
 	});
 
 	it("replaces stale Mastra hook commands from old superset paths", () => {

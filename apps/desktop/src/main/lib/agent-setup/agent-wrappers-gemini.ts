@@ -14,7 +14,7 @@ import { HOOKS_DIR } from "./paths";
 export const GEMINI_HOOK_SCRIPT_NAME = "gemini-hook.sh";
 
 const GEMINI_HOOK_SIGNATURE = "# Superset gemini hook";
-const GEMINI_HOOK_VERSION = "v1";
+const GEMINI_HOOK_VERSION = "v2";
 export const GEMINI_HOOK_MARKER = `${GEMINI_HOOK_SIGNATURE} ${GEMINI_HOOK_VERSION}`;
 
 const GEMINI_HOOK_TEMPLATE_PATH = path.join(
@@ -31,6 +31,7 @@ interface GeminiHookConfig {
 
 interface GeminiHookDefinition {
 	matcher?: string;
+	command?: string;
 	hooks?: GeminiHookConfig[];
 	[key: string]: unknown;
 }
@@ -100,6 +101,10 @@ export function getGeminiSettingsJsonContent(hookScriptPath: string): string {
 			current,
 			desired: desiredEntries,
 			isManaged: (definition: GeminiHookDefinition) =>
+				isSupersetManagedHookCommand(
+					definition.command,
+					GEMINI_HOOK_SCRIPT_NAME,
+				) ||
 				Boolean(
 					definition.hooks?.some(
 						(hook) =>
