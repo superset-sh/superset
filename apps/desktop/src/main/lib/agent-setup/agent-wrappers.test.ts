@@ -208,9 +208,9 @@ describe("agent-wrappers copilot", () => {
 		expect(wrapper).toContain("SUPERSET_HOOK_DEBUG_LOG");
 		expect(wrapper).toContain("tail -n +1 -F");
 		expect(wrapper).toContain("_superset_cleanup_session_watcher");
-		expect(wrapper).toContain(
-			'pkill -TERM -P "$SUPERSET_CODEX_SESSION_WATCHER_PID"',
-		);
+		expect(wrapper).toContain("_superset_child_pids_for");
+		expect(wrapper).toContain('kill -TERM "$_superset_child_pid"');
+		expect(wrapper).toContain('kill -KILL "$_superset_watcher_pid"');
 		expect(wrapper).not.toContain("mkfifo");
 		expect(wrapper).not.toContain(
 			"SUPERSET_CODEX_SESSION_WATCHER_TAIL_PID_PATH",

@@ -57,12 +57,13 @@ export function collectProcessSignalTargets(
 		: null;
 	const rootPgid = getProcessGroupId(rootPid, table);
 	const pids = collectProcessTree(rootPid, table);
+	const infoByPid = new Map(table.map((row) => [row.pid, row]));
 	const pgids = new Set<number>();
 	const targets: ProcessSignalTarget[] = [];
 
 	for (const pid of pids) {
 		if (!includeRoot && pid === rootPid) continue;
-		const info = table.find((row) => row.pid === pid);
+		const info = infoByPid.get(pid);
 		if (!info) continue;
 		if (info.pgid <= 1) continue;
 		if (currentPgid !== null && info.pgid === currentPgid) continue;
