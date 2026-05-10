@@ -12,6 +12,10 @@
 			"types": "./src/protocol/index.ts",
 			"default": "./src/protocol/index.ts"
 		},
+		"./process-tree": {
+			"types": "./src/process-tree.ts",
+			"default": "./src/process-tree.ts"
+		},
 		"./package.json": "./package.json"
 	},
 	"bin": {

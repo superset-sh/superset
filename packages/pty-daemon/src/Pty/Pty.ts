@@ -1,6 +1,10 @@
 import * as childProcess from "node:child_process";
 import * as fs from "node:fs";
 import * as nodePty from "node-pty";
+import {
+	type ProcessSignalError,
+	signalProcessTreeAndGroups,
+} from "../process-tree.ts";
 import type { SessionMeta } from "../protocol/index.ts";
 
 const KILL_ESCALATION_TIMEOUT_MS = 1000;
@@ -76,7 +80,10 @@ class NodePtyAdapter implements Pty {
 
 	kill(signal?: NodeJS.Signals): void {
 		const killSignal = signal ?? "SIGHUP";
-		signalProcessTreeAndGroups(this.pid, killSignal, { includeRoot: false });
+		signalProcessTreeAndGroups(this.pid, killSignal, {
+			includeRoot: false,
+			onSignalError: logProcessSignalError,
+		});
 		this.term.kill(killSignal);
 		this.scheduleKillEscalation(killSignal);
 	}
@@ -104,7 +111,10 @@ class NodePtyAdapter implements Pty {
 		this.killEscalationTimer = setTimeout(() => {
 			this.killEscalationTimer = null;
 			if (this.exited) return;
-			signalProcessTreeAndGroups(this.pid, "SIGKILL", { includeRoot: false });
+			signalProcessTreeAndGroups(this.pid, "SIGKILL", {
+				includeRoot: false,
+				onSignalError: logProcessSignalError,
+			});
 			this.term.kill("SIGKILL");
 		}, KILL_ESCALATION_TIMEOUT_MS);
 		this.killEscalationTimer.unref();
@@ -280,7 +290,9 @@ class AdoptedPty implements Pty {
 
 	kill(signal?: NodeJS.Signals): void {
 		const killSignal = signal ?? "SIGHUP";
-		signalProcessTreeAndGroups(this.pid, killSignal);
+		signalProcessTreeAndGroups(this.pid, killSignal, {
+			onSignalError: logProcessSignalError,
+		});
 		this.scheduleKillEscalation(killSignal);
 	}
 
@@ -301,7 +313,9 @@ class AdoptedPty implements Pty {
 		this.killEscalationTimer = setTimeout(() => {
 			this.killEscalationTimer = null;
 			if (this.exitFired) return;
-			signalProcessTreeAndGroups(this.pid, "SIGKILL");
+			signalProcessTreeAndGroups(this.pid, "SIGKILL", {
+				onSignalError: logProcessSignalError,
+			});
 		}, KILL_ESCALATION_TIMEOUT_MS);
 		this.killEscalationTimer.unref();
 	}
@@ -317,120 +331,13 @@ function isPidAlive(pid: number): boolean {
 	}
 }
 
-interface ProcessInfo {
-	pid: number;
-	ppid: number;
-	pgid: number;
-}
+function logProcessSignalError(event: ProcessSignalError): void {
+	if ((event.error as NodeJS.ErrnoException).code === "ESRCH") return;
 
-function signalProcessTreeAndGroups(
-	rootPid: number,
-	signal: NodeJS.Signals,
-	options: { includeRoot?: boolean } = {},
-): void {
-	// includeRoot=false lets node-pty deliver the signal to its own child after
-	// we have separately signalled descendants and detached process groups.
-	const includeRoot = options.includeRoot ?? true;
-	const table = readProcessTable();
-	const currentPgid = getProcessGroupId(process.pid, table);
-	const rootPgid = getProcessGroupId(rootPid, table);
-	const pids = collectProcessTree(rootPid, table);
-	const pgids = new Set<number>();
-
-	for (const pid of pids) {
-		if (!includeRoot && pid === rootPid) continue;
-		const info = table.find((row) => row.pid === pid);
-		if (!info) continue;
-		if (info.pgid <= 1) continue;
-		if (currentPgid !== null && info.pgid === currentPgid) continue;
-		if (!includeRoot && rootPgid !== null && info.pgid === rootPgid) {
-			continue;
-		}
-		pgids.add(info.pgid);
-	}
-
-	for (const pgid of pgids) {
-		signalProcessGroup(pgid, signal);
-	}
-
-	for (const pid of pids) {
-		if (!includeRoot && pid === rootPid) continue;
-		signalPid(pid, signal);
-	}
-}
-
-function readProcessTable(): ProcessInfo[] {
-	const result = childProcess.spawnSync("ps", ["-axo", "pid=,ppid=,pgid="], {
-		encoding: "utf8",
-	});
-	if (result.error || result.status !== 0) return [];
-
-	return result.stdout
-		.split("\n")
-		.map((line) => line.trim())
-		.filter(Boolean)
-		.flatMap((line) => {
-			const [pid, ppid, pgid] = line.split(/\s+/).map(Number);
-			if (!isPositiveInteger(pid) || !isPositiveInteger(ppid)) return [];
-			if (!isPositiveInteger(pgid)) return [];
-			return [{ pid, ppid, pgid }];
-		});
-}
-
-function collectProcessTree(
-	rootPid: number,
-	table: ProcessInfo[],
-): Set<number> {
-	const pids = new Set<number>([rootPid]);
-	const childrenByParent = new Map<number, ProcessInfo[]>();
-	for (const row of table) {
-		const children = childrenByParent.get(row.ppid) ?? [];
-		children.push(row);
-		childrenByParent.set(row.ppid, children);
-	}
-
-	const queue = [rootPid];
-	for (const pid of queue) {
-		for (const child of childrenByParent.get(pid) ?? []) {
-			if (pids.has(child.pid)) continue;
-			pids.add(child.pid);
-			queue.push(child.pid);
-		}
-	}
-
-	return pids;
-}
-
-function getProcessGroupId(pid: number, table: ProcessInfo[]): number | null {
-	return table.find((row) => row.pid === pid)?.pgid ?? null;
-}
-
-function signalProcessGroup(pgid: number, signal: NodeJS.Signals): void {
-	try {
-		process.kill(-pgid, signal);
-	} catch (err) {
-		if ((err as NodeJS.ErrnoException).code !== "ESRCH") {
-			process.stderr.write(
-				`[pty-daemon] failed to ${signal} process group ${pgid}: ${(err as Error).message}\n`,
-			);
-		}
-	}
-}
-
-function signalPid(pid: number, signal: NodeJS.Signals): void {
-	try {
-		process.kill(pid, signal);
-	} catch (err) {
-		if ((err as NodeJS.ErrnoException).code !== "ESRCH") {
-			process.stderr.write(
-				`[pty-daemon] failed to ${signal} pid ${pid}: ${(err as Error).message}\n`,
-			);
-		}
-	}
-}
-
-function isPositiveInteger(value: unknown): value is number {
-	return typeof value === "number" && Number.isInteger(value) && value > 0;
+	const label = event.target === "pgid" ? "process group" : "pid";
+	process.stderr.write(
+		`[pty-daemon] failed to ${event.signal} ${label} ${event.id}: ${(event.error as Error).message}\n`,
+	);
 }
 
 export interface AdoptOptions {
