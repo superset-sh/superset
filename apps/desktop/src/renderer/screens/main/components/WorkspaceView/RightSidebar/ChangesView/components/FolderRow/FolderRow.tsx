@@ -11,6 +11,7 @@ import {
 	ContextMenuSeparator,
 	ContextMenuTrigger,
 } from "@superset/ui/context-menu";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { type ReactNode, useState } from "react";
 import {
@@ -27,6 +28,7 @@ import { usePathActions } from "../../hooks";
 import { DiscardConfirmDialog } from "../DiscardConfirmDialog";
 import type { RowHoverAction } from "../RowHoverActions";
 import { RowHoverActions } from "../RowHoverActions";
+import { splitFolderDisplayPath } from "./utils";
 
 interface FolderRowProps {
 	name: string;
@@ -59,6 +61,23 @@ function LevelIndicators({ level }: { level: number }) {
 	);
 }
 
+function GroupedFolderName({ name }: { name: string }) {
+	const { parentPath, folderName } = splitFolderDisplayPath(name);
+	return (
+		<Tooltip>
+			<TooltipTrigger asChild>
+				<span className="flex items-baseline gap-1.5 w-0 grow min-w-0 overflow-hidden text-left text-xs">
+					<span className="shrink-0 text-foreground">{folderName || name}</span>
+					{parentPath && (
+						<span className="truncate text-[11px]">{parentPath}</span>
+					)}
+				</span>
+			</TooltipTrigger>
+			<TooltipContent side="right">{name}</TooltipContent>
+		</Tooltip>
+	);
+}
+
 function FolderRowHeader({
 	name,
 	level,
@@ -84,17 +103,13 @@ function FolderRowHeader({
 			)}
 			{!isGrouped && <LevelIndicators level={level} />}
 			<div className="flex items-center gap-1 flex-1 min-w-0">
-				<span
-					className={cn(
-						"truncate",
-						isGrouped
-							? "w-0 grow text-left"
-							: "flex-1 min-w-0 text-xs text-foreground",
-					)}
-					dir={isGrouped ? "rtl" : undefined}
-				>
-					{name}
-				</span>
+				{isGrouped ? (
+					<GroupedFolderName name={name} />
+				) : (
+					<span className="truncate flex-1 min-w-0 text-xs text-foreground">
+						{name}
+					</span>
+				)}
 				{fileCount !== undefined && (
 					<span className="text-[10px] text-muted-foreground shrink-0 tabular-nums">
 						{fileCount}
