@@ -1,13 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { type ChildProcess, spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import {
-	existsSync,
-	mkdtempSync,
-	readFileSync,
-	rmSync,
-	writeFileSync,
-} from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -21,7 +15,10 @@ import {
 	resetTerminalBaseEnvForTests,
 } from "../../src/terminal/env";
 import { listTerminalResourceSessions } from "../../src/terminal/resource-sessions";
-import { __resetSessionsForTesting } from "../../src/terminal/terminal";
+import {
+	__resetSessionsForTesting,
+	disposeSessionsByWorkspaceId,
+} from "../../src/terminal/terminal";
 import { type BasicScenario, createBasicScenario } from "../helpers/scenarios";
 import { seedTerminalSession } from "../helpers/seed";
 
@@ -79,18 +76,19 @@ describe("terminal router integration", () => {
 		).rejects.toBeInstanceOf(TRPCClientError);
 	});
 
-	test("killSession cleans up background process groups from a real daemon session", async () => {
+	test("terminal disposal cleans up background process groups from real daemon sessions", async () => {
 		const tmp = mkdtempSync(join(tmpdir(), "host-service-terminal-pgrp-"));
 		const socketPath = join(tmp, "pty-daemon.sock");
-		const logPath = join(tmp, "superset-codex-session.jsonl");
-		const pidPath = join(tmp, "tail.pid");
+		const pidPath = join(tmp, "detached-helper.pid");
+		const workspaceCleanupPidPath = join(tmp, "workspace-detached-helper.pid");
 		const terminalId = randomUUID();
+		const workspaceCleanupTerminalId = randomUUID();
 		let daemonProcess: ChildProcess | null = null;
 		let daemonStdout = "";
 		let daemonStderr = "";
 		let daemonSpawnError = "";
-		let tailPid: number | null = null;
-		writeFileSync(logPath, "");
+		let helperPid: number | null = null;
+		let workspaceCleanupHelperPid: number | null = null;
 
 		try {
 			const daemonEntryPath = fileURLToPath(
@@ -137,13 +135,6 @@ describe("terminal router integration", () => {
 			process.env.SUPERSET_PTY_DAEMON_SOCKET = socketPath;
 			process.env.SUPERSET_HOME_DIR = tmp;
 
-			const backgroundScript = [
-				"set -m",
-				`tail -n +1 -F ${shellQuote(logPath)} >/dev/null 2>&1 & tail_pid=$!`,
-				`echo "$tail_pid" > ${shellQuote(pidPath)}`,
-				"sleep 60",
-			].join("; ");
-
 			await scenario.host.trpc.terminal.createSession.mutate({
 				workspaceId: scenario.workspaceId,
 				terminalId,
@@ -151,24 +142,69 @@ describe("terminal router integration", () => {
 			const daemon = await getDaemonClient();
 			daemon.input(
 				terminalId,
-				Buffer.from(`/bin/bash -lc ${shellQuote(backgroundScript)}\n`),
+				Buffer.from(
+					`/bin/bash -lc ${shellQuote(detachedHelperScript(pidPath))}\n`,
+				),
 			);
 
 			await waitFor(() => readPositivePidFile(pidPath) !== null, 3000);
-			tailPid = readPositivePidFile(pidPath);
-			expect(tailPid).not.toBeNull();
-			expect(isPidAlive(tailPid as number)).toBe(true);
+			helperPid = readPositivePidFile(pidPath);
+			expect(helperPid).not.toBeNull();
+			expect(isPidAlive(helperPid as number)).toBe(true);
 
 			await scenario.host.trpc.terminal.killSession.mutate({
 				workspaceId: scenario.workspaceId,
 				terminalId,
 			});
 
-			await waitFor(() => !isPidAlive(tailPid as number), 3000);
+			await waitFor(() => !isPidAlive(helperPid as number), 3000);
+
+			await scenario.host.trpc.terminal.createSession.mutate({
+				workspaceId: scenario.workspaceId,
+				terminalId: workspaceCleanupTerminalId,
+			});
+			daemon.input(
+				workspaceCleanupTerminalId,
+				Buffer.from(
+					`/bin/bash -lc ${shellQuote(detachedHelperScript(workspaceCleanupPidPath))}\n`,
+				),
+			);
+
+			await waitFor(
+				() => readPositivePidFile(workspaceCleanupPidPath) !== null,
+				3000,
+			);
+			workspaceCleanupHelperPid = readPositivePidFile(workspaceCleanupPidPath);
+			expect(workspaceCleanupHelperPid).not.toBeNull();
+			expect(isPidAlive(workspaceCleanupHelperPid as number)).toBe(true);
+
+			__resetSessionsForTesting();
+			const disposed = await disposeSessionsByWorkspaceId(
+				scenario.workspaceId,
+				scenario.host.db,
+			);
+			expect(disposed.failed).toBe(0);
+			expect(disposed.terminated).toBeGreaterThanOrEqual(1);
+
+			await waitFor(
+				() => !isPidAlive(workspaceCleanupHelperPid as number),
+				3000,
+			);
 		} finally {
-			if (tailPid !== null && tailPid > 0 && isPidAlive(tailPid)) {
+			if (helperPid !== null && helperPid > 0 && isPidAlive(helperPid)) {
 				try {
-					process.kill(tailPid, "SIGKILL");
+					process.kill(helperPid, "SIGKILL");
+				} catch {
+					// Already gone.
+				}
+			}
+			if (
+				workspaceCleanupHelperPid !== null &&
+				workspaceCleanupHelperPid > 0 &&
+				isPidAlive(workspaceCleanupHelperPid)
+			) {
+				try {
+					process.kill(workspaceCleanupHelperPid, "SIGKILL");
 				} catch {
 					// Already gone.
 				}
@@ -278,6 +314,15 @@ describe("terminal router integration", () => {
 
 function shellQuote(value: string): string {
 	return `'${value.replaceAll("'", "'\\''")}'`;
+}
+
+function detachedHelperScript(pidPath: string): string {
+	return [
+		"set -m",
+		`${shellQuote(process.execPath)} -e ${shellQuote("process.on('SIGHUP', () => {}); process.on('SIGTERM', () => {}); setInterval(() => {}, 1000);")} >/dev/null 2>&1 & helper_pid=$!`,
+		`echo "$helper_pid" > ${shellQuote(pidPath)}`,
+		"sleep 60",
+	].join("; ");
 }
 
 function readPositivePidFile(filePath: string): number | null {

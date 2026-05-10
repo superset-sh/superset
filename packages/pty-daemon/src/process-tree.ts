@@ -13,7 +13,17 @@ export interface ProcessSignalError {
 	error: unknown;
 }
 
+export interface ProcessSignalTarget {
+	target: "pid" | "pgid";
+	id: number;
+}
+
 export interface SignalProcessTreeAndGroupsOptions {
+	/**
+	 * When false, skip the root pid and its process group. node-pty will
+	 * deliver the signal to its own child separately; we only need to handle
+	 * descendants and any detached process groups they spawned.
+	 */
 	includeRoot?: boolean;
 	signalGroups?: boolean;
 	signalPids?: boolean;
@@ -25,8 +35,17 @@ export function signalProcessTreeAndGroups(
 	rootPid: number,
 	signal: NodeJS.Signals,
 	options: SignalProcessTreeAndGroupsOptions = {},
-): void {
-	if (!isPositiveInteger(rootPid)) return;
+): ProcessSignalTarget[] {
+	const targets = collectProcessSignalTargets(rootPid, options);
+	signalProcessTargets(targets, signal, options.onSignalError);
+	return targets;
+}
+
+export function collectProcessSignalTargets(
+	rootPid: number,
+	options: SignalProcessTreeAndGroupsOptions = {},
+): ProcessSignalTarget[] {
+	if (!isPositiveInteger(rootPid)) return [];
 
 	const includeRoot = options.includeRoot ?? true;
 	const signalGroups = options.signalGroups ?? true;
@@ -39,6 +58,7 @@ export function signalProcessTreeAndGroups(
 	const rootPgid = getProcessGroupId(rootPid, table);
 	const pids = collectProcessTree(rootPid, table);
 	const pgids = new Set<number>();
+	const targets: ProcessSignalTarget[] = [];
 
 	for (const pid of pids) {
 		if (!includeRoot && pid === rootPid) continue;
@@ -54,15 +74,27 @@ export function signalProcessTreeAndGroups(
 
 	if (signalGroups) {
 		for (const pgid of pgids) {
-			signalTarget("pgid", pgid, signal, options.onSignalError);
+			targets.push({ target: "pgid", id: pgid });
 		}
 	}
 
 	if (signalPids) {
 		for (const pid of pids) {
 			if (!includeRoot && pid === rootPid) continue;
-			signalTarget("pid", pid, signal, options.onSignalError);
+			targets.push({ target: "pid", id: pid });
 		}
+	}
+
+	return targets;
+}
+
+export function signalProcessTargets(
+	targets: ProcessSignalTarget[],
+	signal: NodeJS.Signals,
+	onSignalError?: (error: ProcessSignalError) => void,
+): void {
+	for (const { target, id } of targets) {
+		signalTarget(target, id, signal, onSignalError);
 	}
 }
 

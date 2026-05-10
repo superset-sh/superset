@@ -118,7 +118,7 @@ export async function runTeardown({
 			timedOut = true;
 			appendTail(`\n[teardown timed out after ${timeoutMs}ms]\n`);
 			try {
-				session.pty.kill();
+				void session.pty.kill().catch(() => {});
 			} catch {
 				// PTY may already be dead
 			}

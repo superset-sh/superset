@@ -11,6 +11,8 @@
 import { write as fsWrite } from "node:fs";
 import {
 	type ProcessSignalError,
+	type ProcessSignalTarget,
+	signalProcessTargets,
 	signalProcessTreeAndGroups,
 } from "@superset/pty-daemon/process-tree";
 import type { IPty } from "node-pty";
@@ -264,8 +266,8 @@ function flush(): void {
 function signalProcessTreeGroups(
 	rootPid: number,
 	signal: NodeJS.Signals,
-): void {
-	signalProcessTreeAndGroups(rootPid, signal, {
+): ProcessSignalTarget[] {
+	return signalProcessTreeAndGroups(rootPid, signal, {
 		signalPids: false,
 		onSignalError: logProcessSignalError,
 	});
@@ -392,7 +394,7 @@ function handleKill(payload: Buffer): void {
 	}
 
 	const pid = ptyProcess.pid;
-	signalProcessTreeGroups(pid, signal);
+	const escalationTargets = signalProcessTreeGroups(pid, signal);
 
 	// Step 1: Signal descendants and process groups. tree-kill keeps legacy
 	// PPID traversal behavior for direct children.
@@ -407,7 +409,7 @@ function handleKill(payload: Buffer): void {
 	const escalationTimer = setTimeout(() => {
 		if (!ptyProcess) return; // Already exited via onExit
 
-		signalProcessTreeGroups(pid, "SIGKILL");
+		signalProcessTargets(escalationTargets, "SIGKILL", logProcessSignalError);
 		treeKill(pid, "SIGKILL", (err) => {
 			if (err) {
 				console.error("[pty-subprocess] Failed to SIGKILL process tree:", err);

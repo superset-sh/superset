@@ -3,6 +3,8 @@ import * as fs from "node:fs";
 import * as nodePty from "node-pty";
 import {
 	type ProcessSignalError,
+	type ProcessSignalTarget,
+	signalProcessTargets,
 	signalProcessTreeAndGroups,
 } from "../process-tree.ts";
 import type { SessionMeta } from "../protocol/index.ts";
@@ -80,12 +82,12 @@ class NodePtyAdapter implements Pty {
 
 	kill(signal?: NodeJS.Signals): void {
 		const killSignal = signal ?? "SIGHUP";
-		signalProcessTreeAndGroups(this.pid, killSignal, {
+		const escalationTargets = signalProcessTreeAndGroups(this.pid, killSignal, {
 			includeRoot: false,
 			onSignalError: logProcessSignalError,
 		});
 		this.term.kill(killSignal);
-		this.scheduleKillEscalation(killSignal);
+		this.scheduleKillEscalation(killSignal, escalationTargets);
 	}
 
 	onData(cb: PtyOnData): void {
@@ -97,25 +99,24 @@ class NodePtyAdapter implements Pty {
 	onExit(cb: PtyOnExit): void {
 		this.term.onExit(({ exitCode, signal }) => {
 			this.exited = true;
-			if (this.killEscalationTimer) {
-				clearTimeout(this.killEscalationTimer);
-				this.killEscalationTimer = null;
-			}
 			cb({ code: exitCode ?? null, signal: signal ?? null });
 		});
 	}
 
-	private scheduleKillEscalation(signal: NodeJS.Signals): void {
+	private scheduleKillEscalation(
+		signal: NodeJS.Signals,
+		targets: ProcessSignalTarget[],
+	): void {
 		if (signal === "SIGKILL" || this.exited || this.killEscalationTimer) return;
 
 		this.killEscalationTimer = setTimeout(() => {
 			this.killEscalationTimer = null;
-			if (this.exited) return;
-			signalProcessTreeAndGroups(this.pid, "SIGKILL", {
-				includeRoot: false,
-				onSignalError: logProcessSignalError,
-			});
-			this.term.kill("SIGKILL");
+			signalProcessTargets(targets, "SIGKILL", logProcessSignalError);
+			try {
+				this.term.kill("SIGKILL");
+			} catch {
+				// PTY root may have already exited; detached targets still matter.
+			}
 		}, KILL_ESCALATION_TIMEOUT_MS);
 		this.killEscalationTimer.unref();
 	}
@@ -223,7 +224,6 @@ class AdoptedPty implements Pty {
 			if (this.exitFired) return;
 			this.exitFired = true;
 			if (this.livenessTimer) clearInterval(this.livenessTimer);
-			if (this.killEscalationTimer) clearTimeout(this.killEscalationTimer);
 			// Close the read/write streams so the inherited fd doesn't keep
 			// the event loop alive after the shell exits. We use
 			// `autoClose: false` (so handoff-time refcounting works), which
@@ -290,10 +290,10 @@ class AdoptedPty implements Pty {
 
 	kill(signal?: NodeJS.Signals): void {
 		const killSignal = signal ?? "SIGHUP";
-		signalProcessTreeAndGroups(this.pid, killSignal, {
+		const escalationTargets = signalProcessTreeAndGroups(this.pid, killSignal, {
 			onSignalError: logProcessSignalError,
 		});
-		this.scheduleKillEscalation(killSignal);
+		this.scheduleKillEscalation(killSignal, escalationTargets);
 	}
 
 	onData(cb: PtyOnData): void {
@@ -306,16 +306,16 @@ class AdoptedPty implements Pty {
 		this.exitCallbacks.push(cb);
 	}
 
-	private scheduleKillEscalation(signal: NodeJS.Signals): void {
+	private scheduleKillEscalation(
+		signal: NodeJS.Signals,
+		targets: ProcessSignalTarget[],
+	): void {
 		if (signal === "SIGKILL" || this.exitFired || this.killEscalationTimer)
 			return;
 
 		this.killEscalationTimer = setTimeout(() => {
 			this.killEscalationTimer = null;
-			if (this.exitFired) return;
-			signalProcessTreeAndGroups(this.pid, "SIGKILL", {
-				onSignalError: logProcessSignalError,
-			});
+			signalProcessTargets(targets, "SIGKILL", logProcessSignalError);
 		}, KILL_ESCALATION_TIMEOUT_MS);
 		this.killEscalationTimer.unref();
 	}

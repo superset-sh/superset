@@ -8,13 +8,7 @@
 // Runs under Node (`node --experimental-strip-types --test`).
 
 import { strict as assert } from "node:assert";
-import {
-	existsSync,
-	mkdtempSync,
-	readFileSync,
-	rmSync,
-	writeFileSync,
-} from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { after, before, describe, test } from "node:test";
@@ -238,20 +232,18 @@ describe("session lifecycle", () => {
 		await c.close();
 	});
 
-	test("default close kills background jobs in separate process groups", async () => {
+	test("default close kills detached background process groups", async () => {
 		const c = await connectAndHello(sockPath);
 		const id = uniqueId("background-pgrp");
 		const tmp = mkdtempSync(path.join(os.tmpdir(), "pty-daemon-pgrp-"));
-		const logPath = path.join(tmp, "superset-codex-session.jsonl");
-		const pidPath = path.join(tmp, "tail.pid");
-		let tailPid: number | null = null;
-		writeFileSync(logPath, "");
+		const pidPath = path.join(tmp, "detached-helper.pid");
+		let helperPid: number | null = null;
 
 		try {
 			const script = [
 				"set -m",
-				`tail -n +1 -F ${shellQuote(logPath)} >/dev/null 2>&1 & tail_pid=$!`,
-				`echo "$tail_pid" > ${shellQuote(pidPath)}`,
+				`${shellQuote(process.execPath)} -e ${shellQuote("process.on('SIGHUP', () => {}); process.on('SIGTERM', () => {}); setInterval(() => {}, 1000);")} >/dev/null 2>&1 & helper_pid=$!`,
+				`echo "$helper_pid" > ${shellQuote(pidPath)}`,
 				"sleep 60",
 			].join("; ");
 
@@ -268,19 +260,19 @@ describe("session lifecycle", () => {
 			c.send({ type: "subscribe", id, replay: false });
 			await waitForCondition(() => readPositivePidFile(pidPath) !== null);
 
-			tailPid = readPositivePidFile(pidPath);
-			assert.notEqual(tailPid, null);
-			assert.equal(isPidAlive(tailPid as number), true);
+			helperPid = readPositivePidFile(pidPath);
+			assert.notEqual(helperPid, null);
+			assert.equal(isPidAlive(helperPid as number), true);
 
 			c.send({ type: "close", id });
 			await c.waitFor((m) => m.type === "closed" && m.id === id);
 			await c.waitFor((m) => m.type === "exit" && m.id === id, 3000);
 
-			await waitForCondition(() => !isPidAlive(tailPid as number), 3000);
+			await waitForCondition(() => !isPidAlive(helperPid as number), 3000);
 		} finally {
-			if (tailPid !== null && tailPid > 0 && isPidAlive(tailPid)) {
+			if (helperPid !== null && helperPid > 0 && isPidAlive(helperPid)) {
 				try {
-					process.kill(tailPid, "SIGKILL");
+					process.kill(helperPid, "SIGKILL");
 				} catch {
 					// Already gone.
 				}

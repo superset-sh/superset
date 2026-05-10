@@ -6,8 +6,8 @@
  *   node scripts/smoke-pty-daemon-cleanup.mjs [repo-root]
  *
  * The script starts the target worktree's real pty-daemon under Node, opens a
- * bash PTY that backgrounds `tail -F` in its own process group, closes the
- * daemon session, and fails if the background tail survives.
+ * bash PTY that backgrounds a generic long-running helper in its own process
+ * group, closes the daemon session, and fails if the helper survives.
  */
 
 import { spawn, spawnSync } from "node:child_process";
@@ -17,7 +17,6 @@ import {
 	readdirSync,
 	readFileSync,
 	rmSync,
-	writeFileSync,
 } from "node:fs";
 import net from "node:net";
 import os from "node:os";
@@ -283,6 +282,14 @@ function isPidAlive(pid) {
 	}
 }
 
+function readPositivePidFile(filePath) {
+	if (!existsSync(filePath)) return null;
+	const raw = readFileSync(filePath, "utf8").trim();
+	if (!/^\d+$/.test(raw)) return null;
+	const pid = Number(raw);
+	return Number.isInteger(pid) && pid > 0 ? pid : null;
+}
+
 function killPid(pid, signal) {
 	try {
 		process.kill(pid, signal);
@@ -321,19 +328,16 @@ async function main() {
 	const args = parseArgs(process.argv.slice(2));
 	const tmpDir = mkdtempSync(path.join(os.tmpdir(), "superset-pty-cleanup-"));
 	const launchedSocketPath = path.join(tmpDir, "pty-daemon.sock");
-	const sessionLogPath = path.join(tmpDir, "superset-codex-session.jsonl");
-	const tailPidPath = path.join(tmpDir, "tail.pid");
+	const helperPidPath = path.join(tmpDir, "detached-helper.pid");
 	const sessionId = `cleanup-smoke-${process.pid}-${Date.now()}`;
 
 	let repoRoot = null;
 	let daemonProcess = null;
 	let daemonStderr = "";
 	let client = null;
-	let tailPid = null;
+	let helperPid = null;
 
 	try {
-		writeFileSync(sessionLogPath, "");
-
 		let socketPath;
 		if (args.production || args.socketPath) {
 			const target = args.socketPath
@@ -391,8 +395,8 @@ async function main() {
 
 		const script = [
 			"set -m",
-			`tail -n +1 -F ${shellQuote(sessionLogPath)} >/dev/null 2>&1 & tail_pid=$!`,
-			`echo "$tail_pid" > ${shellQuote(tailPidPath)}`,
+			`${shellQuote(process.execPath)} -e ${shellQuote("process.on('SIGHUP', () => {}); process.on('SIGTERM', () => {}); setInterval(() => {}, 1000);")} >/dev/null 2>&1 & helper_pid=$!`,
+			`echo "$helper_pid" > ${shellQuote(helperPidPath)}`,
 			"sleep 60",
 		].join("; ");
 
@@ -417,16 +421,18 @@ async function main() {
 		console.log(`[smoke] shell pid: ${open.pid}`);
 
 		await waitFor(
-			() => fileExists(tailPidPath),
+			() => readPositivePidFile(helperPidPath) !== null,
 			DEFAULT_TIMEOUT_MS,
-			() => `tail pid file was not written; daemon stderr:\n${daemonStderr}`,
+			() => `helper pid file was not written; daemon stderr:\n${daemonStderr}`,
 		);
-		tailPid = Number(readFileSync(tailPidPath, "utf8").trim());
-		if (!Number.isInteger(tailPid) || tailPid <= 0) {
-			throw new Error(`invalid tail pid: ${readFileSync(tailPidPath, "utf8")}`);
+		helperPid = readPositivePidFile(helperPidPath);
+		if (!Number.isInteger(helperPid) || helperPid <= 0) {
+			throw new Error(
+				`invalid helper pid: ${readFileSync(helperPidPath, "utf8")}`,
+			);
 		}
-		console.log(`[smoke] background tail pid: ${tailPid}`);
-		console.log(`[smoke] before close: ${processRow(tailPid) ?? "missing"}`);
+		console.log(`[smoke] background helper pid: ${helperPid}`);
+		console.log(`[smoke] before close: ${processRow(helperPid) ?? "missing"}`);
 
 		const closed = await client.request({ type: "close", id: sessionId });
 		if (closed.type !== "closed") {
@@ -434,15 +440,17 @@ async function main() {
 		}
 
 		const cleaned = await waitFor(
-			() => !isPidAlive(tailPid),
+			() => !isPidAlive(helperPid),
 			DEFAULT_TIMEOUT_MS,
 		);
 		if (!cleaned) {
-			console.error(`[smoke] after close: ${processRow(tailPid) ?? "missing"}`);
-			console.error("[smoke] FAIL: background tail survived terminal close");
+			console.error(
+				`[smoke] after close: ${processRow(helperPid) ?? "missing"}`,
+			);
+			console.error("[smoke] FAIL: background helper survived terminal close");
 			process.exitCode = 1;
 		} else {
-			console.log("[smoke] PASS: background tail was reaped");
+			console.log("[smoke] PASS: background helper was reaped");
 		}
 	} catch (error) {
 		console.error(
@@ -450,9 +458,11 @@ async function main() {
 		);
 		process.exitCode = 1;
 	} finally {
-		if (tailPid !== null && isPidAlive(tailPid)) {
-			console.error(`[smoke] cleanup: killing leaked test tail pid ${tailPid}`);
-			killPid(tailPid, "SIGKILL");
+		if (helperPid !== null && isPidAlive(helperPid)) {
+			console.error(
+				`[smoke] cleanup: killing leaked test helper pid ${helperPid}`,
+			);
+			killPid(helperPid, "SIGKILL");
 		}
 		await client?.dispose().catch(() => {});
 		await stopProcess(daemonProcess);

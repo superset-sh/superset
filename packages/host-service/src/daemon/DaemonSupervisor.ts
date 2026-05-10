@@ -15,6 +15,10 @@ import * as net from "node:net";
 import * as os from "node:os";
 import * as path from "node:path";
 import {
+	isPositiveInteger,
+	signalProcessTreeAndGroups,
+} from "@superset/pty-daemon/process-tree";
+import {
 	CURRENT_PROTOCOL_VERSION,
 	encodeFrame,
 	FrameDecoder,
@@ -50,6 +54,7 @@ const SOCKET_READY_TIMEOUT_MS = 5_000;
 const VERSION_PROBE_TIMEOUT_MS = 1_500;
 const HANDOFF_PREDECESSOR_EXIT_TIMEOUT_MS = 3_000;
 const HANDOFF_PROBE_TOTAL_TIMEOUT_MS = 3_000;
+const DAEMON_TERMINATE_TIMEOUT_MS = 1_000;
 
 /**
  * Crash supervision parameters. If the daemon for an organization crashes
@@ -273,16 +278,29 @@ export class DaemonSupervisor {
 
 		// Gate the probe on predecessor exit — see waitForPidExit's docstring
 		// for the race it guards against.
-		const predecessorExited = await waitForPidExit(
+		let predecessorExited = await waitForPidExit(
 			instance.pid,
 			HANDOFF_PREDECESSOR_EXIT_TIMEOUT_MS,
 		);
 		if (!predecessorExited) {
-			restoreOnFailure();
-			return {
-				ok: false,
-				reason: `predecessor pid ${instance.pid} did not exit within ${HANDOFF_PREDECESSOR_EXIT_TIMEOUT_MS}ms after handoff ack`,
-			};
+			logEvent("pty_daemon_update_predecessor_escalate", {
+				organizationId,
+				predecessorPid: instance.pid,
+				successorPid: result.successorPid,
+				timeoutMs: HANDOFF_PREDECESSOR_EXIT_TIMEOUT_MS,
+			});
+			terminatePidOnly(instance.pid, "SIGKILL");
+			predecessorExited = await waitForPidExit(
+				instance.pid,
+				DAEMON_TERMINATE_TIMEOUT_MS,
+			);
+			if (!predecessorExited) {
+				restoreOnFailure();
+				return {
+					ok: false,
+					reason: `predecessor pid ${instance.pid} did not exit within ${HANDOFF_PREDECESSOR_EXIT_TIMEOUT_MS + DAEMON_TERMINATE_TIMEOUT_MS}ms after handoff ack`,
+				};
+			}
 		}
 
 		const probedVersion = await probeDaemonVersionWithRetry(
@@ -406,11 +424,7 @@ export class DaemonSupervisor {
 		this.stopAdoptedLivenessCheck(organizationId);
 		if (!instance) return;
 		this.stopping.add(organizationId);
-		try {
-			process.kill(instance.pid, "SIGTERM");
-		} catch {
-			// Already dead.
-		}
+		await terminateProcessTreeAndGroups(instance.pid, "SIGTERM");
 		removePtyDaemonManifest(organizationId);
 	}
 
@@ -520,23 +534,7 @@ export class DaemonSupervisor {
 		console.log(
 			`[pty-daemon:${organizationId}] DEV: killing leftover daemon pid=${manifest.pid} (started ${Math.round((Date.now() - manifest.startedAt) / 1000)}s ago) so the next bootstrap picks up fresh bundle code`,
 		);
-		try {
-			process.kill(manifest.pid, "SIGTERM");
-		} catch {
-			// Already dead between our check and the kill.
-		}
-		const deadline = Date.now() + 1000;
-		while (Date.now() < deadline) {
-			if (!isProcessAlive(manifest.pid)) break;
-			await new Promise((r) => setTimeout(r, 50));
-		}
-		if (isProcessAlive(manifest.pid)) {
-			try {
-				process.kill(manifest.pid, "SIGKILL");
-			} catch {
-				// Already dead.
-			}
-		}
+		await terminateProcessTreeAndGroups(manifest.pid, "SIGTERM");
 		removePtyDaemonManifest(organizationId);
 	}
 
@@ -623,11 +621,7 @@ export class DaemonSupervisor {
 		const reachable = await isSocketConnectable(manifest.socketPath, 1000);
 		if (!reachable) {
 			// PID alive but socket gone — daemon is wedged. Kill and respawn.
-			try {
-				process.kill(manifest.pid, "SIGTERM");
-			} catch {
-				// Already dead.
-			}
+			await terminateProcessTreeAndGroups(manifest.pid, "SIGTERM");
 			removePtyDaemonManifest(organizationId);
 			return null;
 		}
@@ -737,11 +731,7 @@ export class DaemonSupervisor {
 
 		const ready = await waitForSocket(socketPath, SOCKET_READY_TIMEOUT_MS);
 		if (!ready) {
-			try {
-				child.kill("SIGTERM");
-			} catch {
-				// best-effort
-			}
+			await terminateProcessTreeAndGroups(childPid, "SIGTERM");
 			let logTail = "";
 			try {
 				const buf = fs.readFileSync(logPath, "utf-8");
@@ -983,6 +973,26 @@ async function probeDaemonVersionWithRetry(
 		await new Promise((r) => setTimeout(r, 50));
 	}
 	return null;
+}
+
+function terminatePidOnly(pid: number, signal: NodeJS.Signals): void {
+	if (!isPositiveInteger(pid)) return;
+	try {
+		process.kill(pid, signal);
+	} catch {
+		// Already dead or not ours.
+	}
+}
+
+async function terminateProcessTreeAndGroups(
+	pid: number,
+	signal: NodeJS.Signals,
+): Promise<void> {
+	if (!isPositiveInteger(pid)) return;
+	signalProcessTreeAndGroups(pid, signal);
+	if (await waitForPidExit(pid, DAEMON_TERMINATE_TIMEOUT_MS)) return;
+	signalProcessTreeAndGroups(pid, "SIGKILL");
+	await waitForPidExit(pid, DAEMON_TERMINATE_TIMEOUT_MS);
 }
 
 /**
