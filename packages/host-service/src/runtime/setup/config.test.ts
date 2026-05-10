@@ -120,6 +120,26 @@ describe("loadSetupConfig", () => {
 		expect(result).toBeNull();
 	});
 
+	it("rejects blank cwd values", () => {
+		writeRepoConfig(sandbox.repoPath, {
+			cwd: "   ",
+			run: ["bun dev"],
+		});
+
+		const result = load();
+		expect(result).toBeNull();
+	});
+
+	it("normalizes configured cwd", () => {
+		writeRepoConfig(sandbox.repoPath, {
+			cwd: " packages/web ",
+			run: ["bun dev"],
+		});
+
+		const result = load();
+		expect(result?.cwd).toBe("packages/web");
+	});
+
 	it("user override only sets keys it explicitly defines", () => {
 		writeRepoConfig(sandbox.repoPath, {
 			setup: ["bun install"],

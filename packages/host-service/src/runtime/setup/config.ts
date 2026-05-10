@@ -57,13 +57,13 @@ function validateSetupConfig(
 	const obj = parsed as Record<string, unknown>;
 	const result: SetupConfig = {};
 	if (obj.cwd !== undefined) {
-		if (typeof obj.cwd !== "string") {
+		if (typeof obj.cwd !== "string" || obj.cwd.trim().length === 0) {
 			console.error(
-				`Invalid setup config at ${source}: 'cwd' must be a string`,
+				`Invalid setup config at ${source}: 'cwd' must be a non-empty string`,
 			);
 			return null;
 		}
-		result.cwd = obj.cwd;
+		result.cwd = obj.cwd.trim();
 	}
 	for (const key of SCRIPT_KEYS) {
 		const value = obj[key];

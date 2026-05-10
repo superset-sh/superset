@@ -18,14 +18,16 @@ import type { PaneViewerData, TerminalPaneData } from "../../types";
 import type { TerminalLauncher } from "../useV2TerminalLauncher";
 
 const CTRL_C_INPUT = "\u0003";
+const TERMINAL_GONE_ERROR_MESSAGES = [
+	"Terminal session not found",
+	"Terminal session has exited",
+	"Terminal session does not belong to this workspace",
+] as const;
 
 function isTerminalGoneError(error: unknown): boolean {
 	const message = error instanceof Error ? error.message : String(error);
-	return (
-		message.includes("Terminal session not found") ||
-		message.includes("Terminal session has exited") ||
-		message.includes("not found") ||
-		message.includes("not alive")
+	return TERMINAL_GONE_ERROR_MESSAGES.some((terminalMessage) =>
+		message.includes(terminalMessage),
 	);
 }
 
