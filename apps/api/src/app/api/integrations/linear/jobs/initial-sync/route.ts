@@ -1,9 +1,15 @@
 import type { LinearClient } from "@linear/sdk";
 import { buildConflictUpdateColumns, db } from "@superset/db";
-import { members, taskStatuses, tasks, users } from "@superset/db/schema";
+import {
+	integrationConnections,
+	members,
+	taskStatuses,
+	tasks,
+	users,
+} from "@superset/db/schema";
 import { getLinearClient } from "@superset/trpc/integrations/linear";
 import { Receiver } from "@upstash/qstash";
-import { and, eq, inArray, isNull } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 import chunk from "lodash.chunk";
 import { z } from "zod";
 import { env } from "@/env";
@@ -19,6 +25,7 @@ const receiver = new Receiver({
 
 const payloadSchema = z.object({
 	organizationId: z.string().min(1),
+	connectionId: z.string().min(1).optional(),
 	creatorUserId: z.string().min(1),
 });
 
@@ -50,9 +57,11 @@ export async function POST(request: Request) {
 		return Response.json({ error: "Invalid payload" }, { status: 400 });
 	}
 
-	const { organizationId, creatorUserId } = parsed.data;
+	const { organizationId, connectionId, creatorUserId } = parsed.data;
 
-	const client = await getLinearClient(organizationId);
+	const client = connectionId
+		? await getLinearClient({ connectionId })
+		: await getLinearClient({ organizationId });
 	if (!client) {
 		return Response.json({
 			error: "No Linear connection or connection disconnected",
@@ -60,7 +69,30 @@ export async function POST(request: Request) {
 		});
 	}
 
-	await performInitialSync(client, organizationId, creatorUserId);
+	// Resolve the connection ID (when not given, fall back to the org's most
+	// recently updated Linear connection — same logic as getLinearClient).
+	let resolvedConnectionId = connectionId ?? null;
+	if (!resolvedConnectionId) {
+		const rows = await db
+			.select({ id: integrationConnections.id })
+			.from(integrationConnections)
+			.where(
+				and(
+					eq(integrationConnections.organizationId, organizationId),
+					eq(integrationConnections.provider, "linear"),
+				),
+			)
+			.orderBy(desc(integrationConnections.updatedAt))
+			.limit(1);
+		resolvedConnectionId = rows[0]?.id ?? null;
+	}
+
+	await performInitialSync(
+		client,
+		organizationId,
+		creatorUserId,
+		resolvedConnectionId,
+	);
 
 	return Response.json({ success: true });
 }
@@ -69,6 +101,7 @@ async function performInitialSync(
 	client: LinearClient,
 	organizationId: string,
 	creatorUserId: string,
+	linearConnectionId: string | null,
 ) {
 	await syncWorkflowStates({ client, organizationId });
 
@@ -167,6 +200,7 @@ async function performInitialSync(
 			creatorUserId,
 			userByEmail,
 			statusByExternalId,
+			linearConnectionId,
 		),
 	);
 
@@ -202,6 +236,11 @@ async function performInitialSync(
 						"externalUrl",
 						"lastSyncedAt",
 					]),
+					// Backfill NULL linear_connection_id but never overwrite an
+					// existing assignment — prevents two workspaces' resyncs from
+					// fighting over the same task row when an issue ID happens to
+					// be returned by both tokens.
+					linearConnectionId: sql`COALESCE(${tasks.linearConnectionId}, EXCLUDED.linear_connection_id)`,
 					syncError: null,
 				},
 			});

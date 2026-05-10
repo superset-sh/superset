@@ -1,1 +1,5 @@
-export { ConnectionControls } from "./ConnectionControls";
+export {
+	ConnectAnotherButton,
+	ConnectInitialButton,
+	ConnectionControls,
+} from "./ConnectionControls";

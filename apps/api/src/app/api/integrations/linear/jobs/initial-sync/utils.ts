@@ -157,6 +157,7 @@ export function mapIssueToTask(
 	creatorId: string,
 	userByEmail: Map<string, string>,
 	statusByExternalId: Map<string, string>,
+	linearConnectionId: string | null,
 ) {
 	const assigneeId = issue.assignee?.email
 		? (userByEmail.get(issue.assignee.email) ?? null)
@@ -200,5 +201,6 @@ export function mapIssueToTask(
 		externalKey: issue.identifier,
 		externalUrl: issue.url,
 		lastSyncedAt: new Date(),
+		linearConnectionId,
 	};
 }

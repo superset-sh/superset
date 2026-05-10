@@ -30,13 +30,15 @@ const payloadSchema = z.object({
 async function getNewTasksTeamId(
 	organizationId: string,
 ): Promise<string | null> {
-	const connection = await db.query.integrationConnections.findFirst({
+	const rows = await db.query.integrationConnections.findMany({
 		where: and(
 			eq(integrationConnections.organizationId, organizationId),
 			eq(integrationConnections.provider, "linear"),
 		),
+		orderBy: (table, { desc }) => [desc(table.updatedAt)],
 	});
 
+	const connection = rows[0];
 	if (!connection?.config) {
 		return null;
 	}
@@ -94,7 +96,28 @@ async function syncTaskToLinear(
 	externalUrl?: string;
 	error?: string;
 }> {
-	const client = await getLinearClient(task.organizationId);
+	// Resolve the connection (existing task: use its stored linearConnectionId
+	// if set; otherwise fall back to the org's most-recent connection).
+	let connectionRow = task.linearConnectionId
+		? await db.query.integrationConnections.findFirst({
+				where: eq(integrationConnections.id, task.linearConnectionId),
+			})
+		: null;
+	if (!connectionRow) {
+		const rows = await db.query.integrationConnections.findMany({
+			where: and(
+				eq(integrationConnections.organizationId, task.organizationId),
+				eq(integrationConnections.provider, "linear"),
+			),
+			orderBy: (table, { desc }) => [desc(table.updatedAt)],
+		});
+		connectionRow = rows[0] ?? null;
+	}
+	if (!connectionRow || connectionRow.disconnectedAt) {
+		return { success: false, error: "No Linear connection found" };
+	}
+
+	const client = await getLinearClient({ connectionId: connectionRow.id });
 
 	if (!client) {
 		return { success: false, error: "No Linear connection found" };
@@ -221,6 +244,7 @@ async function syncTaskToLinear(
 				externalUrl: issue.url,
 				lastSyncedAt: new Date(),
 				syncError: null,
+				linearConnectionId: connectionRow.id,
 			})
 			.where(eq(tasks.id, task.id));
 

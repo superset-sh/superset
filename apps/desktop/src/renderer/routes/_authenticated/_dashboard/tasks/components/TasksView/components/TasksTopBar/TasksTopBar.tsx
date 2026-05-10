@@ -2,6 +2,8 @@ import { Button } from "@superset/ui/button";
 import { Input } from "@superset/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@superset/ui/tabs";
 import { cn } from "@superset/ui/utils";
+import { eq } from "@tanstack/db";
+import { useLiveQuery } from "@tanstack/react-db";
 import { useRef, useState } from "react";
 import { GoGitPullRequest, GoIssueOpened } from "react-icons/go";
 import {
@@ -11,8 +13,13 @@ import {
 	HiOutlineViewColumns,
 	HiXMark,
 } from "react-icons/hi2";
+import {
+	LinearResyncButton,
+	LinearWorkspacePicker,
+} from "renderer/components/LinearWorkspacePicker";
 import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import { useHotkey } from "renderer/hotkeys";
+import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import type { TypeTab, ViewMode } from "../../../../stores/tasks-filter-state";
 import type { TaskWithStatus } from "../../hooks/useTasksData";
 import { ActiveIcon } from "../shared/icons/ActiveIcon";
@@ -70,6 +77,21 @@ export function TasksTopBar({
 	const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false);
 	const isV2CloudEnabled = useIsV2CloudEnabled();
 
+	const collections = useCollections();
+	const { data: selectedProject } = useLiveQuery(
+		(q) =>
+			q
+				.from({ projects: collections.v2Projects })
+				.where(({ projects }) => eq(projects.id, projectFilter ?? ""))
+				.select(({ projects }) => ({
+					id: projects.id,
+					organizationId: projects.organizationId,
+					linearConnectionId: projects.linearConnectionId,
+				})),
+		[collections, projectFilter],
+	);
+	const projectForPicker = projectFilter ? selectedProject?.[0] : undefined;
+
 	useHotkey(
 		"FOCUS_TASK_SEARCH",
 		() => {
@@ -118,6 +140,26 @@ export function TasksTopBar({
 								value={projectFilter}
 								onChange={onProjectFilterChange}
 							/>
+
+							{projectForPicker && (
+								<>
+									<div className="h-4 w-px bg-border" />
+									<LinearWorkspacePicker
+										organizationId={projectForPicker.organizationId}
+										projectId={projectForPicker.id}
+										currentConnectionId={
+											projectForPicker.linearConnectionId ?? null
+										}
+										variant="compact"
+									/>
+									{projectForPicker.linearConnectionId && (
+										<LinearResyncButton
+											connectionId={projectForPicker.linearConnectionId}
+											variant="compact"
+										/>
+									)}
+								</>
+							)}
 
 							<div className="h-4 w-px bg-border" />
 

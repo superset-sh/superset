@@ -2,6 +2,7 @@ import { FEATURE_FLAGS } from "@superset/shared/constants";
 import { Button } from "@superset/ui/button";
 import { Skeleton } from "@superset/ui/skeleton";
 import { useLiveQuery } from "@tanstack/react-db";
+import { useNavigate } from "@tanstack/react-router";
 import { useFeatureFlagEnabled } from "posthog-js/react";
 import { useCallback, useEffect, useState } from "react";
 import { FaGithub, FaSlack } from "react-icons/fa";
@@ -36,6 +37,7 @@ export function IntegrationsSettings({
 	const { data: session } = authClient.useSession();
 	const activeOrganizationId = session?.session?.activeOrganizationId;
 	const collections = useCollections();
+	const navigate = useNavigate();
 
 	const { data: integrations } = useLiveQuery(
 		(q) =>
@@ -46,6 +48,9 @@ export function IntegrationsSettings({
 				})),
 		[collections],
 	);
+
+	const linearConnections =
+		integrations?.filter((i) => i.provider === "linear") ?? [];
 
 	const [githubInstallation, setGithubInstallation] =
 		useState<GithubInstallation | null>(null);
@@ -87,9 +92,8 @@ export function IntegrationsSettings({
 		fetchGithubInstallation();
 	}, [fetchGithubInstallation]);
 
-	const linearConnection = integrations?.find((i) => i.provider === "linear");
 	const slackConnection = integrations?.find((i) => i.provider === "slack");
-	const isLinearConnected = !!linearConnection;
+	const isLinearConnected = linearConnections.length > 0;
 	const isSlackConnected = !!slackConnection;
 	const isGithubConnected =
 		!!githubInstallation && !githubInstallation.suspended;
@@ -130,11 +134,18 @@ export function IntegrationsSettings({
 				{showLinear && (
 					<IntegrationRow
 						name="Linear"
-						description="Sync issues bidirectionally with Linear."
+						description="Sync issues bidirectionally with Linear. Supports multiple workspaces per organization."
 						icon={<SiLinear className="size-5" />}
 						isConnected={isLinearConnected}
-						connectedOrgName={linearConnection?.externalOrgName}
-						onManage={() => handleOpenWeb("/integrations/linear")}
+						connectedOrgName={
+							linearConnections.length === 1
+								? linearConnections[0]?.externalOrgName
+								: linearConnections.length > 1
+									? `${linearConnections.length} workspaces`
+									: null
+						}
+						onManage={() => navigate({ to: "/settings/integrations/linear" })}
+						manageInApp
 					/>
 				)}
 
@@ -163,7 +174,8 @@ export function IntegrationsSettings({
 			</div>
 
 			<p className="mt-6 text-xs text-muted-foreground">
-				Manage integrations in the web app to connect and configure services.
+				Linear can be managed here. GitHub and Slack open the web app for
+				connection and configuration.
 			</p>
 		</div>
 	);
@@ -177,6 +189,7 @@ interface IntegrationRowProps {
 	connectedOrgName?: string | null;
 	isLoading?: boolean;
 	onManage: () => void;
+	manageInApp?: boolean;
 }
 
 function IntegrationRow({
@@ -187,6 +200,7 @@ function IntegrationRow({
 	connectedOrgName,
 	isLoading,
 	onManage,
+	manageInApp = false,
 }: IntegrationRowProps) {
 	const status = isLoading ? (
 		<Skeleton className="h-4 w-24" />
@@ -230,7 +244,9 @@ function IntegrationRow({
 					onClick={onManage}
 					className="gap-2"
 				>
-					<HiOutlineArrowTopRightOnSquare className="size-4" />
+					{!manageInApp && (
+						<HiOutlineArrowTopRightOnSquare className="size-4" />
+					)}
 					{isConnected ? "Manage" : "Connect"}
 				</Button>
 			</div>

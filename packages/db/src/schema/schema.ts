@@ -132,6 +132,10 @@ export const tasks = pgTable(
 		externalUrl: text("external_url"),
 		lastSyncedAt: timestamp("last_synced_at"),
 		syncError: text("sync_error"),
+		linearConnectionId: uuid("linear_connection_id").references(
+			() => integrationConnections.id,
+			{ onDelete: "set null" },
+		),
 
 		// External assignee snapshot (for unmatched Linear users)
 		assigneeExternalId: text("assignee_external_id"),
@@ -158,6 +162,7 @@ export const tasks = pgTable(
 		index("tasks_created_at_idx").on(table.createdAt),
 		index("tasks_external_provider_idx").on(table.externalProvider),
 		index("tasks_assignee_external_id_idx").on(table.assigneeExternalId),
+		index("tasks_linear_connection_idx").on(table.linearConnectionId),
 		unique("tasks_external_unique").on(
 			table.organizationId,
 			table.externalProvider,
@@ -204,9 +209,10 @@ export const integrationConnections = pgTable(
 			.$onUpdate(() => new Date()),
 	},
 	(table) => [
-		unique("integration_connections_unique").on(
+		unique("integration_connections_org_provider_external_unique").on(
 			table.organizationId,
 			table.provider,
+			table.externalOrgId,
 		),
 		index("integration_connections_org_idx").on(table.organizationId),
 	],
@@ -410,6 +416,10 @@ export const v2Projects = pgTable(
 			{ onDelete: "set null" },
 		),
 		iconUrl: text("icon_url"),
+		linearConnectionId: uuid("linear_connection_id").references(
+			() => integrationConnections.id,
+			{ onDelete: "set null" },
+		),
 		createdAt: timestamp("created_at", { withTimezone: true })
 			.notNull()
 			.defaultNow(),
@@ -421,6 +431,7 @@ export const v2Projects = pgTable(
 	(table) => [
 		index("v2_projects_organization_id_idx").on(table.organizationId),
 		unique("v2_projects_org_slug_unique").on(table.organizationId, table.slug),
+		index("v2_projects_linear_connection_idx").on(table.linearConnectionId),
 	],
 );
 

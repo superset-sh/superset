@@ -63,12 +63,14 @@ interface UseTasksTableParams {
 	filterTab: TabValue;
 	searchQuery: string;
 	assigneeFilter: string | null;
+	projectFilter: string | null;
 }
 
 export function useTasksTable({
 	filterTab,
 	searchQuery,
 	assigneeFilter,
+	projectFilter,
 }: UseTasksTableParams): {
 	table: Table<TaskWithStatus>;
 	slugColumnWidth: string;
@@ -105,9 +107,50 @@ export function useTasksTable({
 		[collections],
 	);
 
+	const { data: projectMatch } = useLiveQuery(
+		(q) =>
+			q
+				.from({ projects: collections.v2Projects })
+				.where(({ projects }) => eq(projects.id, projectFilter ?? ""))
+				.select(({ projects }) => ({
+					linearConnectionId: projects.linearConnectionId,
+				})),
+		[collections, projectFilter],
+	);
+
+	const { data: linearConnections } = useLiveQuery(
+		(q) =>
+			q
+				.from({ conn: collections.integrationConnections })
+				.where(({ conn }) => eq(conn.provider, "linear"))
+				.select(({ conn }) => ({ id: conn.id })),
+		[collections],
+	);
+
+	const projectLinearConnectionId =
+		projectFilter && projectMatch?.[0]
+			? (projectMatch[0].linearConnectionId ?? null)
+			: null;
+	const linearConnectionCount = linearConnections?.length ?? 0;
+
 	const sortedData = useMemo(() => {
 		if (!allData) return [];
-		return allData
+		// See useTasksData for the filtering rules — same logic mirrored here.
+		let filtered = allData;
+		if (projectFilter) {
+			if (projectLinearConnectionId) {
+				filtered = filtered.filter(
+					(task) =>
+						task.externalProvider !== "linear" ||
+						task.linearConnectionId === projectLinearConnectionId,
+				);
+			} else if (linearConnectionCount !== 1) {
+				filtered = filtered.filter(
+					(task) => task.externalProvider !== "linear",
+				);
+			}
+		}
+		return filtered
 			.map((task) => ({
 				...task,
 				assignee:
@@ -116,7 +159,12 @@ export function useTasksTable({
 						: null,
 			}))
 			.sort(compareTasks);
-	}, [allData]);
+	}, [
+		allData,
+		projectFilter,
+		projectLinearConnectionId,
+		linearConnectionCount,
+	]);
 
 	const { search } = useHybridSearch(sortedData);
 

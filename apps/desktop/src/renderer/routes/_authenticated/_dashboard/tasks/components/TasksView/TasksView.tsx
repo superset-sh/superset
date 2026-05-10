@@ -233,6 +233,7 @@ export function TasksView({
 								filterTab={currentTab}
 								searchQuery={searchQuery}
 								assigneeFilter={assigneeFilter}
+								projectFilter={projectFilter}
 								onTaskClick={handleTaskClick}
 							/>
 						) : (
@@ -240,6 +241,7 @@ export function TasksView({
 								filterTab={currentTab}
 								searchQuery={searchQuery}
 								assigneeFilter={assigneeFilter}
+								projectFilter={projectFilter}
 								onTaskClick={handleTaskClick}
 								onSelectionChange={handleSelectionChange}
 							/>

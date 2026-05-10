@@ -20,12 +20,14 @@ interface UseTasksDataParams {
 	filterTab: TabValue;
 	searchQuery: string;
 	assigneeFilter: string | null;
+	projectFilter: string | null;
 }
 
 export function useTasksData({
 	filterTab,
 	searchQuery,
 	assigneeFilter,
+	projectFilter,
 }: UseTasksDataParams): {
 	data: TaskWithStatus[];
 	allStatuses: SelectTaskStatus[];
@@ -59,6 +61,32 @@ export function useTasksData({
 		[collections],
 	);
 
+	const { data: projectMatch } = useLiveQuery(
+		(q) =>
+			q
+				.from({ projects: collections.v2Projects })
+				.where(({ projects }) => eq(projects.id, projectFilter ?? ""))
+				.select(({ projects }) => ({
+					linearConnectionId: projects.linearConnectionId,
+				})),
+		[collections, projectFilter],
+	);
+
+	const { data: linearConnections } = useLiveQuery(
+		(q) =>
+			q
+				.from({ conn: collections.integrationConnections })
+				.where(({ conn }) => eq(conn.provider, "linear"))
+				.select(({ conn }) => ({ id: conn.id })),
+		[collections],
+	);
+
+	const projectLinearConnectionId =
+		projectFilter && projectMatch?.[0]
+			? (projectMatch[0].linearConnectionId ?? null)
+			: null;
+	const linearConnectionCount = linearConnections?.length ?? 0;
+
 	const allStatuses = useMemo(() => statusData ?? [], [statusData]);
 
 	const sortedData = useMemo(() => {
@@ -87,6 +115,23 @@ export function useTasksData({
 	const filteredData = useMemo(() => {
 		let result = searchedData;
 
+		// Linear filtering rules (per Decision Log):
+		// - Project assigned to a connection: show Linear tasks for that one only.
+		// - Project unassigned + 1 connection in org: auto-fall-through, show all.
+		// - Project unassigned + 0 or 2+ connections: hide Linear tasks (ambiguous).
+		// Local (non-Linear) tasks always pass through.
+		if (projectFilter) {
+			if (projectLinearConnectionId) {
+				result = result.filter(
+					(task) =>
+						task.externalProvider !== "linear" ||
+						task.linearConnectionId === projectLinearConnectionId,
+				);
+			} else if (linearConnectionCount !== 1) {
+				result = result.filter((task) => task.externalProvider !== "linear");
+			}
+		}
+
 		if (filterTab !== "all") {
 			result = result.filter((task) => {
 				const statusType = task.status.type;
@@ -113,7 +158,14 @@ export function useTasksData({
 		}
 
 		return result;
-	}, [searchedData, filterTab, assigneeFilter]);
+	}, [
+		searchedData,
+		filterTab,
+		assigneeFilter,
+		projectFilter,
+		projectLinearConnectionId,
+		linearConnectionCount,
+	]);
 
 	return {
 		data: filteredData,

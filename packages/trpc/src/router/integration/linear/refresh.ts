@@ -1,12 +1,16 @@
 import { LinearClient } from "@linear/sdk";
 import { db } from "@superset/db/client";
-import { integrationConnections } from "@superset/db/schema";
+import { integrationConnections, v2Projects } from "@superset/db/schema";
 import { withConnectionLock } from "@superset/db/utils";
-import { and, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { env } from "../../../env";
 import { REFRESH_BUFFER_MS, REFRESH_TOKEN_TIMEOUT_MS } from "./constants";
-import { getLinearClient, markConnectionDisconnected } from "./utils";
+import {
+	getLinearClient,
+	type LinearClientLookup,
+	markConnectionDisconnected,
+} from "./utils";
 
 export const linearTokenResponseSchema = z.object({
 	access_token: z.string(),
@@ -106,11 +110,50 @@ export async function refreshLinearToken(
 	});
 }
 
+async function findConnectionForLookup(args: LinearClientLookup) {
+	if ("connectionId" in args) {
+		const row = await db.query.integrationConnections.findFirst({
+			where: eq(integrationConnections.id, args.connectionId),
+		});
+		return row && row.provider === "linear" ? row : null;
+	}
+	if ("projectId" in args) {
+		const project = await db.query.v2Projects.findFirst({
+			where: eq(v2Projects.id, args.projectId),
+			columns: { organizationId: true, linearConnectionId: true },
+		});
+		if (!project) return null;
+		if (project.linearConnectionId) {
+			return (
+				(await db.query.integrationConnections.findFirst({
+					where: eq(integrationConnections.id, project.linearConnectionId),
+				})) ?? null
+			);
+		}
+		const rows = await db.query.integrationConnections.findMany({
+			where: and(
+				eq(integrationConnections.organizationId, project.organizationId),
+				eq(integrationConnections.provider, "linear"),
+			),
+			orderBy: [desc(integrationConnections.updatedAt)],
+		});
+		return rows[0] ?? null;
+	}
+	const rows = await db.query.integrationConnections.findMany({
+		where: and(
+			eq(integrationConnections.organizationId, args.organizationId),
+			eq(integrationConnections.provider, "linear"),
+		),
+		orderBy: [desc(integrationConnections.updatedAt)],
+	});
+	return rows[0] ?? null;
+}
+
 export async function callLinear<T>(
-	organizationId: string,
+	args: LinearClientLookup,
 	fn: (client: LinearClient) => Promise<T>,
 ): Promise<T | null> {
-	const client = await getLinearClient(organizationId);
+	const client = await getLinearClient(args);
 	if (!client) return null;
 
 	try {
@@ -118,12 +161,7 @@ export async function callLinear<T>(
 	} catch (error) {
 		if (!isLinearAuthError(error)) throw error;
 
-		const connection = await db.query.integrationConnections.findFirst({
-			where: and(
-				eq(integrationConnections.organizationId, organizationId),
-				eq(integrationConnections.provider, "linear"),
-			),
-		});
+		const connection = await findConnectionForLookup(args);
 		if (!connection) return null;
 		if (!connection.refreshToken) {
 			await markConnectionDisconnected(connection.id, "no_refresh_token");

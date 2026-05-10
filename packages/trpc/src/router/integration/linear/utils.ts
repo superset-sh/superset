@@ -1,7 +1,7 @@
 import { LinearClient } from "@linear/sdk";
 import { db } from "@superset/db/client";
-import { integrationConnections } from "@superset/db/schema";
-import { and, eq } from "drizzle-orm";
+import { integrationConnections, v2Projects } from "@superset/db/schema";
+import { and, desc, eq } from "drizzle-orm";
 import { REFRESH_BUFFER_MS } from "./constants";
 import { isLinearAuthError, refreshLinearToken } from "./refresh";
 
@@ -37,16 +37,99 @@ export function mapPriorityFromLinear(linearPriority: number): Priority {
 	}
 }
 
-export async function getLinearClient(
-	organizationId: string,
-): Promise<LinearClient | null> {
-	const connection = await db.query.integrationConnections.findFirst({
-		where: and(
-			eq(integrationConnections.organizationId, organizationId),
-			eq(integrationConnections.provider, "linear"),
-		),
-	});
+export type LinearClientLookup =
+	| { organizationId: string }
+	| { projectId: string }
+	| { connectionId: string };
 
+type ResolvedConnection = {
+	id: string;
+	accessToken: string;
+	refreshToken: string | null;
+	tokenExpiresAt: Date | null;
+	disconnectedAt: Date | null;
+};
+
+async function resolveConnection(
+	args: LinearClientLookup,
+): Promise<ResolvedConnection | null> {
+	if ("connectionId" in args) {
+		const row = await db.query.integrationConnections.findFirst({
+			where: eq(integrationConnections.id, args.connectionId),
+			columns: {
+				id: true,
+				accessToken: true,
+				refreshToken: true,
+				tokenExpiresAt: true,
+				disconnectedAt: true,
+				provider: true,
+			},
+		});
+		if (!row || row.provider !== "linear") return null;
+		return row;
+	}
+
+	if ("projectId" in args) {
+		const project = await db.query.v2Projects.findFirst({
+			where: eq(v2Projects.id, args.projectId),
+			columns: { organizationId: true, linearConnectionId: true },
+		});
+		if (!project) return null;
+
+		if (project.linearConnectionId) {
+			const row = await db.query.integrationConnections.findFirst({
+				where: eq(integrationConnections.id, project.linearConnectionId),
+				columns: {
+					id: true,
+					accessToken: true,
+					refreshToken: true,
+					tokenExpiresAt: true,
+					disconnectedAt: true,
+				},
+			});
+			return row ?? null;
+		}
+
+		// Fall through to "the org's only Linear connection" if exactly one exists.
+		return resolveOrgFallback(project.organizationId);
+	}
+
+	return resolveOrgFallback(args.organizationId);
+}
+
+async function resolveOrgFallback(
+	organizationId: string,
+): Promise<ResolvedConnection | null> {
+	const rows = await db
+		.select({
+			id: integrationConnections.id,
+			accessToken: integrationConnections.accessToken,
+			refreshToken: integrationConnections.refreshToken,
+			tokenExpiresAt: integrationConnections.tokenExpiresAt,
+			disconnectedAt: integrationConnections.disconnectedAt,
+		})
+		.from(integrationConnections)
+		.where(
+			and(
+				eq(integrationConnections.organizationId, organizationId),
+				eq(integrationConnections.provider, "linear"),
+			),
+		)
+		.orderBy(desc(integrationConnections.updatedAt));
+
+	if (rows.length === 0) return null;
+	if (rows.length > 1) {
+		console.warn(
+			`[getLinearClient] Org ${organizationId} has ${rows.length} Linear connections; falling back to most recently updated. Caller should pass { projectId } or { connectionId } instead.`,
+		);
+	}
+	return rows[0] ?? null;
+}
+
+export async function getLinearClient(
+	args: LinearClientLookup,
+): Promise<LinearClient | null> {
+	const connection = await resolveConnection(args);
 	if (!connection || connection.disconnectedAt) {
 		return null;
 	}

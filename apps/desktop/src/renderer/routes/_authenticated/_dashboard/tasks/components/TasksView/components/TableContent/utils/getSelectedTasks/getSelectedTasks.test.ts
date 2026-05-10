@@ -26,6 +26,7 @@ function createTask(id: string, title = `Task ${id}`): TaskWithStatus {
 		externalUrl: null,
 		lastSyncedAt: null,
 		syncError: null,
+		linearConnectionId: null,
 		creatorId: "user-1",
 		startedAt: null,
 		completedAt: null,

@@ -1,0 +1,3 @@
+ALTER TABLE "tasks" ADD COLUMN "linear_connection_id" uuid;--> statement-breakpoint
+ALTER TABLE "tasks" ADD CONSTRAINT "tasks_linear_connection_id_integration_connections_id_fk" FOREIGN KEY ("linear_connection_id") REFERENCES "public"."integration_connections"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
+CREATE INDEX "tasks_linear_connection_idx" ON "tasks" USING btree ("linear_connection_id");

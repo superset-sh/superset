@@ -8,6 +8,7 @@ const STATE_TTL_MS = 10 * 60 * 1000; // 10 minutes
 const statePayloadSchema = z.object({
 	organizationId: z.string().min(1),
 	userId: z.string().min(1),
+	projectId: z.string().min(1).optional(),
 	timestamp: z.number(),
 });
 
@@ -21,11 +22,18 @@ const statePayloadSchema = z.object({
 export function createSignedState({
 	organizationId,
 	userId,
+	projectId,
 }: {
 	organizationId: string;
 	userId: string;
+	projectId?: string;
 }): string {
-	const payload = { organizationId, userId, timestamp: Date.now() };
+	const payload = {
+		organizationId,
+		userId,
+		...(projectId ? { projectId } : {}),
+		timestamp: Date.now(),
+	};
 	const payloadB64 = Buffer.from(JSON.stringify(payload)).toString("base64url");
 	const signature = createHmac("sha256", env.BETTER_AUTH_SECRET)
 		.update(payloadB64)
@@ -39,7 +47,7 @@ export function createSignedState({
  */
 export function verifySignedState(
 	state: string,
-): { organizationId: string; userId: string } | null {
+): { organizationId: string; userId: string; projectId?: string } | null {
 	const [payloadB64, providedSig] = state.split(".");
 	if (!payloadB64 || !providedSig) {
 		console.error("[oauth-state] Invalid state format");
@@ -86,5 +94,6 @@ export function verifySignedState(
 	return {
 		organizationId: parsed.data.organizationId,
 		userId: parsed.data.userId,
+		projectId: parsed.data.projectId,
 	};
 }

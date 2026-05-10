@@ -15,27 +15,29 @@ import { useEffect, useState } from "react";
 import { useTRPC } from "@/trpc/react";
 
 interface TeamSelectorProps {
+	connectionId: string;
 	organizationId: string;
+	currentTeamId: string | undefined;
 }
 
-export function TeamSelector({ organizationId }: TeamSelectorProps) {
+export function TeamSelector({
+	connectionId,
+	organizationId,
+	currentTeamId,
+}: TeamSelectorProps) {
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
 	const [showSuccess, setShowSuccess] = useState(false);
 
 	const teamsQuery = useQuery(
-		trpc.integration.linear.getTeams.queryOptions({ organizationId }),
-	);
-
-	const connectionQuery = useQuery(
-		trpc.integration.linear.getConnection.queryOptions({ organizationId }),
+		trpc.integration.linear.getTeams.queryOptions({ connectionId }),
 	);
 
 	const updateMutation = useMutation(
 		trpc.integration.linear.updateConfig.mutationOptions({
 			onSuccess: () => {
 				queryClient.invalidateQueries({
-					queryKey: trpc.integration.linear.getConnection.queryKey({
+					queryKey: trpc.integration.linear.listConnections.queryKey({
 						organizationId,
 					}),
 				});
@@ -54,21 +56,16 @@ export function TeamSelector({ organizationId }: TeamSelectorProps) {
 		}
 	}, [showSuccess]);
 
-	const handleChange = (teamId: string) => {
-		updateMutation.mutate({ organizationId, newTasksTeamId: teamId });
-	};
-
-	if (teamsQuery.isLoading || connectionQuery.isLoading) {
+	if (teamsQuery.isLoading) {
 		return <Skeleton className="h-9 w-48" />;
 	}
 
 	const teams = teamsQuery.data ?? [];
-	const currentTeamId = connectionQuery.data?.config?.newTasksTeamId;
 
 	if (teams.length === 0) {
 		return (
 			<p className="text-sm text-muted-foreground">
-				No teams found in your Linear workspace.
+				No teams found in this Linear workspace.
 			</p>
 		);
 	}
@@ -77,7 +74,9 @@ export function TeamSelector({ organizationId }: TeamSelectorProps) {
 		<div className="flex items-center gap-2">
 			<Select
 				value={currentTeamId}
-				onValueChange={handleChange}
+				onValueChange={(teamId) =>
+					updateMutation.mutate({ connectionId, newTasksTeamId: teamId })
+				}
 				disabled={updateMutation.isPending}
 			>
 				<SelectTrigger className="w-48">

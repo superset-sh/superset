@@ -1,6 +1,10 @@
 import { LinearClient } from "@linear/sdk";
 import { db } from "@superset/db/client";
-import { integrationConnections, members } from "@superset/db/schema";
+import {
+	integrationConnections,
+	members,
+	v2Projects,
+} from "@superset/db/schema";
 import { linearTokenResponseSchema } from "@superset/trpc/integrations/linear";
 import { Client } from "@upstash/qstash";
 import { and, eq } from "drizzle-orm";
@@ -36,7 +40,7 @@ export async function GET(request: Request) {
 		);
 	}
 
-	const { organizationId, userId } = stateData;
+	const { organizationId, userId, projectId } = stateData;
 
 	// Re-verify membership at callback time (defense-in-depth)
 	const membership = await db.query.members.findFirst({
@@ -84,7 +88,7 @@ export async function GET(request: Request) {
 
 	const tokenExpiresAt = new Date(Date.now() + tokenData.expires_in * 1000);
 
-	await db
+	const [upserted] = await db
 		.insert(integrationConnections)
 		.values({
 			organizationId,
@@ -100,6 +104,7 @@ export async function GET(request: Request) {
 			target: [
 				integrationConnections.organizationId,
 				integrationConnections.provider,
+				integrationConnections.externalOrgId,
 			],
 			set: {
 				accessToken: tokenData.access_token,
@@ -107,24 +112,63 @@ export async function GET(request: Request) {
 				tokenExpiresAt,
 				disconnectedAt: null,
 				disconnectReason: null,
-				externalOrgId: linearOrg.id,
 				externalOrgName: linearOrg.name,
 				connectedByUserId: userId,
 				updatedAt: new Date(),
 			},
-		});
+		})
+		.returning({ id: integrationConnections.id });
 
-	try {
-		await qstash.publishJSON({
-			url: `${env.NEXT_PUBLIC_API_URL}/api/integrations/linear/jobs/initial-sync`,
-			body: { organizationId, creatorUserId: userId },
-			retries: 3,
-		});
-	} catch (error) {
-		console.error("Failed to queue initial sync job:", error);
+	if (!upserted) {
 		return Response.redirect(
-			`${env.NEXT_PUBLIC_WEB_URL}/integrations/linear?warning=sync_queued_failed`,
+			`${env.NEXT_PUBLIC_WEB_URL}/integrations/linear?error=upsert_failed`,
 		);
+	}
+
+	if (projectId) {
+		const project = await db.query.v2Projects.findFirst({
+			where: and(
+				eq(v2Projects.id, projectId),
+				eq(v2Projects.organizationId, organizationId),
+			),
+			columns: { id: true },
+		});
+		if (project) {
+			await db
+				.update(v2Projects)
+				.set({ linearConnectionId: upserted.id })
+				.where(eq(v2Projects.id, projectId));
+		}
+	}
+
+	const syncUrl = `${env.NEXT_PUBLIC_API_URL}/api/integrations/linear/jobs/initial-sync`;
+	const syncBody = {
+		organizationId,
+		connectionId: upserted.id,
+		creatorUserId: userId,
+	};
+
+	if (env.NODE_ENV === "development") {
+		fetch(syncUrl, {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify(syncBody),
+		}).catch((err) => {
+			console.error("[linear/callback] Dev sync invocation failed:", err);
+		});
+	} else {
+		try {
+			await qstash.publishJSON({
+				url: syncUrl,
+				body: syncBody,
+				retries: 3,
+			});
+		} catch (error) {
+			console.error("Failed to queue initial sync job:", error);
+			return Response.redirect(
+				`${env.NEXT_PUBLIC_WEB_URL}/integrations/linear?warning=sync_queued_failed`,
+			);
+		}
 	}
 
 	return Response.redirect(`${env.NEXT_PUBLIC_WEB_URL}/integrations/linear`);

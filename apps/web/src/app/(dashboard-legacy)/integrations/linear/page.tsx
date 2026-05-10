@@ -10,7 +10,11 @@ import { AlertTriangle, ArrowLeft, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 import { SiLinear } from "react-icons/si";
 import { api } from "@/trpc/server";
-import { ConnectionControls } from "./components/ConnectionControls";
+import {
+	ConnectAnotherButton,
+	ConnectInitialButton,
+	ConnectionControls,
+} from "./components/ConnectionControls";
 import { ErrorHandler } from "./components/ErrorHandler";
 import { TeamSelector } from "./components/TeamSelector";
 
@@ -28,11 +32,11 @@ export default async function LinearIntegrationPage() {
 		);
 	}
 
-	const connection = await trpc.integration.linear.getConnection.query({
+	const connections = await trpc.integration.linear.listConnections.query({
 		organizationId: organization.id,
 	});
-	const isConnected = !!connection;
-	const needsReconnect = !!connection?.needsReconnect;
+
+	const hasAnyConnection = connections.length > 0;
 
 	return (
 		<div className="space-y-8">
@@ -53,61 +57,79 @@ export default async function LinearIntegrationPage() {
 				<div className="flex-1">
 					<div className="flex items-center gap-3">
 						<h1 className="text-2xl font-semibold">Linear</h1>
-						{needsReconnect ? (
-							<Badge variant="destructive" className="gap-1">
-								<AlertTriangle className="size-3" />
-								Reconnect required
-							</Badge>
-						) : isConnected ? (
+						{hasAnyConnection ? (
 							<Badge variant="default" className="gap-1">
 								<CheckCircle2 className="size-3" />
-								Connected
+								{connections.length} connected
 							</Badge>
 						) : (
 							<Badge variant="secondary">Not Connected</Badge>
 						)}
 					</div>
 					<p className="mt-1 text-muted-foreground">
-						Sync issues bidirectionally with Linear. Create tasks in Superset
-						and have them appear in Linear, or import existing Linear issues.
+						Sync issues bidirectionally with Linear. Connect multiple Linear
+						workspaces and assign each project to one.
 					</p>
 				</div>
+				{hasAnyConnection && (
+					<ConnectAnotherButton organizationId={organization.id} />
+				)}
 			</div>
 
-			<Card>
-				<CardHeader>
-					<CardTitle>Connection</CardTitle>
-					<CardDescription>
-						Connect your Linear workspace to sync issues bidirectionally.
-					</CardDescription>
-				</CardHeader>
-				<CardContent>
-					<ConnectionControls
-						organizationId={organization.id}
-						isConnected={isConnected}
-						needsReconnect={needsReconnect}
-					/>
-				</CardContent>
-			</Card>
-
-			{connection && (
+			{!hasAnyConnection ? (
 				<Card>
 					<CardHeader>
-						<CardTitle>Settings</CardTitle>
+						<CardTitle>Connect Linear</CardTitle>
 						<CardDescription>
-							Configure how tasks sync between Superset and Linear.
+							Connect your first Linear workspace to start syncing issues.
 						</CardDescription>
 					</CardHeader>
-					<CardContent className="space-y-4">
-						<div className="space-y-2">
-							<p className="text-sm font-medium">Default team for new tasks</p>
-							<TeamSelector organizationId={organization.id} />
-							<p className="text-sm text-muted-foreground">
-								Tasks created in Superset will be synced to this Linear team.
-							</p>
-						</div>
+					<CardContent>
+						<ConnectInitialButton organizationId={organization.id} />
 					</CardContent>
 				</Card>
+			) : (
+				connections.map((conn) => (
+					<Card key={conn.id}>
+						<CardHeader className="flex-row items-start justify-between gap-4 space-y-0">
+							<div>
+								<CardTitle className="flex items-center gap-2 text-base">
+									{conn.externalOrgName ?? "Unnamed workspace"}
+									{conn.disconnectedAt && (
+										<Badge variant="destructive" className="gap-1">
+											<AlertTriangle className="size-3" />
+											Reconnect required
+										</Badge>
+									)}
+								</CardTitle>
+								<CardDescription className="mt-1">
+									{conn.linkedProjectCount} project
+									{conn.linkedProjectCount === 1 ? "" : "s"} linked
+								</CardDescription>
+							</div>
+							<ConnectionControls
+								organizationId={organization.id}
+								connectionId={conn.id}
+							/>
+						</CardHeader>
+						<CardContent className="space-y-4">
+							<div className="space-y-2">
+								<p className="text-sm font-medium">
+									Default team for new tasks
+								</p>
+								<TeamSelector
+									connectionId={conn.id}
+									organizationId={organization.id}
+									currentTeamId={conn.config?.newTasksTeamId}
+								/>
+								<p className="text-sm text-muted-foreground">
+									Tasks created in projects assigned to this workspace land in
+									this Linear team.
+								</p>
+							</div>
+						</CardContent>
+					</Card>
+				))
 			)}
 		</div>
 	);

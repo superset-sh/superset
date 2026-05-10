@@ -1,6 +1,7 @@
 import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useQuery } from "@tanstack/react-query";
+import { LinearWorkspacePicker } from "renderer/components/LinearWorkspacePicker";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
@@ -68,6 +69,17 @@ export function V2ProjectSettings({ projectId }: V2ProjectSettingsProps) {
 						currentPath={hostProject?.repoPath ?? null}
 						repoCloneUrl={project.repoCloneUrl}
 						onChanged={() => refetchHostProject()}
+					/>
+				</SettingsSection>
+
+				<SettingsSection
+					title="Linear workspace"
+					description="Sync this project's tasks to a specific Linear workspace. Connect another workspace to assign it here."
+				>
+					<LinearWorkspacePicker
+						organizationId={project.organizationId}
+						projectId={projectId}
+						currentConnectionId={project.linearConnectionId ?? null}
 					/>
 				</SettingsSection>
 

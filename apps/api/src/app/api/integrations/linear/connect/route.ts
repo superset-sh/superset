@@ -15,6 +15,7 @@ export async function GET(request: Request) {
 
 	const url = new URL(request.url);
 	const organizationId = url.searchParams.get("organizationId");
+	const projectId = url.searchParams.get("projectId") ?? undefined;
 
 	if (!organizationId) {
 		return Response.json(
@@ -38,6 +39,7 @@ export async function GET(request: Request) {
 	const state = createSignedState({
 		organizationId,
 		userId: session.user.id,
+		projectId,
 	});
 
 	const linearAuthUrl = new URL("https://linear.app/oauth/authorize");
