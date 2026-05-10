@@ -17,6 +17,9 @@ import { useSignOut } from "@/hooks/useSignOut";
 import { authClient } from "@/lib/auth/client";
 import { useCollections } from "@/screens/(authenticated)/providers/CollectionsProvider";
 
+// Every row in the menu honors a 44pt minimum tap target (Fitts's Law).
+const ROW_MIN_HEIGHT = 44;
+
 export function MoreMenuScreen() {
 	const router = useRouter();
 	const insets = useSafeAreaInsets();
@@ -49,19 +52,26 @@ export function MoreMenuScreen() {
 		}
 	};
 
+	// Serial-Position Effect:
+	//   anchor "Organization" at the top (most context-rich)
+	//   anchor "Log out" at the bottom (most consequential)
+	//   keep secondary General actions in the middle.
 	return (
 		<ScrollView
 			className="flex-1 bg-background"
 			contentContainerStyle={{ paddingTop: insets.top + 16 }}
 		>
 			<View className="px-4 gap-6">
-				{/* Org section */}
+				{/* Org section (TOP anchor) */}
 				<View className="gap-2">
 					<Text className="text-xs font-medium text-muted-foreground uppercase px-2">
 						Organization
 					</Text>
 					<View className="rounded-xl bg-card">
-						<View className="flex-row items-center gap-3 px-4 py-3">
+						<View
+							className="flex-row items-center gap-3 px-4 py-3"
+							style={{ minHeight: ROW_MIN_HEIGHT }}
+						>
 							<Avatar
 								alt={activeOrg?.name ?? "Organization"}
 								className="size-9"
@@ -85,7 +95,10 @@ export function MoreMenuScreen() {
 										key={org.id}
 										onPress={() => handleSwitchOrg(org.id)}
 										disabled={switching}
-										className="flex-row items-center gap-3 px-4 py-3"
+										className="flex-row items-center gap-3 px-4 py-3 active:opacity-70"
+										style={{ minHeight: ROW_MIN_HEIGHT }}
+										accessibilityRole="button"
+										accessibilityLabel={`Switch to ${org.name}`}
 									>
 										<Icon
 											as={ArrowLeftRight}
@@ -101,7 +114,7 @@ export function MoreMenuScreen() {
 					</View>
 				</View>
 
-				{/* Menu items */}
+				{/* General section (MIDDLE — de-emphasised by Serial Position) */}
 				<View className="gap-2">
 					<Text className="text-xs font-medium text-muted-foreground uppercase px-2">
 						General
@@ -109,7 +122,10 @@ export function MoreMenuScreen() {
 					<View className="rounded-xl bg-card">
 						<Pressable
 							onPress={() => router.push("/(authenticated)/(more)/settings")}
-							className="flex-row items-center gap-3 px-4 py-3"
+							className="flex-row items-center gap-3 px-4 py-3 active:opacity-70"
+							style={{ minHeight: ROW_MIN_HEIGHT }}
+							accessibilityRole="button"
+							accessibilityLabel="Settings"
 						>
 							<Icon as={Settings} className="text-foreground size-5" />
 							<Text className="text-base flex-1">Settings</Text>
@@ -121,12 +137,15 @@ export function MoreMenuScreen() {
 					</View>
 				</View>
 
-				{/* Sign out */}
+				{/* Sign out (BOTTOM anchor — terminal action) */}
 				<View className="gap-2">
 					<View className="rounded-xl bg-card">
 						<Pressable
 							onPress={signOut}
-							className="flex-row items-center gap-3 px-4 py-3"
+							className="flex-row items-center gap-3 px-4 py-3 active:opacity-70"
+							style={{ minHeight: ROW_MIN_HEIGHT }}
+							accessibilityRole="button"
+							accessibilityLabel="Log out"
 						>
 							<Icon as={LogOut} className="text-destructive size-5" />
 							<Text className="text-base text-destructive">Log out</Text>
