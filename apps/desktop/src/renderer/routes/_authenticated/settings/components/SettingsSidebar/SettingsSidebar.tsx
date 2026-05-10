@@ -1,5 +1,6 @@
 import { COMPANY } from "@superset/shared/constants";
 import { Link } from "@tanstack/react-router";
+import { useTranslation } from "react-i18next";
 import {
 	HiArrowLeft,
 	HiArrowTopRightOnSquare,
@@ -16,6 +17,7 @@ import { getVisibleMatchCountBySection } from "../../utils/settings-search";
 import { GeneralSettings } from "./GeneralSettings";
 
 export function SettingsSidebar() {
+	const { t } = useTranslation();
 	const searchQuery = useSettingsSearchQuery();
 	const setSearchQuery = useSetSettingsSearchQuery();
 	const originRoute = useSettingsOriginRoute();
@@ -33,18 +35,20 @@ export function SettingsSidebar() {
 				className="flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-4"
 			>
 				<HiArrowLeft className="h-4 w-4" />
-				<span>Back</span>
+				<span>{t("settings.sidebar.back")}</span>
 			</Link>
 
 			{/* Settings title */}
-			<h1 className="text-lg font-semibold px-3 mb-4">Settings</h1>
+			<h1 className="text-lg font-semibold px-3 mb-4">
+				{t("settings.sidebar.title")}
+			</h1>
 
 			{/* Search input */}
 			<div className="relative px-1 mb-4">
 				<HiMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
 				<input
 					type="text"
-					placeholder="Search settings..."
+					placeholder={t("settings.sidebar.searchPlaceholder")}
 					value={searchQuery}
 					onChange={(e) => setSearchQuery(e.target.value)}
 					className="w-full h-8 pl-8 pr-8 text-sm bg-accent/50 rounded-md border-0 outline-none focus:ring-1 focus:ring-ring placeholder:text-muted-foreground"
@@ -72,7 +76,7 @@ export function SettingsSidebar() {
 					className="flex items-center gap-2 px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
 				>
 					<HiArrowTopRightOnSquare className="h-4 w-4" />
-					<span>Documentation</span>
+					<span>{t("settings.sidebar.documentation")}</span>
 				</a>
 			</div>
 		</div>
