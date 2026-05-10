@@ -337,6 +337,13 @@
       "when": 1778189803548,
       "tag": "0047_backfill_slack_model_preferences",
       "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "7",
+      "when": 1778450275874,
+      "tag": "0048_integration_connections_active_unique",
+      "breakpoints": true
     }
   ]
 }

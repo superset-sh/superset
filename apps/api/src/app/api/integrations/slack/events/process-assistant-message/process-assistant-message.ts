@@ -4,7 +4,7 @@ import {
 	subscriptions,
 	usersSlackUsers,
 } from "@superset/db/schema";
-import { and, eq } from "drizzle-orm";
+import { and, desc, eq, isNull } from "drizzle-orm";
 import { posthog } from "@/lib/analytics";
 import { generateConnectUrl } from "../utils/generate-connect-url";
 import {
@@ -63,7 +63,9 @@ export async function processAssistantMessage({
 		where: and(
 			eq(integrationConnections.provider, "slack"),
 			eq(integrationConnections.externalOrgId, teamId),
+			isNull(integrationConnections.disconnectedAt),
 		),
+		orderBy: desc(integrationConnections.updatedAt),
 	});
 
 	if (!connection) {
