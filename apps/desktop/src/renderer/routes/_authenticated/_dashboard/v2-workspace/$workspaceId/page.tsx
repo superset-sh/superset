@@ -75,8 +75,10 @@ function V2WorkspacePage() {
 	const workspaceStatusQuery = workspaceTrpc.workspace.get.useQuery(
 		{ id: workspace.id },
 		{
-			refetchOnWindowFocus: true,
+			refetchOnMount: "always",
+			refetchOnWindowFocus: "always",
 			retry: false,
+			staleTime: 0,
 		},
 	);
 
@@ -95,7 +97,7 @@ function V2WorkspacePage() {
 		);
 	}
 
-	return <V2WorkspaceContent />;
+	return <V2WorkspaceContent key={workspace.id} />;
 }
 
 function V2WorkspaceContent() {
