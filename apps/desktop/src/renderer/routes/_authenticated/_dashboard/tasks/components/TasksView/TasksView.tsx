@@ -34,6 +34,13 @@ export function TasksView({
 	const typeTab = initialType ?? "tasks";
 	const projectFilter = initialProject ?? null;
 
+	// Capture the persisted project at mount so the URL→store sync below
+	// (which clears it when the URL has no `project=`) can't overwrite it
+	// before the auto-navigate effect gets a chance to consult it.
+	const persistedProjectFilterRef = useRef(
+		useTasksFilterStore.getState().projectFilter,
+	);
+
 	const {
 		setTab: storeSetTab,
 		setAssignee: storeSetAssignee,
@@ -140,11 +147,15 @@ export function TasksView({
 
 	useEffect(() => {
 		if (projectFilter) return;
-		const firstProject = v2Projects?.[0];
-		if (!firstProject) return;
+		if (!v2Projects?.length) return;
+		const persistedId = persistedProjectFilterRef.current;
+		const persistedExists =
+			persistedId !== null && v2Projects.some((p) => p.id === persistedId);
+		const fallbackProjectId = persistedExists ? persistedId : v2Projects[0]?.id;
+		if (!fallbackProjectId) return;
 		navigate({
 			to: "/tasks",
-			search: buildSearch({ project: firstProject.id }),
+			search: buildSearch({ project: fallbackProjectId }),
 			replace: true,
 		});
 	}, [projectFilter, v2Projects, navigate, buildSearch]);
