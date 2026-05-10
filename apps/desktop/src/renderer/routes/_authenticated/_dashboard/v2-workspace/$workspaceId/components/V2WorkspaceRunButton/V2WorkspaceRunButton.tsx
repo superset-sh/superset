@@ -69,14 +69,14 @@ export function V2WorkspaceRunButton({
 				}}
 				disabled={isPending}
 				className={cn(
-					"group flex h-6 items-center gap-1.5 rounded-l border border-r-0 border-border/60 bg-secondary/50 px-2 text-xs font-medium transition-colors",
-					"hover:bg-secondary hover:border-border focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+					"group flex h-6 items-center gap-1.5 rounded-l-md border border-r-0 border-border/50 bg-transparent px-2 text-xs font-medium text-foreground transition-colors",
+					"hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
 					isPending && "pointer-events-none opacity-50",
 					isRunning
-						? "border-emerald-500/25 bg-emerald-500/10 text-emerald-300"
+						? "border-emerald-500/30 bg-emerald-500/[0.08] text-emerald-400 hover:bg-emerald-500/[0.12]"
 						: hasRunCommand
 							? "text-foreground"
-							: "border-border/40 bg-secondary/40 text-muted-foreground/80",
+							: "text-muted-foreground/80 hover:text-foreground",
 				)}
 				aria-label={
 					isRunning
@@ -86,10 +86,10 @@ export function V2WorkspaceRunButton({
 							: "Configure workspace run command"
 				}
 			>
-				<Icon className="size-3.5 shrink-0" />
+				<Icon className="size-3 shrink-0" />
 				<span>{label}</span>
 				{hotkeyText && hotkeyText !== "Unassigned" && (
-					<span className="hidden text-[10px] text-muted-foreground/60 sm:inline">
+					<span className="hidden text-[10px] tracking-wide text-muted-foreground/60 sm:inline">
 						{hotkeyText}
 					</span>
 				)}
@@ -101,15 +101,15 @@ export function V2WorkspaceRunButton({
 						type="button"
 						disabled={isPending}
 						className={cn(
-							"flex size-6 items-center justify-center rounded-r border border-border/60 bg-secondary/50 text-muted-foreground transition-colors",
-							"hover:bg-secondary hover:border-border hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+							"flex size-6 items-center justify-center rounded-r-md border border-border/50 bg-transparent text-muted-foreground transition-colors",
+							"hover:bg-muted/60 hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
 							isPending && "pointer-events-none opacity-50",
 							isRunning &&
-								"border-emerald-500/25 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20",
+								"border-emerald-500/30 bg-emerald-500/[0.08] text-emerald-400 hover:bg-emerald-500/[0.12]",
 						)}
 						aria-label="Workspace run options"
 					>
-						<ChevronDown className="size-3.5" />
+						<ChevronDown className="size-3" />
 					</button>
 				</DropdownMenuTrigger>
 				<DropdownMenuContent align="start" className="w-44">

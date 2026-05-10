@@ -228,7 +228,7 @@ function V2WorkspacePage() {
 									executePreset={executePreset}
 									showPresetsBar={showPresetsBar}
 									onToggleShowPresetsBar={setShowPresetsBar}
-									leading={workspaceRunButton}
+									trailing={workspaceRunButton}
 								/>
 							) : (
 								<div className="flex h-8 min-w-0 shrink-0 items-center border-b border-border bg-background px-2">

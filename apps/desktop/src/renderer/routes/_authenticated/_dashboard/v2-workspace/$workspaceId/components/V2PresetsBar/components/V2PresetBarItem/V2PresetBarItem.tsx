@@ -92,14 +92,14 @@ export function V2PresetBarItem({
 							<Button
 								variant="ghost"
 								size="sm"
-								className="h-6 max-w-36 min-w-0 shrink-0 gap-1.5 px-2 text-xs"
+								className="h-6 max-w-32 min-w-0 shrink-0 gap-1.5 rounded-md px-1.5 text-xs font-normal text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
 								onClick={() => onExecutePreset(preset)}
 							>
 								{icon ? (
 									<img
 										src={icon}
 										alt=""
-										className="size-3.5 shrink-0 object-contain"
+										className="size-3.5 shrink-0 object-contain opacity-90"
 									/>
 								) : (
 									<HiMiniCommandLine className="size-3.5 shrink-0" />

@@ -33,7 +33,7 @@ interface V2PresetsBarProps {
 	executePreset: (preset: V2TerminalPresetRow) => void | Promise<void>;
 	showPresetsBar: boolean;
 	onToggleShowPresetsBar: (enabled: boolean) => void;
-	leading?: ReactNode;
+	trailing?: ReactNode;
 }
 
 // Co-located to keep v2 self-contained. Mirrors the v1 array in
@@ -75,7 +75,7 @@ export function V2PresetsBar({
 	executePreset,
 	showPresetsBar,
 	onToggleShowPresetsBar,
-	leading,
+	trailing,
 }: V2PresetsBarProps) {
 	const navigate = useNavigate();
 	const isDark = useIsDarkTheme();
@@ -202,15 +202,18 @@ export function V2PresetsBar({
 
 	return (
 		<div
-			className="flex h-8 min-w-0 shrink-0 items-center gap-0.5 overflow-x-auto overflow-y-hidden border-b border-border bg-background px-2"
+			className="flex h-8 min-w-0 shrink-0 items-center gap-0.5 overflow-x-auto overflow-y-hidden border-b border-border/60 bg-background px-2"
 			style={{ scrollbarWidth: "none" }}
 		>
-			{leading ? <div className="mr-1 shrink-0">{leading}</div> : null}
 			<DropdownMenu>
 				<Tooltip>
 					<TooltipTrigger asChild>
 						<DropdownMenuTrigger asChild>
-							<Button variant="ghost" size="icon" className="size-6 shrink-0">
+							<Button
+								variant="ghost"
+								size="icon"
+								className="size-6 shrink-0 text-muted-foreground hover:text-foreground"
+							>
 								<Settings className="size-3.5" />
 							</Button>
 						</DropdownMenuTrigger>
@@ -278,6 +281,9 @@ export function V2PresetsBar({
 					</DropdownMenuItem>
 				</DropdownMenuContent>
 			</DropdownMenu>
+			{visiblePresets.length > 0 ? (
+				<div className="mx-1 h-3.5 w-px shrink-0 bg-border/60" />
+			) : null}
 			{visiblePresets.map(({ preset }, visibleIndex) => {
 				const hotkeyId = PRESET_HOTKEY_IDS[visibleIndex];
 				return (
@@ -295,6 +301,9 @@ export function V2PresetsBar({
 					/>
 				);
 			})}
+			{trailing ? (
+				<div className="ml-auto shrink-0 pl-1">{trailing}</div>
+			) : null}
 		</div>
 	);
 }
