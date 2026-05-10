@@ -22,6 +22,9 @@ _superset_debug() {
 
 _superset_cleanup_session_watcher() {
   if [ -n "$SUPERSET_CODEX_SESSION_WATCHER_PID" ]; then
+    if command -v pkill >/dev/null 2>&1; then
+      pkill -TERM -P "$SUPERSET_CODEX_SESSION_WATCHER_PID" >/dev/null 2>&1 || true
+    fi
     kill "$SUPERSET_CODEX_SESSION_WATCHER_PID" >/dev/null 2>&1 || true
     wait "$SUPERSET_CODEX_SESSION_WATCHER_PID" 2>/dev/null || true
     _superset_debug "session watcher stopped pid=$SUPERSET_CODEX_SESSION_WATCHER_PID"
@@ -70,7 +73,7 @@ if [ "$_superset_has_superset_context" = "1" ] && [ -f "$_superset_notify_path" 
         *'_approval_request"'*) _superset_emit_event "PermissionRequest" ;;
       esac
     done
-  ) &
+  ) 2>/dev/null &
   SUPERSET_CODEX_SESSION_WATCHER_PID=$!
   _superset_debug "session watcher pid=$SUPERSET_CODEX_SESSION_WATCHER_PID"
 else
