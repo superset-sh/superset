@@ -17,6 +17,7 @@ const createSessionInputSchema = z.object({
 	workspaceId: z.string(),
 	terminalId: z.string().optional(),
 	initialCommand: z.string().trim().min(1).optional(),
+	cwd: z.string().optional(),
 	themeType: z.string().optional(),
 	cols: z.number().int().positive().optional(),
 	rows: z.number().int().positive().optional(),
@@ -37,6 +38,7 @@ async function createTerminalSessionFromInput({
 		db: ctx.db,
 		eventBus: ctx.eventBus,
 		initialCommand: input.initialCommand,
+		cwd: input.cwd,
 		cols: input.cols,
 		rows: input.rows,
 	});

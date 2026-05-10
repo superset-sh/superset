@@ -142,6 +142,7 @@ export const configRouter = router({
 				source: "project-config" as const,
 				projectId: project.id,
 				commands,
+				...(config?.cwd?.trim() && { cwd: config.cwd.trim() }),
 			};
 		}),
 });

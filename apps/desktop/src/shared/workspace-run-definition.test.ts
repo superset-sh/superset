@@ -47,6 +47,22 @@ describe("selectWorkspaceRunDefinition", () => {
 		});
 	});
 
+	it("preserves config cwd", () => {
+		const definition = selectWorkspaceRunDefinition({
+			projectId: "project-a",
+			configRunCommands: ["bun dev"],
+			configCwd: "apps/web",
+			presets: [],
+		});
+
+		expect(definition).toEqual({
+			source: "project-config",
+			projectId: "project-a",
+			commands: ["bun dev"],
+			cwd: "apps/web",
+		});
+	});
+
 	it("falls back to a global workspace-run preset when config is empty", () => {
 		const definition = selectWorkspaceRunDefinition({
 			projectId: "project-a",

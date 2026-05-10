@@ -1,4 +1,5 @@
 import { existsSync } from "node:fs";
+import { isAbsolute, join } from "node:path";
 import { StringDecoder } from "node:string_decoder";
 import type { NodeWebSocket } from "@hono/node-ws";
 import {
@@ -632,6 +633,7 @@ interface CreateTerminalSessionOptions {
 	eventBus?: EventBus;
 	/** Command to run after the shell is ready. Queued behind shellReadyPromise. */
 	initialCommand?: string;
+	cwd?: string;
 	/** Hidden sessions are process-internal and should not appear in user pickers. */
 	listed?: boolean;
 	cols?: number;
@@ -647,6 +649,22 @@ interface CreateTerminalSessionOptions {
 	replayOnAdoption?: boolean;
 }
 
+function resolveTerminalCwd(
+	cwdOverride: string | undefined,
+	worktreePath: string,
+): string {
+	if (!cwdOverride) return worktreePath;
+	if (isAbsolute(cwdOverride)) {
+		return existsSync(cwdOverride) ? cwdOverride : worktreePath;
+	}
+
+	const relativePath = cwdOverride.startsWith("./")
+		? cwdOverride.slice(2)
+		: cwdOverride;
+	const resolvedPath = join(worktreePath, relativePath);
+	return existsSync(resolvedPath) ? resolvedPath : worktreePath;
+}
+
 export async function createTerminalSessionInternal({
 	terminalId,
 	workspaceId,
@@ -654,6 +672,7 @@ export async function createTerminalSessionInternal({
 	db,
 	eventBus,
 	initialCommand,
+	cwd: cwdOverride,
 	listed = true,
 	cols: requestedCols,
 	rows: requestedRows,
@@ -684,7 +703,7 @@ export async function createTerminalSessionInternal({
 		rootPath = project.repoPath;
 	}
 
-	const cwd = workspace.worktreePath;
+	const cwd = resolveTerminalCwd(cwdOverride, workspace.worktreePath);
 	const cols = normalizeTerminalDimension(
 		requestedCols,
 		MIN_TERMINAL_COLS,
@@ -942,6 +961,7 @@ export function registerWorkspaceTerminalRoute({
 			workspaceId: string;
 			themeType?: string;
 			initialCommand?: string;
+			cwd?: string;
 			cols?: number;
 			rows?: number;
 		}>();
@@ -957,6 +977,7 @@ export function registerWorkspaceTerminalRoute({
 			db,
 			eventBus,
 			initialCommand: body.initialCommand,
+			cwd: body.cwd,
 			cols: body.cols,
 			rows: body.rows,
 		});

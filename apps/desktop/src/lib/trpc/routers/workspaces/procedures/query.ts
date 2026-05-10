@@ -76,6 +76,7 @@ function getWorkspaceRunDefinition(workspaceId: string) {
 	return selectWorkspaceRunDefinition({
 		presets: getTerminalPresetsForWorkspaceRun(),
 		configRunCommands: config?.run,
+		configCwd: config?.cwd,
 		projectId: project.id,
 	});
 }

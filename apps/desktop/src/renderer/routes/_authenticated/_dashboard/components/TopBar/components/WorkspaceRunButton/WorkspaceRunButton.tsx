@@ -73,7 +73,6 @@ export const WorkspaceRunButton = memo(function WorkspaceRunButton({
 	]);
 
 	const handleConfigureClick = useCallback(() => {
-		if (!projectId) return;
 		if (runDefinition?.source === "terminal-preset") {
 			void navigate({
 				to: "/settings/terminal",
@@ -81,6 +80,7 @@ export const WorkspaceRunButton = memo(function WorkspaceRunButton({
 			});
 			return;
 		}
+		if (!projectId) return;
 		setSettingsSearchQuery("scripts");
 		void navigate({
 			to: "/settings/projects/$projectId",

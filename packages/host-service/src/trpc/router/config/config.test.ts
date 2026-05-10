@@ -299,5 +299,25 @@ describe("configRouter", () => {
 				commands: ["bun dev"],
 			});
 		});
+
+		it("preserves cwd from resolved config", async () => {
+			const caller = createCaller(sandbox.repoPath);
+			const dir = join(sandbox.repoPath, ".superset");
+			mkdirSync(dir, { recursive: true });
+			writeFileSync(
+				join(dir, "config.json"),
+				JSON.stringify({ run: ["bun dev"], cwd: "apps/web" }),
+				"utf-8",
+			);
+
+			expect(
+				await caller.getWorkspaceRunDefinition({ projectId: PROJECT_ID }),
+			).toEqual({
+				source: "project-config",
+				projectId: PROJECT_ID,
+				commands: ["bun dev"],
+				cwd: "apps/web",
+			});
+		});
 	});
 });
