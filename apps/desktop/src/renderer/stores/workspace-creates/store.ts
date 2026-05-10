@@ -30,6 +30,20 @@ interface WorkspaceCreatesState {
 	remove: (workspaceId: string) => void;
 }
 
+/**
+ * Sidebar status badge derived from an in-flight entry. Returns `undefined`
+ * once `cloudRow` is set — at that point the server has confirmed the
+ * workspace and the sidebar should drop the "creating" indicator while we
+ * wait for Electric to deliver the synced row (see issue #4387).
+ */
+export function getInFlightSidebarStatus(
+	entry: InFlightEntry,
+): "creating" | "failed" | undefined {
+	if (entry.state === "error") return "failed";
+	if (entry.cloudRow) return undefined;
+	return "creating";
+}
+
 export const useWorkspaceCreatesStore = create<WorkspaceCreatesState>(
 	(set) => ({
 		entries: [],

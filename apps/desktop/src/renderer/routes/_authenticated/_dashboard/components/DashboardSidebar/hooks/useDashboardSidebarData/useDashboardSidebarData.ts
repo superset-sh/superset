@@ -8,7 +8,10 @@ import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/u
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { getVisibleSidebarWorkspaces } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
-import { useWorkspaceCreatesStore } from "renderer/stores/workspace-creates";
+import {
+	getInFlightSidebarStatus,
+	useWorkspaceCreatesStore,
+} from "renderer/stores/workspace-creates";
 import type {
 	DashboardSidebarProject,
 	DashboardSidebarProjectChild,
@@ -146,10 +149,7 @@ export function useDashboardSidebarData() {
 					name: entry.snapshot.name ?? "New workspace",
 					branchName:
 						entry.snapshot.branch ?? entry.snapshot.name ?? "New workspace",
-					status:
-						entry.state === "creating"
-							? ("creating" as const)
-							: ("failed" as const),
+					status: getInFlightSidebarStatus(entry),
 				})),
 		[inFlightEntries],
 	);
