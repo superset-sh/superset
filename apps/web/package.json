@@ -24,6 +24,8 @@
 		"@trpc/server": "^11.7.1",
 		"@trpc/tanstack-react-query": "^11.7.1",
 		"@uiw/react-md-editor": "^4.0.11",
+		"@xterm/addon-fit": "^0.10.0",
+		"@xterm/xterm": "^5.5.0",
 		"better-auth": "1.6.5",
 		"framer-motion": "^12.23.26",
 		"geist": "^1.7.0",

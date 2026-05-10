@@ -119,6 +119,10 @@
 		"./rrule": {
 			"types": "./src/rrule.ts",
 			"default": "./src/rrule.ts"
+		},
+		"./remote-control-protocol": {
+			"types": "./src/remote-control-protocol.ts",
+			"default": "./src/remote-control-protocol.ts"
 		}
 	},
 	"scripts": {

@@ -175,8 +175,24 @@ app.get("/hosts/:hostId/_whoowns", async (c) => {
 });
 
 // ── Host proxy (auth required) ──────────────────────────────────────
+//
+// Remote-control viewer WebSockets (`/hosts/:hostId/remote-control/*`)
+// authenticate via a per-session HMAC `remoteControlToken` query param
+// that is verified by the host-service, not by us. Skip the user-JWT
+// gate for those paths only — the HMAC is the credential the cloud
+// hands to viewers, who may not have a Superset user JWT in the URL.
 
-app.use("/hosts/:hostId/*", authMiddleware);
+app.use("/hosts/:hostId/*", async (c, next) => {
+	const path = new URL(c.req.url).pathname;
+	const hostId = c.req.param("hostId") ?? "";
+	const prefix = `/hosts/${hostId}`;
+	const rest = path.slice(prefix.length);
+	if (rest.startsWith("/remote-control/")) {
+		c.set("hostId", hostId);
+		return next();
+	}
+	return authMiddleware(c, next);
+});
 
 app.all("/hosts/:hostId/trpc/*", async (c) => {
 	const hostId = c.get("hostId");

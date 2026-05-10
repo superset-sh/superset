@@ -1,6 +1,7 @@
 import { existsSync } from "node:fs";
 import { StringDecoder } from "node:string_decoder";
 import type { NodeWebSocket } from "@hono/node-ws";
+import { REMOTE_CONTROL_TAIL_BYTES } from "@superset/shared/remote-control-protocol";
 import {
 	createScanState,
 	SHELLS_WITH_READY_MARKER,
@@ -29,6 +30,7 @@ import {
 	getTerminalBaseEnv,
 	resolveLaunchShell,
 } from "./env.ts";
+import { revokeSessionsForTerminal } from "./remote-control/session-manager.ts";
 import { listTerminalResourceSessions } from "./resource-sessions.ts";
 import {
 	createModeTracker,
@@ -198,10 +200,42 @@ const SHELL_READY_TIMEOUT_MS = 15_000;
  */
 type ShellReadyState = "pending" | "ready" | "timed_out" | "unsupported";
 
+export interface TerminalViewerListener {
+	onData(bytes: Uint8Array, sequence: number): void;
+	onTitle(title: string | null): void;
+	onResize(cols: number, rows: number): void;
+	onExit(exitCode: number, signal: number): void;
+}
+
+export interface TerminalViewerSnapshot {
+	tail: Uint8Array;
+	outputSequence: number;
+	cols: number;
+	rows: number;
+	title: string | null;
+	exited: boolean;
+	exitCode?: number;
+	signal?: number;
+}
+
+export interface TerminalViewerHandle {
+	detach(): void;
+	sendInput(bytes: Uint8Array): void;
+	resize(cols: number, rows: number): void;
+	runCommand(command: string): void;
+	getSnapshot(): TerminalViewerSnapshot;
+}
+
 interface TerminalSession {
 	terminalId: string;
 	workspaceId: string;
 	pty: DaemonPty;
+	cols: number;
+	rows: number;
+	outputSequence: number;
+	tailRing: Uint8Array[];
+	tailRingBytes: number;
+	viewers: Set<TerminalViewerListener>;
 	/** Unsubscribe from the daemon's output/exit stream when disposed. */
 	unsubscribeDaemon: (() => void) | null;
 	sockets: Set<TerminalSocket>;
@@ -397,6 +431,169 @@ function setSessionTitle(session: TerminalSession, title: string | null) {
 	if (session.title === title) return;
 	session.title = title;
 	broadcastMessage(session, { type: "title", title });
+	notifyViewersTitle(session, title);
+}
+
+function pushToTailRing(session: TerminalSession, bytes: Uint8Array) {
+	const copy = new Uint8Array(bytes);
+	session.tailRing.push(copy);
+	session.tailRingBytes += copy.byteLength;
+	while (
+		session.tailRingBytes > REMOTE_CONTROL_TAIL_BYTES &&
+		session.tailRing.length > 0
+	) {
+		const removed = session.tailRing.shift();
+		if (removed) session.tailRingBytes -= removed.byteLength;
+	}
+}
+
+function tailRingSnapshot(session: TerminalSession): Uint8Array {
+	if (session.tailRing.length === 0) return new Uint8Array(0);
+	const out = new Uint8Array(session.tailRingBytes);
+	let off = 0;
+	for (const chunk of session.tailRing) {
+		out.set(chunk, off);
+		off += chunk.byteLength;
+	}
+	return out;
+}
+
+function notifyViewersData(
+	session: TerminalSession,
+	bytes: Uint8Array,
+	sequence: number,
+) {
+	for (const v of session.viewers) {
+		try {
+			v.onData(bytes, sequence);
+		} catch (err) {
+			console.warn("[terminal] viewer onData threw:", err);
+		}
+	}
+}
+
+function notifyViewersTitle(session: TerminalSession, title: string | null) {
+	for (const v of session.viewers) {
+		try {
+			v.onTitle(title);
+		} catch (err) {
+			console.warn("[terminal] viewer onTitle threw:", err);
+		}
+	}
+}
+
+function notifyViewersResize(
+	session: TerminalSession,
+	cols: number,
+	rows: number,
+) {
+	for (const v of session.viewers) {
+		try {
+			v.onResize(cols, rows);
+		} catch (err) {
+			console.warn("[terminal] viewer onResize threw:", err);
+		}
+	}
+}
+
+function notifyViewersExit(
+	session: TerminalSession,
+	exitCode: number,
+	signal: number,
+) {
+	for (const v of session.viewers) {
+		try {
+			v.onExit(exitCode, signal);
+		} catch (err) {
+			console.warn("[terminal] viewer onExit threw:", err);
+		}
+	}
+}
+
+export function terminalSessionExists(
+	terminalId: string,
+	workspaceId?: string,
+): boolean {
+	const session = sessions.get(terminalId);
+	if (!session) return false;
+	if (workspaceId !== undefined && session.workspaceId !== workspaceId) {
+		return false;
+	}
+	return !session.exited;
+}
+
+export interface AttachTerminalViewerOptions {
+	terminalId: string;
+	workspaceId: string;
+	listener: TerminalViewerListener;
+}
+
+export function attachTerminalViewer(
+	options: AttachTerminalViewerOptions,
+): TerminalViewerHandle | null {
+	const session = sessions.get(options.terminalId);
+	if (!session) return null;
+	if (session.workspaceId !== options.workspaceId) return null;
+
+	session.viewers.add(options.listener);
+
+	let detached = false;
+
+	const handle: TerminalViewerHandle = {
+		detach() {
+			if (detached) return;
+			detached = true;
+			session.viewers.delete(options.listener);
+		},
+		sendInput(bytes) {
+			if (detached || session.exited) return;
+			// pty.write expects a string; existing /terminal/:id path also passes
+			// strings here. We round-trip through latin1 so 0x00–0xFF map 1:1
+			// without any UTF-8 normalization that would corrupt control bytes.
+			const buf = Buffer.from(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+			session.pty.write(buf.toString("latin1"));
+		},
+		resize(cols, rows) {
+			if (detached || session.exited) return;
+			const c = normalizeTerminalDimension(
+				cols,
+				MIN_TERMINAL_COLS,
+				DEFAULT_TERMINAL_COLS,
+			);
+			const r = normalizeTerminalDimension(
+				rows,
+				MIN_TERMINAL_ROWS,
+				DEFAULT_TERMINAL_ROWS,
+			);
+			session.pty.resize(c, r);
+			session.modeTracker.resize(c, r);
+			session.cols = c;
+			session.rows = r;
+			notifyViewersResize(session, c, r);
+		},
+		runCommand(command) {
+			if (detached || session.exited) return;
+			// FLAG: plan referenced enqueueTrackedCommand (command-records system),
+			// which is not present on this branch. Falling back to a raw write so
+			// the feature still works; revisit when command-records lands.
+			const cmd = command.endsWith("\n") ? command : `${command}\n`;
+			session.pty.write(cmd);
+		},
+		getSnapshot() {
+			return {
+				tail: tailRingSnapshot(session),
+				outputSequence: session.outputSequence,
+				cols: session.cols,
+				rows: session.rows,
+				title: session.title,
+				exited: session.exited,
+				exitCode: session.exited ? session.exitCode : undefined,
+				signal: session.exited ? session.exitSignal : undefined,
+			};
+		},
+	};
+
+	return handle;
 }
 
 function bufferOutput(session: TerminalSession, data: Uint8Array) {
@@ -528,6 +725,11 @@ export function disposeSession(terminalId: string, db: HostDb) {
 	const session = sessions.get(terminalId);
 
 	if (session) {
+		try {
+			revokeSessionsForTerminal(terminalId);
+		} catch (err) {
+			console.warn("[terminal] revokeSessionsForTerminal failed:", err);
+		}
 		if (session.shellReadyTimeoutId) {
 			clearTimeout(session.shellReadyTimeoutId);
 			session.shellReadyTimeoutId = null;
@@ -786,6 +988,12 @@ export async function createTerminalSessionInternal({
 		terminalId,
 		workspaceId,
 		pty,
+		cols,
+		rows,
+		outputSequence: 0,
+		tailRing: [],
+		tailRingBytes: 0,
+		viewers: new Set(),
 		unsubscribeDaemon: null,
 		sockets: new Set(),
 		buffer: [],
@@ -864,6 +1072,10 @@ export async function createTerminalSessionInternal({
 				// so this is the only path that catches startup mode escapes.
 				session.modeTracker.feed(bytes);
 
+				pushToTailRing(session, bytes);
+				session.outputSequence += 1;
+				notifyViewersData(session, bytes, session.outputSequence);
+
 				if (broadcastBytes(session, bytes) === 0) {
 					bufferOutput(session, bytes);
 				}
@@ -885,6 +1097,8 @@ export async function createTerminalSessionInternal({
 					exitCode: session.exitCode,
 					signal: session.exitSignal,
 				});
+
+				notifyViewersExit(session, session.exitCode, session.exitSignal);
 
 				eventBus?.broadcastTerminalLifecycle({
 					workspaceId,
@@ -1139,6 +1353,9 @@ export function registerWorkspaceTerminalRoute({
 						);
 						session.pty.resize(cols, rows);
 						session.modeTracker.resize(cols, rows);
+						session.cols = cols;
+						session.rows = rows;
+						notifyViewersResize(session, cols, rows);
 					}
 				},
 
