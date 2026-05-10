@@ -10,7 +10,7 @@ export function DashboardSidebarWorkspaceDiffStats({
 	isActive,
 }: DashboardSidebarWorkspaceDiffStatsProps) {
 	return (
-		<div className="flex h-5 w-fit shrink-0 items-center justify-self-end text-[10px] font-mono tabular-nums transition-[opacity,visibility] group-hover:opacity-0 group-hover:invisible">
+		<div className="flex h-5 w-fit shrink-0 items-center justify-self-end font-mono text-[10px] tabular-nums group-hover:hidden">
 			<div className="flex items-center gap-1.5 leading-none">
 				<span
 					className={isActive ? "text-emerald-500/90" : "text-muted-foreground"}

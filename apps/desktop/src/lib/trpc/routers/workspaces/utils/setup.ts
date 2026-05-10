@@ -53,6 +53,13 @@ function readConfigFile(configPath: string): SetupConfig | null {
 			throw new Error("'run' field must be an array of strings");
 		}
 
+		if (parsed.cwd !== undefined) {
+			if (typeof parsed.cwd !== "string" || parsed.cwd.trim().length === 0) {
+				throw new Error("'cwd' field must be a non-empty string");
+			}
+			parsed.cwd = parsed.cwd.trim();
+		}
+
 		return parsed;
 	} catch (error) {
 		console.error(
@@ -124,6 +131,7 @@ function mergeBaseConfigs(
 		setup: override.setup ?? base.setup,
 		teardown: override.teardown ?? base.teardown,
 		run: override.run ?? base.run,
+		cwd: override.cwd ?? base.cwd,
 	};
 }
 

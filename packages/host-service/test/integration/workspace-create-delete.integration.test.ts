@@ -130,6 +130,63 @@ describe("workspace.create + workspace.delete integration", () => {
 		expect(existsSync(externalToolPath)).toBe(true);
 	});
 
+	test("create() with explicit worktreePath reads the current branch from git when the UI branch label is stale", async () => {
+		const scenario = await createProjectScenario({
+			hostOptions: { apiOverrides: cloudFlows.workspaceCreateOk() },
+		});
+		dispose = scenario.dispose;
+
+		const staleBranch = "smoke-ui-stale-original";
+		const actualBranch = "smoke-ui-stale-actual";
+		const explicitPath = join(
+			scenario.repo.repoPath,
+			".worktrees",
+			"smoke-ui-stale-original",
+		);
+		await scenario.repo.git.raw([
+			"worktree",
+			"add",
+			"-b",
+			staleBranch,
+			explicitPath,
+		]);
+		await scenario.repo.git.raw([
+			"-C",
+			explicitPath,
+			"branch",
+			"-m",
+			actualBranch,
+		]);
+
+		const result = await scenario.host.trpc.workspaces.create.mutate({
+			projectId: scenario.projectId,
+			name: staleBranch,
+			branch: staleBranch,
+			worktreePath: explicitPath,
+		});
+
+		expect(result?.workspace?.branch).toBe(actualBranch);
+		const persisted = scenario.host.db
+			.select()
+			.from(workspaces)
+			.where(eq(workspaces.id, result?.workspace?.id ?? ""))
+			.get();
+		expect(persisted?.worktreePath).toBe(explicitPath);
+		expect(persisted?.branch).toBe(actualBranch);
+		expect(existsSync(explicitPath)).toBe(true);
+		const pushAutoSetupRemote = (
+			await scenario.repo.git.raw([
+				"-C",
+				explicitPath,
+				"config",
+				"--local",
+				"--get",
+				"push.autoSetupRemote",
+			])
+		).trim();
+		expect(pushAutoSetupRemote).toBe("true");
+	});
+
 	test("create() prunes a stale worktree (rm-ed dir) before adding a new one", async () => {
 		// Regress: when a worktree's directory was deleted without
 		// `git worktree remove`, git still lists it (prunable) and claims

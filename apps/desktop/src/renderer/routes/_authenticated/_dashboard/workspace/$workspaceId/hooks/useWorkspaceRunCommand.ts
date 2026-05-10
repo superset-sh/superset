@@ -35,11 +35,15 @@ export function useWorkspaceRunCommand({
 
 	// Derive run state from pane metadata (single source of truth)
 	const runPane = useTabsStore((s) => {
-		const pane = Object.values(s.panes).find(
+		const panes = Object.values(s.panes).filter(
 			(p) =>
 				p.type === "terminal" && p.workspaceRun?.workspaceId === workspaceId,
 		);
-		return pane ?? null;
+		return (
+			panes.find((pane) => pane.workspaceRun?.state === "running") ??
+			panes[0] ??
+			null
+		);
 	});
 
 	const isRunning = runPane?.workspaceRun?.state === "running";
@@ -114,59 +118,24 @@ export function useWorkspaceRunCommand({
 		try {
 			// START: always fetch the latest config so run-script detection never
 			// depends on stale cache state or on a query still loading in the view.
-			const runConfig =
-				await electronTrpcClient.workspaces.getResolvedRunCommands.query({
+			const runDefinition =
+				await electronTrpcClient.workspaces.getWorkspaceRunDefinition.query({
 					workspaceId,
 				});
-			const command = buildTerminalCommand(runConfig.commands);
+			const command = buildTerminalCommand(runDefinition?.commands);
 			if (!command) {
 				toast.error("No workspace run command configured", {
 					description:
-						"Add a run script in Project Settings to use the workspace run shortcut.",
+						"Add a run script in Project Settings or mark a preset as the workspace run.",
 				});
 				return;
 			}
 
-			const initialCwd = worktreePath?.trim() ? worktreePath : undefined;
+			const fallbackCwd = worktreePath?.trim() ? worktreePath : undefined;
+			const initialCwd = runDefinition?.cwd ?? fallbackCwd;
 
-			// Reuse existing run pane if available
-			if (runPane) {
-				const tabsState = useTabsStore.getState();
-				const tab = tabsState.tabs.find((t) => t.id === runPane.tabId);
-				if (tab) {
-					setActiveTab(workspaceId, tab.id);
-					setFocusedPane(tab.id, runPane.id);
-				}
-
-				setPaneWorkspaceRun(
-					runPane.id,
-					createWorkspaceRun({
-						workspaceId,
-						state: "running",
-						command,
-					}),
-				);
-
-				try {
-					await launchWorkspaceRunInPane({
-						paneId: runPane.id,
-						tabId: runPane.tabId,
-						command,
-						cwd: initialCwd,
-					});
-				} catch (error) {
-					setPaneWorkspaceRunState(runPane.id, "stopped-by-exit");
-					toast.error("Failed to run workspace command", {
-						description:
-							error instanceof Error ? error.message : "Unknown error",
-					});
-				}
-				return;
-			}
-
-			// Create new pane and persist the resolved command on the pane metadata
-			// before mount. Terminal lifecycle then sees the same click-time command
-			// snapshot that presets use, instead of waiting on a follow-up query.
+			// Always start in a fresh tab. Old run panes stay inspectable instead
+			// of having their terminal session swapped under the user.
 			const result = addTab(workspaceId, { initialCwd });
 			const { tabId, paneId } = result;
 

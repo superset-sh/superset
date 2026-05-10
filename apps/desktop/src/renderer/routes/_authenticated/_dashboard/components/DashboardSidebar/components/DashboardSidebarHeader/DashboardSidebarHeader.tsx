@@ -23,6 +23,7 @@ import { useFolderFirstImport } from "renderer/routes/_authenticated/_dashboard/
 import { NavigationControls } from "renderer/routes/_authenticated/_dashboard/components/NavigationControls";
 import { SidebarToggle } from "renderer/routes/_authenticated/_dashboard/components/SidebarToggle";
 import { OrganizationDropdown } from "renderer/routes/_authenticated/_dashboard/components/TopBar/components/OrganizationDropdown";
+import { ResourceConsumption } from "renderer/routes/_authenticated/_dashboard/components/TopBar/components/ResourceConsumption";
 import { useTasksFilterStore } from "renderer/routes/_authenticated/_dashboard/tasks/stores/tasks-filter-state";
 import { STROKE_WIDTH_THICK } from "renderer/screens/main/components/WorkspaceSidebar/constants";
 import { useOpenNewProjectModal } from "renderer/stores/add-repository-modal";
@@ -217,7 +218,8 @@ export function DashboardSidebarHeader({
 				style={{ paddingLeft: isMac ? "80px" : "8px" }}
 			>
 				<SidebarToggle />
-				<NavigationControls />
+				<NavigationControls showHistoryDropdown={false} />
+				<ResourceConsumption surface="v2" />
 			</div>
 			<OrganizationDropdown variant="expanded" />
 

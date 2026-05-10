@@ -7,13 +7,7 @@ import { alert } from "@superset/ui/atoms/Alert";
 import { toast } from "@superset/ui/sonner";
 import { cn } from "@superset/ui/utils";
 import { workspaceTrpc } from "@superset/workspace-client";
-import {
-	Circle,
-	GitCompareArrows,
-	Globe,
-	MessageSquare,
-	TerminalSquare,
-} from "lucide-react";
+import { Circle, GitCompareArrows, Globe, MessageSquare } from "lucide-react";
 import { useMemo } from "react";
 import {
 	LuArrowDownToLine,
@@ -27,6 +21,7 @@ import { getBaseName } from "renderer/lib/pathBasename";
 import { consumeTerminalBackgroundIntent } from "renderer/lib/terminal/terminal-background-intents";
 import { terminalRuntimeRegistry } from "renderer/lib/terminal/terminal-runtime-registry";
 import { useWorkspace } from "renderer/routes/_authenticated/_dashboard/v2-workspace/providers/WorkspaceProvider";
+import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { FileIcon } from "renderer/screens/main/components/WorkspaceView/RightSidebar/FilesView/utils";
 import {
 	clearV2TerminalRunStatus,
@@ -58,6 +53,7 @@ import { FilePane } from "./components/FilePane";
 import { FilePaneHeaderExtras } from "./components/FilePane/components/FilePaneHeaderExtras";
 import { TerminalPane } from "./components/TerminalPane";
 import { TerminalHeaderExtras } from "./components/TerminalPane/components/TerminalHeaderExtras";
+import { TerminalPaneIcon } from "./components/TerminalPane/components/TerminalPaneIcon";
 import { TerminalSessionDropdown } from "./components/TerminalPane/components/TerminalSessionDropdown";
 
 function getFileName(filePath: string): string {
@@ -114,6 +110,7 @@ export function usePaneRegistry({
 }: UsePaneRegistryOptions): PaneRegistry<PaneViewerData> {
 	const { workspace } = useWorkspace();
 	const workspaceId = workspace.id;
+	const collections = useCollections();
 	const clearShortcut = useHotkeyDisplay("CLEAR_TERMINAL").text;
 	const scrollToBottomShortcut = useHotkeyDisplay("SCROLL_TO_BOTTOM").text;
 	const workspaceTrpcUtils = workspaceTrpc.useUtils();
@@ -147,6 +144,16 @@ export function usePaneRegistry({
 				});
 			},
 		});
+	const clearWorkspaceRunTerminal = useMemo(
+		() => (terminalId: string) => {
+			if (!collections.v2WorkspaceLocalState.get(workspaceId)) return;
+			collections.v2WorkspaceLocalState.update(workspaceId, (draft) => {
+				if (!draft.workspaceRunTerminals?.[terminalId]) return;
+				delete draft.workspaceRunTerminals[terminalId];
+			});
+		},
+		[collections.v2WorkspaceLocalState, workspaceId],
+	);
 
 	return useMemo<PaneRegistry<PaneViewerData>>(
 		() => ({
@@ -241,7 +248,10 @@ export function usePaneRegistry({
 					),
 			},
 			terminal: {
-				getIcon: () => <TerminalSquare className="size-3.5" />,
+				getIcon: (ctx) => {
+					const { terminalId } = ctx.pane.data as TerminalPaneData;
+					return <TerminalPaneIcon terminalId={terminalId} />;
+				},
 				getTitle: () => "Terminal",
 				titleSource: (pane) => {
 					const { terminalId } = pane.data as TerminalPaneData;
@@ -266,6 +276,7 @@ export function usePaneRegistry({
 						return;
 					}
 					clearV2TerminalRunStatus(terminalId, workspaceId);
+					clearWorkspaceRunTerminal(terminalId);
 					terminalRuntimeRegistry.dispose(terminalId);
 					killTerminalSessionSilently({ terminalId, workspaceId });
 				},
@@ -484,6 +495,7 @@ export function usePaneRegistry({
 		}),
 		[
 			workspaceId,
+			clearWorkspaceRunTerminal,
 			clearShortcut,
 			scrollToBottomShortcut,
 			killTerminalSession,

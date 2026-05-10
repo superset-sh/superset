@@ -153,10 +153,9 @@ export function useDashboardSidebarPortsData(): {
 		() =>
 			groupDashboardSidebarPorts({
 				hostPortResults: queries.map((query) => query.data),
-				machineId,
 				workspaces,
 			}),
-		[queries, machineId, workspaces],
+		[queries, workspaces],
 	);
 
 	const totalPortCount = workspacePortGroups.reduce(
