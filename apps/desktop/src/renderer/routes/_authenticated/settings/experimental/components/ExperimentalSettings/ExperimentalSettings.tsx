@@ -72,10 +72,10 @@ export function ExperimentalSettings({
 					<div className="flex items-center justify-between gap-6">
 						<div className="min-w-0 flex-1 space-y-0.5">
 							<Label htmlFor="superset-v2" className="text-sm font-medium">
-								Try Superset v2
+								{t("settings.experimental.supersetV2.label")}
 							</Label>
 							<p className="text-xs text-muted-foreground">
-								Use the new workspace experience.
+								{t("settings.experimental.supersetV2.hint")}
 							</p>
 						</div>
 						<Switch
@@ -94,14 +94,15 @@ export function ExperimentalSettings({
 				{showV1Migration && (
 					<div className="flex items-center justify-between gap-6">
 						<div className="min-w-0 flex-1 space-y-0.5">
-							<Label className="text-sm font-medium">Import from v1</Label>
+							<Label className="text-sm font-medium">
+								{t("settings.experimental.v1Migration.label")}
+							</Label>
 							<p className="text-xs text-muted-foreground">
-								Bring v1 projects, workspaces, and terminal presets over to v2.
-								Each item is imported individually and can be retried.
+								{t("settings.experimental.v1Migration.hint")}
 							</p>
 							{!isV2CloudEnabled && (
 								<p className="text-xs text-muted-foreground">
-									Available when v2 is enabled.
+									{t("settings.experimental.v1Migration.availabilityHint")}
 								</p>
 							)}
 						</div>
@@ -113,20 +114,24 @@ export function ExperimentalSettings({
 							disabled={!isV2CloudEnabled}
 							className="shrink-0"
 						>
-							Open importer
+							{t("settings.experimental.v1Migration.openImporter")}
 						</Button>
 					</div>
 				)}
 				{showRestartOnboarding && (
 					<div className="flex items-center justify-between gap-6">
 						<div className="min-w-0 flex-1 space-y-0.5">
-							<Label className="text-sm font-medium">Restart onboarding</Label>
+							<Label className="text-sm font-medium">
+								{t("settings.experimental.restartOnboarding.label")}
+							</Label>
 							<p className="text-xs text-muted-foreground">
-								Walk through the v2 setup flow again from the beginning.
+								{t("settings.experimental.restartOnboarding.hint")}
 							</p>
 							{!isV2CloudEnabled && (
 								<p className="text-xs text-muted-foreground">
-									Available when v2 is enabled.
+									{t(
+										"settings.experimental.restartOnboarding.availabilityHint",
+									)}
 								</p>
 							)}
 						</div>
@@ -139,24 +144,26 @@ export function ExperimentalSettings({
 									disabled={!isV2CloudEnabled}
 									className="shrink-0"
 								>
-									Restart
+									{t("settings.experimental.restartOnboarding.button")}
 								</Button>
 							</AlertDialogTrigger>
 							<AlertDialogContent>
 								<AlertDialogHeader>
-									<AlertDialogTitle>Restart onboarding?</AlertDialogTitle>
+									<AlertDialogTitle>
+										{t("settings.experimental.restartOnboarding.dialogTitle")}
+									</AlertDialogTitle>
 									<AlertDialogDescription>
-										This clears your onboarding progress and reopens the setup
-										flow. You'll walk through each step again — for steps you're
-										already configured for (provider connected, project
-										attached), you'll see the current status with a Continue
-										button.
+										{t(
+											"settings.experimental.restartOnboarding.dialogDescription",
+										)}
 									</AlertDialogDescription>
 								</AlertDialogHeader>
 								<AlertDialogFooter>
-									<AlertDialogCancel>Cancel</AlertDialogCancel>
+									<AlertDialogCancel>
+										{t("settings.experimental.restartOnboarding.cancel")}
+									</AlertDialogCancel>
 									<AlertDialogAction onClick={handleRestartOnboarding}>
-										Restart
+										{t("settings.experimental.restartOnboarding.confirm")}
 									</AlertDialogAction>
 								</AlertDialogFooter>
 							</AlertDialogContent>

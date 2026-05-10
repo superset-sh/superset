@@ -16,13 +16,24 @@ interface PermissionsSettingsProps {
 }
 
 function StatusBadge({ granted }: { granted: boolean | undefined }) {
+	const { t } = useTranslation();
 	if (granted === true) {
-		return <Badge variant="secondary">Granted</Badge>;
+		return (
+			<Badge variant="secondary">
+				{t("settings.permissions.status.granted")}
+			</Badge>
+		);
 	}
 	if (granted === false) {
-		return <Badge variant="outline">Not granted</Badge>;
+		return (
+			<Badge variant="outline">
+				{t("settings.permissions.status.notGranted")}
+			</Badge>
+		);
 	}
-	return <Badge variant="outline">Unknown</Badge>;
+	return (
+		<Badge variant="outline">{t("settings.permissions.status.unknown")}</Badge>
+	);
 }
 
 function PermissionRow({
@@ -36,6 +47,7 @@ function PermissionRow({
 	granted: boolean | undefined;
 	onRequest: () => void;
 }) {
+	const { t } = useTranslation();
 	return (
 		<div className="flex items-center justify-between gap-6">
 			<div className="min-w-0 flex-1 space-y-0.5">
@@ -46,7 +58,7 @@ function PermissionRow({
 				<StatusBadge granted={granted} />
 				<Button variant="outline" size="sm" onClick={onRequest}>
 					<LuExternalLink className="h-3.5 w-3.5 mr-1.5" />
-					Open settings
+					{t("settings.permissions.openSettings")}
 				</Button>
 			</div>
 		</div>
@@ -113,8 +125,10 @@ export function PermissionsSettings({
 							visibleItems,
 						) && (
 							<PermissionRow
-								label="Full Disk Access"
-								description="Persistent access to Documents, Downloads, Desktop, and iCloud."
+								label={t("settings.permissions.items.fullDiskAccess.label")}
+								description={t(
+									"settings.permissions.items.fullDiskAccess.description",
+								)}
 								granted={status?.fullDiskAccess}
 								onRequest={() => requestFDA.mutate()}
 							/>
@@ -125,8 +139,10 @@ export function PermissionsSettings({
 							visibleItems,
 						) && (
 							<PermissionRow
-								label="Accessibility"
-								description="Send keystrokes, manage windows, and control other applications."
+								label={t("settings.permissions.items.accessibility.label")}
+								description={t(
+									"settings.permissions.items.accessibility.description",
+								)}
 								granted={status?.accessibility}
 								onRequest={() => requestA11y.mutate()}
 							/>
@@ -137,8 +153,10 @@ export function PermissionsSettings({
 							visibleItems,
 						) && (
 							<PermissionRow
-								label="Microphone"
-								description="Use voice transcription and push-to-talk features."
+								label={t("settings.permissions.items.microphone.label")}
+								description={t(
+									"settings.permissions.items.microphone.description",
+								)}
 								granted={status?.microphone}
 								onRequest={() => requestMicrophone.mutate()}
 							/>
@@ -149,8 +167,10 @@ export function PermissionsSettings({
 							visibleItems,
 						) && (
 							<PermissionRow
-								label="Automation"
-								description="Run terminal commands and interact with other applications."
+								label={t("settings.permissions.items.automation.label")}
+								description={t(
+									"settings.permissions.items.automation.description",
+								)}
 								granted={undefined}
 								onRequest={() => requestAppleEvents.mutate()}
 							/>
@@ -161,8 +181,10 @@ export function PermissionsSettings({
 							visibleItems,
 						) && (
 							<PermissionRow
-								label="Local Network"
-								description="Discover and connect to development servers on your network."
+								label={t("settings.permissions.items.localNetwork.label")}
+								description={t(
+									"settings.permissions.items.localNetwork.description",
+								)}
 								granted={undefined}
 								onRequest={() => requestLocalNetwork.mutate()}
 							/>

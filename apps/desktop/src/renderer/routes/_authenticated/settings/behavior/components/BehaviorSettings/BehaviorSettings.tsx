@@ -143,10 +143,10 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 					<div className="flex items-center justify-between">
 						<div className="space-y-0.5">
 							<Label htmlFor="confirm-on-quit" className="text-sm font-medium">
-								Confirm before quitting
+								{t("settings.behavior.confirmQuit.label")}
 							</Label>
 							<p className="text-xs text-muted-foreground">
-								Show a confirmation dialog when quitting the app
+								{t("settings.behavior.confirmQuit.hint")}
 							</p>
 						</div>
 						<Switch
@@ -161,9 +161,11 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 				{showFileOpenMode && (
 					<div className="flex items-center justify-between">
 						<div className="space-y-0.5">
-							<Label className="text-sm font-medium">File open mode</Label>
+							<Label className="text-sm font-medium">
+								{t("settings.behavior.fileOpenMode.label")}
+							</Label>
 							<p className="text-xs text-muted-foreground">
-								Choose how files open when no preview pane exists
+								{t("settings.behavior.fileOpenMode.hint")}
 							</p>
 						</div>
 						<Select
@@ -177,8 +179,12 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 								<SelectValue />
 							</SelectTrigger>
 							<SelectContent>
-								<SelectItem value="split-pane">Split pane</SelectItem>
-								<SelectItem value="new-tab">New tab</SelectItem>
+								<SelectItem value="split-pane">
+									{t("settings.behavior.fileOpenMode.splitPane")}
+								</SelectItem>
+								<SelectItem value="new-tab">
+									{t("settings.behavior.fileOpenMode.newTab")}
+								</SelectItem>
 							</SelectContent>
 						</Select>
 					</div>
@@ -188,10 +194,10 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 					<div className="flex items-center justify-between">
 						<div className="space-y-0.5">
 							<Label htmlFor="resource-monitor" className="text-sm font-medium">
-								Resource monitor
+								{t("settings.behavior.resourceMonitor.label")}
 							</Label>
 							<p className="text-xs text-muted-foreground">
-								Show CPU and memory usage in the top bar
+								{t("settings.behavior.resourceMonitor.hint")}
 							</p>
 						</div>
 						<Switch
@@ -214,11 +220,10 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 								htmlFor="open-links-in-app"
 								className="text-sm font-medium"
 							>
-								Open links in app browser
+								{t("settings.behavior.openLinksInApp.label")}
 							</Label>
 							<p className="text-xs text-muted-foreground">
-								Open links from chat and terminal in the built-in browser
-								instead of your default browser
+								{t("settings.behavior.openLinksInApp.hint")}
 							</p>
 						</div>
 						<Switch

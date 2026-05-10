@@ -166,11 +166,10 @@ export function GitSettings({ visibleItems }: GitSettingsProps) {
 								htmlFor="delete-local-branch"
 								className="text-sm font-medium"
 							>
-								Delete local branch on workspace removal
+								{t("settings.git.deleteLocalBranch.label")}
 							</Label>
 							<p className="text-xs text-muted-foreground">
-								Also delete the local git branch when deleting a worktree
-								workspace
+								{t("settings.git.deleteLocalBranch.hint")}
 							</p>
 						</div>
 						<Switch
@@ -185,9 +184,11 @@ export function GitSettings({ visibleItems }: GitSettingsProps) {
 				{showBranchPrefix && (
 					<div className="flex items-center justify-between">
 						<div className="space-y-0.5">
-							<Label className="text-sm font-medium">Branch prefix</Label>
+							<Label className="text-sm font-medium">
+								{t("settings.git.branchPrefix.label")}
+							</Label>
 							<p className="text-xs text-muted-foreground">
-								Group new branches under a folder.{" "}
+								{t("settings.git.branchPrefix.hintIntro")}{" "}
 								<code className="bg-muted px-1.5 py-0.5 rounded text-foreground">
 									{previewPrefix
 										? `${previewPrefix}/branch-name`
@@ -221,7 +222,7 @@ export function GitSettings({ visibleItems }: GitSettingsProps) {
 							</Select>
 							{branchPrefix?.mode === "custom" && (
 								<Input
-									placeholder="Prefix"
+									placeholder={t("settings.git.branchPrefix.placeholder")}
 									value={customPrefixInput}
 									onChange={(e) => setCustomPrefixInput(e.target.value)}
 									onBlur={handleCustomPrefixBlur}
@@ -235,13 +236,20 @@ export function GitSettings({ visibleItems }: GitSettingsProps) {
 
 				{showWorktreeLocation && (
 					<div className="space-y-0.5">
-						<Label className="text-sm font-medium">Worktree location</Label>
+						<Label className="text-sm font-medium">
+							{t("settings.git.worktreeLocation.label")}
+						</Label>
 						<p className="text-xs text-muted-foreground">
-							Base directory for new worktrees
+							{t("settings.git.worktreeLocation.hint")}
 						</p>
 						<WorktreeLocationPicker
 							currentPath={worktreeBaseDir}
-							defaultPathLabel={`Default (${defaultWorktreePath})`}
+							defaultPathLabel={t(
+								"settings.git.worktreeLocation.defaultLabel",
+								{
+									path: defaultWorktreePath,
+								},
+							)}
 							defaultBrowsePath={worktreeBaseDir}
 							disabled={
 								isWorktreeBaseDirLoading || setWorktreeBaseDir.isPending
