@@ -46,11 +46,20 @@ class NodePtyAdapter implements Pty {
 	private term: nodePty.IPty;
 	private exited = false;
 	private killEscalationTimer: NodeJS.Timeout | null = null;
+	private exitInfo: { code: number | null; signal: number | null } | null =
+		null;
+	private exitCallbacks: PtyOnExit[] = [];
 
 	constructor(term: nodePty.IPty, meta: SessionMeta) {
 		this.term = term;
 		this.pid = term.pid;
 		this.meta = meta;
+		this.term.onExit(({ exitCode, signal }) => {
+			if (this.exited) return;
+			this.exited = true;
+			this.exitInfo = { code: exitCode ?? null, signal: signal ?? null };
+			for (const cb of this.exitCallbacks) cb(this.exitInfo);
+		});
 	}
 
 	getMasterFd(): number {
@@ -97,10 +106,11 @@ class NodePtyAdapter implements Pty {
 	}
 
 	onExit(cb: PtyOnExit): void {
-		this.term.onExit(({ exitCode, signal }) => {
-			this.exited = true;
-			cb({ code: exitCode ?? null, signal: signal ?? null });
-		});
+		if (this.exitInfo) {
+			cb(this.exitInfo);
+			return;
+		}
+		this.exitCallbacks.push(cb);
 	}
 
 	private scheduleKillEscalation(

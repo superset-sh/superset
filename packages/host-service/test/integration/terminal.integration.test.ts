@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { type ChildProcess, spawn } from "node:child_process";
+import { type ChildProcess, spawn, spawnSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -91,14 +91,11 @@ describe("terminal router integration", () => {
 		let workspaceCleanupHelperPid: number | null = null;
 
 		try {
-			const daemonEntryPath = fileURLToPath(
-				new URL("../../../pty-daemon/src/main.ts", import.meta.url),
+			const daemonBundlePath = fileURLToPath(
+				new URL("../../../pty-daemon/dist/pty-daemon.js", import.meta.url),
 			);
-			const daemonArgs = [
-				"--experimental-strip-types",
-				daemonEntryPath,
-				`--socket=${socketPath}`,
-			];
+			ensureDaemonBundle(daemonBundlePath);
+			const daemonArgs = [daemonBundlePath, `--socket=${socketPath}`];
 			daemonProcess = spawn("node", daemonArgs, {
 				stdio: ["ignore", "pipe", "pipe"],
 				env: {
@@ -323,6 +320,30 @@ function detachedHelperScript(pidPath: string): string {
 		`echo "$helper_pid" > ${shellQuote(pidPath)}`,
 		"sleep 60",
 	].join("; ");
+}
+
+function ensureDaemonBundle(bundlePath: string): void {
+	const packageDir = fileURLToPath(
+		new URL("../../../pty-daemon", import.meta.url),
+	);
+	const result = spawnSync("bun", ["run", "build:daemon"], {
+		cwd: packageDir,
+		encoding: "utf8",
+	});
+	if (result.status === 0) {
+		if (!existsSync(bundlePath)) {
+			throw new Error(`pty-daemon bundle was not created: ${bundlePath}`);
+		}
+		return;
+	}
+	throw new Error(
+		[
+			"failed to build pty-daemon bundle for integration test",
+			`exitCode: ${result.status}`,
+			`stdout:\n${result.stdout}`,
+			`stderr:\n${result.stderr}`,
+		].join("\n"),
+	);
 }
 
 function readPositivePidFile(filePath: string): number | null {

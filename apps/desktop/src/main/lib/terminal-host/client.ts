@@ -9,7 +9,7 @@
  * - Event streaming
  */
 
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { EventEmitter } from "node:events";
 import {
@@ -494,7 +494,7 @@ export class TerminalHostClient extends EventEmitter {
 		try {
 			const raw = readFileSync(PID_PATH, "utf-8").trim();
 			const pid = Number.parseInt(raw, 10);
-			if (isPositiveInteger(pid)) {
+			if (isPositiveInteger(pid) && this.isTerminalHostDaemonPid(pid)) {
 				this.signalDaemonProcessTreeAndGroups(pid, "SIGTERM");
 				if (!(await this.waitForPidExit(pid, 1500))) {
 					this.signalDaemonProcessTreeAndGroups(pid, "SIGKILL");
@@ -504,6 +504,18 @@ export class TerminalHostClient extends EventEmitter {
 		} catch {
 			// Best-effort.
 		}
+	}
+
+	private isTerminalHostDaemonPid(pid: number): boolean {
+		if (!isPositiveInteger(pid)) return false;
+		const result = spawnSync("ps", ["-p", String(pid), "-o", "command="], {
+			encoding: "utf8",
+		});
+		if (result.error || result.status !== 0) return false;
+		const command = result.stdout.trim();
+		if (!command) return false;
+		const daemonScript = this.getDaemonScriptPath();
+		return command.includes(daemonScript) || command.includes("terminal-host");
 	}
 
 	private signalDaemonProcessTreeAndGroups(
