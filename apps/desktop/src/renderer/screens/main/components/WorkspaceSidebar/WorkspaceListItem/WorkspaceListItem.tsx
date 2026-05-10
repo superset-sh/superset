@@ -403,7 +403,7 @@ export function WorkspaceListItem({
 										isActive={isActive}
 									/>
 								)}
-								<div className="flex items-center justify-end gap-1.5 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-[opacity,visibility]">
+								<div className="hidden items-center justify-end gap-1.5 group-hover:flex">
 									{shortcutIndex !== undefined &&
 										shortcutIndex < MAX_KEYBOARD_SHORTCUT_INDEX && (
 											<span className="text-[10px] text-muted-foreground font-mono tabular-nums shrink-0">
