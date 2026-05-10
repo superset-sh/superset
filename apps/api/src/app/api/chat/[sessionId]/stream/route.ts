@@ -6,7 +6,7 @@ import {
 	PRODUCER_RESPONSE_HEADERS,
 	PROTOCOL_QUERY_PARAMS,
 	PROTOCOL_RESPONSE_HEADERS,
-	requireAuth,
+	requireChatSessionAccess,
 	STRIP_HEADERS,
 	streamUrl,
 } from "../../lib";
@@ -19,10 +19,9 @@ export async function GET(
 	request: Request,
 	{ params }: { params: Promise<{ sessionId: string }> },
 ): Promise<Response> {
-	const session = await requireAuth(request);
-	if (!session) return new Response("Unauthorized", { status: 401 });
-
 	const { sessionId } = await params;
+	const access = await requireChatSessionAccess(sessionId, request);
+	if (!access) return new Response("Unauthorized", { status: 401 });
 	const url = new URL(request.url);
 
 	const upstream = new URL(streamUrl(sessionId));
@@ -79,10 +78,9 @@ export async function POST(
 	request: Request,
 	{ params }: { params: Promise<{ sessionId: string }> },
 ): Promise<Response> {
-	const session = await requireAuth(request);
-	if (!session) return new Response("Unauthorized", { status: 401 });
-
 	const { sessionId } = await params;
+	const access = await requireChatSessionAccess(sessionId, request);
+	if (!access) return new Response("Unauthorized", { status: 401 });
 	const upstream = streamUrl(sessionId);
 
 	const headers: Record<string, string> = {
@@ -132,10 +130,9 @@ export async function DELETE(
 	request: Request,
 	{ params }: { params: Promise<{ sessionId: string }> },
 ): Promise<Response> {
-	const session = await requireAuth(request);
-	if (!session) return new Response("Unauthorized", { status: 401 });
-
 	const { sessionId } = await params;
+	const access = await requireChatSessionAccess(sessionId, request);
+	if (!access) return new Response("Unauthorized", { status: 401 });
 
 	const response = await fetch(streamUrl(sessionId), {
 		method: "DELETE",
@@ -167,10 +164,9 @@ export async function HEAD(
 	request: Request,
 	{ params }: { params: Promise<{ sessionId: string }> },
 ): Promise<Response> {
-	const session = await requireAuth(request);
-	if (!session) return new Response("Unauthorized", { status: 401 });
-
 	const { sessionId } = await params;
+	const access = await requireChatSessionAccess(sessionId, request);
+	if (!access) return new Response("Unauthorized", { status: 401 });
 
 	const response = await fetch(streamUrl(sessionId), {
 		method: "HEAD",

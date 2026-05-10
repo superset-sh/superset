@@ -37,12 +37,17 @@ export async function GET(
 			mediaType: chatAttachments.mediaType,
 			filename: chatAttachments.filename,
 			ownerId: chatAttachments.createdBy,
+			organizationId: chatAttachments.organizationId,
 		})
 		.from(chatAttachments)
 		.where(eq(chatAttachments.id, id))
 		.limit(1);
 
-	if (!attachment || attachment.ownerId !== sessionData.user.id) {
+	if (
+		!attachment ||
+		(attachment.ownerId !== sessionData.user.id &&
+			attachment.organizationId !== sessionData.session.activeOrganizationId)
+	) {
 		return new Response("Not found", { status: 404 });
 	}
 

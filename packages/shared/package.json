@@ -119,6 +119,10 @@
 		"./rrule": {
 			"types": "./src/rrule.ts",
 			"default": "./src/rrule.ts"
+		},
+		"./crypto": {
+			"types": "./src/crypto.ts",
+			"default": "./src/crypto.ts"
 		}
 	},
 	"scripts": {
