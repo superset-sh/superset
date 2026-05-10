@@ -10,6 +10,7 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { TRPCClientError } from "@trpc/client";
 import {
 	disposeDaemonClient,
@@ -85,33 +86,53 @@ describe("terminal router integration", () => {
 		const pidPath = join(tmp, "tail.pid");
 		const terminalId = randomUUID();
 		let daemonProcess: ChildProcess | null = null;
+		let daemonStdout = "";
 		let daemonStderr = "";
+		let daemonSpawnError = "";
 		let tailPid: number | null = null;
 		writeFileSync(logPath, "");
 
 		try {
-			daemonProcess = spawn(
-				"node",
-				[
-					"--experimental-strip-types",
-					join(process.cwd(), "packages/pty-daemon/src/main.ts"),
-					`--socket=${socketPath}`,
-				],
-				{
-					stdio: ["ignore", "ignore", "pipe"],
-					env: {
-						...process.env,
-						SUPERSET_PTY_DAEMON_VERSION: "0.0.0-host-service-terminal-test",
-					},
-				},
+			const daemonEntryPath = fileURLToPath(
+				new URL("../../../pty-daemon/src/main.ts", import.meta.url),
 			);
+			const daemonArgs = [
+				"--experimental-strip-types",
+				daemonEntryPath,
+				`--socket=${socketPath}`,
+			];
+			daemonProcess = spawn("node", daemonArgs, {
+				stdio: ["ignore", "pipe", "pipe"],
+				env: {
+					...process.env,
+					SUPERSET_PTY_DAEMON_VERSION: "0.0.0-host-service-terminal-test",
+				},
+			});
+			daemonProcess.stdout?.on("data", (chunk) => {
+				daemonStdout += chunk.toString();
+			});
 			daemonProcess.stderr?.on("data", (chunk) => {
 				daemonStderr += chunk.toString();
+			});
+			daemonProcess.once("error", (error) => {
+				daemonSpawnError =
+					error instanceof Error
+						? (error.stack ?? error.message)
+						: String(error);
 			});
 			await waitFor(
 				() => existsSync(socketPath),
 				3000,
-				() => `pty-daemon did not create socket; stderr:\n${daemonStderr}`,
+				() =>
+					[
+						"pty-daemon did not create socket",
+						`args: node ${daemonArgs.join(" ")}`,
+						`exitCode: ${daemonProcess?.exitCode ?? "null"}`,
+						`signalCode: ${daemonProcess?.signalCode ?? "null"}`,
+						`spawnError:\n${daemonSpawnError}`,
+						`stdout:\n${daemonStdout}`,
+						`stderr:\n${daemonStderr}`,
+					].join("\n"),
 			);
 			process.env.SUPERSET_PTY_DAEMON_SOCKET = socketPath;
 			process.env.SUPERSET_HOME_DIR = tmp;
