@@ -295,8 +295,8 @@ describe("hasConfiguredScripts", () => {
 	});
 
 	it("returns true when only run is set (so the card hides for run-only)", () => {
-		// v2 doesn't expose run, but the loader still considers it "configured"
-		// so the sidebar CTA hides for projects that came over from v1.
+		// The setup CTA should still hide when a project only configured the
+		// workspace Run button.
 		expect(hasConfiguredScripts({ run: ["bun dev"] })).toBe(true);
 	});
 });

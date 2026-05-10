@@ -21,6 +21,7 @@ import { getBaseName } from "renderer/lib/pathBasename";
 import { consumeTerminalBackgroundIntent } from "renderer/lib/terminal/terminal-background-intents";
 import { terminalRuntimeRegistry } from "renderer/lib/terminal/terminal-runtime-registry";
 import { useWorkspace } from "renderer/routes/_authenticated/_dashboard/v2-workspace/providers/WorkspaceProvider";
+import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { FileIcon } from "renderer/screens/main/components/WorkspaceView/RightSidebar/FilesView/utils";
 import {
 	clearV2TerminalRunStatus,
@@ -109,6 +110,7 @@ export function usePaneRegistry({
 }: UsePaneRegistryOptions): PaneRegistry<PaneViewerData> {
 	const { workspace } = useWorkspace();
 	const workspaceId = workspace.id;
+	const collections = useCollections();
 	const clearShortcut = useHotkeyDisplay("CLEAR_TERMINAL").text;
 	const scrollToBottomShortcut = useHotkeyDisplay("SCROLL_TO_BOTTOM").text;
 	const workspaceTrpcUtils = workspaceTrpc.useUtils();
@@ -142,6 +144,16 @@ export function usePaneRegistry({
 				});
 			},
 		});
+	const clearWorkspaceRunTerminal = useMemo(
+		() => (terminalId: string) => {
+			if (!collections.v2WorkspaceLocalState.get(workspaceId)) return;
+			collections.v2WorkspaceLocalState.update(workspaceId, (draft) => {
+				if (!draft.workspaceRunTerminals?.[terminalId]) return;
+				delete draft.workspaceRunTerminals[terminalId];
+			});
+		},
+		[collections.v2WorkspaceLocalState, workspaceId],
+	);
 
 	return useMemo<PaneRegistry<PaneViewerData>>(
 		() => ({
@@ -264,6 +276,7 @@ export function usePaneRegistry({
 						return;
 					}
 					clearV2TerminalRunStatus(terminalId, workspaceId);
+					clearWorkspaceRunTerminal(terminalId);
 					terminalRuntimeRegistry.dispose(terminalId);
 					killTerminalSessionSilently({ terminalId, workspaceId });
 				},
@@ -482,6 +495,7 @@ export function usePaneRegistry({
 		}),
 		[
 			workspaceId,
+			clearWorkspaceRunTerminal,
 			clearShortcut,
 			scrollToBottomShortcut,
 			killTerminalSession,

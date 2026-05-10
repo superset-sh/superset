@@ -63,8 +63,10 @@ interface PresetEditorDialogProps {
 	onCommandsBlur: () => void;
 	onModeChange: (mode: ExecutionMode) => void;
 	onToggleAutoApply: (field: AutoApplyField, enabled: boolean) => void;
+	onToggleWorkspaceRun: (enabled: boolean) => void;
 	modeValue: ExecutionMode;
 	hasMultipleCommands: boolean;
+	isWorkspaceRun: boolean;
 	isWorkspaceCreation: boolean;
 	isNewTab: boolean;
 }
@@ -183,8 +185,10 @@ export function PresetEditorDialog({
 	onCommandsBlur,
 	onModeChange,
 	onToggleAutoApply,
+	onToggleWorkspaceRun,
 	modeValue,
 	hasMultipleCommands,
+	isWorkspaceRun,
 	isWorkspaceCreation,
 	isNewTab,
 }: PresetEditorDialogProps) {
@@ -459,6 +463,20 @@ export function PresetEditorDialog({
 										]}
 									/>
 								)}
+							</DialogRow>
+
+							<DialogRow
+								label="Use as workspace run"
+								htmlFor="preset-workspace-run"
+								hint="Makes the Run button launch this preset for matching projects."
+							>
+								<div className="flex justify-end">
+									<Switch
+										id="preset-workspace-run"
+										checked={isWorkspaceRun}
+										onCheckedChange={onToggleWorkspaceRun}
+									/>
+								</div>
 							</DialogRow>
 
 							<DialogRow

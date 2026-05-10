@@ -8,6 +8,7 @@ import {
 	disposeSession,
 	listTerminalSessions,
 	parseThemeType,
+	writeInputToSession,
 } from "../../../terminal/terminal";
 import type { HostServiceContext } from "../../../types";
 import { protectedProcedure, router } from "../../index";
@@ -114,6 +115,25 @@ export const terminalRouter = router({
 				includeExited: false,
 			}),
 		})),
+
+	writeInput: protectedProcedure
+		.input(
+			z.object({
+				terminalId: z.string(),
+				workspaceId: z.string(),
+				data: z.string(),
+			}),
+		)
+		.mutation(({ input }) => {
+			const result = writeInputToSession(input);
+			if ("error" in result) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: result.error,
+				});
+			}
+			return { success: true as const };
+		}),
 
 	killSession: protectedProcedure
 		.input(

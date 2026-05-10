@@ -364,6 +364,30 @@ export function listTerminalSessions(
 		}));
 }
 
+export function writeInputToSession({
+	terminalId,
+	workspaceId,
+	data,
+}: {
+	terminalId: string;
+	workspaceId: string;
+	data: string;
+}): { success: true } | { error: string } {
+	const session = sessions.get(terminalId);
+	if (!session) {
+		return { error: "Terminal session not found" };
+	}
+	if (session.workspaceId !== workspaceId) {
+		return { error: "Terminal session does not belong to this workspace" };
+	}
+	if (session.exited) {
+		return { error: "Terminal session has exited" };
+	}
+
+	session.pty.write(data);
+	return { success: true };
+}
+
 function sendMessage(
 	socket: { send: (data: string) => void; readyState: number },
 	message: TerminalServerMessage,
@@ -872,11 +896,12 @@ export async function createTerminalSessionInternal({
 				session.exited = true;
 				session.exitCode = code ?? 0;
 				session.exitSignal = signal ?? 0;
+				const occurredAt = Date.now();
 
 				portManager.unregisterSession(terminalId);
 
 				db.update(terminalSessions)
-					.set({ status: "exited", endedAt: Date.now() })
+					.set({ status: "exited", endedAt: occurredAt })
 					.where(eq(terminalSessions.id, terminalId))
 					.run();
 
@@ -892,7 +917,7 @@ export async function createTerminalSessionInternal({
 					eventType: "exit",
 					exitCode: session.exitCode,
 					signal: session.exitSignal,
-					occurredAt: Date.now(),
+					occurredAt,
 				});
 			},
 		},

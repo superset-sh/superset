@@ -28,6 +28,26 @@ const changesFilterSchema = z.discriminatedUnion("kind", [
 
 export type ChangesFilter = z.infer<typeof changesFilterSchema>;
 
+const workspaceRunStateSchema = z.enum([
+	"running",
+	"stopped-by-user",
+	"stopped-by-exit",
+]);
+
+export const workspaceRunTerminalStateSchema = z.object({
+	terminalId: z.string(),
+	workspaceId: z.string().uuid(),
+	state: workspaceRunStateSchema,
+	command: z.string(),
+	definitionSource: z.enum(["project-config", "terminal-preset"]),
+	definitionId: z.string().optional(),
+	startedAt: z.number(),
+	stoppedAt: z.number().optional(),
+	exitCode: z.number().optional(),
+	signal: z.number().optional(),
+	stopRequestedAt: z.number().optional(),
+});
+
 export const workspaceLocalStateSchema = z.object({
 	workspaceId: z.string().uuid(),
 	createdAt: persistedDateSchema,
@@ -50,6 +70,9 @@ export const workspaceLocalStateSchema = z.object({
 			}),
 		)
 		.default([]),
+	workspaceRunTerminals: z
+		.record(z.string(), workspaceRunTerminalStateSchema)
+		.default({}),
 });
 
 // Defaults for fields heal can synthesize. Identity fields (workspaceId,
@@ -70,6 +93,10 @@ const WORKSPACE_LOCAL_STATE_OPTIONAL_DEFAULTS = {
 		absolutePath: string;
 		lastAccessedAt: number;
 	}>,
+	workspaceRunTerminals: {} as Record<
+		string,
+		z.infer<typeof workspaceRunTerminalStateSchema>
+	>,
 };
 
 export const dashboardSidebarSectionSchema = z.object({
@@ -98,6 +125,7 @@ export const v2TerminalPresetSchema = z.object({
 	commands: z.array(z.string()).default([]),
 	projectIds: z.array(z.string()).nullable().default(null),
 	pinnedToBar: z.boolean().optional(),
+	useAsWorkspaceRun: z.boolean().optional(),
 	applyOnWorkspaceCreated: z.boolean().optional(),
 	applyOnNewTab: z.boolean().optional(),
 	executionMode: v2ExecutionModeSchema.default("new-tab"),
@@ -114,6 +142,10 @@ export type DashboardSidebarProjectRow = z.infer<
 	typeof dashboardSidebarProjectSchema
 >;
 export type WorkspaceLocalStateRow = z.infer<typeof workspaceLocalStateSchema>;
+export type WorkspaceRunState = z.infer<typeof workspaceRunStateSchema>;
+export type WorkspaceRunTerminalState = z.infer<
+	typeof workspaceRunTerminalStateSchema
+>;
 export type DashboardSidebarSectionRow = z.infer<
 	typeof dashboardSidebarSectionSchema
 >;
@@ -214,6 +246,9 @@ export function healWorkspaceLocalState(raw: unknown): WorkspaceLocalStateRow {
 		recentlyViewedFiles:
 			r.recentlyViewedFiles ??
 			WORKSPACE_LOCAL_STATE_OPTIONAL_DEFAULTS.recentlyViewedFiles,
+		workspaceRunTerminals:
+			r.workspaceRunTerminals ??
+			WORKSPACE_LOCAL_STATE_OPTIONAL_DEFAULTS.workspaceRunTerminals,
 		sidebarState: {
 			...SIDEBAR_STATE_DEFAULTS,
 			...sidebar,

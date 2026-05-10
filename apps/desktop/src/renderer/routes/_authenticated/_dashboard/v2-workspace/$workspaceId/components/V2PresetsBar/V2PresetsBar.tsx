@@ -10,7 +10,13 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useNavigate } from "@tanstack/react-router";
 import { Eye, EyeOff, Settings } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+	type ReactNode,
+	useCallback,
+	useEffect,
+	useMemo,
+	useState,
+} from "react";
 import { HiMiniCommandLine } from "react-icons/hi2";
 import { useIsDarkTheme } from "renderer/assets/app-icons/preset-icons";
 import { HotkeyMenuShortcut } from "renderer/components/HotkeyMenuShortcut";
@@ -27,6 +33,7 @@ interface V2PresetsBarProps {
 	executePreset: (preset: V2TerminalPresetRow) => void | Promise<void>;
 	showPresetsBar: boolean;
 	onToggleShowPresetsBar: (enabled: boolean) => void;
+	leading?: ReactNode;
 }
 
 // Co-located to keep v2 self-contained. Mirrors the v1 array in
@@ -68,6 +75,7 @@ export function V2PresetsBar({
 	executePreset,
 	showPresetsBar,
 	onToggleShowPresetsBar,
+	leading,
 }: V2PresetsBarProps) {
 	const navigate = useNavigate();
 	const isDark = useIsDarkTheme();
@@ -197,6 +205,7 @@ export function V2PresetsBar({
 			className="flex h-8 min-w-0 shrink-0 items-center gap-0.5 overflow-x-auto overflow-y-hidden border-b border-border bg-background px-2"
 			style={{ scrollbarWidth: "none" }}
 		>
+			{leading ? <div className="mr-1 shrink-0">{leading}</div> : null}
 			<DropdownMenu>
 				<Tooltip>
 					<TooltipTrigger asChild>

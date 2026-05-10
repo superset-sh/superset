@@ -90,6 +90,7 @@ export function PresetRow({
 	);
 
 	const isWorkspaceCreation = !!preset.applyOnWorkspaceCreated;
+	const isWorkspaceRun = !!preset.useAsWorkspaceRun;
 	const isNewTab = !!preset.applyOnNewTab;
 	const isVisibleInBar = preset.pinnedToBar !== false;
 	const modeValue = normalizeExecutionMode(preset.executionMode);
@@ -155,6 +156,14 @@ export function PresetRow({
 							className="text-[10px] h-4 px-1.5 shrink-0"
 						>
 							Workspace
+						</Badge>
+					)}
+					{isWorkspaceRun && (
+						<Badge
+							variant="secondary"
+							className="text-[10px] h-4 px-1.5 shrink-0"
+						>
+							Run
 						</Badge>
 					)}
 					{isNewTab && (

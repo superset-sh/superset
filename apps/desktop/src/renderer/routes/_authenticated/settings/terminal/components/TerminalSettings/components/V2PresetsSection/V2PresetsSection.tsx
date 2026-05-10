@@ -219,6 +219,7 @@ export function V2PresetsSection({
 			commands: string[];
 			projectIds?: string[] | null;
 			pinnedToBar?: boolean;
+			useAsWorkspaceRun?: boolean;
 			executionMode?: ExecutionMode;
 			agentId?: string;
 		}) => {
@@ -234,6 +235,7 @@ export function V2PresetsSection({
 				commands: input.commands,
 				projectIds: input.projectIds ?? null,
 				pinnedToBar: input.pinnedToBar,
+				useAsWorkspaceRun: input.useAsWorkspaceRun,
 				executionMode: input.executionMode ?? "new-tab",
 				tabOrder: maxTabOrder + 1,
 				createdAt: new Date(),
@@ -457,6 +459,13 @@ export function V2PresetsSection({
 		[updateV2Preset],
 	);
 
+	const handleToggleWorkspaceRun = useCallback(
+		(presetId: string, enabled: boolean) => {
+			updateV2Preset(presetId, { useAsWorkspaceRun: enabled });
+		},
+		[updateV2Preset],
+	);
+
 	const handleToggleVisibility = useCallback(
 		(presetId: string, visible: boolean) => {
 			updateV2Preset(presetId, { pinnedToBar: visible });
@@ -494,6 +503,7 @@ export function V2PresetsSection({
 	}, [editingRowIndex, handleDeleteRow, setEditingPreset]);
 
 	const isWorkspaceCreation = !!editingPreset?.applyOnWorkspaceCreated;
+	const isWorkspaceRun = !!editingPreset?.useAsWorkspaceRun;
 	const isNewTab = !!editingPreset?.applyOnNewTab;
 	const hasMultipleCommands = (editingPreset?.commands.length ?? 0) > 1;
 	const normalizedMode = normalizeExecutionMode(editingPreset?.executionMode);
@@ -578,6 +588,14 @@ export function V2PresetsSection({
 		[editingPreset, handleToggleAutoApply],
 	);
 
+	const handleEditorWorkspaceRunToggle = useCallback(
+		(enabled: boolean) => {
+			if (!editingPreset) return;
+			handleToggleWorkspaceRun(editingPreset.id, enabled);
+		},
+		[editingPreset, handleToggleWorkspaceRun],
+	);
+
 	return (
 		<div>
 			<div className="rounded-lg border border-border overflow-hidden divide-y divide-border">
@@ -639,8 +657,10 @@ export function V2PresetsSection({
 				onCommandsBlur={handleEditorCommandsBlur}
 				onModeChange={handleEditorModeChange}
 				onToggleAutoApply={handleEditorAutoApplyToggle}
+				onToggleWorkspaceRun={handleEditorWorkspaceRunToggle}
 				modeValue={modeValue}
 				hasMultipleCommands={hasMultipleCommands}
+				isWorkspaceRun={isWorkspaceRun}
 				isWorkspaceCreation={isWorkspaceCreation}
 				isNewTab={isNewTab}
 			/>
