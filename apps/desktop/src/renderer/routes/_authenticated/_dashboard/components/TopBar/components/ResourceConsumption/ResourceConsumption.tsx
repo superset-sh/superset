@@ -361,7 +361,7 @@ export function ResourceConsumption({
 								)}
 							</span>
 							{normalizedSnapshot && (
-								<span className="text-xs font-medium tabular-nums tracking-tight hidden md:inline">
+								<span className="text-xs font-medium tabular-nums tracking-tight whitespace-nowrap hidden md:inline">
 									{formatMemory(normalizedSnapshot.totalMemory)}
 								</span>
 							)}

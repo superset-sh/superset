@@ -1,8 +1,12 @@
+// Non-breaking space between value and unit so they never wrap to a second
+// line when the top-bar widget is narrow.
+const NBSP = " ";
+
 export function formatMemory(bytes: number): string {
-	if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+	if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)}${NBSP}KB`;
 	if (bytes < 1024 * 1024 * 1024)
-		return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-	return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
+		return `${(bytes / (1024 * 1024)).toFixed(1)}${NBSP}MB`;
+	return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)}${NBSP}GB`;
 }
 
 export function formatCpu(percent: number): string {
