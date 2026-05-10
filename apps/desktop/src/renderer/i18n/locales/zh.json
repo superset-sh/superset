@@ -1,0 +1,142 @@
+{
+	"locale": {
+		"english": "English",
+		"chinese": "中文",
+		"switchLanguage": "语言"
+	},
+	"signIn": {
+		"welcome": "欢迎使用 Superset",
+		"restoring": "正在恢复会话",
+		"prompt": "登录开始使用",
+		"continueGithub": "使用 GitHub 继续",
+		"continueGoogle": "使用 Google 继续",
+		"termsPrefix": "登录即表示您同意我们的",
+		"termsOfService": "服务条款",
+		"and": "和",
+		"privacyPolicy": "隐私政策"
+	},
+	"createOrg": {
+		"title": "创建组织",
+		"subtitle": "设置组织以开始使用",
+		"signOut": "退出登录",
+		"nameLabel": "组织名称",
+		"namePlaceholder": "示例公司",
+		"nameDescription": "您的组织或团队的名称",
+		"nameRequired": "请输入组织名称",
+		"slugLabel": "标识符",
+		"slugPlaceholder": "acme-inc",
+		"slugDescription": "组织的唯一标识符（由名称自动生成）",
+		"slugMinLength": "标识符至少需要 3 个字符",
+		"slugChars": "标识符只能包含小写字母、数字和连字符",
+		"slugStart": "标识符必须以字母或数字开头",
+		"slugEnd": "标识符必须以字母或数字结尾",
+		"slugChecking": "检查中...",
+		"slugAvailable": "可用",
+		"slugTaken": "已被占用",
+		"submit": "创建组织",
+		"submitting": "创建中...",
+		"successToast": "组织创建成功！",
+		"errorToast": "创建组织失败"
+	},
+	"settings": {
+		"sidebar": {
+			"back": "返回",
+			"title": "设置",
+			"searchPlaceholder": "搜索设置...",
+			"documentation": "文档",
+			"groups": {
+				"personal": "个人",
+				"editorWorkflow": "编辑器与工作流",
+				"organization": "组织",
+				"system": "系统"
+			},
+			"items": {
+				"account": "账户",
+				"appearance": "外观",
+				"notifications": "通知",
+				"general": "通用",
+				"keyboard": "键盘",
+				"git": "Git 与工作树",
+				"agents": "智能体",
+				"terminal": "终端",
+				"links": "链接",
+				"models": "模型",
+				"organization": "组织",
+				"projects": "项目",
+				"hosts": "主机",
+				"integrations": "集成",
+				"billing": "账单",
+				"apiKeys": "API 密钥",
+				"security": "安全",
+				"permissions": "权限",
+				"experimental": "实验性"
+			}
+		},
+		"appearance": {
+			"title": "外观",
+			"subtitle": "自定义 Superset 在您设备上的外观",
+			"language": {
+				"label": "语言",
+				"hint": "应用界面显示的语言"
+			}
+		},
+		"account": {
+			"title": "账户",
+			"subtitle": "管理您的账户设置"
+		},
+		"organization": {
+			"title": "组织",
+			"subtitle": "管理组织的品牌信息和成员"
+		},
+		"behavior": {
+			"title": "通用",
+			"subtitle": "配置应用的通用偏好"
+		},
+		"experimental": {
+			"title": "实验性",
+			"subtitle": "尝试早期功能和预览"
+		},
+		"security": {
+			"title": "安全",
+			"subtitle": "控制本机如何被远程工作区访问"
+		},
+		"terminal": {
+			"title": "终端",
+			"subtitle": "配置终端行为和预设"
+		},
+		"agents": {
+			"title": "智能体"
+		},
+		"apiKeys": {
+			"title": "API 密钥"
+		},
+		"models": {
+			"title": "模型",
+			"subtitle": "管理服务商账号、API 密钥和覆盖配置"
+		},
+		"permissions": {
+			"title": "权限",
+			"subtitle": "授予 Superset 所需的系统权限"
+		},
+		"integrations": {
+			"title": "集成"
+		},
+		"ringtones": {
+			"title": "通知",
+			"subtitle": "完成任务时的提示音和铃声"
+		},
+		"links": {
+			"title": "链接"
+		},
+		"billing": {
+			"title": "账单"
+		},
+		"git": {
+			"title": "Git 与工作树",
+			"subtitle": "配置 Git 分支和工作树行为"
+		},
+		"keyboard": {
+			"title": "键盘快捷键"
+		}
+	}
+}

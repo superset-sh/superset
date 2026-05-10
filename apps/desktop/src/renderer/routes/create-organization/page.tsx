@@ -14,8 +14,10 @@ import { Input } from "@superset/ui/input";
 import { toast } from "@superset/ui/sonner";
 import { createFileRoute, Navigate, useNavigate } from "@tanstack/react-router";
 import type { ReactNode } from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
+import { LocaleSwitcher } from "renderer/components/LocaleSwitcher";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { authClient } from "renderer/lib/auth-client";
 import { electronTrpc } from "renderer/lib/electron-trpc";
@@ -25,23 +27,28 @@ export const Route = createFileRoute("/create-organization/")({
 	component: CreateOrganization,
 });
 
-const formSchema = z.object({
-	name: z.string().min(1, "Organization name is required").max(100),
-	slug: z
-		.string()
-		.min(3, "Slug must be at least 3 characters")
-		.max(50)
-		.regex(
-			/^[a-z0-9-]+$/,
-			"Slug can only contain lowercase letters, numbers, and hyphens",
-		)
-		.regex(/^[a-z0-9]/, "Slug must start with a letter or number")
-		.regex(/[a-z0-9]$/, "Slug must end with a letter or number"),
-});
-
-type FormValues = z.infer<typeof formSchema>;
+type FormValues = {
+	name: string;
+	slug: string;
+};
 
 export function CreateOrganization() {
+	const { t, i18n } = useTranslation();
+	const formSchema = useMemo(
+		() =>
+			z.object({
+				name: z.string().min(1, t("createOrg.nameRequired")).max(100),
+				slug: z
+					.string()
+					.min(3, t("createOrg.slugMinLength"))
+					.max(50)
+					.regex(/^[a-z0-9-]+$/, t("createOrg.slugChars"))
+					.regex(/^[a-z0-9]/, t("createOrg.slugStart"))
+					.regex(/[a-z0-9]$/, t("createOrg.slugEnd")),
+			}),
+		[t],
+	);
+
 	const { data: session } = authClient.useSession();
 	const isSignedIn = !!session?.user;
 	const activeOrganizationId = session?.session?.activeOrganizationId;
@@ -71,6 +78,19 @@ export function CreateOrganization() {
 			form.setValue("slug", slug, { shouldValidate: false });
 		}
 	}, [nameValue, form]);
+
+	useEffect(() => {
+		const refreshErrors = (): void => {
+			const { isSubmitted, touchedFields } = form.formState;
+			if (isSubmitted || Object.keys(touchedFields).length > 0) {
+				void form.trigger();
+			}
+		};
+		i18n.on("languageChanged", refreshErrors);
+		return () => {
+			i18n.off("languageChanged", refreshErrors);
+		};
+	}, [form, i18n]);
 
 	const slugValue = form.watch("slug");
 	useEffect(() => {
@@ -107,21 +127,21 @@ export function CreateOrganization() {
 		if (isCheckingSlug) {
 			return (
 				<span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
-					Checking...
+					{t("createOrg.slugChecking")}
 				</span>
 			);
 		}
 		if (slugAvailable === true) {
 			return (
 				<span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-green-600">
-					Available
+					{t("createOrg.slugAvailable")}
 				</span>
 			);
 		}
 		if (slugAvailable === false) {
 			return (
 				<span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-destructive">
-					Taken
+					{t("createOrg.slugTaken")}
 				</span>
 			);
 		}
@@ -140,13 +160,11 @@ export function CreateOrganization() {
 				organizationId: organization.id,
 			});
 
-			toast.success("Organization created successfully!");
+			toast.success(t("createOrg.successToast"));
 			navigate({ to: "/" });
 		} catch (error) {
 			toast.error(
-				error instanceof Error
-					? error.message
-					: "Failed to create organization",
+				error instanceof Error ? error.message : t("createOrg.errorToast"),
 			);
 		} finally {
 			setIsSubmitting(false);
@@ -163,38 +181,38 @@ export function CreateOrganization() {
 
 	return (
 		<div className="relative flex min-h-screen items-center justify-center bg-background p-4">
-			<div className="absolute top-4 right-4">
+			<div className="absolute top-4 right-4 flex items-center gap-2">
+				<LocaleSwitcher />
 				<Button variant="ghost" onClick={handleSignOut} type="button">
-					Sign Out
+					{t("createOrg.signOut")}
 				</Button>
 			</div>
 
 			<Card className="w-full max-w-md">
 				<CardHeader>
-					<h1 className="text-2xl font-bold">Create Organization</h1>
+					<h1 className="text-2xl font-bold">{t("createOrg.title")}</h1>
 					<p className="text-sm text-muted-foreground">
-						Set up your organization to get started
+						{t("createOrg.subtitle")}
 					</p>
 				</CardHeader>
 				<CardContent>
 					<Form {...form}>
 						<form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-							{/* Organization Name */}
 							<FormField
 								control={form.control}
 								name="name"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>Organization Name</FormLabel>
+										<FormLabel>{t("createOrg.nameLabel")}</FormLabel>
 										<FormControl>
 											<Input
 												{...field}
-												placeholder="Acme Inc."
+												placeholder={t("createOrg.namePlaceholder")}
 												disabled={isSubmitting}
 											/>
 										</FormControl>
 										<FormDescription>
-											The name of your organization or team
+											{t("createOrg.nameDescription")}
 										</FormDescription>
 										<FormMessage />
 									</FormItem>
@@ -206,20 +224,19 @@ export function CreateOrganization() {
 								name="slug"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>Slug</FormLabel>
+										<FormLabel>{t("createOrg.slugLabel")}</FormLabel>
 										<FormControl>
 											<div className="relative">
 												<Input
 													{...field}
-													placeholder="acme-inc"
+													placeholder={t("createOrg.slugPlaceholder")}
 													disabled={isSubmitting}
 												/>
 												{renderSlugStatus()}
 											</div>
 										</FormControl>
 										<FormDescription>
-											A unique identifier for your organization (auto-generated
-											from name)
+											{t("createOrg.slugDescription")}
 										</FormDescription>
 										<FormMessage />
 									</FormItem>
@@ -233,7 +250,9 @@ export function CreateOrganization() {
 									isSubmitting || isCheckingSlug || slugAvailable === false
 								}
 							>
-								{isSubmitting ? "Creating..." : "Create Organization"}
+								{isSubmitting
+									? t("createOrg.submitting")
+									: t("createOrg.submit")}
 							</Button>
 						</form>
 					</Form>

@@ -1,0 +1,142 @@
+{
+	"locale": {
+		"english": "English",
+		"chinese": "中文",
+		"switchLanguage": "Language"
+	},
+	"signIn": {
+		"welcome": "Welcome to Superset",
+		"restoring": "Restoring your session",
+		"prompt": "Sign in to get started",
+		"continueGithub": "Continue with GitHub",
+		"continueGoogle": "Continue with Google",
+		"termsPrefix": "By signing in, you agree to our",
+		"termsOfService": "Terms of Service",
+		"and": "and",
+		"privacyPolicy": "Privacy Policy"
+	},
+	"createOrg": {
+		"title": "Create Organization",
+		"subtitle": "Set up your organization to get started",
+		"signOut": "Sign Out",
+		"nameLabel": "Organization Name",
+		"namePlaceholder": "Acme Inc.",
+		"nameDescription": "The name of your organization or team",
+		"nameRequired": "Organization name is required",
+		"slugLabel": "Slug",
+		"slugPlaceholder": "acme-inc",
+		"slugDescription": "A unique identifier for your organization (auto-generated from name)",
+		"slugMinLength": "Slug must be at least 3 characters",
+		"slugChars": "Slug can only contain lowercase letters, numbers, and hyphens",
+		"slugStart": "Slug must start with a letter or number",
+		"slugEnd": "Slug must end with a letter or number",
+		"slugChecking": "Checking...",
+		"slugAvailable": "Available",
+		"slugTaken": "Taken",
+		"submit": "Create Organization",
+		"submitting": "Creating...",
+		"successToast": "Organization created successfully!",
+		"errorToast": "Failed to create organization"
+	},
+	"settings": {
+		"sidebar": {
+			"back": "Back",
+			"title": "Settings",
+			"searchPlaceholder": "Search settings...",
+			"documentation": "Documentation",
+			"groups": {
+				"personal": "Personal",
+				"editorWorkflow": "Editor & Workflow",
+				"organization": "Organization",
+				"system": "System"
+			},
+			"items": {
+				"account": "Account",
+				"appearance": "Appearance",
+				"notifications": "Notifications",
+				"general": "General",
+				"keyboard": "Keyboard",
+				"git": "Git & Worktrees",
+				"agents": "Agents",
+				"terminal": "Terminal",
+				"links": "Links",
+				"models": "Models",
+				"organization": "Organization",
+				"projects": "Projects",
+				"hosts": "Hosts",
+				"integrations": "Integrations",
+				"billing": "Billing",
+				"apiKeys": "API Keys",
+				"security": "Security",
+				"permissions": "Permissions",
+				"experimental": "Experimental"
+			}
+		},
+		"appearance": {
+			"title": "Appearance",
+			"subtitle": "Customize how Superset looks on your device",
+			"language": {
+				"label": "Language",
+				"hint": "Display language for the app"
+			}
+		},
+		"account": {
+			"title": "Account",
+			"subtitle": "Manage your account settings"
+		},
+		"organization": {
+			"title": "Organization",
+			"subtitle": "Manage your organization's branding and members."
+		},
+		"behavior": {
+			"title": "General",
+			"subtitle": "Configure general app preferences"
+		},
+		"experimental": {
+			"title": "Experimental",
+			"subtitle": "Try early access features and previews."
+		},
+		"security": {
+			"title": "Security",
+			"subtitle": "Control how your local machine is reachable from remote workspaces"
+		},
+		"terminal": {
+			"title": "Terminal",
+			"subtitle": "Configure terminal behavior and presets"
+		},
+		"agents": {
+			"title": "Agents"
+		},
+		"apiKeys": {
+			"title": "API keys"
+		},
+		"models": {
+			"title": "Models",
+			"subtitle": "Manage provider accounts, API keys, and overrides."
+		},
+		"permissions": {
+			"title": "Permissions",
+			"subtitle": "Grant the OS permissions Superset needs."
+		},
+		"integrations": {
+			"title": "Integrations"
+		},
+		"ringtones": {
+			"title": "Notifications",
+			"subtitle": "Sounds and ringtone for completed tasks"
+		},
+		"links": {
+			"title": "Links"
+		},
+		"billing": {
+			"title": "Billing"
+		},
+		"git": {
+			"title": "Git & worktrees",
+			"subtitle": "Configure git branch and worktree behavior"
+		},
+		"keyboard": {
+			"title": "Keyboard shortcuts"
+		}
+	}
+}
