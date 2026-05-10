@@ -4,6 +4,7 @@ import { Input } from "@superset/ui/input";
 import { toast } from "@superset/ui/sonner";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { authClient } from "renderer/lib/auth-client";
 import { electronTrpc } from "renderer/lib/electron-trpc";
@@ -24,6 +25,7 @@ interface AccountSettingsProps {
 }
 
 export function AccountSettings({ visibleItems }: AccountSettingsProps) {
+	const { t } = useTranslation();
 	const showProfile = isItemVisible(
 		SETTING_ITEM_ID.ACCOUNT_PROFILE,
 		visibleItems,
@@ -102,9 +104,9 @@ export function AccountSettings({ visibleItems }: AccountSettingsProps) {
 	return (
 		<div className="p-6 max-w-4xl w-full">
 			<div className="mb-8">
-				<h2 className="text-xl font-semibold">Account</h2>
+				<h2 className="text-xl font-semibold">{t("settings.account.title")}</h2>
 				<p className="text-sm text-muted-foreground mt-1">
-					Manage your account settings
+					{t("settings.account.subtitle")}
 				</p>
 			</div>
 

@@ -14,6 +14,7 @@ import {
 } from "@superset/ui/select";
 import { Switch } from "@superset/ui/switch";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
 	useDefaultWorktreePath,
@@ -31,6 +32,7 @@ interface GitSettingsProps {
 }
 
 export function GitSettings({ visibleItems }: GitSettingsProps) {
+	const { t } = useTranslation();
 	const showDeleteLocalBranch = isItemVisible(
 		SETTING_ITEM_ID.GIT_DELETE_LOCAL_BRANCH,
 		visibleItems,
@@ -150,9 +152,9 @@ export function GitSettings({ visibleItems }: GitSettingsProps) {
 	return (
 		<div className="p-6 max-w-4xl w-full">
 			<div className="mb-8">
-				<h2 className="text-xl font-semibold">Git & worktrees</h2>
+				<h2 className="text-xl font-semibold">{t("settings.git.title")}</h2>
 				<p className="text-sm text-muted-foreground mt-1">
-					Configure git branch and worktree behavior
+					{t("settings.git.subtitle")}
 				</p>
 			</div>
 

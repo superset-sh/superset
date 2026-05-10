@@ -8,6 +8,7 @@ import {
 	SelectValue,
 } from "@superset/ui/select";
 import { Switch } from "@superset/ui/switch";
+import { useTranslation } from "react-i18next";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
 	isItemVisible,
@@ -20,6 +21,7 @@ interface BehaviorSettingsProps {
 }
 
 export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
+	const { t } = useTranslation();
 	const showConfirmQuit = isItemVisible(
 		SETTING_ITEM_ID.BEHAVIOR_CONFIRM_QUIT,
 		visibleItems,
@@ -128,9 +130,11 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 	return (
 		<div className="p-6 max-w-4xl w-full">
 			<div className="mb-8">
-				<h2 className="text-xl font-semibold">General</h2>
+				<h2 className="text-xl font-semibold">
+					{t("settings.behavior.title")}
+				</h2>
 				<p className="text-sm text-muted-foreground mt-1">
-					Configure general app preferences
+					{t("settings.behavior.subtitle")}
 				</p>
 			</div>
 

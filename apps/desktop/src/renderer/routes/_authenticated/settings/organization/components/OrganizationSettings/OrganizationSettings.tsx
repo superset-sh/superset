@@ -20,6 +20,7 @@ import {
 import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { authClient } from "renderer/lib/auth-client";
 import { electronTrpc } from "renderer/lib/electron-trpc";
@@ -67,6 +68,7 @@ function SettingsRow({ label, hint, htmlFor, children }: SettingsRowProps) {
 export function OrganizationSettings({
 	visibleItems,
 }: OrganizationSettingsProps) {
+	const { t } = useTranslation();
 	const { data: session } = authClient.useSession();
 	const activeOrganizationId = session?.session?.activeOrganizationId;
 	const collections = useCollections();
@@ -244,9 +246,11 @@ export function OrganizationSettings({
 		<>
 			<div className="p-6 max-w-4xl w-full">
 				<div className="mb-8">
-					<h2 className="text-xl font-semibold">Organization</h2>
+					<h2 className="text-xl font-semibold">
+						{t("settings.organization.title")}
+					</h2>
 					<p className="text-sm text-muted-foreground mt-1">
-						Manage your organization's branding and members.
+						{t("settings.organization.subtitle")}
 					</p>
 				</div>
 

@@ -2,6 +2,7 @@ import { Badge } from "@superset/ui/badge";
 import { Button } from "@superset/ui/button";
 import { Label } from "@superset/ui/label";
 import { Skeleton } from "@superset/ui/skeleton";
+import { useTranslation } from "react-i18next";
 import { LuExternalLink } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
@@ -70,6 +71,7 @@ function PermissionRowSkeleton() {
 export function PermissionsSettings({
 	visibleItems,
 }: PermissionsSettingsProps) {
+	const { t } = useTranslation();
 	const { data: status, isLoading } =
 		electronTrpc.permissions.getStatus.useQuery(undefined, {
 			refetchInterval: 2000,
@@ -89,9 +91,11 @@ export function PermissionsSettings({
 	return (
 		<div className="p-6 max-w-4xl w-full mx-auto">
 			<div className="mb-8">
-				<h2 className="text-xl font-semibold">Permissions</h2>
+				<h2 className="text-xl font-semibold">
+					{t("settings.permissions.title")}
+				</h2>
 				<p className="text-sm text-muted-foreground mt-1">
-					Grant the OS permissions Superset needs.
+					{t("settings.permissions.subtitle")}
 				</p>
 			</div>
 

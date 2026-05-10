@@ -15,6 +15,7 @@ import { Switch } from "@superset/ui/switch";
 import { cn } from "@superset/ui/utils";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { HiMagnifyingGlass } from "react-icons/hi2";
 import {
 	HOTKEYS,
@@ -128,6 +129,7 @@ function getHotkeysByCategory(): Record<
 const hotkeysByCategory = getHotkeysByCategory();
 
 function KeyboardShortcutsPage() {
+	const { t } = useTranslation();
 	const [searchQuery, setSearchQuery] = useState("");
 	const [recordingId, setRecordingId] = useState<HotkeyId | null>(null);
 	const [pendingConflict, setPendingConflict] = useState<{
@@ -202,7 +204,9 @@ function KeyboardShortcutsPage() {
 			{/* Header */}
 			<div className="mb-6 flex items-start justify-between gap-4">
 				<div>
-					<h2 className="text-xl font-semibold">Keyboard shortcuts</h2>
+					<h2 className="text-xl font-semibold">
+						{t("settings.keyboard.title")}
+					</h2>
 					<p className="text-sm text-muted-foreground mt-1">
 						Customize keyboard shortcuts for your workflow. Press{" "}
 						<KbdGroup>

@@ -13,6 +13,7 @@ import { Button } from "@superset/ui/button";
 import { Label } from "@superset/ui/label";
 import { Switch } from "@superset/ui/switch";
 import { useNavigate } from "@tanstack/react-router";
+import { useTranslation } from "react-i18next";
 import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import { track } from "renderer/lib/analytics";
 import { STEP_ROUTES, useOnboardingStore } from "renderer/stores/onboarding";
@@ -31,6 +32,7 @@ interface ExperimentalSettingsProps {
 export function ExperimentalSettings({
 	visibleItems,
 }: ExperimentalSettingsProps) {
+	const { t } = useTranslation();
 	const showSupersetV2 = isItemVisible(
 		SETTING_ITEM_ID.EXPERIMENTAL_SUPERSET_V2,
 		visibleItems,
@@ -57,9 +59,11 @@ export function ExperimentalSettings({
 	return (
 		<div className="p-6 max-w-4xl w-full mx-auto">
 			<div className="mb-8">
-				<h2 className="text-xl font-semibold">Experimental</h2>
+				<h2 className="text-xl font-semibold">
+					{t("settings.experimental.title")}
+				</h2>
 				<p className="text-sm text-muted-foreground mt-1">
-					Try early access features and previews.
+					{t("settings.experimental.subtitle")}
 				</p>
 			</div>
 
