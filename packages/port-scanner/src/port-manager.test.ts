@@ -196,6 +196,23 @@ describe("PortManager — #3372 concurrency (at most one lsof in flight)", () =>
 });
 
 describe("PortManager — port identity updates", () => {
+	it("keeps common development service ports", async () => {
+		manager.upsertSession("p1", "ws1", 1000);
+
+		listeningPorts = [
+			{ port: 5432, pid: 1000, address: "127.0.0.1", processName: "postgres" },
+			{ port: 6379, pid: 1001, address: "127.0.0.1", processName: "redis" },
+		];
+		await manager.forceScan();
+
+		expect(
+			manager
+				.getAllPorts()
+				.map((port) => port.port)
+				.sort(),
+		).toEqual([5432, 6379]);
+	});
+
 	it("emits an update when an existing port rebinds to a new address", async () => {
 		const added: DetectedPort[] = [];
 		const removed: DetectedPort[] = [];

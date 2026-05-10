@@ -142,12 +142,10 @@ class PtyDaemonClient {
 		this.socket.write(encodeFrame(message));
 		return new Promise((resolve, reject) => {
 			const timer = setTimeout(() => {
-				this.waiters = this.waiters.filter(
-					(waiter) => waiter.resolve !== resolve,
-				);
+				this.waiters = this.waiters.filter((entry) => entry !== waiter);
 				reject(new Error(`timed out waiting for ${message.type}`));
 			}, DEFAULT_TIMEOUT_MS);
-			this.waiters.push({
+			const waiter = {
 				resolve: (frame) => {
 					clearTimeout(timer);
 					resolve(frame.message);
@@ -156,7 +154,8 @@ class PtyDaemonClient {
 					clearTimeout(timer);
 					reject(error);
 				},
-			});
+			};
+			this.waiters.push(waiter);
 		});
 	}
 

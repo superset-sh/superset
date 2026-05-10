@@ -328,6 +328,8 @@ function signalProcessTreeAndGroups(
 	signal: NodeJS.Signals,
 	options: { includeRoot?: boolean } = {},
 ): void {
+	// includeRoot=false lets node-pty deliver the signal to its own child after
+	// we have separately signalled descendants and detached process groups.
 	const includeRoot = options.includeRoot ?? true;
 	const table = readProcessTable();
 	const currentPgid = getProcessGroupId(process.pid, table);

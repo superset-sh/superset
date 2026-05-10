@@ -54,10 +54,10 @@ export function TopBar() {
 				{!sidebarHostsChrome && (
 					<>
 						<SidebarToggle />
-						<NavigationControls />
+						<NavigationControls showHistoryDropdown={false} />
+						<ResourceConsumption surface={isV2CloudEnabled ? "v2" : "v1"} />
 					</>
 				)}
-				{!isV2CloudEnabled && <ResourceConsumption />}
 			</div>
 
 			<div className="flex min-w-0 flex-1 items-center justify-start">

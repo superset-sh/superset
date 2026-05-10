@@ -71,6 +71,14 @@ function isPidAlive(pid: number): boolean {
 	}
 }
 
+function readPositivePidFile(filePath: string): number | null {
+	if (!existsSync(filePath)) return null;
+	const raw = readFileSync(filePath, "utf8").trim();
+	if (!/^\d+$/.test(raw)) return null;
+	const pid = Number(raw);
+	return Number.isInteger(pid) && pid > 0 ? pid : null;
+}
+
 async function waitForCondition(
 	predicate: () => boolean,
 	timeoutMs = 3000,
@@ -258,10 +266,11 @@ describe("session lifecycle", () => {
 			});
 			await c.waitFor((m) => m.type === "open-ok" && m.id === id);
 			c.send({ type: "subscribe", id, replay: false });
-			await waitForCondition(() => existsSync(pidPath));
+			await waitForCondition(() => readPositivePidFile(pidPath) !== null);
 
-			tailPid = Number(readFileSync(pidPath, "utf8").trim());
-			assert.equal(isPidAlive(tailPid), true);
+			tailPid = readPositivePidFile(pidPath);
+			assert.notEqual(tailPid, null);
+			assert.equal(isPidAlive(tailPid as number), true);
 
 			c.send({ type: "close", id });
 			await c.waitFor((m) => m.type === "closed" && m.id === id);
@@ -269,7 +278,7 @@ describe("session lifecycle", () => {
 
 			await waitForCondition(() => !isPidAlive(tailPid as number), 3000);
 		} finally {
-			if (tailPid !== null && isPidAlive(tailPid)) {
+			if (tailPid !== null && tailPid > 0 && isPidAlive(tailPid)) {
 				try {
 					process.kill(tailPid, "SIGKILL");
 				} catch {

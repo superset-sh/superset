@@ -1,5 +1,5 @@
 import { toast } from "@superset/ui/sonner";
-import { useNavigate } from "@tanstack/react-router";
+import { useMatchRoute, useNavigate } from "@tanstack/react-router";
 import { useCallback } from "react";
 import { authClient } from "renderer/lib/auth-client";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
@@ -23,6 +23,7 @@ export function useSubmitWorkspace(
 	promptContext: NewWorkspacePromptContextApi,
 ) {
 	const navigate = useNavigate();
+	const matchRoute = useMatchRoute();
 	const { closeAndResetDraft, draft } = useDashboardNewWorkspaceDraft();
 	const { submit } = useWorkspaceCreates();
 	const { machineId } = useLocalHostService();
@@ -113,12 +114,57 @@ export function useSubmitWorkspace(
 		};
 
 		closeAndResetDraft();
-		void navigate({ to: `/v2-workspace/${workspaceId}` as string });
-		void submit({ hostId, snapshot });
+		void navigate({
+			to: "/v2-workspace/$workspaceId",
+			params: { workspaceId },
+		}).catch((error) => {
+			console.error("[useSubmitWorkspace] failed to open workspace", error);
+		});
+
+		const isViewingOptimisticWorkspace = () => {
+			const workspaceMatch = matchRoute({
+				to: "/v2-workspace/$workspaceId",
+			});
+			return (
+				workspaceMatch !== false && workspaceMatch.workspaceId === workspaceId
+			);
+		};
+
+		void submit({ hostId, snapshot })
+			.then((result) => {
+				if (!result.ok) {
+					if (isViewingOptimisticWorkspace()) {
+						toast.error("Workspace creation failed");
+					}
+					return;
+				}
+				if (result.workspaceId === workspaceId) return;
+				if (!isViewingOptimisticWorkspace()) return;
+				void navigate({
+					to: "/v2-workspace/$workspaceId",
+					params: { workspaceId: result.workspaceId },
+					replace: true,
+				}).catch((error) => {
+					console.error(
+						"[useSubmitWorkspace] failed to redirect workspace",
+						error,
+					);
+				});
+			})
+			.catch((error) => {
+				console.error(
+					"[useSubmitWorkspace] workspace creation failed unexpectedly",
+					error,
+				);
+				if (isViewingOptimisticWorkspace()) {
+					toast.error("Workspace creation failed");
+				}
+			});
 	}, [
 		activeOrganizationId,
 		closeAndResetDraft,
 		draft,
+		matchRoute,
 		machineId,
 		navigate,
 		projectId,

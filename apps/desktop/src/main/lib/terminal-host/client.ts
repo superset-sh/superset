@@ -490,7 +490,7 @@ export class TerminalHostClient extends EventEmitter {
 		try {
 			const raw = readFileSync(PID_PATH, "utf-8").trim();
 			const pid = Number.parseInt(raw, 10);
-			if (!Number.isNaN(pid)) {
+			if (isPositiveInteger(pid)) {
 				this.signalDaemonProcessTreeAndGroups(pid, "SIGTERM");
 				if (!(await this.waitForPidExit(pid, 1500))) {
 					this.signalDaemonProcessTreeAndGroups(pid, "SIGKILL");
@@ -506,6 +506,7 @@ export class TerminalHostClient extends EventEmitter {
 		pid: number,
 		signal: NodeJS.Signals,
 	): void {
+		if (!isPositiveInteger(pid)) return;
 		if (!this.isPidAlive(pid)) return;
 
 		const table = readProcessTable();

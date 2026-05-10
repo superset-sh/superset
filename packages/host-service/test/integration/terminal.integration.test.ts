@@ -19,8 +19,10 @@ import {
 	initTerminalBaseEnv,
 	resetTerminalBaseEnvForTests,
 } from "../../src/terminal/env";
+import { listTerminalResourceSessions } from "../../src/terminal/resource-sessions";
 import { __resetSessionsForTesting } from "../../src/terminal/terminal";
 import { type BasicScenario, createBasicScenario } from "../helpers/scenarios";
+import { seedTerminalSession } from "../helpers/seed";
 
 describe("terminal router integration", () => {
 	let scenario: BasicScenario;
@@ -131,9 +133,10 @@ describe("terminal router integration", () => {
 				Buffer.from(`/bin/bash -lc ${shellQuote(backgroundScript)}\n`),
 			);
 
-			await waitFor(() => existsSync(pidPath), 3000);
-			tailPid = Number(readFileSync(pidPath, "utf8").trim());
-			expect(isPidAlive(tailPid)).toBe(true);
+			await waitFor(() => readPositivePidFile(pidPath) !== null, 3000);
+			tailPid = readPositivePidFile(pidPath);
+			expect(tailPid).not.toBeNull();
+			expect(isPidAlive(tailPid as number)).toBe(true);
 
 			await scenario.host.trpc.terminal.killSession.mutate({
 				workspaceId: scenario.workspaceId,
@@ -142,7 +145,7 @@ describe("terminal router integration", () => {
 
 			await waitFor(() => !isPidAlive(tailPid as number), 3000);
 		} finally {
-			if (tailPid !== null && isPidAlive(tailPid)) {
+			if (tailPid !== null && tailPid > 0 && isPidAlive(tailPid)) {
 				try {
 					process.kill(tailPid, "SIGKILL");
 				} catch {
@@ -154,10 +157,114 @@ describe("terminal router integration", () => {
 			rmSync(tmp, { recursive: true, force: true });
 		}
 	});
+
+	test("resource sessions are daemon-sourced and joined to active DB rows", () => {
+		const activeTerminalId = randomUUID();
+		const disposedTerminalId = randomUUID();
+		const exitedTerminalId = randomUUID();
+		const orphanTerminalId = randomUUID();
+		const fractionalPidTerminalId = randomUUID();
+		const unknownTerminalId = randomUUID();
+		seedTerminalSession(scenario.host, {
+			id: activeTerminalId,
+			originWorkspaceId: scenario.workspaceId,
+		});
+		seedTerminalSession(scenario.host, {
+			id: disposedTerminalId,
+			originWorkspaceId: scenario.workspaceId,
+			status: "disposed",
+		});
+		seedTerminalSession(scenario.host, {
+			id: exitedTerminalId,
+			originWorkspaceId: scenario.workspaceId,
+			status: "exited",
+		});
+		seedTerminalSession(scenario.host, {
+			id: orphanTerminalId,
+			originWorkspaceId: null,
+		});
+		seedTerminalSession(scenario.host, {
+			id: fractionalPidTerminalId,
+			originWorkspaceId: scenario.workspaceId,
+		});
+
+		const sessions = listTerminalResourceSessions(
+			scenario.host.db,
+			[
+				{
+					id: activeTerminalId,
+					pid: 123,
+					cols: 80,
+					rows: 24,
+					alive: true,
+				},
+				{
+					id: disposedTerminalId,
+					pid: 124,
+					cols: 80,
+					rows: 24,
+					alive: true,
+				},
+				{
+					id: exitedTerminalId,
+					pid: 125,
+					cols: 80,
+					rows: 24,
+					alive: true,
+				},
+				{
+					id: orphanTerminalId,
+					pid: 126,
+					cols: 80,
+					rows: 24,
+					alive: true,
+				},
+				{
+					id: unknownTerminalId,
+					pid: 127,
+					cols: 80,
+					rows: 24,
+					alive: true,
+				},
+				{
+					id: fractionalPidTerminalId,
+					pid: 128.5,
+					cols: 80,
+					rows: 24,
+					alive: true,
+				},
+				{
+					id: activeTerminalId,
+					pid: 129,
+					cols: 80,
+					rows: 24,
+					alive: false,
+				},
+			],
+			new Map([[activeTerminalId, "Claude Code"]]),
+		);
+
+		expect(sessions).toEqual([
+			{
+				terminalId: activeTerminalId,
+				workspaceId: scenario.workspaceId,
+				pid: 123,
+				title: "Claude Code",
+			},
+		]);
+	});
 });
 
 function shellQuote(value: string): string {
 	return `'${value.replaceAll("'", "'\\''")}'`;
+}
+
+function readPositivePidFile(filePath: string): number | null {
+	if (!existsSync(filePath)) return null;
+	const raw = readFileSync(filePath, "utf8").trim();
+	if (!/^\d+$/.test(raw)) return null;
+	const pid = Number(raw);
+	return Number.isInteger(pid) && pid > 0 ? pid : null;
 }
 
 function isPidAlive(pid: number): boolean {

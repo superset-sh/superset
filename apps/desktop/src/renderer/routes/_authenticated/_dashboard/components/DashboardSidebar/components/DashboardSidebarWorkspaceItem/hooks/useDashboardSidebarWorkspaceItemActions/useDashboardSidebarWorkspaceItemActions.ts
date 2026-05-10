@@ -31,7 +31,7 @@ export function useDashboardSidebarWorkspaceItemActions({
 }: UseDashboardSidebarWorkspaceItemActionsOptions) {
 	const navigate = useNavigate();
 	const matchRoute = useMatchRoute();
-	const navigateAway = useNavigateAwayFromWorkspace();
+	const { navigateAwayFromWorkspace } = useNavigateAwayFromWorkspace();
 	const { activeHostUrl } = useLocalHostService();
 	const { copyToClipboard } = useCopyToClipboard();
 	const { v2Workspaces: workspaceActions } = useOptimisticCollectionActions();
@@ -89,7 +89,7 @@ export function useDashboardSidebarWorkspaceItemActions({
 	};
 
 	const handleRemoveFromSidebar = () => {
-		navigateAway(workspaceId);
+		navigateAwayFromWorkspace(workspaceId);
 		if (isMainWorkspace) {
 			hideWorkspaceInSidebar(workspaceId, projectId);
 			return;

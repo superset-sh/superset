@@ -20,10 +20,27 @@ _superset_debug() {
   printf '%s [codex-wrapper] %s\n' "$(date -u '+%Y-%m-%dT%H:%M:%SZ' 2>/dev/null || date)" "$*" >> "$_superset_debug_log" 2>/dev/null || true
 }
 
+_superset_pid_is_zombie() {
+  _superset_pid_state=$(ps -p "$1" -o stat= 2>/dev/null || true)
+  case "$_superset_pid_state" in
+    *Z*) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
 _superset_cleanup_session_watcher() {
   if [ -n "$SUPERSET_CODEX_SESSION_WATCHER_PID" ]; then
     kill "$SUPERSET_CODEX_SESSION_WATCHER_PID" >/dev/null 2>&1 || true
-    wait "$SUPERSET_CODEX_SESSION_WATCHER_PID" 2>/dev/null || true
+    _superset_wait_i=0
+    while kill -0 "$SUPERSET_CODEX_SESSION_WATCHER_PID" >/dev/null 2>&1 && ! _superset_pid_is_zombie "$SUPERSET_CODEX_SESSION_WATCHER_PID" && [ "$_superset_wait_i" -lt 20 ]; do
+      _superset_wait_i=$((_superset_wait_i + 1))
+      sleep 0.05
+    done
+    if _superset_pid_is_zombie "$SUPERSET_CODEX_SESSION_WATCHER_PID" || ! kill -0 "$SUPERSET_CODEX_SESSION_WATCHER_PID" >/dev/null 2>&1; then
+      wait "$SUPERSET_CODEX_SESSION_WATCHER_PID" 2>/dev/null || true
+    else
+      kill -9 "$SUPERSET_CODEX_SESSION_WATCHER_PID" >/dev/null 2>&1 || true
+    fi
     _superset_debug "session watcher stopped pid=$SUPERSET_CODEX_SESSION_WATCHER_PID"
     SUPERSET_CODEX_SESSION_WATCHER_PID=""
   fi
@@ -40,7 +57,7 @@ trap _superset_exit_trap EXIT HUP INT TERM
 
 if [ "$_superset_has_superset_context" = "1" ] && [ -f "$_superset_notify_path" ]; then
   export CODEX_TUI_RECORD_SESSION="${CODEX_TUI_RECORD_SESSION:-1}"
-  export CODEX_TUI_SESSION_LOG_PATH="${CODEX_TUI_SESSION_LOG_PATH:-${TMPDIR:-/tmp}/superset-codex-session-$$_$(date +%s).jsonl}"
+  export CODEX_TUI_SESSION_LOG_PATH="${TMPDIR:-/tmp}/superset-codex-session-$$_$(date +%s).jsonl"
   _superset_debug "session watcher starting terminalId=$SUPERSET_TERMINAL_ID tabId=$SUPERSET_TAB_ID paneId=$SUPERSET_PANE_ID log=$CODEX_TUI_SESSION_LOG_PATH notify=$_superset_notify_path"
 
   (
@@ -58,7 +75,16 @@ if [ "$_superset_has_superset_context" = "1" ] && [ -f "$_superset_notify_path" 
     _superset_stop_tail() {
       if [ -n "$_superset_tail_pid" ]; then
         kill "$_superset_tail_pid" >/dev/null 2>&1 || true
-        wait "$_superset_tail_pid" 2>/dev/null || true
+        _superset_tail_wait_i=0
+        while kill -0 "$_superset_tail_pid" >/dev/null 2>&1 && ! _superset_pid_is_zombie "$_superset_tail_pid" && [ "$_superset_tail_wait_i" -lt 20 ]; do
+          _superset_tail_wait_i=$((_superset_tail_wait_i + 1))
+          sleep 0.05
+        done
+        if _superset_pid_is_zombie "$_superset_tail_pid" || ! kill -0 "$_superset_tail_pid" >/dev/null 2>&1; then
+          wait "$_superset_tail_pid" 2>/dev/null || true
+        else
+          kill -9 "$_superset_tail_pid" >/dev/null 2>&1 || true
+        fi
         _superset_tail_pid=""
       fi
       rm -f "$_superset_watcher_fifo" >/dev/null 2>&1 || true

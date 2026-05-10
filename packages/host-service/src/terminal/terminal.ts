@@ -29,6 +29,7 @@ import {
 	getTerminalBaseEnv,
 	resolveLaunchShell,
 } from "./env.ts";
+import { listTerminalResourceSessions } from "./resource-sessions.ts";
 import {
 	createModeTracker,
 	type ModeTracker,
@@ -964,6 +965,28 @@ export function registerWorkspaceTerminalRoute({
 		return c.json({
 			sessions: listTerminalSessions({ workspaceId, includeExited: true }),
 		});
+	});
+
+	app.get("/terminal/resource-sessions", async (c) => {
+		try {
+			const daemon = await getDaemonClient();
+			const titlesByTerminalId = new Map(
+				Array.from(sessions.values()).map((session) => [
+					session.terminalId,
+					session.title,
+				]),
+			);
+			return c.json({
+				sessions: listTerminalResourceSessions(
+					db,
+					await daemon.list(),
+					titlesByTerminalId,
+				),
+			});
+		} catch (error) {
+			console.warn("[terminal] Failed to list resource sessions", error);
+			return c.json({ sessions: [] });
+		}
 	});
 
 	app.get(

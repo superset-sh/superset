@@ -453,8 +453,8 @@ function handleKill(payload: Buffer): void {
 	const pid = ptyProcess.pid;
 	signalProcessTreeGroups(pid, signal);
 
-	// Step 1: Kill the process tree using tree-kill
-	// tree-kill traverses by PPID to find all descendants
+	// Step 1: Signal descendants and process groups. tree-kill keeps legacy
+	// PPID traversal behavior for direct children.
 	treeKill(pid, signal, (err) => {
 		if (err) {
 			console.error("[pty-subprocess] Failed to kill process tree:", err);

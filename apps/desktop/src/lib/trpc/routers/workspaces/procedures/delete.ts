@@ -16,7 +16,6 @@ import {
 	getProject,
 	getWorkspace,
 	getWorktree,
-	hideProjectIfNoWorkspaces,
 	markWorkspaceAsDeleting,
 	updateActiveWorkspaceIfRemoved,
 } from "../utils/db-helpers";
@@ -331,10 +330,6 @@ export const createDeleteProcedures = () => {
 					deleteWorktreeRecord(worktree.id);
 				}
 
-				if (project) {
-					hideProjectIfNoWorkspaces(workspace.projectId);
-				}
-
 				const terminalWarning =
 					terminalResult.failed > 0
 						? `${terminalResult.failed} terminal process(es) may still be running`
@@ -361,7 +356,6 @@ export const createDeleteProcedures = () => {
 					.terminal.killByWorkspaceId(input.id);
 
 				deleteWorkspace(input.id);
-				hideProjectIfNoWorkspaces(workspace.projectId);
 				updateActiveWorkspaceIfRemoved(input.id);
 
 				const terminalWarning =
@@ -560,7 +554,6 @@ export const createDeleteProcedures = () => {
 				}
 
 				deleteWorktreeRecord(input.worktreeId);
-				hideProjectIfNoWorkspaces(worktree.projectId);
 
 				track("worktree_deleted", { worktree_id: input.worktreeId });
 
