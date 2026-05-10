@@ -65,7 +65,10 @@ export async function processAssistantMessage({
 			eq(integrationConnections.externalOrgId, teamId),
 			isNull(integrationConnections.disconnectedAt),
 		),
-		orderBy: desc(integrationConnections.updatedAt),
+		orderBy: [
+			desc(integrationConnections.updatedAt),
+			desc(integrationConnections.id),
+		],
 	});
 
 	if (!connection) {

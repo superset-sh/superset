@@ -121,6 +121,8 @@ export async function GET(request: Request) {
 					externalOrgName: tokenData.team.name,
 					connectedByUserId: userId,
 					config,
+					disconnectedAt: null,
+					disconnectReason: null,
 					updatedAt: new Date(),
 				},
 			});

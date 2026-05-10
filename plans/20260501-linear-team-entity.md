@@ -177,7 +177,7 @@ The migration keeps `tasks.slug` dual-written as `${currentTeamKey}-${number}` f
 
 `task.byIdOrKey` (renamed from `byIdOrSlug`) accepts a UUID or a key like `SUPER-103`:
 
-```
+```text
 input = "SUPER-103" or UUID
 
 1. UUID? → tasks.id lookup.

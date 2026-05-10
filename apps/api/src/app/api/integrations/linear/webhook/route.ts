@@ -75,7 +75,10 @@ export async function POST(request: Request) {
 			eq(integrationConnections.provider, "linear"),
 			isNull(integrationConnections.disconnectedAt),
 		),
-		orderBy: desc(integrationConnections.updatedAt),
+		orderBy: [
+			desc(integrationConnections.updatedAt),
+			desc(integrationConnections.id),
+		],
 	});
 
 	if (!connection) {

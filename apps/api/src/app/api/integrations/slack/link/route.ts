@@ -54,7 +54,10 @@ export async function GET(request: Request) {
 			eq(integrationConnections.externalOrgId, payload.teamId),
 			isNull(integrationConnections.disconnectedAt),
 		),
-		orderBy: desc(integrationConnections.updatedAt),
+		orderBy: [
+			desc(integrationConnections.updatedAt),
+			desc(integrationConnections.id),
+		],
 	});
 
 	if (!connection) {
