@@ -148,9 +148,9 @@ export async function formatErrorForSlack(error: unknown): Promise<string> {
 	} catch {
 		// Haiku itself failed (possibly also rate limited) — use static fallback
 		if (error instanceof Anthropic.APIError && error.status === 429) {
-			const retryAfter = (error.headers as Record<string, string>)?.['retry-after'];
+			const retryAfter = error.headers?.get('retry-after');
 			const seconds = retryAfter ? parseInt(retryAfter, 10) : null;
-			const waitMsg = seconds && !isNaN(seconds)
+			const waitMsg = seconds !== null && !isNaN(seconds) && seconds > 0
 				? `Please try again in ${seconds} seconds.`
 				: "Please try again in a moment.";
 			return `I'm a bit overloaded right now — ${waitMsg}`;
