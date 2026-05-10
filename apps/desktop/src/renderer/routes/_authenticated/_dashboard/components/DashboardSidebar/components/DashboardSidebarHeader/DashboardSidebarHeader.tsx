@@ -265,17 +265,19 @@ export function DashboardSidebarHeader({
 				<span className="flex-1 text-left">Tasks</span>
 			</button>
 
-			<div className="flex items-center gap-1">
+			<div className="flex items-center gap-0">
 				<button
 					type="button"
 					onClick={() => openModal()}
-					className="group flex flex-1 min-w-0 items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
+					className="group flex flex-1 min-w-0 items-center gap-1.5 rounded-md px-2 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
 				>
 					<LuPlus
 						className="size-4 shrink-0"
 						strokeWidth={STROKE_WIDTH_THICK}
 					/>
-					<span className="flex-1 text-left">New Workspace</span>
+					<span className="flex-1 truncate text-left whitespace-nowrap">
+						New Workspace
+					</span>
 					<span
 						className={cn(
 							"shrink-0 text-[10px] font-mono tabular-nums text-muted-foreground/60",
