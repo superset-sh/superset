@@ -1,0 +1,1 @@
+export { WorkspaceDetailSkeleton } from "./WorkspaceDetailSkeleton";
