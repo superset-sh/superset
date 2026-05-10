@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { LuFile, LuGitCompareArrows } from "react-icons/lu";
 import { useGitStatus } from "renderer/hooks/host-service/useGitStatus";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { useSettings } from "renderer/stores/settings";
 import type { CommentPaneData } from "../../types";
 import { FilesTab } from "./components/FilesTab";
 import { PRActionHeader } from "./components/PRActionHeader";
@@ -35,7 +36,11 @@ export interface PendingReveal {
 
 interface WorkspaceSidebarProps {
 	onSelectFile: (absolutePath: string, openInNewTab?: boolean) => void;
-	onSelectDiffFile?: (path: string, openInNewTab?: boolean) => void;
+	onSelectDiffFile?: (
+		path: string,
+		openInNewTab?: boolean,
+		line?: number,
+	) => void;
 	onOpenComment?: (comment: CommentPaneData) => void;
 	onOpenChat?: OpenChatFn;
 	onSearch?: () => void;
@@ -123,7 +128,17 @@ export function WorkspaceSidebar({
 		icon: LuGitCompareArrows,
 	};
 
-	const reviewTab = useReviewTab({ workspaceId, onOpenComment });
+	const reviewTab = useReviewTab({
+		workspaceId,
+		onOpenComment,
+		onOpenInDiff: onSelectDiffFile
+			? (path, line, openInNewTab) => {
+					// Force annotations on so the user lands on the comment, not an empty line.
+					useSettings.getState().update("showDiffComments", true);
+					onSelectDiffFile(path, openInNewTab ?? false, line);
+				}
+			: undefined,
+	});
 
 	const { flowState, onRetry } = usePRFlowState(workspaceId);
 	const dispatch = usePRFlowDispatch({

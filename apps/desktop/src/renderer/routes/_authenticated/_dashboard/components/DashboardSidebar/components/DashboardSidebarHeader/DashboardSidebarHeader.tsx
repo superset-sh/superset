@@ -1,4 +1,3 @@
-import { FEATURE_FLAGS } from "@superset/shared/constants";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -9,7 +8,6 @@ import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { useMatchRoute, useNavigate } from "@tanstack/react-router";
-import { useFeatureFlagEnabled } from "posthog-js/react";
 import { HiMiniPlus, HiOutlineClipboardDocumentList } from "react-icons/hi2";
 import {
 	LuClock,
@@ -25,6 +23,7 @@ import { useFolderFirstImport } from "renderer/routes/_authenticated/_dashboard/
 import { NavigationControls } from "renderer/routes/_authenticated/_dashboard/components/NavigationControls";
 import { SidebarToggle } from "renderer/routes/_authenticated/_dashboard/components/SidebarToggle";
 import { OrganizationDropdown } from "renderer/routes/_authenticated/_dashboard/components/TopBar/components/OrganizationDropdown";
+import { ResourceConsumption } from "renderer/routes/_authenticated/_dashboard/components/TopBar/components/ResourceConsumption";
 import { useTasksFilterStore } from "renderer/routes/_authenticated/_dashboard/tasks/stores/tasks-filter-state";
 import { STROKE_WIDTH_THICK } from "renderer/screens/main/components/WorkspaceSidebar/constants";
 import { useOpenNewProjectModal } from "renderer/stores/add-repository-modal";
@@ -61,6 +60,7 @@ export function DashboardSidebarHeader({
 			toast.success("Project ready — open it from the sidebar.");
 		}
 	};
+
 	const shortcutText = useHotkeyDisplay("NEW_WORKSPACE").text;
 	const { data: platform } = electronTrpc.window.getPlatform.useQuery();
 	// Default to Mac while loading so we don't briefly cover the traffic lights.
@@ -71,14 +71,12 @@ export function DashboardSidebarHeader({
 	const isTasksOpen = !!matchRoute({ to: "/tasks", fuzzy: true });
 	const isAutomationsOpen = !!matchRoute({ to: "/automations", fuzzy: true });
 
-	const showAutomations = useFeatureFlagEnabled(
-		FEATURE_FLAGS.AUTOMATIONS_ACCESS,
-	);
-
 	const {
 		tab: lastTab,
 		assignee: lastAssignee,
 		search: lastSearch,
+		typeTab: lastTypeTab,
+		projectFilter: lastProjectFilter,
 	} = useTasksFilterStore();
 
 	const handleWorkspacesClick = () => {
@@ -97,6 +95,8 @@ export function DashboardSidebarHeader({
 			if (lastTab !== "all") search.tab = lastTab;
 			if (lastAssignee) search.assignee = lastAssignee;
 			if (lastSearch) search.search = lastSearch;
+			if (lastTypeTab !== "tasks") search.type = lastTypeTab;
+			if (lastProjectFilter) search.project = lastProjectFilter;
 			navigate({ to: "/tasks", search });
 		});
 	};
@@ -128,6 +128,24 @@ export function DashboardSidebarHeader({
 					<TooltipTrigger asChild>
 						<button
 							type="button"
+							onClick={handleAutomationsClick}
+							className={cn(
+								"flex size-8 items-center justify-center rounded-md transition-colors",
+								isAutomationsOpen
+									? "bg-accent text-foreground"
+									: "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
+							)}
+						>
+							<LuClock className="size-4" />
+						</button>
+					</TooltipTrigger>
+					<TooltipContent side="right">Automations</TooltipContent>
+				</Tooltip>
+
+				<Tooltip delayDuration={300}>
+					<TooltipTrigger asChild>
+						<button
+							type="button"
 							onClick={handleTasksClick}
 							className={cn(
 								"flex size-8 items-center justify-center rounded-md transition-colors",
@@ -141,26 +159,6 @@ export function DashboardSidebarHeader({
 					</TooltipTrigger>
 					<TooltipContent side="right">Tasks</TooltipContent>
 				</Tooltip>
-
-				{showAutomations && (
-					<Tooltip delayDuration={300}>
-						<TooltipTrigger asChild>
-							<button
-								type="button"
-								onClick={handleAutomationsClick}
-								className={cn(
-									"flex size-8 items-center justify-center rounded-md transition-colors",
-									isAutomationsOpen
-										? "bg-accent text-foreground"
-										: "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
-								)}
-							>
-								<LuClock className="size-4" />
-							</button>
-						</TooltipTrigger>
-						<TooltipContent side="right">Automations</TooltipContent>
-					</Tooltip>
-				)}
 
 				<Tooltip delayDuration={300}>
 					<TooltipTrigger asChild>
@@ -192,7 +190,10 @@ export function DashboardSidebarHeader({
 						</TooltipTrigger>
 						<TooltipContent side="right">Add repository</TooltipContent>
 					</Tooltip>
-					<DropdownMenuContent align="start">
+					<DropdownMenuContent
+						align="start"
+						onCloseAutoFocus={(event) => event.preventDefault()}
+					>
 						<DropdownMenuItem onSelect={() => openNewProject()}>
 							<HiMiniPlus className="size-4" />
 							Create new project
@@ -217,7 +218,8 @@ export function DashboardSidebarHeader({
 				style={{ paddingLeft: isMac ? "80px" : "8px" }}
 			>
 				<SidebarToggle />
-				<NavigationControls />
+				<NavigationControls showHistoryDropdown={false} />
+				<ResourceConsumption surface="v2" />
 			</div>
 			<OrganizationDropdown variant="expanded" />
 
@@ -235,21 +237,19 @@ export function DashboardSidebarHeader({
 				<span className="flex-1 text-left">Workspaces</span>
 			</button>
 
-			{showAutomations && (
-				<button
-					type="button"
-					onClick={handleAutomationsClick}
-					className={cn(
-						"flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium transition-colors",
-						isAutomationsOpen
-							? "bg-accent text-foreground"
-							: "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
-					)}
-				>
-					<LuClock className="size-4 shrink-0" />
-					<span className="flex-1 text-left">Automations</span>
-				</button>
-			)}
+			<button
+				type="button"
+				onClick={handleAutomationsClick}
+				className={cn(
+					"flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium transition-colors",
+					isAutomationsOpen
+						? "bg-accent text-foreground"
+						: "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
+				)}
+			>
+				<LuClock className="size-4 shrink-0" />
+				<span className="flex-1 text-left">Automations</span>
+			</button>
 
 			<button
 				type="button"
@@ -300,7 +300,10 @@ export function DashboardSidebarHeader({
 						</TooltipTrigger>
 						<TooltipContent side="right">Add repository</TooltipContent>
 					</Tooltip>
-					<DropdownMenuContent align="end">
+					<DropdownMenuContent
+						align="end"
+						onCloseAutoFocus={(event) => event.preventDefault()}
+					>
 						<DropdownMenuItem onSelect={() => openNewProject()}>
 							<HiMiniPlus className="size-4" />
 							Create new project

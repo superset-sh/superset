@@ -44,7 +44,9 @@ export function getMastraGlobalHooksJsonPath(): string {
 }
 
 export function createMastraWrapper(): void {
-	const script = buildWrapperScript("mastracode", `exec "$REAL_BIN" "$@"`);
+	const script = buildWrapperScript("mastracode", `exec "$REAL_BIN" "$@"`, {
+		agentId: "mastracode",
+	});
 	createWrapper("mastracode", script);
 }
 
@@ -66,8 +68,15 @@ export function getMastraHooksJsonContent(notifyScriptPath: string): string {
 		);
 	}
 
-	const notifyCommand = `bash ${quoteShellPath(notifyScriptPath)}`;
-	const managedEvents = ["UserPromptSubmit", "Stop", "PostToolUse"] as const;
+	const notifyCommand = `SUPERSET_AGENT_ID=mastracode bash ${quoteShellPath(notifyScriptPath)}`;
+	// Session lifecycle drives the pane icon binding; per-prompt drives status.
+	const managedEvents = [
+		"SessionStart",
+		"SessionEnd",
+		"UserPromptSubmit",
+		"Stop",
+		"PostToolUse",
+	] as const;
 
 	for (const eventName of managedEvents) {
 		const current = existing[eventName];

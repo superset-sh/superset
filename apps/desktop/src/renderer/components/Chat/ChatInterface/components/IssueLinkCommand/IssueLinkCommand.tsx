@@ -155,7 +155,7 @@ export function IssueLinkCommand({
 				<TooltipContent side="bottom">{tooltipLabel}</TooltipContent>
 			</Tooltip>
 			<PopoverContent
-				className="w-80 p-0"
+				className="w-[440px] p-0"
 				align="start"
 				side="bottom"
 				onWheel={(event) => event.stopPropagation()}
@@ -179,7 +179,7 @@ export function IssueLinkCommand({
 							Show closed
 						</label>
 					</div>
-					<CommandList className="max-h-[280px]">
+					<CommandList className="max-h-[420px]">
 						{filteredTasks.length === 0 && (
 							<CommandEmpty>
 								{showClosed ? "No issues found." : "No open issues found."}
@@ -211,25 +211,35 @@ export function IssueLinkCommand({
 													task.externalUrl ?? undefined,
 												)
 											}
-											className="group"
+											className="group items-start gap-3 rounded-md px-2.5 py-2"
 										>
-											{status ? (
-												<StatusIcon
-													type={status.type}
-													color={status.color}
-													progress={status.progressPercent ?? undefined}
-												/>
-											) : (
-												<span className="size-3.5 shrink-0 rounded-full border border-muted-foreground/40" />
-											)}
-											<span className="max-w-24 shrink-0 truncate font-mono text-xs text-muted-foreground">
-												{task.slug}
+											<span className="mt-0.5 flex size-4 shrink-0 items-center justify-center">
+												{status ? (
+													<StatusIcon
+														type={status.type}
+														color={status.color}
+														progress={status.progressPercent ?? undefined}
+													/>
+												) : (
+													<span className="size-3.5 rounded-full border border-muted-foreground/40" />
+												)}
 											</span>
-											<span className="min-w-0 flex-1 truncate text-xs">
-												{task.title}
-											</span>
-											<span className="shrink-0 hidden text-xs text-muted-foreground group-data-[selected=true]:inline">
-												Link ↵
+											<div className="flex min-w-0 flex-1 flex-col gap-0.5">
+												<span className="truncate text-sm leading-snug">
+													{task.title}
+												</span>
+												<span className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+													<span className="font-mono">{task.slug}</span>
+													{status ? (
+														<>
+															<span aria-hidden>·</span>
+															<span className="capitalize">{status.type}</span>
+														</>
+													) : null}
+												</span>
+											</div>
+											<span className="ml-2 hidden shrink-0 self-center text-[11px] text-muted-foreground group-data-[selected=true]:inline">
+												↵
 											</span>
 										</CommandItem>
 									);

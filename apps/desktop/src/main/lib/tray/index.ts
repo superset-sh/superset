@@ -2,6 +2,7 @@ import { existsSync } from "node:fs";
 import { join } from "node:path";
 import {
 	app,
+	dialog,
 	Menu,
 	type MenuItemConstructorOptions,
 	nativeImage,
@@ -9,7 +10,7 @@ import {
 } from "electron";
 import { loadToken } from "lib/trpc/routers/auth/utils/auth-functions";
 import { env } from "main/env.main";
-import { focusMainWindow, quitApp } from "main/index";
+import { focusMainWindow, quitApp, quitAppCompletely } from "main/index";
 import {
 	getHostServiceCoordinator,
 	type HostServiceStatusEvent,
@@ -81,6 +82,26 @@ function createTrayIcon(): Electron.NativeImage | null {
 function openSettings(): void {
 	focusMainWindow();
 	menuEmitter.emit("open-settings");
+}
+
+async function confirmAndQuitCompletely(): Promise<void> {
+	try {
+		const { response } = await dialog.showMessageBox({
+			type: "warning",
+			buttons: ["Quit Completely", "Cancel"],
+			defaultId: 1,
+			cancelId: 1,
+			title: "Quit Superset Completely",
+			message: "Quit Superset and stop all background services?",
+			detail:
+				"All open terminal sessions will be killed and any running host-services will be stopped. Use “Close Superset” instead if you want services to keep running for the next launch.",
+		});
+		if (response === 0) {
+			quitAppCompletely();
+		}
+	} catch (error) {
+		console.error("[Tray] Quit-completely confirmation failed:", error);
+	}
 }
 
 interface HostInfo {
@@ -229,8 +250,15 @@ async function updateTrayMenu(): Promise<void> {
 		},
 		{ type: "separator" },
 		{
-			label: "Quit Superset",
+			label: "Close Superset",
 			click: () => quitApp(),
+		},
+		{ type: "separator" },
+		{
+			label: "Quit Superset Completely",
+			click: () => {
+				void confirmAndQuitCompletely();
+			},
 		},
 	]);
 

@@ -4,7 +4,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useTasksFilterStore } from "../../stores/tasks-filter-state";
 import { BoardContent } from "./components/BoardContent";
+import { GitHubIssuesContent } from "./components/GitHubIssuesContent";
 import { LinearCTA } from "./components/LinearCTA";
+import { PullRequestsContent } from "./components/PullRequestsContent";
 import { TableContent } from "./components/TableContent";
 import { type TabValue, TasksTopBar } from "./components/TasksTopBar";
 import type { TaskWithStatus } from "./hooks/useTasksData";
@@ -13,41 +15,77 @@ interface TasksViewProps {
 	initialTab?: "all" | "active" | "backlog";
 	initialAssignee?: string;
 	initialSearch?: string;
+	initialType?: "tasks" | "prs" | "issues";
+	initialProject?: string;
 }
 
 export function TasksView({
 	initialTab,
 	initialAssignee,
 	initialSearch,
+	initialType,
+	initialProject,
 }: TasksViewProps) {
 	const navigate = useNavigate();
 	const collections = useCollections();
 	const currentTab: TabValue = initialTab ?? "all";
 	const [searchQuery, setSearchQuery] = useState(initialSearch ?? "");
 	const assigneeFilter = initialAssignee ?? null;
+	const typeTab = initialType ?? "tasks";
+	const projectFilter = initialProject ?? null;
 
 	const {
 		setTab: storeSetTab,
 		setAssignee: storeSetAssignee,
 		setSearch: storeSetSearch,
+		setTypeTab: storeSetTypeTab,
+		setProjectFilter: storeSetProjectFilter,
 		viewMode,
 		setViewMode,
 	} = useTasksFilterStore();
 
 	const debounceRef = useRef<ReturnType<typeof setTimeout>>(null);
 
+	const buildSearch = useCallback(
+		(overrides: {
+			tab?: TabValue;
+			assignee?: string | null;
+			search?: string;
+			type?: "tasks" | "prs" | "issues";
+			project?: string | null;
+		}) => {
+			const tab = overrides.tab ?? currentTab;
+			const assignee =
+				overrides.assignee !== undefined ? overrides.assignee : assigneeFilter;
+			const query =
+				overrides.search !== undefined ? overrides.search : searchQuery;
+			const type = overrides.type ?? typeTab;
+			const project =
+				overrides.project !== undefined ? overrides.project : projectFilter;
+
+			const search: Record<string, string> = {};
+			if (tab !== "all") search.tab = tab;
+			if (assignee) search.assignee = assignee;
+			if (query) search.search = query;
+			if (type !== "tasks") search.type = type;
+			if (project) search.project = project;
+			return search;
+		},
+		[currentTab, assigneeFilter, searchQuery, typeTab, projectFilter],
+	);
+
 	const syncSearchToUrl = useCallback(
 		(query: string) => {
 			if (debounceRef.current) clearTimeout(debounceRef.current);
 			debounceRef.current = setTimeout(() => {
-				const search: Record<string, string> = {};
-				if (currentTab !== "all") search.tab = currentTab;
-				if (assigneeFilter) search.assignee = assigneeFilter;
-				if (query) search.search = query;
-				navigate({ to: "/tasks", search, replace: true });
+				navigate({
+					to: "/tasks",
+					search: buildSearch({ search: query }),
+					replace: true,
+				});
 			}, 300);
 		},
-		[navigate, currentTab, assigneeFilter],
+		[navigate, buildSearch],
 	);
 
 	useEffect(() => {
@@ -77,6 +115,14 @@ export function TasksView({
 		storeSetSearch(searchQuery);
 	}, [searchQuery, storeSetSearch]);
 
+	useEffect(() => {
+		storeSetTypeTab(typeTab);
+	}, [typeTab, storeSetTypeTab]);
+
+	useEffect(() => {
+		storeSetProjectFilter(projectFilter);
+	}, [projectFilter, storeSetProjectFilter]);
+
 	const { data: integrations } = useLiveQuery(
 		(q) =>
 			q
@@ -87,23 +133,43 @@ export function TasksView({
 		[collections],
 	);
 
+	const { data: v2Projects } = useLiveQuery(
+		(q) => q.from({ projects: collections.v2Projects }),
+		[collections],
+	);
+
+	useEffect(() => {
+		if (projectFilter) return;
+		const firstProject = v2Projects?.[0];
+		if (!firstProject) return;
+		navigate({
+			to: "/tasks",
+			search: buildSearch({ project: firstProject.id }),
+			replace: true,
+		});
+	}, [projectFilter, v2Projects, navigate, buildSearch]);
+
 	const isLinearConnected =
 		integrations?.some((i) => i.provider === "linear") ?? false;
 
 	const handleTabChange = (tab: TabValue) => {
-		const search: Record<string, string> = {};
-		if (tab !== "all") search.tab = tab;
-		if (assigneeFilter) search.assignee = assigneeFilter;
-		if (searchQuery) search.search = searchQuery;
-		navigate({ to: "/tasks", search, replace: true });
+		navigate({ to: "/tasks", search: buildSearch({ tab }), replace: true });
 	};
 
 	const handleAssigneeFilterChange = (assignee: string | null) => {
-		const search: Record<string, string> = {};
-		if (currentTab !== "all") search.tab = currentTab;
-		if (assignee) search.assignee = assignee;
-		if (searchQuery) search.search = searchQuery;
-		navigate({ to: "/tasks", search, replace: true });
+		navigate({
+			to: "/tasks",
+			search: buildSearch({ assignee }),
+			replace: true,
+		});
+	};
+
+	const handleTypeTabChange = (type: "tasks" | "prs" | "issues") => {
+		navigate({ to: "/tasks", search: buildSearch({ type }), replace: true });
+	};
+
+	const handleProjectFilterChange = (project: string) => {
+		navigate({ to: "/tasks", search: buildSearch({ project }), replace: true });
 	};
 
 	const [selectedTasks, setSelectedTasks] = useState<TaskWithStatus[]>([]);
@@ -122,18 +188,19 @@ export function TasksView({
 	}, []);
 
 	const handleTaskClick = (task: TaskWithStatus) => {
-		const search: Record<string, string> = {};
-		if (currentTab !== "all") search.tab = currentTab;
-		if (assigneeFilter) search.assignee = assigneeFilter;
-		if (searchQuery) search.search = searchQuery;
 		navigate({
 			to: "/tasks/$taskId",
 			params: { taskId: task.id },
-			search,
+			search: buildSearch({}),
 		});
 	};
 
-	const showLinearCTA = integrations !== undefined && !isLinearConnected;
+	const showLinearCTA =
+		integrations !== undefined && !isLinearConnected && typeTab === "tasks";
+
+	const showTasks = typeTab === "tasks";
+	const showPRs = typeTab === "prs";
+	const showIssues = typeTab === "issues";
 
 	return (
 		<div className="flex-1 flex flex-col min-h-0 min-w-0 overflow-hidden">
@@ -149,26 +216,47 @@ export function TasksView({
 					onClearSelection={handleClearSelection}
 					viewMode={viewMode}
 					onViewModeChange={setViewMode}
+					typeTab={typeTab}
+					onTypeTabChange={handleTypeTabChange}
+					projectFilter={projectFilter}
+					onProjectFilterChange={handleProjectFilterChange}
 				/>
 			)}
 
 			{showLinearCTA ? (
 				<LinearCTA />
-			) : viewMode === "board" ? (
-				<BoardContent
-					filterTab={currentTab}
-					searchQuery={searchQuery}
-					assigneeFilter={assigneeFilter}
-					onTaskClick={handleTaskClick}
-				/>
 			) : (
-				<TableContent
-					filterTab={currentTab}
-					searchQuery={searchQuery}
-					assigneeFilter={assigneeFilter}
-					onTaskClick={handleTaskClick}
-					onSelectionChange={handleSelectionChange}
-				/>
+				<div className="flex-1 flex flex-col min-h-0 min-w-0 overflow-hidden">
+					{showTasks &&
+						(viewMode === "board" ? (
+							<BoardContent
+								filterTab={currentTab}
+								searchQuery={searchQuery}
+								assigneeFilter={assigneeFilter}
+								onTaskClick={handleTaskClick}
+							/>
+						) : (
+							<TableContent
+								filterTab={currentTab}
+								searchQuery={searchQuery}
+								assigneeFilter={assigneeFilter}
+								onTaskClick={handleTaskClick}
+								onSelectionChange={handleSelectionChange}
+							/>
+						))}
+					{showPRs && (
+						<PullRequestsContent
+							projectFilter={projectFilter}
+							searchQuery={searchQuery}
+						/>
+					)}
+					{showIssues && (
+						<GitHubIssuesContent
+							projectFilter={projectFilter}
+							searchQuery={searchQuery}
+						/>
+					)}
+				</div>
 			)}
 		</div>
 	);

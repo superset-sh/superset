@@ -58,6 +58,21 @@ describe("agentConfigsRouter", () => {
 			expect(result.find((row) => row.presetId === "superset")).toBeUndefined();
 		});
 
+		it("seeds Codex with its most permissive flag", async () => {
+			const caller = createCaller();
+			const result = await caller.list();
+			const codex = result.find((row) => row.presetId === "codex");
+
+			expect(codex?.args).toContain(
+				"--dangerously-bypass-approvals-and-sandbox",
+			);
+			expect(codex?.args).toEqual([
+				"--dangerously-bypass-approvals-and-sandbox",
+			]);
+			expect(codex?.args).not.toContain("--sandbox");
+			expect(codex?.args).not.toContain("--ask-for-approval");
+		});
+
 		it("returns existing rows on subsequent calls without re-seeding", async () => {
 			const caller = createCaller();
 			const first = await caller.list();

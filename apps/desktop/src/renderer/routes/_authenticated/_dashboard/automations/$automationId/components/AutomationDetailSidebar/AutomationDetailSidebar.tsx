@@ -54,8 +54,8 @@ export function AutomationDetailSidebar({
 		.sort((a, b) => b.getTime() - a.getTime())[0];
 
 	return (
-		<aside className="flex w-[368px] shrink-0 flex-col border-l overflow-hidden">
-			<div className="flex flex-col gap-8 p-6 pb-2 shrink-0">
+		<aside className="flex w-[360px] shrink-0 flex-col overflow-hidden border-l border-border">
+			<div className="flex shrink-0 flex-col gap-6 px-5 pt-5 pb-2">
 				<Section title="Status">
 					<Row
 						label="Status"
@@ -170,7 +170,7 @@ export function AutomationDetailSidebar({
 				</Section>
 			</div>
 
-			<div className="mt-8 flex min-h-0 flex-1 flex-col gap-2 pl-6 pr-3 pb-6">
+			<div className="mt-6 flex min-h-0 flex-1 flex-col gap-2 pl-5 pr-3 pb-5">
 				<SectionTitle>Previous runs</SectionTitle>
 				<div className="min-h-0 flex-1 overflow-y-auto">
 					<PreviousRunsList runs={recentRuns} />

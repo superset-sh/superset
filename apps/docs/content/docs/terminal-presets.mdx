@@ -41,11 +41,11 @@ Presets are parallel by default.
 
 ## Quick-Add Templates
 
-Pre-configured presets for popular AI agents. Defaults are safe-by-default — agents can read and edit files, but still prompt before running shell commands or touching files outside your workspace. Edit any preset to opt into a more permissive mode.
+Pre-configured presets for popular AI agents. Defaults mirror the bundled Superset launch settings for each agent. Codex uses its most permissive bypass flag; edit any preset to change its permission mode.
 
 - **amp** - `amp` (built-in permission rules auto-deny destructive ops)
 - **claude** - `claude --permission-mode acceptEdits`
-- **codex** - `codex ... --sandbox workspace-write --ask-for-approval never` (workspace-sandboxed)
+- **codex** - `codex --dangerously-bypass-approvals-and-sandbox` (most permissive)
 - **gemini** - `gemini --approval-mode=auto_edit`
 - **copilot** - `copilot --allow-tool=write`
 - **cursor-agent** - `cursor-agent` (prompts for every action)

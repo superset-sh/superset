@@ -17,12 +17,13 @@ export type {
 	PaneContext,
 	PaneDefinition,
 	PaneRegistry,
+	PaneTitleSource,
 	RendererContext,
 	TabContext,
 	WorkspaceInteractionState,
 	WorkspaceProps,
 } from "./react";
-export { resolveTabTitle, Workspace } from "./react";
+export { resolveTabTitle, useTabTitle, Workspace } from "./react";
 export type {
 	LayoutNode,
 	Pane,

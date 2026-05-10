@@ -8,13 +8,13 @@ interface MetricBadgeProps {
 
 export function MetricBadge({ label, value, tooltip }: MetricBadgeProps) {
 	const content = (
-		<div className="min-w-0 px-1 py-0.5">
-			<span className="block text-[10px] text-muted-foreground uppercase tracking-wide whitespace-nowrap">
+		<div className="min-w-0 px-3 first:pl-0 last:pr-0">
+			<div className="text-[10px] font-medium uppercase tracking-[0.06em] text-muted-foreground/80">
 				{label}
-			</span>
-			<span className="block text-base leading-5 font-medium tabular-nums whitespace-nowrap text-muted-foreground">
+			</div>
+			<div className="mt-1.5 text-[15px] leading-none font-medium tabular-nums tracking-tight text-foreground whitespace-nowrap">
 				{value}
-			</span>
+			</div>
 		</div>
 	);
 

@@ -47,7 +47,7 @@ export function AutomationBody({
 	});
 
 	return (
-		<div className="flex-1 overflow-y-auto px-8 py-6">
+		<div className="flex-1 overflow-y-auto px-8 py-8">
 			<EmojiTextInput
 				value={name}
 				onChange={setName}

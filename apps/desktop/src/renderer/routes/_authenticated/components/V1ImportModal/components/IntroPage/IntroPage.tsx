@@ -1,6 +1,6 @@
 export function IntroPage() {
 	return (
-		<div className="flex h-[454px] flex-col items-center justify-center bg-background px-14 text-center">
+		<div className="flex min-h-0 flex-1 flex-col items-center justify-center overflow-y-auto bg-background px-14 py-8 text-center">
 			<div className="text-2xl font-semibold text-foreground">
 				Let's get you started
 			</div>

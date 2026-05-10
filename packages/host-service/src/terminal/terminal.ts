@@ -1,4 +1,5 @@
 import { existsSync } from "node:fs";
+import { isAbsolute, join } from "node:path";
 import { StringDecoder } from "node:string_decoder";
 import type { NodeWebSocket } from "@hono/node-ws";
 import {
@@ -29,6 +30,11 @@ import {
 	getTerminalBaseEnv,
 	resolveLaunchShell,
 } from "./env.ts";
+import { listTerminalResourceSessions } from "./resource-sessions.ts";
+import {
+	createModeTracker,
+	type ModeTracker,
+} from "./terminal-mode-tracker.ts";
 
 /**
  * Thin adapter exposing approximately the IPty surface that the rest of
@@ -231,6 +237,13 @@ interface TerminalSession {
 	 * actually broadcast to the renderer.
 	 */
 	portHintDecoder: StringDecoder;
+
+	/**
+	 * Mirrors PTY output through a headless xterm so a reattaching renderer
+	 * can be resynced via a mode preamble — covers kitty keyboard, bracketed
+	 * paste, focus, mouse, etc. that the FIFO can't restore on its own.
+	 */
+	modeTracker: ModeTracker;
 }
 
 /** PTY lifetime is independent of socket lifetime — sockets detach/reattach freely. */
@@ -268,6 +281,11 @@ onDaemonDisconnect((err) => {
 			}
 			session.unsubscribeDaemon = null;
 		}
+		try {
+			session.modeTracker.dispose();
+		} catch {
+			// best-effort
+		}
 	}
 	sessions.clear();
 });
@@ -288,6 +306,11 @@ export function __resetSessionsForTesting(): void {
 			} catch {
 				// best-effort
 			}
+		}
+		try {
+			session.modeTracker.dispose();
+		} catch {
+			// best-effort
 		}
 	}
 	sessions.clear();
@@ -340,6 +363,30 @@ export function listTerminalSessions(
 			attached: pruneAndCountOpenSockets(session) > 0,
 			title: session.title,
 		}));
+}
+
+export function writeInputToSession({
+	terminalId,
+	workspaceId,
+	data,
+}: {
+	terminalId: string;
+	workspaceId: string;
+	data: string;
+}): { success: true } | { error: string } {
+	const session = sessions.get(terminalId);
+	if (!session) {
+		return { error: "Terminal session not found" };
+	}
+	if (session.workspaceId !== workspaceId) {
+		return { error: "Terminal session does not belong to this workspace" };
+	}
+	if (session.exited) {
+		return { error: "Terminal session has exited" };
+	}
+
+	session.pty.write(data);
+	return { success: true };
 }
 
 function sendMessage(
@@ -427,11 +474,22 @@ function broadcastBytes(session: TerminalSession, bytes: Uint8Array): number {
 }
 
 function replayBuffer(session: TerminalSession, socket: TerminalSocket) {
-	if (session.buffer.length === 0) return;
-	let total = 0;
-	for (const b of session.buffer) total += b.byteLength;
-	const combined = new Uint8Array(total);
+	// Preamble first, then FIFO. Mode-setting escapes (kitty keyboard,
+	// bracketed paste, focus, …) are typically emitted once at startup and
+	// broadcast away rather than buffered, so a fresh xterm needs them
+	// re-asserted on every attach — even when the FIFO is empty.
+	const preamble = session.modeTracker.buildPreamble();
+	let bufferTotal = 0;
+	for (const b of session.buffer) bufferTotal += b.byteLength;
+	const preambleLen = preamble?.byteLength ?? 0;
+	if (preambleLen === 0 && bufferTotal === 0) return;
+
+	const combined = new Uint8Array(preambleLen + bufferTotal);
 	let offset = 0;
+	if (preamble) {
+		combined.set(preamble, offset);
+		offset += preamble.byteLength;
+	}
 	for (const b of session.buffer) {
 		combined.set(b, offset);
 		offset += b.byteLength;
@@ -457,7 +515,9 @@ function resolveShellReady(
 	}
 	// Flush held marker bytes — they weren't part of a full marker
 	if (session.scanState.heldBytes.length > 0) {
-		bufferOutput(session, Uint8Array.from(session.scanState.heldBytes));
+		const heldBytes = Uint8Array.from(session.scanState.heldBytes);
+		session.modeTracker.feed(heldBytes);
+		bufferOutput(session, heldBytes);
 		session.scanState.heldBytes.length = 0;
 	}
 	session.scanState.matchPos = 0;
@@ -517,6 +577,11 @@ export function disposeSession(terminalId: string, db: HostDb) {
 			}
 			session.unsubscribeDaemon = null;
 		}
+		try {
+			session.modeTracker.dispose();
+		} catch {
+			// best-effort
+		}
 		sessions.delete(terminalId);
 	}
 
@@ -568,6 +633,7 @@ interface CreateTerminalSessionOptions {
 	eventBus?: EventBus;
 	/** Command to run after the shell is ready. Queued behind shellReadyPromise. */
 	initialCommand?: string;
+	cwd?: string;
 	/** Hidden sessions are process-internal and should not appear in user pickers. */
 	listed?: boolean;
 	cols?: number;
@@ -583,6 +649,22 @@ interface CreateTerminalSessionOptions {
 	replayOnAdoption?: boolean;
 }
 
+function resolveTerminalCwd(
+	cwdOverride: string | undefined,
+	worktreePath: string,
+): string {
+	if (!cwdOverride) return worktreePath;
+	if (isAbsolute(cwdOverride)) {
+		return existsSync(cwdOverride) ? cwdOverride : worktreePath;
+	}
+
+	const relativePath = cwdOverride.startsWith("./")
+		? cwdOverride.slice(2)
+		: cwdOverride;
+	const resolvedPath = join(worktreePath, relativePath);
+	return existsSync(resolvedPath) ? resolvedPath : worktreePath;
+}
+
 export async function createTerminalSessionInternal({
 	terminalId,
 	workspaceId,
@@ -590,6 +672,7 @@ export async function createTerminalSessionInternal({
 	db,
 	eventBus,
 	initialCommand,
+	cwd: cwdOverride,
 	listed = true,
 	cols: requestedCols,
 	rows: requestedRows,
@@ -607,8 +690,13 @@ export async function createTerminalSessionInternal({
 		.findFirst({ where: eq(workspaces.id, workspaceId) })
 		.sync();
 
-	if (!workspace || !existsSync(workspace.worktreePath)) {
-		return { error: "Workspace worktree not found" };
+	if (!workspace) {
+		return { error: "Workspace not found" };
+	}
+	if (!existsSync(workspace.worktreePath)) {
+		return {
+			error: `Workspace worktree no longer exists: ${workspace.worktreePath}`,
+		};
 	}
 
 	// Derive root path from the workspace's project
@@ -620,7 +708,7 @@ export async function createTerminalSessionInternal({
 		rootPath = project.repoPath;
 	}
 
-	const cwd = workspace.worktreePath;
+	const cwd = resolveTerminalCwd(cwdOverride, workspace.worktreePath);
 	const cols = normalizeTerminalDimension(
 		requestedCols,
 		MIN_TERMINAL_COLS,
@@ -770,6 +858,7 @@ export async function createTerminalSessionInternal({
 		// host-service lifetime — flag it as queued so we don't double-fire it.
 		initialCommandQueued: isAdopted,
 		portHintDecoder: new StringDecoder("utf8"),
+		modeTracker: createModeTracker(cols, rows),
 	};
 	sessions.set(terminalId, session);
 	portManager.upsertSession(terminalId, workspaceId, pty.pid);
@@ -819,6 +908,10 @@ export async function createTerminalSessionInternal({
 				);
 				if (hintText.length > 0) portManager.checkOutputForHint(hintText);
 
+				// Feed the tracker on every byte — broadcast skips the FIFO,
+				// so this is the only path that catches startup mode escapes.
+				session.modeTracker.feed(bytes);
+
 				if (broadcastBytes(session, bytes) === 0) {
 					bufferOutput(session, bytes);
 				}
@@ -827,11 +920,12 @@ export async function createTerminalSessionInternal({
 				session.exited = true;
 				session.exitCode = code ?? 0;
 				session.exitSignal = signal ?? 0;
+				const occurredAt = Date.now();
 
 				portManager.unregisterSession(terminalId);
 
 				db.update(terminalSessions)
-					.set({ status: "exited", endedAt: Date.now() })
+					.set({ status: "exited", endedAt: occurredAt })
 					.where(eq(terminalSessions.id, terminalId))
 					.run();
 
@@ -847,7 +941,7 @@ export async function createTerminalSessionInternal({
 					eventType: "exit",
 					exitCode: session.exitCode,
 					signal: session.exitSignal,
-					occurredAt: Date.now(),
+					occurredAt,
 				});
 			},
 		},
@@ -872,6 +966,7 @@ export function registerWorkspaceTerminalRoute({
 			workspaceId: string;
 			themeType?: string;
 			initialCommand?: string;
+			cwd?: string;
 			cols?: number;
 			rows?: number;
 		}>();
@@ -887,6 +982,7 @@ export function registerWorkspaceTerminalRoute({
 			db,
 			eventBus,
 			initialCommand: body.initialCommand,
+			cwd: body.cwd,
 			cols: body.cols,
 			rows: body.rows,
 		});
@@ -920,6 +1016,28 @@ export function registerWorkspaceTerminalRoute({
 		return c.json({
 			sessions: listTerminalSessions({ workspaceId, includeExited: true }),
 		});
+	});
+
+	app.get("/terminal/resource-sessions", async (c) => {
+		try {
+			const daemon = await getDaemonClient();
+			const titlesByTerminalId = new Map(
+				Array.from(sessions.values()).map((session) => [
+					session.terminalId,
+					session.title,
+				]),
+			);
+			return c.json({
+				sessions: listTerminalResourceSessions(
+					db,
+					await daemon.list(),
+					titlesByTerminalId,
+				),
+			});
+		} catch (error) {
+			console.warn("[terminal] Failed to list resource sessions", error);
+			return c.json({ sessions: [] });
+		}
 	});
 
 	app.get(
@@ -1071,6 +1189,7 @@ export function registerWorkspaceTerminalRoute({
 							DEFAULT_TERMINAL_ROWS,
 						);
 						session.pty.resize(cols, rows);
+						session.modeTracker.resize(cols, rows);
 					}
 				},
 

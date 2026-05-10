@@ -74,6 +74,7 @@ async function main(): Promise<void> {
 						authToken: env.HOST_SERVICE_SECRET,
 						startedAt,
 						organizationId: env.ORGANIZATION_ID,
+						spawnedByAppVersion: env.SUPERSET_APP_VERSION,
 					});
 				} catch (error) {
 					console.error("[host-service] Failed to write manifest:", error);

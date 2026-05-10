@@ -44,12 +44,12 @@ export const WorkspaceRunButton = memo(function WorkspaceRunButton({
 		workspaceId,
 		worktreePath,
 	});
-	const { data: runConfig } =
-		electronTrpc.workspaces.getResolvedRunCommands.useQuery(
+	const { data: runDefinition } =
+		electronTrpc.workspaces.getWorkspaceRunDefinition.useQuery(
 			{ workspaceId },
 			{ enabled: !!workspaceId },
 		);
-	const hasRunCommand = (runConfig?.commands ?? []).some(
+	const hasRunCommand = (runDefinition?.commands ?? []).some(
 		(command) => command.trim().length > 0,
 	);
 
@@ -73,13 +73,20 @@ export const WorkspaceRunButton = memo(function WorkspaceRunButton({
 	]);
 
 	const handleConfigureClick = useCallback(() => {
+		if (runDefinition?.source === "terminal-preset") {
+			void navigate({
+				to: "/settings/terminal",
+				search: { editPresetId: runDefinition.presetId },
+			});
+			return;
+		}
 		if (!projectId) return;
 		setSettingsSearchQuery("scripts");
 		void navigate({
 			to: "/settings/projects/$projectId",
 			params: { projectId },
 		});
-	}, [navigate, projectId, setSettingsSearchQuery]);
+	}, [navigate, projectId, runDefinition, setSettingsSearchQuery]);
 
 	const handleForceStopClick = useCallback(() => {
 		void forceStopWorkspaceRun();
@@ -167,7 +174,9 @@ export const WorkspaceRunButton = memo(function WorkspaceRunButton({
 					)}
 					<DropdownMenuItem onClick={handleConfigureClick}>
 						<HiMiniCog6Tooth className="mr-2 size-4" />
-						Configure
+						{runDefinition?.source === "terminal-preset"
+							? "Edit Run Preset"
+							: "Configure"}
 					</DropdownMenuItem>
 				</DropdownMenuContent>
 			</DropdownMenu>

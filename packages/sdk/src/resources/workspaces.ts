@@ -59,6 +59,25 @@ export class Workspaces extends APIResource {
 	}
 
 	/**
+	 * Update fields on a workspace. At least one field is required. Currently
+	 * only `name` is exposed — branch and host moves require host-side
+	 * orchestration and aren't safe to set directly.
+	 *
+	 * Mirrors `superset workspaces update`.
+	 */
+	update(
+		id: string,
+		params: WorkspaceUpdateParams,
+		options?: RequestOptions,
+	): APIPromise<WorkspaceUpdateResult> {
+		return this._client.mutation<WorkspaceUpdateResult>(
+			"v2Workspace.update",
+			{ id, ...params },
+			options,
+		);
+	}
+
+	/**
 	 * Delete a workspace by id. Looks up the host the workspace lives on (via
 	 * the cloud index) and routes the delete to that host's service through
 	 * the relay. Pass an explicit `hostId` to skip the lookup.
@@ -179,6 +198,26 @@ export interface WorkspaceCreateResult {
 	alreadyExists: boolean;
 }
 
+export interface WorkspaceUpdateParams {
+	/** New workspace name. */
+	name?: string;
+}
+
+export interface WorkspaceUpdateResult {
+	id: string;
+	name: string;
+	branch: string;
+	organizationId: string;
+	projectId: string;
+	hostId: string;
+	type: "main" | "worktree";
+	createdByUserId: string | null;
+	taskId: string | null;
+	createdAt: Date;
+	updatedAt: Date;
+	txid: number;
+}
+
 export interface WorkspaceDeleteResult {
 	[key: string]: unknown;
 }
@@ -193,6 +232,8 @@ export declare namespace Workspaces {
 		WorkspaceAgentLaunch,
 		WorkspaceCreateAgentResult,
 		WorkspaceCreateResult,
+		WorkspaceUpdateParams,
+		WorkspaceUpdateResult,
 		WorkspaceDeleteResult,
 	};
 }

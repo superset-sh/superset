@@ -16,6 +16,12 @@ function normalizeNonEmptyString(value: unknown, fallback: string): string {
 	return trimmed.length > 0 ? trimmed : fallback;
 }
 
+function normalizeOptionalString(value: unknown): string | null {
+	if (typeof value !== "string") return null;
+	const trimmed = value.trim();
+	return trimmed.length > 0 ? trimmed : null;
+}
+
 function normalizeUsageValues(value: unknown): { cpu: number; memory: number } {
 	const usage =
 		value && typeof value === "object"
@@ -49,6 +55,7 @@ function normalizeSession(
 			`${fallbackWorkspaceId}-pane-${index + 1}`,
 		),
 		pid: Math.floor(normalizeFiniteNumber(session?.pid)),
+		title: normalizeOptionalString(session?.title),
 		cpu: usage.cpu,
 		memory: usage.memory,
 	};

@@ -254,13 +254,13 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 						</span>
 					)}
 
-					<div className="col-start-2 row-start-1 flex h-5 shrink-0 items-center justify-end gap-1.5">
+					<div className="col-start-2 row-start-1 grid h-5 shrink-0 items-center justify-items-end [&>*]:col-start-1 [&>*]:row-start-1">
 						{creationStatusText ? (
 							<span
 								className={cn(
-									"text-[11px] transition-opacity",
+									"text-[11px]",
 									creationStatus === "failed"
-										? "text-destructive group-hover:opacity-0 group-hover:hidden"
+										? "text-destructive group-hover:hidden"
 										: "text-muted-foreground",
 								)}
 							>

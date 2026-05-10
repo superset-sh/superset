@@ -1,5 +1,6 @@
 import {
 	projects,
+	settings,
 	workspaceSections,
 	workspaces,
 	worktrees,
@@ -7,8 +8,13 @@ import {
 import { TRPCError } from "@trpc/server";
 import { eq, isNotNull, isNull } from "drizzle-orm";
 import { localDb } from "main/lib/local-db";
+import { selectWorkspaceRunDefinition } from "shared/workspace-run-definition";
 import { z } from "zod";
 import { publicProcedure, router } from "../../..";
+import {
+	normalizeTerminalPresets,
+	type PresetWithUnknownMode,
+} from "../../settings/preset-execution-mode";
 import { getWorkspace } from "../utils/db-helpers";
 import { getProjectChildItems } from "../utils/project-children-order";
 import { loadSetupConfig } from "../utils/setup";
@@ -16,6 +22,64 @@ import { computeVisualOrder } from "../utils/visual-order";
 import { getWorkspacePath } from "../utils/worktree";
 
 type WorktreePathMap = Map<string, string>;
+
+function getTerminalPresetsForWorkspaceRun() {
+	const row = localDb.select().from(settings).get();
+	return normalizeTerminalPresets(
+		(row?.terminalPresets ?? []) as PresetWithUnknownMode[],
+	);
+}
+
+function getWorkspaceRunDefinition(workspaceId: string) {
+	const workspace = localDb
+		.select()
+		.from(workspaces)
+		.where(eq(workspaces.id, workspaceId))
+		.get();
+	if (!workspace) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: `Workspace ${workspaceId} not found`,
+		});
+	}
+
+	const project = localDb
+		.select()
+		.from(projects)
+		.where(eq(projects.id, workspace.projectId))
+		.get();
+	if (!project) {
+		return null;
+	}
+
+	const worktree = workspace.worktreeId
+		? localDb
+				.select()
+				.from(worktrees)
+				.where(eq(worktrees.id, workspace.worktreeId))
+				.get()
+		: null;
+
+	const worktreePath =
+		workspace.type === "worktree" && worktree?.path
+			? worktree.path
+			: workspace.type === "branch"
+				? project.mainRepoPath
+				: undefined;
+
+	const config = loadSetupConfig({
+		mainRepoPath: project.mainRepoPath,
+		worktreePath,
+		projectId: project.id,
+	});
+
+	return selectWorkspaceRunDefinition({
+		presets: getTerminalPresetsForWorkspaceRun(),
+		configRunCommands: config?.run,
+		configCwd: config?.cwd,
+		projectId: project.id,
+	});
+}
 
 /** Returns workspace IDs in sidebar visual order (by project.tabOrder, then ungrouped workspaces, then sections by tabOrder). */
 function getWorkspacesInVisualOrder(): string[] {
@@ -302,51 +366,14 @@ export const createQueryProcedures = () => {
 		getResolvedRunCommands: publicProcedure
 			.input(z.object({ workspaceId: z.string() }))
 			.query(({ input }) => {
-				const workspace = localDb
-					.select()
-					.from(workspaces)
-					.where(eq(workspaces.id, input.workspaceId))
-					.get();
-				if (!workspace) {
-					throw new TRPCError({
-						code: "NOT_FOUND",
-						message: `Workspace ${input.workspaceId} not found`,
-					});
-				}
-
-				const project = localDb
-					.select()
-					.from(projects)
-					.where(eq(projects.id, workspace.projectId))
-					.get();
-				if (!project) {
-					return { commands: [] };
-				}
-
-				const worktree = workspace.worktreeId
-					? localDb
-							.select()
-							.from(worktrees)
-							.where(eq(worktrees.id, workspace.worktreeId))
-							.get()
-					: null;
-
-				const worktreePath =
-					workspace.type === "worktree" && worktree?.path
-						? worktree.path
-						: workspace.type === "branch"
-							? project.mainRepoPath
-							: undefined;
-
-				const config = loadSetupConfig({
-					mainRepoPath: project.mainRepoPath,
-					worktreePath,
-					projectId: project.id,
-				});
-
+				const definition = getWorkspaceRunDefinition(input.workspaceId);
 				return {
-					commands: config?.run ?? [],
+					commands: definition?.commands ?? [],
 				};
 			}),
+
+		getWorkspaceRunDefinition: publicProcedure
+			.input(z.object({ workspaceId: z.string() }))
+			.query(({ input }) => getWorkspaceRunDefinition(input.workspaceId)),
 	});
 };

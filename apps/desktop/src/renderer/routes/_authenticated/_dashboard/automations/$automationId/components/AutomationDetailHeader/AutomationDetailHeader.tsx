@@ -36,9 +36,9 @@ export function AutomationDetailHeader({
 	runNowDisabled,
 }: AutomationDetailHeaderProps) {
 	return (
-		<header className="flex items-center justify-between border-b px-8 py-4">
+		<header className="flex h-11 shrink-0 items-center justify-between border-b border-border px-4">
 			<Breadcrumb>
-				<BreadcrumbList>
+				<BreadcrumbList className="text-sm">
 					<BreadcrumbItem>
 						<BreadcrumbLink onClick={onBack} className="cursor-pointer">
 							Automations
@@ -46,17 +46,17 @@ export function AutomationDetailHeader({
 					</BreadcrumbItem>
 					<BreadcrumbSeparator />
 					<BreadcrumbItem>
-						<BreadcrumbPage>{name}</BreadcrumbPage>
+						<BreadcrumbPage className="font-medium">{name}</BreadcrumbPage>
 					</BreadcrumbItem>
 				</BreadcrumbList>
 			</Breadcrumb>
 
-			<div className="flex items-center gap-2">
+			<div className="flex items-center gap-1">
 				<Tooltip>
 					<TooltipTrigger asChild>
 						<Button
 							variant="ghost"
-							size="icon"
+							size="icon-sm"
 							onClick={onOpenHistory}
 							aria-label="Version history"
 						>
@@ -69,7 +69,7 @@ export function AutomationDetailHeader({
 					<TooltipTrigger asChild>
 						<Button
 							variant="ghost"
-							size="icon"
+							size="icon-sm"
 							onClick={onToggleEnabled}
 							disabled={toggleDisabled}
 							aria-label={enabled ? "Pause" : "Resume"}
@@ -87,7 +87,7 @@ export function AutomationDetailHeader({
 					<TooltipTrigger asChild>
 						<Button
 							variant="ghost"
-							size="icon"
+							size="icon-sm"
 							onClick={onDelete}
 							disabled={deleteDisabled}
 							aria-label="Delete"
@@ -97,9 +97,16 @@ export function AutomationDetailHeader({
 					</TooltipTrigger>
 					<TooltipContent>Delete</TooltipContent>
 				</Tooltip>
-				<Button size="sm" onClick={onRunNow} disabled={runNowDisabled}>
+				<div className="mx-1 h-4 w-px bg-border" />
+				<Button
+					variant="outline"
+					size="sm"
+					className="h-8 gap-1.5 px-3"
+					onClick={onRunNow}
+					disabled={runNowDisabled}
+				>
 					<LuPlay className="size-4" />
-					Run now
+					<span>Run now</span>
 				</Button>
 			</div>
 		</header>

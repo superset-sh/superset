@@ -8,6 +8,7 @@ import {
 	disposeSession,
 	listTerminalSessions,
 	parseThemeType,
+	writeInputToSession,
 } from "../../../terminal/terminal";
 import type { HostServiceContext } from "../../../types";
 import { protectedProcedure, router } from "../../index";
@@ -16,6 +17,7 @@ const createSessionInputSchema = z.object({
 	workspaceId: z.string(),
 	terminalId: z.string().optional(),
 	initialCommand: z.string().trim().min(1).optional(),
+	cwd: z.string().optional(),
 	themeType: z.string().optional(),
 	cols: z.number().int().positive().optional(),
 	rows: z.number().int().positive().optional(),
@@ -36,6 +38,7 @@ async function createTerminalSessionFromInput({
 		db: ctx.db,
 		eventBus: ctx.eventBus,
 		initialCommand: input.initialCommand,
+		cwd: input.cwd,
 		cols: input.cols,
 		rows: input.rows,
 	});
@@ -114,6 +117,25 @@ export const terminalRouter = router({
 				includeExited: false,
 			}),
 		})),
+
+	writeInput: protectedProcedure
+		.input(
+			z.object({
+				terminalId: z.string(),
+				workspaceId: z.string(),
+				data: z.string(),
+			}),
+		)
+		.mutation(({ input }) => {
+			const result = writeInputToSession(input);
+			if ("error" in result) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: result.error,
+				});
+			}
+			return { success: true as const };
+		}),
 
 	killSession: protectedProcedure
 		.input(

@@ -81,6 +81,7 @@ describe("workspaceCreation github procedures with mocked Octokit", () => {
 				calls.push({ method: "search.issuesAndPullRequests", args });
 				return {
 					data: {
+						total_count: 1,
 						items: [
 							{
 								number: 7,
@@ -252,7 +253,9 @@ describe("resolveGithubRepo prefers the user-configured remoteName", () => {
 		},
 		issues: { get: async () => ({ data: {} }) },
 		search: {
-			issuesAndPullRequests: async () => ({ data: { items: [] } }),
+			issuesAndPullRequests: async () => ({
+				data: { total_count: 0, items: [] },
+			}),
 		},
 	};
 
@@ -417,8 +420,7 @@ describe("gh CLI is first-class when execGh succeeds", () => {
 		options?: { cwd?: string },
 	): Promise<unknown> => {
 		ghCalls.push({ args, cwd: options?.cwd });
-		const verb = args[1];
-		if (verb === "view" && args[0] === "pr") {
+		if (args[0] === "pr" && args[1] === "view") {
 			return {
 				number: Number(args[2]),
 				title: "PR via gh",
@@ -429,29 +431,37 @@ describe("gh CLI is first-class when execGh succeeds", () => {
 				mergedAt: null,
 			};
 		}
-		if (verb === "list" && args[0] === "pr") {
-			return [
-				{
-					number: 101,
-					title: "search result",
-					url: "https://github.com/octocat/hello/pull/101",
-					state: "OPEN",
-					isDraft: false,
-					author: { login: "carol" },
-					mergedAt: null,
-				},
-			];
-		}
-		if (verb === "list" && args[0] === "issue") {
-			return [
-				{
-					number: 7,
-					title: "issue search result",
-					url: "https://github.com/octocat/hello/issues/7",
-					state: "OPEN",
-					author: { login: "dave" },
-				},
-			];
+		if (args[0] === "api" && args.includes("search/issues")) {
+			const qIndex = args.indexOf("-f");
+			const q = args[qIndex + 1] ?? "";
+			const isPr = q.includes("is:pr");
+			if (isPr) {
+				return {
+					total_count: 1,
+					items: [
+						{
+							number: 101,
+							title: "search result",
+							html_url: "https://github.com/octocat/hello/pull/101",
+							state: "open",
+							user: { login: "carol" },
+							pull_request: { merged_at: null },
+						},
+					],
+				};
+			}
+			return {
+				total_count: 1,
+				items: [
+					{
+						number: 7,
+						title: "issue search result",
+						html_url: "https://github.com/octocat/hello/issues/7",
+						state: "open",
+						user: { login: "dave" },
+					},
+				],
+			};
 		}
 		return {};
 	};
@@ -494,21 +504,24 @@ describe("gh CLI is first-class when execGh succeeds", () => {
 		expect(ghCalls[0].cwd).toBe(realpathSync(repoDir));
 	});
 
-	test("searchPullRequests free-text invokes `gh pr list --search`", async () => {
+	test("searchPullRequests free-text invokes `gh api search/issues` with is:pr filter", async () => {
 		const result = await host.trpc.workspaceCreation.searchPullRequests.query({
 			projectId,
 			query: "find me",
 		});
 		expect(result.pullRequests).toHaveLength(1);
 		expect(result.pullRequests[0].prNumber).toBe(101);
+		expect(result.totalCount).toBe(1);
+		expect(result.hasNextPage).toBe(false);
 		expect(ghCalls).toHaveLength(1);
 		const args = ghCalls[0].args;
-		expect(args[0]).toBe("pr");
-		expect(args[1]).toBe("list");
-		expect(args).toContain("--repo");
-		expect(args).toContain("octocat/hello");
-		expect(args).toContain("--search");
-		expect(args).toContain("find me");
+		expect(args[0]).toBe("api");
+		expect(args).toContain("search/issues");
+		const qArg = args[args.indexOf("-f") + 1] ?? "";
+		expect(qArg).toContain("repo:octocat/hello");
+		expect(qArg).toContain("is:pr");
+		expect(qArg).toContain("is:open");
+		expect(qArg).toContain("find me");
 	});
 
 	test("searchGitHubIssues #N filters out PRs leaked by `gh issue view`", async () => {
@@ -544,15 +557,22 @@ describe("gh CLI is first-class when execGh succeeds", () => {
 		rmSync(localRepo, { recursive: true, force: true });
 	});
 
-	test("searchGitHubIssues free-text invokes `gh issue list --search`", async () => {
+	test("searchGitHubIssues free-text invokes `gh api search/issues` with is:issue filter", async () => {
 		const result = await host.trpc.workspaceCreation.searchGitHubIssues.query({
 			projectId,
 			query: "bug",
 		});
 		expect(result.issues).toHaveLength(1);
 		expect(result.issues[0].issueNumber).toBe(7);
+		expect(result.totalCount).toBe(1);
+		expect(result.hasNextPage).toBe(false);
 		expect(ghCalls).toHaveLength(1);
-		expect(ghCalls[0].args[0]).toBe("issue");
-		expect(ghCalls[0].args[1]).toBe("list");
+		const args = ghCalls[0].args;
+		expect(args[0]).toBe("api");
+		expect(args).toContain("search/issues");
+		const qArg = args[args.indexOf("-f") + 1] ?? "";
+		expect(qArg).toContain("repo:octocat/hello");
+		expect(qArg).toContain("is:issue");
+		expect(qArg).toContain("bug");
 	});
 });

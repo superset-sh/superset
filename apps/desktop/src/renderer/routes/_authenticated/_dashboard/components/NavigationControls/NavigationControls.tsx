@@ -5,7 +5,13 @@ import { LuArrowLeft, LuArrowRight } from "react-icons/lu";
 import { HotkeyLabel, useHotkey } from "renderer/hotkeys";
 import { HistoryDropdown } from "./components/HistoryDropdown";
 
-export function NavigationControls() {
+interface NavigationControlsProps {
+	showHistoryDropdown?: boolean;
+}
+
+export function NavigationControls({
+	showHistoryDropdown = true,
+}: NavigationControlsProps = {}) {
 	const router = useRouter();
 	const location = useLocation();
 
@@ -64,7 +70,7 @@ export function NavigationControls() {
 				</TooltipContent>
 			</Tooltip>
 
-			<HistoryDropdown />
+			{showHistoryDropdown && <HistoryDropdown />}
 		</div>
 	);
 }

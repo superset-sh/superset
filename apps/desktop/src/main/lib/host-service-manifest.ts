@@ -15,6 +15,15 @@ export interface HostServiceManifest {
 	authToken: string;
 	startedAt: number;
 	organizationId: string;
+	/**
+	 * Desktop app version that spawned this host-service. Compared against
+	 * the current `app.getVersion()` on adoption — any mismatch triggers a
+	 * kill + respawn so every Electron auto-update lands on a freshly
+	 * spawned host-service, even when the host-service version pin alone
+	 * would have allowed adoption (e.g. host-service code changed but its
+	 * `package.json#version` was not bumped).
+	 */
+	spawnedByAppVersion: string;
 }
 
 export function manifestDir(organizationId: string): string {
@@ -58,6 +67,14 @@ export function readManifest(
 			typeof data.organizationId !== "string"
 		) {
 			return null;
+		}
+
+		// `spawnedByAppVersion` is required going forward, but pre-existing
+		// manifests on upgraded users won't have it. Coerce to empty string so
+		// `tryAdopt` still finds the old PID, then trip the app-version pin
+		// (current version !== "") so the stale daemon gets killed and respawned.
+		if (typeof data.spawnedByAppVersion !== "string") {
+			data.spawnedByAppVersion = "";
 		}
 
 		return data as HostServiceManifest;

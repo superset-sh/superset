@@ -23,6 +23,7 @@ import {
 	taskListInputSchema,
 	updateTaskSchema,
 } from "./schema";
+import { taskStatusesRouter } from "./statuses";
 
 const TASK_SLUG_CONSTRAINT = "tasks_org_slug_unique";
 const TASK_SLUG_RETRY_LIMIT = 5;
@@ -265,6 +266,8 @@ async function createTask(
 }
 
 export const taskRouter = {
+	statuses: taskStatusesRouter,
+
 	/**
 	 * @deprecated Use `task.list` instead. Kept for one release cycle so the
 	 * shipped CLI on `main` keeps compiling against the new backend during

@@ -73,6 +73,14 @@ import {
 } from "./resources/automations";
 import { Host, HostListResponse, Hosts } from "./resources/hosts";
 import * as API from "./resources/index";
+import {
+	Member,
+	MemberListParams,
+	MemberListResponse,
+	Members,
+	Organization,
+	OrganizationRole,
+} from "./resources/organization";
 import { Project, ProjectListResponse, Projects } from "./resources/projects";
 import {
 	Task,
@@ -81,6 +89,9 @@ import {
 	TaskListParams,
 	TaskListResponse,
 	Tasks,
+	TaskStatus,
+	TaskStatuses,
+	TaskStatusListResponse,
 	TaskUpdateParams,
 } from "./resources/tasks";
 import {
@@ -1099,7 +1110,7 @@ export class Superset {
 
 	static toFile = Uploads.toFile;
 
-	/** Tasks: create, list (with filters), retrieve, update, delete. */
+	/** Tasks: create, list (with filters), retrieve, update, delete; nested `tasks.statuses.list`. */
 	tasks: API.Tasks = new API.Tasks(this);
 	/** Workspaces (cloud records): list, delete. */
 	workspaces: API.Workspaces = new API.Workspaces(this);
@@ -1111,6 +1122,8 @@ export class Superset {
 	automations: API.Automations = new API.Automations(this);
 	/** Agents (per-host terminal-agent rows): list, run. */
 	agents: API.Agents = new API.Agents(this);
+	/** Active-organization config: nested `organization.members.list`. */
+	organization: API.Organization = new API.Organization(this);
 }
 
 Superset.Tasks = Tasks;
@@ -1119,6 +1132,7 @@ Superset.Projects = Projects;
 Superset.Hosts = Hosts;
 Superset.Automations = Automations;
 Superset.Agents = Agents;
+Superset.Organization = Organization;
 
 export declare namespace Superset {
 	export type RequestOptions = Opts.RequestOptions;
@@ -1131,6 +1145,18 @@ export declare namespace Superset {
 		TaskCreateParams,
 		TaskUpdateParams,
 		TaskListParams,
+		TaskStatuses,
+		TaskStatus,
+		TaskStatusListResponse,
+	};
+
+	export {
+		Organization,
+		Members,
+		Member,
+		MemberListResponse,
+		MemberListParams,
+		OrganizationRole,
 	};
 
 	export {

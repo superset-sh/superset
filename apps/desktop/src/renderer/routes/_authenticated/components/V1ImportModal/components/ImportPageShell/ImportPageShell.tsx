@@ -11,6 +11,7 @@ interface ImportPageShellProps {
 	itemCount: number;
 	onRefresh?: () => void;
 	isRefreshing?: boolean;
+	headerAction?: ReactNode;
 	children: ReactNode;
 }
 
@@ -22,41 +23,49 @@ export function ImportPageShell({
 	itemCount,
 	onRefresh,
 	isRefreshing,
+	headerAction,
 	children,
 }: ImportPageShellProps) {
 	return (
-		<div className="flex h-[454px] flex-col bg-background">
-			<div className="flex items-start gap-3 border-b px-8 py-5">
+		<div className="flex min-h-0 min-w-0 flex-1 flex-col bg-background">
+			<div className="flex items-center gap-3 border-b border-border/60 px-6 py-3.5 pr-16">
 				<div className="min-w-0 flex-1">
-					<div className="text-lg font-semibold text-foreground">{title}</div>
+					<div className="truncate text-[14px] font-medium tracking-tight text-foreground">
+						{title}
+					</div>
 					{description && (
-						<p className="mt-1 text-xs text-muted-foreground">{description}</p>
+						<p className="mt-0.5 truncate text-[12px] text-muted-foreground">
+							{description}
+						</p>
 					)}
 				</div>
-				{onRefresh && (
-					<Button
-						type="button"
-						variant="ghost"
-						size="icon"
-						onClick={onRefresh}
-						disabled={isRefreshing}
-						aria-label="Refresh"
-						className="h-7 w-7 shrink-0"
-					>
-						<LuRefreshCw
-							className={`size-3.5${isRefreshing ? " animate-spin" : ""}`}
-							strokeWidth={2}
-						/>
-					</Button>
-				)}
+				<div className="flex shrink-0 items-center gap-1">
+					{headerAction}
+					{onRefresh && (
+						<Button
+							type="button"
+							variant="ghost"
+							size="icon"
+							onClick={onRefresh}
+							disabled={isRefreshing}
+							aria-label="Refresh"
+							className="h-7 w-7 shrink-0 text-muted-foreground hover:text-foreground"
+						>
+							<LuRefreshCw
+								className={`size-3.5${isRefreshing ? " animate-spin" : ""}`}
+								strokeWidth={2}
+							/>
+						</Button>
+					)}
+				</div>
 			</div>
-			<div className="flex min-h-0 min-w-0 flex-1 flex-col gap-0.5 overflow-y-auto px-3 py-3">
+			<div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-x-hidden overflow-y-auto overscroll-contain px-2 py-2">
 				{isLoading ? (
 					<div className="flex flex-1 items-center justify-center">
-						<Spinner className="size-5" />
+						<Spinner className="size-4 text-muted-foreground" />
 					</div>
 				) : itemCount === 0 ? (
-					<div className="flex flex-1 items-center justify-center px-6 text-center text-sm text-muted-foreground">
+					<div className="flex flex-1 items-center justify-center px-6 text-center text-[13px] text-muted-foreground">
 						{emptyMessage ?? "Nothing to import."}
 					</div>
 				) : (

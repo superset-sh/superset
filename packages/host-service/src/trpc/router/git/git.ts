@@ -798,4 +798,47 @@ export const gitRouter = router({
 
 			return { reviewThreads, conversationComments };
 		}),
+
+	setReviewThreadResolution: protectedProcedure
+		.input(
+			z.object({
+				workspaceId: z.string(),
+				threadId: z.string(),
+				resolved: z.boolean(),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			const workspace = ctx.db.query.workspaces
+				.findFirst({ where: eq(workspaces.id, input.workspaceId) })
+				.sync();
+			if (!workspace) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Workspace not found",
+				});
+			}
+
+			const octokit = await ctx.github();
+			const mutation = input.resolved
+				? `mutation($threadId: ID!) {
+					resolveReviewThread(input: {threadId: $threadId}) {
+						thread { id isResolved }
+					}
+				}`
+				: `mutation($threadId: ID!) {
+					unresolveReviewThread(input: {threadId: $threadId}) {
+						thread { id isResolved }
+					}
+				}`;
+
+			try {
+				await octokit.graphql(mutation, { threadId: input.threadId });
+			} catch (error) {
+				const message =
+					error instanceof Error ? error.message : "GraphQL mutation failed";
+				throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message });
+			}
+
+			return { threadId: input.threadId, isResolved: input.resolved };
+		}),
 });

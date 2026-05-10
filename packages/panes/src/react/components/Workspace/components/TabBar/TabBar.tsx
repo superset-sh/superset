@@ -15,12 +15,14 @@ import {
 } from "react";
 import { useDrop } from "react-dnd";
 import type { Tab } from "../../../../../types";
+import type { PaneRegistry } from "../../../../types";
 import { PANE_DRAG_TYPE } from "../Tab/components/Pane/components/PaneHeader";
 import { TAB_DRAG_TYPE, TabItem } from "./components/TabItem";
 import { computeInsertIndex, TAB_WIDTH } from "./utils";
 
 interface TabBarProps<TData> {
 	tabs: Tab<TData>[];
+	registry: PaneRegistry<TData>;
 	activeTabId: string | null;
 	onSelectTab: (tabId: string) => void;
 	onCloseTab: (tabId: string) => void;
@@ -29,7 +31,6 @@ interface TabBarProps<TData> {
 	onRenameTab: (tabId: string, title: string | undefined) => void;
 	onReorderTab: (tabId: string, toIndex: number) => void;
 	onMovePaneToNewTab: (paneId: string, toIndex: number) => void;
-	getTabTitle: (tab: Tab<TData>) => string;
 	renderTabIcon?: (tab: Tab<TData>) => ReactNode;
 	renderAddTabMenu?: () => ReactNode;
 	renderTabAccessory?: (tab: Tab<TData>) => ReactNode;
@@ -70,6 +71,7 @@ function AddTabButton<_TData>({
 
 export function TabBar<TData>({
 	tabs,
+	registry,
 	activeTabId,
 	onSelectTab,
 	onCloseTab,
@@ -78,7 +80,6 @@ export function TabBar<TData>({
 	onRenameTab,
 	onReorderTab,
 	onMovePaneToNewTab,
-	getTabTitle,
 	renderTabIcon,
 	renderAddTabMenu,
 	renderTabAccessory,
@@ -195,6 +196,8 @@ export function TabBar<TData>({
 						>
 							<TabItem
 								tab={tab}
+								tabs={tabs}
+								registry={registry}
 								index={i}
 								isActive={tab.id === activeTabId}
 								onSelect={() => onSelectTab(tab.id)}
@@ -202,7 +205,6 @@ export function TabBar<TData>({
 								onCloseOthers={() => onCloseOtherTabs(tab.id)}
 								onCloseAll={onCloseAllTabs}
 								onRename={(title) => onRenameTab(tab.id, title)}
-								getTitle={getTabTitle}
 								icon={renderTabIcon?.(tab)}
 								accessory={renderTabAccessory?.(tab)}
 							/>

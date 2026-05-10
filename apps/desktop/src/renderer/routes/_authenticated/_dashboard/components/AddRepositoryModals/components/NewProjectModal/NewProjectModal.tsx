@@ -132,7 +132,7 @@ export function NewProjectModal({
 	};
 
 	return (
-		<Dialog open={open} onOpenChange={handleOpenChange}>
+		<Dialog open={open} onOpenChange={handleOpenChange} modal>
 			<DialogContent className="max-w-[420px]">
 				<DialogHeader>
 					<DialogTitle>Clone a repository</DialogTitle>

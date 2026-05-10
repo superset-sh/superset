@@ -132,6 +132,35 @@ describe("configRouter", () => {
 			});
 		});
 
+		it("updates run when provided and preserves setup/teardown when omitted", async () => {
+			const caller = createCaller(sandbox.repoPath);
+			const dir = join(sandbox.repoPath, ".superset");
+			mkdirSync(dir, { recursive: true });
+			writeFileSync(
+				join(dir, "config.json"),
+				JSON.stringify({
+					setup: ["bun install"],
+					teardown: ["docker compose down"],
+					run: ["old dev"],
+				}),
+				"utf-8",
+			);
+
+			await caller.updateConfig({
+				projectId: PROJECT_ID,
+				run: ["bun dev"],
+			});
+
+			const parsed = JSON.parse(
+				readFileSync(join(dir, "config.json"), "utf-8"),
+			);
+			expect(parsed).toEqual({
+				setup: ["bun install"],
+				teardown: ["docker compose down"],
+				run: ["bun dev"],
+			});
+		});
+
 		it("preserves unrelated top-level keys (forward compatibility)", async () => {
 			const caller = createCaller(sandbox.repoPath);
 			const dir = join(sandbox.repoPath, ".superset");
@@ -230,8 +259,6 @@ describe("configRouter", () => {
 		});
 
 		it("returns false when only the run key is set", async () => {
-			// updateConfig doesn't accept run, but a v1-imported project might
-			// already have one — the card should hide for those too.
 			const caller = createCaller(sandbox.repoPath);
 			const dir = join(sandbox.repoPath, ".superset");
 			mkdirSync(dir, { recursive: true });
@@ -244,6 +271,53 @@ describe("configRouter", () => {
 			expect(await caller.shouldShowSetupCard({ projectId: PROJECT_ID })).toBe(
 				false,
 			);
+		});
+	});
+
+	describe("getWorkspaceRunDefinition", () => {
+		it("returns null when run is not configured", async () => {
+			const caller = createCaller(sandbox.repoPath);
+			expect(
+				await caller.getWorkspaceRunDefinition({ projectId: PROJECT_ID }),
+			).toBeNull();
+		});
+
+		it("returns non-empty run commands from resolved config", async () => {
+			const caller = createCaller(sandbox.repoPath);
+			await caller.updateConfig({
+				projectId: PROJECT_ID,
+				setup: [],
+				teardown: [],
+				run: ["", "bun dev", "   "],
+			});
+
+			expect(
+				await caller.getWorkspaceRunDefinition({ projectId: PROJECT_ID }),
+			).toEqual({
+				source: "project-config",
+				projectId: PROJECT_ID,
+				commands: ["bun dev"],
+			});
+		});
+
+		it("preserves cwd from resolved config", async () => {
+			const caller = createCaller(sandbox.repoPath);
+			const dir = join(sandbox.repoPath, ".superset");
+			mkdirSync(dir, { recursive: true });
+			writeFileSync(
+				join(dir, "config.json"),
+				JSON.stringify({ run: ["bun dev"], cwd: "apps/web" }),
+				"utf-8",
+			);
+
+			expect(
+				await caller.getWorkspaceRunDefinition({ projectId: PROJECT_ID }),
+			).toEqual({
+				source: "project-config",
+				projectId: PROJECT_ID,
+				commands: ["bun dev"],
+				cwd: "apps/web",
+			});
 		});
 	});
 });

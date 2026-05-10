@@ -1,6 +1,9 @@
 import { describe, expect, test } from "bun:test";
 import { pullRequests, workspaces } from "../../db/schema";
-import { PullRequestRuntimeManager } from "./pull-requests";
+import {
+	PullRequestRuntimeManager,
+	type PullRequestRuntimeManagerOptions,
+} from "./pull-requests";
 
 const PROJECT_ID = "project-1";
 const WORKSPACE_ID = "workspace-1";
@@ -139,15 +142,27 @@ function createFakeDb(state: FakeState) {
 	};
 }
 
-function createManager(state: FakeState) {
+function createManager(
+	state: FakeState,
+	overrides: Partial<
+		Pick<PullRequestRuntimeManagerOptions, "execGh" | "github">
+	> = {},
+) {
 	return new PullRequestRuntimeManager({
 		db: createFakeDb(state) as never,
+		execGh:
+			overrides.execGh ??
+			(async () => {
+				throw new Error("gh should not be used for direct PR linking");
+			}),
 		git: async () => {
 			throw new Error("git should not be used when project metadata is set");
 		},
-		github: async () => {
-			throw new Error("github should not be used for direct PR linking");
-		},
+		github:
+			overrides.github ??
+			(async () => {
+				throw new Error("github should not be used for direct PR linking");
+			}),
 		gitWatcher: { onChanged: () => () => {} } as never,
 	});
 }
@@ -238,5 +253,101 @@ describe("PullRequestRuntimeManager direct checkout PR linking", () => {
 		await manager.refreshPullRequestsByWorkspaces([WORKSPACE_ID]);
 
 		expect(state.workspace.pullRequestId).toBeNull();
+	});
+
+	test("preserves last-known review and checks when detail refresh fails", async () => {
+		const state = makeState("fix/sidebar");
+		state.workspace = {
+			...state.workspace,
+			headSha: "abc123",
+			upstreamOwner: "fork-owner",
+			upstreamRepo: "fork-repo",
+			upstreamBranch: "fix/sidebar",
+			pullRequestId: "pr-existing",
+		};
+		state.pullRequest = {
+			id: "pr-existing",
+			projectId: PROJECT_ID,
+			repoProvider: "github",
+			repoOwner: "base-owner",
+			repoName: "base-repo",
+			prNumber: 42,
+			url: "https://github.com/base-owner/base-repo/pull/42",
+			title: "Fix sidebar",
+			state: "open",
+			isDraft: false,
+			headBranch: "fix/sidebar",
+			headSha: "old-sha",
+			reviewDecision: "approved",
+			checksStatus: "success",
+			checksJson: JSON.stringify([
+				{
+					name: "Typecheck",
+					status: "success",
+					url: "https://github.com/base-owner/base-repo/actions/1",
+				},
+			]),
+			lastFetchedAt: 1,
+			error: null,
+			createdAt: 1,
+			updatedAt: 1,
+		};
+		const manager = createManager(state, {
+			execGh: async (args) => {
+				const path = args.find((arg) => arg.startsWith("repos/"));
+				if (path === "repos/base-owner/base-repo/pulls") {
+					return [
+						{
+							number: 42,
+							title: "Fix sidebar updated",
+							html_url: "https://github.com/base-owner/base-repo/pull/42",
+							state: "open",
+							draft: false,
+							merged_at: null,
+							updated_at: "2026-05-08T12:00:00Z",
+							head: {
+								ref: "fix/sidebar",
+								sha: "abc123",
+								repo: {
+									name: "fork-repo",
+									owner: { login: "fork-owner" },
+								},
+							},
+							base: {
+								repo: {
+									full_name: "base-owner/base-repo",
+								},
+							},
+						},
+					];
+				}
+
+				throw new Error("detail refresh unavailable");
+			},
+			github: async () => {
+				throw new Error("octokit unavailable");
+			},
+		});
+
+		const originalWarn = console.warn;
+		console.warn = () => {};
+		try {
+			await manager.refreshPullRequestsByWorkspaces([WORKSPACE_ID]);
+		} finally {
+			console.warn = originalWarn;
+		}
+
+		expect(state.workspace.pullRequestId).toBe("pr-existing");
+		expect(state.pullRequest?.title).toBe("Fix sidebar updated");
+		expect(state.pullRequest?.headSha).toBe("abc123");
+		expect(state.pullRequest?.reviewDecision).toBe("approved");
+		expect(state.pullRequest?.checksStatus).toBe("success");
+		expect(JSON.parse(state.pullRequest?.checksJson ?? "[]")).toEqual([
+			{
+				name: "Typecheck",
+				status: "success",
+				url: "https://github.com/base-owner/base-repo/actions/1",
+			},
+		]);
 	});
 });

@@ -125,6 +125,28 @@ describe("terminal title scanner", () => {
 		expect(state.buffer.length).toBe(0);
 	});
 
+	it("skips OSC 0/2 titles that normalize to nothing so the previous title persists", () => {
+		const state = createTerminalTitleScanState();
+
+		// Real title arrives, then a Braille-only spinner frame, then another real title.
+		expect(
+			scanForTerminalTitle(
+				state,
+				enc.encode("\x1b]2;Editor\x07\x1b]2;⠂\x07\x1b]2;Editor 2\x07"),
+			).updates,
+		).toEqual(["Editor", "Editor 2"]);
+	});
+
+	it("preserves the explicit OSC 9;3; reset distinct from a normalized-empty title", () => {
+		const state = createTerminalTitleScanState();
+
+		// Explicit reset emits null; normalized-empty (all Braille) emits nothing.
+		expect(
+			scanForTerminalTitle(state, enc.encode("\x1b]9;3;\x07\x1b]9;3;⠂⠐\x07"))
+				.updates,
+		).toEqual([null]);
+	});
+
 	it("preserves multi-byte UTF-8 in titles when split across chunks", () => {
 		// Regression: pre-byte-rewrite, the upstream did Buffer.toString('utf8')
 		// per chunk and would mangle the smiley if its 4 bytes split across the
@@ -155,5 +177,22 @@ describe("normalizeTerminalTitle", () => {
 		const title = `${"a".repeat(199)}🙂extra`;
 
 		expect(Array.from(normalizeTerminalTitle(title) ?? "")).toHaveLength(200);
+	});
+
+	it("strips Braille spinner glyphs so spinner frames don't freeze the tab", () => {
+		// Claude Code and most CLI spinner libraries animate via the Braille
+		// block. Each frame collapses to the same stable text after stripping.
+		expect(normalizeTerminalTitle("⠂ Claude Code")).toBe("Claude Code");
+		expect(normalizeTerminalTitle("⠐ Claude Code")).toBe("Claude Code");
+		expect(normalizeTerminalTitle("⠇⠋⠙⠸ Loading")).toBe("Loading");
+	});
+
+	it("returns null when only Braille glyphs remain", () => {
+		expect(normalizeTerminalTitle("⠂⠐⠇")).toBeNull();
+	});
+
+	it("strips the UTF-8 replacement character from upstream decode failures", () => {
+		expect(normalizeTerminalTitle("Claude� Code")).toBe("Claude Code");
+		expect(normalizeTerminalTitle("�")).toBeNull();
 	});
 });
