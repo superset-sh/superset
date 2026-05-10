@@ -24,7 +24,7 @@ import { useLocalHostService } from "renderer/routes/_authenticated/providers/Lo
 interface AgentDetailProps {
 	config: HostAgentConfig;
 	description: string;
-	onChanged: () => void;
+	onChanged: (updated: HostAgentConfig) => void;
 	onDeleted: () => void;
 }
 
@@ -75,7 +75,7 @@ export function AgentDetail({
 				activeHostUrl,
 			).settings.agentConfigs.update.mutate({ id: config.id, patch });
 		},
-		onSuccess: () => onChanged(),
+		onSuccess: (updated) => onChanged(updated),
 		onError: (err) =>
 			toast.error(err instanceof Error ? err.message : "Failed to save"),
 	});

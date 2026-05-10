@@ -15,6 +15,7 @@
 	},
 	"dependencies": {
 		"@superset/host-service": "workspace:*",
+		"@superset/shared": "workspace:*",
 		"@superset/workspace-fs": "workspace:*",
 		"@tanstack/react-query": "^5.100.9",
 		"@trpc/client": "^11.7.1",

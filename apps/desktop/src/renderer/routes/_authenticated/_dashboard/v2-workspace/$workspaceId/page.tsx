@@ -1,4 +1,5 @@
 import { Workspace } from "@superset/panes";
+import { workspaceTrpc } from "@superset/workspace-client";
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
@@ -11,7 +12,9 @@ import { useWorkspace } from "../providers/WorkspaceProvider";
 import { AddTabMenu } from "./components/AddTabMenu";
 import { V2NotificationStatusIndicator } from "./components/V2NotificationStatusIndicator";
 import { V2PresetsBar } from "./components/V2PresetsBar";
+import { V2WorkspaceRunButton } from "./components/V2WorkspaceRunButton";
 import { WorkspaceEmptyState } from "./components/WorkspaceEmptyState";
+import { WorkspaceMissingWorktreeState } from "./components/WorkspaceMissingWorktreeState";
 import { WorkspaceSidebar } from "./components/WorkspaceSidebar";
 import { useBrowserShellInteractionPassthrough } from "./hooks/useBrowserShellInteractionPassthrough";
 import { useClearActivePaneAttention } from "./hooks/useClearActivePaneAttention";
@@ -25,6 +28,7 @@ import { renderBrowserTabIcon } from "./hooks/usePaneRegistry/components/Browser
 import { useV2PresetExecution } from "./hooks/useV2PresetExecution";
 import { useV2TerminalLauncher } from "./hooks/useV2TerminalLauncher";
 import { useV2WorkspacePaneLayout } from "./hooks/useV2WorkspacePaneLayout";
+import { useV2WorkspaceRun } from "./hooks/useV2WorkspaceRun";
 import { useWorkspaceFileNavigation } from "./hooks/useWorkspaceFileNavigation";
 import { useWorkspaceHotkeys } from "./hooks/useWorkspaceHotkeys";
 import { useWorkspacePaneOpeners } from "./hooks/useWorkspacePaneOpeners";
@@ -67,6 +71,34 @@ export const Route = createFileRoute(
 });
 
 function V2WorkspacePage() {
+	const { workspace } = useWorkspace();
+	const workspaceStatusQuery = workspaceTrpc.workspace.get.useQuery(
+		{ id: workspace.id },
+		{
+			refetchOnWindowFocus: true,
+			retry: false,
+		},
+	);
+
+	if (workspaceStatusQuery.data?.worktreeExists === false) {
+		return (
+			<WorkspaceMissingWorktreeState
+				workspaceId={workspace.id}
+				workspaceName={workspace.name}
+				branch={workspace.branch}
+				worktreePath={workspaceStatusQuery.data?.worktreePath}
+				onRefresh={() => {
+					void workspaceStatusQuery.refetch();
+				}}
+				isRefreshing={workspaceStatusQuery.isFetching}
+			/>
+		);
+	}
+
+	return <V2WorkspaceContent />;
+}
+
+function V2WorkspaceContent() {
 	const {
 		terminalId,
 		chatSessionId,
@@ -89,9 +121,16 @@ function V2WorkspacePage() {
 	const { store } = useV2WorkspacePaneLayout();
 	useClearActivePaneAttention({ store });
 	const launcher = useV2TerminalLauncher();
-	const { matchedPresets, executePreset } = useV2PresetExecution({
+	const { matchedPresets, executePreset, resolvePresetCommands } =
+		useV2PresetExecution({
+			store,
+			launcher,
+		});
+	const workspaceRun = useV2WorkspaceRun({
 		store,
 		launcher,
+		matchedPresets,
+		resolvePresetCommands,
 	});
 	useConsumeAutomationRunLink({
 		store,
@@ -179,6 +218,21 @@ function V2WorkspacePage() {
 		launcher,
 	});
 	useHotkey("QUICK_OPEN", handleQuickOpen);
+	useHotkey("RUN_WORKSPACE_COMMAND", () => {
+		void workspaceRun.toggleWorkspaceRun();
+	});
+
+	const workspaceRunButton = (
+		<V2WorkspaceRunButton
+			projectId={workspace.projectId}
+			definition={workspaceRun.definition}
+			isRunning={workspaceRun.isRunning}
+			isPending={workspaceRun.isPending}
+			canForceStop={workspaceRun.canForceStop}
+			onToggle={workspaceRun.toggleWorkspaceRun}
+			onForceStop={workspaceRun.forceStopWorkspaceRun}
+		/>
+	);
 
 	return (
 		<FileDocumentStoreProvider>
@@ -197,17 +251,20 @@ function V2WorkspacePage() {
 								sources={getV2NotificationSourcesForTab(tab)}
 							/>
 						)}
-						renderBelowTabBar={
-							showPresetsBar
-								? () => (
-										<V2PresetsBar
-											matchedPresets={matchedPresets}
-											executePreset={executePreset}
-											showPresetsBar={showPresetsBar}
-											onToggleShowPresetsBar={setShowPresetsBar}
-										/>
-									)
-								: undefined
+						renderBelowTabBar={() =>
+							showPresetsBar ? (
+								<V2PresetsBar
+									matchedPresets={matchedPresets}
+									executePreset={executePreset}
+									showPresetsBar={showPresetsBar}
+									onToggleShowPresetsBar={setShowPresetsBar}
+									trailing={workspaceRunButton}
+								/>
+							) : (
+								<div className="flex h-8 min-w-0 shrink-0 items-center border-b border-border bg-background px-2">
+									{workspaceRunButton}
+								</div>
+							)
 						}
 						renderAddTabMenu={() => (
 							<AddTabMenu

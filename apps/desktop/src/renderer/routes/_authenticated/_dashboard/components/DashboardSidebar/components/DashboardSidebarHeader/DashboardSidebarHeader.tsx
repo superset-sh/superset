@@ -23,6 +23,7 @@ import { useFolderFirstImport } from "renderer/routes/_authenticated/_dashboard/
 import { NavigationControls } from "renderer/routes/_authenticated/_dashboard/components/NavigationControls";
 import { SidebarToggle } from "renderer/routes/_authenticated/_dashboard/components/SidebarToggle";
 import { OrganizationDropdown } from "renderer/routes/_authenticated/_dashboard/components/TopBar/components/OrganizationDropdown";
+import { ResourceConsumption } from "renderer/routes/_authenticated/_dashboard/components/TopBar/components/ResourceConsumption";
 import { useTasksFilterStore } from "renderer/routes/_authenticated/_dashboard/tasks/stores/tasks-filter-state";
 import { STROKE_WIDTH_THICK } from "renderer/screens/main/components/WorkspaceSidebar/constants";
 import { useOpenNewProjectModal } from "renderer/stores/add-repository-modal";
@@ -74,6 +75,8 @@ export function DashboardSidebarHeader({
 		tab: lastTab,
 		assignee: lastAssignee,
 		search: lastSearch,
+		typeTab: lastTypeTab,
+		projectFilter: lastProjectFilter,
 	} = useTasksFilterStore();
 
 	const handleWorkspacesClick = () => {
@@ -92,6 +95,8 @@ export function DashboardSidebarHeader({
 			if (lastTab !== "all") search.tab = lastTab;
 			if (lastAssignee) search.assignee = lastAssignee;
 			if (lastSearch) search.search = lastSearch;
+			if (lastTypeTab !== "tasks") search.type = lastTypeTab;
+			if (lastProjectFilter) search.project = lastProjectFilter;
 			navigate({ to: "/tasks", search });
 		});
 	};
@@ -191,11 +196,11 @@ export function DashboardSidebarHeader({
 					>
 						<DropdownMenuItem onSelect={() => openNewProject()}>
 							<HiMiniPlus className="size-4" />
-							Create new project
+							Clone from URL
 						</DropdownMenuItem>
 						<DropdownMenuItem onSelect={handleImportFolder}>
 							<LuFolderInput className="size-4" />
-							Import project
+							Open from folder
 						</DropdownMenuItem>
 					</DropdownMenuContent>
 				</DropdownMenu>
@@ -209,11 +214,12 @@ export function DashboardSidebarHeader({
 			    horizontal inset — keeps traffic-light alignment matching the
 			    TopBar's 80px pad regardless of parent padding changes. */}
 			<div
-				className="drag -mx-2 flex h-8 items-center gap-1.5"
+				className="drag -mx-2 flex h-8 items-center gap-1.5 pr-2"
 				style={{ paddingLeft: isMac ? "80px" : "8px" }}
 			>
 				<SidebarToggle />
 				<NavigationControls />
+				<ResourceConsumption surface="v2" className="ml-auto" />
 			</div>
 			<OrganizationDropdown variant="expanded" />
 
@@ -259,17 +265,19 @@ export function DashboardSidebarHeader({
 				<span className="flex-1 text-left">Tasks</span>
 			</button>
 
-			<div className="flex items-center gap-1">
+			<div className="flex items-center gap-0">
 				<button
 					type="button"
 					onClick={() => openModal()}
-					className="group flex flex-1 min-w-0 items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
+					className="group flex flex-1 min-w-0 items-center gap-1.5 rounded-md px-2 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
 				>
 					<LuPlus
 						className="size-4 shrink-0"
 						strokeWidth={STROKE_WIDTH_THICK}
 					/>
-					<span className="flex-1 text-left">New Workspace</span>
+					<span className="flex-1 truncate text-left whitespace-nowrap">
+						New Workspace
+					</span>
 					<span
 						className={cn(
 							"shrink-0 text-[10px] font-mono tabular-nums text-muted-foreground/60",
@@ -300,11 +308,11 @@ export function DashboardSidebarHeader({
 					>
 						<DropdownMenuItem onSelect={() => openNewProject()}>
 							<HiMiniPlus className="size-4" />
-							Create new project
+							Clone from URL
 						</DropdownMenuItem>
 						<DropdownMenuItem onSelect={handleImportFolder}>
 							<LuFolderInput className="size-4" />
-							Import project
+							Open from folder
 						</DropdownMenuItem>
 					</DropdownMenuContent>
 				</DropdownMenu>

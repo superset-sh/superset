@@ -291,6 +291,7 @@ async function runDestroy(ctx: HostServiceContext, input: DestroyInput) {
 				if (
 					message.includes("is not a working tree") ||
 					message.includes("No such file or directory") ||
+					message.includes("does not exist") ||
 					message.includes("ENOENT")
 				) {
 					worktreeRemoved = true;

@@ -15,6 +15,10 @@ import { PLATFORM } from "renderer/hotkeys";
 import { formatRelativeTime } from "renderer/lib/formatRelativeTime";
 import type { BranchFilter, BranchRow } from "../../../hooks/useBranchContext";
 import { FormPickerTrigger } from "../FormPickerTrigger";
+import {
+	type OpenWorkspaceTarget,
+	toOpenWorkspaceTarget,
+} from "./openWorkspaceTarget";
 
 const MOD_KEY = PLATFORM === "mac" ? "⌘" : "Ctrl";
 
@@ -36,8 +40,9 @@ interface CompareBaseBranchPickerProps {
 		source: "local" | "remote-tracking",
 	) => void;
 	// Server's workspaces.create resolves between open-tracked, adopt-foreign-
-	// worktree, and fresh-create — the picker doesn't decide.
-	onOpenWorkspace: (branchName: string) => void;
+	// worktree, and fresh-create. Worktree rows must carry their path so stale
+	// branch labels do not make the server create a new managed worktree.
+	onOpenWorkspace: (target: OpenWorkspaceTarget) => void;
 }
 
 export function CompareBaseBranchPicker({
@@ -132,10 +137,13 @@ export function CompareBaseBranchPicker({
 						// cmdk leaves focus on the input, so the per-row button is
 						// pointer-only — Mod+Enter is the keyboard path to it.
 						if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-							if (!selectedValue) return;
+							const selectedBranch = branches.find(
+								(branch) => branch.name === selectedValue,
+							);
+							if (!selectedBranch) return;
 							e.preventDefault();
 							e.stopPropagation();
-							onOpenWorkspace(selectedValue);
+							onOpenWorkspace(toOpenWorkspaceTarget(selectedBranch));
 							setOpen(false);
 						}
 					}}
@@ -224,7 +232,7 @@ export function CompareBaseBranchPicker({
 											className="hidden items-center rounded-sm bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary hover:bg-primary/20 group-hover:inline-flex group-data-[selected=true]:inline-flex"
 											onClick={(e) => {
 												e.stopPropagation();
-												onOpenWorkspace(branch.name);
+												onOpenWorkspace(toOpenWorkspaceTarget(branch));
 												setOpen(false);
 											}}
 										>

@@ -202,6 +202,7 @@ export const auth = betterAuth({
 			consentPage: `${env.NEXT_PUBLIC_WEB_URL}/oauth/consent`,
 			allowDynamicClientRegistration: true,
 			allowUnauthenticatedClientRegistration: true,
+			accessTokenExpiresIn: 60 * 60 * 24 * 7,
 			validAudiences: [
 				env.NEXT_PUBLIC_API_URL,
 				`${env.NEXT_PUBLIC_API_URL}/`,

@@ -36,6 +36,10 @@
 			"types": "./src/agent-catalog.ts",
 			"default": "./src/agent-catalog.ts"
 		},
+		"./agent-identity": {
+			"types": "./src/agent-identity.ts",
+			"default": "./src/agent-identity.ts"
+		},
 		"./host-agent-presets": {
 			"types": "./src/host-agent-presets.ts",
 			"default": "./src/host-agent-presets.ts"

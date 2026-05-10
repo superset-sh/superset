@@ -21,10 +21,11 @@ interface V2ScriptsEditorProps {
 interface ParsedConfig {
 	setup: string;
 	teardown: string;
+	run: string;
 }
 
 function parseConfigContent(content: string | null): ParsedConfig {
-	if (!content) return { setup: "", teardown: "" };
+	if (!content) return { setup: "", teardown: "", run: "" };
 	try {
 		const parsed = JSON.parse(content);
 		const setup = Array.isArray(parsed?.setup)
@@ -35,12 +36,16 @@ function parseConfigContent(content: string | null): ParsedConfig {
 					(s: unknown): s is string => typeof s === "string",
 				)
 			: [];
+		const run = Array.isArray(parsed?.run)
+			? parsed.run.filter((s: unknown): s is string => typeof s === "string")
+			: [];
 		return {
 			setup: setup.join("\n"),
 			teardown: teardown.join("\n"),
+			run: run.join("\n"),
 		};
 	} catch {
-		return { setup: "", teardown: "" };
+		return { setup: "", teardown: "", run: "" };
 	}
 }
 
@@ -81,11 +86,17 @@ export function V2ScriptsEditor({
 
 	const [setupValue, setSetupValue] = useState("");
 	const [teardownValue, setTeardownValue] = useState("");
+	const [runValue, setRunValue] = useState("");
 	const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
-	const focusedRef = useRef<"setup" | "teardown" | null>(null);
-	const lastSavedRef = useRef<{ setup: string[]; teardown: string[] }>({
+	const focusedRef = useRef<"setup" | "teardown" | "run" | null>(null);
+	const lastSavedRef = useRef<{
+		setup: string[];
+		teardown: string[];
+		run: string[];
+	}>({
 		setup: [],
 		teardown: [],
+		run: [],
 	});
 	const savedTimerRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -95,9 +106,11 @@ export function V2ScriptsEditor({
 		const parsed = parseConfigContent(configData?.content ?? null);
 		setSetupValue(parsed.setup);
 		setTeardownValue(parsed.teardown);
+		setRunValue(parsed.run);
 		lastSavedRef.current = {
 			setup: toCommandsArray(parsed.setup),
 			teardown: toCommandsArray(parsed.teardown),
+			run: toCommandsArray(parsed.run),
 		};
 	}, [configData?.content]);
 
@@ -112,6 +125,7 @@ export function V2ScriptsEditor({
 			projectId: string;
 			setup: string[];
 			teardown: string[];
+			run: string[];
 		}) => getHostServiceClientByUrl(hostUrl).config.updateConfig.mutate(input),
 		onSuccess: () => {
 			void queryClient.invalidateQueries({ queryKey: configQueryKey });
@@ -119,10 +133,11 @@ export function V2ScriptsEditor({
 	});
 
 	const flushSave = useCallback(
-		async (next: { setup: string[]; teardown: string[] }) => {
+		async (next: { setup: string[]; teardown: string[]; run: string[] }) => {
 			if (
 				arraysEqual(next.setup, lastSavedRef.current.setup) &&
-				arraysEqual(next.teardown, lastSavedRef.current.teardown)
+				arraysEqual(next.teardown, lastSavedRef.current.teardown) &&
+				arraysEqual(next.run, lastSavedRef.current.run)
 			) {
 				return;
 			}
@@ -150,7 +165,7 @@ export function V2ScriptsEditor({
 	);
 
 	const handleBlur = useCallback(
-		async (field: "setup" | "teardown") => {
+		async (field: "setup" | "teardown" | "run") => {
 			focusedRef.current = null;
 
 			const trimmedSetup = setupValue
@@ -163,18 +178,25 @@ export function V2ScriptsEditor({
 				.map((line) => line.trim())
 				.join("\n")
 				.replace(/^\n+|\n+$/g, "");
+			const trimmedRun = runValue
+				.split("\n")
+				.map((line) => line.trim())
+				.join("\n")
+				.replace(/^\n+|\n+$/g, "");
 
 			if (trimmedSetup !== setupValue) setSetupValue(trimmedSetup);
 			if (trimmedTeardown !== teardownValue) setTeardownValue(trimmedTeardown);
+			if (trimmedRun !== runValue) setRunValue(trimmedRun);
 
 			await flushSave({
 				setup: toCommandsArray(field === "setup" ? trimmedSetup : setupValue),
 				teardown: toCommandsArray(
 					field === "teardown" ? trimmedTeardown : teardownValue,
 				),
+				run: toCommandsArray(field === "run" ? trimmedRun : runValue),
 			});
 		},
-		[flushSave, setupValue, teardownValue],
+		[flushSave, runValue, setupValue, teardownValue],
 	);
 
 	if (isLoading) {
@@ -218,6 +240,7 @@ export function V2ScriptsEditor({
 				<TabsList>
 					<TabsTrigger value="setup">Setup</TabsTrigger>
 					<TabsTrigger value="teardown">Teardown</TabsTrigger>
+					<TabsTrigger value="run">Run</TabsTrigger>
 				</TabsList>
 				<TabsContent value="setup">
 					<ScriptField
@@ -245,13 +268,26 @@ export function V2ScriptsEditor({
 						onBlur={() => handleBlur("teardown")}
 					/>
 				</TabsContent>
+				<TabsContent value="run">
+					<ScriptField
+						field="run"
+						description="Runs from the workspace Run button."
+						placeholder="bun dev"
+						value={runValue}
+						onChange={setRunValue}
+						onFocus={() => {
+							focusedRef.current = "run";
+						}}
+						onBlur={() => handleBlur("run")}
+					/>
+				</TabsContent>
 			</Tabs>
 		</div>
 	);
 }
 
 interface ScriptFieldProps {
-	field: "setup" | "teardown";
+	field: "setup" | "teardown" | "run";
 	description: string;
 	placeholder: string;
 	value: string;

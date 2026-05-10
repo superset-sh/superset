@@ -66,20 +66,40 @@ Auth: Session (expires in 32 min)
 
 ## Run your first commands
 
-List workspaces on the local machine:
-
-```bash
-superset workspaces list
-```
-
-Create one against an existing project:
+List the projects in your organization:
 
 ```bash
 superset projects list
+```
+
+If your repo isn't there yet, register it on this machine — clone from a
+Git URL or import an existing checkout:
+
+```bash
+# Clone from a URL
+superset projects create --name "my-app" --local \
+  --clone https://github.com/org/my-app.git \
+  --parent-dir ~/code
+
+# Or register an existing local checkout
+superset projects create --name "my-app" --local --import ~/code/my-app
+```
+
+If the project already exists in your org but isn't on this machine,
+attach to it instead of creating a duplicate:
+
+```bash
+superset projects setup <id-from-projects-list> --local --parent-dir ~/code
+```
+
+Then create a workspace against it:
+
+```bash
 superset workspaces create \
   --project prj_… \
   --name "fix-login-bug" \
-  --branch fix/login-bug
+  --branch fix/login-bug \
+  --local
 ```
 
 Trigger an automation immediately:
@@ -112,20 +132,20 @@ output unless you pass `--quiet`.
 
 ## Local vs. remote hosts
 
-`workspaces`, `projects`, and `automations create/update` accept a
-`--host <id>` flag to pick which host handles the request. When omitted,
-the CLI targets the local machine, talks directly to the host server over
-loopback, and works offline.
-
-To target a different host:
+Commands that touch a host accept `--host <id>` to pick which host handles
+the request, or `--local` for this machine. Local-targeted calls go
+straight to the host server over loopback (offline-friendly); remote
+calls route through the cloud API and the relay.
 
 ```bash
 superset hosts list
 superset workspaces list --host h_…
 ```
 
-Remote calls go through the cloud API and the relay; behavior is otherwise
-identical.
+Mutating host commands (`projects create`, `projects setup`,
+`workspaces create`) require an explicit `--host` or `--local` — there's
+no default. Read-only host queries (`workspaces list`) default to the
+local machine.
 
 ## Where state lives
 

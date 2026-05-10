@@ -339,54 +339,93 @@ superset org switch org_…
 
 ### projects
 
-Projects are checked-out repos that live on a specific host. The host
-clones (or registers) the repo, creates the cloud record, and makes it
-available to every machine in the organization.
+A project is a repository registered with your organization. It carries
+a cloud record (one per repo, shared across the org) and one or more
+host-side checkouts. Workspaces branch off a host's checkout.
 
 <Command
 	name="superset projects list"
-	options={[
-		{ flag: "--host <id>", description: "Target host. Defaults to the local machine." },
-	]}
 	output={`Array<{
   id: string;
-  repoOwner: string;
-  repoName: string;
-  repoPath: string;
+  name: string;
+  slug: string;
+  repoCloneUrl: string | null;
+  githubRepositoryId: string | null;
 }>`}
-	humanColumns={["ID", "OWNER", "REPO", "PATH"]}
+	humanColumns={["NAME", "SLUG", "REPO", "ID"]}
 	quiet="project IDs"
 >
-List projects on the target host.
+List projects in the active organization. Org-wide; not host-scoped.
 </Command>
 
 <Command
 	name="superset projects create"
 	options={[
 		{ flag: "--name <name>", required: true, description: "Display name for the project." },
-		{ flag: "--url <url>", description: "Clone from a Git URL. Mutually exclusive with `--path`." },
-		{ flag: "--parent-dir <path>", description: "Where to clone into. Required with `--url`." },
-		{ flag: "--path <path>", description: "Import an existing local repo. Mutually exclusive with `--url`." },
-		{ flag: "--host <id>", description: "Target host. Defaults to the local machine." },
+		{ flag: "--host <id>", description: "Target host machineId. Mutually exclusive with `--local`; one is required." },
+		{ flag: "--local", description: "Target this machine. Mutually exclusive with `--host`; one is required." },
+		{ flag: "--clone <url>", description: "Clone from a Git URL. Mutually exclusive with `--import`." },
+		{ flag: "--parent-dir <path>", description: "Parent directory the cloned repo lands in. Required with `--clone`." },
+		{ flag: "--import <path>", description: "Existing repo path on the target host. Mutually exclusive with `--clone`." },
 	]}
 	output={`{
   projectId: string;
   repoPath: string;
+  mainWorkspaceId: string;
+}`}
+>
+Create a fresh project on a host. Two modes:
+
+- **Clone** — pass `--clone <url>` and `--parent-dir`. The host clones the
+  repo into `<parent-dir>/<derived-name>/`.
+- **Import** — pass `--import <path>` to register a repo that already exists
+  on disk.
+
+Either way, a new cloud project record is created and the host's main
+workspace is ensured.
+
+`create` always creates a new cloud project, even if your org already has
+one for the same Git URL. Use [`projects setup`](#superset-projects-setup-id)
+when adopting an existing project on a fresh machine.
+
+```bash
+superset projects create --name "my-app" --local --clone https://github.com/org/my-app.git --parent-dir ~/code
+superset projects create --name "my-app" --local --import ~/code/my-app
+```
+</Command>
+
+<Command
+	name="superset projects setup <id>"
+	args={[
+		{ name: "id", required: true, description: "Project UUID to adopt." },
+	]}
+	options={[
+		{ flag: "--host <id>", description: "Target host machineId. Mutually exclusive with `--local`; one is required." },
+		{ flag: "--local", description: "Target this machine. Mutually exclusive with `--host`; one is required." },
+		{ flag: "--parent-dir <path>", description: "Parent directory to clone the project's repo into (clone mode). The URL comes from the cloud project, so no `--clone <url>` is needed." },
+		{ flag: "--import <path>", description: "Existing repo path on the target host (import mode)." },
+		{ flag: "--allow-relocate", description: "Permit re-importing at a different path if the project is already set up here. `--import` only." },
+	]}
+	output={`{
+  repoPath: string;
   mainWorkspaceId: string | null;
 }`}
 >
-Register a project on a host. Two modes:
+Adopt an existing project onto a host without creating a duplicate cloud
+record. Counterpart to [`create`](#superset-projects-create) for the
+"new machine, repo already in the org" case.
 
-- **Clone** — pass `--url` and `--parent-dir`. The host clones the repo
-  into `<parent-dir>/<derived-name>/`.
-- **Import** — pass `--path` to register a repo that already exists on disk.
+Find the project ID via [`projects list`](#superset-projects-list).
 
-Either way, the cloud project row is created and the host's main workspace
-is ensured.
+Idempotent: re-running against a project that's already set up at the same
+path is a no-op that returns the existing `mainWorkspaceId`.
 
 ```bash
-superset projects create --name "my-app" --url https://github.com/org/my-app.git --parent-dir ~/code
-superset projects create --name "my-app" --path ~/code/my-app
+# Pick an ID from `superset projects list`, then clone it onto this machine
+superset projects setup 47c31b04-… --local --parent-dir ~/code
+
+# Or register an existing local checkout
+superset projects setup 47c31b04-… --local --import ~/code/my-app
 ```
 </Command>
 
@@ -456,7 +495,8 @@ List workspaces on the target host.
 		{ flag: "--project <projectId>", required: true, description: "Project ID." },
 		{ flag: "--name <name>", required: true, description: "Workspace name." },
 		{ flag: "--branch <branch>", required: true, description: "Workspace branch." },
-		{ flag: "--host <id>", description: "Defaults to the local machine." },
+		{ flag: "--host <id>", description: "Target host machineId. Mutually exclusive with `--local`; one is required." },
+		{ flag: "--local", description: "Target this machine. Mutually exclusive with `--host`; one is required." },
 	]}
 	output="Workspace"
 >
@@ -466,7 +506,8 @@ Create a workspace on the target host.
 superset workspaces create \
   --project prj_… \
   --name "fix-login-bug" \
-  --branch fix/login-bug
+  --branch fix/login-bug \
+  --local
 ```
 </Command>
 

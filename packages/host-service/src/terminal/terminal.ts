@@ -1,4 +1,5 @@
 import { existsSync } from "node:fs";
+import { isAbsolute, join } from "node:path";
 import { StringDecoder } from "node:string_decoder";
 import type { NodeWebSocket } from "@hono/node-ws";
 import {
@@ -29,6 +30,7 @@ import {
 	getTerminalBaseEnv,
 	resolveLaunchShell,
 } from "./env.ts";
+import { listTerminalResourceSessions } from "./resource-sessions.ts";
 import {
 	createModeTracker,
 	type ModeTracker,
@@ -363,6 +365,30 @@ export function listTerminalSessions(
 		}));
 }
 
+export function writeInputToSession({
+	terminalId,
+	workspaceId,
+	data,
+}: {
+	terminalId: string;
+	workspaceId: string;
+	data: string;
+}): { success: true } | { error: string } {
+	const session = sessions.get(terminalId);
+	if (!session) {
+		return { error: "Terminal session not found" };
+	}
+	if (session.workspaceId !== workspaceId) {
+		return { error: "Terminal session does not belong to this workspace" };
+	}
+	if (session.exited) {
+		return { error: "Terminal session has exited" };
+	}
+
+	session.pty.write(data);
+	return { success: true };
+}
+
 function sendMessage(
 	socket: { send: (data: string) => void; readyState: number },
 	message: TerminalServerMessage,
@@ -607,6 +633,7 @@ interface CreateTerminalSessionOptions {
 	eventBus?: EventBus;
 	/** Command to run after the shell is ready. Queued behind shellReadyPromise. */
 	initialCommand?: string;
+	cwd?: string;
 	/** Hidden sessions are process-internal and should not appear in user pickers. */
 	listed?: boolean;
 	cols?: number;
@@ -622,6 +649,22 @@ interface CreateTerminalSessionOptions {
 	replayOnAdoption?: boolean;
 }
 
+function resolveTerminalCwd(
+	cwdOverride: string | undefined,
+	worktreePath: string,
+): string {
+	if (!cwdOverride) return worktreePath;
+	if (isAbsolute(cwdOverride)) {
+		return existsSync(cwdOverride) ? cwdOverride : worktreePath;
+	}
+
+	const relativePath = cwdOverride.startsWith("./")
+		? cwdOverride.slice(2)
+		: cwdOverride;
+	const resolvedPath = join(worktreePath, relativePath);
+	return existsSync(resolvedPath) ? resolvedPath : worktreePath;
+}
+
 export async function createTerminalSessionInternal({
 	terminalId,
 	workspaceId,
@@ -629,6 +672,7 @@ export async function createTerminalSessionInternal({
 	db,
 	eventBus,
 	initialCommand,
+	cwd: cwdOverride,
 	listed = true,
 	cols: requestedCols,
 	rows: requestedRows,
@@ -646,8 +690,13 @@ export async function createTerminalSessionInternal({
 		.findFirst({ where: eq(workspaces.id, workspaceId) })
 		.sync();
 
-	if (!workspace || !existsSync(workspace.worktreePath)) {
-		return { error: "Workspace worktree not found" };
+	if (!workspace) {
+		return { error: "Workspace not found" };
+	}
+	if (!existsSync(workspace.worktreePath)) {
+		return {
+			error: `Workspace worktree no longer exists: ${workspace.worktreePath}`,
+		};
 	}
 
 	// Derive root path from the workspace's project
@@ -659,7 +708,7 @@ export async function createTerminalSessionInternal({
 		rootPath = project.repoPath;
 	}
 
-	const cwd = workspace.worktreePath;
+	const cwd = resolveTerminalCwd(cwdOverride, workspace.worktreePath);
 	const cols = normalizeTerminalDimension(
 		requestedCols,
 		MIN_TERMINAL_COLS,
@@ -871,11 +920,12 @@ export async function createTerminalSessionInternal({
 				session.exited = true;
 				session.exitCode = code ?? 0;
 				session.exitSignal = signal ?? 0;
+				const occurredAt = Date.now();
 
 				portManager.unregisterSession(terminalId);
 
 				db.update(terminalSessions)
-					.set({ status: "exited", endedAt: Date.now() })
+					.set({ status: "exited", endedAt: occurredAt })
 					.where(eq(terminalSessions.id, terminalId))
 					.run();
 
@@ -891,7 +941,7 @@ export async function createTerminalSessionInternal({
 					eventType: "exit",
 					exitCode: session.exitCode,
 					signal: session.exitSignal,
-					occurredAt: Date.now(),
+					occurredAt,
 				});
 			},
 		},
@@ -916,6 +966,7 @@ export function registerWorkspaceTerminalRoute({
 			workspaceId: string;
 			themeType?: string;
 			initialCommand?: string;
+			cwd?: string;
 			cols?: number;
 			rows?: number;
 		}>();
@@ -931,6 +982,7 @@ export function registerWorkspaceTerminalRoute({
 			db,
 			eventBus,
 			initialCommand: body.initialCommand,
+			cwd: body.cwd,
 			cols: body.cols,
 			rows: body.rows,
 		});
@@ -964,6 +1016,28 @@ export function registerWorkspaceTerminalRoute({
 		return c.json({
 			sessions: listTerminalSessions({ workspaceId, includeExited: true }),
 		});
+	});
+
+	app.get("/terminal/resource-sessions", async (c) => {
+		try {
+			const daemon = await getDaemonClient();
+			const titlesByTerminalId = new Map(
+				Array.from(sessions.values()).map((session) => [
+					session.terminalId,
+					session.title,
+				]),
+			);
+			return c.json({
+				sessions: listTerminalResourceSessions(
+					db,
+					await daemon.list(),
+					titlesByTerminalId,
+				),
+			});
+		} catch (error) {
+			console.warn("[terminal] Failed to list resource sessions", error);
+			return c.json({ sessions: [] });
+		}
 	});
 
 	app.get(

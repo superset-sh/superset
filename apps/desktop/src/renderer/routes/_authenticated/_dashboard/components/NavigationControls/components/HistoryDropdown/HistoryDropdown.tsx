@@ -11,7 +11,9 @@ import { cn } from "@superset/ui/utils";
 import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useLocation, useNavigate } from "@tanstack/react-router";
-import { LuHistory } from "react-icons/lu";
+import { LuCpu, LuGitBranch, LuHistory } from "react-icons/lu";
+import { usePresetIcon } from "renderer/assets/app-icons/preset-icons";
+import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
 	StatusIcon,
@@ -71,6 +73,94 @@ function WorkspaceRow({
 					</span>
 				</>
 			)}
+		</DropdownMenuItem>
+	);
+}
+
+function V2WorkspaceRow({
+	entry,
+	isCurrent,
+	v2WorkspaceData,
+	onSelect,
+}: {
+	entry: RecentlyViewedEntry;
+	isCurrent: boolean;
+	v2WorkspaceData: {
+		id: string;
+		projectName: string;
+		branch: string;
+	}[];
+	onSelect: () => void;
+}) {
+	const ws = v2WorkspaceData.find((w) => w.id === entry.entityId);
+
+	return (
+		<DropdownMenuItem
+			className={cn("gap-2.5", isCurrent && "bg-accent/50")}
+			onSelect={onSelect}
+		>
+			<span className="text-muted-foreground text-xs shrink-0 w-20 text-left line-clamp-1">
+				{ws ? ws.projectName : "Workspace"}
+			</span>
+			<span className="flex items-center justify-center w-4 shrink-0">
+				<LuGitBranch
+					className="size-3 text-muted-foreground"
+					strokeWidth={1.5}
+				/>
+			</span>
+			<span
+				className={cn(
+					"truncate text-xs font-normal flex-1 min-w-0",
+					!ws && "text-muted-foreground",
+				)}
+			>
+				{ws ? ws.branch : "Unknown"}
+			</span>
+		</DropdownMenuItem>
+	);
+}
+
+function AutomationRow({
+	entry,
+	isCurrent,
+	automationData,
+	onSelect,
+}: {
+	entry: RecentlyViewedEntry;
+	isCurrent: boolean;
+	automationData: {
+		id: string;
+		name: string;
+		agentId: string;
+	}[];
+	onSelect: () => void;
+}) {
+	const automation = automationData.find((a) => a.id === entry.entityId);
+	const presetIcon = usePresetIcon(automation?.agentId ?? "");
+
+	return (
+		<DropdownMenuItem
+			className={cn("gap-2.5", isCurrent && "bg-accent/50")}
+			onSelect={onSelect}
+		>
+			<span className="text-muted-foreground text-xs shrink-0 w-20 text-left line-clamp-1">
+				Automation
+			</span>
+			<span className="flex items-center justify-center w-4 shrink-0">
+				{presetIcon ? (
+					<img src={presetIcon} alt="" className="size-3.5 object-contain" />
+				) : (
+					<LuCpu className="size-3 text-muted-foreground" strokeWidth={1.5} />
+				)}
+			</span>
+			<span
+				className={cn(
+					"truncate text-xs font-normal flex-1 min-w-0",
+					!automation && "text-muted-foreground",
+				)}
+			>
+				{automation ? automation.name : "Unknown"}
+			</span>
 		</DropdownMenuItem>
 	);
 }
@@ -138,6 +228,7 @@ export function HistoryDropdown() {
 	const recentEntries = useRecentlyViewed(20);
 	const currentPath = useLocation({ select: (loc) => loc.pathname });
 	const collections = useCollections();
+	const isV2CloudEnabled = useIsV2CloudEnabled();
 
 	const { data: groups } = electronTrpc.workspaces.getAllGrouped.useQuery();
 	const workspaceData = (groups ?? []).flatMap((group) =>
@@ -147,6 +238,34 @@ export function HistoryDropdown() {
 			projectColor: group.project.color,
 			branch: ws.branch ?? ws.name,
 		})),
+	);
+
+	const { data: v2WorkspaceData } = useLiveQuery(
+		(q) =>
+			q
+				.from({ workspaces: collections.v2Workspaces })
+				.innerJoin(
+					{ projects: collections.v2Projects },
+					({ workspaces, projects }) => eq(workspaces.projectId, projects.id),
+				)
+				.select(({ workspaces, projects }) => ({
+					id: workspaces.id,
+					projectName: projects.name,
+					branch: workspaces.branch,
+				})),
+		[collections],
+	);
+
+	const { data: automationData } = useLiveQuery(
+		(q) =>
+			q
+				.from({ automations: collections.automations })
+				.select(({ automations }) => ({
+					id: automations.id,
+					name: automations.name,
+					agentId: automations.agentConfig.id,
+				})),
+		[collections],
 	);
 
 	const { data: taskData } = useLiveQuery(
@@ -169,7 +288,16 @@ export function HistoryDropdown() {
 
 	const filteredEntries = recentEntries.filter((entry) => {
 		if (entry.type === "workspace") {
+			if (isV2CloudEnabled) return false;
 			return workspaceData.some((w) => w.id === entry.entityId);
+		}
+		if (entry.type === "v2-workspace") {
+			if (!isV2CloudEnabled) return false;
+			return (v2WorkspaceData ?? []).some((w) => w.id === entry.entityId);
+		}
+		if (entry.type === "automation") {
+			if (!isV2CloudEnabled) return false;
+			return (automationData ?? []).some((a) => a.id === entry.entityId);
 		}
 		return (taskData ?? []).some(
 			(t) => t.id === entry.entityId || t.slug === entry.entityId,
@@ -211,16 +339,41 @@ export function HistoryDropdown() {
 			<DropdownMenuContent align="start" className="w-80">
 				<DropdownMenuLabel>Recently Viewed</DropdownMenuLabel>
 				<DropdownMenuSeparator />
-				{filteredEntries.map((entry) =>
-					entry.type === "task" ? (
-						<TaskRow
-							key={entry.path}
-							entry={entry}
-							isCurrent={entry.path === currentPath}
-							taskData={taskData ?? []}
-							onSelect={() => navigate({ to: entry.path })}
-						/>
-					) : (
+				{filteredEntries.map((entry) => {
+					if (entry.type === "task") {
+						return (
+							<TaskRow
+								key={entry.path}
+								entry={entry}
+								isCurrent={entry.path === currentPath}
+								taskData={taskData ?? []}
+								onSelect={() => navigate({ to: entry.path })}
+							/>
+						);
+					}
+					if (entry.type === "v2-workspace") {
+						return (
+							<V2WorkspaceRow
+								key={entry.path}
+								entry={entry}
+								isCurrent={entry.path === currentPath}
+								v2WorkspaceData={v2WorkspaceData ?? []}
+								onSelect={() => navigate({ to: entry.path })}
+							/>
+						);
+					}
+					if (entry.type === "automation") {
+						return (
+							<AutomationRow
+								key={entry.path}
+								entry={entry}
+								isCurrent={entry.path === currentPath}
+								automationData={automationData ?? []}
+								onSelect={() => navigate({ to: entry.path })}
+							/>
+						);
+					}
+					return (
 						<WorkspaceRow
 							key={entry.path}
 							entry={entry}
@@ -228,8 +381,8 @@ export function HistoryDropdown() {
 							workspaceData={workspaceData}
 							onSelect={() => navigate({ to: entry.path })}
 						/>
-					),
-				)}
+					);
+				})}
 			</DropdownMenuContent>
 		</DropdownMenu>
 	);

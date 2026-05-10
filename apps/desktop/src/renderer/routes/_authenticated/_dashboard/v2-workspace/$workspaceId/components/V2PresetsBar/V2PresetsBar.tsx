@@ -10,16 +10,22 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useNavigate } from "@tanstack/react-router";
 import { Eye, EyeOff, Settings } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { HiMiniCommandLine } from "react-icons/hi2";
 import {
-	getPresetIcon,
-	useIsDarkTheme,
-} from "renderer/assets/app-icons/preset-icons";
+	type ReactNode,
+	useCallback,
+	useEffect,
+	useMemo,
+	useState,
+} from "react";
+import { HiMiniCommandLine } from "react-icons/hi2";
+import { useIsDarkTheme } from "renderer/assets/app-icons/preset-icons";
 import { HotkeyMenuShortcut } from "renderer/components/HotkeyMenuShortcut";
+import { useV2AgentConfigs } from "renderer/hooks/useV2AgentConfigs";
 import type { HotkeyId } from "renderer/hotkeys";
+import { resolveV2PresetIcon } from "renderer/lib/preset-icon";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import type { V2TerminalPresetRow } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
+import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { V2PresetBarItem } from "./components/V2PresetBarItem";
 
 interface V2PresetsBarProps {
@@ -27,6 +33,7 @@ interface V2PresetsBarProps {
 	executePreset: (preset: V2TerminalPresetRow) => void | Promise<void>;
 	showPresetsBar: boolean;
 	onToggleShowPresetsBar: (enabled: boolean) => void;
+	trailing?: ReactNode;
 }
 
 // Co-located to keep v2 self-contained. Mirrors the v1 array in
@@ -68,10 +75,13 @@ export function V2PresetsBar({
 	executePreset,
 	showPresetsBar,
 	onToggleShowPresetsBar,
+	trailing,
 }: V2PresetsBarProps) {
 	const navigate = useNavigate();
 	const isDark = useIsDarkTheme();
 	const collections = useCollections();
+	const { activeHostUrl } = useLocalHostService();
+	const { data: agents } = useV2AgentConfigs(activeHostUrl);
 
 	const [localVisiblePresetIds, setLocalVisiblePresetIds] = useState<string[]>(
 		() => getVisiblePresetOrder(matchedPresets),
@@ -192,14 +202,18 @@ export function V2PresetsBar({
 
 	return (
 		<div
-			className="flex h-8 min-w-0 shrink-0 items-center gap-0.5 overflow-x-auto overflow-y-hidden border-b border-border bg-background px-2"
+			className="flex h-8 min-w-0 shrink-0 items-center gap-0.5 overflow-x-auto overflow-y-hidden border-b border-border/60 bg-background px-2"
 			style={{ scrollbarWidth: "none" }}
 		>
 			<DropdownMenu>
 				<Tooltip>
 					<TooltipTrigger asChild>
 						<DropdownMenuTrigger asChild>
-							<Button variant="ghost" size="icon" className="size-6 shrink-0">
+							<Button
+								variant="ghost"
+								size="icon"
+								className="size-6 shrink-0 text-muted-foreground hover:text-foreground"
+							>
 								<Settings className="size-3.5" />
 							</Button>
 						</DropdownMenuTrigger>
@@ -210,7 +224,7 @@ export function V2PresetsBar({
 				</Tooltip>
 				<DropdownMenuContent align="end" className="w-56">
 					{matchedPresets.map((preset) => {
-						const icon = getPresetIcon(preset.name, isDark);
+						const icon = resolveV2PresetIcon(preset, agents, isDark);
 						const isVisible = isPresetVisibleInBar(preset.pinnedToBar);
 						const visibleIndex = visiblePresetIndexById.get(preset.id);
 						const hotkeyId =
@@ -267,6 +281,9 @@ export function V2PresetsBar({
 					</DropdownMenuItem>
 				</DropdownMenuContent>
 			</DropdownMenu>
+			{visiblePresets.length > 0 ? (
+				<div className="mx-1 h-3.5 w-px shrink-0 bg-border/60" />
+			) : null}
 			{visiblePresets.map(({ preset }, visibleIndex) => {
 				const hotkeyId = PRESET_HOTKEY_IDS[visibleIndex];
 				return (
@@ -276,6 +293,7 @@ export function V2PresetsBar({
 						visibleIndex={visibleIndex}
 						hotkeyId={hotkeyId}
 						isDark={isDark}
+						agents={agents}
 						onExecutePreset={executePreset}
 						onEdit={(presetToEdit) => handleEditPreset(presetToEdit.id)}
 						onLocalReorder={handleLocalVisibleReorder}
@@ -283,6 +301,9 @@ export function V2PresetsBar({
 					/>
 				);
 			})}
+			{trailing ? (
+				<div className="ml-auto shrink-0 pl-1">{trailing}</div>
+			) : null}
 		</div>
 	);
 }

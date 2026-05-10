@@ -3,8 +3,11 @@ import type {
 	ClientMessage,
 	ServerMessage,
 } from "@superset/host-service/events";
+import type { AgentIdentity } from "@superset/shared/agent-identity";
 import type { FsWatchEvent } from "@superset/workspace-fs/host";
 import { primeRelayAffinity } from "./primeRelayAffinity";
+
+export type { AgentIdentity };
 
 type EventType =
 	| "fs:events"
@@ -28,6 +31,8 @@ export interface GitChangedPayload {
 export interface AgentLifecyclePayload {
 	eventType: AgentLifecycleEventType;
 	terminalId: string;
+	// Absent when the hook ran without `SUPERSET_AGENT_ID` set.
+	agent?: AgentIdentity;
 	occurredAt: number;
 }
 
@@ -143,6 +148,7 @@ function handleMessage(state: ConnectionState, data: unknown): void {
 				{
 					eventType: message.eventType,
 					terminalId: message.terminalId,
+					...(message.agent ? { agent: message.agent } : {}),
 					occurredAt: message.occurredAt,
 				},
 			);
