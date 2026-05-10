@@ -8,6 +8,7 @@
  * to avoid JSON escaping overhead on escape-sequence-heavy PTY output.
  */
 
+import { spawnSync } from "node:child_process";
 import { write as fsWrite } from "node:fs";
 import type { IPty } from "node-pty";
 import * as pty from "node-pty";
@@ -257,6 +258,90 @@ function flush(): void {
 	flushing = false;
 }
 
+interface ProcessInfo {
+	pid: number;
+	ppid: number;
+	pgid: number;
+}
+
+function signalProcessTreeGroups(rootPid: number, signal: string): void {
+	const table = readProcessTable();
+	const currentPgid = getProcessGroupId(process.pid, table);
+	const pids = collectProcessTree(rootPid, table);
+	const pgids = new Set<number>();
+
+	for (const pid of pids) {
+		const info = table.find((row) => row.pid === pid);
+		if (!info) continue;
+		if (info.pgid <= 1) continue;
+		if (currentPgid !== null && info.pgid === currentPgid) continue;
+		pgids.add(info.pgid);
+	}
+
+	for (const pgid of pgids) {
+		try {
+			process.kill(-pgid, signal as NodeJS.Signals);
+		} catch (err) {
+			if ((err as NodeJS.ErrnoException).code !== "ESRCH") {
+				console.error(
+					`[pty-subprocess] Failed to ${signal} process group ${pgid}:`,
+					err,
+				);
+			}
+		}
+	}
+}
+
+function readProcessTable(): ProcessInfo[] {
+	const result = spawnSync("ps", ["-axo", "pid=,ppid=,pgid="], {
+		encoding: "utf8",
+	});
+	if (result.error || result.status !== 0) return [];
+
+	return result.stdout
+		.split("\n")
+		.map((line) => line.trim())
+		.filter(Boolean)
+		.flatMap((line) => {
+			const [pid, ppid, pgid] = line.split(/\s+/).map(Number);
+			if (!isPositiveInteger(pid) || !isPositiveInteger(ppid)) return [];
+			if (!isPositiveInteger(pgid)) return [];
+			return [{ pid, ppid, pgid }];
+		});
+}
+
+function collectProcessTree(
+	rootPid: number,
+	table: ProcessInfo[],
+): Set<number> {
+	const pids = new Set<number>([rootPid]);
+	const childrenByParent = new Map<number, ProcessInfo[]>();
+	for (const row of table) {
+		const children = childrenByParent.get(row.ppid) ?? [];
+		children.push(row);
+		childrenByParent.set(row.ppid, children);
+	}
+
+	const queue = [rootPid];
+	for (const pid of queue) {
+		for (const child of childrenByParent.get(pid) ?? []) {
+			if (pids.has(child.pid)) continue;
+			pids.add(child.pid);
+			queue.push(child.pid);
+		}
+	}
+
+	return pids;
+}
+
+function getProcessGroupId(pid: number, table: ProcessInfo[]): number | null {
+	return table.find((row) => row.pid === pid)?.pgid ?? null;
+}
+
+function isPositiveInteger(value: unknown): value is number {
+	return typeof value === "number" && Number.isInteger(value) && value > 0;
+}
+
 // =============================================================================
 // Message Handlers
 // =============================================================================
@@ -359,13 +444,14 @@ function handleResize(payload: Buffer): void {
 }
 
 function handleKill(payload: Buffer): void {
-	const signal = payload.length > 0 ? payload.toString("utf8") : "SIGTERM";
+	const signal = payload.length > 0 ? payload.toString("utf8") : "SIGHUP";
 
 	if (!ptyProcess) {
 		return;
 	}
 
 	const pid = ptyProcess.pid;
+	signalProcessTreeGroups(pid, signal);
 
 	// Step 1: Kill the process tree using tree-kill
 	// tree-kill traverses by PPID to find all descendants
@@ -380,6 +466,7 @@ function handleKill(payload: Buffer): void {
 	const escalationTimer = setTimeout(() => {
 		if (!ptyProcess) return; // Already exited via onExit
 
+		signalProcessTreeGroups(pid, "SIGKILL");
 		treeKill(pid, "SIGKILL", (err) => {
 			if (err) {
 				console.error("[pty-subprocess] Failed to SIGKILL process tree:", err);
@@ -444,6 +531,7 @@ function handleDispose(): void {
 		const pid = ptyProcess.pid;
 		ptyProcess = null;
 
+		signalProcessTreeGroups(pid, "SIGKILL");
 		// tree-kill spawns child processes (ps/pgrep) to discover descendants,
 		// so we must wait for the callback before exiting.
 		treeKill(pid, "SIGKILL", (err) => {

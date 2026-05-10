@@ -9,7 +9,7 @@
  * - Event streaming
  */
 
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { EventEmitter } from "node:events";
 import {
@@ -364,7 +364,7 @@ export class TerminalHostClient extends EventEmitter {
 					);
 				}
 				this.resetConnectionState({ emitDisconnected: false });
-				this.killDaemonFromPidFile();
+				await this.killDaemonFromPidFile();
 				await this.waitForDaemonShutdown();
 			}
 
@@ -390,7 +390,7 @@ export class TerminalHostClient extends EventEmitter {
 						);
 					}
 					this.resetConnectionState({ emitDisconnected: false });
-					this.killDaemonFromPidFile();
+					await this.killDaemonFromPidFile();
 					await this.waitForDaemonShutdown();
 					await this.spawnDaemon();
 					continue;
@@ -409,7 +409,15 @@ export class TerminalHostClient extends EventEmitter {
 							);
 						}
 						this.resetConnectionState({ emitDisconnected: false });
-						await this.shutdownLegacyDaemon();
+						try {
+							await this.shutdownLegacyDaemon();
+						} catch (shutdownError) {
+							console.warn(
+								"[TerminalHostClient] Legacy daemon shutdown failed, falling back to PID kill:",
+								shutdownError,
+							);
+							await this.killDaemonFromPidFile();
+						}
 						await this.waitForDaemonShutdown();
 						await this.spawnDaemon();
 						continue;
@@ -476,21 +484,78 @@ export class TerminalHostClient extends EventEmitter {
 		}
 	}
 
-	private killDaemonFromPidFile(): void {
+	private async killDaemonFromPidFile(): Promise<void> {
 		if (!existsSync(PID_PATH)) return;
 
 		try {
 			const raw = readFileSync(PID_PATH, "utf-8").trim();
 			const pid = Number.parseInt(raw, 10);
 			if (!Number.isNaN(pid)) {
-				try {
-					process.kill(pid, "SIGTERM");
-				} catch {
-					// Best-effort; PID may be stale or process already exited.
+				this.signalDaemonProcessTreeAndGroups(pid, "SIGTERM");
+				if (!(await this.waitForPidExit(pid, 1500))) {
+					this.signalDaemonProcessTreeAndGroups(pid, "SIGKILL");
+					await this.waitForPidExit(pid, 500);
 				}
 			}
 		} catch {
 			// Best-effort.
+		}
+	}
+
+	private signalDaemonProcessTreeAndGroups(
+		pid: number,
+		signal: NodeJS.Signals,
+	): void {
+		if (!this.isPidAlive(pid)) return;
+
+		const table = readProcessTable();
+		const currentPgid = getProcessGroupId(process.pid, table);
+		const pids = collectProcessTree(pid, table);
+		const pgids = new Set<number>();
+
+		for (const targetPid of pids) {
+			const info = table.find((row) => row.pid === targetPid);
+			if (!info) continue;
+			if (info.pgid <= 1) continue;
+			if (currentPgid !== null && info.pgid === currentPgid) continue;
+			pgids.add(info.pgid);
+		}
+
+		for (const pgid of pgids) {
+			try {
+				process.kill(-pgid, signal);
+			} catch {
+				// Process group may have already exited.
+			}
+		}
+
+		for (const targetPid of pids) {
+			try {
+				process.kill(targetPid, signal);
+			} catch {
+				// Best-effort; PID may be stale or process already exited.
+			}
+		}
+	}
+
+	private async waitForPidExit(
+		pid: number,
+		timeoutMs: number,
+	): Promise<boolean> {
+		const startTime = Date.now();
+		while (Date.now() - startTime < timeoutMs) {
+			if (!this.isPidAlive(pid)) return true;
+			await this.sleep(50);
+		}
+		return !this.isPidAlive(pid);
+	}
+
+	private isPidAlive(pid: number): boolean {
+		try {
+			process.kill(pid, 0);
+			return true;
+		} catch (error) {
+			return (error as NodeJS.ErrnoException).code === "EPERM";
 		}
 	}
 
@@ -1116,6 +1181,10 @@ export class TerminalHostClient extends EventEmitter {
 		// This handles the case where daemon crashed and PID was reused
 		if (existsSync(PID_PATH)) {
 			if (DEBUG_CLIENT) {
+				console.log("[TerminalHostClient] Killing daemon from stale PID file");
+			}
+			await this.killDaemonFromPidFile();
+			if (DEBUG_CLIENT) {
 				console.log("[TerminalHostClient] Removing stale PID file");
 			}
 			try {
@@ -1600,6 +1669,64 @@ export class TerminalHostClient extends EventEmitter {
 		this.disconnect();
 		this.removeAllListeners();
 	}
+}
+
+interface ProcessInfo {
+	pid: number;
+	ppid: number;
+	pgid: number;
+}
+
+function readProcessTable(): ProcessInfo[] {
+	const result = spawnSync("ps", ["-axo", "pid=,ppid=,pgid="], {
+		encoding: "utf8",
+	});
+	if (result.error || result.status !== 0) return [];
+
+	return result.stdout
+		.split("\n")
+		.map((line) => line.trim())
+		.filter(Boolean)
+		.flatMap((line) => {
+			const [pid, ppid, pgid] = line.split(/\s+/).map(Number);
+			if (!isPositiveInteger(pid) || !Number.isInteger(ppid) || ppid < 0) {
+				return [];
+			}
+			if (!isPositiveInteger(pgid)) return [];
+			return [{ pid, ppid, pgid }];
+		});
+}
+
+function collectProcessTree(
+	rootPid: number,
+	table: ProcessInfo[],
+): Set<number> {
+	const pids = new Set<number>([rootPid]);
+	const childrenByParent = new Map<number, ProcessInfo[]>();
+	for (const row of table) {
+		const children = childrenByParent.get(row.ppid) ?? [];
+		children.push(row);
+		childrenByParent.set(row.ppid, children);
+	}
+
+	const queue = [rootPid];
+	for (const pid of queue) {
+		for (const child of childrenByParent.get(pid) ?? []) {
+			if (pids.has(child.pid)) continue;
+			pids.add(child.pid);
+			queue.push(child.pid);
+		}
+	}
+
+	return pids;
+}
+
+function getProcessGroupId(pid: number, table: ProcessInfo[]): number | null {
+	return table.find((row) => row.pid === pid)?.pgid ?? null;
+}
+
+function isPositiveInteger(value: unknown): value is number {
+	return typeof value === "number" && Number.isInteger(value) && value > 0;
 }
 
 // =============================================================================

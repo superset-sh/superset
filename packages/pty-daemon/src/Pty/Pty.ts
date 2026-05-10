@@ -3,6 +3,8 @@ import * as fs from "node:fs";
 import * as nodePty from "node-pty";
 import type { SessionMeta } from "../protocol/index.ts";
 
+const KILL_ESCALATION_TIMEOUT_MS = 1000;
+
 export type PtyOnData = (data: Buffer) => void;
 export type PtyOnExit = (info: {
 	code: number | null;
@@ -36,6 +38,8 @@ class NodePtyAdapter implements Pty {
 	readonly pid: number;
 	meta: SessionMeta;
 	private term: nodePty.IPty;
+	private exited = false;
+	private killEscalationTimer: NodeJS.Timeout | null = null;
 
 	constructor(term: nodePty.IPty, meta: SessionMeta) {
 		this.term = term;
@@ -71,7 +75,10 @@ class NodePtyAdapter implements Pty {
 	}
 
 	kill(signal?: NodeJS.Signals): void {
-		this.term.kill(signal);
+		const killSignal = signal ?? "SIGHUP";
+		signalProcessTreeAndGroups(this.pid, killSignal, { includeRoot: false });
+		this.term.kill(killSignal);
+		this.scheduleKillEscalation(killSignal);
 	}
 
 	onData(cb: PtyOnData): void {
@@ -82,8 +89,25 @@ class NodePtyAdapter implements Pty {
 
 	onExit(cb: PtyOnExit): void {
 		this.term.onExit(({ exitCode, signal }) => {
+			this.exited = true;
+			if (this.killEscalationTimer) {
+				clearTimeout(this.killEscalationTimer);
+				this.killEscalationTimer = null;
+			}
 			cb({ code: exitCode ?? null, signal: signal ?? null });
 		});
+	}
+
+	private scheduleKillEscalation(signal: NodeJS.Signals): void {
+		if (signal === "SIGKILL" || this.exited || this.killEscalationTimer) return;
+
+		this.killEscalationTimer = setTimeout(() => {
+			this.killEscalationTimer = null;
+			if (this.exited) return;
+			signalProcessTreeAndGroups(this.pid, "SIGKILL", { includeRoot: false });
+			this.term.kill("SIGKILL");
+		}, KILL_ESCALATION_TIMEOUT_MS);
+		this.killEscalationTimer.unref();
 	}
 }
 
@@ -169,6 +193,7 @@ class AdoptedPty implements Pty {
 	private readonly writer: fs.WriteStream;
 	private exitFired = false;
 	private livenessTimer: NodeJS.Timeout | null = null;
+	private killEscalationTimer: NodeJS.Timeout | null = null;
 	private exitCallbacks: PtyOnExit[] = [];
 
 	constructor(fd: number, pid: number, meta: SessionMeta) {
@@ -188,6 +213,7 @@ class AdoptedPty implements Pty {
 			if (this.exitFired) return;
 			this.exitFired = true;
 			if (this.livenessTimer) clearInterval(this.livenessTimer);
+			if (this.killEscalationTimer) clearTimeout(this.killEscalationTimer);
 			// Close the read/write streams so the inherited fd doesn't keep
 			// the event loop alive after the shell exits. We use
 			// `autoClose: false` (so handoff-time refcounting works), which
@@ -253,11 +279,9 @@ class AdoptedPty implements Pty {
 	}
 
 	kill(signal?: NodeJS.Signals): void {
-		try {
-			process.kill(this.pid, signal ?? "SIGHUP");
-		} catch {
-			// Already dead; idempotent kill.
-		}
+		const killSignal = signal ?? "SIGHUP";
+		signalProcessTreeAndGroups(this.pid, killSignal);
+		this.scheduleKillEscalation(killSignal);
 	}
 
 	onData(cb: PtyOnData): void {
@@ -269,6 +293,18 @@ class AdoptedPty implements Pty {
 	onExit(cb: PtyOnExit): void {
 		this.exitCallbacks.push(cb);
 	}
+
+	private scheduleKillEscalation(signal: NodeJS.Signals): void {
+		if (signal === "SIGKILL" || this.exitFired || this.killEscalationTimer)
+			return;
+
+		this.killEscalationTimer = setTimeout(() => {
+			this.killEscalationTimer = null;
+			if (this.exitFired) return;
+			signalProcessTreeAndGroups(this.pid, "SIGKILL");
+		}, KILL_ESCALATION_TIMEOUT_MS);
+		this.killEscalationTimer.unref();
+	}
 }
 
 function isPidAlive(pid: number): boolean {
@@ -279,6 +315,120 @@ function isPidAlive(pid: number): boolean {
 		// EPERM means the pid exists but isn't ours — count as alive.
 		return (err as NodeJS.ErrnoException).code === "EPERM";
 	}
+}
+
+interface ProcessInfo {
+	pid: number;
+	ppid: number;
+	pgid: number;
+}
+
+function signalProcessTreeAndGroups(
+	rootPid: number,
+	signal: NodeJS.Signals,
+	options: { includeRoot?: boolean } = {},
+): void {
+	const includeRoot = options.includeRoot ?? true;
+	const table = readProcessTable();
+	const currentPgid = getProcessGroupId(process.pid, table);
+	const rootPgid = getProcessGroupId(rootPid, table);
+	const pids = collectProcessTree(rootPid, table);
+	const pgids = new Set<number>();
+
+	for (const pid of pids) {
+		if (!includeRoot && pid === rootPid) continue;
+		const info = table.find((row) => row.pid === pid);
+		if (!info) continue;
+		if (info.pgid <= 1) continue;
+		if (currentPgid !== null && info.pgid === currentPgid) continue;
+		if (!includeRoot && rootPgid !== null && info.pgid === rootPgid) {
+			continue;
+		}
+		pgids.add(info.pgid);
+	}
+
+	for (const pgid of pgids) {
+		signalProcessGroup(pgid, signal);
+	}
+
+	for (const pid of pids) {
+		if (!includeRoot && pid === rootPid) continue;
+		signalPid(pid, signal);
+	}
+}
+
+function readProcessTable(): ProcessInfo[] {
+	const result = childProcess.spawnSync("ps", ["-axo", "pid=,ppid=,pgid="], {
+		encoding: "utf8",
+	});
+	if (result.error || result.status !== 0) return [];
+
+	return result.stdout
+		.split("\n")
+		.map((line) => line.trim())
+		.filter(Boolean)
+		.flatMap((line) => {
+			const [pid, ppid, pgid] = line.split(/\s+/).map(Number);
+			if (!isPositiveInteger(pid) || !isPositiveInteger(ppid)) return [];
+			if (!isPositiveInteger(pgid)) return [];
+			return [{ pid, ppid, pgid }];
+		});
+}
+
+function collectProcessTree(
+	rootPid: number,
+	table: ProcessInfo[],
+): Set<number> {
+	const pids = new Set<number>([rootPid]);
+	const childrenByParent = new Map<number, ProcessInfo[]>();
+	for (const row of table) {
+		const children = childrenByParent.get(row.ppid) ?? [];
+		children.push(row);
+		childrenByParent.set(row.ppid, children);
+	}
+
+	const queue = [rootPid];
+	for (const pid of queue) {
+		for (const child of childrenByParent.get(pid) ?? []) {
+			if (pids.has(child.pid)) continue;
+			pids.add(child.pid);
+			queue.push(child.pid);
+		}
+	}
+
+	return pids;
+}
+
+function getProcessGroupId(pid: number, table: ProcessInfo[]): number | null {
+	return table.find((row) => row.pid === pid)?.pgid ?? null;
+}
+
+function signalProcessGroup(pgid: number, signal: NodeJS.Signals): void {
+	try {
+		process.kill(-pgid, signal);
+	} catch (err) {
+		if ((err as NodeJS.ErrnoException).code !== "ESRCH") {
+			process.stderr.write(
+				`[pty-daemon] failed to ${signal} process group ${pgid}: ${(err as Error).message}\n`,
+			);
+		}
+	}
+}
+
+function signalPid(pid: number, signal: NodeJS.Signals): void {
+	try {
+		process.kill(pid, signal);
+	} catch (err) {
+		if ((err as NodeJS.ErrnoException).code !== "ESRCH") {
+			process.stderr.write(
+				`[pty-daemon] failed to ${signal} pid ${pid}: ${(err as Error).message}\n`,
+			);
+		}
+	}
+}
+
+function isPositiveInteger(value: unknown): value is number {
+	return typeof value === "number" && Number.isInteger(value) && value > 0;
 }
 
 export interface AdoptOptions {

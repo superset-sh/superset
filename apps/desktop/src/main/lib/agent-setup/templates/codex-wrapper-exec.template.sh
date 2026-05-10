@@ -13,11 +13,30 @@ _superset_notify_path="{{NOTIFY_PATH}}"
 _superset_debug_log="${SUPERSET_HOOK_DEBUG_LOG:-/tmp/superset-codex-hooks.log}"
 _superset_has_superset_context="0"
 [ -n "$SUPERSET_TERMINAL_ID$SUPERSET_TAB_ID$SUPERSET_PANE_ID" ] && _superset_has_superset_context="1"
+SUPERSET_CODEX_SESSION_WATCHER_PID=""
 
 _superset_debug() {
   [ "$_superset_debug_enabled" = "1" ] || return 0
   printf '%s [codex-wrapper] %s\n' "$(date -u '+%Y-%m-%dT%H:%M:%SZ' 2>/dev/null || date)" "$*" >> "$_superset_debug_log" 2>/dev/null || true
 }
+
+_superset_cleanup_session_watcher() {
+  if [ -n "$SUPERSET_CODEX_SESSION_WATCHER_PID" ]; then
+    kill "$SUPERSET_CODEX_SESSION_WATCHER_PID" >/dev/null 2>&1 || true
+    wait "$SUPERSET_CODEX_SESSION_WATCHER_PID" 2>/dev/null || true
+    _superset_debug "session watcher stopped pid=$SUPERSET_CODEX_SESSION_WATCHER_PID"
+    SUPERSET_CODEX_SESSION_WATCHER_PID=""
+  fi
+}
+
+_superset_exit_trap() {
+  _superset_status=$?
+  trap - EXIT HUP INT TERM
+  _superset_cleanup_session_watcher
+  exit "$_superset_status"
+}
+
+trap _superset_exit_trap EXIT HUP INT TERM
 
 if [ "$_superset_has_superset_context" = "1" ] && [ -f "$_superset_notify_path" ]; then
   export CODEX_TUI_RECORD_SESSION="${CODEX_TUI_RECORD_SESSION:-1}"
@@ -27,12 +46,31 @@ if [ "$_superset_has_superset_context" = "1" ] && [ -f "$_superset_notify_path" 
   (
     _superset_notify="$_superset_notify_path"
     _superset_session_log="$CODEX_TUI_SESSION_LOG_PATH"
+    _superset_watcher_fifo="${TMPDIR:-/tmp}/superset-codex-watcher-$$_${RANDOM:-0}.fifo"
+    _superset_tail_pid=""
 
     _superset_emit_event() {
       _superset_payload=$(printf '{"hook_event_name":"%s"}' "$1")
       _superset_debug "emitting $1 via $_superset_notify"
       bash "$_superset_notify" "$_superset_payload" >/dev/null 2>&1 || true
     }
+
+    _superset_stop_tail() {
+      if [ -n "$_superset_tail_pid" ]; then
+        kill "$_superset_tail_pid" >/dev/null 2>&1 || true
+        wait "$_superset_tail_pid" 2>/dev/null || true
+        _superset_tail_pid=""
+      fi
+      rm -f "$_superset_watcher_fifo" >/dev/null 2>&1 || true
+    }
+
+    _superset_watcher_exit() {
+      trap - EXIT HUP INT TERM
+      _superset_stop_tail
+      exit 0
+    }
+
+    trap _superset_watcher_exit EXIT HUP INT TERM
 
     _superset_i=0
     while [ ! -f "$_superset_session_log" ] && [ "$_superset_i" -lt 200 ]; do
@@ -45,12 +83,20 @@ if [ "$_superset_has_superset_context" = "1" ] && [ -f "$_superset_notify_path" 
     fi
     _superset_debug "watching session=$_superset_session_log"
 
-    tail -n +1 -F "$_superset_session_log" 2>/dev/null | while IFS= read -r _superset_line; do
+    if ! mkfifo "$_superset_watcher_fifo" 2>/dev/null; then
+      _superset_debug "failed to create watcher fifo path=$_superset_watcher_fifo"
+      exit 0
+    fi
+
+    tail -n +1 -F "$_superset_session_log" > "$_superset_watcher_fifo" 2>/dev/null &
+    _superset_tail_pid=$!
+
+    while IFS= read -r _superset_line; do
       case "$_superset_line" in
         *'"dir":"from_tui"'*'"kind":"op"'*'"UserTurn"'*) _superset_emit_event "Start" ;;
         *'_approval_request"'*) _superset_emit_event "PermissionRequest" ;;
       esac
-    done
+    done < "$_superset_watcher_fifo"
   ) &
   SUPERSET_CODEX_SESSION_WATCHER_PID=$!
   _superset_debug "session watcher pid=$SUPERSET_CODEX_SESSION_WATCHER_PID"
@@ -66,10 +112,7 @@ fi
 SUPERSET_CODEX_STATUS=$?
 _superset_debug "codex exited status=$SUPERSET_CODEX_STATUS"
 
-if [ -n "$SUPERSET_CODEX_SESSION_WATCHER_PID" ]; then
-  kill "$SUPERSET_CODEX_SESSION_WATCHER_PID" >/dev/null 2>&1 || true
-  wait "$SUPERSET_CODEX_SESSION_WATCHER_PID" 2>/dev/null || true
-  _superset_debug "session watcher stopped pid=$SUPERSET_CODEX_SESSION_WATCHER_PID"
-fi
+_superset_cleanup_session_watcher
 
+trap - EXIT HUP INT TERM
 exit "$SUPERSET_CODEX_STATUS"

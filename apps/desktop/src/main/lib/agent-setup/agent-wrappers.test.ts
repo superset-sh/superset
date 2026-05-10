@@ -207,6 +207,8 @@ describe("agent-wrappers copilot", () => {
 		expect(wrapper).not.toContain("$" + "{CODEX_HOME:-$HOME/.codex}");
 		expect(wrapper).toContain("SUPERSET_HOOK_DEBUG_LOG");
 		expect(wrapper).toContain("tail -n +1 -F");
+		expect(wrapper).toContain("_superset_cleanup_session_watcher");
+		expect(wrapper).toContain("mkfifo");
 		expect(wrapper).toContain('"UserTurn"');
 		expect(wrapper).toContain("_approval_request");
 

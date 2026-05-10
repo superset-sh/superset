@@ -8,6 +8,13 @@
 // Runs under Node (`node --experimental-strip-types --test`).
 
 import { strict as assert } from "node:assert";
+import {
+	existsSync,
+	mkdtempSync,
+	readFileSync,
+	rmSync,
+	writeFileSync,
+} from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { after, before, describe, test } from "node:test";
@@ -49,6 +56,31 @@ const baseMeta = {
 
 function uniqueId(prefix: string): string {
 	return `${prefix}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function shellQuote(value: string): string {
+	return `'${value.replaceAll("'", "'\\''")}'`;
+}
+
+function isPidAlive(pid: number): boolean {
+	try {
+		process.kill(pid, 0);
+		return true;
+	} catch (err) {
+		return (err as NodeJS.ErrnoException).code === "EPERM";
+	}
+}
+
+async function waitForCondition(
+	predicate: () => boolean,
+	timeoutMs = 3000,
+): Promise<void> {
+	const start = Date.now();
+	while (Date.now() - start < timeoutMs) {
+		if (predicate()) return;
+		await new Promise((resolve) => setTimeout(resolve, 25));
+	}
+	throw new Error(`condition timed out after ${timeoutMs}ms`);
 }
 
 // ---------------- Handshake ----------------
@@ -196,6 +228,57 @@ describe("session lifecycle", () => {
 		// returned (the bug), this waitFor would timeout.
 		await c.waitFor((m) => m.type === "exit" && m.id === id, 3000);
 		await c.close();
+	});
+
+	test("default close kills background jobs in separate process groups", async () => {
+		const c = await connectAndHello(sockPath);
+		const id = uniqueId("background-pgrp");
+		const tmp = mkdtempSync(path.join(os.tmpdir(), "pty-daemon-pgrp-"));
+		const logPath = path.join(tmp, "superset-codex-session.jsonl");
+		const pidPath = path.join(tmp, "tail.pid");
+		let tailPid: number | null = null;
+		writeFileSync(logPath, "");
+
+		try {
+			const script = [
+				"set -m",
+				`tail -n +1 -F ${shellQuote(logPath)} >/dev/null 2>&1 & tail_pid=$!`,
+				`echo "$tail_pid" > ${shellQuote(pidPath)}`,
+				"sleep 60",
+			].join("; ");
+
+			c.send({
+				type: "open",
+				id,
+				meta: {
+					...baseMeta,
+					shell: "/bin/bash",
+					argv: ["-c", script],
+				},
+			});
+			await c.waitFor((m) => m.type === "open-ok" && m.id === id);
+			c.send({ type: "subscribe", id, replay: false });
+			await waitForCondition(() => existsSync(pidPath));
+
+			tailPid = Number(readFileSync(pidPath, "utf8").trim());
+			assert.equal(isPidAlive(tailPid), true);
+
+			c.send({ type: "close", id });
+			await c.waitFor((m) => m.type === "closed" && m.id === id);
+			await c.waitFor((m) => m.type === "exit" && m.id === id, 3000);
+
+			await waitForCondition(() => !isPidAlive(tailPid as number), 3000);
+		} finally {
+			if (tailPid !== null && isPidAlive(tailPid)) {
+				try {
+					process.kill(tailPid, "SIGKILL");
+				} catch {
+					// Already gone.
+				}
+			}
+			rmSync(tmp, { recursive: true, force: true });
+			await c.close();
+		}
 	});
 });
 
