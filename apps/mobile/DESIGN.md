@@ -76,7 +76,8 @@ adding new routes.
 2. **feat(mobile/workspaces): chunk projects with skeleton + sections** — render Active / Archived sections from `collections.projects`. Reusable `<SectionHeader>` and `<WorkspaceCard>` components in the screen folder. `<SkeletonList>` while data is loading. Caps each section to 7 visible items with "Show all" reveal (Miller). Wires RefreshControl to refetch the collection.
 3. **fix(mobile/workspaces): use token color in OrgHeaderButton chevron** — replace `hsl(240 5% 64.9%)` with `useTheme().mutedForeground` (Aesthetic-Usability).
 4. **feat(mobile/workspace-detail): real header + pane cards** — drive `Stack.Screen` title from project name via `Stack.Screen options`. Add `PaneCard` component grouping the three info sections with consistent spacing (Peak-End). Skeletons while project loads.
-5. **feat(mobile/more): re-order and tighten More menu** — anchor Org at top, Settings + Help row in middle, Sign out at bottom (Serial Position). Single tap targets at 44pt.
+5. **fix(mobile/more): re-order and tighten More menu** — anchor Org at top, Settings + Help row in middle, Sign out at bottom (Serial Position). Single tap targets at 44pt.
+6. **feat(mobile/tasks): chunk by status type with skeletons** — same chunking pattern as Workspaces, but driven by `task_statuses.type` so Active / Backlog / Done show as separate sections; Done collapses by default (Tesler).
 
 Each commit is independently typecheckable and reversible. No deletes
 without `bun run typecheck` clean.
