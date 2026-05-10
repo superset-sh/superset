@@ -111,8 +111,6 @@ export function useDestroyDialogState({
 			if (inFlight.current) return;
 			inFlight.current = true;
 
-			const navigationTarget = getNavigationTargetAfterRemoval(workspaceId);
-
 			setError(null);
 			onOpenChange(false);
 			markDeleting(workspaceId);
@@ -137,7 +135,7 @@ export function useDestroyDialogState({
 					}
 				}
 				for (const warning of result.warnings) toast.warning(warning);
-				navigateToRemovalTarget(navigationTarget);
+				navigateToRemovalTarget(getNavigationTargetAfterRemoval(workspaceId));
 				onDeleted?.();
 			} catch (err) {
 				const e = err as DestroyWorkspaceError;
