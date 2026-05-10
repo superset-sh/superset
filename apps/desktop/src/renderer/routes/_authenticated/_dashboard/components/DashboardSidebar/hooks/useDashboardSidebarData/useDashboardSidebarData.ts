@@ -20,11 +20,10 @@ import {
 	getDashboardSidebarPullRequestQueryKey,
 	type PullRequestQueryTarget,
 } from "./derivePullRequestQueryTargets";
-
-// Sits above every real workspace so the pending row lines up with the real one,
-// which is inserted via getPrependTabOrder.
-const PENDING_WORKSPACE_TAB_ORDER = Number.MIN_SAFE_INTEGER;
-const MAIN_WORKSPACE_TAB_ORDER = Number.MIN_SAFE_INTEGER;
+import {
+	PENDING_WORKSPACE_TAB_ORDER,
+	selectAutoIncludedLocalWorkspaces,
+} from "./useDashboardSidebarData.utils";
 
 type SidebarPullRequest = DashboardSidebarWorkspace["pullRequest"];
 type PullRequestWorkspaceRow = {
@@ -263,14 +262,13 @@ export function useDashboardSidebarData() {
 		[rawSidebarWorkspaces],
 	);
 
-	const { data: localMainWorkspaces = [] } = useLiveQuery(
+	const { data: localWorkspacesForAutoInclude = [] } = useLiveQuery(
 		(q) =>
 			q
 				.from({ workspaces: collections.v2Workspaces })
 				.innerJoin({ hosts: collections.v2Hosts }, ({ workspaces, hosts }) =>
 					eq(workspaces.hostId, hosts.machineId),
 				)
-				.where(({ workspaces }) => eq(workspaces.type, "main"))
 				.select(({ workspaces, hosts }) => ({
 					id: workspaces.id,
 					projectId: workspaces.projectId,
@@ -281,8 +279,6 @@ export function useDashboardSidebarData() {
 					branch: workspaces.branch,
 					createdAt: workspaces.createdAt,
 					updatedAt: workspaces.updatedAt,
-					tabOrder: MAIN_WORKSPACE_TAB_ORDER,
-					sectionId: null as string | null,
 				})),
 		[collections],
 	);
@@ -291,16 +287,16 @@ export function useDashboardSidebarData() {
 		const sidebarProjectIds = new Set(
 			sidebarProjects.map((project) => project.id),
 		);
-		const autoLocalMainWorkspaces = localMainWorkspaces.filter(
-			(workspace) =>
-				!localStateWorkspaceIds.has(workspace.id) &&
-				workspace.hostId === machineId &&
-				sidebarProjectIds.has(workspace.projectId),
-		);
+		const autoIncludedLocalWorkspaces = selectAutoIncludedLocalWorkspaces({
+			candidates: localWorkspacesForAutoInclude,
+			workspacesWithLocalStateIds: localStateWorkspaceIds,
+			sidebarProjectIds,
+			machineId,
+		});
 
-		return [...autoLocalMainWorkspaces, ...sidebarWorkspaces];
+		return [...autoIncludedLocalWorkspaces, ...sidebarWorkspaces];
 	}, [
-		localMainWorkspaces,
+		localWorkspacesForAutoInclude,
 		localStateWorkspaceIds,
 		machineId,
 		sidebarProjects,
