@@ -47,6 +47,19 @@ export function useNavigateAwayFromWorkspace() {
 		[collections, isDeleting, matchRoute],
 	);
 
+	const isWorkspaceRouteActive = useCallback(
+		(workspaceId: string) => {
+			const workspaceMatch = matchRoute({
+				to: "/v2-workspace/$workspaceId",
+				fuzzy: true,
+			});
+			return (
+				workspaceMatch !== false && workspaceMatch.workspaceId === workspaceId
+			);
+		},
+		[matchRoute],
+	);
+
 	const navigateToRemovalTarget = useCallback(
 		(target: WorkspaceRemovalNavigationTarget | null) => {
 			if (!target) return;
@@ -72,6 +85,7 @@ export function useNavigateAwayFromWorkspace() {
 
 	return {
 		getNavigationTargetAfterRemoval,
+		isWorkspaceRouteActive,
 		navigateAwayFromWorkspace,
 		navigateToRemovalTarget,
 	};

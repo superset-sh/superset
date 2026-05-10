@@ -35,8 +35,11 @@ export function useDestroyDialogState({
 }: UseDestroyDialogStateOptions) {
 	const { destroy, inspect, hostTarget } = useDestroyWorkspace(workspaceId);
 	const { markDeleting, clearDeleting } = useDeletingWorkspaces();
-	const { getNavigationTargetAfterRemoval, navigateToRemovalTarget } =
-		useNavigateAwayFromWorkspace();
+	const {
+		getNavigationTargetAfterRemoval,
+		isWorkspaceRouteActive,
+		navigateToRemovalTarget,
+	} = useNavigateAwayFromWorkspace();
 
 	const { preferences, setDeleteLocalBranch: setDeleteBranch } =
 		useV2UserPreferences();
@@ -111,6 +114,12 @@ export function useDestroyDialogState({
 			if (inFlight.current) return;
 			inFlight.current = true;
 
+			// Snapshot the next-sibling target now so we preserve sidebar order
+			// (collections may evict the workspace by the time destroy resolves).
+			// We re-check the active route at apply time to avoid hijacking the
+			// user if they navigated elsewhere during the delete.
+			const navigationTarget = getNavigationTargetAfterRemoval(workspaceId);
+
 			setError(null);
 			onOpenChange(false);
 			markDeleting(workspaceId);
@@ -135,7 +144,9 @@ export function useDestroyDialogState({
 					}
 				}
 				for (const warning of result.warnings) toast.warning(warning);
-				navigateToRemovalTarget(getNavigationTargetAfterRemoval(workspaceId));
+				if (isWorkspaceRouteActive(workspaceId)) {
+					navigateToRemovalTarget(navigationTarget);
+				}
 				onDeleted?.();
 			} catch (err) {
 				const e = err as DestroyWorkspaceError;
@@ -164,6 +175,7 @@ export function useDestroyDialogState({
 			markDeleting,
 			clearDeleting,
 			getNavigationTargetAfterRemoval,
+			isWorkspaceRouteActive,
 			navigateToRemovalTarget,
 		],
 	);
