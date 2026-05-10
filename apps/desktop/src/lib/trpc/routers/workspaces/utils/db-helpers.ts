@@ -90,37 +90,6 @@ export function activateProject(project: SelectProject): void {
 }
 
 /**
- * Hide a project from the sidebar by setting tabOrder to null.
- * Called when the last workspace in a project is deleted/closed.
- */
-export function hideProject(projectId: string): void {
-	localDb
-		.update(projects)
-		.set({ tabOrder: null })
-		.where(eq(projects.id, projectId))
-		.run();
-}
-
-/**
- * Check if a project has any remaining workspaces.
- * If not, hide it from the sidebar.
- *
- * Note: We check for ANY workspaces (including those being deleted) to avoid
- * prematurely hiding the project when multiple workspaces are being deleted
- * concurrently. The project should only be hidden when all deletions complete.
- */
-export function hideProjectIfNoWorkspaces(projectId: string): void {
-	const remainingWorkspaces = localDb
-		.select()
-		.from(workspaces)
-		.where(eq(workspaces.projectId, projectId))
-		.all();
-	if (remainingWorkspaces.length === 0) {
-		hideProject(projectId);
-	}
-}
-
-/**
  * Select the next active workspace after the current one is removed.
  * Returns the ID of the next workspace to activate, or null if none.
  * Selects the most recently opened workspace from VISIBLE projects only
