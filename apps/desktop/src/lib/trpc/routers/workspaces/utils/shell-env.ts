@@ -181,18 +181,22 @@ export async function getProcessEnvWithShellPath(
 	const env = await getProcessEnvWithShellEnv(baseEnv, shellEnvResult);
 
 	const shellPath = shellEnvResult.PATH || shellEnvResult.Path;
-	if (!shellPath) {
-		return env;
+	if (shellPath) {
+		env.PATH = shellPath;
+		if (
+			process.platform === "win32" ||
+			"Path" in baseEnv ||
+			"Path" in shellEnvResult
+		) {
+			env.Path = shellPath;
+		}
 	}
 
-	env.PATH = shellPath;
-	if (
-		process.platform === "win32" ||
-		"Path" in baseEnv ||
-		"Path" in shellEnvResult
-	) {
-		env.Path = shellPath;
-	}
+	// Ensure macOS standard binary locations are always present, even when
+	// `shellEnv()` succeeded but returned a PATH that excludes Homebrew /
+	// /usr/local. Without this, GUI-launched Electron processes hit
+	// `spawn git ENOENT` because git installed via Homebrew is not on PATH.
+	augmentPathForMacOS(env);
 
 	return env;
 }
