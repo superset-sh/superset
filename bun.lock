@@ -922,7 +922,7 @@
     },
     "packages/pty-daemon": {
       "name": "@superset/pty-daemon",
-      "version": "0.2.1",
+      "version": "0.2.2",
       "bin": {
         "pty-daemon": "./src/main.ts",
       },

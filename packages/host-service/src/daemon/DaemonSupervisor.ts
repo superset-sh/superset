@@ -101,6 +101,8 @@ export interface DaemonSupervisorOptions {
 	/**
 	 * When true (default), opportunistically calls `update()` after
 	 * adopting a daemon whose `runningVersion < EXPECTED_DAEMON_VERSION`.
+	 * If that smooth handoff fails, auto-update falls back to a force
+	 * restart so the app does not keep running an incompatible daemon.
 	 * Set to false in integration tests that intentionally adopt a stale
 	 * daemon and assert the version-drift flag without the test racing a
 	 * real handoff.
@@ -350,6 +352,16 @@ export class DaemonSupervisor {
 	}
 
 	async restart(organizationId: string): Promise<{ success: true }> {
+		return this.forceRestart(organizationId, {
+			event: "pty_daemon_user_restart",
+			props: {},
+		});
+	}
+
+	private async forceRestart(
+		organizationId: string,
+		log: { event: string; props: Record<string, unknown> },
+	): Promise<{ success: true }> {
 		const prev = this.instances.get(organizationId);
 		const hadCircuitOpen = this.circuitOpen.has(organizationId);
 
@@ -365,12 +377,13 @@ export class DaemonSupervisor {
 		await this.stop(organizationId);
 		this.clearCrashCircuit(organizationId);
 
-		logEvent("pty_daemon_user_restart", {
+		logEvent(log.event, {
 			organizationId,
 			hadCircuitOpen,
 			previousRunningVersion: prev?.runningVersion ?? null,
 			previousExpectedVersion: prev?.expectedVersion ?? null,
 			previousUpdatePending: prev?.updatePending ?? null,
+			...log.props,
 		});
 
 		await this.ensure(organizationId);
@@ -467,11 +480,10 @@ export class DaemonSupervisor {
 	/**
 	 * Auto-update: best-effort opportunistic handoff when the adopted
 	 * daemon is older than the bundled binary. Runs after host-service
-	 * boot, fire-and-track, doesn't block anything. On failure we leave
-	 * the old daemon running — the user keeps their sessions and can
-	 * retry via the Update button. The renderer's "Update available"
-	 * badge still shows in that case, which is correct: the upgrade
-	 * truly is still pending.
+	 * boot, fire-and-track, doesn't block anything. On smooth handoff
+	 * failure we force-restart the daemon: auto-update has no foreground
+	 * UI to ask the user for the destructive fallback, and leaving a stale
+	 * daemon adopted by a newer app risks a bad mixed-version state.
 	 */
 	private kickoffAutoUpdate(
 		organizationId: string,
@@ -500,18 +512,94 @@ export class DaemonSupervisor {
 						expectedVersion: instance.expectedVersion,
 						reason: result.reason,
 					});
+					void this.forceRestartAfterAutoUpdateFailure(
+						organizationId,
+						instance,
+						result.reason,
+					);
 				}
 			},
 			(err) => {
+				const reason = `threw: ${(err as Error).message}`;
 				logEvent("pty_daemon_auto_update_failed", {
 					organizationId,
 					pid: instance.pid,
 					runningVersion: instance.runningVersion,
 					expectedVersion: instance.expectedVersion,
-					reason: `threw: ${(err as Error).message}`,
+					reason,
 				});
+				void this.forceRestartAfterAutoUpdateFailure(
+					organizationId,
+					instance,
+					reason,
+				);
 			},
 		);
+	}
+
+	private async forceRestartAfterAutoUpdateFailure(
+		organizationId: string,
+		instance: DaemonInstance,
+		reason: string,
+	): Promise<void> {
+		const current = this.instances.get(organizationId);
+		if (!current) {
+			logEvent("pty_daemon_auto_update_force_restart_skipped", {
+				organizationId,
+				smoothUpdatePid: instance.pid,
+				smoothUpdateFailureReason: reason,
+				reason: "no_current_daemon",
+			});
+			return;
+		}
+		if (current.pid !== instance.pid) {
+			logEvent("pty_daemon_auto_update_force_restart_skipped", {
+				organizationId,
+				smoothUpdatePid: instance.pid,
+				smoothUpdateFailureReason: reason,
+				reason: "daemon_changed",
+				currentPid: current.pid,
+				currentRunningVersion: current.runningVersion,
+				currentExpectedVersion: current.expectedVersion,
+				currentUpdatePending: current.updatePending,
+			});
+			return;
+		}
+		if (!current.updatePending) {
+			logEvent("pty_daemon_auto_update_force_restart_skipped", {
+				organizationId,
+				smoothUpdatePid: instance.pid,
+				smoothUpdateFailureReason: reason,
+				reason: "daemon_no_longer_pending",
+				currentRunningVersion: current.runningVersion,
+				currentExpectedVersion: current.expectedVersion,
+			});
+			return;
+		}
+
+		try {
+			await this.forceRestart(organizationId, {
+				event: "pty_daemon_auto_update_force_restart",
+				props: {
+					smoothUpdateFailureReason: reason,
+					smoothUpdatePid: instance.pid,
+					smoothUpdateRunningVersion: instance.runningVersion,
+					smoothUpdateExpectedVersion: instance.expectedVersion,
+				},
+			});
+			logEvent("pty_daemon_auto_update_force_restart_ok", {
+				organizationId,
+				smoothUpdatePid: instance.pid,
+				smoothUpdateFailureReason: reason,
+			});
+		} catch (err) {
+			logEvent("pty_daemon_auto_update_force_restart_failed", {
+				organizationId,
+				smoothUpdatePid: instance.pid,
+				smoothUpdateFailureReason: reason,
+				reason: (err as Error).message,
+			});
+		}
 	}
 
 	/**
@@ -567,9 +655,10 @@ export class DaemonSupervisor {
 			this.startAdoptedLivenessCheck(organizationId, adopted.pid);
 			// Auto-update opportunistically: if the adopted daemon is older
 			// than the bundled binary, kick off a handoff in the background.
-			// Sessions survive on success; on failure we leave the old
-			// daemon running and the user can retry via the Update button.
-			// Fire-and-track so bootstrap returns immediately.
+			// Sessions survive on smooth success; on smooth failure the
+			// background path force-restarts because there is no foreground UI
+			// to ask the user for the destructive fallback. Fire-and-track so
+			// bootstrap returns immediately.
 			if (adopted.updatePending && this.opts.autoUpdate !== false) {
 				this.kickoffAutoUpdate(organizationId, adopted);
 			}
