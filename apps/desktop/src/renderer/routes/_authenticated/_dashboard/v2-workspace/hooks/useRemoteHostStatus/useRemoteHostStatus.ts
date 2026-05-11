@@ -4,7 +4,7 @@ import { MIN_HOST_SERVICE_VERSION } from "@superset/shared/host-version";
 import { and, eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useQuery } from "@tanstack/react-query";
-import { env } from "renderer/env.renderer";
+import { useRelayUrl } from "renderer/hooks/useRelayUrl";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
@@ -28,6 +28,7 @@ export function useRemoteHostStatus(
 ): RemoteHostStatus {
 	const collections = useCollections();
 	const { machineId } = useLocalHostService();
+	const relayUrl = useRelayUrl();
 	const organizationId = workspace?.organizationId ?? "";
 	const hostId = workspace?.hostId ?? "";
 	const isLocal =
@@ -51,7 +52,7 @@ export function useRemoteHostStatus(
 	);
 	const hostRow = hostRows[0] ?? null;
 
-	const hostUrl = `${env.RELAY_URL}/hosts/${buildHostRoutingKey(
+	const hostUrl = `${relayUrl}/hosts/${buildHostRoutingKey(
 		organizationId,
 		hostId,
 	)}`;

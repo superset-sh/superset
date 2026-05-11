@@ -2,7 +2,7 @@ import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useQueries, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useMemo, useRef } from "react";
-import { env } from "renderer/env.renderer";
+import { useRelayUrl } from "renderer/hooks/useRelayUrl";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
@@ -129,6 +129,7 @@ function useStableDashboardSidebarProjects(
 export function useDashboardSidebarData() {
 	const collections = useCollections();
 	const { machineId, activeHostUrl } = useLocalHostService();
+	const relayUrl = useRelayUrl();
 	const { toggleProjectCollapsed } = useDashboardSidebarState();
 	const queryClient = useQueryClient();
 
@@ -361,10 +362,10 @@ export function useDashboardSidebarData() {
 				activeHostUrl,
 				hosts,
 				machineId,
-				relayUrl: env.RELAY_URL,
+				relayUrl,
 				workspaces: visibleSidebarWorkspaces,
 			}),
-		[activeHostUrl, hosts, machineId, visibleSidebarWorkspaces],
+		[activeHostUrl, hosts, machineId, relayUrl, visibleSidebarWorkspaces],
 	);
 
 	const pullRequestQueries = useQueries({
