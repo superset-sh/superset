@@ -43,7 +43,6 @@ export const WORKSPACES: WorkspaceData[] = [
 ];
 
 export const FILE_CHANGES: FileChange[] = [
-	{ path: "bun.lock", add: 38, del: 25, type: "edit" },
 	{ path: "packages/db/src/schema", type: "folder" },
 	{ path: "cloud-workspace.ts", add: 119, del: 0, type: "add", indent: 1 },
 	{ path: "enums.ts", add: 21, del: 0, type: "edit", indent: 1 },
