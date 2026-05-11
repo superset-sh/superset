@@ -1,3 +1,4 @@
+import { pgEnum } from "drizzle-orm/pg-core";
 import { z } from "zod";
 
 export const taskStatusEnumValues = [
@@ -26,6 +27,12 @@ export type TaskPriority = z.infer<typeof taskPriorityEnum>;
 export const integrationProviderValues = ["linear", "github", "slack"] as const;
 export const integrationProviderEnum = z.enum(integrationProviderValues);
 export type IntegrationProvider = z.infer<typeof integrationProviderEnum>;
+// Drizzle pgEnum lives here (not schema.ts) so the auth schema can reference
+// it without creating a circular import between auth.ts and schema.ts.
+export const integrationProvider = pgEnum(
+	"integration_provider",
+	integrationProviderValues,
+);
 
 export const deviceTypeValues = ["desktop", "mobile", "web"] as const;
 export const deviceTypeEnum = z.enum(deviceTypeValues);

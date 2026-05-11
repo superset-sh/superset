@@ -11,59 +11,47 @@ import { Input } from "@superset/ui/input";
 import { Label } from "@superset/ui/label";
 import { toast } from "@superset/ui/sonner";
 import { useState } from "react";
-import { authClient } from "renderer/lib/auth-client";
+import { apiTrpcClient } from "renderer/lib/api-trpc-client";
+import {
+	normalizeTeamKey,
+	TEAM_KEY_MAX_LENGTH,
+} from "../../../../utils/team-key";
 
-interface CreateTeamButtonProps {
-	organizationId: string;
-}
-
-function slugify(value: string): string {
-	return value
-		.toLowerCase()
-		.replace(/[^a-z0-9]+/g, "-")
-		.replace(/^-+|-+$/g, "");
-}
-
-export function CreateTeamButton({ organizationId }: CreateTeamButtonProps) {
+export function CreateTeamButton() {
 	const [isOpen, setIsOpen] = useState(false);
 	const [name, setName] = useState("");
-	const [slug, setSlug] = useState("");
-	const [slugEdited, setSlugEdited] = useState(false);
+	const [key, setKey] = useState("");
+	const [keyEdited, setKeyEdited] = useState(false);
 	const [isSubmitting, setIsSubmitting] = useState(false);
 
 	function handleNameChange(value: string) {
 		setName(value);
-		if (!slugEdited) setSlug(slugify(value));
+		if (!keyEdited) {
+			setKey(normalizeTeamKey(value).slice(0, TEAM_KEY_MAX_LENGTH));
+		}
 	}
 
-	function handleSlugChange(value: string) {
-		setSlug(value);
-		setSlugEdited(true);
+	function handleKeyChange(value: string) {
+		setKey(normalizeTeamKey(value).slice(0, TEAM_KEY_MAX_LENGTH));
+		setKeyEdited(true);
 	}
 
 	function reset() {
 		setName("");
-		setSlug("");
-		setSlugEdited(false);
+		setKey("");
+		setKeyEdited(false);
 	}
+
+	const trimmedName = name.trim();
+	const canSubmit = trimmedName.length > 0 && key.length >= 3 && !isSubmitting;
 
 	async function handleSubmit(event: React.FormEvent) {
 		event.preventDefault();
-		const trimmedName = name.trim();
-		const trimmedSlug = slug.trim();
-		if (!trimmedName || !trimmedSlug) return;
+		if (!canSubmit) return;
 
 		setIsSubmitting(true);
 		try {
-			const result = await authClient.organization.createTeam({
-				name: trimmedName,
-				slug: trimmedSlug,
-				organizationId,
-			});
-			if (result.error) {
-				toast.error(result.error.message ?? "Failed to create team");
-				return;
-			}
+			await apiTrpcClient.team.create.mutate({ name: trimmedName, key });
 			toast.success(`Created team "${trimmedName}"`);
 			reset();
 			setIsOpen(false);
@@ -91,7 +79,7 @@ export function CreateTeamButton({ organizationId }: CreateTeamButtonProps) {
 						<DialogHeader>
 							<DialogTitle>Create a team</DialogTitle>
 							<DialogDescription>
-								Name and a URL-friendly slug. Both can be changed later.
+								Pick a name and an identifier. Both can be changed later.
 							</DialogDescription>
 						</DialogHeader>
 						<div className="my-4 space-y-4">
@@ -107,14 +95,18 @@ export function CreateTeamButton({ organizationId }: CreateTeamButtonProps) {
 								/>
 							</div>
 							<div className="space-y-1.5">
-								<Label htmlFor="team-slug">Slug</Label>
+								<Label htmlFor="team-key">Identifier</Label>
 								<Input
-									id="team-slug"
-									value={slug}
-									onChange={(event) => handleSlugChange(event.target.value)}
-									placeholder="e.g. engineering"
+									id="team-key"
+									value={key}
+									onChange={(event) => handleKeyChange(event.target.value)}
+									placeholder="e.g. ENG"
+									maxLength={TEAM_KEY_MAX_LENGTH}
 									required
 								/>
+								<p className="text-xs text-muted-foreground">
+									Used in task IDs.
+								</p>
 							</div>
 						</div>
 						<DialogFooter>
@@ -126,10 +118,7 @@ export function CreateTeamButton({ organizationId }: CreateTeamButtonProps) {
 							>
 								Cancel
 							</Button>
-							<Button
-								type="submit"
-								disabled={!name.trim() || !slug.trim() || isSubmitting}
-							>
+							<Button type="submit" disabled={!canSubmit}>
 								{isSubmitting ? "Creating..." : "Create"}
 							</Button>
 						</DialogFooter>

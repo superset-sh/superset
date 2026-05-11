@@ -29,6 +29,11 @@ import { HiArrowLeft } from "react-icons/hi2";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { authClient } from "renderer/lib/auth-client";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import {
+	isValidTeamKey,
+	normalizeTeamKey,
+	TEAM_KEY_MAX_LENGTH,
+} from "../../../utils/team-key";
 import { AddMemberButton } from "./components/AddMemberButton";
 
 interface TeamDetailSettingsProps {
@@ -108,7 +113,7 @@ export function TeamDetailSettings({ teamId }: TeamDetailSettingsProps) {
 
 	const [openDialog, setOpenDialog] = useState<OpenDialog>(null);
 	const [nameValue, setNameValue] = useState("");
-	const [slugValue, setSlugValue] = useState("");
+	const [keyValue, setKeyValue] = useState("");
 	const [isSubmitting, setIsSubmitting] = useState(false);
 
 	// Populate form once the team row arrives from Electric (and re-populate
@@ -120,32 +125,29 @@ export function TeamDetailSettings({ teamId }: TeamDetailSettingsProps) {
 	useEffect(() => {
 		if (!team) return;
 		setNameValue(team.name);
-		setSlugValue(team.slug);
+		setKeyValue(team.key);
 	}, [team?.id]);
 
 	const formatDate = (date: Date) =>
 		date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 
 	const trimmedName = nameValue.trim();
-	const trimmedSlug = slugValue.trim();
+	const keyIsValid = isValidTeamKey(keyValue);
 	const isDirty =
 		!!team &&
-		(trimmedName !== team.name || trimmedSlug !== team.slug) &&
+		(trimmedName !== team.name || keyValue !== team.key) &&
 		trimmedName.length > 0 &&
-		trimmedSlug.length > 0;
+		keyIsValid;
 
 	async function handleGeneralSave() {
 		if (!team || !isDirty) return;
 		setIsSubmitting(true);
 		try {
-			const result = await authClient.organization.updateTeam({
+			await apiTrpcClient.team.update.mutate({
 				teamId,
-				data: { name: trimmedName, slug: trimmedSlug },
+				name: trimmedName,
+				key: keyValue,
 			});
-			if (result.error) {
-				toast.error(result.error.message ?? "Failed to save team");
-				return;
-			}
 			toast.success("Saved");
 		} catch (error) {
 			toast.error(
@@ -157,17 +159,9 @@ export function TeamDetailSettings({ teamId }: TeamDetailSettingsProps) {
 	}
 
 	async function handleDelete() {
-		if (!activeOrganizationId) return;
 		setIsSubmitting(true);
 		try {
-			const result = await authClient.organization.removeTeam({
-				teamId,
-				organizationId: activeOrganizationId,
-			});
-			if (result.error) {
-				toast.error(result.error.message ?? "Failed to delete team");
-				return;
-			}
+			await apiTrpcClient.team.delete.mutate({ teamId });
 			toast.success(`Deleted "${team?.name ?? "team"}"`);
 			navigate({ to: "/settings/teams" });
 		} catch (error) {
@@ -232,14 +226,22 @@ export function TeamDetailSettings({ teamId }: TeamDetailSettingsProps) {
 									/>
 								</div>
 								<div className="space-y-1.5">
-									<Label htmlFor="team-slug-edit">Slug</Label>
+									<Label htmlFor="team-key-edit">Identifier</Label>
 									<Input
-										id="team-slug-edit"
-										value={slugValue}
-										onChange={(event) => setSlugValue(event.target.value)}
+										id="team-key-edit"
+										value={keyValue}
+										onChange={(event) =>
+											setKeyValue(
+												normalizeTeamKey(event.target.value).slice(
+													0,
+													TEAM_KEY_MAX_LENGTH,
+												),
+											)
+										}
+										maxLength={TEAM_KEY_MAX_LENGTH}
 									/>
 									<p className="text-xs text-muted-foreground">
-										URL-friendly identifier, unique within your organization.
+										Used in task IDs.
 									</p>
 								</div>
 								<div>

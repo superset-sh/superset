@@ -263,7 +263,7 @@ export const auth = betterAuth({
 			schema: {
 				team: {
 					additionalFields: {
-						slug: { type: "string", input: true, required: true },
+						key: { type: "string", input: true, required: true },
 					},
 				},
 			},
@@ -342,9 +342,20 @@ export const auth = betterAuth({
 
 					await seedDefaultStatuses(organization.id);
 
+					// Derive the default team's key from the org slug: uppercase
+					// alphanumeric, max 8 chars. Fall back to "TEAM" if the
+					// stripped slug is empty or shorter than the 3-char app min
+					// (the org slug validator permits "a-b" → "AB"). No collision
+					// risk: this is the first team in a brand-new org. Admins
+					// can rename later in team settings.
+					const stripped = organization.slug
+						.toUpperCase()
+						.replace(/[^A-Z0-9]/g, "");
+					const derivedKey =
+						stripped.length >= 3 ? stripped.slice(0, 8) : "TEAM";
 					await db.insert(authSchema.teams).values({
 						name: organization.name,
-						slug: organization.slug,
+						key: derivedKey,
 						organizationId: organization.id,
 					});
 				},

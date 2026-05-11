@@ -43,7 +43,7 @@ export const authClient = createAuthClient({
 			schema: {
 				team: {
 					additionalFields: {
-						slug: { type: "string", input: true, required: true },
+						key: { type: "string", input: true, required: true },
 					},
 				},
 			},

@@ -50,7 +50,7 @@ export function TeamsSettings() {
 							per-team.
 						</p>
 					</div>
-					<CreateTeamButton organizationId={activeOrganizationId} />
+					<CreateTeamButton />
 				</div>
 			</div>
 

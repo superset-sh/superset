@@ -358,6 +358,13 @@
       "when": 1778492040993,
       "tag": "0050_add_v2_remote_control_sessions",
       "breakpoints": true
+    },
+    {
+      "idx": 51,
+      "version": "7",
+      "when": 1778538685388,
+      "tag": "0051_add_team_keys_and_task_team_id",
+      "breakpoints": true
     }
   ]
 }

@@ -16,14 +16,14 @@ import {
 	uniqueIndex,
 	uuid,
 } from "drizzle-orm/pg-core";
-import { organizations, users } from "./auth";
+import { organizations, teams, users } from "./auth";
 import {
 	automationPromptSourceValues,
 	automationRunStatusValues,
 	automationSessionKindValues,
 	commandStatusValues,
 	deviceTypeValues,
-	integrationProviderValues,
+	integrationProvider,
 	remoteControlSessionModeValues,
 	remoteControlSessionStatusValues,
 	taskPriorityValues,
@@ -39,10 +39,7 @@ import type { WorkspaceConfig } from "./zod";
 
 export const taskStatus = pgEnum("task_status", taskStatusEnumValues);
 export const taskPriority = pgEnum("task_priority", taskPriorityValues);
-export const integrationProvider = pgEnum(
-	"integration_provider",
-	integrationProviderValues,
-);
+export { integrationProvider };
 export const deviceType = pgEnum("device_type", deviceTypeValues);
 export const commandStatus = pgEnum("command_status", commandStatusValues);
 export const v2ClientType = pgEnum("v2_client_type", v2ClientTypeValues);
@@ -107,7 +104,15 @@ export const tasks = pgTable(
 		id: uuid().primaryKey().defaultRandom(),
 
 		// Core fields
+		// Canonical identifier is becoming `${team.key}-${number}` (e.g.
+		// "SUPER-103"); for now `slug` is still authoritative and teamId/number
+		// are nullable to let PR β land without touching every task writer. PR
+		// γ updates writers and flips both to NOT NULL.
 		slug: text().notNull(),
+		teamId: uuid("team_id").references(() => teams.id, {
+			onDelete: "cascade",
+		}),
+		number: integer(),
 		title: text().notNull(),
 		description: text(),
 		statusId: uuid("status_id")
@@ -161,6 +166,7 @@ export const tasks = pgTable(
 	},
 	(table) => [
 		index("tasks_slug_idx").on(table.slug),
+		index("tasks_team_id_idx").on(table.teamId),
 		index("tasks_organization_id_idx").on(table.organizationId),
 		index("tasks_assignee_id_idx").on(table.assigneeId),
 		index("tasks_creator_id_idx").on(table.creatorId),
@@ -174,6 +180,7 @@ export const tasks = pgTable(
 			table.externalId,
 		),
 		unique("tasks_org_slug_unique").on(table.organizationId, table.slug),
+		unique("tasks_team_number_unique").on(table.teamId, table.number),
 	],
 );
 

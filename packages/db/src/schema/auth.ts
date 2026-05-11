@@ -9,6 +9,7 @@ import {
 	uniqueIndex,
 	uuid,
 } from "drizzle-orm/pg-core";
+import { integrationProvider } from "./enums";
 
 export const authSchema = pgSchema("auth");
 
@@ -140,7 +141,25 @@ export const teams = authSchema.table(
 	{
 		id: uuid("id").primaryKey().defaultRandom(),
 		name: text("name").notNull(),
-		slug: text("slug").notNull(),
+		// Single team identifier — used both in URLs (`/team/super/active`) and
+		// as the task identifier prefix (`super-103`). Lowercase ASCII
+		// alphanumeric, 3-8 chars, unique per org. See packages/shared/team-key.
+		key: text("key").notNull(),
+		// Monotonic counter for task identifiers in this team. Always trusted as
+		// the source of truth — never recomputed from MAX(tasks.number), since
+		// hard-deleting the highest task would silently reuse a number.
+		lastTaskNumber: integer("last_task_number").notNull().default(0),
+		// Soft-archive marker. Archived teams keep memberships and tasks but
+		// don't accept new task creation.
+		archivedAt: timestamp("archived_at"),
+		// Linkage to an external integration's team (e.g. a Linear team). Set
+		// via the integrations UI. Null = unlinked, no external sync into this
+		// team.
+		externalProvider: integrationProvider("external_provider"),
+		externalId: text("external_id"),
+		// Denormalized from the linked external team (e.g. Linear's "ENG") so
+		// readers don't need a second lookup when rendering.
+		externalKey: text("external_key"),
 		organizationId: uuid("organization_id")
 			.notNull()
 			.references(() => organizations.id, { onDelete: "cascade" }),
@@ -151,7 +170,12 @@ export const teams = authSchema.table(
 	},
 	(table) => [
 		index("teams_organization_id_idx").on(table.organizationId),
-		uniqueIndex("teams_org_slug_unique").on(table.organizationId, table.slug),
+		uniqueIndex("teams_org_key_unique").on(table.organizationId, table.key),
+		uniqueIndex("teams_org_external_unique").on(
+			table.organizationId,
+			table.externalProvider,
+			table.externalId,
+		),
 	],
 );
 
