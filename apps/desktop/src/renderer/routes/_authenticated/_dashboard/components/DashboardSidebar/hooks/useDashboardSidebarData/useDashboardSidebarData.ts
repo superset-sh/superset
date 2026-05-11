@@ -15,6 +15,7 @@ import type {
 	DashboardSidebarSection,
 	DashboardSidebarWorkspace,
 } from "../../types";
+import { buildCloudRowFallbackWorkspaces } from "./buildCloudRowFallbackWorkspaces";
 import {
 	derivePullRequestQueryTargets,
 	getDashboardSidebarPullRequestQueryKey,
@@ -295,40 +296,19 @@ export function useDashboardSidebarData() {
 	// Cloud-row fallback: when workspaces.create has resolved on the host
 	// service but Electric hasn't yet delivered the v2Workspaces row, surface
 	// the cloud row cached on the in-flight entry so the sidebar renders the
-	// workspace as fully synced. Manager.tsx removes the entry once Electric
-	// catches up, at which point the live query takes over seamlessly.
-	const cloudRowFallbackWorkspaces = useMemo(() => {
-		if (inFlightEntries.length === 0) return [];
-		const hostByMachineId = new Map(
-			hosts.map((host) => [host.machineId, host]),
-		);
-		const rows = inFlightEntries.flatMap((entry) => {
-			const cloudRow = entry.cloudRow;
-			if (!cloudRow) return [];
-			// Electric already delivered; let the live query own this row.
-			if (localStateWorkspaceIds.has(cloudRow.id)) return [];
-			const localState = collections.v2WorkspaceLocalState.get(cloudRow.id);
-			const host = hostByMachineId.get(cloudRow.hostId);
-			return [
-				{
-					id: cloudRow.id,
-					projectId: localState?.sidebarState.projectId ?? cloudRow.projectId,
-					hostId: cloudRow.hostId,
-					type: cloudRow.type,
-					hostIsOnline: host?.isOnline ?? false,
-					name: cloudRow.name,
-					branch: cloudRow.branch,
-					createdAt: cloudRow.createdAt,
-					updatedAt: cloudRow.updatedAt,
-					tabOrder:
-						localState?.sidebarState.tabOrder ?? PENDING_WORKSPACE_TAB_ORDER,
-					sectionId: localState?.sidebarState.sectionId ?? null,
-					isHidden: localState?.sidebarState.isHidden ?? false,
-				},
-			];
-		});
-		return getVisibleSidebarWorkspaces(rows);
-	}, [collections, hosts, inFlightEntries, localStateWorkspaceIds]);
+	// workspace. Manager.tsx removes the entry once Electric catches up, at
+	// which point the live query takes over seamlessly.
+	const cloudRowFallbackWorkspaces = useMemo(
+		() =>
+			buildCloudRowFallbackWorkspaces({
+				inFlightEntries,
+				hosts,
+				localStateWorkspaceIds,
+				getWorkspaceLocalState: (workspaceId) =>
+					collections.v2WorkspaceLocalState.get(workspaceId),
+			}),
+		[collections, hosts, inFlightEntries, localStateWorkspaceIds],
+	);
 
 	const visibleSidebarWorkspaces = useMemo(() => {
 		const sidebarProjectIds = new Set(
@@ -467,6 +447,13 @@ export function useDashboardSidebarData() {
 			const hostType: DashboardSidebarWorkspace["hostType"] =
 				workspace.hostId === machineId ? "local-device" : "remote-device";
 
+			// `creationStatus` is only present on cloud-row fallback rows (the
+			// other sources are fully-synced workspaces); carry it through so the
+			// sidebar can keep showing the "Creating…" indicator while Electric
+			// catches up to the host-service `workspaces.create` response.
+			const creationStatus =
+				"creationStatus" in workspace ? workspace.creationStatus : undefined;
+
 			const sidebarWorkspace: DashboardSidebarWorkspace = {
 				id: workspace.id,
 				projectId: workspace.projectId,
@@ -490,6 +477,7 @@ export function useDashboardSidebarData() {
 				behindCount: null,
 				createdAt: workspace.createdAt,
 				updatedAt: workspace.updatedAt,
+				creationStatus,
 			};
 
 			if (workspace.sectionId) {
