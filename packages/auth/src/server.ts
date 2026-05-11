@@ -22,7 +22,7 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { bearer, customSession, organization } from "better-auth/plugins";
 import { jwt } from "better-auth/plugins/jwt";
-import { and, count, desc, eq, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, inArray, ne, sql } from "drizzle-orm";
 import type Stripe from "stripe";
 import { env } from "./env";
 import { acceptInvitationEndpoint } from "./lib/accept-invitation-endpoint";
@@ -255,6 +255,18 @@ export const auth = betterAuth({
 		organization({
 			creatorRole: "owner",
 			invitationExpiresIn: 60 * 60 * 24 * 7,
+			teams: {
+				enabled: true,
+				maximumTeams: 25,
+				allowRemovingAllTeams: false,
+			},
+			schema: {
+				team: {
+					additionalFields: {
+						slug: { type: "string", input: true, required: true },
+					},
+				},
+			},
 			sendInvitationEmail: async (data) => {
 				const token = await generateMagicTokenForInvite({
 					invitationId: data.id,
@@ -329,6 +341,102 @@ export const auth = betterAuth({
 						.where(eq(authSchema.organizations.id, organization.id));
 
 					await seedDefaultStatuses(organization.id);
+
+					await db.insert(authSchema.teams).values({
+						name: organization.name,
+						slug: organization.slug,
+						organizationId: organization.id,
+					});
+				},
+
+				beforeRemoveMember: async ({ member, organization }) => {
+					await db
+						.delete(authSchema.teamMembers)
+						.where(
+							and(
+								eq(authSchema.teamMembers.userId, member.userId),
+								inArray(
+									authSchema.teamMembers.teamId,
+									db
+										.select({ id: authSchema.teams.id })
+										.from(authSchema.teams)
+										.where(
+											eq(authSchema.teams.organizationId, organization.id),
+										),
+								),
+							),
+						);
+				},
+
+				beforeRemoveTeamMember: async ({ teamMember, organization }) => {
+					// Invariant: every org member belongs to ≥1 team. Reject the
+					// removal if it would leave this user with zero teams in this
+					// org. Self-leave and admin-removal both flow through this hook.
+					const [otherMemberships] = await db
+						.select({ value: count() })
+						.from(authSchema.teamMembers)
+						.where(
+							and(
+								eq(authSchema.teamMembers.userId, teamMember.userId),
+								eq(authSchema.teamMembers.organizationId, organization.id),
+								ne(authSchema.teamMembers.teamId, teamMember.teamId),
+							),
+						);
+					if ((otherMemberships?.value ?? 0) === 0) {
+						throw new Error("You should be a member of at least one team");
+					}
+				},
+
+				beforeDeleteTeam: async ({ team }) => {
+					// Linear-style: deleting a team would otherwise orphan any
+					// members who were only in this team. Re-home them into the
+					// next-oldest team in the org before the FK cascade fires.
+					const teamMemberRows = await db
+						.select({ userId: authSchema.teamMembers.userId })
+						.from(authSchema.teamMembers)
+						.where(eq(authSchema.teamMembers.teamId, team.id));
+
+					if (teamMemberRows.length === 0) return;
+
+					const memberUserIds = teamMemberRows.map((row) => row.userId);
+
+					const safelyInOtherTeam = await db
+						.select({ userId: authSchema.teamMembers.userId })
+						.from(authSchema.teamMembers)
+						.where(
+							and(
+								inArray(authSchema.teamMembers.userId, memberUserIds),
+								eq(authSchema.teamMembers.organizationId, team.organizationId),
+								ne(authSchema.teamMembers.teamId, team.id),
+							),
+						);
+					const safeUserIds = new Set(safelyInOtherTeam.map((r) => r.userId));
+					const orphanUserIds = memberUserIds.filter(
+						(uid) => !safeUserIds.has(uid),
+					);
+
+					if (orphanUserIds.length === 0) return;
+
+					const nextTeam = await db.query.teams.findFirst({
+						where: and(
+							eq(authSchema.teams.organizationId, team.organizationId),
+							ne(authSchema.teams.id, team.id),
+						),
+						orderBy: asc(authSchema.teams.createdAt),
+						columns: { id: true },
+					});
+					if (!nextTeam) return;
+
+					await db
+						.insert(authSchema.teamMembers)
+						.values(
+							orphanUserIds.map((userId) => ({
+								teamId: nextTeam.id,
+								userId,
+								organizationId: team.organizationId,
+							})),
+						)
+						.onConflictDoNothing();
 				},
 
 				beforeDeleteOrganization: async ({ organization }) => {
@@ -392,6 +500,28 @@ export const auth = betterAuth({
 				},
 
 				afterAddMember: async ({ member, user, organization }) => {
+					// Linear-style: auto-add new org members to the oldest team so
+					// they aren't dropped into an empty teams view. Additional team
+					// memberships are added explicitly by admins.
+					const defaultTeam = await db.query.teams.findFirst({
+						where: eq(authSchema.teams.organizationId, organization.id),
+						orderBy: asc(authSchema.teams.createdAt),
+						columns: { id: true },
+					});
+					if (defaultTeam) {
+						// onConflictDoNothing keeps addMember robust if a stale row
+						// ever exists from a partial earlier run — we never want this
+						// hook to fail a member-add.
+						await db
+							.insert(authSchema.teamMembers)
+							.values({
+								teamId: defaultTeam.id,
+								userId: member.userId,
+								organizationId: organization.id,
+							})
+							.onConflictDoNothing();
+					}
+
 					const subscription = await db.query.subscriptions.findFirst({
 						where: and(
 							eq(subscriptions.referenceId, organization.id),

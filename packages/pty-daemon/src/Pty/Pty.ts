@@ -1,7 +1,15 @@
 import * as childProcess from "node:child_process";
 import * as fs from "node:fs";
 import * as nodePty from "node-pty";
+import {
+	type ProcessSignalError,
+	type ProcessSignalTarget,
+	signalProcessTargets,
+	signalProcessTreeAndGroups,
+} from "../process-tree.ts";
 import type { SessionMeta } from "../protocol/index.ts";
+
+const KILL_ESCALATION_TIMEOUT_MS = 1000;
 
 export type PtyOnData = (data: Buffer) => void;
 export type PtyOnExit = (info: {
@@ -36,11 +44,22 @@ class NodePtyAdapter implements Pty {
 	readonly pid: number;
 	meta: SessionMeta;
 	private term: nodePty.IPty;
+	private exited = false;
+	private killEscalationTimer: NodeJS.Timeout | null = null;
+	private exitInfo: { code: number | null; signal: number | null } | null =
+		null;
+	private exitCallbacks: PtyOnExit[] = [];
 
 	constructor(term: nodePty.IPty, meta: SessionMeta) {
 		this.term = term;
 		this.pid = term.pid;
 		this.meta = meta;
+		this.term.onExit(({ exitCode, signal }) => {
+			if (this.exited) return;
+			this.exited = true;
+			this.exitInfo = { code: exitCode ?? null, signal: signal ?? null };
+			for (const cb of this.exitCallbacks) cb(this.exitInfo);
+		});
 	}
 
 	getMasterFd(): number {
@@ -71,7 +90,13 @@ class NodePtyAdapter implements Pty {
 	}
 
 	kill(signal?: NodeJS.Signals): void {
-		this.term.kill(signal);
+		const killSignal = signal ?? "SIGHUP";
+		const escalationTargets = signalProcessTreeAndGroups(this.pid, killSignal, {
+			includeRoot: false,
+			onSignalError: logProcessSignalError,
+		});
+		this.term.kill(killSignal);
+		this.scheduleKillEscalation(killSignal, escalationTargets);
 	}
 
 	onData(cb: PtyOnData): void {
@@ -81,9 +106,29 @@ class NodePtyAdapter implements Pty {
 	}
 
 	onExit(cb: PtyOnExit): void {
-		this.term.onExit(({ exitCode, signal }) => {
-			cb({ code: exitCode ?? null, signal: signal ?? null });
-		});
+		if (this.exitInfo) {
+			cb(this.exitInfo);
+			return;
+		}
+		this.exitCallbacks.push(cb);
+	}
+
+	private scheduleKillEscalation(
+		signal: NodeJS.Signals,
+		targets: ProcessSignalTarget[],
+	): void {
+		if (signal === "SIGKILL" || this.exited || this.killEscalationTimer) return;
+
+		this.killEscalationTimer = setTimeout(() => {
+			this.killEscalationTimer = null;
+			signalProcessTargets(targets, "SIGKILL", logProcessSignalError);
+			try {
+				this.term.kill("SIGKILL");
+			} catch {
+				// PTY root may have already exited; detached targets still matter.
+			}
+		}, KILL_ESCALATION_TIMEOUT_MS);
+		this.killEscalationTimer.unref();
 	}
 }
 
@@ -169,6 +214,7 @@ class AdoptedPty implements Pty {
 	private readonly writer: fs.WriteStream;
 	private exitFired = false;
 	private livenessTimer: NodeJS.Timeout | null = null;
+	private killEscalationTimer: NodeJS.Timeout | null = null;
 	private exitCallbacks: PtyOnExit[] = [];
 
 	constructor(fd: number, pid: number, meta: SessionMeta) {
@@ -253,11 +299,11 @@ class AdoptedPty implements Pty {
 	}
 
 	kill(signal?: NodeJS.Signals): void {
-		try {
-			process.kill(this.pid, signal ?? "SIGHUP");
-		} catch {
-			// Already dead; idempotent kill.
-		}
+		const killSignal = signal ?? "SIGHUP";
+		const escalationTargets = signalProcessTreeAndGroups(this.pid, killSignal, {
+			onSignalError: logProcessSignalError,
+		});
+		this.scheduleKillEscalation(killSignal, escalationTargets);
 	}
 
 	onData(cb: PtyOnData): void {
@@ -269,6 +315,20 @@ class AdoptedPty implements Pty {
 	onExit(cb: PtyOnExit): void {
 		this.exitCallbacks.push(cb);
 	}
+
+	private scheduleKillEscalation(
+		signal: NodeJS.Signals,
+		targets: ProcessSignalTarget[],
+	): void {
+		if (signal === "SIGKILL" || this.exitFired || this.killEscalationTimer)
+			return;
+
+		this.killEscalationTimer = setTimeout(() => {
+			this.killEscalationTimer = null;
+			signalProcessTargets(targets, "SIGKILL", logProcessSignalError);
+		}, KILL_ESCALATION_TIMEOUT_MS);
+		this.killEscalationTimer.unref();
+	}
 }
 
 function isPidAlive(pid: number): boolean {
@@ -279,6 +339,15 @@ function isPidAlive(pid: number): boolean {
 		// EPERM means the pid exists but isn't ours — count as alive.
 		return (err as NodeJS.ErrnoException).code === "EPERM";
 	}
+}
+
+function logProcessSignalError(event: ProcessSignalError): void {
+	if ((event.error as NodeJS.ErrnoException).code === "ESRCH") return;
+
+	const label = event.target === "pgid" ? "process group" : "pid";
+	process.stderr.write(
+		`[pty-daemon] failed to ${event.signal} ${label} ${event.id}: ${(event.error as Error).message}\n`,
+	);
 }
 
 export interface AdoptOptions {

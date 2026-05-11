@@ -208,6 +208,9 @@ export const integrationConnections = pgTable(
 			table.organizationId,
 			table.provider,
 		),
+		uniqueIndex("integration_connections_provider_external_org_active_unique")
+			.on(table.provider, table.externalOrgId)
+			.where(sql`${table.disconnectedAt} IS NULL`),
 		index("integration_connections_org_idx").on(table.organizationId),
 	],
 );

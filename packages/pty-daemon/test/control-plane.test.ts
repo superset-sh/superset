@@ -8,6 +8,7 @@
 // Runs under Node (`node --experimental-strip-types --test`).
 
 import { strict as assert } from "node:assert";
+import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { after, before, describe, test } from "node:test";
@@ -49,6 +50,39 @@ const baseMeta = {
 
 function uniqueId(prefix: string): string {
 	return `${prefix}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function shellQuote(value: string): string {
+	return `'${value.replaceAll("'", "'\\''")}'`;
+}
+
+function isPidAlive(pid: number): boolean {
+	try {
+		process.kill(pid, 0);
+		return true;
+	} catch (err) {
+		return (err as NodeJS.ErrnoException).code === "EPERM";
+	}
+}
+
+function readPositivePidFile(filePath: string): number | null {
+	if (!existsSync(filePath)) return null;
+	const raw = readFileSync(filePath, "utf8").trim();
+	if (!/^\d+$/.test(raw)) return null;
+	const pid = Number(raw);
+	return Number.isInteger(pid) && pid > 0 ? pid : null;
+}
+
+async function waitForCondition(
+	predicate: () => boolean,
+	timeoutMs = 3000,
+): Promise<void> {
+	const start = Date.now();
+	while (Date.now() - start < timeoutMs) {
+		if (predicate()) return;
+		await new Promise((resolve) => setTimeout(resolve, 25));
+	}
+	throw new Error(`condition timed out after ${timeoutMs}ms`);
 }
 
 // ---------------- Handshake ----------------
@@ -196,6 +230,56 @@ describe("session lifecycle", () => {
 		// returned (the bug), this waitFor would timeout.
 		await c.waitFor((m) => m.type === "exit" && m.id === id, 3000);
 		await c.close();
+	});
+
+	test("default close kills detached background process groups", async () => {
+		const c = await connectAndHello(sockPath);
+		const id = uniqueId("background-pgrp");
+		const tmp = mkdtempSync(path.join(os.tmpdir(), "pty-daemon-pgrp-"));
+		const pidPath = path.join(tmp, "detached-helper.pid");
+		let helperPid: number | null = null;
+
+		try {
+			const script = [
+				"set -m",
+				`${shellQuote(process.execPath)} -e ${shellQuote("process.on('SIGHUP', () => {}); process.on('SIGTERM', () => {}); setInterval(() => {}, 1000);")} >/dev/null 2>&1 & helper_pid=$!`,
+				`echo "$helper_pid" > ${shellQuote(pidPath)}`,
+				"sleep 60",
+			].join("; ");
+
+			c.send({
+				type: "open",
+				id,
+				meta: {
+					...baseMeta,
+					shell: "/bin/bash",
+					argv: ["-c", script],
+				},
+			});
+			await c.waitFor((m) => m.type === "open-ok" && m.id === id);
+			c.send({ type: "subscribe", id, replay: false });
+			await waitForCondition(() => readPositivePidFile(pidPath) !== null);
+
+			helperPid = readPositivePidFile(pidPath);
+			assert.notEqual(helperPid, null);
+			assert.equal(isPidAlive(helperPid as number), true);
+
+			c.send({ type: "close", id });
+			await c.waitFor((m) => m.type === "closed" && m.id === id);
+			await c.waitFor((m) => m.type === "exit" && m.id === id, 3000);
+
+			await waitForCondition(() => !isPidAlive(helperPid as number), 3000);
+		} finally {
+			if (helperPid !== null && helperPid > 0 && isPidAlive(helperPid)) {
+				try {
+					process.kill(helperPid, "SIGKILL");
+				} catch {
+					// Already gone.
+				}
+			}
+			rmSync(tmp, { recursive: true, force: true });
+			await c.close();
+		}
 	});
 });
 

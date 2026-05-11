@@ -67,6 +67,7 @@ const createInputSchema = z
 		baseBranch: z.string().min(1).optional(),
 		taskId: z.string().uuid().optional(),
 		agents: z.array(agentLaunchSchema).optional(),
+		namingPrompt: z.string().min(1).optional(),
 		id: z.string().uuid().optional(),
 		// Adopt the worktree git already has at this path instead of
 		// inferring the path from `branch`. When present, `branch` is
@@ -506,7 +507,8 @@ export const workspacesRouter = router({
 			// resolution, so by the time we need the resolved values for
 			// `worktree add` they're already in hand. PR path skips entirely
 			// — PR title + derived branch are already meaningful.
-			const composerPrompt = input.agents?.[0]?.prompt?.trim() ?? "";
+			const composerPrompt =
+				input.agents?.[0]?.prompt?.trim() || input.namingPrompt?.trim() || "";
 			const wantAi =
 				input.pr === undefined &&
 				(input.branch === undefined || input.name === undefined) &&

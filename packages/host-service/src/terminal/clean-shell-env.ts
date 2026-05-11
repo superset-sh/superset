@@ -1,5 +1,6 @@
 import { type ChildProcess, spawn } from "node:child_process";
 import * as os from "node:os";
+import { signalProcessTreeAndGroups } from "@superset/pty-daemon/process-tree";
 
 const SHELL_ENV_TIMEOUT_MS = 8_000;
 const CACHE_TTL_MS = 60_000;
@@ -134,10 +135,14 @@ function spawnCleanShellEnv(): Promise<Record<string, string>> {
 		child.stderr?.on("data", (data: Buffer) => stderrBuffers.push(data));
 
 		const timeout = setTimeout(() => {
-			try {
-				child.kill("SIGKILL");
-			} catch {
-				// Already exited.
+			if (child.pid) {
+				signalProcessTreeAndGroups(child.pid, "SIGKILL");
+			} else {
+				try {
+					child.kill("SIGKILL");
+				} catch {
+					// Already exited.
+				}
 			}
 
 			reject(

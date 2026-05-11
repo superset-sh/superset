@@ -12,6 +12,8 @@ export const SETTING_ITEM_ID = {
 	ORGANIZATION_MEMBERS_PENDING_INVITATIONS:
 		"organization-members-pending-invitations",
 
+	TEAMS_LIST: "teams-list",
+
 	APPEARANCE_THEME: "appearance-theme",
 	APPEARANCE_MARKDOWN: "appearance-markdown",
 	APPEARANCE_CUSTOM_THEMES: "appearance-custom-themes",
@@ -115,6 +117,8 @@ export const SETTING_ITEM_VARIANT: Record<SettingItemId, SettingVariant> = {
 	[SETTING_ITEM_ID.ORGANIZATION_MEMBERS_LIST]: "shared",
 	[SETTING_ITEM_ID.ORGANIZATION_MEMBERS_INVITE]: "shared",
 	[SETTING_ITEM_ID.ORGANIZATION_MEMBERS_PENDING_INVITATIONS]: "shared",
+
+	[SETTING_ITEM_ID.TEAMS_LIST]: "shared",
 
 	[SETTING_ITEM_ID.APPEARANCE_THEME]: "shared",
 	[SETTING_ITEM_ID.APPEARANCE_MARKDOWN]: "shared",
@@ -327,6 +331,21 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"cancel",
 			"resend",
 			"email",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.TEAMS_LIST,
+		section: "teams",
+		title: "Teams",
+		description: "Create, rename, and delete teams within your organization",
+		keywords: [
+			"teams",
+			"team",
+			"group",
+			"create team",
+			"rename team",
+			"delete team",
+			"organize",
 		],
 	},
 	{

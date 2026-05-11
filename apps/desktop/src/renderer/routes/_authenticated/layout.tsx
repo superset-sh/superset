@@ -32,6 +32,7 @@ import { setPaneWorkspaceRunState } from "renderer/stores/tabs/workspace-run";
 import { useWorkspaceInitStore } from "renderer/stores/workspace-init";
 import { MOCK_ORG_ID, NOTIFICATION_EVENTS } from "shared/constants";
 import { AgentHooks } from "./components/AgentHooks";
+import { FileMenuListener } from "./components/FileMenuListener";
 import { GlobalBrowserLifecycle } from "./components/GlobalBrowserLifecycle";
 import { TeardownLogsDialog } from "./components/TeardownLogsDialog";
 import { V2NotificationController } from "./components/V2NotificationController";
@@ -207,6 +208,7 @@ function AuthenticatedLayout() {
 							highlighterOptions={{ preferredHighlighter: "shiki-wasm" }}
 						>
 							<AgentHooks />
+							<FileMenuListener />
 							<V2NotificationController />
 							<Outlet />
 							<V1ImportModal />

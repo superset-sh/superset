@@ -638,12 +638,8 @@ export class PullRequestRuntimeManager {
 			}
 		}
 
-		const keyToPullRequest = await this.fetchRepoPullRequests(
-			projectId,
-			repo,
-			wantedRefs,
-			options,
-		);
+		const { failedKeys, matched: keyToPullRequest } =
+			await this.fetchRepoPullRequests(projectId, repo, wantedRefs, options);
 
 		for (const workspace of projectWorkspaces) {
 			const key = upstreamKey(
@@ -673,9 +669,20 @@ export class PullRequestRuntimeManager {
 				continue;
 			}
 			const match = keyToPullRequest.get(key);
+			if (match) {
+				this.db
+					.update(workspaces)
+					.set({ pullRequestId: match.id })
+					.where(eq(workspaces.id, workspace.id))
+					.run();
+				continue;
+			}
+
+			if (failedKeys.has(key)) continue;
+
 			this.db
 				.update(workspaces)
-				.set({ pullRequestId: match?.id ?? null })
+				.set({ pullRequestId: null })
 				.where(eq(workspaces.id, workspace.id))
 				.run();
 		}
@@ -918,8 +925,13 @@ export class PullRequestRuntimeManager {
 		repo: NormalizedRepoIdentity,
 		wantedRefs: Map<string, GitHubPullRequestHeadRef>,
 		options: { bypassCache?: boolean } = {},
-	): Promise<Map<string, { id: string }>> {
-		if (wantedRefs.size === 0) return new Map();
+	): Promise<{
+		matched: Map<string, { id: string }>;
+		failedKeys: Set<string>;
+	}> {
+		const matched = new Map<string, { id: string }>();
+		const failedKeys = new Set<string>();
+		if (wantedRefs.size === 0) return { matched, failedKeys };
 
 		const latestByKey = new Map<string, GitHubPullRequestNode>();
 		await Promise.all(
@@ -939,6 +951,7 @@ export class PullRequestRuntimeManager {
 					);
 					if (nodeKey === key) latestByKey.set(key, node);
 				} catch (error) {
+					failedKeys.add(key);
 					console.warn(
 						"[host-service:pull-request-runtime] Failed to fetch PR by head",
 						{
@@ -953,7 +966,6 @@ export class PullRequestRuntimeManager {
 			}),
 		);
 
-		const keyToRow = new Map<string, { id: string }>();
 		const now = Date.now();
 
 		const checksByNumber = new Map<
@@ -1038,9 +1050,9 @@ export class PullRequestRuntimeManager {
 				now,
 			});
 
-			keyToRow.set(key, { id: rowId });
+			matched.set(key, { id: rowId });
 		}
 
-		return keyToRow;
+		return { matched, failedKeys };
 	}
 }

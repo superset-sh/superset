@@ -357,7 +357,7 @@ function AutomationsPage() {
 										}}
 										className={cn(
 											rowGrid,
-											"group/row min-w-0 cursor-pointer border-b border-border/50 px-4 py-2.5 text-sm outline-none transition-colors hover:bg-accent/50 focus-visible:bg-accent/50 focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-inset",
+											"group/row h-10 min-w-0 cursor-pointer border-b border-border/50 px-4 text-sm outline-none transition-colors hover:bg-accent/50 focus-visible:bg-accent/50 focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-inset",
 										)}
 									>
 										<span className="flex min-w-0 items-center gap-2">

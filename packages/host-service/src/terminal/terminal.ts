@@ -15,11 +15,15 @@ import {
 } from "@superset/shared/terminal-title-scanner";
 import { and, eq, ne } from "drizzle-orm";
 import type { Hono } from "hono";
+import { isProcessAlive, readPtyDaemonManifest } from "../daemon/manifest.ts";
 import type { HostDb } from "../db/index.ts";
 import { projects, terminalSessions, workspaces } from "../db/schema.ts";
 import type { EventBus } from "../events/index.ts";
 import { portManager } from "../ports/port-manager.ts";
-import type { DaemonClient } from "./DaemonClient/index.ts";
+import {
+	DaemonClient,
+	type Signal as DaemonSignal,
+} from "./DaemonClient/index.ts";
 import {
 	getDaemonClient,
 	onDaemonDisconnect,
@@ -54,7 +58,7 @@ interface DaemonPty {
 	pid: number;
 	write(data: string): void;
 	resize(cols: number, rows: number): void;
-	kill(signal?: NodeJS.Signals): void;
+	kill(signal?: NodeJS.Signals): Promise<void>;
 	onData(cb: (data: string) => void): PtyDataDisposer;
 	onExit(
 		cb: (info: { exitCode: number; signal: number }) => void,
@@ -79,14 +83,7 @@ function makeDaemonPty(
 			}
 		},
 		kill(signal) {
-			daemon
-				.close(
-					sessionId,
-					(signal as "SIGTERM" | "SIGKILL" | "SIGINT" | "SIGHUP") ?? "SIGHUP",
-				)
-				.catch(() => {
-					// Already gone or daemon disconnected — no-op.
-				});
+			return daemon.close(sessionId, toDaemonSignal(signal));
 		},
 		onData(cb) {
 			// StringDecoder buffers partial UTF-8 sequences across chunks.
@@ -543,6 +540,69 @@ function queueInitialCommand(
 	});
 }
 
+interface DaemonCloseResult {
+	attempted: boolean;
+	succeeded: boolean;
+	error?: unknown;
+}
+
+export interface DisposeSessionResult {
+	terminalId: string;
+	daemonCloseAttempted: boolean;
+	daemonCloseSucceeded: boolean;
+}
+
+function toDaemonSignal(signal?: NodeJS.Signals): DaemonSignal {
+	switch (signal) {
+		case "SIGINT":
+		case "SIGTERM":
+		case "SIGKILL":
+		case "SIGHUP":
+			return signal;
+		default:
+			return "SIGHUP";
+	}
+}
+
+function isUnknownDaemonSessionError(error: unknown): boolean {
+	if (!(error instanceof Error)) return false;
+	return error.message.includes("unknown session:");
+}
+
+function reachableDaemonSocketPath(): string | null {
+	const explicitSocket = process.env.SUPERSET_PTY_DAEMON_SOCKET;
+	if (explicitSocket) return explicitSocket;
+
+	const organizationId = process.env.ORGANIZATION_ID;
+	if (!organizationId) return null;
+
+	const manifest = readPtyDaemonManifest(organizationId);
+	if (!manifest || !isProcessAlive(manifest.pid)) return null;
+	return manifest.socketPath;
+}
+
+async function closeDaemonSessionById(
+	terminalId: string,
+	signal: DaemonSignal = "SIGHUP",
+): Promise<DaemonCloseResult> {
+	const socketPath = reachableDaemonSocketPath();
+	if (!socketPath) return { attempted: false, succeeded: true };
+
+	const daemon = new DaemonClient({ socketPath, connectTimeoutMs: 1000 });
+	try {
+		await daemon.connect();
+		await daemon.close(terminalId, signal);
+		return { attempted: true, succeeded: true };
+	} catch (error) {
+		if (isUnknownDaemonSessionError(error)) {
+			return { attempted: true, succeeded: true };
+		}
+		return { attempted: true, succeeded: false, error };
+	} finally {
+		await daemon.dispose().catch(() => {});
+	}
+}
+
 /**
  * Kills the PTY (if live) and marks the DB row disposed. Safe to call even
  * when there's no in-memory session — e.g. for zombie `active` rows left
@@ -550,7 +610,25 @@ function queueInitialCommand(
  * transient teardown session.
  */
 export function disposeSession(terminalId: string, db: HostDb) {
+	void disposeSessionAndWait(terminalId, db)
+		.then((result) => {
+			if (!result.daemonCloseSucceeded) {
+				console.warn("[terminal] disposeSession daemon close failed", {
+					terminalId,
+				});
+			}
+		})
+		.catch((error) => {
+			console.warn("[terminal] disposeSession failed", { terminalId, error });
+		});
+}
+
+export async function disposeSessionAndWait(
+	terminalId: string,
+	db: HostDb,
+): Promise<DisposeSessionResult> {
 	const session = sessions.get(terminalId);
+	let closePromise: Promise<DaemonCloseResult> | null = null;
 
 	if (session) {
 		if (session.shellReadyTimeoutId) {
@@ -563,9 +641,21 @@ export function disposeSession(terminalId: string, db: HostDb) {
 		session.sockets.clear();
 		if (!session.exited) {
 			try {
-				session.pty.kill();
-			} catch {
-				// PTY may already be dead
+				closePromise = session.pty.kill().then(
+					() =>
+						({ attempted: true, succeeded: true }) satisfies DaemonCloseResult,
+					(error) => ({
+						attempted: true,
+						succeeded: isUnknownDaemonSessionError(error),
+						error,
+					}),
+				);
+			} catch (error) {
+				closePromise = Promise.resolve({
+					attempted: true,
+					succeeded: isUnknownDaemonSessionError(error),
+					error,
+				});
 			}
 		}
 		// Stop receiving daemon callbacks for this session.
@@ -583,6 +673,8 @@ export function disposeSession(terminalId: string, db: HostDb) {
 			// best-effort
 		}
 		sessions.delete(terminalId);
+	} else {
+		closePromise = closeDaemonSessionById(terminalId, "SIGHUP");
 	}
 
 	portManager.unregisterSession(terminalId);
@@ -591,16 +683,25 @@ export function disposeSession(terminalId: string, db: HostDb) {
 		.set({ status: "disposed", endedAt: Date.now() })
 		.where(eq(terminalSessions.id, terminalId))
 		.run();
+
+	const closeResult = closePromise
+		? await closePromise
+		: { attempted: false, succeeded: true };
+	return {
+		terminalId,
+		daemonCloseAttempted: closeResult.attempted,
+		daemonCloseSucceeded: closeResult.succeeded,
+	};
 }
 
 /**
  * Dispose every active session belonging to the given workspace.
  * Returns counts so callers (e.g. workspaceCleanup.destroy) can surface warnings.
  */
-export function disposeSessionsByWorkspaceId(
+export async function disposeSessionsByWorkspaceId(
 	workspaceId: string,
 	db: HostDb,
-): { terminated: number; failed: number } {
+): Promise<{ terminated: number; failed: number }> {
 	const rows = db
 		.select({ id: terminalSessions.id })
 		.from(terminalSessions)
@@ -616,7 +717,11 @@ export function disposeSessionsByWorkspaceId(
 	let failed = 0;
 	for (const row of rows) {
 		try {
-			disposeSession(row.id, db);
+			const result = await disposeSessionAndWait(row.id, db);
+			if (!result.daemonCloseSucceeded) {
+				failed += 1;
+				continue;
+			}
 			terminated += 1;
 		} catch {
 			failed += 1;

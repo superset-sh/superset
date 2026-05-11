@@ -24,10 +24,13 @@
 	"dependencies": {
 		"@react-email/components": "1.0.1",
 		"@react-email/tailwind": "2.0.3",
+		"@superset/db": "workspace:*",
 		"@t3-oss/env-core": "^0.13.8",
 		"date-fns": "^4.1.0",
+		"drizzle-orm": "0.45.2",
 		"react": "19.2.0",
 		"react-dom": "19.2.0",
+		"resend": "^4.0.1",
 		"tailwindcss": "^4.1.18",
 		"zod": "^4.3.5"
 	}

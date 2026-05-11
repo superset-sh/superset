@@ -14,7 +14,7 @@ import {
 	webhookEvents,
 } from "@superset/db/schema";
 import { mapPriorityFromLinear } from "@superset/trpc/integrations/linear";
-import { and, eq, sql } from "drizzle-orm";
+import { and, desc, eq, isNull, sql } from "drizzle-orm";
 import { env } from "@/env";
 
 const webhookClient = new LinearWebhookClient(env.LINEAR_WEBHOOK_SECRET);
@@ -73,7 +73,12 @@ export async function POST(request: Request) {
 		where: and(
 			eq(integrationConnections.externalOrgId, payload.organizationId),
 			eq(integrationConnections.provider, "linear"),
+			isNull(integrationConnections.disconnectedAt),
 		),
+		orderBy: [
+			desc(integrationConnections.updatedAt),
+			desc(integrationConnections.id),
+		],
 	});
 
 	if (!connection) {

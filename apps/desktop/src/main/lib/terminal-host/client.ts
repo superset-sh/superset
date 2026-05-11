@@ -9,7 +9,7 @@
  * - Event streaming
  */
 
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { EventEmitter } from "node:events";
 import {
@@ -26,6 +26,10 @@ import {
 import { connect, type Socket } from "node:net";
 import { homedir } from "node:os";
 import { join } from "node:path";
+import {
+	isPositiveInteger,
+	signalProcessTreeAndGroups,
+} from "@superset/pty-daemon/process-tree";
 import { app } from "electron";
 import { SUPERSET_DIR_NAME } from "shared/constants";
 import { throwIfAborted } from "../terminal/abort";
@@ -364,7 +368,7 @@ export class TerminalHostClient extends EventEmitter {
 					);
 				}
 				this.resetConnectionState({ emitDisconnected: false });
-				this.killDaemonFromPidFile();
+				await this.killDaemonFromPidFile();
 				await this.waitForDaemonShutdown();
 			}
 
@@ -390,7 +394,7 @@ export class TerminalHostClient extends EventEmitter {
 						);
 					}
 					this.resetConnectionState({ emitDisconnected: false });
-					this.killDaemonFromPidFile();
+					await this.killDaemonFromPidFile();
 					await this.waitForDaemonShutdown();
 					await this.spawnDaemon();
 					continue;
@@ -409,7 +413,15 @@ export class TerminalHostClient extends EventEmitter {
 							);
 						}
 						this.resetConnectionState({ emitDisconnected: false });
-						await this.shutdownLegacyDaemon();
+						try {
+							await this.shutdownLegacyDaemon();
+						} catch (shutdownError) {
+							console.warn(
+								"[TerminalHostClient] Legacy daemon shutdown failed, falling back to PID kill:",
+								shutdownError,
+							);
+							await this.killDaemonFromPidFile();
+						}
 						await this.waitForDaemonShutdown();
 						await this.spawnDaemon();
 						continue;
@@ -476,21 +488,63 @@ export class TerminalHostClient extends EventEmitter {
 		}
 	}
 
-	private killDaemonFromPidFile(): void {
+	private async killDaemonFromPidFile(): Promise<void> {
 		if (!existsSync(PID_PATH)) return;
 
 		try {
 			const raw = readFileSync(PID_PATH, "utf-8").trim();
 			const pid = Number.parseInt(raw, 10);
-			if (!Number.isNaN(pid)) {
-				try {
-					process.kill(pid, "SIGTERM");
-				} catch {
-					// Best-effort; PID may be stale or process already exited.
+			if (isPositiveInteger(pid) && this.isTerminalHostDaemonPid(pid)) {
+				this.signalDaemonProcessTreeAndGroups(pid, "SIGTERM");
+				if (!(await this.waitForPidExit(pid, 1500))) {
+					this.signalDaemonProcessTreeAndGroups(pid, "SIGKILL");
+					await this.waitForPidExit(pid, 500);
 				}
 			}
 		} catch {
 			// Best-effort.
+		}
+	}
+
+	private isTerminalHostDaemonPid(pid: number): boolean {
+		if (!isPositiveInteger(pid)) return false;
+		const result = spawnSync("ps", ["-p", String(pid), "-o", "command="], {
+			encoding: "utf8",
+		});
+		if (result.error || result.status !== 0) return false;
+		const command = result.stdout.trim();
+		if (!command) return false;
+		const daemonScript = this.getDaemonScriptPath();
+		return command.includes(daemonScript) || command.includes("terminal-host");
+	}
+
+	private signalDaemonProcessTreeAndGroups(
+		pid: number,
+		signal: NodeJS.Signals,
+	): void {
+		if (!isPositiveInteger(pid)) return;
+		if (!this.isPidAlive(pid)) return;
+		signalProcessTreeAndGroups(pid, signal);
+	}
+
+	private async waitForPidExit(
+		pid: number,
+		timeoutMs: number,
+	): Promise<boolean> {
+		const startTime = Date.now();
+		while (Date.now() - startTime < timeoutMs) {
+			if (!this.isPidAlive(pid)) return true;
+			await this.sleep(50);
+		}
+		return !this.isPidAlive(pid);
+	}
+
+	private isPidAlive(pid: number): boolean {
+		try {
+			process.kill(pid, 0);
+			return true;
+		} catch (error) {
+			return (error as NodeJS.ErrnoException).code === "EPERM";
 		}
 	}
 
@@ -1115,6 +1169,10 @@ export class TerminalHostClient extends EventEmitter {
 		// Also clean up stale PID file if socket was not live
 		// This handles the case where daemon crashed and PID was reused
 		if (existsSync(PID_PATH)) {
+			if (DEBUG_CLIENT) {
+				console.log("[TerminalHostClient] Killing daemon from stale PID file");
+			}
+			await this.killDaemonFromPidFile();
 			if (DEBUG_CLIENT) {
 				console.log("[TerminalHostClient] Removing stale PID file");
 			}

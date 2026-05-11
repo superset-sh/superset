@@ -1,7 +1,7 @@
 "use client";
 
 import {
-	VscChevronRight,
+	VscChevronDown,
 	VscDiffAdded,
 	VscDiffModified,
 	VscDiffRemoved,
@@ -24,46 +24,48 @@ export function FileChangeItem({
 	type,
 }: FileChangeItemProps) {
 	const isFolder = type === "folder";
-	const Icon = isFolder
-		? VscChevronRight
-		: type === "add"
-			? VscDiffAdded
-			: type === "edit"
-				? VscDiffModified
-				: type === "delete"
-					? VscDiffRemoved
-					: VscDiffModified;
 
-	let iconColor = "text-muted-foreground/30";
 	if (isFolder) {
-		iconColor = "text-muted-foreground/24";
-	} else if (type === "add") {
-		iconColor = "text-emerald-300/70";
-	} else if (type === "edit") {
-		iconColor = "text-[#febc2e]/75";
-	} else if (type === "delete") {
-		iconColor = "text-rose-300/75";
+		return (
+			<div
+				className="flex items-center gap-1.5 px-3 pb-2 pt-5 font-mono text-[10px] font-medium uppercase tracking-[0.06em] text-muted-foreground/65"
+				style={{ paddingLeft: `${10 + indent * 12}px` }}
+			>
+				<VscChevronDown className="size-2.5 text-muted-foreground/45" />
+				<span className="truncate">{path}</span>
+			</div>
+		);
 	}
+
+	const Icon =
+		type === "add"
+			? VscDiffAdded
+			: type === "delete"
+				? VscDiffRemoved
+				: VscDiffModified;
+
+	const iconColor =
+		type === "add"
+			? "text-emerald-400/85"
+			: type === "delete"
+				? "text-rose-400/85"
+				: "text-amber-300/85";
 
 	return (
 		<div
-			className={`flex items-center justify-between gap-2 px-3 hover:bg-white/[0.03] ${isFolder ? "mt-1 py-1.5" : "py-1.5"}`}
-			style={{ paddingLeft: `${10 + indent * 14}px` }}
+			className="flex h-7 items-center justify-between gap-2 hover:bg-foreground/[0.025]"
+			style={{ paddingLeft: `${14 + indent * 12}px`, paddingRight: "12px" }}
 		>
 			<div className="flex min-w-0 items-center gap-2">
-				<Icon
-					className={`${isFolder ? "size-2.5" : "size-3.5"} shrink-0 ${iconColor}`}
-				/>
-				<span
-					className={`truncate ${isFolder ? "text-[10px] font-medium text-muted-foreground/34" : "text-[11px] text-muted-foreground/58"}`}
-				>
+				<Icon className={`size-3 shrink-0 ${iconColor}`} />
+				<span className="truncate text-[11px] text-muted-foreground">
 					{path}
 				</span>
 			</div>
-			{!isFolder && (add > 0 || del > 0) && (
-				<span className="shrink-0 tabular-nums text-[10px] font-medium">
-					{add > 0 && <span className="text-emerald-300/75">+{add}</span>}
-					{del > 0 && <span className="ml-1 text-rose-300/75">-{del}</span>}
+			{(add > 0 || del > 0) && (
+				<span className="shrink-0 font-mono text-[10px] tabular-nums">
+					{add > 0 && <span className="text-emerald-400/85">+{add}</span>}
+					{del > 0 && <span className="ml-1 text-rose-400/75">−{del}</span>}
 				</span>
 			)}
 		</div>

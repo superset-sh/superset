@@ -1,7 +1,6 @@
 .diff-comment {
 	display: block;
-	width: 100%;
-	max-width: 100%;
+	max-width: min(100%, 720px);
 	min-width: 0;
 	box-sizing: border-box;
 	overflow-wrap: anywhere;

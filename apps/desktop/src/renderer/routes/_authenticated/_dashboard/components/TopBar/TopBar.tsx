@@ -54,8 +54,7 @@ export function TopBar() {
 				{!sidebarHostsChrome && (
 					<>
 						<SidebarToggle />
-						<NavigationControls showHistoryDropdown={false} />
-						<ResourceConsumption surface={isV2CloudEnabled ? "v2" : "v1"} />
+						<NavigationControls />
 					</>
 				)}
 			</div>
@@ -85,6 +84,9 @@ export function TopBar() {
 			)}
 
 			<div className="flex items-center gap-3 h-full pr-4 shrink-0">
+				{!sidebarHostsChrome && (
+					<ResourceConsumption surface={isV2CloudEnabled ? "v2" : "v1"} />
+				)}
 				{!isOnline && (
 					<div className="no-drag flex items-center gap-1.5 text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
 						<HiOutlineWifi className="size-3.5" />

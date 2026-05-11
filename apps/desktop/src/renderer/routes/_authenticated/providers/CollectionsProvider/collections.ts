@@ -14,6 +14,8 @@ import type {
 	SelectSubscription,
 	SelectTask,
 	SelectTaskStatus,
+	SelectTeam,
+	SelectTeamMember,
 	SelectUser,
 	SelectV2Client,
 	SelectV2Host,
@@ -119,6 +121,8 @@ export interface OrgCollections {
 	members: Collection<SelectMember>;
 	users: Collection<SelectUser>;
 	invitations: Collection<SelectInvitation>;
+	teams: Collection<SelectTeam>;
+	teamMembers: Collection<SelectTeamMember>;
 	agentCommands: Collection<SelectAgentCommand>;
 	integrationConnections: Collection<IntegrationConnectionDisplay>;
 	subscriptions: Collection<SelectSubscription>;
@@ -472,6 +476,38 @@ function createOrgCollections(organizationId: string): OrgCollections {
 		}),
 	);
 
+	const teams = createPersistedElectricCollection(
+		electricCollectionOptions<SelectTeam>({
+			id: `teams-${organizationId}`,
+			shapeOptions: {
+				url: electricUrl,
+				params: {
+					table: "auth.teams",
+					organizationId,
+				},
+				headers: electricHeaders,
+				columnMapper,
+			},
+			getKey: (item) => item.id,
+		}),
+	);
+
+	const teamMembers = createPersistedElectricCollection(
+		electricCollectionOptions<SelectTeamMember>({
+			id: `team-members-${organizationId}`,
+			shapeOptions: {
+				url: electricUrl,
+				params: {
+					table: "auth.team_members",
+					organizationId,
+				},
+				headers: electricHeaders,
+				columnMapper,
+			},
+			getKey: (item) => item.id,
+		}),
+	);
+
 	const agentCommands = createPersistedElectricCollection(
 		electricCollectionOptions<SelectAgentCommand>({
 			id: `agent_commands-${organizationId}`,
@@ -708,6 +744,8 @@ function createOrgCollections(organizationId: string): OrgCollections {
 		members,
 		users,
 		invitations,
+		teams,
+		teamMembers,
 		agentCommands,
 		integrationConnections,
 		subscriptions,

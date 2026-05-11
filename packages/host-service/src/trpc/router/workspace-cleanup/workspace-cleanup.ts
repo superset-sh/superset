@@ -255,7 +255,10 @@ async function runDestroy(ctx: HostServiceContext, input: DestroyInput) {
 
 	// 3a. PTYs
 	try {
-		const killed = disposeSessionsByWorkspaceId(input.workspaceId, ctx.db);
+		const killed = await disposeSessionsByWorkspaceId(
+			input.workspaceId,
+			ctx.db,
+		);
 		if (killed.failed > 0) {
 			warnings.push(`${killed.failed} terminal(s) may still be running`);
 		}

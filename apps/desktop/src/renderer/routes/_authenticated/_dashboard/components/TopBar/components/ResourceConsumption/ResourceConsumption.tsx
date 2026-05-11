@@ -1,4 +1,5 @@
 import type { WorkspaceState } from "@superset/panes";
+import { Button } from "@superset/ui/button";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -90,10 +91,12 @@ function getTerminalTitleOverrides(
 
 interface ResourceConsumptionProps {
 	surface?: "v1" | "v2";
+	className?: string;
 }
 
 export function ResourceConsumption({
 	surface = "v1",
+	className,
 }: ResourceConsumptionProps) {
 	const [open, setOpen] = useState(false);
 	const [sortOption, setSortOption] = useState<SortOption>("memory");
@@ -344,40 +347,32 @@ export function ResourceConsumption({
 			<Tooltip delayDuration={150}>
 				<TooltipTrigger asChild>
 					<PopoverTrigger asChild>
-						<button
-							type="button"
-							className="no-drag inline-flex items-center gap-1.5 h-6 px-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-foreground/[0.06] transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+						<Button
+							variant="ghost"
+							size="icon-xs"
 							aria-label="Resource consumption"
-						>
-							<span className="relative flex items-center">
-								<HiOutlineCpuChip className="h-3.5 w-3.5 shrink-0" />
-								{triggerDotColorClass && (
-									<span
-										className={cn(
-											"absolute -top-0.5 -right-0.5 h-1.5 w-1.5 rounded-full ring-2 ring-background",
-											triggerDotColorClass,
-										)}
-									/>
-								)}
-							</span>
-							{normalizedSnapshot && (
-								<span className="text-xs font-medium tabular-nums tracking-tight hidden md:inline">
-									{formatMemory(normalizedSnapshot.totalMemory)}
-								</span>
+							className={cn(
+								"no-drag relative text-muted-foreground hover:text-foreground",
+								className,
 							)}
-						</button>
+						>
+							<HiOutlineCpuChip className="size-3.5" />
+							{!isV2 && triggerDotColorClass && (
+								<span
+									className={cn(
+										"absolute top-0.5 right-0.5 size-1.5 rounded-full ring-2 ring-background",
+										triggerDotColorClass,
+									)}
+								/>
+							)}
+						</Button>
 					</PopoverTrigger>
 				</TooltipTrigger>
-				{normalizedSnapshot && (
-					<TooltipContent
-						side="bottom"
-						sideOffset={6}
-						showArrow={false}
-						className="md:hidden"
-					>
-						{formatMemory(normalizedSnapshot.totalMemory)}
-					</TooltipContent>
-				)}
+				<TooltipContent side="bottom" sideOffset={6} showArrow={false}>
+					{normalizedSnapshot
+						? `Resources · ${formatMemory(normalizedSnapshot.totalMemory)}`
+						: "Resources"}
+				</TooltipContent>
 			</Tooltip>
 
 			<PopoverContent align="start" className="w-[28rem] p-0 overflow-hidden">

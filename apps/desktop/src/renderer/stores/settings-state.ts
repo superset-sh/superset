@@ -4,6 +4,7 @@ import { devtools } from "zustand/middleware";
 export type SettingsSection =
 	| "account"
 	| "organization"
+	| "teams"
 	| "appearance"
 	| "ringtones"
 	| "keyboard"
