@@ -11,7 +11,7 @@ export default command({
 		local: boolean().desc("Target this machine"),
 		project: string().required().desc("Project ID"),
 		name: string().desc(
-			"Workspace name (defaults to the derived branch name when --issue is set)",
+			"Workspace name (optional; defaults to the derived branch name when --issue is set, or a server-generated name otherwise)",
 		),
 		branch: string().desc(
 			"Git branch (use exactly one of --branch | --pr | --issue)",
