@@ -1,5 +1,7 @@
 "use client";
 
+import { LuGitBranch } from "react-icons/lu";
+import { TbCloud } from "react-icons/tb";
 import type { WorkspaceStatus } from "../../types";
 import { AsciiSpinner } from "../AsciiSpinner";
 import { StatusIndicator } from "../StatusIndicator";
@@ -21,6 +23,8 @@ export function WorkspaceItem({
 	isActive,
 	status,
 }: WorkspaceItemProps) {
+	const isCloud = name === "see changes";
+	const isBranch = name === "forward ports";
 	return (
 		<div
 			className={`relative flex h-7 cursor-pointer items-center gap-2.5 pl-4 pr-3 text-[11px] ${
@@ -41,6 +45,10 @@ export function WorkspaceItem({
 					/>
 				) : status ? (
 					<StatusIndicator status={status} />
+				) : isCloud ? (
+					<TbCloud className="size-3.5 text-muted-foreground/70" />
+				) : isBranch ? (
+					<LuGitBranch className="size-3 text-muted-foreground/70" />
 				) : (
 					<span className="size-1 rounded-full bg-muted-foreground/40" />
 				)}

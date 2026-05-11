@@ -10,7 +10,7 @@ interface RightSidebarProps {
 	activeDemo: ActiveDemo;
 }
 
-const TABS = ["Files", "Changes", "Notes"] as const;
+const TABS = ["Files", "Changes", "Review"] as const;
 
 export function RightSidebar({ activeDemo }: RightSidebarProps) {
 	const isDiff = activeDemo === "See Changes";

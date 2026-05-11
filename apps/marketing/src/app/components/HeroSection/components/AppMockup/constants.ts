@@ -72,13 +72,26 @@ export const PORTS: PortGroup[] = [
 
 export const AGENT_TABS: AgentTab[] = [
 	{ src: "/app-icons/codex.svg", alt: "Codex", label: "codex", delay: 0.1 },
-	{ src: "/app-icons/gemini.svg", alt: "Gemini", label: "gemini", delay: 0.25 },
 	{
 		src: "/app-icons/cursor-agent.svg",
 		alt: "Cursor",
 		label: "cursor",
+		delay: 0.2,
+	},
+	{
+		src: "/app-icons/opencode.svg",
+		alt: "OpenCode",
+		label: "opencode",
+		delay: 0.3,
+	},
+	{
+		src: "/app-icons/copilot-white.svg",
+		alt: "Copilot",
+		label: "copilot",
 		delay: 0.4,
 	},
+	{ src: "/app-icons/amp.svg", alt: "Amp", label: "amp", delay: 0.5 },
+	{ src: "/app-icons/gemini.svg", alt: "Gemini", label: "gemini", delay: 0.6 },
 ];
 
 export const SETUP_STEPS = [
