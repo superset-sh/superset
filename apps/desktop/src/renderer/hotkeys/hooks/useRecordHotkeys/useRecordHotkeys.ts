@@ -1,20 +1,8 @@
 import { useEffect, useRef } from "react";
 import { HOTKEYS, type HotkeyId, PLATFORM } from "../../registry";
 import { useHotkeyOverridesStore } from "../../stores/hotkeyOverridesStore";
-import { getEffectiveLayoutMap } from "../../stores/keyboardPreferencesStore";
-import type {
-	BindingMode,
-	ParsedBinding,
-	Platform,
-	ShortcutBinding,
-} from "../../types";
-import {
-	bindingsEqual,
-	bindingToDispatchChord,
-	isFunctionKey,
-	NAMED_KEYS,
-	serializeBinding,
-} from "../../utils/binding";
+import { getMatchByTypedKey } from "../../stores/keyboardPreferencesStore";
+import type { Platform } from "../../types";
 import {
 	canonicalizeChord,
 	isIgnorableKey,
@@ -27,24 +15,23 @@ import {
 // reordering at compare time.
 const MODIFIER_ORDER = ["meta", "ctrl", "alt", "shift"] as const;
 
-export interface CapturedHotkey {
-	/** Modifiers + canonical(event.code). Always meaningful. */
-	codeChord: string;
-	/** Modifiers + lowercased event.key for printable letters/digits/punctuation;
-	 *  identical to codeChord for named keys / F-keys. */
-	keyChord: string;
-	classification: "named" | "fkey" | "printable";
-}
-
+/**
+ * Builds the chord in the same frame {@link eventToChord} uses for
+ * dispatch — `event.code` when matching by physical key, `event.key` when
+ * matching by typed character. Recording in the wrong frame would store a
+ * chord the user can't fire.
+ *
+ * Named keys (Enter, F-keys, arrows) always use `event.code` since their
+ * `event.key` form lower-cases to the same token (`Enter` → `enter`).
+ */
 export function captureHotkeyFromEvent(
 	event: KeyboardEvent,
-): CapturedHotkey | null {
+): { chord: string } | null {
 	if (event.code === undefined) return null;
 	const codeKey = normalizeToken(event.code);
 	if (isIgnorableKey(codeKey)) return null;
 
-	const isFKey = isFunctionKey(codeKey);
-	const isNamed = NAMED_KEYS.has(codeKey);
+	const isFKey = /^f([1-9]|1[0-2])$/.test(codeKey);
 	// Mac Option is a legitimate shortcut modifier (⌥⌫ = delete-word). On
 	// other platforms Alt is the menu key and AltGr masquerades as ctrl+alt,
 	// so we still require ctrl/meta.
@@ -60,39 +47,46 @@ export function captureHotkeyFromEvent(
 	if (event.shiftKey) modifiers.add("shift");
 	const ordered = MODIFIER_ORDER.filter((m) => modifiers.has(m));
 
-	const codeChord = [...ordered, codeKey].join("+");
-
-	let classification: "named" | "fkey" | "printable" = "printable";
-	if (isFKey) classification = "fkey";
-	else if (isNamed) classification = "named";
-
-	let keyChord = codeChord;
-	if (classification === "printable") {
-		const produced = (event.key ?? "").toLowerCase();
-		// Single printable char only — strings like "Dead", "Process" or
-		// multi-char IME output stay on codeChord. "+" would collide with
-		// the chord separator and break round-tripping (`meta+shift++`).
-		if (produced.length === 1 && /\S/.test(produced) && produced !== "+") {
-			keyChord = [...ordered, produced].join("+");
-		}
-	}
-	return { codeChord, keyChord, classification };
+	const terminal = chordTerminalForCapture(event, codeKey, isFKey);
+	if (!terminal) return null;
+	return { chord: [...ordered, terminal].join("+") };
 }
 
-/**
- * Pick the right chord + mode for a captured event, given a user mode
- * preference. F-keys and named keys force `named` regardless of preference.
- */
-export function resolveCapturedBinding(
-	captured: CapturedHotkey,
-	preferredMode: "physical" | "logical",
-): ParsedBinding {
-	if (captured.classification === "fkey" || captured.classification === "named")
-		return { mode: "named", chord: captured.codeChord };
-	const mode: BindingMode = preferredMode;
-	const chord = mode === "logical" ? captured.keyChord : captured.codeChord;
-	return { mode, chord };
+function chordTerminalForCapture(
+	event: KeyboardEvent,
+	codeKey: string,
+	isFKey: boolean,
+): string | null {
+	// Named keys / F-keys are layout-stable; always use the event.code form.
+	if (isFKey || NAMED_TOKENS.has(codeKey)) return codeKey;
+	if (!getMatchByTypedKey()) return codeKey;
+	// matchByTypedKey ON: capture the typed character so the binding
+	// round-trips through eventToChord's event.key path.
+	const k = (event.key ?? "").toLowerCase();
+	// Single printable char only. Multi-char keys (`Dead`, `Process`) and
+	// `+` (would collide with the chord separator) fall back to the code
+	// form so the binding is still recordable.
+	if (k.length === 1 && /\S/.test(k) && k !== "+") return k;
+	return codeKey;
 }
+
+const NAMED_TOKENS = new Set([
+	"enter",
+	"escape",
+	"backspace",
+	"delete",
+	"tab",
+	"space",
+	"arrowup",
+	"arrowdown",
+	"arrowleft",
+	"arrowright",
+	"home",
+	"end",
+	"pageup",
+	"pagedown",
+	"insert",
+]);
 
 // Chords the OS / shell is likely to intercept. Binding is allowed (Linux
 // WM configs vary), but the recorder emits a warning so the user knows why
@@ -137,41 +131,31 @@ function checkReserved(
 }
 
 function getHotkeyConflict(
-	candidate: ShortcutBinding,
+	candidate: string,
 	excludeId: HotkeyId,
 ): HotkeyId | null {
 	const { overrides } = useHotkeyOverridesStore.getState();
-	const layoutMap = getEffectiveLayoutMap();
-	const candidateDispatch = bindingToDispatchChord(candidate, layoutMap);
-	if (!candidateDispatch) return null;
-	const target = canonicalizeChord(candidateDispatch);
+	const target = canonicalizeChord(candidate);
 	for (const id of Object.keys(HOTKEYS) as HotkeyId[]) {
 		if (id === excludeId) continue;
 		const effective = id in overrides ? overrides[id] : HOTKEYS[id].key;
 		if (!effective) continue;
-		const otherDispatch = bindingToDispatchChord(effective, layoutMap);
-		if (otherDispatch && canonicalizeChord(otherDispatch) === target) return id;
+		if (canonicalizeChord(effective) === target) return id;
 	}
 	return null;
 }
 
 interface UseRecordHotkeysOptions {
-	/** User's mode preference for new printable bindings. Default `"logical"`
-	 *  — the recorded chord follows the printed character (Dvorak user
-	 *  pressing the P-labeled key gets a binding for the P character, which
-	 *  works on any layout). F-keys and named keys ignore this and use
-	 *  `"named"` mode regardless. */
-	preferredMode?: "physical" | "logical";
-	onSave?: (id: HotkeyId, binding: ShortcutBinding) => void;
+	onSave?: (id: HotkeyId, binding: string) => void;
 	onCancel?: () => void;
 	onUnassign?: (id: HotkeyId) => void;
 	onConflict?: (
 		targetId: HotkeyId,
-		binding: ShortcutBinding,
+		binding: string,
 		conflictId: HotkeyId,
 	) => void;
 	onReserved?: (
-		binding: ShortcutBinding,
+		binding: string,
 		info: { reason: string; severity: "error" | "warning" },
 	) => void;
 }
@@ -206,14 +190,9 @@ export function useRecordHotkeys(
 
 			const captured = captureHotkeyFromEvent(event);
 			if (!captured) return;
+			const binding = captured.chord;
 
-			const preferredMode = optionsRef.current?.preferredMode ?? "logical";
-			const parsed = resolveCapturedBinding(captured, preferredMode);
-			const binding = serializeBinding(parsed);
-
-			// Reserved chords gate on the dispatch chord (event.code form), since
-			// that's what the OS / terminal sees when the user presses the key.
-			const reserved = checkReserved(captured.codeChord);
+			const reserved = checkReserved(binding);
 			if (reserved?.severity === "error") {
 				optionsRef.current?.onReserved?.(binding, reserved);
 				return;
@@ -230,7 +209,10 @@ export function useRecordHotkeys(
 			}
 
 			const defaultBinding = HOTKEYS[recordingId].key;
-			if (defaultBinding && bindingsEqual(binding, defaultBinding)) {
+			if (
+				defaultBinding &&
+				canonicalizeChord(binding) === canonicalizeChord(defaultBinding)
+			) {
 				resetOverride(recordingId);
 			} else {
 				setOverride(recordingId, binding);

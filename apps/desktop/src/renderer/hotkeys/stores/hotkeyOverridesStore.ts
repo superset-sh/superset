@@ -1,15 +1,33 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
-import type { ShortcutBinding } from "../types";
+
+type StoredBinding = string | null;
 
 interface HotkeyOverridesState {
-	/** Per-hotkey-id override. `null` = explicit unassignment. Stored as the
-	 *  ShortcutBinding shape: bare string for physical-mode bindings (legacy
-	 *  + shipped defaults), v2 object for logical / named modes. */
-	overrides: Record<string, ShortcutBinding | null>;
-	setOverride: (id: string, binding: ShortcutBinding | null) => void;
+	/** Per-hotkey-id override. `null` = explicit unassignment. */
+	overrides: Record<string, StoredBinding>;
+	setOverride: (id: string, binding: StoredBinding) => void;
 	resetOverride: (id: string) => void;
 	resetAll: () => void;
+}
+
+/**
+ * Older builds wrote `{ version: 2, mode, chord }` objects. Coerce those to
+ * the bare chord string on hydrate so the rest of the system only deals with
+ * one shape.
+ */
+function coerceLegacyBinding(value: unknown): StoredBinding {
+	if (value === null) return null;
+	if (typeof value === "string") return value;
+	if (
+		typeof value === "object" &&
+		value !== null &&
+		"chord" in value &&
+		typeof (value as { chord: unknown }).chord === "string"
+	) {
+		return (value as { chord: string }).chord;
+	}
+	return null;
 }
 
 export const useHotkeyOverridesStore = create<HotkeyOverridesState>()(
@@ -32,6 +50,20 @@ export const useHotkeyOverridesStore = create<HotkeyOverridesState>()(
 			name: "hotkey-overrides",
 			storage: createJSONStorage(() => localStorage),
 			partialize: (state) => ({ overrides: state.overrides }),
+			version: 2,
+			migrate: (persisted) => {
+				if (!persisted || typeof persisted !== "object") {
+					return { overrides: {} };
+				}
+				const raw = (persisted as { overrides?: Record<string, unknown> })
+					.overrides;
+				if (!raw) return { overrides: {} };
+				const overrides: Record<string, StoredBinding> = {};
+				for (const [id, value] of Object.entries(raw)) {
+					overrides[id] = coerceLegacyBinding(value);
+				}
+				return { overrides };
+			},
 		},
 	),
 );

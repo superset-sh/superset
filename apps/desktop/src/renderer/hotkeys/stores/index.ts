@@ -1,6 +1,5 @@
 export { useHotkeyOverridesStore } from "./hotkeyOverridesStore";
 export {
-	getEffectiveLayoutMap,
-	useEffectiveLayoutMap,
+	getMatchByTypedKey,
 	useKeyboardPreferencesStore,
 } from "./keyboardPreferencesStore";

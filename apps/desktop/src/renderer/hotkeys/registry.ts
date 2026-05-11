@@ -3,7 +3,6 @@ import type {
 	HotkeyDefinition,
 	Platform,
 	PlatformKey,
-	ShortcutBinding,
 } from "./types";
 
 interface HotkeyRegistryDefinition {
@@ -23,32 +22,21 @@ function detectPlatform(): Platform {
 
 export const PLATFORM: Platform = detectPlatform();
 
-/**
- * Mark a printable chord as logical so it follows the labeled key on
- * non-US layouts (e.g. on QWERTZ ⌘Z fires on the key printed "Z" — physical
- * KeyY — instead of physical KeyZ). Honored when `adaptiveLayoutEnabled`
- * is on; falls through to the original chord otherwise (matching physical
- * dispatch). Use bare strings only for chords whose terminal token is a
- * named key (arrows, Enter, Escape, F1–F12, …) — those are layout-stable
- * and `defaultModeForChord` classifies them as "named" automatically.
- */
-const L = (chord: string): ShortcutBinding => ({
-	version: 2,
-	mode: "logical",
-	chord,
-});
-
 // ---------------------------------------------------------------------------
-// Hotkey definitions
+// Hotkey definitions. Bindings dispatch on `event.code` by default ("⌘T"
+// fires on the same physical key on every layout). Users on non-US layouts
+// can flip the "Match by typed character" preference to dispatch on
+// `event.key` instead, or rebind individual chords via Settings →
+// Keyboard.
 // ---------------------------------------------------------------------------
 
 export const HOTKEYS_REGISTRY = {
 	// Navigation
 	NAVIGATE_BACK: {
 		key: {
-			mac: L("meta+bracketleft"),
-			windows: L("ctrl+shift+bracketleft"),
-			linux: L("ctrl+shift+bracketleft"),
+			mac: "meta+bracketleft",
+			windows: "ctrl+shift+bracketleft",
+			linux: "ctrl+shift+bracketleft",
 		},
 		label: "Navigate Back",
 		category: "Navigation",
@@ -56,9 +44,9 @@ export const HOTKEYS_REGISTRY = {
 	},
 	NAVIGATE_FORWARD: {
 		key: {
-			mac: L("meta+bracketright"),
-			windows: L("ctrl+shift+bracketright"),
-			linux: L("ctrl+shift+bracketright"),
+			mac: "meta+bracketright",
+			windows: "ctrl+shift+bracketright",
+			linux: "ctrl+shift+bracketright",
 		},
 		label: "Navigate Forward",
 		category: "Navigation",
@@ -66,9 +54,9 @@ export const HOTKEYS_REGISTRY = {
 	},
 	QUICK_OPEN: {
 		key: {
-			mac: L("meta+p"),
-			windows: L("ctrl+shift+p"),
-			linux: L("ctrl+shift+p"),
+			mac: "meta+p",
+			windows: "ctrl+shift+p",
+			linux: "ctrl+shift+p",
 		},
 		label: "Quick Open File",
 		category: "Navigation",
@@ -78,81 +66,81 @@ export const HOTKEYS_REGISTRY = {
 	// Workspace switching
 	JUMP_TO_WORKSPACE_1: {
 		key: {
-			mac: L("meta+1"),
-			windows: L("ctrl+shift+1"),
-			linux: L("ctrl+shift+1"),
+			mac: "meta+1",
+			windows: "ctrl+shift+1",
+			linux: "ctrl+shift+1",
 		},
 		label: "Switch to Workspace 1",
 		category: "Workspace",
 	},
 	JUMP_TO_WORKSPACE_2: {
 		key: {
-			mac: L("meta+2"),
-			windows: L("ctrl+shift+2"),
-			linux: L("ctrl+shift+2"),
+			mac: "meta+2",
+			windows: "ctrl+shift+2",
+			linux: "ctrl+shift+2",
 		},
 		label: "Switch to Workspace 2",
 		category: "Workspace",
 	},
 	JUMP_TO_WORKSPACE_3: {
 		key: {
-			mac: L("meta+3"),
-			windows: L("ctrl+shift+3"),
-			linux: L("ctrl+shift+3"),
+			mac: "meta+3",
+			windows: "ctrl+shift+3",
+			linux: "ctrl+shift+3",
 		},
 		label: "Switch to Workspace 3",
 		category: "Workspace",
 	},
 	JUMP_TO_WORKSPACE_4: {
 		key: {
-			mac: L("meta+4"),
-			windows: L("ctrl+shift+4"),
-			linux: L("ctrl+shift+4"),
+			mac: "meta+4",
+			windows: "ctrl+shift+4",
+			linux: "ctrl+shift+4",
 		},
 		label: "Switch to Workspace 4",
 		category: "Workspace",
 	},
 	JUMP_TO_WORKSPACE_5: {
 		key: {
-			mac: L("meta+5"),
-			windows: L("ctrl+shift+5"),
-			linux: L("ctrl+shift+5"),
+			mac: "meta+5",
+			windows: "ctrl+shift+5",
+			linux: "ctrl+shift+5",
 		},
 		label: "Switch to Workspace 5",
 		category: "Workspace",
 	},
 	JUMP_TO_WORKSPACE_6: {
 		key: {
-			mac: L("meta+6"),
-			windows: L("ctrl+shift+6"),
-			linux: L("ctrl+shift+6"),
+			mac: "meta+6",
+			windows: "ctrl+shift+6",
+			linux: "ctrl+shift+6",
 		},
 		label: "Switch to Workspace 6",
 		category: "Workspace",
 	},
 	JUMP_TO_WORKSPACE_7: {
 		key: {
-			mac: L("meta+7"),
-			windows: L("ctrl+shift+7"),
-			linux: L("ctrl+shift+7"),
+			mac: "meta+7",
+			windows: "ctrl+shift+7",
+			linux: "ctrl+shift+7",
 		},
 		label: "Switch to Workspace 7",
 		category: "Workspace",
 	},
 	JUMP_TO_WORKSPACE_8: {
 		key: {
-			mac: L("meta+8"),
-			windows: L("ctrl+shift+8"),
-			linux: L("ctrl+shift+8"),
+			mac: "meta+8",
+			windows: "ctrl+shift+8",
+			linux: "ctrl+shift+8",
 		},
 		label: "Switch to Workspace 8",
 		category: "Workspace",
 	},
 	JUMP_TO_WORKSPACE_9: {
 		key: {
-			mac: L("meta+9"),
-			windows: L("ctrl+shift+9"),
-			linux: L("ctrl+shift+9"),
+			mac: "meta+9",
+			windows: "ctrl+shift+9",
+			linux: "ctrl+shift+9",
 		},
 		label: "Switch to Workspace 9",
 		category: "Workspace",
@@ -189,9 +177,9 @@ export const HOTKEYS_REGISTRY = {
 	},
 	NEW_WORKSPACE: {
 		key: {
-			mac: L("meta+n"),
-			windows: L("ctrl+shift+n"),
-			linux: L("ctrl+shift+n"),
+			mac: "meta+n",
+			windows: "ctrl+shift+n",
+			linux: "ctrl+shift+n",
 		},
 		label: "New Workspace",
 		category: "Workspace",
@@ -199,9 +187,9 @@ export const HOTKEYS_REGISTRY = {
 	},
 	QUICK_CREATE_WORKSPACE: {
 		key: {
-			mac: L("meta+shift+n"),
-			windows: L("ctrl+shift+alt+n"),
-			linux: L("ctrl+shift+alt+n"),
+			mac: "meta+shift+n",
+			windows: "ctrl+shift+alt+n",
+			linux: "ctrl+shift+alt+n",
 		},
 		label: "Quick Create Workspace",
 		category: "Workspace",
@@ -209,9 +197,9 @@ export const HOTKEYS_REGISTRY = {
 	},
 	RUN_WORKSPACE_COMMAND: {
 		key: {
-			mac: L("meta+g"),
-			windows: L("ctrl+shift+g"),
-			linux: L("ctrl+shift+g"),
+			mac: "meta+g",
+			windows: "ctrl+shift+g",
+			linux: "ctrl+shift+g",
 		},
 		label: "Run Workspace Command",
 		category: "Workspace",
@@ -219,9 +207,9 @@ export const HOTKEYS_REGISTRY = {
 	},
 	FOCUS_TASK_SEARCH: {
 		key: {
-			mac: L("meta+f"),
-			windows: L("ctrl+shift+f"),
-			linux: L("ctrl+shift+f"),
+			mac: "meta+f",
+			windows: "ctrl+shift+f",
+			linux: "ctrl+shift+f",
 		},
 		label: "Focus Task Search",
 		category: "Workspace",
@@ -229,9 +217,9 @@ export const HOTKEYS_REGISTRY = {
 	},
 	OPEN_PROJECT: {
 		key: {
-			mac: L("meta+shift+o"),
-			windows: L("ctrl+shift+alt+o"),
-			linux: L("ctrl+shift+alt+o"),
+			mac: "meta+shift+o",
+			windows: "ctrl+shift+alt+o",
+			linux: "ctrl+shift+alt+o",
 		},
 		label: "Open Project",
 		category: "Workspace",
@@ -239,9 +227,9 @@ export const HOTKEYS_REGISTRY = {
 	},
 	OPEN_PR: {
 		key: {
-			mac: L("meta+shift+p"),
-			windows: L("ctrl+shift+alt+p"),
-			linux: L("ctrl+shift+alt+p"),
+			mac: "meta+shift+p",
+			windows: "ctrl+shift+alt+p",
+			linux: "ctrl+shift+alt+p",
 		},
 		label: "Open Pull Request",
 		category: "Workspace",
@@ -251,18 +239,18 @@ export const HOTKEYS_REGISTRY = {
 	// Layout
 	TOGGLE_SIDEBAR: {
 		key: {
-			mac: L("meta+l"),
-			windows: L("ctrl+shift+l"),
-			linux: L("ctrl+shift+l"),
+			mac: "meta+l",
+			windows: "ctrl+shift+l",
+			linux: "ctrl+shift+l",
 		},
 		label: "Toggle Changes Tab",
 		category: "Layout",
 	},
 	OPEN_DIFF_VIEWER: {
 		key: {
-			mac: L("meta+shift+l"),
-			windows: L("ctrl+shift+alt+l"),
-			linux: L("ctrl+shift+alt+l"),
+			mac: "meta+shift+l",
+			windows: "ctrl+shift+alt+l",
+			linux: "ctrl+shift+alt+l",
 		},
 		label: "Open Diff Viewer",
 		category: "Layout",
@@ -271,18 +259,18 @@ export const HOTKEYS_REGISTRY = {
 	},
 	TOGGLE_WORKSPACE_SIDEBAR: {
 		key: {
-			mac: L("meta+b"),
-			windows: L("ctrl+shift+b"),
-			linux: L("ctrl+shift+b"),
+			mac: "meta+b",
+			windows: "ctrl+shift+b",
+			linux: "ctrl+shift+b",
 		},
 		label: "Toggle Workspaces Sidebar",
 		category: "Layout",
 	},
 	SPLIT_RIGHT: {
 		key: {
-			mac: L("meta+d"),
-			windows: L("ctrl+shift+d"),
-			linux: L("ctrl+shift+d"),
+			mac: "meta+d",
+			windows: "ctrl+shift+d",
+			linux: "ctrl+shift+d",
 		},
 		label: "Split Right",
 		category: "Layout",
@@ -290,9 +278,9 @@ export const HOTKEYS_REGISTRY = {
 	},
 	SPLIT_DOWN: {
 		key: {
-			mac: L("meta+shift+d"),
-			windows: L("ctrl+shift+alt+d"),
-			linux: L("ctrl+shift+alt+d"),
+			mac: "meta+shift+d",
+			windows: "ctrl+shift+alt+d",
+			linux: "ctrl+shift+alt+d",
 		},
 		label: "Split Down",
 		category: "Layout",
@@ -300,9 +288,9 @@ export const HOTKEYS_REGISTRY = {
 	},
 	SPLIT_AUTO: {
 		key: {
-			mac: L("meta+e"),
-			windows: L("ctrl+shift+e"),
-			linux: L("ctrl+shift+e"),
+			mac: "meta+e",
+			windows: "ctrl+shift+e",
+			linux: "ctrl+shift+e",
 		},
 		label: "Split Pane Auto",
 		category: "Layout",
@@ -310,9 +298,9 @@ export const HOTKEYS_REGISTRY = {
 	},
 	SPLIT_WITH_CHAT: {
 		key: {
-			mac: L("meta+shift+e"),
-			windows: L("ctrl+alt+e"),
-			linux: L("ctrl+alt+e"),
+			mac: "meta+shift+e",
+			windows: "ctrl+alt+e",
+			linux: "ctrl+alt+e",
 		},
 		label: "Split with New Chat",
 		category: "Layout",
@@ -320,9 +308,9 @@ export const HOTKEYS_REGISTRY = {
 	},
 	SPLIT_WITH_BROWSER: {
 		key: {
-			mac: L("meta+shift+s"),
-			windows: L("ctrl+shift+alt+s"),
-			linux: L("ctrl+shift+alt+s"),
+			mac: "meta+shift+s",
+			windows: "ctrl+shift+alt+s",
+			linux: "ctrl+shift+alt+s",
 		},
 		label: "Split with New Browser",
 		category: "Layout",
@@ -330,9 +318,9 @@ export const HOTKEYS_REGISTRY = {
 	},
 	EQUALIZE_PANE_SPLITS: {
 		key: {
-			mac: L("meta+shift+0"),
-			windows: L("ctrl+shift+0"),
-			linux: L("ctrl+shift+0"),
+			mac: "meta+shift+0",
+			windows: "ctrl+shift+0",
+			linux: "ctrl+shift+0",
 		},
 		label: "Equalize Pane Splits",
 		category: "Layout",
@@ -340,9 +328,9 @@ export const HOTKEYS_REGISTRY = {
 	},
 	CLOSE_PANE: {
 		key: {
-			mac: L("meta+w"),
-			windows: L("ctrl+shift+w"),
-			linux: L("ctrl+shift+w"),
+			mac: "meta+w",
+			windows: "ctrl+shift+w",
+			linux: "ctrl+shift+w",
 		},
 		label: "Close Pane",
 		category: "Layout",
@@ -352,9 +340,9 @@ export const HOTKEYS_REGISTRY = {
 	// Terminal
 	FIND_IN_TERMINAL: {
 		key: {
-			mac: L("meta+f"),
-			windows: L("ctrl+shift+f"),
-			linux: L("ctrl+shift+f"),
+			mac: "meta+f",
+			windows: "ctrl+shift+f",
+			linux: "ctrl+shift+f",
 		},
 		label: "Find in Terminal",
 		category: "Terminal",
@@ -362,9 +350,9 @@ export const HOTKEYS_REGISTRY = {
 	},
 	FIND_IN_FILE_VIEWER: {
 		key: {
-			mac: L("meta+f"),
-			windows: L("ctrl+shift+f"),
-			linux: L("ctrl+shift+f"),
+			mac: "meta+f",
+			windows: "ctrl+shift+f",
+			linux: "ctrl+shift+f",
 		},
 		label: "Find in File Viewer",
 		category: "Terminal",
@@ -372,9 +360,9 @@ export const HOTKEYS_REGISTRY = {
 	},
 	FIND_IN_CHAT: {
 		key: {
-			mac: L("meta+f"),
-			windows: L("ctrl+shift+f"),
-			linux: L("ctrl+shift+f"),
+			mac: "meta+f",
+			windows: "ctrl+shift+f",
+			linux: "ctrl+shift+f",
 		},
 		label: "Find in Chat",
 		category: "Terminal",
@@ -382,54 +370,54 @@ export const HOTKEYS_REGISTRY = {
 	},
 	NEW_GROUP: {
 		key: {
-			mac: L("meta+t"),
-			windows: L("ctrl+shift+t"),
-			linux: L("ctrl+shift+t"),
+			mac: "meta+t",
+			windows: "ctrl+shift+t",
+			linux: "ctrl+shift+t",
 		},
 		label: "New Terminal",
 		category: "Terminal",
 	},
 	NEW_CHAT: {
 		key: {
-			mac: L("meta+shift+t"),
-			windows: L("ctrl+shift+alt+t"),
-			linux: L("ctrl+shift+alt+t"),
+			mac: "meta+shift+t",
+			windows: "ctrl+shift+alt+t",
+			linux: "ctrl+shift+alt+t",
 		},
 		label: "New Chat",
 		category: "Terminal",
 	},
 	REOPEN_TAB: {
 		key: {
-			mac: L("meta+shift+r"),
-			windows: L("ctrl+shift+alt+r"),
-			linux: L("ctrl+shift+alt+r"),
+			mac: "meta+shift+r",
+			windows: "ctrl+shift+alt+r",
+			linux: "ctrl+shift+alt+r",
 		},
 		label: "Reopen Closed Tab",
 		category: "Terminal",
 	},
 	NEW_BROWSER: {
 		key: {
-			mac: L("meta+shift+b"),
-			windows: L("ctrl+shift+alt+b"),
-			linux: L("ctrl+shift+alt+b"),
+			mac: "meta+shift+b",
+			windows: "ctrl+shift+alt+b",
+			linux: "ctrl+shift+alt+b",
 		},
 		label: "New Browser",
 		category: "Terminal",
 	},
 	CLOSE_TERMINAL: {
 		key: {
-			mac: L("meta+w"),
-			windows: L("ctrl+shift+w"),
-			linux: L("ctrl+shift+w"),
+			mac: "meta+w",
+			windows: "ctrl+shift+w",
+			linux: "ctrl+shift+w",
 		},
 		label: "Close Terminal",
 		category: "Terminal",
 	},
 	CLOSE_TAB: {
 		key: {
-			mac: L("meta+shift+w"),
-			windows: L("ctrl+shift+alt+w"),
-			linux: L("ctrl+shift+alt+w"),
+			mac: "meta+shift+w",
+			windows: "ctrl+shift+alt+w",
+			linux: "ctrl+shift+alt+w",
 		},
 		label: "Close Tab",
 		category: "Terminal",
@@ -437,9 +425,9 @@ export const HOTKEYS_REGISTRY = {
 	},
 	CLEAR_TERMINAL: {
 		key: {
-			mac: L("meta+k"),
-			windows: L("ctrl+shift+k"),
-			linux: L("ctrl+shift+k"),
+			mac: "meta+k",
+			windows: "ctrl+shift+k",
+			linux: "ctrl+shift+k",
 		},
 		label: "Clear Terminal",
 		category: "Terminal",
@@ -514,127 +502,127 @@ export const HOTKEYS_REGISTRY = {
 	},
 	JUMP_TO_TAB_1: {
 		key: {
-			mac: L("meta+alt+1"),
-			windows: L("ctrl+shift+alt+1"),
-			linux: L("ctrl+shift+alt+1"),
+			mac: "meta+alt+1",
+			windows: "ctrl+shift+alt+1",
+			linux: "ctrl+shift+alt+1",
 		},
 		label: "Switch to Tab 1",
 		category: "Terminal",
 	},
 	JUMP_TO_TAB_2: {
 		key: {
-			mac: L("meta+alt+2"),
-			windows: L("ctrl+shift+alt+2"),
-			linux: L("ctrl+shift+alt+2"),
+			mac: "meta+alt+2",
+			windows: "ctrl+shift+alt+2",
+			linux: "ctrl+shift+alt+2",
 		},
 		label: "Switch to Tab 2",
 		category: "Terminal",
 	},
 	JUMP_TO_TAB_3: {
 		key: {
-			mac: L("meta+alt+3"),
-			windows: L("ctrl+shift+alt+3"),
-			linux: L("ctrl+shift+alt+3"),
+			mac: "meta+alt+3",
+			windows: "ctrl+shift+alt+3",
+			linux: "ctrl+shift+alt+3",
 		},
 		label: "Switch to Tab 3",
 		category: "Terminal",
 	},
 	JUMP_TO_TAB_4: {
 		key: {
-			mac: L("meta+alt+4"),
-			windows: L("ctrl+shift+alt+4"),
-			linux: L("ctrl+shift+alt+4"),
+			mac: "meta+alt+4",
+			windows: "ctrl+shift+alt+4",
+			linux: "ctrl+shift+alt+4",
 		},
 		label: "Switch to Tab 4",
 		category: "Terminal",
 	},
 	JUMP_TO_TAB_5: {
 		key: {
-			mac: L("meta+alt+5"),
-			windows: L("ctrl+shift+alt+5"),
-			linux: L("ctrl+shift+alt+5"),
+			mac: "meta+alt+5",
+			windows: "ctrl+shift+alt+5",
+			linux: "ctrl+shift+alt+5",
 		},
 		label: "Switch to Tab 5",
 		category: "Terminal",
 	},
 	JUMP_TO_TAB_6: {
 		key: {
-			mac: L("meta+alt+6"),
-			windows: L("ctrl+shift+alt+6"),
-			linux: L("ctrl+shift+alt+6"),
+			mac: "meta+alt+6",
+			windows: "ctrl+shift+alt+6",
+			linux: "ctrl+shift+alt+6",
 		},
 		label: "Switch to Tab 6",
 		category: "Terminal",
 	},
 	JUMP_TO_TAB_7: {
 		key: {
-			mac: L("meta+alt+7"),
-			windows: L("ctrl+shift+alt+7"),
-			linux: L("ctrl+shift+alt+7"),
+			mac: "meta+alt+7",
+			windows: "ctrl+shift+alt+7",
+			linux: "ctrl+shift+alt+7",
 		},
 		label: "Switch to Tab 7",
 		category: "Terminal",
 	},
 	JUMP_TO_TAB_8: {
 		key: {
-			mac: L("meta+alt+8"),
-			windows: L("ctrl+shift+alt+8"),
-			linux: L("ctrl+shift+alt+8"),
+			mac: "meta+alt+8",
+			windows: "ctrl+shift+alt+8",
+			linux: "ctrl+shift+alt+8",
 		},
 		label: "Switch to Tab 8",
 		category: "Terminal",
 	},
 	JUMP_TO_TAB_9: {
 		key: {
-			mac: L("meta+alt+9"),
-			windows: L("ctrl+shift+alt+9"),
-			linux: L("ctrl+shift+alt+9"),
+			mac: "meta+alt+9",
+			windows: "ctrl+shift+alt+9",
+			linux: "ctrl+shift+alt+9",
 		},
 		label: "Switch to Tab 9",
 		category: "Terminal",
 	},
 	OPEN_PRESET_1: {
-		key: { mac: L("ctrl+1"), windows: L("ctrl+1"), linux: L("ctrl+1") },
+		key: { mac: "ctrl+1", windows: "ctrl+1", linux: "ctrl+1" },
 		label: "Open Preset 1",
 		category: "Terminal",
 	},
 	OPEN_PRESET_2: {
-		key: { mac: L("ctrl+2"), windows: L("ctrl+2"), linux: L("ctrl+2") },
+		key: { mac: "ctrl+2", windows: "ctrl+2", linux: "ctrl+2" },
 		label: "Open Preset 2",
 		category: "Terminal",
 	},
 	OPEN_PRESET_3: {
-		key: { mac: L("ctrl+3"), windows: L("ctrl+3"), linux: L("ctrl+3") },
+		key: { mac: "ctrl+3", windows: "ctrl+3", linux: "ctrl+3" },
 		label: "Open Preset 3",
 		category: "Terminal",
 	},
 	OPEN_PRESET_4: {
-		key: { mac: L("ctrl+4"), windows: L("ctrl+4"), linux: L("ctrl+4") },
+		key: { mac: "ctrl+4", windows: "ctrl+4", linux: "ctrl+4" },
 		label: "Open Preset 4",
 		category: "Terminal",
 	},
 	OPEN_PRESET_5: {
-		key: { mac: L("ctrl+5"), windows: L("ctrl+5"), linux: L("ctrl+5") },
+		key: { mac: "ctrl+5", windows: "ctrl+5", linux: "ctrl+5" },
 		label: "Open Preset 5",
 		category: "Terminal",
 	},
 	OPEN_PRESET_6: {
-		key: { mac: L("ctrl+6"), windows: L("ctrl+6"), linux: L("ctrl+6") },
+		key: { mac: "ctrl+6", windows: "ctrl+6", linux: "ctrl+6" },
 		label: "Open Preset 6",
 		category: "Terminal",
 	},
 	OPEN_PRESET_7: {
-		key: { mac: L("ctrl+7"), windows: L("ctrl+7"), linux: L("ctrl+7") },
+		key: { mac: "ctrl+7", windows: "ctrl+7", linux: "ctrl+7" },
 		label: "Open Preset 7",
 		category: "Terminal",
 	},
 	OPEN_PRESET_8: {
-		key: { mac: L("ctrl+8"), windows: L("ctrl+8"), linux: L("ctrl+8") },
+		key: { mac: "ctrl+8", windows: "ctrl+8", linux: "ctrl+8" },
 		label: "Open Preset 8",
 		category: "Terminal",
 	},
 	OPEN_PRESET_9: {
-		key: { mac: L("ctrl+9"), windows: L("ctrl+9"), linux: L("ctrl+9") },
+		key: { mac: "ctrl+9", windows: "ctrl+9", linux: "ctrl+9" },
 		label: "Open Preset 9",
 		category: "Terminal",
 	},
@@ -642,18 +630,18 @@ export const HOTKEYS_REGISTRY = {
 	// Chat
 	FOCUS_CHAT_INPUT: {
 		key: {
-			mac: L("meta+j"),
-			windows: L("ctrl+shift+j"),
-			linux: L("ctrl+shift+j"),
+			mac: "meta+j",
+			windows: "ctrl+shift+j",
+			linux: "ctrl+shift+j",
 		},
 		label: "Focus Chat Input",
 		category: "Terminal",
 	},
 	CHAT_ADD_ATTACHMENT: {
 		key: {
-			mac: L("meta+u"),
-			windows: L("ctrl+shift+u"),
-			linux: L("ctrl+shift+u"),
+			mac: "meta+u",
+			windows: "ctrl+shift+u",
+			linux: "ctrl+shift+u",
 		},
 		label: "Add Attachment",
 		category: "Terminal",
@@ -662,9 +650,9 @@ export const HOTKEYS_REGISTRY = {
 	// Window
 	OPEN_IN_APP: {
 		key: {
-			mac: L("meta+o"),
-			windows: L("ctrl+shift+o"),
-			linux: L("ctrl+shift+o"),
+			mac: "meta+o",
+			windows: "ctrl+shift+o",
+			linux: "ctrl+shift+o",
 		},
 		label: "Open in App",
 		category: "Window",
@@ -672,9 +660,9 @@ export const HOTKEYS_REGISTRY = {
 	},
 	COPY_PATH: {
 		key: {
-			mac: L("meta+shift+c"),
-			windows: L("ctrl+shift+alt+c"),
-			linux: L("ctrl+shift+alt+c"),
+			mac: "meta+shift+c",
+			windows: "ctrl+shift+alt+c",
+			linux: "ctrl+shift+alt+c",
 		},
 		label: "Copy Path",
 		category: "Window",
@@ -684,18 +672,18 @@ export const HOTKEYS_REGISTRY = {
 	// Help
 	OPEN_SETTINGS: {
 		key: {
-			mac: L("meta+comma"),
-			windows: L("ctrl+comma"),
-			linux: L("ctrl+comma"),
+			mac: "meta+comma",
+			windows: "ctrl+comma",
+			linux: "ctrl+comma",
 		},
 		label: "Open Settings",
 		category: "Help",
 	},
 	SHOW_HOTKEYS: {
 		key: {
-			mac: L("meta+shift+slash"),
-			windows: L("ctrl+shift+slash"),
-			linux: L("ctrl+shift+slash"),
+			mac: "meta+shift+slash",
+			windows: "ctrl+shift+slash",
+			linux: "ctrl+shift+slash",
 		},
 		label: "Show Keyboard Shortcuts",
 		category: "Help",

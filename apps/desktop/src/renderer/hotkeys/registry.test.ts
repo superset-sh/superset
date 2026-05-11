@@ -1,43 +1,10 @@
 import { describe, expect, it } from "bun:test";
 import { HOTKEYS_REGISTRY } from "./registry";
 
-// Locks in the shape of shipped defaults so the toggle keeps doing
-// something. The original "Adaptive layout mapping" toggle was decorative
-// for shipped defaults because every entry was a bare-string (physical)
-// chord, and bindingToDispatchChord short-circuits physical mode. Keeping
-// printable defaults as `mode: "logical"` is what makes the toggle move
-// them on non-US layouts.
-
-const NAMED_TERMINAL_TOKENS = new Set([
-	"enter",
-	"escape",
-	"backspace",
-	"delete",
-	"tab",
-	"space",
-	"up",
-	"down",
-	"left",
-	"right",
-	"arrowup",
-	"arrowdown",
-	"arrowleft",
-	"arrowright",
-	"home",
-	"end",
-	"pageup",
-	"pagedown",
-	"insert",
-]);
-
-function isFunctionKey(token: string): boolean {
-	return /^f([1-9]|1[0-2])$/.test(token);
-}
-
-function terminalToken(chord: string): string {
-	const parts = chord.split("+");
-	return parts[parts.length - 1] ?? "";
-}
+// Locks in the shape of shipped defaults: every binding is a bare chord
+// string (or null), all lower-case, joined by "+". The dispatch model is
+// event.code by default, with a runtime "Match by typed character" toggle —
+// neither needs metadata on the binding itself.
 
 function* allBindings(): Generator<{
 	id: string;
@@ -52,66 +19,33 @@ function* allBindings(): Generator<{
 }
 
 describe("HOTKEYS_REGISTRY shape", () => {
-	it("authors printable defaults as mode: 'logical'", () => {
-		const offenders: string[] = [];
+	it("every binding is a bare string or null (no v2 objects)", () => {
 		for (const { id, platform, binding } of allBindings()) {
 			if (binding === null) continue;
-			if (typeof binding !== "string") continue; // v2 objects checked below
-
-			const token = terminalToken(binding);
-			const isLayoutStable =
-				NAMED_TERMINAL_TOKENS.has(token) || isFunctionKey(token);
-			if (!isLayoutStable) {
-				offenders.push(`${id}.${platform}=${binding}`);
-			}
-		}
-		// If this fires: a printable chord ('meta+t', 'ctrl+shift+0', 'meta+slash')
-		// was authored as a bare string, which parses as physical mode and bypasses
-		// the adaptive-layout toggle. Wrap it with the L() helper in registry.ts.
-		expect(offenders).toEqual([]);
-	});
-
-	it("keeps every logical entry pinned to v2 / logical mode", () => {
-		for (const { id, platform, binding } of allBindings()) {
-			if (binding === null) continue;
-			if (typeof binding === "string") continue;
-			expect({ id, platform, binding }).toMatchObject({
-				binding: { version: 2, mode: "logical" },
-			});
+			expect({
+				id,
+				platform,
+				kind: typeof binding,
+			}).toEqual({ id, platform, kind: "string" });
 		}
 	});
 
-	it("keeps named-key chords as bare strings (layout-stable, no L() needed)", () => {
-		// Chords whose terminal is a named key gain nothing from logical mode —
-		// translateLogicalChord short-circuits named keys. Authoring them as
-		// bare strings keeps the registry terse.
+	it("chord strings are lower-case and `+`-joined", () => {
 		for (const { id, platform, binding } of allBindings()) {
+			if (binding === null) continue;
 			if (typeof binding !== "string") continue;
-			const token = terminalToken(binding);
-			const isLayoutStable =
-				NAMED_TERMINAL_TOKENS.has(token) || isFunctionKey(token);
-			if (!isLayoutStable) {
-				throw new Error(
-					`${id}.${platform}=${binding} is a bare string but its terminal token is not a named key — wrap with L() in registry.ts`,
-				);
-			}
+			expect({ id, platform, binding }).toMatchObject({
+				binding: binding.toLowerCase(),
+			});
+			// At least one terminal token (no trailing `+`)
+			expect(binding.split("+").every((p) => p.length > 0)).toBe(true);
 		}
 	});
 
-	it("includes a canary letter, digit, and punctuation default in logical mode", () => {
-		// Sample three different terminal-token shapes so a partial regression
-		// (e.g. only digits revert to physical) gets caught here too.
-		expect(HOTKEYS_REGISTRY.QUICK_OPEN.key.mac).toMatchObject({
-			mode: "logical",
-			chord: "meta+p",
-		});
-		expect(HOTKEYS_REGISTRY.JUMP_TO_WORKSPACE_1.key.mac).toMatchObject({
-			mode: "logical",
-			chord: "meta+1",
-		});
-		expect(HOTKEYS_REGISTRY.OPEN_SETTINGS.key.mac).toMatchObject({
-			mode: "logical",
-			chord: "meta+comma",
-		});
+	it("canary defaults use the expected platform chords", () => {
+		expect(HOTKEYS_REGISTRY.QUICK_OPEN.key.mac).toBe("meta+p");
+		expect(HOTKEYS_REGISTRY.JUMP_TO_WORKSPACE_1.key.mac).toBe("meta+1");
+		expect(HOTKEYS_REGISTRY.OPEN_SETTINGS.key.mac).toBe("meta+comma");
+		expect(HOTKEYS_REGISTRY.NEW_GROUP.key.mac).toBe("meta+t");
 	});
 });

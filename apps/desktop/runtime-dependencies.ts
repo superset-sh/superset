@@ -44,12 +44,6 @@ const externalizedRuntimeModules: ExternalizedRuntimeModule[] = [
 		asarUnpackGlobs: ["**/node_modules/node-pty/**/*"],
 	},
 	{
-		specifier: "native-keymap",
-		materialize: ["native-keymap"],
-		packagedCopies: [copyWholeModule("native-keymap")],
-		asarUnpackGlobs: ["**/node_modules/native-keymap/**/*"],
-	},
-	{
 		specifier: "@superset/macos-process-metrics",
 		materialize: ["@superset/macos-process-metrics"],
 		packagedCopies: [copyWholeModule("@superset/macos-process-metrics")],

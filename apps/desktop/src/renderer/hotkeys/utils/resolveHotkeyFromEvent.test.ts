@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { HOTKEYS, type HotkeyId } from "../registry";
 import { useHotkeyOverridesStore } from "../stores/hotkeyOverridesStore";
-import type { HotkeyDefinition, ShortcutBinding } from "../types";
-import { parseBinding } from "./binding";
+import { useKeyboardPreferencesStore } from "../stores/keyboardPreferencesStore";
+import type { HotkeyDefinition } from "../types";
 import {
 	canonicalizeChord,
 	eventToChord,
@@ -123,6 +123,7 @@ describe("canonicalizeChord", () => {
 interface StubInit {
 	type?: string;
 	code?: string;
+	key?: string;
 	ctrlKey?: boolean;
 	metaKey?: boolean;
 	altKey?: boolean;
@@ -135,7 +136,7 @@ function ev(init: StubInit): KeyboardEvent {
 	return {
 		type: init.type ?? "keydown",
 		code: init.code ?? "",
-		key: "",
+		key: init.key ?? "",
 		ctrlKey: !!init.ctrlKey,
 		metaKey: !!init.metaKey,
 		altKey: !!init.altKey,
@@ -148,7 +149,7 @@ function ev(init: StubInit): KeyboardEvent {
 }
 
 describe("resolveHotkeyFromEvent — live override index", () => {
-	let originalOverrides: Record<string, ShortcutBinding | null>;
+	let originalOverrides: Record<string, string | null>;
 	beforeEach(() => {
 		originalOverrides = useHotkeyOverridesStore.getState().overrides;
 	});
@@ -157,16 +158,14 @@ describe("resolveHotkeyFromEvent — live override index", () => {
 	});
 
 	// Resolve once so registry reorders / removals surface as a test failure
-	// here instead of silently skipping the cases below. Defaults can be
-	// stored as bare strings (named/legacy) or v2 objects (logical) — extract
-	// the canonical chord via parseBinding so test helpers stay string-shaped.
+	// here instead of silently skipping the cases below.
 	const sampleEntry = Object.entries(HOTKEYS).find(
-		(entry): entry is [HotkeyId, HotkeyDefinition & { key: ShortcutBinding }] =>
+		(entry): entry is [HotkeyId, HotkeyDefinition & { key: string }] =>
 			entry[1].key !== null,
 	);
 	if (!sampleEntry) throw new Error("HOTKEYS has no bound default");
 	const [sampleId, sampleDef] = sampleEntry;
-	const sampleChord = parseBinding(sampleDef.key).chord;
+	const sampleChord = sampleDef.key;
 
 	it("resolves a default binding when no override is set", () => {
 		const event = buildEventFromChord(sampleChord);
@@ -400,6 +399,62 @@ describe("matchesChord", () => {
 		expect(
 			matchesChord(ev({ code: "ControlLeft", ctrlKey: true }), "ctrl+k"),
 		).toBe(false);
+	});
+});
+
+describe("eventToChord — matchByTypedKey toggle", () => {
+	let originalMatch: boolean;
+	beforeEach(() => {
+		originalMatch = useKeyboardPreferencesStore.getState().matchByTypedKey;
+	});
+	afterEach(() => {
+		useKeyboardPreferencesStore.setState({ matchByTypedKey: originalMatch });
+	});
+
+	it("OFF (default): builds chord from event.code (Dvorak KeyK pressed → 'meta+k')", () => {
+		useKeyboardPreferencesStore.setState({ matchByTypedKey: false });
+		// Dvorak: physical KeyK produces character 't'.
+		const dvorakKeyK = ev({ code: "KeyK", key: "t", metaKey: true });
+		expect(eventToChord(dvorakKeyK)).toBe("meta+k");
+	});
+
+	it("ON: builds chord from event.key (Dvorak KeyK pressed → 'meta+t')", () => {
+		useKeyboardPreferencesStore.setState({ matchByTypedKey: true });
+		const dvorakKeyK = ev({ code: "KeyK", key: "t", metaKey: true });
+		expect(eventToChord(dvorakKeyK)).toBe("meta+t");
+	});
+
+	it("ON: shifted typed key still lower-cases (Shift+Dvorak-KeyK → 'meta+shift+t')", () => {
+		useKeyboardPreferencesStore.setState({ matchByTypedKey: true });
+		const shiftedKeyK = ev({
+			code: "KeyK",
+			key: "T",
+			metaKey: true,
+			shiftKey: true,
+		});
+		expect(eventToChord(shiftedKeyK)).toBe("meta+shift+t");
+	});
+
+	it("ON: named keys fall back to event.code form (Enter, ArrowUp, F1)", () => {
+		useKeyboardPreferencesStore.setState({ matchByTypedKey: true });
+		expect(
+			eventToChord(ev({ code: "Enter", key: "Enter", metaKey: true })),
+		).toBe("meta+enter");
+		expect(
+			eventToChord(ev({ code: "ArrowUp", key: "ArrowUp", metaKey: true })),
+		).toBe("meta+arrowup");
+		expect(eventToChord(ev({ code: "F1", key: "F1" }))).toBe("f1");
+	});
+
+	it("ON: Dvorak KeyT (which types 'y') does NOT collide with 'meta+t'", () => {
+		useKeyboardPreferencesStore.setState({ matchByTypedKey: true });
+		// The bug we're fixing: in the previous design, dispatching by event.code
+		// + a layout-translated chord still let physical KeyT trip a logical
+		// 'meta+t' binding because rhh's matcher is additive. With pure
+		// event.key dispatch, KeyT in Dvorak (typing 'y') resolves to a
+		// completely different chord and can't fire 'meta+t'.
+		const dvorakKeyT = ev({ code: "KeyT", key: "y", metaKey: true });
+		expect(eventToChord(dvorakKeyT)).toBe("meta+y");
 	});
 });
 

@@ -1,18 +1,15 @@
 import { HOTKEYS, type HotkeyId } from "../registry";
 import { useHotkeyOverridesStore } from "../stores/hotkeyOverridesStore";
-import { useKeyboardLayoutStore } from "../stores/keyboardLayoutStore";
 import {
-	getEffectiveLayoutMap,
+	getMatchByTypedKey,
 	useKeyboardPreferencesStore,
 } from "../stores/keyboardPreferencesStore";
-import type { ShortcutBinding } from "../types";
-import { bindingToDispatchChord } from "./binding";
 
 /**
- * KeyboardEvent → registered {@link HotkeyId}, or `null` if unbound. Uses the
- * same `event.code` normalization as react-hotkeys-hook so the reverse index
- * can't drift from the matcher. Index reflects current overrides, not frozen
- * defaults — see {@link registeredAppChords}.
+ * KeyboardEvent → registered {@link HotkeyId}, or `null` if unbound. Honors
+ * the `matchByTypedKey` preference: when on, builds the chord from
+ * `event.key` (the typed character); when off, from `event.code` (the
+ * physical key). Index is rebuilt on every override / preference change.
  */
 export function resolveHotkeyFromEvent(event: KeyboardEvent): HotkeyId | null {
 	if (event.type !== "keydown") return null;
@@ -74,20 +71,22 @@ export function canonicalizeChord(chord: string): string {
 	return [...mods, ...keys].join("+");
 }
 
-/** KeyboardEvent → canonical chord (comparable to {@link canonicalizeChord} output), or null for pure modifier / synthetic presses. */
+/** KeyboardEvent → canonical chord, or null for pure-modifier / synthetic
+ *  presses. Reads `matchByTypedKey` to pick `event.key` vs `event.code`. */
 export function eventToChord(event: KeyboardEvent): string | null {
 	if (event.code === undefined) return null;
 	// IME composition: keydown during CJK / dead-key composition must not
 	// trigger hotkeys. Safari reports keyCode 229 instead of isComposing.
 	if (event.isComposing || event.keyCode === 229) return null;
-	const key = normalizeToken(event.code);
-	if (isIgnorableKey(key)) return null;
 	// AltGr is reported by Chromium as ctrlKey+altKey on Windows/Linux.
 	// Treating that combination as Ctrl+Alt would let printable keystrokes on
 	// non-US layouts (e.g. AltGr+E = € on German) accidentally trigger
-	// ctrl+alt+e bindings. Suppress both when AltGr is held; no binding opts
-	// into AltGr explicitly.
+	// ctrl+alt+e bindings. Suppress both when AltGr is held.
 	const altGraph = event.getModifierState?.("AltGraph") === true;
+	const codeKey = normalizeToken(event.code);
+	if (isIgnorableKey(codeKey)) return null;
+	const useTypedKey = getMatchByTypedKey();
+	const key = useTypedKey ? typedKeyToken(event, codeKey) : codeKey;
 	const mods: string[] = [];
 	if (event.metaKey) mods.push("meta");
 	if (event.ctrlKey && !altGraph) mods.push("ctrl");
@@ -95,6 +94,17 @@ export function eventToChord(event: KeyboardEvent): string | null {
 	if (event.shiftKey) mods.push("shift");
 	mods.sort();
 	return [...mods, key].join("+");
+}
+
+/** When `matchByTypedKey` is on, we use the typed character (`event.key`)
+ *  for printable keys but fall back to the normalized `event.code` for
+ *  non-printable keys (Enter, ArrowUp, F-keys, …) since `event.key` for
+ *  those is "Enter" / "ArrowUp" / "F1", which lowercase identically. */
+function typedKeyToken(event: KeyboardEvent, codeFallback: string): string {
+	const key = (event.key ?? "").toLowerCase();
+	if (key.length === 1 && /\S/.test(key)) return key;
+	if (key.length > 0) return normalizeToken(key);
+	return codeFallback;
 }
 
 /** True if `event` produces `chord` (tolerating modifier order / aliases). */
@@ -119,8 +129,7 @@ export function isTerminalReservedEvent(event: KeyboardEvent): boolean {
 }
 
 function buildRegisteredAppChords(
-	overrides: Record<string, ShortcutBinding | null>,
-	layoutMap: ReadonlyMap<string, string> | null,
+	overrides: Record<string, string | null>,
 ): Map<string, HotkeyId> {
 	const map = new Map<string, HotkeyId>();
 	for (const id of Object.keys(HOTKEYS) as HotkeyId[]) {
@@ -129,29 +138,25 @@ function buildRegisteredAppChords(
 		// Explicit unassignment (null override) must drop from the index — else
 		// the terminal's isAppHotkey check would swallow the freed chord.
 		if (hasOverride && override === null) continue;
-		const binding = override ?? HOTKEYS[id].key;
-		if (!binding) continue;
-		const dispatchChord = bindingToDispatchChord(binding, layoutMap);
-		if (!dispatchChord) continue;
-		map.set(canonicalizeChord(dispatchChord), id);
+		const chord = override ?? HOTKEYS[id].key;
+		if (!chord) continue;
+		map.set(canonicalizeChord(chord), id);
 	}
 	return map;
 }
 
-// Reassigned on each override, layout, OR adaptive-layout-toggle change;
-// `let` is required so the subscribe callbacks can replace the reference
-// the resolver reads. Read the layout map through `getEffectiveLayoutMap`
-// so the toggle state is honored on every rebuild.
+// Reassigned on each override change; `let` is required so the subscribe
+// callback can replace the reference the resolver reads. The
+// `matchByTypedKey` toggle doesn't affect the index — registered chords are
+// stored as written ("meta+t"); the *event*-side conversion in eventToChord
+// is what shifts based on the toggle.
 let registeredAppChords = buildRegisteredAppChords(
 	useHotkeyOverridesStore.getState().overrides,
-	getEffectiveLayoutMap(),
 );
 function rebuild() {
 	registeredAppChords = buildRegisteredAppChords(
 		useHotkeyOverridesStore.getState().overrides,
-		getEffectiveLayoutMap(),
 	);
 }
 useHotkeyOverridesStore.subscribe(rebuild);
-useKeyboardLayoutStore.subscribe(rebuild);
 useKeyboardPreferencesStore.subscribe(rebuild);

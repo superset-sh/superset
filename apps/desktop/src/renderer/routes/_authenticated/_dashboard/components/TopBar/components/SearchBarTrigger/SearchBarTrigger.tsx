@@ -1,7 +1,7 @@
 import { Kbd, KbdGroup } from "@superset/ui/kbd";
 import { useCallback } from "react";
 import { LuSearch } from "react-icons/lu";
-import { getDispatchChord, useHotkeyDisplay } from "renderer/hotkeys";
+import { getBinding, useHotkeyDisplay } from "renderer/hotkeys";
 
 interface SearchBarTriggerProps {
 	workspaceName?: string;
@@ -40,7 +40,7 @@ export function SearchBarTrigger({ workspaceName }: SearchBarTriggerProps) {
 	const isUnassigned = display.length === 1 && display[0] === "Unassigned";
 
 	const handleClick = useCallback(() => {
-		const chord = getDispatchChord("QUICK_OPEN");
+		const chord = getBinding("QUICK_OPEN");
 		if (chord) dispatchHotkeyEvent(chord);
 	}, []);
 

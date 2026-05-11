@@ -1,1 +1,1 @@
-export { getBinding, getDispatchChord, useBinding } from "./useBinding";
+export { getBinding, useBinding } from "./useBinding";

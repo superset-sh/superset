@@ -1,34 +1,20 @@
 import { useMemo } from "react";
 import { formatHotkeyDisplay } from "../../display";
 import { PLATFORM } from "../../registry";
-import { useEffectiveLayoutMap } from "../../stores/keyboardPreferencesStore";
-import type { HotkeyDisplay, ShortcutBinding } from "../../types";
-import { bindingToDispatchChord } from "../../utils/binding";
+import type { HotkeyDisplay } from "../../types";
 import { useBinding } from "../useBinding";
 
 export function useHotkeyDisplay(id: string): HotkeyDisplay {
-	const binding = useBinding(id as Parameters<typeof useBinding>[0]);
-	const layoutMap = useEffectiveLayoutMap();
-	const chord = bindingToDispatchChord(binding, layoutMap);
-	return useMemo(
-		() => formatHotkeyDisplay(chord, PLATFORM, layoutMap),
-		[chord, layoutMap],
-	);
+	const chord = useBinding(id as Parameters<typeof useBinding>[0]);
+	return useMemo(() => formatHotkeyDisplay(chord, PLATFORM), [chord]);
 }
 
 /**
- * Format an arbitrary binding (e.g. one captured during recording, before
- * it's saved) with layout-aware glyphs. Use this when you have a
- * ShortcutBinding but no registered hotkey id — most callers should use
- * {@link useHotkeyDisplay} via the hotkey id.
+ * Format an arbitrary chord (e.g. one captured during recording, before
+ * it's saved). Use this when you have a chord string but no registered
+ * hotkey id — most callers should use {@link useHotkeyDisplay} via the
+ * hotkey id.
  */
-export function useFormatBinding(
-	binding: ShortcutBinding | null,
-): HotkeyDisplay {
-	const layoutMap = useEffectiveLayoutMap();
-	const chord = bindingToDispatchChord(binding, layoutMap);
-	return useMemo(
-		() => formatHotkeyDisplay(chord, PLATFORM, layoutMap),
-		[chord, layoutMap],
-	);
+export function useFormatBinding(chord: string | null): HotkeyDisplay {
+	return useMemo(() => formatHotkeyDisplay(chord, PLATFORM), [chord]);
 }

@@ -20,7 +20,6 @@ import {
 	HOTKEYS,
 	type HotkeyCategory,
 	type HotkeyId,
-	type ShortcutBinding,
 	useFormatBinding,
 	useHotkeyDisplay,
 	useHotkeyOverridesStore,
@@ -132,7 +131,7 @@ function KeyboardShortcutsPage() {
 	const [recordingId, setRecordingId] = useState<HotkeyId | null>(null);
 	const [pendingConflict, setPendingConflict] = useState<{
 		targetId: HotkeyId;
-		binding: ShortcutBinding;
+		binding: string;
 		conflictId: HotkeyId;
 	} | null>(null);
 
@@ -140,18 +139,12 @@ function KeyboardShortcutsPage() {
 	const resetAll = useHotkeyOverridesStore((s) => s.resetAll);
 	const setOverride = useHotkeyOverridesStore((s) => s.setOverride);
 
-	const adaptiveLayoutEnabled = useKeyboardPreferencesStore(
-		(s) => s.adaptiveLayoutEnabled,
-	);
-	const setAdaptiveLayoutEnabled = useKeyboardPreferencesStore(
-		(s) => s.setAdaptiveLayoutEnabled,
+	const matchByTypedKey = useKeyboardPreferencesStore((s) => s.matchByTypedKey);
+	const setMatchByTypedKey = useKeyboardPreferencesStore(
+		(s) => s.setMatchByTypedKey,
 	);
 
 	useRecordHotkeys(recordingId, {
-		// New printable bindings follow the printed character (matches what the
-		// user sees on their keyboard). F-keys / named keys are forced to
-		// "named" by the recorder regardless of this preference.
-		preferredMode: "logical",
 		onSave: () => setRecordingId(null),
 		onCancel: () => setRecordingId(null),
 		onUnassign: () => setRecordingId(null),
@@ -228,20 +221,21 @@ function KeyboardShortcutsPage() {
 			{/* Preferences */}
 			<div className="mb-8 flex items-center justify-between gap-4">
 				<div className="space-y-0.5">
-					<Label htmlFor="adaptive-layout" className="text-sm font-medium">
-						Adaptive layout mapping
+					<Label htmlFor="match-by-typed-key" className="text-sm font-medium">
+						Match by typed character
 					</Label>
 					<p className="text-xs text-muted-foreground">
-						Match shortcuts to the labels on your keyboard (e.g. ⌘Z always fires
-						on the key labeled "Z" — physical KeyY on QWERTZ). When off,
-						shortcuts are anchored to physical key positions and ignore the
-						current input source.
+						When on, ⌘T fires on whichever key types "t" on your layout (the
+						"t"-labeled key on Dvorak, etc.). When off (default), shortcuts
+						match the same physical key on every layout — the QWERTY-position
+						behavior most desktop apps ship with. Use Rebind below if neither
+						default fits your muscle memory.
 					</p>
 				</div>
 				<Switch
-					id="adaptive-layout"
-					checked={adaptiveLayoutEnabled}
-					onCheckedChange={setAdaptiveLayoutEnabled}
+					id="match-by-typed-key"
+					checked={matchByTypedKey}
+					onCheckedChange={setMatchByTypedKey}
 				/>
 			</div>
 
