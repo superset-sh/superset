@@ -14,6 +14,8 @@ import {
 	subscriptions,
 	taskStatuses,
 	tasks,
+	teamMembers,
+	teams,
 	v2Clients,
 	v2Hosts,
 	v2Projects,
@@ -73,6 +75,12 @@ export function buildWhereClause(
 
 		case "auth.invitations":
 			return build(invitations, invitations.organizationId, organizationId);
+
+		case "auth.teams":
+			return build(teams, teams.organizationId, organizationId);
+
+		case "auth.team_members":
+			return build(teamMembers, teamMembers.organizationId, organizationId);
 
 		case "auth.organizations": {
 			if (organizationIds.length === 0) {

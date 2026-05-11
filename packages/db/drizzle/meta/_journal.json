@@ -344,6 +344,13 @@
       "when": 1778450275874,
       "tag": "0048_integration_connections_active_unique",
       "breakpoints": true
+    },
+    {
+      "idx": 49,
+      "version": "7",
+      "when": 1778468182416,
+      "tag": "0049_add_teams",
+      "breakpoints": true
     }
   ]
 }
