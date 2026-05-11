@@ -42,7 +42,9 @@ export default command({
 		}
 
 		const sourceCount =
-			(options.branch ? 1 : 0) + (options.pr ? 1 : 0) + (options.issue ? 1 : 0);
+			(options.branch != null ? 1 : 0) +
+			(options.pr != null ? 1 : 0) +
+			(options.issue != null ? 1 : 0);
 		if (sourceCount !== 1) {
 			throw new CLIError(
 				"Specify exactly one of --branch, --pr, or --issue",

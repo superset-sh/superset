@@ -92,6 +92,17 @@ export const getIssue = protectedProcedure
 			};
 		} catch (err) {
 			if (err instanceof TRPCError) throw err;
+			if (
+				typeof err === "object" &&
+				err !== null &&
+				"status" in err &&
+				(err as { status: unknown }).status === 404
+			) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: `Issue #${input.issueNumber} not found in ${repo.owner}/${repo.name}`,
+				});
+			}
 			console.warn("[workspaceCreation.getIssue] octokit fallback failed", err);
 			throw err;
 		}
