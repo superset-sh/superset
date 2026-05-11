@@ -1,4 +1,5 @@
 import { boolean, CLIError, number, string } from "@superset/cli-framework";
+import { deriveBranchName } from "@superset/shared/workspace-launch";
 import { command } from "../../../lib/command";
 import { requireHostTarget, resolveHostTarget } from "../../../lib/host-target";
 import { uploadAttachments } from "../../../lib/upload-attachments";
@@ -9,9 +10,16 @@ export default command({
 		host: string().desc("Target host machineId"),
 		local: boolean().desc("Target this machine"),
 		project: string().required().desc("Project ID"),
-		name: string().required().desc("Workspace name"),
-		branch: string().desc("Git branch (required unless --pr is set)"),
+		name: string().desc(
+			"Workspace name (defaults to the derived branch name when --issue is set)",
+		),
+		branch: string().desc(
+			"Git branch (use exactly one of --branch | --pr | --issue)",
+		),
 		pr: number().desc("PR number — derives branch via gh pr checkout"),
+		issue: number().desc(
+			"GitHub issue number — derives branch from `issue-<num>` + issue title",
+		),
 		baseBranch: string().desc(
 			"Branch to fork from when `branch` does not exist (defaults to project default)",
 		),
@@ -19,7 +27,7 @@ export default command({
 			"Agent to spawn after creation. Preset id (`claude`, `codex`, …), HostAgentConfig instance UUID, or `superset`",
 		),
 		prompt: string().desc(
-			"Initial prompt the agent starts with. Required when --agent is set",
+			"Initial prompt the agent starts with. Required when --agent is set, unless --issue is also set (then defaults to issue title + body + URL)",
 		),
 		attachment: string()
 			.variadic()
@@ -33,10 +41,12 @@ export default command({
 			throw new CLIError("No active organization", "Run: superset auth login");
 		}
 
-		if (Boolean(options.branch) === Boolean(options.pr)) {
+		const sourceCount =
+			(options.branch ? 1 : 0) + (options.pr ? 1 : 0) + (options.issue ? 1 : 0);
+		if (sourceCount !== 1) {
 			throw new CLIError(
-				"Specify exactly one of --branch or --pr",
-				"Use --branch <name> or --pr <number>",
+				"Specify exactly one of --branch, --pr, or --issue",
+				"Use --branch <name>, --pr <number>, or --issue <number>",
 			);
 		}
 
@@ -46,10 +56,10 @@ export default command({
 				"Pass --agent <id> alongside --prompt",
 			);
 		}
-		if (options.agent && !options.prompt) {
+		if (options.agent && !options.prompt && !options.issue) {
 			throw new CLIError(
 				"--agent requires --prompt",
-				"Pass --prompt <text> alongside --agent",
+				"Pass --prompt <text>, or use --issue <num> to default the prompt to the issue",
 			);
 		}
 		if (options.attachment && options.attachment.length > 0 && !options.agent) {
@@ -70,16 +80,37 @@ export default command({
 			userJwt: ctx.bearer,
 		});
 
+		let resolvedBranch = options.branch;
+		let resolvedName = options.name;
+		let resolvedPrompt = options.prompt;
+
+		if (options.issue) {
+			const issue = await target.client.workspaceCreation.getIssue.query({
+				projectId: options.project,
+				issueNumber: options.issue,
+			});
+			resolvedBranch = deriveBranchName({
+				slug: `issue-${issue.issueNumber}`,
+				title: issue.title,
+			});
+			if (!resolvedName) {
+				resolvedName = resolvedBranch;
+			}
+			if (options.agent && !resolvedPrompt) {
+				resolvedPrompt = `${issue.title}\n\n${issue.body}\n\n${issue.url}`;
+			}
+		}
+
 		const attachmentIds = options.attachment
 			? await uploadAttachments(target.client, options.attachment)
 			: [];
 
 		const agents =
-			options.agent && options.prompt
+			options.agent && resolvedPrompt
 				? [
 						{
 							agent: options.agent,
-							prompt: options.prompt,
+							prompt: resolvedPrompt,
 							...(attachmentIds.length > 0 ? { attachmentIds } : {}),
 						},
 					]
@@ -87,8 +118,8 @@ export default command({
 
 		const result = await target.client.workspaces.create.mutate({
 			projectId: options.project,
-			name: options.name,
-			branch: options.branch,
+			name: resolvedName,
+			branch: resolvedBranch,
 			pr: options.pr,
 			baseBranch: options.baseBranch,
 			agents,
