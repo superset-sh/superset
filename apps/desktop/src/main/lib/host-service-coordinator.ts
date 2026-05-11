@@ -159,6 +159,44 @@ export class HostServiceCoordinator extends EventEmitter {
 		return this.start(organizationId, config);
 	}
 
+	/**
+	 * Forcefully reset host-service state for an org. Used by the in-app
+	 * recovery path (superset-sh/superset#4299) when `stop`/`restart` aren't
+	 * enough — e.g. the manifest points at a live-but-wedged pid that adoption
+	 * keeps picking up.
+	 *
+	 * Differs from `restart` in two ways:
+	 *   1. SIGKILLs any pid in the manifest (even if not in this.instances),
+	 *      so a manifest written by a previous app session can't survive.
+	 *   2. Optionally archives `host.db` to `host.db.broken-<ts>` so the next
+	 *      spawn starts with a clean DB. Off by default — that's data loss.
+	 */
+	async reset(
+		organizationId: string,
+		config: SpawnConfig,
+		options: { wipeHostDb?: boolean } = {},
+	): Promise<Connection> {
+		this.stop(organizationId);
+
+		const manifest = readManifest(organizationId);
+		if (manifest && isProcessAlive(manifest.pid)) {
+			try {
+				process.kill(manifest.pid, "SIGKILL");
+			} catch {}
+		}
+
+		removeManifest(organizationId);
+
+		if (options.wipeHostDb) {
+			const dbPath = path.join(manifestDir(organizationId), "host.db");
+			if (fs.existsSync(dbPath)) {
+				fs.renameSync(dbPath, `${dbPath}.broken-${Date.now()}`);
+			}
+		}
+
+		return this.start(organizationId, config);
+	}
+
 	getConnection(organizationId: string): Connection | null {
 		const instance = this.instances.get(organizationId);
 		if (!instance || instance.status !== "running") return null;

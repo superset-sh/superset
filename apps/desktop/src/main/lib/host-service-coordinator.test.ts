@@ -1,4 +1,7 @@
 import { beforeEach, describe, expect, mock, test } from "bun:test";
+import * as fs from "node:fs";
+import * as os from "node:os";
+import path from "node:path";
 
 const APP_VERSION = "1.2.3";
 
@@ -13,6 +16,10 @@ const manifestStore: {
 	} | null;
 } = { current: null };
 
+// Per-test temp dir so reset({wipeHostDb}) can rename a real file without
+// races between tests. Tests assign this in beforeEach.
+let testManifestRoot = "";
+
 const readManifestMock = mock(() => manifestStore.current);
 const removeManifestMock = mock(() => {
 	manifestStore.current = null;
@@ -24,7 +31,7 @@ mock.module("./host-service-manifest", () => ({
 	removeManifest: removeManifestMock,
 	isProcessAlive: isProcessAliveMock,
 	listManifests: mock(() => []),
-	manifestDir: (orgId: string) => `/tmp/host/${orgId}`,
+	manifestDir: (orgId: string) => path.join(testManifestRoot, orgId),
 }));
 
 const pollHealthCheckMock = mock(() => Promise.resolve(true));
@@ -94,6 +101,8 @@ describe("HostServiceCoordinator.tryAdopt — adoption health check", () => {
 		removeManifestMock.mockClear();
 		isProcessAliveMock.mockClear();
 		pollHealthCheckMock.mockClear();
+
+		testManifestRoot = fs.mkdtempSync(path.join(os.tmpdir(), "hsc-test-"));
 
 		killedPids = [];
 		originalKill = process.kill;
@@ -176,6 +185,111 @@ describe("HostServiceCoordinator.tryAdopt — adoption health check", () => {
 		expect(pollHealthCheckMock).not.toHaveBeenCalled();
 		expect(killedPids).toContainEqual({ pid: 5555, signal: "SIGTERM" });
 		expect(removeManifestMock).toHaveBeenCalledTimes(1);
+		expect(spawnMock).toHaveBeenCalledTimes(1);
+		expect(conn.port).toBe(60000);
+
+		(process as unknown as { kill: typeof process.kill }).kill = originalKill;
+	});
+});
+
+describe("HostServiceCoordinator.reset", () => {
+	let coordinator: InstanceType<typeof HostServiceCoordinator>;
+	let killedPids: Array<{ pid: number; signal: NodeJS.Signals | number }>;
+	let originalKill: typeof process.kill;
+	let spawnMock: ReturnType<typeof mock>;
+
+	beforeEach(() => {
+		manifestStore.current = null;
+		readManifestMock.mockClear();
+		removeManifestMock.mockClear();
+		isProcessAliveMock.mockClear();
+		pollHealthCheckMock.mockClear();
+
+		testManifestRoot = fs.mkdtempSync(path.join(os.tmpdir(), "hsc-test-"));
+
+		killedPids = [];
+		originalKill = process.kill;
+		(process as unknown as { kill: typeof process.kill }).kill = ((
+			pid: number,
+			signal?: NodeJS.Signals | number,
+		) => {
+			killedPids.push({ pid, signal: signal ?? "SIGTERM" });
+			return true;
+		}) as typeof process.kill;
+
+		coordinator = new HostServiceCoordinator();
+		spawnMock = mock(async () => ({
+			port: 60000,
+			secret: "fresh-secret",
+			machineId: "host-1",
+		}));
+		(coordinator as unknown as { spawn: typeof spawnMock }).spawn = spawnMock;
+	});
+
+	test("removes manifest, SIGKILLs live pid, then spawns fresh", async () => {
+		manifestStore.current = baseManifest(8888);
+
+		const conn = await coordinator.reset("org-1", spawnConfig);
+
+		expect(killedPids).toContainEqual({ pid: 8888, signal: "SIGKILL" });
+		expect(removeManifestMock).toHaveBeenCalledTimes(1);
+		expect(spawnMock).toHaveBeenCalledTimes(1);
+		expect(conn.port).toBe(60000);
+		expect(conn.secret).toBe("fresh-secret");
+
+		(process as unknown as { kill: typeof process.kill }).kill = originalKill;
+	});
+
+	test("with wipeHostDb=true, archives host.db to host.db.broken-<ts>", async () => {
+		manifestStore.current = baseManifest(9999);
+		const orgDir = path.join(testManifestRoot, "org-1");
+		fs.mkdirSync(orgDir, { recursive: true });
+		const dbPath = path.join(orgDir, "host.db");
+		fs.writeFileSync(dbPath, "fake db payload");
+
+		const conn = await coordinator.reset("org-1", spawnConfig, {
+			wipeHostDb: true,
+		});
+
+		expect(fs.existsSync(dbPath)).toBe(false);
+		const archived = fs
+			.readdirSync(orgDir)
+			.find((f) => f.startsWith("host.db.broken-"));
+		expect(archived).toBeDefined();
+		if (archived) {
+			expect(fs.readFileSync(path.join(orgDir, archived), "utf8")).toBe(
+				"fake db payload",
+			);
+		}
+		expect(spawnMock).toHaveBeenCalledTimes(1);
+		expect(conn.port).toBe(60000);
+
+		(process as unknown as { kill: typeof process.kill }).kill = originalKill;
+	});
+
+	test("is safe when no manifest exists — no kill, no rename, still spawns", async () => {
+		manifestStore.current = null;
+
+		const conn = await coordinator.reset("org-1", spawnConfig);
+
+		expect(killedPids).toHaveLength(0);
+		// `removeManifest` is called unconditionally — that's fine, the impl
+		// in host-service-manifest treats a missing file as a no-op.
+		expect(removeManifestMock).toHaveBeenCalledTimes(1);
+		expect(spawnMock).toHaveBeenCalledTimes(1);
+		expect(conn.port).toBe(60000);
+
+		(process as unknown as { kill: typeof process.kill }).kill = originalKill;
+	});
+
+	test("with wipeHostDb=true but no host.db file, does not throw and still spawns", async () => {
+		manifestStore.current = baseManifest(1111);
+		// No host.db on disk.
+
+		const conn = await coordinator.reset("org-1", spawnConfig, {
+			wipeHostDb: true,
+		});
+
 		expect(spawnMock).toHaveBeenCalledTimes(1);
 		expect(conn.port).toBe(60000);
 
