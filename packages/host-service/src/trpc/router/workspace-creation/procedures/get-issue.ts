@@ -69,24 +69,30 @@ export const getIssue = protectedProcedure
 			);
 		}
 
-		const octokit = await ctx.github();
-		const { data: issue } = await octokit.issues.get({
-			owner: repo.owner,
-			repo: repo.name,
-			issue_number: input.issueNumber,
-		});
-		if (issue.pull_request) {
-			throw new TRPCError({
-				code: "NOT_FOUND",
-				message: `#${input.issueNumber} is a pull request, not an issue`,
+		try {
+			const octokit = await ctx.github();
+			const { data: issue } = await octokit.issues.get({
+				owner: repo.owner,
+				repo: repo.name,
+				issue_number: input.issueNumber,
 			});
+			if (issue.pull_request) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: `#${input.issueNumber} is a pull request, not an issue`,
+				});
+			}
+			return {
+				issueNumber: issue.number,
+				title: issue.title,
+				body: issue.body ?? "",
+				url: issue.html_url,
+				state: issue.state.toLowerCase(),
+				authorLogin: issue.user?.login ?? null,
+			};
+		} catch (err) {
+			if (err instanceof TRPCError) throw err;
+			console.warn("[workspaceCreation.getIssue] octokit fallback failed", err);
+			throw err;
 		}
-		return {
-			issueNumber: issue.number,
-			title: issue.title,
-			body: issue.body ?? "",
-			url: issue.html_url,
-			state: issue.state.toLowerCase(),
-			authorLogin: issue.user?.login ?? null,
-		};
 	});
