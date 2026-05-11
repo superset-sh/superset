@@ -1,0 +1,289 @@
+{
+	"locale": {
+		"english": "English",
+		"chinese": "中文",
+		"switchLanguage": "Language"
+	},
+	"signIn": {
+		"welcome": "Welcome to Superset",
+		"restoring": "Restoring your session",
+		"prompt": "Sign in to get started",
+		"continueGithub": "Continue with GitHub",
+		"continueGoogle": "Continue with Google",
+		"termsPrefix": "By signing in, you agree to our",
+		"termsOfService": "Terms of Service",
+		"and": "and",
+		"privacyPolicy": "Privacy Policy"
+	},
+	"createOrg": {
+		"title": "Create Organization",
+		"subtitle": "Set up your organization to get started",
+		"signOut": "Sign Out",
+		"nameLabel": "Organization Name",
+		"namePlaceholder": "Acme Inc.",
+		"nameDescription": "The name of your organization or team",
+		"nameRequired": "Organization name is required",
+		"slugLabel": "Slug",
+		"slugPlaceholder": "acme-inc",
+		"slugDescription": "A unique identifier for your organization (auto-generated from name)",
+		"slugMinLength": "Slug must be at least 3 characters",
+		"slugChars": "Slug can only contain lowercase letters, numbers, and hyphens",
+		"slugStart": "Slug must start with a letter or number",
+		"slugEnd": "Slug must end with a letter or number",
+		"slugChecking": "Checking...",
+		"slugAvailable": "Available",
+		"slugTaken": "Taken",
+		"submit": "Create Organization",
+		"submitting": "Creating...",
+		"successToast": "Organization created successfully!",
+		"errorToast": "Failed to create organization"
+	},
+	"settings": {
+		"sidebar": {
+			"back": "Back",
+			"title": "Settings",
+			"searchPlaceholder": "Search settings...",
+			"documentation": "Documentation",
+			"groups": {
+				"personal": "Personal",
+				"editorWorkflow": "Editor & Workflow",
+				"organization": "Organization",
+				"system": "System"
+			},
+			"items": {
+				"account": "Account",
+				"appearance": "Appearance",
+				"notifications": "Notifications",
+				"general": "General",
+				"keyboard": "Keyboard",
+				"git": "Git & Worktrees",
+				"agents": "Agents",
+				"terminal": "Terminal",
+				"links": "Links",
+				"models": "Models",
+				"organization": "Organization",
+				"projects": "Projects",
+				"hosts": "Hosts",
+				"integrations": "Integrations",
+				"billing": "Billing",
+				"apiKeys": "API Keys",
+				"security": "Security",
+				"permissions": "Permissions",
+				"experimental": "Experimental"
+			}
+		},
+		"appearance": {
+			"title": "Appearance",
+			"subtitle": "Customize how Superset looks on your device",
+			"language": {
+				"label": "Language",
+				"hint": "Display language for the app"
+			},
+			"theme": {
+				"label": "Theme",
+				"system": "System",
+				"groups": {
+					"light": "Light",
+					"dark": "Dark",
+					"custom": "Custom"
+				},
+				"lightTheme": {
+					"label": "Light theme",
+					"hint": "Used when your system is in light mode."
+				},
+				"darkTheme": {
+					"label": "Dark theme",
+					"hint": "Used when your system is in dark mode."
+				},
+				"custom": {
+					"label": "Custom themes",
+					"hint": "Import a theme file or grab a starter to edit.",
+					"download": "Download starter",
+					"import": "Import",
+					"importing": "Importing..."
+				},
+				"toast": {
+					"tooLarge": "Theme file too large",
+					"tooLargeDesc": "Maximum size is 256 KB.",
+					"importFailed": "Failed to import theme file",
+					"unableToRead": "Unable to read file",
+					"noneImported": "No themes were imported",
+					"reservedIds": "All themes used reserved IDs (built-in or system).",
+					"emptyFile": "The file did not contain any importable themes.",
+					"importedOne": "Imported 1 custom theme",
+					"importedMany": "Imported {{count}} custom themes",
+					"updatedOne": "1 existing theme updated",
+					"updatedMany": "{{count}} existing themes updated",
+					"someSkipped": "Some themes were skipped"
+				}
+			}
+		},
+		"account": {
+			"title": "Account",
+			"subtitle": "Manage your account settings",
+			"avatar": {
+				"label": "Avatar",
+				"hint": "Recommended size 256×256.",
+				"changeLabel": "Change avatar"
+			},
+			"name": {
+				"label": "Name",
+				"placeholder": "Your name"
+			},
+			"email": {
+				"label": "Email"
+			},
+			"unableToLoad": "Unable to load user info",
+			"signOut": {
+				"label": "Sign out of this device",
+				"hint": "You'll need to sign in again to use Superset on this device.",
+				"button": "Sign out"
+			},
+			"toast": {
+				"signedOut": "Signed out",
+				"avatarUpdated": "Avatar updated!",
+				"avatarFailed": "Failed to update avatar",
+				"nameUpdated": "Name updated!",
+				"nameFailed": "Failed to update name"
+			}
+		},
+		"organization": {
+			"title": "Organization",
+			"subtitle": "Manage your organization's branding and members."
+		},
+		"behavior": {
+			"title": "General",
+			"subtitle": "Configure general app preferences",
+			"confirmQuit": {
+				"label": "Confirm before quitting",
+				"hint": "Show a confirmation dialog when quitting the app"
+			},
+			"fileOpenMode": {
+				"label": "File open mode",
+				"hint": "Choose how files open when no preview pane exists",
+				"splitPane": "Split pane",
+				"newTab": "New tab"
+			},
+			"resourceMonitor": {
+				"label": "Resource monitor",
+				"hint": "Show CPU and memory usage in the top bar"
+			},
+			"openLinksInApp": {
+				"label": "Open links in app browser",
+				"hint": "Open links from chat and terminal in the built-in browser instead of your default browser"
+			}
+		},
+		"experimental": {
+			"title": "Experimental",
+			"subtitle": "Try early access features and previews.",
+			"supersetV2": {
+				"label": "Try Superset v2",
+				"hint": "Use the new workspace experience."
+			},
+			"v1Migration": {
+				"label": "Import from v1",
+				"hint": "Bring v1 projects, workspaces, and terminal presets over to v2. Each item is imported individually and can be retried.",
+				"availabilityHint": "Available when v2 is enabled.",
+				"openImporter": "Open importer"
+			},
+			"restartOnboarding": {
+				"label": "Restart onboarding",
+				"hint": "Walk through the v2 setup flow again from the beginning.",
+				"availabilityHint": "Available when v2 is enabled.",
+				"button": "Restart",
+				"dialogTitle": "Restart onboarding?",
+				"dialogDescription": "This clears your onboarding progress and reopens the setup flow. You'll walk through each step again — for steps you're already configured for (provider connected, project attached), you'll see the current status with a Continue button.",
+				"cancel": "Cancel",
+				"confirm": "Restart"
+			}
+		},
+		"security": {
+			"title": "Security",
+			"subtitle": "Control how your local machine is reachable from remote workspaces",
+			"relay": {
+				"label": "Allow remote workspaces to access this device via relay",
+				"hint": "When off, your local tools and files cannot be reached from any remote workspace through the Superset relay. This does not affect your ability to connect out to remote sandboxes from this device."
+			}
+		},
+		"terminal": {
+			"title": "Terminal",
+			"subtitle": "Configure terminal behavior and presets"
+		},
+		"agents": {
+			"title": "Agents"
+		},
+		"apiKeys": {
+			"title": "API keys"
+		},
+		"models": {
+			"title": "Models",
+			"subtitle": "Manage provider accounts, API keys, and overrides."
+		},
+		"permissions": {
+			"title": "Permissions",
+			"subtitle": "Grant the OS permissions Superset needs.",
+			"status": {
+				"granted": "Granted",
+				"notGranted": "Not granted",
+				"unknown": "Unknown"
+			},
+			"openSettings": "Open settings",
+			"items": {
+				"fullDiskAccess": {
+					"label": "Full Disk Access",
+					"description": "Persistent access to Documents, Downloads, Desktop, and iCloud."
+				},
+				"accessibility": {
+					"label": "Accessibility",
+					"description": "Send keystrokes, manage windows, and control other applications."
+				},
+				"microphone": {
+					"label": "Microphone",
+					"description": "Use voice transcription and push-to-talk features."
+				},
+				"automation": {
+					"label": "Automation",
+					"description": "Run terminal commands and interact with other applications."
+				},
+				"localNetwork": {
+					"label": "Local Network",
+					"description": "Discover and connect to development servers on your network."
+				}
+			}
+		},
+		"integrations": {
+			"title": "Integrations"
+		},
+		"ringtones": {
+			"title": "Notifications",
+			"subtitle": "Sounds and ringtone for completed tasks"
+		},
+		"links": {
+			"title": "Links"
+		},
+		"billing": {
+			"title": "Billing"
+		},
+		"git": {
+			"title": "Git & worktrees",
+			"subtitle": "Configure git branch and worktree behavior",
+			"deleteLocalBranch": {
+				"label": "Delete local branch on workspace removal",
+				"hint": "Also delete the local git branch when deleting a worktree workspace"
+			},
+			"branchPrefix": {
+				"label": "Branch prefix",
+				"hintIntro": "Group new branches under a folder.",
+				"placeholder": "Prefix"
+			},
+			"worktreeLocation": {
+				"label": "Worktree location",
+				"hint": "Base directory for new worktrees",
+				"defaultLabel": "Default ({{path}})"
+			}
+		},
+		"keyboard": {
+			"title": "Keyboard shortcuts"
+		}
+	}
+}

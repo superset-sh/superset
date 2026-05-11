@@ -2,8 +2,10 @@ import { type AuthProvider, COMPANY } from "@superset/shared/constants";
 import { Button } from "@superset/ui/button";
 import { Spinner } from "@superset/ui/spinner";
 import { createFileRoute, Navigate } from "@tanstack/react-router";
+import { useTranslation } from "react-i18next";
 import { FaGithub } from "react-icons/fa";
 import { FcGoogle } from "react-icons/fc";
+import { LocaleSwitcher } from "renderer/components/LocaleSwitcher";
 import { env } from "renderer/env.renderer";
 import { track } from "renderer/lib/analytics";
 import { electronTrpc } from "renderer/lib/electron-trpc";
@@ -15,6 +17,7 @@ export const Route = createFileRoute("/sign-in/")({
 });
 
 function SignInPage() {
+	const { t } = useTranslation();
 	const signInMutation = electronTrpc.auth.signIn.useMutation();
 	const { hasLocalToken, isPending, session } = useSessionRecovery();
 
@@ -44,7 +47,11 @@ function SignInPage() {
 
 	return (
 		<div className="flex flex-col h-full w-full bg-background">
-			<div className="h-12 w-full drag shrink-0" />
+			<div className="h-12 w-full drag shrink-0 flex items-center justify-end pr-3">
+				<div className="no-drag">
+					<LocaleSwitcher />
+				</div>
+			</div>
 
 			<div className="flex flex-1 items-center justify-center">
 				<div className="flex flex-col items-center w-full max-w-md px-8">
@@ -54,12 +61,10 @@ function SignInPage() {
 
 					<div className="text-center mb-8">
 						<h1 className="text-xl font-semibold text-foreground mb-2">
-							Welcome to Superset
+							{t("signIn.welcome")}
 						</h1>
 						<p className="text-sm text-muted-foreground">
-							{hasLocalToken
-								? "Restoring your session"
-								: "Sign in to get started"}
+							{hasLocalToken ? t("signIn.restoring") : t("signIn.prompt")}
 						</p>
 					</div>
 
@@ -72,7 +77,7 @@ function SignInPage() {
 							disabled={signInMutation.isPending}
 						>
 							<FaGithub className="size-5" />
-							Continue with GitHub
+							{t("signIn.continueGithub")}
 						</Button>
 
 						<Button
@@ -83,28 +88,28 @@ function SignInPage() {
 							disabled={signInMutation.isPending}
 						>
 							<FcGoogle className="size-5" />
-							Continue with Google
+							{t("signIn.continueGoogle")}
 						</Button>
 					</div>
 
 					<p className="mt-8 text-xs text-muted-foreground/70 text-center max-w-xs">
-						By signing in, you agree to our{" "}
+						{t("signIn.termsPrefix")}{" "}
 						<a
 							href={COMPANY.TERMS_URL}
 							target="_blank"
 							rel="noopener noreferrer"
 							className="underline hover:text-muted-foreground transition-colors"
 						>
-							Terms of Service
+							{t("signIn.termsOfService")}
 						</a>{" "}
-						and{" "}
+						{t("signIn.and")}{" "}
 						<a
 							href={COMPANY.PRIVACY_URL}
 							target="_blank"
 							rel="noopener noreferrer"
 							className="underline hover:text-muted-foreground transition-colors"
 						>
-							Privacy Policy
+							{t("signIn.privacyPolicy")}
 						</a>
 					</p>
 				</div>

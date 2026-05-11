@@ -12,6 +12,7 @@ import { Label } from "@superset/ui/label";
 import { toast } from "@superset/ui/sonner";
 import { Textarea } from "@superset/ui/textarea";
 import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { HiChevronDown } from "react-icons/hi2";
 import { AnthropicOAuthDialog } from "renderer/components/Chat/ChatInterface/components/ModelPicker/components/AnthropicOAuthDialog";
 import { OpenAIOAuthDialog } from "renderer/components/Chat/ChatInterface/components/ModelPicker/components/OpenAIOAuthDialog";
@@ -43,6 +44,7 @@ const DIALOG_CONTEXT = {
 } as const;
 
 export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
+	const { t } = useTranslation();
 	const showAnthropic = isItemVisible(
 		SETTING_ITEM_ID.MODELS_ANTHROPIC,
 		visibleItems,
@@ -233,9 +235,11 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 		<>
 			<div className="w-full max-w-4xl p-6">
 				<div className="mb-8">
-					<h2 className="text-xl font-semibold">Models</h2>
+					<h2 className="text-xl font-semibold">
+						{t("settings.models.title")}
+					</h2>
 					<p className="mt-1 text-sm text-muted-foreground">
-						Manage provider accounts, API keys, and overrides.
+						{t("settings.models.subtitle")}
 					</p>
 				</div>
 

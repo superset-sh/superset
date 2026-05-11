@@ -1,0 +1,1 @@
+export { LocaleSwitcher } from "./LocaleSwitcher";

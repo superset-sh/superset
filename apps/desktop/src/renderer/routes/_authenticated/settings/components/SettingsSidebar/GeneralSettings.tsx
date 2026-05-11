@@ -1,6 +1,7 @@
 import { cn } from "@superset/ui/utils";
 import { Link, useMatchRoute } from "@tanstack/react-router";
 import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import {
 	HiOutlineBeaker,
 	HiOutlineBell,
@@ -55,94 +56,94 @@ type SettingsRoute =
 interface SectionItem {
 	id: SettingsRoute;
 	section: SettingsSection;
-	label: string;
+	labelKey: string;
 	icon: React.ReactNode;
 	macOnly?: boolean;
 }
 
 interface SectionGroup {
-	label: string;
+	labelKey: string;
 	items: SectionItem[];
 }
 
 const SECTION_GROUPS: SectionGroup[] = [
 	{
-		label: "Personal",
+		labelKey: "settings.sidebar.groups.personal",
 		items: [
 			{
 				id: "/settings/account",
 				section: "account",
-				label: "Account",
+				labelKey: "settings.sidebar.items.account",
 				icon: <HiOutlineUser className="h-4 w-4" />,
 			},
 			{
 				id: "/settings/appearance",
 				section: "appearance",
-				label: "Appearance",
+				labelKey: "settings.sidebar.items.appearance",
 				icon: <HiOutlinePaintBrush className="h-4 w-4" />,
 			},
 			{
 				id: "/settings/ringtones",
 				section: "ringtones",
-				label: "Notifications",
+				labelKey: "settings.sidebar.items.notifications",
 				icon: <HiOutlineBell className="h-4 w-4" />,
 			},
 		],
 	},
 	{
-		label: "Editor & Workflow",
+		labelKey: "settings.sidebar.groups.editorWorkflow",
 		items: [
 			{
 				id: "/settings/behavior",
 				section: "behavior",
-				label: "General",
+				labelKey: "settings.sidebar.items.general",
 				icon: <HiOutlineSparkles className="h-4 w-4" />,
 			},
 			{
 				id: "/settings/keyboard",
 				section: "keyboard",
-				label: "Keyboard",
+				labelKey: "settings.sidebar.items.keyboard",
 				icon: <LuKeyboard className="h-4 w-4" />,
 			},
 			{
 				id: "/settings/git",
 				section: "git",
-				label: "Git & Worktrees",
+				labelKey: "settings.sidebar.items.git",
 				icon: <LuGitBranch className="h-4 w-4" />,
 			},
 			{
 				id: "/settings/agents",
 				section: "agents",
-				label: "Agents",
+				labelKey: "settings.sidebar.items.agents",
 				icon: <HiOutlineCpuChip className="h-4 w-4" />,
 			},
 			{
 				id: "/settings/terminal",
 				section: "terminal",
-				label: "Terminal",
+				labelKey: "settings.sidebar.items.terminal",
 				icon: <HiOutlineCommandLine className="h-4 w-4" />,
 			},
 			{
 				id: "/settings/links",
 				section: "links",
-				label: "Links",
+				labelKey: "settings.sidebar.items.links",
 				icon: <HiOutlineLink className="h-4 w-4" />,
 			},
 			{
 				id: "/settings/models",
 				section: "models",
-				label: "Models",
+				labelKey: "settings.sidebar.items.models",
 				icon: <LuBrain className="h-4 w-4" />,
 			},
 		],
 	},
 	{
-		label: "Organization",
+		labelKey: "settings.sidebar.groups.organization",
 		items: [
 			{
 				id: "/settings/organization",
 				section: "organization",
-				label: "Organization",
+				labelKey: "settings.sidebar.items.organization",
 				icon: <HiOutlineBuildingOffice2 className="h-4 w-4" />,
 			},
 			{
@@ -154,55 +155,55 @@ const SECTION_GROUPS: SectionGroup[] = [
 			{
 				id: "/settings/projects",
 				section: "project",
-				label: "Projects",
+				labelKey: "settings.sidebar.items.projects",
 				icon: <HiOutlineFolder className="h-4 w-4" />,
 			},
 			{
 				id: "/settings/hosts",
 				section: "hosts",
-				label: "Hosts",
+				labelKey: "settings.sidebar.items.hosts",
 				icon: <HiOutlineComputerDesktop className="h-4 w-4" />,
 			},
 			{
 				id: "/settings/integrations",
 				section: "integrations",
-				label: "Integrations",
+				labelKey: "settings.sidebar.items.integrations",
 				icon: <HiOutlinePuzzlePiece className="h-4 w-4" />,
 			},
 			{
 				id: "/settings/billing",
 				section: "billing",
-				label: "Billing",
+				labelKey: "settings.sidebar.items.billing",
 				icon: <HiOutlineCreditCard className="h-4 w-4" />,
 			},
 			{
 				id: "/settings/api-keys",
 				section: "apikeys",
-				label: "API Keys",
+				labelKey: "settings.sidebar.items.apiKeys",
 				icon: <HiOutlineKey className="h-4 w-4" />,
 			},
 		],
 	},
 	{
-		label: "System",
+		labelKey: "settings.sidebar.groups.system",
 		items: [
 			{
 				id: "/settings/security",
 				section: "security",
-				label: "Security",
+				labelKey: "settings.sidebar.items.security",
 				icon: <HiOutlineLockClosed className="h-4 w-4" />,
 			},
 			{
 				id: "/settings/permissions",
 				section: "permissions",
-				label: "Permissions",
+				labelKey: "settings.sidebar.items.permissions",
 				icon: <HiOutlineShieldCheck className="h-4 w-4" />,
 				macOnly: true,
 			},
 			{
 				id: "/settings/experimental",
 				section: "experimental",
-				label: "Experimental",
+				labelKey: "settings.sidebar.items.experimental",
 				icon: <HiOutlineBeaker className="h-4 w-4" />,
 			},
 		],
@@ -210,6 +211,7 @@ const SECTION_GROUPS: SectionGroup[] = [
 ];
 
 export function GeneralSettings({ matchCounts }: GeneralSettingsProps) {
+	const { t } = useTranslation();
 	const matchRoute = useMatchRoute();
 	const { data: platform } = electronTrpc.window.getPlatform.useQuery();
 	const isMac = platform === "darwin";
@@ -233,9 +235,9 @@ export function GeneralSettings({ matchCounts }: GeneralSettingsProps) {
 				if (filteredItems.length === 0) return null;
 
 				return (
-					<div key={group.label} className={cn(groupIndex > 0 && "mt-4")}>
+					<div key={group.labelKey} className={cn(groupIndex > 0 && "mt-4")}>
 						<h2 className="text-[10px] font-medium text-muted-foreground/60 uppercase tracking-[0.1em] px-3 mb-1">
-							{group.label}
+							{t(group.labelKey)}
 						</h2>
 						<nav className="flex flex-col">
 							{filteredItems.map((section) => {
@@ -257,7 +259,7 @@ export function GeneralSettings({ matchCounts }: GeneralSettingsProps) {
 										)}
 									>
 										{section.icon}
-										<span className="flex-1">{section.label}</span>
+										<span className="flex-1">{t(section.labelKey)}</span>
 										{count !== undefined && count > 0 && (
 											<span className="text-xs text-muted-foreground bg-accent/50 px-1.5 py-0.5 rounded">
 												{count}

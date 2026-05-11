@@ -1,0 +1,289 @@
+{
+	"locale": {
+		"english": "English",
+		"chinese": "中文",
+		"switchLanguage": "语言"
+	},
+	"signIn": {
+		"welcome": "欢迎使用 Superset",
+		"restoring": "正在恢复会话",
+		"prompt": "登录开始使用",
+		"continueGithub": "使用 GitHub 继续",
+		"continueGoogle": "使用 Google 继续",
+		"termsPrefix": "登录即表示您同意我们的",
+		"termsOfService": "服务条款",
+		"and": "和",
+		"privacyPolicy": "隐私政策"
+	},
+	"createOrg": {
+		"title": "创建组织",
+		"subtitle": "设置组织以开始使用",
+		"signOut": "退出登录",
+		"nameLabel": "组织名称",
+		"namePlaceholder": "示例公司",
+		"nameDescription": "您的组织或团队的名称",
+		"nameRequired": "请输入组织名称",
+		"slugLabel": "标识符",
+		"slugPlaceholder": "acme-inc",
+		"slugDescription": "组织的唯一标识符（由名称自动生成）",
+		"slugMinLength": "标识符至少需要 3 个字符",
+		"slugChars": "标识符只能包含小写字母、数字和连字符",
+		"slugStart": "标识符必须以字母或数字开头",
+		"slugEnd": "标识符必须以字母或数字结尾",
+		"slugChecking": "检查中...",
+		"slugAvailable": "可用",
+		"slugTaken": "已被占用",
+		"submit": "创建组织",
+		"submitting": "创建中...",
+		"successToast": "组织创建成功！",
+		"errorToast": "创建组织失败"
+	},
+	"settings": {
+		"sidebar": {
+			"back": "返回",
+			"title": "设置",
+			"searchPlaceholder": "搜索设置...",
+			"documentation": "文档",
+			"groups": {
+				"personal": "个人",
+				"editorWorkflow": "编辑器与工作流",
+				"organization": "组织",
+				"system": "系统"
+			},
+			"items": {
+				"account": "账户",
+				"appearance": "外观",
+				"notifications": "通知",
+				"general": "通用",
+				"keyboard": "键盘",
+				"git": "Git 与工作树",
+				"agents": "智能体",
+				"terminal": "终端",
+				"links": "链接",
+				"models": "模型",
+				"organization": "组织",
+				"projects": "项目",
+				"hosts": "主机",
+				"integrations": "集成",
+				"billing": "账单",
+				"apiKeys": "API 密钥",
+				"security": "安全",
+				"permissions": "权限",
+				"experimental": "实验性"
+			}
+		},
+		"appearance": {
+			"title": "外观",
+			"subtitle": "自定义 Superset 在您设备上的外观",
+			"language": {
+				"label": "语言",
+				"hint": "应用界面显示的语言"
+			},
+			"theme": {
+				"label": "主题",
+				"system": "跟随系统",
+				"groups": {
+					"light": "浅色",
+					"dark": "深色",
+					"custom": "自定义"
+				},
+				"lightTheme": {
+					"label": "浅色主题",
+					"hint": "系统处于浅色模式时使用。"
+				},
+				"darkTheme": {
+					"label": "深色主题",
+					"hint": "系统处于深色模式时使用。"
+				},
+				"custom": {
+					"label": "自定义主题",
+					"hint": "导入主题文件，或下载模板编辑。",
+					"download": "下载模板",
+					"import": "导入",
+					"importing": "导入中..."
+				},
+				"toast": {
+					"tooLarge": "主题文件过大",
+					"tooLargeDesc": "最大支持 256 KB。",
+					"importFailed": "主题文件导入失败",
+					"unableToRead": "无法读取文件",
+					"noneImported": "未导入任何主题",
+					"reservedIds": "所有主题使用了保留 ID（内置或系统）。",
+					"emptyFile": "文件中未包含可导入的主题。",
+					"importedOne": "已导入 1 个自定义主题",
+					"importedMany": "已导入 {{count}} 个自定义主题",
+					"updatedOne": "更新了 1 个已有主题",
+					"updatedMany": "更新了 {{count}} 个已有主题",
+					"someSkipped": "部分主题被跳过"
+				}
+			}
+		},
+		"account": {
+			"title": "账户",
+			"subtitle": "管理您的账户设置",
+			"avatar": {
+				"label": "头像",
+				"hint": "推荐尺寸 256×256。",
+				"changeLabel": "更换头像"
+			},
+			"name": {
+				"label": "姓名",
+				"placeholder": "您的姓名"
+			},
+			"email": {
+				"label": "邮箱"
+			},
+			"unableToLoad": "无法加载用户信息",
+			"signOut": {
+				"label": "退出本设备登录",
+				"hint": "下次使用 Superset 时需要重新登录。",
+				"button": "退出登录"
+			},
+			"toast": {
+				"signedOut": "已退出登录",
+				"avatarUpdated": "头像已更新！",
+				"avatarFailed": "头像更新失败",
+				"nameUpdated": "姓名已更新！",
+				"nameFailed": "姓名更新失败"
+			}
+		},
+		"organization": {
+			"title": "组织",
+			"subtitle": "管理组织的品牌信息和成员"
+		},
+		"behavior": {
+			"title": "通用",
+			"subtitle": "配置应用的通用偏好",
+			"confirmQuit": {
+				"label": "退出前确认",
+				"hint": "退出应用时显示确认对话框"
+			},
+			"fileOpenMode": {
+				"label": "文件打开方式",
+				"hint": "选择没有预览面板时文件如何打开",
+				"splitPane": "拆分面板",
+				"newTab": "新标签页"
+			},
+			"resourceMonitor": {
+				"label": "资源监视器",
+				"hint": "在顶部栏显示 CPU 与内存占用"
+			},
+			"openLinksInApp": {
+				"label": "在应用内浏览器中打开链接",
+				"hint": "用内置浏览器打开聊天和终端中的链接，而不是默认浏览器"
+			}
+		},
+		"experimental": {
+			"title": "实验性",
+			"subtitle": "尝试早期功能和预览",
+			"supersetV2": {
+				"label": "试用 Superset v2",
+				"hint": "使用全新的工作区体验。"
+			},
+			"v1Migration": {
+				"label": "从 v1 导入",
+				"hint": "将 v1 的项目、工作区和终端预设迁移到 v2。每一项独立导入，可单独重试。",
+				"availabilityHint": "启用 v2 后可用。",
+				"openImporter": "打开导入器"
+			},
+			"restartOnboarding": {
+				"label": "重新引导",
+				"hint": "从头再走一遍 v2 的设置流程。",
+				"availabilityHint": "启用 v2 后可用。",
+				"button": "重新开始",
+				"dialogTitle": "重新引导？",
+				"dialogDescription": "这会清除您的引导进度并重新打开设置流程。您将逐步重新走完每一步——对于已配置好的步骤（已连接服务商、已挂载项目），将看到当前状态并提供继续按钮。",
+				"cancel": "取消",
+				"confirm": "重新开始"
+			}
+		},
+		"security": {
+			"title": "安全",
+			"subtitle": "控制本机如何被远程工作区访问",
+			"relay": {
+				"label": "允许远程工作区通过中继访问本设备",
+				"hint": "关闭后，远程工作区无法通过 Superset 中继访问您本机的工具和文件。这不影响从本设备主动连接到远程沙盒。"
+			}
+		},
+		"terminal": {
+			"title": "终端",
+			"subtitle": "配置终端行为和预设"
+		},
+		"agents": {
+			"title": "智能体"
+		},
+		"apiKeys": {
+			"title": "API 密钥"
+		},
+		"models": {
+			"title": "模型",
+			"subtitle": "管理服务商账号、API 密钥和覆盖配置"
+		},
+		"permissions": {
+			"title": "权限",
+			"subtitle": "授予 Superset 所需的系统权限",
+			"status": {
+				"granted": "已授予",
+				"notGranted": "未授予",
+				"unknown": "未知"
+			},
+			"openSettings": "打开系统设置",
+			"items": {
+				"fullDiskAccess": {
+					"label": "完全磁盘访问",
+					"description": "持续访问文稿、下载、桌面和 iCloud。"
+				},
+				"accessibility": {
+					"label": "辅助功能",
+					"description": "发送按键、管理窗口、控制其他应用。"
+				},
+				"microphone": {
+					"label": "麦克风",
+					"description": "用于语音转写和按键说话功能。"
+				},
+				"automation": {
+					"label": "自动化",
+					"description": "运行终端命令并与其他应用交互。"
+				},
+				"localNetwork": {
+					"label": "本地网络",
+					"description": "发现并连接到您网络中的开发服务器。"
+				}
+			}
+		},
+		"integrations": {
+			"title": "集成"
+		},
+		"ringtones": {
+			"title": "通知",
+			"subtitle": "完成任务时的提示音和铃声"
+		},
+		"links": {
+			"title": "链接"
+		},
+		"billing": {
+			"title": "账单"
+		},
+		"git": {
+			"title": "Git 与工作树",
+			"subtitle": "配置 Git 分支和工作树行为",
+			"deleteLocalBranch": {
+				"label": "移除工作区时删除本地分支",
+				"hint": "在删除工作树工作区时，同时删除本地 Git 分支"
+			},
+			"branchPrefix": {
+				"label": "分支前缀",
+				"hintIntro": "把新分支收纳到一个文件夹下。",
+				"placeholder": "前缀"
+			},
+			"worktreeLocation": {
+				"label": "工作树位置",
+				"hint": "新工作树的根目录",
+				"defaultLabel": "默认（{{path}}）"
+			}
+		},
+		"keyboard": {
+			"title": "键盘快捷键"
+		}
+	}
+}

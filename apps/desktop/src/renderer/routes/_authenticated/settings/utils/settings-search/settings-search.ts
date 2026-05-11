@@ -19,6 +19,7 @@ export const SETTING_ITEM_ID = {
 	APPEARANCE_CUSTOM_THEMES: "appearance-custom-themes",
 	APPEARANCE_EDITOR_FONT: "appearance-editor-font",
 	APPEARANCE_TERMINAL_FONT: "appearance-terminal-font",
+	APPEARANCE_LANGUAGE: "appearance-language",
 
 	RINGTONES_NOTIFICATION: "ringtones-notification",
 
@@ -125,6 +126,7 @@ export const SETTING_ITEM_VARIANT: Record<SettingItemId, SettingVariant> = {
 	[SETTING_ITEM_ID.APPEARANCE_CUSTOM_THEMES]: "shared",
 	[SETTING_ITEM_ID.APPEARANCE_EDITOR_FONT]: "shared",
 	[SETTING_ITEM_ID.APPEARANCE_TERMINAL_FONT]: "shared",
+	[SETTING_ITEM_ID.APPEARANCE_LANGUAGE]: "shared",
 
 	[SETTING_ITEM_ID.RINGTONES_NOTIFICATION]: "shared",
 
@@ -435,6 +437,22 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"typography",
 			"custom",
 			"nerd",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.APPEARANCE_LANGUAGE,
+		section: "appearance",
+		title: "Language",
+		description: "Display language for the app",
+		keywords: [
+			"appearance",
+			"language",
+			"locale",
+			"i18n",
+			"translation",
+			"中文",
+			"chinese",
+			"english",
 		],
 	},
 	{

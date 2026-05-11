@@ -15,6 +15,7 @@ import { Skeleton } from "@superset/ui/skeleton";
 import { toast } from "@superset/ui/sonner";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
 	HiArrowTopRightOnSquare,
 	HiOutlineClipboardDocument,
@@ -37,6 +38,7 @@ interface ApiKeysSettingsProps {
 }
 
 export function ApiKeysSettings({ visibleItems }: ApiKeysSettingsProps) {
+	const { t } = useTranslation();
 	const collections = useCollections();
 	const [isGenerating, setIsGenerating] = useState(false);
 	const [showGenerateDialog, setShowGenerateDialog] = useState(false);
@@ -115,7 +117,9 @@ export function ApiKeysSettings({ visibleItems }: ApiKeysSettingsProps) {
 		<div className="p-6 max-w-4xl w-full">
 			<div className="mb-8 flex items-start justify-between gap-4">
 				<div>
-					<h2 className="text-xl font-semibold">API keys</h2>
+					<h2 className="text-xl font-semibold">
+						{t("settings.apiKeys.title")}
+					</h2>
 					<p className="text-sm text-muted-foreground mt-1">
 						Manage keys for MCP server access and external integrations like
 						Claude Desktop or Claude Code.{" "}

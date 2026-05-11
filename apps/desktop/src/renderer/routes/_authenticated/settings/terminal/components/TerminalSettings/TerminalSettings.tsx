@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import {
 	isItemVisible,
@@ -47,6 +48,7 @@ export function TerminalSettings({
 	pendingCreateProjectId,
 	onPendingCreateProjectIdChange,
 }: TerminalSettingsProps) {
+	const { t } = useTranslation();
 	const isV2CloudEnabled = useIsV2CloudEnabled();
 	const showPresets = isItemVisible(
 		SETTING_ITEM_ID.TERMINAL_PRESETS,
@@ -68,9 +70,11 @@ export function TerminalSettings({
 	return (
 		<div className="p-6 max-w-6xl w-full">
 			<div className="mb-8">
-				<h2 className="text-xl font-semibold">Terminal</h2>
+				<h2 className="text-xl font-semibold">
+					{t("settings.terminal.title")}
+				</h2>
 				<p className="text-sm text-muted-foreground mt-1">
-					Configure terminal behavior and presets
+					{t("settings.terminal.subtitle")}
 				</p>
 			</div>
 

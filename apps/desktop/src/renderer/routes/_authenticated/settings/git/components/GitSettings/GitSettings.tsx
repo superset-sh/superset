@@ -14,6 +14,7 @@ import {
 } from "@superset/ui/select";
 import { Switch } from "@superset/ui/switch";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
 	useDefaultWorktreePath,
@@ -31,6 +32,7 @@ interface GitSettingsProps {
 }
 
 export function GitSettings({ visibleItems }: GitSettingsProps) {
+	const { t } = useTranslation();
 	const showDeleteLocalBranch = isItemVisible(
 		SETTING_ITEM_ID.GIT_DELETE_LOCAL_BRANCH,
 		visibleItems,
@@ -150,9 +152,9 @@ export function GitSettings({ visibleItems }: GitSettingsProps) {
 	return (
 		<div className="p-6 max-w-4xl w-full">
 			<div className="mb-8">
-				<h2 className="text-xl font-semibold">Git & worktrees</h2>
+				<h2 className="text-xl font-semibold">{t("settings.git.title")}</h2>
 				<p className="text-sm text-muted-foreground mt-1">
-					Configure git branch and worktree behavior
+					{t("settings.git.subtitle")}
 				</p>
 			</div>
 
@@ -164,11 +166,10 @@ export function GitSettings({ visibleItems }: GitSettingsProps) {
 								htmlFor="delete-local-branch"
 								className="text-sm font-medium"
 							>
-								Delete local branch on workspace removal
+								{t("settings.git.deleteLocalBranch.label")}
 							</Label>
 							<p className="text-xs text-muted-foreground">
-								Also delete the local git branch when deleting a worktree
-								workspace
+								{t("settings.git.deleteLocalBranch.hint")}
 							</p>
 						</div>
 						<Switch
@@ -183,9 +184,11 @@ export function GitSettings({ visibleItems }: GitSettingsProps) {
 				{showBranchPrefix && (
 					<div className="flex items-center justify-between">
 						<div className="space-y-0.5">
-							<Label className="text-sm font-medium">Branch prefix</Label>
+							<Label className="text-sm font-medium">
+								{t("settings.git.branchPrefix.label")}
+							</Label>
 							<p className="text-xs text-muted-foreground">
-								Group new branches under a folder.{" "}
+								{t("settings.git.branchPrefix.hintIntro")}{" "}
 								<code className="bg-muted px-1.5 py-0.5 rounded text-foreground">
 									{previewPrefix
 										? `${previewPrefix}/branch-name`
@@ -219,7 +222,7 @@ export function GitSettings({ visibleItems }: GitSettingsProps) {
 							</Select>
 							{branchPrefix?.mode === "custom" && (
 								<Input
-									placeholder="Prefix"
+									placeholder={t("settings.git.branchPrefix.placeholder")}
 									value={customPrefixInput}
 									onChange={(e) => setCustomPrefixInput(e.target.value)}
 									onBlur={handleCustomPrefixBlur}
@@ -233,13 +236,20 @@ export function GitSettings({ visibleItems }: GitSettingsProps) {
 
 				{showWorktreeLocation && (
 					<div className="space-y-0.5">
-						<Label className="text-sm font-medium">Worktree location</Label>
+						<Label className="text-sm font-medium">
+							{t("settings.git.worktreeLocation.label")}
+						</Label>
 						<p className="text-xs text-muted-foreground">
-							Base directory for new worktrees
+							{t("settings.git.worktreeLocation.hint")}
 						</p>
 						<WorktreeLocationPicker
 							currentPath={worktreeBaseDir}
-							defaultPathLabel={`Default (${defaultWorktreePath})`}
+							defaultPathLabel={t(
+								"settings.git.worktreeLocation.defaultLabel",
+								{
+									path: defaultWorktreePath,
+								},
+							)}
 							defaultBrowsePath={worktreeBaseDir}
 							disabled={
 								isWorktreeBaseDirLoading || setWorktreeBaseDir.isPending

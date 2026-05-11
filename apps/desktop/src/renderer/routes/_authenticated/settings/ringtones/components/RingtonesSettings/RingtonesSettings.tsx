@@ -3,6 +3,7 @@ import { Label } from "@superset/ui/label";
 import { Switch } from "@superset/ui/switch";
 import { cn } from "@superset/ui/utils";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { HiArrowPath, HiCheck, HiPlay, HiPlus, HiStop } from "react-icons/hi2";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
@@ -107,6 +108,7 @@ interface RingtonesSettingsProps {
 }
 
 export function RingtonesSettings({ visibleItems }: RingtonesSettingsProps) {
+	const { t } = useTranslation();
 	const showNotification = isItemVisible(
 		SETTING_ITEM_ID.RINGTONES_NOTIFICATION,
 		visibleItems,
@@ -248,9 +250,11 @@ export function RingtonesSettings({ visibleItems }: RingtonesSettingsProps) {
 	return (
 		<div className="p-6 max-w-4xl w-full">
 			<div className="mb-8">
-				<h2 className="text-xl font-semibold">Notifications</h2>
+				<h2 className="text-xl font-semibold">
+					{t("settings.ringtones.title")}
+				</h2>
 				<p className="text-sm text-muted-foreground mt-1">
-					Sounds and ringtone for completed tasks
+					{t("settings.ringtones.subtitle")}
 				</p>
 			</div>
 

@@ -2,6 +2,7 @@ import { Badge } from "@superset/ui/badge";
 import { Button } from "@superset/ui/button";
 import { Label } from "@superset/ui/label";
 import { Skeleton } from "@superset/ui/skeleton";
+import { useTranslation } from "react-i18next";
 import { LuExternalLink } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
@@ -15,13 +16,24 @@ interface PermissionsSettingsProps {
 }
 
 function StatusBadge({ granted }: { granted: boolean | undefined }) {
+	const { t } = useTranslation();
 	if (granted === true) {
-		return <Badge variant="secondary">Granted</Badge>;
+		return (
+			<Badge variant="secondary">
+				{t("settings.permissions.status.granted")}
+			</Badge>
+		);
 	}
 	if (granted === false) {
-		return <Badge variant="outline">Not granted</Badge>;
+		return (
+			<Badge variant="outline">
+				{t("settings.permissions.status.notGranted")}
+			</Badge>
+		);
 	}
-	return <Badge variant="outline">Unknown</Badge>;
+	return (
+		<Badge variant="outline">{t("settings.permissions.status.unknown")}</Badge>
+	);
 }
 
 function PermissionRow({
@@ -35,6 +47,7 @@ function PermissionRow({
 	granted: boolean | undefined;
 	onRequest: () => void;
 }) {
+	const { t } = useTranslation();
 	return (
 		<div className="flex items-center justify-between gap-6">
 			<div className="min-w-0 flex-1 space-y-0.5">
@@ -45,7 +58,7 @@ function PermissionRow({
 				<StatusBadge granted={granted} />
 				<Button variant="outline" size="sm" onClick={onRequest}>
 					<LuExternalLink className="h-3.5 w-3.5 mr-1.5" />
-					Open settings
+					{t("settings.permissions.openSettings")}
 				</Button>
 			</div>
 		</div>
@@ -70,6 +83,7 @@ function PermissionRowSkeleton() {
 export function PermissionsSettings({
 	visibleItems,
 }: PermissionsSettingsProps) {
+	const { t } = useTranslation();
 	const { data: status, isLoading } =
 		electronTrpc.permissions.getStatus.useQuery(undefined, {
 			refetchInterval: 2000,
@@ -89,9 +103,11 @@ export function PermissionsSettings({
 	return (
 		<div className="p-6 max-w-4xl w-full mx-auto">
 			<div className="mb-8">
-				<h2 className="text-xl font-semibold">Permissions</h2>
+				<h2 className="text-xl font-semibold">
+					{t("settings.permissions.title")}
+				</h2>
 				<p className="text-sm text-muted-foreground mt-1">
-					Grant the OS permissions Superset needs.
+					{t("settings.permissions.subtitle")}
 				</p>
 			</div>
 
@@ -109,8 +125,10 @@ export function PermissionsSettings({
 							visibleItems,
 						) && (
 							<PermissionRow
-								label="Full Disk Access"
-								description="Persistent access to Documents, Downloads, Desktop, and iCloud."
+								label={t("settings.permissions.items.fullDiskAccess.label")}
+								description={t(
+									"settings.permissions.items.fullDiskAccess.description",
+								)}
 								granted={status?.fullDiskAccess}
 								onRequest={() => requestFDA.mutate()}
 							/>
@@ -121,8 +139,10 @@ export function PermissionsSettings({
 							visibleItems,
 						) && (
 							<PermissionRow
-								label="Accessibility"
-								description="Send keystrokes, manage windows, and control other applications."
+								label={t("settings.permissions.items.accessibility.label")}
+								description={t(
+									"settings.permissions.items.accessibility.description",
+								)}
 								granted={status?.accessibility}
 								onRequest={() => requestA11y.mutate()}
 							/>
@@ -133,8 +153,10 @@ export function PermissionsSettings({
 							visibleItems,
 						) && (
 							<PermissionRow
-								label="Microphone"
-								description="Use voice transcription and push-to-talk features."
+								label={t("settings.permissions.items.microphone.label")}
+								description={t(
+									"settings.permissions.items.microphone.description",
+								)}
 								granted={status?.microphone}
 								onRequest={() => requestMicrophone.mutate()}
 							/>
@@ -145,8 +167,10 @@ export function PermissionsSettings({
 							visibleItems,
 						) && (
 							<PermissionRow
-								label="Automation"
-								description="Run terminal commands and interact with other applications."
+								label={t("settings.permissions.items.automation.label")}
+								description={t(
+									"settings.permissions.items.automation.description",
+								)}
 								granted={undefined}
 								onRequest={() => requestAppleEvents.mutate()}
 							/>
@@ -157,8 +181,10 @@ export function PermissionsSettings({
 							visibleItems,
 						) && (
 							<PermissionRow
-								label="Local Network"
-								description="Discover and connect to development servers on your network."
+								label={t("settings.permissions.items.localNetwork.label")}
+								description={t(
+									"settings.permissions.items.localNetwork.description",
+								)}
 								granted={undefined}
 								onRequest={() => requestLocalNetwork.mutate()}
 							/>

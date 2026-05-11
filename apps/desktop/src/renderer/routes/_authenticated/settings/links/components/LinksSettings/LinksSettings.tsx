@@ -1,5 +1,6 @@
 import { toast } from "@superset/ui/sonner";
 import { useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { useV2UserPreferences } from "renderer/hooks/useV2UserPreferences";
 import type { LinkTierMap } from "renderer/lib/clickPolicy";
 import {
@@ -14,6 +15,7 @@ interface LinksSettingsProps {
 }
 
 export function LinksSettings({ visibleItems }: LinksSettingsProps) {
+	const { t } = useTranslation();
 	const { preferences, setFileLinks, setUrlLinks, setSidebarFileLinks } =
 		useV2UserPreferences();
 
@@ -51,7 +53,7 @@ export function LinksSettings({ visibleItems }: LinksSettingsProps) {
 	return (
 		<div className="p-6 max-w-4xl w-full">
 			<div className="mb-8">
-				<h2 className="text-xl font-semibold">Links</h2>
+				<h2 className="text-xl font-semibold">{t("settings.links.title")}</h2>
 				<p className="text-sm text-muted-foreground mt-1">
 					Control what each click — plain or with a modifier — does to a file or
 					URL. Each row binds one modifier combination to an action.

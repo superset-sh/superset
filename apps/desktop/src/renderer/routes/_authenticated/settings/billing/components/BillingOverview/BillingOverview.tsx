@@ -3,6 +3,7 @@ import { toast } from "@superset/ui/sonner";
 import { useLiveQuery } from "@tanstack/react-db";
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { HiArrowRight } from "react-icons/hi2";
 import { env } from "renderer/env.renderer";
 import { authClient } from "renderer/lib/auth-client";
@@ -23,6 +24,7 @@ interface BillingOverviewProps {
 }
 
 export function BillingOverview({ visibleItems }: BillingOverviewProps) {
+	const { t } = useTranslation();
 	const { data: session } = authClient.useSession();
 	const collections = useCollections();
 	const [isUpgrading, setIsUpgrading] = useState(false);
@@ -134,7 +136,9 @@ export function BillingOverview({ visibleItems }: BillingOverviewProps) {
 		<div className="p-6 max-w-4xl w-full">
 			<div className="mb-8 flex items-start justify-between gap-4">
 				<div>
-					<h2 className="text-xl font-semibold">Billing</h2>
+					<h2 className="text-xl font-semibold">
+						{t("settings.billing.title")}
+					</h2>
 					<p className="text-sm text-muted-foreground mt-1">
 						For questions about billing,{" "}
 						<a
