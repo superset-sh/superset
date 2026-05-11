@@ -272,24 +272,38 @@ export function RemoteTerminal({ sessionId, token }: RemoteTerminalProps) {
 			sendClientMessage({ type: "input", data: bytesToBase64(bytes) });
 		});
 
+		// ResizeObserver can fire ~60Hz during a window-drag. The host
+		// enforces REMOTE_CONTROL_RESIZE_RATE_PER_SEC = 10, so an
+		// unthrottled broadcast trips the "rate-limited" error and the
+		// viewer sees a spurious banner during normal use. Coalesce to
+		// one fit+broadcast per animation frame.
+		let resizeRaf: number | null = null;
 		const onResize = () => {
-			if (!fitRef.current || !termRef.current) return;
-			try {
-				fitRef.current.fit();
-			} catch {
-				return;
-			}
-			if (meta.mode === "full") {
-				const cols = termRef.current.cols;
-				const rows = termRef.current.rows;
-				sendClientMessage({ type: "resize", cols, rows });
-			}
+			if (resizeRaf !== null) return;
+			resizeRaf = requestAnimationFrame(() => {
+				resizeRaf = null;
+				if (!fitRef.current || !termRef.current) return;
+				try {
+					fitRef.current.fit();
+				} catch {
+					return;
+				}
+				if (meta.mode === "full") {
+					const cols = termRef.current.cols;
+					const rows = termRef.current.rows;
+					sendClientMessage({ type: "resize", cols, rows });
+				}
+			});
 		};
 		const ro = new ResizeObserver(onResize);
 		ro.observe(containerRef.current);
 
 		return () => {
 			ro.disconnect();
+			if (resizeRaf !== null) {
+				cancelAnimationFrame(resizeRaf);
+				resizeRaf = null;
+			}
 			dataDispose.dispose();
 			try {
 				sendClientMessage({ type: "stop" });
