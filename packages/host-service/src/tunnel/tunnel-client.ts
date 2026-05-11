@@ -10,6 +10,27 @@ import type {
 const RECONNECT_BASE_MS = 1_000;
 const RECONNECT_MAX_MS = 30_000;
 
+// The WHATWG WebSocket `close()` algorithm only accepts 1000 or 3000-4999.
+// Anything else (e.g. 1001 "going away" or 1006 "abnormal closure" forwarded
+// by a peer) throws InvalidAccessError. If the throw happens inside an event
+// dispatch (e.g. onclose), it tears down the tunnel without exiting the
+// process, so systemd's Restart=on-failure never fires. See issue #4414.
+function safeCloseWebSocket(
+	ws: WebSocket,
+	code?: number,
+	reason?: string,
+): void {
+	const safeCode =
+		code === 1000 || (typeof code === "number" && code >= 3000 && code <= 4999)
+			? code
+			: 1000;
+	try {
+		ws.close(safeCode, reason);
+	} catch (error) {
+		console.error("[host-service:tunnel] WebSocket.close failed:", error);
+	}
+}
+
 export interface TunnelClientOptions {
 	relayUrl: string;
 	hostId: string;
@@ -100,7 +121,7 @@ export class TunnelClient {
 			this.socket?.readyState === WebSocket.CONNECTING ||
 			this.socket?.readyState === WebSocket.OPEN
 		) {
-			this.socket.close(1000, "Shutting down");
+			safeCloseWebSocket(this.socket, 1000, "Shutting down");
 		}
 		this.socket = null;
 	}
@@ -236,13 +257,13 @@ export class TunnelClient {
 		const localWs = this.localChannels.get(message.id);
 		if (localWs) {
 			this.localChannels.delete(message.id);
-			localWs.close(message.code ?? 1000);
+			safeCloseWebSocket(localWs, message.code ?? 1000);
 		}
 	}
 
 	private cleanupChannels(): void {
 		for (const ws of this.localChannels.values()) {
-			ws.close(1001, "Tunnel disconnected");
+			safeCloseWebSocket(ws, 1000, "Tunnel disconnected");
 		}
 		this.localChannels.clear();
 	}
