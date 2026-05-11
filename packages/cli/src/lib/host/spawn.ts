@@ -3,12 +3,14 @@ import { randomBytes } from "node:crypto";
 import { existsSync } from "node:fs";
 import { createServer } from "node:net";
 import { dirname, join } from "node:path";
+import type { ApiClient } from "../api-client";
 import { env } from "../env";
 import {
 	type HostServiceManifest,
 	hostDbPath,
 	writeManifest,
 } from "./manifest";
+import { getRelayUrl } from "./relay-url";
 
 const HEALTH_POLL_INTERVAL_MS = 200;
 const HEALTH_POLL_TIMEOUT_MS = 10_000;
@@ -16,6 +18,7 @@ const HEALTH_POLL_TIMEOUT_MS = 10_000;
 export interface SpawnHostOptions {
 	organizationId: string;
 	sessionToken: string;
+	api: ApiClient;
 	port?: number;
 	daemon: boolean;
 }
@@ -98,6 +101,7 @@ export async function spawnHostService(
 	const port = options.port ?? (await findFreePort());
 	const secret = randomBytes(32).toString("hex");
 	const migrationsFolder = resolveMigrationsFolder();
+	const relayUrl = await getRelayUrl(options.api);
 
 	const child = spawn(hostBin, [], {
 		stdio: options.daemon ? "ignore" : "inherit",
@@ -107,7 +111,7 @@ export async function spawnHostService(
 			ORGANIZATION_ID: options.organizationId,
 			AUTH_TOKEN: options.sessionToken,
 			SUPERSET_API_URL: env.SUPERSET_API_URL,
-			RELAY_URL: env.RELAY_URL,
+			RELAY_URL: relayUrl,
 			PORT: String(port),
 			HOST_SERVICE_PORT: String(port),
 			HOST_SERVICE_SECRET: secret,
