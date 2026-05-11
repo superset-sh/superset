@@ -56,6 +56,13 @@ interface HostServiceProcess {
 
 const ADOPTED_LIVENESS_INTERVAL = 5_000;
 
+/**
+ * Cap how long an adoption health check can take before we decide the adopted
+ * process is dead and respawn. Short enough that a Cmd+R into a wedged
+ * host-service heals quickly; long enough to ride out brief startup blips.
+ */
+const ADOPT_HEALTH_CHECK_TIMEOUT_MS = 2_000;
+
 export class HostServiceCoordinator extends EventEmitter {
 	private instances = new Map<string, HostServiceProcess>();
 	private pendingStarts = new Map<string, Promise<Connection>>();
@@ -294,6 +301,26 @@ export class HostServiceCoordinator extends EventEmitter {
 			);
 			try {
 				process.kill(manifest.pid, "SIGTERM");
+			} catch {}
+			removeManifest(organizationId);
+			return null;
+		}
+
+		// A live pid is not the same as a serving host-service — the process can
+		// be hung on migrations, deadlocked, or no longer bound to the recorded
+		// port. Without this check the renderer's `getConnection` keeps handing
+		// out a dead port forever, which is the failure mode in superset-sh/superset#4299.
+		const healthy = await pollHealthCheck(
+			manifest.endpoint,
+			manifest.authToken,
+			ADOPT_HEALTH_CHECK_TIMEOUT_MS,
+		);
+		if (!healthy) {
+			console.log(
+				`[host-service:${organizationId}] Adopted pid=${manifest.pid} did not respond on ${manifest.endpoint}, killing and respawning`,
+			);
+			try {
+				process.kill(manifest.pid, "SIGKILL");
 			} catch {}
 			removeManifest(organizationId);
 			return null;
