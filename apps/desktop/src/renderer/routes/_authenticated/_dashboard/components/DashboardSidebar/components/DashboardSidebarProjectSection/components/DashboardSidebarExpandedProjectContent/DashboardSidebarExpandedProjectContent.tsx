@@ -122,6 +122,10 @@ export function DashboardSidebarExpandedProjectContent({
 														shortcutLabel={workspaceShortcutLabels.get(
 															parsed.realId,
 														)}
+														disabled={
+															workspace.type === "main" &&
+															workspace.hostType === "local-device"
+														}
 													/>
 												</motion.div>
 											)}

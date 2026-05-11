@@ -160,6 +160,7 @@ export function DashboardSidebarWorkspaceItem({
 							isInSection={isInSection}
 							isUnread={isUnread}
 							isLocalWorkspace={hostType === "local-device"}
+							isPinned={isMainWorkspace && hostType === "local-device"}
 							onCreateSection={handleCreateSection}
 							onMoveToSection={(targetSectionId) =>
 								moveWorkspaceToSection(id, projectId, targetSectionId)
@@ -249,6 +250,7 @@ export function DashboardSidebarWorkspaceItem({
 							moveWorkspaceToSection(id, projectId, targetSectionId)
 						}
 						isLocalWorkspace={hostType === "local-device"}
+						isPinned={isMainWorkspace && hostType === "local-device"}
 						onOpenInFinder={handleOpenInFinder}
 						onCopyPath={handleCopyPath}
 						onCopyBranchName={handleCopyBranchName}
