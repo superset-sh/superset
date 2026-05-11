@@ -1,8 +1,9 @@
 # Host-Service Recovery: Self-Healing + In-App Escape Hatch
 
-**Status:** Draft
-**Scope:** v2 desktop only — `apps/desktop/src/main/lib/host-service-coordinator.ts`, `apps/desktop/src/lib/trpc/routers/host-service-coordinator/index.ts`, `apps/desktop/src/renderer/routes/_authenticated/providers/LocalHostServiceProvider/*`, `apps/desktop/src/main/lib/tray/index.ts`, plus a new Settings section.
+**Status:** PR1 shipped ([#4395](https://github.com/superset-sh/superset/pull/4395)). PR2 (items 2 + 3 + 4) ready for handoff. PR3 (item 6) optional follow-up.
+**Scope:** v2 desktop only — `apps/desktop/src/main/lib/host-service-coordinator.ts`, `apps/desktop/src/lib/trpc/routers/host-service-coordinator/index.ts`, `apps/desktop/src/renderer/routes/_authenticated/providers/LocalHostServiceProvider/*`, `apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/*`, `apps/desktop/src/main/lib/tray/index.ts`, plus a new Settings section.
 **Tracking issue:** [superset-sh/superset#4299](https://github.com/superset-sh/superset/issues/4299)
+**Related:** [#4396](https://github.com/superset-sh/superset/issues/4396) (white-screen / unbounded `ioreg execFileSync` — separate fix path, not blocked by this plan).
 
 ## Goal
 
@@ -56,40 +57,19 @@ Buckets A and C/D account for the issue thread. B is the easiest to reproduce lo
 
 Ranking criteria: **impact** (how many buckets the change unsticks) × **visibility** (does the user know it happened) ÷ **risk + effort**.
 
-### 1. Health-check during adoption  *(highest impact, near-zero risk)*
+### 1. Health-check during adoption  *(shipped in PR #4395)*
 
-**File:** `apps/desktop/src/main/lib/host-service-coordinator.ts:280-315`
+**Status:** ✅ Shipped. See `apps/desktop/src/main/lib/host-service-coordinator.ts:307-326` for the implementation and `apps/desktop/src/main/lib/host-service-coordinator.test.ts` for the regression test.
 
-Before registering an adopted manifest as `running`, do a `pollHealthCheck(manifest.endpoint, manifest.authToken, 2_000)`. On failure: SIGKILL the pid, `removeManifest(orgId)`, return null so `start` falls through to `spawn`.
+Fixes **bucket A** structurally — every Cmd+R / app launch now health-checks the adopted manifest endpoint with a 2s timeout, SIGKILLs unresponsive pids, and falls through to a clean `spawn`. Invisible when adoption is healthy.
 
-```ts
-private async tryAdopt(organizationId: string): Promise<Connection | null> {
-  const manifest = this.readAndValidateManifest(organizationId);
-  if (!manifest) return null;
+### 2. Coordinator `reset(orgId)` + tRPC surface  *(PR2 — unlocks 3 and 6)*
 
-  // … existing app-version gate …
+**Files to edit:**
+- `apps/desktop/src/main/lib/host-service-coordinator.ts` — add method on the class, alongside `restart` (currently at ~`148-156`).
+- `apps/desktop/src/lib/trpc/routers/host-service-coordinator/index.ts` — add a `reset` mutation, mirroring `restart` (currently at lines 37-47). Existing imports already include `loadToken` and `env.NEXT_PUBLIC_API_URL`.
 
-  const healthy = await pollHealthCheck(manifest.endpoint, manifest.authToken, 2_000);
-  if (!healthy) {
-    console.log(`[host-service:${organizationId}] Adopted pid=${manifest.pid} did not respond; killing`);
-    try { process.kill(manifest.pid, "SIGKILL"); } catch {}
-    removeManifest(organizationId);
-    return null;
-  }
-
-  // … existing register-and-return …
-}
-```
-
-Fixes **bucket A**. Invisible when adoption is healthy. Adds at most ~2s to coordinator start when adoption fails — acceptable; it only triggers on app launch / Cmd+R.
-
-**Tests:** unit test for the new path in `host-service-coordinator.test.ts` — mock `pollHealthCheck` to return false, assert `tryAdopt` returns null, manifest is removed, pid received SIGKILL.
-
-### 2. Coordinator `reset(orgId)` + tRPC surface  *(unlocks 3 and 5)*
-
-**File:** `apps/desktop/src/main/lib/host-service-coordinator.ts`, `apps/desktop/src/lib/trpc/routers/host-service-coordinator/index.ts`
-
-Add:
+Add to `HostServiceCoordinator`:
 
 ```ts
 async reset(
@@ -97,7 +77,7 @@ async reset(
   config: SpawnConfig,
   options: { wipeHostDb?: boolean } = {},
 ): Promise<Connection> {
-  // 1. Stop in-memory + send SIGTERM
+  // 1. Stop in-memory + send SIGTERM. No-op if no instance is tracked.
   this.stop(organizationId);
 
   // 2. SIGKILL any pid the manifest still references (covers the
@@ -107,7 +87,7 @@ async reset(
     try { process.kill(manifest.pid, "SIGKILL"); } catch {}
   }
 
-  // 3. Remove manifest
+  // 3. Remove manifest so adoption can't pick up the stale entry.
   removeManifest(organizationId);
 
   // 4. Optional: archive host.db to host.db.broken-<ts> so we keep
@@ -119,83 +99,123 @@ async reset(
     }
   }
 
-  // 5. Fresh start
+  // 5. Fresh start.
   return this.start(organizationId, config);
 }
 ```
 
-Expose via `hostServiceCoordinator.reset` in the tRPC router, mirroring the existing `restart` shape (takes `organizationId`, loads token from `loadToken()`, threads `cloudApiUrl`). Add an `wipeHostDb: z.boolean().optional()` input.
-
-The default is **not** to wipe host.db — that's data loss. The Settings UI surfaces "Reset" (manifest only) and "Reset and clear local data" (also archives host.db) as separate actions.
-
-**Tests:** coordinator unit test that `reset` removes the manifest, the optional rename happens only when requested, and the new `start` produces a running instance.
-
-### 3. Surface failures with a recovery banner  *(visibility — the actual user fix)*
-
-**File:** `LocalHostServiceProvider.tsx` + new `WorkspaceHostUnavailableBanner` component.
-
-Today `activeHostUrl === null` is silent. Change the contract:
-
-- Provider tracks "did we attempt `start` for the active org, and has it been stopped/null longer than 5s?"
-- When true, render a banner above the workspace content with:
-  - The last known status from `coordinator.onStatusChange` (`starting` / `stopped`) + any error message from the failed `start` mutation.
-  - Two actions: **Reset host service** (`reset(orgId, { wipeHostDb: false })`) and **Get diagnostics** (copies manifest path + last 200 log lines to clipboard, for paste into bug reports).
-
-The banner needs `select-text cursor-text` per `apps/desktop/AGENTS.md` so users can copy errors.
-
-Hook the banner into the workspace right-pane shell so it appears in place of the blank skeleton — not as a toast (toasts auto-dismiss; this state is sticky).
-
-**Tests:** RTL test that mounts the provider with a mocked `start` mutation that throws, advances time past 5s, and asserts the banner renders with the expected error and actions.
-
-### 4. Renderer retry with exponential backoff  *(covers transient C/D)*
-
-**File:** `LocalHostServiceProvider.tsx`
-
-Subscribe to `electronTrpc.hostServiceCoordinator.onStatusChange.useSubscription`. When status for the active org transitions to `stopped` (or `start` mutation throws), schedule a re-`start` with backoff: 1s, 4s, 15s, then give up. Cap visible to the user via the banner from (3) — after backoff exhausts, the banner says "Auto-retry exhausted, click Reset."
-
-This fixes the **transient** half of bucket C (port race, slow disk on boot) and is the cheapest way to handle bucket B after a sign-in: as soon as `loadToken` returns a token, the next retry succeeds.
-
-**Tests:** RTL test using fake timers — assert exactly three retries fire on stop events.
-
-### 5. Tray "Restart" enabled in `stopped`  *(one-liner, always-correct)*
-
-**File:** `apps/desktop/src/main/lib/tray/index.ts:172-200`
+Router shape:
 
 ```ts
-// Before: enabled: isRunning,
-// After: enabled: status !== "starting",
+reset: publicProcedure
+  .input(orgInput.extend({ wipeHostDb: z.boolean().optional() }))
+  .mutation(async ({ input }) => {
+    const coordinator = getHostServiceCoordinator();
+    const { token } = await loadToken();
+    if (!token) {
+      throw new Error("No auth token available — user must be logged in");
+    }
+    return coordinator.reset(
+      input.organizationId,
+      { authToken: token, cloudApiUrl: env.NEXT_PUBLIC_API_URL },
+      { wipeHostDb: input.wipeHostDb },
+    );
+  }),
 ```
 
-`stopped` is the state where Restart is most useful; gating it on `running` is backwards.
+The default is **not** to wipe host.db — that's data loss. Settings UI (item 6) surfaces "Reset" (manifest only) and "Reset and clear local data" (also archives host.db) as separate actions.
 
-### 6. Settings → Advanced → "Reset host service" button  *(belt and suspenders)*
+**Tests:** extend `host-service-coordinator.test.ts` (already mocks `host-service-manifest`, `host-service-utils`, etc.) with three cases:
+1. `reset` with no `wipeHostDb` removes the manifest, calls `start`, returns a new connection.
+2. `reset({ wipeHostDb: true })` renames `host.db` to `host.db.broken-<ts>` (mock `fs.renameSync`).
+3. `reset` is safe to call when no instance is tracked (no manifest, no pid).
 
-**File:** new section in Settings (the Experimental panel feels right, since V2 toggle lives there). Reuses the tRPC `reset` mutation from (2). Two buttons:
+### 3. Surface failures with a recovery state  *(PR2 — the actual user fix)*
 
-- **Reset host service** — calls `reset({})`. Safe; loses no data.
-- **Reset and clear local host data** — calls `reset({ wipeHostDb: true })`. Behind a confirm dialog that names what's lost (terminal session history, host-side chat state) and what survives (workspaces, projects, chats — those live in `@superset/local-db`).
+**Pattern to follow:** the v2 workspace layout (`apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/layout.tsx:87-101`) **already** renders `<WorkspaceHostOfflineState>` when `useRemoteHostStatus` reports `offline` for a remote host. The local-host branch is currently a gap — when `isLocal && activeHostUrl === null` we render the workspace anyway and downstream calls toast `"Host service not available"`. Mirror the remote pattern for the local case.
 
-Lower priority than the in-context banner from (3) because a user who can't load workspaces probably won't think to open Settings, but it's useful from a support perspective ("ask them to click this button").
+**Files to create / edit:**
+- `apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/hooks/useLocalHostStatus/useLocalHostStatus.ts` (new). Returns `"skip" | "loading" | "stopped" | "ready"`. Status is `"stopped"` when the workspace is local (`workspace.hostId === machineId`), the provider has attempted `start` for the active org, and `activeHostUrl` has stayed null for ≥5s. Read status events from `electronTrpc.hostServiceCoordinator.onStatusChange.useSubscription`, plus the most recent `start`-mutation error (lift the mutation result up from `LocalHostServiceProvider` into context).
+- `apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/components/WorkspaceLocalHostStoppedState/WorkspaceLocalHostStoppedState.tsx` (new). Two-button UI (mirror `WorkspaceHostOfflineState` styling so it doesn't feel grafted on):
+  - **Reset host service** — calls `electronTrpc.hostServiceCoordinator.reset.useMutation({ wipeHostDb: false })`.
+  - **Copy diagnostics** — copies a small text blob to clipboard: manifest path, manifest JSON (via a new `hostServiceCoordinator.getDiagnostics(orgId)` query if needed, or just print `~/.superset/host/<orgId>/`), last `start` mutation error, and the current status. Use the existing `select-text cursor-text` convention from `apps/desktop/AGENTS.md` so users can copy from the rendered text directly.
+- `apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/layout.tsx` — add a branch above the `hostStatus.status === "offline"` block that renders `WorkspaceLocalHostStoppedState` when `useLocalHostStatus(workspace)` returns `"stopped"`.
+- `apps/desktop/src/renderer/routes/_authenticated/providers/LocalHostServiceProvider/LocalHostServiceProvider.tsx` — expose the latest `start` mutation error and a "last attempt timestamp" on the context. (Currently the mutation result is discarded.)
+
+**Why this shape, not a toast or top-bar banner:** `WorkspaceHostOfflineState` already establishes the pattern of replacing the workspace content when the host is unreachable, and the failure here is sticky (not a one-shot error). Reusing the slot keeps the design system consistent and means the recovery action appears exactly where the user is trying to work.
+
+**Tests:**
+- RTL test for `useLocalHostStatus`: mount with mocked context where `activeHostUrl` is null and last-attempt was >5s ago → assert `"stopped"`. <5s → `"loading"`. Remote workspace → `"skip"`.
+- RTL test for `WorkspaceLocalHostStoppedState`: clicking **Reset host service** fires the `reset` mutation; clicking **Copy diagnostics** calls `navigator.clipboard.writeText` with text containing the manifest path.
+
+### 4. Renderer retry with exponential backoff  *(PR2 — covers transient C/D)*
+
+**File:** `apps/desktop/src/renderer/routes/_authenticated/providers/LocalHostServiceProvider/LocalHostServiceProvider.tsx`
+
+The current `useEffect` (lines 48-52) fires `start({orgId})` exactly once on mount and never again. Wrap that effect with retry-on-failure:
+
+- Subscribe to `electronTrpc.hostServiceCoordinator.onStatusChange.useSubscription` (already exported by the router at `apps/desktop/src/lib/trpc/routers/host-service-coordinator/index.ts:49-56`).
+- When the active org's status transitions to `stopped` (or the most recent `start` mutation errors), schedule a re-`start` with backoff: 1s, 4s, 15s. After three attempts, stop retrying and let the recovery state from (3) take over.
+- Reset the backoff counter when status reaches `running`.
+
+Pattern note: subscription must use the observable pattern, not async generators (`apps/desktop/AGENTS.md` covers why). The router already does this correctly.
+
+This fixes the **transient** half of bucket C (port race, slow disk on boot) and is the cheapest way to handle bucket B after a sign-in: as soon as `loadToken` returns a token, the next retry succeeds without the user clicking anything.
+
+**Tests:** RTL test using fake timers — push three `stopped` events into the mocked subscription, advance time, assert exactly three `start` mutations fire at 1s/4s/15s, and a `running` event after the second attempt resets the counter.
+
+### 5. Tray "Restart" enabled in `stopped`  *(shipped in PR #4395)*
+
+**Status:** ✅ Shipped. See `apps/desktop/src/main/lib/tray/index.ts:171-176`.
+
+### 6. Settings → Advanced → "Reset host service" button  *(PR3 — belt and suspenders)*
+
+**File:** new section in `apps/desktop/src/renderer/routes/_authenticated/settings/`. The Experimental panel is the right home (the V2 toggle already lives there). Reuses the tRPC `reset` mutation from (2). Two buttons:
+
+- **Reset host service** — calls `reset({ wipeHostDb: false })`. Safe; loses no data.
+- **Reset and clear local host data** — calls `reset({ wipeHostDb: true })`. Behind a confirm dialog that names what's lost (terminal session history, host-side chat state) and what survives (workspaces, projects, chats — those live in `@superset/local-db`, not `host.db`).
+
+Lower priority than the in-context recovery from (3) because a user who can't load workspaces probably won't think to open Settings, but it's useful from a support perspective ("ask them to click this button").
 
 ## Out of scope
 
-- **Why host-service crashes in the first place.** The "right pane went blank then Cmd+R" half of #4299 is a different bug — something in the workspace render path or host-service runtime that we should track separately. This plan only handles the *recovery* once it has crashed.
+- **The white-screen path.** Tracked separately at [#4396](https://github.com/superset-sh/superset/issues/4396) — `getHostId()` on macOS shells out to `ioreg` via `execFileSync` with no timeout, blocking the main event loop when subprocess spawning is blocked by sandboxing tools. Fix lands independently.
 - **Auto-wiping `host.db`.** Data loss without a confirm dialog is non-negotiable.
-- **Touching the start mutation semantics.** Other call sites depend on `start` being idempotent and resolving once.
+- **Touching the `start` mutation semantics.** Other call sites depend on `start` being idempotent and resolving once.
 - **Cross-org healing.** We retry/reset only the active org. Inactive orgs are out of scope; their host-service can be healed by switching to them.
 
 ## Rollout
 
-- **Order:** (1) and (5) ship first as a small PR — no UI changes, easy to revert. (2)+(3)+(4) ship as a second PR — that's the user-facing recovery story. (6) tacks on after.
-- **Telemetry:** log `[host-service-coordinator] adoption health check failed` (1), `reset(orgId)` invocation source (banner vs tray vs settings) (2/3/6), retry attempt counts (4). PostHog event `host_service_recovery` with `{ source, action, succeeded }`.
-- **Risk:** the adoption health check briefly extends coordinator startup on the unhappy path. Bound by `2_000ms`, and only triggers when adoption would have failed silently anyway, so the worst case is "startup is slightly slower when host-service was broken" — strictly better than current.
+- **Order:** (1)+(5) shipped as PR #4395. (2)+(3)+(4) ship together as PR2 — that's the user-facing recovery story. (6) tacks on as PR3.
+- **Telemetry:** PostHog event `host_service_recovery` with `{ source: "banner" | "tray" | "settings", action: "reset" | "retry" | "wipe", succeeded: boolean }`. Wire from the renderer at each click-handler. Server-side, the coordinator already `console.log`s adoption health-check failures (PR1) — keep those.
+- **Risk:** Renderer retry could mask a deterministic spawn failure under three rounds of backoff if the recovery state isn't surfaced clearly. Mitigate by making (3) and (4) ship together: the retry counter is visible in the recovery state, and after exhaustion the UI says "Auto-retry exhausted, click Reset."
 
 ## Acceptance criteria
 
 For #4299 to be considered closed by this work:
 
-- [ ] A user reproducing the issue can recover without filesystem access, in ≤2 clicks from the blank workspace screen.
-- [ ] If the manifest points at a non-responsive pid, the next Cmd+R or app launch heals automatically (no user action).
-- [ ] If host-service spawn is failing for a persistent reason (e.g., port binding error), the banner names the reason in copyable text.
-- [ ] Tray → Restart works in `stopped` state.
+- [x] If the manifest points at a non-responsive pid, the next Cmd+R or app launch heals automatically (PR1).
+- [x] Tray → Restart works in `stopped` state (PR1).
+- [ ] A user reproducing the issue can recover without filesystem access, in ≤2 clicks from the blank workspace screen (PR2).
+- [ ] If host-service spawn is failing for a persistent reason (e.g., port binding error), the recovery state names the reason in copyable text (PR2).
 - [ ] No regression in startup time for the happy path (verified via dev-tools timing on a freshly-cloned `.superset` dir).
+
+## Handoff checklist for PR2
+
+A new implementer picking this up should:
+
+1. **Read PR #4395** to see the patterns already in place: the coordinator test file structure (`apps/desktop/src/main/lib/host-service-coordinator.test.ts`) and the `pollHealthCheck` usage.
+2. **Read `useRemoteHostStatus` + `WorkspaceHostOfflineState`** in `apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/` — PR2's local-host equivalent should mirror these in shape and visual style.
+3. **Implement in order:** (2) coordinator `reset` → tRPC `reset` → renderer mutation hook; then (4) retry loop in `LocalHostServiceProvider`; then (3) `useLocalHostStatus` + `WorkspaceLocalHostStoppedState` + layout branch. (2) before (3) so the recovery component has the mutation to call; (4) before (3) so the recovery state knows when to surface (after backoff exhausts).
+4. **Verify each test can fail** — for every new test, mutate the implementation to confirm the test catches the regression. (Project convention; see `apps/desktop/AGENTS.md` and the existing coordinator test.)
+5. **Lint and typecheck before pushing.** `bun run lint` (from repo root) treats Biome warnings as errors. `bun run typecheck` in `apps/desktop`.
+
+Files touched by PR2 (preview):
+
+- `apps/desktop/src/main/lib/host-service-coordinator.ts` (add `reset` method)
+- `apps/desktop/src/main/lib/host-service-coordinator.test.ts` (extend with reset tests)
+- `apps/desktop/src/lib/trpc/routers/host-service-coordinator/index.ts` (add `reset` mutation)
+- `apps/desktop/src/renderer/routes/_authenticated/providers/LocalHostServiceProvider/LocalHostServiceProvider.tsx` (expose error / last-attempt, add retry loop)
+- `apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/hooks/useLocalHostStatus/{useLocalHostStatus.ts,useLocalHostStatus.test.ts,index.ts}` (new)
+- `apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/components/WorkspaceLocalHostStoppedState/{WorkspaceLocalHostStoppedState.tsx,WorkspaceLocalHostStoppedState.test.tsx,index.ts}` (new)
+- `apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/layout.tsx` (add branch above the offline branch)
