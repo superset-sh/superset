@@ -9,6 +9,7 @@ import { WorkspaceCreateErrorState } from "./components/WorkspaceCreateErrorStat
 import { WorkspaceCreatingState } from "./components/WorkspaceCreatingState";
 import { WorkspaceHostIncompatibleState } from "./components/WorkspaceHostIncompatibleState";
 import { WorkspaceHostOfflineState } from "./components/WorkspaceHostOfflineState";
+import { WorkspaceHostUnreachableState } from "./components/WorkspaceHostUnreachableState";
 import { WorkspaceNotFoundState } from "./components/WorkspaceNotFoundState";
 import { useRemoteHostStatus } from "./hooks/useRemoteHostStatus";
 import { WorkspaceProvider } from "./providers/WorkspaceProvider";
@@ -86,6 +87,9 @@ function V2WorkspaceLayout() {
 
 	if (hostStatus.status === "offline") {
 		return <WorkspaceHostOfflineState hostName={hostStatus.hostName} />;
+	}
+	if (hostStatus.status === "unreachable") {
+		return <WorkspaceHostUnreachableState hostName={hostStatus.hostName} />;
 	}
 	if (hostStatus.status === "incompatible") {
 		return (

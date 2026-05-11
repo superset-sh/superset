@@ -8,19 +8,13 @@ import { env } from "renderer/env.renderer";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
-import semver from "semver";
+import {
+	type RemoteHostInfoQueryState,
+	type RemoteHostStatus,
+	resolveRemoteHostStatus,
+} from "./resolveRemoteHostStatus";
 
-export type RemoteHostStatus =
-	| { status: "skip" }
-	| { status: "loading" }
-	| { status: "offline"; hostName: string }
-	| {
-			status: "incompatible";
-			hostName: string;
-			hostVersion: string;
-			minVersion: string;
-	  }
-	| { status: "ready" };
+export type { RemoteHostStatus } from "./resolveRemoteHostStatus";
 
 const HOST_INFO_STALE_MS = 30_000;
 
@@ -58,44 +52,31 @@ export function useRemoteHostStatus(
 		hostId,
 	)}`;
 
+	const infoQueryEnabled =
+		workspace != null && !isLocal && hostRow?.isOnline === true;
+
 	const infoQuery = useQuery({
 		queryKey: ["remoteHostInfo", organizationId, hostId],
 		queryFn: () => getHostServiceClientByUrl(hostUrl).host.info.query(),
-		enabled: workspace != null && !isLocal && hostRow?.isOnline === true,
+		enabled: infoQueryEnabled,
 		staleTime: HOST_INFO_STALE_MS,
 		retry: false,
 	});
 
-	if (!workspace) return { status: "loading" };
-	if (isLocal) return { status: "skip" };
-	if (!isReady) return { status: "loading" };
-	// No matching v2Hosts row once the collection is ready — host was
-	// deregistered while the workspace record stuck around. Surface the
-	// offline screen so users have a recovery path instead of a blank div.
-	if (!hostRow) return { status: "offline", hostName: "Unknown host" };
+	const infoQueryState: RemoteHostInfoQueryState = !infoQueryEnabled
+		? { state: "disabled" }
+		: infoQuery.isError
+			? { state: "error" }
+			: infoQuery.isPending
+				? { state: "pending" }
+				: { state: "success", version: infoQuery.data.version };
 
-	if (!hostRow.isOnline) {
-		return { status: "offline", hostName: hostRow.name };
-	}
-
-	if (infoQuery.isPending) return { status: "loading" };
-
-	if (infoQuery.isError) {
-		// Cloud reports the host online but the relay round-trip failed —
-		// treat as offline; the most common cause is a stale `isOnline`
-		// flag after the host crashed without a clean disconnect.
-		return { status: "offline", hostName: hostRow.name };
-	}
-
-	const hostVersion = infoQuery.data.version;
-	if (!semver.satisfies(hostVersion, `>=${MIN_HOST_SERVICE_VERSION}`)) {
-		return {
-			status: "incompatible",
-			hostName: hostRow.name,
-			hostVersion,
-			minVersion: MIN_HOST_SERVICE_VERSION,
-		};
-	}
-
-	return { status: "ready" };
+	return resolveRemoteHostStatus({
+		workspace: workspace ? { hostId: workspace.hostId } : null,
+		machineId,
+		hostsReady: isReady,
+		hostRow,
+		infoQuery: infoQueryState,
+		minVersion: MIN_HOST_SERVICE_VERSION,
+	});
 }
