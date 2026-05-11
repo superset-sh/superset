@@ -65,7 +65,9 @@ type ConnectionState =
 	| "error";
 
 interface SessionMeta {
-	wsUrl: string;
+	// `null` for revoked/expired sessions — cloud refuses to hand out
+	// a WS endpoint for non-active rows as defense-in-depth.
+	wsUrl: string | null;
 	mode: RemoteControlMode;
 	status: RemoteControlStatus;
 	terminalId: string;
@@ -109,7 +111,9 @@ export function RemoteTerminal({ sessionId, token }: RemoteTerminalProps) {
 		let cancelled = false;
 		(async () => {
 			try {
-				const result = await trpcClient.remoteControl.get.query({
+				// `.mutate()` rather than `.query()` so the bearer token rides
+				// in the POST body. A query would put it in the URL.
+				const result = await trpcClient.remoteControl.get.mutate({
 					sessionId,
 					token,
 				});
@@ -152,7 +156,7 @@ export function RemoteTerminal({ sessionId, token }: RemoteTerminalProps) {
 		// NOT depend on `state` — `setState("open")` would otherwise re-run
 		// this effect, triggering the cleanup which sends `stop` and closes
 		// the WS the moment it finishes connecting.
-		if (!meta || meta.status !== "active") return;
+		if (!meta || meta.status !== "active" || !meta.wsUrl) return;
 		if (!containerRef.current) return;
 
 		// `vtExtensions` (kittyKeyboard) and `scrollbar` are only present on

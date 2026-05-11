@@ -204,7 +204,9 @@ export const remoteControlRouter = createTRPCRouter({
 				},
 				MintTokenResult
 			>(
-				{ relayUrl: env.RELAY_URL, hostId: routingKey, jwt },
+				// Bound the host call so a stuck relay/host doesn't pin the
+				// Share button in "Starting…" forever. Matches `revoke`.
+				{ relayUrl: env.RELAY_URL, hostId: routingKey, jwt, timeoutMs: 5000 },
 				"terminal.remoteControl.mintToken",
 				{
 					sessionId,
@@ -217,18 +219,40 @@ export const remoteControlRouter = createTRPCRouter({
 			);
 
 			const expiresAt = new Date(minted.expiresAt * 1000);
-			await dbWs.insert(v2RemoteControlSessions).values({
-				id: sessionId,
-				organizationId,
-				hostId: host.machineId,
-				workspaceId: workspace.id,
-				terminalId: input.terminalId,
-				createdByUserId: userId,
-				mode: input.mode,
-				status: "active",
-				tokenHash: minted.tokenHash,
-				expiresAt,
-			});
+			// If the DB insert fails, the host already has a live session
+			// keyed to a token-hash the cloud never persisted — invisible to
+			// `listForWorkspace`/`revoke` until the host TTL sweep. Best-
+			// effort revoke it on the host so the minted token is unusable.
+			try {
+				await dbWs.insert(v2RemoteControlSessions).values({
+					id: sessionId,
+					organizationId,
+					hostId: host.machineId,
+					workspaceId: workspace.id,
+					terminalId: input.terminalId,
+					createdByUserId: userId,
+					mode: input.mode,
+					status: "active",
+					tokenHash: minted.tokenHash,
+					expiresAt,
+				});
+			} catch (insertErr) {
+				try {
+					await callHostRevoke({
+						organizationId,
+						hostId: host.machineId,
+						sessionId,
+						actorUserId: userId,
+						actorEmail: owner?.email,
+					});
+				} catch (revokeErr) {
+					console.warn(
+						"[remote-control] orphan-cleanup revoke failed:",
+						revokeErr instanceof Error ? revokeErr.message : String(revokeErr),
+					);
+				}
+				throw insertErr;
+			}
 
 			return {
 				sessionId,
@@ -246,7 +270,13 @@ export const remoteControlRouter = createTRPCRouter({
 	// raw token IS the credential — we hash it and compare against the row's
 	// `token_hash` in constant time. No org membership required, no other
 	// fields exposed without proof of token possession.
-	get: publicProcedure.input(getInput).query(async ({ input }) => {
+	//
+	// Implemented as a `mutation` (not `query`) so tRPC's `httpBatchLink`
+	// puts the input — including the bearer token — in the request BODY
+	// instead of serializing it into the URL query string, which would
+	// otherwise land the token in server access logs and undo the
+	// fragment-URL fix.
+	get: publicProcedure.input(getInput).mutation(async ({ input }) => {
 		const row = await dbWs.query.v2RemoteControlSessions.findFirst({
 			where: eq(v2RemoteControlSessions.id, input.sessionId),
 		});
@@ -263,13 +293,34 @@ export const remoteControlRouter = createTRPCRouter({
 				message: "Invalid remote control token",
 			});
 		}
+		// Cloud-side gate: refuse to hand out a WS endpoint for sessions
+		// that are revoked, expired, or past their TTL even if the sweep
+		// hasn't promoted the row to `expired` yet. Host auth would also
+		// reject the attach, but this is defense-in-depth and prevents
+		// the viewer UI from taking the live-connect path at all.
+		const effectiveStatus =
+			row.status === "active" && row.expiresAt <= new Date()
+				? "expired"
+				: row.status;
+		if (effectiveStatus !== "active") {
+			return {
+				sessionId: row.id,
+				workspaceId: row.workspaceId,
+				terminalId: row.terminalId,
+				mode: row.mode,
+				status: effectiveStatus,
+				expiresAt: row.expiresAt.toISOString(),
+				wsUrl: null,
+				routingKey: null,
+			};
+		}
 		const routingKey = buildHostRoutingKey(row.organizationId, row.hostId);
 		return {
 			sessionId: row.id,
 			workspaceId: row.workspaceId,
 			terminalId: row.terminalId,
 			mode: row.mode,
-			status: row.status,
+			status: effectiveStatus,
 			expiresAt: row.expiresAt.toISOString(),
 			wsUrl: buildWsUrl(routingKey, row.id),
 			routingKey,
