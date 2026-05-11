@@ -12,6 +12,13 @@ interface RightSidebarProps {
 
 const TABS = ["Files", "Changes", "Review"] as const;
 
+const BRANCH_BY_DEMO: Record<ActiveDemo, string> = {
+	"Use Any Agents": "use-any-agents",
+	"Create Parallel Branches": "create-parallel-branches",
+	"See Changes": "see-changes",
+	"Open in Any IDE": "open-in-any-ide",
+};
+
 export function RightSidebar({ activeDemo }: RightSidebarProps) {
 	const isDiff = activeDemo === "See Changes";
 
@@ -60,7 +67,7 @@ export function RightSidebar({ activeDemo }: RightSidebarProps) {
 				<div className="flex items-center gap-2 font-mono text-[11px]">
 					<span className="size-1.5 rounded-full bg-brand" />
 					<span className="truncate font-medium text-foreground/95">
-						{isDiff ? "see-changes" : "use-any-agents"}
+						{BRANCH_BY_DEMO[activeDemo]}
 					</span>
 				</div>
 				<div className="mt-1 flex items-center gap-1.5 font-mono text-[10px] text-muted-foreground/60">
@@ -76,87 +83,89 @@ export function RightSidebar({ activeDemo }: RightSidebarProps) {
 				</div>
 			</div>
 
-			<motion.div
-				className="absolute inset-x-0 bottom-0 top-[108px] flex flex-col"
-				initial={{ opacity: 1 }}
-				animate={{ opacity: isDiff ? 0 : 1 }}
-				transition={{ duration: 0.2 }}
-				style={{ pointerEvents: isDiff ? "none" : "auto" }}
-			>
-				<div className="flex-1 space-y-0.5 overflow-hidden py-1.5">
-					{FILE_CHANGES.map((file, index) => (
-						<FileChangeItem
-							key={`${file.path}-${index}`}
-							path={file.path}
-							add={file.add}
-							del={file.del}
-							indent={file.indent}
-							type={file.type}
-						/>
-					))}
-				</div>
-			</motion.div>
-
-			<motion.div
-				className="absolute inset-x-0 bottom-0 top-[108px] flex flex-col bg-card"
-				initial={{ opacity: 0 }}
-				animate={{ opacity: isDiff ? 1 : 0 }}
-				transition={{ duration: 0.25, delay: isDiff ? 0.1 : 0 }}
-				style={{ pointerEvents: isDiff ? "auto" : "none" }}
-			>
-				<div className="flex items-center gap-0 border-b border-border px-2">
-					<span className="relative flex h-7 items-center px-2 font-mono text-[11px] font-medium text-foreground/95">
-						cloud-workspace.ts
-						<span className="absolute inset-x-2 -bottom-px h-[2px] bg-brand" />
-					</span>
-					<span className="flex h-7 items-center px-2 font-mono text-[11px] text-muted-foreground/55">
-						enums.ts
-					</span>
-					<span className="flex h-7 items-center px-2 text-[10px] text-muted-foreground/45">
-						+4
-					</span>
-				</div>
-
-				<div className="flex-1 overflow-hidden p-3 font-mono text-[10px] leading-relaxed">
-					<div className="space-y-px">
-						<div className="py-0.5 text-muted-foreground/50">
-							@@ -1,4 +1,6 @@
-						</div>
-						<DiffLine n={1}>
-							import {"{"} db {"}"} from "../db"
-						</DiffLine>
-						<DiffLine added>
-							import {"{"} CloudWorkspace {"}"} from "./types"
-						</DiffLine>
-						<DiffLine added>
-							import {"{"} createSSHConnection {"}"} from "./ssh"
-						</DiffLine>
-						<DiffLine n={2} />
-						<DiffLine removed>
-							export const getWorkspaces = () =&gt; {"{"}
-						</DiffLine>
-						<DiffLine added>
-							export const getWorkspaces = async () =&gt; {"{"}
-						</DiffLine>
-						<DiffLine n={4}>{"  "}return db.query.workspaces</DiffLine>
+			<div className="relative flex-1">
+				<motion.div
+					className="absolute inset-0 flex flex-col"
+					initial={{ opacity: 1 }}
+					animate={{ opacity: isDiff ? 0 : 1 }}
+					transition={{ duration: 0.2 }}
+					style={{ pointerEvents: isDiff ? "none" : "auto" }}
+				>
+					<div className="flex-1 space-y-0.5 overflow-hidden py-1.5">
+						{FILE_CHANGES.map((file, index) => (
+							<FileChangeItem
+								key={`${file.path}-${index}`}
+								path={file.path}
+								add={file.add}
+								del={file.del}
+								indent={file.indent}
+								type={file.type}
+							/>
+						))}
 					</div>
-				</div>
+				</motion.div>
 
-				<div className="flex items-center gap-1.5 border-t border-border px-3 py-2">
-					<button
-						type="button"
-						className="h-7 rounded-sm bg-emerald-500/15 px-2.5 text-[11px] font-medium text-emerald-300 hover:bg-emerald-500/25"
-					>
-						Approve
-					</button>
-					<button
-						type="button"
-						className="h-7 rounded-sm border border-border bg-background px-2.5 text-[11px] font-medium text-foreground/80 hover:bg-foreground/[0.04]"
-					>
-						Comment
-					</button>
-				</div>
-			</motion.div>
+				<motion.div
+					className="absolute inset-0 flex flex-col bg-card"
+					initial={{ opacity: 0 }}
+					animate={{ opacity: isDiff ? 1 : 0 }}
+					transition={{ duration: 0.25, delay: isDiff ? 0.1 : 0 }}
+					style={{ pointerEvents: isDiff ? "auto" : "none" }}
+				>
+					<div className="flex items-center gap-0 border-b border-border px-2">
+						<span className="relative flex h-7 items-center px-2 font-mono text-[11px] font-medium text-foreground/95">
+							cloud-workspace.ts
+							<span className="absolute inset-x-2 -bottom-px h-[2px] bg-brand" />
+						</span>
+						<span className="flex h-7 items-center px-2 font-mono text-[11px] text-muted-foreground/55">
+							enums.ts
+						</span>
+						<span className="flex h-7 items-center px-2 text-[10px] text-muted-foreground/45">
+							+4
+						</span>
+					</div>
+
+					<div className="flex-1 overflow-hidden p-3 font-mono text-[10px] leading-relaxed">
+						<div className="space-y-px">
+							<div className="py-0.5 text-muted-foreground/50">
+								@@ -1,4 +1,6 @@
+							</div>
+							<DiffLine n={1}>
+								import {"{"} db {"}"} from "../db"
+							</DiffLine>
+							<DiffLine added>
+								import {"{"} CloudWorkspace {"}"} from "./types"
+							</DiffLine>
+							<DiffLine added>
+								import {"{"} createSSHConnection {"}"} from "./ssh"
+							</DiffLine>
+							<DiffLine n={2} />
+							<DiffLine removed>
+								export const getWorkspaces = () =&gt; {"{"}
+							</DiffLine>
+							<DiffLine added>
+								export const getWorkspaces = async () =&gt; {"{"}
+							</DiffLine>
+							<DiffLine n={4}>{"  "}return db.query.workspaces</DiffLine>
+						</div>
+					</div>
+
+					<div className="flex items-center gap-1.5 border-t border-border px-3 py-2">
+						<button
+							type="button"
+							className="h-7 rounded-sm bg-emerald-500/15 px-2.5 text-[11px] font-medium text-emerald-300 hover:bg-emerald-500/25"
+						>
+							Approve
+						</button>
+						<button
+							type="button"
+							className="h-7 rounded-sm border border-border bg-background px-2.5 text-[11px] font-medium text-foreground/80 hover:bg-foreground/[0.04]"
+						>
+							Comment
+						</button>
+					</div>
+				</motion.div>
+			</div>
 		</motion.div>
 	);
 }

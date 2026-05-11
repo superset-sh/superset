@@ -14,7 +14,10 @@ export function ExternalIdePopup({ activeDemo }: ExternalIdePopupProps) {
 	return (
 		<motion.div
 			className="absolute bottom-6 right-6 w-[55%] overflow-hidden rounded-lg border border-border bg-background shadow-[0_30px_80px_-20px_rgba(0,0,0,0.7)]"
-			style={{ aspectRatio: "16/10" }}
+			style={{
+				aspectRatio: "16/10",
+				pointerEvents: activeDemo === "Open in Any IDE" ? "auto" : "none",
+			}}
 			initial={{ opacity: 0, scale: 0.94, y: 16 }}
 			animate={{
 				opacity: activeDemo === "Open in Any IDE" ? 1 : 0,
