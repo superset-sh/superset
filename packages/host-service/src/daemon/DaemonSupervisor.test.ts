@@ -511,6 +511,94 @@ describe("auto-update failure mode (heavy path: must not disrupt sessions)", () 
 	});
 });
 
+describe("auto-update fallback to force restart (issue #4400)", () => {
+	// On *auto*-update (not user-initiated), if the smooth handoff fails we
+	// must fall back to a force restart. Leaving the stale daemon running
+	// silently strands the user on an old binary — the update appears to
+	// have happened (we bumped the app) but the daemon is in a bad state
+	// and the user has no signal that they need to act. Manual update from
+	// the UI keeps the predecessor (user can pick "Force update" from the
+	// dialog); auto-update has no UI confirmation, so we escalate ourselves.
+	let sup: DaemonSupervisor;
+
+	beforeEach(() => {
+		sup = new DaemonSupervisor({ scriptPath: "/nonexistent" });
+	});
+
+	test("smooth update returning ok:false triggers a force restart", async () => {
+		const updateMock = mock(async () => ({
+			ok: false as const,
+			reason: "handoff ack timeout",
+		}));
+		(sup as unknown as { update: typeof updateMock }).update = updateMock;
+		const restartMock = mock(async () => ({ success: true as const }));
+		(sup as unknown as { restart: typeof restartMock }).restart = restartMock;
+
+		const adopted = staleInstance("0.0.9");
+		(
+			sup as unknown as {
+				kickoffAutoUpdate: (id: string, inst: typeof adopted) => void;
+			}
+		).kickoffAutoUpdate("org-autoupdate-fail", adopted);
+
+		// Drain microtasks for the .then chain + the fallback restart call.
+		await new Promise((r) => setTimeout(r, 20));
+
+		expect(updateMock).toHaveBeenCalledTimes(1);
+		expect(restartMock).toHaveBeenCalledWith("org-autoupdate-fail");
+		const forceLogs = loggedEvents.filter(
+			(e) => e.event === "pty_daemon_auto_update_force_restart",
+		);
+		expect(forceLogs).toHaveLength(1);
+		expect(forceLogs[0]?.props).toMatchObject({
+			organizationId: "org-autoupdate-fail",
+			smoothFailReason: "handoff ack timeout",
+		});
+	});
+
+	test("smooth update throwing triggers a force restart", async () => {
+		const updateMock = mock(async () => {
+			throw new Error("ECONNRESET");
+		});
+		(sup as unknown as { update: typeof updateMock }).update = updateMock;
+		const restartMock = mock(async () => ({ success: true as const }));
+		(sup as unknown as { restart: typeof restartMock }).restart = restartMock;
+
+		const adopted = staleInstance("0.0.9");
+		(
+			sup as unknown as {
+				kickoffAutoUpdate: (id: string, inst: typeof adopted) => void;
+			}
+		).kickoffAutoUpdate("org-autoupdate-throw", adopted);
+
+		await new Promise((r) => setTimeout(r, 20));
+
+		expect(restartMock).toHaveBeenCalledWith("org-autoupdate-throw");
+	});
+
+	test("smooth update success does NOT trigger a force restart", async () => {
+		const updateMock = mock(async () => ({
+			ok: true as const,
+			successorPid: 7777,
+		}));
+		(sup as unknown as { update: typeof updateMock }).update = updateMock;
+		const restartMock = mock(async () => ({ success: true as const }));
+		(sup as unknown as { restart: typeof restartMock }).restart = restartMock;
+
+		const adopted = staleInstance("0.0.9");
+		(
+			sup as unknown as {
+				kickoffAutoUpdate: (id: string, inst: typeof adopted) => void;
+			}
+		).kickoffAutoUpdate("org-autoupdate-ok", adopted);
+
+		await new Promise((r) => setTimeout(r, 20));
+
+		expect(updateMock).toHaveBeenCalledTimes(1);
+		expect(restartMock).not.toHaveBeenCalled();
+	});
+});
+
 // ---------------- helpers ----------------
 
 interface Deferred<T> {

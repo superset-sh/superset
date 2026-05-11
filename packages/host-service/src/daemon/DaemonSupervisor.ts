@@ -465,13 +465,17 @@ export class DaemonSupervisor {
 	}
 
 	/**
-	 * Auto-update: best-effort opportunistic handoff when the adopted
-	 * daemon is older than the bundled binary. Runs after host-service
-	 * boot, fire-and-track, doesn't block anything. On failure we leave
-	 * the old daemon running — the user keeps their sessions and can
-	 * retry via the Update button. The renderer's "Update available"
-	 * badge still shows in that case, which is correct: the upgrade
-	 * truly is still pending.
+	 * Auto-update: opportunistic handoff when the adopted daemon is older
+	 * than the bundled binary. Runs after host-service boot, fire-and-track,
+	 * doesn't block anything.
+	 *
+	 * On smooth-handoff failure we escalate to a force restart. The app has
+	 * already been updated under the user, so the daemon is the only piece
+	 * left on the old code path — silently leaving it running strands the
+	 * user on a stale binary with no signal that they need to act. Manual
+	 * update from the UI keeps the predecessor and shows a "Force update"
+	 * dialog (the user can decide whether to lose their sessions); auto-
+	 * update has no UI confirmation, so we decide here. See #4400.
 	 */
 	private kickoffAutoUpdate(
 		organizationId: string,
@@ -500,18 +504,50 @@ export class DaemonSupervisor {
 						expectedVersion: instance.expectedVersion,
 						reason: result.reason,
 					});
+					this.forceRestartAfterFailedAutoUpdate(
+						organizationId,
+						instance,
+						result.reason,
+					);
 				}
 			},
 			(err) => {
+				const reason = `threw: ${(err as Error).message}`;
 				logEvent("pty_daemon_auto_update_failed", {
 					organizationId,
 					pid: instance.pid,
 					runningVersion: instance.runningVersion,
 					expectedVersion: instance.expectedVersion,
-					reason: `threw: ${(err as Error).message}`,
+					reason,
 				});
+				this.forceRestartAfterFailedAutoUpdate(
+					organizationId,
+					instance,
+					reason,
+				);
 			},
 		);
+	}
+
+	private forceRestartAfterFailedAutoUpdate(
+		organizationId: string,
+		instance: DaemonInstance,
+		smoothFailReason: string,
+	): void {
+		logEvent("pty_daemon_auto_update_force_restart", {
+			organizationId,
+			pid: instance.pid,
+			runningVersion: instance.runningVersion,
+			expectedVersion: instance.expectedVersion,
+			smoothFailReason,
+		});
+		void this.restart(organizationId).catch((err) => {
+			logEvent("pty_daemon_auto_update_force_restart_failed", {
+				organizationId,
+				pid: instance.pid,
+				error: (err as Error).message,
+			});
+		});
 	}
 
 	/**
