@@ -63,6 +63,10 @@ export class TunnelClient {
 		// wake from sleep) crashes host-service and orphans every PTY.
 		try {
 			const token = await this.getAuthToken();
+			if (this.closed) {
+				this.connecting = false;
+				return;
+			}
 			if (!token) {
 				console.warn("[host-service:tunnel] no auth token available, retrying");
 				this.connecting = false;

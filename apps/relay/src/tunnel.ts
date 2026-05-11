@@ -221,8 +221,11 @@ export class TunnelManager {
 					isOnline,
 				});
 				if (this.onlineWriteVersions.get(hostId) !== version) return;
-				this.onlineState.set(hostId, isOnline);
-				if (!isOnline) this.onlineState.delete(hostId);
+				if (isOnline) {
+					this.onlineState.set(hostId, true);
+				} else {
+					this.onlineState.delete(hostId);
+				}
 				if (this.onlineWriteVersions.get(hostId) === version) {
 					this.onlineWriteVersions.delete(hostId);
 				}
@@ -234,6 +237,7 @@ export class TunnelManager {
 						`[relay] setOnline(${isOnline}) failed for ${hostId} after ${SET_ONLINE_MAX_ATTEMPTS} attempts`,
 						err,
 					);
+					this.onlineState.delete(hostId);
 					if (this.onlineWriteVersions.get(hostId) === version) {
 						this.onlineWriteVersions.delete(hostId);
 					}
