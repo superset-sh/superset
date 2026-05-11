@@ -6,6 +6,7 @@ import {
 	getFallbackAgentId,
 	indexResolvedAgentConfigs,
 } from "@superset/shared/agent-settings";
+import { deriveBranchName } from "@superset/shared/workspace-launch";
 import { Button } from "@superset/ui/button";
 import {
 	DropdownMenu,
@@ -28,7 +29,6 @@ import { launchAgentSession } from "renderer/lib/agent-session-orchestrator";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useCreateWorkspace } from "renderer/react-query/workspaces";
 import { ProjectThumbnail } from "renderer/screens/main/components/WorkspaceSidebar/ProjectSection/ProjectThumbnail";
-import { deriveBranchName } from "../../../../../../$taskId/utils/deriveBranchName";
 import type { TaskWithStatus } from "../../../../hooks/useTasksTable";
 
 type TaskStatus = "pending" | "creating" | "done" | "failed";

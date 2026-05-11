@@ -1,3 +1,4 @@
+import { deriveBranchName } from "@superset/shared/workspace-launch";
 import { Button } from "@superset/ui/button";
 import {
 	DropdownMenu,
@@ -26,7 +27,6 @@ import { useV2WorkspaceCreateDefaultsStore } from "renderer/stores/v2-workspace-
 import { useWorkspaceCreates } from "renderer/stores/workspace-creates";
 import { MOCK_ORG_ID } from "shared/constants";
 import type { TaskWithStatus } from "../../../../../components/TasksView/hooks/useTasksTable";
-import { deriveBranchName } from "../../../../utils/deriveBranchName";
 
 const AGENT_STORAGE_KEY = "lastSelectedV2TaskAgent";
 const NONE = "none" as const;
