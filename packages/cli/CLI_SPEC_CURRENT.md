@@ -140,13 +140,23 @@ CLI runtime state is under `SUPERSET_HOME_DIR`, defaulting to
 | `~/.superset/host/<organizationId>/manifest.json` | Host service PID, endpoint, auth token, and organization ID. |
 | `~/.superset/host/<organizationId>/host.db` | Host service SQLite database. |
 
+## Desktop Shim And Standalone Install
+
+The desktop app installs an app-managed shim at
+`<SUPERSET_HOME_DIR>/bin/superset` (`~/.superset/bin/superset` by default)
+when the app starts. Superset desktop terminals prepend that directory to
+`PATH`, so the bundled CLI is available in app-launched terminals without a
+standalone install.
+
 The desktop app uses the same host manifest schema and home tree in
 production, so a desktop-started host service and a CLI-started host
 service can discover each other through the same manifest path.
 
 The standalone install script is separate from runtime state. It installs
 the CLI and host binary under `SUPERSET_HOME` (default `~/superset`) and
-adds `<SUPERSET_HOME>/bin` to the user's shell `PATH`.
+adds `<SUPERSET_HOME>/bin` to the user's shell `PATH`. These locations do
+not overwrite each other; whichever `bin` directory appears first in `PATH`
+wins for a normal shell.
 
 ## Distribution
 

@@ -60,6 +60,23 @@ function run(
 	});
 }
 
+function buildCliBuildEnv(): NodeJS.ProcessEnv {
+	const env = { ...process.env };
+	const apiUrl =
+		process.env.SUPERSET_API_URL || process.env.NEXT_PUBLIC_API_URL;
+	const webUrl =
+		process.env.SUPERSET_WEB_URL || process.env.NEXT_PUBLIC_WEB_URL;
+
+	if (apiUrl) {
+		env.SUPERSET_API_URL = apiUrl;
+	}
+	if (webUrl) {
+		env.SUPERSET_WEB_URL = webUrl;
+	}
+
+	return env;
+}
+
 const desktopDir = resolve(import.meta.dirname, "..");
 const repoRoot = resolve(desktopDir, "../..");
 config({ path: resolve(repoRoot, ".env"), override: false, quiet: true });
@@ -78,13 +95,7 @@ await run(
 	["run", "build", `--target=${getBunTarget()}`, `--outfile=${outfile}`],
 	{
 		cwd: cliDir,
-		env: {
-			...process.env,
-			SUPERSET_API_URL:
-				process.env.SUPERSET_API_URL ?? process.env.NEXT_PUBLIC_API_URL,
-			SUPERSET_WEB_URL:
-				process.env.SUPERSET_WEB_URL ?? process.env.NEXT_PUBLIC_WEB_URL,
-		},
+		env: buildCliBuildEnv(),
 	},
 );
 

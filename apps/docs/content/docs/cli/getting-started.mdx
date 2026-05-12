@@ -156,13 +156,15 @@ calls route through the cloud API and the relay.
 
 ```bash
 superset hosts list
+superset workspaces list
 superset workspaces list --host h_…
+superset workspaces list --local
 ```
 
 Mutating host commands (`projects create`, `projects setup`,
 `workspaces create`) require an explicit `--host` or `--local` — there's
-no default. Read-only host queries (`workspaces list`) default to the
-local machine.
+no default. `workspaces list` is organization-wide when neither `--host`
+nor `--local` is provided; pass `--local` to restrict it to this machine.
 
 ## Where state lives
 

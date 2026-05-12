@@ -1,5 +1,4 @@
 import {
-	chmodSync,
 	closeSync,
 	existsSync,
 	lstatSync,
@@ -130,10 +129,6 @@ export function installBundledCliShim(
 	writeFileSync(shimPath, buildBundledCliShim(bundledCliPath, platform), {
 		mode: platform === "win32" ? 0o644 : 0o755,
 	});
-
-	if (platform !== "win32") {
-		chmodSync(shimPath, 0o755);
-	}
 
 	console.log(`[bundled-cli] Installed Superset CLI shim at ${shimPath}`);
 	return "installed";
