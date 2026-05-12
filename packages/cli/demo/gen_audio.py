@@ -5,11 +5,11 @@ Clicks are placed by replaying the .tape timeline: every `Type` character costs
 `TypingSpeed`, every `Enter` is a keystroke, every `Sleep` advances the clock,
 and the `Hide`..`Show` block is skipped (VHS doesn't render it).
 
-The click sound is synthesized with numpy by default. To use a real recording,
-drop a short WAV at  demo/keypress.wav  (and optionally  demo/keyreturn.wav  for
-the Enter key) — it'll be used with slight per-hit pitch/level jitter.
+The click sound is synthesized with numpy by default. Pass a WAV (a single
+keystroke) or a directory of WAVs (a pool of keystrokes — picked at random per
+key) to use real recordings instead; each hit gets slight pitch/level jitter.
 
-Usage:  python3 gen_audio.py <tape> <out.wav> <duration_seconds> [keypress.wav] [keyreturn.wav]
+Usage:  python3 gen_audio.py <tape> <out.wav> <duration_seconds> [keys.wav|keys_dir] [keyreturn.wav]
 """
 import os
 import re
@@ -133,17 +133,31 @@ def _synth_click(kind="key"):
     return sig.astype(np.float32)
 
 
-def build_track(keys, returns, total_len, key_sample, ret_sample):
+def _load_pool(path):
+    """path may be a single WAV or a directory of WAVs. Returns a list of arrays."""
+    if not path or not os.path.exists(path):
+        return []
+    if os.path.isdir(path):
+        files = sorted(f for f in os.listdir(path) if f.lower().endswith(".wav"))
+        return [_load_wav_mono(os.path.join(path, f)) for f in files]
+    return [_load_wav_mono(path)]
+
+
+def build_track(keys, returns, total_len, key_pool, ret_pool):
     buf = np.zeros(int(SR * total_len) + SR, dtype=np.float32)
 
-    def place(times, sample, kind):
+    def place(times, pool, kind, gain=1.0):
         for t in times:
-            c = _jitter(sample) if sample is not None else _synth_click(kind)
+            if pool:
+                c = _jitter(pool[_rng.integers(len(pool))]) * gain
+            else:
+                c = _synth_click(kind)
             i = int(t * SR)
             buf[i:i + len(c)] += c
 
-    place(keys, key_sample, "key")
-    place(returns, ret_sample if ret_sample is not None else key_sample, "return")
+    place(keys, key_pool, "key")
+    # Enter: prefer a dedicated return sample; else reuse the keypress pool a touch louder
+    place(returns, ret_pool or key_pool, "return", gain=1.15 if not ret_pool else 1.0)
     return buf[:int(SR * total_len)]
 
 
@@ -152,14 +166,14 @@ def main():
     key_path = sys.argv[4] if len(sys.argv) > 4 else None
     ret_path = sys.argv[5] if len(sys.argv) > 5 else None
 
-    key_sample = _load_wav_mono(key_path) if key_path and os.path.exists(key_path) else None
-    ret_sample = _load_wav_mono(ret_path) if ret_path and os.path.exists(ret_path) else None
-    src = "sample" if key_sample is not None else "synth"
+    key_pool = _load_pool(key_path)
+    ret_pool = _load_pool(ret_path)
+    src = f"sample pool x{len(key_pool)}" if key_pool else "synth"
 
     keys, returns = parse_events(tape)
     print(f"  {len(keys)} keystrokes + {len(returns)} returns over {dur:.1f}s ({src} clicks)")
 
-    track = build_track(keys, returns, dur, key_sample, ret_sample)
+    track = build_track(keys, returns, dur, key_pool, ret_pool)
     peak = float(np.max(np.abs(track))) or 1.0
     track = (track / peak) * 0.9  # leave headroom for the music mix downstream
     pcm = (track * 32767).astype(np.int16)
