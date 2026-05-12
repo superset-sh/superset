@@ -77,6 +77,20 @@ const ROW_GRID_MINE =
 const ROW_GRID_TEAM =
 	"grid grid-cols-[minmax(0,1.5fr)_minmax(0,0.8fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.2fr)_2rem] items-center gap-4";
 
+const CLI_HINT_DISMISSED_STORAGE_KEY = "automations.cliHintDismissed";
+
+function getInitialCliHintDismissed(): boolean {
+	if (typeof window === "undefined") return false;
+
+	try {
+		return (
+			window.localStorage.getItem(CLI_HINT_DISMISSED_STORAGE_KEY) === "true"
+		);
+	} catch {
+		return false;
+	}
+}
+
 function AutomationsPage() {
 	const navigate = useNavigate();
 	const collections = useCollections();
@@ -87,10 +101,21 @@ function AutomationsPage() {
 	const [initialTemplate, setInitialTemplate] =
 		useState<AutomationTemplate | null>(null);
 	const [scope, setScope] = useState<Scope>("mine");
-	const [cliHintDismissed, setCliHintDismissed] = useState(false);
+	const [cliHintDismissed, setCliHintDismissed] = useState(
+		getInitialCliHintDismissed,
+	);
 	const [pendingDelete, setPendingDelete] = useState<SelectAutomation | null>(
 		null,
 	);
+
+	function handleDismissCliHint() {
+		setCliHintDismissed(true);
+		try {
+			window.localStorage.setItem(CLI_HINT_DISMISSED_STORAGE_KEY, "true");
+		} catch {
+			// Ignore storage errors; the in-memory dismissal still applies.
+		}
+	}
 
 	const runNowMutation = useMutation({
 		mutationFn: ({ id }: { id: string; name: string }) =>
@@ -285,7 +310,7 @@ function AutomationsPage() {
 						<div className="min-w-0 space-y-1">
 							<p className="text-sm font-medium text-foreground">
 								Supercharge automations with the{" "}
-								<code className="rounded bg-background/80 px-1 py-0.5 font-mono text-[13px]">
+								<code className="select-text cursor-text rounded bg-background/80 px-1 py-0.5 font-mono text-[13px]">
 									superset
 								</code>{" "}
 								CLI
@@ -317,7 +342,7 @@ function AutomationsPage() {
 							type="button"
 							variant="ghost"
 							size="icon-sm"
-							onClick={() => setCliHintDismissed(true)}
+							onClick={handleDismissCliHint}
 							aria-label="Dismiss"
 							className="absolute right-2 top-2 size-6 text-muted-foreground hover:text-foreground"
 						>
