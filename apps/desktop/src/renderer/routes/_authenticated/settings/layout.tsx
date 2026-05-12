@@ -10,6 +10,7 @@ import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
 	type SettingsSection,
 	useSetSettingsSearchQuery,
+	useSettingsOriginRoute,
 	useSettingsSearchQuery,
 } from "renderer/stores/settings-state";
 import { NavigationControls } from "../_dashboard/components/NavigationControls";
@@ -106,6 +107,7 @@ function SettingsLayout() {
 	const isMac = platform === undefined || platform === "darwin";
 	const searchQuery = useSettingsSearchQuery();
 	const setSearchQuery = useSetSettingsSearchQuery();
+	const originRoute = useSettingsOriginRoute();
 	const location = useLocation();
 	const navigate = useNavigate();
 	const normalizedSearchQuery = searchQuery.trim();
@@ -141,16 +143,17 @@ function SettingsLayout() {
 		(event) => {
 			if (document.querySelector('[data-state="open"]')) return;
 			const segments = location.pathname.split("/").filter(Boolean);
-			// Peel one segment, but only if we're deeper than a top-of-section
-			// route like /settings/teams. Esc at the top is a no-op so users don't
-			// get yanked out of settings unexpectedly.
-			if (segments.length <= 2) return;
 			event.preventDefault();
+			if (segments.length <= 2) {
+				navigate({ to: originRoute });
+				return;
+			}
+
 			const parent = `/${segments.slice(0, -1).join("/")}`;
 			navigate({ to: parent });
 		},
 		{ enableOnFormTags: false, enableOnContentEditable: false },
-		[navigate, location.pathname],
+		[navigate, location.pathname, originRoute],
 	);
 
 	const usesInnerSidebar =
