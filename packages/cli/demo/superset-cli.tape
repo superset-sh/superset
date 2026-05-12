@@ -1,14 +1,12 @@
 # ─────────────────────────────────────────────────────────────
-#  Superset CLI — punchy end-to-end walkthrough
+#  Superset CLI — punchy end-to-end walkthrough  (demo render)
 #
 #  Render with:  vhs demo/superset-cli.tape       (run from packages/cli)
 #  Then add the soundtrack:  ./demo/add-sound.sh  (pad + keyboard clicks → superset-cli-sound.mp4)
-#  Requires a built binary at ./dist/superset, a logged-in session, the
-#  host service running on this machine, and at least one project.
 #
-#  Note: `workspaces create/open/delete` are shimmed in the hidden setup
-#  block — a real create takes ~15s and spawns a real agent + worktree,
-#  which is too slow/destructive for a recording. Everything else is real.
+#  Note: this is a *demo* — `superset` is shimmed in the hidden setup block
+#  to print clean, canned output so the commands stay short and readable.
+#  Nothing real runs; no auth, host, or network needed to render.
 # ─────────────────────────────────────────────────────────────
 
 Output demo/superset-cli.gif
@@ -28,29 +26,27 @@ Set TypingSpeed 28ms
 Set PlaybackSpeed 1.0
 
 # --- setup (hidden from the final video) ---
+Set TypingSpeed 2ms
 Hide
-Type "unset CLAUDE_CODE CLAUDECODE CLAUDE_CODE_ENTRYPOINT CODEX_CLI GEMINI_CLI SUPERSET_AGENT CI 2>/dev/null"
-Enter
-Type `export PATH="$PWD/dist:$PATH"`
-Enter
-Type `export PROJECT=$(superset projects list --quiet | head -1)`
-Enter
-Type `_superset_bin="$PWD/dist/superset"`
-Enter
-Type `superset() { if [ "$1" = workspaces ] && [ "$2" = create ]; then printf 'Created workspace "fix-dark-mode" on host Kiets-Spaceship\n  branch    fix/dark-mode\n  agent     Claude  (streaming to the desktop app)\n  workspace ws_3f9c1a2b\n'; elif [ "$1" = workspaces ] && [ "$2" = open ]; then echo 'Opening "fix-dark-mode" in Superset desktop'; elif [ "$1" = workspaces ] && [ "$2" = delete ]; then echo 'Deleted workspace "fix-dark-mode"'; else command "$_superset_bin" "$@"; fi; }`
-Enter
 Type `export PS1="\[\033[1;91m\]superset\[\033[0m\] \[\033[90m\]demo\[\033[0m\] \[\033[91m\]❯\[\033[0m\] "`
+Enter
+Type `superset() { case "$1.$2" in status.*) echo "Superset  ·  Kiets-Spaceship   running · healthy   ·  up 3h 12m"; printf '  endpoint  http://127.0.0.1:58968\n  org       Superset\n';; tasks.create) echo; echo "  ✓ Created  ENG-204  ·  Dark mode flickers on the dashboard";; tasks.list) printf 'ID       STATUS        PRIORITY   TITLE\nENG-204  todo          —          Dark mode flickers on the dashboard\nENG-201  in progress   medium     Stripe webhook retries on a 500\nENG-198  todo          low        Tidy the settings page copy\n';; tasks.update) echo; echo "  ✓ ENG-204  ·  priority → urgent";; tasks.delete) echo "  ✓ Deleted  ENG-204";; agents.list) printf 'LABEL    PRESET   COMMAND\nClaude   claude   claude\nCodex    codex    codex\nCursor   cursor   cursor-agent\n';; workspaces.create) printf '\n  ✓ Created workspace  dark-mode-fix\n      branch   fix/dark-mode\n      agent    Claude — running, streaming to the desktop app\n';; workspaces.open) echo "  Opening \"dark-mode-fix\" in the Superset desktop app…";; workspaces.delete) echo "  ✓ Deleted workspace  dark-mode-fix";; *) echo "superset: $*";; esac; }`
 Enter
 Type "clear"
 Enter
 Show
+Set TypingSpeed 28ms
 
 # --- the walkthrough ---
-Sleep 500ms
-Type "# 👋 The Superset CLI — drive your dev loop from the terminal. So can your agents."
+Sleep 600ms
+Type "# 👋 The Superset CLI — drive your dev loop from the terminal."
 Sleep 1.4s
 Enter
-Sleep 600ms
+Sleep 1s
+Type "#    ...or have your agents do it ;)"
+Sleep 1.2s
+Enter
+Sleep 800ms
 Type "# This machine's a host — workspaces run right here:"
 Sleep 400ms
 Enter
@@ -62,22 +58,22 @@ Sleep 2.4s
 Type "clear"
 Enter
 Sleep 300ms
-Type "# A bug just landed — file it, grab the id:"
+Type "# A bug just landed — file it:"
 Sleep 600ms
 Enter
-Sleep 250ms
-Type `TASK=$(superset tasks create --title "Dark mode flickers on the dashboard" --priority high --quiet)`
+Sleep 300ms
+Type `superset tasks create --title "Dark mode flickers on the dashboard"`
 Enter
-Sleep 1.6s
-Type "superset tasks list | head -7"
+Sleep 2s
+Type "superset tasks list"
 Enter
-Sleep 2.8s
+Sleep 3s
 
-Type `# "high" doesn't cover it:`
-Sleep 400ms
+Type "# This one's not waiting — bump it to urgent:"
+Sleep 600ms
 Enter
-Sleep 250ms
-Type `superset tasks update "$TASK" --priority urgent`
+Sleep 300ms
+Type "superset tasks update ENG-204 --priority urgent"
 Enter
 Sleep 2.4s
 
@@ -85,21 +81,17 @@ Type "clear"
 Enter
 Sleep 300ms
 Type "# Which agent can fix it?"
-Sleep 400ms
-Enter
-Sleep 250ms
-Type "superset agents list --local"
-Enter
-Sleep 2.6s
-Type "# Spin up a workspace running one — repo cloned, agent started, one command:"
-Sleep 700ms
+Sleep 500ms
 Enter
 Sleep 300ms
-Type `superset workspaces create --local --project "$PROJECT" \`
+Type "superset agents list"
 Enter
-Type `  --name fix-dark-mode --branch fix/dark-mode \`
+Sleep 2.6s
+Type "# Spin up a workspace running Claude on it — one command:"
+Sleep 800ms
 Enter
-Type `  --agent claude --prompt "Fix the dark-mode flicker on the dashboard"`
+Sleep 350ms
+Type `superset workspaces create --name dark-mode-fix --agent claude --prompt "fix the dark-mode flicker"`
 Enter
 Sleep 3s
 
@@ -107,20 +99,23 @@ Type "clear"
 Enter
 Sleep 300ms
 Type "# Same workspace the desktop app shows — jump straight into it:"
-Sleep 600ms
+Sleep 700ms
 Enter
-Sleep 300ms
-Type "superset workspaces open ws_3f9c1a2b"
+Sleep 350ms
+Type "superset workspaces open dark-mode-fix"
 Enter
-Sleep 2.4s
+Sleep 2.6s
 
-Type "# Demo's done — tear down the throwaway bits:"
+Type "# Demo's done — clean up:"
 Sleep 500ms
 Enter
 Sleep 300ms
-Type `superset workspaces delete ws_3f9c1a2b && superset tasks delete "$TASK"`
+Type "superset workspaces delete dark-mode-fix"
 Enter
-Sleep 2.6s
+Sleep 1.6s
+Type "superset tasks delete ENG-204"
+Enter
+Sleep 2.4s
 
 Type "clear"
 Enter
@@ -128,16 +123,20 @@ Sleep 300ms
 Type "# Any coding agent can run all of this. In Claude Code:"
 Sleep 700ms
 Enter
-Sleep 300ms
-Type "#   /plugin marketplace add superset-sh/superset && /plugin install superset@superset"
-Sleep 900ms
+Sleep 350ms
+Type "#   /plugin marketplace add superset-sh/superset"
+Sleep 500ms
+Enter
+Sleep 250ms
+Type "#   /plugin install superset@superset"
+Sleep 800ms
 Enter
 Sleep 400ms
 Type "# Now your agent files its own tasks, spins up workspaces, runs other agents."
-Sleep 1.4s
+Sleep 1.6s
 Enter
-Sleep 600ms
+Sleep 700ms
 Type "# File it, fix it, ship it — from your terminal, or your agent.   superset.sh"
-Sleep 1s
+Sleep 1.2s
 Enter
-Sleep 2.8s
+Sleep 3s
