@@ -217,4 +217,78 @@ describe("TerminalHost — PTY spawn failure handling", () => {
 
 		await session.dispose();
 	});
+
+	/**
+	 * Resolves superset-sh/superset#4451: terminals failing to create for
+	 * Claude / Codex agent sessions surfaced as a generic
+	 * "Session spawn failed: PTY process exited immediately" message,
+	 * because TerminalHost's createOrAttach rejection dropped the actual
+	 * subprocess error (e.g. "Spawn failed: posix_spawnp failed.") emitted
+	 * by the PTY subprocess before exit.
+	 *
+	 * Session now captures the last subprocess error and exposes it via the
+	 * `lastError` getter; TerminalHost uses it when rejecting createOrAttach,
+	 * so the orchestrator/toast can show the real reason instead of the
+	 * misleading generic message.
+	 */
+	it("preserves the subprocess error message when PTY spawn fails (#4451)", async () => {
+		const session = new Session({
+			sessionId: "session-spawn-error-message",
+			workspaceId: "workspace-1",
+			paneId: "pane-1",
+			tabId: "tab-1",
+			cols: 80,
+			rows: 24,
+			cwd: "/tmp",
+			shell: "/bin/bash",
+			spawnProcess: () => fakeChild as unknown as ChildProcess,
+		});
+
+		session.spawn({
+			cwd: "/tmp",
+			cols: 80,
+			rows: 24,
+			env: { PATH: "/usr/bin" },
+		});
+
+		const originalErrorMessage = "Spawn failed: posix_spawnp failed.";
+		emitReadyThenError(fakeChild, originalErrorMessage);
+		fakeChild.emit("exit", 1);
+
+		await new Promise((resolve) => setTimeout(resolve, 10));
+
+		expect(session.isAlive).toBe(false);
+		expect(session.pid).toBeNull();
+		expect(session.lastError).toBe(originalErrorMessage);
+
+		await session.dispose();
+	});
+
+	it("lastError is null on a healthy session", async () => {
+		const session = new Session({
+			sessionId: "session-no-error",
+			workspaceId: "workspace-1",
+			paneId: "pane-1",
+			tabId: "tab-1",
+			cols: 80,
+			rows: 24,
+			cwd: "/tmp",
+			shell: "/bin/bash",
+			spawnProcess: () => fakeChild as unknown as ChildProcess,
+		});
+
+		session.spawn({
+			cwd: "/tmp",
+			cols: 80,
+			rows: 24,
+			env: { PATH: "/usr/bin" },
+		});
+
+		emitReadyAndSpawned(fakeChild, 4321);
+		await session.waitForReady();
+
+		expect(session.lastError).toBeNull();
+
+		await session.dispose();
+	});
 });

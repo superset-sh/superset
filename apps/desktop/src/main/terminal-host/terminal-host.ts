@@ -157,9 +157,11 @@ export class TerminalHost {
 				throwIfAborted(pendingAttach.abortController.signal);
 
 				if (!session.isAlive || session.pid === null) {
+					const subprocessError = session.lastError;
 					void session.dispose();
 					throw new Error(
-						"Session spawn failed: PTY process exited immediately",
+						subprocessError ??
+							"Session spawn failed: PTY process exited immediately",
 					);
 				}
 
