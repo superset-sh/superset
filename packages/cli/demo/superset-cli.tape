@@ -30,7 +30,7 @@ Set TypingSpeed 2ms
 Hide
 Type `export PS1="\[\033[1;91m\]superset\[\033[0m\] \[\033[90m\]demo\[\033[0m\] \[\033[91m\]❯\[\033[0m\] "`
 Enter
-Type `superset() { case "$1.$2" in status.*) echo "Superset  ·  Kiets-Spaceship   running · healthy   ·  up 3h 12m"; printf '  endpoint  http://127.0.0.1:58968\n  org       Superset\n';; tasks.create) echo; echo "  ✓ Created  ENG-204  ·  Dark mode flickers on the dashboard";; tasks.list) printf 'ID       STATUS        PRIORITY   TITLE\nENG-204  todo          —          Dark mode flickers on the dashboard\nENG-201  in progress   medium     Stripe webhook retries on a 500\nENG-198  todo          low        Tidy the settings page copy\n';; tasks.update) echo; echo "  ✓ ENG-204  ·  priority → urgent";; tasks.delete) echo "  ✓ Deleted  ENG-204";; agents.list) printf 'LABEL    PRESET   COMMAND\nClaude   claude   claude\nCodex    codex    codex\nCursor   cursor   cursor-agent\n';; workspaces.create) printf '\n  ✓ Created workspace  dark-mode-fix\n      branch   fix/dark-mode\n      agent    Claude — running, streaming to the desktop app\n';; workspaces.open) echo "  Opening \"dark-mode-fix\" in the Superset desktop app…";; workspaces.delete) echo "  ✓ Deleted workspace  dark-mode-fix";; *) echo "superset: $*";; esac; }`
+Type `superset() { case "$1.$2" in status.*) echo "Superset  ·  Kiets-Spaceship   running · healthy   ·  up 3h 12m"; printf '  endpoint  http://127.0.0.1:58968\n  org       Superset\n';; tasks.create) echo; echo "  ✓ Created  ENG-204  ·  Dark mode flickers on the dashboard"; echo "    · synced — already live in your Superset app";; tasks.list) printf 'ID       STATUS        PRIORITY   TITLE\nENG-204  todo          —          Dark mode flickers on the dashboard\nENG-201  in progress   medium     Stripe webhook retries on a 500\nENG-198  todo          low        Tidy the settings page copy\n';; tasks.update) echo; echo "  ✓ ENG-204  ·  priority is now urgent";; tasks.delete) echo "  ✓ Deleted  ENG-204";; agents.list) printf 'LABEL    PRESET   COMMAND\nClaude   claude   claude\nCodex    codex    codex\nCursor   cursor   cursor-agent\n';; workspaces.create) printf '\n  ✓ Created workspace  dark-mode-fix\n      branch   fix/dark-mode\n      agent    Claude — running, streaming live to your Superset app\n';; workspaces.open) echo; echo "  ✓ dark-mode-fix is now open in your Superset app — Claude is live there";; workspaces.delete) echo "  ✓ Deleted workspace  dark-mode-fix";; *) echo "superset: $*";; esac; }`
 Enter
 Type "clear"
 Enter
@@ -42,7 +42,7 @@ Sleep 600ms
 Type "# 👋 The Superset CLI — drive your dev loop from the terminal."
 Sleep 1.4s
 Enter
-Sleep 1s
+Sleep 500ms
 Type "#    ...or have your agents do it ;)"
 Sleep 1.2s
 Enter
@@ -120,23 +120,27 @@ Sleep 2.4s
 Type "clear"
 Enter
 Sleep 300ms
-Type "# Any coding agent can run all of this. In Claude Code:"
+Type "# Your agent runs this whole loop too."
+Sleep 600ms
+Enter
+Sleep 300ms
+Type "# Drop it into any coding agent:"
+Sleep 400ms
+Enter
+Sleep 300ms
+Type "#   npx skills add https://superset.sh"
 Sleep 700ms
 Enter
-Sleep 350ms
-Type "#   /plugin marketplace add superset-sh/superset"
-Sleep 500ms
+Sleep 250ms
+Type "# ...or in Claude Code:"
+Sleep 400ms
 Enter
 Sleep 250ms
 Type "#   /plugin install superset@superset"
-Sleep 800ms
-Enter
-Sleep 400ms
-Type "# Now your agent files its own tasks, spins up workspaces, runs other agents."
-Sleep 1.6s
+Sleep 1.4s
 Enter
 Sleep 700ms
-Type "# File it, fix it, ship it — from your terminal, or your agent.   superset.sh"
+Type "# File it, fix it, ship it — from your terminal.   superset.sh"
 Sleep 1.2s
 Enter
 Sleep 3s
