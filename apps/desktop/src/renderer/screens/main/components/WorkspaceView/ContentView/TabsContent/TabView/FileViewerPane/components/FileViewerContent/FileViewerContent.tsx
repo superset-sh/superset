@@ -9,6 +9,7 @@ import {
 	type MarkdownEditorAdapter,
 	TipTapMarkdownRenderer,
 } from "renderer/components/MarkdownRenderer";
+import { MarkdownSearch } from "renderer/components/MarkdownSearch";
 import { LightDiffViewer } from "renderer/screens/main/components/WorkspaceView/ChangesContent/components/LightDiffViewer";
 import type { CodeEditorAdapter } from "renderer/screens/main/components/WorkspaceView/ContentView/components";
 import { CodeEditor } from "renderer/screens/main/components/WorkspaceView/components/CodeEditor";
@@ -21,7 +22,6 @@ import { useScrollToFirstDiffChange } from "../../hooks/useScrollToFirstDiffChan
 import { DiffScrollbarDecorations } from "../DiffScrollbarDecorations";
 import { DiffViewerContextMenu } from "../DiffViewerContextMenu";
 import { FileEditorContextMenu } from "../FileEditorContextMenu";
-import { MarkdownSearch } from "../MarkdownSearch";
 import {
 	type DiffDomLocation,
 	getColumnFromDiffPoint,

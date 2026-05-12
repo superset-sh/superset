@@ -1,7 +1,7 @@
 import type { RefObject } from "react";
 import { useCallback, useEffect } from "react";
+import { useTextSearch } from "renderer/hooks/useTextSearch";
 import { useHotkey } from "renderer/hotkeys";
-import { useTextSearch } from "renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/TabView/hooks";
 import { getDiffSearchRoots } from "../../utils/diffRendererRoots";
 
 interface UseDiffSearchOptions {
