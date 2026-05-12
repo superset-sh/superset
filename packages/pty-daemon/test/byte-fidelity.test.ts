@@ -25,6 +25,7 @@ import type {
 	PtyOnExit,
 	SpawnOptions,
 } from "../src/Pty/index.ts";
+import { encodeFrame } from "../src/protocol/index.ts";
 import { Server } from "../src/Server/index.ts";
 import { connectAndHello, payloadOf } from "./helpers/client.ts";
 
@@ -36,6 +37,7 @@ const sockPath = path.join(os.tmpdir(), `pty-daemon-bytes-${process.pid}.sock`);
  * a real shell or PTY's cooked-mode quirks (echo, line discipline, CRLF).
  */
 interface DriveablePty extends Pty {
+	writes: Buffer[];
 	emit(bytes: Uint8Array): void;
 	finish(code: number): void;
 }
@@ -47,26 +49,30 @@ function makeDriveablePty(meta: SpawnOptions["meta"]): DriveablePty {
 	const onDataCbs: PtyOnData[] = [];
 	const onExitCbs: PtyOnExit[] = [];
 	const pid = nextPid++;
-	return {
+	const pty = {
 		pid,
 		meta,
-		write: () => {},
+		writes: [] as Buffer[],
+		write: (data: Buffer) => {
+			pty.writes.push(Buffer.from(data));
+		},
 		resize: () => {},
 		kill: () => {},
 		getMasterFd: () => -1,
-		onData: (cb) => {
+		onData: (cb: PtyOnData) => {
 			onDataCbs.push(cb);
 		},
-		onExit: (cb) => {
+		onExit: (cb: PtyOnExit) => {
 			onExitCbs.push(cb);
 		},
-		emit: (bytes) => {
+		emit: (bytes: Uint8Array) => {
 			for (const cb of onDataCbs) cb(Buffer.from(bytes));
 		},
-		finish: (code) => {
+		finish: (code: number) => {
 			for (const cb of onExitCbs) cb({ code, signal: null });
 		},
-	};
+	} satisfies DriveablePty;
+	return pty;
 }
 
 let server: Server;
@@ -151,6 +157,20 @@ async function waitForBytes(
 	throw new Error(`waitForBytes(${id}): only got <${target} bytes in ${ms}ms`);
 }
 
+async function waitForWrittenBytes(
+	pty: DriveablePty,
+	target: number,
+	ms: number,
+): Promise<void> {
+	const start = Date.now();
+	while (Date.now() - start < ms) {
+		const got = pty.writes.reduce((n, b) => n + b.byteLength, 0);
+		if (got >= target) return;
+		await new Promise((r) => setTimeout(r, 5));
+	}
+	throw new Error(`waitForWrittenBytes: only got <${target} bytes in ${ms}ms`);
+}
+
 function collectPayloads(
 	c: Awaited<ReturnType<typeof connectAndHello>>,
 	id: string,
@@ -163,6 +183,10 @@ function collectPayloads(
 		}
 	}
 	return out;
+}
+
+function concatBytes(buffers: Uint8Array[]): Buffer {
+	return Buffer.concat(buffers.map((b) => Buffer.from(b)));
 }
 
 test("live stream: random bytes survive daemon → host byte-perfect", async () => {
@@ -195,6 +219,70 @@ test("live stream: random bytes survive daemon → host byte-perfect", async () 
 	);
 
 	c.send({ type: "close", id });
+	await c.close();
+});
+
+test("input stream: random bytes survive host → daemon → PTY byte-perfect", async () => {
+	const c = await connectAndHello(sockPath);
+	const id = "fid-input";
+	c.send({ type: "open", id, meta: META });
+	await c.waitFor((m) => m.type === "open-ok" && m.id === id);
+	const spawned = lastSpawned;
+	assert.ok(spawned, "spawnPty hook must have fired");
+
+	const chunks = [...randomChunks(64 * 1024, 4096)];
+	for (const chunk of chunks) {
+		c.send({ type: "input", id }, chunk);
+	}
+	const sent = concatBytes(chunks);
+	await waitForWrittenBytes(spawned, sent.byteLength, 3000);
+
+	assert.equal(
+		spawned.writes.length,
+		chunks.length,
+		"one PTY write per input frame",
+	);
+	const received = concatBytes(spawned.writes);
+	assert.equal(received.byteLength, sent.byteLength);
+	assert.equal(sha256(received), sha256(sent));
+
+	c.send({ type: "close", id });
+	spawned.finish(0);
+	await c.close();
+});
+
+test("input frame split across TCP chunks preserves binary payload", async () => {
+	const c = await connectAndHello(sockPath);
+	const id = "fid-input-split";
+	c.send({ type: "open", id, meta: META });
+	await c.waitFor((m) => m.type === "open-ok" && m.id === id);
+	const spawned = lastSpawned;
+	assert.ok(spawned, "spawnPty hook must have fired");
+
+	const payload = crypto.randomBytes(96 * 1024);
+	const frame = encodeFrame({ type: "input", id }, payload);
+	const sizes = [1, 2, 3, 5, 8, 13, 21, 34, 55, 89];
+	let offset = 0;
+	let i = 0;
+	while (offset < frame.byteLength) {
+		const size = sizes[i % sizes.length] ?? 1;
+		c.sendRaw(
+			frame.subarray(offset, Math.min(frame.byteLength, offset + size)),
+		);
+		offset += size;
+		i++;
+	}
+
+	await waitForWrittenBytes(spawned, payload.byteLength, 3000);
+	assert.equal(
+		spawned.writes.length,
+		1,
+		"split TCP chunks still form one input frame",
+	);
+	assert.equal(sha256(spawned.writes[0] ?? Buffer.alloc(0)), sha256(payload));
+
+	c.send({ type: "close", id });
+	spawned.finish(0);
 	await c.close();
 });
 
