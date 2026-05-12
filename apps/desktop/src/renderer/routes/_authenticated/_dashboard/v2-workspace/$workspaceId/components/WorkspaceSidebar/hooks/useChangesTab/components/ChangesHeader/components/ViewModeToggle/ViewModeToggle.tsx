@@ -10,8 +10,7 @@ interface ViewModeToggleProps {
 
 /**
  * Two-button segmented toggle: folders (flat by parent folder) vs tree
- * (full directory hierarchy). The active button gets `bg-accent`; the other
- * stays `text-muted-foreground` so the current mode reads at a glance.
+ * (full directory hierarchy).
  */
 export function ViewModeToggle({ viewMode, onChange }: ViewModeToggleProps) {
 	return (
