@@ -77,23 +77,6 @@ const ROW_GRID_MINE =
 const ROW_GRID_TEAM =
 	"grid grid-cols-[minmax(0,1.5fr)_minmax(0,0.8fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.2fr)_2rem] items-center gap-4";
 
-const CLI_HINT_DISMISSED_UNTIL_STORAGE_KEY =
-	"automations.cliHintDismissedUntil";
-const CLI_HINT_DISMISS_DURATION_MS = 1000 * 60 * 60 * 24 * 30;
-
-function getInitialCliHintDismissed(): boolean {
-	if (typeof window === "undefined") return false;
-
-	try {
-		const dismissedUntil = Number(
-			window.localStorage.getItem(CLI_HINT_DISMISSED_UNTIL_STORAGE_KEY),
-		);
-		return Number.isFinite(dismissedUntil) && dismissedUntil > Date.now();
-	} catch {
-		return false;
-	}
-}
-
 function AutomationsPage() {
 	const navigate = useNavigate();
 	const collections = useCollections();
@@ -104,24 +87,10 @@ function AutomationsPage() {
 	const [initialTemplate, setInitialTemplate] =
 		useState<AutomationTemplate | null>(null);
 	const [scope, setScope] = useState<Scope>("mine");
-	const [cliHintDismissed, setCliHintDismissed] = useState(
-		getInitialCliHintDismissed,
-	);
+	const [cliHintDismissed, setCliHintDismissed] = useState(false);
 	const [pendingDelete, setPendingDelete] = useState<SelectAutomation | null>(
 		null,
 	);
-
-	function handleDismissCliHint() {
-		setCliHintDismissed(true);
-		try {
-			window.localStorage.setItem(
-				CLI_HINT_DISMISSED_UNTIL_STORAGE_KEY,
-				String(Date.now() + CLI_HINT_DISMISS_DURATION_MS),
-			);
-		} catch {
-			// Ignore storage errors; the in-memory dismissal still applies.
-		}
-	}
 
 	const runNowMutation = useMutation({
 		mutationFn: ({ id }: { id: string; name: string }) =>
@@ -348,7 +317,7 @@ function AutomationsPage() {
 							type="button"
 							variant="ghost"
 							size="icon-sm"
-							onClick={handleDismissCliHint}
+							onClick={() => setCliHintDismissed(true)}
 							aria-label="Dismiss"
 							className="absolute right-2 top-2 size-6 text-muted-foreground hover:text-foreground"
 						>
