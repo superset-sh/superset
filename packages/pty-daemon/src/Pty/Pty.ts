@@ -233,15 +233,9 @@ class AdoptedPty implements Pty {
 			if (this.exitFired) return;
 			this.exitFired = true;
 			if (this.livenessTimer) clearInterval(this.livenessTimer);
-			// Close the read stream and inherited fd so the successor daemon
-			// does not stay alive after the shell exits.
+			// tty.ReadStream owns the inherited fd; destroying the stream closes it.
 			try {
 				this.reader.destroy();
-			} catch {
-				// already closed
-			}
-			try {
-				fs.closeSync(this.fd);
 			} catch {
 				// already closed
 			}

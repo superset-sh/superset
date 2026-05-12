@@ -874,8 +874,10 @@ export class DaemonSupervisor {
 			return null;
 		}
 		const runningVersion = probed;
-		const updatePending =
-			!!probed && !semver.satisfies(probed, `>=${EXPECTED_DAEMON_VERSION}`);
+		const updatePending = !semver.satisfies(
+			probed,
+			`>=${EXPECTED_DAEMON_VERSION}`,
+		);
 
 		return {
 			pid: manifest.pid,

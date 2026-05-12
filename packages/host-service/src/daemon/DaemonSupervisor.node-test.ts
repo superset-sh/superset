@@ -715,13 +715,13 @@ describe("DaemonSupervisor.update (Phase 2 fd-handoff)", () => {
 				sup as unknown as {
 					runUpdate: () => Promise<{ ok: false; reason: string }>;
 				}
-			).runUpdate = async () => ({
-				ok: false as const,
-				reason: (() => {
-					runUpdateCalled = true;
-					return "auto-update should have deferred before runUpdate";
-				})(),
-			});
+			).runUpdate = async () => {
+				runUpdateCalled = true;
+				return {
+					ok: false as const,
+					reason: "auto-update should have deferred before runUpdate",
+				};
+			};
 
 			const adopted = await sup.ensure(orgId);
 			assert.equal(adopted.updatePending, true);
