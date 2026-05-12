@@ -283,7 +283,7 @@ Output:
   name: string;
   organizationId: string;
   organizationName: string;
-  authSource: "flag" | "env" | "oauth" | "config";
+  authSource: "override" | "config" | "oauth";
 }
 ```
 

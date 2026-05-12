@@ -11,10 +11,8 @@ export default command({
 		let authLine: string;
 		if (ctx.authSource === "oauth") {
 			authLine = "Session";
-		} else if (ctx.authSource === "flag") {
-			authLine = "API key (from --api-key flag)";
-		} else if (ctx.authSource === "env") {
-			authLine = "API key (from SUPERSET_API_KEY env)";
+		} else if (ctx.authSource === "override") {
+			authLine = "API key (from --api-key flag or SUPERSET_API_KEY env)";
 		} else {
 			authLine = "API key (stored via auth login --api-key)";
 		}

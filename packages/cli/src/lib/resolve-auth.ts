@@ -3,7 +3,7 @@ import { type ApiClient, createApiClient } from "./api-client";
 import { refreshAccessToken } from "./auth";
 import { readConfig, type SupersetConfig, writeConfig } from "./config";
 
-export type AuthSource = "flag" | "env" | "oauth" | "config";
+export type AuthSource = "override" | "config" | "oauth";
 
 export type ResolvedAuth = {
 	config: SupersetConfig;
@@ -13,12 +13,6 @@ export type ResolvedAuth = {
 };
 
 const REFRESH_LEEWAY_MS = 5 * 60 * 1000;
-
-function flagApiKeyFromArgv(): boolean {
-	return process.argv.some(
-		(arg) => arg === "--api-key" || arg.startsWith("--api-key="),
-	);
-}
 
 export async function resolveAuth(
 	apiKeyOption: string | undefined,
@@ -31,7 +25,7 @@ export async function resolveAuth(
 
 	if (overrideKey) {
 		bearer = overrideKey;
-		authSource = flagApiKeyFromArgv() ? "flag" : "env";
+		authSource = "override";
 	} else if (config.apiKey) {
 		bearer = config.apiKey;
 		authSource = "config";
