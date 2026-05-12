@@ -15,9 +15,9 @@ Output demo/superset-cli.gif
 Output demo/superset-cli.mp4
 
 Set Shell "bash"
-Set FontSize 27
-Set Width 1640
-Set Height 880
+Set FontSize 33
+Set Width 1980
+Set Height 900
 Set Padding 22
 Set Margin 28
 Set MarginFill "#0a0a0b"
