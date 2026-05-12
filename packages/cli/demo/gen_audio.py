@@ -143,6 +143,20 @@ def _load_pool(path):
     return [_load_wav_mono(path)]
 
 
+# Don't fire a key click within this gap of the previous one — keeps fast
+# on-screen typing from sounding like a machine gun (the audio "types" calmer).
+CLICK_MIN_GAP = 0.09
+
+
+def _thin(times, min_gap):
+    out, last = [], -1e9
+    for t in times:
+        if t - last >= min_gap:
+            out.append(t)
+            last = t
+    return out
+
+
 def build_track(keys, returns, total_len, key_pool, ret_pool):
     buf = np.zeros(int(SR * total_len) + SR, dtype=np.float32)
 
@@ -155,7 +169,7 @@ def build_track(keys, returns, total_len, key_pool, ret_pool):
             i = int(t * SR)
             buf[i:i + len(c)] += c
 
-    place(keys, key_pool, "key")
+    place(_thin(keys, CLICK_MIN_GAP), key_pool, "key")
     # Enter: prefer a dedicated return sample; else reuse the keypress pool a touch louder
     place(returns, ret_pool or key_pool, "return", gain=1.15 if not ret_pool else 1.0)
     return buf[:int(SR * total_len)]

@@ -60,9 +60,16 @@ def main():
             continue
         if np.max(np.abs(seg)) < 0.06 * peak_global:  # too quiet — probably a tail, skip
             continue
+        # mellow it a touch: gentle low-pass + a softer/longer fade-out
+        a_lp = np.exp(-2 * np.pi * 3800 / SR)
+        prev = 0.0
+        for j in range(len(seg)):
+            prev = (1 - a_lp) * seg[j] + a_lp * prev
+            seg[j] = prev
+        fo = int(SR * 0.045)
         if len(seg) >= fi + fo:
             seg[:fi] *= np.linspace(0, 1, fi)
-            seg[-fo:] *= np.linspace(1, 0, fo)
+            seg[-fo:] *= np.linspace(1, 0, fo) ** 1.5
         seg = seg / (np.max(np.abs(seg)) or 1.0) * 0.95
         kept += 1
         with wave.open(os.path.join(out_dir, f"key{kept:02d}.wav"), "wb") as w:
