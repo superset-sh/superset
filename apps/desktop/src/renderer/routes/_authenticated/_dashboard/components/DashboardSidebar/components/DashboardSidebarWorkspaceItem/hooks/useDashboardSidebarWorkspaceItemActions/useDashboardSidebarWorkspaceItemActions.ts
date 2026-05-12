@@ -1,5 +1,5 @@
 import { toast } from "@superset/ui/sonner";
-import { useMatchRoute, useNavigate } from "@tanstack/react-router";
+import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
@@ -20,6 +20,7 @@ interface UseDashboardSidebarWorkspaceItemActionsOptions {
 	projectId: string;
 	workspaceName: string;
 	branch: string;
+	isActive: boolean;
 	isMainWorkspace?: boolean;
 }
 
@@ -28,10 +29,10 @@ export function useDashboardSidebarWorkspaceItemActions({
 	projectId,
 	workspaceName,
 	branch,
+	isActive,
 	isMainWorkspace = false,
 }: UseDashboardSidebarWorkspaceItemActionsOptions) {
 	const navigate = useNavigate();
-	const matchRoute = useMatchRoute();
 	const { navigateAwayFromWorkspace } = useNavigateAwayFromWorkspace();
 	const { activeHostUrl } = useLocalHostService();
 	const { copyToClipboard } = useCopyToClipboard();
@@ -52,12 +53,6 @@ export function useDashboardSidebarWorkspaceItemActions({
 	const [isRenaming, setIsRenaming] = useState(false);
 	const [renameValue, setRenameValue] = useState(workspaceName);
 	const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-
-	const isActive = !!matchRoute({
-		to: "/v2-workspace/$workspaceId",
-		params: { workspaceId },
-		fuzzy: true,
-	});
 
 	const handleClick = () => {
 		if (isRenaming) return;
@@ -175,7 +170,6 @@ export function useDashboardSidebarWorkspaceItemActions({
 		handleOpenInFinder,
 		handleRemoveFromSidebar,
 		handleToggleUnread,
-		isActive,
 		isDeleteDialogOpen,
 		isRenaming,
 		isUnread,

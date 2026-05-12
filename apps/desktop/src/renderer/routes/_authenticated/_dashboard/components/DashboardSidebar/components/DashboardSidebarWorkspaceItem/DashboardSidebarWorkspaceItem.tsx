@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useDiffStats } from "renderer/hooks/host-service/useDiffStats";
 import { useOptimisticCollectionActions } from "renderer/routes/_authenticated/hooks/useOptimisticCollectionActions";
 import { useDeletingWorkspaces } from "renderer/routes/_authenticated/providers/DeletingWorkspacesProvider";
@@ -15,18 +15,20 @@ import { useDashboardSidebarWorkspaceItemActions } from "./hooks/useDashboardSid
 
 interface DashboardSidebarWorkspaceItemProps {
 	workspace: DashboardSidebarWorkspace;
-	onHoverCardOpen?: () => void;
+	onWorkspaceHover?: (workspaceId: string) => void | Promise<void>;
 	shortcutLabel?: string;
 	isCollapsed?: boolean;
 	isInSection?: boolean;
+	isActive?: boolean;
 }
 
-export function DashboardSidebarWorkspaceItem({
+function DashboardSidebarWorkspaceItemComponent({
 	workspace,
-	onHoverCardOpen,
+	onWorkspaceHover,
 	shortcutLabel,
 	isCollapsed = false,
 	isInSection = false,
+	isActive = false,
 }: DashboardSidebarWorkspaceItemProps) {
 	const {
 		id,
@@ -56,7 +58,6 @@ export function DashboardSidebarWorkspaceItem({
 		handleOpenInFinder,
 		handleRemoveFromSidebar,
 		handleToggleUnread,
-		isActive,
 		isDeleteDialogOpen,
 		isUnread,
 		isRenaming,
@@ -71,6 +72,7 @@ export function DashboardSidebarWorkspaceItem({
 		projectId,
 		workspaceName: name,
 		branch,
+		isActive,
 		isMainWorkspace,
 	});
 
@@ -113,8 +115,8 @@ export function DashboardSidebarWorkspaceItem({
 
 	const isHovered = hoverHoveredId === id;
 	useEffect(() => {
-		if (isHovered && hostType === "local-device") onHoverCardOpen?.();
-	}, [isHovered, hostType, onHoverCardOpen]);
+		if (isHovered && hostType === "local-device") onWorkspaceHover?.(id);
+	}, [isHovered, hostType, onWorkspaceHover, id]);
 	useEffect(() => {
 		if (!isHovered) return;
 		hoverSyncIfHovered(id, hoverPayload);
@@ -293,3 +295,7 @@ export function DashboardSidebarWorkspaceItem({
 		</>
 	);
 }
+
+export const DashboardSidebarWorkspaceItem = memo(
+	DashboardSidebarWorkspaceItemComponent,
+);

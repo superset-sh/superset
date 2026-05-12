@@ -48,6 +48,7 @@ interface SortableProjectWrapperProps {
 	project: DashboardSidebarProject;
 	isCollapsed: boolean;
 	isDraggingProject: boolean;
+	activeWorkspaceId: string | null;
 	workspaceShortcutLabels: Map<string, string>;
 	onWorkspaceHover: (workspaceId: string) => void | Promise<void>;
 	onToggleCollapse: (projectId: string) => void;
@@ -57,6 +58,7 @@ const SortableProjectWrapper = memo(function SortableProjectWrapper({
 	project,
 	isCollapsed,
 	isDraggingProject,
+	activeWorkspaceId,
 	workspaceShortcutLabels,
 	onWorkspaceHover,
 	onToggleCollapse,
@@ -83,6 +85,7 @@ const SortableProjectWrapper = memo(function SortableProjectWrapper({
 				project={project}
 				isSidebarCollapsed={isCollapsed}
 				isDraggingProject={isDraggingProject}
+				activeWorkspaceId={activeWorkspaceId}
 				workspaceShortcutLabels={workspaceShortcutLabels}
 				onWorkspaceHover={onWorkspaceHover}
 				onToggleCollapse={onToggleCollapse}
@@ -204,6 +207,7 @@ export function DashboardSidebar({
 											project={project}
 											isCollapsed={isCollapsed}
 											isDraggingProject={activeProject != null}
+											activeWorkspaceId={activeV2WorkspaceId}
 											workspaceShortcutLabels={workspaceShortcutLabels}
 											onWorkspaceHover={refreshWorkspacePullRequest}
 											onToggleCollapse={toggleProjectCollapsed}
@@ -218,6 +222,7 @@ export function DashboardSidebar({
 												<DashboardSidebarProjectSection
 													project={activeProject}
 													isSidebarCollapsed={isCollapsed}
+													activeWorkspaceId={activeV2WorkspaceId}
 													isDraggingProject
 													workspaceShortcutLabels={workspaceShortcutLabels}
 													onWorkspaceHover={() => {}}
