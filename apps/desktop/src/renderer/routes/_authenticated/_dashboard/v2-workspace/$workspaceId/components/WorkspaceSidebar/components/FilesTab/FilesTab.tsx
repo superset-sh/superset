@@ -31,13 +31,13 @@ import {
 	usePierreRowClickPolicy,
 	useSidebarFilePolicy,
 } from "renderer/lib/clickPolicy";
+import { loadFallthroughIcons } from "renderer/lib/fileIcons";
 import { useOpenInExternalEditor } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/useOpenInExternalEditor";
 import {
 	OVERSCAN_COUNT,
 	ROW_HEIGHT,
 	TREE_INDENT,
 } from "renderer/screens/main/components/WorkspaceView/RightSidebar/FilesView/constants";
-import { loadFallthroughIcons } from "../../utils/loadFallthroughIcons";
 import { PierreRowContextMenu } from "../PierreRowContextMenu";
 import { FileMenuItems } from "./components/FileMenuItems";
 import { FolderMenuItems } from "./components/FolderMenuItems";
@@ -218,25 +218,17 @@ export function FilesTab({
 		);
 	}, [model, fileStatusByPath, folderStatusByPath, ignoredPaths]);
 
-	// Layer our Material-icon coverage on top of Pierre's built-ins for file
-	// types Pierre doesn't recognize (`.toml`, `.lock`, framework dirs, etc).
-	// Initial render uses Pierre's defaults; ours fill in once the sprite
-	// finishes loading. The cache inside loadFallthroughIcons makes subsequent
-	// mounts a no-op.
+	// Layer our Material-icon coverage on top of Pierre's built-ins: file types
+	// Pierre doesn't recognize (`.toml`, `.lock`, framework dirs, etc) plus a
+	// Material default-file icon for anything still unmatched. Initial render
+	// uses Pierre's defaults; ours fill in once the sprite finishes loading.
+	// The cache inside loadFallthroughIcons makes subsequent mounts a no-op.
 	useEffect(() => {
 		let cancelled = false;
-		void loadFallthroughIcons().then(
-			({ spriteSheet, byFileName, byFileExtension }) => {
-				if (cancelled) return;
-				model.setIcons({
-					set: "complete",
-					colored: true,
-					spriteSheet,
-					byFileName,
-					byFileExtension,
-				});
-			},
-		);
+		void loadFallthroughIcons().then((config) => {
+			if (cancelled) return;
+			model.setIcons({ set: "complete", colored: true, ...config });
+		});
 		return () => {
 			cancelled = true;
 		};

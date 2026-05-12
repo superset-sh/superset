@@ -19,10 +19,10 @@ import {
 	usePierreRowClickPolicy,
 	useSidebarFilePolicy,
 } from "renderer/lib/clickPolicy";
+import { loadFallthroughIcons } from "renderer/lib/fileIcons";
 import { DiscardConfirmDialog } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/DiscardConfirmDialog";
 import type { FileStatus } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/StatusIndicator";
 import { PierreRowContextMenu } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/components/PierreRowContextMenu";
-import { loadFallthroughIcons } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/utils/loadFallthroughIcons";
 import type { ChangesetFile } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/useChangeset";
 import { toRelativeWorkspacePath } from "shared/absolute-paths";
 import type { FoldSignal } from "../../ChangesFileList";
@@ -177,23 +177,16 @@ export const ChangesTreeView = memo(function ChangesTreeView({
 		model.setGitStatus(buildPierreGitStatus(files));
 	}, [model, files]);
 
-	// Fill in Material icons for file types Pierre's built-in set doesn't cover
-	// (matches the Files tab). Initial render uses Pierre's defaults; the
-	// sprite-loading cache makes repeat mounts a no-op.
+	// Fill in Material icons for file types Pierre's built-in set doesn't cover,
+	// plus a Material default-file icon for anything still unmatched (matches
+	// the Files tab). Initial render uses Pierre's defaults; the sprite-loading
+	// cache makes repeat mounts a no-op.
 	useEffect(() => {
 		let cancelled = false;
-		void loadFallthroughIcons().then(
-			({ spriteSheet, byFileName, byFileExtension }) => {
-				if (cancelled) return;
-				model.setIcons({
-					set: "complete",
-					colored: true,
-					spriteSheet,
-					byFileName,
-					byFileExtension,
-				});
-			},
-		);
+		void loadFallthroughIcons().then((config) => {
+			if (cancelled) return;
+			model.setIcons({ set: "complete", colored: true, ...config });
+		});
 		return () => {
 			cancelled = true;
 		};

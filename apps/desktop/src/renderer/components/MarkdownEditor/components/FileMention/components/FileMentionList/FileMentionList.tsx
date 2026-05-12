@@ -9,7 +9,7 @@ import {
 	useRef,
 	useState,
 } from "react";
-import { FileIcon } from "renderer/screens/main/components/WorkspaceView/RightSidebar/FilesView/utils";
+import { FileIcon } from "renderer/lib/fileIcons";
 import type { FileMentionResult } from "../../types";
 
 function getDirectory(relativePath: string): string {

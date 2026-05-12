@@ -1,4 +1,4 @@
-import { getFileIcon } from "./file-icons";
+import { getFileIcon } from "./getFileIcon";
 
 interface FileIconProps {
 	fileName: string;

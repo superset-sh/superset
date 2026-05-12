@@ -1,22 +1,15 @@
-import rawManifest from "resources/public/file-icons/manifest.json";
+import { fileIconManifest as manifest } from "./manifest";
 import { resolveFileIconAssetUrl } from "./resolveFileIconAssetUrl";
-
-interface FileIconManifest {
-	fileNames: Record<string, string>;
-	fileExtensions: Record<string, string>;
-	folderNames: Record<string, string>;
-	folderNamesExpanded: Record<string, string>;
-	defaultIcon: string;
-	defaultFolderIcon: string;
-	defaultFolderOpenIcon: string;
-}
-
-const manifest = rawManifest as FileIconManifest;
 
 interface FileIconResult {
 	src: string;
 }
 
+/**
+ * Resolve the asset URL for a file/folder's icon from the Material-icon
+ * manifest. Always returns a result — when nothing matches, falls back to
+ * `manifest.defaultIcon` (files) or `manifest.defaultFolder*Icon` (folders).
+ */
 export function getFileIcon(
 	fileName: string,
 	isDirectory: boolean,

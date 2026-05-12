@@ -1,16 +1,6 @@
 import type { FileTreeIconConfig } from "@pierre/trees";
-import { resolveFileIconAssetUrl } from "renderer/screens/main/components/WorkspaceView/RightSidebar/FilesView/utils/resolveFileIconAssetUrl";
-import rawManifest from "resources/public/file-icons/manifest.json";
-
-interface FileIconManifest {
-	fileNames: Record<string, string>;
-	fileExtensions: Record<string, string>;
-	folderNames: Record<string, string>;
-	folderNamesExpanded: Record<string, string>;
-	defaultIcon: string;
-	defaultFolderIcon: string;
-	defaultFolderOpenIcon: string;
-}
+import { fileIconManifest as manifest } from "./manifest";
+import { resolveFileIconAssetUrl } from "./resolveFileIconAssetUrl";
 
 // Pierre's built-in coverage @ 1.0.0-beta.3. These are the lowercased keys of
 // BUILT_IN_FILE_NAME_TOKENS / BUILT_IN_FILE_EXTENSION_TOKENS / the complete-tier
@@ -154,16 +144,30 @@ const PIERRE_FILE_EXTENSIONS = new Set<string>([
 ]);
 
 const SYMBOL_PREFIX = "material-";
-const manifest = rawManifest as FileIconManifest;
 
 interface FallthroughIconConfig {
 	spriteSheet: string;
 	byFileName: NonNullable<FileTreeIconConfig["byFileName"]>;
 	byFileExtension: NonNullable<FileTreeIconConfig["byFileExtension"]>;
+	/**
+	 * Remaps Pierre's built-in slots — here, the generic `file` slot, so an
+	 * unrecognized file type falls back to the Material default file icon
+	 * instead of Pierre's plainer built-in one (and reads the same as the
+	 * non-tree `FileIcon` surfaces, which use `manifest.defaultIcon`).
+	 */
+	remap: NonNullable<FileTreeIconConfig["remap"]>;
 }
 
 let cached: Promise<FallthroughIconConfig> | null = null;
 
+/**
+ * Layer our richer Material-icon coverage on top of `@pierre/trees`' built-in
+ * icon set: file types Pierre doesn't recognize (`.toml`, `.lock`, framework
+ * dirs, etc) and a saner generic-file fallback. Result is memoized — the first
+ * tree mount pays the sprite-fetch cost, later mounts are a no-op.
+ *
+ * Apply the result via `model.setIcons({ set, colored, ...result })`.
+ */
 export function loadFallthroughIcons(): Promise<FallthroughIconConfig> {
 	if (cached) return cached;
 	cached = doLoad().catch((error) => {
@@ -187,6 +191,7 @@ async function doLoad(): Promise<FallthroughIconConfig> {
 	}
 
 	const uniqueIcons = new Set<string>([
+		manifest.defaultIcon,
 		...Object.values(byFileNameRaw),
 		...Object.values(byFileExtensionRaw),
 	]);
@@ -216,6 +221,10 @@ async function doLoad(): Promise<FallthroughIconConfig> {
 		if (usableIcons.has(icon))
 			byFileExtension[extension] = SYMBOL_PREFIX + icon;
 	}
+	const remap: NonNullable<FileTreeIconConfig["remap"]> = {};
+	if (usableIcons.has(manifest.defaultIcon)) {
+		remap.file = SYMBOL_PREFIX + manifest.defaultIcon;
+	}
 
 	// Pierre injects spriteSheet into light DOM as a slotted child of the
 	// host. Without explicit dimensions an SVG defaults to ~300×150, which
@@ -223,7 +232,7 @@ async function doLoad(): Promise<FallthroughIconConfig> {
 	// own built-in sprite (`width="0" height="0" aria-hidden`) so it renders
 	// the symbols but takes no space.
 	const spriteSheet = `<svg xmlns="http://www.w3.org/2000/svg" width="0" height="0" aria-hidden="true">${symbols.join("")}</svg>`;
-	return { spriteSheet, byFileName, byFileExtension };
+	return { spriteSheet, byFileName, byFileExtension, remap };
 }
 
 async function fetchSymbolBody(
