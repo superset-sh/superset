@@ -277,7 +277,7 @@ describe("HostServiceCoordinator.reset", () => {
 		expect(conn.port).toBe(60000);
 	});
 
-	test("is safe when no manifest exists — no kill, no rename, still spawns", async () => {
+	test("is safe when no manifest exists — no kill, still spawns", async () => {
 		manifestStore.current = null;
 
 		const conn = await coordinator.reset("org-1", spawnConfig);
