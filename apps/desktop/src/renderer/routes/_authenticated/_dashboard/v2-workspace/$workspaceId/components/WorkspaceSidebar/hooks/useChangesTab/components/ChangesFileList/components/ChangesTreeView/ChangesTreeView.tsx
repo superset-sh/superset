@@ -24,6 +24,7 @@ import {
 	createPierreTreeStyle,
 	FILE_STATUS_TO_PIERRE,
 	type PierreGitStatusEntry,
+	stripTrailingSlash,
 } from "renderer/lib/pierreTree";
 import { DiscardConfirmDialog } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/DiscardConfirmDialog";
 import { PierreRowContextMenu } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/components/PierreRowContextMenu";
@@ -368,8 +369,4 @@ function formatDiffStats(additions: number, deletions: number): string {
 	if (additions === 0) return `−${deletions}`;
 	if (deletions === 0) return `+${additions}`;
 	return `+${additions} −${deletions}`;
-}
-
-function stripTrailingSlash(path: string): string {
-	return path.endsWith("/") ? path.slice(0, -1) : path;
 }
