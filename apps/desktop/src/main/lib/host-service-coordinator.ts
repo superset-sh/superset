@@ -6,6 +6,7 @@ import path from "node:path";
 import { settings } from "@superset/local-db";
 import { getHostId, getHostName } from "@superset/shared/host-info";
 import { app } from "electron";
+import log from "electron-log/main";
 import { env } from "main/env.main";
 import { env as sharedEnv } from "shared/env.shared";
 import { getProcessEnvWithShellPath } from "../../lib/trpc/routers/workspaces/utils/shell-env";
@@ -283,19 +284,19 @@ export class HostServiceCoordinator extends EventEmitter {
 					try {
 						const ready = await waitForStableBundle();
 						if (!ready) {
-							console.warn(
+							log.warn(
 								"[host-service] bundle did not stabilize, skipping reload",
 							);
 							return;
 						}
 						const config = await configProvider();
 						if (!config) return;
-						console.log(
+						log.info(
 							"[host-service] bundle changed, restarting running instances",
 						);
 						await this.restartAll(config);
 					} catch (error) {
-						console.error("[host-service] dev reload failed:", error);
+						log.error("[host-service] dev reload failed:", error);
 					} finally {
 						reloading = false;
 					}
@@ -309,7 +310,7 @@ export class HostServiceCoordinator extends EventEmitter {
 				trigger();
 			});
 		} catch (error) {
-			console.error("[host-service] failed to enable dev reload:", error);
+			log.error("[host-service] failed to enable dev reload:", error);
 			return () => {};
 		}
 
@@ -334,7 +335,7 @@ export class HostServiceCoordinator extends EventEmitter {
 			const reason = manifest.spawnedByAppVersion
 				? `spawned by app ${manifest.spawnedByAppVersion} != current ${currentAppVersion}`
 				: "no recorded app version (pre-upgrade manifest)";
-			console.log(
+			log.info(
 				`[host-service:${organizationId}] Adopted service ${reason}, killing`,
 			);
 			try {
@@ -354,7 +355,7 @@ export class HostServiceCoordinator extends EventEmitter {
 			ADOPT_HEALTH_CHECK_TIMEOUT_MS,
 		);
 		if (!healthy) {
-			console.log(
+			log.info(
 				`[host-service:${organizationId}] Adopted pid=${manifest.pid} did not respond on ${manifest.endpoint}, killing and respawning`,
 			);
 			try {
@@ -372,7 +373,7 @@ export class HostServiceCoordinator extends EventEmitter {
 		});
 		this.startAdoptedLivenessCheck(organizationId, manifest.pid);
 
-		console.log(
+		log.info(
 			`[host-service:${organizationId}] Adopted pid=${manifest.pid} port=${port}`,
 		);
 		this.emitStatus(organizationId, "running", null);
@@ -473,7 +474,7 @@ export class HostServiceCoordinator extends EventEmitter {
 
 		instance.pid = childPid;
 		child.on("exit", (code) => {
-			console.log(`[host-service:${organizationId}] exited with code ${code}`);
+			log.info(`[host-service:${organizationId}] exited with code ${code}`);
 			const current = this.instances.get(organizationId);
 			if (!current || current.pid !== childPid || current.status === "stopped")
 				return;
@@ -496,7 +497,7 @@ export class HostServiceCoordinator extends EventEmitter {
 
 		instance.status = "running";
 
-		console.log(`[host-service:${organizationId}] listening on port ${port}`);
+		log.info(`[host-service:${organizationId}] listening on port ${port}`);
 		this.emitStatus(organizationId, "running", "starting");
 		return { port, secret, machineId: this.machineId };
 	}
@@ -555,7 +556,7 @@ export class HostServiceCoordinator extends EventEmitter {
 				this.adoptedLivenessTimers.delete(organizationId);
 				const instance = this.instances.get(organizationId);
 				if (instance && instance.status !== "stopped") {
-					console.log(
+					log.info(
 						`[host-service:${organizationId}] Adopted process ${pid} died`,
 					);
 					this.instances.delete(organizationId);

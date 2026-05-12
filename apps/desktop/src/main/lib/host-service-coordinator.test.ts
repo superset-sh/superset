@@ -52,6 +52,14 @@ mock.module("electron", () => ({
 	},
 }));
 
+mock.module("electron-log/main", () => ({
+	default: {
+		info: () => {},
+		warn: () => {},
+		error: () => {},
+	},
+}));
+
 mock.module("@superset/local-db", () => ({ settings: {} }));
 mock.module("@superset/shared/host-info", () => ({
 	getHostId: () => "host-1",
