@@ -219,7 +219,7 @@ function serverConnsForTest(server: Server): Set<ServerConnForTest> {
 	return (server as unknown as { conns: Set<ServerConnForTest> }).conns;
 }
 
-function installBackpressuredWrite(socket: net.Socket): void {
+function installBufferedWrite(socket: net.Socket): void {
 	let writableLength = 0;
 	Object.defineProperty(socket, "writableLength", {
 		configurable: true,
@@ -237,7 +237,7 @@ function installBackpressuredWrite(socket: net.Socket): void {
 		} else {
 			callback?.();
 		}
-		return false;
+		return true;
 	}) as net.Socket["write"];
 	socket.write = fakeWrite;
 }
@@ -502,7 +502,7 @@ test("slow subscriber is dropped while other subscribers keep streaming", async 
 			conn.subscriptions.has(id),
 		);
 		assert.ok(slowConn, "slow subscriber conn must be registered");
-		installBackpressuredWrite(slowConn.socket);
+		installBufferedWrite(slowConn.socket);
 
 		await subscribeAndDrain(fast, id, false);
 		const slowClosed = waitForClientClose(slow, 2000);

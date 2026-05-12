@@ -590,8 +590,8 @@ function writeMessage(
 		socket.destroy();
 		return;
 	}
-	const ok = socket.write(encodeFrame(msg, payload));
-	if (!ok && socket.writableLength > outboundBufferCap) {
+	socket.write(encodeFrame(msg, payload));
+	if (socket.writableLength > outboundBufferCap) {
 		socket.destroy();
 	}
 }
