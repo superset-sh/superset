@@ -27,7 +27,11 @@ import type {
 } from "../src/Pty/index.ts";
 import { encodeFrame } from "../src/protocol/index.ts";
 import { Server } from "../src/Server/index.ts";
-import { connectAndHello, payloadOf } from "./helpers/client.ts";
+import {
+	connectAndHello,
+	type DaemonClient,
+	payloadOf,
+} from "./helpers/client.ts";
 
 const sockPath = path.join(os.tmpdir(), `pty-daemon-bytes-${process.pid}.sock`);
 
@@ -127,17 +131,18 @@ function sha256(...buffers: Uint8Array[]): string {
  * preceding subscribe is live.
  */
 async function subscribeAndDrain(
-	c: Awaited<ReturnType<typeof connectAndHello>>,
+	c: DaemonClient,
 	id: string,
 	replay: boolean,
 ): Promise<void> {
+	const listReply = c.waitForNext((m) => m.type === "list-reply", 1000);
 	c.send({ type: "subscribe", id, replay });
 	c.send({ type: "list" });
-	await c.waitFor((m) => m.type === "list-reply", 1000);
+	await listReply;
 }
 
 async function waitForBytes(
-	c: Awaited<ReturnType<typeof connectAndHello>>,
+	c: DaemonClient,
 	id: string,
 	target: number,
 	ms: number,
@@ -157,6 +162,20 @@ async function waitForBytes(
 	throw new Error(`waitForBytes(${id}): only got <${target} bytes in ${ms}ms`);
 }
 
+async function waitForOutputCount(
+	c: DaemonClient,
+	target: number,
+	ms: number,
+): Promise<void> {
+	const start = Date.now();
+	while (Date.now() - start < ms) {
+		const got = c.messages.filter((m) => m.type === "output").length;
+		if (got >= target) return;
+		await new Promise((r) => setTimeout(r, 5));
+	}
+	throw new Error(`waitForOutputCount: only got <${target} frames in ${ms}ms`);
+}
+
 async function waitForWrittenBytes(
 	pty: DriveablePty,
 	target: number,
@@ -171,10 +190,7 @@ async function waitForWrittenBytes(
 	throw new Error(`waitForWrittenBytes: only got <${target} bytes in ${ms}ms`);
 }
 
-function collectPayloads(
-	c: Awaited<ReturnType<typeof connectAndHello>>,
-	id: string,
-): Uint8Array[] {
+function collectPayloads(c: DaemonClient, id: string): Uint8Array[] {
 	const out: Uint8Array[] = [];
 	for (const m of c.messages) {
 		if (m.type === "output" && m.id === id) {
@@ -187,6 +203,10 @@ function collectPayloads(
 
 function concatBytes(buffers: Uint8Array[]): Buffer {
 	return Buffer.concat(buffers.map((b) => Buffer.from(b)));
+}
+
+function payloadHashes(c: DaemonClient, id: string): string[] {
+	return collectPayloads(c, id).map((payload) => sha256(payload));
 }
 
 test("live stream: random bytes survive daemon → host byte-perfect", async () => {
@@ -284,6 +304,168 @@ test("input frame split across TCP chunks preserves binary payload", async () =>
 	c.send({ type: "close", id });
 	spawned.finish(0);
 	await c.close();
+});
+
+test("multi-client multi-session output fan-out preserves stream isolation", async () => {
+	const owner = await connectAndHello(sockPath);
+	const clients = {
+		alpha: await connectAndHello(sockPath),
+		beta: await connectAndHello(sockPath),
+		gamma: await connectAndHello(sockPath),
+	};
+	const clientEntries = Object.entries(clients);
+	const sessions: Array<{
+		id: string;
+		pty: DriveablePty;
+		payload: Buffer;
+	}> = [];
+
+	try {
+		for (let i = 0; i < 3; i++) {
+			const id = `fid-fanout-${i}`;
+			owner.send({ type: "open", id, meta: META });
+			await owner.waitFor((m) => m.type === "open-ok" && m.id === id);
+			const spawned = lastSpawned;
+			assert.ok(spawned, "spawnPty hook must have fired");
+			sessions.push({
+				id,
+				pty: spawned,
+				payload: Buffer.concat([
+					Buffer.from(`stream:${id}:`, "utf8"),
+					crypto.randomBytes(8192 + i * 257),
+				]),
+			});
+		}
+
+		const [s0, s1, s2] = sessions;
+		assert.ok(s0 && s1 && s2);
+		const subscriptionPlan = new Map<DaemonClient, Set<string>>([
+			[clients.alpha, new Set([s0.id, s1.id])],
+			[clients.beta, new Set([s1.id, s2.id])],
+			[clients.gamma, new Set([s0.id, s2.id])],
+		]);
+
+		for (const [client, subscribedIds] of subscriptionPlan) {
+			const listReply = client.waitForNext(
+				(m) => m.type === "list-reply",
+				1000,
+			);
+			for (const id of subscribedIds) {
+				client.send({ type: "subscribe", id, replay: false });
+			}
+			client.send({ type: "list" });
+			await listReply;
+		}
+
+		for (const session of sessions) {
+			session.pty.emit(session.payload);
+		}
+
+		await Promise.all(
+			[...subscriptionPlan].map(([client, subscribedIds]) =>
+				waitForOutputCount(client, subscribedIds.size, 3000),
+			),
+		);
+		await new Promise((r) => setTimeout(r, 50));
+
+		for (const [clientName, client] of clientEntries) {
+			const subscribedIds = subscriptionPlan.get(client);
+			assert.ok(subscribedIds, `${clientName} should have a subscription plan`);
+			for (const session of sessions) {
+				const hashes = payloadHashes(client, session.id);
+				const expected: string[] = subscribedIds.has(session.id)
+					? [sha256(session.payload)]
+					: [];
+				assert.deepEqual(
+					hashes,
+					expected,
+					`${clientName} received unexpected payloads for ${session.id}`,
+				);
+			}
+		}
+	} finally {
+		for (const session of sessions) {
+			owner.send({ type: "close", id: session.id });
+			session.pty.finish(0);
+		}
+		await Promise.all([
+			owner.close(),
+			...Object.values(clients).map((client) => client.close()),
+		]);
+	}
+});
+
+test("multiple clients can concurrently stream binary input into one PTY", async () => {
+	const owner = await connectAndHello(sockPath);
+	const writers = await Promise.all(
+		Array.from({ length: 4 }, () => connectAndHello(sockPath)),
+	);
+	const id = "fid-input-multi-writer";
+
+	try {
+		owner.send({ type: "open", id, meta: META });
+		await owner.waitFor((m) => m.type === "open-ok" && m.id === id);
+		const spawned = lastSpawned;
+		assert.ok(spawned, "spawnPty hook must have fired");
+
+		const framesByWriter = writers.map((_, writerIndex) =>
+			Array.from({ length: 24 }, (_, frameIndex) =>
+				Buffer.concat([
+					Buffer.from(`writer:${writerIndex}:frame:${frameIndex}:`, "utf8"),
+					crypto.randomBytes(32 + writerIndex * 7 + frameIndex),
+				]),
+			),
+		);
+		const allFrames = framesByWriter.flat();
+		const expectedHashes = allFrames.map((frame) => sha256(frame));
+		const totalBytes = allFrames.reduce((n, frame) => n + frame.byteLength, 0);
+
+		await Promise.all(
+			writers.map(async (writer, writerIndex) => {
+				const frames = framesByWriter[writerIndex] ?? [];
+				for (let frameIndex = 0; frameIndex < frames.length; frameIndex++) {
+					const frame = frames[frameIndex];
+					assert.ok(frame);
+					writer.send({ type: "input", id }, frame);
+					if (frameIndex % 3 === 0) {
+						await new Promise<void>((resolve) => setImmediate(resolve));
+					}
+				}
+			}),
+		);
+
+		await waitForWrittenBytes(spawned, totalBytes, 5000);
+		await new Promise((r) => setTimeout(r, 50));
+
+		assert.equal(
+			spawned.writes.length,
+			allFrames.length,
+			"one PTY write per input frame across all clients",
+		);
+		const actualHashes = spawned.writes.map((write) => sha256(write));
+		assert.deepEqual(
+			[...actualHashes].sort(),
+			[...expectedHashes].sort(),
+			"every writer frame should arrive exactly once and byte-perfect",
+		);
+
+		for (const frames of framesByWriter) {
+			let previousIndex = -1;
+			for (const frame of frames) {
+				const index = actualHashes.indexOf(sha256(frame));
+				assert.ok(index > previousIndex, "per-client input order must hold");
+				previousIndex = index;
+			}
+		}
+
+		owner.send({ type: "close", id });
+		spawned.finish(0);
+	} finally {
+		await Promise.all([
+			owner.close(),
+			...writers.map((writer) => writer.close()),
+		]);
+	}
 });
 
 test("replay: random bytes from ring buffer survive byte-perfect", async () => {
