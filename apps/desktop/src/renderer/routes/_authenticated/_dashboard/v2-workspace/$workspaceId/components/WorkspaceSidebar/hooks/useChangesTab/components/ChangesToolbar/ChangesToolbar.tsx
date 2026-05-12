@@ -47,7 +47,7 @@ export function ChangesToolbar({
 	const label = collapsed ? "Expand all" : "Collapse all";
 	const Icon = collapsed ? UnfoldVertical : FoldVertical;
 	return (
-		<div className="flex items-center justify-between gap-2 border-b border-border px-2 pt-0.5 pb-1.5">
+		<div className="flex items-center justify-between gap-2 px-2 pt-0.5 pb-1.5">
 			<div className="flex min-w-0 items-center gap-2 text-[11px] text-muted-foreground">
 				<CommitFilterDropdown
 					filter={filter}
