@@ -90,7 +90,10 @@ export const ChangesTabContent = memo(function ChangesTabContent({
 				onRenameBranch={onRenameBranch}
 				canRename={canRenameBranch}
 			/>
-			<div className="min-h-0 flex-1 overflow-y-auto">
+			<div
+				data-changes-scroll-container
+				className="min-h-0 flex-1 overflow-y-auto"
+			>
 				<ChangesFileList
 					files={files}
 					workspaceId={workspaceId}

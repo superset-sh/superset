@@ -1,7 +1,7 @@
 import { memo, useMemo } from "react";
 import type { ChangesetFile } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/useChangeset";
 import { ChangesSection } from "./components/ChangesSection";
-import { FileRow } from "./components/FileRow";
+import { VirtualizedFileList } from "./components/VirtualizedFileList";
 
 interface ChangesFileListProps {
 	files: ChangesetFile[];
@@ -68,7 +68,7 @@ export const ChangesFileList = memo(function ChangesFileList({
 	}
 
 	return (
-		<div className="min-h-0 flex-1 overflow-y-auto">
+		<div>
 			{GROUP_ORDER.map((key) => {
 				const groupFiles = grouped[key];
 				if (groupFiles.length === 0) return null;
@@ -84,17 +84,14 @@ export const ChangesFileList = memo(function ChangesFileList({
 								: undefined
 						}
 					>
-						{groupFiles.map((file) => (
-							<FileRow
-								key={`${file.source.kind}:${file.path}`}
-								file={file}
-								workspaceId={workspaceId}
-								worktreePath={worktreePath}
-								onSelect={onSelectFile}
-								onOpenFile={onOpenFile}
-								onOpenInEditor={onOpenInEditor}
-							/>
-						))}
+						<VirtualizedFileList
+							files={groupFiles}
+							workspaceId={workspaceId}
+							worktreePath={worktreePath}
+							onSelectFile={onSelectFile}
+							onOpenFile={onOpenFile}
+							onOpenInEditor={onOpenInEditor}
+						/>
 					</ChangesSection>
 				);
 			})}
