@@ -8,9 +8,7 @@ import { useWorkspaceCreatesStore } from "renderer/stores/workspace-creates";
 import { WorkspaceCreateErrorState } from "./components/WorkspaceCreateErrorState";
 import { WorkspaceCreatingState } from "./components/WorkspaceCreatingState";
 import { WorkspaceHostIncompatibleState } from "./components/WorkspaceHostIncompatibleState";
-import { WorkspaceLocalHostStoppedState } from "./components/WorkspaceLocalHostStoppedState";
 import { WorkspaceNotFoundState } from "./components/WorkspaceNotFoundState";
-import { useLocalHostStatus } from "./hooks/useLocalHostStatus";
 import { useRemoteHostStatus } from "./hooks/useRemoteHostStatus";
 import { WorkspaceProvider } from "./providers/WorkspaceProvider";
 
@@ -57,7 +55,6 @@ function V2WorkspaceLayout() {
 	}, [ensureWorkspaceInSidebar, workspace]);
 
 	const hostStatus = useRemoteHostStatus(workspace);
-	const localHostStatus = useLocalHostStatus(workspace);
 
 	if (!workspaceId || !isReady || !workspaces) {
 		return <div className="flex h-full w-full" />;
@@ -86,16 +83,6 @@ function V2WorkspaceLayout() {
 		return <WorkspaceNotFoundState workspaceId={workspaceId} />;
 	}
 
-	if (localHostStatus.status === "stopped") {
-		return (
-			<WorkspaceLocalHostStoppedState
-				organizationId={localHostStatus.organizationId}
-				lastError={localHostStatus.lastError}
-				lastAttemptAt={localHostStatus.lastAttemptAt}
-				retryAttempt={localHostStatus.retryAttempt}
-			/>
-		);
-	}
 	if (hostStatus.status === "incompatible") {
 		return (
 			<WorkspaceHostIncompatibleState

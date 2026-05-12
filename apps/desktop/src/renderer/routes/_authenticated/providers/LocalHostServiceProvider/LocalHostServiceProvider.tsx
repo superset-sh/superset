@@ -7,7 +7,6 @@ import {
 	useEffect,
 	useMemo,
 	useRef,
-	useState,
 } from "react";
 import { env } from "renderer/env.renderer";
 import { authClient } from "renderer/lib/auth-client";
@@ -19,14 +18,6 @@ import { useCollections } from "../CollectionsProvider";
 interface LocalHostServiceContextValue {
 	machineId: string;
 	activeHostUrl: string | null;
-	/** Most recent error from `start` mutation for the active org, if any. */
-	lastStartError: string | null;
-	/** Timestamp of the last `start` attempt for the active org. */
-	lastAttemptAt: number | null;
-	/** How many retries have been attempted for the active org (0–3). */
-	retryAttempt: number;
-	/** True once the backoff sequence has exhausted without a `running` status. */
-	retryExhausted: boolean;
 }
 
 const LocalHostServiceContext =
@@ -34,7 +25,8 @@ const LocalHostServiceContext =
 
 // Exponential backoff between automatic re-tries of `start` for the active
 // org. Index N is the delay before attempt N+1. After RETRY_DELAYS_MS.length
-// failures we stop retrying and let the recovery UI take over.
+// failures we stop retrying; the right pane stays blank until something else
+// (org switch, tray restart, app relaunch) re-triggers a start.
 const RETRY_DELAYS_MS = [1_000, 4_000, 15_000];
 
 export function LocalHostServiceProvider({
@@ -67,11 +59,6 @@ export function LocalHostServiceProvider({
 	const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const activeOrgRef = useRef<string | null>(activeOrganizationId);
 
-	const [retryAttempt, setRetryAttempt] = useState(0);
-	const [retryExhausted, setRetryExhausted] = useState(false);
-	const [lastStartError, setLastStartError] = useState<string | null>(null);
-	const [lastAttemptAt, setLastAttemptAt] = useState<number | null>(null);
-
 	const clearRetryTimer = useCallback(() => {
 		if (retryTimerRef.current) {
 			clearTimeout(retryTimerRef.current);
@@ -87,13 +74,9 @@ export function LocalHostServiceProvider({
 	const scheduleRetry = useCallback(
 		(organizationId: string) => {
 			if (organizationId !== activeOrgRef.current) return;
-			if (attemptRef.current >= RETRY_DELAYS_MS.length) {
-				setRetryExhausted(true);
-				return;
-			}
+			if (attemptRef.current >= RETRY_DELAYS_MS.length) return;
 			const delay = RETRY_DELAYS_MS[attemptRef.current];
 			attemptRef.current += 1;
-			setRetryAttempt(attemptRef.current);
 			clearRetryTimer();
 			retryTimerRef.current = setTimeout(() => {
 				retryTimerRef.current = null;
@@ -106,18 +89,12 @@ export function LocalHostServiceProvider({
 
 	const fireStart = useCallback(
 		(organizationId: string) => {
-			setLastAttemptAt(Date.now());
 			startHostService(
 				{ organizationId },
 				{
-					onError: (error: { message: string }) => {
+					onError: () => {
 						if (organizationId !== activeOrgRef.current) return;
-						setLastStartError(error.message);
 						scheduleRetry(organizationId);
-					},
-					onSuccess: () => {
-						if (organizationId !== activeOrgRef.current) return;
-						setLastStartError(null);
 					},
 				},
 			);
@@ -134,15 +111,11 @@ export function LocalHostServiceProvider({
 	useEffect(() => {
 		activeOrgRef.current = activeOrganizationId;
 		attemptRef.current = 0;
-		setRetryAttempt(0);
-		setRetryExhausted(false);
-		setLastStartError(null);
-		setLastAttemptAt(null);
 		clearRetryTimer();
 	}, [activeOrganizationId, clearRetryTimer]);
 
 	// Initial start: fire once per org on mount/org-list change. Active org
-	// gets full retry treatment via fireStart; inactive orgs use the bare
+	// gets the retry treatment via fireStart; inactive orgs use the bare
 	// mutation (they get healed when the user switches to them).
 	useEffect(() => {
 		for (const organizationId of organizationIds) {
@@ -164,9 +137,6 @@ export function LocalHostServiceProvider({
 				if (event.organizationId !== activeOrgRef.current) return;
 				if (event.status === "running") {
 					attemptRef.current = 0;
-					setRetryAttempt(0);
-					setRetryExhausted(false);
-					setLastStartError(null);
 					clearRetryTimer();
 					return;
 				}
@@ -196,16 +166,8 @@ export function LocalHostServiceProvider({
 		if (!machineIdData) return null;
 		const machineId = machineIdData.machineId;
 
-		const base = {
-			machineId,
-			lastStartError,
-			lastAttemptAt,
-			retryAttempt,
-			retryExhausted,
-		};
-
 		if (!activeConnection?.port) {
-			return { ...base, activeHostUrl: null };
+			return { machineId, activeHostUrl: null };
 		}
 
 		const activeHostUrl = `http://127.0.0.1:${activeConnection.port}`;
@@ -213,15 +175,8 @@ export function LocalHostServiceProvider({
 			setHostServiceSecret(activeHostUrl, activeConnection.secret);
 		}
 
-		return { ...base, activeHostUrl };
-	}, [
-		machineIdData,
-		activeConnection,
-		lastStartError,
-		lastAttemptAt,
-		retryAttempt,
-		retryExhausted,
-	]);
+		return { machineId, activeHostUrl };
+	}, [machineIdData, activeConnection]);
 
 	if (!value) return null;
 
