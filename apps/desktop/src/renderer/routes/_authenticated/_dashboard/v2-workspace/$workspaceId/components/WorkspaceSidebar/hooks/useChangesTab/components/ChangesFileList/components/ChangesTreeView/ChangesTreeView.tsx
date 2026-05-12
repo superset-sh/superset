@@ -10,16 +10,24 @@ import {
 	FileTree as PierreFileTree,
 	useFileTree as usePierreFileTree,
 } from "@pierre/trees/react";
+import { toast } from "@superset/ui/sonner";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
+import { workspaceTrpc } from "@superset/workspace-client";
+import { Undo2 } from "lucide-react";
 import { memo, useEffect, useMemo, useRef, useState } from "react";
 import {
 	ShadowClickHint,
 	usePierreRowClickPolicy,
 	useSidebarFilePolicy,
 } from "renderer/lib/clickPolicy";
+import { DiscardConfirmDialog } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/DiscardConfirmDialog";
 import type { FileStatus } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/StatusIndicator";
 import { PierreRowContextMenu } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/components/PierreRowContextMenu";
 import type { ChangesetFile } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/useChangeset";
+import { toRelativeWorkspacePath } from "shared/absolute-paths";
 import { FileRowContextMenuItems } from "./components/FileRowContextMenuItems";
+import { FolderContextMenuItems } from "./components/FolderContextMenuItems";
+import { ShadowRowHoverActions } from "./components/ShadowRowHoverActions";
 
 const ITEM_HEIGHT = 24;
 // Pierre rows carry `margin-block: 1px`, so each row occupies ITEM_HEIGHT + 2px.
@@ -75,13 +83,17 @@ const PIERRE_GIT_STATUS: Record<
 	untracked: "untracked",
 };
 
+type SectionKind = "unstaged" | "staged" | "against-base" | "commit";
+
 interface ChangesTreeViewProps {
 	/** Files for a single section — caller has already pre-grouped by `source.kind`. */
 	files: ChangesetFile[];
-	/** Section the files came from; used to scope context-menu Discard. */
-	sectionKind: "unstaged" | "staged" | "against-base" | "commit";
+	/** Section the files came from; used to scope context-menu/hover Discard. */
+	sectionKind: SectionKind;
 	workspaceId: string;
 	worktreePath?: string;
+	/** Absolute path of the file whose diff is currently open, if any. */
+	selectedFilePath?: string;
 	onSelectFile?: (path: string, openInNewTab?: boolean) => void;
 	onOpenFile?: (absolutePath: string, openInNewTab?: boolean) => void;
 	onOpenInEditor?: (path: string) => void;
@@ -89,23 +101,26 @@ interface ChangesTreeViewProps {
 
 /**
  * Tree view of a single changes section, powered by `@pierre/trees`. Pierre
- * builds the directory hierarchy from the flat path list, handles
- * virtualization + status tints + icons, and we layer on top:
+ * builds the directory hierarchy from the flat path list and handles
+ * virtualization + status tints + icons; we layer on:
  *
- *  - `renderRowDecoration` for `+N/−N` and the rename arrow
- *  - `renderContextMenu` for the same actions as `FileRow` (Open Diff, Open
- *    in New Tab, Open File, Open in Editor, Discard on unstaged)
+ *  - `renderRowDecoration`: `+N/−N` on files, file count on directories
+ *  - `renderContextMenu`: file-row actions matching `FileRow`; folder-row
+ *    actions (open in editor, copy path)
+ *  - hover actions overlay (Discard on unstaged + more-actions ⌄ dropdown)
  *  - `usePierreRowClickPolicy` for settings-driven click routing
+ *  - selection echo: when the diff pane's file is in this section, focus it
  *
- * Selection sync (an external `selectedFilePath` echoed back to Pierre via
- * `model.focusPath`) is intentionally not plumbed yet — clicks still fire
- * `onSelectFile`, and the diff pane stays the source of truth.
+ * The discard confirm dialog lives here, not in the per-row menus: Pierre
+ * tears down `renderContextMenu` output when the menu closes, which would
+ * unmount a dialog rendered inside it before the user could confirm.
  */
 export const ChangesTreeView = memo(function ChangesTreeView({
 	files,
 	sectionKind,
 	workspaceId,
 	worktreePath,
+	selectedFilePath,
 	onSelectFile,
 	onOpenFile,
 	onOpenInEditor,
@@ -121,7 +136,10 @@ export const ChangesTreeView = memo(function ChangesTreeView({
 	// section's auto-height container that collapses to 0, so the tree would be
 	// invisible. We size the tree explicitly to its content. `dirs` is sorted
 	// shallow→deep so `countVisibleRows` can resolve each dir's ancestors first.
-	const { dirs, fileParents } = useMemo(() => buildTreeShape(paths), [paths]);
+	const { dirs, fileParents, dirFileCount } = useMemo(
+		() => buildTreeShape(paths),
+		[paths],
+	);
 
 	const initialGitStatusEntriesRef = useRef(buildPierreGitStatus(files));
 
@@ -175,16 +193,37 @@ export const ChangesTreeView = memo(function ChangesTreeView({
 	}, [model, dirs, fileParents]);
 	const treeHeight = visibleRowCount * ROW_BOX + HEIGHT_CUSHION;
 
+	// Echo the diff pane's open file back into the tree's selection — but only
+	// when it belongs to this section. `lastUserSelectRef` guards the loop:
+	// after the user clicks a row, the parent's selectedFilePath comes back to
+	// us and we must not re-focus (which would re-fire onSelectionChange).
+	const lastUserSelectRef = useRef<string | null>(null);
+	const selectedRelPath =
+		selectedFilePath && worktreePath
+			? toRelativeWorkspacePath(worktreePath, selectedFilePath)
+			: selectedFilePath;
+	useEffect(() => {
+		if (!selectedRelPath || !fileByPath.has(selectedRelPath)) return;
+		if (lastUserSelectRef.current === selectedRelPath) {
+			lastUserSelectRef.current = null;
+			return;
+		}
+		model.focusPath(selectedRelPath);
+	}, [model, selectedRelPath, fileByPath]);
+
 	handlersRef.current.onSelect = (treePath) => {
+		lastUserSelectRef.current = treePath;
 		onSelectFile?.(treePath, false);
 	};
 	// Pierre's row decoration accepts text or icon, not arbitrary JSX. The
 	// status indicator is already painted by `setGitStatus` (row tint + icon),
-	// so we only contribute the `+N/−N` summary as text. Color distinction
-	// between additions and deletions is dropped here — trade-off for Pierre's
-	// shadow-DOM ownership of the row.
+	// so we contribute the `+N/−N` summary on files (uncolored — a library
+	// limitation) and the file count on directories.
 	handlersRef.current.renderRowDecoration = (ctx) => {
-		if (ctx.item.kind === "directory") return null;
+		if (ctx.item.kind === "directory") {
+			const count = dirFileCount.get(stripTrailingSlash(ctx.item.path));
+			return count ? { text: String(count) } : null;
+		}
 		const file = fileByPath.get(ctx.item.path);
 		if (!file) return null;
 		const text = formatDiffStats(file.additions, file.deletions);
@@ -194,15 +233,47 @@ export const ChangesTreeView = memo(function ChangesTreeView({
 	const filePolicy = useSidebarFilePolicy();
 	const { onClickCapture, findFileRow } = usePierreRowClickPolicy({
 		filePolicy,
-		onSelectFile: (rel, openInNewTab) => onSelectFile?.(rel, openInNewTab),
+		onSelectFile: (rel, openInNewTab) => {
+			lastUserSelectRef.current = rel;
+			onSelectFile?.(rel, openInNewTab);
+		},
 		openInExternalEditor: (rel) => onOpenInEditor?.(rel),
+	});
+
+	// Hoisted so the dialog outlives the menu/hover overlay that triggers it.
+	const [discardTarget, setDiscardTarget] = useState<ChangesetFile | null>(
+		null,
+	);
+	const utils = workspaceTrpc.useUtils();
+	const discardMutation = workspaceTrpc.git.discardChanges.useMutation({
+		onSuccess: () => {
+			void utils.git.getStatus.invalidate({ workspaceId });
+			void utils.git.getDiff.invalidate({ workspaceId });
+		},
+		onError: (err) => {
+			toast.error("Couldn't discard changes", { description: err.message });
+		},
 	});
 
 	const renderContextMenu = (
 		item: PierreContextMenuItem,
 		ctx: PierreContextMenuOpenContext,
 	) => {
-		if (item.kind === "directory") return null;
+		if (item.kind === "directory") {
+			return (
+				<PierreRowContextMenu
+					anchorRect={ctx.anchorRect}
+					onClose={ctx.close}
+					data-file-tree-context-menu-root="true"
+				>
+					<FolderContextMenuItems
+						relativePath={stripTrailingSlash(item.path)}
+						worktreePath={worktreePath}
+						onOpenInEditor={onOpenInEditor}
+					/>
+				</PierreRowContextMenu>
+			);
+		}
 		const file = fileByPath.get(item.path);
 		if (!file) return null;
 		return (
@@ -213,42 +284,122 @@ export const ChangesTreeView = memo(function ChangesTreeView({
 			>
 				<FileRowContextMenuItems
 					file={file}
-					workspaceId={workspaceId}
 					worktreePath={worktreePath}
 					sectionKind={sectionKind}
 					onSelectFile={onSelectFile}
 					onOpenFile={onOpenFile}
 					onOpenInEditor={onOpenInEditor}
+					onRequestDiscard={setDiscardTarget}
 				/>
 			</PierreRowContextMenu>
 		);
 	};
 
+	const renderHoverInlineActions = (treePath: string) => {
+		if (sectionKind !== "unstaged") return null;
+		const file = fileByPath.get(treePath);
+		if (!file) return null;
+		return (
+			<Tooltip>
+				<TooltipTrigger asChild>
+					<button
+						type="button"
+						aria-label="Discard changes"
+						className="flex size-5 items-center justify-center rounded text-muted-foreground hover:bg-accent hover:text-destructive"
+						onClick={(e) => {
+							e.stopPropagation();
+							setDiscardTarget(file);
+						}}
+					>
+						<Undo2 className="size-3.5" />
+					</button>
+				</TooltipTrigger>
+				<TooltipContent side="top">Discard changes</TooltipContent>
+			</Tooltip>
+		);
+	};
+
+	const renderHoverMenuContent = (treePath: string) => {
+		const file = fileByPath.get(treePath);
+		if (!file) return null;
+		return (
+			<FileRowContextMenuItems
+				file={file}
+				worktreePath={worktreePath}
+				sectionKind={sectionKind}
+				onSelectFile={onSelectFile}
+				onOpenFile={onOpenFile}
+				onOpenInEditor={onOpenInEditor}
+				onRequestDiscard={setDiscardTarget}
+			/>
+		);
+	};
+
+	const discardIsDelete =
+		discardTarget?.status === "untracked" || discardTarget?.status === "added";
+	const discardBasename = discardTarget
+		? (discardTarget.path.split("/").pop() ?? discardTarget.path)
+		: "";
+
 	return (
 		<div onClickCapture={onClickCapture}>
 			<ShadowClickHint hint={filePolicy.hint} findRow={findFileRow}>
-				<PierreFileTree
-					model={model}
-					style={{ ...TREE_STYLE, height: treeHeight }}
-					renderContextMenu={renderContextMenu}
-				/>
+				<ShadowRowHoverActions
+					findFileRow={findFileRow}
+					renderInlineActions={renderHoverInlineActions}
+					renderMenuContent={renderHoverMenuContent}
+				>
+					<PierreFileTree
+						model={model}
+						style={{ ...TREE_STYLE, height: treeHeight }}
+						renderContextMenu={renderContextMenu}
+					/>
+				</ShadowRowHoverActions>
 			</ShadowClickHint>
+			{discardTarget && (
+				<DiscardConfirmDialog
+					open
+					onOpenChange={(open) => !open && setDiscardTarget(null)}
+					title={
+						discardIsDelete
+							? `Delete "${discardBasename}"?`
+							: `Discard changes to "${discardBasename}"?`
+					}
+					description={
+						discardIsDelete
+							? "This will permanently delete this file. This action cannot be undone."
+							: "This will revert all changes to this file. This action cannot be undone."
+					}
+					confirmLabel={discardIsDelete ? "Delete" : "Discard"}
+					onConfirm={() => {
+						const target = discardTarget;
+						setDiscardTarget(null);
+						discardMutation.mutate({
+							workspaceId,
+							filePath: target.path,
+						});
+					}}
+				/>
+			)}
 		</div>
 	);
 });
 
 /**
- * From a flat list of file paths, return every directory path implied by them
- * (sorted shallow→deep) and the parent directory of each file. Root-level
- * files report `""` as their parent.
+ * From a flat list of file paths, return: every directory path implied by them
+ * (sorted shallow→deep), the parent directory of each file, and a map of
+ * directory → count of files anywhere beneath it. Root-level files report `""`
+ * as their parent and don't contribute to any directory's count.
  */
 function buildTreeShape(paths: string[]): {
 	dirs: string[];
 	fileParents: string[];
+	dirFileCount: Map<string, number>;
 } {
 	const dirs: string[] = [];
 	const seen = new Set<string>();
 	const fileParents: string[] = [];
+	const dirFileCount = new Map<string, number>();
 	for (const path of paths) {
 		const segments = path.split("/");
 		fileParents.push(
@@ -261,12 +412,13 @@ function buildTreeShape(paths: string[]): {
 				seen.add(acc);
 				dirs.push(acc);
 			}
+			dirFileCount.set(acc, (dirFileCount.get(acc) ?? 0) + 1);
 		}
 	}
 	dirs.sort(
 		(a, b) => a.split("/").length - b.split("/").length || a.localeCompare(b),
 	);
-	return { dirs, fileParents };
+	return { dirs, fileParents, dirFileCount };
 }
 
 /**
@@ -316,4 +468,8 @@ function formatDiffStats(additions: number, deletions: number): string {
 	if (additions === 0) return `−${deletions}`;
 	if (deletions === 0) return `+${additions}`;
 	return `+${additions} −${deletions}`;
+}
+
+function stripTrailingSlash(path: string): string {
+	return path.endsWith("/") ? path.slice(0, -1) : path;
 }

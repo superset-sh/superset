@@ -28,6 +28,7 @@ interface ChangesTabContentProps {
 	totalAdditions: number;
 	totalDeletions: number;
 	worktreePath?: string;
+	selectedFilePath?: string;
 	onSelectFile?: (path: string, openInNewTab?: boolean) => void;
 	onOpenFile?: (absolutePath: string, openInNewTab?: boolean) => void;
 	onOpenInEditor?: (path: string) => void;
@@ -52,6 +53,7 @@ export const ChangesTabContent = memo(function ChangesTabContent({
 	totalAdditions,
 	totalDeletions,
 	worktreePath,
+	selectedFilePath,
 	onSelectFile,
 	onOpenFile,
 	onOpenInEditor,
@@ -106,6 +108,7 @@ export const ChangesTabContent = memo(function ChangesTabContent({
 					isLoading={isLoading}
 					viewMode={viewMode}
 					worktreePath={worktreePath}
+					selectedFilePath={selectedFilePath}
 					onSelectFile={onSelectFile}
 					onOpenFile={onOpenFile}
 					onOpenInEditor={onOpenInEditor}

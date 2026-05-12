@@ -3,8 +3,6 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuShortcut,
 } from "@superset/ui/dropdown-menu";
-import { toast } from "@superset/ui/sonner";
-import { workspaceTrpc } from "@superset/workspace-client";
 import {
 	ExternalLink,
 	FileText,
@@ -13,55 +11,46 @@ import {
 	Trash2,
 	Undo2,
 } from "lucide-react";
-import { useState } from "react";
 import { modifierLabel, useSidebarFilePolicy } from "renderer/lib/clickPolicy";
-import { DiscardConfirmDialog } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/DiscardConfirmDialog";
 import { PathActionsMenuItems } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/components/PathActionsMenuItems";
 import type { ChangesetFile } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/useChangeset";
 import { toAbsoluteWorkspacePath } from "shared/absolute-paths";
 
 interface FileRowContextMenuItemsProps {
 	file: ChangesetFile;
-	workspaceId: string;
 	worktreePath?: string;
 	sectionKind: "unstaged" | "staged" | "against-base" | "commit";
 	onSelectFile?: (path: string, openInNewTab?: boolean) => void;
 	onOpenFile?: (absolutePath: string, openInNewTab?: boolean) => void;
 	onOpenInEditor?: (path: string) => void;
+	/**
+	 * Ask the parent to run the discard flow for this file. The confirm dialog
+	 * lives on `ChangesTreeView`, not here — Pierre unmounts `renderContextMenu`
+	 * output when the menu closes, which would tear down a dialog rendered
+	 * inside it before the user could confirm.
+	 */
+	onRequestDiscard?: (file: ChangesetFile) => void;
 }
 
 /**
- * Right-click menu items for a Pierre row in the changes tree. Mirrors the
- * `FileRow` right-click menu so users get the same vocabulary regardless of
- * view mode.
+ * Menu items for a file row in the changes tree — used both by the right-click
+ * context menu and the hover more-actions dropdown. Mirrors the `FileRow`
+ * menus so the action vocabulary is the same in folders and tree view.
  */
 export function FileRowContextMenuItems({
 	file,
-	workspaceId,
 	worktreePath,
 	sectionKind,
 	onSelectFile,
 	onOpenFile,
 	onOpenInEditor,
+	onRequestDiscard,
 }: FileRowContextMenuItemsProps) {
 	const absolutePath = worktreePath
 		? toAbsoluteWorkspacePath(worktreePath, file.path)
 		: undefined;
 	const canDiscard = sectionKind === "unstaged";
 	const isDeleteAction = file.status === "untracked" || file.status === "added";
-	const basename = file.path.split("/").pop() ?? file.path;
-
-	const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
-	const utils = workspaceTrpc.useUtils();
-	const discardMutation = workspaceTrpc.git.discardChanges.useMutation({
-		onSuccess: () => {
-			void utils.git.getStatus.invalidate({ workspaceId });
-			void utils.git.getDiff.invalidate({ workspaceId });
-		},
-		onError: (err) => {
-			toast.error("Couldn't discard changes", { description: err.message });
-		},
-	});
 
 	const policy = useSidebarFilePolicy();
 	const newTabTier = policy.tierForAction("newTab");
@@ -117,37 +106,18 @@ export function FileRowContextMenuItems({
 					/>
 				</>
 			)}
-			{canDiscard && (
+			{canDiscard && onRequestDiscard && (
 				<>
 					<DropdownMenuSeparator />
 					<DropdownMenuItem
 						variant="destructive"
-						onSelect={() => setShowDiscardConfirm(true)}
+						onSelect={() => onRequestDiscard(file)}
 					>
 						{isDeleteAction ? <Trash2 /> : <Undo2 />}
 						{isDeleteAction ? "Delete" : "Discard changes"}
 					</DropdownMenuItem>
 				</>
 			)}
-			<DiscardConfirmDialog
-				open={showDiscardConfirm}
-				onOpenChange={setShowDiscardConfirm}
-				title={
-					isDeleteAction
-						? `Delete "${basename}"?`
-						: `Discard changes to "${basename}"?`
-				}
-				description={
-					isDeleteAction
-						? "This will permanently delete this file. This action cannot be undone."
-						: "This will revert all changes to this file. This action cannot be undone."
-				}
-				confirmLabel={isDeleteAction ? "Delete" : "Discard"}
-				onConfirm={() => {
-					setShowDiscardConfirm(false);
-					discardMutation.mutate({ workspaceId, filePath: file.path });
-				}}
-			/>
 		</>
 	);
 }

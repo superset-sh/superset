@@ -11,6 +11,7 @@ interface ChangesFileListProps {
 	isLoading?: boolean;
 	viewMode: ChangesViewMode;
 	worktreePath?: string;
+	selectedFilePath?: string;
 	onSelectFile?: (path: string, openInNewTab?: boolean) => void;
 	onOpenFile?: (absolutePath: string, openInNewTab?: boolean) => void;
 	onOpenInEditor?: (path: string) => void;
@@ -38,6 +39,7 @@ export const ChangesFileList = memo(function ChangesFileList({
 	isLoading,
 	viewMode,
 	worktreePath,
+	selectedFilePath,
 	onSelectFile,
 	onOpenFile,
 	onOpenInEditor,
@@ -94,6 +96,7 @@ export const ChangesFileList = memo(function ChangesFileList({
 								sectionKind={key}
 								workspaceId={workspaceId}
 								worktreePath={worktreePath}
+								selectedFilePath={selectedFilePath}
 								onSelectFile={onSelectFile}
 								onOpenFile={onOpenFile}
 								onOpenInEditor={onOpenInEditor}

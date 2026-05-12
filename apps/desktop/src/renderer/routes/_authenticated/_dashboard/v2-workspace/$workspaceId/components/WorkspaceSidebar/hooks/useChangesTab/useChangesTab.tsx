@@ -23,6 +23,8 @@ export type { ChangesFilter, ChangesViewMode };
 interface UseChangesTabParams {
 	workspaceId: string;
 	gitStatus: ReturnType<typeof useGitStatus>;
+	/** Absolute path of the file whose diff/preview is currently open. */
+	selectedFilePath?: string;
 	onSelectFile?: (path: string, openInNewTab?: boolean) => void;
 	onOpenFile?: (absolutePath: string, openInNewTab?: boolean) => void;
 }
@@ -30,6 +32,7 @@ interface UseChangesTabParams {
 export function useChangesTab({
 	workspaceId,
 	gitStatus: status,
+	selectedFilePath,
 	onSelectFile,
 	onOpenFile,
 }: UseChangesTabParams): SidebarTabDefinition {
@@ -196,6 +199,7 @@ export function useChangesTab({
 			totalAdditions={totalAdditions}
 			totalDeletions={totalDeletions}
 			worktreePath={worktreePath}
+			selectedFilePath={selectedFilePath}
 			onSelectFile={onSelectFile}
 			onOpenFile={onOpenFile}
 			onOpenInEditor={handleOpenInEditor}

@@ -120,6 +120,7 @@ export function WorkspaceSidebar({
 	const changesTabDef = useChangesTab({
 		workspaceId,
 		gitStatus,
+		selectedFilePath,
 		onSelectFile: onSelectDiffFile,
 		onOpenFile: onSelectFile,
 	});
