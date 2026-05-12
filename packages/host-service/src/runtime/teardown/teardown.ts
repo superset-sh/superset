@@ -7,6 +7,7 @@ import {
 	createTerminalSessionInternal,
 	disposeSession,
 } from "../../terminal/terminal";
+import { getResolvedTeardownCommands, loadSetupConfig } from "../setup/config";
 
 export { TEARDOWN_TIMEOUT_MS };
 
@@ -30,15 +31,25 @@ export type TeardownResult =
 interface RunTeardownOptions {
 	db: HostDb;
 	workspaceId: string;
-	worktreePath: string;
+	/** Main repo path — authoritative source for `.superset/` (worktrees skip gitignored files). */
+	repoPath: string;
+	/** Project id — used to locate the per-machine override at `~/.superset/projects/<id>/config.json`. */
+	projectId: string;
 	timeoutMs?: number;
 }
 
 /**
- * Runs `.superset/teardown.sh` inside the workspace, reusing the same
- * terminal primitive v2 uses for interactive sessions. This gives the
- * script full environment parity with the user's terminals (login shell
- * rcfiles, PATH, nvm/rbenv, etc.), matching how setup.sh runs.
+ * Runs the resolved teardown command inside the workspace, reusing the
+ * same terminal primitive v2 uses for interactive sessions. This gives
+ * the script full environment parity with the user's terminals (login
+ * shell rcfiles, PATH, nvm/rbenv, etc.), matching how setup runs.
+ *
+ * Resolution mirrors the setup terminal (see `resolveTeardownCommand`):
+ *   1. `teardown` array from `.superset/config.json` (+ per-machine user
+ *      override at `~/.superset/projects/<id>/config.json`, + local
+ *      overlay at `.superset/config.local.json`).
+ *   2. Fallback: `bash <repoPath>/.superset/teardown.sh` against the main
+ *      repo. The worktree is never consulted — it skips gitignored files.
  *
  * Silent by design — the PTY session is transient and not surfaced as a
  * visible pane. The renderer only sees the output tail on failure.
@@ -46,15 +57,18 @@ interface RunTeardownOptions {
 export async function runTeardown({
 	db,
 	workspaceId,
-	worktreePath,
+	repoPath,
+	projectId,
 	timeoutMs = TEARDOWN_TIMEOUT_MS,
 }: RunTeardownOptions): Promise<TeardownResult> {
-	const scriptPath = join(worktreePath, TEARDOWN_SCRIPT_REL_PATH);
-	if (!existsSync(scriptPath)) return { status: "skipped" };
+	const resolved = resolveTeardownCommand({ repoPath, projectId });
+	if (!resolved) return { status: "skipped" };
 
 	const terminalId = randomUUID();
-	// Single-quoted so no shell interpolation is possible on the path.
-	const initialCommand = `bash ${singleQuote(scriptPath)} ; exit $?`;
+	// `; exit $?` ensures the shell exits with the script's status even when
+	// the resolved command is a `&&`-joined chain that might leave the shell
+	// at a non-zero state without exiting.
+	const initialCommand = `${resolved} ; exit $?`;
 
 	const session = await createTerminalSessionInternal({
 		terminalId,
@@ -136,6 +150,36 @@ export async function runTeardown({
 		}, timeoutMs);
 		timer.unref();
 	});
+}
+
+/**
+ * Resolve the teardown command from config + per-machine override + local
+ * overlay, with a fallback to `<repoPath>/.superset/teardown.sh`.
+ *
+ * Returns null when nothing resolves — the caller should treat that as
+ * "skipped" rather than a failure. Worktrees are intentionally not
+ * consulted; the main repo is the single source of truth.
+ *
+ * Exported for tests.
+ */
+export function resolveTeardownCommand(args: {
+	repoPath: string;
+	projectId: string;
+	/** Override $HOME for tests. */
+	homeDir?: string;
+}): string | null {
+	const config = loadSetupConfig(args);
+	const commands = getResolvedTeardownCommands(config);
+	if (commands.length > 0) {
+		return commands.join(" && ");
+	}
+
+	const fallbackScript = join(args.repoPath, TEARDOWN_SCRIPT_REL_PATH);
+	if (existsSync(fallbackScript)) {
+		return `bash ${singleQuote(fallbackScript)}`;
+	}
+
+	return null;
 }
 
 /** POSIX single-quote escape: safe for any byte sequence in a path. */

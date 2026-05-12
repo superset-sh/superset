@@ -231,3 +231,9 @@ export function hasConfiguredScripts(config: SetupConfig | null): boolean {
 export function getResolvedSetupCommands(config: SetupConfig | null): string[] {
 	return nonEmptyStrings(config?.setup);
 }
+
+export function getResolvedTeardownCommands(
+	config: SetupConfig | null,
+): string[] {
+	return nonEmptyStrings(config?.teardown);
+}

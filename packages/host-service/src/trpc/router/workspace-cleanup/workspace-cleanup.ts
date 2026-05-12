@@ -219,7 +219,8 @@ async function runDestroy(ctx: HostServiceContext, input: DestroyInput) {
 		const teardown: TeardownResult = await runTeardown({
 			db: ctx.db,
 			workspaceId: input.workspaceId,
-			worktreePath: local.worktreePath,
+			repoPath: project.repoPath,
+			projectId: project.id,
 		});
 		if (teardown.status === "failed") {
 			const cause: TeardownFailureCause = {
