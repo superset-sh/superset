@@ -77,15 +77,18 @@ const ROW_GRID_MINE =
 const ROW_GRID_TEAM =
 	"grid grid-cols-[minmax(0,1.5fr)_minmax(0,0.8fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.2fr)_2rem] items-center gap-4";
 
-const CLI_HINT_DISMISSED_STORAGE_KEY = "automations.cliHintDismissed";
+const CLI_HINT_DISMISSED_UNTIL_STORAGE_KEY =
+	"automations.cliHintDismissedUntil";
+const CLI_HINT_DISMISS_DURATION_MS = 1000 * 60 * 60 * 24 * 30;
 
 function getInitialCliHintDismissed(): boolean {
 	if (typeof window === "undefined") return false;
 
 	try {
-		return (
-			window.localStorage.getItem(CLI_HINT_DISMISSED_STORAGE_KEY) === "true"
+		const dismissedUntil = Number(
+			window.localStorage.getItem(CLI_HINT_DISMISSED_UNTIL_STORAGE_KEY),
 		);
+		return Number.isFinite(dismissedUntil) && dismissedUntil > Date.now();
 	} catch {
 		return false;
 	}
@@ -111,7 +114,10 @@ function AutomationsPage() {
 	function handleDismissCliHint() {
 		setCliHintDismissed(true);
 		try {
-			window.localStorage.setItem(CLI_HINT_DISMISSED_STORAGE_KEY, "true");
+			window.localStorage.setItem(
+				CLI_HINT_DISMISSED_UNTIL_STORAGE_KEY,
+				String(Date.now() + CLI_HINT_DISMISS_DURATION_MS),
+			);
 		} catch {
 			// Ignore storage errors; the in-memory dismissal still applies.
 		}
