@@ -2,7 +2,7 @@
 #  Superset CLI — friendly end-to-end walkthrough
 #
 #  Render with:  vhs demo/superset-cli.tape       (run from packages/cli)
-#  Then add the soundtrack:  ./demo/add-music.sh   (writes superset-cli-music.mp4)
+#  Then add the soundtrack:  ./demo/add-sound.sh  (pad + keyboard clicks → superset-cli-sound.mp4)
 #  Requires a built binary at ./dist/superset and a logged-in session
 #  with the host service running.
 # ─────────────────────────────────────────────────────────────
