@@ -109,6 +109,7 @@ describe("DaemonSupervisor.ensure (real spawn)", () => {
 			assert.equal(b.socketPath, a.socketPath);
 			assert.equal(b.runningVersion, a.expectedVersion);
 			assert.equal(b.updatePending, false);
+			dropSupervisorInstance(supA, "org-adopt");
 		} catch (err) {
 			// On failure, make sure A still cleans up.
 			await supA.stop("org-adopt").catch(() => {});
@@ -265,10 +266,11 @@ describe("DaemonSupervisor.ensure (real spawn)", () => {
 		supervisorsToCleanup.push({ sup: supB, orgId });
 		const b = await supB.ensure(orgId);
 		assert.equal(b.pid, adoptedPid, "B should adopt A's daemon");
+		dropSupervisorInstance(supA, orgId);
 
-		// Externally kill the adopted daemon. supA never had a child
-		// handle so its on-exit handler can't fire; supB only adopted
-		// (no child handle either). The poller must catch this.
+		// Externally kill the adopted daemon. supA's in-memory state was
+		// dropped to simulate the original host-service process being gone;
+		// supB only adopted (no child handle). The poller must catch this.
 		process.kill(adoptedPid, "SIGKILL");
 
 		// Wait up to 6s for the liveness poller (2s interval) to fire.
@@ -644,13 +646,12 @@ describe("DaemonSupervisor.update (Phase 2 fd-handoff)", () => {
 		}
 	});
 
-	test("auto-update failure force-restarts the daemon", async () => {
+	test("auto-update defers when live sessions exist", async () => {
 		// Heavy path: auto-update fires on every adopt with version drift.
-		// When smooth handoff fails during automatic app update, there is no
-		// foreground UI to ask the user for the destructive fallback. The
-		// supervisor force-restarts so the app does not keep adopting a stale
-		// daemon indefinitely.
-		const orgId = "org-autoupdate-fail";
+		// If the stale daemon owns live shells, the background path should
+		// not silently handoff/restart under the user's typing. The visible
+		// Settings action remains available for a user-approved update.
+		const orgId = "org-autoupdate-live-defer";
 		const socketPath = path.join(
 			os.tmpdir(),
 			`superset-ptyd-${crypto
@@ -707,73 +708,50 @@ describe("DaemonSupervisor.update (Phase 2 fd-handoff)", () => {
 				organizationId: orgId,
 			});
 
-			// Predecessor uses process.argv[1] (its own bundle) for handoff,
-			// not the supervisor's scriptPath — so injecting a bad scriptPath
-			// won't fail the update. Override runUpdate directly to drive the
-			// failure deterministically.
 			const sup = new DaemonSupervisor({ scriptPath: DAEMON_BUNDLE });
 			supervisorsToCleanup.push({ sup, orgId });
+			let runUpdateCalled = false;
 			(
 				sup as unknown as {
 					runUpdate: () => Promise<{ ok: false; reason: string }>;
 				}
 			).runUpdate = async () => ({
-				ok: false,
-				reason: "induced failure (test): simulated transient error",
+				ok: false as const,
+				reason: (() => {
+					runUpdateCalled = true;
+					return "auto-update should have deferred before runUpdate";
+				})(),
 			});
 
 			const adopted = await sup.ensure(orgId);
 			assert.equal(adopted.updatePending, true);
 			const predecessorPid = adopted.pid;
 
-			// Auto-update is fire-and-forget. Smooth update fails first, then
-			// the fallback force-restart swaps the daemon pid.
-			const deadline = Date.now() + 5000;
-			let currentPid = predecessorPid;
-			while (Date.now() < deadline) {
-				const inst = (
-					sup as unknown as { instances: Map<string, { pid: number }> }
-				).instances.get(orgId);
-				if (inst && inst.pid !== predecessorPid) {
-					currentPid = inst.pid;
-					break;
-				}
-				await new Promise((r) => setTimeout(r, 100));
-			}
-			assert.notEqual(
-				currentPid,
-				predecessorPid,
-				`auto-update fallback did not force-restart within 5s (still ${predecessorPid})`,
-			);
-			assert.equal(isAlive(currentPid), true, "fresh daemon should be alive");
+			await new Promise((r) => setTimeout(r, 500));
+			const inst = (
+				sup as unknown as { instances: Map<string, { pid: number }> }
+			).instances.get(orgId);
+			assert.equal(inst?.pid, predecessorPid);
+			assert.equal(isAlive(predecessorPid), true);
+			assert.equal(runUpdateCalled, false);
 
 			const status = sup.getUpdateStatus(orgId);
 			assert.ok(status);
 			assert.equal(
 				status.pending,
-				false,
-				`pending must clear after force restart (running=${status.running})`,
-			);
-
-			const exitDeadline = Date.now() + 2000;
-			while (Date.now() < exitDeadline && isAlive(predecessorPid)) {
-				await new Promise((r) => setTimeout(r, 50));
-			}
-			assert.equal(
-				isAlive(predecessorPid),
-				false,
-				"predecessor pid must be terminated by force restart",
+				true,
+				`pending should remain visible for manual update (running=${status.running})`,
 			);
 
 			const verifyClient = new DaemonClient({ socketPath });
 			await verifyClient.connect();
 			const sessions = await verifyClient.list();
 			const survivor = sessions.find((s) => s.id === "survivor");
-			assert.equal(
+			assert.ok(
 				survivor,
-				undefined,
-				`force restart must drop predecessor sessions: ${JSON.stringify(sessions)}`,
+				`live session should remain on predecessor: ${JSON.stringify(sessions)}`,
 			);
+			assert.equal(survivor.pid, shellPid);
 			await verifyClient.dispose();
 		} catch (err) {
 			try {
@@ -803,6 +781,15 @@ function isAlive(pid: number): boolean {
 	} catch (err) {
 		return (err as NodeJS.ErrnoException).code === "EPERM";
 	}
+}
+
+function dropSupervisorInstance(
+	sup: DaemonSupervisor,
+	organizationId: string,
+): void {
+	(sup as unknown as { instances: Map<string, unknown> }).instances.delete(
+		organizationId,
+	);
 }
 
 function isReachable(socketPath: string): Promise<boolean> {

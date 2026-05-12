@@ -1,5 +1,6 @@
 import * as childProcess from "node:child_process";
 import * as fs from "node:fs";
+import * as tty from "node:tty";
 import * as nodePty from "node-pty";
 import {
 	type ProcessSignalError,
@@ -195,7 +196,7 @@ export function spawn({ meta }: SpawnOptions): Pty {
  * `forkpty` was run; the fd already existed). We build a thin adapter
  * directly on the fd:
  *
- * - read via fs.createReadStream
+ * - read via tty.ReadStream
  * - write via direct fs.writeSync calls
  * - kill via process.kill(pid)
  * - onExit: read-stream 'end'/'error' OR PID-liveness poll (whichever first)
@@ -210,7 +211,7 @@ class AdoptedPty implements Pty {
 	readonly pid: number;
 	meta: SessionMeta;
 	private readonly fd: number;
-	private readonly reader: fs.ReadStream;
+	private readonly reader: tty.ReadStream;
 	private exitFired = false;
 	private livenessTimer: NodeJS.Timeout | null = null;
 	private killEscalationTimer: NodeJS.Timeout | null = null;
@@ -220,7 +221,7 @@ class AdoptedPty implements Pty {
 		this.fd = fd;
 		this.pid = pid;
 		this.meta = meta;
-		this.reader = fs.createReadStream("", { fd, autoClose: false });
+		this.reader = new tty.ReadStream(fd);
 
 		// onExit signal sources:
 		//   1. read stream 'end' or 'error' — the slave-side close drives EOF
@@ -233,9 +234,7 @@ class AdoptedPty implements Pty {
 			this.exitFired = true;
 			if (this.livenessTimer) clearInterval(this.livenessTimer);
 			// Close the read stream and inherited fd so the successor daemon
-			// does not stay alive after the shell exits. We use
-			// `autoClose: false` so handoff-time refcounting works, which
-			// means we drive fd close ourselves.
+			// does not stay alive after the shell exits.
 			try {
 				this.reader.destroy();
 			} catch {
