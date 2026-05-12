@@ -14,18 +14,34 @@ import {
 // ── resolveLaunchShell ───────────────────────────────────────────────
 
 describe("resolveLaunchShell", () => {
-	test("returns SHELL from base env on non-Windows", () => {
-		expect(resolveLaunchShell({ SHELL: "/usr/local/bin/fish" })).toBe(
-			"/usr/local/bin/fish",
-		);
+	test("prefers the configured account shell over inherited SHELL", () => {
+		expect(
+			resolveLaunchShell(
+				{ SHELL: "/bin/bash" },
+				{ accountShell: "/opt/homebrew/bin/fish", platform: "darwin" },
+			),
+		).toBe("/opt/homebrew/bin/fish");
+	});
+
+	test("falls back to SHELL from base env when account shell is unavailable", () => {
+		expect(
+			resolveLaunchShell(
+				{ SHELL: "/usr/local/bin/fish" },
+				{ accountShell: null, platform: "darwin" },
+			),
+		).toBe("/usr/local/bin/fish");
 	});
 
 	test("falls back to /bin/sh when SHELL is absent", () => {
-		expect(resolveLaunchShell({})).toBe("/bin/sh");
+		expect(
+			resolveLaunchShell({}, { accountShell: null, platform: "darwin" }),
+		).toBe("/bin/sh");
 	});
 
 	test("does not default to /bin/zsh", () => {
-		expect(resolveLaunchShell({})).not.toBe("/bin/zsh");
+		expect(
+			resolveLaunchShell({}, { accountShell: null, platform: "darwin" }),
+		).not.toBe("/bin/zsh");
 	});
 });
 
@@ -406,7 +422,17 @@ describe("buildV2TerminalEnv", () => {
 			SUPERSET_AGENT_HOOK_VERSION: "2",
 		});
 		expect(env.TERM_PROGRAM).toBe("kitty");
+		expect(env.SHELL).toBe("/bin/zsh");
 		expect(env.LANG).toContain("UTF-8");
+	});
+
+	test("sets SHELL to the selected launch shell even when base env was stale", () => {
+		const env = buildV2TerminalEnv({
+			...baseParams,
+			baseEnv: { ...baseParams.baseEnv, SHELL: "/bin/bash" },
+			shell: "/opt/homebrew/bin/fish",
+		});
+		expect(env.SHELL).toBe("/opt/homebrew/bin/fish");
 	});
 
 	test("allows empty root path and alternate Superset env without breaking the contract", () => {
