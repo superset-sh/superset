@@ -55,7 +55,7 @@ function isZshAvailable(): boolean {
 function writeBashProfilePath(homeDir: string, pathValue: string): void {
 	writeFileSync(
 		path.join(homeDir, ".bash_profile"),
-		`export PATH="${pathValue}"\n`,
+		`export PATH=${quoteShellLiteral(pathValue)}\n`,
 	);
 }
 
