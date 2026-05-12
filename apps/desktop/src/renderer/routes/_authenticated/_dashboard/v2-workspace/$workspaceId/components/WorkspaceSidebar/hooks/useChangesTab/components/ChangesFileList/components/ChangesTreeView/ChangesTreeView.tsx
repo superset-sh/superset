@@ -14,7 +14,7 @@ import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { workspaceTrpc } from "@superset/workspace-client";
 import { Undo2 } from "lucide-react";
-import { memo, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
 	ShadowClickHint,
 	usePierreRowClickPolicy,
@@ -25,6 +25,7 @@ import type { FileStatus } from "renderer/routes/_authenticated/_dashboard/v2-wo
 import { PierreRowContextMenu } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/components/PierreRowContextMenu";
 import type { ChangesetFile } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/useChangeset";
 import { toRelativeWorkspacePath } from "shared/absolute-paths";
+import { SectionToolbar } from "../SectionToolbar";
 import { FileRowContextMenuItems } from "./components/FileRowContextMenuItems";
 import { FolderContextMenuItems } from "./components/FolderContextMenuItems";
 import { ShadowRowHoverActions } from "./components/ShadowRowHoverActions";
@@ -193,6 +194,23 @@ export const ChangesTreeView = memo(function ChangesTreeView({
 	}, [model, dirs, fileParents]);
 	const treeHeight = visibleRowCount * ROW_BOX + HEIGHT_CUSHION;
 
+	const collapseAll = useCallback(() => {
+		for (const dir of dirs) {
+			const handle = model.getItem(`${dir}/`);
+			if (handle?.isDirectory() !== true) continue;
+			const dirHandle = handle as FileTreeDirectoryHandle;
+			if (dirHandle.isExpanded()) dirHandle.collapse();
+		}
+	}, [model, dirs]);
+	const expandAll = useCallback(() => {
+		for (const dir of dirs) {
+			const handle = model.getItem(`${dir}/`);
+			if (handle?.isDirectory() !== true) continue;
+			const dirHandle = handle as FileTreeDirectoryHandle;
+			if (!dirHandle.isExpanded()) dirHandle.expand();
+		}
+	}, [model, dirs]);
+
 	// Echo the diff pane's open file back into the tree's selection — but only
 	// when it belongs to this section. `lastUserSelectRef` guards the loop:
 	// after the user clicks a row, the parent's selectedFilePath comes back to
@@ -343,6 +361,7 @@ export const ChangesTreeView = memo(function ChangesTreeView({
 
 	return (
 		<div onClickCapture={onClickCapture}>
+			<SectionToolbar onCollapseAll={collapseAll} onExpandAll={expandAll} />
 			<ShadowClickHint hint={filePolicy.hint} findRow={findFileRow}>
 				<ShadowRowHoverActions
 					findFileRow={findFileRow}

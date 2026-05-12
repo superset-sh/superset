@@ -1,6 +1,7 @@
 import { memo, useCallback, useMemo, useState } from "react";
 import type { ChangesetFile } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/useChangeset";
 import { FileRow } from "../FileRow";
+import { SectionToolbar } from "../SectionToolbar";
 import { FolderHeader } from "./components/FolderHeader";
 
 const ROOT_FOLDER_KEY = "";
@@ -53,8 +54,15 @@ export const ChangesFoldersView = memo(function ChangesFoldersView({
 		});
 	}, []);
 
+	const collapseAll = useCallback(
+		() => setClosedFolders(new Set(groups.map((g) => g.folderPath))),
+		[groups],
+	);
+	const expandAll = useCallback(() => setClosedFolders(new Set()), []);
+
 	return (
 		<div>
+			<SectionToolbar onCollapseAll={collapseAll} onExpandAll={expandAll} />
 			{groups.map((group) => {
 				const isRoot = group.folderPath === ROOT_FOLDER_KEY;
 				const isOpen = !closedFolders.has(group.folderPath);
