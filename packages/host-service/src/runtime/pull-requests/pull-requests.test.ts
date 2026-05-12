@@ -381,3 +381,40 @@ describe("PullRequestRuntimeManager direct checkout PR linking", () => {
 		expect(state.workspace.pullRequestId).toBe("pr-existing");
 	});
 });
+
+describe("PullRequestRuntimeManager shutdown", () => {
+	test("stop waits for startup background work before returning", async () => {
+		const manager = createManager(makeState("main"));
+		let releaseSync: () => void = () => {
+			throw new Error("sync did not start");
+		};
+		let resolveStarted: () => void = () => {};
+		const started = new Promise<void>((resolve) => {
+			resolveStarted = resolve;
+		});
+		let completed = false;
+		const internals = manager as unknown as {
+			syncWorkspaceBranches: () => Promise<void>;
+			refreshEligibleProjects: () => Promise<void>;
+		};
+		internals.syncWorkspaceBranches = async () => {
+			resolveStarted();
+			await new Promise<void>((resolve) => {
+				releaseSync = resolve;
+			});
+			completed = true;
+		};
+		internals.refreshEligibleProjects = async () => {};
+
+		manager.start();
+		await started;
+
+		const stopPromise = manager.stop();
+		await new Promise((resolve) => setTimeout(resolve, 0));
+		expect(completed).toBe(false);
+
+		releaseSync();
+		await stopPromise;
+		expect(completed).toBe(true);
+	});
+});
