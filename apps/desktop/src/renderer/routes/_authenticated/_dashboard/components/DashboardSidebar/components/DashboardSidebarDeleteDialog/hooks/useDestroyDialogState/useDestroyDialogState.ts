@@ -35,8 +35,7 @@ export function useDestroyDialogState({
 }: UseDestroyDialogStateOptions) {
 	const { destroy, inspect, hostTarget } = useDestroyWorkspace(workspaceId);
 	const { markDeleting, clearDeleting } = useDeletingWorkspaces();
-	const { getNavigationTargetAfterRemoval, navigateToRemovalTarget } =
-		useNavigateAwayFromWorkspace();
+	const { navigateAwayFromWorkspace } = useNavigateAwayFromWorkspace();
 
 	const { preferences, setDeleteLocalBranch: setDeleteBranch } =
 		useV2UserPreferences();
@@ -111,11 +110,12 @@ export function useDestroyDialogState({
 			if (inFlight.current) return;
 			inFlight.current = true;
 
-			const navigationTarget = getNavigationTargetAfterRemoval(workspaceId);
-
 			setError(null);
 			onOpenChange(false);
 			markDeleting(workspaceId);
+			// Navigate up-front: no-ops if the deleted workspace isn't the
+			// active route, so a later user navigation won't be hijacked.
+			navigateAwayFromWorkspace(workspaceId);
 			toast(`Deleting "${workspaceName}"...`);
 
 			try {
@@ -137,7 +137,6 @@ export function useDestroyDialogState({
 					}
 				}
 				for (const warning of result.warnings) toast.warning(warning);
-				navigateToRemovalTarget(navigationTarget);
 				onDeleted?.();
 			} catch (err) {
 				const e = err as DestroyWorkspaceError;
@@ -165,8 +164,7 @@ export function useDestroyDialogState({
 			onDeleted,
 			markDeleting,
 			clearDeleting,
-			getNavigationTargetAfterRemoval,
-			navigateToRemovalTarget,
+			navigateAwayFromWorkspace,
 		],
 	);
 

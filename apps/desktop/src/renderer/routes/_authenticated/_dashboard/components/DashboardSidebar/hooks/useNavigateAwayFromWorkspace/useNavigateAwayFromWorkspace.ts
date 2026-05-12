@@ -4,20 +4,17 @@ import { navigateToV2Workspace } from "renderer/routes/_authenticated/_dashboard
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useDeletingWorkspaces } from "renderer/routes/_authenticated/providers/DeletingWorkspacesProvider";
 import { getFlattenedV2WorkspaceIds } from "../../utils/getFlattenedV2WorkspaceIds";
-import {
-	resolveWorkspaceRemovalNavigationTarget,
-	type WorkspaceRemovalNavigationTarget,
-} from "./navigationTarget";
+import { resolveWorkspaceRemovalNavigationTarget } from "./navigationTarget";
 
 function reportRemovalNavigationError(error: unknown) {
 	console.error("[useNavigateAwayFromWorkspace] navigation failed", error);
 }
 
 /**
- * If the user is viewing the workspace about to be removed, resolve a
- * valid next visible workspace sibling (or home). Destructive deletes use
- * the resolver after `workspaceCleanup.destroy` succeeds; non-destructive
- * sidebar removals can navigate immediately.
+ * If the user is viewing the workspace about to be removed, navigate to a
+ * valid next visible workspace sibling (or home). No-ops when the active
+ * route is a different workspace, so callers can fire this up-front without
+ * hijacking the user if they've already moved on.
  */
 export function useNavigateAwayFromWorkspace() {
 	const navigate = useNavigate();
@@ -25,30 +22,23 @@ export function useNavigateAwayFromWorkspace() {
 	const collections = useCollections();
 	const { isDeleting } = useDeletingWorkspaces();
 
-	const getNavigationTargetAfterRemoval = useCallback(
-		(workspaceId: string): WorkspaceRemovalNavigationTarget | null => {
+	const navigateAwayFromWorkspace = useCallback(
+		(workspaceId: string) => {
 			const workspaceMatch = matchRoute({
 				to: "/v2-workspace/$workspaceId",
 				fuzzy: true,
 			});
 			const activeWorkspaceId =
 				workspaceMatch !== false ? workspaceMatch.workspaceId : null;
-			const orderedWorkspaceIds = getFlattenedV2WorkspaceIds(collections);
-
-			return resolveWorkspaceRemovalNavigationTarget({
+			const target = resolveWorkspaceRemovalNavigationTarget({
 				activeWorkspaceId,
 				removedWorkspaceId: workspaceId,
-				orderedWorkspaceIds,
+				orderedWorkspaceIds: getFlattenedV2WorkspaceIds(collections),
 				isWorkspaceValid: (id) =>
 					collections.v2Workspaces.get(id) !== undefined,
 				isWorkspaceDeleting: (id) => isDeleting(id),
 			});
-		},
-		[collections, isDeleting, matchRoute],
-	);
 
-	const navigateToRemovalTarget = useCallback(
-		(target: WorkspaceRemovalNavigationTarget | null) => {
 			if (!target) return;
 			if (target.kind === "workspace") {
 				void navigateToV2Workspace(target.workspaceId, navigate, {
@@ -60,19 +50,8 @@ export function useNavigateAwayFromWorkspace() {
 				reportRemovalNavigationError,
 			);
 		},
-		[navigate],
+		[collections, isDeleting, matchRoute, navigate],
 	);
 
-	const navigateAwayFromWorkspace = useCallback(
-		(workspaceId: string) => {
-			navigateToRemovalTarget(getNavigationTargetAfterRemoval(workspaceId));
-		},
-		[getNavigationTargetAfterRemoval, navigateToRemovalTarget],
-	);
-
-	return {
-		getNavigationTargetAfterRemoval,
-		navigateAwayFromWorkspace,
-		navigateToRemovalTarget,
-	};
+	return { navigateAwayFromWorkspace };
 }

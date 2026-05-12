@@ -5,13 +5,14 @@ import { getSupervisor, waitForDaemonReady } from "../../../daemon";
 import { terminalSessions, workspaces } from "../../../db/schema";
 import {
 	createTerminalSessionInternal,
-	disposeSession,
+	disposeSessionAndWait,
 	listTerminalSessions,
 	parseThemeType,
 	writeInputToSession,
 } from "../../../terminal/terminal";
 import type { HostServiceContext } from "../../../types";
 import { protectedProcedure, router } from "../../index";
+import { remoteControlRouter } from "./remote-control";
 
 const createSessionInputSchema = z.object({
 	workspaceId: z.string(),
@@ -144,7 +145,7 @@ export const terminalRouter = router({
 				workspaceId: z.string(),
 			}),
 		)
-		.mutation(({ ctx, input }) => {
+		.mutation(async ({ ctx, input }) => {
 			const workspace = ctx.db.query.workspaces
 				.findFirst({ where: eq(workspaces.id, input.workspaceId) })
 				.sync();
@@ -174,9 +175,11 @@ export const terminalRouter = router({
 				});
 			}
 
-			disposeSession(input.terminalId, ctx.db);
+			await disposeSessionAndWait(input.terminalId, ctx.db);
 			return { terminalId: input.terminalId, status: "disposed" as const };
 		}),
 
 	daemon: daemonRouter,
+
+	remoteControl: remoteControlRouter,
 });

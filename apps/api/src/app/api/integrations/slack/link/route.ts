@@ -3,7 +3,7 @@ import { auth } from "@superset/auth/server";
 import { db } from "@superset/db/client";
 import { integrationConnections, usersSlackUsers } from "@superset/db/schema";
 import { findOrgMembership } from "@superset/db/utils";
-import { and, eq } from "drizzle-orm";
+import { and, desc, eq, isNull } from "drizzle-orm";
 import { headers } from "next/headers";
 import { env } from "@/env";
 
@@ -52,7 +52,12 @@ export async function GET(request: Request) {
 		where: and(
 			eq(integrationConnections.provider, "slack"),
 			eq(integrationConnections.externalOrgId, payload.teamId),
+			isNull(integrationConnections.disconnectedAt),
 		),
+		orderBy: [
+			desc(integrationConnections.updatedAt),
+			desc(integrationConnections.id),
+		],
 	});
 
 	if (!connection) {

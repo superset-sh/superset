@@ -63,8 +63,10 @@ On adoption, `probeDaemonVersion` does a one-shot `hello`/`hello-ack` to
 read the running daemon's `daemonVersion`, compares against
 `EXPECTED_DAEMON_VERSION` via `semver.satisfies(>=)`. Mismatch sets
 `updatePending: true` on the instance — the renderer surfaces a
-"restart to update" affordance. We do **not** auto-kill on mismatch
-because PTY sessions live in the daemon; the user opts in via Restart.
+"restart to update" affordance. Manual updates try fd-handoff first and
+only force-restart after the user confirms. Automatic adoption updates
+also try fd-handoff first, then force-restart on failure because there is
+no foreground UI to ask for the destructive fallback.
 
 Probe failure ≠ stale: a transient socket issue produces
 `runningVersion: "unknown", updatePending: false` rather than a
@@ -133,10 +135,15 @@ multi-line bursts keep the prefix on every line.
 The supervisor emits structured `console.log` lines with
 `{ component: "pty-daemon-supervisor", event, ...props }`. Events:
 `pty_daemon_spawn`, `pty_daemon_adopt`, `pty_daemon_user_restart`,
-`pty_daemon_update_pending`, `pty_daemon_crash`,
-`pty_daemon_circuit_open`, `pty_daemon_spawn_failed`. No PostHog
-plumbing on host-service yet — promote to real telemetry when the path
-is needed.
+`pty_daemon_update_pending`, `pty_daemon_update`,
+`pty_daemon_auto_update_attempt`, `pty_daemon_auto_update_ok`,
+`pty_daemon_auto_update_failed`,
+`pty_daemon_auto_update_force_restart`,
+`pty_daemon_auto_update_force_restart_ok`,
+`pty_daemon_auto_update_force_restart_failed`,
+`pty_daemon_auto_update_force_restart_skipped`, `pty_daemon_crash`,
+`pty_daemon_circuit_open`, `pty_daemon_spawn_failed`. No PostHog plumbing
+on host-service yet — promote to real telemetry when the path is needed.
 
 ## Tests
 
@@ -198,18 +205,22 @@ Daemon-binary upgrades preserve live PTY sessions via fd inheritance:
    spawns the new bundle with PTY master fds in its stdio array, stdio
    `'ipc'` channel for the upgrade-ack handshake, and `--handoff` argv.
 3. Successor reads the snapshot, adopts each session via `adoptFromFd`
-   (wraps the inherited fd with read/write streams), sends `upgrade-ack`
-   over IPC, waits for the predecessor's `disconnect` event, then binds
-   the socket via `listenWithRetry`.
+   (reads from the inherited fd and writes input directly back to that fd),
+   sends `upgrade-ack` over IPC, waits for the predecessor's `disconnect`
+   event, then binds the socket via `listenWithRetry`.
 4. Supervisor waits for the predecessor PID to exit, retries the version
    probe through the bind window (`probeDaemonVersionWithRetry`), and
    updates `instances` + the manifest with the successor's pid + version.
 
-If anything fails mid-handoff (snapshot write error, successor crash on
-adopt, IPC stall) the supervisor's `restoreOnFailure()` path leaves the
+If anything fails mid-handoff (snapshot write error, successor spawn
+error, successor crash on adopt, malformed ack, IPC stall) the
+supervisor's `restoreOnFailure()` path leaves the
 predecessor's instance record intact — the user's shells keep serving on
 the original daemon process. Auto-update on adopt (`kickoffAutoUpdate`)
 relies on this contract: a transient failure must never disrupt sessions.
+Before the destructive auto-update fallback runs, the supervisor re-checks
+that the same stale daemon is still current and still pending so a late
+failure from an obsolete attempt cannot restart a fresh daemon.
 
 Mode signal goes through argv (`--handoff`), not env: bundlers
 (Bun, esbuild via electron-vite) statically inline `process.env.X`

@@ -13,11 +13,28 @@ and the local host server from your terminal or from CI.
 
 ## Install
 
+### Desktop app
+
+The desktop app includes the Superset CLI. When the app launches, it writes
+an app-managed shim at `~/.superset/bin/superset`, and Superset terminals
+prepend `~/.superset/bin` to `PATH` automatically.
+
+To use the bundled CLI from a normal shell, add the directory to your shell
+profile:
+
+```bash
+export PATH="$HOME/.superset/bin:$PATH"
+```
+
+### Standalone install
+
 ```bash
 curl -fsSL https://superset.sh/cli/install.sh | sh
 ```
 
-The script auto-detects your platform (macOS Apple Silicon or Linux x86_64) and installs the binary at `/usr/local/bin/superset`.
+The script auto-detects your platform (macOS Apple Silicon or Linux x86_64),
+installs Superset under `~/superset` by default, and adds `~/superset/bin`
+to your shell `PATH`.
 
 ### Homebrew
 
@@ -32,8 +49,8 @@ superset auth login
 ```
 
 The CLI starts a loopback callback server on `127.0.0.1:51789` (or `51790`
-if busy), opens your browser to the consent page, and stores a session
-token at `~/.superset/config.json`.
+through `51793` if earlier ports are busy), opens your browser to the
+consent page, and stores a session token at `~/.superset/config.json`.
 
 If you belong to multiple organizations, you'll be prompted to pick one. To
 skip the prompt and pick directly:
@@ -107,7 +124,7 @@ Trigger an automation immediately:
 ```bash
 superset automations list
 superset automations run aut_…
-superset automations logs aut_… --follow
+superset automations logs aut_…
 ```
 
 ## Output modes
@@ -139,13 +156,15 @@ calls route through the cloud API and the relay.
 
 ```bash
 superset hosts list
+superset workspaces list
 superset workspaces list --host h_…
+superset workspaces list --local
 ```
 
 Mutating host commands (`projects create`, `projects setup`,
 `workspaces create`) require an explicit `--host` or `--local` — there's
-no default. Read-only host queries (`workspaces list`) default to the
-local machine.
+no default. `workspaces list` is organization-wide when neither `--host`
+nor `--local` is provided; pass `--local` to restrict it to this machine.
 
 ## Where state lives
 

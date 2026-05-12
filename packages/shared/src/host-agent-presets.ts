@@ -37,7 +37,7 @@ export const HOST_AGENT_PRESETS = [
 		description:
 			"Anthropic's coding agent for reading code, editing files, and running terminal workflows.",
 		command: "claude",
-		args: ["--permission-mode", "acceptEdits"],
+		args: ["--dangerously-skip-permissions"],
 		promptTransport: "argv",
 		promptArgs: [],
 		env: {},

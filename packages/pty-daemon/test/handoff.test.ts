@@ -11,7 +11,10 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { after, before, test } from "node:test";
 import { fileURLToPath } from "node:url";
-import { connectAndHello } from "./helpers/client.ts";
+import {
+	accumulatedOutputAsString,
+	connectAndHello,
+} from "./helpers/client.ts";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const DAEMON_SCRIPT = path.resolve(here, "..", "src", "main.ts");
@@ -74,7 +77,7 @@ test("prepare-upgrade hands off live sessions to a successor binary", async () =
 		id: "handoff-0",
 		meta: {
 			shell: "/bin/sh",
-			argv: ["-c", "echo before-handoff; sleep 30"],
+			argv: [],
 			cols: 80,
 			rows: 24,
 		},
@@ -128,6 +131,24 @@ test("prepare-upgrade hands off live sessions to a successor binary", async () =
 		survived.pid,
 		originalPid,
 		`shell pid should match across handoff (was ${originalPid}, got ${survived.pid})`,
+	);
+
+	// The adopted session must still accept input after the binary swap.
+	// Regression coverage for sessions that survived handoff but stopped
+	// being writable.
+	c2.send({ type: "subscribe", id: "handoff-0", replay: false });
+	c2.send(
+		{ type: "input", id: "handoff-0" },
+		Buffer.from("printf 'after-handoff-write\\n'\n"),
+	);
+	await c2.waitFor(
+		(m) =>
+			m.type === "output" &&
+			m.id === "handoff-0" &&
+			accumulatedOutputAsString(c2, "handoff-0").includes(
+				"after-handoff-write",
+			),
+		5_000,
 	);
 
 	// Cleanup: close the surviving session.

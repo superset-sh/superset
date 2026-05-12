@@ -357,7 +357,7 @@ export function ResourceConsumption({
 							)}
 						>
 							<HiOutlineCpuChip className="size-3.5" />
-							{triggerDotColorClass && (
+							{!isV2 && triggerDotColorClass && (
 								<span
 									className={cn(
 										"absolute top-0.5 right-0.5 size-1.5 rounded-full ring-2 ring-background",

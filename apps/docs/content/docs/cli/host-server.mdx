@@ -7,6 +7,11 @@ The `superset start` command runs a headless HTTP server that any Superset deskt
 
 It manages workspaces, ports, and agent runs on the machine it's running on. The desktop app starts it automatically; on a CLI-only or headless machine you start it yourself.
 
+If you installed the desktop app, it already includes the CLI and installs a
+`~/.superset/bin/superset` shim on app launch. Superset terminals prepend
+that directory to `PATH` automatically. On a headless machine, use the
+standalone installer from [Getting Started](/cli/getting-started).
+
 ## Prerequisites
 
 `git` and `gh` need to be on your `PATH`. `git` handles clone, worktree, and branch ops; `gh` handles PR checkout and metadata.
@@ -130,6 +135,16 @@ superset workspaces create \
 
 The host server clones the project (if it isn't already on disk), creates
 a git worktree at the chosen branch, and registers the workspace.
+
+You can also create a workspace from a pull request number:
+
+```bash
+superset workspaces create \
+  --project prj_… \
+  --name "review-pr-123" \
+  --pr 123 \
+  --local
+```
 
 ## Stop the host server
 

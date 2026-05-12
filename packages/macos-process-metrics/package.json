@@ -8,6 +8,6 @@
 		"install": "node-gyp rebuild || echo 'Native build skipped (non-macOS or missing toolchain)'"
 	},
 	"dependencies": {
-		"node-addon-api": "^7.1.0"
+		"node-addon-api": "7.1.1"
 	}
 }

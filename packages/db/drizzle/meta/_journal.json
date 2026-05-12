@@ -337,6 +337,27 @@
       "when": 1778189803548,
       "tag": "0047_backfill_slack_model_preferences",
       "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "7",
+      "when": 1778450275874,
+      "tag": "0048_integration_connections_active_unique",
+      "breakpoints": true
+    },
+    {
+      "idx": 49,
+      "version": "7",
+      "when": 1778468182416,
+      "tag": "0049_add_teams",
+      "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "7",
+      "when": 1778492040993,
+      "tag": "0050_add_v2_remote_control_sessions",
+      "breakpoints": true
     }
   ]
 }

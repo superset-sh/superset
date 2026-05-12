@@ -644,12 +644,12 @@ describe("DaemonSupervisor.update (Phase 2 fd-handoff)", () => {
 		}
 	});
 
-	test("auto-update failure does not disrupt the predecessor's live sessions", async () => {
+	test("auto-update failure force-restarts the daemon", async () => {
 		// Heavy path: auto-update fires on every adopt with version drift.
-		// When something goes wrong (snapshot ENOSPC, successor adopt
-		// crash, IPC stall — we induce via runUpdate override), the user's
-		// shells must NOT die. Predecessor keeps serving; sessions still
-		// attachable post-failure.
+		// When smooth handoff fails during automatic app update, there is no
+		// foreground UI to ask the user for the destructive fallback. The
+		// supervisor force-restarts so the app does not keep adopting a stale
+		// daemon indefinitely.
 		const orgId = "org-autoupdate-fail";
 		const socketPath = path.join(
 			os.tmpdir(),
@@ -726,47 +726,54 @@ describe("DaemonSupervisor.update (Phase 2 fd-handoff)", () => {
 			assert.equal(adopted.updatePending, true);
 			const predecessorPid = adopted.pid;
 
-			// Auto-update is fire-and-forget; wait for it to settle.
-			await new Promise((r) => setTimeout(r, 500));
+			// Auto-update is fire-and-forget. Smooth update fails first, then
+			// the fallback force-restart swaps the daemon pid.
+			const deadline = Date.now() + 5000;
+			let currentPid = predecessorPid;
+			while (Date.now() < deadline) {
+				const inst = (
+					sup as unknown as { instances: Map<string, { pid: number }> }
+				).instances.get(orgId);
+				if (inst && inst.pid !== predecessorPid) {
+					currentPid = inst.pid;
+					break;
+				}
+				await new Promise((r) => setTimeout(r, 100));
+			}
+			assert.notEqual(
+				currentPid,
+				predecessorPid,
+				`auto-update fallback did not force-restart within 5s (still ${predecessorPid})`,
+			);
+			assert.equal(isAlive(currentPid), true, "fresh daemon should be alive");
 
 			const status = sup.getUpdateStatus(orgId);
 			assert.ok(status);
 			assert.equal(
-				status.running,
-				"0.0.1",
-				"running version must remain the predecessor's after auto-update failure",
-			);
-			assert.equal(
 				status.pending,
-				true,
-				"pending must remain true after auto-update failure (user can retry via Update button)",
+				false,
+				`pending must clear after force restart (running=${status.running})`,
 			);
 
+			const exitDeadline = Date.now() + 2000;
+			while (Date.now() < exitDeadline && isAlive(predecessorPid)) {
+				await new Promise((r) => setTimeout(r, 50));
+			}
 			assert.equal(
 				isAlive(predecessorPid),
-				true,
-				"predecessor pid must still be running",
+				false,
+				"predecessor pid must be terminated by force restart",
 			);
 
 			const verifyClient = new DaemonClient({ socketPath });
 			await verifyClient.connect();
 			const sessions = await verifyClient.list();
 			const survivor = sessions.find((s) => s.id === "survivor");
-			assert.ok(
+			assert.equal(
 				survivor,
-				`survivor session must still be listed: ${JSON.stringify(sessions)}`,
+				undefined,
+				`force restart must drop predecessor sessions: ${JSON.stringify(sessions)}`,
 			);
-			assert.equal(
-				survivor.alive,
-				true,
-				"survivor session must still be alive on the predecessor",
-			);
-			assert.equal(
-				survivor.pid,
-				shellPid,
-				"survivor shell pid must be unchanged",
-			);
-			await verifyClient.close("survivor", "SIGKILL").catch(() => {});
 			await verifyClient.dispose();
 		} catch (err) {
 			try {

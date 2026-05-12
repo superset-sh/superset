@@ -1,12 +1,16 @@
 import { LinearClient } from "@linear/sdk";
 import { db } from "@superset/db/client";
-import { integrationConnections, members } from "@superset/db/schema";
+import { integrationConnections, members, users } from "@superset/db/schema";
 import { linearTokenResponseSchema } from "@superset/trpc/integrations/linear";
 import { Client } from "@upstash/qstash";
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull, ne } from "drizzle-orm";
 
 import { env } from "@/env";
 import { verifySignedState } from "@/lib/oauth-state";
+
+const UNIQUE_VIOLATION = "23505";
+const ACTIVE_LINKAGE_INDEX =
+	"integration_connections_provider_external_org_active_unique";
 
 const qstash = new Client({ token: env.QSTASH_TOKEN });
 
@@ -84,35 +88,65 @@ export async function GET(request: Request) {
 
 	const tokenExpiresAt = new Date(Date.now() + tokenData.expires_in * 1000);
 
-	await db
-		.insert(integrationConnections)
-		.values({
-			organizationId,
-			connectedByUserId: userId,
-			provider: "linear",
-			accessToken: tokenData.access_token,
-			refreshToken: tokenData.refresh_token,
-			tokenExpiresAt,
-			externalOrgId: linearOrg.id,
-			externalOrgName: linearOrg.name,
-		})
-		.onConflictDoUpdate({
-			target: [
-				integrationConnections.organizationId,
-				integrationConnections.provider,
-			],
-			set: {
+	const [conflict] = await db
+		.select({ email: users.email })
+		.from(integrationConnections)
+		.innerJoin(users, eq(users.id, integrationConnections.connectedByUserId))
+		.where(
+			and(
+				eq(integrationConnections.provider, "linear"),
+				eq(integrationConnections.externalOrgId, linearOrg.id),
+				isNull(integrationConnections.disconnectedAt),
+				ne(integrationConnections.organizationId, organizationId),
+			),
+		)
+		.limit(1);
+
+	if (conflict) {
+		return Response.redirect(
+			`${env.NEXT_PUBLIC_WEB_URL}/integrations/linear?error=workspace_already_linked&owner=${encodeURIComponent(conflict.email)}`,
+		);
+	}
+
+	try {
+		await db
+			.insert(integrationConnections)
+			.values({
+				organizationId,
+				connectedByUserId: userId,
+				provider: "linear",
 				accessToken: tokenData.access_token,
 				refreshToken: tokenData.refresh_token,
 				tokenExpiresAt,
-				disconnectedAt: null,
-				disconnectReason: null,
 				externalOrgId: linearOrg.id,
 				externalOrgName: linearOrg.name,
-				connectedByUserId: userId,
-				updatedAt: new Date(),
-			},
-		});
+			})
+			.onConflictDoUpdate({
+				target: [
+					integrationConnections.organizationId,
+					integrationConnections.provider,
+				],
+				set: {
+					accessToken: tokenData.access_token,
+					refreshToken: tokenData.refresh_token,
+					tokenExpiresAt,
+					disconnectedAt: null,
+					disconnectReason: null,
+					externalOrgId: linearOrg.id,
+					externalOrgName: linearOrg.name,
+					connectedByUserId: userId,
+					updatedAt: new Date(),
+				},
+			});
+	} catch (error) {
+		const e = error as { code?: string; constraint?: string };
+		if (e.code === UNIQUE_VIOLATION && e.constraint === ACTIVE_LINKAGE_INDEX) {
+			return Response.redirect(
+				`${env.NEXT_PUBLIC_WEB_URL}/integrations/linear?error=workspace_already_linked`,
+			);
+		}
+		throw error;
+	}
 
 	try {
 		await qstash.publishJSON({

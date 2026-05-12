@@ -1,6 +1,6 @@
 {
 	"name": "@superset/pty-daemon",
-	"version": "0.2.0",
+	"version": "0.2.2",
 	"private": true,
 	"type": "module",
 	"exports": {
@@ -11,6 +11,10 @@
 		"./protocol": {
 			"types": "./src/protocol/index.ts",
 			"default": "./src/protocol/index.ts"
+		},
+		"./process-tree": {
+			"types": "./src/process-tree.ts",
+			"default": "./src/process-tree.ts"
 		},
 		"./package.json": "./package.json"
 	},
@@ -33,8 +37,8 @@
 	},
 	"devDependencies": {
 		"@superset/typescript": "workspace:*",
-		"@types/node": "^24.9.1",
-		"bun-types": "^1.3.1",
-		"typescript": "^5.9.3"
+		"@types/node": "24.12.0",
+		"bun-types": "1.3.11",
+		"typescript": "5.9.3"
 	}
 }

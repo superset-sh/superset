@@ -166,7 +166,7 @@ export function AgentDetail({
 							value={commandText}
 							onChange={(e) => setCommandText(e.target.value)}
 							onBlur={handleCommandBlur}
-							placeholder="claude --permission-mode acceptEdits"
+							placeholder="claude --dangerously-skip-permissions"
 						/>
 					</StackedField>
 

@@ -1,7 +1,15 @@
 import * as childProcess from "node:child_process";
 import * as fs from "node:fs";
 import * as nodePty from "node-pty";
+import {
+	type ProcessSignalError,
+	type ProcessSignalTarget,
+	signalProcessTargets,
+	signalProcessTreeAndGroups,
+} from "../process-tree.ts";
 import type { SessionMeta } from "../protocol/index.ts";
+
+const KILL_ESCALATION_TIMEOUT_MS = 1000;
 
 export type PtyOnData = (data: Buffer) => void;
 export type PtyOnExit = (info: {
@@ -36,11 +44,22 @@ class NodePtyAdapter implements Pty {
 	readonly pid: number;
 	meta: SessionMeta;
 	private term: nodePty.IPty;
+	private exited = false;
+	private killEscalationTimer: NodeJS.Timeout | null = null;
+	private exitInfo: { code: number | null; signal: number | null } | null =
+		null;
+	private exitCallbacks: PtyOnExit[] = [];
 
 	constructor(term: nodePty.IPty, meta: SessionMeta) {
 		this.term = term;
 		this.pid = term.pid;
 		this.meta = meta;
+		this.term.onExit(({ exitCode, signal }) => {
+			if (this.exited) return;
+			this.exited = true;
+			this.exitInfo = { code: exitCode ?? null, signal: signal ?? null };
+			for (const cb of this.exitCallbacks) cb(this.exitInfo);
+		});
 	}
 
 	getMasterFd(): number {
@@ -71,7 +90,13 @@ class NodePtyAdapter implements Pty {
 	}
 
 	kill(signal?: NodeJS.Signals): void {
-		this.term.kill(signal);
+		const killSignal = signal ?? "SIGHUP";
+		const escalationTargets = signalProcessTreeAndGroups(this.pid, killSignal, {
+			includeRoot: false,
+			onSignalError: logProcessSignalError,
+		});
+		this.term.kill(killSignal);
+		this.scheduleKillEscalation(killSignal, escalationTargets);
 	}
 
 	onData(cb: PtyOnData): void {
@@ -81,9 +106,29 @@ class NodePtyAdapter implements Pty {
 	}
 
 	onExit(cb: PtyOnExit): void {
-		this.term.onExit(({ exitCode, signal }) => {
-			cb({ code: exitCode ?? null, signal: signal ?? null });
-		});
+		if (this.exitInfo) {
+			cb(this.exitInfo);
+			return;
+		}
+		this.exitCallbacks.push(cb);
+	}
+
+	private scheduleKillEscalation(
+		signal: NodeJS.Signals,
+		targets: ProcessSignalTarget[],
+	): void {
+		if (signal === "SIGKILL" || this.exited || this.killEscalationTimer) return;
+
+		this.killEscalationTimer = setTimeout(() => {
+			this.killEscalationTimer = null;
+			signalProcessTargets(targets, "SIGKILL", logProcessSignalError);
+			try {
+				this.term.kill("SIGKILL");
+			} catch {
+				// PTY root may have already exited; detached targets still matter.
+			}
+		}, KILL_ESCALATION_TIMEOUT_MS);
+		this.killEscalationTimer.unref();
 	}
 }
 
@@ -151,7 +196,7 @@ export function spawn({ meta }: SpawnOptions): Pty {
  * directly on the fd:
  *
  * - read via fs.createReadStream
- * - write via fs.createWriteStream
+ * - write via direct fs.writeSync calls
  * - kill via process.kill(pid)
  * - onExit: read-stream 'end'/'error' OR PID-liveness poll (whichever first)
  *
@@ -166,9 +211,9 @@ class AdoptedPty implements Pty {
 	meta: SessionMeta;
 	private readonly fd: number;
 	private readonly reader: fs.ReadStream;
-	private readonly writer: fs.WriteStream;
 	private exitFired = false;
 	private livenessTimer: NodeJS.Timeout | null = null;
+	private killEscalationTimer: NodeJS.Timeout | null = null;
 	private exitCallbacks: PtyOnExit[] = [];
 
 	constructor(fd: number, pid: number, meta: SessionMeta) {
@@ -176,7 +221,6 @@ class AdoptedPty implements Pty {
 		this.pid = pid;
 		this.meta = meta;
 		this.reader = fs.createReadStream("", { fd, autoClose: false });
-		this.writer = fs.createWriteStream("", { fd, autoClose: false });
 
 		// onExit signal sources:
 		//   1. read stream 'end' or 'error' — the slave-side close drives EOF
@@ -188,17 +232,12 @@ class AdoptedPty implements Pty {
 			if (this.exitFired) return;
 			this.exitFired = true;
 			if (this.livenessTimer) clearInterval(this.livenessTimer);
-			// Close the read/write streams so the inherited fd doesn't keep
-			// the event loop alive after the shell exits. We use
-			// `autoClose: false` (so handoff-time refcounting works), which
-			// means we have to drive the close ourselves.
+			// Close the read stream and inherited fd so the successor daemon
+			// does not stay alive after the shell exits. We use
+			// `autoClose: false` so handoff-time refcounting works, which
+			// means we drive fd close ourselves.
 			try {
 				this.reader.destroy();
-			} catch {
-				// already closed
-			}
-			try {
-				this.writer.destroy();
 			} catch {
 				// already closed
 			}
@@ -211,9 +250,6 @@ class AdoptedPty implements Pty {
 		};
 		this.reader.on("end", () => onExit({ code: null, signal: null }));
 		this.reader.on("error", () => onExit({ code: null, signal: null }));
-		// Without this listener, a write that races a slave-side close
-		// emits 'error' with no handler and crashes the daemon.
-		this.writer.on("error", () => onExit({ code: null, signal: null }));
 		this.livenessTimer = setInterval(() => {
 			if (!isPidAlive(this.pid)) onExit({ code: null, signal: null });
 		}, 1000);
@@ -225,7 +261,22 @@ class AdoptedPty implements Pty {
 	}
 
 	write(data: Buffer): void {
-		this.writer.write(data);
+		if (this.exitFired) {
+			throw new Error(`session exited: ${this.pid}`);
+		}
+		let offset = 0;
+		while (offset < data.byteLength) {
+			const written = fs.writeSync(
+				this.fd,
+				data,
+				offset,
+				data.byteLength - offset,
+			);
+			if (written <= 0) {
+				throw new Error(`pty write wrote ${written} bytes`);
+			}
+			offset += written;
+		}
 	}
 
 	resize(cols: number, rows: number): void {
@@ -253,11 +304,11 @@ class AdoptedPty implements Pty {
 	}
 
 	kill(signal?: NodeJS.Signals): void {
-		try {
-			process.kill(this.pid, signal ?? "SIGHUP");
-		} catch {
-			// Already dead; idempotent kill.
-		}
+		const killSignal = signal ?? "SIGHUP";
+		const escalationTargets = signalProcessTreeAndGroups(this.pid, killSignal, {
+			onSignalError: logProcessSignalError,
+		});
+		this.scheduleKillEscalation(killSignal, escalationTargets);
 	}
 
 	onData(cb: PtyOnData): void {
@@ -269,6 +320,20 @@ class AdoptedPty implements Pty {
 	onExit(cb: PtyOnExit): void {
 		this.exitCallbacks.push(cb);
 	}
+
+	private scheduleKillEscalation(
+		signal: NodeJS.Signals,
+		targets: ProcessSignalTarget[],
+	): void {
+		if (signal === "SIGKILL" || this.exitFired || this.killEscalationTimer)
+			return;
+
+		this.killEscalationTimer = setTimeout(() => {
+			this.killEscalationTimer = null;
+			signalProcessTargets(targets, "SIGKILL", logProcessSignalError);
+		}, KILL_ESCALATION_TIMEOUT_MS);
+		this.killEscalationTimer.unref();
+	}
 }
 
 function isPidAlive(pid: number): boolean {
@@ -279,6 +344,15 @@ function isPidAlive(pid: number): boolean {
 		// EPERM means the pid exists but isn't ours — count as alive.
 		return (err as NodeJS.ErrnoException).code === "EPERM";
 	}
+}
+
+function logProcessSignalError(event: ProcessSignalError): void {
+	if ((event.error as NodeJS.ErrnoException).code === "ESRCH") return;
+
+	const label = event.target === "pgid" ? "process group" : "pid";
+	process.stderr.write(
+		`[pty-daemon] failed to ${event.signal} ${label} ${event.id}: ${(event.error as Error).message}\n`,
+	);
 }
 
 export interface AdoptOptions {

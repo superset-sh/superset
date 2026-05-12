@@ -202,21 +202,34 @@ export class Server {
 		// package.json instead.
 		const successorEnv: NodeJS.ProcessEnv = { ...process.env };
 		delete successorEnv.SUPERSET_PTY_DAEMON_VERSION;
-		const child = childProcess.spawn(
-			process.execPath,
-			[
-				...process.execArgv,
-				scriptPath,
-				"--handoff",
-				`--snapshot=${snapshotPath}`,
-				`--socket=${this.opts.socketPath}`,
-			],
-			{
-				stdio,
-				env: successorEnv,
-				detached: false,
-			},
-		);
+		let child: childProcess.ChildProcess;
+		try {
+			child = childProcess.spawn(
+				process.execPath,
+				[
+					...process.execArgv,
+					scriptPath,
+					"--handoff",
+					`--snapshot=${snapshotPath}`,
+					`--socket=${this.opts.socketPath}`,
+				],
+				{
+					stdio,
+					env: successorEnv,
+					detached: false,
+				},
+			);
+		} catch (err) {
+			try {
+				fs.unlinkSync(snapshotPath);
+			} catch {
+				// best-effort cleanup; keep the original spawn error visible
+			}
+			return {
+				ok: false,
+				reason: `successor spawn failed: ${(err as Error).message}`,
+			};
+		}
 		child.on("exit", (code, signal) => {
 			process.stderr.write(
 				`[pty-daemon prep-upgrade pid=${process.pid}] successor exited code=${code} signal=${signal}\n`,
@@ -496,13 +509,26 @@ function waitForHandoffAck(
 			settled = true;
 			child.removeListener("message", onMessage);
 			child.removeListener("exit", onExit);
+			child.removeListener("error", onError);
+			child.removeListener("disconnect", onDisconnect);
 			clearTimeout(timer);
 			resolve(r);
 		};
 		const onMessage = (raw: unknown) => {
 			const msg = raw as Partial<HandoffMessage>;
 			if (msg && typeof msg === "object" && msg.type === "upgrade-ack") {
-				settle({ ok: true, successorPid: msg.successorPid ?? -1 });
+				if (
+					typeof msg.successorPid !== "number" ||
+					!Number.isInteger(msg.successorPid) ||
+					msg.successorPid <= 0
+				) {
+					settle({
+						ok: false,
+						reason: `successor sent invalid ack pid: ${String(msg.successorPid)}`,
+					});
+					return;
+				}
+				settle({ ok: true, successorPid: msg.successorPid });
 			} else if (msg && typeof msg === "object" && msg.type === "upgrade-nak") {
 				settle({ ok: false, reason: msg.reason ?? "successor sent nak" });
 			}
@@ -513,8 +539,22 @@ function waitForHandoffAck(
 				reason: `successor exited before ack (code=${code} signal=${signal})`,
 			});
 		};
+		const onError = (err: Error) => {
+			settle({
+				ok: false,
+				reason: `successor spawn error before ack: ${err.message}`,
+			});
+		};
+		const onDisconnect = () => {
+			settle({
+				ok: false,
+				reason: "successor IPC disconnected before ack",
+			});
+		};
 		child.on("message", onMessage);
 		child.on("exit", onExit);
+		child.on("error", onError);
+		child.on("disconnect", onDisconnect);
 		const timer = setTimeout(() => {
 			settle({
 				ok: false,
