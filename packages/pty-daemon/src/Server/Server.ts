@@ -34,6 +34,7 @@ export interface ServerOptions {
 	socketPath: string;
 	daemonVersion: string;
 	bufferCap?: number;
+	outboundBufferCap?: number;
 	/**
 	 * Override for the PTY-spawn factory. Production leaves this unset;
 	 * `defaultSpawn` (real node-pty) is used. Tests inject a fake here so
@@ -41,6 +42,8 @@ export interface ServerOptions {
 	 */
 	spawnPty?: HandlerCtx["spawnPty"];
 }
+
+const DEFAULT_OUTBOUND_BUFFER_CAP_BYTES = 8 * 1024 * 1024;
 
 interface ConnState extends Conn {
 	socket: net.Socket;
@@ -307,12 +310,15 @@ export class Server {
 	}
 
 	private onConnection(socket: net.Socket): void {
+		const outboundBufferCap =
+			this.opts.outboundBufferCap ?? DEFAULT_OUTBOUND_BUFFER_CAP_BYTES;
 		const conn: ConnState = {
 			socket,
 			decoder: new FrameDecoder(),
 			negotiated: null,
 			subscriptions: new Set(),
-			send: (msg, payload) => writeMessage(socket, msg, payload),
+			send: (msg, payload) =>
+				writeMessage(socket, msg, payload, outboundBufferCap),
 		};
 		this.conns.add(conn);
 
@@ -577,7 +583,15 @@ function writeMessage(
 	socket: net.Socket,
 	msg: ServerMessage,
 	payload?: Uint8Array,
+	outboundBufferCap = DEFAULT_OUTBOUND_BUFFER_CAP_BYTES,
 ): void {
 	if (socket.destroyed) return;
-	socket.write(encodeFrame(msg, payload));
+	if (socket.writableLength > outboundBufferCap) {
+		socket.destroy();
+		return;
+	}
+	const ok = socket.write(encodeFrame(msg, payload));
+	if (!ok && socket.writableLength > outboundBufferCap) {
+		socket.destroy();
+	}
 }

@@ -169,10 +169,7 @@ export function connect(socketPath: string): Promise<DaemonClient> {
 							rej(new Error(`waitForNext timed out after ${ms}ms`));
 						}, ms);
 						waiter = {
-							predicate: (m) => {
-								const index = messages.indexOf(m);
-								return index >= startIndex && predicate(m);
-							},
+							predicate: (m) => messages.length > startIndex && predicate(m),
 							resolve: res,
 							reject: rej,
 							timer,

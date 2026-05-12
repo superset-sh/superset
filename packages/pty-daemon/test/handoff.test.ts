@@ -209,19 +209,26 @@ test("prepare-upgrade hands off live sessions to a successor binary", async () =
 			);
 		}
 
-		// Cleanup: close the surviving sessions.
+		// Cleanup: close the surviving sessions. Register all exit waiters
+		// before the first close so an early exit for a later session cannot
+		// land before its waiter exists.
+		const exitAfterClose = new Map(
+			sessionIds.map((id) => [
+				id,
+				adoptedClient.waitForNext(
+					(m) => m.type === "exit" && m.id === id,
+					5_000,
+				),
+			]),
+		);
 		for (const id of sessionIds) {
-			const exitAfterClose = adoptedClient.waitForNext(
-				(m) => m.type === "exit" && m.id === id,
-				5_000,
-			);
 			adoptedClient.send({ type: "close", id, signal: "SIGKILL" });
 			await adoptedClient.waitFor(
 				(m) => m.type === "closed" && m.id === id,
 				2_000,
 			);
-			await exitAfterClose;
 		}
+		await Promise.all(exitAfterClose.values());
 
 		const afterCloseListPromise = adoptedClient.waitForNext(
 			(m) => m.type === "list-reply",
