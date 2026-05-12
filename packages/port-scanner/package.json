@@ -15,11 +15,11 @@
 		"test": "bun test"
 	},
 	"dependencies": {
-		"pidtree": "^0.6.0"
+		"pidtree": "0.6.0"
 	},
 	"devDependencies": {
 		"@superset/typescript": "workspace:*",
-		"bun-types": "^1.3.1",
-		"typescript": "^5.9.3"
+		"bun-types": "1.3.11",
+		"typescript": "5.9.3"
 	}
 }

@@ -49,7 +49,6 @@ import {
 	LuSearchX,
 	LuSparkles,
 	LuTrash2,
-	LuZap,
 } from "react-icons/lu";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { authClient } from "renderer/lib/auth-client";
@@ -275,7 +274,7 @@ function AutomationsPage() {
 			</header>
 
 			<div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-				{!automationsReady ? null : automations.length === 0 ? (
+				{!automationsReady ? null : visible.length === 0 && scope === "mine" ? (
 					<div className="flex-1 overflow-y-auto px-8 py-8">
 						<AutomationsEmptyState onSelectTemplate={handleSelectTemplate} />
 					</div>
@@ -286,17 +285,11 @@ function AutomationsPage() {
 								variant="icon"
 								className="size-14 [&_svg:not([class*='size-'])]:size-7"
 							>
-								{scope === "mine" ? <LuZap /> : <LuSearchX />}
+								<LuSearchX />
 							</EmptyMedia>
-							<EmptyTitle>
-								{scope === "mine"
-									? "No automations yet"
-									: "No team automations"}
-							</EmptyTitle>
+							<EmptyTitle>No team automations</EmptyTitle>
 							<EmptyDescription>
-								{scope === "mine"
-									? "Create one to run an agent on a schedule."
-									: "Nobody on your team has shared automations yet."}
+								Nobody on your team has shared automations yet.
 							</EmptyDescription>
 						</EmptyHeader>
 					</Empty>
@@ -357,7 +350,7 @@ function AutomationsPage() {
 										}}
 										className={cn(
 											rowGrid,
-											"group/row min-w-0 cursor-pointer border-b border-border/50 px-4 py-2.5 text-sm outline-none transition-colors hover:bg-accent/50 focus-visible:bg-accent/50 focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-inset",
+											"group/row h-10 min-w-0 cursor-pointer border-b border-border/50 px-4 text-sm outline-none transition-colors hover:bg-accent/50 focus-visible:bg-accent/50 focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-inset",
 										)}
 									>
 										<span className="flex min-w-0 items-center gap-2">

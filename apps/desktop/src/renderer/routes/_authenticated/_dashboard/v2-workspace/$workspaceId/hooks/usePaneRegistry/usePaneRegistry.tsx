@@ -289,7 +289,7 @@ export function usePaneRegistry({
 					</div>
 				),
 				renderHeaderExtras: (ctx: RendererContext<PaneViewerData>) => (
-					<TerminalHeaderExtras context={ctx} />
+					<TerminalHeaderExtras context={ctx} workspaceId={workspaceId} />
 				),
 				renderPane: (ctx: RendererContext<PaneViewerData>) => (
 					<TerminalPane

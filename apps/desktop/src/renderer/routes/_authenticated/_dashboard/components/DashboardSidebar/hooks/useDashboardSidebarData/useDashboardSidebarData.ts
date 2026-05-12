@@ -561,8 +561,20 @@ export function useDashboardSidebarData() {
 				...sidebarProject
 			} = resolvedProject;
 
+			const isLocalMain = (entry: (typeof childEntries)[number]) =>
+				entry.child.type === "workspace" &&
+				entry.child.workspace.type === "main" &&
+				entry.child.workspace.hostType === "local-device";
+
 			const sortedChildren = childEntries
-				.sort((left, right) => left.tabOrder - right.tabOrder)
+				.sort((left, right) => {
+					const leftLocalMain = isLocalMain(left);
+					const rightLocalMain = isLocalMain(right);
+					if (leftLocalMain !== rightLocalMain) {
+						return leftLocalMain ? -1 : 1;
+					}
+					return left.tabOrder - right.tabOrder;
+				})
 				.map(({ child }) => child);
 
 			// Ungrouped workspaces rendered after a section header are visually

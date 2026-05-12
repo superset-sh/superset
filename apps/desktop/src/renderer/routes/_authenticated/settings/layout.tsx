@@ -10,9 +10,9 @@ import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
 	type SettingsSection,
 	useSetSettingsSearchQuery,
-	useSettingsOriginRoute,
 	useSettingsSearchQuery,
 } from "renderer/stores/settings-state";
+import { NavigationControls } from "../_dashboard/components/NavigationControls";
 import { SearchResultsBanner } from "./components/SearchResultsBanner";
 import { SettingsSidebar } from "./components/SettingsSidebar";
 import {
@@ -35,6 +35,7 @@ const SECTION_ORDER: SettingsSection[] = [
 	"links",
 	"models",
 	"organization",
+	"teams",
 	"integrations",
 	"billing",
 	"apikeys",
@@ -46,6 +47,7 @@ const SECTION_ORDER: SettingsSection[] = [
 function getSectionFromPath(pathname: string): SettingsSection | null {
 	if (pathname.includes("/settings/account")) return "account";
 	if (pathname.includes("/settings/organization")) return "organization";
+	if (pathname.includes("/settings/teams")) return "teams";
 	if (pathname.includes("/settings/appearance")) return "appearance";
 	if (pathname.includes("/settings/ringtones")) return "ringtones";
 	if (pathname.includes("/settings/keyboard")) return "keyboard";
@@ -68,6 +70,8 @@ function getPathFromSection(section: SettingsSection): string {
 			return "/settings/account";
 		case "organization":
 			return "/settings/organization";
+		case "teams":
+			return "/settings/teams";
 		case "appearance":
 			return "/settings/appearance";
 		case "ringtones":
@@ -102,7 +106,6 @@ function SettingsLayout() {
 	const isMac = platform === undefined || platform === "darwin";
 	const searchQuery = useSettingsSearchQuery();
 	const setSearchQuery = useSetSettingsSearchQuery();
-	const originRoute = useSettingsOriginRoute();
 	const location = useLocation();
 	const navigate = useNavigate();
 	const normalizedSearchQuery = searchQuery.trim();
@@ -137,11 +140,17 @@ function SettingsLayout() {
 		"escape",
 		(event) => {
 			if (document.querySelector('[data-state="open"]')) return;
+			const segments = location.pathname.split("/").filter(Boolean);
+			// Peel one segment, but only if we're deeper than a top-of-section
+			// route like /settings/teams. Esc at the top is a no-op so users don't
+			// get yanked out of settings unexpectedly.
+			if (segments.length <= 2) return;
 			event.preventDefault();
-			navigate({ to: originRoute });
+			const parent = `/${segments.slice(0, -1).join("/")}`;
+			navigate({ to: parent });
 		},
 		{ enableOnFormTags: false, enableOnContentEditable: false },
-		[navigate, originRoute],
+		[navigate, location.pathname],
 	);
 
 	const usesInnerSidebar =
@@ -152,11 +161,13 @@ function SettingsLayout() {
 	return (
 		<div className="flex flex-col h-screen w-screen bg-tertiary">
 			<div
-				className="drag h-8 w-full bg-tertiary"
+				className="drag flex h-12 w-full items-center gap-1.5 bg-tertiary"
 				style={{
-					paddingLeft: isMac ? "88px" : "16px",
+					paddingLeft: isMac ? "96px" : "8px",
 				}}
-			/>
+			>
+				<NavigationControls />
+			</div>
 
 			<div className="flex flex-1 overflow-hidden">
 				<SettingsSidebar />

@@ -16,7 +16,16 @@ export const authClient = createAuthClient({
 			storagePrefix: "superset",
 			storage: SecureStore,
 		}),
-		organizationClient(),
+		organizationClient({
+			teams: { enabled: true },
+			schema: {
+				team: {
+					additionalFields: {
+						slug: { type: "string", input: true, required: true },
+					},
+				},
+			},
+		}),
 		customSessionClient<typeof auth>(),
 	],
 });

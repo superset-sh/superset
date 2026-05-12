@@ -9,6 +9,11 @@ const publicRoutes = [
 	"/api/auth/desktop",
 	"/accept-invitation",
 	"/cli/auth/code",
+	// Anonymous remote-control viewers: the per-session HMAC in the URL
+	// fragment is the credential, not a Superset user session. The page
+	// itself lives outside `(agents)` so it doesn't hit the agents-only
+	// feature-flag gate either.
+	"/agents/remote-control/",
 ];
 
 function isPublicRoute(pathname: string): boolean {

@@ -135,6 +135,59 @@ export const members = authSchema.table(
 export type SelectMember = typeof members.$inferSelect;
 export type InsertMember = typeof members.$inferInsert;
 
+export const teams = authSchema.table(
+	"teams",
+	{
+		id: uuid("id").primaryKey().defaultRandom(),
+		name: text("name").notNull(),
+		slug: text("slug").notNull(),
+		organizationId: uuid("organization_id")
+			.notNull()
+			.references(() => organizations.id, { onDelete: "cascade" }),
+		createdAt: timestamp("created_at").defaultNow().notNull(),
+		updatedAt: timestamp("updated_at")
+			.defaultNow()
+			.$onUpdate(() => new Date()),
+	},
+	(table) => [
+		index("teams_organization_id_idx").on(table.organizationId),
+		uniqueIndex("teams_org_slug_unique").on(table.organizationId, table.slug),
+	],
+);
+
+export type SelectTeam = typeof teams.$inferSelect;
+export type InsertTeam = typeof teams.$inferInsert;
+
+export const teamMembers = authSchema.table(
+	"team_members",
+	{
+		id: uuid("id").primaryKey().defaultRandom(),
+		teamId: uuid("team_id")
+			.notNull()
+			.references(() => teams.id, { onDelete: "cascade" }),
+		userId: uuid("user_id")
+			.notNull()
+			.references(() => users.id, { onDelete: "cascade" }),
+		// Denormalized from teams.organization_id so Electric can shape-filter
+		// by org with a simple WHERE. Populated by a BEFORE INSERT trigger
+		// (see 0049 migration) so neither better-auth's API nor app code needs
+		// to remember to set it.
+		organizationId: uuid("organization_id")
+			.notNull()
+			.references(() => organizations.id, { onDelete: "cascade" }),
+		createdAt: timestamp("created_at").defaultNow(),
+	},
+	(table) => [
+		index("team_members_team_id_idx").on(table.teamId),
+		index("team_members_user_id_idx").on(table.userId),
+		index("team_members_organization_id_idx").on(table.organizationId),
+		uniqueIndex("team_members_team_user_unique").on(table.teamId, table.userId),
+	],
+);
+
+export type SelectTeamMember = typeof teamMembers.$inferSelect;
+export type InsertTeamMember = typeof teamMembers.$inferInsert;
+
 export const invitations = authSchema.table(
 	"invitations",
 	{

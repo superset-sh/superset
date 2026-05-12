@@ -6,8 +6,8 @@
 	},
 	"devDependencies": {
 		"@biomejs/biome": "2.4.2",
-		"dotenv-cli": "^11.0.0",
-		"sherif": "^1.10.0",
+		"dotenv-cli": "11.0.0",
+		"sherif": "1.11.0",
 		"turbo": "2.8.7"
 	},
 	"description": "Superset Monorepo",

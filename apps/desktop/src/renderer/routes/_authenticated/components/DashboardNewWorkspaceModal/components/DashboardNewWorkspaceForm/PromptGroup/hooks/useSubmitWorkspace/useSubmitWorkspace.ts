@@ -101,6 +101,7 @@ export function useSubmitWorkspace(
 			? draft.linkedPR?.title || `PR #${draft.linkedPR?.prNumber}`
 			: undefined;
 
+		const trimmedPrompt = draft.prompt.trim();
 		const workspaceId = crypto.randomUUID();
 		const snapshot = {
 			id: workspaceId,
@@ -111,6 +112,10 @@ export function useSubmitWorkspace(
 			baseBranch: draft.baseBranch ?? undefined,
 			taskId: linkedTaskId,
 			agents,
+			namingPrompt:
+				!isPrCheckout && !wantAgent && trimmedPrompt
+					? trimmedPrompt
+					: undefined,
 		};
 
 		closeAndResetDraft();

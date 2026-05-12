@@ -17,9 +17,15 @@ import {
 	TableHeader,
 	TableRow,
 } from "@superset/ui/table";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useEffect, useState } from "react";
+import {
+	HiOutlineClipboardDocument,
+	HiOutlineClipboardDocumentCheck,
+} from "react-icons/hi2";
+import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { authClient } from "renderer/lib/auth-client";
 import { electronTrpc } from "renderer/lib/electron-trpc";
@@ -105,6 +111,8 @@ export function OrganizationSettings({
 		SETTING_ITEM_ID.ORGANIZATION_SLUG,
 		visibleItems,
 	);
+	const showId = isItemVisible(SETTING_ITEM_ID.ORGANIZATION_ID, visibleItems);
+	const { copyToClipboard, copied } = useCopyToClipboard();
 	const showMembersList = isItemVisible(
 		SETTING_ITEM_ID.ORGANIZATION_MEMBERS_LIST,
 		visibleItems,
@@ -231,7 +239,7 @@ export function OrganizationSettings({
 		);
 	}
 
-	const showOrgSettings = showLogo || showName || showSlug;
+	const showOrgSettings = showLogo || showName || showSlug || showId;
 	const showMembersSection =
 		showMembersList ||
 		isItemVisible(SETTING_ITEM_ID.ORGANIZATION_MEMBERS_INVITE, visibleItems) ||
@@ -313,6 +321,43 @@ export function OrganizationSettings({
 											}`}
 											disabled={!isOwner}
 										/>
+									</SettingsRow>
+								)}
+
+								{showId && (
+									<SettingsRow
+										label="ID"
+										hint="Use this when calling the Superset API."
+										htmlFor="org-id"
+									>
+										<button
+											type="button"
+											id="org-id"
+											onClick={() => copyToClipboard(organization.id)}
+											aria-label="Copy organization ID"
+											className="group relative block w-72 cursor-pointer rounded-md text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+										>
+											<Input
+												value={organization.id}
+												readOnly
+												tabIndex={-1}
+												className="w-full font-mono text-xs pr-10 select-none caret-transparent cursor-pointer pointer-events-none group-hover:bg-accent"
+											/>
+											<Tooltip>
+												<TooltipTrigger asChild>
+													<span className="absolute right-1 top-1 inline-flex h-7 w-7 items-center justify-center rounded-md bg-secondary text-secondary-foreground group-hover:bg-secondary/80">
+														{copied ? (
+															<HiOutlineClipboardDocumentCheck className="h-4 w-4" />
+														) : (
+															<HiOutlineClipboardDocument className="h-4 w-4" />
+														)}
+													</span>
+												</TooltipTrigger>
+												<TooltipContent>
+													{copied ? "Copied!" : "Copy"}
+												</TooltipContent>
+											</Tooltip>
+										</button>
 									</SettingsRow>
 								)}
 							</div>
