@@ -1,4 +1,12 @@
-import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
+import {
+	afterAll,
+	afterEach,
+	beforeEach,
+	describe,
+	expect,
+	mock,
+	test,
+} from "bun:test";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import path from "node:path";
@@ -27,7 +35,9 @@ const removeManifestMock = mock(() => {
 });
 const isProcessAliveMock = mock(() => true);
 
+const realHostServiceManifest = await import("./host-service-manifest");
 mock.module("./host-service-manifest", () => ({
+	...realHostServiceManifest,
 	readManifest: readManifestMock,
 	removeManifest: removeManifestMock,
 	isProcessAlive: isProcessAliveMock,
@@ -37,7 +47,9 @@ mock.module("./host-service-manifest", () => ({
 
 const pollHealthCheckMock = mock(() => Promise.resolve(true));
 
+const realHostServiceUtils = await import("./host-service-utils");
 mock.module("./host-service-utils", () => ({
+	...realHostServiceUtils,
 	HEALTH_POLL_TIMEOUT_MS: 10_000,
 	MAX_HOST_LOG_BYTES: 1024,
 	findFreePort: mock(() => Promise.resolve(40000)),
@@ -61,28 +73,16 @@ mock.module("electron-log/main", () => ({
 	},
 }));
 
-mock.module("@superset/local-db", () => ({ settings: {} }));
+const realHostInfo = await import("@superset/shared/host-info");
 mock.module("@superset/shared/host-info", () => ({
+	...realHostInfo,
 	getHostId: () => "host-1",
 	getHostName: () => "host",
-}));
-mock.module("main/env.main", () => ({
-	env: { NEXT_PUBLIC_API_URL: "", RELAY_URL: "" },
-}));
-mock.module("shared/env.shared", () => ({
-	env: { DESKTOP_VITE_PORT: 3000, DESKTOP_NOTIFICATIONS_PORT: 4000 },
-}));
-mock.module("./app-environment", () => ({
-	SUPERSET_HOME_DIR: "/tmp/superset",
 }));
 mock.module("./local-db", () => ({
 	localDb: {
 		select: () => ({ from: () => ({ get: () => null }) }),
 	},
-}));
-mock.module("./terminal/env", () => ({ HOOK_PROTOCOL_VERSION: "1" }));
-mock.module("../../lib/trpc/routers/workspaces/utils/shell-env", () => ({
-	getProcessEnvWithShellPath: async (e: Record<string, string>) => e,
 }));
 
 const { HostServiceCoordinator } = await import("./host-service-coordinator");
@@ -289,4 +289,8 @@ describe("HostServiceCoordinator.reset", () => {
 		expect(spawnMock).toHaveBeenCalledTimes(1);
 		expect(conn.port).toBe(60000);
 	});
+});
+
+afterAll(() => {
+	mock.restore();
 });
