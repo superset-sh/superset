@@ -7,6 +7,7 @@ export const SETTING_ITEM_ID = {
 	ORGANIZATION_LOGO: "organization-logo",
 	ORGANIZATION_NAME: "organization-name",
 	ORGANIZATION_SLUG: "organization-slug",
+	ORGANIZATION_ID: "organization-id",
 	ORGANIZATION_MEMBERS_LIST: "organization-members-list",
 	ORGANIZATION_MEMBERS_INVITE: "organization-members-invite",
 	ORGANIZATION_MEMBERS_PENDING_INVITATIONS:
@@ -114,6 +115,7 @@ export const SETTING_ITEM_VARIANT: Record<SettingItemId, SettingVariant> = {
 	[SETTING_ITEM_ID.ORGANIZATION_LOGO]: "shared",
 	[SETTING_ITEM_ID.ORGANIZATION_NAME]: "shared",
 	[SETTING_ITEM_ID.ORGANIZATION_SLUG]: "shared",
+	[SETTING_ITEM_ID.ORGANIZATION_ID]: "shared",
 	[SETTING_ITEM_ID.ORGANIZATION_MEMBERS_LIST]: "shared",
 	[SETTING_ITEM_ID.ORGANIZATION_MEMBERS_INVITE]: "shared",
 	[SETTING_ITEM_ID.ORGANIZATION_MEMBERS_PENDING_INVITATIONS]: "shared",
@@ -275,6 +277,21 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"subdomain",
 			"link",
 			"unique",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.ORGANIZATION_ID,
+		section: "organization",
+		title: "Organization ID",
+		description: "Your organization's unique identifier",
+		keywords: [
+			"organization",
+			"id",
+			"identifier",
+			"uuid",
+			"unique",
+			"copy",
+			"api",
 		],
 	},
 	{
