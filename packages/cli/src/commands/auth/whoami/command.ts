@@ -13,8 +13,10 @@ export default command({
 			authLine = "Session";
 		} else if (ctx.authSource === "flag") {
 			authLine = "API key (from --api-key flag)";
-		} else {
+		} else if (ctx.authSource === "env") {
 			authLine = "API key (from SUPERSET_API_KEY env)";
+		} else {
+			authLine = "API key (stored via auth login --api-key)";
 		}
 
 		return {

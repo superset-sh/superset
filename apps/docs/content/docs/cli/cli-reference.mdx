@@ -43,6 +43,10 @@ Authentication and session inspection.
 			flag: "--organization <idOrSlug>",
 			description: "Selects the active organization without prompting. Required for non-TTY logins when you belong to multiple orgs.",
 		},
+		{
+			flag: "--api-key <key>",
+			description: "Store a Superset API key (`sk_live_…`) at `~/.superset/config.json` instead of running the OAuth flow.",
+		},
 	]}
 >
 Authenticate via browser OAuth and store a session token at
@@ -55,6 +59,16 @@ TTY, the CLI prompts; with multiple orgs and no TTY, you must pass
 ```bash
 superset auth login
 superset auth login --organization acme
+```
+
+To sign in with an API key — useful for CI or any environment where the
+OAuth browser flow isn't an option — pass `--api-key`. The CLI validates
+the key, stores it at `~/.superset/config.json`, and clears any prior
+OAuth session.
+
+```bash
+superset auth login --api-key sk_live_…
+superset auth login --api-key sk_live_… --organization acme
 ```
 
 <CommandReturns>
@@ -82,8 +96,9 @@ The newly authenticated user and active organization.
 </Command>
 
 <Command name="superset auth logout">
-Clear the stored session. Does not call the API and does not clear the
-active organization (your preferred org persists across re-logins).
+Clear stored credentials — both an OAuth session and a stored API key.
+Does not call the API and does not clear the active organization (your
+preferred org persists across re-logins).
 
 ```bash
 superset auth logout
@@ -132,7 +147,7 @@ Auth: Session (expires in 32 min)
   name: string;
   organizationId: string;
   organizationName: string;
-  authSource: "flag" | "env" | "oauth";
+  authSource: "flag" | "env" | "oauth" | "config";
 }
 ```
 </JsonOutput>

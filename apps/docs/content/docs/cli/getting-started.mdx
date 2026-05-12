@@ -60,7 +60,15 @@ superset auth login --organization acme
 ```
 
 For CI or other non-interactive environments — where there's no browser to
-complete the OAuth flow — use an API key instead:
+complete the OAuth flow — use an API key instead. You can either store it
+once with `auth login --api-key`:
+
+```bash
+superset auth login --api-key sk_live_…
+superset auth whoami
+```
+
+…or set `SUPERSET_API_KEY` per-invocation without writing anything to disk:
 
 ```bash
 export SUPERSET_API_KEY=sk_live_…

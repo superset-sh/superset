@@ -213,8 +213,9 @@ Authenticate via browser OAuth and store a session token locally.
 | Option | Required | Description |
 | --- | --- | --- |
 | `--organization <idOrSlug>` | When stdout is non-TTY and the user belongs to multiple orgs | Selects the active organization without prompting. Optional but supported when stdout is a TTY (skips the picker). |
+| `--api-key <key>` | No | Store a Superset API key (`sk_live_…`) at `~/.superset/config.json` instead of running the OAuth flow. Validates via `user.me` before writing. Mutually exclusive with the OAuth flow — passing this clears any stored `auth` session. |
 
-Flow:
+Flow (OAuth):
 
 1. Loopback callback server on `127.0.0.1:51789` or `51790`.
 2. Opens `${WEB_URL}/cli/authorize?...`. `WEB_URL` is a build-time constant
@@ -222,8 +223,17 @@ Flow:
 3. Web posts to `/api/cli/create-code`.
 4. CLI receives the code on the loopback callback (5-minute timeout).
 5. CLI exchanges via `/api/cli/exchange`.
-6. CLI stores `auth.accessToken` and `auth.expiresAt`.
+6. CLI stores `auth.accessToken` and `auth.expiresAt`, clears `apiKey`.
 7. CLI calls `user.me`, `user.myOrganizations`.
+
+Flow (`--api-key`):
+
+1. CLI validates the supplied key by calling `user.me` with the key in the
+   `x-api-key` header.
+2. On success, CLI writes `apiKey` to `~/.superset/config.json` and
+   deletes any stored OAuth `auth`. On failure, CLI exits 1 without
+   writing.
+3. CLI continues with the same org-selection rules as the OAuth flow.
 
 Org selection rules:
 
@@ -248,8 +258,9 @@ Side effects: writes `~/.superset/config.json` with `auth` and
 
 ### `superset auth logout`
 
-Clear `auth` from `~/.superset/config.json`. Does not call the API. Does not
-clear `organizationId` — the user's preferred org persists across re-logins.
+Clear `auth` and `apiKey` from `~/.superset/config.json`. Does not call
+the API. Does not clear `organizationId` — the user's preferred org
+persists across re-logins.
 
 Output:
 
@@ -272,7 +283,7 @@ Output:
   name: string;
   organizationId: string;
   organizationName: string;
-  authSource: "flag" | "env" | "oauth";
+  authSource: "flag" | "env" | "oauth" | "config";
 }
 ```
 
