@@ -187,15 +187,6 @@ export class DaemonSupervisor {
 	}
 
 	/**
-	 * Explicitly restart the daemon for an org — kills sessions, spawns
-	 * fresh. The user has opted in via UI confirmation. Distinct from
-	 * crash-respawn: clears the crash circuit (if open) and emits its own
-	 * event so logs can separate intent from recovery.
-	 *
-	 * Awaits any in-flight spawn before stopping so we never SIGTERM a
-	 * partially-initialized child.
-	 */
-	/**
 	 * Phase 2: ask the running daemon to spawn a successor binary that
 	 * adopts all live sessions via fd-handoff. On success the original
 	 * shell PIDs survive the daemon swap.
@@ -208,18 +199,27 @@ export class DaemonSupervisor {
 	): Promise<
 		{ ok: true; successorPid: number } | { ok: false; reason: string }
 	> {
+		return this.startUpdate(organizationId).promise;
+	}
+
+	private startUpdate(organizationId: string): {
+		promise: Promise<
+			{ ok: true; successorPid: number } | { ok: false; reason: string }
+		>;
+		started: boolean;
+	} {
 		// Coalesce concurrent calls. Auto-update (on adopt with version
 		// drift) and a manual click of the Update button can race —
 		// without this guard, both would try to handoff the same daemon.
 		// The second caller observes the same outcome via the cached
 		// promise.
 		const inFlight = this.updateInFlight.get(organizationId);
-		if (inFlight) return inFlight;
+		if (inFlight) return { promise: inFlight, started: false };
 		const promise = this.runUpdate(organizationId).finally(() => {
 			this.updateInFlight.delete(organizationId);
 		});
 		this.updateInFlight.set(organizationId, promise);
-		return promise;
+		return { promise, started: true };
 	}
 
 	private async runUpdate(
@@ -351,6 +351,15 @@ export class DaemonSupervisor {
 		return { ok: true, successorPid: result.successorPid };
 	}
 
+	/**
+	 * Explicitly restart the daemon for an org — kills sessions, spawns
+	 * fresh. The user has opted in via UI confirmation. Distinct from
+	 * crash-respawn: clears the crash circuit (if open) and emits its own
+	 * event so logs can separate intent from recovery.
+	 *
+	 * Awaits any in-flight spawn before stopping so we never SIGTERM a
+	 * partially-initialized child.
+	 */
 	async restart(organizationId: string): Promise<{ success: true }> {
 		return this.forceRestart(organizationId, {
 			event: "pty_daemon_user_restart",
@@ -495,7 +504,10 @@ export class DaemonSupervisor {
 			expectedVersion: instance.expectedVersion,
 			pid: instance.pid,
 		});
-		void this.update(organizationId).then(
+		// If a manual Update click already owns the in-flight handoff, leave
+		// any destructive fallback to that foreground UI path.
+		const update = this.startUpdate(organizationId);
+		void update.promise.then(
 			(result) => {
 				if (result.ok) {
 					logEvent("pty_daemon_auto_update_ok", {
@@ -512,6 +524,15 @@ export class DaemonSupervisor {
 						expectedVersion: instance.expectedVersion,
 						reason: result.reason,
 					});
+					if (!update.started) {
+						this.skipAutoUpdateForceRestart(
+							organizationId,
+							instance,
+							result.reason,
+							"update_already_in_flight",
+						);
+						return;
+					}
 					void this.forceRestartAfterAutoUpdateFailure(
 						organizationId,
 						instance,
@@ -528,6 +549,15 @@ export class DaemonSupervisor {
 					expectedVersion: instance.expectedVersion,
 					reason,
 				});
+				if (!update.started) {
+					this.skipAutoUpdateForceRestart(
+						organizationId,
+						instance,
+						reason,
+						"update_already_in_flight",
+					);
+					return;
+				}
 				void this.forceRestartAfterAutoUpdateFailure(
 					organizationId,
 					instance,
@@ -535,6 +565,20 @@ export class DaemonSupervisor {
 				);
 			},
 		);
+	}
+
+	private skipAutoUpdateForceRestart(
+		organizationId: string,
+		instance: DaemonInstance,
+		failureReason: string,
+		reason: string,
+	): void {
+		logEvent("pty_daemon_auto_update_force_restart_skipped", {
+			organizationId,
+			smoothUpdatePid: instance.pid,
+			smoothUpdateFailureReason: failureReason,
+			reason,
+		});
 	}
 
 	private async forceRestartAfterAutoUpdateFailure(

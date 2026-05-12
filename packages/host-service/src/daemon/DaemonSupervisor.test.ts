@@ -515,7 +515,7 @@ describe("DaemonSupervisor auto-update fallback", () => {
 	test("force-restarts when the background smooth update returns ok:false", async () => {
 		const instance = staleInstance("0.0.9");
 		seedDaemonInstance(sup, "org-auto-fallback", instance);
-		const updateMock = mock(async () => ({
+		const runUpdateMock = mock(async () => ({
 			ok: false as const,
 			reason: "snapshot write failed: ENOSPC",
 		}));
@@ -529,8 +529,8 @@ describe("DaemonSupervisor auto-update fallback", () => {
 				return { success: true as const };
 			},
 		);
-		(sup as unknown as { update: typeof sup.update }).update =
-			updateMock as typeof sup.update;
+		(sup as unknown as { runUpdate: typeof runUpdateMock }).runUpdate =
+			runUpdateMock;
 		(
 			sup as unknown as {
 				forceRestart: (
@@ -543,7 +543,7 @@ describe("DaemonSupervisor auto-update fallback", () => {
 		invokeKickoffAutoUpdate(sup, "org-auto-fallback", instance);
 		await new Promise((r) => setTimeout(r, 0));
 
-		expect(updateMock).toHaveBeenCalledWith("org-auto-fallback");
+		expect(runUpdateMock).toHaveBeenCalledWith("org-auto-fallback");
 		expect(forceRestartMock).toHaveBeenCalledTimes(1);
 		expect(forceRestartCalls[0]?.organizationId).toBe("org-auto-fallback");
 		expect(forceRestartCalls[0]?.log).toMatchObject({
@@ -565,7 +565,7 @@ describe("DaemonSupervisor auto-update fallback", () => {
 	test("force-restarts when the background smooth update throws", async () => {
 		const instance = staleInstance("0.0.8");
 		seedDaemonInstance(sup, "org-auto-throw", instance);
-		const updateMock = mock(async () => {
+		const runUpdateMock = mock(async () => {
 			throw new Error("transport: ECONNRESET");
 		});
 		const forceRestartCalls: {
@@ -578,8 +578,8 @@ describe("DaemonSupervisor auto-update fallback", () => {
 				return { success: true as const };
 			},
 		);
-		(sup as unknown as { update: typeof sup.update }).update =
-			updateMock as typeof sup.update;
+		(sup as unknown as { runUpdate: typeof runUpdateMock }).runUpdate =
+			runUpdateMock;
 		(
 			sup as unknown as {
 				forceRestart: (
@@ -604,7 +604,7 @@ describe("DaemonSupervisor auto-update fallback", () => {
 	test("skips force-restart when the failed stale daemon is no longer current", async () => {
 		const instance = staleInstance("0.0.7");
 		seedDaemonInstance(sup, "org-auto-changed", instance);
-		const updateMock = mock(async () => {
+		const runUpdateMock = mock(async () => {
 			seedDaemonInstance(sup, "org-auto-changed", {
 				...instance,
 				pid: 4321,
@@ -617,8 +617,8 @@ describe("DaemonSupervisor auto-update fallback", () => {
 			};
 		});
 		const forceRestartMock = mock(async () => ({ success: true as const }));
-		(sup as unknown as { update: typeof sup.update }).update =
-			updateMock as typeof sup.update;
+		(sup as unknown as { runUpdate: typeof runUpdateMock }).runUpdate =
+			runUpdateMock;
 		(
 			sup as unknown as {
 				forceRestart: (
@@ -639,6 +639,45 @@ describe("DaemonSupervisor auto-update fallback", () => {
 					e.props.reason === "daemon_changed" &&
 					e.props.smoothUpdatePid === instance.pid &&
 					e.props.currentPid === 4321,
+			),
+		).toBe(true);
+	});
+
+	test("skips force-restart when auto-update joins an existing manual update", async () => {
+		const instance = staleInstance("0.0.6");
+		seedDaemonInstance(sup, "org-auto-coalesced", instance);
+		const deferred = createDeferred<{ ok: false; reason: string }>();
+		const runUpdateMock = mock(() => deferred.promise);
+		const forceRestartMock = mock(async () => ({ success: true as const }));
+		(sup as unknown as { runUpdate: typeof runUpdateMock }).runUpdate =
+			runUpdateMock;
+		(
+			sup as unknown as {
+				forceRestart: (
+					organizationId: string,
+					log: ForceRestartLog,
+				) => Promise<{ success: true }>;
+			}
+		).forceRestart = forceRestartMock;
+
+		const manualUpdate = sup.update("org-auto-coalesced");
+		invokeKickoffAutoUpdate(sup, "org-auto-coalesced", instance);
+		deferred.resolve({
+			ok: false,
+			reason: "manual smooth update failed",
+		});
+
+		await manualUpdate;
+		await new Promise((r) => setTimeout(r, 0));
+
+		expect(runUpdateMock).toHaveBeenCalledTimes(1);
+		expect(forceRestartMock).not.toHaveBeenCalled();
+		expect(
+			loggedEvents.some(
+				(e) =>
+					e.event === "pty_daemon_auto_update_force_restart_skipped" &&
+					e.props.reason === "update_already_in_flight" &&
+					e.props.smoothUpdatePid === instance.pid,
 			),
 		).toBe(true);
 	});

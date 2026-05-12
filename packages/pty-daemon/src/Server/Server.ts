@@ -220,6 +220,11 @@ export class Server {
 				},
 			);
 		} catch (err) {
+			try {
+				fs.unlinkSync(snapshotPath);
+			} catch {
+				// best-effort cleanup; keep the original spawn error visible
+			}
 			return {
 				ok: false,
 				reason: `successor spawn failed: ${(err as Error).message}`,
