@@ -177,13 +177,22 @@ export class HostServiceCoordinator extends EventEmitter {
 		config: SpawnConfig,
 		options: { wipeHostDb?: boolean } = {},
 	): Promise<Connection> {
+		// Capture the manifest pid *before* stop() — stop() removes the manifest
+		// for tracked instances and only sends SIGTERM, which a wedged process
+		// can ignore. We escalate to SIGKILL on whatever pid the manifest named.
+		const manifestPid = readManifest(organizationId)?.pid;
+
 		this.stop(organizationId);
 
-		const manifest = readManifest(organizationId);
-		if (manifest && isProcessAlive(manifest.pid)) {
+		if (manifestPid != null && isProcessAlive(manifestPid)) {
 			try {
-				process.kill(manifest.pid, "SIGKILL");
-			} catch {}
+				process.kill(manifestPid, "SIGKILL");
+			} catch (error) {
+				log.warn(
+					`[host-service:${organizationId}] reset: SIGKILL of pid=${manifestPid} failed`,
+					error,
+				);
+			}
 		}
 
 		removeManifest(organizationId);
@@ -360,7 +369,15 @@ export class HostServiceCoordinator extends EventEmitter {
 			);
 			try {
 				process.kill(manifest.pid, "SIGKILL");
-			} catch {}
+			} catch (error) {
+				// ESRCH (already gone) is fine; anything else (EPERM) we want to see.
+				if ((error as NodeJS.ErrnoException)?.code !== "ESRCH") {
+					log.warn(
+						`[host-service:${organizationId}] SIGKILL of stale pid=${manifest.pid} failed`,
+						error,
+					);
+				}
+			}
 			removeManifest(organizationId);
 			return null;
 		}
