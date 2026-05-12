@@ -27,12 +27,14 @@ import { resolveV2AgentStatusTransition } from "./statusTransitions";
  */
 export function handleV2AgentLifecycleEvent({
 	workspaceId,
+	workspaceName,
 	payload,
 	paneLayout,
 	volume,
 	muted,
 }: {
 	workspaceId: string;
+	workspaceName: string | null | undefined;
 	payload: AgentLifecyclePayload;
 	paneLayout: WorkspaceState<PaneViewerData> | null | undefined;
 	volume: number;
@@ -61,7 +63,7 @@ export function handleV2AgentLifecycleEvent({
 	const ringtoneId = useRingtoneStore.getState().selectedRingtoneId;
 	void playRingtone({ ringtoneId, volume, muted });
 
-	showNativeNotification({ payload, workspaceId, target });
+	showNativeNotification({ payload, workspaceId, workspaceName, target });
 }
 
 export function handleV2TerminalLifecycleEvent({
@@ -131,20 +133,31 @@ function shouldSuppress(
 	});
 }
 
+export function buildV2NotificationContent(
+	payload: AgentLifecyclePayload,
+	workspaceName: string | null | undefined,
+): { title: string; body: string } {
+	const isPermission = payload.eventType === "PermissionRequest";
+	const baseTitle = isPermission ? "Awaiting Response" : "Agent Complete";
+	const title = workspaceName ? `${baseTitle} — ${workspaceName}` : baseTitle;
+	const body = isPermission
+		? "Your agent needs input"
+		: "Your agent has finished";
+	return { title, body };
+}
+
 function showNativeNotification({
 	payload,
 	workspaceId,
+	workspaceName,
 	target,
 }: {
 	payload: AgentLifecyclePayload;
 	workspaceId: string;
+	workspaceName: string | null | undefined;
 	target: V2NotificationTarget;
 }): void {
-	const isPermission = payload.eventType === "PermissionRequest";
-	const title = isPermission ? "Awaiting Response" : "Agent Complete";
-	const body = isPermission
-		? "Your agent needs input"
-		: "Your agent has finished";
+	const { title, body } = buildV2NotificationContent(payload, workspaceName);
 
 	void electronTrpcClient.notifications.showNative
 		.mutate({
