@@ -319,6 +319,17 @@ function createOrgCollections(organizationId: string): OrgCollections {
 			// Composite PK on (organization_id, machine_id); within an
 			// org-scoped collection, machineId alone is unique.
 			getKey: (item) => item.machineId,
+			onUpdate: async ({ transaction }) => {
+				const { original, changes } = transaction.mutations[0];
+				if (changes.name === undefined) {
+					throw new Error("Only name updates are supported on v2_hosts");
+				}
+				const result = await apiClient.v2Host.rename.mutate({
+					hostId: original.machineId,
+					name: changes.name,
+				});
+				return { txid: result.txid };
+			},
 		}),
 	);
 

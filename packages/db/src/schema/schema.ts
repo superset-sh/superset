@@ -24,6 +24,8 @@ import {
 	commandStatusValues,
 	deviceTypeValues,
 	integrationProviderValues,
+	remoteControlSessionModeValues,
+	remoteControlSessionStatusValues,
 	taskPriorityValues,
 	taskStatusEnumValues,
 	v2ClientTypeValues,
@@ -51,6 +53,14 @@ export const v2UsersHostRole = pgEnum(
 export const v2WorkspaceType = pgEnum(
 	"v2_workspace_type",
 	v2WorkspaceTypeValues,
+);
+export const remoteControlSessionMode = pgEnum(
+	"remote_control_session_mode",
+	remoteControlSessionModeValues,
+);
+export const remoteControlSessionStatus = pgEnum(
+	"remote_control_session_status",
+	remoteControlSessionStatusValues,
 );
 
 export const taskStatuses = pgTable(
@@ -905,3 +915,60 @@ export const submittedPrompts = pgTable(
 
 export type InsertSubmittedPrompt = typeof submittedPrompts.$inferInsert;
 export type SelectSubmittedPrompt = typeof submittedPrompts.$inferSelect;
+
+export const v2RemoteControlSessions = pgTable(
+	"v2_remote_control_sessions",
+	{
+		id: uuid().primaryKey().defaultRandom(),
+		organizationId: uuid("organization_id")
+			.notNull()
+			.references(() => organizations.id, { onDelete: "cascade" }),
+		hostId: text("host_id").notNull(),
+		workspaceId: uuid("workspace_id")
+			.notNull()
+			.references(() => v2Workspaces.id, { onDelete: "cascade" }),
+		terminalId: text("terminal_id").notNull(),
+		createdByUserId: uuid("created_by_user_id")
+			.notNull()
+			.references(() => users.id, { onDelete: "cascade" }),
+		mode: remoteControlSessionMode().notNull(),
+		status: remoteControlSessionStatus().notNull().default("active"),
+		tokenHash: text("token_hash").notNull(),
+		expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+		revokedAt: timestamp("revoked_at", { withTimezone: true }),
+		revokedByUserId: uuid("revoked_by_user_id").references(() => users.id, {
+			onDelete: "set null",
+		}),
+		lastConnectedAt: timestamp("last_connected_at", { withTimezone: true }),
+		viewerCount: integer("viewer_count").notNull().default(0),
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.notNull()
+			.defaultNow(),
+		updatedAt: timestamp("updated_at", { withTimezone: true })
+			.notNull()
+			.defaultNow()
+			.$onUpdate(() => new Date()),
+	},
+	(table) => [
+		foreignKey({
+			columns: [table.organizationId, table.hostId],
+			foreignColumns: [v2Hosts.organizationId, v2Hosts.machineId],
+			name: "v2_remote_control_sessions_host_fk",
+		}).onDelete("cascade"),
+		uniqueIndex("v2_remote_control_sessions_token_hash_uniq").on(
+			table.tokenHash,
+		),
+		index("v2_remote_control_sessions_organization_id_idx").on(
+			table.organizationId,
+		),
+		index("v2_remote_control_sessions_host_id_idx").on(table.hostId),
+		index("v2_remote_control_sessions_workspace_id_idx").on(table.workspaceId),
+		index("v2_remote_control_sessions_terminal_id_idx").on(table.terminalId),
+		index("v2_remote_control_sessions_status_idx").on(table.status),
+	],
+);
+
+export type InsertV2RemoteControlSession =
+	typeof v2RemoteControlSessions.$inferInsert;
+export type SelectV2RemoteControlSession =
+	typeof v2RemoteControlSessions.$inferSelect;

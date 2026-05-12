@@ -29,3 +29,4 @@ export type {
 	Surface,
 	TierMode,
 } from "./types";
+export { usePierreRowClickPolicy } from "./usePierreRowClickPolicy";

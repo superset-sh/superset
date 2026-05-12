@@ -10,6 +10,7 @@ import { ResizablePanel } from "renderer/screens/main/components/ResizablePanel"
 import { getV2NotificationSourcesForTab } from "renderer/stores/v2-notifications";
 import { useWorkspace } from "../providers/WorkspaceProvider";
 import { AddTabMenu } from "./components/AddTabMenu";
+import { BackgroundTerminalsButton } from "./components/BackgroundTerminalsButton";
 import { V2NotificationStatusIndicator } from "./components/V2NotificationStatusIndicator";
 import { V2PresetsBar } from "./components/V2PresetsBar";
 import { V2WorkspaceRunButton } from "./components/V2WorkspaceRunButton";
@@ -273,6 +274,12 @@ function V2WorkspaceContent() {
 								onAddBrowser={addBrowserTab}
 								showPresetsBar={showPresetsBar}
 								onToggleShowPresetsBar={setShowPresetsBar}
+							/>
+						)}
+						renderTabBarTrailing={() => (
+							<BackgroundTerminalsButton
+								workspaceId={workspaceId}
+								store={store}
 							/>
 						)}
 						renderEmptyState={() => (

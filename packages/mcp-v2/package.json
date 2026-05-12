@@ -21,20 +21,20 @@
 		"typecheck": "tsc --noEmit --emitDeclarationOnly false"
 	},
 	"dependencies": {
-		"@modelcontextprotocol/sdk": "^1.26.0",
+		"@modelcontextprotocol/sdk": "1.28.0",
 		"@superset/auth": "workspace:*",
 		"@superset/db": "workspace:*",
 		"@superset/shared": "workspace:*",
 		"@superset/trpc": "workspace:*",
 		"better-auth": "1.6.5",
 		"drizzle-orm": "0.45.2",
-		"superjson": "^2.2.5",
-		"zod": "^4.3.5"
+		"superjson": "2.2.6",
+		"zod": "4.3.6"
 	},
 	"devDependencies": {
 		"@superset/typescript": "workspace:*",
-		"@types/node": "^24.9.1",
-		"bun-types": "^1.3.1",
-		"typescript": "^5.9.3"
+		"@types/node": "24.12.0",
+		"bun-types": "1.3.11",
+		"typescript": "5.9.3"
 	}
 }

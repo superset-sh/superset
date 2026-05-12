@@ -28,6 +28,8 @@ const changesFilterSchema = z.discriminatedUnion("kind", [
 
 export type ChangesFilter = z.infer<typeof changesFilterSchema>;
 
+export type ChangesViewMode = "folders" | "tree";
+
 const workspaceRunStateSchema = z.enum([
 	"running",
 	"stopped-by-user",
@@ -56,6 +58,7 @@ export const workspaceLocalStateSchema = z.object({
 		tabOrder: z.number().int().default(0),
 		sectionId: z.string().uuid().nullable().default(null),
 		changesFilter: changesFilterSchema.default({ kind: "all" }),
+		changesViewMode: z.enum(["folders", "tree"]).default("folders"),
 		activeTab: z.enum(["changes", "files", "review"]).default("changes"),
 		isHidden: z.boolean().default(false),
 	}),
@@ -82,6 +85,7 @@ const SIDEBAR_STATE_DEFAULTS = {
 	tabOrder: 0,
 	sectionId: null,
 	changesFilter: { kind: "all" },
+	changesViewMode: "folders",
 	activeTab: "changes",
 	isHidden: false,
 } as const;

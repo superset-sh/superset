@@ -41,10 +41,10 @@ Presets are parallel by default.
 
 ## Quick-Add Templates
 
-Pre-configured presets for popular AI agents. Defaults mirror the bundled Superset launch settings for each agent. Codex uses its most permissive bypass flag; edit any preset to change its permission mode.
+Pre-configured presets for popular AI agents. Defaults mirror the bundled Superset launch settings for each agent. Claude and Codex use their most permissive bypass flags; edit any preset to change its permission mode.
 
 - **amp** - `amp` (built-in permission rules auto-deny destructive ops)
-- **claude** - `claude --permission-mode acceptEdits`
+- **claude** - `claude --dangerously-skip-permissions`
 - **codex** - `codex --dangerously-bypass-approvals-and-sandbox` (most permissive)
 - **gemini** - `gemini --approval-mode=auto_edit`
 - **copilot** - `copilot --allow-tool=write`

@@ -259,6 +259,21 @@ export const auth = betterAuth({
 				enabled: true,
 				maximumTeams: 25,
 				allowRemovingAllTeams: false,
+				defaultTeam: {
+					enabled: true,
+					customCreateDefaultTeam: async (organization) => {
+						const [team] = await db
+							.insert(authSchema.teams)
+							.values({
+								name: "Default Team",
+								slug: "DEFAULT",
+								organizationId: organization.id,
+							})
+							.returning();
+						if (!team) throw new Error("Failed to create default team");
+						return { ...team, updatedAt: team.updatedAt ?? undefined };
+					},
+				},
 			},
 			schema: {
 				team: {
@@ -341,12 +356,6 @@ export const auth = betterAuth({
 						.where(eq(authSchema.organizations.id, organization.id));
 
 					await seedDefaultStatuses(organization.id);
-
-					await db.insert(authSchema.teams).values({
-						name: organization.name,
-						slug: organization.slug,
-						organizationId: organization.id,
-					});
 				},
 
 				beforeRemoveMember: async ({ member, organization }) => {

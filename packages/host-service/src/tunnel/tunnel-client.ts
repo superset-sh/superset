@@ -9,6 +9,8 @@ import type {
 
 const RECONNECT_BASE_MS = 1_000;
 const RECONNECT_MAX_MS = 30_000;
+const INBOUND_SILENCE_TIMEOUT_MS = 75_000;
+const WATCHDOG_INTERVAL_MS = 10_000;
 
 export interface TunnelClientOptions {
 	relayUrl: string;
@@ -18,6 +20,11 @@ export interface TunnelClientOptions {
 	hostServiceSecret: string;
 }
 
+interface LocalChannel {
+	ws: WebSocket;
+	pendingFrames: string[];
+}
+
 export class TunnelClient {
 	private readonly relayUrl: string;
 	private readonly hostId: string;
@@ -25,10 +32,13 @@ export class TunnelClient {
 	private readonly localPort: number;
 	private readonly hostServiceSecret: string;
 	private socket: WebSocket | null = null;
-	private localChannels = new Map<string, WebSocket>();
+	private localChannels = new Map<string, LocalChannel>();
 	private reconnectAttempts = 0;
 	private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+	private watchdogTimer: ReturnType<typeof setInterval> | null = null;
+	private lastInboundAt = 0;
 	private closed = false;
+	private connecting = false;
 
 	constructor(options: TunnelClientOptions) {
 		this.relayUrl = options.relayUrl;
@@ -40,13 +50,26 @@ export class TunnelClient {
 
 	async connect(): Promise<void> {
 		if (this.closed) return;
+		if (this.connecting) return;
+		if (
+			this.socket?.readyState === WebSocket.CONNECTING ||
+			this.socket?.readyState === WebSocket.OPEN
+		) {
+			return;
+		}
+		this.connecting = true;
 
 		// An unhandled rejection here (e.g. DNS failure inside getAuthToken on
 		// wake from sleep) crashes host-service and orphans every PTY.
 		try {
 			const token = await this.getAuthToken();
+			if (this.closed) {
+				this.connecting = false;
+				return;
+			}
 			if (!token) {
 				console.warn("[host-service:tunnel] no auth token available, retrying");
+				this.connecting = false;
 				this.scheduleReconnect();
 				return;
 			}
@@ -58,24 +81,40 @@ export class TunnelClient {
 
 			const socket = new WebSocket(url.toString());
 			this.socket = socket;
+			this.lastInboundAt = Date.now();
 
 			socket.onopen = () => {
 				this.reconnectAttempts = 0;
+				this.connecting = false;
+				this.lastInboundAt = Date.now();
+				this.startWatchdog();
 				console.log(
 					`[host-service:tunnel] connected to relay for host ${this.hostId}`,
 				);
 			};
 
 			socket.onmessage = (event) => {
+				this.lastInboundAt = Date.now();
 				void this.handleMessage(event.data);
 			};
 
-			socket.onclose = () => {
+			socket.onclose = (event) => {
+				const wasOurSocket = this.socket === socket;
+				if (!wasOurSocket) return;
+
 				this.socket = null;
+				this.connecting = false;
+				this.stopWatchdog();
 				this.cleanupChannels();
-				if (!this.closed) {
-					this.scheduleReconnect();
+
+				if (this.closed) return;
+
+				if (event.code === 1008) {
+					console.warn(
+						`[host-service:tunnel] relay rejected connection (code=${event.code}, reason=${event.reason ?? ""}); retrying`,
+					);
 				}
+				this.scheduleReconnect();
 			};
 
 			socket.onerror = (event) => {
@@ -85,12 +124,14 @@ export class TunnelClient {
 			const message = error instanceof Error ? error.message : String(error);
 			console.error(`[host-service:tunnel] connect failed: ${message}`);
 			this.socket = null;
+			this.connecting = false;
 			this.scheduleReconnect();
 		}
 	}
 
 	close(): void {
 		this.closed = true;
+		this.stopWatchdog();
 		if (this.reconnectTimer) {
 			clearTimeout(this.reconnectTimer);
 			this.reconnectTimer = null;
@@ -193,6 +234,18 @@ export class TunnelClient {
 		const localWs = new WebSocket(wsUrl.toString());
 		localWs.binaryType = "arraybuffer";
 
+		const channel: LocalChannel = {
+			ws: localWs,
+			pendingFrames: [],
+		};
+
+		localWs.onopen = () => {
+			for (const frame of channel.pendingFrames) {
+				localWs.send(frame);
+			}
+			channel.pendingFrames.length = 0;
+		};
+
 		localWs.onmessage = (event) => {
 			const data = event.data;
 			if (typeof data === "string") {
@@ -222,38 +275,71 @@ export class TunnelClient {
 			);
 		};
 
-		this.localChannels.set(request.id, localWs);
+		this.localChannels.set(request.id, channel);
 	}
 
 	private handleWsFrame(message: TunnelWsFrame): void {
-		const localWs = this.localChannels.get(message.id);
-		if (localWs?.readyState === WebSocket.OPEN) {
-			localWs.send(message.data);
+		const channel = this.localChannels.get(message.id);
+		if (!channel) return;
+		if (channel.ws.readyState === WebSocket.OPEN) {
+			channel.ws.send(message.data);
+			return;
+		}
+		if (channel.ws.readyState === WebSocket.CONNECTING) {
+			if (channel.pendingFrames.length < 256) {
+				channel.pendingFrames.push(message.data);
+			}
 		}
 	}
 
 	private handleWsClose(message: TunnelWsClose): void {
-		const localWs = this.localChannels.get(message.id);
-		if (localWs) {
+		const channel = this.localChannels.get(message.id);
+		if (channel) {
 			this.localChannels.delete(message.id);
-			localWs.close(message.code ?? 1000);
+			channel.ws.close(message.code ?? 1000);
 		}
 	}
 
 	private cleanupChannels(): void {
-		for (const ws of this.localChannels.values()) {
-			ws.close(1001, "Tunnel disconnected");
+		for (const channel of this.localChannels.values()) {
+			channel.ws.close(1001, "Tunnel disconnected");
 		}
 		this.localChannels.clear();
+	}
+
+	private startWatchdog(): void {
+		this.stopWatchdog();
+		this.watchdogTimer = setInterval(() => {
+			if (!this.socket || this.socket.readyState !== WebSocket.OPEN) return;
+			const silentFor = Date.now() - this.lastInboundAt;
+			if (silentFor > INBOUND_SILENCE_TIMEOUT_MS) {
+				console.warn(
+					`[host-service:tunnel] no inbound traffic for ${silentFor}ms, forcing reconnect`,
+				);
+				try {
+					this.socket.close(4002, "Inbound silence timeout");
+				} catch {
+					// already closed
+				}
+			}
+		}, WATCHDOG_INTERVAL_MS);
+	}
+
+	private stopWatchdog(): void {
+		if (this.watchdogTimer) {
+			clearInterval(this.watchdogTimer);
+			this.watchdogTimer = null;
+		}
 	}
 
 	private scheduleReconnect(): void {
 		if (this.closed || this.reconnectTimer) return;
 
-		const delay = Math.min(
+		const baseDelay = Math.min(
 			RECONNECT_BASE_MS * 2 ** this.reconnectAttempts,
 			RECONNECT_MAX_MS,
 		);
+		const delay = Math.floor(baseDelay * (0.5 + Math.random() * 0.5));
 		this.reconnectAttempts++;
 
 		console.log(

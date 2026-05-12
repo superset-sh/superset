@@ -335,6 +335,29 @@ superset org switch org_…
 ```
 </Command>
 
+<Command
+	name="superset organization members list"
+	options={[
+		{ flag: "--search <query>, -s", description: "Search by name or email." },
+		{ flag: "--limit <n>", description: "Default 50." },
+	]}
+	output={`Array<{
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+}>`}
+	humanColumns={["NAME", "EMAIL", "ROLE", "ID"]}
+	quiet="member IDs"
+>
+List members in the active organization.
+
+```bash
+superset organization members list
+superset org members list -s satya
+```
+</Command>
+
 ---
 
 ### projects
@@ -473,7 +496,8 @@ than silently falling through to the cloud.
 <Command
 	name="superset workspaces list"
 	options={[
-		{ flag: "--host <id>", description: "Target host. Defaults to the local machine." },
+		{ flag: "--host <id>", description: "Filter to a specific host machineId." },
+		{ flag: "--local", description: "Filter to this machine." },
 	]}
 	output={`Array<{
   id: string;
@@ -482,11 +506,13 @@ than silently falling through to the cloud.
   projectId: string;
   projectName: string;
   hostId: string;
+  hostName: string;
 }>`}
-	humanColumns={["ID", "NAME", "BRANCH", "PROJECT", "HOST"]}
+	humanColumns={["NAME", "BRANCH", "PROJECT", "HOST"]}
 	quiet="workspace IDs"
 >
-List workspaces on the target host.
+List workspaces accessible to the active organization. With neither
+`--host` nor `--local`, the list is organization-wide.
 </Command>
 
 <Command
@@ -494,19 +520,31 @@ List workspaces on the target host.
 	options={[
 		{ flag: "--project <projectId>", required: true, description: "Project ID." },
 		{ flag: "--name <name>", required: true, description: "Workspace name." },
-		{ flag: "--branch <branch>", required: true, description: "Workspace branch." },
+		{ flag: "--branch <branch>", description: "Workspace branch. Required unless `--pr` is set." },
+		{ flag: "--pr <number>", description: "Pull request number. Derives the branch via `gh pr checkout`." },
+		{ flag: "--base-branch <branch>", description: "Branch to fork from when `--branch` does not exist. Defaults to the project default branch." },
 		{ flag: "--host <id>", description: "Target host machineId. Mutually exclusive with `--local`; one is required." },
 		{ flag: "--local", description: "Target this machine. Mutually exclusive with `--host`; one is required." },
+		{ flag: "--agent <preset|uuid|superset>", description: "Agent to spawn after creation." },
+		{ flag: "--prompt <text>", description: "Initial prompt. Required when `--agent` is set." },
+		{ flag: "--attachment <path>", description: "Local file to upload for the spawned agent. Repeatable." },
 	]}
 	output="Workspace"
 >
-Create a workspace on the target host.
+Create a workspace on the target host. Specify exactly one of `--branch`
+or `--pr`. If you pass `--agent`, you must also pass `--prompt`.
 
 ```bash
 superset workspaces create \
   --project prj_… \
   --name "fix-login-bug" \
   --branch fix/login-bug \
+  --local
+
+superset workspaces create \
+  --project prj_… \
+  --name "review-pr-123" \
+  --pr 123 \
   --local
 ```
 </Command>
@@ -517,7 +555,8 @@ superset workspaces create \
 		{ name: "id", required: true, variadic: true, description: "Workspace IDs to delete." },
 	]}
 	options={[
-		{ flag: "--host <id>", description: "Defaults to the local machine." },
+		{ flag: "--host <id>", description: "Skip cloud lookup and target this host directly." },
+		{ flag: "--local", description: "Skip cloud lookup and target this machine." },
 	]}
 	output={`{ deleted: string[] }`}
 >
@@ -525,6 +564,45 @@ Delete one or more workspaces on the target host.
 
 ```bash
 superset workspaces delete ws_a ws_b ws_c
+```
+</Command>
+
+<Command
+	name="superset workspaces update <id>"
+	args={[
+		{ name: "id", required: true, description: "Workspace UUID." },
+	]}
+	options={[
+		{ flag: "--name <name>", description: "New workspace name." },
+	]}
+	output="Workspace"
+>
+Update a workspace.
+
+```bash
+superset workspaces update ws_… --name "better-name"
+```
+</Command>
+
+<Command
+	name="superset workspaces open <id>"
+	args={[
+		{ name: "id", required: true, description: "Workspace ID." },
+	]}
+	options={[
+		{ flag: "--print", description: "Print the deep link instead of opening the desktop app." },
+	]}
+	output={`{
+  id: string;
+  name: string;
+  url: string;
+}`}
+>
+Open a workspace in the Superset desktop app.
+
+```bash
+superset workspaces open ws_…
+superset workspaces open ws_… --print
 ```
 </Command>
 
@@ -570,11 +648,16 @@ superset agents list --host host_…
 	name="superset agents run"
 	options={[
 		{ flag: "--workspace <id>", required: true, description: "Workspace UUID to run the agent in." },
-		{ flag: "--agent <preset|uuid>", required: true, description: "Agent preset id (e.g. `claude`, `codex`) or HostAgentConfig instance UUID." },
+		{ flag: "--agent <preset|uuid|superset>", required: true, description: "Agent preset id (e.g. `claude`, `codex`), HostAgentConfig instance UUID, or `superset`." },
 		{ flag: "--prompt <text>", required: true, description: "Prompt sent to the agent." },
-		{ flag: "--attachment-id <uuid>", description: "Host-scoped attachment UUID; pass repeatedly for multiple attachments." },
+		{ flag: "--attachment-id <uuid>", description: "Pre-uploaded attachment UUID; pass repeatedly for multiple attachments." },
+		{ flag: "--attachment <path>", description: "Local file path to upload as an attachment. Repeatable." },
 	]}
-	output={`{ sessionId: string; label: string }`}
+	output={`{
+  kind: "terminal" | "chat";
+  sessionId: string;
+  label: string;
+}`}
 >
 Launch an agent inside an existing workspace. Resolves the host that owns the
 workspace and starts the named preset (or HostAgentConfig instance) in a
@@ -582,6 +665,7 @@ fresh terminal session on that host.
 
 ```bash
 superset agents run --workspace ws_… --agent claude --prompt "Audit the login flow"
+superset agents run --workspace ws_… --agent codex --prompt "Review this diff" --attachment ./trace.log
 ```
 </Command>
 
@@ -596,10 +680,11 @@ Tasks are units of work in your organization's task tracker.
 	options={[
 		{ flag: "--status <id>", description: "Filter by status ID." },
 		{ flag: "--priority <urgent|high|medium|low|none>", description: "Filter by priority." },
+		{ flag: "--assignee <userId>", description: "Filter by assignee user ID." },
 		{ flag: "--assignee-me, -m", description: "Tasks assigned to the current user." },
 		{ flag: "--creator-me", description: "Tasks created by the current user." },
 		{ flag: "--search <query>, -s", description: "Substring search on title." },
-		{ flag: "--limit <n>", description: "Default 50, max 200." },
+		{ flag: "--limit <n>", description: "Default 50." },
 		{ flag: "--offset <n>", description: "Default 0." },
 	]}
 	output="Array<Task>"
@@ -636,6 +721,10 @@ superset tasks get fix-login-bug
 		{ flag: "--description <text>", description: "Task description." },
 		{ flag: "--priority <urgent|high|medium|low|none>", description: "Priority." },
 		{ flag: "--assignee <userId>", description: "Assignee user ID." },
+		{ flag: "--status-id <id>", description: "Initial status ID." },
+		{ flag: "--estimate <n>", description: "Story-point estimate." },
+		{ flag: "--due-date <iso8601>", description: "Due date." },
+		{ flag: "--labels <a,b,c>", description: "Comma-separated labels." },
 	]}
 	output="Task"
 >
@@ -656,6 +745,11 @@ superset tasks create --title "Audit auth flow" --priority high
 		{ flag: "--description <text>", description: "New description." },
 		{ flag: "--priority <urgent|high|medium|low|none>", description: "New priority." },
 		{ flag: "--assignee <userId>", description: "New assignee." },
+		{ flag: "--status-id <id>", description: "New status ID." },
+		{ flag: "--pr-url <url>", description: "Linked pull request URL." },
+		{ flag: "--estimate <n>", description: "Story-point estimate." },
+		{ flag: "--due-date <iso8601>", description: "Due date." },
+		{ flag: "--labels <a,b,c>", description: "Replace labels with a comma-separated list." },
 	]}
 	output="Task"
 >
@@ -677,6 +771,26 @@ Delete one or more tasks.
 
 ```bash
 superset tasks delete tsk_a tsk_b
+```
+</Command>
+
+<Command
+	name="superset tasks statuses list"
+	output={`Array<{
+  id: string;
+  name: string;
+  type: string;
+  position: number;
+}>`}
+	humanColumns={["NAME", "TYPE", "POS", "ID"]}
+	quiet="status IDs"
+>
+List task statuses in the active organization. Use the returned IDs with
+`tasks list --status`, `tasks create --status-id`, or
+`tasks update --status-id`.
+
+```bash
+superset tasks statuses list
 ```
 </Command>
 
@@ -712,21 +826,22 @@ Use [`automations logs`](#superset-automations-logs-id) for run history.
 	name="superset automations create"
 	options={[
 		{ flag: "--name <name>", required: true, description: "Automation name." },
-		{ flag: "--prompt <text>", description: "Inline prompt; pass `-` to read stdin." },
+		{ flag: "--prompt <text>", description: "Inline prompt." },
 		{ flag: "--prompt-file <path>", description: "Read prompt from file, verbatim." },
 		{ flag: "--rrule <rrule>", required: true, description: "RFC 5545 RRULE schedule." },
 		{ flag: "--timezone <iana>", description: "Default: host TZ, then UTC." },
 		{ flag: "--dtstart <iso8601>", description: "Default: now." },
 		{ flag: "--workspace <workspaceId>", description: "Reuse an existing workspace." },
-		{ flag: "--project <projectId>", required: true, description: "Project ID." },
+		{ flag: "--project <projectId>", description: "Project ID for new-workspace-per-run mode." },
 		{ flag: "--host <hostId>", description: "Default: owner's online host." },
 		{ flag: "--agent <presetId>", description: "Default: claude." },
 		{ flag: "--agent-config-file <path>", description: "Full ResolvedAgentConfig JSON; overrides --agent." },
 	]}
 	output="Automation"
 >
-Create an automation. Exactly one of `--prompt` or `--prompt-file` must
-be provided.
+Create an automation. Provide `--prompt` or `--prompt-file`; if both are
+present, the inline `--prompt` value is used. At least one of `--project`
+or `--workspace` must be provided.
 
 ```bash
 superset automations create \
@@ -749,8 +864,11 @@ superset automations create \
 		{ flag: "--timezone <iana>", description: "New timezone." },
 		{ flag: "--dtstart <iso8601>", description: "New start time." },
 		{ flag: "--host <hostId>", description: "New target host." },
+		{ flag: "--project <projectId>", description: "New v2 project ID." },
+		{ flag: "--workspace <workspaceId>", description: "New v2 workspace ID." },
 		{ flag: "--agent <presetId>", description: "New agent preset." },
 		{ flag: "--agent-config-file <path>", description: "Overrides --agent when both provided." },
+		{ flag: "--mcp-scope <a,b,c>", description: "Comma-separated MCP scope strings." },
 		{ flag: "--enabled / --no-enabled", description: "Calls automation.setEnabled first." },
 	]}
 	output="Automation"
@@ -874,7 +992,7 @@ superset automations run aut_…
 		{ flag: "--limit <n>", description: "Default 20, max 100." },
 	]}
 	output="Array<AutomationRun>"
-	humanColumns={["ID", "STATUS", "SCHEDULED FOR", "CREATED AT", "ERROR"]}
+	humanColumns={["RUN ID", "STATUS", "SCHEDULED", "DISPATCHED", "HOST"]}
 	quiet="run IDs"
 >
 List recent runs for an automation.

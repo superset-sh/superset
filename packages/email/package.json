@@ -4,11 +4,11 @@
 	"devDependencies": {
 		"@react-email/preview-server": "5.0.7",
 		"@superset/typescript": "workspace:*",
-		"@types/node": "^24.9.1",
-		"@types/react": "~19.2.2",
-		"@types/tailwindcss": "^3.1.0",
+		"@types/node": "24.12.0",
+		"@types/react": "19.2.14",
+		"@types/tailwindcss": "3.1.0",
 		"react-email": "5.0.7",
-		"typescript": "^5.9.3"
+		"typescript": "5.9.3"
 	},
 	"exports": {
 		"./emails/*": "./src/emails/*.tsx"
@@ -25,13 +25,13 @@
 		"@react-email/components": "1.0.1",
 		"@react-email/tailwind": "2.0.3",
 		"@superset/db": "workspace:*",
-		"@t3-oss/env-core": "^0.13.8",
-		"date-fns": "^4.1.0",
+		"@t3-oss/env-core": "0.13.11",
+		"date-fns": "4.1.0",
 		"drizzle-orm": "0.45.2",
 		"react": "19.2.0",
 		"react-dom": "19.2.0",
-		"resend": "^4.0.1",
-		"tailwindcss": "^4.1.18",
-		"zod": "^4.3.5"
+		"resend": "4.8.0",
+		"tailwindcss": "4.2.2",
+		"zod": "4.3.6"
 	}
 }

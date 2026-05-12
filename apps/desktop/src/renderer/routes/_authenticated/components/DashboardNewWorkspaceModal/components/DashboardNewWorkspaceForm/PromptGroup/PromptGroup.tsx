@@ -25,6 +25,7 @@ import { LinkedIssuePill } from "renderer/components/Chat/ChatInterface/componen
 import { IssueLinkCommand } from "renderer/components/Chat/ChatInterface/components/IssueLinkCommand";
 import { resolveHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
 import { useAgentLaunchPreferences } from "renderer/hooks/useAgentLaunchPreferences";
+import { useRelayUrl } from "renderer/hooks/useRelayUrl";
 import { useV2AgentChoices } from "renderer/hooks/useV2AgentChoices";
 import { PLATFORM } from "renderer/hotkeys";
 import { authClient } from "renderer/lib/auth-client";
@@ -76,6 +77,7 @@ export function PromptGroup({
 	const navigate = useNavigate();
 	const attachments = useProviderAttachments();
 	const { activeHostUrl, machineId } = useLocalHostService();
+	const relayUrl = useRelayUrl();
 	const { data: session } = authClient.useSession();
 	const activeOrganizationId = session?.session?.activeOrganizationId;
 	const needsSetup = selectedProject?.needsSetup === true;
@@ -126,9 +128,10 @@ export function PromptGroup({
 				machineId,
 				activeHostUrl,
 				organizationId: activeOrganizationId,
+				relayUrl,
 			}) ?? null
 		);
-	}, [draft.hostId, machineId, activeHostUrl, activeOrganizationId]);
+	}, [draft.hostId, machineId, activeHostUrl, activeOrganizationId, relayUrl]);
 	const { agents: v2Agents, isFetched: v2AgentsFetched } =
 		useV2AgentChoices(launchHostUrl);
 	const selectableAgentIds = useMemo(
@@ -214,9 +217,10 @@ export function PromptGroup({
 				machineId,
 				activeHostUrl,
 				organizationId: activeOrganizationId,
+				relayUrl,
 			}) ?? null
 		);
-	}, [draft.hostId, machineId, activeHostUrl, activeOrganizationId]);
+	}, [draft.hostId, machineId, activeHostUrl, activeOrganizationId, relayUrl]);
 	const uploadAttachments = useUploadAttachments({
 		files: attachments.files,
 		hostUrl: uploadHostUrl,

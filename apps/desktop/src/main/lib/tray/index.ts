@@ -169,8 +169,11 @@ function buildHostServiceSubmenu(
 			enabled: false,
 		});
 		menuItems.push({
+			// Enabled in "stopped" too — that's the state where users most need
+			// restart to work (host-service crashed or never came up). Disabled
+			// only while a start is in flight, to avoid racing the pending start.
 			label: "  Restart",
-			enabled: isRunning,
+			enabled: status !== "starting",
 			click: () => {
 				void (async () => {
 					try {

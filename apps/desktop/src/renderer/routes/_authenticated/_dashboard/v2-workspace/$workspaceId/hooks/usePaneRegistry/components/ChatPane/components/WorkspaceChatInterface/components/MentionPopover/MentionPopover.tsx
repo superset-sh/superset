@@ -26,7 +26,7 @@ import {
 } from "react";
 import { HiMiniAtSymbol } from "react-icons/hi2";
 import { useDebouncedValue } from "renderer/hooks/useDebouncedValue";
-import { FileIcon } from "renderer/screens/main/components/WorkspaceView/RightSidebar/FilesView/utils";
+import { FileIcon } from "renderer/lib/fileIcons";
 
 function findAtTriggerIndex(value: string, prevValue: string): number {
 	if (value.length !== prevValue.length + 1) return -1;

@@ -1,5 +1,6 @@
 import * as childProcess from "node:child_process";
 import * as fs from "node:fs";
+import * as tty from "node:tty";
 import * as nodePty from "node-pty";
 import {
 	type ProcessSignalError,
@@ -195,8 +196,8 @@ export function spawn({ meta }: SpawnOptions): Pty {
  * `forkpty` was run; the fd already existed). We build a thin adapter
  * directly on the fd:
  *
- * - read via fs.createReadStream
- * - write via fs.createWriteStream
+ * - read via tty.ReadStream
+ * - write via direct fs.writeSync calls
  * - kill via process.kill(pid)
  * - onExit: read-stream 'end'/'error' OR PID-liveness poll (whichever first)
  *
@@ -210,8 +211,7 @@ class AdoptedPty implements Pty {
 	readonly pid: number;
 	meta: SessionMeta;
 	private readonly fd: number;
-	private readonly reader: fs.ReadStream;
-	private readonly writer: fs.WriteStream;
+	private readonly reader: tty.ReadStream;
 	private exitFired = false;
 	private livenessTimer: NodeJS.Timeout | null = null;
 	private killEscalationTimer: NodeJS.Timeout | null = null;
@@ -221,8 +221,7 @@ class AdoptedPty implements Pty {
 		this.fd = fd;
 		this.pid = pid;
 		this.meta = meta;
-		this.reader = fs.createReadStream("", { fd, autoClose: false });
-		this.writer = fs.createWriteStream("", { fd, autoClose: false });
+		this.reader = new tty.ReadStream(fd);
 
 		// onExit signal sources:
 		//   1. read stream 'end' or 'error' — the slave-side close drives EOF
@@ -234,22 +233,9 @@ class AdoptedPty implements Pty {
 			if (this.exitFired) return;
 			this.exitFired = true;
 			if (this.livenessTimer) clearInterval(this.livenessTimer);
-			// Close the read/write streams so the inherited fd doesn't keep
-			// the event loop alive after the shell exits. We use
-			// `autoClose: false` (so handoff-time refcounting works), which
-			// means we have to drive the close ourselves.
+			// tty.ReadStream owns the inherited fd; destroying the stream closes it.
 			try {
 				this.reader.destroy();
-			} catch {
-				// already closed
-			}
-			try {
-				this.writer.destroy();
-			} catch {
-				// already closed
-			}
-			try {
-				fs.closeSync(this.fd);
 			} catch {
 				// already closed
 			}
@@ -257,9 +243,6 @@ class AdoptedPty implements Pty {
 		};
 		this.reader.on("end", () => onExit({ code: null, signal: null }));
 		this.reader.on("error", () => onExit({ code: null, signal: null }));
-		// Without this listener, a write that races a slave-side close
-		// emits 'error' with no handler and crashes the daemon.
-		this.writer.on("error", () => onExit({ code: null, signal: null }));
 		this.livenessTimer = setInterval(() => {
 			if (!isPidAlive(this.pid)) onExit({ code: null, signal: null });
 		}, 1000);
@@ -271,7 +254,22 @@ class AdoptedPty implements Pty {
 	}
 
 	write(data: Buffer): void {
-		this.writer.write(data);
+		if (this.exitFired) {
+			throw new Error(`session exited: ${this.pid}`);
+		}
+		let offset = 0;
+		while (offset < data.byteLength) {
+			const written = fs.writeSync(
+				this.fd,
+				data,
+				offset,
+				data.byteLength - offset,
+			);
+			if (written <= 0) {
+				throw new Error(`pty write wrote ${written} bytes`);
+			}
+			offset += written;
+		}
 	}
 
 	resize(cols: number, rows: number): void {

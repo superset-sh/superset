@@ -15,9 +15,11 @@ const uploadInputSchema = z.object({
 		kind: z.literal("base64"),
 		data: z.string().min(1),
 	}),
-	mediaType: z.string().min(1),
+	mediaType: z.string(),
 	originalFilename: z.string().optional(),
 });
+
+const FALLBACK_MEDIA_TYPE = "application/octet-stream";
 
 /**
  * Cheap size estimate from a base64 string without allocating the
@@ -36,12 +38,9 @@ export const attachmentsRouter = router({
 	 * renderer never sees the on-disk path.
 	 */
 	upload: protectedProcedure.input(uploadInputSchema).mutation(({ input }) => {
-		if (!mimeTypes.extension(input.mediaType)) {
-			throw new TRPCError({
-				code: "BAD_REQUEST",
-				message: `Unrecognized media type: ${input.mediaType}`,
-			});
-		}
+		const mediaType = mimeTypes.extension(input.mediaType)
+			? input.mediaType
+			: FALLBACK_MEDIA_TYPE;
 
 		// Reject before allocating the decoded buffer so a 1GB base64
 		// payload doesn't spike host memory only to be rejected at the end.
@@ -65,7 +64,7 @@ export const attachmentsRouter = router({
 
 		const metadata: AttachmentMetadata = {
 			attachmentId: randomUUID(),
-			mediaType: input.mediaType,
+			mediaType,
 			originalFilename: input.originalFilename,
 			sizeBytes: bytes.length,
 			createdAt: Date.now(),

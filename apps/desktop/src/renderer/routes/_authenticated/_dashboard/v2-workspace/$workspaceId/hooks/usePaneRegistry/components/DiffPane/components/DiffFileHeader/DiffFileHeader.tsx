@@ -5,8 +5,8 @@ import { useId } from "react";
 import { LuCheck, LuCopy, LuUndo2 } from "react-icons/lu";
 import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
 import { useSidebarFilePolicy } from "renderer/lib/clickPolicy";
+import { FileIcon } from "renderer/lib/fileIcons";
 import { StatusIndicator } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/StatusIndicator";
-import { FileIcon } from "renderer/screens/main/components/WorkspaceView/RightSidebar/FilesView/utils";
 import { GIT_STAT_TEXT_CLASSES } from "../../utils/gitDecorationColors";
 
 interface DiffFileHeaderProps {

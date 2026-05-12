@@ -99,6 +99,11 @@ export function useOptimisticCollectionActions() {
 			mutation: () => PersistableTransaction,
 		) => runMutation("optimistic.v2UsersHosts", failureTitle, mutation);
 
+		const runHostsMutation = (
+			failureTitle: string,
+			mutation: () => PersistableTransaction,
+		) => runMutation("optimistic.v2Hosts", failureTitle, mutation);
+
 		return {
 			tasks: {
 				updateTitle: (taskId: string, title: string) =>
@@ -201,6 +206,14 @@ export function useOptimisticCollectionActions() {
 						collections.chatSessions.delete(sessionId),
 					);
 				},
+			},
+			v2Hosts: {
+				renameHost: (hostId: string, name: string) =>
+					runHostsMutation("Failed to rename host", () =>
+						collections.v2Hosts.update(hostId, (draft) => {
+							draft.name = name;
+						}),
+					),
 			},
 			v2UsersHosts: {
 				addMember: (input: {

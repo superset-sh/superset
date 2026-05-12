@@ -55,6 +55,8 @@ const VERSION_PROBE_TIMEOUT_MS = 1_500;
 const HANDOFF_PREDECESSOR_EXIT_TIMEOUT_MS = 3_000;
 const HANDOFF_PROBE_TOTAL_TIMEOUT_MS = 3_000;
 const DAEMON_TERMINATE_TIMEOUT_MS = 1_000;
+const AUTO_UPDATE_SESSION_LIST_TIMEOUT_MS = 1_500;
+const ADOPTION_PROBE_TOTAL_TIMEOUT_MS = 3_000;
 
 /**
  * Crash supervision parameters. If the daemon for an organization crashes
@@ -66,6 +68,14 @@ const CRASH_BUDGET = 3;
 const CRASH_WINDOW_MS = 60_000;
 /** How often to poll an adopted daemon's PID for liveness. */
 const ADOPTED_LIVENESS_INTERVAL_MS = 2_000;
+const ADOPT_IN_DEV_ENV = "SUPERSET_PTY_DAEMON_ADOPT_IN_DEV";
+
+export function shouldKillStaleDaemonForDev(
+	env: NodeJS.ProcessEnv = process.env,
+): boolean {
+	if (env.NODE_ENV === "production") return false;
+	return env[ADOPT_IN_DEV_ENV] !== "1";
+}
 
 /**
  * Per-organization socket path. **Must stay short** — Darwin's `sun_path`
@@ -101,6 +111,8 @@ export interface DaemonSupervisorOptions {
 	/**
 	 * When true (default), opportunistically calls `update()` after
 	 * adopting a daemon whose `runningVersion < EXPECTED_DAEMON_VERSION`.
+	 * If that smooth handoff fails, auto-update falls back to a force
+	 * restart so the app does not keep running an incompatible daemon.
 	 * Set to false in integration tests that intentionally adopt a stale
 	 * daemon and assert the version-drift flag without the test racing a
 	 * real handoff.
@@ -185,15 +197,6 @@ export class DaemonSupervisor {
 	}
 
 	/**
-	 * Explicitly restart the daemon for an org — kills sessions, spawns
-	 * fresh. The user has opted in via UI confirmation. Distinct from
-	 * crash-respawn: clears the crash circuit (if open) and emits its own
-	 * event so logs can separate intent from recovery.
-	 *
-	 * Awaits any in-flight spawn before stopping so we never SIGTERM a
-	 * partially-initialized child.
-	 */
-	/**
 	 * Phase 2: ask the running daemon to spawn a successor binary that
 	 * adopts all live sessions via fd-handoff. On success the original
 	 * shell PIDs survive the daemon swap.
@@ -206,18 +209,27 @@ export class DaemonSupervisor {
 	): Promise<
 		{ ok: true; successorPid: number } | { ok: false; reason: string }
 	> {
+		return this.startUpdate(organizationId).promise;
+	}
+
+	private startUpdate(organizationId: string): {
+		promise: Promise<
+			{ ok: true; successorPid: number } | { ok: false; reason: string }
+		>;
+		started: boolean;
+	} {
 		// Coalesce concurrent calls. Auto-update (on adopt with version
 		// drift) and a manual click of the Update button can race —
 		// without this guard, both would try to handoff the same daemon.
 		// The second caller observes the same outcome via the cached
 		// promise.
 		const inFlight = this.updateInFlight.get(organizationId);
-		if (inFlight) return inFlight;
+		if (inFlight) return { promise: inFlight, started: false };
 		const promise = this.runUpdate(organizationId).finally(() => {
 			this.updateInFlight.delete(organizationId);
 		});
 		this.updateInFlight.set(organizationId, promise);
-		return promise;
+		return { promise, started: true };
 	}
 
 	private async runUpdate(
@@ -349,7 +361,26 @@ export class DaemonSupervisor {
 		return { ok: true, successorPid: result.successorPid };
 	}
 
+	/**
+	 * Explicitly restart the daemon for an org — kills sessions, spawns
+	 * fresh. The user has opted in via UI confirmation. Distinct from
+	 * crash-respawn: clears the crash circuit (if open) and emits its own
+	 * event so logs can separate intent from recovery.
+	 *
+	 * Awaits any in-flight spawn before stopping so we never SIGTERM a
+	 * partially-initialized child.
+	 */
 	async restart(organizationId: string): Promise<{ success: true }> {
+		return this.forceRestart(organizationId, {
+			event: "pty_daemon_user_restart",
+			props: {},
+		});
+	}
+
+	private async forceRestart(
+		organizationId: string,
+		log: { event: string; props: Record<string, unknown> },
+	): Promise<{ success: true }> {
 		const prev = this.instances.get(organizationId);
 		const hadCircuitOpen = this.circuitOpen.has(organizationId);
 
@@ -365,12 +396,13 @@ export class DaemonSupervisor {
 		await this.stop(organizationId);
 		this.clearCrashCircuit(organizationId);
 
-		logEvent("pty_daemon_user_restart", {
+		logEvent(log.event, {
 			organizationId,
 			hadCircuitOpen,
 			previousRunningVersion: prev?.runningVersion ?? null,
 			previousExpectedVersion: prev?.expectedVersion ?? null,
 			previousUpdatePending: prev?.updatePending ?? null,
+			...log.props,
 		});
 
 		await this.ensure(organizationId);
@@ -467,11 +499,10 @@ export class DaemonSupervisor {
 	/**
 	 * Auto-update: best-effort opportunistic handoff when the adopted
 	 * daemon is older than the bundled binary. Runs after host-service
-	 * boot, fire-and-track, doesn't block anything. On failure we leave
-	 * the old daemon running — the user keeps their sessions and can
-	 * retry via the Update button. The renderer's "Update available"
-	 * badge still shows in that case, which is correct: the upgrade
-	 * truly is still pending.
+	 * boot, fire-and-track, doesn't block anything. The background path
+	 * is intentionally conservative: live sessions keep running on the
+	 * predecessor and the foreground Settings UI remains the place for
+	 * user-approved handoff/restart.
 	 */
 	private kickoffAutoUpdate(
 		organizationId: string,
@@ -483,35 +514,235 @@ export class DaemonSupervisor {
 			expectedVersion: instance.expectedVersion,
 			pid: instance.pid,
 		});
-		void this.update(organizationId).then(
-			(result) => {
-				if (result.ok) {
-					logEvent("pty_daemon_auto_update_ok", {
-						organizationId,
-						previousPid: instance.pid,
-						successorPid: result.successorPid,
-						previousVersion: instance.runningVersion,
-					});
-				} else {
-					logEvent("pty_daemon_auto_update_failed", {
-						organizationId,
-						pid: instance.pid,
-						runningVersion: instance.runningVersion,
-						expectedVersion: instance.expectedVersion,
-						reason: result.reason,
-					});
-				}
-			},
-			(err) => {
-				logEvent("pty_daemon_auto_update_failed", {
-					organizationId,
-					pid: instance.pid,
-					runningVersion: instance.runningVersion,
-					expectedVersion: instance.expectedVersion,
-					reason: `threw: ${(err as Error).message}`,
-				});
-			},
+		void this.runAutoUpdate(organizationId, instance).catch((err) => {
+			logEvent("pty_daemon_auto_update_failed", {
+				organizationId,
+				pid: instance.pid,
+				runningVersion: instance.runningVersion,
+				expectedVersion: instance.expectedVersion,
+				reason: `threw: ${(err as Error).message}`,
+			});
+		});
+	}
+
+	private async runAutoUpdate(
+		organizationId: string,
+		instance: DaemonInstance,
+	): Promise<void> {
+		const sessions = await this.listSessions(
+			organizationId,
+			AUTO_UPDATE_SESSION_LIST_TIMEOUT_MS,
 		);
+		if (sessions === null) {
+			this.deferAutoUpdate(
+				organizationId,
+				instance,
+				"session_list_unavailable",
+			);
+			return;
+		}
+		const aliveSessionCount = countAliveSessions(sessions);
+		if (aliveSessionCount > 0) {
+			this.deferAutoUpdate(organizationId, instance, "live_sessions_present", {
+				aliveSessionCount,
+			});
+			return;
+		}
+
+		// If a manual Update click already owns the in-flight handoff, leave
+		// any destructive fallback to that foreground UI path.
+		const update = this.startUpdate(organizationId);
+		try {
+			const result = await update.promise;
+			if (result.ok) {
+				logEvent("pty_daemon_auto_update_ok", {
+					organizationId,
+					previousPid: instance.pid,
+					successorPid: result.successorPid,
+					previousVersion: instance.runningVersion,
+				});
+				return;
+			}
+
+			logEvent("pty_daemon_auto_update_failed", {
+				organizationId,
+				pid: instance.pid,
+				runningVersion: instance.runningVersion,
+				expectedVersion: instance.expectedVersion,
+				reason: result.reason,
+			});
+			if (!update.started) {
+				this.skipAutoUpdateForceRestart(
+					organizationId,
+					instance,
+					result.reason,
+					"update_already_in_flight",
+				);
+				return;
+			}
+			await this.forceRestartAfterAutoUpdateFailure(
+				organizationId,
+				instance,
+				result.reason,
+			);
+		} catch (err) {
+			const reason = `threw: ${(err as Error).message}`;
+			logEvent("pty_daemon_auto_update_failed", {
+				organizationId,
+				pid: instance.pid,
+				runningVersion: instance.runningVersion,
+				expectedVersion: instance.expectedVersion,
+				reason,
+			});
+			if (!update.started) {
+				this.skipAutoUpdateForceRestart(
+					organizationId,
+					instance,
+					reason,
+					"update_already_in_flight",
+				);
+				return;
+			}
+			await this.forceRestartAfterAutoUpdateFailure(
+				organizationId,
+				instance,
+				reason,
+			);
+		}
+	}
+
+	private deferAutoUpdate(
+		organizationId: string,
+		instance: DaemonInstance,
+		reason: string,
+		extra: Record<string, unknown> = {},
+	): void {
+		logEvent("pty_daemon_auto_update_deferred", {
+			organizationId,
+			pid: instance.pid,
+			runningVersion: instance.runningVersion,
+			expectedVersion: instance.expectedVersion,
+			reason,
+			...extra,
+		});
+	}
+
+	private async canAutoUpdateForceRestart(
+		organizationId: string,
+		instance: DaemonInstance,
+		failureReason: string,
+	): Promise<boolean> {
+		const sessions = await this.listSessions(
+			organizationId,
+			AUTO_UPDATE_SESSION_LIST_TIMEOUT_MS,
+		);
+		if (sessions === null) {
+			this.skipAutoUpdateForceRestart(
+				organizationId,
+				instance,
+				failureReason,
+				"session_list_unavailable",
+			);
+			return false;
+		}
+		const aliveSessionCount = countAliveSessions(sessions);
+		if (aliveSessionCount > 0) {
+			this.skipAutoUpdateForceRestart(
+				organizationId,
+				instance,
+				failureReason,
+				"live_sessions_present",
+				{ aliveSessionCount },
+			);
+			return false;
+		}
+		return true;
+	}
+
+	private skipAutoUpdateForceRestart(
+		organizationId: string,
+		instance: DaemonInstance,
+		failureReason: string,
+		reason: string,
+		extra: Record<string, unknown> = {},
+	): void {
+		logEvent("pty_daemon_auto_update_force_restart_skipped", {
+			organizationId,
+			smoothUpdatePid: instance.pid,
+			smoothUpdateFailureReason: failureReason,
+			reason,
+			...extra,
+		});
+	}
+
+	private async forceRestartAfterAutoUpdateFailure(
+		organizationId: string,
+		instance: DaemonInstance,
+		reason: string,
+	): Promise<void> {
+		const current = this.instances.get(organizationId);
+		if (!current) {
+			logEvent("pty_daemon_auto_update_force_restart_skipped", {
+				organizationId,
+				smoothUpdatePid: instance.pid,
+				smoothUpdateFailureReason: reason,
+				reason: "no_current_daemon",
+			});
+			return;
+		}
+		if (current.pid !== instance.pid) {
+			logEvent("pty_daemon_auto_update_force_restart_skipped", {
+				organizationId,
+				smoothUpdatePid: instance.pid,
+				smoothUpdateFailureReason: reason,
+				reason: "daemon_changed",
+				currentPid: current.pid,
+				currentRunningVersion: current.runningVersion,
+				currentExpectedVersion: current.expectedVersion,
+				currentUpdatePending: current.updatePending,
+			});
+			return;
+		}
+		if (!current.updatePending) {
+			logEvent("pty_daemon_auto_update_force_restart_skipped", {
+				organizationId,
+				smoothUpdatePid: instance.pid,
+				smoothUpdateFailureReason: reason,
+				reason: "daemon_no_longer_pending",
+				currentRunningVersion: current.runningVersion,
+				currentExpectedVersion: current.expectedVersion,
+			});
+			return;
+		}
+		if (
+			!(await this.canAutoUpdateForceRestart(organizationId, current, reason))
+		) {
+			return;
+		}
+
+		try {
+			await this.forceRestart(organizationId, {
+				event: "pty_daemon_auto_update_force_restart",
+				props: {
+					smoothUpdateFailureReason: reason,
+					smoothUpdatePid: instance.pid,
+					smoothUpdateRunningVersion: instance.runningVersion,
+					smoothUpdateExpectedVersion: instance.expectedVersion,
+				},
+			});
+			logEvent("pty_daemon_auto_update_force_restart_ok", {
+				organizationId,
+				smoothUpdatePid: instance.pid,
+				smoothUpdateFailureReason: reason,
+			});
+		} catch (err) {
+			logEvent("pty_daemon_auto_update_force_restart_failed", {
+				organizationId,
+				smoothUpdatePid: instance.pid,
+				smoothUpdateFailureReason: reason,
+				reason: (err as Error).message,
+			});
+		}
 	}
 
 	/**
@@ -545,7 +776,7 @@ export class DaemonSupervisor {
 		// reason. Kill any running daemon for the org and spawn fresh.
 		// Production keeps the adopt path so PTY sessions survive
 		// host-service restarts (the original Phase 1 promise).
-		if (process.env.NODE_ENV !== "production") {
+		if (shouldKillStaleDaemonForDev()) {
 			await this.killStaleDaemonForDev(organizationId);
 		}
 
@@ -567,9 +798,10 @@ export class DaemonSupervisor {
 			this.startAdoptedLivenessCheck(organizationId, adopted.pid);
 			// Auto-update opportunistically: if the adopted daemon is older
 			// than the bundled binary, kick off a handoff in the background.
-			// Sessions survive on success; on failure we leave the old
-			// daemon running and the user can retry via the Update button.
-			// Fire-and-track so bootstrap returns immediately.
+			// Sessions survive on smooth success; on smooth failure the
+			// background path force-restarts because there is no foreground UI
+			// to ask the user for the destructive fallback. Fire-and-track so
+			// bootstrap returns immediately.
 			if (adopted.updatePending && this.opts.autoUpdate !== false) {
 				this.kickoffAutoUpdate(organizationId, adopted);
 			}
@@ -626,13 +858,26 @@ export class DaemonSupervisor {
 			return null;
 		}
 
-		const probed = await probeDaemonVersion(
+		const probed = await probeDaemonVersionWithRetry(
 			manifest.socketPath,
-			VERSION_PROBE_TIMEOUT_MS,
+			ADOPTION_PROBE_TOTAL_TIMEOUT_MS,
 		);
-		const runningVersion = probed ?? "unknown";
-		const updatePending =
-			!!probed && !semver.satisfies(probed, `>=${EXPECTED_DAEMON_VERSION}`);
+		if (!probed) {
+			logEvent("pty_daemon_adopt_rejected", {
+				organizationId,
+				pid: manifest.pid,
+				socketPath: manifest.socketPath,
+				reason: "version_probe_failed",
+			});
+			await terminateProcessTreeAndGroups(manifest.pid, "SIGTERM");
+			removePtyDaemonManifest(organizationId);
+			return null;
+		}
+		const runningVersion = probed;
+		const updatePending = !semver.satisfies(
+			probed,
+			`>=${EXPECTED_DAEMON_VERSION}`,
+		);
 
 		return {
 			pid: manifest.pid,
@@ -852,6 +1097,10 @@ function pipeWithPrefix(
 		if (pending) target.write(`${tag} ${pending}\n`);
 		pending = "";
 	});
+}
+
+function countAliveSessions(sessions: SessionInfo[]): number {
+	return sessions.filter((session) => session.alive).length;
 }
 
 async function waitForSocket(

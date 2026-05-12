@@ -1,6 +1,6 @@
 # V2 Workspace Launch Context — Composition
 
-Closes Gaps 3, 4, 5 (unblocks 6) in `apps/desktop/V2_WORKSPACE_MODAL_GAPS.md`.
+Closes Gaps 3, 4, 5 (unblocks 6) in `apps/desktop/docs/V2_WORKSPACE_MODAL_GAPS.md`.
 V2-only — V1 stays as-is. We rewrite where V1's shape is wrong; we duplicate
 where V1 is fine.
 

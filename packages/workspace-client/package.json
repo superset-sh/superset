@@ -17,16 +17,16 @@
 		"@superset/host-service": "workspace:*",
 		"@superset/shared": "workspace:*",
 		"@superset/workspace-fs": "workspace:*",
-		"@tanstack/react-query": "^5.100.9",
-		"@trpc/client": "^11.7.1",
-		"@trpc/react-query": "^11.7.1",
-		"superjson": "^2.2.5"
+		"@tanstack/react-query": "5.100.9",
+		"@trpc/client": "11.16.0",
+		"@trpc/react-query": "11.16.0",
+		"superjson": "2.2.6"
 	},
 	"devDependencies": {
 		"@superset/typescript": "workspace:*",
-		"@types/react": "~19.2.2",
+		"@types/react": "19.2.14",
 		"react": "19.2.0",
-		"typescript": "^5.9.3"
+		"typescript": "5.9.3"
 	},
 	"peerDependencies": {
 		"react": "19.2.0"
