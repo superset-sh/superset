@@ -161,21 +161,16 @@ export class HostServiceCoordinator extends EventEmitter {
 	}
 
 	/**
-	 * Forcefully reset host-service state for an org. Used by the in-app
-	 * recovery path (superset-sh/superset#4299) when `stop`/`restart` aren't
-	 * enough — e.g. the manifest points at a live-but-wedged pid that adoption
-	 * keeps picking up.
-	 *
-	 * Differs from `restart` in two ways:
-	 *   1. SIGKILLs any pid in the manifest (even if not in this.instances),
-	 *      so a manifest written by a previous app session can't survive.
-	 *   2. Optionally archives `host.db` to `host.db.broken-<ts>` so the next
-	 *      spawn starts with a clean DB. Off by default — that's data loss.
+	 * Forcefully reset host-service state for an org. Unlike `restart`, this
+	 * SIGKILLs whatever pid the manifest names — even when no instance is
+	 * tracked in this process (e.g. a manifest left by a previous app session)
+	 * — then removes the manifest so adoption can't pick up the stale entry,
+	 * and respawns. Used by the recovery path for superset-sh/superset#4299
+	 * where a live-but-wedged host-service keeps getting re-adopted.
 	 */
 	async reset(
 		organizationId: string,
 		config: SpawnConfig,
-		options: { wipeHostDb?: boolean } = {},
 	): Promise<Connection> {
 		// Capture the manifest pid *before* stop() — stop() removes the manifest
 		// for tracked instances and only sends SIGTERM, which a wedged process
@@ -196,13 +191,6 @@ export class HostServiceCoordinator extends EventEmitter {
 		}
 
 		removeManifest(organizationId);
-
-		if (options.wipeHostDb) {
-			const dbPath = path.join(manifestDir(organizationId), "host.db");
-			if (fs.existsSync(dbPath)) {
-				fs.renameSync(dbPath, `${dbPath}.broken-${Date.now()}`);
-			}
-		}
 
 		return this.start(organizationId, config);
 	}

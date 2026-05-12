@@ -16,8 +16,9 @@ const manifestStore: {
 	} | null;
 } = { current: null };
 
-// Per-test temp dir so reset({wipeHostDb}) can rename a real file without
-// races between tests. Tests assign this in beforeEach.
+// Per-test temp dir backing the mocked `manifestDir`. A real path (not a
+// fixed string) so tests stay isolated; assigned in beforeEach, removed in
+// afterEach.
 let testManifestRoot = "";
 
 const readManifestMock = mock(() => manifestStore.current);
@@ -276,31 +277,6 @@ describe("HostServiceCoordinator.reset", () => {
 		expect(conn.port).toBe(60000);
 	});
 
-	test("with wipeHostDb=true, archives host.db to host.db.broken-<ts>", async () => {
-		manifestStore.current = baseManifest(9999);
-		const orgDir = path.join(testManifestRoot, "org-1");
-		fs.mkdirSync(orgDir, { recursive: true });
-		const dbPath = path.join(orgDir, "host.db");
-		fs.writeFileSync(dbPath, "fake db payload");
-
-		const conn = await coordinator.reset("org-1", spawnConfig, {
-			wipeHostDb: true,
-		});
-
-		expect(fs.existsSync(dbPath)).toBe(false);
-		const archived = fs
-			.readdirSync(orgDir)
-			.find((f) => f.startsWith("host.db.broken-"));
-		expect(archived).toBeDefined();
-		if (archived) {
-			expect(fs.readFileSync(path.join(orgDir, archived), "utf8")).toBe(
-				"fake db payload",
-			);
-		}
-		expect(spawnMock).toHaveBeenCalledTimes(1);
-		expect(conn.port).toBe(60000);
-	});
-
 	test("is safe when no manifest exists — no kill, no rename, still spawns", async () => {
 		manifestStore.current = null;
 
@@ -310,18 +286,6 @@ describe("HostServiceCoordinator.reset", () => {
 		// `removeManifest` is called unconditionally — that's fine, the impl
 		// in host-service-manifest treats a missing file as a no-op.
 		expect(removeManifestMock).toHaveBeenCalledTimes(1);
-		expect(spawnMock).toHaveBeenCalledTimes(1);
-		expect(conn.port).toBe(60000);
-	});
-
-	test("with wipeHostDb=true but no host.db file, does not throw and still spawns", async () => {
-		manifestStore.current = baseManifest(1111);
-		// No host.db on disk.
-
-		const conn = await coordinator.reset("org-1", spawnConfig, {
-			wipeHostDb: true,
-		});
-
 		expect(spawnMock).toHaveBeenCalledTimes(1);
 		expect(conn.port).toBe(60000);
 	});
