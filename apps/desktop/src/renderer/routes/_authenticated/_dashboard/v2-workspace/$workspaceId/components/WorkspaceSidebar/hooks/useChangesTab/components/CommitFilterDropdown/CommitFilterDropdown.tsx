@@ -6,12 +6,17 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import type { inferRouterOutputs } from "@trpc/server";
 import { Check, ChevronDown, ListFilter } from "lucide-react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { ChangesFilter } from "../../useChangesTab";
 import { CommitRow } from "./components/CommitRow";
 import { RangeModal } from "./components/RangeModal";
+
+const ESTIMATED_ROW_HEIGHT = 28;
+const OVERSCAN = 8;
+const COMMIT_LIST_MAX_HEIGHT = 280;
 
 type Commit =
 	inferRouterOutputs<AppRouter>["git"]["listCommits"]["commits"][number];
@@ -96,24 +101,11 @@ export function CommitFilterDropdown({
 					{commits.length > 0 && (
 						<>
 							<DropdownMenuSeparator />
-							{commits.map((commit) => (
-								<DropdownMenuItem
-									key={commit.hash}
-									onSelect={() =>
-										onFilterChange({
-											kind: "commit",
-											hash: commit.hash,
-										})
-									}
-								>
-									<CommitRow
-										commit={commit}
-										isSelected={
-											filter.kind === "commit" && filter.hash === commit.hash
-										}
-									/>
-								</DropdownMenuItem>
-							))}
+							<VirtualizedCommitList
+								commits={commits}
+								filter={filter}
+								onFilterChange={onFilterChange}
+							/>
 						</>
 					)}
 				</DropdownMenuContent>
@@ -128,5 +120,66 @@ export function CommitFilterDropdown({
 				}
 			/>
 		</>
+	);
+}
+
+interface VirtualizedCommitListProps {
+	commits: Commit[];
+	filter: ChangesFilter;
+	onFilterChange: (filter: ChangesFilter) => void;
+}
+
+function VirtualizedCommitList({
+	commits,
+	filter,
+	onFilterChange,
+}: VirtualizedCommitListProps) {
+	const scrollRef = useRef<HTMLDivElement>(null);
+	const virtualizer = useVirtualizer({
+		count: commits.length,
+		getScrollElement: () => scrollRef.current,
+		estimateSize: () => ESTIMATED_ROW_HEIGHT,
+		overscan: OVERSCAN,
+	});
+
+	const items = virtualizer.getVirtualItems();
+	const totalSize = virtualizer.getTotalSize();
+	const maxHeight = Math.min(totalSize, COMMIT_LIST_MAX_HEIGHT);
+
+	return (
+		<div
+			ref={scrollRef}
+			className="overflow-y-auto"
+			style={{ maxHeight: `${maxHeight}px` }}
+		>
+			<div className="relative w-full" style={{ height: totalSize }}>
+				{items.map((virtualRow) => {
+					const commit = commits[virtualRow.index];
+					if (!commit) return null;
+					return (
+						<div
+							key={commit.hash}
+							data-index={virtualRow.index}
+							ref={virtualizer.measureElement}
+							className="absolute left-0 w-full"
+							style={{ top: virtualRow.start }}
+						>
+							<DropdownMenuItem
+								onSelect={() =>
+									onFilterChange({ kind: "commit", hash: commit.hash })
+								}
+							>
+								<CommitRow
+									commit={commit}
+									isSelected={
+										filter.kind === "commit" && filter.hash === commit.hash
+									}
+								/>
+							</DropdownMenuItem>
+						</div>
+					);
+				})}
+			</div>
+		</div>
 	);
 }
