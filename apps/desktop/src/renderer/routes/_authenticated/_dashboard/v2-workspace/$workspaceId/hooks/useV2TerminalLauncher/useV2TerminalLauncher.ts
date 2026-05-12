@@ -3,6 +3,7 @@ import { useCallback, useMemo } from "react";
 import { useWorkspace } from "renderer/routes/_authenticated/_dashboard/v2-workspace/providers/WorkspaceProvider";
 import { useTheme } from "renderer/stores/theme";
 import { resolveTerminalThemeType } from "renderer/stores/theme/utils";
+import { normalizeInitialCommand } from "./normalizeInitialCommand";
 
 interface CreateOptions {
 	/**
@@ -43,7 +44,7 @@ export function useV2TerminalLauncher(): TerminalLauncher {
 				terminalId,
 				workspaceId,
 				themeType,
-				initialCommand: options?.command,
+				initialCommand: normalizeInitialCommand(options?.command),
 				cwd: options?.cwd,
 			});
 			return terminalId;

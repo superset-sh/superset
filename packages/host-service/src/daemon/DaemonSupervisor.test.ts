@@ -18,7 +18,11 @@ import {
 	encodeFrame,
 	FrameDecoder,
 } from "@superset/pty-daemon/protocol";
-import { DaemonSupervisor, probeDaemonVersion } from "./DaemonSupervisor.ts";
+import {
+	DaemonSupervisor,
+	probeDaemonVersion,
+	ptyDaemonSocketPath,
+} from "./DaemonSupervisor.ts";
 
 // Capture supervisor-emitted log events. We replace console.log for the
 // duration of the test, then filter for our supervisor's component prefix.
@@ -118,6 +122,41 @@ async function startFakeDaemon(opts: FakeDaemonOptions): Promise<{
 			}),
 	};
 }
+
+describe("ptyDaemonSocketPath", () => {
+	// Darwin's `struct sockaddr_un.sun_path` is 104 bytes including the NUL
+	// terminator, so the maximum usable string length is 103.
+	const SUN_PATH_USABLE = 103;
+
+	test("uses os.tmpdir() when the resulting path fits sun_path", () => {
+		const short = path.join(os.tmpdir(), "x");
+		const p = ptyDaemonSocketPath("org-abc", path.dirname(short));
+		expect(p.startsWith(path.dirname(short))).toBe(true);
+		expect(Buffer.byteLength(p)).toBeLessThanOrEqual(SUN_PATH_USABLE);
+	});
+
+	// Repro for issue #4420: on macOS, apps launched from certain surfaces
+	// (Shortcuts, Login Items, etc.) inherit a TMPDIR that includes a long
+	// per-helper subdirectory like
+	// `/var/folders/ly/<28-char>/T/com.apple.shortcuts.mac-helper/`. With
+	// the previous implementation, appending `superset-ptyd-<12-char>.sock`
+	// produced a 109-byte path, and `net.Server.listen(socketPath)` failed
+	// with EINVAL because Darwin's sun_path is 104 bytes including the NUL
+	// terminator. The fallback must keep the path within that budget.
+	test("falls back to /tmp when sandboxed macOS tmpdir would overflow sun_path", () => {
+		const sandboxedTmpdir =
+			"/var/folders/ly/9dkqzyw94nd1s_gg301j7xvr0000gn/T/com.apple.shortcuts.mac-helper";
+		const p = ptyDaemonSocketPath("any-org-id", sandboxedTmpdir);
+		expect(Buffer.byteLength(p)).toBeLessThanOrEqual(SUN_PATH_USABLE);
+		expect(p.startsWith("/tmp/")).toBe(true);
+	});
+
+	test("produces the same path for the same org id (deterministic)", () => {
+		const a = ptyDaemonSocketPath("org-stable");
+		const b = ptyDaemonSocketPath("org-stable");
+		expect(a).toBe(b);
+	});
+});
 
 describe("probeDaemonVersion", () => {
 	test("returns daemonVersion on valid hello-ack", async () => {

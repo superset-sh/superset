@@ -68,6 +68,14 @@ const CRASH_WINDOW_MS = 60_000;
 const ADOPTED_LIVENESS_INTERVAL_MS = 2_000;
 
 /**
+ * Darwin's `struct sockaddr_un.sun_path` is 104 bytes (including the NUL
+ * terminator), so the usable socket path length is 103. Linux's limit is
+ * 108 bytes / 107 usable. We pick the stricter of the two so a single
+ * computed path works on every platform.
+ */
+const SUN_PATH_MAX_USABLE = 103;
+
+/**
  * Per-organization socket path. **Must stay short** — Darwin's `sun_path`
  * is 104 bytes, and `$SUPERSET_HOME_DIR/host/{orgId}/pty-daemon.sock` blows
  * past that in dev (worktree-relative SUPERSET_HOME_DIR + 36-char UUID).
@@ -75,13 +83,28 @@ const ADOPTED_LIVENESS_INTERVAL_MS = 2_000;
  * We put the socket in `os.tmpdir()` with a hash of the org id. Owner-only
  * file mode (0600, set by the daemon's Server.listen) is the auth boundary;
  * the directory permissions don't matter.
+ *
+ * macOS apps launched via certain system surfaces (e.g. Shortcuts, Login
+ * Items) inherit a `TMPDIR` like
+ * `/var/folders/ly/<hash>/T/com.apple.shortcuts.mac-helper/` whose length
+ * alone consumes >80 bytes — appending `superset-ptyd-<hash>.sock` (30
+ * bytes) tips us past the 104-byte `sun_path` limit and `net.Server.listen`
+ * rejects with EINVAL. When that happens, fall back to `/tmp` (which on
+ * Darwin is a symlink to `/private/tmp`, but the kernel measures the path
+ * string the caller passed, not the resolved path).
  */
-function ptyDaemonSocketPath(organizationId: string): string {
+export function ptyDaemonSocketPath(
+	organizationId: string,
+	tmpdir: string = os.tmpdir(),
+): string {
 	const shortId = createHash("sha256")
 		.update(organizationId)
 		.digest("hex")
 		.slice(0, 12);
-	return path.join(os.tmpdir(), `superset-ptyd-${shortId}.sock`);
+	const filename = `superset-ptyd-${shortId}.sock`;
+	const preferred = path.join(tmpdir, filename);
+	if (Buffer.byteLength(preferred) <= SUN_PATH_MAX_USABLE) return preferred;
+	return path.join("/tmp", filename);
 }
 
 /**
