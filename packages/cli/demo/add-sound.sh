@@ -43,7 +43,7 @@ python3 demo/gen_audio.py "$TAPE" "$CLICKS" "$DUR" "$KEYS_ARG"
 ffmpeg -y -i "$SRC" -i "$MUSIC" -i "$CLICKS" \
   -filter_complex "\
     [1:a]atrim=0:${DUR},asetpts=PTS-STARTPTS,lowpass=f=12000,volume=0.5,afade=t=in:st=0:d=2,afade=t=out:st=${FADE_AT}:d=3[mus];\
-    [2:a]volume=0.9[clk];\
+    [2:a]volume=0.5[clk];\
     [mus][clk]amix=inputs=2:normalize=0,alimiter=limit=0.95:level=disabled,aresample=44100[a]" \
   -map 0:v -map "[a]" -c:v copy -c:a aac -b:a 192k -shortest "$OUT"
 rm -rf "$TMP"
