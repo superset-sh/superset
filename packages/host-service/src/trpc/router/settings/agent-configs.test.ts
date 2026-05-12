@@ -58,6 +58,14 @@ describe("agentConfigsRouter", () => {
 			expect(result.find((row) => row.presetId === "superset")).toBeUndefined();
 		});
 
+		it("seeds Claude with its most permissive flag", async () => {
+			const caller = createCaller();
+			const result = await caller.list();
+			const claude = result.find((row) => row.presetId === "claude");
+
+			expect(claude?.args).toEqual(["--dangerously-skip-permissions"]);
+		});
+
 		it("seeds Codex with its most permissive flag", async () => {
 			const caller = createCaller();
 			const result = await caller.list();
