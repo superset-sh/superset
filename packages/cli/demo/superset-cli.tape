@@ -1,7 +1,8 @@
 # ─────────────────────────────────────────────────────────────
-#  Superset CLI — friendly end-to-end walkthrough (~55s)
+#  Superset CLI — friendly end-to-end walkthrough
 #
-#  Render with:  vhs demo/superset-cli.tape   (run from packages/cli)
+#  Render with:  vhs demo/superset-cli.tape       (run from packages/cli)
+#  Then add the soundtrack:  ./demo/add-music.sh   (writes superset-cli-music.mp4)
 #  Requires a built binary at ./dist/superset and a logged-in session
 #  with the host service running.
 # ─────────────────────────────────────────────────────────────
@@ -10,11 +11,11 @@ Output demo/superset-cli.gif
 Output demo/superset-cli.mp4
 
 Set Shell "bash"
-Set FontSize 23
-Set Width 1560
-Set Height 820
-Set Padding 28
-Set Margin 32
+Set FontSize 27
+Set Width 1640
+Set Height 880
+Set Padding 22
+Set Margin 28
 Set MarginFill "#0a0a0b"
 Set BorderRadius 12
 # Superset brand palette — burnt-orange accent on near-black (matches superset.sh)
@@ -36,7 +37,7 @@ Show
 
 # --- the walkthrough ---
 Sleep 500ms
-Type "# 👋 Meet the Superset CLI — your whole dev loop, straight from the terminal."
+Type "# 👋 The Superset CLI — your dev loop, straight from the terminal."
 Sleep 1.2s
 Enter
 Sleep 700ms
@@ -45,7 +46,7 @@ Sleep 300ms
 Enter
 Sleep 2.6s
 
-Type "# Workspaces run on hosts. Mine's right here, healthy and ready:"
+Type "# Workspaces run on hosts. Mine's healthy and ready:"
 Sleep 500ms
 Enter
 Sleep 300ms
@@ -99,19 +100,26 @@ Sleep 3s
 Type "clear"
 Enter
 Sleep 300ms
-Type "# Ready to fix it? Spin up a workspace AND a coding agent in one command:"
+Type "# Ready to fix it? Spin up a workspace + coding agent at once:"
 Sleep 800ms
 Enter
 Sleep 400ms
-Type `#   superset workspaces create --branch fix/dark-mode --agent claude \`
+Type `#   superset workspaces create --branch fix/dark-mode \`
 Enter
-Type `#     --prompt "Fix the dark-mode flicker on the dashboard"`
+Type `#     --agent claude --prompt "Fix the dark-mode flicker"`
 Enter
 Sleep 600ms
-Type "# It clones the repo on a host, starts the agent, and streams it to the desktop app."
-Sleep 1.4s
+Type "# Clones the repo, starts the agent, streams it to the app."
+Sleep 1.3s
 Enter
-Sleep 800ms
+Sleep 500ms
+Type "# Same data as the desktop app — driven from your shell."
+Sleep 1.2s
+Enter
+Sleep 400ms
+Type `#   superset workspaces open "$WS"   # ...opens it in the app`
+Enter
+Sleep 1.2s
 
 Type "# Demo's done — clean up the throwaway task:"
 Sleep 500ms
@@ -121,7 +129,7 @@ Type `superset tasks delete "$TASK"`
 Enter
 Sleep 2.4s
 
-Type "# The loop: file it, fix it, ship it — all from your terminal.  |  superset.sh"
+Type "# File it, fix it, ship it — from your terminal.   superset.sh"
 Sleep 1s
 Enter
 Sleep 2.8s
