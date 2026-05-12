@@ -6,6 +6,7 @@ export type LoginStatus = "starting" | "waiting" | "exchanging" | "done";
 export interface LoginUIProps {
 	url: string | null;
 	status: LoginStatus;
+	noBrowser?: boolean;
 	onSubmit: (code: string) => void;
 	onCancel: () => void;
 	onCopy: () => Promise<boolean>;
@@ -14,6 +15,7 @@ export interface LoginUIProps {
 export function LoginUI({
 	url,
 	status,
+	noBrowser,
 	onSubmit,
 	onCancel,
 	onCopy,
@@ -96,7 +98,11 @@ export function LoginUI({
 			<Text bold>superset auth login</Text>
 			<Text> </Text>
 			<Box flexDirection="row">
-				<Text>Browser didn't open? Use the url below to sign in </Text>
+				<Text>
+					{noBrowser
+						? "Open this URL on a machine with a browser to sign in "
+						: "Browser didn't open? Use the url below to sign in "}
+				</Text>
 				<Text dimColor>(press c to copy)</Text>
 			</Box>
 			<Text> </Text>

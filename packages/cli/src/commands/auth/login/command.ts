@@ -1,9 +1,9 @@
 import * as p from "@clack/prompts";
-import { CLIError, string } from "@superset/cli-framework";
+import { boolean, CLIError, string } from "@superset/cli-framework";
 import { render } from "ink";
 import { createElement } from "react";
 import { createApiClient } from "../../../lib/api-client";
-import { login } from "../../../lib/auth";
+import { detectHeadlessReason, login } from "../../../lib/auth";
 import { command } from "../../../lib/command";
 import { readConfig, writeConfig } from "../../../lib/config";
 import { copyToClipboard } from "./copyToClipboard";
@@ -16,9 +16,19 @@ export default command({
 		organization: string().desc(
 			"Organization id or slug — required for non-TTY logins when you belong to multiple orgs",
 		),
+		"no-browser": boolean().desc(
+			"Print the auth URL instead of opening a browser. Auto-enabled in SSH / headless contexts.",
+		),
 	},
 	run: async (opts) => {
 		const config = readConfig();
+		const headlessReason = detectHeadlessReason({
+			isTTY: Boolean(process.stdout.isTTY),
+			platform: process.platform,
+			env: process.env,
+		});
+		const noBrowser =
+			opts.options["no-browser"] === true || headlessReason !== null;
 		const useInk =
 			process.stdout.isTTY && process.stdin.isTTY && !process.env.CI;
 
@@ -32,6 +42,7 @@ export default command({
 		let currentProps: LoginUIProps = {
 			url: null,
 			status: "starting",
+			noBrowser,
 			onSubmit: (code) => pasteResolve?.(code),
 			onCancel: () => pasteReject?.(new CLIError("Login cancelled")),
 			onCopy: async () => false,
@@ -54,6 +65,7 @@ export default command({
 		let cancelled = false;
 		try {
 			result = await login(opts.signal, {
+				noBrowser,
 				onAuthorizationUrl: (url) => {
 					if (inkInstance) {
 						update({
@@ -62,7 +74,11 @@ export default command({
 							onCopy: () => copyToClipboard(url),
 						});
 					} else {
-						p.log.message("Browser didn't open? Use the url below to sign in");
+						p.log.message(
+							noBrowser
+								? "Open this URL on a machine with a browser to sign in:"
+								: "Browser didn't open? Use the url below to sign in",
+						);
 						p.log.message(url);
 					}
 				},

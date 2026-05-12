@@ -18,6 +18,7 @@ export interface LoginResult {
 export interface LoginCallbacks {
 	onAuthorizationUrl?: (url: string) => void;
 	promptForPastedCode: (signal: AbortSignal) => Promise<string>;
+	noBrowser?: boolean;
 }
 
 function base64url(buffer: Buffer): string {
@@ -54,11 +55,41 @@ export function getWebUrl(): string {
 	return env.SUPERSET_WEB_URL;
 }
 
+export interface BrowserOpenEnvironment {
+	isTTY: boolean;
+	platform: NodeJS.Platform;
+	env: NodeJS.ProcessEnv;
+}
+
+export function detectHeadlessReason(
+	environment: BrowserOpenEnvironment,
+): string | null {
+	const { isTTY, platform, env } = environment;
+	if (!isTTY) return "no TTY";
+	if (env.CI) return "CI environment";
+	if (env.SSH_CONNECTION || env.SSH_TTY || env.SSH_CLIENT) return "SSH session";
+	if (env.SUPERSET_REMOTE_WORKSPACE) return "remote workspace";
+	if (env.CONTAINER === "docker" || env.KUBERNETES_SERVICE_HOST)
+		return "container";
+	if (
+		platform !== "darwin" &&
+		platform !== "win32" &&
+		!env.DISPLAY &&
+		!env.WAYLAND_DISPLAY
+	) {
+		return "no display";
+	}
+	return null;
+}
+
 function shouldOpenBrowser(): boolean {
-	if (!process.stdout.isTTY) return false;
-	if (process.env.CI) return false;
-	if (process.env.SSH_CONNECTION || process.env.SSH_TTY) return false;
-	return true;
+	return (
+		detectHeadlessReason({
+			isTTY: Boolean(process.stdout.isTTY),
+			platform: process.platform,
+			env: process.env,
+		}) === null
+	);
 }
 
 async function bindLoopbackServer(): Promise<{
@@ -173,7 +204,7 @@ function parsePastedCode(input: string): { code: string; state: string } {
 	return { code, state };
 }
 
-function buildAuthorizeUrl({
+export function buildAuthorizeUrl({
 	apiUrl,
 	redirectUri,
 	codeChallenge,
@@ -317,7 +348,7 @@ export async function login(
 
 	callbacks.onAuthorizationUrl?.(pasteAuthorizeUrl);
 
-	if (shouldOpenBrowser()) {
+	if (!callbacks.noBrowser && shouldOpenBrowser()) {
 		void openBrowser(browserAuthorizeUrl);
 	}
 
