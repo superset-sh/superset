@@ -1,9 +1,7 @@
 import { GitBranch, Pencil } from "lucide-react";
 import { useRef, useState } from "react";
-import type { ChangesFilter } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal/schema";
-import type { Branch, Commit } from "../../types";
+import type { Branch } from "../../types";
 import { BaseBranchSelector } from "../BaseBranchSelector";
-import { CommitFilterDropdown } from "../CommitFilterDropdown";
 
 interface ChangesHeaderProps {
 	currentBranch: { name: string; aheadCount: number; behindCount: number };
@@ -12,10 +10,6 @@ interface ChangesHeaderProps {
 	totalFiles: number;
 	totalAdditions: number;
 	totalDeletions: number;
-	filter: ChangesFilter;
-	onFilterChange: (filter: ChangesFilter) => void;
-	commits: Commit[];
-	uncommittedCount: number;
 	branches: Branch[];
 	onBaseBranchChange: (branchName: string) => void;
 	onRenameBranch: (newName: string) => void;
@@ -31,10 +25,6 @@ export function ChangesHeader({
 	totalDeletions,
 	onRenameBranch,
 	canRename,
-	filter,
-	onFilterChange,
-	commits,
-	uncommittedCount,
 	branches,
 	onBaseBranchChange,
 }: ChangesHeaderProps) {
@@ -107,29 +97,21 @@ export function ChangesHeader({
 				)}
 			</div>
 
-			<div className="flex items-center justify-between gap-2 text-[11px] text-muted-foreground">
-				<CommitFilterDropdown
-					filter={filter}
-					onFilterChange={onFilterChange}
-					commits={commits}
-					uncommittedCount={uncommittedCount}
-				/>
-				<div className="flex shrink-0 items-center gap-1.5">
+			<div className="flex items-center justify-end gap-1.5 text-[11px] text-muted-foreground">
+				<span>
+					{totalFiles} {totalFiles === 1 ? "file" : "files"}
+				</span>
+				{(totalAdditions > 0 || totalDeletions > 0) && (
 					<span>
-						{totalFiles} {totalFiles === 1 ? "file" : "files"}
+						{totalAdditions > 0 && (
+							<span className="text-green-400">+{totalAdditions}</span>
+						)}
+						{totalAdditions > 0 && totalDeletions > 0 && " "}
+						{totalDeletions > 0 && (
+							<span className="text-red-400">-{totalDeletions}</span>
+						)}
 					</span>
-					{(totalAdditions > 0 || totalDeletions > 0) && (
-						<span>
-							{totalAdditions > 0 && (
-								<span className="text-green-400">+{totalAdditions}</span>
-							)}
-							{totalAdditions > 0 && totalDeletions > 0 && " "}
-							{totalDeletions > 0 && (
-								<span className="text-red-400">-{totalDeletions}</span>
-							)}
-						</span>
-					)}
-				</div>
+				)}
 			</div>
 		</div>
 	);

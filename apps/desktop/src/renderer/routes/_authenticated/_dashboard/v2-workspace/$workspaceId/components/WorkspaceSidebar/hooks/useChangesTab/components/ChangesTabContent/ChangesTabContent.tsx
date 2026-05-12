@@ -108,18 +108,18 @@ export const ChangesTabContent = memo(function ChangesTabContent({
 				totalFiles={totalChanges}
 				totalAdditions={totalAdditions}
 				totalDeletions={totalDeletions}
-				filter={filter}
-				onFilterChange={onFilterChange}
-				commits={commits.data?.commits ?? []}
-				uncommittedCount={
-					status.data.staged.length + status.data.unstaged.length
-				}
 				branches={branches.data?.branches ?? []}
 				onBaseBranchChange={onBaseBranchChange}
 				onRenameBranch={onRenameBranch}
 				canRename={canRenameBranch}
 			/>
 			<ChangesToolbar
+				filter={filter}
+				onFilterChange={onFilterChange}
+				commits={commits.data?.commits ?? []}
+				uncommittedCount={
+					status.data.staged.length + status.data.unstaged.length
+				}
 				viewMode={viewMode}
 				onViewModeChange={onViewModeChange}
 				collapsed={foldCollapsed}
