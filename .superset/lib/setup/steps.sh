@@ -434,108 +434,111 @@ step_write_env() {
     return 1
   fi
 
-  # Append workspace-specific values
-  {
-    echo ""
-    echo "# Workspace Identity"
-    write_env_var "SUPERSET_WORKSPACE_NAME" "${WORKSPACE_NAME:-$(basename "$PWD")}"
-    write_env_var "SUPERSET_HOME_DIR" "$PWD/superset-dev-data"
-    echo ""
-    echo "# Workspace Database (Neon Branch)"
-    if [ -n "${BRANCH_ID:-}" ]; then
-      write_env_var "NEON_BRANCH_ID" "$BRANCH_ID"
-    fi
-    if [ -n "${POOLED_URL:-}" ]; then
-      write_env_var "DATABASE_URL" "$POOLED_URL"
-    fi
-    if [ -n "${DIRECT_URL:-}" ]; then
-      write_env_var "DATABASE_URL_UNPOOLED" "$DIRECT_URL"
-    fi
+  local env_file=".env"
+  local env_write_failed=false
 
-    echo ""
-    echo "# Workspace Electric SQL (Docker)"
-    if [ -n "${ELECTRIC_CONTAINER:-}" ]; then
-      write_env_var "ELECTRIC_CONTAINER" "$ELECTRIC_CONTAINER"
-    fi
-    if [ -n "${ELECTRIC_PORT:-}" ]; then
-      write_env_var "ELECTRIC_PORT" "$ELECTRIC_PORT"
-    fi
-    if [ -n "${ELECTRIC_URL:-}" ]; then
-      write_env_var "ELECTRIC_URL" "$ELECTRIC_URL"
-    fi
-    if [ -n "${ELECTRIC_SECRET:-}" ]; then
-      write_env_var "ELECTRIC_SECRET" "$ELECTRIC_SECRET"
-    fi
+  set_workspace_env_var() {
+    # First arg is a section label for call-site readability.
+    local key="$2"
+    local value="${3-}"
 
-    # Port allocation for multi-worktree dev instances
-    # Each workspace gets a range of 20 ports from its base.
-    # Offsets: +0 web, +1 api, +2 marketing, +3 admin, +4 docs,
-    #          +5 desktop vite, +6 notifications, +7 streams, +8 streams internal, +9 electric,
-    #          +10 caddy (HTTP/2 reverse proxy for API electric endpoint), +11 code inspector,
-    #          +12 desktop automation (CDP), +13 wrangler (electric-proxy worker)
-    local BASE=$SUPERSET_PORT_BASE
+    if ! upsert_env_var "$env_file" "$key" "$value"; then
+      error "Failed to update $key in .env"
+      env_write_failed=true
+    fi
+  }
 
-    # App ports (fixed offsets from base)
-    local WEB_PORT=$((BASE))
-    local API_PORT=$((BASE + 1))
-    local MARKETING_PORT=$((BASE + 2))
-    local ADMIN_PORT=$((BASE + 3))
-    local DOCS_PORT=$((BASE + 4))
-    local DESKTOP_VITE_PORT=$((BASE + 5))
-    local DESKTOP_NOTIFICATIONS_PORT=$((BASE + 6))
-    local STREAMS_PORT=$((BASE + 7))
-    local STREAMS_INTERNAL_PORT=$((BASE + 8))
-    local ELECTRIC_PORT=$((BASE + 9))
-    local CADDY_ELECTRIC_PORT=$((BASE + 10))
-    local CODE_INSPECTOR_PORT=$((BASE + 11))
-    local DESKTOP_AUTOMATION_PORT=$((BASE + 12))
-    local WRANGLER_PORT=$((BASE + 13))
-    local RELAY_PORT=$((BASE + 14))
+  # Port allocation for multi-worktree dev instances
+  # Each workspace gets a range of 20 ports from its base.
+  # Offsets: +0 web, +1 api, +2 marketing, +3 admin, +4 docs,
+  #          +5 desktop vite, +6 notifications, +7 streams, +8 streams internal, +9 electric,
+  #          +10 caddy (HTTP/2 reverse proxy for API electric endpoint), +11 code inspector,
+  #          +12 desktop automation (CDP), +13 wrangler (electric-proxy worker)
+  if [ -z "${SUPERSET_PORT_BASE:-}" ]; then
+    error "SUPERSET_PORT_BASE not set before writing .env"
+    return 1
+  fi
 
-    echo ""
-    echo "# Workspace Ports (allocated from SUPERSET_PORT_BASE=$BASE, range=20)"
-    write_env_var "SUPERSET_PORT_BASE" "$BASE"
-    write_env_var "WEB_PORT" "$WEB_PORT"
-    write_env_var "API_PORT" "$API_PORT"
-    write_env_var "MARKETING_PORT" "$MARKETING_PORT"
-    write_env_var "ADMIN_PORT" "$ADMIN_PORT"
-    write_env_var "DOCS_PORT" "$DOCS_PORT"
-    write_env_var "DESKTOP_VITE_PORT" "$DESKTOP_VITE_PORT"
-    write_env_var "DESKTOP_NOTIFICATIONS_PORT" "$DESKTOP_NOTIFICATIONS_PORT"
-    write_env_var "STREAMS_PORT" "$STREAMS_PORT"
-    write_env_var "STREAMS_INTERNAL_PORT" "$STREAMS_INTERNAL_PORT"
-    write_env_var "ELECTRIC_PORT" "$ELECTRIC_PORT"
-    write_env_var "CADDY_ELECTRIC_PORT" "$CADDY_ELECTRIC_PORT"
-    write_env_var "CODE_INSPECTOR_PORT" "$CODE_INSPECTOR_PORT"
-    write_env_var "DESKTOP_AUTOMATION_PORT" "$DESKTOP_AUTOMATION_PORT"
-    write_env_var "WRANGLER_PORT" "$WRANGLER_PORT"
-    write_env_var "RELAY_PORT" "$RELAY_PORT"
-    echo ""
-    echo "# Cross-app URLs (overrides from root .env)"
-    write_env_var "NEXT_PUBLIC_API_URL" "http://localhost:$API_PORT"
-    write_env_var "NEXT_PUBLIC_WEB_URL" "http://localhost:$WEB_PORT"
-    write_env_var "NEXT_PUBLIC_MARKETING_URL" "http://localhost:$MARKETING_PORT"
-    write_env_var "NEXT_PUBLIC_ADMIN_URL" "http://localhost:$ADMIN_PORT"
-    write_env_var "NEXT_PUBLIC_DOCS_URL" "http://localhost:$DOCS_PORT"
-    write_env_var "NEXT_PUBLIC_DESKTOP_URL" "http://localhost:$DESKTOP_VITE_PORT"
-    write_env_var "EXPO_PUBLIC_WEB_URL" "http://localhost:$WEB_PORT"
-    write_env_var "EXPO_PUBLIC_API_URL" "http://localhost:$API_PORT"
-    write_env_var "RELAY_URL" "http://localhost:$RELAY_PORT"
-    write_env_var "SUPERSET_WEB_URL" "http://localhost:$WEB_PORT"
-    echo ""
-    echo "# Streams URLs (overrides from root .env)"
-    write_env_var "PORT" "$STREAMS_PORT"
-    write_env_var "STREAMS_URL" "http://localhost:$STREAMS_PORT"
-    write_env_var "NEXT_PUBLIC_STREAMS_URL" "http://localhost:$STREAMS_PORT"
-    write_env_var "EXPO_PUBLIC_STREAMS_URL" "http://localhost:$STREAMS_PORT"
-    write_env_var "STREAMS_INTERNAL_URL" "http://127.0.0.1:$STREAMS_INTERNAL_PORT"
-    echo ""
-    echo "# Electric URLs (overrides from root .env)"
-    write_env_var "ELECTRIC_URL" "http://localhost:$ELECTRIC_PORT/v1/shape"
-    echo "# Caddy HTTPS proxy for HTTP/2 (avoids browser 6-connection limit with Electric SSE streams)"
-    write_env_var "NEXT_PUBLIC_ELECTRIC_URL" "https://localhost:$CADDY_ELECTRIC_PORT"
-    write_env_var "NEXT_PUBLIC_ELECTRIC_PROXY_URL" "https://localhost:$CADDY_ELECTRIC_PORT"
-  } >> .env
+  local BASE=$SUPERSET_PORT_BASE
+
+  # App ports (fixed offsets from base)
+  local WEB_PORT=$((BASE))
+  local API_PORT=$((BASE + 1))
+  local MARKETING_PORT=$((BASE + 2))
+  local ADMIN_PORT=$((BASE + 3))
+  local DOCS_PORT=$((BASE + 4))
+  local DESKTOP_VITE_PORT=$((BASE + 5))
+  local DESKTOP_NOTIFICATIONS_PORT=$((BASE + 6))
+  local STREAMS_PORT=$((BASE + 7))
+  local STREAMS_INTERNAL_PORT=$((BASE + 8))
+  local ELECTRIC_PORT=$((BASE + 9))
+  local CADDY_ELECTRIC_PORT=$((BASE + 10))
+  local CODE_INSPECTOR_PORT=$((BASE + 11))
+  local DESKTOP_AUTOMATION_PORT=$((BASE + 12))
+  local WRANGLER_PORT=$((BASE + 13))
+  local RELAY_PORT=$((BASE + 14))
+
+  set_workspace_env_var "Workspace Identity" "SUPERSET_WORKSPACE_NAME" "${WORKSPACE_NAME:-$(basename "$PWD")}"
+  set_workspace_env_var "Workspace Identity" "SUPERSET_HOME_DIR" "$PWD/superset-dev-data"
+
+  if [ -n "${BRANCH_ID:-}" ]; then
+    set_workspace_env_var "Workspace Database (Neon Branch)" "NEON_BRANCH_ID" "$BRANCH_ID"
+  fi
+  if [ -n "${POOLED_URL:-}" ]; then
+    set_workspace_env_var "Workspace Database (Neon Branch)" "DATABASE_URL" "$POOLED_URL"
+  fi
+  if [ -n "${DIRECT_URL:-}" ]; then
+    set_workspace_env_var "Workspace Database (Neon Branch)" "DATABASE_URL_UNPOOLED" "$DIRECT_URL"
+  fi
+
+  if [ -n "${ELECTRIC_CONTAINER:-}" ]; then
+    set_workspace_env_var "Workspace Electric SQL (Docker)" "ELECTRIC_CONTAINER" "$ELECTRIC_CONTAINER"
+  fi
+  if [ -n "${ELECTRIC_SECRET:-}" ]; then
+    set_workspace_env_var "Workspace Electric SQL (Docker)" "ELECTRIC_SECRET" "$ELECTRIC_SECRET"
+  fi
+
+  set_workspace_env_var "Workspace Ports (allocated from SUPERSET_PORT_BASE=$BASE, range=20)" "SUPERSET_PORT_BASE" "$BASE"
+  set_workspace_env_var "Workspace Ports (allocated from SUPERSET_PORT_BASE=$BASE, range=20)" "WEB_PORT" "$WEB_PORT"
+  set_workspace_env_var "Workspace Ports (allocated from SUPERSET_PORT_BASE=$BASE, range=20)" "API_PORT" "$API_PORT"
+  set_workspace_env_var "Workspace Ports (allocated from SUPERSET_PORT_BASE=$BASE, range=20)" "MARKETING_PORT" "$MARKETING_PORT"
+  set_workspace_env_var "Workspace Ports (allocated from SUPERSET_PORT_BASE=$BASE, range=20)" "ADMIN_PORT" "$ADMIN_PORT"
+  set_workspace_env_var "Workspace Ports (allocated from SUPERSET_PORT_BASE=$BASE, range=20)" "DOCS_PORT" "$DOCS_PORT"
+  set_workspace_env_var "Workspace Ports (allocated from SUPERSET_PORT_BASE=$BASE, range=20)" "DESKTOP_VITE_PORT" "$DESKTOP_VITE_PORT"
+  set_workspace_env_var "Workspace Ports (allocated from SUPERSET_PORT_BASE=$BASE, range=20)" "DESKTOP_NOTIFICATIONS_PORT" "$DESKTOP_NOTIFICATIONS_PORT"
+  set_workspace_env_var "Workspace Ports (allocated from SUPERSET_PORT_BASE=$BASE, range=20)" "STREAMS_PORT" "$STREAMS_PORT"
+  set_workspace_env_var "Workspace Ports (allocated from SUPERSET_PORT_BASE=$BASE, range=20)" "STREAMS_INTERNAL_PORT" "$STREAMS_INTERNAL_PORT"
+  set_workspace_env_var "Workspace Ports (allocated from SUPERSET_PORT_BASE=$BASE, range=20)" "ELECTRIC_PORT" "$ELECTRIC_PORT"
+  set_workspace_env_var "Workspace Ports (allocated from SUPERSET_PORT_BASE=$BASE, range=20)" "CADDY_ELECTRIC_PORT" "$CADDY_ELECTRIC_PORT"
+  set_workspace_env_var "Workspace Ports (allocated from SUPERSET_PORT_BASE=$BASE, range=20)" "CODE_INSPECTOR_PORT" "$CODE_INSPECTOR_PORT"
+  set_workspace_env_var "Workspace Ports (allocated from SUPERSET_PORT_BASE=$BASE, range=20)" "DESKTOP_AUTOMATION_PORT" "$DESKTOP_AUTOMATION_PORT"
+  set_workspace_env_var "Workspace Ports (allocated from SUPERSET_PORT_BASE=$BASE, range=20)" "WRANGLER_PORT" "$WRANGLER_PORT"
+  set_workspace_env_var "Workspace Ports (allocated from SUPERSET_PORT_BASE=$BASE, range=20)" "RELAY_PORT" "$RELAY_PORT"
+
+  set_workspace_env_var "Cross-app URLs (overrides from root .env)" "NEXT_PUBLIC_API_URL" "http://localhost:$API_PORT"
+  set_workspace_env_var "Cross-app URLs (overrides from root .env)" "NEXT_PUBLIC_WEB_URL" "http://localhost:$WEB_PORT"
+  set_workspace_env_var "Cross-app URLs (overrides from root .env)" "NEXT_PUBLIC_MARKETING_URL" "http://localhost:$MARKETING_PORT"
+  set_workspace_env_var "Cross-app URLs (overrides from root .env)" "NEXT_PUBLIC_ADMIN_URL" "http://localhost:$ADMIN_PORT"
+  set_workspace_env_var "Cross-app URLs (overrides from root .env)" "NEXT_PUBLIC_DOCS_URL" "http://localhost:$DOCS_PORT"
+  set_workspace_env_var "Cross-app URLs (overrides from root .env)" "NEXT_PUBLIC_DESKTOP_URL" "http://localhost:$DESKTOP_VITE_PORT"
+  set_workspace_env_var "Cross-app URLs (overrides from root .env)" "EXPO_PUBLIC_WEB_URL" "http://localhost:$WEB_PORT"
+  set_workspace_env_var "Cross-app URLs (overrides from root .env)" "EXPO_PUBLIC_API_URL" "http://localhost:$API_PORT"
+  set_workspace_env_var "Cross-app URLs (overrides from root .env)" "RELAY_URL" "http://localhost:$RELAY_PORT"
+  set_workspace_env_var "Cross-app URLs (overrides from root .env)" "SUPERSET_WEB_URL" "http://localhost:$WEB_PORT"
+
+  set_workspace_env_var "Streams URLs (overrides from root .env)" "PORT" "$STREAMS_PORT"
+  set_workspace_env_var "Streams URLs (overrides from root .env)" "STREAMS_URL" "http://localhost:$STREAMS_PORT"
+  set_workspace_env_var "Streams URLs (overrides from root .env)" "NEXT_PUBLIC_STREAMS_URL" "http://localhost:$STREAMS_PORT"
+  set_workspace_env_var "Streams URLs (overrides from root .env)" "EXPO_PUBLIC_STREAMS_URL" "http://localhost:$STREAMS_PORT"
+  set_workspace_env_var "Streams URLs (overrides from root .env)" "STREAMS_INTERNAL_URL" "http://127.0.0.1:$STREAMS_INTERNAL_PORT"
+
+  set_workspace_env_var "Electric URLs (overrides from root .env)" "ELECTRIC_URL" "http://localhost:$ELECTRIC_PORT/v1/shape"
+  set_workspace_env_var "Electric URLs (overrides from root .env)" "NEXT_PUBLIC_ELECTRIC_URL" "https://localhost:$CADDY_ELECTRIC_PORT"
+  set_workspace_env_var "Electric URLs (overrides from root .env)" "NEXT_PUBLIC_ELECTRIC_PROXY_URL" "https://localhost:$CADDY_ELECTRIC_PORT"
+
+  if [ "$env_write_failed" = true ]; then
+    return 1
+  fi
 
   success "Workspace .env written"
 

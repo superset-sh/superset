@@ -36,6 +36,65 @@ write_env_var() {
   printf '%s="%s"\n' "$key" "$(escape_env_value "$value")"
 }
 
+# Replace the first active KEY= assignment, remove later duplicates, or append
+# the key when it is absent. Commented examples are left untouched.
+upsert_env_var() {
+  local file="$1"
+  local key="$2"
+  local value="${3-}"
+  local replacement
+  local tmp_file
+
+  if [[ ! "$key" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]]; then
+    error "Invalid env var key: $key"
+    return 1
+  fi
+
+  replacement="$(write_env_var "$key" "$value")"
+  tmp_file="$(mktemp "${file}.XXXXXX")" || return 1
+
+  if [ ! -f "$file" ]; then
+    if ! printf '%s\n' "$replacement" > "$file"; then
+      error "Failed to write env file: $file"
+      rm -f "$tmp_file"
+      return 1
+    fi
+    rm -f "$tmp_file"
+    return 0
+  fi
+
+  if ! ENV_REPLACEMENT="$replacement" awk -v key="$key" '
+    BEGIN {
+      found = 0
+      replacement = ENVIRON["ENV_REPLACEMENT"]
+      pattern = "^[[:space:]]*(export[[:space:]]+)?" key "[[:space:]]*="
+    }
+    $0 ~ pattern {
+      if (found == 0) {
+        print replacement
+        found = 1
+      }
+      next
+    }
+    { print }
+    END {
+      if (found == 0) {
+        print replacement
+      }
+    }
+  ' "$file" > "$tmp_file"; then
+    error "Failed to update env file: $file"
+    rm -f "$tmp_file"
+    return 1
+  fi
+
+  if ! mv "$tmp_file" "$file"; then
+    error "Failed to persist env file: $file"
+    rm -f "$tmp_file"
+    return 1
+  fi
+}
+
 acquire_port_alloc_lock() {
   local lock_dir="$1"
   local timeout_seconds="${2:-30}"

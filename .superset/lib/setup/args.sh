@@ -8,8 +8,9 @@ setup_print_usage() {
 Usage: .superset/setup.sh [options]
 
 Options:
+  --ts                    Run the parallel TypeScript setup implementation
   -f, --force              Reset superset-dev-data/ before seeding local DB
-  -m, --mcp              Add superset-local MCP entry to .mcp.json
+  -m, --mcp                Add superset-local MCP entry to .mcp.json
   -h, --help               Show this help message
 EOT
 }
