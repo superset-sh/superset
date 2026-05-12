@@ -60,7 +60,9 @@ export function V2WorkspaceRow({
 		!workspace.hostIsOnline && workspace.hostType !== "local-device";
 
 	const handleOpen = useCallback(() => {
-		const open = () => navigateToV2Workspace(workspace.id, navigate);
+		const open = () => {
+			void navigateToV2Workspace(workspace.id, navigate);
+		};
 		if (workspace.hostType === "local-device") {
 			open();
 			return;

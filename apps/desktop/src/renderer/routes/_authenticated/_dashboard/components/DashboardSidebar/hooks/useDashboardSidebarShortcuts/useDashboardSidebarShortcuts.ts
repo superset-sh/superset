@@ -108,7 +108,7 @@ export function useDashboardSidebarShortcuts(
 			const workspace = flattenedWorkspaces[index];
 			if (workspace) {
 				revealWorkspace(workspace.id);
-				navigateToV2Workspace(workspace.id, navigate);
+				void navigateToV2Workspace(workspace.id, navigate);
 			}
 		},
 		[flattenedWorkspaces, navigate, revealWorkspace],
@@ -141,7 +141,7 @@ export function useDashboardSidebarShortcuts(
 		const prevIndex = index <= 0 ? flattenedWorkspaces.length - 1 : index - 1;
 		const target = flattenedWorkspaces[prevIndex];
 		revealWorkspace(target.id);
-		navigateToV2Workspace(target.id, navigate);
+		void navigateToV2Workspace(target.id, navigate);
 	});
 
 	useHotkey("NEXT_WORKSPACE", () => {
@@ -153,7 +153,7 @@ export function useDashboardSidebarShortcuts(
 		const nextIndex = index >= flattenedWorkspaces.length - 1 ? 0 : index + 1;
 		const target = flattenedWorkspaces[nextIndex];
 		revealWorkspace(target.id);
-		navigateToV2Workspace(target.id, navigate);
+		void navigateToV2Workspace(target.id, navigate);
 	});
 
 	return workspaceShortcutLabels;
