@@ -68,18 +68,19 @@ function resolveShellForEnv(): string {
 	return resolveConfiguredShell(process.env);
 }
 
-function parseEnvOutput(stdout: string): Record<string, string> {
+const ENV_KEY_RE = /^[A-Za-z_][A-Za-z0-9_]*=/;
+
+export function parseEnvOutput(stdout: string): Record<string, string> {
 	const envSection = stdout.split(DELIMITER)[1];
 	if (!envSection) {
 		throw new Error("Failed to parse shell env output - delimiter not found");
 	}
 
 	const result: Record<string, string> = {};
-	for (const line of envSection.split("\n").filter(Boolean)) {
+	for (const line of envSection.split("\n")) {
+		if (!ENV_KEY_RE.test(line)) continue;
 		const idx = line.indexOf("=");
-		if (idx > 0) {
-			result[line.slice(0, idx)] = line.slice(idx + 1);
-		}
+		result[line.slice(0, idx)] = line.slice(idx + 1);
 	}
 
 	if (Object.keys(result).length === 0) {
