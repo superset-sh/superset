@@ -149,7 +149,19 @@ export function AutomationDetailSidebar({
 								className="-mr-4"
 								hostId={hostId}
 								value={automation.agent}
-								onChange={(id) => updateMutation.mutate({ agent: id })}
+								onChange={(id) => {
+									// The picker is scoped to `hostId`; if the automation
+									// was previously auto-routed (targetHostId null), pin it
+									// to the host this id came from so a UUID-shaped agent
+									// can't be dispatched to a host that's never seen it.
+									const patch: { agent: string; targetHostId?: string } = {
+										agent: id,
+									};
+									if (!automation.targetHostId && hostId) {
+										patch.targetHostId = hostId;
+									}
+									updateMutation.mutate(patch);
+								}}
 							/>
 						}
 					/>

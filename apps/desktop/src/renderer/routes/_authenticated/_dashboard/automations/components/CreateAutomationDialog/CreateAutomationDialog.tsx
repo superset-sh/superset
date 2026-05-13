@@ -9,7 +9,7 @@ import {
 } from "@superset/ui/dialog";
 import { toast } from "@superset/ui/sonner";
 import { useMutation } from "@tanstack/react-query";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { LuX } from "react-icons/lu";
 import { EmojiTextInput } from "renderer/components/EmojiTextInput";
 import { MarkdownEditor } from "renderer/components/MarkdownEditor";
@@ -87,29 +87,43 @@ export function CreateAutomationDialog({
 		if (first) setSelectedProjectId(first.id);
 	}, [open, selectedProjectId, recentProjects]);
 
-	const applyTemplate = useCallback(
-		(template: AutomationTemplate) => {
-			setName(template.name);
-			setPrompt(template.prompt);
-			if (template.agentType) {
-				const match = hostAgents.find(
-					(option) =>
-						option.id === template.agentType ||
-						option.iconId === template.agentType,
-				);
-				if (match) setAgent(match.id);
-			}
-			if (template.rrule) setRrule(template.rrule);
-		},
-		[hostAgents],
-	);
+	// Track which (open session, template) we've already pre-filled so the
+	// effects don't re-run and stomp on user edits when `hostAgents` lands
+	// asynchronously.
+	const appliedTemplateRef = useRef<AutomationTemplate | null>(null);
+	const appliedAgentForTemplateRef = useRef<AutomationTemplate | null>(null);
 
-	// Pre-fill when opened with an initialTemplate (from the empty-state gallery).
+	const applyTemplate = useCallback((template: AutomationTemplate) => {
+		setName(template.name);
+		setPrompt(template.prompt);
+		if (template.rrule) setRrule(template.rrule);
+	}, []);
+
+	// Pre-fill scalar fields once when opened with an initialTemplate.
 	useEffect(() => {
 		if (!open) return;
 		if (!initialTemplate) return;
+		if (appliedTemplateRef.current === initialTemplate) return;
+		appliedTemplateRef.current = initialTemplate;
 		applyTemplate(initialTemplate);
 	}, [open, initialTemplate, applyTemplate]);
+
+	// Match the template's preferred agent against the host's choices once
+	// they load. Separate effect so a `hostAgents` refresh doesn't re-trigger
+	// the scalar prefill above.
+	useEffect(() => {
+		if (!open) return;
+		if (!initialTemplate?.agentType) return;
+		if (appliedAgentForTemplateRef.current === initialTemplate) return;
+		if (hostAgents.length === 0) return;
+		const match = hostAgents.find(
+			(option) =>
+				option.id === initialTemplate.agentType ||
+				option.iconId === initialTemplate.agentType,
+		);
+		if (match) setAgent(match.id);
+		appliedAgentForTemplateRef.current = initialTemplate;
+	}, [open, initialTemplate, hostAgents]);
 
 	useEffect(() => {
 		if (!open) {
@@ -121,6 +135,8 @@ export function CreateAutomationDialog({
 			setAgent(null);
 			setRrule(DEFAULT_RRULE);
 			setV2WorkspaceId(null);
+			appliedTemplateRef.current = null;
+			appliedAgentForTemplateRef.current = null;
 		}
 	}, [open]);
 
