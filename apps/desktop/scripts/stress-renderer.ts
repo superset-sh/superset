@@ -14,6 +14,8 @@ interface Args {
 	terminalPayloadBytes: number;
 	forceTerminalWebglLoss: boolean;
 	includeTerminalAction: boolean;
+	profileCpu: boolean;
+	reactProbe: boolean;
 	progressEvery: number;
 	intervalMs: number;
 	settleMs: number;
@@ -76,6 +78,34 @@ interface RuntimeEvaluateResult {
 	};
 }
 
+interface CpuProfile {
+	nodes: Array<{
+		id: number;
+		callFrame: {
+			functionName?: string;
+			url?: string;
+			lineNumber?: number;
+			columnNumber?: number;
+		};
+		hitCount?: number;
+	}>;
+	samples?: number[];
+	timeDeltas?: number[];
+}
+
+interface CpuProfileResult {
+	profile?: CpuProfile;
+}
+
+interface CpuProfileFrameSummary {
+	functionName: string;
+	url: string;
+	lineNumber: number;
+	columnNumber: number;
+	selfTimeMs: number;
+	sampleCount: number;
+}
+
 interface RendererStressResult {
 	scenario: StressScenario;
 	iterations: number;
@@ -95,6 +125,7 @@ interface RendererStressResult {
 	terminalStressSummary: unknown;
 	terminalWebglContextLosses: unknown[];
 	workspaceSummary: unknown;
+	reactProbeSummary: unknown;
 	durationMs: number;
 	maxHeartbeatDelayMs: number;
 	heartbeatDelaySamples: number[];
@@ -144,6 +175,8 @@ function parseArgs(argv: string[]): Args {
 		terminalPayloadBytes: 1024,
 		forceTerminalWebglLoss: true,
 		includeTerminalAction: false,
+		profileCpu: false,
+		reactProbe: false,
 		progressEvery: 100,
 		intervalMs: 0,
 		settleMs: 1000,
@@ -226,6 +259,12 @@ function parseArgs(argv: string[]): Args {
 			case "--include-terminal-action":
 				args.includeTerminalAction = true;
 				break;
+			case "--profile-cpu":
+				args.profileCpu = true;
+				break;
+			case "--react-probe":
+				args.reactProbe = true;
+				break;
 			case "--progress-every":
 				args.progressEvery = readNumber();
 				break;
@@ -291,6 +330,8 @@ Options:
   --terminal-payload-bytes <n>     Repeated payload bytes per line. Default: 1024
   --no-terminal-webgl-loss         Do not force WEBGL_lose_context during terminal stress
   --include-terminal-action        Include one real backend terminal launch in heavy stress. Default: false
+  --profile-cpu                    Capture a CDP CPU profile and print hottest JS frames
+  --react-probe                    Capture React commit/component counts via React DevTools hook when available
   --progress-every <n>             Emit progress every n operations. Set 0 to disable. Default: 100
   --interval-ms <n>                Delay between activations. Default: 0
   --settle-ms <n>                  Delay after the final activation. Default: 1000
@@ -312,6 +353,42 @@ function messageDataToString(data: unknown): string {
 		);
 	}
 	return String(data);
+}
+
+function summarizeCpuProfile(
+	profile: CpuProfile,
+	limit = 30,
+): CpuProfileFrameSummary[] {
+	const nodesById = new Map(profile.nodes.map((node) => [node.id, node]));
+	const selfTimeByNodeId = new Map<number, number>();
+	const sampleCountByNodeId = new Map<number, number>();
+	const samples = profile.samples ?? [];
+	const timeDeltas = profile.timeDeltas ?? [];
+
+	for (let index = 0; index < samples.length; index += 1) {
+		const nodeId = samples[index];
+		sampleCountByNodeId.set(nodeId, (sampleCountByNodeId.get(nodeId) ?? 0) + 1);
+		selfTimeByNodeId.set(
+			nodeId,
+			(selfTimeByNodeId.get(nodeId) ?? 0) + (timeDeltas[index] ?? 0) / 1000,
+		);
+	}
+
+	return Array.from(nodesById.entries())
+		.map(([nodeId, node]) => {
+			const callFrame = node.callFrame;
+			return {
+				functionName: callFrame.functionName || "(anonymous)",
+				url: callFrame.url || "",
+				lineNumber: callFrame.lineNumber ?? 0,
+				columnNumber: callFrame.columnNumber ?? 0,
+				selfTimeMs: selfTimeByNodeId.get(nodeId) ?? 0,
+				sampleCount: sampleCountByNodeId.get(nodeId) ?? node.hitCount ?? 0,
+			};
+		})
+		.filter((frame) => frame.selfTimeMs > 0 || frame.sampleCount > 0)
+		.sort((left, right) => right.selfTimeMs - left.selfTimeMs)
+		.slice(0, limit);
 }
 
 class CdpClient {
@@ -460,6 +537,7 @@ function rendererStress(options: {
 	terminalPayloadBytes: number;
 	forceTerminalWebglLoss: boolean;
 	includeTerminalAction: boolean;
+	reactProbe: boolean;
 	progressEvery: number;
 	intervalMs: number;
 	settleMs: number;
@@ -505,9 +583,190 @@ function rendererStress(options: {
 	const onUnhandledRejection = (event: PromiseRejectionEvent) => {
 		errors.push(`Unhandled rejection: ${describeError(event.reason)}`);
 	};
+	const installReactProbe = () => {
+		if (!options.reactProbe) {
+			return {
+				getSummary: () => null,
+				cleanup: () => {},
+			};
+		}
+
+		type ReactFiber = {
+			actualDuration?: number;
+			child?: ReactFiber | null;
+			elementType?: unknown;
+			flags?: number;
+			sibling?: ReactFiber | null;
+			type?: unknown;
+		};
+		type ReactFiberRoot = { current?: ReactFiber | null };
+		type ReactDevToolsHook = {
+			onCommitFiberRoot?: (
+				rendererId: number,
+				root: ReactFiberRoot,
+				priorityLevel?: unknown,
+				didError?: boolean,
+			) => unknown;
+		};
+		type ReactProbeWindow = Window & {
+			__REACT_DEVTOOLS_GLOBAL_HOOK__?: ReactDevToolsHook;
+		};
+
+		const hook = (window as ReactProbeWindow).__REACT_DEVTOOLS_GLOBAL_HOOK__;
+		if (!hook || typeof hook.onCommitFiberRoot !== "function") {
+			return {
+				getSummary: () => ({
+					available: false,
+					reason: "React DevTools global hook is not installed",
+				}),
+				cleanup: () => {},
+			};
+		}
+
+		const previousOnCommitFiberRoot = hook.onCommitFiberRoot;
+		const componentStats = new Map<
+			string,
+			{
+				commitCount: number;
+				maxActualDurationMs: number;
+				totalActualDurationMs: number;
+			}
+		>();
+		const recentCommits: Array<{
+			componentCount: number;
+			durationMs: number;
+			fiberCount: number;
+			index: number;
+			totalActualDurationMs: number;
+		}> = [];
+		let commitCount = 0;
+		let maxCommitDurationMs = 0;
+
+		const getDisplayName = (fiber: ReactFiber): string | null => {
+			const candidate = fiber.type ?? fiber.elementType;
+			if (typeof candidate === "string") return candidate;
+			if (typeof candidate === "function") {
+				const named = candidate as { displayName?: string; name?: string };
+				return named.displayName ?? named.name ?? null;
+			}
+			if (candidate && typeof candidate === "object") {
+				const named = candidate as {
+					displayName?: string;
+					name?: string;
+					render?: { displayName?: string; name?: string };
+				};
+				return (
+					named.displayName ??
+					named.name ??
+					named.render?.displayName ??
+					named.render?.name ??
+					null
+				);
+			}
+			return null;
+		};
+
+		const visitFibers = (
+			root: ReactFiber | null | undefined,
+			visit: (fiber: ReactFiber) => void,
+		) => {
+			const stack: ReactFiber[] = [];
+			const seen = new Set<ReactFiber>();
+			if (root) stack.push(root);
+			while (stack.length > 0 && seen.size < 20_000) {
+				const fiber = stack.pop();
+				if (!fiber || seen.has(fiber)) continue;
+				seen.add(fiber);
+				visit(fiber);
+				if (fiber.sibling) stack.push(fiber.sibling);
+				if (fiber.child) stack.push(fiber.child);
+			}
+			return seen.size;
+		};
+
+		function onCommitFiberRoot(
+			this: unknown,
+			rendererId: number,
+			root: ReactFiberRoot,
+			priorityLevel?: unknown,
+			didError?: boolean,
+		) {
+			const result = previousOnCommitFiberRoot.apply(this, [
+				rendererId,
+				root,
+				priorityLevel,
+				didError,
+			]);
+			const startedAt = performance.now();
+			const committedComponents = new Set<string>();
+			let totalActualDurationMs = 0;
+			const fiberCount = visitFibers(root.current, (fiber) => {
+				const name = getDisplayName(fiber);
+				if (!name) return;
+				const actualDuration =
+					typeof fiber.actualDuration === "number" ? fiber.actualDuration : 0;
+				const flags = typeof fiber.flags === "number" ? fiber.flags : 0;
+				if (actualDuration <= 0 && flags === 0) return;
+
+				committedComponents.add(name);
+				totalActualDurationMs += actualDuration;
+				const current = componentStats.get(name) ?? {
+					commitCount: 0,
+					maxActualDurationMs: 0,
+					totalActualDurationMs: 0,
+				};
+				current.commitCount += 1;
+				current.totalActualDurationMs += actualDuration;
+				current.maxActualDurationMs = Math.max(
+					current.maxActualDurationMs,
+					actualDuration,
+				);
+				componentStats.set(name, current);
+			});
+
+			commitCount += 1;
+			const durationMs = performance.now() - startedAt;
+			maxCommitDurationMs = Math.max(maxCommitDurationMs, durationMs);
+			recentCommits.push({
+				componentCount: committedComponents.size,
+				durationMs,
+				fiberCount,
+				index: commitCount,
+				totalActualDurationMs,
+			});
+			if (recentCommits.length > 50) recentCommits.shift();
+			return result;
+		}
+
+		hook.onCommitFiberRoot = onCommitFiberRoot;
+
+		return {
+			getSummary: () => ({
+				available: true,
+				commitCount,
+				maxCommitDurationMs,
+				recentCommits: recentCommits.slice(-10),
+				topComponents: Array.from(componentStats.entries())
+					.map(([name, stats]) => ({ name, ...stats }))
+					.sort((left, right) => {
+						const durationDelta =
+							right.totalActualDurationMs - left.totalActualDurationMs;
+						if (durationDelta !== 0) return durationDelta;
+						return right.commitCount - left.commitCount;
+					})
+					.slice(0, 30),
+			}),
+			cleanup: () => {
+				if (hook.onCommitFiberRoot === onCommitFiberRoot) {
+					hook.onCommitFiberRoot = previousOnCommitFiberRoot;
+				}
+			},
+		};
+	};
 
 	window.addEventListener("error", onError);
 	window.addEventListener("unhandledrejection", onUnhandledRejection);
+	const reactProbe = installReactProbe();
 
 	const heartbeat = setInterval(() => {
 		const now = performance.now();
@@ -1233,6 +1492,7 @@ function rendererStress(options: {
 			terminalStressSummary,
 			terminalWebglContextLosses: terminalWebglContextLosses.slice(-20),
 			workspaceSummary,
+			reactProbeSummary: reactProbe.getSummary(),
 			durationMs,
 			maxHeartbeatDelayMs,
 			heartbeatDelaySamples: heartbeatDelaySamples.slice(-20),
@@ -1254,6 +1514,7 @@ function rendererStress(options: {
 		};
 	})().finally(() => {
 		clearInterval(heartbeat);
+		reactProbe.cleanup();
 		longTaskObserver?.disconnect();
 		window.removeEventListener("error", onError);
 		window.removeEventListener("unhandledrejection", onUnhandledRejection);
@@ -1281,6 +1542,14 @@ async function main() {
 	try {
 		await cdp.send("Runtime.enable", {}, args.timeoutMs);
 		await cdp.send("Performance.enable", {}, args.timeoutMs);
+		const startDomCounters = await cdp
+			.send("Memory.getDOMCounters", {}, args.timeoutMs)
+			.catch((error) => ({ error: String(error) }));
+		if (args.profileCpu) {
+			await cdp.send("Profiler.enable", {}, args.timeoutMs);
+			await cdp.send("Profiler.setSamplingInterval", { interval: 1000 });
+			await cdp.send("Profiler.start", {}, args.timeoutMs);
+		}
 		const removeConsoleListener = cdp.on(
 			"Runtime.consoleAPICalled",
 			(params) => {
@@ -1321,6 +1590,7 @@ async function main() {
 					terminalPayloadBytes: args.terminalPayloadBytes,
 					forceTerminalWebglLoss: args.forceTerminalWebglLoss,
 					includeTerminalAction: args.includeTerminalAction,
+					reactProbe: args.reactProbe,
 					progressEvery: args.progressEvery,
 					intervalMs: args.intervalMs,
 					settleMs: args.settleMs,
@@ -1333,6 +1603,14 @@ async function main() {
 			args.timeoutMs,
 		);
 		removeConsoleListener();
+		const cpuProfileTopFrames = args.profileCpu
+			? await cdp
+					.send<CpuProfileResult>("Profiler.stop", {}, args.timeoutMs)
+					.then((result) =>
+						result.profile ? summarizeCpuProfile(result.profile) : [],
+					)
+					.catch((error) => [{ error: String(error) }])
+			: null;
 
 		if (evaluation.exceptionDetails) {
 			throw new Error(
@@ -1346,9 +1624,17 @@ async function main() {
 		const cdpMetrics = await cdp
 			.send("Performance.getMetrics", {}, args.timeoutMs)
 			.catch((error) => ({ error: String(error) }));
+		const endDomCounters = await cdp
+			.send("Memory.getDOMCounters", {}, args.timeoutMs)
+			.catch((error) => ({ error: String(error) }));
 		const output = {
 			...summary,
 			cdpMetrics,
+			cdpDomCounters: {
+				start: startDomCounters,
+				end: endDomCounters,
+			},
+			cpuProfileTopFrames,
 			thresholds: {
 				maxHeartbeatDelayMs: args.maxHeartbeatDelayMs,
 				maxLongTaskMs: args.maxLongTaskMs,
