@@ -7,9 +7,9 @@ const FILE_LABELS: Record<LinkAction, string> = {
 };
 
 const URL_LABELS: Record<LinkAction, string> = {
-	pane: "Open in browser",
+	pane: "Open in Superset browser",
 	newTab: "Open in new browser tab",
-	external: "Open in system browser",
+	external: "Open in external browser",
 };
 
 export function actionLabel(action: LinkAction, surface: Surface): string {
@@ -31,9 +31,9 @@ const SHORT_FILE_LABELS: Record<LinkAction, string> = {
 };
 
 const SHORT_URL_LABELS: Record<LinkAction, string> = {
-	pane: "browser",
+	pane: "Superset browser",
 	newTab: "new tab",
-	external: "system browser",
+	external: "external browser",
 };
 
 export function shortActionLabel(action: LinkAction, surface: Surface): string {
