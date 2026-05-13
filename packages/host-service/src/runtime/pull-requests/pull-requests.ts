@@ -243,6 +243,19 @@ function mapCheckoutPullRequestState(
 	return "open";
 }
 
+// Historical PRs (closed / merged) only attach when the workspace HEAD still
+// points at the PR head commit — otherwise a long-closed PR on a long-moved
+// branch (e.g. a closed PR on `master`) keeps showing up on every poll.
+// Matches V1 `shouldAcceptPRMatch` in `pr-resolution.ts`.
+function shouldAttachHistoricalMatch(
+	match: { state: PullRequestState; headSha: string },
+	workspaceHeadSha: string | null,
+): boolean {
+	if (match.state === "open" || match.state === "draft") return true;
+	if (!workspaceHeadSha) return false;
+	return match.headSha.toLowerCase() === workspaceHeadSha.trim().toLowerCase();
+}
+
 function deriveCheckoutPullRequestUpstream(
 	repo: NormalizedRepoIdentity,
 	pr: CheckoutPullRequestMetadata,
@@ -669,7 +682,7 @@ export class PullRequestRuntimeManager {
 				continue;
 			}
 			const match = keyToPullRequest.get(key);
-			if (match) {
+			if (match && shouldAttachHistoricalMatch(match, workspace.headSha)) {
 				this.db
 					.update(workspaces)
 					.set({ pullRequestId: match.id })
@@ -926,10 +939,16 @@ export class PullRequestRuntimeManager {
 		wantedRefs: Map<string, GitHubPullRequestHeadRef>,
 		options: { bypassCache?: boolean } = {},
 	): Promise<{
-		matched: Map<string, { id: string }>;
+		matched: Map<
+			string,
+			{ id: string; state: PullRequestState; headSha: string }
+		>;
 		failedKeys: Set<string>;
 	}> {
-		const matched = new Map<string, { id: string }>();
+		const matched = new Map<
+			string,
+			{ id: string; state: PullRequestState; headSha: string }
+		>();
 		const failedKeys = new Set<string>();
 		if (wantedRefs.size === 0) return { matched, failedKeys };
 
@@ -1031,6 +1050,7 @@ export class PullRequestRuntimeManager {
 			const reviewDecision = reviewDecisionByNumber.has(node.number)
 				? mapReviewDecision(reviewDecisionByNumber.get(node.number) ?? null)
 				: coerceReviewDecision(existing?.reviewDecision ?? null);
+			const mappedState = mapPullRequestState(node.state, node.isDraft);
 			const rowId = this.upsertPullRequestRow({
 				existing,
 				projectId,
@@ -1038,7 +1058,7 @@ export class PullRequestRuntimeManager {
 				repo,
 				url: node.url,
 				title: node.title,
-				state: mapPullRequestState(node.state, node.isDraft),
+				state: mappedState,
 				isDraft: node.isDraft,
 				headBranch: node.headRefName,
 				headSha: node.headRefOid,
@@ -1050,7 +1070,11 @@ export class PullRequestRuntimeManager {
 				now,
 			});
 
-			matched.set(key, { id: rowId });
+			matched.set(key, {
+				id: rowId,
+				state: mappedState,
+				headSha: node.headRefOid,
+			});
 		}
 
 		return { matched, failedKeys };
