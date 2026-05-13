@@ -1,7 +1,6 @@
 import { toast } from "@superset/ui/sonner";
 import { ClipboardAddon } from "@xterm/addon-clipboard";
 import { FitAddon } from "@xterm/addon-fit";
-import { ImageAddon } from "@xterm/addon-image";
 import { LigaturesAddon } from "@xterm/addon-ligatures";
 import { SearchAddon } from "@xterm/addon-search";
 import { Unicode11Addon } from "@xterm/addon-unicode11";
@@ -9,6 +8,7 @@ import { WebglAddon } from "@xterm/addon-webgl";
 import type { ITheme } from "@xterm/xterm";
 import { Terminal as XTerm } from "@xterm/xterm";
 import type { DetectedLink } from "renderer/lib/terminal/links";
+import { createTerminalImageAddonController } from "renderer/lib/terminal/terminal-image-addon-controller";
 import { TerminalLinkManager } from "renderer/lib/terminal/terminal-link-manager";
 import { electronTrpcClient as trpcClient } from "renderer/lib/trpc-client";
 import { toXtermTheme } from "renderer/stores/theme/utils";
@@ -94,6 +94,8 @@ export function createTerminalInWrapper(options: CreateTerminalOptions = {}): {
 	searchAddon: SearchAddon;
 	wrapper: HTMLDivElement;
 	linkManager: TerminalLinkManager;
+	enableImageAddon: () => void;
+	disableImageAddon: () => void;
 	cleanup: () => void;
 } {
 	const {
@@ -111,7 +113,7 @@ export function createTerminalInWrapper(options: CreateTerminalOptions = {}): {
 
 	const clipboardAddon = new ClipboardAddon();
 	const unicode11Addon = new Unicode11Addon();
-	const imageAddon = new ImageAddon();
+	const imageAddonController = createTerminalImageAddonController(xterm);
 
 	let disposed = false;
 	let webglAddon: WebglAddon | null = null;
@@ -127,7 +129,6 @@ export function createTerminalInWrapper(options: CreateTerminalOptions = {}): {
 	xterm.loadAddon(searchAddon);
 	xterm.loadAddon(clipboardAddon);
 	xterm.loadAddon(unicode11Addon);
-	xterm.loadAddon(imageAddon);
 
 	try {
 		xterm.loadAddon(new LigaturesAddon());
@@ -227,8 +228,11 @@ export function createTerminalInWrapper(options: CreateTerminalOptions = {}): {
 		searchAddon,
 		wrapper,
 		linkManager,
+		enableImageAddon: imageAddonController.enable,
+		disableImageAddon: imageAddonController.disable,
 		cleanup: () => {
 			disposed = true;
+			imageAddonController.dispose();
 			cancelAnimationFrame(rafId);
 			cleanupQuerySuppression();
 			linkManager.dispose();

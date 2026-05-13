@@ -1,15 +1,17 @@
 import { ClipboardAddon } from "@xterm/addon-clipboard";
-import { ImageAddon } from "@xterm/addon-image";
 import { LigaturesAddon } from "@xterm/addon-ligatures";
 import { ProgressAddon } from "@xterm/addon-progress";
 import { SearchAddon } from "@xterm/addon-search";
 import { Unicode11Addon } from "@xterm/addon-unicode11";
 import { WebglAddon } from "@xterm/addon-webgl";
 import type { Terminal as XTerm } from "@xterm/xterm";
+import { createTerminalImageAddonController } from "./terminal-image-addon-controller";
 
 export interface LoadAddonsResult {
 	searchAddon: SearchAddon;
 	progressAddon: ProgressAddon;
+	enableImageAddon: () => void;
+	disableImageAddon: () => void;
 	dispose: () => void;
 }
 
@@ -35,14 +37,13 @@ export function loadAddons(terminal: XTerm): LoadAddonsResult {
 	let disposed = false;
 	let webglAddon: WebglAddon | null = null;
 	let webglFallbackScheduled = false;
+	const imageAddonController = createTerminalImageAddonController(terminal);
 
 	terminal.loadAddon(new ClipboardAddon());
 
 	const unicode11 = new Unicode11Addon();
 	terminal.loadAddon(unicode11);
 	terminal.unicode.activeVersion = "11";
-
-	terminal.loadAddon(new ImageAddon());
 
 	const searchAddon = new SearchAddon();
 	terminal.loadAddon(searchAddon);
@@ -87,8 +88,11 @@ export function loadAddons(terminal: XTerm): LoadAddonsResult {
 	return {
 		searchAddon,
 		progressAddon,
+		enableImageAddon: imageAddonController.enable,
+		disableImageAddon: imageAddonController.disable,
 		dispose: () => {
 			disposed = true;
+			imageAddonController.dispose();
 			cancelAnimationFrame(rafId);
 			try {
 				webglAddon?.dispose();

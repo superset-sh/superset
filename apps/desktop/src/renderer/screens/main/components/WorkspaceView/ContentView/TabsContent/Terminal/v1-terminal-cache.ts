@@ -24,6 +24,8 @@ export interface CachedTerminal {
 	wrapper: HTMLDivElement;
 	/** Disposes renderer RAF, query suppression, GPU renderer, etc. */
 	cleanupCreation: () => void;
+	enableImageAddon: () => void;
+	disableImageAddon: () => void;
 	/** Last known dimensions — used to skip no-op resize events. */
 	lastCols: number;
 	lastRows: number;
@@ -111,8 +113,15 @@ export function getOrCreate(
 		console.log(`[v1-terminal-cache] Creating new terminal: ${paneId}`);
 	}
 
-	const { xterm, fitAddon, searchAddon, wrapper, cleanup } =
-		createTerminalInWrapper(options);
+	const {
+		xterm,
+		fitAddon,
+		searchAddon,
+		wrapper,
+		enableImageAddon,
+		disableImageAddon,
+		cleanup,
+	} = createTerminalInWrapper(options);
 
 	const entry: CachedTerminal = {
 		xterm,
@@ -120,6 +129,8 @@ export function getOrCreate(
 		searchAddon,
 		wrapper,
 		cleanupCreation: cleanup,
+		enableImageAddon,
+		disableImageAddon,
 		subscription: null,
 		streamReady: false,
 		pendingStreamEvents: [],
@@ -148,6 +159,7 @@ export function attachToContainer(
 
 	entry.container = container;
 	container.appendChild(entry.wrapper);
+	entry.enableImageAddon();
 
 	fitAndRefresh(entry);
 
@@ -172,6 +184,7 @@ export function detachFromContainer(paneId: string): void {
 	entry.resizeObserver?.disconnect();
 	entry.resizeObserver = null;
 	entry.container = null;
+	entry.disableImageAddon();
 	// Park instead of .remove() so xterm survives the React unmount —
 	// see getTerminalParkingContainer.
 	getTerminalParkingContainer().appendChild(entry.wrapper);

@@ -30,6 +30,8 @@ export interface TerminalRuntime {
 	_disposeResizeObserver: (() => void) | null;
 	lastCols: number;
 	lastRows: number;
+	_enableImageAddon: (() => void) | null;
+	_disableImageAddon: (() => void) | null;
 	_disposeAddons: (() => void) | null;
 	_disposeImagePasteFallback: (() => void) | null;
 }
@@ -253,6 +255,8 @@ export function createRuntime(
 		_disposeResizeObserver: null,
 		lastCols: cols,
 		lastRows: rows,
+		_enableImageAddon: addonsResult.enableImageAddon,
+		_disableImageAddon: addonsResult.disableImageAddon,
 		_disposeAddons: addonsResult.dispose,
 		_disposeImagePasteFallback: disposeImagePasteFallback,
 	};
@@ -275,6 +279,7 @@ export function attachToContainer(
 
 	runtime.container = container;
 	container.appendChild(runtime.wrapper);
+	runtime._enableImageAddon?.();
 	if (measureAndResize(runtime)) onResize?.();
 
 	runtime._disposeResizeObserver?.();
@@ -296,6 +301,7 @@ export function detachFromContainer(runtime: TerminalRuntime) {
 	runtime._disposeResizeObserver = null;
 	runtime.resizeObserver?.disconnect();
 	runtime.resizeObserver = null;
+	runtime._disableImageAddon?.();
 	// Park instead of .remove() so xterm survives the React unmount —
 	// see getTerminalParkingContainer.
 	getTerminalParkingContainer().appendChild(runtime.wrapper);
@@ -335,6 +341,8 @@ export function disposeRuntime(
 	runtime._disposeImagePasteFallback = null;
 	runtime._disposeAddons?.();
 	runtime._disposeAddons = null;
+	runtime._enableImageAddon = null;
+	runtime._disableImageAddon = null;
 	runtime._disposeResizeObserver?.();
 	runtime._disposeResizeObserver = null;
 	runtime.resizeObserver?.disconnect();

@@ -6,6 +6,7 @@ import { homedir, hostname, platform } from "node:os";
 // Salt value preserved verbatim across the rename to keep existing host ids
 // stable for users already registered against the cloud.
 const APP_HOST_SALT = "superset-desktop-device-id-v1";
+const MACHINE_ID_COMMAND_TIMEOUT_MS = 1500;
 
 function getRawMachineId(): string {
 	try {
@@ -15,7 +16,7 @@ function getRawMachineId(): string {
 			const output = execFileSync(
 				"ioreg",
 				["-rd1", "-c", "IOPlatformExpertDevice"],
-				{ encoding: "utf8" },
+				{ encoding: "utf8", timeout: MACHINE_ID_COMMAND_TIMEOUT_MS },
 			);
 			const match = output.match(/"IOPlatformUUID"\s*=\s*"([^"]+)"/);
 			if (match?.[1]) return match[1];
@@ -34,7 +35,7 @@ function getRawMachineId(): string {
 					"/v",
 					"MachineGuid",
 				],
-				{ encoding: "utf8" },
+				{ encoding: "utf8", timeout: MACHINE_ID_COMMAND_TIMEOUT_MS },
 			);
 			const match = output.match(/MachineGuid\s+REG_SZ\s+(\S+)/);
 			if (match?.[1]) return match[1];

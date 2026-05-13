@@ -23,6 +23,7 @@ export type { ChangesFilter, ChangesViewMode };
 interface UseChangesTabParams {
 	workspaceId: string;
 	gitStatus: ReturnType<typeof useGitStatus>;
+	enabled?: boolean;
 	/** Absolute path of the file whose diff/preview is currently open. */
 	selectedFilePath?: string;
 	onSelectFile?: (path: string, openInNewTab?: boolean) => void;
@@ -32,6 +33,7 @@ interface UseChangesTabParams {
 export function useChangesTab({
 	workspaceId,
 	gitStatus: status,
+	enabled = true,
 	selectedFilePath,
 	onSelectFile,
 	onOpenFile,
@@ -47,18 +49,21 @@ export function useChangesTab({
 
 	const baseBranchQuery = workspaceTrpc.git.getBaseBranch.useQuery(
 		{ workspaceId },
-		{ staleTime: Number.POSITIVE_INFINITY },
+		{ staleTime: Number.POSITIVE_INFINITY, enabled },
 	);
 	const baseBranch = baseBranchQuery.data?.baseBranch ?? null;
 
-	const ref = useSidebarDiffRef(workspaceId);
-	const { files, isLoading } = useChangeset({ workspaceId, ref });
+	const ref = useSidebarDiffRef(workspaceId, enabled);
+	const { files, isLoading } = useChangeset({ workspaceId, ref, enabled });
 
-	const workspaceQuery = workspaceTrpc.workspace.get.useQuery({
-		id: workspaceId,
-	});
+	const workspaceQuery = workspaceTrpc.workspace.get.useQuery(
+		{
+			id: workspaceId,
+		},
+		{ enabled },
+	);
 	const worktreePath = workspaceQuery.data?.worktreePath;
-	const openInExternalEditor = useOpenInExternalEditor(workspaceId);
+	const openInExternalEditor = useOpenInExternalEditor(workspaceId, enabled);
 
 	const handleOpenInEditor = useCallback(
 		(relativePath: string) => {
@@ -106,12 +111,12 @@ export function useChangesTab({
 
 	const commits = workspaceTrpc.git.listCommits.useQuery(
 		{ workspaceId, baseBranch: baseBranch ?? undefined },
-		{ refetchOnWindowFocus: true },
+		{ enabled, refetchOnWindowFocus: true },
 	);
 
 	const branches = workspaceTrpc.git.listBranches.useQuery(
 		{ workspaceId },
-		{ refetchInterval: 30_000, refetchOnWindowFocus: true },
+		{ enabled, refetchInterval: 30_000, refetchOnWindowFocus: true },
 	);
 
 	const renameBranchMutation = workspaceTrpc.git.renameBranch.useMutation();

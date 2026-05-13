@@ -31,7 +31,8 @@ type StressScenario =
 	| "route-sweep"
 	| "terminal-heavy"
 	| "workspace-heavy"
-	| "workspace-switch";
+	| "workspace-switch"
+	| "workspace-switch-heavy";
 
 interface CdpTarget {
 	type?: string;
@@ -188,7 +189,8 @@ function parseArgs(argv: string[]): Args {
 					scenario !== "route-sweep" &&
 					scenario !== "terminal-heavy" &&
 					scenario !== "workspace-heavy" &&
-					scenario !== "workspace-switch"
+					scenario !== "workspace-switch" &&
+					scenario !== "workspace-switch-heavy"
 				) {
 					throw new Error(`Invalid scenario for ${arg}: ${scenario}`);
 				}
@@ -278,13 +280,14 @@ Run route and workspace action stress:
 Options:
   --port <n>                       CDP port. Default: env SUPERSET_RENDERER_STRESS_CDP_PORT or 9333
   --host <host>                    CDP host. Default: 127.0.0.1
-  --scenario <name>                workspace-switch, route-sweep, workspace-heavy, terminal-heavy, or all. Default: workspace-switch
+  --scenario <name>                workspace-switch, workspace-switch-heavy, route-sweep, workspace-heavy, terminal-heavy, or all. Default: workspace-switch
   --iterations <n>                 Workspace activations. Default: 500
   --route-iterations <n>           Route navigations. Default: --iterations
   --heavy-iterations <n>           Mixed pane/tab/browser/diff actions. Default: min(--iterations, 300)
   --terminal-iterations <n>        Terminal tab switch/write/context-loss cycles. Default: min(--iterations, 200)
   --terminal-tab-count <n>         Synthetic terminal tabs. Default: 24
   --terminal-panes-per-tab <n>     Terminal panes per synthetic tab. Default: 4
+                                   Also controls generated tabs/panes for workspace-switch-heavy.
   --terminal-lines <n>             ANSI output lines per terminal write. Default: 40
   --terminal-payload-bytes <n>     Repeated payload bytes per line. Default: 1024
   --no-terminal-webgl-loss         Do not force WEBGL_lose_context during terminal stress
@@ -572,6 +575,10 @@ function rendererStress(options: {
 			tabCount: number,
 			panesPerTab: number,
 		) => void;
+		replaceWithGeneratedMixedLayout: (
+			tabCount: number,
+			panesPerTab: number,
+		) => void;
 		writeTerminalStressOutput: (
 			index: number,
 			lines: number,
@@ -764,7 +771,11 @@ function rendererStress(options: {
 	];
 
 	const shouldRunWorkspaceSwitch =
-		options.scenario === "workspace-switch" || options.scenario === "all";
+		options.scenario === "workspace-switch" ||
+		options.scenario === "workspace-switch-heavy" ||
+		options.scenario === "all";
+	const shouldPrepareHeavyWorkspaceSwitch =
+		options.scenario === "workspace-switch-heavy";
 	const shouldRunRouteSweep =
 		options.scenario === "route-sweep" || options.scenario === "all";
 	const shouldRunWorkspaceHeavy =
@@ -791,6 +802,8 @@ function rendererStress(options: {
 		const terminalActionErrors: string[] = [];
 		const terminalWebglContextLosses: TerminalWebglContextLossRecord[] = [];
 		const slowOperations: RendererStressResult["slowOperations"] = [];
+		const heavyWorkspaceSwitchWorkspaceIds: string[] = [];
+		const heavyWorkspaceSwitchSummaries: unknown[] = [];
 		let operationCount = 0;
 		let workspaceSummary: unknown = null;
 		let terminalStressSummary: unknown = null;
@@ -836,6 +849,86 @@ function rendererStress(options: {
 			if (durationMs < 100) return;
 			slowOperations.push({ phase, label, index, durationMs });
 		};
+		const prepareHeavyWorkspaceSwitchTargets = async () => {
+			const tabCount = Math.max(
+				1,
+				Math.min(40, Math.floor(options.terminalTabCount)),
+			);
+			const panesPerTab = Math.max(
+				1,
+				Math.min(8, Math.floor(options.terminalPanesPerTab)),
+			);
+
+			reportProgress("workspace-switch-heavy-prepare", 0, targets.length, true);
+			for (let index = 0; index < targets.length; index += 1) {
+				const target = targets[index];
+				await navigateTo(`/v2-workspace/${encodeURIComponent(target)}/`);
+				const bridge = await waitForBridge(target, 500);
+
+				let operationStartedAt = performance.now();
+				bridge.captureBaseline();
+				bridge.replaceWithGeneratedMixedLayout(tabCount, panesPerTab);
+				bridge.showChangesSidebar();
+				recordOperationDuration(
+					"workspace-switch-heavy-prepare",
+					`replace-generated-mixed-layout:${target}`,
+					index,
+					operationStartedAt,
+				);
+				heavyActionCounts["replace-generated-mixed-layout"] =
+					(heavyActionCounts["replace-generated-mixed-layout"] ?? 0) + 1;
+				operationCount += 1;
+
+				operationStartedAt = performance.now();
+				for (let tabIndex = 0; tabIndex < tabCount; tabIndex += 1) {
+					bridge.switchTab(tabIndex);
+					await nextFrame();
+				}
+				recordOperationDuration(
+					"workspace-switch-heavy-prepare",
+					`warm-generated-tabs:${target}`,
+					index,
+					operationStartedAt,
+				);
+				heavyActionCounts["warm-generated-tabs"] =
+					(heavyActionCounts["warm-generated-tabs"] ?? 0) + tabCount;
+				operationCount += tabCount;
+
+				heavyWorkspaceSwitchWorkspaceIds.push(target);
+				heavyWorkspaceSwitchSummaries.push(bridge.getSummary());
+				reportProgress(
+					"workspace-switch-heavy-prepare",
+					index + 1,
+					targets.length,
+				);
+			}
+		};
+		const restoreHeavyWorkspaceSwitchTargets = async () => {
+			for (
+				let index = heavyWorkspaceSwitchWorkspaceIds.length - 1;
+				index >= 0;
+				index -= 1
+			) {
+				const target = heavyWorkspaceSwitchWorkspaceIds[index];
+				const operationStartedAt = performance.now();
+				await navigateTo(`/v2-workspace/${encodeURIComponent(target)}/`);
+				const bridge = await waitForBridge(target, 500);
+				bridge.restoreBaseline();
+				recordOperationDuration(
+					"workspace-switch-heavy-restore",
+					target,
+					index,
+					operationStartedAt,
+				);
+			}
+		};
+
+		if (shouldPrepareHeavyWorkspaceSwitch) {
+			await prepareHeavyWorkspaceSwitchTargets();
+			workspaceSummary = {
+				preparedWorkspaceSummaries: heavyWorkspaceSwitchSummaries,
+			};
+		}
 
 		if (shouldRunWorkspaceSwitch) {
 			reportProgress("workspace-switch", 0, options.iterations, true);
@@ -854,6 +947,10 @@ function rendererStress(options: {
 				reportProgress("workspace-switch", index + 1, options.iterations);
 				await sleep(options.intervalMs);
 			}
+		}
+
+		if (shouldPrepareHeavyWorkspaceSwitch) {
+			await restoreHeavyWorkspaceSwitchTargets();
 		}
 
 		let workspaceId = targets[0];
