@@ -1,0 +1,31 @@
+app = "superset-relay-staging"
+primary_region = "sjc"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  RELAY_PORT = "8080"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "off"
+  auto_start_machines = true
+
+[http_service.concurrency]
+  type = "connections"
+  soft_limit = 2000
+  hard_limit = 5000
+
+[[http_service.checks]]
+  interval = "10s"
+  timeout = "2s"
+  grace_period = "20s"
+  method = "GET"
+  path = "/health"
+
+[[vm]]
+  memory = "4gb"
+  cpu_kind = "performance"
+  cpus = 2
