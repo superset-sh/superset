@@ -104,6 +104,17 @@ describe("parseNumstatRecords", () => {
 			},
 		]);
 	});
+
+	test("omits empty oldPath for malformed rename records", () => {
+		const raw = "4\t3\t\x00\x00src/new.ts\x00";
+		expect(parseNumstatRecords(raw)).toEqual([
+			{
+				path: "src/new.ts",
+				additions: 4,
+				deletions: 3,
+			},
+		]);
+	});
 });
 
 describe("parseNameStatus", () => {

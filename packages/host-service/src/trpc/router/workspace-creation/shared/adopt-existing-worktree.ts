@@ -295,7 +295,7 @@ async function recordBaseBranch(
 	baseBranch: string | undefined,
 ): Promise<void> {
 	if (!baseBranch) return;
-	await gitConfigWrite(git as Parameters<typeof gitConfigWrite>[0], [
+	await gitConfigWrite(git, [
 		"config",
 		`branch.${branch}.base`,
 		baseBranch,

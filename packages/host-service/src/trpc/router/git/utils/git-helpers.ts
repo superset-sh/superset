@@ -115,7 +115,13 @@ export function parseNumstatRecords(raw: string): NumstatRecord[] {
 		if (pathMaybe === "") {
 			const oldPath = entries[++i] ?? "";
 			const newPath = entries[++i] ?? "";
-			if (newPath) result.push({ path: newPath, oldPath, ...stats });
+			if (newPath) {
+				result.push({
+					path: newPath,
+					...(oldPath ? { oldPath } : {}),
+					...stats,
+				});
+			}
 		} else {
 			result.push({ path: pathMaybe, ...stats });
 		}

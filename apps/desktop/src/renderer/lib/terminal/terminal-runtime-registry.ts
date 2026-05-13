@@ -14,6 +14,7 @@ import {
 	type TerminalRuntime,
 	updateRuntimeAppearance,
 } from "./terminal-runtime";
+import { isTerminalWebglCanvas } from "./terminal-webgl-addon-controller";
 import {
 	type ConnectionState,
 	clearLogs,
@@ -75,11 +76,12 @@ function forceRuntimeWebglContextLoss(
 	runtime: TerminalRuntime,
 ): Omit<TerminalWebglContextLossResult, "terminalCount"> {
 	const canvases = Array.from(runtime.wrapper.querySelectorAll("canvas"));
+	const webglCanvases = canvases.filter(isTerminalWebglCanvas);
 	let webglContextCount = 0;
 	let lostContextCount = 0;
 	let unsupportedContextCount = 0;
 
-	for (const canvas of canvases) {
+	for (const canvas of webglCanvases) {
 		const context = getWebglContext(canvas);
 		if (!context) continue;
 
@@ -180,6 +182,7 @@ class TerminalRuntimeRegistryImpl {
 			return entry ? [entry] : [];
 		}
 		if (terminalId) return this.getEntries(terminalId);
+		if (instanceId) return [];
 		return Array.from(this.entries.values());
 	}
 

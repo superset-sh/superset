@@ -119,7 +119,6 @@ interface RendererStressResult {
 }
 
 const DEFAULT_SELECTOR = "[data-renderer-stress-workspace-id]";
-const WEBGL_CONTEXT_RECOVERY_SETTLE_MS = 3500;
 
 interface TerminalWebglContextLossRecord {
 	index: number;
@@ -467,6 +466,7 @@ function rendererStress(options: {
 	selector: string;
 	workspaceIds: string[];
 }): Promise<RendererStressResult> {
+	const webglContextRecoverySettleMs = 3500;
 	type StressWindow = Window & {
 		performance: Performance & {
 			memory?: unknown;
@@ -1197,7 +1197,7 @@ function rendererStress(options: {
 						(result) => result.lostContextCount > 0,
 					)
 				) {
-					await sleep(WEBGL_CONTEXT_RECOVERY_SETTLE_MS);
+					await sleep(webglContextRecoverySettleMs);
 				}
 
 				terminalStressSummary = activeBridge.getTerminalStressSummary();

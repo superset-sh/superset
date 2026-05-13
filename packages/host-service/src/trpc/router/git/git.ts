@@ -64,12 +64,24 @@ interface DiffStats {
 	deletions: number;
 }
 
+function addDiffStats(
+	byPath: Map<string, DiffStats>,
+	path: string,
+	stats: DiffStats,
+): void {
+	const existing = byPath.get(path);
+	byPath.set(path, {
+		additions: (existing?.additions ?? 0) + stats.additions,
+		deletions: (existing?.deletions ?? 0) + stats.deletions,
+	});
+}
+
 function applyNumstatToStatsMap(
 	byPath: Map<string, DiffStats>,
 	raw: string,
 ): void {
 	for (const record of parseNumstatRecords(raw)) {
-		byPath.set(record.path, {
+		addDiffStats(byPath, record.path, {
 			additions: record.additions,
 			deletions: record.deletions,
 		});
@@ -317,7 +329,7 @@ export const gitRouter = router({
 				}));
 			await countUntrackedFileLines(worktreePath, untrackedFiles);
 			for (const file of untrackedFiles) {
-				byPath.set(file.path, {
+				addDiffStats(byPath, file.path, {
 					additions: file.additions,
 					deletions: file.deletions,
 				});

@@ -38,6 +38,11 @@ interface QueuedV2WorkspaceNavigation extends V2WorkspaceNavigationRequest {
 let inFlightV2WorkspaceNavigation: Promise<void> | null = null;
 let queuedV2WorkspaceNavigation: QueuedV2WorkspaceNavigation | null = null;
 
+export function resetV2WorkspaceNavigationStateForTesting(): void {
+	inFlightV2WorkspaceNavigation = null;
+	queuedV2WorkspaceNavigation = null;
+}
+
 function observeNavigationFailure(
 	promise: Promise<void>,
 	context: string,

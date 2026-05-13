@@ -351,7 +351,7 @@ async function recordBaseBranchConfig(args: {
 	branch: string;
 	baseBranch: string;
 }): Promise<void> {
-	await gitConfigWrite(args.git as Parameters<typeof gitConfigWrite>[0], [
+	await gitConfigWrite(args.git, [
 		"-C",
 		args.worktreePath,
 		"config",
@@ -908,10 +908,14 @@ export const workspacesRouter = router({
 
 							if (!plan.usedExistingBranch && plan.startPoint.kind !== "head") {
 								const baseShortName = plan.startPoint.shortName;
-								await gitConfigWrite(
-									git as Parameters<typeof gitConfigWrite>[0],
-									["config", `branch.${resolvedBranch}.base`, baseShortName],
-								).catch((err) => {
+								await gitConfigWrite(git, [
+									"-C",
+									worktreePath,
+									"config",
+									"--local",
+									`branch.${resolvedBranch}.base`,
+									baseShortName,
+								]).catch((err) => {
 									console.warn(
 										`[workspaces.create] failed to record base branch ${baseShortName}:`,
 										err,

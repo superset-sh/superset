@@ -6,7 +6,7 @@ export async function enablePushAutoSetupRemote(
 	worktreePath: string,
 	logPrefix: string,
 ): Promise<void> {
-	await gitConfigWrite(git as Parameters<typeof gitConfigWrite>[0], [
+	await gitConfigWrite(git, [
 		"-C",
 		worktreePath,
 		"config",

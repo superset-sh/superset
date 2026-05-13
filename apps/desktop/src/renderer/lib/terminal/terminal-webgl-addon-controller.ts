@@ -9,6 +9,15 @@ export interface TerminalWebglAddonController {
 
 // Once WebGL fails, skip it for all subsequent runtimes (VS Code pattern).
 let suggestedRendererType: "dom" | undefined;
+const terminalWebglCanvases = new WeakSet<HTMLCanvasElement>();
+
+export function isTerminalWebglCanvas(canvas: HTMLCanvasElement): boolean {
+	return terminalWebglCanvases.has(canvas);
+}
+
+export function resetTerminalWebglAddonStateForTesting(): void {
+	suggestedRendererType = undefined;
+}
 
 function afterPendingXtermRefresh(callback: () => void): void {
 	if (typeof requestAnimationFrame !== "function") {
@@ -26,8 +35,10 @@ export function createTerminalWebglAddonController(
 	let disposed = false;
 	let webglAddon: WebglAddon | null = null;
 	let enableRafId: number | null = null;
+	let fallbackTimeoutId: ReturnType<typeof setTimeout> | null = null;
 	let rootContextLossRemove: (() => void) | null = null;
 	let fallbackScheduled = false;
+	let markedWebglCanvases: HTMLCanvasElement[] = [];
 
 	const clearEnableRaf = () => {
 		if (enableRafId === null) return;
@@ -40,6 +51,33 @@ export function createTerminalWebglAddonController(
 		rootContextLossRemove = null;
 	};
 
+	const clearFallbackTimeout = () => {
+		if (fallbackTimeoutId === null) return;
+		clearTimeout(fallbackTimeoutId);
+		fallbackTimeoutId = null;
+	};
+
+	const unmarkWebglCanvases = () => {
+		for (const canvas of markedWebglCanvases) {
+			terminalWebglCanvases.delete(canvas);
+		}
+		markedWebglCanvases = [];
+	};
+
+	const markWebglCanvases = () => {
+		unmarkWebglCanvases();
+		const element = terminal.element;
+		if (!element) return;
+		markedWebglCanvases = Array.from(
+			element.querySelectorAll<HTMLCanvasElement>(
+				"canvas:not(.xterm-link-layer)",
+			),
+		);
+		for (const canvas of markedWebglCanvases) {
+			terminalWebglCanvases.add(canvas);
+		}
+	};
+
 	const repaint = () => {
 		try {
 			terminal.refresh(0, Math.max(0, terminal.rows - 1));
@@ -48,7 +86,10 @@ export function createTerminalWebglAddonController(
 
 	const disposeAddon = (options: { markDomFallback: boolean }) => {
 		clearEnableRaf();
+		clearFallbackTimeout();
 		removeContextLossListener();
+		unmarkWebglCanvases();
+		fallbackScheduled = false;
 		const addon = webglAddon;
 		webglAddon = null;
 		if (options.markDomFallback) {
@@ -63,10 +104,11 @@ export function createTerminalWebglAddonController(
 	};
 
 	const fallbackToDom = () => {
-		if (fallbackScheduled) return;
+		if (disposed || fallbackScheduled) return;
 		fallbackScheduled = true;
 		console.info("[terminal:webgl] context lost; falling back to DOM renderer");
-		setTimeout(() => {
+		fallbackTimeoutId = setTimeout(() => {
+			fallbackTimeoutId = null;
 			disposeAddon({ markDomFallback: true });
 		}, 0);
 	};
@@ -108,6 +150,7 @@ export function createTerminalWebglAddonController(
 					attachContextLossListener();
 					terminal.loadAddon(addon);
 					webglAddon = addon;
+					markWebglCanvases();
 				} catch {
 					console.warn(
 						"[terminal:webgl] failed to load; falling back to DOM renderer",
@@ -115,16 +158,15 @@ export function createTerminalWebglAddonController(
 					suggestedRendererType = "dom";
 					webglAddon = null;
 					removeContextLossListener();
+					unmarkWebglCanvases();
 				}
 			});
 		},
 		disable: () => {
-			fallbackScheduled = false;
 			disposeAddon({ markDomFallback: false });
 		},
 		dispose: () => {
 			disposed = true;
-			fallbackScheduled = false;
 			disposeAddon({ markDomFallback: false });
 		},
 	};

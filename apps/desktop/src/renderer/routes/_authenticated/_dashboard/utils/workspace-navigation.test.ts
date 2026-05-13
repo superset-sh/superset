@@ -1,7 +1,10 @@
 import { beforeEach, describe, expect, it } from "bun:test";
 import type { UseNavigateResult } from "@tanstack/react-router";
 import { useV2WorkspaceNavigationStore } from "renderer/stores/v2-workspace-navigation";
-import { navigateToV2Workspace } from "./workspace-navigation";
+import {
+	navigateToV2Workspace,
+	resetV2WorkspaceNavigationStateForTesting,
+} from "./workspace-navigation";
 
 function createDeferred() {
 	let resolve!: () => void;
@@ -15,6 +18,7 @@ function createDeferred() {
 
 describe("navigateToV2Workspace", () => {
 	beforeEach(() => {
+		resetV2WorkspaceNavigationStateForTesting();
 		useV2WorkspaceNavigationStore.setState({ pendingWorkspaceId: null });
 	});
 
