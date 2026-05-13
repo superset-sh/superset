@@ -56,7 +56,9 @@ function createFakeTerminal() {
 	const element = new EventTarget() as EventTarget & {
 		querySelectorAll: <T extends Element = Element>(selector: string) => T[];
 	};
-	element.querySelectorAll = mock(() => [webglCanvas] as unknown as Element[]);
+	element.querySelectorAll = <T extends Element = Element>() => [
+		webglCanvas as unknown as T,
+	];
 
 	const loadedAddons: FakeWebglAddon[] = [];
 	const loadAddon = mock((addon: FakeWebglAddon) => {
