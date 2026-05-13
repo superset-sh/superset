@@ -1,5 +1,4 @@
 import { ClipboardAddon } from "@xterm/addon-clipboard";
-import { LigaturesAddon } from "@xterm/addon-ligatures";
 import { ProgressAddon } from "@xterm/addon-progress";
 import { SearchAddon } from "@xterm/addon-search";
 import { Unicode11Addon } from "@xterm/addon-unicode11";
@@ -36,10 +35,6 @@ export function loadAddons(terminal: XTerm): LoadAddonsResult {
 
 	const progressAddon = new ProgressAddon();
 	terminal.loadAddon(progressAddon);
-
-	try {
-		terminal.loadAddon(new LigaturesAddon());
-	} catch {}
 
 	return {
 		searchAddon,

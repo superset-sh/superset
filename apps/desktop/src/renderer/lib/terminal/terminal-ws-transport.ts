@@ -4,6 +4,7 @@ import type { Terminal as XTerm } from "@xterm/xterm";
 export type ConnectionState = "disconnected" | "connecting" | "open" | "closed";
 
 export type TerminalLogLevel = "info" | "warn" | "error";
+export type TerminalOutputWriter = (data: Uint8Array) => void;
 
 export interface TerminalLogEntry {
 	id: number;
@@ -47,6 +48,8 @@ export interface TerminalTransport {
 	_titleNotifyTimer: ReturnType<typeof setTimeout> | null;
 	/** The xterm instance used for reconnection. */
 	_terminal: XTerm | null;
+	/** Writes PTY output into xterm, optionally with renderer-side backpressure. */
+	_writeOutput: TerminalOutputWriter | null;
 	/** Set when the server signals the session is done (PTY exit or fatal
 	 * attach error). Suppresses the auto-reconnect loop. */
 	_terminated: boolean;
@@ -151,6 +154,7 @@ export function createTransport(): TerminalTransport {
 		_titleNotifyTimer: null,
 		_reconnectAttempt: 0,
 		_terminal: null,
+		_writeOutput: null,
 		_hasReceivedBytes: false,
 		_terminated: false,
 	};
@@ -175,7 +179,12 @@ function scheduleReconnect(transport: TerminalTransport) {
 			transport.currentUrl &&
 			transport._terminal
 		) {
-			connect(transport, transport._terminal, transport.currentUrl);
+			connect(
+				transport,
+				transport._terminal,
+				transport.currentUrl,
+				transport._writeOutput ?? undefined,
+			);
 		}
 	}, delay);
 }
@@ -219,6 +228,7 @@ export function connect(
 	transport: TerminalTransport,
 	terminal: XTerm,
 	wsUrl: string,
+	writeOutput?: TerminalOutputWriter,
 ) {
 	// Idempotent: skip if already connected/connecting to the same endpoint.
 	const isActive =
@@ -234,6 +244,7 @@ export function connect(
 	cancelReconnect(transport);
 	transport.currentUrl = wsUrl;
 	transport._terminal = terminal;
+	transport._writeOutput = writeOutput ?? ((data) => terminal.write(data));
 	transport._terminated = false;
 	setConnectionState(transport, "connecting");
 	const actualUrl = transport._hasReceivedBytes
@@ -307,7 +318,8 @@ function attachSocketListeners(
 		// channel; renderer treats them identically). Pipe straight into
 		// xterm without any decoding step.
 		if (event.data instanceof ArrayBuffer) {
-			terminal.write(new Uint8Array(event.data));
+			const data = new Uint8Array(event.data);
+			transport._writeOutput?.(data);
 			transport._hasReceivedBytes = true;
 			return;
 		}

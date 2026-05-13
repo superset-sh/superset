@@ -61,6 +61,16 @@ const disposeRuntimeMock = mock((runtime: TerminalRuntime) => {
 const updateRuntimeAppearanceMock = mock(
 	(_runtime: TerminalRuntime, _appearance: TerminalAppearance) => {},
 );
+const focusRuntimeMock = mock((_runtime: TerminalRuntime) => {});
+const writeRuntimeOutputMock = mock(
+	(
+		runtime: TerminalRuntime,
+		data: string | Uint8Array,
+		callback?: () => void,
+	) => {
+		runtime.terminal.write(data, callback);
+	},
+);
 
 mock.module(
 	"./terminal-runtime",
@@ -69,7 +79,9 @@ mock.module(
 		createRuntime: createRuntimeMock,
 		detachFromContainer: detachFromContainerMock,
 		disposeRuntime: disposeRuntimeMock,
+		focusRuntime: focusRuntimeMock,
 		updateRuntimeAppearance: updateRuntimeAppearanceMock,
+		writeRuntimeOutput: writeRuntimeOutputMock,
 	}),
 );
 
@@ -130,6 +142,11 @@ function createFakeRuntime(terminalId: string): FakeRuntime {
 		_disableWebglAddon: null,
 		_disposeAddons: null,
 		_disposeImagePasteFallback: null,
+		lastContainerWidth: 0,
+		lastContainerHeight: 0,
+		_outputQueue: [],
+		_outputEnqueued: false,
+		_outputQueuedBytes: 0,
 	};
 }
 
@@ -171,6 +188,8 @@ beforeEach(() => {
 		detachFromContainerMock,
 		disposeRuntimeMock,
 		updateRuntimeAppearanceMock,
+		focusRuntimeMock,
+		writeRuntimeOutputMock,
 	]) {
 		fn.mockClear();
 	}
@@ -307,5 +326,26 @@ describe("terminalRuntimeRegistry", () => {
 			unsupportedContextCount: 0,
 		});
 		expect(unmarkedCanvas.getContext).not.toHaveBeenCalled();
+	});
+
+	it("accepts stress output without waiting for xterm write completion", async () => {
+		terminalRuntimeRegistry.mount(
+			"terminal-1",
+			createContainer(),
+			appearance,
+			"workspace-a",
+		);
+
+		const accepted = await terminalRuntimeRegistry.writeForStress(
+			"terminal-1",
+			"large output",
+			"workspace-a",
+		);
+
+		expect(accepted).toBe(true);
+		expect(writeRuntimeOutputMock).toHaveBeenCalledWith(
+			createdRuntimes[0],
+			"large output",
+		);
 	});
 });

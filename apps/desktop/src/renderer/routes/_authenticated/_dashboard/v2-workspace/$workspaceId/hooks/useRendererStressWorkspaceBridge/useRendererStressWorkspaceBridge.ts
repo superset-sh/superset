@@ -1,6 +1,9 @@
 import type { SelectV2Workspace } from "@superset/db/schema";
 import type {
 	CreatePaneInput,
+	LayoutNode,
+	Pane,
+	Tab,
 	WorkspaceState,
 	WorkspaceStore,
 } from "@superset/panes";
@@ -156,6 +159,74 @@ function createStressTerminalPane(
 		data: {
 			terminalId,
 		} satisfies TerminalPaneData,
+	};
+}
+
+function buildStressLayoutNode(
+	paneIds: string[],
+	direction: "horizontal" | "vertical" = "vertical",
+): LayoutNode {
+	if (paneIds.length === 1) {
+		const [paneId] = paneIds as [string];
+		return { type: "pane", paneId };
+	}
+
+	const mid = Math.ceil(paneIds.length / 2);
+	const nextDirection = direction === "vertical" ? "horizontal" : "vertical";
+
+	return {
+		type: "split",
+		direction,
+		first: buildStressLayoutNode(paneIds.slice(0, mid), nextDirection),
+		second: buildStressLayoutNode(paneIds.slice(mid), nextDirection),
+	};
+}
+
+function buildGeneratedWorkspaceState(
+	workspaceId: string,
+	tabCount: number,
+	panesPerTab: number,
+	createPane: (
+		tabIndex: number,
+		paneOffset: number,
+	) => CreatePaneInput<PaneViewerData>,
+): WorkspaceState<PaneViewerData> {
+	const createdAt = Date.now();
+	const tabs: Tab<PaneViewerData>[] = Array.from(
+		{ length: tabCount },
+		(_, tabIndex) => {
+			const panes: Record<string, Pane<PaneViewerData>> = {};
+			const paneIds: string[] = [];
+
+			for (let paneOffset = 0; paneOffset < panesPerTab; paneOffset += 1) {
+				const input = createPane(tabIndex, paneOffset);
+				const paneId =
+					input.id ??
+					`renderer-stress-pane-${workspaceId}-${tabIndex}-${paneOffset}`;
+				panes[paneId] = {
+					id: paneId,
+					kind: input.kind,
+					titleOverride: input.titleOverride,
+					pinned: input.pinned,
+					data: input.data,
+				};
+				paneIds.push(paneId);
+			}
+
+			return {
+				id: `renderer-stress-tab-${workspaceId}-${tabIndex}`,
+				createdAt: createdAt + tabIndex,
+				activePaneId: paneIds[0] ?? null,
+				layout: buildStressLayoutNode(paneIds),
+				panes,
+			};
+		},
+	);
+
+	return {
+		version: 1,
+		tabs,
+		activeTabId: tabs.at(-1)?.id ?? null,
 	};
 }
 
@@ -454,67 +525,67 @@ export function useRendererStressWorkspaceBridge({
 			},
 			replaceWithGeneratedLayout: (tabCount, panesPerTab) => {
 				releaseStressTerminalRuntimes();
-				store.getState().replaceState({
-					version: 1,
-					tabs: [],
-					activeTabId: null,
-				});
 				const boundedTabCount = Math.max(1, Math.min(50, Math.floor(tabCount)));
 				const boundedPaneCount = Math.max(
 					1,
 					Math.min(8, Math.floor(panesPerTab)),
 				);
-				for (let tabIndex = 0; tabIndex < boundedTabCount; tabIndex += 1) {
-					bridge.addTab(
-						getNextPaneKind(tabIndex),
-						tabIndex * 10,
+				store.getState().replaceState(
+					buildGeneratedWorkspaceState(
+						workspace.id,
+						boundedTabCount,
 						boundedPaneCount,
-					);
-				}
+						(tabIndex, paneOffset) => {
+							const paneIndex = tabIndex * 10 + paneOffset;
+							return createStressPane(
+								paneOffset === 0
+									? getNextPaneKind(tabIndex)
+									: getNextPaneKind(paneIndex),
+								paneIndex,
+								filePaths,
+								worktreePath,
+							);
+						},
+					),
+				);
 			},
 			replaceWithGeneratedTerminalLayout: (tabCount, panesPerTab) => {
 				releaseStressTerminalRuntimes();
-				store.getState().replaceState({
-					version: 1,
-					tabs: [],
-					activeTabId: null,
-				});
 				const boundedTabCount = Math.max(1, Math.min(80, Math.floor(tabCount)));
 				const boundedPaneCount = Math.max(
 					1,
 					Math.min(8, Math.floor(panesPerTab)),
 				);
-				for (let tabIndex = 0; tabIndex < boundedTabCount; tabIndex += 1) {
-					const panes = Array.from({ length: boundedPaneCount }, (_, offset) =>
-						createStressTerminalPane(
+				store
+					.getState()
+					.replaceState(
+						buildGeneratedWorkspaceState(
 							workspace.id,
-							tabIndex * boundedPaneCount + offset,
-							rememberStressTerminalId,
+							boundedTabCount,
+							boundedPaneCount,
+							(tabIndex, paneOffset) =>
+								createStressTerminalPane(
+									workspace.id,
+									tabIndex * boundedPaneCount + paneOffset,
+									rememberStressTerminalId,
+								),
 						),
-					) as [
-						CreatePaneInput<PaneViewerData>,
-						...CreatePaneInput<PaneViewerData>[],
-					];
-					store.getState().addTab({ panes });
-				}
+					);
 			},
 			replaceWithGeneratedMixedLayout: (tabCount, panesPerTab) => {
 				releaseStressTerminalRuntimes();
-				store.getState().replaceState({
-					version: 1,
-					tabs: [],
-					activeTabId: null,
-				});
 				const boundedTabCount = Math.max(1, Math.min(80, Math.floor(tabCount)));
 				const boundedPaneCount = Math.max(
 					1,
 					Math.min(8, Math.floor(panesPerTab)),
 				);
-				for (let tabIndex = 0; tabIndex < boundedTabCount; tabIndex += 1) {
-					const panes = Array.from(
-						{ length: boundedPaneCount },
-						(_, offset) => {
-							const paneIndex = tabIndex * boundedPaneCount + offset;
+				store.getState().replaceState(
+					buildGeneratedWorkspaceState(
+						workspace.id,
+						boundedTabCount,
+						boundedPaneCount,
+						(tabIndex, paneOffset) => {
+							const paneIndex = tabIndex * boundedPaneCount + paneOffset;
 							if (paneIndex % 4 === 0) {
 								return createStressTerminalPane(
 									workspace.id,
@@ -529,12 +600,8 @@ export function useRendererStressWorkspaceBridge({
 								worktreePath,
 							);
 						},
-					) as [
-						CreatePaneInput<PaneViewerData>,
-						...CreatePaneInput<PaneViewerData>[],
-					];
-					store.getState().addTab({ panes });
-				}
+					),
+				);
 			},
 			writeTerminalStressOutput: async (index, lines, payloadBytes) => {
 				const refs = getStressTerminalRefs();

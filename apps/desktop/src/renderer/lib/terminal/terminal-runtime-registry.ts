@@ -11,8 +11,10 @@ import {
 	createRuntime,
 	detachFromContainer,
 	disposeRuntime,
+	focusRuntime,
 	type TerminalRuntime,
 	updateRuntimeAppearance,
+	writeRuntimeOutput,
 } from "./terminal-runtime";
 import { isTerminalWebglCanvas } from "./terminal-webgl-addon-controller";
 import {
@@ -257,7 +259,10 @@ class TerminalRuntimeRegistryImpl {
 	connect(terminalId: string, wsUrl: string, instanceId = terminalId) {
 		const entry = this.getEntry(terminalId, instanceId);
 		if (!entry?.runtime) return;
-		connect(entry.transport, entry.runtime.terminal, wsUrl);
+		const { runtime } = entry;
+		connect(entry.transport, runtime.terminal, wsUrl, (data) => {
+			writeRuntimeOutput(runtime, data);
+		});
 	}
 
 	/**
@@ -277,7 +282,10 @@ class TerminalRuntimeRegistryImpl {
 		if (!entry?.runtime) return;
 		if (entry.transport.connectionState === "disconnected") return;
 		if (entry.transport.currentUrl === wsUrl) return;
-		connect(entry.transport, entry.runtime.terminal, wsUrl);
+		const { runtime } = entry;
+		connect(entry.transport, runtime.terminal, wsUrl, (data) => {
+			writeRuntimeOutput(runtime, data);
+		});
 	}
 
 	/**
@@ -307,6 +315,13 @@ class TerminalRuntimeRegistryImpl {
 		if (!entry?.runtime) return;
 
 		detachFromContainer(entry.runtime);
+	}
+
+	focus(terminalId: string, instanceId = terminalId) {
+		const entry = this.getEntry(terminalId, instanceId);
+		if (!entry?.runtime) return;
+
+		focusRuntime(entry.runtime);
 	}
 
 	updateAppearance(
@@ -402,6 +417,7 @@ class TerminalRuntimeRegistryImpl {
 	): Promise<boolean> {
 		const entry = this.getEntry(terminalId, instanceId);
 		if (!entry?.runtime) return Promise.resolve(false);
+		const { runtime } = entry;
 
 		return new Promise<boolean>((resolve) => {
 			let settled = false;
@@ -417,7 +433,8 @@ class TerminalRuntimeRegistryImpl {
 
 			timeoutId = setTimeout(() => settle(false), timeoutMs);
 			try {
-				entry.runtime?.terminal.write(data, () => settle(true));
+				writeRuntimeOutput(runtime, data);
+				queueMicrotask(() => settle(true));
 			} catch {
 				settle(false);
 			}

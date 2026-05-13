@@ -1,5 +1,6 @@
 import { WebglAddon } from "@xterm/addon-webgl";
 import type { Terminal as XTerm } from "@xterm/xterm";
+import { markTerminalSessionReplayBlocked } from "./terminal-session-replay";
 
 export interface TerminalWebglAddonController {
 	enable: () => void;
@@ -10,6 +11,7 @@ export interface TerminalWebglAddonController {
 // Once WebGL fails, skip it for all subsequent runtimes (VS Code pattern).
 let suggestedRendererType: "dom" | undefined;
 const terminalWebglCanvases = new WeakSet<HTMLCanvasElement>();
+const WEBGL_ENABLE_STABILITY_DELAY_MS = 250;
 
 export function isTerminalWebglCanvas(canvas: HTMLCanvasElement): boolean {
 	return terminalWebglCanvases.has(canvas);
@@ -34,11 +36,18 @@ export function createTerminalWebglAddonController(
 ): TerminalWebglAddonController {
 	let disposed = false;
 	let webglAddon: WebglAddon | null = null;
+	let enableTimeoutId: ReturnType<typeof setTimeout> | null = null;
 	let enableRafId: number | null = null;
 	let fallbackTimeoutId: ReturnType<typeof setTimeout> | null = null;
 	let rootContextLossRemove: (() => void) | null = null;
 	let fallbackScheduled = false;
 	let markedWebglCanvases: HTMLCanvasElement[] = [];
+
+	const clearEnableTimeout = () => {
+		if (enableTimeoutId === null) return;
+		clearTimeout(enableTimeoutId);
+		enableTimeoutId = null;
+	};
 
 	const clearEnableRaf = () => {
 		if (enableRafId === null) return;
@@ -75,6 +84,8 @@ export function createTerminalWebglAddonController(
 		);
 		for (const canvas of markedWebglCanvases) {
 			terminalWebglCanvases.add(canvas);
+			canvas.setAttribute("data-terminal-webgl-canvas", "true");
+			markTerminalSessionReplayBlocked(canvas);
 		}
 	};
 
@@ -85,6 +96,7 @@ export function createTerminalWebglAddonController(
 	};
 
 	const disposeAddon = (options: { markDomFallback: boolean }) => {
+		clearEnableTimeout();
 		clearEnableRaf();
 		clearFallbackTimeout();
 		removeContextLossListener();
@@ -106,6 +118,7 @@ export function createTerminalWebglAddonController(
 	const fallbackToDom = () => {
 		if (disposed || fallbackScheduled) return;
 		fallbackScheduled = true;
+		suggestedRendererType = "dom";
 		console.info("[terminal:webgl] context lost; falling back to DOM renderer");
 		fallbackTimeoutId = setTimeout(() => {
 			fallbackTimeoutId = null;
@@ -133,34 +146,42 @@ export function createTerminalWebglAddonController(
 			if (
 				disposed ||
 				webglAddon ||
+				enableTimeoutId !== null ||
 				enableRafId !== null ||
 				suggestedRendererType === "dom"
 			) {
 				return;
 			}
 
-			enableRafId = requestAnimationFrame(() => {
-				enableRafId = null;
+			enableTimeoutId = setTimeout(() => {
+				enableTimeoutId = null;
 				if (disposed || webglAddon || suggestedRendererType === "dom") return;
 
-				try {
-					const addon = new WebglAddon();
-					addon.onContextLoss(fallbackToDom);
-					fallbackScheduled = false;
-					attachContextLossListener();
-					terminal.loadAddon(addon);
-					webglAddon = addon;
-					markWebglCanvases();
-				} catch {
-					console.warn(
-						"[terminal:webgl] failed to load; falling back to DOM renderer",
-					);
-					suggestedRendererType = "dom";
-					webglAddon = null;
-					removeContextLossListener();
-					unmarkWebglCanvases();
-				}
-			});
+				enableRafId = requestAnimationFrame(() => {
+					enableRafId = null;
+					if (disposed || webglAddon || suggestedRendererType === "dom") {
+						return;
+					}
+
+					try {
+						const addon = new WebglAddon();
+						addon.onContextLoss(fallbackToDom);
+						fallbackScheduled = false;
+						attachContextLossListener();
+						terminal.loadAddon(addon);
+						webglAddon = addon;
+						markWebglCanvases();
+					} catch {
+						console.warn(
+							"[terminal:webgl] failed to load; falling back to DOM renderer",
+						);
+						suggestedRendererType = "dom";
+						webglAddon = null;
+						removeContextLossListener();
+						unmarkWebglCanvases();
+					}
+				});
+			}, WEBGL_ENABLE_STABILITY_DELAY_MS);
 		},
 		disable: () => {
 			disposeAddon({ markDomFallback: false });

@@ -21,6 +21,9 @@ const {
 	resetTerminalWebglAddonStateForTesting,
 } = await import("./terminal-webgl-addon-controller");
 
+const waitForWebglEnable = () =>
+	new Promise((resolve) => setTimeout(resolve, 275));
+
 function installImmediateAnimationFrames() {
 	const mutableGlobal = globalThis as typeof globalThis & {
 		requestAnimationFrame?: typeof requestAnimationFrame;
@@ -52,7 +55,18 @@ function installImmediateAnimationFrames() {
 }
 
 function createFakeTerminal() {
-	const webglCanvas = {} as HTMLCanvasElement;
+	const webglCanvasAttributes = new Map<string, string>();
+	const webglCanvasClasses = new Set<string>();
+	const webglCanvas = {
+		classList: {
+			add: mock((className: string) => {
+				webglCanvasClasses.add(className);
+			}),
+		},
+		setAttribute: mock((name: string, value: string) => {
+			webglCanvasAttributes.set(name, value);
+		}),
+	} as unknown as HTMLCanvasElement;
 	const element = new EventTarget() as EventTarget & {
 		querySelectorAll: <T extends Element = Element>(selector: string) => T[];
 	};
@@ -70,6 +84,8 @@ function createFakeTerminal() {
 		loadedAddons,
 		lossTarget: element,
 		webglCanvas,
+		webglCanvasAttributes,
+		webglCanvasClasses,
 		terminal: {
 			element,
 			loadAddon,
@@ -100,15 +116,23 @@ describe("createTerminalWebglAddonController", () => {
 				loadAddon,
 				refresh,
 				webglCanvas,
+				webglCanvasAttributes,
+				webglCanvasClasses,
 			} = createFakeTerminal();
 			const controller = createTerminalWebglAddonController(terminal);
 
 			controller.enable();
+			await waitForWebglEnable();
 
 			expect(loadAddon).toHaveBeenCalledTimes(1);
 			expect(loadedAddons).toHaveLength(1);
 			expect(loadedAddons[0]?.onContextLoss).toHaveBeenCalledTimes(1);
 			expect(isTerminalWebglCanvas(webglCanvas)).toBe(true);
+			expect(webglCanvasClasses.has("ph-no-capture")).toBe(true);
+			expect(webglCanvasAttributes.get("data-ph-no-capture")).toBe("true");
+			expect(webglCanvasAttributes.get("data-terminal-webgl-canvas")).toBe(
+				"true",
+			);
 
 			const lossEvent = new Event("webglcontextlost", { cancelable: true });
 			lossTarget.dispatchEvent(lossEvent);
@@ -129,7 +153,7 @@ describe("createTerminalWebglAddonController", () => {
 		}
 	});
 
-	it("does not keep the global DOM fallback when a pending loss is disabled", async () => {
+	it("keeps the global DOM fallback when a pending loss is disabled", async () => {
 		const restoreAnimationFrames = installImmediateAnimationFrames();
 		const previousInfo = console.info;
 		console.info = mock(() => {});
@@ -140,6 +164,7 @@ describe("createTerminalWebglAddonController", () => {
 			const controller = createTerminalWebglAddonController(terminal);
 
 			controller.enable();
+			await waitForWebglEnable();
 
 			expect(loadAddon).toHaveBeenCalledTimes(1);
 			expect(isTerminalWebglCanvas(webglCanvas)).toBe(true);
@@ -155,9 +180,26 @@ describe("createTerminalWebglAddonController", () => {
 
 			controller.enable();
 
-			expect(loadAddon).toHaveBeenCalledTimes(2);
+			expect(loadAddon).toHaveBeenCalledTimes(1);
 		} finally {
 			console.info = previousInfo;
+			restoreAnimationFrames();
+		}
+	});
+
+	it("cancels pending WebGL setup when disabled before the stable attach window", async () => {
+		const restoreAnimationFrames = installImmediateAnimationFrames();
+
+		try {
+			const { terminal, loadAddon } = createFakeTerminal();
+			const controller = createTerminalWebglAddonController(terminal);
+
+			controller.enable();
+			controller.disable();
+			await waitForWebglEnable();
+
+			expect(loadAddon).toHaveBeenCalledTimes(0);
+		} finally {
 			restoreAnimationFrames();
 		}
 	});

@@ -61,6 +61,17 @@ const KNOWN_MONO_SET = new Set([
 	...WELL_KNOWN_NERD,
 	...REGISTERED_FONTS.map((f) => f.family),
 ]);
+const FONT_DISCOVERY_BATCH_SIZE = 16;
+const FONT_DISCOVERY_START_DELAY_MS = 1000;
+
+function yieldFontDiscoveryWork(): Promise<void> {
+	if (typeof window.requestIdleCallback === "function") {
+		return new Promise((resolve) => {
+			window.requestIdleCallback(() => resolve(), { timeout: 100 });
+		});
+	}
+	return new Promise((resolve) => setTimeout(resolve, 0));
+}
 
 // Reuse a single canvas context for all font measurements
 let sharedCtx: CanvasRenderingContext2D | null = null;
@@ -102,31 +113,91 @@ function classifyFont(family: string): FontCategory {
 	return "other";
 }
 
-function isMonospaceByMeasurement(family: string): boolean {
-	const ctx = getCanvasCtx();
-	if (!ctx) return false;
-	ctx.font = `16px "${family}"`;
-	const narrowWidth = ctx.measureText("iiiiii").width;
-	const wideWidth = ctx.measureText("MMMMMM").width;
-	return Math.abs(narrowWidth - wideWidth) < 1;
-}
-
-function discoverSystemFonts(): FontInfo[] {
+async function discoverSystemFonts(): Promise<FontInfo[]> {
 	const result: FontInfo[] = [];
+	let checked = 0;
 	for (const family of WELL_KNOWN_NERD) {
 		if (isFontAvailable(family)) {
 			result.push({ family, category: "nerd" });
+		}
+		checked += 1;
+		if (checked % FONT_DISCOVERY_BATCH_SIZE === 0) {
+			await yieldFontDiscoveryWork();
 		}
 	}
 	for (const family of WELL_KNOWN_MONO) {
 		if (isFontAvailable(family)) {
 			result.push({ family, category: "mono" });
 		}
+		checked += 1;
+		if (checked % FONT_DISCOVERY_BATCH_SIZE === 0) {
+			await yieldFontDiscoveryWork();
+		}
 	}
 	return result;
 }
 
 let cachedFonts: FontInfo[] | null = null;
+let fontDiscoveryPromise: Promise<FontInfo[]> | null = null;
+
+async function loadSystemFonts(): Promise<FontInfo[]> {
+	if (cachedFonts) return cachedFonts;
+	if (fontDiscoveryPromise) return fontDiscoveryPromise;
+
+	fontDiscoveryPromise = (async () => {
+		await document.fonts.ready;
+		await yieldFontDiscoveryWork();
+
+		const result: FontInfo[] = [];
+		const seen = new Set<string>();
+
+		// Add registered @font-face fonts only if they loaded successfully.
+		for (const font of REGISTERED_FONTS) {
+			if (isFontAvailable(font.family)) {
+				result.push(font);
+				seen.add(font.family);
+			}
+		}
+
+		for (const font of await discoverSystemFonts()) {
+			if (!seen.has(font.family)) {
+				seen.add(font.family);
+				result.push(font);
+			}
+		}
+
+		if (window.queryLocalFonts) {
+			try {
+				const fontData = await window.queryLocalFonts();
+				let checked = 0;
+				for (const fd of fontData) {
+					if (seen.has(fd.family)) continue;
+					seen.add(fd.family);
+
+					result.push({ family: fd.family, category: classifyFont(fd.family) });
+
+					checked += 1;
+					if (checked % FONT_DISCOVERY_BATCH_SIZE === 0) {
+						await yieldFontDiscoveryWork();
+					}
+				}
+			} catch (err) {
+				console.warn("[useSystemFonts] queryLocalFonts failed:", err);
+			}
+		}
+
+		result.sort((a, b) => a.family.localeCompare(b.family));
+		cachedFonts = result;
+		return result;
+	})();
+
+	try {
+		return await fontDiscoveryPromise;
+	} catch (error) {
+		fontDiscoveryPromise = null;
+		throw error;
+	}
+}
 
 export function useSystemFonts() {
 	const [fonts, setFonts] = useState<FontInfo[]>(cachedFonts ?? []);
@@ -136,60 +207,25 @@ export function useSystemFonts() {
 		if (cachedFonts) return;
 
 		let cancelled = false;
-
-		async function loadFonts() {
-			await document.fonts.ready;
-
-			const result: FontInfo[] = [];
-			const seen = new Set<string>();
-
-			// Add registered @font-face fonts only if they loaded successfully
-			for (const font of REGISTERED_FONTS) {
-				if (isFontAvailable(font.family)) {
-					result.push(font);
-					seen.add(font.family);
-				}
-			}
-
-			for (const font of discoverSystemFonts()) {
-				if (!seen.has(font.family)) {
-					seen.add(font.family);
-					result.push(font);
-				}
-			}
-
-			if (window.queryLocalFonts) {
-				try {
-					const fontData = await window.queryLocalFonts();
-					for (const fd of fontData) {
-						if (seen.has(fd.family)) continue;
-						seen.add(fd.family);
-
-						let category = classifyFont(fd.family);
-						if (category === "other" && isMonospaceByMeasurement(fd.family)) {
-							category = "mono";
-						}
-						result.push({ family: fd.family, category });
-					}
-				} catch (err) {
-					console.warn("[useSystemFonts] queryLocalFonts failed:", err);
-				}
-			}
-
-			result.sort((a, b) => a.family.localeCompare(b.family));
-
-			cachedFonts = result;
-			if (!cancelled) {
-				setFonts(result);
-				setIsLoading(false);
-			}
-		}
-
-		loadFonts().catch((err) => {
-			console.warn("[useSystemFonts] Font loading failed:", err);
-		});
+		const timeoutId = window.setTimeout(() => {
+			void yieldFontDiscoveryWork()
+				.then(() => {
+					if (cancelled) return null;
+					return loadSystemFonts();
+				})
+				.then((result) => {
+					if (cancelled || !result) return;
+					setFonts(result);
+					setIsLoading(false);
+				})
+				.catch((err) => {
+					if (!cancelled) setIsLoading(false);
+					console.warn("[useSystemFonts] Font loading failed:", err);
+				});
+		}, FONT_DISCOVERY_START_DELAY_MS);
 		return () => {
 			cancelled = true;
+			window.clearTimeout(timeoutId);
 		};
 	}, []);
 

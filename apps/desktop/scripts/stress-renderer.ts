@@ -81,6 +81,8 @@ interface RuntimeEvaluateResult {
 interface CpuProfile {
 	nodes: Array<{
 		id: number;
+		parent?: number;
+		children?: number[];
 		callFrame: {
 			functionName?: string;
 			url?: string;
@@ -104,6 +106,10 @@ interface CpuProfileFrameSummary {
 	columnNumber: number;
 	selfTimeMs: number;
 	sampleCount: number;
+	parentFunctionName?: string;
+	parentUrl?: string;
+	parentLineNumber?: number;
+	parentColumnNumber?: number;
 }
 
 interface RendererStressResult {
@@ -360,6 +366,13 @@ function summarizeCpuProfile(
 	limit = 30,
 ): CpuProfileFrameSummary[] {
 	const nodesById = new Map(profile.nodes.map((node) => [node.id, node]));
+	const parentByNodeId = new Map<number, number>();
+	for (const node of profile.nodes) {
+		if (node.parent != null) parentByNodeId.set(node.id, node.parent);
+		for (const childId of node.children ?? []) {
+			parentByNodeId.set(childId, node.id);
+		}
+	}
 	const selfTimeByNodeId = new Map<number, number>();
 	const sampleCountByNodeId = new Map<number, number>();
 	const samples = profile.samples ?? [];
@@ -377,6 +390,8 @@ function summarizeCpuProfile(
 	return Array.from(nodesById.entries())
 		.map(([nodeId, node]) => {
 			const callFrame = node.callFrame;
+			const parent = nodesById.get(parentByNodeId.get(nodeId) ?? -1);
+			const parentCallFrame = parent?.callFrame;
 			return {
 				functionName: callFrame.functionName || "(anonymous)",
 				url: callFrame.url || "",
@@ -384,6 +399,10 @@ function summarizeCpuProfile(
 				columnNumber: callFrame.columnNumber ?? 0,
 				selfTimeMs: selfTimeByNodeId.get(nodeId) ?? 0,
 				sampleCount: sampleCountByNodeId.get(nodeId) ?? node.hitCount ?? 0,
+				parentFunctionName: parentCallFrame?.functionName || undefined,
+				parentUrl: parentCallFrame?.url || undefined,
+				parentLineNumber: parentCallFrame?.lineNumber,
+				parentColumnNumber: parentCallFrame?.columnNumber,
 			};
 		})
 		.filter((frame) => frame.selfTimeMs > 0 || frame.sampleCount > 0)
