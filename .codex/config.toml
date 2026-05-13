@@ -22,8 +22,3 @@ url = "https://mcp.linear.app/mcp"
 [mcp_servers.sentry]
 type = "sse"
 url = "https://mcp.sentry.dev/mcp"
-
-
-[mcp_servers.desktop-automation]
-command = "bun"
-args = ["run", "packages/desktop-mcp/src/bin.ts"]

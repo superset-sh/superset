@@ -27,7 +27,6 @@ Bun + Turbo monorepo with:
   - `packages/trpc` - Shared tRPC definitions
   - `packages/shared` - Shared utilities
   - `packages/mcp` - MCP integration
-  - `packages/desktop-mcp` - Desktop MCP server
   - `packages/local-db` - Local SQLite database
   - `packages/durable-session` - Durable session management
   - `packages/email` - Email templates/sending
