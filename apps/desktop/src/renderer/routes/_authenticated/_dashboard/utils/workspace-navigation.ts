@@ -2,6 +2,10 @@ import type {
 	NavigateOptions,
 	UseNavigateResult,
 } from "@tanstack/react-router";
+import {
+	clearPendingV2WorkspaceNavigation,
+	setPendingV2WorkspaceNavigation,
+} from "renderer/stores/v2-workspace-navigation";
 
 export interface WorkspaceSearchParams {
 	tabId?: string;
@@ -17,22 +21,22 @@ export interface V2WorkspaceSearchParams {
 	openUrlRequestId?: string;
 }
 
-const V2_WORKSPACE_NAVIGATION_DEBOUNCE_MS = 75;
-
-interface PendingV2WorkspaceNavigation {
+interface V2WorkspaceNavigationRequest {
 	workspaceId: string;
 	navigate: UseNavigateResult<string>;
 	search: V2WorkspaceSearchParams;
 	options: Omit<NavigateOptions, "to" | "params" | "search">;
+}
+
+interface QueuedV2WorkspaceNavigation extends V2WorkspaceNavigationRequest {
 	waiters: Array<{
 		resolve: () => void;
 		reject: (error: unknown) => void;
 	}>;
 }
 
-let pendingV2WorkspaceNavigation: PendingV2WorkspaceNavigation | null = null;
-let pendingV2WorkspaceNavigationTimer: ReturnType<typeof setTimeout> | null =
-	null;
+let inFlightV2WorkspaceNavigation: Promise<void> | null = null;
+let queuedV2WorkspaceNavigation: QueuedV2WorkspaceNavigation | null = null;
 
 function observeNavigationFailure(
 	promise: Promise<void>,
@@ -53,7 +57,7 @@ function runV2WorkspaceNavigation({
 	navigate,
 	search,
 	options,
-}: Omit<PendingV2WorkspaceNavigation, "waiters">): Promise<void> {
+}: V2WorkspaceNavigationRequest): Promise<void> {
 	return navigate({
 		to: "/v2-workspace/$workspaceId",
 		params: { workspaceId },
@@ -62,55 +66,66 @@ function runV2WorkspaceNavigation({
 	});
 }
 
-function scheduleV2WorkspaceNavigation(
-	request: Omit<PendingV2WorkspaceNavigation, "waiters">,
+function completeWaiters(
+	waiters: QueuedV2WorkspaceNavigation["waiters"],
+	result: { status: "resolved" } | { status: "rejected"; error: unknown },
+): void {
+	for (const waiter of waiters) {
+		if (result.status === "resolved") {
+			waiter.resolve();
+		} else {
+			waiter.reject(result.error);
+		}
+	}
+}
+
+function drainQueuedV2WorkspaceNavigation(): void {
+	if (inFlightV2WorkspaceNavigation || !queuedV2WorkspaceNavigation) return;
+
+	const navigation = queuedV2WorkspaceNavigation;
+	queuedV2WorkspaceNavigation = null;
+	const promise = startV2WorkspaceNavigation(navigation);
+	promise.then(
+		() => completeWaiters(navigation.waiters, { status: "resolved" }),
+		(error) =>
+			completeWaiters(navigation.waiters, { status: "rejected", error }),
+	);
+}
+
+function startV2WorkspaceNavigation(
+	request: V2WorkspaceNavigationRequest,
+): Promise<void> {
+	const promise = runV2WorkspaceNavigation(request);
+	inFlightV2WorkspaceNavigation = promise;
+	void promise.then(
+		() => {
+			if (inFlightV2WorkspaceNavigation !== promise) return;
+			inFlightV2WorkspaceNavigation = null;
+			drainQueuedV2WorkspaceNavigation();
+		},
+		() => {
+			if (inFlightV2WorkspaceNavigation !== promise) return;
+			inFlightV2WorkspaceNavigation = null;
+			drainQueuedV2WorkspaceNavigation();
+		},
+	);
+	return promise;
+}
+
+function queueV2WorkspaceNavigation(
+	request: V2WorkspaceNavigationRequest,
 ): Promise<void> {
 	return new Promise((resolve, reject) => {
-		const waiters = pendingV2WorkspaceNavigation?.waiters ?? [];
+		const waiters = queuedV2WorkspaceNavigation?.waiters ?? [];
 		waiters.push({ resolve, reject });
-		pendingV2WorkspaceNavigation = { ...request, waiters };
-
-		if (pendingV2WorkspaceNavigationTimer) {
-			clearTimeout(pendingV2WorkspaceNavigationTimer);
-		}
-
-		pendingV2WorkspaceNavigationTimer = setTimeout(() => {
-			const navigation = pendingV2WorkspaceNavigation;
-			pendingV2WorkspaceNavigation = null;
-			pendingV2WorkspaceNavigationTimer = null;
-
-			if (!navigation) {
-				resolve();
-				return;
-			}
-
-			runV2WorkspaceNavigation(navigation).then(
-				() => {
-					for (const waiter of navigation.waiters) {
-						waiter.resolve();
-					}
-				},
-				(error) => {
-					for (const waiter of navigation.waiters) {
-						waiter.reject(error);
-					}
-				},
-			);
-		}, V2_WORKSPACE_NAVIGATION_DEBOUNCE_MS);
+		queuedV2WorkspaceNavigation = { ...request, waiters };
 	});
 }
 
-function cancelPendingV2WorkspaceNavigation(): void {
-	const navigation = pendingV2WorkspaceNavigation;
-	pendingV2WorkspaceNavigation = null;
-	if (pendingV2WorkspaceNavigationTimer) {
-		clearTimeout(pendingV2WorkspaceNavigationTimer);
-		pendingV2WorkspaceNavigationTimer = null;
-	}
-
-	for (const waiter of navigation?.waiters ?? []) {
-		waiter.resolve();
-	}
+function cancelQueuedV2WorkspaceNavigation(): void {
+	const navigation = queuedV2WorkspaceNavigation;
+	queuedV2WorkspaceNavigation = null;
+	completeWaiters(navigation?.waiters ?? [], { status: "resolved" });
 }
 
 /**
@@ -153,26 +168,37 @@ export function navigateToV2Workspace(
 ): Promise<void> {
 	const { search, ...rest } = options ?? {};
 	const resolvedSearch = search ?? {};
-	const shouldDebounce = !rest.replace && !hasSearchParams(resolvedSearch);
+	const isPlainWorkspaceSwitch =
+		!rest.replace && !hasSearchParams(resolvedSearch);
 
-	if (!shouldDebounce) {
-		cancelPendingV2WorkspaceNavigation();
+	setPendingV2WorkspaceNavigation(workspaceId);
+
+	if (!isPlainWorkspaceSwitch) {
+		cancelQueuedV2WorkspaceNavigation();
 	}
 
-	return observeNavigationFailure(
-		shouldDebounce
-			? scheduleV2WorkspaceNavigation({
+	const promise =
+		isPlainWorkspaceSwitch && inFlightV2WorkspaceNavigation
+			? queueV2WorkspaceNavigation({
 					workspaceId,
 					navigate,
 					search: resolvedSearch,
 					options: rest,
 				})
-			: runV2WorkspaceNavigation({
+			: startV2WorkspaceNavigation({
 					workspaceId,
 					navigate,
 					search: resolvedSearch,
 					options: rest,
-				}),
+				});
+
+	void promise.then(
+		() => clearPendingV2WorkspaceNavigation(workspaceId),
+		() => clearPendingV2WorkspaceNavigation(workspaceId),
+	);
+
+	return observeNavigationFailure(
+		promise,
 		`navigate to v2 workspace ${workspaceId}`,
 	);
 }
