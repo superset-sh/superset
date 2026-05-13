@@ -72,7 +72,7 @@
 		"@xterm/headless": "6.1.0-beta.197",
 		"better-sqlite3": "12.6.2",
 		"drizzle-orm": "0.45.2",
-		"hono": "4.12.9",
+		"hono": "4.12.18",
 		"mastracode": "0.15.0-alpha.3",
 		"mime-types": "3.0.2",
 		"node-pty": "1.1.0",
