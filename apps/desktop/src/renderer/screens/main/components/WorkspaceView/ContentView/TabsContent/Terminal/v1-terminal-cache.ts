@@ -26,6 +26,8 @@ export interface CachedTerminal {
 	cleanupCreation: () => void;
 	enableImageAddon: () => void;
 	disableImageAddon: () => void;
+	enableWebglAddon: () => void;
+	disableWebglAddon: () => void;
 	/** Last known dimensions — used to skip no-op resize events. */
 	lastCols: number;
 	lastRows: number;
@@ -120,6 +122,8 @@ export function getOrCreate(
 		wrapper,
 		enableImageAddon,
 		disableImageAddon,
+		enableWebglAddon,
+		disableWebglAddon,
 		cleanup,
 	} = createTerminalInWrapper(options);
 
@@ -131,6 +135,8 @@ export function getOrCreate(
 		cleanupCreation: cleanup,
 		enableImageAddon,
 		disableImageAddon,
+		enableWebglAddon,
+		disableWebglAddon,
 		subscription: null,
 		streamReady: false,
 		pendingStreamEvents: [],
@@ -162,6 +168,7 @@ export function attachToContainer(
 	entry.enableImageAddon();
 
 	fitAndRefresh(entry);
+	entry.enableWebglAddon();
 
 	// Manage ResizeObserver lifecycle in the cache, not in React.
 	entry.resizeObserver?.disconnect();
@@ -185,6 +192,7 @@ export function detachFromContainer(paneId: string): void {
 	entry.resizeObserver = null;
 	entry.container = null;
 	entry.disableImageAddon();
+	entry.disableWebglAddon();
 	// Park instead of .remove() so xterm survives the React unmount —
 	// see getTerminalParkingContainer.
 	getTerminalParkingContainer().appendChild(entry.wrapper);

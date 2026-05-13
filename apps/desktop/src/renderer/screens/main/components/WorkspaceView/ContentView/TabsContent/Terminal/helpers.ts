@@ -4,12 +4,12 @@ import { FitAddon } from "@xterm/addon-fit";
 import { LigaturesAddon } from "@xterm/addon-ligatures";
 import { SearchAddon } from "@xterm/addon-search";
 import { Unicode11Addon } from "@xterm/addon-unicode11";
-import { WebglAddon } from "@xterm/addon-webgl";
 import type { ITheme } from "@xterm/xterm";
 import { Terminal as XTerm } from "@xterm/xterm";
 import type { DetectedLink } from "renderer/lib/terminal/links";
 import { createTerminalImageAddonController } from "renderer/lib/terminal/terminal-image-addon-controller";
 import { TerminalLinkManager } from "renderer/lib/terminal/terminal-link-manager";
+import { createTerminalWebglAddonController } from "renderer/lib/terminal/terminal-webgl-addon-controller";
 import { electronTrpcClient as trpcClient } from "renderer/lib/trpc-client";
 import { toXtermTheme } from "renderer/stores/theme/utils";
 import {
@@ -56,19 +56,6 @@ export function getDefaultTerminalBg(): string {
 	return getDefaultTerminalTheme().background ?? "#151110";
 }
 
-// Once WebGL fails, skip it for all subsequent terminals (VS Code pattern).
-let suggestedRendererType: "webgl" | "dom" | undefined;
-
-function afterPendingXtermRefresh(callback: () => void): number | null {
-	if (typeof requestAnimationFrame !== "function") {
-		setTimeout(callback, 0);
-		return null;
-	}
-	return requestAnimationFrame(() => {
-		requestAnimationFrame(callback);
-	});
-}
-
 export interface CreateTerminalOptions {
 	/**
 	 * Workspace id used for worktree lookup during path stat/resolution.
@@ -96,6 +83,8 @@ export function createTerminalInWrapper(options: CreateTerminalOptions = {}): {
 	linkManager: TerminalLinkManager;
 	enableImageAddon: () => void;
 	disableImageAddon: () => void;
+	enableWebglAddon: () => void;
+	disableWebglAddon: () => void;
 	cleanup: () => void;
 } {
 	const {
@@ -114,10 +103,7 @@ export function createTerminalInWrapper(options: CreateTerminalOptions = {}): {
 	const clipboardAddon = new ClipboardAddon();
 	const unicode11Addon = new Unicode11Addon();
 	const imageAddonController = createTerminalImageAddonController(xterm);
-
-	let disposed = false;
-	let webglAddon: WebglAddon | null = null;
-	let webglFallbackScheduled = false;
+	const webglAddonController = createTerminalWebglAddonController(xterm);
 
 	// Open into a detached wrapper div — not the live container.
 	const wrapper = document.createElement("div");
@@ -135,37 +121,6 @@ export function createTerminalInWrapper(options: CreateTerminalOptions = {}): {
 	} catch {
 		// Ligatures not supported by current font
 	}
-
-	// Defer WebGL to rAF to avoid racing xterm's post-open viewport sync.
-	const rafId = requestAnimationFrame(() => {
-		if (disposed || suggestedRendererType === "dom") return;
-
-		try {
-			webglAddon = new WebglAddon();
-			webglAddon.onContextLoss(() => {
-				if (webglFallbackScheduled) return;
-				webglFallbackScheduled = true;
-				suggestedRendererType = "dom";
-				const lostAddon = webglAddon;
-				afterPendingXtermRefresh(() => {
-					try {
-						lostAddon?.dispose();
-					} catch {}
-					if (webglAddon === lostAddon) {
-						webglAddon = null;
-					}
-					if (disposed) return;
-					try {
-						xterm.refresh(0, xterm.rows - 1);
-					} catch {}
-				});
-			});
-			xterm.loadAddon(webglAddon);
-		} catch {
-			suggestedRendererType = "dom";
-			webglAddon = null;
-		}
-	});
 
 	const cleanupQuerySuppression = suppressQueryResponses(xterm);
 
@@ -230,16 +185,13 @@ export function createTerminalInWrapper(options: CreateTerminalOptions = {}): {
 		linkManager,
 		enableImageAddon: imageAddonController.enable,
 		disableImageAddon: imageAddonController.disable,
+		enableWebglAddon: webglAddonController.enable,
+		disableWebglAddon: webglAddonController.disable,
 		cleanup: () => {
-			disposed = true;
 			imageAddonController.dispose();
-			cancelAnimationFrame(rafId);
+			webglAddonController.dispose();
 			cleanupQuerySuppression();
 			linkManager.dispose();
-			try {
-				webglAddon?.dispose();
-			} catch {}
-			webglAddon = null;
 		},
 	};
 }
