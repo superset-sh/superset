@@ -50,13 +50,7 @@ function installImmediateAnimationFrames() {
 }
 
 function createFakeTerminal() {
-	const screenCanvas = new EventTarget() as HTMLCanvasElement;
-	const element = new EventTarget() as EventTarget & {
-		querySelectorAll: (selector: string) => HTMLCanvasElement[];
-	};
-	element.querySelectorAll = mock((selector: string) =>
-		selector === ".xterm-screen canvas" ? [screenCanvas] : [],
-	);
+	const element = new EventTarget();
 
 	const loadedAddons: FakeWebglAddon[] = [];
 	const loadAddon = mock((addon: FakeWebglAddon) => {
@@ -81,6 +75,8 @@ function createFakeTerminal() {
 describe("createTerminalWebglAddonController", () => {
 	it("falls back to DOM immediately on terminal WebGL context loss", async () => {
 		const restoreAnimationFrames = installImmediateAnimationFrames();
+		const previousInfo = console.info;
+		console.info = mock(() => {});
 		disposedAddons.length = 0;
 
 		try {
@@ -99,6 +95,7 @@ describe("createTerminalWebglAddonController", () => {
 			await new Promise((resolve) => setTimeout(resolve, 0));
 
 			expect(lossEvent.defaultPrevented).toBe(true);
+			expect(console.info).toHaveBeenCalledTimes(1);
 			expect(disposedAddons).toEqual([loadedAddons[0]]);
 			expect(refresh).toHaveBeenCalledWith(0, 9);
 
@@ -106,6 +103,7 @@ describe("createTerminalWebglAddonController", () => {
 
 			expect(loadAddon).toHaveBeenCalledTimes(1);
 		} finally {
+			console.info = previousInfo;
 			restoreAnimationFrames();
 		}
 	});
