@@ -62,27 +62,23 @@ interface WebglLoseContextExtension {
 	loseContext: () => void;
 }
 
-type WebglContext = WebGLRenderingContext | WebGL2RenderingContext;
-
-function getWebglContext(canvas: HTMLCanvasElement): WebglContext | null {
-	const context =
-		canvas.getContext("webgl2") ??
-		canvas.getContext("webgl") ??
-		canvas.getContext("experimental-webgl");
-	return context as WebglContext | null;
+function getTerminalWebglContext(
+	canvas: HTMLCanvasElement,
+): WebGL2RenderingContext | null {
+	if (!isTerminalWebglCanvas(canvas)) return null;
+	return canvas.getContext("webgl2") as WebGL2RenderingContext | null;
 }
 
 function forceRuntimeWebglContextLoss(
 	runtime: TerminalRuntime,
 ): Omit<TerminalWebglContextLossResult, "terminalCount"> {
 	const canvases = Array.from(runtime.wrapper.querySelectorAll("canvas"));
-	const webglCanvases = canvases.filter(isTerminalWebglCanvas);
 	let webglContextCount = 0;
 	let lostContextCount = 0;
 	let unsupportedContextCount = 0;
 
-	for (const canvas of webglCanvases) {
-		const context = getWebglContext(canvas);
+	for (const canvas of canvases) {
+		const context = getTerminalWebglContext(canvas);
 		if (!context) continue;
 
 		webglContextCount += 1;

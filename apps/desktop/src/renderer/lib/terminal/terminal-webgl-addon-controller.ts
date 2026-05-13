@@ -70,7 +70,7 @@ export function createTerminalWebglAddonController(
 		if (!element) return;
 		markedWebglCanvases = Array.from(
 			element.querySelectorAll<HTMLCanvasElement>(
-				"canvas:not(.xterm-link-layer)",
+				".xterm-screen canvas:not(.xterm-link-layer)",
 			),
 		);
 		for (const canvas of markedWebglCanvases) {
