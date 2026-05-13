@@ -62,6 +62,7 @@ import { CellWithIcon } from "./components/CellWithIcon";
 import { CreateAutomationDialog } from "./components/CreateAutomationDialog";
 import { useRecentProjects } from "./hooks/useRecentProjects";
 import type { AutomationTemplate } from "./templates";
+import { indexBy } from "./utils/indexBy";
 
 export const Route = createFileRoute("/_authenticated/_dashboard/automations/")(
 	{
@@ -123,7 +124,15 @@ function AutomationsPage() {
 				.select(({ a }) => ({ ...a })),
 		[collections.automations],
 	);
-	const automations = automationRows as SelectAutomation[];
+	// Defensive filter: the live-query result has occasionally surfaced nullish
+	// entries (see #4519), which makes `automation.id` throw deeper in render.
+	const automations = useMemo(
+		() =>
+			(automationRows as Array<SelectAutomation | null | undefined>).filter(
+				(a): a is SelectAutomation => a != null,
+			),
+		[automationRows],
+	);
 
 	const { data: userRows = [] } = useLiveQuery(
 		(q) =>
@@ -152,35 +161,35 @@ function AutomationsPage() {
 
 	const usersById = useMemo(
 		() =>
-			new Map(
-				(userRows as Pick<SelectUser, "id" | "name" | "email">[]).map((u) => [
-					u.id,
-					u,
-				]),
+			indexBy(
+				userRows as Array<
+					Pick<SelectUser, "id" | "name" | "email"> | null | undefined
+				>,
+				(u) => u.id,
 			),
 		[userRows],
 	);
 	const projectsById = useMemo(
-		() => new Map(recentProjects.map((p) => [p.id, p])),
+		() => indexBy(recentProjects, (p) => p.id),
 		[recentProjects],
 	);
 	const workspacesById = useMemo(
 		() =>
-			new Map(
-				(workspaceRows as Pick<SelectV2Workspace, "id" | "name">[]).map((w) => [
-					w.id,
-					w,
-				]),
+			indexBy(
+				workspaceRows as Array<
+					Pick<SelectV2Workspace, "id" | "name"> | null | undefined
+				>,
+				(w) => w.id,
 			),
 		[workspaceRows],
 	);
 	const hostsById = useMemo(
 		() =>
-			new Map(
-				(hostRows as Pick<SelectV2Host, "machineId" | "name">[]).map((h) => [
-					h.machineId,
-					h,
-				]),
+			indexBy(
+				hostRows as Array<
+					Pick<SelectV2Host, "machineId" | "name"> | null | undefined
+				>,
+				(h) => h.machineId,
 			),
 		[hostRows],
 	);
