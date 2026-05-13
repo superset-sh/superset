@@ -101,7 +101,10 @@ export function buildWhereClause(
 		}
 
 		case "auth.users": {
-			const fragment = `"organization_ids" @> ARRAY[$1]::uuid[]`;
+			// Electric SQL's WHERE parser rejects `@> ARRAY[$1]::uuid[]` (HTTP 400
+			// "Could not select an operator overload"), so use `= ANY(...)` even
+			// though it doesn't hit the GIN index on `organization_ids`. See #4487.
+			const fragment = `$1 = ANY("organization_ids")`;
 			return { fragment, params: [organizationId] };
 		}
 
