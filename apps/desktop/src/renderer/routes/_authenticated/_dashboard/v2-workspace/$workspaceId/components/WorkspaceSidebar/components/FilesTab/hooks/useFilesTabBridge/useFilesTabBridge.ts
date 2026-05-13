@@ -9,6 +9,7 @@ import {
 	toAbs,
 	toRel,
 } from "../../utils/treePath";
+import { planWorkspaceSwitch } from "./utils/planWorkspaceSwitch";
 
 interface UseFilesTabBridgeOptions {
 	model: FileTree;
@@ -161,17 +162,24 @@ export function useFilesTabBridge({
 		}
 	}, [model, rootPath, workspaceId, utils.filesystem.listDirectory]);
 
-	// Reset + initial load on workspace switch. Bumping versionRef invalidates
-	// any in-flight fetches from the previous workspace.
+	// Reset on workspace switch, fetch root once we know its path. Reset must
+	// fire on workspaceId change even before rootPath lands, otherwise the
+	// previous workspace's tree lingers until the new workspaceQuery resolves
+	// (issue #4501). Bumping versionRef invalidates in-flight fetches from
+	// the previous workspace.
 	useEffect(() => {
-		if (!rootPath || !workspaceId) return;
-		versionRef.current += 1;
-		knownPathsRef.current.clear();
-		loadedDirsRef.current.clear();
-		loadingDirsRef.current.clear();
-		pendingCreatesRef.current.clear();
-		model.resetPaths([]);
-		void fetchDir("");
+		const plan = planWorkspaceSwitch({ workspaceId, rootPath });
+		if (plan.resetState) {
+			versionRef.current += 1;
+			knownPathsRef.current.clear();
+			loadedDirsRef.current.clear();
+			loadingDirsRef.current.clear();
+			pendingCreatesRef.current.clear();
+			model.resetPaths([]);
+		}
+		if (plan.fetchRoot) {
+			void fetchDir("");
+		}
 	}, [model, rootPath, workspaceId, fetchDir]);
 
 	// On every model change, scan known directories and lazy-load any newly
