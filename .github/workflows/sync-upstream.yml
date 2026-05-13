@@ -1,0 +1,18 @@
+name: Sync from upstream
+
+on:
+  schedule:
+    - cron: '17 7 * * *'  # daily ~07:17 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Sync fork with upstream
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh repo sync ${{ github.repository }} --source superset-sh/superset
