@@ -2,6 +2,7 @@ import { create } from "zustand";
 
 export interface RemoveFromSidebarTarget {
 	workspaceId: string;
+	workspaceName: string;
 	projectId: string;
 	isMain: boolean;
 	tick: number;
