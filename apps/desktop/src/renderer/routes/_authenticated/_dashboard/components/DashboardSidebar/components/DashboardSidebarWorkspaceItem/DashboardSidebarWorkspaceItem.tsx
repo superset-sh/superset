@@ -148,6 +148,7 @@ function DashboardSidebarWorkspaceItemComponent({
 					onClick={handleClick}
 					creationStatus={creationStatus}
 					pullRequestState={pullRequest?.state ?? null}
+					data-renderer-stress-workspace-id={id}
 					aria-label={
 						creationStatus ? `Creating workspace: ${name}` : undefined
 					}
@@ -228,6 +229,7 @@ function DashboardSidebarWorkspaceItemComponent({
 				isInSection={isInSection}
 				onClick={handleClick}
 				onDoubleClick={isPending ? undefined : startRename}
+				data-renderer-stress-workspace-id={id}
 				onRemoveFromSidebarClick={handleRemoveFromSidebar}
 				onCloseWorkspaceClick={
 					isFailedInFlight

@@ -160,6 +160,7 @@ export function V2WorkspaceRow({
 			<div
 				role="button"
 				tabIndex={0}
+				data-renderer-stress-workspace-id={workspace.id}
 				onClick={handleOpen}
 				onKeyDown={handleRowKeyDown}
 				className={cn(
