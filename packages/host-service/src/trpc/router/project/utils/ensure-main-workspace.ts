@@ -8,6 +8,12 @@ export type EnsureMainWorkspaceContext = Pick<
 	"api" | "db" | "git" | "organizationId"
 >;
 
+const mainWorkspaceEnsuresInFlight = new Map<string, Promise<{ id: string }>>();
+
+function mainWorkspaceEnsureKey(projectId: string, repoPath: string): string {
+	return `${projectId}\0${repoPath}`;
+}
+
 async function getCurrentBranchName(
 	git: Awaited<ReturnType<EnsureMainWorkspaceContext["git"]>>,
 ): Promise<string | null> {
@@ -55,6 +61,30 @@ export async function ensureMainWorkspace(
  * back the whole saga, including the cloud project commit.
  */
 export async function ensureMainWorkspaceStrict(
+	ctx: EnsureMainWorkspaceContext,
+	projectId: string,
+	repoPath: string,
+): Promise<{ id: string }> {
+	const key = mainWorkspaceEnsureKey(projectId, repoPath);
+	const inFlight = mainWorkspaceEnsuresInFlight.get(key);
+	if (inFlight) return await inFlight;
+
+	const promise = ensureMainWorkspaceStrictUncoalesced(
+		ctx,
+		projectId,
+		repoPath,
+	);
+	mainWorkspaceEnsuresInFlight.set(key, promise);
+	try {
+		return await promise;
+	} finally {
+		if (mainWorkspaceEnsuresInFlight.get(key) === promise) {
+			mainWorkspaceEnsuresInFlight.delete(key);
+		}
+	}
+}
+
+async function ensureMainWorkspaceStrictUncoalesced(
 	ctx: EnsureMainWorkspaceContext,
 	projectId: string,
 	repoPath: string,
