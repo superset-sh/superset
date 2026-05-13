@@ -49,6 +49,7 @@ import {
 	getTerminalHostClient,
 } from "./lib/terminal-host/client";
 import { disposeTray, initTray } from "./lib/tray";
+import { registerGoogleOAuthUserAgentSpoofing } from "./lib/webview-user-agent";
 import { MainWindow } from "./windows/main";
 
 console.log("[main] Local database ready:", !!localDb);
@@ -348,9 +349,14 @@ if (!gotTheLock) {
 			return net.fetch(pathToFileURL(iconPath).toString());
 		};
 		protocol.handle("superset-icon", iconProtocolHandler);
-		session
-			.fromPartition("persist:superset")
-			.protocol.handle("superset-icon", iconProtocolHandler);
+		const persistSession = session.fromPartition("persist:superset");
+		persistSession.protocol.handle("superset-icon", iconProtocolHandler);
+
+		// Google blocks OAuth in embedded browsers by matching on the
+		// "Electron/*" User-Agent token and returning `disallowed_useragent`,
+		// which breaks "Sign in with Google" on any third-party site loaded
+		// in the in-app browser pane (see #3665).
+		registerGoogleOAuthUserAgentSpoofing(persistSession);
 
 		// Serve system fonts (e.g. SF Mono on macOS) via custom protocol
 		// so the renderer can use @font-face with font-src 'self' CSP
