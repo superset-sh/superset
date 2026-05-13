@@ -5,11 +5,7 @@ import { createElement } from "react";
 import { type ApiClient, createApiClient } from "../../../lib/api-client";
 import { login } from "../../../lib/auth";
 import { command } from "../../../lib/command";
-import {
-	readConfig,
-	type SupersetConfig,
-	writeConfig,
-} from "../../../lib/config";
+import { readConfig, writeConfig } from "../../../lib/config";
 import { copyToClipboard } from "./copyToClipboard";
 import { LoginUI, type LoginUIProps } from "./LoginUI";
 
@@ -22,24 +18,27 @@ type LoginOutput =
 			organizationName: string;
 	  };
 
+type ChosenOrganization = { id: string; name: string };
+
 function apiKeyFlagInArgv(): boolean {
 	return process.argv.some(
 		(arg) => arg === "--api-key" || arg.startsWith("--api-key="),
 	);
 }
 
-async function selectOrganization({
+/**
+ * Decides which organization to activate without writing to disk. Throws
+ * for unrecoverable validation failures (bad `--organization` slug,
+ * multi-org without a TTY) so the caller can bail before persisting
+ * partial state.
+ */
+async function pickOrganization({
 	api,
-	config,
 	requested,
 }: {
 	api: ApiClient;
-	config: SupersetConfig;
 	requested: string | undefined;
-}): Promise<{
-	output: LoginOutput;
-	cancelled: boolean;
-}> {
+}): Promise<{ chosen: ChosenOrganization | null; cancelled: boolean }> {
 	const organizations = await api.user.myOrganizations.query();
 	const sessionActive = await api.user.myOrganization.query();
 
@@ -78,28 +77,16 @@ async function selectOrganization({
 			});
 			if (p.isCancel(selection)) {
 				p.cancel("Login cancelled");
-				return { output: { loggedIn: true }, cancelled: true };
+				return { chosen: null, cancelled: true };
 			}
 			chosen = organizations.find((o) => o.id === selection) ?? null;
 		}
 	}
 
-	if (chosen) {
-		config.organizationId = chosen.id;
-		writeConfig(config);
-		p.log.info(`Organization: ${chosen.name}`);
-		const me = await api.user.me.query();
-		return {
-			output: {
-				userId: me.id,
-				organizationId: chosen.id,
-				organizationName: chosen.name,
-			},
-			cancelled: false,
-		};
-	}
-
-	return { output: { loggedIn: true }, cancelled: false };
+	return {
+		chosen: chosen ? { id: chosen.id, name: chosen.name } : null,
+		cancelled: false,
+	};
 }
 
 async function runApiKeyLogin({
@@ -122,26 +109,37 @@ async function runApiKeyLogin({
 			error instanceof Error ? error.message : String(error),
 		);
 	}
+	p.log.info(`${user.name} (${user.email})`);
+
+	const { chosen, cancelled } = await pickOrganization({
+		api,
+		requested: requestedOrganization,
+	});
 
 	const config = readConfig();
 	config.apiKey = apiKey;
 	delete config.auth;
+	if (chosen) {
+		config.organizationId = chosen.id;
+	}
 	writeConfig(config);
 
 	p.log.success("API key stored.");
-	p.log.info(`${user.name} (${user.email})`);
-
-	const { output, cancelled } = await selectOrganization({
-		api,
-		config,
-		requested: requestedOrganization,
-	});
 
 	if (cancelled) {
-		return output;
+		return { loggedIn: true };
+	}
+	if (chosen) {
+		p.log.info(`Organization: ${chosen.name}`);
+		p.outro("Logged in successfully.");
+		return {
+			userId: user.id,
+			organizationId: chosen.id,
+			organizationName: chosen.name,
+		};
 	}
 	p.outro("Logged in successfully.");
-	return output;
+	return { loggedIn: true };
 }
 
 export default command({
@@ -157,9 +155,14 @@ export default command({
 	},
 	run: async (opts) => {
 		const requestedOrganization = opts.options.organization;
-		const apiKeyFromCli = apiKeyFlagInArgv()
+		const apiKeyExplicit = apiKeyFlagInArgv();
+		const apiKeyFromCli = apiKeyExplicit
 			? opts.options.apiKey?.trim()
 			: undefined;
+
+		if (apiKeyExplicit && !apiKeyFromCli) {
+			throw new CLIError("Option --api-key requires a non-empty value");
+		}
 
 		if (apiKeyFromCli) {
 			const data = await runApiKeyLogin({
@@ -169,7 +172,6 @@ export default command({
 			return { data };
 		}
 
-		const config = readConfig();
 		const useInk =
 			process.stdout.isTTY && process.stdin.isTTY && !process.env.CI;
 
@@ -261,6 +263,10 @@ export default command({
 			return { data: { loggedIn: false } };
 		}
 
+		// Persist the OAuth tokens immediately so a later org-selection
+		// failure (bad --organization slug, non-TTY multi-org) doesn't
+		// force the user to redo the browser dance to retry.
+		const config = readConfig();
 		config.auth = {
 			accessToken: result.accessToken,
 			refreshToken: result.refreshToken,
@@ -273,8 +279,9 @@ export default command({
 
 		const api = createApiClient({ bearer: result.accessToken });
 
+		let user: Awaited<ReturnType<typeof api.user.me.query>> | null = null;
 		try {
-			const user = await api.user.me.query();
+			user = await api.user.me.query();
 			p.log.info(`${user.name} (${user.email})`);
 		} catch (error) {
 			p.log.warn(
@@ -282,16 +289,31 @@ export default command({
 			);
 		}
 
-		const { output, cancelled: orgCancelled } = await selectOrganization({
+		const { chosen, cancelled: orgCancelled } = await pickOrganization({
 			api,
-			config,
 			requested: requestedOrganization,
 		});
 
+		if (chosen) {
+			config.organizationId = chosen.id;
+			writeConfig(config);
+			p.log.info(`Organization: ${chosen.name}`);
+		}
+
 		if (orgCancelled) {
-			return { data: output };
+			return { data: { loggedIn: true } };
 		}
 		p.outro("Logged in successfully.");
-		return { data: output };
+
+		if (chosen && user) {
+			return {
+				data: {
+					userId: user.id,
+					organizationId: chosen.id,
+					organizationName: chosen.name,
+				},
+			};
+		}
+		return { data: { loggedIn: true } };
 	},
 });

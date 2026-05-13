@@ -3,6 +3,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
+const originalSupersetHomeDir = process.env.SUPERSET_HOME_DIR;
 const tempHome = fs.mkdtempSync(
 	path.join(os.tmpdir(), "superset-cli-resolve-auth-"),
 );
@@ -21,6 +22,11 @@ afterEach(() => {
 
 afterAll(() => {
 	fs.rmSync(tempHome, { recursive: true, force: true });
+	if (originalSupersetHomeDir === undefined) {
+		delete process.env.SUPERSET_HOME_DIR;
+	} else {
+		process.env.SUPERSET_HOME_DIR = originalSupersetHomeDir;
+	}
 });
 
 describe("resolveAuth", () => {

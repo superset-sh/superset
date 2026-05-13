@@ -253,8 +253,10 @@ Output:
 }
 ```
 
-Side effects: writes `~/.superset/config.json` with `auth` and
-`organizationId`. Spinner is guarded by `process.stdout.isTTY`.
+Side effects: writes `~/.superset/config.json`. The OAuth flow writes
+`auth` (and clears any stored `apiKey`); the `--api-key` flow writes
+`apiKey` (and clears any stored `auth`). Both write `organizationId`
+when an org is selected. Spinner is guarded by `process.stdout.isTTY`.
 
 ### `superset auth logout`
 
