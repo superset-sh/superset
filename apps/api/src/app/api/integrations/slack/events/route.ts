@@ -77,6 +77,13 @@ export async function POST(request: Request) {
 			return Response.json({ error: "Invalid payload shape" }, { status: 400 });
 		}
 
+		if (event.type === "app_mention" || event.type === "message") {
+			console.log(
+				"[slack/events] Raw payload for diagnostic:",
+				JSON.stringify(payload),
+			);
+		}
+
 		if (event.type === "app_mention") {
 			try {
 				await qstash.publishJSON({
