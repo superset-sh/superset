@@ -61,6 +61,7 @@ export const workspaceProvider: CommandProvider = {
 				run: () =>
 					useRemoveFromSidebarIntent.getState().request({
 						workspaceId: workspace.id,
+						workspaceName: workspace.name,
 						projectId: workspace.projectId ?? "",
 						isMain,
 					}),

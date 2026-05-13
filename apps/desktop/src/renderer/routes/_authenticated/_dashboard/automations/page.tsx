@@ -123,7 +123,11 @@ function AutomationsPage() {
 				.select(({ a }) => ({ ...a })),
 		[collections.automations],
 	);
-	const automations = automationRows as SelectAutomation[];
+	// Live queries can briefly surface nullish rows while syncing.
+	const automations = useMemo(
+		() => automationRows.filter((automation) => automation != null),
+		[automationRows],
+	);
 
 	const { data: userRows = [] } = useLiveQuery(
 		(q) =>
@@ -150,37 +154,36 @@ function AutomationsPage() {
 		[collections.v2Hosts],
 	);
 
+	// Live queries can briefly surface nullish rows while syncing (see #4519).
 	const usersById = useMemo(
 		() =>
 			new Map(
-				(userRows as Pick<SelectUser, "id" | "name" | "email">[]).map((u) => [
-					u.id,
-					u,
-				]),
+				(userRows as Pick<SelectUser, "id" | "name" | "email">[])
+					.filter((u) => u != null)
+					.map((u) => [u.id, u]),
 			),
 		[userRows],
 	);
 	const projectsById = useMemo(
-		() => new Map(recentProjects.map((p) => [p.id, p])),
+		() =>
+			new Map(recentProjects.filter((p) => p != null).map((p) => [p.id, p])),
 		[recentProjects],
 	);
 	const workspacesById = useMemo(
 		() =>
 			new Map(
-				(workspaceRows as Pick<SelectV2Workspace, "id" | "name">[]).map((w) => [
-					w.id,
-					w,
-				]),
+				(workspaceRows as Pick<SelectV2Workspace, "id" | "name">[])
+					.filter((w) => w != null)
+					.map((w) => [w.id, w]),
 			),
 		[workspaceRows],
 	);
 	const hostsById = useMemo(
 		() =>
 			new Map(
-				(hostRows as Pick<SelectV2Host, "machineId" | "name">[]).map((h) => [
-					h.machineId,
-					h,
-				]),
+				(hostRows as Pick<SelectV2Host, "machineId" | "name">[])
+					.filter((h) => h != null)
+					.map((h) => [h.machineId, h]),
 			),
 		[hostRows],
 	);
