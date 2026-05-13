@@ -116,6 +116,23 @@ function clearPersistedDimensions(terminalId: string) {
 	} catch {}
 }
 
+function disposeTerminalAfterPendingRefresh(terminal: XTerm) {
+	const disposeTerminal = () => {
+		try {
+			terminal.dispose();
+		} catch {}
+	};
+
+	if (typeof requestAnimationFrame !== "function") {
+		setTimeout(disposeTerminal, 0);
+		return;
+	}
+
+	requestAnimationFrame(() => {
+		requestAnimationFrame(disposeTerminal);
+	});
+}
+
 function hostIsVisible(container: HTMLDivElement | null): boolean {
 	if (!container) return false;
 	return container.clientWidth > 0 && container.clientHeight > 0;
@@ -323,9 +340,9 @@ export function disposeRuntime(
 	runtime.resizeObserver?.disconnect();
 	runtime.resizeObserver = null;
 	runtime.wrapper.remove();
-	runtime.terminal.dispose();
 	if (clearPersistedState) {
 		clearPersistedBuffer(runtime.terminalId);
 		clearPersistedDimensions(runtime.terminalId);
 	}
+	disposeTerminalAfterPendingRefresh(runtime.terminal);
 }

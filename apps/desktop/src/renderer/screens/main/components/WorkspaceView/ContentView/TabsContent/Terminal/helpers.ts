@@ -59,6 +59,16 @@ export function getDefaultTerminalBg(): string {
 // Once WebGL fails, skip it for all subsequent terminals (VS Code pattern).
 let suggestedRendererType: "webgl" | "dom" | undefined;
 
+function afterPendingXtermRefresh(callback: () => void): number | null {
+	if (typeof requestAnimationFrame !== "function") {
+		setTimeout(callback, 0);
+		return null;
+	}
+	return requestAnimationFrame(() => {
+		requestAnimationFrame(callback);
+	});
+}
+
 export interface CreateTerminalOptions {
 	/**
 	 * Workspace id used for worktree lookup during path stat/resolution.
@@ -105,6 +115,7 @@ export function createTerminalInWrapper(options: CreateTerminalOptions = {}): {
 
 	let disposed = false;
 	let webglAddon: WebglAddon | null = null;
+	let webglFallbackScheduled = false;
 
 	// Open into a detached wrapper div — not the live container.
 	const wrapper = document.createElement("div");
@@ -131,9 +142,22 @@ export function createTerminalInWrapper(options: CreateTerminalOptions = {}): {
 		try {
 			webglAddon = new WebglAddon();
 			webglAddon.onContextLoss(() => {
-				webglAddon?.dispose();
-				webglAddon = null;
-				xterm.refresh(0, xterm.rows - 1);
+				if (webglFallbackScheduled) return;
+				webglFallbackScheduled = true;
+				suggestedRendererType = "dom";
+				const lostAddon = webglAddon;
+				afterPendingXtermRefresh(() => {
+					try {
+						lostAddon?.dispose();
+					} catch {}
+					if (webglAddon === lostAddon) {
+						webglAddon = null;
+					}
+					if (disposed) return;
+					try {
+						xterm.refresh(0, xterm.rows - 1);
+					} catch {}
+				});
 			});
 			xterm.loadAddon(webglAddon);
 		} catch {

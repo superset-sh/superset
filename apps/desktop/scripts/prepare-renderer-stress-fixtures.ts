@@ -4,7 +4,7 @@ import { Database } from "bun:sqlite";
 import { randomUUID } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { mkdir, rm, writeFile } from "node:fs/promises";
-import { homedir } from "node:os";
+import { homedir, hostname } from "node:os";
 import { basename, join, resolve } from "node:path";
 
 interface Args {
@@ -282,6 +282,107 @@ function parseCollectionValue<T>(row: CollectionRow): T | null {
 	} catch {
 		return null;
 	}
+}
+
+function slugify(value: string): string {
+	return (
+		value
+			.toLowerCase()
+			.replace(/[^a-z0-9]+/g, "-")
+			.replace(/^-+|-+$/g, "")
+			.slice(0, 60) || "renderer-stress"
+	);
+}
+
+function collectionKeyExists(
+	db: Database,
+	tableName: string,
+	key: string,
+): boolean {
+	const row = db
+		.query(`select 1 as found from ${quoteIdentifier(tableName)} where key = ?`)
+		.get(key) as { found?: number } | null;
+	return Boolean(row?.found);
+}
+
+function ensureOrganizationRow({
+	tanstackDb,
+	organizationId,
+	now,
+}: {
+	tanstackDb: Database;
+	organizationId: string;
+	now: string;
+}): void {
+	const organizationCollectionId = "organizations";
+	const organizationTable = getCollectionTable(
+		tanstackDb,
+		organizationCollectionId,
+	);
+	const organizationKey = `s:${organizationId}`;
+	if (collectionKeyExists(tanstackDb, organizationTable, organizationKey)) {
+		return;
+	}
+
+	const rowVersion = getNextRowVersion(tanstackDb, organizationCollectionId);
+	insertCollectionValue(
+		tanstackDb,
+		organizationTable,
+		organizationKey,
+		{
+			allowedDomains: [],
+			createdAt: now,
+			id: organizationId,
+			logo: null,
+			metadata: null,
+			name: `Renderer Stress ${organizationId}`,
+			slug: slugify(organizationId),
+			stripeCustomerId: null,
+		},
+		{ relation: ["auth", "organizations"], operation: "insert" },
+		rowVersion,
+	);
+	setCollectionVersion(tanstackDb, organizationCollectionId, rowVersion);
+}
+
+function ensureHostRow({
+	tanstackDb,
+	hostCollectionId,
+	hostTable,
+	organizationId,
+	hostId,
+	now,
+}: {
+	tanstackDb: Database;
+	hostCollectionId: string;
+	hostTable: string;
+	organizationId: string;
+	hostId: string;
+	now: string;
+}): void {
+	const hostKey = `s:${hostId}`;
+	if (collectionKeyExists(tanstackDb, hostTable, hostKey)) {
+		return;
+	}
+
+	const rowVersion = getNextRowVersion(tanstackDb, hostCollectionId);
+	insertCollectionValue(
+		tanstackDb,
+		hostTable,
+		hostKey,
+		{
+			createdAt: now,
+			createdByUserId: null,
+			isOnline: true,
+			machineId: hostId,
+			name: hostname() || "Renderer Stress Host",
+			organizationId,
+			updatedAt: now,
+		},
+		{ relation: ["public", "v2_hosts"], operation: "insert" },
+		rowVersion,
+	);
+	setCollectionVersion(tanstackDb, hostCollectionId, rowVersion);
 }
 
 function inferHostId({
@@ -610,6 +711,17 @@ async function seedDatabases({
 		hostTable,
 	});
 
+	const now = new Date().toISOString();
+	ensureOrganizationRow({ tanstackDb, organizationId, now });
+	ensureHostRow({
+		tanstackDb,
+		hostCollectionId,
+		hostTable,
+		organizationId,
+		hostId,
+		now,
+	});
+
 	removePreviousFixtureRows({
 		tanstackDb,
 		hostDb,
@@ -618,7 +730,6 @@ async function seedDatabases({
 		repoPath,
 	});
 
-	const now = new Date().toISOString();
 	const projectVersion = getNextRowVersion(tanstackDb, projectCollectionId);
 	let workspaceVersion = getNextRowVersion(tanstackDb, workspaceCollectionId);
 

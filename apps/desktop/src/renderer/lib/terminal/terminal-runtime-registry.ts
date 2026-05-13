@@ -37,6 +37,78 @@ interface RegistryEntry {
 	pendingLinkHandlers: TerminalLinkHandlers | null;
 }
 
+export interface TerminalWebglContextLossResult {
+	terminalCount: number;
+	canvasCount: number;
+	webglContextCount: number;
+	lostContextCount: number;
+	unsupportedContextCount: number;
+}
+
+export interface TerminalRuntimeStressDebugInfo {
+	terminalId: string;
+	instanceId: string;
+	hasRuntime: boolean;
+	isAttached: boolean;
+	isParked: boolean;
+	cols: number | null;
+	rows: number | null;
+	canvasCount: number;
+	connectionState: ConnectionState;
+}
+
+interface WebglLoseContextExtension {
+	loseContext: () => void;
+}
+
+type WebglContext = WebGLRenderingContext | WebGL2RenderingContext;
+
+function getWebglContext(canvas: HTMLCanvasElement): WebglContext | null {
+	const context =
+		canvas.getContext("webgl2") ??
+		canvas.getContext("webgl") ??
+		canvas.getContext("experimental-webgl");
+	return context as WebglContext | null;
+}
+
+function forceRuntimeWebglContextLoss(
+	runtime: TerminalRuntime,
+): Omit<TerminalWebglContextLossResult, "terminalCount"> {
+	const canvases = Array.from(runtime.wrapper.querySelectorAll("canvas"));
+	let webglContextCount = 0;
+	let lostContextCount = 0;
+	let unsupportedContextCount = 0;
+
+	for (const canvas of canvases) {
+		const context = getWebglContext(canvas);
+		if (!context) continue;
+
+		webglContextCount += 1;
+		const extension = context.getExtension(
+			"WEBGL_lose_context",
+		) as WebglLoseContextExtension | null;
+
+		if (!extension) {
+			unsupportedContextCount += 1;
+			continue;
+		}
+
+		try {
+			extension.loseContext();
+			lostContextCount += 1;
+		} catch {
+			unsupportedContextCount += 1;
+		}
+	}
+
+	return {
+		canvasCount: canvases.length,
+		webglContextCount,
+		lostContextCount,
+		unsupportedContextCount,
+	};
+}
+
 class TerminalRuntimeRegistryImpl {
 	private entries = new Map<string, RegistryEntry>();
 	private entryKeysByTerminalId = new Map<string, Set<string>>();
@@ -97,6 +169,18 @@ class TerminalRuntimeRegistryImpl {
 		return Array.from(keys)
 			.map((key) => this.entries.get(key))
 			.filter((entry): entry is RegistryEntry => Boolean(entry));
+	}
+
+	private listEntries(
+		terminalId?: string,
+		instanceId?: string,
+	): RegistryEntry[] {
+		if (terminalId && instanceId) {
+			const entry = this.getEntry(terminalId, instanceId);
+			return entry ? [entry] : [];
+		}
+		if (terminalId) return this.getEntries(terminalId);
+		return Array.from(this.entries.values());
 	}
 
 	private deleteEntry(entry: RegistryEntry) {
@@ -309,6 +393,85 @@ class TerminalRuntimeRegistryImpl {
 		const entry = this.getEntry(terminalId, instanceId);
 		if (!entry) return;
 		sendInput(entry.transport, data);
+	}
+
+	writeForStress(
+		terminalId: string,
+		data: string,
+		instanceId?: string,
+		timeoutMs = 5000,
+	): Promise<boolean> {
+		const entry = this.getEntry(terminalId, instanceId);
+		if (!entry?.runtime) return Promise.resolve(false);
+
+		return new Promise<boolean>((resolve) => {
+			let settled = false;
+			let timeoutId: ReturnType<typeof setTimeout> | null = null;
+			const settle = (value: boolean) => {
+				if (settled) return;
+				settled = true;
+				if (timeoutId !== null) {
+					clearTimeout(timeoutId);
+				}
+				resolve(value);
+			};
+
+			timeoutId = setTimeout(() => settle(false), timeoutMs);
+			try {
+				entry.runtime?.terminal.write(data, () => settle(true));
+			} catch {
+				settle(false);
+			}
+		});
+	}
+
+	forceWebglContextLossForStress(
+		terminalId?: string,
+		instanceId?: string,
+	): TerminalWebglContextLossResult {
+		const result: TerminalWebglContextLossResult = {
+			terminalCount: 0,
+			canvasCount: 0,
+			webglContextCount: 0,
+			lostContextCount: 0,
+			unsupportedContextCount: 0,
+		};
+
+		for (const entry of this.listEntries(terminalId, instanceId)) {
+			if (!entry.runtime) continue;
+			result.terminalCount += 1;
+			const runtimeResult = forceRuntimeWebglContextLoss(entry.runtime);
+			result.canvasCount += runtimeResult.canvasCount;
+			result.webglContextCount += runtimeResult.webglContextCount;
+			result.lostContextCount += runtimeResult.lostContextCount;
+			result.unsupportedContextCount += runtimeResult.unsupportedContextCount;
+		}
+
+		return result;
+	}
+
+	getStressDebugInfo(
+		terminalId?: string,
+		instanceId?: string,
+	): TerminalRuntimeStressDebugInfo[] {
+		return this.listEntries(terminalId, instanceId).map((entry) => {
+			const runtime = entry.runtime;
+			return {
+				terminalId: entry.terminalId,
+				instanceId: entry.instanceId,
+				hasRuntime: Boolean(runtime),
+				isAttached: Boolean(runtime?.container),
+				isParked: Boolean(
+					runtime && !runtime.container && runtime.wrapper.isConnected,
+				),
+				cols: runtime?.terminal.cols ?? null,
+				rows: runtime?.terminal.rows ?? null,
+				canvasCount: runtime
+					? runtime.wrapper.querySelectorAll("canvas").length
+					: 0,
+				connectionState: entry.transport.connectionState,
+			};
+		});
 	}
 
 	findNext(terminalId: string, query: string, instanceId?: string): boolean {

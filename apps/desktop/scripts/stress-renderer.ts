@@ -7,6 +7,12 @@ interface Args {
 	iterations: number;
 	routeIterations: number;
 	heavyIterations: number;
+	terminalIterations: number;
+	terminalTabCount: number;
+	terminalPanesPerTab: number;
+	terminalLines: number;
+	terminalPayloadBytes: number;
+	forceTerminalWebglLoss: boolean;
 	includeTerminalAction: boolean;
 	progressEvery: number;
 	intervalMs: number;
@@ -23,6 +29,7 @@ interface Args {
 type StressScenario =
 	| "all"
 	| "route-sweep"
+	| "terminal-heavy"
 	| "workspace-heavy"
 	| "workspace-switch";
 
@@ -81,6 +88,11 @@ interface RendererStressResult {
 	heavyActionCounts: Record<string, number>;
 	heavyActionErrors: string[];
 	heavyActionCatalogue: string[];
+	terminalIterations: number;
+	terminalActionCounts: Record<string, number>;
+	terminalActionErrors: string[];
+	terminalStressSummary: unknown;
+	terminalWebglContextLosses: unknown[];
 	workspaceSummary: unknown;
 	durationMs: number;
 	maxHeartbeatDelayMs: number;
@@ -106,6 +118,16 @@ interface RendererStressResult {
 }
 
 const DEFAULT_SELECTOR = "[data-renderer-stress-workspace-id]";
+const WEBGL_CONTEXT_RECOVERY_SETTLE_MS = 3500;
+
+interface TerminalWebglContextLossRecord {
+	index: number;
+	terminalCount: number;
+	canvasCount: number;
+	webglContextCount: number;
+	lostContextCount: number;
+	unsupportedContextCount: number;
+}
 
 function parseArgs(argv: string[]): Args {
 	const args: Args = {
@@ -115,6 +137,12 @@ function parseArgs(argv: string[]): Args {
 		iterations: 500,
 		routeIterations: 0,
 		heavyIterations: 0,
+		terminalIterations: 0,
+		terminalTabCount: 24,
+		terminalPanesPerTab: 4,
+		terminalLines: 40,
+		terminalPayloadBytes: 1024,
+		forceTerminalWebglLoss: true,
 		includeTerminalAction: false,
 		progressEvery: 100,
 		intervalMs: 0,
@@ -158,6 +186,7 @@ function parseArgs(argv: string[]): Args {
 				if (
 					scenario !== "all" &&
 					scenario !== "route-sweep" &&
+					scenario !== "terminal-heavy" &&
 					scenario !== "workspace-heavy" &&
 					scenario !== "workspace-switch"
 				) {
@@ -174,6 +203,24 @@ function parseArgs(argv: string[]): Args {
 				break;
 			case "--heavy-iterations":
 				args.heavyIterations = readNumber();
+				break;
+			case "--terminal-iterations":
+				args.terminalIterations = readNumber();
+				break;
+			case "--terminal-tab-count":
+				args.terminalTabCount = readNumber();
+				break;
+			case "--terminal-panes-per-tab":
+				args.terminalPanesPerTab = readNumber();
+				break;
+			case "--terminal-lines":
+				args.terminalLines = readNumber();
+				break;
+			case "--terminal-payload-bytes":
+				args.terminalPayloadBytes = readNumber();
+				break;
+			case "--no-terminal-webgl-loss":
+				args.forceTerminalWebglLoss = false;
 				break;
 			case "--include-terminal-action":
 				args.includeTerminalAction = true;
@@ -231,10 +278,16 @@ Run route and workspace action stress:
 Options:
   --port <n>                       CDP port. Default: env SUPERSET_RENDERER_STRESS_CDP_PORT or 9333
   --host <host>                    CDP host. Default: 127.0.0.1
-  --scenario <name>                workspace-switch, route-sweep, workspace-heavy, or all. Default: workspace-switch
+  --scenario <name>                workspace-switch, route-sweep, workspace-heavy, terminal-heavy, or all. Default: workspace-switch
   --iterations <n>                 Workspace activations. Default: 500
   --route-iterations <n>           Route navigations. Default: --iterations
   --heavy-iterations <n>           Mixed pane/tab/browser/diff actions. Default: min(--iterations, 300)
+  --terminal-iterations <n>        Terminal tab switch/write/context-loss cycles. Default: min(--iterations, 200)
+  --terminal-tab-count <n>         Synthetic terminal tabs. Default: 24
+  --terminal-panes-per-tab <n>     Terminal panes per synthetic tab. Default: 4
+  --terminal-lines <n>             ANSI output lines per terminal write. Default: 40
+  --terminal-payload-bytes <n>     Repeated payload bytes per line. Default: 1024
+  --no-terminal-webgl-loss         Do not force WEBGL_lose_context during terminal stress
   --include-terminal-action        Include one real backend terminal launch in heavy stress. Default: false
   --progress-every <n>             Emit progress every n operations. Set 0 to disable. Default: 100
   --interval-ms <n>                Delay between activations. Default: 0
@@ -398,6 +451,12 @@ function rendererStress(options: {
 	iterations: number;
 	routeIterations: number;
 	heavyIterations: number;
+	terminalIterations: number;
+	terminalTabCount: number;
+	terminalPanesPerTab: number;
+	terminalLines: number;
+	terminalPayloadBytes: number;
+	forceTerminalWebglLoss: boolean;
 	includeTerminalAction: boolean;
 	progressEvery: number;
 	intervalMs: number;
@@ -414,6 +473,8 @@ function rendererStress(options: {
 	const stressWindow = window as StressWindow;
 	const sleep = (ms: number) =>
 		new Promise((resolve) => setTimeout(resolve, ms));
+	const nextFrame = () =>
+		new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
 	const cssEscape =
 		stressWindow.CSS?.escape ??
 		((value: string) => value.replace(/["\\]/g, "\\$&"));
@@ -423,11 +484,23 @@ function rendererStress(options: {
 	let maxHeartbeatDelayMs = 0;
 	let expectedHeartbeat = performance.now() + 50;
 
+	const describeError = (error: unknown): string => {
+		if (error instanceof Error) {
+			return error.stack ?? error.message;
+		}
+		if (typeof error === "string") return error;
+		return String(error);
+	};
+
 	const onError = (event: ErrorEvent) => {
-		errors.push(event.message || String(event.error ?? "unknown error"));
+		errors.push(
+			event.error
+				? describeError(event.error)
+				: event.message || "unknown error",
+		);
 	};
 	const onUnhandledRejection = (event: PromiseRejectionEvent) => {
-		errors.push(`Unhandled rejection: ${String(event.reason)}`);
+		errors.push(`Unhandled rejection: ${describeError(event.reason)}`);
 	};
 
 	window.addEventListener("error", onError);
@@ -495,6 +568,29 @@ function rendererStress(options: {
 		closeOldestTab: (keepCount?: number) => void;
 		churnActivePaneData: (index: number) => void;
 		replaceWithGeneratedLayout: (tabCount: number, panesPerTab: number) => void;
+		replaceWithGeneratedTerminalLayout: (
+			tabCount: number,
+			panesPerTab: number,
+		) => void;
+		writeTerminalStressOutput: (
+			index: number,
+			lines: number,
+			payloadBytes: number,
+		) => Promise<{
+			terminalCount: number;
+			writtenCount: number;
+			failedCount: number;
+			byteLength: number;
+		}>;
+		forceTerminalWebglContextLoss: () => {
+			terminalCount: number;
+			canvasCount: number;
+			webglContextCount: number;
+			lostContextCount: number;
+			unsupportedContextCount: number;
+		};
+		getTerminalStressSummary: () => unknown;
+		releaseStressTerminalRuntimes: () => void;
 		addRealTerminalTab: () => Promise<void>;
 		showChangesSidebar: () => void;
 	};
@@ -561,7 +657,7 @@ function rendererStress(options: {
 				`/v2-workspace/${encodeURIComponent(candidateWorkspaceId)}/`,
 			);
 			try {
-				const bridge = await waitForBridge(candidateWorkspaceId, 75);
+				const bridge = await waitForBridge(candidateWorkspaceId, 500);
 				return { workspaceId: candidateWorkspaceId, bridge };
 			} catch (error) {
 				failures.push(
@@ -661,6 +757,9 @@ function rendererStress(options: {
 		...(options.includeTerminalAction
 			? ["single real terminal tab launch"]
 			: []),
+		"synthetic terminal layout with parked xterm runtimes",
+		"high-volume terminal ANSI output",
+		"forced terminal WebGL context loss and fallback recovery",
 		"restore original pane layout",
 	];
 
@@ -670,6 +769,8 @@ function rendererStress(options: {
 		options.scenario === "route-sweep" || options.scenario === "all";
 	const shouldRunWorkspaceHeavy =
 		options.scenario === "workspace-heavy" || options.scenario === "all";
+	const shouldRunTerminalHeavy =
+		options.scenario === "terminal-heavy" || options.scenario === "all";
 
 	return (async () => {
 		const startedAt = performance.now();
@@ -686,9 +787,13 @@ function rendererStress(options: {
 		const routesVisited: string[] = [];
 		const heavyActionCounts: Record<string, number> = {};
 		const heavyActionErrors: string[] = [];
+		const terminalActionCounts: Record<string, number> = {};
+		const terminalActionErrors: string[] = [];
+		const terminalWebglContextLosses: TerminalWebglContextLossRecord[] = [];
 		const slowOperations: RendererStressResult["slowOperations"] = [];
 		let operationCount = 0;
 		let workspaceSummary: unknown = null;
+		let terminalStressSummary: unknown = null;
 		let routeCount = 0;
 		const routeIterations =
 			options.routeIterations > 0
@@ -698,6 +803,10 @@ function rendererStress(options: {
 			options.heavyIterations > 0
 				? options.heavyIterations
 				: Math.min(options.iterations, 300);
+		const terminalIterations =
+			options.terminalIterations > 0
+				? options.terminalIterations
+				: Math.min(options.iterations, 200);
 		const reportProgress = (
 			phase: string,
 			index: number,
@@ -749,7 +858,11 @@ function rendererStress(options: {
 
 		let workspaceId = targets[0];
 		let metadata: { projectId?: string; workspaceId?: string } = {};
-		if (shouldRunRouteSweep || shouldRunWorkspaceHeavy) {
+		if (
+			shouldRunRouteSweep ||
+			shouldRunWorkspaceHeavy ||
+			shouldRunTerminalHeavy
+		) {
 			const mounted = await findWorkspaceBridge(targets);
 			workspaceId = mounted.workspaceId;
 			const bridge = mounted.bridge;
@@ -885,6 +998,118 @@ function rendererStress(options: {
 			heavyActionCounts["restore-baseline"] = 1;
 			operationCount += 1;
 		}
+
+		if (shouldRunTerminalHeavy) {
+			const activeBridge = await waitForBridge(workspaceId);
+			const terminalTabCount = Math.max(
+				1,
+				Math.min(80, Math.floor(options.terminalTabCount)),
+			);
+			const terminalPanesPerTab = Math.max(
+				1,
+				Math.min(8, Math.floor(options.terminalPanesPerTab)),
+			);
+			const webglLossCadence = Math.max(4, Math.floor(terminalTabCount / 2));
+
+			activeBridge.captureBaseline();
+			try {
+				let operationStartedAt = performance.now();
+				activeBridge.replaceWithGeneratedTerminalLayout(
+					terminalTabCount,
+					terminalPanesPerTab,
+				);
+				await nextFrame();
+				recordOperationDuration(
+					"terminal-heavy",
+					"replace-generated-terminal-layout",
+					-1,
+					operationStartedAt,
+				);
+				terminalActionCounts["replace-generated-terminal-layout"] = 1;
+				operationCount += 1;
+				reportProgress("terminal-heavy", 0, terminalIterations, true);
+
+				for (let index = 0; index < terminalIterations; index += 1) {
+					operationStartedAt = performance.now();
+					let actionLabel = "switch-write-terminal-output";
+					try {
+						activeBridge.switchTab(index % terminalTabCount);
+						terminalActionCounts["switch-tab"] =
+							(terminalActionCounts["switch-tab"] ?? 0) + 1;
+						await nextFrame();
+						if (options.intervalMs > 0) {
+							await sleep(options.intervalMs);
+						}
+
+						const writeResult = await withTimeout(
+							activeBridge.writeTerminalStressOutput(
+								index,
+								options.terminalLines,
+								options.terminalPayloadBytes,
+							),
+							15_000,
+							"write-terminal-stress-output",
+						);
+						terminalActionCounts["write-output"] =
+							(terminalActionCounts["write-output"] ?? 0) + 1;
+						if (
+							index >= terminalTabCount &&
+							writeResult.failedCount > 0 &&
+							terminalActionErrors.length < 20
+						) {
+							terminalActionErrors.push(
+								`terminal write ${index} reached ${writeResult.writtenCount}/${writeResult.terminalCount} runtimes (${writeResult.byteLength} bytes)`,
+							);
+						}
+
+						if (
+							options.forceTerminalWebglLoss &&
+							index > 0 &&
+							index % webglLossCadence === 0
+						) {
+							actionLabel = "switch-write-force-webgl-context-loss";
+							const lossResult = activeBridge.forceTerminalWebglContextLoss();
+							terminalWebglContextLosses.push({
+								index,
+								...lossResult,
+							});
+							terminalActionCounts["force-webgl-context-loss"] =
+								(terminalActionCounts["force-webgl-context-loss"] ?? 0) + 1;
+							operationCount += 1;
+						}
+					} catch (error) {
+						terminalActionErrors.push(
+							`terminal action ${index} failed: ${
+								error instanceof Error ? error.message : String(error)
+							}`,
+						);
+					}
+					recordOperationDuration(
+						"terminal-heavy",
+						actionLabel,
+						index,
+						operationStartedAt,
+					);
+					operationCount += 1;
+					reportProgress("terminal-heavy", index + 1, terminalIterations);
+				}
+
+				if (
+					options.forceTerminalWebglLoss &&
+					terminalWebglContextLosses.some(
+						(result) => result.lostContextCount > 0,
+					)
+				) {
+					await sleep(WEBGL_CONTEXT_RECOVERY_SETTLE_MS);
+				}
+
+				terminalStressSummary = activeBridge.getTerminalStressSummary();
+			} finally {
+				activeBridge.restoreBaseline();
+				terminalActionCounts["restore-baseline"] = 1;
+				operationCount += 1;
+			}
+		}
 		await sleep(options.settleMs);
 
 		const durationMs = performance.now() - startedAt;
@@ -905,6 +1130,11 @@ function rendererStress(options: {
 			heavyActionCounts,
 			heavyActionErrors: heavyActionErrors.slice(0, 20),
 			heavyActionCatalogue,
+			terminalIterations: shouldRunTerminalHeavy ? terminalIterations : 0,
+			terminalActionCounts,
+			terminalActionErrors: terminalActionErrors.slice(0, 20),
+			terminalStressSummary,
+			terminalWebglContextLosses: terminalWebglContextLosses.slice(-20),
 			workspaceSummary,
 			durationMs,
 			maxHeartbeatDelayMs,
@@ -987,6 +1217,12 @@ async function main() {
 					iterations: args.iterations,
 					routeIterations: args.routeIterations,
 					heavyIterations: args.heavyIterations,
+					terminalIterations: args.terminalIterations,
+					terminalTabCount: args.terminalTabCount,
+					terminalPanesPerTab: args.terminalPanesPerTab,
+					terminalLines: args.terminalLines,
+					terminalPayloadBytes: args.terminalPayloadBytes,
+					forceTerminalWebglLoss: args.forceTerminalWebglLoss,
 					includeTerminalAction: args.includeTerminalAction,
 					progressEvery: args.progressEvery,
 					intervalMs: args.intervalMs,
@@ -1025,6 +1261,11 @@ async function main() {
 		const failures: string[] = [];
 		if (summary.errorCount > 0) {
 			failures.push(`${summary.errorCount} renderer error(s) observed`);
+		}
+		if (summary.terminalActionErrors.length > 0) {
+			failures.push(
+				`${summary.terminalActionErrors.length} terminal stress error(s) observed`,
+			);
 		}
 		if (summary.maxHeartbeatDelayMs > args.maxHeartbeatDelayMs) {
 			failures.push(

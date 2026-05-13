@@ -16,6 +16,16 @@ export interface LoadAddonsResult {
 // Once WebGL fails, skip it for all subsequent runtimes (VS Code pattern).
 let suggestedRendererType: "webgl" | "dom" | undefined;
 
+function afterPendingXtermRefresh(callback: () => void): number | null {
+	if (typeof requestAnimationFrame !== "function") {
+		setTimeout(callback, 0);
+		return null;
+	}
+	return requestAnimationFrame(() => {
+		requestAnimationFrame(callback);
+	});
+}
+
 /**
  * Load optional addons onto an already-opened terminal. Returns a cleanup
  * function and addon instances. WebGL is deferred to rAF to avoid
@@ -24,6 +34,7 @@ let suggestedRendererType: "webgl" | "dom" | undefined;
 export function loadAddons(terminal: XTerm): LoadAddonsResult {
 	let disposed = false;
 	let webglAddon: WebglAddon | null = null;
+	let webglFallbackScheduled = false;
 
 	terminal.loadAddon(new ClipboardAddon());
 
@@ -49,9 +60,22 @@ export function loadAddons(terminal: XTerm): LoadAddonsResult {
 		try {
 			webglAddon = new WebglAddon();
 			webglAddon.onContextLoss(() => {
-				webglAddon?.dispose();
-				webglAddon = null;
-				terminal.refresh(0, terminal.rows - 1);
+				if (webglFallbackScheduled) return;
+				webglFallbackScheduled = true;
+				suggestedRendererType = "dom";
+				const lostAddon = webglAddon;
+				afterPendingXtermRefresh(() => {
+					try {
+						lostAddon?.dispose();
+					} catch {}
+					if (webglAddon === lostAddon) {
+						webglAddon = null;
+					}
+					if (disposed) return;
+					try {
+						terminal.refresh(0, terminal.rows - 1);
+					} catch {}
+				});
 			});
 			terminal.loadAddon(webglAddon);
 		} catch {
