@@ -4,6 +4,9 @@ import { createContext } from "@/trpc/context";
 
 export const maxDuration = 60;
 
+/** tRPC error codes that represent expected auth failures, not bugs. */
+const AUTH_ERROR_CODES = new Set(["UNAUTHORIZED", "FORBIDDEN"]);
+
 const handler = (req: Request) =>
 	fetchRequestHandler({
 		endpoint: "/api/trpc",
@@ -11,7 +14,11 @@ const handler = (req: Request) =>
 		router: appRouter,
 		createContext,
 		onError: ({ path, error }) => {
-			console.error(`❌ tRPC error on ${path ?? "<no-path>"}:`, error);
+			if (AUTH_ERROR_CODES.has(error.code)) {
+				console.warn(`⚠ tRPC auth on ${path ?? "<no-path>"}: ${error.message}`);
+			} else {
+				console.error(`❌ tRPC error on ${path ?? "<no-path>"}:`, error);
+			}
 		},
 	});
 
