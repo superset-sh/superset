@@ -1,6 +1,12 @@
 import { useLiveQuery } from "@tanstack/react-db";
 import { useNavigate } from "@tanstack/react-router";
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+	useCallback,
+	useDeferredValue,
+	useEffect,
+	useRef,
+	useState,
+} from "react";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useTasksFilterStore } from "../../stores/tasks-filter-state";
 import { BoardContent } from "./components/BoardContent";
@@ -30,6 +36,7 @@ export function TasksView({
 	const collections = useCollections();
 	const currentTab: TabValue = initialTab ?? "all";
 	const [searchQuery, setSearchQuery] = useState(initialSearch ?? "");
+	const deferredSearchQuery = useDeferredValue(searchQuery);
 	const assigneeFilter = initialAssignee ?? null;
 	const typeTab = initialType ?? "tasks";
 	const projectFilter = initialProject ?? null;
@@ -231,14 +238,14 @@ export function TasksView({
 						(viewMode === "board" ? (
 							<BoardContent
 								filterTab={currentTab}
-								searchQuery={searchQuery}
+								searchQuery={deferredSearchQuery}
 								assigneeFilter={assigneeFilter}
 								onTaskClick={handleTaskClick}
 							/>
 						) : (
 							<TableContent
 								filterTab={currentTab}
-								searchQuery={searchQuery}
+								searchQuery={deferredSearchQuery}
 								assigneeFilter={assigneeFilter}
 								onTaskClick={handleTaskClick}
 								onSelectionChange={handleSelectionChange}
@@ -247,13 +254,13 @@ export function TasksView({
 					{showPRs && (
 						<PullRequestsContent
 							projectFilter={projectFilter}
-							searchQuery={searchQuery}
+							searchQuery={deferredSearchQuery}
 						/>
 					)}
 					{showIssues && (
 						<GitHubIssuesContent
 							projectFilter={projectFilter}
-							searchQuery={searchQuery}
+							searchQuery={deferredSearchQuery}
 						/>
 					)}
 				</div>

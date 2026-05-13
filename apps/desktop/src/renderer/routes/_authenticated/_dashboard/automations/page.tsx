@@ -481,8 +481,8 @@ function AutomationsPage() {
 
 										<span className="min-w-0 text-xs text-muted-foreground">
 											<AgentCell
-												agentId={automation.agentConfig.id}
-												label={automation.agentConfig.label}
+												agentId={automation.agent}
+												hostId={automation.targetHostId ?? null}
 											/>
 										</span>
 

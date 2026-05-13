@@ -1,10 +1,17 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { type ChildProcess, spawn, spawnSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import {
+	existsSync,
+	mkdtempSync,
+	readFileSync,
+	rmSync,
+	writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { Server } from "@superset/pty-daemon";
 import { TRPCClientError } from "@trpc/client";
 import {
 	disposeDaemonClient,
@@ -19,6 +26,7 @@ import {
 	__resetSessionsForTesting,
 	disposeSessionsByWorkspaceId,
 } from "../../src/terminal/terminal";
+import { __setAccountShellForTesting } from "../../src/terminal/user-shell.ts";
 import { type BasicScenario, createBasicScenario } from "../helpers/scenarios";
 import { seedTerminalSession } from "../helpers/seed";
 
@@ -38,6 +46,7 @@ describe("terminal router integration", () => {
 		__resetSessionsForTesting();
 		await disposeDaemonClient();
 		resetTerminalBaseEnvForTests();
+		__setAccountShellForTesting(undefined);
 		delete process.env.SUPERSET_PTY_DAEMON_SOCKET;
 		delete process.env.SUPERSET_HOME_DIR;
 		await scenario?.dispose();
@@ -74,6 +83,66 @@ describe("terminal router integration", () => {
 				workspaceId: scenario.workspaceId,
 			}),
 		).rejects.toBeInstanceOf(TRPCClientError);
+	});
+
+	test("createSession sends the configured shell to the daemon instead of inherited bash", async () => {
+		const tmp = mkdtempSync(join(tmpdir(), "host-service-terminal-shell-"));
+		const socketPath = join(tmp, "pty-daemon.sock");
+		const fakeFishPath = join(tmp, "fish");
+		const terminalId = randomUUID();
+		const spawned: Array<{
+			meta: {
+				shell: string;
+				argv: string[];
+				env?: Record<string, string>;
+			};
+		}> = [];
+		const server = new Server({
+			socketPath,
+			daemonVersion: "0.0.0-terminal-shell-test",
+			spawnPty: ({ meta }) => {
+				spawned.push({ meta });
+				return createFakePty(4200 + spawned.length, meta);
+			},
+		});
+
+		writeFileSync(fakeFishPath, "#!/bin/sh\n", { mode: 0o755 });
+
+		try {
+			await server.listen();
+			process.env.SUPERSET_PTY_DAEMON_SOCKET = socketPath;
+			process.env.SUPERSET_HOME_DIR = tmp;
+			__setAccountShellForTesting(fakeFishPath);
+			resetTerminalBaseEnvForTests();
+			initTerminalBaseEnv({
+				PATH: `${tmp}:${process.env.PATH ?? "/usr/bin:/bin"}`,
+				HOME: process.env.HOME ?? tmp,
+				SHELL: "/bin/bash",
+			});
+
+			await scenario.host.trpc.terminal.createSession.mutate({
+				workspaceId: scenario.workspaceId,
+				terminalId,
+			});
+
+			expect(spawned).toHaveLength(1);
+			const [{ meta }] = spawned;
+			expect(meta.shell).toBe(fakeFishPath);
+			expect(meta.argv[0]).toBe("-l");
+			expect(meta.argv[1]).toBe("--init-command");
+			expect(meta.env?.SHELL).toBe(fakeFishPath);
+			expect(meta.env?.SUPERSET_TERMINAL_ID).toBe(terminalId);
+		} finally {
+			await scenario.host.trpc.terminal.killSession
+				.mutate({
+					workspaceId: scenario.workspaceId,
+					terminalId,
+				})
+				.catch(() => {});
+			await disposeDaemonClient();
+			await server.close();
+			rmSync(tmp, { recursive: true, force: true });
+		}
 	});
 
 	test("terminal disposal cleans up background process groups from real daemon sessions", async () => {
@@ -320,6 +389,48 @@ function detachedHelperScript(pidPath: string): string {
 		`echo "$helper_pid" > ${shellQuote(pidPath)}`,
 		"sleep 60",
 	].join("; ");
+}
+
+function createFakePty(
+	pid: number,
+	meta: {
+		shell: string;
+		argv: string[];
+		cwd?: string;
+		env?: Record<string, string>;
+		cols: number;
+		rows: number;
+	},
+) {
+	let currentMeta = meta;
+	const exitCallbacks: Array<
+		(info: { code: number | null; signal: number | null }) => void
+	> = [];
+
+	return {
+		pid,
+		get meta() {
+			return currentMeta;
+		},
+		write() {},
+		resize(cols: number, rows: number) {
+			currentMeta = { ...currentMeta, cols, rows };
+		},
+		kill() {
+			for (const callback of exitCallbacks.splice(0)) {
+				callback({ code: null, signal: null });
+			}
+		},
+		onData() {},
+		onExit(
+			callback: (info: { code: number | null; signal: number | null }) => void,
+		) {
+			exitCallbacks.push(callback);
+		},
+		getMasterFd() {
+			return 0;
+		},
+	};
 }
 
 function ensureDaemonBundle(bundlePath: string): void {

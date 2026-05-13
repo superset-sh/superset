@@ -73,8 +73,8 @@ const ADOPT_IN_DEV_ENV = "SUPERSET_PTY_DAEMON_ADOPT_IN_DEV";
 export function shouldKillStaleDaemonForDev(
 	env: NodeJS.ProcessEnv = process.env,
 ): boolean {
-	if (env.NODE_ENV === "production") return false;
-	return env[ADOPT_IN_DEV_ENV] !== "1";
+	if (env[ADOPT_IN_DEV_ENV] === "1") return false;
+	return env.NODE_ENV === "development";
 }
 
 /**
@@ -907,7 +907,7 @@ export class DaemonSupervisor {
 		// flow up to the developer's `bun dev` terminal. Production:
 		// hard-back stdio with the rotating log file so the detached
 		// daemon survives host-service teardown without losing logs.
-		const isDev = process.env.NODE_ENV !== "production";
+		const isDev = process.env.NODE_ENV === "development";
 		const logFd = isDev ? -1 : openRotatingLogFd(logPath, MAX_DAEMON_LOG_BYTES);
 		const stdio: childProcess.StdioOptions = isDev
 			? ["ignore", "pipe", "pipe"]

@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import {
 	boolean,
 	index,
@@ -12,19 +13,25 @@ import {
 
 export const authSchema = pgSchema("auth");
 
-export const users = authSchema.table("users", {
-	id: uuid("id").primaryKey().defaultRandom(),
-	name: text("name").notNull(),
-	email: text("email").notNull().unique(),
-	emailVerified: boolean("email_verified").default(false).notNull(),
-	image: text("image"),
-	organizationIds: uuid("organization_ids").array().default([]).notNull(),
-	createdAt: timestamp("created_at").defaultNow().notNull(),
-	updatedAt: timestamp("updated_at")
-		.defaultNow()
-		.$onUpdate(() => new Date())
-		.notNull(),
-});
+export const users = authSchema.table(
+	"users",
+	{
+		id: uuid("id").primaryKey().defaultRandom(),
+		name: text("name").notNull(),
+		email: text("email").notNull().unique(),
+		emailVerified: boolean("email_verified").default(false).notNull(),
+		image: text("image"),
+		organizationIds: uuid("organization_ids").array().default([]).notNull(),
+		createdAt: timestamp("created_at").defaultNow().notNull(),
+		updatedAt: timestamp("updated_at")
+			.defaultNow()
+			.$onUpdate(() => new Date())
+			.notNull(),
+	},
+	(table) => [
+		index("users_organization_ids_idx").using("gin", table.organizationIds),
+	],
+);
 
 export type SelectUser = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
@@ -330,6 +337,10 @@ export const apikeys = authSchema.table(
 		index("apikeys_configId_idx").on(table.configId),
 		index("apikeys_referenceId_idx").on(table.referenceId),
 		index("apikeys_key_idx").on(table.key),
+		index("apikeys_metadata_trgm_idx").using(
+			"gin",
+			sql`${table.metadata} gin_trgm_ops`,
+		),
 	],
 );
 

@@ -1,4 +1,3 @@
-import type { ResolvedAgentConfig } from "@superset/shared/agent-settings";
 import { sql } from "drizzle-orm";
 import {
 	boolean,
@@ -766,7 +765,7 @@ export const automations = pgTable(
 		name: text().notNull(),
 		prompt: text().notNull(),
 
-		agentConfig: jsonb("agent_config").$type<ResolvedAgentConfig>().notNull(),
+		agent: text("agent").notNull(),
 
 		targetHostId: text("target_host_id"),
 

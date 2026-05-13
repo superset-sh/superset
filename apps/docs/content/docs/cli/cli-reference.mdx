@@ -43,6 +43,10 @@ Authentication and session inspection.
 			flag: "--organization <idOrSlug>",
 			description: "Selects the active organization without prompting. Required for non-TTY logins when you belong to multiple orgs.",
 		},
+		{
+			flag: "--api-key <key>",
+			description: "Store a Superset API key (`sk_live_…`) at `~/.superset/config.json` instead of running the OAuth flow.",
+		},
 	]}
 >
 Authenticate via browser OAuth and store a session token at
@@ -55,6 +59,16 @@ TTY, the CLI prompts; with multiple orgs and no TTY, you must pass
 ```bash
 superset auth login
 superset auth login --organization acme
+```
+
+To sign in with an API key — useful for CI or any environment where the
+OAuth browser flow isn't an option — pass `--api-key`. The CLI validates
+the key, stores it at `~/.superset/config.json`, and clears any prior
+OAuth session.
+
+```bash
+superset auth login --api-key sk_live_…
+superset auth login --api-key sk_live_… --organization acme
 ```
 
 <CommandReturns>
@@ -82,8 +96,9 @@ The newly authenticated user and active organization.
 </Command>
 
 <Command name="superset auth logout">
-Clear the stored session. Does not call the API and does not clear the
-active organization (your preferred org persists across re-logins).
+Clear stored credentials — both an OAuth session and a stored API key.
+Does not call the API and does not clear the active organization (your
+preferred org persists across re-logins).
 
 ```bash
 superset auth logout
@@ -132,7 +147,7 @@ Auth: Session (expires in 32 min)
   name: string;
   organizationId: string;
   organizationName: string;
-  authSource: "flag" | "env" | "oauth";
+  authSource: "override" | "config" | "oauth";
 }
 ```
 </JsonOutput>
@@ -834,8 +849,7 @@ Use [`automations logs`](#superset-automations-logs-id) for run history.
 		{ flag: "--workspace <workspaceId>", description: "Reuse an existing workspace." },
 		{ flag: "--project <projectId>", description: "Project ID for new-workspace-per-run mode." },
 		{ flag: "--host <hostId>", description: "Default: owner's online host." },
-		{ flag: "--agent <presetId>", description: "Default: claude." },
-		{ flag: "--agent-config-file <path>", description: "Full ResolvedAgentConfig JSON; overrides --agent." },
+		{ flag: "--agent <agent>", description: "Host agent presetId, instance UUID, or 'superset' for built-in chat. Default: claude." },
 	]}
 	output="Automation"
 >
@@ -866,8 +880,7 @@ superset automations create \
 		{ flag: "--host <hostId>", description: "New target host." },
 		{ flag: "--project <projectId>", description: "New v2 project ID." },
 		{ flag: "--workspace <workspaceId>", description: "New v2 workspace ID." },
-		{ flag: "--agent <presetId>", description: "New agent preset." },
-		{ flag: "--agent-config-file <path>", description: "Overrides --agent when both provided." },
+		{ flag: "--agent <agent>", description: "New host agent presetId, instance UUID, or 'superset'." },
 		{ flag: "--mcp-scope <a,b,c>", description: "Comma-separated MCP scope strings." },
 		{ flag: "--enabled / --no-enabled", description: "Calls automation.setEnabled first." },
 	]}

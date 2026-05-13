@@ -7,7 +7,7 @@ export function register(server: McpServer): void {
 	defineTool(server, {
 		name: "automations_create",
 		description:
-			"Schedule a recurring agent run. Provide an RFC 5545 RRULE body for the schedule. Either v2ProjectId (run in a fresh workspace) or v2WorkspaceId (reuse an existing workspace) is required — call projects_list or workspaces_list first to get IDs. The agentConfig must contain at least { id, kind } and may include other fields the agent runtime expects.",
+			"Schedule a recurring agent run. Provide an RFC 5545 RRULE body for the schedule. Either v2ProjectId (run in a fresh workspace) or v2WorkspaceId (reuse an existing workspace) is required — call projects_list or workspaces_list first to get IDs. `agent` is the host-agent instance id (or presetId fallback) that runs the prompt; pass 'superset' for the built-in chat agent.",
 		inputSchema: {
 			name: z
 				.string()
@@ -19,14 +19,12 @@ export function register(server: McpServer): void {
 				.min(1)
 				.max(100_000)
 				.describe("Prompt the agent runs (markdown)."),
-			agentConfig: z
-				.object({
-					id: z.string().min(1),
-					kind: z.enum(["terminal", "chat"]),
-				})
-				.passthrough()
+			agent: z
+				.string()
+				.min(1)
+				.max(200)
 				.describe(
-					"ResolvedAgentConfig snapshot. Get from agent settings; minimum { id, kind }.",
+					"Host agent instance id (UUID from /settings/agents) or presetId (e.g. 'claude', 'codex'). Use 'superset' for the built-in chat agent.",
 				),
 			targetHostId: z
 				.string()

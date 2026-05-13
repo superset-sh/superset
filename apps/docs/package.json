@@ -23,7 +23,7 @@
 		"fumadocs-mdx": "14.2.5",
 		"fumadocs-ui": "16.4.7",
 		"lucide-react": "0.563.0",
-		"next": "16.2.1",
+		"next": "16.2.6",
 		"posthog-js": "1.310.1",
 		"react": "19.2.0",
 		"react-dom": "19.2.0",
@@ -37,7 +37,7 @@
 		"@types/node": "24.12.0",
 		"@types/react": "19.2.14",
 		"@types/react-dom": "19.2.3",
-		"postcss": "8.5.8",
+		"postcss": "8.5.10",
 		"tailwindcss": "4.2.2",
 		"tailwindcss-animate": "1.0.7",
 		"typescript": "5.9.3"

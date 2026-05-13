@@ -3,6 +3,7 @@ import { workspaceTrpc } from "@superset/workspace-client";
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
+import { useQuickOpenStore } from "renderer/commandPalette/ui/QuickOpen/quickOpenStore";
 import { useV2UserPreferences } from "renderer/hooks/useV2UserPreferences";
 import { useHotkey } from "renderer/hotkeys";
 import { CommandPalette } from "renderer/screens/main/components/CommandPalette";
@@ -219,8 +220,21 @@ function V2WorkspaceContent({
 		showChangesSidebar: showRendererStressChangesSidebar,
 	});
 
-	const [quickOpenOpen, setQuickOpenOpen] = useState(false);
-	const handleQuickOpen = useCallback(() => setQuickOpenOpen(true), []);
+	const quickOpenOpen = useQuickOpenStore(
+		(s) => s.open && s.target?.workspaceId === workspaceId,
+	);
+	const closeQuickOpen = useQuickOpenStore((s) => s.close);
+	const openQuickOpenFor = useQuickOpenStore((s) => s.openFor);
+	const handleQuickOpen = useCallback(
+		() => openQuickOpenFor({ workspaceId }),
+		[openQuickOpenFor, workspaceId],
+	);
+	const handleQuickOpenChange = useCallback(
+		(next: boolean) => {
+			if (!next) closeQuickOpen();
+		},
+		[closeQuickOpen],
+	);
 	const defaultPaneActions = useDefaultPaneActions({ launcher });
 	const onBeforeCloseTab = useDirtyTabCloseGuard();
 
@@ -368,7 +382,7 @@ function V2WorkspaceContent({
 			<CommandPalette
 				workspaceId={workspaceId}
 				open={quickOpenOpen}
-				onOpenChange={setQuickOpenOpen}
+				onOpenChange={handleQuickOpenChange}
 				onSelectFile={openFilePane}
 				variant="v2"
 				recentlyViewedFiles={recentFiles}

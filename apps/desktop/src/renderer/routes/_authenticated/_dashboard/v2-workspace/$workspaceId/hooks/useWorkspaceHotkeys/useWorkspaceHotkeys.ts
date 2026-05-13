@@ -5,10 +5,11 @@ import {
 	type PaneRegistry,
 	type WorkspaceStore,
 } from "@superset/panes";
-import { useCallback, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useV2UserPreferences } from "renderer/hooks/useV2UserPreferences";
 import { useHotkey } from "renderer/hotkeys";
 import type { V2TerminalPresetRow } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
+import { useRightSidebarToggleIntent } from "renderer/stores/right-sidebar-toggle-intent";
 import type { StoreApi } from "zustand";
 import type {
 	BrowserPaneData,
@@ -41,6 +42,14 @@ export function useWorkspaceHotkeys({
 	useHotkey("TOGGLE_SIDEBAR", () => {
 		setRightSidebarOpen((prev) => !prev);
 	});
+
+	useEffect(
+		() =>
+			useRightSidebarToggleIntent.subscribe((state, prev) => {
+				if (state.tick !== prev.tick) setRightSidebarOpen((open) => !open);
+			}),
+		[setRightSidebarOpen],
+	);
 
 	// --- Tab creation ---
 

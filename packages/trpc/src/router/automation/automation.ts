@@ -268,7 +268,7 @@ export const automationRouter = {
 						ownerUserId: ctx.session.user.id,
 						name: input.name,
 						prompt: input.prompt,
-						agentConfig: input.agentConfig,
+						agent: input.agent,
 						targetHostId: input.targetHostId ?? null,
 						v2ProjectId,
 						v2WorkspaceId: input.v2WorkspaceId ?? null,
@@ -342,7 +342,7 @@ export const automationRouter = {
 				.update(automations)
 				.set({
 					name: input.name ?? existing.name,
-					agentConfig: input.agentConfig ?? existing.agentConfig,
+					agent: input.agent ?? existing.agent,
 					targetHostId:
 						input.targetHostId === undefined
 							? existing.targetHostId

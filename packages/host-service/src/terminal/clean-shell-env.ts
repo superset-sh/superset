@@ -1,6 +1,7 @@
 import { type ChildProcess, spawn } from "node:child_process";
 import * as os from "node:os";
 import { signalProcessTreeAndGroups } from "@superset/pty-daemon/process-tree";
+import { resolveConfiguredShell } from "./user-shell.ts";
 
 const SHELL_ENV_TIMEOUT_MS = 8_000;
 const CACHE_TTL_MS = 60_000;
@@ -64,24 +65,22 @@ function buildMinimalEnv(): Record<string, string> {
 }
 
 function resolveShellForEnv(): string {
-	if (process.platform === "win32") {
-		return process.env.COMSPEC || "cmd.exe";
-	}
-	return process.env.SHELL || "/bin/sh";
+	return resolveConfiguredShell(process.env);
 }
 
-function parseEnvOutput(stdout: string): Record<string, string> {
+const ENV_KEY_RE = /^[A-Za-z_][A-Za-z0-9_]*=/;
+
+export function parseEnvOutput(stdout: string): Record<string, string> {
 	const envSection = stdout.split(DELIMITER)[1];
 	if (!envSection) {
 		throw new Error("Failed to parse shell env output - delimiter not found");
 	}
 
 	const result: Record<string, string> = {};
-	for (const line of envSection.split("\n").filter(Boolean)) {
+	for (const line of envSection.split("\n")) {
+		if (!ENV_KEY_RE.test(line)) continue;
 		const idx = line.indexOf("=");
-		if (idx > 0) {
-			result[line.slice(0, idx)] = line.slice(idx + 1);
-		}
+		result[line.slice(0, idx)] = line.slice(idx + 1);
 	}
 
 	if (Object.keys(result).length === 0) {
@@ -103,6 +102,11 @@ function spawnCleanShellEnv(): Promise<Record<string, string>> {
 	return new Promise((resolve, reject) => {
 		const shell = resolveShellForEnv();
 		const env = buildMinimalEnv();
+		if (process.platform === "win32") {
+			env.COMSPEC = shell;
+		} else {
+			env.SHELL = shell;
+		}
 		const command = `echo -n "${DELIMITER}"; command env; echo -n "${DELIMITER}"; exit`;
 
 		// Anchor at $HOME so the snapshot shell doesn't inherit a cwd

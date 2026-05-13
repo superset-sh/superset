@@ -101,7 +101,7 @@ export function buildWhereClause(
 		}
 
 		case "auth.users": {
-			const fragment = `$1 = ANY("organization_ids")`;
+			const fragment = `"organization_ids" @> ARRAY[$1]::uuid[]`;
 			return { fragment, params: [organizationId] };
 		}
 

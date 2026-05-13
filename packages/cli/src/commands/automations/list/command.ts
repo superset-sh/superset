@@ -19,7 +19,7 @@ export default command({
 			(data as Record<string, unknown>[]).map((row) => ({
 				id: row.id,
 				name: row.name,
-				agent: (row.agentConfig as { id?: string } | null)?.id,
+				agent: row.agent,
 				schedule: row.scheduleText ?? row.rrule,
 				enabled: row.enabled ? "yes" : "no",
 				nextRun: formatAutomationDate(

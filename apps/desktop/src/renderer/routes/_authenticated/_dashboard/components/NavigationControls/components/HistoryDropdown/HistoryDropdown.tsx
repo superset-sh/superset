@@ -263,7 +263,7 @@ export function HistoryDropdown() {
 				.select(({ automations }) => ({
 					id: automations.id,
 					name: automations.name,
-					agentId: automations.agentConfig.id,
+					agentId: automations.agent,
 				})),
 		[collections],
 	);

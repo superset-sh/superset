@@ -108,7 +108,7 @@ const authMiddleware: MiddlewareHandler<AppContext> = async (c, next) => {
 		return c.json({ error: "Host not connected" }, 503);
 	}
 
-	const hasAccess = await checkHostAccess(token, hostId);
+	const hasAccess = await checkHostAccess(auth, token, hostId);
 	if (!hasAccess) return c.json({ error: "Forbidden" }, 403);
 
 	c.set("auth", auth);
@@ -140,7 +140,7 @@ app.get(
 					return;
 				}
 
-				const hasAccess = await checkHostAccess(token, hostId);
+				const hasAccess = await checkHostAccess(auth, token, hostId);
 				if (!hasAccess) {
 					ws.close(1008, "Forbidden");
 					return;

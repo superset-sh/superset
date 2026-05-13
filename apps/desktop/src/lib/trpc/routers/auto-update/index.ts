@@ -3,6 +3,7 @@ import {
 	type AutoUpdateStatusEvent,
 	autoUpdateEmitter,
 	checkForUpdates,
+	checkForUpdatesInteractive,
 	dismissUpdate,
 	getUpdateStatus,
 	installUpdate,
@@ -36,6 +37,10 @@ export const createAutoUpdateRouter = () => {
 
 		check: publicProcedure.mutation(() => {
 			checkForUpdates();
+		}),
+
+		checkInteractive: publicProcedure.mutation(() => {
+			checkForUpdatesInteractive();
 		}),
 
 		install: publicProcedure.mutation(() => {

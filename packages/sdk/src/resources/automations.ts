@@ -172,13 +172,6 @@ export class Automations extends APIResource {
 	}
 }
 
-export interface AgentConfig {
-	id: string;
-	kind: "terminal" | "chat";
-	/** Other fields (command, promptCommand, etc.) pass through. */
-	[key: string]: unknown;
-}
-
 /**
  * Lean automation row returned by `list` and `retrieve`. The `prompt`
  * body is omitted — call `getPrompt(id)` to fetch it.
@@ -188,7 +181,8 @@ export interface AutomationSummary {
 	organizationId: string;
 	ownerUserId: string;
 	name: string;
-	agentConfig: AgentConfig;
+	/** Host agent instance id (UUID) or presetId. 'superset' = built-in chat. */
+	agent: string;
 	targetHostId: string | null;
 	v2ProjectId: string;
 	v2WorkspaceId: string | null;
@@ -222,7 +216,8 @@ export interface AutomationListParams {
 export interface AutomationCreateParams {
 	name: string;
 	prompt: string;
-	agentConfig: AgentConfig;
+	/** Host agent instance id (UUID) or presetId. 'superset' = built-in chat. */
+	agent: string;
 	rrule: string;
 	timezone: string;
 	/** One of `v2ProjectId` or `v2WorkspaceId` is required. */
@@ -239,7 +234,7 @@ export interface AutomationCreateParams {
 export interface AutomationUpdateParams {
 	id: string;
 	name?: string;
-	agentConfig?: AgentConfig;
+	agent?: string;
 	targetHostId?: string | null;
 	v2ProjectId?: string;
 	v2WorkspaceId?: string | null;
@@ -291,6 +286,5 @@ export declare namespace Automations {
 		AutomationRunDispatched,
 		AutomationLogsParams,
 		AutomationLogsResponse,
-		AgentConfig,
 	};
 }

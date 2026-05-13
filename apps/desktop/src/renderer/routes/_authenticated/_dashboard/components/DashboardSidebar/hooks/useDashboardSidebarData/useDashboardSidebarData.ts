@@ -250,6 +250,7 @@ export function useDashboardSidebarData() {
 					hostIsOnline: hosts.isOnline,
 					name: workspaces.name,
 					branch: workspaces.branch,
+					taskId: workspaces.taskId,
 					createdAt: workspaces.createdAt,
 					updatedAt: workspaces.updatedAt,
 					tabOrder: sidebarWorkspaces.sidebarState.tabOrder,
@@ -285,6 +286,7 @@ export function useDashboardSidebarData() {
 					hostIsOnline: hosts.isOnline,
 					name: workspaces.name,
 					branch: workspaces.branch,
+					taskId: workspaces.taskId,
 					createdAt: workspaces.createdAt,
 					updatedAt: workspaces.updatedAt,
 					tabOrder: MAIN_WORKSPACE_TAB_ORDER,
@@ -319,6 +321,7 @@ export function useDashboardSidebarData() {
 					hostIsOnline: host?.isOnline ?? false,
 					name: cloudRow.name,
 					branch: cloudRow.branch,
+					taskId: cloudRow.taskId,
 					createdAt: cloudRow.createdAt,
 					updatedAt: cloudRow.updatedAt,
 					tabOrder:
@@ -491,6 +494,7 @@ export function useDashboardSidebarData() {
 				behindCount: null,
 				createdAt: workspace.createdAt,
 				updatedAt: workspace.updatedAt,
+				taskId: workspace.taskId,
 			};
 
 			if (workspace.sectionId) {
@@ -541,6 +545,7 @@ export function useDashboardSidebarData() {
 				behindCount: null,
 				createdAt: new Date(),
 				updatedAt: new Date(),
+				taskId: null,
 				creationStatus: pw.status,
 			};
 

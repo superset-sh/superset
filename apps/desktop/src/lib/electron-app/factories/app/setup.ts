@@ -81,13 +81,3 @@ app.commandLine.appendSwitch("force-color-profile", "srgb");
 // while staying bounded enough that a runaway leak still surfaces (Tabby
 // raises this to 9000, which masks leaks).
 app.commandLine.appendSwitch("max-active-webgl-contexts", "256");
-
-// Only expose CDP in development when a port is explicitly configured.
-const cdpPort =
-	env.NODE_ENV === "development"
-		? process.env.DESKTOP_AUTOMATION_PORT
-		: undefined;
-if (cdpPort) {
-	app.commandLine.appendSwitch("remote-debugging-port", cdpPort);
-	app.commandLine.appendSwitch("remote-allow-origins", "*");
-}

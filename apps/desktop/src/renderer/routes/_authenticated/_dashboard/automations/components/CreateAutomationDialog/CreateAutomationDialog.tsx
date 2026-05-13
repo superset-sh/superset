@@ -9,11 +9,12 @@ import {
 } from "@superset/ui/dialog";
 import { toast } from "@superset/ui/sonner";
 import { useMutation } from "@tanstack/react-query";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { LuX } from "react-icons/lu";
 import { EmojiTextInput } from "renderer/components/EmojiTextInput";
 import { MarkdownEditor } from "renderer/components/MarkdownEditor";
-import { useEnabledAgents } from "renderer/hooks/useEnabledAgents";
+import { useHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
+import { useV2AgentChoices } from "renderer/hooks/useV2AgentChoices";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { DevicePicker } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/components/DevicePicker";
 import { useWorkspaceHostOptions } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/components/DevicePicker/hooks/useWorkspaceHostOptions/useWorkspaceHostOptions";
@@ -54,13 +55,15 @@ export function CreateAutomationDialog({
 	const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
 		null,
 	);
-	const [agentType, setAgentType] = useState("claude");
+	const [agent, setAgent] = useState<string | null>(null);
 	const [rrule, setRrule] = useState(DEFAULT_RRULE);
 	const [v2WorkspaceId, setV2WorkspaceId] = useState<string | null>(null);
 
 	const { localHostId } = useWorkspaceHostOptions();
+	const targetHostId = hostId ?? localHostId;
+	const hostUrl = useHostUrl(targetHostId);
+	const { agents: hostAgents } = useV2AgentChoices(hostUrl);
 	const recentProjects = useRecentProjects();
-	const { agents: enabledAgents } = useEnabledAgents();
 	const searchFiles = useProjectFileSearch({
 		hostId,
 		projectId: selectedProjectId,
@@ -68,9 +71,13 @@ export function CreateAutomationDialog({
 	const selectedProject = recentProjects.find(
 		(project) => project.id === selectedProjectId,
 	);
-	const selectedAgentConfig = enabledAgents.find(
-		(agent) => agent.id === agentType,
-	);
+	const selectedAgent = hostAgents.find((option) => option.id === agent);
+
+	useEffect(() => {
+		if (agent && hostAgents.some((option) => option.id === agent)) return;
+		const fallback = hostAgents[0]?.id ?? null;
+		if (fallback !== agent) setAgent(fallback);
+	}, [agent, hostAgents]);
 
 	// Default to first project once the Electric-synced list lands.
 	useEffect(() => {
@@ -80,19 +87,43 @@ export function CreateAutomationDialog({
 		if (first) setSelectedProjectId(first.id);
 	}, [open, selectedProjectId, recentProjects]);
 
+	// Track which (open session, template) we've already pre-filled so the
+	// effects don't re-run and stomp on user edits when `hostAgents` lands
+	// asynchronously.
+	const appliedTemplateRef = useRef<AutomationTemplate | null>(null);
+	const appliedAgentForTemplateRef = useRef<AutomationTemplate | null>(null);
+
 	const applyTemplate = useCallback((template: AutomationTemplate) => {
 		setName(template.name);
 		setPrompt(template.prompt);
-		if (template.agentType) setAgentType(template.agentType);
 		if (template.rrule) setRrule(template.rrule);
 	}, []);
 
-	// Pre-fill when opened with an initialTemplate (from the empty-state gallery).
+	// Pre-fill scalar fields once when opened with an initialTemplate.
 	useEffect(() => {
 		if (!open) return;
 		if (!initialTemplate) return;
+		if (appliedTemplateRef.current === initialTemplate) return;
+		appliedTemplateRef.current = initialTemplate;
 		applyTemplate(initialTemplate);
 	}, [open, initialTemplate, applyTemplate]);
+
+	// Match the template's preferred agent against the host's choices once
+	// they load. Separate effect so a `hostAgents` refresh doesn't re-trigger
+	// the scalar prefill above.
+	useEffect(() => {
+		if (!open) return;
+		if (!initialTemplate?.agentType) return;
+		if (appliedAgentForTemplateRef.current === initialTemplate) return;
+		if (hostAgents.length === 0) return;
+		const match = hostAgents.find(
+			(option) =>
+				option.id === initialTemplate.agentType ||
+				option.iconId === initialTemplate.agentType,
+		);
+		if (match) setAgent(match.id);
+		appliedAgentForTemplateRef.current = initialTemplate;
+	}, [open, initialTemplate, hostAgents]);
 
 	useEffect(() => {
 		if (!open) {
@@ -101,22 +132,22 @@ export function CreateAutomationDialog({
 			setPrompt("");
 			setHostId(null);
 			setSelectedProjectId(null);
-			setAgentType("claude");
+			setAgent(null);
 			setRrule(DEFAULT_RRULE);
 			setV2WorkspaceId(null);
+			appliedTemplateRef.current = null;
+			appliedAgentForTemplateRef.current = null;
 		}
 	}, [open]);
 
-	const targetHostId = hostId ?? localHostId;
-
 	const createMutation = useMutation({
 		mutationFn: () => {
-			if (!selectedAgentConfig) throw new Error("No agent selected");
+			if (!selectedAgent) throw new Error("No agent selected");
 			if (!selectedProjectId) throw new Error("No project selected");
 			return apiTrpcClient.automation.create.mutate({
 				name,
 				prompt,
-				agentConfig: selectedAgentConfig,
+				agent: selectedAgent.id,
 				targetHostId: targetHostId ?? null,
 				v2ProjectId: selectedProjectId,
 				v2WorkspaceId,
@@ -149,7 +180,7 @@ export function CreateAutomationDialog({
 		prompt.trim().length > 0 &&
 		!!selectedProjectId &&
 		!!targetHostId &&
-		!!selectedAgentConfig &&
+		!!selectedAgent &&
 		rrule.trim().length > 0 &&
 		!createMutation.isPending;
 
@@ -258,8 +289,9 @@ export function CreateAutomationDialog({
 									/>
 									<AgentPicker
 										className="w-[100px]"
-										value={agentType}
-										onChange={setAgentType}
+										hostId={targetHostId}
+										value={agent ?? ""}
+										onChange={setAgent}
 									/>
 								</div>
 

@@ -333,13 +333,8 @@ export class HostServiceCoordinator extends EventEmitter {
 				? `spawned by app ${manifest.spawnedByAppVersion} != current ${currentAppVersion}`
 				: "no recorded app version (pre-upgrade manifest)";
 			log.info(
-				`[host-service:${organizationId}] Adopted service ${reason}, killing`,
+				`[host-service:${organizationId}] Adopted service ${reason}, checking health before reuse`,
 			);
-			try {
-				process.kill(manifest.pid, "SIGTERM");
-			} catch {}
-			removeManifest(organizationId);
-			return null;
 		}
 
 		// A live pid is not the same as a serving host-service — the process can
@@ -520,6 +515,9 @@ export class HostServiceCoordinator extends EventEmitter {
 		const childEnv = await getProcessEnvWithShellPath({
 			...(process.env as Record<string, string>),
 			ELECTRON_RUN_AS_NODE: "1",
+			NODE_ENV: app.isPackaged
+				? "production"
+				: (process.env.NODE_ENV ?? "development"),
 			ORGANIZATION_ID: organizationId,
 			HOST_CLIENT_ID: getHostId(),
 			HOST_NAME: getHostName(),

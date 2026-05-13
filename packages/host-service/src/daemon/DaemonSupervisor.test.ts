@@ -199,9 +199,9 @@ describe("shouldKillStaleDaemonForDev", () => {
 		expect(shouldKillStaleDaemonForDev({ NODE_ENV: "production" })).toBe(false);
 	});
 
-	test("kills stale daemons in dev by default", () => {
+	test("kills stale daemons only in explicit dev mode", () => {
 		expect(shouldKillStaleDaemonForDev({ NODE_ENV: "development" })).toBe(true);
-		expect(shouldKillStaleDaemonForDev({})).toBe(true);
+		expect(shouldKillStaleDaemonForDev({})).toBe(false);
 	});
 
 	test("allows production-like adoption in dev for handoff testing", () => {

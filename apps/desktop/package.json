@@ -2,7 +2,7 @@
 	"name": "@superset/desktop",
 	"productName": "Superset",
 	"description": "The last developer tool you'll ever need",
-	"version": "1.8.9",
+	"version": "1.9.1",
 	"main": "./dist/main/index.js",
 	"resources": "src/resources",
 	"repository": {
@@ -73,7 +73,7 @@
 		"@electric-sql/client": "1.5.15",
 		"@headless-tree/core": "1.6.3",
 		"@headless-tree/react": "1.6.3",
-		"@hono/node-server": "1.19.11",
+		"@hono/node-server": "1.19.13",
 		"@hookform/resolvers": "5.2.2",
 		"@lezer/highlight": "1.2.3",
 		"@mastra/core": "1.26.0-alpha.3",
@@ -89,7 +89,6 @@
 		"@superset/auth": "workspace:*",
 		"@superset/chat": "workspace:*",
 		"@superset/db": "workspace:*",
-		"@superset/desktop-mcp": "workspace:*",
 		"@superset/host-service": "workspace:*",
 		"@superset/local-db": "workspace:*",
 		"@superset/macos-process-metrics": "workspace:*",
@@ -193,7 +192,7 @@
 		"jose": "6.2.2",
 		"libsql": "0.5.22",
 		"line-column-path": "3.0.0",
-		"lodash": "4.17.23",
+		"lodash": "4.18.1",
 		"lowdb": "7.0.1",
 		"lowlight": "3.3.0",
 		"lucide-react": "0.563.0",
@@ -228,7 +227,7 @@
 		"shell-env": "4.0.3",
 		"shell-quote": "1.8.3",
 		"shiki": "3.23.0",
-		"simple-git": "3.33.0",
+		"simple-git": "3.36.0",
 		"streamdown": "2.5.0",
 		"strip-ansi": "7.2.0",
 		"superjson": "2.2.6",
@@ -274,7 +273,7 @@
 		"tailwindcss": "4.2.2",
 		"tsx": "4.21.0",
 		"typescript": "5.9.3",
-		"vite": "7.3.1",
+		"vite": "7.3.2",
 		"vite-tsconfig-paths": "5.1.4"
 	}
 }

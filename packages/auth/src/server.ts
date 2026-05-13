@@ -814,7 +814,11 @@ export const auth = betterAuth({
 					}
 				},
 
-				getCheckoutSessionParams: async ({ user, plan, subscription }) => {
+				getCheckoutSessionParams: async (
+					{ user, plan, subscription },
+					_request,
+					ctx,
+				) => {
 					if (plan.name === "enterprise") {
 						throw new Error(
 							"Enterprise subscriptions are managed by admins. Contact founders@superset.sh.",
@@ -828,10 +832,14 @@ export const auth = betterAuth({
 						),
 					});
 
+					const annual = Boolean(
+						(ctx?.body as { annual?: boolean } | undefined)?.annual,
+					);
+
 					return {
 						params: {
 							customer: org?.stripeCustomerId ?? undefined,
-							allow_promotion_codes: true,
+							allow_promotion_codes: !annual,
 							billing_address_collection: "required",
 							metadata: {
 								organizationId: org?.id ?? "",
