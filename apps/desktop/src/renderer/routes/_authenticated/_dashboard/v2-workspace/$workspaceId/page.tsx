@@ -136,7 +136,7 @@ function V2WorkspaceContent({
 			for (const tab of store.getState().tabs) {
 				for (const pane of Object.values(tab.panes)) {
 					if (pane.kind === "browser") {
-						browserRuntimeRegistry.destroy(pane.id);
+						browserRuntimeRegistry.detach(pane.id);
 					}
 					if (pane.kind === "terminal") {
 						terminalRuntimeRegistry.release(
