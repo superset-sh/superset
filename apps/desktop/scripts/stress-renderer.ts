@@ -3,7 +3,10 @@
 interface Args {
 	host: string;
 	port: number;
+	scenario: StressScenario;
 	iterations: number;
+	routeIterations: number;
+	heavyIterations: number;
 	intervalMs: number;
 	settleMs: number;
 	timeoutMs: number;
@@ -14,6 +17,12 @@ interface Args {
 	json: boolean;
 	help: boolean;
 }
+
+type StressScenario =
+	| "all"
+	| "route-sweep"
+	| "workspace-heavy"
+	| "workspace-switch";
 
 interface CdpTarget {
 	type?: string;
@@ -49,9 +58,19 @@ interface RuntimeEvaluateResult {
 }
 
 interface RendererStressResult {
+	scenario: StressScenario;
 	iterations: number;
+	operationCount: number;
 	targetCount: number;
 	activationModeCounts: Record<string, number>;
+	routeCount: number;
+	routeIterations: number;
+	routesVisited: string[];
+	heavyIterations: number;
+	heavyActionCounts: Record<string, number>;
+	heavyActionErrors: string[];
+	heavyActionCatalogue: string[];
+	workspaceSummary: unknown;
 	durationMs: number;
 	maxHeartbeatDelayMs: number;
 	heartbeatDelaySamples: number[];
@@ -75,7 +94,10 @@ function parseArgs(argv: string[]): Args {
 	const args: Args = {
 		host: "127.0.0.1",
 		port: Number(process.env.SUPERSET_RENDERER_STRESS_CDP_PORT ?? 9333),
+		scenario: "workspace-switch",
 		iterations: 500,
+		routeIterations: 0,
+		heavyIterations: 0,
 		intervalMs: 0,
 		settleMs: 1000,
 		timeoutMs: 30_000,
@@ -112,8 +134,27 @@ function parseArgs(argv: string[]): Args {
 			case "--port":
 				args.port = readNumber();
 				break;
+			case "--scenario": {
+				const scenario = readValue();
+				if (
+					scenario !== "all" &&
+					scenario !== "route-sweep" &&
+					scenario !== "workspace-heavy" &&
+					scenario !== "workspace-switch"
+				) {
+					throw new Error(`Invalid scenario for ${arg}: ${scenario}`);
+				}
+				args.scenario = scenario;
+				break;
+			}
 			case "--iterations":
 				args.iterations = readNumber();
+				break;
+			case "--route-iterations":
+				args.routeIterations = readNumber();
+				break;
+			case "--heavy-iterations":
+				args.heavyIterations = readNumber();
 				break;
 			case "--interval-ms":
 				args.intervalMs = readNumber();
@@ -159,10 +200,16 @@ Start the desktop app with CDP enabled:
 Run the workspace switching stress test from another shell:
   bun --cwd apps/desktop stress:renderer -- --port 9333 --iterations 1000 --interval-ms 0
 
+Run route and workspace action stress:
+  bun --cwd apps/desktop stress:renderer -- --port 9333 --scenario all --iterations 1000 --route-iterations 200 --heavy-iterations 300
+
 Options:
   --port <n>                       CDP port. Default: env SUPERSET_RENDERER_STRESS_CDP_PORT or 9333
   --host <host>                    CDP host. Default: 127.0.0.1
+  --scenario <name>                workspace-switch, route-sweep, workspace-heavy, or all. Default: workspace-switch
   --iterations <n>                 Workspace activations. Default: 500
+  --route-iterations <n>           Route navigations. Default: --iterations
+  --heavy-iterations <n>           Mixed pane/tab/browser/diff actions. Default: min(--iterations, 300)
   --interval-ms <n>                Delay between activations. Default: 0
   --settle-ms <n>                  Delay after the final activation. Default: 1000
   --timeout-ms <n>                 CDP command timeout. Default: 30000
@@ -298,7 +345,10 @@ async function getRendererTarget(args: Args): Promise<CdpTarget> {
 }
 
 function rendererStress(options: {
+	scenario: StressScenario;
 	iterations: number;
+	routeIterations: number;
+	heavyIterations: number;
 	intervalMs: number;
 	settleMs: number;
 	selector: string;
@@ -380,22 +430,314 @@ function rendererStress(options: {
 		return "hash";
 	};
 
+	type RendererStressBridge = {
+		workspaceId: string;
+		projectId: string;
+		captureBaseline: () => void;
+		restoreBaseline: () => void;
+		getSummary: () => unknown;
+		addTab: (kind: string, index: number, paneCount?: number) => void;
+		openPane: (kind: string, index: number) => void;
+		splitActivePane: (kind: string, index: number) => void;
+		switchTab: (index: number) => void;
+		closeActivePane: () => void;
+		closeOldestTab: (keepCount?: number) => void;
+		churnActivePaneData: (index: number) => void;
+		replaceWithGeneratedLayout: (tabCount: number, panesPerTab: number) => void;
+		addRealTerminalTab: () => Promise<void>;
+	};
+
+	const getBridge = () =>
+		(
+			window as Window & {
+				__SUPERSET_RENDERER_STRESS__?: RendererStressBridge;
+			}
+		).__SUPERSET_RENDERER_STRESS__ ?? null;
+
+	const waitForBridge = async (workspaceId?: string, attempts = 250) => {
+		for (let attempt = 0; attempt < attempts; attempt += 1) {
+			const bridge = getBridge();
+			if (bridge && (!workspaceId || bridge.workspaceId === workspaceId)) {
+				return bridge;
+			}
+			await sleep(20);
+		}
+		throw new Error(
+			workspaceId
+				? `Renderer stress workspace bridge did not mount for ${workspaceId}`
+				: "Renderer stress workspace bridge did not mount",
+		);
+	};
+
+	const navigateTo = async (path: string) => {
+		window.location.hash = path;
+		await sleep(options.intervalMs);
+	};
+
+	const withTimeout = async <T>(
+		promise: Promise<T>,
+		timeoutMs: number,
+		label: string,
+	): Promise<T> => {
+		let timer: ReturnType<typeof setTimeout> | null = null;
+		try {
+			return await Promise.race([
+				promise,
+				new Promise<T>((_, reject) => {
+					timer = setTimeout(
+						() => reject(new Error(`${label} timed out after ${timeoutMs}ms`)),
+						timeoutMs,
+					);
+				}),
+			]);
+		} finally {
+			if (timer) clearTimeout(timer);
+		}
+	};
+
+	const findWorkspaceBridge = async (workspaceIds: string[]) => {
+		const failures: string[] = [];
+		for (const candidateWorkspaceId of workspaceIds) {
+			await navigateTo(
+				`/v2-workspace/${encodeURIComponent(candidateWorkspaceId)}/`,
+			);
+			try {
+				const bridge = await waitForBridge(candidateWorkspaceId, 75);
+				return { workspaceId: candidateWorkspaceId, bridge };
+			} catch (error) {
+				failures.push(
+					`${candidateWorkspaceId}: ${
+						error instanceof Error ? error.message : String(error)
+					}`,
+				);
+			}
+		}
+		throw new Error(
+			`No V2 workspace stress bridge mounted. Tried ${workspaceIds.length} workspace route(s): ${failures.join(
+				"; ",
+			)}`,
+		);
+	};
+
+	const buildRoutePaths = (
+		targets: string[],
+		metadata: { projectId?: string; workspaceId?: string },
+	) => {
+		const staticPaths = [
+			"/",
+			"/v2-workspaces/",
+			"/workspaces/",
+			"/workspace/",
+			"/tasks/",
+			"/automations/",
+			"/settings/",
+			"/settings/account/",
+			"/settings/agents/",
+			"/settings/api-keys/",
+			"/settings/appearance/",
+			"/settings/behavior/",
+			"/settings/billing/",
+			"/settings/billing/plans/",
+			"/settings/experimental/",
+			"/settings/git/",
+			"/settings/hosts/",
+			"/settings/integrations/",
+			"/settings/keyboard/",
+			"/settings/links/",
+			"/settings/models/",
+			"/settings/organization/",
+			"/settings/permissions/",
+			"/settings/presets/",
+			"/settings/projects/",
+			"/settings/ringtones/",
+			"/settings/security/",
+			"/settings/teams/",
+			"/settings/terminal/",
+			"/setup/adopt-worktrees/",
+			"/setup/gh-cli/",
+			"/setup/permissions/",
+			"/setup/project/",
+			"/setup/providers/",
+			"/setup/providers/claude-code/",
+			"/setup/providers/claude-code/api-key/",
+			"/setup/providers/claude-code/custom/",
+			"/setup/providers/codex/",
+			"/setup/providers/codex/api-key/",
+			"/setup/providers/codex/custom/",
+			"/welcome/",
+			"/new-project/",
+		];
+		const dynamicPaths = targets.flatMap((workspaceId) => [
+			`/v2-workspace/${encodeURIComponent(workspaceId)}/`,
+			`/workspace/${encodeURIComponent(workspaceId)}/`,
+		]);
+		if (metadata.projectId) {
+			const projectId = encodeURIComponent(metadata.projectId);
+			dynamicPaths.push(
+				`/project/${projectId}/`,
+				`/settings/projects/${projectId}/`,
+				`/settings/project/${projectId}/cloud/`,
+				`/settings/project/${projectId}/cloud/secrets/`,
+				`/tasks/issue/1/?project=${projectId}`,
+				`/tasks/pr/1/?project=${projectId}`,
+			);
+		}
+		return Array.from(new Set([...staticPaths, ...dynamicPaths]));
+	};
+
+	const heavyActionCatalogue = [
+		"replace generated multi-tab/multi-pane workspace layout",
+		"create file tabs",
+		"create diff tabs",
+		"create browser tabs/webviews",
+		"create chat tabs",
+		"create comment tabs",
+		"split active pane with file/diff/browser/chat/comment panes",
+		"open panes through same-kind replacement path",
+		"rapid tab switching",
+		"active pane data churn",
+		"close active panes",
+		"close old tabs while preserving a warm set",
+		"single real terminal tab launch",
+		"restore original pane layout",
+	];
+
+	const shouldRunWorkspaceSwitch =
+		options.scenario === "workspace-switch" || options.scenario === "all";
+	const shouldRunRouteSweep =
+		options.scenario === "route-sweep" || options.scenario === "all";
+	const shouldRunWorkspaceHeavy =
+		options.scenario === "workspace-heavy" || options.scenario === "all";
+
 	return (async () => {
 		const startedAt = performance.now();
 		const startMemory = stressWindow.performance.memory ?? null;
 		const targets = getTargets();
-		if (targets.length < 2) {
+		const requiredTargetCount = shouldRunWorkspaceSwitch ? 2 : 1;
+		if (targets.length < requiredTargetCount) {
 			throw new Error(
-				`Need at least two workspace targets, found ${targets.length}. Open a workspace list/sidebar or pass --workspace-ids.`,
+				`Need at least ${requiredTargetCount} workspace target(s), found ${targets.length}. Open a workspace list/sidebar or pass --workspace-ids.`,
 			);
 		}
 
 		const activationModeCounts: Record<string, number> = {};
-		for (let index = 0; index < options.iterations; index += 1) {
-			const target = targets[index % targets.length];
-			const mode = activateWorkspace(target);
-			activationModeCounts[mode] = (activationModeCounts[mode] ?? 0) + 1;
-			await sleep(options.intervalMs);
+		const routesVisited: string[] = [];
+		const heavyActionCounts: Record<string, number> = {};
+		const heavyActionErrors: string[] = [];
+		let operationCount = 0;
+		let workspaceSummary: unknown = null;
+		let routeCount = 0;
+		const routeIterations =
+			options.routeIterations > 0
+				? options.routeIterations
+				: options.iterations;
+		const heavyIterations =
+			options.heavyIterations > 0
+				? options.heavyIterations
+				: Math.min(options.iterations, 300);
+
+		if (shouldRunWorkspaceSwitch) {
+			for (let index = 0; index < options.iterations; index += 1) {
+				const target = targets[index % targets.length];
+				const mode = activateWorkspace(target);
+				activationModeCounts[mode] = (activationModeCounts[mode] ?? 0) + 1;
+				operationCount += 1;
+				await sleep(options.intervalMs);
+			}
+		}
+
+		let workspaceId = targets[0];
+		let metadata: { projectId?: string; workspaceId?: string } = {};
+		if (shouldRunRouteSweep || shouldRunWorkspaceHeavy) {
+			const mounted = await findWorkspaceBridge(targets);
+			workspaceId = mounted.workspaceId;
+			const bridge = mounted.bridge;
+			metadata = {
+				projectId: bridge.projectId,
+				workspaceId: bridge.workspaceId,
+			};
+		}
+
+		if (shouldRunRouteSweep) {
+			const routePaths = buildRoutePaths(targets, metadata);
+			routeCount = routePaths.length;
+			for (let index = 0; index < routeIterations; index += 1) {
+				const routePath = routePaths[index % routePaths.length];
+				routesVisited.push(routePath);
+				await navigateTo(routePath);
+				operationCount += 1;
+			}
+			await navigateTo(`/v2-workspace/${encodeURIComponent(workspaceId)}/`);
+			await waitForBridge(workspaceId);
+		}
+
+		if (shouldRunWorkspaceHeavy) {
+			const activeBridge = await waitForBridge(workspaceId);
+			activeBridge.captureBaseline();
+			activeBridge.replaceWithGeneratedLayout(12, 3);
+			heavyActionCounts["replace-generated-layout"] = 1;
+			operationCount += 1;
+
+			const paneKinds = ["file", "diff", "browser", "chat", "comment"];
+			for (let index = 0; index < heavyIterations; index += 1) {
+				const kind = paneKinds[index % paneKinds.length];
+				const action = index % 12;
+				try {
+					if (index === 0) {
+						await withTimeout(
+							activeBridge.addRealTerminalTab(),
+							3000,
+							"add-real-terminal-tab",
+						);
+						heavyActionCounts["add-real-terminal-tab"] =
+							(heavyActionCounts["add-real-terminal-tab"] ?? 0) + 1;
+					} else if (action === 0) {
+						activeBridge.addTab(kind, index, (index % 4) + 1);
+						heavyActionCounts["add-tab"] =
+							(heavyActionCounts["add-tab"] ?? 0) + 1;
+					} else if (action === 1 || action === 2) {
+						activeBridge.splitActivePane(kind, index);
+						heavyActionCounts["split-active-pane"] =
+							(heavyActionCounts["split-active-pane"] ?? 0) + 1;
+					} else if (action === 3) {
+						activeBridge.openPane(kind, index);
+						heavyActionCounts["open-pane"] =
+							(heavyActionCounts["open-pane"] ?? 0) + 1;
+					} else if (action === 4 || action === 5) {
+						activeBridge.switchTab(index);
+						heavyActionCounts["switch-tab"] =
+							(heavyActionCounts["switch-tab"] ?? 0) + 1;
+					} else if (action === 6 || action === 7) {
+						activeBridge.churnActivePaneData(index);
+						heavyActionCounts["churn-active-pane-data"] =
+							(heavyActionCounts["churn-active-pane-data"] ?? 0) + 1;
+					} else if (action === 8) {
+						activeBridge.closeActivePane();
+						heavyActionCounts["close-active-pane"] =
+							(heavyActionCounts["close-active-pane"] ?? 0) + 1;
+					} else if (action === 9) {
+						activeBridge.closeOldestTab(10);
+						heavyActionCounts["close-oldest-tab"] =
+							(heavyActionCounts["close-oldest-tab"] ?? 0) + 1;
+					} else {
+						activeBridge.addTab(kind, index);
+						heavyActionCounts["add-single-pane-tab"] =
+							(heavyActionCounts["add-single-pane-tab"] ?? 0) + 1;
+					}
+				} catch (error) {
+					heavyActionErrors.push(
+						`heavy action ${index} failed: ${
+							error instanceof Error ? error.message : String(error)
+						}`,
+					);
+				}
+				operationCount += 1;
+				await sleep(options.intervalMs);
+			}
+			workspaceSummary = activeBridge.getSummary();
+			activeBridge.restoreBaseline();
+			heavyActionCounts["restore-baseline"] = 1;
+			operationCount += 1;
 		}
 		await sleep(options.settleMs);
 
@@ -405,9 +747,19 @@ function rendererStress(options: {
 			0,
 		);
 		return {
+			scenario: options.scenario,
 			iterations: options.iterations,
+			operationCount,
 			targetCount: targets.length,
 			activationModeCounts,
+			routeCount,
+			routeIterations: shouldRunRouteSweep ? routeIterations : 0,
+			routesVisited: Array.from(new Set(routesVisited)),
+			heavyIterations: shouldRunWorkspaceHeavy ? heavyIterations : 0,
+			heavyActionCounts,
+			heavyActionErrors: heavyActionErrors.slice(0, 20),
+			heavyActionCatalogue,
+			workspaceSummary,
 			durationMs,
 			maxHeartbeatDelayMs,
 			heartbeatDelaySamples: heartbeatDelaySamples.slice(-20),
@@ -456,7 +808,10 @@ async function main() {
 			"Runtime.evaluate",
 			{
 				expression: `(${rendererStress.toString()})(${JSON.stringify({
+					scenario: args.scenario,
 					iterations: args.iterations,
+					routeIterations: args.routeIterations,
+					heavyIterations: args.heavyIterations,
 					intervalMs: args.intervalMs,
 					settleMs: args.settleMs,
 					selector: args.selector,

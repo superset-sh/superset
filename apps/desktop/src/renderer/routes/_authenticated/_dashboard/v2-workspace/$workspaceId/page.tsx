@@ -1,7 +1,7 @@
 import { Workspace } from "@superset/panes";
 import { workspaceTrpc } from "@superset/workspace-client";
 import { createFileRoute } from "@tanstack/react-router";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { useV2UserPreferences } from "renderer/hooks/useV2UserPreferences";
 import { useHotkey } from "renderer/hotkeys";
@@ -26,6 +26,7 @@ import { useDefaultPaneActions } from "./hooks/useDefaultPaneActions";
 import { useDirtyTabCloseGuard } from "./hooks/useDirtyTabCloseGuard";
 import { usePaneRegistry } from "./hooks/usePaneRegistry";
 import { renderBrowserTabIcon } from "./hooks/usePaneRegistry/components/BrowserPane";
+import { useRendererStressWorkspaceBridge } from "./hooks/useRendererStressWorkspaceBridge";
 import { useV2PresetExecution } from "./hooks/useV2PresetExecution";
 import { useV2TerminalLauncher } from "./hooks/useV2TerminalLauncher";
 import { useV2WorkspacePaneLayout } from "./hooks/useV2WorkspacePaneLayout";
@@ -174,6 +175,23 @@ function V2WorkspaceContent() {
 		addBrowserTab,
 		openCommentPane,
 	} = useWorkspacePaneOpeners({ store, launcher });
+
+	const rendererStressFilePaths = useMemo(
+		() =>
+			Array.from(
+				new Set([
+					...Array.from(openFilePaths),
+					...recentFiles.map((file) => file.absolutePath),
+				]),
+			),
+		[openFilePaths, recentFiles],
+	);
+	useRendererStressWorkspaceBridge({
+		workspace,
+		store,
+		filePaths: rendererStressFilePaths,
+		addTerminalTab,
+	});
 
 	const [quickOpenOpen, setQuickOpenOpen] = useState(false);
 	const handleQuickOpen = useCallback(() => setQuickOpenOpen(true), []);
