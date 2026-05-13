@@ -7,6 +7,8 @@ interface Args {
 	iterations: number;
 	routeIterations: number;
 	heavyIterations: number;
+	includeTerminalAction: boolean;
+	progressEvery: number;
 	intervalMs: number;
 	settleMs: number;
 	timeoutMs: number;
@@ -40,6 +42,15 @@ interface CdpResponse {
 	};
 	method?: string;
 	params?: unknown;
+}
+
+interface RuntimeConsoleApiCalledEvent {
+	type?: string;
+	args?: Array<{
+		type?: string;
+		value?: unknown;
+		description?: string;
+	}>;
 }
 
 interface RuntimeEvaluateResult {
@@ -81,6 +92,12 @@ interface RendererStressResult {
 		startTime: number;
 		name: string;
 	}>;
+	slowOperations: Array<{
+		phase: string;
+		label: string;
+		durationMs: number;
+		index: number;
+	}>;
 	errorCount: number;
 	errors: string[];
 	startMemory: unknown;
@@ -98,6 +115,8 @@ function parseArgs(argv: string[]): Args {
 		iterations: 500,
 		routeIterations: 0,
 		heavyIterations: 0,
+		includeTerminalAction: false,
+		progressEvery: 100,
 		intervalMs: 0,
 		settleMs: 1000,
 		timeoutMs: 30_000,
@@ -156,6 +175,12 @@ function parseArgs(argv: string[]): Args {
 			case "--heavy-iterations":
 				args.heavyIterations = readNumber();
 				break;
+			case "--include-terminal-action":
+				args.includeTerminalAction = true;
+				break;
+			case "--progress-every":
+				args.progressEvery = readNumber();
+				break;
 			case "--interval-ms":
 				args.intervalMs = readNumber();
 				break;
@@ -210,6 +235,8 @@ Options:
   --iterations <n>                 Workspace activations. Default: 500
   --route-iterations <n>           Route navigations. Default: --iterations
   --heavy-iterations <n>           Mixed pane/tab/browser/diff actions. Default: min(--iterations, 300)
+  --include-terminal-action        Include one real backend terminal launch in heavy stress. Default: false
+  --progress-every <n>             Emit progress every n operations. Set 0 to disable. Default: 100
   --interval-ms <n>                Delay between activations. Default: 0
   --settle-ms <n>                  Delay after the final activation. Default: 1000
   --timeout-ms <n>                 CDP command timeout. Default: 30000
@@ -242,6 +269,7 @@ class CdpClient {
 			timer: ReturnType<typeof setTimeout>;
 		}
 	>();
+	private listeners = new Map<string, Set<(params: unknown) => void>>();
 
 	private constructor(private readonly ws: WebSocket) {
 		this.ws.addEventListener("message", (event) => {
@@ -299,8 +327,29 @@ class CdpClient {
 		this.ws.close();
 	}
 
+	on(method: string, listener: (params: unknown) => void): () => void {
+		const listeners = this.listeners.get(method) ?? new Set();
+		listeners.add(listener);
+		this.listeners.set(method, listeners);
+		return () => {
+			listeners.delete(listener);
+			if (listeners.size === 0) {
+				this.listeners.delete(method);
+			}
+		};
+	}
+
 	private onMessage(raw: string): void {
 		const message = JSON.parse(raw) as CdpResponse;
+		if (typeof message.method === "string") {
+			const listeners = this.listeners.get(message.method);
+			if (listeners) {
+				for (const listener of listeners) {
+					listener(message.params);
+				}
+			}
+			if (typeof message.id !== "number") return;
+		}
 		if (typeof message.id !== "number") return;
 		const pending = this.pending.get(message.id);
 		if (!pending) return;
@@ -349,6 +398,8 @@ function rendererStress(options: {
 	iterations: number;
 	routeIterations: number;
 	heavyIterations: number;
+	includeTerminalAction: boolean;
+	progressEvery: number;
 	intervalMs: number;
 	settleMs: number;
 	selector: string;
@@ -407,7 +458,7 @@ function rendererStress(options: {
 	}
 
 	const getTargets = () => {
-		if (options.workspaceIds.length >= 2) return options.workspaceIds;
+		if (options.workspaceIds.length > 0) return options.workspaceIds;
 		const ids = Array.from(document.querySelectorAll(options.selector))
 			.map((element) =>
 				element.getAttribute("data-renderer-stress-workspace-id"),
@@ -416,7 +467,7 @@ function rendererStress(options: {
 		return Array.from(new Set(ids));
 	};
 
-	const activateWorkspace = (workspaceId: string) => {
+	const activateWorkspace = async (workspaceId: string) => {
 		const target = document.querySelector<HTMLElement>(
 			`${options.selector}[data-renderer-stress-workspace-id="${cssEscape(
 				workspaceId,
@@ -426,8 +477,8 @@ function rendererStress(options: {
 			target.click();
 			return "click";
 		}
-		window.location.hash = `/v2-workspace/${encodeURIComponent(workspaceId)}`;
-		return "hash";
+		await navigateTo(`/v2-workspace/${encodeURIComponent(workspaceId)}/`);
+		return "navigate";
 	};
 
 	type RendererStressBridge = {
@@ -445,14 +496,16 @@ function rendererStress(options: {
 		churnActivePaneData: (index: number) => void;
 		replaceWithGeneratedLayout: (tabCount: number, panesPerTab: number) => void;
 		addRealTerminalTab: () => Promise<void>;
+		showChangesSidebar: () => void;
+	};
+
+	type RendererStressWindow = Window & {
+		__SUPERSET_RENDERER_STRESS__?: RendererStressBridge;
+		__SUPERSET_RENDERER_STRESS_NAVIGATE__?: (path: string) => Promise<void>;
 	};
 
 	const getBridge = () =>
-		(
-			window as Window & {
-				__SUPERSET_RENDERER_STRESS__?: RendererStressBridge;
-			}
-		).__SUPERSET_RENDERER_STRESS__ ?? null;
+		(window as RendererStressWindow).__SUPERSET_RENDERER_STRESS__ ?? null;
 
 	const waitForBridge = async (workspaceId?: string, attempts = 250) => {
 		for (let attempt = 0; attempt < attempts; attempt += 1) {
@@ -470,7 +523,13 @@ function rendererStress(options: {
 	};
 
 	const navigateTo = async (path: string) => {
-		window.location.hash = path;
+		const stressNavigate = (window as RendererStressWindow)
+			.__SUPERSET_RENDERER_STRESS_NAVIGATE__;
+		if (stressNavigate) {
+			await stressNavigate(path);
+		} else {
+			window.location.hash = path;
+		}
 		await sleep(options.intervalMs);
 	};
 
@@ -587,6 +646,7 @@ function rendererStress(options: {
 
 	const heavyActionCatalogue = [
 		"replace generated multi-tab/multi-pane workspace layout",
+		"open changes sidebar",
 		"create file tabs",
 		"create diff tabs",
 		"create browser tabs/webviews",
@@ -598,7 +658,9 @@ function rendererStress(options: {
 		"active pane data churn",
 		"close active panes",
 		"close old tabs while preserving a warm set",
-		"single real terminal tab launch",
+		...(options.includeTerminalAction
+			? ["single real terminal tab launch"]
+			: []),
 		"restore original pane layout",
 	];
 
@@ -624,6 +686,7 @@ function rendererStress(options: {
 		const routesVisited: string[] = [];
 		const heavyActionCounts: Record<string, number> = {};
 		const heavyActionErrors: string[] = [];
+		const slowOperations: RendererStressResult["slowOperations"] = [];
 		let operationCount = 0;
 		let workspaceSummary: unknown = null;
 		let routeCount = 0;
@@ -635,13 +698,51 @@ function rendererStress(options: {
 			options.heavyIterations > 0
 				? options.heavyIterations
 				: Math.min(options.iterations, 300);
+		const reportProgress = (
+			phase: string,
+			index: number,
+			total: number,
+			force = false,
+		) => {
+			if (options.progressEvery <= 0 && !force) return;
+			if (!force && index % options.progressEvery !== 0) return;
+			console.info(
+				"[stress:renderer:progress]",
+				JSON.stringify({
+					phase,
+					index,
+					total,
+					operationCount,
+					elapsedMs: Math.round(performance.now() - startedAt),
+				}),
+			);
+		};
+		const recordOperationDuration = (
+			phase: string,
+			label: string,
+			index: number,
+			startedAt: number,
+		) => {
+			const durationMs = performance.now() - startedAt;
+			if (durationMs < 100) return;
+			slowOperations.push({ phase, label, index, durationMs });
+		};
 
 		if (shouldRunWorkspaceSwitch) {
+			reportProgress("workspace-switch", 0, options.iterations, true);
 			for (let index = 0; index < options.iterations; index += 1) {
 				const target = targets[index % targets.length];
-				const mode = activateWorkspace(target);
+				const operationStartedAt = performance.now();
+				const mode = await activateWorkspace(target);
+				recordOperationDuration(
+					"workspace-switch",
+					`${mode}:${target}`,
+					index,
+					operationStartedAt,
+				);
 				activationModeCounts[mode] = (activationModeCounts[mode] ?? 0) + 1;
 				operationCount += 1;
+				reportProgress("workspace-switch", index + 1, options.iterations);
 				await sleep(options.intervalMs);
 			}
 		}
@@ -661,11 +762,20 @@ function rendererStress(options: {
 		if (shouldRunRouteSweep) {
 			const routePaths = buildRoutePaths(targets, metadata);
 			routeCount = routePaths.length;
+			reportProgress("route-sweep", 0, routeIterations, true);
 			for (let index = 0; index < routeIterations; index += 1) {
 				const routePath = routePaths[index % routePaths.length];
 				routesVisited.push(routePath);
+				const operationStartedAt = performance.now();
 				await navigateTo(routePath);
+				recordOperationDuration(
+					"route-sweep",
+					routePath,
+					index,
+					operationStartedAt,
+				);
 				operationCount += 1;
+				reportProgress("route-sweep", index + 1, routeIterations);
 			}
 			await navigateTo(`/v2-workspace/${encodeURIComponent(workspaceId)}/`);
 			await waitForBridge(workspaceId);
@@ -674,16 +784,37 @@ function rendererStress(options: {
 		if (shouldRunWorkspaceHeavy) {
 			const activeBridge = await waitForBridge(workspaceId);
 			activeBridge.captureBaseline();
+			let operationStartedAt = performance.now();
 			activeBridge.replaceWithGeneratedLayout(12, 3);
+			recordOperationDuration(
+				"workspace-heavy",
+				"replace-generated-layout",
+				-2,
+				operationStartedAt,
+			);
 			heavyActionCounts["replace-generated-layout"] = 1;
 			operationCount += 1;
+			operationStartedAt = performance.now();
+			activeBridge.showChangesSidebar();
+			recordOperationDuration(
+				"workspace-heavy",
+				"show-changes-sidebar",
+				-1,
+				operationStartedAt,
+			);
+			heavyActionCounts["show-changes-sidebar"] = 1;
+			operationCount += 1;
+			reportProgress("workspace-heavy", 0, heavyIterations, true);
 
 			const paneKinds = ["file", "diff", "browser", "chat", "comment"];
 			for (let index = 0; index < heavyIterations; index += 1) {
 				const kind = paneKinds[index % paneKinds.length];
 				const action = index % 12;
+				const operationStartedAt = performance.now();
+				let actionLabel = "unknown";
 				try {
-					if (index === 0) {
+					if (options.includeTerminalAction && index === 0) {
+						actionLabel = "add-real-terminal-tab";
 						await withTimeout(
 							activeBridge.addRealTerminalTab(),
 							3000,
@@ -692,34 +823,42 @@ function rendererStress(options: {
 						heavyActionCounts["add-real-terminal-tab"] =
 							(heavyActionCounts["add-real-terminal-tab"] ?? 0) + 1;
 					} else if (action === 0) {
+						actionLabel = `add-tab:${kind}`;
 						activeBridge.addTab(kind, index, (index % 4) + 1);
 						heavyActionCounts["add-tab"] =
 							(heavyActionCounts["add-tab"] ?? 0) + 1;
 					} else if (action === 1 || action === 2) {
+						actionLabel = `split-active-pane:${kind}`;
 						activeBridge.splitActivePane(kind, index);
 						heavyActionCounts["split-active-pane"] =
 							(heavyActionCounts["split-active-pane"] ?? 0) + 1;
 					} else if (action === 3) {
+						actionLabel = `open-pane:${kind}`;
 						activeBridge.openPane(kind, index);
 						heavyActionCounts["open-pane"] =
 							(heavyActionCounts["open-pane"] ?? 0) + 1;
 					} else if (action === 4 || action === 5) {
+						actionLabel = "switch-tab";
 						activeBridge.switchTab(index);
 						heavyActionCounts["switch-tab"] =
 							(heavyActionCounts["switch-tab"] ?? 0) + 1;
 					} else if (action === 6 || action === 7) {
+						actionLabel = "churn-active-pane-data";
 						activeBridge.churnActivePaneData(index);
 						heavyActionCounts["churn-active-pane-data"] =
 							(heavyActionCounts["churn-active-pane-data"] ?? 0) + 1;
 					} else if (action === 8) {
+						actionLabel = "close-active-pane";
 						activeBridge.closeActivePane();
 						heavyActionCounts["close-active-pane"] =
 							(heavyActionCounts["close-active-pane"] ?? 0) + 1;
 					} else if (action === 9) {
+						actionLabel = "close-oldest-tab";
 						activeBridge.closeOldestTab(10);
 						heavyActionCounts["close-oldest-tab"] =
 							(heavyActionCounts["close-oldest-tab"] ?? 0) + 1;
 					} else {
+						actionLabel = `add-single-pane-tab:${kind}`;
 						activeBridge.addTab(kind, index);
 						heavyActionCounts["add-single-pane-tab"] =
 							(heavyActionCounts["add-single-pane-tab"] ?? 0) + 1;
@@ -731,7 +870,14 @@ function rendererStress(options: {
 						}`,
 					);
 				}
+				recordOperationDuration(
+					"workspace-heavy",
+					actionLabel,
+					index,
+					operationStartedAt,
+				);
 				operationCount += 1;
+				reportProgress("workspace-heavy", index + 1, heavyIterations);
 				await sleep(options.intervalMs);
 			}
 			workspaceSummary = activeBridge.getSummary();
@@ -769,6 +915,10 @@ function rendererStress(options: {
 				.slice()
 				.sort((left, right) => right.duration - left.duration)
 				.slice(0, 10),
+			slowOperations: slowOperations
+				.slice()
+				.sort((left, right) => right.durationMs - left.durationMs)
+				.slice(0, 20),
 			errorCount: errors.length,
 			errors: errors.slice(0, 20),
 			startMemory,
@@ -804,6 +954,31 @@ async function main() {
 	try {
 		await cdp.send("Runtime.enable", {}, args.timeoutMs);
 		await cdp.send("Performance.enable", {}, args.timeoutMs);
+		const removeConsoleListener = cdp.on(
+			"Runtime.consoleAPICalled",
+			(params) => {
+				if (args.json) return;
+				const event = params as RuntimeConsoleApiCalledEvent;
+				const firstArg = event.args?.[0];
+				if (firstArg?.value !== "[stress:renderer:progress]") return;
+				const payload = event.args?.[1]?.value;
+				if (typeof payload !== "string") return;
+				try {
+					const progress = JSON.parse(payload) as {
+						phase?: string;
+						index?: number;
+						total?: number;
+						operationCount?: number;
+						elapsedMs?: number;
+					};
+					console.log(
+						`[stress:renderer] ${progress.phase}: ${progress.index}/${progress.total} operations=${progress.operationCount} elapsed=${progress.elapsedMs}ms`,
+					);
+				} catch {
+					console.log(`[stress:renderer] ${payload}`);
+				}
+			},
+		);
 		const evaluation = await cdp.send<RuntimeEvaluateResult>(
 			"Runtime.evaluate",
 			{
@@ -812,6 +987,8 @@ async function main() {
 					iterations: args.iterations,
 					routeIterations: args.routeIterations,
 					heavyIterations: args.heavyIterations,
+					includeTerminalAction: args.includeTerminalAction,
+					progressEvery: args.progressEvery,
 					intervalMs: args.intervalMs,
 					settleMs: args.settleMs,
 					selector: args.selector,
@@ -822,6 +999,7 @@ async function main() {
 			},
 			args.timeoutMs,
 		);
+		removeConsoleListener();
 
 		if (evaluation.exceptionDetails) {
 			throw new Error(

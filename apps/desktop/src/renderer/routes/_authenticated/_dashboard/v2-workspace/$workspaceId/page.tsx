@@ -26,6 +26,7 @@ import { useDefaultPaneActions } from "./hooks/useDefaultPaneActions";
 import { useDirtyTabCloseGuard } from "./hooks/useDirtyTabCloseGuard";
 import { usePaneRegistry } from "./hooks/usePaneRegistry";
 import { renderBrowserTabIcon } from "./hooks/usePaneRegistry/components/BrowserPane";
+import { browserRuntimeRegistry } from "./hooks/usePaneRegistry/components/BrowserPane/browserRuntimeRegistry";
 import { useRendererStressWorkspaceBridge } from "./hooks/useRendererStressWorkspaceBridge";
 import { useV2PresetExecution } from "./hooks/useV2PresetExecution";
 import { useV2TerminalLauncher } from "./hooks/useV2TerminalLauncher";
@@ -97,10 +98,18 @@ function V2WorkspacePage() {
 		);
 	}
 
-	return <V2WorkspaceContent />;
+	return (
+		<V2WorkspaceContent
+			worktreePath={workspaceStatusQuery.data?.worktreePath}
+		/>
+	);
 }
 
-function V2WorkspaceContent() {
+function V2WorkspaceContent({
+	worktreePath,
+}: {
+	worktreePath?: string | null;
+}) {
 	const {
 		terminalId,
 		chatSessionId,
@@ -121,6 +130,17 @@ function V2WorkspaceContent() {
 	} = useV2UserPreferences();
 	const showPresetsBar = v2UserPreferences.showPresetsBar;
 	const { store } = useV2WorkspacePaneLayout();
+	useEffect(() => {
+		return () => {
+			for (const tab of store.getState().tabs) {
+				for (const pane of Object.values(tab.panes)) {
+					if (pane.kind === "browser") {
+						browserRuntimeRegistry.destroy(pane.id);
+					}
+				}
+			}
+		};
+	}, [store]);
 	useClearActivePaneAttention({ store });
 	const launcher = useV2TerminalLauncher();
 	const { matchedPresets, executePreset, resolvePresetCommands } =
@@ -186,11 +206,17 @@ function V2WorkspaceContent() {
 			),
 		[openFilePaths, recentFiles],
 	);
+	const showRendererStressChangesSidebar = useCallback(() => {
+		setRightSidebarOpen(true);
+		setRightSidebarTab("changes");
+	}, [setRightSidebarOpen, setRightSidebarTab]);
 	useRendererStressWorkspaceBridge({
 		workspace,
 		store,
 		filePaths: rendererStressFilePaths,
+		worktreePath,
 		addTerminalTab,
+		showChangesSidebar: showRendererStressChangesSidebar,
 	});
 
 	const [quickOpenOpen, setQuickOpenOpen] = useState(false);

@@ -47,6 +47,7 @@ interface RendererStressWorkspaceBridge {
 	churnActivePaneData: (index: number) => void;
 	replaceWithGeneratedLayout: (tabCount: number, panesPerTab: number) => void;
 	addRealTerminalTab: () => Promise<void>;
+	showChangesSidebar: () => void;
 }
 
 declare global {
@@ -74,9 +75,18 @@ function getStoreStateSnapshot(
 	});
 }
 
-function getFilePath(filePaths: string[], index: number): string {
+function getFilePath(
+	filePaths: string[],
+	index: number,
+	worktreePath?: string | null,
+): string {
 	if (filePaths.length > 0) {
 		return filePaths[index % filePaths.length];
+	}
+	if (worktreePath) {
+		const moduleId = String(index % 20).padStart(2, "0");
+		const fileId = String(index % 200).padStart(3, "0");
+		return `${worktreePath}/src/module-${moduleId}/file-${fileId}.ts`;
 	}
 	return `${FALLBACK_FILE_ROOT}/fixture-${index % 25}.tsx`;
 }
@@ -85,8 +95,9 @@ function createStressPane(
 	kind: RendererStressPaneKind,
 	index: number,
 	filePaths: string[],
+	worktreePath?: string | null,
 ): CreatePaneInput<PaneViewerData> {
-	const filePath = getFilePath(filePaths, index);
+	const filePath = getFilePath(filePaths, index, worktreePath);
 	switch (kind) {
 		case "browser":
 			return {
@@ -191,12 +202,16 @@ export function useRendererStressWorkspaceBridge({
 	workspace,
 	store,
 	filePaths,
+	worktreePath,
 	addTerminalTab,
+	showChangesSidebar,
 }: {
 	workspace: SelectV2Workspace;
 	store: StoreApi<WorkspaceStore<PaneViewerData>>;
 	filePaths: string[];
+	worktreePath?: string | null;
 	addTerminalTab: () => Promise<void>;
+	showChangesSidebar: () => void;
 }) {
 	const baselineRef = useRef<WorkspaceState<PaneViewerData> | null>(null);
 
@@ -228,6 +243,7 @@ export function useRendererStressWorkspaceBridge({
 							offset === 0 ? kind : getNextPaneKind(index + offset),
 							index + offset,
 							filePaths,
+							worktreePath,
 						),
 					) as [
 						CreatePaneInput<PaneViewerData>,
@@ -237,7 +253,7 @@ export function useRendererStressWorkspaceBridge({
 			},
 			openPane: (kind, index) => {
 				store.getState().openPane({
-					pane: createStressPane(kind, index, filePaths),
+					pane: createStressPane(kind, index, filePaths, worktreePath),
 				});
 			},
 			splitActivePane: (kind, index) => {
@@ -251,7 +267,7 @@ export function useRendererStressWorkspaceBridge({
 					tabId: active.tabId,
 					paneId: active.pane.id,
 					position: index % 2 === 0 ? "right" : "bottom",
-					newPane: createStressPane(kind, index, filePaths),
+					newPane: createStressPane(kind, index, filePaths, worktreePath),
 				});
 			},
 			switchTab: (index) => {
@@ -282,7 +298,7 @@ export function useRendererStressWorkspaceBridge({
 					: "file";
 				state.setPaneData({
 					paneId: active.pane.id,
-					data: createStressPane(nextKind, index, filePaths).data,
+					data: createStressPane(nextKind, index, filePaths, worktreePath).data,
 				});
 			},
 			replaceWithGeneratedLayout: (tabCount, panesPerTab) => {
@@ -305,6 +321,7 @@ export function useRendererStressWorkspaceBridge({
 				}
 			},
 			addRealTerminalTab: addTerminalTab,
+			showChangesSidebar,
 		};
 
 		window.__SUPERSET_RENDERER_STRESS__ = bridge;
@@ -313,5 +330,12 @@ export function useRendererStressWorkspaceBridge({
 				delete window.__SUPERSET_RENDERER_STRESS__;
 			}
 		};
-	}, [addTerminalTab, filePaths, store, workspace]);
+	}, [
+		addTerminalTab,
+		filePaths,
+		showChangesSidebar,
+		store,
+		workspace,
+		worktreePath,
+	]);
 }
