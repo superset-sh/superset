@@ -26,8 +26,8 @@ export async function resolveAuth(
 	if (overrideKey) {
 		bearer = overrideKey;
 		authSource = "override";
-	} else if (config.apiKey) {
-		bearer = config.apiKey;
+	} else if (config.apiKey?.trim()) {
+		bearer = config.apiKey.trim();
 		authSource = "config";
 	} else if (config.auth) {
 		const auth = config.auth;
