@@ -35,7 +35,10 @@ export async function POST(request: Request): Promise<Response> {
 				signature,
 				url: `${env.NEXT_PUBLIC_API_URL}/api/hosts/jobs/sync-presence`,
 			})
-			.catch(() => false);
+			.catch((error) => {
+				console.error("[sync-presence] signature verify failed:", error);
+				return false;
+			});
 		if (!valid) {
 			return Response.json({ error: "Invalid signature" }, { status: 401 });
 		}
@@ -54,29 +57,55 @@ export async function POST(request: Request): Promise<Response> {
 		return Response.json({ error: "Directory read failed" }, { status: 502 });
 	}
 
-	const result = await db.execute<{
+	// Refuse to mass-flip when the directory comes back empty — most likely a
+	// misconfigured KV credential or a wiped key, not a real zero-host state.
+	// The relay's event-driven setOnline writes still cover genuine disconnects.
+	if (connected.length === 0) {
+		console.warn(
+			"[sync-presence] empty connected set; skipping reconcile to avoid mass-flip",
+		);
+		return Response.json({
+			connected: 0,
+			flippedOn: 0,
+			flippedOff: 0,
+			skipped: true,
+		});
+	}
+
+	let rows: Array<{
 		organization_id: string;
 		machine_id: string;
 		is_online: boolean;
-	}>(sql`
-		WITH desired AS (
-			SELECT
-				organization_id,
-				machine_id,
-				(organization_id::text || ':' || machine_id) = ANY(${connected}::text[]) AS expected
-			FROM v2_hosts
-		)
-		UPDATE v2_hosts h
-		SET is_online = d.expected
-		FROM desired d
-		WHERE h.organization_id = d.organization_id
-			AND h.machine_id = d.machine_id
-			AND h.is_online IS DISTINCT FROM d.expected
-		RETURNING h.organization_id, h.machine_id, h.is_online
-	`);
+	}>;
+	try {
+		const result = await db.execute<{
+			organization_id: string;
+			machine_id: string;
+			is_online: boolean;
+		}>(sql`
+			WITH desired AS (
+				SELECT
+					organization_id,
+					machine_id,
+					(organization_id::text || ':' || machine_id) = ANY(${connected}::text[]) AS expected
+				FROM v2_hosts
+			)
+			UPDATE v2_hosts h
+			SET is_online = d.expected
+			FROM desired d
+			WHERE h.organization_id = d.organization_id
+				AND h.machine_id = d.machine_id
+				AND h.is_online IS DISTINCT FROM d.expected
+			RETURNING h.organization_id, h.machine_id, h.is_online
+		`);
+		rows = result.rows;
+	} catch (error) {
+		console.error("[sync-presence] reconcile UPDATE failed:", error);
+		return Response.json({ error: "Reconcile write failed" }, { status: 502 });
+	}
 
-	const flippedOn = result.rows.filter((r) => r.is_online === true).length;
-	const flippedOff = result.rows.filter((r) => r.is_online === false).length;
+	const flippedOn = rows.filter((r) => r.is_online === true).length;
+	const flippedOff = rows.filter((r) => r.is_online === false).length;
 
 	return Response.json({
 		connected: connected.length,
