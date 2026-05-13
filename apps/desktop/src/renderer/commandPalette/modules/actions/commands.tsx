@@ -8,7 +8,6 @@ import {
 	PanelRightIcon,
 	RefreshCwIcon,
 } from "lucide-react";
-import { getRouterInstance } from "renderer/lib/router-instance";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import { electronQueryClient } from "renderer/providers/ElectronTRPCProvider";
 import { useRightSidebarToggleIntent } from "renderer/stores/right-sidebar-toggle-intent";
@@ -92,9 +91,7 @@ export const actionsProvider: CommandProvider = {
 				icon: KeyboardIcon,
 				hotkeyId: "SHOW_HOTKEYS",
 				keywords: ["hotkeys"],
-				run: () => {
-					void getRouterInstance().navigate({ to: "/settings/keyboard" });
-				},
+				run: (ctx) => ctx.navigate("/settings/keyboard"),
 			},
 			{
 				id: "actions.checkUpdates",

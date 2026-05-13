@@ -7,12 +7,10 @@ import {
 import { cn } from "@superset/ui/utils";
 import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
-import { useLocation } from "@tanstack/react-router";
+import { useLocation, useNavigate } from "@tanstack/react-router";
 import { LuCpu, LuGitBranch } from "react-icons/lu";
-import { usePresetIcon } from "renderer/assets/app-icons/preset-icons";
 import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import { getRouterInstance } from "renderer/lib/router-instance";
 import {
 	type RecentlyViewedEntry,
 	useRecentlyViewed,
@@ -30,6 +28,7 @@ export function RecentlyViewedFrame() {
 	const collections = useCollections();
 	const isV2CloudEnabled = useIsV2CloudEnabled();
 	const setOpen = useFrameStackStore((s) => s.setOpen);
+	const navigate = useNavigate();
 
 	const { data: groups } = electronTrpc.workspaces.getAllGrouped.useQuery();
 	const workspaceData = (groups ?? []).flatMap((group) =>
@@ -64,7 +63,6 @@ export function RecentlyViewedFrame() {
 				.select(({ automations }) => ({
 					id: automations.id,
 					name: automations.name,
-					agentId: automations.agentConfig.id,
 				})),
 		[collections],
 	);
@@ -106,7 +104,7 @@ export function RecentlyViewedFrame() {
 	});
 
 	const navigateTo = (path: string) => {
-		void getRouterInstance().navigate({ to: path });
+		void navigate({ to: path });
 		setOpen(false);
 	};
 
@@ -255,10 +253,9 @@ function AutomationRow({
 	automationData,
 	onSelect,
 }: RowProps & {
-	automationData: { id: string; name: string; agentId: string }[];
+	automationData: { id: string; name: string }[];
 }) {
 	const automation = automationData.find((a) => a.id === entry.entityId);
-	const presetIcon = usePresetIcon(automation?.agentId ?? "");
 	return (
 		<CommandItem
 			value={`automation ${entry.entityId} ${automation?.name ?? ""}`}
@@ -269,11 +266,7 @@ function AutomationRow({
 				Automation
 			</span>
 			<span className="flex items-center justify-center w-4 shrink-0">
-				{presetIcon ? (
-					<img src={presetIcon} alt="" className="size-3.5 object-contain" />
-				) : (
-					<LuCpu className="size-3 text-muted-foreground" strokeWidth={1.5} />
-				)}
+				<LuCpu className="size-3 text-muted-foreground" strokeWidth={1.5} />
 			</span>
 			<span
 				className={cn(

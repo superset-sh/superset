@@ -21,7 +21,6 @@ import {
 	UsersIcon,
 	WrenchIcon,
 } from "lucide-react";
-import { getRouterInstance } from "renderer/lib/router-instance";
 import type { Command } from "../../core/types";
 
 interface SettingsTab {
@@ -147,9 +146,7 @@ function tabToCommand(tab: SettingsTab): Command {
 		section: "navigation",
 		icon: tab.icon,
 		keywords: tab.keywords,
-		run: () => {
-			void getRouterInstance().navigate({ to: tab.path });
-		},
+		run: (ctx) => ctx.navigate(tab.path),
 	};
 }
 

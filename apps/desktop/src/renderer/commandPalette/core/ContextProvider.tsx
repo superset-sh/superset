@@ -1,8 +1,18 @@
 import type { ExternalApp } from "@superset/local-db";
 import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
-import { useLocation, useMatchRoute } from "@tanstack/react-router";
-import { createContext, type ReactNode, useContext, useMemo } from "react";
+import {
+	useLocation,
+	useMatchRoute,
+	useNavigate,
+} from "@tanstack/react-router";
+import {
+	createContext,
+	type ReactNode,
+	useCallback,
+	useContext,
+	useMemo,
+} from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
@@ -13,8 +23,16 @@ const Context = createContext<CommandContext | null>(null);
 export function CommandContextProvider({ children }: { children: ReactNode }) {
 	const location = useLocation();
 	const matchRoute = useMatchRoute();
+	const navigate = useNavigate();
 	const collections = useCollections();
 	const { activeHostUrl, machineId } = useLocalHostService();
+
+	const navigateTo = useCallback(
+		(path: string) => {
+			void navigate({ to: path });
+		},
+		[navigate],
+	);
 
 	const v2Match = matchRoute({ to: "/v2-workspace/$workspaceId", fuzzy: true });
 	const v2WorkspaceId = v2Match !== false ? v2Match.workspaceId : null;
@@ -67,6 +85,7 @@ export function CommandContextProvider({ children }: { children: ReactNode }) {
 			activeHostUrl,
 			localMachineId: machineId ?? null,
 			notificationSoundsMuted,
+			navigate: navigateTo,
 		}),
 		[
 			location.pathname,
@@ -75,6 +94,7 @@ export function CommandContextProvider({ children }: { children: ReactNode }) {
 			activeHostUrl,
 			machineId,
 			notificationSoundsMuted,
+			navigateTo,
 		],
 	);
 

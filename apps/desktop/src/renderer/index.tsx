@@ -14,7 +14,6 @@ import {
 } from "./lib/boot-errors";
 import { persistentHistory } from "./lib/persistent-hash-history";
 import { posthog } from "./lib/posthog";
-import { setRouterInstance } from "./lib/router-instance";
 import { electronQueryClient } from "./providers/ElectronTRPCProvider";
 import { routeTree } from "./routeTree.gen";
 
@@ -32,8 +31,6 @@ const router = createRouter({
 		queryClient: electronQueryClient,
 	},
 });
-
-setRouterInstance(router);
 
 const unsubscribe = router.subscribe("onResolved", (event) => {
 	posthog.capture("$pageview", {

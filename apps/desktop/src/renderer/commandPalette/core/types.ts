@@ -20,6 +20,7 @@ export interface CommandContext {
 	activeHostUrl: string | null;
 	localMachineId: string | null;
 	notificationSoundsMuted: boolean;
+	navigate: (path: string) => void;
 	focusedView?: "editor" | "terminal" | "git" | "issues" | "files" | "chat";
 }
 

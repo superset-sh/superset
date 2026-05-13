@@ -1,5 +1,4 @@
 import { BookOpenIcon, HistoryIcon, SettingsIcon } from "lucide-react";
-import { getRouterInstance } from "renderer/lib/router-instance";
 import type { Command, CommandProvider } from "../../core/types";
 import { RecentlyViewedFrame } from "../../ui/RecentlyViewed/RecentlyViewedFrame";
 import { settingsTabCommands } from "../settings/commands";
@@ -15,9 +14,7 @@ export const navigationProvider: CommandProvider = {
 				icon: SettingsIcon,
 				hotkeyId: "OPEN_SETTINGS",
 				children: settingsTabCommands,
-				run: () => {
-					void getRouterInstance().navigate({ to: "/settings/account" });
-				},
+				run: (ctx) => ctx.navigate("/settings/account"),
 			},
 			{
 				id: "nav.recentlyViewed",
