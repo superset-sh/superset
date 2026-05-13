@@ -7,9 +7,8 @@ import { TRPCError } from "@trpc/server";
 import type { ApiClient } from "../../../types";
 import { protectedProcedure, router } from "../../index";
 
-// Auto-derived from this package's package.json so a host-service version
-// bump automatically flows through to `host.info` and the desktop's
-// strict-equality adoption check (see host-service-coordinator.tryAdopt).
+// Auto-derived from this package's package.json so callers can report exactly
+// which bundled host-service build is currently serving requests.
 const HOST_SERVICE_VERSION: string = hostServicePackageJson.version;
 
 const ORGANIZATION_CACHE_TTL_MS = 60 * 60 * 1000;

@@ -52,7 +52,7 @@ async function main(): Promise<void> {
 	// iteration on daemon code resets cleanly. Production keeps the
 	// daemon detached so PTYs survive host-service restarts.
 	// Per the migration plan's D5 decision.
-	const isDev = process.env.NODE_ENV !== "production";
+	const isDev = process.env.NODE_ENV === "development";
 	if (isDev) {
 		let shuttingDown = false;
 		const devShutdown = async (signal: NodeJS.Signals) => {
