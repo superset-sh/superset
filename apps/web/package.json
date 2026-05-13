@@ -32,7 +32,7 @@
 		"import-in-the-middle": "2.0.1",
 		"jose": "6.2.2",
 		"lucide-react": "0.563.0",
-		"next": "16.2.1",
+		"next": "16.2.6",
 		"next-themes": "0.4.6",
 		"posthog-js": "1.310.1",
 		"posthog-node": "5.28.8",

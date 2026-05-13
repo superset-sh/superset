@@ -41,7 +41,7 @@
 		"import-in-the-middle": "2.0.1",
 		"jose": "6.2.2",
 		"lodash.chunk": "4.2.0",
-		"next": "16.2.1",
+		"next": "16.2.6",
 		"posthog-node": "5.28.8",
 		"react": "19.2.0",
 		"react-dom": "19.2.0",
