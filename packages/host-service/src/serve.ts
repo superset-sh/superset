@@ -38,6 +38,7 @@ async function main(): Promise<void> {
 			cloudApiUrl: env.SUPERSET_API_URL,
 			migrationsFolder: env.HOST_MIGRATIONS_FOLDER,
 			allowedOrigins: env.CORS_ORIGINS ?? [],
+			hostServiceSecret: env.HOST_SERVICE_SECRET,
 		},
 		providers: {
 			auth: authProvider,
@@ -51,7 +52,7 @@ async function main(): Promise<void> {
 	// iteration on daemon code resets cleanly. Production keeps the
 	// daemon detached so PTYs survive host-service restarts.
 	// Per the migration plan's D5 decision.
-	const isDev = process.env.NODE_ENV !== "production";
+	const isDev = process.env.NODE_ENV === "development";
 	if (isDev) {
 		let shuttingDown = false;
 		const devShutdown = async (signal: NodeJS.Signals) => {

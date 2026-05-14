@@ -157,16 +157,24 @@ export function CreateOrganization() {
 		return <Navigate to="/sign-in" replace />;
 	}
 
-	if (activeOrganizationId) {
-		return <Navigate to="/" replace />;
-	}
+	const hasActiveOrganization = !!activeOrganizationId;
 
 	return (
 		<div className="relative flex min-h-screen items-center justify-center bg-background p-4">
 			<div className="absolute top-4 right-4">
-				<Button variant="ghost" onClick={handleSignOut} type="button">
-					Sign Out
-				</Button>
+				{hasActiveOrganization ? (
+					<Button
+						variant="ghost"
+						onClick={() => navigate({ to: "/" })}
+						type="button"
+					>
+						Cancel
+					</Button>
+				) : (
+					<Button variant="ghost" onClick={handleSignOut} type="button">
+						Sign Out
+					</Button>
+				)}
 			</div>
 
 			<Card className="w-full max-w-md">

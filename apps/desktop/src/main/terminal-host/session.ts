@@ -942,7 +942,7 @@ export class Session {
 	 * Marks the session as terminating immediately (idempotent).
 	 * The actual PTY termination is async - use isTerminating to check state.
 	 */
-	kill(signal: string = "SIGTERM"): void {
+	kill(signal: string = "SIGHUP"): void {
 		// Idempotent: if already terminating, don't send another signal
 		if (this.terminatingAt !== null) {
 			return;

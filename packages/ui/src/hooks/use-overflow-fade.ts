@@ -3,6 +3,7 @@
 import { useCallback, useLayoutEffect, useRef, useState } from "react";
 
 interface UseOverflowFadeOptions {
+	measureKey?: unknown;
 	observeChildren?: boolean;
 	observeParent?: boolean;
 }
@@ -54,13 +55,15 @@ function areOverflowStatesEqual(
 }
 
 export function useOverflowFade<TElement extends HTMLElement>({
+	measureKey,
 	observeChildren = false,
 	observeParent = false,
 }: UseOverflowFadeOptions = {}) {
 	const ref = useRef<TElement>(null);
+	const frameIdRef = useRef<number | null>(null);
 	const [state, setState] = useState<OverflowFadeState>(INITIAL_STATE);
 
-	const updateOverflow = useCallback(() => {
+	const measureOverflow = useCallback(() => {
 		const node = ref.current;
 		if (!node) return;
 
@@ -71,6 +74,18 @@ export function useOverflowFade<TElement extends HTMLElement>({
 				: nextState,
 		);
 	}, []);
+
+	const updateOverflow = useCallback(() => {
+		if (frameIdRef.current !== null) return;
+		if (typeof requestAnimationFrame !== "function") {
+			measureOverflow();
+			return;
+		}
+		frameIdRef.current = requestAnimationFrame(() => {
+			frameIdRef.current = null;
+			measureOverflow();
+		});
+	}, [measureOverflow]);
 
 	useLayoutEffect(() => {
 		const node = ref.current;
@@ -106,12 +121,21 @@ export function useOverflowFade<TElement extends HTMLElement>({
 		window.addEventListener("resize", updateOverflow);
 
 		return () => {
+			if (frameIdRef.current !== null) {
+				cancelAnimationFrame(frameIdRef.current);
+				frameIdRef.current = null;
+			}
 			resizeObserver.disconnect();
 			mutationObserver?.disconnect();
 			node.removeEventListener("scroll", updateOverflow);
 			window.removeEventListener("resize", updateOverflow);
 		};
 	}, [observeChildren, observeParent, updateOverflow]);
+
+	useLayoutEffect(() => {
+		void measureKey;
+		updateOverflow();
+	}, [measureKey, updateOverflow]);
 
 	return {
 		ref,

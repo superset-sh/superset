@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { join } from "node:path";
 import { createProjectScenario } from "../helpers/scenarios";
 import { seedWorkspace } from "../helpers/seed";
 
@@ -111,5 +112,30 @@ describe("workspaceCreation.searchBranches integration", () => {
 			});
 		const branch = result.items.find((b) => b.name === "with-workspace");
 		expect(branch?.hasWorkspace).toBe(true);
+	});
+
+	test("includes worktreePath on branch rows that are checked out in worktrees", async () => {
+		const worktreePath = join(
+			scenario.repo.repoPath,
+			".worktrees",
+			"feature-path-row",
+		);
+		await scenario.repo.git.raw([
+			"worktree",
+			"add",
+			"-b",
+			"feature/path-row",
+			worktreePath,
+		]);
+
+		const result =
+			await scenario.host.trpc.workspaceCreation.searchBranches.query({
+				projectId: scenario.projectId,
+				filter: "worktree",
+			});
+
+		const branch = result.items.find((b) => b.name === "feature/path-row");
+		expect(branch?.worktreePath).toBe(worktreePath);
+		expect(branch?.isCheckedOut).toBe(true);
 	});
 });

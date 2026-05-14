@@ -6,7 +6,7 @@ import path from "node:path";
 import { settings } from "@superset/local-db";
 import { getHostId, getHostName } from "@superset/shared/host-info";
 import { app } from "electron";
-import { env } from "main/env.main";
+import log from "electron-log/main";
 import { env as sharedEnv } from "shared/env.shared";
 import { getProcessEnvWithShellPath } from "../../lib/trpc/routers/workspaces/utils/shell-env";
 import { SUPERSET_HOME_DIR } from "./app-environment";
@@ -26,6 +26,7 @@ import {
 	pollHealthCheck,
 } from "./host-service-utils";
 import { localDb } from "./local-db";
+import { getRelayUrl } from "./relay-url";
 import { HOOK_PROTOCOL_VERSION } from "./terminal/env";
 
 export type HostServiceStatus = "starting" | "running" | "stopped";
@@ -55,6 +56,13 @@ interface HostServiceProcess {
 }
 
 const ADOPTED_LIVENESS_INTERVAL = 5_000;
+
+/**
+ * Cap how long an adoption health check can take before we decide the adopted
+ * process is dead and respawn. Short enough that a Cmd+R into a wedged
+ * host-service heals quickly; long enough to ride out brief startup blips.
+ */
+const ADOPT_HEALTH_CHECK_TIMEOUT_MS = 2_000;
 
 export class HostServiceCoordinator extends EventEmitter {
 	private instances = new Map<string, HostServiceProcess>();
@@ -152,6 +160,41 @@ export class HostServiceCoordinator extends EventEmitter {
 		return this.start(organizationId, config);
 	}
 
+	/**
+	 * Forcefully reset host-service state for an org. Unlike `restart`, this
+	 * SIGKILLs whatever pid the manifest names — even when no instance is
+	 * tracked in this process (e.g. a manifest left by a previous app session)
+	 * — then removes the manifest so adoption can't pick up the stale entry,
+	 * and respawns. Used by the recovery path for superset-sh/superset#4299
+	 * where a live-but-wedged host-service keeps getting re-adopted.
+	 */
+	async reset(
+		organizationId: string,
+		config: SpawnConfig,
+	): Promise<Connection> {
+		// Capture the manifest pid *before* stop() — stop() removes the manifest
+		// for tracked instances and only sends SIGTERM, which a wedged process
+		// can ignore. We escalate to SIGKILL on whatever pid the manifest named.
+		const manifestPid = readManifest(organizationId)?.pid;
+
+		this.stop(organizationId);
+
+		if (manifestPid != null && isProcessAlive(manifestPid)) {
+			try {
+				process.kill(manifestPid, "SIGKILL");
+			} catch (error) {
+				log.warn(
+					`[host-service:${organizationId}] reset: SIGKILL of pid=${manifestPid} failed`,
+					error,
+				);
+			}
+		}
+
+		removeManifest(organizationId);
+
+		return this.start(organizationId, config);
+	}
+
 	getConnection(organizationId: string): Connection | null {
 		const instance = this.instances.get(organizationId);
 		if (!instance || instance.status !== "running") return null;
@@ -238,19 +281,19 @@ export class HostServiceCoordinator extends EventEmitter {
 					try {
 						const ready = await waitForStableBundle();
 						if (!ready) {
-							console.warn(
+							log.warn(
 								"[host-service] bundle did not stabilize, skipping reload",
 							);
 							return;
 						}
 						const config = await configProvider();
 						if (!config) return;
-						console.log(
+						log.info(
 							"[host-service] bundle changed, restarting running instances",
 						);
 						await this.restartAll(config);
 					} catch (error) {
-						console.error("[host-service] dev reload failed:", error);
+						log.error("[host-service] dev reload failed:", error);
 					} finally {
 						reloading = false;
 					}
@@ -264,7 +307,7 @@ export class HostServiceCoordinator extends EventEmitter {
 				trigger();
 			});
 		} catch (error) {
-			console.error("[host-service] failed to enable dev reload:", error);
+			log.error("[host-service] failed to enable dev reload:", error);
 			return () => {};
 		}
 
@@ -289,12 +332,35 @@ export class HostServiceCoordinator extends EventEmitter {
 			const reason = manifest.spawnedByAppVersion
 				? `spawned by app ${manifest.spawnedByAppVersion} != current ${currentAppVersion}`
 				: "no recorded app version (pre-upgrade manifest)";
-			console.log(
-				`[host-service:${organizationId}] Adopted service ${reason}, killing`,
+			log.info(
+				`[host-service:${organizationId}] Adopted service ${reason}, checking health before reuse`,
+			);
+		}
+
+		// A live pid is not the same as a serving host-service — the process can
+		// be hung on migrations, deadlocked, or no longer bound to the recorded
+		// port. Without this check the renderer's `getConnection` keeps handing
+		// out a dead port forever, which is the failure mode in superset-sh/superset#4299.
+		const healthy = await pollHealthCheck(
+			manifest.endpoint,
+			manifest.authToken,
+			ADOPT_HEALTH_CHECK_TIMEOUT_MS,
+		);
+		if (!healthy) {
+			log.info(
+				`[host-service:${organizationId}] Adopted pid=${manifest.pid} did not respond on ${manifest.endpoint}, killing and respawning`,
 			);
 			try {
-				process.kill(manifest.pid, "SIGTERM");
-			} catch {}
+				process.kill(manifest.pid, "SIGKILL");
+			} catch (error) {
+				// ESRCH (already gone) is fine; anything else (EPERM) we want to see.
+				if ((error as NodeJS.ErrnoException)?.code !== "ESRCH") {
+					log.warn(
+						`[host-service:${organizationId}] SIGKILL of stale pid=${manifest.pid} failed`,
+						error,
+					);
+				}
+			}
 			removeManifest(organizationId);
 			return null;
 		}
@@ -307,7 +373,7 @@ export class HostServiceCoordinator extends EventEmitter {
 		});
 		this.startAdoptedLivenessCheck(organizationId, manifest.pid);
 
-		console.log(
+		log.info(
 			`[host-service:${organizationId}] Adopted pid=${manifest.pid} port=${port}`,
 		);
 		this.emitStatus(organizationId, "running", null);
@@ -372,7 +438,7 @@ export class HostServiceCoordinator extends EventEmitter {
 		let child: ReturnType<typeof childProcess.spawn>;
 		try {
 			// Prod: detached so PTYs survive Electron restarts via manifest
-			// adoption (HOST_SERVICE_LIFECYCLE.md). Dev: attached so a `bun dev`
+			// adoption (docs/HOST_SERVICE_LIFECYCLE.md). Dev: attached so a `bun dev`
 			// kill propagates and serve.ts's dev shutdown can stop pty-daemon.
 			child = childProcess.spawn(process.execPath, [this.scriptPath], {
 				detached: !isDev,
@@ -408,7 +474,7 @@ export class HostServiceCoordinator extends EventEmitter {
 
 		instance.pid = childPid;
 		child.on("exit", (code) => {
-			console.log(`[host-service:${organizationId}] exited with code ${code}`);
+			log.info(`[host-service:${organizationId}] exited with code ${code}`);
 			const current = this.instances.get(organizationId);
 			if (!current || current.pid !== childPid || current.status === "stopped")
 				return;
@@ -431,7 +497,7 @@ export class HostServiceCoordinator extends EventEmitter {
 
 		instance.status = "running";
 
-		console.log(`[host-service:${organizationId}] listening on port ${port}`);
+		log.info(`[host-service:${organizationId}] listening on port ${port}`);
 		this.emitStatus(organizationId, "running", "starting");
 		return { port, secret, machineId: this.machineId };
 	}
@@ -449,6 +515,9 @@ export class HostServiceCoordinator extends EventEmitter {
 		const childEnv = await getProcessEnvWithShellPath({
 			...(process.env as Record<string, string>),
 			ELECTRON_RUN_AS_NODE: "1",
+			NODE_ENV: app.isPackaged
+				? "production"
+				: (process.env.NODE_ENV ?? "development"),
 			ORGANIZATION_ID: organizationId,
 			HOST_CLIENT_ID: getHostId(),
 			HOST_NAME: getHostName(),
@@ -470,9 +539,13 @@ export class HostServiceCoordinator extends EventEmitter {
 
 		// `getProcessEnvWithShellPath` merges in the user's interactive shell env,
 		// which in dev has `RELAY_URL` set. Enforce the toggle *after* that merge
-		// so the child definitely doesn't see a relay URL when disabled.
-		if (exposeViaRelay && env.RELAY_URL) {
-			childEnv.RELAY_URL = env.RELAY_URL;
+		// so the child definitely doesn't see a relay URL when disabled. The
+		// effective URL comes from the PostHog `relay-url-override` flag with
+		// `env.RELAY_URL` as fallback (see main/lib/relay-url) so we can A/B-test
+		// alternate relay deployments per-user.
+		const effectiveRelayUrl = await getRelayUrl();
+		if (exposeViaRelay && effectiveRelayUrl) {
+			childEnv.RELAY_URL = effectiveRelayUrl;
 		} else {
 			delete childEnv.RELAY_URL;
 		}
@@ -490,7 +563,7 @@ export class HostServiceCoordinator extends EventEmitter {
 				this.adoptedLivenessTimers.delete(organizationId);
 				const instance = this.instances.get(organizationId);
 				if (instance && instance.status !== "stopped") {
-					console.log(
+					log.info(
 						`[host-service:${organizationId}] Adopted process ${pid} died`,
 					);
 					this.instances.delete(organizationId);

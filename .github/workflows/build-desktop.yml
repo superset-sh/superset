@@ -106,6 +106,7 @@ jobs:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           RELAY_URL: ${{ secrets.RELAY_URL }}
           SUPERSET_WORKSPACE_NAME: superset
+          TARGET_ARCH: ${{ matrix.arch }}
         run: bun run compile:app
 
       - name: Build Electron app
@@ -134,6 +135,12 @@ jobs:
             echo "::error::app-update.yml missing from $APP_DIR/Contents/Resources/ — auto-update will be broken"
             exit 1
           }
+          CLI_BIN="$APP_DIR/Contents/Resources/resources/bin/superset"
+          test -x "$CLI_BIN" || {
+            echo "::error::Bundled Superset CLI missing or not executable at $CLI_BIN"
+            exit 1
+          }
+          "$CLI_BIN" --version
 
       - name: Upload DMG artifact
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
@@ -232,6 +239,7 @@ jobs:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           RELAY_URL: ${{ secrets.RELAY_URL }}
           SUPERSET_WORKSPACE_NAME: superset
+          TARGET_ARCH: x64
         run: bun run compile:app
 
       - name: Build Electron app
@@ -250,6 +258,12 @@ jobs:
             echo "::error::No Linux auto-update manifest generated in apps/desktop/release"
             exit 1
           }
+          CLI_BIN=$(find release -path "*/resources/resources/bin/superset" -type f -perm -111 | head -1)
+          if [ -z "$CLI_BIN" ]; then
+            echo "::error::Bundled Superset CLI missing or not executable in packaged Linux output"
+            exit 1
+          fi
+          "$CLI_BIN" --version
 
       - name: Upload AppImage artifact
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2

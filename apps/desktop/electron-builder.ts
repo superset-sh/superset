@@ -69,6 +69,11 @@ const config: Configuration = {
 			to: "resources/host-migrations",
 			filter: ["**/*"],
 		},
+		{
+			from: "dist/resources/bin",
+			to: "resources/bin",
+			filter: ["**/*"],
+		},
 	],
 
 	files: [

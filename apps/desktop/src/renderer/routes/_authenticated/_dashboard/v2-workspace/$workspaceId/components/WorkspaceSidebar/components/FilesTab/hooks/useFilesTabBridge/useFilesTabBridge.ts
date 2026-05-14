@@ -80,7 +80,12 @@ export function useFilesTabBridge({
 	// across renders.
 	const knownPathsRef = useRef(new Set<string>());
 	const loadedDirsRef = useRef(new Set<string>());
-	const loadingDirsRef = useRef(new Set<string>());
+	// Track in-flight loads as promises (not a Set) so concurrent callers
+	// await the same fetch instead of short-circuiting. Pierre's `expand()`
+	// notifies subscribers synchronously, and our model.subscribe hook fires
+	// fetchDir before reveal's own `await fetchDir` runs — without shared
+	// promises, reveal would resolve before children land in knownPaths.
+	const inflightDirsRef = useRef(new Map<string, Promise<void>>());
 	const pendingCreatesRef = useRef(new Map<string, "file" | "folder">());
 
 	// Bumped on workspace/root change so async listings started against an
@@ -90,32 +95,47 @@ export function useFilesTabBridge({
 	const fetchDir = useCallback(
 		async (relDir: string): Promise<void> => {
 			if (!rootPath || !workspaceId) return;
-			if (loadingDirsRef.current.has(relDir)) return;
 			if (loadedDirsRef.current.has(relDir)) return;
-			loadingDirsRef.current.add(relDir);
+			const existing = inflightDirsRef.current.get(relDir);
+			if (existing) return existing;
+
 			const startVersion = versionRef.current;
-			try {
-				const result = await utils.filesystem.listDirectory.fetch({
-					workspaceId,
-					absolutePath: toAbs(rootPath, relDir),
-				});
-				if (versionRef.current !== startVersion) return;
-				const ops: { type: "add"; path: string }[] = [];
-				for (const entry of result.entries) {
-					const rel = toRel(rootPath, entry.absolutePath);
-					const treePath = entry.kind === "directory" ? `${rel}/` : rel;
-					if (knownPathsRef.current.has(treePath)) continue;
-					knownPathsRef.current.add(treePath);
-					ops.push({ type: "add", path: treePath });
+			const promise = (async () => {
+				try {
+					const result = await utils.filesystem.listDirectory.fetch({
+						workspaceId,
+						absolutePath: toAbs(rootPath, relDir),
+					});
+					if (versionRef.current !== startVersion) return;
+					const ops: { type: "add"; path: string }[] = [];
+					for (const entry of result.entries) {
+						const rel = toRel(rootPath, entry.absolutePath);
+						const treePath = entry.kind === "directory" ? `${rel}/` : rel;
+						if (knownPathsRef.current.has(treePath)) continue;
+						knownPathsRef.current.add(treePath);
+						ops.push({ type: "add", path: treePath });
+					}
+					if (ops.length > 0) model.batch(ops);
+					loadedDirsRef.current.add(relDir);
+				} catch (error) {
+					if (versionRef.current !== startVersion) return;
+					console.error("[v2 FilesTab] listDirectory failed", {
+						relDir,
+						error,
+					});
 				}
-				if (ops.length > 0) model.batch(ops);
-				loadedDirsRef.current.add(relDir);
-			} catch (error) {
-				if (versionRef.current !== startVersion) return;
-				console.error("[v2 FilesTab] listDirectory failed", { relDir, error });
-			} finally {
-				loadingDirsRef.current.delete(relDir);
-			}
+			})();
+			inflightDirsRef.current.set(relDir, promise);
+			// Identity-check before deleting: on a workspace switch the map is
+			// cleared and a new promise can be registered under the same key.
+			// Without this guard, a late-resolving stale promise would evict
+			// the live one and reopen duplicate fetches.
+			void promise.finally(() => {
+				if (inflightDirsRef.current.get(relDir) === promise) {
+					inflightDirsRef.current.delete(relDir);
+				}
+			});
+			return promise;
 		},
 		[model, rootPath, workspaceId, utils.filesystem.listDirectory],
 	);
@@ -168,7 +188,7 @@ export function useFilesTabBridge({
 		versionRef.current += 1;
 		knownPathsRef.current.clear();
 		loadedDirsRef.current.clear();
-		loadingDirsRef.current.clear();
+		inflightDirsRef.current.clear();
 		pendingCreatesRef.current.clear();
 		model.resetPaths([]);
 		void fetchDir("");

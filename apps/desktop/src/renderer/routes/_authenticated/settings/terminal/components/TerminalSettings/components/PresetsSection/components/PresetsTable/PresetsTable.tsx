@@ -1,3 +1,4 @@
+import type { HostAgentConfig } from "@superset/host-service/settings";
 import type { TerminalPreset } from "@superset/local-db";
 import { cn } from "@superset/ui/utils";
 import type { RefObject } from "react";
@@ -8,6 +9,8 @@ interface PresetsTableProps {
 	presets: TerminalPreset[];
 	isLoading: boolean;
 	projectOptionsById: ReadonlyMap<string, PresetProjectOption>;
+	/** v2 host-agent configs, used by PresetRow to resolve the linked-agent icon. */
+	agents?: HostAgentConfig[];
 	presetsContainerRef: RefObject<HTMLDivElement | null>;
 	onEdit: (presetId: string) => void;
 	onLocalReorder: (fromIndex: number, toIndex: number) => void;
@@ -21,6 +24,7 @@ export function PresetsTable({
 	presets,
 	isLoading,
 	projectOptionsById,
+	agents,
 	presetsContainerRef,
 	onEdit,
 	onLocalReorder,
@@ -47,6 +51,7 @@ export function PresetsTable({
 						preset={preset}
 						rowIndex={index}
 						projectOptionsById={projectOptionsById}
+						agents={agents}
 						onEdit={onEdit}
 						onLocalReorder={onLocalReorder}
 						onPersistReorder={onPersistReorder}

@@ -1,5 +1,6 @@
 import { useEffect, useMemo } from "react";
 import { resolveHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
+import { useRelayUrl } from "renderer/hooks/useRelayUrl";
 import { authClient } from "renderer/lib/auth-client";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import type {
@@ -33,6 +34,7 @@ export function useNewWorkspacePromptContext(args: {
 	const { machineId, activeHostUrl } = useLocalHostService();
 	const { data: session } = authClient.useSession();
 	const activeOrganizationId = session?.session?.activeOrganizationId ?? null;
+	const relayUrl = useRelayUrl();
 
 	const hostUrl = useMemo(() => {
 		const id = hostId ?? machineId;
@@ -42,8 +44,9 @@ export function useNewWorkspacePromptContext(args: {
 			machineId,
 			activeHostUrl,
 			organizationId: activeOrganizationId,
+			relayUrl,
 		});
-	}, [hostId, machineId, activeHostUrl, activeOrganizationId]);
+	}, [hostId, machineId, activeHostUrl, activeOrganizationId, relayUrl]);
 
 	useEffect(() => {
 		if (!projectId || !hostUrl) return;

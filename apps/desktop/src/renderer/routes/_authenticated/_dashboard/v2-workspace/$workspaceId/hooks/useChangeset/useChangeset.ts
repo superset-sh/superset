@@ -7,6 +7,7 @@ import type { ChangesetFile, DiffRef } from "./types";
 interface UseChangesetArgs {
 	workspaceId: string;
 	ref: DiffRef;
+	enabled?: boolean;
 }
 
 interface UseChangesetResult {
@@ -19,6 +20,7 @@ interface UseChangesetResult {
 export function useChangeset({
 	workspaceId,
 	ref,
+	enabled = true,
 }: UseChangesetArgs): UseChangesetResult {
 	const utils = workspaceTrpc.useUtils();
 
@@ -29,7 +31,7 @@ export function useChangeset({
 			baseBranch:
 				ref.kind === "against-base" ? (ref.baseBranch ?? undefined) : undefined,
 		},
-		{ enabled: needsStatus, staleTime: Number.POSITIVE_INFINITY },
+		{ enabled: enabled && needsStatus, staleTime: Number.POSITIVE_INFINITY },
 	);
 
 	const commitQuery = workspaceTrpc.git.getCommitFiles.useQuery(
@@ -41,7 +43,7 @@ export function useChangeset({
 				}
 			: { workspaceId, commitHash: "" },
 		{
-			enabled: ref.kind === "commit",
+			enabled: enabled && ref.kind === "commit",
 			staleTime: Number.POSITIVE_INFINITY,
 		},
 	);
@@ -59,7 +61,7 @@ export function useChangeset({
 				void utils.git.getDiff.invalidate({ workspaceId });
 			}
 		},
-		needsStatus,
+		enabled && needsStatus,
 	);
 
 	const files = useMemo<ChangesetFile[]>(() => {

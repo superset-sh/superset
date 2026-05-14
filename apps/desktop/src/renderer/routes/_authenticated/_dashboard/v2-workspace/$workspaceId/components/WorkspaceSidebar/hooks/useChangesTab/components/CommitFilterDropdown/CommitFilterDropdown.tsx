@@ -49,12 +49,10 @@ export function CommitFilterDropdown({
 				<DropdownMenuTrigger asChild>
 					<button
 						type="button"
-						className="flex items-center gap-1 rounded px-1.5 py-0.5 text-xs text-muted-foreground hover:bg-accent hover:text-foreground"
+						className="flex min-w-0 items-center gap-1 rounded px-1.5 py-0.5 text-xs text-muted-foreground hover:bg-accent hover:text-foreground"
 					>
-						<span className="max-w-[140px] truncate">
-							{getFilterLabel(filter, commits)}
-						</span>
-						<ChevronDown className="size-3" />
+						<span className="truncate">{getFilterLabel(filter, commits)}</span>
+						<ChevronDown className="size-3 shrink-0" />
 					</button>
 				</DropdownMenuTrigger>
 				<DropdownMenuContent align="start" className="w-72">

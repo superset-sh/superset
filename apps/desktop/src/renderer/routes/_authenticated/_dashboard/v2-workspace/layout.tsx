@@ -8,7 +8,6 @@ import { useWorkspaceCreatesStore } from "renderer/stores/workspace-creates";
 import { WorkspaceCreateErrorState } from "./components/WorkspaceCreateErrorState";
 import { WorkspaceCreatingState } from "./components/WorkspaceCreatingState";
 import { WorkspaceHostIncompatibleState } from "./components/WorkspaceHostIncompatibleState";
-import { WorkspaceHostOfflineState } from "./components/WorkspaceHostOfflineState";
 import { WorkspaceNotFoundState } from "./components/WorkspaceNotFoundState";
 import { useRemoteHostStatus } from "./hooks/useRemoteHostStatus";
 import { WorkspaceProvider } from "./providers/WorkspaceProvider";
@@ -57,7 +56,7 @@ function V2WorkspaceLayout() {
 
 	const hostStatus = useRemoteHostStatus(workspace);
 
-	if (!workspaceId || !isReady || !workspaces) {
+	if (!workspaceId || !workspaces || (!isReady && !workspace)) {
 		return <div className="flex h-full w-full" />;
 	}
 
@@ -84,9 +83,6 @@ function V2WorkspaceLayout() {
 		return <WorkspaceNotFoundState workspaceId={workspaceId} />;
 	}
 
-	if (hostStatus.status === "offline") {
-		return <WorkspaceHostOfflineState hostName={hostStatus.hostName} />;
-	}
 	if (hostStatus.status === "incompatible") {
 		return (
 			<WorkspaceHostIncompatibleState
@@ -100,8 +96,11 @@ function V2WorkspaceLayout() {
 		return <div className="flex h-full w-full" />;
 	}
 
+	// TanStack Router reuses the Outlet subtree across param-only transitions.
+	// A workspace switch must remount pane state instead of looking like every
+	// pane in the previous workspace was closed.
 	return (
-		<WorkspaceProvider workspace={workspace}>
+		<WorkspaceProvider key={workspace.id} workspace={workspace}>
 			<Outlet />
 		</WorkspaceProvider>
 	);

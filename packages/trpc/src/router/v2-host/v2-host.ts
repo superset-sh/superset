@@ -65,6 +65,37 @@ async function requireOrgMember(userId: string, organizationId: string) {
 }
 
 export const v2HostRouter = {
+	rename: protectedProcedure
+		.input(
+			z.object({
+				hostId: z.string().min(1),
+				name: z
+					.string()
+					.max(120)
+					.transform((value) => value.trim())
+					.pipe(z.string().min(1, "Host name cannot be empty")),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			const organizationId = requireActiveOrgId(ctx);
+			await requireHostOwner(ctx.session.user.id, input.hostId, organizationId);
+
+			const txid = await dbWs.transaction(async (tx) => {
+				await tx
+					.update(v2Hosts)
+					.set({ name: input.name })
+					.where(
+						and(
+							eq(v2Hosts.organizationId, organizationId),
+							eq(v2Hosts.machineId, input.hostId),
+						),
+					);
+				return await getCurrentTxid(tx);
+			});
+
+			return { success: true, txid };
+		}),
+
 	addMember: protectedProcedure
 		.input(
 			z.object({

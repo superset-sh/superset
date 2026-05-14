@@ -7,6 +7,11 @@ The `superset start` command runs a headless HTTP server that any Superset deskt
 
 It manages workspaces, ports, and agent runs on the machine it's running on. The desktop app starts it automatically; on a CLI-only or headless machine you start it yourself.
 
+If you installed the desktop app, it already includes the CLI and installs a
+`~/.superset/bin/superset` shim on app launch. Superset terminals prepend
+that directory to `PATH` automatically. On a headless machine, use the
+standalone installer from [Getting Started](/cli/getting-started).
+
 ## Prerequisites
 
 `git` and `gh` need to be on your `PATH`. `git` handles clone, worktree, and branch ops; `gh` handles PR checkout and metadata.
@@ -61,32 +66,62 @@ superset status
 
 ## Getting started
 
-### Create a project
+### Create or adopt a project
 
-A workspace branches off a project — a checked-out repo registered with
-Superset. Clone a remote repo or import an existing local one:
+A workspace branches off a project — a repo registered with Superset.
+
+Each repo gets one cloud project record, shared across the organization.
+The first machine to register the repo runs `projects create`; every
+machine after that uses `projects setup` to attach to the existing
+project instead of creating a duplicate.
+
+Start by checking what's already in your org:
+
+```bash
+superset projects list
+```
+
+#### First machine — `projects create`
+
+If the project doesn't exist yet, clone a remote repo or import an
+existing local one:
 
 ```bash
 # Clone from a Git URL
 superset projects create \
   --name "My Project" \
-  --url https://github.com/org/repo.git \
+  --local \
+  --clone https://github.com/org/repo.git \
   --parent-dir ~/code
 
 # Or import a repo that's already on disk
 superset projects create \
   --name "My Project" \
-  --path ~/code/existing-repo
+  --local \
+  --import ~/code/existing-repo
 ```
 
 The host server clones (or registers) the repo, creates the cloud project
-record, and ensures the main workspace. Project records are shared across
-the organization, so once it exists, any machine in the org can host
-worktrees of it:
+record, and ensures the main workspace.
+
+#### Subsequent machines — `projects setup <id>`
+
+If a teammate (or a previous machine of yours) already created the project,
+adopt it instead of running `create` again — `create` would make a duplicate
+cloud project pointing at the same repo. Pick the ID from `projects list`,
+then:
 
 ```bash
-superset projects list
+# Clone the project's repo onto this machine
+superset projects setup 47c31b04-… --local --parent-dir ~/code
+
+# Or attach to an existing local checkout
+superset projects setup 47c31b04-… --local --import ~/code/repo
 ```
+
+The URL for clone mode comes from the cloud project record, so `setup`
+doesn't need `--clone <url>`. `setup` is idempotent: re-running against a
+project that's already set up here is a no-op.
 
 ### Create your first workspace
 
@@ -100,6 +135,16 @@ superset workspaces create \
 
 The host server clones the project (if it isn't already on disk), creates
 a git worktree at the chosen branch, and registers the workspace.
+
+You can also create a workspace from a pull request number:
+
+```bash
+superset workspaces create \
+  --project prj_… \
+  --name "review-pr-123" \
+  --pr 123 \
+  --local
+```
 
 ## Stop the host server
 

@@ -46,6 +46,18 @@ export const createHostServiceCoordinatorRouter = () => {
 			});
 		}),
 
+		reset: publicProcedure.input(orgInput).mutation(async ({ input }) => {
+			const coordinator = getHostServiceCoordinator();
+			const { token } = await loadToken();
+			if (!token) {
+				throw new Error("No auth token available — user must be logged in");
+			}
+			return coordinator.reset(input.organizationId, {
+				authToken: token,
+				cloudApiUrl: env.NEXT_PUBLIC_API_URL,
+			});
+		}),
+
 		onStatusChange: publicProcedure.subscription(() => {
 			return observable<HostServiceStatusEvent>((emit) => {
 				const coordinator = getHostServiceCoordinator();

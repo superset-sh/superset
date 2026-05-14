@@ -10,7 +10,7 @@ import {
 import { getCurrentTxid } from "@superset/db/utils";
 import type { TRPCRouterRecord } from "@trpc/server";
 import { TRPCError } from "@trpc/server";
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, ilike, inArray, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import { posthog } from "../../lib/analytics";
 import { jwtProcedure, protectedProcedure } from "../../trpc";
@@ -114,6 +114,9 @@ export const v2WorkspaceRouter = {
 			z.object({
 				organizationId: z.string().uuid(),
 				hostId: z.string().min(1).optional(),
+				projectId: z.string().uuid().optional(),
+				projectName: z.string().min(1).optional(),
+				search: z.string().min(1).optional(),
 			}),
 		)
 		.query(async ({ ctx, input }) => {
@@ -123,6 +126,18 @@ export const v2WorkspaceRouter = {
 					message: "Not a member of this organization",
 				});
 			}
+
+			const escapeLike = (value: string) =>
+				value.replace(/[\\%_]/g, (char) => `\\${char}`);
+			const searchPattern = input.search
+				? `%${escapeLike(input.search)}%`
+				: null;
+			const searchMatch = searchPattern
+				? or(
+						ilike(v2Workspaces.name, searchPattern),
+						ilike(v2Workspaces.branch, searchPattern),
+					)
+				: undefined;
 
 			const rows = await db
 				.select({
@@ -147,6 +162,13 @@ export const v2WorkspaceRouter = {
 						eq(v2Workspaces.organizationId, input.organizationId),
 						eq(v2UsersHosts.userId, ctx.userId),
 						input.hostId ? eq(v2Workspaces.hostId, input.hostId) : undefined,
+						input.projectId
+							? eq(v2Workspaces.projectId, input.projectId)
+							: undefined,
+						input.projectName
+							? sql`lower(${v2Projects.name}) = lower(${input.projectName})`
+							: undefined,
+						searchMatch,
 					),
 				);
 
@@ -374,6 +396,7 @@ export const v2WorkspaceRouter = {
 				name: z.string().min(1).optional(),
 				branch: z.string().min(1).optional(),
 				hostId: z.string().min(1).optional(),
+				taskId: z.string().uuid().nullable().optional(),
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
@@ -390,10 +413,30 @@ export const v2WorkspaceRouter = {
 				await getScopedHost(workspace.organizationId, input.hostId);
 			}
 
+			if (input.taskId) {
+				const found = await dbWs.query.tasks.findFirst({
+					columns: { id: true, organizationId: true },
+					where: eq(tasks.id, input.taskId),
+				});
+				if (!found) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: "taskId not found",
+					});
+				}
+				if (found.organizationId !== workspace.organizationId) {
+					throw new TRPCError({
+						code: "FORBIDDEN",
+						message: "taskId must belong to the workspace's organization",
+					});
+				}
+			}
+
 			const data = {
 				branch: input.branch,
 				hostId: input.hostId,
 				name: input.name,
+				taskId: input.taskId,
 			};
 			if (
 				Object.keys(data).every(

@@ -8,7 +8,10 @@ import {
 	type BranchFilter,
 	useBranchContext,
 } from "../../../hooks/useBranchContext";
-import type { CompareBaseBranchPicker } from "../../components/CompareBaseBranchPicker";
+import type {
+	CompareBaseBranchPicker,
+	OpenWorkspaceTarget,
+} from "../../components/CompareBaseBranchPicker";
 
 type PickerProps = React.ComponentProps<typeof CompareBaseBranchPicker>;
 
@@ -71,7 +74,7 @@ export function useBranchPickerController(args: UseBranchPickerControllerArgs) {
 	// id — the existing-row and adoption paths can return an id different from
 	// the optimistic snapshot id, which would otherwise 404.
 	const onOpenWorkspace = useCallback(
-		async (branchName: string) => {
+		async (target: OpenWorkspaceTarget) => {
 			if (!projectId) {
 				toast.error("Select a project first");
 				return;
@@ -80,6 +83,7 @@ export function useBranchPickerController(args: UseBranchPickerControllerArgs) {
 				toast.error("No active host");
 				return;
 			}
+			const branchName = target.branchName;
 			const snapshotId = crypto.randomUUID();
 			const workspaceName = resolveActionWorkspaceName(branchName);
 			closeModal();
@@ -90,6 +94,7 @@ export function useBranchPickerController(args: UseBranchPickerControllerArgs) {
 					projectId,
 					name: workspaceName,
 					branch: branchName,
+					...(target.worktreePath ? { worktreePath: target.worktreePath } : {}),
 				},
 			});
 			if (result.ok) {

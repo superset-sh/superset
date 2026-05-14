@@ -64,4 +64,40 @@ describe("resourceMetricsSnapshotSchema", () => {
 			validSnapshot.host.totalMemory,
 		);
 	});
+
+	test("preserves optional terminal titles", () => {
+		const validSnapshot = createFallbackResourceMetricsSnapshot();
+		const snapshotWithTerminal = {
+			...validSnapshot,
+			workspaces: [
+				{
+					workspaceId: "workspace-1",
+					projectId: "project-1",
+					projectName: "Project",
+					workspaceName: "Workspace",
+					cpu: 1,
+					memory: 2,
+					sessions: [
+						{
+							sessionId: "terminal-1",
+							paneId: "terminal-1",
+							pid: 123,
+							title: "Claude Code",
+							cpu: 1,
+							memory: 2,
+						},
+					],
+				},
+			],
+			totalCpu: validSnapshot.app.cpu + 1,
+			totalMemory: validSnapshot.app.memory + 2,
+		};
+
+		const validated = validateResourceMetricsSnapshot(snapshotWithTerminal);
+
+		expect(validated.isValid).toBe(true);
+		expect(validated.snapshot.workspaces[0]?.sessions[0]?.title).toBe(
+			"Claude Code",
+		);
+	});
 });

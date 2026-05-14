@@ -73,6 +73,31 @@ export function parseNumstat(
 	raw: string,
 ): Map<string, { additions: number; deletions: number }> {
 	const result = new Map<string, { additions: number; deletions: number }>();
+	for (const record of parseNumstatRecords(raw)) {
+		const stats = {
+			additions: record.additions,
+			deletions: record.deletions,
+		};
+		result.set(record.path, stats);
+		if (record.oldPath) result.set(record.oldPath, stats);
+	}
+	return result;
+}
+
+export interface NumstatRecord {
+	path: string;
+	oldPath?: string;
+	additions: number;
+	deletions: number;
+}
+
+/**
+ * Parse `git diff --numstat -z` into one record per changed file. Unlike
+ * `parseNumstat`, renamed files are returned once under the destination path
+ * so callers that sum totals do not double-count the old and new names.
+ */
+export function parseNumstatRecords(raw: string): NumstatRecord[] {
+	const result: NumstatRecord[] = [];
 	const entries = raw.split("\0");
 	for (let i = 0; i < entries.length; i++) {
 		const entry = entries[i];
@@ -90,10 +115,15 @@ export function parseNumstat(
 		if (pathMaybe === "") {
 			const oldPath = entries[++i] ?? "";
 			const newPath = entries[++i] ?? "";
-			if (newPath) result.set(newPath, stats);
-			if (oldPath) result.set(oldPath, stats);
+			if (newPath) {
+				result.push({
+					path: newPath,
+					...(oldPath ? { oldPath } : {}),
+					...stats,
+				});
+			}
 		} else {
-			result.set(pathMaybe, stats);
+			result.push({ path: pathMaybe, ...stats });
 		}
 	}
 	return result;

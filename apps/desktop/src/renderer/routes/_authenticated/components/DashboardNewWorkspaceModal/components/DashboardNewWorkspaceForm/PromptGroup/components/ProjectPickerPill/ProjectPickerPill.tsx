@@ -124,11 +124,11 @@ export function ProjectPickerPill({
 					<CommandGroup forceMount>
 						<CommandItem forceMount onSelect={handleCreateNewProject}>
 							<HiMiniPlus className="size-4" />
-							Create new project
+							Clone from URL
 						</CommandItem>
 						<CommandItem forceMount onSelect={handleImportProject}>
 							<LuFolderInput className="size-4" />
-							Import project
+							Open from folder
 						</CommandItem>
 					</CommandGroup>
 				</Command>

@@ -144,6 +144,12 @@ export type WorkspaceListResponse = Array<Workspace>;
 export interface WorkspaceListParams {
 	/** Restrict the listing to workspaces on a single host machineId. */
 	hostId?: string;
+	/** Restrict the listing to a single project by UUID. */
+	projectId?: string;
+	/** Restrict the listing by project name (case-insensitive exact match). */
+	projectName?: string;
+	/** Substring match against workspace name or branch. */
+	search?: string;
 }
 
 export interface WorkspaceCreateParams {

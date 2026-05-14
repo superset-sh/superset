@@ -16,12 +16,10 @@ export interface HostServiceManifest {
 	startedAt: number;
 	organizationId: string;
 	/**
-	 * Desktop app version that spawned this host-service. Compared against
-	 * the current `app.getVersion()` on adoption — any mismatch triggers a
-	 * kill + respawn so every Electron auto-update lands on a freshly
-	 * spawned host-service, even when the host-service version pin alone
-	 * would have allowed adoption (e.g. host-service code changed but its
-	 * `package.json#version` was not bumped).
+	 * Desktop app version that spawned this host-service. This is diagnostic
+	 * adoption context; a version mismatch alone must not kill a healthy
+	 * service because canary app timestamps can change without requiring a
+	 * host-service restart.
 	 */
 	spawnedByAppVersion: string;
 }
@@ -71,8 +69,8 @@ export function readManifest(
 
 		// `spawnedByAppVersion` is required going forward, but pre-existing
 		// manifests on upgraded users won't have it. Coerce to empty string so
-		// `tryAdopt` still finds the old PID, then trip the app-version pin
-		// (current version !== "") so the stale daemon gets killed and respawned.
+		// `tryAdopt` can log the provenance gap and still health-check the
+		// existing service before deciding whether to reuse it.
 		if (typeof data.spawnedByAppVersion !== "string") {
 			data.spawnedByAppVersion = "";
 		}

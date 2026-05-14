@@ -1,4 +1,5 @@
 import { describe, expect, it, mock } from "bun:test";
+import type { AgentIdentity } from "@superset/shared/agent-identity";
 import type { AgentLifecycleEventType } from "../../../events";
 import type { HostServiceContext } from "../../../types";
 import { notificationsRouter } from "./notifications";
@@ -7,6 +8,7 @@ interface BroadcastedAgentLifecycleEvent {
 	workspaceId: string;
 	eventType: AgentLifecycleEventType;
 	terminalId: string;
+	agent?: AgentIdentity;
 	occurredAt: number;
 }
 
@@ -102,5 +104,49 @@ describe("notificationsRouter.hook", () => {
 		expect(result).toEqual({ success: true, ignored: true });
 		expect(findFirst).not.toHaveBeenCalled();
 		expect(broadcastAgentLifecycle).not.toHaveBeenCalled();
+	});
+
+	it("forwards agent identity when the hook stamps it", async () => {
+		const { ctx, broadcastAgentLifecycle } = createContext("workspace-1");
+
+		await notificationsRouter.createCaller(ctx).hook({
+			terminalId: "terminal-1",
+			eventType: "Stop",
+			agent: { agentId: "claude", sessionId: "session-abc" },
+		});
+
+		expect(broadcastAgentLifecycle).toHaveBeenCalledTimes(1);
+		expect(broadcastAgentLifecycle.mock.calls[0]?.[0]).toMatchObject({
+			workspaceId: "workspace-1",
+			terminalId: "terminal-1",
+			eventType: "Stop",
+			agent: { agentId: "claude", sessionId: "session-abc" },
+		});
+	});
+
+	it("normalizes empty-string identity fields to undefined", async () => {
+		const { ctx, broadcastAgentLifecycle } = createContext("workspace-1");
+
+		await notificationsRouter.createCaller(ctx).hook({
+			terminalId: "terminal-1",
+			eventType: "Stop",
+			agent: { agentId: "claude", sessionId: "" },
+		});
+
+		const broadcast = broadcastAgentLifecycle.mock.calls[0]?.[0];
+		expect(broadcast?.agent).toEqual({ agentId: "claude" });
+	});
+
+	it("drops agent identity entirely when agentId is missing", async () => {
+		const { ctx, broadcastAgentLifecycle } = createContext("workspace-1");
+
+		await notificationsRouter.createCaller(ctx).hook({
+			terminalId: "terminal-1",
+			eventType: "Stop",
+			agent: { agentId: "" },
+		});
+
+		const broadcast = broadcastAgentLifecycle.mock.calls[0]?.[0];
+		expect(broadcast?.agent).toBeUndefined();
 	});
 });

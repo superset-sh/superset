@@ -92,3 +92,23 @@ export const automationPromptSourceValues = [
 ] as const;
 export const automationPromptSourceEnum = z.enum(automationPromptSourceValues);
 export type AutomationPromptSource = z.infer<typeof automationPromptSourceEnum>;
+
+export const remoteControlSessionModeValues = ["command", "full"] as const;
+export const remoteControlSessionModeEnum = z.enum(
+	remoteControlSessionModeValues,
+);
+export type RemoteControlSessionMode = z.infer<
+	typeof remoteControlSessionModeEnum
+>;
+
+export const remoteControlSessionStatusValues = [
+	"active",
+	"revoked",
+	"expired",
+] as const;
+export const remoteControlSessionStatusEnum = z.enum(
+	remoteControlSessionStatusValues,
+);
+export type RemoteControlSessionStatus = z.infer<
+	typeof remoteControlSessionStatusEnum
+>;

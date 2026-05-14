@@ -7,13 +7,7 @@ import { alert } from "@superset/ui/atoms/Alert";
 import { toast } from "@superset/ui/sonner";
 import { cn } from "@superset/ui/utils";
 import { workspaceTrpc } from "@superset/workspace-client";
-import {
-	Circle,
-	GitCompareArrows,
-	Globe,
-	MessageSquare,
-	TerminalSquare,
-} from "lucide-react";
+import { Circle, GitCompareArrows, Globe, MessageSquare } from "lucide-react";
 import { useMemo } from "react";
 import {
 	LuArrowDownToLine,
@@ -23,11 +17,12 @@ import {
 	LuPower,
 } from "react-icons/lu";
 import { useHotkeyDisplay } from "renderer/hotkeys";
+import { FileIcon } from "renderer/lib/fileIcons";
 import { getBaseName } from "renderer/lib/pathBasename";
 import { consumeTerminalBackgroundIntent } from "renderer/lib/terminal/terminal-background-intents";
 import { terminalRuntimeRegistry } from "renderer/lib/terminal/terminal-runtime-registry";
 import { useWorkspace } from "renderer/routes/_authenticated/_dashboard/v2-workspace/providers/WorkspaceProvider";
-import { FileIcon } from "renderer/screens/main/components/WorkspaceView/RightSidebar/FilesView/utils";
+import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import {
 	clearV2TerminalRunStatus,
 	getV2NotificationSourcesForPane,
@@ -46,7 +41,11 @@ import type {
 	PaneViewerData,
 	TerminalPaneData,
 } from "../../types";
-import { BrowserPane, BrowserPaneToolbar } from "./components/BrowserPane";
+import {
+	BrowserPane,
+	BrowserPaneToolbar,
+	browserRuntimeRegistry,
+} from "./components/BrowserPane";
 import { ChatPane } from "./components/ChatPane";
 import { ChatPaneTitle } from "./components/ChatPane/components/ChatPaneTitle";
 import { CommentPane } from "./components/CommentPane";
@@ -58,6 +57,7 @@ import { FilePane } from "./components/FilePane";
 import { FilePaneHeaderExtras } from "./components/FilePane/components/FilePaneHeaderExtras";
 import { TerminalPane } from "./components/TerminalPane";
 import { TerminalHeaderExtras } from "./components/TerminalPane/components/TerminalHeaderExtras";
+import { TerminalPaneIcon } from "./components/TerminalPane/components/TerminalPaneIcon";
 import { TerminalSessionDropdown } from "./components/TerminalPane/components/TerminalSessionDropdown";
 
 function getFileName(filePath: string): string {
@@ -114,6 +114,7 @@ export function usePaneRegistry({
 }: UsePaneRegistryOptions): PaneRegistry<PaneViewerData> {
 	const { workspace } = useWorkspace();
 	const workspaceId = workspace.id;
+	const collections = useCollections();
 	const clearShortcut = useHotkeyDisplay("CLEAR_TERMINAL").text;
 	const scrollToBottomShortcut = useHotkeyDisplay("SCROLL_TO_BOTTOM").text;
 	const workspaceTrpcUtils = workspaceTrpc.useUtils();
@@ -147,6 +148,16 @@ export function usePaneRegistry({
 				});
 			},
 		});
+	const clearWorkspaceRunTerminal = useMemo(
+		() => (terminalId: string) => {
+			if (!collections.v2WorkspaceLocalState.get(workspaceId)) return;
+			collections.v2WorkspaceLocalState.update(workspaceId, (draft) => {
+				if (!draft.workspaceRunTerminals?.[terminalId]) return;
+				delete draft.workspaceRunTerminals[terminalId];
+			});
+		},
+		[collections.v2WorkspaceLocalState, workspaceId],
+	);
 
 	return useMemo<PaneRegistry<PaneViewerData>>(
 		() => ({
@@ -241,7 +252,10 @@ export function usePaneRegistry({
 					),
 			},
 			terminal: {
-				getIcon: () => <TerminalSquare className="size-3.5" />,
+				getIcon: (ctx) => {
+					const { terminalId } = ctx.pane.data as TerminalPaneData;
+					return <TerminalPaneIcon terminalId={terminalId} />;
+				},
 				getTitle: () => "Terminal",
 				titleSource: (pane) => {
 					const { terminalId } = pane.data as TerminalPaneData;
@@ -266,6 +280,7 @@ export function usePaneRegistry({
 						return;
 					}
 					clearV2TerminalRunStatus(terminalId, workspaceId);
+					clearWorkspaceRunTerminal(terminalId);
 					terminalRuntimeRegistry.dispose(terminalId);
 					killTerminalSessionSilently({ terminalId, workspaceId });
 				},
@@ -278,7 +293,7 @@ export function usePaneRegistry({
 					</div>
 				),
 				renderHeaderExtras: (ctx: RendererContext<PaneViewerData>) => (
-					<TerminalHeaderExtras context={ctx} />
+					<TerminalHeaderExtras context={ctx} workspaceId={workspaceId} />
 				),
 				renderPane: (ctx: RendererContext<PaneViewerData>) => (
 					<TerminalPane
@@ -405,7 +420,9 @@ export function usePaneRegistry({
 				renderToolbar: (ctx: RendererContext<PaneViewerData>) => (
 					<BrowserPaneToolbar ctx={ctx} />
 				),
-				// Destruction handled by useGlobalBrowserLifecycle for now.
+				onAfterClose: (pane) => {
+					browserRuntimeRegistry.destroy(pane.id);
+				},
 				contextMenuActions: (_ctx, defaults) =>
 					defaults.map((d) =>
 						d.key === "close-pane" ? { ...d, label: "Close Browser" } : d,
@@ -484,6 +501,7 @@ export function usePaneRegistry({
 		}),
 		[
 			workspaceId,
+			clearWorkspaceRunTerminal,
 			clearShortcut,
 			scrollToBottomShortcut,
 			killTerminalSession,

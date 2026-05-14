@@ -7,10 +7,13 @@ export const SETTING_ITEM_ID = {
 	ORGANIZATION_LOGO: "organization-logo",
 	ORGANIZATION_NAME: "organization-name",
 	ORGANIZATION_SLUG: "organization-slug",
+	ORGANIZATION_ID: "organization-id",
 	ORGANIZATION_MEMBERS_LIST: "organization-members-list",
 	ORGANIZATION_MEMBERS_INVITE: "organization-members-invite",
 	ORGANIZATION_MEMBERS_PENDING_INVITATIONS:
 		"organization-members-pending-invitations",
+
+	TEAMS_LIST: "teams-list",
 
 	APPEARANCE_THEME: "appearance-theme",
 	APPEARANCE_MARKDOWN: "appearance-markdown",
@@ -112,9 +115,12 @@ export const SETTING_ITEM_VARIANT: Record<SettingItemId, SettingVariant> = {
 	[SETTING_ITEM_ID.ORGANIZATION_LOGO]: "shared",
 	[SETTING_ITEM_ID.ORGANIZATION_NAME]: "shared",
 	[SETTING_ITEM_ID.ORGANIZATION_SLUG]: "shared",
+	[SETTING_ITEM_ID.ORGANIZATION_ID]: "shared",
 	[SETTING_ITEM_ID.ORGANIZATION_MEMBERS_LIST]: "shared",
 	[SETTING_ITEM_ID.ORGANIZATION_MEMBERS_INVITE]: "shared",
 	[SETTING_ITEM_ID.ORGANIZATION_MEMBERS_PENDING_INVITATIONS]: "shared",
+
+	[SETTING_ITEM_ID.TEAMS_LIST]: "shared",
 
 	[SETTING_ITEM_ID.APPEARANCE_THEME]: "shared",
 	[SETTING_ITEM_ID.APPEARANCE_MARKDOWN]: "shared",
@@ -274,6 +280,21 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 		],
 	},
 	{
+		id: SETTING_ITEM_ID.ORGANIZATION_ID,
+		section: "organization",
+		title: "Organization ID",
+		description: "Your organization's unique identifier",
+		keywords: [
+			"organization",
+			"id",
+			"identifier",
+			"uuid",
+			"unique",
+			"copy",
+			"api",
+		],
+	},
+	{
 		id: SETTING_ITEM_ID.ORGANIZATION_MEMBERS_LIST,
 		section: "organization",
 		title: "Team Members",
@@ -327,6 +348,21 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"cancel",
 			"resend",
 			"email",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.TEAMS_LIST,
+		section: "teams",
+		title: "Teams",
+		description: "Create, rename, and delete teams within your organization",
+		keywords: [
+			"teams",
+			"team",
+			"group",
+			"create team",
+			"rename team",
+			"delete team",
+			"organize",
 		],
 	},
 	{
@@ -570,9 +606,9 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 	{
 		id: SETTING_ITEM_ID.BEHAVIOR_OPEN_LINKS_IN_APP,
 		section: "behavior",
-		title: "Open links in app browser",
+		title: "Open links in the in-app browser",
 		description:
-			"Open links from chat and terminal in the built-in browser instead of your default browser",
+			"Open links from chat and terminal in the in-app browser instead of your default browser",
 		keywords: [
 			"browser",
 			"links",
@@ -1003,12 +1039,13 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 		id: SETTING_ITEM_ID.PROJECT_SCRIPTS,
 		section: "project",
 		title: "Scripts",
-		description: "Setup and teardown scripts for workspaces",
+		description: "Setup, teardown, and run scripts for workspaces",
 		keywords: [
 			"project",
 			"scripts",
 			"setup",
 			"teardown",
+			"run",
 			"bash",
 			"shell",
 			"automation",

@@ -2,13 +2,12 @@ import type {
 	FileTreeDirectoryHandle,
 	FileTreeItemHandle,
 } from "@pierre/trees";
+import { stripTrailingSlash } from "renderer/lib/pierreTree";
+
+export { stripTrailingSlash };
 
 export function toPosix(p: string): string {
 	return p.replace(/\\/g, "/");
-}
-
-export function stripTrailingSlash(p: string): string {
-	return p.endsWith("/") ? p.slice(0, -1) : p;
 }
 
 export function toRel(rootPath: string, abs: string): string {

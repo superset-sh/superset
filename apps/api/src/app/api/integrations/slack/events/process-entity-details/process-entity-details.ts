@@ -1,7 +1,7 @@
 import type { SlackEvent } from "@slack/types";
 import { db } from "@superset/db/client";
 import { integrationConnections, tasks } from "@superset/db/schema";
-import { and, eq } from "drizzle-orm";
+import { and, desc, eq, isNull } from "drizzle-orm";
 import { createSlackClient } from "../utils/slack-client";
 import {
 	createTaskFlexpaneObject,
@@ -36,7 +36,12 @@ export async function processEntityDetails({
 		where: and(
 			eq(integrationConnections.provider, "slack"),
 			eq(integrationConnections.externalOrgId, teamId),
+			isNull(integrationConnections.disconnectedAt),
 		),
+		orderBy: [
+			desc(integrationConnections.updatedAt),
+			desc(integrationConnections.id),
+		],
 	});
 
 	if (!connection) {

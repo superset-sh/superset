@@ -6,11 +6,10 @@ import {
 	ContextMenuSeparator,
 	ContextMenuTrigger,
 } from "@superset/ui/context-menu";
-import { OverflowFadeText } from "@superset/ui/overflow-fade-text";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { PencilIcon, XIcon } from "lucide-react";
-import { type ReactNode, useCallback, useRef, useState } from "react";
+import { memo, type ReactNode, useCallback, useRef, useState } from "react";
 import { useDrag, useDrop } from "react-dnd";
 import type { Tab } from "../../../../../../../types";
 import type { PaneRegistry } from "../../../../../../types";
@@ -35,7 +34,7 @@ interface TabItemProps<TData> {
 	accessory?: ReactNode;
 }
 
-export function TabItem<TData>({
+function TabItemComponent<TData>({
 	tab,
 	tabs,
 	registry,
@@ -156,24 +155,24 @@ export function TabItem<TData>({
 										type="button"
 									>
 										{icon && <span className="shrink-0">{icon}</span>}
-										<OverflowFadeText className="flex-1">
-											{title}
-										</OverflowFadeText>
-										{accessory && (
-											<span className="shrink-0 leading-none">{accessory}</span>
-										)}
+										<span className="min-w-0 flex-1 truncate">{title}</span>
 									</button>
 								</TooltipTrigger>
 								<TooltipContent side="bottom" showArrow={false}>
 									{title}
 								</TooltipContent>
 							</Tooltip>
-							<div className="flex h-full w-7 shrink-0 items-center justify-center opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+							<div className="relative flex h-full w-7 shrink-0 items-center justify-center">
+								{accessory && (
+									<span className="pointer-events-none absolute inset-0 flex items-center justify-center leading-none opacity-100 transition-opacity group-hover:opacity-0 group-focus-within:opacity-0">
+										{accessory}
+									</span>
+								)}
 								<Tooltip delayDuration={500}>
 									<TooltipTrigger asChild>
 										<Button
 											className={cn(
-												"size-5 cursor-pointer text-current",
+												"pointer-events-none size-5 cursor-pointer text-current opacity-0 transition-opacity group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100",
 												isActive ? "hover:bg-foreground/10" : "hover:bg-muted",
 											)}
 											onClick={(event) => {
@@ -215,3 +214,21 @@ export function TabItem<TData>({
 		</ContextMenu>
 	);
 }
+
+function areTabItemPropsEqual<TData>(
+	previous: TabItemProps<TData>,
+	next: TabItemProps<TData>,
+) {
+	return (
+		previous.tab === next.tab &&
+		previous.tabs === next.tabs &&
+		previous.registry === next.registry &&
+		previous.index === next.index &&
+		previous.isActive === next.isActive
+	);
+}
+
+export const TabItem = memo(
+	TabItemComponent,
+	areTabItemPropsEqual,
+) as typeof TabItemComponent;

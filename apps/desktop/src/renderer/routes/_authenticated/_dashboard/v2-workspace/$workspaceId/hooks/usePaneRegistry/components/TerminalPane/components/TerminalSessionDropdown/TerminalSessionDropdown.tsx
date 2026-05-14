@@ -9,14 +9,9 @@ import {
 } from "@superset/ui/dropdown-menu";
 import { toast } from "@superset/ui/sonner";
 import { workspaceTrpc } from "@superset/workspace-client";
-import {
-	Check,
-	ChevronDown,
-	LoaderCircle,
-	Plus,
-	TerminalSquare,
-	Trash2,
-} from "lucide-react";
+import { eq } from "@tanstack/db";
+import { useLiveQuery } from "@tanstack/react-db";
+import { Check, ChevronDown, LoaderCircle, Plus, Trash2 } from "lucide-react";
 import { useCallback, useMemo, useState, useSyncExternalStore } from "react";
 import { markTerminalForBackground } from "renderer/lib/terminal/terminal-background-intents";
 import { terminalRuntimeRegistry } from "renderer/lib/terminal/terminal-runtime-registry";
@@ -24,7 +19,9 @@ import type {
 	PaneViewerData,
 	TerminalPaneData,
 } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/types";
+import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { getRelativeTime } from "renderer/screens/main/components/WorkspacesListView/utils";
+import { TerminalPaneIcon } from "../TerminalPaneIcon";
 
 interface TerminalSessionDropdownProps {
 	context: RendererContext<PaneViewerData>;
@@ -82,6 +79,7 @@ export function TerminalSessionDropdown({
 	workspaceId,
 }: TerminalSessionDropdownProps) {
 	const [isOpen, setIsOpen] = useState(false);
+	const collections = useCollections();
 	const { terminalId } = context.pane.data as TerminalPaneData;
 	const terminalInstanceId = context.pane.id;
 	const utils = workspaceTrpc.useUtils();
@@ -93,6 +91,18 @@ export function TerminalSessionDropdown({
 			refetchOnWindowFocus: true,
 		},
 	);
+	const { data: localWorkspaceRows = [] } = useLiveQuery(
+		(query) =>
+			query
+				.from({ v2WorkspaceLocalState: collections.v2WorkspaceLocalState })
+				.where(({ v2WorkspaceLocalState }) =>
+					eq(v2WorkspaceLocalState.workspaceId, workspaceId),
+				),
+		[collections, workspaceId],
+	);
+	const workspaceRunTerminals =
+		localWorkspaceRows[0]?.workspaceRunTerminals ?? {};
+	const workspaceRunState = workspaceRunTerminals[terminalId]?.state ?? null;
 
 	const sessions = useMemo<VisibleTerminalSession[]>(() => {
 		const liveSessions = sessionsQuery.data?.sessions ?? [];
@@ -246,7 +256,19 @@ export function TerminalSessionDropdown({
 					onMouseDown={(event) => event.stopPropagation()}
 					onClick={(event) => event.stopPropagation()}
 				>
-					<TerminalSquare className="size-3.5 shrink-0" />
+					<TerminalPaneIcon terminalId={terminalId} />
+					{workspaceRunState && (
+						<span
+							className={
+								workspaceRunState === "running"
+									? "size-1.5 shrink-0 rounded-full bg-emerald-500"
+									: workspaceRunState === "stopped-by-user"
+										? "size-1.5 shrink-0 rounded-full bg-amber-500"
+										: "size-1.5 shrink-0 rounded-full bg-red-500"
+							}
+							title={`Workspace run: ${workspaceRunState}`}
+						/>
+					)}
 					<span className="min-w-0 flex-1 truncate text-left">
 						{triggerTitle}
 					</span>
@@ -285,11 +307,13 @@ export function TerminalSessionDropdown({
 							const createdAtLabel = formatCreatedAt(session.createdAt);
 							const status = isCurrent
 								? "Current"
-								: session.pending
-									? "Starting"
-									: session.attached
-										? "Attached"
-										: "Detached";
+								: workspaceRunTerminals[session.terminalId]
+									? "Run"
+									: session.pending
+										? "Starting"
+										: session.attached
+											? "Attached"
+											: "Detached";
 							const title = isCurrent
 								? triggerTitle
 								: (session.title ?? location?.titleOverride ?? "Terminal");

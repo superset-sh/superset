@@ -18,6 +18,20 @@ export function createApplicationMenu() {
 
 	const template: Electron.MenuItemConstructorOptions[] = [
 		{
+			label: "File",
+			submenu: [
+				{
+					label: "Open Repo...",
+					accelerator: "CmdOrCtrl+O",
+					click: () => {
+						menuEmitter.emit("open-project");
+					},
+				},
+				{ type: "separator" },
+				{ label: "Close Window", role: "close" },
+			],
+		},
+		{
 			label: "Edit",
 			submenu: [
 				{ role: "undo" },

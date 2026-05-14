@@ -12,8 +12,8 @@ const SCAN_INTERVAL_MS = 2500;
 /** Delay before scanning after a port hint is detected (in ms) */
 const HINT_SCAN_DELAY_MS = 500;
 
-/** Ports to ignore (common system ports that are usually not dev servers) */
-const IGNORED_PORTS = new Set([22, 80, 443, 5432, 3306, 6379, 27017]);
+/** Ports to ignore (common privileged/system ports that are usually not dev servers) */
+const IGNORED_PORTS = new Set([22, 80, 443]);
 
 const PORT_HINT_PATTERNS = [
 	/listening\s+on\s+(?:port\s+)?(\d+)/i,

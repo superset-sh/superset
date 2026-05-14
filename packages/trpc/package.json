@@ -23,25 +23,25 @@
 		"typecheck": "tsc --noEmit --emitDeclarationOnly false"
 	},
 	"dependencies": {
-		"@linear/sdk": "^68.1.0",
+		"@linear/sdk": "68.1.1",
 		"@superset/auth": "workspace:*",
 		"@superset/db": "workspace:*",
 		"@superset/shared": "workspace:*",
-		"@t3-oss/env-core": "^0.13.8",
-		"@trpc/server": "^11.7.1",
-		"@upstash/qstash": "^2.8.4",
-		"@upstash/ratelimit": "^2.0.4",
-		"@upstash/redis": "^1.34.3",
-		"@vercel/blob": "^2.0.0",
-		"@vercel/kv": "^3.0.0",
+		"@t3-oss/env-core": "0.13.11",
+		"@trpc/server": "11.16.0",
+		"@upstash/qstash": "2.10.1",
+		"@upstash/ratelimit": "2.0.8",
+		"@upstash/redis": "1.37.0",
+		"@vercel/blob": "2.3.2",
+		"@vercel/kv": "3.0.0",
 		"drizzle-orm": "0.45.2",
-		"posthog-node": "^5.24.7",
-		"resend": "^4.0.1",
-		"superjson": "^2.2.5",
-		"zod": "^4.3.5"
+		"posthog-node": "5.28.8",
+		"resend": "4.8.0",
+		"superjson": "2.2.6",
+		"zod": "4.3.6"
 	},
 	"devDependencies": {
 		"@superset/typescript": "workspace:*",
-		"typescript": "^5.9.3"
+		"typescript": "5.9.3"
 	}
 }

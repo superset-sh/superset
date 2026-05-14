@@ -120,6 +120,26 @@ describe("loadSetupConfig", () => {
 		expect(result).toBeNull();
 	});
 
+	it("rejects blank cwd values", () => {
+		writeRepoConfig(sandbox.repoPath, {
+			cwd: "   ",
+			run: ["bun dev"],
+		});
+
+		const result = load();
+		expect(result).toBeNull();
+	});
+
+	it("normalizes configured cwd", () => {
+		writeRepoConfig(sandbox.repoPath, {
+			cwd: " packages/web ",
+			run: ["bun dev"],
+		});
+
+		const result = load();
+		expect(result?.cwd).toBe("packages/web");
+	});
+
 	it("user override only sets keys it explicitly defines", () => {
 		writeRepoConfig(sandbox.repoPath, {
 			setup: ["bun install"],
@@ -295,8 +315,8 @@ describe("hasConfiguredScripts", () => {
 	});
 
 	it("returns true when only run is set (so the card hides for run-only)", () => {
-		// v2 doesn't expose run, but the loader still considers it "configured"
-		// so the sidebar CTA hides for projects that came over from v1.
+		// The setup CTA should still hide when a project only configured the
+		// workspace Run button.
 		expect(hasConfiguredScripts({ run: ["bun dev"] })).toBe(true);
 	});
 });

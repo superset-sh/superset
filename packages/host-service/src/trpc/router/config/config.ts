@@ -79,14 +79,16 @@ export const configRouter = router({
 
 	/**
 	 * Write setup/teardown to the project's config.json, preserving any other
-	 * existing top-level keys (notably `run`, which v2 doesn't expose yet).
+	 * existing top-level keys. Omitted script keys are preserved so narrow
+	 * editors can update one script without clobbering another.
 	 */
 	updateConfig: protectedProcedure
 		.input(
 			z.object({
 				projectId: z.string().uuid(),
-				setup: stringArray,
-				teardown: stringArray,
+				setup: stringArray.optional(),
+				teardown: stringArray.optional(),
+				run: stringArray.optional(),
 			}),
 		)
 		.mutation(({ ctx, input }) => {
@@ -108,8 +110,9 @@ export const configRouter = router({
 
 			const merged: SetupConfig & Record<string, unknown> = {
 				...existing,
-				setup: input.setup,
-				teardown: input.teardown,
+				...(input.setup !== undefined && { setup: input.setup }),
+				...(input.teardown !== undefined && { teardown: input.teardown }),
+				...(input.run !== undefined && { run: input.run }),
 			};
 
 			try {
@@ -121,5 +124,25 @@ export const configRouter = router({
 				});
 			}
 			return { success: true as const };
+		}),
+
+	getWorkspaceRunDefinition: protectedProcedure
+		.input(projectIdInput)
+		.query(({ ctx, input }) => {
+			const project = requireProject(ctx, input.projectId);
+			const config = loadSetupConfig({
+				repoPath: project.repoPath,
+				projectId: project.id,
+			});
+			const commands = (config?.run ?? []).filter(
+				(command) => command.trim().length > 0,
+			);
+			if (commands.length === 0) return null;
+			return {
+				source: "project-config" as const,
+				projectId: project.id,
+				commands,
+				...(config?.cwd?.trim() && { cwd: config.cwd.trim() }),
+			};
 		}),
 });

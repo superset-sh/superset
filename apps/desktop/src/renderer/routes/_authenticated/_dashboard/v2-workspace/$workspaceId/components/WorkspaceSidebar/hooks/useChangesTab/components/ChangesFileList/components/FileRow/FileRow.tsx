@@ -27,11 +27,11 @@ import {
 } from "lucide-react";
 import { memo, useState } from "react";
 import { modifierLabel, useSidebarFilePolicy } from "renderer/lib/clickPolicy";
+import { FileIcon } from "renderer/lib/fileIcons";
 import { DiscardConfirmDialog } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/DiscardConfirmDialog";
 import { StatusIndicator } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/StatusIndicator";
 import { PathActionsMenuItems } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/components/PathActionsMenuItems";
 import type { ChangesetFile } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/useChangeset";
-import { FileIcon } from "renderer/screens/main/components/WorkspaceView/RightSidebar/FilesView/utils";
 import { toAbsoluteWorkspacePath } from "shared/absolute-paths";
 
 function splitPath(path: string): { dir: string; basename: string } {
@@ -47,6 +47,8 @@ interface FileRowProps {
 	file: ChangesetFile;
 	workspaceId: string;
 	worktreePath?: string;
+	/** Hide the directory prefix — used when the row sits under a folder group. */
+	hideDir?: boolean;
 	onSelect?: (path: string, openInNewTab?: boolean) => void;
 	onOpenFile?: (absolutePath: string, openInNewTab?: boolean) => void;
 	onOpenInEditor?: (path: string) => void;
@@ -56,11 +58,13 @@ export const FileRow = memo(function FileRow({
 	file,
 	workspaceId,
 	worktreePath,
+	hideDir,
 	onSelect,
 	onOpenFile,
 	onOpenInEditor,
 }: FileRowProps) {
-	const { dir, basename } = splitPath(file.path);
+	const { dir: fullDir, basename } = splitPath(file.path);
+	const dir = hideDir ? "" : fullDir;
 	const oldBasename =
 		file.oldPath && (file.status === "renamed" || file.status === "copied")
 			? splitPath(file.oldPath).basename

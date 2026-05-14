@@ -17,6 +17,13 @@ import type { GitCredentialProvider } from "./runtime/git";
 import { createGitFactory } from "./runtime/git";
 import { runMainWorkspaceSweep } from "./runtime/main-workspace-sweep";
 import { PullRequestRuntimeManager } from "./runtime/pull-requests";
+import { registerRemoteControlRoute } from "./terminal/remote-control/route";
+import {
+	initRemoteControlSecret,
+	revokeAllSessions,
+	startRemoteControlExpirySweep,
+	stopRemoteControlExpirySweep,
+} from "./terminal/remote-control/session-manager";
 import { registerWorkspaceTerminalRoute } from "./terminal/terminal";
 import { appRouter } from "./trpc/router";
 import {
@@ -32,6 +39,7 @@ export interface CreateAppOptions {
 		cloudApiUrl: string;
 		migrationsFolder: string;
 		allowedOrigins: string[];
+		hostServiceSecret?: string;
 	};
 	providers: {
 		auth: ApiAuthProvider;
@@ -91,6 +99,7 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 	gitWatcher.start();
 	const pullRequestRuntime = new PullRequestRuntimeManager({
 		db,
+		execGh,
 		git,
 		github,
 		gitWatcher,
@@ -149,6 +158,11 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 	};
 	app.use("/terminal/*", wsAuth);
 	app.use("/events", wsAuth);
+	// `/remote-control/*` does NOT use `wsAuth` — viewers come in via the
+	// relay tunnel (already PSK-authenticated end-to-end) and authenticate
+	// per-session with an HMAC `remoteControlToken` validated by
+	// `authenticateSession` inside the route handler. The HMAC is the
+	// credential we ship to the browser, not the host PSK.
 
 	registerEventBusRoute({ app, eventBus, upgradeWebSocket });
 	registerWorkspaceTerminalRoute({
@@ -157,6 +171,12 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 		eventBus,
 		upgradeWebSocket,
 	});
+
+	if (config.hostServiceSecret) {
+		initRemoteControlSecret(config.hostServiceSecret);
+		startRemoteControlExpirySweep();
+		registerRemoteControlRoute({ app, upgradeWebSocket });
+	}
 
 	app.use(
 		"/trpc/*",
@@ -185,7 +205,17 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 		// not skip the others, otherwise a flaky `.stop()` could leak the
 		// open SQLite handle for the rest of the process lifetime.
 		try {
-			pullRequestRuntime.stop();
+			stopRemoteControlExpirySweep();
+		} catch (err) {
+			console.warn("[host-service] stopRemoteControlExpirySweep failed:", err);
+		}
+		try {
+			revokeAllSessions("host-shutdown");
+		} catch (err) {
+			console.warn("[host-service] revokeAllSessions failed:", err);
+		}
+		try {
+			await pullRequestRuntime.stop();
 		} catch (err) {
 			console.warn("[host-service] pullRequestRuntime.stop failed:", err);
 		}
@@ -198,6 +228,11 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 			gitWatcher.close();
 		} catch (err) {
 			console.warn("[host-service] gitWatcher.close failed:", err);
+		}
+		try {
+			await filesystem.close();
+		} catch (err) {
+			console.warn("[host-service] filesystem.close failed:", err);
 		}
 		if (ownsDb) {
 			try {

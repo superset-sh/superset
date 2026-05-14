@@ -19,10 +19,6 @@
 		"sentry": {
 			"command": "npx",
 			"args": ["-y", "mcp-remote", "https://mcp.sentry.dev/mcp"]
-		},
-		"desktop-automation": {
-			"command": "bun",
-			"args": ["run", "packages/desktop-mcp/src/bin.ts"]
 		}
 	}
 }

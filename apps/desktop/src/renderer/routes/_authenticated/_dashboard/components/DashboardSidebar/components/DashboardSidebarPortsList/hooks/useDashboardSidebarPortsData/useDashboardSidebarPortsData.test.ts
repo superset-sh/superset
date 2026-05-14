@@ -197,7 +197,32 @@ describe("deriveHostPortQueryTargets", () => {
 				machineId: "local-machine",
 				hostType: "local-device",
 				hostUrl: "http://127.0.0.1:4567",
-				workspaceIds: ["workspace-a", "workspace-b"],
+				workspaceIds: ["workspace-a", "workspace-b", "workspace-c"],
+			},
+		]);
+	});
+
+	it("queries the active local host for all workspaces when host mapping is stale", () => {
+		const targets = deriveHostPortQueryTargets({
+			activeHostUrl: "http://127.0.0.1:4567",
+			hosts: [],
+			machineId: "local-machine",
+			relayUrl: "https://relay.example.com",
+			workspaces: [
+				{
+					id: "workspace-stale",
+					name: "Stale Local Workspace",
+					hostId: "old-host-id",
+				},
+			],
+		});
+
+		expect(targets).toEqual([
+			{
+				machineId: "local-machine",
+				hostType: "local-device",
+				hostUrl: "http://127.0.0.1:4567",
+				workspaceIds: ["workspace-stale"],
 			},
 		]);
 	});
@@ -279,7 +304,6 @@ describe("groupDashboardSidebarPorts", () => {
 					],
 				},
 			],
-			machineId: "host-1",
 			workspaces: [
 				{
 					id: "workspace-b",
@@ -302,13 +326,13 @@ describe("groupDashboardSidebarPorts", () => {
 		expect(groups[0]?.hostType).toBe("local-device");
 	});
 
-	it("drops ports whose workspace belongs to another host", () => {
+	it("trusts the host that returned a port when workspace host mapping is stale", () => {
 		const groups = groupDashboardSidebarPorts({
 			hostPortResults: [
 				{
 					hostId: "host-1",
-					hostType: "remote-device",
-					hostUrl: "https://relay.example.com/hosts/host-1",
+					hostType: "local-device",
+					hostUrl: "http://127.0.0.1:4567",
 					ports: [
 						{
 							port: 5173,
@@ -323,7 +347,6 @@ describe("groupDashboardSidebarPorts", () => {
 					],
 				},
 			],
-			machineId: "machine-1",
 			workspaces: [
 				{
 					id: "workspace-1",
@@ -333,6 +356,16 @@ describe("groupDashboardSidebarPorts", () => {
 			],
 		});
 
-		expect(groups).toEqual([]);
+		expect(groups).toHaveLength(1);
+		expect(groups[0]).toMatchObject({
+			workspaceId: "workspace-1",
+			workspaceName: "Workspace",
+			hostType: "local-device",
+		});
+		expect(groups[0]?.ports[0]).toMatchObject({
+			hostId: "host-1",
+			hostType: "local-device",
+			port: 5173,
+		});
 	});
 });

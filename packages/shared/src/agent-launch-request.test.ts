@@ -45,8 +45,7 @@ describe("buildPromptAgentLaunchRequest", () => {
 			kind: "terminal",
 			agentType: "codex",
 			terminal: {
-				command:
-					'codex -c model_reasoning_effort="high" -c model_reasoning_summary="detailed" -c model_supports_reasoning_summaries=true --sandbox workspace-write --ask-for-approval never',
+				command: "codex --dangerously-bypass-approvals-and-sandbox",
 			},
 		});
 	});

@@ -655,6 +655,26 @@ describe("run config", () => {
 		expect(config).toBeNull();
 	});
 
+	test("validates cwd field must be non-empty", () => {
+		writeFileSync(
+			join(MAIN_REPO, ".superset", "config.json"),
+			JSON.stringify({ cwd: "   ", run: ["bun dev"] }),
+		);
+
+		const config = loadSetupConfig({ mainRepoPath: MAIN_REPO });
+		expect(config).toBeNull();
+	});
+
+	test("normalizes configured cwd", () => {
+		writeFileSync(
+			join(MAIN_REPO, ".superset", "config.json"),
+			JSON.stringify({ cwd: " packages/web ", run: ["bun dev"] }),
+		);
+
+		const config = loadSetupConfig({ mainRepoPath: MAIN_REPO });
+		expect(config?.cwd).toBe("packages/web");
+	});
+
 	test("local config can override run commands", () => {
 		writeFileSync(
 			join(MAIN_REPO, ".superset", "config.json"),

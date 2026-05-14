@@ -27,6 +27,7 @@ import { setupAgentHooks } from "./lib/agent-setup";
 import { initAppState } from "./lib/app-state";
 import { requestAppleEventsAccess } from "./lib/apple-events-permission";
 import { setupAutoUpdater } from "./lib/auto-updater";
+import { installBundledCliShim } from "./lib/bundled-cli";
 import { resolveDevWorkspaceName } from "./lib/dev-workspace-name";
 import { setWorkspaceDockIcon } from "./lib/dock-icon";
 import { loadWebviewBrowserExtension } from "./lib/extensions";
@@ -52,6 +53,24 @@ import { MainWindow } from "./windows/main";
 
 console.log("[main] Local database ready:", !!localDb);
 const IS_DEV = process.env.NODE_ENV === "development";
+const rendererStressCdpPort =
+	process.env.SUPERSET_RENDERER_STRESS_CDP_PORT?.trim();
+
+if (IS_DEV && rendererStressCdpPort) {
+	if (/^\d+$/.test(rendererStressCdpPort)) {
+		app.commandLine.appendSwitch(
+			"remote-debugging-port",
+			rendererStressCdpPort,
+		);
+		console.log(
+			`[main] Renderer stress CDP enabled on 127.0.0.1:${rendererStressCdpPort}`,
+		);
+	} else {
+		console.warn(
+			`[main] Ignoring invalid SUPERSET_RENDERER_STRESS_CDP_PORT=${rendererStressCdpPort}`,
+		);
+	}
+}
 
 void applyShellEnvToProcess().catch((error) => {
 	console.error("[main] Failed to apply shell environment:", error);
@@ -397,6 +416,11 @@ if (!gotTheLock) {
 			setupAgentHooks();
 		} catch (error) {
 			console.error("[main] Failed to set up agent hooks:", error);
+		}
+		try {
+			installBundledCliShim();
+		} catch (error) {
+			console.error("[main] Failed to install bundled CLI shim:", error);
 		}
 
 		// Discover and adopt host-services that survived a previous quit

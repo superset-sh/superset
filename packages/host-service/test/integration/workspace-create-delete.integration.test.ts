@@ -91,6 +91,102 @@ describe("workspace.create + workspace.delete integration", () => {
 		expect(existsSync(nonCanonicalPath)).toBe(true);
 	});
 
+	test("create() adopts a worktree created by another tool (e.g. `.watt-worktrees/`) instead of bubbling git's `is already used by worktree` fatal", async () => {
+		// Regress: when another tool already ran `git worktree add` for the
+		// branch, `workspaces.create` surfaced git's raw `'<branch>' is
+		// already used by worktree at ...` fatal instead of adopting.
+		const scenario = await createProjectScenario({
+			hostOptions: { apiOverrides: cloudFlows.workspaceCreateOk() },
+		});
+		dispose = scenario.dispose;
+
+		const branch = "Roshvan/mcp-1013-trust-wattdata-xyz";
+		const externalToolPath = join(
+			scenario.repo.repoPath,
+			".watt-worktrees",
+			branch,
+		);
+		await scenario.repo.git.raw([
+			"worktree",
+			"add",
+			"-b",
+			branch,
+			externalToolPath,
+		]);
+
+		const result = await scenario.host.trpc.workspaces.create.mutate({
+			projectId: scenario.projectId,
+			name: "adopted-from-watt",
+			branch,
+		});
+
+		expect(result?.workspace?.branch).toBe(branch);
+		const persisted = scenario.host.db
+			.select()
+			.from(workspaces)
+			.where(eq(workspaces.id, result?.workspace?.id ?? ""))
+			.get();
+		expect(persisted?.worktreePath).toBe(externalToolPath);
+		expect(existsSync(externalToolPath)).toBe(true);
+	});
+
+	test("create() with explicit worktreePath reads the current branch from git when the UI branch label is stale", async () => {
+		const scenario = await createProjectScenario({
+			hostOptions: { apiOverrides: cloudFlows.workspaceCreateOk() },
+		});
+		dispose = scenario.dispose;
+
+		const staleBranch = "smoke-ui-stale-original";
+		const actualBranch = "smoke-ui-stale-actual";
+		const explicitPath = join(
+			scenario.repo.repoPath,
+			".worktrees",
+			"smoke-ui-stale-original",
+		);
+		await scenario.repo.git.raw([
+			"worktree",
+			"add",
+			"-b",
+			staleBranch,
+			explicitPath,
+		]);
+		await scenario.repo.git.raw([
+			"-C",
+			explicitPath,
+			"branch",
+			"-m",
+			actualBranch,
+		]);
+
+		const result = await scenario.host.trpc.workspaces.create.mutate({
+			projectId: scenario.projectId,
+			name: staleBranch,
+			branch: staleBranch,
+			worktreePath: explicitPath,
+		});
+
+		expect(result?.workspace?.branch).toBe(actualBranch);
+		const persisted = scenario.host.db
+			.select()
+			.from(workspaces)
+			.where(eq(workspaces.id, result?.workspace?.id ?? ""))
+			.get();
+		expect(persisted?.worktreePath).toBe(explicitPath);
+		expect(persisted?.branch).toBe(actualBranch);
+		expect(existsSync(explicitPath)).toBe(true);
+		const pushAutoSetupRemote = (
+			await scenario.repo.git.raw([
+				"-C",
+				explicitPath,
+				"config",
+				"--local",
+				"--get",
+				"push.autoSetupRemote",
+			])
+		).trim();
+		expect(pushAutoSetupRemote).toBe("true");
+	});
+
 	test("create() prunes a stale worktree (rm-ed dir) before adding a new one", async () => {
 		// Regress: when a worktree's directory was deleted without
 		// `git worktree remove`, git still lists it (prunable) and claims
@@ -189,6 +285,84 @@ describe("workspace.create + workspace.delete integration", () => {
 				(c) => c.path === "v2Workspace.delete.mutate",
 			),
 		).toBe(true);
+	});
+
+	test("parallel create() then destroy() churn leaves no duplicate rows or stale worktrees", async () => {
+		const scenario = await createProjectScenario({
+			hostOptions: {
+				apiOverrides: {
+					...cloudFlows.workspaceCreateOk(),
+					...cloudFlows.workspaceDeleteOk(),
+				},
+			},
+		});
+		dispose = scenario.dispose;
+
+		const branches = ["feature/churn-a", "feature/churn-b", "feature/churn-c"];
+		const createResults = await Promise.all(
+			branches.map((branch) =>
+				scenario.host.trpc.workspaces.create.mutate({
+					projectId: scenario.projectId,
+					name: branch,
+					branch,
+				}),
+			),
+		);
+
+		const createdRows = createResults.map((result) => result.workspace);
+		expect(createdRows.map((row) => row.branch).sort()).toEqual(
+			branches.toSorted(),
+		);
+
+		const rowsAfterCreate = scenario.host.db.select().from(workspaces).all();
+		const featureRows = rowsAfterCreate.filter((row) =>
+			branches.includes(row.branch),
+		);
+		const mainRows = rowsAfterCreate.filter(
+			(row) => row.worktreePath === scenario.repo.repoPath,
+		);
+		expect(featureRows).toHaveLength(branches.length);
+		expect(mainRows).toHaveLength(1);
+		for (const row of featureRows) {
+			expect(existsSync(row.worktreePath)).toBe(true);
+		}
+
+		const destroyResults = await Promise.all(
+			createdRows.map((row) =>
+				scenario.host.trpc.workspaceCleanup.destroy.mutate({
+					workspaceId: row.id,
+					deleteBranch: true,
+					force: true,
+				}),
+			),
+		);
+		expect(destroyResults.every((result) => result.success)).toBe(true);
+
+		const rowsAfterDestroy = scenario.host.db.select().from(workspaces).all();
+		expect(
+			rowsAfterDestroy.filter((row) => branches.includes(row.branch)),
+		).toHaveLength(0);
+		expect(
+			rowsAfterDestroy.filter(
+				(row) => row.worktreePath === scenario.repo.repoPath,
+			),
+		).toHaveLength(1);
+		for (const row of featureRows) {
+			expect(existsSync(row.worktreePath)).toBe(false);
+		}
+
+		const worktreeList = await scenario.repo.git.raw([
+			"worktree",
+			"list",
+			"--porcelain",
+		]);
+		for (const row of featureRows) {
+			expect(worktreeList).not.toContain(row.worktreePath);
+		}
+		const localBranches = await scenario.repo.git.branchLocal();
+		for (const branch of branches) {
+			expect(localBranches.all).not.toContain(branch);
+		}
 	});
 
 	test("delete() requires authentication", async () => {

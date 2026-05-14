@@ -16,6 +16,7 @@ export type SupersetConfig = {
 		refreshToken?: string;
 		expiresAt: number;
 	};
+	apiKey?: string;
 	organizationId?: string;
 };
 

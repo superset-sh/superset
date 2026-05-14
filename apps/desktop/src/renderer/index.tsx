@@ -42,6 +42,19 @@ const handleDeepLink = (path: string) => {
 	console.log("[deep-link] Navigating to:", path);
 	router.navigate({ to: path });
 };
+
+declare global {
+	interface Window {
+		__SUPERSET_RENDERER_STRESS_NAVIGATE__?: (path: string) => Promise<void>;
+	}
+}
+
+if (process.env.NODE_ENV === "development") {
+	window.__SUPERSET_RENDERER_STRESS_NAVIGATE__ = async (path: string) => {
+		await router.navigate({ to: path });
+	};
+}
+
 const ipcRenderer = window.ipcRenderer as typeof window.ipcRenderer | undefined;
 if (ipcRenderer) {
 	ipcRenderer.on("deep-link-navigate", handleDeepLink);

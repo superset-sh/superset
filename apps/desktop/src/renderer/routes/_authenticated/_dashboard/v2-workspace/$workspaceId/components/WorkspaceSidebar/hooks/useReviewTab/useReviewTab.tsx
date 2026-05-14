@@ -17,19 +17,21 @@ type V2ThreadsData = RouterOutputs["git"]["getPullRequestThreads"];
 
 interface UseReviewTabParams {
 	workspaceId: string;
+	enabled?: boolean;
 	onOpenComment?: (comment: CommentPaneData) => void;
 	onOpenInDiff?: (path: string, line?: number, openInNewTab?: boolean) => void;
 }
 
 export function useReviewTab({
 	workspaceId,
+	enabled = true,
 	onOpenComment,
 	onOpenInDiff,
 }: UseReviewTabParams): SidebarTabDefinition {
 	const prQuery = workspaceTrpc.git.getPullRequest.useQuery(
 		{ workspaceId },
 		{
-			enabled: !!workspaceId,
+			enabled: enabled && !!workspaceId,
 			refetchInterval: 10_000,
 			refetchOnWindowFocus: true,
 			staleTime: 10_000,
@@ -40,7 +42,7 @@ export function useReviewTab({
 	const threadsQuery = workspaceTrpc.git.getPullRequestThreads.useQuery(
 		{ workspaceId },
 		{
-			enabled: !!workspaceId && hasPR,
+			enabled: enabled && !!workspaceId && hasPR,
 			refetchInterval: 30_000,
 			refetchOnWindowFocus: true,
 		},

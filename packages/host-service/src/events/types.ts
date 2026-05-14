@@ -1,4 +1,5 @@
 import type { DetectedPort } from "@superset/port-scanner";
+import type { AgentIdentity } from "@superset/shared/agent-identity";
 import type { FsWatchEvent } from "@superset/workspace-fs/host";
 import type { AgentLifecycleEventType } from "./map-event-type.ts";
 
@@ -27,6 +28,9 @@ export interface AgentLifecycleMessage {
 	workspaceId: string;
 	eventType: AgentLifecycleEventType;
 	terminalId: string;
+	// Absent when the hook ran without `SUPERSET_AGENT_ID` set (legacy shells
+	// or third-party hook configs that bypass our wrappers).
+	agent?: AgentIdentity;
 	occurredAt: number;
 }
 

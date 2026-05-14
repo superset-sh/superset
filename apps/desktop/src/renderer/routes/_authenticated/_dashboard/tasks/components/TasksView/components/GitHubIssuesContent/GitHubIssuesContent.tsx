@@ -2,7 +2,14 @@ import { Button } from "@superset/ui/button";
 import { Checkbox } from "@superset/ui/checkbox";
 import { keepPreviousData, useInfiniteQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import {
+	useCallback,
+	useEffect,
+	useId,
+	useMemo,
+	useRef,
+	useState,
+} from "react";
 import { GoIssueClosed, GoIssueOpened } from "react-icons/go";
 import { HiOutlineArrowTopRightOnSquare } from "react-icons/hi2";
 import { LuMinus, LuPlus, LuRefreshCw } from "react-icons/lu";
@@ -15,10 +22,21 @@ import {
 } from "renderer/stores/new-workspace-draft";
 import { useOpenNewWorkspaceModal } from "renderer/stores/new-workspace-modal";
 
+export interface SelectedIssue {
+	issueNumber: number;
+	title: string;
+	url: string;
+	state: string;
+}
+
 interface GitHubIssuesContentProps {
 	projectFilter: string | null;
 	searchQuery: string;
 	onCollapse?: () => void;
+	onSelectionChange?: (
+		issues: SelectedIssue[],
+		clearSelection: () => void,
+	) => void;
 }
 
 const PAGE_SIZE = 30;
@@ -27,9 +45,13 @@ export function GitHubIssuesContent({
 	projectFilter,
 	searchQuery,
 	onCollapse,
+	onSelectionChange,
 }: GitHubIssuesContentProps) {
 	const [showClosed, setShowClosed] = useState(false);
 	const showClosedId = useId();
+	const [selectedIssues, setSelectedIssues] = useState<
+		Map<number, SelectedIssue>
+	>(new Map());
 	const debouncedQuery = useDebouncedValue(searchQuery, 300);
 	const hostUrl = useHostUrl(null);
 	const navigate = useNavigate();
@@ -107,6 +129,35 @@ export function GitHubIssuesContent({
 		observer.observe(el);
 		return () => observer.disconnect();
 	}, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+
+	const clearSelection = useCallback(() => {
+		setSelectedIssues(new Map());
+	}, []);
+
+	// biome-ignore lint/correctness/useExhaustiveDependencies: clear selection only when project changes
+	useEffect(() => {
+		setSelectedIssues(new Map());
+	}, [projectFilter]);
+
+	useEffect(() => {
+		if (!onSelectionChange) return;
+		onSelectionChange(Array.from(selectedIssues.values()), clearSelection);
+	}, [selectedIssues, clearSelection, onSelectionChange]);
+
+	const toggleIssueSelection = useCallback(
+		(issue: SelectedIssue, checked: boolean) => {
+			setSelectedIssues((prev) => {
+				const next = new Map(prev);
+				if (checked) {
+					next.set(issue.issueNumber, issue);
+				} else {
+					next.delete(issue.issueNumber);
+				}
+				return next;
+			});
+		},
+		[],
+	);
 
 	const handleAddToWorkspace = (issue: (typeof issues)[number]) => {
 		if (!projectFilter) return;
@@ -236,6 +287,7 @@ export function GitHubIssuesContent({
 						{issues.map((issue) => {
 							const isClosed = issue.state.toLowerCase() === "closed";
 							const StateIcon = isClosed ? GoIssueClosed : GoIssueOpened;
+							const isSelected = selectedIssues.has(issue.issueNumber);
 							return (
 								// biome-ignore lint/a11y/useSemanticElements: row contains nested action buttons, so the outer element is a div with role/tabIndex
 								<div
@@ -252,6 +304,23 @@ export function GitHubIssuesContent({
 									role="button"
 									tabIndex={0}
 								>
+									<Checkbox
+										checked={isSelected}
+										onCheckedChange={(checked) =>
+											toggleIssueSelection(
+												{
+													issueNumber: issue.issueNumber,
+													title: issue.title,
+													url: issue.url,
+													state: issue.state,
+												},
+												checked === true,
+											)
+										}
+										onClick={(e) => e.stopPropagation()}
+										aria-label="Select issue"
+										className="cursor-pointer shrink-0"
+									/>
 									<StateIcon
 										className={
 											isClosed

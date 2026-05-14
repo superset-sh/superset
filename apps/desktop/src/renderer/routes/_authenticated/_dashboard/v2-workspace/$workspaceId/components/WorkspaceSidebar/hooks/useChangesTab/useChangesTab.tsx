@@ -10,16 +10,22 @@ import { useChangeset } from "renderer/routes/_authenticated/_dashboard/v2-works
 import { useOpenInExternalEditor } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/useOpenInExternalEditor";
 import { useSidebarDiffRef } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/useSidebarDiffRef";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
-import type { ChangesFilter } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal/schema";
+import type {
+	ChangesFilter,
+	ChangesViewMode,
+} from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal/schema";
 import { toAbsoluteWorkspacePath } from "shared/absolute-paths";
 import type { SidebarTabDefinition } from "../../types";
 import { ChangesTabContent } from "./components/ChangesTabContent";
 
-export type { ChangesFilter };
+export type { ChangesFilter, ChangesViewMode };
 
 interface UseChangesTabParams {
 	workspaceId: string;
 	gitStatus: ReturnType<typeof useGitStatus>;
+	enabled?: boolean;
+	/** Absolute path of the file whose diff/preview is currently open. */
+	selectedFilePath?: string;
 	onSelectFile?: (path: string, openInNewTab?: boolean) => void;
 	onOpenFile?: (absolutePath: string, openInNewTab?: boolean) => void;
 }
@@ -27,6 +33,8 @@ interface UseChangesTabParams {
 export function useChangesTab({
 	workspaceId,
 	gitStatus: status,
+	enabled = true,
+	selectedFilePath,
 	onSelectFile,
 	onOpenFile,
 }: UseChangesTabParams): SidebarTabDefinition {
@@ -36,21 +44,26 @@ export function useChangesTab({
 	const filter: ChangesFilter = localState?.sidebarState?.changesFilter ?? {
 		kind: "all",
 	};
+	const viewMode: ChangesViewMode =
+		localState?.sidebarState?.changesViewMode ?? "folders";
 
 	const baseBranchQuery = workspaceTrpc.git.getBaseBranch.useQuery(
 		{ workspaceId },
-		{ staleTime: Number.POSITIVE_INFINITY },
+		{ staleTime: Number.POSITIVE_INFINITY, enabled },
 	);
 	const baseBranch = baseBranchQuery.data?.baseBranch ?? null;
 
-	const ref = useSidebarDiffRef(workspaceId);
-	const { files, isLoading } = useChangeset({ workspaceId, ref });
+	const ref = useSidebarDiffRef(workspaceId, enabled);
+	const { files, isLoading } = useChangeset({ workspaceId, ref, enabled });
 
-	const workspaceQuery = workspaceTrpc.workspace.get.useQuery({
-		id: workspaceId,
-	});
+	const workspaceQuery = workspaceTrpc.workspace.get.useQuery(
+		{
+			id: workspaceId,
+		},
+		{ enabled },
+	);
 	const worktreePath = workspaceQuery.data?.worktreePath;
-	const openInExternalEditor = useOpenInExternalEditor(workspaceId);
+	const openInExternalEditor = useOpenInExternalEditor(workspaceId, enabled);
 
 	const handleOpenInEditor = useCallback(
 		(relativePath: string) => {
@@ -65,6 +78,16 @@ export function useChangesTab({
 			if (!collections.v2WorkspaceLocalState.get(workspaceId)) return;
 			collections.v2WorkspaceLocalState.update(workspaceId, (draft) => {
 				draft.sidebarState.changesFilter = next;
+			});
+		},
+		[collections, workspaceId],
+	);
+
+	const setViewMode = useCallback(
+		(next: ChangesViewMode) => {
+			if (!collections.v2WorkspaceLocalState.get(workspaceId)) return;
+			collections.v2WorkspaceLocalState.update(workspaceId, (draft) => {
+				draft.sidebarState.changesViewMode = next;
 			});
 		},
 		[collections, workspaceId],
@@ -88,12 +111,12 @@ export function useChangesTab({
 
 	const commits = workspaceTrpc.git.listCommits.useQuery(
 		{ workspaceId, baseBranch: baseBranch ?? undefined },
-		{ refetchOnWindowFocus: true },
+		{ enabled, refetchOnWindowFocus: true },
 	);
 
 	const branches = workspaceTrpc.git.listBranches.useQuery(
 		{ workspaceId },
-		{ refetchInterval: 30_000, refetchOnWindowFocus: true },
+		{ enabled, refetchInterval: 30_000, refetchOnWindowFocus: true },
 	);
 
 	const renameBranchMutation = workspaceTrpc.git.renameBranch.useMutation();
@@ -173,6 +196,7 @@ export function useChangesTab({
 			commits={commits}
 			branches={branches}
 			filter={filter}
+			viewMode={viewMode}
 			baseBranch={baseBranch}
 			files={files}
 			isLoading={isLoading}
@@ -180,10 +204,12 @@ export function useChangesTab({
 			totalAdditions={totalAdditions}
 			totalDeletions={totalDeletions}
 			worktreePath={worktreePath}
+			selectedFilePath={selectedFilePath}
 			onSelectFile={onSelectFile}
 			onOpenFile={onOpenFile}
 			onOpenInEditor={handleOpenInEditor}
 			onFilterChange={setFilter}
+			onViewModeChange={setViewMode}
 			onBaseBranchChange={setBaseBranch}
 			onRenameBranch={handleRenameBranch}
 			canRenameBranch={canRenameBranch}

@@ -241,7 +241,7 @@ Create a recurring automation.
 const a = await client.automations.create({
   name: 'Daily leads',
   prompt: 'Find new leads from Linear and update the CRM…',
-  agentConfig: { id: 'claude', kind: 'terminal', /* …other fields pass through */ },
+  agent: 'claude', // host agent presetId, instance UUID, or 'superset' for built-in chat
   rrule: 'FREQ=DAILY;BYHOUR=6;BYMINUTE=0',
   timezone: 'America/Los_Angeles',
   v2ProjectId: '<uuid>',     // one of v2ProjectId or v2WorkspaceId required
