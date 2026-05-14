@@ -25,6 +25,7 @@ import type {
 	SelectWorkspace,
 } from "@superset/db/schema";
 import type { AppRouter } from "@superset/trpc";
+import { BasicIndex } from "@tanstack/db";
 import { electricCollectionOptions } from "@tanstack/electric-db-collection";
 import {
 	createElectronSQLitePersistence,
@@ -35,7 +36,6 @@ import type {
 	LocalStorageCollectionUtils,
 } from "@tanstack/react-db";
 import {
-	BasicIndex,
 	createCollection,
 	localStorageCollectionOptions,
 } from "@tanstack/react-db";
@@ -72,6 +72,7 @@ const indexDefaults = {
 	autoIndex: "eager",
 	defaultIndexType: BasicIndex,
 } as const;
+const basicIndexConfig = { indexType: BasicIndex } as const;
 
 const createIndexedCollection = ((
 	config: Parameters<typeof createCollection>[0],
@@ -303,6 +304,10 @@ function createOrgCollections(organizationId: string): OrgCollections {
 			},
 		}),
 	);
+	v2Projects.createIndex(
+		(project) => project.githubRepositoryId,
+		basicIndexConfig,
+	);
 
 	const v2Hosts = createPersistedElectricCollection(
 		electricCollectionOptions<SelectV2Host>({
@@ -332,6 +337,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 			},
 		}),
 	);
+	v2Hosts.createIndex((host) => host.machineId, basicIndexConfig);
 
 	const v2Clients = createPersistedElectricCollection(
 		electricCollectionOptions<SelectV2Client>({
@@ -395,6 +401,8 @@ function createOrgCollections(organizationId: string): OrgCollections {
 			},
 		}),
 	);
+	v2UsersHosts.createIndex((userHost) => userHost.hostId, basicIndexConfig);
+	v2UsersHosts.createIndex((userHost) => userHost.userId, basicIndexConfig);
 
 	const v2Workspaces = createPersistedElectricCollection(
 		electricCollectionOptions<SelectV2Workspace>({
@@ -423,6 +431,12 @@ function createOrgCollections(organizationId: string): OrgCollections {
 			},
 		}),
 	);
+	v2Workspaces.createIndex((workspace) => workspace.hostId, basicIndexConfig);
+	v2Workspaces.createIndex(
+		(workspace) => workspace.projectId,
+		basicIndexConfig,
+	);
+	v2Workspaces.createIndex((workspace) => workspace.type, basicIndexConfig);
 
 	const workspaces = createPersistedElectricCollection(
 		electricCollectionOptions<SelectWorkspace>({
@@ -690,6 +704,10 @@ function createOrgCollections(organizationId: string): OrgCollections {
 			getKey: (item) => item.projectId,
 		}),
 	);
+	v2SidebarProjects.createIndex(
+		(sidebarProject) => sidebarProject.tabOrder,
+		basicIndexConfig,
+	);
 
 	const v2WorkspaceLocalState = createIndexedCollection(
 		localStorageCollectionOptions(
@@ -706,6 +724,18 @@ function createOrgCollections(organizationId: string): OrgCollections {
 			),
 		),
 	);
+	v2WorkspaceLocalState.createIndex(
+		(localState) => localState.sidebarState.projectId,
+		basicIndexConfig,
+	);
+	v2WorkspaceLocalState.createIndex(
+		(localState) => localState.sidebarState.sectionId,
+		basicIndexConfig,
+	);
+	v2WorkspaceLocalState.createIndex(
+		(localState) => localState.sidebarState.tabOrder,
+		basicIndexConfig,
+	);
 
 	const v2SidebarSections = createIndexedCollection(
 		localStorageCollectionOptions({
@@ -714,6 +744,14 @@ function createOrgCollections(organizationId: string): OrgCollections {
 			schema: dashboardSidebarSectionSchema,
 			getKey: (item) => item.sectionId,
 		}),
+	);
+	v2SidebarSections.createIndex(
+		(section) => section.projectId,
+		basicIndexConfig,
+	);
+	v2SidebarSections.createIndex(
+		(section) => section.tabOrder,
+		basicIndexConfig,
 	);
 
 	const v2TerminalPresets = createIndexedCollection(

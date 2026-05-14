@@ -1,4 +1,5 @@
 export {
+	getRemoteHostStatus,
 	type RemoteHostStatus,
-	useRemoteHostStatus,
-} from "./useRemoteHostStatus";
+} from "./remoteHostStatusPolicy";
+export { useRemoteHostStatus } from "./useRemoteHostStatus";

@@ -216,6 +216,28 @@ SQL
   return 0
 }
 
+step_prepare_electric() {
+  WORKSPACE_NAME="${WORKSPACE_NAME:-$(basename "$PWD")}"
+
+  # Sanitize workspace name for Docker (valid chars only, max 64 chars)
+  local container_suffix
+  container_suffix=$(echo "$WORKSPACE_NAME" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9._-]/-/g' | sed 's/--*/-/g' | sed 's/^-//' | sed 's/-$//')
+  ELECTRIC_CONTAINER=$(echo "superset-electric-$container_suffix" | cut -c1-64)
+  ELECTRIC_SECRET="${ELECTRIC_SECRET:-local_electric_dev_secret}"
+
+  # Step 7 allocates SUPERSET_PORT_BASE; Electric must use that reserved port.
+  if [ -z "${SUPERSET_PORT_BASE:-}" ]; then
+    error "SUPERSET_PORT_BASE not set before preparing Electric"
+    return 1
+  fi
+
+  ELECTRIC_PORT=$((SUPERSET_PORT_BASE + 9))
+  ELECTRIC_URL="http://localhost:$ELECTRIC_PORT/v1/shape"
+
+  export ELECTRIC_CONTAINER ELECTRIC_PORT ELECTRIC_URL ELECTRIC_SECRET
+  return 0
+}
+
 step_start_electric() {
   echo "⚡ Starting Electric SQL container..."
 
@@ -229,13 +251,11 @@ step_start_electric() {
     return 1
   fi
 
-  WORKSPACE_NAME="${WORKSPACE_NAME:-$(basename "$PWD")}"
-
-  # Sanitize workspace name for Docker (valid chars only, max 64 chars)
-  local container_suffix
-  container_suffix=$(echo "$WORKSPACE_NAME" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9._-]/-/g' | sed 's/--*/-/g' | sed 's/^-//' | sed 's/-$//')
-  ELECTRIC_CONTAINER=$(echo "superset-electric-$container_suffix" | cut -c1-64)
-  ELECTRIC_SECRET="${ELECTRIC_SECRET:-local_electric_dev_secret}"
+  if [ -z "${ELECTRIC_CONTAINER:-}" ] || [ -z "${ELECTRIC_PORT:-}" ] || [ -z "${ELECTRIC_URL:-}" ]; then
+    if ! step_prepare_electric; then
+      return 1
+    fi
+  fi
 
   # Stop and remove existing container if it exists
   if docker ps -a --format '{{.Names}}' | grep -q "^${ELECTRIC_CONTAINER}$"; then
@@ -244,14 +264,12 @@ step_start_electric() {
     docker rm "$ELECTRIC_CONTAINER" &> /dev/null || true
   fi
 
-  # Step 6 allocates SUPERSET_PORT_BASE; Electric must use that reserved port.
-  if [ -z "${SUPERSET_PORT_BASE:-}" ]; then
-    error "SUPERSET_PORT_BASE not set before starting Electric"
+  if lsof -nP -iTCP:"$ELECTRIC_PORT" -sTCP:LISTEN &> /dev/null; then
+    error "Electric port $ELECTRIC_PORT is already in use"
     return 1
   fi
 
   local port_flag
-  ELECTRIC_PORT=$((SUPERSET_PORT_BASE + 9))
   port_flag="-p $ELECTRIC_PORT:3000"
 
   echo "  Clearing stale Electric replication sessions..."
@@ -295,13 +313,10 @@ step_start_electric() {
 
   if [ "$ready" = false ]; then
     error "Electric failed to become active within 60s (last status: $health_status). Check logs: docker logs $ELECTRIC_CONTAINER"
+    echo "  Stopping inactive Electric container to free port $ELECTRIC_PORT..."
+    docker stop "$ELECTRIC_CONTAINER" &> /dev/null || true
     return 1
   fi
-
-  ELECTRIC_URL="http://localhost:$ELECTRIC_PORT/v1/shape"
-
-  # Export for use in other steps
-  export ELECTRIC_CONTAINER ELECTRIC_PORT ELECTRIC_URL ELECTRIC_SECRET
 
   success "Electric SQL running at $ELECTRIC_URL"
   return 0
