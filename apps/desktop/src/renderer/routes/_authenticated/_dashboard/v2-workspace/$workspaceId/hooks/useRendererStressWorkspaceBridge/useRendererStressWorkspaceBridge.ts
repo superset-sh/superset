@@ -515,9 +515,11 @@ export function useRendererStressWorkspaceBridge({
 					bridge.addTab("file", index);
 					return;
 				}
-				const nextKind = isRendererStressPaneKind(active.pane.kind)
-					? active.pane.kind
-					: "file";
+				if (!isRendererStressPaneKind(active.pane.kind)) {
+					bridge.addTab("file", index);
+					return;
+				}
+				const nextKind = active.pane.kind;
 				state.setPaneData({
 					paneId: active.pane.id,
 					data: createStressPane(nextKind, index, filePaths, worktreePath).data,

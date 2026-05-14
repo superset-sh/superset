@@ -115,7 +115,7 @@ export function loadTerminalWebglAddon(
 		suggestedRendererType = "dom";
 		fallbackTimeoutId = setTimeout(() => {
 			fallbackTimeoutId = null;
-			disposeAddon({ markDomFallback: true });
+			disposeAddon({ markDomFallback: false });
 		}, 0);
 	};
 

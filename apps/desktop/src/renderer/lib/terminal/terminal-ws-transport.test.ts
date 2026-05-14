@@ -260,6 +260,7 @@ describe("terminal-ws-transport", () => {
 
 		expect(transport._titleNotifyTimer).toBeNull();
 		expect(transport._reconnectTimer).toBeNull();
+		expect(transport._writeOutput).toBeNull();
 		expect(transport.titleListeners.size).toBe(0);
 		expect(transport.logListeners.size).toBe(0);
 

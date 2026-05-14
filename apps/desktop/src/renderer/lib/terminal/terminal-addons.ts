@@ -15,8 +15,8 @@ export interface LoadAddonsResult {
 
 /**
  * Load optional addons onto an already-opened terminal. Returns a cleanup
- * function and addon instances. WebGL is deferred to rAF to avoid
- * racing with xterm's post-open viewport sync.
+ * function and addon instances. WebGL setup/teardown is delegated to
+ * loadTerminalWebglAddon.
  */
 export function loadAddons(terminal: XTerm): LoadAddonsResult {
 	terminal.loadAddon(new ClipboardAddon());

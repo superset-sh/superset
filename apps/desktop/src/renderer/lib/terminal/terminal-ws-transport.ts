@@ -474,6 +474,7 @@ export function disposeTransport(transport: TerminalTransport) {
 	setTerminalTitle(transport, undefined);
 	transport.onDataDisposable?.dispose();
 	transport.onDataDisposable = null;
+	transport._writeOutput = null;
 	transport.stateListeners.clear();
 	if (transport._titleNotifyTimer !== null) {
 		clearTimeout(transport._titleNotifyTimer);
