@@ -1,5 +1,4 @@
 import { ClipboardAddon } from "@xterm/addon-clipboard";
-import { LigaturesAddon } from "@xterm/addon-ligatures";
 import { ProgressAddon } from "@xterm/addon-progress";
 import { SearchAddon } from "@xterm/addon-search";
 import { Unicode11Addon } from "@xterm/addon-unicode11";
@@ -33,10 +32,10 @@ export function loadAddons(terminal: XTerm): LoadAddonsResult {
 	const progressAddon = new ProgressAddon();
 	terminal.loadAddon(progressAddon);
 
-	try {
-		terminal.loadAddon(new LigaturesAddon());
-	} catch {}
-
+	// LigaturesAddon intentionally omitted: when combined with the WebGL renderer
+	// it corrupts the glyph atlas — styled cells (italic/color) bleed glyphs
+	// into adjacent cells and the corruption survives resize. macOS surfaced
+	// this most reliably; ligature support (==, =>, !==) is the trade-off.
 	const webglAddon = loadTerminalWebglAddon(terminal);
 
 	return {

@@ -1,9 +1,6 @@
 import { EditorView } from "@codemirror/view";
 import { getEditorTheme, type Theme, withAlpha } from "shared/themes";
-import {
-	DEFAULT_CODE_EDITOR_FONT_FAMILY,
-	DEFAULT_CODE_EDITOR_FONT_SIZE,
-} from "../constants";
+import { DEFAULT_CODE_EDITOR_FONT_SIZE, withCjkFallback } from "../constants";
 
 interface CodeEditorFontSettings {
 	fontFamily?: string;
@@ -28,7 +25,7 @@ export function createCodeMirrorTheme(
 				height: fillHeight ? "100%" : "auto",
 				backgroundColor: editorTheme.colors.background,
 				color: editorTheme.colors.foreground,
-				fontFamily: fontSettings.fontFamily ?? DEFAULT_CODE_EDITOR_FONT_FAMILY,
+				fontFamily: withCjkFallback(fontSettings.fontFamily),
 				fontSize: `${fontSize}px`,
 			},
 			".cm-scroller": {
