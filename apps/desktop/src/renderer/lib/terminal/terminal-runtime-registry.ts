@@ -17,6 +17,7 @@ import {
 	updateRuntimeAppearance,
 	writeRuntimeOutput,
 } from "./terminal-runtime";
+import { isTerminalWebglCanvas } from "./terminal-webgl-canvas-registry";
 import {
 	type ConnectionState,
 	clearLogs,
@@ -67,6 +68,7 @@ interface WebglLoseContextExtension {
 function getTerminalWebglContext(
 	canvas: HTMLCanvasElement,
 ): WebGL2RenderingContext | null {
+	if (!isTerminalWebglCanvas(canvas)) return null;
 	return canvas.getContext("webgl2") as WebGL2RenderingContext | null;
 }
 
