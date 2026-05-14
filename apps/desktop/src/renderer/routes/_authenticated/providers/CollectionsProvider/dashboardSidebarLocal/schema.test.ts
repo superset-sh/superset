@@ -101,10 +101,12 @@ describe("healWorkspaceLocalState", () => {
 			...baseStored,
 			viewedFiles: undefined,
 			recentlyViewedFiles: undefined,
+			workspaceRunTerminals: undefined,
 		};
 		const healed = healWorkspaceLocalState(stored);
 		expect(healed.viewedFiles).toEqual([]);
 		expect(healed.recentlyViewedFiles).toEqual([]);
+		expect(healed.workspaceRunTerminals).toEqual({});
 	});
 
 	it("fills missing nested sidebarState fields while preserving projectId", () => {

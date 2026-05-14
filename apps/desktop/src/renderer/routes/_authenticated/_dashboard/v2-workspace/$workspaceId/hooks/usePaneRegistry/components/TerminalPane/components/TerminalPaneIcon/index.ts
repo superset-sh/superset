@@ -1,0 +1,1 @@
+export { TerminalPaneIcon } from "./TerminalPaneIcon";

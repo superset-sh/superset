@@ -1,10 +1,13 @@
 import { buildHostRoutingKey } from "@superset/shared/host-routing";
-import { env } from "renderer/env.renderer";
 
 /**
  * Pure resolver: hostId + machineId + activeHostUrl + organizationId → URL.
  * Hosts other than the local machine are reached via relay; the local
  * machine is reached directly via electronTrpc through `activeHostUrl`.
+ *
+ * Callers fetch `relayUrl` from `useRelayUrl()` so the PostHog override is
+ * applied consistently between the renderer's hook-based and store-based
+ * call sites.
  *
  * Guaranteed-non-null inputs are typed as required because callers inside
  * `_authenticated/` get organizationId from the route guard. A null at call
@@ -15,8 +18,9 @@ export function resolveHostUrl(args: {
 	machineId: string | null;
 	activeHostUrl: string | null;
 	organizationId: string;
+	relayUrl: string;
 }): string | null {
 	if (args.hostId === args.machineId) return args.activeHostUrl;
 	const routingKey = buildHostRoutingKey(args.organizationId, args.hostId);
-	return `${env.RELAY_URL}/hosts/${routingKey}`;
+	return `${args.relayUrl}/hosts/${routingKey}`;
 }

@@ -49,6 +49,7 @@ async function main(): Promise<void> {
 				`http://localhost:${env.DESKTOP_VITE_PORT}`,
 				`http://127.0.0.1:${env.DESKTOP_VITE_PORT}`,
 			],
+			hostServiceSecret: env.HOST_SERVICE_SECRET,
 		},
 		providers: {
 			auth: authProvider,
@@ -74,6 +75,7 @@ async function main(): Promise<void> {
 						authToken: env.HOST_SERVICE_SECRET,
 						startedAt,
 						organizationId: env.ORGANIZATION_ID,
+						spawnedByAppVersion: env.SUPERSET_APP_VERSION,
 					});
 				} catch (error) {
 					console.error("[host-service] Failed to write manifest:", error);

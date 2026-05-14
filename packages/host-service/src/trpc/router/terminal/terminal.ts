@@ -5,17 +5,20 @@ import { getSupervisor, waitForDaemonReady } from "../../../daemon";
 import { terminalSessions, workspaces } from "../../../db/schema";
 import {
 	createTerminalSessionInternal,
-	disposeSession,
+	disposeSessionAndWait,
 	listTerminalSessions,
 	parseThemeType,
+	writeInputToSession,
 } from "../../../terminal/terminal";
 import type { HostServiceContext } from "../../../types";
 import { protectedProcedure, router } from "../../index";
+import { remoteControlRouter } from "./remote-control";
 
 const createSessionInputSchema = z.object({
 	workspaceId: z.string(),
 	terminalId: z.string().optional(),
 	initialCommand: z.string().trim().min(1).optional(),
+	cwd: z.string().optional(),
 	themeType: z.string().optional(),
 	cols: z.number().int().positive().optional(),
 	rows: z.number().int().positive().optional(),
@@ -36,6 +39,7 @@ async function createTerminalSessionFromInput({
 		db: ctx.db,
 		eventBus: ctx.eventBus,
 		initialCommand: input.initialCommand,
+		cwd: input.cwd,
 		cols: input.cols,
 		rows: input.rows,
 	});
@@ -115,6 +119,25 @@ export const terminalRouter = router({
 			}),
 		})),
 
+	writeInput: protectedProcedure
+		.input(
+			z.object({
+				terminalId: z.string(),
+				workspaceId: z.string(),
+				data: z.string(),
+			}),
+		)
+		.mutation(({ input }) => {
+			const result = writeInputToSession(input);
+			if ("error" in result) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: result.error,
+				});
+			}
+			return { success: true as const };
+		}),
+
 	killSession: protectedProcedure
 		.input(
 			z.object({
@@ -122,7 +145,7 @@ export const terminalRouter = router({
 				workspaceId: z.string(),
 			}),
 		)
-		.mutation(({ ctx, input }) => {
+		.mutation(async ({ ctx, input }) => {
 			const workspace = ctx.db.query.workspaces
 				.findFirst({ where: eq(workspaces.id, input.workspaceId) })
 				.sync();
@@ -152,9 +175,11 @@ export const terminalRouter = router({
 				});
 			}
 
-			disposeSession(input.terminalId, ctx.db);
+			await disposeSessionAndWait(input.terminalId, ctx.db);
 			return { terminalId: input.terminalId, status: "disposed" as const };
 		}),
 
 	daemon: daemonRouter,
+
+	remoteControl: remoteControlRouter,
 });

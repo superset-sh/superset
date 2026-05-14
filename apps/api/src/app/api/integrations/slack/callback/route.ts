@@ -1,12 +1,16 @@
 import { WebClient } from "@slack/web-api";
 import { db } from "@superset/db/client";
 import type { SlackConfig } from "@superset/db/schema";
-import { integrationConnections, members } from "@superset/db/schema";
-import { and, eq } from "drizzle-orm";
+import { integrationConnections, members, users } from "@superset/db/schema";
+import { and, eq, isNull, ne } from "drizzle-orm";
 
 import { env } from "@/env";
 import { posthog } from "@/lib/analytics";
 import { verifySignedState } from "@/lib/oauth-state";
+
+const UNIQUE_VIOLATION = "23505";
+const ACTIVE_LINKAGE_INDEX =
+	"integration_connections_provider_external_org_active_unique";
 
 export async function GET(request: Request) {
 	const url = new URL(request.url);
@@ -64,7 +68,7 @@ export async function GET(request: Request) {
 			code,
 		});
 
-		if (!tokenData.ok || !tokenData.access_token || !tokenData.team) {
+		if (!tokenData.ok || !tokenData.access_token || !tokenData.team?.id) {
 			console.error("[slack/callback] Slack API error:", tokenData.error);
 			return Response.redirect(
 				`${env.NEXT_PUBLIC_WEB_URL}/integrations/slack?error=slack_api_error`,
@@ -74,6 +78,26 @@ export async function GET(request: Request) {
 		const config: SlackConfig = {
 			provider: "slack",
 		};
+
+		const [conflict] = await db
+			.select({ email: users.email })
+			.from(integrationConnections)
+			.innerJoin(users, eq(users.id, integrationConnections.connectedByUserId))
+			.where(
+				and(
+					eq(integrationConnections.provider, "slack"),
+					eq(integrationConnections.externalOrgId, tokenData.team.id),
+					isNull(integrationConnections.disconnectedAt),
+					ne(integrationConnections.organizationId, organizationId),
+				),
+			)
+			.limit(1);
+
+		if (conflict) {
+			return Response.redirect(
+				`${env.NEXT_PUBLIC_WEB_URL}/integrations/slack?error=workspace_already_linked&owner=${encodeURIComponent(conflict.email)}`,
+			);
+		}
 
 		await db
 			.insert(integrationConnections)
@@ -97,6 +121,8 @@ export async function GET(request: Request) {
 					externalOrgName: tokenData.team.name,
 					connectedByUserId: userId,
 					config,
+					disconnectedAt: null,
+					disconnectReason: null,
 					updatedAt: new Date(),
 				},
 			});
@@ -115,6 +141,12 @@ export async function GET(request: Request) {
 
 		return Response.redirect(`${env.NEXT_PUBLIC_WEB_URL}/integrations/slack`);
 	} catch (error) {
+		const e = error as { code?: string; constraint?: string };
+		if (e.code === UNIQUE_VIOLATION && e.constraint === ACTIVE_LINKAGE_INDEX) {
+			return Response.redirect(
+				`${env.NEXT_PUBLIC_WEB_URL}/integrations/slack?error=workspace_already_linked`,
+			);
+		}
 		console.error("[slack/callback] Token exchange failed:", error);
 		return Response.redirect(
 			`${env.NEXT_PUBLIC_WEB_URL}/integrations/slack?error=token_exchange_failed`,

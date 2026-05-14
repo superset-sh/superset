@@ -5,6 +5,7 @@ import {
 	useNavigate,
 } from "@tanstack/react-router";
 import { useState } from "react";
+import { CommandPaletteHost } from "renderer/commandPalette";
 import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import { useHotkey } from "renderer/hotkeys";
 import { electronTrpc } from "renderer/lib/electron-trpc";
@@ -22,6 +23,7 @@ import {
 	useWorkspaceSidebarStore,
 } from "renderer/stores/workspace-sidebar-state";
 import { AddRepositoryModals } from "./components/AddRepositoryModals";
+import { CrossVersionMismatchState } from "./components/CrossVersionMismatchState";
 import { TopBar } from "./components/TopBar";
 
 export const Route = createFileRoute("/_authenticated/_dashboard")({
@@ -41,6 +43,15 @@ function DashboardLayout() {
 	});
 	const currentWorkspaceId =
 		currentWorkspaceMatch !== false ? currentWorkspaceMatch.workspaceId : null;
+	const v2WorkspaceMatch = matchRoute({
+		to: "/v2-workspace/$workspaceId",
+		fuzzy: true,
+	});
+	const onV1WorkspaceRoute = currentWorkspaceMatch !== false;
+	const onV2WorkspaceRoute = v2WorkspaceMatch !== false;
+	const versionMismatch =
+		(isV2CloudEnabled && onV1WorkspaceRoute) ||
+		(!isV2CloudEnabled && onV2WorkspaceRoute);
 
 	const { data: currentWorkspace } = electronTrpc.workspaces.get.useQuery(
 		{ id: currentWorkspaceId ?? "" },
@@ -127,6 +138,7 @@ function DashboardLayout() {
 
 	return (
 		<div className="flex h-full w-full overflow-hidden">
+			<CommandPaletteHost />
 			<WorkspaceCreatesManager />
 			{sidebarOutsideColumn && sidebarPanel}
 			<div className="flex flex-1 flex-col min-w-0 min-h-0">
@@ -134,7 +146,7 @@ function DashboardLayout() {
 				<div className="flex flex-1 min-h-0 min-w-0 overflow-hidden">
 					{!sidebarOutsideColumn && sidebarPanel}
 					<div className="flex flex-1 min-h-0 min-w-0">
-						<Outlet />
+						{versionMismatch ? <CrossVersionMismatchState /> : <Outlet />}
 					</div>
 				</div>
 			</div>

@@ -16,6 +16,12 @@ const isProduction = process.env.NODE_ENV === "production";
 const apiOrigin = process.env.NEXT_PUBLIC_API_URL
 	? new URL(process.env.NEXT_PUBLIC_API_URL).origin
 	: null;
+// Remote-control viewers open a WebSocket to the relay. In dev the blanket
+// `ws:`/`wss:` below covers it; in prod we need to allow the relay origin
+// explicitly so `connect-src` doesn't block `wss://relay…`.
+const relayWsOrigin = process.env.RELAY_URL
+	? new URL(process.env.RELAY_URL).origin.replace(/^http/, "ws")
+	: null;
 
 const contentSecurityPolicy = [
 	"default-src 'self'",
@@ -23,6 +29,7 @@ const contentSecurityPolicy = [
 	[
 		"connect-src 'self'",
 		apiOrigin,
+		relayWsOrigin,
 		"https://*.ingest.sentry.io",
 		"https://*.sentry.io",
 		"https://us.i.posthog.com",

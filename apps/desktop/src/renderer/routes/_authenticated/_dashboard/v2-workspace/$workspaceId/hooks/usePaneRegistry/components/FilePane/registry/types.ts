@@ -34,6 +34,7 @@ export interface ViewProps {
 	document: SharedFileDocument;
 	filePath: string;
 	workspaceId: string;
+	isActive: boolean;
 	onChangeView: (viewId: string) => void;
 	onForceView: (viewId: string) => void;
 }

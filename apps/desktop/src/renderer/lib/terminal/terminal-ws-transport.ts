@@ -43,6 +43,8 @@ export interface TerminalTransport {
 	_reconnectTimer: ReturnType<typeof setTimeout> | null;
 	/** Internal: reconnect attempt count for backoff. */
 	_reconnectAttempt: number;
+	/** Internal: title-change debounce timer; see TITLE_COALESCE_MS. */
+	_titleNotifyTimer: ReturnType<typeof setTimeout> | null;
 	/** The xterm instance used for reconnection. */
 	_terminal: XTerm | null;
 	/** Set when the server signals the session is done (PTY exit or fatal
@@ -70,15 +72,31 @@ function setConnectionState(
 	}
 }
 
+// Debounce window for title-change notifications. transport.title updates
+// immediately so getTitle() reads the latest; only listener notifications wait,
+// preventing flicker when shells retitle rapidly. Matches ghostty's 75ms.
+const TITLE_COALESCE_MS = 75;
+
+function notifyTitleListeners(transport: TerminalTransport) {
+	transport._titleNotifyTimer = null;
+	for (const listener of transport.titleListeners) {
+		listener();
+	}
+}
+
 function setTerminalTitle(
 	transport: TerminalTransport,
 	title: string | null | undefined,
 ) {
 	if (transport.title === title) return;
 	transport.title = title;
-	for (const listener of transport.titleListeners) {
-		listener();
+	if (transport._titleNotifyTimer !== null) {
+		clearTimeout(transport._titleNotifyTimer);
 	}
+	transport._titleNotifyTimer = setTimeout(
+		() => notifyTitleListeners(transport),
+		TITLE_COALESCE_MS,
+	);
 }
 
 function pushLog(
@@ -130,6 +148,7 @@ export function createTransport(): TerminalTransport {
 		logs: [],
 		logListeners: new Set(),
 		_reconnectTimer: null,
+		_titleNotifyTimer: null,
 		_reconnectAttempt: 0,
 		_terminal: null,
 		_hasReceivedBytes: false,
@@ -417,6 +436,10 @@ export function disposeTransport(transport: TerminalTransport) {
 	transport.onDataDisposable?.dispose();
 	transport.onDataDisposable = null;
 	transport.stateListeners.clear();
+	if (transport._titleNotifyTimer !== null) {
+		clearTimeout(transport._titleNotifyTimer);
+		transport._titleNotifyTimer = null;
+	}
 	transport.titleListeners.clear();
 	transport.logs = [];
 	transport.logListeners.clear();

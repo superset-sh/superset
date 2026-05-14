@@ -1,7 +1,11 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { writeFileSync } from "node:fs";
+import { rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { type BasicScenario, createBasicScenario } from "../helpers/scenarios";
+import {
+	type BasicScenario,
+	createBasicScenario,
+	createFeatureWorktreeScenario,
+} from "../helpers/scenarios";
 
 describe("workspace router integration", () => {
 	let scenario: BasicScenario;
@@ -20,6 +24,22 @@ describe("workspace router integration", () => {
 		});
 		expect(ws.id).toBe(scenario.workspaceId);
 		expect(ws.branch).toBe("main");
+		expect(ws.worktreeExists).toBe(true);
+	});
+
+	test("get reports when the worktree path no longer exists", async () => {
+		const featureScenario = await createFeatureWorktreeScenario();
+		try {
+			rmSync(featureScenario.worktreePath, { recursive: true, force: true });
+
+			const ws = await featureScenario.host.trpc.workspace.get.query({
+				id: featureScenario.featureWorkspaceId,
+			});
+			expect(ws.worktreePath).toBe(featureScenario.worktreePath);
+			expect(ws.worktreeExists).toBe(false);
+		} finally {
+			await featureScenario.dispose();
+		}
 	});
 
 	test("get throws NOT_FOUND for missing workspace", async () => {

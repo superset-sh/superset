@@ -132,7 +132,7 @@ export async function formatErrorForSlack(error: unknown): Promise<string> {
 	try {
 		const anthropic = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
 		const response = await anthropic.messages.create({
-			model: "claude-3-5-haiku-latest",
+			model: "claude-haiku-4-5",
 			max_tokens: 256,
 			messages: [
 				{

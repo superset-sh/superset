@@ -2,7 +2,7 @@ import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useQueries, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useMemo, useRef } from "react";
-import { env } from "renderer/env.renderer";
+import { useRelayUrl } from "renderer/hooks/useRelayUrl";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
@@ -129,17 +129,23 @@ function useStableDashboardSidebarProjects(
 export function useDashboardSidebarData() {
 	const collections = useCollections();
 	const { machineId, activeHostUrl } = useLocalHostService();
+	const relayUrl = useRelayUrl();
 	const { toggleProjectCollapsed } = useDashboardSidebarState();
 	const queryClient = useQueryClient();
 
 	// In-flight workspace.create operations. These don't have a backing DB row
 	// — they're kept in renderer memory until the real v2Workspaces row arrives
-	// via Electric sync (or until error/dismiss).
+	// via Electric sync (or until error/dismiss). Entries that have already
+	// resolved on the host service carry `cloudRow`; those are surfaced as
+	// real synced rows below so the sidebar doesn't stick on "creating" when
+	// Electric is slow.
 	const inFlightEntries = useWorkspaceCreatesStore((store) => store.entries);
 	const inFlightSidebarRows = useMemo(
 		() =>
 			inFlightEntries
 				.filter((entry) => entry.snapshot.id !== undefined)
+				// Entries with a cloudRow are rendered via the synced fallback below.
+				.filter((entry) => !(entry.state === "creating" && entry.cloudRow))
 				.map((entry) => ({
 					id: entry.snapshot.id as string,
 					projectId: entry.snapshot.projectId,
@@ -244,6 +250,7 @@ export function useDashboardSidebarData() {
 					hostIsOnline: hosts.isOnline,
 					name: workspaces.name,
 					branch: workspaces.branch,
+					taskId: workspaces.taskId,
 					createdAt: workspaces.createdAt,
 					updatedAt: workspaces.updatedAt,
 					tabOrder: sidebarWorkspaces.sidebarState.tabOrder,
@@ -279,6 +286,7 @@ export function useDashboardSidebarData() {
 					hostIsOnline: hosts.isOnline,
 					name: workspaces.name,
 					branch: workspaces.branch,
+					taskId: workspaces.taskId,
 					createdAt: workspaces.createdAt,
 					updatedAt: workspaces.updatedAt,
 					tabOrder: MAIN_WORKSPACE_TAB_ORDER,
@@ -286,6 +294,45 @@ export function useDashboardSidebarData() {
 				})),
 		[collections],
 	);
+
+	// Cloud-row fallback: when workspaces.create has resolved on the host
+	// service but Electric hasn't yet delivered the v2Workspaces row, surface
+	// the cloud row cached on the in-flight entry so the sidebar renders the
+	// workspace as fully synced. Manager.tsx removes the entry once Electric
+	// catches up, at which point the live query takes over seamlessly.
+	const cloudRowFallbackWorkspaces = useMemo(() => {
+		if (inFlightEntries.length === 0) return [];
+		const hostByMachineId = new Map(
+			hosts.map((host) => [host.machineId, host]),
+		);
+		const rows = inFlightEntries.flatMap((entry) => {
+			const cloudRow = entry.cloudRow;
+			if (!cloudRow) return [];
+			// Electric already delivered; let the live query own this row.
+			if (localStateWorkspaceIds.has(cloudRow.id)) return [];
+			const localState = collections.v2WorkspaceLocalState.get(cloudRow.id);
+			const host = hostByMachineId.get(cloudRow.hostId);
+			return [
+				{
+					id: cloudRow.id,
+					projectId: localState?.sidebarState.projectId ?? cloudRow.projectId,
+					hostId: cloudRow.hostId,
+					type: cloudRow.type,
+					hostIsOnline: host?.isOnline ?? false,
+					name: cloudRow.name,
+					branch: cloudRow.branch,
+					taskId: cloudRow.taskId,
+					createdAt: cloudRow.createdAt,
+					updatedAt: cloudRow.updatedAt,
+					tabOrder:
+						localState?.sidebarState.tabOrder ?? PENDING_WORKSPACE_TAB_ORDER,
+					sectionId: localState?.sidebarState.sectionId ?? null,
+					isHidden: localState?.sidebarState.isHidden ?? false,
+				},
+			];
+		});
+		return getVisibleSidebarWorkspaces(rows);
+	}, [collections, hosts, inFlightEntries, localStateWorkspaceIds]);
 
 	const visibleSidebarWorkspaces = useMemo(() => {
 		const sidebarProjectIds = new Set(
@@ -298,8 +345,13 @@ export function useDashboardSidebarData() {
 				sidebarProjectIds.has(workspace.projectId),
 		);
 
-		return [...autoLocalMainWorkspaces, ...sidebarWorkspaces];
+		return [
+			...autoLocalMainWorkspaces,
+			...sidebarWorkspaces,
+			...cloudRowFallbackWorkspaces,
+		];
 	}, [
+		cloudRowFallbackWorkspaces,
 		localMainWorkspaces,
 		localStateWorkspaceIds,
 		machineId,
@@ -313,10 +365,10 @@ export function useDashboardSidebarData() {
 				activeHostUrl,
 				hosts,
 				machineId,
-				relayUrl: env.RELAY_URL,
+				relayUrl,
 				workspaces: visibleSidebarWorkspaces,
 			}),
-		[activeHostUrl, hosts, machineId, visibleSidebarWorkspaces],
+		[activeHostUrl, hosts, machineId, relayUrl, visibleSidebarWorkspaces],
 	);
 
 	const pullRequestQueries = useQueries({
@@ -442,6 +494,7 @@ export function useDashboardSidebarData() {
 				behindCount: null,
 				createdAt: workspace.createdAt,
 				updatedAt: workspace.updatedAt,
+				taskId: workspace.taskId,
 			};
 
 			if (workspace.sectionId) {
@@ -492,6 +545,7 @@ export function useDashboardSidebarData() {
 				behindCount: null,
 				createdAt: new Date(),
 				updatedAt: new Date(),
+				taskId: null,
 				creationStatus: pw.status,
 			};
 
@@ -513,8 +567,20 @@ export function useDashboardSidebarData() {
 				...sidebarProject
 			} = resolvedProject;
 
+			const isLocalMain = (entry: (typeof childEntries)[number]) =>
+				entry.child.type === "workspace" &&
+				entry.child.workspace.type === "main" &&
+				entry.child.workspace.hostType === "local-device";
+
 			const sortedChildren = childEntries
-				.sort((left, right) => left.tabOrder - right.tabOrder)
+				.sort((left, right) => {
+					const leftLocalMain = isLocalMain(left);
+					const rightLocalMain = isLocalMain(right);
+					if (leftLocalMain !== rightLocalMain) {
+						return leftLocalMain ? -1 : 1;
+					}
+					return left.tabOrder - right.tabOrder;
+				})
 				.map(({ child }) => child);
 
 			// Ungrouped workspaces rendered after a section header are visually

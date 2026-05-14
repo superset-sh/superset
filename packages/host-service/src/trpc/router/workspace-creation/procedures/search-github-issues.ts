@@ -16,7 +16,15 @@ interface IssueResult {
 	authorLogin: string | null;
 }
 
-const ghIssueSchema = z.object({
+interface IssuesPage {
+	issues: IssueResult[];
+	totalCount: number;
+	hasNextPage: boolean;
+	page: number;
+	repoMismatch?: string;
+}
+
+const ghIssueViewSchema = z.object({
 	number: z.number(),
 	title: z.string(),
 	url: z.string(),
@@ -24,17 +32,7 @@ const ghIssueSchema = z.object({
 	author: z.object({ login: z.string() }).nullable().optional(),
 });
 
-const ISSUE_JSON_FIELDS = "number,title,url,state,author";
-
-function fromGhIssue(issue: z.infer<typeof ghIssueSchema>): IssueResult {
-	return {
-		issueNumber: issue.number,
-		title: issue.title,
-		url: issue.url,
-		state: issue.state.toLowerCase(),
-		authorLogin: issue.author?.login ?? null,
-	};
-}
+const ISSUE_VIEW_FIELDS = "number,title,url,state,author";
 
 async function ghDirectLookup(
 	execGh: ExecGh,
@@ -49,45 +47,86 @@ async function ghDirectLookup(
 			"--repo",
 			`${repo.owner}/${repo.name}`,
 			"--json",
-			ISSUE_JSON_FIELDS,
+			ISSUE_VIEW_FIELDS,
 		],
 		{ cwd: repo.repoPath ?? undefined },
 	);
-	return fromGhIssue(ghIssueSchema.parse(raw));
+	const issue = ghIssueViewSchema.parse(raw);
+	return {
+		issueNumber: issue.number,
+		title: issue.title,
+		url: issue.url,
+		state: issue.state.toLowerCase(),
+		authorLogin: issue.author?.login ?? null,
+	};
 }
 
-async function ghSearch(
+const searchIssuesItemSchema = z.object({
+	number: z.number(),
+	title: z.string(),
+	html_url: z.string(),
+	state: z.string(),
+	user: z.object({ login: z.string() }).nullable().optional(),
+	pull_request: z.unknown().optional(),
+});
+
+const searchIssuesResponseSchema = z.object({
+	total_count: z.number(),
+	items: z.array(searchIssuesItemSchema),
+});
+
+async function ghApiSearchIssues(
 	execGh: ExecGh,
 	repo: ResolvedGithubRepo,
 	query: string,
 	includeClosed: boolean,
-	limit: number,
-): Promise<IssueResult[]> {
+	page: number,
+	perPage: number,
+): Promise<{
+	items: IssueResult[];
+	totalCount: number;
+	hasNextPage: boolean;
+}> {
+	const stateFilter = includeClosed ? "" : " is:open";
+	const q =
+		`repo:${repo.owner}/${repo.name} is:issue${stateFilter}${query ? ` ${query}` : ""}`.trim();
 	const args = [
-		"issue",
-		"list",
-		"--repo",
-		`${repo.owner}/${repo.name}`,
-		"--state",
-		includeClosed ? "all" : "open",
-		"--limit",
-		String(limit),
-		"--json",
-		ISSUE_JSON_FIELDS,
+		"api",
+		"-X",
+		"GET",
+		"search/issues",
+		"-f",
+		`q=${q}`,
+		"-F",
+		`per_page=${perPage}`,
+		"-F",
+		`page=${page}`,
+		"-f",
+		"sort=updated",
+		"-f",
+		"order=desc",
 	];
-	if (query) {
-		args.push("--search", query);
-	}
 	const raw = await execGh(args, { cwd: repo.repoPath ?? undefined });
-	const arr = z.array(ghIssueSchema).parse(raw);
-	return arr.map(fromGhIssue);
+	const parsed = searchIssuesResponseSchema.parse(raw);
+	const items: IssueResult[] = parsed.items
+		.filter((item) => !item.pull_request)
+		.map((item) => ({
+			issueNumber: item.number,
+			title: item.title,
+			url: item.html_url,
+			state: item.state.toLowerCase(),
+			authorLogin: item.user?.login ?? null,
+		}));
+	const hasNextPage = page * perPage < parsed.total_count;
+	return { items, totalCount: parsed.total_count, hasNextPage };
 }
 
 export const searchGitHubIssues = protectedProcedure
 	.input(githubSearchInputSchema)
-	.query(async ({ ctx, input }) => {
+	.query(async ({ ctx, input }): Promise<IssuesPage> => {
 		const repo = await resolveGithubRepo(ctx, input.projectId);
 		const limit = input.limit ?? 30;
+		const page = input.page ?? 1;
 
 		const raw = input.query?.trim() ?? "";
 		const normalized = normalizeGitHubQuery(raw, repo, "issue");
@@ -95,6 +134,9 @@ export const searchGitHubIssues = protectedProcedure
 		if (normalized.repoMismatch) {
 			return {
 				issues: [],
+				totalCount: 0,
+				hasNextPage: false,
+				page,
 				repoMismatch: `${repo.owner}/${repo.name}`,
 			};
 		}
@@ -110,18 +152,34 @@ export const searchGitHubIssues = protectedProcedure
 				// Octokit's path filters via `issue.pull_request`; we don't
 				// have that field over `gh`, so detect via the canonical URL.
 				if (issue.url.includes("/pull/")) {
-					return { issues: [] };
+					return {
+						issues: [],
+						totalCount: 0,
+						hasNextPage: false,
+						page,
+					};
 				}
-				return { issues: [issue] };
+				return {
+					issues: [issue],
+					totalCount: 1,
+					hasNextPage: false,
+					page,
+				};
 			}
-			const issues = await ghSearch(
+			const result = await ghApiSearchIssues(
 				ctx.execGh,
 				repo,
 				effectiveQuery,
 				input.includeClosed ?? false,
+				page,
 				limit,
 			);
-			return { issues };
+			return {
+				issues: result.items,
+				totalCount: result.totalCount,
+				hasNextPage: result.hasNextPage,
+				page,
+			};
 		} catch (ghErr) {
 			console.warn(
 				"[workspaceCreation.searchGitHubIssues] gh path failed; falling back to Octokit",
@@ -140,7 +198,12 @@ export const searchGitHubIssues = protectedProcedure
 					issue_number: issueNumber,
 				});
 				if (issue.pull_request) {
-					return { issues: [] };
+					return {
+						issues: [],
+						totalCount: 0,
+						hasNextPage: false,
+						page,
+					};
 				}
 				return {
 					issues: [
@@ -152,6 +215,9 @@ export const searchGitHubIssues = protectedProcedure
 							authorLogin: issue.user?.login ?? null,
 						},
 					],
+					totalCount: 1,
+					hasNextPage: false,
+					page,
 				};
 			}
 
@@ -161,19 +227,25 @@ export const searchGitHubIssues = protectedProcedure
 			const { data } = await octokit.search.issuesAndPullRequests({
 				q: query,
 				per_page: limit,
+				page,
 				sort: "updated",
 				order: "desc",
 			});
+			const issues = data.items
+				.filter((item) => !item.pull_request)
+				.map((item) => ({
+					issueNumber: item.number,
+					title: item.title,
+					url: item.html_url,
+					state: item.state,
+					authorLogin: item.user?.login ?? null,
+				}));
+			const hasNextPage = page * limit < data.total_count;
 			return {
-				issues: data.items
-					.filter((item) => !item.pull_request)
-					.map((item) => ({
-						issueNumber: item.number,
-						title: item.title,
-						url: item.html_url,
-						state: item.state,
-						authorLogin: item.user?.login ?? null,
-					})),
+				issues,
+				totalCount: data.total_count,
+				hasNextPage,
+				page,
 			};
 		} catch (err) {
 			console.warn(

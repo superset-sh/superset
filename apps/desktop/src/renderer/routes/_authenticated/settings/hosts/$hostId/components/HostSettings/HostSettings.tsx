@@ -159,6 +159,7 @@ export function HostSettings({ hostId }: HostSettingsProps) {
 				name={host.name}
 				isOnline={host.isOnline}
 				machineId={host.machineId}
+				canRename={isOwner}
 			/>
 
 			<section className="space-y-3">

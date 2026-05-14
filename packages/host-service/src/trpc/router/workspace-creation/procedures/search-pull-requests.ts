@@ -17,6 +17,14 @@ interface PullRequestResult {
 	authorLogin: string | null;
 }
 
+interface PullRequestsPage {
+	pullRequests: PullRequestResult[];
+	totalCount: number;
+	hasNextPage: boolean;
+	page: number;
+	repoMismatch?: string;
+}
+
 function normalizePullRequestState(
 	state: string,
 	mergedAt: string | null | undefined,
@@ -25,7 +33,7 @@ function normalizePullRequestState(
 	return state.toLowerCase() === "closed" ? "closed" : "open";
 }
 
-const ghPrSchema = z.object({
+const ghPrViewSchema = z.object({
 	number: z.number(),
 	title: z.string(),
 	url: z.string(),
@@ -35,18 +43,7 @@ const ghPrSchema = z.object({
 	mergedAt: z.string().nullable().optional(),
 });
 
-function fromGhPr(pr: z.infer<typeof ghPrSchema>): PullRequestResult {
-	return {
-		prNumber: pr.number,
-		title: pr.title,
-		url: pr.url,
-		state: normalizePullRequestState(pr.state, pr.mergedAt),
-		isDraft: pr.isDraft ?? false,
-		authorLogin: pr.author?.login ?? null,
-	};
-}
-
-const PR_JSON_FIELDS = "number,title,url,state,isDraft,author,mergedAt";
+const PR_VIEW_FIELDS = "number,title,url,state,isDraft,author,mergedAt";
 
 async function ghDirectLookup(
 	execGh: ExecGh,
@@ -61,45 +58,96 @@ async function ghDirectLookup(
 			"--repo",
 			`${repo.owner}/${repo.name}`,
 			"--json",
-			PR_JSON_FIELDS,
+			PR_VIEW_FIELDS,
 		],
 		{ cwd: repo.repoPath ?? undefined },
 	);
-	return fromGhPr(ghPrSchema.parse(raw));
+	const pr = ghPrViewSchema.parse(raw);
+	return {
+		prNumber: pr.number,
+		title: pr.title,
+		url: pr.url,
+		state: normalizePullRequestState(pr.state, pr.mergedAt),
+		isDraft: pr.isDraft ?? false,
+		authorLogin: pr.author?.login ?? null,
+	};
 }
 
-async function ghSearch(
+const searchIssuesItemSchema = z.object({
+	number: z.number(),
+	title: z.string(),
+	html_url: z.string(),
+	state: z.string(),
+	draft: z.boolean().optional(),
+	user: z.object({ login: z.string() }).nullable().optional(),
+	pull_request: z
+		.object({
+			merged_at: z.string().nullable().optional(),
+		})
+		.optional(),
+});
+
+const searchIssuesResponseSchema = z.object({
+	total_count: z.number(),
+	items: z.array(searchIssuesItemSchema),
+});
+
+async function ghApiSearchPullRequests(
 	execGh: ExecGh,
 	repo: ResolvedGithubRepo,
 	query: string,
 	includeClosed: boolean,
-	limit: number,
-): Promise<PullRequestResult[]> {
+	page: number,
+	perPage: number,
+): Promise<{
+	items: PullRequestResult[];
+	totalCount: number;
+	hasNextPage: boolean;
+}> {
+	const stateFilter = includeClosed ? "" : " is:open";
+	const q =
+		`repo:${repo.owner}/${repo.name} is:pr${stateFilter}${query ? ` ${query}` : ""}`.trim();
 	const args = [
-		"pr",
-		"list",
-		"--repo",
-		`${repo.owner}/${repo.name}`,
-		"--state",
-		includeClosed ? "all" : "open",
-		"--limit",
-		String(limit),
-		"--json",
-		PR_JSON_FIELDS,
+		"api",
+		"-X",
+		"GET",
+		"search/issues",
+		"-f",
+		`q=${q}`,
+		"-F",
+		`per_page=${perPage}`,
+		"-F",
+		`page=${page}`,
+		"-f",
+		"sort=updated",
+		"-f",
+		"order=desc",
 	];
-	if (query) {
-		args.push("--search", query);
-	}
 	const raw = await execGh(args, { cwd: repo.repoPath ?? undefined });
-	const arr = z.array(ghPrSchema).parse(raw);
-	return arr.map(fromGhPr);
+	const parsed = searchIssuesResponseSchema.parse(raw);
+	const items: PullRequestResult[] = parsed.items
+		.filter((item) => !!item.pull_request)
+		.map((item) => ({
+			prNumber: item.number,
+			title: item.title,
+			url: item.html_url,
+			state: normalizePullRequestState(
+				item.state,
+				item.pull_request?.merged_at,
+			),
+			isDraft: item.draft ?? false,
+			authorLogin: item.user?.login ?? null,
+		}));
+	const hasNextPage = page * perPage < parsed.total_count;
+	return { items, totalCount: parsed.total_count, hasNextPage };
 }
 
 export const searchPullRequests = protectedProcedure
 	.input(githubSearchInputSchema)
-	.query(async ({ ctx, input }) => {
+	.query(async ({ ctx, input }): Promise<PullRequestsPage> => {
 		const repo = await resolveGithubRepo(ctx, input.projectId);
 		const limit = input.limit ?? 30;
+		const page = input.page ?? 1;
 
 		const raw = input.query?.trim() ?? "";
 		const normalized = normalizeGitHubQuery(raw, repo, "pull");
@@ -107,6 +155,9 @@ export const searchPullRequests = protectedProcedure
 		if (normalized.repoMismatch) {
 			return {
 				pullRequests: [],
+				totalCount: 0,
+				hasNextPage: false,
+				page,
 				repoMismatch: `${repo.owner}/${repo.name}`,
 			};
 		}
@@ -119,16 +170,27 @@ export const searchPullRequests = protectedProcedure
 			if (normalized.isDirectLookup) {
 				const prNumber = Number.parseInt(effectiveQuery, 10);
 				const pr = await ghDirectLookup(ctx.execGh, repo, prNumber);
-				return { pullRequests: [pr] };
+				return {
+					pullRequests: [pr],
+					totalCount: 1,
+					hasNextPage: false,
+					page,
+				};
 			}
-			const pullRequests = await ghSearch(
+			const result = await ghApiSearchPullRequests(
 				ctx.execGh,
 				repo,
 				effectiveQuery,
 				input.includeClosed ?? false,
+				page,
 				limit,
 			);
-			return { pullRequests };
+			return {
+				pullRequests: result.items,
+				totalCount: result.totalCount,
+				hasNextPage: result.hasNextPage,
+				page,
+			};
 		} catch (ghErr) {
 			console.warn(
 				"[workspaceCreation.searchPullRequests] gh path failed; falling back to Octokit",
@@ -158,6 +220,9 @@ export const searchPullRequests = protectedProcedure
 							authorLogin: pr.user?.login ?? null,
 						},
 					],
+					totalCount: 1,
+					hasNextPage: false,
+					page,
 				};
 			}
 
@@ -167,26 +232,32 @@ export const searchPullRequests = protectedProcedure
 			const { data } = await octokit.search.issuesAndPullRequests({
 				q: query,
 				per_page: limit,
+				page,
 				sort: "updated",
 				order: "desc",
 			});
+			const pullRequests = data.items
+				.filter((item) => item.pull_request)
+				.map((item) => {
+					const state = normalizePullRequestState(
+						item.state,
+						item.pull_request?.merged_at,
+					);
+					return {
+						prNumber: item.number,
+						title: item.title,
+						url: item.html_url,
+						state,
+						isDraft: item.draft ?? false,
+						authorLogin: item.user?.login ?? null,
+					};
+				});
+			const hasNextPage = page * limit < data.total_count;
 			return {
-				pullRequests: data.items
-					.filter((item) => item.pull_request)
-					.map((item) => {
-						const state = normalizePullRequestState(
-							item.state,
-							item.pull_request?.merged_at,
-						);
-						return {
-							prNumber: item.number,
-							title: item.title,
-							url: item.html_url,
-							state,
-							isDraft: item.draft ?? false,
-							authorLogin: item.user?.login ?? null,
-						};
-					}),
+				pullRequests,
+				totalCount: data.total_count,
+				hasNextPage,
+				page,
 			};
 		} catch (err) {
 			// Both gh and Octokit failed — rethrow so the renderer's toast

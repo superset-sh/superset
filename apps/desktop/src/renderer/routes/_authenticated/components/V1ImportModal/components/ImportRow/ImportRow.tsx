@@ -19,7 +19,7 @@ export interface PickCandidate {
 
 export type RowAction =
 	| { kind: "ready"; label: string; onClick: () => void; disabled?: boolean }
-	| { kind: "running" }
+	| { kind: "running"; label?: string }
 	| { kind: "imported"; label?: string }
 	| { kind: "blocked"; reason: string }
 	| { kind: "error"; message: string; onRetry: () => void }
@@ -52,22 +52,22 @@ export function ImportRow({
 	action,
 }: ImportRowProps) {
 	return (
-		<div className="flex w-full min-w-0 max-w-full items-center gap-3 overflow-hidden px-3 py-2">
+		<div className="group flex w-full min-w-0 max-w-full items-center gap-3 overflow-hidden rounded-md px-2.5 py-1.5 transition-colors hover:bg-accent/40">
 			{icon && (
-				<div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
+				<div className="flex size-4 shrink-0 items-center justify-center text-muted-foreground">
 					{icon}
 				</div>
 			)}
 			<div className="flex min-w-0 flex-1 flex-col">
 				<span
-					className="truncate text-sm font-medium text-foreground"
+					className="truncate text-[13px] font-medium leading-tight text-foreground"
 					title={primary}
 				>
 					{primary}
 				</span>
 				{secondary && (
 					<span
-						className="truncate font-mono text-[11px] text-muted-foreground"
+						className="mt-0.5 truncate font-mono text-[11px] leading-tight text-muted-foreground"
 						title={secondary}
 					>
 						{secondary}
@@ -75,7 +75,7 @@ export function ImportRow({
 				)}
 				{action.kind === "error" && (
 					<span
-						className="select-text cursor-text truncate text-[11px] text-destructive"
+						className="mt-0.5 select-text cursor-text truncate text-[11px] leading-tight text-destructive"
 						title={action.message}
 					>
 						{action.message}
@@ -83,14 +83,14 @@ export function ImportRow({
 				)}
 				{action.kind === "blocked" && (
 					<span
-						className="truncate text-[11px] text-muted-foreground"
+						className="mt-0.5 truncate text-[11px] leading-tight text-muted-foreground"
 						title={action.reason}
 					>
 						{action.reason}
 					</span>
 				)}
 				{action.kind === "confirm" && (
-					<span className="select-text cursor-text text-[11px] text-muted-foreground [overflow-wrap:anywhere]">
+					<span className="mt-0.5 select-text cursor-text text-[11px] leading-tight text-muted-foreground [overflow-wrap:anywhere]">
 						{action.message}
 					</span>
 				)}
@@ -110,22 +110,29 @@ function RowActionView({ action }: { action: RowAction }) {
 					variant="outline"
 					onClick={action.onClick}
 					disabled={action.disabled}
-					className="shrink-0"
+					className="h-7 shrink-0 px-2.5 text-[12px] font-medium"
 				>
 					{action.label}
 				</Button>
 			);
 		case "running":
 			return (
-				<div className="flex h-8 w-[68px] shrink-0 items-center justify-center text-muted-foreground">
-					<Spinner className="size-3.5" />
-				</div>
+				<Button
+					type="button"
+					size="sm"
+					variant="outline"
+					disabled
+					className="h-7 shrink-0 gap-1.5 px-2.5 text-[12px] font-medium"
+				>
+					<Spinner className="size-3" />
+					{action.label}
+				</Button>
 			);
 		case "imported":
 			return (
 				<div
 					className={cn(
-						"flex shrink-0 items-center gap-1 text-xs font-medium",
+						"flex shrink-0 items-center gap-1 text-[12px] font-medium",
 						"text-emerald-600 dark:text-emerald-400",
 					)}
 				>
@@ -135,7 +142,7 @@ function RowActionView({ action }: { action: RowAction }) {
 			);
 		case "blocked":
 			return (
-				<div className="shrink-0 text-[11px] uppercase tracking-wide text-muted-foreground">
+				<div className="shrink-0 text-[10px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
 					Blocked
 				</div>
 			);
@@ -146,7 +153,7 @@ function RowActionView({ action }: { action: RowAction }) {
 					size="sm"
 					variant="outline"
 					onClick={action.onRetry}
-					className="shrink-0 gap-1.5"
+					className="h-7 shrink-0 gap-1.5 px-2.5 text-[12px] font-medium"
 				>
 					<LuTriangle className="size-3 text-destructive" strokeWidth={2.5} />
 					Retry
@@ -158,8 +165,9 @@ function RowActionView({ action }: { action: RowAction }) {
 					<Button
 						type="button"
 						size="sm"
-						variant="outline"
+						variant="ghost"
 						onClick={action.onCancel}
+						className="h-7 px-2.5 text-[12px] font-medium"
 					>
 						{action.cancelLabel ?? "Cancel"}
 					</Button>
@@ -168,6 +176,7 @@ function RowActionView({ action }: { action: RowAction }) {
 						size="sm"
 						variant="default"
 						onClick={action.onConfirm}
+						className="h-7 px-2.5 text-[12px] font-medium"
 					>
 						{action.confirmLabel}
 					</Button>
@@ -181,7 +190,7 @@ function RowActionView({ action }: { action: RowAction }) {
 							type="button"
 							size="sm"
 							variant="outline"
-							className="shrink-0 gap-1.5"
+							className="h-7 shrink-0 gap-1.5 px-2.5 text-[12px] font-medium"
 						>
 							{action.label}
 							<LuChevronDown className="size-3" strokeWidth={2} />
@@ -195,7 +204,7 @@ function RowActionView({ action }: { action: RowAction }) {
 								className="flex flex-col items-start gap-0.5"
 							>
 								<div className="flex w-full items-center gap-2">
-									<span className="truncate text-sm">{candidate.name}</span>
+									<span className="truncate text-[13px]">{candidate.name}</span>
 									{candidate.matchesExpected && (
 										<span className="ml-auto shrink-0 text-[10px] font-medium text-emerald-600 dark:text-emerald-400">
 											matches v1

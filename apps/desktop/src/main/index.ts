@@ -27,6 +27,7 @@ import { setupAgentHooks } from "./lib/agent-setup";
 import { initAppState } from "./lib/app-state";
 import { requestAppleEventsAccess } from "./lib/apple-events-permission";
 import { setupAutoUpdater } from "./lib/auto-updater";
+import { installBundledCliShim } from "./lib/bundled-cli";
 import { resolveDevWorkspaceName } from "./lib/dev-workspace-name";
 import { setWorkspaceDockIcon } from "./lib/dock-icon";
 import { loadWebviewBrowserExtension } from "./lib/extensions";
@@ -163,12 +164,20 @@ app.on("open-url", async (event, url) => {
 
 let isQuitting = false;
 let skipQuitConfirmation = false;
+let forceFullCleanup = false;
 
 export function setSkipQuitConfirmation(): void {
 	skipQuitConfirmation = true;
 }
 
 export function quitApp(): void {
+	setSkipQuitConfirmation();
+	app.quit();
+}
+
+/** Nuclear quit: also kills host-service(s) and pty-daemon/terminal-host. */
+export function quitAppCompletely(): void {
+	forceFullCleanup = true;
 	setSkipQuitConfirmation();
 	app.quit();
 }
@@ -214,7 +223,7 @@ app.on("before-quit", async (event) => {
 
 	isQuitting = true;
 	try {
-		if (isDev) {
+		if (isDev || forceFullCleanup) {
 			await runDevQuitCleanup();
 		} else {
 			// Prod: leave services running so the next launch re-adopts via manifest.
@@ -229,8 +238,9 @@ app.on("before-quit", async (event) => {
 });
 
 /**
- * Dev only — kill host-service + terminal-host children. They're spawned
- * attached + ref'd in dev, so they'd reparent to init without an explicit stop.
+ * Full cleanup — kill host-service + terminal-host children. Used in dev (where
+ * they'd reparent to init without an explicit stop) and on the tray's
+ * "Quit Superset Completely" path in prod.
  */
 async function runDevQuitCleanup(): Promise<void> {
 	getHostServiceCoordinator().stopAll();
@@ -388,6 +398,11 @@ if (!gotTheLock) {
 			setupAgentHooks();
 		} catch (error) {
 			console.error("[main] Failed to set up agent hooks:", error);
+		}
+		try {
+			installBundledCliShim();
+		} catch (error) {
+			console.error("[main] Failed to install bundled CLI shim:", error);
 		}
 
 		// Discover and adopt host-services that survived a previous quit

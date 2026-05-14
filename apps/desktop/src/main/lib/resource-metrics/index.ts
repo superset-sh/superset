@@ -1,9 +1,5 @@
 import os from "node:os";
-import { projects, workspaces } from "@superset/local-db";
-import { eq } from "drizzle-orm";
 import { app } from "electron";
-import { localDb } from "main/lib/local-db";
-import { getWorkspaceRuntimeRegistry } from "main/lib/workspace-runtime/registry";
 import pidusage from "pidusage";
 import {
 	captureProcessSnapshot,
@@ -12,6 +8,12 @@ import {
 	getSubtreeResources,
 	type ProcessSnapshot,
 } from "./process-tree";
+import { normalizeOptionalTitle } from "./session-normalization";
+import {
+	collectWorkspaceSessionMap,
+	getWorkspaceMetadata,
+	type ResourceMetricsSurface,
+} from "./session-sources";
 
 interface ProcessMetrics {
 	cpu: number;
@@ -22,6 +24,7 @@ interface SessionMetrics {
 	sessionId: string;
 	paneId: string;
 	pid: number;
+	title: string | null;
 	cpu: number;
 	memory: number;
 }
@@ -61,10 +64,11 @@ export interface ResourceMetricsSnapshot {
 }
 
 type SnapshotMode = "interactive" | "idle";
-
 interface CollectResourceMetricsOptions {
 	mode?: SnapshotMode;
 	force?: boolean;
+	surface?: ResourceMetricsSurface;
+	organizationId?: string;
 }
 
 const SNAPSHOT_MAX_AGE_MS: Record<SnapshotMode, number> = {
@@ -72,8 +76,8 @@ const SNAPSHOT_MAX_AGE_MS: Record<SnapshotMode, number> = {
 	idle: 15000,
 };
 
-let cachedSnapshot: ResourceMetricsSnapshot | null = null;
-let inflightCollection: Promise<ResourceMetricsSnapshot> | null = null;
+const cachedSnapshots = new Map<string, ResourceMetricsSnapshot>();
+const inflightCollections = new Map<string, Promise<ResourceMetricsSnapshot>>();
 
 function normalizeFiniteNumber(value: unknown): number {
 	if (typeof value !== "number" || !Number.isFinite(value)) return 0;
@@ -135,6 +139,7 @@ function normalizeSnapshot(
 			sessionId: session.sessionId,
 			paneId: session.paneId,
 			pid: Math.max(0, Math.floor(normalizeFiniteNumber(session.pid))),
+			title: normalizeOptionalTitle(session.title),
 			cpu: normalizeFiniteNumber(session.cpu),
 			memory: normalizeFiniteNumber(session.memory),
 		}));
@@ -188,8 +193,11 @@ export async function collectResourceMetrics(
 	options: CollectResourceMetricsOptions = {},
 ): Promise<ResourceMetricsSnapshot> {
 	const mode = options.mode ?? "interactive";
+	const surface = options.surface ?? "v1";
 	const maxAgeMs = getSnapshotMaxAge(mode);
+	const cacheKey = `${surface}:${options.organizationId ?? "all"}`;
 
+	const cachedSnapshot = cachedSnapshots.get(cacheKey) ?? null;
 	if (!options.force && cachedSnapshot) {
 		const ageMs = Date.now() - cachedSnapshot.collectedAt;
 		if (ageMs <= maxAgeMs) {
@@ -198,11 +206,15 @@ export async function collectResourceMetrics(
 	}
 
 	// Avoid duplicate expensive process-tree scans for concurrent callers.
+	const inflightCollection = inflightCollections.get(cacheKey);
 	if (inflightCollection) {
 		return inflightCollection;
 	}
 
-	inflightCollection = collectResourceMetricsNow()
+	const collection = collectResourceMetricsNow({
+		surface,
+		organizationId: options.organizationId,
+	})
 		.catch((error) => {
 			console.warn(
 				"[resource-metrics] Failed to collect resource metrics; returning a safe fallback snapshot",
@@ -212,14 +224,15 @@ export async function collectResourceMetrics(
 		})
 		.then((snapshot) => {
 			const normalized = normalizeSnapshot(snapshot);
-			cachedSnapshot = normalized;
+			cachedSnapshots.set(cacheKey, normalized);
 			return normalized;
 		})
 		.finally(() => {
-			inflightCollection = null;
+			inflightCollections.delete(cacheKey);
 		});
+	inflightCollections.set(cacheKey, collection);
 
-	return inflightCollection;
+	return collection;
 }
 
 async function enrichSnapshotCpu(
@@ -241,32 +254,17 @@ async function enrichSnapshotCpu(
 	}
 }
 
-async function collectResourceMetricsNow(): Promise<ResourceMetricsSnapshot> {
-	const registry = getWorkspaceRuntimeRegistry();
-	const { sessions } = await registry
-		.getDefault()
-		.terminal.management.listSessions();
-
-	const workspaceSessionMap = new Map<
-		string,
-		Array<{ sessionId: string; paneId: string; pid: number }>
-	>();
-
-	for (const session of sessions) {
-		if (!session.isAlive || session.pid == null) continue;
-
-		let entries = workspaceSessionMap.get(session.workspaceId);
-		if (!entries) {
-			entries = [];
-			workspaceSessionMap.set(session.workspaceId, entries);
-		}
-		entries.push({
-			sessionId: session.sessionId,
-			paneId: session.paneId,
-			pid: session.pid,
-		});
-	}
-
+async function collectResourceMetricsNow({
+	surface,
+	organizationId,
+}: {
+	surface: ResourceMetricsSurface;
+	organizationId?: string;
+}): Promise<ResourceMetricsSnapshot> {
+	const workspaceSessionMap = await collectWorkspaceSessionMap({
+		surface,
+		organizationId,
+	});
 	const allEntries = [...workspaceSessionMap.values()].flat();
 
 	// Single atomic snapshot: tree structure + resource data from one `ps`
@@ -340,21 +338,10 @@ async function collectResourceMetricsNow(): Promise<ResourceMetricsSnapshot> {
 
 	for (const [workspaceId, entries] of workspaceSessionMap) {
 		if (!workspaceMetaCache.has(workspaceId)) {
-			const ws = localDb
-				.select({
-					workspaceName: workspaces.name,
-					projectId: workspaces.projectId,
-					projectName: projects.name,
-				})
-				.from(workspaces)
-				.leftJoin(projects, eq(projects.id, workspaces.projectId))
-				.where(eq(workspaces.id, workspaceId))
-				.get();
-			workspaceMetaCache.set(workspaceId, {
-				workspaceName: ws?.workspaceName ?? "Unknown",
-				projectId: ws?.projectId ?? "unknown",
-				projectName: ws?.projectName ?? "Unknown Project",
-			});
+			workspaceMetaCache.set(
+				workspaceId,
+				getWorkspaceMetadata(surface, workspaceId),
+			);
 		}
 
 		const sessionMetrics: SessionMetrics[] = [];
@@ -371,6 +358,7 @@ async function collectResourceMetricsNow(): Promise<ResourceMetricsSnapshot> {
 				sessionId: entry.sessionId,
 				paneId: entry.paneId,
 				pid: entry.pid,
+				title: entry.title,
 				cpu: agg.cpu,
 				memory: agg.memory,
 			});

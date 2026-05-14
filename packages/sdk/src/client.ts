@@ -59,7 +59,6 @@ import {
 	PromptTransport,
 } from "./resources/agents";
 import {
-	AgentConfig,
 	Automation,
 	AutomationCreateParams,
 	AutomationListResponse,
@@ -1187,7 +1186,6 @@ export declare namespace Superset {
 		AutomationRunDispatched,
 		AutomationLogsParams,
 		AutomationLogsResponse,
-		AgentConfig,
 	};
 
 	export {

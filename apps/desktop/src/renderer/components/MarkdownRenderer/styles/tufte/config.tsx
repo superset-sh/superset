@@ -12,7 +12,6 @@ export const tufteConfig: MarkdownStyleConfig = {
 				{children}
 			</CodeBlock>
 		),
-		// Block external images for privacy (tracking pixels, etc.)
 		img: ({ src, alt }) => <SafeImage src={src} alt={alt} />,
 	},
 };

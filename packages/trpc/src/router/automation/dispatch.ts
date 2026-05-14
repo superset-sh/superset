@@ -1,20 +1,13 @@
-import crypto from "node:crypto";
 import { mintUserJwt } from "@superset/auth/server";
 import { dbWs } from "@superset/db/client";
 import {
 	automationRuns,
-	chatSessions,
 	type SelectAutomation,
 	subscriptions,
 	users,
 	v2Hosts,
 	v2UsersHosts,
 } from "@superset/db/schema";
-import {
-	buildPromptCommandFromAgentConfig,
-	getCommandFromAgentConfig,
-	type TerminalResolvedAgentConfig,
-} from "@superset/shared/agent-settings";
 import {
 	ACTIVE_SUBSCRIPTION_STATUSES,
 	isActiveSubscriptionStatus,
@@ -28,6 +21,10 @@ import {
 } from "@superset/shared/workspace-launch";
 import { and, desc, eq, inArray } from "drizzle-orm";
 import { RelayDispatchError, relayMutation } from "./relay-client";
+
+type AgentRunResult =
+	| { kind: "terminal"; sessionId: string; label: string }
+	| { kind: "chat"; sessionId: string; label: string };
 
 export type DispatchOutcome =
 	| { status: "dispatched"; runId: string }
@@ -136,65 +133,26 @@ export async function dispatchAutomation(
 			workspaceId = created.workspaceId;
 		}
 
-		const agentConfig = automation.agentConfig;
-		if (!agentConfig || !agentConfig.enabled) {
-			throw new Error(
-				`agent preset is disabled: ${agentConfig?.id ?? "unknown"}`,
-			);
-		}
+		const result = await runAgentOnHost({
+			relayUrl,
+			hostId: routingKey,
+			jwt,
+			workspaceId,
+			agent: automation.agent,
+			prompt: automation.prompt,
+		});
 
-		if (agentConfig.kind === "chat") {
-			const { sessionId } = await dispatchChatSession({
-				relayUrl,
-				hostId: routingKey,
-				jwt,
-				workspaceId,
-				prompt: automation.prompt,
-				model: agentConfig.model ?? undefined,
-			});
-
-			await dbWs.insert(chatSessions).values({
-				id: sessionId,
-				organizationId: automation.organizationId,
-				createdBy: automation.ownerUserId,
+		await dbWs
+			.update(automationRuns)
+			.set({
+				status: "dispatched",
+				sessionKind: result.kind,
+				chatSessionId: result.kind === "chat" ? result.sessionId : null,
+				terminalSessionId: result.kind === "terminal" ? result.sessionId : null,
 				v2WorkspaceId: workspaceId,
-				title: automation.name,
-			});
-
-			await dbWs
-				.update(automationRuns)
-				.set({
-					status: "dispatched",
-					sessionKind: "chat",
-					chatSessionId: sessionId,
-					v2WorkspaceId: workspaceId,
-					dispatchedAt: new Date(),
-				})
-				.where(eq(automationRuns.id, run.id));
-		} else {
-			const command = buildTerminalCommand({
-				prompt: automation.prompt,
-				config: agentConfig,
-				randomId: run.id,
-			});
-			const { terminalId } = await dispatchTerminalSession({
-				relayUrl,
-				hostId: routingKey,
-				jwt,
-				workspaceId,
-				command,
-			});
-			await dbWs
-				.update(automationRuns)
-				.set({
-					status: "dispatched",
-					sessionKind: "terminal",
-					terminalSessionId: terminalId,
-					v2WorkspaceId: workspaceId,
-					dispatchedAt: new Date(),
-				})
-				.where(eq(automationRuns.id, run.id));
-		}
+				dispatchedAt: new Date(),
+			})
+			.where(eq(automationRuns.id, run.id));
 	} catch (err) {
 		const error = describeError(err, "dispatch");
 		await dbWs
@@ -377,80 +335,30 @@ async function createWorkspaceOnHost(args: {
 	return { workspaceId: result.workspace.id, branchName };
 }
 
-async function dispatchChatSession(args: {
+async function runAgentOnHost(args: {
 	relayUrl: string;
 	hostId: string;
 	jwt: string;
 	workspaceId: string;
+	agent: string;
 	prompt: string;
-	model: string | undefined;
-}): Promise<{ sessionId: string }> {
-	const sessionId = crypto.randomUUID();
-	await relayMutation<
-		{
-			sessionId: string;
-			workspaceId: string;
-			payload: { content: string };
-			metadata?: { model?: string };
-		},
-		{ sessionId: string; messageId: string }
-	>(
-		{ relayUrl: args.relayUrl, hostId: args.hostId, jwt: args.jwt },
-		"chat.sendMessage",
-		{
-			sessionId,
-			workspaceId: args.workspaceId,
-			payload: { content: args.prompt },
-			metadata: args.model ? { model: args.model } : undefined,
-		},
-	);
-	return { sessionId };
-}
-
-async function dispatchTerminalSession(args: {
-	relayUrl: string;
-	hostId: string;
-	jwt: string;
-	workspaceId: string;
-	command: string;
-}): Promise<{ terminalId: string }> {
-	const terminalId = crypto.randomUUID();
-	await relayMutation<
+}): Promise<AgentRunResult> {
+	return relayMutation<
 		{
 			workspaceId: string;
-			terminalId?: string;
-			initialCommand: string;
+			agent: string;
+			prompt: string;
 		},
-		{ terminalId: string; status: string }
+		AgentRunResult
 	>(
 		{ relayUrl: args.relayUrl, hostId: args.hostId, jwt: args.jwt },
-		"terminal.launchSession",
+		"agents.run",
 		{
-			terminalId,
 			workspaceId: args.workspaceId,
-			initialCommand: args.command,
+			agent: args.agent,
+			prompt: args.prompt,
 		},
 	);
-	return { terminalId };
-}
-
-function buildTerminalCommand(args: {
-	prompt: string;
-	config: TerminalResolvedAgentConfig;
-	randomId: string;
-}): string {
-	const command = args.prompt
-		? buildPromptCommandFromAgentConfig({
-				prompt: args.prompt,
-				randomId: args.randomId,
-				config: args.config,
-			})
-		: getCommandFromAgentConfig(args.config);
-
-	if (!command) {
-		throw new Error(`no command configured for agent "${args.config.id}"`);
-	}
-	return command;
 }
 
 function describeError(err: unknown, context: string): string {

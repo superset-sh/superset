@@ -227,6 +227,7 @@ function AdoptWorktreesContent({
 							projectId: v2ProjectId,
 							name: wt.branch,
 							branch: wt.branch,
+							worktreePath: wt.path,
 						},
 					});
 					if (result.ok) {

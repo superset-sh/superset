@@ -1,5 +1,7 @@
+import { Button } from "@superset/ui/button";
+import { Spinner } from "@superset/ui/spinner";
 import { useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { LuLayoutGrid } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
@@ -24,11 +26,20 @@ function trpcCode(err: unknown): string | null {
 	return typeof code === "string" ? code : null;
 }
 
+type AdoptStatus =
+	| { kind: "idle" }
+	| { kind: "running" }
+	| { kind: "imported" }
+	| { kind: "error"; message: string };
+
+const IDLE: AdoptStatus = { kind: "idle" };
+
 export function ImportWorkspacesPage({
 	organizationId,
 	activeHostUrl,
 }: ImportWorkspacesPageProps) {
 	const queryClient = useQueryClient();
+	const { ensureWorkspaceInSidebar } = useDashboardSidebarState();
 	const projectsQuery = electronTrpc.migration.readV1Projects.useQuery();
 	const workspacesQuery = electronTrpc.migration.readV1Workspaces.useQuery();
 	const worktreesQuery = electronTrpc.migration.readV1Worktrees.useQuery();
@@ -156,6 +167,8 @@ export function ImportWorkspacesPage({
 		workspace: (typeof allWorkspaces)[number];
 		v2ProjectId: string;
 		alreadyImported: boolean;
+		worktreePath: string | undefined;
+		baseBranch: string | null;
 	};
 	const visibleWorkspaces: VisibleWorkspace[] = [];
 	for (const workspace of allWorkspaces) {
@@ -171,8 +184,150 @@ export function ImportWorkspacesPage({
 				continue;
 			}
 		}
-		visibleWorkspaces.push({ workspace, v2ProjectId, alreadyImported });
+		const worktree = workspace.worktreeId
+			? worktreesById.get(workspace.worktreeId)
+			: undefined;
+		visibleWorkspaces.push({
+			workspace,
+			v2ProjectId,
+			alreadyImported,
+			worktreePath: worktree?.path,
+			baseBranch: worktree?.baseBranch ?? null,
+		});
 	}
+
+	const [adoptStates, setAdoptStates] = useState<Map<string, AdoptStatus>>(
+		() => new Map(),
+	);
+	const adoptStatesRef = useRef(adoptStates);
+	adoptStatesRef.current = adoptStates;
+
+	const updateAdoptStatus = useCallback(
+		(workspaceId: string, status: AdoptStatus) => {
+			setAdoptStates((prev) => {
+				const next = new Map(prev);
+				if (status.kind === "idle") {
+					next.delete(workspaceId);
+				} else {
+					next.set(workspaceId, status);
+				}
+				return next;
+			});
+		},
+		[],
+	);
+
+	const adoptWorkspace = useCallback(
+		async (entry: VisibleWorkspace) => {
+			const { workspace, v2ProjectId, worktreePath, baseBranch } = entry;
+			updateAdoptStatus(workspace.id, { kind: "running" });
+			try {
+				const client = getHostServiceClientByUrl(activeHostUrl);
+				const adoptArgs = {
+					projectId: v2ProjectId,
+					workspaceName: workspace.name,
+					branch: workspace.branch,
+					baseBranch: baseBranch ?? undefined,
+				};
+				let result: Awaited<
+					ReturnType<typeof client.workspaceCreation.adopt.mutate>
+				>;
+				try {
+					result = await client.workspaceCreation.adopt.mutate({
+						...adoptArgs,
+						worktreePath,
+					});
+				} catch (err) {
+					if (worktreePath && trpcCode(err) === "NOT_FOUND") {
+						result = await client.workspaceCreation.adopt.mutate(adoptArgs);
+					} else {
+						throw err;
+					}
+				}
+
+				ensureWorkspaceInSidebar(result.workspace.id, v2ProjectId);
+				updateAdoptStatus(workspace.id, { kind: "imported" });
+				await queryClient.invalidateQueries({
+					queryKey: WORKSPACE_CLOUD_LIST_KEY,
+				});
+			} catch (err) {
+				const message = err instanceof Error ? err.message : String(err);
+				updateAdoptStatus(workspace.id, { kind: "error", message });
+				console.error("[v1-import] workspace adopt failed", {
+					v1WorkspaceId: workspace.id,
+					v2ProjectId,
+					branch: workspace.branch,
+					organizationId,
+					err,
+				});
+			}
+		},
+		[
+			activeHostUrl,
+			ensureWorkspaceInSidebar,
+			organizationId,
+			queryClient,
+			updateAdoptStatus,
+		],
+	);
+
+	const [adoptAllProgress, setAdoptAllProgress] = useState<{
+		current: number;
+		total: number;
+	} | null>(null);
+
+	const pendingEntries = visibleWorkspaces.filter((entry) => {
+		if (entry.alreadyImported) return false;
+		const status = adoptStates.get(entry.workspace.id) ?? IDLE;
+		return status.kind === "idle" || status.kind === "error";
+	});
+
+	const visibleWorkspacesRef = useRef(visibleWorkspaces);
+	visibleWorkspacesRef.current = visibleWorkspaces;
+
+	const adoptAll = useCallback(async () => {
+		const queue = visibleWorkspacesRef.current.filter((entry) => {
+			if (entry.alreadyImported) return false;
+			const status = adoptStatesRef.current.get(entry.workspace.id) ?? IDLE;
+			return status.kind === "idle" || status.kind === "error";
+		});
+		if (queue.length === 0) return;
+		try {
+			for (let i = 0; i < queue.length; i++) {
+				const entry = queue[i];
+				if (!entry) continue;
+				const current = adoptStatesRef.current.get(entry.workspace.id) ?? IDLE;
+				if (current.kind === "running" || current.kind === "imported") {
+					continue;
+				}
+				setAdoptAllProgress({ current: i, total: queue.length });
+				await adoptWorkspace(entry);
+			}
+		} finally {
+			setAdoptAllProgress(null);
+		}
+	}, [adoptWorkspace]);
+
+	const isAdoptingAll = adoptAllProgress !== null;
+	const showAdoptAll = pendingEntries.length > 0 || isAdoptingAll;
+
+	const headerAction = showAdoptAll ? (
+		<Button
+			type="button"
+			size="sm"
+			variant="default"
+			onClick={() => {
+				void adoptAll();
+			}}
+			disabled={isAdoptingAll || pendingEntries.length === 0}
+			className="h-7 shrink-0 gap-1.5 px-2.5 text-[12px] font-medium tabular-nums"
+		>
+			{adoptAllProgress && <Spinner className="size-3" />}
+			{adoptAllProgress
+				? `Adopting ${adoptAllProgress.current + 1}/${adoptAllProgress.total}`
+				: `Adopt all · ${pendingEntries.length}`}
+		</Button>
+	) : null;
 
 	const grouped = new Map<
 		string,
@@ -205,34 +360,25 @@ export function ImportWorkspacesPage({
 			}
 			onRefresh={refresh}
 			isRefreshing={isRefreshing}
+			headerAction={headerAction}
 		>
 			{Array.from(grouped.entries()).map(([projectV1Id, group]) => (
-				<div key={projectV1Id} className="mb-2 flex min-w-0 flex-col">
+				<div key={projectV1Id} className="mb-1.5 flex min-w-0 flex-col">
 					<div
-						className="truncate px-3 pt-2 pb-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground"
+						className="truncate px-2.5 pt-2.5 pb-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/70"
 						title={group.projectName}
 					>
 						{group.projectName}
 					</div>
-					{group.items.map(({ workspace, v2ProjectId, alreadyImported }) => (
+					{group.items.map((entry) => (
 						<WorkspaceRow
-							key={workspace.id}
-							workspace={workspace}
-							worktreePath={
-								workspace.worktreeId
-									? worktreesById.get(workspace.worktreeId)?.path
-									: undefined
-							}
-							baseBranch={
-								workspace.worktreeId
-									? (worktreesById.get(workspace.worktreeId)?.baseBranch ??
-										null)
-									: null
-							}
-							v2ProjectId={v2ProjectId}
-							alreadyImported={alreadyImported}
-							organizationId={organizationId}
-							activeHostUrl={activeHostUrl}
+							key={entry.workspace.id}
+							entry={entry}
+							status={adoptStates.get(entry.workspace.id) ?? IDLE}
+							disabled={isAdoptingAll}
+							onAdopt={() => {
+								void adoptWorkspace(entry);
+							}}
 						/>
 					))}
 				</div>
@@ -242,92 +388,36 @@ export function ImportWorkspacesPage({
 }
 
 interface WorkspaceRowProps {
-	workspace: {
-		id: string;
-		name: string;
-		branch: string;
-		projectId: string;
+	entry: {
+		workspace: { id: string; name: string; branch: string };
+		alreadyImported: boolean;
 	};
-	worktreePath: string | undefined;
-	baseBranch: string | null;
-	v2ProjectId: string;
-	alreadyImported: boolean;
-	organizationId: string;
-	activeHostUrl: string;
+	status: AdoptStatus;
+	disabled: boolean;
+	onAdopt: () => void;
 }
 
-function WorkspaceRow({
-	workspace,
-	worktreePath,
-	baseBranch,
-	v2ProjectId,
-	alreadyImported,
-	organizationId,
-	activeHostUrl,
-}: WorkspaceRowProps) {
-	const queryClient = useQueryClient();
-	const { ensureWorkspaceInSidebar } = useDashboardSidebarState();
-	const [running, setRunning] = useState(false);
-	const [errorMessage, setErrorMessage] = useState<string | null>(null);
-	const [adoptedV2Id, setAdoptedV2Id] = useState<string | null>(null);
-
-	const isImported = alreadyImported || !!adoptedV2Id;
-
-	const runImport = async () => {
-		setRunning(true);
-		setErrorMessage(null);
-		try {
-			const client = getHostServiceClientByUrl(activeHostUrl);
-			const adoptArgs = {
-				projectId: v2ProjectId,
-				workspaceName: workspace.name,
-				branch: workspace.branch,
-				baseBranch: baseBranch ?? undefined,
-				existingWorkspaceId: adoptedV2Id ?? undefined,
-			};
-			let result: Awaited<
-				ReturnType<typeof client.workspaceCreation.adopt.mutate>
-			>;
-			try {
-				result = await client.workspaceCreation.adopt.mutate({
-					...adoptArgs,
-					worktreePath,
-				});
-			} catch (err) {
-				if (worktreePath && trpcCode(err) === "NOT_FOUND") {
-					result = await client.workspaceCreation.adopt.mutate(adoptArgs);
-				} else {
-					throw err;
-				}
-			}
-
-			ensureWorkspaceInSidebar(result.workspace.id, v2ProjectId);
-			setAdoptedV2Id(result.workspace.id);
-			await queryClient.invalidateQueries({
-				queryKey: WORKSPACE_CLOUD_LIST_KEY,
-			});
-		} catch (err) {
-			const message = err instanceof Error ? err.message : String(err);
-			setErrorMessage(message);
-			console.error("[v1-import] workspace adopt failed", {
-				v1WorkspaceId: workspace.id,
-				v2ProjectId,
-				branch: workspace.branch,
-				organizationId,
-				err,
-			});
-		} finally {
-			setRunning(false);
-		}
-	};
+function WorkspaceRow({ entry, status, disabled, onAdopt }: WorkspaceRowProps) {
+	const { workspace, alreadyImported } = entry;
 
 	const action: RowAction = (() => {
-		if (running) return { kind: "running" };
-		if (isImported) return { kind: "imported" };
-		if (errorMessage) {
-			return { kind: "error", message: errorMessage, onRetry: runImport };
+		if (status.kind === "running") {
+			return { kind: "running", label: "Adopting…" };
 		}
-		return { kind: "ready", label: "Adopt", onClick: runImport };
+		if (alreadyImported || status.kind === "imported") {
+			return { kind: "imported" };
+		}
+		if (status.kind === "error") {
+			return disabled
+				? { kind: "running", label: "Queued" }
+				: { kind: "error", message: status.message, onRetry: onAdopt };
+		}
+		return {
+			kind: "ready",
+			label: "Adopt",
+			onClick: onAdopt,
+			disabled,
+		};
 	})();
 
 	return (

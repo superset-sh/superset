@@ -31,6 +31,7 @@ export default command({
 			const result = await spawnHostService({
 				organizationId: organization.id,
 				sessionToken: ctx.bearer,
+				api: ctx.api,
 				port: options.port,
 				daemon: options.daemon ?? false,
 			});

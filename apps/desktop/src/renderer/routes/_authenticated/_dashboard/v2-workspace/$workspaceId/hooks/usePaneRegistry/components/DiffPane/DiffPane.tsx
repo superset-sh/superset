@@ -9,12 +9,25 @@ import { useSidebarDiffRef } from "../../../useSidebarDiffRef";
 import { useViewedFiles } from "../../../useViewedFiles";
 import { DiffFileEntry } from "./components/DiffFileEntry";
 
-function ScrollToFile({ path }: { path: string }) {
+function ScrollToFile({
+	path,
+	focusLine,
+	focusTick,
+}: {
+	path: string;
+	focusLine?: number;
+	focusTick?: number;
+}) {
 	const virtualizer = useVirtualizer();
 	const lastScrolledPath = useRef<string | null>(null);
+	const lastFocusTick = useRef<number | null>(null);
 
 	useEffect(() => {
-		if (!path || path === lastScrolledPath.current || !virtualizer) return;
+		if (!path || !virtualizer) return;
+		const tickChanged =
+			focusTick != null && focusTick !== lastFocusTick.current;
+		const pathChanged = path !== lastScrolledPath.current;
+		if (!pathChanged && !tickChanged) return;
 
 		requestAnimationFrame(() => {
 			const v = virtualizer as unknown as {
@@ -32,10 +45,44 @@ function ScrollToFile({ path }: { path: string }) {
 			const offset = v.getOffsetInScrollContainer(target as HTMLElement);
 			scrollContainer.scrollTo({ top: offset });
 			lastScrolledPath.current = path;
+			if (focusTick != null) lastFocusTick.current = focusTick;
+
+			// Only seek to the line on a *new* focus request — without this
+			// a path-only change would scroll to a stale focusLine.
+			if (focusLine != null && tickChanged) {
+				// Pierre's virtualizer mounts file content lazily; retry a
+				// few frames so the annotation slot has time to render.
+				let attempts = 0;
+				const tryScroll = () => {
+					const lineEl = findLineElement(target as HTMLElement, focusLine);
+					if (lineEl) {
+						lineEl.scrollIntoView({ block: "center" });
+						return;
+					}
+					if (attempts++ < 20) requestAnimationFrame(tryScroll);
+				};
+				requestAnimationFrame(tryScroll);
+			}
 		});
-	}, [path, virtualizer]);
+	}, [path, focusLine, focusTick, virtualizer]);
 
 	return null;
+}
+
+function findLineElement(
+	root: HTMLElement,
+	lineNumber: number,
+): HTMLElement | null {
+	// Prefer the Pierre annotation slot (`annotation-${side}-${line}`) —
+	// it's in light DOM and sits exactly where the comment renders.
+	// Fall back to the diff line itself when comments are hidden.
+	const slotted = root.querySelector(
+		`[slot$="-${lineNumber}"][slot^="annotation-"]`,
+	) as HTMLElement | null;
+	if (slotted) return slotted;
+	return root.querySelector(
+		`[data-line="${lineNumber}"]`,
+	) as HTMLElement | null;
 }
 
 interface DiffPaneProps {
@@ -108,7 +155,11 @@ export function DiffPane({ context, workspaceId, onOpenFile }: DiffPaneProps) {
 
 	return (
 		<Virtualizer className="h-full w-full overflow-auto">
-			<ScrollToFile path={data.path} />
+			<ScrollToFile
+				path={data.path}
+				focusLine={data.focusLine}
+				focusTick={data.focusTick}
+			/>
 			{files.map((file) => (
 				<DiffFileEntry
 					key={`${file.source.kind}:${file.path}`}
@@ -123,6 +174,8 @@ export function DiffPane({ context, workspaceId, onOpenFile }: DiffPaneProps) {
 					onSetViewed={setViewed}
 					onOpenFile={onOpenFile}
 					onOpenInExternalEditor={openInExternalEditor}
+					focusLine={file.path === data.path ? data.focusLine : undefined}
+					focusTick={file.path === data.path ? data.focusTick : undefined}
 				/>
 			))}
 		</Virtualizer>

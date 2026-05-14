@@ -40,6 +40,7 @@ export interface DashboardSidebarWorkspace {
 	behindCount: number | null;
 	createdAt: Date;
 	updatedAt: Date;
+	taskId: string | null;
 	creationStatus?: "preparing" | "generating-branch" | "creating" | "failed";
 }
 

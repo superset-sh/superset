@@ -6,6 +6,7 @@ import { Terminal as XTerm } from "@xterm/xterm";
 import { DEFAULT_TERMINAL_SCROLLBACK } from "shared/constants";
 import type { TerminalAppearance } from "./appearance";
 import { loadAddons } from "./terminal-addons";
+import { installImagePasteFallback } from "./terminal-image-paste-fallback";
 import { installTerminalKeyEventHandler } from "./terminal-key-event-handler";
 import { getTerminalParkingContainer } from "./terminal-parking";
 
@@ -30,6 +31,7 @@ export interface TerminalRuntime {
 	lastCols: number;
 	lastRows: number;
 	_disposeAddons: (() => void) | null;
+	_disposeImagePasteFallback: (() => void) | null;
 }
 
 function createTerminal(
@@ -216,6 +218,11 @@ export function createRuntime(
 		restoreBuffer(terminalId, terminal);
 	}
 
+	const disposeImagePasteFallback = installImagePasteFallback(
+		terminal,
+		wrapper,
+	);
+
 	return {
 		terminalId,
 		terminal,
@@ -230,6 +237,7 @@ export function createRuntime(
 		lastCols: cols,
 		lastRows: rows,
 		_disposeAddons: addonsResult.dispose,
+		_disposeImagePasteFallback: disposeImagePasteFallback,
 	};
 }
 
@@ -306,6 +314,8 @@ export function disposeRuntime(
 		persistBuffer(runtime.terminalId, runtime.serializeAddon);
 		persistDimensions(runtime.terminalId, runtime.lastCols, runtime.lastRows);
 	}
+	runtime._disposeImagePasteFallback?.();
+	runtime._disposeImagePasteFallback = null;
 	runtime._disposeAddons?.();
 	runtime._disposeAddons = null;
 	runtime._disposeResizeObserver?.();

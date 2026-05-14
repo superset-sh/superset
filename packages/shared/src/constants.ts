@@ -72,17 +72,26 @@ export const FEATURE_FLAGS = {
 	/** When enabled, blocks remote agent execution on the desktop (e.g., for enterprise orgs). */
 	DISABLE_REMOTE_AGENT: "disable-remote-agent",
 	/**
-	 * Gates the Automations feature in the UI (sidebar entry, routes, create
-	 * flow). Complementary to the subscriptions.plan paid-tier check —
-	 * server-side procedures still enforce paid plan; this flag controls
-	 * UI visibility and staged rollout.
-	 */
-	AUTOMATIONS_ACCESS: "automations-access",
-	/**
 	 * Routes the Slack agent to the v2 MCP server (`@superset/mcp-v2`)
 	 * instead of v1 (`@superset/mcp`). Evaluated against the linking
 	 * user's id (the Superset user behind the Slack mention) so it
 	 * piggybacks on the existing All Access cohort. Off → v1.
 	 */
 	SLACK_MCP_V2: "slack-mcp-v2",
+	/**
+	 * Gates the v2 desktop terminal's "Share remote control" button.
+	 * Evaluated against the sharer's Superset user id — anyone with the
+	 * resulting share link can still open it (the per-session HMAC is
+	 * the credential), so this only controls who can START a session.
+	 */
+	WEB_REMOTE_CONTROL_ACCESS: "web-remote-control-access",
+	/**
+	 * Per-user override for the relay base URL. Payload shape:
+	 * `{ "url": "https://..." }`. When set, both the host-service tunnel and
+	 * the desktop renderer's client-side WS opens route through this URL
+	 * instead of `env.RELAY_URL`. Lets us A/B-test alternative relay
+	 * implementations (e.g. Cloudflare Durable Objects) without changing
+	 * defaults for other users.
+	 */
+	RELAY_URL_OVERRIDE: "relay-url-override",
 } as const;

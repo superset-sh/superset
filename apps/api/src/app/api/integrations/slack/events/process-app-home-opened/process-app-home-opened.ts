@@ -1,6 +1,6 @@
 import { db } from "@superset/db/client";
 import { integrationConnections, usersSlackUsers } from "@superset/db/schema";
-import { and, eq } from "drizzle-orm";
+import { and, desc, eq, isNull } from "drizzle-orm";
 import { generateConnectUrl } from "../utils/generate-connect-url";
 import { createSlackClient } from "../utils/slack-client";
 import { buildHomeView } from "./build-home-view";
@@ -19,7 +19,12 @@ export async function processAppHomeOpened({
 		where: and(
 			eq(integrationConnections.provider, "slack"),
 			eq(integrationConnections.externalOrgId, teamId),
+			isNull(integrationConnections.disconnectedAt),
 		),
+		orderBy: [
+			desc(integrationConnections.updatedAt),
+			desc(integrationConnections.id),
+		],
 	});
 
 	if (!connection) {

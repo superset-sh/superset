@@ -91,12 +91,13 @@ export function V1ImportModal() {
 					)}
 				</div>
 
-				<div className="box-border flex shrink-0 items-center justify-between gap-3 border-t bg-background px-5 py-4">
+				<div className="box-border flex shrink-0 items-center justify-between gap-3 border-t border-border/60 bg-background px-5 py-3">
 					{previousPage ? (
 						<Button
-							variant="outline"
+							variant="ghost"
+							size="sm"
 							onClick={() => setPage(previousPage)}
-							className="shrink-0"
+							className="h-8 shrink-0 px-3 text-[13px] font-medium text-muted-foreground hover:text-foreground"
 						>
 							Back
 						</Button>
@@ -104,11 +105,19 @@ export function V1ImportModal() {
 						<div />
 					)}
 					{nextPage ? (
-						<Button onClick={() => setPage(nextPage)} className="shrink-0">
+						<Button
+							size="sm"
+							onClick={() => setPage(nextPage)}
+							className="h-8 shrink-0 px-3 text-[13px] font-medium"
+						>
 							{page === "welcome" ? "Get started" : "Next"}
 						</Button>
 					) : (
-						<Button onClick={close} className="shrink-0">
+						<Button
+							size="sm"
+							onClick={close}
+							className="h-8 shrink-0 px-3 text-[13px] font-medium"
+						>
 							Done
 						</Button>
 					)}

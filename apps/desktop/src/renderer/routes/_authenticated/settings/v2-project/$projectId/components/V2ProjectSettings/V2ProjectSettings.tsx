@@ -85,7 +85,7 @@ export function V2ProjectSettings({ projectId }: V2ProjectSettingsProps) {
 				{activeHostUrl && (
 					<SettingsSection
 						title="Scripts"
-						description="Runs in a terminal when workspaces are created or deleted. Saved to .superset/config.json in the main repo."
+						description="Runs in a terminal for setup, teardown, and the workspace Run button. Saved to .superset/config.json in the main repo."
 					>
 						<V2ScriptsEditor hostUrl={activeHostUrl} projectId={projectId} />
 					</SettingsSection>

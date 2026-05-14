@@ -21,6 +21,7 @@ interface V2WorkspacePatch {
 	name?: string;
 	branch?: string;
 	hostId?: string;
+	taskId?: string | null;
 }
 
 function getErrorMessage(error: unknown): string {
@@ -98,6 +99,11 @@ export function useOptimisticCollectionActions() {
 			failureTitle: string,
 			mutation: () => PersistableTransaction,
 		) => runMutation("optimistic.v2UsersHosts", failureTitle, mutation);
+
+		const runHostsMutation = (
+			failureTitle: string,
+			mutation: () => PersistableTransaction,
+		) => runMutation("optimistic.v2Hosts", failureTitle, mutation);
 
 		return {
 			tasks: {
@@ -184,6 +190,9 @@ export function useOptimisticCollectionActions() {
 							if (patch.hostId !== undefined) {
 								draft.hostId = patch.hostId;
 							}
+							if (patch.taskId !== undefined) {
+								draft.taskId = patch.taskId;
+							}
 						}),
 					),
 				renameWorkspace: (workspaceId: string, name: string) =>
@@ -201,6 +210,14 @@ export function useOptimisticCollectionActions() {
 						collections.chatSessions.delete(sessionId),
 					);
 				},
+			},
+			v2Hosts: {
+				renameHost: (hostId: string, name: string) =>
+					runHostsMutation("Failed to rename host", () =>
+						collections.v2Hosts.update(hostId, (draft) => {
+							draft.name = name;
+						}),
+					),
 			},
 			v2UsersHosts: {
 				addMember: (input: {

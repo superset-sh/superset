@@ -1,6 +1,7 @@
 import type { WorkspaceState } from "@superset/panes";
 import { useCallback } from "react";
 import { resolveHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
+import { useRelayUrl } from "renderer/hooks/useRelayUrl";
 import { authClient } from "renderer/lib/auth-client";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import type { PaneViewerData } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/types";
@@ -39,6 +40,7 @@ export function useWorkspaceCreates(): UseWorkspaceCreatesApi {
 	const { data: session } = authClient.useSession();
 	const organizationId = session?.session?.activeOrganizationId;
 	const collections = useCollections();
+	const relayUrl = useRelayUrl();
 
 	const dispatch = useCallback(
 		async (args: SubmitArgs): Promise<SubmitResult> => {
@@ -58,6 +60,7 @@ export function useWorkspaceCreates(): UseWorkspaceCreatesApi {
 				machineId,
 				activeHostUrl,
 				organizationId,
+				relayUrl,
 			});
 			if (!hostUrl) {
 				const error = "Host service not available";
@@ -143,7 +146,7 @@ export function useWorkspaceCreates(): UseWorkspaceCreatesApi {
 				return { ok: false, error };
 			}
 		},
-		[machineId, activeHostUrl, organizationId, collections],
+		[machineId, activeHostUrl, organizationId, collections, relayUrl],
 	);
 
 	const submit = useCallback(

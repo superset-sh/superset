@@ -63,9 +63,15 @@ export function parseGraphQLThreads(
 ): PullRequestReviewThread[] {
 	return result.repository.pullRequest.reviewThreads.nodes.map((thread) => {
 		const firstComment = thread.comments.nodes[0];
+		// GitHub clears `line` (keeping only `originalLine`) when a thread's
+		// anchor moved or was rewritten in a later commit — that's the
+		// "Outdated" signal in the Files Changed view.
+		const isOutdated =
+			firstComment?.line == null && firstComment?.originalLine != null;
 		return {
 			id: thread.id,
 			isResolved: thread.isResolved,
+			isOutdated,
 			diffSide: (thread.diffSide === "LEFT" ? "LEFT" : "RIGHT") as DiffSide,
 			line: firstComment?.line ?? firstComment?.originalLine ?? null,
 			path: firstComment?.path ?? "",

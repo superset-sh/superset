@@ -569,6 +569,8 @@ export const createCreateProcedures = () => {
 					await safeCheckoutBranch(project.mainRepoPath, input.branch);
 				}
 
+				activateProject(project);
+
 				const existing = getBranchWorkspace(input.projectId);
 
 				if (existing) {
@@ -637,8 +639,6 @@ export const createCreateProcedures = () => {
 				setLastActiveWorkspace(workspace.id);
 
 				if (!wasExisting) {
-					activateProject(project);
-
 					track("workspace_opened", {
 						workspace_id: workspace.id,
 						project_id: project.id,

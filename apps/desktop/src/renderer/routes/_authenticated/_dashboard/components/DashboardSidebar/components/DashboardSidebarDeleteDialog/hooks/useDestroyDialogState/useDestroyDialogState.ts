@@ -35,7 +35,7 @@ export function useDestroyDialogState({
 }: UseDestroyDialogStateOptions) {
 	const { destroy, inspect, hostTarget } = useDestroyWorkspace(workspaceId);
 	const { markDeleting, clearDeleting } = useDeletingWorkspaces();
-	const navigateAway = useNavigateAwayFromWorkspace();
+	const { navigateAwayFromWorkspace } = useNavigateAwayFromWorkspace();
 
 	const { preferences, setDeleteLocalBranch: setDeleteBranch } =
 		useV2UserPreferences();
@@ -110,13 +110,12 @@ export function useDestroyDialogState({
 			if (inFlight.current) return;
 			inFlight.current = true;
 
-			// Navigate off the doomed workspace FIRST. Closing the dialog
-			// and hiding the row were swallowing the nav otherwise.
-			navigateAway(workspaceId);
-
 			setError(null);
 			onOpenChange(false);
 			markDeleting(workspaceId);
+			// Navigate up-front: no-ops if the deleted workspace isn't the
+			// active route, so a later user navigation won't be hijacked.
+			navigateAwayFromWorkspace(workspaceId);
 			toast(`Deleting "${workspaceName}"...`);
 
 			try {
@@ -165,7 +164,7 @@ export function useDestroyDialogState({
 			onDeleted,
 			markDeleting,
 			clearDeleting,
-			navigateAway,
+			navigateAwayFromWorkspace,
 		],
 	);
 

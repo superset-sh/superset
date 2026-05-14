@@ -7,7 +7,7 @@ import {
 	ReactNodeViewRenderer,
 } from "@tiptap/react";
 import { LuX } from "react-icons/lu";
-import { FileIcon } from "renderer/screens/main/components/WorkspaceView/RightSidebar/FilesView/utils";
+import { FileIcon } from "renderer/lib/fileIcons";
 
 function FileMentionChip({ node, selected, deleteNode }: NodeViewProps) {
 	const path = (node.attrs.path as string | null | undefined) ?? "";

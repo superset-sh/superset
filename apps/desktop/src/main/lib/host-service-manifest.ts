@@ -15,6 +15,13 @@ export interface HostServiceManifest {
 	authToken: string;
 	startedAt: number;
 	organizationId: string;
+	/**
+	 * Desktop app version that spawned this host-service. This is diagnostic
+	 * adoption context; a version mismatch alone must not kill a healthy
+	 * service because canary app timestamps can change without requiring a
+	 * host-service restart.
+	 */
+	spawnedByAppVersion: string;
 }
 
 export function manifestDir(organizationId: string): string {
@@ -58,6 +65,14 @@ export function readManifest(
 			typeof data.organizationId !== "string"
 		) {
 			return null;
+		}
+
+		// `spawnedByAppVersion` is required going forward, but pre-existing
+		// manifests on upgraded users won't have it. Coerce to empty string so
+		// `tryAdopt` can log the provenance gap and still health-check the
+		// existing service before deciding whether to reuse it.
+		if (typeof data.spawnedByAppVersion !== "string") {
+			data.spawnedByAppVersion = "";
 		}
 
 		return data as HostServiceManifest;

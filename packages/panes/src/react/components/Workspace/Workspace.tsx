@@ -6,7 +6,6 @@ import type { WorkspaceProps } from "../../types";
 import { Tab } from "./components/Tab";
 import { TabBar } from "./components/TabBar";
 import { useWorkspaceInteractionState } from "./hooks/useWorkspaceInteractionState";
-import { resolveTabTitle } from "./utils/resolveTabTitle";
 
 export function Workspace<TData>({
 	store,
@@ -16,6 +15,7 @@ export function Workspace<TData>({
 	renderTabIcon,
 	renderEmptyState,
 	renderAddTabMenu,
+	renderTabBarTrailing,
 	renderBelowTabBar,
 	onBeforeCloseTab,
 	onAfterCloseTab,
@@ -72,6 +72,7 @@ export function Workspace<TData>({
 		>
 			<TabBar
 				tabs={tabs}
+				registry={registry}
 				activeTabId={activeTabId}
 				onSelectTab={(tabId) => store.getState().setActiveTab(tabId)}
 				onCloseTab={closeTab}
@@ -94,9 +95,9 @@ export function Workspace<TData>({
 				onMovePaneToNewTab={(paneId, toIndex) =>
 					store.getState().movePaneToNewTab({ paneId, toIndex })
 				}
-				getTabTitle={(tab) => resolveTabTitle(tab, tabs, registry)}
 				renderTabIcon={renderTabIcon}
 				renderAddTabMenu={renderAddTabMenu}
+				renderTabBarTrailing={renderTabBarTrailing}
 				renderTabAccessory={renderTabAccessory}
 			/>
 			{renderBelowTabBar?.()}

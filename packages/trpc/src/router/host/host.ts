@@ -74,7 +74,7 @@ export const hostRouter = {
 				});
 			}
 
-			const [host] = await dbWs
+			const [inserted] = await dbWs
 				.insert(v2Hosts)
 				.values({
 					organizationId: input.organizationId,
@@ -82,13 +82,19 @@ export const hostRouter = {
 					name: input.name,
 					createdByUserId: ctx.userId,
 				})
-				.onConflictDoUpdate({
+				.onConflictDoNothing({
 					target: [v2Hosts.organizationId, v2Hosts.machineId],
-					set: {
-						name: input.name,
-					},
 				})
 				.returning();
+
+			const host =
+				inserted ??
+				(await db.query.v2Hosts.findFirst({
+					where: and(
+						eq(v2Hosts.organizationId, input.organizationId),
+						eq(v2Hosts.machineId, input.machineId),
+					),
+				}));
 
 			if (!host) {
 				throw new TRPCError({

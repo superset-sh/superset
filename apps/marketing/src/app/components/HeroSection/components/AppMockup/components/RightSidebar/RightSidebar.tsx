@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { LuGitPullRequest } from "react-icons/lu";
+import { LuArrowRight, LuGitPullRequest } from "react-icons/lu";
 import { FILE_CHANGES } from "../../constants";
 import type { ActiveDemo } from "../../types";
 import { FileChangeItem } from "../FileChangeItem";
@@ -10,168 +10,200 @@ interface RightSidebarProps {
 	activeDemo: ActiveDemo;
 }
 
+const TABS = ["Files", "Changes", "Review"] as const;
+
+const BRANCH_BY_DEMO: Record<ActiveDemo, string> = {
+	"Use Any Agents": "use-any-agents",
+	"Create Parallel Branches": "create-parallel-branches",
+	"See Changes": "see-changes",
+	"Open in Any IDE": "open-in-any-ide",
+};
+
 export function RightSidebar({ activeDemo }: RightSidebarProps) {
+	const isDiff = activeDemo === "See Changes";
+
 	return (
 		<motion.div
-			className="relative flex shrink-0 flex-col overflow-hidden border-l border-white/[0.06] bg-white/[0.02] backdrop-blur-lg"
-			initial={{ width: 230 }}
-			animate={{
-				width: activeDemo === "See Changes" ? 380 : 230,
-			}}
+			className="relative flex shrink-0 flex-col overflow-hidden border-l border-border bg-card text-[11px]"
+			initial={{ width: 236 }}
+			animate={{ width: isDiff ? 380 : 236 }}
 			transition={{ duration: 0.3, ease: "easeOut" }}
 		>
-			<motion.div
-				className="absolute inset-0 flex flex-col"
-				initial={{ opacity: 1 }}
-				animate={{
-					opacity: activeDemo === "See Changes" ? 0 : 1,
-				}}
-				transition={{ duration: 0.2, ease: "easeOut" }}
-				style={{
-					pointerEvents: activeDemo === "See Changes" ? "none" : "auto",
-				}}
-			>
-				<div className="flex items-center justify-between border-b border-white/[0.06] px-5 py-3.5 h-12">
-					<span className="text-[10px] font-normal tracking-[0.14em] text-foreground/52">
-						Review Changes
+			<div className="flex h-9 items-center justify-end border-b border-border px-3">
+				<button
+					type="button"
+					className="flex h-6 items-center gap-1.5 border border-border bg-background px-2 text-[10px] font-medium uppercase tracking-[0.06em] text-foreground/85 hover:bg-foreground/[0.04]"
+				>
+					<LuGitPullRequest className="size-2.5 text-brand-light" />
+					<span>PR</span>
+					<span className="font-mono tabular-nums text-muted-foreground/55">
+						#827
 					</span>
-					<div className="flex items-center gap-1 text-[11px]">
-						<LuGitPullRequest className="size-4 text-emerald-300/70" />
-						<span className="text-muted-foreground/36">#827</span>
-					</div>
-				</div>
+				</button>
+			</div>
 
-				<div className="space-y-3 border-b border-white/[0.06] px-5 py-3.5">
-					<div className="flex h-10 items-center rounded-xs border border-white/[0.06] bg-black/20 px-4 text-[11px] text-muted-foreground/30">
-						Commit message...
-					</div>
-					<button
-						type="button"
-						className="flex w-full items-center justify-center gap-2 rounded-xs border border-white/[0.06] bg-white/[0.04] px-4 py-2.5 text-[11px] font-medium text-foreground/70 hover:bg-white/[0.07]"
-					>
-						<span>↑</span>
-						<span>Push</span>
-						<span className="text-[10px] text-muted-foreground/30">26</span>
-					</button>
+			<div className="flex h-8 items-center gap-3 border-b border-border px-3">
+				{TABS.map((tab) => {
+					const active = isDiff ? tab === "Changes" : tab === "Files";
+					return (
+						<div
+							key={tab}
+							className={`relative flex h-8 cursor-pointer items-center text-[11px] font-medium ${
+								active
+									? "text-foreground/95"
+									: "text-muted-foreground/55 hover:text-foreground/85"
+							}`}
+						>
+							{tab}
+							{active && (
+								<span className="absolute inset-x-0 -bottom-px h-[2px] bg-brand" />
+							)}
+						</div>
+					);
+				})}
+			</div>
+
+			<div className="border-b border-border px-3 py-2.5">
+				<div className="flex items-center gap-2 font-mono text-[11px]">
+					<span className="size-1.5 rounded-full bg-brand" />
+					<span className="truncate font-medium text-foreground/95">
+						{BRANCH_BY_DEMO[activeDemo]}
+					</span>
 				</div>
+				<div className="mt-1 flex items-center gap-1.5 font-mono text-[10px] text-muted-foreground/60">
+					<span className="tabular-nums text-emerald-400/85">+1,128</span>
+					<span className="tabular-nums text-rose-400/75">−98</span>
+					<span className="text-muted-foreground/45">·</span>
+					<span>10 files</span>
+					<span className="text-muted-foreground/45">·</span>
+					<span className="flex items-center gap-1">
+						<LuArrowRight className="size-2.5" />
+						main
+					</span>
+				</div>
+			</div>
+
+			<div className="relative flex-1">
+				<motion.div
+					className="absolute inset-0 flex flex-col"
+					initial={{ opacity: 1 }}
+					animate={{ opacity: isDiff ? 0 : 1 }}
+					transition={{ duration: 0.2 }}
+					style={{ pointerEvents: isDiff ? "none" : "auto" }}
+				>
+					<div className="flex-1 space-y-0.5 overflow-hidden py-1.5">
+						{FILE_CHANGES.map((file, index) => (
+							<FileChangeItem
+								key={`${file.path}-${index}`}
+								path={file.path}
+								add={file.add}
+								del={file.del}
+								indent={file.indent}
+								type={file.type}
+							/>
+						))}
+					</div>
+				</motion.div>
 
 				<motion.div
-					className="flex-1 overflow-hidden"
-					initial={{ opacity: 1 }}
-					animate={{
-						opacity: activeDemo === "Create Parallel Branches" ? 0 : 1,
-					}}
-					transition={{ duration: 0.3, ease: "easeOut" }}
+					className="absolute inset-0 flex flex-col bg-card"
+					initial={{ opacity: 0 }}
+					animate={{ opacity: isDiff ? 1 : 0 }}
+					transition={{ duration: 0.25, delay: isDiff ? 0.1 : 0 }}
+					style={{ pointerEvents: isDiff ? "auto" : "none" }}
 				>
-					{FILE_CHANGES.map((file, index) => (
-						<FileChangeItem
-							key={`${file.path}-${index}`}
-							path={file.path}
-							add={file.add}
-							del={file.del}
-							indent={file.indent}
-							type={file.type}
-						/>
-					))}
-				</motion.div>
-			</motion.div>
-
-			<motion.div
-				className="absolute inset-0 flex flex-col bg-black/30 backdrop-blur-md"
-				initial={{ opacity: 0 }}
-				animate={{
-					opacity: activeDemo === "See Changes" ? 1 : 0,
-				}}
-				transition={{
-					duration: 0.3,
-					ease: "easeOut",
-					delay: activeDemo === "See Changes" ? 0.1 : 0,
-				}}
-				style={{
-					pointerEvents: activeDemo === "See Changes" ? "auto" : "none",
-				}}
-			>
-				<div className="flex items-center justify-between border-b border-white/[0.06] px-5 py-3.5">
-					<div className="flex items-center gap-2">
-						<LuGitPullRequest className="size-4.5 text-emerald-300/75" />
-						<span className="text-[13px] font-medium text-foreground/72">
-							Review PR #827
+					<div className="flex items-center gap-0 border-b border-border px-2">
+						<span className="relative flex h-7 items-center px-2 font-mono text-[11px] font-medium text-foreground/95">
+							cloud-workspace.ts
+							<span className="absolute inset-x-2 -bottom-px h-[2px] bg-brand" />
+						</span>
+						<span className="flex h-7 items-center px-2 font-mono text-[11px] text-muted-foreground/55">
+							enums.ts
+						</span>
+						<span className="flex h-7 items-center px-2 text-[10px] text-muted-foreground/45">
+							+4
 						</span>
 					</div>
-					<span className="rounded-xs border border-orange-500/[0.10] bg-orange-500/[0.08] px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.12em] text-orange-500/75">
-						Open
-					</span>
-				</div>
 
-				<div className="flex items-center gap-1.5 border-b border-white/[0.06] px-5 py-3 text-[11px]">
-					<span className="rounded-xs border border-white/[0.06] bg-white/[0.04] px-3 py-1.5 font-medium text-foreground/64">
-						cloud-workspace.ts
-					</span>
-					<span className="px-3 py-1.5 text-muted-foreground/30">enums.ts</span>
-					<span className="px-3 py-1.5 text-muted-foreground/30">+4 more</span>
-				</div>
-
-				<div className="flex-1 overflow-hidden p-5 font-mono text-[11px]">
-					<div className="space-y-1">
-						<div className="py-1 text-muted-foreground/40">@@ -1,4 +1,6 @@</div>
-						<div className="flex">
-							<span className="w-7 shrink-0 text-muted-foreground/25">1</span>
-							<span className="text-muted-foreground/60">
+					<div className="flex-1 overflow-hidden p-3 font-mono text-[10px] leading-relaxed">
+						<div className="space-y-px">
+							<div className="py-0.5 text-muted-foreground/50">
+								@@ -1,4 +1,6 @@
+							</div>
+							<DiffLine n={1}>
 								import {"{"} db {"}"} from "../db"
-							</span>
-						</div>
-						<div className="flex bg-emerald-300/[0.08]">
-							<span className="w-7 shrink-0 text-emerald-300/75">+</span>
-							<span className="text-emerald-300/75">
+							</DiffLine>
+							<DiffLine added>
 								import {"{"} CloudWorkspace {"}"} from "./types"
-							</span>
-						</div>
-						<div className="flex bg-emerald-300/[0.08]">
-							<span className="w-7 shrink-0 text-emerald-300/75">+</span>
-							<span className="text-emerald-300/75">
+							</DiffLine>
+							<DiffLine added>
 								import {"{"} createSSHConnection {"}"} from "./ssh"
-							</span>
-						</div>
-						<div className="flex">
-							<span className="w-7 shrink-0 text-muted-foreground/25">2</span>
-							<span className="text-muted-foreground/60"></span>
-						</div>
-						<div className="flex bg-rose-300/[0.08]">
-							<span className="w-7 shrink-0 text-rose-300/75">-</span>
-							<span className="text-rose-300/75">
-								export const getWorkspaces = () ={">"} {"{"}
-							</span>
-						</div>
-						<div className="flex bg-emerald-300/[0.08]">
-							<span className="w-7 shrink-0 text-emerald-300/75">+</span>
-							<span className="text-emerald-300/75">
-								export const getWorkspaces = async () ={">"} {"{"}
-							</span>
-						</div>
-						<div className="flex">
-							<span className="w-7 shrink-0 text-muted-foreground/25">4</span>
-							<span className="text-muted-foreground/60">
-								{"  "}return db.query.workspaces
-							</span>
+							</DiffLine>
+							<DiffLine n={2} />
+							<DiffLine removed>
+								export const getWorkspaces = () =&gt; {"{"}
+							</DiffLine>
+							<DiffLine added>
+								export const getWorkspaces = async () =&gt; {"{"}
+							</DiffLine>
+							<DiffLine n={4}>{"  "}return db.query.workspaces</DiffLine>
 						</div>
 					</div>
-				</div>
 
-				<div className="flex items-center gap-3 border-t border-white/[0.06] px-5 py-3.5">
-					<button
-						type="button"
-						className="rounded-xs border border-emerald-300/[0.10] bg-emerald-300/[0.10] px-4 py-2 text-[11px] font-medium text-emerald-300/75 hover:bg-emerald-300/[0.16]"
-					>
-						Approve
-					</button>
-					<button
-						type="button"
-						className="rounded-xs border border-white/[0.06] bg-white/[0.04] px-4 py-2 text-[11px] font-medium text-foreground/50 hover:bg-white/[0.07]"
-					>
-						Comment
-					</button>
-				</div>
-			</motion.div>
+					<div className="flex items-center gap-1.5 border-t border-border px-3 py-2">
+						<button
+							type="button"
+							className="h-7 rounded-sm bg-emerald-500/15 px-2.5 text-[11px] font-medium text-emerald-300 hover:bg-emerald-500/25"
+						>
+							Approve
+						</button>
+						<button
+							type="button"
+							className="h-7 rounded-sm border border-border bg-background px-2.5 text-[11px] font-medium text-foreground/80 hover:bg-foreground/[0.04]"
+						>
+							Comment
+						</button>
+					</div>
+				</motion.div>
+			</div>
 		</motion.div>
+	);
+}
+
+function DiffLine({
+	n,
+	added,
+	removed,
+	children,
+}: {
+	n?: number;
+	added?: boolean;
+	removed?: boolean;
+	children?: React.ReactNode;
+}) {
+	let bg = "";
+	let bar = "border-transparent";
+	let prefix = "";
+	let textColor = "text-muted-foreground/75";
+
+	if (added) {
+		bg = "bg-emerald-500/[0.08]";
+		bar = "border-emerald-500/85";
+		prefix = "+";
+		textColor = "text-emerald-300/95";
+	} else if (removed) {
+		bg = "bg-rose-500/[0.08]";
+		bar = "border-rose-500/85";
+		prefix = "−";
+		textColor = "text-rose-300/95";
+	}
+
+	return (
+		<div className={`flex border-l-2 ${bar} ${bg}`}>
+			<span className="w-6 shrink-0 pr-2 text-right tabular-nums text-muted-foreground/40">
+				{prefix || n}
+			</span>
+			<span className={textColor}>{children}</span>
+		</div>
 	);
 }

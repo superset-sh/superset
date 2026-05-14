@@ -42,6 +42,10 @@ interface DiffFileEntryProps {
 	onSetViewed: (path: string, next: boolean) => void;
 	onOpenFile: (path: string, openInNewTab?: boolean) => void;
 	onOpenInExternalEditor: (path: string) => void;
+	/** Line + tick forwarded only to the focused file so the matching
+	 *  CommentThread bubble can auto-expand on jump-to-line. */
+	focusLine?: number;
+	focusTick?: number;
 }
 
 export const DiffFileEntry = memo(function DiffFileEntry({
@@ -56,6 +60,8 @@ export const DiffFileEntry = memo(function DiffFileEntry({
 	onSetViewed,
 	onOpenFile,
 	onOpenInExternalEditor,
+	focusLine,
+	focusTick,
 }: DiffFileEntryProps) {
 	const wrapperRef = useRef<HTMLDivElement>(null);
 	const isNear = useInView(wrapperRef, { rootMargin: "2000px 0px" });
@@ -205,6 +211,8 @@ export const DiffFileEntry = memo(function DiffFileEntry({
 					onOpenFile={handleOpenFile}
 					onOpenInExternalEditor={handleOpenInExternalEditor}
 					onDiscard={requestDiscard}
+					focusLine={focusLine}
+					focusTick={focusTick}
 				/>
 			) : null}
 			{discardDialog}
