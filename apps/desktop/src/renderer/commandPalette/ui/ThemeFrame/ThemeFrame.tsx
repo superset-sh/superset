@@ -21,6 +21,12 @@ import {
 	type Theme,
 } from "shared/themes";
 import { useFrameStackStore } from "../../core/frames";
+import { useCommandPaletteQuery } from "../CommandPalette/CommandPalette";
+
+function matchesQuery(haystack: string, query: string): boolean {
+	if (!query) return true;
+	return haystack.toLowerCase().includes(query.toLowerCase().trim());
+}
 
 export function ThemeFrame() {
 	const activeThemeId = useThemeId();
@@ -29,6 +35,7 @@ export function ThemeFrame() {
 	const systemLightThemeId = useSystemLightThemeId();
 	const systemDarkThemeId = useSystemDarkThemeId();
 	const setOpen = useFrameStackStore((s) => s.setOpen);
+	const query = useCommandPaletteQuery();
 
 	const allThemes = [...builtInThemes, ...customThemes];
 	const lightThemes = allThemes.filter((t) => t.type === "light");
@@ -50,33 +57,38 @@ export function ThemeFrame() {
 		setOpen(false);
 	};
 
+	const showSystem = matchesQuery(`System ${SYSTEM_THEME_ID}`, query);
+
 	return (
 		<CommandList>
 			<CommandEmpty>No themes found.</CommandEmpty>
 
-			<CommandGroup>
-				<CommandItem
-					value={`system ${SYSTEM_THEME_ID}`}
-					onSelect={() => pickTheme(SYSTEM_THEME_ID)}
-				>
-					<div className="flex shrink-0 -space-x-1">
-						<ThemeSwatch theme={systemLightTheme} />
-						<ThemeSwatch theme={systemDarkTheme} />
-					</div>
-					<span>System</span>
-					{activeThemeId === SYSTEM_THEME_ID ? (
-						<span className="ml-auto text-xs text-muted-foreground">✓</span>
-					) : null}
-				</CommandItem>
-			</CommandGroup>
+			{showSystem && (
+				<CommandGroup>
+					<CommandItem
+						value={`system ${SYSTEM_THEME_ID}`}
+						onSelect={() => pickTheme(SYSTEM_THEME_ID)}
+					>
+						<div className="flex shrink-0 -space-x-1">
+							<ThemeSwatch theme={systemLightTheme} />
+							<ThemeSwatch theme={systemDarkTheme} />
+						</div>
+						<span>System</span>
+						{activeThemeId === SYSTEM_THEME_ID ? (
+							<span className="ml-auto text-xs text-muted-foreground">✓</span>
+						) : null}
+					</CommandItem>
+				</CommandGroup>
+			)}
 
-			<CommandSeparator />
+			{showSystem && <CommandSeparator />}
 
 			<ThemeGroup
 				heading="Light"
 				themes={lightThemes.filter((t) => !t.isCustom)}
 				activeId={activeThemeId}
 				onSelect={pickTheme}
+				query={query}
 			/>
 
 			<ThemeGroup
@@ -84,6 +96,7 @@ export function ThemeFrame() {
 				themes={darkThemes.filter((t) => !t.isCustom)}
 				activeId={activeThemeId}
 				onSelect={pickTheme}
+				query={query}
 			/>
 
 			{(customLight.length > 0 || customDark.length > 0) && (
@@ -92,6 +105,7 @@ export function ThemeFrame() {
 					themes={[...customLight, ...customDark]}
 					activeId={activeThemeId}
 					onSelect={pickTheme}
+					query={query}
 				/>
 			)}
 		</CommandList>
@@ -103,13 +117,23 @@ interface ThemeGroupProps {
 	themes: Theme[];
 	activeId: string;
 	onSelect: (themeId: string) => void;
+	query: string;
 }
 
-function ThemeGroup({ heading, themes, activeId, onSelect }: ThemeGroupProps) {
-	if (themes.length === 0) return null;
+function ThemeGroup({
+	heading,
+	themes,
+	activeId,
+	onSelect,
+	query,
+}: ThemeGroupProps) {
+	const visible = themes.filter((theme) =>
+		matchesQuery(`${heading} ${theme.name} ${theme.id}`, query),
+	);
+	if (visible.length === 0) return null;
 	return (
 		<CommandGroup heading={heading}>
-			{themes.map((theme) => (
+			{visible.map((theme) => (
 				<CommandItem
 					key={`${heading}:${theme.id}`}
 					value={`${heading} ${theme.name} ${theme.id}`}
