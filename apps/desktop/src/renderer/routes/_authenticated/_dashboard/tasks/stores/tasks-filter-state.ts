@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { persist } from "zustand/middleware";
 
 export type ViewMode = "table" | "board";
 export type TypeTab = "tasks" | "prs" | "issues";
@@ -18,17 +19,26 @@ interface TasksFilterState {
 	setProjectFilter: (projectFilter: string | null) => void;
 }
 
-export const useTasksFilterStore = create<TasksFilterState>()((set) => ({
-	tab: "all",
-	assignee: null,
-	search: "",
-	viewMode: "table",
-	typeTab: "tasks",
-	projectFilter: null,
-	setTab: (tab) => set({ tab }),
-	setAssignee: (assignee) => set({ assignee }),
-	setSearch: (search) => set({ search }),
-	setViewMode: (viewMode) => set({ viewMode }),
-	setTypeTab: (typeTab) => set({ typeTab }),
-	setProjectFilter: (projectFilter) => set({ projectFilter }),
-}));
+export const useTasksFilterStore = create<TasksFilterState>()(
+	persist(
+		(set) => ({
+			tab: "all",
+			assignee: null,
+			search: "",
+			viewMode: "table",
+			typeTab: "tasks",
+			projectFilter: null,
+			setTab: (tab) => set({ tab }),
+			setAssignee: (assignee) => set({ assignee }),
+			setSearch: (search) => set({ search }),
+			setViewMode: (viewMode) => set({ viewMode }),
+			setTypeTab: (typeTab) => set({ typeTab }),
+			setProjectFilter: (projectFilter) => set({ projectFilter }),
+		}),
+		{
+			name: "tasks-filter-store",
+			version: 1,
+			partialize: (state) => ({ projectFilter: state.projectFilter }),
+		},
+	),
+);
