@@ -16,7 +16,6 @@ interface DashboardSidebarExpandedProjectContentProps {
 	projectId: string;
 	isCollapsed: boolean;
 	projectChildren: DashboardSidebarProjectChild[];
-	activeWorkspaceId: string | null;
 	workspaceShortcutLabels: Map<string, string>;
 	onWorkspaceHover: (workspaceId: string) => void | Promise<void>;
 	onDeleteSection: (sectionId: string) => void;
@@ -28,7 +27,6 @@ export function DashboardSidebarExpandedProjectContent({
 	projectId,
 	isCollapsed,
 	projectChildren,
-	activeWorkspaceId,
 	workspaceShortcutLabels,
 	onWorkspaceHover,
 	onDeleteSection,
@@ -118,8 +116,9 @@ export function DashboardSidebarExpandedProjectContent({
 															activeId === id ? predictedColor : group?.color
 														}
 														isInSection={groupInfo.has(parsed.realId)}
-														isActive={parsed.realId === activeWorkspaceId}
-														onWorkspaceHover={onWorkspaceHover}
+														onHoverCardOpen={() =>
+															onWorkspaceHover(parsed.realId)
+														}
 														shortcutLabel={workspaceShortcutLabels.get(
 															parsed.realId,
 														)}

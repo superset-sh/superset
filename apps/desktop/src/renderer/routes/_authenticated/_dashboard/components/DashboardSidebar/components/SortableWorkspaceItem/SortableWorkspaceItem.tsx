@@ -1,6 +1,5 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { memo } from "react";
 import type { DashboardSidebarWorkspace } from "../../types";
 import { DashboardSidebarWorkspaceItem } from "../DashboardSidebarWorkspaceItem";
 
@@ -9,19 +8,17 @@ interface SortableWorkspaceItemProps {
 	workspace: DashboardSidebarWorkspace;
 	accentColor?: string | null;
 	isInSection?: boolean;
-	isActive?: boolean;
-	onWorkspaceHover?: (workspaceId: string) => void | Promise<void>;
+	onHoverCardOpen?: () => void;
 	shortcutLabel?: string;
 	disabled?: boolean;
 }
 
-export const SortableWorkspaceItem = memo(function SortableWorkspaceItem({
+export function SortableWorkspaceItem({
 	sortableId,
 	workspace,
 	accentColor,
 	isInSection,
-	isActive = false,
-	onWorkspaceHover,
+	onHoverCardOpen,
 	shortcutLabel,
 	disabled,
 }: SortableWorkspaceItemProps) {
@@ -48,11 +45,10 @@ export const SortableWorkspaceItem = memo(function SortableWorkspaceItem({
 		>
 			<DashboardSidebarWorkspaceItem
 				workspace={workspace}
-				onWorkspaceHover={onWorkspaceHover}
+				onHoverCardOpen={onHoverCardOpen}
 				shortcutLabel={shortcutLabel}
 				isInSection={isInSection}
-				isActive={isActive}
 			/>
 		</div>
 	);
-});
+}

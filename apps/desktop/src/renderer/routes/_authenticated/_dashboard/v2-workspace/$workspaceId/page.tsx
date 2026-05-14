@@ -1,7 +1,7 @@
 import { Workspace } from "@superset/panes";
 import { workspaceTrpc } from "@superset/workspace-client";
 import { createFileRoute } from "@tanstack/react-router";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { useQuickOpenStore } from "renderer/commandPalette/ui/QuickOpen/quickOpenStore";
 import { useV2UserPreferences } from "renderer/hooks/useV2UserPreferences";
@@ -27,8 +27,6 @@ import { useDefaultPaneActions } from "./hooks/useDefaultPaneActions";
 import { useDirtyTabCloseGuard } from "./hooks/useDirtyTabCloseGuard";
 import { usePaneRegistry } from "./hooks/usePaneRegistry";
 import { renderBrowserTabIcon } from "./hooks/usePaneRegistry/components/BrowserPane";
-import { browserRuntimeRegistry } from "./hooks/usePaneRegistry/components/BrowserPane/browserRuntimeRegistry";
-import { useRendererStressWorkspaceBridge } from "./hooks/useRendererStressWorkspaceBridge";
 import { useV2PresetExecution } from "./hooks/useV2PresetExecution";
 import { useV2TerminalLauncher } from "./hooks/useV2TerminalLauncher";
 import { useV2WorkspacePaneLayout } from "./hooks/useV2WorkspacePaneLayout";
@@ -99,18 +97,10 @@ function V2WorkspacePage() {
 		);
 	}
 
-	return (
-		<V2WorkspaceContent
-			worktreePath={workspaceStatusQuery.data?.worktreePath}
-		/>
-	);
+	return <V2WorkspaceContent />;
 }
 
-function V2WorkspaceContent({
-	worktreePath,
-}: {
-	worktreePath?: string | null;
-}) {
+function V2WorkspaceContent() {
 	const {
 		terminalId,
 		chatSessionId,
@@ -131,17 +121,6 @@ function V2WorkspaceContent({
 	} = useV2UserPreferences();
 	const showPresetsBar = v2UserPreferences.showPresetsBar;
 	const { store } = useV2WorkspacePaneLayout();
-	useEffect(() => {
-		return () => {
-			for (const tab of store.getState().tabs) {
-				for (const pane of Object.values(tab.panes)) {
-					if (pane.kind === "browser") {
-						browserRuntimeRegistry.detach(pane.id);
-					}
-				}
-			}
-		};
-	}, [store]);
 	useClearActivePaneAttention({ store });
 	const launcher = useV2TerminalLauncher();
 	const { matchedPresets, executePreset, resolvePresetCommands } =
@@ -196,29 +175,6 @@ function V2WorkspaceContent({
 		addBrowserTab,
 		openCommentPane,
 	} = useWorkspacePaneOpeners({ store, launcher });
-
-	const rendererStressFilePaths = useMemo(
-		() =>
-			Array.from(
-				new Set([
-					...Array.from(openFilePaths),
-					...recentFiles.map((file) => file.absolutePath),
-				]),
-			),
-		[openFilePaths, recentFiles],
-	);
-	const showRendererStressChangesSidebar = useCallback(() => {
-		setRightSidebarOpen(true);
-		setRightSidebarTab("changes");
-	}, [setRightSidebarOpen, setRightSidebarTab]);
-	useRendererStressWorkspaceBridge({
-		workspace,
-		store,
-		filePaths: rendererStressFilePaths,
-		worktreePath,
-		addTerminalTab,
-		showChangesSidebar: showRendererStressChangesSidebar,
-	});
 
 	const quickOpenOpen = useQuickOpenStore(
 		(s) => s.open && s.target?.workspaceId === workspaceId,

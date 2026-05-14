@@ -27,7 +27,6 @@ import {
 	getDefaultBranchName,
 	mapGitStatus,
 	parseNumstat,
-	parseNumstatRecords,
 	resolveBaseComparison,
 } from "./utils/git-helpers";
 import {
@@ -57,45 +56,6 @@ function assertSafeRelativePath(filePath: string): void {
 			message: "Cannot target worktree root",
 		});
 	}
-}
-
-interface DiffStats {
-	additions: number;
-	deletions: number;
-}
-
-function addDiffStats(
-	byPath: Map<string, DiffStats>,
-	path: string,
-	stats: DiffStats,
-): void {
-	const existing = byPath.get(path);
-	byPath.set(path, {
-		additions: (existing?.additions ?? 0) + stats.additions,
-		deletions: (existing?.deletions ?? 0) + stats.deletions,
-	});
-}
-
-function applyNumstatToStatsMap(
-	byPath: Map<string, DiffStats>,
-	raw: string,
-): void {
-	for (const record of parseNumstatRecords(raw)) {
-		addDiffStats(byPath, record.path, {
-			additions: record.additions,
-			deletions: record.deletions,
-		});
-	}
-}
-
-function sumDiffStats(byPath: Map<string, DiffStats>): DiffStats {
-	let additions = 0;
-	let deletions = 0;
-	for (const file of byPath.values()) {
-		additions += file.additions;
-		deletions += file.deletions;
-	}
-	return { additions, deletions };
 }
 
 export const gitRouter = router({
@@ -285,57 +245,6 @@ export const gitRouter = router({
 				unstaged: mergedUnstaged,
 				ignoredPaths,
 			};
-		}),
-
-	getDiffStats: queryProcedure
-		.meta({ timeoutMs: 10_000 })
-		.input(
-			z.object({
-				workspaceId: z.string(),
-				baseBranch: z.string().optional(),
-			}),
-		)
-		.query(async ({ ctx, input }) => {
-			const worktreePath = resolveWorktreePath(ctx, input.workspaceId);
-			const git = await ctx.git(worktreePath);
-			const base = await resolveBaseComparison(git, input.baseBranch);
-			const baseRef = base?.baseRef ?? "HEAD";
-
-			const [againstBaseRaw, stagedRaw, unstagedRaw, untrackedRaw] =
-				await Promise.all([
-					git
-						.raw(["diff", "--numstat", "-z", `${baseRef}...HEAD`])
-						.catch(() => ""),
-					git.raw(["diff", "--numstat", "-z", "--cached"]).catch(() => ""),
-					git.raw(["diff", "--numstat", "-z"]).catch(() => ""),
-					git
-						.raw(["ls-files", "--others", "--exclude-standard", "-z"])
-						.catch(() => ""),
-				]);
-
-			const byPath = new Map<string, DiffStats>();
-			applyNumstatToStatsMap(byPath, againstBaseRaw);
-			applyNumstatToStatsMap(byPath, stagedRaw);
-			applyNumstatToStatsMap(byPath, unstagedRaw);
-
-			const untrackedFiles: ChangedFile[] = untrackedRaw
-				.split("\0")
-				.filter((path) => path.length > 0)
-				.map((path) => ({
-					path,
-					status: "untracked",
-					additions: 0,
-					deletions: 0,
-				}));
-			await countUntrackedFileLines(worktreePath, untrackedFiles);
-			for (const file of untrackedFiles) {
-				addDiffStats(byPath, file.path, {
-					additions: file.additions,
-					deletions: file.deletions,
-				});
-			}
-
-			return sumDiffStats(byPath);
 		}),
 
 	listCommits: queryProcedure

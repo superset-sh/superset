@@ -34,9 +34,7 @@
 		"generate:routes": "tsr generate",
 		"pretypecheck": "bun run generate:icons && bun run generate:routes",
 		"typecheck": "tsc --noEmit",
-		"test": "bun test",
-		"stress:renderer": "bun run scripts/stress-renderer.ts",
-		"stress:renderer:fixtures": "bun run scripts/prepare-renderer-stress-fixtures.ts"
+		"test": "bun test"
 	},
 	"dependencies": {
 		"@ai-sdk/anthropic": "3.0.64",

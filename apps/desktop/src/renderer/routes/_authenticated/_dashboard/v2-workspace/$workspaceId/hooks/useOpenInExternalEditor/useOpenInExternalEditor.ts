@@ -13,7 +13,7 @@ export interface OpenInExternalEditorOptions {
 	column?: number;
 }
 
-export function useOpenInExternalEditor(workspaceId: string, enabled = true) {
+export function useOpenInExternalEditor(workspaceId: string) {
 	const collections = useCollections();
 	const { machineId } = useLocalHostService();
 	const { data: workspaceRows = [] } = useLiveQuery(
@@ -34,12 +34,9 @@ export function useOpenInExternalEditor(workspaceId: string, enabled = true) {
 	// can't look this up on its own (v2 projects aren't in the v1 localDb).
 	const { app: v2PreferredApp } = useV2ProjectDefaultApp(projectId);
 
-	const workspaceQuery = workspaceTrpc.workspace.get.useQuery(
-		{
-			id: workspaceId,
-		},
-		{ enabled },
-	);
+	const workspaceQuery = workspaceTrpc.workspace.get.useQuery({
+		id: workspaceId,
+	});
 	const worktreePath = workspaceQuery.data?.worktreePath ?? undefined;
 
 	return useCallback(

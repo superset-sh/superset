@@ -19,14 +19,11 @@ export function getTerminalParkingContainer(): HTMLDivElement {
 	el.id = PARKING_CONTAINER_ID;
 	el.setAttribute("inert", "");
 	el.setAttribute("aria-hidden", "true");
-	el.style.display = "none";
 	el.style.position = "fixed";
 	el.style.left = "-9999px";
 	el.style.top = "-9999px";
-	el.style.width = "0";
-	el.style.height = "0";
-	el.style.contain = "strict";
-	el.style.setProperty("content-visibility", "hidden");
+	el.style.width = "100vw";
+	el.style.height = "100vh";
 	el.style.overflow = "hidden";
 	el.style.pointerEvents = "none";
 	document.body.appendChild(el);

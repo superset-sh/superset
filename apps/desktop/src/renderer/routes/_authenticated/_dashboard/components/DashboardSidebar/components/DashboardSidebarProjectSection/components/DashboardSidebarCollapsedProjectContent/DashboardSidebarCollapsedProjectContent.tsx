@@ -13,7 +13,6 @@ interface DashboardSidebarCollapsedProjectContentProps
 	isCollapsed: boolean;
 	totalWorkspaceCount: number;
 	workspaces: DashboardSidebarWorkspace[];
-	activeWorkspaceId: string | null;
 	workspaceShortcutLabels: Map<string, string>;
 	onWorkspaceHover: (workspaceId: string) => void | Promise<void>;
 	onToggleCollapse: () => void;
@@ -30,7 +29,6 @@ export const DashboardSidebarCollapsedProjectContent = forwardRef<
 			isCollapsed,
 			totalWorkspaceCount,
 			workspaces,
-			activeWorkspaceId,
 			workspaceShortcutLabels,
 			onWorkspaceHover,
 			onToggleCollapse,
@@ -84,10 +82,9 @@ export const DashboardSidebarCollapsedProjectContent = forwardRef<
 									<DashboardSidebarWorkspaceItem
 										key={workspace.id}
 										workspace={workspace}
-										onWorkspaceHover={onWorkspaceHover}
+										onHoverCardOpen={() => onWorkspaceHover(workspace.id)}
 										shortcutLabel={workspaceShortcutLabels.get(workspace.id)}
 										isCollapsed
-										isActive={workspace.id === activeWorkspaceId}
 									/>
 								))}
 							</div>

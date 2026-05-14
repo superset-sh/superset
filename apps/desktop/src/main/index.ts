@@ -53,24 +53,6 @@ import { MainWindow } from "./windows/main";
 
 console.log("[main] Local database ready:", !!localDb);
 const IS_DEV = process.env.NODE_ENV === "development";
-const rendererStressCdpPort =
-	process.env.SUPERSET_RENDERER_STRESS_CDP_PORT?.trim();
-
-if (IS_DEV && rendererStressCdpPort) {
-	if (/^\d+$/.test(rendererStressCdpPort)) {
-		app.commandLine.appendSwitch(
-			"remote-debugging-port",
-			rendererStressCdpPort,
-		);
-		console.log(
-			`[main] Renderer stress CDP enabled on 127.0.0.1:${rendererStressCdpPort}`,
-		);
-	} else {
-		console.warn(
-			`[main] Ignoring invalid SUPERSET_RENDERER_STRESS_CDP_PORT=${rendererStressCdpPort}`,
-		);
-	}
-}
 
 void applyShellEnvToProcess().catch((error) => {
 	console.error("[main] Failed to apply shell environment:", error);

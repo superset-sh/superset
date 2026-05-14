@@ -57,9 +57,7 @@ export function V2WorkspaceRow({
 		!workspace.hostIsOnline && workspace.hostType !== "local-device";
 
 	const handleOpen = useCallback(() => {
-		const open = () => {
-			void navigateToV2Workspace(workspace.id, navigate);
-		};
+		const open = () => navigateToV2Workspace(workspace.id, navigate);
 		if (workspace.hostType === "local-device") {
 			open();
 			return;
@@ -157,7 +155,6 @@ export function V2WorkspaceRow({
 			<div
 				role="button"
 				tabIndex={0}
-				data-renderer-stress-workspace-id={workspace.id}
 				onClick={handleOpen}
 				onKeyDown={handleRowKeyDown}
 				className={cn(

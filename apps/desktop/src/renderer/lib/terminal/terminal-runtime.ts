@@ -9,7 +9,6 @@ import { loadAddons } from "./terminal-addons";
 import { installImagePasteFallback } from "./terminal-image-paste-fallback";
 import { installTerminalKeyEventHandler } from "./terminal-key-event-handler";
 import { getTerminalParkingContainer } from "./terminal-parking";
-import { markTerminalSessionReplayBlocked } from "./terminal-session-replay";
 
 const SERIALIZE_SCROLLBACK = 1000;
 const STORAGE_KEY_PREFIX = "terminal-buffer:";
@@ -17,23 +16,6 @@ const DIMS_KEY_PREFIX = "terminal-dims:";
 const DEFAULT_COLS = 120;
 const DEFAULT_ROWS = 32;
 const RESIZE_DEBOUNCE_MS = 75;
-const OUTPUT_CHUNK_BYTES = 4096;
-const BACKGROUND_OUTPUT_WRITES_PER_FRAME = 2;
-const MAX_PARKED_OUTPUT_QUEUE_BYTES = 1024 * 1024;
-
-type TerminalOutputData = string | Uint8Array;
-
-interface TerminalOutputQueueItem {
-	data: TerminalOutputData;
-	byteLength: number;
-	callback?: () => void;
-}
-
-const runtimesWithQueuedOutput = new Set<TerminalRuntime>();
-let outputFlushRafId: number | null = null;
-let outputFlushTimeoutId: ReturnType<typeof setTimeout> | null = null;
-let pendingFocusRuntime: TerminalRuntime | null = null;
-let focusRafId: number | null = null;
 
 export interface TerminalRuntime {
 	terminalId: string;
@@ -48,148 +30,8 @@ export interface TerminalRuntime {
 	_disposeResizeObserver: (() => void) | null;
 	lastCols: number;
 	lastRows: number;
-	_enableImageAddon: (() => void) | null;
-	_disableImageAddon: (() => void) | null;
-	_enableWebglAddon: (() => void) | null;
-	_disableWebglAddon: (() => void) | null;
 	_disposeAddons: (() => void) | null;
 	_disposeImagePasteFallback: (() => void) | null;
-	lastContainerWidth: number;
-	lastContainerHeight: number;
-	_outputQueue: TerminalOutputQueueItem[];
-	_outputEnqueued: boolean;
-	_outputQueuedBytes: number;
-}
-
-function getOutputByteLength(data: TerminalOutputData): number {
-	if (typeof data === "string") return data.length;
-	return data.byteLength;
-}
-
-function splitStringAtOutputBoundary(value: string, start: number): number {
-	const end = Math.min(value.length, start + OUTPUT_CHUNK_BYTES);
-	if (end >= value.length) return value.length;
-	const code = value.charCodeAt(end - 1);
-	return code >= 0xd800 && code <= 0xdbff ? end - 1 : end;
-}
-
-function splitOutputData(
-	data: TerminalOutputData,
-	callback?: () => void,
-): TerminalOutputQueueItem[] {
-	const byteLength = getOutputByteLength(data);
-	if (byteLength <= OUTPUT_CHUNK_BYTES) {
-		return [{ data, byteLength, callback }];
-	}
-
-	const items: TerminalOutputQueueItem[] = [];
-	if (typeof data === "string") {
-		for (let start = 0; start < data.length; ) {
-			const end = splitStringAtOutputBoundary(data, start);
-			const chunk = data.slice(start, end);
-			items.push({ data: chunk, byteLength: chunk.length });
-			start = end;
-		}
-	} else {
-		for (let start = 0; start < data.byteLength; start += OUTPUT_CHUNK_BYTES) {
-			const chunk = data.slice(start, start + OUTPUT_CHUNK_BYTES);
-			items.push({ data: chunk, byteLength: chunk.byteLength });
-		}
-	}
-
-	const lastItem = items.at(-1);
-	if (lastItem) lastItem.callback = callback;
-	return items;
-}
-
-function scheduleQueuedOutputFlush() {
-	if (outputFlushRafId !== null || outputFlushTimeoutId !== null) return;
-	if (typeof requestAnimationFrame !== "function") {
-		outputFlushTimeoutId = setTimeout(flushQueuedOutput, 0);
-		return;
-	}
-	outputFlushRafId = requestAnimationFrame(flushQueuedOutput);
-}
-
-function flushQueuedOutput() {
-	outputFlushRafId = null;
-	if (outputFlushTimeoutId !== null) {
-		clearTimeout(outputFlushTimeoutId);
-		outputFlushTimeoutId = null;
-	}
-
-	let processed = 0;
-	for (const runtime of Array.from(runtimesWithQueuedOutput)) {
-		runtimesWithQueuedOutput.delete(runtime);
-		if (!runtime.container) {
-			runtime._outputEnqueued = false;
-			continue;
-		}
-		const item = runtime._outputQueue.shift();
-		if (!item) {
-			runtime._outputEnqueued = false;
-			continue;
-		}
-
-		processed += 1;
-		runtime._outputQueuedBytes = Math.max(
-			0,
-			runtime._outputQueuedBytes - item.byteLength,
-		);
-		runtime.terminal.write(item.data, item.callback);
-
-		if (runtime._outputQueue.length > 0) {
-			runtimesWithQueuedOutput.add(runtime);
-		} else {
-			runtime._outputEnqueued = false;
-		}
-
-		if (processed >= BACKGROUND_OUTPUT_WRITES_PER_FRAME) break;
-	}
-
-	if (runtimesWithQueuedOutput.size > 0) {
-		scheduleQueuedOutputFlush();
-	}
-}
-
-function enqueueRuntimeOutput(
-	runtime: TerminalRuntime,
-	item: TerminalOutputQueueItem,
-) {
-	runtime._outputQueuedBytes += item.byteLength;
-	runtime._outputQueue.push(item);
-	if (!runtime.container) {
-		item.callback?.();
-		item.callback = undefined;
-		while (
-			runtime._outputQueuedBytes > MAX_PARKED_OUTPUT_QUEUE_BYTES &&
-			runtime._outputQueue.length > 1
-		) {
-			const dropped = runtime._outputQueue.shift();
-			if (!dropped) break;
-			runtime._outputQueuedBytes = Math.max(
-				0,
-				runtime._outputQueuedBytes - dropped.byteLength,
-			);
-			dropped.callback?.();
-		}
-		return;
-	}
-	if (!runtime._outputEnqueued) {
-		runtime._outputEnqueued = true;
-		runtimesWithQueuedOutput.add(runtime);
-	}
-	scheduleQueuedOutputFlush();
-}
-
-function clearQueuedRuntimeOutput(runtime: TerminalRuntime) {
-	runtimesWithQueuedOutput.delete(runtime);
-	runtime._outputEnqueued = false;
-	runtime._outputQueuedBytes = 0;
-	const queue = runtime._outputQueue.splice(0);
-	for (const item of queue) {
-		item.callback?.();
-	}
 }
 
 function createTerminal(
@@ -274,33 +116,13 @@ function clearPersistedDimensions(terminalId: string) {
 	} catch {}
 }
 
-function disposeTerminalAfterPendingRefresh(terminal: XTerm) {
-	const disposeTerminal = () => {
-		try {
-			terminal.dispose();
-		} catch {}
-	};
-
-	if (typeof requestAnimationFrame !== "function") {
-		setTimeout(disposeTerminal, 0);
-		return;
-	}
-
-	requestAnimationFrame(() => {
-		requestAnimationFrame(disposeTerminal);
-	});
-}
-
-function runtimeHasMeasuredHost(runtime: TerminalRuntime): boolean {
-	return Boolean(
-		runtime.container &&
-			runtime.lastContainerWidth > 0 &&
-			runtime.lastContainerHeight > 0,
-	);
+function hostIsVisible(container: HTMLDivElement | null): boolean {
+	if (!container) return false;
+	return container.clientWidth > 0 && container.clientHeight > 0;
 }
 
 function measureAndResize(runtime: TerminalRuntime): boolean {
-	if (!runtimeHasMeasuredHost(runtime)) return false;
+	if (!hostIsVisible(runtime.container)) return false;
 	const { terminal } = runtime;
 	const buffer = terminal.buffer.active;
 	const wasPinnedToBottom = buffer.viewportY >= buffer.baseY;
@@ -331,66 +153,38 @@ function createResizeScheduler(
 	onResize?: () => void,
 ): {
 	observe: ResizeObserverCallback;
-	schedule: (delayMs?: number) => void;
 	dispose: () => void;
 } {
 	let timeoutId: ReturnType<typeof setTimeout> | null = null;
-	let rafId: number | null = null;
-
-	const clearFrame = () => {
-		if (rafId === null) return;
-		cancelAnimationFrame(rafId);
-		rafId = null;
-	};
 
 	const dispose = () => {
 		if (timeoutId !== null) {
 			clearTimeout(timeoutId);
 			timeoutId = null;
 		}
-		clearFrame();
 	};
 
 	const run = () => {
 		timeoutId = null;
-		rafId = null;
 		const changed = measureAndResize(runtime);
 		if (changed) onResize?.();
 	};
 
-	const schedule = (delayMs = RESIZE_DEBOUNCE_MS) => {
-		dispose();
-		timeoutId = setTimeout(() => {
-			timeoutId = null;
-			if (typeof requestAnimationFrame !== "function") {
-				run();
-				return;
-			}
-			rafId = requestAnimationFrame(run);
-		}, delayMs);
-	};
-
 	const observe: ResizeObserverCallback = (entries) => {
-		let changed = false;
-		for (const entry of entries) {
-			const { width, height } = entry.contentRect;
-			if (width <= 0 || height <= 0) {
-				dispose();
-				return;
-			}
-			if (
-				width !== runtime.lastContainerWidth ||
-				height !== runtime.lastContainerHeight
-			) {
-				changed = true;
-				runtime.lastContainerWidth = width;
-				runtime.lastContainerHeight = height;
-			}
+		if (
+			entries.some(
+				(entry) =>
+					entry.contentRect.width <= 0 || entry.contentRect.height <= 0,
+			)
+		) {
+			dispose();
+			return;
 		}
-		if (changed) schedule();
+		dispose();
+		timeoutId = setTimeout(run, RESIZE_DEBOUNCE_MS);
 	};
 
-	return { observe, schedule, dispose };
+	return { observe, dispose };
 }
 
 export function createRuntime(
@@ -411,7 +205,6 @@ export function createRuntime(
 	const wrapper = document.createElement("div");
 	wrapper.style.width = "100%";
 	wrapper.style.height = "100%";
-	markTerminalSessionReplayBlocked(wrapper);
 	terminal.open(wrapper);
 
 	installTerminalKeyEventHandler(terminal);
@@ -443,37 +236,9 @@ export function createRuntime(
 		_disposeResizeObserver: null,
 		lastCols: cols,
 		lastRows: rows,
-		_enableImageAddon: addonsResult.enableImageAddon,
-		_disableImageAddon: addonsResult.disableImageAddon,
-		_enableWebglAddon: addonsResult.enableWebglAddon,
-		_disableWebglAddon: addonsResult.disableWebglAddon,
 		_disposeAddons: addonsResult.dispose,
 		_disposeImagePasteFallback: disposeImagePasteFallback,
-		lastContainerWidth: 0,
-		lastContainerHeight: 0,
-		_outputQueue: [],
-		_outputEnqueued: false,
-		_outputQueuedBytes: 0,
 	};
-}
-
-export function writeRuntimeOutput(
-	runtime: TerminalRuntime,
-	data: TerminalOutputData,
-	callback?: () => void,
-) {
-	const items = splitOutputData(data, callback);
-	if (
-		runtime.container &&
-		runtime._outputQueue.length === 0 &&
-		items.length === 1
-	) {
-		runtime.terminal.write(data, callback);
-		return;
-	}
-	for (const item of items) {
-		enqueueRuntimeOutput(runtime, item);
-	}
 }
 
 export function attachToContainer(
@@ -493,7 +258,7 @@ export function attachToContainer(
 
 	runtime.container = container;
 	container.appendChild(runtime.wrapper);
-	runtime._enableImageAddon?.();
+	if (measureAndResize(runtime)) onResize?.();
 
 	runtime._disposeResizeObserver?.();
 	runtime._disposeResizeObserver = null;
@@ -504,35 +269,7 @@ export function attachToContainer(
 	runtime.resizeObserver = observer;
 	runtime._disposeResizeObserver = scheduler.dispose;
 
-	if (runtime._outputQueue.length > 0 && !runtime._outputEnqueued) {
-		runtime._outputEnqueued = true;
-		runtimesWithQueuedOutput.add(runtime);
-		scheduleQueuedOutputFlush();
-	}
-	runtime._enableWebglAddon?.();
-}
-
-function focusRuntimeNow(runtime: TerminalRuntime) {
-	if (!runtime.container) return;
-	const element = runtime.terminal.element;
-	if (element?.contains(document.activeElement)) return;
-	const textarea = runtime.terminal.textarea;
-	if (textarea) {
-		textarea.focus({ preventScroll: true });
-		return;
-	}
 	runtime.terminal.focus();
-}
-
-export function focusRuntime(runtime: TerminalRuntime) {
-	pendingFocusRuntime = runtime;
-	if (focusRafId !== null) return;
-	focusRafId = requestAnimationFrame(() => {
-		focusRafId = null;
-		const nextRuntime = pendingFocusRuntime;
-		pendingFocusRuntime = null;
-		if (nextRuntime) focusRuntimeNow(nextRuntime);
-	});
 }
 
 export function detachFromContainer(runtime: TerminalRuntime) {
@@ -542,8 +279,6 @@ export function detachFromContainer(runtime: TerminalRuntime) {
 	runtime._disposeResizeObserver = null;
 	runtime.resizeObserver?.disconnect();
 	runtime.resizeObserver = null;
-	runtime._disableImageAddon?.();
-	runtime._disableWebglAddon?.();
 	// Park instead of .remove() so xterm survives the React unmount —
 	// see getTerminalParkingContainer.
 	getTerminalParkingContainer().appendChild(runtime.wrapper);
@@ -564,7 +299,7 @@ export function updateRuntimeAppearance(
 	if (fontChanged) {
 		terminal.options.fontFamily = appearance.fontFamily;
 		terminal.options.fontSize = appearance.fontSize;
-		if (runtimeHasMeasuredHost(runtime)) {
+		if (hostIsVisible(runtime.container)) {
 			measureAndResize(runtime);
 		}
 	}
@@ -583,19 +318,14 @@ export function disposeRuntime(
 	runtime._disposeImagePasteFallback = null;
 	runtime._disposeAddons?.();
 	runtime._disposeAddons = null;
-	runtime._enableImageAddon = null;
-	runtime._disableImageAddon = null;
-	runtime._enableWebglAddon = null;
-	runtime._disableWebglAddon = null;
-	clearQueuedRuntimeOutput(runtime);
 	runtime._disposeResizeObserver?.();
 	runtime._disposeResizeObserver = null;
 	runtime.resizeObserver?.disconnect();
 	runtime.resizeObserver = null;
 	runtime.wrapper.remove();
+	runtime.terminal.dispose();
 	if (clearPersistedState) {
 		clearPersistedBuffer(runtime.terminalId);
 		clearPersistedDimensions(runtime.terminalId);
 	}
-	disposeTerminalAfterPendingRefresh(runtime.terminal);
 }

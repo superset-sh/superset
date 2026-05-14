@@ -15,7 +15,6 @@ import {
 import type { HostServiceContext } from "../../../types";
 import { protectedProcedure, router } from "../../index";
 import { type AgentRunResult, runAgentInWorkspace } from "../agents";
-import { gitConfigWrite } from "../git/utils/config-write";
 import { ensureMainWorkspace } from "../project/utils/ensure-main-workspace";
 import { adoptExistingWorktree } from "../workspace-creation/shared/adopt-existing-worktree";
 import {
@@ -351,18 +350,20 @@ async function recordBaseBranchConfig(args: {
 	branch: string;
 	baseBranch: string;
 }): Promise<void> {
-	await gitConfigWrite(args.git, [
-		"-C",
-		args.worktreePath,
-		"config",
-		`branch.${args.branch}.base`,
-		args.baseBranch,
-	]).catch((err) => {
-		console.warn(
-			`[workspaces.create] failed to record base branch ${args.baseBranch}:`,
-			err,
-		);
-	});
+	await args.git
+		.raw([
+			"-C",
+			args.worktreePath,
+			"config",
+			`branch.${args.branch}.base`,
+			args.baseBranch,
+		])
+		.catch((err) => {
+			console.warn(
+				`[workspaces.create] failed to record base branch ${args.baseBranch}:`,
+				err,
+			);
+		});
 }
 
 /**
@@ -908,19 +909,18 @@ export const workspacesRouter = router({
 
 							if (!plan.usedExistingBranch && plan.startPoint.kind !== "head") {
 								const baseShortName = plan.startPoint.shortName;
-								await gitConfigWrite(git, [
-									"-C",
-									worktreePath,
-									"config",
-									"--local",
-									`branch.${resolvedBranch}.base`,
-									baseShortName,
-								]).catch((err) => {
-									console.warn(
-										`[workspaces.create] failed to record base branch ${baseShortName}:`,
-										err,
-									);
-								});
+								await git
+									.raw([
+										"config",
+										`branch.${resolvedBranch}.base`,
+										baseShortName,
+									])
+									.catch((err) => {
+										console.warn(
+											`[workspaces.create] failed to record base branch ${baseShortName}:`,
+											err,
+										);
+									});
 							}
 
 							workspaceRow = await registerCloudAndLocal({

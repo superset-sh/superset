@@ -4,14 +4,12 @@ import {
 	DropdownMenuContent,
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
+import { OverflowFadeContainer } from "@superset/ui/overflow-fade-container";
 import { PlusIcon } from "lucide-react";
 import {
+	type ComponentProps,
 	type ReactNode,
-	type UIEvent,
 	useCallback,
-	useEffect,
-	useLayoutEffect,
-	useMemo,
 	useRef,
 	useState,
 } from "react";
@@ -20,7 +18,7 @@ import type { Tab } from "../../../../../types";
 import type { PaneRegistry } from "../../../../types";
 import { PANE_DRAG_TYPE } from "../Tab/components/Pane/components/PaneHeader";
 import { TAB_DRAG_TYPE, TabItem } from "./components/TabItem";
-import { computeInsertIndex, getVisibleTabWindow, TAB_WIDTH } from "./utils";
+import { computeInsertIndex, TAB_WIDTH } from "./utils";
 
 interface TabBarProps<TData> {
 	tabs: Tab<TData>[];
@@ -89,12 +87,7 @@ export function TabBar<TData>({
 	renderTabAccessory,
 }: TabBarProps<TData>) {
 	const tabsTrackRef = useRef<HTMLDivElement>(null);
-	const scrollContainerRef = useRef<HTMLDivElement>(null);
-	const scrollMetricsFrameRef = useRef<number | null>(null);
-	const [scrollMetrics, setScrollMetrics] = useState({
-		clientWidth: 0,
-		scrollLeft: 0,
-	});
+	const [hasHorizontalOverflow, setHasHorizontalOverflow] = useState(false);
 
 	const insertIndexRef = useRef<number | null>(null);
 	const [insertIndex, setInsertIndex] = useState<number | null>(null);
@@ -149,119 +142,6 @@ export function TabBar<TData>({
 		[tabs, onReorderTab, onMovePaneToNewTab],
 	);
 
-	const readScrollMetrics = useCallback(() => {
-		const node = scrollContainerRef.current;
-		if (!node) return;
-		const nextMetrics = {
-			clientWidth: node.clientWidth,
-			scrollLeft: node.scrollLeft,
-		};
-		setScrollMetrics((currentMetrics) =>
-			currentMetrics.clientWidth === nextMetrics.clientWidth &&
-			currentMetrics.scrollLeft === nextMetrics.scrollLeft
-				? currentMetrics
-				: nextMetrics,
-		);
-	}, []);
-
-	const scheduleScrollMetricsUpdate = useCallback(() => {
-		if (scrollMetricsFrameRef.current !== null) return;
-		if (typeof requestAnimationFrame !== "function") {
-			readScrollMetrics();
-			return;
-		}
-		scrollMetricsFrameRef.current = requestAnimationFrame(() => {
-			scrollMetricsFrameRef.current = null;
-			readScrollMetrics();
-		});
-	}, [readScrollMetrics]);
-
-	const handleScroll = useCallback(
-		(_event: UIEvent<HTMLDivElement>) => {
-			scheduleScrollMetricsUpdate();
-		},
-		[scheduleScrollMetricsUpdate],
-	);
-
-	useEffect(
-		() => () => {
-			if (
-				scrollMetricsFrameRef.current !== null &&
-				typeof cancelAnimationFrame === "function"
-			) {
-				cancelAnimationFrame(scrollMetricsFrameRef.current);
-				scrollMetricsFrameRef.current = null;
-			}
-		},
-		[],
-	);
-
-	useLayoutEffect(() => {
-		const node = scrollContainerRef.current;
-		if (!node) return;
-
-		readScrollMetrics();
-		const resizeObserver = new ResizeObserver(scheduleScrollMetricsUpdate);
-		resizeObserver.observe(node);
-
-		return () => {
-			resizeObserver.disconnect();
-		};
-	}, [readScrollMetrics, scheduleScrollMetricsUpdate]);
-
-	useLayoutEffect(() => {
-		readScrollMetrics();
-	}, [readScrollMetrics]);
-
-	const activeTabIndex = useMemo(
-		() => tabs.findIndex((tab) => tab.id === activeTabId),
-		[activeTabId, tabs],
-	);
-	const totalTabsWidth = tabs.length * TAB_WIDTH;
-	const addTabButtonWidth = 40;
-	const hasHorizontalOverflow =
-		scrollMetrics.clientWidth > 0 &&
-		totalTabsWidth + addTabButtonWidth > scrollMetrics.clientWidth + 1;
-	const inlineAddTabWidth = hasHorizontalOverflow ? 0 : addTabButtonWidth;
-	const tabsTrackWidth = totalTabsWidth + inlineAddTabWidth;
-
-	useLayoutEffect(() => {
-		const node = scrollContainerRef.current;
-		const viewportWidth = scrollMetrics.clientWidth;
-		if (!node || activeTabIndex < 0 || viewportWidth <= 0) return;
-
-		const tabLeft = activeTabIndex * TAB_WIDTH;
-		const tabRight = tabLeft + TAB_WIDTH;
-		const viewportLeft = scrollMetrics.scrollLeft;
-		const viewportRight = viewportLeft + viewportWidth;
-		let nextScrollLeft = viewportLeft;
-
-		if (tabLeft < viewportLeft) {
-			nextScrollLeft = tabLeft;
-		} else if (tabRight > viewportRight) {
-			nextScrollLeft = tabRight - viewportWidth;
-		}
-
-		if (nextScrollLeft === viewportLeft) return;
-
-		const boundedScrollLeft = Math.max(
-			0,
-			Math.min(nextScrollLeft, tabsTrackWidth - viewportWidth),
-		);
-		node.scrollLeft = boundedScrollLeft;
-		setScrollMetrics((currentMetrics) =>
-			currentMetrics.clientWidth === viewportWidth &&
-			currentMetrics.scrollLeft === boundedScrollLeft
-				? currentMetrics
-				: { clientWidth: viewportWidth, scrollLeft: boundedScrollLeft },
-		);
-	}, [
-		activeTabIndex,
-		scrollMetrics.clientWidth,
-		scrollMetrics.scrollLeft,
-		tabsTrackWidth,
-	]);
-
 	// Clear indicator when cursor leaves the tab bar
 	if (!isOver && insertIndexRef.current !== null) {
 		insertIndexRef.current = null;
@@ -275,30 +155,15 @@ export function TabBar<TData>({
 		[connectDrop],
 	);
 
-	const setScrollContainerRef = useCallback((node: HTMLDivElement | null) => {
-		scrollContainerRef.current = node;
+	const handleOverflowChange = useCallback<
+		NonNullable<
+			ComponentProps<typeof OverflowFadeContainer>["onOverflowChange"]
+		>
+	>((state) => {
+		setHasHorizontalOverflow(state.hasOverflowX);
 	}, []);
 
 	const insertLineLeft = insertIndex !== null ? insertIndex * TAB_WIDTH : null;
-	const visibleTabWindow = useMemo(
-		() =>
-			getVisibleTabWindow({
-				clientWidth: scrollMetrics.clientWidth,
-				scrollLeft: scrollMetrics.scrollLeft,
-				tabCount: tabs.length,
-			}),
-		[scrollMetrics.clientWidth, scrollMetrics.scrollLeft, tabs.length],
-	);
-	const visibleTabs = useMemo(
-		() =>
-			tabs
-				.slice(visibleTabWindow.start, visibleTabWindow.end)
-				.map((tab, offset) => ({
-					index: visibleTabWindow.start + offset,
-					tab,
-				})),
-		[tabs, visibleTabWindow],
-	);
 
 	if (tabs.length === 0) {
 		return (
@@ -324,27 +189,23 @@ export function TabBar<TData>({
 			ref={setRootRef}
 			className="group/root-tabs flex h-10 min-w-0 shrink-0 items-stretch border-b border-border bg-background"
 		>
-			<div
-				ref={setScrollContainerRef}
-				onScroll={handleScroll}
+			<OverflowFadeContainer
+				observeChildren
+				onOverflowChange={handleOverflowChange}
 				className="hide-scrollbar flex min-w-0 flex-1 items-stretch overflow-x-auto overflow-y-hidden"
 			>
-				<div
-					ref={tabsTrackRef}
-					className="relative h-full shrink-0"
-					style={{ width: tabsTrackWidth }}
-				>
-					{visibleTabs.map(({ tab, index }) => (
+				<div ref={tabsTrackRef} className="relative flex h-full items-stretch">
+					{tabs.map((tab, i) => (
 						<div
-							className="absolute top-0 h-full"
+							className="h-full shrink-0"
 							key={tab.id}
-							style={{ left: index * TAB_WIDTH, width: TAB_WIDTH }}
+							style={{ width: TAB_WIDTH }}
 						>
 							<TabItem
 								tab={tab}
 								tabs={tabs}
 								registry={registry}
-								index={index}
+								index={i}
 								isActive={tab.id === activeTabId}
 								onSelect={() => onSelectTab(tab.id)}
 								onClose={() => onCloseTab(tab.id)}
@@ -363,15 +224,12 @@ export function TabBar<TData>({
 						/>
 					)}
 					{!hasHorizontalOverflow && (
-						<div
-							className="absolute top-0 flex h-full w-10 items-center justify-center"
-							style={{ left: totalTabsWidth }}
-						>
+						<div className="flex h-full w-10 shrink-0 items-center justify-center">
 							<AddTabButton renderAddTabMenu={renderAddTabMenu} />
 						</div>
 					)}
 				</div>
-			</div>
+			</OverflowFadeContainer>
 			{hasHorizontalOverflow && (
 				<div className="flex h-full w-10 shrink-0 items-center justify-center bg-background">
 					<AddTabButton renderAddTabMenu={renderAddTabMenu} />

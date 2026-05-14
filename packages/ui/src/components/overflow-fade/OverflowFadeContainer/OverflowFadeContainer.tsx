@@ -28,11 +28,6 @@ interface OverflowFadeContainerProps extends ComponentProps<"div"> {
 	 * scrollers such as tabs; avoid on large or virtualized lists without profiling.
 	 */
 	observeChildren?: boolean;
-	/**
-	 * Re-measure overflow when the caller knows scrollable content changed
-	 * without relying on observing every child node.
-	 */
-	measureKey?: unknown;
 }
 
 export function OverflowFadeContainer({
@@ -41,7 +36,6 @@ export function OverflowFadeContainer({
 	fadeEdges = DEFAULT_FADE_EDGES,
 	onOverflowChange,
 	observeChildren = false,
-	measureKey,
 	...props
 }: OverflowFadeContainerProps) {
 	const {
@@ -52,7 +46,7 @@ export function OverflowFadeContainer({
 		canScrollRight,
 		canScrollBottom,
 		canScrollLeft,
-	} = useOverflowFade<HTMLDivElement>({ measureKey, observeChildren });
+	} = useOverflowFade<HTMLDivElement>({ observeChildren });
 
 	const setRef = (node: HTMLDivElement | null) => {
 		ref.current = node;

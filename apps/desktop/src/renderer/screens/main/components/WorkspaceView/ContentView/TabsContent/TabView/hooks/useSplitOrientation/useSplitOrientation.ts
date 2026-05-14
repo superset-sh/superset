@@ -12,13 +12,14 @@ export function useSplitOrientation(
 		const container = containerRef.current;
 		if (!container) return;
 
-		const updateOrientation = ({ width, height }: DOMRectReadOnly) => {
+		const updateOrientation = () => {
+			const { width, height } = container.getBoundingClientRect();
 			setSplitOrientation(width >= height ? "vertical" : "horizontal");
 		};
 
-		const resizeObserver = new ResizeObserver(([entry]) => {
-			if (entry) updateOrientation(entry.contentRect);
-		});
+		updateOrientation();
+
+		const resizeObserver = new ResizeObserver(updateOrientation);
 		resizeObserver.observe(container);
 
 		return () => {
