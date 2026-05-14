@@ -226,10 +226,10 @@ export function TerminalSessionDropdown({
 	const handleNewTerminal = async () => {
 		if (isCreatingTerminal) return;
 		setIsCreatingTerminal(true);
-		const state = context.store.getState();
-		const terminalPaneLocations = getTerminalPaneLocations(context);
 		try {
 			const nextTerminalId = await launcher.create();
+			const state = context.store.getState();
+			const terminalPaneLocations = getTerminalPaneLocations(context);
 			if ((terminalPaneLocations.get(terminalId)?.length ?? 0) === 0) {
 				markTerminalForBackground(terminalId);
 			}
