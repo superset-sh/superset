@@ -210,10 +210,14 @@ export const invitations = authSchema.table(
 		inviterId: uuid("inviter_id")
 			.notNull()
 			.references(() => users.id, { onDelete: "cascade" }),
+		// Required by BetterAuth's organization plugin when teams are enabled.
+		// Nullable — invitations not scoped to a specific team leave this null.
+		teamId: uuid("team_id").references(() => teams.id, { onDelete: "set null" }),
 	},
 	(table) => [
 		index("invitations_organization_id_idx").on(table.organizationId),
 		index("invitations_email_idx").on(table.email),
+		index("invitations_team_id_idx").on(table.teamId),
 	],
 );
 
