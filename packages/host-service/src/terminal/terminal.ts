@@ -1452,17 +1452,14 @@ export function registerWorkspaceTerminalRoute({
 			> => {
 				const existing = sessions.get(terminalId);
 				if (existing) {
-					if (!requestedWorkspaceId) {
-						return {
-							error: `Terminal session "${terminalId}" requires a workspaceId to connect.`,
-						};
+					if (requestedWorkspaceId) {
+						const mismatchError = getTerminalWorkspaceMismatchError({
+							terminalId,
+							ownerWorkspaceId: existing.workspaceId,
+							requestedWorkspaceId,
+						});
+						if (mismatchError) return { error: mismatchError };
 					}
-					const mismatchError = getTerminalWorkspaceMismatchError({
-						terminalId,
-						ownerWorkspaceId: existing.workspaceId,
-						requestedWorkspaceId,
-					});
-					if (mismatchError) return { error: mismatchError };
 					return existing;
 				}
 
@@ -1485,17 +1482,14 @@ export function registerWorkspaceTerminalRoute({
 						error: `Terminal session "${terminalId}" is missing a workspace.`,
 					};
 				}
-				if (!requestedWorkspaceId) {
-					return {
-						error: `Terminal session "${terminalId}" requires a workspaceId to connect.`,
-					};
+				if (requestedWorkspaceId) {
+					const mismatchError = getTerminalWorkspaceMismatchError({
+						terminalId,
+						ownerWorkspaceId: record.originWorkspaceId,
+						requestedWorkspaceId,
+					});
+					if (mismatchError) return { error: mismatchError };
 				}
-				const mismatchError = getTerminalWorkspaceMismatchError({
-					terminalId,
-					ownerWorkspaceId: record.originWorkspaceId,
-					requestedWorkspaceId,
-				});
-				if (mismatchError) return { error: mismatchError };
 
 				const themeType = parseThemeType(c.req.query("themeType"));
 
