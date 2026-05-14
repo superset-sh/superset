@@ -17,6 +17,16 @@ const result = await Bun.build({
 	outdir,
 	naming: "host-service.js",
 	format: "esm",
+	define: {
+		// Pin NODE_ENV in the release bundle so dev-only branches (e.g. the
+		// SIGTERM "clean iteration" handler in serve.ts, and the attached
+		// pty-daemon spawn in DaemonSupervisor.ts) never run in shipped
+		// binaries. Bun substitutes process.env.NODE_ENV at bundle time
+		// based on the build host's env, which leaves it as "development"
+		// on CI runners. Setting NODE_ENV at runtime can't override a
+		// constant-folded value. See superset-sh/superset#4563.
+		"process.env.NODE_ENV": JSON.stringify("production"),
+	},
 	external: [
 		"better-sqlite3",
 		"node-pty",
