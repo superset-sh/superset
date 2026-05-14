@@ -27,7 +27,6 @@ interface RegistryEntry {
 	placeholder: HTMLElement | null;
 	resizeObserver: ResizeObserver | null;
 	visible: boolean;
-	lastLayoutRect: BrowserLayoutRect | null;
 }
 
 const EMPTY_STATE: BrowserRuntimeState = Object.freeze({
@@ -41,17 +40,6 @@ const EMPTY_STATE: BrowserRuntimeState = Object.freeze({
 });
 
 const ROOT_CONTAINER_ID = "browser-runtime-root";
-const MAX_BROWSER_LAYOUTS_PER_FRAME = 4;
-const BROWSER_LAYOUT_FRAME_BUDGET_MS = 8;
-const BROWSER_LAYOUT_COALESCE_MS = 50;
-const BROWSER_LAYOUT_IDLE_TIMEOUT_MS = 150;
-
-interface BrowserLayoutRect {
-	top: number;
-	left: number;
-	width: number;
-	height: number;
-}
 
 class BrowserRuntimeRegistryImpl {
 	private entries = new Map<string, RegistryEntry>();
@@ -60,10 +48,6 @@ class BrowserRuntimeRegistryImpl {
 	private globalListenersInstalled = false;
 	private windowDragPassthrough = false;
 	private shellInteractionPassthrough = false;
-	private pendingLayoutEntries = new Set<RegistryEntry>();
-	private layoutFrameId: number | null = null;
-	private layoutTimerId: number | null = null;
-	private layoutIdleCallbackId: number | null = null;
 
 	private getListeners(paneId: string): Set<() => void> {
 		let set = this.listenersByPaneId.get(paneId);
@@ -125,7 +109,7 @@ class BrowserRuntimeRegistryImpl {
 
 		window.addEventListener("resize", () => {
 			for (const entry of this.entries.values()) {
-				if (entry.placeholder) this.scheduleLayout(entry);
+				if (entry.placeholder) this.updateLayout(entry);
 			}
 		});
 	}
@@ -159,104 +143,14 @@ class BrowserRuntimeRegistryImpl {
 		}
 	}
 
-	private scheduleLayout(entry: RegistryEntry) {
-		this.pendingLayoutEntries.add(entry);
-		this.scheduleDeferredLayoutFlush();
-	}
-
-	private scheduleDeferredLayoutFlush() {
-		if (
-			this.layoutFrameId !== null ||
-			this.layoutTimerId !== null ||
-			this.layoutIdleCallbackId !== null
-		) {
-			return;
-		}
-
-		const requestFlushFrame = () => {
-			this.layoutTimerId = null;
-			this.layoutIdleCallbackId = null;
-			if (this.pendingLayoutEntries.size === 0) return;
-			this.scheduleImmediateLayoutFlush();
-		};
-
-		if (typeof window.requestIdleCallback === "function") {
-			this.layoutIdleCallbackId = window.requestIdleCallback(
-				requestFlushFrame,
-				{
-					timeout: BROWSER_LAYOUT_IDLE_TIMEOUT_MS,
-				},
-			);
-			return;
-		}
-
-		this.layoutTimerId = window.setTimeout(
-			requestFlushFrame,
-			BROWSER_LAYOUT_COALESCE_MS,
-		);
-	}
-
-	private scheduleImmediateLayoutFlush() {
-		if (this.layoutFrameId !== null) return;
-		if (typeof requestAnimationFrame !== "function") {
-			this.flushPendingLayouts();
-			return;
-		}
-		this.layoutFrameId = requestAnimationFrame(() => {
-			this.flushPendingLayouts();
-		});
-	}
-
-	private flushPendingLayouts() {
-		this.layoutFrameId = null;
-		const startedAt =
-			typeof performance === "undefined" ? 0 : performance.now();
-		let processed = 0;
-
-		for (const pendingEntry of Array.from(this.pendingLayoutEntries)) {
-			this.pendingLayoutEntries.delete(pendingEntry);
-			this.updateLayout(pendingEntry);
-			processed += 1;
-
-			if (processed >= MAX_BROWSER_LAYOUTS_PER_FRAME) break;
-			if (
-				startedAt > 0 &&
-				performance.now() - startedAt >= BROWSER_LAYOUT_FRAME_BUDGET_MS
-			) {
-				break;
-			}
-		}
-
-		if (this.pendingLayoutEntries.size > 0) {
-			this.scheduleImmediateLayoutFlush();
-		}
-	}
-
 	private updateLayout(entry: RegistryEntry) {
-		if (!entry.placeholder || !entry.visible) return;
+		if (!entry.placeholder) return;
 		const rect = entry.placeholder.getBoundingClientRect();
-		const nextRect = {
-			top: rect.top,
-			left: rect.left,
-			width: rect.width,
-			height: rect.height,
-		};
-		const previousRect = entry.lastLayoutRect;
 		const w = entry.webview;
-		if (
-			!previousRect ||
-			previousRect.top !== nextRect.top ||
-			previousRect.left !== nextRect.left ||
-			previousRect.width !== nextRect.width ||
-			previousRect.height !== nextRect.height
-		) {
-			w.style.top = `${nextRect.top}px`;
-			w.style.left = `${nextRect.left}px`;
-			w.style.width = `${nextRect.width}px`;
-			w.style.height = `${nextRect.height}px`;
-			entry.lastLayoutRect = nextRect;
-		}
-		w.style.visibility = "visible";
+		w.style.top = `${rect.top}px`;
+		w.style.left = `${rect.left}px`;
+		w.style.width = `${rect.width}px`;
+		w.style.height = `${rect.height}px`;
 	}
 
 	private notify(paneId: string) {
@@ -318,7 +212,6 @@ class BrowserRuntimeRegistryImpl {
 			placeholder: null,
 			resizeObserver: null,
 			visible: false,
-			lastLayoutRect: null,
 		};
 
 		const firePersist = () => {
@@ -491,12 +384,13 @@ class BrowserRuntimeRegistryImpl {
 
 		entry.resizeObserver?.disconnect();
 		const observer = new ResizeObserver(() => {
-			if (entry) this.scheduleLayout(entry);
+			if (entry) this.updateLayout(entry);
 		});
 		observer.observe(placeholder);
 		entry.resizeObserver = observer;
 
-		this.scheduleLayout(entry);
+		this.updateLayout(entry);
+		entry.webview.style.visibility = "visible";
 		this.applyPointerPassthrough();
 	}
 
@@ -504,19 +398,16 @@ class BrowserRuntimeRegistryImpl {
 		const entry = this.entries.get(paneId);
 		if (!entry) return;
 		entry.onPersist = null;
-		this.pendingLayoutEntries.delete(entry);
 		entry.placeholder = null;
 		entry.resizeObserver?.disconnect();
 		entry.resizeObserver = null;
 		entry.visible = false;
-		entry.lastLayoutRect = null;
 		entry.webview.style.visibility = "hidden";
 	}
 
 	destroy(paneId: string): void {
 		const entry = this.entries.get(paneId);
 		if (!entry) return;
-		this.pendingLayoutEntries.delete(entry);
 		entry.resizeObserver?.disconnect();
 		entry.detachHandlers();
 		entry.webview.remove();

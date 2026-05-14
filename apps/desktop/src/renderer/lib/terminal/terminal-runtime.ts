@@ -187,6 +187,25 @@ function createResizeScheduler(
 	return { observe, dispose };
 }
 
+function disposeTerminalAfterPendingRefresh(runtime: TerminalRuntime) {
+	getTerminalParkingContainer().appendChild(runtime.wrapper);
+	runtime.container = null;
+
+	const dispose = () => {
+		runtime.wrapper.remove();
+		runtime.terminal.dispose();
+	};
+
+	if (typeof requestAnimationFrame !== "function") {
+		setTimeout(dispose, 0);
+		return;
+	}
+
+	requestAnimationFrame(() => {
+		requestAnimationFrame(dispose);
+	});
+}
+
 export function createRuntime(
 	terminalId: string,
 	appearance: TerminalAppearance,
@@ -322,8 +341,7 @@ export function disposeRuntime(
 	runtime._disposeResizeObserver = null;
 	runtime.resizeObserver?.disconnect();
 	runtime.resizeObserver = null;
-	runtime.wrapper.remove();
-	runtime.terminal.dispose();
+	disposeTerminalAfterPendingRefresh(runtime);
 	if (clearPersistedState) {
 		clearPersistedBuffer(runtime.terminalId);
 		clearPersistedDimensions(runtime.terminalId);

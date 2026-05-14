@@ -27,7 +27,6 @@ import { useDefaultPaneActions } from "./hooks/useDefaultPaneActions";
 import { useDirtyTabCloseGuard } from "./hooks/useDirtyTabCloseGuard";
 import { usePaneRegistry } from "./hooks/usePaneRegistry";
 import { renderBrowserTabIcon } from "./hooks/usePaneRegistry/components/BrowserPane";
-import { browserRuntimeRegistry } from "./hooks/usePaneRegistry/components/BrowserPane/browserRuntimeRegistry";
 import { useRendererStressWorkspaceBridge } from "./hooks/useRendererStressWorkspaceBridge";
 import { useV2PresetExecution } from "./hooks/useV2PresetExecution";
 import { useV2TerminalLauncher } from "./hooks/useV2TerminalLauncher";
@@ -131,17 +130,6 @@ function V2WorkspaceContent({
 	} = useV2UserPreferences();
 	const showPresetsBar = v2UserPreferences.showPresetsBar;
 	const { store } = useV2WorkspacePaneLayout();
-	useEffect(() => {
-		return () => {
-			for (const tab of store.getState().tabs) {
-				for (const pane of Object.values(tab.panes)) {
-					if (pane.kind === "browser") {
-						browserRuntimeRegistry.detach(pane.id);
-					}
-				}
-			}
-		};
-	}, [store]);
 	useClearActivePaneAttention({ store });
 	const launcher = useV2TerminalLauncher();
 	const { matchedPresets, executePreset, resolvePresetCommands } =

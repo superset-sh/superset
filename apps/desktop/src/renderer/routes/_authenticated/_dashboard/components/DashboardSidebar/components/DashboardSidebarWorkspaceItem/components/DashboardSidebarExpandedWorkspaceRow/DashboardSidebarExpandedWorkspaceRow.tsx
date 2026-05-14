@@ -1,12 +1,6 @@
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
-import {
-	type ComponentPropsWithoutRef,
-	forwardRef,
-	useEffect,
-	useMemo,
-	useRef,
-} from "react";
+import { type ComponentPropsWithoutRef, forwardRef, useMemo } from "react";
 import { HiMiniMinus, HiMiniXMark } from "react-icons/hi2";
 import type { DiffStats } from "renderer/hooks/host-service/useDiffStats";
 import { HotkeyLabel } from "renderer/hotkeys";
@@ -86,17 +80,7 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 			creationStatus,
 		} = workspace;
 		const showsStandaloneActiveStripe = accentColor == null;
-		const localRef = useRef<HTMLDivElement>(null);
 		const openUrl = electronTrpc.external.openUrl.useMutation();
-
-		useEffect(() => {
-			if (isActive) {
-				localRef.current?.scrollIntoView({
-					block: "nearest",
-					behavior: "smooth",
-				});
-			}
-		}, [isActive]);
 
 		const creationStatusText = useMemo(
 			() => getCreationStatusText(creationStatus),
@@ -116,11 +100,7 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 				role={onClick ? "button" : undefined}
 				tabIndex={onClick ? 0 : undefined}
 				aria-disabled={creationStatus ? true : undefined}
-				ref={(node) => {
-					localRef.current = node;
-					if (typeof ref === "function") ref(node);
-					else if (ref) ref.current = node;
-				}}
+				ref={ref}
 				onClick={onClick}
 				onKeyDown={(event) => {
 					if (onClick && (event.key === "Enter" || event.key === " ")) {

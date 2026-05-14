@@ -2,19 +2,12 @@ import type { PostHogConfig } from "posthog-js/dist/module.full.no-external";
 import posthogFull from "posthog-js/dist/module.full.no-external";
 import type { PostHog } from "posthog-js/react";
 import { env } from "../env.renderer";
-import {
-	TERMINAL_SESSION_REPLAY_BLOCK_ATTRIBUTE,
-	TERMINAL_SESSION_REPLAY_BLOCK_CLASS,
-} from "./terminal/terminal-session-replay";
 
 // Cast to standard PostHog type for compatibility with posthog-js/react
 export const posthog = posthogFull as unknown as PostHog;
 
 export const POSTHOG_SESSION_REPLAY_BLOCK_SELECTOR = [
-	`.${TERMINAL_SESSION_REPLAY_BLOCK_CLASS}`,
-	`[${TERMINAL_SESSION_REPLAY_BLOCK_ATTRIBUTE}]`,
 	"[data-ph-no-capture]",
-	"[data-terminal-webgl-canvas]",
 	".xterm",
 	".xterm-screen",
 	".xterm-viewport",

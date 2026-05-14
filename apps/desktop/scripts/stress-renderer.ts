@@ -12,7 +12,6 @@ interface Args {
 	terminalPanesPerTab: number;
 	terminalLines: number;
 	terminalPayloadBytes: number;
-	forceTerminalWebglLoss: boolean;
 	includeTerminalAction: boolean;
 	profileCpu: boolean;
 	reactProbe: boolean;
@@ -129,7 +128,6 @@ interface RendererStressResult {
 	terminalActionCounts: Record<string, number>;
 	terminalActionErrors: string[];
 	terminalStressSummary: unknown;
-	terminalWebglContextLosses: unknown[];
 	workspaceSummary: unknown;
 	reactProbeSummary: unknown;
 	durationMs: number;
@@ -157,15 +155,6 @@ interface RendererStressResult {
 
 const DEFAULT_SELECTOR = "[data-renderer-stress-workspace-id]";
 
-interface TerminalWebglContextLossRecord {
-	index: number;
-	terminalCount: number;
-	canvasCount: number;
-	webglContextCount: number;
-	lostContextCount: number;
-	unsupportedContextCount: number;
-}
-
 function parseArgs(argv: string[]): Args {
 	const args: Args = {
 		host: "127.0.0.1",
@@ -179,7 +168,6 @@ function parseArgs(argv: string[]): Args {
 		terminalPanesPerTab: 4,
 		terminalLines: 40,
 		terminalPayloadBytes: 1024,
-		forceTerminalWebglLoss: true,
 		includeTerminalAction: false,
 		profileCpu: false,
 		reactProbe: false,
@@ -259,9 +247,6 @@ function parseArgs(argv: string[]): Args {
 			case "--terminal-payload-bytes":
 				args.terminalPayloadBytes = readNumber();
 				break;
-			case "--no-terminal-webgl-loss":
-				args.forceTerminalWebglLoss = false;
-				break;
 			case "--include-terminal-action":
 				args.includeTerminalAction = true;
 				break;
@@ -328,13 +313,12 @@ Options:
   --iterations <n>                 Workspace activations. Default: 500
   --route-iterations <n>           Route navigations. Default: --iterations
   --heavy-iterations <n>           Mixed pane/tab/browser/diff actions. Default: min(--iterations, 300)
-  --terminal-iterations <n>        Terminal tab switch/write/context-loss cycles. Default: min(--iterations, 200)
+  --terminal-iterations <n>        Terminal tab switch/write cycles. Default: min(--iterations, 200)
   --terminal-tab-count <n>         Synthetic terminal tabs. Default: 24
   --terminal-panes-per-tab <n>     Terminal panes per synthetic tab. Default: 4
                                    Also controls generated tabs/panes for workspace-switch-heavy.
   --terminal-lines <n>             ANSI output lines per terminal write. Default: 40
   --terminal-payload-bytes <n>     Repeated payload bytes per line. Default: 1024
-  --no-terminal-webgl-loss         Do not force WEBGL_lose_context during terminal stress
   --include-terminal-action        Include one real backend terminal launch in heavy stress. Default: false
   --profile-cpu                    Capture a CDP CPU profile and print hottest JS frames
   --react-probe                    Capture React commit/component counts via React DevTools hook when available
@@ -554,7 +538,6 @@ function rendererStress(options: {
 	terminalPanesPerTab: number;
 	terminalLines: number;
 	terminalPayloadBytes: number;
-	forceTerminalWebglLoss: boolean;
 	includeTerminalAction: boolean;
 	reactProbe: boolean;
 	progressEvery: number;
@@ -563,7 +546,6 @@ function rendererStress(options: {
 	selector: string;
 	workspaceIds: string[];
 }): Promise<RendererStressResult> {
-	const webglContextRecoverySettleMs = 3500;
 	type StressWindow = Window & {
 		performance: Performance & {
 			memory?: unknown;
@@ -867,13 +849,6 @@ function rendererStress(options: {
 			failedCount: number;
 			byteLength: number;
 		}>;
-		forceTerminalWebglContextLoss: () => {
-			terminalCount: number;
-			canvasCount: number;
-			webglContextCount: number;
-			lostContextCount: number;
-			unsupportedContextCount: number;
-		};
 		getTerminalStressSummary: () => unknown;
 		releaseStressTerminalRuntimes: () => void;
 		addRealTerminalTab: () => Promise<void>;
@@ -1078,7 +1053,6 @@ function rendererStress(options: {
 		const heavyActionErrors: string[] = [];
 		const terminalActionCounts: Record<string, number> = {};
 		const terminalActionErrors: string[] = [];
-		const terminalWebglContextLosses: TerminalWebglContextLossRecord[] = [];
 		const slowOperations: RendererStressResult["slowOperations"] = [];
 		const heavyWorkspaceSwitchWorkspaceIds: string[] = [];
 		const heavyWorkspaceSwitchSummaries: unknown[] = [];
@@ -1384,7 +1358,6 @@ function rendererStress(options: {
 				1,
 				Math.min(8, Math.floor(options.terminalPanesPerTab)),
 			);
-			const webglLossCadence = Math.max(4, Math.floor(terminalTabCount / 2));
 
 			activeBridge.captureBaseline();
 			try {
@@ -1406,7 +1379,7 @@ function rendererStress(options: {
 
 				for (let index = 0; index < terminalIterations; index += 1) {
 					operationStartedAt = performance.now();
-					let actionLabel = "switch-write-terminal-output";
+					const actionLabel = "switch-write-terminal-output";
 					try {
 						activeBridge.switchTab(index % terminalTabCount);
 						terminalActionCounts["switch-tab"] =
@@ -1436,22 +1409,6 @@ function rendererStress(options: {
 								`terminal write ${index} reached ${writeResult.writtenCount}/${writeResult.terminalCount} runtimes (${writeResult.byteLength} bytes)`,
 							);
 						}
-
-						if (
-							options.forceTerminalWebglLoss &&
-							index > 0 &&
-							index % webglLossCadence === 0
-						) {
-							actionLabel = "switch-write-force-webgl-context-loss";
-							const lossResult = activeBridge.forceTerminalWebglContextLoss();
-							terminalWebglContextLosses.push({
-								index,
-								...lossResult,
-							});
-							terminalActionCounts["force-webgl-context-loss"] =
-								(terminalActionCounts["force-webgl-context-loss"] ?? 0) + 1;
-							operationCount += 1;
-						}
 					} catch (error) {
 						terminalActionErrors.push(
 							`terminal action ${index} failed: ${
@@ -1467,15 +1424,6 @@ function rendererStress(options: {
 					);
 					operationCount += 1;
 					reportProgress("terminal-heavy", index + 1, terminalIterations);
-				}
-
-				if (
-					options.forceTerminalWebglLoss &&
-					terminalWebglContextLosses.some(
-						(result) => result.lostContextCount > 0,
-					)
-				) {
-					await sleep(webglContextRecoverySettleMs);
 				}
 
 				terminalStressSummary = activeBridge.getTerminalStressSummary();
@@ -1509,7 +1457,6 @@ function rendererStress(options: {
 			terminalActionCounts,
 			terminalActionErrors: terminalActionErrors.slice(0, 20),
 			terminalStressSummary,
-			terminalWebglContextLosses: terminalWebglContextLosses.slice(-20),
 			workspaceSummary,
 			reactProbeSummary: reactProbe.getSummary(),
 			durationMs,
@@ -1607,7 +1554,6 @@ async function main() {
 					terminalPanesPerTab: args.terminalPanesPerTab,
 					terminalLines: args.terminalLines,
 					terminalPayloadBytes: args.terminalPayloadBytes,
-					forceTerminalWebglLoss: args.forceTerminalWebglLoss,
 					includeTerminalAction: args.includeTerminalAction,
 					reactProbe: args.reactProbe,
 					progressEvery: args.progressEvery,

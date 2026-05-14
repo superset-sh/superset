@@ -13,21 +13,18 @@ import { useWorkspaceEvent } from "../useWorkspaceEvent";
  * both `.git/` metadata writes and worktree file edits — no client-side
  * debounce needed.
  */
-export function useGitStatus(workspaceId: string, enabled = true) {
+export function useGitStatus(workspaceId: string) {
 	const utils = workspaceTrpc.useUtils();
 
 	const baseBranchQuery = workspaceTrpc.git.getBaseBranch.useQuery(
 		{ workspaceId },
-		{
-			staleTime: Number.POSITIVE_INFINITY,
-			enabled: enabled && Boolean(workspaceId),
-		},
+		{ staleTime: Number.POSITIVE_INFINITY, enabled: Boolean(workspaceId) },
 	);
 	const baseBranch = baseBranchQuery.data?.baseBranch ?? null;
 
 	const query = workspaceTrpc.git.getStatus.useQuery(
 		{ workspaceId, baseBranch: baseBranch ?? undefined },
-		{ refetchOnWindowFocus: true, enabled: enabled && Boolean(workspaceId) },
+		{ refetchOnWindowFocus: true, enabled: Boolean(workspaceId) },
 	);
 
 	const invalidate = useCallback(() => {
@@ -38,7 +35,7 @@ export function useGitStatus(workspaceId: string, enabled = true) {
 		void utils.git.getBaseBranch.invalidate({ workspaceId });
 	}, [utils, workspaceId]);
 
-	useWorkspaceEvent("git:changed", workspaceId, invalidate, enabled);
+	useWorkspaceEvent("git:changed", workspaceId, invalidate);
 
 	return query;
 }

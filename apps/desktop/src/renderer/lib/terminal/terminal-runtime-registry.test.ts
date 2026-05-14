@@ -129,30 +129,6 @@ function createContainer(): HTMLDivElement {
 	return {} as HTMLDivElement;
 }
 
-function createCanvas(options: {
-	isTerminalWebglCanvas?: boolean;
-	context?: WebGL2RenderingContext | null;
-}): HTMLCanvasElement & {
-	getContext: ReturnType<typeof mock>;
-} {
-	const attributes = new Map<string, string>();
-	if (options.isTerminalWebglCanvas) {
-		attributes.set("data-terminal-webgl-canvas", "true");
-	}
-	return {
-		getAttribute: mock((name: string) => attributes.get(name) ?? null),
-		getContext: mock((_contextId: string) => options.context ?? null),
-	} as unknown as HTMLCanvasElement & {
-		getContext: ReturnType<typeof mock>;
-	};
-}
-
-function createWebglContext(extension: unknown): WebGL2RenderingContext {
-	return {
-		getExtension: mock((_name: string) => extension),
-	} as unknown as WebGL2RenderingContext;
-}
-
 function clearRegistry() {
 	for (const terminalId of terminalRuntimeRegistry.getAllTerminalIds()) {
 		terminalRuntimeRegistry.dispose(terminalId);
@@ -261,81 +237,6 @@ describe("terminalRuntimeRegistry", () => {
 		expect(
 			terminalRuntimeRegistry.getStressDebugInfo(undefined, "instance-a"),
 		).toEqual([]);
-		expect(
-			terminalRuntimeRegistry.forceWebglContextLossForStress(
-				undefined,
-				"instance-a",
-			),
-		).toEqual({
-			terminalCount: 0,
-			canvasCount: 0,
-			webglContextCount: 0,
-			lostContextCount: 0,
-			unsupportedContextCount: 0,
-		});
-	});
-
-	it("can force WebGL context loss on terminal canvases during stress runs", () => {
-		const loseContext = mock(() => {});
-		const canvas = createCanvas({
-			isTerminalWebglCanvas: true,
-			context: createWebglContext({ loseContext }),
-		});
-
-		terminalRuntimeRegistry.mount(
-			"terminal-1",
-			createContainer(),
-			appearance,
-			"workspace-a",
-		);
-		const runtime = createdRuntimes[0];
-		if (!runtime) throw new Error("expected runtime");
-		runtime.wrapper._canvasList = [canvas];
-
-		const result = terminalRuntimeRegistry.forceWebglContextLossForStress(
-			"terminal-1",
-			"workspace-a",
-		);
-
-		expect(result).toEqual({
-			terminalCount: 1,
-			canvasCount: 1,
-			webglContextCount: 1,
-			lostContextCount: 1,
-			unsupportedContextCount: 0,
-		});
-		expect(canvas.getContext).toHaveBeenCalled();
-		expect(loseContext).toHaveBeenCalled();
-	});
-
-	it("does not create WebGL contexts on unmarked stress canvases", () => {
-		const canvas = createCanvas({
-			context: createWebglContext({ loseContext: mock(() => {}) }),
-		});
-
-		terminalRuntimeRegistry.mount(
-			"terminal-1",
-			createContainer(),
-			appearance,
-			"workspace-a",
-		);
-		const runtime = createdRuntimes[0];
-		if (!runtime) throw new Error("expected runtime");
-		runtime.wrapper._canvasList = [canvas];
-
-		const result = terminalRuntimeRegistry.forceWebglContextLossForStress(
-			"terminal-1",
-			"workspace-a",
-		);
-
-		expect(result).toEqual({
-			terminalCount: 1,
-			canvasCount: 1,
-			webglContextCount: 0,
-			lostContextCount: 0,
-			unsupportedContextCount: 0,
-		});
-		expect(canvas.getContext).not.toHaveBeenCalled();
 	});
 
 	it("accepts stress output without waiting for xterm write completion", async () => {

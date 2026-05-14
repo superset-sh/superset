@@ -40,11 +40,7 @@ export function Workspace<TData>({
 		}
 		for (const [prevId, prevPane] of previousPanesRef.current) {
 			if (!current.has(prevId)) {
-				try {
-					registry[prevPane.kind]?.onAfterClose?.(prevPane);
-				} catch (err) {
-					console.error("onAfterClose threw", err);
-				}
+				registry[prevPane.kind]?.onAfterClose?.(prevPane);
 			}
 		}
 		previousPanesRef.current = current;

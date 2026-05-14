@@ -1,3 +1,5 @@
+import type { SimpleGit } from "simple-git";
+
 /**
  * Run a `git config` write with bounded retries on `.git/config.lock`
  * contention.
@@ -13,12 +15,8 @@
  * second writer just waits its turn instead of bubbling a confusing 500
  * to the renderer.
  */
-interface GitConfigWriter {
-	raw(args: string[]): Promise<string>;
-}
-
 export async function gitConfigWrite(
-	git: GitConfigWriter,
+	git: SimpleGit,
 	args: string[],
 	options: { retries?: number; baseDelayMs?: number } = {},
 ): Promise<string> {

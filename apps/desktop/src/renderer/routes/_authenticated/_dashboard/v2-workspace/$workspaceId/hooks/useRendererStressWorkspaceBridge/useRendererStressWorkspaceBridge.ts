@@ -10,7 +10,6 @@ import type {
 import { useEffect, useRef } from "react";
 import {
 	type TerminalRuntimeStressDebugInfo,
-	type TerminalWebglContextLossResult,
 	terminalRuntimeRegistry,
 } from "renderer/lib/terminal/terminal-runtime-registry";
 import type { StoreApi } from "zustand/vanilla";
@@ -81,7 +80,6 @@ interface RendererStressWorkspaceBridge {
 		lines: number,
 		payloadBytes: number,
 	) => Promise<RendererStressTerminalWriteResult>;
-	forceTerminalWebglContextLoss: () => TerminalWebglContextLossResult;
 	getTerminalStressSummary: () => RendererStressTerminalSummary;
 	releaseStressTerminalRuntimes: () => void;
 	addRealTerminalTab: () => Promise<void>;
@@ -624,28 +622,6 @@ export function useRendererStressWorkspaceBridge({
 					failedCount: refs.length - writtenCount,
 					byteLength: output.length,
 				};
-			},
-			forceTerminalWebglContextLoss: () => {
-				const result: TerminalWebglContextLossResult = {
-					terminalCount: 0,
-					canvasCount: 0,
-					webglContextCount: 0,
-					lostContextCount: 0,
-					unsupportedContextCount: 0,
-				};
-				for (const ref of getStressTerminalRefs()) {
-					const partial =
-						terminalRuntimeRegistry.forceWebglContextLossForStress(
-							ref.terminalId,
-							ref.instanceId,
-						);
-					result.terminalCount += partial.terminalCount;
-					result.canvasCount += partial.canvasCount;
-					result.webglContextCount += partial.webglContextCount;
-					result.lostContextCount += partial.lostContextCount;
-					result.unsupportedContextCount += partial.unsupportedContextCount;
-				}
-				return result;
 			},
 			getTerminalStressSummary: () => {
 				const stressTerminalIds = stressTerminalIdsRef.current;

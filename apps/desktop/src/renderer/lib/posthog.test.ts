@@ -12,9 +12,6 @@ describe("buildPostHogInitConfig", () => {
 		expect(config.autocapture).toBe(false);
 		expect(config.disable_scroll_properties).toBe(true);
 		expect(POSTHOG_SESSION_REPLAY_BLOCK_SELECTOR).toContain(".xterm");
-		expect(POSTHOG_SESSION_REPLAY_BLOCK_SELECTOR).toContain(
-			"[data-terminal-webgl-canvas]",
-		);
 		expect(config.session_recording?.blockSelector).toBe(
 			POSTHOG_SESSION_REPLAY_BLOCK_SELECTOR,
 		);

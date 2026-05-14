@@ -1,8 +1,8 @@
 # Renderer Stress QA Fixtures and Instrumentation
 
 This is the repeatable process for local renderer QA with seeded V2
-workspaces, large dirty diffs, terminal stress, WebGL context-loss coverage,
-and renderer instrumentation. Use it before broad manual QA when a change may
+workspaces, large dirty diffs, terminal stress, and renderer instrumentation.
+Use it before broad manual QA when a change may
 affect workspace switching, changes/diff panels, terminal rendering, tab/pane
 state, or renderer responsiveness.
 
@@ -127,10 +127,6 @@ bun --cwd apps/desktop stress:renderer -- \
   --progress-every 10
 ```
 
-The terminal-heavy scenario forces terminal WebGL context loss by default. Add
-`--no-terminal-webgl-loss` when you need a control run without forced context
-loss.
-
 ## Useful Scenarios
 
 - `workspace-switch`: repeatedly activates workspaces.
@@ -139,7 +135,7 @@ loss.
 - `workspace-heavy`: runs mixed workspace, pane, browser, and diff actions.
 - `route-sweep`: navigates renderer routes.
 - `terminal-heavy`: creates synthetic terminal tabs/panes, writes large ANSI
-  payloads, switches tabs, and forces terminal WebGL context loss.
+  payloads, and switches tabs.
 - `all`: combines route, workspace, heavy, and terminal coverage.
 
 ## Instrumentation Knobs
@@ -161,7 +157,6 @@ What to look at:
 - `errorCount` and `errors`: uncaught renderer errors and unhandled rejections.
 - `maxHeartbeatDelayMs`: event-loop stalls detected by the renderer heartbeat.
 - `maxLongTaskDurationMs` and `longTasks`: browser long-task evidence.
-- `terminalWebglContextLosses`: terminal canvas/WebGL context-loss samples.
 - CPU profile output: hottest JS frames during the run.
 - React probe output: commit/component counts when the React DevTools hook is
   available.
@@ -192,7 +187,7 @@ RangeError: WebAssembly.instantiate(): Out of memory
 ```
 
 The stack came from `@xterm/addon-image`, and it reproduced both with the
-WebGL context-loss fix reverted and restored. That isolated the issue to
+terminal WebGL changes reverted and restored. That isolated the issue to
 per-terminal image decoder memory, not daemon update/attach behavior and not
 terminal sizing.
 
@@ -208,8 +203,8 @@ After an automated run passes, keep the app open and manually check:
 - Returning to an existing terminal. It should not perform a full replay just
   because the user switched away and back.
 - Navigation away from and back to the workspace route.
-- Opening and closing enough terminal tabs/panes to verify WebGL fallback does
-  not change terminal geometry.
+- Opening and closing enough terminal tabs/panes to verify terminal geometry
+  remains stable.
 
 ## Cleanup
 
@@ -227,4 +222,3 @@ when you want to return to the normal local auth org:
 ```bash
 rm -rf superset-dev-data/host/mock-org-id
 ```
-
