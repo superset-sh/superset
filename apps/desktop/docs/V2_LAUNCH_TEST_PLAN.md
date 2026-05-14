@@ -6,6 +6,9 @@ Pair with `V2_LAUNCH_CONTEXT.md` for architectural background and
 
 ## Setup
 
+For renderer stress fixtures, CDP instrumentation, terminal-heavy runs, and
+large-diff workspace QA, see `RENDERER_STRESS_QA.md`.
+
 1. `bun dev` at the repo root.
 2. Ensure your active org has V2 cloud enabled (or you're testing a V2
    project).
