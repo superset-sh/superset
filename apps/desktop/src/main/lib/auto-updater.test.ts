@@ -36,6 +36,19 @@ mock.module("main/index", () => ({
 	setSkipQuitConfirmation: mock(() => {}),
 }));
 
+mock.module("electron-log/main", () => ({
+	default: {
+		transports: {
+			file: {
+				level: undefined,
+			},
+		},
+		info: mock(() => {}),
+		warn: mock(() => {}),
+		error: mock(() => {}),
+	},
+}));
+
 // auto-updater short-circuits setupAutoUpdater on non-mac/linux hosts, so
 // pin the platform here to keep the tests portable across CI runners.
 mock.module("shared/constants", () => ({
