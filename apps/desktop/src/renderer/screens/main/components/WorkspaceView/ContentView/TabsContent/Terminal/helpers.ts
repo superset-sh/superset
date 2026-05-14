@@ -1,7 +1,6 @@
 import { toast } from "@superset/ui/sonner";
 import { ClipboardAddon } from "@xterm/addon-clipboard";
 import { FitAddon } from "@xterm/addon-fit";
-import { LigaturesAddon } from "@xterm/addon-ligatures";
 import { SearchAddon } from "@xterm/addon-search";
 import { Unicode11Addon } from "@xterm/addon-unicode11";
 import type { ITheme } from "@xterm/xterm";
@@ -112,12 +111,7 @@ export function createTerminalInWrapper(options: CreateTerminalOptions = {}): {
 	xterm.loadAddon(unicode11Addon);
 	xterm.loadAddon(imageAddon);
 
-	try {
-		xterm.loadAddon(new LigaturesAddon());
-	} catch {
-		// Ligatures not supported by current font
-	}
-
+	// LigaturesAddon intentionally omitted — see terminal-addons.ts for context.
 	const webglAddon = loadTerminalWebglAddon(xterm);
 
 	const cleanupQuerySuppression = suppressQueryResponses(xterm);
