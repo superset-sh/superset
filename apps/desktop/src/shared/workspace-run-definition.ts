@@ -21,14 +21,17 @@ export type WorkspaceRunDefinition =
 export interface WorkspaceRunPresetLike {
 	id: string;
 	name: string;
-	commands: string[];
+	commands: unknown[];
 	cwd?: string;
 	projectIds?: string[] | null;
 	useAsWorkspaceRun?: boolean;
 }
 
-function nonEmptyCommands(commands: readonly string[] | null | undefined) {
-	return (commands ?? []).filter((command) => command.trim().length > 0);
+function nonEmptyCommands(commands: readonly unknown[] | null | undefined) {
+	return (commands ?? []).filter(
+		(command): command is string =>
+			typeof command === "string" && command.trim().length > 0,
+	);
 }
 
 function normalizeCwd(cwd: string | undefined): string | undefined {
@@ -42,7 +45,7 @@ export function configRunToWorkspaceRun({
 	cwd,
 }: {
 	projectId: string;
-	commands: readonly string[] | null | undefined;
+	commands: readonly unknown[] | null | undefined;
 	cwd?: string;
 }): WorkspaceRunDefinition | null {
 	const resolvedCommands = nonEmptyCommands(commands);
@@ -77,7 +80,7 @@ export function selectWorkspaceRunDefinition({
 	configCwd,
 }: {
 	presets: readonly WorkspaceRunPresetLike[];
-	configRunCommands?: readonly string[] | null;
+	configRunCommands?: readonly unknown[] | null;
 	projectId: string;
 	configCwd?: string;
 }): WorkspaceRunDefinition | null {

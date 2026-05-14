@@ -169,6 +169,7 @@ function resolveWebviewExtensionPath(): string | null {
 
 export async function loadReactDevToolsExtension(): Promise<void> {
 	if (env.NODE_ENV !== "development") return;
+	if (process.env.SUPERSET_RENDERER_STRESS_CDP_PORT) return;
 
 	const extensionPath = resolveReactDevToolsPath();
 	if (!extensionPath) {

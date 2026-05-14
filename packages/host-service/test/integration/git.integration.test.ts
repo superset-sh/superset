@@ -59,6 +59,27 @@ describe("git router integration", () => {
 		);
 	});
 
+	test("getDiffStats returns sidebar totals without full status payload", async () => {
+		writeFileSync(join(scenario.repo.repoPath, "staged.txt"), "one\ntwo\n");
+		await scenario.repo.git.add("staged.txt");
+		writeFileSync(join(scenario.repo.repoPath, "mixed.txt"), "base\n");
+		await scenario.repo.git.add("mixed.txt");
+		writeFileSync(
+			join(scenario.repo.repoPath, "mixed.txt"),
+			"base\nunstaged one\nunstaged two\n",
+		);
+		writeFileSync(
+			join(scenario.repo.repoPath, "untracked.txt"),
+			"alpha\nbeta\ngamma\n",
+		);
+
+		const stats = await scenario.host.trpc.git.getDiffStats.query({
+			workspaceId: scenario.workspaceId,
+		});
+
+		expect(stats).toEqual({ additions: 8, deletions: 0 });
+	});
+
 	test("getBaseBranch returns null when not configured", async () => {
 		const result = await scenario.host.trpc.git.getBaseBranch.query({
 			workspaceId: scenario.workspaceId,

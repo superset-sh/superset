@@ -1,5 +1,9 @@
 import { describe, expect, test } from "bun:test";
-import { parseNameStatus, parseNumstat } from "./git-helpers";
+import {
+	parseNameStatus,
+	parseNumstat,
+	parseNumstatRecords,
+} from "./git-helpers";
 
 describe("parseNumstat", () => {
 	test("regular file entry", () => {
@@ -77,6 +81,39 @@ describe("parseNumstat", () => {
 		const raw = "3\t1\tsrc/日本語.ts\0";
 		const result = parseNumstat(raw);
 		expect(result.get("src/日本語.ts")).toEqual({ additions: 3, deletions: 1 });
+	});
+});
+
+describe("parseNumstatRecords", () => {
+	test("returns one record per regular file", () => {
+		const raw = "5\t2\tsrc/foo.ts\x003\t0\tsrc/bar.ts\x00";
+		expect(parseNumstatRecords(raw)).toEqual([
+			{ path: "src/foo.ts", additions: 5, deletions: 2 },
+			{ path: "src/bar.ts", additions: 3, deletions: 0 },
+		]);
+	});
+
+	test("rename is represented once by destination path", () => {
+		const raw = "4\t3\t\x00src/old.ts\x00src/new.ts\x00";
+		expect(parseNumstatRecords(raw)).toEqual([
+			{
+				path: "src/new.ts",
+				oldPath: "src/old.ts",
+				additions: 4,
+				deletions: 3,
+			},
+		]);
+	});
+
+	test("omits empty oldPath for malformed rename records", () => {
+		const raw = "4\t3\t\x00\x00src/new.ts\x00";
+		expect(parseNumstatRecords(raw)).toEqual([
+			{
+				path: "src/new.ts",
+				additions: 4,
+				deletions: 3,
+			},
+		]);
 	});
 });
 

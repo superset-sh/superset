@@ -15,35 +15,42 @@ interface SearchResult<T extends SearchableTask> {
 	matchType: "exact" | "fuzzy";
 }
 
-export function useHybridSearch<T extends SearchableTask>(tasks: T[]) {
+export function useHybridSearch<T extends SearchableTask>(
+	tasks: T[],
+	enabled = true,
+) {
 	const exactFuse = useMemo(
 		() =>
-			new Fuse(tasks, {
-				keys: [
-					{ name: "slug", weight: 2 },
-					{ name: "labels", weight: 1 },
-				],
-				threshold: 0,
-				includeScore: true,
-				ignoreLocation: true,
-				useExtendedSearch: false,
-			}),
-		[tasks],
+			enabled
+				? new Fuse(tasks, {
+						keys: [
+							{ name: "slug", weight: 2 },
+							{ name: "labels", weight: 1 },
+						],
+						threshold: 0,
+						includeScore: true,
+						ignoreLocation: true,
+						useExtendedSearch: false,
+					})
+				: null,
+		[tasks, enabled],
 	);
 
 	const fuzzyFuse = useMemo(
 		() =>
-			new Fuse(tasks, {
-				keys: [
-					{ name: "title", weight: 2 },
-					{ name: "description", weight: 1 },
-				],
-				threshold: 0.3,
-				includeScore: true,
-				ignoreLocation: true,
-				useExtendedSearch: false,
-			}),
-		[tasks],
+			enabled
+				? new Fuse(tasks, {
+						keys: [
+							{ name: "title", weight: 2 },
+							{ name: "description", weight: 1 },
+						],
+						threshold: 0.3,
+						includeScore: true,
+						ignoreLocation: true,
+						useExtendedSearch: false,
+					})
+				: null,
+		[tasks, enabled],
 	);
 
 	const search = useCallback(
@@ -55,6 +62,7 @@ export function useHybridSearch<T extends SearchableTask>(tasks: T[]) {
 					matchType: "exact" as const,
 				}));
 			}
+			if (!exactFuse || !fuzzyFuse) return [];
 
 			const exactMatches = exactFuse.search(query);
 			const exactIds = new Set(exactMatches.map((m) => m.item.id));

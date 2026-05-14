@@ -74,7 +74,8 @@ export function useTasksData({
 			.sort(compareTasks);
 	}, [allData]);
 
-	const { search } = useHybridSearch(sortedData);
+	const hasSearchQuery = searchQuery.trim().length > 0;
+	const { search } = useHybridSearch(sortedData, hasSearchQuery);
 
 	const searchedData = useMemo(() => {
 		if (!searchQuery.trim()) {

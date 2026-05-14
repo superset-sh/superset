@@ -5,7 +5,10 @@ import { useMemo } from "react";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import type { DiffRef } from "../useChangeset/types";
 
-export function useSidebarDiffRef(workspaceId: string): DiffRef {
+export function useSidebarDiffRef(
+	workspaceId: string,
+	enabled = true,
+): DiffRef {
 	const collections = useCollections();
 	const { data: rows = [] } = useLiveQuery(
 		(query) =>
@@ -19,7 +22,7 @@ export function useSidebarDiffRef(workspaceId: string): DiffRef {
 
 	const baseBranchQuery = workspaceTrpc.git.getBaseBranch.useQuery(
 		{ workspaceId },
-		{ staleTime: Number.POSITIVE_INFINITY },
+		{ staleTime: Number.POSITIVE_INFINITY, enabled },
 	);
 	const baseBranch = baseBranchQuery.data?.baseBranch ?? null;
 

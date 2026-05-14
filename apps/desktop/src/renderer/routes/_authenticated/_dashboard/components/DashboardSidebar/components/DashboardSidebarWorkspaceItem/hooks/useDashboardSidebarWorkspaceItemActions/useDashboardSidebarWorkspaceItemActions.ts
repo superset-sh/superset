@@ -1,10 +1,11 @@
 import { toast } from "@superset/ui/sonner";
-import { useMatchRoute, useNavigate } from "@tanstack/react-router";
+import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import { useDashboardSidebarSectionRename } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarSectionRenameContext";
+import { navigateToV2Workspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { useOptimisticCollectionActions } from "renderer/routes/_authenticated/hooks/useOptimisticCollectionActions";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
@@ -19,6 +20,7 @@ interface UseDashboardSidebarWorkspaceItemActionsOptions {
 	projectId: string;
 	workspaceName: string;
 	branch: string;
+	isActive: boolean;
 	isMainWorkspace?: boolean;
 }
 
@@ -27,10 +29,10 @@ export function useDashboardSidebarWorkspaceItemActions({
 	projectId,
 	workspaceName,
 	branch,
+	isActive,
 	isMainWorkspace = false,
 }: UseDashboardSidebarWorkspaceItemActionsOptions) {
 	const navigate = useNavigate();
-	const matchRoute = useMatchRoute();
 	const { activeHostUrl } = useLocalHostService();
 	const { copyToClipboard } = useCopyToClipboard();
 	const { v2Workspaces: workspaceActions } = useOptimisticCollectionActions();
@@ -47,19 +49,11 @@ export function useDashboardSidebarWorkspaceItemActions({
 	const [renameValue, setRenameValue] = useState(workspaceName);
 	const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
-	const isActive = !!matchRoute({
-		to: "/v2-workspace/$workspaceId",
-		params: { workspaceId },
-		fuzzy: true,
-	});
-
 	const handleClick = () => {
 		if (isRenaming) return;
 		clearWorkspaceAttention(workspaceId);
-		navigate({
-			to: "/v2-workspace/$workspaceId",
-			params: { workspaceId },
-		});
+		if (isActive) return;
+		void navigateToV2Workspace(workspaceId, navigate);
 	};
 
 	const startRename = () => {
@@ -171,7 +165,6 @@ export function useDashboardSidebarWorkspaceItemActions({
 		handleOpenInFinder,
 		handleRemoveFromSidebar,
 		handleToggleUnread,
-		isActive,
 		isDeleteDialogOpen,
 		isRenaming,
 		isUnread,

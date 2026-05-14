@@ -271,10 +271,12 @@ export class PullRequestRuntimeManager {
 		string,
 		{ running: Promise<void>; rerunPending: boolean }
 	>();
+	private readonly backgroundTasks = new Set<Promise<void>>();
 	private readonly pullRequestHeadCache = new Map<
 		string,
 		{ promise: Promise<GitHubPullRequestNode | null>; fetchedAt: number }
 	>();
+	private stopped = false;
 
 	constructor(options: PullRequestRuntimeManagerOptions) {
 		this.db = options.db;
@@ -291,12 +293,17 @@ export class PullRequestRuntimeManager {
 			this.unsubscribeFromGitWatcher
 		)
 			return;
+		this.stopped = false;
 
 		// One initial sweep so workspaces that existed before this manager
 		// started have correct branch/sha/upstream rows even if no `.git/`
 		// activity has happened since the last process boot.
-		void this.syncWorkspaceBranches();
-		void this.refreshEligibleProjects();
+		this.runBackgroundTask("syncWorkspaceBranches", () =>
+			this.syncWorkspaceBranches(),
+		);
+		this.runBackgroundTask("refreshEligibleProjects", () =>
+			this.refreshEligibleProjects(),
+		);
 
 		// Steady-state: react to real `.git/` activity per workspace. Per-workspace
 		// debounce lives in `GitWatcher` (300 ms), and concurrent project refreshes
@@ -304,25 +311,60 @@ export class PullRequestRuntimeManager {
 		// workspace so two debounce-separated bursts can't race their git reads
 		// and have the slower one overwrite the newer snapshot.
 		this.unsubscribeFromGitWatcher = this.gitWatcher.onChanged((event) => {
-			void this.enqueueWorkspaceSync(event.workspaceId);
+			if (!this.stopped) void this.enqueueWorkspaceSync(event.workspaceId);
 		});
 
 		// Long-cadence safety net for `GitWatcher` overflow / error paths.
 		this.safetyNetTimer = setInterval(() => {
-			void this.syncWorkspaceBranches();
+			this.runBackgroundTask("syncWorkspaceBranches", () =>
+				this.syncWorkspaceBranches(),
+			);
 		}, SAFETY_NET_INTERVAL_MS);
 		this.projectRefreshTimer = setInterval(() => {
-			void this.refreshEligibleProjects();
+			this.runBackgroundTask("refreshEligibleProjects", () =>
+				this.refreshEligibleProjects(),
+			);
 		}, PROJECT_REFRESH_INTERVAL_MS);
 	}
 
-	stop() {
+	async stop(): Promise<void> {
+		this.stopped = true;
 		if (this.safetyNetTimer) clearInterval(this.safetyNetTimer);
 		if (this.projectRefreshTimer) clearInterval(this.projectRefreshTimer);
 		this.unsubscribeFromGitWatcher?.();
 		this.safetyNetTimer = null;
 		this.projectRefreshTimer = null;
 		this.unsubscribeFromGitWatcher = null;
+		await this.drainInFlightWork();
+		this.pullRequestHeadCache.clear();
+	}
+
+	private runBackgroundTask(label: string, task: () => Promise<void>): void {
+		const promise = task()
+			.catch((error) => {
+				console.warn(`[host-service:pull-request-runtime] ${label} failed`, {
+					error,
+				});
+			})
+			.finally(() => {
+				this.backgroundTasks.delete(promise);
+			});
+		this.backgroundTasks.add(promise);
+	}
+
+	private async drainInFlightWork(): Promise<void> {
+		for (let pass = 0; pass < 10; pass++) {
+			const tasks = [
+				...this.backgroundTasks,
+				...Array.from(
+					this.workspaceSyncState.values(),
+					(state) => state.running,
+				),
+				...this.inFlightProjects.values(),
+			];
+			if (tasks.length === 0) return;
+			await Promise.allSettled(tasks);
+		}
 	}
 
 	async getPullRequestsByWorkspaces(
@@ -450,6 +492,7 @@ export class PullRequestRuntimeManager {
 	}
 
 	private async syncWorkspaceBranches(): Promise<void> {
+		if (this.stopped) return;
 		// Route every workspace through the same per-workspace queue as the
 		// watcher path, so a concurrent watcher-triggered sync can't race the
 		// sweep's read+write and clobber the newer snapshot. enqueueWorkspaceSync
@@ -461,11 +504,13 @@ export class PullRequestRuntimeManager {
 		// original sweep's behavior. refreshProject inside each sync still
 		// dedupes across workspaces in the same project via inFlightProjects.
 		for (const row of ids) {
+			if (this.stopped) break;
 			await this.enqueueWorkspaceSync(row.id);
 		}
 	}
 
 	private enqueueWorkspaceSync(workspaceId: string): Promise<void> {
+		if (this.stopped) return Promise.resolve();
 		// Coalesce: if a sync is already running for this workspace, just mark
 		// "rerun pending" — there's no value in queuing N back-to-back syncs
 		// when only the final state matters. At most one sync runs and one
@@ -569,6 +614,7 @@ export class PullRequestRuntimeManager {
 	}
 
 	private async refreshEligibleProjects(): Promise<void> {
+		if (this.stopped) return;
 		const rows = this.db
 			.select({
 				projectId: workspaces.projectId,

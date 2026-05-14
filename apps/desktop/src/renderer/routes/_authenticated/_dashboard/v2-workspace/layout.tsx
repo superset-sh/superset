@@ -56,7 +56,7 @@ function V2WorkspaceLayout() {
 
 	const hostStatus = useRemoteHostStatus(workspace);
 
-	if (!workspaceId || !isReady || !workspaces) {
+	if (!workspaceId || !workspaces || (!isReady && !workspace)) {
 		return <div className="flex h-full w-full" />;
 	}
 
@@ -96,8 +96,11 @@ function V2WorkspaceLayout() {
 		return <div className="flex h-full w-full" />;
 	}
 
+	// TanStack Router reuses the Outlet subtree across param-only transitions.
+	// A workspace switch must remount pane state instead of looking like every
+	// pane in the previous workspace was closed.
 	return (
-		<WorkspaceProvider workspace={workspace}>
+		<WorkspaceProvider key={workspace.id} workspace={workspace}>
 			<Outlet />
 		</WorkspaceProvider>
 	);

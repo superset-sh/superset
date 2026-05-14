@@ -9,7 +9,15 @@ export interface DiffStats {
 	deletions: number;
 }
 
-export function useDiffStats(workspaceId: string): DiffStats | null {
+interface UseDiffStatsOptions {
+	enabled?: boolean;
+}
+
+export function useDiffStats(
+	workspaceId: string,
+	options: UseDiffStatsOptions = {},
+): DiffStats | null {
+	const { enabled = true } = options;
 	const hostUrl = useWorkspaceHostUrl(workspaceId);
 	const queryClient = useQueryClient();
 	const queryKey = useMemo(
@@ -17,12 +25,12 @@ export function useDiffStats(workspaceId: string): DiffStats | null {
 		[hostUrl, workspaceId],
 	);
 
-	const { data: status } = useQuery({
+	const { data: stats } = useQuery({
 		queryKey,
-		enabled: Boolean(workspaceId) && Boolean(hostUrl),
+		enabled: enabled && Boolean(workspaceId) && Boolean(hostUrl),
 		queryFn: () => {
 			if (!hostUrl) return null;
-			return getHostServiceClientByUrl(hostUrl).git.getStatus.query({
+			return getHostServiceClientByUrl(hostUrl).git.getDiffStats.query({
 				workspaceId,
 			});
 		},
@@ -34,22 +42,7 @@ export function useDiffStats(workspaceId: string): DiffStats | null {
 		void queryClient.invalidateQueries({ queryKey });
 	}, [queryClient, queryKey]);
 
-	useWorkspaceEvent("git:changed", workspaceId, invalidate);
+	useWorkspaceEvent("git:changed", workspaceId, invalidate, enabled);
 
-	return useMemo<DiffStats | null>(() => {
-		if (!status) return null;
-
-		const byPath = new Map<string, { additions: number; deletions: number }>();
-		for (const file of status.againstBase) byPath.set(file.path, file);
-		for (const file of status.staged) byPath.set(file.path, file);
-		for (const file of status.unstaged) byPath.set(file.path, file);
-
-		let additions = 0;
-		let deletions = 0;
-		for (const file of byPath.values()) {
-			additions += file.additions;
-			deletions += file.deletions;
-		}
-		return { additions, deletions };
-	}, [status]);
+	return stats ?? null;
 }

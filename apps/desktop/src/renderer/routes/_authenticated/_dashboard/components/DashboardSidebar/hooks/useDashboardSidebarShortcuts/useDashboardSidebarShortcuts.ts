@@ -3,6 +3,7 @@ import { useCallback, useMemo, useRef } from "react";
 import { useHotkey } from "renderer/hotkeys";
 import { navigateToV2Workspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
+import { useV2WorkspaceNavigationStore } from "renderer/stores/v2-workspace-navigation";
 import type { DashboardSidebarProject } from "../../types";
 import { getProjectChildrenWorkspaces } from "../../utils/projectChildren";
 
@@ -108,7 +109,7 @@ export function useDashboardSidebarShortcuts(
 			const workspace = flattenedWorkspaces[index];
 			if (workspace) {
 				revealWorkspace(workspace.id);
-				navigateToV2Workspace(workspace.id, navigate);
+				void navigateToV2Workspace(workspace.id, navigate);
 			}
 		},
 		[flattenedWorkspaces, navigate, revealWorkspace],
@@ -131,29 +132,33 @@ export function useDashboardSidebarShortcuts(
 	});
 	const currentWorkspaceId =
 		currentWorkspaceMatch !== false ? currentWorkspaceMatch.workspaceId : null;
+	const pendingWorkspaceId = useV2WorkspaceNavigationStore(
+		(state) => state.pendingWorkspaceId,
+	);
+	const activeWorkspaceId = pendingWorkspaceId ?? currentWorkspaceId;
 
 	useHotkey("PREV_WORKSPACE", () => {
-		if (!currentWorkspaceId || flattenedWorkspaces.length === 0) return;
+		if (!activeWorkspaceId || flattenedWorkspaces.length === 0) return;
 		const index = flattenedWorkspaces.findIndex(
-			(w) => w.id === currentWorkspaceId,
+			(w) => w.id === activeWorkspaceId,
 		);
 		if (index === -1) return;
 		const prevIndex = index <= 0 ? flattenedWorkspaces.length - 1 : index - 1;
 		const target = flattenedWorkspaces[prevIndex];
 		revealWorkspace(target.id);
-		navigateToV2Workspace(target.id, navigate);
+		void navigateToV2Workspace(target.id, navigate);
 	});
 
 	useHotkey("NEXT_WORKSPACE", () => {
-		if (!currentWorkspaceId || flattenedWorkspaces.length === 0) return;
+		if (!activeWorkspaceId || flattenedWorkspaces.length === 0) return;
 		const index = flattenedWorkspaces.findIndex(
-			(w) => w.id === currentWorkspaceId,
+			(w) => w.id === activeWorkspaceId,
 		);
 		if (index === -1) return;
 		const nextIndex = index >= flattenedWorkspaces.length - 1 ? 0 : index + 1;
 		const target = flattenedWorkspaces[nextIndex];
 		revealWorkspace(target.id);
-		navigateToV2Workspace(target.id, navigate);
+		void navigateToV2Workspace(target.id, navigate);
 	});
 
 	return workspaceShortcutLabels;
