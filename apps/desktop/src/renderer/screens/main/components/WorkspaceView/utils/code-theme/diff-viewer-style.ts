@@ -1,8 +1,8 @@
 import type { CSSProperties } from "react";
 import { getEditorTheme, type Theme } from "shared/themes";
 import {
-	DEFAULT_CODE_EDITOR_FONT_FAMILY,
 	DEFAULT_CODE_EDITOR_FONT_SIZE,
+	withCjkFallback,
 } from "../../components/CodeEditor/constants";
 
 interface CodeThemeFontSettings {
@@ -14,7 +14,7 @@ export function getDiffViewerStyle(
 	theme: Theme,
 	fontSettings: CodeThemeFontSettings,
 ): CSSProperties {
-	const fontFamily = fontSettings.fontFamily ?? DEFAULT_CODE_EDITOR_FONT_FAMILY;
+	const fontFamily = withCjkFallback(fontSettings.fontFamily);
 	const fontSize = fontSettings.fontSize ?? DEFAULT_CODE_EDITOR_FONT_SIZE;
 	const lineHeight = Math.round(fontSize * 1.5);
 	const editorTheme = getEditorTheme(theme);
