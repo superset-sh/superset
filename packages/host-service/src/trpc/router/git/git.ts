@@ -301,39 +301,18 @@ export const gitRouter = router({
 			const base = await resolveBaseComparison(git, input.baseBranch);
 			const baseRef = base?.baseRef ?? "HEAD";
 
-			const [againstBaseRaw, stagedRaw, unstagedRaw, untrackedRaw] =
-				await Promise.all([
-					git
-						.raw(["diff", "--numstat", "-z", `${baseRef}...HEAD`])
-						.catch(() => ""),
-					git.raw(["diff", "--numstat", "-z", "--cached"]).catch(() => ""),
-					git.raw(["diff", "--numstat", "-z"]).catch(() => ""),
-					git
-						.raw(["ls-files", "--others", "--exclude-standard", "-z"])
-						.catch(() => ""),
-				]);
+			const [againstBaseRaw, stagedRaw, unstagedRaw] = await Promise.all([
+				git
+					.raw(["diff", "--numstat", "-z", `${baseRef}...HEAD`])
+					.catch(() => ""),
+				git.raw(["diff", "--numstat", "-z", "--cached"]).catch(() => ""),
+				git.raw(["diff", "--numstat", "-z"]).catch(() => ""),
+			]);
 
 			const byPath = new Map<string, DiffStats>();
 			applyNumstatToStatsMap(byPath, againstBaseRaw);
 			applyNumstatToStatsMap(byPath, stagedRaw);
 			applyNumstatToStatsMap(byPath, unstagedRaw);
-
-			const untrackedFiles: ChangedFile[] = untrackedRaw
-				.split("\0")
-				.filter((path) => path.length > 0)
-				.map((path) => ({
-					path,
-					status: "untracked",
-					additions: 0,
-					deletions: 0,
-				}));
-			await countUntrackedFileLines(worktreePath, untrackedFiles);
-			for (const file of untrackedFiles) {
-				addDiffStats(byPath, file.path, {
-					additions: file.additions,
-					deletions: file.deletions,
-				});
-			}
 
 			return sumDiffStats(byPath);
 		}),

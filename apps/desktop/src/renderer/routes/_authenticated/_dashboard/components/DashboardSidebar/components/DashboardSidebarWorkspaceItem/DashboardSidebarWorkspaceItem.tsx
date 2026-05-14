@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useDiffStats } from "renderer/hooks/host-service/useDiffStats";
 import { useOptimisticCollectionActions } from "renderer/routes/_authenticated/hooks/useOptimisticCollectionActions";
 import { useDeletingWorkspaces } from "renderer/routes/_authenticated/providers/DeletingWorkspacesProvider";
 import { RenameBranchDialog } from "renderer/screens/main/components/WorkspaceSidebar/WorkspaceListItem/components";
@@ -70,10 +69,6 @@ export function DashboardSidebarWorkspaceItem({
 		branch,
 		isMainWorkspace,
 	});
-	const diffStats = useDiffStats(id, {
-		enabled: !isCollapsed && !isPending && isActive,
-	});
-
 	const { v2Workspaces: v2WorkspaceActions } = useOptimisticCollectionActions();
 	const [renameBranchTarget, setRenameBranchTarget] = useState<string | null>(
 		null,
@@ -222,7 +217,7 @@ export function DashboardSidebarWorkspaceItem({
 				isRenaming={isRenaming}
 				renameValue={renameValue}
 				shortcutLabel={shortcutLabel}
-				diffStats={isPending ? null : diffStats}
+				diffStats={null}
 				workspaceStatus={workspaceStatus}
 				isInSection={isInSection}
 				onClick={handleClick}

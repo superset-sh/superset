@@ -59,7 +59,7 @@ describe("git router integration", () => {
 		);
 	});
 
-	test("getDiffStats returns sidebar totals without full status payload", async () => {
+	test("getDiffStats returns tracked sidebar totals without full status payload", async () => {
 		writeFileSync(join(scenario.repo.repoPath, "staged.txt"), "one\ntwo\n");
 		await scenario.repo.git.add("staged.txt");
 		writeFileSync(join(scenario.repo.repoPath, "mixed.txt"), "base\n");
@@ -77,7 +77,7 @@ describe("git router integration", () => {
 			workspaceId: scenario.workspaceId,
 		});
 
-		expect(stats).toEqual({ additions: 8, deletions: 0 });
+		expect(stats).toEqual({ additions: 5, deletions: 0 });
 	});
 
 	test("getBaseBranch returns null when not configured", async () => {
