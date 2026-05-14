@@ -310,7 +310,7 @@ export const auth = betterAuth({
 			},
 			organizationHooks: {
 				beforeCreateInvitation: async (data) => {
-					const { inviterId, organizationId, role } = data.invitation;
+					const { inviterId, organizationId, role, teamId } = data.invitation;
 
 					const { success } = await invitationRateLimit.limit(inviterId);
 					if (!success) {
@@ -337,6 +337,19 @@ export const auth = betterAuth({
 						)
 					) {
 						throw new Error("Cannot invite users with this role");
+					}
+
+					if (!teamId) {
+						const oldestTeam = await db.query.teams.findFirst({
+							where: eq(authSchema.teams.organizationId, organizationId),
+							orderBy: asc(authSchema.teams.createdAt),
+							columns: { id: true },
+						});
+						if (oldestTeam) {
+							return {
+								data: { ...data.invitation, teamId: oldestTeam.id },
+							};
+						}
 					}
 				},
 
