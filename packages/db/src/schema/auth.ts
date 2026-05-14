@@ -52,6 +52,7 @@ export const sessions = authSchema.table(
 			.notNull()
 			.references(() => users.id, { onDelete: "cascade" }),
 		activeOrganizationId: uuid("active_organization_id"),
+		activeTeamId: uuid("active_team_id"),
 	},
 	(table) => [index("sessions_user_id_idx").on(table.userId)],
 );
@@ -210,6 +211,9 @@ export const invitations = authSchema.table(
 		inviterId: uuid("inviter_id")
 			.notNull()
 			.references(() => users.id, { onDelete: "cascade" }),
+		teamId: uuid("team_id").references(() => teams.id, {
+			onDelete: "set null",
+		}),
 	},
 	(table) => [
 		index("invitations_organization_id_idx").on(table.organizationId),

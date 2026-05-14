@@ -372,6 +372,13 @@
       "when": 1778640788987,
       "tag": "0052_electric_proxy_shape_indexes",
       "breakpoints": true
+    },
+    {
+      "idx": 53,
+      "version": "7",
+      "when": 1778777338910,
+      "tag": "0053_invitations_team_id_and_session_active_team_id",
+      "breakpoints": true
     }
   ]
 }
