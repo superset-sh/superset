@@ -29,11 +29,9 @@ const redactingLogger = logger((message, ...rest) => {
 initSentry();
 
 process.on("uncaughtException", (err) => {
-	captureSentryException(err, { source: "uncaughtException" });
 	console.error("[relay] uncaughtException (suppressed)", err);
 });
 process.on("unhandledRejection", (reason) => {
-	captureSentryException(reason, { source: "unhandledRejection" });
 	console.error("[relay] unhandledRejection (suppressed)", reason);
 });
 
