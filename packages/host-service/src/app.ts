@@ -215,7 +215,7 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 			console.warn("[host-service] revokeAllSessions failed:", err);
 		}
 		try {
-			await pullRequestRuntime.stop();
+			pullRequestRuntime.stop();
 		} catch (err) {
 			console.warn("[host-service] pullRequestRuntime.stop failed:", err);
 		}
@@ -228,11 +228,6 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 			gitWatcher.close();
 		} catch (err) {
 			console.warn("[host-service] gitWatcher.close failed:", err);
-		}
-		try {
-			await filesystem.close();
-		} catch (err) {
-			console.warn("[host-service] filesystem.close failed:", err);
 		}
 		if (ownsDb) {
 			try {

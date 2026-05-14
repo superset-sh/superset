@@ -1,4 +1,3 @@
-import { defaultRangeExtractor, useVirtualizer } from "@tanstack/react-virtual";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ChangesetFile } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/useChangeset";
 import type { FoldSignal } from "../../ChangesFileList";
@@ -7,8 +6,6 @@ import { FolderHeader } from "./components/FolderHeader";
 
 const ROOT_FOLDER_KEY = "";
 const ROOT_FOLDER_LABEL = "Root Path";
-const ESTIMATED_ROW_HEIGHT = 24;
-const OVERSCAN = 8;
 
 interface ChangesFoldersViewProps {
 	files: ChangesetFile[];
@@ -25,10 +22,6 @@ interface FolderGroup {
 	folderPath: string;
 	files: ChangesetFile[];
 }
-
-type GroupedRow =
-	| { kind: "folder"; key: string; group: FolderGroup }
-	| { kind: "file"; key: string; file: ChangesetFile };
 
 /**
  * Render a flat list of changed files grouped by their immediate parent
@@ -52,7 +45,6 @@ export const ChangesFoldersView = memo(function ChangesFoldersView({
 	onOpenFile,
 	onOpenInEditor,
 }: ChangesFoldersViewProps) {
-	const listRef = useRef<HTMLDivElement>(null);
 	const groups = useMemo(() => groupFilesByFolder(files), [files]);
 	const [closedFolders, setClosedFolders] = useState<Set<string>>(new Set());
 
@@ -80,73 +72,26 @@ export const ChangesFoldersView = memo(function ChangesFoldersView({
 		);
 	}, [foldSignal, groups]);
 
-	const rows = useMemo(() => {
-		const nextRows: GroupedRow[] = [];
-		for (const group of groups) {
-			nextRows.push({
-				kind: "folder",
-				key: `folder:${group.folderPath || "__root__"}`,
-				group,
-			});
-			if (closedFolders.has(group.folderPath)) continue;
-			for (const file of group.files) {
-				nextRows.push({
-					kind: "file",
-					key: `file:${file.source.kind}:${file.path}`,
-					file,
-				});
-			}
-		}
-		return nextRows;
-	}, [closedFolders, groups]);
-
-	const virtualizer = useVirtualizer({
-		count: rows.length,
-		getScrollElement: () =>
-			listRef.current?.closest(
-				"[data-changes-file-list-scroll]",
-			) as HTMLElement | null,
-		estimateSize: () => ESTIMATED_ROW_HEIGHT,
-		getItemKey: (index) => rows[index]?.key ?? index,
-		rangeExtractor: defaultRangeExtractor,
-		overscan: OVERSCAN,
-		scrollMargin: listRef.current?.offsetTop ?? 0,
-	});
-
-	const items = virtualizer.getVirtualItems();
-
 	return (
-		<div ref={listRef}>
-			<div
-				className="relative w-full"
-				style={{ height: virtualizer.getTotalSize() }}
-			>
-				{items.map((virtualRow) => {
-					const row = rows[virtualRow.index];
-					if (!row) return null;
-					return (
-						<div
-							key={virtualRow.key}
-							data-index={virtualRow.index}
-							className="absolute left-0 w-full"
-							style={{
-								top: virtualRow.start - (virtualizer.options.scrollMargin ?? 0),
-							}}
-						>
-							{row.kind === "folder" ? (
-								<FolderHeader
-									label={
-										row.group.folderPath === ROOT_FOLDER_KEY
-											? ROOT_FOLDER_LABEL
-											: row.group.folderPath
-									}
-									fileCount={row.group.files.length}
-									isOpen={!closedFolders.has(row.group.folderPath)}
-									onToggle={() => toggleFolder(row.group.folderPath)}
-								/>
-							) : (
+		<div>
+			{groups.map((group) => {
+				const isRoot = group.folderPath === ROOT_FOLDER_KEY;
+				const isOpen = !closedFolders.has(group.folderPath);
+				// `folderPath` ("" for the root group) is already the unique
+				// per-group discriminator — `groupFilesByFolder` keys a Map by it.
+				return (
+					<div key={group.folderPath}>
+						<FolderHeader
+							label={isRoot ? ROOT_FOLDER_LABEL : group.folderPath}
+							fileCount={group.files.length}
+							isOpen={isOpen}
+							onToggle={() => toggleFolder(group.folderPath)}
+						/>
+						{isOpen &&
+							group.files.map((file) => (
 								<FileRow
-									file={row.file}
+									key={`${file.source.kind}:${file.path}`}
+									file={file}
 									workspaceId={workspaceId}
 									worktreePath={worktreePath}
 									hideDir
@@ -154,11 +99,10 @@ export const ChangesFoldersView = memo(function ChangesFoldersView({
 									onOpenFile={onOpenFile}
 									onOpenInEditor={onOpenInEditor}
 								/>
-							)}
-						</div>
-					);
-				})}
-			</div>
+							))}
+					</div>
+				);
+			})}
 		</div>
 	);
 });

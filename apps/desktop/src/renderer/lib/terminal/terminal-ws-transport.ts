@@ -4,21 +4,12 @@ import type { Terminal as XTerm } from "@xterm/xterm";
 export type ConnectionState = "disconnected" | "connecting" | "open" | "closed";
 
 export type TerminalLogLevel = "info" | "warn" | "error";
-export type TerminalOutputWriter = (data: Uint8Array) => void;
 
 export interface TerminalLogEntry {
 	id: number;
 	timestamp: number;
 	level: TerminalLogLevel;
 	message: string;
-}
-
-export interface TerminalConnectOptions {
-	/**
-	 * False suppresses server replay for this attach. Replay is otherwise
-	 * allowed only until this transport has received PTY bytes.
-	 */
-	replay?: boolean;
 }
 
 // PTY output bytes arrive as binary WebSocket frames and are fed straight
@@ -56,8 +47,6 @@ export interface TerminalTransport {
 	_titleNotifyTimer: ReturnType<typeof setTimeout> | null;
 	/** The xterm instance used for reconnection. */
 	_terminal: XTerm | null;
-	/** Writes PTY output into xterm, optionally with renderer-side backpressure. */
-	_writeOutput: TerminalOutputWriter | null;
 	/** Set when the server signals the session is done (PTY exit or fatal
 	 * attach error). Suppresses the auto-reconnect loop. */
 	_terminated: boolean;
@@ -68,12 +57,6 @@ export interface TerminalTransport {
 	 * with no output still gets replay on the next connect.
 	 */
 	_hasReceivedBytes: boolean;
-	/**
-	 * Sticky suppression for runtimes restored from renderer-side scrollback.
-	 * Auto-reconnects must keep requesting `replay=0` even if the socket drops
-	 * before any new bytes arrive on this specific transport.
-	 */
-	_suppressReplay: boolean;
 }
 
 const MAX_LOG_ENTRIES = 200;
@@ -168,9 +151,7 @@ export function createTransport(): TerminalTransport {
 		_titleNotifyTimer: null,
 		_reconnectAttempt: 0,
 		_terminal: null,
-		_writeOutput: null,
 		_hasReceivedBytes: false,
-		_suppressReplay: false,
 		_terminated: false,
 	};
 }
@@ -194,12 +175,7 @@ function scheduleReconnect(transport: TerminalTransport) {
 			transport.currentUrl &&
 			transport._terminal
 		) {
-			connect(
-				transport,
-				transport._terminal,
-				transport.currentUrl,
-				transport._writeOutput ?? undefined,
-			);
+			connect(transport, transport._terminal, transport.currentUrl);
 		}
 	}, delay);
 }
@@ -243,8 +219,6 @@ export function connect(
 	transport: TerminalTransport,
 	terminal: XTerm,
 	wsUrl: string,
-	writeOutput?: TerminalOutputWriter,
-	options: TerminalConnectOptions = {},
 ) {
 	// Idempotent: skip if already connected/connecting to the same endpoint.
 	const isActive =
@@ -260,21 +234,11 @@ export function connect(
 	cancelReconnect(transport);
 	transport.currentUrl = wsUrl;
 	transport._terminal = terminal;
-	transport._writeOutput = writeOutput ?? ((data) => terminal.write(data));
 	transport._terminated = false;
-	if (options.replay === false) {
-		transport._suppressReplay = true;
-	} else if (options.replay === true) {
-		transport._suppressReplay = false;
-	}
 	setConnectionState(transport, "connecting");
-	const shouldReplay =
-		options.replay !== false &&
-		!transport._suppressReplay &&
-		!transport._hasReceivedBytes;
-	const actualUrl = shouldReplay
-		? wsUrl
-		: appendQueryParam(wsUrl, "replay", "0");
+	const actualUrl = transport._hasReceivedBytes
+		? appendQueryParam(wsUrl, "replay", "0")
+		: wsUrl;
 
 	const openSocket = () => {
 		// Bail if the transport raced into a different URL or was disconnected
@@ -343,11 +307,8 @@ function attachSocketListeners(
 		// channel; renderer treats them identically). Pipe straight into
 		// xterm without any decoding step.
 		if (event.data instanceof ArrayBuffer) {
-			const data = new Uint8Array(event.data);
-			transport._writeOutput?.(data);
-			if (data.byteLength > 0) {
-				transport._hasReceivedBytes = true;
-			}
+			terminal.write(new Uint8Array(event.data));
+			transport._hasReceivedBytes = true;
 			return;
 		}
 
@@ -474,7 +435,6 @@ export function disposeTransport(transport: TerminalTransport) {
 	setTerminalTitle(transport, undefined);
 	transport.onDataDisposable?.dispose();
 	transport.onDataDisposable = null;
-	transport._writeOutput = null;
 	transport.stateListeners.clear();
 	if (transport._titleNotifyTimer !== null) {
 		clearTimeout(transport._titleNotifyTimer);

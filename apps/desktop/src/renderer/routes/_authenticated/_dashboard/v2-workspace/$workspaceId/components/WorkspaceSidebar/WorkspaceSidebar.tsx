@@ -115,18 +115,11 @@ export function WorkspaceSidebar({
 		return () => ro.disconnect();
 	}, []);
 
-	const isFilesTabActive = activeTab === "files";
-	const isChangesTabActive = activeTab === "changes";
-	const isReviewTabActive = activeTab === "review";
-	const gitStatus = useGitStatus(
-		workspaceId,
-		isFilesTabActive || isChangesTabActive,
-	);
+	const gitStatus = useGitStatus(workspaceId);
 
 	const changesTabDef = useChangesTab({
 		workspaceId,
 		gitStatus,
-		enabled: isChangesTabActive,
 		selectedFilePath,
 		onSelectFile: onSelectDiffFile,
 		onOpenFile: onSelectFile,
@@ -138,7 +131,6 @@ export function WorkspaceSidebar({
 
 	const reviewTab = useReviewTab({
 		workspaceId,
-		enabled: isReviewTabActive,
 		onOpenComment,
 		onOpenInDiff: onSelectDiffFile
 			? (path, line, openInNewTab) => {

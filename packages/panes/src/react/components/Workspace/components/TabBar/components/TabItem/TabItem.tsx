@@ -6,10 +6,11 @@ import {
 	ContextMenuSeparator,
 	ContextMenuTrigger,
 } from "@superset/ui/context-menu";
+import { OverflowFadeText } from "@superset/ui/overflow-fade-text";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { PencilIcon, XIcon } from "lucide-react";
-import { memo, type ReactNode, useCallback, useRef, useState } from "react";
+import { type ReactNode, useCallback, useRef, useState } from "react";
 import { useDrag, useDrop } from "react-dnd";
 import type { Tab } from "../../../../../../../types";
 import type { PaneRegistry } from "../../../../../../types";
@@ -34,7 +35,7 @@ interface TabItemProps<TData> {
 	accessory?: ReactNode;
 }
 
-function TabItemComponent<TData>({
+export function TabItem<TData>({
 	tab,
 	tabs,
 	registry,
@@ -155,7 +156,9 @@ function TabItemComponent<TData>({
 										type="button"
 									>
 										{icon && <span className="shrink-0">{icon}</span>}
-										<span className="min-w-0 flex-1 truncate">{title}</span>
+										<OverflowFadeText className="flex-1">
+											{title}
+										</OverflowFadeText>
 									</button>
 								</TooltipTrigger>
 								<TooltipContent side="bottom" showArrow={false}>
@@ -214,21 +217,3 @@ function TabItemComponent<TData>({
 		</ContextMenu>
 	);
 }
-
-function areTabItemPropsEqual<TData>(
-	previous: TabItemProps<TData>,
-	next: TabItemProps<TData>,
-) {
-	return (
-		previous.tab === next.tab &&
-		previous.tabs === next.tabs &&
-		previous.registry === next.registry &&
-		previous.index === next.index &&
-		previous.isActive === next.isActive
-	);
-}
-
-export const TabItem = memo(
-	TabItemComponent,
-	areTabItemPropsEqual,
-) as typeof TabItemComponent;

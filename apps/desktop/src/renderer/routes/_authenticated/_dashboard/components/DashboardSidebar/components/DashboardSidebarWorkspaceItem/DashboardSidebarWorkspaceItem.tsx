@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useDiffStats } from "renderer/hooks/host-service/useDiffStats";
 import { useOptimisticCollectionActions } from "renderer/routes/_authenticated/hooks/useOptimisticCollectionActions";
 import { useDeletingWorkspaces } from "renderer/routes/_authenticated/providers/DeletingWorkspacesProvider";
@@ -15,20 +15,18 @@ import { useDashboardSidebarWorkspaceItemActions } from "./hooks/useDashboardSid
 
 interface DashboardSidebarWorkspaceItemProps {
 	workspace: DashboardSidebarWorkspace;
-	onWorkspaceHover?: (workspaceId: string) => void | Promise<void>;
+	onHoverCardOpen?: () => void;
 	shortcutLabel?: string;
 	isCollapsed?: boolean;
 	isInSection?: boolean;
-	isActive?: boolean;
 }
 
-function DashboardSidebarWorkspaceItemComponent({
+export function DashboardSidebarWorkspaceItem({
 	workspace,
-	onWorkspaceHover,
+	onHoverCardOpen,
 	shortcutLabel,
 	isCollapsed = false,
 	isInSection = false,
-	isActive = false,
 }: DashboardSidebarWorkspaceItemProps) {
 	const {
 		id,
@@ -42,11 +40,7 @@ function DashboardSidebarWorkspaceItemComponent({
 		pullRequest,
 	} = workspace;
 	const isMainWorkspace = workspace.type === "main";
-	const isPending = !!creationStatus;
-	const isFailedInFlight = creationStatus === "failed";
-	const diffStats = useDiffStats(id, {
-		enabled: !isCollapsed && !isPending,
-	});
+	const diffStats = useDiffStats(id);
 	const workspaceStatus = useV2WorkspaceNotificationStatus(id);
 	const {
 		cancelRename,
@@ -58,6 +52,7 @@ function DashboardSidebarWorkspaceItemComponent({
 		handleOpenInFinder,
 		handleRemoveFromSidebar,
 		handleToggleUnread,
+		isActive,
 		isDeleteDialogOpen,
 		isUnread,
 		isRenaming,
@@ -72,7 +67,6 @@ function DashboardSidebarWorkspaceItemComponent({
 		projectId,
 		workspaceName: name,
 		branch,
-		isActive,
 		isMainWorkspace,
 	});
 
@@ -83,6 +77,8 @@ function DashboardSidebarWorkspaceItemComponent({
 	const handleAfterBranchRename = (newBranchName: string) => {
 		v2WorkspaceActions.updateWorkspace(id, { branch: newBranchName });
 	};
+	const isPending = !!creationStatus;
+	const isFailedInFlight = creationStatus === "failed";
 	// Keep the delete dialog outside the hidden wrapper below — the destroy
 	// flow reopens it into an error pane on conflict/teardown-failed.
 	const isDeleting = useDeletingWorkspaces().isDeleting(id);
@@ -115,8 +111,8 @@ function DashboardSidebarWorkspaceItemComponent({
 
 	const isHovered = hoverHoveredId === id;
 	useEffect(() => {
-		if (isHovered && hostType === "local-device") onWorkspaceHover?.(id);
-	}, [isHovered, hostType, onWorkspaceHover, id]);
+		if (isHovered && hostType === "local-device") onHoverCardOpen?.();
+	}, [isHovered, hostType, onHoverCardOpen]);
 	useEffect(() => {
 		if (!isHovered) return;
 		hoverSyncIfHovered(id, hoverPayload);
@@ -148,7 +144,6 @@ function DashboardSidebarWorkspaceItemComponent({
 					onClick={handleClick}
 					creationStatus={creationStatus}
 					pullRequestState={pullRequest?.state ?? null}
-					data-renderer-stress-workspace-id={id}
 					aria-label={
 						creationStatus ? `Creating workspace: ${name}` : undefined
 					}
@@ -229,7 +224,6 @@ function DashboardSidebarWorkspaceItemComponent({
 				isInSection={isInSection}
 				onClick={handleClick}
 				onDoubleClick={isPending ? undefined : startRename}
-				data-renderer-stress-workspace-id={id}
 				onRemoveFromSidebarClick={handleRemoveFromSidebar}
 				onCloseWorkspaceClick={
 					isFailedInFlight
@@ -297,7 +291,3 @@ function DashboardSidebarWorkspaceItemComponent({
 		</>
 	);
 }
-
-export const DashboardSidebarWorkspaceItem = memo(
-	DashboardSidebarWorkspaceItemComponent,
-);

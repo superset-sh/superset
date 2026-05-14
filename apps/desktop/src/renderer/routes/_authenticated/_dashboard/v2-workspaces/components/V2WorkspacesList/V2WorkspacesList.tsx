@@ -27,7 +27,6 @@ import {
 	useV2WorkspacesFilterStore,
 } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/stores/v2WorkspacesFilterStore";
 import { useV2ProjectLocalMetaStore } from "renderer/stores/v2-project-local-meta";
-import { useV2WorkspaceNavigationStore } from "renderer/stores/v2-workspace-navigation";
 import { V2WorkspaceProjectIcon } from "../V2WorkspaceProjectIcon";
 import { SortableHeader } from "./components/SortableHeader";
 import { V2WorkspaceRow } from "./components/V2WorkspaceRow";
@@ -132,10 +131,6 @@ export function V2WorkspacesList({ workspaces }: V2WorkspacesListProps) {
 	});
 	const currentWorkspaceId =
 		currentWorkspaceMatch !== false ? currentWorkspaceMatch.workspaceId : null;
-	const pendingWorkspaceId = useV2WorkspaceNavigationStore(
-		(state) => state.pendingWorkspaceId,
-	);
-	const activeWorkspaceId = pendingWorkspaceId ?? currentWorkspaceId;
 
 	const searchQuery = useV2WorkspacesFilterStore((state) => state.searchQuery);
 	const deviceFilter = useV2WorkspacesFilterStore(
@@ -270,7 +265,7 @@ export function V2WorkspacesList({ workspaces }: V2WorkspacesListProps) {
 					<ProjectSection
 						key={project.projectId}
 						project={project}
-						currentWorkspaceId={activeWorkspaceId}
+						currentWorkspaceId={currentWorkspaceId}
 					/>
 				))}
 			</div>

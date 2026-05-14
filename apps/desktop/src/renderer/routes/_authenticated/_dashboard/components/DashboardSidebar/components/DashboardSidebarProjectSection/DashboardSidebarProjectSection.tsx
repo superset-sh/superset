@@ -17,7 +17,6 @@ interface DashboardSidebarProjectSectionProps {
 	project: DashboardSidebarProject;
 	isSidebarCollapsed?: boolean;
 	isDraggingProject?: boolean;
-	activeWorkspaceId: string | null;
 	workspaceShortcutLabels: Map<string, string>;
 	onWorkspaceHover: (workspaceId: string) => void | Promise<void>;
 	onToggleCollapse: (projectId: string) => void;
@@ -29,7 +28,6 @@ export function DashboardSidebarProjectSection({
 	project,
 	isSidebarCollapsed = false,
 	isDraggingProject = false,
-	activeWorkspaceId,
 	workspaceShortcutLabels,
 	onWorkspaceHover,
 	onToggleCollapse,
@@ -78,7 +76,6 @@ export function DashboardSidebarProjectSection({
 						isCollapsed={project.isCollapsed}
 						totalWorkspaceCount={totalWorkspaceCount}
 						workspaces={flattenedCollapsedWorkspaces}
-						activeWorkspaceId={activeWorkspaceId}
 						workspaceShortcutLabels={workspaceShortcutLabels}
 						onWorkspaceHover={onWorkspaceHover}
 						onToggleCollapse={() => onToggleCollapse(project.id)}
@@ -128,7 +125,6 @@ export function DashboardSidebarProjectSection({
 							projectId={project.id}
 							isCollapsed={project.isCollapsed}
 							projectChildren={project.children}
-							activeWorkspaceId={activeWorkspaceId}
 							workspaceShortcutLabels={workspaceShortcutLabels}
 							onWorkspaceHover={onWorkspaceHover}
 							onDeleteSection={deleteSection}
