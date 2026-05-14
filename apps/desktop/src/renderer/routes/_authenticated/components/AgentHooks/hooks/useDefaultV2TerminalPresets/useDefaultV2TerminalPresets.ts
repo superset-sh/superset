@@ -51,6 +51,9 @@ export function useDefaultV2TerminalPresets(hostUrl: string | null): void {
 			collections.v2TerminalPresets.insert(row);
 		}
 
+		// If both are empty, agents weren't available yet — retry next launch.
+		if (rows.length === 0 && v2Presets.length === 0) return;
+
 		const existingPreferences = collections.v2UserPreferences.get(
 			V2_USER_PREFERENCES_ID,
 		);
