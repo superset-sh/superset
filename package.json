@@ -18,6 +18,7 @@
 	"scripts": {
 		"dev": "turbo run dev dev:caddy --filter=@superset/api --filter=@superset/web --filter=@superset/desktop --filter=electric-proxy --filter=//",
 		"dev:all": "turbo dev",
+		"dev:desktop": "turbo run dev dev:caddy --filter=@superset/api --filter=@superset/desktop --filter=electric-proxy --filter=//",
 		"dev:caddy": "dotenv -- caddy run --config Caddyfile",
 		"dev:docs": "turbo dev --filter=@superset/docs",
 		"dev:marketing": "turbo dev --filter=@superset/marketing --filter=@superset/docs",
