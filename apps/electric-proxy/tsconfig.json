@@ -1,7 +1,7 @@
 {
 	"extends": "@superset/typescript/base.json",
 	"compilerOptions": {
-		"types": ["@cloudflare/workers-types", "bun-types"],
+		"types": ["@cloudflare/workers-types"],
 		"lib": ["ES2022", "ES2021.String"],
 		"moduleResolution": "Bundler",
 		"module": "ESNext",
