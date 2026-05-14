@@ -15,6 +15,7 @@ import {
 } from "./fetchers";
 import {
 	makePromptContextKey,
+	makePromptContextScope,
 	useNewWorkspacePromptContextStore,
 } from "./store";
 
@@ -51,10 +52,10 @@ export function useNewWorkspacePromptContext(args: {
 		});
 	}, [hostId, machineId, activeHostUrl, activeOrganizationId, relayUrl]);
 
-	const contextScope = useMemo(() => {
-		if (!projectId || !hostUrl) return null;
-		return `${projectId}|${hostUrl}`;
-	}, [projectId, hostUrl]);
+	const contextScope = useMemo(
+		() => makePromptContextScope(projectId, hostUrl),
+		[projectId, hostUrl],
+	);
 
 	useEffect(() => {
 		if (!projectId || !hostUrl || !contextScope) return;

@@ -18,6 +18,14 @@ export function makePromptContextKey(
 	return scope ? `${scope}|${base}` : base;
 }
 
+export function makePromptContextScope(
+	projectId: string | null,
+	hostUrl: string | null,
+): string | null {
+	if (!projectId || !hostUrl) return null;
+	return `${projectId}|${hostUrl}`;
+}
+
 interface PromptContextState {
 	entries: Map<string, PromptContextEntry>;
 	register: (
