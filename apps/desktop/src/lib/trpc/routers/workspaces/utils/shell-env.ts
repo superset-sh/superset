@@ -181,18 +181,30 @@ export async function getProcessEnvWithShellPath(
 	const env = await getProcessEnvWithShellEnv(baseEnv, shellEnvResult);
 
 	const shellPath = shellEnvResult.PATH || shellEnvResult.Path;
-	if (!shellPath) {
-		return env;
+	if (shellPath) {
+		env.PATH = shellPath;
+		if (
+			process.platform === "win32" ||
+			"Path" in baseEnv ||
+			"Path" in shellEnvResult
+		) {
+			env.Path = shellPath;
+		}
 	}
 
-	env.PATH = shellPath;
-	if (
-		process.platform === "win32" ||
-		"Path" in baseEnv ||
-		"Path" in shellEnvResult
-	) {
-		env.Path = shellPath;
-	}
+	// Git ≥ 2.50 refuses to honor an *inherited* `PAGER` or `GIT_PAGER`
+	// env var on non-interactive callers ("Use of \"PAGER\" is not
+	// permitted without enabling allowUnsafePager"), which simple-git
+	// surfaces as GitPluginError and breaks workspace creation, status
+	// reads, worktree prune, etc.
+	//
+	// Strip both. Programmatic git invocations have piped stdout (not a
+	// TTY), so git skips paging entirely — no replacement value is needed.
+	// User-facing terminals get their own PAGER/GIT_PAGER from the
+	// interactive shell, so this only affects the host-service / desktop
+	// main process's own git children.
+	delete env.PAGER;
+	delete env.GIT_PAGER;
 
 	return env;
 }

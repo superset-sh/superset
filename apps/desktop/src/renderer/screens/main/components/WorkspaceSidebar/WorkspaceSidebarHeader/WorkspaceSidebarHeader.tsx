@@ -4,7 +4,10 @@ import { useMatchRoute, useNavigate } from "@tanstack/react-router";
 import { HiOutlineClipboardDocumentList } from "react-icons/hi2";
 import { LuLayers } from "react-icons/lu";
 import { GATED_FEATURES, usePaywall } from "renderer/components/Paywall";
-import { useTasksFilterStore } from "renderer/routes/_authenticated/_dashboard/tasks/stores/tasks-filter-state";
+import {
+	tasksSearchFromFilters,
+	useTasksFilterStore,
+} from "renderer/routes/_authenticated/_dashboard/tasks/stores/tasks-filter-state";
 import { STROKE_WIDTH } from "../constants";
 import { NewWorkspaceButton } from "./NewWorkspaceButton";
 
@@ -41,13 +44,16 @@ export function WorkspaceSidebarHeader({
 
 	const handleTasksClick = () => {
 		gateFeature(GATED_FEATURES.TASKS, () => {
-			const search: Record<string, string> = {};
-			if (lastTab !== "all") search.tab = lastTab;
-			if (lastAssignee) search.assignee = lastAssignee;
-			if (lastSearch) search.search = lastSearch;
-			if (lastTypeTab !== "tasks") search.type = lastTypeTab;
-			if (lastProjectFilter) search.project = lastProjectFilter;
-			navigate({ to: "/tasks", search });
+			navigate({
+				to: "/tasks",
+				search: tasksSearchFromFilters({
+					tab: lastTab,
+					assignee: lastAssignee,
+					search: lastSearch,
+					typeTab: lastTypeTab,
+					projectFilter: lastProjectFilter,
+				}),
+			});
 		});
 	};
 

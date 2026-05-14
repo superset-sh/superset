@@ -8,7 +8,10 @@ import {
 	useState,
 } from "react";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
-import { useTasksFilterStore } from "../../stores/tasks-filter-state";
+import {
+	tasksSearchFromFilters,
+	useTasksFilterStore,
+} from "../../stores/tasks-filter-state";
 import { BoardContent } from "./components/BoardContent";
 import {
 	GitHubIssuesContent,
@@ -63,24 +66,18 @@ export function TasksView({
 			search?: string;
 			type?: "tasks" | "prs" | "issues";
 			project?: string | null;
-		}) => {
-			const tab = overrides.tab ?? currentTab;
-			const assignee =
-				overrides.assignee !== undefined ? overrides.assignee : assigneeFilter;
-			const query =
-				overrides.search !== undefined ? overrides.search : searchQuery;
-			const type = overrides.type ?? typeTab;
-			const project =
-				overrides.project !== undefined ? overrides.project : projectFilter;
-
-			const search: Record<string, string> = {};
-			if (tab !== "all") search.tab = tab;
-			if (assignee) search.assignee = assignee;
-			if (query) search.search = query;
-			if (type !== "tasks") search.type = type;
-			if (project) search.project = project;
-			return search;
-		},
+		}) =>
+			tasksSearchFromFilters({
+				tab: overrides.tab ?? currentTab,
+				assignee:
+					overrides.assignee !== undefined
+						? overrides.assignee
+						: assigneeFilter,
+				search: overrides.search !== undefined ? overrides.search : searchQuery,
+				typeTab: overrides.type ?? typeTab,
+				projectFilter:
+					overrides.project !== undefined ? overrides.project : projectFilter,
+			}),
 		[currentTab, assigneeFilter, searchQuery, typeTab, projectFilter],
 	);
 
@@ -149,8 +146,9 @@ export function TasksView({
 	);
 
 	useEffect(() => {
-		if (projectFilter) return;
-		const firstProject = v2Projects?.[0];
+		if (!v2Projects) return;
+		if (projectFilter && v2Projects.some((p) => p.id === projectFilter)) return;
+		const firstProject = v2Projects[0];
 		if (!firstProject) return;
 		navigate({
 			to: "/tasks",
