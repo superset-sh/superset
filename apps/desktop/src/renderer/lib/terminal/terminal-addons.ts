@@ -1,10 +1,10 @@
 import { ClipboardAddon } from "@xterm/addon-clipboard";
-import { ImageAddon } from "@xterm/addon-image";
 import { LigaturesAddon } from "@xterm/addon-ligatures";
 import { ProgressAddon } from "@xterm/addon-progress";
 import { SearchAddon } from "@xterm/addon-search";
 import { Unicode11Addon } from "@xterm/addon-unicode11";
 import type { Terminal as XTerm } from "@xterm/xterm";
+import { createTerminalImageAddon } from "./terminal-image-addon";
 import { loadTerminalWebglAddon } from "./terminal-webgl-addon-controller";
 
 export interface LoadAddonsResult {
@@ -25,7 +25,7 @@ export function loadAddons(terminal: XTerm): LoadAddonsResult {
 	terminal.loadAddon(unicode11);
 	terminal.unicode.activeVersion = "11";
 
-	terminal.loadAddon(new ImageAddon());
+	terminal.loadAddon(createTerminalImageAddon());
 
 	const searchAddon = new SearchAddon();
 	terminal.loadAddon(searchAddon);

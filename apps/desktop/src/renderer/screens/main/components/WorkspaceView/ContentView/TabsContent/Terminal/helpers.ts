@@ -1,13 +1,13 @@
 import { toast } from "@superset/ui/sonner";
 import { ClipboardAddon } from "@xterm/addon-clipboard";
 import { FitAddon } from "@xterm/addon-fit";
-import { ImageAddon } from "@xterm/addon-image";
 import { LigaturesAddon } from "@xterm/addon-ligatures";
 import { SearchAddon } from "@xterm/addon-search";
 import { Unicode11Addon } from "@xterm/addon-unicode11";
 import type { ITheme } from "@xterm/xterm";
 import { Terminal as XTerm } from "@xterm/xterm";
 import type { DetectedLink } from "renderer/lib/terminal/links";
+import { createTerminalImageAddon } from "renderer/lib/terminal/terminal-image-addon";
 import { TerminalLinkManager } from "renderer/lib/terminal/terminal-link-manager";
 import { loadTerminalWebglAddon } from "renderer/lib/terminal/terminal-webgl-addon-controller";
 import { electronTrpcClient as trpcClient } from "renderer/lib/trpc-client";
@@ -98,7 +98,7 @@ export function createTerminalInWrapper(options: CreateTerminalOptions = {}): {
 
 	const clipboardAddon = new ClipboardAddon();
 	const unicode11Addon = new Unicode11Addon();
-	const imageAddon = new ImageAddon();
+	const imageAddon = createTerminalImageAddon();
 
 	// Open into a detached wrapper div — not the live container.
 	const wrapper = document.createElement("div");
