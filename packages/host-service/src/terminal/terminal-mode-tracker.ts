@@ -13,7 +13,18 @@
 // Pattern adapted from VSCode's XtermSerializer
 // (src/vs/platform/terminal/node/ptyService.ts).
 
-import { Terminal as HeadlessTerminal } from "@xterm/headless";
+import type {
+	Terminal as HeadlessTerminalInstance,
+	ITerminalInitOnlyOptions,
+	ITerminalOptions,
+} from "@xterm/headless";
+import headlessModule from "@xterm/headless";
+
+const { Terminal: HeadlessTerminal } = headlessModule as unknown as {
+	Terminal: new (
+		options: ITerminalOptions & ITerminalInitOnlyOptions,
+	) => HeadlessTerminalInstance;
+};
 
 export interface ModeTracker {
 	feed(bytes: Uint8Array): void;
