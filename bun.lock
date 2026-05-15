@@ -686,7 +686,7 @@
     },
     "packages/cli": {
       "name": "@superset/cli",
-      "version": "0.2.16",
+      "version": "0.2.17",
       "dependencies": {
         "@clack/prompts": "0.10.1",
         "@superset/cli-framework": "workspace:*",

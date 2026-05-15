@@ -46,12 +46,16 @@ let server: Server;
 let db: HostDb;
 let projectId: string;
 let workspaceId: string;
+let otherWorkspaceId: string;
 let worktreePath: string;
+let otherWorktreePath: string;
 
 before(async () => {
 	fs.mkdirSync(TEST_HOME, { recursive: true });
 	worktreePath = path.join(TEST_HOME, "worktree");
+	otherWorktreePath = path.join(TEST_HOME, "other-worktree");
 	fs.mkdirSync(worktreePath, { recursive: true });
+	fs.mkdirSync(otherWorktreePath, { recursive: true });
 
 	server = new Server({
 		socketPath: SOCK,
@@ -82,6 +86,15 @@ before(async () => {
 			projectId,
 			worktreePath,
 			branch: "main",
+		})
+		.run();
+	otherWorkspaceId = randomUUID();
+	db.insert(workspaces)
+		.values({
+			id: otherWorkspaceId,
+			projectId,
+			worktreePath: otherWorktreePath,
+			branch: "feature/other",
 		})
 		.run();
 });
@@ -151,6 +164,43 @@ describe("createTerminalSessionInternal — host-service restart adoption", () =
 		if ("error" in second) return;
 		assert.equal(second.initialCommandQueued, true);
 		await waitFor(() => fs.existsSync(sentinelFile), 5000);
+
+		await disposeSessionAndWait(terminalId, db);
+	});
+
+	test("rejects reusing a live terminal id from another workspace", async () => {
+		const terminalId = `e2e-cross-live-${randomUUID().slice(0, 8)}`;
+
+		const first = await createTerminalSessionInternal({
+			terminalId,
+			workspaceId,
+			db,
+			listed: true,
+		});
+		assert.ok(!("error" in first));
+
+		const second = await createTerminalSessionInternal({
+			terminalId,
+			workspaceId: otherWorkspaceId,
+			db,
+			listed: true,
+		});
+		assert.ok("error" in second);
+		if ("error" in second) {
+			assert.match(second.error, /belongs to workspace/);
+		}
+
+		assert.ok(
+			listTerminalSessions({ workspaceId }).some(
+				(s) => s.terminalId === terminalId,
+			),
+		);
+		assert.equal(
+			listTerminalSessions({ workspaceId: otherWorkspaceId }).some(
+				(s) => s.terminalId === terminalId,
+			),
+			false,
+		);
 
 		await disposeSessionAndWait(terminalId, db);
 	});
@@ -285,6 +335,45 @@ describe("createTerminalSessionInternal — host-service restart adoption", () =
 			listTerminalSessions({ workspaceId }).find(
 				(s) => s.terminalId === terminalId,
 			),
+		);
+
+		await disposeSessionAndWait(terminalId, db);
+	});
+
+	test("rejects adopting a daemon session from another workspace after host-service restart simulation", async () => {
+		const terminalId = `e2e-cross-adopt-${randomUUID().slice(0, 8)}`;
+
+		const first = await createTerminalSessionInternal({
+			terminalId,
+			workspaceId,
+			db,
+			listed: true,
+		});
+		assert.ok(!("error" in first));
+
+		__resetSessionsForTesting();
+		await disposeDaemonClient();
+
+		const second = await createTerminalSessionInternal({
+			terminalId,
+			workspaceId: otherWorkspaceId,
+			db,
+			listed: true,
+		});
+		assert.ok("error" in second);
+		if ("error" in second) {
+			assert.match(second.error, /belongs to workspace/);
+		}
+
+		const record = db.query.terminalSessions
+			.findFirst({ where: eq(terminalSessions.id, terminalId) })
+			.sync();
+		assert.equal(record?.originWorkspaceId, workspaceId);
+		assert.equal(
+			listTerminalSessions({ workspaceId: otherWorkspaceId }).some(
+				(s) => s.terminalId === terminalId,
+			),
+			false,
 		);
 
 		await disposeSessionAndWait(terminalId, db);

@@ -41,6 +41,7 @@ import type {
 	PaneViewerData,
 	TerminalPaneData,
 } from "../../types";
+import type { TerminalLauncher } from "../useV2TerminalLauncher";
 import { BrowserPane, BrowserPaneToolbar } from "./components/BrowserPane";
 import { ChatPane } from "./components/ChatPane";
 import { ChatPaneTitle } from "./components/ChatPane/components/ChatPaneTitle";
@@ -102,11 +103,13 @@ const MOD_KEY = navigator.platform.toLowerCase().includes("mac")
 interface UsePaneRegistryOptions {
 	onOpenFile: (path: string, openInNewTab?: boolean) => void;
 	onRevealPath: (path: string) => void;
+	launcher: TerminalLauncher;
 }
 
 export function usePaneRegistry({
 	onOpenFile,
 	onRevealPath,
+	launcher,
 }: UsePaneRegistryOptions): PaneRegistry<PaneViewerData> {
 	const { workspace } = useWorkspace();
 	const workspaceId = workspace.id;
@@ -282,7 +285,11 @@ export function usePaneRegistry({
 				},
 				renderTitle: (ctx: RendererContext<PaneViewerData>) => (
 					<div className="flex min-w-0 flex-1 items-center gap-1.5">
-						<TerminalSessionDropdown context={ctx} workspaceId={workspaceId} />
+						<TerminalSessionDropdown
+							context={ctx}
+							launcher={launcher}
+							workspaceId={workspaceId}
+						/>
 						<V2NotificationStatusIndicator
 							sources={getV2NotificationSourcesForPane(ctx.pane)}
 						/>
@@ -501,6 +508,7 @@ export function usePaneRegistry({
 			killTerminalSession,
 			killTerminalSessionSilently,
 			isKillingTerminalSession,
+			launcher,
 			onOpenFile,
 			onRevealPath,
 		],

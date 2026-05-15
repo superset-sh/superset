@@ -41,9 +41,9 @@ mock.module("main/index", () => ({
 // shape here defensively to avoid order-dependent breakage.
 mock.module("electron-log/main", () => ({
 	default: {
-		info: () => {},
-		warn: () => {},
-		error: () => {},
+		info: mock(() => {}),
+		warn: mock(() => {}),
+		error: mock(() => {}),
 		transports: { file: { level: "info" } },
 	},
 }));

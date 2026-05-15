@@ -5,7 +5,6 @@ import { useLiveQuery } from "@tanstack/react-db";
 import { useCallback, useMemo } from "react";
 import { useV2AgentConfigs } from "renderer/hooks/useV2AgentConfigs";
 import { buildAgentLaunchCommand } from "renderer/lib/agent-launch-command";
-import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { useWorkspace } from "renderer/routes/_authenticated/_dashboard/v2-workspace/providers/WorkspaceProvider";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import type { V2TerminalPresetRow } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
@@ -74,23 +73,16 @@ export function useV2PresetExecution({
 		[allPresets, projectId],
 	);
 
+	// `useV2AgentConfigs` is the cached source of truth for agent configs
+	// (`staleTime: Infinity`, invalidated on every Settings → Agents mutation),
+	// so resolving against the in-memory `agents` array is correct and
+	// synchronous. Re-fetching via the host-service client on every call would
+	// duplicate that query and pin this function async, which forced the
+	// previous consumer (`useV2WorkspaceRun`) into a re-render cycle.
 	const resolvePresetCommands = useCallback(
-		async (preset: V2TerminalPresetRow): Promise<string[]> => {
+		(preset: V2TerminalPresetRow): string[] => {
 			if (!preset.agentId) return preset.commands;
-
-			let resolveAgents = agents;
-			if (activeHostUrl) {
-				try {
-					resolveAgents =
-						await getHostServiceClientByUrl(
-							activeHostUrl,
-						).settings.agentConfigs.list.query();
-				} catch {
-					resolveAgents = agents;
-				}
-			}
-
-			const linkedAgent = findLinkedAgent(resolveAgents, preset.agentId);
+			const linkedAgent = findLinkedAgent(agents, preset.agentId);
 			const live =
 				linkedAgent && linkedAgent.command.trim().length > 0
 					? buildAgentLaunchCommand(linkedAgent)
@@ -98,7 +90,7 @@ export function useV2PresetExecution({
 			if (live) return [live];
 			return preset.commands;
 		},
-		[activeHostUrl, agents],
+		[agents],
 	);
 
 	const executePreset = useCallback(
@@ -107,7 +99,7 @@ export function useV2PresetExecution({
 			const activeTabId = state.activeTabId;
 			const target = resolveTarget(preset.executionMode);
 			const title = preset.name || undefined;
-			const commands = await resolvePresetCommands(preset);
+			const commands = resolvePresetCommands(preset);
 
 			const plan = getPresetLaunchPlan({
 				mode: preset.executionMode,
