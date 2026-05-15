@@ -2,17 +2,12 @@ import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { createFileRoute, Outlet, useMatchRoute } from "@tanstack/react-router";
 import { useEffect, useRef } from "react";
-import {
-	logStressEvent,
-	useRenderStressInstrumentation,
-} from "renderer/lib/performance/stress-instrumentation";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useWorkspaceCreatesStore } from "renderer/stores/workspace-creates";
 import { WorkspaceCreateErrorState } from "./components/WorkspaceCreateErrorState";
 import { WorkspaceCreatingState } from "./components/WorkspaceCreatingState";
 import { WorkspaceHostIncompatibleState } from "./components/WorkspaceHostIncompatibleState";
-import { WorkspaceHostUnavailableState } from "./components/WorkspaceHostUnavailableState";
 import { WorkspaceNotFoundState } from "./components/WorkspaceNotFoundState";
 import { useRemoteHostStatus } from "./hooks/useRemoteHostStatus";
 import { WorkspaceProvider } from "./providers/WorkspaceProvider";
@@ -60,23 +55,6 @@ function V2WorkspaceLayout() {
 	}, [ensureWorkspaceInSidebar, workspace]);
 
 	const hostStatus = useRemoteHostStatus(workspace);
-	const workspaceHostId = workspace?.hostId;
-	useRenderStressInstrumentation("V2WorkspaceLayout", {
-		warnAt: 30,
-		getDetails: () => ({
-			workspaceId,
-			workspaceHostId,
-			hostStatus: hostStatus.status,
-		}),
-	});
-	useEffect(() => {
-		if (!workspaceId || !workspaceHostId) return;
-		logStressEvent("v2-workspace.host-status", {
-			workspaceId,
-			workspaceHostId,
-			status: hostStatus.status,
-		});
-	}, [hostStatus.status, workspaceHostId, workspaceId]);
 
 	if (!workspaceId || !isReady || !workspaces) {
 		return <div className="flex h-full w-full" />;
@@ -117,17 +95,9 @@ function V2WorkspaceLayout() {
 	if (hostStatus.status === "loading") {
 		return <div className="flex h-full w-full" />;
 	}
-	if (hostStatus.status === "unavailable") {
-		return (
-			<WorkspaceHostUnavailableState
-				hostName={hostStatus.hostName}
-				reason={hostStatus.reason}
-			/>
-		);
-	}
 
 	return (
-		<WorkspaceProvider key={workspace.id} workspace={workspace}>
+		<WorkspaceProvider workspace={workspace}>
 			<Outlet />
 		</WorkspaceProvider>
 	);

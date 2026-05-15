@@ -1,17 +1,10 @@
 import { useMatchRoute, useNavigate } from "@tanstack/react-router";
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useMemo, useRef } from "react";
 import { useHotkey } from "renderer/hotkeys";
-import { logStressEvent } from "renderer/lib/performance/stress-instrumentation";
 import { navigateToV2Workspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import type { DashboardSidebarProject } from "../../types";
 import { getProjectChildrenWorkspaces } from "../../utils/projectChildren";
-import {
-	getRelativeWorkspaceTarget,
-	shouldRunWorkspaceSwitchHotkey,
-	WORKSPACE_SWITCH_HOTKEY_RELEASE_MS,
-	type WorkspaceSwitchDirection,
-} from "./useDashboardSidebarShortcuts.utils";
 
 interface WorkspaceLocation {
 	projectId: string;
@@ -21,7 +14,6 @@ interface WorkspaceLocation {
 }
 
 const MAX_SHORTCUT_COUNT = 9;
-const WORKSPACE_SWITCH_DROP_LOG_INTERVAL_MS = 1_000;
 
 function haveSameIds(left: string[], right: string[]): boolean {
 	return (
@@ -139,143 +131,29 @@ export function useDashboardSidebarShortcuts(
 	});
 	const currentWorkspaceId =
 		currentWorkspaceMatch !== false ? currentWorkspaceMatch.workspaceId : null;
-	const latestRelativeSwitchStateRef = useRef({
-		currentWorkspaceId,
-		flattenedWorkspaces,
-		navigate,
-		revealWorkspace,
-	});
-	latestRelativeSwitchStateRef.current = {
-		currentWorkspaceId,
-		flattenedWorkspaces,
-		navigate,
-		revealWorkspace,
-	};
-	const lastRelativeSwitchAtRef = useRef(Number.NEGATIVE_INFINITY);
-	const relativeSwitchInFlightRef = useRef(false);
-	const relativeSwitchReleaseTimerRef = useRef<ReturnType<
-		typeof setTimeout
-	> | null>(null);
-	const pendingRelativeSwitchDirectionRef =
-		useRef<WorkspaceSwitchDirection | null>(null);
-	const relativeSwitchDropLogRef = useRef({
-		count: 0,
-		lastLoggedAt: Number.NEGATIVE_INFINITY,
-	});
-	const runRelativeWorkspaceSwitchRef = useRef<
-		(
-			direction: WorkspaceSwitchDirection,
-			source: "hotkey" | "coalesced",
-		) => void
-	>(() => {});
 
-	const scheduleRelativeSwitchRelease = useCallback((delayMs: number) => {
-		if (relativeSwitchReleaseTimerRef.current) {
-			clearTimeout(relativeSwitchReleaseTimerRef.current);
-		}
-		relativeSwitchReleaseTimerRef.current = setTimeout(() => {
-			relativeSwitchInFlightRef.current = false;
-			relativeSwitchReleaseTimerRef.current = null;
-
-			const pendingDirection = pendingRelativeSwitchDirectionRef.current;
-			pendingRelativeSwitchDirectionRef.current = null;
-			if (pendingDirection) {
-				runRelativeWorkspaceSwitchRef.current(pendingDirection, "coalesced");
-			}
-		}, delayMs);
-	}, []);
-
-	useEffect(() => {
-		return () => {
-			if (relativeSwitchReleaseTimerRef.current) {
-				clearTimeout(relativeSwitchReleaseTimerRef.current);
-			}
-			pendingRelativeSwitchDirectionRef.current = null;
-		};
-	}, []);
-
-	const runRelativeWorkspaceSwitch = useCallback(
-		(direction: WorkspaceSwitchDirection, source: "hotkey" | "coalesced") => {
-			const now = performance.now();
-			const {
-				currentWorkspaceId: latestCurrentWorkspaceId,
-				flattenedWorkspaces: latestFlattenedWorkspaces,
-				navigate: latestNavigate,
-				revealWorkspace: latestRevealWorkspace,
-			} = latestRelativeSwitchStateRef.current;
-			const target = getRelativeWorkspaceTarget(
-				latestFlattenedWorkspaces,
-				latestCurrentWorkspaceId,
-				direction,
-			);
-			if (!target) return;
-
-			lastRelativeSwitchAtRef.current = now;
-			relativeSwitchInFlightRef.current = true;
-			scheduleRelativeSwitchRelease(WORKSPACE_SWITCH_HOTKEY_RELEASE_MS);
-			latestRevealWorkspace(target.id);
-			logStressEvent("workspace-switch-hotkey.navigate", {
-				direction,
-				source,
-				from: latestCurrentWorkspaceId,
-				to: target.id,
-			});
-			void navigateToV2Workspace(target.id, latestNavigate, { replace: true });
-		},
-		[scheduleRelativeSwitchRelease],
-	);
-	runRelativeWorkspaceSwitchRef.current = runRelativeWorkspaceSwitch;
-
-	const switchRelativeWorkspace = useCallback(
-		(direction: WorkspaceSwitchDirection, event: KeyboardEvent) => {
-			const now = performance.now();
-			const shouldRun = shouldRunWorkspaceSwitchHotkey({
-				isNavigating: relativeSwitchInFlightRef.current,
-				now,
-				lastRunAt: lastRelativeSwitchAtRef.current,
-			});
-			if (!shouldRun) {
-				pendingRelativeSwitchDirectionRef.current = direction;
-				if (!relativeSwitchReleaseTimerRef.current) {
-					const remainingMs = Math.max(
-						0,
-						WORKSPACE_SWITCH_HOTKEY_RELEASE_MS -
-							(now - lastRelativeSwitchAtRef.current),
-					);
-					relativeSwitchInFlightRef.current = true;
-					scheduleRelativeSwitchRelease(remainingMs);
-				}
-
-				const dropLog = relativeSwitchDropLogRef.current;
-				dropLog.count++;
-				if (
-					now - dropLog.lastLoggedAt >=
-					WORKSPACE_SWITCH_DROP_LOG_INTERVAL_MS
-				) {
-					logStressEvent("workspace-switch-hotkey.coalesced", {
-						direction,
-						count: dropLog.count,
-						repeated: event.repeat,
-						navigating: relativeSwitchInFlightRef.current,
-					});
-					dropLog.count = 0;
-					dropLog.lastLoggedAt = now;
-				}
-				return;
-			}
-
-			pendingRelativeSwitchDirectionRef.current = null;
-			runRelativeWorkspaceSwitch(direction, "hotkey");
-		},
-		[runRelativeWorkspaceSwitch, scheduleRelativeSwitchRelease],
-	);
-
-	useHotkey("PREV_WORKSPACE", (event) => {
-		switchRelativeWorkspace("previous", event);
+	useHotkey("PREV_WORKSPACE", () => {
+		if (!currentWorkspaceId || flattenedWorkspaces.length === 0) return;
+		const index = flattenedWorkspaces.findIndex(
+			(w) => w.id === currentWorkspaceId,
+		);
+		if (index === -1) return;
+		const prevIndex = index <= 0 ? flattenedWorkspaces.length - 1 : index - 1;
+		const target = flattenedWorkspaces[prevIndex];
+		revealWorkspace(target.id);
+		navigateToV2Workspace(target.id, navigate);
 	});
 
-	useHotkey("NEXT_WORKSPACE", (event) => {
-		switchRelativeWorkspace("next", event);
+	useHotkey("NEXT_WORKSPACE", () => {
+		if (!currentWorkspaceId || flattenedWorkspaces.length === 0) return;
+		const index = flattenedWorkspaces.findIndex(
+			(w) => w.id === currentWorkspaceId,
+		);
+		if (index === -1) return;
+		const nextIndex = index >= flattenedWorkspaces.length - 1 ? 0 : index + 1;
+		const target = flattenedWorkspaces[nextIndex];
+		revealWorkspace(target.id);
+		navigateToV2Workspace(target.id, navigate);
 	});
 
 	return workspaceShortcutLabels;

@@ -1,15 +1,11 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { httpBatchStreamLink, TRPCClientError } from "@trpc/client";
-import { createContext, type ReactNode, useContext, useEffect } from "react";
+import { createContext, type ReactNode, useContext } from "react";
 import superjson from "superjson";
 import { workspaceTrpc } from "../../workspace-trpc";
-import {
-	getIdleWorkspaceClientEvictionKeys,
-	WORKSPACE_CLIENT_IDLE_DISPOSE_MS,
-} from "./workspaceClientCachePolicy";
 
 const STALE_TIME_MS = 5_000;
-const GC_TIME_MS = 5 * 60 * 1_000;
+const GC_TIME_MS = 30 * 60 * 1_000;
 const MAX_TIMEOUT_RETRIES = 2;
 const TIMEOUT_RETRY_BASE_DELAY_MS = 300;
 
@@ -33,74 +29,15 @@ interface WorkspaceClientProviderProps {
 }
 
 interface WorkspaceClients {
-	clientKey: string;
 	hostUrl: string;
 	queryClient: QueryClient;
 	trpcClient: ReturnType<typeof workspaceTrpc.createClient>;
 	getWsToken: () => string | null;
-	activeRefs: number;
-	lastAccessedAt: number;
-	disposeTimer: ReturnType<typeof setTimeout> | null;
 }
 
 const workspaceClientsCache = new Map<string, WorkspaceClients>();
 const WorkspaceClientContext =
 	createContext<WorkspaceClientContextValue | null>(null);
-
-function disposeWorkspaceClients(clientKey: string): void {
-	const clients = workspaceClientsCache.get(clientKey);
-	if (!clients || clients.activeRefs > 0) return;
-	if (clients.disposeTimer) {
-		clearTimeout(clients.disposeTimer);
-		clients.disposeTimer = null;
-	}
-	clients.queryClient.clear();
-	workspaceClientsCache.delete(clientKey);
-}
-
-function evictIdleWorkspaceClients(protectedKey?: string): void {
-	const keys = getIdleWorkspaceClientEvictionKeys(
-		Array.from(workspaceClientsCache.values(), (clients) => ({
-			key: clients.clientKey,
-			activeRefs: clients.activeRefs,
-			lastAccessedAt: clients.lastAccessedAt,
-		})),
-		undefined,
-		protectedKey,
-	);
-
-	for (const key of keys) {
-		disposeWorkspaceClients(key);
-	}
-}
-
-function scheduleWorkspaceClientsDispose(clients: WorkspaceClients): void {
-	if (clients.disposeTimer) {
-		clearTimeout(clients.disposeTimer);
-	}
-	clients.disposeTimer = setTimeout(() => {
-		disposeWorkspaceClients(clients.clientKey);
-	}, WORKSPACE_CLIENT_IDLE_DISPOSE_MS);
-}
-
-function retainWorkspaceClients(clients: WorkspaceClients): () => void {
-	clients.activeRefs++;
-	clients.lastAccessedAt = Date.now();
-	if (clients.disposeTimer) {
-		clearTimeout(clients.disposeTimer);
-		clients.disposeTimer = null;
-	}
-	evictIdleWorkspaceClients(clients.clientKey);
-
-	return () => {
-		clients.activeRefs = Math.max(0, clients.activeRefs - 1);
-		clients.lastAccessedAt = Date.now();
-		if (clients.activeRefs === 0) {
-			scheduleWorkspaceClientsDispose(clients);
-		}
-		evictIdleWorkspaceClients();
-	};
-}
 
 function getWorkspaceClients(
 	cacheKey: string,
@@ -111,11 +48,6 @@ function getWorkspaceClients(
 	const clientKey = `${cacheKey}:${hostUrl}`;
 	const cached = workspaceClientsCache.get(clientKey);
 	if (cached) {
-		cached.lastAccessedAt = Date.now();
-		if (cached.disposeTimer) {
-			clearTimeout(cached.disposeTimer);
-			cached.disposeTimer = null;
-		}
 		return cached;
 	}
 
@@ -153,17 +85,12 @@ function getWorkspaceClients(
 
 	const getWsToken = wsToken ?? (() => null);
 	const clients: WorkspaceClients = {
-		clientKey,
 		hostUrl,
 		queryClient,
 		trpcClient,
 		getWsToken,
-		activeRefs: 0,
-		lastAccessedAt: Date.now(),
-		disposeTimer: null,
 	};
 	workspaceClientsCache.set(clientKey, clients);
-	evictIdleWorkspaceClients(clientKey);
 	return clients;
 }
 
@@ -175,8 +102,6 @@ export function WorkspaceClientProvider({
 	children,
 }: WorkspaceClientProviderProps) {
 	const clients = getWorkspaceClients(cacheKey, hostUrl, headers, wsToken);
-	useEffect(() => retainWorkspaceClients(clients), [clients]);
-
 	const contextValue: WorkspaceClientContextValue = {
 		hostUrl: clients.hostUrl,
 		queryClient: clients.queryClient,
