@@ -9,7 +9,6 @@ import {
 	rmSync,
 	statSync,
 } from "node:fs";
-import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
@@ -186,7 +185,12 @@ export default command({
 		}
 
 		const installRoot = resolveInstallRoot();
-		const tempDir = mkdtempSync(join(tmpdir(), "superset-update-"));
+		// Stage the new bundle as a sibling of installRoot so it's on the same
+		// filesystem — atomicReplace() uses renameSync, which fails with EXDEV
+		// across mounts (e.g. /tmp on a separate device from the install dir).
+		const tempDir = mkdtempSync(
+			join(dirname(installRoot), ".superset-update-"),
+		);
 
 		try {
 			await downloadAndExtract(tarballUrl(target, pinnedVersion), tempDir);
