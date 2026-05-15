@@ -192,19 +192,22 @@ export async function getProcessEnvWithShellPath(
 		}
 	}
 
-	// Git ≥ 2.50 refuses to honor an *inherited* `PAGER` or `GIT_PAGER`
-	// env var on non-interactive callers ("Use of \"PAGER\" is not
-	// permitted without enabling allowUnsafePager"), which simple-git
-	// surfaces as GitPluginError and breaks workspace creation, status
-	// reads, worktree prune, etc.
+	// simple-git's @simple-git/argv-parser (since v3.36) rejects *inherited*
+	// `PAGER`/`GIT_PAGER`/`EDITOR`/`GIT_EDITOR` env vars on non-interactive
+	// callers ("Use of \"PAGER\" is not permitted without enabling
+	// allowUnsafePager", same for EDITOR), surfacing as GitPluginError and
+	// breaking workspace creation, status reads, worktree prune, etc.
 	//
-	// Strip both. Programmatic git invocations have piped stdout (not a
-	// TTY), so git skips paging entirely — no replacement value is needed.
-	// User-facing terminals get their own PAGER/GIT_PAGER from the
-	// interactive shell, so this only affects the host-service / desktop
-	// main process's own git children.
+	// Strip all four. Programmatic git invocations have piped stdout (not a
+	// TTY), so git skips paging entirely, and none of our scripted plumbing
+	// (clone, worktree add/list/prune, status, for-each-ref, etc.) opens an
+	// editor — no replacement values are needed. User-facing terminals get
+	// their own values from the interactive shell, so this only affects the
+	// host-service / desktop main process's own git children.
 	delete env.PAGER;
 	delete env.GIT_PAGER;
+	delete env.EDITOR;
+	delete env.GIT_EDITOR;
 
 	return env;
 }

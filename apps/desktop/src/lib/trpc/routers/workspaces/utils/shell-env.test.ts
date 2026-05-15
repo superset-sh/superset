@@ -8,7 +8,11 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { applyShellEnvToProcess, getProcessEnvWithShellEnv } from "./shell-env";
+import {
+	applyShellEnvToProcess,
+	getProcessEnvWithShellEnv,
+	getProcessEnvWithShellPath,
+} from "./shell-env";
 
 describe("shell env merging", () => {
 	test("getProcessEnvWithShellEnv fills in missing shell variables", async () => {
@@ -54,6 +58,39 @@ describe("shell env merging", () => {
 
 		expect(targetEnv).toEqual({});
 	});
+});
+
+describe("git unsafe env var stripping", () => {
+	// simple-git's @simple-git/argv-parser rejects inherited EDITOR/PAGER
+	// env vars unless allowUnsafeEditor/allowUnsafePager are passed, surfacing
+	// as `Use of "EDITOR" is not permitted without enabling allowUnsafeEditor`
+	// and breaking workspace creation, status reads, worktree prune, etc.
+	// getProcessEnvWithShellPath builds the env for all git children (desktop
+	// simple-git wrapper + host-service spawn), so it must strip these.
+
+	test("strips EDITOR and GIT_EDITOR present in base env", async () => {
+		const env = await getProcessEnvWithShellPath({
+			PATH: "/usr/bin:/bin",
+			EDITOR: "/Users/jason/bin/edit",
+			GIT_EDITOR: "vim",
+			KEEP_ME: "ok",
+		});
+
+		expect("EDITOR" in env).toBe(false);
+		expect("GIT_EDITOR" in env).toBe(false);
+		expect(env.KEEP_ME).toBe("ok");
+	}, 15_000);
+
+	test("strips PAGER and GIT_PAGER present in base env", async () => {
+		const env = await getProcessEnvWithShellPath({
+			PATH: "/usr/bin:/bin",
+			PAGER: "less",
+			GIT_PAGER: "less",
+		});
+
+		expect("PAGER" in env).toBe(false);
+		expect("GIT_PAGER" in env).toBe(false);
+	}, 15_000);
 });
 
 describe("shell env cache", () => {
