@@ -25,6 +25,7 @@ import {
 	type PullRequestCommentsTarget,
 	resolveReviewThread,
 } from "../utils/github";
+import { pruneStaleTrackedWorktrees } from "../utils/reconcile-tracked-worktrees";
 import { selectExternalWorktreesForImport } from "../utils/select-external-worktrees-for-import";
 import { getWorkspacePath } from "../utils/worktree";
 
@@ -347,6 +348,10 @@ export const createGitStatusProcedures = () => {
 				}
 
 				const allWorktrees = await listExternalWorktrees(project.mainRepoPath);
+				pruneStaleTrackedWorktrees({
+					projectId: input.projectId,
+					liveWorktrees: allWorktrees,
+				});
 
 				const trackedWorktrees = localDb
 					.select({ path: worktrees.path })

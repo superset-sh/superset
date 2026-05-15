@@ -36,6 +36,7 @@ import {
 	sanitizeBranchNameWithMaxLength,
 	worktreeExists,
 } from "../utils/git";
+import { pruneStaleTrackedWorktrees } from "../utils/reconcile-tracked-worktrees";
 import { resolveWorktreePath } from "../utils/resolve-worktree-path";
 import { selectExternalWorktreesForImport } from "../utils/select-external-worktrees-for-import";
 import { copySupersetConfigToWorktree, loadSetupConfig } from "../utils/setup";
@@ -823,6 +824,14 @@ export const createCreateProcedures = () => {
 
 				let imported = 0;
 
+				const allExternalWorktrees = await listExternalWorktrees(
+					project.mainRepoPath,
+				);
+				pruneStaleTrackedWorktrees({
+					projectId: input.projectId,
+					liveWorktrees: allExternalWorktrees,
+				});
+
 				// 1. Import closed worktrees (tracked in DB but no active workspace)
 				const projectWorktrees = localDb
 					.select()
@@ -865,9 +874,6 @@ export const createCreateProcedures = () => {
 				}
 
 				// 2. Import external worktrees (on disk, not tracked in DB)
-				const allExternalWorktrees = await listExternalWorktrees(
-					project.mainRepoPath,
-				);
 				const trackedPaths = new Set(projectWorktrees.map((wt) => wt.path));
 
 				const externalWorktrees = selectExternalWorktreesForImport(
@@ -951,16 +957,20 @@ export const createCreateProcedures = () => {
 					knownBranches,
 				});
 
+				const allExternalWorktrees = await listExternalWorktrees(
+					project.mainRepoPath,
+				);
+				pruneStaleTrackedWorktrees({
+					projectId: input.projectId,
+					liveWorktrees: allExternalWorktrees,
+				});
+
 				const projectWorktrees = localDb
 					.select({ path: worktrees.path })
 					.from(worktrees)
 					.where(eq(worktrees.projectId, input.projectId))
 					.all();
 				const trackedPaths = new Set(projectWorktrees.map((wt) => wt.path));
-
-				const allExternalWorktrees = await listExternalWorktrees(
-					project.mainRepoPath,
-				);
 
 				const externalWorktrees = selectExternalWorktreesForImport(
 					allExternalWorktrees,

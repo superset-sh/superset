@@ -13,6 +13,7 @@ import {
 	updateActiveWorkspaceIfRemoved,
 } from "./db-helpers";
 import { listExternalWorktrees, worktreeExists } from "./git";
+import { pruneStaleTrackedWorktrees } from "./reconcile-tracked-worktrees";
 import { resolveWorktreePath } from "./resolve-worktree-path";
 import { copySupersetConfigToWorktree, loadSetupConfig } from "./setup";
 
@@ -111,6 +112,10 @@ export async function createWorkspaceFromExternalWorktree({
 
 	// Check for external worktree (exists on disk but not tracked in DB)
 	const externalWorktrees = await listExternalWorktrees(project.mainRepoPath);
+	pruneStaleTrackedWorktrees({
+		projectId,
+		liveWorktrees: externalWorktrees,
+	});
 
 	// Filter candidates: exclude main repo, bare, and detached
 	const candidates = externalWorktrees.filter(
@@ -293,6 +298,10 @@ export async function openExternalWorktree({
 	if (!exists) {
 		throw new Error("Worktree no longer exists on disk");
 	}
+	pruneStaleTrackedWorktrees({
+		projectId,
+		liveWorktrees: await listExternalWorktrees(project.mainRepoPath),
+	});
 
 	const existingWorktree = localDb
 		.select()
