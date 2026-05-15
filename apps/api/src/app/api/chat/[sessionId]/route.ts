@@ -12,11 +12,12 @@ function errorMessage(error: unknown): string {
 	}
 }
 
-function shouldRetryWithoutWorkspaceId(error: unknown): boolean {
+function isWorkspaceFkViolation(error: unknown): boolean {
 	const message = errorMessage(error).toLowerCase();
 	return (
 		message.includes("workspace_id") ||
 		message.includes("chat_sessions_workspace_id_workspaces_id_fk") ||
+		message.includes("chat_sessions_v2_workspace_id_v2_workspaces_id_fk") ||
 		message.includes("foreign key") ||
 		message.includes("column") ||
 		message.includes("does not exist")
@@ -77,27 +78,46 @@ export async function PUT(
 					: baseValues,
 			)
 			.onConflictDoNothing();
-	} catch (error) {
-		if (!body.workspaceId || !shouldRetryWithoutWorkspaceId(error)) {
+	} catch (firstError) {
+		if (!body.workspaceId || !isWorkspaceFkViolation(firstError)) {
 			console.error("[chat] failed to persist chat session", {
 				sessionId,
 				organizationId: body.organizationId,
 				workspaceId: body.workspaceId,
-				error: errorMessage(error),
+				error: errorMessage(firstError),
 			});
-			throw error;
+			throw firstError;
 		}
 
-		console.warn("[chat] retrying chat session insert without workspaceId", {
-			sessionId,
-			organizationId: body.organizationId,
-			workspaceId: body.workspaceId,
-			error: errorMessage(error),
-		});
-		await db.insert(chatSessions).values(baseValues).onConflictDoNothing();
+		// The workspaceId may be a v2 workspace — retry with v2WorkspaceId.
+		try {
+			await db
+				.insert(chatSessions)
+				.values({ ...baseValues, v2WorkspaceId: body.workspaceId })
+				.onConflictDoNothing();
+		} catch (secondError) {
+			if (!isWorkspaceFkViolation(secondError)) {
+				console.error("[chat] failed to persist chat session with v2WorkspaceId", {
+					sessionId,
+					organizationId: body.organizationId,
+					workspaceId: body.workspaceId,
+					error: errorMessage(secondError),
+				});
+				throw secondError;
+			}
+			// Neither v1 nor v2 FK matched — insert without workspace.
+			console.warn("[chat] retrying chat session insert without workspaceId", {
+				sessionId,
+				organizationId: body.organizationId,
+				workspaceId: body.workspaceId,
+				error: errorMessage(secondError),
+			});
+			await db.insert(chatSessions).values(baseValues).onConflictDoNothing();
+		}
 	}
 
 	if (body.workspaceId) {
+		// Try setting as v1 workspace_id; if that FK fails, try v2_workspace_id.
 		try {
 			await db
 				.update(chatSessions)
@@ -110,12 +130,34 @@ export async function PUT(
 					),
 				)
 				.returning({ id: chatSessions.id });
-		} catch (error) {
-			console.warn("[chat] failed to ensure workspace_id on session", {
-				sessionId,
-				workspaceId: body.workspaceId,
-				error: errorMessage(error),
-			});
+		} catch (v1Error) {
+			if (!isWorkspaceFkViolation(v1Error)) {
+				console.warn("[chat] failed to ensure workspace_id on session", {
+					sessionId,
+					workspaceId: body.workspaceId,
+					error: errorMessage(v1Error),
+				});
+				return Response.json({ sessionId, streamUrl: `/api/chat/${sessionId}/stream` }, { status: 200 });
+			}
+			try {
+				await db
+					.update(chatSessions)
+					.set({ v2WorkspaceId: body.workspaceId })
+					.where(
+						and(
+							eq(chatSessions.id, sessionId),
+							eq(chatSessions.createdBy, session.user.id),
+							isNull(chatSessions.v2WorkspaceId),
+						),
+					)
+					.returning({ id: chatSessions.id });
+			} catch (v2Error) {
+				console.warn("[chat] failed to ensure v2_workspace_id on session", {
+					sessionId,
+					workspaceId: body.workspaceId,
+					error: errorMessage(v2Error),
+				});
+			}
 		}
 	}
 
