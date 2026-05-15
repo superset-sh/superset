@@ -191,7 +191,7 @@ export function TerminalSessionDropdown({
 		}
 
 		if ((terminalPaneLocations.get(terminalId)?.length ?? 0) === 0) {
-			markTerminalForBackground(terminalId);
+			markTerminalForBackground(terminalId, workspaceId);
 		}
 
 		state.setPaneData({
@@ -250,7 +250,7 @@ export function TerminalSessionDropdown({
 			const state = context.store.getState();
 			const terminalPaneLocations = getTerminalPaneLocations(context);
 			if ((terminalPaneLocations.get(terminalId)?.length ?? 0) === 0) {
-				markTerminalForBackground(terminalId);
+				markTerminalForBackground(terminalId, workspaceId);
 			}
 			state.setPaneData({
 				paneId: context.pane.id,

@@ -4,6 +4,7 @@ import {
 	getBackgroundTerminalCountRefetchInterval,
 	getBackgroundTerminalListRefetchInterval,
 	getBackgroundTerminalSessions,
+	getUnattachedTerminalIds,
 	parseAttachedTerminalIdsKey,
 } from "./BackgroundTerminalsButton.utils";
 
@@ -42,6 +43,12 @@ describe("BackgroundTerminalsButton utils", () => {
 				["attached"],
 			).map((session) => session.terminalId),
 		).toEqual(["new", "old"]);
+	});
+
+	test("deduplicates optimistic background terminal markers and ignores attached terminals", () => {
+		expect(
+			getUnattachedTerminalIds(["term-b", "term-a", "term-b"], ["term-a"]),
+		).toEqual(["term-b"]);
 	});
 
 	test("uses shallow count polling only while closed", () => {

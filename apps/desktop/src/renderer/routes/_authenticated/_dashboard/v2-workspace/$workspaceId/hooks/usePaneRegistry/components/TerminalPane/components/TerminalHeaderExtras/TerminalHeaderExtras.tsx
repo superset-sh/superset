@@ -23,7 +23,7 @@ export function TerminalHeaderExtras({
 	const data = context.pane.data as TerminalPaneData;
 
 	const handleMoveToBackground = () => {
-		markTerminalForBackground(data.terminalId);
+		markTerminalForBackground(data.terminalId, workspaceId);
 		void context.actions.close();
 	};
 

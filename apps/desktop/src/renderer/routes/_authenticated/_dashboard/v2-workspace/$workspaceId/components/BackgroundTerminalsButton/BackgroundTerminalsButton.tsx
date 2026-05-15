@@ -11,12 +11,25 @@ import {
 import { toast } from "@superset/ui/sonner";
 import { workspaceTrpc } from "@superset/workspace-client";
 import { Archive, ChevronDown, Trash2 } from "lucide-react";
-import { memo, useMemo, useState } from "react";
+import {
+	memo,
+	useCallback,
+	useEffect,
+	useMemo,
+	useRef,
+	useState,
+	useSyncExternalStore,
+} from "react";
 import { useDebouncedValue } from "renderer/hooks/useDebouncedValue";
 import {
 	logStressEvent,
 	useRenderStressInstrumentation,
 } from "renderer/lib/performance/stress-instrumentation";
+import {
+	clearTerminalBackgroundMarker,
+	getTerminalBackgroundMarkerIdsKey,
+	subscribeTerminalBackgroundMarkers,
+} from "renderer/lib/terminal/terminal-background-intents";
 import { getRelativeTime } from "renderer/screens/main/components/WorkspacesListView/utils";
 import { useStore } from "zustand";
 import type { StoreApi } from "zustand/vanilla";
@@ -27,6 +40,7 @@ import {
 	getBackgroundTerminalCountRefetchInterval,
 	getBackgroundTerminalListRefetchInterval,
 	getBackgroundTerminalSessions,
+	getUnattachedTerminalIds,
 	parseAttachedTerminalIdsKey,
 } from "./BackgroundTerminalsButton.utils";
 
@@ -58,10 +72,28 @@ export const BackgroundTerminalsButton = memo(
 			() => parseAttachedTerminalIdsKey(attachedTerminalIdsKey),
 			[attachedTerminalIdsKey],
 		);
+		const getBackgroundMarkerSnapshot = useCallback(
+			() => getTerminalBackgroundMarkerIdsKey(workspaceId),
+			[workspaceId],
+		);
+		const backgroundMarkerIdsKey = useSyncExternalStore(
+			subscribeTerminalBackgroundMarkers,
+			getBackgroundMarkerSnapshot,
+			() => "[]",
+		);
+		const backgroundMarkerIds = useMemo(
+			() => parseAttachedTerminalIdsKey(backgroundMarkerIdsKey),
+			[backgroundMarkerIdsKey],
+		);
 		const debouncedAttachedTerminalIds = useMemo(
 			() => parseAttachedTerminalIdsKey(debouncedAttachedTerminalIdsKey),
 			[debouncedAttachedTerminalIdsKey],
 		);
+		const optimisticBackgroundTerminalIds = useMemo(
+			() => getUnattachedTerminalIds(backgroundMarkerIds, attachedTerminalIds),
+			[backgroundMarkerIds, attachedTerminalIds],
+		);
+		const optimisticBackgroundCount = optimisticBackgroundTerminalIds.length;
 		const backgroundCountInput = useMemo(
 			() => ({
 				workspaceId,
@@ -77,7 +109,7 @@ export const BackgroundTerminalsButton = memo(
 				backgroundCountInput,
 				{
 					enabled: !isOpen,
-					notifyOnChangeProps: ["data"],
+					notifyOnChangeProps: ["data", "dataUpdatedAt"],
 					refetchInterval: getBackgroundTerminalCountRefetchInterval(isOpen),
 					refetchOnWindowFocus: false,
 					staleTime: 5_000,
@@ -99,6 +131,7 @@ export const BackgroundTerminalsButton = memo(
 			getDetails: () => ({
 				isOpen,
 				attachedTerminalCount: attachedTerminalIds.length,
+				optimisticBackgroundCount,
 				closedCount: backgroundCountQuery.data?.count ?? null,
 			}),
 		});
@@ -108,10 +141,57 @@ export const BackgroundTerminalsButton = memo(
 			return getBackgroundTerminalSessions(sessions, attachedTerminalIds);
 		}, [sessionsQuery.data?.sessions, attachedTerminalIds]);
 
+		const markerObservedAtRef = useRef(0);
+		useEffect(() => {
+			markerObservedAtRef.current =
+				backgroundMarkerIdsKey === "[]" ? 0 : Date.now();
+		}, [backgroundMarkerIdsKey]);
+
+		useEffect(() => {
+			if (!sessionsQuery.data) return;
+
+			const actualBackgroundTerminalIds = new Set(
+				backgroundSessions.map((session) => session.terminalId),
+			);
+			for (const terminalId of backgroundMarkerIds) {
+				if (actualBackgroundTerminalIds.has(terminalId)) continue;
+				clearTerminalBackgroundMarker(workspaceId, terminalId);
+			}
+		}, [
+			backgroundMarkerIds,
+			backgroundSessions,
+			sessionsQuery.data,
+			workspaceId,
+		]);
+
+		useEffect(() => {
+			if (isOpen || optimisticBackgroundTerminalIds.length === 0) return;
+			if (debouncedAttachedTerminalIdsKey !== attachedTerminalIdsKey) return;
+			if (backgroundCountQuery.data?.count !== 0) return;
+			if (backgroundCountQuery.dataUpdatedAt <= markerObservedAtRef.current) {
+				return;
+			}
+
+			for (const terminalId of optimisticBackgroundTerminalIds) {
+				clearTerminalBackgroundMarker(workspaceId, terminalId);
+			}
+		}, [
+			attachedTerminalIdsKey,
+			backgroundCountQuery.data?.count,
+			backgroundCountQuery.dataUpdatedAt,
+			debouncedAttachedTerminalIdsKey,
+			isOpen,
+			optimisticBackgroundTerminalIds,
+			workspaceId,
+		]);
+
 		const backgroundCount =
 			isOpen && sessionsQuery.data
 				? backgroundSessions.length
-				: (backgroundCountQuery.data?.count ?? backgroundSessions.length);
+				: Math.max(
+						backgroundCountQuery.data?.count ?? 0,
+						optimisticBackgroundCount,
+					);
 
 		if (!isOpen && backgroundCount === 0) return null;
 
@@ -120,6 +200,7 @@ export const BackgroundTerminalsButton = memo(
 		}`;
 
 		const handleAdopt = (terminalId: string) => {
+			clearTerminalBackgroundMarker(workspaceId, terminalId);
 			store.getState().addTab({
 				panes: [
 					{
@@ -137,6 +218,7 @@ export const BackgroundTerminalsButton = memo(
 		const handleKill = async (terminalId: string) => {
 			try {
 				await killSession.mutateAsync({ terminalId, workspaceId });
+				clearTerminalBackgroundMarker(workspaceId, terminalId);
 			} catch (error) {
 				console.error(
 					"[BackgroundTerminalsButton] Failed to kill session:",

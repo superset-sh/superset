@@ -58,6 +58,16 @@ export function getBackgroundTerminalSessions<
 		.sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0));
 }
 
+export function getUnattachedTerminalIds(
+	terminalIds: Iterable<string>,
+	attachedTerminalIds: Iterable<string>,
+): string[] {
+	const attached = new Set(attachedTerminalIds);
+	return [...new Set(terminalIds)]
+		.filter((terminalId) => !attached.has(terminalId))
+		.sort();
+}
+
 export function getBackgroundTerminalCountRefetchInterval(
 	isOpen: boolean,
 ): number | false {
