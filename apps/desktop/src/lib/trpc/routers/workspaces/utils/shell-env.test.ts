@@ -8,7 +8,11 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { applyShellEnvToProcess, getProcessEnvWithShellEnv } from "./shell-env";
+import {
+	applyShellEnvToProcess,
+	getProcessEnvWithShellEnv,
+	getProcessEnvWithShellPath,
+} from "./shell-env";
 
 describe("shell env merging", () => {
 	test("getProcessEnvWithShellEnv fills in missing shell variables", async () => {
@@ -53,6 +57,34 @@ describe("shell env merging", () => {
 		await applyShellEnvToProcess(targetEnv, {});
 
 		expect(targetEnv).toEqual({});
+	});
+});
+
+describe("getProcessEnvWithShellPath strips unsafe git env vars", () => {
+	// Repro for #4599: git ≥ 2.50 refuses to honor inherited PAGER, GIT_PAGER,
+	// EDITOR, or GIT_EDITOR on non-interactive callers, emitting errors like
+	// `Use of "EDITOR" is not permitted without enabling allowUnsafeEditor`.
+	// simple-git surfaces these as GitPluginError and breaks workspace creation.
+	test("strips PAGER and GIT_PAGER from the returned env", async () => {
+		const env = await getProcessEnvWithShellPath({
+			PATH: "/usr/bin:/bin",
+			PAGER: "less",
+			GIT_PAGER: "less",
+		});
+
+		expect("PAGER" in env).toBe(false);
+		expect("GIT_PAGER" in env).toBe(false);
+	});
+
+	test("strips EDITOR and GIT_EDITOR from the returned env", async () => {
+		const env = await getProcessEnvWithShellPath({
+			PATH: "/usr/bin:/bin",
+			EDITOR: "vim",
+			GIT_EDITOR: "vim",
+		});
+
+		expect("EDITOR" in env).toBe(false);
+		expect("GIT_EDITOR" in env).toBe(false);
 	});
 });
 
