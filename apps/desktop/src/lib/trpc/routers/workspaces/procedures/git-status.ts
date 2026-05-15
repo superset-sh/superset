@@ -1,7 +1,7 @@
 import { existsSync } from "node:fs";
 import type { GitHubStatus } from "@superset/local-db";
 import { workspaces, worktrees } from "@superset/local-db";
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, inArray, isNull } from "drizzle-orm";
 import { localDb } from "main/lib/local-db";
 import { z } from "zod";
 import { publicProcedure, router } from "../../..";
@@ -25,6 +25,7 @@ import {
 	type PullRequestCommentsTarget,
 	resolveReviewThread,
 } from "../utils/github";
+import { reconcileTrackedWorktrees } from "../utils/reconcile-tracked-worktrees";
 import { selectExternalWorktreesForImport } from "../utils/select-external-worktrees-for-import";
 import { getWorkspacePath } from "../utils/worktree";
 
@@ -349,15 +350,41 @@ export const createGitStatusProcedures = () => {
 				const allWorktrees = await listExternalWorktrees(project.mainRepoPath);
 
 				const trackedWorktrees = localDb
-					.select({ path: worktrees.path })
+					.select({
+						id: worktrees.id,
+						path: worktrees.path,
+						branch: worktrees.branch,
+					})
 					.from(worktrees)
 					.where(eq(worktrees.projectId, input.projectId))
 					.all();
-				const trackedPaths = new Set(trackedWorktrees.map((wt) => wt.path));
+
+				const { staleIds, validPaths } = reconcileTrackedWorktrees({
+					trackedWorktrees,
+					liveWorktrees: allWorktrees,
+					hasActiveWorkspace: (worktreeId) =>
+						localDb
+							.select({ id: workspaces.id })
+							.from(workspaces)
+							.where(
+								and(
+									eq(workspaces.worktreeId, worktreeId),
+									isNull(workspaces.deletingAt),
+								),
+							)
+							.get() !== undefined,
+				});
+
+				if (staleIds.length > 0) {
+					localDb
+						.delete(worktrees)
+						.where(inArray(worktrees.id, staleIds))
+						.run();
+				}
 
 				return selectExternalWorktreesForImport(allWorktrees, {
 					mainRepoPath: project.mainRepoPath,
-					trackedPaths,
+					trackedPaths: validPaths,
 				}).map((wt) => ({
 					path: wt.path,
 					// biome-ignore lint/style/noNonNullAssertion: filtered above
