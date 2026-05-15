@@ -8,7 +8,11 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { applyShellEnvToProcess, getProcessEnvWithShellEnv } from "./shell-env";
+import {
+	applyShellEnvToProcess,
+	getProcessEnvWithShellEnv,
+	getProcessEnvWithShellPath,
+} from "./shell-env";
 
 describe("shell env merging", () => {
 	test("getProcessEnvWithShellEnv fills in missing shell variables", async () => {
@@ -53,6 +57,23 @@ describe("shell env merging", () => {
 		await applyShellEnvToProcess(targetEnv, {});
 
 		expect(targetEnv).toEqual({});
+	});
+});
+
+describe("getProcessEnvWithShellPath preserves user git env vars", () => {
+	test("keeps pager and editor variables in the returned env", async () => {
+		const env = await getProcessEnvWithShellPath({
+			PATH: "/usr/bin:/bin",
+			EDITOR: "vim",
+			GIT_EDITOR: "vim",
+			PAGER: "less",
+			GIT_PAGER: "less",
+		});
+
+		expect(env.EDITOR).toBe("vim");
+		expect(env.GIT_EDITOR).toBe("vim");
+		expect(env.PAGER).toBe("less");
+		expect(env.GIT_PAGER).toBe("less");
 	});
 });
 
