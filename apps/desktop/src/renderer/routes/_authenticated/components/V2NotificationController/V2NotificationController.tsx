@@ -13,6 +13,7 @@ import {
 
 interface WorkspaceHostRow {
 	workspaceId: string;
+	workspaceName: string;
 	organizationId: string;
 	hostId: string;
 }
@@ -41,6 +42,7 @@ export function V2NotificationController() {
 				.from({ v2Workspaces: collections.v2Workspaces })
 				.select(({ v2Workspaces }) => ({
 					workspaceId: v2Workspaces.id,
+					workspaceName: v2Workspaces.name,
 					organizationId: v2Workspaces.organizationId,
 					hostId: v2Workspaces.hostId,
 				})),
@@ -118,6 +120,7 @@ function groupWorkspacesByHostUrl({
 		const group = groups.get(hostUrl) ?? [];
 		group.push({
 			workspaceId: workspace.workspaceId,
+			workspaceName: workspace.workspaceName,
 			paneLayout: paneLayoutsByWorkspaceId.get(workspace.workspaceId) ?? null,
 		});
 		groups.set(hostUrl, group);
