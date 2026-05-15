@@ -66,7 +66,12 @@ setup_main() {
     step_failed "Write .env file"
   fi
 
-  # Step 10: Setup local MCP in .mcp.json (opt-in)
+  # Step 10: Write .envrc file (loads .env via direnv on cd)
+  if ! step_write_envrc; then
+    step_failed "Write .envrc file"
+  fi
+
+  # Step 11: Setup local MCP in .mcp.json (opt-in)
   if [ "$SETUP_LOCAL_MCP" = "1" ]; then
     if ! step_setup_local_mcp; then
       step_failed "Setup local MCP"

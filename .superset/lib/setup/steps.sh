@@ -589,6 +589,21 @@ DEVVARS
   return 0
 }
 
+step_write_envrc() {
+  echo "📝 Writing .envrc file..."
+
+  cat > .envrc <<'ENVRC'
+dotenv
+ENVRC
+
+  if command -v direnv &> /dev/null; then
+    direnv allow . &> /dev/null || true
+  fi
+
+  success ".envrc written"
+  return 0
+}
+
 step_setup_local_mcp() {
   echo "🔌 Setting up local MCP server in .mcp.json..."
 
