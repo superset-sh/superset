@@ -340,6 +340,24 @@ if (env.RELAY_SYNTHETIC_JWT) {
 
 // ── Start ───────────────────────────────────────────────────────────
 
+// Clear any directory entries our previous process generation left behind
+// (SIGKILL, drain race, etc.) before we begin accepting connections, so
+// fly-replay doesn't route cross-region requests at us for tunnels we no
+// longer have. Best-effort: relay still boots if Upstash is unreachable.
+try {
+	const cleared = await directory.clearStaleEntriesForMachine(
+		env.FLY_REGION,
+		env.FLY_MACHINE_ID,
+	);
+	if (cleared > 0) {
+		console.log(
+			`[relay] cleared ${cleared} stale directory entries on startup`,
+		);
+	}
+} catch (err) {
+	console.error("[relay] startup cleanup failed", err);
+}
+
 const server = serve({ fetch: app.fetch, port: env.RELAY_PORT }, (info) => {
 	console.log(
 		`[relay] listening on http://localhost:${info.port} (region=${env.FLY_REGION} machine=${env.FLY_MACHINE_ID})`,

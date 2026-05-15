@@ -131,6 +131,28 @@ end
 return removed
 `;
 
+// Called on relay startup. Removes any directory entries the prior process
+// generation left behind (SIGKILL / crash / drain race) before we begin
+// accepting connections. The owner value includes the Fly machineId, which
+// stays the same across restarts of a given VM — so any pre-existing entry
+// with our owner string is necessarily stale.
+export async function clearStaleEntriesForMachine(
+	region: string,
+	machineId: string,
+): Promise<number> {
+	const myOwner = encodeOwner(region, machineId);
+	const allOwners =
+		(await redis.hgetall<Record<string, string>>(OWNER_KEY)) ?? {};
+	let cleared = 0;
+	for (const [hostId, owner] of Object.entries(allOwners)) {
+		if (owner === myOwner) {
+			await unregister(hostId, region, machineId);
+			cleared++;
+		}
+	}
+	return cleared;
+}
+
 export async function sweepStale(): Promise<number> {
 	const now = Date.now();
 	const result = await redis.eval(
