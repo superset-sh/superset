@@ -1,7 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
-import simpleGit from "simple-git";
 import { projects } from "../../../../db/schema";
+import { createUserSimpleGit } from "../../../../runtime/git/simple-git";
 import type { HostServiceContext } from "../../../../types";
 import type { ProjectNotSetupCause } from "../../../error-types";
 import { getGitHubRemotes } from "../../project/utils/git-remote";
@@ -50,7 +50,7 @@ export async function resolveGithubRepo(
 	let gitRoot: string;
 	try {
 		gitRoot = (
-			await simpleGit(local.repoPath).revparse(["--show-toplevel"])
+			await createUserSimpleGit(local.repoPath).revparse(["--show-toplevel"])
 		).trim();
 	} catch (err) {
 		throw new TRPCError({
@@ -60,7 +60,7 @@ export async function resolveGithubRepo(
 		});
 	}
 
-	const remotes = await getGitHubRemotes(simpleGit(gitRoot));
+	const remotes = await getGitHubRemotes(createUserSimpleGit(gitRoot));
 	const preferred =
 		(local.remoteName ? remotes.get(local.remoteName) : undefined) ??
 		remotes.get("origin") ??

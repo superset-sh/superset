@@ -606,9 +606,9 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 	{
 		id: SETTING_ITEM_ID.BEHAVIOR_OPEN_LINKS_IN_APP,
 		section: "behavior",
-		title: "Open links in app browser",
+		title: "Open links in the in-app browser",
 		description:
-			"Open links from chat and terminal in the built-in browser instead of your default browser",
+			"Open links from chat and terminal in the in-app browser instead of your default browser",
 		keywords: [
 			"browser",
 			"links",

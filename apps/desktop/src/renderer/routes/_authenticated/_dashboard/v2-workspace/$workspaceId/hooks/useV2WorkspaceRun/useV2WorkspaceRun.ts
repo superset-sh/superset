@@ -3,7 +3,7 @@ import { toast } from "@superset/ui/sonner";
 import { workspaceTrpc } from "@superset/workspace-client";
 import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { useWorkspaceEvent } from "renderer/hooks/host-service/useWorkspaceEvent";
 import { buildTerminalCommand } from "renderer/lib/terminal/launch-command";
 import { useWorkspace } from "renderer/routes/_authenticated/_dashboard/v2-workspace/providers/WorkspaceProvider";
@@ -71,7 +71,7 @@ interface UseV2WorkspaceRunArgs {
 	store: StoreApi<WorkspaceStore<PaneViewerData>>;
 	launcher: TerminalLauncher;
 	matchedPresets: V2TerminalPresetRow[];
-	resolvePresetCommands: (preset: V2TerminalPresetRow) => Promise<string[]>;
+	resolvePresetCommands: (preset: V2TerminalPresetRow) => string[];
 }
 
 export function useV2WorkspaceRun({
@@ -89,10 +89,6 @@ export function useV2WorkspaceRun({
 	const utils = workspaceTrpc.useUtils();
 	const writeInputMutation = workspaceTrpc.terminal.writeInput.useMutation();
 	const killSessionMutation = workspaceTrpc.terminal.killSession.useMutation();
-	const [resolvedPresetCommandsById, setResolvedPresetCommandsById] = useState<
-		Record<string, string[]>
-	>({});
-
 	const { data: localWorkspaceRows = [] } = useLiveQuery(
 		(query) =>
 			query
@@ -111,44 +107,13 @@ export function useV2WorkspaceRun({
 	const { data: configRunDefinition } =
 		workspaceTrpc.config.getWorkspaceRunDefinition.useQuery({ projectId });
 
-	useEffect(() => {
-		let cancelled = false;
-
-		async function resolveCommands() {
-			const entries = await Promise.all(
-				matchedPresets.map(async (preset) => {
-					try {
-						return {
-							id: preset.id,
-							commands: await resolvePresetCommands(preset),
-						};
-					} catch {
-						return { id: preset.id, commands: preset.commands };
-					}
-				}),
-			);
-			if (cancelled) return;
-			const next: Record<string, string[]> = {};
-			for (const entry of entries) {
-				next[entry.id] = entry.commands;
-			}
-			setResolvedPresetCommandsById(next);
-		}
-
-		void resolveCommands();
-
-		return () => {
-			cancelled = true;
-		};
-	}, [matchedPresets, resolvePresetCommands]);
-
 	const resolvedMatchedPresets = useMemo(
 		() =>
 			matchedPresets.map((preset) => ({
 				...preset,
-				commands: resolvedPresetCommandsById[preset.id] ?? preset.commands,
+				commands: resolvePresetCommands(preset),
 			})),
-		[matchedPresets, resolvedPresetCommandsById],
+		[matchedPresets, resolvePresetCommands],
 	);
 
 	const definition = useMemo(

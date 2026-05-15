@@ -3,10 +3,12 @@ import { alert } from "@superset/ui/atoms/Alert";
 import { toast } from "@superset/ui/sonner";
 import { workspaceTrpc } from "@superset/workspace-client";
 import { useCallback } from "react";
+import { FILE_EXPLORER_ROW_HEIGHT } from "../../constants";
 import {
 	deriveCreationParent,
 	pickPlaceholderName,
 } from "../../utils/creationPaths";
+import { scrollTreeToRow } from "../../utils/scrollTreeToRow";
 import {
 	asDirectoryHandle,
 	basename,
@@ -98,7 +100,27 @@ export function useFilesTabActions({
 			}
 
 			requestAnimationFrame(() => {
+				// Visual row highlight comes from `data-item-selected`, not focus.
+				// FileTree's public API doesn't expose selectOnlyPath, so emulate
+				// it via deselect-then-select on the item handles. Pierre uses
+				// trailing-slash keys for directories. Empty-selection emissions
+				// between deselect and select are filtered out by FilesTab's
+				// onSelectionChange handler (it ignores `last === undefined`,
+				// and folder-shaped paths get skipped before onSelectFile).
+				const targetKey = isDirectory ? `${rel}/` : rel;
+				for (const selectedPath of model.getSelectedPaths()) {
+					if (selectedPath === targetKey) continue;
+					model.getItem(selectedPath)?.deselect();
+				}
+				model.getItem(targetKey)?.select();
 				model.focusPath(rel);
+
+				scrollTreeToRow(
+					model,
+					bridge.knownPaths,
+					targetKey,
+					FILE_EXPLORER_ROW_HEIGHT,
+				);
 			});
 		},
 		[model, rootPath, bridge.fetchDir, bridge.knownPaths],

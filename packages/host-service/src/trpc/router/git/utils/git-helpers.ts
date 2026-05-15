@@ -8,8 +8,9 @@ import {
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { isAbsolute, join, relative, resolve, sep } from "node:path";
-import simpleGit, { type SimpleGit } from "simple-git";
+import type { SimpleGit } from "simple-git";
 import { resolveUpstream } from "../../../../runtime/git/refs";
+import { createUserSimpleGit } from "../../../../runtime/git/simple-git";
 import type { Branch, ChangedFile, FileStatus } from "../types";
 
 // Skip line counting for files larger than this — anything over a MB
@@ -335,7 +336,7 @@ export async function detectUnstagedRenames(
 		const tempIndex = join(tempDir, "index");
 		await copyFile(indexPath, tempIndex);
 
-		const tempGit = simpleGit(worktreePath).env({
+		const tempGit = createUserSimpleGit(worktreePath).env({
 			...process.env,
 			GIT_INDEX_FILE: tempIndex,
 		});

@@ -36,6 +36,18 @@ mock.module("main/index", () => ({
 	setSkipQuitConfirmation: mock(() => {}),
 }));
 
+// host-service-coordinator.test.ts mocks electron-log/main without transports;
+// mock.module leaks across files in bun's CI runner, so install a complete
+// shape here defensively to avoid order-dependent breakage.
+mock.module("electron-log/main", () => ({
+	default: {
+		info: mock(() => {}),
+		warn: mock(() => {}),
+		error: mock(() => {}),
+		transports: { file: { level: "info" } },
+	},
+}));
+
 // auto-updater short-circuits setupAutoUpdater on non-mac/linux hosts, so
 // pin the platform here to keep the tests portable across CI runners.
 mock.module("shared/constants", () => ({

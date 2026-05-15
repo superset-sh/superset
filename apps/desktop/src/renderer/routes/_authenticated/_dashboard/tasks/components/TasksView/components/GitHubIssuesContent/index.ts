@@ -1,1 +1,4 @@
-export { GitHubIssuesContent } from "./GitHubIssuesContent";
+export {
+	GitHubIssuesContent,
+	type SelectedIssue,
+} from "./GitHubIssuesContent";

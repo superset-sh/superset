@@ -172,6 +172,13 @@ export function FilesTab({
 	handlersRef.current.onRename = (event) => void handleRename(event);
 	handlersRef.current.onSelect = (treePath) => {
 		const abs = toAbs(rootPath, treePath);
+		// Skip the reveal-induced echo. The reveal flow programmatically
+		// selects the just-opened file's row, which fires onSelectionChange
+		// synchronously. Without this guard, the echo re-enters onSelectFile
+		// → openFilePaneFromTreeClick, which sees active === target and
+		// pins the pane we just opened. Real keyboard nav (selection moves
+		// to a different file) still gets through.
+		if (selectedFilePath === abs) return;
 		lastSelectedFromUserRef.current = abs;
 		onSelectFile(abs);
 	};

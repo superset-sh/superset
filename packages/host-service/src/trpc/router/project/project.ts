@@ -5,9 +5,9 @@ import {
 } from "@superset/shared/github-remote";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
-import simpleGit from "simple-git";
 import { z } from "zod";
 import { projects, workspaces } from "../../../db/schema";
+import { createUserSimpleGit } from "../../../runtime/git/simple-git";
 import { protectedProcedure, router } from "../../index";
 import {
 	createFromClone,
@@ -179,7 +179,7 @@ export const projectRouter = router({
 			}
 
 			// walkAllRemotes branch — v1→v2 importer.
-			const allRemotes = await getGitHubRemotes(simpleGit(gitRoot));
+			const allRemotes = await getGitHubRemotes(createUserSimpleGit(gitRoot));
 
 			const urlsToQuery = new Map<string, ParsedGitHubRemote>();
 			for (const parsed of allRemotes.values()) {

@@ -50,6 +50,8 @@ export function NewProjectModal({
 
 	const [parentDir, setParentDir] = useState("");
 	const [url, setUrl] = useState("");
+	const [name, setName] = useState("");
+	const [nameTouched, setNameTouched] = useState(false);
 	const [working, setWorking] = useState(false);
 
 	useEffect(() => {
@@ -57,8 +59,15 @@ export function NewProjectModal({
 		setParentDir(`${homeDir}/.superset/projects`);
 	}, [homeDir, parentDir]);
 
+	useEffect(() => {
+		if (nameTouched) return;
+		setName(deriveProjectNameFromUrl(url));
+	}, [url, nameTouched]);
+
 	const reset = () => {
 		setUrl("");
+		setName("");
+		setNameTouched(false);
 		setWorking(false);
 	};
 
@@ -97,9 +106,9 @@ export function NewProjectModal({
 			toast.error("Please select a project location");
 			return;
 		}
-		const name = deriveProjectNameFromUrl(trimmedUrl);
-		if (!name) {
-			toast.error("Could not derive a project name from the URL or path");
+		const trimmedName = name.trim() || deriveProjectNameFromUrl(trimmedUrl);
+		if (!trimmedName) {
+			toast.error("Please enter a project name");
 			return;
 		}
 
@@ -107,7 +116,7 @@ export function NewProjectModal({
 		try {
 			const client = getHostServiceClientByUrl(activeHostUrl);
 			const result = await client.project.create.mutate({
-				name,
+				name: trimmedName,
 				mode: { kind: "clone", parentDir: trimmedParent, url: trimmedUrl },
 			});
 			finalizeSetup(activeHostUrl, result);
@@ -158,6 +167,22 @@ export function NewProjectModal({
 								}
 							}}
 							autoFocus
+						/>
+					</div>
+
+					<div className="flex flex-col gap-1.5">
+						<Label htmlFor="project-name" className="text-xs">
+							Project name
+						</Label>
+						<Input
+							id="project-name"
+							value={name}
+							onChange={(e) => {
+								setName(e.target.value);
+								setNameTouched(true);
+							}}
+							placeholder="my-project"
+							disabled={working}
 						/>
 					</div>
 

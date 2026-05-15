@@ -993,6 +993,22 @@ function resolveTerminalCwd(
 	return existsSync(resolvedPath) ? resolvedPath : worktreePath;
 }
 
+function getTerminalWorkspaceMismatchError({
+	terminalId,
+	ownerWorkspaceId,
+	requestedWorkspaceId,
+}: {
+	terminalId: string;
+	ownerWorkspaceId: string | null | undefined;
+	requestedWorkspaceId: string;
+}): string | null {
+	if (!ownerWorkspaceId || ownerWorkspaceId === requestedWorkspaceId) {
+		return null;
+	}
+
+	return `Terminal session "${terminalId}" belongs to workspace "${ownerWorkspaceId}", not "${requestedWorkspaceId}".`;
+}
+
 export async function createTerminalSessionInternal({
 	terminalId,
 	workspaceId,
@@ -1009,10 +1025,27 @@ export async function createTerminalSessionInternal({
 }: CreateTerminalSessionOptions): Promise<TerminalSession | { error: string }> {
 	const existing = sessions.get(terminalId);
 	if (existing) {
+		const mismatchError = getTerminalWorkspaceMismatchError({
+			terminalId,
+			ownerWorkspaceId: existing.workspaceId,
+			requestedWorkspaceId: workspaceId,
+		});
+		if (mismatchError) return { error: mismatchError };
+
 		if (listed) existing.listed = true;
 		if (initialCommand) queueInitialCommand(existing, initialCommand);
 		return existing;
 	}
+
+	const existingRecord = db.query.terminalSessions
+		.findFirst({ where: eq(terminalSessions.id, terminalId) })
+		.sync();
+	const recordMismatchError = getTerminalWorkspaceMismatchError({
+		terminalId,
+		ownerWorkspaceId: existingRecord?.originWorkspaceId,
+		requestedWorkspaceId: workspaceId,
+	});
+	if (recordMismatchError) return { error: recordMismatchError };
 
 	const workspace = db.query.workspaces
 		.findFirst({ where: eq(workspaces.id, workspaceId) })
@@ -1140,7 +1173,12 @@ export async function createTerminalSessionInternal({
 		})
 		.onConflictDoUpdate({
 			target: terminalSessions.id,
-			set: { status: "active", createdAt, endedAt: null },
+			set: {
+				originWorkspaceId: workspaceId,
+				status: "active",
+				createdAt,
+				endedAt: null,
+			},
 		})
 		.run();
 
@@ -1384,6 +1422,7 @@ export function registerWorkspaceTerminalRoute({
 		"/terminal/:terminalId",
 		upgradeWebSocket((c) => {
 			const terminalId = c.req.param("terminalId") ?? "";
+			const requestedWorkspaceId = c.req.query("workspaceId") || null;
 			const attachSocketToSession = (
 				session: TerminalSession,
 				ws: TerminalSocket,
@@ -1412,7 +1451,17 @@ export function registerWorkspaceTerminalRoute({
 				TerminalSession | { error: string }
 			> => {
 				const existing = sessions.get(terminalId);
-				if (existing) return existing;
+				if (existing) {
+					if (requestedWorkspaceId) {
+						const mismatchError = getTerminalWorkspaceMismatchError({
+							terminalId,
+							ownerWorkspaceId: existing.workspaceId,
+							requestedWorkspaceId,
+						});
+						if (mismatchError) return { error: mismatchError };
+					}
+					return existing;
+				}
 
 				const record = db.query.terminalSessions
 					.findFirst({ where: eq(terminalSessions.id, terminalId) })
@@ -1432,6 +1481,14 @@ export function registerWorkspaceTerminalRoute({
 					return {
 						error: `Terminal session "${terminalId}" is missing a workspace.`,
 					};
+				}
+				if (requestedWorkspaceId) {
+					const mismatchError = getTerminalWorkspaceMismatchError({
+						terminalId,
+						ownerWorkspaceId: record.originWorkspaceId,
+						requestedWorkspaceId,
+					});
+					if (mismatchError) return { error: mismatchError };
 				}
 
 				const themeType = parseThemeType(c.req.query("themeType"));

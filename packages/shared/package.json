@@ -112,6 +112,10 @@
 			"types": "./src/github-remote.ts",
 			"default": "./src/github-remote.ts"
 		},
+		"./simple-git-options": {
+			"types": "./src/simple-git-options.ts",
+			"default": "./src/simple-git-options.ts"
+		},
 		"./shell-ready-scanner": {
 			"types": "./src/shell-ready-scanner.ts",
 			"default": "./src/shell-ready-scanner.ts"

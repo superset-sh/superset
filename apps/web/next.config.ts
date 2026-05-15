@@ -18,10 +18,14 @@ const apiOrigin = process.env.NEXT_PUBLIC_API_URL
 	: null;
 // Remote-control viewers open a WebSocket to the relay. In dev the blanket
 // `ws:`/`wss:` below covers it; in prod we need to allow the relay origin
-// explicitly so `connect-src` doesn't block `wss://relay…`.
+// explicitly so `connect-src` doesn't block `wss://relay…`. The hard-coded
+// prod fallback keeps the header correct even if RELAY_URL isn't plumbed
+// into the build env.
 const relayWsOrigin = process.env.RELAY_URL
 	? new URL(process.env.RELAY_URL).origin.replace(/^http/, "ws")
-	: null;
+	: isProduction
+		? "wss://relay.superset.sh"
+		: null;
 
 const contentSecurityPolicy = [
 	"default-src 'self'",
