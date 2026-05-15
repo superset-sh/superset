@@ -6,6 +6,9 @@ Use it before broad manual QA when a change may
 affect workspace switching, changes/diff panels, terminal rendering, tab/pane
 state, or renderer responsiveness.
 
+For terminal WebGL context loss, blank panes, or glyph/font corruption, see
+`apps/desktop/docs/TERMINAL_WEBGL_RENDERING.md`.
+
 ## Safety
 
 - Run this only against a local dev `SUPERSET_HOME_DIR`. The fixture command
