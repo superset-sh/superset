@@ -3,6 +3,7 @@ import { type ChildProcess, spawn, spawnSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import {
 	existsSync,
+	mkdirSync,
 	mkdtempSync,
 	readFileSync,
 	rmSync,
@@ -150,6 +151,7 @@ describe("terminal router integration", () => {
 		const socketPath = join(tmp, "pty-daemon.sock");
 		const pidPath = join(tmp, "detached-helper.pid");
 		const workspaceCleanupPidPath = join(tmp, "workspace-detached-helper.pid");
+		const shellPath = createDeterministicTestShell(tmp);
 		const terminalId = randomUUID();
 		const workspaceCleanupTerminalId = randomUUID();
 		let daemonProcess: ChildProcess | null = null;
@@ -200,6 +202,7 @@ describe("terminal router integration", () => {
 			);
 			process.env.SUPERSET_PTY_DAEMON_SOCKET = socketPath;
 			process.env.SUPERSET_HOME_DIR = tmp;
+			__setAccountShellForTesting(shellPath);
 
 			await scenario.host.trpc.terminal.createSession.mutate({
 				workspaceId: scenario.workspaceId,
@@ -389,6 +392,24 @@ function detachedHelperScript(pidPath: string): string {
 		`echo "$helper_pid" > ${shellQuote(pidPath)}`,
 		"sleep 60",
 	].join("; ");
+}
+
+function createDeterministicTestShell(tmp: string): string {
+	const shellPath = join(tmp, "sh");
+	mkdirSync(tmp, { recursive: true });
+	writeFileSync(
+		shellPath,
+		[
+			"#!/bin/sh",
+			'if [ "$#" -gt 0 ] && [ "$1" = "-l" ]; then',
+			"  shift",
+			"fi",
+			'exec /bin/sh "$@"',
+			"",
+		].join("\n"),
+		{ mode: 0o755 },
+	);
+	return shellPath;
 }
 
 function createFakePty(
