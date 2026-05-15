@@ -8,7 +8,11 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { applyShellEnvToProcess, getProcessEnvWithShellEnv } from "./shell-env";
+import {
+	applyShellEnvToProcess,
+	getProcessEnvWithShellEnv,
+	getProcessEnvWithShellPath,
+} from "./shell-env";
 
 describe("shell env merging", () => {
 	test("getProcessEnvWithShellEnv fills in missing shell variables", async () => {
@@ -53,6 +57,22 @@ describe("shell env merging", () => {
 		await applyShellEnvToProcess(targetEnv, {});
 
 		expect(targetEnv).toEqual({});
+	});
+
+	test("getProcessEnvWithShellPath strips pager env vars rejected by simple-git", async () => {
+		const env = await getProcessEnvWithShellPath({
+			GH_PAGER: "cat",
+			GIT_PAGER: "cat",
+			LESS: "-R",
+			PAGER: "cat",
+			PATH: "/usr/bin:/bin",
+		});
+
+		expect(env.PAGER).toBeUndefined();
+		expect(env.GIT_PAGER).toBeUndefined();
+		expect(env.GH_PAGER).toBeUndefined();
+		expect(env.LESS).toBeUndefined();
+		expect(env.PATH).toBeString();
 	});
 });
 

@@ -257,6 +257,60 @@ describe("HostServiceCoordinator.tryAdopt — adoption health check", () => {
 	});
 });
 
+describe("HostServiceCoordinator host-service environment", () => {
+	let coordinator: InstanceType<typeof HostServiceCoordinator>;
+	let originalEnv: Record<string, string | undefined>;
+
+	beforeEach(() => {
+		testManifestRoot = fs.mkdtempSync(path.join(os.tmpdir(), "hsc-test-"));
+		originalEnv = {
+			GH_PAGER: process.env.GH_PAGER,
+			GIT_PAGER: process.env.GIT_PAGER,
+			LESS: process.env.LESS,
+			PAGER: process.env.PAGER,
+		};
+		process.env.GH_PAGER = "cat";
+		process.env.GIT_PAGER = "cat";
+		process.env.LESS = "-R";
+		process.env.PAGER = "cat";
+		coordinator = new HostServiceCoordinator();
+	});
+
+	afterEach(() => {
+		for (const [key, value] of Object.entries(originalEnv)) {
+			if (value === undefined) {
+				delete process.env[key];
+			} else {
+				process.env[key] = value;
+			}
+		}
+		if (testManifestRoot) {
+			fs.rmSync(testManifestRoot, { recursive: true, force: true });
+			testManifestRoot = "";
+		}
+	});
+
+	test("strips pager env vars that make simple-git reject host-service git calls", async () => {
+		const env = await (
+			coordinator as unknown as {
+				buildEnv: (
+					organizationId: string,
+					port: number,
+					secret: string,
+					config: typeof spawnConfig,
+				) => Promise<Record<string, string>>;
+			}
+		).buildEnv("org-1", 40000, "secret", spawnConfig);
+
+		expect(env.PAGER).toBeUndefined();
+		expect(env.GIT_PAGER).toBeUndefined();
+		expect(env.GH_PAGER).toBeUndefined();
+		expect(env.LESS).toBeUndefined();
+		expect(env.HOST_SERVICE_PORT).toBe("40000");
+		expect(env.HOST_SERVICE_SECRET).toBe("secret");
+	});
+});
+
 describe("HostServiceCoordinator.reset", () => {
 	let coordinator: InstanceType<typeof HostServiceCoordinator>;
 	let killedPids: Array<{ pid: number; signal: NodeJS.Signals | number }>;

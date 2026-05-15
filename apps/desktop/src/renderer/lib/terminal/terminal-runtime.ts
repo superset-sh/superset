@@ -16,6 +16,14 @@ const DIMS_KEY_PREFIX = "terminal-dims:";
 const DEFAULT_COLS = 120;
 const DEFAULT_ROWS = 32;
 const RESIZE_DEBOUNCE_MS = 75;
+const MAX_RESIZE_MEASURES_PER_FRAME = 8;
+
+const runtimesWithQueuedResize = new Map<
+	TerminalRuntime,
+	(() => void) | undefined
+>();
+let resizeFlushRafId: number | null = null;
+let resizeFlushTimeoutId: ReturnType<typeof setTimeout> | null = null;
 
 export interface TerminalRuntime {
 	terminalId: string;
@@ -148,6 +156,50 @@ function measureAndResize(runtime: TerminalRuntime): boolean {
 	return terminal.cols !== prevCols || terminal.rows !== prevRows;
 }
 
+function scheduleResizeFlush() {
+	if (resizeFlushRafId !== null || resizeFlushTimeoutId !== null) return;
+	if (typeof requestAnimationFrame !== "function") {
+		resizeFlushTimeoutId = setTimeout(flushQueuedResizes, 0);
+		return;
+	}
+	resizeFlushRafId = requestAnimationFrame(flushQueuedResizes);
+}
+
+function scheduleMeasureAndResize(
+	runtime: TerminalRuntime,
+	onResize?: () => void,
+) {
+	const existingOnResize = runtimesWithQueuedResize.get(runtime);
+	runtimesWithQueuedResize.set(runtime, onResize ?? existingOnResize);
+	scheduleResizeFlush();
+}
+
+function cancelQueuedResize(runtime: TerminalRuntime) {
+	runtimesWithQueuedResize.delete(runtime);
+}
+
+function flushQueuedResizes() {
+	resizeFlushRafId = null;
+	if (resizeFlushTimeoutId !== null) {
+		clearTimeout(resizeFlushTimeoutId);
+		resizeFlushTimeoutId = null;
+	}
+
+	let processed = 0;
+	for (const [runtime, onResize] of Array.from(runtimesWithQueuedResize)) {
+		runtimesWithQueuedResize.delete(runtime);
+		if (!runtime.container) continue;
+		const changed = measureAndResize(runtime);
+		if (changed) onResize?.();
+		processed += 1;
+		if (processed >= MAX_RESIZE_MEASURES_PER_FRAME) break;
+	}
+
+	if (runtimesWithQueuedResize.size > 0) {
+		scheduleResizeFlush();
+	}
+}
+
 function createResizeScheduler(
 	runtime: TerminalRuntime,
 	onResize?: () => void,
@@ -166,8 +218,7 @@ function createResizeScheduler(
 
 	const run = () => {
 		timeoutId = null;
-		const changed = measureAndResize(runtime);
-		if (changed) onResize?.();
+		scheduleMeasureAndResize(runtime, onResize);
 	};
 
 	const observe: ResizeObserverCallback = (entries) => {
@@ -258,7 +309,8 @@ export function attachToContainer(
 
 	runtime.container = container;
 	container.appendChild(runtime.wrapper);
-	if (measureAndResize(runtime)) onResize?.();
+
+	scheduleMeasureAndResize(runtime, onResize);
 
 	runtime._disposeResizeObserver?.();
 	runtime._disposeResizeObserver = null;
@@ -275,6 +327,7 @@ export function attachToContainer(
 export function detachFromContainer(runtime: TerminalRuntime) {
 	persistBuffer(runtime.terminalId, runtime.serializeAddon);
 	persistDimensions(runtime.terminalId, runtime.lastCols, runtime.lastRows);
+	cancelQueuedResize(runtime);
 	runtime._disposeResizeObserver?.();
 	runtime._disposeResizeObserver = null;
 	runtime.resizeObserver?.disconnect();
@@ -299,9 +352,7 @@ export function updateRuntimeAppearance(
 	if (fontChanged) {
 		terminal.options.fontFamily = appearance.fontFamily;
 		terminal.options.fontSize = appearance.fontSize;
-		if (hostIsVisible(runtime.container)) {
-			measureAndResize(runtime);
-		}
+		if (runtime.container) scheduleMeasureAndResize(runtime);
 	}
 }
 
@@ -318,6 +369,7 @@ export function disposeRuntime(
 	runtime._disposeImagePasteFallback = null;
 	runtime._disposeAddons?.();
 	runtime._disposeAddons = null;
+	cancelQueuedResize(runtime);
 	runtime._disposeResizeObserver?.();
 	runtime._disposeResizeObserver = null;
 	runtime.resizeObserver?.disconnect();

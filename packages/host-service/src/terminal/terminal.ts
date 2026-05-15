@@ -181,6 +181,8 @@ const DEFAULT_TERMINAL_COLS = 120;
 const DEFAULT_TERMINAL_ROWS = 32;
 const MIN_TERMINAL_COLS = 20;
 const MIN_TERMINAL_ROWS = 5;
+const WEBSOCKET_CLOSE_REASON_MAX_BYTES = 123;
+const WEBSOCKET_CLOSE_REASON_SUFFIX = "...";
 
 // `<ArrayBuffer>` narrowing matches hono/ws's WSContext.send signature.
 type TerminalSocket = {
@@ -188,6 +190,33 @@ type TerminalSocket = {
 	close: (code?: number, reason?: string) => void;
 	readyState: number;
 };
+
+export function toSafeWebSocketCloseReason(reason: string): string {
+	if (Buffer.byteLength(reason, "utf8") <= WEBSOCKET_CLOSE_REASON_MAX_BYTES) {
+		return reason;
+	}
+
+	let truncated = "";
+	for (const char of reason) {
+		const candidate = `${truncated}${char}${WEBSOCKET_CLOSE_REASON_SUFFIX}`;
+		if (
+			Buffer.byteLength(candidate, "utf8") > WEBSOCKET_CLOSE_REASON_MAX_BYTES
+		) {
+			break;
+		}
+		truncated += char;
+	}
+
+	return `${truncated}${WEBSOCKET_CLOSE_REASON_SUFFIX}`;
+}
+
+function closeTerminalSocket(
+	socket: TerminalSocket,
+	code: number,
+	reason: string,
+): void {
+	socket.close(code, toSafeWebSocketCloseReason(reason));
+}
 
 // ---------------------------------------------------------------------------
 // OSC 133 shell readiness detection (FinalTerm semantic prompt standard).
@@ -310,7 +339,7 @@ onDaemonDisconnect((err) => {
 	for (const session of sessions.values()) {
 		for (const socket of session.sockets) {
 			try {
-				socket.close(1011, "pty-daemon disconnected");
+				closeTerminalSocket(socket, 1011, "pty-daemon disconnected");
 			} catch {
 				// best-effort
 			}
@@ -859,7 +888,7 @@ export async function disposeSessionAndWait(
 			session.shellReadyTimeoutId = null;
 		}
 		for (const socket of session.sockets) {
-			socket.close(1000, "Session disposed");
+			closeTerminalSocket(socket, 1000, "Session disposed");
 		}
 		session.sockets.clear();
 		if (!session.exited) {
@@ -1523,7 +1552,7 @@ export function registerWorkspaceTerminalRoute({
 			return {
 				onOpen: (_event, ws) => {
 					if (!terminalId) {
-						ws.close(1011, "Missing terminalId");
+						closeTerminalSocket(ws, 1011, "Missing terminalId");
 						return;
 					}
 
@@ -1531,7 +1560,7 @@ export function registerWorkspaceTerminalRoute({
 						const session = await resolveSessionForAttach();
 						if ("error" in session) {
 							sendMessage(ws, { type: "error", message: session.error });
-							ws.close(1011, session.error);
+							closeTerminalSocket(ws, 1011, session.error);
 							return;
 						}
 						if (ws.readyState !== SOCKET_OPEN) return;
@@ -1543,7 +1572,7 @@ export function registerWorkspaceTerminalRoute({
 							type: "error",
 							message: "Internal terminal attach error",
 						});
-						ws.close(1011, "Internal terminal attach error");
+						closeTerminalSocket(ws, 1011, "Internal terminal attach error");
 					});
 				},
 

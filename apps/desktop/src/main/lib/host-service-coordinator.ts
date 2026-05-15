@@ -8,7 +8,10 @@ import { getHostId, getHostName } from "@superset/shared/host-info";
 import { app } from "electron";
 import log from "electron-log/main";
 import { env as sharedEnv } from "shared/env.shared";
-import { getProcessEnvWithShellPath } from "../../lib/trpc/routers/workspaces/utils/shell-env";
+import {
+	getProcessEnvWithShellPath,
+	stripUnsafeSimpleGitEnv,
+} from "../../lib/trpc/routers/workspaces/utils/shell-env";
 import { SUPERSET_HOME_DIR } from "./app-environment";
 import {
 	type HostServiceManifest,
@@ -549,6 +552,8 @@ export class HostServiceCoordinator extends EventEmitter {
 		} else {
 			delete childEnv.RELAY_URL;
 		}
+
+		stripUnsafeSimpleGitEnv(childEnv);
 
 		return childEnv;
 	}
