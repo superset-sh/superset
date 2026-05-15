@@ -91,9 +91,19 @@ export const analyticsRouter = {
 		.input(z.object({ key: z.string().min(1).max(100) }))
 		.query(async ({ ctx, input }) => {
 			try {
+				// Pass email as a personProperty so PostHog evaluates email-based
+				// targeting against what we know about the authenticated user,
+				// not against PostHog's person store (which may not have a row
+				// keyed by ctx.session.user.id with email backfilled).
 				const payload = await posthog.getFeatureFlagPayload(
 					input.key,
 					ctx.session.user.id,
+					undefined,
+					{
+						personProperties: {
+							email: ctx.session.user.email ?? "",
+						},
+					},
 				);
 				return payload ?? null;
 			} catch {
