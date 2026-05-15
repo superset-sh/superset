@@ -16,14 +16,15 @@ import type {
 	DashboardSidebarWorkspace,
 } from "../../types";
 import {
+	computeCloudRowFallbackWorkspaces,
+	PENDING_WORKSPACE_TAB_ORDER,
+} from "./computeCloudRowFallbackWorkspaces";
+import {
 	derivePullRequestQueryTargets,
 	getDashboardSidebarPullRequestQueryKey,
 	type PullRequestQueryTarget,
 } from "./derivePullRequestQueryTargets";
 
-// Sits above every real workspace so the pending row lines up with the real one,
-// which is inserted via getPrependTabOrder.
-const PENDING_WORKSPACE_TAB_ORDER = Number.MIN_SAFE_INTEGER;
 const MAIN_WORKSPACE_TAB_ORDER = Number.MIN_SAFE_INTEGER;
 
 type SidebarPullRequest = DashboardSidebarWorkspace["pullRequest"];
@@ -295,44 +296,18 @@ export function useDashboardSidebarData() {
 		[collections],
 	);
 
-	// Cloud-row fallback: when workspaces.create has resolved on the host
-	// service but Electric hasn't yet delivered the v2Workspaces row, surface
-	// the cloud row cached on the in-flight entry so the sidebar renders the
-	// workspace as fully synced. Manager.tsx removes the entry once Electric
-	// catches up, at which point the live query takes over seamlessly.
-	const cloudRowFallbackWorkspaces = useMemo(() => {
-		if (inFlightEntries.length === 0) return [];
-		const hostByMachineId = new Map(
-			hosts.map((host) => [host.machineId, host]),
-		);
-		const rows = inFlightEntries.flatMap((entry) => {
-			const cloudRow = entry.cloudRow;
-			if (!cloudRow) return [];
-			// Electric already delivered; let the live query own this row.
-			if (localStateWorkspaceIds.has(cloudRow.id)) return [];
-			const localState = collections.v2WorkspaceLocalState.get(cloudRow.id);
-			const host = hostByMachineId.get(cloudRow.hostId);
-			return [
-				{
-					id: cloudRow.id,
-					projectId: localState?.sidebarState.projectId ?? cloudRow.projectId,
-					hostId: cloudRow.hostId,
-					type: cloudRow.type,
-					hostIsOnline: host?.isOnline ?? false,
-					name: cloudRow.name,
-					branch: cloudRow.branch,
-					taskId: cloudRow.taskId,
-					createdAt: cloudRow.createdAt,
-					updatedAt: cloudRow.updatedAt,
-					tabOrder:
-						localState?.sidebarState.tabOrder ?? PENDING_WORKSPACE_TAB_ORDER,
-					sectionId: localState?.sidebarState.sectionId ?? null,
-					isHidden: localState?.sidebarState.isHidden ?? false,
-				},
-			];
-		});
-		return getVisibleSidebarWorkspaces(rows);
-	}, [collections, hosts, inFlightEntries, localStateWorkspaceIds]);
+	// Manager.tsx removes in-flight entries once Electric catches up, at
+	// which point the live query takes over seamlessly.
+	const cloudRowFallbackWorkspaces = useMemo(
+		() =>
+			computeCloudRowFallbackWorkspaces({
+				inFlightEntries,
+				hosts,
+				syncedWorkspaceIds: localStateWorkspaceIds,
+				getLocalState: (id) => collections.v2WorkspaceLocalState.get(id),
+			}),
+		[collections, hosts, inFlightEntries, localStateWorkspaceIds],
+	);
 
 	const visibleSidebarWorkspaces = useMemo(() => {
 		const sidebarProjectIds = new Set(
