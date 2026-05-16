@@ -55,8 +55,9 @@ const { injectWebSocket, upgradeWebSocket } = createNodeWebSocket({ app });
 //
 // Sequence: stop accepting new TCP connections (server.close), then close
 // every open tunnel with the app-defined drain code so hosts reconnect
-// promptly. server is assigned at the bottom of this file — by signal
-// time, the closure has it.
+// promptly, and clear this machine's directory ownership before process exit.
+// server is assigned at the bottom of this file — by signal time, the closure
+// has it.
 let server: ReturnType<typeof serve> | null = null;
 let draining = false;
 const handleDrain = async (signal: string) => {
@@ -65,7 +66,16 @@ const handleDrain = async (signal: string) => {
 	console.log(`[relay] ${signal} received, draining tunnels`);
 	try {
 		server?.close();
-		await tunnelManager.drain();
+		const cleared = await tunnelManager.drain({
+			clearDirectory: () =>
+				directory.clearStaleEntriesForMachine(
+					env.FLY_REGION,
+					env.FLY_MACHINE_ID,
+				),
+		});
+		if (cleared > 0) {
+			console.log(`[relay] cleared ${cleared} directory entries during drain`);
+		}
 	} catch (err) {
 		console.error("[relay] drain failed", err);
 	}
@@ -171,6 +181,11 @@ app.get(
 
 		return {
 			onOpen: async (_event, ws) => {
+				if (draining) {
+					ws.close(TunnelManager.WS_CLOSE_DRAIN, "Server draining for deploy");
+					return;
+				}
+
 				if (!hostId || !token) {
 					ws.close(1008, "Missing hostId or token");
 					return;
@@ -185,6 +200,11 @@ app.get(
 				const hasAccess = await checkHostAccess(auth, token, hostId);
 				if (!hasAccess) {
 					ws.close(1008, "Forbidden");
+					return;
+				}
+
+				if (draining) {
+					ws.close(TunnelManager.WS_CLOSE_DRAIN, "Server draining for deploy");
 					return;
 				}
 
