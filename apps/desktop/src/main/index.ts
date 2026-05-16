@@ -26,7 +26,7 @@ import {
 import { setupAgentHooks } from "./lib/agent-setup";
 import { initAppState } from "./lib/app-state";
 import { requestAppleEventsAccess } from "./lib/apple-events-permission";
-import { setupAutoUpdater } from "./lib/auto-updater";
+import { isUpdateReadyToInstall, setupAutoUpdater } from "./lib/auto-updater";
 import { installBundledCliShim } from "./lib/bundled-cli";
 import { resolveDevWorkspaceName } from "./lib/dev-workspace-name";
 import { setWorkspaceDockIcon } from "./lib/dock-icon";
@@ -224,7 +224,7 @@ app.on("before-quit", async (event) => {
 
 	isQuitting = true;
 	try {
-		if (isDev || forceFullCleanup) {
+		if (isDev || forceFullCleanup || isUpdateReadyToInstall()) {
 			await runDevQuitCleanup();
 		} else {
 			// Prod: leave services running so the next launch re-adopts via manifest.
@@ -246,7 +246,13 @@ app.on("before-quit", async (event) => {
  * "Quit Superset Completely" path in prod.
  */
 async function runDevQuitCleanup(): Promise<void> {
-	getHostServiceCoordinator().stopAll();
+	const coordinator = getHostServiceCoordinator();
+	try {
+		await coordinator.discoverAll();
+	} catch (err) {
+		console.warn("[main] host-service discovery before shutdown failed:", err);
+	}
+	coordinator.stopAll();
 	try {
 		await getTerminalHostClient().shutdownIfRunning({ killSessions: true });
 	} catch (err) {

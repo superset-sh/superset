@@ -107,6 +107,10 @@ export function getUpdateStatus(): AutoUpdateStatusEvent {
 	return { status: currentStatus, version: currentVersion };
 }
 
+export function isUpdateReadyToInstall(): boolean {
+	return isInstalling || currentStatus === AUTO_UPDATE_STATUS.READY;
+}
+
 export function installUpdate(): void {
 	if (env.NODE_ENV === "development") {
 		log.info("[auto-updater] Install skipped in dev mode");
