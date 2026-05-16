@@ -1,23 +1,8 @@
+import { ELECTRIC_PROTOCOL_QUERY_PARAMS } from "@electric-sql/client";
 import type { WhereClause } from "./auth";
 import type { Env } from "./types";
 
-const PROTOCOL_PARAMS = new Set([
-	"live",
-	"live_sse",
-	"handle",
-	"offset",
-	"cursor",
-	"expired_handle",
-	"log",
-	"subset__where",
-	"subset__limit",
-	"subset__offset",
-	"subset__order_by",
-	"subset__params",
-	"subset__where_expr",
-	"subset__order_by_expr",
-	"cache-buster",
-]);
+const PROTOCOL_PARAMS = new Set(ELECTRIC_PROTOCOL_QUERY_PARAMS);
 
 const COLUMN_RESTRICTIONS: Record<string, string> = {
 	"auth.apikeys": "id,name,start,created_at,last_request",

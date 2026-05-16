@@ -68,18 +68,29 @@ export const chatRouter = {
 				});
 			}
 
-			await db
-				.insert(chatSessions)
-				.values({
-					id: input.sessionId,
-					organizationId,
-					createdBy: ctx.session.user.id,
-					v2WorkspaceId: input.v2WorkspaceId,
-				})
-				.onConflictDoNothing();
+			const result = await dbWs.transaction(async (tx) => {
+				const [inserted] = await tx
+					.insert(chatSessions)
+					.values({
+						id: input.sessionId,
+						organizationId,
+						createdBy: ctx.session.user.id,
+						v2WorkspaceId: input.v2WorkspaceId,
+					})
+					.onConflictDoNothing()
+					.returning({ id: chatSessions.id });
+
+				if (!inserted) {
+					return { txid: null };
+				}
+
+				const txid = await getCurrentTxid(tx);
+				return { txid };
+			});
 
 			return {
 				sessionId: input.sessionId,
+				txid: result.txid,
 			};
 		}),
 

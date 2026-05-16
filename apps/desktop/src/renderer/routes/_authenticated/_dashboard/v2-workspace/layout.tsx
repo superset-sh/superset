@@ -4,9 +4,6 @@ import { createFileRoute, Outlet, useMatchRoute } from "@tanstack/react-router";
 import { useEffect, useRef } from "react";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
-import { useWorkspaceCreatesStore } from "renderer/stores/workspace-creates";
-import { WorkspaceCreateErrorState } from "./components/WorkspaceCreateErrorState";
-import { WorkspaceCreatingState } from "./components/WorkspaceCreatingState";
 import { WorkspaceHostIncompatibleState } from "./components/WorkspaceHostIncompatibleState";
 import { WorkspaceNotFoundState } from "./components/WorkspaceNotFoundState";
 import { useRemoteHostStatus } from "./hooks/useRemoteHostStatus";
@@ -35,16 +32,7 @@ function V2WorkspaceLayout() {
 				.where(({ v2Workspaces }) => eq(v2Workspaces.id, workspaceId ?? "")),
 		[collections, workspaceId],
 	);
-	const syncedWorkspace = workspaces?.[0] ?? null;
-	const inFlight = useWorkspaceCreatesStore((store) =>
-		workspaceId
-			? store.entries.find((entry) => entry.snapshot.id === workspaceId)
-			: undefined,
-	);
-	// Fall back to the cloud row cached on the in-flight entry while
-	// Electric hasn't yet delivered the synced row. The cloud has already
-	// confirmed the workspace at this point — no need to block on sync.
-	const workspace = syncedWorkspace ?? inFlight?.cloudRow ?? null;
+	const workspace = workspaces?.[0] ?? null;
 
 	const lastEnsuredWorkspaceIdRef = useRef<string | null>(null);
 	useEffect(() => {
@@ -61,25 +49,6 @@ function V2WorkspaceLayout() {
 	}
 
 	if (!workspace) {
-		if (inFlight?.state === "creating") {
-			return (
-				<WorkspaceCreatingState
-					name={inFlight.snapshot.name}
-					branch={inFlight.snapshot.branch}
-					startedAt={inFlight.startedAt}
-				/>
-			);
-		}
-		if (inFlight?.state === "error") {
-			return (
-				<WorkspaceCreateErrorState
-					workspaceId={workspaceId}
-					name={inFlight.snapshot.name}
-					branch={inFlight.snapshot.branch}
-					error={inFlight.error ?? "Unknown error"}
-				/>
-			);
-		}
 		return <WorkspaceNotFoundState workspaceId={workspaceId} />;
 	}
 

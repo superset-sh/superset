@@ -391,6 +391,7 @@
       "name": "electric-proxy",
       "version": "0.0.0",
       "dependencies": {
+        "@electric-sql/client": "1.5.15",
         "@superset/db": "workspace:*",
         "drizzle-orm": "0.45.2",
         "jose": "6.2.2",

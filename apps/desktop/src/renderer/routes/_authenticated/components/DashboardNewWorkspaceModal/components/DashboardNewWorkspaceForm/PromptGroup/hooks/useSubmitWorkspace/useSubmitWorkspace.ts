@@ -92,11 +92,9 @@ export function useSubmitWorkspace(
 				]
 			: undefined;
 
-		// PR path supplies a name (PR title) so the in-flight UI has
-		// something to show immediately. Branch path leaves both `name`
-		// and `branch` undefined when the user didn't type — the server
-		// generates a friendly random and AI-renames whichever side(s)
-		// the user didn't supply.
+		// PR path supplies a name from the PR title. Branch path leaves both
+		// `name` and `branch` undefined when the user didn't type; the server
+		// fills friendly random names and AI-renames whichever side(s) need it.
 		const prName = isPrCheckout
 			? draft.linkedPR?.title || `PR #${draft.linkedPR?.prNumber}`
 			: undefined;
@@ -142,6 +140,7 @@ export function useSubmitWorkspace(
 						toast.error("Workspace creation failed", {
 							description: result.error,
 						});
+						void navigate({ to: "/v2-workspaces", replace: true });
 					}
 					return;
 				}
@@ -167,6 +166,7 @@ export function useSubmitWorkspace(
 					toast.error("Workspace creation failed", {
 						description: error instanceof Error ? error.message : String(error),
 					});
+					void navigate({ to: "/v2-workspaces", replace: true });
 				}
 			});
 	}, [

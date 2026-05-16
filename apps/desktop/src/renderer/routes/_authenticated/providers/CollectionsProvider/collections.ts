@@ -24,8 +24,10 @@ import type {
 	SelectV2Workspace,
 	SelectWorkspace,
 } from "@superset/db/schema";
+import type { AppRouter as HostServiceAppRouter } from "@superset/host-service";
 import type { AppRouter } from "@superset/trpc";
 import { BasicIndex } from "@tanstack/db";
+import type { ElectricCollectionUtils } from "@tanstack/electric-db-collection";
 import { electricCollectionOptions } from "@tanstack/electric-db-collection";
 import {
 	createElectronSQLitePersistence,
@@ -40,8 +42,10 @@ import {
 	localStorageCollectionOptions,
 } from "@tanstack/react-db";
 import { createTRPCProxyClient, httpBatchLink } from "@trpc/client";
+import type { inferRouterInputs, inferRouterOutputs } from "@trpc/server";
 import { env } from "renderer/env.renderer";
 import { getAuthToken, getJwt } from "renderer/lib/auth-client";
+import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import superjson from "superjson";
 import { z } from "zod";
 import {
@@ -109,30 +113,68 @@ type IntegrationConnectionDisplay = Omit<
 	"accessToken" | "refreshToken"
 >;
 
+type HostServiceRouterInputs = inferRouterInputs<HostServiceAppRouter>;
+type HostServiceRouterOutputs = inferRouterOutputs<HostServiceAppRouter>;
+type HostWorkspaceCreateInput = HostServiceRouterInputs["workspaces"]["create"];
+type HostWorkspaceCreateResult =
+	HostServiceRouterOutputs["workspaces"]["create"];
+
+export const WORKSPACE_CREATE_ROLLBACK_TO_CANONICAL_ID =
+	"workspace-create:rollback-to-canonical-id";
+
+export interface WorkspaceCreateInsertMetadata extends Record<string, unknown> {
+	hostUrl: string;
+	input: HostWorkspaceCreateInput;
+	result?: HostWorkspaceCreateResult;
+}
+
+function getWorkspaceCreateInsertMetadata(
+	metadata: unknown,
+): WorkspaceCreateInsertMetadata {
+	if (
+		typeof metadata === "object" &&
+		metadata !== null &&
+		"hostUrl" in metadata &&
+		typeof metadata.hostUrl === "string" &&
+		"input" in metadata &&
+		typeof metadata.input === "object" &&
+		metadata.input !== null
+	) {
+		return metadata as WorkspaceCreateInsertMetadata;
+	}
+	throw new Error("v2Workspaces.insert requires workspace create metadata");
+}
+
+type ElectricCollection<T extends Record<string, unknown>> = Collection<
+	T,
+	string | number,
+	ElectricCollectionUtils<T>
+>;
+
 export interface OrgCollections {
-	tasks: Collection<SelectTask>;
-	taskStatuses: Collection<SelectTaskStatus>;
-	projects: Collection<SelectProject>;
-	v2Hosts: Collection<SelectV2Host>;
-	v2Clients: Collection<SelectV2Client>;
-	v2UsersHosts: Collection<SelectV2UsersHosts>;
-	v2Projects: Collection<SelectV2Project>;
-	v2Workspaces: Collection<SelectV2Workspace>;
-	workspaces: Collection<SelectWorkspace>;
-	members: Collection<SelectMember>;
-	users: Collection<SelectUser>;
-	invitations: Collection<SelectInvitation>;
-	teams: Collection<SelectTeam>;
-	teamMembers: Collection<SelectTeamMember>;
-	agentCommands: Collection<SelectAgentCommand>;
-	integrationConnections: Collection<IntegrationConnectionDisplay>;
-	subscriptions: Collection<SelectSubscription>;
-	apiKeys: Collection<ApiKeyDisplay>;
-	chatSessions: Collection<SelectChatSession>;
-	githubRepositories: Collection<SelectGithubRepository>;
-	githubPullRequests: Collection<SelectGithubPullRequest>;
-	automations: Collection<SelectAutomation>;
-	automationRuns: Collection<SelectAutomationRun>;
+	tasks: ElectricCollection<SelectTask>;
+	taskStatuses: ElectricCollection<SelectTaskStatus>;
+	projects: ElectricCollection<SelectProject>;
+	v2Hosts: ElectricCollection<SelectV2Host>;
+	v2Clients: ElectricCollection<SelectV2Client>;
+	v2UsersHosts: ElectricCollection<SelectV2UsersHosts>;
+	v2Projects: ElectricCollection<SelectV2Project>;
+	v2Workspaces: ElectricCollection<SelectV2Workspace>;
+	workspaces: ElectricCollection<SelectWorkspace>;
+	members: ElectricCollection<SelectMember>;
+	users: ElectricCollection<SelectUser>;
+	invitations: ElectricCollection<SelectInvitation>;
+	teams: ElectricCollection<SelectTeam>;
+	teamMembers: ElectricCollection<SelectTeamMember>;
+	agentCommands: ElectricCollection<SelectAgentCommand>;
+	integrationConnections: ElectricCollection<IntegrationConnectionDisplay>;
+	subscriptions: ElectricCollection<SelectSubscription>;
+	apiKeys: ElectricCollection<ApiKeyDisplay>;
+	chatSessions: ElectricCollection<SelectChatSession>;
+	githubRepositories: ElectricCollection<SelectGithubRepository>;
+	githubPullRequests: ElectricCollection<SelectGithubPullRequest>;
+	automations: ElectricCollection<SelectAutomation>;
+	automationRuns: ElectricCollection<SelectAutomationRun>;
 	v2SidebarProjects: Collection<
 		DashboardSidebarProjectRow,
 		string,
@@ -417,6 +459,23 @@ function createOrgCollections(organizationId: string): OrgCollections {
 				columnMapper,
 			},
 			getKey: (item) => item.id,
+			onInsert: async ({ transaction, collection }) => {
+				const mutation = transaction.mutations[0];
+				const metadata = getWorkspaceCreateInsertMetadata(mutation.metadata);
+				const client = getHostServiceClientByUrl(metadata.hostUrl);
+				const result = await client.workspaces.create.mutate(metadata.input);
+				metadata.result = result;
+
+				if (result.workspace.id !== mutation.modified.id) {
+					if (typeof result.workspace.txid === "number") {
+						await collection.utils.awaitTxId(result.workspace.txid);
+					}
+					throw new Error(WORKSPACE_CREATE_ROLLBACK_TO_CANONICAL_ID);
+				}
+				if (typeof result.workspace.txid === "number") {
+					return { txid: result.workspace.txid };
+				}
+			},
 			onUpdate: async ({ transaction }) => {
 				const { original, changes } = transaction.mutations[0];
 				const { branch, hostId, name, taskId } = changes;
