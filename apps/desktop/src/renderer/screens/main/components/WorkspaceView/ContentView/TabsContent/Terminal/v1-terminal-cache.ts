@@ -2,9 +2,10 @@ import type { Unsubscribable } from "@trpc/server/observable";
 import type { FitAddon } from "@xterm/addon-fit";
 import type { SearchAddon } from "@xterm/addon-search";
 import type { Terminal as XTerm } from "@xterm/xterm";
+import { waitForFontReady } from "renderer/lib/terminal/font-settle";
 import { getTerminalParkingContainer } from "renderer/lib/terminal/terminal-parking";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
-import { DEBUG_TERMINAL } from "./config";
+import { DEBUG_TERMINAL, DEFAULT_TERMINAL_FONT_SIZE } from "./config";
 import { type CreateTerminalOptions, createTerminalInWrapper } from "./helpers";
 import type { TerminalStreamEvent } from "./types";
 
@@ -150,6 +151,11 @@ export function attachToContainer(
 	container.appendChild(entry.wrapper);
 
 	fitAndRefresh(entry);
+	// xterm's initial cell-width measurement may have run before the configured
+	// font finished loading, baking wrong glyph metrics into the renderer atlas
+	// (#4617). Refit once fonts are ready so the layout matches the rendered
+	// font without requiring a manual resize.
+	scheduleFontSettleRefit(paneId, onResize);
 
 	// Manage ResizeObserver lifecycle in the cache, not in React.
 	entry.resizeObserver?.disconnect();
@@ -160,6 +166,26 @@ export function attachToContainer(
 	});
 	observer.observe(container);
 	entry.resizeObserver = observer;
+}
+
+function scheduleFontSettleRefit(paneId: string, onResize?: () => void): void {
+	const entry = cache.get(paneId);
+	if (!entry) return;
+	const fontFamily = String(entry.xterm.options.fontFamily ?? "").trim();
+	if (!fontFamily) return;
+	const fontSize = Number(
+		entry.xterm.options.fontSize ?? DEFAULT_TERMINAL_FONT_SIZE,
+	);
+
+	void waitForFontReady({ fontFamily, fontSize }).then(() => {
+		const live = cache.get(paneId);
+		if (!live || !hostIsVisible(live.container)) return;
+		try {
+			live.xterm.clearTextureAtlas?.();
+		} catch {}
+		const changed = fitAndRefresh(live);
+		if (changed) onResize?.();
+	});
 }
 
 export function detachFromContainer(paneId: string): void {
@@ -188,6 +214,7 @@ export function updateAppearance(
 	paneId: string,
 	fontFamily: string,
 	fontSize: number,
+	onDeferredResize?: (dims: { cols: number; rows: number }) => void,
 ): { cols: number; rows: number; changed: boolean } | null {
 	const entry = cache.get(paneId);
 	if (!entry) return null;
@@ -202,6 +229,19 @@ export function updateAppearance(
 	xterm.options.fontSize = fontSize;
 
 	const changed = fitAndRefresh(entry);
+
+	// The new font may still be loading — schedule a second refit once it
+	// resolves so the atlas/dimensions match the actually-rendered glyphs.
+	scheduleFontSettleRefit(
+		paneId,
+		onDeferredResize
+			? () => {
+					const live = cache.get(paneId);
+					if (!live) return;
+					onDeferredResize({ cols: live.xterm.cols, rows: live.xterm.rows });
+				}
+			: undefined,
+	);
 
 	return {
 		cols: xterm.cols,
