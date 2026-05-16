@@ -23,6 +23,7 @@ import {
 } from "../utils/db-helpers";
 import {
 	createWorktreeFromPr,
+	type ExternalWorktree,
 	generateBranchName,
 	getBranchWorktreePath,
 	getCurrentBranch,
@@ -115,6 +116,111 @@ function upsertImportedExternalWorktree({
 		})
 		.returning()
 		.get();
+}
+
+function getActiveWorktreeIds(projectId: string): Set<string> {
+	const activeWorkspaceRows = localDb
+		.select({ worktreeId: workspaces.worktreeId })
+		.from(workspaces)
+		.where(
+			and(eq(workspaces.projectId, projectId), isNull(workspaces.deletingAt)),
+		)
+		.all();
+
+	return new Set(
+		activeWorkspaceRows
+			.map((workspace) => workspace.worktreeId)
+			.filter((worktreeId): worktreeId is string => Boolean(worktreeId)),
+	);
+}
+
+function insertImportedWorktreeWorkspace({
+	projectId,
+	worktreeId,
+	branch,
+	isUnnamed,
+}: {
+	projectId: string;
+	worktreeId: string;
+	branch: string;
+	isUnnamed?: boolean;
+}) {
+	const maxTabOrder = getMaxProjectChildTabOrder(projectId);
+	localDb
+		.insert(workspaces)
+		.values({
+			projectId,
+			worktreeId,
+			type: "worktree",
+			branch,
+			name: branch,
+			...(isUnnamed ? { isUnnamed } : {}),
+			tabOrder: maxTabOrder + 1,
+		})
+		.run();
+}
+
+async function importLiveExternalWorktrees({
+	project,
+	allExternalWorktrees,
+	projectWorktrees,
+	activeWorktreeIds,
+	compareBaseBranch,
+	requested,
+}: {
+	project: typeof projects.$inferSelect;
+	allExternalWorktrees: ExternalWorktree[];
+	projectWorktrees: (typeof worktrees.$inferSelect)[];
+	activeWorktreeIds: Set<string>;
+	compareBaseBranch: string;
+	requested?: Set<string>;
+}): Promise<number> {
+	const externalWorktrees = selectExternalWorktreesForImport(
+		allExternalWorktrees,
+		{
+			mainRepoPath: project.mainRepoPath,
+			requested,
+		},
+	);
+
+	let imported = 0;
+	for (const ext of externalWorktrees) {
+		// biome-ignore lint/style/noNonNullAssertion: filtered above
+		const branch = ext.branch!;
+		const existingWorktree = projectWorktrees.find(
+			(wt) => wt.path === ext.path,
+		);
+		if (existingWorktree && activeWorktreeIds.has(existingWorktree.id)) {
+			continue;
+		}
+
+		const worktree = upsertImportedExternalWorktree({
+			projectId: project.id,
+			path: ext.path,
+			branch,
+			baseBranch: compareBaseBranch,
+			existingWorktree,
+		});
+
+		insertImportedWorktreeWorkspace({
+			projectId: project.id,
+			worktreeId: worktree.id,
+			branch,
+		});
+
+		await setBranchBaseConfig({
+			repoPath: project.mainRepoPath,
+			branch,
+			compareBaseBranch,
+			isExplicit: false,
+		});
+
+		copySupersetConfigToWorktree(project.mainRepoPath, ext.path);
+		activeWorktreeIds.add(worktree.id);
+		imported++;
+	}
+
+	return imported;
 }
 
 interface PrWorkspaceResult {
@@ -901,21 +1007,7 @@ export const createCreateProcedures = () => {
 					.from(worktrees)
 					.where(eq(worktrees.projectId, input.projectId))
 					.all();
-				const activeWorkspaceRows = localDb
-					.select({ worktreeId: workspaces.worktreeId })
-					.from(workspaces)
-					.where(
-						and(
-							eq(workspaces.projectId, input.projectId),
-							isNull(workspaces.deletingAt),
-						),
-					)
-					.all();
-				const activeWorktreeIds = new Set(
-					activeWorkspaceRows
-						.map((workspace) => workspace.worktreeId)
-						.filter((worktreeId): worktreeId is string => Boolean(worktreeId)),
-				);
+				const activeWorktreeIds = getActiveWorktreeIds(input.projectId);
 
 				for (const wt of projectWorktrees) {
 					if (activeWorktreeIds.has(wt.id)) continue;
@@ -930,74 +1022,23 @@ export const createCreateProcedures = () => {
 						continue;
 					}
 
-					const maxTabOrder = getMaxProjectChildTabOrder(input.projectId);
-					localDb
-						.insert(workspaces)
-						.values({
-							projectId: input.projectId,
-							worktreeId: wt.id,
-							type: "worktree",
-							branch: wt.branch,
-							name: wt.branch,
-							isUnnamed: true,
-							tabOrder: maxTabOrder + 1,
-						})
-						.run();
-
+					insertImportedWorktreeWorkspace({
+						projectId: input.projectId,
+						worktreeId: wt.id,
+						branch: wt.branch,
+						isUnnamed: true,
+					});
 					activeWorktreeIds.add(wt.id);
 					imported++;
 				}
 
-				// 2. Import live git worktrees that are not already active.
-				const externalWorktrees = selectExternalWorktreesForImport(
+				imported += await importLiveExternalWorktrees({
+					project,
 					allExternalWorktrees,
-					{
-						mainRepoPath: project.mainRepoPath,
-					},
-				);
-
-				for (const ext of externalWorktrees) {
-					// biome-ignore lint/style/noNonNullAssertion: filtered above
-					const branch = ext.branch!;
-					const existingWorktree = projectWorktrees.find(
-						(wt) => wt.path === ext.path,
-					);
-					if (existingWorktree && activeWorktreeIds.has(existingWorktree.id)) {
-						continue;
-					}
-
-					const worktree = upsertImportedExternalWorktree({
-						projectId: input.projectId,
-						path: ext.path,
-						branch,
-						baseBranch: compareBaseBranch,
-						existingWorktree,
-					});
-
-					const maxTabOrder = getMaxProjectChildTabOrder(input.projectId);
-					localDb
-						.insert(workspaces)
-						.values({
-							projectId: input.projectId,
-							worktreeId: worktree.id,
-							type: "worktree",
-							branch,
-							name: branch,
-							tabOrder: maxTabOrder + 1,
-						})
-						.run();
-
-					await setBranchBaseConfig({
-						repoPath: project.mainRepoPath,
-						branch,
-						compareBaseBranch,
-						isExplicit: false,
-					});
-
-					copySupersetConfigToWorktree(project.mainRepoPath, ext.path);
-					activeWorktreeIds.add(worktree.id);
-					imported++;
-				}
+					projectWorktrees,
+					activeWorktreeIds,
+					compareBaseBranch,
+				});
 
 				if (imported > 0) {
 					activateProject(project);
@@ -1037,73 +1078,14 @@ export const createCreateProcedures = () => {
 					.from(worktrees)
 					.where(eq(worktrees.projectId, input.projectId))
 					.all();
-				const activeWorkspaceRows = localDb
-					.select({ worktreeId: workspaces.worktreeId })
-					.from(workspaces)
-					.where(
-						and(
-							eq(workspaces.projectId, input.projectId),
-							isNull(workspaces.deletingAt),
-						),
-					)
-					.all();
-				const activeWorktreeIds = new Set(
-					activeWorkspaceRows
-						.map((workspace) => workspace.worktreeId)
-						.filter((worktreeId): worktreeId is string => Boolean(worktreeId)),
-				);
-
-				const externalWorktrees = selectExternalWorktreesForImport(
+				const imported = await importLiveExternalWorktrees({
+					project,
 					allExternalWorktrees,
-					{
-						mainRepoPath: project.mainRepoPath,
-						requested: new Set(input.paths),
-					},
-				);
-
-				let imported = 0;
-				for (const ext of externalWorktrees) {
-					// biome-ignore lint/style/noNonNullAssertion: filtered above
-					const branch = ext.branch!;
-					const existingWorktree = projectWorktrees.find(
-						(wt) => wt.path === ext.path,
-					);
-					if (existingWorktree && activeWorktreeIds.has(existingWorktree.id)) {
-						continue;
-					}
-
-					const worktree = upsertImportedExternalWorktree({
-						projectId: input.projectId,
-						path: ext.path,
-						branch,
-						baseBranch: compareBaseBranch,
-						existingWorktree,
-					});
-
-					const maxTabOrder = getMaxProjectChildTabOrder(input.projectId);
-					localDb
-						.insert(workspaces)
-						.values({
-							projectId: input.projectId,
-							worktreeId: worktree.id,
-							type: "worktree",
-							branch,
-							name: branch,
-							tabOrder: maxTabOrder + 1,
-						})
-						.run();
-
-					await setBranchBaseConfig({
-						repoPath: project.mainRepoPath,
-						branch,
-						compareBaseBranch,
-						isExplicit: false,
-					});
-
-					copySupersetConfigToWorktree(project.mainRepoPath, ext.path);
-					activeWorktreeIds.add(worktree.id);
-					imported++;
-				}
+					projectWorktrees,
+					activeWorktreeIds: getActiveWorktreeIds(input.projectId),
+					compareBaseBranch,
+					requested: new Set(input.paths),
+				});
 
 				if (imported > 0) {
 					activateProject(project);
