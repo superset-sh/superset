@@ -11,7 +11,7 @@ export default command({
 		project: string().required().desc("Project ID"),
 		name: string().required().desc("Workspace name"),
 		branch: string().desc("Git branch (required unless --pr is set)"),
-		pr: number().desc("PR number — derives branch via gh pr checkout"),
+		pr: number().desc("PR number — checks out the verified PR head"),
 		baseBranch: string().desc(
 			"Branch to fork from when `branch` does not exist (defaults to project default)",
 		),

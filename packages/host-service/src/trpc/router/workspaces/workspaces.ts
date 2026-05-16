@@ -32,13 +32,10 @@ import {
 	type GeneratedWorkspaceNames,
 	generateWorkspaceNamesFromPrompt,
 } from "../workspace-creation/utils/ai-workspace-names";
-import { execGh } from "../workspace-creation/utils/exec-gh";
+import type { ExecGh } from "../workspace-creation/utils/exec-gh";
 import { listBranchNames } from "../workspace-creation/utils/list-branch-names";
+import { materializePrBranch } from "../workspace-creation/utils/pr-branch-materialize";
 import { derivePrLocalBranchName } from "../workspace-creation/utils/pr-branch-name";
-import {
-	getErrorMessage,
-	recoverPrCheckoutAfterGhFailure,
-} from "../workspace-creation/utils/pr-checkout-recovery";
 import { resolveStartPoint } from "../workspace-creation/utils/resolve-start-point";
 import { deduplicateBranchName } from "../workspace-creation/utils/sanitize-branch";
 
@@ -128,8 +125,9 @@ interface PrMetadata {
 async function fetchPrMetadata(args: {
 	cwd: string;
 	prNumber: number;
+	execGh: ExecGh;
 }): Promise<PrMetadata> {
-	const result = await execGh(
+	const result = await args.execGh(
 		[
 			"pr",
 			"view",
@@ -545,6 +543,7 @@ export const workspacesRouter = router({
 				prMetadata = await fetchPrMetadata({
 					cwd: localProject.repoPath,
 					prNumber: input.pr,
+					execGh: ctx.execGh,
 				});
 				resolvedBranch = derivePrLocalBranchName(prMetadata);
 
@@ -637,57 +636,35 @@ export const workspacesRouter = router({
 								});
 							}
 						} else {
+							let attemptedWorktreeAdd = false;
 							try {
-								await git.raw(["worktree", "add", "--detach", worktreePath]);
+								const materialized = await materializePrBranch({
+									git,
+									branch: resolvedBranch,
+									remoteName: localProject.remoteName ?? "origin",
+									pr: prMetadata,
+								});
+								if (materialized.warning) {
+									console.warn(`[workspaces.create] ${materialized.warning}`);
+								}
+								attemptedWorktreeAdd = true;
+								await git.raw([
+									"worktree",
+									"add",
+									worktreePath,
+									resolvedBranch,
+								]);
 							} catch (err) {
+								if (attemptedWorktreeAdd) {
+									await rollbackWorktree();
+								}
 								throw new TRPCError({
 									code: "CONFLICT",
 									message:
 										err instanceof Error
 											? err.message
-											: "Failed to add detached worktree",
+											: "Failed to prepare PR worktree",
 								});
-							}
-
-							try {
-								await execGh(
-									[
-										"pr",
-										"checkout",
-										String(input.pr),
-										"--branch",
-										resolvedBranch,
-										"--force",
-									],
-									{ cwd: worktreePath, timeout: 120_000 },
-								);
-							} catch (err) {
-								let recoveryError: unknown = null;
-								let recovered = false;
-								try {
-									const recovery = await recoverPrCheckoutAfterGhFailure({
-										git,
-										worktreePath,
-										branch: resolvedBranch,
-										prNumber: input.pr,
-										remoteName: localProject.remoteName ?? "origin",
-										expectedHeadOid: prMetadata.headRefOid,
-										error: err,
-									});
-									recovered = recovery.recovered;
-								} catch (e) {
-									recoveryError = e;
-								}
-								if (!recovered) {
-									await rollbackWorktree();
-									const recoveryMessage = recoveryError
-										? ` Recovery via refs/pull/${input.pr}/head also failed: ${getErrorMessage(recoveryError)}`
-										: "";
-									throw new TRPCError({
-										code: "INTERNAL_SERVER_ERROR",
-										message: `gh pr checkout failed: ${err instanceof Error ? err.message : String(err)}${recoveryMessage}`,
-									});
-								}
 							}
 						}
 

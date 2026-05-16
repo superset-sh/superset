@@ -36,7 +36,7 @@ superset workspaces update <id> --name "..."
 superset workspaces delete <id> [<id>...]
 ```
 
-Provide exactly one of `--branch` or `--pr`. With `--pr`, the host runs `gh pr checkout`. `--base-branch <name>` is the fork point when `--branch` doesn't exist yet.
+Provide exactly one of `--branch` or `--pr`. With `--pr`, the host checks out the verified PR head and derives the branch. `--base-branch <name>` is the fork point when `--branch` doesn't exist yet.
 
 ## Agents
 
