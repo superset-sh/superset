@@ -192,7 +192,7 @@ describe("HostServiceCoordinator.tryAdopt — adoption health check", () => {
 		expect(conn.port).toBe(60000);
 	});
 
-	test("adopts a healthy service when only the app-version changed", async () => {
+	test("kills and respawns when app-version changed even if the service is healthy", async () => {
 		manifestStore.current = {
 			...baseManifest(5555),
 			spawnedByAppVersion: "0.9.0",
@@ -202,12 +202,11 @@ describe("HostServiceCoordinator.tryAdopt — adoption health check", () => {
 		const conn = await coordinator.start("org-1", spawnConfig);
 
 		expect(pollHealthCheckMock).toHaveBeenCalledTimes(1);
-		expect(killedPids).toHaveLength(0);
-		expect(removeManifestMock).not.toHaveBeenCalled();
-		expect(spawnMock).not.toHaveBeenCalled();
-		expect(conn.port).toBe(55555);
-		expect(conn.secret).toBe("manifest-secret");
-		expect(coordinator.getProcessStatus("org-1")).toBe("running");
+		expect(killedPids).toContainEqual({ pid: 5555, signal: "SIGKILL" });
+		expect(removeManifestMock).toHaveBeenCalledTimes(1);
+		expect(spawnMock).toHaveBeenCalledTimes(1);
+		expect(conn.port).toBe(60000);
+		expect(conn.secret).toBe("fresh-secret");
 	});
 
 	test("kills and respawns when host-service version changed even if the service is healthy", async () => {
@@ -259,7 +258,7 @@ describe("HostServiceCoordinator.tryAdopt — adoption health check", () => {
 		expect(conn.secret).toBe("fresh-secret");
 	});
 
-	test("kills an unhealthy app-version mismatch with SIGKILL after health check", async () => {
+	test("removes an unhealthy app-version mismatch without killing when health does not verify", async () => {
 		manifestStore.current = {
 			...baseManifest(5556),
 			spawnedByAppVersion: "0.9.0",
@@ -269,13 +268,13 @@ describe("HostServiceCoordinator.tryAdopt — adoption health check", () => {
 		const conn = await coordinator.start("org-1", spawnConfig);
 
 		expect(pollHealthCheckMock).toHaveBeenCalledTimes(1);
-		expect(killedPids).toContainEqual({ pid: 5556, signal: "SIGKILL" });
+		expect(killedPids).toHaveLength(0);
 		expect(removeManifestMock).toHaveBeenCalledTimes(1);
 		expect(spawnMock).toHaveBeenCalledTimes(1);
 		expect(conn.port).toBe(60000);
 	});
 
-	test("adopts a healthy pre-upgrade manifest with no recorded app version", async () => {
+	test("kills and respawns a healthy pre-upgrade manifest with no recorded app version", async () => {
 		manifestStore.current = {
 			...baseManifest(5557),
 			spawnedByAppVersion: "",
@@ -285,15 +284,14 @@ describe("HostServiceCoordinator.tryAdopt — adoption health check", () => {
 		const conn = await coordinator.start("org-1", spawnConfig);
 
 		expect(pollHealthCheckMock).toHaveBeenCalledTimes(1);
-		expect(killedPids).toHaveLength(0);
-		expect(removeManifestMock).not.toHaveBeenCalled();
-		expect(spawnMock).not.toHaveBeenCalled();
-		expect(conn.port).toBe(55555);
-		expect(conn.secret).toBe("manifest-secret");
-		expect(coordinator.getProcessStatus("org-1")).toBe("running");
+		expect(killedPids).toContainEqual({ pid: 5557, signal: "SIGKILL" });
+		expect(removeManifestMock).toHaveBeenCalledTimes(1);
+		expect(spawnMock).toHaveBeenCalledTimes(1);
+		expect(conn.port).toBe(60000);
+		expect(conn.secret).toBe("fresh-secret");
 	});
 
-	test("kills an unhealthy pre-upgrade manifest with SIGKILL after health check", async () => {
+	test("removes an unhealthy pre-upgrade manifest without killing when health does not verify", async () => {
 		manifestStore.current = {
 			...baseManifest(5558),
 			spawnedByAppVersion: "",
@@ -303,7 +301,7 @@ describe("HostServiceCoordinator.tryAdopt — adoption health check", () => {
 		const conn = await coordinator.start("org-1", spawnConfig);
 
 		expect(pollHealthCheckMock).toHaveBeenCalledTimes(1);
-		expect(killedPids).toContainEqual({ pid: 5558, signal: "SIGKILL" });
+		expect(killedPids).toHaveLength(0);
 		expect(removeManifestMock).toHaveBeenCalledTimes(1);
 		expect(spawnMock).toHaveBeenCalledTimes(1);
 		expect(conn.port).toBe(60000);

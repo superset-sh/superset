@@ -332,25 +332,14 @@ export class HostServiceCoordinator extends EventEmitter {
 		const url = new URL(manifest.endpoint);
 		const port = Number(url.port);
 
-		const versionMismatchReason =
-			this.getHostServiceVersionMismatchReason(manifest);
-		if (versionMismatchReason) {
+		const staleManifestReason = this.getStaleManifestReason(manifest);
+		if (staleManifestReason) {
 			await this.rejectStaleManifest(
 				organizationId,
 				manifest,
-				versionMismatchReason,
+				staleManifestReason,
 			);
 			return null;
-		}
-
-		const currentAppVersion = app.getVersion();
-		if (manifest.spawnedByAppVersion !== currentAppVersion) {
-			const reason = manifest.spawnedByAppVersion
-				? `spawned by app ${manifest.spawnedByAppVersion} != current ${currentAppVersion}`
-				: "no recorded app version (pre-upgrade manifest)";
-			log.info(
-				`[host-service:${organizationId}] Adopted service ${reason}, checking health before reuse`,
-			);
 		}
 
 		// A live pid is not the same as a serving host-service — the process can
@@ -381,15 +370,27 @@ export class HostServiceCoordinator extends EventEmitter {
 		return { port, secret: manifest.authToken, machineId: this.machineId };
 	}
 
-	private getHostServiceVersionMismatchReason(
-		manifest: HostServiceManifest,
-	): string | null {
-		if (manifest.hostServiceVersion === CURRENT_HOST_SERVICE_VERSION)
-			return null;
+	private getStaleManifestReason(manifest: HostServiceManifest): string | null {
+		const reasons: string[] = [];
+		const currentAppVersion = app.getVersion();
 
-		return manifest.hostServiceVersion
-			? `host-service ${manifest.hostServiceVersion} != current ${CURRENT_HOST_SERVICE_VERSION}`
-			: `no recorded host-service version; current ${CURRENT_HOST_SERVICE_VERSION}`;
+		if (manifest.spawnedByAppVersion !== currentAppVersion) {
+			reasons.push(
+				manifest.spawnedByAppVersion
+					? `spawned by app ${manifest.spawnedByAppVersion} != current ${currentAppVersion}`
+					: "no recorded app version (pre-upgrade manifest)",
+			);
+		}
+
+		if (manifest.hostServiceVersion !== CURRENT_HOST_SERVICE_VERSION) {
+			reasons.push(
+				manifest.hostServiceVersion
+					? `host-service ${manifest.hostServiceVersion} != current ${CURRENT_HOST_SERVICE_VERSION}`
+					: `no recorded host-service version; current ${CURRENT_HOST_SERVICE_VERSION}`,
+			);
+		}
+
+		return reasons.length > 0 ? reasons.join("; ") : null;
 	}
 
 	private checkManifestHealth(manifest: HostServiceManifest): Promise<boolean> {
