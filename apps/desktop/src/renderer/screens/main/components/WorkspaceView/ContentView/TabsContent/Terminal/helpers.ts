@@ -131,6 +131,7 @@ export function createTerminalInWrapper(options: CreateTerminalOptions = {}): {
 		try {
 			webglAddon = new WebglAddon();
 			webglAddon.onContextLoss(() => {
+				suggestedRendererType = "dom";
 				webglAddon?.dispose();
 				webglAddon = null;
 				xterm.refresh(0, xterm.rows - 1);
