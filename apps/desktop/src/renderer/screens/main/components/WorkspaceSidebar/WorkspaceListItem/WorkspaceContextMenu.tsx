@@ -55,6 +55,7 @@ interface WorkspaceContextMenuProps {
 	onSetUnread: (isUnread: boolean) => void;
 	onResetStatus: () => void;
 	onDelete: () => void;
+	onBulkDelete: (workspaceIds: string[]) => void;
 	children: React.ReactNode;
 }
 
@@ -74,6 +75,7 @@ export function WorkspaceContextMenu({
 	onSetUnread,
 	onResetStatus,
 	onDelete,
+	onBulkDelete,
 	children,
 }: WorkspaceContextMenuProps) {
 	const [isContextMenuOpen, setIsContextMenuOpen] = useState(false);
@@ -201,11 +203,20 @@ export function WorkspaceContextMenu({
 			<ContextMenuSeparator />
 			<ContextMenuItem
 				onSelect={() => {
-					deleteDialogCoordinator.requestOpenDeleteDialog();
+					const captured = contextMenuSelectionRef.current;
+					if (captured.length > 1) {
+						onBulkDelete(captured);
+					} else {
+						deleteDialogCoordinator.requestOpenDeleteDialog();
+					}
 				}}
 			>
 				<LuX className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
-				{isBranchWorkspace ? "Close Workspace" : "Close Worktree"}
+				{contextMenuSelectionRef.current.length > 1
+					? `Close ${contextMenuSelectionRef.current.length} Workspaces`
+					: isBranchWorkspace
+						? "Close Workspace"
+						: "Close Worktree"}
 			</ContextMenuItem>
 		</>
 	);

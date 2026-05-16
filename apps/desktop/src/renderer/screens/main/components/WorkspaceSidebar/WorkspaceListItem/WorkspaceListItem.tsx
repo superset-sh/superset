@@ -3,7 +3,7 @@ import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { useMatchRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { HiMiniXMark } from "react-icons/hi2";
 import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
 import { HotkeyLabel } from "renderer/hotkeys";
@@ -21,7 +21,10 @@ import { extractPaneIdsFromLayout } from "renderer/stores/tabs/utils";
 import { useWorkspaceSelectionStore } from "renderer/stores/workspace-selection";
 import { getHighestPriorityStatus } from "shared/tabs-types";
 import { CollapsedWorkspaceItem } from "./CollapsedWorkspaceItem";
-import { DeleteWorkspaceDialog } from "./components";
+import {
+	BulkDeleteWorkspacesDialog,
+	DeleteWorkspaceDialog,
+} from "./components";
 import {
 	GITHUB_STATUS_STALE_TIME,
 	MAX_KEYBOARD_SHORTCUT_INDEX,
@@ -155,6 +158,8 @@ export function WorkspaceListItem({
 
 	const { showDeleteDialog, setShowDeleteDialog, handleDeleteClick } =
 		useWorkspaceDeleteHandler();
+	const [bulkDeleteIds, setBulkDeleteIds] = useState<string[]>([]);
+	const showBulkDeleteDialog = bulkDeleteIds.length > 0;
 	const { status: localChanges } = useGitChangesStatus({
 		worktreePath,
 		enabled: hasHovered && !!worktreePath,
@@ -247,6 +252,10 @@ export function WorkspaceListItem({
 		if (!branch) return;
 		await copyToClipboard(branch);
 		toast.success("Branch name copied to clipboard");
+	};
+
+	const handleBulkDelete = (workspaceIds: string[]) => {
+		setBulkDeleteIds(workspaceIds);
 	};
 
 	const pr = githubStatus?.pr;
@@ -478,6 +487,7 @@ export function WorkspaceListItem({
 				onSetUnread={(unread) => setUnread.mutate({ id, isUnread: unread })}
 				onResetStatus={() => resetWorkspaceStatus(id)}
 				onDelete={handleDeleteClick}
+				onBulkDelete={handleBulkDelete}
 			>
 				{content}
 			</WorkspaceContextMenu>
@@ -487,6 +497,13 @@ export function WorkspaceListItem({
 				workspaceType={type}
 				open={showDeleteDialog}
 				onOpenChange={setShowDeleteDialog}
+			/>
+			<BulkDeleteWorkspacesDialog
+				workspaceIds={bulkDeleteIds}
+				open={showBulkDeleteDialog}
+				onOpenChange={(open) => {
+					if (!open) setBulkDeleteIds([]);
+				}}
 			/>
 		</>
 	);
