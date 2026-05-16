@@ -570,7 +570,10 @@ export const v2WorkspaceRouter = {
 					message: MAIN_WORKSPACE_DELETE_MESSAGE,
 				});
 			}
-			await dbWs.delete(v2Workspaces).where(eq(v2Workspaces.id, workspace.id));
+			const txid = await dbWs.transaction(async (tx) => {
+				await tx.delete(v2Workspaces).where(eq(v2Workspaces.id, workspace.id));
+				return getCurrentTxid(tx);
+			});
 
 			posthog.capture({
 				distinctId: ctx.userId,
@@ -585,7 +588,7 @@ export const v2WorkspaceRouter = {
 				},
 			});
 
-			return { success: true, alreadyGone: false as const };
+			return { success: true, alreadyGone: false as const, txid };
 		}),
 
 	// Main workspaces are not normal delete targets. This endpoint is reserved
@@ -624,7 +627,10 @@ export const v2WorkspaceRouter = {
 					message: "Workspace is not a main workspace",
 				});
 			}
-			await dbWs.delete(v2Workspaces).where(eq(v2Workspaces.id, workspace.id));
-			return { success: true, alreadyGone: false as const };
+			const txid = await dbWs.transaction(async (tx) => {
+				await tx.delete(v2Workspaces).where(eq(v2Workspaces.id, workspace.id));
+				return getCurrentTxid(tx);
+			});
+			return { success: true, alreadyGone: false as const, txid };
 		}),
 } satisfies TRPCRouterRecord;

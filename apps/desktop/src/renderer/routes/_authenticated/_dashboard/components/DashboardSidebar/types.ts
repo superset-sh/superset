@@ -41,6 +41,7 @@ export interface DashboardSidebarWorkspace {
 	createdAt: Date;
 	updatedAt: Date;
 	taskId: string | null;
+	isSynced: boolean;
 }
 
 export interface DashboardSidebarSection {

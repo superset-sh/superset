@@ -222,6 +222,7 @@ export function useDashboardSidebarData() {
 					taskId: workspaces.taskId,
 					createdAt: workspaces.createdAt,
 					updatedAt: workspaces.updatedAt,
+					isSynced: workspaces.$synced,
 					tabOrder: sidebarWorkspaces.sidebarState.tabOrder,
 					sectionId: sidebarWorkspaces.sidebarState.sectionId,
 					isHidden: sidebarWorkspaces.sidebarState.isHidden,
@@ -262,6 +263,7 @@ export function useDashboardSidebarData() {
 					taskId: workspaces.taskId,
 					createdAt: workspaces.createdAt,
 					updatedAt: workspaces.updatedAt,
+					isSynced: workspaces.$synced,
 					tabOrder: MAIN_WORKSPACE_TAB_ORDER,
 					sectionId: null as string | null,
 				})),
@@ -282,12 +284,16 @@ export function useDashboardSidebarData() {
 		);
 		const autoLocalMainWorkspaces = localMainWorkspaces.filter(
 			(workspace) =>
+				workspace.isSynced &&
 				!localStateWorkspaceIds.has(workspace.id) &&
 				workspace.hostId === machineId &&
 				sidebarProjectIds.has(workspace.projectId),
 		);
 
-		return [...autoLocalMainWorkspaces, ...sidebarWorkspaces];
+		return [
+			...autoLocalMainWorkspaces,
+			...sidebarWorkspaces.filter((workspace) => workspace.isSynced),
+		];
 	}, [
 		localMainWorkspaces,
 		localStateWorkspaceIds,
@@ -432,6 +438,7 @@ export function useDashboardSidebarData() {
 				createdAt: workspace.createdAt,
 				updatedAt: workspace.updatedAt,
 				taskId: workspace.taskId,
+				isSynced: workspace.isSynced,
 			};
 
 			if (workspace.sectionId) {

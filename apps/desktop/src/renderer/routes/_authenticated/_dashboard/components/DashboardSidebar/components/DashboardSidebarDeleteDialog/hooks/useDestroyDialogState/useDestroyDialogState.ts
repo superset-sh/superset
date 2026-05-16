@@ -10,6 +10,11 @@ import {
 } from "renderer/hooks/host-service/useDestroyWorkspace";
 import { useV2UserPreferences } from "renderer/hooks/useV2UserPreferences/useV2UserPreferences";
 import { useNavigateAwayFromWorkspace } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/hooks/useNavigateAwayFromWorkspace";
+import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import {
+	type AppCollections,
+	ELECTRIC_WRITE_SYNC_TIMEOUT_MS,
+} from "renderer/routes/_authenticated/providers/CollectionsProvider/collections";
 import { useDeletingWorkspaces } from "renderer/routes/_authenticated/providers/DeletingWorkspacesProvider";
 
 interface UseDestroyDialogStateOptions {
@@ -26,6 +31,42 @@ type InspectState =
 	| { status: "ready"; preview: DestroyWorkspacePreview }
 	| { status: "error" };
 
+function waitForWorkspaceDeleted(
+	collection: AppCollections["v2Workspaces"],
+	workspaceId: string,
+): Promise<void> {
+	if (!collection.get(workspaceId)) {
+		return Promise.resolve();
+	}
+
+	return new Promise((resolve, reject) => {
+		let settled = false;
+		const timeoutId = setTimeout(() => {
+			if (settled) return;
+			settled = true;
+			subscription.unsubscribe();
+			reject(
+				new Error(
+					`Workspace ${workspaceId} deletion did not sync to the local collection`,
+				),
+			);
+		}, ELECTRIC_WRITE_SYNC_TIMEOUT_MS);
+
+		const finish = () => {
+			if (settled || collection.get(workspaceId)) return;
+			settled = true;
+			clearTimeout(timeoutId);
+			subscription.unsubscribe();
+			resolve();
+		};
+
+		const subscription = collection.subscribeChanges(finish, {
+			includeInitialState: false,
+		});
+		finish();
+	});
+}
+
 export function useDestroyDialogState({
 	workspaceId,
 	workspaceName,
@@ -34,6 +75,7 @@ export function useDestroyDialogState({
 	onDeleted,
 }: UseDestroyDialogStateOptions) {
 	const { destroy, inspect, hostTarget } = useDestroyWorkspace(workspaceId);
+	const collections = useCollections();
 	const { markDeleting, clearDeleting } = useDeletingWorkspaces();
 	const { navigateAwayFromWorkspace } = useNavigateAwayFromWorkspace();
 
@@ -136,6 +178,7 @@ export function useDestroyDialogState({
 						throw firstErr;
 					}
 				}
+				await waitForWorkspaceDeleted(collections.v2Workspaces, workspaceId);
 				for (const warning of result.warnings) toast.warning(warning);
 				onDeleted?.();
 			} catch (err) {
@@ -165,6 +208,7 @@ export function useDestroyDialogState({
 			markDeleting,
 			clearDeleting,
 			navigateAwayFromWorkspace,
+			collections,
 		],
 	);
 

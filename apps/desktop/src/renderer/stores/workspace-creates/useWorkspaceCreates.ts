@@ -9,8 +9,9 @@ import { authClient } from "renderer/lib/auth-client";
 import { getHostServiceUnavailableMessage } from "renderer/lib/host-service-unavailable";
 import type { PaneViewerData } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/types";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
-import type { AppCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider/collections";
 import {
+	type AppCollections,
+	ELECTRIC_WRITE_SYNC_TIMEOUT_MS,
 	WORKSPACE_CREATE_ROLLBACK_TO_CANONICAL_ID,
 	type WorkspaceCreateInsertMetadata,
 } from "renderer/routes/_authenticated/providers/CollectionsProvider/collections";
@@ -37,8 +38,6 @@ export interface UseWorkspaceCreatesApi {
 	submit: (args: SubmitArgs) => Promise<SubmitResult>;
 }
 
-const WORKSPACE_SYNC_TIMEOUT_MS = 5000;
-
 function waitForSyncedWorkspaceRow(
 	collection: AppCollections["v2Workspaces"],
 	workspaceId: string,
@@ -59,7 +58,7 @@ function waitForSyncedWorkspaceRow(
 					`Workspace ${workspaceId} did not sync to the local collection`,
 				),
 			);
-		}, WORKSPACE_SYNC_TIMEOUT_MS);
+		}, ELECTRIC_WRITE_SYNC_TIMEOUT_MS);
 
 		const finish = () => {
 			if (settled) return;
@@ -162,7 +161,14 @@ export function useWorkspaceCreates(): UseWorkspaceCreatesApi {
 			};
 
 			try {
-				if (collections.v2Workspaces.get(workspaceId)) {
+				const existingWorkspace = collections.v2Workspaces.get(workspaceId);
+				if (existingWorkspace) {
+					if (existingWorkspace.$synced !== true) {
+						await waitForSyncedWorkspaceRow(
+							collections.v2Workspaces,
+							workspaceId,
+						);
+					}
 					return {
 						ok: true,
 						workspaceId,
