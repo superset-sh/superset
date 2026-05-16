@@ -12,7 +12,7 @@ import {
 	touchWorkspace,
 	updateActiveWorkspaceIfRemoved,
 } from "./db-helpers";
-import { listExternalWorktrees, worktreeExists } from "./git";
+import { listExternalWorktrees } from "./git";
 import { pruneStaleTrackedWorktrees } from "./reconcile-tracked-worktrees";
 import { resolveWorktreePath } from "./resolve-worktree-path";
 import { copySupersetConfigToWorktree, loadSetupConfig } from "./setup";
@@ -294,13 +294,16 @@ export async function openExternalWorktree({
 		throw new Error(`Project ${projectId} not found`);
 	}
 
-	const exists = await worktreeExists(project.mainRepoPath, worktreePath);
+	const liveWorktrees = await listExternalWorktrees(project.mainRepoPath);
+	const exists = liveWorktrees.some(
+		(worktree) => worktree.path === worktreePath,
+	);
 	if (!exists) {
 		throw new Error("Worktree no longer exists on disk");
 	}
 	pruneStaleTrackedWorktrees({
 		projectId,
-		liveWorktrees: await listExternalWorktrees(project.mainRepoPath),
+		liveWorktrees,
 	});
 
 	const existingWorktree = localDb

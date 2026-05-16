@@ -1,16 +1,15 @@
 import { workspaces, worktrees } from "@superset/local-db";
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, inArray, isNull } from "drizzle-orm";
 import { localDb } from "main/lib/local-db";
 import type { ExternalWorktree } from "./git";
 import { getStaleTrackedWorktreeIds } from "./reconcile-tracked-worktrees-model";
 
-export function pruneStaleTrackedWorktrees({
-	projectId,
-	liveWorktrees,
-}: {
+interface ReconcileTrackedWorktreesArgs {
 	projectId: string;
 	liveWorktrees: ExternalWorktree[];
-}): void {
+}
+
+function getTrackedWorktreesForReconciliation(projectId: string) {
 	const projectWorktrees = localDb
 		.select({
 			id: worktrees.id,
@@ -22,7 +21,7 @@ export function pruneStaleTrackedWorktrees({
 		.all();
 
 	if (projectWorktrees.length === 0) {
-		return;
+		return [];
 	}
 
 	const activeWorkspaceRows = localDb
@@ -38,15 +37,47 @@ export function pruneStaleTrackedWorktrees({
 			.filter((worktreeId): worktreeId is string => Boolean(worktreeId)),
 	);
 
+	return projectWorktrees.map((worktree) => ({
+		...worktree,
+		hasActiveWorkspace: activeWorktreeIds.has(worktree.id),
+	}));
+}
+
+export function getTrackedPathsExcludingStaleWorktrees({
+	projectId,
+	liveWorktrees,
+}: ReconcileTrackedWorktreesArgs): Set<string> {
+	const trackedWorktrees = getTrackedWorktreesForReconciliation(projectId);
+
+	if (trackedWorktrees.length === 0) {
+		return new Set();
+	}
+
 	const staleIds = getStaleTrackedWorktreeIds({
-		trackedWorktrees: projectWorktrees.map((worktree) => ({
-			...worktree,
-			hasActiveWorkspace: activeWorktreeIds.has(worktree.id),
-		})),
+		trackedWorktrees,
+		liveWorktrees,
+	});
+	const staleIdSet = new Set(staleIds);
+
+	return new Set(
+		trackedWorktrees
+			.filter((worktree) => !staleIdSet.has(worktree.id))
+			.map((worktree) => worktree.path),
+	);
+}
+
+export function pruneStaleTrackedWorktrees({
+	projectId,
+	liveWorktrees,
+}: ReconcileTrackedWorktreesArgs): void {
+	const staleIds = getStaleTrackedWorktreeIds({
+		trackedWorktrees: getTrackedWorktreesForReconciliation(projectId),
 		liveWorktrees,
 	});
 
-	for (const worktreeId of staleIds) {
-		localDb.delete(worktrees).where(eq(worktrees.id, worktreeId)).run();
+	if (staleIds.length === 0) {
+		return;
 	}
+
+	localDb.delete(worktrees).where(inArray(worktrees.id, staleIds)).run();
 }
