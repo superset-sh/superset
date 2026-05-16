@@ -531,6 +531,7 @@ step_write_env() {
     write_env_var "NEXT_PUBLIC_ADMIN_URL" "http://localhost:$ADMIN_PORT"
     write_env_var "NEXT_PUBLIC_DOCS_URL" "http://localhost:$DOCS_PORT"
     write_env_var "NEXT_PUBLIC_DESKTOP_URL" "http://localhost:$DESKTOP_VITE_PORT"
+    write_env_var "NEXT_PUBLIC_RELAY_URL" "http://localhost:$RELAY_PORT"
     write_env_var "EXPO_PUBLIC_WEB_URL" "http://localhost:$WEB_PORT"
     write_env_var "EXPO_PUBLIC_API_URL" "http://localhost:$API_PORT"
     write_env_var "RELAY_URL" "http://localhost:$RELAY_PORT"
