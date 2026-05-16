@@ -218,8 +218,25 @@ describe("HostServiceCoordinator.tryAdopt — adoption health check", () => {
 
 		const conn = await coordinator.start("org-1", spawnConfig);
 
-		expect(pollHealthCheckMock).not.toHaveBeenCalled();
+		expect(pollHealthCheckMock).toHaveBeenCalledTimes(1);
 		expect(killedPids).toContainEqual({ pid: 5554, signal: "SIGKILL" });
+		expect(removeManifestMock).toHaveBeenCalledTimes(1);
+		expect(spawnMock).toHaveBeenCalledTimes(1);
+		expect(conn.port).toBe(60000);
+		expect(conn.secret).toBe("fresh-secret");
+	});
+
+	test("removes stale manifest without killing when version mismatch does not health-verify", async () => {
+		manifestStore.current = {
+			...baseManifest(5560),
+			hostServiceVersion: "0.8.5",
+		};
+		pollHealthCheckMock.mockImplementationOnce(() => Promise.resolve(false));
+
+		const conn = await coordinator.start("org-1", spawnConfig);
+
+		expect(pollHealthCheckMock).toHaveBeenCalledTimes(1);
+		expect(killedPids).toHaveLength(0);
 		expect(removeManifestMock).toHaveBeenCalledTimes(1);
 		expect(spawnMock).toHaveBeenCalledTimes(1);
 		expect(conn.port).toBe(60000);
@@ -234,7 +251,7 @@ describe("HostServiceCoordinator.tryAdopt — adoption health check", () => {
 
 		const conn = await coordinator.start("org-1", spawnConfig);
 
-		expect(pollHealthCheckMock).not.toHaveBeenCalled();
+		expect(pollHealthCheckMock).toHaveBeenCalledTimes(1);
 		expect(killedPids).toContainEqual({ pid: 5559, signal: "SIGKILL" });
 		expect(removeManifestMock).toHaveBeenCalledTimes(1);
 		expect(spawnMock).toHaveBeenCalledTimes(1);

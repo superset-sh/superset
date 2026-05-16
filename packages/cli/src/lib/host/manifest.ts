@@ -53,7 +53,11 @@ export function readManifest(
 	const path = manifestPath(organizationId);
 	if (!existsSync(path)) return null;
 	try {
-		return JSON.parse(readFileSync(path, "utf-8")) as HostServiceManifest;
+		const data = JSON.parse(readFileSync(path, "utf-8"));
+		if (typeof data.hostServiceVersion !== "string") {
+			data.hostServiceVersion = "";
+		}
+		return data as HostServiceManifest;
 	} catch {
 		return null;
 	}

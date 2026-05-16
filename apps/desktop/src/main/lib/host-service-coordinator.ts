@@ -336,10 +336,22 @@ export class HostServiceCoordinator extends EventEmitter {
 			const reason = manifest.hostServiceVersion
 				? `host-service ${manifest.hostServiceVersion} != current ${CURRENT_HOST_SERVICE_VERSION}`
 				: `no recorded host-service version; current ${CURRENT_HOST_SERVICE_VERSION}`;
-			log.info(
-				`[host-service:${organizationId}] Refusing to adopt stale service (${reason}); killing and respawning`,
+			const verified = await pollHealthCheck(
+				manifest.endpoint,
+				manifest.authToken,
+				ADOPT_HEALTH_CHECK_TIMEOUT_MS,
 			);
-			this.killManifestProcess(organizationId, manifest, "stale");
+			if (verified) {
+				log.info(
+					`[host-service:${organizationId}] Refusing to adopt stale service (${reason}); killing and respawning`,
+				);
+				this.killManifestProcess(organizationId, manifest, "stale");
+			} else {
+				log.warn(
+					`[host-service:${organizationId}] Stale manifest (${reason}) did not verify on ${manifest.endpoint}; removing manifest and respawning without kill`,
+				);
+				removeManifest(organizationId);
+			}
 			return null;
 		}
 
@@ -557,6 +569,7 @@ export class HostServiceCoordinator extends EventEmitter {
 			SUPERSET_AGENT_HOOK_PORT: String(sharedEnv.DESKTOP_NOTIFICATIONS_PORT),
 			SUPERSET_AGENT_HOOK_VERSION: HOOK_PROTOCOL_VERSION,
 			SUPERSET_APP_VERSION: app.getVersion(),
+			// Used by host-service terminal env for TERM_PROGRAM_VERSION.
 			HOST_SERVICE_VERSION: CURRENT_HOST_SERVICE_VERSION,
 			AUTH_TOKEN: config.authToken,
 			SUPERSET_API_URL: config.cloudApiUrl,
