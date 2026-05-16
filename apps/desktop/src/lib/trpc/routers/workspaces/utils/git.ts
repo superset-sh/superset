@@ -1,5 +1,6 @@
 import { execFile, spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
+import { existsSync } from "node:fs";
 import { mkdir, rename } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { promisify } from "node:util";
@@ -799,6 +800,13 @@ export async function worktreeExists(
 	worktreePath: string,
 ): Promise<boolean> {
 	try {
+		// If the directory was manually removed, treat the worktree as gone even
+		// if git still has metadata for it — otherwise callers run git inside a
+		// missing directory and fail (e.g. canDelete short-circuiting to false).
+		if (!existsSync(worktreePath)) {
+			return false;
+		}
+
 		const git = await getSimpleGitWithShellPath(mainRepoPath);
 		const worktrees = await git.raw(["worktree", "list", "--porcelain"]);
 

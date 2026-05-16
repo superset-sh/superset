@@ -18,6 +18,8 @@ import {
 	isUnbornHeadError,
 	parsePorcelainStatusV2,
 	parsePrUrl,
+	removeWorktree,
+	worktreeExists,
 } from "./git";
 
 const TEST_DIR = join(
@@ -961,4 +963,87 @@ describe("parsePrUrl", () => {
 			parsePrUrl("https://github.com/superset-sh/superset/issues/1781"),
 		).toBe(null);
 	});
+});
+
+describe("worktreeExists when worktree directory was manually removed (#4327)", () => {
+	beforeEach(() => {
+		mkdirSync(TEST_DIR, { recursive: true });
+	});
+
+	afterEach(() => {
+		if (existsSync(TEST_DIR)) {
+			rmSync(TEST_DIR, { recursive: true, force: true });
+		}
+	});
+
+	test("returns false when the worktree directory has been deleted but git metadata remains", async () => {
+		// Reproduces #4327: a workspace whose worktree directory was manually
+		// removed (e.g. `rm -rf`) cannot be deleted because canDelete short-circuits
+		// to canDelete:false. The root cause: worktreeExists() only inspects
+		// `git worktree list --porcelain` (which still lists the worktree as
+		// "prunable"), so it returns true. canDelete then proceeds to call
+		// hasUncommittedChanges() in the missing directory, git fails, and
+		// canDelete catches the error and refuses to delete.
+		const repoPath = createTestRepo("worktree-deleted-dir");
+		seedCommit(repoPath);
+
+		const worktreePath = join(TEST_DIR, "worktree-deleted-dir-wt");
+		execSync(`git worktree add "${worktreePath}" -b feat/deleted`, {
+			cwd: repoPath,
+			stdio: "ignore",
+		});
+		expect(existsSync(worktreePath)).toBe(true);
+
+		// Simulate the user manually removing the worktree directory.
+		rmSync(worktreePath, { recursive: true, force: true });
+		expect(existsSync(worktreePath)).toBe(false);
+
+		// Sanity: git still tracks it as prunable, so a naive porcelain match
+		// would still report the worktree as present.
+		const porcelain = execSync("git worktree list --porcelain", {
+			cwd: repoPath,
+		}).toString();
+		expect(porcelain).toContain(`worktree ${worktreePath}`);
+
+		// Expectation: worktreeExists should treat a missing-on-disk worktree
+		// as "does not exist" so that canDelete can return canDelete:true with
+		// a "manually removed" warning instead of trying to run git inside the
+		// deleted directory.
+		expect(await worktreeExists(repoPath, worktreePath)).toBe(false);
+	}, 10_000);
+
+	test("removeWorktree gracefully handles a missing worktree directory and prunes metadata", async () => {
+		const repoPath = createTestRepo("remove-worktree-missing");
+		seedCommit(repoPath);
+
+		const worktreePath = join(TEST_DIR, "remove-worktree-missing-wt");
+		execSync(`git worktree add "${worktreePath}" -b feat/missing`, {
+			cwd: repoPath,
+			stdio: "ignore",
+		});
+
+		rmSync(worktreePath, { recursive: true, force: true });
+
+		await expect(
+			removeWorktree(repoPath, worktreePath),
+		).resolves.toBeUndefined();
+
+		const porcelain = execSync("git worktree list --porcelain", {
+			cwd: repoPath,
+		}).toString();
+		expect(porcelain).not.toContain(`worktree ${worktreePath}`);
+	}, 10_000);
+
+	test("worktreeExists still returns true when the worktree directory is intact", async () => {
+		const repoPath = createTestRepo("worktree-intact");
+		seedCommit(repoPath);
+
+		const worktreePath = join(TEST_DIR, "worktree-intact-wt");
+		execSync(`git worktree add "${worktreePath}" -b feat/intact`, {
+			cwd: repoPath,
+			stdio: "ignore",
+		});
+
+		expect(await worktreeExists(repoPath, worktreePath)).toBe(true);
+	}, 10_000);
 });
