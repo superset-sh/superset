@@ -52,12 +52,16 @@ export function getV2NativeNotificationContent({
 	});
 	const tabLabel = getTabLabel(location.tab, paneLayout);
 	const bodyParts = [
+		`Workspace: ${workspaceLabel}`,
 		`Pane: ${paneLabel}`,
 		tabLabel ? `Tab: ${tabLabel}` : null,
 	].filter((part): part is string => Boolean(part));
 
 	return {
-		title: `${agentLabel} ${action} - ${workspaceLabel}`,
+		title:
+			agentLabel === "Agent"
+				? `Agent ${action}`
+				: `Agent ${action} - ${agentLabel}`,
 		body: bodyParts.join(" | "),
 	};
 }

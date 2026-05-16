@@ -54,8 +54,8 @@ describe("getV2NativeNotificationContent", () => {
 				paneLayout: layout,
 			}),
 		).toEqual({
-			title: "Codex Complete - Improve notifications",
-			body: "Pane: Test runner | Tab: Backend",
+			title: "Agent Complete - Codex",
+			body: "Workspace: Improve notifications | Pane: Test runner | Tab: Backend",
 		});
 	});
 
@@ -76,8 +76,8 @@ describe("getV2NativeNotificationContent", () => {
 				paneLayout: layout,
 			}),
 		).toMatchObject({
-			title: "Claude Needs Input - Improve notifications",
-			body: "Pane: Test runner | Tab: Backend",
+			title: "Agent Needs Input - Claude",
+			body: "Workspace: Improve notifications | Pane: Test runner | Tab: Backend",
 		});
 	});
 
@@ -94,8 +94,8 @@ describe("getV2NativeNotificationContent", () => {
 				terminalTitle: "deploy script",
 			}),
 		).toEqual({
-			title: "Droid Complete - Workspace",
-			body: "Pane: deploy script",
+			title: "Agent Complete - Droid",
+			body: "Workspace: Workspace | Pane: deploy script",
 		});
 
 		expect(
@@ -109,8 +109,8 @@ describe("getV2NativeNotificationContent", () => {
 				paneLayout: null,
 			}),
 		).toMatchObject({
-			title: "Agent Complete - Workspace",
-			body: "Pane: Terminal long-id",
+			title: "Agent Complete",
+			body: "Workspace: Workspace | Pane: Terminal long-id",
 		});
 	});
 });
