@@ -345,6 +345,7 @@ export async function openExternalWorktree({
 		.get();
 
 	if (existingWorktree) {
+		let refreshedBaseBranch: string | undefined;
 		const existingWorkspace = localDb
 			.select()
 			.from(workspaces)
@@ -363,10 +364,18 @@ export async function openExternalWorktree({
 				);
 			}
 
+			const knownBranches = await getKnownBranchesSafe(project.mainRepoPath);
+			refreshedBaseBranch = resolveWorkspaceBaseBranch({
+				workspaceBaseBranch: project.workspaceBaseBranch,
+				defaultBranch: project.defaultBranch,
+				knownBranches,
+			});
+
 			localDb
 				.update(worktrees)
 				.set({
 					branch,
+					baseBranch: refreshedBaseBranch,
 					gitStatus: {
 						branch,
 						needsRebase: false,
@@ -382,6 +391,7 @@ export async function openExternalWorktree({
 			existingWorktree = {
 				...existingWorktree,
 				branch,
+				baseBranch: refreshedBaseBranch,
 				gitStatus: {
 					branch,
 					needsRebase: false,
@@ -446,6 +456,15 @@ export async function openExternalWorktree({
 			worktreePath: existingWorktree.path,
 			projectId: project.id,
 		});
+
+		if (refreshedBaseBranch !== undefined) {
+			await setBranchBaseConfig({
+				repoPath: project.mainRepoPath,
+				branch: existingWorktree.branch,
+				compareBaseBranch: refreshedBaseBranch,
+				isExplicit: false,
+			});
+		}
 
 		track("workspace_opened", {
 			workspace_id: workspace.id,
