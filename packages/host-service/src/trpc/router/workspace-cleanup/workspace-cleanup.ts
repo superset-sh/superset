@@ -247,7 +247,9 @@ async function runDestroy(ctx: HostServiceContext, input: DestroyInput) {
 			message: "Cloud API not configured",
 		});
 	}
-	await ctx.api.v2Workspace.delete.mutate({ id: input.workspaceId });
+	const cloudDeleteResult = await ctx.api.v2Workspace.delete.mutate({
+		id: input.workspaceId,
+	});
 
 	// ─── Step 3: Local cleanup (best-effort) ───────────────────────
 	// Every failure in this phase is captured as a warning; the
@@ -341,6 +343,7 @@ async function runDestroy(ctx: HostServiceContext, input: DestroyInput) {
 	return {
 		success: true,
 		cloudDeleted: true,
+		cloudDeleteTxid: cloudDeleteResult.txid ?? null,
 		worktreeRemoved,
 		branchDeleted,
 		warnings,

@@ -174,7 +174,7 @@ export const v2HostRouter = {
 				});
 
 				if (!target) {
-					return await getCurrentTxid(tx);
+					return null;
 				}
 
 				if (target.role === "owner") {

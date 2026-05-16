@@ -10,8 +10,6 @@ import { getHostServiceUnavailableMessage } from "renderer/lib/host-service-unav
 import type { PaneViewerData } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/types";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import {
-	type AppCollections,
-	ELECTRIC_WRITE_SYNC_TIMEOUT_MS,
 	WORKSPACE_CREATE_ROLLBACK_TO_CANONICAL_ID,
 	type WorkspaceCreateInsertMetadata,
 } from "renderer/routes/_authenticated/providers/CollectionsProvider/collections";
@@ -19,6 +17,7 @@ import {
 	getPrependTabOrder,
 	isSidebarWorkspaceVisible,
 } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
+import { waitForSyncedWorkspaceRow } from "renderer/routes/_authenticated/providers/CollectionsProvider/workspaceSyncWaits";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { appendLaunchesToPaneLayout } from "./appendLaunchesToPaneLayout";
 
@@ -36,45 +35,6 @@ export type SubmitResult =
 
 export interface UseWorkspaceCreatesApi {
 	submit: (args: SubmitArgs) => Promise<SubmitResult>;
-}
-
-function waitForSyncedWorkspaceRow(
-	collection: AppCollections["v2Workspaces"],
-	workspaceId: string,
-): Promise<void> {
-	const current = collection.get(workspaceId);
-	if (current?.$synced === true) {
-		return Promise.resolve();
-	}
-
-	return new Promise((resolve, reject) => {
-		let settled = false;
-		const timeoutId = setTimeout(() => {
-			if (settled) return;
-			settled = true;
-			subscription.unsubscribe();
-			reject(
-				new Error(
-					`Workspace ${workspaceId} did not sync to the local collection`,
-				),
-			);
-		}, ELECTRIC_WRITE_SYNC_TIMEOUT_MS);
-
-		const finish = () => {
-			if (settled) return;
-			const row = collection.get(workspaceId);
-			if (row?.$synced !== true) return;
-			settled = true;
-			clearTimeout(timeoutId);
-			subscription.unsubscribe();
-			resolve();
-		};
-
-		const subscription = collection.subscribeChanges(finish, {
-			includeInitialState: false,
-		});
-		finish();
-	});
 }
 
 export function useWorkspaceCreates(): UseWorkspaceCreatesApi {

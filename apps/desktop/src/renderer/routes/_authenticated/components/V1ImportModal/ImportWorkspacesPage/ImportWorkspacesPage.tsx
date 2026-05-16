@@ -6,6 +6,8 @@ import { LuLayoutGrid } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
+import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { waitForSyncedWorkspaceRow } from "renderer/routes/_authenticated/providers/CollectionsProvider/workspaceSyncWaits";
 import { ImportPageShell } from "../components/ImportPageShell";
 import { ImportRow, type RowAction } from "../components/ImportRow";
 
@@ -40,6 +42,7 @@ export function ImportWorkspacesPage({
 }: ImportWorkspacesPageProps) {
 	const queryClient = useQueryClient();
 	const { ensureWorkspaceInSidebar } = useDashboardSidebarState();
+	const collections = useCollections();
 	const projectsQuery = electronTrpc.migration.readV1Projects.useQuery();
 	const workspacesQuery = electronTrpc.migration.readV1Workspaces.useQuery();
 	const worktreesQuery = electronTrpc.migration.readV1Worktrees.useQuery();
@@ -245,6 +248,10 @@ export function ImportWorkspacesPage({
 					}
 				}
 
+				await waitForSyncedWorkspaceRow(
+					collections.v2Workspaces,
+					result.workspace.id,
+				);
 				ensureWorkspaceInSidebar(result.workspace.id, v2ProjectId);
 				updateAdoptStatus(workspace.id, { kind: "imported" });
 				await queryClient.invalidateQueries({
@@ -264,6 +271,7 @@ export function ImportWorkspacesPage({
 		},
 		[
 			activeHostUrl,
+			collections,
 			ensureWorkspaceInSidebar,
 			organizationId,
 			queryClient,
