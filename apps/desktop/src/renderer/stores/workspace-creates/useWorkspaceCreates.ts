@@ -9,6 +9,7 @@ import { authClient } from "renderer/lib/auth-client";
 import { getHostServiceUnavailableMessage } from "renderer/lib/host-service-unavailable";
 import type { PaneViewerData } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/types";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import type { AppCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider/collections";
 import {
 	WORKSPACE_CREATE_ROLLBACK_TO_CANONICAL_ID,
 	type WorkspaceCreateInsertMetadata,
@@ -34,6 +35,47 @@ export type SubmitResult =
 
 export interface UseWorkspaceCreatesApi {
 	submit: (args: SubmitArgs) => Promise<SubmitResult>;
+}
+
+const WORKSPACE_SYNC_TIMEOUT_MS = 5000;
+
+function waitForSyncedWorkspaceRow(
+	collection: AppCollections["v2Workspaces"],
+	workspaceId: string,
+): Promise<void> {
+	const current = collection.get(workspaceId);
+	if (current?.$synced === true) {
+		return Promise.resolve();
+	}
+
+	return new Promise((resolve, reject) => {
+		let settled = false;
+		const timeoutId = setTimeout(() => {
+			if (settled) return;
+			settled = true;
+			subscription.unsubscribe();
+			reject(
+				new Error(
+					`Workspace ${workspaceId} did not sync to the local collection`,
+				),
+			);
+		}, WORKSPACE_SYNC_TIMEOUT_MS);
+
+		const finish = () => {
+			if (settled) return;
+			const row = collection.get(workspaceId);
+			if (row?.$synced !== true) return;
+			settled = true;
+			clearTimeout(timeoutId);
+			subscription.unsubscribe();
+			resolve();
+		};
+
+		const subscription = collection.subscribeChanges(finish, {
+			includeInitialState: false,
+		});
+		finish();
+	});
 }
 
 export function useWorkspaceCreates(): UseWorkspaceCreatesApi {
@@ -166,6 +208,10 @@ export function useWorkspaceCreates(): UseWorkspaceCreatesApi {
 				if (!metadata.result) {
 					throw new Error("Workspace creation did not return a result");
 				}
+				await waitForSyncedWorkspaceRow(
+					collections.v2Workspaces,
+					metadata.result.workspace.id,
+				);
 				writeWorkspaceLocalState(metadata.result);
 				return {
 					ok: true,

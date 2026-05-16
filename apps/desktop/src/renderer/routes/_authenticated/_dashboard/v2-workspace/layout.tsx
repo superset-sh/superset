@@ -60,7 +60,9 @@ function V2WorkspaceLayout() {
 		ensureWorkspaceInSidebar(workspace.id, workspace.projectId);
 	}, [ensureWorkspaceInSidebar, workspace]);
 
-	const hostStatus = useRemoteHostStatus(workspace);
+	const hostStatus = useRemoteHostStatus(
+		workspace?.isSynced === true ? workspace : null,
+	);
 
 	if (!workspaceId || !isReady || !workspaces) {
 		return <div className="flex h-full w-full" />;
@@ -68,6 +70,9 @@ function V2WorkspaceLayout() {
 
 	if (!workspace) {
 		return <WorkspaceNotFoundState workspaceId={workspaceId} />;
+	}
+	if (!workspace.isSynced) {
+		return <div className="flex h-full w-full" />;
 	}
 
 	if (hostStatus.status === "incompatible") {
