@@ -23,6 +23,7 @@ import {
 } from "../utils/db-helpers";
 import {
 	createWorktreeFromPr,
+	findMainRepoBranchPath,
 	generateBranchName,
 	getBranchWorktreePath,
 	getCurrentBranch,
@@ -36,6 +37,7 @@ import {
 	sanitizeBranchNameWithMaxLength,
 	worktreeExists,
 } from "../utils/git";
+import { recoverBranchWorkspace } from "../utils/recover-branch-workspace";
 import { resolveWorktreePath } from "../utils/resolve-worktree-path";
 import { selectExternalWorktreesForImport } from "../utils/select-external-worktrees-for-import";
 import { copySupersetConfigToWorktree, loadSetupConfig } from "../utils/setup";
@@ -328,6 +330,35 @@ export const createCreateProcedures = () => {
 						);
 					}
 
+					const mainRepoBranchPath = await findMainRepoBranchPath({
+						mainRepoPath: project.mainRepoPath,
+						branch: existingBranchName,
+					});
+					if (mainRepoBranchPath) {
+						// Branch is checked out at the main repo itself (e.g. user
+						// accidentally deleted the main workspace, issue #4523). Recover
+						// the branch workspace instead of refusing the request.
+						const recovered = recoverBranchWorkspace({
+							project,
+							branch: existingBranchName,
+							name: input.name,
+						});
+						track("workspace_created", {
+							workspace_id: recovered.workspace.id,
+							project_id: project.id,
+							branch: existingBranchName,
+							source: "main_repo_branch_recovery",
+						});
+						return {
+							workspace: recovered.workspace,
+							initialCommands: null,
+							worktreePath: recovered.worktreePath,
+							projectId: recovered.projectId,
+							isInitializing: false,
+							wasExisting: recovered.wasExisting,
+						};
+					}
+
 					const existingWorktreePath = await getBranchWorktreePath({
 						mainRepoPath: project.mainRepoPath,
 						branch: existingBranchName,
@@ -381,6 +412,37 @@ export const createCreateProcedures = () => {
 				}
 
 				if (input.branchName?.trim()) {
+					// The branch user typed might already be checked out at the main
+					// repo (e.g. mainline, after the user deleted the main workspace
+					// from the sidebar — issue #4523). Detect that and recover the
+					// branch workspace instead of falling through to a `git worktree
+					// add` that git would refuse.
+					const mainRepoBranchPath = await findMainRepoBranchPath({
+						mainRepoPath: project.mainRepoPath,
+						branch,
+					});
+					if (mainRepoBranchPath) {
+						const recovered = recoverBranchWorkspace({
+							project,
+							branch,
+							name: input.name,
+						});
+						track("workspace_created", {
+							workspace_id: recovered.workspace.id,
+							project_id: project.id,
+							branch,
+							source: "main_repo_branch_recovery",
+						});
+						return {
+							workspace: recovered.workspace,
+							initialCommands: null,
+							worktreePath: recovered.worktreePath,
+							projectId: recovered.projectId,
+							isInitializing: false,
+							wasExisting: recovered.wasExisting,
+						};
+					}
+
 					const existing = findWorktreeWorkspaceByBranch({
 						projectId: input.projectId,
 						branch,

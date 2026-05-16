@@ -1,5 +1,6 @@
 import { execFile, spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
+import { realpathSync } from "node:fs";
 import { mkdir, rename } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { promisify } from "node:util";
@@ -904,6 +905,38 @@ export async function getBranchWorktreePath({
 		console.error(`Failed to check branch worktree: ${error}`);
 		throw error;
 	}
+}
+
+function normalizePathForComparison(p: string): string {
+	try {
+		return realpathSync(p);
+	} catch {
+		return resolve(p);
+	}
+}
+
+/**
+ * Returns `mainRepoPath` when `branch` is currently checked out at the
+ * project's main repository (i.e. the primary git worktree). Returns `null`
+ * when the branch isn't checked out anywhere, or is checked out in a
+ * separate worktree — that's a real conflict the caller must surface.
+ *
+ * Used to recover the deleted "main"/branch workspace when the user re-adds
+ * a worktree pointing at the mainline branch (see issue #4523).
+ */
+export async function findMainRepoBranchPath({
+	mainRepoPath,
+	branch,
+}: {
+	mainRepoPath: string;
+	branch: string;
+}): Promise<string | null> {
+	const existing = await getBranchWorktreePath({ mainRepoPath, branch });
+	if (!existing) return null;
+	return normalizePathForComparison(existing) ===
+		normalizePathForComparison(mainRepoPath)
+		? mainRepoPath
+		: null;
 }
 
 export async function hasOriginRemote(mainRepoPath: string): Promise<boolean> {
