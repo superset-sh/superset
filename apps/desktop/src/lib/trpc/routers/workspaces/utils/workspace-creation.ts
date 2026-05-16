@@ -12,7 +12,7 @@ import {
 	touchWorkspace,
 	updateActiveWorkspaceIfRemoved,
 } from "./db-helpers";
-import { listExternalWorktrees } from "./git";
+import { getWorktreeCreatedAt, listExternalWorktrees } from "./git";
 import { resolveWorktreePath } from "./resolve-worktree-path";
 import { copySupersetConfigToWorktree, loadSetupConfig } from "./setup";
 
@@ -183,11 +183,17 @@ export async function createWorkspaceFromExternalWorktree({
 			throw new Error("Worktree already has an active workspace");
 		}
 
+		const worktreeCreatedAt = getWorktreeCreatedAt(externalMatch.path);
+		const refreshedCreatedAt =
+			existingWorktreeByPath && existingWorktreeByPath.branch !== branch
+				? worktreeCreatedAt
+				: undefined;
 		const worktree = existingWorktreeByPath
 			? {
 					...existingWorktreeByPath,
 					branch,
 					baseBranch: compareBaseBranch,
+					createdAt: refreshedCreatedAt ?? existingWorktreeByPath.createdAt,
 					gitStatus: null,
 					githubStatus: null,
 					createdBySuperset: false,
@@ -199,6 +205,7 @@ export async function createWorkspaceFromExternalWorktree({
 						path: externalMatch.path,
 						branch,
 						baseBranch: compareBaseBranch,
+						createdAt: worktreeCreatedAt,
 						gitStatus: null, // Will be populated by refresh pipeline
 						createdBySuperset: false, // Mark as external
 					})
@@ -211,6 +218,9 @@ export async function createWorkspaceFromExternalWorktree({
 				.set({
 					branch,
 					baseBranch: compareBaseBranch,
+					...(refreshedCreatedAt !== undefined
+						? { createdAt: refreshedCreatedAt }
+						: {}),
 					gitStatus: null,
 					githubStatus: null,
 					createdBySuperset: false,
@@ -335,6 +345,7 @@ export async function openExternalWorktree({
 		throw new Error("Worktree is not importable");
 	}
 	const branch = liveWorktree.branch;
+	const worktreeCreatedAt = getWorktreeCreatedAt(worktreePath);
 
 	let existingWorktree = localDb
 		.select()
@@ -376,6 +387,7 @@ export async function openExternalWorktree({
 				.set({
 					branch,
 					baseBranch: refreshedBaseBranch,
+					createdAt: worktreeCreatedAt,
 					gitStatus: {
 						branch,
 						needsRebase: false,
@@ -392,6 +404,7 @@ export async function openExternalWorktree({
 				...existingWorktree,
 				branch,
 				baseBranch: refreshedBaseBranch,
+				createdAt: worktreeCreatedAt,
 				gitStatus: {
 					branch,
 					needsRebase: false,
@@ -496,6 +509,7 @@ export async function openExternalWorktree({
 			path: worktreePath,
 			branch,
 			baseBranch: compareBaseBranch,
+			createdAt: worktreeCreatedAt,
 			gitStatus: {
 				branch,
 				needsRebase: false,

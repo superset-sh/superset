@@ -1,5 +1,6 @@
 import { execFile, spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
+import { statSync } from "node:fs";
 import { mkdir, rename } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { promisify } from "node:util";
@@ -23,6 +24,28 @@ export class NotGitRepoError extends Error {
 		super(`Not a git repository: ${repoPath}`);
 		this.name = "NotGitRepoError";
 	}
+}
+
+export function getWorktreeCreatedAt(worktreePath: string): number {
+	try {
+		const stats = statSync(worktreePath);
+		const birthtimeMs = Math.trunc(stats.birthtimeMs);
+		if (Number.isFinite(birthtimeMs) && birthtimeMs > 0) {
+			return birthtimeMs;
+		}
+
+		const ctimeMs = Math.trunc(stats.ctimeMs);
+		if (Number.isFinite(ctimeMs) && ctimeMs > 0) {
+			return ctimeMs;
+		}
+	} catch (error) {
+		console.warn("[git] Failed to read worktree created time", {
+			worktreePath,
+			error: error instanceof Error ? error.message : String(error),
+		});
+	}
+
+	return Date.now();
 }
 
 const UNBORN_HEAD_ERROR_PATTERNS = [

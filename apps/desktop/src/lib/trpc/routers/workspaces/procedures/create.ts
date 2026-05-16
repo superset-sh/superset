@@ -28,6 +28,7 @@ import {
 	getCurrentBranch,
 	getPrInfo,
 	getPrLocalBranchName,
+	getWorktreeCreatedAt,
 	listBranches,
 	listExternalWorktrees,
 	type PullRequestInfo,
@@ -73,6 +74,7 @@ function upsertImportedExternalWorktree({
 	baseBranch: string | null;
 	existingWorktree?: typeof worktrees.$inferSelect;
 }) {
+	const createdAt = getWorktreeCreatedAt(path);
 	const gitStatus = createFreshGitStatus(branch);
 
 	if (existingWorktree) {
@@ -81,6 +83,7 @@ function upsertImportedExternalWorktree({
 			.set({
 				branch,
 				baseBranch,
+				createdAt,
 				gitStatus,
 				githubStatus: null,
 				createdBySuperset: false,
@@ -92,6 +95,7 @@ function upsertImportedExternalWorktree({
 			...existingWorktree,
 			branch,
 			baseBranch,
+			createdAt,
 			gitStatus,
 			githubStatus: null,
 			createdBySuperset: false,
@@ -105,6 +109,7 @@ function upsertImportedExternalWorktree({
 			path,
 			branch,
 			baseBranch,
+			createdAt,
 			gitStatus,
 			createdBySuperset: false,
 		})
