@@ -729,7 +729,7 @@ describe("v2Project.create — GitHub avatar auto-hydration", () => {
 		const result = await caller.v2Project.create(baseInput);
 
 		expect(fetchAndStoreGitHubAvatarMock).not.toHaveBeenCalled();
-		expect(result).toMatchObject({ id: PROJECT_ID });
+		expect(result).toMatchObject({ id: PROJECT_ID, txid: 123 });
 	});
 
 	it("rejects with BAD_REQUEST when repoCloneUrl is unparseable, before insert", async () => {
@@ -778,7 +778,7 @@ describe("v2Project.create — GitHub avatar auto-hydration", () => {
 		// The mutation must not block on the GitHub fetch — it returns the
 		// inserted row immediately with iconUrl: null. Electric will sync the
 		// icon to the client once the background hydration lands.
-		expect(result).toMatchObject({ id: PROJECT_ID, iconUrl: null });
+		expect(result).toMatchObject({ id: PROJECT_ID, iconUrl: null, txid: 123 });
 
 		await flushMicrotasks();
 
@@ -810,7 +810,7 @@ describe("v2Project.create — GitHub avatar auto-hydration", () => {
 
 		expect(fetchAndStoreGitHubAvatarMock).toHaveBeenCalledTimes(1);
 		expect(dbUpdate).not.toHaveBeenCalled();
-		expect(result).toMatchObject({ id: PROJECT_ID, iconUrl: null });
+		expect(result).toMatchObject({ id: PROJECT_ID, iconUrl: null, txid: 123 });
 	});
 
 	it("does not crash the mutation when background avatar hydration throws", async () => {
@@ -832,7 +832,7 @@ describe("v2Project.create — GitHub avatar auto-hydration", () => {
 
 		await flushMicrotasks();
 
-		expect(result).toMatchObject({ id: PROJECT_ID, iconUrl: null });
+		expect(result).toMatchObject({ id: PROJECT_ID, iconUrl: null, txid: 123 });
 		expect(consoleWarnSpy).toHaveBeenCalled();
 
 		consoleWarnSpy.mockRestore();
