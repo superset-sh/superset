@@ -109,7 +109,10 @@ describe("slack events route", () => {
 		expect(json.error).toBe("Invalid payload shape");
 	});
 
-	test("returns 200 when app_home_opened payload is missing optional fields", async () => {
+	test("processes app_home_opened when tab is absent (Slack omits tab in some payloads)", async () => {
+		const { processAppHomeOpened } = await import("./process-app-home-opened");
+		(processAppHomeOpened as ReturnType<typeof mock>).mockClear();
+
 		const request = new Request(
 			"http://localhost/api/integrations/slack/events",
 			{
@@ -120,6 +123,54 @@ describe("slack events route", () => {
 					team_id: "T123",
 					event_id: "E123",
 					event: { type: "app_home_opened", user: "U123" },
+				}),
+			},
+		);
+
+		const response = await POST(request);
+
+		expect(response.status).toBe(200);
+		expect(await response.text()).toBe("ok");
+		expect(processAppHomeOpened).toHaveBeenCalledWith(
+			expect.objectContaining({ event: { user: "U123" } }),
+		);
+	});
+
+	test("skips processAppHomeOpened when tab is messages", async () => {
+		const { processAppHomeOpened } = await import("./process-app-home-opened");
+		(processAppHomeOpened as ReturnType<typeof mock>).mockClear();
+
+		const request = new Request(
+			"http://localhost/api/integrations/slack/events",
+			{
+				method: "POST",
+				headers: VALID_HEADERS,
+				body: JSON.stringify({
+					type: "event_callback",
+					team_id: "T123",
+					event_id: "E123",
+					event: { type: "app_home_opened", user: "U123", tab: "messages" },
+				}),
+			},
+		);
+
+		const response = await POST(request);
+
+		expect(response.status).toBe(200);
+		expect(processAppHomeOpened).not.toHaveBeenCalled();
+	});
+
+	test("rejects app_home_opened when user is missing", async () => {
+		const request = new Request(
+			"http://localhost/api/integrations/slack/events",
+			{
+				method: "POST",
+				headers: VALID_HEADERS,
+				body: JSON.stringify({
+					type: "event_callback",
+					team_id: "T123",
+					event_id: "E123",
+					event: { type: "app_home_opened" },
 				}),
 			},
 		);
