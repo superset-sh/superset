@@ -16,6 +16,12 @@ export interface HostServiceManifest {
 	startedAt: number;
 	organizationId: string;
 	/**
+	 * Version of the bundled @superset/host-service package that wrote this
+	 * manifest. Desktop uses this as the compatibility gate for adoption after
+	 * updates.
+	 */
+	hostServiceVersion: string;
+	/**
 	 * Desktop app version that spawned this host-service. This is diagnostic
 	 * adoption context; a version mismatch alone must not kill a healthy
 	 * service because canary app timestamps can change without requiring a
@@ -74,6 +80,9 @@ export function readManifest(
 		if (typeof data.spawnedByAppVersion !== "string") {
 			data.spawnedByAppVersion = "";
 		}
+		if (typeof data.hostServiceVersion !== "string") {
+			data.hostServiceVersion = "";
+		}
 
 		return data as HostServiceManifest;
 	} catch {
@@ -120,4 +129,11 @@ export function isProcessAlive(pid: number): boolean {
 	} catch {
 		return false;
 	}
+}
+
+export function killProcess(
+	pid: number,
+	signal: NodeJS.Signals | number,
+): void {
+	process.kill(pid, signal);
 }

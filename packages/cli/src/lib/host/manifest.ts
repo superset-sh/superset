@@ -20,6 +20,8 @@ export interface HostServiceManifest {
 	authToken: string;
 	startedAt: number;
 	organizationId: string;
+	hostServiceVersion: string;
+	spawnedByAppVersion?: string;
 }
 
 function manifestDir(organizationId: string): string {

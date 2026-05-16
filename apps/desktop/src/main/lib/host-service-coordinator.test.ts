@@ -10,8 +10,14 @@ import {
 import * as fs from "node:fs";
 import * as os from "node:os";
 import path from "node:path";
+import hostServicePackageJson from "@superset/host-service/package.json" with {
+	type: "json",
+};
 
 const APP_VERSION = "1.2.3";
+const HOST_SERVICE_VERSION: string = hostServicePackageJson.version;
+let killedPids: Array<{ pid: number; signal: NodeJS.Signals | number }> = [];
+let killProcessError: NodeJS.ErrnoException | null = null;
 
 const manifestStore: {
 	current: {
@@ -20,6 +26,7 @@ const manifestStore: {
 		authToken: string;
 		startedAt: number;
 		organizationId: string;
+		hostServiceVersion: string;
 		spawnedByAppVersion: string;
 	} | null;
 } = { current: null };
@@ -34,6 +41,14 @@ const removeManifestMock = mock(() => {
 	manifestStore.current = null;
 });
 const isProcessAliveMock = mock(() => true);
+const killProcessMock = mock((pid: number, signal: NodeJS.Signals | number) => {
+	if (killProcessError) {
+		const error = killProcessError;
+		killProcessError = null;
+		throw error;
+	}
+	killedPids.push({ pid, signal });
+});
 
 const realHostServiceManifest = await import("./host-service-manifest");
 mock.module("./host-service-manifest", () => ({
@@ -41,6 +56,7 @@ mock.module("./host-service-manifest", () => ({
 	readManifest: readManifestMock,
 	removeManifest: removeManifestMock,
 	isProcessAlive: isProcessAliveMock,
+	killProcess: killProcessMock,
 	listManifests: mock(() => []),
 	manifestDir: (orgId: string) => path.join(testManifestRoot, orgId),
 }));
@@ -93,6 +109,7 @@ const baseManifest = (pid: number, endpoint = "http://127.0.0.1:55555") => ({
 	authToken: "manifest-secret",
 	startedAt: 0,
 	organizationId: "org-1",
+	hostServiceVersion: HOST_SERVICE_VERSION,
 	spawnedByAppVersion: APP_VERSION,
 });
 
@@ -100,8 +117,6 @@ const spawnConfig = { authToken: "token", cloudApiUrl: "https://api.example" };
 
 describe("HostServiceCoordinator.tryAdopt — adoption health check", () => {
 	let coordinator: InstanceType<typeof HostServiceCoordinator>;
-	let killedPids: Array<{ pid: number; signal: NodeJS.Signals | number }>;
-	let originalKill: typeof process.kill;
 	let spawnMock: ReturnType<typeof mock>;
 
 	beforeEach(() => {
@@ -109,20 +124,13 @@ describe("HostServiceCoordinator.tryAdopt — adoption health check", () => {
 		readManifestMock.mockClear();
 		removeManifestMock.mockClear();
 		isProcessAliveMock.mockClear();
+		killProcessMock.mockClear();
 		pollHealthCheckMock.mockClear();
 
 		testManifestRoot = fs.mkdtempSync(path.join(os.tmpdir(), "hsc-test-"));
 
 		killedPids = [];
-		originalKill = process.kill;
-		// `process.kill` is read-only in some Bun versions — assign via cast.
-		(process as unknown as { kill: typeof process.kill }).kill = ((
-			pid: number,
-			signal?: NodeJS.Signals | number,
-		) => {
-			killedPids.push({ pid, signal: signal ?? "SIGTERM" });
-			return true;
-		}) as typeof process.kill;
+		killProcessError = null;
 
 		coordinator = new HostServiceCoordinator();
 		// Replace spawn so a failed adoption doesn't actually launch electron.
@@ -135,9 +143,7 @@ describe("HostServiceCoordinator.tryAdopt — adoption health check", () => {
 	});
 
 	afterEach(() => {
-		// Unconditional — if an assertion throws mid-test, the override must
-		// still be torn down or the next test captures the wrong `originalKill`.
-		(process as unknown as { kill: typeof process.kill }).kill = originalKill;
+		coordinator.releaseAll();
 		if (testManifestRoot) {
 			fs.rmSync(testManifestRoot, { recursive: true, force: true });
 			testManifestRoot = "";
@@ -175,11 +181,9 @@ describe("HostServiceCoordinator.tryAdopt — adoption health check", () => {
 	test("swallows SIGKILL ESRCH (pid already gone) and still respawns", async () => {
 		manifestStore.current = baseManifest(7777);
 		pollHealthCheckMock.mockImplementationOnce(() => Promise.resolve(false));
-		(process as unknown as { kill: typeof process.kill }).kill = (() => {
-			const err: NodeJS.ErrnoException = new Error("kill ESRCH");
-			err.code = "ESRCH";
-			throw err;
-		}) as typeof process.kill;
+		const err: NodeJS.ErrnoException = new Error("kill ESRCH");
+		err.code = "ESRCH";
+		killProcessError = err;
 
 		const conn = await coordinator.start("org-1", spawnConfig);
 
@@ -204,6 +208,38 @@ describe("HostServiceCoordinator.tryAdopt — adoption health check", () => {
 		expect(conn.port).toBe(55555);
 		expect(conn.secret).toBe("manifest-secret");
 		expect(coordinator.getProcessStatus("org-1")).toBe("running");
+	});
+
+	test("kills and respawns when host-service version changed even if the service is healthy", async () => {
+		manifestStore.current = {
+			...baseManifest(5554),
+			hostServiceVersion: "0.8.5",
+		};
+
+		const conn = await coordinator.start("org-1", spawnConfig);
+
+		expect(pollHealthCheckMock).not.toHaveBeenCalled();
+		expect(killedPids).toContainEqual({ pid: 5554, signal: "SIGKILL" });
+		expect(removeManifestMock).toHaveBeenCalledTimes(1);
+		expect(spawnMock).toHaveBeenCalledTimes(1);
+		expect(conn.port).toBe(60000);
+		expect(conn.secret).toBe("fresh-secret");
+	});
+
+	test("kills and respawns a pre-upgrade manifest with no recorded host-service version", async () => {
+		manifestStore.current = {
+			...baseManifest(5559),
+			hostServiceVersion: "",
+		};
+
+		const conn = await coordinator.start("org-1", spawnConfig);
+
+		expect(pollHealthCheckMock).not.toHaveBeenCalled();
+		expect(killedPids).toContainEqual({ pid: 5559, signal: "SIGKILL" });
+		expect(removeManifestMock).toHaveBeenCalledTimes(1);
+		expect(spawnMock).toHaveBeenCalledTimes(1);
+		expect(conn.port).toBe(60000);
+		expect(conn.secret).toBe("fresh-secret");
 	});
 
 	test("kills an unhealthy app-version mismatch with SIGKILL after health check", async () => {
@@ -259,8 +295,6 @@ describe("HostServiceCoordinator.tryAdopt — adoption health check", () => {
 
 describe("HostServiceCoordinator.reset", () => {
 	let coordinator: InstanceType<typeof HostServiceCoordinator>;
-	let killedPids: Array<{ pid: number; signal: NodeJS.Signals | number }>;
-	let originalKill: typeof process.kill;
 	let spawnMock: ReturnType<typeof mock>;
 
 	beforeEach(() => {
@@ -268,19 +302,13 @@ describe("HostServiceCoordinator.reset", () => {
 		readManifestMock.mockClear();
 		removeManifestMock.mockClear();
 		isProcessAliveMock.mockClear();
+		killProcessMock.mockClear();
 		pollHealthCheckMock.mockClear();
 
 		testManifestRoot = fs.mkdtempSync(path.join(os.tmpdir(), "hsc-test-"));
 
 		killedPids = [];
-		originalKill = process.kill;
-		(process as unknown as { kill: typeof process.kill }).kill = ((
-			pid: number,
-			signal?: NodeJS.Signals | number,
-		) => {
-			killedPids.push({ pid, signal: signal ?? "SIGTERM" });
-			return true;
-		}) as typeof process.kill;
+		killProcessError = null;
 
 		coordinator = new HostServiceCoordinator();
 		spawnMock = mock(async () => ({
@@ -292,7 +320,7 @@ describe("HostServiceCoordinator.reset", () => {
 	});
 
 	afterEach(() => {
-		(process as unknown as { kill: typeof process.kill }).kill = originalKill;
+		coordinator.releaseAll();
 		if (testManifestRoot) {
 			fs.rmSync(testManifestRoot, { recursive: true, force: true });
 			testManifestRoot = "";

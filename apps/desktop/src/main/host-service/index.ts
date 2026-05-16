@@ -14,6 +14,9 @@ import {
 	LocalModelProvider,
 	PskHostAuthProvider,
 } from "@superset/host-service";
+import hostServicePackageJson from "@superset/host-service/package.json" with {
+	type: "json",
+};
 import {
 	initTerminalBaseEnv,
 	resolveTerminalBaseEnv,
@@ -22,6 +25,8 @@ import { connectRelay } from "@superset/host-service/tunnel";
 import { loadToken } from "lib/trpc/routers/auth/utils/auth-functions";
 import { writeManifest } from "main/lib/host-service-manifest";
 import { env } from "./env";
+
+const HOST_SERVICE_VERSION: string = hostServicePackageJson.version;
 
 async function main(): Promise<void> {
 	const terminalBaseEnv = await resolveTerminalBaseEnv();
@@ -75,6 +80,7 @@ async function main(): Promise<void> {
 						authToken: env.HOST_SERVICE_SECRET,
 						startedAt,
 						organizationId: env.ORGANIZATION_ID,
+						hostServiceVersion: HOST_SERVICE_VERSION,
 						spawnedByAppVersion: env.SUPERSET_APP_VERSION,
 					});
 				} catch (error) {

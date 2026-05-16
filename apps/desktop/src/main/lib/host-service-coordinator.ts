@@ -3,6 +3,9 @@ import { randomBytes } from "node:crypto";
 import { EventEmitter } from "node:events";
 import * as fs from "node:fs";
 import path from "node:path";
+import hostServicePackageJson from "@superset/host-service/package.json" with {
+	type: "json",
+};
 import { settings } from "@superset/local-db";
 import { getHostId, getHostName } from "@superset/shared/host-info";
 import { app } from "electron";
@@ -13,6 +16,7 @@ import { SUPERSET_HOME_DIR } from "./app-environment";
 import {
 	type HostServiceManifest,
 	isProcessAlive,
+	killProcess,
 	listManifests,
 	manifestDir,
 	readManifest,
@@ -56,6 +60,7 @@ interface HostServiceProcess {
 }
 
 const ADOPTED_LIVENESS_INTERVAL = 5_000;
+const CURRENT_HOST_SERVICE_VERSION: string = hostServicePackageJson.version;
 
 /**
  * Cap how long an adoption health check can take before we decide the adopted
@@ -119,7 +124,7 @@ export class HostServiceCoordinator extends EventEmitter {
 		instance.status = "stopped";
 
 		try {
-			process.kill(instance.pid, "SIGTERM");
+			killProcess(instance.pid, "SIGTERM");
 		} catch {}
 
 		this.instances.delete(organizationId);
@@ -181,7 +186,7 @@ export class HostServiceCoordinator extends EventEmitter {
 
 		if (manifestPid != null && isProcessAlive(manifestPid)) {
 			try {
-				process.kill(manifestPid, "SIGKILL");
+				killProcess(manifestPid, "SIGKILL");
 			} catch (error) {
 				log.warn(
 					`[host-service:${organizationId}] reset: SIGKILL of pid=${manifestPid} failed`,
@@ -327,6 +332,17 @@ export class HostServiceCoordinator extends EventEmitter {
 		const url = new URL(manifest.endpoint);
 		const port = Number(url.port);
 
+		if (manifest.hostServiceVersion !== CURRENT_HOST_SERVICE_VERSION) {
+			const reason = manifest.hostServiceVersion
+				? `host-service ${manifest.hostServiceVersion} != current ${CURRENT_HOST_SERVICE_VERSION}`
+				: `no recorded host-service version; current ${CURRENT_HOST_SERVICE_VERSION}`;
+			log.info(
+				`[host-service:${organizationId}] Refusing to adopt stale service (${reason}); killing and respawning`,
+			);
+			this.killManifestProcess(organizationId, manifest, "stale");
+			return null;
+		}
+
 		const currentAppVersion = app.getVersion();
 		if (manifest.spawnedByAppVersion !== currentAppVersion) {
 			const reason = manifest.spawnedByAppVersion
@@ -350,18 +366,7 @@ export class HostServiceCoordinator extends EventEmitter {
 			log.info(
 				`[host-service:${organizationId}] Adopted pid=${manifest.pid} did not respond on ${manifest.endpoint}, killing and respawning`,
 			);
-			try {
-				process.kill(manifest.pid, "SIGKILL");
-			} catch (error) {
-				// ESRCH (already gone) is fine; anything else (EPERM) we want to see.
-				if ((error as NodeJS.ErrnoException)?.code !== "ESRCH") {
-					log.warn(
-						`[host-service:${organizationId}] SIGKILL of stale pid=${manifest.pid} failed`,
-						error,
-					);
-				}
-			}
-			removeManifest(organizationId);
+			this.killManifestProcess(organizationId, manifest, "unhealthy");
 			return null;
 		}
 
@@ -392,6 +397,25 @@ export class HostServiceCoordinator extends EventEmitter {
 		}
 
 		return manifest;
+	}
+
+	private killManifestProcess(
+		organizationId: string,
+		manifest: HostServiceManifest,
+		reason: "stale" | "unhealthy",
+	): void {
+		try {
+			killProcess(manifest.pid, "SIGKILL");
+		} catch (error) {
+			// ESRCH (already gone) is fine; anything else (EPERM) we want to see.
+			if ((error as NodeJS.ErrnoException)?.code !== "ESRCH") {
+				log.warn(
+					`[host-service:${organizationId}] SIGKILL of ${reason} pid=${manifest.pid} failed`,
+					error,
+				);
+			}
+		}
+		removeManifest(organizationId);
 	}
 
 	// ── Spawn ─────────────────────────────────────────────────────────
@@ -533,6 +557,7 @@ export class HostServiceCoordinator extends EventEmitter {
 			SUPERSET_AGENT_HOOK_PORT: String(sharedEnv.DESKTOP_NOTIFICATIONS_PORT),
 			SUPERSET_AGENT_HOOK_VERSION: HOOK_PROTOCOL_VERSION,
 			SUPERSET_APP_VERSION: app.getVersion(),
+			HOST_SERVICE_VERSION: CURRENT_HOST_SERVICE_VERSION,
 			AUTH_TOKEN: config.authToken,
 			SUPERSET_API_URL: config.cloudApiUrl,
 		});
