@@ -16,8 +16,8 @@ import { Undo2 } from "lucide-react";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
 	ShadowClickHint,
-	usePierreRowClickPolicy,
-	useSidebarFilePolicy,
+	useChangesSidebarFilePolicy,
+	usePierreChangesSidebarRowClickPolicy,
 } from "renderer/lib/clickPolicy";
 import { useFallthroughIcons } from "renderer/lib/fileIcons";
 import {
@@ -29,7 +29,10 @@ import {
 import { DiscardConfirmDialog } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/DiscardConfirmDialog";
 import { PierreRowContextMenu } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/components/PierreRowContextMenu";
 import type { ChangesetFile } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/useChangeset";
-import { toRelativeWorkspacePath } from "shared/absolute-paths";
+import {
+	toAbsoluteWorkspacePath,
+	toRelativeWorkspacePath,
+} from "shared/absolute-paths";
 import type { FoldSignal } from "../../ChangesFileList";
 import { FileRowContextMenuItems } from "./components/FileRowContextMenuItems";
 import { FolderContextMenuItems } from "./components/FolderContextMenuItems";
@@ -75,7 +78,7 @@ interface ChangesTreeViewProps {
  *  - `renderContextMenu`: file-row actions matching `FileRow`; folder-row
  *    actions (open in editor, copy path)
  *  - hover actions overlay (Discard on unstaged + more-actions ⌄ dropdown)
- *  - `usePierreRowClickPolicy` for settings-driven click routing
+ *  - `useChangesSidebarFilePolicy` for settings-driven click routing
  *  - selection echo: when the diff pane's file is in this section, focus it
  *
  * The discard confirm dialog lives here, not in the per-row menus: Pierre
@@ -212,15 +215,21 @@ export const ChangesTreeView = memo(function ChangesTreeView({
 		return text ? { text } : null;
 	};
 
-	const filePolicy = useSidebarFilePolicy();
-	const { onClickCapture, findFileRow } = usePierreRowClickPolicy({
-		filePolicy,
-		onSelectFile: (rel, openInNewTab) => {
-			lastUserSelectRef.current = rel;
-			onSelectFile?.(rel, openInNewTab);
+	const filePolicy = useChangesSidebarFilePolicy();
+	const { onClickCapture, findFileRow } = usePierreChangesSidebarRowClickPolicy(
+		{
+			getFileIntent: filePolicy.getIntent,
+			onSelectDiff: (rel, openInNewTab) => {
+				lastUserSelectRef.current = rel;
+				onSelectFile?.(rel, openInNewTab);
+			},
+			onOpenFile: (rel, openInNewTab) => {
+				if (!worktreePath) return;
+				onOpenFile?.(toAbsoluteWorkspacePath(worktreePath, rel), openInNewTab);
+			},
+			openInExternalEditor: (rel) => onOpenInEditor?.(rel),
 		},
-		openInExternalEditor: (rel) => onOpenInEditor?.(rel),
-	});
+	);
 
 	// Hoisted so the dialog outlives the menu/hover overlay that triggers it.
 	const [discardTarget, setDiscardTarget] = useState<ChangesetFile | null>(

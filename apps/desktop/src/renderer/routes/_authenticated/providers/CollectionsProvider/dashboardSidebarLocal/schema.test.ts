@@ -70,6 +70,21 @@ describe("healV2UserPreferences", () => {
 			DEFAULT_V2_USER_PREFERENCES.sidebarFileLinks.metaShift,
 		);
 	});
+
+	it("migrates the legacy sidebar file link default to the current default", () => {
+		const healed = healV2UserPreferences({
+			sidebarFileLinks: {
+				plain: "pane",
+				shift: "newTab",
+				meta: "external",
+				metaShift: "external",
+			},
+		});
+
+		expect(healed.sidebarFileLinks).toEqual(
+			DEFAULT_V2_USER_PREFERENCES.sidebarFileLinks,
+		);
+	});
 });
 
 describe("healWorkspaceLocalState", () => {

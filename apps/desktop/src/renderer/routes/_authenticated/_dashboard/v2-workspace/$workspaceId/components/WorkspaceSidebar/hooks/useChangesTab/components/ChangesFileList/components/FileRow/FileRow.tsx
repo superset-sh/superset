@@ -26,7 +26,10 @@ import {
 	Undo2,
 } from "lucide-react";
 import { memo, useState } from "react";
-import { modifierLabel, useSidebarFilePolicy } from "renderer/lib/clickPolicy";
+import {
+	modifierLabel,
+	useChangesSidebarFilePolicy,
+} from "renderer/lib/clickPolicy";
 import { FileIcon } from "renderer/lib/fileIcons";
 import { DiscardConfirmDialog } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/DiscardConfirmDialog";
 import { StatusIndicator } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/StatusIndicator";
@@ -90,9 +93,10 @@ export const FileRow = memo(function FileRow({
 		discardMutation.mutate({ workspaceId, filePath: file.path });
 	};
 
-	const policy = useSidebarFilePolicy();
-	const newTabTier = policy.tierForAction("newTab");
-	const externalTier = policy.tierForAction("external");
+	const policy = useChangesSidebarFilePolicy();
+	const diffNewTabTier = policy.tierForIntent("diffNewTab");
+	const fileTier = policy.tierForIntent("file");
+	const externalTier = policy.tierForIntent("external");
 
 	const rowButton = (
 		<div className="group relative">
@@ -100,10 +104,12 @@ export const FileRow = memo(function FileRow({
 				type="button"
 				className="flex w-full items-center gap-1.5 py-1 pr-3 pl-3 text-left text-xs hover:bg-accent/50"
 				onClick={(e) => {
-					const action = policy.getAction(e);
-					if (action === "external") onOpenInEditor?.(file.path);
-					else if (action === "newTab") onSelect?.(file.path, true);
-					else if (action === "pane") onSelect?.(file.path, false);
+					const intent = policy.getIntent(e);
+					if (intent === "external") onOpenInEditor?.(file.path);
+					else if (intent === "file" && absolutePath)
+						onOpenFile?.(absolutePath, false);
+					else if (intent === "diffNewTab") onSelect?.(file.path, true);
+					else if (intent === "diff") onSelect?.(file.path, false);
 				}}
 			>
 				<FileIcon fileName={basename} className="size-3.5 shrink-0" />
@@ -172,9 +178,9 @@ export const FileRow = memo(function FileRow({
 						<DropdownMenuItem onSelect={() => onSelect?.(file.path, true)}>
 							<SquarePlus />
 							Open Diff in New Tab
-							{newTabTier && (
+							{diffNewTabTier && (
 								<DropdownMenuShortcut>
-									{modifierLabel(newTabTier)}
+									{modifierLabel(diffNewTabTier)}
 								</DropdownMenuShortcut>
 							)}
 						</DropdownMenuItem>
@@ -184,6 +190,11 @@ export const FileRow = memo(function FileRow({
 						>
 							<FileText />
 							Open File
+							{fileTier && (
+								<DropdownMenuShortcut>
+									{modifierLabel(fileTier)}
+								</DropdownMenuShortcut>
+							)}
 						</DropdownMenuItem>
 						<DropdownMenuItem
 							onSelect={() => absolutePath && onOpenFile?.(absolutePath, true)}
@@ -226,9 +237,9 @@ export const FileRow = memo(function FileRow({
 				<ContextMenuItem onSelect={() => onSelect?.(file.path, true)}>
 					<SquarePlus />
 					Open Diff in New Tab
-					{newTabTier && (
+					{diffNewTabTier && (
 						<ContextMenuShortcut>
-							{modifierLabel(newTabTier)}
+							{modifierLabel(diffNewTabTier)}
 						</ContextMenuShortcut>
 					)}
 				</ContextMenuItem>
@@ -238,6 +249,9 @@ export const FileRow = memo(function FileRow({
 				>
 					<FileText />
 					Open File
+					{fileTier && (
+						<ContextMenuShortcut>{modifierLabel(fileTier)}</ContextMenuShortcut>
+					)}
 				</ContextMenuItem>
 				<ContextMenuItem
 					onSelect={() => absolutePath && onOpenFile?.(absolutePath, true)}
