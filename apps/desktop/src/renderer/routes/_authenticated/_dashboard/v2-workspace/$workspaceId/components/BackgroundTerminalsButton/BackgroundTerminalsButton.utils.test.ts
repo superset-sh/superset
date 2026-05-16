@@ -52,7 +52,7 @@ describe("BackgroundTerminalsButton utils", () => {
 	});
 
 	test("uses shallow count polling only while closed", () => {
-		expect(getBackgroundTerminalCountRefetchInterval(false)).toBe(5_000);
+		expect(getBackgroundTerminalCountRefetchInterval(false)).toBe(10_000);
 		expect(getBackgroundTerminalCountRefetchInterval(true)).toBe(false);
 		expect(getBackgroundTerminalListRefetchInterval(false)).toBe(false);
 		expect(getBackgroundTerminalListRefetchInterval(true)).toBe(2_000);
