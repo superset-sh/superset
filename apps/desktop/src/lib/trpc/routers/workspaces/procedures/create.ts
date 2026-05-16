@@ -944,18 +944,15 @@ export const createCreateProcedures = () => {
 						})
 						.run();
 
+					activeWorktreeIds.add(wt.id);
 					imported++;
 				}
 
-				// 2. Import external worktrees (on disk, not tracked in DB)
+				// 2. Import live git worktrees that are not already active.
 				const externalWorktrees = selectExternalWorktreesForImport(
 					allExternalWorktrees,
 					{
 						mainRepoPath: project.mainRepoPath,
-						trackedWorktrees: projectWorktrees.map((worktree) => ({
-							...worktree,
-							hasActiveWorkspace: activeWorktreeIds.has(worktree.id),
-						})),
 					},
 				);
 
@@ -965,6 +962,9 @@ export const createCreateProcedures = () => {
 					const existingWorktree = projectWorktrees.find(
 						(wt) => wt.path === ext.path,
 					);
+					if (existingWorktree && activeWorktreeIds.has(existingWorktree.id)) {
+						continue;
+					}
 
 					const worktree = upsertImportedExternalWorktree({
 						projectId: input.projectId,
@@ -995,6 +995,7 @@ export const createCreateProcedures = () => {
 					});
 
 					copySupersetConfigToWorktree(project.mainRepoPath, ext.path);
+					activeWorktreeIds.add(worktree.id);
 					imported++;
 				}
 
@@ -1056,10 +1057,6 @@ export const createCreateProcedures = () => {
 					allExternalWorktrees,
 					{
 						mainRepoPath: project.mainRepoPath,
-						trackedWorktrees: projectWorktrees.map((worktree) => ({
-							...worktree,
-							hasActiveWorkspace: activeWorktreeIds.has(worktree.id),
-						})),
 						requested: new Set(input.paths),
 					},
 				);
@@ -1071,6 +1068,9 @@ export const createCreateProcedures = () => {
 					const existingWorktree = projectWorktrees.find(
 						(wt) => wt.path === ext.path,
 					);
+					if (existingWorktree && activeWorktreeIds.has(existingWorktree.id)) {
+						continue;
+					}
 
 					const worktree = upsertImportedExternalWorktree({
 						projectId: input.projectId,
@@ -1101,6 +1101,7 @@ export const createCreateProcedures = () => {
 					});
 
 					copySupersetConfigToWorktree(project.mainRepoPath, ext.path);
+					activeWorktreeIds.add(worktree.id);
 					imported++;
 				}
 

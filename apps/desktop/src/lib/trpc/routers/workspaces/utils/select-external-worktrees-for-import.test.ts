@@ -22,7 +22,6 @@ describe("selectExternalWorktreesForImport", () => {
 		];
 		const result = selectExternalWorktreesForImport(worktrees, {
 			mainRepoPath,
-			trackedWorktrees: [],
 		});
 		expect(result.map((w) => w.path)).toEqual(["/repos/wt-a", "/repos/wt-b"]);
 	});
@@ -35,47 +34,9 @@ describe("selectExternalWorktreesForImport", () => {
 		];
 		const result = selectExternalWorktreesForImport(worktrees, {
 			mainRepoPath,
-			trackedWorktrees: [],
 			requested: new Set(["/repos/wt-a", "/repos/wt-c"]),
 		});
 		expect(result.map((w) => w.path)).toEqual(["/repos/wt-a", "/repos/wt-c"]);
-	});
-
-	test("requested worktrees that are already tracked on the same branch are skipped", () => {
-		const worktrees = [
-			wt({ path: "/repos/wt-a", branch: "feature-a" }),
-			wt({ path: "/repos/wt-b", branch: "feature-b" }),
-		];
-		const result = selectExternalWorktreesForImport(worktrees, {
-			mainRepoPath,
-			trackedWorktrees: [{ path: "/repos/wt-b", branch: "feature-b" }],
-			requested: new Set(["/repos/wt-a", "/repos/wt-b"]),
-		});
-		expect(result.map((w) => w.path)).toEqual(["/repos/wt-a"]);
-	});
-
-	test("worktrees recreated at a tracked path with a different branch are included", () => {
-		const worktrees = [wt({ path: "/repos/wt-b", branch: "feature-new" })];
-		const result = selectExternalWorktreesForImport(worktrees, {
-			mainRepoPath,
-			trackedWorktrees: [{ path: "/repos/wt-b", branch: "feature-old" }],
-		});
-		expect(result.map((w) => w.path)).toEqual(["/repos/wt-b"]);
-	});
-
-	test("worktrees at an active tracked path are skipped even when the branch changed", () => {
-		const worktrees = [wt({ path: "/repos/wt-b", branch: "feature-new" })];
-		const result = selectExternalWorktreesForImport(worktrees, {
-			mainRepoPath,
-			trackedWorktrees: [
-				{
-					path: "/repos/wt-b",
-					branch: "feature-old",
-					hasActiveWorkspace: true,
-				},
-			],
-		});
-		expect(result).toEqual([]);
 	});
 
 	test("requested paths that are bare/detached/branchless are skipped", () => {
@@ -87,7 +48,6 @@ describe("selectExternalWorktreesForImport", () => {
 		];
 		const result = selectExternalWorktreesForImport(worktrees, {
 			mainRepoPath,
-			trackedWorktrees: [],
 			requested: new Set([
 				"/repos/wt-a",
 				"/repos/wt-bare",
@@ -105,7 +65,6 @@ describe("selectExternalWorktreesForImport", () => {
 		];
 		const result = selectExternalWorktreesForImport(worktrees, {
 			mainRepoPath,
-			trackedWorktrees: [],
 			requested: new Set([mainRepoPath, "/repos/wt-a"]),
 		});
 		expect(result.map((w) => w.path)).toEqual(["/repos/wt-a"]);
@@ -118,7 +77,6 @@ describe("selectExternalWorktreesForImport", () => {
 		];
 		const result = selectExternalWorktreesForImport(worktrees, {
 			mainRepoPath,
-			trackedWorktrees: [],
 			requested: new Set(),
 		});
 		expect(result).toEqual([]);

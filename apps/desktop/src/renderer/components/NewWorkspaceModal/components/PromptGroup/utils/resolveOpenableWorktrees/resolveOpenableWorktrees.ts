@@ -9,6 +9,7 @@ export interface TrackedWorktree {
 export interface ExternalWorktree {
 	path: string;
 	branch: string;
+	hasActiveWorkspace?: boolean;
 }
 
 export type OpenableWorktreeAction =
@@ -32,6 +33,7 @@ export function resolveOpenableWorktrees(
 	// External worktrees first (lower priority — tracked overrides)
 	for (const wt of externalWorktrees) {
 		if (!wt.branch) continue;
+		if (wt.hasActiveWorkspace) continue;
 		result.set(wt.branch, {
 			type: "external",
 			worktreePath: wt.path,
