@@ -97,6 +97,16 @@ jobs:
               console.log(m, "OK");
             }
           '
+          # @mastra/duckdb ships unbundled and is imported as ESM by
+          # host-service.js, which loads @mastra/core (a peer dep) from disk.
+          # ESM ignores NODE_PATH, so resolution is by directory walk — run
+          # the check from a script inside lib/ to mirror host-service.js.
+          cat > "$DIST/lib/_smoke.mjs" <<'EOF'
+          await import("@mastra/duckdb");
+          console.log("@mastra/duckdb OK");
+          EOF
+          "$DIST/lib/node" "$DIST/lib/_smoke.mjs"
+          rm "$DIST/lib/_smoke.mjs"
           # Actually spawn a PTY against the bundled Node + bundled prebuild.
           # Catches the runtime failures `require()` can't see — spawn-helper
           # exec bit, pty.node ABI mismatch, arch mismatch, etc. Asserts

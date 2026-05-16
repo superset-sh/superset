@@ -77,6 +77,16 @@ docker run --rm --platform "$PLATFORM" \
         console.log(m, \"OK\");
       }
     "
+    # @mastra/duckdb ships unbundled and is imported as ESM by host-service.js,
+    # which loads @mastra/core (a peer dep) from disk. ESM ignores NODE_PATH, so
+    # resolution is by directory walk — run the check from a script inside lib/
+    # to mirror host-service.js exactly.
+    cat > "$DIST/lib/_smoke.mjs" <<EOF
+await import("@mastra/duckdb");
+console.log("@mastra/duckdb OK");
+EOF
+    "$DIST/lib/node" "$DIST/lib/_smoke.mjs"
+    rm "$DIST/lib/_smoke.mjs"
     NODE_PATH="$DIST/lib/node_modules" DIST="$DIST" "$DIST/lib/node" -e "
       const resolved = require.resolve(\"node-pty/lib/unixTerminal\");
       if (!resolved.startsWith(process.env.DIST)) {
