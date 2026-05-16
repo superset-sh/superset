@@ -9,6 +9,7 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { TRPCClientError } from "@trpc/client";
 import { eq } from "drizzle-orm";
 import simpleGit from "simple-git";
 import { workspaces } from "../../src/db/schema";
@@ -76,6 +77,7 @@ describe("workspaces.create PR checkout integration", () => {
 							headRefOid: prHeadOid,
 							baseRefName: "main",
 							headRepositoryOwner: { login: "Contributor" },
+							headRepository: { name: "hello-fork" },
 							isCrossRepository: true,
 							state: "OPEN",
 						};
@@ -151,6 +153,20 @@ describe("workspaces.create PR checkout integration", () => {
 		const worktreeGit = simpleGit(worktreePath);
 		const head = (await worktreeGit.raw(["rev-parse", "HEAD"])).trim();
 		expect(head).toBe(prHeadOid);
+		expect(
+			(
+				await scenario.repo.git.raw([
+					"config",
+					"branch.contributor/feature/pr-lockfile.pushRemote",
+				])
+			).trim(),
+		).toBe("superset-pr-6060");
+		expect(
+			(
+				await scenario.repo.git.raw(["config", "remote.superset-pr-6060.push"])
+			).trim(),
+		).toBe("HEAD:refs/heads/feature/pr-lockfile");
+		expect(result.warnings).toEqual([]);
 
 		const lockStatus = (
 			await worktreeGit.raw([
@@ -161,5 +177,71 @@ describe("workspaces.create PR checkout integration", () => {
 			])
 		).trim();
 		expect(lockStatus).toContain("package-lock.json");
+	});
+
+	test("reports PR head verification failures as internal errors", async () => {
+		const prNumber = 7070;
+		const staleHeadOid = "1111111111111111111111111111111111111111";
+		let prHeadOid = "";
+
+		const scenario = await createProjectScenario({
+			hostOptions: {
+				apiOverrides: cloudFlows.workspaceCreateOk(),
+				execGh: async (args) => {
+					if (args[0] === "pr" && args[1] === "view") {
+						return {
+							number: prNumber,
+							url: `https://github.com/octocat/hello/pull/${prNumber}`,
+							title: "Stale PR metadata",
+							headRefName: "feature/stale",
+							headRefOid: staleHeadOid,
+							baseRefName: "main",
+							headRepositoryOwner: { login: "Contributor" },
+							headRepository: { name: "hello-fork" },
+							isCrossRepository: true,
+							state: "OPEN",
+						};
+					}
+					return {};
+				},
+			},
+		});
+		const bare = await createBareRemote();
+		dispose = async () => {
+			bare.dispose();
+			await scenario.dispose();
+		};
+
+		await scenario.repo.commit("main", { "README.md": "main\n" });
+		await scenario.repo.git.addRemote("origin", bare.bareRepoPath);
+		await scenario.repo.git.push("origin", "main", ["--set-upstream"]);
+		await scenario.repo.git.checkoutBranch("feature/stale", "main");
+		prHeadOid = await scenario.repo.commit("actual PR head", {
+			"feature.txt": "actual\n",
+		});
+		await scenario.repo.git.raw([
+			"push",
+			"origin",
+			`${prHeadOid}:refs/pull/${prNumber}/head`,
+		]);
+		await scenario.repo.git.checkout("main");
+		await scenario.repo.git.deleteLocalBranch("feature/stale", true);
+
+		const error = await scenario.host.trpc.workspaces.create
+			.mutate({
+				projectId: scenario.projectId,
+				name: "Stale PR workspace",
+				pr: prNumber,
+			})
+			.catch((err: unknown) => err);
+
+		expect(error).toBeInstanceOf(TRPCClientError);
+		expect((error as { data?: { code?: string } }).data?.code).toBe(
+			"INTERNAL_SERVER_ERROR",
+		);
+		expect(error).toHaveProperty("message");
+		expect(String((error as Error).message)).toContain(
+			"did not match GitHub headRefOid",
+		);
 	});
 });

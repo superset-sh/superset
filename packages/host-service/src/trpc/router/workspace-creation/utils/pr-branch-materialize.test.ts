@@ -74,13 +74,15 @@ describe("materializePrBranch", () => {
 		]);
 	});
 
-	test("cross-repo PR fetches the synthetic PR ref and configures it as the merge ref", async () => {
+	test("cross-repo PR configures fork push defaults from the synthetic PR ref", async () => {
 		const { git, raw } = createMockGit();
 		const pr = {
 			number: 456,
 			headRefName: "feature/x",
 			headRefOid: EXPECTED_HEAD_OID,
 			isCrossRepository: true,
+			headRepositoryOwner: "alice",
+			headRepositoryName: "fork",
 		};
 		const verifiedRef = getSyntheticPrVerifiedRef(pr);
 
@@ -95,8 +97,8 @@ describe("materializePrBranch", () => {
 			createdBranch: true,
 			sourceKind: "synthetic-pr-ref",
 			startPoint: verifiedRef,
-			trackingRemote: "origin",
-			trackingMergeRef: "refs/pull/456/head",
+			trackingRemote: "superset-pr-456",
+			trackingMergeRef: "refs/heads/feature/x",
 		});
 		expect(raw).toHaveBeenNthCalledWith(1, [
 			"fetch",
@@ -113,10 +115,59 @@ describe("materializePrBranch", () => {
 			verifiedRef,
 		]);
 		expect(raw).toHaveBeenNthCalledWith(6, [
+			"remote",
+			"add",
+			"superset-pr-456",
+			"https://github.com/alice/fork.git",
+		]);
+		expect(raw).toHaveBeenNthCalledWith(7, [
+			"update-ref",
+			"refs/remotes/superset-pr-456/feature/x",
+			EXPECTED_HEAD_OID,
+		]);
+		expect(raw).toHaveBeenNthCalledWith(8, [
+			"config",
+			"branch.alice/feature/x.remote",
+			"superset-pr-456",
+		]);
+		expect(raw).toHaveBeenNthCalledWith(9, [
 			"config",
 			"branch.alice/feature/x.merge",
-			"refs/pull/456/head",
+			"refs/heads/feature/x",
 		]);
+		expect(raw).toHaveBeenNthCalledWith(10, [
+			"config",
+			"branch.alice/feature/x.pushRemote",
+			"superset-pr-456",
+		]);
+		expect(raw).toHaveBeenNthCalledWith(11, [
+			"config",
+			"--replace-all",
+			"remote.superset-pr-456.push",
+			"HEAD:refs/heads/feature/x",
+		]);
+	});
+
+	test("cross-repo PR warns when fork repository metadata is missing", async () => {
+		const { git } = createMockGit();
+
+		const result = await materializePrBranch({
+			git,
+			branch: "alice/feature/x",
+			remoteName: "origin",
+			pr: {
+				number: 456,
+				headRefName: "feature/x",
+				headRefOid: EXPECTED_HEAD_OID,
+				isCrossRepository: true,
+			},
+		});
+
+		expect(result).toMatchObject({
+			trackingRemote: "origin",
+			trackingMergeRef: "refs/pull/456/head",
+		});
+		expect(result.warning).toContain("Plain git push may require");
 	});
 
 	test("deletes a materialized branch only when it still points at the verified PR head", async () => {
@@ -170,6 +221,42 @@ describe("materializePrBranch", () => {
 		]);
 	});
 
+	test("adopts an existing local branch that already points at the PR head", async () => {
+		const raw = mock(async (args: string[]) => {
+			if (args[0] === "rev-parse") {
+				return `${EXPECTED_HEAD_OID}\n`;
+			}
+			return "";
+		});
+		const git = { raw } as unknown as GitClient;
+
+		const result = await materializePrBranch({
+			git,
+			branch: "feature/x",
+			remoteName: "origin",
+			pr: {
+				number: 123,
+				headRefName: "feature/x",
+				headRefOid: EXPECTED_HEAD_OID,
+				isCrossRepository: false,
+			},
+		});
+
+		expect(result.createdBranch).toBe(false);
+		expect(raw).not.toHaveBeenCalledWith([
+			"branch",
+			"--no-track",
+			"--",
+			"feature/x",
+			"refs/remotes/origin/feature/x",
+		]);
+		expect(raw).toHaveBeenCalledWith([
+			"config",
+			"branch.feature/x.remote",
+			"origin",
+		]);
+	});
+
 	test("aborts before branch creation when the fetched ref does not match GitHub headRefOid", async () => {
 		const raw = mock(async (args: string[]) => {
 			if (args[0] === "rev-parse") {
@@ -203,7 +290,7 @@ describe("materializePrBranch", () => {
 		]);
 	});
 
-	test("does not delete a branch when branch creation itself fails", async () => {
+	test("adopts a matching branch created by a concurrent caller", async () => {
 		let localBranchLookupCount = 0;
 		const raw = mock(async (args: string[]) => {
 			if (args[0] === "rev-parse") {
@@ -224,21 +311,20 @@ describe("materializePrBranch", () => {
 		});
 		const git = { raw } as unknown as GitClient;
 
-		await expect(
-			materializePrBranch({
-				git,
-				branch: "feature/x",
-				remoteName: "origin",
-				pr: {
-					number: 123,
-					headRefName: "feature/x",
-					headRefOid: EXPECTED_HEAD_OID,
-					isCrossRepository: false,
-				},
-			}),
-		).rejects.toThrow("branch was created concurrently");
+		const result = await materializePrBranch({
+			git,
+			branch: "feature/x",
+			remoteName: "origin",
+			pr: {
+				number: 123,
+				headRefName: "feature/x",
+				headRefOid: EXPECTED_HEAD_OID,
+				isCrossRepository: false,
+			},
+		});
 
-		expect(localBranchLookupCount).toBe(1);
+		expect(result.createdBranch).toBe(false);
+		expect(localBranchLookupCount).toBe(2);
 		expect(raw).not.toHaveBeenCalledWith(["branch", "-D", "--", "feature/x"]);
 	});
 

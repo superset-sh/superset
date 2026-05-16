@@ -38,6 +38,7 @@ import {
 	deleteMaterializedPrBranchIfSafe,
 	type MaterializePrBranchResult,
 	materializePrBranch,
+	PrBranchConflictError,
 } from "../workspace-creation/utils/pr-branch-materialize";
 import { derivePrLocalBranchName } from "../workspace-creation/utils/pr-branch-name";
 import { resolveStartPoint } from "../workspace-creation/utils/resolve-start-point";
@@ -122,6 +123,7 @@ interface PrMetadata {
 	headRefOid: string;
 	baseRefName: string;
 	headRepositoryOwner: string;
+	headRepositoryName: string;
 	isCrossRepository: boolean;
 	state: "open" | "closed" | "merged";
 }
@@ -137,7 +139,7 @@ async function fetchPrMetadata(args: {
 			"view",
 			String(args.prNumber),
 			"--json",
-			"number,url,title,headRefName,headRefOid,baseRefName,headRepositoryOwner,isCrossRepository,state",
+			"number,url,title,headRefName,headRefOid,baseRefName,headRepositoryOwner,headRepository,isCrossRepository,state",
 		],
 		{ cwd: args.cwd, timeout: 30_000 },
 	);
@@ -149,6 +151,7 @@ async function fetchPrMetadata(args: {
 		headRefOid: string;
 		baseRefName: string;
 		headRepositoryOwner: { login: string } | null;
+		headRepository: { name: string } | null;
 		isCrossRepository: boolean;
 		state: string;
 	};
@@ -167,6 +170,7 @@ async function fetchPrMetadata(args: {
 		headRefOid: parsed.headRefOid,
 		baseRefName: parsed.baseRefName,
 		headRepositoryOwner: parsed.headRepositoryOwner?.login ?? "",
+		headRepositoryName: parsed.headRepository?.name ?? "",
 		isCrossRepository: parsed.isCrossRepository,
 		state,
 	};
@@ -542,6 +546,7 @@ export const workspacesRouter = router({
 			let alreadyExists = false;
 			let workspaceRow: CloudWorkspace;
 			let prMetadata: PrMetadata | null = null;
+			const warnings: string[] = [];
 
 			if (input.pr !== undefined) {
 				prMetadata = await fetchPrMetadata({
@@ -651,6 +656,7 @@ export const workspacesRouter = router({
 								});
 								if (materialized.warning) {
 									console.warn(`[workspaces.create] ${materialized.warning}`);
+									warnings.push(materialized.warning);
 								}
 								worktreeAddStarted = true;
 								await git.raw([
@@ -676,7 +682,10 @@ export const workspacesRouter = router({
 									});
 								}
 								throw new TRPCError({
-									code: "CONFLICT",
+									code:
+										worktreeAddStarted || err instanceof PrBranchConflictError
+											? "CONFLICT"
+											: "INTERNAL_SERVER_ERROR",
 									message:
 										err instanceof Error
 											? err.message
@@ -942,6 +951,7 @@ export const workspacesRouter = router({
 				});
 				if (warning) {
 					console.warn(`[workspaces.create] setup warning: ${warning}`);
+					warnings.push(warning);
 				}
 				if (terminal) {
 					terminalsResult.push({
@@ -962,6 +972,7 @@ export const workspacesRouter = router({
 				terminals: terminalsResult,
 				agents: agentsResult,
 				alreadyExists,
+				warnings,
 			};
 		}),
 

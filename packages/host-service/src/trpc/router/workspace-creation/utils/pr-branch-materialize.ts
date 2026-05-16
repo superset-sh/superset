@@ -7,6 +7,8 @@ export interface PrBranchMetadata {
 	headRefName: string;
 	headRefOid: string;
 	isCrossRepository: boolean;
+	headRepositoryOwner?: string | null;
+	headRepositoryName?: string | null;
 }
 
 export interface MaterializePrBranchResult {
@@ -22,8 +24,21 @@ export interface MaterializePrBranchResult {
 interface PrBranchSource {
 	kind: PrBranchSourceKind;
 	startPoint: string;
+	trackingRemote: string;
 	mergeRef: string;
+	remoteUrl?: string;
+	pushRemote?: string;
+	pushRef?: string;
+	remoteTrackingBranch?: string;
+	remoteTrackingOid?: string;
 	warning?: string;
+}
+
+export class PrBranchConflictError extends Error {
+	constructor(message: string) {
+		super(message);
+		this.name = "PrBranchConflictError";
+	}
 }
 
 class SameRepoBranchFetchError extends Error {
@@ -46,6 +61,24 @@ export function getSyntheticPrVerifiedRef(pr: PrBranchMetadata): string {
 
 function normalizeOid(oid: string): string {
 	return oid.trim().toLowerCase();
+}
+
+function normalizeRemoteUrl(url: string): string {
+	return url
+		.trim()
+		.replace(/\.git$/, "")
+		.toLowerCase();
+}
+
+function getForkRemoteName(prNumber: number): string {
+	return `superset-pr-${prNumber}`;
+}
+
+function getHeadRepositoryUrl(pr: PrBranchMetadata): string | null {
+	const owner = pr.headRepositoryOwner?.trim();
+	const name = pr.headRepositoryName?.trim();
+	if (!owner || !name) return null;
+	return `https://github.com/${owner}/${name}.git`;
 }
 
 async function revParseCommit(git: GitClient, ref: string): Promise<string> {
@@ -82,6 +115,41 @@ async function getLocalBranchHead(
 	}
 }
 
+async function getRemoteUrl(
+	git: GitClient,
+	remoteName: string,
+): Promise<string | null> {
+	try {
+		return (await git.raw(["remote", "get-url", remoteName])).trim() || null;
+	} catch {
+		return null;
+	}
+}
+
+async function ensureRemoteUrl(args: {
+	git: GitClient;
+	remoteName: string;
+	remoteUrl: string;
+}): Promise<string> {
+	for (let attempt = 0; attempt < 10; attempt += 1) {
+		const candidate =
+			attempt === 0 ? args.remoteName : `${args.remoteName}-${attempt + 1}`;
+		const existingUrl = await getRemoteUrl(args.git, candidate);
+		if (existingUrl === null) {
+			await args.git.raw(["remote", "add", candidate, args.remoteUrl]);
+			return candidate;
+		}
+		if (
+			normalizeRemoteUrl(existingUrl) === normalizeRemoteUrl(args.remoteUrl)
+		) {
+			return candidate;
+		}
+	}
+	throw new Error(
+		`Could not configure a remote for ${args.remoteUrl}; remote names based on "${args.remoteName}" are already in use`,
+	);
+}
+
 async function fetchSameRepoPrBranch(args: {
 	git: GitClient;
 	remoteName: string;
@@ -110,6 +178,7 @@ async function fetchSameRepoPrBranch(args: {
 	return {
 		kind: "head-branch",
 		startPoint: remoteTrackingRef,
+		trackingRemote: args.remoteName,
 		mergeRef: `refs/heads/${args.pr.headRefName}`,
 	};
 }
@@ -134,11 +203,29 @@ async function fetchSyntheticPrBranch(args: {
 		ref: verifiedRef,
 		expectedHeadOid: args.pr.headRefOid,
 	});
+	const forkRemoteUrl = args.pr.isCrossRepository
+		? getHeadRepositoryUrl(args.pr)
+		: null;
+	const forkRemoteName = getForkRemoteName(args.pr.number);
 	return {
 		kind: "synthetic-pr-ref",
 		startPoint: verifiedRef,
-		mergeRef: syntheticRef,
-		warning: args.warning,
+		trackingRemote: forkRemoteUrl ? forkRemoteName : args.remoteName,
+		mergeRef: forkRemoteUrl
+			? `refs/heads/${args.pr.headRefName}`
+			: syntheticRef,
+		remoteUrl: forkRemoteUrl ?? undefined,
+		pushRemote: forkRemoteUrl ? forkRemoteName : undefined,
+		pushRef: forkRemoteUrl
+			? `HEAD:refs/heads/${args.pr.headRefName}`
+			: undefined,
+		remoteTrackingBranch: forkRemoteUrl ? args.pr.headRefName : undefined,
+		remoteTrackingOid: forkRemoteUrl ? args.pr.headRefOid : undefined,
+		warning:
+			args.warning ??
+			(args.pr.isCrossRepository && !forkRemoteUrl
+				? `Superset checked out PR #${args.pr.number} through ${syntheticRef}, but GitHub did not return the fork repository. Plain git push may require manual remote configuration.`
+				: undefined),
 	};
 }
 
@@ -147,21 +234,53 @@ export async function configurePrBranchTracking(args: {
 	branch: string;
 	remoteName: string;
 	mergeRef: string;
+	remoteUrl?: string;
 	pushRemote?: string;
-}): Promise<void> {
+	pushRef?: string;
+	remoteTrackingBranch?: string;
+	remoteTrackingOid?: string;
+}): Promise<string> {
+	const trackingRemote = args.remoteUrl
+		? await ensureRemoteUrl({
+				git: args.git,
+				remoteName: args.remoteName,
+				remoteUrl: args.remoteUrl,
+			})
+		: args.remoteName;
+	const pushRemote =
+		args.pushRemote && args.pushRemote === args.remoteName
+			? trackingRemote
+			: args.pushRemote;
+
+	if (args.remoteTrackingBranch && args.remoteTrackingOid) {
+		await args.git.raw([
+			"update-ref",
+			`refs/remotes/${trackingRemote}/${args.remoteTrackingBranch}`,
+			args.remoteTrackingOid,
+		]);
+	}
 	await args.git.raw([
 		"config",
 		`branch.${args.branch}.remote`,
-		args.remoteName,
+		trackingRemote,
 	]);
 	await args.git.raw(["config", `branch.${args.branch}.merge`, args.mergeRef]);
-	if (args.pushRemote) {
+	if (pushRemote) {
 		await args.git.raw([
 			"config",
 			`branch.${args.branch}.pushRemote`,
-			args.pushRemote,
+			pushRemote,
 		]);
 	}
+	if (pushRemote && args.pushRef) {
+		await args.git.raw([
+			"config",
+			"--replace-all",
+			`remote.${pushRemote}.push`,
+			args.pushRef,
+		]);
+	}
+	return trackingRemote;
 }
 
 export async function deleteMaterializedPrBranchIfSafe(args: {
@@ -212,28 +331,37 @@ export async function materializePrBranch(args: {
 		}
 	}
 
-	const existingOid = await getLocalBranchHead(args.git, args.branch);
-	if (existingOid !== null) {
-		if (normalizeOid(existingOid) !== normalizeOid(args.pr.headRefOid)) {
-			throw new Error(
-				`Local branch "${args.branch}" exists and points at ${existingOid}, not PR head ${args.pr.headRefOid}`,
-			);
-		}
-		await configurePrBranchTracking({
+	const configureTracking = async (createdBranch: boolean) => {
+		const trackingRemote = await configurePrBranchTracking({
 			git: args.git,
 			branch: args.branch,
-			remoteName: args.remoteName,
+			remoteName: source.trackingRemote,
 			mergeRef: source.mergeRef,
+			remoteUrl: source.remoteUrl,
+			pushRemote: source.pushRemote,
+			pushRef: source.pushRef,
+			remoteTrackingBranch: source.remoteTrackingBranch,
+			remoteTrackingOid: source.remoteTrackingOid,
 		});
 		return {
 			branch: args.branch,
-			createdBranch: false,
+			createdBranch,
 			sourceKind: source.kind,
 			startPoint: source.startPoint,
-			trackingRemote: args.remoteName,
+			trackingRemote,
 			trackingMergeRef: source.mergeRef,
 			warning: source.warning,
 		};
+	};
+
+	const existingOid = await getLocalBranchHead(args.git, args.branch);
+	if (existingOid !== null) {
+		if (normalizeOid(existingOid) !== normalizeOid(args.pr.headRefOid)) {
+			throw new PrBranchConflictError(
+				`Local branch "${args.branch}" exists and points at ${existingOid}, not PR head ${args.pr.headRefOid}`,
+			);
+		}
+		return await configureTracking(false);
 	}
 
 	let branchCreated = false;
@@ -246,13 +374,19 @@ export async function materializePrBranch(args: {
 			source.startPoint,
 		]);
 		branchCreated = true;
-		await configurePrBranchTracking({
-			git: args.git,
-			branch: args.branch,
-			remoteName: args.remoteName,
-			mergeRef: source.mergeRef,
-		});
+		return await configureTracking(true);
 	} catch (err) {
+		if (!branchCreated) {
+			const concurrentOid = await getLocalBranchHead(args.git, args.branch);
+			if (concurrentOid !== null) {
+				if (normalizeOid(concurrentOid) === normalizeOid(args.pr.headRefOid)) {
+					return await configureTracking(false);
+				}
+				throw new PrBranchConflictError(
+					`Local branch "${args.branch}" exists and points at ${concurrentOid}, not PR head ${args.pr.headRefOid}`,
+				);
+			}
+		}
 		if (branchCreated) {
 			try {
 				await deleteMaterializedPrBranchIfSafe({
@@ -268,14 +402,4 @@ export async function materializePrBranch(args: {
 		}
 		throw err;
 	}
-
-	return {
-		branch: args.branch,
-		createdBranch: true,
-		sourceKind: source.kind,
-		startPoint: source.startPoint,
-		trackingRemote: args.remoteName,
-		trackingMergeRef: source.mergeRef,
-		warning: source.warning,
-	};
 }

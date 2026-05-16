@@ -230,17 +230,21 @@ For cross-repo PRs or deleted head branches:
 1. Fetch GitHub's synthetic PR head ref from the base remote:
 
    ```text
-   git fetch --no-tags --quiet <remote> refs/pull/<number>/head
+   git fetch --no-tags --quiet <remote> +refs/pull/<number>/head:refs/superset/pr-fetch/<number>/<headRefOid>
    ```
 
-2. Verify `FETCH_HEAD^{commit}` equals `headRefOid`.
-3. Create the local branch from `FETCH_HEAD`.
+2. Verify `refs/superset/pr-fetch/<number>/<headRefOid>^{commit}` equals
+   `headRefOid`. This avoids `FETCH_HEAD`, which is shared across concurrent
+   fetches in the same clone.
+3. Create the local branch from the verified named ref.
 4. Configure:
-   - `branch.<branch>.remote = <remote or fork remote/url>`
+   - `branch.<branch>.remote = <remote or Superset-managed fork remote>`
    - `branch.<branch>.merge = refs/pull/<number>/head` for synthetic-ref fallback,
      or `refs/heads/<headRefName>` when a real fork remote is available.
-   - `branch.<branch>.pushRemote = <fork remote/url>` when we have fork clone URL
-     metadata and pushing to the fork should work.
+   - `branch.<branch>.pushRemote = <Superset-managed fork remote>` and
+     `remote.<fork-remote>.push = HEAD:refs/heads/<headRefName>` for cross-repo
+     PRs with `headRepository` metadata, so plain `git push` targets the fork
+     branch instead of GitHub's read-only synthetic PR ref.
 
 This preserves the safety check v2 already has in recovery: every fetched PR
 head must match GitHub's `headRefOid` before we create or update a branch.
@@ -331,8 +335,8 @@ verified branch, not by running `gh pr checkout`.
 - Do not call `gh pr checkout` in worktree mode.
 - Do not force-reset a pre-existing user branch that points at a different
   commit.
-- Do not solve every fork push edge case in the first pass unless we add the
-  necessary `headRepository` metadata.
+- Do not point fork PR pushes at GitHub's read-only `refs/pull/<number>/head`
+  synthetic ref.
 
 ## Implementation Status
 
@@ -343,6 +347,10 @@ Implemented for the canonical v2 host-service path:
 - The PR path no longer shells out to `gh pr checkout` in worktree mode.
 - `workspaces.create` uses `ctx.execGh` for PR metadata so integration tests can
   mock GitHub CLI behavior.
+- Cross-repo PRs with `headRepository` metadata get a Superset-managed fork
+  remote plus a push refspec so plain `git push` targets the contributor branch.
+- Materialization warnings are returned from `workspaces.create` and surfaced by
+  the desktop workspace-create flow.
 - Regression coverage now includes command-level helper tests, real-git
   materialization tests, and a `workspaces.create` integration test that proves
   the dirty-placeholder failure class no longer blocks PR workspace creation.
@@ -350,5 +358,8 @@ Implemented for the canonical v2 host-service path:
 Remaining follow-ups:
 
 - Decide whether to backport the same shape to legacy v1 desktop code.
-- Add richer fork push metadata (`headRepository`, `maintainerCanModify`,
-  `pushRemote`) if we want GitHub CLI parity for fork push UX.
+- Add a small prune/sweep for stale `refs/superset/pr-fetch/*` verified refs
+  from old PR force-pushes.
+- Add richer fork permission handling (`maintainerCanModify`, deleted forks,
+  inaccessible forks) if we need exact GitHub CLI parity for every fork push
+  edge case.
