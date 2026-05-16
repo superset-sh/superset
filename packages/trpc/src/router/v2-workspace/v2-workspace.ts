@@ -364,11 +364,14 @@ export const v2WorkspaceRouter = {
 					});
 				}
 			}
-			await dbWs
-				.update(v2Workspaces)
-				.set({ taskId: input.taskId })
-				.where(eq(v2Workspaces.id, input.workspaceId));
-			return { success: true as const };
+			const txid = await dbWs.transaction(async (tx) => {
+				await tx
+					.update(v2Workspaces)
+					.set({ taskId: input.taskId })
+					.where(eq(v2Workspaces.id, input.workspaceId));
+				return getCurrentTxid(tx);
+			});
+			return { success: true as const, txid };
 		}),
 
 	getFromHost: jwtProcedure
@@ -506,12 +509,17 @@ export const v2WorkspaceRouter = {
 			const patch: { name?: string; branch?: string } = {};
 			if (input.name !== undefined) patch.name = input.name;
 			if (input.branch !== undefined) patch.branch = input.branch;
-			const [updated] = await dbWs
-				.update(v2Workspaces)
-				.set(patch)
-				.where(and(...conditions))
-				.returning();
-			if (updated) return updated;
+			const result = await dbWs.transaction(async (tx) => {
+				const [updated] = await tx
+					.update(v2Workspaces)
+					.set(patch)
+					.where(and(...conditions))
+					.returning();
+				if (!updated) return { updated, txid: null };
+				const txid = await getCurrentTxid(tx);
+				return { updated, txid };
+			});
+			if (result.updated) return { ...result.updated, txid: result.txid };
 
 			// Nothing updated — disambiguate for a useful error. Happy path
 			// already returned above, so this fetch only runs when id/org/name
