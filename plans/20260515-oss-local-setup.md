@@ -65,12 +65,13 @@ A fresh-clone contributor can:
 
 ## Deployment profiles (the key abstraction)
 
-`packages/shared/src/deployment-profile.ts` exposes a three-profile model:
+`packages/shared/src/deployment-profile.ts` exposes a four-profile model:
 
 | Profile | Trigger | Validation |
 |---|---|---|
-| `cloud` | `VERCEL=1` (set automatically by Vercel) | Strict — every integration key required |
+| `cloud` | `VERCEL=1` (set automatically at runtime on Vercel) | Strict — every integration key required |
 | `oss-dev` | `SUPERSET_OSS=1` | Lenient — integration keys optional, features degrade |
+| `ci` | `CI=true` (set automatically by GitHub Actions / most CI runners) | Lenient — lint/typecheck/test don't have integration keys |
 | `internal` | default | Strict — covers internal team dev + self-hosted prod |
 
 All env schemas (`apps/api/src/env.ts`, `packages/trpc/src/env.ts`, `apps/web/src/env.ts`, etc.) compute their `skipValidation` from this:

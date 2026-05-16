@@ -100,13 +100,14 @@ Profile is resolved at boot:
 
 | Profile     | Trigger                              | Behavior |
 |-------------|--------------------------------------|----------|
-| `cloud`     | `VERCEL=1` (set automatically)       | Strict — every integration key required |
+| `cloud`     | `VERCEL=1` (set automatically at runtime) | Strict — every integration key required |
 | `oss-dev`   | `SUPERSET_OSS=1`                     | Lenient — integration keys optional, features degrade |
+| `ci`        | `CI=true` (set automatically by GitHub Actions, most runners) | Lenient — build/lint/test jobs run without prod secrets |
 | `internal`  | default                              | Strict — covers internal team dev and self-hosted prod |
 
-**Strict-by-default is the safe direction.** Internal devs and self-hosters keep their fail-fast workflow with no setup changes. OSS contributors set `SUPERSET_OSS=1` once (in `.env`, or as a shell var) to opt into the lenient path.
+**Strict-by-default is the safe direction.** Internal devs and self-hosters keep their fail-fast workflow with no setup changes. OSS contributors set `SUPERSET_OSS=1` once (in `.env`, or as a shell var) to opt into the lenient path. CI auto-degrades so `bun run lint/typecheck/test` works without injecting every production secret — actual deploy steps run `vercel build`, which pulls env from the Vercel project, and runtime strictness still kicks in once `VERCEL=1` is set on the deployed serverless function.
 
-The escape hatch `SKIP_ENV_VALIDATION=1` still works for build-time / CI cases (e.g. Docker preview builds).
+The escape hatch `SKIP_ENV_VALIDATION=1` still works for one-off bypass cases (e.g. Docker preview builds outside of GitHub Actions).
 
 ### Boot summary + `/api/health`
 
