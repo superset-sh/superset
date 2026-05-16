@@ -202,4 +202,86 @@ describe("materializePrBranch", () => {
 			"refs/remotes/origin/feature/x",
 		]);
 	});
+
+	test("does not delete a branch when branch creation itself fails", async () => {
+		let localBranchLookupCount = 0;
+		const raw = mock(async (args: string[]) => {
+			if (args[0] === "rev-parse") {
+				const ref = args[2] ?? "";
+				if (ref === "refs/heads/feature/x^{commit}") {
+					localBranchLookupCount += 1;
+					if (localBranchLookupCount === 1) {
+						throw new Error("branch does not exist before create");
+					}
+					return `${EXPECTED_HEAD_OID}\n`;
+				}
+				return `${EXPECTED_HEAD_OID}\n`;
+			}
+			if (args[0] === "branch" && args[1] === "--no-track") {
+				throw new Error("branch was created concurrently");
+			}
+			return "";
+		});
+		const git = { raw } as unknown as GitClient;
+
+		await expect(
+			materializePrBranch({
+				git,
+				branch: "feature/x",
+				remoteName: "origin",
+				pr: {
+					number: 123,
+					headRefName: "feature/x",
+					headRefOid: EXPECTED_HEAD_OID,
+					isCrossRepository: false,
+				},
+			}),
+		).rejects.toThrow("branch was created concurrently");
+
+		expect(localBranchLookupCount).toBe(1);
+		expect(raw).not.toHaveBeenCalledWith(["branch", "-D", "--", "feature/x"]);
+	});
+
+	test("surfaces rollback failure details after creating a branch", async () => {
+		let localBranchLookupCount = 0;
+		const raw = mock(async (args: string[]) => {
+			if (args[0] === "rev-parse") {
+				const ref = args[2] ?? "";
+				if (ref === "refs/heads/feature/x^{commit}") {
+					localBranchLookupCount += 1;
+					if (localBranchLookupCount === 1) {
+						throw new Error("branch does not exist before create");
+					}
+					return `${EXPECTED_HEAD_OID}\n`;
+				}
+				return `${EXPECTED_HEAD_OID}\n`;
+			}
+			if (args[0] === "config") {
+				throw new Error("config failed");
+			}
+			if (args[0] === "branch" && args[1] === "-D") {
+				throw new Error("cleanup denied");
+			}
+			return "";
+		});
+		const git = { raw } as unknown as GitClient;
+
+		await expect(
+			materializePrBranch({
+				git,
+				branch: "feature/x",
+				remoteName: "origin",
+				pr: {
+					number: 123,
+					headRefName: "feature/x",
+					headRefOid: EXPECTED_HEAD_OID,
+					isCrossRepository: false,
+				},
+			}),
+		).rejects.toThrow(
+			'Failed to materialize PR branch "feature/x": config failed. Failed to roll back created branch: cleanup denied',
+		);
+
+		expect(raw).toHaveBeenCalledWith(["branch", "-D", "--", "feature/x"]);
+	});
 });

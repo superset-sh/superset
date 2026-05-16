@@ -640,7 +640,7 @@ export const workspacesRouter = router({
 								});
 							}
 						} else {
-							let attemptedWorktreeAdd = false;
+							let worktreeAddStarted = false;
 							let materialized: MaterializePrBranchResult | null = null;
 							try {
 								materialized = await materializePrBranch({
@@ -652,7 +652,7 @@ export const workspacesRouter = router({
 								if (materialized.warning) {
 									console.warn(`[workspaces.create] ${materialized.warning}`);
 								}
-								attemptedWorktreeAdd = true;
+								worktreeAddStarted = true;
 								await git.raw([
 									"worktree",
 									"add",
@@ -660,7 +660,7 @@ export const workspacesRouter = router({
 									resolvedBranch,
 								]);
 							} catch (err) {
-								if (attemptedWorktreeAdd) {
+								if (worktreeAddStarted) {
 									await rollbackWorktree();
 								}
 								if (materialized?.createdBranch) {

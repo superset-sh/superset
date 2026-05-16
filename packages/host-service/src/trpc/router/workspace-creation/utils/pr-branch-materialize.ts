@@ -236,6 +236,7 @@ export async function materializePrBranch(args: {
 		};
 	}
 
+	let branchCreated = false;
 	try {
 		await args.git.raw([
 			"branch",
@@ -244,6 +245,7 @@ export async function materializePrBranch(args: {
 			args.branch,
 			source.startPoint,
 		]);
+		branchCreated = true;
 		await configurePrBranchTracking({
 			git: args.git,
 			branch: args.branch,
@@ -251,11 +253,19 @@ export async function materializePrBranch(args: {
 			mergeRef: source.mergeRef,
 		});
 	} catch (err) {
-		await deleteMaterializedPrBranchIfSafe({
-			git: args.git,
-			branch: args.branch,
-			expectedHeadOid: args.pr.headRefOid,
-		}).catch(() => {});
+		if (branchCreated) {
+			try {
+				await deleteMaterializedPrBranchIfSafe({
+					git: args.git,
+					branch: args.branch,
+					expectedHeadOid: args.pr.headRefOid,
+				});
+			} catch (cleanupErr) {
+				throw new Error(
+					`Failed to materialize PR branch "${args.branch}": ${err instanceof Error ? err.message : String(err)}. Failed to roll back created branch: ${cleanupErr instanceof Error ? cleanupErr.message : String(cleanupErr)}`,
+				);
+			}
+		}
 		throw err;
 	}
 
