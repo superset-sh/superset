@@ -63,6 +63,21 @@ describe("selectExternalWorktreesForImport", () => {
 		expect(result.map((w) => w.path)).toEqual(["/repos/wt-b"]);
 	});
 
+	test("worktrees at an active tracked path are skipped even when the branch changed", () => {
+		const worktrees = [wt({ path: "/repos/wt-b", branch: "feature-new" })];
+		const result = selectExternalWorktreesForImport(worktrees, {
+			mainRepoPath,
+			trackedWorktrees: [
+				{
+					path: "/repos/wt-b",
+					branch: "feature-old",
+					hasActiveWorkspace: true,
+				},
+			],
+		});
+		expect(result).toEqual([]);
+	});
+
 	test("requested paths that are bare/detached/branchless are skipped", () => {
 		const worktrees = [
 			wt({ path: "/repos/wt-a", branch: "feature-a" }),

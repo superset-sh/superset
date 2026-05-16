@@ -898,20 +898,24 @@ export const createCreateProcedures = () => {
 					.from(worktrees)
 					.where(eq(worktrees.projectId, input.projectId))
 					.all();
+				const activeWorkspaceRows = localDb
+					.select({ worktreeId: workspaces.worktreeId })
+					.from(workspaces)
+					.where(
+						and(
+							eq(workspaces.projectId, input.projectId),
+							isNull(workspaces.deletingAt),
+						),
+					)
+					.all();
+				const activeWorktreeIds = new Set(
+					activeWorkspaceRows
+						.map((workspace) => workspace.worktreeId)
+						.filter((worktreeId): worktreeId is string => Boolean(worktreeId)),
+				);
 
 				for (const wt of projectWorktrees) {
-					const existingWorkspace = localDb
-						.select()
-						.from(workspaces)
-						.where(
-							and(
-								eq(workspaces.worktreeId, wt.id),
-								isNull(workspaces.deletingAt),
-							),
-						)
-						.get();
-
-					if (existingWorkspace) continue;
+					if (activeWorktreeIds.has(wt.id)) continue;
 
 					const liveWorktree = liveWorktreeByPath.get(wt.path);
 					if (
@@ -945,7 +949,10 @@ export const createCreateProcedures = () => {
 					allExternalWorktrees,
 					{
 						mainRepoPath: project.mainRepoPath,
-						trackedWorktrees: projectWorktrees,
+						trackedWorktrees: projectWorktrees.map((worktree) => ({
+							...worktree,
+							hasActiveWorkspace: activeWorktreeIds.has(worktree.id),
+						})),
 					},
 				);
 
@@ -1026,12 +1033,30 @@ export const createCreateProcedures = () => {
 					.from(worktrees)
 					.where(eq(worktrees.projectId, input.projectId))
 					.all();
+				const activeWorkspaceRows = localDb
+					.select({ worktreeId: workspaces.worktreeId })
+					.from(workspaces)
+					.where(
+						and(
+							eq(workspaces.projectId, input.projectId),
+							isNull(workspaces.deletingAt),
+						),
+					)
+					.all();
+				const activeWorktreeIds = new Set(
+					activeWorkspaceRows
+						.map((workspace) => workspace.worktreeId)
+						.filter((worktreeId): worktreeId is string => Boolean(worktreeId)),
+				);
 
 				const externalWorktrees = selectExternalWorktreesForImport(
 					allExternalWorktrees,
 					{
 						mainRepoPath: project.mainRepoPath,
-						trackedWorktrees: projectWorktrees,
+						trackedWorktrees: projectWorktrees.map((worktree) => ({
+							...worktree,
+							hasActiveWorkspace: activeWorktreeIds.has(worktree.id),
+						})),
 						requested: new Set(input.paths),
 					},
 				);

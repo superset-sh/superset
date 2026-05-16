@@ -167,6 +167,22 @@ export async function createWorkspaceFromExternalWorktree({
 			)
 			.get();
 
+		const activeWorkspaceForExistingWorktree = existingWorktreeByPath
+			? localDb
+					.select()
+					.from(workspaces)
+					.where(
+						and(
+							eq(workspaces.worktreeId, existingWorktreeByPath.id),
+							isNull(workspaces.deletingAt),
+						),
+					)
+					.get()
+			: undefined;
+		if (activeWorkspaceForExistingWorktree) {
+			throw new Error("Worktree already has an active workspace");
+		}
+
 		const worktree = existingWorktreeByPath
 			? {
 					...existingWorktreeByPath,
@@ -298,7 +314,7 @@ export interface OpenExternalWorktreeResult {
 export async function openExternalWorktree({
 	projectId,
 	worktreePath,
-	branch,
+	branch: _requestedBranch,
 }: OpenExternalWorktreeParams): Promise<OpenExternalWorktreeResult> {
 	const project = localDb
 		.select()
@@ -311,12 +327,16 @@ export async function openExternalWorktree({
 	}
 
 	const liveWorktrees = await listExternalWorktrees(project.mainRepoPath);
-	const exists = liveWorktrees.some(
+	const liveWorktree = liveWorktrees.find(
 		(worktree) => worktree.path === worktreePath,
 	);
-	if (!exists) {
+	if (!liveWorktree) {
 		throw new Error("Worktree no longer exists on disk");
 	}
+	if (liveWorktree.isBare || liveWorktree.isDetached || !liveWorktree.branch) {
+		throw new Error("Worktree is not importable");
+	}
+	const branch = liveWorktree.branch;
 
 	let existingWorktree = localDb
 		.select()
@@ -327,7 +347,24 @@ export async function openExternalWorktree({
 		.get();
 
 	if (existingWorktree) {
+		const existingWorkspace = localDb
+			.select()
+			.from(workspaces)
+			.where(
+				and(
+					eq(workspaces.worktreeId, existingWorktree.id),
+					isNull(workspaces.deletingAt),
+				),
+			)
+			.get();
+
 		if (existingWorktree.branch !== branch) {
+			if (existingWorkspace) {
+				throw new Error(
+					"Worktree already has an active workspace on a different branch",
+				);
+			}
+
 			localDb
 				.update(worktrees)
 				.set({
@@ -375,17 +412,6 @@ export async function openExternalWorktree({
 				.where(eq(worktrees.id, existingWorktree.id))
 				.run();
 		}
-
-		const existingWorkspace = localDb
-			.select()
-			.from(workspaces)
-			.where(
-				and(
-					eq(workspaces.worktreeId, existingWorktree.id),
-					isNull(workspaces.deletingAt),
-				),
-			)
-			.get();
 
 		if (existingWorkspace) {
 			touchWorkspace(existingWorkspace.id);

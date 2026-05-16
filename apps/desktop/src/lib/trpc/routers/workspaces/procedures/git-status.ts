@@ -348,14 +348,36 @@ export const createGitStatusProcedures = () => {
 
 				const allWorktrees = await listExternalWorktrees(project.mainRepoPath);
 				const trackedWorktrees = localDb
-					.select({ path: worktrees.path, branch: worktrees.branch })
+					.select({
+						id: worktrees.id,
+						path: worktrees.path,
+						branch: worktrees.branch,
+					})
 					.from(worktrees)
 					.where(eq(worktrees.projectId, input.projectId))
 					.all();
+				const activeWorkspaceRows = localDb
+					.select({ worktreeId: workspaces.worktreeId })
+					.from(workspaces)
+					.where(
+						and(
+							eq(workspaces.projectId, input.projectId),
+							isNull(workspaces.deletingAt),
+						),
+					)
+					.all();
+				const activeWorktreeIds = new Set(
+					activeWorkspaceRows
+						.map((workspace) => workspace.worktreeId)
+						.filter((worktreeId): worktreeId is string => Boolean(worktreeId)),
+				);
 
 				return selectExternalWorktreesForImport(allWorktrees, {
 					mainRepoPath: project.mainRepoPath,
-					trackedWorktrees,
+					trackedWorktrees: trackedWorktrees.map((worktree) => ({
+						...worktree,
+						hasActiveWorkspace: activeWorktreeIds.has(worktree.id),
+					})),
 				}).map((wt) => ({
 					path: wt.path,
 					// biome-ignore lint/style/noNonNullAssertion: filtered above

@@ -2,7 +2,11 @@ import type { ExternalWorktree } from "./git";
 
 interface SelectArgs {
 	mainRepoPath: string;
-	trackedWorktrees: Array<{ path: string; branch: string }>;
+	trackedWorktrees: Array<{
+		path: string;
+		branch: string;
+		hasActiveWorkspace?: boolean;
+	}>;
 	/** When provided, only worktrees whose path is in this set are returned. */
 	requested?: Set<string>;
 }
@@ -20,6 +24,9 @@ export function selectExternalWorktreesForImport(
 	const trackedWorktreeKeys = new Set(
 		trackedWorktrees.map((wt) => `${wt.path}\0${wt.branch}`),
 	);
+	const activeTrackedPaths = new Set(
+		trackedWorktrees.filter((wt) => wt.hasActiveWorkspace).map((wt) => wt.path),
+	);
 
 	return worktrees.filter((wt) => {
 		if (requested && !requested.has(wt.path)) return false;
@@ -27,6 +34,7 @@ export function selectExternalWorktreesForImport(
 		if (wt.isBare) return false;
 		if (wt.isDetached) return false;
 		if (!wt.branch) return false;
+		if (activeTrackedPaths.has(wt.path)) return false;
 		if (trackedWorktreeKeys.has(`${wt.path}\0${wt.branch}`)) return false;
 		return true;
 	});
