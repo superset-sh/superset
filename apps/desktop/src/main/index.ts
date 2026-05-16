@@ -58,7 +58,7 @@ console.log("[main] Local database ready:", !!localDb);
 const IS_DEV = process.env.NODE_ENV === "development";
 
 // OSS-dev only: expose Chrome DevTools Protocol for headless testing
-// (e.g. import/host-service checks). Skip in internal-dev / cloud / self-host.
+// (e.g. import/host-service checks). Skip in internal / cloud profiles.
 if (IS_DEV && getDeploymentProfile() === "oss-dev") {
 	app.commandLine.appendSwitch("remote-debugging-port", "9333");
 	app.commandLine.appendSwitch("remote-allow-origins", "*");

@@ -440,10 +440,6 @@ step_write_env() {
     echo "# Workspace Identity"
     write_env_var "SUPERSET_WORKSPACE_NAME" "${WORKSPACE_NAME:-$(basename "$PWD")}"
     write_env_var "SUPERSET_HOME_DIR" "$PWD/superset-dev-data"
-    # Marks this workspace as an internal-dev profile. Used by env validation
-    # to enforce strict (fail-fast on missing integration keys) — matches the
-    # pre-OSS behavior internal devs rely on. Never set in .env.example.
-    write_env_var "SUPERSET_INTERNAL_DEV" "1"
     echo ""
     echo "# Workspace Database (Neon Branch)"
     if [ -n "${BRANCH_ID:-}" ]; then

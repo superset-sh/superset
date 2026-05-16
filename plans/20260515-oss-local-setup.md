@@ -65,14 +65,13 @@ A fresh-clone contributor can:
 
 ## Deployment profiles (the key abstraction)
 
-`packages/shared/src/deployment-profile.ts` exposes a four-profile model:
+`packages/shared/src/deployment-profile.ts` exposes a three-profile model:
 
 | Profile | Trigger | Validation |
 |---|---|---|
 | `cloud` | `VERCEL=1` (set automatically by Vercel) | Strict — every integration key required |
-| `internal-dev` | `SUPERSET_INTERNAL_DEV=1` (written by `.superset/setup.sh`) | Strict |
-| `self-hosted` | `NODE_ENV=production` outside Vercel | Strict |
-| `oss-dev` | default | Lenient |
+| `oss-dev` | `SUPERSET_OSS=1` | Lenient — integration keys optional, features degrade |
+| `internal` | default | Strict — covers internal team dev + self-hosted prod |
 
 All env schemas (`apps/api/src/env.ts`, `packages/trpc/src/env.ts`, `apps/web/src/env.ts`, etc.) compute their `skipValidation` from this:
 
@@ -80,11 +79,15 @@ All env schemas (`apps/api/src/env.ts`, `packages/trpc/src/env.ts`, `apps/web/sr
 const skipValidation = !isStrictProfile(getDeploymentProfile()) || !!process.env.SKIP_ENV_VALIDATION;
 ```
 
-OSS contributors: validation skipped → boot with whatever's in `.env`, lazy guards catch the crashes.
-Internal devs: validation runs → fail-fast on missing keys, same as today's experience.
-Cloud / self-hosted: validation runs → bad deploys never serve traffic.
+OSS contributors: set `SUPERSET_OSS=1` once → validation skipped → boot with whatever's in `.env`, lazy guards catch the crashes.
+Internal devs: nothing changes → validation runs → fail-fast on missing keys, exactly today's experience.
+Cloud (Vercel): same as before, strict enforcement of all keys.
+Self-hosted: defaults to strict — operators get a loud error if they miss something.
 
-The discriminator (`SUPERSET_INTERNAL_DEV=1`) is **positive-presence**: a contributor cloning fresh has no way to type it accidentally — it's never in `.env.example`, never documented as a setting. Written only by `.superset/lib/setup/steps.sh` `step_write_env`.
+**Strict-by-default** is the conservative direction:
+- Internal devs and self-hosters keep their fail-fast workflow with zero changes to setup or shell config.
+- An internal dev who accidentally drops their `.env` gets the same loud error they get today.
+- An OSS contributor only has to type one flag (`SUPERSET_OSS=1`) — and gets explicit "you're in lenient mode" feedback via the boot summary.
 
 `SKIP_ENV_VALIDATION=1` remains the build-time escape hatch (e.g. Docker preview builds), routed through `turbo.jsonc`'s `globalPassThroughEnv`. Not the primary discriminator.
 

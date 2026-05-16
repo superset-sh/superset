@@ -5,10 +5,10 @@ import {
 import { createEnv } from "@t3-oss/env-nextjs";
 import { z } from "zod";
 
-// OSS-dev profile skips strict env validation so a fresh clone boots without
-// every integration key. Strict profiles (cloud, internal-dev, self-hosted)
-// still fail fast on missing required keys. SKIP_ENV_VALIDATION=1 remains a
-// build-time escape hatch (e.g. for Docker preview builds).
+// Default profile is `internal` (strict). OSS contributors set
+// SUPERSET_OSS=1 to opt into the lenient `oss-dev` profile, which
+// skips env validation so a fresh clone boots without every key.
+// SKIP_ENV_VALIDATION=1 remains a build-time escape hatch.
 const profile = getDeploymentProfile();
 const skipValidation =
 	!isStrictProfile(profile) || !!process.env.SKIP_ENV_VALIDATION;

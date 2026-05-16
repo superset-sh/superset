@@ -99,7 +99,7 @@ docker run -d --name superset-pg \
 cp .env.example .env   # then edit DATABASE_URL + BETTER_AUTH_SECRET
 bun run db:migrate
 cp Caddyfile.example Caddyfile && caddy trust
-bun dev
+SUPERSET_OSS=1 bun dev
 ```
 
 The desktop window opens auto-signed-in as a seed admin (`admin@local.test`). See [Local Development](docs/LOCAL_DEVELOPMENT.md) for details, troubleshooting, and what's stubbed without integration keys.

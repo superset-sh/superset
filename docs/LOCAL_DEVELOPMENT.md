@@ -66,8 +66,10 @@ Without `caddy trust`, Chromium will reject `https://localhost:*` with `ERR_CERT
 ## Run it
 
 ```bash
-bun dev
+SUPERSET_OSS=1 bun dev
 ```
+
+`SUPERSET_OSS=1` opts you into the lenient OSS profile so the app boots without every integration key — Stripe, OAuth, Resend, etc. become optional. Without it, the app defaults to strict validation (matching the internal-team workflow) and will fail boot if any of those keys are missing.
 
 That brings up:
 
@@ -85,7 +87,7 @@ The Electron window opens automatically.
 
 ### How sign-in works
 
-On first launch in the `oss-dev` profile (no `SUPERSET_INTERNAL_DEV` or `VERCEL` flag set), the desktop main process auto-signs you in as a seed admin user:
+On first launch in the `oss-dev` profile (when `SUPERSET_OSS=1` is set), the desktop main process auto-signs you in as a seed admin user:
 
 - **Email:** `admin@local.test`
 - **Password:** `supersetdev`
@@ -94,16 +96,15 @@ If the user doesn't exist, it's created and a personal organization is provision
 
 ### Deployment profiles
 
-Profile is resolved at boot from env flags, in order of trust:
+Profile is resolved at boot:
 
-| Profile        | Trigger                                         | Behavior |
-|----------------|-------------------------------------------------|----------|
-| `cloud`        | `VERCEL=1` (set automatically by Vercel)        | Strict — every integration key required |
-| `internal-dev` | `SUPERSET_INTERNAL_DEV=1` (written by `.superset/setup.sh`) | Strict — same fail-fast as cloud |
-| `self-hosted`  | `NODE_ENV=production` outside Vercel            | Strict |
-| `oss-dev`      | default                                         | Lenient — integration keys optional, features degrade |
+| Profile     | Trigger                              | Behavior |
+|-------------|--------------------------------------|----------|
+| `cloud`     | `VERCEL=1` (set automatically)       | Strict — every integration key required |
+| `oss-dev`   | `SUPERSET_OSS=1`                     | Lenient — integration keys optional, features degrade |
+| `internal`  | default                              | Strict — covers internal team dev and self-hosted prod |
 
-A contributor cloning from GitHub gets `oss-dev` by default — there's nothing to type and the strict-mode flags are positive-presence (you'd have to actively set them, never accidentally trip).
+**Strict-by-default is the safe direction.** Internal devs and self-hosters keep their fail-fast workflow with no setup changes. OSS contributors set `SUPERSET_OSS=1` once (in `.env`, or as a shell var) to opt into the lenient path.
 
 The escape hatch `SKIP_ENV_VALIDATION=1` still works for build-time / CI cases (e.g. Docker preview builds).
 
@@ -154,7 +155,7 @@ Each is "guard, don't crash" — if you click into a feature that needs a key, y
 
 **`EADDRINUSE: address already in use :::4641`** — a previous `bun dev` is still alive. `pkill -f "turbo run dev"` and retry.
 
-**`Host service not available` toast in desktop** — the auto-sign-in didn't run or didn't persist the token. Check `superset-dev-data/auth-token.enc` exists. Delete it and rerun if needed: `rm superset-dev-data/auth-token.enc && bun dev`. Also confirm the profile via `curl http://localhost:4641/api/health` returns `"profile": "oss-dev"` — if it says `internal-dev`, your shell has `SUPERSET_INTERNAL_DEV=1` exported and auto-sign-in is intentionally skipped.
+**`Host service not available` toast in desktop** — the auto-sign-in didn't run or didn't persist the token. Check `superset-dev-data/auth-token.enc` exists. Delete it and rerun if needed: `rm superset-dev-data/auth-token.enc && SUPERSET_OSS=1 bun dev`. Also confirm the profile via `curl http://localhost:4641/api/health` returns `"profile": "oss-dev"` — if it says `internal`, you forgot to set `SUPERSET_OSS=1` and auto-sign-in is intentionally skipped.
 
 **`Missing API key` for some integration** — that integration's key isn't in `.env`. Either supply it or avoid the feature.
 
