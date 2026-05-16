@@ -85,56 +85,31 @@ If it runs in a terminal, it runs on Superset
 
 ### Build from Source
 
-<details>
-<summary>Click to expand build instructions</summary>
+For a complete contributor workflow that boots a fresh clone with no third-party credentials (Neon / OAuth / Stripe / Resend keys are all optional), follow **[Local Development](docs/LOCAL_DEVELOPMENT.md)**.
 
-**1. Clone the repository**
+Short version:
 
 ```bash
 git clone https://github.com/superset-sh/superset.git
 cd superset
-```
-
-**2. Set up environment variables** (choose one):
-
-Option A: Full setup
-```bash
-cp .env.example .env
-# Edit .env and fill in the values
-```
-
-Option B: Skip env validation (for quick local testing)
-```bash
-cp .env.example .env
-echo 'SKIP_ENV_VALIDATION=1' >> .env
-```
-
-**3. Set up Caddy** (reverse proxy for Electric SQL streams):
-
-```bash
-# Install caddy: brew install caddy (macOS) or see https://caddyserver.com/docs/install
-cp Caddyfile.example Caddyfile
-
-# Without this, Chromium rejects https://localhost:* with ERR_CERT_AUTHORITY_INVALID.
-# Prompts for sudo once.
-caddy trust
-```
-
-**4. Install dependencies and run**
-
-```bash
 bun install
-bun run dev
+docker run -d --name superset-pg \
+  -e POSTGRES_USER=superset -e POSTGRES_PASSWORD=superset -e POSTGRES_DB=superset \
+  -p 5433:5432 postgres:16 -c wal_level=logical
+cp .env.example .env   # then edit DATABASE_URL + BETTER_AUTH_SECRET
+bun run db:migrate
+cp Caddyfile.example Caddyfile && caddy trust
+SKIP_ENV_VALIDATION=1 bun dev
 ```
 
-**5. Build the desktop app**
+The desktop window opens auto-signed-in as a seed admin (`admin@local.test`). See [Local Development](docs/LOCAL_DEVELOPMENT.md) for details, troubleshooting, and what's stubbed without integration keys.
+
+To build a distributable desktop app:
 
 ```bash
 bun run build
 open apps/desktop/release
 ```
-
-</details>
 
 ## Keyboard Shortcuts
 

@@ -89,6 +89,10 @@ export const auth = betterAuth({
 			generateId: false,
 		},
 	},
+	emailAndPassword: {
+		enabled: true,
+		autoSignIn: true,
+	},
 	socialProviders: {
 		github: {
 			clientId: env.GH_CLIENT_ID,

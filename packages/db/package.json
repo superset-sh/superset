@@ -37,6 +37,7 @@
 		"clean": "git clean -xdf .cache .turbo dist node_modules",
 		"push": "drizzle-kit push",
 		"migrate": "drizzle-kit migrate",
+		"seed:dev": "bun run src/seed-dev.ts",
 		"studio": "drizzle-kit studio",
 		"typecheck": "tsc --noEmit --emitDeclarationOnly false"
 	},
@@ -46,11 +47,13 @@
 		"@t3-oss/env-core": "0.13.11",
 		"dotenv": "17.3.1",
 		"drizzle-orm": "0.45.2",
+		"pg": "8.20.0",
 		"zod": "4.3.6"
 	},
 	"devDependencies": {
 		"@superset/typescript": "workspace:*",
 		"@types/node": "24.12.0",
+		"@types/pg": "8.20.0",
 		"bun-types": "1.3.11",
 		"drizzle-kit": "0.31.8",
 		"typescript": "5.9.3"

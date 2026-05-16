@@ -62,9 +62,9 @@ function AuthenticatedLayout() {
 	const isV2CloudEnabled = useIsV2CloudEnabled();
 
 	const isSignedIn = env.SKIP_ENV_VALIDATION || !!session?.user;
-	const activeOrganizationId = env.SKIP_ENV_VALIDATION
-		? MOCK_ORG_ID
-		: session?.session?.activeOrganizationId;
+	const activeOrganizationId =
+		session?.session?.activeOrganizationId ??
+		(env.SKIP_ENV_VALIDATION ? MOCK_ORG_ID : null);
 
 	useAgentHookListener();
 	useUpdateListener();

@@ -32,9 +32,9 @@ export function DashboardNewWorkspaceModalContent({
 	);
 	const collections = useCollections();
 	const { data: session } = authClient.useSession();
-	const activeOrganizationId = env.SKIP_ENV_VALIDATION
-		? MOCK_ORG_ID
-		: (session?.session?.activeOrganizationId ?? null);
+	const activeOrganizationId =
+		session?.session?.activeOrganizationId ??
+		(env.SKIP_ENV_VALIDATION ? MOCK_ORG_ID : null);
 
 	const { data: v2Projects } = useLiveQuery(
 		(q) =>

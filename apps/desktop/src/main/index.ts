@@ -28,6 +28,7 @@ import { initAppState } from "./lib/app-state";
 import { requestAppleEventsAccess } from "./lib/apple-events-permission";
 import { setupAutoUpdater } from "./lib/auto-updater";
 import { installBundledCliShim } from "./lib/bundled-cli";
+import { ensureDevAuthToken } from "./lib/dev-auto-sign-in";
 import { resolveDevWorkspaceName } from "./lib/dev-workspace-name";
 import { setWorkspaceDockIcon } from "./lib/dock-icon";
 import { loadWebviewBrowserExtension } from "./lib/extensions";
@@ -54,6 +55,12 @@ import { MainWindow } from "./windows/main";
 
 console.log("[main] Local database ready:", !!localDb);
 const IS_DEV = process.env.NODE_ENV === "development";
+
+// Dev: expose Chrome DevTools Protocol for headless testing (e.g. import/host-service checks)
+if (IS_DEV && process.env.SKIP_ENV_VALIDATION) {
+	app.commandLine.appendSwitch("remote-debugging-port", "9333");
+	app.commandLine.appendSwitch("remote-allow-origins", "*");
+}
 
 void applyShellEnvToProcess().catch((error) => {
 	console.error("[main] Failed to apply shell environment:", error);
@@ -415,6 +422,12 @@ if (!gotTheLock) {
 		} catch (error) {
 			console.error("[main] Failed to install bundled CLI shim:", error);
 		}
+
+		// Dev-only: auto-sign-in as the seed admin if SKIP_ENV_VALIDATION is
+		// set and no token is on disk. Lets fresh-clone contributors boot the
+		// desktop without OAuth. Runs before host-service discovery so the
+		// renderer's AuthProvider hydrates with a valid token on first paint.
+		await ensureDevAuthToken();
 
 		// Discover and adopt host-services that survived a previous quit
 		// before the tray initializes, so it shows accurate status immediately.
